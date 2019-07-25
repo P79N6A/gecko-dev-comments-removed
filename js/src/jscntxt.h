@@ -48,18 +48,22 @@
 #include "jsprvtd.h"
 #include "jsarena.h"
 #include "jsclist.h"
+#include "jslong.h"
 #include "jsatom.h"
 #include "jsdhash.h"
+#include "jsdtoa.h"
 #include "jsfun.h"
 #include "jsgc.h"
 #include "jsgcchunk.h"
 #include "jshashtable.h"
 #include "jsinterp.h"
+#include "jsmath.h"
 #include "jsobj.h"
 #include "jspropertycache.h"
 #include "jspropertytree.h"
 #include "jsstaticcheck.h"
 #include "jsutil.h"
+#include "jsarray.h"
 #include "jsvector.h"
 #include "prmjtime.h"
 
@@ -83,10 +87,6 @@ template<typename K, typename V, typename H> class HashMap;
 template<typename T> class Seq;
 
 }  
-
-JS_BEGIN_EXTERN_C
-struct DtoaState;
-JS_END_EXTERN_C
 
 namespace js {
 
@@ -117,8 +117,6 @@ namespace mjit {
 class JaegerCompartment;
 }
 
-class WeakMapBase;
-
 
 
 
@@ -133,12 +131,24 @@ struct GSNCache {
 
     jsbytecode      *code;
     Map             map;
+#ifdef JS_GSNMETER
+    struct Stats {
+        uint32          hits;
+        uint32          misses;
+        uint32          fills;
+        uint32          purges;
+
+        Stats() : hits(0), misses(0), fills(0), purges(0) { }
+    };
+
+    Stats           stats;
+#endif
 
     GSNCache() : code(NULL) { }
 
     void purge();
 };
-
+ 
 inline GSNCache *
 GetGSNCache(JSContext *cx);
 
@@ -212,7 +222,7 @@ struct ThreadData {
     ~ThreadData();
 
     bool init();
-
+    
     void mark(JSTracer *trc) {
         stackSpace.mark(trc);
     }
@@ -263,7 +273,7 @@ struct JSThread {
         suspendCount(0)
 # ifdef DEBUG
       , checkRequestDepth(0)
-# endif
+# endif        
     {
         JS_INIT_CLIST(&contextList);
     }
@@ -281,7 +291,7 @@ struct JSThread {
 #define JS_THREAD_DATA(cx)      (&(cx)->thread()->data)
 
 extern JSThread *
-js_CurrentThreadAndLockGC(JSRuntime *rt);
+js_CurrentThread(JSRuntime *rt);
 
 
 
@@ -289,7 +299,7 @@ js_CurrentThreadAndLockGC(JSRuntime *rt);
 
 
 extern JSBool
-js_InitContextThreadAndLockGC(JSContext *cx);
+js_InitContextThread(JSContext *cx);
 
 
 
@@ -298,6 +308,27 @@ extern void
 js_ClearContextThread(JSContext *cx);
 
 #endif 
+
+#ifdef DEBUG
+# define FUNCTION_KIND_METER_LIST(_)                                          \
+                        _(allfun), _(heavy), _(nofreeupvar), _(onlyfreevar),  \
+                        _(flat), _(badfunarg),                                \
+                        _(joinedsetmethod), _(joinedinitmethod),              \
+                        _(joinedreplace), _(joinedsort), _(joinedmodulepat),  \
+                        _(mreadbarrier), _(mwritebarrier), _(mwslotbarrier),  \
+                        _(unjoined), _(indynamicscope)
+# define identity(x)    x
+
+struct JSFunctionMeter {
+    int32 FUNCTION_KIND_METER_LIST(identity);
+};
+
+# undef identity
+
+# define JS_FUNCTION_METER(cx,x) JS_RUNTIME_METER((cx)->runtime, functionMeter.x)
+#else
+# define JS_FUNCTION_METER(cx,x) ((void)0)
+#endif
 
 typedef enum JSDestroyContextMode {
     JSDCM_NO_GC,
@@ -327,8 +358,7 @@ typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 
 }
 
-struct JSRuntime
-{
+struct JSRuntime {
     
     JSCompartment       *atomsCompartment;
 #ifdef JS_THREADSAFE
@@ -340,20 +370,6 @@ struct JSRuntime
 
     
     JSRuntimeState      state;
-
-    
-#ifdef JS_THREADSAFE
-  public:
-    void clearOwnerThread();
-    void setOwnerThread();
-    JS_FRIEND_API(bool) onOwnerThread() const;
-  private:
-    void                *ownerThread_;
-  public:
-#else
-  public:
-    bool onOwnerThread() const { return true; }
-#endif
 
     
     JSContextCallback   cxCallback;
@@ -390,31 +406,7 @@ struct JSRuntime
     uint32              protoHazardShape;
 
     
-
-    
-
-
-
-
     js::GCChunkSet      gcChunkSet;
-
-    
-
-
-
-
-
-
-    js::gc::Chunk       *gcSystemAvailableChunkListHead;
-    js::gc::Chunk       *gcUserAvailableChunkListHead;
-
-    
-
-
-
-
-    js::gc::Chunk       *gcEmptyChunkListHead;
-    size_t              gcEmptyChunkCount;
 
     js::RootedValueMap  gcRootsHash;
     js::GCLocks         gcLocksHash;
@@ -424,19 +416,17 @@ struct JSRuntime
     size_t              gcLastBytes;
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
+    size_t              gcChunksWaitingToExpire;
     uint32              gcEmptyArenaPoolLifespan;
     uint32              gcNumber;
     js::GCMarker        *gcMarkingTracer;
-    bool                gcChunkAllocationSinceLastGC;
-    int64               gcNextFullGCTime;
     int64               gcJitReleaseTime;
     JSGCMode            gcMode;
     volatile bool       gcIsNeeded;
-    js::WeakMapBase     *gcWeakMapList;
+    JSObject           *gcWeakMapList;
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackRopes[js::ROPES_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];
 
@@ -453,12 +443,6 @@ struct JSRuntime
 
 
 
-    JSCompartment       *gcCheckCompartment;
-
-    
-
-
-
 
 
     bool                gcPoke;
@@ -466,43 +450,8 @@ struct JSRuntime
     bool                gcRunning;
     bool                gcRegenShapes;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef JS_GC_ZEAL
-    int                 gcZeal_;
-    int                 gcZealFrequency;
-    int                 gcNextScheduled;
-    bool                gcDebugCompartmentGC;
-
-    int gcZeal() { return gcZeal_; }
-
-    bool needZealousGC() {
-        if (gcNextScheduled > 0 && --gcNextScheduled == 0) {
-            if (gcZeal() >= 2)
-                gcNextScheduled = gcZealFrequency;
-            return true;
-        }
-        return false;
-    }
-#else
-    int gcZeal() { return 0; }
-    bool needZealousGC() { return false; }
+    jsrefcount          gcZeal;
 #endif
 
     JSGCCallback        gcCallback;
@@ -558,6 +507,13 @@ struct JSRuntime
 
     
     JSCList             trapList;
+    JSCList             watchPointList;
+
+    
+
+
+
+    JSCList             debuggerList;
 
     
     void                *data;
@@ -582,6 +538,7 @@ struct JSRuntime
     PRCondVar           *stateChange;
 
     
+
 
 
 
@@ -638,12 +595,6 @@ struct JSRuntime
 #define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
 #endif
 
-  private:
-    JSPrincipals        *trustedPrincipals_;
-  public:
-    void setTrustedPrincipals(JSPrincipals *p) { trustedPrincipals_ = p; }
-    JSPrincipals *trustedPrincipals() const { return trustedPrincipals_; }
-
     
 
 
@@ -662,60 +613,117 @@ struct JSRuntime
     
     JSAtomState         atomState;
 
-    JSWrapObjectCallback wrapObjectCallback;
-    JSPreWrapCallback    preWrapObjectCallback;
+    
+
+
+
+
+#ifdef JS_DUMP_ENUM_CACHE_STATS
+    int32               nativeEnumProbes;
+    int32               nativeEnumMisses;
+# define ENUM_CACHE_METER(name)     JS_ATOMIC_INCREMENT(&cx->runtime->name)
+#else
+# define ENUM_CACHE_METER(name)     ((void) 0)
+#endif
+
+#ifdef DEBUG
+    
+    jsrefcount          inlineCalls;
+    jsrefcount          nativeCalls;
+    jsrefcount          nonInlineCalls;
+    jsrefcount          constructs;
 
     
 
 
 
 
-    int32               inOOMReport;
-
-#if defined(MOZ_GCTIMER) || defined(JSGC_TESTPILOT)
-    struct GCData {
-        
 
 
+    const char          *propTreeStatFilename;
+    const char          *propTreeDumpFilename;
 
-        uint64      firstEnter;
-        bool        firstEnterValid;
+    bool meterEmptyShapes() const { return propTreeStatFilename || propTreeDumpFilename; }
 
-        void setFirstEnter(uint64 v) {
-            JS_ASSERT(!firstEnterValid);
-            firstEnter = v;
-            firstEnterValid = true;
-        }
+    
+    jsrefcount          liveStrings;
+    jsrefcount          totalStrings;
+    jsrefcount          liveDependentStrings;
+    jsrefcount          totalDependentStrings;
+    jsrefcount          badUndependStrings;
+    double              lengthSum;
+    double              lengthSquaredSum;
+    double              strdepLengthSum;
+    double              strdepLengthSquaredSum;
 
-#ifdef JSGC_TESTPILOT
-        bool        infoEnabled;
+    
+    jsrefcount          liveScripts;
+    jsrefcount          totalScripts;
+    jsrefcount          liveEmptyScripts;
+    jsrefcount          totalEmptyScripts;
+    jsrefcount          highWaterLiveScripts;
+#endif 
 
-        bool isTimerEnabled() {
-            return infoEnabled;
-        }
-
-        
+#ifdef JS_SCOPE_DEPTH_METER
+    
 
 
 
-        static const size_t INFO_LIMIT = 64;
-        JSGCInfo    info[INFO_LIMIT];
-        size_t      start;
-        size_t      count;
-#else 
-        bool isTimerEnabled() {
-            return true;
-        }
+    JSBasicStats        protoLookupDepthStats;
+    JSBasicStats        scopeSearchDepthStats;
+
+    
+
+
+
+    JSBasicStats        hostenvScopeDepthStats;
+    JSBasicStats        lexicalScopeDepthStats;
 #endif
-    } gcData;
+
+#ifdef JS_GCMETER
+    js::gc::JSGCStats           gcStats;
+    js::gc::JSGCArenaStats      globalArenaStats[js::gc::FINALIZE_LIMIT];
 #endif
+
+#ifdef DEBUG
+    
+
+
+
+    const char          *functionMeterFilename;
+    JSFunctionMeter     functionMeter;
+    char                lastScriptFilename[1024];
+
+    typedef js::HashMap<JSFunction *,
+                        int32,
+                        js::DefaultHasher<JSFunction *>,
+                        js::SystemAllocPolicy> FunctionCountMap;
+
+    FunctionCountMap    methodReadBarrierCountMap;
+    FunctionCountMap    unjoinedFunctionCountMap;
+#endif
+
+    JSWrapObjectCallback wrapObjectCallback;
+    JSPreWrapCallback    preWrapObjectCallback;
+
+#ifdef JS_METHODJIT
+    
+    size_t               mjitDataSize;
+#endif
+
+    
+
+
+
+
+    bool                 inOOMReport;
 
     JSRuntime();
     ~JSRuntime();
 
     bool init(uint32 maxbytes);
 
-    void setGCLastBytes(size_t lastBytes, JSGCInvocationKind gckind);
+    void setGCLastBytes(size_t lastBytes);
     void reduceGCTriggerBytes(uint32 amount);
 
     
@@ -812,6 +820,14 @@ struct JSRuntime
 
 #define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
 
+#ifdef DEBUG
+# define JS_RUNTIME_METER(rt, which)    JS_ATOMIC_INCREMENT(&(rt)->which)
+# define JS_RUNTIME_UNMETER(rt, which)  JS_ATOMIC_DECREMENT(&(rt)->which)
+#else
+# define JS_RUNTIME_METER(rt, which)
+# define JS_RUNTIME_UNMETER(rt, which)
+#endif
+
 #define JS_KEEP_ATOMS(rt)   JS_ATOMIC_INCREMENT(&(rt)->gcKeepAtoms);
 #define JS_UNKEEP_ATOMS(rt) JS_ATOMIC_DECREMENT(&(rt)->gcKeepAtoms);
 
@@ -843,9 +859,15 @@ OptionsHasXML(uint32 options)
 }
 
 static inline bool
+OptionsHasAnonFunFix(uint32 options)
+{
+    return !!(options & JSOPTION_ANONFUNFIX);
+}
+
+static inline bool
 OptionsSameVersionFlags(uint32 self, uint32 other)
 {
-    static const uint32 mask = JSOPTION_XML;
+    static const uint32 mask = JSOPTION_XML | JSOPTION_ANONFUNFIX;
     return !((self & mask) ^ (other & mask));
 }
 
@@ -860,6 +882,7 @@ OptionsSameVersionFlags(uint32 self, uint32 other)
 namespace VersionFlags {
 static const uintN MASK         = 0x0FFF; 
 static const uintN HAS_XML      = 0x1000; 
+static const uintN ANONFUNFIX   = 0x2000; 
 static const uintN FULL_MASK    = 0x3FFF;
 }
 
@@ -882,6 +905,12 @@ VersionShouldParseXML(JSVersion version)
     return VersionHasXML(version) || VersionNumber(version) >= JSVERSION_1_6;
 }
 
+static inline bool
+VersionHasAnonFunFix(JSVersion version)
+{
+    return !!(version & VersionFlags::ANONFUNFIX);
+}
+
 static inline void
 VersionSetXML(JSVersion *version, bool enable)
 {
@@ -889,6 +918,15 @@ VersionSetXML(JSVersion *version, bool enable)
         *version = JSVersion(uint32(*version) | VersionFlags::HAS_XML);
     else
         *version = JSVersion(uint32(*version) & ~VersionFlags::HAS_XML);
+}
+
+static inline void
+VersionSetAnonFunFix(JSVersion *version, bool enable)
+{
+    if (enable)
+        *version = JSVersion(uint32(*version) | VersionFlags::ANONFUNFIX);
+    else
+        *version = JSVersion(uint32(*version) & ~VersionFlags::ANONFUNFIX);
 }
 
 static inline JSVersion
@@ -912,7 +950,8 @@ VersionHasFlags(JSVersion version)
 static inline uintN
 VersionFlagsToOptions(JSVersion version)
 {
-    uintN copts = VersionHasXML(version) ? JSOPTION_XML : 0;
+    uintN copts = (VersionHasXML(version) ? JSOPTION_XML : 0) |
+                  (VersionHasAnonFunFix(version) ? JSOPTION_ANONFUNFIX : 0);
     JS_ASSERT((copts & JSCOMPILEOPTION_MASK) == copts);
     return copts;
 }
@@ -921,6 +960,7 @@ static inline JSVersion
 OptionFlagsToVersion(uintN options, JSVersion version)
 {
     VersionSetXML(&version, OptionsHasXML(options));
+    VersionSetAnonFunFix(&version, OptionsHasAnonFunFix(options));
     return version;
 }
 
@@ -974,6 +1014,9 @@ struct JSContext
     jsuword             stackLimit;
 
     
+    size_t              scriptStackQuota;
+
+    
     JSRuntime *const    runtime;
 
     
@@ -983,7 +1026,7 @@ struct JSContext
     js::ContextStack    stack;
 
     
-    bool hasfp() const                { return stack.hasfp(); }
+    bool running() const              { return stack.running(); }
     js::StackFrame* fp() const        { return stack.fp(); }
     js::StackFrame* maybefp() const   { return stack.maybefp(); }
     js::FrameRegs& regs() const       { return stack.regs(); }
@@ -998,11 +1041,6 @@ struct JSContext
     
     JSArenaPool         tempPool;
 
-  private:
-    
-    js::ParseMapPool    *parseMapPool_;
-
-  public:
     
     JSArenaPool         regExpPool;
 
@@ -1018,6 +1056,10 @@ struct JSContext
 
     
     char                *lastMessage;
+#ifdef DEBUG
+    void                *logfp;
+    jsbytecode          *logPrevPc;
+#endif
 
     
     JSErrorReporter     errorReporter;
@@ -1032,19 +1074,12 @@ struct JSContext
     inline js::RegExpStatics *regExpStatics();
 
   public:
-    js::ParseMapPool &parseMapPool() {
-        JS_ASSERT(parseMapPool_);
-        return *parseMapPool_;
-    }
-
-    inline bool ensureParseMapPool();
-
     
 
 
 
     bool canSetDefaultVersion() const {
-        return !stack.hasfp() && !hasVersionOverride;
+        return !stack.running() && !hasVersionOverride;
     }
 
     
@@ -1086,11 +1121,10 @@ struct JSContext
 
 
     void maybeMigrateVersionOverride() {
-        JS_ASSERT(stack.empty());
-        if (JS_UNLIKELY(isVersionOverridden())) {
-            defaultVersion = versionOverride;
-            clearVersionOverride();
-        }
+        if (JS_LIKELY(!isVersionOverridden() && stack.empty()))
+            return;
+        defaultVersion = versionOverride;
+        clearVersionOverride();
     }
 
     
@@ -1105,7 +1139,7 @@ struct JSContext
         if (hasVersionOverride)
             return versionOverride;
 
-        if (stack.hasfp()) {
+        if (stack.running()) {
             
             js::StackFrame *f = fp();
             while (f && !f->isScriptFrame())
@@ -1318,27 +1352,6 @@ struct JSContext
         this->exception.setUndefined();
     }
 
-    
-
-
-
-
-    uintN activeCompilations;
-
-#ifdef DEBUG
-    
-
-
-
-    bool stackIterAssertionEnabled;
-#endif
-
-    
-
-
-
-    bool runningWithTrustedPrincipals() const;
-
   private:
     
 
@@ -1371,12 +1384,19 @@ class AutoCheckRequestDepth {
 # define CHECK_REQUEST(cx)                                                    \
     JS_ASSERT((cx)->thread());                                                \
     JS_ASSERT((cx)->thread()->data.requestDepth || (cx)->thread() == (cx)->runtime->gcThread); \
-    JS_ASSERT(cx->runtime->onOwnerThread());                                  \
     AutoCheckRequestDepth _autoCheckRequestDepth(cx);
 
 #else
 # define CHECK_REQUEST(cx)          ((void) 0)
+# define CHECK_REQUEST_THREAD(cx)   ((void) 0)
 #endif
+
+static inline uintN
+FramePCOffset(JSContext *cx, js::StackFrame* fp)
+{
+    jsbytecode *pc = fp->hasImacropc() ? fp->imacropc() : fp->pc(cx);
+    return uintN(pc - fp->script()->code);
+}
 
 static inline JSAtom **
 FrameAtomBase(JSContext *cx, js::StackFrame *fp)
@@ -1987,6 +2007,37 @@ class AutoReleaseNullablePtr {
     ~AutoReleaseNullablePtr() { if (ptr) cx->free_(ptr); }
 };
 
+class AutoLocalNameArray {
+  public:
+    explicit AutoLocalNameArray(JSContext *cx, JSFunction *fun
+                                JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : context(cx),
+        mark(JS_ARENA_MARK(&cx->tempPool)),
+        names(fun->script()->bindings.getLocalNameArray(cx, &cx->tempPool)),
+        count(fun->script()->bindings.countLocalNames())
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    ~AutoLocalNameArray() {
+        JS_ARENA_RELEASE(&context->tempPool, mark);
+    }
+
+    operator bool() const { return !!names; }
+
+    uint32 length() const { return count; }
+
+    const jsuword &operator [](unsigned i) const { return names[i]; }
+
+  private:
+    JSContext   *context;
+    void        *mark;
+    jsuword     *names;
+    uint32      count;
+
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 template <class RefCountable>
 class AlreadyIncRefed
 {
@@ -2167,7 +2218,7 @@ static JS_INLINE JSContext *
 js_ContextFromLinkField(JSCList *link)
 {
     JS_ASSERT(link);
-    return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, link));
+    return (JSContext *) ((uint8 *) link - offsetof(JSContext, link));
 }
 
 
@@ -2218,6 +2269,12 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
 
 extern void
 js_ReportOutOfMemory(JSContext *cx);
+
+
+
+
+void
+js_ReportOutOfScriptQuota(JSContext *maybecx);
 
 
 JS_FRIEND_API(void)
@@ -2324,19 +2381,15 @@ js_GetScriptedCaller(JSContext *cx, js::StackFrame *fp);
 extern jsbytecode*
 js_GetCurrentBytecodePC(JSContext* cx);
 
-extern JSScript *
-js_GetCurrentScript(JSContext* cx);
-
 extern bool
 js_CurrentPCIsInImacro(JSContext *cx);
 
 namespace js {
 
+class RegExpStatics;
+
 extern JS_FORCES_STACK JS_FRIEND_API(void)
 LeaveTrace(JSContext *cx);
-
-extern bool
-CanLeaveTrace(JSContext *cx);
 
 } 
 
@@ -2419,8 +2472,6 @@ class AutoVectorRooter : protected AutoGCRooter
         return true;
     }
 
-    void clear() { vector.clear(); }
-
     bool reserve(size_t newLength) {
         return vector.reserve(newLength);
     }
@@ -2491,46 +2542,6 @@ class AutoShapeVector : public AutoVectorRooter<const Shape *>
 
 JSIdArray *
 NewIdArray(JSContext *cx, jsint length);
-
-
-
-
-
-
-
-
-
-
-
-
-class RuntimeAllocPolicy
-{
-    JSRuntime *const runtime;
-
-  public:
-    RuntimeAllocPolicy(JSRuntime *rt) : runtime(rt) {}
-    RuntimeAllocPolicy(JSContext *cx) : runtime(cx->runtime) {}
-    void *malloc_(size_t bytes) { return runtime->malloc_(bytes); }
-    void *realloc_(void *p, size_t bytes) { return runtime->realloc_(p, bytes); }
-    void free_(void *p) { runtime->free_(p); }
-    void reportAllocOverflow() const {}
-};
-
-
-
-
-class ContextAllocPolicy
-{
-    JSContext *const cx;
-
-  public:
-    ContextAllocPolicy(JSContext *cx) : cx(cx) {}
-    JSContext *context() const { return cx; }
-    void *malloc_(size_t bytes) { return cx->malloc_(bytes); }
-    void *realloc_(void *p, size_t oldBytes, size_t bytes) { return cx->realloc_(p, oldBytes, bytes); }
-    void free_(void *p) { cx->free_(p); }
-    void reportAllocOverflow() const { js_ReportAllocationOverflow(cx); }
-};
 
 } 
 
