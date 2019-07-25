@@ -4112,10 +4112,7 @@ nsLayoutUtils::SurfaceFromElement(dom::Element* aElement,
   result.mSize = gfxIntSize(imgWidth, imgHeight);
   result.mPrincipal = principal.forget();
   
-  
-  
-  
-  result.mIsWriteOnly = (imgContainer->GetType() == imgIContainer::TYPE_VECTOR);
+  result.mIsWriteOnly = false;
   result.mImageRequest = imgRequest.forget();
 
   return result;

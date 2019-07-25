@@ -84,8 +84,6 @@ pref("layout.css.dpi", 240);
 #endif
 #endif
 
-pref("ui.scrollbarsCanOverlapContent", 1);
-
 
 pref("ui.click_hold_context_menus", true);
 
@@ -107,6 +105,9 @@ pref("browser.cache.offline.enable", true);
 pref("browser.cache.offline.capacity", 5120); 
 pref("offline-apps.quota.max", 2048); 
 pref("offline-apps.quota.warn", 1024); 
+
+
+pref("browser.cache.compression_level", 1);
 
 
 pref("network.protocol-handler.warn-external.tel", false);
@@ -557,7 +558,7 @@ pref("font.default.x-western", "SwissA");
 #ifdef MOZ_SERVICES_SYNC
 
 pref("services.sync.client.type", "mobile");
-pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password,Prefs");
+pref("services.sync.registerEngines", "Tab,Bookmarks,Form,History,Password,Prefs,Addons");
 pref("services.sync.autoconnectDelay", 5);
 
 

@@ -245,8 +245,8 @@ class nsAutoTObserverArray : protected nsTObserverArray_base {
 
     
     
-    PRUint64 SizeOf() {
-      return mArray.SizeOf();
+    size_t SizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf) {
+      return mArray.SizeOfExcludingThis(mallocSizeOf);
     }
 
     

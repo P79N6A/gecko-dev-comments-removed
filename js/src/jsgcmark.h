@@ -214,8 +214,8 @@ MarkChildren(JSTracer *trc, JSXML *xml);
 
 
 
-const Shape *
-MarkShapeChildrenAcyclic(JSTracer *trc, const Shape *shape);
+void
+MarkCycleCollectorChildren(JSTracer *trc, const Shape *shape);
 
 
 

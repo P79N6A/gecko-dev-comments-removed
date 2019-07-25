@@ -43,6 +43,7 @@
 #include "mozilla/Util.h"
 
 #include "nsCOMPtr.h"
+#include "nsAutoPtr.h"
 #include "nsMemory.h"
 
 #include "nsLocalFile.h"
@@ -142,52 +143,36 @@ public:
     nsresult Resolve(const WCHAR* in, WCHAR* out);
 
 private:
-    Mutex         mLock;
-    IPersistFile* mPersistFile;
-    
-    IShellLinkW*  mShellLink;
+    Mutex                  mLock;
+    nsRefPtr<IPersistFile> mPersistFile;
+    nsRefPtr<IShellLinkW>  mShellLink;
 };
 
-ShortcutResolver::ShortcutResolver() : mLock("ShortcutResolver.mLock")
+ShortcutResolver::ShortcutResolver() :
+    mLock("ShortcutResolver.mLock")
 {
-    mPersistFile = nsnull;
-    mShellLink  = nsnull;
+    CoInitialize(NULL);
 }
 
 ShortcutResolver::~ShortcutResolver()
 {
-    
-    if (mPersistFile)
-        mPersistFile->Release();
-
-    
-    if (mShellLink)
-        mShellLink->Release();
-
     CoUninitialize();
 }
 
 nsresult
 ShortcutResolver::Init()
 {
-    CoInitialize(NULL);  
-
-    HRESULT hres; 
-    hres = CoCreateInstance(CLSID_ShellLink,
-                            NULL,
-                            CLSCTX_INPROC_SERVER,
-                            IID_IShellLinkW,
-                            (void**)&(mShellLink));
-    if (SUCCEEDED(hres))
-    {
-        
-        hres = mShellLink->QueryInterface(IID_IPersistFile,
-                                          (void**)&mPersistFile);
-    }
-
-    if (mPersistFile == nsnull || mShellLink == nsnull)
+    
+    if (FAILED(CoCreateInstance(CLSID_ShellLink,
+                                NULL,
+                                CLSCTX_INPROC_SERVER,
+                                IID_IShellLinkW,
+                                getter_AddRefs(mShellLink))) ||
+        FAILED(mShellLink->QueryInterface(IID_IPersistFile,
+                                          getter_AddRefs(mPersistFile)))) {
+        mShellLink = nsnull;
         return NS_ERROR_FAILURE;
-
+    }
     return NS_OK;
 }
 
@@ -195,24 +180,14 @@ ShortcutResolver::Init()
 nsresult
 ShortcutResolver::Resolve(const WCHAR* in, WCHAR* out)
 {
+    if (!mShellLink)
+        return NS_ERROR_FAILURE;
+
     MutexAutoLock lock(mLock);
 
-    
-    HRESULT hres = mPersistFile->Load(in, STGM_READ);
-
-    if (FAILED(hres))
-        return NS_ERROR_FAILURE;
-
-    
-    hres = mShellLink->Resolve(nsnull, SLR_NO_UI);
-
-    if (FAILED(hres))
-        return NS_ERROR_FAILURE;
-
-    
-    hres = mShellLink->GetPath(out, MAX_PATH, NULL, SLGP_UNCPRIORITY);
-
-    if (FAILED(hres))
+    if (FAILED(mPersistFile->Load(in, STGM_READ)) ||
+        FAILED(mShellLink->Resolve(nsnull, SLR_NO_UI)) ||
+        FAILED(mShellLink->GetPath(out, MAX_PATH, NULL, SLGP_UNCPRIORITY)))
         return NS_ERROR_FAILURE;
     return NS_OK;
 }
@@ -571,11 +546,12 @@ ReadDir(nsDir *dir, PRDirFlags flags, nsString& name)
 }
 
 static nsresult
-CloseDir(nsDir *d)
+CloseDir(nsDir *&d)
 {
     NS_ENSURE_ARG(d);
 
     BOOL isOk = FindClose(d->handle);
+    
     PR_DELETE(d);
     return isOk ? NS_OK : ConvertWinError(GetLastError());
 }
@@ -633,8 +609,6 @@ class nsDirEnumerator : public nsISimpleEnumerator,
                     if (NS_FAILED(CloseDir(mDir)))
                         return NS_ERROR_FAILURE;
 
-                    mDir = nsnull;
-
                     *result = false;
                     return NS_OK;
                 }
@@ -691,7 +665,6 @@ class nsDirEnumerator : public nsISimpleEnumerator,
                 NS_ASSERTION(NS_SUCCEEDED(rv), "close failed");
                 if (NS_FAILED(rv))
                     return NS_ERROR_FAILURE;
-                mDir = nsnull;
             }
             return NS_OK;
         }

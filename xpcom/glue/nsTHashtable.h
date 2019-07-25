@@ -255,10 +255,32 @@ public:
 
 
 
-  size_t ShallowSizeOfExcludingThis(nsMallocSizeOfFun mallocSizeOf)
+
+
+
+
+  typedef size_t (* SizeOfEntryExcludingThisFun)(EntryType* aEntry,
+                                                 nsMallocSizeOfFun mallocSizeOf,
+                                                 void *arg);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  size_t SizeOfExcludingThis(SizeOfEntryExcludingThisFun sizeOfEntryExcludingThis,
+                             nsMallocSizeOfFun mallocSizeOf, void *userArg = NULL)
   {
     if (IsInitialized()) {
-      return PL_DHashTableSizeOfExcludingThis(&mTable, nsnull, mallocSizeOf);
+      s_SizeOfArgs args = { sizeOfEntryExcludingThis, userArg };
+      return PL_DHashTableSizeOfExcludingThis(&mTable, s_SizeOfStub, mallocSizeOf, &args);
     }
     return 0;
   }
@@ -304,6 +326,24 @@ protected:
                                     PLDHashEntryHdr *entry,
                                     PRUint32         number,
                                     void            *arg);
+
+  
+
+
+
+
+
+
+  struct s_SizeOfArgs
+  {
+    SizeOfEntryExcludingThisFun userFunc;
+    void* userArg;
+  };
+  
+  static size_t s_SizeOfStub(PLDHashEntryHdr *entry,
+                             nsMallocSizeOfFun mallocSizeOf,
+                             void *arg);
+
 private:
   
   nsTHashtable(nsTHashtable<EntryType>& toCopy);
@@ -430,6 +470,19 @@ nsTHashtable<EntryType>::s_EnumStub(PLDHashTable    *table,
   return (* reinterpret_cast<s_EnumArgs*>(arg)->userFunc)(
     reinterpret_cast<EntryType*>(entry),
     reinterpret_cast<s_EnumArgs*>(arg)->userArg);
+}
+
+template<class EntryType>
+size_t
+nsTHashtable<EntryType>::s_SizeOfStub(PLDHashEntryHdr *entry,
+                                      nsMallocSizeOfFun mallocSizeOf,
+                                      void *arg)
+{
+  
+  return (* reinterpret_cast<s_SizeOfArgs*>(arg)->userFunc)(
+    reinterpret_cast<EntryType*>(entry),
+    mallocSizeOf,
+    reinterpret_cast<s_SizeOfArgs*>(arg)->userArg);
 }
 
 #endif 

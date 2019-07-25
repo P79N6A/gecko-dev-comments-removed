@@ -2546,15 +2546,7 @@ nsPrintEngine::FindSelectionBoundsWithList(nsPresContext* aPresContext,
   aRect += aParentFrame->GetPosition();
   for (; !aChildFrames.AtEnd(); aChildFrames.Next()) {
     nsIFrame* child = aChildFrames.get();
-    
-    
-    bool isSelected = (child->GetStateBits() & NS_FRAME_SELECTED_CONTENT)
-      == NS_FRAME_SELECTED_CONTENT;
-    if (isSelected) {
-      isSelected = child->IsVisibleForPainting();
-    }
-
-    if (isSelected) {
+    if (child->IsSelected() && child->IsVisibleForPainting()) {
       nsRect r = child->GetRect();
       if (aStartFrame == nsnull) {
         aStartFrame = child;

@@ -89,8 +89,9 @@ JS_NondeterministicGetWeakMapKeys(JSContext *cx, JSObject *obj, JSObject **ret);
 
 
 
-extern JS_FRIEND_API(void *)
-JS_TraceShapeChildrenAcyclic(JSTracer *trc, void *shape);
+
+extern JS_FRIEND_API(void)
+JS_TraceShapeCycleCollectorChildren(JSTracer *trc, void *shape);
 
 enum {
     JS_TELEMETRY_GC_REASON,
@@ -441,6 +442,24 @@ SetPreserveWrapperCallback(JSRuntime *rt, PreserveWrapperCallback callback);
 #define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */
 #define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
+
+JS_FRIEND_API(void)
+StartPCCountProfiling(JSContext *cx);
+
+JS_FRIEND_API(void)
+StopPCCountProfiling(JSContext *cx);
+
+JS_FRIEND_API(void)
+PurgePCCounts(JSContext *cx);
+
+JS_FRIEND_API(size_t)
+GetPCCountScriptCount(JSContext *cx);
+
+JS_FRIEND_API(JSString *)
+GetPCCountScriptSummary(JSContext *cx, size_t script);
+
+JS_FRIEND_API(JSString *)
+GetPCCountScriptContents(JSContext *cx, size_t script);
 
 } 
 #endif

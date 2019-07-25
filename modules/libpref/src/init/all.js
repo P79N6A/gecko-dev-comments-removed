@@ -93,6 +93,12 @@ pref("offline-apps.quota.max",        204800);
 pref("offline-apps.quota.warn",        51200);
 
 
+
+
+
+pref("browser.cache.compression_level", 5);
+
+
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
@@ -811,7 +817,7 @@ pref("network.ftp.control.qos", 0);
 pref("network.websocket.enabled", true);
 
 
-pref("network.websocket.max-message-size", 16000000);
+pref("network.websocket.max-message-size", 2147483647);
 
 
 pref("network.websocket.auto-follow-http-redirects", false);

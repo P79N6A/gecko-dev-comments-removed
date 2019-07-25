@@ -61,19 +61,6 @@ public:
 
     
 
-
-    NS_IMETHOD GetRetValPtr(jsval **aResult) = 0;
-
-    
-
-
-
-
-    NS_IMETHOD GetReturnValueWasSet(bool *aResult) = 0;
-    NS_IMETHOD SetReturnValueWasSet(bool aValue) = 0;
-
-    
-
     NS_IMETHOD GetCalleeInterface(nsIInterfaceInfo **aResult) = 0;
     NS_IMETHOD GetCalleeClassInfo(nsIClassInfo **aResult) = 0;
 

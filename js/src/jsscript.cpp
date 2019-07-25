@@ -777,6 +777,11 @@ JSScript::initCounts(JSContext *cx)
 
     JS_ASSERT(size_t(cursor - base) == bytes);
 
+    
+    InterpreterFrames *frames;
+    for (frames = JS_THREAD_DATA(cx)->interpreterFrames; frames; frames = frames->older)
+        frames->enableInterruptsIfRunning(this);
+
     return true;
 }
 

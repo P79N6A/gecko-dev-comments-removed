@@ -272,7 +272,9 @@ IDBKeyRange::FromJSVal(JSContext* aCx,
   if (JSVAL_IS_VOID(aVal) || JSVAL_IS_NULL(aVal)) {
     
   }
-  else if (JSVAL_IS_PRIMITIVE(aVal)) {
+  else if (JSVAL_IS_PRIMITIVE(aVal) ||
+           JS_IsArrayObject(aCx, JSVAL_TO_OBJECT(aVal)) ||
+           JS_ObjectIsDate(aCx, JSVAL_TO_OBJECT(aVal))) {
     
     keyRange = new IDBKeyRange(false, false, true);
 

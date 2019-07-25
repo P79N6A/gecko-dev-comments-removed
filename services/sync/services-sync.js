@@ -17,11 +17,13 @@ pref("services.sync.scheduler.idleTime",             300);
 
 pref("services.sync.errorhandler.networkFailureReportTimeout", 604800); 
 
+pref("services.sync.engine.addons", true);
 pref("services.sync.engine.bookmarks", true);
 pref("services.sync.engine.history", true);
 pref("services.sync.engine.passwords", true);
 pref("services.sync.engine.prefs", true);
 pref("services.sync.engine.tabs", true);
+pref("services.sync.engine.apps", false);
 pref("services.sync.engine.tabs.filteredUrls", "^(about:.*|chrome://weave/.*|wyciwyg:.*|file:.*)$");
 
 pref("services.sync.jpake.serverURL", "https://setup.services.mozilla.com/");
@@ -29,6 +31,17 @@ pref("services.sync.jpake.pollInterval", 1000);
 pref("services.sync.jpake.firstMsgMaxTries", 300); 
 pref("services.sync.jpake.lastMsgMaxTries", 300);  
 pref("services.sync.jpake.maxTries", 10);
+
+
+pref("services.sync.addons.ignoreRepositoryChecking", false);
+
+
+
+
+pref("services.sync.addons.ignoreUserEnabledChanges", false);
+
+
+pref("services.sync.addons.trustedSourceHostnames", "addons.mozilla.org");
 
 pref("services.sync.log.appender.console", "Warn");
 pref("services.sync.log.appender.dump", "Error");
@@ -49,4 +62,6 @@ pref("services.sync.log.logger.engine.history", "Debug");
 pref("services.sync.log.logger.engine.passwords", "Debug");
 pref("services.sync.log.logger.engine.prefs", "Debug");
 pref("services.sync.log.logger.engine.tabs", "Debug");
+pref("services.sync.log.logger.engine.addons", "Debug");
+pref("services.sync.log.logger.engine.apps", "Debug");
 pref("services.sync.log.cryptoDebug", false);

@@ -958,51 +958,85 @@ MarkChildren(JSTracer *trc, JSScript *script)
         script->markTrapClosures(trc);
 }
 
-const Shape *
-MarkShapeChildrenAcyclic(JSTracer *trc, const Shape *shape)
-{
-    
-
-
-
-
-
-
-
-
-
-
-
-    MarkBaseShapeUnbarriered(trc, shape->base(), "base");
-    MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
-    return shape->previous();
-}
-
 void
 MarkChildren(JSTracer *trc, const Shape *shape)
 {
-    
-
-
-
-    MarkShapeChildrenAcyclic(trc, shape);
+    MarkBaseShapeUnbarriered(trc, shape->base(), "base");
+    MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
     if (shape->previous())
         MarkShape(trc, shape->previous(), "parent");
 }
 
-void
-MarkChildren(JSTracer *trc, BaseShape *base)
+inline void
+MarkBaseShapeGetterSetter(JSTracer *trc, BaseShape *base)
 {
     if (base->hasGetterObject())
         MarkObjectUnbarriered(trc, base->getterObject(), "getter");
     if (base->hasSetterObject())
         MarkObjectUnbarriered(trc, base->setterObject(), "setter");
+}
 
+void
+MarkChildren(JSTracer *trc, BaseShape *base)
+{
+    MarkBaseShapeGetterSetter(trc, base);
     if (base->isOwned())
         MarkBaseShapeUnbarriered(trc, base->baseUnowned(), "base");
 
     if (JSObject *parent = base->getObjectParent())
         MarkObjectUnbarriered(trc, parent, "parent");
+}
+
+
+
+
+
+
+
+
+
+inline void
+MarkCycleCollectorChildren(JSTracer *trc, BaseShape *base, JSObject **prevParent)
+{
+    JS_ASSERT(base);
+
+    MarkBaseShapeGetterSetter(trc, base);
+
+    JSObject *parent = base->getObjectParent();
+    if (parent && parent != *prevParent) {
+        MarkObjectUnbarriered(trc, parent, "parent");
+        *prevParent = parent;
+    }
+
+    
+    
+#ifdef DEBUG
+    if (base->isOwned()) {
+        UnownedBaseShape *unowned = base->baseUnowned();
+        JS_ASSERT_IF(base->hasGetterObject(), base->getterObject() == unowned->getterObject());
+        JS_ASSERT_IF(base->hasSetterObject(), base->setterObject() == unowned->setterObject());
+        JS_ASSERT(base->getObjectParent() == unowned->getObjectParent());
+    }
+#endif
+}
+
+
+
+
+
+
+
+
+
+void
+MarkCycleCollectorChildren(JSTracer *trc, const Shape *shape)
+{
+    JSObject *prevParent = NULL;
+    do {
+        MarkCycleCollectorChildren(trc, shape->base(), &prevParent);
+        MarkIdUnbarriered(trc, shape->maybePropid(), "propid");
+        shape = shape->previous();
+    } while (shape);
 }
 
 static void

@@ -406,6 +406,9 @@ mjit::Compiler::scanInlineCalls(uint32_t index, uint32_t depth)
 CompileStatus
 mjit::Compiler::pushActiveFrame(JSScript *script, uint32_t argc)
 {
+    if (cx->runtime->profilingScripts && !script->pcCounters)
+        script->initCounts(cx);
+
     ActiveFrame *newa = cx->new_<ActiveFrame>(cx);
     if (!newa)
         return Compile_Error;
@@ -1395,81 +1398,6 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 
     return Compile_Okay;
 }
-
-class SrcNoteLineScanner {
-    
-    ptrdiff_t offset;
-
-    
-    jssrcnote *sn;
-
-    
-    uint32_t lineno;
-
-    
-
-
-
-
-    bool lineHeader;
-
-public:
-    SrcNoteLineScanner(jssrcnote *sn, uint32_t lineno)
-        : offset(0), sn(sn), lineno(lineno)
-    {
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    void advanceTo(ptrdiff_t relpc) {
-        
-        
-        JS_ASSERT_IF(offset > 0, relpc > offset);
-
-        
-        JS_ASSERT_IF(offset > 0, SN_IS_TERMINATOR(sn) || SN_DELTA(sn) > 0);
-
-        
-        lineHeader = (offset == 0);
-
-        if (SN_IS_TERMINATOR(sn))
-            return;
-
-        ptrdiff_t nextOffset;
-        while ((nextOffset = offset + SN_DELTA(sn)) <= relpc && !SN_IS_TERMINATOR(sn)) {
-            offset = nextOffset;
-            SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
-            if (type == SRC_SETLINE || type == SRC_NEWLINE) {
-                if (type == SRC_SETLINE)
-                    lineno = js_GetSrcNoteOffset(sn, 0);
-                else
-                    lineno++;
-
-                if (offset == relpc)
-                    lineHeader = true;
-            }
-
-            sn = SN_NEXT(sn);
-        }
-    }
-
-    bool isLineHeader() const {
-        return lineHeader;
-    }
-
-    uint32_t getLine() const { return lineno; }
-};
 
 #ifdef DEBUG
 #define SPEW_OPCODE()                                                         \

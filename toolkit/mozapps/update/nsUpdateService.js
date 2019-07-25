@@ -86,6 +86,8 @@ const PREF_PARTNER_BRANCH                 = "app.partner.";
 const PREF_APP_DISTRIBUTION               = "distribution.id";
 const PREF_APP_DISTRIBUTION_VERSION       = "distribution.version";
 
+const PREF_EM_HOTFIX_ID                   = "extensions.hotfix.id";
+
 const URI_UPDATE_PROMPT_DIALOG  = "chrome://mozapps/content/update/updates.xul";
 const URI_UPDATE_HISTORY_DIALOG = "chrome://mozapps/content/update/history.xul";
 const URI_BRAND_PROPERTIES      = "chrome://branding/locale/brand.properties";
@@ -1693,6 +1695,11 @@ UpdateService.prototype = {
   },
 
   _checkAddonCompatibility: function AUS__checkAddonCompatibility() {
+    try {
+      var hotfixID = Services.prefs.getCharPref(PREF_EM_HOTFIX_ID);
+    }
+    catch (e) { }
+
     
     var self = this;
     AddonManager.getAllAddons(function(addons) {
@@ -1718,8 +1725,9 @@ UpdateService.prototype = {
         
         
         
+        
         try {
-          if (addon.type != "plugin" &&
+          if (addon.type != "plugin" && addon.id != hotfixID &&
               !addon.appDisabled && !addon.userDisabled &&
               addon.scope != AddonManager.SCOPE_APPLICATION &&
               addon.isCompatible &&
@@ -2386,24 +2394,8 @@ Checker.prototype = {
     var prefs = Services.prefs;
     var certs = null;
     if (!prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE) &&
-        getPref("getBoolPref", PREF_APP_UPDATE_CERT_CHECKATTRS, true) &&
-        prefs.getBranch(PREF_APP_UPDATE_CERTS_BRANCH).getChildList("").length) {
-      certs = [];
-      let counter = 1;
-      while (true) {
-        let prefBranchCert = prefs.getBranch(PREF_APP_UPDATE_CERTS_BRANCH +
-                                             counter + ".");
-        let prefCertAttrs = prefBranchCert.getChildList("");
-        if (prefCertAttrs.length == 0)
-          break;
-
-        let certAttrs = {};
-        for each (let prefCertAttr in prefCertAttrs)
-          certAttrs[prefCertAttr] = prefBranchCert.getCharPref(prefCertAttr);
-
-        certs.push(certAttrs);
-        counter++;
-      }
+        getPref("getBoolPref", PREF_APP_UPDATE_CERT_CHECKATTRS, true)) {
+      certs = gCertUtils.readCertPrefs(PREF_APP_UPDATE_CERTS_BRANCH);
     }
 
     try {

@@ -463,6 +463,108 @@ var gAllTests = [
       this.cancelDialog();
     };
     wh.open();
+  },
+  function () {
+    
+
+    
+    var URL = "http://www.example.com";
+
+    var ios = Cc["@mozilla.org/network/io-service;1"]
+              .getService(Ci.nsIIOService);
+    var URI = ios.newURI(URL, null, null);
+
+    var sm = Cc["@mozilla.org/scriptsecuritymanager;1"]
+             .getService(Ci.nsIScriptSecurityManager);
+    var principal = sm.getCodebasePrincipal(URI);
+
+    
+    var pm = Cc["@mozilla.org/permissionmanager;1"]
+             .getService(Ci.nsIPermissionManager);
+    pm.add(URI, "offline-app", Ci.nsIPermissionManager.ALLOW_ACTION);
+    pm.add(URI, "offline-app", Ci.nsIOfflineCacheUpdateService.ALLOW_NO_WARN);
+
+    
+    var dsm = Cc["@mozilla.org/dom/storagemanager;1"]
+             .getService(Ci.nsIDOMStorageManager);
+    var localStorage = dsm.getLocalStorageForPrincipal(principal, URL);
+    localStorage.setItem("test", "value");
+
+    
+    const nsICache = Components.interfaces.nsICache;
+    var cs = Components.classes["@mozilla.org/network/cache-service;1"]
+             .getService(Components.interfaces.nsICacheService);
+    var session = cs.createSession(URL + "/manifest", nsICache.STORE_OFFLINE, nsICache.STREAM_BASED);
+    var cacheEntry = session.openCacheEntry(URL, nsICache.ACCESS_READ_WRITE, false);
+    var stream = cacheEntry.openOutputStream(0);
+    var content = "content";
+    stream.write(content, content.length);
+    stream.close();
+    cacheEntry.close();
+
+    
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
+      
+      this.toggleDetails();
+      
+      this.uncheckAllCheckboxes();
+      this.checkPrefCheckbox("offlineApps", true);
+      this.acceptDialog();
+
+      
+      is(localStorage.length, 0, "DOM storage cleared");
+
+      var size = -1;
+      var visitor = {
+        visitDevice: function (deviceID, deviceInfo)
+        {
+          if (deviceID == "offline")
+            size = deviceInfo.totalSize;
+
+          
+          return false;
+        },
+
+        visitEntry: function (deviceID, entryInfo)
+        {
+          
+          return false;
+        }
+      };
+      cs.visitEntries(visitor);
+      is(size, 0, "offline application cache entries evicted");
+    };
+    wh.open();
+  },
+  function () {
+    
+
+    
+    var URL = "http://www.example.com";
+
+    var ios = Cc["@mozilla.org/network/io-service;1"]
+              .getService(Ci.nsIIOService);
+    var URI = ios.newURI(URL, null, null);
+
+    
+    let wh = new WindowHelper();
+    wh.onload = function () {
+      this.selectDuration(Sanitizer.TIMESPAN_EVERYTHING);
+      
+      this.toggleDetails();
+      
+      this.uncheckAllCheckboxes();
+      this.checkPrefCheckbox("siteSettings", true);
+      this.acceptDialog();
+
+      
+      var pm = Cc["@mozilla.org/permissionmanager;1"]
+               .getService(Ci.nsIPermissionManager);
+      is(pm.testPermission(URI, "offline-app"), 0, "offline-app permissions removed");
+    };
+    wh.open();
   }
 ];
 
@@ -557,14 +659,22 @@ WindowHelper.prototype = {
   
 
 
-  checkAllCheckboxes: function () {
+  _checkAllCheckboxesCustom: function (check) {
     var cb = this.win.document.querySelectorAll("#itemList > [preference]");
     ok(cb.length > 1, "found checkboxes for preferences");
     for (var i = 0; i < cb.length; ++i) {
       var pref = this.win.document.getElementById(cb[i].getAttribute("preference"));
-      if (!pref.value)
+      if (!!pref.value ^ check)
         cb[i].click();
     }
+  },
+
+  checkAllCheckboxes: function () {
+    this._checkAllCheckboxesCustom(true);
+  },
+
+  uncheckAllCheckboxes: function () {
+    this._checkAllCheckboxesCustom(false);
   },
 
   

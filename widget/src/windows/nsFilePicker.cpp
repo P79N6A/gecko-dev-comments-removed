@@ -70,6 +70,8 @@ static const unsigned long kDialogTimerTimeout = 300;
 #define MAX_EXTENSION_LENGTH 10
 #define FILE_BUFFER_SIZE     4096 
 
+typedef DWORD FILEOPENDIALOGOPTIONS;
+
 
 
 
@@ -814,9 +816,6 @@ nsFilePicker::ShowXPFilePicker(const nsString& aInitialDir)
   }
 
   
-  mFiles.Clear();
-
-  
   
   
   
@@ -1040,7 +1039,9 @@ nsFilePicker::ShowW(PRInt16 *aReturnVal)
     initialDir = mLastUsedUnicodeDirectory;
   }
 
+  
   mUnicodeFile.Truncate();
+  mFiles.Clear();
 
   bool result = false;
    if (mMode == modeGetFolder) {

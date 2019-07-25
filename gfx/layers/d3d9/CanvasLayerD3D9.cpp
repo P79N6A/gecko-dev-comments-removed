@@ -119,10 +119,6 @@ CanvasLayerD3D9::UpdateSurface()
 
     mGLContext->MakeCurrent();
 
-    
-    
-    mGLContext->fFlush();
-
     PRUint32 currentFramebuffer = 0;
 
     mGLContext->fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, (GLint*)&currentFramebuffer);

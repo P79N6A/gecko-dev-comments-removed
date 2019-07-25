@@ -156,7 +156,7 @@ CanvasLayerD3D10::UpdateSurface()
     
     if (mGLContext) {
       mGLContext->MakeCurrent();
-      mGLContext->fFinish();
+      mGLContext->GuaranteeResolve();
     }
     return;
   }
@@ -180,10 +180,6 @@ CanvasLayerD3D10::UpdateSurface()
     }
 
     mGLContext->MakeCurrent();
-
-    
-    
-    mGLContext->fFlush();
 
     PRUint32 currentFramebuffer = 0;
 

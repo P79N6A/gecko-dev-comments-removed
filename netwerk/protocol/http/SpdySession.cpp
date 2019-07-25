@@ -746,6 +746,15 @@ SpdySession::CleanupStream(SpdyStream *aStream, nsresult aResult)
 
   
   
+  size = mQueuedStreams.GetSize();
+  for (PRUint32 count = 0; count < size; ++count) {
+    SpdyStream *stream = static_cast<SpdyStream *>(mQueuedStreams.PopFront());
+    if (stream != aStream)
+      mQueuedStreams.Push(stream);
+  }
+
+  
+  
   mStreamIDHash.Remove(aStream->StreamID());
 
   

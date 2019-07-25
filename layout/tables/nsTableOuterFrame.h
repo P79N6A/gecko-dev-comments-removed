@@ -159,11 +159,6 @@ public:
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
 #endif
 
-  
-
-  void SetSelected(bool aSelected,
-                   SelectionType aType);
-
   virtual nsIFrame* GetParentStyleContextFrame();
 
   

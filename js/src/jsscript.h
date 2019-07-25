@@ -354,6 +354,7 @@ namespace analyze { class ScriptAnalysis; }
 class ScriptOpcodeCounts
 {
     friend struct ::JSScript;
+    friend struct ScriptOpcodeCountsPair;
     OpcodeCounts *counts;
 
  public:
@@ -361,8 +362,11 @@ class ScriptOpcodeCounts
     ScriptOpcodeCounts() : counts(NULL) {
     }
 
-    ~ScriptOpcodeCounts() {
-        JS_ASSERT(!counts);
+    inline void destroy(JSContext *cx);
+
+    void steal(ScriptOpcodeCounts &other) {
+        *this = other;
+        js::PodZero(&other);
     }
 
     
@@ -860,6 +864,17 @@ extern void
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
 namespace js {
+
+struct ScriptOpcodeCountsPair
+{
+    JSScript *script;
+    ScriptOpcodeCounts counters;
+
+    OpcodeCounts &getCounts(jsbytecode *pc) const {
+        JS_ASSERT(unsigned(pc - script->code) < script->length);
+        return counters.counts[pc - script->code];
+    }
+};
 
 #ifdef JS_CRASH_DIAGNOSTICS
 

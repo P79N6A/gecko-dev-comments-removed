@@ -98,11 +98,11 @@ public:
                             const nsRect&           aDirtyRect,
                             const nsDisplayListSet& aLists);
 
-  nsresult AppendScrollPartsTo(nsDisplayListBuilder*          aBuilder,
-                               const nsRect&                  aDirtyRect,
-                               const nsDisplayListSet&        aLists,
-                               const nsDisplayListCollection& aDest,
-                               bool&                        aCreateLayer);
+  void AppendScrollPartsTo(nsDisplayListBuilder*   aBuilder,
+                           const nsRect&           aDirtyRect,
+                           const nsDisplayListSet& aLists,
+                           bool&                   aCreateLayer,
+                           bool                    aPositioned);
 
   bool GetBorderRadii(nscoord aRadii[8]) const;
 
@@ -324,9 +324,6 @@ public:
   
   
   bool mScrollingActive:1;
-  
-  
-  bool mScrollbarsCanOverlapContent:1;
   
   bool mCollapsedResizer:1;
 
