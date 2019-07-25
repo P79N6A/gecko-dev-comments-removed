@@ -2,7 +2,12 @@
 
 
 
-from setuptools import setup
+
+
+
+
+
+from setuptools import setup, find_packages
 import sys
 import os
 
@@ -14,7 +19,7 @@ except:
     description = ''
 
 PACKAGE_NAME = "ManifestDestiny"
-PACKAGE_VERSION = '0.5.5'
+PACKAGE_VERSION = "0.5.4"
 
 setup(name=PACKAGE_NAME,
       version=PACKAGE_VERSION,
@@ -22,15 +27,17 @@ setup(name=PACKAGE_NAME,
       long_description=description,
       classifiers=[], 
       keywords='mozilla manifests',
-      author='Mozilla Automation and Testing Team',
-      author_email='tools@lists.mozilla.org',
-      url='https://wiki.mozilla.org/Auto-tools/Projects/MozBase',
+      author='Jeff Hammel',
+      author_email='jhammel@mozilla.com',
+      url='https://github.com/mozilla/mozbase/tree/master/manifestdestiny',
       license='MPL',
       zip_safe=False,
-      packages=['manifestparser'],
-      install_requires=[],
+      packages=find_packages(exclude=['legacy']),
+      install_requires=[
+      
+      ],
       entry_points="""
       [console_scripts]
-      manifestparser = manifestparser.manifestparser:main
+      manifestparser = manifestparser:main
       """,
      )
