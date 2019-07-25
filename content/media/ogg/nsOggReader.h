@@ -44,9 +44,6 @@
 #include <vorbis/codec.h>
 #include "nsBuiltinDecoderReader.h"
 #include "nsOggCodecState.h"
-#include "VideoUtils.h"
-
-using namespace mozilla;
 
 class nsMediaDecoder;
 class nsHTMLTimeRanges;
@@ -87,57 +84,10 @@ public:
   }
 
   virtual nsresult ReadMetadata();
-  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
+  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime);
   virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered, PRInt64 aStartTime);
 
 private:
-
-  PRBool HasSkeleton()
-  {
-    MonitorAutoEnter mon(mMonitor);
-    return mSkeletonState != 0 && mSkeletonState->mActive;
-  }
-
-  
-  
-  
-  
-  PRBool CanDecodeToTarget(PRInt64 aTarget,
-                           PRInt64 aCurrentTime);
-
-  
-  
-  enum IndexedSeekResult {
-    SEEK_OK,          
-    SEEK_INDEX_FAIL,  
-    SEEK_FATAL_ERROR  
-  };
-  IndexedSeekResult SeekToKeyframeUsingIndex(PRInt64 aTarget);
-
-  
-  IndexedSeekResult RollbackIndexedSeek(PRInt64 aOffset);
-
-  
-  
-  
-  
-  
-  nsresult SeekInBufferedRange(PRInt64 aTarget,
-                               PRInt64 aStartTime,
-                               PRInt64 aEndTime,
-                               const nsTArray<ByteRange>& aRanges,
-                               const ByteRange& aRange);
-
-  
-  
-  
-  
-  
-  
-  nsresult SeekInUnbuffered(PRInt64 aTarget,
-                            PRInt64 aStartTime,
-                            PRInt64 aEndTime,
-                            const nsTArray<ByteRange>& aRanges);
 
   
   
@@ -186,9 +136,6 @@ private:
 
   
   nsVorbisState* mVorbisState;
-
-  
-  nsSkeletonState* mSkeletonState;
 
   
   ogg_sync_state mOggState;

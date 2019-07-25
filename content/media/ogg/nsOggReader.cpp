@@ -64,44 +64,12 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-
-
-
-#define SEEK_DECODE_MARGIN 2000
-
-
-
-
-
-
-
-#define SEEK_FUZZ_MS 500
-
-enum PageSyncResult {
-  PAGE_SYNC_ERROR = 1,
-  PAGE_SYNC_END_OF_RANGE= 2,
-  PAGE_SYNC_OK = 3
-};
-
-
-static PageSyncResult
-PageSync(nsMediaStream* aStream,
-         ogg_sync_state* aState,
-         PRBool aCachedDataOnly,
-         PRInt64 aOffset,
-         PRInt64 aEndOffset,
-         ogg_page* aPage,
-         int& aSkippedBytes);
-
-
-
 static const int PAGE_STEP = 8192;
 
 nsOggReader::nsOggReader(nsBuiltinDecoder* aDecoder)
   : nsBuiltinDecoderReader(aDecoder),
     mTheoraState(nsnull),
     mVorbisState(nsnull),
-    mSkeletonState(nsnull),
     mPageOffset(0),
     mTheoraGranulepos(-1),
     mVorbisGranulepos(-1)
@@ -220,12 +188,6 @@ nsresult nsOggReader::ReadMetadata()
         
         mTheoraState = static_cast<nsTheoraState*>(codecState);
       }
-      if (codecState &&
-          codecState->GetType() == nsOggCodecState::TYPE_SKELETON &&
-          !mSkeletonState)
-      {
-        mSkeletonState = static_cast<nsSkeletonState*>(codecState);
-      }
     } else {
       
       
@@ -275,7 +237,7 @@ nsresult nsOggReader::ReadMetadata()
   
   for (PRUint32 i = 0; i < bitstreams.Length(); i++) {
     nsOggCodecState* s = bitstreams[i];
-    if (s != mVorbisState && s != mTheoraState && s != mSkeletonState) {
+    if (s != mVorbisState && s != mTheoraState) {
       s->Deactivate();
     }
   }
@@ -297,12 +259,6 @@ nsresult nsOggReader::ReadMetadata()
     mVorbisState->Init();
   }
 
-  if (!HasAudio() && !HasVideo() && mSkeletonState) {
-    
-    
-    mSkeletonState->Deactivate();
-  }
-
   mInfo.mHasAudio = HasAudio();
   mInfo.mHasVideo = HasVideo();
   if (HasAudio()) {
@@ -319,25 +275,6 @@ nsresult nsOggReader::ReadMetadata()
     mInfo.mFrame.height = mTheoraState->mInfo.frame_height;
   }
   mInfo.mDataOffset = mDataOffset;
-
-  if (mSkeletonState && mSkeletonState->HasIndex()) {
-    
-    
-    nsAutoTArray<PRUint32, 2> tracks;
-    if (HasVideo()) {
-      tracks.AppendElement(mTheoraState->mSerial);
-    }
-    if (HasAudio()) {
-      tracks.AppendElement(mVorbisState->mSerial);
-    }
-    PRInt64 duration = 0;
-    if (NS_SUCCEEDED(mSkeletonState->GetDuration(tracks, duration))) {
-      MonitorAutoExit exitReaderMon(mMonitor);
-      MonitorAutoEnter decoderMon(mDecoder->GetMonitor());
-      mDecoder->GetStateMachine()->SetDuration(duration);
-      LOG(PR_LOG_DEBUG, ("Got duration from Skeleton index %lld", duration));
-    }
-  }
 
   LOG(PR_LOG_DEBUG, ("Done loading headers, data offset %lld", mDataOffset));
 
@@ -1002,261 +939,128 @@ PRInt64 nsOggReader::FindEndTime(PRInt64 aEndOffset,
   return endTime;
 }
 
-nsOggReader::IndexedSeekResult nsOggReader::RollbackIndexedSeek(PRInt64 aOffset)
-{
-  mSkeletonState->Deactivate();
-  nsMediaStream* stream = mDecoder->GetCurrentStream();
-  NS_ENSURE_TRUE(stream != nsnull, SEEK_FATAL_ERROR);
-  nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET, aOffset);
-  NS_ENSURE_SUCCESS(res, SEEK_FATAL_ERROR);
-  return SEEK_INDEX_FAIL;
-}
- 
-nsOggReader::IndexedSeekResult nsOggReader::SeekToKeyframeUsingIndex(PRInt64 aTarget)
-{
-  nsMediaStream* stream = mDecoder->GetCurrentStream();
-  NS_ENSURE_TRUE(stream != nsnull, SEEK_FATAL_ERROR);
-  if (!HasSkeleton() || !mSkeletonState->HasIndex()) {
-    return SEEK_INDEX_FAIL;
-  }
-  
-  nsAutoTArray<PRUint32, 2> tracks;
-  if (HasVideo()) {
-    tracks.AppendElement(mTheoraState->mSerial);
-  }
-  if (HasAudio()) {
-    tracks.AppendElement(mVorbisState->mSerial);
-  }
-  nsSkeletonState::nsSeekTarget keyframe;
-  if (NS_FAILED(mSkeletonState->IndexedSeekTarget(aTarget,
-                                                  tracks,
-                                                  keyframe)))
-  {
-    
-    return SEEK_INDEX_FAIL;
-  }
-
-  
-  PRInt64 tell = stream->Tell();
-
-  
-  if (keyframe.mKeyPoint.mOffset > stream->GetLength() ||
-      keyframe.mKeyPoint.mOffset < 0)
-  {
-    
-    return RollbackIndexedSeek(tell);
-  }
-  LOG(PR_LOG_DEBUG, ("Seeking using index to keyframe at offset %lld\n",
-                     keyframe.mKeyPoint.mOffset));
-  nsresult res = stream->Seek(nsISeekableStream::NS_SEEK_SET,
-                              keyframe.mKeyPoint.mOffset);
-  NS_ENSURE_SUCCESS(res, SEEK_FATAL_ERROR);
-  mPageOffset = keyframe.mKeyPoint.mOffset;
-
-  
-  res = ResetDecode();
-  NS_ENSURE_SUCCESS(res, SEEK_FATAL_ERROR);
-
-  
-  
-  ogg_page page;
-  int skippedBytes = 0;
-  PageSyncResult syncres = PageSync(stream,
-                                    &mOggState,
-                                    PR_FALSE,
-                                    mPageOffset,
-                                    stream->GetLength(),
-                                    &page,
-                                    skippedBytes);
-  NS_ENSURE_TRUE(syncres != PAGE_SYNC_ERROR, SEEK_FATAL_ERROR);
-  if (syncres != PAGE_SYNC_OK || skippedBytes != 0) {
-    LOG(PR_LOG_DEBUG, ("Indexed-seek failure: Ogg Skeleton Index is invalid "
-                       "or sync error after seek"));
-    return RollbackIndexedSeek(tell);
-  }
-  PRUint32 serial = ogg_page_serialno(&page);
-  if (serial != keyframe.mSerial) {
-    
-    
-    return RollbackIndexedSeek(tell);
-  }
-  nsOggCodecState* codecState = nsnull;
-  mCodecStates.Get(serial, &codecState);
-  if (codecState &&
-      codecState->mActive &&
-      ogg_stream_pagein(&codecState->mState, &page) != 0)
-  {
-    
-    
-    return RollbackIndexedSeek(tell);
-  }      
-  mPageOffset = keyframe.mKeyPoint.mOffset + page.header_len + page.body_len;
-  return SEEK_OK;
-}
-
-nsresult nsOggReader::SeekInBufferedRange(PRInt64 aTarget,
-                                          PRInt64 aStartTime,
-                                          PRInt64 aEndTime,
-                                          const nsTArray<ByteRange>& aRanges,
-                                          const ByteRange& aRange)
-{
-  LOG(PR_LOG_DEBUG, ("%p Seeking in buffered data to %lldms using bisection search", mDecoder, aTarget));
-
-  
-  
-  nsresult res = SeekBisection(aTarget, aRange, 0);
-  if (NS_FAILED(res) || !HasVideo()) {
-    return res;
-  }
-
-  
-  
-  PRBool eof;
-  do {
-    PRBool skip = PR_FALSE;
-    eof = !DecodeVideoFrame(skip, 0);
-    {
-      MonitorAutoExit exitReaderMon(mMonitor);
-      MonitorAutoEnter decoderMon(mDecoder->GetMonitor());
-      if (mDecoder->GetDecodeState() == nsBuiltinDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
-        return NS_ERROR_FAILURE;
-      }
-    }
-  } while (!eof &&
-           mVideoQueue.GetSize() == 0);
-
-  VideoData* video = mVideoQueue.PeekFront();
-  if (video && !video->mKeyframe) {
-    
-    
-    NS_ASSERTION(video->mTimecode != -1, "Must have a granulepos");
-    int shift = mTheoraState->mInfo.keyframe_granule_shift;
-    PRInt64 keyframeGranulepos = (video->mTimecode >> shift) << shift;
-    PRInt64 keyframeTime = mTheoraState->StartTime(keyframeGranulepos);
-    SEEK_LOG(PR_LOG_DEBUG, ("Keyframe for %lld is at %lld, seeking back to it",
-                            video->mTime, keyframeTime));
-    ByteRange k = GetSeekRange(aRanges,
-                               keyframeTime,
-                               aStartTime,
-                               aEndTime,
-                               PR_FALSE);
-    res = SeekBisection(keyframeTime, k, SEEK_FUZZ_MS);
-    NS_ASSERTION(mTheoraGranulepos == -1, "SeekBisection must reset Theora decode");
-    NS_ASSERTION(mVorbisGranulepos == -1, "SeekBisection must reset Vorbis decode");
-  }
-  return res;
-}
-
-PRBool nsOggReader::CanDecodeToTarget(PRInt64 aTarget,
-                                      PRInt64 aCurrentTime)
-{
-  
-  
-  
-  PRInt64 margin = HasVideo() ? mTheoraState->MaxKeyframeOffset() : SEEK_DECODE_MARGIN;
-  return aTarget >= aCurrentTime &&
-         aTarget - aCurrentTime < margin;
-}
-
-nsresult nsOggReader::SeekInUnbuffered(PRInt64 aTarget,
-                                       PRInt64 aStartTime,
-                                       PRInt64 aEndTime,
-                                       const nsTArray<ByteRange>& aRanges)
-{
-  LOG(PR_LOG_DEBUG, ("%p Seeking in unbuffered data to %lldms using bisection search", mDecoder, aTarget));
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRInt64 keyframeOffsetMs = 0;
-  if (HasVideo() && mTheoraState) {
-    keyframeOffsetMs = mTheoraState->MaxKeyframeOffset();
-  }
-  PRInt64 seekTarget = NS_MAX(aStartTime, aTarget - keyframeOffsetMs);
-  
-  
-  ByteRange k = GetSeekRange(aRanges, seekTarget, aStartTime, aEndTime, PR_FALSE);
-  nsresult res = SeekBisection(seekTarget, k, SEEK_FUZZ_MS);
-  NS_ASSERTION(mTheoraGranulepos == -1, "SeekBisection must reset Theora decode");
-  NS_ASSERTION(mVorbisGranulepos == -1, "SeekBisection must reset Vorbis decode");
-  return res;
-}
-
-nsresult nsOggReader::Seek(PRInt64 aTarget,
-                           PRInt64 aStartTime,
-                           PRInt64 aEndTime,
-                           PRInt64 aCurrentTime)
+nsresult nsOggReader::Seek(PRInt64 aTarget, PRInt64 aStartTime, PRInt64 aEndTime)
 {
   MonitorAutoEnter mon(mMonitor);
+  nsresult res;
   NS_ASSERTION(mDecoder->OnStateMachineThread(),
                "Should be on state machine thread.");
   LOG(PR_LOG_DEBUG, ("%p About to seek to %lldms", mDecoder, aTarget));
-  nsresult res;
   nsMediaStream* stream = mDecoder->GetCurrentStream();
-  NS_ENSURE_TRUE(stream != nsnull, NS_ERROR_FAILURE);
 
+  if (NS_FAILED(ResetDecode())) {
+    return NS_ERROR_FAILURE;
+  }
   if (aTarget == aStartTime) {
-    
-    
     res = stream->Seek(nsISeekableStream::NS_SEEK_SET, mDataOffset);
-    NS_ENSURE_SUCCESS(res,res);
-
+    NS_ENSURE_SUCCESS(res, res);
     mPageOffset = mDataOffset;
-    res = ResetDecode();
-    NS_ENSURE_SUCCESS(res,res);
-
     NS_ASSERTION(aStartTime != -1, "mStartTime should be known");
     {
       MonitorAutoExit exitReaderMon(mMonitor);
       MonitorAutoEnter decoderMon(mDecoder->GetMonitor());
       mDecoder->UpdatePlaybackPosition(aStartTime);
     }
-  } else if (CanDecodeToTarget(aTarget, aCurrentTime)) {
-    LOG(PR_LOG_DEBUG, ("%p Seek target (%lld) is close to current time (%lld), "
-        "will just decode to it", mDecoder, aCurrentTime, aTarget));
   } else {
-    IndexedSeekResult sres = SeekToKeyframeUsingIndex(aTarget);
-    NS_ENSURE_TRUE(sres != SEEK_FATAL_ERROR, NS_ERROR_FAILURE);
-    if (sres == SEEK_INDEX_FAIL) {
-      
-      
-      
-      nsAutoTArray<ByteRange, 16> ranges;
-      res = GetBufferedBytes(ranges);
-      NS_ENSURE_SUCCESS(res,res);
 
-      
-      ByteRange r = GetSeekRange(ranges, aTarget, aStartTime, aEndTime, PR_TRUE);
+    
+    nsAutoTArray<ByteRange, 16> ranges;
+    stream->Pin();
+    if (NS_FAILED(GetBufferedBytes(ranges))) {
+      stream->Unpin();
+      return NS_ERROR_FAILURE;
+    }
 
-      if (!r.IsNull()) {
+    
+    
+    
+    ByteRange r = GetSeekRange(ranges, aTarget, aStartTime, aEndTime, PR_TRUE);
+    res = NS_ERROR_FAILURE;
+    if (!r.IsNull()) {
+      
+      res = SeekBisection(aTarget, r, 0);
+
+      if (NS_SUCCEEDED(res) && HasVideo()) {
         
         
-        res = SeekInBufferedRange(aTarget, aStartTime, aEndTime, ranges, r);
-        NS_ENSURE_SUCCESS(res,res);
-      } else {
-        
-        
-        
-        res = SeekInUnbuffered(aTarget, aStartTime, aEndTime, ranges);
-        NS_ENSURE_SUCCESS(res,res);
+        PRBool eof;
+        do {
+          PRBool skip = PR_FALSE;
+          eof = !DecodeVideoFrame(skip, 0);
+          {
+            MonitorAutoExit exitReaderMon(mMonitor);
+            MonitorAutoEnter decoderMon(mDecoder->GetMonitor());
+            if (mDecoder->GetDecodeState() == nsBuiltinDecoderStateMachine::DECODER_STATE_SHUTDOWN) {
+              stream->Unpin();
+              return NS_ERROR_FAILURE;
+            }
+          }
+        } while (!eof &&
+                 mVideoQueue.GetSize() == 0);
+      
+        VideoData* video = mVideoQueue.PeekFront();
+        if (video && !video->mKeyframe) {
+          
+          
+          NS_ASSERTION(video->mTimecode != -1, "Must have a granulepos");
+          int shift = mTheoraState->mInfo.keyframe_granule_shift;
+          PRInt64 keyframeGranulepos = (video->mTimecode >> shift) << shift;
+          PRInt64 keyframeTime = mTheoraState->StartTime(keyframeGranulepos);
+          
+          SEEK_LOG(PR_LOG_DEBUG, ("Keyframe for %lld is at %lld, seeking back to it",
+                                  video->mTime, keyframeTime));
+          ByteRange k = GetSeekRange(ranges,
+                                     keyframeTime,
+                                     aStartTime,
+                                     aEndTime,
+                                     PR_FALSE);
+          res = SeekBisection(keyframeTime, k, 500);
+          NS_ASSERTION(mTheoraGranulepos == -1, "SeekBisection must reset Theora decode");
+          NS_ASSERTION(mVorbisGranulepos == -1, "SeekBisection must reset Vorbis decode");
+        }
       }
     }
-  }
 
-  
-  
-  
+    stream->Unpin();
+
+    if (NS_FAILED(res)) {
+      
+      
+      
+
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      PRInt64 keyframeOffsetMs = 0;
+      if (HasVideo() && mTheoraState) {
+        keyframeOffsetMs = mTheoraState->MaxKeyframeOffset();
+      }
+      PRInt64 seekTarget = NS_MAX(aStartTime, aTarget - keyframeOffsetMs);
+
+      ByteRange k = GetSeekRange(ranges, seekTarget, aStartTime, aEndTime, PR_FALSE);
+      res = SeekBisection(seekTarget, k, 500);
+
+      NS_ENSURE_SUCCESS(res, res);
+      NS_ASSERTION(mTheoraGranulepos == -1, "SeekBisection must reset Theora decode");
+      NS_ASSERTION(mVorbisGranulepos == -1, "SeekBisection must reset Vorbis decode");
+    }
+  }
   return DecodeToTarget(aTarget);
 }
+
+enum PageSyncResult {
+  PAGE_SYNC_ERROR = 1,
+  PAGE_SYNC_END_OF_RANGE= 2,
+  PAGE_SYNC_OK = 3
+};
 
 
 static PageSyncResult
@@ -1336,7 +1140,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
       return NS_ERROR_FAILURE;
     }
     res = stream->Seek(nsISeekableStream::NS_SEEK_SET, mDataOffset);
-    NS_ENSURE_SUCCESS(res,res);
+    NS_ENSURE_SUCCESS(res, res);
     mPageOffset = mDataOffset;
     return NS_OK;
   }
@@ -1418,7 +1222,9 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
                                     endOffset,
                                     &page,
                                     skippedBytes);
-      NS_ENSURE_TRUE(res != PAGE_SYNC_ERROR, NS_ERROR_FAILURE);
+      if (res == PAGE_SYNC_ERROR) {
+        return NS_ERROR_FAILURE;
+      }
 
       
       
@@ -1498,7 +1304,7 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
       SEEK_LOG(PR_LOG_DEBUG, ("Seek loop (interval == 0) break"));
       NS_ASSERTION(startTime < aTarget, "Start time must always be less than target");
       res = stream->Seek(nsISeekableStream::NS_SEEK_SET, startOffset);
-      NS_ENSURE_SUCCESS(res,res);
+      NS_ENSURE_SUCCESS(res, res);
       mPageOffset = startOffset;
       if (NS_FAILED(ResetDecode())) {
         return NS_ERROR_FAILURE;

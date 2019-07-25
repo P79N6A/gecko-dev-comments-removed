@@ -939,10 +939,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
             MonitorAutoExit exitMon(mDecoder->GetMonitor());
             
             
-            res = mReader->Seek(seekTime,
-                                mStartTime,
-                                mEndTime,
-                                mCurrentFrameTime + mStartTime);
+            res = mReader->Seek(seekTime, mStartTime, mEndTime);
           }
           if (NS_SUCCEEDED(res)){
             PRInt64 audioTime = seekTime;

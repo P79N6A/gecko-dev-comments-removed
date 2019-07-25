@@ -43,9 +43,6 @@
 #include <theora/theoradec.h>
 #include <vorbis/codec.h>
 #include <nsDeque.h>
-#include <nsTArray.h>
-#include <nsClassHashtable.h>
-#include "VideoUtils.h"
 
 class OggPageDeallocator : public nsDequeFunctor {
   virtual void* operator() (void* aPage) {
@@ -129,6 +126,8 @@ class nsOggCodecState {
   
   PRBool PageInFromBuffer();
 
+public:
+
   
   PRUint64 mPacketCount;
 
@@ -194,10 +193,6 @@ public:
   float mPixelAspectRatio;
 };
 
-
-
-#define SKELETON_VERSION(major, minor) (((major)<<16)|(minor))
-
 class nsSkeletonState : public nsOggCodecState {
 public:
   nsSkeletonState(ogg_page* aBosPage);
@@ -206,119 +201,6 @@ public:
   virtual PRBool DecodeHeader(ogg_packet* aPacket);
   virtual PRInt64 Time(PRInt64 granulepos) { return -1; }
   virtual PRBool Init() { return PR_TRUE; }
-
-
-  
-  
-  class nsKeyPoint {
-  public:
-    nsKeyPoint()
-      : mOffset(PR_INT64_MAX),
-        mTime(PR_INT64_MAX) {}
-
-    nsKeyPoint(PRInt64 aOffset, PRInt64 aTime)
-      : mOffset(aOffset),
-        mTime(aTime) {}
-
-    
-    PRInt64 mOffset;
-
-    
-    PRInt64 mTime;
-
-    PRBool IsNull() {
-      return mOffset == PR_INT64_MAX &&
-             mTime == PR_INT64_MAX;
-    }
-  };
-
-  
-  
-  class nsSeekTarget {
-  public:
-    nsSeekTarget() : mSerial(0) {}
-    nsKeyPoint mKeyPoint;
-    PRUint32 mSerial;
-    PRBool IsNull() {
-      return mKeyPoint.IsNull() &&
-             mSerial == 0;
-    }
-  };
-
-  
-  
-  
-  nsresult IndexedSeekTarget(PRInt64 aTarget,
-                             nsTArray<PRUint32>& aTracks,
-                             nsSeekTarget& aResult);
-
-  PRBool HasIndex() const {
-    return mIndex.Count() > 0;
-  }
-
-  
-  
-  
-  
-  nsresult GetDuration(const nsTArray<PRUint32>& aTracks, PRInt64& aDuration);
-
-private:
-
-  
-  PRBool DecodeIndex(ogg_packet* aPacket);
-
-  
-  
-  nsresult IndexedSeekTargetForTrack(PRUint32 aSerialno,
-                                     PRInt64 aTarget,
-                                     nsKeyPoint& aResult);
-
-  
-  PRUint32 mVersion;
-
-  
-  PRInt64 mLength;
-
-  
-  
-  class nsKeyFrameIndex {
-  public:
-
-    nsKeyFrameIndex(PRInt64 aStartTime, PRInt64 aEndTime) 
-      : mStartTime(aStartTime),
-        mEndTime(aEndTime)
-    {
-      MOZ_COUNT_CTOR(nsKeyFrameIndex);
-    }
-
-    ~nsKeyFrameIndex() {
-      MOZ_COUNT_DTOR(nsKeyFrameIndex);
-    }
-
-    void Add(PRInt64 aOffset, PRInt64 aTimeMs) {
-      mKeyPoints.AppendElement(nsKeyPoint(aOffset, aTimeMs));
-    }
-
-    const nsKeyPoint& Get(PRUint32 aIndex) const {
-      return mKeyPoints[aIndex];
-    }
-
-    PRUint32 Length() const {
-      return mKeyPoints.Length();
-    }
-
-    
-    const PRInt64 mStartTime;
-
-    
-    const PRInt64 mEndTime;
-
-  private:
-    nsTArray<nsKeyPoint> mKeyPoints;
-  };
-
-  
-  nsClassHashtable<nsUint32HashKey, nsKeyFrameIndex> mIndex;
 };
 
 #endif
