@@ -1035,7 +1035,7 @@ WeaveSvc.prototype = {
       
       if (!engines) {
         
-        yield this.resetService(self.cb);
+        this.resetService();
 
         engines = [Clients].concat(Engines.getAll());
       }
@@ -1081,13 +1081,8 @@ WeaveSvc.prototype = {
   
 
 
-
-
-
-  resetService: function WeaveSvc__resetService(onComplete) {
-    let fn = function WeaveSvc__resetService() {
-      let self = yield;
-
+  resetService: function WeaveSvc_resetService()
+    this._catch(this._notify("reset-service", "", function() {
       
       this.clearLogs();
       this._log.info("Logs reinitialized for service reset");
@@ -1097,9 +1092,7 @@ WeaveSvc.prototype = {
       Svc.Prefs.reset("lastSync");
       for each (let cache in [PubKeys, PrivKeys, CryptoMetas, Records])
         cache.clearCache();
-    };
-    this._catchAll(this._notifyAsync("reset-service", "", fn)).async(this, onComplete);
-  },
+    }))(),
 
   
 
@@ -1116,7 +1109,7 @@ WeaveSvc.prototype = {
       
       if (!engines) {
         
-        yield this.resetService(self.cb);
+        this.resetService();
 
         engines = [Clients].concat(Engines.getAll());
       }
