@@ -2253,7 +2253,6 @@ nsWindow::Create(nsIWidget        *aParent,
                  const nsIntRect  &aRect,
                  EVENT_CALLBACK    aHandleEventFunction,
                  nsDeviceContext *aContext,
-                 nsIAppShell      *aAppShell,
                  nsIToolkit       *aToolkit,
                  nsWidgetInitData *aInitData)
 {
@@ -2273,7 +2272,7 @@ nsWindow::Create(nsIWidget        *aParent,
 
     
     BaseCreate(baseParent, aRect, aHandleEventFunction, aContext,
-               aAppShell, aToolkit, aInitData);
+               aToolkit, aInitData);
 
     
     mParent = aParent;
@@ -2309,7 +2308,6 @@ already_AddRefed<nsIWidget>
 nsWindow::CreateChild(const nsIntRect&  aRect,
                       EVENT_CALLBACK    aHandleEventFunction,
                       nsDeviceContext* aContext,
-                      nsIAppShell*      aAppShell,
                       nsIToolkit*       aToolkit,
                       nsWidgetInitData* aInitData,
                       bool              )
@@ -2318,7 +2316,6 @@ nsWindow::CreateChild(const nsIntRect&  aRect,
     return nsBaseWidget::CreateChild(aRect,
                                      aHandleEventFunction,
                                      aContext,
-                                     aAppShell,
                                      aToolkit,
                                      aInitData,
                                      PR_TRUE); 

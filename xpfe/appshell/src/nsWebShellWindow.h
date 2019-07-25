@@ -51,7 +51,6 @@
 
 
 class nsIURI;
-class nsIAppShell;
 
 class nsWebShellWindow : public nsXULWindow,
                          public nsIWebProgressListener
@@ -64,7 +63,7 @@ public:
 
   
   nsresult Initialize(nsIXULWindow * aParent, nsIXULWindow * aOpener,
-                      nsIAppShell* aShell, nsIURI* aUrl,
+                      nsIURI* aUrl,
                       PRInt32 aInitialWidth, PRInt32 aInitialHeight,
                       bool aIsHiddenWindow,
                       nsWidgetInitData& widgetInitData);

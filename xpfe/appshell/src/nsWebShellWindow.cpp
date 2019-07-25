@@ -42,7 +42,7 @@
 #include "nsLayoutCID.h"
 #include "nsContentCID.h"
 #include "nsIWeakReference.h"
-#include "nsIContentViewer.h"
+
 #include "nsIComponentManager.h"
 #include "nsIServiceManager.h"
 #include "nsIURL.h"
@@ -64,9 +64,6 @@
 #include "nsGUIEvent.h"
 #include "nsWidgetsCID.h"
 #include "nsIWidget.h"
-#include "nsIAppShell.h"
-
-#include "nsIAppShellService.h"
 
 #include "nsIDOMCharacterData.h"
 #include "nsIDOMNodeList.h"
@@ -83,6 +80,7 @@
 #include "nsIWebProgress.h"
 #include "nsIWebProgressListener.h"
 
+#include "nsIDocumentViewer.h"
 #include "nsIDocument.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMNode.h"
@@ -148,7 +146,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsXULWindow)
 
 nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
                                       nsIXULWindow* aOpener,
-                                      nsIAppShell* aShell, nsIURI* aUrl,
+                                      nsIURI* aUrl,
                                       PRInt32 aInitialWidth,
                                       PRInt32 aInitialHeight,
                                       bool aIsHiddenWindow,
@@ -208,7 +206,6 @@ nsresult nsWebShellWindow::Initialize(nsIXULWindow* aParent,
                   r,                                  
                   nsWebShellWindow::HandleEvent,      
                   nsnull,                             
-                  aShell,                             
                   nsnull,                             
                   &widgetInitData);                   
   mWindow->GetClientBounds(r);
@@ -749,9 +746,11 @@ bool nsWebShellWindow::ExecuteCloseHandler()
   if (eventTarget) {
     nsCOMPtr<nsIContentViewer> contentViewer;
     mDocShell->GetContentViewer(getter_AddRefs(contentViewer));
-    if (contentViewer) {
+    nsCOMPtr<nsIDocumentViewer> docViewer(do_QueryInterface(contentViewer));
+
+    if (docViewer) {
       nsRefPtr<nsPresContext> presContext;
-      contentViewer->GetPresContext(getter_AddRefs(presContext));
+      docViewer->GetPresContext(getter_AddRefs(presContext));
 
       nsEventStatus status = nsEventStatus_eIgnore;
       nsMouseEvent event(PR_TRUE, NS_XUL_CLOSE, nsnull,

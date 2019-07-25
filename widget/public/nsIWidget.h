@@ -57,7 +57,6 @@
 #include "nsXULAppAPI.h"
 
 
-class   nsIAppShell;
 class   nsIToolkit;
 class   nsFontMetrics;
 class   nsRenderingContext;
@@ -121,8 +120,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xf43254ce, 0xd315, 0x458b, \
-    { 0xba, 0x72, 0xa8, 0xdf, 0x21, 0xcf, 0xa7, 0x2a } }
+  { 0x64e1ee3d, 0xe0f2, 0x4ace, \
+    { 0x91, 0xb7, 0xdc, 0xd1, 0xbe, 0x69, 0xb6, 0xe6 } }
 
 
 
@@ -330,14 +329,11 @@ class nsIWidget : public nsISupports {
 
 
 
-
-
     NS_IMETHOD Create(nsIWidget        *aParent,
                       nsNativeWidget   aNativeParent,
                       const nsIntRect  &aRect,
                       EVENT_CALLBACK   aHandleEventFunction,
                       nsDeviceContext *aContext,
-                      nsIAppShell      *aAppShell = nsnull,
                       nsIToolkit       *aToolkit = nsnull,
                       nsWidgetInitData *aInitData = nsnull) = 0;
 
@@ -361,7 +357,6 @@ class nsIWidget : public nsISupports {
     CreateChild(const nsIntRect  &aRect,
                 EVENT_CALLBACK   aHandleEventFunction,
                 nsDeviceContext *aContext,
-                nsIAppShell      *aAppShell = nsnull,
                 nsIToolkit       *aToolkit = nsnull,
                 nsWidgetInitData *aInitData = nsnull,
                 bool             aForceUseIWidgetParent = false) = 0;

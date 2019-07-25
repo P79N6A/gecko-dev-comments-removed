@@ -3878,7 +3878,6 @@ nsWindow::Create(nsIWidget        *aParent,
                  const nsIntRect  &aRect,
                  EVENT_CALLBACK    aHandleEventFunction,
                  nsDeviceContext *aContext,
-                 nsIAppShell      *aAppShell,
                  nsIToolkit       *aToolkit,
                  nsWidgetInitData *aInitData)
 {
@@ -3894,7 +3893,7 @@ nsWindow::Create(nsIWidget        *aParent,
 
     
     BaseCreate(baseParent, aRect, aHandleEventFunction, aContext,
-               aAppShell, aToolkit, aInitData);
+               aToolkit, aInitData);
 
     
     bool listenForResizes = false;;
