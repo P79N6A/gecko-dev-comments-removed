@@ -336,6 +336,9 @@ assertExpr("2 + 3", binExpr("+", lit(2), lit(3)));
 assertExpr("typeof(0?0:a)", unExpr("typeof", condExpr(lit(0), lit(0), ident("a"))));
 
 
+assertExpr("[x for each (x in y) if (false)]", compExpr(ident("x"), [compEachBlock(ident("x"), ident("y"))], lit(false)));
+
+
 
 assertStmt("throw 42", throwStmt(lit(42)));
 assertStmt("for (;;) break", forStmt(null, null, null, breakStmt(null)));
