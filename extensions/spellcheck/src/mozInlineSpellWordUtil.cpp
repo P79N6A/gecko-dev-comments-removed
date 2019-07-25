@@ -922,9 +922,6 @@ WordSplitState::FindSpecialWord()
   
   
   
-  
-  
-  bool foundDot = false;
   PRInt32 firstColon = -1;
   for (i = mDOMWordOffset;
        i < PRInt32(mDOMWordText.Length()); i ++) {
@@ -944,10 +941,6 @@ WordSplitState::FindSpecialWord()
           ClassifyCharacter(i + 1, false) == CHAR_CLASS_WORD)
 
       return mDOMWordText.Length() - mDOMWordOffset;
-    } else if (mDOMWordText[i] == '.' && ! foundDot &&
-        i > 0 && i < (PRInt32)mDOMWordText.Length() - 1) {
-      
-      foundDot = true;
     } else if (mDOMWordText[i] == ':' && firstColon < 0) {
       firstColon = i;
     }
