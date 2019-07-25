@@ -107,9 +107,9 @@ extern "C" {
 
 
 
-#define SQLITE_VERSION        "3.7.9"
-#define SQLITE_VERSION_NUMBER 3007009
-#define SQLITE_SOURCE_ID      "2011-11-01 00:52:41 c7c6050ef060877ebe77b41d959e9df13f8c9b5e"
+#define SQLITE_VERSION        "3.7.7.1"
+#define SQLITE_VERSION_NUMBER 3007007
+#define SQLITE_SOURCE_ID      "2011-06-28 17:39:05 af0d91adf497f5f36ec3813f04235a6e195a605f"
 
 
 
@@ -742,41 +742,6 @@ struct sqlite3_io_methods {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define SQLITE_FCNTL_LOCKSTATE        1
 #define SQLITE_GET_LOCKPROXYFILE      2
 #define SQLITE_SET_LOCKPROXYFILE      3
@@ -785,9 +750,7 @@ struct sqlite3_io_methods {
 #define SQLITE_FCNTL_CHUNK_SIZE       6
 #define SQLITE_FCNTL_FILE_POINTER     7
 #define SQLITE_FCNTL_SYNC_OMITTED     8
-#define SQLITE_FCNTL_WIN32_AV_RETRY   9
-#define SQLITE_FCNTL_PERSIST_WAL     10
-#define SQLITE_FCNTL_OVERWRITE       11
+
 
 
 
@@ -1189,6 +1152,12 @@ SQLITE_API int sqlite3_config(int, ...);
 
 
 SQLITE_API int sqlite3_db_config(sqlite3*, int op, ...);
+
+
+
+
+
+
 
 
 
@@ -2860,7 +2829,6 @@ SQLITE_API int sqlite3_limit(sqlite3*, int id, int newVal);
 
 
 
-
 SQLITE_API int sqlite3_prepare(
   sqlite3 *db,            
   const char *zSql,       
@@ -2982,13 +2950,6 @@ typedef struct Mem sqlite3_value;
 
 
 typedef struct sqlite3_context sqlite3_context;
-
-
-
-
-
-
-
 
 
 
@@ -3356,12 +3317,6 @@ SQLITE_API const void *sqlite3_column_decltype16(sqlite3_stmt*,int);
 
 
 SQLITE_API int sqlite3_step(sqlite3_stmt*);
-
-
-
-
-
-
 
 
 
@@ -3974,11 +3929,6 @@ SQLITE_API void sqlite3_set_auxdata(sqlite3_context*, int N, void*, void (*)(voi
 typedef void (*sqlite3_destructor_type)(void*);
 #define SQLITE_STATIC      ((sqlite3_destructor_type)0)
 #define SQLITE_TRANSIENT   ((sqlite3_destructor_type)-1)
-
-
-
-
-
 
 
 
@@ -5841,18 +5791,6 @@ SQLITE_API int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int r
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 #define SQLITE_DBSTATUS_LOOKASIDE_USED       0
 #define SQLITE_DBSTATUS_CACHE_USED           1
 #define SQLITE_DBSTATUS_SCHEMA_USED          2
@@ -5860,9 +5798,7 @@ SQLITE_API int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int r
 #define SQLITE_DBSTATUS_LOOKASIDE_HIT        4
 #define SQLITE_DBSTATUS_LOOKASIDE_MISS_SIZE  5
 #define SQLITE_DBSTATUS_LOOKASIDE_MISS_FULL  6
-#define SQLITE_DBSTATUS_CACHE_HIT            7
-#define SQLITE_DBSTATUS_CACHE_MISS           8
-#define SQLITE_DBSTATUS_MAX                  8   /* Largest defined DBSTATUS */
+#define SQLITE_DBSTATUS_MAX                  6   /* Largest defined DBSTATUS */
 
 
 
@@ -5889,6 +5825,7 @@ SQLITE_API int sqlite3_db_status(sqlite3*, int op, int *pCur, int *pHiwtr, int r
 
 
 SQLITE_API int sqlite3_stmt_status(sqlite3_stmt*, int op,int resetFlg);
+
 
 
 
