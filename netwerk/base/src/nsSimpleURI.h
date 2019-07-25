@@ -88,6 +88,11 @@ protected:
     
     
     
+    bool EqualsInternal(nsSimpleURI* otherUri, RefHandlingEnum refHandlingMode);
+
+    
+    
+    
     virtual nsSimpleURI* StartClone(RefHandlingEnum refHandlingMode);
 
     
