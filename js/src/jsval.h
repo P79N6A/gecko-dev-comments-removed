@@ -317,6 +317,7 @@ typedef union jsval_layout
     } s;
     double asDouble;
     void *asPtr;
+    jsuword asWord;
 } jsval_layout;
 # endif  
 #else   
@@ -358,6 +359,7 @@ typedef union jsval_layout
     } s;
     double asDouble;
     void *asPtr;
+    jsuword asWord;
 } jsval_layout;
 # endif 
 #endif  
