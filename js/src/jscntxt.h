@@ -1252,14 +1252,19 @@ class AutoLockGC
       : runtime(rt)
     {
         MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+        
+#ifdef JS_THREADSAFE
         if (rt)
             JS_LOCK_GC(rt);
+#endif
     }
 
     ~AutoLockGC()
     {
+#ifdef JS_THREADSAFE
         if (runtime)
             JS_UNLOCK_GC(runtime);
+#endif
     }
 
     bool locked() const {
