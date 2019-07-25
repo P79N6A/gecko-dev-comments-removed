@@ -104,6 +104,8 @@ struct FPSState {
 
   void DrawFPS(TimeStamp, GLContext*, ShaderProgramOGL*);
 
+  static void DrawFrameCounter(GLContext* context);
+
   void NotifyShadowTreeTransaction() {
     mTransactionFps.AddFrame(TimeStamp::Now());
   }
@@ -569,6 +571,7 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 
   if (NS_IsMainThread()) {
     Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+    Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
   } else {
     
     class ReadDrawFPSPref : public nsRunnable {
@@ -576,6 +579,7 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
       NS_IMETHOD Run()
       {
         Preferences::AddBoolVarCache(&sDrawFPS, "layers.acceleration.draw-fps");
+        Preferences::AddBoolVarCache(&sFrameCounter, "layers.acceleration.frame-counter");
         return NS_OK;
       }
     };
@@ -747,6 +751,28 @@ LayerManagerOGL::RootLayer() const
 }
 
 bool LayerManagerOGL::sDrawFPS = false;
+bool LayerManagerOGL::sFrameCounter = false;
+
+static uint16_t sFrameCount = 0;
+void
+FPSState::DrawFrameCounter(GLContext* context)
+{
+
+  
+  uint16_t frameNumber = sFrameCount++;
+  for (size_t i = 0; i < 16; i++) {
+    context->fScissor(3*i, 0, 3, 3);
+
+    
+    
+    if ((frameNumber >> i) & 0x1) {
+      context->fClearColor(0.0, 0.0, 0.0, 0.0);
+    } else {
+      context->fClearColor(1.0, 1.0, 1.0, 0.0);
+    }
+    context->fClear(LOCAL_GL_COLOR_BUFFER_BIT);
+  }
+}
 
 
 
@@ -948,6 +974,8 @@ LayerManagerOGL::Render()
 
   if (mFPS) {
     mFPS->DrawFPS(TimeStamp::Now(), mGLContext, GetProgram(Copy2DProgramType));
+  } else if (sFrameCounter) {
+    DrawFrameCounter(mGLContext);
   }
 
   if (mGLContext->IsDoubleBuffered()) {
