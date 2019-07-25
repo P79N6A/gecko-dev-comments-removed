@@ -2683,6 +2683,7 @@ var ActivityObserver = {
   _inBackground : false,
   _notActive : false,
   _isDisplayOff : false,
+  _timeoutID: 0,
   observe: function ao_observe(aSubject, aTopic, aData) {
     if (aTopic == "application-background") {
       this._inBackground = true;
@@ -2698,11 +2699,13 @@ var ActivityObserver = {
       this._isDisplayOff = true;
     }
     let activeTabState = !this._inBackground && !this._notActive && !this._isDisplayOff;
+    if (this._timeoutID)
+      clearTimeout(this._timeoutID);
     if (Browser.selectedTab.active != activeTabState) {
       
       
       
-      setTimeout(function() { Browser.selectedTab.active = activeTabState; }, activeTabState ? 0 : kSetInactiveStateTimeout);
+      this._timeoutID = setTimeout(function() { Browser.selectedTab.active = activeTabState; }, activeTabState ? 0 : kSetInactiveStateTimeout);
     }
   }
 };
