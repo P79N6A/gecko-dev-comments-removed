@@ -170,6 +170,8 @@ const TYPES = {
 
 const MSG_JAR_FLUSH = "AddonJarFlush";
 
+var gGlobalScope = this;
+
 
 
 
@@ -3506,6 +3508,13 @@ var XPIProvider = {
     
     for (let name in BOOTSTRAP_REASONS)
       this.bootstrapScopes[aId][name] = BOOTSTRAP_REASONS[name];
+
+
+    
+    const features = [ "Worker", "ChromeWorker" ];
+
+    for each (let feature in features)
+      this.bootstrapScopes[aId][feature] = gGlobalScope[feature];
   },
 
   
