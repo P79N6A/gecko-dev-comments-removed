@@ -374,13 +374,8 @@ GreedyAllocator::allocateSameAsInput(LDefinition *def, LAllocation *a, AnyRegist
     JS_ASSERT(disallowed.has(reg));
 
     if (vuse->hasRegister()) {
-        
-        LAllocation from;
-        if (vuse->hasRegister())
-            from = LAllocation(vuse->reg());
-        else
-            from = vuse->backingStack();
-        if (!align(from, reg))
+        JS_ASSERT(vuse->reg() != reg);
+        if (!align(vuse->reg(), reg))
             return false;
     } else {
         
@@ -559,6 +554,25 @@ GreedyAllocator::informSnapshot(LSnapshot *snapshot)
     return true;
 }
 
+void
+GreedyAllocator::assertValidRegisterState()
+{
+#ifdef DEBUG
+    
+    
+    for (AnyRegisterIterator iter; iter.more(); iter++) {
+        AnyRegister reg = *iter;
+        VirtualRegister *vr = state[reg];
+        if (!reg.allocatable()) {
+            JS_ASSERT(!vr);
+            continue;
+        }
+        JS_ASSERT(!vr == state.free.has(reg));
+        JS_ASSERT_IF(vr, vr->reg() == reg);
+    }
+#endif
+}
+
 bool
 GreedyAllocator::allocateRegistersInBlock(LBlock *block)
 {
@@ -573,6 +587,7 @@ GreedyAllocator::allocateRegistersInBlock(LBlock *block)
 
         
         reset();
+        assertValidRegisterState();
 
         
         
@@ -605,6 +620,8 @@ GreedyAllocator::allocateRegistersInBlock(LBlock *block)
             block->insertBefore(ins, aligns);
             ri++;
         }
+
+        assertValidRegisterState();
     }
     return true;
 }
@@ -814,16 +831,19 @@ GreedyAllocator::mergeAllocationState(LBlock *block)
     state = blockInfo(leftblock)->in;
 
     
+    
+    for (AnyRegisterIterator iter; iter.more(); iter++) {
+        AnyRegister reg = *iter;
+        if (VirtualRegister *vr = state[reg])
+            vr->setRegister(reg);
+    }
+
+    
     for (size_t i = 1; i < mblock->numSuccessors(); i++) {
         LBlock *rightblock = mblock->getSuccessor(i)->lir();
 
-        for (size_t i = 0; i < Registers::Total; i++) {
-            AnyRegister reg = AnyRegister(Register::FromCode(i));
-            if (!mergeRegisterState(reg, leftblock, rightblock))
-                return false;
-        }
-        for (size_t i = 0; i < FloatRegisters::Total; i++) {
-            AnyRegister reg = AnyRegister(FloatRegister::FromCode(i));
+        for (AnyRegisterIterator iter; iter.more(); iter++) {
+            AnyRegister reg = *iter;
             if (!mergeRegisterState(reg, leftblock, rightblock))
                 return false;
         }
@@ -872,7 +892,18 @@ GreedyAllocator::allocateRegisters()
 
         
         
+        
+        
+        
         blockInfo(block)->in = state;
+        for (AnyRegisterIterator iter; iter.more(); iter++) {
+            AnyRegister reg = *iter;
+            VirtualRegister *vr = state[reg];
+            if (vr) {
+                JS_ASSERT(vr->reg() == reg);
+                vr->unsetRegister();
+            }
+        }
 
         
         
