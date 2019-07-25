@@ -187,8 +187,14 @@ private:
   ID2D1RenderTarget *GetRTForOperation(CompositionOp aOperator, const Pattern &aPattern);
   void FinalizeRTForOperation(CompositionOp aOperator, const Pattern &aPattern, const Rect &aBounds);  void EnsureViews();
   void PopAllClips();
+  void PushClipsToRT(ID2D1RenderTarget *aRT);
+  void PopClipsFromRT(ID2D1RenderTarget *aRT);
 
-  TemporaryRef<ID2D1RenderTarget> CreateRTForTexture(ID3D10Texture2D *aTexture);
+  
+  
+  void EnsureClipMaskTexture();
+
+  TemporaryRef<ID2D1RenderTarget> CreateRTForTexture(ID3D10Texture2D *aTexture, SurfaceFormat aFormat);
   TemporaryRef<ID2D1Geometry> GetClippedGeometry();
 
   TemporaryRef<ID2D1Brush> CreateBrushForPattern(const Pattern &aPattern, Float aAlpha = 1.0f);
@@ -208,6 +214,7 @@ private:
 
   RefPtr<ID3D10Device1> mDevice;
   RefPtr<ID3D10Texture2D> mTexture;
+  RefPtr<ID3D10Texture2D> mCurrentClipMaskTexture;
   mutable RefPtr<ID2D1RenderTarget> mRT;
 
   
