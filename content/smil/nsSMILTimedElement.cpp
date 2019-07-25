@@ -54,6 +54,7 @@
 #include "prtime.h"
 #include "nsString.h"
 #include "mozilla/AutoRestore.h"
+#include "mozilla/Util.h"
 
 using namespace mozilla;
 
@@ -422,10 +423,15 @@ nsSMILTimedElement::RemoveInstanceTime(nsSMILInstanceTime* aInstanceTime,
 {
   NS_ABORT_IF_FALSE(aInstanceTime, "Attempting to remove null instance time");
 
+  
+  
+  if (aInstanceTime->ShouldPreserve()) {
+    aInstanceTime->Unlink();
+    return;
+  }
+
   InstanceTimeList& instanceList = aIsBegin ? mBeginInstances : mEndInstances;
-#ifdef DEBUG
-  PRBool found =
-#endif
+  mozilla::DebugOnly<PRBool> found =
     instanceList.RemoveElementSorted(aInstanceTime, InstanceTimeComparator());
   NS_ABORT_IF_FALSE(found, "Couldn't find instance time to delete");
 
