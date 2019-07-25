@@ -484,7 +484,10 @@ WeaveSvc.prototype = {
         throw "Login failed";
       }
 
+      
       this._loggedIn = true;
+      this._checkSync();
+
       self.done(true);
     };
     this._catchAll(this._localLock(this._notify("login", "", fn))).
