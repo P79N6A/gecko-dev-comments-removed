@@ -171,6 +171,9 @@ js_CloseIterator(JSContext *cx, JSObject *iterObj);
 bool
 js_SuppressDeletedProperty(JSContext *cx, JSObject *obj, jsid id);
 
+bool
+js_SuppressDeletedIndexProperties(JSContext *cx, JSObject *obj, jsint begin, jsint end);
+
 
 
 
