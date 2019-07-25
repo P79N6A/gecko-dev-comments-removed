@@ -75,6 +75,28 @@ struct ElementPropertyTransition
   TimeDuration mDuration;
   nsSMILKeySpline mTimingFunction;
 
+  
+  
+  
+  
+  
+  nsStyleAnimation::Value mStartForReversingTest;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  double mReversePortion;
+
+  
+  
+  
+  double ValuePortionFor(TimeStamp aRefreshTime) const;
+
   PRBool IsRemovedSentinel() const
   {
     return mStartTime.IsNull();
@@ -86,6 +108,34 @@ struct ElementPropertyTransition
     mStartTime = TimeStamp();
   }
 };
+
+double
+ElementPropertyTransition::ValuePortionFor(TimeStamp aRefreshTime) const
+{
+  
+  
+  
+  double duration = mDuration.ToSeconds();
+  NS_ABORT_IF_FALSE(duration >= 0.0, "negative duration forbidden");
+  double timePortion;
+  if (duration == 0.0) {
+    
+    
+    if (aRefreshTime >= mStartTime) {
+      timePortion = 0.0;
+    } else {
+      timePortion = 1.0;
+    }
+  } else {
+    timePortion = (aRefreshTime - mStartTime).ToSeconds() / duration;
+    if (timePortion < 0.0)
+      timePortion = 0.0; 
+    if (timePortion > 1.0)
+      timePortion = 1.0; 
+  }
+
+  return mTimingFunction.GetSplineValue(timePortion);
+}
 
 
 
@@ -204,26 +254,7 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
         continue;
       }
 
-      double duration = pt.mDuration.ToSeconds();
-      NS_ABORT_IF_FALSE(duration >= 0.0, "negative duration forbidden");
-      double timePortion;
-      if (duration == 0.0) {
-        if (aRefreshTime >= pt.mStartTime) {
-          timePortion = 0.0;
-        } else {
-          timePortion = 1.0;
-        }
-      } else {
-        timePortion = (aRefreshTime - pt.mStartTime).ToSeconds() /
-                      pt.mDuration.ToSeconds();
-        if (timePortion < 0.0)
-          timePortion = 0.0; 
-        if (timePortion > 1.0)
-          timePortion = 1.0; 
-      }
-
-      double valuePortion =
-        pt.mTimingFunction.GetSplineValue(timePortion);
+      double valuePortion = pt.ValuePortionFor(aRefreshTime);
 #ifdef DEBUG
       PRBool ok =
 #endif
@@ -600,13 +631,19 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
     return;
   }
 
-  
-  
-  
-  
-  double durationFraction = 1.0;
+  TimeStamp mostRecentRefresh =
+    presContext->RefreshDriver()->MostRecentRefresh();
 
-  
+  const nsTimingFunction &tf = aTransition.GetTimingFunction();
+  float delay = aTransition.GetDelay();
+  float duration = aTransition.GetDuration();
+  if (duration < 0.0) {
+    
+    duration = 0.0;
+  }
+  pt.mStartForReversingTest = pt.mStartValue;
+  pt.mReversePortion = 1.0;
+
   
   
   if (currentIndex != nsTArray<ElementPropertyTransition>::NoIndex) {
@@ -621,49 +658,31 @@ nsTransitionManager::ConsiderStartingTransition(nsCSSProperty aProperty,
       return;
     }
 
-    double fullDistance, remainingDistance;
-#ifdef DEBUG
-    PRBool ok =
-#endif
-      nsStyleAnimation::ComputeDistance(aProperty, pt.mStartValue,
-                                        pt.mEndValue, fullDistance);
-    NS_ABORT_IF_FALSE(ok, "could not compute distance");
-    NS_ABORT_IF_FALSE(fullDistance >= 0.0, "distance must be positive");
-
+    
+    
     if (!oldPT.IsRemovedSentinel() &&
-        nsStyleAnimation::ComputeDistance(aProperty, oldPT.mEndValue,
-                                          pt.mEndValue, remainingDistance)) {
-      NS_ABORT_IF_FALSE(remainingDistance >= 0.0, "distance must be positive");
-      durationFraction = fullDistance / remainingDistance;
-      if (durationFraction > 1.0) {
-        durationFraction = 1.0;
-      }
+        oldPT.mStartForReversingTest == pt.mEndValue) {
+      
+      
+      double valuePortion =
+        oldPT.ValuePortionFor(mostRecentRefresh) * oldPT.mReversePortion +
+        (1.0 - oldPT.mReversePortion); 
+
+      
+      
+      
+      if (delay < 0.0f)
+        delay *= valuePortion;
+      duration *= valuePortion;
+
+      pt.mStartForReversingTest = oldPT.mEndValue;
+      pt.mReversePortion = valuePortion;
     }
   }
 
-
-  nsRefreshDriver *rd = presContext->RefreshDriver();
-
   pt.mProperty = aProperty;
-  float delay = aTransition.GetDelay();
-  float duration = aTransition.GetDuration();
-  if (duration < 0.0) {
-    
-    duration = 0.0;
-  }
-  if (durationFraction != 1.0) {
-    
-    
-    
-    
-    if (delay < 0.0f)
-        delay *= durationFraction;
-    duration *= durationFraction;
-  }
-  pt.mStartTime = rd->MostRecentRefresh() +
-                  TimeDuration::FromMilliseconds(delay);
+  pt.mStartTime = mostRecentRefresh + TimeDuration::FromMilliseconds(delay);
   pt.mDuration = TimeDuration::FromMilliseconds(duration);
-  const nsTimingFunction &tf = aTransition.GetTimingFunction();
   pt.mTimingFunction.Init(tf.mX1, tf.mY1, tf.mX2, tf.mY2);
 
   if (!aElementTransitions) {
