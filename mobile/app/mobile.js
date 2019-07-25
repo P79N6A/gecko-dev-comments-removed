@@ -183,13 +183,6 @@ pref("extensions.blocklist.detailsURL", "http://%LOCALE%.www.mozilla.com/%LOCALE
 pref("browser.dictionaries.download.url", "https://%LOCALE%.add-ons.mozilla.com/%LOCALE%/firefox/%VERSION%/dictionaries/");
 
 
-pref("browser.display.use_focus_colors", true);
-pref("browser.display.focus_background_color", "#ffffa0");
-pref("browser.display.focus_text_color", "#00000");
-pref("browser.display.focus_ring_on_anything", true);
-pref("browser.display.focus_ring_style", 0);
-
-
 pref("dom.disable_open_during_load", true);
 pref("privacy.popups.showBrowserMessage", true);
 
