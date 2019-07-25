@@ -145,12 +145,18 @@ class ValueNumberData : public TempObject {
         
         if (number == rep->valueNumber())
             return;
+
         if (classNext)
             classNext->valueNumberData()->classPrev = classPrev;
         if (classPrev)
-            classPrev->valueNumberData()->classPrev = classNext;
+            classPrev->valueNumberData()->classNext = classNext;
+
+
         classPrev = rep;
         classNext = rep->valueNumberData()->classNext;
+
+        if (rep->valueNumberData()->classNext)
+            rep->valueNumberData()->classNext->valueNumberData()->classPrev = thisDef;
         rep->valueNumberData()->classNext = thisDef;
     }
 };
