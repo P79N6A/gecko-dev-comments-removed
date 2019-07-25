@@ -1553,6 +1553,9 @@ Tab.prototype = {
     this.setBrowserSize(kDefaultCSSViewportWidth, kDefaultCSSViewportHeight);
     BrowserApp.deck.appendChild(this.browser);
 
+    
+    this.setActive(false);
+
     this.browser.stop();
 
     let frameLoader = this.browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
@@ -1656,7 +1659,7 @@ Tab.prototype = {
 
   
   setActive: function setActive(aActive) {
-    if (!this.browser)
+    if (!this.browser || !this.browser.docShell)
       return;
 
     if (aActive) {
