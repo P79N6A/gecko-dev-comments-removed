@@ -277,9 +277,10 @@ nsContextMenu.prototype = {
     
     
     this.showItem("context-viewimage", (this.onImage &&
-                  (!this.onStandaloneImage || this.inFrame)) || this.onCanvas);
+                  (!this.inSyntheticDoc || this.inFrame)) || this.onCanvas);
 
-    this.showItem("context-viewvideo", this.onVideo);
+    
+    this.showItem("context-viewvideo", this.onVideo && (!this.inSyntheticDoc || this.inFrame));
     this.setItemAttr("context-viewvideo",  "disabled", !this.mediaURL);
 
     
@@ -466,7 +467,6 @@ nsContextMenu.prototype = {
     this.onImage           = false;
     this.onLoadedImage     = false;
     this.onCompletedImage  = false;
-    this.onStandaloneImage = false;
     this.onCanvas          = false;
     this.onVideo           = false;
     this.onAudio           = false;
@@ -482,6 +482,7 @@ nsContextMenu.prototype = {
     this.linkProtocol      = "";
     this.onMathML          = false;
     this.inFrame           = false;
+    this.inSyntheticDoc    = false;
     this.hasBGImage        = false;
     this.bgImageURL        = "";
     this.onEditableArea    = false;
@@ -501,6 +502,8 @@ nsContextMenu.prototype = {
     this.target = aNode;
 
     
+    this.inSyntheticDoc =  this.target.ownerDocument.mozSyntheticDocument;
+    
     if (this.target.nodeType == Node.ELEMENT_NODE) {
       
       if (this.target instanceof Ci.nsIImageLoadingContent &&
@@ -515,8 +518,6 @@ nsContextMenu.prototype = {
           this.onCompletedImage = true;
 
         this.mediaURL = this.target.currentURI.spec;
-        if (this.target.ownerDocument instanceof ImageDocument)
-          this.onStandaloneImage = true;
       }
       else if (this.target instanceof HTMLCanvasElement) {
         this.onCanvas = true;
