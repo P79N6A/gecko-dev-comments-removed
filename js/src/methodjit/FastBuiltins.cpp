@@ -349,8 +349,8 @@ mjit::Compiler::inlineNativeFunction(uint32 argc, bool callingNew)
                            : JSVAL_TYPE_UNKNOWN;
 
     
-    for (int i=0; i<argc; i++) {
-        FrameEntry * arg = frame.peek(-(i+1));
+    for (unsigned i=0; i<argc; i++) {
+        FrameEntry * arg = frame.peek(-((int)i+1));
 
         if (!arg->isTypeKnown())
             return Compile_InlineAbort;
