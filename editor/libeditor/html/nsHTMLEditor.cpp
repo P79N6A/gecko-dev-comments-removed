@@ -64,6 +64,7 @@
 #include "nsIFrame.h"
 #include "nsIParserService.h"
 #include "mozilla/dom/Element.h"
+#include "nsTextFragment.h"
 
 using namespace mozilla;
 using namespace mozilla::widget;
@@ -847,124 +848,38 @@ nsHTMLEditor::GetBlockNodeParent(nsIDOMNode *aNode)
   return p.forget();
 }
 
-
-
-
-already_AddRefed<nsIDOMNode>
-nsHTMLEditor::NextNodeInBlock(nsIDOMNode *aNode, IterDirection aDir)
-{
-  NS_ENSURE_TRUE(aNode, nsnull);
-
-  nsresult rv;
-  nsCOMPtr<nsIContentIterator> iter =
-       do_CreateInstance("@mozilla.org/content/post-content-iterator;1", &rv);
-  NS_ENSURE_SUCCESS(rv, nsnull);
-
-  
-  nsCOMPtr<nsIContent> content = do_QueryInterface(aNode);
-  nsCOMPtr<nsIDOMNode> blockParent;
-  bool isBlock;
-  if (NS_SUCCEEDED(NodeIsBlockStatic(aNode, &isBlock)) && isBlock) {
-    blockParent = aNode;
-  } else {
-    blockParent = GetBlockNodeParent(aNode);
-  }
-  NS_ENSURE_TRUE(blockParent, nsnull);
-  nsCOMPtr<nsIContent> blockContent = do_QueryInterface(blockParent);
-  NS_ENSURE_TRUE(blockContent, nsnull);
-  
-  if (NS_FAILED(iter->Init(blockContent))) {
-    return nsnull;
-  }
-  if (NS_FAILED(iter->PositionAt(content))) {
-    return nsnull;
-  }
-  
-  while (!iter->IsDone()) {
-    
-    
-    nsCOMPtr<nsIDOMNode> node = do_QueryInterface(iter->GetCurrentNode());
-    if (node && IsTextOrElementNode(node) && node != blockParent &&
-        node != aNode)
-      return node.forget();
-
-    if (aDir == kIterForward)
-      iter->Next();
-    else
-      iter->Prev();
-  }
-  
-  return nsnull;
-}
-
 static const PRUnichar nbsp = 160;
 
 
 
 
 void
-nsHTMLEditor::IsNextCharWhitespace(nsIDOMNode *aParentNode, 
-                                   PRInt32 aOffset,
-                                   bool *outIsSpace,
-                                   bool *outIsNBSP,
-                                   nsCOMPtr<nsIDOMNode> *outNode,
-                                   PRInt32 *outOffset)
+nsHTMLEditor::IsNextCharInNodeWhitespace(nsIContent* aContent,
+                                         PRInt32 aOffset,
+                                         bool* outIsSpace,
+                                         bool* outIsNBSP,
+                                         nsIContent** outNode,
+                                         PRInt32* outOffset)
 {
-  MOZ_ASSERT(outIsSpace && outIsNBSP);
+  MOZ_ASSERT(aContent && outIsSpace && outIsNBSP);
+  MOZ_ASSERT((outNode && outOffset) || (!outNode && !outOffset));
   *outIsSpace = false;
   *outIsNBSP = false;
-  if (outNode) *outNode = nsnull;
-  if (outOffset) *outOffset = -1;
-  
-  nsAutoString tempString;
-  PRUint32 strLength;
-  nsCOMPtr<nsIDOMText> textNode = do_QueryInterface(aParentNode);
-  if (textNode)
-  {
-    textNode->GetLength(&strLength);
-    if ((PRUint32)aOffset < strLength)
-    {
-      
-      textNode->SubstringData(aOffset,aOffset+1,tempString);
-      *outIsSpace = nsCRT::IsAsciiSpace(tempString.First());
-      *outIsNBSP = (tempString.First() == nbsp);
-      if (outNode) *outNode = do_QueryInterface(aParentNode);
-      if (outOffset) *outOffset = aOffset+1;  
-      return;
-    }
+  if (outNode && outOffset) {
+    *outNode = nsnull;
+    *outOffset = -1;
   }
-  
-  
-  nsCOMPtr<nsIDOMNode> node = NextNodeInBlock(aParentNode, kIterForward);
-  nsCOMPtr<nsIDOMNode> tmp;
-  while (node) 
-  {
-    bool isBlock (false);
-    NodeIsBlock(node, &isBlock);
-    if (isBlock)  
-    {
-      if (IsTextNode(node) && IsEditable(node))
-      {
-        textNode = do_QueryInterface(node);
-        textNode->GetLength(&strLength);
-        if (strLength)
-        {
-          textNode->SubstringData(0,1,tempString);
-          *outIsSpace = nsCRT::IsAsciiSpace(tempString.First());
-          *outIsNBSP = (tempString.First() == nbsp);
-          if (outNode) *outNode = do_QueryInterface(node);
-          if (outOffset) *outOffset = 1;  
-          return;
-        }
-        
-      }
-      else  
-      {
-        break;
-      }
+
+  if (aContent->IsNodeOfType(nsINode::eTEXT) &&
+      (PRUint32)aOffset < aContent->Length()) {
+    PRUnichar ch = aContent->GetText()->CharAt(aOffset);
+    *outIsSpace = nsCRT::IsAsciiSpace(ch);
+    *outIsNBSP = (ch == nbsp);
+    if (outNode && outOffset) {
+      NS_IF_ADDREF(*outNode = aContent);
+      
+      *outOffset = aOffset + 1;
     }
-    tmp = node;
-    node = NextNodeInBlock(tmp, kIterForward);
   }
 }
 
@@ -973,69 +888,30 @@ nsHTMLEditor::IsNextCharWhitespace(nsIDOMNode *aParentNode,
 
 
 void
-nsHTMLEditor::IsPrevCharWhitespace(nsIDOMNode *aParentNode, 
-                                   PRInt32 aOffset,
-                                   bool *outIsSpace,
-                                   bool *outIsNBSP,
-                                   nsCOMPtr<nsIDOMNode> *outNode,
-                                   PRInt32 *outOffset)
+nsHTMLEditor::IsPrevCharInNodeWhitespace(nsIContent* aContent,
+                                         PRInt32 aOffset,
+                                         bool* outIsSpace,
+                                         bool* outIsNBSP,
+                                         nsIContent** outNode,
+                                         PRInt32* outOffset)
 {
-  MOZ_ASSERT(outIsSpace && outIsNBSP);
+  MOZ_ASSERT(aContent && outIsSpace && outIsNBSP);
+  MOZ_ASSERT((outNode && outOffset) || (!outNode && !outOffset));
   *outIsSpace = false;
   *outIsNBSP = false;
-  if (outNode) *outNode = nsnull;
-  if (outOffset) *outOffset = -1;
-  
-  nsAutoString tempString;
-  PRUint32 strLength;
-  nsCOMPtr<nsIDOMText> textNode = do_QueryInterface(aParentNode);
-  if (textNode)
-  {
-    if (aOffset > 0)
-    {
-      
-      textNode->SubstringData(aOffset-1,aOffset,tempString);
-      *outIsSpace = nsCRT::IsAsciiSpace(tempString.First());
-      *outIsNBSP = (tempString.First() == nbsp);
-      if (outNode) *outNode = do_QueryInterface(aParentNode);
-      if (outOffset) *outOffset = aOffset-1;  
-      return;
-    }
+  if (outNode && outOffset) {
+    *outNode = nsnull;
+    *outOffset = -1;
   }
-  
-  
-  nsCOMPtr<nsIDOMNode> node = NextNodeInBlock(aParentNode, kIterBackward);
-  nsCOMPtr<nsIDOMNode> tmp;
-  while (node) 
-  {
-    bool isBlock (false);
-    NodeIsBlock(node, &isBlock);
-    if (isBlock)  
-    {
-      if (IsTextNode(node) && IsEditable(node))
-      {
-        textNode = do_QueryInterface(node);
-        textNode->GetLength(&strLength);
-        if (strLength)
-        {
-          
-          textNode->SubstringData(strLength-1,strLength,tempString);
-          *outIsSpace = nsCRT::IsAsciiSpace(tempString.First());
-          *outIsNBSP = (tempString.First() == nbsp);
-          if (outNode) *outNode = do_QueryInterface(aParentNode);
-          if (outOffset) *outOffset = strLength-1;  
-          return;
-        }
-        
-      }
-      else  
-      {
-        break;
-      }
+
+  if (aContent->IsNodeOfType(nsINode::eTEXT) && aOffset > 0) {
+    PRUnichar ch = aContent->GetText()->CharAt(aOffset - 1);
+    *outIsSpace = nsCRT::IsAsciiSpace(ch);
+    *outIsNBSP = (ch == nbsp);
+    if (outNode && outOffset) {
+      NS_IF_ADDREF(*outNode = aContent);
+      *outOffset = aOffset - 1;
     }
-    
-    tmp = node;
-    node = NextNodeInBlock(tmp, kIterBackward);
   }
 }
 

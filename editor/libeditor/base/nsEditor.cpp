@@ -3908,24 +3908,6 @@ nsEditor::AreNodesSameType(nsIContent* aNode1, nsIContent* aNode2)
 
 
 
-bool
-nsEditor::IsTextOrElementNode(nsIDOMNode *aNode)
-{
-  if (!aNode)
-  {
-    NS_NOTREACHED("null node passed to IsTextOrElementNode()");
-    return false;
-  }
-  
-  PRUint16 nodeType;
-  aNode->GetNodeType(&nodeType);
-  return ((nodeType == nsIDOMNode::ELEMENT_NODE) || (nodeType == nsIDOMNode::TEXT_NODE));
-}
-
-
-
-
-
 
 bool
 nsEditor::IsTextNode(nsIDOMNode *aNode)
