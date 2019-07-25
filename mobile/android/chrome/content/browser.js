@@ -3068,7 +3068,7 @@ var FormAssistant = {
 
   
   _isAutoComplete: function _isAutoComplete(aElement) {
-    if (!(aElement instanceof HTMLInputElement) ||
+    if (!(aElement instanceof HTMLInputElement) || aElement.readOnly ||
         (aElement.getAttribute("type") == "password") ||
         (aElement.hasAttribute("autocomplete") &&
          aElement.getAttribute("autocomplete").toLowerCase() == "off"))
