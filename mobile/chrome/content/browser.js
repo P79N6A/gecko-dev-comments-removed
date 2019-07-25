@@ -2682,6 +2682,10 @@ Tab.prototype = {
         
         browser.getRootView()._updateCacheViewport();
       }
+    } else {
+      
+      
+      browser.getRootView()._updateCacheViewport();
     }
   },
 
