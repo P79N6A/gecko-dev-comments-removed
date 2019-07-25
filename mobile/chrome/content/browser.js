@@ -694,15 +694,12 @@ var Browser = {
 
   
   scrollContentToBrowser: function scrollContentToBrowser() {
-    let bv = this._browserView;
     let pos = BrowserView.Util.getContentScrollOffset(this.selectedBrowser);
-    pos.map(bv.browserToViewport);
     if (pos.y != 0)
       Browser.hideTitlebar();
-    else
-      Browser.pageScrollboxScroller.scrollTo(0, 0);
+
     Browser.contentScrollboxScroller.scrollTo(pos.x, pos.y);
-    bv.onAfterVisibleMove();
+    this._browserView.onAfterVisibleMove();
   },
 
   hideSidebars: function scrollSidebarsOffscreen() {
@@ -2594,6 +2591,11 @@ ProgressController.prototype = {
       else if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP)
         this._networkStop();
     }
+    else if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_DOCUMENT) {
+      if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP) {
+        this._documentStop();
+      }
+    }
   },
 
   
@@ -2674,6 +2676,23 @@ ProgressController.prototype = {
 
     if (this.browser.currentURI.spec != "about:blank")
       this._tab.updateThumbnail();
+  },
+
+  _documentStop: function _documentStop() {
+    if (this._tab == Browser.selectedTab) {
+      
+      
+      
+      Util.executeSoon(function() {
+        let scroll = Browser.getScrollboxPosition(Browser.contentScrollboxScroller);
+        if (scroll.isZero())
+          Browser.scrollContentToBrowser();
+      });
+    }
+    else {
+      let scroll = BrowserView.Util.getContentScrollOffset(this._tab.browser);
+      this._tab.scrollOffset = new Point(scroll.x, scroll.y);
+    }
   }
 };
 
@@ -2849,11 +2868,12 @@ Tab.prototype = {
       bv.invalidateEntireView();
 
       this._startResizeAndPaint();
-      if (this == Browser.selectedTab)
+      if (this == Browser.selectedTab) {
         bv.setAggressive(false);
-      
-      
-      Browser.scrollBrowserToContent();
+        
+        
+        Browser.scrollBrowserToContent();
+      }
     }
   },
 
@@ -2863,7 +2883,6 @@ Tab.prototype = {
     
     let browser = this._browser;
     let metaData = Util.contentIsHandheld(browser);
-    let bv = Browser._browserView;
 
     if (metaData.reason == "handheld" || metaData.reason == "doctype") {
       browser.className = "browser-handheld";
@@ -2904,19 +2923,9 @@ Tab.prototype = {
     this._loading = false;
 
     if (this == Browser.selectedTab)
-      bv.setAggressive(true);
+      Browser._browserView.setAggressive(true);
 
-    
-    bv.pauseRendering();
     this._stopResizeAndPaint();
-
-    
-    
-    
-    Util.executeSoon(function() {
-      Browser.scrollContentToBrowser();
-      bv.resumeRendering();
-    });
 
     
     this.restoreState();
@@ -2972,7 +2981,8 @@ Tab.prototype = {
     
     let flags = Ci.nsIWebProgress.NOTIFY_LOCATION |
                 Ci.nsIWebProgress.NOTIFY_SECURITY |
-                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK;
+                Ci.nsIWebProgress.NOTIFY_STATE_NETWORK |
+                Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT;
     this._listener = new ProgressController(this);
     browser.webProgress.addProgressListener(this._listener, flags);
   },
