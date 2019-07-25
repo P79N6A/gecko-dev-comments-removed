@@ -30,6 +30,7 @@
 #include "nsTArray.h"
 #include "nsCOMArray.h"
 #include "nsDocShell.h"
+#include "mozilla/Attributes.h"
 
 
 #include "nspr.h"
@@ -106,7 +107,7 @@ enum HistCmd{
 
 
 
-class nsSHistoryObserver : public nsIObserver
+class nsSHistoryObserver MOZ_FINAL : public nsIObserver
 {
 
 public:
