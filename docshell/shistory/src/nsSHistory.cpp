@@ -1496,6 +1496,7 @@ nsSHistory::LoadEntry(PRInt32 aIndex, long aLoadType, PRUint32 aHistCmd)
   if (!canNavigate) {
     
     
+    mRequestedIndex = -1;
     return NS_OK;  
   }
 
