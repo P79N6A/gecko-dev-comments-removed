@@ -846,7 +846,7 @@ struct JSContext : js::ContextFriendFields
 
 
 
-    JSPackedBool        generatingError;
+    bool        generatingError;
 
     
     JSCompartment       *compartment;

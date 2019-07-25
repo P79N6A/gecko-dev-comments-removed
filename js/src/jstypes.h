@@ -237,14 +237,6 @@ typedef int JSBool;
 
 
 
-typedef uint8_t JSPackedBool;
-
-
-
-
-
-
-
 
 
 
