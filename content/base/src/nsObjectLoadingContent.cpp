@@ -1519,7 +1519,9 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
 
   ParameterUpdateFlags stateChange = UpdateObjectParameters();
 
-  if (!stateChange && !aForceLoad) {
+  
+  
+  if ((!stateChange && !aForceLoad) || (mType == eType_Loading && mChannel)) {
     return NS_OK;
   }
 
