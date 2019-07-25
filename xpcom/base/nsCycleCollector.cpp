@@ -2771,6 +2771,13 @@ nsCycleCollector::Shutdown()
     
     
 
+#ifdef DEBUG_CC
+    if (sCollector->mParams.mDrawGraphs) {
+        nsCOMPtr<nsICycleCollectorListener> listener =
+            new nsCycleCollectorLogger();
+        Collect(SHUTDOWN_COLLECTIONS(mParams), listener);
+    } else
+#endif
     Collect(SHUTDOWN_COLLECTIONS(mParams), nsnull);
 
 #ifdef DEBUG_CC
