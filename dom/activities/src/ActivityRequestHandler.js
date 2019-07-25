@@ -7,7 +7,7 @@
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
- 
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 XPCOMUtils.defineLazyGetter(this, "cpmm", function() {
@@ -40,6 +40,12 @@ function ActivityRequestHandler() {
 }
 
 ActivityRequestHandler.prototype = {
+  __exposedProps__: {
+                      source: "r",
+                      postResult: "r",
+                      postError: "r"
+                    },
+
   get source() {
     return this._options;
   },
