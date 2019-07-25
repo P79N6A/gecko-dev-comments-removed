@@ -3478,9 +3478,10 @@ exports.JavascriptType = JavascriptType;
 
 
 
-define('gcli/types/node', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types'], function(require, exports, module) {
+define('gcli/types/node', ['require', 'exports', 'module' , 'gcli/host', 'gcli/l10n', 'gcli/types'], function(require, exports, module) {
 
 
+var host = require('gcli/host');
 var l10n = require('gcli/l10n');
 var types = require('gcli/types');
 var Type = require('gcli/types').Type;
@@ -3562,13 +3563,13 @@ NodeType.prototype.parse = function(arg) {
     var node = nodes.item(0);
     node.__gcliQuery = arg.text;
 
-    flashNode(node, 'green');
+    host.flashNode(node, 'green');
 
     return new Conversion(node, arg, Status.VALID, '');
   }
 
   Array.prototype.forEach.call(nodes, function(n) {
-    flashNode(n, 'red');
+    host.flashNode(n, 'red');
   });
 
   return new Conversion(null, arg, Status.ERROR,
@@ -3578,11 +3579,21 @@ NodeType.prototype.parse = function(arg) {
 NodeType.prototype.name = 'node';
 
 
+});
 
 
 
 
-function flashNode(node, color) {
+
+
+define('gcli/host', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+
+
+
+
+exports.flashNode = function(node, color) {
   if (!node.__gcliHighlighting) {
     node.__gcliHighlighting = true;
     var original = node.style.background;
@@ -3592,7 +3603,7 @@ function flashNode(node, color) {
       delete node.__gcliHighlighting;
     }, 1000);
   }
-}
+};
 
 
 });
