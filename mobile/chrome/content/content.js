@@ -1353,6 +1353,27 @@ var SelectionHandler = {
     addMessageListener("Browser:SelectionMove", this);
   },
 
+  getCurrentWindowAndOffset: function(x, y, offset) {
+    let utils = Util.getWindowUtils(content);
+    let elem = utils.elementFromPoint(x, y, true, false);
+    while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
+      
+      let rect = elem.getBoundingClientRect();
+      scrollOffset = ContentScroll.getScrollOffset(elem.ownerDocument.defaultView);
+      offset.x += rect.left;
+      x -= rect.left;
+      
+      offset.y += rect.top + scrollOffset.y;
+      y -= rect.top + scrollOffset.y;
+      utils = elem.contentDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+      elem = utils.elementFromPoint(x, y, true, false);
+    }
+    if (!elem)
+      return;
+    
+    return { contentWindow: elem.ownerDocument.defaultView, offset: offset };
+  },
+
   receiveMessage: function sh_receiveMessage(aMessage) {
     let scrollOffset = ContentScroll.getScrollOffset(content);
     let utils = Util.getWindowUtils(content);
@@ -1366,24 +1387,7 @@ var SelectionHandler = {
         
         let x = json.x - scrollOffset.x;
         let y = json.y - scrollOffset.y;
-        let offset = scrollOffset;
-        let elem = utils.elementFromPoint(x, y, true, false);
-        while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
-          
-          let rect = elem.getBoundingClientRect();
-          scrollOffset = ContentScroll.getScrollOffset(elem.ownerDocument.defaultView);
-          offset.x += rect.left;
-          x -= rect.left;
-
-          offset.y += rect.top + scrollOffset.y;
-          y -= rect.top + scrollOffset.y;
-          utils = elem.contentDocument.defaultView.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-          elem = utils.elementFromPoint(x, y, true, false);
-        }
-        if (!elem)
-          return;
-
-        let contentWindow = elem.ownerDocument.defaultView;
+        let { contentWindow: contentWindow, offset: offset } = this.getCurrentWindowAndOffset(x, y, scrollOffset);
         let currentDocShell = contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation).QueryInterface(Ci.nsIDocShell);
 
         
@@ -1391,13 +1395,13 @@ var SelectionHandler = {
         let selection = contentWindow.getSelection();
         selection.removeAllRanges();
 
-        
-        utils.sendMouseEventToWindow("mousedown", x, y, 0, 1, 0, true);
-        utils.sendMouseEventToWindow("mouseup", x, y, 0, 1, 0, true);
-
-        
         try {
+          let caretPos = contentWindow.document.caretPositionFromPoint(json.x - scrollOffset.x, json.y - scrollOffset.y);
           let selcon = currentDocShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsISelectionDisplay).QueryInterface(Ci.nsISelectionController);
+          let sel = selcon.getSelection(1);
+          sel.collapse(caretPos.offsetNode, caretPos.offset);
+
+          
           selcon.wordMove(false, false);
           selcon.wordMove(true, true);
         } catch(e) {
@@ -1438,7 +1442,9 @@ var SelectionHandler = {
           if (this.contentWindow)
             this.contentWindow.getSelection().removeAllRanges();
           this.contentWindow = null;
-        } catch(e) {}
+        } catch(e) {
+          Cu.reportError(e);
+        }
 
         if (pointInSelection && this.selectedText.length) {
           let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
@@ -1454,33 +1460,37 @@ var SelectionHandler = {
         if (!this.contentWindow)
           return;
 
-        
-        let elemUnder = elementFromPoint(json.x - scrollOffset.x, json.y - scrollOffset.y);
-        if (elemUnder && elemUnder instanceof Ci.nsIDOMHTMLInputElement || elemUnder instanceof Ci.nsIDOMHTMLTextAreaElement)
-          return;
+        let x = json.x - scrollOffset.x;
+        let y = json.y - scrollOffset.y;
 
-        
-        if (elemUnder && elemUnder.ownerDocument.defaultView != this.contentWindow)
-          return;
+        try {
+          let caretPos = this.contentWindow.document.caretPositionFromPoint(x, y);
+          if (caretPos.offsetNode == null ||
+              caretPos.offsetNode instanceof Ci.nsIDOMHTMLInputElement || 
+              caretPos.offsetNode instanceof Ci.nsIDOMHTMLTextAreaElement ||
+              caretPos.offsetNode.ownerDocument.defaultView != this.contentWindow)
+            return;
 
-        
-        if (json.type == "end") {
           
-          this.cache.end = { x: json.x, y: json.y };
-          let end = { x: this.cache.end.x - scrollOffset.x, y: this.cache.end.y - scrollOffset.y };
-          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-        } else {
-          
-          this.cache.start = { x: json.x, y: json.y };
-          let start = { x: this.cache.start.x - scrollOffset.x, y: this.cache.start.y - scrollOffset.y };
-          let end = { x: this.cache.end.x - scrollOffset.x, y: this.cache.end.y - scrollOffset.y };
+          if (json.type == "end")
+            this.cache.end = { x: json.x, y: json.y };
+          else
+            this.cache.start = { x: json.x, y: json.y };
 
-          utils.sendMouseEventToWindow("mousedown", start.x, start.y, 0, 0, 0, true);
-          utils.sendMouseEventToWindow("mouseup", start.x, start.y, 0, 0, 0, true);
-
-          utils.sendMouseEventToWindow("mousedown", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
-          utils.sendMouseEventToWindow("mouseup", end.x, end.y, 0, 1, Ci.nsIDOMNSEvent.SHIFT_MASK, true);
+          let currentDocShell = this.contentWindow.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIWebNavigation).QueryInterface(Ci.nsIDocShell);
+          let selcon = currentDocShell.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsISelectionDisplay).QueryInterface(Ci.nsISelectionController);
+          let sel = selcon.getSelection(1);
+          if (json.type != "end") {
+            let focusOffset = sel.focusOffset;
+            let focusNode = sel.focusNode;
+            sel.collapse(caretPos.offsetNode, caretPos.offset);
+            sel.extend(focusNode, focusOffset);
+          } else {
+            sel.extend(caretPos.offsetNode, caretPos.offset);
+          }
+        } catch(e) {
+          Cu.reportError(e);
+          return;
         }
 
         
