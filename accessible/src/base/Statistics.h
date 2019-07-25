@@ -56,13 +56,7 @@ namespace statistics {
 
 
   inline void ISimpleDOMUsed()
-  {
-    static bool firstTime = TRUE;
-    if (firstTime) {
-      Telemetry::Accumulate(Telemetry::ISIMPLE_DOM_USAGE, 1);
-      firstTime = FALSE;
-    }
-  }
+    { Telemetry::Accumulate(Telemetry::ISIMPLE_DOM_USAGE, 1); }
 
   
 
