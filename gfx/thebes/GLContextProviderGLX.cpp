@@ -216,17 +216,6 @@ GLXLibrary::EnsureInitialized()
         serverVendor = xQueryServerString(display, screen, GLX_VENDOR);
         serverVersionStr = xQueryServerString(display, screen, GLX_VERSION);
 
-        PRBool IsDriverBlacklisted = !serverVendor ||   
-                                     !serverVersionStr ||
-                                     strcmp(serverVendor, "NVIDIA Corporation");
-
-        if (IsDriverBlacklisted && !ignoreBlacklist)
-        {
-          printf("[GLX] your GL driver is currently blocked. If you would like to bypass this, "
-                  "define the MOZ_GLX_IGNORE_BLACKLIST environment variable.\n");
-          return PR_FALSE;
-        }
-
         if (!GLXVersionCheck(1, 1))
             
             return PR_FALSE;
