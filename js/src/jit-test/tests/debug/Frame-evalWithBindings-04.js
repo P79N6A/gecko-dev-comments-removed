@@ -3,14 +3,12 @@ var g = newGlobal('new-compartment');
 var dbg = new Debugger(g);
 var f1;
 var hits = 0;
-dbg.hooks = {
-    debuggerHandler: function (frame) {
-        assertEq(frame.older.evalWithBindings("q + r", {r: 3}).return, 5);
+dbg.onDebuggerStatement = function (frame) {
+    assertEq(frame.older.evalWithBindings("q + r", {r: 3}).return, 5);
 
-        
-        assertEq(frame.older.older.evalWithBindings("q + r", {r: 3}).return, 6);
-        hits++;
-    }
+    
+    assertEq(frame.older.older.evalWithBindings("q + r", {r: 3}).return, 6);
+    hits++;
 };
 
 g.eval("function f1(q) { if (q == 1) debugger; else f2(2); }");

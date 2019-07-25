@@ -6,11 +6,7 @@ var arr = [];
 
 function addDebug(msg) {
     var dbg = new Debugger(g);
-    dbg.hooks = {
-        debuggerHandler: function (stack) {
-            log += msg;
-        }
-    };
+    dbg.onDebuggerStatement = function (stack) { log += msg; };
     arr.push(dbg);
 }
 
@@ -25,11 +21,9 @@ assertEq(log, 'abc');
 
 
 
-arr[0].hooks = {
-    debuggerHandler: function (stack) {
-        log += 'a';
-        return {return: 1};
-    }
+arr[0].onDebuggerStatement = function (stack) {
+    log += 'a';
+    return {return: 1};
 };
 
 log = '';

@@ -10,7 +10,8 @@ var expected = 0;
 function f() {
     for (var i = 0; i < 20; i++) {
         var dbg = new Debugger(g);
-        dbg.hooks = {num: i, throw: function (stack, exc) { actual += this.num; }};
+        dbg.num = i;
+        dbg.onExceptionUnwind = function (stack, exc) { actual += this.num; };
         expected += i;
     }
 }

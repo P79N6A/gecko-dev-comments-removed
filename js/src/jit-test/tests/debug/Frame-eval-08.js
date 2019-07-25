@@ -5,11 +5,9 @@ var dbg = new Debugger(g);
 
 
 var args, testfn;
-dbg.hooks = {
-    debuggerHandler: function (frame) {
-        args = frame.eval("arguments").return;
-        testfn = frame.eval("test").return;
-    }
+dbg.onDebuggerStatement = function (frame) {
+    args = frame.eval("arguments").return;
+    testfn = frame.eval("test").return;
 };
 g.eval("function f() { debugger; }");
 g.eval("var test = " + function test(args) {

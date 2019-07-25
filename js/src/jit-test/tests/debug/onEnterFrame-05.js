@@ -5,7 +5,7 @@ g.n = 0;
 g.eval("function f(frame) { n++; return 42; }");
 print('ok');
 var dbg = Debugger(g);
-dbg.hooks = {enterFrame: g.f};
+dbg.onEnterFrame = g.f;
 
 
 var x = g.f();
