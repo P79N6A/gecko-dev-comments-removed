@@ -692,6 +692,7 @@ class PrimitiveBehavior<double> {
 
 
 
+
 inline bool
 ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
 {
