@@ -904,13 +904,23 @@ ion::CanEnterAtBranch(JSContext *cx, JSScript *script, StackFrame *fp, jsbytecod
 }
 
 MethodStatus
-ion::CanEnter(JSContext *cx, JSScript *script, StackFrame *fp)
+ion::CanEnter(JSContext *cx, JSScript *script, StackFrame *fp, bool newType)
 {
     JS_ASSERT(ion::IsEnabled());
 
     
     if (script->ion == ION_DISABLED_SCRIPT)
         return Method_Skipped;
+
+    
+    
+    
+    if (fp->isConstructing() && fp->functionThis().isPrimitive()) {
+        JSObject *obj = js_CreateThisForFunction(cx, &fp->callee(), newType);
+        if (!obj)
+            return Method_Skipped;
+        fp->functionThis().setObject(*obj);
+    }
 
     
     MethodStatus status = Compile(cx, script, fp, NULL);
@@ -982,16 +992,8 @@ EnterIon(JSContext *cx, StackFrame *fp, void *jitcode)
 }
 
 bool
-ion::Cannon(JSContext *cx, StackFrame *fp, bool newType)
+ion::Cannon(JSContext *cx, StackFrame *fp)
 {
-    
-    if (fp->isConstructing() && fp->functionThis().isPrimitive()) {
-        JSObject *obj = js_CreateThisForFunction(cx, &fp->callee(), newType);
-        if (!obj)
-            return false;
-        fp->functionThis().setObject(*obj);
-    }
-
     JSScript *script = fp->script();
     IonScript *ion = script->ion;
     IonCode *code = ion->method();
