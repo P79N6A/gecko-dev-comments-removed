@@ -448,9 +448,8 @@ const bool JS_WANT_GC_METER_PRINT = false;
 
 struct JSConservativeGCStats {
     uint32  words;      
-    uint32  unique;     
     uint32  oddaddress; 
-    uint32  outside;    
+    uint32  special;    
     uint32  notarena;   
     uint32  notchunk;   
     uint32  freearena;  
