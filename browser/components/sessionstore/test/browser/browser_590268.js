@@ -35,7 +35,6 @@
 
 
 
-
 const NUM_TABS = 12;
 
 let ss = Cc["@mozilla.org/browser/sessionstore;1"].
@@ -174,5 +173,5 @@ function test() {
 
 
 function r() {
-  return "" + Math.floor(Date.now()) + Math.random();
+  return "" + Date.now() + Math.random();
 }
