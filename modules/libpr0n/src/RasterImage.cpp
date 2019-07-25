@@ -2346,11 +2346,11 @@ RasterImage::RequestDecode()
     return NS_ERROR_FAILURE;
 
   
-  if (!StoringSourceData())
+  if (mDecoded)
     return NS_OK;
 
   
-  if (mDecoded)
+  if (!StoringSourceData())
     return NS_OK;
 
   
