@@ -65,7 +65,7 @@ nsresult nsZipDataStream::Init(nsZipWriter *aWriter,
 NS_IMETHODIMP nsZipDataStream::OnDataAvailable(nsIRequest *aRequest,
                                                nsISupports *aContext,
                                                nsIInputStream *aInputStream,
-                                               uint32_t aOffset,
+                                               uint64_t aOffset,
                                                uint32_t aCount)
 {
     if (!mOutput)
@@ -132,7 +132,7 @@ inline nsresult nsZipDataStream::CompleteEntry()
 
 nsresult nsZipDataStream::ProcessData(nsIRequest *aRequest,
                                       nsISupports *aContext, char *aBuffer,
-                                      uint32_t aOffset, uint32_t aCount)
+                                      uint64_t aOffset, uint32_t aCount)
 {
     mHeader->mCRC = crc32(mHeader->mCRC,
                           reinterpret_cast<const unsigned char*>(aBuffer),

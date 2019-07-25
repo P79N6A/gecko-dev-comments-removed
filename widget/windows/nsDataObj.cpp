@@ -90,11 +90,12 @@ STDMETHODIMP nsDataObj::CStream::QueryInterface(REFIID refiid, void** ppvResult)
 }
 
 
-NS_IMETHODIMP nsDataObj::CStream::OnDataAvailable(nsIRequest *aRequest,
-                                                  nsISupports *aContext,
-                                                  nsIInputStream *aInputStream,
-                                                  uint32_t aOffset, 
-                                                  uint32_t aCount) 
+NS_IMETHODIMP
+nsDataObj::CStream::OnDataAvailable(nsIRequest *aRequest,
+                                    nsISupports *aContext,
+                                    nsIInputStream *aInputStream,
+                                    uint64_t aOffset, 
+                                    uint32_t aCount) 
 {
     
     uint8_t* buffer = mChannelData.AppendElements(aCount);

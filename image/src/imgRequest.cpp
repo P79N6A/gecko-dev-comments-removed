@@ -942,7 +942,10 @@ static NS_METHOD sniff_mimetype_callback(nsIInputStream* in, void* closure, cons
 
 
 
-NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt, nsIInputStream *inStr, uint32_t sourceOffset, uint32_t count)
+NS_IMETHODIMP
+imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctxt,
+                            nsIInputStream *inStr, uint64_t sourceOffset,
+                            uint32_t count)
 {
   LOG_SCOPE_WITH_PARAM(gImgLog, "imgRequest::OnDataAvailable", "count", count);
 

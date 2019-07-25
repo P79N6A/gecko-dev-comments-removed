@@ -103,10 +103,11 @@ NS_IMETHODIMP nsDeflateConverter::AsyncConvertData(const char *aFromType,
 
 
 
+
 NS_IMETHODIMP nsDeflateConverter::OnDataAvailable(nsIRequest *aRequest,
                                                   nsISupports *aContext,
                                                   nsIInputStream *aInputStream,
-                                                  uint32_t aOffset,
+                                                  uint64_t aOffset,
                                                   uint32_t aCount)
 {
     if (!mListener)
