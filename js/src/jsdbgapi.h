@@ -38,7 +38,6 @@
 
 
 
-
 #ifndef jsdbgapi_h___
 #define jsdbgapi_h___
 
@@ -53,9 +52,6 @@ JS_BEGIN_EXTERN_C
 extern JS_PUBLIC_API(JSCrossCompartmentCall *)
 JS_EnterCrossCompartmentCallScript(JSContext *cx, JSScript *target);
 
-extern JS_PUBLIC_API(JSCrossCompartmentCall *)
-JS_EnterCrossCompartmentCallStackFrame(JSContext *cx, JSStackFrame *target);
-
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
@@ -63,7 +59,6 @@ namespace JS {
 
 class JS_PUBLIC_API(AutoEnterScriptCompartment)
 {
-  protected:
     JSCrossCompartmentCall *call;
 
   public:
@@ -77,12 +72,6 @@ class JS_PUBLIC_API(AutoEnterScriptCompartment)
         if (call && call != reinterpret_cast<JSCrossCompartmentCall*>(1))
             JS_LeaveCrossCompartmentCall(call);
     }
-};
-
-class JS_PUBLIC_API(AutoEnterFrameCompartment) : public AutoEnterScriptCompartment
-{
-  public:
-    bool enter(JSContext *cx, JSStackFrame *target);
 };
 
 } 
@@ -190,6 +179,33 @@ JS_ClearWatchPointsForObject(JSContext *cx, JSObject *obj);
 extern JS_PUBLIC_API(JSBool)
 JS_ClearAllWatchPoints(JSContext *cx);
 
+#ifdef JS_HAS_OBJ_WATCHPOINT
+
+
+
+
+extern JSBool
+js_TraceWatchPoints(JSTracer *trc);
+
+extern void
+js_SweepWatchPoints(JSContext *cx);
+
+#ifdef __cplusplus
+
+extern JSBool
+js_watch_set(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
+
+namespace js {
+
+bool
+IsWatchedProperty(JSContext *cx, const Shape *shape);
+
+}
+
+#endif
+
+#endif 
+
 
 
 extern JS_PUBLIC_API(uintN)
@@ -200,11 +216,6 @@ JS_LineNumberToPC(JSContext *cx, JSScript *script, uintN lineno);
 
 extern JS_PUBLIC_API(jsbytecode *)
 JS_EndPC(JSContext *cx, JSScript *script);
-
-extern JS_PUBLIC_API(JSBool)
-JS_GetLinePCs(JSContext *cx, JSScript *script,
-              uintN startLine, uintN maxLines,
-              uintN* count, uintN** lines, jsbytecode*** pcs);
 
 extern JS_PUBLIC_API(uintN)
 JS_GetFunctionArgumentCount(JSContext *cx, JSFunction *fun);
@@ -260,6 +271,16 @@ JS_GetFramePC(JSContext *cx, JSStackFrame *fp);
 extern JS_PUBLIC_API(JSStackFrame *)
 JS_GetScriptedCaller(JSContext *cx, JSStackFrame *fp);
 
+
+
+
+
+extern JSPrincipals *
+js_StackFramePrincipals(JSContext *cx, JSStackFrame *fp);
+
+JSPrincipals *
+js_EvalFramePrincipals(JSContext *cx, JSObject *callee, JSStackFrame *caller);
+
 extern JS_PUBLIC_API(void *)
 JS_GetFrameAnnotation(JSContext *cx, JSStackFrame *fp);
 
@@ -298,9 +319,6 @@ JS_IsConstructorFrame(JSContext *cx, JSStackFrame *fp);
 
 extern JS_PUBLIC_API(JSBool)
 JS_IsDebuggerFrame(JSContext *cx, JSStackFrame *fp);
-
-extern JS_PUBLIC_API(JSBool)
-JS_IsGlobalFrame(JSContext *cx, JSStackFrame *fp);
 
 extern JS_PUBLIC_API(jsval)
 JS_GetFrameReturnValue(JSContext *cx, JSStackFrame *fp);
@@ -349,9 +367,6 @@ JS_GetValidFrameCalleeObject(JSContext *cx, JSStackFrame *fp, jsval *vp);
 
 extern JS_PUBLIC_API(const char *)
 JS_GetScriptFilename(JSContext *cx, JSScript *script);
-
-extern JS_PUBLIC_API(const jschar *)
-JS_GetScriptSourceMap(JSContext *cx, JSScript *script);
 
 extern JS_PUBLIC_API(uintN)
 JS_GetScriptBaseLineNumber(JSContext *cx, JSScript *script);
@@ -509,6 +524,10 @@ JS_StopProfiling();
 extern JS_PUBLIC_API(JSBool)
 JS_DefineProfilingFunctions(JSContext *cx, JSObject *obj);
 
+
+extern JS_PUBLIC_API(JSBool)
+JS_DefineDebugObject(JSContext *cx, JSObject *obj);
+
 #ifdef MOZ_CALLGRIND
 
 extern JS_FRIEND_API(JSBool)
@@ -566,12 +585,6 @@ JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
 extern JS_PUBLIC_API(JSFunctionCallback)
 JS_GetFunctionCallback(JSContext *cx);
 #endif 
-
-extern JS_PUBLIC_API(void)
-JS_DumpProfile(JSContext *cx, JSScript *script);
-
-extern JS_PUBLIC_API(void)
-JS_DumpAllProfiles(JSContext *cx);
 
 JS_END_EXTERN_C
 
