@@ -69,6 +69,9 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGEllipseElementBase::)
 
   
+  virtual bool HasValidDimensions() const;
+
+  
   virtual void ConstructPath(gfxContext *aCtx);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -150,6 +153,15 @@ NS_IMETHODIMP nsSVGEllipseElement::GetRy(nsIDOMSVGAnimatedLength * *aRy)
 
 
 
+
+ bool
+nsSVGEllipseElement::HasValidDimensions() const
+{
+  return mLengthAttributes[RX].IsExplicitlySet() &&
+         mLengthAttributes[RX].GetAnimValInSpecifiedUnits() > 0 &&
+         mLengthAttributes[RY].IsExplicitlySet() &&
+         mLengthAttributes[RY].GetAnimValInSpecifiedUnits() > 0;
+}
 
 nsSVGElement::LengthAttributesInfo
 nsSVGEllipseElement::GetLengthInfo()

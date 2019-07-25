@@ -1051,6 +1051,12 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   if (opacity == 0.0f)
     return;
 
+  const nsIContent* content = aFrame->GetContent();
+  if (content->IsSVG() &&
+      !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
+    return;
+  }
+
   
 
 
@@ -1209,9 +1215,9 @@ nsSVGUtils::HitTestChildren(nsIFrame *aFrame, const nsPoint &aPoint)
        current = current->GetPrevSibling()) {
     nsISVGChildFrame* SVGFrame = do_QueryFrame(current);
     if (SVGFrame) {
-       result = SVGFrame->GetFrameForPoint(aPoint);
-       if (result)
-         break;
+      result = SVGFrame->GetFrameForPoint(aPoint);
+      if (result)
+        break;
     }
   }
 
@@ -1443,13 +1449,18 @@ nsSVGUtils::GetBBox(nsIFrame *aFrame, PRUint32 aFlags)
       }
       svg = do_QueryFrame(aFrame);
     }
+    nsIContent* content = aFrame->GetContent();
+    if (content->IsSVG() &&
+        !static_cast<const nsSVGElement*>(content)->HasValidDimensions()) {
+      return bbox;
+    }
     gfxMatrix matrix;
     if (aFrame->GetType() == nsGkAtoms::svgForeignObjectFrame) {
       
       
       
-      NS_ABORT_IF_FALSE(aFrame->GetContent()->IsSVG(), "bad cast");
-      nsSVGElement *element = static_cast<nsSVGElement*>(aFrame->GetContent());
+      NS_ABORT_IF_FALSE(content->IsSVG(), "bad cast");
+      nsSVGElement *element = static_cast<nsSVGElement*>(content);
       matrix = element->PrependLocalTransformsTo(matrix,
                           nsSVGElement::eChildToUserSpace);
     }

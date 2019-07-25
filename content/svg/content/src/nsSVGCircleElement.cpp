@@ -68,6 +68,9 @@ public:
   NS_FORWARD_NSIDOMSVGELEMENT(nsSVGCircleElementBase::)
 
   
+  virtual bool HasValidDimensions() const;
+
+  
   virtual void ConstructPath(gfxContext *aCtx);
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
@@ -142,6 +145,13 @@ NS_IMETHODIMP nsSVGCircleElement::GetR(nsIDOMSVGAnimatedLength * *aR)
 
 
 
+
+ bool
+nsSVGCircleElement::HasValidDimensions() const
+{
+  return mLengthAttributes[R].IsExplicitlySet() &&
+         mLengthAttributes[R].GetAnimValInSpecifiedUnits() > 0;
+}
 
 nsSVGElement::LengthAttributesInfo
 nsSVGCircleElement::GetLengthInfo()

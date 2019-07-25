@@ -341,6 +341,12 @@ nsSVGPathElement::CreateSVGPathSegCurvetoQuadraticSmoothRel(float x, float y, ns
 
 
 
+ bool
+nsSVGPathElement::HasValidDimensions() const
+{
+  return !mD.GetAnimValue().IsEmpty();
+}
+
 nsSVGElement::NumberAttributesInfo
 nsSVGPathElement::GetNumberInfo()
 {
