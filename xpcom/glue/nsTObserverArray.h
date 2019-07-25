@@ -41,6 +41,16 @@
 
 #include "nsTArray.h"
 
+
+
+
+
+
+
+
+
+
+
 class NS_COM_GLUE nsTObserverArray_base {
   public:
     typedef PRUint32 index_type;
@@ -89,16 +99,6 @@ class NS_COM_GLUE nsTObserverArray_base {
 
     mutable Iterator_base* mIterators;
 };
-
-
-
-
-
-
-
-
-
-
 
 template<class T, PRUint32 N>
 class nsAutoTObserverArray : protected nsTObserverArray_base {
