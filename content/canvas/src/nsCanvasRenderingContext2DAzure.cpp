@@ -3682,6 +3682,27 @@ nsCanvasRenderingContext2DAzure::DrawImage(nsIDOMElement *imgElt, float a1,
     imgSize = gfxIntSize(mWidth, mHeight);
   }
 
+  
+  if (canvas) {
+    if (canvas->CountContexts() == 1) {
+      nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
+
+      
+      if (srcCanvas) {
+        srcSurf = srcCanvas->GetSurfaceSnapshot();
+
+        if (srcSurf && mCanvasElement) {
+          
+          CanvasUtils::DoDrawImageSecurityCheck(HTMLCanvasElement(),
+                                                content->NodePrincipal(), canvas->IsWriteOnly(),
+                                                false);
+
+          imgSize = gfxIntSize(srcSurf->GetSize().width, srcSurf->GetSize().height);
+        }
+      }
+    }
+  }
+
   if (!srcSurf) {
     
     
