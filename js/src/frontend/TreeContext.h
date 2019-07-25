@@ -74,55 +74,11 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     TCF_GENEXP_LAMBDA =                       0x10,
 
     
-    TCF_COMPILE_N_GO =                        0x20,
-
     
     
     
     
-    
-    TCF_STRICT_MODE_CODE =                    0x40,
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    TCF_BINDINGS_ACCESSED_DYNAMICALLY =       0x80,
-
-    
-    
-    TCF_FUN_MIGHT_ALIAS_LOCALS =             0x100,
-
-    
-    TCF_HAS_SINGLETONS =                     0x200,
-
-    
-    TCF_IN_WITH =                            0x400,
-
-    
-    
-    
-    
-    
-    
-    
-    TCF_FUN_EXTENSIBLE_SCOPE =               0x800,
+    TCF_STRICT_MODE_CODE =                    0x20,
 
     
     
@@ -144,8 +100,26 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
+    TCF_BINDINGS_ACCESSED_DYNAMICALLY =       0x40,
+
     
-    TCF_ARGUMENTS_HAS_LOCAL_BINDING =       0x1000,
+    
+    TCF_FUN_MIGHT_ALIAS_LOCALS =              0x80,
+
+    
+    TCF_HAS_SINGLETONS =                     0x100,
+
+    
+    TCF_IN_WITH =                            0x200,
+
+    
+    
+    
+    
+    
+    
+    
+    TCF_FUN_EXTENSIBLE_SCOPE =               0x400,
 
     
     
@@ -156,7 +130,30 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_DEFINITELY_NEEDS_ARGS_OBJ =         0x2000
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    TCF_ARGUMENTS_HAS_LOCAL_BINDING =        0x800,
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    TCF_DEFINITELY_NEEDS_ARGS_OBJ =         0x1000
 
 } JS_ENUM_FOOTER(TreeContextFlags);
 
@@ -207,7 +204,6 @@ struct SharedContext {
     inline SharedContext(JSContext *cx);
 
     bool inFunction()                  const { return flags & TCF_IN_FUNCTION; }
-    bool compileAndGo()                const { return flags & TCF_COMPILE_N_GO; }
     bool inStrictMode()                const { return flags & TCF_STRICT_MODE_CODE; }
     bool bindingsAccessedDynamically() const { return flags & TCF_BINDINGS_ACCESSED_DYNAMICALLY; }
     bool mightAliasLocals()            const { return flags & TCF_FUN_MIGHT_ALIAS_LOCALS; }

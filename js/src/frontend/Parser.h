@@ -87,10 +87,13 @@ struct Parser : private AutoGCRooter
     AutoKeepAtoms       keepAtoms;
 
     
-    bool                foldConstants;
+    const bool          foldConstants:1;
+
+    
+    const bool          compileAndGo:1;
 
     Parser(JSContext *cx, JSPrincipals *prin = NULL, JSPrincipals *originPrin = NULL,
-           StackFrame *cfp = NULL, bool fold = true);
+           StackFrame *cfp = NULL, bool fold = true, bool compileAndGo = false);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
