@@ -309,7 +309,8 @@ BrowserGlue.prototype = {
 
   
   _onProfileShutdown: function BG__onProfileShutdown() {
-#if defined(WINCE) && defined(MOZ_UPDATER)
+#ifdef MOZ_UPDATER
+#ifdef WINCE
     
     try {
       let um = Cc["@mozilla.org/updates/update-manager;1"].
@@ -320,6 +321,7 @@ BrowserGlue.prototype = {
         cacheService.evictEntries(Ci.nsICache.STORE_ANYWHERE);
       }
     } catch (e) { }
+#endif
 #endif
     this._shutdownPlaces();
     this._sanitizer.onShutdown();
