@@ -39,23 +39,15 @@
 #include <sys/types.h>
 #include <fcntl.h>
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
-#include "mar.h"
 #include "mar_private.h"
+#include "mar.h"
 
 #ifdef XP_WIN
 #include <winsock2.h>
 #else
 #include <netinet/in.h>
 #endif
-
-#define TABLESIZE 256
-
-struct MarFile_ {
-  FILE *fp;
-  MarItem *item_table[TABLESIZE];
-};
 
 
 static PRUint32 mar_hash_name(const char *name) {
@@ -290,4 +282,69 @@ int mar_read(MarFile *mar, const MarItem *item, int offset, char *buf,
     return -1;
 
   return fread(buf, 1, nr, mar->fp);
+}
+
+
+
+
+
+
+
+
+
+int is_old_mar(const char *path, int *oldMar)
+{
+  PRUint32 offsetToIndex, offsetToContent, oldPos;
+  FILE *fp;
+  
+  if (!oldMar) {
+    return -1;
+  }
+
+  fp = fopen(path, "rb");
+  if (!fp) {
+    return -1;
+  }
+
+  oldPos = ftell(fp);
+
+  
+  if (fseek(fp, MAR_ID_SIZE, SEEK_SET)) {
+    return -1;
+  }
+
+  
+  if (fread(&offsetToIndex, sizeof(offsetToIndex), 1, fp) != 1)
+    return -1;
+  offsetToIndex = ntohl(offsetToIndex);
+
+  
+
+
+  if (fseek(fp, offsetToIndex, SEEK_SET)) {
+    return -1;
+  }
+
+  if (fseek(fp, sizeof(PRUint32), SEEK_CUR)) {
+    return -1;
+  }
+
+  
+  if (fread(&offsetToContent, sizeof(offsetToContent), 1, fp) != 1)
+    return -1;
+  offsetToContent = ntohl(offsetToContent);
+
+  
+  if (offsetToContent == MAR_ID_SIZE + sizeof(PRUint32)) {
+    *oldMar = 1;
+  } else {
+    *oldMar = 0;
+  }
+
+  
+  if (fseek(fp, oldPos, SEEK_SET)) {
+    return -1;
+  }
+
+  return 0;
 }

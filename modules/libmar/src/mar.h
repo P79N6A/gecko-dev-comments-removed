@@ -57,6 +57,13 @@ typedef struct MarItem_ {
   char name[1];           
 } MarItem;
 
+#define TABLESIZE 256
+
+struct MarFile_ {
+  FILE *fp;
+  MarItem *item_table[TABLESIZE];
+};
+
 typedef struct MarFile_ MarFile;
 
 
@@ -136,6 +143,25 @@ int mar_create(const char *dest, int numfiles, char **files);
 
 
 int mar_extract(const char *path);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef XP_WIN
+int mar_verify_signatureW(MarFile *mar, 
+                          const char *certData,
+                          PRUint32 sizeOfCertData);
+#endif
 
 #ifdef __cplusplus
 }
