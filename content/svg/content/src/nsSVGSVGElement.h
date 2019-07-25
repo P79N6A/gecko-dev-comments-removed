@@ -221,6 +221,14 @@ public:
   }
 
   virtual nsXPCClassInfo* GetClassInfo();
+
+#ifndef MOZ_ENABLE_LIBXUL
+  
+  
+  
+  virtual void RemoveAllRenderingObservers();
+#endif 
+
 protected:
   
   PRBool IsEventName(nsIAtom* aName);
