@@ -989,7 +989,7 @@ class Assembler
 
     bool enoughMemory_;
 
-    typedef JSC::AssemblerBufferWithConstantPool<2048, 4, 4, js::ion::Assembler> ARMBuffer;
+    typedef JSC::AssemblerBufferWithConstantPool<1024, 4, 4, js::ion::Assembler> ARMBuffer;
     ARMBuffer m_buffer;
     
     

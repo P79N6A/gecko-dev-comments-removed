@@ -550,7 +550,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     if (f.outParam == Type_Value) {
-        masm.ma_ldrd(EDtrAddr(sp, EDtrOffImm(0)), JSReturnReg_Data);
+        masm.ma_ldrd(EDtrAddr(sp, EDtrOffImm(0)), JSReturnReg_Data, JSReturnReg_Type);
         masm.freeStack(sizeof(Value));
     }
 
