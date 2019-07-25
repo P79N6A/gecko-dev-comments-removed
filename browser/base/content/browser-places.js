@@ -660,7 +660,10 @@ HistoryMenu.prototype = {
     
 #ifdef MOZ_SERVICES_SYNC
     
-    let menuitem = document.getElementById("sync-tabs-menuitem");
+    
+    let menuitem = this._rootElt.getElementsByClassName("syncTabsMenuItem")[0];
+    if (!menuitem)
+      return;
 
     
     if (Weave.Status.checkSetup() == Weave.CLIENT_NOT_CONFIGURED ||
