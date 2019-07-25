@@ -508,8 +508,6 @@ protected:
   
   PRPackedBool          mCustomNonClient;
   
-  PRPackedBool          mCompositorFlag;
-  
   PRInt32               mHorResizeMargin;
   PRInt32               mVertResizeMargin;
   
