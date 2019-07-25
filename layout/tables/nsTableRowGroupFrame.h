@@ -38,7 +38,7 @@
 #define nsTableRowGroupFrame_h__
 
 #include "nscore.h"
-#include "nsHTMLContainerFrame.h"
+#include "nsContainerFrame.h"
 #include "nsIAtom.h"
 #include "nsILineIterator.h"
 #include "nsTablePainter.h"
@@ -92,7 +92,7 @@ struct nsRowGroupReflowState {
 
 
 class nsTableRowGroupFrame
-  : public nsHTMLContainerFrame
+  : public nsContainerFrame
   , public nsILineIterator
 {
 public:

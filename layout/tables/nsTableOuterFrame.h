@@ -38,7 +38,7 @@
 #define nsTableOuterFrame_h__
 
 #include "nscore.h"
-#include "nsHTMLContainerFrame.h"
+#include "nsContainerFrame.h"
 #include "nsBlockFrame.h"
 #include "nsITableLayout.h"
 #include "nsTableFrame.h"
@@ -82,7 +82,7 @@ protected:
 
 
 
-class nsTableOuterFrame : public nsHTMLContainerFrame, public nsITableLayout
+class nsTableOuterFrame : public nsContainerFrame, public nsITableLayout
 {
 public:
   NS_DECL_QUERYFRAME

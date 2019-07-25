@@ -753,6 +753,21 @@ struct Chunk {
 
     
     static inline void release(JSRuntime *rt, Chunk *chunk);
+    static inline void releaseList(JSRuntime *rt, Chunk *chunkListHead);
+
+    
+    inline void prepareToBeFreed(JSRuntime *rt);
+
+    
+
+
+
+    Chunk *getPrevious() {
+        JS_ASSERT(info.prevp);
+        uintptr_t prevAddress = reinterpret_cast<uintptr_t>(info.prevp);
+        JS_ASSERT((prevAddress & ChunkMask) == offsetof(Chunk, info.next));
+        return reinterpret_cast<Chunk *>(prevAddress - offsetof(Chunk, info.next));
+    }
 
   private:
     inline void init();
@@ -761,8 +776,11 @@ struct Chunk {
     jsuint findDecommittedArenaOffset();
     ArenaHeader* fetchNextDecommittedArena();
 
+  public:
     
     inline ArenaHeader* fetchNextFreeArena(JSRuntime *rt);
+
+    inline void addArenaToFreeList(JSRuntime *rt, ArenaHeader *aheader);
 };
 
 JS_STATIC_ASSERT(sizeof(Chunk) == ChunkSize);
@@ -786,10 +804,13 @@ class ChunkPool {
     inline Chunk *get(JSRuntime *rt);
 
     
-    inline void put(JSRuntime *rt, Chunk *chunk);
+    inline void put(Chunk *chunk);
 
     
-    void expire(JSRuntime *rt, bool releaseAll);
+
+
+
+    Chunk *expire(JSRuntime *rt, bool releaseAll);
 
     
     JS_FRIEND_API(int64_t) countCleanDecommittedArenas(JSRuntime *rt);
@@ -1727,7 +1748,7 @@ struct GCMarker : public JSTracer {
     void drainMarkStack();
 
     inline void processMarkStackTop();
-    
+
     void pushObject(JSObject *obj) {
         pushTaggedPtr(ObjectTag, obj);
     }

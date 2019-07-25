@@ -184,7 +184,7 @@ nsTableFrame::GetType() const
 
 
 nsTableFrame::nsTableFrame(nsStyleContext* aContext)
-  : nsHTMLContainerFrame(aContext),
+  : nsContainerFrame(aContext),
     mCellMap(nsnull),
     mTableLayoutStrategy(nsnull)
 {
@@ -198,7 +198,7 @@ nsTableFrame::nsTableFrame(nsStyleContext* aContext)
 
 NS_QUERYFRAME_HEAD(nsTableFrame)
   NS_QUERYFRAME_ENTRY(nsITableLayout)
-NS_QUERYFRAME_TAIL_INHERITING(nsHTMLContainerFrame)
+NS_QUERYFRAME_TAIL_INHERITING(nsContainerFrame)
 
 NS_IMETHODIMP
 nsTableFrame::Init(nsIContent*      aContent,
@@ -208,7 +208,7 @@ nsTableFrame::Init(nsIContent*      aContent,
   nsresult  rv;
 
   
-  rv = nsHTMLContainerFrame::Init(aContent, aParent, aPrevInFlow);
+  rv = nsContainerFrame::Init(aContent, aParent, aPrevInFlow);
 
   
   const nsStyleTableBorder* tableStyle = GetStyleTableBorder();
@@ -260,7 +260,7 @@ void
 nsTableFrame::DestroyFrom(nsIFrame* aDestructRoot)
 {
   mColGroups.DestroyFramesFrom(aDestructRoot);
-  nsHTMLContainerFrame::DestroyFrom(aDestructRoot);
+  nsContainerFrame::DestroyFrom(aDestructRoot);
 }
 
 
@@ -1060,13 +1060,13 @@ nsTableFrame::GetChildList(ChildListID aListID) const
   if (aListID == kColGroupList) {
     return mColGroups;
   }
-  return nsHTMLContainerFrame::GetChildList(aListID);
+  return nsContainerFrame::GetChildList(aListID);
 }
 
 void
 nsTableFrame::GetChildLists(nsTArray<ChildList>* aLists) const
 {
-  nsHTMLContainerFrame::GetChildLists(aLists);
+  nsContainerFrame::GetChildLists(aLists);
   mColGroups.AppendIfNonempty(aLists, kColGroupList);
 }
 
@@ -1469,7 +1469,7 @@ nsTableFrame::MarkIntrinsicWidthsDirty()
 
   
 
-  nsHTMLContainerFrame::MarkIntrinsicWidthsDirty();
+  nsContainerFrame::MarkIntrinsicWidthsDirty();
 }
 
  nscoord
@@ -1498,7 +1498,7 @@ nsTableFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 nsTableFrame::IntrinsicWidthOffsets(nsRenderingContext* aRenderingContext)
 {
   IntrinsicWidthOffsetData result =
-    nsHTMLContainerFrame::IntrinsicWidthOffsets(aRenderingContext);
+    nsContainerFrame::IntrinsicWidthOffsets(aRenderingContext);
 
   result.hMargin = 0;
   result.hPctMargin = 0;
@@ -1521,9 +1521,8 @@ nsTableFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                           bool aShrinkWrap)
 {
   nsSize result =
-    nsHTMLContainerFrame::ComputeSize(aRenderingContext, aCBSize,
-                                      aAvailableWidth,
-                                      aMargin, aBorder, aPadding, aShrinkWrap);
+    nsContainerFrame::ComputeSize(aRenderingContext, aCBSize, aAvailableWidth,
+                                  aMargin, aBorder, aPadding, aShrinkWrap);
 
   
   nscoord minWidth = GetMinWidth(aRenderingContext);
@@ -2322,7 +2321,7 @@ nsTableFrame::RemoveFrame(ChildListID     aListID,
 nsTableFrame::GetUsedBorder() const
 {
   if (!IsBorderCollapse())
-    return nsHTMLContainerFrame::GetUsedBorder();
+    return nsContainerFrame::GetUsedBorder();
 
   return GetIncludedOuterBCBorder();
 }
@@ -2331,7 +2330,7 @@ nsTableFrame::GetUsedBorder() const
 nsTableFrame::GetUsedPadding() const
 {
   if (!IsBorderCollapse())
-    return nsHTMLContainerFrame::GetUsedPadding();
+    return nsContainerFrame::GetUsedPadding();
 
   return nsMargin(0,0,0,0);
 }

@@ -639,6 +639,14 @@ struct JSObject : js::gc::Cell
 
   private:
     inline js::HeapValue* fixedSlots() const;
+
+    
+
+
+
+    void getSlotRange(size_t start, size_t length,
+                      js::HeapValue **fixedStart, js::HeapValue **fixedEnd,
+                      js::HeapValue **slotsStart, js::HeapValue **slotsEnd);
   public:
 
     
@@ -690,7 +698,6 @@ struct JSObject : js::gc::Cell
     inline bool updateSlotsForSpan(JSContext *cx, size_t oldSpan, size_t newSpan);
 
   public:
-
     
 
 
@@ -702,9 +709,13 @@ struct JSObject : js::gc::Cell
 
 
 
+    void initSlotRange(size_t start, const js::Value *vector, size_t length);
+
+    
 
 
-    void copySlotRange(size_t start, const js::Value *vector, size_t length, bool valid);
+
+    void copySlotRange(size_t start, const js::Value *vector, size_t length);
 
     inline uint32_t slotSpan() const;
 

@@ -190,6 +190,11 @@ public:
     return nsnull;
   }
 
+  
+
+
+  bool IsBlack();
+
 private:
   
   void SetPreservingWrapper(bool aPreserve)

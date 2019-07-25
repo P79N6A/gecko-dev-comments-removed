@@ -39,7 +39,7 @@
 
 #include "nsITableCellLayout.h"
 #include "nscore.h"
-#include "nsHTMLContainerFrame.h"
+#include "nsContainerFrame.h"
 #include "nsTableRowFrame.h"  
 #include "nsStyleContext.h"
 #include "nsIPercentHeightObserver.h"
@@ -67,7 +67,7 @@ class nsTableFrame;
 
 
 
-class nsTableCellFrame : public nsHTMLContainerFrame,
+class nsTableCellFrame : public nsContainerFrame,
                          public nsITableCellLayout,
                          public nsIPercentHeightObserver
 {

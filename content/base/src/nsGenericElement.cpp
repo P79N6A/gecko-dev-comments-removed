@@ -1208,13 +1208,6 @@ nsINode::Trace(nsINode *tmp, TraceCallback cb, void *closure)
 }
 
 static bool
-IsBlackNode(nsINode* aNode)
-{
-  JSObject* o = aNode->GetWrapperPreserveColor();
-  return o && !xpc_IsGrayGCThing(o);
-}
-
-static bool
 IsXBL(nsINode* aNode)
 {
   return aNode->IsElement() &&
@@ -1233,7 +1226,7 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
 
   if (nsCCUncollectableMarker::sGeneration) {
     
-    if (IsBlackNode(tmp)) {
+    if (tmp->IsBlack()) {
       return false;
     }
 
@@ -1246,13 +1239,13 @@ nsINode::Traverse(nsINode *tmp, nsCycleCollectionTraversalCallback &cb)
 
     if (!tmp->HasFlag(problematicFlags) && !IsXBL(tmp)) {
       
-      if ((currentDoc && IsBlackNode(currentDoc))) {
+      if ((currentDoc && currentDoc->IsBlack())) {
         return false;
       }
       
       
       nsIContent* parent = tmp->GetParent();
-      if (parent && !IsXBL(parent) && IsBlackNode(parent)) {
+      if (parent && !IsXBL(parent) && parent->IsBlack()) {
         NS_ABORT_IF_FALSE(parent->IndexOf(tmp) >= 0, "Parent doesn't own us?");
         return false;
       }

@@ -915,6 +915,13 @@ UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 
 
+bool
+ArrayPrototypeHasIndexedProperty(JSContext *cx, JSScript *script);
+
+
+
+
+
 
 struct TypeCallsite
 {
