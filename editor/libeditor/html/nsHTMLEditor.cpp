@@ -443,11 +443,9 @@ nsresult
 nsHTMLEditor::CreateEventListeners()
 {
   
-  if (mEventListener)
-    return NS_OK;
-  mEventListener = do_QueryInterface(
-    static_cast<nsIDOMKeyListener*>(new nsHTMLEditorEventListener()));
-  NS_ENSURE_TRUE(mEventListener, NS_ERROR_OUT_OF_MEMORY);
+  if (!mEventListener) {
+    mEventListener = new nsHTMLEditorEventListener();
+  }
   return NS_OK;
 }
 
@@ -488,9 +486,8 @@ nsHTMLEditor::RemoveEventListeners()
     {
       
       
-      target->RemoveEventListenerByIID(mMouseMotionListenerP,
-                                       NS_GET_IID(nsIDOMMouseMotionListener));
-
+      target->RemoveEventListener(NS_LITERAL_STRING("mousemove"),
+                                  mMouseMotionListenerP, PR_FALSE);
       target->RemoveEventListener(NS_LITERAL_STRING("mousemove"),
                                   mMouseMotionListenerP, PR_TRUE);
     }
