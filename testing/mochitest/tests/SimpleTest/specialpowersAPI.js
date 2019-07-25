@@ -119,8 +119,12 @@ function wrapPrivileged(obj) {
       
       
       
+      
+      
+      
+      
       var FakeConstructor = function() {
-        doApply(obj, this, unwrappedArgs);
+        return doApply(obj, this, unwrappedArgs);
       };
       FakeConstructor.prototype = obj.prototype;
 
