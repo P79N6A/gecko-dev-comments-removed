@@ -12,6 +12,7 @@
 
 
 
+
 #ifdef NEED_SHORT_EXTERNAL_NAMES
 #define jpeg_make_d_derived_tbl	jMkDDerived
 #define jpeg_fill_bit_buffer	jFilBitBuf
@@ -27,7 +28,7 @@ typedef struct {
   
   INT32 maxcode[18];		
   
-  INT32 valoffset[17];		
+  INT32 valoffset[18];		
   
 
 
@@ -41,8 +42,12 @@ typedef struct {
 
 
 
-  int look_nbits[1<<HUFF_LOOKAHEAD]; 
-  UINT8 look_sym[1<<HUFF_LOOKAHEAD]; 
+
+
+
+
+
+  int lookup[1<<HUFF_LOOKAHEAD];
 } d_derived_tbl;
 
 
@@ -69,8 +74,17 @@ EXTERN(void) jpeg_make_d_derived_tbl
 
 
 
+#if __WORDSIZE == 64 || defined(_WIN64)
+
+typedef size_t bit_buf_type;	
+#define BIT_BUF_SIZE  64		/* size of buffer in bits */
+
+#else
+
 typedef INT32 bit_buf_type;	
-#define BIT_BUF_SIZE  32	/* size of buffer in bits */
+#define BIT_BUF_SIZE  32		/* size of buffer in bits */
+
+#endif
 
 
 
@@ -183,17 +197,36 @@ EXTERN(boolean) jpeg_fill_bit_buffer
     } \
   } \
   look = PEEK_BITS(HUFF_LOOKAHEAD); \
-  if ((nb = htbl->look_nbits[look]) != 0) { \
+  if ((nb = (htbl->lookup[look] >> HUFF_LOOKAHEAD)) <= HUFF_LOOKAHEAD) { \
     DROP_BITS(nb); \
-    result = htbl->look_sym[look]; \
+    result = htbl->lookup[look] & ((1 << HUFF_LOOKAHEAD) - 1); \
   } else { \
-    nb = HUFF_LOOKAHEAD+1; \
 slowlabel: \
     if ((result=jpeg_huff_decode(&state,get_buffer,bits_left,htbl,nb)) < 0) \
 	{ failaction; } \
     get_buffer = state.get_buffer; bits_left = state.bits_left; \
   } \
 }
+
+#define HUFF_DECODE_FAST(s,nb,htbl) \
+  FILL_BIT_BUFFER_FAST; \
+  s = PEEK_BITS(HUFF_LOOKAHEAD); \
+  s = htbl->lookup[s]; \
+  nb = s >> HUFF_LOOKAHEAD; \
+  /* Pre-execute the common case of nb <= HUFF_LOOKAHEAD */ \
+  DROP_BITS(nb); \
+  s = s & ((1 << HUFF_LOOKAHEAD) - 1); \
+  if (nb > HUFF_LOOKAHEAD) { \
+    /* Equivalent of jpeg_huff_decode() */ \
+    /* Don't use GET_BITS() here because we don't want to modify bits_left */ \
+    s = (get_buffer >> bits_left) & ((1 << (nb)) - 1); \
+    while (s > htbl->maxcode[nb]) { \
+      s <<= 1; \
+      s |= GET_BITS(1); \
+      nb++; \
+    } \
+    s = htbl->pub->huffval[ (int) (s + htbl->valoffset[nb]) & 0xFF ]; \
+  }
 
 
 EXTERN(int) jpeg_huff_decode

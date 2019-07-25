@@ -5,6 +5,9 @@
 #define JPEG_LIB_VERSION 62
 
 
+#define LIBJPEG_TURBO_VERSION 1.2.0
+
+
 #define HAVE_PROTOTYPES 1
 
 
@@ -47,13 +50,3 @@
 
 
 
-#ifndef __cplusplus
-
-#endif
-
-
-
-
-
-
-#define INLINE NS_ALWAYS_INLINE
