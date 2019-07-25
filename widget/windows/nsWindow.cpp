@@ -3104,6 +3104,13 @@ GetLayerManagerPrefs(LayerManagerPrefs* aManagerPrefs)
     aManagerPrefs->mDisableAcceleration || safeMode;
 }
 
+bool
+nsWindow::UseOffMainThreadCompositing()
+{
+  
+  return false;
+}
+
 LayerManager*
 nsWindow::GetLayerManager(PLayersChild* aShadowManager,
                           LayersBackend aBackendHint,
@@ -3204,9 +3211,7 @@ nsWindow::GetLayerManager(PLayersChild* aShadowManager,
     
     if (!mLayerManager) {
       
-      bool useCompositor =
-        Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
-      if (useCompositor) {
+      if (UseOffMainThreadCompositing()) {
         
         
         NS_ASSERTION(aShadowManager == nsnull, "Async Compositor not supported with e10s");
