@@ -126,7 +126,6 @@ nsTheoraState::nsTheoraState(ogg_page* aBosPage) :
   nsOggCodecState(aBosPage),
   mSetup(0),
   mCtx(0),
-  mFrameDuration(0),
   mPixelAspectRatio(0)
 {
   MOZ_COUNT_CTOR(nsTheoraState);
@@ -146,22 +145,9 @@ PRBool nsTheoraState::Init() {
   if (!mActive)
     return PR_FALSE;
 
-  PRInt64 n = mInfo.fps_numerator;
-  PRInt64 d = mInfo.fps_denominator;
+  PRInt64 n = mInfo.aspect_numerator;
+  PRInt64 d = mInfo.aspect_denominator;
 
-  PRInt64 f;
-  if (!MulOverflow(1000, d, f)) {
-    return mActive = PR_FALSE;
-  }
-  f /= n;
-  if (f > PR_UINT32_MAX) {
-    return mActive = PR_FALSE;
-  }
-  mFrameDuration = static_cast<PRUint32>(f);
-
-  n = mInfo.aspect_numerator;
-
-  d = mInfo.aspect_denominator;
   mPixelAspectRatio = (n == 0 || d == 0) ?
     1.0f : static_cast<float>(n) / static_cast<float>(d);
 
@@ -244,7 +230,7 @@ PRInt64 nsTheoraState::Time(th_info* aInfo, PRInt64 aGranulepos)
   PRInt64 frameno = iframe + pframe - TH_VERSION_CHECK(aInfo, 3, 2, 1);
   if (!AddOverflow(frameno, 1, t))
     return -1;
-  if (!MulOverflow(t, 1000, t))
+  if (!MulOverflow(t, USECS_PER_S, t))
     return -1;
   if (!MulOverflow(t, aInfo->fps_denominator, t))
     return -1;
@@ -257,7 +243,7 @@ PRInt64 nsTheoraState::StartTime(PRInt64 granulepos) {
   }
   PRInt64 t = 0;
   PRInt64 frameno = th_granule_frame(mCtx, granulepos);
-  if (!MulOverflow(frameno, 1000, t))
+  if (!MulOverflow(frameno, USECS_PER_S, t))
     return -1;
   if (!MulOverflow(t, mInfo.fps_denominator, t))
     return -1;
@@ -273,16 +259,13 @@ nsTheoraState::MaxKeyframeOffset()
   
   
   PRInt64 frameDuration;
-  PRInt64 keyframeDiff;
-
-  PRInt64 shift = mInfo.keyframe_granule_shift;
-
   
-  keyframeDiff = (1 << shift) - 1;
+  
+  PRInt64 keyframeDiff = (1 << mInfo.keyframe_granule_shift) - 1;
 
   
   PRInt64 d = 0; 
-  MulOverflow(1000, mInfo.fps_denominator, d);
+  MulOverflow(USECS_PER_S, mInfo.fps_denominator, d);
   frameDuration = d / mInfo.fps_numerator;
 
   
@@ -390,7 +373,7 @@ PRInt64 nsVorbisState::Time(vorbis_info* aInfo, PRInt64 aGranulepos)
     return -1;
   }
   PRInt64 t = 0;
-  MulOverflow(1000, aGranulepos, t);
+  MulOverflow(USECS_PER_S, aGranulepos, t);
   return t / aInfo->rate;
 }
 
@@ -522,7 +505,7 @@ PRBool nsSkeletonState::DecodeIndex(ogg_packet* aPacket)
   
   n = LEInt64(p + INDEX_FIRST_NUMER_OFFSET);
   PRInt64 t;
-  if (!MulOverflow(n, 1000, t)) {
+  if (!MulOverflow(n, USECS_PER_S, t)) {
     return (mActive = PR_FALSE);
   } else {
     startTime = t / timeDenom;
@@ -530,7 +513,7 @@ PRBool nsSkeletonState::DecodeIndex(ogg_packet* aPacket)
 
   
   n = LEInt64(p + INDEX_LAST_NUMER_OFFSET);
-  if (!MulOverflow(n, 1000, t)) {
+  if (!MulOverflow(n, USECS_PER_S, t)) {
     return (mActive = PR_FALSE);
   } else {
     endTime = t / timeDenom;
@@ -590,11 +573,11 @@ PRBool nsSkeletonState::DecodeIndex(ogg_packet* aPacket)
     {
       return (mActive = PR_FALSE);
     }
-    PRInt64 timeMs = 0;
-    if (!MulOverflow(time, 1000, timeMs))
+    PRInt64 timeUsecs = 0;
+    if (!MulOverflow(time, USECS_PER_S, timeUsecs))
       return mActive = PR_FALSE;
-    timeMs /= timeDenom;
-    keyPoints->Add(offset, timeMs);
+    timeUsecs /= timeDenom;
+    keyPoints->Add(offset, timeUsecs);
     numKeyPointsRead++;
   }
 
@@ -713,7 +696,7 @@ PRBool nsSkeletonState::DecodeHeader(ogg_packet* aPacket)
     
     PRInt64 n = LEInt64(aPacket->packet + SKELETON_PRESENTATION_TIME_NUMERATOR_OFFSET);
     PRInt64 d = LEInt64(aPacket->packet + SKELETON_PRESENTATION_TIME_DENOMINATOR_OFFSET);
-    mPresentationTime = d == 0 ? 0 : (static_cast<float>(n) / static_cast<float>(d)) * 1000;
+    mPresentationTime = d == 0 ? 0 : (static_cast<float>(n) / static_cast<float>(d)) * USECS_PER_S;
 
     mVersion = SKELETON_VERSION(verMajor, verMinor);
     if (mVersion < SKELETON_VERSION(4,0) ||

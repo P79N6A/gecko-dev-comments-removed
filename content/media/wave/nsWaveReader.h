@@ -77,12 +77,12 @@ private:
   
   
   
-  float BytesToTime(PRInt64 aBytes) const;
+  double BytesToTime(PRInt64 aBytes) const;
 
   
   
   
-  PRInt64 TimeToBytes(float aTime) const;
+  PRInt64 TimeToBytes(double aTime) const;
 
   
   

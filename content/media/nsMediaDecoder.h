@@ -285,7 +285,7 @@ public:
   
   
   
-  virtual void SetDuration(PRInt64 aDuration) = 0;
+  virtual void SetDuration(double aDuration) = 0;
 
   
   virtual void SetSeekable(PRBool aSeekable) = 0;
