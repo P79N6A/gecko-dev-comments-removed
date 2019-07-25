@@ -20,7 +20,9 @@ public:
 
   static nsFontInflationData* FindFontInflationDataFor(const nsIFrame *aFrame);
 
-  static void
+  
+  
+  static bool
     UpdateFontInflationDataWidthFor(const nsHTMLReflowState& aReflowState);
 
   static void MarkFontInflationDataTextDirty(nsIFrame *aFrame);

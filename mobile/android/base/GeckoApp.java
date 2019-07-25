@@ -1673,8 +1673,6 @@ abstract public class GeckoApp
             return;
         }
 
-        GeckoAppShell.onFullScreenPluginHidden(view);
-
         mFullScreenPluginContainer.removeView(mFullScreenPluginView);
 
         
@@ -2920,7 +2918,8 @@ abstract public class GeckoApp
         }
 
         if (mFullScreenPluginView != null) {
-            removePluginView(mFullScreenPluginView, true);
+            GeckoAppShell.onFullScreenPluginHidden(mFullScreenPluginView);
+            removeFullScreenPluginView(mFullScreenPluginView);
             return;
         }
 
