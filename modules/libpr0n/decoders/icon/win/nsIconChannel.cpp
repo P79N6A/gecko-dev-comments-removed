@@ -66,10 +66,6 @@
 #define _WIN32_WINNT 0x0600
 #endif
 
-#ifdef WINCE
-#define SHGetFileInfoW SHGetFileInfo
-#endif
-
 
 #include <windows.h>
 #include <shellapi.h>
@@ -263,7 +259,6 @@ NS_IMETHODIMP nsIconChannel::AsyncOpen(nsIStreamListener *aListener, nsISupports
   return rv;
 }
 
-#ifndef WINCE
 static DWORD GetSpecialFolderIcon(nsIFile* aFile, int aFolder, SHFILEINFOW* aSFI, UINT aInfoFlags)
 {
   DWORD shellResult = 0;
@@ -297,17 +292,12 @@ static DWORD GetSpecialFolderIcon(nsIFile* aFile, int aFolder, SHFILEINFOW* aSFI
   }
   return shellResult;
 }
-#endif
 
 static UINT GetSizeInfoFlag(PRUint32 aDesiredImageSize)
 {
   UINT infoFlag;
   if (aDesiredImageSize > 16)
-#ifndef WINCE
     infoFlag = SHGFI_SHELLICONSIZE;
-#else
-    infoFlag = SHGFI_LARGEICON;
-#endif
   else
     infoFlag = SHGFI_SMALLICON;
 
@@ -316,10 +306,6 @@ static UINT GetSizeInfoFlag(PRUint32 aDesiredImageSize)
 
 nsresult nsIconChannel::GetHIconFromFile(HICON *hIcon)
 {
-#ifdef WINCE_WINDOWS_MOBILE
-    
-  return NS_ERROR_NOT_AVAILABLE;
-#else
   nsXPIDLCString contentType;
   nsCString fileExt;
   nsCOMPtr<nsIFile> localFile; 
@@ -341,15 +327,8 @@ nsresult nsIconChannel::GetHIconFromFile(HICON *hIcon)
     NS_ENSURE_SUCCESS(rv, rv);
 
     localFile->GetPath(filePath);
-#ifndef WINCE
     if (filePath.Length() < 2 || filePath[1] != ':')
       return NS_ERROR_MALFORMED_URI; 
-#else
-    
-    if (filePath.Length() < 2 ||
-        filePath[0] != '\\' || filePath[1] == '\\')
-      return NS_ERROR_MALFORMED_URI; 
-#endif
 
     if (filePath.Last() == ':')
       filePath.Append('\\');
@@ -380,21 +359,12 @@ nsresult nsIconChannel::GetHIconFromFile(HICON *hIcon)
     filePath = NS_LITERAL_STRING(".") + NS_ConvertUTF8toUTF16(defFileExt);
   }
 
-#ifndef WINCE
   
   DWORD shellResult = GetSpecialFolderIcon(localFile, CSIDL_DESKTOP, &sfi, infoFlags);
   if (!shellResult) {
     
     shellResult = GetSpecialFolderIcon(localFile, CSIDL_PERSONAL, &sfi, infoFlags);
   }
-#else
-  DWORD shellResult = 0;
-  
-  
-  
-  if (localFile)
-    infoFlags |= SHGFI_DISPLAYNAME;
-#endif
 
   
   
@@ -412,7 +382,6 @@ nsresult nsIconChannel::GetHIconFromFile(HICON *hIcon)
     rv = NS_ERROR_NOT_AVAILABLE;
 
   return rv;
-#endif
 }
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
@@ -457,81 +426,6 @@ nsresult nsIconChannel::GetStockHIcon(nsIMozIconURI *aIconURI, HICON *hIcon)
     ::FreeLibrary(hShellDLL);
 
   return rv;
-}
-#endif
-
-#ifdef WINCE
-int GetDIBits(HDC hdc,
-              HBITMAP hbmp,
-              UINT uStartScan,
-              UINT cScanLines,
-              LPVOID lpvBits,
-              LPBITMAPINFO lpbi,
-              UINT uUsage)
-{
-  
-  if (!hdc || !hbmp || uStartScan != 0 ||
-      !lpbi || uUsage != DIB_RGB_COLORS ||
-      lpvBits == NULL && lpbi->bmiHeader.biSize != sizeof(BITMAPINFOHEADER))
-    return 0;
-
-  BITMAP bmpInfo;
-  if (!::GetObject(hbmp, sizeof(BITMAP), &bmpInfo))
-    return 0;
-
-  lpbi->bmiHeader.biWidth         = bmpInfo.bmWidth;
-  lpbi->bmiHeader.biHeight        = bmpInfo.bmHeight;
-  lpbi->bmiHeader.biPlanes        = bmpInfo.bmPlanes;
-  lpbi->bmiHeader.biBitCount      = bmpInfo.bmBitsPixel;
-  lpbi->bmiHeader.biCompression   = BI_RGB; 
-  lpbi->bmiHeader.biSizeImage     = bmpInfo.bmWidthBytes * bmpInfo.bmHeight;
-  lpbi->bmiHeader.biXPelsPerMeter = 0;
-  lpbi->bmiHeader.biYPelsPerMeter = 0;
-  lpbi->bmiHeader.biClrUsed       = 0;
-  lpbi->bmiHeader.biClrImportant  = 0;
-
-  if (lpbi->bmiHeader.biBitCount == 1) {
-    
-    lpbi->bmiHeader.biClrUsed       = 2;
-    lpbi->bmiHeader.biClrImportant  = 2;
-    lpbi->bmiColors[0].rgbRed = lpbi->bmiColors[0].rgbGreen =
-      lpbi->bmiColors[0].rgbBlue = lpbi->bmiColors[0].rgbReserved = 0;
-    lpbi->bmiColors[1].rgbRed = lpbi->bmiColors[1].rgbGreen =
-      lpbi->bmiColors[1].rgbBlue = lpbi->bmiColors[1].rgbReserved = 255;
-  }
-
-  if (lpvBits == NULL)
-    return bmpInfo.bmHeight;
-
-  
-  
-  HBITMAP hTargetBitmap;
-  void *pBuffer; 
-  HDC someDC = ::GetDC(NULL);
-  hTargetBitmap = ::CreateDIBSection(someDC, lpbi, DIB_RGB_COLORS,
-                                     (void**)&pBuffer, NULL, 0);
-  ::ReleaseDC(NULL, someDC);
-
-  HDC memDc    = ::CreateCompatibleDC(NULL);
-  HDC targetDc = ::CreateCompatibleDC(NULL);
-  if (!memDc || !targetDc)
-    return 0;
-
-  HBITMAP hOldMemBitmap = (HBITMAP)::SelectObject(memDc, hbmp);
-  HBITMAP hOldTgtBitmap = (HBITMAP)::SelectObject(targetDc, hTargetBitmap);
-
-  
-  ::BitBlt(targetDc, 0, 0, bmpInfo.bmWidth, bmpInfo.bmHeight, memDc, 0, 0, SRCCOPY);
-  memcpy(lpvBits, pBuffer, lpbi->bmiHeader.biSizeImage);
-
-  
-  ::SelectObject(memDc, hOldMemBitmap);
-  ::SelectObject(targetDc, hOldTgtBitmap);
-  ::DeleteDC(memDc);
-  ::DeleteDC(targetDc); 
-  ::DeleteObject(hTargetBitmap); 
-
-  return bmpInfo.bmHeight;
 }
 #endif
 
@@ -599,7 +493,6 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream** _retval, PRBool nonBloc
   nsresult rv = NS_ERROR_NOT_AVAILABLE;
 
   
-#ifndef WINCE_WINDOWS_MOBILE
   HICON hIcon = NULL;
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
@@ -728,7 +621,6 @@ nsresult nsIconChannel::MakeInputStream(nsIInputStream** _retval, PRBool nonBloc
   
   if (!*_retval && NS_SUCCEEDED(rv))
     rv = NS_ERROR_NOT_AVAILABLE;
-#endif
   return rv;
 }
 
