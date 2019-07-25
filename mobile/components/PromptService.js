@@ -61,11 +61,10 @@ function PromptService() {
           
           
           
-          
-          const ALL_METHODS = ['alert', 'confirm', 'prompt'];
+          const ALL_METHODS = ["alert", "alertCheck", "confirm", "prompt", "confirmEx", "confirmCheck", "select"];
           var method = aMessage.json.method;
           if (ALL_METHODS.indexOf(method) == -1)
-            throw 'PromptServiceRemoter received an invalid method';
+            throw "PromptServiceRemoter received an invalid method "+method;
           var arguments = aMessage.json.arguments;
           arguments.unshift(null); 
                                    
