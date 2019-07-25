@@ -297,36 +297,8 @@ function check_no_bookmarks() {
 
 
 
-
-
 function setPageTitle(aURI, aTitle) {
-  
-  let stmt = DBConn().createStatement(
-    "SELECT id FROM moz_places_view WHERE url = :url"
-  );
-  stmt.params.url = aURI.spec;
-  try {
-    if (!stmt.executeStep()) {
-      do_throw("Unable to find page " + aURI.spec);
-      return;
-    }
-  }
-  finally {
-    stmt.finalize();
-  }
-
-  
-  stmt = DBConn().createStatement(
-    "UPDATE moz_places_view SET title = :title WHERE url = :url"
-  );
-  stmt.params.title = aTitle;
-  stmt.params.url = aURI.spec;
-  try {
-    stmt.execute();
-  }
-  finally {
-    stmt.finalize();
-  }
+  PlacesUtils.history.setPageTitle(aURI, aTitle);
 }
 
 

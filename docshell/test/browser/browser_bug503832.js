@@ -27,6 +27,9 @@ function test() {
                 
                 
                 historyService.removeObserver(historyObserver, false);
+
+                gBrowser.removeCurrentTab();
+
                 finish();
             }
         },
@@ -75,11 +78,6 @@ function test() {
         
         EventUtils.sendMouseEvent({type:'click'}, 'firefox-link',
                                   gBrowser.selectedBrowser.contentWindow);
-
-        
-        setTimeout(function() {
-                       gBrowser.removeCurrentTab();
-                   }, 100);
 
         
     }

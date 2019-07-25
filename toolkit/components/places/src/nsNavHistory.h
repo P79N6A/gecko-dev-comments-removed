@@ -70,9 +70,6 @@
 
 #include "mozilla/storage.h"
 
-
-#define LAZY_ADD
-
 #define QUERYUPDATE_TIME 0
 #define QUERYUPDATE_SIMPLE 1
 #define QUERYUPDATE_COMPLEX 2
@@ -192,17 +189,6 @@ public:
     }
     return gHistoryService;
   }
-
-#ifdef LAZY_ADD
-  
-
-
-
-  nsresult AddLazyLoadFaviconMessage(nsIURI* aPageURI,
-                                     nsIURI* aFaviconURI,
-                                     PRBool aForceReload,
-                                     nsIFaviconDataCallback* aCallback);
-#endif
 
   
 
@@ -619,59 +605,6 @@ protected:
 
 
   static void expireNowTimerCallback(nsITimer* aTimer, void* aClosure);
-
-#ifdef LAZY_ADD
-  
-  struct LazyMessage {
-    enum MessageType { Type_Invalid, Type_AddURI, Type_Title, Type_Favicon };
-    LazyMessage()
-    {
-      type = Type_Invalid;
-      isRedirect = PR_FALSE;
-      isToplevel = PR_FALSE;
-      time = 0;
-      alwaysLoadFavicon = PR_FALSE;
-    }
-
-    
-    
-    nsresult Init(MessageType aType, nsIURI* aURI)
-    {
-      NS_ENSURE_ARG_POINTER(aURI);
-      type = aType;
-      nsresult rv = aURI->Clone(getter_AddRefs(uri));
-      NS_ENSURE_SUCCESS(rv, rv);
-      return uri->GetSpec(uriSpec);
-    }
-
-    
-    MessageType type;
-    nsCOMPtr<nsIURI> uri;
-    nsCString uriSpec; 
-
-    
-    nsCOMPtr<nsIURI> referrer;
-    PRBool isRedirect;
-    PRBool isToplevel;
-    PRTime time;
-
-    
-    nsString title;
-
-    
-    nsCOMPtr<nsIURI> favicon;
-    PRBool alwaysLoadFavicon;
-    nsCOMPtr<nsIFaviconDataCallback> callback;
-  };
-  nsTArray<LazyMessage> mLazyMessages;
-  nsCOMPtr<nsITimer> mLazyTimer;
-  PRBool mLazyTimerSet;
-  PRUint32 mLazyTimerDeferments; 
-  nsresult StartLazyTimer();
-  nsresult AddLazyMessage(const LazyMessage& aMessage);
-  static void LazyTimerCallback(nsITimer* aTimer, void* aClosure);
-  void CommitLazyMessages(PRBool aIsShutdown = PR_FALSE);
-#endif
 
   nsresult ConstructQueryString(const nsCOMArray<nsNavHistoryQuery>& aQueries, 
                                 nsNavHistoryQueryOptions* aOptions,

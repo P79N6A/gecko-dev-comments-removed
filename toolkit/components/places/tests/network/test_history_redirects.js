@@ -215,10 +215,6 @@ ChannelListener.prototype = {
     
     ghist3.addURI(uri(FOUND_URL), false, true, uri(PERMA_REDIR_URL));
 
-    
-    
-    hs.removeVisitsByTimeframe((Date.now() * 1000) + 1, (Date.now() * 1000) + 2);
-
     continue_test();
   },
 

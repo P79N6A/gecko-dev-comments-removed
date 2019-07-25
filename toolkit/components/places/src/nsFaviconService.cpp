@@ -493,24 +493,11 @@ nsFaviconService::SetAndLoadFaviconForPage(nsIURI* aPageURI,
   if (mFaviconsExpirationRunning)
     return NS_OK;
 
-#ifdef LAZY_ADD
-  
-  
-  
-  
-  
-  nsNavHistory* historyService = nsNavHistory::GetHistoryService();
-  NS_ENSURE_TRUE(historyService, NS_ERROR_OUT_OF_MEMORY);
-  return historyService->AddLazyLoadFaviconMessage(aPageURI,
-                                                   aFaviconURI,
-                                                   aForceReload,
-                                                   aCallback);
-#else
-  return DoSetAndLoadFaviconForPage(aPageURI,
-                                    aFaviconURI,
-                                    aForceReload,
-                                    aCallback);
-#endif
+  nsresult rv = DoSetAndLoadFaviconForPage(aPageURI, aFaviconURI, aForceReload,
+                                           aCallback);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
 }
 
 

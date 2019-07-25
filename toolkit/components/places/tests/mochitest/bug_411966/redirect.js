@@ -157,13 +157,6 @@ function checkDB(data){
   ghist.addURI(this.mChannel.URI, true, true, referrer);
 
   
-  setTimeout("checkDBOnTimeout()", 4000);
-}
-
-function checkDBOnTimeout() {
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
-
-  
   var sql = "SELECT url FROM moz_historyvisits_view " +
             "JOIN moz_places_view h ON h.id = place_id " +
             "WHERE from_visit IN " +

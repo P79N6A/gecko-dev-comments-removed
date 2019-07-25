@@ -44,18 +44,9 @@ const PB_KEEP_SESSION_PREF = "browser.privatebrowsing.keep_current_session";
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyServiceGetter(this, "iconsvc",
-                                   "@mozilla.org/browser/favicon-service;1",
-                                   "nsIFaviconService");
-XPCOMUtils.defineLazyServiceGetter(this, "hs",
-                                   "@mozilla.org/browser/nav-history-service;1",
-                                   "nsINavHistoryService");
 XPCOMUtils.defineLazyServiceGetter(this, "pb",
                                    "@mozilla.org/privatebrowsing;1",
                                    "nsIPrivateBrowsingService");
-XPCOMUtils.defineLazyServiceGetter(this, "prefs",
-                                   "@mozilla.org/preferences-service;1",
-                                   "nsIPrefBranch");
 
 let favicons = [
   {
@@ -79,7 +70,7 @@ let tests = [
     pageURI: uri("about:test1"),
     go: function go1() {
 
-      iconsvc.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
+      PlacesUtils.favicons.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
     },
     clean: function clean1() {}
   },
@@ -89,13 +80,13 @@ let tests = [
     pageURI: uri("http://test2.bar/"),
     go: function go2() {
       
-      prefs.setBoolPref("places.history.enabled", false);
+      Services.prefs.setBoolPref("places.history.enabled", false);
 
-      iconsvc.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
+      PlacesUtils.favicons.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
     },
     clean: function clean2() {
       try {
-        prefs.clearUserPref("places.history.enabled");
+        Services.prefs.clearUserPref("places.history.enabled");
       } catch (ex) {}
     }
   },
@@ -108,10 +99,10 @@ let tests = [
         return;
 
       
-      prefs.setBoolPref(PB_KEEP_SESSION_PREF, true);
+      Services.prefs.setBoolPref(PB_KEEP_SESSION_PREF, true);
       pb.privateBrowsingEnabled = true;
 
-      iconsvc.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
+      PlacesUtils.favicons.setAndLoadFaviconForPage(this.pageURI, favicons[0].uri, true);
     },
     clean: function clean3() {
       if (!("@mozilla.org/privatebrowsing;1" in Cc))
@@ -125,7 +116,7 @@ let tests = [
     desc: "test setAndLoadFaviconForPage for valid history uri",
     pageURI: uri("http://test4.bar/"),
     go: function go4() {
-      iconsvc.setAndLoadFaviconForPage(this.pageURI, favicons[1].uri, true);
+      PlacesUtils.favicons.setAndLoadFaviconForPage(this.pageURI, favicons[1].uri, true);
     },
     clean: function clean4() {}
   },
@@ -154,7 +145,7 @@ let historyObserver = {
     do_check_true(pageURI.equals(uri("http://test4.bar/")));
 
     
-    let stmt = PlacesServices.DBConn.createStatement(
+    let stmt = DBConn().createStatement(
       "SELECT url FROM moz_favicons"
     );
     let c = 0;
@@ -178,12 +169,6 @@ let historyObserver = {
 let currentTest = null;
 
 function run_test() {
-  
-  
-  
-  
-  return;
-
   do_test_pending();
 
   
@@ -191,7 +176,7 @@ function run_test() {
   do_check_eq(favicons[1].data.length, favicons[1].size);
 
   
-  hs.addObserver(historyObserver, false);
+  PlacesUtils.history.addObserver(historyObserver, false);
 
   
   
