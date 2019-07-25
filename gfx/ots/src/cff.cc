@@ -27,6 +27,12 @@ enum DICT_DATA_TYPE {
   DICT_DATA_FDARRAY,
 };
 
+enum FONT_FORMAT {
+  FORMAT_UNKNOWN,
+  FORMAT_CID_KEYED,
+  FORMAT_OTHER,  
+};
+
 
 const size_t kNStdString = 390;
 
@@ -417,7 +423,7 @@ bool ParsePrivateDictData(
             return OTS_FAILURE();  
           }
           local_subrs_index = out_cff->local_subrs_per_font.back();
-        } else if (type == DICT_DATA_TOPLEVEL) {
+        } else { 
           if (out_cff->local_subrs) {
             return OTS_FAILURE();  
           }
@@ -464,6 +470,7 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
 
     std::vector<std::pair<uint32_t, DICT_OPERAND_TYPE> > operands;
 
+    FONT_FORMAT font_format = FORMAT_UNKNOWN;
     bool have_ros = false;
     size_t glyphs = 0;
     size_t charset_offset = 0;
@@ -522,12 +529,19 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
         case (12U << 8) + 5:   
         case (12U << 8) + 8:   
         case (12U << 8) + 20:  
+          if (operands.size() != 1) {
+            return OTS_FAILURE();
+          }
+          break;
         case (12U << 8) + 31:  
         case (12U << 8) + 32:  
         case (12U << 8) + 33:  
         case (12U << 8) + 34:  
         case (12U << 8) + 35:  
           if (operands.size() != 1) {
+            return OTS_FAILURE();
+          }
+          if (font_format != FORMAT_CID_KEYED) {
             return OTS_FAILURE();
           }
           break;
@@ -780,9 +794,10 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
 
         
         case (12U << 8) + 30:
-          if (type != DICT_DATA_TOPLEVEL) {
+          if (font_format != FORMAT_UNKNOWN) {
             return OTS_FAILURE();
           }
+          font_format = FORMAT_CID_KEYED;
           if (operands.size() != 3) {
             return OTS_FAILURE();
           }
@@ -805,6 +820,10 @@ bool ParseDictData(const uint8_t *data, size_t table_length,
           return OTS_FAILURE();
       }
       operands.clear();
+
+      if (font_format == FORMAT_UNKNOWN) {
+        font_format = FORMAT_OTHER;
+      }
     }
 
     
