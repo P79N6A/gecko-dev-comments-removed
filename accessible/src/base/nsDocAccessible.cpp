@@ -39,6 +39,7 @@
 #include "nsAccCache.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsAccessibilityService.h"
+#include "nsAccTreeWalker.h"
 #include "nsAccUtils.h"
 #include "nsRootAccessible.h"
 #include "nsTextEquivUtils.h"
@@ -1325,14 +1326,14 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
     return;
 
   
-  PRInt32 offset = 0;
-  textAccessible->DOMPointToHypertextOffset(aContent, contentOffset, &offset);
+  
+  PRInt32 offset = textAccessible->GetChildOffset(accessible, PR_TRUE);
 
+  
   nsIFrame* frame = aContent->GetPrimaryFrame();
   if (!frame)
     return;
 
-  
   PRUint32 textOffset = 0;
   nsresult rv = textAccessible->ContentToRenderedOffset(frame, contentOffset,
                                                         &textOffset);
@@ -1351,8 +1352,8 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
   
   
   nsRefPtr<nsAccEvent> event =
-    new nsAccTextChangeEvent(textAccessible, offset, text, aIsInserted,
-                             PR_FALSE);
+    new nsAccTextChangeEvent(textAccessible, offset + textOffset, text,
+                             aIsInserted, PR_FALSE);
   FireDelayedAccessibleEvent(event);
 
   FireValueChangeForTextFields(textAccessible);
@@ -1361,7 +1362,7 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
 already_AddRefed<nsAccEvent>
 nsDocAccessible::CreateTextChangeEventForNode(nsAccessible *aContainerAccessible,
                                               nsIContent *aChangeNode,
-                                              nsAccessible *aAccessibleForChangeNode,
+                                              nsAccessible *aChangeChild,
                                               PRBool aIsInserting,
                                               PRBool aIsAsynch,
                                               EIsFromUserInput aIsFromUserInput)
@@ -1372,43 +1373,11 @@ nsDocAccessible::CreateTextChangeEventForNode(nsAccessible *aContainerAccessible
     return nsnull;
   }
 
-  PRInt32 offset = 0;
-  nsAccessible *changeAcc =
-    textAccessible->DOMPointToHypertextOffset(aChangeNode, -1, &offset);
-
   nsAutoString text;
-  if (!aAccessibleForChangeNode) {
+  PRInt32 offset = 0;
+  if (aChangeChild) {
     
-    
-    
-    
-    
-    if (!changeAcc)
-      return nsnull; 
-
-    nsAccessible *parent = changeAcc->GetParent();
-    nsINode *parentNode = parent->GetNode();
-    PRInt32 childCount = parent->GetChildCount();
-    PRInt32 changeAccIdx = changeAcc->GetIndexInParent();
-
-    for (PRInt32 idx = changeAccIdx; idx < childCount; idx++) {
-      nsAccessible *child = parent->GetChildAt(idx);
-      nsINode *childNode = child->GetNode();
-
-      if (!nsCoreUtils::IsAncestorOf(aChangeNode, childNode, parentNode)) {
-        
-        break;
-      }
-
-      child->AppendTextTo(text, 0, PR_UINT32_MAX);
-    }
-  }
-  else {
-    NS_ASSERTION(!changeAcc || changeAcc == aAccessibleForChangeNode,
-                 "Hypertext is reporting a different accessible for this node");
-
-    if (nsAccUtils::Role(aAccessibleForChangeNode) == nsIAccessibleRole::ROLE_WHITESPACE) {  
-      
+    if (nsAccUtils::Role(aChangeChild) == nsIAccessibleRole::ROLE_WHITESPACE) {
       nsCOMPtr<nsIEditor> editor;
       textAccessible->GetAssociatedEditor(getter_AddRefs(editor));
       if (editor) {
@@ -1420,7 +1389,38 @@ nsDocAccessible::CreateTextChangeEventForNode(nsAccessible *aContainerAccessible
       }
     }
 
-    aAccessibleForChangeNode->AppendTextTo(text, 0, PR_UINT32_MAX);
+    offset = textAccessible->GetChildOffset(aChangeChild);
+    aChangeChild->AppendTextTo(text, 0, PR_UINT32_MAX);
+
+  } else {
+    
+    
+    
+    
+    nsAccTreeWalker walker(mWeakShell, aChangeNode,
+                           GetAllowsAnonChildAccessibles());
+    nsRefPtr<nsAccessible> child = walker.GetNextChild();
+
+    
+    if (!child)
+      return nsnull;
+
+    offset = textAccessible->GetChildOffset(child);
+    child->AppendTextTo(text, 0, PR_UINT32_MAX);
+
+    nsINode* containerNode = textAccessible->GetNode();
+    PRInt32 childCount = textAccessible->GetChildCount();
+    PRInt32 childIdx = child->GetIndexInParent();
+
+    for (PRInt32 idx = childIdx + 1; idx < childCount; idx++) {
+      nsAccessible* nextChild = textAccessible->GetChildAt(idx);
+      
+      if (!nsCoreUtils::IsAncestorOf(aChangeNode, nextChild->GetNode(),
+                                     containerNode))
+        break;
+
+      nextChild->AppendTextTo(text, 0, PR_UINT32_MAX);
+    }
   }
 
   if (text.IsEmpty())

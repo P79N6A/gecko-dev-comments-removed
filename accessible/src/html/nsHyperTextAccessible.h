@@ -186,6 +186,16 @@ public:
                                       nsIDOMNode **aEndNode,
                                       PRInt32 *aEndOffset);
 
+  
+
+
+
+
+
+
+  PRInt32 GetChildOffset(nsAccessible* aChild,
+                         PRBool aInvalidateAfter = PR_FALSE);
+
 protected:
   
 
@@ -344,7 +354,15 @@ protected:
                                  nsIPersistentProperties *aAttributes);
 
 private:
+  
+
+
   nsAutoPtr<AccCollector> mLinks;
+
+  
+
+
+  nsTArray<PRUint32> mOffsets;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsHyperTextAccessible,
