@@ -178,6 +178,9 @@ public:
 
     static void      OnEnterExitPrivateBrowsing();
 
+    
+    static nsresult  SetDiskSmartSize();
+
     nsresult         Init();
     void             Shutdown();
 
@@ -257,6 +260,8 @@ private:
 #if defined(PR_LOGGING)
     void LogCacheStatistics();
 #endif
+
+    nsresult         SetDiskSmartSize_Locked(bool checkPref);
 
     
 
