@@ -269,7 +269,7 @@ CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
   
   
   nsCAutoString newUriSpec;
-  newUri->GetSpec(newUriSpec);
+  rv = newUri->GetSpec(newUriSpec);
   const PRUnichar *formatParams[] = { NS_ConvertUTF8toUTF16(newUriSpec).get() };
   if (NS_SUCCEEDED(rv)) {
     nsContentUtils::ReportToConsole(nsIScriptError::warningFlag,
