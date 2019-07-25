@@ -55,6 +55,8 @@ import android.graphics.Point;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.graphics.Region;
+import android.graphics.RegionIterator;
 import android.opengl.GLSurfaceView;
 import android.os.SystemClock;
 import android.util.DisplayMetrics;
@@ -70,6 +72,7 @@ import java.util.ArrayList;
 
 public class LayerRenderer implements GLSurfaceView.Renderer {
     private static final String LOGTAG = "GeckoLayerRenderer";
+    private static final String PROFTAG = "GeckoLayerRendererProf";
 
     
 
@@ -98,6 +101,12 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private int[] mFrameTimings;
     private int mCurrentFrame, mFrameTimingsSum, mDroppedFrames;
     private boolean mShowFrameRate;
+
+    
+    private int mFramesRendered;
+    private float mCompleteFramesRendered;
+    private boolean mProfileRender;
+    private long mProfileOutputTime;
 
     
     private IntBuffer mPixelBuffer;
@@ -147,7 +156,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     }
 
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
-        checkFrameRateMonitorEnabled();
+        checkMonitoringEnabled();
 
         gl.glHint(GL10.GL_PERSPECTIVE_CORRECTION_HINT, GL10.GL_FASTEST);
         gl.glDisable(GL10.GL_DITHER);
@@ -264,11 +273,50 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             
             if (pageRect.width() > screenSize.width)
                 mHorizScrollLayer.draw(pageContext);
+
+            
+            if ((rootLayer != null) &&
+                (mProfileRender || PanningPerfAPI.isRecordingCheckerboard())) {
+                
+                Rect viewport = RectUtils.round(pageContext.viewport);
+                Region validRegion = rootLayer.getValidRegion(pageContext);
+                validRegion.op(viewport, Region.Op.INTERSECT);
+
+                float checkerboard = 0.0f;
+                if (!(validRegion.isRect() && validRegion.getBounds().equals(viewport))) {
+                    int screenArea = viewport.width() * viewport.height();
+                    validRegion.op(viewport, Region.Op.REVERSE_DIFFERENCE);
+
+                    
+                    
+                    
+                    
+                    
+                    Rect r = new Rect();
+                    int checkerboardArea = 0;
+                    for (RegionIterator i = new RegionIterator(validRegion); i.next(r);) {
+                        checkerboardArea += r.width() * r.height();
+                    }
+
+                    checkerboard = checkerboardArea / (float)screenArea;
+                }
+
+                PanningPerfAPI.recordCheckerboard(checkerboard);
+
+                mCompleteFramesRendered += 1.0f - checkerboard;
+                mFramesRendered ++;
+
+                if (frameStartTime - mProfileOutputTime > 1000) {
+                    mProfileOutputTime = frameStartTime;
+                    printCheckerboardStats();
+                }
+            }
         }
 
         
         if (mShowFrameRate) {
             updateDroppedFrames(frameStartTime);
+
             try {
                 gl.glEnable(GL10.GL_BLEND);
                 gl.glBlendFunc(GL10.GL_SRC_ALPHA, GL10.GL_ONE_MINUS_SRC_ALPHA);
@@ -293,6 +341,12 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 pixelBuffer.notify();
             }
         }
+    }
+
+    private void printCheckerboardStats() {
+        Log.d(PROFTAG, "Frames rendered over last 1000ms: " + mCompleteFramesRendered + "/" + mFramesRendered);
+        mFramesRendered = 0;
+        mCompleteFramesRendered = 0;
     }
 
     
@@ -382,7 +436,6 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         mCurrentFrame = (mCurrentFrame + 1) % mFrameTimings.length;
 
         int averageTime = mFrameTimingsSum / mFrameTimings.length;
-
         mFrameRateLayer.beginTransaction();
         try {
             mFrameRateLayer.setText(averageTime + " ms/" + mDroppedFrames);
@@ -403,7 +456,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         }
     }
 
-    private void checkFrameRateMonitorEnabled() {
+    private void checkMonitoringEnabled() {
         
         new Thread(new Runnable() {
             @Override
@@ -411,6 +464,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 Context context = mView.getContext();
                 SharedPreferences preferences = context.getSharedPreferences("GeckoApp", 0);
                 mShowFrameRate = preferences.getBoolean("showFrameRate", false);
+                mProfileRender = Log.isLoggable(PROFTAG, Log.DEBUG);
             }
         }).start();
     }
