@@ -387,6 +387,8 @@ ClearAllFrames(JSCompartment *compartment)
         
         
         
+        
+        
 
         Recompiler::patchFrame(compartment, f, f->fp()->script());
     }

@@ -584,16 +584,49 @@ js_InternalThrow(VMFrame &f)
     StackFrame *fp = cx->fp();
     JSScript *script = fp->script();
 
-    if (!fp->jit()) {
+    if (cx->typeInferenceEnabled()) {
         
 
 
 
 
 
-        CompileStatus status = TryCompile(cx, fp);
-        if (status != Compile_Okay)
+
+        cx->compartment->jaegerCompartment()->setLastUnfinished(Jaeger_Unfinished);
+
+        analyze::AutoEnterAnalysis enter(cx);
+        analyze::ScriptAnalysis *analysis = script->analysis(cx);
+        if (analysis && !analysis->ranBytecode())
+            analysis->analyzeBytecode(cx);
+        if (!analysis || analysis->OOM()) {
+            js_ReportOutOfMemory(cx);
             return NULL;
+        }
+
+        cx->regs().pc = pc;
+        cx->regs().sp = fp->base() + analysis->getCode(pc).stackDepth;
+
+        
+
+
+
+
+        if (cx->isExceptionPending()) {
+            JS_ASSERT(js_GetOpcode(cx, script, pc) == JSOP_ENTERBLOCK);
+            JSObject *obj = script->getObject(GET_SLOTNO(pc));
+            Value *vp = cx->regs().sp + OBJ_BLOCK_COUNT(cx, obj);
+            SetValueRangeToUndefined(cx->regs().sp, vp);
+            cx->regs().sp = vp;
+            JS_ASSERT(js_GetOpcode(cx, script, pc + JSOP_ENTERBLOCK_LENGTH) == JSOP_EXCEPTION);
+            cx->regs().sp[0] = cx->getPendingException();
+            cx->clearPendingException();
+            cx->regs().sp++;
+            cx->regs().pc = pc + JSOP_ENTERBLOCK_LENGTH + JSOP_EXCEPTION_LENGTH;
+        }
+
+        *f.oldregs = f.regs;
+
+        return NULL;
     }
 
     return script->nativeCodeForPC(fp->isConstructing(), pc);
