@@ -639,6 +639,15 @@ let Utils = {
   
   
   
+  
+  
+  isValidXULTab: function Utils_isValidXULTab(xulTab) {
+    return !xulTab.closing && xulTab.parentNode;
+  },
+
+  
+  
+  
   isNumber: function Utils_isNumber(n) {
     return typeof n == 'number' && !isNaN(n);
   },

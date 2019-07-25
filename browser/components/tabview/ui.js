@@ -791,7 +791,7 @@ let UI = {
         if (gBrowser.tabs.length > 1) {
           
           for (let a = 0; a < gBrowser._numPinnedTabs; a++) {
-            if (!gBrowser.tabs[a].closing)
+            if (Utils.isValidXULTab(gBrowser.tabs[a]))
               return;
           }
 
