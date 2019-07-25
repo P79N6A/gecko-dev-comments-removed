@@ -212,7 +212,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
 
-    void MaybeSetEncodingFromExpat(const PRUnichar* aEncoding);
+
+    void SetEncodingFromExpat(const PRUnichar* aEncoding);
 
   private:
 

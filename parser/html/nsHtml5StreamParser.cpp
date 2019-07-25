@@ -406,15 +406,24 @@ nsHtml5StreamParser::SniffBOMlessUTF16BasicLatin(const PRUint8* aFromSegment,
 }
 
 void
-nsHtml5StreamParser::MaybeSetEncodingFromExpat(const PRUnichar* aEncoding)
+nsHtml5StreamParser::SetEncodingFromExpat(const PRUnichar* aEncoding)
 {
-  nsDependentString utf16(aEncoding);
-  nsCAutoString utf8;
-  CopyUTF16toUTF8(utf16, utf8);
-  if (PreferredForInternalEncodingDecl(utf8)) {
-    mCharset.Assign(utf8);
-    mCharsetSource = kCharsetFromMetaTag; 
+  if (aEncoding) {
+    nsDependentString utf16(aEncoding);
+    nsCAutoString utf8;
+    CopyUTF16toUTF8(utf16, utf8);
+    if (PreferredForInternalEncodingDecl(utf8)) {
+      mCharset.Assign(utf8);
+      mCharsetSource = kCharsetFromMetaTag; 
+      return;
+    }
+    
+    
+    
+    
   }
+  mCharset.AssignLiteral("UTF-8"); 
+  mCharsetSource = kCharsetFromMetaTag; 
 }
 
 
@@ -436,7 +445,7 @@ HandleXMLDeclaration(void* aUserData,
                      int aStandalone)
 {
   UserData* ud = static_cast<UserData*>(aUserData);
-  ud->mStreamParser->MaybeSetEncodingFromExpat(
+  ud->mStreamParser->SetEncodingFromExpat(
       reinterpret_cast<const PRUnichar*>(aEncoding));
   XML_StopParser(ud->mExpat, false);
 }
