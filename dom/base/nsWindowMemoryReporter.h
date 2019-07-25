@@ -35,8 +35,8 @@
 
 
 
-#ifndef nsDOMMemoryReporter_h__
-#define nsDOMMemoryReporter_h__
+#ifndef nsWindowMemoryReporter_h__
+#define nsWindowMemoryReporter_h__
 
 #include "nsIMemoryReporter.h"
 
@@ -61,7 +61,7 @@ public:
     size_t mLayoutTextRuns;
 };
 
-class nsDOMMemoryMultiReporter: public nsIMemoryMultiReporter
+class nsWindowMemoryReporter: public nsIMemoryMultiReporter
 {
 public:
   NS_DECL_ISUPPORTS
@@ -71,7 +71,7 @@ public:
 
 private:
   
-  nsDOMMemoryMultiReporter();
+  nsWindowMemoryReporter();
 };
 
 #endif 
