@@ -92,6 +92,11 @@ namespace nanojit
     #endif
         , _config(config)
     {
+        
+        
+        
+        for (int i = 0; i < LIR_sentinel+1; i++)
+            nHints[i] = 0;
         nInit();
         (void)logc;
         verbose_only( _logc = logc; )
@@ -101,17 +106,6 @@ namespace nanojit
 
         reset();
     }
-
-    
-    
-    
-    RegisterMask Assembler::nHints[LIR_sentinel+1] = {
-#define OP___(op, number, repKind, retType, isCse) \
-        0,
-#include "LIRopcode.tbl"
-#undef OP___
-        0
-    };
 
 #ifdef _DEBUG
 

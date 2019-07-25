@@ -498,7 +498,7 @@ namespace nanojit
             void        nPatchBranch(NIns* branch, NIns* location);
             void        nFragExit(LIns* guard);
 
-            static RegisterMask nHints[LIR_sentinel+1];
+            RegisterMask nHints[LIR_sentinel+1];
             RegisterMask nHint(LIns* ins);
 
             
