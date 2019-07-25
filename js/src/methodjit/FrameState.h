@@ -502,7 +502,7 @@ class FrameState
 
 
 
-    void storeTo(FrameEntry *fe, Address address, bool popHint);
+    void storeTo(FrameEntry *fe, Address address, bool popHint = false);
 
     
 
