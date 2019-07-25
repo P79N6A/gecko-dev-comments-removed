@@ -261,9 +261,6 @@ ChangeFlag(PRUint32 aFlags, PRBool aOnOff, PRUint32 aFlag)
 static void ColorToString(nscolor aColor, nsAutoString &aString);
 
 
-static NS_DEFINE_CID(kFrameSelectionCID, NS_FRAMESELECTION_CID);
-
-
 struct RangePaintInfo {
   nsCOMPtr<nsIRange> mRange;
   nsDisplayListBuilder mBuilder;
@@ -1831,11 +1828,7 @@ PresShell::Init(nsIDocument* aDocument,
   
   SetPreferenceStyleRules(PR_FALSE);
 
-  result = CallCreateInstance(kFrameSelectionCID, &mSelection);
-  if (NS_FAILED(result)) {
-    mStyleSet = nsnull;
-    return result;
-  }
+  NS_ADDREF(mSelection = new nsFrameSelection());
 
   
   result = FrameManager()->Init(this, mStyleSet);
