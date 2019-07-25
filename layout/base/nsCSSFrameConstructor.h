@@ -161,10 +161,9 @@ private:
                                    PRBool aAllowLazyConstruction);
 
   
-  PRBool MaybeRecreateForFrameset(nsIContent* aContainer,
-                                  nsIFrame* aParentFrame,
-                                  PRUint32 aStartIndexInContainer,
-                                  PRUint32 aEndIndexInContainer);
+  PRBool MaybeRecreateForFrameset(nsIFrame* aParentFrame,
+                                  nsIContent* aStartChild,
+                                  nsIContent* aEndChild);
 
 public:
   
