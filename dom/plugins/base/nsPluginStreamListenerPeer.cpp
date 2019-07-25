@@ -658,7 +658,6 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
         mOwner->GetInstance(getter_AddRefs(pluginInstRefPtr));
         mPluginInstance = pluginInstRefPtr.get();
         if (mPluginInstance) {
-          mPluginInstance->Start();
           mOwner->CreateWidget();
           
           mOwner->SetWindow();
