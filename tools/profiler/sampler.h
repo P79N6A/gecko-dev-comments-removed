@@ -89,6 +89,7 @@
 
 #define SAMPLER_INIT()
 #define SAMPLER_DEINIT()
+#define SAMPLER_RESPONSIVENESS(time)
 #define SAMPLE_CHECKPOINT(name_space, info)
 #define SAMPLE_MARKER(info)
 
