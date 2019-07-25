@@ -69,6 +69,16 @@ public:
   static nsIScriptGlobalObject *GetDynamicScriptGlobal(JSContext *aContext);
 
   static nsIScriptContext *GetDynamicScriptContext(JSContext *aContext);
+
+  
+
+
+
+
+
+
+
+  static PRUint64 GetCurrentlyRunningCodeWindowID(JSContext *aContext);
 };
 
 

@@ -41,11 +41,13 @@
 
 
 
+
 #include "xpcprivate.h"
 #include "nsArrayEnumerator.h"
 #include "nsWrapperCache.h"
 #include "XPCWrapper.h"
 #include "AccessCheck.h"
+#include "nsJSUtils.h"
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsXPCWrappedJSClass, nsIXPCWrappedJSClass)
 
@@ -1212,11 +1214,14 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
                                     rv = location->GetFilename(getter_Copies(sourceName));
                                 }
 
-                                rv = scriptError->Init(newMessage.get(),
-                                                       NS_ConvertASCIItoUTF16(sourceName).get(),
-                                                       nsnull,
-                                                       lineNumber, 0, 0,
-                                                       "XPConnect JavaScript");
+                                nsCOMPtr<nsIScriptError2> scriptError2 =
+                                    do_QueryInterface(scriptError);
+                                rv = scriptError2->InitWithWindowID(newMessage.get(),
+                                                                    NS_ConvertASCIItoUTF16(sourceName).get(),
+                                                                    nsnull,
+                                                                    lineNumber, 0, 0,
+                                                                    "XPConnect JavaScript",
+                                                                    nsJSUtils::GetCurrentlyRunningCodeWindowID(cx));
                                 if(NS_FAILED(rv))
                                     scriptError = nsnull;
                             }

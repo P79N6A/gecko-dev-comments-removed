@@ -167,6 +167,9 @@ private:
 
   const nsCatalogData* mCatalogData; 
   nsString         mURISpec;
+
+  
+  PRUint64         mWindowID;
 };
 
 #endif
