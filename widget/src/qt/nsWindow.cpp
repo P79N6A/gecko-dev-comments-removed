@@ -143,6 +143,7 @@ static Atom sPluginIMEAtom = nsnull;
 #define GLdouble_defined 1
 #include "Layers.h"
 #include "LayerManagerOGL.h"
+#include "nsFastStartupQt.h"
 
 
 
@@ -1074,6 +1075,11 @@ nsWindow::DoPaint(QPainter* aPainter, const QStyleOptionGraphicsItem* aOption, Q
 
     nsEventStatus status;
     nsIntRect rect(r.x(), r.y(), r.width(), r.height());
+
+    nsFastStartup* startup = nsFastStartup::GetSingleton();
+    if (startup) {
+        startup->RemoveFakeLayout();
+    }
 
     if (GetLayerManager(nsnull)->GetBackendType() == LayerManager::LAYERS_OPENGL) {
         nsPaintEvent event(true, NS_PAINT, this);
@@ -2684,21 +2690,20 @@ nsWindow::createQWidget(MozQWidget *parent,
     
 
     if (mIsTopLevel) {
-#if defined MOZ_ENABLE_MEEGOTOUCH
-        MozMGraphicsView* newView = new MozMGraphicsView(parentWidget);
-#else
-        MozQGraphicsView* newView = new MozQGraphicsView(parentWidget);
-#endif
+        QGraphicsView* newView =
+            nsFastStartup::GetStartupGraphicsView(parentWidget, widget);
 
-        newView->SetTopLevel(widget, parentWidget);
-        newView->setWindowFlags(flags);
         if (mWindowType == eWindowType_dialog) {
             newView->setWindowModality(Qt::WindowModal);
         }
 
 #ifdef MOZ_PLATFORM_MAEMO
         if (GetShouldAccelerate()) {
-            newView->setViewport(new QGLWidget());
+            
+            QGLWidget *glWidget = qobject_cast<QGLWidget*>(newView->viewport());
+            if (!glWidget) {
+                newView->setViewport(new QGLWidget());
+            }
         }
 #endif
 
