@@ -5969,43 +5969,45 @@ EmitWhile(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn, ptrdiff_t top)
 
 
 
-
-
-
-
-
-
-
     StmtInfo stmtInfo;
     PushStatement(bce, &stmtInfo, STMT_WHILE_LOOP, top);
+
     ptrdiff_t noteIndex = NewSrcNote(cx, bce, SRC_WHILE);
     if (noteIndex < 0)
-        return JS_FALSE;
+        return false;
+
     ptrdiff_t jmp = EmitJump(cx, bce, JSOP_GOTO, 0);
     if (jmp < 0)
-        return JS_FALSE;
+        return false;
+
     ptrdiff_t noteIndex2 = NewSrcNote(cx, bce, SRC_LOOPHEAD);
     if (noteIndex2 < 0)
-        return JS_FALSE;
+        return false;
+
     top = EmitTraceOp(cx, bce, pn->pn_right);
     if (top < 0)
-        return JS_FALSE;
+        return false;
+
     if (!EmitTree(cx, bce, pn->pn_right))
-        return JS_FALSE;
+        return false;
+
     CHECK_AND_SET_JUMP_OFFSET_AT(cx, bce, jmp);
     if (!EmitTree(cx, bce, pn->pn_left))
-        return JS_FALSE;
+        return false;
+
     ptrdiff_t beq = EmitJump(cx, bce, JSOP_IFNE, top - bce->offset());
     if (beq < 0)
-        return JS_FALSE;
+        return false;
+
     
 
 
 
     if (!SetSrcNoteOffset(cx, bce, noteIndex2, 0, beq - top))
-        return JS_FALSE;
+        return false;
     if (!SetSrcNoteOffset(cx, bce, noteIndex, 0, beq - jmp))
-        return JS_FALSE;
+        return false;
+
     return PopStatementBCE(cx, bce);
 }
 
