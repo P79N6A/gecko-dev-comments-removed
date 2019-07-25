@@ -379,8 +379,10 @@ mjit::Compiler::generatePrologue()
     if (isConstructing)
         constructThis();
 
-    if (debugMode() || Probes::callTrackingActive(cx))
+    if (debugMode())
         INLINE_STUBCALL(stubs::ScriptDebugPrologue);
+    else if (Probes::callTrackingActive(cx))
+        INLINE_STUBCALL(stubs::ScriptProbeOnlyPrologue);
 
     return Compile_Okay;
 }
@@ -815,6 +817,9 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     JS_ASSERT(size_t(cursor - (uint8*)jit) == dataSize);
 
     *jitp = jit;
+
+    
+    cx->runtime->mjitDataSize += dataSize;
 
     return Compile_Okay;
 }

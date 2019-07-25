@@ -127,6 +127,11 @@ BEGIN_TEST(testFuncCallback_bug507012)
     interpreted = enters = leaves = depth = overlays = 0;
 #endif
 
+    
+    
+    
+    
+
     return true;
 }
 
@@ -140,7 +145,7 @@ JSContext *createContext()
 {
     JSContext *cx = JSAPITest::createContext();
     if (cx)
-        JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_JIT);
+        JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_JIT | JSOPTION_METHODJIT | JSOPTION_PCCOUNT);
     return cx;
 }
 
