@@ -85,8 +85,7 @@ CryptoWrapper.prototype = {
     let self = yield;
 
     
-    if (!this.cleartext) {
-      this.ciphertext = this.cleartext;
+    if (!this.payload) {
       self.done();
       return;
     }
@@ -111,8 +110,7 @@ CryptoWrapper.prototype = {
     let self = yield;
 
     
-    if (!this.ciphertext) {
-      this.cleartext = this.ciphertext;
+    if (!this.payload) {
       self.done();
       return;
     }

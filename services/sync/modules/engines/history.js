@@ -443,7 +443,7 @@ HistoryStore.prototype = {
       record.visits = this._getVisits(record.histUri);
       record.encryption = cryptoMetaURL;
     } else {
-      record.cleartext = null; 
+      record.payload = null; 
     }
     this.cache.put(guid, record);
     return record;
