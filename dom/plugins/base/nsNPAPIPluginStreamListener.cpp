@@ -220,7 +220,12 @@ nsresult
 nsNPAPIPluginStreamListener::CleanUpStream(NPReason reason)
 {
   nsresult rv = NS_ERROR_FAILURE;
+
   
+  
+  
+  nsRefPtr<nsNPAPIPluginStreamListener> kungFuDeathGrip(this);
+
   if (mStreamCleanedUp)
     return NS_OK;
   
@@ -771,9 +776,7 @@ nsNPAPIPluginStreamListener::OnStopBinding(nsIPluginStreamInfo* pluginInfo,
   if (NS_FAILED(status)) {
     
     
-    nsCOMPtr<nsINPAPIPluginStreamInfo> pluginInfoNPAPI =
-    do_QueryInterface(mStreamInfo);
-    
+    nsCOMPtr<nsINPAPIPluginStreamInfo> pluginInfoNPAPI = do_QueryInterface(mStreamInfo);
     if (pluginInfoNPAPI) {
       pluginInfoNPAPI->CancelRequests(status);
     }
@@ -782,19 +785,25 @@ nsNPAPIPluginStreamListener::OnStopBinding(nsIPluginStreamInfo* pluginInfo,
   if (!mInst || !mInst->CanFireNotifications())
     return NS_ERROR_FAILURE;
 
-  
-  
-  nsresult rv = NS_OK;
   NPReason reason = NS_FAILED(status) ? NPRES_NETWORK_ERR : NPRES_DONE;
   if (mRedirectDenied) {
     reason = NPRES_USER_BREAK;
   }
+
+  
+  
+  
+  
+  
+  
+  
+  
   if (mStreamType != NP_SEEK ||
       (NP_SEEK == mStreamType && NS_BINDING_ABORTED == status)) {
-    rv = CleanUpStream(reason);
+    return CleanUpStream(reason);
   }
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult

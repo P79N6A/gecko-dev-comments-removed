@@ -1095,12 +1095,20 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
     return NPERR_INVALID_PARAM;
   }
 
-  
-  
-  nsRefPtr<nsNPAPIPluginStreamListener> listener = streamWrapper->GetStreamListener();
+  nsNPAPIPluginStreamListener *listener = streamWrapper->GetStreamListener();
   if (listener) {
+    
+    
+    
+    
+    
+    
     listener->OnStopBinding(nsnull, NS_BINDING_ABORTED);
   } else {
+    
+    
+    
+    
     
     
     NS_ASSERTION((char*)streamWrapper <= (char*)pstream && 
@@ -1109,6 +1117,9 @@ _destroystream(NPP npp, NPStream *pstream, NPError reason)
                  "pstream is not a subobject of wrapper");
     delete streamWrapper;
   }
+
+  
+  
 
   return NPERR_NO_ERROR;
 }
