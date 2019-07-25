@@ -2002,6 +2002,24 @@ public:
   static void SplitMimeType(const nsAString& aValue, nsString& aType,
                             nsString& aParams);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static nsresult IsOnPrefWhitelist(nsPIDOMWindow* aWindow,
+                                    const char* aPrefURL, bool *aAllowed);
+  
 private:
   static bool InitializeEventTable();
 
