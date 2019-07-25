@@ -167,8 +167,6 @@ var Extension = {
   
   
   
-  
-
   addUnloadMethod: function addUnloadMethod(obj, unloader) {
     function unloadWrapper() {
       window.removeEventListener("unload", unloadWrapper, true);
@@ -186,6 +184,8 @@ var Extension = {
 function EventListenerMixIns(mixInto) {
   var mixIns = {};
 
+  
+  
   this.add = function add(options) {
     if (mixIns) {
       if (options.name in mixIns)
@@ -195,6 +195,8 @@ function EventListenerMixIns(mixInto) {
     }
   };
 
+  
+  
   this.bubble = function bubble(name, target, event) {
     if (mixIns)
       mixIns[name].trigger(target, event);
@@ -256,6 +258,8 @@ function EventListenerMixIn(options) {
     }
   };
 
+  
+  
   this.trigger = function trigger(target, event) {
     onEvent(event, target);
   };
