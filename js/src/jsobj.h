@@ -1519,21 +1519,6 @@ struct JSObject_Slots16 : JSObject { js::Value fslots[16]; };
 
 #define JSSLOT_FREE(clasp)  JSCLASS_RESERVED_SLOTS(clasp)
 
-#ifdef JS_THREADSAFE
-
-
-
-
-
-
-#define THREAD_IS_RUNNING_GC(rt, thread)                                      \
-    ((rt)->gcRunning && (rt)->gcThread == (thread))
-
-#define CX_THREAD_IS_RUNNING_GC(cx)                                           \
-    THREAD_IS_RUNNING_GC((cx)->runtime, (cx)->thread)
-
-#endif 
-
 class JSValueArray {
   public:
     jsval *array;

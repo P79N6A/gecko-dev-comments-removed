@@ -331,9 +331,6 @@ struct ClosureInfo
   JSObject* jsfnObj;     
   void* errResult;       
   ffi_closure* closure;  
-#ifdef DEBUG
-  intptr_t cxThread;     
-#endif
 
   
   

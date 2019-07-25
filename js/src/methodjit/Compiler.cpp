@@ -3933,19 +3933,7 @@ mjit::Compiler::interruptCheckHelper()
         
         jump = masm.jump();
     } else {
-        
-
-
-
-
-
-
-#ifdef JS_THREADSAFE
-        void *interrupt = (void*) &cx->runtime->interruptCounter;
-#else
-        void *interrupt = (void*) &JS_THREAD_DATA(cx)->interruptFlags;
-#endif
-
+        void *interrupt = (void*) &cx->runtime->interrupt;
 #if defined(JS_CPU_X86) || defined(JS_CPU_ARM) || defined(JS_CPU_MIPS)
         jump = masm.branch32(Assembler::NotEqual, AbsoluteAddress(interrupt), Imm32(0));
 #else
