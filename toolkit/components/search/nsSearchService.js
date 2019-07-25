@@ -1116,17 +1116,6 @@ Engine.prototype = {
   _iconUpdateURL: null,
   
   _serializeTimer: null,
-  
-  __used: null,
-  get _used() {
-    if (!this.__used)
-      this.__used = !!engineMetadataService.getAttr(this, "used");
-    return this.__used;
-  },
-  set _used(aValue) {
-    this.__used = aValue
-    engineMetadataService.setAttr(this, "used", aValue);
-  },
 
   
 
@@ -2414,12 +2403,6 @@ Engine.prototype = {
     if (!aResponseType)
       aResponseType = URLTYPE_SEARCH_HTML;
 
-    
-    if (this._isInAppDir && aResponseType == URLTYPE_SEARCH_HTML && !this._used) {
-      this._used = true;
-      engineUpdateService.update(this);
-    }
-
     var url = this._getURLOfType(aResponseType);
 
     if (!url)
@@ -2825,8 +2808,6 @@ SearchService.prototype = {
       try {
         addedEngine = new Engine(file, dataType, !isWritable);
         addedEngine._initFromFile();
-        if (addedEngine._used)
-          addedEngine._used = false;
       } catch (ex) {
         LOG("_loadEnginesFromDir: Failed to load " + file.path + "!\n" + ex);
         continue;
