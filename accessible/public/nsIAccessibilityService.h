@@ -52,33 +52,6 @@ public:
 
 
 
-  virtual void ContentRangeInserted(nsIPresShell* aPresShell,
-                                    nsIContent* aContainer,
-                                    nsIContent* aStartChild,
-                                    nsIContent* aEndChild) = 0;
-
-  
-
-
-  virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
-                              nsIContent* aChild) = 0;
-
-  
-
-
-
-  virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget) = 0;
-
-  
-
-
-
-  virtual void PresShellDestroyed(nsIPresShell *aPresShell) = 0;
-
-  
-
-
-
 
 
   virtual void FireAccessibleEvent(PRUint32 aEvent, Accessible* aTarget) = 0;

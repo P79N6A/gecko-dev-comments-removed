@@ -122,16 +122,25 @@ public:
   already_AddRefed<Accessible>
     CreateOuterDocAccessible(nsIContent* aContent, nsIPresShell* aPresShell);
 
+  
+
+
+
   virtual Accessible* AddNativeRootAccessible(void* aAtkAccessible);
   virtual void RemoveNativeRootAccessible(Accessible* aRootAccessible);
 
-  virtual void ContentRangeInserted(nsIPresShell* aPresShell,
-                                    nsIContent* aContainer,
-                                    nsIContent* aStartChild,
-                                    nsIContent* aEndChild);
+  
 
-  virtual void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
-                              nsIContent* aChild);
+
+
+  void ContentRangeInserted(nsIPresShell* aPresShell, nsIContent* aContainer,
+                            nsIContent* aStartChild, nsIContent* aEndChild);
+
+  
+
+
+  void ContentRemoved(nsIPresShell* aPresShell, nsIContent* aContainer,
+                      nsIContent* aChild);
 
   virtual void UpdateText(nsIPresShell* aPresShell, nsIContent* aContent);
 
@@ -153,9 +162,17 @@ public:
 
   void UpdateImageMap(nsImageFrame* aImageFrame);
 
-  virtual void NotifyOfAnchorJumpTo(nsIContent *aTarget);
+  
 
-  virtual void PresShellDestroyed(nsIPresShell* aPresShell);
+
+
+  void NotifyOfAnchorJumpTo(nsIContent *aTarget);
+
+  
+
+
+
+  void PresShellDestroyed(nsIPresShell* aPresShell);
 
   
 
