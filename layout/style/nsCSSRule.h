@@ -68,7 +68,7 @@ public:
 
   
   
-  NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 
 protected:
   nsCSSStyleSheet*    mSheet;

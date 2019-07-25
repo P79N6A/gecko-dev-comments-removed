@@ -49,9 +49,7 @@
 #include "nsICSSRule.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
-#include "nsCSSProps.h"
 #include "nsCSSValue.h"
-#include "nsIAtom.h"
 #include "nsCSSPseudoElements.h"
 #include "nsCSSPseudoClasses.h"
 
@@ -291,8 +289,9 @@ private:
 
 
 #define NS_ICSS_STYLE_RULE_IID \
-{ 0x1aae9e9d, 0x21c3, 0x4993, \
-  { 0x90, 0xb1, 0x66, 0xaa, 0x68, 0x09, 0xf5, 0x97 } }
+{ 0xc6065b5e, 0x4870, 0x4dc5, \
+  { 0x9b, 0xe3, 0x74, 0x7b, 0x6e, 0x31, 0x7b, 0x25 } }
+
 
 class nsICSSStyleRule : public nsICSSRule {
 public:

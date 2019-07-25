@@ -106,9 +106,9 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  NS_IMETHOD List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   ElementTransitionsStyleRule(ElementTransitions *aOwner,
@@ -142,9 +142,9 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD MapRuleInfoInto(nsRuleData* aRuleData);
+  virtual void MapRuleInfoInto(nsRuleData* aRuleData);
 #ifdef DEBUG
-  NS_IMETHOD List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
 
   void CoverValue(nsCSSProperty aProperty, nsStyleAnimation::Value &aStartValue)
@@ -217,18 +217,22 @@ ElementTransitionsPropertyDtor(void           *aObject,
 
 NS_IMPL_ISUPPORTS1(ElementTransitionsStyleRule, nsIStyleRule)
 
-NS_IMETHODIMP
+ void
 ElementTransitionsStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 {
   nsStyleContext *contextParent = aRuleData->mStyleContext->GetParent();
   if (contextParent && contextParent->HasPseudoElementData()) {
     
     
-    return NS_OK;
+    return;
   }
 
   ElementTransitions *et = ElementData();
-  NS_ENSURE_TRUE(et, NS_OK); 
+  if (NS_UNLIKELY(!et)) { 
+     NS_WARNING("ElementData returned null");
+     return;
+  }
+
   for (PRUint32 i = 0, i_end = et->mPropertyTransitions.Length();
        i < i_end; ++i)
   {
@@ -267,16 +271,13 @@ ElementTransitionsStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
       NS_ABORT_IF_FALSE(ok, "could not store computed value");
     }
   }
-
-  return NS_OK;
 }
 
 #ifdef DEBUG
-NS_IMETHODIMP
+ void
 ElementTransitionsStyleRule::List(FILE* out, PRInt32 aIndent) const
 {
   
-  return NS_OK;
 }
 #endif
 
@@ -310,7 +311,7 @@ ElementTransitions::EnsureStyleRuleFor(TimeStamp aRefreshTime)
 
 NS_IMPL_ISUPPORTS1(CoverTransitionStartStyleRule, nsIStyleRule)
 
-NS_IMETHODIMP
+ void
 CoverTransitionStartStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
 {
   for (PRUint32 i = 0, i_end = mCoveredValues.Length(); i < i_end; ++i) {
@@ -328,16 +329,13 @@ CoverTransitionStartStyleRule::MapRuleInfoInto(nsRuleData* aRuleData)
       NS_ABORT_IF_FALSE(ok, "could not store computed value");
     }
   }
-
-  return NS_OK;
 }
 
 #ifdef DEBUG
-NS_IMETHODIMP
+ void
 CoverTransitionStartStyleRule::List(FILE* out, PRInt32 aIndent) const
 {
   
-  return NS_OK;
 }
 #endif
 

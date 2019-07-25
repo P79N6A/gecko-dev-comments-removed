@@ -72,7 +72,7 @@ public:
 
 
 
-    nsresult MapRuleInfoInto(nsRuleData *aRuleData) const;
+    void MapRuleInfoInto(nsRuleData *aRuleData) const;
 
     
 
