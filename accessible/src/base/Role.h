@@ -44,10 +44,13 @@
 
 
 
+
+
 namespace mozilla {
 namespace a11y {
 namespace roles {
-  enum Role {
+
+enum Role {
   
 
 
@@ -812,15 +815,12 @@ namespace roles {
 
 
   DEFINITION = 128,
+};
 
-  
-
-
-
-  LAST_ENTRY = 129
-  };
 } 
+
 typedef enum mozilla::a11y::roles::Role role;
+
 } 
 } 
 
