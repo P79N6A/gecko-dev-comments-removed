@@ -1536,22 +1536,30 @@ nsresult
 nsGenericElement::GetAttribute(const nsAString& aName,
                                nsAString& aReturn)
 {
-  const nsAttrName* name = InternalGetExistingAttrNameFromQName(aName);
-
-  if (!name) {
-    if (mNodeInfo->NamespaceID() == kNameSpaceID_XUL) {
+  
+  if (IsXUL()) {
+    const nsAttrValue* val =
+      nsXULElement::FromContent(this)->GetAttrValue(aName);
+    if (val) {
+      val->ToString(aReturn);
+    }
+    else {
       
       
       aReturn.Truncate();
     }
-    else {
-      SetDOMStringToNull(aReturn);
-    }
-
     return NS_OK;
   }
-
-  GetAttr(name->NamespaceID(), name->LocalName(), aReturn);
+  
+  const nsAttrValue* val =
+    mAttrsAndChildren.GetAttr(aName,
+                              IsHTML() && IsInHTMLDocument() ?
+                                eIgnoreCase : eCaseMatters);
+  if (val) {
+    val->ToString(aReturn);
+  } else {
+    SetDOMStringToNull(aReturn);
+  }
 
   return NS_OK;
 }
