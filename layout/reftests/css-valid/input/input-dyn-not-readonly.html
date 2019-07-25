@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    input { background-color: red; }
+    input:valid { background-color: green; }
+  </style>
+  <body onload="document.getElementById('i').removeAttribute('readonly'); document.documentElement.className='';">
+    <input id='i' readonly>
+  </body>
+</html>

@@ -311,7 +311,7 @@ NS_INTERFACE_TABLE_HEAD_CYCLE_COLLECTION_INHERITED(nsHTMLInputElement)
 NS_HTML_CONTENT_INTERFACE_TABLE_TAIL_CLASSINFO(HTMLInputElement)
 
 
-NS_IMPL_NSCONSTRAINTVALIDATION(nsHTMLInputElement)
+NS_IMPL_NSCONSTRAINTVALIDATION_EXCEPT_SETCUSTOMVALIDITY(nsHTMLInputElement)
 
 
 
@@ -387,7 +387,7 @@ nsHTMLInputElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
          (aName == nsGkAtoms::type && !mForm)) &&
         mType == NS_FORM_INPUT_RADIO &&
         (mForm || !(GET_BOOLBIT(mBitField, BF_PARSER_CREATING)))) {
-      WillRemoveFromRadioGroup();
+      WillRemoveFromRadioGroup(aNotify);
     } else if (aNotify && aName == nsGkAtoms::src &&
                mType == NS_FORM_INPUT_IMAGE) {
       if (aValue) {
@@ -410,6 +410,9 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                                  const nsAString* aValue,
                                  PRBool aNotify)
 {
+  
+  PRInt32 states = 0;
+
   if (aNameSpaceID == kNameSpaceID_None) {
     
     
@@ -449,13 +452,6 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     }
 
     if (aName == nsGkAtoms::type) {
-      
-      
-      nsIDocument* document = GetCurrentDoc();
-      MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, aNotify);
-
-      UpdateEditableState();
-
       if (!aValue) {
         
         
@@ -492,41 +488,53 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
         }
       }
 
-      if (aNotify && document) {
-        
-        
-        
-        
-        
-        
-        
-        document->ContentStatesChanged(this, nsnull,
-                                       NS_EVENT_STATE_CHECKED |
-                                       NS_EVENT_STATE_DEFAULT |
-                                       NS_EVENT_STATE_BROKEN |
-                                       NS_EVENT_STATE_USERDISABLED |
-                                       NS_EVENT_STATE_SUPPRESSED |
-                                       NS_EVENT_STATE_LOADING |
-                                       NS_EVENT_STATE_INDETERMINATE |
-                                       NS_EVENT_STATE_MOZ_READONLY |
-                                       NS_EVENT_STATE_MOZ_READWRITE |
-                                       NS_EVENT_STATE_REQUIRED |
-                                       NS_EVENT_STATE_OPTIONAL);
-      }
+      
+      
+      
+      
+      
+      
+      states |= NS_EVENT_STATE_CHECKED |
+                NS_EVENT_STATE_DEFAULT |
+                NS_EVENT_STATE_BROKEN |
+                NS_EVENT_STATE_USERDISABLED |
+                NS_EVENT_STATE_SUPPRESSED |
+                NS_EVENT_STATE_LOADING |
+                NS_EVENT_STATE_MOZ_READONLY |
+                NS_EVENT_STATE_MOZ_READWRITE |
+                NS_EVENT_STATE_REQUIRED |
+                NS_EVENT_STATE_OPTIONAL |
+                NS_EVENT_STATE_VALID |
+                NS_EVENT_STATE_INVALID |
+                NS_EVENT_STATE_INDETERMINATE;
     }
 
-    
-    
-    if (aNotify && aName == nsGkAtoms::readonly &&
-        IsSingleLineTextControl(PR_FALSE)) {
-      UpdateEditableState();
+    if (aName == nsGkAtoms::required || aName == nsGkAtoms::disabled ||
+        aName == nsGkAtoms::readonly) {
+      UpdateValueMissingValidityState();
+      states |= NS_EVENT_STATE_REQUIRED | NS_EVENT_STATE_OPTIONAL |
+                NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
+    } else if (aName == nsGkAtoms::maxlength) {
+      UpdateTooLongValidityState();
+      states |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
+    } else if (aName == nsGkAtoms::pattern) {
+      UpdatePatternMismatchValidityState();
+      states |= NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID;
+    }
 
-      nsIDocument* document = GetCurrentDoc();
-      if (document) {
-        mozAutoDocUpdate upd(document, UPDATE_CONTENT_STATE, PR_TRUE);
-        document->ContentStatesChanged(this, nsnull,
-                                       NS_EVENT_STATE_MOZ_READONLY |
-                                       NS_EVENT_STATE_MOZ_READWRITE);
+    if (aNotify) {
+      nsIDocument* doc = GetCurrentDoc();
+      MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+
+      if (aName == nsGkAtoms::type) {
+        UpdateEditableState();
+      } else if (IsSingleLineTextControl(PR_FALSE) && aName == nsGkAtoms::readonly) {
+        UpdateEditableState();
+        states |= NS_EVENT_STATE_MOZ_READONLY | NS_EVENT_STATE_MOZ_READWRITE;
+      }
+
+      if (doc && states) {
+        doc->ContentStatesChanged(this, nsnull, states);
       }
     }
   }
@@ -892,8 +900,9 @@ nsHTMLInputElement::SetFileNames(const nsTArray<nsString>& aFileNames)
   }
 
   UpdateFileList();
-  
+
   SetValueChanged(PR_TRUE);
+  UpdateAllValidityStates(PR_TRUE);
 }
 
 void
@@ -1086,7 +1095,6 @@ nsHTMLInputElement::DoSetChecked(PRBool aChecked, PRBool aNotify,
     if (aChecked) {
       rv = RadioSetChecked(aNotify);
     } else {
-      rv = SetCheckedInternal(PR_FALSE, aNotify);
       nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
       if (container) {
         nsAutoString name;
@@ -1094,9 +1102,13 @@ nsHTMLInputElement::DoSetChecked(PRBool aChecked, PRBool aNotify,
           container->SetCurrentRadioButton(name, nsnull);
         }
       }
+      
+      
+      
+      SetCheckedInternal(PR_FALSE, aNotify);
     }
   } else {
-    rv = SetCheckedInternal(aChecked, aNotify);
+    SetCheckedInternal(aChecked, aNotify);
   }
 
   return rv;
@@ -1118,25 +1130,24 @@ nsHTMLInputElement::RadioSetChecked(PRBool aNotify)
   if (currentlySelected) {
     
     
-    rv = static_cast<nsHTMLInputElement*>
-                    (static_cast<nsIDOMHTMLInputElement*>(currentlySelected))->SetCheckedInternal(PR_FALSE, PR_TRUE);
+    static_cast<nsHTMLInputElement*>
+               (static_cast<nsIDOMHTMLInputElement*>(currentlySelected))->SetCheckedInternal(PR_FALSE, PR_TRUE);
+  }
+
+  
+  
+  
+  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
+  nsAutoString name;
+  if (container && GetNameIfExists(name)) {
+    rv = container->SetCurrentRadioButton(name, this);
   }
 
   
   
   
   if (NS_SUCCEEDED(rv)) {
-    rv = SetCheckedInternal(PR_TRUE, aNotify);
-  }
-
-  
-  
-  
-  NS_ENSURE_SUCCESS(rv, rv);
-  nsCOMPtr<nsIRadioGroupContainer> container = GetRadioGroupContainer();
-  nsAutoString name;
-  if (container && GetNameIfExists(name)) {
-    rv = container->SetCurrentRadioButton(name, this);
+    SetCheckedInternal(PR_TRUE, aNotify);
   }
 
   return rv;
@@ -1211,7 +1222,7 @@ nsHTMLInputElement::MaybeSubmitForm(nsPresContext* aPresContext)
   return NS_OK;
 }
 
-nsresult
+void
 nsHTMLInputElement::SetCheckedInternal(PRBool aChecked, PRBool aNotify)
 {
   
@@ -1239,7 +1250,16 @@ nsHTMLInputElement::SetCheckedInternal(PRBool aChecked, PRBool aNotify)
     }
   }
 
-  return NS_OK;
+  if (mType == NS_FORM_INPUT_CHECKBOX) {
+    UpdateAllValidityStates(aNotify);
+  }
+
+  if (mType == NS_FORM_INPUT_RADIO) {
+    
+    nsCOMPtr<nsIRadioVisitor> visitor =
+      NS_GetRadioUpdateValueMissingVisitor(aNotify);
+    VisitGroup(visitor, aNotify);
+  }
 }
 
 
@@ -2022,6 +2042,10 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     AddedToRadioGroup();
   }
 
+  
+  
+  UpdateValueMissingValidityState();
+
   return rv;
 }
 
@@ -2034,10 +2058,14 @@ nsHTMLInputElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   
   
   if (!mForm && mType == NS_FORM_INPUT_RADIO) {
-    WillRemoveFromRadioGroup();
+    WillRemoveFromRadioGroup(PR_FALSE);
   }
 
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
+
+  
+  
+  UpdateValueMissingValidityState();
 }
 
 void
@@ -2068,6 +2096,9 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
     
     SetValueInternal(value, PR_FALSE, PR_FALSE);
   }
+
+  
+  UpdateAllValidityStates(PR_FALSE);
 }
 
 void
@@ -2760,6 +2791,10 @@ nsHTMLInputElement::IntrinsicState() const
     state |= NS_EVENT_STATE_OPTIONAL;
   }
 
+  if (IsCandidateForConstraintValidation(this)) {
+    state |= IsValid() ? NS_EVENT_STATE_VALID : NS_EVENT_STATE_INVALID;
+  }
+
   return state;
 }
 
@@ -2875,7 +2910,7 @@ nsHTMLInputElement::AddedToRadioGroup(PRBool aNotify)
 }
 
 void
-nsHTMLInputElement::WillRemoveFromRadioGroup()
+nsHTMLInputElement::WillRemoveFromRadioGroup(PRBool aNotify)
 {
   
   
@@ -2904,6 +2939,12 @@ nsHTMLInputElement::WillRemoveFromRadioGroup()
     if (container) {
       container->SetCurrentRadioButton(name, nsnull);
     }
+
+    
+    
+    nsCOMPtr<nsIRadioVisitor> visitor =
+      NS_GetRadioUpdateValueMissingVisitor(aNotify);
+    VisitGroup(visitor, PR_FALSE);
   }
   
   
@@ -3138,6 +3179,20 @@ nsHTMLInputElement::DoesPatternApply() const
 
 
 
+NS_IMETHODIMP
+nsHTMLInputElement::SetCustomValidity(const nsAString& aError)
+{
+  nsresult rv = nsConstraintValidation::SetCustomValidity(aError);
+
+  nsIDocument* doc = GetCurrentDoc();
+  if (doc) {
+    doc->ContentStatesChanged(this, nsnull, NS_EVENT_STATE_INVALID |
+                                            NS_EVENT_STATE_VALID);
+  }
+
+  return rv;
+}
+
 PRBool
 nsHTMLInputElement::IsTooLong()
 {
@@ -3151,7 +3206,7 @@ nsHTMLInputElement::IsTooLong()
   GetMaxLength(&maxLength);
   GetTextLength(&textLength);
 
-  return (maxLength >= 0) && (textLength > maxLength);
+  return maxLength >= 0 && textLength > maxLength;
 }
 
 PRBool
@@ -3168,52 +3223,49 @@ nsHTMLInputElement::IsValueMissing()
     }
 
     nsAutoString value;
-    nsresult rv = GetValue(value);
-    NS_ENSURE_SUCCESS(rv, PR_FALSE);
+    NS_ENSURE_SUCCESS(GetValue(value), PR_FALSE);
 
     return value.IsEmpty();
   }
 
-  if (mType == NS_FORM_INPUT_CHECKBOX) {
-    return !GetChecked();
+  switch (mType)
+  {
+    case NS_FORM_INPUT_CHECKBOX:
+      return !GetChecked();
+    case NS_FORM_INPUT_RADIO:
+      {
+        nsCOMPtr<nsIDOMHTMLInputElement> selected = GetSelectedRadioButton();
+        return !selected;
+      }
+    case NS_FORM_INPUT_FILE:
+      {
+        nsCOMArray<nsIFile> files;
+        GetFileArray(files);
+        return !files.Count();
+      }
+    default:
+      return PR_FALSE;
   }
-
-  if (mType == NS_FORM_INPUT_RADIO) {
-    nsCOMPtr<nsIDOMHTMLInputElement> selected = GetSelectedRadioButton();
-    return !selected;
-  }
-
-  if (mType == NS_FORM_INPUT_FILE) {
-    nsCOMArray<nsIFile> files;
-    GetFileArray(files);
-    return !files.Count();
-  }
-
-  return PR_FALSE;
 }
 
 PRBool
 nsHTMLInputElement::HasTypeMismatch()
 {
+  if (mType != NS_FORM_INPUT_EMAIL && mType != NS_FORM_INPUT_URL) {
+    return PR_FALSE;
+  }
+
+  nsAutoString value;
+  NS_ENSURE_SUCCESS(GetValue(value), PR_FALSE);
+
+  if (value.IsEmpty()) {
+    return PR_FALSE;
+  }
+
   if (mType == NS_FORM_INPUT_EMAIL) {
-    nsAutoString value;
-    NS_ENSURE_SUCCESS(GetValue(value), PR_FALSE);
-
-    if (value.IsEmpty()) {
-      return PR_FALSE;
-    }
-
-    return HasAttr(kNameSpaceID_None, nsGkAtoms::multiple) ?
-           !IsValidEmailAddressList(value) :
-           !IsValidEmailAddress(value);
+    return HasAttr(kNameSpaceID_None, nsGkAtoms::multiple)
+             ? !IsValidEmailAddressList(value) : !IsValidEmailAddress(value);
   } else if (mType == NS_FORM_INPUT_URL) {
-    nsAutoString value;
-    NS_ENSURE_SUCCESS(GetValue(value), PR_FALSE);
-
-    if (value.IsEmpty()) {
-      return PR_FALSE;
-    }
-
     
 
 
@@ -3239,8 +3291,8 @@ PRBool
 nsHTMLInputElement::HasPatternMismatch()
 {
   nsAutoString pattern;
-  if (!DoesPatternApply() || !GetAttr(kNameSpaceID_None, nsGkAtoms::pattern,
-                                      pattern)) {
+  if (!DoesPatternApply() ||
+      !GetAttr(kNameSpaceID_None, nsGkAtoms::pattern, pattern)) {
     return PR_FALSE;
   }
 
@@ -3259,8 +3311,49 @@ nsHTMLInputElement::HasPatternMismatch()
   return !IsPatternMatching(value, pattern, doc);
 }
 
+void
+nsHTMLInputElement::UpdateTooLongValidityState()
+{
+  SetValidityState(VALIDITY_STATE_TOO_LONG, IsTooLong());
+}
+
+void
+nsHTMLInputElement::UpdateValueMissingValidityState()
+{
+  SetValidityState(VALIDITY_STATE_VALUE_MISSING, IsValueMissing());
+}
+
+void
+nsHTMLInputElement::UpdateTypeMismatchValidityState()
+{
+    SetValidityState(VALIDITY_STATE_TYPE_MISMATCH, HasTypeMismatch());
+}
+
+void
+nsHTMLInputElement::UpdatePatternMismatchValidityState()
+{
+  SetValidityState(VALIDITY_STATE_PATTERN_MISMATCH, HasPatternMismatch());
+}
+
+void
+nsHTMLInputElement::UpdateAllValidityStates(PRBool aNotify)
+{
+  UpdateTooLongValidityState();
+  UpdateValueMissingValidityState();
+  UpdateTypeMismatchValidityState();
+  UpdatePatternMismatchValidityState();
+
+  if (aNotify) {
+    nsIDocument* doc = GetCurrentDoc();
+    if (doc) {
+      doc->ContentStatesChanged(this, nsnull,
+                                NS_EVENT_STATE_VALID | NS_EVENT_STATE_INVALID);
+    }
+  }
+}
+
 PRBool
-nsHTMLInputElement::IsBarredFromConstraintValidation()
+nsHTMLInputElement::IsBarredFromConstraintValidation() const
 {
   return mType == NS_FORM_INPUT_HIDDEN ||
          mType == NS_FORM_INPUT_BUTTON ||
@@ -3270,13 +3363,13 @@ nsHTMLInputElement::IsBarredFromConstraintValidation()
 
 nsresult
 nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
-                                         ValidationMessageType aType)
+                                         ValidityStateType aType)
 {
   nsresult rv = NS_OK;
 
   switch (aType)
   {
-    case VALIDATION_MESSAGE_TOO_LONG:
+    case VALIDITY_STATE_TOO_LONG:
     {
       nsXPIDLString message;
       PRInt32 maxLength = -1;
@@ -3297,7 +3390,7 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
       aValidationMessage = message;
       break;
     }
-    case VALIDATION_MESSAGE_VALUE_MISSING:
+    case VALIDITY_STATE_VALUE_MISSING:
     {
       nsXPIDLString message;
       nsCAutoString key;
@@ -3320,7 +3413,7 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
       aValidationMessage = message;
       break;
     }
-    case VALIDATION_MESSAGE_TYPE_MISMATCH:
+    case VALIDITY_STATE_TYPE_MISMATCH:
     {
       nsXPIDLString message;
       nsCAutoString key;
@@ -3336,7 +3429,7 @@ nsHTMLInputElement::GetValidationMessage(nsAString& aValidationMessage,
       aValidationMessage = message;
       break;
     }
-    case VALIDATION_MESSAGE_PATTERN_MISMATCH:
+    case VALIDITY_STATE_PATTERN_MISMATCH:
     {
       nsXPIDLString message;
       nsAutoString title;
@@ -3557,6 +3650,38 @@ protected:
   nsIFormControl* mExcludeElement;
 };
 
+class nsRadioUpdateValueMissingVisitor : public nsRadioVisitor {
+public:
+  nsRadioUpdateValueMissingVisitor(PRBool aNotify)
+    : nsRadioVisitor()
+    , mNotify(aNotify)
+    { }
+
+  virtual ~nsRadioUpdateValueMissingVisitor() { };
+
+  NS_IMETHOD Visit(nsIFormControl* aRadio, PRBool* aStop)
+  {
+    
+
+
+
+
+
+
+
+
+
+
+    nsCOMPtr<nsITextControlElement> textCtl(do_QueryInterface(aRadio));
+    NS_ASSERTION(textCtl, "Visit() passed a null or non-radio pointer");
+    textCtl->OnValueChanged(mNotify);
+    return NS_OK;
+  }
+
+protected:
+  PRBool mNotify;
+};
+
 nsresult
 NS_GetRadioSetCheckedChangedVisitor(PRBool aCheckedChanged,
                                     nsIRadioVisitor** aVisitor)
@@ -3625,6 +3750,22 @@ NS_GetRadioGetCheckedChangedVisitor(PRBool* aCheckedChanged,
   NS_ADDREF(*aVisitor);
 
   return NS_OK;
+}
+
+
+
+
+
+
+
+
+
+
+
+nsIRadioVisitor*
+NS_GetRadioUpdateValueMissingVisitor(PRBool aNotify)
+{
+  return new nsRadioUpdateValueMissingVisitor(aNotify);
 }
 
 NS_IMETHODIMP_(PRBool)
@@ -3725,3 +3866,10 @@ nsHTMLInputElement::InitializeKeyboardEventListeners()
     state->InitializeKeyboardEventListeners();
   }
 }
+
+NS_IMETHODIMP_(void)
+nsHTMLInputElement::OnValueChanged(PRBool aNotify)
+{
+  UpdateAllValidityStates(aNotify);
+}
+

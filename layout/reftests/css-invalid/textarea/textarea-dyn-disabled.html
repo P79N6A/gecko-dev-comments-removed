@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    textarea { background-color: green; }
+    textarea:invalid { background-color: red; }
+  </style>
+  <script>
+    function onLoadHandler()
+    {
+      var e = document.getElementById('t');
+      e.setCustomValidity('foo');
+      e.disabled = 'true';
+      document.documentElement.className='';
+    }
+  </script>
+  <body onload="onLoadHandler();">
+    <textarea id='t'></textarea>
+  </body>
+</html>

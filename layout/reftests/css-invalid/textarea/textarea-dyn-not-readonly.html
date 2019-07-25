@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    textarea { background-color: red; }
+    textarea:invalid { background-color: green; }
+  </style>
+  <body onload="document.getElementById('t').removeAttribute('readonly'); document.documentElement.className='';">
+    <textarea id='t' readonly required></textarea>
+  </body>
+</html>

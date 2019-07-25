@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    input { background-color: red; }
+    input:invalid { background-color: green; }
+  </style>
+  <body onload="document.getElementById('i').value='foo'; document.documentElement.className='';">
+    <input maxlength="2" id='i'>
+  </body>
+</html>
+

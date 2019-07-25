@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    input { background-color: green; }
+    input:invalid { background-color: red; }
+  </style>
+  <script>
+    function onLoadHandler()
+    {
+      var e = document.getElementById('i');
+      e.setCustomValidity('foo');
+      e.disabled = 'true';
+      document.documentElement.className='';
+    }
+  </script>
+  <body onload="onLoadHandler();">
+    <input id='i'>
+  </body>
+</html>

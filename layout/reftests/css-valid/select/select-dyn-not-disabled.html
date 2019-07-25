@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    select { background-color: red; }
+    select:valid { background-color: green; }
+  </style>
+  <body onload="document.getElementById('s').removeAttribute('disabled'); document.documentElement.className='';">
+    <select id='s' disabled></select>
+  </body>
+</html>

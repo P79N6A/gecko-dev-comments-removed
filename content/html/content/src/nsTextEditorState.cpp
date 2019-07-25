@@ -842,6 +842,8 @@ nsTextInputListener::EditAction()
   
   mFrame->FireOnInput();
 
+  mTxtCtrlElement->OnValueChanged(PR_TRUE);
+
   return NS_OK;
 }
 
@@ -1782,6 +1784,8 @@ nsTextEditorState::SetValue(const nsAString& aValue, PRBool aUserInput)
   
   
   ValueWasChanged(!!mRootNode);
+
+  mTextCtrlElement->OnValueChanged(!!mRootNode);
 }
 
 void

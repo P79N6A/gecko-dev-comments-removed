@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html class="reftest-wait">
+  
+
+  <style>
+    button { background-color: red; }
+    button:valid { background-color: green; }
+  </style>
+  <body onload="document.getElementById('b').removeAttribute('disabled'); document.documentElement.className='';">
+    <button id='b' disabled></button>
+  </body>
+</html>
