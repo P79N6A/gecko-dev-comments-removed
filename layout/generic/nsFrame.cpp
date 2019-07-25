@@ -998,7 +998,8 @@ nsIFrame::IsSVGTransformed(gfxMatrix *aOwnTransforms,
 bool
 nsIFrame::Preserves3DChildren() const
 {
-  if (GetStyleDisplay()->mTransformStyle != NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D || !IsTransformed())
+  if (GetStyleDisplay()->mTransformStyle != NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D ||
+      !GetStyleDisplay()->HasTransform())
       return false;
 
   
@@ -1014,7 +1015,8 @@ nsIFrame::Preserves3DChildren() const
 bool
 nsIFrame::Preserves3D() const
 {
-  if (!GetParent() || !GetParent()->Preserves3DChildren() || !IsTransformed()) {
+  if (!GetParent() || !GetParent()->Preserves3DChildren() ||
+      !GetStyleDisplay()->HasTransform()) {
     return false;
   }
   return true;
