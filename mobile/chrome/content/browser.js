@@ -175,6 +175,7 @@ var Browser = {
                      .getInterface(Ci.nsIDOMWindowUtils),
   controlsScrollbox: null,
   controlsScrollboxScroller: null,
+  controlsPosition: null,
   pageScrollbox: null,
   pageScrollboxScroller: null,
   styles: {},
@@ -247,6 +248,15 @@ var Browser = {
     
     window.cachedWidth = window.innerWidth;
 
+    
+    
+    window.addEventListener("MozBeforeResize", function(aEvent) {
+      let { x: x1, y: y1 } = Browser.getScrollboxPosition(Browser.controlsScrollboxScroller);
+      let { x: x2, y: y2 } = Browser.getScrollboxPosition(Browser.pageScrollboxScroller);
+
+      Browser.controlsPosition = { x: x1, y: y2, hideSidebars: Browser.controlsPosition ? Browser.controlsPosition.hideSidebars : true };
+    }, false);
+
     function resizeHandler(e) {
       if (e.target != window)
         return;
@@ -269,7 +279,14 @@ var Browser = {
       BrowserUI.sizeControls(w, h);
 
       
-      Browser.hideSidebars();
+      if (Browser.controlsPosition.hideSidebars) {
+        Browser.controlsPosition.hideSidebars = false;
+        Browser.hideSidebars();
+      } else {
+        Browser.controlsScrollboxScroller.scrollTo(Browser.controlsPosition.x, 0);
+        Browser.pageScrollboxScroller.scrollTo(0, Browser.controlsPosition.y);
+        Browser.tryFloatToolbar(0, 0);
+      }
 
       let oldWidth = window.cachedWidth || w;
       window.cachedWidth = w;
@@ -284,10 +301,6 @@ var Browser = {
         if (tab.browser.contentWindowWidth == oldContentWindowWidth)
           tab.restoreViewportPosition(oldWidth, w);
       }
-
-      
-      
-      Browser.hideTitlebar();
 
       
       let currentElement = document.activeElement;
