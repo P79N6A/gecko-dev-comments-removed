@@ -69,7 +69,7 @@ function generateSVGDataURI(aViewboxArr, aWidth, aHeight,
   
   var datauri = "data:image/svg+xml,"
   
-  datauri += "%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22";
+  datauri += "%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20shape-rendering%3D%22crispEdges%22";
 
   
   datauri += generateSVGAttrsForParams(aViewboxArr, aWidth, aHeight,
