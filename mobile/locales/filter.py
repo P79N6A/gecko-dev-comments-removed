@@ -40,6 +40,7 @@ def test(mod, path, entity = None):
   import re
   
   if mod not in ("netwerk", "dom", "toolkit", "security/manager",
+                 "services/sync", "embedding/android",
                  "mobile"):
     return False
 
