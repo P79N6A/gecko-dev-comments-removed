@@ -1020,11 +1020,8 @@ var Browser = {
         let tab = Browser.getTabForBrowser(browser);
         
         
-        if (tab) {
+        if (tab)
           tab.updateViewportMetadata(json);
-          if (!tab.isLoading())
-            tab.updateThumbnail();
-        }
         break;
 
       case "Browser:FormSubmit":
