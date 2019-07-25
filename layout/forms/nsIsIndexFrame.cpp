@@ -357,7 +357,7 @@ nsIsIndexFrame::OnSubmit(nsPresContext* aPresContext)
   
   nsIURI *baseURI = document->GetDocBaseURI();
   if (!baseURI) {
-    NS_ERROR("No Base URL found in Form Submit!\n");
+    NS_ERROR("No Base URL found in Form Submit!");
     return NS_OK; 
   }
 
@@ -390,7 +390,7 @@ nsIsIndexFrame::OnSubmit(nsPresContext* aPresContext)
       href.Truncate(queryStart);
     }
   } else {
-    NS_ERROR("Rel path couldn't be formed in form submit!\n");
+    NS_ERROR("Rel path couldn't be formed in form submit!");
     return NS_ERROR_OUT_OF_MEMORY;
   }
 
