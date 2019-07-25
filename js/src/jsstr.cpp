@@ -108,8 +108,6 @@ JSString::flatten()
     jschar *chars;
     size_t capacity;
     JS_ASSERT(isRope());
-    if (!isRope())
-        JS_CRASH(0xe0 | (mLengthAndFlags & TYPE_FLAGS_MASK));
 
     
 
@@ -131,7 +129,7 @@ JSString::flatten()
 
 
 
-    topNode->convertToInteriorNode((JSString *) 0x2);
+    topNode->convertToInteriorNode(NULL);
     JSString *str = topNode, *next;
     size_t pos = 0;
 
@@ -139,7 +137,7 @@ JSString::flatten()
 
 
 
-    while (str != (JSString *) 0x2) {
+    while (str) {
         switch (str->ropeTraversalCount()) {
           case 0:
             next = str->ropeLeft();
@@ -299,9 +297,6 @@ js_ConcatStrings(JSContext *cx, JSString *left, JSString *right)
         buf[length] = 0;
         return shortStr->header();
     }
-
-    left->checkCompartment(cx, 0xd0);
-    right->checkCompartment(cx, 0xd4);
 
     
 
