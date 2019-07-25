@@ -2743,6 +2743,20 @@ frontend::EmitFunctionScript(JSContext *cx, BytecodeEmitter *bce, ParseNode *bod
         bce->switchToMain();
     }
 
+    
+
+
+
+
+
+
+    if (bce->needsEagerArguments()) {
+        bce->switchToProlog();
+        if (Emit1(cx, bce, JSOP_ARGUMENTS) < 0 || Emit1(cx, bce, JSOP_POP) < 0)
+            return false;
+        bce->switchToMain();
+    }
+
     return EmitTree(cx, bce, body) &&
            Emit1(cx, bce, JSOP_STOP) >= 0 &&
            JSScript::NewScriptFromEmitter(cx, bce);
