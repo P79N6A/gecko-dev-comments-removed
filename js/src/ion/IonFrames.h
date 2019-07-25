@@ -73,14 +73,25 @@ struct IonFrameData
 class IonFramePrefix : protected IonFrameData
 {
   public:
+    enum FrameType {
+        JSFrame,
+        EntryFrame,
+        RectifierFrame
+    };
+
+    
+    
+    static const unsigned FrameTypeBits = 2;
+
+  public:
     
     bool isEntryFrame() const {
-        return !(sizeDescriptor_ & 1);
+        return !!(sizeDescriptor_ & EntryFrame);
     }
     
     size_t prevFrameDepth() const {
         JS_ASSERT(!isEntryFrame());
-        return sizeDescriptor_ >> 1;
+        return sizeDescriptor_ >> FrameTypeBits;
     }
     IonFramePrefix *prev() const {
         JS_ASSERT(!isEntryFrame());
@@ -187,5 +198,5 @@ CalleeTokenToScript(CalleeToken token)
 }
 }
 
-#endif 
+#endif
 

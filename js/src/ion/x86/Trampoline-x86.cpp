@@ -141,6 +141,9 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.shll(Imm32(3), eax);
     masm.addl(eax, ecx);
     masm.addl(Imm32(4), ecx);
+
+    
+    masm.orl(Imm32(0x1), ecx); 
     masm.push(ecx);
 
     
@@ -153,6 +156,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     masm.pop(eax);
+    masm.xorl(Imm32(0x1), eax); 
     masm.addl(eax, esp);
 
     
@@ -185,10 +189,9 @@ IonCompartment::generateReturnError(JSContext *cx)
 {
     MacroAssembler masm(cx);
 
-    
-    
-    masm.pop(eax);
-    masm.addl(eax, esp);
+    masm.pop(eax);              
+    masm.xorl(Imm32(0x1), eax); 
+    masm.addl(eax, esp);        
 
     GenerateReturn(masm, JS_FALSE);
     
@@ -255,8 +258,10 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
         masm.j(Assembler::NonZero, &copyLoopTop);
     }
 
+    
     masm.subl(esp, ebp);
-    masm.shll(Imm32(1), ebp); 
+    masm.shll(Imm32(IonFramePrefix::FrameTypeBits), ebp);
+    masm.orl(Imm32(IonFramePrefix::RectifierFrame), ebp);
 
     
     masm.push(eax); 
@@ -271,10 +276,10 @@ IonCompartment::generateArgumentsRectifier(JSContext *cx)
     masm.call(eax);
 
     
-    masm.pop(ebx);            
-    masm.shrl(Imm32(1), ebx); 
+    masm.pop(ebp);            
+    masm.shrl(Imm32(IonFramePrefix::FrameTypeBits), ebp); 
     masm.pop(edi);            
-    masm.addl(ebx, esp);      
+    masm.addl(ebp, esp);      
 
     masm.ret();
 
