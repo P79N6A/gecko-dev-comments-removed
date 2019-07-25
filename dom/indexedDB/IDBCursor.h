@@ -43,7 +43,7 @@
 #include "mozilla/dom/indexedDB/IndexedDatabase.h"
 #include "mozilla/dom/indexedDB/IDBObjectStore.h"
 
-#include "nsIIDBCursor.h"
+#include "nsIIDBCursorWithValue.h"
 
 #include "nsCycleCollectionParticipant.h"
 
@@ -62,7 +62,7 @@ class ContinueObjectStoreHelper;
 class ContinueIndexHelper;
 class ContinueIndexObjectHelper;
 
-class IDBCursor : public nsIIDBCursor
+class IDBCursor : public nsIIDBCursorWithValue
 {
   friend class ContinueHelper;
   friend class ContinueObjectStoreHelper;
@@ -72,6 +72,7 @@ class IDBCursor : public nsIIDBCursor
 public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIIDBCURSOR
+  NS_DECL_NSIIDBCURSORWITHVALUE
 
   NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(IDBCursor)
 
@@ -151,7 +152,6 @@ protected:
 
   
   nsCOMPtr<nsIVariant> mCachedKey;
-  nsCOMPtr<nsIVariant> mCachedObjectKey;
 
   Type mType;
   PRUint16 mDirection;
@@ -159,6 +159,7 @@ protected:
   nsCString mContinueToQuery;
 
   
+  jsval mCachedPrimaryKey;
   jsval mCachedValue;
 
   Key mRangeKey;
@@ -168,8 +169,9 @@ protected:
   JSAutoStructuredCloneBuffer mCloneBuffer;
   Key mContinueToKey;
 
+  bool mHaveCachedPrimaryKey;
   bool mHaveCachedValue;
-  bool mValueRooted;
+  bool mRooted;
   bool mContinueCalled;
   bool mHaveValue;
 };
