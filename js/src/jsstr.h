@@ -517,7 +517,7 @@ class JSShortString : public JSInlineString
     static const size_t INLINE_EXTENSION_CHARS = sizeof(JSString::Data) / sizeof(jschar);
 
     static void staticAsserts() {
-        JS_STATIC_ASSERT(INLINE_EXTENSION_CHARS % sizeof(js::gc::FreeCell) == 0);
+        JS_STATIC_ASSERT(INLINE_EXTENSION_CHARS % js::gc::Cell::CellSize == 0);
         JS_STATIC_ASSERT(MAX_SHORT_LENGTH + 1 ==
                          (sizeof(JSShortString) -
                           offsetof(JSShortString, d.inlineStorage)) / sizeof(jschar));
