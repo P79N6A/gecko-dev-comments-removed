@@ -2390,10 +2390,8 @@ AnalyzeBytecode(JSContext *cx, AnalyzeState &state, JSScript *script, uint32 off
 
 
 
-        for (unsigned i = state.stackDepth; i < stackDepth; i++) {
+        for (unsigned i = state.stackDepth; i < stackDepth; i++)
             JS_ASSERT(!state.stack[i].isForEach);
-            JS_ASSERT(!state.stack[i].hasDouble);
-        }
 #endif
         unsigned ndefs = stackDepth - state.stackDepth;
         memset(&state.stack[state.stackDepth], 0, ndefs * sizeof(AnalyzeStateStack));
