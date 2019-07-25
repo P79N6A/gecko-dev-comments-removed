@@ -209,6 +209,10 @@ public:
 
 
 
+  void SetIncludeAllOutOfFlows() { mIncludeAllOutOfFlows = PR_TRUE; }
+  PRBool GetIncludeAllOutOfFlows() const { return mIncludeAllOutOfFlows; }
+  
+
 
 
   void SetSelectedFramesOnly() { mSelectedFramesOnly = PR_TRUE; }
@@ -329,6 +333,17 @@ public:
 
 
   FrameLayerBuilder* LayerBuilder() { return &mLayerBuilder; }
+
+  
+
+
+
+
+  bool ShouldDescendIntoFrame(nsIFrame* aFrame) const {
+    return
+      (aFrame->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO) ||
+      GetIncludeAllOutOfFlows();
+  }
   
   
 
@@ -408,6 +423,7 @@ private:
   PRPackedBool                   mIgnoreSuppression;
   PRPackedBool                   mHadToIgnoreSuppression;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
+  PRPackedBool                   mIncludeAllOutOfFlows;
   PRPackedBool                   mSelectedFramesOnly;
   PRPackedBool                   mAccurateVisibleRegions;
   

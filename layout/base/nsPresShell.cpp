@@ -5557,6 +5557,7 @@ PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
   nsRect ancestorRect = ancestorFrame->GetVisualOverflowRect();
 
   
+  info->mBuilder.SetIncludeAllOutOfFlows();
   if (aForPrimarySelection) {
     info->mBuilder.SetSelectedFramesOnly();
   }

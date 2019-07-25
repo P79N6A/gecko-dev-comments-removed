@@ -6102,8 +6102,11 @@ DisplayLine(nsDisplayListBuilder* aBuilder, const nsRect& aLineArea,
   
   
   
-  if (!intersect &&
-      !(aFrame->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO))
+  
+  
+  
+  
+  if (!intersect && !aBuilder->ShouldDescendIntoFrame(aFrame))
     return NS_OK;
 
   nsresult rv;
@@ -6177,8 +6180,12 @@ nsBlockFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  nsLineBox* cursor = GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO
-    ? nsnull : GetFirstLineContaining(aDirtyRect.y);
+  
+  
+  
+  
+  nsLineBox* cursor = aBuilder->ShouldDescendIntoFrame(this) ?
+    nsnull : GetFirstLineContaining(aDirtyRect.y);
   line_iterator line_end = end_lines();
   nsresult rv = NS_OK;
   

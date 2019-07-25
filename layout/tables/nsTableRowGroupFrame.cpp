@@ -207,8 +207,12 @@ DisplayRows(nsDisplayListBuilder* aBuilder, nsFrame* aFrame,
   
   
   
-  nsIFrame* kid = f->GetStateBits() & NS_FRAME_FORCE_DISPLAY_LIST_DESCEND_INTO
-    ? nsnull : f->GetFirstRowContaining(aDirtyRect.y, &overflowAbove);
+  
+  
+  
+  
+  nsIFrame* kid = aBuilder->ShouldDescendIntoFrame(f) ?
+    nsnull : f->GetFirstRowContaining(aDirtyRect.y, &overflowAbove);
   
   if (kid) {
     
