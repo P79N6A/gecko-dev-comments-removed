@@ -224,7 +224,7 @@ TabTracker.prototype = {
     this._log.trace("Registering tab listeners in new window");
 
     
-    let topics = ["TabOpen", "TabClose", "TabSelect"];
+    let topics = ["pageshow", "TabOpen", "TabClose", "TabSelect"];
     let onTab = this.onTab;
     let addRem = function(add) topics.forEach(function(topic) {
       window[(add ? "add" : "remove") + "EventListener"](topic, onTab, false);
@@ -248,12 +248,23 @@ TabTracker.prototype = {
   },
 
   onTab: function onTab(event) {
-    this._log.trace(event.type);
-    this.score += 1;
+    this._log.trace("onTab event: " + event.type);
     this.addChangedID(Clients.localID);
 
     
-    Svc.Session.setTabValue(event.originalTarget, "weaveLastUsed",
-                            Math.floor(Date.now() / 1000));
+    let chance = .1;
+
+    
+    if (event.type != "pageshow") {
+      chance = 1;
+
+      
+      Svc.Session.setTabValue(event.originalTarget, "weaveLastUsed",
+                              Math.floor(Date.now() / 1000));
+    }
+
+    
+    if (Math.random() < chance)
+      this.score++;
   },
 }
