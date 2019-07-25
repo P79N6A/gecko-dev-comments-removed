@@ -41,6 +41,28 @@ const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
+
+
+
+
+
+
+
+
+
+
+
+const SCHEDULED_SYNC_INTERVAL = 60 * 1000; 
+
+
+
+
+const INITIAL_THRESHOLD = 100;
+
+
+
+const THRESHOLD_DECREMENT_STEP = 5;
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/log4moz.js");
 Cu.import("resource://weave/constants.js");
@@ -209,7 +231,7 @@ WeaveSvc.prototype = {
     this._scheduleTimer = Cc["@mozilla.org/timer;1"].
       createInstance(Ci.nsITimer);
     let listener = new Utils.EventListener(Utils.bind2(this, this._onSchedule));
-    this._scheduleTimer.initWithCallback(listener, 120000, 
+    this._scheduleTimer.initWithCallback(listener, SCHEDULED_SYNC_INTERVAL,
                                          this._scheduleTimer.TYPE_REPEATING_SLACK);
     this._log.info("Weave scheduler enabled");
   },
@@ -225,7 +247,7 @@ WeaveSvc.prototype = {
   _onSchedule: function WeaveSync__onSchedule() {
     if (this.enabled) {
       this._log.info("Running scheduled sync");
-      this.sync();
+      this._lock(this._notify("sync", this._syncAsNeeded)).async(this);
     }
   },
 
@@ -479,8 +501,6 @@ WeaveSvc.prototype = {
     let names = yield;
 
     for (let i = 0; i < names.length; i++) {
-      if (names[i].match(/\.htaccess$/))
-        continue;
       DAV.DELETE(names[i], self.cb);
       let resp = yield;
       this._log.debug(resp.status);
@@ -492,6 +512,7 @@ WeaveSvc.prototype = {
   sync: function WeaveSync_sync(onComplete) {
     this._lock(this._notify("sync", this._sync)).async(this, onComplete);
   },
+
   _sync: function WeaveSync__sync() {
     let self = yield;
 
@@ -506,17 +527,88 @@ WeaveSvc.prototype = {
 
     let engines = Engines.getAll();
     for (let i = 0; i < engines.length; i++) {
-      if (engines[i].enabled && engines[i]._tracker.score >= 30) {
-        this._notify(engines[i].name + "-engine:sync",
-                     this._syncEngine, engines[i]).async(this, self.cb);
+      if (!engines[i].enabled)
+        continue;
+      this._notify(engines[i].name + "-engine:sync",
+                   this._syncEngine, engines[i]).async(this, self.cb);
+      yield;
+      if (engines[i].name == "bookmarks") { 
+        Engines.get("bookmarks").syncMounts(self.cb);
         yield;
-        if (engines[i].name == "bookmarks") { 
+      }
+    }
+  },
+
+  
+  
+  
+  _syncThresholds: {},
+
+  _syncAsNeeded: function WeaveSync__syncAsNeeded() {
+    let self = yield;
+
+    if (!this._loggedIn)
+      throw "Can't sync: Not logged in";
+
+    this._versionCheck.async(this, self.cb);
+    yield;
+
+    this._keyCheck.async(this, self.cb);
+    yield;
+
+    let engines = Engines.getAll();
+    for each (let engine in engines) {
+      if (!engine.enabled)
+        continue;
+
+      if (!(engine.name in this._syncThresholds))
+        this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
+
+      if (engine._tracker.score >= this._syncThresholds[engine.name]) {
+        this._log.debug(engine.name + " score " + engine._tracker.score +
+                        " exceeds threshold " +
+                        this._syncThresholds[engine.name] + "; syncing");
+        this._notify(engine.name + "-engine:sync",
+                     this._syncEngine, engine).async(this, self.cb);
+        yield;
+
+        
+        
+        
+        
+        
+        
+        
+        this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
+
+        if (engine.name == "bookmarks") { 
           Engines.get("bookmarks").syncMounts(self.cb);
           yield;
         }
       }
+      else {
+        this._log.debug(engine.name + " score " + engine._tracker.score +
+                        " does not exceed threshold " +
+                        this._syncThresholds[engine.name] + "; not syncing");
+
+        if (this._syncThresholds[engine.name] == 1) {
+          
+          
+          this._syncThresholds[engine.name] = INITIAL_THRESHOLD;
+        }
+        else {
+          
+          
+          
+          
+          this._syncThresholds[engine.name] -= THRESHOLD_DECREMENT_STEP;
+          if (this._syncThresholds[engine.name] <= 0)
+            this._syncThresholds[engine.name] = 1;
+        }
+      }
     }
   },
+
   _syncEngine: function WeaveSvc__syncEngine(engine) {
     let self = yield;
     try {
@@ -577,7 +669,7 @@ WeaveSvc.prototype = {
 
 
 
-
+    
     
     let messageName = "share-" + dataType;
     
@@ -589,7 +681,7 @@ WeaveSvc.prototype = {
                             guid,
                             username)).async(this, onComplete);
   },
-  _shareBookmarks: function WeaveSync__shareBookmarks(dataType,
+  _shareBookmarks: function WeaveSync__shareBookmarks(dataType, 
                                                       guid,
                                                       username) {
     let self = yield;
