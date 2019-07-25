@@ -146,7 +146,7 @@ nsJARInputStream::InitDirectory(nsJAR* aJar,
 }
 
 NS_IMETHODIMP 
-nsJARInputStream::Available(PRUint32 *_retval)
+nsJARInputStream::Available(PRUint64 *_retval)
 {
     
     

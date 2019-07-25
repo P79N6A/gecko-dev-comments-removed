@@ -139,7 +139,7 @@ FileInputStreamWrapper::Close()
 }
 
 NS_IMETHODIMP
-FileInputStreamWrapper::Available(PRUint32* _retval)
+FileInputStreamWrapper::Available(PRUint64* _retval)
 {
   
   

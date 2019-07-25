@@ -170,12 +170,12 @@ void nsMIMEInputStream::InitStreams()
 
     
     if (mAddContentLength) {
-        PRUint32 cl = 0;
+        PRUint64 cl = 0;
         if (mData) {
             mData->Available(&cl);
         }
         mContentLength.AssignLiteral("Content-Length: ");
-        mContentLength.AppendInt((PRInt32)cl);
+        mContentLength.AppendInt(cl);
         mContentLength.AppendLiteral("\r\n\r\n");
     }
     else {
@@ -245,7 +245,7 @@ nsMIMEInputStream::ReadSegCb(nsIInputStream* aIn, void* aClosure,
 
 
 NS_IMETHODIMP nsMIMEInputStream::Close(void) { INITSTREAMS; return mStream->Close(); }
-NS_IMETHODIMP nsMIMEInputStream::Available(PRUint32 *_retval) { INITSTREAMS; return mStream->Available(_retval); }
+NS_IMETHODIMP nsMIMEInputStream::Available(PRUint64 *_retval) { INITSTREAMS; return mStream->Available(_retval); }
 NS_IMETHODIMP nsMIMEInputStream::Read(char * buf, PRUint32 count, PRUint32 *_retval) { INITSTREAMS; return mStream->Read(buf, count, _retval); }
 NS_IMETHODIMP nsMIMEInputStream::IsNonBlocking(bool *aNonBlocking) { INITSTREAMS; return mStream->IsNonBlocking(aNonBlocking); }
 

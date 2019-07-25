@@ -159,14 +159,18 @@ EncodeInputStream(nsIInputStream *aInputStream,
                   PRUint32 aOffset)
 {
   nsresult rv;
+  PRUint64 count64 = aCount;
 
   if (!aCount) {
-    rv = aInputStream->Available(&aCount);
+    rv = aInputStream->Available(&count64);
     NS_ENSURE_SUCCESS(rv, rv);
+    
+    
+    aCount = (PRUint32)count64;
   }
 
   PRUint64 countlong =
-    (PRUint64(aCount) + 2) / 3 * 4; 
+    (count64 + 2) / 3 * 4; 
   if (countlong + aOffset > PR_UINT32_MAX)
     return NS_ERROR_OUT_OF_MEMORY;
 

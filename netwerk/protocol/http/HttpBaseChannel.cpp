@@ -445,33 +445,24 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
   
 
   if (stream) {
+    nsCAutoString method;
+    bool hasHeaders;
+
     if (contentType.IsEmpty()) {
-      mUploadStreamHasHeaders = true;
-      mRequestHead.SetMethod(nsHttp::Post); 
+      method = nsHttp::Post;
+      hasHeaders = true;
     } else {
-      if (contentLength < 0) {
-        
-        
-        stream->Available((PRUint32 *) &contentLength);
-        if (contentLength < 0) {
-          NS_ERROR("unable to determine content length");
-          return NS_ERROR_FAILURE;
-        }
-      }
-      
-      nsCAutoString contentLengthStr;
-      contentLengthStr.AppendInt(PRInt64(contentLength));
-      SetRequestHeader(NS_LITERAL_CSTRING("Content-Length"), contentLengthStr, 
-                       false);
-      SetRequestHeader(NS_LITERAL_CSTRING("Content-Type"), contentType, 
-                       false);
-      mUploadStreamHasHeaders = false;
-      mRequestHead.SetMethod(nsHttp::Put); 
+      method = nsHttp::Put;
+      hasHeaders = false;
     }
-  } else {
-    mUploadStreamHasHeaders = false;
-    mRequestHead.SetMethod(nsHttp::Get); 
+    return ExplicitSetUploadStream(stream, contentType, contentLength,
+                                   method, hasHeaders);
   }
+
+  
+  
+  mUploadStreamHasHeaders = false;
+  mRequestHead.SetMethod(nsHttp::Get); 
   mUploadStream = stream;
   return NS_OK;
 }
@@ -491,10 +482,8 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
   NS_ENSURE_TRUE(aStream, NS_ERROR_FAILURE);
 
   if (aContentLength < 0 && !aStreamHasHeaders) {
-    PRUint32 streamLength;
-    aStream->Available(&streamLength);
-    aContentLength = streamLength;
-    if (aContentLength < 0) {
+    nsresult rv = aStream->Available(reinterpret_cast<PRUint64*>(&aContentLength));
+    if (NS_FAILED(rv) || aContentLength < 0) {
       NS_ERROR("unable to determine content length");
       return NS_ERROR_FAILURE;
     }

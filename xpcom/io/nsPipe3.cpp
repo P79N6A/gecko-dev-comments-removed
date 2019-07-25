@@ -704,15 +704,16 @@ nsPipeInputStream::Close()
 }
 
 NS_IMETHODIMP
-nsPipeInputStream::Available(PRUint32 *result)
+nsPipeInputStream::Available(PRUint64 *result)
 {
+    
     ReentrantMonitorAutoEnter mon(mPipe->mReentrantMonitor);
 
     
     if (!mAvailable && NS_FAILED(mPipe->mStatus))
         return mPipe->mStatus;
 
-    *result = mAvailable;
+    *result = (PRUint64)mAvailable;
     return NS_OK;
 }
 
