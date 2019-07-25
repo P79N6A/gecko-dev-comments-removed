@@ -86,6 +86,8 @@ XPCOMUtils.defineLazyModuleGetter(this, "ScratchpadManager",
   "resource:///modules/devtools/scratchpad-manager.jsm");
 XPCOMUtils.defineLazyModuleGetter(this, "DocumentUtils",
   "resource:///modules/sessionstore/DocumentUtils.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "SessionStorage",
+ "resource:///modules/sessionstore/SessionStorage.jsm");
 
 #ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
@@ -200,6 +202,10 @@ let SessionStore = {
 
   restoreLastSession: function ss_restoreLastSession() {
     SessionStoreInternal.restoreLastSession();
+  },
+
+  checkPrivacyLevel: function ss_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
+    return SessionStoreInternal.checkPrivacyLevel(aIsHTTPS, aUseDefaultPref);
   }
 };
 
@@ -1988,8 +1994,8 @@ let SessionStoreInternal = {
       delete tabData.extData;
 
     if (history && browser.docShell instanceof Ci.nsIDocShell)
-      this._serializeSessionStorage(tabData, history, browser.docShell, aFullData,
-                                    aTab.pinned);
+      SessionStorage.serialize(tabData, history, browser.docShell, aFullData,
+                               aTab.pinned);
 
     return tabData;
   },
@@ -2054,7 +2060,7 @@ let SessionStoreInternal = {
     try {
       var prefPostdata = this._prefBranch.getIntPref("sessionstore.postdata");
       if (aEntry.postData && (aFullData || prefPostdata &&
-            this._checkPrivacyLevel(aEntry.URI.schemeIs("https"), aIsPinned))) {
+            this.checkPrivacyLevel(aEntry.URI.schemeIs("https"), aIsPinned))) {
         aEntry.postData.QueryInterface(Ci.nsISeekableStream).
                         seek(Ci.nsISeekableStream.NS_SEEK_SET, 0);
         var stream = Cc["@mozilla.org/binaryinputstream;1"].
@@ -2133,78 +2139,6 @@ let SessionStoreInternal = {
     }
 
     return entry;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _serializeSessionStorage:
-    function ssi_serializeSessionStorage(aTabData, aHistory, aDocShell, aFullData, aIsPinned) {
-    let storageData = {};
-    let hasContent = false;
-
-    for (let i = 0; i < aHistory.count; i++) {
-      let uri;
-      try {
-        uri = aHistory.getEntryAtIndex(i, false).URI;
-      }
-      catch (ex) {
-        
-        
-        continue;
-      }
-      
-      let domain = uri.spec;
-      try {
-        if (uri.host)
-          domain = uri.prePath;
-      }
-      catch (ex) {  }
-      if (storageData[domain] ||
-          !(aFullData || this._checkPrivacyLevel(uri.schemeIs("https"), aIsPinned)))
-        continue;
-
-      let storage, storageItemCount = 0;
-      try {
-        var principal = Services.scriptSecurityManager.getCodebasePrincipal(uri);
-
-        
-        
-        
-        
-        
-        storage = aDocShell.getSessionStorageForPrincipal(principal, "", false);
-        if (storage)
-          storageItemCount = storage.length;
-      }
-      catch (ex) {  }
-      if (storageItemCount == 0)
-        continue;
-
-      let data = storageData[domain] = {};
-      for (let j = 0; j < storageItemCount; j++) {
-        try {
-          let key = storage.key(j);
-          let item = storage.getItem(key);
-          data[key] = item;
-        }
-        catch (ex) {  }
-      }
-      hasContent = true;
-    }
-
-    if (hasContent)
-      aTabData.storage = storageData;
   },
 
   
@@ -2295,7 +2229,7 @@ let SessionStoreInternal = {
     var isHTTPS = this._getURIFromString((aContent.parent || aContent).
                                          document.location.href).schemeIs("https");
     let isAboutSR = aContent.top.document.location.href == "about:sessionrestore";
-    if (aFullData || this._checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
+    if (aFullData || this.checkPrivacyLevel(isHTTPS, aIsPinned) || isAboutSR) {
       if (aFullData || aUpdateFormData) {
         let formData = DocumentUtils.getFormData(aContent.document);
 
@@ -2417,7 +2351,7 @@ let SessionStoreInternal = {
     
     if (/https?/.test(aScheme) && !aHosts[aHost] &&
         (!aCheckPrivacy ||
-         this._checkPrivacyLevel(aScheme == "https", aIsPinned))) {
+         this.checkPrivacyLevel(aScheme == "https", aIsPinned))) {
       
       
       aHosts[aHost] = aIsPinned;
@@ -2489,7 +2423,7 @@ let SessionStoreInternal = {
           
           
           
-          if (cookie.isSession && _this._checkPrivacyLevel(cookie.isSecure, isPinned)) {
+          if (cookie.isSession && _this.checkPrivacyLevel(cookie.isSecure, isPinned)) {
             
             
             if (!(cookie.host in jscookies &&
@@ -3127,7 +3061,7 @@ let SessionStoreInternal = {
       tab.setAttribute(name, tabData.attributes[name]);
 
     if (tabData.storage && browser.docShell instanceof Ci.nsIDocShell)
-      this._deserializeSessionStorage(tabData.storage, browser.docShell);
+      SessionStorage.deserialize(tabData.storage, browser.docShell);
 
     
     var event = aWindow.document.createEvent("Events");
@@ -3424,26 +3358,6 @@ let SessionStoreInternal = {
     }
 
     return shEntry;
-  },
-
-  
-
-
-
-
-
-
-  _deserializeSessionStorage: function ssi_deserializeSessionStorage(aStorageData, aDocShell) {
-    for (let url in aStorageData) {
-      let uri = this._getURIFromString(url);
-      let storage = aDocShell.getSessionStorageForURI(uri, "");
-      for (let key in aStorageData[url]) {
-        try {
-          storage.setItem(key, aStorageData[url][key]);
-        }
-        catch (ex) { Cu.reportError(ex); } 
-      }
-    }
   },
 
   
@@ -3929,7 +3843,7 @@ let SessionStoreInternal = {
 
 
 
-  _checkPrivacyLevel: function ssi_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
+  checkPrivacyLevel: function ssi_checkPrivacyLevel(aIsHTTPS, aUseDefaultPref) {
     let pref = "sessionstore.privacy_level";
     
     
