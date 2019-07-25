@@ -401,14 +401,6 @@ XPCCallContext::~XPCCallContext()
         
             JS_DestroyContext(mJSContext);
         }
-        else
-        {
-            
-            
-            
-            if(!JS_IsRunning(mJSContext))
-                JS_ClearNewbornRoots(mJSContext);
-        }
     }
 
 #ifdef DEBUG
