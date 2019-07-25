@@ -484,6 +484,47 @@ let DOMApplicationRegistry = {
                               error: aError });
     }
 
+    function getInferedStatus() {
+      
+      return Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+    }
+
+    function getAppManifestStatus(aManifest) {
+      let type = aManifest.type || "web";
+      let manifestStatus = Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+
+      switch(type) {
+        case "web":
+          manifestStatus = Ci.nsIPrincipal.APP_STATUS_INSTALLED;
+          break;
+        case "privileged":
+          manifestStatus = Ci.nsIPrincipal.APP_STATUS_PRIVILEGED;
+          break
+        case "certified":
+          manifestStatus = Ci.nsIPrincipal.APP_STATUS_CERTIFIED;
+          break;
+      }
+
+      return manifestStatus;
+    }
+
+    function getAppStatus(aManifest) {
+      let manifestStatus = getAppManifestStatus(aManifest);
+      let inferedStatus = getInferedStatus();
+
+      return (Services.prefs.getBoolPref("dom.mozApps.dev_mode") ? manifestStatus
+                                                                : inferedStatus);
+    }
+    
+    
+    function checkAppStatus(aManifest) {
+      if (Services.prefs.getBoolPref("dom.mozApps.dev_mode")) {
+        return true;
+      }
+
+      return (getAppManifestStatus(aManifest) <= getInferedStatus());
+    }
+
     NetUtil.asyncFetch(aData.url, function(aInput, aResult, aRequest) {
       if (!Components.isSuccessCode(aResult)) {
         
@@ -529,14 +570,19 @@ let DOMApplicationRegistry = {
           msg.app.manifest = JSON.parse(NetUtil.readInputStreamToString(istream,
                                         istream.available()) || "");
           if (!checkManifest(msg.app.manifest)) {
-            throw "Invalid manifest";
+            throw "INVALID_MANIFEST";
           }
 
+          if (!checkAppStatus(msg.app.manifest)) {
+            throw "INVALID_SECURITY_LEVEL";
+          }
+
+          msg.appStatus = getAppStatus(msg.app.manifest);
           Services.obs.notifyObservers(this, "webapps-ask-install",
                                              JSON.stringify(msg));
         } catch (e) {
           
-          cleanup("INVALID_MANIFEST");
+          cleanup(e);
         } finally {
           zipReader.close();
         }
