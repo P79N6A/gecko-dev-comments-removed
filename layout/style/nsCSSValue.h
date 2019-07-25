@@ -115,7 +115,8 @@ enum nsCSSUnit {
   eCSSUnit_Counter      = 21,     
   eCSSUnit_Counters     = 22,     
   eCSSUnit_Cubic_Bezier = 23,     
-  eCSSUnit_Function     = 24,     
+  eCSSUnit_Steps        = 24,     
+  eCSSUnit_Function     = 25,     
                                   
                                   
 
@@ -127,14 +128,14 @@ enum nsCSSUnit {
   
   
   
-  eCSSUnit_Calc         = 25,     
+  eCSSUnit_Calc         = 30,     
   
   
-  eCSSUnit_Calc_Plus    = 26,     
-  eCSSUnit_Calc_Minus   = 27,     
-  eCSSUnit_Calc_Times_L = 28,     
-  eCSSUnit_Calc_Times_R = 29,     
-  eCSSUnit_Calc_Divided = 30,     
+  eCSSUnit_Calc_Plus    = 31,     
+  eCSSUnit_Calc_Minus   = 32,     
+  eCSSUnit_Calc_Times_L = 33,     
+  eCSSUnit_Calc_Times_R = 34,     
+  eCSSUnit_Calc_Divided = 35,     
 
   eCSSUnit_URL          = 40,     
   eCSSUnit_Image        = 41,     
