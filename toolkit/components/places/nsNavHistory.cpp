@@ -373,15 +373,6 @@ nsNavHistory::~nsNavHistory()
 nsresult
 nsNavHistory::Init()
 {
-
-  
-  
-  
-  
-#ifdef ANDROID
-  return NS_ERROR_NOT_IMPLEMENTED;
-#endif
-
   NS_TIME_FUNCTION;
 
   LoadPrefs();

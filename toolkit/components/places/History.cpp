@@ -1760,17 +1760,6 @@ NS_IMETHODIMP
 History::RegisterVisitedCallback(nsIURI* aURI,
                                  Link* aLink)
 {
-  
-  
-  
-  
-  
-  
-  
-#ifdef ANDROID
-  return NS_ERROR_NOT_IMPLEMENTED;
-#endif
-
   NS_ASSERTION(aURI, "Must pass a non-null URI!");
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
     NS_PRECONDITION(aLink, "Must pass a non-null Link!");
