@@ -158,6 +158,9 @@ class LoopState : public MacroAssemblerTypedefs
             
             NEGATIVE_CHECK,
 
+            
+            RANGE_CHECK,
+
             INVARIANT_SLOTS,
             INVARIANT_LENGTH
         } kind;
@@ -174,13 +177,21 @@ class LoopState : public MacroAssemblerTypedefs
             } array;
         } u;
         InvariantEntry() { PodZero(this); }
+        bool isCheck() const {
+            return kind == BOUNDS_CHECK || kind == NEGATIVE_CHECK || kind == RANGE_CHECK;
+        }
     };
     Vector<InvariantEntry, 4, CompilerAllocPolicy> invariantEntries;
+
+    static inline bool entryRedundant(const InvariantEntry &e0, const InvariantEntry &e1);
+    bool checkRedundantEntry(const InvariantEntry &entry);
 
     bool loopInvariantEntry(uint32 slot);
     bool addHoistedCheck(uint32 arraySlot,
                          uint32 valueSlot1, uint32 valueSlot2, int32 constant);
     void addNegativeCheck(uint32 valueSlot, int32 constant);
+    void addRangeCheck(uint32 valueSlot1, uint32 valueSlot2, int32 constant);
+    bool hasTestLinearRelationship(uint32 slot);
 
     bool hasInvariants() { return !invariantEntries.empty(); }
     void restoreInvariants(jsbytecode *pc, Assembler &masm, Vector<Jump> *jumps);
@@ -242,6 +253,15 @@ class LoopState : public MacroAssemblerTypedefs
     FrameEntry *invariantSlots(const FrameEntry *obj);
     FrameEntry *invariantLength(const FrameEntry *obj, types::TypeSet *objTypes);
 
+    
+    bool cannotIntegerOverflow();
+
+    
+
+
+
+    bool ignoreIntegerOverflow();
+
   private:
     
 
@@ -292,12 +312,20 @@ class LoopState : public MacroAssemblerTypedefs
     };
     Vector<ModifiedProperty, 4, CompilerAllocPolicy> modifiedProperties;
 
+    
+
+
+
+
+    bool constrainedLoop;
+
     void analyzeLoopTest();
     void analyzeLoopIncrements();
-    void analyzeModset();
+    void analyzeLoopBody();
+    bool definiteArrayAccess(const analyze::SSAValue &obj, const analyze::SSAValue &index);
+    void markBitwiseOperand(const analyze::SSAValue &v);
 
-    bool loopVariableAccess(jsbytecode *pc);
-    bool getLoopTestAccess(jsbytecode *pc, uint32 *pslot, int32 *pconstant);
+    bool getLoopTestAccess(const analyze::SSAValue &v, uint32 *pslot, int32 *pconstant);
 
     bool addGrowArray(types::TypeObject *object);
     bool addModifiedProperty(types::TypeObject *object, jsid id);
@@ -308,10 +336,12 @@ class LoopState : public MacroAssemblerTypedefs
     uint32 getIncrement(uint32 slot);
     int32 adjustConstantForIncrement(jsbytecode *pc, uint32 slot);
 
-    bool getEntryValue(uint32 offset, uint32 popped, uint32 *pslot, int32 *pconstant);
+    bool getEntryValue(const analyze::SSAValue &v, uint32 *pslot, int32 *pconstant);
+    bool computeInterval(const analyze::SSAValue &v, int32 *pmin, int32 *pmax);
+    bool valueFlowsToBitops(const analyze::SSAValue &v);
 };
 
 } 
 } 
 
-#endif
+#endif 
