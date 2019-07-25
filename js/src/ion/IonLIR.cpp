@@ -170,7 +170,7 @@ PrintUse(FILE *fp, const LUse *use)
         
         
         
-        fprintf(fp, "%s", RegisterCodes::GetName(RegisterCodes::Code(use->registerCode())));
+        fprintf(fp, "%s", Registers::GetName(Registers::Code(use->registerCode())));
     }
     if (use->killedAtStart())
         fprintf(fp, "!");

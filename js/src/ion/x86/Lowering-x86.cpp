@@ -44,6 +44,7 @@
 #include "ion/IonLowering-inl.h"
 #include "Lowering-x86.h"
 #include "Lowering-x86-inl.h"
+#include "Assembler-x86.h"
 
 using namespace js;
 using namespace js::ion;
@@ -65,10 +66,14 @@ LIRGeneratorX86::visitBox(MBox *box)
         return emitAtUses(box);
 
     MInstruction *inner = box->getInput(0);
-    LBox *lir = new LBox(useOrConstant(inner));
+
+    if (inner->isConstant())
+        return defineBox(new LValue(inner->toConstant()->value()), box);
+
+    LBox *lir = new LBox(use(inner), inner->type());
 
     
-    if (inner->isConstant())
+    if (inner->type() == MIRType_Double)
         return defineBox(lir, box);
 
     

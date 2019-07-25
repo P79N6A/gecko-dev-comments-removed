@@ -42,10 +42,27 @@
 #ifndef jsion_lir_common_h__
 #define jsion_lir_common_h__
 
+#include "ion/shared/Assembler-shared.h"
+
 
 
 namespace js {
 namespace ion {
+
+
+class LLabel : public LInstructionHelper<0, 0, 0>
+{
+    Label label_;
+
+  public:
+    LIR_HEADER(Label);
+
+    LLabel()
+    { }
+    Label *label() {
+        return &label_;
+    }
+};
 
 
 class LMove : public LInstructionHelper<1, 1, 0>
@@ -96,6 +113,22 @@ class LDouble : public LInstructionHelper<1, 0, 0>
 };
 
 
+class LValue : public LInstructionHelper<BOX_PIECES, 0, 0>
+{
+    Value v_;
+
+  public:
+    LIR_HEADER(Value);
+
+    LValue(const Value &v) : v_(v)
+    { }
+
+    Value value() const {
+        return v_;
+    }
+};
+
+
 
 class LParameter : public LInstructionHelper<BOX_PIECES, 0, 0>
 {
@@ -114,6 +147,10 @@ class LGoto : public LInstructionHelper<0, 0, 0>
     LGoto(MBasicBlock *block)
       : block_(block)
     { }
+
+    MBasicBlock *target() const {
+        return block_;
+    }
 };
 
 
