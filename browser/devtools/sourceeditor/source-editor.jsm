@@ -184,6 +184,12 @@ SourceEditor.DEFAULTS = {
 
 
 
+  highlightCurrentLine: true,
+
+  
+
+
+
 
 
 
