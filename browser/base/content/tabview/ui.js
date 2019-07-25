@@ -102,11 +102,6 @@ var UIManager = {
         this._addDevMenu();
 
       
-      iQ("#reset").click(function() {
-        self._reset();
-      });
-
-      
       
       iQ(gTabViewFrame.contentDocument).mousedown(function(e){
         if ( e.originalTarget.id == "content" )
