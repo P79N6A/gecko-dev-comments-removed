@@ -37,19 +37,8 @@
 
 
 
-function browserWindowsCount() {
-  let count = 0;
-  let e = Services.wm.getEnumerator("navigator:browser");
-  while (e.hasMoreElements()) {
-    if (!e.getNext().closed)
-      ++count;
-  }
-  return count;
-}
-
 function test() {
   
-  is(browserWindowsCount(), 1, "Only one browser window should be open initially");
 
   waitForExplicitFinish();
 
@@ -170,9 +159,7 @@ function continue_test() {
                   }
 
                   if (aTestIndex == TESTS.length - 1) {
-                    if (gPrefService.prefHasUserValue("browser.sessionstore.interval"))
-                      gPrefService.clearUserPref("browser.sessionstore.interval");
-                    is(browserWindowsCount(), 1, "Only one browser window should be open eventually");
+                    gPrefService.clearUserPref("browser.sessionstore.interval");
                     finish();
                   }
                   else {
