@@ -206,28 +206,6 @@ let Utils = {
     return !!guid && this._base64url_regex.test(guid);
   },
 
-  ensureOneOpen: let (windows = {}) function ensureOneOpen(window) {
-    
-    let url = window.location.href;
-    let other = windows[url];
-    if (other != null)
-      other.close();
-
-    
-    windows[url] = window;
-
-    
-    window.addEventListener("unload", function() windows[url] = null, false);
-  },
-
-  
-  
-  
-  
-  getProfileFile: function getProfileFile(path) {
-    return FileUtils.getFile("ProfD", path.split("/"), true);
-  },
-
   
 
 
@@ -291,70 +269,46 @@ let Utils = {
     return true;
   },
 
-  deepCopy: function Weave_deepCopy(thing, noSort) {
-    if (typeof(thing) != "object" || thing == null)
-      return thing;
-    let ret;
-
-    if (Array.isArray(thing)) {
-      ret = [];
-      for (let i = 0; i < thing.length; i++)
-        ret.push(Utils.deepCopy(thing[i], noSort));
-
-    } else {
-      ret = {};
-      let props = [p for (p in thing)];
-      if (!noSort)
-        props = props.sort();
-      props.forEach(function(k) ret[k] = Utils.deepCopy(thing[k], noSort));
-    }
-
-    return ret;
-  },
-
-  
-  
-  
-  formatFrame: function Utils_formatFrame(frame) {
-    let tmp = "<file:unknown>";
-
-    let file = frame.filename || frame.fileName;
-    if (file)
-      tmp = file.replace(/^(?:chrome|file):.*?([^\/\.]+\.\w+)$/, "$1");
-
-    if (frame.lineNumber)
-      tmp += ":" + frame.lineNumber;
-    if (frame.name)
-      tmp = frame.name + "()@" + tmp;
-
-    return tmp;
-  },
-
   exceptionStr: function Weave_exceptionStr(e) {
     let message = e.message ? e.message : e;
     return message + " " + Utils.stackTrace(e);
   },
-
-  stackTraceFromFrame: function Weave_stackTraceFromFrame(frame) {
-    let output = [];
-    while (frame) {
-      let str = Utils.formatFrame(frame);
-      if (str)
-        output.push(str);
-      frame = frame.caller;
-    }
-    return output.join(" < ");
-  },
-
+  
   stackTrace: function Weave_stackTrace(e) {
     
-    if (e.location)
-      return "Stack trace: " + Utils.stackTraceFromFrame(e.location);
+    if (e.location){
+      let frame = e.location; 
+      let output = [];
+      while (frame) {
+      	
+        
+        
+        let str = "<file:unknown>";
 
+        let file = frame.filename || frame.fileName;
+        if (file){
+          str = file.replace(/^(?:chrome|file):.*?([^\/\.]+\.\w+)$/, "$1");
+        }
+
+        if (frame.lineNumber){
+          str += ":" + frame.lineNumber;
+        }
+        if (frame.name){
+          str = frame.name + "()@" + str;
+        }
+
+        if (str){
+          output.push(str);
+        }
+        frame = frame.caller;
+      }
+      return "Stack trace: " + output.join(" < ");
+    }
     
-    if (e.stack)
+    if (e.stack){
       return "JS Stack trace: " + e.stack.trim().replace(/\n/g, " < ").
         replace(/@[^@]*?([^\/\.]+\.\w+:)/g, "@$1");
+    }
 
     return "No traceback available";
   },
@@ -890,12 +844,6 @@ let Utils = {
     }
   },
 
-  makeURL: function Weave_makeURL(URIString) {
-    let url = Utils.makeURI(URIString);
-    url.QueryInterface(Ci.nsIURL);
-    return url;
-  },
-
   
 
 
@@ -911,7 +859,7 @@ let Utils = {
     if (that._log)
       that._log.trace("Loading json from disk: " + filePath);
 
-    let file = Utils.getProfileFile(filePath);
+    let file = FileUtils.getFile("ProfD", filePath.split("/"), true);
     if (!file.exists()) {
       callback.call(that);
       return;
@@ -956,7 +904,7 @@ let Utils = {
     if (that._log)
       that._log.trace("Saving json to disk: " + filePath);
 
-    let file = Utils.getProfileFile(filePath);
+    let file = FileUtils.getFile("ProfD", filePath.split("/"), true);
     let json = typeof obj == "function" ? obj.call(that) : obj;
     let out = JSON.stringify(json);
 

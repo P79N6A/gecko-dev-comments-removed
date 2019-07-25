@@ -56,7 +56,7 @@ store.wipe();
 function makeLivemark(p, mintGUID) {
   let b = new Livemark("bookmarks", p.id);
   
-  b.cleartext = Utils.deepCopy(p);
+  b.cleartext = deepCopy(p);
   
   if (mintGUID)
     b.id = Utils.makeGUID();
