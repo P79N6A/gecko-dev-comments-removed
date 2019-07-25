@@ -909,6 +909,7 @@ pref("network.IDN.whitelist.xn--kpry57d", true);
 pref("network.IDN.whitelist.xn--kprw13d", true);  
 
 
+pref("network.IDN.whitelist.asia", true);
 pref("network.IDN.whitelist.biz", true);
 pref("network.IDN.whitelist.cat", true);
 pref("network.IDN.whitelist.info", true);
