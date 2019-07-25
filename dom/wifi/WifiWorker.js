@@ -4,40 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 "use strict";
 
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
@@ -1245,57 +1211,66 @@ function WifiWorker() {
       self._stopConnectionInfoTimer();
     }
 
-    if (this.state === "DORMANT") {
-      
-      
-      
-      
-      
-      WifiManager.reconnect(function(){});
-    } else if (this.state === "ASSOCIATING") {
-      
-      
-      self.currentNetwork =
-        { bssid: WifiManager.connectionInfo.bssid,
-          ssid: quote(WifiManager.connectionInfo.ssid) };
-      self._fireEvent("onconnecting", { network: netToDOM(self.currentNetwork) });
-    } else if (this.state === "ASSOCIATED") {
-      self.currentNetwork.netId = this.id;
-      WifiManager.getNetworkConfiguration(self.currentNetwork, function (){});
-    } else if (this.state === "COMPLETED") {
-      
-      
-      
-      
-      
-      if (self._needToEnableNetworks) {
-        self._enableAllNetworks();
-        self._needToEnableNetworks = false;
-      }
-
-      
-      
-      if (this.fromStatus) {
+    switch (this.state) {
+      case "DORMANT":
         
         
         
-        self.currentNetwork = { ssid: quote(WifiManager.connectionInfo.ssid),
-                                known: true }
-        WifiManager.getNetworkConfiguration(self.currentNetwork, function(){});
-      }
-
-      self._startConnectionInfoTimer();
-      self._fireEvent("onassociate", { network: netToDOM(self.currentNetwork) });
-    } else if (this.state === "DISCONNECTED") {
-      self._fireEvent("ondisconnect", {});
-      self.currentNetwork = null;
-
-      
-      
-      if (self._reconnectOnDisconnect) {
-        self._reconnectOnDisconnect = false;
+        
+        
         WifiManager.reconnect(function(){});
-      }
+        break;
+      case "ASSOCIATING":
+        
+        
+        self.currentNetwork =
+          { bssid: WifiManager.connectionInfo.bssid,
+            ssid: quote(WifiManager.connectionInfo.ssid) };
+        self._fireEvent("onconnecting", { network: netToDOM(self.currentNetwork) });
+        break;
+      case "ASSOCIATED":
+        self.currentNetwork.netId = this.id;
+        WifiManager.getNetworkConfiguration(self.currentNetwork, function (){});
+        break;
+      case "COMPLETED":
+        
+        
+        
+        
+        
+        if (self._needToEnableNetworks) {
+          self._enableAllNetworks();
+          self._needToEnableNetworks = false;
+        }
+
+        
+        
+        if (this.fromStatus) {
+          
+          
+          
+          self.currentNetwork = { ssid: quote(WifiManager.connectionInfo.ssid),
+                                  known: true }
+          WifiManager.getNetworkConfiguration(self.currentNetwork, function(){});
+        }
+
+        self._startConnectionInfoTimer();
+        self._fireEvent("onassociate", { network: netToDOM(self.currentNetwork) });
+        break;
+      case "CONNECTED":
+        break;
+      case "DISCONNECTED":
+        self._fireEvent("ondisconnect", {});
+        self.currentNetwork = null;
+
+        
+        
+        if (self._reconnectOnDisconnect) {
+          self._reconnectOnDisconnect = false;
+          WifiManager.reconnect(function(){});
+        }
+
+        break;
     }
   };
 
