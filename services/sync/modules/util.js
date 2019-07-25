@@ -524,7 +524,19 @@ let Utils = {
 
     return "No traceback available";
   },
-
+  
+  
+  
+  
+  throwHMACMismatch: function throwHMACMismatch(shouldBe, is) {
+    throw "Record SHA256 HMAC mismatch: should be " + shouldBe + ", is " + is;
+  },
+  
+  isHMACMismatch: function isHMACMismatch(ex) {
+    const hmacFail = "Record SHA256 HMAC mismatch: ";
+    return ex && ex.indexOf && (ex.indexOf(hmacFail) == 0);
+  },
+  
   checkStatus: function Weave_checkStatus(code, msg, ranges) {
     if (!ranges)
       ranges = [[200,300]];

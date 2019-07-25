@@ -931,7 +931,7 @@ function test_canDecrypt_noCryptoKeys() {
   Svc.Prefs.set("username", "foo");
 
   
-  CollectionKeys.setContents({"collections": {}, "default": null});
+  CollectionKeys.clear();
 
   let collection = new ServerCollection();
   collection.wbos.flying = new ServerWBO(

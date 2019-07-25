@@ -629,7 +629,26 @@ WeaveSvc.prototype = {
             
             if (cryptoResp.success) {
               
-              CollectionKeys.updateContents(syncKey, cryptoKeys);
+              
+              
+              let wasBlank = CollectionKeys.isClear;
+              let keysChanged = CollectionKeys.updateContents(syncKey, cryptoKeys);
+              
+              if (keysChanged && !wasBlank) {
+                this._log.debug("Keys changed: " + JSON.stringify(keysChanged));
+                this._log.info("Resetting client to reflect key change.");
+                
+                if (keysChanged.length) {
+                  
+                  this.resetClient(keysChanged);
+                }
+                else {
+                  
+                  this.resetClient();
+                }
+                
+                this._log.info("Downloaded new keys, client reset. Proceeding.");
+              }
               return true;
             }
             else if (cryptoResp.status == 404) {
@@ -650,8 +669,7 @@ WeaveSvc.prototype = {
             
             
             
-            let hmacFail = "Record SHA256 HMAC mismatch: ";
-            if (ex && ex.substr && (ex.substr(0, hmacFail.length) == hmacFail)) {
+            if (Utils.isHMACMismatch(ex)) {
               Status.login = LOGIN_FAILED_INVALID_PASSPHRASE;
               Status.sync = CREDENTIALS_CHANGED;
             }
@@ -669,6 +687,9 @@ WeaveSvc.prototype = {
           
           
           this.generateNewSymmetricKeys();
+          
+          
+          this.resetClient();
           return true;
         }
         

@@ -103,7 +103,7 @@ CryptoWrapper.prototype = {
     let computedHMAC = this.ciphertextHMAC(keyBundle);
 
     if (computedHMAC != this.hmac) {
-      throw "Record SHA256 HMAC mismatch: " + this.hmac + ", not " + computedHMAC;
+      Utils.throwHMACMismatch(this.hmac, computedHMAC);
     }
 
     
@@ -167,6 +167,37 @@ function CollectionKeyManager() {
 
 
 CollectionKeyManager.prototype = {
+  
+  
+  
+  
+  _compareKeyBundleCollections: function _compareKeyBundleCollections(m1, m2) {
+    let changed = [];
+    
+    function process(m1, m2) {
+      for (let k1 in m1) {
+        let v1 = m1[k1];
+        let v2 = m2[k1];
+        if (!(v1 && v2 && v1.equals(v2)))
+          changed.push(k1);
+      }
+    }
+    
+    
+    process(m1, m2);
+    process(m2, m1);
+    
+    
+    changed.sort();
+    let last;
+    changed = [x for each (x in changed) if ((x != last) && (last = x))];
+    return {same: changed.length == 0,
+            changed: changed};
+  },
+  
+  get isClear() {
+   return !this._default;
+  },
   
   clear: function clear() {
     this._log.info("Clearing CollectionKeys...");
@@ -242,40 +273,85 @@ CollectionKeyManager.prototype = {
     return (info_collections["crypto"] > this._lastModified);
   },
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
   setContents: function setContents(payload, modified) {
+                 
+    let self = this;
+    
+    
+    
+    
+    
+    
+    function bumpModified() {
+      let lm = modified || (Math.round(Date.now()/10)/100);
+      self._log.info("Bumping last modified to " + lm);
+      self._lastModified = lm;
+    }
+    
+    this._log.info("Setting CollectionKeys contents. Our last modified: "
+        + this._lastModified + ", input modified: " + modified + ".");
+    
+    if (!payload)
+      throw "No payload in CollectionKeys.setContents().";
+    
+    if (!payload.default) {
+      this._log.warn("No downloaded default key: this should not occur.");
+      this._log.warn("Not clearing local keys.");
+      throw "No default key in CollectionKeys.setContents(). Cannot proceed.";
+    }
+    
+    
+    let b = new BulkKeyBundle(null, DEFAULT_KEYBUNDLE_NAME);
+    b.keyPair = payload.default;
+    let newDefault = b;
+    
+    
+    let newCollections = {};
     if ("collections" in payload) {
-      let out_coll = {};
-      let colls = payload["collections"];
+      this._log.info("Processing downloaded per-collection keys.");
+      let colls = payload.collections;
       for (let k in colls) {
         let v = colls[k];
         if (v) {
           let keyObj = new BulkKeyBundle(null, k);
           keyObj.keyPair = v;
           if (keyObj) {
-            out_coll[k] = keyObj;
+            newCollections[k] = keyObj;
           }
         }
       }
-      this._collections = out_coll;
-    }
-    if ("default" in payload) {
-      if (payload.default) {
-        let b = new BulkKeyBundle(null, DEFAULT_KEYBUNDLE_NAME);
-        b.keyPair = payload.default;
-        this._default = b;
-      }
-      else {
-        this._default = null;
-      }
     }
     
     
+    let sameDefault = (this._default && this._default.equals(newDefault));
+    let collComparison = this._compareKeyBundleCollections(newCollections, this._collections);
+    let sameColls = collComparison.same;
     
+    if (sameDefault && sameColls) {
+      this._log.info("New keys are the same as our old keys! Bumping local modified time and returning.");
+      bumpModified();
+      return false;
+    }
+      
     
+    this.clear();
     
+    this._log.info("Saving downloaded keys.");
+    this._default     = newDefault;
+    this._collections = newCollections;
     
-    this._lastModified = modified || (Math.round(Date.now()/10)/100);
-    return payload;
+    bumpModified();
+    
+    return sameDefault ? collComparison.changed : true;
   },
 
   updateContents: function updateContents(syncKeyBundle, storage_keys) {
@@ -298,7 +374,7 @@ CollectionKeyManager.prototype = {
     let r = this.setContents(payload, storage_keys.modified);
     log.info("Collection keys updated.");
     return r;
-    }
+  }
 }
 
 
@@ -337,6 +413,12 @@ function KeyBundle(realm, collectionName, keyStr) {
 
 KeyBundle.prototype = {
   __proto__: Identity.prototype,
+  
+  equals: function equals(bundle) {
+    return bundle &&
+           (bundle.hmacKey == this.hmacKey) &&
+           (bundle.encryptionKey == this.encryptionKey);
+  },
   
   
 
