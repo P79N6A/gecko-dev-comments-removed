@@ -758,15 +758,6 @@ const nsHTMLElement gHTMLElements[] = {
                 0,0,
   },
   {
-                                 eHTMLTag_isindex,
-                    eHTMLTag_unknown,eHTMLTag_unknown,
-              &gRootTags,&gRootTags,
-     0,0,0,0,
-              kBlock, kFlowEntity, kNone,
-           kNonContainer|kRequiresBody,kDefaultPropRange,
-                &gInBody,0,
-  },
-  {
                                  eHTMLTag_kbd,
               eHTMLTag_unknown,eHTMLTag_unknown,
               &gRootTags,&gRootTags,
