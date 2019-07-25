@@ -370,6 +370,9 @@ RESTRequest.prototype = {
   
 
   onStartRequest: function onStartRequest(channel) {
+    
+    this.channel = channel;
+
     if (this.status == this.ABORTED) {
       this._log.trace("Not proceeding with onStartRequest, request was aborted.");
       return;
@@ -394,6 +397,9 @@ RESTRequest.prototype = {
   },
 
   onStopRequest: function onStopRequest(channel, context, statusCode) {
+    
+    this.channel = channel;
+
     if (this.timeoutTimer) {
       
       this.timeoutTimer.clear();
