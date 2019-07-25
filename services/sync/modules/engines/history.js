@@ -115,11 +115,7 @@ HistoryStore.prototype = {
   },
 
   get _db() {
-    
-    
-    
-    
-      return this._hsvc.DBConnection;
+    return this._hsvc.DBConnection;
   },
 
   _fetchRow: function HistStore__fetchRow(stm, params, retparams) {
