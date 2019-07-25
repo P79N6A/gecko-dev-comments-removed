@@ -489,19 +489,6 @@ JSD_GetClosestPC(JSDContext* jsdc, JSDScript* jsdscript, uintN line);
 
 
 
-extern JSD_PUBLIC_API(jsuword)
-JSD_GetFirstValidPC(JSDContext* jsdc, JSDScript* jsdscript);
-
-
-
-
-
-extern JSD_PUBLIC_API(jsuword)
-JSD_GetEndPC(JSDContext* jsdc, JSDScript* jsdscript);
-
-
-
-
 
 
 extern JSD_PUBLIC_API(uintN)
