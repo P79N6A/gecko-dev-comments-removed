@@ -2054,6 +2054,9 @@ nsObjectFrame::Instantiate(nsIChannel* aChannel, nsIStreamListener** aStreamList
   
   FixupWindow(GetContentRect().Size());
 
+  
+  Invalidate(GetContentRect() - GetPosition());
+
   nsWeakFrame weakFrame(this);
 
   NS_ASSERTION(!mPreventInstantiation, "Say what?");
@@ -2093,6 +2096,9 @@ nsObjectFrame::Instantiate(const char* aMimeType, nsIURI* aURI)
 
   
   FixupWindow(GetContentRect().Size());
+
+  
+  Invalidate(GetContentRect() - GetPosition());
 
   
   nsCOMPtr<nsIPluginHost> pluginHost(do_GetService(MOZ_PLUGIN_HOST_CONTRACTID, &rv));
