@@ -172,12 +172,9 @@ public class AwesomeBar extends GeckoActivity implements GeckoEventListener {
 
                 
                 
-                if (hasCompositionString(s)) {
-                    return;
+                if (!hasCompositionString(s)) {
+                    updateGoButton(text);
                 }
-
-                
-                updateGoButton(text);
 
                 
                 if (mSuggestTask != null) {
