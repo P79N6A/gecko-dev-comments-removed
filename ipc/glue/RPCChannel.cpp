@@ -173,6 +173,16 @@ RPCChannel::Call(Message* msg, Message* reply)
     while (1) {
         
         
+        
+        
+        
+        if (!Connected()) {
+            ReportConnectionError("RPCChannel");
+            return false;
+        }
+
+        
+        
         MaybeProcessDeferredIncall();
 
         

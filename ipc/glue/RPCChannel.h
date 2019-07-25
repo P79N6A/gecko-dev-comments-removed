@@ -124,6 +124,11 @@ public:
     
     bool UnblockChild();
 
+    
+    bool IsOnCxxStack() const {
+        return 0 < mCxxStackFrames;
+    }
+
     NS_OVERRIDE
     virtual bool OnSpecialMessage(uint16 id, const Message& msg);
 
