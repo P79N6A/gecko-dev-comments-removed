@@ -584,6 +584,8 @@ XPCWrappedNativeScope::SystemIsBeingShutDown()
     gScopes = nsnull;
 
     
+    
+    
 
     for (cur = gDyingScopes; cur; cur = cur->mNext) {
         
@@ -598,6 +600,18 @@ XPCWrappedNativeScope::SystemIsBeingShutDown()
                 Enumerate(WrappedNativeProtoShutdownEnumerator,  &data);
         cur->mWrappedNativeMap->
                 Enumerate(WrappedNativeShutdownEnumerator,  &data);
+
+        
+        
+        
+        
+        JSObject *global = cur->mGlobalJSObject;
+        if (global &&
+            js::GetObjectClass(global)->flags & JSCLASS_XPCONNECT_GLOBAL)
+        {
+            JS_SetReservedSlot(global, JSCLASS_GLOBAL_SLOT_COUNT,
+                               PRIVATE_TO_JSVAL(nsnull));
+        }
     }
 
     
