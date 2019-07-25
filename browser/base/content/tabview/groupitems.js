@@ -65,6 +65,7 @@
 
 
 
+
 function GroupItem(listOfEls, options) {
   if (!options)
     options = {};
@@ -1565,34 +1566,21 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   reorderTabsBasedOnTabItemOrder: function GroupItem_reorderTabsBasedOnTabItemOrder() {
-    let targetIndices = null;
+    let indices;
+    let tabs = this._children.map(function (tabItem) tabItem.tab);
 
-    let self = this;
-    this._children.some(function(tabItem, index) {
-      
-      if (!targetIndices) {
-        let currentIndices = [tabItem.tab._tPos for each (tabItem in self._children)];
-        targetIndices = currentIndices.concat().sort();
-        
-        if (currentIndices == targetIndices)
-          return true;
-      }
-    
-      
-      let originalIndex = tabItem.tab._tPos;
-      let targetRange = new Range(index ? targetIndices[index - 1] : -1,
-                                  targetIndices[index + 1] || Infinity);
+    tabs.forEach(function (tab, index) {
+      if (!indices)
+        indices = tabs.map(function (tab) tab._tPos);
 
-      
-      
-      if (!targetRange.contains(originalIndex)) {
-        let targetIndex = targetIndices[index];
-        gBrowser.moveTabTo(tabItem.tab, targetIndex);
-        
-        targetIndices = null;
+      let start = index ? indices[index - 1] + 1 : 0;
+      let end = index + 1 < indices.length ? indices[index + 1] - 1 : Infinity;
+      let targetRange = new Range(start, end);
+
+      if (!targetRange.contains(tab._tPos)) {
+        gBrowser.moveTabTo(tab, start);
+        indices = null;
       }
-      
-      return false;
     });
   },
 
