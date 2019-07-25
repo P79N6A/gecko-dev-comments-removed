@@ -1083,6 +1083,10 @@ class TraceRecorder
     GuardedShapeTable               guardedShapeTable;
 
     
+    int                             initDepth;
+    bool                            hadNewInit;
+
+    
 
     
     nanojit::LIns*                  rval_ins;

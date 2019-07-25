@@ -1435,6 +1435,13 @@ EmitTraceOp(JSContext *cx, JSCodeGenerator *cg)
         SET_UINT16(pc_, j);                                                   \
     JS_END_MACRO
 
+#define EMIT_UINT16_IN_PLACE(offset, op, i)                                   \
+    JS_BEGIN_MACRO                                                            \
+        CG_CODE(cg, offset)[0] = op;                                          \
+        CG_CODE(cg, offset)[1] = UINT16_HI(i);                                \
+        CG_CODE(cg, offset)[2] = UINT16_LO(i);                                \
+    JS_END_MACRO
+
 static JSBool
 FlushPops(JSContext *cx, JSCodeGenerator *cg, intN *npops)
 {
@@ -1734,6 +1741,12 @@ LookupCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
     return JS_TRUE;
 }
 
+static inline bool
+FitsWithoutBigIndex(uintN index)
+{
+    return index < JS_BIT(16);
+}
+
 
 
 
@@ -1753,7 +1766,7 @@ EmitBigIndexPrefix(JSContext *cx, JSCodeGenerator *cg, uintN index)
     JS_STATIC_ASSERT(INDEX_LIMIT >=
                      (JSOP_INDEXBASE3 - JSOP_INDEXBASE1 + 2) << 16);
 
-    if (index < JS_BIT(16))
+    if (FitsWithoutBigIndex(index))
         return JSOP_NOP;
     indexBase = index >> 16;
     if (indexBase <= JSOP_INDEXBASE3 - JSOP_INDEXBASE1 + 1) {
@@ -4467,15 +4480,8 @@ EmitFunctionDefNop(JSContext *cx, JSCodeGenerator *cg, uintN index)
 static bool
 EmitNewInit(JSContext *cx, JSCodeGenerator *cg, JSProtoKey key, JSParseNode *pn, int sharpnum)
 {
-    
-
-
-
-
-
-    uint16 count = (pn->pn_count >= JS_BIT(16)) ? JS_BIT(16) - 1 : pn->pn_count;
-
-    EMIT_UINT16PAIR_IMM_OP(JSOP_NEWINIT, (uint16) key, count);
+    if (js_Emit3(cx, cg, JSOP_NEWINIT, (jsbytecode) key, 0) < 0)
+        return false;
 #if JS_HAS_SHARP_VARS
     if (cg->hasSharps()) {
         if (pn->pn_count != 0)
@@ -6772,39 +6778,17 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
-
-
-
-
-
-
-
 #if JS_HAS_SHARP_VARS
         sharpnum = -1;
       do_emit_array:
 #endif
 
-        op = (JS_LIKELY(pn->pn_count < JS_BIT(16)) && cg->inFunction())
-             ? JSOP_NEWARRAY
-             : JSOP_NEWINIT;
-
-#if JS_HAS_GENERATORS
-        if (pn->pn_type == TOK_ARRAYCOMP)
-            op = JSOP_NEWINIT;
-#endif
-#if JS_HAS_SHARP_VARS
-        JS_ASSERT_IF(sharpnum >= 0, cg->hasSharps());
-        if (cg->hasSharps())
-            op = JSOP_NEWINIT;
-#endif
-
-        if (op == JSOP_NEWINIT && !EmitNewInit(cx, cg, JSProto_Array, pn, sharpnum))
-            return JS_FALSE;
-
 #if JS_HAS_GENERATORS
         if (pn->pn_type == TOK_ARRAYCOMP) {
             uintN saveDepth;
+
+            if (!EmitNewInit(cx, cg, JSProto_Array, pn, sharpnum))
+                return JS_FALSE;
 
             
 
@@ -6825,9 +6809,25 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 #endif 
 
+        
+
+
+
+
+        if (cg->hasSharps() || pn->pn_count >= MIN_SPARSE_INDEX) {
+            if (!EmitNewInit(cx, cg, JSProto_Array, pn, sharpnum))
+                return JS_FALSE;
+        } else {
+            ptrdiff_t off = js_EmitN(cx, cg, JSOP_NEWARRAY, 3);
+            if (off < 0)
+                return JS_FALSE;
+            pc = CG_CODE(cg, off);
+            SET_UINT24(pc, pn->pn_count);
+        }
+
         pn2 = pn->pn_head;
         for (atomIndex = 0; pn2; atomIndex++, pn2 = pn2->pn_next) {
-            if (op == JSOP_NEWINIT && !EmitNumberOp(cx, atomIndex, cg))
+            if (!EmitNumberOp(cx, atomIndex, cg))
                 return JS_FALSE;
             if (pn2->pn_type == TOK_COMMA && pn2->pn_arity == PN_NULLARY) {
                 if (js_Emit1(cx, cg, JSOP_HOLE) < 0)
@@ -6836,7 +6836,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 if (!js_EmitTree(cx, cg, pn2))
                     return JS_FALSE;
             }
-            if (op == JSOP_NEWINIT && js_Emit1(cx, cg, JSOP_INITELEM) < 0)
+            if (js_Emit1(cx, cg, JSOP_INITELEM) < 0)
                 return JS_FALSE;
         }
         JS_ASSERT(atomIndex == pn->pn_count);
@@ -6847,18 +6847,12 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 return JS_FALSE;
         }
 
-        if (op == JSOP_NEWINIT) {
-            
+        
 
 
 
-            if (!EmitEndInit(cx, cg, atomIndex))
-                return JS_FALSE;
-            break;
-        }
-
-        JS_ASSERT(atomIndex < JS_BIT(16));
-        EMIT_UINT16_IMM_OP(JSOP_NEWARRAY, atomIndex);
+        if (!EmitEndInit(cx, cg, atomIndex))
+            return JS_FALSE;
         break;
 
       case TOK_RC: {
@@ -6880,8 +6874,21 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
+        ptrdiff_t offset = CG_NEXT(cg) - CG_BASE(cg);
         if (!EmitNewInit(cx, cg, JSProto_Object, pn, sharpnum))
             return JS_FALSE;
+
+        
+
+
+
+        JSObject *obj = NULL;
+        if (!cg->hasSharps() && cg->compileAndGo()) {
+            gc::FinalizeKind kind = GuessObjectGCKind(pn->pn_count, false);
+            obj = NewBuiltinClassInstance(cx, &js_ObjectClass, kind);
+            if (!obj)
+                return JS_FALSE;
+        }
 
         uintN methodInits = 0, slowMethodInits = 0;
         for (pn2 = pn->pn_head; pn2; pn2 = pn2->pn_next) {
@@ -6898,12 +6905,14 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
             op = PN_OP(pn2);
             if (op == JSOP_GETTER || op == JSOP_SETTER) {
+                obj = NULL;
                 if (js_Emit1(cx, cg, op) < 0)
                     return JS_FALSE;
             }
 
             
             if (pn3->pn_type == TOK_NUMBER) {
+                obj = NULL;
                 if (js_NewSrcNote(cx, cg, SRC_INITPROP) < 0)
                     return JS_FALSE;
                 if (js_Emit1(cx, cg, JSOP_INITELEM) < 0)
@@ -6921,12 +6930,31 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 if (lambda)
                     ++methodInits;
                 if (op == JSOP_INITPROP && lambda && init->pn_funbox->joinable()) {
+                    obj = NULL;
                     op = JSOP_INITMETHOD;
                     pn2->pn_op = uint8(op);
                 } else {
+                    
+
+
+
+                    if (pn3->pn_atom == cx->runtime->atomState.protoAtom)
+                        obj = NULL;
                     op = JSOP_INITPROP;
                     if (lambda)
                         ++slowMethodInits;
+                }
+
+                if (obj) {
+                    JS_ASSERT(!obj->inDictionaryMode());
+                    JSProperty *prop = NULL;
+                    if (!js_DefineNativeProperty(cx, obj,
+                                                 ATOM_TO_JSID(pn3->pn_atom), UndefinedValue(), NULL, NULL,
+                                                 JSPROP_ENUMERATE, 0, 0, &prop, 0)) {
+                        return JS_FALSE;
+                    }
+                    if (obj->inDictionaryMode())
+                        obj = NULL;
                 }
 
                 EMIT_INDEX_OP(op, ALE_INDEX(ale));
@@ -6934,11 +6962,26 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
         }
 
         if (cg->funbox && cg->funbox->shouldUnbrand(methodInits, slowMethodInits)) {
+            obj = NULL;
             if (js_Emit1(cx, cg, JSOP_UNBRAND) < 0)
                 return JS_FALSE;
         }
         if (!EmitEndInit(cx, cg, pn->pn_count))
             return JS_FALSE;
+
+        if (obj) {
+            
+
+
+
+            JSObjectBox *objbox = cg->parser->newObjectBox(obj);
+            if (!objbox)
+                return JS_FALSE;
+            unsigned index = cg->objectList.index(objbox);
+            if (FitsWithoutBigIndex(index))
+                EMIT_UINT16_IN_PLACE(offset, JSOP_NEWOBJECT, uint16(index));
+        }
+
         break;
       }
 
