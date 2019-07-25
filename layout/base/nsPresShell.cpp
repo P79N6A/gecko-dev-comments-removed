@@ -5846,14 +5846,10 @@ void PresShell::UpdateCanvasBackground()
     
     
     
-    PRBool drawBackgroundImage;
-    PRBool drawBackgroundColor;
     mCanvasBackgroundColor =
       nsCSSRendering::DetermineBackgroundColor(mPresContext, bgStyle,
-                                               rootStyleFrame,
-                                               drawBackgroundImage,
-                                               drawBackgroundColor);
-    if (drawBackgroundColor && GetPresContext()->IsRootContentDocument() &&
+                                               rootStyleFrame);
+    if (GetPresContext()->IsRootContentDocument() &&
         !IsTransparentContainerElement(mPresContext)) {
       mCanvasBackgroundColor =
         NS_ComposeColors(mPresContext->DefaultBackgroundColor(), mCanvasBackgroundColor);
