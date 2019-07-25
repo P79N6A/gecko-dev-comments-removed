@@ -46,11 +46,12 @@ import org.json.simple.parser.ParseException;
 import org.mozilla.apache.commons.codec.binary.Base64;
 import org.mozilla.gecko.sync.crypto.CryptoException;
 import org.mozilla.gecko.sync.crypto.CryptoInfo;
-import org.mozilla.gecko.sync.crypto.Cryptographer;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.crypto.MissingCryptoInputException;
 import org.mozilla.gecko.sync.crypto.NoKeyBundleException;
 import org.mozilla.gecko.sync.repositories.domain.Record;
+
+
 
 
 
@@ -92,7 +93,8 @@ public class CryptoRecord extends Record {
     byte[] ciphertext = Base64.decodeBase64(((String) payload.get(KEY_CIPHERTEXT)).getBytes("UTF-8"));
     byte[] iv         = Base64.decodeBase64(((String) payload.get(KEY_IV)).getBytes("UTF-8"));
     byte[] hmac       = Utils.hex2Byte((String) payload.get(KEY_HMAC));
-    return Cryptographer.decrypt(new CryptoInfo(ciphertext, iv, hmac, keybundle));
+
+    return CryptoInfo.decrypt(ciphertext, iv, hmac, keybundle).getMessage();
   }
 
   
@@ -221,8 +223,7 @@ public class CryptoRecord extends Record {
     }
     String cleartext = payload.toJSONString();
     byte[] cleartextBytes = cleartext.getBytes("UTF-8");
-    CryptoInfo info = new CryptoInfo(cleartextBytes, keyBundle);
-    Cryptographer.encrypt(info);
+    CryptoInfo info = CryptoInfo.encrypt(cleartextBytes, keyBundle);
     String message = new String(Base64.encodeBase64(info.getMessage()));
     String iv      = new String(Base64.encodeBase64(info.getIV()));
     String hmac    = Utils.byte2hex(info.getHMAC());
