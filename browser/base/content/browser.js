@@ -8090,7 +8090,7 @@ let AddonsMgrListener = {
   get statusBar() document.getElementById("status-bar"),
   getAddonBarItemCount: function() {
     
-    return this.addonBar.childNodes.length - 1 +
+    return this.addonBar.childNodes.length - 3 +
            this.statusBar.childNodes.length;
   },
   onInstalling: function(aAddon) {
