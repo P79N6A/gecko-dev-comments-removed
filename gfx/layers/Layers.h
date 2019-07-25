@@ -146,26 +146,11 @@ public:
 
 
 
-
-
-
-
-
-
-
-  typedef void (* DrawThebesLayerCallback)(ThebesLayer* aLayer,
-                                           gfxContext* aContext,
-                                           const nsIntRegion& aRegionToDraw,
-                                           void* aCallbackData);
+  virtual void EndConstruction() = 0;
   
 
 
-
-
-
-
-  virtual void EndTransaction(DrawThebesLayerCallback aCallback,
-                              void* aCallbackData) = 0;
+  virtual void EndTransaction() = 0;
 
   
 
@@ -211,8 +196,6 @@ public:
 
   virtual LayersBackend GetBackendType() = 0;
 };
-
-class ThebesLayer;
 
 
 
@@ -318,12 +301,6 @@ public:
 
 
 
-  virtual ThebesLayer* AsThebesLayer() { return nsnull; }
-  
-  
-
-
-
 
   void* ImplData() { return mImplData; }
 
@@ -381,7 +358,36 @@ public:
 
   virtual void InvalidateRegion(const nsIntRegion& aRegion) = 0;
 
-  virtual ThebesLayer* AsThebesLayer() { return this; }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual gfxContext* BeginDrawing(nsIntRegion* aRegionToDraw) = 0;
+  
+
+
+
+
+
+
+  virtual void EndDrawing() = 0;
 
 protected:
   ThebesLayer(LayerManager* aManager, void* aImplData)
