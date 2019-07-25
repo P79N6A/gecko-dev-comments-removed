@@ -766,6 +766,34 @@ ElementForStyleContext(nsIContent* aParentContent,
   return content->AsElement();
 }
 
+static nsIFrame*
+GetPrevContinuationWithPossiblySameStyle(nsIFrame* aFrame)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+  if (!prevContinuation && (aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL)) {
+    
+    
+    prevContinuation = static_cast<nsIFrame*>(
+      aFrame->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+    if (prevContinuation) {
+      prevContinuation = static_cast<nsIFrame*>(
+        prevContinuation->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()));
+    }
+  }
+  return prevContinuation;
+}
+
 nsresult
 nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
 {
@@ -831,7 +859,8 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
     }
 #endif
 
-    nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+    nsIFrame *prevContinuation =
+      GetPrevContinuationWithPossiblySameStyle(aFrame);
     nsStyleContext *prevContinuationContext;
     PRBool copyFromContinuation =
       prevContinuation &&
@@ -1147,12 +1176,35 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                        nextContinuationContext->GetParent(),
                      "continuations should have the same style context");
       }
+      
+      
+      
+      if ((aFrame->GetStateBits() & NS_FRAME_IS_SPECIAL) &&
+          !aFrame->GetPrevContinuation()) {
+        nsIFrame *nextIBSibling = static_cast<nsIFrame*>(
+          aFrame->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+        if (nextIBSibling) {
+          nextIBSibling = static_cast<nsIFrame*>(
+            nextIBSibling->Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+        }
+        if (nextIBSibling) {
+          nsStyleContext *nextIBSiblingContext =
+            nextIBSibling->GetStyleContext();
+          NS_ASSERTION(oldContext == nextIBSiblingContext ||
+                       oldContext->GetPseudo() !=
+                         nextIBSiblingContext->GetPseudo() ||
+                       oldContext->GetParent() !=
+                         nextIBSiblingContext->GetParent(),
+                       "continuations should have the same style context");
+        }
+      }
     }
 #endif
 
     
     nsRefPtr<nsStyleContext> newContext;
-    nsIFrame *prevContinuation = aFrame->GetPrevContinuation();
+    nsIFrame *prevContinuation =
+      GetPrevContinuationWithPossiblySameStyle(aFrame);
     nsStyleContext *prevContinuationContext;
     PRBool copyFromContinuation =
       prevContinuation &&
@@ -1171,7 +1223,15 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
                    "non pseudo-element frame without content node");
       newContext = styleSet->ResolveStyleForNonElement(parentContext);
     }
-    else if (!aRestyleHint) {
+    else if (!aRestyleHint && !prevContinuation) {
+      
+      
+      
+      
+      
+      
+      
+      
       newContext =
         styleSet->ReparentStyleContext(oldContext, parentContext,
                                        ElementForStyleContext(aParentContent,
