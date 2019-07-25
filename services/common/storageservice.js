@@ -999,20 +999,6 @@ StorageCollectionGetRequest.prototype = {
   
 
 
-  set index_above(value) {
-    this._namedArgs.index_above = value;
-  },
-
-  
-
-
-  set index_below(value) {
-    this._namedArgs.index_below = value;
-  },
-
-  
-
-
   set limit(value) {
     this._namedArgs.limit = value;
   },
