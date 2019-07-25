@@ -1788,6 +1788,29 @@ pref("font.size.inflation.lineThreshold", 400);
 
 pref("font.size.inflation.mappingIntercept", 1);
 
+
+
+
+
+
+
+
+
+
+pref("ui.touch.radius.enabled", false);
+pref("ui.touch.radius.leftmm", 8);
+pref("ui.touch.radius.topmm", 12);
+pref("ui.touch.radius.rightmm", 8);
+pref("ui.touch.radius.bottommm", 4);
+pref("ui.touch.radius.visitedWeight", 120);
+
+pref("ui.mouse.radius.enabled", false);
+pref("ui.mouse.radius.leftmm", 8);
+pref("ui.mouse.radius.topmm", 12);
+pref("ui.mouse.radius.rightmm", 8);
+pref("ui.mouse.radius.bottommm", 4);
+pref("ui.mouse.radius.visitedWeight", 120);
+
 #ifdef XP_WIN
 
 pref("font.name.serif.ar", "Times New Roman");
