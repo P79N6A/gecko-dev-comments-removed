@@ -336,8 +336,7 @@ fun_resolve(JSContext *cx, HandleObject obj, HandleId id, unsigned flags,
 
 template<XDRMode mode>
 bool
-js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enclosingScript,
-                           JSObject **objp)
+js::XDRInterpretedFunction(XDRState<mode> *xdr, JSObject **objp, JSScript *parentScript)
 {
     
     JSAtom *atom;
@@ -383,7 +382,7 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
     if (!xdr->codeUint32(&flagsword))
         return false;
 
-    if (!XDRScript(xdr, enclosingScope, enclosingScript, fun, &script))
+    if (!XDRScript(xdr, &script, parentScript))
         return false;
 
     if (mode == XDR_DECODE) {
@@ -404,13 +403,13 @@ js::XDRInterpretedFunction(XDRState<mode> *xdr, HandleObject enclosingScope, Han
 }
 
 template bool
-js::XDRInterpretedFunction(XDRState<XDR_ENCODE> *, HandleObject, HandleScript, JSObject **);
+js::XDRInterpretedFunction(XDRState<XDR_ENCODE> *xdr, JSObject **objp, JSScript *parentScript);
 
 template bool
-js::XDRInterpretedFunction(XDRState<XDR_DECODE> *, HandleObject, HandleScript, JSObject **);
+js::XDRInterpretedFunction(XDRState<XDR_DECODE> *xdr, JSObject **objp, JSScript *parentScript);
 
 JSObject *
-js::CloneInterpretedFunction(JSContext *cx, HandleObject enclosingScope, HandleFunction srcFun)
+js::CloneInterpretedFunction(JSContext *cx, HandleFunction srcFun)
 {
     
 
@@ -424,7 +423,7 @@ js::CloneInterpretedFunction(JSContext *cx, HandleObject enclosingScope, HandleF
         return NULL;
 
     Rooted<JSScript*> srcScript(cx, srcFun->script());
-    JSScript *clonedScript = CloneScript(cx, enclosingScope, clone, srcScript);
+    JSScript *clonedScript = CloneScript(cx, srcScript);
     if (!clonedScript)
         return NULL;
 
@@ -1284,21 +1283,18 @@ js_CloneFunctionObject(JSContext *cx, HandleFunction fun, HandleObject parent,
 
 
 
-
-
         if (clone->isInterpreted()) {
             RootedScript script(cx, clone->script());
             JS_ASSERT(script);
             JS_ASSERT(script->compartment() == fun->compartment());
             JS_ASSERT(script->compartment() != cx->compartment);
-            JS_ASSERT(!script->enclosingStaticScope());
 
             clone->mutableScript().init(NULL);
-
-            JSScript *cscript = CloneScript(cx, NullPtr(), clone, script);
+            JSScript *cscript = CloneScript(cx, script);
             if (!cscript)
                 return NULL;
 
+            cscript->globalObject = &clone->global();
             clone->setScript(cscript);
             cscript->setFunction(clone);
             if (!clone->setTypeForScriptedFunction(cx))

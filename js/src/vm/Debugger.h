@@ -355,6 +355,13 @@ class BreakpointSite {
     jsbytecode * const pc;
 
   private:
+    
+
+
+
+
+    GlobalObject *scriptGlobal;
+
     JSCList breakpoints;  
     size_t enabledCount;  
     JSTrapHandler trapHandler;  
@@ -367,6 +374,7 @@ class BreakpointSite {
     Breakpoint *firstBreakpoint() const;
     bool hasBreakpoint(Breakpoint *bp);
     bool hasTrap() const { return !!trapHandler; }
+    GlobalObject *getScriptGlobal() const { return scriptGlobal; }
 
     void inc(FreeOp *fop);
     void dec(FreeOp *fop);

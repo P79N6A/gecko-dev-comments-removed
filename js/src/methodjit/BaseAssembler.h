@@ -1375,7 +1375,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::MIPSRegiste
 };
 
 
-#define STRICT_VARIANT(script, f)                                             \
+#define STRICT_VARIANT(f)                                                     \
     (FunctionTemplateConditional(script->strictModeCode,                      \
                                  f<true>, f<false>))
 

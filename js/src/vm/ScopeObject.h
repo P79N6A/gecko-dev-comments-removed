@@ -27,64 +27,6 @@ namespace js {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class StaticScopeIter
-{
-    JSObject *obj;
-    bool onNamedLambda;
-
-  public:
-    explicit StaticScopeIter(JSObject *obj);
-
-    bool done() const;
-    void operator++(int);
-
-    
-    bool hasDynamicScopeObject() const;
-    Shape *scopeShape() const;
-
-    enum Type { BLOCK, FUNCTION, NAMED_LAMBDA };
-    Type type() const;
-
-    StaticBlockObject &block() const;
-    JSScript *funScript() const;
-};
-
-
-
-
-
-
-
-
-
-
-
-
 struct ScopeCoordinate
 {
     uint16_t hops;
@@ -95,15 +37,23 @@ struct ScopeCoordinate
 };
 
 
-
-
-
-extern StaticScopeIter
-ScopeCoordinateToStaticScope(JSScript *script, jsbytecode *pc);
+extern StaticBlockObject *
+ScopeCoordinateBlockChain(JSScript *script, jsbytecode *pc);
 
 
 extern PropertyName *
 ScopeCoordinateName(JSRuntime *rt, JSScript *script, jsbytecode *pc);
+
+
+
+
+
+
+
+
+enum FrameIndexType { FrameIndex_Local, FrameIndex_Arg };
+extern FrameIndexType
+ScopeCoordinateToFrameIndex(JSScript *script, jsbytecode *pc, unsigned *index);
 
 
 
@@ -195,14 +145,21 @@ class CallObject : public ScopeObject
     inline JSFunction &callee() const;
 
     
-    inline const Value &formal(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
-    inline void setFormal(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
+    inline const Value &arg(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
+    inline void setArg(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
     inline const Value &var(unsigned i, MaybeCheckAliasing = CHECK_ALIASING) const;
     inline void setVar(unsigned i, const Value &v, MaybeCheckAliasing = CHECK_ALIASING);
 
     
+
+
+
+
+    inline HeapSlotArray argArray();
+    inline HeapSlotArray varArray();
+
     static JSBool setArgOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
     static JSBool setVarOp(JSContext *cx, HandleObject obj, HandleId id, JSBool strict, Value *vp);
 
@@ -279,39 +236,11 @@ class StaticBlockObject : public BlockObject
   public:
     static StaticBlockObject *create(JSContext *cx);
 
-    
-    inline JSObject *enclosingStaticScope() const;
-
-    
-
-
-
     inline StaticBlockObject *enclosingBlock() const;
+    inline void setEnclosingBlock(StaticBlockObject *blockObj);
 
-    
-
-
-
-    bool containsVarAtDepth(uint32_t depth);
-
-    
-
-
-
-    bool isAliased(unsigned i);
-
-    
-
-
-
-    bool needsClone();
-
-    
-
-    
-    void setAliased(unsigned i, bool aliased);
     void setStackDepth(uint32_t depth);
-    void initEnclosingStaticScope(JSObject *obj);
+    bool containsVarAtDepth(uint32_t depth);
 
     
 
@@ -324,10 +253,14 @@ class StaticBlockObject : public BlockObject
 
 
 
+    void setAliased(unsigned i, bool aliased);
+    bool isAliased(unsigned i);
+
+    
 
 
-    void initPrevBlockChainFromParser(StaticBlockObject *prev);
-    void resetPrevBlockChainFromParser();
+
+    bool needsClone();
 
     static Shape *addVar(JSContext *cx, Handle<StaticBlockObject*> block, HandleId id,
                          int index, bool *redeclared);
@@ -352,11 +285,11 @@ class ClonedBlockObject : public BlockObject
 
 template<XDRMode mode>
 bool
-XDRStaticBlockObject(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript script,
-                     StaticBlockObject **objp);
+XDRStaticBlockObject(XDRState<mode> *xdr, JSScript *script, StaticBlockObject **objp);
 
 extern JSObject *
-CloneStaticBlockObject(JSContext *cx, HandleObject enclosingScope, Handle<StaticBlockObject*> src);
+CloneStaticBlockObject(JSContext *cx, Handle<StaticBlockObject*> srcBlock,
+                       const AutoObjectVector &objects, JSScript *src);
 
 
 

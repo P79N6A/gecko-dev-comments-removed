@@ -278,16 +278,16 @@ enum {
     OBJECT_FLAG_NON_TYPED_ARRAY       = 0x00040000,
 
     
-    OBJECT_FLAG_NON_DOM               = 0x00080000,
+    OBJECT_FLAG_UNINLINEABLE          = 0x00080000,
 
     
-    OBJECT_FLAG_UNINLINEABLE          = 0x00100000,
+    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00100000,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY      = 0x00200000,
+    OBJECT_FLAG_ITERATED              = 0x00200000,
 
     
-    OBJECT_FLAG_ITERATED              = 0x00400000,
+    OBJECT_FLAG_REENTRANT_FUNCTION    = 0x00400000,
 
     
     OBJECT_FLAG_REGEXP_FLAGS_SET      = 0x00800000,
@@ -802,7 +802,7 @@ struct TypeObject : gc::Cell
 
 
 
-    
+    inline JSObject *getGlobal();
 
     
 
@@ -908,6 +908,89 @@ struct TypeCallsite
 };
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct TypeScriptNesting
+{
+    
+
+
+
+
+
+
+
+    JSScript *parent;
+
+    
+    JSScript *children;
+
+    
+    JSScript *next;
+
+    
+    CallObject *activeCall;
+
+    
+
+
+
+
+
+
+
+    const Value *argArray;
+    const Value *varArray;
+
+    
+    uint32_t activeFrames;
+
+    TypeScriptNesting() { PodZero(this); }
+    ~TypeScriptNesting();
+};
+
+
+bool CheckScriptNesting(JSContext *cx, JSScript *script);
+
+
+void NestingPrologue(JSContext *cx, StackFrame *fp);
+void NestingEpilogue(StackFrame *fp);
+
+
 class TypeScript
 {
     friend struct ::JSScript;
@@ -915,9 +998,27 @@ class TypeScript
     
     analyze::ScriptAnalysis *analysis;
 
+    
+
+
+
+
+    static const size_t GLOBAL_MISSING_SCOPE = 0x1;
+
+    
+    HeapPtr<GlobalObject> global;
+
   public:
+
+    
+    TypeScriptNesting *nesting;
+
     
     TypeResult *dynamicList;
+
+    inline TypeScript();
+
+    bool hasScope() { return size_t(global.get()) != GLOBAL_MISSING_SCOPE; }
 
     
     TypeSet *typeArray() { return (TypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
@@ -981,6 +1082,7 @@ class TypeScript
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
 
     static void Sweep(FreeOp *fop, JSScript *script);
+    inline void trace(JSTracer *trc);
     void destroy();
 };
 
@@ -1101,8 +1203,7 @@ struct TypeCompartment
 
 
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
-                              JSProtoKey kind, JSObject *proto,
-                              bool unknown = false, bool isDOM = false);
+                              JSProtoKey kind, JSObject *proto, bool unknown = false);
 
     
     TypeObject *newAllocationSiteTypeObject(JSContext *cx, AllocationSiteKey key);

@@ -207,7 +207,7 @@ enum MaybeCheckAliasing { CHECK_ALIASING = true, DONT_CHECK_ALIASING = false };
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x40, 
-    INITIAL_LOWERED        =   0x100000  
+    INITIAL_LOWERED        =   0x200000  
 };
 
 enum ExecuteType {
@@ -245,24 +245,25 @@ class StackFrame
         
         HAS_CALL_OBJ       =      0x800,  
         HAS_ARGS_OBJ       =     0x1000,  
+        HAS_NESTING        =     0x2000,  
 
         
-        HAS_HOOK_DATA      =     0x2000,  
-        HAS_ANNOTATION     =     0x4000,  
-        HAS_RVAL           =     0x8000,  
-        HAS_SCOPECHAIN     =    0x10000,  
-        HAS_PREVPC         =    0x20000,  
-        HAS_BLOCKCHAIN     =    0x40000,  
+        HAS_HOOK_DATA      =     0x4000,  
+        HAS_ANNOTATION     =     0x8000,  
+        HAS_RVAL           =    0x10000,  
+        HAS_SCOPECHAIN     =    0x20000,  
+        HAS_PREVPC         =    0x40000,  
+        HAS_BLOCKCHAIN     =    0x80000,  
 
         
-        DOWN_FRAMES_EXPANDED =  0x80000,  
-        LOWERED_CALL_APPLY   = 0x100000,  
+        DOWN_FRAMES_EXPANDED = 0x100000,  
+        LOWERED_CALL_APPLY   = 0x200000,  
 
         
-        PREV_UP_TO_DATE    =   0x200000,  
+        PREV_UP_TO_DATE    =   0x400000,  
 
         
-        HAS_PUSHED_SPS_FRAME = 0x400000  
+        HAS_PUSHED_SPS_FRAME = 0x800000  
     };
 
   private:
@@ -369,6 +370,7 @@ class StackFrame
 
     
     inline bool jitHeavyweightFunctionPrologue(JSContext *cx);
+    inline void jitTypeNestingPrologue(JSContext *cx);
     bool jitStrictEvalPrologue(JSContext *cx);
 
     

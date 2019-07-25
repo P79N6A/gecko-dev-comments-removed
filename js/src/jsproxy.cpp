@@ -367,7 +367,7 @@ IndirectProxyHandler::getPropertyDescriptor(JSContext *cx, JSObject *proxy,
 }
 
 static bool
-GetOwnPropertyDescriptor(JSContext *cx, HandleObject obj, jsid id, unsigned flags,
+GetOwnPropertyDescriptor(JSContext *cx, JSObject *obj, jsid id, unsigned flags,
                          JSPropertyDescriptor *desc)
 {
     
@@ -389,8 +389,7 @@ IndirectProxyHandler::getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy,
                                                jsid id, bool set,
                                                PropertyDescriptor *desc)
 {
-    RootedObject target(cx, GetProxyTargetObject(proxy));
-    return GetOwnPropertyDescriptor(cx, target, id,
+    return GetOwnPropertyDescriptor(cx, GetProxyTargetObject(proxy), id,
                                     JSRESOLVE_QUALIFIED, desc);
 }
 
@@ -1767,10 +1766,6 @@ js::NewProxyObject(JSContext *cx, BaseProxyHandler *handler, const Value &priv_,
 
     
     MarkTypeObjectUnknownProperties(cx, obj->type());
-
-    
-    if (clasp == &OuterWindowProxyClass && !obj->setSingletonType(cx))
-        return NULL;
 
     return obj;
 }

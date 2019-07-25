@@ -674,30 +674,11 @@ PushStatementBCE(BytecodeEmitter *bce, StmtInfoBCE *stmt, StmtType type, ptrdiff
 }
 
 
-
-
-
-static JSObject *
-EnclosingStaticScope(BytecodeEmitter *bce)
-{
-    if (bce->blockChain)
-        return bce->blockChain;
-
-    if (!bce->sc->inFunction()) {
-        JS_ASSERT(!bce->parent);
-        return NULL;
-    }
-
-    return bce->sc->fun();
-}
-
-
 static void
 PushBlockScopeBCE(BytecodeEmitter *bce, StmtInfoBCE *stmt, StaticBlockObject &blockObj,
                   ptrdiff_t top)
 {
     PushStatementBCE(bce, stmt, STMT_BLOCK, top);
-    blockObj.initEnclosingStaticScope(EnclosingStaticScope(bce));
     FinishPushBlockScope(bce, stmt, blockObj);
 }
 
@@ -873,7 +854,6 @@ EmitAliasedVarOp(JSContext *cx, JSOp op, ScopeCoordinate sc, BytecodeEmitter *bc
     SET_UINT16(pc, sc.slot);
     pc += sizeof(uint16_t);
     SET_UINT32_INDEX(pc, maybeBlockIndex);
-    CheckTypeSet(cx, bce, op);
     return true;
 }
 
@@ -892,48 +872,35 @@ ClonedBlockDepth(BytecodeEmitter *bce)
 static bool
 EmitAliasedVarOp(JSContext *cx, JSOp op, ParseNode *pn, BytecodeEmitter *bce)
 {
-    unsigned skippedScopes = 0;
-    BytecodeEmitter *bceOfDef = bce;
-    if (pn->isUsed()) {
-        
+    
 
 
 
 
-        for (unsigned i = pn->pn_cookie.level(); i; i--) {
-            skippedScopes += ClonedBlockDepth(bceOfDef);
-            if (bceOfDef->sc->funIsHeavyweight()) {
-                skippedScopes++;
-                if (bceOfDef->sc->fun()->isNamedLambda())
-                    skippedScopes++;
-            }
-            bceOfDef = bceOfDef->parent;
-        }
-    } else {
-        JS_ASSERT(pn->isDefn());
-        JS_ASSERT(pn->pn_cookie.level() == bce->script->staticLevel);
-    }
+
+
 
     ScopeCoordinate sc;
     if (JOF_OPTYPE(pn->getOp()) == JOF_QARG) {
-        sc.hops = skippedScopes + ClonedBlockDepth(bceOfDef);
-        sc.slot = bceOfDef->sc->bindings.formalIndexToSlot(pn->pn_cookie.slot());
+        sc.hops = ClonedBlockDepth(bce);
+        sc.slot = bce->sc->bindings.formalIndexToSlot(pn->pn_cookie.slot());
     } else {
         JS_ASSERT(JOF_OPTYPE(pn->getOp()) == JOF_LOCAL || pn->isKind(PNK_FUNCTION));
         unsigned local = pn->pn_cookie.slot();
-        if (local < bceOfDef->sc->bindings.numVars()) {
-            sc.hops = skippedScopes + ClonedBlockDepth(bceOfDef);
-            sc.slot = bceOfDef->sc->bindings.varIndexToSlot(local);
+        if (local < bce->sc->bindings.numVars()) {
+            sc.hops = ClonedBlockDepth(bce);
+            sc.slot = bce->sc->bindings.varIndexToSlot(local);
         } else {
-            unsigned depth = local - bceOfDef->sc->bindings.numVars();
-            StaticBlockObject *b = bceOfDef->blockChain;
+            unsigned depth = local - bce->sc->bindings.numVars();
+            unsigned hops = 0;
+            StaticBlockObject *b = bce->blockChain;
             while (!b->containsVarAtDepth(depth)) {
                 if (b->needsClone())
-                    skippedScopes++;
+                    hops++;
                 b = b->enclosingBlock();
             }
-            sc.hops = skippedScopes;
-            sc.slot = b->localIndexToSlot(bceOfDef->sc->bindings, local);
+            sc.hops = hops;
+            sc.slot = b->localIndexToSlot(bce->sc->bindings, local);
         }
     }
 
@@ -947,12 +914,8 @@ EmitVarOp(JSContext *cx, ParseNode *pn, JSOp op, BytecodeEmitter *bce)
     JS_ASSERT_IF(pn->isKind(PNK_NAME), JOF_OPTYPE(op) == JOF_QARG || JOF_OPTYPE(op) == JOF_LOCAL);
     JS_ASSERT(!pn->pn_cookie.isFree());
 
-    if (!bce->isAliasedName(pn)) {
-        JS_ASSERT(pn->isUsed() || pn->isDefn());
-        JS_ASSERT_IF(pn->isUsed(), pn->pn_cookie.level() == 0);
-        JS_ASSERT_IF(pn->isDefn(), pn->pn_cookie.level() == bce->script->staticLevel);
+    if (!bce->isAliasedName(pn))
         return EmitUnaliasedVarOp(cx, op, pn->pn_cookie.slot(), bce);
-    }
 
     switch (op) {
       case JSOP_GETARG: case JSOP_GETLOCAL: op = JSOP_GETALIASEDVAR; break;
@@ -1208,10 +1171,14 @@ TryConvertToGname(BytecodeEmitter *bce, ParseNode *pn, JSOp *op)
 static bool
 BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 {
+    Definition *dn;
+    JSOp op;
+    Definition::Kind dn_kind;
+
     JS_ASSERT(pn->isKind(PNK_NAME));
 
     
-    if ((pn->pn_dflags & PND_BOUND) || pn->isDeoptimized() || pn->getOp() == JSOP_NOP)
+    if (pn->pn_dflags & PND_BOUND)
         return true;
 
     
@@ -1221,21 +1188,27 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
-    Definition *dn;
     if (pn->isUsed()) {
         JS_ASSERT(pn->pn_cookie.isFree());
         dn = pn->pn_lexdef;
         JS_ASSERT(dn->isDefn());
+        if (pn->isDeoptimized())
+            return true;
         pn->pn_dflags |= (dn->pn_dflags & PND_CONST);
-    } else if (pn->isDefn()) {
-        dn = (Definition *) pn;
     } else {
-        return true;
+        if (!pn->isDefn())
+            return true;
+        dn = (Definition *) pn;
     }
 
-    JSOp op = pn->getOp();
+    op = pn->getOp();
+    if (op == JSOP_NOP)
+        return true;
+
     JS_ASSERT(JOF_OPTYPE(op) == JOF_ATOM);
-    JS_ASSERT_IF(dn->kind() == Definition::CONST, pn->pn_dflags & PND_CONST);
+    RootedAtom atom(cx, pn->pn_atom);
+    UpvarCookie cookie = dn->pn_cookie;
+    dn_kind = dn->kind();
 
     
 
@@ -1251,7 +1224,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case JSOP_SETCONST:
         break;
       case JSOP_DELNAME:
-        if (dn->kind() != Definition::UNKNOWN) {
+        if (dn_kind != Definition::UNKNOWN) {
             if (bce->callerFrame && dn->isTopLevel())
                 JS_ASSERT(bce->script->compileAndGo);
             else
@@ -1264,7 +1237,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         if (pn->isConst()) {
             if (bce->sc->needStrictChecks()) {
                 JSAutoByteString name;
-                if (!js_AtomToPrintableString(cx, pn->pn_atom, &name) ||
+                if (!js_AtomToPrintableString(cx, atom, &name) ||
                     !bce->reportStrictModeError(pn, JSMSG_READ_ONLY, name.ptr()))
                 {
                     return false;
@@ -1274,7 +1247,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
     }
 
-    if (dn->pn_cookie.isFree()) {
+    if (cookie.isFree()) {
         StackFrame *caller = bce->callerFrame;
         if (caller) {
             JS_ASSERT(bce->script->compileAndGo);
@@ -1315,33 +1288,33 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         return true;
     }
 
-    
+    uint16_t level = cookie.level();
+    JS_ASSERT(bce->script->staticLevel >= level);
 
-
-
-
-
-
-
-
-
-
-
-
-
-    JS_ASSERT(!pn->isDefn());
-    JS_ASSERT(pn->isUsed());
-    JS_ASSERT(pn->pn_lexdef);
-    JS_ASSERT(pn->pn_cookie.isFree());
+    const unsigned skip = bce->script->staticLevel - level;
+    if (skip != 0)
+        return true;
 
     
 
 
 
 
-    switch (dn->kind()) {
+    switch (dn_kind) {
       case Definition::UNKNOWN:
         return true;
+
+      case Definition::LET:
+        switch (op) {
+          case JSOP_NAME:     op = JSOP_GETLOCAL; break;
+          case JSOP_SETNAME:  op = JSOP_SETLOCAL; break;
+          case JSOP_INCNAME:  op = JSOP_INCLOCAL; break;
+          case JSOP_NAMEINC:  op = JSOP_LOCALINC; break;
+          case JSOP_DECNAME:  op = JSOP_DECLOCAL; break;
+          case JSOP_NAMEDEC:  op = JSOP_LOCALDEC; break;
+          default: JS_NOT_REACHED("let");
+        }
+        break;
 
       case Definition::ARG:
         switch (op) {
@@ -1359,16 +1332,7 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
       case Definition::VAR:
         if (dn->isOp(JSOP_CALLEE)) {
             JS_ASSERT(op != JSOP_CALLEE);
-
-            
-
-
-
-            if (dn->pn_cookie.level() != bce->script->staticLevel)
-                return true;
-
-            JS_ASSERT(bce->sc->fun()->flags & JSFUN_LAMBDA);
-            JS_ASSERT(pn->pn_atom == bce->sc->fun()->atom);
+            JS_ASSERT((bce->sc->fun()->flags & JSFUN_LAMBDA) && atom == bce->sc->fun()->atom);
 
             
 
@@ -1406,9 +1370,10 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         }
         
 
-      case Definition::FUNCTION:
-      case Definition::CONST:
-      case Definition::LET:
+      default:
+        JS_ASSERT_IF(dn_kind != Definition::FUNCTION,
+                     dn_kind == Definition::VAR ||
+                     dn_kind == Definition::CONST);
         switch (op) {
           case JSOP_NAME:     op = JSOP_GETLOCAL; break;
           case JSOP_SETNAME:  op = JSOP_SETLOCAL; break;
@@ -1419,42 +1384,14 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
           case JSOP_NAMEDEC:  op = JSOP_LOCALDEC; break;
           default: JS_NOT_REACHED("local");
         }
+        JS_ASSERT_IF(dn_kind == Definition::CONST, pn->pn_dflags & PND_CONST);
         break;
-
-      default:
-        JS_NOT_REACHED("unexpected dn->kind()");
-    }
-
-    
-
-
-
-
-    unsigned skip = bce->script->staticLevel - dn->pn_cookie.level();
-    JS_ASSERT_IF(skip, dn->isClosed());
-
-    
-
-
-
-
-
-
-
-
-    if (skip) {
-        BytecodeEmitter *bceSkipped = bce;
-        for (unsigned i = 0; i < skip; i++)
-            bceSkipped = bceSkipped->parent;
-        if (!bceSkipped->sc->inFunction())
-            return true;
     }
 
     JS_ASSERT(!pn->isOp(op));
     pn->setOp(op);
-    if (!pn->pn_cookie.set(bce->sc->context, skip, dn->pn_cookie.slot()))
+    if (!pn->pn_cookie.set(bce->sc->context, 0, cookie.slot()))
         return false;
-
     pn->pn_dflags |= PND_BOUND;
     return true;
 }
@@ -1705,8 +1642,11 @@ BytecodeEmitter::tellDebuggerAboutCompiledScript(JSContext *cx)
     js_CallNewScriptHook(cx, script, script->function());
     if (!parent) {
         GlobalObject *compileAndGoGlobal = NULL;
-        if (script->compileAndGo)
-            compileAndGoGlobal = &script->global();
+        if (script->compileAndGo) {
+            compileAndGoGlobal = script->globalObject;
+            if (!compileAndGoGlobal)
+                compileAndGoGlobal = &sc->scopeChain()->global();
+        }
         Debugger::onNewScript(cx, script, compileAndGoGlobal);
     }
 }
@@ -3492,14 +3432,17 @@ EmitAssignment(JSContext *cx, BytecodeEmitter *bce, ParseNode *lhs, JSOp op, Par
 
 
 
-    jsatomid atomIndex = (jsatomid) -1;
+    jsatomid atomIndex = (jsatomid) -1;              
     jsbytecode offset = 1;
 
     switch (lhs->getKind()) {
       case PNK_NAME:
         if (!BindNameToSlot(cx, bce, lhs))
             return false;
-        if (lhs->pn_cookie.isFree()) {
+        if (!lhs->pn_cookie.isFree()) {
+            JS_ASSERT(lhs->pn_cookie.level() == 0);
+            atomIndex = lhs->pn_cookie.slot();
+        } else {
             if (!bce->makeAtomIndex(lhs->pn_atom, &atomIndex))
                 return false;
             if (!lhs->isConst()) {
@@ -4300,6 +4243,7 @@ EmitIf(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
 
 
+
 MOZ_NEVER_INLINE static bool
 EmitLet(JSContext *cx, BytecodeEmitter *bce, ParseNode *pnLet)
 {
@@ -4880,15 +4824,15 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         JS_ASSERT_IF(bce->sc->inStrictMode(), sc.inStrictMode());
 
         
+        GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
         Rooted<JSScript*> parent(cx, bce->script);
-        Rooted<JSObject*> enclosingScope(cx, EnclosingStaticScope(bce));
         Rooted<JSScript*> script(cx, JSScript::Create(cx,
-                                                      enclosingScope,
                                                        false,
                                                       parent->principals,
                                                       parent->originPrincipals,
                                                       parent->compileAndGo,
                                                        false,
+                                                      globalObject,
                                                       parent->getVersion(),
                                                       parent->staticLevel + 1));
         if (!script)

@@ -104,9 +104,6 @@ class Bindings
     unsigned count() const { return nargs + nvars; }
 
     
-    inline BindingKind slotToFrameIndex(unsigned slot, unsigned *index);
-
-    
 
 
 
@@ -130,6 +127,8 @@ class Bindings
     
     inline bool extensibleParents();
     bool setExtensibleParents(JSContext *cx);
+
+    bool setParent(JSContext *cx, JSObject *obj);
 
     enum {
         
@@ -411,14 +410,27 @@ struct JSScript : public js::gc::Cell
     JSPrincipals    *originPrincipals; 
 
     
+
+
+
+
+
+
+
+
+
+
+    js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
+
+    
     js::types::TypeScript *types;
 
   private:
 #ifdef JS_METHODJIT
     JITScriptSet *jitInfo;
 #endif
+
     js::HeapPtrFunction function_;
-    js::HeapPtrObject   enclosingScope_;
 
     
 
@@ -498,9 +510,14 @@ struct JSScript : public js::gc::Cell
 
 
     bool            hasSingletons:1;  
+    bool            isOuterFunction:1; 
+    bool            isInnerFunction:1; 
+
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            uninlineable:1;   
+    bool            reentrantOuterFunction:1; 
+    bool            typesPurged:1;    
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
@@ -525,10 +542,11 @@ struct JSScript : public js::gc::Cell
     
 
   public:
-    static JSScript *Create(JSContext *cx, js::HandleObject enclosingScope, bool savedCallerFun,
+    static JSScript *Create(JSContext *cx, bool savedCallerFun,
                             JSPrincipals *principals, JSPrincipals *originPrincipals,
                             bool compileAndGo, bool noScriptRval,
-                            JSVersion version, unsigned staticLevel);
+                            js::GlobalObject *globalObject, JSVersion version,
+                            unsigned staticLevel);
 
     
     
@@ -577,14 +595,14 @@ struct JSScript : public js::gc::Cell
     }
 
     
+    JSScript *&evalHashLink() { return *globalObject.unsafeGetUnioned(); }
+
+    
 
 
 
     JSFunction *function() const { return function_; }
     void setFunction(JSFunction *fun);
-
-    
-    bool isForEval() { return isCachedEval || isActiveEval; }
 
 #ifdef DEBUG
     unsigned id();
@@ -599,7 +617,9 @@ struct JSScript : public js::gc::Cell
 
 
 
-    inline bool ensureRanAnalysis(JSContext *cx);
+
+
+    inline bool ensureRanAnalysis(JSContext *cx, JSObject *scope);
 
     
     inline bool ensureRanInference(JSContext *cx);
@@ -611,10 +631,15 @@ struct JSScript : public js::gc::Cell
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
 
-    inline js::GlobalObject &global() const;
+    inline js::GlobalObject * global() const;
+    inline js::types::TypeScriptNesting *nesting() const;
+
+    inline void clearNesting();
 
     
-    JSObject *enclosingStaticScope() const { return enclosingScope_; }
+    js::GlobalObject *getGlobalObjectOrNull() const {
+        return (isCachedEval || isActiveEval) ? NULL : globalObject.get();
+    }
 
   private:
     bool makeTypes(JSContext *cx);
@@ -850,7 +875,8 @@ struct JSScript : public js::gc::Cell
         return hasDebugScript ? debugScript()->breakpoints[pc - code] : NULL;
     }
 
-    js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc);
+    js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, jsbytecode *pc,
+                                                  js::GlobalObject *scriptGlobal);
 
     void destroyBreakpointSite(js::FreeOp *fop, jsbytecode *pc);
 
@@ -1009,7 +1035,7 @@ inline void
 CurrentScriptFileLineOrigin(JSContext *cx, unsigned *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
 
 extern JSScript *
-CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, HandleScript script);
+CloneScript(JSContext *cx, HandleScript script);
 
 
 
@@ -1018,8 +1044,7 @@ CloneScript(JSContext *cx, HandleObject enclosingScope, HandleFunction fun, Hand
 
 template<XDRMode mode>
 bool
-XDRScript(XDRState<mode> *xdr, HandleObject enclosingScope, HandleScript enclosingScript,
-          HandleFunction fun, JSScript **scriptp);
+XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript);
 
 } 
 
