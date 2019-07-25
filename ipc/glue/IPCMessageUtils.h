@@ -67,7 +67,7 @@
 
 
 
-namespace base { class FileDescriptor { }; }
+namespace base { struct FileDescriptor { }; }
 #endif
 
 using mozilla::layers::LayerManager;
