@@ -357,7 +357,7 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
                                  nsLineBox*               aLine,
                                  nsCollapsingMargin&      aBottomMarginResult,
                                  nsRect&                  aInFlowBounds,
-                                 nsRect&                  aCombinedRect,
+                                 nsOverflowAreas&         aOverflowAreas,
                                  nsReflowStatus           aReflowStatus)
 {
   
@@ -441,8 +441,8 @@ nsBlockReflowContext::PlaceBlock(const nsHTMLReflowState& aReflowState,
   
   
   nsContainerFrame::FinishReflowChild(mFrame, mPresContext, &aReflowState, mMetrics, x, y, 0);
-  
-  aCombinedRect = mMetrics.mOverflowArea + nsPoint(x, y);
+
+  aOverflowAreas = mMetrics.mOverflowAreas + nsPoint(x, y);
 
   return PR_TRUE;
 }
