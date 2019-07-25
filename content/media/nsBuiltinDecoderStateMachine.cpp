@@ -496,6 +496,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   PRBool setVolume;
   PRInt32 minWriteSamples = -1;
   PRInt64 samplesAtLastSleep = 0;
+
   {
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
     mAudioCompleted = PR_FALSE;
@@ -503,13 +504,27 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     channels = mInfo.mAudioChannels;
     rate = mInfo.mAudioRate;
     NS_ASSERTION(audioStartTime != -1, "Should have audio start time by now");
+  }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  nsRefPtr<nsAudioStream> audioStream = nsAudioStream::AllocateStream();
+  audioStream->Init(channels, rate, MOZ_SOUND_DATA_FORMAT);
+
+  {
     
     
-    mAudioStream = nsAudioStream::AllocateStream();
-    mAudioStream->Init(channels,
-                       rate,
-                       MOZ_SOUND_DATA_FORMAT);
+    
+    
+    
+    ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
+    mAudioStream = audioStream;
     volume = mVolume;
     mAudioStream->SetVolume(volume);
   }
@@ -548,6 +563,9 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
       setVolume = volume != mVolume;
       volume = mVolume;
 
+      
+      
+      
       if (IsPlaying() && mAudioStream->IsPaused()) {
         mAudioStream->Resume();
       }
@@ -668,7 +686,6 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     
     
     ReentrantMonitorAutoEnter mon(mDecoder->GetReentrantMonitor());
-    mAudioStream->Shutdown();
     mAudioStream = nsnull;
     mEventManager.Clear();
     mAudioCompleted = PR_TRUE;
@@ -676,6 +693,12 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     
     mDecoder->GetReentrantMonitor().NotifyAll();
   }
+
+  
+  
+  audioStream->Shutdown();
+  audioStream = nsnull;
+
   LOG(PR_LOG_DEBUG, ("%p Audio stream finished playing, audio thread exit", mDecoder.get()));
 }
 
@@ -1568,10 +1591,16 @@ nsBuiltinDecoderStateMachine::GetAudioClock()
   mDecoder->GetReentrantMonitor().AssertCurrentThreadIn();
   if (!HasAudio())
     return -1;
+  
+  
+  
   if (!mAudioStream) {
     
     return mAudioStartTime;
   }
+  
+  
+  
   PRInt64 t = mAudioStream->GetPosition();
   return (t == -1) ? -1 : t + mAudioStartTime;
 }

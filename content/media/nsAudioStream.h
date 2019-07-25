@@ -76,8 +76,10 @@ public:
   
   
   
+  
   virtual nsresult Init(PRInt32 aNumChannels, PRInt32 aRate, SampleFormat aFormat) = 0;
 
+  
   
   virtual void Shutdown() = 0;
 
@@ -98,6 +100,7 @@ public:
   virtual void SetVolume(double aVolume) = 0;
 
   
+  
   virtual void Drain() = 0;
 
   
@@ -117,6 +120,7 @@ public:
   
   virtual PRBool IsPaused() = 0;
 
+  
   
   
   virtual PRInt32 GetMinWriteSamples() = 0;
