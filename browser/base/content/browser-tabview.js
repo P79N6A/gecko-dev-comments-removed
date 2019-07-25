@@ -196,8 +196,8 @@ let TabView = {
       if (!event.ctrlKey && !event.metaKey && !event.shiftKey &&
           charCode == 160) { 
 #else
-      if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
-          !event.altKey && charCode == 32) { 
+      if (event.ctrlKey && !event.metaKey && !event.shiftKey && !event.altKey && 
+          charCode == KeyEvent.DOM_VK_SPACE) { 
 #endif
 
         
