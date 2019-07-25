@@ -3506,6 +3506,9 @@ pref("dom.mozContacts.enabled", false);
 pref("dom.mozContacts.whitelist", "");
 
 
+pref("dom.mozSettings.enabled", false);
+
+
 pref("browser.dom.window.dump.enabled", false);
 
 
