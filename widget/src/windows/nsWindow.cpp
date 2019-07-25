@@ -2738,9 +2738,16 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
   UpdateNonClientMargins();
 
   
+  DWORD style = GetWindowLong(mWnd, GWL_STYLE);
+  SetWindowLong(mWnd, GWL_STYLE, style & ~WS_VISIBLE);
+
+  
   
   
   nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen);
+
+  style = GetWindowLong(mWnd, GWL_STYLE);
+  SetWindowLong(mWnd, GWL_STYLE, style | WS_VISIBLE);
 
   
   nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
