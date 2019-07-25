@@ -68,6 +68,9 @@
 #include "nsIProtocolProxyService.h"
 #include "nsIStreamConverterService.h"
 #include "nsIFile.h"
+#if defined(XP_MACOSX)
+#include "nsILocalFileMac.h"
+#endif
 #include "nsIInputStream.h"
 #include "nsIIOService.h"
 #include "nsIURL.h"
@@ -1991,7 +1994,19 @@ nsresult nsPluginHost::ScanPluginsDirectory(nsIFile *pluginsDir,
       continue;
 
     PRInt64 fileModTime = LL_ZERO;
+#if defined(XP_MACOSX)
+    
+    
+    
+    nsCOMPtr<nsILocalFileMac> localFileMac = do_QueryInterface(localfile);
+    if (localFileMac) {
+      localFileMac->GetBundleContentsLastModifiedTime(&fileModTime);
+    } else {
+      localfile->GetLastModifiedTime(&fileModTime);
+    }
+#else
     localfile->GetLastModifiedTime(&fileModTime);
+#endif
 
     
     NS_ConvertUTF16toUTF8 filePath(utf16FilePath);
