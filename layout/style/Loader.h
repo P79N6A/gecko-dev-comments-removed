@@ -384,14 +384,17 @@ private:
   
   
   
+  
   nsresult CreateSheet(nsIURI* aURI,
                        nsIContent* aLinkingContent,
                        nsIPrincipal* aLoaderPrincipal,
                        bool aSyncLoad,
+                       bool aHasAlternateRel,
+                       const nsAString& aTitle,
                        StyleSheetState& aSheetState,
+                       bool *aIsAlternate,
                        nsCSSStyleSheet** aSheet);
 
-  
   
   
   
@@ -399,8 +402,7 @@ private:
                         const nsAString& aTitle,
                         const nsAString& aMediaString,
                         nsMediaList* aMediaList,
-                        bool aHasAlternateRel = false,
-                        bool *aIsAlternate = nsnull);
+                        bool isAlternate);
 
   nsresult InsertSheetInDoc(nsCSSStyleSheet* aSheet,
                             nsIContent* aLinkingContent,
