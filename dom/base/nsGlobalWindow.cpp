@@ -190,6 +190,7 @@
 #include "nsIXULWindow.h"
 #include "nsEventStateManager.h"
 #include "nsITimedChannel.h"
+#include "nsICookiePermission.h"
 #ifdef MOZ_XUL
 #include "nsXULPopupManager.h"
 #include "nsIDOMXULControlElement.h"
@@ -10913,6 +10914,36 @@ nsNavigator::GetCookieEnabled(PRBool *aCookieEnabled)
   *aCookieEnabled =
     (Preferences::GetInt("network.cookie.cookieBehavior",
                          COOKIE_BEHAVIOR_REJECT) != COOKIE_BEHAVIOR_REJECT);
+
+  
+  
+  
+  nsCOMPtr<nsIDocument> doc = do_GetInterface(mDocShell);
+  if (!doc) {
+    return NS_OK;
+  }
+
+  nsCOMPtr<nsIURI> codebaseURI;
+  doc->NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
+
+  if (!codebaseURI) {
+    
+    
+    return NS_OK;
+  }
+  
+  nsCOMPtr<nsICookiePermission> permMgr =
+    do_GetService(NS_COOKIEPERMISSION_CONTRACTID);
+  NS_ENSURE_TRUE(permMgr, NS_OK);
+
+  
+  nsCookieAccess access;
+  nsresult rv = permMgr->CanAccess(codebaseURI, nsnull, &access);
+  NS_ENSURE_SUCCESS(rv, NS_OK);
+
+  if (access != nsICookiePermission::ACCESS_DEFAULT) {
+    *aCookieEnabled = access != nsICookiePermission::ACCESS_DENY;
+  }
 
   return NS_OK;
 }

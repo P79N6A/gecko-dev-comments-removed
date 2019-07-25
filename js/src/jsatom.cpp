@@ -123,6 +123,7 @@ const char *const js_common_atom_names[] = {
     js_apply_str,               
     js_arguments_str,           
     js_arity_str,               
+    js_BYTES_PER_ELEMENT_str,   
     js_call_str,                
     js_callee_str,              
     js_caller_str,              
@@ -243,6 +244,7 @@ const char js_anonymous_str[]       = "anonymous";
 const char js_apply_str[]           = "apply";
 const char js_arguments_str[]       = "arguments";
 const char js_arity_str[]           = "arity";
+const char js_BYTES_PER_ELEMENT_str[] = "BYTES_PER_ELEMENT";
 const char js_call_str[]            = "call";
 const char js_callee_str[]          = "callee";
 const char js_caller_str[]          = "caller";

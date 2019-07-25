@@ -1831,7 +1831,10 @@ typedef enum JSGCParamKey {
     JSGC_MODE = 6,
 
     
-    JSGC_UNUSED_CHUNKS = 7
+    JSGC_UNUSED_CHUNKS = 7,
+
+    
+    JSGC_TOTAL_CHUNKS = 8
 } JSGCParamKey;
 
 typedef enum JSGCMode {
