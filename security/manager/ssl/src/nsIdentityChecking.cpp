@@ -407,6 +407,17 @@ static struct nsMyTrustedEVInfo myTrustedEVInfos[] = {
   },
   {
     
+    "1.3.6.1.4.1.4146.1.1",
+    "GlobalSign EV OID",
+    SEC_OID_UNKNOWN,
+    "D6:9B:56:11:48:F0:1C:77:C5:45:78:C1:09:26:DF:5B:85:69:76:AD",
+    "MEwxIDAeBgNVBAsTF0dsb2JhbFNpZ24gUm9vdCBDQSAtIFIzMRMwEQYDVQQKEwpH"
+    "bG9iYWxTaWduMRMwEQYDVQQDEwpHbG9iYWxTaWdu",
+    "BAAAAAABIVhTCKI=",
+    nsnull
+  },
+  {
+    
     "2.16.578.1.26.1.3.3",
     "Buypass Class 3 CA 1",
     SEC_OID_UNKNOWN,
