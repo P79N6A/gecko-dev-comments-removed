@@ -190,6 +190,12 @@ private:
   
   void EnsureItemAt(PRUint32 aIndex);
 
+  
+  
+  
+  void UpdateListIndicesFromIndex(PRUint32 aStartingIndex,
+                                  PRInt32  aInternalDataIndexDelta);
+
   DOMSVGPathSeg*& ItemAt(PRUint32 aIndex) {
     return mItems[aIndex].mItem;
   }

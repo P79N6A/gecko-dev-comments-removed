@@ -46,6 +46,25 @@
 namespace mozilla {
 
 
+namespace {
+
+using mozilla::DOMSVGNumber;
+
+void UpdateListIndicesFromIndex(nsTArray<DOMSVGNumber*>& aItemsArray,
+                                PRUint32 aStartingIndex)
+{
+  PRUint32 length = aItemsArray.Length();
+
+  for (PRUint32 i = aStartingIndex; i < length; ++i) {
+    if (aItemsArray[i]) {
+      aItemsArray[i]->UpdateListIndex(i);
+    }
+  }
+}
+
+} 
+
+
 
 
 
@@ -235,11 +254,7 @@ DOMSVGNumberList::InsertItemBefore(nsIDOMSVGNumber *newItem,
   
   domItem->InsertingIntoList(this, AttrEnum(), index, IsAnimValList());
 
-  for (PRUint32 i = index + 1; i < Length(); ++i) {
-    if (mItems[i]) {
-      mItems[i]->UpdateListIndex(i);
-    }
-  }
+  UpdateListIndicesFromIndex(mItems, index + 1);
 
   Element()->DidChangeNumberList(AttrEnum(), PR_TRUE);
 #ifdef MOZ_SMIL
@@ -318,11 +333,7 @@ DOMSVGNumberList::RemoveItem(PRUint32 index,
   InternalList().RemoveItem(index);
   mItems.RemoveElementAt(index);
 
-  for (PRUint32 i = index; i < Length(); ++i) {
-    if (mItems[i]) {
-      mItems[i]->UpdateListIndex(i);
-    }
-  }
+  UpdateListIndicesFromIndex(mItems, index);
 
   Element()->DidChangeNumberList(AttrEnum(), PR_TRUE);
 #ifdef MOZ_SMIL
