@@ -385,7 +385,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         mCurrentFrame = (mCurrentFrame + 1) % mFrameTimings.length;
 
         int averageTime = mFrameTimingsSum / mFrameTimings.length;
-        mFrameRateLayer.beginTransaction();
+        mFrameRateLayer.beginTransaction();     
         try {
             mFrameRateLayer.setText(averageTime + " ms/" + mDroppedFrames);
         } finally {
@@ -395,7 +395,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
 
     
     private void moveFrameRateLayer(int width, int height) {
-        mFrameRateLayer.beginTransaction();
+        mFrameRateLayer.beginTransaction();     
         try {
             Point origin = new Point(width - FRAME_RATE_METER_WIDTH - 8,
                                      height - FRAME_RATE_METER_HEIGHT + 8);
@@ -426,7 +426,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             return;
         }
 
-        mCheckerboardLayer.beginTransaction();
+        mCheckerboardLayer.beginTransaction();  
         try {
             mCheckerboardImage.update(showChecks, checkerboardColor);
             mCheckerboardLayer.invalidate();
@@ -434,7 +434,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             mCheckerboardLayer.endTransaction();
         }
 
-        mCheckerboardLayer.update(renderContext);
+        mCheckerboardLayer.update(renderContext);   
     }
 
     
@@ -508,6 +508,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                              scissorRect.width(), scissorRect.height());
         }
 
+        
         public void beginDrawing() {
             mFrameStartTime = SystemClock.uptimeMillis();
 
@@ -534,16 +535,16 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             mLastPageContext = mPageContext;
 
             
-            if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);
-            mUpdated &= mBackgroundLayer.update(mScreenContext);
-            mUpdated &= mShadowLayer.update(mPageContext);
+            if (rootLayer != null) mUpdated &= rootLayer.update(mPageContext);  
+            mUpdated &= mBackgroundLayer.update(mScreenContext);    
+            mUpdated &= mShadowLayer.update(mPageContext);  
             updateCheckerboardLayer(mScreenContext);
-            mUpdated &= mFrameRateLayer.update(mScreenContext);
-            mUpdated &= mVertScrollLayer.update(mPageContext);
-            mUpdated &= mHorizScrollLayer.update(mPageContext);
+            mUpdated &= mFrameRateLayer.update(mScreenContext); 
+            mUpdated &= mVertScrollLayer.update(mPageContext);  
+            mUpdated &= mHorizScrollLayer.update(mPageContext); 
 
             for (Layer layer : mExtraLayers)
-                mUpdated &= layer.update(mPageContext);
+                mUpdated &= layer.update(mPageContext); 
 
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
 
@@ -566,6 +567,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             }
         }
 
+        
         public void drawBackground() {
             
             mBackgroundLayer.draw(mScreenContext);
@@ -595,6 +597,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             GLES20.glDisable(GLES20.GL_SCISSOR_TEST);
         }
 
+        
         public void drawForeground() {
             Rect pageRect = getPageRect();
             LayerController controller = mView.getController();
@@ -661,6 +664,7 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
             }
         }
 
+        
         public void endDrawing() {
             
             if (!mUpdated)
