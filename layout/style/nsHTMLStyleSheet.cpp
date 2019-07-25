@@ -459,7 +459,7 @@ nsresult
 nsHTMLStyleSheet::ImplLinkColorSetter(nsRefPtr<HTMLColorRule>& aRule, nscolor aColor)
 {
   if (aRule && aRule->mColor == aColor) {
-      return NS_OK;
+    return NS_OK;
   }
 
   aRule = new HTMLColorRule();
@@ -469,10 +469,10 @@ nsHTMLStyleSheet::ImplLinkColorSetter(nsRefPtr<HTMLColorRule>& aRule, nscolor aC
   aRule->mColor = aColor;
   
   
-  if (mDocument && mDocument->GetPrimaryShell()) {
+  if (mDocument && mDocument->GetShell()) {
     Element* root = mDocument->GetRootElement();
     if (root) {
-      mDocument->GetPrimaryShell()->FrameConstructor()->
+      mDocument->GetShell()->FrameConstructor()->
         PostRestyleEvent(root, eRestyle_Subtree, NS_STYLE_HINT_NONE);
     }
   }

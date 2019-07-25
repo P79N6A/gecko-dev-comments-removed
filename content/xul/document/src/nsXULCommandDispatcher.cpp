@@ -436,9 +436,8 @@ nsXULCommandDispatcher::UpdateCommands(const nsAString& aEventName)
     }
 #endif
 
-    nsCOMPtr<nsIPresShell> shell = document->GetPrimaryShell();
+    nsCOMPtr<nsIPresShell> shell = document->GetShell();
     if (shell) {
-
       
       nsRefPtr<nsPresContext> context = shell->GetPresContext();
 

@@ -7845,7 +7845,7 @@ GetBindingURL(Element *aElement, nsIDocument *aDocument,
   
   
   
-  nsIPresShell *shell = aDocument->GetPrimaryShell();
+  nsIPresShell *shell = aDocument->GetShell();
   if (!shell || aElement->GetPrimaryFrame() || !aElement->IsXUL()) {
     *aResult = nsnull;
 

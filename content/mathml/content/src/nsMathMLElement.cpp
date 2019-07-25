@@ -92,7 +92,7 @@ nsMathMLElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
     
     
-    nsCOMPtr<nsIPresShell> shell = aDocument->GetPrimaryShell();
+    nsCOMPtr<nsIPresShell> shell = aDocument->GetShell();
     if (shell) {
       shell->GetPresContext()->PostRebuildAllStyleDataEvent(nsChangeHint(0));
     }

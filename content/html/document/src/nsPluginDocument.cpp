@@ -129,7 +129,7 @@ nsPluginStreamListener::SetupPlugin()
   nsCOMPtr<nsIContent> embed = mPluginDoc->GetPluginContent();
 
   
-  nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetShell();
   if (!shell) {
     
     mPluginDoc->AllowNormalInstantiation();
@@ -269,7 +269,7 @@ nsPluginDocument::StartDocumentLoad(const char*         aCommand,
 nsresult
 nsPluginDocument::CreateSyntheticPluginDocument()
 {
-  NS_ASSERTION(!GetPrimaryShell() || !GetPrimaryShell()->DidInitialReflow(),
+  NS_ASSERTION(!GetShell() || !GetShell()->DidInitialReflow(),
                "Creating synthetic plugin document content too late");
 
   

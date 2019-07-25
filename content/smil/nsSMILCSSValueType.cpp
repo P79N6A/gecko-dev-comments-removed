@@ -327,7 +327,7 @@ GetPresContextForElement(nsIContent* aElem)
     
     return nsnull;
   }
-  nsIPresShell* shell = doc->GetPrimaryShell();
+  nsIPresShell* shell = doc->GetShell();
   return shell ? shell->GetPresContext() : nsnull;
 }
 

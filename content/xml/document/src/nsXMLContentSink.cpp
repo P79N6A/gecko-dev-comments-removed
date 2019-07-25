@@ -1176,7 +1176,7 @@ nsXMLContentSink::HandleEndElement(const PRUnichar *aName,
     
     
     nsRefPtr<nsPresContext> ctx;
-    nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
+    nsCOMPtr<nsIPresShell> shell = mDocument->GetShell();
     if (shell) {
       ctx = shell->GetPresContext();
     }

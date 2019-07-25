@@ -5519,7 +5519,7 @@ PostMessageEvent::Run()
   
   
 
-  nsIPresShell *shell = targetWindow->mDoc->GetPrimaryShell();
+  nsIPresShell *shell = targetWindow->mDoc->GetShell();
   nsRefPtr<nsPresContext> presContext;
   if (shell)
     presContext = shell->GetPresContext();
@@ -6703,7 +6703,7 @@ nsGlobalWindow::DispatchEvent(nsIDOMEvent* aEvent, PRBool* _retval)
   }
 
   
-  nsIPresShell *shell = mDoc->GetPrimaryShell();
+  nsIPresShell *shell = mDoc->GetShell();
   nsRefPtr<nsPresContext> presContext;
   if (shell) {
     
@@ -7299,7 +7299,7 @@ nsGlobalWindow::DispatchSyncPopState()
   }
 
   
-  nsIPresShell *shell = mDoc->GetPrimaryShell();
+  nsIPresShell *shell = mDoc->GetShell();
   nsRefPtr<nsPresContext> presContext;
   if (shell) {
     presContext = shell->GetPresContext();

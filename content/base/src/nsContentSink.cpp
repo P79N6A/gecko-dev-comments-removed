@@ -533,7 +533,7 @@ nsContentSink::ProcessHeaderData(nsIAtom* aHeader, const nsAString& aValue,
     
     nsAutoString value(aValue);
     if (value.LowerCaseEqualsLiteral("no")) {
-      nsIPresShell* shell = mDocument->GetPrimaryShell();
+      nsIPresShell* shell = mDocument->GetShell();
       if (shell) {
         shell->DisableThemeSupport();
       }
@@ -1267,7 +1267,7 @@ nsContentSink::StartLayout(PRBool aIgnorePendingSheets)
   mLastNotificationTime = PR_Now();
 
   mDocument->SetMayStartLayout(PR_TRUE);
-  nsCOMPtr<nsIPresShell> shell = mDocument->GetPrimaryShell();
+  nsCOMPtr<nsIPresShell> shell = mDocument->GetShell();
   
   
   
@@ -1463,7 +1463,7 @@ nsContentSink::DidProcessATokenImpl()
   }
 
   
-  nsIPresShell *shell = mDocument->GetPrimaryShell();
+  nsIPresShell *shell = mDocument->GetShell();
   if (!shell) {
     
     
@@ -1631,7 +1631,7 @@ nsContentSink::WillParseImpl(void)
     return NS_OK;
   }
 
-  nsIPresShell *shell = mDocument->GetPrimaryShell();
+  nsIPresShell *shell = mDocument->GetShell();
   if (!shell) {
     return NS_OK;
   }

@@ -847,7 +847,7 @@ nsIContent::GetDesiredIMEState()
   if (!doc) {
     return IME_STATUS_DISABLE;
   }
-  nsIPresShell* ps = doc->GetPrimaryShell();
+  nsIPresShell* ps = doc->GetShell();
   if (!ps) {
     return IME_STATUS_DISABLE;
   }
@@ -3301,7 +3301,7 @@ nsGenericElement::SetSMILOverrideStyleRule(nsICSSStyleRule* aStyleRule,
     
     
     if (doc) {
-      nsCOMPtr<nsIPresShell> shell = doc->GetPrimaryShell();
+      nsCOMPtr<nsIPresShell> shell = doc->GetShell();
       if (shell) {
         shell->RestyleForAnimation(this);
       }
@@ -3621,7 +3621,7 @@ nsINode::doRemoveChildAt(PRUint32 aIndex, PRBool aNotify,
   
   
   if (aNotify && doc) {
-    nsIPresShell *presShell = doc->GetPrimaryShell();
+    nsIPresShell *presShell = doc->GetShell();
     if (presShell && presShell->IsAccessibilityActive()) {
       nsCOMPtr<nsIAccessibilityService> accService = 
         do_GetService("@mozilla.org/accessibilityService;1");
@@ -5378,7 +5378,7 @@ ParseSelectorList(nsINode* aNode,
   
   
   *aPresContext = nsnull;
-  nsIPresShell* shell = doc->GetPrimaryShell();
+  nsIPresShell* shell = doc->GetShell();
   if (shell) {
     *aPresContext = shell->GetPresContext();
   }

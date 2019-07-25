@@ -77,7 +77,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
     *aDidPrettyPrint = PR_FALSE;
     
     
-    if (!aDocument->GetPrimaryShell()) {
+    if (!aDocument->GetShell()) {
         return NS_OK;
     }
 
