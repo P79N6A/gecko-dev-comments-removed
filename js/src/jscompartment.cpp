@@ -116,16 +116,30 @@ JSCompartment::wrap(JSContext *cx, Value *vp)
     if (!vp->isMarkable())
         return true;
 
-    
-    if (vp->isString() && JSString::isStatic(vp->toString()))
-        return true;
+    if (vp->isString()) {
+        JSString *str = vp->toString();
+
+        
+        if (JSString::isStatic(str))
+            return true;
+
+        
+        if (str->asCell()->compartment() == this)
+            return true;
+
+        
+        if (str->isAtomized()) {
+            JS_ASSERT(str->asCell()->compartment() == cx->runtime->defaultCompartment);
+            return true;
+        }
+    }
 
     
     if (vp->isObject()) {
         JSObject *obj = &vp->toObject();
 
         
-        if (obj->getCompartment(cx) == this)
+        if (obj->compartment() == this)
             return true;
 
         
