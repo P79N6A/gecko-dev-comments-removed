@@ -122,7 +122,7 @@ function test() {
       let contentWindow = tab.linkedBrowser.contentWindow;
       let history = contentWindow.history;
       history.pushState({obj1:1}, "title-obj1");
-      history.pushState({obj2:2}, "title-obj2", "?page2");
+      history.pushState({obj2:2}, "title-obj2", "page2");
       history.replaceState({obj3:/^a$/}, "title-obj3");
 
       let state = ss.getTabState(tab);

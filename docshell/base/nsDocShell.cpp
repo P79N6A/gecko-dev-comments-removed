@@ -4139,7 +4139,7 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
         
         
         
-        mLSHE->AbandonBFCacheEntry();
+        mLSHE->SetUniqueDocIdentifier();
     }
 
     nsCAutoString url;
@@ -4415,7 +4415,7 @@ nsDocShell::LoadPage(nsISupports *aPageDescriptor, PRUint32 aDisplayType)
     
     
     
-    rv = shEntry->AbandonBFCacheEntry();
+    rv = shEntry->SetUniqueDocIdentifier();
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -8403,15 +8403,17 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                                   NS_SUCCEEDED(splitRv2) &&
                                   curBeforeHash.Equals(newBeforeHash);
 
-        
-        PRBool sameDocument = PR_FALSE;
+        PRBool sameDocIdent = PR_FALSE;
         if (mOSHE && aSHEntry) {
             
 
-            mOSHE->SharesDocumentWith(aSHEntry, &sameDocument);
+            PRUint64 ourDocIdent, otherDocIdent;
+            mOSHE->GetDocIdentifier(&ourDocIdent);
+            aSHEntry->GetDocIdentifier(&otherDocIdent);
+            sameDocIdent = (ourDocIdent == otherDocIdent);
 
 #ifdef DEBUG
-            if (sameDocument) {
+            if (sameDocIdent) {
                 nsCOMPtr<nsIInputStream> currentPostData;
                 mOSHE->GetPostData(getter_AddRefs(currentPostData));
                 NS_ASSERTION(currentPostData == aPostData,
@@ -8434,7 +8436,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         
-        PRBool doShortCircuitedLoad = (sameDocument && mOSHE != aSHEntry) ||
+        PRBool doShortCircuitedLoad = (sameDocIdent && mOSHE != aSHEntry) ||
                                       (!aSHEntry && aPostData == nsnull &&
                                        sameExceptHashes && !newHash.IsEmpty());
 
@@ -8485,6 +8487,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             OnNewURI(aURI, nsnull, owner, mLoadType, PR_TRUE, PR_TRUE, PR_TRUE);
 
             nsCOMPtr<nsIInputStream> postData;
+            PRUint64 docIdent = PRUint64(-1);
             nsCOMPtr<nsISupports> cacheKey;
 
             if (mOSHE) {
@@ -8498,12 +8501,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 
                 if (aLoadType & LOAD_CMD_NORMAL) {
                     mOSHE->GetPostData(getter_AddRefs(postData));
+                    mOSHE->GetDocIdentifier(&docIdent);
                     mOSHE->GetCacheKey(getter_AddRefs(cacheKey));
-
-                    
-                    
-                    
-                    mLSHE->AdoptBFCacheEntry(mOSHE);
                 }
             }
 
@@ -8523,6 +8522,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 
                 if (cacheKey)
                     mOSHE->SetCacheKey(cacheKey);
+
+                
+                
+                if (docIdent != PRUint64(-1))
+                    mOSHE->SetDocIdentifier(docIdent);
             }
 
             
@@ -8566,7 +8570,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 }
             }
 
-            if (sameDocument) {
+            if (sameDocIdent) {
                 
                 nsCOMPtr<nsIURI> newURI;
                 mOSHE->GetURI(getter_AddRefs(newURI));
@@ -8586,7 +8590,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 
                 
                 
-                if (sameDocument || doHashchange) {
+                if (sameDocIdent || doHashchange) {
                   window->DispatchSyncPopState();
                 }
 
@@ -9420,7 +9424,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
             PRUint32 responseStatus;
             nsresult rv = httpChannel->GetResponseStatus(&responseStatus);
             if (mLSHE && NS_SUCCEEDED(rv) && responseStatus >= 400) {
-                mLSHE->AbandonBFCacheEntry();
+                mLSHE->SetUniqueDocIdentifier();
             }
         }
     }
@@ -9832,8 +9836,10 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
         NS_ENSURE_TRUE(newSHEntry, NS_ERROR_FAILURE);
 
         
-        
-        NS_ENSURE_SUCCESS(newSHEntry->AdoptBFCacheEntry(oldOSHE),
+        PRUint64 ourDocIdent;
+        NS_ENSURE_SUCCESS(oldOSHE->GetDocIdentifier(&ourDocIdent),
+                          NS_ERROR_FAILURE);
+        NS_ENSURE_SUCCESS(newSHEntry->SetDocIdentifier(ourDocIdent),
                           NS_ERROR_FAILURE);
 
         
@@ -9879,7 +9885,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
         PRInt32 curIndex = -1;
         rv = rootSH->GetIndex(&curIndex);
         if (NS_SUCCEEDED(rv) && curIndex > -1) {
-            internalSH->EvictOutOfRangeContentViewers(curIndex);
+            internalSH->EvictContentViewers(curIndex - 1, curIndex);
         }
     }
 

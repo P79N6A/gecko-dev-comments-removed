@@ -1673,13 +1673,9 @@ SessionStoreService.prototype = {
     }
     else if (history && history.count > 0) {
       try {
-        
-        
-        let bfCacheEntryMap = {'max': 0};
         for (var j = 0; j < history.count; j++) {
           let entry = this._serializeHistoryEntry(history.getEntryAtIndex(j, false),
-                                                  aFullData, aTab.pinned,
-                                                  bfCacheEntryMap);
+                                                  aFullData, aTab.pinned);
           tabData.entries.push(entry);
         }
         
@@ -1770,12 +1766,8 @@ SessionStoreService.prototype = {
 
 
 
-
-
-
   _serializeHistoryEntry:
-    function sss_serializeHistoryEntry(aEntry, aFullData,
-                                       aIsPinned, aBFCacheEntryMap) {
+    function sss_serializeHistoryEntry(aEntry, aFullData, aIsPinned) {
     var entry = { url: aEntry.URI.spec };
 
     try {
@@ -1866,14 +1858,8 @@ SessionStoreService.prototype = {
       catch (ex) { debug(ex); }
     }
 
-    if (aBFCacheEntryMap[aEntry.BFCacheEntry]) {
-      entry.docIdentifier = aBFCacheEntryMap[aEntry.BFCacheEntry];
-    }
-    else {
-      let id = aBFCacheEntryMap['max'] + 1;
-      entry.docIdentifier = id;
-      aBFCacheEntryMap['max'] = id;
-      aBFCacheEntryMap[aEntry.BFCacheEntry] = id;
+    if (aEntry.docIdentifier) {
+      entry.docIdentifier = aEntry.docIdentifier;
     }
 
     if (aEntry.stateData != null) {
@@ -1891,7 +1877,7 @@ SessionStoreService.prototype = {
         var child = aEntry.GetChildAt(i);
         if (child) {
           entry.children.push(this._serializeHistoryEntry(child, aFullData,
-                                                          aIsPinned, aBFCacheEntryMap));
+                                                          aIsPinned));
         }
         else { 
           entry.children.push({ url: "about:blank" });
@@ -2974,6 +2960,7 @@ SessionStoreService.prototype = {
       browser.__SS_restore_data = tabData.entries[activeIndex] || {};
       browser.__SS_restore_pageStyle = tabData.pageStyle || "";
       browser.__SS_restore_tab = aTab;
+      browser.__SS_restore_docIdentifier = curSHEntry.docIdentifier;
 
       didStartLoad = true;
       try {
@@ -3130,12 +3117,20 @@ SessionStoreService.prototype = {
       
       
       
-      let matchingEntry = aDocIdentMap[aEntry.docIdentifier];
-      if (!matchingEntry) {
-        aDocIdentMap[aEntry.docIdentifier] = shEntry;
+      
+      
+      
+      
+      
+      
+      
+      let ident = aDocIdentMap[aEntry.docIdentifier];
+      if (!ident) {
+        shEntry.setUniqueDocIdentifier();
+        aDocIdentMap[aEntry.docIdentifier] = shEntry.docIdentifier;
       }
       else {
-        shEntry.adoptBFCacheEntry(matchingEntry);
+        shEntry.docIdentifier = ident;
       }
     }
 
@@ -3271,12 +3266,19 @@ SessionStoreService.prototype = {
       aBrowser.markupDocumentViewer.authorStyleDisabled = selectedPageStyle == "_nostyle";
     }
 
+    if (aBrowser.__SS_restore_docIdentifier) {
+      let sh = aBrowser.webNavigation.sessionHistory;
+      sh.getEntryAtIndex(sh.index, false).QueryInterface(Ci.nsISHEntry).
+         docIdentifier = aBrowser.__SS_restore_docIdentifier;
+    }
+
     
     this._sendTabRestoredNotification(aBrowser.__SS_restore_tab);
 
     delete aBrowser.__SS_restore_data;
     delete aBrowser.__SS_restore_pageStyle;
     delete aBrowser.__SS_restore_tab;
+    delete aBrowser.__SS_restore_docIdentifier;
   },
 
   
