@@ -317,6 +317,14 @@ nsDragService::InvokeDragSession(nsIDOMNode *aDOMNode,
                                  PRUint32 aActionType)
 {
     PR_LOG(sDragLm, PR_LOG_DEBUG, ("nsDragService::InvokeDragSession"));
+
+    
+    
+    
+    
+    if (mSourceNode)
+        return NS_ERROR_NOT_AVAILABLE;
+
     nsresult rv = nsBaseDragService::InvokeDragSession(aDOMNode,
                                                        aArrayTransferables,
                                                        aRegion, aActionType);
