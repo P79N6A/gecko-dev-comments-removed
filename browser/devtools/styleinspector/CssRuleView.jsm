@@ -1375,6 +1375,7 @@ InplaceEditor.prototype = {
     
     
     this._measurement = this.doc.createElementNS(HTML_NS, "span");
+    this._measurement.className = "autosizer";
     this.elt.parentNode.appendChild(this._measurement);
     let style = this._measurement.style;
     style.visibility = "hidden";
