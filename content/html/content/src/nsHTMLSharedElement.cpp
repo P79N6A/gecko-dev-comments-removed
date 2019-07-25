@@ -268,17 +268,6 @@ NS_IMPL_URI_ATTR(nsHTMLSharedElement, Cite, cite)
 
 
 
-NS_IMETHODIMP
-nsHTMLSharedElement::GetProfile(nsAString& aValue)
-{
-  return NS_ERROR_FAILURE;
-}
-NS_IMETHODIMP
-nsHTMLSharedElement::SetProfile(const nsAString& aValue)
-{
-  return NS_ERROR_FAILURE;
-}
-
 
 NS_IMPL_STRING_ATTR(nsHTMLSharedElement, Version, version)
 
