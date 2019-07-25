@@ -1984,6 +1984,7 @@ function BrowserGoHome(aEvent) {
 
   
   if (where == "current" &&
+      gBrowser &&
       gBrowser.selectedTab.pinned)
     where = "tab";
 
