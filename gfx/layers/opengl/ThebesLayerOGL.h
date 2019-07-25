@@ -113,6 +113,18 @@ public:
     oldBuffer.forget(aOldBuffer);
   }
 
+  nsIntRect Rect() {
+    return mBufferRect;
+  }
+
+  nsIntPoint Rotation() {
+    return mBufferRotation;
+  }
+
+  nsRefPtr<gfxASurface> Buffer() {
+    return mBuffer;
+  }
+
   
 
 
@@ -141,6 +153,8 @@ public:
   Swap(const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
        OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
        OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion);
+  virtual void EnsureTextureUpdated();
+  virtual void EnsureTextureUpdated(nsIntRegion& aRegion);
   virtual void DestroyFrontBuffer();
 
   virtual void Disconnect();
@@ -161,6 +175,10 @@ public:
 
 private:
   nsRefPtr<ShadowBufferOGL> mBuffer;
+
+  
+  
+  nsIntRegion mRegionPendingUpload;
 
   
   ShadowThebesLayerBufferOGL mFrontBuffer;

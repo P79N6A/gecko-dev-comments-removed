@@ -378,7 +378,7 @@ public:
   virtual const char* Name() const { return "OGL"; }
 #endif 
 
-  const nsIntSize& GetWigetSize() {
+  const nsIntSize& GetWidgetSize() {
     return mWidgetSize;
   }
 
