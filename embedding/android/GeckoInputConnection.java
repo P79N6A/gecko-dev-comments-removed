@@ -257,11 +257,27 @@ public class GeckoInputConnection
         extract.selectionStart = mSelectionStart;
         extract.selectionEnd = mSelectionStart + mSelectionLength;
 
+        
+        
+        
+        
+        try {
+            Thread.sleep(20);
+        } catch (InterruptedException e) {}
+
         GeckoAppShell.sendEventToGecko(
             new GeckoEvent(GeckoEvent.IME_GET_TEXT, 0, Integer.MAX_VALUE));
         try {
             extract.startOffset = 0;
             extract.text = mQueryResult.take();
+
+            
+            if (mComposing && extract.selectionEnd > extract.text.length())
+                extract.text = extract.text.subSequence(0, mCompositionStart) + mComposingText;
+
+            
+            extract.selectionStart = Math.min(extract.selectionStart, extract.text.length());
+            extract.selectionEnd = Math.min(extract.selectionEnd, extract.text.length());
 
             if ((flags & GET_EXTRACTED_TEXT_MONITOR) != 0)
                 mUpdateRequest = req;
