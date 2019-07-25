@@ -166,13 +166,6 @@ typedef struct _nsCocoaWindowList {
 - (void)sendToplevelDeactivateEvents;
 @end
 
-struct UnifiedGradientInfo {
-  float titlebarHeight;
-  float toolbarHeight;
-  BOOL windowIsMain;
-  BOOL drawTitlebar; 
-};
-
 @class ToolbarWindow;
 
 
