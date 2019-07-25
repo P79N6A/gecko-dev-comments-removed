@@ -170,7 +170,7 @@ function Mirror(tab, manager) {
 
 
   this.tab.mirror = this;
-  this.manager._customize(this);
+  this.manager.createTabItem(this);
 
 }
 
@@ -391,10 +391,22 @@ TabMirror.prototype = {
 
   
   
-  _customize: function(func){
-    
-    
-  },
+  createTabItem: function(mirror) {
+  	try {
+			var $div = iQ(mirror.el);
+			var tab = mirror.tab;
+			var item = new window.TabItem(mirror.el, tab);
+	
+			item.addOnClose(window.TabItems, function() {
+				Items.unsquish(null, item);
+			});
+	
+			if (!window.TabItems.reconnect(item))
+				Groups.newTab(item);
+		} catch(e) {
+			Utils.error(e);
+		}
+	},
 
   
   
@@ -443,24 +455,6 @@ TabMirror.prototype = {
 
 window.TabMirror = {
   _private: new TabMirror(),
-
-  
-  
-  
-  
-  
-  
-  
-  customize: function(func) {
-    
-    iQ('div.tab').each(function(elem) {
-      var tab = Tabs.tab(elem);
-      func(tab.mirror);
-    });
-
-    
-    TabMirror.prototype._customize = func;
-  },
 
   
   
