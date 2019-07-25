@@ -214,12 +214,13 @@ InsideOutBox.prototype =
     this.selectObjectBox(objectBox, forceOpen);
     if (makeBoxVisible) {
       this.openObjectBox(objectBox);
-      if (scrollIntoView) {
-        
-        
-        LayoutHelpers.scrollIntoViewIfNeeded(objectBox.firstElementChild);
-      }
     }
+    if (scrollIntoView) {
+      
+      
+      LayoutHelpers.scrollIntoViewIfNeeded(objectBox.firstElementChild);
+    }
+
     return objectBox;
   },
 
@@ -339,6 +340,141 @@ InsideOutBox.prototype =
         this.expandObjectBox(aObjectBox, true);
     }
   },
+
+  
+
+
+  nextObjectBox: function IOBox_nextObjectBox(aBoxObject)
+  {
+    let candidate;
+    let boxObject = aBoxObject || this.selectedObjectBox;
+    if (!boxObject)
+      return this.rootObjectBox;
+
+    
+    let isOpen = this.view.hasClass(boxObject, "open");
+    let childObjectBox = this.getChildObjectBox(boxObject);
+    if (isOpen && childObjectBox && childObjectBox.firstChild) {
+      candidate = childObjectBox.firstChild;
+    } else {
+      
+      while (boxObject) {
+        if (boxObject.nextSibling) {
+          boxObject = boxObject.nextSibling;
+          break;
+        }
+        boxObject = this.getParentObjectBox(boxObject);
+      }
+      candidate = boxObject;
+    }
+
+    
+    
+    if (candidate &&
+        candidate.repObject.nodeType != candidate.repObject.ELEMENT_NODE) {
+      return this.nextObjectBox(candidate);
+    }
+
+    return candidate;
+  },
+
+  
+
+
+  nextObject: function IOBox_nextObject()
+  {
+    let next = this.nextObjectBox();
+    return next ? next.repObject : null;
+  },
+
+  
+
+
+
+
+   farNextObject: function IOBox_farPreviousProject(aDistance)
+   {
+     let boxObject = this.selectedObjectBox;
+     while (aDistance-- > 0) {
+       let newBoxObject = this.nextObjectBox(boxObject);
+       if (!newBoxObject) {
+         break;
+       }
+       boxObject = newBoxObject;
+     }
+     return boxObject ? boxObject.repObject : null;
+   },
+
+  
+
+
+  lastVisible: function IOBox_lastVisibleChild(aNode)
+  {
+    if (!this.view.hasClass(aNode, "open"))
+      return aNode;
+
+    let childBox = this.getChildObjectBox(aNode);
+    if (!childBox || !childBox.lastChild)
+      return aNode;
+
+    return this.lastVisible(childBox.lastChild);
+  },
+
+  
+
+
+  previousObjectBox: function IOBox_previousObjectBox(aBoxObject)
+  {
+    let boxObject = aBoxObject || this.selectedObjectBox;
+    if (!boxObject)
+        return this.rootObjectBox;
+
+    let candidate;
+    let sibling = boxObject.previousSibling;
+    if (sibling) {
+      candidate = this.lastVisible(sibling);
+    } else {
+      candidate = this.getParentObjectBox(boxObject);
+    }
+
+    
+    
+    if (candidate &&
+        candidate.repObject.nodeType != candidate.repObject.ELEMENT_NODE) {
+      return this.previousObjectBox(candidate);
+    }
+
+    return candidate;
+  },
+
+  
+
+
+  previousObject: function IOBox_previousObject()
+  {
+    let boxObject = this.previousObjectBox();
+    return boxObject ? boxObject.repObject : null;
+  },
+
+  
+
+
+
+
+   farPreviousObject: function IOBox_farPreviousProject(aDistance)
+   {
+     let boxObject = this.selectedObjectBox;
+     while (aDistance-- > 0) {
+       let newBoxObject = this.previousObjectBox(boxObject);
+       if (!newBoxObject) {
+         break;
+       }
+       boxObject = newBoxObject;
+       if (boxObject === this.rootObjectBox)
+         break;
+     }
+     return boxObject ? boxObject.repObject : null;
+   },
 
   
 
