@@ -58,11 +58,6 @@
 
 namespace js {
 
-typedef HashMap<JSFunction *,
-                JSString *,
-                DefaultHasher<JSFunction *>,
-                SystemAllocPolicy> ToSourceCache;
-
 
 extern Class dummy_class;
 
@@ -272,9 +267,6 @@ struct JSCompartment
     unsigned                     debugModeBits;  
 
   public:
-    typedef js::Maybe<js::ToSourceCache> LazyToSourceCache;
-    LazyToSourceCache            toSourceCache;
-
     JSCompartment(JSRuntime *rt);
     ~JSCompartment();
 
