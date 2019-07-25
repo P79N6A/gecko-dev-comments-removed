@@ -684,7 +684,6 @@ protected:
 
   
   nsresult SetTimeoutOrInterval(bool aIsInterval, PRInt32* aReturn);
-  nsresult ClearTimeoutOrInterval();
   nsresult ResetTimersForNonBackgroundWindow();
 
   
