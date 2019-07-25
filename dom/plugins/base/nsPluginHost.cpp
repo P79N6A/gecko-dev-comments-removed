@@ -152,6 +152,7 @@
 #include "nsContentErrors.h"
 #include "mozilla/TimeStamp.h"
 #include "mozilla/Telemetry.h"
+#include "nsIImageLoadingContent.h"
 #include "mozilla/Preferences.h"
 
 #if defined(XP_WIN)
@@ -939,10 +940,10 @@ nsPluginHost::GetPluginTempDir(nsIFile **aDir)
 }
 
 nsresult nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
-                                                   nsIPluginInstanceOwner* aOwner,
+                                                   nsObjectLoadingContent* aContent,
                                                    nsIStreamListener** aListener)
 {
-  NS_PRECONDITION(aChannel && aOwner,
+  NS_PRECONDITION(aChannel && aContent,
                   "Invalid arguments to InstantiatePluginForChannel");
   nsCOMPtr<nsIURI> uri;
   nsresult rv = aChannel->GetURI(getter_AddRefs(uri));
@@ -955,8 +956,8 @@ nsresult nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
     uri->GetAsciiSpec(urlSpec);
 
     PR_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_NORMAL,
-           ("nsPluginHost::InstantiatePluginForChannel Begin owner=%p, url=%s\n",
-           aOwner, urlSpec.get()));
+           ("nsPluginHost::InstantiatePluginForChannel Begin content=%p, url=%s\n",
+           aContent, urlSpec.get()));
 
     PR_LogFlush();
   }
@@ -965,12 +966,13 @@ nsresult nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
   
   
 
-  return NewEmbeddedPluginStreamListener(uri, aOwner, nsnull, aListener);
+  return NewEmbeddedPluginStreamListener(uri, aContent, nsnull, aListener);
 }
 
 nsresult
 nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
-                                        nsIPluginInstanceOwner* aOwner)
+                                        nsObjectLoadingContent *aContent,
+                                        nsPluginInstanceOwner** aOwner)
 {
   NS_ENSURE_ARG_POINTER(aOwner);
 
@@ -980,27 +982,39 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
     aURL->GetAsciiSpec(urlSpec);
 
   PR_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_NORMAL,
-        ("nsPluginHost::InstantiateEmbeddedPlugin Begin mime=%s, owner=%p, url=%s\n",
-        aMimeType, aOwner, urlSpec.get()));
+        ("nsPluginHost::InstantiateEmbeddedPlugin Begin mime=%s, url=%s\n",
+        aMimeType, urlSpec.get()));
 
   PR_LogFlush();
 #endif
 
-  nsresult rv;
+  nsRefPtr<nsPluginInstanceOwner> instanceOwner = new nsPluginInstanceOwner();
+  if (!instanceOwner) {
+    return NS_ERROR_OUT_OF_MEMORY;
+  }
+
+  nsCOMPtr<nsIContent> ourContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(aContent));
+  nsresult rv = instanceOwner->Init(ourContent);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   nsCOMPtr<nsIPluginTagInfo> pti;
+  rv = instanceOwner->QueryInterface(kIPluginTagInfoIID, getter_AddRefs(pti));
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
   nsPluginTagType tagType;
-
-  rv = aOwner->QueryInterface(kIPluginTagInfoIID, getter_AddRefs(pti));
-
-  if (rv != NS_OK)
-    return rv;
-
   rv = pti->GetTagType(&tagType);
-
-  if ((rv != NS_OK) || !((tagType == nsPluginTagType_Embed)
-                        || (tagType == nsPluginTagType_Applet)
-                        || (tagType == nsPluginTagType_Object))) {
+  if (NS_FAILED(rv)) {
     return rv;
+  }
+
+  if (tagType != nsPluginTagType_Embed &&
+      tagType != nsPluginTagType_Applet &&
+      tagType != nsPluginTagType_Object) {
+    return NS_ERROR_FAILURE;
   }
 
   
@@ -1012,7 +1026,7 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
       return rv; 
 
     nsCOMPtr<nsIDocument> doc;
-    aOwner->GetDocument(getter_AddRefs(doc));
+    instanceOwner->GetDocument(getter_AddRefs(doc));
     if (!doc)
       return NS_ERROR_NULL_POINTER;
 
@@ -1060,97 +1074,118 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
 
   
   
-  if (!aMimeType)
-    return bCanHandleInternally ? NewEmbeddedPluginStream(aURL, aOwner, nsnull) : NS_ERROR_FAILURE;
-
-  rv = SetUpPluginInstance(aMimeType, aURL, aOwner);
-
-  if (NS_FAILED(rv))
+  if (!aMimeType) {
+    if (bCanHandleInternally && !aContent->SrcStreamLoadInitiated()) {
+      NewEmbeddedPluginStream(aURL, aContent, nsnull);
+    }
     return NS_ERROR_FAILURE;
+  }
+
+  rv = SetUpPluginInstance(aMimeType, aURL, instanceOwner);
+  if (NS_FAILED(rv)) {
+    return NS_ERROR_FAILURE;
+  }
 
   nsRefPtr<nsNPAPIPluginInstance> instance;
-  rv = aOwner->GetInstance(getter_AddRefs(instance));
-  
-  
-  if (rv == NS_ERROR_FAILURE)
+  rv = instanceOwner->GetInstance(getter_AddRefs(instance));
+  if (NS_FAILED(rv)) {
     return rv;
+  }
 
   if (instance) {
-    aOwner->CreateWidget();
+    instanceOwner->CreateWidget();
 
     
-    aOwner->SetWindow();
+    instanceOwner->CallSetWindow();
 
     
     
-    bool havedata = false;
-
-    nsCOMPtr<nsIPluginTagInfo> pti(do_QueryInterface(aOwner, &rv));
-
-    if (pti) {
-      const char *value;
-      havedata = NS_SUCCEEDED(pti->GetAttribute("SRC", &value));
-      
+    
+    const char *value;
+    bool havedata = NS_SUCCEEDED(pti->GetAttribute("SRC", &value));
+    if (havedata && !isJava && bCanHandleInternally && !aContent->SrcStreamLoadInitiated()) {
+      NewEmbeddedPluginStream(aURL, nsnull, instance.get());
     }
-
-    if (havedata && !isJava && bCanHandleInternally)
-      rv = NewEmbeddedPluginStream(aURL, aOwner, instance.get());
   }
+
+  
+  instanceOwner.forget(aOwner);
 
 #ifdef PLUGIN_LOGGING
   nsCAutoString urlSpec2;
   if (aURL != nsnull) aURL->GetAsciiSpec(urlSpec2);
 
   PR_LOG(nsPluginLogging::gPluginLog, PLUGIN_LOG_NORMAL,
-        ("nsPluginHost::InstantiateEmbeddedPlugin Finished mime=%s, rv=%d, owner=%p, url=%s\n",
-        aMimeType, rv, aOwner, urlSpec2.get()));
+        ("nsPluginHost::InstantiateEmbeddedPlugin Finished mime=%s, rv=%d, url=%s\n",
+        aMimeType, rv, urlSpec2.get()));
 
   PR_LogFlush();
 #endif
 
-  return rv;
+  return NS_OK;
 }
 
 nsresult nsPluginHost::InstantiateFullPagePlugin(const char *aMimeType,
                                                  nsIURI* aURI,
-                                                 nsIPluginInstanceOwner *aOwner,
+                                                 nsObjectLoadingContent *aContent,
+                                                 nsPluginInstanceOwner **aOwner,
                                                  nsIStreamListener **aStreamListener)
 {
 #ifdef PLUGIN_LOGGING
   nsCAutoString urlSpec;
   aURI->GetSpec(urlSpec);
   PLUGIN_LOG(PLUGIN_LOG_NORMAL,
-  ("nsPluginHost::InstantiateFullPagePlugin Begin mime=%s, owner=%p, url=%s\n",
-  aMimeType, aOwner, urlSpec.get()));
+  ("nsPluginHost::InstantiateFullPagePlugin Begin mime=%s, url=%s\n",
+  aMimeType, urlSpec.get()));
 #endif
 
-  nsresult rv = SetUpPluginInstance(aMimeType, aURI, aOwner);
-
-  if (NS_OK == rv) {
-    nsRefPtr<nsNPAPIPluginInstance> instance;
-    aOwner->GetInstance(getter_AddRefs(instance));
-
-    NPWindow* win = nsnull;
-    aOwner->GetWindow(win);
-
-    if (win && instance) {
-      aOwner->CreateWidget();
-
-      
-      aOwner->SetWindow();
-
-      rv = NewFullPagePluginStream(aURI, instance.get(), aStreamListener);
-
-      
-      aOwner->SetWindow();
-    }
+  nsRefPtr<nsPluginInstanceOwner> instanceOwner = new nsPluginInstanceOwner();
+  if (!instanceOwner) {
+    return NS_ERROR_OUT_OF_MEMORY;
   }
 
-  PLUGIN_LOG(PLUGIN_LOG_NORMAL,
-  ("nsPluginHost::InstantiateFullPagePlugin End mime=%s, rv=%d, owner=%p, url=%s\n",
-  aMimeType, rv, aOwner, urlSpec.get()));
+  nsCOMPtr<nsIContent> ourContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(aContent));
+  nsresult rv = instanceOwner->Init(ourContent);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
-  return rv;
+  rv = SetUpPluginInstance(aMimeType, aURI, instanceOwner);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  nsRefPtr<nsNPAPIPluginInstance> instance;
+  instanceOwner->GetInstance(getter_AddRefs(instance));
+  if (!instance) {
+    return NS_ERROR_FAILURE;
+  }
+
+  NPWindow* win = nsnull;
+  instanceOwner->GetWindow(win);
+  if (!win) {
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  instanceOwner->CreateWidget();
+  instanceOwner->CallSetWindow();
+
+  rv = NewFullPagePluginStream(aURI, instance.get(), aStreamListener);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
+
+  
+  instanceOwner->CallSetWindow();
+
+  instanceOwner.forget(aOwner);
+
+  PLUGIN_LOG(PLUGIN_LOG_NORMAL,
+  ("nsPluginHost::InstantiateFullPagePlugin End mime=%s, rv=%d, url=%s\n",
+  aMimeType, rv, urlSpec.get()));
+
+  return NS_OK;
 }
 
 nsPluginTag*
@@ -3265,7 +3300,7 @@ nsPluginHost::StopPluginInstance(nsNPAPIPluginInstance* aInstance)
 }
 
 nsresult nsPluginHost::NewEmbeddedPluginStreamListener(nsIURI* aURL,
-                                                       nsIPluginInstanceOwner *aOwner,
+                                                       nsObjectLoadingContent *aContent,
                                                        nsNPAPIPluginInstance* aInstance,
                                                        nsIStreamListener** aListener)
 {
@@ -3283,11 +3318,12 @@ nsresult nsPluginHost::NewEmbeddedPluginStreamListener(nsIURI* aURL,
   
   
   if (aInstance)
-    rv = listener->InitializeEmbedded(aURL, aInstance);
-  else if (aOwner != nsnull)
-    rv = listener->InitializeEmbedded(aURL, nsnull, aOwner);
+    rv = listener->InitializeEmbedded(aURL, aInstance, nsnull);
+  else if (aContent)
+    rv = listener->InitializeEmbedded(aURL, nsnull, aContent);
   else
     rv = NS_ERROR_ILLEGAL_VALUE;
+
   if (NS_SUCCEEDED(rv))
     NS_ADDREF(*aListener = listener);
 
@@ -3296,18 +3332,21 @@ nsresult nsPluginHost::NewEmbeddedPluginStreamListener(nsIURI* aURL,
 
 
 nsresult nsPluginHost::NewEmbeddedPluginStream(nsIURI* aURL,
-                                               nsIPluginInstanceOwner *aOwner,
+                                               nsObjectLoadingContent *aContent,
                                                nsNPAPIPluginInstance* aInstance)
 {
+  NS_ASSERTION(!aContent || !aInstance, "Don't pass both content and an instance to NewEmbeddedPluginStream!");
+
   nsCOMPtr<nsIStreamListener> listener;
-  nsresult rv = NewEmbeddedPluginStreamListener(aURL, aOwner, aInstance,
+  nsresult rv = NewEmbeddedPluginStreamListener(aURL, aContent, aInstance,
                                                 getter_AddRefs(listener));
   if (NS_SUCCEEDED(rv)) {
     nsCOMPtr<nsIDocument> doc;
     nsCOMPtr<nsILoadGroup> loadGroup;
-    if (aOwner) {
-      rv = aOwner->GetDocument(getter_AddRefs(doc));
-      if (NS_SUCCEEDED(rv) && doc) {
+    if (aContent) {
+      nsCOMPtr<nsIContent> aIContent = do_QueryInterface(static_cast<nsIImageLoadingContent*>(aContent));
+      doc = aIContent->GetDocument();
+      if (doc) {
         loadGroup = doc->GetDocumentLoadGroup();
       }
     }
@@ -3718,12 +3757,6 @@ nsresult
 nsPluginHost::NewPluginNativeWindow(nsPluginNativeWindow ** aPluginNativeWindow)
 {
   return PLUG_NewPluginNativeWindow(aPluginNativeWindow);
-}
-
-nsresult
-nsPluginHost::DeletePluginNativeWindow(nsPluginNativeWindow * aPluginNativeWindow)
-{
-  return PLUG_DeletePluginNativeWindow(aPluginNativeWindow);
 }
 
 nsresult

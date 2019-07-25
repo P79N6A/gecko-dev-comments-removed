@@ -53,11 +53,15 @@
 #include "nsIObjectLoadingContent.h"
 #include "nsIRunnable.h"
 #include "nsIFrame.h"
+#include "nsPluginInstanceOwner.h"
+#include "nsIThreadInternal.h"
 
 class nsAsyncInstantiateEvent;
+class nsStopPluginRunnable;
 class AutoNotifier;
 class AutoFallback;
 class AutoSetInstantiatingToFalse;
+class nsObjectFrame;
 
 enum PluginSupportState {
   ePluginUnsupported,  
@@ -97,6 +101,8 @@ class nsObjectLoadingContent : public nsImageLoadingContent
   friend class AutoNotifier;
   friend class AutoFallback;
   friend class AutoSetInstantiatingToFalse;
+  friend class nsStopPluginRunnable;
+  friend class nsAsyncInstantiateEvent;
 
   public:
     
@@ -139,6 +145,14 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     {
       mNetworkCreated = aNetworkCreated;
     }
+
+    
+    nsresult InstantiatePluginInstance(const char* aMimeType, nsIURI* aURI);
+
+    void NotifyOwnerDocumentActivityChanged();
+
+    bool SrcStreamLoadInitiated() { return mSrcStreamLoadInitiated; };
+
   protected:
     
 
@@ -227,7 +241,13 @@ class nsObjectLoadingContent : public nsImageLoadingContent
                          nsCycleCollectionTraversalCallback &cb);
 
     void CreateStaticClone(nsObjectLoadingContent* aDest) const;
+
+    static void DoStopPlugin(nsPluginInstanceOwner *aInstanceOwner, bool aDelayedStop);
+
   private:
+
+    void NotifyContentObjectWrapper();
+
     
 
 
@@ -291,22 +311,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-
-
-
-
-
-
-
-
-
-
-    enum FlushType {
-      eFlushContent,
-      eFlushLayout,
-      eDontFlush
-    };
-    nsIObjectFrame* GetExistingFrame(FlushType aFlushType);
+    nsObjectFrame* GetExistingFrame();
 
     
 
@@ -315,22 +320,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     void HandleBeingBlockedByContentPolicy(nsresult aStatus,
                                            PRInt16 aRetval);
-
-    
-
-
-
-
-    nsresult TryInstantiate(const nsACString& aMIMEType, nsIURI* aURI);
-
-    
-
-
-
-
-
-
-    nsresult Instantiate(nsIObjectFrame* aFrame, const nsACString& aMIMEType, nsIURI* aURI);
 
     
 
@@ -415,12 +404,15 @@ class nsObjectLoadingContent : public nsImageLoadingContent
     bool                        mShouldPlay : 1;
 
     
+    
+    bool mSrcStreamLoadInitiated;
+
+    
     PluginSupportState          mFallbackReason;
 
     nsWeakFrame                 mPrintFrame;
 
-    friend class nsAsyncInstantiateEvent;
+    nsRefPtr<nsPluginInstanceOwner> mInstanceOwner;
 };
-
 
 #endif

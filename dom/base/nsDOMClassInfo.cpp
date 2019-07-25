@@ -9561,6 +9561,7 @@ nsHTMLSelectElementSH::SetProperty(nsIXPConnectWrappedNative *wrapper,
 
 
 
+
 nsresult
 nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wrapper,
                                                   JSObject *obj,
@@ -9574,36 +9575,21 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  
+  nsresult rv = objlc->GetPluginInstance(_result);
+  if (NS_SUCCEEDED(rv) && *_result) {
+    return rv;
+  }
+
   
   if (!nsContentUtils::IsSafeToRunScript()) {
-    return objlc->GetPluginInstance(_result);
+    return rv;
   }
 
   
-  return objlc->EnsureInstantiation(_result);
-}
+  
+  objlc->SyncStartPluginInstance();
 
-
-
-static bool
-IsObjInProtoChain(JSContext *cx, JSObject *obj, JSObject *proto)
-{
-  JSObject *o = obj;
-
-  JSAutoRequest ar(cx);
-
-  while (o) {
-    JSObject *p = ::JS_GetPrototype(cx, o);
-
-    if (p == proto) {
-      return true;
-    }
-
-    o = p;
-  }
-
-  return false;
+  return objlc->GetPluginInstance(_result);
 }
 
 class nsPluginProtoChainInstallRunner : public nsIRunnable
@@ -9685,19 +9671,8 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
 
   if (!pi_obj) {
     
-
     return NS_OK;
   }
-
-  if (IsObjInProtoChain(cx, obj, pi_obj)) {
-    
-    
-    
-    
-
-    return NS_OK;
-  }
-
 
   
   
