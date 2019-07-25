@@ -16,6 +16,8 @@ function test_synccore_itemexists_works() {
   var pwStore = new passwords.PasswordStore();
   var fakeUserHash = pwStore._hashLoginInfo(fakeSampleLogins[0]);
   var psc = new passwords.PasswordSyncCore();
-  do_check_false(psc._itemExists("invalid guid"));
-  do_check_true(psc._itemExists(fakeUserHash));
+  
+  pwStore.wrap();
+  do_check_false(pwStore._itemExists("invalid guid"));
+  do_check_true(pwStore._itemExists(fakeUserHash));
 }
