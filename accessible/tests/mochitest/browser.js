@@ -28,6 +28,14 @@ function browserWindow()
 
 
 
+function browserDocument()
+{
+  return browserWindow().document;
+}
+
+
+
+
 function tabBrowser()
 {
   return browserWindow().gBrowser;
