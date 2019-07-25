@@ -52,9 +52,6 @@
 #include <ctype.h>
 #include <string.h>
 
-
-
-
 #include "nsQuickSort.h"
 
 #if defined(HAVE_BOUTELL_GD)

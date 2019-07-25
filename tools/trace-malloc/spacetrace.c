@@ -70,9 +70,6 @@
 #include <gdfontmb.h>
 #endif 
 
-
-
-
 #include "nsQuickSort.h"
 #include "prlong.h"
 
