@@ -36,6 +36,8 @@
 
 
 
+#include "mozilla/Attributes.h"
+
 #include "nsISupports.h"
 #include "nsExceptionService.h"
 #include "nsIServiceManager.h"
@@ -69,7 +71,7 @@ public:
 };
 
 
-class nsExceptionManager : public nsIExceptionManager
+class nsExceptionManager MOZ_FINAL : public nsIExceptionManager
 {
 public:
   NS_DECL_ISUPPORTS
