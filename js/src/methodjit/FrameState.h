@@ -335,6 +335,8 @@ class FrameState
 
     void pushLocal(uint32 n);
 
+    inline FrameEntry *getLocal(uint32 slot);
+
     
 
 
@@ -601,7 +603,7 @@ class FrameState
     
 
 
-    inline void learnType(FrameEntry *fe, JSValueType type);
+    inline void learnType(FrameEntry *fe, JSValueType type, bool unsync = true);
 
     
 
@@ -768,7 +770,6 @@ class FrameState
     inline void syncType(FrameEntry *fe);
     inline void syncData(FrameEntry *fe);
 
-    inline FrameEntry *getLocal(uint32 slot);
     inline void forgetAllRegs(FrameEntry *fe);
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);
     inline uint32 localIndex(uint32 n);

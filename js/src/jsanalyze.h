@@ -151,6 +151,12 @@ struct Bytecode
 
     inline types::TypeObject* getInitObject(JSContext *cx, bool isArray);
 
+    
+
+
+
+    inline JSValueType getKnownTypeTag();
+
     void print(JSContext *cx, FILE *out);
 
 #endif 

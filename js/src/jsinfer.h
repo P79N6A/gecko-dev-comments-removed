@@ -230,6 +230,9 @@ struct TypeSet
     void addFreezeElem(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, TypeSet *object);
 
     
+    inline JSValueType getKnownTypeTag();
+
+    
 
 
 

@@ -1192,6 +1192,8 @@ FrameState::storeTop(FrameEntry *target, bool popGuaranteed, bool typeChange)
         target->setCopyOf(NULL);
         target->setNotCopied();
         target->setConstant(Jsvalify(top->getValue()));
+        if (!typeChange)
+            target->type.sync();
         return;
     }
 
@@ -1284,6 +1286,13 @@ FrameState::storeTop(FrameEntry *target, bool popGuaranteed, bool typeChange)
             regstate[reg].reassociate(target);
         }
     } else {
+        
+
+
+
+        
+        if (!backing->isTypeKnown() && backing->type.inRegister())
+            forgetReg(backing->type.reg());
         if (!wasSynced)
             masm.storeTypeTag(ImmType(backing->getKnownType()), addressOf(target));
         target->type.setMemory();

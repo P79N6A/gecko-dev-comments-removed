@@ -1548,22 +1548,6 @@ Script::parentCode()
     return parent ? &parent->analysis->getCode(parentpc) : NULL;
 }
 
-inline TypeSet*
-Script::getStackTypes(unsigned index, TypeStack *stack)
-{
-    JS_ASSERT(index >= script->nfixed);
-
-    stack = stack->group();
-    while (stack && (stack->stackDepth != index - script->nfixed)) {
-        stack = stack->innerStack;
-        stack = stack ? stack->group() : NULL;
-    }
-
-    
-    JS_ASSERT(stack && !JSID_IS_VOID(stack->letVariable));
-    return &stack->types;
-}
-
 inline Script*
 Script::evalParent()
 {
