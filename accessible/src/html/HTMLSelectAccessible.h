@@ -2,8 +2,9 @@
 
 
 
-#ifndef __nsHTMLSelectAccessible_h__
-#define __nsHTMLSelectAccessible_h__
+
+#ifndef mozilla_a11y_HTMLSelectAccessible_h__
+#define mozilla_a11y_HTMLSelectAccessible_h__
 
 #include "HTMLFormControlAccessible.h"
 #include "nsIDOMHTMLOptionsCollection.h"
@@ -12,6 +13,8 @@
 
 class nsIMutableArray;
 
+namespace mozilla {
+namespace a11y {
 
 
 
@@ -30,15 +33,16 @@ class nsIMutableArray;
 
 
 
-class nsHTMLSelectListAccessible : public AccessibleWrap
+
+class HTMLSelectListAccessible : public AccessibleWrap
 {
 public:
-  
-  nsHTMLSelectListAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsHTMLSelectListAccessible() {}
+
+  HTMLSelectListAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~HTMLSelectListAccessible() {}
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -63,19 +67,19 @@ protected:
   
 
 
-  void CacheOptSiblings(nsIContent *aParentContent);
+  void CacheOptSiblings(nsIContent* aParentContent);
 };
 
 
 
 
-class nsHTMLSelectOptionAccessible : public HyperTextAccessibleWrap
+class HTMLSelectOptionAccessible : public HyperTextAccessibleWrap
 {
 public:
-  enum { eAction_Select = 0 };  
-  
-  nsHTMLSelectOptionAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsHTMLSelectOptionAccessible() {}
+  enum { eAction_Select = 0 };
+
+  HTMLSelectOptionAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~HTMLSelectOptionAccessible() {}
 
   
   NS_IMETHOD DoAction(PRUint8 index);
@@ -84,7 +88,7 @@ public:
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual PRUint64 NativeInteractiveState() const;
 
@@ -98,10 +102,10 @@ public:
   virtual Accessible* ContainerWidget() const;
 
 private:
-  
+
   
 
- 
+
   Accessible* GetSelect() const
   {
     if (mParent && mParent->IsListControl()) {
@@ -129,19 +133,19 @@ private:
 
 
 
-class nsHTMLSelectOptGroupAccessible : public nsHTMLSelectOptionAccessible
+class HTMLSelectOptGroupAccessible : public HTMLSelectOptionAccessible
 {
 public:
 
-  nsHTMLSelectOptGroupAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsHTMLSelectOptGroupAccessible() {}
+  HTMLSelectOptGroupAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~HTMLSelectOptGroupAccessible() {}
 
   
-  NS_IMETHOD DoAction(PRUint8 index);  
+  NS_IMETHOD DoAction(PRUint8 index);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeInteractiveState() const;
 
   
@@ -156,18 +160,18 @@ protected:
 
 
 
-class nsHTMLComboboxListAccessible;
+class HTMLComboboxListAccessible;
 
 
 
 
-class nsHTMLComboboxAccessible : public AccessibleWrap
+class HTMLComboboxAccessible : public AccessibleWrap
 {
 public:
   enum { eAction_Click = 0 };
 
-  nsHTMLComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsHTMLComboboxAccessible() {}
+  HTMLComboboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~HTMLComboboxAccessible() {}
 
   
   NS_IMETHOD DoAction(PRUint8 index);
@@ -179,7 +183,7 @@ public:
   
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual void InvalidateChildren();
 
@@ -203,7 +207,7 @@ protected:
   Accessible* SelectedOption() const;
 
 private:
-  nsRefPtr<nsHTMLComboboxListAccessible> mListAccessible;
+  nsRefPtr<HTMLComboboxListAccessible> mListAccessible;
 };
 
 
@@ -211,21 +215,20 @@ private:
 
 
 
-class nsHTMLComboboxListAccessible : public nsHTMLSelectListAccessible
+class HTMLComboboxListAccessible : public HTMLSelectListAccessible
 {
 public:
 
-  nsHTMLComboboxListAccessible(nsIAccessible* aParent, 
-                               nsIContent* aContent, 
-                               DocAccessible* aDoc);
-  virtual ~nsHTMLComboboxListAccessible() {}
+  HTMLComboboxListAccessible(nsIAccessible* aParent, nsIContent* aContent,
+                             DocAccessible* aDoc);
+  virtual ~HTMLComboboxListAccessible() {}
 
   
   virtual nsIFrame* GetFrame() const;
   virtual bool IsPrimaryForNode() const;
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
 
@@ -233,5 +236,8 @@ public:
   virtual bool IsActiveWidget() const;
   virtual bool AreItemsOperable() const;
 };
+
+} 
+} 
 
 #endif
