@@ -40,7 +40,7 @@ const Ci = Components.interfaces;
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 
-#include ../content/listmanager.js
+#include ./content/listmanager.js
 
 var modScope = this;
 function Init() {

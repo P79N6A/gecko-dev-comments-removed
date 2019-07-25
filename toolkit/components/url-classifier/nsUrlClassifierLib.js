@@ -1,25 +1,25 @@
-#
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
 # The contents of this file are subject to the Mozilla Public License Version
 # 1.1 (the "License"); you may not use this file except in compliance with
 # the License. You may obtain a copy of the License at
-# http://www.mozilla.org/MPL/
+# http:
 #
 # Software distributed under the License is distributed on an "AS IS" basis,
 # WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is mozilla.org code.
+# The Original Code is Url Classifier code
 #
 # The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1998
+# Google Inc.
+# Portions created by the Initial Developer are Copyright (C) 2006
 # the Initial Developer. All Rights Reserved.
 #
 # Contributor(s):
+#   Tony Chang <tony@ponderer.org>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,23 +35,35 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../../../..
-topsrcdir	= @top_srcdir@
-srcdir		= @srcdir@
-VPATH		= @srcdir@
-
-include $(DEPTH)/config/autoconf.mk
-
-MODULE		= feeds
-LIBRARY_NAME	= feed_s
-MOZILLA_INTERNAL_API = 1
-FORCE_STATIC_LIB = 1
-LIBXUL_LIBRARY = 1
 
 
-CPPSRCS		= nsScriptableUnescapeHTML.cpp \
-		$(NULL)
 
-EXTRA_COMPONENTS = FeedProcessor.js FeedProcessor.manifest
 
-include $(topsrcdir)/config/rules.mk
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const G_GDEBUG = false;
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+#include ./content/moz/lang.js
+#include ./content/moz/preferences.js
+#include ./content/moz/debug.js
+#include ./content/moz/alarm.js
+#include ./content/moz/cryptohasher.js
+#include ./content/moz/observer.js
+#include ./content/moz/protocol4.js
+
+#include ./content/request-backoff.js
+#include ./content/url-crypto-key-manager.js
+#include ./content/xml-fetcher.js
+
+
+var lib = this;
+
+function UrlClassifierLib() {
+  this.wrappedJSObject = lib;
+}
+UrlClassifierLib.prototype.classID = Components.ID("{26a4a019-2827-4a89-a85c-5931a678823a}");
+UrlClassifierLib.prototype.QueryInterface = XPCOMUtils.generateQI([]);
+
+var NSGetFactory = XPCOMUtils.generateNSGetFactory([UrlClassifierLib]);
