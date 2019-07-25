@@ -45,6 +45,8 @@ var histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
 var bhist = histsvc.QueryInterface(Ci.nsIBrowserHistory);
 var bmsvc = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
             getService(Ci.nsINavBookmarksService);
+var ios = Cc["@mozilla.org/network/io-service;1"].
+          getService(Components.interfaces.nsIIOService);
 
 
 
@@ -247,13 +249,22 @@ function run_test() {
   var pb = get_PBSvc();
 
   if (pb) { 
+    
+    var os = Cc["@mozilla.org/observer-service;1"].
+             getService(Ci.nsIObserverService);
+    const kSyncFinished = "places-sync-finished";
     do_test_pending();
 
-    Services.prefs.setBoolPref("browser.privatebrowsing.keep_current_session", true);
+    var prefBranch = Cc["@mozilla.org/preferences-service;1"].
+                     getService(Ci.nsIPrefBranch);
+    prefBranch.setBoolPref("browser.privatebrowsing.keep_current_session", true);
 
-    var bookmark_A_URI = NetUtil.newURI("http://google.com/");
-    var bookmark_B_URI = NetUtil.newURI("http://bugzilla.mozilla.org/");
-    var onBookmarkAAdded = function() {
+    var bookmark_A_URI = ios.newURI("http://google.com/", null, null);
+    var bookmark_B_URI = ios.newURI("http://bugzilla.mozilla.org/", null, null);
+    var onBookmarkAAdded = {
+      observe: function (aSubject, aTopic, aData) {
+        os.removeObserver(this, kSyncFinished);
+
         check_placesItem_Count();
 
         
@@ -287,11 +298,16 @@ function run_test() {
         do_check_true(bmsvc.isBookmarked(bookmark_A_URI));
         do_check_eq("google",bmsvc.getKeywordForURI(bookmark_A_URI));
 
+        os.addObserver(onBookmarkBAdded, kSyncFinished, false);
+
         
         myBookmarks[1] = create_bookmark(bookmark_B_URI,"title 2", "bugzilla");
-        onBookmarkBAdded();
+      }
     };
-    var onBookmarkBAdded = function() {
+    var onBookmarkBAdded = {
+      observe: function (aSubject, aTopic, aData) {
+        os.removeObserver(this, kSyncFinished);
+
         
         
         num_places_entries = 10; 
@@ -314,8 +330,9 @@ function run_test() {
           do_check_true(bhist.isVisited(uri(visited_uri)));
         }
 
-        Services.prefs.clearUserPref("browser.privatebrowsing.keep_current_session");
+        prefBranch.clearUserPref("browser.privatebrowsing.keep_current_session");
         do_test_finished();
+      }
     };
 
     
@@ -327,6 +344,8 @@ function run_test() {
     
     do_check_true(histsvc.hasHistoryEntries);
 
+    os.addObserver(onBookmarkAAdded, kSyncFinished, false);
+
     
     myBookmarks[0] = create_bookmark(bookmark_A_URI,"title 1", "google");
 
@@ -335,7 +354,5 @@ function run_test() {
       do_check_true(bhist.isVisited(uri(visited_uri)));
       do_check_true(uri_in_db(uri(visited_uri)));
     }
-
-    onBookmarkAAdded();
   }
 }

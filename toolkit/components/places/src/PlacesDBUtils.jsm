@@ -212,6 +212,8 @@ nsPlacesDBUtils.prototype = {
       "DELETE FROM moz_annos WHERE id IN ( " +
         "SELECT id FROM moz_annos a " +
         "WHERE NOT EXISTS " +
+          "(SELECT id FROM moz_places_temp WHERE id = a.place_id LIMIT 1) " +
+        "AND NOT EXISTS " +
           "(SELECT id FROM moz_places WHERE id = a.place_id LIMIT 1) " +
       ")");
     cleanupStatements.push(deleteOrphanAnnos);
@@ -286,6 +288,7 @@ nsPlacesDBUtils.prototype = {
       ") AND id IN (" +
         "SELECT b.id FROM moz_bookmarks b " +
         "WHERE fk NOT NULL AND b.type = :bookmark_type " +
+          "AND NOT EXISTS (SELECT url FROM moz_places_temp WHERE id = b.fk LIMIT 1) " +
           "AND NOT EXISTS (SELECT url FROM moz_places WHERE id = b.fk LIMIT 1) " +
       ")");
     deleteNoPlaceItems.params["bookmark_type"] = this._bms.TYPE_BOOKMARK;
@@ -444,6 +447,7 @@ nsPlacesDBUtils.prototype = {
     
     
     
+    
     let removeLivemarkStaticItems = this._dbConn.createStatement(
       "DELETE FROM moz_bookmarks WHERE type = :bookmark_type AND fk IN ( " +
         "SELECT id FROM moz_places WHERE url = :lmloading OR url = :lmfailed " +
@@ -459,6 +463,8 @@ nsPlacesDBUtils.prototype = {
       "DELETE FROM moz_favicons WHERE id IN (" +
         "SELECT id FROM moz_favicons f " +
         "WHERE NOT EXISTS " +
+          "(SELECT id FROM moz_places_temp WHERE favicon_id = f.id LIMIT 1) " +
+          "AND NOT EXISTS" +
           "(SELECT id FROM moz_places WHERE favicon_id = f.id LIMIT 1) " +
       ")");
     cleanupStatements.push(deleteOrphanIcons);
@@ -469,6 +475,8 @@ nsPlacesDBUtils.prototype = {
       "DELETE FROM moz_historyvisits WHERE id IN (" +
         "SELECT id FROM moz_historyvisits v " +
         "WHERE NOT EXISTS " +
+          "(SELECT id FROM moz_places_temp WHERE id = v.place_id LIMIT 1) " +
+          "AND NOT EXISTS " +
           "(SELECT id FROM moz_places WHERE id = v.place_id LIMIT 1) " +
       ")");
     cleanupStatements.push(deleteOrphanVisits);
@@ -479,6 +487,8 @@ nsPlacesDBUtils.prototype = {
       "DELETE FROM moz_inputhistory WHERE place_id IN (" +
         "SELECT place_id FROM moz_inputhistory i " +
         "WHERE NOT EXISTS " +
+          "(SELECT id FROM moz_places_temp WHERE id = i.place_id LIMIT 1) " +
+          "AND NOT EXISTS " +
           "(SELECT id FROM moz_places WHERE id = i.place_id LIMIT 1) " +
       ")");
     cleanupStatements.push(deleteOrphanInputHistory);
@@ -523,6 +533,11 @@ nsPlacesDBUtils.prototype = {
             "(SELECT id FROM moz_favicons WHERE id = h.favicon_id LIMIT 1) " +
       ")");
     cleanupStatements.push(fixInvalidFaviconIds);
+
+
+
+
+
 
 
 
