@@ -58,10 +58,9 @@ const MOBILEROOT_ANNO      = "mobile/bookmarksRoot";
 const MOBILE_ANNO          = "MobileBookmarks";
 const EXCLUDEBACKUP_ANNO   = "places/excludeFromBackup";
 const SMART_BOOKMARKS_ANNO = "Places/SmartBookmark";
-const GUID_ANNO            = "sync/guid";
 const PARENT_ANNO          = "sync/parent";
 const ANNOS_TO_TRACK = [DESCRIPTION_ANNO, SIDEBAR_ANNO, STATICTITLE_ANNO,
-                       FEEDURI_ANNO, SITEURI_ANNO, GENERATORURI_ANNO];
+                        FEEDURI_ANNO, SITEURI_ANNO, GENERATORURI_ANNO];
 
 const SERVICE_NOT_SUPPORTED = "Service not supported on this platform";
 const FOLDER_SORTINDEX = 1000000;
@@ -1419,20 +1418,25 @@ BookmarksTracker.prototype = {
       return true;
 
     
-    this._ensureMobileQuery();
-
-    
-    if (Svc.Annos.itemHasAnnotation(itemId, EXCLUDEBACKUP_ANNO)) {
-      this.removeChangedID(this._GUIDForId(itemId));
-      return true;
+    if (folder == null) {
+      try {
+        folder = this._bms.getFolderIdForItem(itemId);
+      } catch (ex) {
+        this._log.debug("getFolderIdForItem(" + itemId +
+                        ") threw; calling _ensureMobileQuery.");
+        
+        
+        this._ensureMobileQuery();
+        folder = this._bms.getFolderIdForItem(itemId);
+      }
     }
 
     
-    if (folder == null)
-      folder = this._bms.getFolderIdForItem(itemId);
+    if (this._ls.isLivemark(folder))
+      return true;
 
-    let tags = kSpecialIds.tags;
     
+    let tags = kSpecialIds.tags;
     if (folder == tags)
       return true;
 
@@ -1441,7 +1445,12 @@ BookmarksTracker.prototype = {
       return true;
 
     
-    return this._ls.isLivemark(folder);
+    if (Svc.Annos.itemHasAnnotation(itemId, EXCLUDEBACKUP_ANNO)) {
+      this.removeChangedID(this._GUIDForId(itemId));
+      return true;
+    }
+
+    return false;
   },
 
   onItemAdded: function BMT_onEndUpdateBatch(itemId, folder, index) {
@@ -1500,26 +1509,21 @@ BookmarksTracker.prototype = {
     this.ignoreAll = false;
   },
 
+  
+  
+  
+  
   onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
+    
+    
+    if (this.ignoreAll || property == "favicon")
+      return;
+
+    if (isAnno && (ANNOS_TO_TRACK.indexOf(anno) == -1))
+      
+      return;
+
     if (this._ignore(itemId))
-      return;
-
-    
-    
-    if (isAnno && (property == GUID_ANNO)) {
-      this._log.trace("onItemChanged for " + GUID_ANNO +
-                      ": probably needs a new one.");
-      this._idForGUID(this._GUIDForId(itemId));
-      this._addId(itemId);
-      return;
-    }
-
-    
-    if (isAnno && ANNOS_TO_TRACK.indexOf(property) == -1)
-      return;
-
-    
-    if (property == "favicon")
       return;
 
     this._log.trace("onItemChanged: " + itemId +
