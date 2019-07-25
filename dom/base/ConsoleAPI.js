@@ -43,6 +43,7 @@ let Cc = Components.classes;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
+Cu.import("resource://gre/modules/ConsoleAPIStorage.jsm");
 
 function ConsoleAPI() {}
 ConsoleAPI.prototype = {
@@ -53,12 +54,16 @@ ConsoleAPI.prototype = {
 
   
   init: function CA_init(aWindow) {
-    let id;
+    let outerID;
+    let innerID;
     try {
-      id = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
-                  .getInterface(Ci.nsIDOMWindowUtils)
-                  .outerWindowID;
-    } catch (ex) {
+      let windowUtils = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                          .getInterface(Ci.nsIDOMWindowUtils);
+
+      outerID = windowUtils.outerWindowID;
+      innerID = windowUtils.currentInnerWindowID;
+    }
+    catch (ex) {
       Cu.reportError(ex);
     }
 
@@ -66,26 +71,26 @@ ConsoleAPI.prototype = {
     let chromeObject = {
       
       log: function CA_log() {
-        self.notifyObservers(id, "log", arguments);
+        self.notifyObservers(outerID, innerID, "log", arguments);
       },
       info: function CA_info() {
-        self.notifyObservers(id, "info", arguments);
+        self.notifyObservers(outerID, innerID, "info", arguments);
       },
       warn: function CA_warn() {
-        self.notifyObservers(id, "warn", arguments);
+        self.notifyObservers(outerID, innerID, "warn", arguments);
       },
       error: function CA_error() {
-        self.notifyObservers(id, "error", arguments);
+        self.notifyObservers(outerID, innerID, "error", arguments);
       },
       debug: function CA_debug() {
-        self.notifyObservers(id, "log", arguments);
+        self.notifyObservers(outerID, innerID, "log", arguments);
       },
       trace: function CA_trace() {
-        self.notifyObservers(id, "trace", self.getStackTrace());
+        self.notifyObservers(outerID, innerID, "trace", self.getStackTrace());
       },
       
       dir: function CA_dir() {
-        self.notifyObservers(id, "dir", arguments);
+        self.notifyObservers(outerID, innerID, "dir", arguments);
       },
       __exposedProps__: {
         log: "r",
@@ -127,15 +132,27 @@ ConsoleAPI.prototype = {
   
 
 
-  notifyObservers: function CA_notifyObservers(aID, aLevel, aArguments) {
-    if (!aID)
+
+
+
+
+
+
+
+
+
+  notifyObservers:
+  function CA_notifyObservers(aOuterWindowID, aInnerWindowID, aLevel, aArguments) {
+    if (!aOuterWindowID) {
       return;
+    }
 
     let stack = this.getStackTrace();
     
     let frame = stack[1];
     let consoleEvent = {
-      ID: aID,
+      ID: aOuterWindowID,
+      innerID: aInnerWindowID,
       level: aLevel,
       filename: frame.filename,
       lineNumber: frame.lineNumber,
@@ -145,8 +162,10 @@ ConsoleAPI.prototype = {
 
     consoleEvent.wrappedJSObject = consoleEvent;
 
+    ConsoleAPIStorage.recordEvent(aInnerWindowID, consoleEvent);
+
     Services.obs.notifyObservers(consoleEvent,
-                                 "console-api-log-event", aID);
+                                 "console-api-log-event", aOuterWindowID);
   },
 
   
