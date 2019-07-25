@@ -249,13 +249,13 @@ function test_kill_2()
       process.kill();
     }
     catch (e) { }
-  }
 
-  
-  
-  
-  while (thread.hasPendingEvents())
-    thread.processNextEvent(false);
+    
+    
+    
+    while (thread.hasPendingEvents())
+      thread.processNextEvent(false);
+  }
 }
 
 function run_test() {
