@@ -39,6 +39,8 @@ XPCOMUtils.defineLazyGetter(this, "msgmgr", function() {
 
 #ifdef MOZ_WIDGET_GONK
   const DIRECTORY_NAME = "webappsDir";
+#elifdef ANDROID
+  const DIRECTORY_NAME = "webappsDir";
 #else
   
   
