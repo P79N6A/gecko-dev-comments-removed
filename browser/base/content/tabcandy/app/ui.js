@@ -93,9 +93,27 @@ var Page = {
       return false;
     });
     
-    Utils.ilog(Tabs.onFocus)
-    Tabs.onFocus(function(tab){
-      Utils.log("HHHIIII")
+    var lastTab = null;
+    Tabs.onFocus(function(){
+      
+      if( this.contentWindow == window && lastTab != null){
+        
+        
+        var $tab = $(lastTab.mirror.el);
+        
+        var [w,h, pos] = [$tab.width(), $tab.height(), $tab.position()];
+        $tab.css({
+            top: 0, left: 0,
+            width: window.innerWidth,
+            height: h * (window.innerWidth/w),
+            zIndex: 999999,
+          })          
+          .animate({
+            top: pos.top, left: pos.left,
+            width: w, height: h
+          },250);
+      }
+      lastTab = this;
     });
     
     $("#tabbar").toggle(
