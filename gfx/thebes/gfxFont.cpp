@@ -581,12 +581,28 @@ StyleDistance(gfxFontEntry *aFontEntry,
     
     
 
-    
-    
-    
-
-    return (aFontEntry->IsItalic() != anItalic ? 1 : 0) +
-           (aFontEntry->mStretch != aStretch ? 10 : 0);
+    PRInt32 distance = 0;
+    if (aStretch != aFontEntry->mStretch) {
+        
+        
+        
+        if (aStretch > 0) {
+            distance = (aFontEntry->mStretch - aStretch) * 2;
+        } else {
+            distance = (aStretch - aFontEntry->mStretch) * 2;
+        }
+        
+        
+        
+        
+        if (distance < 0) {
+            distance = -distance + 10;
+        }
+    }
+    if (aFontEntry->IsItalic() != anItalic) {
+        distance += 1;
+    }
+    return PRUint32(distance);
 }
 
 PRBool
@@ -609,8 +625,10 @@ gfxFontFamily::FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
                 aFontsForWeights[wt] = fe;
                 ++foundWeights;
             } else {
-                PRUint32 prevDistance = StyleDistance(aFontsForWeights[wt], anItalic, aStretch);
+                PRUint32 prevDistance =
+                    StyleDistance(aFontsForWeights[wt], anItalic, aStretch);
                 if (prevDistance >= distance) {
+                    
                     
                     aFontsForWeights[wt] = fe;
                 }
