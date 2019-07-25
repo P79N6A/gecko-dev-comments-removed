@@ -524,6 +524,9 @@ nsContentSink::ProcessHeaderData(nsIAtom* aHeader, const nsAString& aValue,
       return rv;
     }
   }
+  else if (aHeader == nsGkAtoms::link) {
+    rv = ProcessLinkHeader(aContent, aValue);
+  }
   else if (aHeader == nsGkAtoms::msthemecompatible) {
     
     

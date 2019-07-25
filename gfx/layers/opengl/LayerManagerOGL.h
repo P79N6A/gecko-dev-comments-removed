@@ -372,25 +372,11 @@ public:
     return mWidgetSize;
   }
 
-  enum WorldTransforPolicy {
-    ApplyWorldTransform,
-    DontApplyWorldTransform
-  };
-
   
 
 
 
-  void SetupPipeline(int aWidth, int aHeight, WorldTransforPolicy aTransformPolicy);
-
-  
-
-
-
-
-  void SetWorldTransform(const gfxMatrix& aMatrix);
-  gfxMatrix& GetWorldTransform(void);
-  void WorldTransformRect(nsIntRect& aRect);
+  void SetupPipeline(int aWidth, int aHeight);
 
 private:
   
@@ -469,7 +455,6 @@ private:
 
   DrawThebesLayerCallback mThebesLayerCallback;
   void *mThebesLayerCallbackData;
-  gfxMatrix mWorldMatrix;
 };
 
 

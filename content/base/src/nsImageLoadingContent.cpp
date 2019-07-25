@@ -641,6 +641,7 @@ nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
       doc->GetDocumentURI() &&
       NS_SUCCEEDED(doc->GetDocumentURI()->Equals(imageURI, &equal)) && 
       equal)  {
+
     
     
     
@@ -649,7 +650,6 @@ nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
     
     
     CancelImageRequests(aNotify);
-    FireEvent(NS_LITERAL_STRING("error"));
     return NS_OK;
   }
 

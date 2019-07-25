@@ -73,7 +73,6 @@ enum nsDOMClassInfoID {
 
 
 
-#undef DOMCI_CASTABLE_INTERFACE
 #define DOMCI_CASTABLE_INTERFACES(_extra)                                     \
 DOMCI_CASTABLE_INTERFACE(nsINode, nsINode, 0, _extra)                         \
 DOMCI_CASTABLE_INTERFACE(nsIContent, nsIContent, 1, _extra)                   \
