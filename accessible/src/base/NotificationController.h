@@ -17,11 +17,6 @@ class nsIContent;
 
 
 
-#ifdef DEBUG_NOTIFICATIONS
-#define DEBUG_CONTENTMUTATION
-#define DEBUG_TEXTCHANGE
-#endif
-
 
 
 

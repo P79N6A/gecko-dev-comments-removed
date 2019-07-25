@@ -13,7 +13,9 @@
 class AccEvent;
 class Accessible;
 class DocAccessible;
+
 class nsIDocument;
+class nsINode;
 class nsIRequest;
 class nsIWebProgress;
 
@@ -30,13 +32,15 @@ enum EModules {
   eDocDestroy = 1 << 2,
   eDocLifeCycle = eDocLoad | eDocCreate | eDocDestroy,
   ePlatforms = 1 << 3,
-  eStack = 1 << 4
+  eStack = 1 << 4,
+  eText = 1 << 5,
+  eTree = 1 << 6
 };
 
 
 
 
-bool IsEnabled(PRUint32 aModule);
+bool IsEnabled(PRUint32 aModules);
 
 
 
@@ -83,12 +87,22 @@ void MsgEnd();
 
 
 
+void MsgEntry(const char* aEntryText, ...);
+
+
+
+
 void Text(const char* aText);
 
 
 
 
 void Address(const char* aDescr, Accessible* aAcc);
+
+
+
+
+void Node(const char* aDescr, nsINode* aNode);
 
 
 
