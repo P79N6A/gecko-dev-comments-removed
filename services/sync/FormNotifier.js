@@ -55,5 +55,9 @@ FormNotifier.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIFormHistory2]),
 };
 
-let components = [FormNotifier];
-const NSGetFactory = XPCOMUtils.generateNSGetFactory(components);
+
+function NSGetModule(compMgr, fileSpec) XPCOMUtils.generateModule([FormNotifier]);
+
+
+if (typeof XPCOMUtils.generateNSGetFactory == "function")
+    const NSGetFactory = XPCOMUtils.generateNSGetFactory([FormNotifier]);
