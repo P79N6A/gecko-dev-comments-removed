@@ -965,7 +965,7 @@ nsObjectLoadingContent::HasNewFrame(nsIObjectFrame* aFrame)
 
     
     
-    nsCOMPtr<nsIPluginDocument> pDoc (do_QueryInterface(GetOurOwnerDoc()));
+    nsCOMPtr<nsIPluginDocument> pDoc (do_QueryInterface(GetOurDocument()));
     if (pDoc) {
       bool willHandleInstantiation;
       pDoc->GetWillHandleInstantiation(&willHandleInstantiation);

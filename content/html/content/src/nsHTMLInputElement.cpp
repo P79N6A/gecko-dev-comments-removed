@@ -2320,9 +2320,6 @@ nsHTMLInputElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                      aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  nsImageLoadingContent::BindToTree(aDocument, aParent, aBindingParent,
-                                    aCompileEventHandlers);
-
   if (mType == NS_FORM_INPUT_IMAGE) {
     
     
@@ -2368,8 +2365,6 @@ nsHTMLInputElement::UnbindFromTree(bool aDeep, bool aNullParent)
   if (!mForm && mType == NS_FORM_INPUT_RADIO) {
     WillRemoveFromRadioGroup();
   }
-
-  nsImageLoadingContent::UnbindFromTree(aDeep, aNullParent);
 
   nsGenericHTMLFormElement::UnbindFromTree(aDeep, aNullParent);
 

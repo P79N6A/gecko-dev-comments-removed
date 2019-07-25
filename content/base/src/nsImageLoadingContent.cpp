@@ -132,7 +132,7 @@ nsImageLoadingContent::DestroyImageLoadingContent()
 
 nsImageLoadingContent::~nsImageLoadingContent()
 {
-  NS_ASSERTION(!mCurrentRequest.Ptr() && !mPendingRequest.Ptr(),
+  NS_ASSERTION(!mCurrentRequest && !mPendingRequest,
                "DestroyImageLoadingContent not called");
   NS_ASSERTION(!mObserverList.mObserver && !mObserverList.mNext,
                "Observers still registered?");
@@ -181,7 +181,7 @@ nsImageLoadingContent::OnStartDecode(imgIRequest* aRequest)
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
   
-  if (aRequest == mCurrentRequest.Ptr()) {
+  if (aRequest == mCurrentRequest) {
 
     
     
@@ -243,7 +243,7 @@ nsImageLoadingContent::OnStopFrame(imgIRequest* aRequest,
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
 
   
-  if (aRequest == mCurrentRequest.Ptr())
+  if (aRequest == mCurrentRequest)
     SetBlockingOnload(PR_FALSE);
 
   LOOP_OVER_OBSERVERS(OnStopFrame(aRequest, aFrame));
@@ -262,7 +262,7 @@ nsImageLoadingContent::OnStopContainer(imgIRequest* aRequest,
   
   
   
-  if (aRequest == mCurrentRequest.Ptr())
+  if (aRequest == mCurrentRequest)
     SetBlockingOnload(PR_FALSE);
 
   LOOP_OVER_OBSERVERS(OnStopContainer(aRequest, aContainer));
@@ -282,8 +282,7 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   
   NS_ABORT_IF_FALSE(aRequest, "no request?");
 
-  NS_PRECONDITION(aRequest == mCurrentRequest.Ptr() ||
-                  aRequest == mPendingRequest.Ptr(),
+  NS_PRECONDITION(aRequest == mCurrentRequest || aRequest == mPendingRequest,
                   "Unknown request");
   LOOP_OVER_OBSERVERS(OnStopDecode(aRequest, aStatus, aStatusArg));
 
@@ -294,19 +293,18 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   AutoStateChanger changer(this, PR_TRUE);
 
   
-  if (aRequest == mPendingRequest.Ptr()) {
-    PrepareCurrentRequest();
-    mCurrentRequest = mPendingRequest;
-    mPendingRequest.Clear();
+  if (aRequest == mPendingRequest) {
+    PrepareCurrentRequest() = mPendingRequest;
+    mPendingRequest = nsnull;
     mCurrentRequestNeedsResetAnimation = mPendingRequestNeedsResetAnimation;
     mPendingRequestNeedsResetAnimation = PR_FALSE;
   }
-  NS_ABORT_IF_FALSE(aRequest == mCurrentRequest.Ptr(),
+  NS_ABORT_IF_FALSE(aRequest == mCurrentRequest,
                     "One way or another, we should be current by now");
 
   if (mCurrentRequestNeedsResetAnimation) {
     nsCOMPtr<imgIContainer> container;
-    mCurrentRequest.Ptr()->GetImage(getter_AddRefs(container));
+    mCurrentRequest->GetImage(getter_AddRefs(container));
     if (container)
       container->ResetAnimation();
     mCurrentRequestNeedsResetAnimation = PR_FALSE;
@@ -327,9 +325,7 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
   
 
   
-  
-  
-  nsIDocument* doc = GetOurOwnerDoc();
+  nsIDocument* doc = GetOurDocument();
   nsIPresShell* shell = doc ? doc->GetShell() : nsnull;
   if (shell) {
 
@@ -350,7 +346,7 @@ nsImageLoadingContent::OnStopDecode(imgIRequest* aRequest,
 
     
     if (doRequestDecode)
-      mCurrentRequest.Ptr()->RequestDecode();
+      mCurrentRequest->RequestDecode();
   }
 
   
@@ -490,10 +486,10 @@ nsImageLoadingContent::GetRequest(PRInt32 aRequestType,
 {
   switch(aRequestType) {
   case CURRENT_REQUEST:
-    *aRequest = mCurrentRequest.Ptr();
+    *aRequest = mCurrentRequest;
     break;
   case PENDING_REQUEST:
-    *aRequest = mPendingRequest.Ptr();
+    *aRequest = mPendingRequest;
     break;
   default:
     NS_ERROR("Unknown request type");
@@ -514,12 +510,12 @@ nsImageLoadingContent::GetRequestType(imgIRequest* aRequest,
 
   NS_PRECONDITION(aRequestType, "Null out param");
   
-  if (aRequest == mCurrentRequest.Ptr()) {
+  if (aRequest == mCurrentRequest) {
     *aRequestType = CURRENT_REQUEST;
     return NS_OK;
   }
 
-  if (aRequest == mPendingRequest.Ptr()) {
+  if (aRequest == mPendingRequest) {
     *aRequestType = PENDING_REQUEST;
     return NS_OK;
   }
@@ -532,8 +528,8 @@ nsImageLoadingContent::GetRequestType(imgIRequest* aRequest,
 NS_IMETHODIMP
 nsImageLoadingContent::GetCurrentURI(nsIURI** aURI)
 {
-  if (mCurrentRequest.Ptr()) {
-    return mCurrentRequest.Ptr()->GetURI(aURI);
+  if (mCurrentRequest) {
+    return mCurrentRequest->GetURI(aURI);
   }
 
   if (!mCurrentURI) {
@@ -554,7 +550,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
     return NS_ERROR_NULL_POINTER;
   }
 
-  nsCOMPtr<nsIDocument> doc = GetOurOwnerDoc();
+  nsCOMPtr<nsIDocument> doc = GetOurDocument();
   if (!doc) {
     
     return NS_OK;
@@ -568,7 +564,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   AutoStateChanger changer(this, PR_TRUE);
 
   
-  RequestWithState& req = PrepareNextRequest();
+  nsCOMPtr<imgIRequest>& req = PrepareNextRequest();
   nsresult rv = nsContentUtils::GetImgLoader()->
     LoadImageWithChannel(aChannel, this, doc, aListener,
                          getter_AddRefs(req));
@@ -577,7 +573,7 @@ nsImageLoadingContent::LoadImageWithChannel(nsIChannel* aChannel,
   } else {
     
     
-    if (!mCurrentRequest.Ptr())
+    if (!mCurrentRequest)
       aChannel->GetURI(getter_AddRefs(mCurrentURI));
     FireEvent(NS_LITERAL_STRING("error"));
     return rv;
@@ -602,13 +598,29 @@ NS_IMETHODIMP nsImageLoadingContent::ForceReload()
 
 
 
+void
+nsImageLoadingContent::NotifyOwnerDocumentChanged(nsIDocument *aOldDoc)
+{
+  
+  if (aOldDoc) {
+    if (mCurrentRequest)
+      aOldDoc->RemoveImage(mCurrentRequest);
+    if (mPendingRequest)
+      aOldDoc->RemoveImage(mPendingRequest);
+  }
+
+  
+  TrackImage(mCurrentRequest);
+  TrackImage(mPendingRequest);
+}
+
 nsresult
 nsImageLoadingContent::LoadImage(const nsAString& aNewURI,
                                  bool aForce,
                                  bool aNotify)
 {
   
-  nsIDocument* doc = GetOurOwnerDoc();
+  nsIDocument* doc = GetOurDocument();
   if (!doc) {
     
     return NS_OK;
@@ -656,11 +668,11 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
     return NS_OK;
   }
 
-  NS_ASSERTION(!aDocument || aDocument == GetOurOwnerDoc(),
+  NS_ASSERTION(!aDocument || aDocument == GetOurDocument(),
                "Bogus document passed in");
   
   if (!aDocument) {
-    aDocument = GetOurOwnerDoc();
+    aDocument = GetOurDocument();
     if (!aDocument) {
       
       return NS_OK;
@@ -716,7 +728,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   }
 
   
-  RequestWithState& req = PrepareNextRequest();
+  nsCOMPtr<imgIRequest>& req = PrepareNextRequest();
   nsresult rv;
   rv = nsContentUtils::LoadImage(aNewURI, aDocument,
                                  aDocument->NodePrincipal(),
@@ -728,7 +740,7 @@ nsImageLoadingContent::LoadImage(nsIURI* aNewURI,
   } else {
     
     
-    if (!mCurrentRequest.Ptr())
+    if (!mCurrentRequest)
       mCurrentURI = aNewURI;
     FireEvent(NS_LITERAL_STRING("error"));
     return NS_OK;
@@ -799,12 +811,12 @@ nsImageLoadingContent::UpdateImageState(bool aNotify)
     mSuppressed = PR_TRUE;
   } else if (mImageBlockingStatus == nsIContentPolicy::REJECT_TYPE) {
     mUserDisabled = PR_TRUE;
-  } else if (!mCurrentRequest.Ptr()) {
+  } else if (!mCurrentRequest) {
     
     mBroken = PR_TRUE;
   } else {
     PRUint32 currentLoadStatus;
-    nsresult rv = mCurrentRequest.Ptr()->GetImageStatus(&currentLoadStatus);
+    nsresult rv = mCurrentRequest->GetImageStatus(&currentLoadStatus);
     if (NS_FAILED(rv) || (currentLoadStatus & imgIRequest::STATUS_ERROR)) {
       mBroken = PR_TRUE;
     } else if (!(currentLoadStatus & imgIRequest::STATUS_SIZE_AVAILABLE)) {
@@ -836,7 +848,7 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
   ClearCurrentRequest(NS_BINDING_ABORTED);
 
   
-  RequestWithState& req = PrepareNextRequest();
+  nsCOMPtr<imgIRequest>& req = PrepareNextRequest();;
   nsresult rv = aRequest->Clone(this, getter_AddRefs(req));
   if (NS_SUCCEEDED(rv))
     TrackImage(req);
@@ -847,21 +859,12 @@ nsImageLoadingContent::UseAsPrimaryRequest(imgIRequest* aRequest,
 }
 
 nsIDocument*
-nsImageLoadingContent::GetOurOwnerDoc()
+nsImageLoadingContent::GetOurDocument()
 {
   nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
   NS_ENSURE_TRUE(thisContent, nsnull);
 
   return thisContent->GetOwnerDoc();
-}
-
-nsIDocument*
-nsImageLoadingContent::GetOurCurrentDoc()
-{
-  nsCOMPtr<nsIContent> thisContent = do_QueryInterface(this);
-  NS_ENSURE_TRUE(thisContent, nsnull);
-
-  return thisContent->GetCurrentDoc();
 }
 
 nsresult
@@ -904,19 +907,16 @@ nsImageLoadingContent::FireEvent(const nsAString& aEventType)
   return NS_OK;
 }
 
-nsImageLoadingContent::RequestWithState&
+nsCOMPtr<imgIRequest>&
 nsImageLoadingContent::PrepareNextRequest()
 {
   
   
-  if (!HaveSize(mCurrentRequest.Ptr())) {
-    PrepareCurrentRequest();
-    return mCurrentRequest;
-  }
+  if (!HaveSize(mCurrentRequest))
+    return PrepareCurrentRequest();
 
   
-  PreparePendingRequest();
-  return mPendingRequest;
+  return PreparePendingRequest();
 }
 
 void
@@ -935,7 +935,7 @@ nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, PRInt16 aContentDecision)
 
   
   
-  if (!HaveSize(mCurrentRequest.Ptr())) {
+  if (!HaveSize(mCurrentRequest)) {
 
     mImageBlockingStatus = aContentDecision;
     ClearCurrentRequest(NS_ERROR_IMAGE_BLOCKED);
@@ -946,7 +946,7 @@ nsImageLoadingContent::SetBlockedRequest(nsIURI* aURI, PRInt16 aContentDecision)
   }
 }
 
-void
+nsCOMPtr<imgIRequest>&
 nsImageLoadingContent::PrepareCurrentRequest()
 {
   
@@ -957,21 +957,27 @@ nsImageLoadingContent::PrepareCurrentRequest()
   ClearCurrentRequest(NS_ERROR_IMAGE_SRC_CHANGED);
 
   mCurrentRequestNeedsResetAnimation = mNewRequestsWillNeedAnimationReset;
+
+  
+  return mCurrentRequest;
 }
 
-void
+nsCOMPtr<imgIRequest>&
 nsImageLoadingContent::PreparePendingRequest()
 {
   
   ClearPendingRequest(NS_ERROR_IMAGE_SRC_CHANGED);
 
   mPendingRequestNeedsResetAnimation = mNewRequestsWillNeedAnimationReset;
+
+  
+  return mPendingRequest;
 }
 
 void
 nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
 {
-  if (!mCurrentRequest.Ptr()) {
+  if (!mCurrentRequest) {
     
     
     mCurrentURI = nsnull;
@@ -982,8 +988,8 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
 
   
   UntrackImage(mCurrentRequest);
-  mCurrentRequest.Ptr()->CancelAndForgetObserver(aReason);
-  mCurrentRequest.Clear();
+  mCurrentRequest->CancelAndForgetObserver(aReason);
+  mCurrentRequest = nsnull;
   mCurrentRequestNeedsResetAnimation = PR_FALSE;
 
   
@@ -994,7 +1000,7 @@ nsImageLoadingContent::ClearCurrentRequest(nsresult aReason)
 void
 nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
 {
-  if (!mPendingRequest.Ptr())
+  if (!mPendingRequest)
     return;
 
   
@@ -1004,8 +1010,8 @@ nsImageLoadingContent::ClearPendingRequest(nsresult aReason)
   pusher.PushNull();
 
   UntrackImage(mPendingRequest);
-  mPendingRequest.Ptr()->CancelAndForgetObserver(aReason);
-  mPendingRequest.Clear();
+  mPendingRequest->CancelAndForgetObserver(aReason);
+  mPendingRequest = nsnull;
   mPendingRequestNeedsResetAnimation = PR_FALSE;
 }
 
@@ -1030,7 +1036,7 @@ nsImageLoadingContent::SetBlockingOnload(bool aBlocking)
     return;
 
   
-  nsIDocument* doc = GetOurOwnerDoc();
+  nsIDocument* doc = GetOurDocument();
 
   if (doc) {
     
@@ -1044,68 +1050,30 @@ nsImageLoadingContent::SetBlockingOnload(bool aBlocking)
   }
 }
 
-void
-nsImageLoadingContent::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
-                                  nsIContent* aBindingParent,
-                                  bool aCompileEventHandlers)
-{
-  
-  
-  if (!aDocument)
-    return;
-
-  if (mCurrentRequest.Flag())
-    aDocument->AddImage(mCurrentRequest.Ptr());
-  if (mPendingRequest.Flag())
-    aDocument->AddImage(mPendingRequest.Ptr());
-}
-
-void
-nsImageLoadingContent::UnbindFromTree(bool aDeep, bool aNullParent)
-{
-  
-  nsCOMPtr<nsIDocument> doc = GetOurCurrentDoc();
-  if (!doc)
-    return;
-
-  if (mCurrentRequest.Flag())
-    doc->RemoveImage(mCurrentRequest.Ptr());
-  if (mPendingRequest.Flag())
-    doc->RemoveImage(mPendingRequest.Ptr());
-}
-
 nsresult
-nsImageLoadingContent::TrackImage(RequestWithState& aImage)
+nsImageLoadingContent::TrackImage(imgIRequest* aImage)
 {
-  if (!aImage.Ptr())
+  if (!aImage)
     return NS_OK;
 
-  NS_ASSERTION(!aImage.Flag(), "Already tracked!?");
-
-  aImage.SetFlag(true);
-
-  nsIDocument* doc = GetOurCurrentDoc();
+  nsIDocument* doc = GetOurDocument();
   if (doc)
-    return doc->AddImage(aImage.Ptr());
+    return doc->AddImage(aImage);
   return NS_OK;
 }
 
 nsresult
-nsImageLoadingContent::UntrackImage(RequestWithState& aImage)
+nsImageLoadingContent::UntrackImage(imgIRequest* aImage)
 {
-  if (!aImage.Ptr())
+  if (!aImage)
     return NS_OK;
 
-  NS_ASSERTION(aImage.Flag(), "Not already tracked!?");
-
-  aImage.SetFlag(false);
-
   
   
   
-  nsIDocument* doc = GetOurCurrentDoc();
+  nsIDocument* doc = GetOurDocument();
   if (doc)
-    return doc->RemoveImage(aImage.Ptr());
+    return doc->RemoveImage(aImage);
   return NS_OK;
 }
 
@@ -1113,7 +1081,7 @@ nsImageLoadingContent::UntrackImage(RequestWithState& aImage)
 void
 nsImageLoadingContent::CreateStaticImageClone(nsImageLoadingContent* aDest) const
 {
-  aDest->mCurrentRequest.SetPtr(nsContentUtils::GetStaticRequest(mCurrentRequest.Ptr()));
+  aDest->mCurrentRequest = nsContentUtils::GetStaticRequest(mCurrentRequest);
   aDest->TrackImage(aDest->mCurrentRequest);
   aDest->mForcedImageState = mForcedImageState;
   aDest->mImageBlockingStatus = mImageBlockingStatus;
