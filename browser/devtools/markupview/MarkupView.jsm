@@ -4,16 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 const Cc = Components.classes;
 const Cu = Components.utils;
 const Ci = Components.interfaces;
@@ -69,8 +59,6 @@ function MarkupView(aInspector, aFrame)
 
   this._boundFocus = this._onFocus.bind(this);
   this._frame.addEventListener("focus", this._boundFocus, false);
-
-  this._onSelect();
 }
 
 MarkupView.prototype = {

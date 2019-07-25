@@ -258,6 +258,7 @@ Inspector.prototype = {
     this._markupFrame = doc.createElement("iframe");
     this._markupFrame.setAttribute("flex", "1");
     this._markupFrame.setAttribute("tooltip", "aHTMLTooltip");
+    this._markupFrame.setAttribute("context", "inspector-node-popup");
 
     
     this._boundMarkupFrameLoad = function Inspector_initMarkupPanel_onload() {
@@ -1207,9 +1208,27 @@ InspectorUI.prototype = {
 
 
 
+
+
+
+
+  _contextSelection: function IUI__contextSelection()
+  {
+    let inspector = this.currentInspector;
+    if (inspector.markup) {
+      return inspector.markup.selected;
+    }
+    return this.selection;
+  },
+
+  
+
+
+
   copyInnerHTML: function IUI_copyInnerHTML()
   {
-    clipboardHelper.copyString(this.selection.innerHTML, this.selection.ownerDocument);
+    let selection = this._contextSelection();
+    clipboardHelper.copyString(selection.innerHTML, selection.ownerDocument);
   },
 
   
@@ -1218,7 +1237,8 @@ InspectorUI.prototype = {
 
   copyOuterHTML: function IUI_copyOuterHTML()
   {
-    clipboardHelper.copyString(this.selection.outerHTML, this.selection.ownerDocument);
+    let selection = this._contextSelection();
+    clipboardHelper.copyString(selection.outerHTML, selection.ownerDocument);
   },
 
   
@@ -1226,7 +1246,7 @@ InspectorUI.prototype = {
 
   deleteNode: function IUI_deleteNode()
   {
-    let selection = this.selection;
+    let selection = this._contextSelection();
 
     let root = selection.ownerDocument.documentElement;
     if (selection === root) {
@@ -1237,7 +1257,16 @@ InspectorUI.prototype = {
     let parent = selection.parentNode;
 
     
-    parent.removeChild(selection);
+    
+    let markup = this.currentInspector.markup;
+    if (markup) {
+      markup.deleteNode(selection);
+    } else {
+      
+      parent.removeChild(selection);
+    }
+
+    
     this.breadcrumbs.invalidateHierarchy();
 
     
