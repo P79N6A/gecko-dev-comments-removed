@@ -2986,13 +2986,13 @@ BasicShadowImageLayer::Swap(const SharedImage& aNewFront,
   nsRefPtr<gfxASurface> surface =
     BasicManager()->OpenDescriptor(aNewFront);
   
-  bool needDrop = false;
+  bool surfaceConfigChanged = surface->GetSize() != mSize;
   if (IsSurfaceDescriptorValid(mFrontBuffer)) {
     nsRefPtr<gfxASurface> front = BasicManager()->OpenDescriptor(mFrontBuffer);
-    needDrop = surface->GetSize() != mSize ||
-               surface->GetContentType() != front->GetContentType();
+    surfaceConfigChanged = surfaceConfigChanged ||
+                           surface->GetContentType() != front->GetContentType();
   }
-  if (needDrop) {
+  if (surfaceConfigChanged) {
     DestroyFrontBuffer();
     mSize = surface->GetSize();
   }
@@ -3107,13 +3107,13 @@ BasicShadowCanvasLayer::Swap(const CanvasSurface& aNewFront, bool needYFlip,
     BasicManager()->OpenDescriptor(aNewFront);
   
   gfxIntSize sz = surface->GetSize();
-  bool needDrop = false;
+  bool surfaceConfigChanged = sz != gfxIntSize(mBounds.width, mBounds.height);
   if (IsSurfaceDescriptorValid(mFrontSurface)) {
     nsRefPtr<gfxASurface> front = BasicManager()->OpenDescriptor(mFrontSurface);
-    needDrop = sz != gfxIntSize(mBounds.width, mBounds.height) ||
-               surface->GetContentType() != front->GetContentType();
+    surfaceConfigChanged = surfaceConfigChanged ||
+                           surface->GetContentType() != front->GetContentType();
   }
-  if (needDrop) {
+  if (surfaceConfigChanged) {
     DestroyFrontBuffer();
     mBounds.SetRect(0, 0, sz.width, sz.height);
   }
