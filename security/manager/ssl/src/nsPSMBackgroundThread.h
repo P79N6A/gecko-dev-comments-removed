@@ -42,6 +42,7 @@
 #include "nscore.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
+#include "nsNSSComponent.h"
 
 class nsPSMBackgroundThread
 {
@@ -59,10 +60,19 @@ protected:
   mozilla::Mutex mMutex;
 
   
+  
   mozilla::CondVar mCond;
 
-  
-  PRBool mExitRequested;
+  PRBool exitRequested(::mozilla::MutexAutoLock const & proofOfLock) const;
+  PRBool exitRequestedNoLock() const { return mExitState != ePSMThreadRunning; }
+  nsresult postStoppedEventToMainThread(::mozilla::MutexAutoLock const & proofOfLock);
+
+private:
+  enum {
+    ePSMThreadRunning = 0,
+    ePSMThreadStopRequested = 1,
+    ePSMThreadStopped = 2
+  } mExitState;
 
 public:
   nsPSMBackgroundThread();
