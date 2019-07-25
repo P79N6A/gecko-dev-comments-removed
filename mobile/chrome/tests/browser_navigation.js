@@ -120,10 +120,21 @@ gTests.push({
 
     
     EventUtils.synthesizeString(testURL_02, window);
-    EventUtils.synthesizeKey("VK_RETURN", {}, window);
 
     
-    waitFor(gCurrentTest.onPageFinish, pageLoaded(testURL_02));
+    
+    
+    function URLIsReadWrite() {
+      return BrowserUI._edit.readOnly == false;
+    }
+
+    waitFor(function() {
+      is(BrowserUI._edit.value, testURL_02, "URL value should be equal to the string sent via synthesizeString");
+      EventUtils.synthesizeKey("VK_RETURN", {}, window);
+
+      
+      waitFor(gCurrentTest.onPageFinish, pageLoaded(testURL_02));
+    }, URLIsReadWrite);
   },
 
   onPageFinish: function() {
