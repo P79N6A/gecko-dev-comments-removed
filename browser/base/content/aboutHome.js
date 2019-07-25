@@ -232,10 +232,10 @@ function loadSnippets()
 
 function showSnippets()
 {
+  let snippetsElt = document.getElementById("snippets");
   let snippets = localStorage["snippets"];
   
   if (snippets) {
-    let snippetsElt = document.getElementById("snippets");
     
     try {
       snippetsElt.innerHTML = snippets;
@@ -247,7 +247,6 @@ function showSnippets()
         relocatedScript.text = elt.text;
         elt.parentNode.replaceChild(relocatedScript, elt);
       });
-      snippetsElt.hidden = false;
       return;
     } catch (ex) {
       
@@ -263,13 +262,31 @@ function showSnippets()
   
   if (DEFAULT_SNIPPETS_URLS[randIndex]) {
     let links = entry.getElementsByTagName("a");
-    if (links.length != 1)
-      return; 
-    links[0].href = DEFAULT_SNIPPETS_URLS[randIndex];
-    defaultSnippetsElt.addEventListener("click", function(aEvent) {
+    
+    
+    if (links.length == 1) {
+      links[0].href = DEFAULT_SNIPPETS_URLS[randIndex];
+      activateSnippetsButtonClick(entry);
+    }
+  }
+  
+  snippetsElt.appendChild(entry);
+}
+
+
+
+
+
+
+
+
+function activateSnippetsButtonClick(aElt) {
+  let links = aElt.getElementsByTagName("a");
+  if (links.length == 1) {
+    document.getElementById("snippets")
+            .addEventListener("click", function(aEvent) {
       if (aEvent.target.nodeName != "a")
         window.location = links[0].href;
     }, false);
   }
-  entry.hidden = false;
 }
