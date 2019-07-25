@@ -61,20 +61,28 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       eType_Null           = TYPE_NULL
     };
     enum FallbackType {
-      eFallbackUnsupported,  
-                             
-      eFallbackAlternate,    
-      eFallbackDisabled,     
-      eFallbackBlocklisted,  
-      eFallbackOutdated,     
-                             
-      eFallbackCrashed,      
-      eFallbackSuppressed,   
-      eFallbackUserDisabled, 
-      eFallbackClickToPlay,  
-                             
-      eFallbackVulnerableUpdatable, 
-      eFallbackVulnerableNoUpdate  
+      
+      eFallbackUnsupported = nsIObjectLoadingContent::PLUGIN_UNSUPPORTED,
+      
+      eFallbackAlternate = nsIObjectLoadingContent::PLUGIN_ALTERNATE,
+      
+      eFallbackDisabled = nsIObjectLoadingContent::PLUGIN_DISABLED,
+      
+      eFallbackBlocklisted = nsIObjectLoadingContent::PLUGIN_BLOCKLISTED,
+      
+      eFallbackOutdated = nsIObjectLoadingContent::PLUGIN_OUTDATED,
+      
+      eFallbackCrashed = nsIObjectLoadingContent::PLUGIN_CRASHED,
+      
+      eFallbackSuppressed = nsIObjectLoadingContent::PLUGIN_SUPPRESSED,
+      
+      eFallbackUserDisabled = nsIObjectLoadingContent::PLUGIN_USER_DISABLED,
+      
+      eFallbackClickToPlay = nsIObjectLoadingContent::PLUGIN_CLICK_TO_PLAY,
+      
+      eFallbackVulnerableUpdatable = nsIObjectLoadingContent::PLUGIN_VULNERABLE_UPDATABLE,
+      
+      eFallbackVulnerableNoUpdate = nsIObjectLoadingContent::PLUGIN_VULNERABLE_NO_UPDATE
     };
 
     nsObjectLoadingContent();
