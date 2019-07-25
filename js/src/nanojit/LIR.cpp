@@ -1077,8 +1077,7 @@ namespace nanojit
                     
                     
                     
-                    
-                    NanoAssertMsg(0, "Constantly false branch detected");
+                    NanoAssertMsg(0, "Constantly taken branch detected");
 #endif
                     return out->insBranch(LIR_j, NULL, t);
                 }
