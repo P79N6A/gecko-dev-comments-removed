@@ -4271,7 +4271,21 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSFunction *fun, JSO
     }
 
     
-    if (!pendingPoppedThis.empty() &&
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (entirelyAnalyzed &&
+        !pendingPoppedThis.empty() &&
         !AnalyzePoppedThis(cx, &pendingPoppedThis, type, fun, pbaseobj,
                            initializerList)) {
         return false;
