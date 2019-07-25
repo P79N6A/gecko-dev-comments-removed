@@ -414,8 +414,7 @@ HistoryTracker.prototype = {
 
     
     
-    let store = new HistoryStore();
-    let all = store.getAllIDs();
+    let all = this._store.getAllIDs();
     this._all = {};
     for (let guid in all) {
       this._all[all[guid]] = guid;
