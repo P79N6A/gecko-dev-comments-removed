@@ -424,6 +424,33 @@ function test()
     
     for (var i = 0; i < b.length; i++)
         check(function() b[90] == 5)
+
+    
+    var alien = newGlobal('new-compartment');
+
+    var alien_view = alien.eval('view = new Uint8Array(7)');
+    var alien_buffer = alien.eval('buffer = view.buffer');
+
+    
+    
+    
+    
+    var view = new Int8Array(alien_buffer);
+
+    
+    alien_view[3] = 77;
+    check(function () view[3] == 77);
+
+    
+    check(function () isProxy(alien_view));
+    check(function () isProxy(alien_buffer));
+    check(function () isProxy(view)); 
+
+    
+    simple = new Int8Array(12);
+    check(function () Object.getPrototypeOf(view) == Object.getPrototypeOf(simple));
+    check(function () Object.getPrototypeOf(view) == Int8Array.prototype);
+
     print ("done");
 
     reportCompare(0, TestFailCount, "typed array tests");
