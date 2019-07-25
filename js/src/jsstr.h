@@ -373,10 +373,6 @@ class JSString : public js::gc::Cell
 
     
 
-    void mark(JSTracer *trc);
-
-    
-
     static size_t offsetOfLengthAndFlags() {
         return offsetof(JSString, d.lengthAndFlags);
     }
@@ -413,9 +409,10 @@ JS_STATIC_ASSERT(sizeof(JSRope) == sizeof(JSString));
 class JSLinearString : public JSString
 {
     friend class JSString;
-    void mark(JSTracer *trc);
 
   public:
+    void mark(JSTracer *trc);
+
     JS_ALWAYS_INLINE
     const jschar *chars() const {
         JS_ASSERT(isLinear());
