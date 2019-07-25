@@ -398,6 +398,34 @@ js_math_min(JSContext *cx, uintN argc, Value *vp)
     return JS_TRUE;
 }
 
+static jsdouble
+powi(jsdouble x, jsint y)
+{
+    jsuint n = (y < 0) ? -y : y;
+    jsdouble m = x;
+    jsdouble p = 1;
+    while (true) {
+        if ((n & 1) != 0) p *= m;
+        n >>= 1;
+        if (n == 0) {
+            if (y < 0) {
+                
+                
+                
+                
+                
+                jsdouble result = 1.0 / p;
+                return (result == 0 && JSDOUBLE_IS_INFINITE(p))
+                       ? pow(x, static_cast<jsdouble>(y))  
+                       : result;
+            }
+
+            return p;
+        }
+        m *= m;
+    }
+}
+
 static JSBool
 math_pow(JSContext *cx, uintN argc, Value *vp)
 {
@@ -415,6 +443,20 @@ math_pow(JSContext *cx, uintN argc, Value *vp)
 
 
 
+    if (JSDOUBLE_IS_FINITE(x) && x != 0.0) {
+        if (y == 0.5) {
+            vp->setNumber(sqrt(x));
+            return JS_TRUE;
+        }
+        if (y == -0.5) {
+            vp->setNumber(1.0/sqrt(x));
+            return JS_TRUE;
+        }
+    }
+    
+
+
+
     if (!JSDOUBLE_IS_FINITE(y) && (x == 1.0 || x == -1.0)) {
         vp->setDouble(js_NaN);
         return JS_TRUE;
@@ -424,7 +466,12 @@ math_pow(JSContext *cx, uintN argc, Value *vp)
         vp->setInt32(1);
         return JS_TRUE;
     }
-    z = pow(x, y);
+
+    if (vp[3].isInt32())
+        z = powi(x, vp[3].toInt32());
+    else
+        z = pow(x, y);
+
     vp->setNumber(z);
     return JS_TRUE;
 }
@@ -673,10 +720,25 @@ math_min_tn(jsdouble d, jsdouble p)
 static jsdouble FASTCALL
 math_pow_tn(jsdouble d, jsdouble p)
 {
+    
+
+
+
+    if (JSDOUBLE_IS_FINITE(d) && d != 0.0) {
+        if (p == 0.5)
+            return sqrt(d);
+
+        if (p == -0.5)
+            return 1.0/sqrt(d);
+    }
     if (!JSDOUBLE_IS_FINITE(p) && (d == 1.0 || d == -1.0))
         return js_NaN;
     if (p == 0)
         return 1.0;
+    int32_t i;
+    if (JSDOUBLE_IS_INT32(p, &i))
+        return powi(d, i);
+
     return pow(d, p);
 }
 
