@@ -6527,9 +6527,7 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundItem& aItem,
                          NS_STYLE_BG_ORIGIN_PADDING);
         PR_STATIC_ASSERT(NS_STYLE_BG_CLIP_CONTENT ==
                          NS_STYLE_BG_ORIGIN_CONTENT);
-        
         aItem.mClip = aItem.mOrigin;
-      
 #endif
       } else {
         if (haveColor)
