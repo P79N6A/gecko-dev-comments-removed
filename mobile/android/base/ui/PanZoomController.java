@@ -264,10 +264,7 @@ public class PanZoomController
             
             
         case NOTHING:
-            
-            
-            mController.setViewportMetrics(getValidViewportMetrics());
-            mController.notifyLayerClientOfGeometryChange();
+            bounce();
             break;
         }
     }

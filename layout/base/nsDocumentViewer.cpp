@@ -194,8 +194,6 @@ static const char sPrintOptionsContractID[]         = "@mozilla.org/gfx/printset
 
 #include "nsGfxCIID.h"
 
-#include "nsObserverService.h"
-
 #include "mozilla/dom/Element.h"
 
 using namespace mozilla;
@@ -509,18 +507,6 @@ public:
   }
 
   nsCOMPtr<nsIDocument> mTop;
-};
-
-class nsDocumentShownDispatcher : public nsRunnable
-{
-public:
-  nsDocumentShownDispatcher(nsIDocument *aDocument)
-  : mDocument(aDocument) {}
-
-  NS_IMETHOD Run();
-
-private:
-  nsCOMPtr<nsIDocument> mDocument;
 };
 
 
@@ -2052,10 +2038,6 @@ DocumentViewerImpl::Show(void)
       mPresShell->UnsuppressPainting();
     }
   }
-
-  
-  
-  NS_DispatchToMainThread(new nsDocumentShownDispatcher(mDocument));
 
   return NS_OK;
 }
@@ -4389,17 +4371,3 @@ DocumentViewerImpl::SetPrintPreviewPresentation(nsIViewManager* aViewManager,
   mPresContext = aPresContext;
   mPresShell = aPresShell;
 }
-
-
-
-NS_IMETHODIMP
-nsDocumentShownDispatcher::Run()
-{
-  nsCOMPtr<nsIObserverService> observerService =
-    mozilla::services::GetObserverService();
-  if (observerService) {
-    observerService->NotifyObservers(mDocument, "document-shown", NULL);
-  }
-  return NS_OK;
-}
-
