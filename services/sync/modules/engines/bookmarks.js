@@ -286,7 +286,7 @@ BookmarksSharingManager.prototype = {
 
     
     let abspath = "/user/" + this._myUsername + "/" + serverPath;
-    this._sendXmppNotiication( username, "stop", abspath, folderName );
+    this._sendXmppNotification( username, "stop", abspath, folderName );
 
     this._log.info("Stopped sharing " + folderName + "with " + username);
     self.done( true );
@@ -487,7 +487,11 @@ BookmarksSharingManager.prototype = {
     let bulkIV = keys.bulkIV;
 
     
-    let json = this._engine._store._wrapMountOutgoing(folderId);
+    let wrapMount = this._engine._store._wrapMountOutgoing(folderId);
+    let jsonService = Components.classes["@mozilla.org/dom/json;1"]
+                 .createInstance(Components.interfaces.nsIJSON);
+    let json = jsonService.encode( wrapMount );
+    dump( "Wrapped json before encryption is like this: " + json + "\n" );
 
     
     let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
