@@ -362,11 +362,15 @@ BookmarksSyncCore.prototype = {
     
     
     
+    
+    
+    
     if (!a || !b ||
-       a.action != b.action ||
-       a.data.type != b.data.type ||
-       a.data.parentGUID != b.data.parentGUID ||
-       a.GUID == b.GUID)
+        a.action != b.action ||
+        a.action == "remove" ||
+        a.data.type != b.data.type ||
+        a.data.parentGUID != b.data.parentGUID ||
+        a.GUID == b.GUID)
       return false;
 
     
