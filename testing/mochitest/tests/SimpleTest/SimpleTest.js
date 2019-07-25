@@ -258,6 +258,8 @@ SimpleTest.showReport = function() {
     addNode(SPAN(null, " "));
     addNode(toggleTodo);
     addNode(SimpleTest.report());
+    
+    addNode(HR());
 };
 
 
