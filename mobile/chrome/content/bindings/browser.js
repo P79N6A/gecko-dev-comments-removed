@@ -624,6 +624,13 @@ let ContentScroll =  {
           left: aEvent.x
         });
 
+        
+        
+        addEventListener("MozAfterPaint", function afterPaint() {
+          removeEventListener("MozAfterPaint", afterPaint, false);
+          sendAsyncMessage("Content:UpdateDisplayPort");
+        }, false);
+
         break;
       }
     }
