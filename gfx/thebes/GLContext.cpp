@@ -436,6 +436,7 @@ static const char *sExtensionNames[] = {
     "GL_ARB_ES2_compatibility",
     "GL_OES_texture_float",
     "GL_ARB_texture_float",
+    "GL_EXT_unpack_subimage",
     NULL
 };
 
@@ -1839,9 +1840,23 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
                         GetAddressAlignment((ptrdiff_t)stride)));
 
 #ifndef USE_GLES2
-    fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, stride/pixelsize);
+    bool useUnpackRowLength = true;
 #else
-    if (stride != width * pixelsize) {
+    
+    
+    
+    bool useUnpackRowLength = IsExtensionSupported(EXT_unpack_subimage);
+#endif
+
+    
+    
+    int rowLength = stride/pixelsize;
+    if (rowLength > mMaxTextureSize)
+      useUnpackRowLength = false;
+
+    if (useUnpackRowLength)
+        fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, rowLength);
+    else if (stride != width * pixelsize) {
         
         
         
@@ -1873,7 +1888,6 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
         fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
         return;
     }
-#endif
 
     fTexImage2D(target,
                 level,
@@ -1885,9 +1899,8 @@ GLContext::TexImage2D(GLenum target, GLint level, GLint internalformat,
                 type,
                 pixels);
 
-#ifndef USE_GLES2
-    fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, 0);
-#endif
+    if (useUnpackRowLength)
+        fPixelStorei(LOCAL_GL_UNPACK_ROW_LENGTH, 0);
     fPixelStorei(LOCAL_GL_UNPACK_ALIGNMENT, 4);
 }
 
