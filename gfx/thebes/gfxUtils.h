@@ -94,6 +94,11 @@ public:
 
 
     static void ClipToRegionSnapped(gfxContext* aContext, const nsIntRegion& aRegion);
+
+    
+
+
+    static int ImageFormatToDepth(gfxASurface::gfxImageFormat aFormat);
 };
 
 #endif
