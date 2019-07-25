@@ -796,11 +796,12 @@ struct TypeCompartment
 
 
 
-    void addDynamicType(JSContext *addCx, TypeSet *types, jstype type,
+    void addDynamicType(JSContext *cx, TypeSet *types, jstype type,
                         const char *format, ...);
+    void addDynamicPush(JSContext *cx, analyze::Bytecode &code, unsigned index, jstype type);
 
     
-    inline void monitorBytecode(analyze::Bytecode *code);
+    void monitorBytecode(JSContext *cx, analyze::Bytecode *code);
 };
 
 } 

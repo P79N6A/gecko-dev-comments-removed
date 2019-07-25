@@ -304,13 +304,12 @@ struct JSScript {
     getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
 
     
-
-
-
     inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, unsigned index,
-                                  js::types::jstype type, bool force);
+                                  js::types::jstype type);
     inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, unsigned index,
-                                  const js::Value &rval, bool force);
+                                  const js::Value &rval);
+    inline void typeMonitorOverflow(JSContext *cx, const jsbytecode *pc, unsigned index);
+    inline void typeMonitorUndefined(JSContext *cx, const jsbytecode *pc, unsigned index);
 
     
     inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,

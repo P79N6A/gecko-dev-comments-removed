@@ -180,10 +180,10 @@ StubCompiler::emitStubCall(void *ptr, int32 slots, uint32 id)
     JaegerSpew(JSpew_Insns, " ---- BEGIN SLOW CALL CODE ---- \n");
     Call cl = masm.fallibleVMCall(ptr, cc.getPC(), slots);
     JaegerSpew(JSpew_Insns, " ---- END SLOW CALL CODE ---- \n");
-    if (cc.debugMode()) {
-        Compiler::InternalCallSite site(masm.callReturnOffset(cl), cc.getPC(), id, true, true);
-        cc.addCallSite(site);
-    }
+
+    
+    Compiler::InternalCallSite site(masm.callReturnOffset(cl), cc.getPC(), id, true, true);
+    cc.addCallSite(site);
     return cl;
 }
 
@@ -203,6 +203,41 @@ StubCompiler::fixCrossJumps(uint8 *ncode, size_t offset, size_t total)
 
     for (size_t i = 0; i < joins.length(); i++)
         slow.link(joins[i].from, fast.locationOf(joins[i].to));
+}
+
+JSC::MacroAssembler::Call
+StubCompiler::vpInc(JSOp op, uint32 depth)
+{
+    uint32 slots = depth + script->nfixed;
+
+    VoidVpStub stub = NULL;
+    switch (op) {
+      case JSOP_GLOBALINC:
+      case JSOP_ARGINC:
+        stub = stubs::VpInc;
+        break;
+
+      case JSOP_GLOBALDEC:
+      case JSOP_ARGDEC:
+        stub = stubs::VpDec;
+        break;
+
+      case JSOP_INCGLOBAL:
+      case JSOP_INCARG:
+        stub = stubs::IncVp;
+        break;
+
+      case JSOP_DECGLOBAL:
+      case JSOP_DECARG:
+        stub = stubs::DecVp;
+        break;
+
+      default:
+        JS_NOT_REACHED("unknown incdec op");
+        break;
+    }
+
+    return emitStubCall(JS_FUNC_TO_DATA_PTR(void *, stub), slots, __LINE__);
 }
 
 void

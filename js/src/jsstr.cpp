@@ -3125,24 +3125,6 @@ static void type_StringSplit(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsit
 #endif
 }
 
-
-
-static void type_StringReplace(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *jssite)
-{
-#ifdef JS_TYPE_INFERENCE
-    TypeCallsite *site = Valueify(jssite);
-
-    if (site->returnTypes)
-        site->returnTypes->addType(cx, TYPE_STRING);
-
-    if (site->argumentCount <= 1)
-        return;
-
-    
-    cx->compartment->types.monitorBytecode(site->code);
-#endif
-}
-
 static const uint16 GENERIC_PRIMITIVE = JSFUN_GENERIC_NATIVE | JSFUN_PRIMITIVE_THIS;
 
 static JSFunctionSpec string_methods[] = {
@@ -3172,7 +3154,7 @@ static JSFunctionSpec string_methods[] = {
     
     JS_FN_TYPE("match",             str_match,             1,GENERIC_PRIMITIVE, type_StringMatch),
     JS_FN_TYPE("search",            str_search,            1,GENERIC_PRIMITIVE, JS_TypeHandlerInt),
-    JS_FN_TYPE("replace",           str_replace,           2,GENERIC_PRIMITIVE, type_StringReplace),
+    JS_FN_TYPE("replace",           str_replace,           2,GENERIC_PRIMITIVE, JS_TypeHandlerString),
     JS_FN_TYPE("split",             str_split,             2,GENERIC_PRIMITIVE, type_StringSplit),
 #if JS_HAS_PERL_SUBSTR
     JS_FN_TYPE("substr",            str_substr,            2,GENERIC_PRIMITIVE, JS_TypeHandlerString),

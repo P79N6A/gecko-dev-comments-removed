@@ -89,19 +89,24 @@
 
 
 
-#define JSDOUBLE_SIGNBIT (((uint64) 1) << 63)
-#define JSDOUBLE_EXPMASK (((uint64) 0x7ff) << 52)
-#define JSDOUBLE_MANTMASK ((((uint64) 1) << 52) - 1)
+#include <math.h>
+#if defined(XP_WIN) || defined(XP_OS2)
+#include <float.h>
+#endif
+#ifdef SOLARIS
+#include <ieeefp.h>
+#endif
 
-static JS_ALWAYS_INLINE JSBool
+static inline int
 JSDOUBLE_IS_NEGZERO(jsdouble d)
 {
-    union {
-        jsdouble d;
-        uint64 bits;
-    } x;
-    x.d = d;
-    return x.bits == JSDOUBLE_SIGNBIT;
+#ifdef WIN32
+    return (d == 0 && (_fpclass(d) & _FPCLASS_NZ));
+#elif defined(SOLARIS)
+    return (d == 0 && copysign(1, d) < 0);
+#else
+    return (d == 0 && signbit(d));
+#endif
 }
 
 static inline bool
@@ -249,7 +254,7 @@ static JS_ALWAYS_INLINE JSBool
 JSVAL_SAME_TYPE_IMPL(jsval_layout lhs, jsval_layout rhs)
 {
     uint64 lbits = lhs.asBits, rbits = rhs.asBits;
-    return (lbits <= JSVAL_SHIFTED_TAG_MAX_DOUBLE && rbits <= JSVAL_SHIFTED_TAG_MAX_DOUBLE) ||
+    return (lbits <= JSVAL_TAG_MAX_DOUBLE && rbits <= JSVAL_TAG_MAX_DOUBLE) ||
            (((lbits ^ rbits) & 0xFFFF800000000000LL) == 0);
 }
 
@@ -371,18 +376,8 @@ class Value
     }
 
     JS_ALWAYS_INLINE
-    void setString(const JS::Anchor<JSString *> &str) {
-        setString(str.get());
-    }
-
-    JS_ALWAYS_INLINE
     void setObject(JSObject &obj) {
         data = OBJECT_TO_JSVAL_IMPL(&obj);
-    }
-
-    JS_ALWAYS_INLINE
-    void setObject(const JS::Anchor<JSObject *> &obj) {
-        setObject(*obj.get());
     }
 
     JS_ALWAYS_INLINE
@@ -406,20 +401,26 @@ class Value
     }
 
     JS_ALWAYS_INLINE
-    void setNumber(uint32 ui) {
-        if (ui > JSVAL_INT_MAX)
+    bool setNumber(uint32 ui) {
+        if (ui > JSVAL_INT_MAX) {
             setDouble((double)ui);
-        else
+            return false;
+        } else {
             setInt32((int32)ui);
+            return true;
+        }
     }
 
     JS_ALWAYS_INLINE
-    void setNumber(double d) {
+    bool setNumber(double d) {
         int32_t i;
-        if (JSDOUBLE_IS_INT32(d, &i))
+        if (JSDOUBLE_IS_INT32(d, &i)) {
             setInt32(i);
-        else
+            return true;
+        } else {
             setDouble(d);
+            return false;
+        }
     }
 
     JS_ALWAYS_INLINE
@@ -898,8 +899,6 @@ typedef JSBool
 typedef JSBool
 (* PropertyOp)(JSContext *cx, JSObject *obj, jsid id, Value *vp);
 typedef JSBool
-(* StrictPropertyOp)(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value *vp);
-typedef JSBool
 (* ConvertOp)(JSContext *cx, JSObject *obj, JSType type, Value *vp);
 typedef JSBool
 (* NewEnumerateOp)(JSContext *cx, JSObject *obj, JSIterateOp enum_op,
@@ -913,7 +912,7 @@ typedef JSBool
 (* EqualityOp)(JSContext *cx, JSObject *obj, const Value *v, JSBool *bp);
 typedef JSBool
 (* DefinePropOp)(JSContext *cx, JSObject *obj, jsid id, const Value *value,
-                 PropertyOp getter, StrictPropertyOp setter, uintN attrs);
+                 PropertyOp getter, PropertyOp setter, uintN attrs);
 typedef JSBool
 (* PropertyIdOp)(JSContext *cx, JSObject *obj, JSObject *receiver, jsid id, Value *vp);
 typedef JSBool
@@ -929,6 +928,8 @@ typedef JSBool
 (* AttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
 typedef JSType
 (* TypeOfOp)(JSContext *cx, JSObject *obj);
+typedef void
+(* TraceOp)(JSTracer *trc, JSObject *obj);
 typedef JSObject *
 (* ObjectOp)(JSContext *cx, JSObject *obj);
 typedef void
@@ -946,29 +947,26 @@ class AutoIdVector;
 typedef JSBool
 (* FixOp)(JSContext *cx, JSObject *obj, bool *fixed, AutoIdVector *props);
 
-static inline Native             Valueify(JSNative f)           { return (Native)f; }
-static inline JSNative           Jsvalify(Native f)             { return (JSNative)f; }
-static inline PropertyOp         Valueify(JSPropertyOp f)       { return (PropertyOp)f; }
-static inline JSPropertyOp       Jsvalify(PropertyOp f)         { return (JSPropertyOp)f; }
-static inline StrictPropertyOp   Valueify(JSStrictPropertyOp f) { return (StrictPropertyOp)f; }
-static inline JSStrictPropertyOp Jsvalify(StrictPropertyOp f)   { return (JSStrictPropertyOp)f; }
-static inline ConvertOp          Valueify(JSConvertOp f)        { return (ConvertOp)f; }
-static inline JSConvertOp        Jsvalify(ConvertOp f)          { return (JSConvertOp)f; }
-static inline NewEnumerateOp     Valueify(JSNewEnumerateOp f)   { return (NewEnumerateOp)f; }
-static inline JSNewEnumerateOp   Jsvalify(NewEnumerateOp f)     { return (JSNewEnumerateOp)f; }
-static inline HasInstanceOp      Valueify(JSHasInstanceOp f)    { return (HasInstanceOp)f; }
-static inline JSHasInstanceOp    Jsvalify(HasInstanceOp f)      { return (JSHasInstanceOp)f; }
-static inline CheckAccessOp      Valueify(JSCheckAccessOp f)    { return (CheckAccessOp)f; }
-static inline JSCheckAccessOp    Jsvalify(CheckAccessOp f)      { return (JSCheckAccessOp)f; }
-static inline EqualityOp         Valueify(JSEqualityOp f);      
-static inline JSEqualityOp       Jsvalify(EqualityOp f);        
+static inline Native            Valueify(JSNative f)          { return (Native)f; }
+static inline JSNative          Jsvalify(Native f)            { return (JSNative)f; }
+static inline PropertyOp        Valueify(JSPropertyOp f)      { return (PropertyOp)f; }
+static inline JSPropertyOp      Jsvalify(PropertyOp f)        { return (JSPropertyOp)f; }
+static inline ConvertOp         Valueify(JSConvertOp f)       { return (ConvertOp)f; }
+static inline JSConvertOp       Jsvalify(ConvertOp f)         { return (JSConvertOp)f; }
+static inline NewEnumerateOp    Valueify(JSNewEnumerateOp f)  { return (NewEnumerateOp)f; }
+static inline JSNewEnumerateOp  Jsvalify(NewEnumerateOp f)    { return (JSNewEnumerateOp)f; }
+static inline HasInstanceOp     Valueify(JSHasInstanceOp f)   { return (HasInstanceOp)f; }
+static inline JSHasInstanceOp   Jsvalify(HasInstanceOp f)     { return (JSHasInstanceOp)f; }
+static inline CheckAccessOp     Valueify(JSCheckAccessOp f)   { return (CheckAccessOp)f; }
+static inline JSCheckAccessOp   Jsvalify(CheckAccessOp f)     { return (JSCheckAccessOp)f; }
+static inline EqualityOp        Valueify(JSEqualityOp f);     
+static inline JSEqualityOp      Jsvalify(EqualityOp f);       
 
-static const PropertyOp       PropertyStub       = (PropertyOp)JS_PropertyStub;
-static const StrictPropertyOp StrictPropertyStub = (StrictPropertyOp)JS_StrictPropertyStub;
-static const JSEnumerateOp    EnumerateStub      = JS_EnumerateStub;
-static const JSResolveOp      ResolveStub        = JS_ResolveStub;
-static const ConvertOp        ConvertStub        = (ConvertOp)JS_ConvertStub;
-static const JSFinalizeOp     FinalizeStub       = JS_FinalizeStub;
+static const PropertyOp    PropertyStub  = (PropertyOp)JS_PropertyStub;
+static const JSEnumerateOp EnumerateStub = JS_EnumerateStub;
+static const JSResolveOp   ResolveStub   = JS_ResolveStub;
+static const ConvertOp     ConvertStub   = (ConvertOp)JS_ConvertStub;
+static const JSFinalizeOp  FinalizeStub  = JS_FinalizeStub;
 
 #define JS_CLASS_MEMBERS                                                      \
     const char          *name;                                                \
@@ -978,7 +976,7 @@ static const JSFinalizeOp     FinalizeStub       = JS_FinalizeStub;
     PropertyOp          addProperty;                                          \
     PropertyOp          delProperty;                                          \
     PropertyOp          getProperty;                                          \
-    StrictPropertyOp    setProperty;                                          \
+    PropertyOp          setProperty;                                          \
     JSEnumerateOp       enumerate;                                            \
     JSResolveOp         resolve;                                              \
     ConvertOp           convert;                                              \
@@ -991,7 +989,8 @@ static const JSFinalizeOp     FinalizeStub       = JS_FinalizeStub;
     Native              construct;                                            \
     JSXDRObjectOp       xdrObject;                                            \
     HasInstanceOp       hasInstance;                                          \
-    JSTraceOp           trace
+    JSMarkOp            mark
+
 
 
 
@@ -1021,6 +1020,7 @@ struct ObjectOps {
     js::DeleteIdOp          deleteProperty;
     js::NewEnumerateOp      enumerate;
     js::TypeOfOp            typeOf;
+    js::TraceOp             trace;
     js::FixOp               fix;
     js::ObjectOp            thisObject;
     js::FinalizeOp          clear;
@@ -1059,16 +1059,16 @@ JS_STATIC_ASSERT(offsetof(JSClass, call) == offsetof(Class, call));
 JS_STATIC_ASSERT(offsetof(JSClass, construct) == offsetof(Class, construct));
 JS_STATIC_ASSERT(offsetof(JSClass, xdrObject) == offsetof(Class, xdrObject));
 JS_STATIC_ASSERT(offsetof(JSClass, hasInstance) == offsetof(Class, hasInstance));
-JS_STATIC_ASSERT(offsetof(JSClass, trace) == offsetof(Class, trace));
+JS_STATIC_ASSERT(offsetof(JSClass, mark) == offsetof(Class, mark));
 JS_STATIC_ASSERT(sizeof(JSClass) == sizeof(Class));
 
 struct PropertyDescriptor {
-    JSObject           *obj;
-    uintN              attrs;
-    PropertyOp         getter;
-    StrictPropertyOp   setter;
-    Value              value;
-    uintN              shortid;
+    JSObject     *obj;
+    uintN        attrs;
+    PropertyOp   getter;
+    PropertyOp   setter;
+    Value        value;
+    uintN        shortid;
 };
 JS_STATIC_ASSERT(offsetof(JSPropertyDescriptor, obj) == offsetof(PropertyDescriptor, obj));
 JS_STATIC_ASSERT(offsetof(JSPropertyDescriptor, attrs) == offsetof(PropertyDescriptor, attrs));
@@ -1094,29 +1094,21 @@ static JS_ALWAYS_INLINE PropertyDescriptor *   Valueify(JSPropertyDescriptor *p)
 # define JS_VALUEIFY(type, v) js::Valueify(v)
 # define JS_JSVALIFY(type, v) js::Jsvalify(v)
 
-static inline JSNative JsvalifyNative(Native n)   { return (JSNative) n; }
+static inline JSNative JsvalifyNative(Native n)   { return (JSNative)n; }
 static inline JSNative JsvalifyNative(JSNative n) { return n; }
-static inline Native ValueifyNative(JSNative n)   { return (Native) n; }
+static inline Native ValueifyNative(JSNative n)   { return (Native)n; }
 static inline Native ValueifyNative(Native n)     { return n; }
-static inline JSPropertyOp CastNativeToJSPropertyOp(Native n) { return (JSPropertyOp) n; }
-static inline JSStrictPropertyOp CastNativeToJSStrictPropertyOp(Native n) {
-    return (JSStrictPropertyOp) n;
-}
 
 # define JS_VALUEIFY_NATIVE(n) js::ValueifyNative(n)
 # define JS_JSVALIFY_NATIVE(n) js::JsvalifyNative(n)
-# define JS_CAST_NATIVE_TO_JSPROPERTYOP(n) js::CastNativeToJSPropertyOp(n)
-# define JS_CAST_NATIVE_TO_JSSTRICTPROPERTYOP(n) js::CastNativeToJSStrictPropertyOp(n)
 
 #else
 
-# define JS_VALUEIFY(type, v) ((type) (v))
-# define JS_JSVALIFY(type, v) ((type) (v))
+# define JS_VALUEIFY(type, v) ((type)(v))
+# define JS_JSVALIFY(type, v) ((type)(v))
 
-# define JS_VALUEIFY_NATIVE(n) ((js::Native) (n))
-# define JS_JSVALIFY_NATIVE(n) ((JSNative) (n))
-# define JS_CAST_NATIVE_TO_JSPROPERTYOP(n) ((JSPropertyOp) (n))
-# define JS_CAST_NATIVE_TO_JSSTRICTPROPERTYOP(n) ((JSStrictPropertyOp) (n))
+# define JS_VALUEIFY_NATIVE(n) ((js::Native)(n))
+# define JS_JSVALIFY_NATIVE(n) ((JSNative)(n))
 
 #endif
 
@@ -1128,22 +1120,6 @@ static inline JSStrictPropertyOp CastNativeToJSStrictPropertyOp(Native n) {
 #undef JS_FN
 #define JS_FN(name,call,nargs,flags)                                          \
      {name, JS_JSVALIFY_NATIVE(call), nargs, (flags) | JSFUN_STUB_GSOPS}
-
-
-
-
-
-
-
-#define JS_PSG(name,getter,flags)                                             \
-    {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS,              \
-     JS_CAST_NATIVE_TO_JSPROPERTYOP(getter),                                  \
-     NULL}
-#define JS_PSGS(name,getter,setter,flags)                                     \
-    {name, 0, (flags) | JSPROP_SHARED | JSPROP_NATIVE_ACCESSORS,              \
-     JS_CAST_NATIVE_TO_JSPROPERTYOP(getter),                                  \
-     JS_CAST_NATIVE_TO_JSSTRICTPROPERTYOP(setter)}
-#define JS_PS_END {0, 0, 0, 0, 0}
 
 
 
@@ -1175,40 +1151,28 @@ ValueArgToConstRef(const Value &v)
 
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(Value *vec, size_t len)
+MakeValueRangeGCSafe(Value *vec, size_t len)
 {
     PodZero(vec, len);
 }
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(Value *beg, Value *end)
+MakeValueRangeGCSafe(Value *beg, Value *end)
 {
     PodZero(beg, end - beg);
 }
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(jsid *beg, jsid *end)
+MakeIdRangeGCSafe(jsid *beg, jsid *end)
 {
     for (jsid *id = beg; id != end; ++id)
         *id = INT_TO_JSID(0);
 }
 
 static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(jsid *vec, size_t len)
+MakeIdRangeGCSafe(jsid *vec, size_t len)
 {
-    MakeRangeGCSafe(vec, vec + len);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(const Shape **beg, const Shape **end)
-{
-    PodZero(beg, end - beg);
-}
-
-static JS_ALWAYS_INLINE void
-MakeRangeGCSafe(const Shape **vec, size_t len)
-{
-    PodZero(vec, len);
+    MakeIdRangeGCSafe(vec, vec + len);
 }
 
 static JS_ALWAYS_INLINE void
@@ -1221,7 +1185,7 @@ SetValueRangeToUndefined(Value *beg, Value *end)
 static JS_ALWAYS_INLINE void
 SetValueRangeToUndefined(Value *vec, size_t len)
 {
-    SetValueRangeToUndefined(vec, vec + len);
+    return SetValueRangeToUndefined(vec, vec + len);
 }
 
 static JS_ALWAYS_INLINE void
@@ -1234,30 +1198,7 @@ SetValueRangeToNull(Value *beg, Value *end)
 static JS_ALWAYS_INLINE void
 SetValueRangeToNull(Value *vec, size_t len)
 {
-    SetValueRangeToNull(vec, vec + len);
-}
-
-
-
-
-
-
-
-static JS_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(Value *beg, Value *end)
-{
-#ifdef DEBUG
-    for (Value *v = beg; v != end; ++v)
-        v->setObject(*reinterpret_cast<JSObject *>(0x42));
-#endif
-}
-
-static JS_ALWAYS_INLINE void
-Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
-{
-#ifdef DEBUG
-    Debug_SetValueRangeToCrashOnTouch(vec, vec + len);
-#endif
+    return SetValueRangeToNull(vec, vec + len);
 }
 
 }      

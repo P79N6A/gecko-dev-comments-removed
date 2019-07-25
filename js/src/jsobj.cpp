@@ -3533,8 +3533,8 @@ static void object_TypeNew(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite 
             site->returnTypes->addType(cx, (jstype) object);
     } else {
         
-        
-        cx->compartment->types.monitorBytecode(site->code);
+        if (site->returnTypes)
+            site->returnTypes->addType(cx, TYPE_UNKNOWN);
     }
 #endif
 }

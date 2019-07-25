@@ -231,7 +231,7 @@ mjit::Compiler::jsop_binary(JSOp op, VoidStub stub)
     }
 
     
-    bool canDoIntMath = op != JSOP_DIV &&
+    bool canDoIntMath = op != JSOP_DIV && knownPushedType(0) != JSVAL_TYPE_DOUBLE &&
                         !((rhs->isTypeKnown() && rhs->getKnownType() == JSVAL_TYPE_DOUBLE) ||
                           (lhs->isTypeKnown() && lhs->getKnownType() == JSVAL_TYPE_DOUBLE));
 

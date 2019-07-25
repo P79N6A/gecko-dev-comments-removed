@@ -77,6 +77,9 @@ struct Bytecode
     bool safePoint : 1;
 
     
+    bool monitorNeeded : 1;
+
+    
     uint32 stackDepth;
 
     
@@ -128,13 +131,16 @@ struct Bytecode
     types::TypeObject *initObject;
 
     
-    bool monitorNeeded;
+
+
+
+    bool hasIncDecOverflow : 1;
 
     
 
 
 
-    bool missingTypes;
+    bool missingTypes : 1;
 
     
     inline JSArenaPool &pool();
@@ -240,6 +246,9 @@ class Script
         return codeArray[offset] && codeArray[offset]->jumpTarget;
     }
     bool jumpTarget(const jsbytecode *pc) { return jumpTarget(pc - script->code); }
+
+    bool monitored(uint32 offset) { return getCode(offset).monitorNeeded; }
+    bool monitored(const jsbytecode *pc) { return getCode(pc).monitorNeeded; }
 
     
 
