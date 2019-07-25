@@ -141,14 +141,6 @@ IsSVGWhitespace(PRUnichar aChar)
          aChar == PRUnichar('\xD')  || aChar == PRUnichar('\xA');
 }
 
-
-
-
-
-
-
-PRBool NS_SVGEnabled();
-
 #ifdef MOZ_SMIL
 
 
