@@ -5172,13 +5172,6 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
     return NS_OK;
   }
 
-  
-  nsIFrame* next = aDeletedFrame->GetNextInFlow();
-  if (next && next->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
-    static_cast<nsContainerFrame*>(next->GetParent())
-      ->DeleteNextInFlowChild(next->PresContext(), next, PR_FALSE);
-  }
-
   nsIPresShell* presShell = presContext->PresShell();
 
   
@@ -5274,8 +5267,17 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
     printf("DoRemoveFrame: %s line=%p frame=",
            searchingOverflowList?"overflow":"normal", line.get());
     nsFrame::ListTag(stdout, aDeletedFrame);
-    printf(" prevSibling=%p deletedNextContinuation=%p\n", prevSibling, deletedNextContinuation);
+    printf(" prevSibling=%p deletedNextContinuation=%p\n",
+           aDeletedFrame->GetPrevSibling(), deletedNextContinuation);
 #endif
+
+    
+    if (deletedNextContinuation &&
+        deletedNextContinuation->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER) {
+      static_cast<nsContainerFrame*>(deletedNextContinuation->GetParent())
+        ->DeleteNextInFlowChild(presContext, deletedNextContinuation, PR_FALSE);
+      deletedNextContinuation = nsnull;
+    }
 
     aDeletedFrame->Destroy();
     aDeletedFrame = deletedNextContinuation;
