@@ -1,9 +1,27 @@
+<!DOCTYPE HTML>
+<html>
+
+
+
+<head>
+  <title>Test for Bug 741587</title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="application/javascript" src="browserFrameHelpers.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=741587">Mozilla Bug 741587</a>
 
 
 
 
 
 
+
+
+
+
+<script type="application/javascript;version=1.7">
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
@@ -11,8 +29,8 @@ SimpleTest.waitForExplicitFinish();
 browserFrameHelpers.setEnabledPref(true);
 browserFrameHelpers.addToWhitelist();
 
-
-
+// Test harness sets dom.successive_dialog_time_limit to 0 for some bizarre
+// reason.  That's not normal usage, and it keeps us from testing alertCheck!
 const dialogTimeLimitPrefName = 'dom.successive_dialog_time_limit';
 var oldDialogTimeLimitPref;
 try {
@@ -59,3 +77,7 @@ iframe.src =
     for (; i < 20; i++) { confirm(i); } \
     for (; i < 30; i++) { prompt(i); } \
    </scr' + 'ipt></body></html>';
+
+</script>
+</body>
+</html>

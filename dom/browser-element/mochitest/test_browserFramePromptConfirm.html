@@ -1,8 +1,26 @@
+<!DOCTYPE HTML>
+<html>
+
+
+
+<head>
+  <title>Test for Bug 741587</title>
+  <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
+  <script type="application/javascript" src="browserFrameHelpers.js"></script>
+  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
+</head>
+<body>
+<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=741587">Mozilla Bug 741587</a>
 
 
 
 
 
+
+
+
+
+<script type="application/javascript;version=1.7">
 "use strict";
 
 SimpleTest.waitForExplicitFinish();
@@ -20,7 +38,7 @@ function runTest() {
     {msg: 2, type: 'confirm', rv: true, expected: 'true'},
     {msg: 3, type: 'confirm', rv: false, expected: 'false'},
 
-    
+    // rv == 42 should be coerced to 'true' for confirm.
     {msg: 4, type: 'confirm', rv: 42, expected: 'true'},
     {msg: 5, type: 'prompt', rv: 'worked', expected: 'worked'},
     {msg: 6, type: 'prompt', rv: null, expected: 'null'},
@@ -44,7 +62,7 @@ function runTest() {
            "Other than for prompt, shouldn't have initial value.");
       }
 
-      
+      // Block the child until we call e.detail.unblock().
       e.preventDefault();
 
       SimpleTest.executeSoon(function() {
@@ -55,8 +73,8 @@ function runTest() {
     else {
       prompts.shift();
 
-      
-      
+      // |e| now corresponds to an alert() containing the return value we just
+      // sent for this prompt.
 
       is(e.detail.message, 'RESULT:' + curPrompt.expected,
          "expected rv for msg " + curPrompt.msg);
@@ -83,3 +101,6 @@ function runTest() {
 }
 
 runTest();
+</script>
+</body>
+</html>
