@@ -52,7 +52,6 @@
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsvector.h"
-#include "jscompartment.h"
 #include "Writer.h"
 
 namespace js {
@@ -1108,6 +1107,9 @@ class TraceRecorder
     nanojit::LIns*                  pendingGuardCondition;
 
     
+    int                             pendingGlobalSlotToSet;
+
+    
     bool                            pendingLoop;
 
     
@@ -1596,6 +1598,13 @@ class TraceRecorder
     JS_REQUIRES_STACK AbortableRecordingStatus record_NativeCallComplete();
     void forgetGuardedShapesForObject(JSObject* obj);
 
+    bool globalSetExpected(unsigned slot) {
+        if (pendingGlobalSlotToSet != (int)slot)
+            return !tracker.has(&globalObj->getSlotRef(slot));
+        pendingGlobalSlotToSet = -1;
+        return true;
+    }
+
 #ifdef DEBUG
     
     JS_REQUIRES_STACK void tprint(const char *format, int count, nanojit::LIns *insa[]);
@@ -1676,7 +1685,7 @@ extern void
 PurgeScriptFragments(TraceMonitor* tm, JSScript* script);
 
 extern bool
-OverfullJITCache(JSContext *cx, TraceMonitor* tm);
+OverfullJITCache(TraceMonitor* tm);
 
 extern void
 FlushJITCache(JSContext* cx);
@@ -1828,5 +1837,30 @@ struct TraceVisStateObj {
 #define TRACE_2(x,a,b)          ((void)0)
 
 #endif 
+
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+static JS_INLINE void
+AbortRecordingIfUnexpectedGlobalWrite(JSContext *cx, JSObject *obj, unsigned slot)
+{
+#ifdef JS_TRACER
+    if (TraceRecorder *tr = TRACE_RECORDER(cx)) {
+        if (!obj->parent && !tr->globalSetExpected(slot))
+            AbortRecording(cx, "Global slot written outside tracer supervision");
+    }
+#endif
+}
+
+}  
 
 #endif 

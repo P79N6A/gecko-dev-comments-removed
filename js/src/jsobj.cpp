@@ -4616,8 +4616,10 @@ js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const Value &valu
     }
 
     
-    if (obj->containsSlot(shape->slot))
+    if (obj->containsSlot(shape->slot)) {
+        AbortRecordingIfUnexpectedGlobalWrite(cx, obj, shape->slot);
         obj->nativeSetSlot(shape->slot, value);
+    }
 
     
     valueCopy = value;
@@ -5091,6 +5093,7 @@ js_NativeSet(JSContext *cx, JSObject *obj, const Shape *shape, bool added, Value
         if (shape->hasDefaultSetter()) {
             if (!added && !obj->methodWriteBarrier(cx, *shape, *vp))
                 return false;
+            AbortRecordingIfUnexpectedGlobalWrite(cx, obj, slot);
             obj->nativeSetSlot(slot, *vp);
             return true;
         }
@@ -5117,6 +5120,7 @@ js_NativeSet(JSContext *cx, JSObject *obj, const Shape *shape, bool added, Value
          obj->nativeContains(*shape))) {
         if (!added && !obj->methodWriteBarrier(cx, *shape, *vp))
             return false;
+        AbortRecordingIfUnexpectedGlobalWrite(cx, obj, slot);
         obj->setSlot(slot, *vp);
     }
 
@@ -6541,11 +6545,6 @@ dumpValue(const Value &v)
             FileEscapedString(stderr, ATOM_TO_STRING(fun->atom), 0);
         } else {
             fputs("<unnamed function", stderr);
-        }
-        if (fun->isInterpreted()) {
-            JSScript *script = fun->script();
-            fprintf(stderr, " (%s:%u)",
-                    script->filename ? script->filename : "", script->lineno);
         }
         fprintf(stderr, " at %p (JSFunction at %p)>", (void *) funobj, (void *) fun);
     } else if (v.isObject()) {

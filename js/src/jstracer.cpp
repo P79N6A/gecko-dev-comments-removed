@@ -60,7 +60,6 @@
 #include "jsarray.h"
 #include "jsbool.h"
 #include "jscntxt.h"
-#include "jscompartment.h"
 #include "jsdate.h"
 #include "jsdbgapi.h"
 #include "jsemit.h"
@@ -2238,6 +2237,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
     pendingSpecializedNative(NULL),
     pendingUnboxSlot(NULL),
     pendingGuardCondition(NULL),
+    pendingGlobalSlotToSet(-1),
     pendingLoop(true),
     generatedSpecializedNative(),
     tempTypeMap(cx),
@@ -2345,13 +2345,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
 
 
         w.comment("begin-interruptFlags-check");
-        
-#ifdef JS_THREADSAFE
-        void *interrupt = (void*) &cx->runtime->interruptCounter;
-#else
-        void *interrupt = (void*) &JS_THREAD_DATA(cx)->interruptFlags;
-#endif
-        LIns* flagptr = w.nameImmpNonGC(interrupt);
+        LIns* flagptr = w.nameImmpNonGC((void *) &JS_THREAD_DATA(cx)->interruptFlags);
         LIns* x = w.ldiVolatile(flagptr);
         guard(true, w.eqi0(x), TIMEOUT_EXIT);
         w.comment("end-interruptFlags-check");
@@ -2364,7 +2358,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
 #ifdef JS_METHODJIT
         if (cx->methodJitEnabled) {
             w.comment("begin-count-loop-iterations");
-            LIns* counterPtr = w.nameImmpNonGC((void *) &traceMonitor->iterationCounter);
+            LIns* counterPtr = w.nameImmpNonGC((void *) &JS_THREAD_DATA(cx)->iterationCounter);
             LIns* counterValue = w.ldiVolatile(counterPtr);
             LIns* test = w.ltiN(counterValue, LOOP_COUNT_MAX);
             LIns *branch = w.jfUnoptimizable(test);
@@ -2437,7 +2431,7 @@ TraceRecorder::finishSuccessfully()
     delete this;
 
     
-    if (localtm->outOfMemory() || OverfullJITCache(localcx, localtm)) {
+    if (localtm->outOfMemory() || OverfullJITCache(localtm)) {
         ResetJIT(localcx, FR_OOM);
         return ARECORD_ABORTED;
     }
@@ -2487,7 +2481,7 @@ TraceRecorder::finishAbort(const char* reason)
 
     localtm->recorder = NULL;
     delete this;
-    if (localtm->outOfMemory() || OverfullJITCache(localcx, localtm)) {
+    if (localtm->outOfMemory() || OverfullJITCache(localtm)) {
         ResetJIT(localcx, FR_OOM);
         return JIT_RESET;
     }
@@ -3682,9 +3676,15 @@ TraceRecorder::writeBack(LIns* ins, LIns* base, ptrdiff_t offset, bool shouldDem
     JS_ASSERT(base == lirbuf->sp || base == eos_ins);
     if (shouldDemote && IsPromoteInt(ins))
         ins = w.demote(ins);
-    Address addr = (base == lirbuf->sp)
-                 ? (Address)StackAddress(base, offset)
-                 : (Address)EosAddress(base, offset);
+
+    Address addr;
+    if (base == lirbuf->sp) {
+        addr = StackAddress(base, offset);
+    } else {
+        addr = EosAddress(base, offset);
+        JS_ASSERT(pendingGlobalSlotToSet == -1);
+        pendingGlobalSlotToSet = offset / sizeof(double);
+    }
     return w.st(ins, addr);
 }
 
@@ -4420,10 +4420,6 @@ ResetJITImpl(JSContext* cx)
         JS_ASSERT_NOT_ON_TRACE(cx);
         AbortRecording(cx, "flush cache");
     }
-#if JS_METHODJIT
-    if (tm->profile)
-        AbortProfiling(cx);
-#endif
     if (ProhibitFlush(cx)) {
         debug_only_print0(LC_TMTracer, "Deferring JIT flush due to deep bail.\n");
         tm->needFlush = JS_TRUE;
@@ -5529,7 +5525,7 @@ TraceRecorder::startRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* f,
                                      expectedInnerExit, outerScript, outerPC, outerArgc,
                                      speculate);
 
-    if (!tm->recorder || tm->outOfMemory() || OverfullJITCache(cx, tm)) {
+    if (!tm->recorder || tm->outOfMemory() || OverfullJITCache(tm)) {
         ResetJIT(cx, FR_OOM);
         return false;
     }
@@ -5654,9 +5650,9 @@ RecordTree(JSContext* cx, TreeFragment* first, JSScript* outerScript, jsbytecode
     AUDIT(recorderStarted);
 
     if (tm->outOfMemory() ||
-        OverfullJITCache(cx, tm) ||
+        OverfullJITCache(tm) ||
         !tm->tracedScripts.put(cx->fp()->script())) {
-        if (!OverfullJITCache(cx, tm))
+        if (!OverfullJITCache(tm))
             js_ReportOutOfMemory(cx);
         Backoff(cx, (jsbytecode*) f->root->ip);
         ResetJIT(cx, FR_OOM);
@@ -6523,7 +6519,7 @@ ExecuteTree(JSContext* cx, TreeFragment* f, uintN& inlineCallCount,
     debug_only_stmt(*(uint64*)&tm->storage->global()[globalSlots] = 0xdeadbeefdeadbeefLL;)
 
     
-    tm->iterationCounter = 0;
+    JS_THREAD_DATA(cx)->iterationCounter = 0;
     debug_only(int64 t0 = PRMJ_Now();)
 #ifdef MOZ_TRACEVIS
     VMSideExit* lr = (TraceVisStateObj(cx, S_NATIVE), ExecuteTrace(cx, f, state));
@@ -6542,7 +6538,7 @@ ExecuteTree(JSContext* cx, TreeFragment* f, uintN& inlineCallCount,
     bool ok = !(state.builtinStatus & BUILTIN_ERROR);
     JS_ASSERT_IF(cx->throwing, !ok);
 
-    size_t iters = tm->iterationCounter;
+    size_t iters = JS_THREAD_DATA(cx)->iterationCounter;
 
     f->execs++;
     f->iters += iters;
@@ -7182,6 +7178,7 @@ TraceRecorder::monitorRecording(JSOp op)
 
     pendingSpecializedNative = NULL;
     newobj_ins = NULL;
+    pendingGlobalSlotToSet = -1;
 
     
     if (pendingGuardCondition) {
@@ -7264,7 +7261,7 @@ TraceRecorder::monitorRecording(JSOp op)
             return status == ARECORD_ERROR ? ARECORD_ERROR : ARECORD_ABORTED;
         }
 
-        if (outOfMemory() || OverfullJITCache(cx, &localtm)) {
+        if (outOfMemory() || OverfullJITCache(&localtm)) {
             ResetJIT(cx, FR_OOM);
 
             
@@ -7533,21 +7530,18 @@ disable_debugger_exceptions() { }
 void
 SetMaxCodeCacheBytes(JSContext* cx, uint32 bytes)
 {
-    TraceMonitor* tm = &JS_TRACE_MONITOR(cx);
+    TraceMonitor* tm = &JS_THREAD_DATA(cx)->traceMonitor;
     JS_ASSERT(tm->codeAlloc && tm->dataAlloc && tm->traceAlloc);
     if (bytes > 1 G)
         bytes = 1 G;
     if (bytes < 128 K)
         bytes = 128 K;
-    JS_THREAD_DATA(cx)->maxCodeCacheBytes = bytes;
+    tm->maxCodeCacheBytes = bytes;
 }
 
 bool
 InitJIT(TraceMonitor *tm)
 {
-    
-    memset(tm, 0, sizeof(*tm));
-
 #if defined JS_JIT_SPEW
     tm->profAlloc = NULL;
     
@@ -7591,6 +7585,9 @@ InitJIT(TraceMonitor *tm)
         did_we_check_processor_features = true;
     }
 
+    
+    tm->maxCodeCacheBytes = 16 M;
+
     tm->oracle = new Oracle();
 
     tm->profile = NULL;
@@ -7605,6 +7602,7 @@ InitJIT(TraceMonitor *tm)
 
     tm->flushEpoch = 0;
     
+    JS_ASSERT(!tm->dataAlloc && !tm->traceAlloc && !tm->codeAlloc);
     tm->dataAlloc = new VMAllocator();
     tm->traceAlloc = new VMAllocator();
     tm->tempAlloc = new VMAllocator();
@@ -7799,7 +7797,7 @@ PurgeScriptFragments(TraceMonitor* tm, JSScript* script)
 }
 
 bool
-OverfullJITCache(JSContext *cx, TraceMonitor* tm)
+OverfullJITCache(TraceMonitor* tm)
 {
     
 
@@ -7835,7 +7833,7 @@ OverfullJITCache(JSContext *cx, TraceMonitor* tm)
 
 
 
-    jsuint maxsz = JS_THREAD_DATA(cx)->maxCodeCacheBytes;
+    jsuint maxsz = tm->maxCodeCacheBytes;
     VMAllocator *dataAlloc = tm->dataAlloc;
     VMAllocator *traceAlloc = tm->traceAlloc;
     CodeAlloc *codeAlloc = tm->codeAlloc;
@@ -11056,7 +11054,7 @@ TraceRecorder::callSpecializedNative(JSNativeTraceInfo *trcinfo, uintN argc,
                     goto next_specialization;
                 *argp = this_ins;
             } else if (argtype == 'M') {
-                MathCache *mathCache = GetMathCache(cx);
+                MathCache *mathCache = JS_THREAD_DATA(cx)->getMathCache(cx);
                 if (!mathCache)
                     return RECORD_ERROR;
                 *argp = w.nameImmpNonGC(mathCache);
@@ -11526,7 +11524,7 @@ TraceRecorder::record_JSOP_DELNAME()
     return ARECORD_STOP;
 }
 
-JSBool JS_FASTCALL
+static JSBool JS_FASTCALL
 DeleteIntKey(JSContext* cx, JSObject* obj, int32 i, JSBool strict)
 {
     LeaveTraceIfGlobalObject(cx, obj);
@@ -11548,7 +11546,7 @@ DeleteIntKey(JSContext* cx, JSObject* obj, int32 i, JSBool strict)
 JS_DEFINE_CALLINFO_4(extern, BOOL_FAIL, DeleteIntKey, CONTEXT, OBJECT, INT32, BOOL,
                      0, ACCSET_STORE_ANY)
 
-JSBool JS_FASTCALL
+static JSBool JS_FASTCALL
 DeleteStrKey(JSContext* cx, JSObject* obj, JSString* str, JSBool strict)
 {
     LeaveTraceIfGlobalObject(cx, obj);
