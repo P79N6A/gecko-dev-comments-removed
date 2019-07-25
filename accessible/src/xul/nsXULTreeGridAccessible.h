@@ -61,6 +61,10 @@ public:
   NS_DECL_OR_FORWARD_NSIACCESSIBLETABLE_WITH_XPCACCESSIBLETABLE
 
   
+  virtual PRUint32 ColCount();
+  virtual PRUint32 RowCount();
+
+  
   virtual void Shutdown();
 
   

@@ -129,6 +129,8 @@ public:
 
   
   virtual nsAccessible* Caption();
+  virtual PRUint32 ColCount();
+  virtual PRUint32 RowCount();
   virtual void Summary(nsString& aSummary);
   virtual bool IsProbablyLayoutTable();
 
