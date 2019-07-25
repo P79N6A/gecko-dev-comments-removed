@@ -516,10 +516,10 @@ var BrowserUI = {
     
     
     let currentURI = getBrowser().currentURI;
-    let useLocal = (uri.schemeIs("about") && uri.spec != "about:blank");
-    let hasLocal = (currentURI.schemeIs("about") && currentURI.spec != "about:blank");
+    let useLocal = Util.isLocalScheme(uri.spec);
+    let hasLocal = Util.isLocalScheme(currentURI.spec);
     if (useLocal || hasLocal != useLocal) {
-      BrowserUI.newTab(uri.spec);
+      Browser.addTab(uri.spec, true);
     } else {
       let loadFlags = Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP;
       getBrowser().loadURIWithFlags(uri.spec, loadFlags, null, null);
@@ -568,6 +568,15 @@ var BrowserUI = {
 
     let submission = button.engine.getSubmission(this._edit.value, null);
     let flags = Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+
+    let currentURI = getBrowser().currentURI;
+    let hasLocal = Util.isLocalScheme(currentURI.spec);
+    if (hasLocal) {
+      
+      let tab = Browser.addTab("about:blank", true);
+      tab.browser.stop();
+    }
+
     getBrowser().loadURIWithFlags(submission.uri.spec, flags, null, null, submission.postData);
   },
 
