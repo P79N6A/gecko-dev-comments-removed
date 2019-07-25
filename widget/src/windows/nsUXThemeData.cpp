@@ -266,9 +266,9 @@ nsUXThemeData::InitTitlebarInfo()
   sCommandButtons[3].cy = sCommandButtons[0].cy;
 
   
-  if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
-    sTitlebarInfoPopulatedAero = sTitlebarInfoPopulatedThemed = PR_TRUE;
-  }
+  
+  sTitlebarInfoPopulatedAero = sTitlebarInfoPopulatedThemed =
+    (nsWindow::GetWindowsVersion() < VISTA_VERSION);
 }
 
 
