@@ -71,6 +71,17 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 class nsSMILTimeValue
 {
 public:
@@ -101,6 +112,7 @@ public:
     mMilliseconds = kUnresolvedMillis;
   }
 
+  PRBool IsResolved() const { return mState != STATE_UNRESOLVED; }
   void SetUnresolved()
   {
     mState = STATE_UNRESOLVED;
