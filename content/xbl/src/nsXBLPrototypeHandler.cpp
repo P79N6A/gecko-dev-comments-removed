@@ -280,6 +280,12 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
     scriptTarget = aTarget;
   }
 
+  
+  
+  
+  nsCxPusher pusher;
+  NS_ENSURE_STATE(pusher.Push(aTarget));
+
   rv = EnsureEventHandler(boundGlobal, boundContext, onEventAtom, handler);
   NS_ENSURE_SUCCESS(rv, rv);
 
