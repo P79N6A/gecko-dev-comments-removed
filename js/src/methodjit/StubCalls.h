@@ -67,6 +67,37 @@ void JS_FASTCALL SlowCall(VMFrame &f, uint32 argc);
 void * JS_FASTCALL UncachedNew(VMFrame &f, uint32 argc);
 void * JS_FASTCALL UncachedCall(VMFrame &f, uint32 argc);
 
+
+
+
+
+
+
+
+
+
+
+
+struct UncachedCallResult {
+    JSObject   *callee;       
+    JSFunction *fun;          
+    void       *codeAddr;     
+
+    void init() {
+        callee = NULL;
+        fun = NULL;
+        codeAddr = NULL;
+    }        
+};
+
+
+
+
+
+
+void UncachedCallHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr);
+void UncachedNewHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr);
+
 JSBool JS_FASTCALL NewObject(VMFrame &f, uint32 argc);
 void JS_FASTCALL Throw(VMFrame &f);
 void JS_FASTCALL PutCallObject(VMFrame &f);

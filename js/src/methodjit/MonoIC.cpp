@@ -308,7 +308,7 @@ class CallCompiler
 
 
         Assembler masm;
-        InlineFrameAssembler inlFrame(masm, cx, ic, flags);
+        InlineFrameAssembler inlFrame(masm, ic, flags);
         RegisterID t0 = inlFrame.tempRegs.takeAnyReg();
 
         
@@ -597,31 +597,15 @@ class CallCompiler
 
     void *update()
     {
-        JSObject *obj;
-        if (!IsFunctionObject(*vp, &obj) || !(cx->options & JSOPTION_METHODJIT)) {
-            
-            if (callingNew)
-                stubs::SlowNew(f, ic.argc);
-            else
-                stubs::SlowCall(f, ic.argc);
-            return NULL;
-        }
-
-        JSFunction *fun = obj->getFunctionPrivate();
-        JSObject *scopeChain = obj->getParent();
+        stubs::UncachedCallResult ucr;
+        if (callingNew)
+            stubs::UncachedNewHelper(f, ic.argc, &ucr);
+        else
+            stubs::UncachedCallHelper(f, ic.argc, &ucr);
 
         
-        JS_ASSERT(fun->isInterpreted());
-        JSScript *script = fun->u.i.script;
-
-        if (!script->ncode && !script->isEmpty()) {
-            if (mjit::TryCompile(cx, script, fun, scopeChain) == Compile_Error)
-                THROWV(NULL);
-        }
-        JS_ASSERT(script->isEmpty() || script->ncode);
-
-        if (script->ncode == JS_UNJITTABLE_METHOD || script->isEmpty()) {
-            
+        
+        if (!ucr.codeAddr) {
             JSC::CodeLocationCall oolCall = ic.slowPathStart.callAtOffset(ic.oolCallOffset);
             uint8 *start = (uint8 *)oolCall.executableAddress();
             JSC::RepatchBuffer repatch(start - 32, 64);
@@ -629,56 +613,45 @@ class CallCompiler
                                     ? JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, SlowNewFromIC))
                                     : JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, SlowCallFromIC));
             repatch.relink(oolCall, fptr);
-            if (callingNew)
-                stubs::SlowNew(f, ic.argc);
-            else
-                stubs::SlowCall(f, ic.argc);
             return NULL;
         }
+            
+        JSFunction *fun = ucr.fun;
+        JS_ASSERT(fun);
+        JSScript *script = fun->script();
+        JS_ASSERT(script);
+        JSObject *callee = ucr.callee;
+        JS_ASSERT(callee);
 
         uint32 flags = callingNew ? JSFRAME_CONSTRUCTING : 0;
-        if (callingNew)
-            stubs::NewObject(f, ic.argc);
 
         if (!ic.hit) {
-            if (ic.argc != fun->nargs) {
-                if (!generateFullCallStub(script, flags))
-                    THROWV(NULL);
-            } else {
-                if (!ic.fastGuardedObject) {
-                    patchInlinePath(script, obj);
-                } else if (!ic.hasJsFunCheck &&
-                           !ic.fastGuardedNative &&
-                           ic.fastGuardedObject->getFunctionPrivate() == fun) {
-                    
-
-
-
-                    if (!generateStubForClosures(obj))
-                        THROWV(NULL);
-                } else {
-                    if (!generateFullCallStub(script, flags))
-                        THROWV(NULL);
-                }
-            }
-        } else {
             ic.hit = true;
+            return ucr.codeAddr;
         }
 
-        
+        if (ic.argc != fun->nargs) {
+            if (!generateFullCallStub(script, flags))
+                THROWV(NULL);
+        } else {
+            if (!ic.fastGuardedObject) {
+                patchInlinePath(script, callee);
+            } else if (!ic.hasJsFunCheck &&
+                       !ic.fastGuardedNative &&
+                       ic.fastGuardedObject->getFunctionPrivate() == fun) {
+                
 
 
 
+                if (!generateStubForClosures(callee))
+                    THROWV(NULL);
+            } else {
+                if (!generateFullCallStub(script, flags))
+                    THROWV(NULL);
+            }
+        }
 
-
-
-        JSStackFrame *fp = (JSStackFrame *)f.regs.sp;
-        fp->initCallFrameCallerHalf(cx, *scopeChain, ic.argc, flags);
-        f.regs.fp = fp;
-
-        if (ic.argc == fun->nargs)
-            return script->ncode;
-        return script->jit->arityCheck;
+        return ucr.codeAddr;
     }
 };
 
