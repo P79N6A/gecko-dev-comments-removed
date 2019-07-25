@@ -5994,6 +5994,41 @@ nsHTMLEditor::IsAcceptableInputEvent(nsIDOMEvent* aEvent)
   
   nsCOMPtr<nsIContent> targetContent = do_QueryInterface(target);
   NS_ENSURE_TRUE(targetContent, false);
+
+  
+  
+  nsCOMPtr<nsIDOMMouseEvent> mouseEvent = do_QueryInterface(aEvent);
+  if (mouseEvent) {
+    nsIContent* editingHost = GetActiveEditingHost();
+    
+    
+    if (!editingHost) {
+      return false;
+    }
+    
+    
+    if (targetContent == document->GetRootElement() &&
+        !targetContent->HasFlag(NODE_IS_EDITABLE) &&
+        editingHost == document->GetBodyElement()) {
+      targetContent = editingHost;
+    }
+    
+    
+    if (!nsContentUtils::ContentIsDescendantOf(targetContent, editingHost)) {
+      return false;
+    }
+    
+    
+    if (targetContent->HasIndependentSelection()) {
+      return false;
+    }
+    
+    return targetContent->HasFlag(NODE_IS_EDITABLE);
+  }
+
+  
+  
+  
   if (!targetContent->HasFlag(NODE_IS_EDITABLE) ||
       targetContent->HasIndependentSelection()) {
     return false;
