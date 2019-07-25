@@ -9891,6 +9891,12 @@ nsHTMLPluginObjElementSH::PostTransplant(nsIXPConnectWrappedNative *wrapper,
                                          JSContext *cx, JSObject *obj)
 {
   
+  
+  
+  nsresult rv = PostCreate(wrapper, cx, obj);
+  if (NS_FAILED(rv)) {
+      NS_WARNING("Calling PostCreate during PostTransplant for plugin element failed.");
+  }
   return NS_OK;
 }
 

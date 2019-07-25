@@ -1813,7 +1813,12 @@ nsNPObjWrapper::GetNewOrUsed(NPP npp, JSContext *cx, NPObject *npobj)
 
   if (PL_DHASH_ENTRY_IS_BUSY(entry) && entry->mJSObj) {
     
-    return entry->mJSObj;
+    
+    JSObject *obj = entry->mJSObj;
+    if (!JS_WrapObject(cx, &obj)) {
+      return NULL;
+    }
+    return obj;
   }
 
   entry->mNPObj = npobj;
