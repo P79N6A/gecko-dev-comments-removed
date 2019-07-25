@@ -74,31 +74,23 @@ BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
   aGl->fBindBuffer(LOCAL_GL_ARRAY_BUFFER, 0);
 
   
-  GLfloat quadVertices[] = {
-    0.0f, 0.0f,                 
-    1.0f, 0.0f,                 
-    0.0f, 1.0f,                 
-    1.0f, 1.0f                  
-  };
+  
+  
+  
+  
+  
+
+  GLContext::RectTriangles rects;
+  GLContext::DecomposeIntoNoRepeatTriangles(aTexCoordRect, aTexSize, rects);
+
   aGl->fVertexAttribPointer(vertAttribIndex, 2,
                             LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                            quadVertices);
-  DEBUG_GL_ERROR_CHECK(aGl);
-
-  GLfloat xleft = GLfloat(aTexCoordRect.x) / GLfloat(aTexSize.width);
-  GLfloat ytop = GLfloat(aTexCoordRect.y) / GLfloat(aTexSize.height);
-  GLfloat w = GLfloat(aTexCoordRect.width) / GLfloat(aTexSize.width);
-  GLfloat h = GLfloat(aTexCoordRect.height) / GLfloat(aTexSize.height);
-  GLfloat texCoords[] = {
-    xleft,     ytop,
-    w + xleft, ytop,
-    xleft,     h + ytop,
-    w + xleft, h + ytop,
-  };
+                            rects.vertexCoords);
 
   aGl->fVertexAttribPointer(texCoordAttribIndex, 2,
                             LOCAL_GL_FLOAT, LOCAL_GL_FALSE, 0,
-                            texCoords);
+                            rects.texCoords);
+
   DEBUG_GL_ERROR_CHECK(aGl);
 
   {
@@ -106,7 +98,7 @@ BindAndDrawQuadWithTextureRect(LayerProgram *aProg,
     {
       aGl->fEnableVertexAttribArray(vertAttribIndex);
 
-      aGl->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+      aGl->fDrawArrays(LOCAL_GL_TRIANGLES, 0, rects.numRects * 6);
       DEBUG_GL_ERROR_CHECK(aGl);
 
       aGl->fDisableVertexAttribArray(vertAttribIndex);
@@ -230,7 +222,7 @@ public:
   {
     NS_ASSERTION(gfxASurface::CONTENT_ALPHA != aType,"ThebesBuffer has color");
 
-    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_REPEAT);
+    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_CLAMP_TO_EDGE);
     return mTexImage ? mTexImage->GetBackingSurface() : nsnull;
   }
 
@@ -361,7 +353,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
         
         destBufferRect = visibleBounds;
         destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
-                                              LOCAL_GL_REPEAT);
+                                              LOCAL_GL_CLAMP_TO_EDGE);
         DEBUG_GL_ERROR_CHECK(gl());
         if (!destBuffer)
           return result;
@@ -380,7 +372,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
     
     destBufferRect = visibleBounds;
     destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
-                                          LOCAL_GL_REPEAT);
+                                          LOCAL_GL_CLAMP_TO_EDGE);
     DEBUG_GL_ERROR_CHECK(gl());
     if (!destBuffer)
       return result;
@@ -410,7 +402,7 @@ BasicBufferOGL::BeginPaint(ContentType aContentType)
         
         destBufferRect = visibleBounds;
         destBuffer = gl()->CreateTextureImage(visibleBounds.Size(), aContentType,
-                                              LOCAL_GL_REPEAT);
+                                              LOCAL_GL_CLAMP_TO_EDGE);
       }
     }
 
@@ -575,7 +567,7 @@ public:
   {
     NS_ASSERTION(gfxASurface::CONTENT_ALPHA != aType,"ThebesBuffer has color");
 
-    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_REPEAT);
+    mTexImage = gl()->CreateTextureImage(aSize, aType, LOCAL_GL_CLAMP_TO_EDGE);
   }
 
   void Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,

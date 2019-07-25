@@ -699,6 +699,37 @@ public:
 
     
 
+    struct RectTriangles {
+        RectTriangles() : numRects(0) { }
+
+        void addRect(GLfloat x0, GLfloat y0, GLfloat x1, GLfloat y1,
+                     GLfloat tx0, GLfloat ty0, GLfloat tx1, GLfloat ty1);
+
+        int numRects;
+        
+        GLfloat vertexCoords[4*3*2*2];
+        GLfloat texCoords[4*3*2*2];
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    static void DecomposeIntoNoRepeatTriangles(const nsIntRect& aTexCoordRect,
+                                               const nsIntSize& aTexSize,
+                                               RectTriangles& aRects);
+
+    
+
 
 
 
