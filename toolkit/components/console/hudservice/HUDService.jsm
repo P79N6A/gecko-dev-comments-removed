@@ -3907,159 +3907,152 @@ function JSPropertyProvider(aScope, aInputValue)
 
 function JSTermHelper(aJSTerm)
 {
-  return {
-    
+  
 
 
 
 
 
 
-    $: function JSTH_$(aId)
-    {
-      try {
-        return aJSTerm._window.document.getElementById(aId);
-      }
-      catch (ex) {
-        aJSTerm.console.error(ex.message);
-      }
-    },
-
-    
-
-
-
-
-
-
-    $$: function JSTH_$$(aSelector)
-    {
-      try {
-        return aJSTerm._window.document.querySelectorAll(aSelector);
-      }
-      catch (ex) {
-        aJSTerm.console.error(ex.message);
-      }
-    },
-
-    
-
-
-
-
-
-
-
-
-    $x: function JSTH_$x(aXPath, aContext)
-    {
-      let nodes = [];
-      let doc = aJSTerm._window.wrappedJSObject.document;
-      let aContext = aContext || doc;
-
-      try {
-        let results = doc.evaluate(aXPath, aContext, null,
-                                    Ci.nsIDOMXPathResult.ANY_TYPE, null);
-
-        let node;
-        while (node = results.iterateNext()) {
-          nodes.push(node);
-        }
-      }
-      catch (ex) {
-        aJSTerm.console.error(ex.message);
-      }
-
-      return nodes;
-    },
-
-    
-
-
-    clear: function JSTH_clear()
-    {
-      aJSTerm.clearOutput();
-    },
-
-    
-
-
-
-
-
-
-    keys: function JSTH_keys(aObject)
-    {
-      try {
-        return Object.keys(XPCNativeWrapper.unwrap(aObject));
-      }
-      catch (ex) {
-        aJSTerm.console.error(ex.message);
-      }
-    },
-
-    
-
-
-
-
-
-
-    values: function JSTH_values(aObject)
-    {
-      let arrValues = [];
-      let obj = XPCNativeWrapper.unwrap(aObject);
-
-      try {
-        for (let prop in obj) {
-          arrValues.push(obj[prop]);
-        }
-      }
-      catch (ex) {
-        aJSTerm.console.error(ex.message);
-      }
-      return arrValues;
-    },
-
-    
-
-
-
-
-
-
-    inspect: function JSTH_inspect(aObject)
-    {
-      let obj = XPCNativeWrapper.unwrap(aObject);
-      aJSTerm.openPropertyPanel(null, obj);
-    },
-
-    
-
-
-
-
-
-
-    pprint: function JSTH_pprint(aObject)
-    {
-      if (aObject === null || aObject === undefined || aObject === true || aObject === false) {
-        aJSTerm.console.error(HUDService.getStr("helperFuncUnsupportedTypeError"));
-        return;
-      }
-      let output = [];
-      if (typeof aObject != "string") {
-        aObject = XPCNativeWrapper.unwrap(aObject);
-      }
-      let pairs = namesAndValuesOf(aObject);
-
-      pairs.forEach(function(pair) {
-        output.push("  " + pair.display);
-      });
-
-      aJSTerm.writeOutput(output.join("\n"));
+  aJSTerm.sandbox.$ = function JSTH_$(aId)
+  {
+    try {
+      return aJSTerm._window.document.getElementById(aId);
     }
-  }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.$$ = function JSTH_$$(aSelector)
+  {
+    try {
+      return aJSTerm._window.document.querySelectorAll(aSelector);
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+  };
+
+  
+
+
+
+
+
+
+
+
+  aJSTerm.sandbox.$x = function JSTH_$x(aXPath, aContext)
+  {
+    let nodes = [];
+    let doc = aJSTerm._window.document;
+    let aContext = aContext || doc;
+
+    try {
+      let results = doc.evaluate(aXPath, aContext, null,
+                                  Ci.nsIDOMXPathResult.ANY_TYPE, null);
+
+      let node;
+      while (node = results.iterateNext()) {
+        nodes.push(node);
+      }
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+
+    return nodes;
+  };
+
+  
+
+
+  aJSTerm.sandbox.clear = function JSTH_clear()
+  {
+    aJSTerm.clearOutput();
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.keys = function JSTH_keys(aObject)
+  {
+    try {
+      return Object.keys(aObject);
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.values = function JSTH_values(aObject)
+  {
+    let arrValues = [];
+
+    try {
+      for (let prop in aObject) {
+        arrValues.push(aObject[prop]);
+      }
+    }
+    catch (ex) {
+      aJSTerm.console.error(ex.message);
+    }
+    return arrValues;
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.inspect = function JSTH_inspect(aObject)
+  {
+    aJSTerm.openPropertyPanel(null, aObject);
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.pprint = function JSTH_pprint(aObject)
+  {
+    if (aObject === null || aObject === undefined || aObject === true || aObject === false) {
+      aJSTerm.console.error(HUDService.getStr("helperFuncUnsupportedTypeError"));
+      return;
+    }
+    let output = [];
+    let pairs = namesAndValuesOf(aObject);
+
+    pairs.forEach(function(pair) {
+      output.push("  " + pair.display);
+    });
+
+    aJSTerm.writeOutput(output.join("\n"));
+  };
 }
 
 
@@ -4146,11 +4139,10 @@ JSTerm.prototype = {
   createSandbox: function JST_setupSandbox()
   {
     
-    this.sandbox = new Cu.Sandbox(this._window);
-    this.sandbox.window = this._window;
+    this.sandbox = new Cu.Sandbox(this._window,
+      { sandboxPrototype: this._window, wantXrays: false });
     this.sandbox.console = this.console;
-    this.sandbox.__helperFunctions__ = JSTermHelper(this);
-    this.sandbox.__proto__ = this._window.wrappedJSObject;
+    JSTermHelper(this);
   },
 
   get _window()
@@ -4168,8 +4160,7 @@ JSTerm.prototype = {
 
   evalInSandbox: function JST_evalInSandbox(aString)
   {
-    let execStr = "with(__helperFunctions__) { with(window) {" + aString + "} }";
-    return Cu.evalInSandbox(execStr,  this.sandbox, "default", "HUD Console", 1);
+    return Cu.evalInSandbox(aString, this.sandbox, "1.8", "HUD Console", 1);
   },
 
 

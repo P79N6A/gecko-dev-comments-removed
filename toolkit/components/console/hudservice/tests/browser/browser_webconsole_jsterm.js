@@ -98,5 +98,21 @@ function testJSTerm()
   let label = jsterm.outputNode.querySelector(".jsterm-output-line");
   is(label.textContent.trim(), "a: 1\n  b: 2", "pprint() worked");
 
+  
+  jsterm.clearOutput();
+  jsterm.execute("[] instanceof Array");
+  checkResult("true", "[] instanceof Array == true", 1);
+
+  jsterm.clearOutput();
+  jsterm.execute("({}) instanceof Object");
+  checkResult("true", "({}) instanceof Object == true", 1);
+
+  
+  jsterm.clearOutput();
+  jsterm.execute("document");
+  let label = jsterm.outputNode.querySelector(".jsterm-output-line");
+  is(label.textContent.trim().search(/\[object XrayWrapper/), -1,
+    "check for non-existence of [object XrayWrapper ");
+
   finishTest();
 }
