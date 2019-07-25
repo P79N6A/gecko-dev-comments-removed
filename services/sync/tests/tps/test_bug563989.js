@@ -78,7 +78,7 @@ var bookmarks_to_delete = {
 Phase('phase1', [
   [Bookmarks.add, bookmarks_initial],
   [Bookmarks.verify, bookmarks_initial],
-  [Sync, SYNC_WIPE_SERVER],
+  [Sync],
 ]);
 
 
@@ -93,7 +93,7 @@ Phase('phase2', [
 
 
 Phase('phase3', [
-  [Sync, SYNC_WIPE_SERVER],
+  [Sync, SYNC_WIPE_REMOTE],
   [Bookmarks.verify, bookmarks_initial]
 ]);
 
