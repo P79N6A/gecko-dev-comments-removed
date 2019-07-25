@@ -945,6 +945,7 @@ enum SrcNoteType {
 
 
 
+
     SRC_DECL        = 6,        
     SRC_DESTRUCT    = 6,        
 
@@ -952,6 +953,8 @@ enum SrcNoteType {
 
 
     SRC_GROUPASSIGN = 7,        
+    SRC_DESTRUCTLET = 7,        
+
     SRC_ASSIGNOP    = 8,        
     SRC_COND        = 9,        
     SRC_BRACE       = 10,       
@@ -1030,6 +1033,8 @@ enum SrcNoteType {
 #define SN_3BYTE_OFFSET_FLAG    0x80
 #define SN_3BYTE_OFFSET_MASK    0x7f
 
+#define SN_MAX_OFFSET ((size_t)((ptrdiff_t)SN_3BYTE_OFFSET_FLAG << 16) - 1)
+
 #define SN_LENGTH(sn)           ((js_SrcNoteSpec[SN_TYPE(sn)].arity == 0) ? 1 \
                                  : js_SrcNoteLength(sn))
 #define SN_NEXT(sn)             ((sn) + SN_LENGTH(sn))
@@ -1100,6 +1105,28 @@ BytecodeEmitter::countFinalSourceNotes()
             cnt += JS_HOWMANY(diff, SN_XDELTA_MASK);
     }
     return cnt;
+}
+
+
+
+
+
+
+
+inline ptrdiff_t PackLetData(size_t offset, bool groupAssign)
+{
+    JS_ASSERT(offset <= (size_t(-1) >> 1));
+    return ptrdiff_t(offset << 1) | ptrdiff_t(groupAssign);
+}
+
+inline size_t LetDataToOffset(ptrdiff_t w)
+{
+    return size_t(w) >> 1;
+}
+
+inline bool LetDataToGroupAssign(ptrdiff_t w)
+{
+    return size_t(w) & 1;
 }
 
 } 
