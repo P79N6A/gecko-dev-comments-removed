@@ -1044,11 +1044,9 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     JSObjectMap *oldMap = map;
 
     
-
-
-
     JSObject *arrayProto = getProto();
-    if (!InitScopeForObject(cx, this, &js_SlowArrayClass, arrayProto, FINALIZE_OBJECT0))
+    js::gc::FinalizeKind kind = js::gc::FinalizeKind(arena()->header()->thingKind);
+    if (!InitScopeForObject(cx, this, &js_SlowArrayClass, arrayProto, kind))
         return false;
 
     uint32 capacity = getDenseArrayCapacity();
@@ -1065,6 +1063,10 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     }
 
     
+
+
+
+    uint32 next = 0;
     for (uint32 i = 0; i < capacity; i++) {
         jsid id;
         if (!ValueToId(cx, Int32Value(i), &id)) {
@@ -1072,16 +1074,27 @@ JSObject::makeDenseArraySlow(JSContext *cx)
             return false;
         }
 
-        if (getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE)) {
-            setDenseArrayElement(i, UndefinedValue());
+        if (getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE))
             continue;
-        }
 
-        if (!addDataProperty(cx, id, i, JSPROP_ENUMERATE)) {
+        setDenseArrayElement(next, getDenseArrayElement(i));
+
+        if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
             return false;
         }
+
+        next++;
     }
+
+    
+
+
+
+    if (hasSlotsArray() && next <= numFixedSlots())
+        revertToFixedSlots(cx);
+
+    ClearValueRange(slots + next, this->capacity - next, false);
 
     
 
