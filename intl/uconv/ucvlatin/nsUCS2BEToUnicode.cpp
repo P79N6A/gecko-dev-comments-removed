@@ -63,16 +63,13 @@ UTF16ConvertToUnicode(PRUint8& aState, PRUint8& aOddByte,
 
   switch(aState) {
     case STATE_FOUND_BOM:
-      if (*aSrcLength < 2)
-        return NS_ERROR_ILLEGAL_INPUT;
+      NS_ASSERTION(*aSrcLength > 1, "buffer too short");
       src+=2;
       aState = STATE_NORMAL;
       break;
 
     case STATE_FIRST_CALL: 
-      if (*aSrcLength < 2)
-        return NS_ERROR_ILLEGAL_INPUT;
-
+      NS_ASSERTION(*aSrcLength > 1, "buffer too short");
       
       
       
@@ -222,14 +219,18 @@ NS_IMETHODIMP
 nsUTF16BEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
                             PRUnichar * aDest, PRInt32 * aDestLength)
 {
+    if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
+    {
+      *aSrcLength=0;
+      *aDestLength=0;
+      return NS_ERROR_ILLEGAL_INPUT;
+    }
 #ifdef IS_LITTLE_ENDIAN
     
     
     if(STATE_FIRST_CALL == mState) 
     {
       mState = STATE_NORMAL;
-      if (*aSrcLength < 2)
-        return NS_ERROR_ILLEGAL_INPUT;
       if(0xFFFE == *((PRUnichar*)aSrc)) {
         
         mState = STATE_FOUND_BOM;
@@ -257,14 +258,18 @@ NS_IMETHODIMP
 nsUTF16LEToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
                             PRUnichar * aDest, PRInt32 * aDestLength)
 {
+    if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
+    {
+      *aSrcLength=0;
+      *aDestLength=0;
+      return NS_ERROR_ILLEGAL_INPUT;
+    }
 #ifdef IS_BIG_ENDIAN
     
     
     if(STATE_FIRST_CALL == mState) 
     {
       mState = STATE_NORMAL;
-      if (*aSrcLength < 2)
-        return NS_ERROR_ILLEGAL_INPUT;
       if(0xFFFE == *((PRUnichar*)aSrc)) {
         
         mState = STATE_FOUND_BOM;
@@ -300,12 +305,15 @@ NS_IMETHODIMP
 nsUTF16ToUnicode::Convert(const char * aSrc, PRInt32 * aSrcLength,
                           PRUnichar * aDest, PRInt32 * aDestLength)
 {
+    if(STATE_FIRST_CALL == mState && *aSrcLength < 2)
+    {
+      *aSrcLength=0;
+      *aDestLength=0;
+      return NS_ERROR_ILLEGAL_INPUT;
+    }
     if(STATE_FIRST_CALL == mState) 
     {
       mState = STATE_NORMAL;
-      if (*aSrcLength < 2)
-        return NS_ERROR_ILLEGAL_INPUT;
-
       
       
       if(0xFF == PRUint8(aSrc[0]) && 0xFE == PRUint8(aSrc[1])) {
