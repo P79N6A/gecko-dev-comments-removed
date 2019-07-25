@@ -141,6 +141,11 @@ nsMenuBarListener::ToggleMenuActiveState()
 nsresult
 nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
 {  
+  nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
+  if (!keyEvent) {
+    return NS_OK;
+  }
+
   InitAccessKey();
 
   
@@ -159,7 +164,6 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
     
     
     
-    nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
     PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
