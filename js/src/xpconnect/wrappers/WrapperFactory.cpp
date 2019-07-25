@@ -77,6 +77,19 @@ DoubleWrap(JSContext *cx, JSObject *obj, uintN flags)
     return obj;
 }
 
+static JSObject *
+GetCurrentOuter(JSContext *cx, JSObject *obj)
+{
+    OBJ_TO_OUTER_OBJECT(cx, obj);
+    if (obj->isWrapper() && !obj->getClass()->ext.innerObject) {
+        obj = obj->unwrap();
+        NS_ASSERTION(obj->getClass()->ext.innerObject,
+                     "weird object, expecting an outer window proxy");
+    }
+
+    return obj;
+}
+
 JSObject *
 WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj, uintN flags)
 {
@@ -94,9 +107,9 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
         return nsnull;
 
     
-    OBJ_TO_OUTER_OBJECT(cx, obj);
-    if (!obj)
-        return nsnull;
+    GetCurrentOuter(cx, obj);
+    if (obj->getClass()->ext.innerObject)
+        return DoubleWrap(cx, obj, flags);
 
     
     
@@ -285,9 +298,7 @@ WrapperFactory::WaiveXrayAndWrap(JSContext *cx, jsval *vp)
 
     
     
-    OBJ_TO_OUTER_OBJECT(cx, obj);
-    if (!obj)
-        return false;
+    obj = GetCurrentOuter(cx, obj);
 
     {
         js::SwitchToCompartment sc(cx, obj->compartment());
