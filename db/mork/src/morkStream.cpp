@@ -327,7 +327,7 @@ morkStream::PutLineBreak(morkEnv* ev)
   return 2;
   
 #  else
-#    if defined(MORK_UNIX) || defined(MORK_BEOS)
+#    ifdef MORK_UNIX
   
   this->Putc(ev, mork_kLF);
   return 1;

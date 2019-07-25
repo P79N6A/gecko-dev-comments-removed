@@ -583,14 +583,13 @@ endif
 
 ifdef ENABLE_TRACEJIT
 ifndef WINCE
-JITFLAGS = ,m,j,mj,mjp,am,amj,amjp,amd
 check::
 	$(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/jit-test/jit_test.py \
-	        --no-slow --no-progress --tinderbox --jitflags=$(JITFLAGS) $(DIST)/bin/js$(BIN_SUFFIX)
+	        --no-slow --no-progress --tinderbox --jitflags=m,j,mj,mjp,mjd $(DIST)/bin/js$(BIN_SUFFIX)
 
 check-valgrind::
 	$(wildcard $(RUN_TEST_PROGRAM)) $(PYTHON) -u $(srcdir)/jit-test/jit_test.py \
-	        --valgrind --no-slow --no-progress --tinderbox --jitflags=$(JITFLAGS) $(DIST)/bin/js$(BIN_SUFFIX)
+	        --valgrind --no-slow --no-progress --tinderbox --jitflags=m,j,mj,mjp,mjd $(DIST)/bin/js$(BIN_SUFFIX)
 endif
 endif
 
@@ -651,8 +650,8 @@ EXTRA_DSO_LDOPTS += C:/Program\ Files/Intel/VTune/Analyzer/Lib/VtuneApi.lib
 LIBS +=  C:/Program\ Files/Intel/VTune/Analyzer/Lib/VtuneApi.lib
 endif
 
-# BeOS and HP-UX do not require the extra linking of "-lm"
-ifeq (,$(filter BeOS HP-UX WINNT WINCE OpenVMS OS2,$(OS_ARCH)))
+# HP-UX does not require the extra linking of "-lm"
+ifeq (,$(filter HP-UX WINNT WINCE OpenVMS OS2,$(OS_ARCH)))
 EXTRA_LIBS	+= -lm
 endif
 

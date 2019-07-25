@@ -892,7 +892,7 @@ static JSBool
 env_setProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
 
-#if !defined XP_BEOS && !defined XP_OS2 && !defined SOLARIS
+#if !defined XP_OS2 && !defined SOLARIS
     JSString *idstr, *valstr;
     int rv;
 

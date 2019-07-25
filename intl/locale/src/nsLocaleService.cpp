@@ -62,7 +62,7 @@
 #elif defined(XP_MACOSX)
 #  include <Carbon/Carbon.h>
 #  include "nsIMacLocale.h"
-#elif defined(XP_UNIX) || defined(XP_BEOS)
+#elif defined(XP_UNIX)
 #  include <locale.h>
 #  include <stdlib.h>
 #  include "nsIPosixLocale.h"
@@ -84,7 +84,7 @@ const char* LocaleList[LocaleListLength] =
 #define NSILOCALE_MAX_ACCEPT_LANGUAGE	16
 #define NSILOCALE_MAX_ACCEPT_LENGTH		18
 
-#if (defined(XP_UNIX) && !defined(XP_MACOSX)) || defined(XP_BEOS) || defined(XP_OS2)
+#if (defined(XP_UNIX) && !defined(XP_MACOSX)) || defined(XP_OS2)
 static int posix_locale_category[LocaleListLength] =
 {
   LC_COLLATE,
@@ -167,7 +167,7 @@ nsLocaleService::nsLocaleService(void)
         if (NS_FAILED(result)) { return;}
     }
 #endif
-#if (defined(XP_UNIX) && !defined(XP_MACOSX)) || defined(XP_BEOS)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
     nsCOMPtr<nsIPosixLocale> posixConverter = do_GetService(NS_POSIXLOCALE_CONTRACTID);
 
     nsAutoString xpLocale, platformLocale;
@@ -182,7 +182,7 @@ nsLocaleService::nsLocaleService(void)
 
 
 #ifdef MOZ_WIDGET_QT
-        const char* lang = QLocale::system().name().toAscii();
+        const char* lang = QLocale::languageToString(QLocale::system().language()).toAscii();
 #else
         
         const char* lang = getenv("LANG");
@@ -322,7 +322,7 @@ nsLocaleService::NewLocale(const nsAString &aLocale, nsILocale **_retval)
       nsString category; category.AssignWithConversion(LocaleList[i]);
       result = resultLocale->AddCategory(category, aLocale);
       if (NS_FAILED(result)) return result;
-#if (defined(XP_UNIX) && !defined(XP_MACOSX)) || defined(XP_BEOS)
+#if defined(XP_UNIX) && !defined(XP_MACOSX)
       category.AppendLiteral("##PLATFORM");
       result = resultLocale->AddCategory(category, aLocale);
       if (NS_FAILED(result)) return result;

@@ -42,7 +42,7 @@
 #include <limits.h>
 
 
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
 #include <unistd.h>
 #elif defined(XP_WIN)
 #include <windows.h>
@@ -316,7 +316,7 @@ nsDiskCache::Truncate(PRFileDesc *  fd, PRUint32  newEOF)
 {
     
 
-#if defined(XP_UNIX) || defined(XP_BEOS)
+#if defined(XP_UNIX)
     if (ftruncate(PR_FileDesc2NativeHandle(fd), newEOF) != 0) {
         NS_ERROR("ftruncate failed");
         return NS_ERROR_FAILURE;

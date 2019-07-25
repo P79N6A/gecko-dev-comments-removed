@@ -823,7 +823,6 @@ pref("network.IDN.whitelist.sh", true);
 pref("network.IDN.whitelist.th", true);
 pref("network.IDN.whitelist.tm", true);
 pref("network.IDN.whitelist.tw", true);
-pref("network.IDN.whitelist.ua", true);
 pref("network.IDN.whitelist.vn", true);
 
 
@@ -832,8 +831,6 @@ pref("network.IDN.whitelist.xn--mgbaam7a8h", true);
 
 pref("network.IDN.whitelist.xn--fiqz9s", true); 
 pref("network.IDN.whitelist.xn--fiqs8s", true); 
-
-pref("network.IDN.whitelist.xn--wgbh1c", true);
 
 pref("network.IDN.whitelist.xn--j6w193g", true);
 
@@ -2455,102 +2452,6 @@ pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
 # OS2
 #endif
 
-#ifdef XP_BEOS
-
-pref("intl.font_charset", "");
-pref("intl.font_spec_list", "");
-pref("mail.signature_date", 0);
-
-pref("font.alias-list", "sans,sans-serif,serif,monospace");
-
-pref("font.default.ar", "sans-serif");
-pref("font.size.variable.ar", 16);
-pref("font.size.fixed.ar", 13);
-
-pref("font.default.el", "serif");
-pref("font.size.variable.el", 16);
-pref("font.size.fixed.el", 13);
-
-pref("font.default.he", "sans-serif");
-pref("font.size.variable.he", 16);
-pref("font.size.fixed.he", 13);
-
-pref("font.default.ja", "sans-serif");
-pref("font.size.variable.ja", 16);
-pref("font.size.fixed.ja", 16);
-
-pref("font.default.ko", "sans-serif");
-pref("font.size.variable.ko", 16);
-pref("font.size.fixed.ko", 16);
-
-pref("font.default.th", "serif");
-pref("font.size.variable.th", 16);
-pref("font.size.fixed.th", 13);
-
-pref("font.default.tr", "serif");
-pref("font.size.variable.tr", 16);
-pref("font.size.fixed.tr", 13);
-
-pref("font.default.x-baltic", "serif");
-pref("font.size.variable.x-baltic", 16);
-pref("font.size.fixed.x-baltic", 13);
-
-pref("font.default.x-central-euro", "serif");
-pref("font.size.variable.x-central-euro", 16);
-pref("font.size.fixed.x-central-euro", 13);
-
-pref("font.default.x-cyrillic", "serif");
-pref("font.size.variable.x-cyrillic", 16);
-pref("font.size.fixed.x-cyrillic", 13);
-
-pref("font.default.x-unicode", "serif");
-pref("font.size.variable.x-unicode", 16);
-pref("font.size.fixed.x-unicode", 13);
-
-pref("font.default.x-western", "serif");
-pref("font.size.variable.x-western", 16);
-pref("font.size.fixed.x-western", 13);
-
-pref("font.default.zh-CN", "sans-serif");
-pref("font.size.variable.zh-CN", 16);
-pref("font.size.fixed.zh-CN", 16);
-
-pref("font.default.zh-TW", "sans-serif");
-pref("font.size.variable.zh-TW", 16);
-pref("font.size.fixed.zh-TW", 16);
-
-pref("font.default.zh-HK", "sans-serif");
-pref("font.size.variable.zh-HK", 16);
-pref("font.size.fixed.zh-HK", 16);
-
-
-
-
-
-
-pref("ui.key.accelKey", 18);
-pref("ui.key.menuAccessKey", 17);
-pref("ui.key.generalAccessKey", -1);
-
-
-
-
-pref("ui.key.chromeAccess", 2);
-pref("ui.key.contentAccess", 3);
-
-
-pref("browser.download.dir", "/boot/home/Downloads");
-
-
-
-
-pref("ui.panel.default_level_parent", false);
-
-pref("mousewheel.system_scroll_override_on_root_content.enabled", false);
-
-# BeOS
-#endif
-
 #ifdef ANDROID
 
 pref("network.protocol-handler.warn-external.file", false);
@@ -2620,7 +2521,7 @@ pref("font.name.sans-serif.he", "Droid Sans");
 pref("font.name.monospace.he", "Droid Sans Mono");
 
 pref("font.name.serif.ja", "Droid Serif");
-pref("font.name.sans-serif.ja", "Droid Sans Japanese");
+pref("font.name.sans-serif.ja", "Droid Sans");
 pref("font.name.monospace.ja", "Droid Sans Mono");
 
 pref("font.name.serif.ko", "Droid Serif");
@@ -3259,7 +3160,7 @@ pref("geo.enabled", true);
 pref("accelerometer.enabled", true);
 
 
-pref("html5.parser.enable", true);
+pref("html5.enable", true);
 
 pref("html5.offmainthread", true);
 

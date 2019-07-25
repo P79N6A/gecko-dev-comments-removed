@@ -74,25 +74,6 @@ endif
 ifeq ($(OS_ARCH),OS2)
 MOZ_PKG_PLATFORM := os2
 endif
-ifeq ($(OS_ARCH),BeOS)
-ifeq (,$(filter-out 6.%, $(OS_RELEASE)))
-MOZ_PKG_PLATFORM := Zeta
-else
-ifeq (,$(filter-out 5.1, $(OS_RELEASE)))
-MOZ_PKG_PLATFORM := BeOS-bone
-else
-ifeq (,$(filter-out 5.0.4, $(OS_RELEASE)))
-MOZ_PKG_PLATFORM := BeOS-bone
-else
-ifeq (,$(filter-out 5.0, $(OS_RELEASE)))
-MOZ_PKG_PLATFORM := BeOS-net_server
-else
-MOZ_PKG_PLATFORM := BeOS-$(OS_RELEASE)
-endif # 5.0
-endif # 5.0.4
-endif # 5.1
-endif # 6.
-endif # OS_ARCH BeOS
 endif #MOZ_PKG_PLATFORM
 
 ifdef MOZ_PKG_SPECIAL
@@ -181,4 +162,12 @@ else
 BUILDID = $(shell $(PYTHON) $(MOZILLA_DIR)/config/printconfigsetting.py $(DIST)/bin/platform.ini Build BuildID)
 endif
 
-MOZ_SOURCE_STAMP = $(firstword $(shell hg -R $(topsrcdir) parent --template="{node|short}\n" 2>/dev/null))
+MOZ_SOURCE_STAMP = $(firstword $(shell hg -R $(MOZILLA_DIR) parent --template="{node|short}\n" 2>/dev/null))
+
+# strip a trailing slash from the repo URL because it's not always present,
+# and we want to construct a working URL in the sourcestamp file.
+# make+shell+sed = awful
+_dollar=$$
+MOZ_SOURCE_REPO = $(shell cd $(MOZILLA_DIR) && hg showconfig paths.default 2>/dev/null | head -n1 | sed -e "s/^ssh:/http:/" -e "s/\/$(_dollar)//" )
+
+MOZ_SOURCESTAMP_FILE = $(DIST)/$(PKG_PATH)/$(PKG_BASENAME).txt

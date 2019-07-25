@@ -75,7 +75,7 @@ NS_COM PRBool NS_IsNativeUTF8();
 #else
 inline PRBool NS_IsNativeUTF8()
 {
-#if defined(XP_MACOSX) || defined(XP_BEOS) || defined(ANDROID)
+#if defined(XP_MACOSX) || defined(ANDROID)
     return PR_TRUE;
 #else
     return PR_FALSE;

@@ -66,7 +66,6 @@
 
 
 
-
 #if defined(LINUX) || (defined(__GLIBC__) && (defined(__FreeBSD_kernel__) || defined(__GNU__)))
 
 #if (__GNUC__ == 2) && (__GNUC_MINOR__ <= 7)
@@ -136,9 +135,6 @@
 
 #define THUNK_BASED_THIS_ADJUST
 #endif
-
-#elif defined(__BEOS__) 
-#define CFRONT_STYLE_THIS_ADJUST
 
 #elif defined(__sun__) || defined(__sun)
 #if defined(__GXX_ABI_VERSION) && __GXX_ABI_VERSION >= 100 

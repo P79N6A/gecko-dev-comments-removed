@@ -46,7 +46,7 @@ ifndef MOZ_PKG_FORMAT
 ifeq (cocoa,$(MOZ_WIDGET_TOOLKIT))
 MOZ_PKG_FORMAT  = DMG
 else
-ifeq (,$(filter-out OS2 WINNT WINCE BeOS, $(OS_ARCH)))
+ifeq (,$(filter-out OS2 WINNT WINCE, $(OS_ARCH)))
 MOZ_PKG_FORMAT  = ZIP
 else
 ifeq (,$(filter-out SunOS, $(OS_ARCH)))
@@ -179,7 +179,6 @@ DIST_FILES = \
   blocklist.xml \
   chrome.manifest \
   update.locale \
-  removed-files \
   $(NULL)
 
 NON_DIST_FILES = \
@@ -444,10 +443,6 @@ GARBAGE		+= $(DIST)/$(PACKAGE) $(PACKAGE)
 
 ifeq ($(OS_ARCH),IRIX)
 STRIP_FLAGS	= -f
-endif
-ifeq ($(OS_ARCH),BeOS)
-STRIP_FLAGS	= -g
-PLATFORM_EXCLUDE_LIST = ! -name "*.stub" ! -name "$(MOZ_PKG_APPNAME)-bin"
 endif
 ifeq ($(OS_ARCH),OS2)
 STRIP		= $(MOZILLA_DIR)/toolkit/mozapps/installer/os2/strip.cmd

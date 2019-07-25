@@ -910,7 +910,6 @@ ProcessArgs(JSContext *cx, JSObject *obj, char **argv, int argc)
             break;
 
         case 'd':
-            JS_SetRuntimeDebugMode(JS_GetRuntime(cx), JS_TRUE);
             JS_SetDebugMode(cx, JS_TRUE);
             break;
 
@@ -3565,126 +3564,6 @@ ShapeOf(JSContext *cx, uintN argc, jsval *vp)
     return JS_NewNumberValue(cx, obj->shape(), vp);
 }
 
-
-
-
-
-
-static JSBool
-CopyProperty(JSContext *cx, JSObject *obj, JSObject *referent, jsid id,
-             uintN lookupFlags, JSObject **objp)
-{
-    JSProperty *prop;
-    PropertyDescriptor desc;
-    uintN propFlags = 0;
-    JSObject *obj2;
-
-    *objp = NULL;
-    if (referent->isNative()) {
-        if (js_LookupPropertyWithFlags(cx, referent, id, lookupFlags, &obj2, &prop) < 0)
-            return false;
-        if (obj2 != referent)
-            return true;
-
-        const Shape *shape = (Shape *) prop;
-        if (shape->isMethod()) {
-            shape = referent->methodReadBarrier(cx, *shape, &desc.value);
-            if (!shape)
-                return false;
-        } else if (shape->hasSlot()) {
-            desc.value = referent->nativeGetSlot(shape->slot);
-        } else {
-            desc.value.setUndefined();
-        }
-
-        desc.attrs = shape->attributes();
-        desc.getter = shape->getter();
-        if (!desc.getter && !(desc.attrs & JSPROP_GETTER))
-            desc.getter = PropertyStub;
-        desc.setter = shape->setter();
-        if (!desc.setter && !(desc.attrs & JSPROP_SETTER))
-            desc.setter = StrictPropertyStub;
-        desc.shortid = shape->shortid; 
-        propFlags = shape->getFlags();
-   } else if (referent->isProxy()) {
-        PropertyDescriptor desc;
-        if (!JSProxy::getOwnPropertyDescriptor(cx, referent, id, false, &desc))
-            return false;
-        if (!desc.obj)
-            return true;
-    } else {
-        if (!referent->lookupProperty(cx, id, objp, &prop))
-            return false;
-        if (*objp != referent)
-            return true;
-        if (!referent->getProperty(cx, id, &desc.value) ||
-            !referent->getAttributes(cx, id, &desc.attrs)) {
-            return false;
-        }
-        desc.attrs &= JSPROP_ENUMERATE | JSPROP_READONLY | JSPROP_PERMANENT;
-        desc.getter = PropertyStub;
-        desc.setter = StrictPropertyStub;
-        desc.shortid = 0;
-    }
-
-    *objp = obj;
-    return js_DefineNativeProperty(cx, obj, id, desc.value,
-                                   desc.getter, desc.setter, desc.attrs, propFlags,
-                                   desc.shortid, &prop);
-}
-
-static JSBool
-resolver_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags, JSObject **objp)
-{
-    jsval v;
-    JS_ALWAYS_TRUE(JS_GetReservedSlot(cx, obj, 0, &v));
-    return CopyProperty(cx, obj, JSVAL_TO_OBJECT(v), id, flags, objp);
-}
-
-static JSBool
-resolver_enumerate(JSContext *cx, JSObject *obj)
-{
-    jsval v;
-    JS_ALWAYS_TRUE(JS_GetReservedSlot(cx, obj, 0, &v));
-    JSObject *referent = JSVAL_TO_OBJECT(v);
-
-    AutoIdArray ida(cx, JS_Enumerate(cx, referent));
-    bool ok = !!ida;
-    JSObject *ignore;
-    for (size_t i = 0; ok && i < ida.length(); i++)
-        ok = CopyProperty(cx, obj, referent, ida[i], JSRESOLVE_QUALIFIED, &ignore);
-    return ok;
-}
-
-static JSClass resolver_class = {
-    "resolver",
-    JSCLASS_NEW_RESOLVE | JSCLASS_HAS_RESERVED_SLOTS(1),
-    JS_PropertyStub,   JS_PropertyStub,
-    JS_PropertyStub,   JS_StrictPropertyStub,
-    resolver_enumerate, (JSResolveOp)resolver_resolve,
-    JS_ConvertStub,    NULL,
-    JSCLASS_NO_OPTIONAL_MEMBERS
-};
-
-
-static JSBool
-Resolver(JSContext *cx, uintN argc, jsval *vp)
-{
-    JSObject *referent, *proto = NULL;
-    if (!JS_ConvertArguments(cx, argc, JS_ARGV(cx, vp), "o/o", &referent, &proto))
-        return false;
-
-    JSObject *result = (argc > 1
-                        ? JS_NewObjectWithGivenProto
-                        : JS_NewObject)(cx, &resolver_class, proto, JS_GetParent(cx, referent));
-    if (!result)
-        return false;
-
-    JS_ALWAYS_TRUE(JS_SetReservedSlot(cx, result, 0, OBJECT_TO_JSVAL(referent)));
-    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(result));
-    return true;
-}
-
 #ifdef JS_THREADSAFE
 
 
@@ -4477,40 +4356,6 @@ StringStats(JSContext *cx, uintN argc, jsval *vp)
     return true;
 }
 
-enum CompartmentKind { SAME_COMPARTMENT, NEW_COMPARTMENT };
-
-static JSObject *
-NewGlobalObject(JSContext *cx, CompartmentKind compartment);
-
-JSBool
-NewGlobal(JSContext *cx, uintN argc, jsval *vp)
-{
-    if (argc != 1 || !JSVAL_IS_STRING(JS_ARGV(cx, vp)[0])) {
-        JS_ReportErrorNumber(cx, my_GetErrorMessage, NULL, JSSMSG_INVALID_ARGS, "newGlobal");
-        return false;
-    }
-
-    JSString *str = JSVAL_TO_STRING(JS_ARGV(cx, vp)[0]);
-
-    JSBool equalSame = JS_FALSE, equalNew = JS_FALSE;
-    if (!JS_StringEqualsAscii(cx, str, "same-compartment", &equalSame) ||
-        !JS_StringEqualsAscii(cx, str, "new-compartment", &equalNew)) {
-        return false;
-    }
-
-    if (!equalSame && !equalNew) {
-        JS_ReportErrorNumber(cx, my_GetErrorMessage, NULL, JSSMSG_INVALID_ARGS, "newGlobal");
-        return false;
-    }
-
-    JSObject *global = NewGlobalObject(cx, equalSame ? SAME_COMPARTMENT : NEW_COMPARTMENT);
-    if (!global)
-        return false;
-
-    JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(global));
-    return true;
-}
-
 static JSFunctionSpec shell_functions[] = {
     JS_FN("version",        Version,        0,0),
     JS_FN("revertVersion",  RevertVersion,  0,0),
@@ -4571,7 +4416,6 @@ static JSFunctionSpec shell_functions[] = {
     JS_FN("evalcx",         EvalInContext,  1,0),
     JS_FN("evalInFrame",    EvalInFrame,    2,0),
     JS_FN("shapeOf",        ShapeOf,        1,0),
-    JS_FN("resolver",       Resolver,       1,0),
 #ifdef MOZ_CALLGRIND
     JS_FN("startCallgrind", js_StartCallgrind,  0,0),
     JS_FN("stopCallgrind",  js_StopCallgrind,   0,0),
@@ -4608,7 +4452,6 @@ static JSFunctionSpec shell_functions[] = {
     JS_FN("mjitstats",      MJitStats,      0,0),
 #endif
     JS_FN("stringstats",    StringStats,    0,0),
-    JS_FN("newGlobal",      NewGlobal,      1,0),
     JS_FS_END
 };
 
@@ -4634,7 +4477,7 @@ static const char *const shell_help_messages[] = {
 "assertEq(actual, expected[, msg])\n"
 "  Throw if the first two arguments are not the same (both +0 or both -0,\n"
 "  both NaN, or non-zero and ===)",
-"assertJit()              Throw if the calling function failed to JIT",
+"assertJit()              Throw if the calling function failed to JIT\n",
 "gc()                     Run the garbage collector",
 #ifdef JS_GCMETER
 "gcstats()                Print garbage collector statistics",
@@ -4679,7 +4522,7 @@ static const char *const shell_help_messages[] = {
 "dumpObject()             Dump an internal representation of an object",
 "notes([fun])             Show source notes for functions",
 "tracing([true|false|filename]) Turn bytecode execution tracing on/off.\n"
-"                         With filename, send to file.",
+"                         With filename, send to file.\n",
 "stats([string ...])      Dump 'arena', 'atom', 'global' stats",
 #endif
 #ifdef TEST_CVTARGS
@@ -4700,8 +4543,6 @@ static const char *const shell_help_messages[] = {
 "evalInFrame(n,str,save)  Evaluate 'str' in the nth up frame.\n"
 "                         If 'save' (default false), save the frame chain",
 "shapeOf(obj)             Get the shape of obj (an implementation detail)",
-"resolver(src[, proto])   Create object with resolve hook that copies properties\n"
-"                         from src. If proto is omitted, use Object.prototype.",
 #ifdef MOZ_CALLGRIND
 "startCallgrind()         Start callgrind instrumentation",
 "stopCallgrind()          Stop callgrind instrumentation",
@@ -4732,37 +4573,24 @@ static const char *const shell_help_messages[] = {
 "  Get/Set the limit in seconds for the execution time for the current context.\n"
 "  A negative value (default) means that the execution time is unlimited.",
 "elapsed()                Execution time elapsed for the current context.",
-"parent(obj)              Returns the parent of obj.",
-"wrap(obj)                Wrap an object into a noop wrapper.",
-"serialize(sd)            Serialize sd using JS_WriteStructuredClone. Returns a TypedArray.",
-"deserialize(a)           Deserialize data generated by serialize.",
+"parent(obj)              Returns the parent of obj.\n",
+"wrap(obj)                Wrap an object into a noop wrapper.\n",
+"serialize(sd)            Serialize sd using JS_WriteStructuredClone. Returns a TypedArray.\n",
+"deserialize(a)           Deserialize data generated by serialize.\n",
 #ifdef JS_METHODJIT
-"mjitstats()              Return stats on mjit memory usage.",
+"mjitstats()              Return stats on mjit memory usage.\n",
 #endif
-"stringstats()            Return stats on string memory usage.",
-"newGlobal(kind)          Return a new global object, in the current\n"
-"                         compartment if kind === 'same-compartment' or in a\n"
-"                         new compartment if kind === 'new-compartment'",
-
-
+"stringstats()            Return stats on string memory usage.\n"
 #ifdef MOZ_PROFILING
 "startProfiling()         Start a profiling session.\n"
-"                         Profiler must be running with programatic sampling",
-"stopProfiling()          Stop a running profiling session\n"
+"                         Profiler must be running with programatic sampling\n"
+"stopProfiling()          Stop a running profiling session"
 #endif
 };
 
-#ifdef MOZ_PROFILING
-#define PROFILING_FUNCTION_COUNT 2
-#else
-#define PROFILING_FUNCTION_COUNT 0
-#endif
 
-
-JS_STATIC_ASSERT(JS_ARRAY_LENGTH(shell_help_messages) - PROFILING_FUNCTION_COUNT ==
-                 JS_ARRAY_LENGTH(shell_functions) - 1 );
-
-#undef PROFILING_FUNCTION_COUNT
+JS_STATIC_ASSERT(JS_ARRAY_LENGTH(shell_help_messages) + 1 ==
+                 JS_ARRAY_LENGTH(shell_functions));
 
 #ifdef DEBUG
 static void
@@ -4777,7 +4605,6 @@ CheckHelpMessages()
         JS_ASSERT(lp);
         JS_ASSERT(memcmp(shell_functions[m - shell_help_messages].name,
                          *m, lp - *m) == 0);
-        JS_ASSERT((*m)[strlen(*m) - 1] != '\n');
     }
 }
 #else
@@ -5432,7 +5259,7 @@ static JSBool
 env_setProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
 {
 
-#if !defined XP_BEOS && !defined XP_OS2 && !defined SOLARIS
+#if !defined XP_OS2 && !defined SOLARIS
     int rv;
 
     IdToString idstr(cx, id, JS_TRUE);
@@ -5597,52 +5424,46 @@ DestroyContext(JSContext *cx, bool withGC)
 }
 
 static JSObject *
-NewGlobalObject(JSContext *cx, CompartmentKind compartment)
+NewGlobalObject(JSContext *cx)
 {
-    JSObject *glob = (compartment == NEW_COMPARTMENT)
-                     ? JS_NewCompartmentAndGlobalObject(cx, &global_class, NULL)
-                     : JS_NewGlobalObject(cx, &global_class);
+    JSObject *glob = JS_NewCompartmentAndGlobalObject(cx, &global_class, NULL);
     if (!glob)
         return NULL;
 
-    {
-        JSAutoEnterCompartment ac;
-        if (!ac.enter(cx, glob))
-            return NULL;
+    JSAutoEnterCompartment ac;
+    if (!ac.enter(cx, glob))
+        return NULL;
 
-#ifndef LAZY_STANDARD_CLASSES
-        if (!JS_InitStandardClasses(cx, glob))
-            return NULL;
+#ifdef LAZY_STANDARD_CLASSES
+    JS_SetGlobalObject(cx, glob);
+#else
+    if (!JS_InitStandardClasses(cx, glob))
+        return NULL;
 #endif
-
 #ifdef JS_HAS_CTYPES
-        if (!JS_InitCTypesClass(cx, glob))
-            return NULL;
+    if (!JS_InitCTypesClass(cx, glob))
+        return NULL;
 #endif
-        if (!JS::RegisterPerfMeasurement(cx, glob))
-            return NULL;
-        if (!JS_DefineFunctions(cx, glob, shell_functions) ||
-            !JS_DefineProfilingFunctions(cx, glob)) {
-            return NULL;
-        }
-
-        JSObject *it = JS_DefineObject(cx, glob, "it", &its_class, NULL, 0);
-        if (!it)
-            return NULL;
-        if (!JS_DefineProperties(cx, it, its_props))
-            return NULL;
-        if (!JS_DefineFunctions(cx, it, its_methods))
-            return NULL;
-
-        if (!JS_DefineProperty(cx, glob, "custom", JSVAL_VOID, its_getter,
-                               its_setter, 0))
-            return NULL;
-        if (!JS_DefineProperty(cx, glob, "customRdOnly", JSVAL_VOID, its_getter,
-                               its_setter, JSPROP_READONLY))
-            return NULL;
+    if (!JS::RegisterPerfMeasurement(cx, glob))
+        return NULL;
+    if (!JS_DefineFunctions(cx, glob, shell_functions) ||
+        !JS_DefineProfilingFunctions(cx, glob)) {
+        return NULL;
     }
 
-    if (compartment == NEW_COMPARTMENT && !JS_WrapObject(cx, &glob))
+    JSObject *it = JS_DefineObject(cx, glob, "it", &its_class, NULL, 0);
+    if (!it)
+        return NULL;
+    if (!JS_DefineProperties(cx, it, its_props))
+        return NULL;
+    if (!JS_DefineFunctions(cx, it, its_methods))
+        return NULL;
+
+    if (!JS_DefineProperty(cx, glob, "custom", JSVAL_VOID, its_getter,
+                           its_setter, 0))
+        return NULL;
+    if (!JS_DefineProperty(cx, glob, "customRdOnly", JSVAL_VOID, its_getter,
+                           its_setter, JSPROP_READONLY))
         return NULL;
 
     return glob;
@@ -5653,15 +5474,13 @@ Shell(JSContext *cx, int argc, char **argv, char **envp)
 {
     JSAutoRequest ar(cx);
 
-    JSObject *glob = NewGlobalObject(cx, NEW_COMPARTMENT);
+    JSObject *glob = NewGlobalObject(cx);
     if (!glob)
         return 1;
 
     JSAutoEnterCompartment ac;
     if (!ac.enter(cx, glob))
         return 1;
-
-    JS_SetGlobalObject(cx, glob);
 
     JSObject *envobj = JS_DefineObject(cx, glob, "environment", &env_class, NULL, 0);
     if (!envobj || !JS_SetPrivate(cx, envobj, envp))
@@ -5699,7 +5518,7 @@ Shell(JSContext *cx, int argc, char **argv, char **envp)
     class ShellWorkerHooks : public js::workers::WorkerHooks {
     public:
         JSObject *newGlobalObject(JSContext *cx) {
-            return NewGlobalObject(cx, NEW_COMPARTMENT);
+            return NewGlobalObject(cx);
         }
     };
     ShellWorkerHooks hooks;

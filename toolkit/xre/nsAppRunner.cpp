@@ -163,13 +163,6 @@ using mozilla::dom::ContentParent;
 #include <pwd.h>
 #endif
 
-#ifdef XP_BEOS
-
-
-#include <AppKit.h>
-#include <AppFileInfo.h>
-#endif 
-
 #ifdef XP_WIN
 #ifndef WINCE
 #include <process.h>
@@ -1615,18 +1608,6 @@ XRE_GetBinaryPath(const char* argv0, nsILocalFile* *aResult)
   if (NS_FAILED(rv))
     return rv;
 
-#elif defined(XP_BEOS)
-  int32 cookie = 0;
-  image_info info;
-
-  if(get_next_image_info(0, &cookie, &info) != B_OK)
-    return NS_ERROR_FAILURE;
-
-  rv = NS_NewNativeLocalFile(nsDependentCString(info.name), PR_TRUE,
-                             getter_AddRefs(lf));
-  if (NS_FAILED(rv))
-    return rv;
-
 #else
 #error Oops, you need platform-specific code here
 #endif
@@ -1794,12 +1775,6 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
     return NS_ERROR_FAILURE;
 #elif defined(XP_UNIX)
   if (execv(exePath.get(), gRestartArgv) == -1)
-    return NS_ERROR_FAILURE;
-#elif defined(XP_BEOS)
-  extern char **environ;
-  status_t res;
-  res = resume_thread(load_image(gRestartArgc,(const char **)gRestartArgv,(const char **)environ));
-  if (res != B_OK)
     return NS_ERROR_FAILURE;
 #else
   PRProcess* process = PR_CreateProcess(exePath.get(), gRestartArgv,
@@ -2762,24 +2737,19 @@ static DWORD InitDwriteBG(LPVOID lpdwThreadParam)
   SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_BEGIN);
   LOGREGISTRY(L"loading dwrite.dll");
   HMODULE dwdll = LoadLibraryW(L"dwrite.dll");
-  if (dwdll) {
-    DWriteCreateFactoryFunc createDWriteFactory = (DWriteCreateFactoryFunc)
-      GetProcAddress(dwdll, "DWriteCreateFactory");
-    if (createDWriteFactory) {
-      LOGREGISTRY(L"creating dwrite factory");
-      IDWriteFactory *factory;
-      HRESULT hr = createDWriteFactory(
-        DWRITE_FACTORY_TYPE_SHARED,
-        __uuidof(IDWriteFactory),
-        reinterpret_cast<IUnknown**>(&factory));
-      if (SUCCEEDED(hr)) {
-        LOGREGISTRY(L"dwrite factory done");
-        factory->Release();
-        LOGREGISTRY(L"freed factory");
-      } else {
-        LOGREGISTRY(L"failed to create factory");
-      }
-    }
+  DWriteCreateFactoryFunc createDWriteFactory = (DWriteCreateFactoryFunc)
+    GetProcAddress(dwdll, "DWriteCreateFactory");
+  if (createDWriteFactory) {
+    LOGREGISTRY(L"creating dwrite factory");
+    IDWriteFactory *factory;
+    HRESULT hr = createDWriteFactory(
+      DWRITE_FACTORY_TYPE_SHARED,
+      __uuidof(IDWriteFactory),
+      reinterpret_cast<IUnknown**>(&factory));
+    
+    LOGREGISTRY(L"dwrite factory done");
+    factory->Release();
+    LOGREGISTRY(L"freed factory");
   }
   SetThreadPriority(GetCurrentThread(), THREAD_MODE_BACKGROUND_END);
   return 0;
@@ -3366,18 +3336,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
       return 1;
     }
 
-#if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_WIDGET_GTK2)
-    
-    
-    if (!desktopStartupID.IsEmpty()) {
-      nsCAutoString desktopStartupEnv;
-      desktopStartupEnv.AssignLiteral("DESKTOP_STARTUP_ID=");
-      desktopStartupEnv.Append(desktopStartupID);
-      
-      PR_SetEnv(ToNewCString(desktopStartupEnv));
-    }
-#endif
-
 #if defined(MOZ_UPDATER) && !defined(ANDROID)
     
     nsCOMPtr<nsIFile> updRoot;
@@ -3719,9 +3677,6 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
           if (toolkit && !desktopStartupID.IsEmpty()) {
             toolkit->SetDesktopStartupID(desktopStartupID);
           }
-          
-          
-          g_unsetenv ("DESKTOP_STARTUP_ID");
 #endif
 
 #ifdef XP_MACOSX
@@ -3836,6 +3791,16 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
         static char kEnvVar[MAXPATHLEN];
         sprintf(kEnvVar, "XRE_BINARY_PATH=%s", gBinaryPath);
         PR_SetEnv(kEnvVar);
+      }
+#endif
+
+#if defined(HAVE_DESKTOP_STARTUP_ID) && defined(MOZ_WIDGET_GTK2)
+      if (!desktopStartupID.IsEmpty()) {
+        nsCAutoString desktopStartupEnv;
+        desktopStartupEnv.AssignLiteral("DESKTOP_STARTUP_ID=");
+        desktopStartupEnv.Append(desktopStartupID);
+        
+        PR_SetEnv(ToNewCString(desktopStartupEnv));
       }
 #endif
 

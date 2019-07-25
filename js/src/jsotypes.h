@@ -51,21 +51,6 @@
 #ifndef PROTYPES_H
 #define PROTYPES_H
 
-#ifdef XP_BEOS
-
-
-
-
-
-#include <SupportDefs.h>
-
-typedef JSUintn uintn;
-#ifndef _XP_Core_
-typedef JSIntn intn;
-#endif
-
-#else
-
 
 #ifdef XP_UNIX
 #include <sys/types.h>
@@ -107,8 +92,6 @@ typedef JSInt32 int32;
 typedef JSInt16 int16;
 typedef JSInt8 int8;
 #endif 
-
-#endif  
 
 typedef JSFloat64 float64;
 
