@@ -70,6 +70,9 @@
 
 #define NS_TEXT_IN_SELECTION (1 << (NODE_TYPE_SPECIFIC_BITS_OFFSET + 2))
 
+
+PR_STATIC_ASSERT(NODE_TYPE_SPECIFIC_BITS_OFFSET + 2 < 32);
+
 class nsIDOMAttr;
 class nsIDOMEventListener;
 class nsIDOMNodeList;

@@ -898,6 +898,9 @@ protected:
 
 
 
+PR_STATIC_ASSERT(NODE_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
+
+
 
 
 
