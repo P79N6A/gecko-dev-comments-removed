@@ -80,7 +80,10 @@ class Test(object):
 
     def get_command(self, js_cmd_prefix):
         dirname, filename = os.path.split(self.path)
-        cmd = js_cmd_prefix + Test.prefix_command(dirname)
+        cmd = js_cmd_prefix
+        if self.allowXml:
+            cmd += [ '-e', 'options("allow_xml")' ]
+        cmd += Test.prefix_command(dirname)
         if self.debugMode:
             cmd += [ '-d' ]
         
@@ -96,13 +99,14 @@ class TestCase(Test):
     """A test case consisting of a test and an expected result."""
     js_cmd_prefix = None
 
-    def __init__(self, path, enable, expect, random, slow, debugMode):
+    def __init__(self, path, enable, expect, random, slow, debugMode, allowXml):
         Test.__init__(self, path)
         self.enable = enable     
         self.expect = expect     
         self.random = random     
         self.slow = slow         
         self.debugMode = debugMode 
+        self.allowXml = allowXml 
 
         
         self.terms = None

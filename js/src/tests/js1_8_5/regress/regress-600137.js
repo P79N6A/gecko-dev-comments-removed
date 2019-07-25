@@ -4,6 +4,7 @@
 
 
 
+
 if (typeof evalcx == 'function') {
     var src = 'try {\n' +
     '    for (var [e] = /x/ in d) {\n' +
