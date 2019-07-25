@@ -920,10 +920,8 @@ ShadowBufferOGL::Upload(gfxASurface* aUpdate, const nsIntRegion& aUpdated,
                         bool aDelayUpload, nsIntRegion& aPendingUploadRegion)
 {
   
-  
   nsIntRegion destRegion(aUpdated);
-  nsIntPoint visTopLeft = mLayer->GetVisibleRegion().GetBounds().TopLeft();
-  destRegion.MoveBy(-visTopLeft);
+  destRegion.MoveBy(-aRect.TopLeft());
 
   
   destRegion.MoveBy(aRotation);
