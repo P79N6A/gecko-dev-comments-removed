@@ -55,7 +55,7 @@ class nsIFontMetrics;
 class nsTransform2D;
 class nsString;
 class nsIDeviceContext;
-class nsIRegion;
+class nsIntRegion;
 class nsIAtom;
 
 struct nsFont;
@@ -98,10 +98,9 @@ typedef enum
 
 
 
-
 #define NS_IRENDERING_CONTEXT_IID \
-{ 0xA553DAB8, 0xD8B3, 0x469F, \
-  { 0x85, 0xC5, 0xD9, 0x4E, 0xBD, 0x65, 0x37, 0x5D } }
+{ 0xefbfeb6c, 0x937e, 0x4889, \
+  { 0x92, 0x46, 0x16, 0xc0, 0xe8, 0x4b, 0xfa, 0xae } }
 
 
 
@@ -185,7 +184,7 @@ public:
 
 
 
-  NS_IMETHOD SetClipRegion(const nsIRegion& aRegion, nsClipCombine aCombine) = 0;
+  NS_IMETHOD SetClipRegion(const nsIntRegion& aRegion, nsClipCombine aCombine) = 0;
 
   
 
