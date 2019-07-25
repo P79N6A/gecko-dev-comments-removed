@@ -43,9 +43,11 @@ namespace imagelib {
 
 Decoder::Decoder()
   : mFrameCount(0)
+  , mFailCode(NS_OK)
   , mInitialized(false)
   , mSizeDecode(false)
   , mInFrame(false)
+  , mDataError(false)
 {
 }
 
@@ -190,6 +192,26 @@ Decoder::PostInvalidation(nsIntRect& aRect)
 
   
   mInvalidRect.UnionRect(mInvalidRect, aRect);
+}
+
+void
+Decoder::PostDataError()
+{
+  mDataError = true;
+
+  
+}
+
+void
+Decoder::PostDecoderError(nsresult aFailureCode)
+{
+  NS_ABORT_IF_FALSE(NS_FAILED(aFailureCode), "Not a failure code!");
+
+  mFailCode = aFailureCode;
+
+  
+  
+  NS_WARNING("Image decoding error - This is probably a bug!");
 }
 
 } 

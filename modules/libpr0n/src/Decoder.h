@@ -117,6 +117,12 @@ public:
   
   PRUint32 GetFrameCount() { return mFrameCount; }
 
+  
+  bool IsError() { return IsDataError() || IsDecoderError(); };
+  bool IsDataError() { return mDataError; };
+  bool IsDecoderError() { return NS_FAILED(mFailCode); };
+  nsresult GetDecoderError() { return mFailCode; };
+
 protected:
 
   
@@ -145,6 +151,10 @@ protected:
   void PostInvalidation(nsIntRect& aRect);
 
   
+  void PostDataError();
+  void PostDecoderError(nsresult aFailCode);
+
+  
 
 
 
@@ -156,9 +166,12 @@ protected:
 
   nsIntRect mInvalidRect; 
 
+  nsresult mFailCode;
+
   bool mInitialized;
   bool mSizeDecode;
   bool mInFrame;
+  bool mDataError;
 };
 
 } 
