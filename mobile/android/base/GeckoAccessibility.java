@@ -111,6 +111,9 @@ public class GeckoAccessibility {
             
             
             final LayerView view = GeckoApp.mAppContext.getLayerView();
+            if (view == null)
+                return;
+
             if (mVirtualCursorNode == null)
                 mVirtualCursorNode = AccessibilityNodeInfo.obtain(view, VIRTUAL_CURSOR_POSITION);
             mVirtualCursorNode.setEnabled(message.optBoolean("enabled", true));
