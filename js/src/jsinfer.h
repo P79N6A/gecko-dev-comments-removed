@@ -152,36 +152,26 @@ inline Type GetValueType(JSContext *cx, const Value &val);
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class TypeConstraint
 {
 public:
+#ifdef DEBUG
+    const char *kind_;
+    const char *kind() const { return kind_; }
+#else
+    const char *kind() const { return NULL; }
+#endif
+
     
     TypeConstraint *next;
 
-    TypeConstraint()
+    TypeConstraint(const char *kind)
         : next(NULL)
-    {}
-
-    
-    virtual const char *kind() = 0;
+    {
+#ifdef DEBUG
+        this->kind_ = kind;
+#endif
+    }
 
     
     virtual void newType(JSContext *cx, TypeSet *source, Type type) = 0;
@@ -229,39 +219,24 @@ enum {
 
 
 
-    TYPE_FLAG_PURGED              = 0x00020000,
+    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00020000,
+
+    
+    TYPE_FLAG_OWN_PROPERTY        = 0x00040000,
 
     
 
 
 
 
-    TYPE_FLAG_CONSTRAINTS_PURGED  = 0x00040000,
-
-    
-
-    
-
-
-
-    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00080000,
-
-    
-    TYPE_FLAG_OWN_PROPERTY        = 0x00100000,
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00080000,
 
     
 
 
 
 
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00200000,
-
-    
-
-
-
-
-    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00400000,
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00100000,
 
     
     TYPE_FLAG_DEFINITE_MASK       = 0x0f000000,
@@ -340,9 +315,6 @@ enum {
 };
 typedef uint32_t TypeObjectFlags;
 
-class StackTypeSet;
-class HeapTypeSet;
-
 
 class TypeSet
 {
@@ -380,12 +352,12 @@ class TypeSet
         return !!(baseFlags() & flags);
     }
 
-    bool ownProperty(bool configurable) const {
+    bool isOwnProperty(bool configurable) const {
         return flags & (configurable ? TYPE_FLAG_CONFIGURED_PROPERTY : TYPE_FLAG_OWN_PROPERTY);
     }
-    bool definiteProperty() const { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
+    bool isDefiniteProperty() const { return flags & TYPE_FLAG_DEFINITE_PROPERTY; }
     unsigned definiteSlot() const {
-        JS_ASSERT(definiteProperty());
+        JS_ASSERT(isDefiniteProperty());
         return flags >> TYPE_FLAG_DEFINITE_SHIFT;
     }
 
@@ -421,115 +393,55 @@ class TypeSet
     bool hasPropagatedProperty() { return !!(flags & TYPE_FLAG_PROPAGATED_PROPERTY); }
     void setPropagatedProperty() { flags |= TYPE_FLAG_PROPAGATED_PROPERTY; }
 
-    bool constraintsPurged() { return !!(flags & TYPE_FLAG_CONSTRAINTS_PURGED); }
-    void setConstraintsPurged() { flags |= TYPE_FLAG_CONSTRAINTS_PURGED; }
+    enum FilterKind {
+        FILTER_ALL_PRIMITIVES,
+        FILTER_NULL_VOID,
+        FILTER_VOID
+    };
 
-    bool purged() { return !!(flags & TYPE_FLAG_PURGED); }
-    void setPurged() { flags |= TYPE_FLAG_PURGED | TYPE_FLAG_CONSTRAINTS_PURGED; }
-
-    inline StackTypeSet *toStackTypeSet();
-    inline HeapTypeSet *toHeapTypeSet();
-
-    inline void addTypesToConstraint(JSContext *cx, TypeConstraint *constraint);
+    
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
-
-  protected:
-    uint32_t baseObjectCount() const {
-        return (flags & TYPE_FLAG_OBJECT_COUNT_MASK) >> TYPE_FLAG_OBJECT_COUNT_SHIFT;
-    }
-    inline void setBaseObjectCount(uint32_t count);
-
-    inline void clearObjects();
-};
-
-
-
-
-
-
-
-
-class StackTypeSet : public TypeSet
-{
-  public:
-
-    
-
-
-
-    static StackTypeSet *make(JSContext *cx, const char *name);
-
-    
-
     void addSubset(JSContext *cx, TypeSet *target);
     void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
+                        TypeSet *target, jsid id);
     void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
+                        TypeSet *target, jsid id);
+    void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
     void addSetElement(JSContext *cx, JSScript *script, jsbytecode *pc,
-                       StackTypeSet *objectTypes, StackTypeSet *valueTypes);
+                       TypeSet *objectTypes, TypeSet *valueTypes);
     void addCall(JSContext *cx, TypeCallsite *site);
     void addArith(JSContext *cx, JSScript *script, jsbytecode *pc,
                   TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);
     void addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc,
-                          Type type, StackTypeSet *types = NULL);
+                          Type type, TypeSet *types = NULL);
+    void addFilterPrimitives(JSContext *cx, TypeSet *target, FilterKind filter);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
 
     
 
 
 
-
-
-
-
-
-    
-    JSValueType getKnownTypeTag();
-
-    bool isMagicArguments() { return getKnownTypeTag() == JSVAL_TYPE_MAGIC; }
-
-    
-    bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
+    static TypeSet *make(JSContext *cx, const char *name);
 
     
 
 
 
-    int getTypedArrayType();
-
-    
-    JSObject *getSingleton();
-
-    
-    bool propertyNeedsBarrier(JSContext *cx, jsid id);
-};
 
 
-
-
-
-
-
-class HeapTypeSet : public TypeSet
-{
-  public:
-
-    
-
-    void addSubset(JSContext *cx, TypeSet *target);
-    void addGetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
-                        StackTypeSet *target, jsid id);
-    void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
-    void addFilterPrimitives(JSContext *cx, TypeSet *target);
-    void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
-
-    
 
     
     void addFreeze(JSContext *cx);
 
+    
+    JSValueType getKnownTypeTag(JSContext *cx);
+
+    bool isMagicArguments(JSContext *cx) { return getKnownTypeTag(cx) == JSVAL_TYPE_MAGIC; }
+
+    
+    bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
+    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
 
     
 
@@ -537,9 +449,6 @@ class HeapTypeSet : public TypeSet
 
 
     static void WatchObjectStateChange(JSContext *cx, TypeObject *object);
-
-    
-    static bool HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags);
 
     
 
@@ -557,28 +466,31 @@ class HeapTypeSet : public TypeSet
     bool knownSubset(JSContext *cx, TypeSet *other);
 
     
-    JSObject *getSingleton(JSContext *cx);
+
+
+
+    int getTypedArrayType(JSContext *cx);
+
+    
+    JSObject *getSingleton(JSContext *cx, bool freeze = true);
+
+    inline void clearObjects();
 
     
 
 
 
     bool needsBarrier(JSContext *cx);
+
+    
+    bool propertyNeedsBarrier(JSContext *cx, jsid id);
+
+  private:
+    uint32_t baseObjectCount() const {
+        return (flags & TYPE_FLAG_OBJECT_COUNT_MASK) >> TYPE_FLAG_OBJECT_COUNT_SHIFT;
+    }
+    inline void setBaseObjectCount(uint32_t count);
 };
-
-inline StackTypeSet *
-TypeSet::toStackTypeSet()
-{
-    JS_ASSERT(constraintsPurged());
-    return (StackTypeSet *) this;
-}
-
-inline HeapTypeSet *
-TypeSet::toHeapTypeSet()
-{
-    JS_ASSERT(!constraintsPurged());
-    return (HeapTypeSet *) this;
-}
 
 
 
@@ -689,7 +601,7 @@ struct Property
     HeapId id;
 
     
-    HeapTypeSet types;
+    TypeSet types;
 
     inline Property(jsid id);
     inline Property(const Property &o);
@@ -881,10 +793,10 @@ struct TypeObject : gc::Cell
 
 
 
-    inline HeapTypeSet *getProperty(JSContext *cx, jsid id, bool assign);
+    inline TypeSet *getProperty(JSContext *cx, jsid id, bool assign);
 
     
-    inline HeapTypeSet *maybeGetProperty(JSContext *cx, jsid id);
+    inline TypeSet *maybeGetProperty(JSContext *cx, jsid id);
 
     inline unsigned getPropertyCount();
     inline Property *getProperty(unsigned i);
@@ -989,13 +901,13 @@ struct TypeCallsite
 
     
     unsigned argumentCount;
-    StackTypeSet **argumentTypes;
+    TypeSet **argumentTypes;
 
     
-    StackTypeSet *thisTypes;
+    TypeSet *thisTypes;
 
     
-    StackTypeSet *returnTypes;
+    TypeSet *returnTypes;
 
     inline TypeCallsite(JSContext *cx, JSScript *script, jsbytecode *pc,
                         bool isNew, unsigned argumentCount);
@@ -1014,24 +926,17 @@ class TypeScript
     TypeResult *dynamicList;
 
     
-
-
-
-
-    HeapTypeSet *propertyReadTypes;
-
-    
     TypeSet *typeArray() { return (TypeSet *) (uintptr_t(this) + sizeof(TypeScript)); }
 
     static inline unsigned NumTypeSets(JSScript *script);
 
-    static inline HeapTypeSet  *ReturnTypes(JSScript *script);
-    static inline StackTypeSet *ThisTypes(JSScript *script);
-    static inline StackTypeSet *ArgTypes(JSScript *script, unsigned i);
-    static inline StackTypeSet *LocalTypes(JSScript *script, unsigned i);
+    static inline TypeSet *ReturnTypes(JSScript *script);
+    static inline TypeSet *ThisTypes(JSScript *script);
+    static inline TypeSet *ArgTypes(JSScript *script, unsigned i);
+    static inline TypeSet *LocalTypes(JSScript *script, unsigned i);
 
     
-    static inline StackTypeSet *SlotTypes(JSScript *script, unsigned slot);
+    static inline TypeSet *SlotTypes(JSScript *script, unsigned slot);
 
 #ifdef DEBUG
     
@@ -1078,9 +983,6 @@ class TypeScript
     static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, const js::Value &value);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
-
-    static void AddFreezeConstraints(JSContext *cx, JSScript *script);
-    static void Purge(JSContext *cx, JSScript *script);
 
     static void Sweep(FreeOp *fop, JSScript *script);
     void destroy();
@@ -1264,9 +1166,6 @@ struct TypeCompartment
 
     void sweep(FreeOp *fop);
     void sweepCompilerOutputs(FreeOp *fop);
-
-    void maybePurgeAnalysis(JSContext *cx, bool force = false);
-
     void finalizeObjects();
 };
 

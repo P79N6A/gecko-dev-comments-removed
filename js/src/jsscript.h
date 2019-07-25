@@ -469,9 +469,6 @@ struct JSScript : public js::gc::Cell
 
     bool            hasDebugScript:1; 
 
-    bool            hasFreezeConstraints:1; 
-
-
   private:
     
     bool            argsHasVarBinding_:1;
@@ -577,8 +574,6 @@ struct JSScript : public js::gc::Cell
     inline bool hasAnalysis();
     inline void clearAnalysis();
     inline js::analyze::ScriptAnalysis *analysis();
-
-    inline void clearPropertyReadTypes();
 
     inline bool hasGlobal() const;
     inline bool hasClearedGlobal() const;
