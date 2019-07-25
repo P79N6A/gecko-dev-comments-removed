@@ -201,7 +201,7 @@ JS_XDRScript(JSXDRState *xdr, JSScript **scriptp);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 110)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 111)
 
 JS_END_EXTERN_C
 
