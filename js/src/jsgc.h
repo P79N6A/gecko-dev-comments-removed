@@ -692,26 +692,49 @@ class ArenaList {
     }
 };
 
+inline void
+CheckGCFreeListLink(FreeCell *cell)
+{
+    
+
+
+
+    JS_ASSERT_IF(cell->link, cell->arenaHeader() == cell->link->arenaHeader());
+    JS_ASSERT_IF(cell->link, cell < cell->link);
+}
+
+
+
+
+
+
+
+
+
+
+
+
 struct FreeLists {
-    FreeCell       **finalizables[FINALIZE_LIMIT];
+    FreeCell       *finalizables[FINALIZE_LIMIT];
 
     void purge();
 
-    inline FreeCell *getNext(uint32 kind) {
-        FreeCell *top = NULL;
-        if (finalizables[kind]) {
-            top = *finalizables[kind];
-            if (top) {
-                *finalizables[kind] = top->link;
-            } else {
-                finalizables[kind] = NULL;
-            }
+    FreeCell *getNext(unsigned kind) {
+        FreeCell *top = finalizables[kind];
+        if (top) {
+            CheckGCFreeListLink(top);
+            finalizables[kind] = top->link;
         }
         return top;
     }
 
-    void populate(ArenaHeader *aheader, uint32 thingKind) {
-        finalizables[thingKind] = &aheader->freeList;
+    Cell *populate(ArenaHeader *aheader, uint32 thingKind) {
+        FreeCell *cell = aheader->freeList;
+        JS_ASSERT(cell);
+        CheckGCFreeListLink(cell);
+        aheader->freeList = NULL;
+        finalizables[thingKind] = cell->link;
+        return cell;
     }
 
 #ifdef DEBUG
@@ -724,7 +747,11 @@ struct FreeLists {
     }
 #endif
 };
-}
+
+extern Cell *
+RefillFinalizableFreeList(JSContext *cx, unsigned thingKind);
+
+} 
 
 typedef Vector<gc::Chunk *, 32, SystemAllocPolicy> GCChunks;
 
@@ -772,21 +799,8 @@ typedef HashMap<Value, Value, WrapperHasher, SystemAllocPolicy> WrapperMap;
 
 class AutoValueVector;
 class AutoIdVector;
-}
 
-static inline void
-CheckGCFreeListLink(js::gc::FreeCell *cell)
-{
-    
-
-
-
-    JS_ASSERT_IF(cell->link, cell->arenaHeader() == cell->link->arenaHeader());
-    JS_ASSERT_IF(cell->link, cell < cell->link);
-}
-
-extern bool
-RefillFinalizableFreeList(JSContext *cx, unsigned thingKind);
+} 
 
 #ifdef DEBUG
 extern bool
