@@ -393,13 +393,12 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     return false;
   }
 
-  PRUint32 typeID = nsIProgrammingLanguage::JAVASCRIPT;
   JSVersion version = JSVERSION_DEFAULT;
-  nsAutoString language, type, src;
   nsresult rv = NS_OK;
 
   
   
+  nsAutoString type;
   aElement->GetScriptType(type);
   if (!type.IsEmpty()) {
     nsContentTypeParser parser(type);
@@ -412,39 +411,35 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
       return false;
     }
 
-    if (typeID != nsIProgrammingLanguage::UNKNOWN) {
-      
-      nsAutoString versionName;
-      rv = parser.GetParameter("version", versionName);
+    
+    nsAutoString versionName;
+    rv = parser.GetParameter("version", versionName);
 
-      if (NS_SUCCEEDED(rv)) {
-        version = nsContentUtils::ParseJavascriptVersion(versionName);
-      } else if (rv != NS_ERROR_INVALID_ARG) {
-        return false;
-      }
+    if (NS_SUCCEEDED(rv)) {
+      version = nsContentUtils::ParseJavascriptVersion(versionName);
+    } else if (rv != NS_ERROR_INVALID_ARG) {
+      return false;
     }
 
-    
-    if (typeID == nsIProgrammingLanguage::JAVASCRIPT) {
-      nsAutoString value;
-      rv = parser.GetParameter("e4x", value);
-      if (NS_FAILED(rv)) {
-        if (rv != NS_ERROR_INVALID_ARG)
-          return false;
-      } else {
-        if (value.Length() == 1 && value[0] == '1')
-          
-          
-          
-          
-          version = js::VersionSetMoarXML(version, true);
+    nsAutoString value;
+    rv = parser.GetParameter("e4x", value);
+    if (NS_SUCCEEDED(rv)) {
+      if (value.Length() == 1 && value[0] == '1') {
+        
+        
+        
+        
+        version = js::VersionSetMoarXML(version, true);
       }
+    } else if (rv != NS_ERROR_INVALID_ARG) {
+      return false;
     }
   } else {
     
     
     
     if (scriptContent->IsHTML()) {
+      nsAutoString language;
       scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::language, language);
       if (!language.IsEmpty()) {
         
@@ -459,21 +454,6 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
         }
       }
     }
-  }
-
-  
-  if (typeID == nsIProgrammingLanguage::UNKNOWN) {
-    return false;
-  }
-  
-  
-  
-  
-  
-  if (typeID != nsIProgrammingLanguage::JAVASCRIPT &&
-      !nsContentUtils::IsChromeDoc(mDocument)) {
-    NS_WARNING("Untrusted language called from non-chrome - ignored");
-    return false;
   }
 
   
