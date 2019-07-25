@@ -814,7 +814,7 @@ JS_SetWatchPoint(JSContext *cx, JSObject *obj, jsval idval,
 
 
 
-    if (origobj != obj && !obj->checkAccess(cx, propid, JSACC_WATCH, &v, &attrs))
+    if (origobj != obj && !CheckAccess(cx, obj, propid, JSACC_WATCH, &v, &attrs))
         return JS_FALSE;
 
     if (!obj->isNative()) {

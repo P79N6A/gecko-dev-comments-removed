@@ -3154,7 +3154,7 @@ BEGIN_CASE(JSOP_SETTER)
 
 
 
-    if (!obj->checkAccess(cx, id, JSACC_WATCH, &rtmp, &attrs))
+    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &rtmp, &attrs))
         goto error;
 
     if (op == JSOP_GETTER) {

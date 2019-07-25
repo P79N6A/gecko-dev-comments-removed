@@ -311,12 +311,6 @@ typedef JSObjectOps *
 
 
 
-
-
-
-
-
-
 typedef JSBool
 (* JSCheckAccessOp)(JSContext *cx, JSObject *obj, jsval id, JSAccessMode mode,
                     jsval *vp);

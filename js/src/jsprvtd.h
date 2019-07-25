@@ -156,7 +156,7 @@ class ExecuteArgsGuard;
 class InvokeFrameGuard;
 class InvokeArgsGuard;
 class TraceRecorder;
-struct TraceMonitor;
+class TraceMonitor;
 class StackSpace;
 class CallStack;
 
@@ -361,15 +361,6 @@ typedef JSBool
 
 typedef JSBool
 (* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
-
-
-
-
-
-
-typedef JSBool
-(* JSCheckAccessIdOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
-                      jsval *vp, uintN *attrsp);
 
 
 
