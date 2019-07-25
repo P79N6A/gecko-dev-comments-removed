@@ -91,6 +91,7 @@ class GlobalHistory {
                         } while (c.moveToNext());
                     }
                     mVisitedCache = new SoftReference<Set<String>>(visitedSet);
+                    c.close();
                 }
 
                 
