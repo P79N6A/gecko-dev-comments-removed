@@ -366,6 +366,14 @@ typedef JSBool
 
 
 
+
+typedef JSBool
+(* JSCallOp)(JSContext *cx, uintN argc, jsval *vp);
+
+
+
+
+
 #ifdef JS_C_STRINGS_ARE_UTF8
 # define js_CStringsAreUTF8 JS_TRUE
 #else
