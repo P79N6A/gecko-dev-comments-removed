@@ -1391,13 +1391,13 @@ nsCookieService::NotifyChanged(nsISupports     *aSubject,
     mObserverService->NotifyObservers(aSubject, "cookie-changed", aData);
 }
 
-void
-nsCookieService::NotifyPurged(nsICookie2* aCookie)
+already_AddRefed<nsIArray>
+nsCookieService::CreatePurgeList(nsICookie2* aCookie)
 {
   nsCOMPtr<nsIMutableArray> removedList =
     do_CreateInstance(NS_ARRAY_CONTRACTID);
   removedList->AppendElement(aCookie, PR_FALSE);
-  NotifyChanged(removedList, NS_LITERAL_STRING("batch-deleted").get());
+  return removedList.forget();
 }
 
 
@@ -1550,14 +1550,14 @@ nsCookieService::Remove(const nsACString &aHost,
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsListIter matchIter;
+  nsRefPtr<nsCookie> cookie;
   if (FindCookie(baseDomain,
                  host,
                  PromiseFlatCString(aName),
                  PromiseFlatCString(aPath),
                  matchIter)) {
-    nsRefPtr<nsCookie> cookie = matchIter.Cookie();
+    cookie = matchIter.Cookie();
     RemoveCookieFromList(matchIter);
-    NotifyChanged(cookie, NS_LITERAL_STRING("deleted").get());
   }
 
   
@@ -1573,6 +1573,11 @@ nsCookieService::Remove(const nsACString &aHost,
 
     if (uri)
       mPermissionService->SetAccess(uri, nsICookiePermission::ACCESS_DENY);
+  }
+
+  if (cookie) {
+    
+    NotifyChanged(cookie, NS_LITERAL_STRING("deleted").get());
   }
 
   return NS_OK;
@@ -1706,10 +1711,10 @@ nsCookieService::AsyncReadComplete()
   mDefaultDBState->hostArray.Clear();
   mDefaultDBState->readSet.Clear();
 
-  mObserverService->NotifyObservers(nsnull, "cookie-db-read", nsnull);
-
   COOKIE_LOGSTRING(PR_LOG_DEBUG, ("Read(): %ld cookies read",
                                   mDefaultDBState->cookieCount));
+
+  mObserverService->NotifyObservers(nsnull, "cookie-db-read", nsnull);
 }
 
 void
@@ -1865,8 +1870,6 @@ nsCookieService::EnsureReadComplete()
   mDefaultDBState->syncConn = nsnull;
   mDefaultDBState->readSet.Clear();
 
-  mObserverService->NotifyObservers(nsnull, "cookie-db-read", nsnull);
-
   COOKIE_LOGSTRING(PR_LOG_DEBUG,
     ("EnsureReadComplete(): %ld cookies read", readCount));
 }
@@ -1888,6 +1891,9 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
 
   nsCOMPtr<nsILineInputStream> lineInputStream = do_QueryInterface(fileInputStream, &rv);
   if (NS_FAILED(rv)) return rv;
+
+  
+  EnsureReadComplete();
 
   static const char kTrue[] = "TRUE";
 
@@ -1928,9 +1934,6 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
 
 
 
-
-  
-  EnsureReadComplete();
 
   
   
@@ -2384,6 +2387,7 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
     aCookie->Name(), aCookie->Path(), matchIter);
 
   nsRefPtr<nsCookie> oldCookie;
+  nsCOMPtr<nsIArray> purgedList;
   if (foundCookie) {
     oldCookie = matchIter.Cookie();
 
@@ -2400,10 +2404,11 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
       }
 
       
+      
       RemoveCookieFromList(matchIter);
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
         "stale cookie was purged");
-      NotifyPurged(oldCookie);
+      purgedList = CreatePurgeList(oldCookie);
 
       
       
@@ -2452,7 +2457,7 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
       
       RemoveCookieFromList(iter);
       COOKIE_LOGEVICTED(oldCookie, "Too many cookies for this domain");
-      NotifyPurged(oldCookie);
+      purgedList = CreatePurgeList(oldCookie);
 
     } else if (mDBState->cookieCount >= ADD_TEN_PERCENT(mMaxNumberOfCookies)) {
       PRInt64 maxAge = aCurrentTimeInUsec - mDBState->cookieOldestTime;
@@ -2464,7 +2469,7 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
         
         
         
-        PurgeCookies(aCurrentTimeInUsec);
+        purgedList = PurgeCookies(aCurrentTimeInUsec);
       }
     }
   }
@@ -2472,10 +2477,16 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
   
   
   AddCookieToList(aBaseDomain, aCookie, mDBState, NULL);
+  COOKIE_LOGSUCCESS(SET_COOKIE, aHostURI, aCookieHeader, aCookie, foundCookie);
+
+  
+  
+  if (purgedList) {
+    NotifyChanged(purgedList, NS_LITERAL_STRING("batch-deleted").get());
+  }
+
   NotifyChanged(aCookie, foundCookie ? NS_LITERAL_STRING("changed").get()
                                      : NS_LITERAL_STRING("added").get());
-
-  COOKIE_LOGSUCCESS(SET_COOKIE, aHostURI, aCookieHeader, aCookie, foundCookie);
 }
 
 
@@ -3158,10 +3169,12 @@ purgeCookiesCallback(nsCookieEntry *aEntry,
 }
 
 
-void
+already_AddRefed<nsIArray>
 nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
 {
   NS_ASSERTION(mDBState->hostTable.Count() > 0, "table is empty");
+  EnsureReadComplete();
+
 #ifdef PR_LOGGING
   PRUint32 initialCookieCount = mDBState->cookieCount;
   COOKIE_LOGSTRING(PR_LOG_DEBUG,
@@ -3172,8 +3185,6 @@ nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
   nsAutoTArray<nsListIter, kMaxNumberOfCookies> purgeList;
 
   nsCOMPtr<nsIMutableArray> removedList = do_CreateInstance(NS_ARRAY_CONTRACTID);
-  if (!removedList)
-    return;
 
   
   
@@ -3182,8 +3193,6 @@ nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
   if (mDBState->dbConn) {
     stmt->NewBindingParamsArray(getter_AddRefs(paramsArray));
   }
-
-  EnsureReadComplete();
 
   nsPurgeData data(aCurrentTimeInUsec / PR_USEC_PER_SEC,
     aCurrentTimeInUsec - mCookiePurgeAge, purgeList, removedList, paramsArray);
@@ -3233,9 +3242,6 @@ nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
   }
 
   
-  NotifyChanged(removedList, NS_LITERAL_STRING("batch-deleted").get());
-
-  
   mDBState->cookieOldestTime = data.oldestTime;
 
   COOKIE_LOGSTRING(PR_LOG_DEBUG,
@@ -3244,6 +3250,8 @@ nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
      postExpiryCookieCount - mDBState->cookieCount,
      mDBState->cookieCount,
      aCurrentTimeInUsec - mDBState->cookieOldestTime));
+
+  return removedList.forget();
 }
 
 
