@@ -283,7 +283,7 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
                 }
 
             }
-            if(!glob && mSafeJSContext)
+            if(mSafeJSContext && !glob)
             {
                 
                 
