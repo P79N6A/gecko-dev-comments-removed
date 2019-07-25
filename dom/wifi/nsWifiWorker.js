@@ -640,6 +640,7 @@ var WifiManager = (function() {
     return true;
   }
 
+  const SUPP_PROP = "init.svc.wpa_supplicant";
   function killSupplicant(callback) {
     
     
@@ -649,15 +650,15 @@ var WifiManager = (function() {
     var count = 0;
     var timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     function tick() {
-      getProperty("init.svc.wpa_supplicant", "stopped", function (result) {
+      getProperty(SUPP_PROP, "stopped", function (result) {
         if (result === null) {
-          callback(false);
+          callback();
           return;
         }
         if (result === "stopped" || ++count >= 5) {
           
           timer = null;
-          callback(count < 5);
+          callback();
           return;
         }
 
@@ -670,9 +671,31 @@ var WifiManager = (function() {
   }
 
   function prepareForStartup(callback) {
-    stopDhcp(manager.ifname, function() {
+    
+    
+    getProperty(SUPP_PROP, "stopped", function (value) {
+      debug(SUPP_PROP + " was " + value);
+      if (value !== "running") {
+        stopDhcp(manager.ifname, function() { callback(false) });
+        return;
+      }
+
+      debug(SUPP_PROP + " was running, trying to connect");
       
-      killSupplicant(callback);
+      connectToSupplicant(function (retval) {
+        if (retval === 0) {
+          
+          debug("Successfully connected!");
+          callback(true);
+          return;
+        }
+
+        debug("Didn't connect, trying other method.");
+        stopDhcp(manager.ifname, function() {
+          
+          killSupplicant(function() { callback(false); });
+        });
+      });
     });
   }
 
@@ -695,8 +718,12 @@ var WifiManager = (function() {
         }
         manager.ifname = ifname;
 
-        prepareForStartup(function() {
-          
+        prepareForStartup(function(already_connected) {
+          if (already_connected) {
+            callback(0);
+            return;
+          }
+
           loadDriver(function (status) {
             if (status < 0) {
               callback(status);
