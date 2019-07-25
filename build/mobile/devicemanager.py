@@ -36,6 +36,7 @@
 
 
 
+
 import socket
 import SocketServer
 import time, datetime
@@ -56,12 +57,21 @@ class FileError(Exception):
   def __str__(self):
     return self.msg
 
+class DMError(Exception):
+  "generic devicemanager exception."
+
+  def __init__(self, msg= ''):
+    self.msg = msg
+
+  def __str__(self):
+    return self.msg
+
+
 class DeviceManager:
   host = ''
   port = 0
   debug = 2 
-  _redo = False
-  deviceRoot = None
+  retries = 0
   tempRoot = os.getcwd()
   base_prompt = '$>'
   base_prompt_re = '\$\>'
@@ -69,10 +79,18 @@ class DeviceManager:
   prompt_regex = '.*(' + base_prompt_re + prompt_sep + ')'
   agentErrorRE = re.compile('^##AGENT-WARNING##.*')
 
+  
+  
+  
+  
+  
+  
 
-  def __init__(self, host, port = 20701):
+  def __init__(self, host, port = 20701, retrylimit = 5):
     self.host = host
     self.port = port
+    self.retrylimit = retrylimit
+    self.retries = 0
     self._sock = None
     self.getDeviceRoot()
 
@@ -116,7 +134,38 @@ class DeviceManager:
 
     return False
 
-  def sendCMD(self, cmdline, newline = True):
+  
+  def verifySendCMD(self, cmdline, newline = True):
+    return self.sendCMD(cmdline, newline, False)
+
+
+  
+  
+  
+  
+  
+  
+  
+  
+  def sendCMD(self, cmdline, newline = True, ignoreAgentErrors = True):
+    done = False
+    while (not done):
+      retVal = self._doCMD(cmdline, newline)
+      if (retVal is None):
+        self.retries += 1
+      else:
+        self.retries = 0
+        if ignoreAgentErrors == False:
+          if (self.agentErrorRE.match(retVal)):
+            raise DMError("error on the agent executing '%s'" % cmdline)
+        return retVal
+
+      if (self.retries >= self.retrylimit):
+        done = True
+
+    raise DMError("unable to connect to %s after %s attempts" % (self.host, self.retrylimit))        
+
+  def _doCMD(self, cmdline, newline = True):
     promptre = re.compile(self.prompt_regex + '$')
     data = ""
     shouldCloseSocket = False
@@ -128,7 +177,6 @@ class DeviceManager:
           print "reconnecting socket"
         self._sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
       except:
-        self._redo = True
         self._sock = None
         if (self.debug >= 2):
           print "unable to create socket"
@@ -138,7 +186,6 @@ class DeviceManager:
         self._sock.connect((self.host, int(self.port)))
         self._sock.recv(1024)
       except:
-        self._redo = True
         self._sock.close()
         self._sock = None
         if (self.debug >= 2):
@@ -155,7 +202,6 @@ class DeviceManager:
           return None
         if (self.debug >= 4): print "send cmd: " + str(cmd)
       except:
-        self._redo = True
         self._sock.close()
         self._sock = None
         return None
@@ -167,7 +213,6 @@ class DeviceManager:
       if (self.cmdNeedsResponse(cmd)):
         found = False
         loopguard = 0
-        
 
         while (found == False and (loopguard < recvGuard)):
           temp = ''
@@ -178,7 +223,6 @@ class DeviceManager:
             temp = self._sock.recv(1024)
             if (self.debug >= 4): print "response: " + str(temp)
           except:
-            self._redo = True
             self._sock.close()
             self._sock = None
             return None
@@ -200,14 +244,12 @@ class DeviceManager:
           
           if (temp == ''):
             loopguard += 1
-            
-    
+
     if (shouldCloseSocket == True):
       try:
         self._sock.close()
         self._sock = None
       except:
-        self._redo = True
         self._sock = None
         return None
 
@@ -233,15 +275,19 @@ class DeviceManager:
     return '\n'.join(retVal)
   
 
+  
+  
+  
+  
   def pushFile(self, localname, destname):
     if (self.debug >= 3): print "in push file with: " + localname + ", and: " + destname
     if (self.validateFile(destname, localname) == True):
       if (self.debug >= 3): print "files are validated"
-      return ''
+      return True
 
     if self.mkDirs(destname) == None:
       print "unable to make dirs: " + destname
-      return None
+      return False
 
     if (self.debug >= 3): print "sending: push " + destname
     
@@ -249,14 +295,18 @@ class DeviceManager:
     f = open(localname, 'rb')
     data = f.read()
     f.close()
-    retVal = self.sendCMD(['push ' + destname + ' ' + str(filesize) + '\r\n', data], newline = False)
-    
+
+    try:
+      retVal = self.verifySendCMD(['push ' + destname + ' ' + str(filesize) + '\r\n', data], newline = False)
+    except(DMError):
+      retVal = False
+  
     if (self.debug >= 3): print "push returned: " + str(retVal)
 
     validated = False
     if (retVal):
       retline = self.stripPrompt(retVal).strip() 
-      if (retline == None or self.agentErrorRE.match(retVal)):
+      if (retline == None):
         
         validated = self.validateFile(destname, localname)
       else:
@@ -273,13 +323,25 @@ class DeviceManager:
       return True
     else:
       if (self.debug >= 2): print "Push File Failed to Validate!"
-      return None
+      return False
+  
+  
+  
+  
   
   def mkDir(self, name):
     if (self.dirExists(name)):
       return name
     else:
-      return self.sendCMD(['mkdr ' + name])
+      try:
+        retVal = self.verifySendCMD(['mkdr ' + name])
+      except(DMError):
+        retVal = None
+      return retVal
+
+  
+  
+  
   
   
   def mkDirs(self, filename):
@@ -292,31 +354,40 @@ class DeviceManager:
         if (self.mkDir(name) == None):
           print "failed making directory: " + str(name)
           return None
-    return ''
+    return name
 
   
+  
+  
+  
+  
   def pushDir(self, localDir, remoteDir):
-    if (self.debug >= 2): print "pushing directory: " + localDir + " to " + remoteDir
+    if (self.debug >= 2): print "pushing directory: %s to %s" % (localDir, remoteDir)
     for root, dirs, files in os.walk(localDir):
       parts = root.split(localDir)
       for file in files:
         remoteRoot = remoteDir + '/' + parts[1]
         remoteName = remoteRoot + '/' + file
         if (parts[1] == ""): remoteRoot = remoteDir
-        if (self.pushFile(os.path.join(root, file), remoteName) == None):
+        if (self.pushFile(os.path.join(root, file), remoteName) == False):
+          
           self.removeFile(remoteName)
-          if (self.pushFile(os.path.join(root, file), remoteName) == None):
+          if (self.pushFile(os.path.join(root, file), remoteName) == False):
             return None
-    return True
+    return remoteDir
 
+  
+  
+  
+  
   def dirExists(self, dirname):
     match = ".*" + dirname + "$"
     dirre = re.compile(match)
-    data = self.sendCMD(['cd ' + dirname, 'cwd'])
-    
-    
-    if (data == None or self.agentErrorRE.match(data) ):
-      return None
+    try:
+      data = self.verifySendCMD(['cd ' + dirname, 'cwd'])
+    except(DMError):
+      return False
+
     retVal = self.stripPrompt(data)
     data = retVal.split('\n')
     found = False
@@ -326,6 +397,10 @@ class DeviceManager:
 
     return found
 
+  
+  
+  
+  
   
   
   def fileExists(self, filepath):
@@ -338,13 +413,19 @@ class DeviceManager:
     return False
 
   
+  
+  
+  
+  
   def listFiles(self, rootdir):
     rootdir = rootdir.rstrip('/')
     if (self.dirExists(rootdir) == False):
-      return []  
-    data = self.sendCMD(['cd ' + rootdir, 'ls'])
-    if (data == None):
-      return None
+      return []
+    try:
+      data = self.verifySendCMD(['cd ' + rootdir, 'ls'])
+    except(DMError):
+      return []
+
     retVal = self.stripPrompt(data)
     files = filter(lambda x: x, retVal.split('\n'))
     if len(files) == 1 and files[0] == '<empty>':
@@ -352,19 +433,42 @@ class DeviceManager:
       return []
     return files
 
+  
+  
+  
+  
   def removeFile(self, filename):
     if (self.debug>= 2): print "removing file: " + filename
-    return self.sendCMD(['rm ' + filename])
-    
+    try:
+      retVal = self.verifySendCMD(['rm ' + filename])
+    except(DMError):
+      return None
+
+    return retVal
+  
+  
+  
+  
+  
   
   def removeDir(self, remoteDir):
-    self.sendCMD(['rmdr ' + remoteDir])
-
-  def getProcessList(self):
-    data = self.sendCMD(['ps'])
-    if (data == None):
+    try:
+      retVal = self.verifySendCMD(['rmdr ' + remoteDir])
+    except(DMError):
       return None
-      
+
+    return retVal
+
+  
+  
+  
+  
+  def getProcessList(self):
+    try:
+      data = self.verifySendCMD(['ps'])
+    except DMError:
+      return []
+
     retVal = self.stripPrompt(data)
     lines = retVal.split('\n')
     files = []
@@ -378,89 +482,88 @@ class DeviceManager:
           files += [[pidproc[1], pidproc[2], pidproc[0]]]     
     return files
 
-  def getMemInfo(self):
-    data = self.sendCMD(['mems'])
-    if (data == None):
-      return None
-    retVal = self.stripPrompt(data)
-    
-    fhandle = open("memlog.txt", 'a')
-    fhandle.write("\n")
-    fhandle.write(retVal)
-    fhandle.close()
-
+  
+  
+  
+  
   def fireProcess(self, appname):
     if (self.debug >= 2): print "FIRE PROC: '" + appname + "'"
     
-    if (self.processExist(appname) != ''):
+    if (self.processExist(appname) != None):
       print "WARNING: process %s appears to be running already\n" % appname
     
-    self.sendCMD(['exec ' + appname])
+    try:
+      data = self.verifySendCMD(['exec ' + appname])
+    except(DMError):
+      return None
 
     
-    time.sleep(30)
+    timeslept = 0
+    while (timeslept <= 30):
+      process = self.processExist(appname)
+      if (self.process is not None):
+        break
+      time.sleep(3)
+      timeslept += 3
 
-    self.process = self.processExist(appname)
-    if (self.debug >= 4): print "got pid: " + str(self.process) + " for process: " + str(appname)
+    if (self.debug >= 4): print "got pid: %s for process: %s" % (process, appname)
+    return process
 
+  
+  
+  
+  
   def launchProcess(self, cmd, outputFile = "process.txt", cwd = '', env = ''):
     cmdline = subprocess.list2cmdline(cmd)
     if (outputFile == "process.txt" or outputFile == None):
-      outputFile = self.getDeviceRoot() + '/' + "process.txt"
+      outputFile = self.getDeviceRoot();
+      if outputFile is None:
+        return None
+      outputFile += "/process.txt"
       cmdline += " > " + outputFile
     
     
-    cmdline = ('%s ' % self.formatEnvString(env)) + cmdline
+    cmdline = '%s %s' % (self.formatEnvString(env), cmdline)
 
-    self.fireProcess(cmdline)
+    if self.fireProcess(cmdline) is None:
+      return None
     return outputFile
   
   
-  def communicate(self, process, timeout = 600):
-    interval = 5
+  
+  
+  
+  
+  
+  def communicate(self, process, timeout = 600, interval = 5):
     timed_out = True
     if (timeout > 0):
       total_time = 0
       while total_time < timeout:
         time.sleep(interval)
-        if (not self.poll(process)):
+        if self.processExist(process) == None:
           timed_out = False
           break
         total_time += interval
 
     if (timed_out == True):
-      return None
+      return [None, None]
 
     return [self.getFile(process, "temp.txt"), None]
 
-
-  def poll(self, process):
-    try:
-      if (self.processExist(process) == ''):
-        return None
-      return 1
-    except:
-      return None
-    return 1
+  
+  
+  
   
   
   def processExist(self, appname):
-    pid = ''
+    pid = None
 
     
-    parts = appname.split(' ')
-    for p in parts:
-      if (p is ''):
-        parts.remove(p)
+    parts = filter(lambda x: x != '', appname.split(' '))
 
     if len(parts[0].strip('"').split('=')) > 1:
-      envvars = parts[0].strip('"').split(',')
-      for e in envvars:
-        env = e.split('=')
-        if (len(env) > 1):
-          os.environ[env[0]] = str(env[1])
       appname = ' '.join(parts[1:])
-
   
     pieces = appname.split(' ')
     parts = pieces[0].split('/')
@@ -468,7 +571,7 @@ class DeviceManager:
     procre = re.compile('.*' + app + '.*')
 
     procList = self.getProcessList()
-    if (procList == None):
+    if (procList == []):
       return None
       
     for proc in procList:
@@ -477,24 +580,45 @@ class DeviceManager:
         break
     return pid
 
+  
+  
+  
+  
   def killProcess(self, appname):
-    if (self.sendCMD(['kill ' + appname]) == None):
+    try:
+      data = self.verifySendCMD(['kill ' + appname])
+    except(DMError):
       return None
 
-    return True
+    return data
 
+  
+  
+  
+  
   def getTempDir(self):
-    retVal = ''
-    data = self.sendCMD(['tmpd'])
-    if (data == None):
+    try:
+      data = self.verifySendCMD(['tmpd'])
+    except(DMError):
       return None
+
     return self.stripPrompt(data).strip('\n')
 
+  
+  
+  
+  
   def catFile(self, remoteFile):
-    data = self.sendCMD(['cat ' + remoteFile])
-    if data == None:
-        return None
+    try:
+      data = self.verifySendCMD(['cat ' + remoteFile])
+    except(DMError):
+      return None
+
     return self.stripPrompt(data)
+  
+  
+  
+  
   
   def pullFile(self, remoteFile):
     """Returns contents of remoteFile using the "pull" command.
@@ -517,11 +641,15 @@ class DeviceManager:
     
     def uread(to_recv, error_msg):
       """ unbuffered read """
-      data = self._sock.recv(to_recv)
-      if not data:
+      try:
+        data = self._sock.recv(to_recv)
+        if not data:
+          err(error_msg)
+          return None
+        return data
+      except:
         err(error_msg)
         return None
-      return data
 
     def read_until_char(c, buffer, error_msg):
       """ read until 'c' is found; buffer rest """
@@ -550,7 +678,11 @@ class DeviceManager:
     
     
     
-    self.sendCMD(['pull ' + remoteFile])
+    try:
+      data = self.verifySendCMD(['pull ' + remoteFile])
+    except(DMError):
+      return None
+
     
     metadata, sep, buffer = read_until_char('\n', buffer, 'could not find metadata')
     if not metadata:
@@ -589,13 +721,18 @@ class DeviceManager:
     return buffer[:-len(prompt)]
 
   
+  
+  
+  
+  
   def getFile(self, remoteFile, localFile = ''):
     if localFile == '':
       localFile = os.path.join(self.tempRoot, "temp.txt")
   
     retVal = self.pullFile(remoteFile)
-    if retVal == None:
+    if (retVal is None):
       return None
+
     fhandle = open(localFile, 'wb')
     fhandle.write(retVal)
     fhandle.close()
@@ -603,17 +740,21 @@ class DeviceManager:
       print 'failed to validate file when downloading %s!' % remoteFile
       return None
     return retVal
-    
+
+  
+  
+  
+  
   
   def getDirectory(self, remoteDir, localDir):
     if (self.debug >= 2): print "getting files in '" + remoteDir + "'"
     filelist = self.listFiles(remoteDir)
-    if (filelist == None):
+    if (filelist == []):
       return None
     if (self.debug >= 3): print filelist
     if not os.path.exists(localDir):
       os.makedirs(localDir)
-   
+
     for f in filelist:
       if f == '.' or f == '..':
         continue
@@ -637,17 +778,33 @@ class DeviceManager:
           print 'failed to get file "%s"; continuing anyway...' % remotePath 
     return filelist
 
+  
+  
+  
+  
+  
   def isDir(self, remotePath):
-    data = self.sendCMD(['isdir ' + remotePath])
+    try:
+      data = self.verifySendCMD(['isdir ' + remotePath])
+    except(DMError):
+      data = None
+
     retVal = self.stripPrompt(data).strip()
     if not retVal:
       raise FileError('isdir returned null')
     return retVal == 'TRUE'
 
   
+  
+  
+  
+  
   def validateFile(self, remoteFile, localFile):
     remoteHash = self.getRemoteHash(remoteFile)
     localHash = self.getLocalHash(localFile)
+
+    if (remoteHash == None):
+      return False
 
     if (remoteHash == localHash):
       return True
@@ -655,16 +812,26 @@ class DeviceManager:
     return False
   
   
+  
+  
+  
+  
   def getRemoteHash(self, filename):
-    data = self.sendCMD(['hash ' + filename])
-    if (data == None):
-        return ''
+    try:
+      data = self.verifySendCMD(['hash ' + filename])
+    except(DMError):
+      return None
+
     retVal = self.stripPrompt(data)
     if (retVal != None):
       retVal = retVal.strip('\n')
     if (self.debug >= 3): print "remote hash returned: '" + retVal + "'"
     return retVal
     
+  
+  
+  
+  
   
   def getLocalHash(self, filename):
     file = open(filename, 'rb')
@@ -699,38 +866,66 @@ class DeviceManager:
   
   
   
+  
+  
+  
+  
+  
   def getDeviceRoot(self):
-    
-    
-    data = self.sendCMD(['testroot'])
-    if (data == None):
-      return '/tests'
-    self.deviceRoot = self.stripPrompt(data).strip('\n') + '/tests'
+    try:
+      data = self.verifySendCMD(['testroot'])
+    except:
+      return None
+  
+    deviceRoot = self.stripPrompt(data).strip('\n') + '/tests'
 
-    if (not self.dirExists(self.deviceRoot)):
-      self.mkDir(self.deviceRoot)
+    if (not self.dirExists(deviceRoot)):
+      if (self.mkDir(deviceRoot) == None):
+        return None
 
-    return self.deviceRoot
+    return deviceRoot
 
+  
+  
+  
+  
+  
   
   
   def getAppRoot(self):
-    if (self.dirExists(self.getDeviceRoot() + '/fennec')):
-      return self.getDeviceRoot() + '/fennec'
-    elif (self.dirExists(self.getDeviceRoot() + '/firefox')):
-      return self.getDeviceRoot() + '/firefox'
-    else:
+    devroot = self.getDeviceRoot()
+    if (devroot == None):
+      return None
+
+    if (self.dirExists(devroot + '/fennec')):
+      return devroot + '/fennec'
+    elif (self.dirExists(devroot + '/firefox')):
+      return devroot + '/firefox'
+    elif (self.dirExsts('/data/data/org.mozilla.fennec')):
       return 'org.mozilla.fennec'
+    elif (self.dirExists('/data/data/org.mozilla.firefox')):
+      return 'org.mozilla.firefox'
+
+    
+    return None
 
   
   
+  
+  
+  
+  
   def getTestRoot(self, type):
+    devroot = self.getDeviceRoot()
+    if (devroot == None):
+      return None
+
     if (re.search('xpcshell', type, re.I)):
-      self.testRoot = self.getDeviceRoot() + '/xpcshell'
+      self.testRoot = devroot + '/xpcshell'
     elif (re.search('?(i)reftest', type)):
-      self.testRoot = self.getDeviceRoot() + '/reftest'
+      self.testRoot = devroot + '/reftest'
     elif (re.search('?(i)mochitest', type)):
-      self.testRoot = self.getDeviceRoot() + '/mochitest'
+      self.testRoot = devroot + '/mochitest'
     return self.testRoot
 
   
@@ -740,12 +935,19 @@ class DeviceManager:
     pass
 
   
-  
   def getReturnCode(self, processID):
     
     return 0
 
+  
+  
+  
+  
   def unpackFile(self, filename):
+    devroot = self.getDeviceRoot()
+    if (devroot == None):
+      return None
+
     dir = ''
     parts = filename.split('/')
     if (len(parts) > 1):
@@ -753,30 +955,39 @@ class DeviceManager:
         dir = '/'.join(parts[:-1])
     elif self.fileExists('/' + filename):
       dir = '/' + filename
-    elif self.fileExists(self.getDeviceRoot() + '/' + filename):
-      dir = self.getDeviceRoot() + '/' + filename
+    elif self.fileExists(devroot + '/' + filename):
+      dir = devroot + '/' + filename
     else:
       return None
 
-    return self.sendCMD(['cd ' + dir, 'unzp ' + filename])
+    try:
+      data = self.verifySendCMD(['cd ' + dir, 'unzp ' + filename])
+    except(DMError):
+      return None
 
-  def reboot(self, wait = False):
-    self.sendCMD(['rebt'])
+    return data
 
-    if wait == True:
-      time.sleep(30)
-      timeout = 270
-      done = False
-      while (not done):
-        if self.listFiles('/') != None:
-          return ''
-        print "sleeping another 10 seconds"
-        time.sleep(10)
-        timeout = timeout - 10
-        if (timeout <= 0):
-          return None
-    return ''
+  
+  
+  
+  
+  def reboot(self):
+    cmd = 'rebt'
 
+    if (self.debug > 3): print "INFO: sending rebt command"
+    
+    try:
+      status = self.verifySendCMD([cmd])
+    except DMError:
+      return None
+
+    if (self.debug > 3): print "INFO: rebt- got status back: " + str(status)
+    return status
+
+  
+  
+  
+  
   
   def validateDir(self, localDir, remoteDir):
     if (self.debug >= 2): print "validating directory: " + localDir + " to " + remoteDir
@@ -788,9 +999,12 @@ class DeviceManager:
         if (parts[1] == ""): remoteRoot = remoteDir
         remoteName = remoteRoot + '/' + file
         if (self.validateFile(remoteName, os.path.join(root, file)) <> True):
-            return None
+            return False
     return True
 
+  
+  
+  
   
   
   
@@ -814,7 +1028,7 @@ class DeviceManager:
       directives = [directive]
 
     for d in directives:
-      data = self.sendCMD(['info ' + d])
+      data = self.verifySendCMD(['info ' + d])
       if (data is None):
         continue
       data = self.stripPrompt(data)
@@ -822,9 +1036,8 @@ class DeviceManager:
       result[d] = data.split('\n')
 
     
-    for v in result.itervalues():
-      while '' in v:
-        v.remove('')
+    for k, v in result.iteritems():
+      result[k] = filter(lambda x: x != '', result[k])
     
     
     if 'process' in result:
@@ -843,16 +1056,20 @@ class DeviceManager:
   Destination - destination directory of where application should be
                 installed to (optional)
   Returns None for success, or output if known failure
-  TODO: we need a better way to know if this works or not
   """
+  
+  
+  
+  
   def installApp(self, appBundlePath, destPath=None):
     cmd = 'inst ' + appBundlePath
     if destPath:
       cmd += ' ' + destPath
-    data = self.sendCMD([cmd])
-    if (data is None):
+    try:
+      data = self.verifySendCMD([cmd])
+    except(DMError):
       return None
-    
+
     f = re.compile('Failure')
     for line in data.split():
       if (f.match(line)):
@@ -866,11 +1083,19 @@ class DeviceManager:
   Returns True, but it doesn't mean anything other than the command was sent,
   the reboot happens and we don't know if this succeeds or not.
   """
+  
+  
+  
+  
   def uninstallAppAndReboot(self, appName, installPath=None):
     cmd = 'uninst ' + appName
     if installPath:
       cmd += ' ' + installPath
-    data = self.sendCMD([cmd])
+    try:
+      data = self.verifySendCMD([cmd])
+    except(DMError):
+      return None
+
     if (self.debug > 3): print "uninstallAppAndReboot: " + str(data)
     return True
 
@@ -886,11 +1111,11 @@ class DeviceManager:
   port - port to await a callback ping to let us know that the device has updated properly
          defaults to 30000, and counts up from there if it finds a conflict
   Returns True if succeeds, False if not
-  
-  NOTE: We have no real way to know if the device gets updated or not due to the
-        reboot that the udpate call forces on us.  We can't install our own heartbeat
-        listener here because we run the risk of racing with other heartbeat listeners.
   """
+  
+  
+  
+  
   def updateApp(self, appBundlePath, processName=None, destPath=None, ipAddr=None, port=30000):
     status = None
     cmd = 'updt '
@@ -903,30 +1128,39 @@ class DeviceManager:
     if (destPath):
       cmd += " " + destPath
 
-    if (self.debug > 3): print "updateApp using command: " + str(cmd)
+    if (self.debug > 3): print "INFO: updateApp using command: " + str(cmd)
 
     if (ipAddr is not None):
       ip, port = self.getCallbackIpAndPort(ipAddr, port)
-
       cmd += " %s %s" % (ip, port)
-
       
       callbacksvr = callbackServer(ip, port, self.debug)
-      data = self.sendCMD([cmd])
+
+    try:
+      status = self.verifySendCMD([cmd])
+    except(DMError):
+      return None
+
+    if ipAddr is not None:
       status = callbacksvr.disconnect()
-      if (self.debug > 3): print "got status back: " + str(status)
-    else:
-      status = self.sendCMD([cmd])
+
+    if (self.debug > 3): print "INFO: updateApp: got status back: " + str(status)
 
     return status
 
   """
     return the current time on the device
   """
+  
+  
+  
+  
   def getCurrentTime(self):
-    data = self.sendCMD(['clok'])
-    if (data == None):
+    try:
+      data = self.verifySendCMD(['clok'])
+    except(DMError):
       return None
+
     return self.stripPrompt(data).strip('\n')
 
   """
@@ -955,18 +1189,12 @@ class DeviceManager:
     if (env == None or env == ''):
       return '""'
 
-    envstr = '"'
-    
-    for k, v in env.items():
-      envstr += ('%s=%s,' % (k, v))
-    
-    
-    envstr = envstr.rstrip(',')
-    envstr += '"'
-
-    return envstr
+    return '"%s"' % ','.join(map(lambda x: '%s=%s' % (x[0], x[1]), env.iteritems()))
 
 gCallbackData = ''
+
+class myServer(SocketServer.TCPServer):
+  allow_reuse_address = True
 
 class callbackServer():
   def __init__(self, ip, port, debuglevel):
@@ -975,7 +1203,7 @@ class callbackServer():
     self.connected = False
     self.debug = debuglevel
     if (self.debug > 3) : print "Creating server with " + str(ip) + ":" + str(port)
-    self.server = SocketServer.TCPServer((ip, port), self.myhandler)
+    self.server = myServer((ip, port), self.myhandler)
     self.server_thread = Thread(target=self.server.serve_forever) 
     self.server_thread.setDaemon(True)
     self.server_thread.start()
@@ -1049,6 +1277,7 @@ class NetworkTools:
           s.bind((ip, seed))
           connected = True
           s.close()
+          break
         except:          
           if seed > maxportnum:
             print "Could not find open port after checking 5000 ports"
@@ -1058,4 +1287,4 @@ class NetworkTools:
       print "Socket error trying to find open port"
         
     return seed
-    
+
