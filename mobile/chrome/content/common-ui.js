@@ -953,6 +953,14 @@ var FormHelperUI = {
     };
 
     
+    
+    if (virtualContentRect.left + virtualContentRect.width > window.innerWidth) {
+      let offsetX = window.innerWidth - (virtualContentRect.left + virtualContentRect.width);
+      virtualContentRect.width += offsetX;
+      virtualContentRect.right -= offsetX;
+    }
+
+    
     let browserRect = Rect.fromRect(browser.getBoundingClientRect());
     if (BrowserUI.isToolbarLocked()) {
       
@@ -982,7 +990,7 @@ var FormHelperUI = {
     if (top + arrowboxRect.height >= window.innerHeight - buttonsHeight)
       top -= (rect.height + arrowboxRect.height);
     container.top = top;
-  
+
     
     let virtualContentElement = {
       getBoundingClientRect: function() {
