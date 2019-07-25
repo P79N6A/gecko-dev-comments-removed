@@ -403,18 +403,10 @@ let ContentScroll =  {
         if (content != doc.defaultView) 
           return;
 
-        
-        
-        
-        let scrollOffset = this.getScrollOffset(content);
-        let x = aEvent.x + scrollOffset.x;
-        let y = aEvent.y + scrollOffset.y;
-        let width = aEvent.width + (x < 0 ? x : 0);
-        let height = aEvent.height + (y < 0 ? y : 0);
-
         sendAsyncMessage("MozScrolledAreaChanged", {
-          width: width,
-          height: height
+          width: aEvent.width,
+          height: aEvent.height,
+          left: aEvent.x
         });
 
         break;
