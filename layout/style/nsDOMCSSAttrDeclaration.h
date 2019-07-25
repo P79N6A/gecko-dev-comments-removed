@@ -37,8 +37,8 @@
 
 
 
-#ifndef nsDOMCSSAttributeDeclaration_h
-#define nsDOMCSSAttributeDeclaration_h
+#ifndef nsDOMCSSAttributeDeclaration_h___
+#define nsDOMCSSAttributeDeclaration_h___
 
 #include "nsDOMCSSDeclaration.h"
 
@@ -85,7 +85,6 @@ protected:
   virtual nsresult SetCSSDeclaration(mozilla::css::Declaration* aDecl);
   virtual nsIDocument* DocToUpdate();
 
-  
   nsCOMPtr<nsIContent> mContent;
 
 #ifdef MOZ_SMIL

@@ -78,7 +78,7 @@ public:
 
 
 
-  static void AttributeWillChange(mozilla::dom::Element* aElement,
+  static void AttributeWillChange(nsIContent* aContent,
                                   PRInt32 aNameSpaceID,
                                   nsIAtom* aAttribute,
                                   PRInt32 aModType);
