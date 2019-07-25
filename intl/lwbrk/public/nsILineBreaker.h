@@ -58,9 +58,8 @@ NS_IsSpace(PRUnichar u)
          (0x2000 <= u && u <= 0x2006) || 
                                          
                                          
-         (0x2008 <= u && u <= 0x200B) || 
+         (0x2008 <= u && u <= 0x200B);   
                                          
-         u == 0x3000;                    
 }
 
 static inline bool
