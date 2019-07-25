@@ -224,6 +224,22 @@ cairo_d2d_surface_create_for_handle(cairo_device_t *device, HANDLE handle, cairo
 
 
 
+
+
+
+
+cairo_public cairo_surface_t *
+cairo_d2d_surface_create_for_texture(cairo_device_t *device,
+				     struct ID3D10Texture2D *texture,
+				     cairo_content_t content);
+
+
+
+
+
+
+
+
 void cairo_d2d_present_backbuffer(cairo_surface_t *surface);
 
 
