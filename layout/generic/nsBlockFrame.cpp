@@ -3417,14 +3417,10 @@ nsBlockFrame::ReflowInlineFrames(nsBlockReflowState& aState,
   return rv;
 }
 
-
-
-
-
 void
-nsBlockFrame::PushTruncatedPlaceholderLine(nsBlockReflowState& aState,
-                                           line_iterator       aLine,
-                                           PRBool&             aKeepReflowGoing)
+nsBlockFrame::PushTruncatedLine(nsBlockReflowState& aState,
+                                line_iterator       aLine,
+                                PRBool&             aKeepReflowGoing)
 {
   line_iterator prevLine = aLine;
   --prevLine;
@@ -3638,7 +3634,7 @@ nsBlockFrame::DoReflowInlineFrames(nsBlockReflowState& aState,
         
         lineReflowStatus = LINE_REFLOW_TRUNCATED;
         
-        PushTruncatedPlaceholderLine(aState, aLine, *aKeepReflowGoing);
+        PushTruncatedLine(aState, aLine, *aKeepReflowGoing);
       }
     }
 

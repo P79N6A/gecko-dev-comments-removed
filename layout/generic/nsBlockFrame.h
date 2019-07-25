@@ -619,9 +619,9 @@ protected:
 
   
   
-  void PushTruncatedPlaceholderLine(nsBlockReflowState& aState,
-                                    line_iterator       aLine,
-                                    PRBool&             aKeepReflowGoing);
+  void PushTruncatedLine(nsBlockReflowState& aState,
+                         line_iterator       aLine,
+                         PRBool&             aKeepReflowGoing);
 
   nsresult SplitLine(nsBlockReflowState& aState,
                      nsLineLayout& aLineLayout,
