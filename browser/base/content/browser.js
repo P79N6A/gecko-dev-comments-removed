@@ -3489,9 +3489,10 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   PlacesToolbarHelper.customizeDone();
   BookmarksMenuButton.customizeDone();
 
-  UpdateUrlbarSearchSplitterState();
-
+  
+  
   CombinedStopReload.init();
+  UpdateUrlbarSearchSplitterState();
 
   
   if (gURLBar) {
