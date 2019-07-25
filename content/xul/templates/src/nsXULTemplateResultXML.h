@@ -38,6 +38,7 @@
 #define nsXULTemplateResultXML_h__
 
 #include "nsCOMPtr.h"
+#include "nsIURI.h"
 #include "nsIRDFResource.h"
 #include "nsXULTemplateQueryProcessorXML.h"
 #include "nsIXULTemplateResult.h"
@@ -63,7 +64,10 @@ public:
 protected:
 
     
-    PRUint32 mId;
+    
+    
+    
+    nsAutoString mId;
 
     
     nsCOMPtr<nsXMLQuery> mQuery;
