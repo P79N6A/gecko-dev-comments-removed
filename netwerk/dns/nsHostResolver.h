@@ -46,6 +46,7 @@
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 #include "nsISupportsImpl.h"
+#include "nsIDNSListener.h"
 #include "nsString.h"
 #include "nsTArray.h"
 
@@ -191,6 +192,20 @@ public:
     virtual void OnLookupComplete(nsHostResolver *resolver,
                                   nsHostRecord   *record,
                                   nsresult        status) = 0;
+    
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual bool EqualsAsyncListener(nsIDNSListener *aListener) = 0;
 };
 
 
@@ -244,6 +259,18 @@ public:
                         nsResolveHostCallback *callback,
                         nsresult               status);
 
+    
+
+
+
+
+
+
+    void CancelAsyncRequest(const char            *host,
+                            PRUint16               flags,
+                            PRUint16               af,
+                            nsIDNSListener        *aListener,
+                            nsresult               status);
     
 
 
