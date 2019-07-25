@@ -42,10 +42,9 @@
 
 #include "base/basictypes.h"
 #include "base/message_loop.h"
-#include "chrome/common/ipc_channel.h"
 
 #include "mozilla/Monitor.h"
-
+#include "mozilla/ipc/Transport.h"
 
 
 
@@ -66,7 +65,7 @@ struct HasResultCodes
     };
 };
 
-class AsyncChannel : public IPC::Channel::Listener, protected HasResultCodes
+class AsyncChannel : public Transport::Listener, protected HasResultCodes
 {
 protected:
     typedef mozilla::Monitor Monitor;
@@ -81,8 +80,8 @@ protected:
     };
 
 public:
-    typedef IPC::Channel Transport;
     typedef IPC::Message Message;
+    typedef mozilla::ipc::Transport Transport;
 
     class  AsyncListener: protected HasResultCodes
     {
@@ -192,7 +191,7 @@ protected:
     MessageLoop* mWorkerLoop;   
     bool mChild;                
     CancelableTask* mChannelErrorTask; 
-    IPC::Channel::Listener* mExistingListener; 
+    Transport::Listener* mExistingListener; 
 };
 
 
