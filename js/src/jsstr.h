@@ -317,43 +317,10 @@ struct JSString {
         return e.mCapacity;
     }
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     inline void flatSetAtomized() {
         JS_ASSERT(isFlat());
         JS_ASSERT(!isStatic(this));
-        JS_ATOMIC_SET_MASK((jsword *)&mLengthAndFlags, ATOMIZED);
-    }
-
-    inline void flatSetExtensible() {
-        JS_ASSERT(isFlat());
-        JS_ASSERT(!isAtomized());
-        mLengthAndFlags |= EXTENSIBLE;
+        mLengthAndFlags |= ATOMIZED;
     }
 
     inline void flatClearExtensible() {
