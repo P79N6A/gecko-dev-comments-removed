@@ -1816,7 +1816,7 @@ FFRECountHyphens (const nsAString &aFFREName)
 
 static PRBool
 FamilyCallback (const nsAString& fontName, const nsACString& genericName,
-                void *closure)
+                PRBool aUseFontSet, void *closure)
 {
     FamilyCallbackData *data = static_cast<FamilyCallbackData*>(closure);
     nsTArray<nsString> *list = data->mFcFamilyList;
@@ -1854,7 +1854,7 @@ FamilyCallback (const nsAString& fontName, const nsACString& genericName,
         
         
         const gfxUserFontSet *userFontSet = data->mUserFontSet;
-        if (genericName.Length() == 0 &&
+        if (aUseFontSet && genericName.Length() == 0 &&
             userFontSet && userFontSet->HasFamily(fontName)) {
             nsAutoString userFontName =
                 NS_LITERAL_STRING(FONT_FACE_FAMILY_PREFIX) + fontName;
@@ -1900,7 +1900,7 @@ gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
     FamilyCallbackData data(aFcFamilyList, mUserFontSet);
     
     
-    ForEachFontInternal(mFamilies, aLanguage, PR_TRUE, PR_FALSE,
+    ForEachFontInternal(mFamilies, aLanguage, PR_TRUE, PR_FALSE, PR_TRUE,
                         FamilyCallback, &data);
 }
 
