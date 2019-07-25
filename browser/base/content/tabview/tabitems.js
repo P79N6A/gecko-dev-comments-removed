@@ -983,9 +983,9 @@ let TabItems = {
       
 
       
-      if (this.shouldLoadFavIcon(tab.linkedBrowser)) {
-        let iconUrl = gFavIconService.getFaviconImageForPage(
-                        tab.linkedBrowser.currentURI).spec;
+      if (UI.shouldLoadFavIcon(tab.linkedBrowser)) {
+        let iconUrl = UI.getFavIconUrlForTab(tab);
+
         if (tabItem.$favImage[0].src != iconUrl)
           tabItem.$favImage[0].src = iconUrl;
 
@@ -1046,14 +1046,6 @@ let TabItems = {
     } catch(e) {
       Utils.log(e);
     }
-  },
-
-  
-  
-  
-  shouldLoadFavIcon: function TabItems_shouldLoadFavIcon(browser) {
-    return !(browser.contentDocument instanceof window.ImageDocument) &&
-           gBrowser.shouldLoadFavIcon(browser.contentDocument.documentURIObject);
   },
 
   

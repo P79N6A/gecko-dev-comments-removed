@@ -38,7 +38,7 @@ function onTabViewWindowLoaded() {
     
     executeSoon(function() {
       is($icon.attr("src"), contentWindow.Utils.defaultFaviconURL, 
-         "The icon is showing th default fav icon");
+         "The icon is showing the default fav icon");
 
       
       gBrowser.removeTab(newTab);
