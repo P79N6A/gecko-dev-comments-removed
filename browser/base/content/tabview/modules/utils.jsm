@@ -310,19 +310,44 @@ window.Subscribable.prototype = {
 
 var Utils = {
   
+
+  
+  
   get activeWindow(){
     var win = Cc["@mozilla.org/embedcomp/window-watcher;1"]
                .getService(Ci.nsIWindowWatcher)
                .activeWindow;
                
-    if( win != null ) return win;  
-    else return homeWindow;
+    if( win != null ) 
+      return win;  
+      
+    if(homeWindow != null)
+      return homeWindow;
+      
+    win = Cc["@mozilla.org/appshell/window-mediator;1"]
+      .getService(Components.interfaces.nsIWindowMediator)
+      .getMostRecentWindow("navigator:browser");
+
+    return win;
   },
+  
+  
+  
   
   get activeTab(){
     var tabBrowser = this.activeWindow.gBrowser;
-    return tabBrowser.selectedTab;
+    var rawTab = tabBrowser.selectedTab;
+    for( var i=0; i<Tabs.length; i++){
+      if(Tabs[i].raw == rawTab)
+        return Tabs[i];
+    }
+    
+    return null;
   },
+  
+  
+  
+  
   
   get homeTab(){
     for( var i=0; i<Tabs.length; i++){
