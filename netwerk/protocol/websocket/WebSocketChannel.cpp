@@ -627,8 +627,14 @@ WebSocketChannel::IsPersistentFramePtr()
 
 
 
+
+
+
+
+
 PRUint32
-WebSocketChannel::UpdateReadBuffer(PRUint8 *buffer, PRUint32 count)
+WebSocketChannel::UpdateReadBuffer(PRUint8 *buffer, PRUint32 count,
+                                   PRUint32 accumulatedFragments)
 {
   LOG(("WebSocketChannel::UpdateReadBuffer() %p [%p %u]\n",
          this, buffer, count));
@@ -637,16 +643,19 @@ WebSocketChannel::UpdateReadBuffer(PRUint8 *buffer, PRUint32 count)
     mFramePtr = mBuffer;
 
   NS_ABORT_IF_FALSE(IsPersistentFramePtr(), "update read buffer bad mFramePtr");
+  NS_ABORT_IF_FALSE(mFramePtr - accumulatedFragments >= mBuffer,
+                    "reserved FramePtr bad");
 
   if (mBuffered + count <= mBufferSize) {
     
     LOG(("WebSocketChannel: update read buffer absorbed %u\n", count));
-  } else if (mBuffered + count - (mFramePtr - mBuffer) <= mBufferSize) {
+  } else if (mBuffered + count - 
+             (mFramePtr - accumulatedFragments - mBuffer) <= mBufferSize) {
     
-    mBuffered -= (mFramePtr - mBuffer);
+    mBuffered -= (mFramePtr - mBuffer - accumulatedFragments);
     LOG(("WebSocketChannel: update read buffer shifted %u\n", mBuffered));
-    ::memmove(mBuffer, mFramePtr, mBuffered);
-    mFramePtr = mBuffer;
+    ::memmove(mBuffer, mFramePtr - accumulatedFragments, mBuffered);
+    mFramePtr = mBuffer + accumulatedFragments;
   } else {
     
     mBufferSize += count + 8192;
@@ -686,7 +695,7 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
     mFramePtr = buffer;
     avail = count;
   } else {
-    avail = UpdateReadBuffer(buffer, count);
+    avail = UpdateReadBuffer(buffer, count, mFragmentAccumulator);
   }
 
   PRUint8 *payload;
@@ -945,14 +954,14 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
       LOG(("WebSocketChannel:: Setup Buffer due to fragment"));
 
       UpdateReadBuffer(mFramePtr - mFragmentAccumulator,
-                       totalAvail + mFragmentAccumulator);
+                       totalAvail + mFragmentAccumulator, 0);
 
       
       
       mFramePtr += mFragmentAccumulator;
     } else if (totalAvail) {
       LOG(("WebSocketChannel:: Setup Buffer due to partial frame"));
-      UpdateReadBuffer(mFramePtr, totalAvail);
+      UpdateReadBuffer(mFramePtr, totalAvail, 0);
     }
   } else if (!mFragmentAccumulator && !totalAvail) {
     
