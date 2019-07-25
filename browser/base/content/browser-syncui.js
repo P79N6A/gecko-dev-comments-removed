@@ -211,6 +211,24 @@ let gSyncUI = {
     this.clearError(title);
   },
 
+  
+  showSetupSyncAboutHome: function SUI_showSetupSyncAboutHome(toShow) {
+    let browsers = gBrowser.browsers;
+    for (let i = 0; i < browsers.length; i++) {
+      let b = browsers[i];
+      if ("about:home" == b.currentURI.spec) {
+        b.contentDocument.getElementById("setupSyncLink").hidden = !toShow;
+      }
+    }
+  },
+
+  onSetupComplete: function SUI_onSetupComplete() {
+    
+    this.showSetupSyncAboutHome(false);
+
+    onLoginFinish();
+  },
+
   onLoginError: function SUI_onLoginError() {
     
     Weave.Notifications.removeAll();
@@ -255,6 +273,8 @@ let gSyncUI = {
 
   onStartOver: function SUI_onStartOver() {
     this.clearError();
+    
+    this.showSetupSyncAboutHome(true);
   },
 
   onQuotaNotice: function onQuotaNotice(subject, data) {
@@ -486,7 +506,7 @@ let gSyncUI = {
         this.onQuotaNotice();
         break;
       case "weave:service:setup-complete":
-        this.onLoginFinish();
+        this.onSetupComplete();
         break;
       case "weave:service:login:start":
         this.onActivityStart();
