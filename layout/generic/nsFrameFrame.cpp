@@ -361,19 +361,28 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     presShell = f->PresContext()->PresShell();
   } else {
     
-    if (!mFrameLoader)
-      return NS_OK;
-    nsCOMPtr<nsIDocShell> docShell;
-    mFrameLoader->GetDocShell(getter_AddRefs(docShell));
-    if (!docShell)
-      return NS_OK;
-    docShell->GetPresShell(getter_AddRefs(presShell));
-    if (!presShell)
-      return NS_OK;
+    
+    
+    nsIView* nextView = subdocView->GetNextSibling();
+    if (nextView) {
+      f = static_cast<nsIFrame*>(nextView->GetClientData());
+    }
+    if (f) {
+      subdocView = nextView;
+      presShell = f->PresContext()->PresShell();
+    } else {
+      
+      if (!mFrameLoader)
+        return NS_OK;
+      nsCOMPtr<nsIDocShell> docShell;
+      mFrameLoader->GetDocShell(getter_AddRefs(docShell));
+      if (!docShell)
+        return NS_OK;
+      docShell->GetPresShell(getter_AddRefs(presShell));
+      if (!presShell)
+        return NS_OK;
+    }
   }
-
-  PRBool suppressed = PR_TRUE;
-  presShell->IsPaintingSuppressed(&suppressed);
 
   nsDisplayList childItems;
 

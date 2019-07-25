@@ -2858,9 +2858,13 @@ nsPluginHost::SetUpDefaultPluginInstance(const char *aMimeType,
 NS_IMETHODIMP
 nsPluginHost::IsPluginEnabledForType(const char* aMimeType)
 {
+  nsPluginTag *plugin = FindPluginForType(aMimeType, PR_TRUE);
+  if (plugin)
+    return NS_OK;
+
   
   
-  nsPluginTag *plugin = FindPluginForType(aMimeType, PR_FALSE);
+  plugin = FindPluginForType(aMimeType, PR_FALSE);
   if (!plugin)
     return NS_ERROR_FAILURE;
 
