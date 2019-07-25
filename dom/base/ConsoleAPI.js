@@ -90,15 +90,14 @@ ConsoleAPI.prototype = {
     let contentObject = Cu.evalInSandbox(
         "(function(x) {\
           var bind = Function.bind;\
-          var obj = {\
+          return {\
             log: bind.call(x.log, x),\
             info: bind.call(x.info, x),\
             warn: bind.call(x.warn, x),\
             error: bind.call(x.error, x),\
+            __mozillaConsole__: true,\
             __noSuchMethod__: function() {}\
           };\
-          Object.defineProperty(obj, '__mozillaConsole__', { value: true });\
-          return obj;\
         })", sandbox)(chromeObject);
 
       return contentObject;
