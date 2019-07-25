@@ -50,10 +50,12 @@
 #ifdef JS_METHODJIT
 # include "assembler/jit/ExecutableAllocator.h"
 #endif
+#include "jscompartment.h"
 
 #include "jsobjinlines.h"
 
 using namespace js;
+using namespace js::gc;
 
 static int sWrapperFamily = 0;
 
@@ -256,7 +258,7 @@ JSWrapper::fun_toString(JSContext *cx, JSObject *wrapper, uintN indent)
 void
 JSWrapper::trace(JSTracer *trc, JSObject *wrapper)
 {
-    JS_CALL_OBJECT_TRACER(trc, wrappedObject(wrapper), "wrappedObject");
+    MarkObject(trc, *wrappedObject(wrapper), "wrappedObject");
 }
 
 bool
@@ -292,244 +294,6 @@ TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, u
     return JSWrapper::New(cx, obj, wrappedProto, NULL, &JSCrossCompartmentWrapper::singleton);
 }
 
-}
-
-JSCompartment::JSCompartment(JSRuntime *rt)
-  : rt(rt), principals(NULL), data(NULL), marked(false), debugMode(false)
-{
-    JS_INIT_CLIST(&scripts);
-}
-
-JSCompartment::~JSCompartment()
-{
-}
-
-bool
-JSCompartment::init()
-{
-    return crossCompartmentWrappers.init();
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, Value *vp)
-{
-    JS_ASSERT(cx->compartment == this);
-
-    uintN flags = 0;
-
-    JS_CHECK_RECURSION(cx, return false);
-
-    
-    if (!vp->isMarkable())
-        return true;
-
-    
-    if (vp->isString() && JSString::isStatic(vp->toString()))
-        return true;
-
-    
-    if (vp->isObject()) {
-        JSObject *obj = &vp->toObject();
-
-        
-        if (obj->getCompartment(cx) == this)
-            return true;
-
-        
-        if (!obj->getClass()->ext.innerObject) {
-            obj = vp->toObject().unwrap(&flags);
-            OBJ_TO_OUTER_OBJECT(cx, obj);
-            if (!obj)
-                return false;
-
-            vp->setObject(*obj);
-        }
-
-        
-        if (obj->getCompartment(cx) == this)
-            return true;
-    }
-
-    
-    if (WrapperMap::Ptr p = crossCompartmentWrappers.lookup(*vp)) {
-        *vp = p->value;
-        return true;
-    }
-
-    if (vp->isString()) {
-        Value orig = *vp;
-        JSString *str = vp->toString();
-        JSString *wrapped = js_NewStringCopyN(cx, str->chars(), str->length());
-        if (!wrapped)
-            return false;
-        vp->setString(wrapped);
-        return crossCompartmentWrappers.put(orig, *vp);
-    }
-
-    JSObject *obj = &vp->toObject();
-
-    
-
-
-
-
-
-
-
-
-
-    JSObject *proto = obj->getProto();
-    if (!wrap(cx, &proto))
-        return false;
-
-    
-
-
-
-
-    JSObject *wrapper = cx->runtime->wrapObjectCallback(cx, obj, proto, flags);
-    if (!wrapper)
-        return false;
-    wrapper->setProto(proto);
-    vp->setObject(*wrapper);
-    if (!crossCompartmentWrappers.put(wrapper->getProxyPrivate(), *vp))
-        return false;
-
-    
-
-
-
-
-
-
-    JSObject *global;
-    if (cx->hasfp()) {
-        global = cx->fp()->scopeChain().getGlobal();
-    } else {
-        global = cx->globalObject;
-        OBJ_TO_INNER_OBJECT(cx, global);
-        if (!global)
-            return false;
-    }
-
-    wrapper->setParent(global);
-    return true;
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, JSString **strp)
-{
-    AutoValueRooter tvr(cx, StringValue(*strp));
-    if (!wrap(cx, tvr.addr()))
-        return false;
-    *strp = tvr.value().toString();
-    return true;
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, JSObject **objp)
-{
-    if (!*objp)
-        return true;
-    AutoValueRooter tvr(cx, ObjectValue(**objp));
-    if (!wrap(cx, tvr.addr()))
-        return false;
-    *objp = &tvr.value().toObject();
-    return true;
-}
-
-bool
-JSCompartment::wrapId(JSContext *cx, jsid *idp)
-{
-    if (JSID_IS_INT(*idp))
-        return true;
-    AutoValueRooter tvr(cx, IdToValue(*idp));
-    if (!wrap(cx, tvr.addr()))
-        return false;
-    return ValueToId(cx, tvr.value(), idp);
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, PropertyOp *propp)
-{
-    Value v = CastAsObjectJsval(*propp);
-    if (!wrap(cx, &v))
-        return false;
-    *propp = CastAsPropertyOp(v.toObjectOrNull());
-    return true;
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, PropertyDescriptor *desc)
-{
-    return wrap(cx, &desc->obj) &&
-           (!(desc->attrs & JSPROP_GETTER) || wrap(cx, &desc->getter)) &&
-           (!(desc->attrs & JSPROP_SETTER) || wrap(cx, &desc->setter)) &&
-           wrap(cx, &desc->value);
-}
-
-bool
-JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
-{
-    jsid *vector = props.begin();
-    jsint length = props.length();
-    for (size_t n = 0; n < size_t(length); ++n) {
-        if (!wrapId(cx, &vector[n]))
-            return false;
-    }
-    return true;
-}
-
-bool
-JSCompartment::wrapException(JSContext *cx)
-{
-    JS_ASSERT(cx->compartment == this);
-
-    if (cx->throwing) {
-        AutoValueRooter tvr(cx, cx->exception);
-        cx->throwing = false;
-        cx->exception.setNull();
-        if (wrap(cx, tvr.addr())) {
-            cx->throwing = true;
-            cx->exception = tvr.value();
-        }
-        return false;
-    }
-    return true;
-}
-
-void
-JSCompartment::sweep(JSContext *cx)
-{
-    
-    for (WrapperMap::Enum e(crossCompartmentWrappers); !e.empty(); e.popFront()) {
-        if (js_IsAboutToBeFinalized(e.front().value.asGCThing()))
-            e.removeFront();
-    }
-}
-
-void
-JSCompartment::purge(JSContext *cx)
-{
-#ifdef JS_METHODJIT
-    for (JSScript *script = (JSScript *)scripts.next;
-         &script->links != &scripts;
-         script = (JSScript *)script->links.next) {
-        if (script->jit) {
-# if defined JS_POLYIC
-            mjit::ic::PurgePICs(cx, script);
-# endif
-# if defined JS_MONOIC
-            
-
-
-
-            if (cx->runtime->gcRegenShapes)
-                mjit::ic::PurgeMICs(cx, script);
-# endif
-        }
-    }
-#endif
 }
 
 AutoCompartment::AutoCompartment(JSContext *cx, JSObject *target)

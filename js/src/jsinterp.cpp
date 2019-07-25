@@ -94,6 +94,7 @@
 #include "jsautooplen.h"
 
 using namespace js;
+using namespace js::gc;
 
 
 #if !JS_LONE_INTERPRET ^ defined jsinvoke_cpp___

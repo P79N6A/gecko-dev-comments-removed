@@ -742,8 +742,8 @@ ic::SweepCallICs(JSContext *cx, JSScript *script)
 
 
 
-        bool fastFunDead = ic.fastGuardedObject && js_IsAboutToBeFinalized(ic.fastGuardedObject);
-        bool nativeDead = ic.fastGuardedNative && js_IsAboutToBeFinalized(ic.fastGuardedNative);
+        bool fastFunDead = ic.fastGuardedObject && IsAboutToBeFinalized(ic.fastGuardedObject);
+        bool nativeDead = ic.fastGuardedNative && IsAboutToBeFinalized(ic.fastGuardedNative);
 
         if (!fastFunDead && !nativeDead)
             continue;

@@ -65,6 +65,7 @@ using namespace nanojit;
 #endif
 
 using namespace js;
+using namespace js::gc;
 
 
 
@@ -522,7 +523,7 @@ regexp_trace(JSTracer *trc, JSObject *obj)
 {
     RegExp *re = RegExp::extractFrom(obj);
     if (re && re->getSource())
-        JS_CALL_STRING_TRACER(trc, re->getSource(), "source");
+        MarkString(trc, re->getSource(), "source");
 }
 
 static JSBool
