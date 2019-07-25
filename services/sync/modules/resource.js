@@ -52,6 +52,10 @@ Cu.import("resource://weave/auth.js");
 
 Function.prototype.async = Async.sugar;
 
+
+
+
+
 function RequestException(resource, action, request) {
   this._resource = resource;
   this._action = action;
@@ -69,12 +73,21 @@ RequestException.prototype = {
   }
 };
 
+
+
+
 function Resource(uri) {
   this._init(uri);
 }
 Resource.prototype = {
   _logName: "Net.Resource",
 
+  
+  
+  
+  
+  
+  
   get authenticator() {
     if (this._authenticator)
       return this._authenticator;
@@ -85,6 +98,11 @@ Resource.prototype = {
     this._authenticator = value;
   },
 
+  
+  
+  
+  
+  
   get headers() {
     return this.authenticator.onRequest(this._headers);
   },
@@ -99,6 +117,9 @@ Resource.prototype = {
     }
   },
 
+  
+  
+  
   get uri() {
     return this._uri;
   },
@@ -111,12 +132,18 @@ Resource.prototype = {
       this._uri = value;
   },
 
+  
+  
+  
   get spec() {
     if (this._uri)
       return this._uri.spec;
     return null;
   },
 
+  
+  
+  
   _data: null,
   get data() this._data,
   set data(value) {
@@ -131,6 +158,11 @@ Resource.prototype = {
   get downloaded() this._downloaded,
   get dirty() this._dirty,
 
+  
+  
+  
+  
+  
   _filters: null,
   pushFilter: function Res_pushFilter(filter) {
     this._filters.push(filter);
@@ -151,18 +183,27 @@ Resource.prototype = {
     this._filters = [];
   },
 
+  
+  
+  
+  
+  
+  
   _createRequest: function Res__createRequest() {
     this._lastChannel = Svc.IO.newChannel(this.spec, null, null).
       QueryInterface(Ci.nsIRequest);
+
     
     let loadFlags = this._lastChannel.loadFlags;
     loadFlags |= Ci.nsIRequest.LOAD_BYPASS_CACHE;
     loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
     this._lastChannel.loadFlags = loadFlags;
     this._lastChannel = this._lastChannel.QueryInterface(Ci.nsIHttpChannel);
-
+    
+    
     this._lastChannel.notificationCallbacks = new badCertListener();
-
+    
+    
     let headers = this.headers; 
     for (let key in headers) {
       if (key == 'Authorization')
@@ -178,6 +219,10 @@ Resource.prototype = {
     this._lastProgress = Date.now();
   },
 
+  
+  
+  
+  
   filterUpload: function Res_filterUpload(onComplete) {
     let fn = function() {
       let self = yield;
@@ -188,6 +233,10 @@ Resource.prototype = {
     fn.async(this, onComplete);
   },
 
+  
+  
+  
+  
   filterDownload: function Res_filterUpload(onComplete) {
     let fn = function() {
       let self = yield;
@@ -199,6 +248,11 @@ Resource.prototype = {
     fn.async(this, onComplete);
   },
 
+  
+  
+  
+  
+  
   _request: function Res__request(action, data) {
     let self = yield;
     let iter = 0;
@@ -207,6 +261,8 @@ Resource.prototype = {
     if ("undefined" != typeof(data))
       this._data = data;
 
+    
+    
     if ("PUT" == action || "POST" == action) {
       yield this.filterUpload(self.cb);
       this._log.trace(action + " Body:\n" + this._data);
@@ -222,6 +278,8 @@ Resource.prototype = {
       channel.setUploadStream(stream, type, this._data.length);
     }
 
+    
+    
     let listener = new ChannelListener(self.cb, this._onProgress, this._log);
     channel.requestMethod = action;
     this._data = yield channel.asyncOpen(listener, null);
@@ -253,22 +311,39 @@ Resource.prototype = {
     self.done(this._data);
   },
 
+  
+  
+  
+  
   get: function Res_get(onComplete) {
     this._request.async(this, onComplete, "GET");
   },
-
+ 
+  
+  
+  
   put: function Res_put(onComplete, data) {
     this._request.async(this, onComplete, "PUT", data);
   },
 
+  
+  
+  
   post: function Res_post(onComplete, data) {
     this._request.async(this, onComplete, "POST", data);
   },
 
+  
+  
+  
   delete: function Res_delete(onComplete) {
     this._request.async(this, onComplete, "DELETE");
   }
 };
+
+
+
+
 
 function ChannelListener(onComplete, onProgress, logger) {
   this._onComplete = onComplete;
@@ -303,10 +378,23 @@ ChannelListener.prototype = {
 };
 
 
+
+
+
+
+
+
+
+
+
 function RecordParser(data) {
   this._data = data;
 }
 RecordParser.prototype = {
+  
+  
+  
+  
   getNextRecord: function RecordParser_getNextRecord() {
     let start;
     let bCount = 0;
@@ -333,10 +421,22 @@ RecordParser.prototype = {
     return false;
   },
 
+  
+  
+  
+  
+  
+  
+  
   append: function RecordParser_append(data) {
     this._data += data;
   }
 };
+
+
+
+
+
 
 function JsonFilter() {
   let level = "Debug";
@@ -358,6 +458,13 @@ JsonFilter.prototype = {
     self.done(JSON.parse(data));
   }
 };
+
+
+
+
+
+
+
 
 function badCertListener() {
 }
