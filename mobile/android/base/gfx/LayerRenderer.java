@@ -121,8 +121,13 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         "    vTexCoord.y = 1.0 - aTexCoord.y;\n" +
         "}\n";
 
+    
+    
+    
+    
+    
     public static final String DEFAULT_FRAGMENT_SHADER =
-        "precision mediump float;\n" +
+        "precision highp float;\n" +
         "varying vec2 vTexCoord;\n" +
         "uniform sampler2D sTexture;\n" +
         "void main() {\n" +
