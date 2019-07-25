@@ -1055,7 +1055,6 @@ class SourceCompressorThread
         
         SHUTDOWN
     } state;
-    JSRuntime *rt;
     SourceCompressionToken *tok;
     PRThread *thread;
     
@@ -1075,7 +1074,6 @@ class SourceCompressorThread
   public:
     explicit SourceCompressorThread(JSRuntime *rt)
     : state(IDLE),
-      rt(rt),
       tok(NULL),
       thread(NULL),
       lock(NULL),
