@@ -2152,8 +2152,8 @@ WebGLContext::GetConcreteObject(const char *info,
 #ifdef DEBUG
     {
         
-        nsresult rv;
-        do_QueryInterface(aInterface, &rv);
+        nsresult rv = NS_OK;
+        nsCOMPtr<ConcreteObjectType> tmp(do_QueryInterface(aInterface, &rv));
         NS_ABORT_IF_FALSE(NS_SUCCEEDED(rv),
                           "QueryInterface failed. WebGL objects are builtinclass, so this should never happen. "
                           "Please file a bug at bugzilla.mozilla.org -> Core -> Canvas:WebGL and link to the present page.");
