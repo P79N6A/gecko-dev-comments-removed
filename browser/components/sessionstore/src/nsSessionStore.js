@@ -2371,7 +2371,6 @@ SessionStoreService.prototype = {
 
       browser.stop(); 
 
-      tab.setAttribute("busy", "true");
       tabbrowser.updateIcon(tab);
 
       
