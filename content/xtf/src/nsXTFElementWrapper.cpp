@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is the Mozilla XTF project.
- *
- * The Initial Developer of the Original Code is
- * Alex Fritze.
- * Portions created by the Initial Developer are Copyright (C) 2004
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Alex Fritze <alex@croczilla.com> (original author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "nsXTFElementWrapper.h"
 #include "nsIXTFElement.h"
@@ -71,10 +71,10 @@ nsXTFElementWrapper::nsXTFElementWrapper(already_AddRefed<nsINodeInfo> aNodeInfo
       mXTFElement(aXTFElement),
       mNotificationMask(0),
       mIntrinsicState(0),
-      mTmpAttrName(nsGkAtoms::_asterix) // XXX this is a hack, but names
-                                            // have to have a value
+      mTmpAttrName(nsGkAtoms::_asterix) 
+                                            
 {
-  // We never know when we might have a class
+  
   SetFlags(NODE_MAY_HAVE_CLASS);
 }
 
@@ -87,8 +87,8 @@ nsXTFElementWrapper::~nsXTFElementWrapper()
 nsresult
 nsXTFElementWrapper::Init()
 {
-  // pass a weak wrapper (non base object ref-counted), so that
-  // our mXTFElement can safely addref/release.
+  
+  
   nsISupports* weakWrapper = nsnull;
   nsresult rv = NS_NewXTFWeakTearoff(NS_GET_IID(nsIXTFElementWrapper),
                                      (nsIXTFElementWrapper*)this,
@@ -105,8 +105,8 @@ nsXTFElementWrapper::Init()
   return NS_OK;
 }
 
-//----------------------------------------------------------------------
-// nsISupports implementation
+
+
 
 NS_IMPL_ADDREF_INHERITED(nsXTFElementWrapper, nsXTFElementWrapperBase)
 NS_IMPL_RELEASE_INHERITED(nsXTFElementWrapper, nsXTFElementWrapperBase)
@@ -146,7 +146,7 @@ nsXTFElementWrapper::QueryInterface(REFNSIID aIID, void** aInstancePtr)
     return rv;
   }
 
-  // try to get get the interface from our wrapped element:
+  
   nsCOMPtr<nsISupports> inner;
   QueryInterfaceInner(aIID, getter_AddRefs(inner));
 
@@ -161,16 +161,16 @@ nsXTFElementWrapper::QueryInterface(REFNSIID aIID, void** aInstancePtr)
   return NS_ERROR_NO_INTERFACE;
 }
 
-//----------------------------------------------------------------------
-// nsIContent methods:
+
+
 
 nsresult
 nsXTFElementWrapper::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
                                 PRBool aCompileEventHandlers)
 {
-  // XXXbz making up random order for the notifications... Perhaps
-  // this api should more closely match BindToTree/UnbindFromTree?
+  
+  
   nsCOMPtr<nsIDOMElement> domParent;
   if (aParent != GetParent()) {
     domParent = do_QueryInterface(aParent);
@@ -218,8 +218,8 @@ nsXTFElementWrapper::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsXTFElementWrapper::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
 {
-  // XXXbz making up random order for the notifications... Perhaps
-  // this api should more closely match BindToTree/UnbindFromTree?
+  
+  
 
   PRBool inDoc = IsInDoc();
   if (inDoc &&
@@ -285,7 +285,7 @@ nsXTFElementWrapper::RemoveChildAt(PRUint32 aIndex, PRBool aNotify)
 nsIAtom *
 nsXTFElementWrapper::GetIDAttributeName() const
 {
-  // XXX:
+  
   return nsGkAtoms::id;
 }
 
@@ -302,9 +302,9 @@ nsXTFElementWrapper::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
 
   if (aNameSpaceID==kNameSpaceID_None && HandledByInner(aName)) {
     rv = mAttributeHandler->SetAttribute(aName, aValue);
-    // XXX mutation events?
+    
   }
-  else { // let wrapper handle it
+  else { 
     rv = nsXTFElementWrapperBase::SetAttr(aNameSpaceID, aName, aPrefix, aValue, aNotify);
   }
   
@@ -328,11 +328,11 @@ nsXTFElementWrapper::GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsAString& aResult) const
 {
   if (aNameSpaceID==kNameSpaceID_None && HandledByInner(aName)) {
-    // XXX we don't do namespaced attributes yet
+    
     nsresult rv = mAttributeHandler->GetAttribute(aName, aResult);
     return NS_SUCCEEDED(rv) && !aResult.IsVoid();
   }
-  else { // try wrapper
+  else { 
     return nsXTFElementWrapperBase::GetAttr(aNameSpaceID, aName, aResult);
   }
 }
@@ -345,7 +345,7 @@ nsXTFElementWrapper::HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const
     mAttributeHandler->HasAttribute(aName, &rval);
     return rval;
   }
-  else { // try wrapper
+  else { 
     return nsXTFElementWrapperBase::HasAttr(aNameSpaceID, aName);
   }
 }
@@ -461,14 +461,14 @@ nsXTFElementWrapper::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
     }
     rv = mAttributeHandler->RemoveAttribute(aAttr);
 
-    // XXX if the RemoveAttribute() call fails, we might end up having removed
-    // the attribute from the attribute map even though the attribute is still
-    // on the element
-    // https://bugzilla.mozilla.org/show_bug.cgi?id=296205
+    
+    
+    
+    
 
-    // XXX mutation events?
+    
   }
-  else { // try wrapper
+  else { 
     rv = nsXTFElementWrapperBase::UnsetAttr(aNameSpaceID, aAttr, aNotify);
   }
 
@@ -495,7 +495,7 @@ nsXTFElementWrapper::GetAttrNameAt(PRUint32 aIndex) const
     const_cast<nsXTFElementWrapper*>(this)->mTmpAttrName.SetTo(localName);
     return &mTmpAttrName;
   }
-  else { // wrapper handles attrib
+  else { 
     return nsXTFElementWrapperBase::GetAttrNameAt(aIndex - innerCount);
   }
 }
@@ -507,7 +507,7 @@ nsXTFElementWrapper::GetAttrCount() const
   if (mAttributeHandler) {
     mAttributeHandler->GetAttributeCount(&innerCount);
   }
-  // add wrapper attribs
+  
   return innerCount + nsXTFElementWrapperBase::GetAttrCount();
 }
 
@@ -532,11 +532,13 @@ nsXTFElementWrapper::GetExistingAttrNameFromQName(const nsAString& aStr) const
 {
   nsINodeInfo* nodeInfo = nsXTFElementWrapperBase::GetExistingAttrNameFromQName(aStr).get();
 
-  // Maybe this attribute is handled by our inner element:
+  
   if (!nodeInfo) {
     nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aStr);
     if (HandledByInner(nameAtom)) 
-      nodeInfo = mNodeInfo->NodeInfoManager()->GetNodeInfo(nameAtom, nsnull, kNameSpaceID_None).get();
+      nodeInfo = mNodeInfo->NodeInfoManager()->
+        GetNodeInfo(nameAtom, nsnull, kNameSpaceID_None,
+                    nsIDOMNode::ATTRIBUTE_NODE).get();
   }
   
   return nodeInfo;
@@ -600,13 +602,13 @@ nsXTFElementWrapper::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
     NS_ADDREF(*aResult = it);
   }
 
-  // XXX CloneState should take |const nIDOMElement*|
+  
   wrapper->CloneState(const_cast<nsXTFElementWrapper*>(this));
   return rv;
 }
 
-//----------------------------------------------------------------------
-// nsIDOMElement methods:
+
+
 
 NS_IMETHODIMP
 nsXTFElementWrapper::GetAttribute(const nsAString& aName, nsAString& aReturn)
@@ -617,7 +619,7 @@ nsXTFElementWrapper::GetAttribute(const nsAString& aName, nsAString& aReturn)
     return NS_OK;
   }
 
-  // Maybe this attribute is handled by our inner element:
+  
   if (mAttributeHandler) {
     nsresult rv = nsContentUtils::CheckQName(aName, PR_FALSE);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -642,7 +644,7 @@ nsXTFElementWrapper::RemoveAttribute(const nsAString& aName)
     return UnsetAttr(name->NamespaceID(), name->LocalName(), PR_TRUE);
   }
 
-  // Maybe this attribute is handled by our inner element:
+  
   if (mAttributeHandler) {
     nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aName);
     return UnsetAttr(kNameSpaceID_None, nameAtom, PR_TRUE);
@@ -660,7 +662,7 @@ nsXTFElementWrapper::HasAttribute(const nsAString& aName, PRBool* aReturn)
     return NS_OK;
   }
   
-  // Maybe this attribute is handled by our inner element:
+  
   if (mAttributeHandler) {
     nsCOMPtr<nsIAtom> nameAtom = do_GetAtom(aName);
     *aReturn = HasAttr(kNameSpaceID_None, nameAtom);
@@ -672,10 +674,10 @@ nsXTFElementWrapper::HasAttribute(const nsAString& aName, PRBool* aReturn)
 }
 
 
-//----------------------------------------------------------------------
-// nsIClassInfo implementation
 
-/* void getInterfaces (out PRUint32 count, [array, size_is (count), retval] out nsIIDPtr array); */
+
+
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetInterfaces(PRUint32* aCount, nsIID*** aArray)
 {
@@ -738,7 +740,7 @@ nsXTFElementWrapper::GetInterfaces(PRUint32* aCount, nsIID*** aArray)
   return NS_OK;
 }
 
-/* nsISupports getHelperForLanguage (in PRUint32 language); */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetHelperForLanguage(PRUint32 language,
                                           nsISupports** aHelper)
@@ -749,7 +751,7 @@ nsXTFElementWrapper::GetHelperForLanguage(PRUint32 language,
     ci ? ci->GetHelperForLanguage(language, aHelper) : NS_ERROR_NOT_AVAILABLE;
 }
 
-/* readonly attribute string contractID; */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetContractID(char * *aContractID)
 {
@@ -757,7 +759,7 @@ nsXTFElementWrapper::GetContractID(char * *aContractID)
   return NS_OK;
 }
 
-/* readonly attribute string classDescription; */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetClassDescription(char * *aClassDescription)
 {
@@ -765,7 +767,7 @@ nsXTFElementWrapper::GetClassDescription(char * *aClassDescription)
   return NS_OK;
 }
 
-/* readonly attribute nsCIDPtr classID; */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetClassID(nsCID * *aClassID)
 {
@@ -773,7 +775,7 @@ nsXTFElementWrapper::GetClassID(nsCID * *aClassID)
   return NS_OK;
 }
 
-/* readonly attribute PRUint32 implementationLanguage; */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetImplementationLanguage(PRUint32 *aImplementationLanguage)
 {
@@ -781,7 +783,7 @@ nsXTFElementWrapper::GetImplementationLanguage(PRUint32 *aImplementationLanguage
   return NS_OK;
 }
 
-/* readonly attribute PRUint32 flags; */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetFlags(PRUint32 *aFlags)
 {
@@ -789,17 +791,17 @@ nsXTFElementWrapper::GetFlags(PRUint32 *aFlags)
   return NS_OK;
 }
 
-/* [notxpcom] readonly attribute nsCID classIDNoAlloc; */
+
 NS_IMETHODIMP 
 nsXTFElementWrapper::GetClassIDNoAlloc(nsCID *aClassIDNoAlloc)
 {
   return NS_ERROR_NOT_AVAILABLE;
 }
 
-//----------------------------------------------------------------------
-// nsIXTFElementWrapper implementation:
 
-/* readonly attribute nsIDOMElement elementNode; */
+
+
+
 NS_IMETHODIMP
 nsXTFElementWrapper::GetElementNode(nsIDOMElement * *aElementNode)
 {
@@ -808,7 +810,7 @@ nsXTFElementWrapper::GetElementNode(nsIDOMElement * *aElementNode)
   return NS_OK;
 }
 
-/* readonly attribute nsIDOMElement documentFrameElement; */
+
 NS_IMETHODIMP
 nsXTFElementWrapper::GetDocumentFrameElement(nsIDOMElement * *aDocumentFrameElement)
 {
@@ -834,7 +836,7 @@ nsXTFElementWrapper::GetDocumentFrameElement(nsIDOMElement * *aDocumentFrameElem
   return NS_OK;
 }
 
-/* attribute unsigned long notificationMask; */
+
 NS_IMETHODIMP
 nsXTFElementWrapper::GetNotificationMask(PRUint32 *aNotificationMask)
 {
@@ -848,13 +850,13 @@ nsXTFElementWrapper::SetNotificationMask(PRUint32 aNotificationMask)
   return NS_OK;
 }
 
-//----------------------------------------------------------------------
-// implementation helpers:
+
+
 PRBool
 nsXTFElementWrapper::QueryInterfaceInner(REFNSIID aIID, void** result)
 {
-  // We must ensure that the inner element has a distinct xpconnect
-  // identity, so we mustn't aggregate nsIXPConnectWrappedJS:
+  
+  
   if (aIID.Equals(NS_GET_IID(nsIXPConnectWrappedJS))) return PR_FALSE;
 
   GetXTFElement()->QueryInterface(aIID, result);
@@ -880,7 +882,7 @@ nsXTFElementWrapper::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
   }
 
   if (!aVisitor.mDOMEvent) {
-    // We haven't made a DOMEvent yet.  Force making one now.
+    
     if (NS_FAILED(rv = nsEventDispatcher::CreateEvent(aVisitor.mPresContext,
                                                       aVisitor.mEvent,
                                                       EmptyString(),
@@ -932,7 +934,7 @@ nsXTFElementWrapper::DoGetClasses() const
   nsIAtom* clazzAttr = GetClassAttributeName();
   if (clazzAttr) {
     val = mAttrsAndChildren.GetAttr(clazzAttr);
-    // This is possibly the first time we need any classes.
+    
     if (val && val->Type() == nsAttrValue::eString) {
       nsAutoString value;
       val->ToString(value);
@@ -948,7 +950,7 @@ nsXTFElementWrapper::DoGetClasses() const
 nsresult
 nsXTFElementWrapper::SetClassAttributeName(nsIAtom* aName)
 {
-  // The class attribute name can be set only once
+  
   if (mClassAttributeName || !aName)
     return NS_ERROR_FAILURE;
   
@@ -963,7 +965,7 @@ nsXTFElementWrapper::RegUnregAccessKey(PRBool aDoReg)
   if (!doc)
     return;
 
-  // Get presentation shell 0
+  
   nsIPresShell *presShell = doc->GetShell();
   if (!presShell)
     return;
@@ -976,7 +978,7 @@ nsXTFElementWrapper::RegUnregAccessKey(PRBool aDoReg)
   if (!esm)
     return;
 
-  // Register or unregister as appropriate.
+  
   nsCOMPtr<nsIDOMAttr> accesskeyNode;
   GetXTFElement()->GetAccesskeyNode(getter_AddRefs(accesskeyNode));
   if (!accesskeyNode)

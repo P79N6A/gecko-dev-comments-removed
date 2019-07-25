@@ -378,17 +378,20 @@ nsContentDLF::CreateBlankDocument(nsILoadGroup *aLoadGroup,
     nsCOMPtr<nsINodeInfo> htmlNodeInfo;
 
     
-    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::html, 0, kNameSpaceID_XHTML);
+    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::html, 0, kNameSpaceID_XHTML,
+                                    nsIDOMNode::ELEMENT_NODE);
     nsCOMPtr<nsIContent> htmlElement =
       NS_NewHTMLHtmlElement(htmlNodeInfo.forget());
 
     
-    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::head, 0, kNameSpaceID_XHTML);
+    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::head, 0, kNameSpaceID_XHTML,
+                                    nsIDOMNode::ELEMENT_NODE);
     nsCOMPtr<nsIContent> headElement =
       NS_NewHTMLHeadElement(htmlNodeInfo.forget());
 
     
-    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::body, 0, kNameSpaceID_XHTML);
+    htmlNodeInfo = nim->GetNodeInfo(nsGkAtoms::body, 0, kNameSpaceID_XHTML,
+                                    nsIDOMNode::ELEMENT_NODE);
     nsCOMPtr<nsIContent> bodyElement =
       NS_NewHTMLBodyElement(htmlNodeInfo.forget());
 

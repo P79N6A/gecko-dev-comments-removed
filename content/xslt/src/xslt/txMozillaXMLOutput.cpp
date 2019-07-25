@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is TransforMiiX XSLT processor code.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2001
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Peter Van der Beken <peterv@propagandism.org>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "txMozillaXMLOutput.h"
 
@@ -173,12 +173,12 @@ txMozillaXMLOutput::attribute(nsIAtom* aPrefix,
 
     NS_ENSURE_TRUE(lname, NS_ERROR_OUT_OF_MEMORY);
 
-    // Check that it's a valid name
+    
     if (!nsContentUtils::IsValidNodeName(lname, aPrefix, aNsID)) {
-        // Try without prefix
+        
         aPrefix = nsnull;
         if (!nsContentUtils::IsValidNodeName(lname, aPrefix, aNsID)) {
-            // Don't return error here since the callers don't deal
+            
             return NS_OK;
         }
     }
@@ -193,7 +193,7 @@ txMozillaXMLOutput::attributeInternal(nsIAtom* aPrefix,
                                       const nsString& aValue)
 {
     if (!mOpenedElement) {
-        // XXX Signal this? (can't add attributes after element closed)
+        
         return NS_OK;
     }
 
@@ -261,7 +261,7 @@ txMozillaXMLOutput::endDocument(nsresult aResult)
     }
 
     if (mCreatingNewDocument) {
-        // This should really be handled by nsIDocument::EndLoad
+        
         mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_INTERACTIVE);
         nsScriptLoader* loader = mDocument->ScriptLoader();
         if (loader) {
@@ -312,14 +312,14 @@ txMozillaXMLOutput::endElement()
                                      (static_cast<nsINode*>
                                                  (mCurrentNode));
 
-    // Handle html-elements
+    
     if (!mNoFixup) {
         if (element->IsHTML()) {
             rv = endHTMLElement(element);
             NS_ENSURE_SUCCESS(rv, rv);
         }
 
-        // Handle elements that are different when parser-created
+        
         PRInt32 ns = element->GetNameSpaceID();
         nsIAtom* localName = element->Tag();
 
@@ -334,8 +334,8 @@ txMozillaXMLOutput::endElement()
 
             rv = element->DoneAddingChildren(PR_TRUE);
 
-            // If the act of insertion evaluated the script, we're fine.
-            // Else, add this script element to the array of loading scripts.
+            
+            
             if (rv == NS_ERROR_HTMLPARSER_BLOCK) {
                 nsCOMPtr<nsIScriptElement> sele = do_QueryInterface(element);
                 rv = mNotifier->AddScriptElement(sele);
@@ -349,7 +349,7 @@ txMozillaXMLOutput::endElement()
     }
 
     if (mCreatingNewDocument) {
-        // Handle all sorts of stylesheets
+        
         nsCOMPtr<nsIStyleSheetLinkingElement> ssle =
             do_QueryInterface(mCurrentNode);
         if (ssle) {
@@ -364,8 +364,8 @@ txMozillaXMLOutput::endElement()
         }
     }
 
-    // Add the element to the tree if it wasn't added before and take one step
-    // up the tree
+    
+    
     PRUint32 last = mCurrentNodeStack.Count() - 1;
     NS_ASSERTION(last != (PRUint32)-1, "empty stack");
 
@@ -380,8 +380,8 @@ txMozillaXMLOutput::endElement()
             mRootContentCreated = PR_TRUE;
         }
 
-        // Check to make sure that script hasn't inserted the node somewhere
-        // else in the tree
+        
+        
         if (!mCurrentNode->GetNodeParent()) {
             parent->AppendChildTo(mNonAddedNode, PR_TRUE);
         }
@@ -505,12 +505,12 @@ txMozillaXMLOutput::startElement(nsIAtom* aPrefix,
         lname = do_GetAtom(aLocalName);
     }
 
-    // No biggie if we lose the prefix due to OOM
+    
     NS_ENSURE_TRUE(lname, NS_ERROR_OUT_OF_MEMORY);
 
-    // Check that it's a valid name
+    
     if (!nsContentUtils::IsValidNodeName(lname, aPrefix, nsId)) {
-        // Try without prefix
+        
         aPrefix = nsnull;
         if (!nsContentUtils::IsValidNodeName(lname, aPrefix, nsId)) {
             return NS_ERROR_XSLT_BAD_NODE_NAME;
@@ -537,10 +537,10 @@ txMozillaXMLOutput::startElementInternal(nsIAtom* aPrefix,
     nsresult rv = closePrevious(PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    // Push and init state
+    
     if (mTreeDepth == MAX_REFLOW_DEPTH) {
-        // eCloseElement couldn't add the parent so we fail as well or we've
-        // reached the limit of the depth of the tree that we allow.
+        
+        
         ++mBadChildLevel;
         PR_LOG(txLog::xslt, PR_LOG_DEBUG,
                ("startElement, mBadChildLevel = %d\n", mBadChildLevel));
@@ -559,16 +559,17 @@ txMozillaXMLOutput::startElementInternal(nsIAtom* aPrefix,
     mTableState = NORMAL;
     mOpenedElementIsHTML = PR_FALSE;
 
-    // Create the element
+    
     nsCOMPtr<nsINodeInfo> ni;
-    ni = mNodeInfoManager->GetNodeInfo(aLocalName, aPrefix, aNsID);
+    ni = mNodeInfoManager->GetNodeInfo(aLocalName, aPrefix, aNsID,
+                                       nsIDOMNode::ELEMENT_NODE);
     NS_ENSURE_TRUE(ni, NS_ERROR_OUT_OF_MEMORY);
 
     NS_NewElement(getter_AddRefs(mOpenedElement), aNsID, ni.forget(),
                   mCreatingNewDocument ?
                   FROM_PARSER_XSLT : FROM_PARSER_FRAGMENT);
 
-    // Set up the element and adjust state
+    
     if (!mNoFixup) {
         if (aNsID == kNameSpaceID_XHTML) {
             mOpenedElementIsHTML = (mOutputFormat.mMethod == eHTMLOutput);
@@ -579,7 +580,7 @@ txMozillaXMLOutput::startElementInternal(nsIAtom* aPrefix,
     }
 
     if (mCreatingNewDocument) {
-        // Handle all sorts of stylesheets
+        
         nsCOMPtr<nsIStyleSheetLinkingElement> ssle =
             do_QueryInterface(mOpenedElement);
         if (ssle) {
@@ -600,9 +601,9 @@ txMozillaXMLOutput::closePrevious(PRBool aFlushText)
     if (mOpenedElement) {
         PRBool currentIsDoc = mCurrentNode == mDocument;
         if (currentIsDoc && mRootContentCreated) {
-            // We already have a document element, but the XSLT spec allows this.
-            // As a workaround, create a wrapper object and use that as the
-            // document element.
+            
+            
+            
             
             rv = createTxWrapper();
             NS_ENSURE_SUCCESS(rv, rv);
@@ -620,7 +621,7 @@ txMozillaXMLOutput::closePrevious(PRBool aFlushText)
         mOpenedElement = nsnull;
     }
     else if (aFlushText && !mText.IsEmpty()) {
-        // Text can't appear in the root of a document
+        
         if (mDocument == mCurrentNode) {
             if (XMLUtils::isWhitespace(mText)) {
                 mText.Truncate();
@@ -666,8 +667,8 @@ txMozillaXMLOutput::createTxWrapper()
 
     PRUint32 i, j, childCount = mDocument->GetChildCount();
 #ifdef DEBUG
-    // Keep track of the location of the current documentElement, if there is
-    // one, so we can verify later
+    
+    
     PRUint32 rootLocation = 0;
 #endif
     for (i = 0, j = 0; i < childCount; ++i) {
@@ -681,9 +682,9 @@ txMozillaXMLOutput::createTxWrapper()
 
         if (childContent->Tag() == nsGkAtoms::documentTypeNodeName) {
 #ifdef DEBUG
-            // The new documentElement should go after the document type.
-            // This is needed for cases when there is no existing
-            // documentElement in the document.
+            
+            
+            
             rootLocation = NS_MAX(rootLocation, j + 1);
 #endif
             ++j;
@@ -747,8 +748,8 @@ txMozillaXMLOutput::startHTMLElement(nsIContent* aElement, PRBool aIsHTML)
     }
     else if (atom == txHTMLAtoms::head &&
              mOutputFormat.mMethod == eHTMLOutput) {
-        // Insert META tag, according to spec, 16.2, like
-        // <META http-equiv="Content-Type" content="text/html; charset=EUC-JP">
+        
+        
         nsCOMPtr<nsIContent> meta;
         rv = createHTMLElement(nsGkAtoms::meta, getter_AddRefs(meta));
         NS_ENSURE_SUCCESS(rv, rv);
@@ -765,7 +766,7 @@ txMozillaXMLOutput::startHTMLElement(nsIContent* aElement, PRBool aIsHTML)
                            metacontent, PR_FALSE);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        // No need to notify since aElement hasn't been inserted yet
+        
         NS_ASSERTION(!aElement->IsInDoc(), "should not be in doc");
         rv = aElement->AppendChildTo(meta, PR_FALSE);
         NS_ENSURE_SUCCESS(rv, rv);
@@ -793,7 +794,7 @@ txMozillaXMLOutput::endHTMLElement(nsIContent* aElement)
         return NS_OK;
     }
     else if (mCreatingNewDocument && atom == txHTMLAtoms::meta) {
-        // handle HTTP-EQUIV data
+        
         nsAutoString httpEquiv;
         aElement->GetAttr(kNameSpaceID_None, txHTMLAtoms::httpEquiv, httpEquiv);
         if (!httpEquiv.IsEmpty()) {
@@ -812,8 +813,8 @@ txMozillaXMLOutput::endHTMLElement(nsIContent* aElement)
 
 void txMozillaXMLOutput::processHTTPEquiv(nsIAtom* aHeader, const nsString& aValue)
 {
-    // For now we only handle "refresh". There's a longer list in
-    // HTMLContentSink::ProcessHeaderData
+    
+    
     if (aHeader == txHTMLAtoms::refresh)
         LossyCopyUTF16toASCII(aValue, mRefreshString);
 }
@@ -824,18 +825,18 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
 {
     nsresult rv;
 
-    // Create the document
+    
     if (mOutputFormat.mMethod == eHTMLOutput) {
         rv = NS_NewHTMLDocument(getter_AddRefs(mDocument));
         NS_ENSURE_SUCCESS(rv, rv);
     }
     else {
-        // We should check the root name/namespace here and create the
-        // appropriate document
+        
+        
         rv = NS_NewXMLDocument(getter_AddRefs(mDocument));
         NS_ENSURE_SUCCESS(rv, rv);
     }
-    // This should really be handled by nsIDocument::BeginLoad
+    
     mDocument->SetReadyStateInternal(nsIDocument::READYSTATE_LOADING);
     nsCOMPtr<nsIDocument> source = do_QueryInterface(aSourceDocument);
     NS_ENSURE_STATE(source);
@@ -848,10 +849,10 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
     mCurrentNode = mDocument;
     mNodeInfoManager = mDocument->NodeInfoManager();
 
-    // Reset and set up the document
+    
     URIUtils::ResetWithSource(mDocument, aSourceDocument);
 
-    // Set the charset
+    
     if (!mOutputFormat.mEncoding.IsEmpty()) {
         NS_LossyConvertUTF16toASCII charset(mOutputFormat.mEncoding);
         nsCAutoString canonicalCharset;
@@ -865,7 +866,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
         }
     }
 
-    // Set the mime-type
+    
     if (!mOutputFormat.mMediaType.IsEmpty()) {
         mDocument->SetContentType(mOutputFormat.mMediaType);
     }
@@ -889,20 +890,20 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
           standalone = 1;
         }
 
-        // Could use mOutputFormat.mVersion.get() when we support
-        // versions > 1.0.
+        
+        
         static const PRUnichar kOneDotZero[] = { '1', '.', '0', '\0' };
         mDocument->SetXMLDeclaration(kOneDotZero, mOutputFormat.mEncoding.get(),
                                      standalone);
     }
 
-    // Set up script loader of the result document.
+    
     nsScriptLoader *loader = mDocument->ScriptLoader();
     if (mNotifier) {
         loader->AddObserver(mNotifier);
     }
     else {
-        // Don't load scripts, we can't notify the caller when they're loaded.
+        
         loader->SetEnabled(PR_FALSE);
     }
 
@@ -911,14 +912,14 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    // Do this after calling OnDocumentCreated to ensure that the
-    // PresShell/PresContext has been hooked up and get notified.
+    
+    
     nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(mDocument);
     if (htmlDoc) {
         htmlDoc->SetCompatibilityMode(eCompatibility_FullStandards);
     }
 
-    // Add a doc-type if requested
+    
     if (!mOutputFormat.mSystemId.IsEmpty()) {
         nsAutoString qName;
         if (mOutputFormat.mMethod == eHTMLOutput) {
@@ -937,7 +938,7 @@ txMozillaXMLOutput::createResultDocument(const nsSubstring& aName, PRInt32 aNsID
                 return NS_ERROR_OUT_OF_MEMORY;
             }
 
-            // Indicate that there is no internal subset (not just an empty one)
+            
             nsAutoString voidString;
             voidString.SetIsVoid(PR_TRUE);
             rv = NS_NewDOMDocumentType(getter_AddRefs(documentType),
@@ -968,7 +969,8 @@ txMozillaXMLOutput::createHTMLElement(nsIAtom* aName,
 
     nsCOMPtr<nsINodeInfo> ni;
     ni = mNodeInfoManager->GetNodeInfo(aName, nsnull,
-                                       kNameSpaceID_XHTML);
+                                       kNameSpaceID_XHTML,
+                                       nsIDOMNode::ELEMENT_NODE);
     NS_ENSURE_TRUE(ni, NS_ERROR_OUT_OF_MEMORY);
 
     return NS_NewHTMLElement(aResult, ni.forget(), mCreatingNewDocument ?
@@ -1019,13 +1021,13 @@ txTransformNotifier::StyleSheetLoaded(nsCSSStyleSheet* aSheet,
                                       nsresult aStatus)
 {
     if (mPendingStylesheetCount == 0) {
-        // We weren't waiting on this stylesheet anyway.  This can happen if
-        // SignalTransformEnd got called with an error aResult.  See
-        // http://bugzilla.mozilla.org/show_bug.cgi?id=215465.
+        
+        
+        
         return NS_OK;
     }
 
-    // We're never waiting for alternate stylesheets
+    
     if (!aWasAlternate) {
         --mPendingStylesheetCount;
         SignalTransformEnd();
@@ -1071,7 +1073,7 @@ txTransformNotifier::SetOutputDocument(nsIDocument* aDocument)
 {
     mDocument = aDocument;
 
-    // Notify the contentsink that the document is created
+    
     return mObserver->OnDocumentCreated(mDocument);
 }
 
@@ -1084,19 +1086,19 @@ txTransformNotifier::SignalTransformEnd(nsresult aResult)
         return;
     }
 
-    // mPendingStylesheetCount is nonzero at this point only if aResult is an
-    // error.  Set it to 0 so we won't reenter this code when we stop the
-    // CSSLoader.
+    
+    
+    
     mPendingStylesheetCount = 0;
     mScriptElements.Clear();
 
-    // Make sure that we don't get deleted while this function is executed and
-    // we remove ourselfs from the scriptloader
+    
+    
     nsCOMPtr<nsIScriptLoaderObserver> kungFuDeathGrip(this);
 
     if (mDocument) {
         mDocument->ScriptLoader()->RemoveObserver(this);
-        // XXX Maybe we want to cancel script loads if NS_FAILED(rv)?
+        
 
         if (NS_FAILED(aResult)) {
             mDocument->CSSLoader()->Stop();
