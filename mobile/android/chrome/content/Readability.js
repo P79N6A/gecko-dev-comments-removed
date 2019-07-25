@@ -647,28 +647,28 @@ Readability.prototype = {
         if (append) {
           this.log("Appending node: " + siblingNode);
 
-          let nodeToAppend = null;
+          
+          
+          
+          
+          s -= 1;
+          sl -= 1;
+
           if (siblingNode.nodeName !== "DIV" && siblingNode.nodeName !== "P") {
             
             
             this.log("Altering siblingNode of " + siblingNode.nodeName + ' to div.');
 
-            nodeToAppend = doc.createElement("DIV");
-            nodeToAppend.id = siblingNode.id;
-            nodeToAppend.innerHTML = siblingNode.innerHTML;
-          } else {
-            nodeToAppend = siblingNode;
-            s -= 1;
-            sl -= 1;
+            this._setNodeTag(siblingNode, "DIV");
           }
 
           
           
-          nodeToAppend.className = "";
+          siblingNode.className = "";
 
           
           
-          articleContent.appendChild(nodeToAppend);
+          articleContent.appendChild(siblingNode);
         }
       }
 
