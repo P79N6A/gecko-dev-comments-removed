@@ -224,10 +224,7 @@
 #define NS_TIME_FUNCTION_WITH_DOCURL do{} while(0)
 #endif
 
-static const PRUint32 ANCHOR_SCROLL_FLAGS =
-    nsIPresShell::SCROLL_OVERFLOW_HIDDEN |
-    nsIPresShell::SCROLL_NO_PARENT_FRAMES |
-    nsIPresShell::SCROLL_ALLOW_SMOOTH;
+#define ANCHOR_SCROLL_FLAGS (SCROLL_OVERFLOW_HIDDEN | SCROLL_NO_PARENT_FRAMES)
 
 #include "nsContentCID.h"
 static NS_DEFINE_IID(kRangeCID,     NS_RANGE_CID);
@@ -1193,7 +1190,6 @@ protected:
   
   nsTHashtable< nsPtrHashKey<nsIFrame> > mFramesToDirty;
 
-  
   
   
   
@@ -4152,9 +4148,7 @@ static void ScrollToShowRect(nsIScrollableFrame* aScrollFrame,
     }
   }
 
-  aScrollFrame->ScrollTo(scrollPt,
-      (aFlags & nsIPresShell::SCROLL_ALLOW_SMOOTH) ? nsIScrollableFrame::SMOOTH :
-                                                     nsIScrollableFrame::INSTANT);
+  aScrollFrame->ScrollTo(scrollPt, nsIScrollableFrame::INSTANT);
 }
 
 nsresult
