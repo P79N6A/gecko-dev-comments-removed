@@ -10,6 +10,33 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "Hal.h"
 #include "HalImpl.h"
 #include "HalSandbox.h"
@@ -173,7 +200,7 @@ class ObserversManager
 public:
   void AddObserver(Observer<InfoType>* aObserver) {
     if (!mObservers) {
-      mObservers = new mozilla::ObserverList<InfoType>();
+      mObservers = new ObserverList<InfoType>();
     }
 
     mObservers->AddObserver(aObserver);
@@ -223,7 +250,7 @@ protected:
   virtual void GetCurrentInformationInternal(InfoType*) = 0;
 
 private:
-  mozilla::ObserverList<InfoType>* mObservers;
+  ObserverList<InfoType>* mObservers;
   InfoType                mInfo;
   bool                    mHasValidCache;
 };
@@ -315,75 +342,6 @@ void SetScreenBrightness(double brightness)
 {
   AssertMainThread();
   PROXY_IF_SANDBOXED(SetScreenBrightness(clamped(brightness, 0.0, 1.0)));
-}
-
-bool SetLight(LightType light, const hal::LightConfiguration& aConfig)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(SetLight(light, aConfig));
-}
-
-bool GetLight(LightType light, hal::LightConfiguration* aConfig)
-{
-  AssertMainThread();
-  RETURN_PROXY_IF_SANDBOXED(GetLight(light, aConfig));
-}
-
-void
-EnableSensorNotifications(SensorType aSensor) {
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(EnableSensorNotifications(aSensor));
-}
-
-void
-DisableSensorNotifications(SensorType aSensor) {
-  AssertMainThread();
-  PROXY_IF_SANDBOXED(DisableSensorNotifications(aSensor));
-}
-
-typedef mozilla::ObserverList<SensorData> SensorObserverList;
-static SensorObserverList *gSensorObservers = NULL;
-
-static SensorObserverList &
-GetSensorObservers(SensorType sensor_type) {
-  MOZ_ASSERT(sensor_type < NUM_SENSOR_TYPE);
-  
-  if(gSensorObservers == NULL)
-    gSensorObservers = new SensorObserverList[NUM_SENSOR_TYPE];
-  return gSensorObservers[sensor_type];
-}
-
-void
-RegisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
-  SensorObserverList &observers = GetSensorObservers(aSensor);
-
-  AssertMainThread();
-  
-  observers.AddObserver(aObserver);
-  if(observers.Length() == 1) {
-    EnableSensorNotifications(aSensor);
-  }
-}
-
-void
-UnregisterSensorObserver(SensorType aSensor, ISensorObserver *aObserver) {
-  SensorObserverList &observers = GetSensorObservers(aSensor);
-
-  AssertMainThread();
-  
-  observers.RemoveObserver(aObserver);
-  if(observers.Length() == 0) {
-    DisableSensorNotifications(aSensor);
-  }
-}
-
-void
-NotifySensorChange(const SensorData &aSensorData) {
-  SensorObserverList &observers = GetSensorObservers(aSensorData.sensor());
-
-  AssertMainThread();
-  
-  observers.Broadcast(aSensorData);
 }
 
 void

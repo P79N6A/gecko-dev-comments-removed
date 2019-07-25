@@ -10,6 +10,33 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "Hal.h"
 #include "mozilla/dom/ContentChild.h"
 #include "mozilla/hal_sandbox/PHalChild.h"
@@ -125,22 +152,6 @@ SetScreenBrightness(double brightness)
   Hal()->SendSetScreenBrightness(brightness);
 }
 
-bool
-SetLight(hal::LightType light, const hal::LightConfiguration& aConfig)
-{
-  bool status;
-  Hal()->SendSetLight(light, aConfig, &status);
-  return status;
-}
-
-bool
-GetLight(hal::LightType light, hal::LightConfiguration* aConfig)
-{
-  bool status;
-  Hal()->SendGetLight(light, aConfig, &status);
-  return status;
-}
-
 void
 Reboot()
 {
@@ -153,20 +164,9 @@ PowerOff()
   Hal()->SendPowerOff();
 }
 
-void
-EnableSensorNotifications(SensorType aSensor) {
-  Hal()->SendEnableSensorNotifications(aSensor);
-}
-
-void
-DisableSensorNotifications(SensorType aSensor) {
-  Hal()->SendDisableSensorNotifications(aSensor);
-}
-
 class HalParent : public PHalParent
                 , public BatteryObserver
                 , public NetworkObserver
-                , public ISensorObserver
 {
 public:
   NS_OVERRIDE virtual bool
@@ -281,20 +281,6 @@ public:
   }
 
   NS_OVERRIDE virtual bool
-  RecvSetLight(const LightType& aLight,  const hal::LightConfiguration& aConfig, bool *status)
-  {
-    *status = hal::SetLight(aLight, aConfig);
-    return true;
-  }
-
-  NS_OVERRIDE virtual bool
-  RecvGetLight(const LightType& aLight, LightConfiguration* aConfig, bool* status)
-  {
-    *status = hal::GetLight(aLight, aConfig);
-    return true;
-  }
-
-  NS_OVERRIDE virtual bool
   RecvReboot()
   {
     hal::Reboot();
@@ -306,22 +292,6 @@ public:
   {
     hal::PowerOff();
     return true;
-  }
-
-  NS_OVERRIDE virtual bool
-  RecvEnableSensorNotifications(const SensorType &aSensor) {
-    hal::RegisterSensorObserver(aSensor, this);
-    return true;
-  }
-
-  NS_OVERRIDE virtual bool
-  RecvDisableSensorNotifications(const SensorType &aSensor) {
-    hal::UnregisterSensorObserver(aSensor, this);
-    return true;
-  }
-
-  void Notify(const SensorData& aSensorData) {
-    unused << SendNotifySensorChange(aSensorData);
   }
 };
 
@@ -336,12 +306,6 @@ public:
   NS_OVERRIDE virtual bool
   RecvNotifyNetworkChange(const NetworkInformation& aNetworkInfo) {
     hal::NotifyNetworkChange(aNetworkInfo);
-    return true;
-  }
-
-  NS_OVERRIDE virtual bool
-  RecvNotifySensorChange(const hal::SensorData &aSensorData) {
-    hal::NotifySensorChange(aSensorData);
     return true;
   }
 };

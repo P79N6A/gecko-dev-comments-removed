@@ -103,28 +103,12 @@ namespace IPC {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-template <typename E, E smallestLegal, E highBound>
+template <typename E, E lowBound, E highBound>
 struct EnumSerializer {
   typedef E paramType;
 
   static bool IsLegalValue(const paramType &aValue) {
-    return smallestLegal <= aValue && aValue < highBound;
+    return lowBound <= aValue && aValue < highBound;
   }
 
   static void Write(Message* aMsg, const paramType& aValue) {

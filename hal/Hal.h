@@ -10,6 +10,33 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef mozilla_Hal_h
 #define mozilla_Hal_h 1
 
@@ -20,7 +47,6 @@
 #include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
-#include "mozilla/hal_sandbox/PHal.h"
 
 
 
@@ -142,63 +168,6 @@ double GetScreenBrightness();
 
 
 void SetScreenBrightness(double brightness);
-
-
-
-
-
-
-
-
-
-
-
-bool SetLight(hal::LightType light, const hal::LightConfiguration& aConfig);
-
-
-
-
-bool GetLight(hal::LightType light, hal::LightConfiguration* aConfig);
-
-
-
-
-
-
-
-
-void RegisterSensorObserver(hal::SensorType aSensor,
-                            hal::ISensorObserver *aObserver);
-
-
-
-
-void UnregisterSensorObserver(hal::SensorType aSensor,
-                              hal::ISensorObserver *aObserver);
-
-
-
-
-
-
-void NotifySensorChange(const hal::SensorData &aSensorData);
-
-
-
-
-
-
-
-void EnableSensorNotifications(hal::SensorType aSensor);
-
-
-
-
-
-
-
-void DisableSensorNotifications(hal::SensorType aSensor);
-
 
 
 
