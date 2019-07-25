@@ -128,11 +128,6 @@ public:
   
   
   
-  
-  inline nsresult GetStyle(nsIDOMCSSStyleDeclaration** aStyle)
-  {
-    return nsGenericHTMLElementBase::GetStyle(aStyle);
-  }
   nsresult GetOffsetTop(PRInt32* aOffsetTop);
   nsresult GetOffsetLeft(PRInt32* aOffsetLeft);
   nsresult GetOffsetWidth(PRInt32* aOffsetWidth);
