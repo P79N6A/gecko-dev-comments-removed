@@ -4183,19 +4183,11 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
 
   nsIDocument* doc = OwnerDoc();
   nsIContent* newContent = static_cast<nsIContent*>(aNewChild);
-  PRInt32 insPos;
-
-  mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
-
-  
-  if (aRefChild) {
-    insPos = IndexOf(aRefChild);
-    if (insPos < 0) {
-      return NS_ERROR_DOM_NOT_FOUND_ERR;
-    }
-  }
-  else {
-    insPos = GetChildCount();
+  if (newContent->IsRootOfAnonymousSubtree()) {
+    
+    
+    
+    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
   }
 
   
@@ -4203,19 +4195,21 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
     return NS_ERROR_DOM_HIERARCHY_REQUEST_ERR;
   }
 
-  nsAutoMutationBatch mb;
   
+  nsINode* nodeToInsertBefore;
   if (aReplace) {
-    mb.Init(this, true, true);
-    RemoveChildAt(insPos, true);
+    nodeToInsertBefore = aRefChild->GetNextSibling();
+  } else {
+    nodeToInsertBefore = aRefChild;
+  }
+  if (nodeToInsertBefore == aNewChild) {
+    
+    
+    nodeToInsertBefore = nodeToInsertBefore->GetNextSibling();
   }
 
-  if (newContent->IsRootOfAnonymousSubtree()) {
-    
-    
-    
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
-  }
+  mozAutoDocUpdate batch(GetCurrentDoc(), UPDATE_CONTENT_MODEL, true);
+  nsAutoMutationBatch mb;
 
   
   nsCOMPtr<nsINode> oldParent = newContent->GetNodeParent();
@@ -4234,12 +4228,38 @@ nsINode::ReplaceOrInsertBefore(bool aReplace, nsINode* aNewChild,
       mb.SetPrevSibling(oldParent->GetChildAt(removeIndex - 1));
       mb.SetNextSibling(oldParent->GetChildAt(removeIndex));
     }
+  }
+
+  
+  
+  
+  
+  PRInt32 insPos;
+  if (nodeToInsertBefore) {
+    insPos = IndexOf(nodeToInsertBefore);
+    if (insPos < 0) {
+      
+      return NS_ERROR_DOM_NOT_FOUND_ERR;
+    }
+  }
+  else {
+    insPos = GetChildCount();
+  }
+
+  
+  if (aReplace && aRefChild != aNewChild) {
+    mb.Init(this, true, true);
 
     
     
-    if (oldParent == this && removeIndex < insPos) {
-      --insPos;
-    }
+    NS_ASSERTION(aRefChild->GetNextSibling() == nodeToInsertBefore,
+                 "Unexpected nodeToInsertBefore");
+
+    
+    
+    NS_ASSERTION(insPos >= 1, "insPos too small");
+    RemoveChildAt(insPos-1, true);
+    --insPos;
   }
 
   nsresult res = NS_OK;
