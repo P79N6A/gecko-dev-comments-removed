@@ -1,0 +1,59 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "SmsParent.h"
+#include "nsISmsService.h"
+
+namespace mozilla {
+namespace dom {
+namespace sms {
+
+bool
+SmsParent::RecvHasSupport(bool* aHasSupport)
+{
+  *aHasSupport = false;
+
+  nsCOMPtr<nsISmsService> smsService = do_GetService(SMSSERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(smsService, true);
+
+  smsService->HasSupport(aHasSupport);
+  return true;
+}
+
+} 
+} 
+} 
