@@ -165,6 +165,16 @@ cairo_addref_device(cairo_device_t *device);
 
 
 
+void
+cairo_d2d_finish_device(cairo_device_t *device);
+
+
+
+
+
+
+
+
 
 cairo_public cairo_surface_t *
 cairo_d2d_surface_create_for_hwnd(cairo_device_t *device, HWND wnd, cairo_content_t content);
@@ -183,6 +193,20 @@ cairo_d2d_surface_create(cairo_device_t *device,
 			 cairo_format_t format,
                          int width,
                          int height);
+
+
+
+
+
+
+
+
+
+
+
+
+cairo_public cairo_surface_t *
+cairo_d2d_surface_create_for_handle(cairo_device_t *device, HANDLE handle, cairo_content_t content);
 
 
 
