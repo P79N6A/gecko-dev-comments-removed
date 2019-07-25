@@ -1218,6 +1218,7 @@ nsAccessibilityService::GetAccessible(nsIDOMNode *aNode,
     
     
     
+    
     return GetAreaAccessible(weakFrame.GetFrame(), aNode, aWeakShell);
   }
 
