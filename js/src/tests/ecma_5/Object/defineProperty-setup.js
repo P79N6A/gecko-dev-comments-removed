@@ -4,6 +4,13 @@
 assertEq("defineProperty" in Object, true);
 assertEq(Object.defineProperty.length, 3);
 
+
+
+
+
+if (typeof enableStackWalkingAssertion === "function")
+  enableStackWalkingAssertion(false);
+
 if (!Object.prototype.toSource)
 {
   Object.defineProperty(Object.prototype, "toSource",

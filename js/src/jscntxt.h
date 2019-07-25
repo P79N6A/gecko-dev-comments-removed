@@ -1420,6 +1420,14 @@ struct JSContext
         this->exception.setUndefined();
     }
 
+#ifdef DEBUG
+    
+
+
+
+    bool stackIterAssertionEnabled;
+#endif
+
   private:
     
 
