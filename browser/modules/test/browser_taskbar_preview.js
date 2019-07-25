@@ -63,34 +63,34 @@ function test() {
     ok(currentSelectedTab == gBrowser.selectedTab, "Drawing preview does not change selection");
   }
 
-  // Close #4
+  
   getPreviewForTab(gBrowser.selectedTab).controller.onClose();
   checkPreviews(3, "Expected number of previews after closing selected tab via controller");
   ok(gBrowser.tabs.length == 3, "Successfully closed a tab");
 
-  // Select #1
+  
   ok(getPreviewForTab(gBrowser.tabs[0]).controller.onActivate(), "Activation was accepted");
   ok(gBrowser.tabs[0] == gBrowser.selectedTab, "Correct tab was selected");
   checkSelectedTab();
 
-  // Remove #3 (non active)
+  
   gBrowser.removeTab(gBrowser.tabContainer.lastChild);
   checkPreviews(2, "Expected number of previews after closing unselected via browser");
 
-  // Remove #1 (active)
+  
   gBrowser.removeTab(gBrowser.tabContainer.firstChild);
   checkPreviews(1, "Expected number of previews after closing selected tab via browser");
 
-  // Add a new tab
+  
   gBrowser.addTab();
   checkPreviews(2);
-  // Check default selection
+  
   checkSelectedTab();
 
-  // Change selection
+  
   gBrowser.selectedTab = gBrowser.tabs[0];
   checkSelectedTab();
-  // Close nonselected tab via controller
+  
   getPreviewForTab(gBrowser.tabs[1]).controller.onClose();
   checkPreviews(1);
 
