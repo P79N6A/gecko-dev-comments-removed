@@ -83,14 +83,36 @@ public:
   void SetRecvdFin(bool aStatus) { mRecvdFin = aStatus ? 1 : 0; }
   bool RecvdFin() { return mRecvdFin; }
 
+  void SetRecvdData(bool aStatus) { mReceivedData = aStatus ? 1 : 0; }
+  bool RecvdData() { return mReceivedData; }
+
   void UpdateTransportSendEvents(PRUint32 count);
   void UpdateTransportReadEvents(PRUint32 count);
 
   
   
-  static const char *kDictionary;
+  static const unsigned char kDictionary[1423];
   static void *zlib_allocator(void *, uInt, uInt);
   static void zlib_destructor(void *, void *);
+
+  nsresult Uncompress(z_stream *, char *, PRUint32);
+  nsresult ConvertHeaders(nsACString &);
+
+  void UpdateRemoteWindow(PRInt32 delta) { mRemoteWindow += delta; }
+  PRInt64 RemoteWindow() { return mRemoteWindow; }
+
+  void DecrementLocalWindow(PRUint32 delta) {
+    mLocalWindow -= delta;
+    mLocalUnacked += delta;
+  }
+
+  void IncrementLocalWindow(PRUint32 delta) {
+    mLocalWindow += delta;
+    mLocalUnacked -= delta;
+  }
+
+  PRUint64 LocalUnAcked() { return mLocalUnacked; }
+  bool     BlockedOnRwin() { return mBlockedOnRwin; }
 
 private:
 
@@ -121,9 +143,10 @@ private:
   void     CompressToFrame(const nsACString &);
   void     CompressToFrame(const nsACString *);
   void     CompressToFrame(const char *, PRUint32);
-  void     CompressToFrame(PRUint16);
+  void     CompressToFrame(PRUint32);
   void     CompressFlushFrame();
   void     ExecuteCompress(PRUint32);
+  nsresult FindHeader(nsCString, nsDependentCSubstring &);
   
   
   
@@ -177,6 +200,10 @@ private:
 
   
   
+  PRUint32                     mReceivedData         : 1;
+
+  
+  
   nsAutoArrayPtr<char>         mTxInlineFrame;
   PRUint32                     mTxInlineFrameSize;
   PRUint32                     mTxInlineFrameUsed;
@@ -193,6 +220,12 @@ private:
   nsCString                    mFlatHttpRequestHeaders;
 
   
+  PRUint32             mDecompressBufferSize;
+  PRUint32             mDecompressBufferUsed;
+  PRUint32             mDecompressedBytes;
+  nsAutoArrayPtr<char> mDecompressBuffer;
+
+  
   
   
   
@@ -201,6 +234,27 @@ private:
 
   
   PRInt32                      mPriority;
+
+  
+  
+  
+
+  
+  
+  PRInt64                      mLocalWindow;
+
+  
+  
+  PRInt64                      mRemoteWindow;
+
+  
+  
+  
+  PRUint64                     mLocalUnacked;
+
+  
+  
+  bool                         mBlockedOnRwin;
 
   
   PRUint64                     mTotalSent;

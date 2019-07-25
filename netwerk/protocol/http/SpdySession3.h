@@ -84,26 +84,13 @@ public:
 
   PRUint32 RegisterStreamID(SpdyStream3 *);
 
+  const static PRUint8 kVersion        = 3;
+
   const static PRUint8 kFlag_Control   = 0x80;
 
   const static PRUint8 kFlag_Data_FIN  = 0x01;
   const static PRUint8 kFlag_Data_UNI  = 0x02;
-  const static PRUint8 kFlag_Data_ZLIB = 0x02;
   
-  
-  
-  
-  
-  
-  
-  
-  
-
-  const static PRUint8 kPri00   = 0 << 6; 
-  const static PRUint8 kPri01   = 1 << 6;
-  const static PRUint8 kPri02   = 2 << 6;
-  const static PRUint8 kPri03   = 3 << 6; 
-
   enum
   {
     CONTROL_TYPE_FIRST = 0,
@@ -111,12 +98,13 @@ public:
     CONTROL_TYPE_SYN_REPLY = 2,
     CONTROL_TYPE_RST_STREAM = 3,
     CONTROL_TYPE_SETTINGS = 4,
-    CONTROL_TYPE_NOOP = 5,
+    CONTROL_TYPE_NOOP = 5,                        
     CONTROL_TYPE_PING = 6,
     CONTROL_TYPE_GOAWAY = 7,
     CONTROL_TYPE_HEADERS = 8,
-    CONTROL_TYPE_WINDOW_UPDATE = 9,               
-    CONTROL_TYPE_LAST = 10
+    CONTROL_TYPE_WINDOW_UPDATE = 9,
+    CONTROL_TYPE_CREDENTIAL = 10,
+    CONTROL_TYPE_LAST = 11
   };
 
   enum rstReason
@@ -128,7 +116,10 @@ public:
     RST_CANCEL = 5,
     RST_INTERNAL_ERROR = 6,
     RST_FLOW_CONTROL_ERROR = 7,
-    RST_BAD_ASSOC_STREAM = 8
+    RST_STREAM_IN_USE = 8,
+    RST_STREAM_ALREADY_CLOSED = 9,
+    RST_INVALID_CREDENTIALS = 10,
+    RST_FRAME_TOO_LARGE = 11
   };
 
   enum
@@ -139,7 +130,8 @@ public:
     SETTINGS_TYPE_MAX_CONCURRENT = 4, 
     SETTINGS_TYPE_CWND = 5, 
     SETTINGS_TYPE_DOWNLOAD_RETRANS_RATE = 6, 
-    SETTINGS_TYPE_INITIAL_WINDOW = 7  
+    SETTINGS_TYPE_INITIAL_WINDOW = 7,  
+    SETTINGS_CLIENT_CERTIFICATE_VECTOR_SIZE = 8
   };
 
   
@@ -160,6 +152,16 @@ public:
   
   
   const static PRUint32 kDeadStreamID = 0xffffdead;
+
+  
+  
+  
+  
+  const static PRUint32 kInitialRwin = 256 * 1024 * 1024;
+  const static PRUint32 kMinimumToAck = 64 * 1024;
+
+  
+  const static PRUint32 kDefaultServerRwin = 64 * 1024;
 
   static nsresult HandleSynStream(SpdySession3 *);
   static nsresult HandleSynReply(SpdySession3 *);
@@ -187,6 +189,8 @@ public:
   
   virtual nsresult CommitToSegmentSize(PRUint32 size);
   
+  PRUint32 GetServerInitialWindow() { return mServerInitialWindow; }
+
 private:
 
   enum stateType {
@@ -194,25 +198,23 @@ private:
     BUFFERING_CONTROL_FRAME,
     PROCESSING_DATA_FRAME,
     DISCARDING_DATA_FRAME,
-    PROCESSING_CONTROL_SYN_REPLY,
+    PROCESSING_COMPLETE_HEADERS,
     PROCESSING_CONTROL_RST_STREAM
   };
 
   void        DeterminePingThreshold();
-  nsresult    HandleSynReplyForValidStream();
+  nsresult    ResponseHeadersComplete();
   PRUint32    GetWriteQueueSize();
   void        ChangeDownstreamState(enum stateType);
   void        ResetDownstreamState();
-  nsresult    DownstreamUncompress(char *, PRUint32);
+  nsresult    UncompressAndDiscard(PRUint32, PRUint32);
   void        zlibInit();
-  nsresult    FindHeader(nsCString, nsDependentCSubstring &);
-  nsresult    ConvertHeaders(nsDependentCSubstring &,
-                             nsDependentCSubstring &);
   void        GeneratePing(PRUint32);
   void        ClearPing(bool);
   void        GenerateRstStream(PRUint32, PRUint32);
   void        GenerateGoAway();
   void        CleanupStream(SpdyStream3 *, nsresult, rstReason);
+  void        GenerateSettings();
 
   void        SetWriteCallbacks();
   void        FlushOutputQueue();
@@ -224,6 +226,8 @@ private:
   bool        VerifyStream(SpdyStream3 *, PRUint32);
   void        SetNeedsCleanup();
 
+  void        UpdateLocalRwin(SpdyStream3 *stream, PRUint32 bytes);
+
   
   
   nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, PRUint32, PRUint32 *);
@@ -231,6 +235,10 @@ private:
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream3> &,
                                             void *);
+
+  static PLDHashOperator UpdateServerRwinEnumerator(nsAHttpTransaction *,
+                                                    nsAutoPtr<SpdyStream3> &,
+                                                    void *);
 
   
   
@@ -258,7 +266,6 @@ private:
   
   
   
-  
   nsDataHashtable<nsUint32HashKey, SpdyStream3 *>     mStreamIDHash;
   nsClassHashtable<nsPtrHashKey<nsAHttpTransaction>,
                    SpdyStream3>                       mStreamTransactionHash;
@@ -267,10 +274,6 @@ private:
 
   
   
-  
-  
-  nsDeque           mUrgentForWrite;
-
   
   
   
@@ -310,13 +313,6 @@ private:
 
   
   
-  
-  
-  PRUint32             mDecompressBufferSize;
-  PRUint32             mDecompressBufferUsed;
-  nsAutoArrayPtr<char> mDecompressBuffer;
-
-  
   nsCString            mFlatHTTPResponseHeaders;
   PRUint32             mFlatHTTPResponseHeadersOut;
 
@@ -335,6 +331,11 @@ private:
 
   
   
+  
+  bool                 mDataPending;
+
+  
+  
   PRUint32             mGoAwayID;
 
   
@@ -349,6 +350,9 @@ private:
 
   
   PRUint32             mServerPushedResources;
+
+  
+  PRUint32             mServerInitialWindow;
 
   
   
