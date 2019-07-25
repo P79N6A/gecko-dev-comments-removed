@@ -1379,7 +1379,7 @@ MarkGenerator(JSTracer *trc, JSGenerator *gen)
 
 
     MarkStackRangeConservatively(trc, gen->floatingStack, fp->formalArgsEnd());
-    js_TraceStackFrame(trc, fp);
+    fp->mark(trc);
     MarkStackRangeConservatively(trc, fp->slots(), gen->regs.sp);
 }
 
