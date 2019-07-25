@@ -145,7 +145,7 @@ var Browser = {
         var self = this;
         setTimeout(function() { self.currentBrowser.loadURI(whereURI, null, null, false); }, 0);
       }
-    
+
       
       var phs = Cc["@mozilla.org/plugin/host;1"].
                 getService(Ci.nsIPluginHost);
@@ -295,7 +295,7 @@ var Browser = {
       }
     }
   },
-  
+
   
 
 
@@ -315,7 +315,7 @@ var Browser = {
     if (/^about:neterror\?e=nssBadCert/.test(errorDoc.documentURI)) {
       if (ot == errorDoc.getElementById('exceptionDialogButton')) {
         var params = { exceptionAdded : false };
-        
+
         try {
           switch (gPrefService.getIntPref("browser.ssl_override_behavior")) {
             case 2 : 
@@ -326,10 +326,10 @@ var Browser = {
         } catch (e) {
           Components.utils.reportError("Couldn't get ssl_override pref: " + e);
         }
-        
+
         window.openDialog('chrome://pippki/content/exceptionDialog.xul',
                           '','chrome,centerscreen,modal', params);
-        
+
         
         if (params.exceptionAdded)
           errorDoc.location.reload();
@@ -345,7 +345,7 @@ var Browser = {
           if (url.indexOf("|") != -1)
             url = url.split("|")[0];
         } catch (e) {  }
-        
+
         Browser.currentBrowser.loadURI(url, null, null, false);
       }
     }
