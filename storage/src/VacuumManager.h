@@ -45,7 +45,6 @@
 #include "mozIStorageStatementCallback.h"
 #include "mozIStorageVacuumParticipant.h"
 #include "nsCategoryCache.h"
-#include "nsIPrefService.h"
 
 namespace mozilla {
 namespace storage {
@@ -63,11 +62,6 @@ public:
 
   static VacuumManager * getSingleton();
 
-  
-
-
-  nsresult initialize();
-
 private:
   ~VacuumManager();
 
@@ -75,9 +69,6 @@ private:
 
   
   nsCategoryCache<mozIStorageVacuumParticipant> mParticipants;
-
-  
-  nsCOMPtr<nsIPrefBranch> mPrefBranch;
 };
 
 } 

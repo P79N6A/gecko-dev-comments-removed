@@ -54,8 +54,7 @@
 #include "nsIXPConnect.h"
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
-#include "nsIPrefService.h"
-#include "nsIPrefBranch.h"
+#include "mozilla/Preferences.h"
 
 #include "sqlite3.h"
 #include "test_quota.c"
@@ -185,10 +184,8 @@ public:
     
     
     
-    nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID));
-    PRInt32 synchronous = PREF_TS_SYNCHRONOUS_DEFAULT;
-    if (pref)
-      (void)pref->GetIntPref(PREF_TS_SYNCHRONOUS, &synchronous);
+    PRInt32 synchronous =
+      Preferences::GetInt(PREF_TS_SYNCHRONOUS, PREF_TS_SYNCHRONOUS_DEFAULT);
     ::PR_ATOMIC_SET(mSynchronousPrefValPtr, synchronous);
 
     
