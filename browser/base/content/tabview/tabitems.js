@@ -785,7 +785,7 @@ let TabItems = {
   cachedDataCounter: 0,  
   tabsProgressListener: null,
   _tabsWaitingForUpdate: [],
-  _heartbeatOn: false, 
+  _heartbeat: null, 
   _heartbeatTiming: 100, 
   _lastUpdateTime: Date.now(),
   _eventListeners: [],
@@ -1056,23 +1056,22 @@ let TabItems = {
   
   
   startHeartbeat: function TabItems_startHeartbeat() {
-    if (!this._heartbeatOn) {
-      this._heartbeatOn = true;
+    if (!this._heartbeat) {
       let self = this;
-      setTimeout(function() {
+      this._heartbeat = setTimeout(function() {
         self._checkHeartbeat();
       }, this._heartbeatTiming);
     }
   },
-  
+
   
   
   
   
   
   _checkHeartbeat: function TabItems__checkHeartbeat() {
-    this._heartbeatOn = false;
-    
+    this._heartbeat = null;
+
     if (this.isPaintingPaused())
       return;
 
@@ -1094,8 +1093,12 @@ let TabItems = {
    
    pausePainting: function TabItems_pausePainting() {
      this.paintingPaused++;
+     if (this._heartbeat) {
+       clearTimeout(this._heartbeat);
+       this._heartbeat = null;
+     }
    },
- 
+
    
    
    
