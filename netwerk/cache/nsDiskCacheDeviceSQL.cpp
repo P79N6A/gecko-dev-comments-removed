@@ -830,11 +830,6 @@ nsOfflineCacheDevice::nsOfflineCacheDevice()
 {
 }
 
-nsOfflineCacheDevice::~nsOfflineCacheDevice()
-{
-  Shutdown();
-}
-
 
 bool
 nsOfflineCacheDevice::GetStrictFileOriginPolicy()
