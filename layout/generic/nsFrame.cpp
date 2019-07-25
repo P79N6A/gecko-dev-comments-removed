@@ -131,6 +131,7 @@
 #include "CSSCalc.h"
 
 using namespace mozilla;
+using namespace mozilla::layers;
 
 static NS_DEFINE_CID(kLookAndFeelCID,  NS_LOOKANDFEEL_CID);
 
@@ -3184,8 +3185,7 @@ nsIFrame::InlineMinWidthData::ForceBreak(nsIRenderingContext *aRenderingContext)
 }
 
 void
-nsIFrame::InlineMinWidthData::OptionallyBreak(nsIRenderingContext *aRenderingContext,
-                                              nscoord aHyphenWidth)
+nsIFrame::InlineMinWidthData::OptionallyBreak(nsIRenderingContext *aRenderingContext)
 {
   trailingTextFrame = nsnull;
 
@@ -3194,9 +3194,8 @@ nsIFrame::InlineMinWidthData::OptionallyBreak(nsIRenderingContext *aRenderingCon
   
   
   
-  if (currentLine + aHyphenWidth < 0 || atStartOfLine)
+  if (currentLine < 0 || atStartOfLine)
     return;
-  currentLine += aHyphenWidth;
   ForceBreak(aRenderingContext);
 }
 
@@ -3947,23 +3946,26 @@ nsIFrame::IsLeaf() const
   return PR_TRUE;
 }
 
-void
+Layer*
 nsIFrame::InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey)
 {
   NS_ASSERTION(aDisplayItemKey > 0, "Need a key");
 
-  if (!FrameLayerBuilder::HasDedicatedLayer(this, aDisplayItemKey)) {
+  Layer* layer = FrameLayerBuilder::GetDedicatedLayer(this, aDisplayItemKey);
+  if (!layer) {
     Invalidate(aDamageRect);
-    return;
+    return nsnull;
   }
 
   PRUint32 flags = INVALIDATE_NO_THEBES_LAYERS;
   if (aDisplayItemKey == nsDisplayItem::TYPE_VIDEO ||
-      aDisplayItemKey == nsDisplayItem::TYPE_PLUGIN) {
+      aDisplayItemKey == nsDisplayItem::TYPE_PLUGIN ||
+      aDisplayItemKey == nsDisplayItem::TYPE_CANVAS) {
     flags |= INVALIDATE_NO_UPDATE_LAYER_TREE;
   }
 
   InvalidateWithFlags(aDamageRect, flags);
+  return layer;
 }
 
 void
@@ -3972,7 +3974,7 @@ nsIFrame::InvalidateTransformLayer()
   NS_ASSERTION(mParent, "How can a viewport frame have a transform?");
 
   PRBool hasLayer =
-      FrameLayerBuilder::HasDedicatedLayer(this, nsDisplayItem::TYPE_TRANSFORM);
+      FrameLayerBuilder::GetDedicatedLayer(this, nsDisplayItem::TYPE_TRANSFORM) != nsnull;
   
   
   
@@ -5541,6 +5543,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       
       
       PeekWordState state;
+      PRInt32 offsetAdjustment = 0;
       PRBool done = PR_FALSE;
       while (!done) {
         PRBool movingInFrameDirection =
@@ -5562,6 +5565,13 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
           if (NS_FAILED(result) ||
               (jumpedLine && !wordSelectEatSpace && state.mSawBeforeType)) {
             done = PR_TRUE;
+            
+            
+            if (jumpedLine && wordSelectEatSpace &&
+                current->HasTerminalNewline() &&
+                current->GetStyleText()->NewlineIsSignificant()) {
+              offsetAdjustment = -1;
+            }
           } else {
             if (jumpedLine) {
               state.mContext.Truncate();
@@ -5580,7 +5590,7 @@ nsIFrame::PeekOffset(nsPeekOffsetStruct* aPos)
       aPos->mResultFrame = current;
       aPos->mResultContent = range.content;
       
-      aPos->mContentOffset = offset < 0 ? range.end : range.start + offset;
+      aPos->mContentOffset = (offset < 0 ? range.end : range.start + offset) + offsetAdjustment;
       break;
     }
     case eSelectLine :
