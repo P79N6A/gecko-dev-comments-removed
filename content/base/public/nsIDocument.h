@@ -62,6 +62,7 @@
 #ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
 #endif 
+#include "nsIScriptGlobalObject.h"
 
 class nsIContent;
 class nsPresContext;
@@ -72,7 +73,6 @@ class nsIStyleSheet;
 class nsIStyleRule;
 class nsCSSStyleSheet;
 class nsIViewManager;
-class nsIScriptGlobalObject;
 class nsIDOMEvent;
 class nsIDOMEventTarget;
 class nsIDeviceContext;
@@ -116,8 +116,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xeb847679, 0x3b48, 0x411c, \
-  { 0xa9, 0xb8, 0x8a, 0xdc, 0xdb, 0xc6, 0x47, 0xb8 } }
+{ 0xdf6c0752, 0xe780, 0x4576, \
+  { 0x95, 0x3c, 0x7e, 0xf1, 0xde, 0x9f, 0xd7, 0xf0 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -629,8 +629,13 @@ public:
 
 
 
-  virtual nsIScriptGlobalObject*
-    GetScriptHandlingObject(PRBool& aHasHadScriptHandlingObject) const = 0;
+  nsIScriptGlobalObject*
+    GetScriptHandlingObject(PRBool& aHasHadScriptHandlingObject) const
+  {
+    aHasHadScriptHandlingObject = mHasHadScriptHandlingObject;
+    return mScriptGlobalObject ? mScriptGlobalObject.get() :
+                                 GetScriptHandlingObjectInternal();
+  }
   virtual void SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject) = 0;
 
   
@@ -1385,6 +1390,9 @@ protected:
   virtual nsPIDOMWindow *GetInnerWindowInternal() = 0;
 
   
+  virtual nsIScriptGlobalObject* GetScriptHandlingObjectInternal() const = 0;
+
+  
 
 
 
@@ -1487,6 +1495,14 @@ protected:
 
   
   PRPackedBool mCreatingStaticClone;
+
+  
+  PRPackedBool mHasHadScriptHandlingObject;
+
+  
+  
+  
+  nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
 
   
   

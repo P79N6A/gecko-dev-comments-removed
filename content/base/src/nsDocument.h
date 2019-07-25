@@ -644,8 +644,6 @@ public:
   virtual nsIScriptGlobalObject* GetScriptGlobalObject() const;
   virtual void SetScriptGlobalObject(nsIScriptGlobalObject* aGlobalObject);
 
-  virtual nsIScriptGlobalObject*
-    GetScriptHandlingObject(PRBool& aHasHadScriptHandlingObject) const;
   virtual void SetScriptHandlingObject(nsIScriptGlobalObject* aScriptObject);
 
   virtual nsIScriptGlobalObject* GetScopeObject();
@@ -1011,6 +1009,7 @@ protected:
 
   virtual nsPIDOMWindow *GetWindowInternal();
   virtual nsPIDOMWindow *GetInnerWindowInternal();
+  virtual nsIScriptGlobalObject* GetScriptHandlingObjectInternal() const;
 
 #define NS_DOCUMENT_NOTIFY_OBSERVERS(func_, params_)                  \
   NS_OBSERVER_ARRAY_NOTIFY_OBSERVERS(mObservers, nsIDocumentObserver, \
@@ -1053,11 +1052,6 @@ protected:
   
   
   
-  nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
-
-  
-  
-  
   nsWeakPtr mScriptObject;
 
   
@@ -1085,8 +1079,6 @@ protected:
   PRPackedBool mIsGoingAway:1;
   
   PRPackedBool mInDestructor:1;
-  
-  PRPackedBool mHasHadScriptHandlingObject:1;
 
   
   
