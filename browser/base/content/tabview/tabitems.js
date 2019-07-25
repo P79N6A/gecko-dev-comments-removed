@@ -68,9 +68,8 @@ function TabItem(tab, options) {
     )
     .appendTo('body');
 
-  this._cachedImageData = null;
-  this.shouldHideCachedData = false;
   this.canvasSizeForced = false;
+  this.isShowingCachedData = false;
   this.favEl = (iQ('.favicon', $div))[0];
   this.favImgEl = (iQ('.favicon>img', $div))[0];
   this.nameEl = (iQ('.tab-title', $div))[0];
@@ -188,10 +187,9 @@ function TabItem(tab, options) {
     if (!same)
       return;
 
-    
-    if (iQ(e.target).hasClass("close") || e.button == 1) {
+    if (iQ(e.target).hasClass("close"))
       self.close();
-    } else {
+    else {
       if (!Items.item(this).isDragging)
         self.zoomIn();
     }
@@ -247,29 +245,12 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  isShowingCachedData: function() {
-    return (this._cachedImageData != null);
-  },
-
-  
-  
-  
-  
-  
-  
-  
   showCachedData: function TabItem_showCachedData(tabData) {
-    if (!this._cachedImageData) {
-      TabItems.cachedDataCounter++;
-      this.tab.linkedBrowser._tabViewTabItemWithCachedData = this;
-      if (TabItems.cachedDataCounter == 1)
-        gBrowser.addTabsProgressListener(TabItems.tabsProgressListener);
-    }
-    this._cachedImageData = tabData.imageData;
-    let $nameElement = iQ(this.nameEl);
-    let $canvasElement = iQ(this.canvasEl);
-    let $cachedThumbElement = iQ(this.cachedThumbEl);
-    $cachedThumbElement.attr("src", this._cachedImageData).show();
+    this.isShowingCachedData = true;
+    var $nameElement = iQ(this.nameEl);
+    var $canvasElement = iQ(this.canvasEl);
+    var $cachedThumbElement = iQ(this.cachedThumbEl);
+    $cachedThumbElement.attr("src", tabData.imageData).show();
     $canvasElement.css({opacity: 0.0});
     $nameElement.text(tabData.title ? tabData.title : "");
   },
@@ -278,17 +259,11 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   hideCachedData: function TabItem_hideCachedData() {
-    let $canvasElement = iQ(this.canvasEl);
-    let $cachedThumbElement = iQ(this.cachedThumbEl);
+    var $canvasElement = iQ(this.canvasEl);
+    var $cachedThumbElement = iQ(this.cachedThumbEl);
     $cachedThumbElement.hide();
     $canvasElement.css({opacity: 1.0});
-    if (this._cachedImageData) {
-      TabItems.cachedDataCounter--;
-      this._cachedImageData = null;
-      this.tab.linkedBrowser._tabViewTabItemWithCachedData = null;
-      if (TabItems.cachedDataCounter == 0)
-        gBrowser.removeTabsProgressListener(TabItems.tabsProgressListener);
-    }
+    this.isShowingCachedData = false;
   },
 
   
@@ -298,21 +273,13 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   getStorageData: function TabItem_getStorageData(getImageData) {
-    let imageData = null;
-
-    if (getImageData) { 
-      if (this._cachedImageData)
-        imageData = this._cachedImageData;
-      else if (this.tabCanvas)
-        imageData = this.tabCanvas.toImageData();
-    }
-
     return {
       bounds: this.getBounds(),
       userSize: (Utils.isPoint(this.userSize) ? new Point(this.userSize) : null),
       url: this.tab.linkedBrowser.currentURI.spec,
       groupID: (this.parent ? this.parent.id : 0),
-      imageData: imageData,
+      imageData: (getImageData && this.tabCanvas ?
+                  this.tabCanvas.toImageData() : null),
       title: getImageData && this.tab.label || null
     };
   },
@@ -735,8 +702,6 @@ let TabItems = {
   fontSize: 9,
   items: [],
   paintingPaused: 0,
-  cachedDataCounter: 0,  
-  tabsProgressListener: null,
   _tabsWaitingForUpdate: [],
   _heartbeatOn: false, 
   _heartbeatTiming: 100, 
@@ -749,7 +714,7 @@ let TabItems = {
   
   init: function TabItems_init() {
     Utils.assert(window.AllTabs, "AllTabs must be initialized first");
-    let self = this;
+    var self = this;
 
     let $canvas = iQ("<canvas>");
     $canvas.appendTo(iQ("body"));
@@ -759,18 +724,6 @@ let TabItems = {
     
     this.tempCanvas.width = 150;
     this.tempCanvas.height = 150;
-
-    this.tabsProgressListener = {
-      onStateChange: function(browser, webProgress, request, stateFlags, status) {
-        if ((stateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
-            (stateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)) {
-          
-          
-          if (browser._tabViewTabItemWithCachedData)
-            browser._tabViewTabItemWithCachedData.shouldHideCachedData = true;
-        }
-      }
-    };
 
     
     this._eventListeners["open"] = function(tab) {
@@ -811,9 +764,6 @@ let TabItems = {
   
   
   uninit: function TabItems_uninit() {
-    if (this.tabsProgressListener)
-      gBrowser.removeTabsProgressListener(this.tabsProgressListener);
-
     for (let name in this._eventListeners) {
       AllTabs.unregister(name, this._eventListeners[name]);
     }
@@ -846,7 +796,7 @@ let TabItems = {
       );
 
       let isCurrentTab = (
-        !UI.isTabViewVisible() &&
+        !UI._isTabViewVisible() &&
         tab == gBrowser.selectedTab
       );
 
@@ -879,7 +829,7 @@ let TabItems = {
 
       
       let iconUrl = tab.image;
-      if (!iconUrl)
+      if (iconUrl == null)
         iconUrl = Utils.defaultFaviconURL;
 
       if (iconUrl != tabItem.favImgEl.src)
@@ -900,7 +850,7 @@ let TabItems = {
       
       let label = tab.label;
       let $name = iQ(tabItem.nameEl);
-      if (!tabItem.isShowingCachedData() && $name.text() != label)
+      if (!tabItem.isShowingCachedData && $name.text() != label)
         $name.text(label);
 
       
@@ -920,7 +870,8 @@ let TabItems = {
       tabItem.tabCanvas.paint();
 
       
-      if (tabItem.isShowingCachedData() && tabItem.shouldHideCachedData)
+      
+      if (tabItem.isShowingCachedData && !tab.hasAttribute("busy"))
         tabItem.hideCachedData();
     } catch(e) {
       Utils.log(e);
@@ -1139,8 +1090,16 @@ let TabItems = {
           }
         }
 
-        if (tabData.imageData)
+        if (tabData.imageData) {
           item.showCachedData(tabData);
+          
+          
+          setTimeout(function() {
+            if (item && item.isShowingCachedData) {
+              item.hideCachedData();
+            }
+          }, 15000);
+        }
 
         item.reconnected = true;
         found = {addedToGroup: tabData.groupID};

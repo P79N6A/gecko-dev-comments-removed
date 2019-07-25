@@ -148,8 +148,7 @@ let UI = {
       iQ(gTabViewFrame.contentDocument).mousedown(function(e) {
         if (iQ(":focus").length > 0) {
           iQ(":focus").each(function(element) {
-            
-            if (e.target != element && element.nodeName == "INPUT")
+            if (element.nodeName == "INPUT")
               element.blur();
           });
         }
@@ -211,7 +210,7 @@ let UI = {
       var observer = {
         observe : function(subject, topic, data) {
           if (topic == "quit-application-requested") {
-            if (self.isTabViewVisible()) {
+            if (self._isTabViewVisible()) {
               GroupItems.removeHiddenGroups();
               TabItems.saveAll(true);
             }
@@ -382,7 +381,7 @@ let UI = {
   
   
   
-  isTabViewVisible: function UI_isTabViewVisible() {
+  _isTabViewVisible: function UI__isTabViewVisible() {
     return gTabViewDeck.selectedIndex == 1;
   },
 
@@ -403,7 +402,7 @@ let UI = {
   
   
   showTabView: function UI_showTabView(zoomOut) {
-    if (this.isTabViewVisible())
+    if (this._isTabViewVisible())
       return;
 
     
@@ -469,7 +468,7 @@ let UI = {
   
   
   hideTabView: function UI_hideTabView() {
-    if (!this.isTabViewVisible())
+    if (!this._isTabViewVisible())
       return;
 
     
@@ -568,8 +567,8 @@ let UI = {
         self._privateBrowsing.transitionStage = 3;
         if (aData == "enter") {
           
-          self._privateBrowsing.wasInTabView = self.isTabViewVisible();
-          if (self.isTabViewVisible())
+          self._privateBrowsing.wasInTabView = self._isTabViewVisible();
+          if (self._isTabViewVisible())
             self.goToTab(gBrowser.selectedTab);
         }
       } else if (aTopic == "private-browsing-change-granted") {
@@ -607,7 +606,7 @@ let UI = {
       if (tab.pinned)
         GroupItems.removeAppTab(tab);
         
-      if (self.isTabViewVisible()) {
+      if (self._isTabViewVisible()) {
         
         if (self._currentTab == tab)
           self._closedSelectedTabInTabView = true;
@@ -720,7 +719,7 @@ let UI = {
     this._currentTab = tab;
 
     
-    if (this.isTabViewVisible() &&
+    if (this._isTabViewVisible() &&
         (this._closedLastVisibleTab || this._closedSelectedTabInTabView)) {
       this._closedLastVisibleTab = false;
       this._closedSelectedTabInTabView = false;
@@ -732,7 +731,7 @@ let UI = {
 
     
     
-    if (this.isTabViewVisible())
+    if (this._isTabViewVisible())
       this.hideTabView();
 
     
@@ -790,7 +789,7 @@ let UI = {
   
   
   setReorderTabsOnHide: function UI_setReorderTabsOnHide(groupItem) {
-    if (this.isTabViewVisible()) {
+    if (this._isTabViewVisible()) {
       var index = this._reorderTabsOnHide.indexOf(groupItem);
       if (index == -1)
         this._reorderTabsOnHide.push(groupItem);
@@ -804,7 +803,7 @@ let UI = {
   
   
   setReorderTabItemsOnShow: function UI_setReorderTabItemsOnShow(groupItem) {
-    if (!this.isTabViewVisible()) {
+    if (!this._isTabViewVisible()) {
       var index = this._reorderTabItemsOnShow.indexOf(groupItem);
       if (index == -1)
         this._reorderTabItemsOnShow.push(groupItem);
@@ -812,13 +811,10 @@ let UI = {
   },
   
   
-  updateTabButton: function UI__updateTabButton() {
+  updateTabButton: function UI__updateTabButton(){
     let groupsNumber = gWindow.document.getElementById("tabviewGroupsNumber");
-    let exitButton = document.getElementById("exit-button");
     let numberOfGroups = GroupItems.groupItems.length;
-
     groupsNumber.setAttribute("groups", numberOfGroups);
-    exitButton.setAttribute("groups", numberOfGroups);
   },
 
   
@@ -855,8 +851,7 @@ let UI = {
       if (event.metaKey) 
         Keys.meta = true;
 
-      if ((iQ(":focus").length > 0 && iQ(":focus")[0].nodeName == "INPUT") || 
-          isSearchEnabled())
+      if (isSearchEnabled())
         return;
 
       function getClosestTabBy(norm) {
@@ -1088,7 +1083,7 @@ let UI = {
 
     
     
-    if (!force && !this.isTabViewVisible())
+    if (!force && !this._isTabViewVisible())
       return;
 
     var oldPageBounds = new Rect(this._pageBounds);
