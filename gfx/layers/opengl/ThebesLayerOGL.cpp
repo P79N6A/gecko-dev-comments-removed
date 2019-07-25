@@ -969,7 +969,7 @@ ShadowThebesLayerOGL::~ShadowThebesLayerOGL()
 bool
 ShadowThebesLayerOGL::ShouldDoubleBuffer()
 {
-#ifdef ANDROID
+#ifdef MOZ_JAVA_COMPOSITOR
   
 
 
