@@ -38,8 +38,6 @@
 #ifndef json_h___
 #define json_h___
 
-
-
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsvalue.h"
