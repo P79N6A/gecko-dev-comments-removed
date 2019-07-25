@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsFilter.h"
 #include "nsIDOMClassInfo.h"
 #include "Constants.h"
@@ -66,6 +34,7 @@ SmsFilter::SmsFilter()
   mData.startDate() = 0;
   mData.endDate() = 0;
   mData.delivery() = eDeliveryState_Unknown;
+  mData.read() = eReadState_Unknown;
 }
 
 SmsFilter::SmsFilter(const SmsFilterData& aData)
@@ -257,6 +226,35 @@ SmsFilter::SetDelivery(const nsAString& aDelivery)
   }
 
   return NS_ERROR_INVALID_ARG;
+}
+
+NS_IMETHODIMP
+SmsFilter::GetRead(JSContext* aCx, jsval* aRead)
+{
+  if (mData.read() == eReadState_Unknown) {
+    *aRead = JSVAL_VOID;
+    return NS_OK;
+  }
+
+  aRead->setBoolean(mData.read());
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsFilter::SetRead(JSContext* aCx, const jsval& aRead)
+{
+  if (aRead == JSVAL_VOID) {
+    mData.read() = eReadState_Unknown;
+    return NS_OK;
+  }
+
+  if (!aRead.isBoolean()) {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  mData.read() = aRead.toBoolean() ? eReadState_Read : eReadState_Unread;
+  return NS_OK;
 }
 
 } 

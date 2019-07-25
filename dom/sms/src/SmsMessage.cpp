@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsMessage.h"
 #include "nsIDOMClassInfo.h"
 #include "jsapi.h" 
@@ -59,8 +26,8 @@ NS_IMPL_RELEASE(SmsMessage)
 
 SmsMessage::SmsMessage(PRInt32 aId, DeliveryState aDelivery,
                        const nsString& aSender, const nsString& aReceiver,
-                       const nsString& aBody, PRUint64 aTimestamp)
-  : mData(aId, aDelivery, aSender, aReceiver, aBody, aTimestamp)
+                       const nsString& aBody, PRUint64 aTimestamp, bool aRead)
+  : mData(aId, aDelivery, aSender, aReceiver, aBody, aTimestamp, aRead)
 {
 }
 
@@ -76,6 +43,7 @@ SmsMessage::Create(PRInt32 aId,
                    const nsAString& aReceiver,
                    const nsAString& aBody,
                    const jsval& aTimestamp,
+                   const bool aRead,
                    JSContext* aCx,
                    nsIDOMMozSmsMessage** aMessage)
 {
@@ -88,6 +56,7 @@ SmsMessage::Create(PRInt32 aId,
   data.sender() = nsString(aSender);
   data.receiver() = nsString(aReceiver);
   data.body() = nsString(aBody);
+  data.read() = aRead;
 
   if (aDelivery.Equals(DELIVERY_RECEIVED)) {
     data.delivery() = eDeliveryState_Received;
@@ -178,6 +147,13 @@ NS_IMETHODIMP
 SmsMessage::GetTimestamp(JSContext* cx, jsval* aDate)
 {
   *aDate = OBJECT_TO_JSVAL(JS_NewDateObjectMsec(cx, mData.timestamp()));
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsMessage::GetRead(bool* aRead)
+{
+  *aRead = mData.read();
   return NS_OK;
 }
 

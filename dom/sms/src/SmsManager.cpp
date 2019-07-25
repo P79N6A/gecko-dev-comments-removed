@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsFilter.h"
 #include "SmsManager.h"
 #include "nsIDOMClassInfo.h"
@@ -312,6 +280,29 @@ SmsManager::GetMessages(nsIDOMMozSmsFilter* aFilter, bool aReverse,
   NS_ENSURE_TRUE(smsDBService, NS_ERROR_FAILURE);
 
   smsDBService->CreateMessageList(filter, aReverse, requestId, 0);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsManager::MarkMessageRead(PRInt32 aId, bool aValue,
+                            nsIDOMMozSmsRequest** aRequest)
+{
+  nsCOMPtr<nsISmsRequestManager> requestManager =
+    do_GetService(SMS_REQUEST_MANAGER_CONTRACTID);
+
+  PRInt32 requestId;
+  nsresult rv = requestManager->CreateRequest(this, aRequest, &requestId);
+  if (NS_FAILED(rv)) {
+    NS_ERROR("Failed to create the request!");
+    return rv;
+  }
+
+  nsCOMPtr<nsISmsDatabaseService> smsDBService =
+    do_GetService(SMS_DATABASE_SERVICE_CONTRACTID);
+  NS_ENSURE_TRUE(smsDBService, NS_ERROR_FAILURE);
+
+  smsDBService->MarkMessageRead(aId, aValue, requestId, 0);
 
   return NS_OK;
 }

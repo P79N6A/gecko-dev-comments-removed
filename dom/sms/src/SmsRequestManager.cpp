@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsRequestManager.h"
 #include "nsIDOMSmsMessage.h"
 #include "nsDOMEvent.h"
@@ -242,6 +210,18 @@ SmsRequestManager::NotifyReadMessageListFailed(PRInt32 aRequestId, PRInt32 aErro
     static_cast<SmsCursor*>(cursor.get())->Disconnect();
   }
 
+  return NotifyError(aRequestId, aError);
+}
+
+NS_IMETHODIMP
+SmsRequestManager::NotifyMarkedMessageRead(PRInt32 aRequestId, bool aRead)
+{
+  return NotifySuccess<bool>(aRequestId, aRead);
+}
+
+NS_IMETHODIMP
+SmsRequestManager::NotifyMarkMessageReadFailed(PRInt32 aRequestId, PRInt32 aError)
+{
   return NotifyError(aRequestId, aError);
 }
 

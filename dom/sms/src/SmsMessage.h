@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_sms_SmsMessage_h
 #define mozilla_dom_sms_SmsMessage_h
 
@@ -56,7 +24,7 @@ public:
 
   SmsMessage(PRInt32 aId, DeliveryState aDelivery, const nsString& aSender,
              const nsString& aReceiver, const nsString& aBody,
-             PRUint64 aTimestamp);
+             PRUint64 aTimestamp, bool aRead);
   SmsMessage(const SmsMessageData& aData);
 
   static nsresult Create(PRInt32 aId,
@@ -65,6 +33,7 @@ public:
                          const nsAString& aReceiver,
                          const nsAString& aBody,
                          const JS::Value& aTimestamp,
+                         const bool aRead,
                          JSContext* aCx,
                          nsIDOMMozSmsMessage** aMessage);
   const SmsMessageData& GetData() const;
