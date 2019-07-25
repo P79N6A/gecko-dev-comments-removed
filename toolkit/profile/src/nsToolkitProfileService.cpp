@@ -723,9 +723,11 @@ nsToolkitProfileService::CreateProfile(nsILocalFile* aRootDir,
             rv = rootDir->Create(nsIFile::DIRECTORY_TYPE, 0700);
             NS_ENSURE_SUCCESS(rv, rv);
         }
-      
         rv = rootDir->SetPermissions(0700);
+#ifndef ANDROID      
+        
         NS_ENSURE_SUCCESS(rv, rv);
+#endif
     }
 
     rv = localDir->Exists(&exists);
