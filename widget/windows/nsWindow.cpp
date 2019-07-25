@@ -133,6 +133,7 @@
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
 #include "nsIMM32Handler.h"
+#include "WinMouseScrollHandler.h"
 #include "nsILocalFile.h"
 #include "nsFontMetrics.h"
 #include "nsIFontEnumerator.h"
@@ -427,27 +428,22 @@ nsWindow::nsWindow() : nsBaseWidget()
     
     
     mozilla::widget::WinTaskbar::RegisterAppUserModelID();
-
     gKbdLayout.LoadLayout(::GetKeyboardLayout(0));
-
     
     nsIMM32Handler::Initialize();
-
 #ifdef NS_ENABLE_TSF
     nsTextStore::Initialize();
 #endif
-
-    if (SUCCEEDED(::OleInitialize(NULL)))
+    if (SUCCEEDED(::OleInitialize(NULL))) {
       sIsOleInitialized = TRUE;
+    }
     NS_ASSERTION(sIsOleInitialized, "***** OLE is not initialized!\n");
-
     InitInputWorkaroundPrefDefaults();
-
+    MouseScrollHandler::Initialize();
     
     nsUXThemeData::InitTitlebarInfo();
     
     nsUXThemeData::UpdateNativeThemeInfo();
-
     ForgetRedirectedKeyDownMessage();
   } 
 
@@ -4525,6 +4521,11 @@ bool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
   bool eatMessage;
   if (nsIMM32Handler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
                                      eatMessage)) {
+    return mWnd ? eatMessage : true;
+  }
+
+  if (MouseScrollHandler::ProcessMessage(this, msg, wParam, lParam, aRetValue,
+                                         eatMessage)) {
     return mWnd ? eatMessage : true;
   }
 
