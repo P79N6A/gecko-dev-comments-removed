@@ -94,7 +94,7 @@ ic::GetGlobalName(VMFrame &f, uint32 index)
 
     
     JSC::RepatchBuffer repatch(mic.entry.executableAddress(), 50);
-    repatch.repatch(mic.shape, reinterpret_cast<void*>(shape));
+    repatch.repatch(mic.shape, shape);
 
     
     JS_ASSERT(slot >= JS_INITIAL_NSLOTS);
@@ -159,7 +159,7 @@ ic::SetGlobalName(VMFrame &f, uint32 index)
 
     
     JSC::RepatchBuffer repatch(mic.entry.executableAddress(), 50);
-    repatch.repatch(mic.shape, reinterpret_cast<void*>(shape));
+    repatch.repatch(mic.shape, shape);
 
     
     JS_ASSERT(slot >= JS_INITIAL_NSLOTS);
@@ -311,4 +311,40 @@ ic::CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fu
 
 #endif 
 
+void
+ic::PurgeMICs(JSContext *cx, JSScript *script)
+{
+    
+    JS_ASSERT(cx->runtime->gcRegenShapes);
+
+    uint32 nmics = script->numMICs();
+    for (uint32 i = 0; i < nmics; i++) {
+        ic::MICInfo &mic = script->mics[i];
+        switch (mic.kind) {
+          case ic::MICInfo::SET:
+          case ic::MICInfo::GET:
+          {
+            
+            JSC::RepatchBuffer repatch(mic.entry.executableAddress(), 50);
+            repatch.repatch(mic.shape, int(JSObjectMap::INVALID_SHAPE));
+
+            
+
+
+
+            break;
+          }
+          case ic::MICInfo::CALL:
+          case ic::MICInfo::EMPTYCALL:
+          case ic::MICInfo::TRACER:
+            
+            break;
+          default:
+            JS_NOT_REACHED("Unknown MIC type during purge");
+            break;
+        }
+    }
+}
+
 #endif 
+

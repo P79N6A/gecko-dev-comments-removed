@@ -82,7 +82,7 @@ struct MICInfo {
 
     
     JSC::CodeLocationLabel load;
-    JSC::CodeLocationDataLabelPtr shape;
+    JSC::CodeLocationDataLabel32 shape;
     JSC::CodeLocationCall stubCall;
 #if defined JS_PUNBOX64
     uint32 patchValueOffset;
@@ -161,6 +161,8 @@ class NativeCallCompiler
 void CallFastNative(JSContext *cx, JSScript *script, MICInfo &mic, JSFunction *fun, bool isNew);
 
 #endif 
+
+void PurgeMICs(JSContext *cx, JSScript *script);
 
 } 
 } 
