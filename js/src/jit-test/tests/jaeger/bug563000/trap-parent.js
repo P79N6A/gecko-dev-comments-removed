@@ -3,7 +3,7 @@ setDebug(true);
 x = "notset";
 function child() {
   
-  trap(parent, 26, "success()");
+  trap(parent, 19, "success()");
 }
 function parent() {
   child();
