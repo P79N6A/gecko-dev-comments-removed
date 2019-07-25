@@ -198,7 +198,7 @@ def Compilable(filename):
   return os.path.splitext(filename)[1] in COMPILABLE_EXTENSIONS
 
 class MakefileGenerator(object):
-  def __init__(self, target_dicts, data, options, depth, topsrcdir, relative_topsrcdir, relative_srcdir, output_dir, flavor):
+  def __init__(self, target_dicts, data, options, depth, topsrcdir, relative_topsrcdir, relative_srcdir, output_dir, topsrcdir_header):
     self.target_dicts = target_dicts
     self.data = data
     self.options = options
@@ -208,7 +208,7 @@ class MakefileGenerator(object):
     self.relative_topsrcdir = swapslashes(relative_topsrcdir)
     self.srcdir = swapslashes(os.path.join(topsrcdir, relative_srcdir))
     self.output_dir = output_dir
-    self.flavor = flavor
+    self.topsrcdir_header = topsrcdir_header
     
     self.dirs = []
     
@@ -369,10 +369,7 @@ class MakefileGenerator(object):
     else:
       
       return False
-    if self.flavor == 'win':
-      top = self.relative_topsrcdir
-    else:
-      top = self.topsrcdir
+    top = self.topsrcdir_header
     WriteMakefile(output_file, data, build_file, depth, top,
                   
                   
@@ -391,6 +388,11 @@ def GenerateOutput(target_list, target_dicts, data, params):
   
   objdir = os.path.abspath(generator_flags['OBJDIR'] if 'OBJDIR' in generator_flags else '.')
   
+  
+  
+  topsrcdir_header = generator_flags['TOPSRCDIR'] if 'TOPSRCDIR' in generator_flags else topsrcdir
+  topsrcdir_header = topsrcdir_header[1:3] + topsrcdir_header[4:]
+  
   relative_topsrcdir = gyp.common.RelativePath(topsrcdir, objdir)
   
   gyp_file_dir = os.path.abspath(os.path.dirname(params['build_files'][0]) or '.')
@@ -399,7 +401,7 @@ def GenerateOutput(target_list, target_dicts, data, params):
   
   srcdir = gyp.common.RelativePath(gyp_file_dir, objdir)
   
-  abs_srcdir = topsrcdir + "/" + relative_srcdir
+  abs_srcdir = topsrcdir_header + "/" + relative_srcdir
   
   depth = getdepth(relative_srcdir)
   
@@ -422,23 +424,17 @@ def GenerateOutput(target_list, target_dicts, data, params):
       build_file_, _, _ = gyp.common.ParseQualifiedTarget(target)
       build_files.add(topsrcdir_path(build_file_))
 
-  generator = MakefileGenerator(target_dicts, data, options, depth, topsrcdir, relative_topsrcdir, relative_srcdir, output_dir, flavor)
+  generator = MakefileGenerator(target_dicts, data, options, depth, topsrcdir, relative_topsrcdir, relative_srcdir, output_dir, topsrcdir_header)
   generator.ProcessTargets(needed_targets)
 
   
   topdata = {'DIRS': generator.dirs}
   if generator.parallel_dirs:
     topdata['PARALLEL_DIRS'] = generator.parallel_dirs
-  if flavor == 'win':
-    top = relative_topsrcdir
-    src = srcdir
-  else:
-    top = topsrcdir
-    src = abs_srcdir
   WriteMakefile(makefile_path, topdata, params['build_files'][0],
                 depth,
-                swapslashes(top),
-                swapslashes(src),
+                swapslashes(topsrcdir_header),
+                swapslashes(abs_srcdir),
                 swapslashes(relative_srcdir))
   scriptname = topsrcdir_path(__file__)
   
