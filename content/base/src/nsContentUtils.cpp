@@ -4803,8 +4803,12 @@ static void ProcessViewportToken(nsIDocument *aDocument,
     return;
 
   
-  const nsAString &key = Substring(tail, tip);
-  const nsAString &value = Substring(++tip, end);
+  const nsAString &key =
+    nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(Substring(tail, tip),
+                                                        PR_TRUE);
+  const nsAString &value =
+    nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(Substring(++tip, end),
+                                                        PR_TRUE);
 
   
 
@@ -4823,7 +4827,9 @@ static void ProcessViewportToken(nsIDocument *aDocument,
     aDocument->SetHeaderData(nsGkAtoms::viewport_user_scalable, value);
 }
 
-#define IS_SEPARATOR(c) ((c == ' ') || (c == ',') || (c == ';'))
+#define IS_SEPARATOR(c) ((c == '=') || (c == ',') || (c == ';') || \
+                         (c == '\t') || (c == '\n') || (c == '\r'))
+
 
 nsresult
 nsContentUtils::ProcessViewportInfo(nsIDocument *aDocument,
@@ -4839,12 +4845,12 @@ nsContentUtils::ProcessViewportInfo(nsIDocument *aDocument,
   viewportInfo.EndReading(end);
 
   
-  while ((tip != end) && IS_SEPARATOR(*tip))
+  while ((tip != end) && (IS_SEPARATOR(*tip) || nsCRT::IsAsciiSpace(*tip)))
     ++tip;
 
   
   while (tip != end) {
-    
+
     
     tail = tip;
 
@@ -4853,10 +4859,21 @@ nsContentUtils::ProcessViewportInfo(nsIDocument *aDocument,
       ++tip;
 
     
+    if ((tip != end) && (*tip == '=')) {
+      ++tip;
+
+      while ((tip != end) && nsCRT::IsAsciiSpace(*tip))
+        ++tip;
+
+      while ((tip != end) && !(IS_SEPARATOR(*tip) || nsCRT::IsAsciiSpace(*tip)))
+        ++tip;
+    }
+
+    
     ProcessViewportToken(aDocument, Substring(tail, tip));
 
     
-    while ((tip != end) && IS_SEPARATOR(*tip))
+    while ((tip != end) && (IS_SEPARATOR(*tip) || nsCRT::IsAsciiSpace(*tip)))
       ++tip;
   }
 
