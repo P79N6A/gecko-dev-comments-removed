@@ -949,16 +949,18 @@ var UIManager = {
           iQ(this).html((Trenches.showDebug ? "hide" : "show") + " trenches");
         }
       }, {
-        name: "refresh",
-        code: function() {
-          location.href = "tabview.html";
-        }
-      }, {
-        name: "reset",
-        code: function() {
-          self._reset();
-        }
-      }, {
+
+
+
+
+
+
+
+
+
+
+
+
         name: "save",
         code: function() {
           self._saveAll();
