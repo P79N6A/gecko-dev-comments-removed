@@ -602,7 +602,8 @@ public:
 
 
   void NotifyTitleChange(nsIURI* aURI,
-                         const nsString& title);
+                         const nsString& title,
+                         const nsACString& aGUID);
 
   bool isBatching() {
     return mBatchLevel > 0;

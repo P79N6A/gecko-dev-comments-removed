@@ -3098,7 +3098,9 @@ nsNavBookmarks::OnClearHistory()
 
 
 NS_IMETHODIMP
-nsNavBookmarks::OnTitleChanged(nsIURI* aURI, const nsAString& aPageTitle)
+nsNavBookmarks::OnTitleChanged(nsIURI* aURI,
+                               const nsAString& aPageTitle,
+                               const nsACString& aGUID)
 {
   
   
