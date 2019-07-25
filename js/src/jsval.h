@@ -261,6 +261,7 @@ typedef enum JSWhyMagic
     JS_GENERATOR_CLOSING,        
     JS_NO_CONSTANT,              
     JS_THIS_POISON,              
+    JS_ARG_POISON,               
     JS_SERIALIZE_NO_NODE,        
     JS_GENERIC_MAGIC             
 } JSWhyMagic;

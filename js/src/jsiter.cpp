@@ -76,6 +76,7 @@
 #endif
 
 #include "jscntxtinlines.h"
+#include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsstrinlines.h"
 
@@ -121,7 +122,7 @@ NativeIterator::mark(JSTracer *trc)
     else
         MarkValueRange(trc, beginValue(), endValue(), "props");
     if (obj)
-        MarkObject(trc, obj, "obj");
+        MarkObject(trc, *obj, "obj");
 }
 
 static void
@@ -1088,11 +1089,11 @@ generator_trace(JSTracer *trc, JSObject *obj)
     if (gen->state == JSGEN_RUNNING || gen->state == JSGEN_CLOSING)
         return;
 
-    JSStackFrame *fp = gen->getFloatingFrame();
-    JS_ASSERT(gen->getLiveFrame() == fp);
-    MarkValueRange(trc, gen->floatingStack, fp->argEnd(), "generator slots");
+    JSStackFrame *fp = gen->floatingFrame();
+    JS_ASSERT(gen->liveFrame() == fp);
+    MarkValueRange(trc, gen->floatingStack, fp->formalArgsEnd(), "generator slots");
     js_TraceStackFrame(trc, fp);
-    MarkValueRange(trc, fp->slots(), gen->savedRegs.sp, "generator slots");
+    MarkValueRange(trc, fp->slots(), gen->regs.sp, "generator slots");
 }
 
 Class js_GeneratorClass = {
@@ -1123,6 +1124,13 @@ Class js_GeneratorClass = {
     }
 };
 
+static inline void
+RebaseRegsFromTo(JSFrameRegs *regs, JSStackFrame *from, JSStackFrame *to)
+{
+    regs->fp = to;
+    regs->sp = to->slots() + (regs->sp - from->slots());
+}
+
 
 
 
@@ -1138,65 +1146,42 @@ js_NewGenerator(JSContext *cx)
     if (!obj)
         return NULL;
 
+    JSStackFrame *stackfp = cx->fp();
+    JS_ASSERT(stackfp->base() == cx->regs->sp);
+    JS_ASSERT(stackfp->actualArgs() <= stackfp->formalArgs());
+
     
-    JSStackFrame *fp = cx->fp();
-    uintN argc = fp->numActualArgs();
-    uintN nargs = JS_MAX(argc, fp->numFormalArgs());
-    uintN vplen = 2 + nargs;
+    Value *stackvp = stackfp->actualArgs() - 2;
+    uintN vplen = stackfp->formalArgsEnd() - stackvp;
 
     
     uintN nbytes = sizeof(JSGenerator) +
                    (-1 + 
                     vplen +
                     VALUES_PER_STACK_FRAME +
-                    fp->getSlotCount()) * sizeof(Value);
+                    stackfp->numSlots()) * sizeof(Value);
 
     JSGenerator *gen = (JSGenerator *) cx->malloc(nbytes);
     if (!gen)
         return NULL;
 
     
-    Value *vp = gen->floatingStack;
-    JSStackFrame *newfp = reinterpret_cast<JSStackFrame *>(vp + vplen);
-    Value *slots = newfp->slots();
+    Value *genvp = gen->floatingStack;
+    JSStackFrame *genfp = reinterpret_cast<JSStackFrame *>(genvp + vplen);
 
     
     gen->obj = obj;
     gen->state = JSGEN_NEWBORN;
-    gen->savedRegs.pc = cx->regs->pc;
-    JS_ASSERT(cx->regs->sp == fp->slots() + fp->getFixedCount());
-    gen->savedRegs.sp = slots + fp->getFixedCount();
-    gen->vplen = vplen;
     gen->enumerators = NULL;
-    gen->liveFrame = newfp;
+    gen->floating = genfp;
 
     
-    newfp->setCallObj(fp->maybeCallObj());
-    if (fp->hasCallObj()) {      
-        fp->getCallObj()->setPrivate(newfp);
-        fp->setCallObj(NULL);
-    }
-    newfp->setArgsObj(fp->maybeArgsObj());
-    if (fp->hasArgsObj()) {      
-        fp->getArgsObj()->setPrivate(newfp);
-        fp->setArgsObj(NULL);
-    }
-    newfp->setScript(fp->getScript());
-    newfp->setFunction(fp->getFunction());
-    newfp->setThisValue(fp->getThisValue());
-    newfp->setNumActualArgs(fp->numActualArgs());
-    newfp->argv = vp + 2;
-    newfp->setReturnValue(fp->getReturnValue());
-    newfp->setAnnotation(NULL);
-    newfp->setScopeChain(fp->maybeScopeChain());
-    JS_ASSERT(!fp->hasBlockChain());
-    newfp->setBlockChain(NULL);
-    newfp->flags = fp->flags | JSFRAME_GENERATOR | JSFRAME_FLOATING_GENERATOR;
-    JS_ASSERT(!newfp->hasIMacroPC());
+    gen->regs = *cx->regs;
+    RebaseRegsFromTo(&gen->regs, stackfp, genfp);
 
     
-    memcpy(vp, fp->argv - 2, vplen * sizeof(Value));
-    memcpy(slots, fp->slots(), fp->getFixedCount() * sizeof(Value));
+    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, cx->regs->sp);
+    genfp->initFloatingGenerator();
 
     obj->setPrivate(gen);
     return obj;
@@ -1205,8 +1190,8 @@ js_NewGenerator(JSContext *cx)
 JSGenerator *
 js_FloatingFrameToGenerator(JSStackFrame *fp)
 {
-    JS_ASSERT(fp->isGenerator() && fp->isFloatingGenerator());
-    char *floatingStackp = (char *)(fp->argv - 2);
+    JS_ASSERT(fp->isGeneratorFrame() && fp->isFloatingGenerator());
+    char *floatingStackp = (char *)(fp->actualArgs() - 2);
     char *p = floatingStackp - offsetof(JSGenerator, floatingStack);
     return reinterpret_cast<JSGenerator *>(p);
 }
@@ -1229,7 +1214,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
     if (gen->state == JSGEN_RUNNING || gen->state == JSGEN_CLOSING) {
         js_ReportValueError(cx, JSMSG_NESTING_GENERATOR,
                             JSDVG_SEARCH_STACK, ObjectOrNullValue(obj),
-                            JS_GetFunctionId(gen->getFloatingFrame()->getFunction()));
+                            JS_GetFunctionId(gen->floatingFrame()->fun()));
         return JS_FALSE;
     }
 
@@ -1246,7 +1231,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
 
 
 
-            gen->savedRegs.sp[-1] = arg;
+            gen->regs.sp[-1] = arg;
         }
         gen->state = JSGEN_RUNNING;
         break;
@@ -1263,96 +1248,63 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         break;
     }
 
-    JSStackFrame *genfp = gen->getFloatingFrame();
+    JSStackFrame *genfp = gen->floatingFrame();
+    Value *genvp = gen->floatingStack;
+    uintN vplen = genfp->formalArgsEnd() - genvp;
+
+    JSStackFrame *stackfp;
+    Value *stackvp;
     JSBool ok;
     {
-        Value *genVp = gen->floatingStack;
-        uintN vplen = gen->vplen;
-        uintN nfixed = genfp->getSlotCount();
-
         
 
 
 
-        FrameGuard frame;
-        if (!cx->stack().getExecuteFrame(cx, cx->maybefp(), vplen, nfixed, frame)) {
+        GeneratorFrameGuard frame;
+        if (!cx->stack().getGeneratorFrame(cx, vplen, genfp->numSlots(), &frame)) {
             gen->state = JSGEN_CLOSED;
             return JS_FALSE;
         }
-
-        Value *vp = frame.getvp();
-        JSStackFrame *fp = frame.getFrame();
-
-        
-
-
-
-        uintN usedBefore = gen->savedRegs.sp - genVp;
-        memcpy(vp, genVp, usedBefore * sizeof(Value));
-        fp->flags &= ~JSFRAME_FLOATING_GENERATOR;
-        fp->argv = vp + 2;
-        gen->savedRegs.sp = fp->slots() + (gen->savedRegs.sp - genfp->slots());
-        JS_ASSERT(uintN(gen->savedRegs.sp - fp->slots()) <= fp->getSlotCount());
-
-#ifdef DEBUG
-        JSObject *callobjBefore = fp->maybeCallObj();
-        JSObject *argsobjBefore = fp->maybeArgsObj();
-#endif
+        stackfp = frame.fp();
+        stackvp = frame.vp();
 
         
-
-
-
-
-
-        if (genfp->hasCallObj())
-            fp->getCallObj()->setPrivate(fp);
-        if (genfp->hasArgsObj())
-            fp->getArgsObj()->setPrivate(fp);
-        gen->liveFrame = fp;
-        (void)cx->enterGenerator(gen); 
+        stackfp->stealFrameAndSlots(stackvp, genfp, genvp, gen->regs.sp);
+        stackfp->repointGeneratorFrameDown(cx->maybefp());
+        stackfp->unsetFloatingGenerator();
+        RebaseRegsFromTo(&gen->regs, genfp, stackfp);
+        MUST_FLOW_THROUGH("restore");
 
         
-        cx->stack().pushExecuteFrame(cx, frame, gen->savedRegs, NULL);
+        cx->stack().pushGeneratorFrame(cx, &gen->regs, &frame);
 
-        
+        cx->enterGenerator(gen);   
         JSObject *enumerators = cx->enumerators;
         cx->enumerators = gen->enumerators;
 
-        ok = RunScript(cx, fp->maybeScript(), fp->maybeFunction(), fp->getScopeChain());
+        ok = RunScript(cx, stackfp->script(), stackfp->fun(), stackfp->scopeChain());
 
-        
         gen->enumerators = cx->enumerators;
         cx->enumerators = enumerators;
-
-        
         cx->leaveGenerator(gen);
-        gen->liveFrame = genfp;
-        if (fp->hasArgsObj())
-            fp->getArgsObj()->setPrivate(genfp);
-        if (fp->hasCallObj())
-            fp->getCallObj()->setPrivate(genfp);
-
-        JS_ASSERT_IF(argsobjBefore, argsobjBefore == fp->maybeArgsObj());
-        JS_ASSERT_IF(callobjBefore, callobjBefore == fp->maybeCallObj());
 
         
-        JS_ASSERT(uintN(gen->savedRegs.sp - fp->slots()) <= fp->getSlotCount());
-        uintN usedAfter = gen->savedRegs.sp - vp;
-        memcpy(genVp, vp, usedAfter * sizeof(Value));
-        genfp->flags |= JSFRAME_FLOATING_GENERATOR;
-        genfp->argv = genVp + 2;
-        gen->savedRegs.sp = genfp->slots() + (gen->savedRegs.sp - fp->slots());
-        JS_ASSERT(uintN(gen->savedRegs.sp - genfp->slots()) <= genfp->getSlotCount());
-    }
 
-    if (gen->getFloatingFrame()->flags & JSFRAME_YIELDING) {
+
+
+        genfp->stealFrameAndSlots(genvp, stackfp, stackvp, gen->regs.sp);
+        genfp->setFloatingGenerator();
+    }
+    MUST_FLOW_LABEL(restore)
+    RebaseRegsFromTo(&gen->regs, stackfp, genfp);
+
+    if (gen->floatingFrame()->isYielding()) {
         
         JS_ASSERT(ok);
         JS_ASSERT(!cx->throwing);
         JS_ASSERT(gen->state == JSGEN_RUNNING);
         JS_ASSERT(op != JSGENOP_CLOSE);
-        genfp->flags &= ~JSFRAME_YIELDING;
+        genfp->clearYielding();
         gen->state = JSGEN_OPEN;
         return JS_TRUE;
     }
@@ -1446,7 +1398,7 @@ generator_op(JSContext *cx, JSGeneratorOp op, Value *vp, uintN argc)
     bool undef = ((op == JSGENOP_SEND || op == JSGENOP_THROW) && argc != 0);
     if (!SendToGenerator(cx, op, obj, gen, undef ? vp[2] : UndefinedValue()))
         return JS_FALSE;
-    *vp = gen->getFloatingFrame()->getReturnValue();
+    *vp = gen->floatingFrame()->returnValue();
     return JS_TRUE;
 }
 

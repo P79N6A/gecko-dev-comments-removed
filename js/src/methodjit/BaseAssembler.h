@@ -323,17 +323,17 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     {
 #ifndef JS_CPU_ARM
         
-        push(Address(JSFrameReg, offsetof(JSStackFrame, ncode)));
+        push(Address(JSFrameReg, JSStackFrame::offsetOfncode()));
 #else
         
 
-        load32(Address(JSFrameReg, offsetof(JSStackFrame, ncode)), JSC::ARMRegisters::lr);
+        load32(Address(JSFrameReg, JSStackFrame::offsetOfncode()), JSC::ARMRegisters::lr);
 #endif
     }
 
     void saveReturnAddress(RegisterID reg)
     {
-        storePtr(reg, Address(JSFrameReg, offsetof(JSStackFrame, ncode)));
+        storePtr(reg, Address(JSFrameReg, JSStackFrame::offsetOfncode()));
     }
 
     void finalize(uint8 *ncode) {

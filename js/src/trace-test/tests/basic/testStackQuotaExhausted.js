@@ -1,24 +1,13 @@
-
 const numFatArgs = Math.pow(2,19) - 1024;
 
-const traceDepth = 490;
-
-var trace = true;
-
-function doEval() {
-    eval("");
-}
-
-function maybeTrace(x) {
-    if (!trace)
-        doEval();
+function fun(x) {
     if (x <= 0)
         return 0;
-    return maybeTrace(x-1);
+    return fun(x-1);
 }
 
 function fatStack() {
-    return maybeTrace(traceDepth);
+    return fun(10000);
 }
 
 function assertRightFailure(e) {
@@ -26,8 +15,6 @@ function assertRightFailure(e) {
              e.toString() == "InternalError: too much recursion",
 	     true);
 }
-
-
 
 exception = false;
 try {
@@ -40,14 +27,3 @@ assertEq(exception, true);
 
 
 checkStats({traceCompleted:0});
-
-
-trace = false;
-var exception = false;
-try {
-    fatStack.apply(null, new Array(numFatArgs));
-} catch (e) {
-    assertRightFailure(e);
-    exception = true;
-}
-assertEq(exception, true);

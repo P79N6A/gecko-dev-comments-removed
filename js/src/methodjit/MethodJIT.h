@@ -132,17 +132,6 @@ struct VMFrame
     JSRuntime *runtime() { return cx->runtime; }
 
     JSStackFrame *&fp() { return regs.fp; }
-
-    bool slowEnsureSpace(uint32 nslots);
-
-    bool ensureSpace(uint32 nmissing, uint32 nslots) {
-        
-        if (JS_LIKELY(regs.sp + VALUES_PER_STACK_FRAME + nmissing + nslots < stackLimit))
-            return true;
-
-        
-        return slowEnsureSpace(nmissing + nslots);
-    }
 };
 
 #ifdef JS_CPU_ARM

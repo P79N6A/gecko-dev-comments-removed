@@ -5432,7 +5432,7 @@ nsContentUtils::CanAccessNativeAnon()
     
     
     fp = nsnull;
-  } else if (!fp->hasScript()) {
+  } else if (!JS_IsScriptFrame(cx, fp)) {
     fp = nsnull;
   }
 
@@ -5447,8 +5447,8 @@ nsContentUtils::CanAccessNativeAnon()
   
   static const char prefix[] = "chrome://global/";
   const char *filename;
-  if (fp && fp->hasScript() &&
-      (filename = fp->getScript()->filename) &&
+  if (fp && JS_IsScriptFrame(cx, fp) &&
+      (filename = JS_GetFrameScript(cx, fp)->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return PR_TRUE;
   }

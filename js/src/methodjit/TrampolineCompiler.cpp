@@ -118,27 +118,20 @@ bool
 TrampolineCompiler::generateForceReturn(Assembler &masm)
 {
     
-    Jump noCallObj = masm.branchPtr(Assembler::Equal,
-                                    Address(JSFrameReg, JSStackFrame::offsetCallObj()),
-                                    ImmPtr(0));
-    masm.stubCall(stubs::PutCallObject, NULL, 0);
-    noCallObj.linkTo(masm.label(), &masm);
-
-    
-    Jump noArgsObj = masm.branchPtr(Assembler::Equal,
-                                    Address(JSFrameReg, JSStackFrame::offsetArgsObj()),
-                                    ImmIntPtr(0));
-    masm.stubCall(stubs::PutArgsObject, NULL, 0);
-    noArgsObj.linkTo(masm.label(), &masm);
+    Jump noActObjs = masm.branchTest32(Assembler::Zero,
+                                       Address(JSFrameReg, JSStackFrame::offsetOfFlags()),
+                                       Imm32(JSFRAME_HAS_CALL_OBJ | JSFRAME_HAS_ARGS_OBJ));
+    masm.stubCall(stubs::PutActivationObjects, NULL, 0);
+    noActObjs.linkTo(masm.label(), &masm);
 
     
 
 
 
-    masm.loadPtr(Address(JSFrameReg, offsetof(JSStackFrame, down)), Registers::ReturnReg);
+    masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), Registers::ReturnReg);
     masm.storePtr(Registers::ReturnReg, FrameAddress(offsetof(VMFrame, regs.fp)));
 
-    Address rval(JSFrameReg, JSStackFrame::offsetReturnValue());
+    Address rval(JSFrameReg, JSStackFrame::offsetOfReturnValue());
     masm.loadPayload(rval, JSReturnReg_Data);
     masm.loadTypeTag(rval, JSReturnReg_Type);
 
@@ -146,8 +139,8 @@ TrampolineCompiler::generateForceReturn(Assembler &masm)
 
     masm.move(Registers::ReturnReg, JSFrameReg);
 #ifdef DEBUG
-    masm.storePtr(ImmPtr(JSStackFrame::sInvalidPC),
-                  Address(JSFrameReg, offsetof(JSStackFrame, savedPC)));
+    masm.storePtr(ImmPtr(JSStackFrame::sInvalidpc),
+                  Address(JSFrameReg, JSStackFrame::offsetOfSavedpc()));
 #endif
 
     masm.ret();

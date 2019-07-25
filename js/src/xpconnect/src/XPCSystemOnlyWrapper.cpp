@@ -200,7 +200,7 @@ AllowedToAct(JSContext *cx, jsid id)
     
     
     fp = nsnull;
-  } else if (!fp->hasScript()) {
+  } else if (!JS_IsScriptFrame(cx, fp)) {
     fp = nsnull;
   }
 
@@ -215,7 +215,7 @@ AllowedToAct(JSContext *cx, jsid id)
   
   const char *filename;
   if (fp &&
-      (filename = fp->getScript()->filename) &&
+      (filename = JS_GetFrameScript(cx, fp)->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return JS_TRUE;
   }
@@ -246,7 +246,7 @@ CheckFilename(JSContext *cx, jsid id, JSStackFrame *fp)
 {
   const char *filename;
   if (fp &&
-      (filename = fp->getScript()->filename) &&
+      (filename = JS_GetFrameScript(cx, fp)->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return JS_TRUE;
   }
