@@ -4497,8 +4497,13 @@ var XULBrowserWindow = {
   setOverLink: function (url, anchorElt) {
     
     
-    this.overLink = url.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
-                                encodeURIComponent);
+    url = url.replace(/[\u200e\u200f\u202a\u202b\u202c\u202d\u202e]/g,
+                      encodeURIComponent);
+
+    if (gURLBar && gURLBar._mayTrimURLs )
+      url = trimURL(url);
+
+    this.overLink = url;
     LinkTargetDisplay.update();
   },
 
