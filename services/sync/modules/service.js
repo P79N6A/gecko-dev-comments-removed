@@ -435,7 +435,10 @@ WeaveSvc.prototype = {
     
     
     
-    Utils.delay(function() Svc.Obs.notify("weave:service:ready"), 0);
+    Utils.delay(function() {
+      Status.ready = true;
+      Svc.Obs.notify("weave:service:ready");
+    }, 0);
   },
 
   _checkSetup: function WeaveSvc__checkSetup() {
