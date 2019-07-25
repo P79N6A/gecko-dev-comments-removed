@@ -2329,7 +2329,6 @@ ProgressController.prototype = {
         BrowserUI.updateURI();
     }
 
-    
     let event = document.createEvent("Events");
     event.initEvent("URLChanged", true, false);
     this.browser.dispatchEvent(event);

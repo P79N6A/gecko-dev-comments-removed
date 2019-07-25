@@ -487,9 +487,6 @@ var BrowserUI = {
     this._updateButtons(browser);
 
     
-    FormHelper.close();
-
-    
     this.updateStar();
 
     var urlString = this.getDisplayURI(browser);
@@ -1654,6 +1651,9 @@ var FormMessageReceiver = {
     messageManager.addMessageListener("FormAssist:Hide", this);
     messageManager.addMessageListener("FormAssist:Update", this);
     messageManager.addMessageListener("FormAssist:AutoComplete", this);
+
+    document.getElementById("tabs").addEventListener("TabSelect", this, true);
+    document.getElementById("browsers").addEventListener("URLChanged", this, true);
   },
 
   receiveMessage: function(aMessage) {
@@ -1684,6 +1684,11 @@ var FormMessageReceiver = {
         }
         break;
     }
+  },
+
+  handleEvent: function(aEvent) {
+    if (aEvent.type == "TabSelect" || aEvent.type == "URLChanged")
+      FormHelper.close();
   },
 
   _getOffsetForCaret: function formHelper_getOffsetForCaret(aCaretRect, aRect) {

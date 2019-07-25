@@ -107,8 +107,6 @@ const kStateActive = 0x00000001;
 
 
 
-
-
 function InputHandler(browserViewContainer) {
   
   this._modules = [];
