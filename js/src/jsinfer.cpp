@@ -175,6 +175,8 @@ types::TypeString(jstype type)
         return "float";
       case TYPE_STRING:
         return "string";
+      case TYPE_LAZYARGS:
+        return "lazyargs";
       case TYPE_UNKNOWN:
         return "unknown";
       default: {
@@ -200,8 +202,8 @@ types::InferSpew(SpewChannel channel, const char *fmt, ...)
 }
 
 
-static inline bool
-TypeSetMatches(JSContext *cx, TypeSet *types, jstype type)
+bool
+types::TypeMatches(JSContext *cx, TypeSet *types, jstype type)
 {
     if (types->hasType(type))
         return true;
@@ -253,7 +255,7 @@ types::TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &val
         AutoEnterTypeInference enter(cx);
 
         TypeSet *types = obj->getProperty(cx, id, false);
-        if (types && !TypeSetMatches(cx, types, type)) {
+        if (types && !TypeMatches(cx, types, type)) {
             TypeFailure(cx, "Missing type in object %s %s: %s",
                         obj->name(), TypeIdString(id), TypeString(type));
         }
@@ -291,7 +293,7 @@ TypeSet::addTypeSet(JSContext *cx, ClonedTypeSet *types)
         return;
     }
 
-    for (jstype type = TYPE_UNDEFINED; type <= TYPE_STRING; type++) {
+    for (jstype type = TYPE_UNDEFINED; type < TYPE_UNKNOWN; type++) {
         if (types->typeFlags & (1 << type))
             addType(cx, type);
     }
@@ -334,7 +336,7 @@ TypeSet::add(JSContext *cx, TypeConstraint *constraint, bool callExisting)
         return;
     }
 
-    for (jstype type = TYPE_UNDEFINED; type <= TYPE_STRING; type++) {
+    for (jstype type = TYPE_UNDEFINED; type < TYPE_UNKNOWN; type++) {
         if (typeFlags & (1 << type))
             cx->compartment->types.addPending(cx, constraint, this, type);
     }
@@ -380,6 +382,8 @@ TypeSet::print(JSContext *cx)
         printf(" float");
     if (typeFlags & TYPE_FLAG_STRING)
         printf(" string");
+    if (typeFlags & TYPE_FLAG_LAZYARGS)
+        printf(" lazyargs");
 
     if (objectCount) {
         printf(" object[%u]", objectCount);
@@ -787,6 +791,35 @@ TypeSet::addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeS
 
 
 
+class TypeConstraintLazyArguments : public TypeConstraint
+{
+public:
+    jsbytecode *pc;
+    TypeSet *target;
+
+    TypeConstraintLazyArguments(JSScript *script, TypeSet *target)
+        : TypeConstraint("lazyArgs", script), target(target)
+    {}
+
+    void newType(JSContext *cx, TypeSet *source, jstype type) {}
+
+    void newObjectState(JSContext *cx, TypeObject *object, bool force)
+    {
+        if (object->hasAnyFlags(OBJECT_FLAG_CREATED_ARGUMENTS))
+            target->addType(cx, TYPE_UNKNOWN);
+    }
+};
+
+void
+TypeSet::addLazyArguments(JSContext *cx, JSScript *script, TypeSet *target)
+{
+    add(cx, ArenaNew<TypeConstraintLazyArguments>(cx->compartment->pool, script, target));
+}
+
+
+
+
+
 class TypeConstraintGenerator : public TypeConstraint
 {
 public:
@@ -860,6 +893,15 @@ GetPropertyObject(JSContext *cx, JSScript *script, jstype type)
     return object;
 }
 
+static inline void
+MarkPropertyAccessUnknown(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target)
+{
+    if (CanHaveReadBarrier(pc))
+        script->analysis(cx)->addTypeBarrier(cx, pc, target, TYPE_UNKNOWN);
+    else
+        target->addType(cx, TYPE_UNKNOWN);
+}
+
 
 
 
@@ -888,7 +930,7 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
     
     if (object->unknownProperties()) {
         if (!assign)
-            target->addType(cx, TYPE_UNKNOWN);
+            MarkPropertyAccessUnknown(cx, script, pc, target);
         return;
     }
 
@@ -915,6 +957,8 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
 void
 TypeConstraintProp::newType(JSContext *cx, TypeSet *source, jstype type)
 {
+    UntrapOpcode untrap(cx, script, pc);
+
     if (type == TYPE_UNKNOWN || (!TypeIsObject(type) && !script->global)) {
         
 
@@ -925,13 +969,24 @@ TypeConstraintProp::newType(JSContext *cx, TypeSet *source, jstype type)
         if (assign)
             cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
         else
-            target->addType(cx, TYPE_UNKNOWN);
+            MarkPropertyAccessUnknown(cx, script, pc, target);
+        return;
+    }
+
+    if (type == TYPE_LAZYARGS) {
+        
+        if (assign || (id != JSID_VOID && id != id_length(cx)))
+            return;
+
+        if (id == JSID_VOID)
+            MarkPropertyAccessUnknown(cx, script, pc, target);
+        else
+            target->addType(cx, TYPE_INT32);
         return;
     }
 
     TypeObject *object = GetPropertyObject(cx, script, type);
     if (object) {
-        UntrapOpcode untrap(cx, script, pc);
         PropertyAccess(cx, script, pc, object, assign, target, id);
 
         if (!object->unknownProperties() &&
@@ -1072,7 +1127,7 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
         return;
 
     
-    if (!callee->analyzed) {
+    if (!callee->ranInference) {
         ScriptAnalysis *calleeAnalysis = callee->analysis(cx);
         if (!calleeAnalysis) {
             cx->compartment->types.setPendingNukeTypes(cx);
@@ -1381,6 +1436,8 @@ GetValueTypeFromTypeFlags(TypeFlags flags)
         return JSVAL_TYPE_DOUBLE;
       case TYPE_FLAG_STRING:
         return JSVAL_TYPE_STRING;
+      case TYPE_FLAG_LAZYARGS:
+        return JSVAL_TYPE_MAGIC;
       default:
         return JSVAL_TYPE_UNKNOWN;
     }
@@ -1541,6 +1598,43 @@ TypeSet::HasObjectFlags(JSContext *cx, TypeObject *object, TypeObjectFlags flags
     return false;
 }
 
+void
+FixLazyArguments(JSContext *cx, JSScript *script)
+{
+#ifdef JS_METHODJIT
+    mjit::ExpandInlineFrames(cx, FRAME_EXPAND_ALL);
+#endif
+
+    
+    ScriptAnalysis *analysis = script->analysis(cx);
+    if (analysis && !analysis->ranBytecode())
+        analysis->analyzeBytecode(cx);
+    if (!analysis || analysis->OOM())
+        return;
+
+    for (AllFramesIter iter(cx); !iter.done(); ++iter) {
+        StackFrame *fp = iter.fp();
+        if (fp->isScriptFrame() && fp->script() == script) {
+            JSInlinedSite *inline_;
+            jsbytecode *pc = fp->pc(cx, NULL, &inline_);
+            JS_ASSERT(!inline_);
+
+            
+
+
+
+            Value *sp = fp->base() + analysis->getCode(pc).stackDepth;
+            for (Value *vp = fp->slots(); vp < sp; vp++) {
+                if (vp->isMagicCheck(JS_LAZY_ARGUMENTS)) {
+                    if (!js_GetArgsValue(cx, fp, vp)) {
+                        
+                    }
+                }
+            }
+        }
+    }
+}
+
 static inline void
 ObjectStateChange(JSContext *cx, TypeObject *object, bool markingUnknown, bool force)
 {
@@ -1552,8 +1646,18 @@ ObjectStateChange(JSContext *cx, TypeObject *object, bool markingUnknown, bool f
     if (!elementTypes)
         return;
     if (markingUnknown) {
+        JSScript *fixArgsScript = NULL;
+        if (!(object->flags & OBJECT_FLAG_CREATED_ARGUMENTS) && object->isFunction) {
+            TypeFunction *fun = object->asFunction();
+            if (fun->script && fun->script->usedLazyArgs)
+                fixArgsScript = fun->script;
+        }
+
         
         object->flags = OBJECT_FLAG_UNKNOWN_MASK;
+
+        if (fixArgsScript)
+            FixLazyArguments(cx, fixArgsScript);
     }
 
     TypeConstraint *constraint = elementTypes->constraintList;
@@ -2035,7 +2139,7 @@ TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jst
     if (script->hasAnalysis() && script->analysis(cx)->ranInference()) {
         TypeSet *pushed = script->analysis(cx)->pushedTypes(offset, 0);
         pushed->addType(cx, type);
-    } else if (script->analyzed) {
+    } else if (script->ranInference) {
         
         ScriptAnalysis *analysis = script->analysis(cx);
         if (!analysis) {
@@ -2754,7 +2858,17 @@ TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
     JS_ASSERT(cx->compartment->activeInference);
     JS_ASSERT((this->flags & flags) != flags);
 
+    JSScript *fixArgsScript = NULL;
+    if ((flags & ~this->flags & OBJECT_FLAG_CREATED_ARGUMENTS) && isFunction) {
+        TypeFunction *fun = asFunction();
+        if (fun->script && fun->script->usedLazyArgs)
+            fixArgsScript = fun->script;
+    }
+
     this->flags |= flags;
+
+    if (fixArgsScript)
+        FixLazyArguments(cx, fixArgsScript);
 
     InferSpew(ISpewOps, "%s: setFlags %u", name(), flags);
 
@@ -3420,14 +3534,20 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         break;
       }
 
-      case JSOP_ARGSUB:
-        pushed[0].addType(cx, TYPE_UNKNOWN);
+      case JSOP_ARGUMENTS: {
+        
+        TypeObject *funType = script->fun->getType();
+        if (funType->unknownProperties() || funType->hasAnyFlags(OBJECT_FLAG_CREATED_ARGUMENTS)) {
+            pushed[0].addType(cx, TYPE_UNKNOWN);
+            break;
+        }
+        TypeSet *prop = funType->getProperty(cx, JSID_VOID, false);
+        if (!prop)
+            break;
+        prop->addLazyArguments(cx, script, &pushed[0]);
+        pushed[0].addType(cx, TYPE_LAZYARGS);
         break;
-
-      case JSOP_ARGUMENTS:
-      case JSOP_ARGCNT:
-        pushed[0].addType(cx, TYPE_UNKNOWN);
-        break;
+      }
 
       case JSOP_SETPROP:
       case JSOP_SETMETHOD: {
@@ -3886,7 +4006,7 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
         return;
     }
 
-    if (script->analyzed) {
+    if (script->ranInference) {
         
 
 
@@ -3896,7 +4016,7 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
     }
 
     
-    script->analyzed = true;
+    script->ranInference = true;
 
     
 
@@ -3946,6 +4066,126 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
         result->replay(cx, script);
         result = result->next;
     }
+
+    if (!script->usesArguments)
+        return;
+
+    
+
+
+
+
+    if (script->fun->getType()->hasAnyFlags(types::OBJECT_FLAG_CREATED_ARGUMENTS))
+        return;
+
+    
+
+
+
+
+
+
+    if (script->fun->isHeavyweight() || cx->compartment->debugMode) {
+        cx->markTypeObjectFlags(script->fun->getType(),
+                                types::OBJECT_FLAG_CREATED_ARGUMENTS);
+        return;
+    }
+
+    offset = 0;
+    while (offset < script->length) {
+        Bytecode *code = maybeCode(offset);
+        jsbytecode *pc = script->code + offset;
+
+        if (code && JSOp(*pc) == JSOP_ARGUMENTS) {
+            Vector<SSAValue> seen(cx);
+            if (!followEscapingArguments(cx, SSAValue::PushedValue(offset, 0), &seen)) {
+                cx->markTypeObjectFlags(script->fun->getType(),
+                                        types::OBJECT_FLAG_CREATED_ARGUMENTS);
+                return;
+            }
+        }
+
+        offset += GetBytecodeLength(pc);
+    }
+
+    
+
+
+
+
+
+    script->usedLazyArgs = true;
+}
+
+bool
+ScriptAnalysis::followEscapingArguments(JSContext *cx, const SSAValue &v, Vector<SSAValue> *seen)
+{
+    
+
+
+
+    if (!trackUseChain(v))
+        return true;
+
+    for (unsigned i = 0; i < seen->length(); i++) {
+        if (v.equals((*seen)[i]))
+            return true;
+    }
+    if (!seen->append(v)) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return false;
+    }
+
+    SSAUseChain *use = useChain(v);
+    while (use) {
+        if (!followEscapingArguments(cx, use, seen))
+            return false;
+        use = use->next;
+    }
+
+    return true;
+}
+
+bool
+ScriptAnalysis::followEscapingArguments(JSContext *cx, SSAUseChain *use, Vector<SSAValue> *seen)
+{
+    if (!use->popped) {
+        for (unsigned i = 0; i < use->u.phi->length; i++) {
+            const SSAValue &v = use->u.phi->options[i];
+            if (!followEscapingArguments(cx, v, seen))
+                return false;
+        }
+        return true;
+    }
+
+    jsbytecode *pc = script->code + use->offset;
+    uint32 which = use->u.which;
+
+    
+
+    
+
+
+
+    if (JSOp(*pc) == JSOP_GETELEM && which == 1)
+        return true;
+
+    if (JSOp(*pc) == JSOP_LENGTH)
+        return true;
+
+    
+
+    if (JSOp(*pc) == JSOP_SETLOCAL) {
+        uint32 slot = GetBytecodeSlot(script, pc);
+        if (slotEscapes(slot))
+            return false;
+        return followEscapingArguments(cx, SSAValue::WrittenVar(slot, use->offset), seen);
+    }
+
+    if (JSOp(*pc) == JSOP_GETLOCAL)
+        return followEscapingArguments(cx, SSAValue::PushedValue(use->offset, 0), seen);
+
+    return false;
 }
 
 void
@@ -4329,7 +4569,7 @@ ScriptAnalysis::printTypes(JSContext *cx)
             }
 
             unsigned typeCount = types->getObjectCount() ? 1 : 0;
-            for (jstype type = TYPE_UNDEFINED; type <= TYPE_STRING; type++) {
+            for (jstype type = TYPE_UNDEFINED; type < TYPE_UNKNOWN; type++) {
                 if (types->hasAnyFlag(1 << type))
                     typeCount++;
             }
@@ -4590,7 +4830,7 @@ JSScript::typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value
 
         jstype type = GetValueType(cx, val);
 
-        if (!TypeSetMatches(cx, types, type)) {
+        if (!types::TypeMatches(cx, types, type)) {
             TypeFailure(cx, "Missing type at #%u:%05u pushed %u: %s",
                                    id(), pc - code, i, TypeString(type));
         }

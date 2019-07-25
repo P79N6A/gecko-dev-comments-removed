@@ -1723,6 +1723,10 @@ ic::GetProp(VMFrame &f, ic::PICInfo *pic)
             f.regs.sp[-1].setInt32(str->length());
             f.script()->typeMonitor(f.cx, f.pc(), f.regs.sp[-1]);
             return;
+        } else if (f.regs.sp[-1].isMagic(JS_LAZY_ARGUMENTS)) {
+            f.regs.sp[-1].setInt32(f.regs.fp()->numActualArgs());
+            f.script()->typeMonitor(f.cx, f.pc(), f.regs.sp[-1]);
+            return;
         } else if (!f.regs.sp[-1].isPrimitive()) {
             JSObject *obj = &f.regs.sp[-1].toObject();
             if (obj->isArray() ||

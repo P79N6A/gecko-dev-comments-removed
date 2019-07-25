@@ -232,9 +232,6 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
 
     cx->compartment->types.frameExpansions++;
 
-    RejoinState rejoin = (RejoinState) f->stubRejoin;
-    JS_ASSERT(rejoin != REJOIN_NATIVE && rejoin != REJOIN_NATIVE_LOWERED);
-
     
 
 
@@ -249,13 +246,12 @@ Recompiler::expandInlineFrames(JSContext *cx, StackFrame *fp, mjit::CallSite *in
     StackFrame *innerfp = expandInlineFrameChain(cx, fp, inner);
 
     
-    if (f->stubRejoin) {
+    if (f->stubRejoin && (f->stubRejoin & 0x1) && f->regs.fp()->prev() == fp) {
         
-        if (f->regs.fp()->prev() == fp) {
-            fp->prev()->setRejoin(StubRejoin(rejoin));
-            *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
-        }
-    } else if (*frameAddr == codeStart + inlined->codeOffset) {
+        fp->prev()->setRejoin(StubRejoin((RejoinState) f->stubRejoin));
+        *frameAddr = JS_FUNC_TO_DATA_PTR(void *, JaegerInterpoline);
+    }
+    if (*frameAddr == codeStart + inlined->codeOffset) {
         
         SetRejoinState(innerfp, *inlined, frameAddr);
     }

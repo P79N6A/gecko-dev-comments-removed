@@ -76,12 +76,13 @@ const jstype TYPE_BOOLEAN   = 3;
 const jstype TYPE_INT32     = 4;
 const jstype TYPE_DOUBLE    = 5;
 const jstype TYPE_STRING    = 6;
+const jstype TYPE_LAZYARGS  = 7;
 
 
 
 
 
-const jstype TYPE_UNKNOWN = 7;
+const jstype TYPE_UNKNOWN = 8;
 
 
 
@@ -218,37 +219,38 @@ enum {
     TYPE_FLAG_INT32     = 1 << TYPE_INT32,
     TYPE_FLAG_DOUBLE    = 1 << TYPE_DOUBLE,
     TYPE_FLAG_STRING    = 1 << TYPE_STRING,
+    TYPE_FLAG_LAZYARGS  = 1 << TYPE_LAZYARGS,
 
     TYPE_FLAG_UNKNOWN   = 1 << TYPE_UNKNOWN,
 
     
-    TYPE_FLAG_INTERMEDIATE_SET    = 0x0100,
+    TYPE_FLAG_INTERMEDIATE_SET    = 0x0200,
 
     
 
     
-    TYPE_FLAG_OWN_PROPERTY        = 0x0200,
-
-    
-
-
-
-
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x0400,
+    TYPE_FLAG_OWN_PROPERTY        = 0x0400,
 
     
 
 
 
 
-    TYPE_FLAG_DEFINITE_PROPERTY   = 0x0800,
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x0800,
 
     
-    TYPE_FLAG_DEFINITE_MASK       = 0xf000,
-    TYPE_FLAG_DEFINITE_SHIFT      = 12,
+
+
+
+
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x08000,
 
     
-    TYPE_FLAG_BASE_MASK           = 0xffffff00
+    TYPE_FLAG_DEFINITE_MASK       = 0xf0000,
+    TYPE_FLAG_DEFINITE_SHIFT      = 16,
+
+    
+    TYPE_FLAG_BASE_MASK           = 0xffffffff ^ ((TYPE_FLAG_UNKNOWN << 1) - 1)
 };
 typedef uint32 TypeFlags;
 
@@ -273,13 +275,16 @@ enum {
     OBJECT_FLAG_NON_PACKED_ARRAY = 1 << 1,
 
     
-    OBJECT_FLAG_UNINLINEABLE = 1 << 2,
+    OBJECT_FLAG_CREATED_ARGUMENTS = 1 << 2,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 3,
+    OBJECT_FLAG_UNINLINEABLE = 1 << 3,
 
     
-    OBJECT_FLAG_ITERATED = 1 << 4
+    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 4,
+
+    
+    OBJECT_FLAG_ITERATED = 1 << 5
 };
 typedef uint32 TypeObjectFlags;
 
@@ -370,6 +375,7 @@ class TypeSet
     void addFilterPrimitives(JSContext *cx, JSScript *script,
                              TypeSet *target, bool onlyNullVoid);
     void addSubsetBarrier(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target);
+    void addLazyArguments(JSContext *cx, JSScript *script, TypeSet *target);
 
     void addBaseSubset(JSContext *cx, TypeObject *object, TypeSet *target);
     bool addCondensed(JSContext *cx, JSScript *script);
@@ -392,6 +398,8 @@ class TypeSet
 
     
     JSValueType getKnownTypeTag(JSContext *cx);
+
+    bool isLazyArguments(JSContext *cx) { return getKnownTypeTag(cx) == JSVAL_TYPE_MAGIC; }
 
     
     bool hasObjectFlags(JSContext *cx, TypeObjectFlags flags);
@@ -787,6 +795,12 @@ struct TypeCompartment
 
 
 
+    TypeObject typeLazyArguments;
+
+    
+
+
+
     bool pendingNukeTypes;
 
     
@@ -902,6 +916,13 @@ enum SpewChannel {
 
 void InferSpew(SpewChannel which, const char *fmt, ...);
 const char * TypeString(jstype type);
+
+
+
+
+
+
+bool TypeMatches(JSContext *cx, TypeSet *types, jstype type);
 
 
 bool TypeHasProperty(JSContext *cx, TypeObject *obj, jsid id, const Value &value);
