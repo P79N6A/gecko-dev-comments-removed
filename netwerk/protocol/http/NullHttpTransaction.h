@@ -13,6 +13,7 @@
 #include "nsIEventTarget.h"
 #include "nsHttpConnectionInfo.h"
 #include "nsHttpRequestHead.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -21,7 +22,7 @@
 
 namespace mozilla { namespace net {
 
-class NullHttpTransaction : public nsAHttpTransaction
+class NullHttpTransaction MOZ_FINAL : public nsAHttpTransaction
 {
 public:
   NS_DECL_ISUPPORTS

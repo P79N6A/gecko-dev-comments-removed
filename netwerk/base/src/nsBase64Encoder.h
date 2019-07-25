@@ -7,12 +7,13 @@
 
 #include "nsIOutputStream.h"
 #include "nsString.h"
+#include "mozilla/Attributes.h"
 
 
 
 
 
-class nsBase64Encoder : public nsIOutputStream {
+class nsBase64Encoder MOZ_FINAL : public nsIOutputStream {
   public:
     nsBase64Encoder() {}
 

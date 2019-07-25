@@ -9,6 +9,7 @@
 
 #include "nsIProxyInfo.h"
 #include "nsString.h"
+#include "mozilla/Attributes.h"
 
 
 #define NS_PROXYINFO_IID \
@@ -21,7 +22,7 @@
 
 
 
-class nsProxyInfo : public nsIProxyInfo
+class nsProxyInfo MOZ_FINAL : public nsIProxyInfo
 {
 public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_PROXYINFO_IID)

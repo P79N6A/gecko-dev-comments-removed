@@ -15,6 +15,7 @@
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "prclist.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -38,9 +39,9 @@ public:
 
 
 
-class nsPACMan : public nsIStreamLoaderObserver
-               , public nsIInterfaceRequestor
-               , public nsIChannelEventSink
+class nsPACMan MOZ_FINAL : public nsIStreamLoaderObserver
+                         , public nsIInterfaceRequestor
+                         , public nsIChannelEventSink
 {
 public:
   NS_DECL_ISUPPORTS

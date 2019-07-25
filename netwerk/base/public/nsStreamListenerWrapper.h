@@ -8,10 +8,11 @@
 #include "nsCOMPtr.h"
 #include "nsIStreamListener.h"
 #include "nsIRequestObserver.h"
+#include "mozilla/Attributes.h"
 
 
 
-class nsStreamListenerWrapper : public nsIStreamListener
+class nsStreamListenerWrapper MOZ_FINAL : public nsIStreamListener
 {
 public:
   nsStreamListenerWrapper(nsIStreamListener *listener)
