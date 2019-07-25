@@ -208,14 +208,14 @@ nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
 
   for (PRUint32 index = 0; index < length; index ++) {
 
-    
-    
-    if (!mDocument || !mDocument->HasWeakShell())
-      break;
-
     nsAccEvent *accEvent = events[index];
     if (accEvent->mEventRule != nsAccEvent::eDoNotEmit)
       mDocument->ProcessPendingEvent(accEvent);
+
+    
+    
+    if (!mDocument || !mDocument->HasWeakShell())
+      return;
   }
 
   if (mEvents.Length() == 0) {
