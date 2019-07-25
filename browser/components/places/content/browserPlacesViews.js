@@ -256,6 +256,7 @@ PlacesViewBase.prototype = {
 
     let cc = resultNode.childCount;
     if (cc > 0) {
+      aPopup.removeAttribute("emptyplacesresult");
       if (aPopup._emptyMenuItem)
         aPopup._emptyMenuItem.hidden = true;
 
@@ -265,6 +266,7 @@ PlacesViewBase.prototype = {
       }
     }
     else {
+      aPopup.setAttribute("emptyplacesresult", "true");
       
       
       if (aPopup._startMarker == -1 && aPopup._endMarker == -1)
