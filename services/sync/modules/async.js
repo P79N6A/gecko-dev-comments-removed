@@ -293,7 +293,9 @@ Generator.prototype = {
 function formatFrame(frame) {
   
   
-  let tmp = frame.filename.replace(/^file:\/\/.*\/([^\/]+.js)$/, "module:$1");
+  let tmp = "<file:unknown>";
+  if (frame.filename)
+    tmp = frame.filename.replace(/^file:\/\/.*\/([^\/]+.js)$/, "module:$1");
   tmp += ":" + frame.lineNumber + " :: " + frame.name;
   return tmp;
 }
