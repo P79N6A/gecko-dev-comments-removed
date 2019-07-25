@@ -37,11 +37,21 @@
 
 
 
+function PlacesTreeView(aFlatList, aOnOpenFlatContainer) {
+  this._tree = null;
+  this._result = null;
+  this._selection = null;
+  this._rootNode = null;
+  this._rows = [];
+  this._flatList = aFlatList;
+  this._openContainerCallback = aOnOpenFlatContainer;
+}
+
 PlacesTreeView.prototype = {
   _makeAtom: function PTV__makeAtom(aString) {
-    return  Cc["@mozilla.org/atom-service;1"].
-            getService(Ci.nsIAtomService).
-            getAtom(aString);
+    return Cc["@mozilla.org/atom-service;1"].
+           getService(Ci.nsIAtomService).
+           getAtom(aString);
   },
 
   _atoms: [],
@@ -122,8 +132,7 @@ PlacesTreeView.prototype = {
     if (!(aContainer instanceof Ci.nsINavHistoryQueryResultNode))
       return aContainer._plainContainer = false;
 
-    let resultType = aContainer.queryOptions.resultType;
-    switch (resultType) {
+    switch (aContainer.queryOptions.resultType) {
       case Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_QUERY:
       case Ci.nsINavHistoryQueryOptions.RESULTS_AS_SITE_QUERY:
       case Ci.nsINavHistoryQueryOptions.RESULTS_AS_DATE_SITE_QUERY:
@@ -602,8 +611,7 @@ PlacesTreeView.prototype = {
       return;
 
     
-    if (PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
+    if (PlacesUtils.nodeIsSeparator(aNode) && this.isSorted())
       return;
 
     let parentRow;
@@ -632,7 +640,7 @@ PlacesTreeView.prototype = {
       
       let cc = aParentNode.childCount;
       let separatorsAreHidden = PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE;
+                                this.isSorted();
       for (let i = aNewIndex + 1; i < cc; i++) {
         let node = aParentNode.getChild(i);
         if (!separatorsAreHidden || PlacesUtils.nodeIsSeparator(node)) {
@@ -679,8 +687,7 @@ PlacesTreeView.prototype = {
       throw Cr.NS_ERROR_NOT_IMPLEMENTED;
 
     
-    if (PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
+    if (PlacesUtils.nodeIsSeparator(aNode) && this.isSorted())
       return;
 
     let parentRow = aParentNode == this._rootNode ?
@@ -728,8 +735,7 @@ PlacesTreeView.prototype = {
       return;
 
     
-    if (PlacesUtils.nodeIsSeparator(aNode) &&
-        this._result.sortingMode != Ci.nsINavHistoryQueryOptions.SORT_BY_NONE)
+    if (PlacesUtils.nodeIsSeparator(aNode) && this.isSorted())
       return;
 
     let oldRow = this._getRowForNode(aNode, true);
@@ -1204,7 +1210,7 @@ PlacesTreeView.prototype = {
       else {
         
         container = lastSelected.parent;
-        
+
         
         
         
@@ -1309,8 +1315,7 @@ PlacesTreeView.prototype = {
 
   getCellText: function PTV_getCellText(aRow, aColumn) {
     let node = this._getNodeForRow(aRow);
-    let columnType = this._getColumnType(aColumn);
-    switch (columnType) {
+    switch (this._getColumnType(aColumn)) {
       case this.COLUMN_TYPE_TITLE:
         
         
@@ -1428,8 +1433,7 @@ PlacesTreeView.prototype = {
     let newSort;
     let newSortingAnnotation = "";
     const NHQO = Ci.nsINavHistoryQueryOptions;
-    let columnType = this._getColumnType(aColumn);
-    switch (columnType) {
+    switch (this._getColumnType(aColumn)) {
       case this.COLUMN_TYPE_TITLE:
         if (oldSort == NHQO.SORT_BY_TITLE_ASCENDING)
           newSort = NHQO.SORT_BY_TITLE_DESCENDING;
@@ -1576,13 +1580,3 @@ PlacesTreeView.prototype = {
   performActionOnRow: function(aAction, aRow) { },
   performActionOnCell: function(aAction, aRow, aColumn) { }
 };
-
-function PlacesTreeView(aFlatList, aOnOpenFlatContainer) {
-  this._tree = null;
-  this._result = null;
-  this._selection = null;
-  this._rootNode = null;
-  this._rows = [];
-  this._flatList = aFlatList;
-  this._openContainerCallback = aOnOpenFlatContainer;
-}
