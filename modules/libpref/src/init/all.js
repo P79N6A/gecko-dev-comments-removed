@@ -3167,8 +3167,6 @@ pref("html5.parser.enable", true);
 
 pref("html5.offmainthread", true);
 
-pref("html5.hotmailworkaround", true);
-
 
 
 pref("html5.flushtimer.initialdelay", 120);
