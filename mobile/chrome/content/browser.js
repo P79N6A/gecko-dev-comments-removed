@@ -338,7 +338,7 @@ var Browser = {
     
     this._currentViewportBounds = { width: 0, height: 0};
 
-    this._canvasBrowser.setCurrentBrowser(this.selectedBrowser);
+    this._canvasBrowser.setCurrentBrowser(this.selectedBrowser, firstTab);
     document.getElementById("tabs").selectedItem = tab.content;
 
     if (!firstTab) {
