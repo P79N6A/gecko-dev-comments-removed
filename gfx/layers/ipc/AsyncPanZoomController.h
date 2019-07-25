@@ -381,8 +381,6 @@ private:
   TimeStamp mLastSampleTime;
   
   PRInt32 mLastEventTime;
-  
-  PRInt32 mLastRepaint;
 
   
   
