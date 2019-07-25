@@ -457,57 +457,39 @@ SyncEngine.prototype = {
     if (outnum) {
       
       let up = new Collection(this.engineURL);
-      let meta = {};
+      let count = 0;
+
+      
+      let doUpload = Utils.bind2(this, function(desc) {
+        this._log.info("Uploading " + desc + " of " + outnum + " records");
+        up.post();
+        if (up.data.modified > this.lastSync)
+          this.lastSync = up.data.modified;
+        up.clearRecords();
+      });
 
       
       this._store.cache.enabled = false;
 
-      let count = 0;
       for (let id in this._tracker.changedIDs) {
         let out = this._createRecord(id);
         this._log.trace("Outgoing:\n" + out);
 
-        
-        if (!out.deleted && !(out.id in meta))
-          this._store.createMetaRecords(out.id, meta);
-
         out.encrypt(ID.get("WeaveCryptoID"));
         up.pushData(JSON.parse(out.serialize())); 
 
-        if ((++count % MAX_UPLOAD_RECORDS) == 0) {
-          
-          this._log.info("Uploading " + (count - MAX_UPLOAD_RECORDS) + " - " +
-                         count + " out of " + outnum + " records");
-          up.post();
-          if (up.data.modified > this.lastSync)
-            this.lastSync = up.data.modified;
-          up.clearRecords();
-        }
+        
+        if ((++count % MAX_UPLOAD_RECORDS) == 0)
+          doUpload((count - MAX_UPLOAD_RECORDS) + " - " + count + " out");
 
         Sync.sleep(0);
       }
 
+      
+      if (count % MAX_UPLOAD_RECORDS > 0)
+        doUpload(count >= MAX_UPLOAD_RECORDS ? "last batch" : "all");
+
       this._store.cache.enabled = true;
-
-      
-      
-      let metaCount = 0;
-      for each (let obj in meta) {
-        if (!(obj.id in this._tracker.changedIDs)) {
-          up.pushData(obj);
-          metaCount++;
-        }
-      }
-
-      
-      if ((count % MAX_UPLOAD_RECORDS) + metaCount > 0) {
-        this._log.info("Uploading " +
-                       (count >= MAX_UPLOAD_RECORDS? "last batch of " : "") +
-                       count + " records, and " + metaCount + " index/depth records");
-        up.post();
-        if (up.data.modified > this.lastSync)
-          this.lastSync = up.data.modified;
-      }
     }
     this._tracker.clearChangedIDs();
   },
