@@ -131,8 +131,6 @@ public:
   
   static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
 
-  bool GetMultipart() const { return mIsMultiPartChannel; }
-
   
   PRInt32 GetCORSMode() const { return mCORSMode; }
 

@@ -343,7 +343,7 @@ RasterImage::AdvanceFrame(TimeStamp aTime, nsIntRect* aDirtyRect)
   
   
   
-  bool haveFullNextFrame = (mMultipart && mBytesDecoded == 0) || !mDecoder ||
+  bool haveFullNextFrame = !mDecoder ||
                            nextFrameIndex < mDecoder->GetCompleteFrameCount();
 
   
@@ -1136,9 +1136,14 @@ RasterImage::SetSize(PRInt32 aWidth, PRInt32 aHeight)
     return NS_ERROR_INVALID_ARG;
 
   
-  if (!mMultipart && mHasSize &&
+  if (mHasSize &&
       ((aWidth != mSize.width) || (aHeight != mSize.height))) {
-    NS_WARNING("Image changed size on redecode! This should not happen!");
+
+    
+    if (!mMultipart)
+      NS_WARNING("Image changed size on redecode! This should not happen!");
+    else
+      NS_WARNING("Multipart channel sent an image of a different size");
 
     
     
@@ -1210,14 +1215,10 @@ RasterImage::EnsureFrame(PRUint32 aFrameNum, PRInt32 aX, PRInt32 aY,
     }
   }
 
-  
   DeleteImgFrame(aFrameNum);
-  mFrames.RemoveElementAt(aFrameNum);
-  nsAutoPtr<imgFrame> newFrame(new imgFrame());
-  nsresult rv = newFrame->Init(aX, aY, aWidth, aHeight, aFormat, aPaletteDepth);
-  NS_ENSURE_SUCCESS(rv, rv);
-  return InternalAddFrameHelper(aFrameNum, newFrame.forget(), imageData,
-                                imageLength, paletteData, paletteLength);
+  return InternalAddFrame(aFrameNum, aX, aY, aWidth, aHeight, aFormat,
+                          aPaletteDepth, imageData, imageLength,
+                          paletteData, paletteLength);
 }
 
 nsresult
@@ -1491,31 +1492,6 @@ RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
   NS_ABORT_IF_FALSE(!mInDecoder, "Re-entrant call to AddSourceData!");
 
   
-  
-  
-  if (mBytesDecoded == 0) {
-    
-    bool wasAnimating = mAnimating;
-    if (mAnimating) {
-      StopAnimation();
-      mAnimating = false;
-    }
-    mAnimationFinished = false;
-    if (mAnim) {
-      delete mAnim;
-      mAnim = nsnull;
-    }
-    
-    int old_frame_count = mFrames.Length();
-    if (old_frame_count > 1) {
-      for (int i = 0; i < old_frame_count; ++i) {
-        DeleteImgFrame(i);
-      }
-      mFrames.Clear();
-    }
-  }
-
-  
   if (!StoringSourceData()) {
     rv = WriteToDecoder(aBuffer, aCount);
     CONTAINER_ENSURE_SUCCESS(rv);
@@ -1644,7 +1620,7 @@ RasterImage::SourceDataComplete()
 }
 
 nsresult
-RasterImage::NewSourceData(const char* aMimeType)
+RasterImage::NewSourceData()
 {
   nsresult rv;
 
@@ -1678,8 +1654,6 @@ RasterImage::NewSourceData(const char* aMimeType)
   
   mDecoded = false;
   mHasSourceData = false;
-
-  mSourceDataMimeType.Assign(aMimeType);
 
   
   
