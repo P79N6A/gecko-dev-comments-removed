@@ -218,13 +218,12 @@ StatementParams::NewResolve(nsIXPConnectWrappedNative *aWrapper,
 
     
     
-    NS_ConvertUTF16toUTF8 name(reinterpret_cast<const PRUnichar *>(nameChars),
-                               nameLength);
+    NS_ConvertUTF16toUTF8 name(nameChars, nameLength);
     PRUint32 idx;
     nsresult rv = mStatement->GetParameterIndex(name, &idx);
     if (NS_SUCCEEDED(rv)) {
-      ok = ::JS_DefineUCProperty(aCtx, aScopeObj, nameChars, nameLength,
-                                 JSVAL_VOID, nsnull, nsnull, JSPROP_ENUMERATE);
+      ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nsnull,
+                                   nsnull, JSPROP_ENUMERATE);
       resolved = true;
     }
   }

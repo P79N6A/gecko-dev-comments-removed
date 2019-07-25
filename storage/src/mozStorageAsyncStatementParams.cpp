@@ -140,15 +140,11 @@ AsyncStatementParams::NewResolve(
     resolved = true;
   }
   else if (JSID_IS_STRING(aId)) {
-    JSString *str = JSID_TO_STRING(aId);
-    size_t nameLength;
-    const jschar *nameChars = ::JS_GetInternedStringCharsAndLength(str, &nameLength);
-
     
     
     
-    ok = ::JS_DefineUCProperty(aCtx, aScopeObj, nameChars, nameLength,
-                               JSVAL_VOID, nsnull, nsnull, 0);
+    ok = ::JS_DefinePropertyById(aCtx, aScopeObj, aId, JSVAL_VOID, nsnull,
+                                 nsnull, 0);
     resolved = true;
   }
 
