@@ -18,6 +18,26 @@ namespace js {
 class DummyFrameGuard;
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class JS_FRIEND_API(Wrapper)
 {
     unsigned mFlags;
@@ -107,11 +127,13 @@ class JS_FRIEND_API(Wrapper)
 
 
 
-class JS_FRIEND_API(AbstractWrapper) : public Wrapper,
+
+
+class JS_FRIEND_API(IndirectWrapper) : public Wrapper,
                                        public IndirectProxyHandler
 {
   public:
-    explicit AbstractWrapper(unsigned flags);
+    explicit IndirectWrapper(unsigned flags);
 
     virtual BaseProxyHandler* toBaseProxyHandler() {
         return this;
@@ -137,6 +159,7 @@ class JS_FRIEND_API(AbstractWrapper) : public Wrapper,
     virtual bool enumerate(JSContext *cx, JSObject *wrapper,
                            AutoIdVector &props) MOZ_OVERRIDE;
 };
+
 
 
 
