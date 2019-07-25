@@ -362,8 +362,13 @@ BasicFormatter.prototype = {
 
   format: function BF_format(message) {
     let date = new Date(message.time);
+
+    
+    let pad = function BF__pad(str, len, chr) str +
+      new Array(Math.max((len || 20) - str.length + 1, 0)).join(chr || " ");
+
     return date.toLocaleFormat(this.dateFormat) + "\t" +
-      message.loggerName + "\t" + message.levelDesc + "\t" +
+      pad(message.loggerName) + " " + message.levelDesc + "\t" +
       message.message + "\n";
   }
 };
