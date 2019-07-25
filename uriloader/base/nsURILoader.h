@@ -14,6 +14,7 @@
 #include "nsIInterfaceRequestorUtils.h"
 #include "nsString.h"
 #include "nsIWeakReference.h"
+#include "mozilla/Attributes.h"
 
 #ifdef MOZ_LOGGING
 
@@ -23,7 +24,7 @@
 
 class nsDocumentOpenInfo;
 
-class nsURILoader : public nsIURILoader
+class nsURILoader MOZ_FINAL : public nsIURILoader
 {
 public:
   NS_DECL_NSIURILOADER

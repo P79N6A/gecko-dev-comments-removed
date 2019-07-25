@@ -12,11 +12,12 @@
 #include "nsString.h"
 #include "nsWeakReference.h"
 #include "nsIExternalProtocolService.h"
+#include "mozilla/Attributes.h"
 
 class nsIURI;
 
 
-class nsExternalProtocolHandler : public nsIExternalProtocolHandler, public nsSupportsWeakReference
+class nsExternalProtocolHandler MOZ_FINAL : public nsIExternalProtocolHandler, public nsSupportsWeakReference
 {
 public:
 	NS_DECL_ISUPPORTS
