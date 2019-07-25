@@ -222,6 +222,7 @@ public:
 protected:
   friend class nsMenuTimerMediator;
   friend class nsASyncMenuInitialization;
+  friend class nsMenuAttributeChangedEvent;
 
   
   
