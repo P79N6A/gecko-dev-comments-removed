@@ -4907,9 +4907,11 @@ nsWindow::UpdateTranslucentWindowAlphaInternal(const nsIntRect& aRect,
 void
 nsWindow::GrabPointer(guint32 aTime)
 {
-    LOG(("GrabPointer %d\n", mRetryPointerGrab));
+    LOG(("GrabPointer time=0x%08x retry=%d\n",
+         (unsigned int)aTime, mRetryPointerGrab));
 
     mRetryPointerGrab = false;
+    sRetryGrabTime = aTime;
 
     
     
@@ -4938,7 +4940,6 @@ nsWindow::GrabPointer(guint32 aTime)
     if (retval == GDK_GRAB_NOT_VIEWABLE) {
         LOG(("GrabPointer: window not viewable; will retry\n"));
         mRetryPointerGrab = true;
-        sRetryGrabTime = aTime;
     } else if (retval != GDK_GRAB_SUCCESS) {
         LOG(("GrabPointer: pointer grab failed: %i\n", retval));
         
