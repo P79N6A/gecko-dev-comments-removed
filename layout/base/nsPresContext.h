@@ -965,9 +965,10 @@ public:
 
   virtual NS_MUST_OVERRIDE size_t
         SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-    
-    
     return 0;
+
+    
+    
   }
   virtual NS_MUST_OVERRIDE size_t
         SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
@@ -1318,9 +1319,17 @@ public:
 
   virtual NS_MUST_OVERRIDE size_t
         SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE {
-    
-    
     return nsPresContext::SizeOfExcludingThis(aMallocSizeOf);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
   }
   virtual NS_MUST_OVERRIDE size_t
         SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const MOZ_OVERRIDE {

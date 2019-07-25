@@ -129,6 +129,16 @@ public:
   nsresult GetParentRule(nsIDOMCSSRule** aParentRule);
   nsresult GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet);
 
+  
+  
+  virtual NS_MUST_OVERRIDE size_t
+    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const = 0;
+
+  
+  static size_t SizeOfCOMArrayElementIncludingThis(css::Rule* aElement,
+                                                   nsMallocSizeOfFun aMallocSizeOf,
+                                                   void* aData);
+
 protected:
   nsCSSStyleSheet*  mSheet;
   GroupRule*        mParentRule;

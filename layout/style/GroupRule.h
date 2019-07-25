@@ -96,6 +96,11 @@ public:
   virtual bool UseForPresentation(nsPresContext* aPresContext,
                                     nsMediaQueryResultCacheKey& aKey) = 0;
 
+  NS_MUST_OVERRIDE size_t   
+    SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+  virtual size_t
+    SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const = 0;
+
 protected:
   
   nsresult AppendRulesToCssText(nsAString& aCssText);

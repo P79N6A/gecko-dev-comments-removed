@@ -532,7 +532,7 @@ nsDummyJavaPluginOwner::GetWindow(NPWindow *&aWindow)
 }
 
 NS_IMETHODIMP
-nsDummyJavaPluginOwner::CallSetWindow()
+nsDummyJavaPluginOwner::SetWindow()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
@@ -10294,6 +10294,16 @@ nsGlobalWindow::SizeOf() const
   size += mNavigator ? mNavigator->SizeOf() : 0;
 
   return size;
+}
+
+size_t
+nsGlobalWindow::SizeOfStyleSheets(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = 0;
+  if (IsInnerWindow() && mDoc) {
+    n += mDoc->SizeOfStyleSheets(aMallocSizeOf);
+  }
+  return n;
 }
 
 

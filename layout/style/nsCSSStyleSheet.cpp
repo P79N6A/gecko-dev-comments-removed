@@ -874,6 +874,30 @@ nsCSSStyleSheet::RebuildChildList(css::Rule* aRule, void* aBuilder)
   return true;
 }
 
+size_t
+nsCSSStyleSheet::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = 0;
+  const nsCSSStyleSheet* s = this;
+  while (s) {
+    n += aMallocSizeOf(s);
+    n += s->mInner->SizeOfIncludingThis(aMallocSizeOf);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    s = s->mNext;
+  }
+  return n;
+}
+
 nsCSSStyleSheetInner::nsCSSStyleSheetInner(nsCSSStyleSheetInner& aCopy,
                                            nsCSSStyleSheet* aPrimarySheet)
   : mSheets(),
@@ -981,6 +1005,28 @@ nsCSSStyleSheetInner::CreateNamespaceMap()
   
   mNameSpaceMap->AddPrefix(nsnull, kNameSpaceID_Unknown);
   return NS_OK;
+}
+
+size_t
+nsCSSStyleSheetInner::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  size_t n = aMallocSizeOf(this);
+  n += mOrderedRules.SizeOfExcludingThis(css::Rule::SizeOfCOMArrayElementIncludingThis,
+                                         aMallocSizeOf);
+  n += mFirstChild ? mFirstChild->SizeOfIncludingThis(aMallocSizeOf) : 0;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  return n;
 }
 
 

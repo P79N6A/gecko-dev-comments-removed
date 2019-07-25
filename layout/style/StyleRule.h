@@ -70,6 +70,8 @@ public:
   
   nsAtomList* Clone() const { return Clone(true); }
 
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
   nsCOMPtr<nsIAtom> mAtom;
   nsAtomList*       mNext;
 private: 
@@ -90,6 +92,8 @@ public:
 
   
   nsPseudoClassList* Clone() const { return Clone(true); }
+
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   union {
     
@@ -217,6 +221,8 @@ public:
     mPseudoType = static_cast<PRInt16>(aType);
   }
 
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
   
   
   
@@ -270,6 +276,8 @@ struct nsCSSSelectorList {
 
 
   nsCSSSelectorList* Clone() const { return Clone(true); }
+
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
   nsCSSSelector*     mSelectors;
   PRInt32            mWeight;
@@ -379,6 +387,8 @@ public:
 #ifdef DEBUG
   virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
 #endif
+
+  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 private:
   ~StyleRule();

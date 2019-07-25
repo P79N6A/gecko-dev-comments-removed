@@ -176,7 +176,6 @@
 #include "nsIDOMPageTransitionEvent.h"
 #include "nsFrameLoader.h"
 #include "nsEscape.h"
-#include "nsObjectLoadingContent.h"
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif 
@@ -3756,11 +3755,6 @@ NotifyActivityChanged(nsIContent *aContent, void *aUnused)
     mediaElem->NotifyOwnerDocumentActivityChanged();
   }
 #endif
-  nsCOMPtr<nsIObjectLoadingContent> objectLoadingContent(do_QueryInterface(aContent));
-  if (objectLoadingContent) {
-    nsObjectLoadingContent* olc = static_cast<nsObjectLoadingContent*>(objectLoadingContent.get());
-    olc->NotifyOwnerDocumentActivityChanged();
-  }
 }
 
 void
@@ -9139,4 +9133,19 @@ nsDocument::GetMozVisibilityState(nsAString& aState)
   PR_STATIC_ASSERT(NS_ARRAY_LENGTH(states) == eVisibilityStateCount);
   aState.AssignASCII(states[mVisibilityState]);
   return NS_OK;
+}
+
+static size_t
+SizeOfStyleSheetsElementIncludingThis(nsIStyleSheet* aStyleSheet,
+                                      nsMallocSizeOfFun aMallocSizeOf,
+                                      void* aData)
+{
+  return aStyleSheet->SizeOfIncludingThis(aMallocSizeOf);
+}
+
+ size_t
+nsDocument::SizeOfStyleSheets(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  return mStyleSheets.SizeOfExcludingThis(SizeOfStyleSheetsElementIncludingThis,
+                                          aMallocSizeOf); 
 }

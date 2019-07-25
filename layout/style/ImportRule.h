@@ -81,6 +81,8 @@ public:
 
   void SetSheet(nsCSSStyleSheet*);
 
+  virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
   
   NS_DECL_NSIDOMCSSRULE
 

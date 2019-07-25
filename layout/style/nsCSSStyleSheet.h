@@ -99,6 +99,8 @@ private:
   
   nsresult CreateNamespaceMap();
 
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+
   nsAutoTArray<nsCSSStyleSheet*, 8> mSheets;
   nsCOMPtr<nsIURI>       mSheetURI; 
   nsCOMPtr<nsIURI>       mOriginalSheetURI;  
@@ -265,6 +267,8 @@ public:
   
   
   static bool RebuildChildList(mozilla::css::Rule* aRule, void* aBuilder);
+
+  size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 private:
   nsCSSStyleSheet(const nsCSSStyleSheet& aCopy,
