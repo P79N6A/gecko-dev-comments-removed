@@ -43,6 +43,6 @@
 
 
 
-extern mozilla::Module const *const *const kPStaticModules;
+extern mozilla::Module const *const *const kPStaticModules[];
 
 #endif
