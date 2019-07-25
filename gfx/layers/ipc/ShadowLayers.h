@@ -385,18 +385,76 @@ protected:
 };
 
 
-class ShadowThebesLayer : public ThebesLayer
+
+
+
+
+
+
+
+
+class ShadowLayer
 {
 public:
+  virtual ~ShadowLayer() {}
+
   
 
 
-  void SetParent(PLayersParent* aParent)
+  void SetAllocator(PLayersParent* aAllocator)
   {
-    NS_ABORT_IF_FALSE(!mAllocator, "Stomping parent?");
-    mAllocator = aParent;
+    NS_ABORT_IF_FALSE(!mAllocator, "Stomping allocator?");
+    mAllocator = aAllocator;
   }
 
+  
+
+
+
+
+
+
+  void SetShadowVisibleRegion(const nsIntRegion& aRegion)
+  {
+    mShadowVisibleRegion = aRegion;
+  }
+
+  void SetShadowClipRect(const nsIntRect* aRect)
+  {
+    mUseShadowClipRect = aRect != nsnull;
+    if (aRect) {
+      mShadowClipRect = *aRect;
+    }
+  }
+
+  void SetShadowTransform(const gfx3DMatrix& aMatrix)
+  {
+    mShadowTransform = aMatrix;
+  }
+
+  
+  const nsIntRect* GetShadowClipRect() { return mUseShadowClipRect ? &mShadowClipRect : nsnull; }
+  const nsIntRegion& GetShadowVisibleRegion() { return mShadowVisibleRegion; }
+  const gfx3DMatrix& GetShadowTransform() { return mShadowTransform; }
+
+protected:
+  ShadowLayer()
+    : mAllocator(nsnull)
+    , mUseShadowClipRect(PR_FALSE)
+  {}
+
+  PLayersParent* mAllocator;
+  nsIntRegion mShadowVisibleRegion;
+  gfx3DMatrix mShadowTransform;
+  nsIntRect mShadowClipRect;
+  PRPackedBool mUseShadowClipRect;
+};
+
+
+class ShadowThebesLayer : public ShadowLayer,
+                          public ThebesLayer
+{
+public:
   
 
 
@@ -450,30 +508,21 @@ public:
 
   virtual void DestroyFrontBuffer() = 0;
 
+  virtual ShadowLayer* AsShadowLayer() { return this; }
+
   MOZ_LAYER_DECL_NAME("ShadowThebesLayer", TYPE_SHADOW)
 
 protected:
   ShadowThebesLayer(LayerManager* aManager, void* aImplData)
     : ThebesLayer(aManager, aImplData)
-    , mAllocator(nsnull)
   {}
-
-  PLayersParent* mAllocator;
 };
 
 
-class ShadowCanvasLayer : public CanvasLayer
+class ShadowCanvasLayer : public ShadowLayer,
+                          public CanvasLayer
 {
 public:
-  
-
-
-  void SetParent(PLayersParent* aParent)
-  {
-    NS_ABORT_IF_FALSE(!mAllocator, "Stomping parent?");
-    mAllocator = aParent;
-  }
-
   
 
 
@@ -491,30 +540,21 @@ public:
 
   virtual void DestroyFrontBuffer() = 0;
 
+  virtual ShadowLayer* AsShadowLayer() { return this; }
+
   MOZ_LAYER_DECL_NAME("ShadowCanvasLayer", TYPE_SHADOW)
 
 protected:
   ShadowCanvasLayer(LayerManager* aManager, void* aImplData)
     : CanvasLayer(aManager, aImplData)
-    , mAllocator(nsnull)
   {}
-
-  PLayersParent* mAllocator;
 };
 
 
-class ShadowImageLayer : public ImageLayer
+class ShadowImageLayer : public ShadowLayer,
+                         public ImageLayer
 {
 public:
-  
-
-
-  void SetParent(PLayersParent* aParent)
-  {
-    NS_ABORT_IF_FALSE(!mAllocator, "Stomping parent?");
-    mAllocator = aParent;
-  }
-
   
 
 
@@ -539,15 +579,14 @@ public:
 
   virtual void DestroyFrontBuffer() = 0;
 
+  virtual ShadowLayer* AsShadowLayer() { return this; }
+
   MOZ_LAYER_DECL_NAME("ShadowImageLayer", TYPE_SHADOW)
 
 protected:
   ShadowImageLayer(LayerManager* aManager, void* aImplData)
     : ImageLayer(aManager, aImplData)
-    , mAllocator(nsnull)
   {}
-
-  PLayersParent* mAllocator;
 };
 
 

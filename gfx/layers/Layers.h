@@ -77,6 +77,7 @@ class ImageLayer;
 class ColorLayer;
 class ImageContainer;
 class CanvasLayer;
+class ShadowLayer;
 class SpecificLayerAttributes;
 
 
@@ -642,6 +643,19 @@ public:
 
 
   virtual ThebesLayer* AsThebesLayer() { return nsnull; }
+
+  
+
+
+
+  virtual ShadowLayer* AsShadowLayer() { return nsnull; }
+
+  
+  
+  
+  const nsIntRect* GetEffectiveClipRect();
+  const nsIntRegion& GetEffectiveVisibleRegion();
+  const gfx3DMatrix& GetEffectiveTransform();
 
   virtual const char* Name() const =0;
   virtual LayerType GetType() const =0;
