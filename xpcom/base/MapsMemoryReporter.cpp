@@ -46,9 +46,6 @@
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include <stdio.h>
-#include "mozilla/unused.h"
-
-using mozilla::unused;
 
 namespace mozilla {
 namespace MapsMemoryReporter {
@@ -342,7 +339,7 @@ MapsReporter::ParseMapping(
                        devMinor, &inode, path);
 
   
-  unused << fscanf(aFile, " ");
+  fscanf(aFile, " ");
 
   
   
