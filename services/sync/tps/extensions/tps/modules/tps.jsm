@@ -93,6 +93,7 @@ const SYNC_START_OVER   = "start-over";
 let TPS =
 {
   _waitingForSync: false,
+  _isTracking: false,
   _test: null,
   _currentAction: -1,
   _currentPhase: -1,
@@ -148,6 +149,15 @@ let TPS =
             }, 1000, this, "postsync");
           }
           break;
+
+        case "weave:engine:start-tracking":
+          this._isTracking = true;
+          break;
+
+        case "weave:engine:stop-tracking":
+          this._isTracking = false;
+          break;
+
         case "sessionstore-windows-restored":
           Utils.nextTick(this.RunNextTestAction, this);
           break;
@@ -534,6 +544,30 @@ let TPS =
       }
 
       
+      if (!Weave.Status.ready) {
+        this.waitForEvent("weave:service:ready");
+      }
+
+      
+      
+      
+      Utils.nextTick(this._executeTestPhase.bind(this, file, phase, settings));
+    } catch(e) {
+      this.DumpError("Exception caught: " + Utils.exceptionStr(e));
+      return;
+    }
+  },
+
+  
+
+
+
+
+  _executeTestPhase: function _executeTestPhase(file, phase, settings) {
+    try {
+      
+      Services.obs.addObserver(this, "weave:engine:start-tracking", true);
+      Services.obs.addObserver(this, "weave:engine:stop-tracking", true);
       Services.obs.addObserver(this, "weave:service:sync:finish", true);
       Services.obs.addObserver(this, "weave:service:sync:error", true);
       Services.obs.addObserver(this, "sessionstore-windows-restored", true);
@@ -678,6 +712,41 @@ let TPS =
 
 
 
+  waitForEvent:function waitForEvent(name) {
+    Logger.logInfo("Waiting for " + name + "...");
+    let cb = Async.makeSpinningCallback();
+    Svc.Obs.add(name, cb);
+    cb.wait();
+    Svc.Obs.remove(name, cb);
+    Logger.logInfo(name + " observed!");
+
+    let cb = Async.makeSpinningCallback();
+    Utils.nextTick(cb);
+    cb.wait();
+  },
+
+  
+
+
+  waitForTracking: function waitForTracking() {
+    if (!this._isTracking) {
+      this.waitForEvent("weave:engine:start-tracking");
+    }
+
+    let cb = Async.makeSyncCallback();
+    Utils.nextTick(cb);
+    Async.waitForSyncCallback(cb);
+  },
+
+  
+
+
+
+
+
+
+
+
 
 
 
@@ -689,6 +758,8 @@ let TPS =
     Service.wipeServer();
     Service.resetClient();
     Service.login();
+
+    this.waitForTracking();
   },
 
   Login: function Login(force) {
@@ -734,6 +805,8 @@ let TPS =
     Logger.AssertEqual(Weave.Status.service, Weave.STATUS_OK, "Weave status not OK");
     Weave.Svc.Obs.notify("weave:service:setup-complete");
     this._loggedIn = true;
+
+    this.waitForTracking();
   },
 
   Sync: function TPS__Sync(options) {
@@ -767,6 +840,14 @@ let TPS =
     this.Login();
     Weave.Service.wipeServer();
   },
+
+  
+
+
+  EnsureTracking: function EnsureTracking() {
+    this.Login(false);
+    this.waitForTracking();
+  }
 };
 
 var Addons = {
