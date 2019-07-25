@@ -136,11 +136,7 @@ public:
   }
 
   
-  
-  
-  
-  PRUint32 EstimateHeapMemoryUsed() const;
-  PRUint32 EstimateNonheapMemoryUsed() const;
+  PRUint32 EstimateMemoryUsed() const;
 
   PRUint8 GetPaletteDepth() const { return mPaletteDepth; }
 

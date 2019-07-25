@@ -209,9 +209,8 @@ public:
   
   PRUint32 GetNumFrames();
 
-  virtual PRUint32 GetDecodedHeapSize();
-  virtual PRUint32 GetDecodedNonheapSize();
-  virtual PRUint32 GetSourceHeapSize();
+  PRUint32 GetDecodedDataSize();
+  PRUint32 GetSourceDataSize();
 
   
   void Discard(bool force = false);

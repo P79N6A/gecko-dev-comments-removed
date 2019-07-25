@@ -104,7 +104,6 @@ gfxXlibSurface::gfxXlibSurface(cairo_surface_t *csurf)
 
 gfxXlibSurface::~gfxXlibSurface()
 {
-    
     if (mPixmapTaken) {
         XFreePixmap (mDisplay, mDrawable);
     }
@@ -126,26 +125,6 @@ CreatePixmap(Screen *screen, const gfxIntSize& size, unsigned int depth,
     return XCreatePixmap(dpy, relatedDrawable,
                          NS_MAX(1, size.width), NS_MAX(1, size.height),
                          depth);
-}
-
-void
-gfxXlibSurface::TakePixmap()
-{
-    NS_ASSERTION(!mPixmapTaken, "I already own the Pixmap!");
-    mPixmapTaken = PR_TRUE;
-
-    
-    
-    RecordMemoryUsed(mSize.width * mSize.height *
-        cairo_xlib_surface_get_depth(CairoSurface()) / 8);
-}
-
-Drawable
-gfxXlibSurface::ReleasePixmap() {
-    NS_ASSERTION(mPixmapTaken, "I don't own the Pixmap!");
-    mPixmapTaken = PR_FALSE;
-    RecordMemoryFreed();
-    return mDrawable;
 }
 
 

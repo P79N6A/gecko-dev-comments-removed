@@ -208,23 +208,6 @@ public:
 
     PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
 
-    
-
-
-
-
-    enum MemoryLocation {
-      MEMORY_IN_PROCESS_HEAP,
-      MEMORY_IN_PROCESS_NONHEAP,
-      MEMORY_OUT_OF_PROCESS
-    };
-
-    
-
-
-
-    virtual MemoryLocation GetMemoryLocation() { return MEMORY_IN_PROCESS_HEAP; }
-
     static PRInt32 BytePerPixelFromFormat(gfxImageFormat format);
 
     virtual const gfxIntSize GetSize() const { return gfxIntSize(-1, -1); }
