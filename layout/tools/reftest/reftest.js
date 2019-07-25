@@ -966,7 +966,7 @@ const STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL = 1;
 const STATE_WAITING_TO_FINISH = 2;
 const STATE_COMPLETED = 3;
 
-function WaitForTestEnd(contentRootElement) {
+function WaitForTestEnd(contentRootElement, inPrintMode) {
     var stopAfterPaintReceived = false;
     var state = STATE_WAITING_TO_FIRE_INVALIDATE_EVENT;
 
@@ -1076,9 +1076,11 @@ function WaitForTestEnd(contentRootElement) {
             state = STATE_WAITING_FOR_REFTEST_WAIT_REMOVAL;
             var hasReftestWait = shouldWaitForReftestWaitRemoval(contentRootElement);            
             
-            var notification = document.createEvent("Events");
-            notification.initEvent("MozReftestInvalidate", true, false);
-            contentRootElement.dispatchEvent(notification);
+            if (contentRootElement) {
+                var notification = document.createEvent("Events");
+                notification.initEvent("MozReftestInvalidate", true, false);
+                contentRootElement.dispatchEvent(notification);
+            }
             if (hasReftestWait && !shouldWaitForReftestWaitRemoval(contentRootElement)) {
                 
                 
@@ -1100,10 +1102,9 @@ function WaitForTestEnd(contentRootElement) {
                 return;
             }
             state = STATE_WAITING_TO_FINISH;
-            if (doPrintMode(contentRootElement)) {
+            if (!inPrintMode && doPrintMode(contentRootElement)) {
                 LogInfo("MakeProgress: setting up print mode");
                 setupPrintMode();
-                didPrintMode = true;
             }
             
             MakeProgress();
@@ -1178,13 +1179,17 @@ function OnDocumentLoad(event)
         
         
         
-        InitCurrentCanvasWithSnapshot();
+        var painted = InitCurrentCanvasWithSnapshot();
 
         if (shouldWaitForExplicitPaintWaiters() ||
-            (!inPrintMode && doPrintMode(contentRootElement))) {
+            (!inPrintMode && doPrintMode(contentRootElement)) ||
+            
+            
+            
+            !painted) {
             LogInfo("AfterOnLoadScripts belatedly entering WaitForTestEnd");
             
-            WaitForTestEnd(contentRootElement);
+            WaitForTestEnd(contentRootElement, inPrintMode);
         } else {
             RecordResult();
         }
@@ -1196,7 +1201,7 @@ function OnDocumentLoad(event)
         
         gFailureReason = "timed out waiting for test to complete (trying to get into WaitForTestEnd)";
         LogInfo("OnDocumentLoad triggering WaitForTestEnd");
-        setTimeout(WaitForTestEnd, 0, contentRootElement);
+        setTimeout(WaitForTestEnd, 0, contentRootElement, inPrintMode);
     } else {
         if (doPrintMode(contentRootElement)) {
             LogInfo("OnDocumentLoad setting up print mode");
@@ -1275,7 +1280,7 @@ function InitCurrentCanvasWithSnapshot()
 {
     if (gURLs[0].type == TYPE_LOAD || gURLs[0].type == TYPE_SCRIPT) {
         
-        return;
+        return false;
     }
 
     if (!gCurrentCanvas) {
@@ -1284,6 +1289,7 @@ function InitCurrentCanvasWithSnapshot()
 
     var ctx = gCurrentCanvas.getContext("2d");
     DoDrawWindow(ctx, 0, 0, gCurrentCanvas.width, gCurrentCanvas.height);
+    return true;
 }
 
 function roundTo(x, fraction)
