@@ -2134,7 +2134,6 @@ function IdentityHandler() {
 }
 
 IdentityHandler.prototype = {
-
   
   IDENTITY_MODE_IDENTIFIED       : "verifiedIdentity", 
   IDENTITY_MODE_DOMAIN_VERIFIED  : "verifiedDomain",   
@@ -2158,37 +2157,8 @@ IdentityHandler.prototype = {
     this._identityPopupEncLabel = document.getElementById("identity-popup-encryption-label");
   },
 
-  
-
-
-
   getIdentityData: function() {
-    var result = {};
-    var status = this._lastStatus.QueryInterface(Ci.nsISSLStatus);
-    var cert = status.serverCert;
-
-    
-    result.subjectOrg = cert.organization;
-
-    
-    if (cert.subjectName) {
-      result.subjectNameFields = {};
-      cert.subjectName.split(",").forEach(function(v) {
-        var field = v.split("=");
-        this[field[0]] = field[1];
-      }, result.subjectNameFields);
-
-      
-      result.city = result.subjectNameFields.L;
-      result.state = result.subjectNameFields.ST;
-      result.country = result.subjectNameFields.C;
-    }
-
-    
-    result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
-    result.cert = cert;
-
-    return result;
+    return this._lastStatus.serverCert;
   },
 
   
@@ -2196,16 +2166,18 @@ IdentityHandler.prototype = {
 
 
   checkIdentity: function() {
-    let state = Browser.selectedTab.getIdentityState();
-    let location = getBrowser().contentWindow.location;
-    let currentStatus = getBrowser().securityUI.QueryInterface(Ci.nsISSLStatusProvider).SSLStatus;
+    let browser= getBrowser();
+    let state = browser.securityUI.state;
+    let location = browser.currentURI;
+    let currentStatus = browser.securityUI.SSLStatus;
 
     this._lastStatus = currentStatus;
     this._lastLocation = {};
+
     try {
       
-      this._lastLocation = { host: location.host, hostname: location.hostname, port: location.port };
-    } catch (ex) { }
+      this._lastLocation = { host: location.hostPort, hostname: location.host, port: location.port == -1 ? "" : location.port};
+    } catch(e) { }
 
     if (state & Ci.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
@@ -2273,12 +2245,7 @@ IdentityHandler.prototype = {
                                                [iData.caOrg]);
 
       
-      
-      
-      
-      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
-                                                    (this._lastLocation.port || 443),
-                                                    iData.cert, {}, {}))
+      if (iData.isException)
         tooltip = strings.getString("identity.identified.verified_by_you");
     }
     else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
@@ -3121,11 +3088,6 @@ Tab.prototype = {
        let [width, height] = BrowserView.Util.getBrowserDimensions(browser);
        BrowserView.Util.ensureMozScrolledAreaEvent(browser, width, height);
     }
-  },
-
-  
-  getIdentityState: function getIdentityState() {
-    return this._listener.state;
   },
 
   startLoading: function startLoading() {
