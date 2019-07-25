@@ -44,6 +44,7 @@ const AUS_Ci = Components.interfaces;
 const AUS_Cr = Components.results;
 const AUS_Cu = Components.utils;
 
+const PREF_APP_UPDATE_AUTO                = "app.update.auto";
 const PREF_APP_UPDATE_BACKGROUNDERRORS    = "app.update.backgroundErrors";
 const PREF_APP_UPDATE_BACKGROUNDMAXERRORS = "app.update.backgroundMaxErrors";
 const PREF_APP_UPDATE_CERTS_BRANCH        = "app.update.certs.";
@@ -162,6 +163,7 @@ function reloadUpdateManagerData() {
 
 
 
+
 function setUpdateChannel(aChannel) {
   let channel = aChannel ? aChannel : "test_channel";
   debugDump("setting default pref " + PREF_APP_UPDATE_CHANNEL + " to " + channel);
@@ -174,11 +176,13 @@ function setUpdateChannel(aChannel) {
 
 
 
+
 function setUpdateURLOverride(aURL) {
   let url = aURL ? aURL : URL_HOST + "update.xml";
   debugDump("setting " + PREF_APP_UPDATE_URL_OVERRIDE + " to " + url);
   Services.prefs.setCharPref(PREF_APP_UPDATE_URL_OVERRIDE, url);
 }
+
 
 
 
@@ -202,6 +206,7 @@ function writeUpdatesToXMLFile(aContent, aIsActiveUpdate) {
 
 
 
+
 function writeStatusFile(aStatus) {
   var file = getUpdatesDir();
   file.append("0");
@@ -216,6 +221,7 @@ function writeStatusFile(aStatus) {
 
 
 
+
 function writeVersionFile(aVersion) {
   var file = getUpdatesDir();
   file.append("0");
@@ -223,6 +229,7 @@ function writeVersionFile(aVersion) {
   aVersion += "\n";
   writeFile(file, aVersion);
 }
+
 
 
 
@@ -243,6 +250,7 @@ function getUpdatesDir() {
 
 
 
+
 function writeFile(aFile, aText) {
   var fos = AUS_Cc["@mozilla.org/network/file-output-stream;1"].
             createInstance(AUS_Ci.nsIFileOutputStream);
@@ -252,6 +260,7 @@ function writeFile(aFile, aText) {
   fos.write(aText, aText.length);
   fos.close();
 }
+
 
 
 
@@ -281,6 +290,7 @@ function readStatusFile(aFile) {
 
 
 
+
 function readFile(aFile) {
   var fis = AUS_Cc["@mozilla.org/network/file-input-stream;1"].
             createInstance(AUS_Ci.nsIFileInputStream);
@@ -294,6 +304,7 @@ function readFile(aFile) {
   sis.close();
   return text;
 }
+
 
 
 
@@ -336,6 +347,7 @@ function getString(aName) {
   }
   return null;
 }
+
 
 
 
@@ -389,6 +401,7 @@ function removeUpdateDirsAndFiles() {
          updatesDir.path + "\nException: " + e + "\n");
   }
 }
+
 
 
 
@@ -467,9 +480,13 @@ function removeDirRecursive(aDir) {
 
 
 
+
+
 function getCurrentProcessDir() {
   return Services.dirsvc.get(NS_XPCOM_CURRENT_PROCESS_DIR, AUS_Ci.nsIFile);
 }
+
+
 
 
 
@@ -489,11 +506,13 @@ function getGREDir() {
 
 
 
+
 function logTestInfo(aText, aCaller) {
   let caller = (aCaller ? aCaller : Components.stack.caller);
   dump("TEST-INFO | " + caller.filename + " | [" + caller.name + " : " +
        caller.lineNumber + "] " + aText + "\n");
 }
+
 
 
 

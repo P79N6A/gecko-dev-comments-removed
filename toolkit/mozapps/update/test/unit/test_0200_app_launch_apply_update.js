@@ -148,9 +148,8 @@ function run_test() {
     removeDirRecursive(updateTestDir);
   }
   catch (e) {
-    dump("Unable to remove directory\n" +
-         "path: " + updateTestDir.path + "\n" +
-         "Exception: " + e + "\n");
+    logTestInfo("unable to remove directory - path: " + updateTestDir.path +
+                ", exception: " + e);
   }
 
   
@@ -251,9 +250,8 @@ function end_test() {
     removeDirRecursive(updateTestDir);
   }
   catch (e) {
-    dump("Unable to remove directory\n" +
-         "path: " + updateTestDir.path + "\n" +
-         "Exception: " + e + "\n");
+    logTestInfo("unable to remove directory - path: " + updateTestDir.path +
+                ", exception: " + e);
   }
 
   
