@@ -120,6 +120,14 @@ public:
   nsresult UnlockImage();
   nsresult RequestDecode();
 
+  inline void SetWindowID(PRUint64 aWindowId) {
+    mWindowId = aWindowId;
+  }
+
+  inline PRUint64 WindowID() const {
+    return mWindowId;
+  }
+
 private:
   friend class imgCacheEntry;
   friend class imgRequestProxy;
@@ -224,6 +232,10 @@ private:
   nsCategoryCache<nsIContentSniffer> mImageSniffers;
   nsCOMPtr<nsIAsyncVerifyRedirectCallback> mRedirectCallback;
   nsCOMPtr<nsIChannel> mNewRedirectChannel;
+
+  
+  PRUint64 mWindowId;
+
   
   
   PRPackedBool mDecodeRequested : 1;

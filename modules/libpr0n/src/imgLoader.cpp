@@ -67,6 +67,8 @@
 #include "nsThreadUtils.h"
 #include "nsXPIDLString.h"
 #include "nsCRT.h"
+#include "nsIDocument.h"
+#include "nsPIDOMWindow.h"
 
 #include "netCore.h"
 
@@ -1636,6 +1638,12 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
 
     void *cacheId = NS_GetCurrentThread();
     request->Init(aURI, aURI, loadGroup, newChannel, entry, cacheId, aCX);
+
+    
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(aCX);
+    if (doc) {
+      request->SetWindowID(doc->OuterWindowID());
+    }
 
     
     ProxyListener *pl = new ProxyListener(static_cast<nsIStreamListener *>(request.get()));
