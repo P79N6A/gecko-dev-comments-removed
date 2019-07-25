@@ -194,31 +194,33 @@ nsImageFromClipboard ::GetEncodedImageStream (unsigned char * aClipboardData, co
   
   NS_ENSURE_TRUE(height > 0, NS_ERROR_FAILURE); 
 
-  static mozilla::fallible_t fallible = mozilla::fallible_t();
-  unsigned char * rgbaData = new (fallible) unsigned char[width * height * 4 ];
-  if (!rgbaData)
-      return NS_ERROR_OUT_OF_MEMORY;
+  unsigned char * rgbData = new unsigned char[width * height * 3 ];
 
-  BYTE  * pGlobal = (BYTE *) aClipboardData;
-  
-  rv = ConvertColorBitMap((unsigned char *) (pGlobal + header->bmiHeader.biSize), header, rgbaData);
-  
-  if (NS_SUCCEEDED(rv)) {
-    nsCAutoString encoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type="));
+  if (rgbData) {
+    BYTE  * pGlobal = (BYTE *) aClipboardData;
     
-    if (strcmp(aMIMEFormat, kJPEGImageMime) == 0)
-      encoderCID.Append("image/jpeg");
-    else
-      encoderCID.Append(aMIMEFormat);
-    nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get(), &rv);
-    if (NS_SUCCEEDED(rv)){
-      rv = encoder->InitFromData(rgbaData, 0, width, height, 4 * width , 
-                                 imgIEncoder::INPUT_FORMAT_RGBA, EmptyString());
-      if (NS_SUCCEEDED(rv))
-        encoder->QueryInterface(NS_GET_IID(nsIInputStream), (void **) aInputStream);
+    rv = ConvertColorBitMap((unsigned char *) (pGlobal + header->bmiHeader.biSize), header, rgbData);
+    
+    if (NS_SUCCEEDED(rv)) {
+      nsCAutoString encoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type="));
+
+      
+      if (strcmp(aMIMEFormat, kJPGImageMime) == 0)
+        encoderCID.Append("image/jpeg");
+      else
+        encoderCID.Append(aMIMEFormat);
+      nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get(), &rv);
+      if (NS_SUCCEEDED(rv)){
+        rv = encoder->InitFromData(rgbData, 0, width, height, 3 * width , 
+                                   imgIEncoder::INPUT_FORMAT_RGB, EmptyString());
+        if (NS_SUCCEEDED(rv))
+          encoder->QueryInterface(NS_GET_IID(nsIInputStream), (void **) aInputStream);
+      }
     }
-  }
-  delete[] rgbaData;
+    delete [] rgbData;
+  } 
+  else 
+    rv = NS_ERROR_OUT_OF_MEMORY;
 
   return rv;
 } 
@@ -322,7 +324,6 @@ nsImageFromClipboard::ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPIN
             aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbRed;
             aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbGreen;
             aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbBlue;
-            aOutBuffer[writeIndex++] = 0xFF;
             numPixelsLeftInRow--;
           }
           pos += 1;
@@ -335,7 +336,6 @@ nsImageFromClipboard::ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPIN
             aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbRed;
             aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbGreen;
             aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbBlue;
-            aOutBuffer[writeIndex++] = 0xFF;
             numPixelsLeftInRow--;
 
             if (numPixelsLeftInRow) 
@@ -344,7 +344,6 @@ nsImageFromClipboard::ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPIN
               aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbRed;
               aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbGreen;
               aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[colorTableEntry].rgbBlue;
-              aOutBuffer[writeIndex++] = 0xFF;
               numPixelsLeftInRow--;
             }
             pos += 1;
@@ -354,7 +353,6 @@ nsImageFromClipboard::ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPIN
           aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[aInputBuffer[index]].rgbRed;
           aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[aInputBuffer[index]].rgbGreen;
           aOutBuffer[writeIndex++] = pBitMapInfo->bmiColors[aInputBuffer[index]].rgbBlue;
-          aOutBuffer[writeIndex++] = 0xFF;
           numPixelsLeftInRow--;
           pos += 1;    
           break;
@@ -373,7 +371,6 @@ nsImageFromClipboard::ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPIN
             aOutBuffer[writeIndex++] = redValue;
             aOutBuffer[writeIndex++] = greenValue;
             aOutBuffer[writeIndex++] = blueValue;
-            aOutBuffer[writeIndex++] = 0xFF;
             numPixelsLeftInRow--;
             pos += 2;          
           }
@@ -386,22 +383,14 @@ nsImageFromClipboard::ConvertColorBitMap(unsigned char * aInputBuffer, PBITMAPIN
             aOutBuffer[writeIndex++] = (val & colorMasks.red) >> colorMasks.redRightShift << colorMasks.redLeftShift;
             aOutBuffer[writeIndex++] =  (val & colorMasks.green) >> colorMasks.greenRightShift << colorMasks.greenLeftShift;
             aOutBuffer[writeIndex++] = (val & colorMasks.blue) >> colorMasks.blueRightShift << colorMasks.blueLeftShift;
-            aOutBuffer[writeIndex++] = 0xFF;
             numPixelsLeftInRow--;
-            
-            
-            
             pos += 4; 
           }
           else
           {
             aOutBuffer[writeIndex++] = aInputBuffer[index+2];
-            aOutBuffer[writeIndex++] = aInputBuffer[index+1];
+            aOutBuffer[writeIndex++] =  aInputBuffer[index+1];
             aOutBuffer[writeIndex++] = aInputBuffer[index];
-            if (bytesPerPixel > 3)
-                aOutBuffer[writeIndex++] = aInputBuffer[index+3];
-            else
-                aOutBuffer[writeIndex++] = 0xFF;
             numPixelsLeftInRow--;
             pos += bytesPerPixel; 
           }
