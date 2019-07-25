@@ -759,7 +759,10 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
 
     MUST_FLOW_THROUGH("out");
 
-    JSObject *globalObj = scopeChain ? scopeChain->getGlobal() : NULL;
+    
+    JSObject *globalObj = scopeChain && scopeChain == scopeChain->getGlobal()
+                        ? scopeChain->getGlobal()
+                        : NULL;
     js::GlobalScope globalScope(cx, globalObj, &cg);
     if (globalObj) {
         JS_ASSERT(globalObj->isNative());
