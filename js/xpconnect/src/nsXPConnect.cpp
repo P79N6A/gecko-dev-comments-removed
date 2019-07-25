@@ -2605,7 +2605,7 @@ nsXPConnect::Push(JSContext * cx)
              bool runningJS = false;
              for (PRUint32 i = 0; i < stack->Length(); ++i) {
                  JSContext *cx = (*stack)[i].cx;
-                 if (cx && !cx->stack.empty()) {
+                 if (cx && js::IsContextRunningJS(cx)) {
                      runningJS = true;
                      break;
                  }
