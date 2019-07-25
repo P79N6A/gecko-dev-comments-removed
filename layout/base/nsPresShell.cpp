@@ -956,6 +956,8 @@ public:
                                                  nsIFrame* aFrame,
                                                  const nsRect& aBounds);
 
+  virtual nscolor ComputeBackstopColor(nsIView* aDisplayRoot);
+
 protected:
   virtual ~PresShell();
 
@@ -1312,13 +1314,6 @@ private:
   PRPackedBool mInResize;
 
 private:
-  
-
-
-
-
-  nscolor ComputeBackstopColor(nsIView* aDisplayRoot);
-
 #ifdef DEBUG
   
   PRUint32 mPresArenaAllocCount;
@@ -5314,7 +5309,12 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
     flags |= nsLayoutUtils::PAINT_SYNC_DECODE_IMAGES;
   }
   if (aFlags & RENDER_USE_WIDGET_LAYERS) {
-    flags |= nsLayoutUtils::PAINT_WIDGET_LAYERS;
+    
+    nsIView* view = rootFrame->GetView();
+    if (view && view->GetWidget() &&
+        nsLayoutUtils::GetDisplayRootFrame(rootFrame) == rootFrame) {
+      flags |= nsLayoutUtils::PAINT_WIDGET_LAYERS;
+    }
   }
   if (!(aFlags & RENDER_CARET)) {
     flags |= nsLayoutUtils::PAINT_HIDE_CARET;
