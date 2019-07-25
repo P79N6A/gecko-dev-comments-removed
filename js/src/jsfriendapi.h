@@ -813,7 +813,7 @@ CastToJSFreeOp(FreeOp *fop)
 
 
 extern JS_FRIEND_API(const jschar*)
-GetErrorTypeNameFromNumber(JSContext* cx, const unsigned errorNumber);
+GetErrorTypeName(JSContext* cx, int16_t exnType);
 
 
 typedef enum NukedGlobalHandling {

@@ -5706,6 +5706,7 @@ struct JSErrorReport {
     unsigned           errorNumber;    
     const jschar    *ucmessage;     
     const jschar    **messageArgs;  
+    int16_t         exnType;        
 };
 
 

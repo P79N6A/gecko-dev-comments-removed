@@ -594,6 +594,8 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
     else
         efs = callback(userRef, NULL, errorNumber);
     if (efs) {
+        reportp->exnType = efs->exnType;
+
         size_t totalArgsLength = 0;
         size_t argLengths[10]; 
         argCount = efs->argCount;
