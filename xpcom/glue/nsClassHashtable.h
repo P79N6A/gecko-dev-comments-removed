@@ -70,18 +70,6 @@ public:
 
 
   UserDataType Get(KeyType aKey) const;
-
-  
-
-
-
-
-
-
-
-
-
-  void RemoveAndForget(KeyType aKey, nsAutoPtr<T> &aOut);
 };
 
 
@@ -143,23 +131,6 @@ nsClassHashtable<KeyClass,T>::Get(KeyType aKey) const
     return NULL;
 
   return ent->mData;
-}
-
-template<class KeyClass,class T>
-void
-nsClassHashtable<KeyClass,T>::RemoveAndForget(KeyType aKey, nsAutoPtr<T> &aOut)
-{
-  aOut = nsnull;
-  nsAutoPtr<T> ptr;
-
-  typename base_type::EntryType *ent = this->GetEntry(aKey);
-  if (!ent)
-    return;
-
-  
-  aOut = ent->mData;
-
-  this->Remove(aKey);
 }
 
 
