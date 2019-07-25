@@ -262,6 +262,7 @@ namespace js {
 struct NativeIterator;
 class RegExp;
 class GlobalObject;
+class StringObject;
 
 }
 
@@ -329,6 +330,9 @@ struct JSObject : js::gc::Cell {
   private:
     inline void setLastProperty(const js::Shape *shape);
     inline void removeLastProperty();
+
+    
+    friend class js::StringObject;
 
 #ifdef DEBUG
     void checkShapeConsistency();
@@ -477,7 +481,7 @@ struct JSObject : js::gc::Cell {
 
     
     void initCall(JSContext *cx, const js::Bindings &bindings, JSObject *parent);
-    void initClonedBlock(JSContext *cx, JSObject *proto, JSStackFrame *priv);
+    void initClonedBlock(JSContext *cx, JSObject *proto, js::StackFrame *priv);
     void setBlockOwnShape(JSContext *cx);
 
     void deletingShapeChange(JSContext *cx, const js::Shape &shape);
@@ -758,23 +762,8 @@ struct JSObject : js::gc::Cell {
     inline const js::Value &getPrimitiveThis() const;
     inline void setPrimitiveThis(const js::Value &pthis);
 
-  private:
-    
-    static const uint32 JSSLOT_STRING_LENGTH = 1;
-
-    
-
-
-
-
-    const js::Shape *assignInitialStringShape(JSContext *cx);
-
   public:
-    static const uint32 STRING_RESERVED_SLOTS = 2;
-
-    inline size_t getStringLength() const;
-
-    inline bool initString(JSContext *cx, JSString *str);
+    inline js::StringObject *asString();
 
     
 
@@ -919,7 +908,7 @@ struct JSObject : js::gc::Cell {
     inline bool callIsForEval() const;
 
     
-    inline JSStackFrame *maybeCallObjStackFrame() const;
+    inline js::StackFrame *maybeCallObjStackFrame() const;
 
     
 
@@ -1484,7 +1473,7 @@ extern JSObject *
 js_NewBlockObject(JSContext *cx);
 
 extern JSObject *
-js_CloneBlockObject(JSContext *cx, JSObject *proto, JSStackFrame *fp);
+js_CloneBlockObject(JSContext *cx, JSObject *proto, js::StackFrame *fp);
 
 extern JS_REQUIRES_STACK JSBool
 js_PutBlockObject(JSContext *cx, JSBool normalUnwind);
@@ -1553,6 +1542,12 @@ DefineConstructorAndPrototype(JSContext *cx, JSObject *obj, JSProtoKey key, JSAt
                               JSPropertySpec *ps, JSFunctionSpec *fs,
                               JSPropertySpec *static_ps, JSFunctionSpec *static_fs,
                               JSObject **ctorp = NULL);
+
+bool
+IsStandardClassResolved(JSObject *obj, js::Class *clasp);
+
+void
+MarkStandardClassInitializedNoProto(JSObject *obj, js::Class *clasp);
 }
 
 extern JSObject *
@@ -1918,7 +1913,7 @@ JS_FRIEND_API(void) js_DumpAtom(JSAtom *atom);
 JS_FRIEND_API(void) js_DumpObject(JSObject *obj);
 JS_FRIEND_API(void) js_DumpValue(const js::Value &val);
 JS_FRIEND_API(void) js_DumpId(jsid id);
-JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, JSStackFrame *start = NULL);
+JS_FRIEND_API(void) js_DumpStackFrame(JSContext *cx, js::StackFrame *start = NULL);
 #endif
 
 extern uintN
@@ -1927,7 +1922,6 @@ js_InferFlags(JSContext *cx, uintN defaultFlags);
 
 JSBool
 js_Object(JSContext *cx, uintN argc, js::Value *vp);
-
 
 namespace js {
 
