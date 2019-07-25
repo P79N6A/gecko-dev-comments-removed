@@ -3603,15 +3603,8 @@ define('gcli/host', ['require', 'exports', 'module' ], function(require, exports
 
 
 exports.flashNode = function(node, color) {
-  if (!node.__gcliHighlighting) {
-    node.__gcliHighlighting = true;
-    var original = node.style.background;
-    node.style.background = color;
-    setTimeout(function() {
-      node.style.background = original;
-      delete node.__gcliHighlighting;
-    }, 1000);
-  }
+  
+  
 };
 
 
