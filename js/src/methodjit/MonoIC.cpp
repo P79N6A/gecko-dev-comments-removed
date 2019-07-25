@@ -950,7 +950,8 @@ class CallCompiler : public BaseCompiler
         
         
         if (!ucr.codeAddr) {
-            disable(jit);
+            if (ucr.unjittable)
+                disable(jit);
             return NULL;
         }
             

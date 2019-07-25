@@ -582,6 +582,8 @@ usage(void)
                       "  -i            Enable interactive read-eval-print loop\n"
                       "  -j            Enable the TraceMonkey tracing JIT\n"
                       "  -m            Enable the JaegerMonkey method JIT\n"
+                      "  -a            Always method JIT, ignore internal tuning\n"
+                      "                This only has effect with -m\n"
                       "  -p            Enable loop profiling for TraceMonkey\n"
                       "  -d            Enable debug mode\n"
                       "  -b            Print timing statistics\n"
@@ -634,9 +636,10 @@ static const struct {
 } js_options[] = {
     {"anonfunfix",      JSOPTION_ANONFUNFIX},
     {"atline",          JSOPTION_ATLINE},
+    {"jitprofiling",    JSOPTION_PROFILING},
     {"tracejit",        JSOPTION_JIT},
     {"methodjit",       JSOPTION_METHODJIT},
-    {"jitprofiling",    JSOPTION_PROFILING},
+    {"methodjit_always",JSOPTION_METHODJIT_ALWAYS},
     {"relimit",         JSOPTION_RELIMIT},
     {"strict",          JSOPTION_STRICT},
     {"werror",          JSOPTION_WERROR},
@@ -805,6 +808,10 @@ ProcessArgs(JSContext *cx, JSObject *obj, char **argv, int argc)
         case 'm':
             enableMethodJit = !enableMethodJit;
             JS_ToggleOptions(cx, JSOPTION_METHODJIT);
+            break;
+
+        case 'a':
+            JS_ToggleOptions(cx, JSOPTION_METHODJIT_ALWAYS);
             break;
 
         case 'p':
@@ -3452,10 +3459,8 @@ EvalInContext(JSContext *cx, uintN argc, jsval *vp)
     JSStackFrame *fp = JS_GetScriptedCaller(cx, NULL);
     {
         JSAutoEnterCompartment ac;
-        uintN flags;
-        JSObject *unwrapped = sobj->unwrap(&flags);
-        if (flags & JSWrapper::CROSS_COMPARTMENT) {
-            sobj = unwrapped;
+        if (JSCrossCompartmentWrapper::isCrossCompartmentWrapper(sobj)) {
+            sobj = sobj->unwrap();
             if (!ac.enter(cx, sobj))
                 return false;
         }

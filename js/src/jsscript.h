@@ -373,6 +373,8 @@ struct JSScript {
   private:
     uint16          version;    
 
+    size_t          callCount_; 
+
   public:
     uint16          nfixed;     
 
@@ -472,6 +474,9 @@ struct JSScript {
     js::mjit::JITScript *getJIT(bool constructing) {
         return constructing ? jitCtor : jitNormal;
     }
+
+    size_t callCount() const  { return callCount_; }
+    size_t incCallCount() { return ++callCount_; }
 
     JITScriptStatus getJITStatus(bool constructing) {
         void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;

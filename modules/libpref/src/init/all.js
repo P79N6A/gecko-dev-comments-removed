@@ -604,6 +604,7 @@ pref("javascript.options.methodjit.content", true);
 pref("javascript.options.methodjit.chrome",  false);
 pref("javascript.options.jitprofiling.content", true);
 pref("javascript.options.jitprofiling.chrome",  false);
+pref("javascript.options.methodjit_always", false);
 
 
 
@@ -1813,11 +1814,6 @@ pref("ui.trackpoint_hack.enabled", -1);
 
 
 pref("ui.window_class_override", "");
-
-
-
-
-pref("ui.elantech_gesture_hacks.enabled", -1);
 
 # WINNT
 #endif

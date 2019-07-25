@@ -68,6 +68,7 @@
 #include "jscntxtinlines.h"
 #include "jsatominlines.h"
 #include "StubCalls-inl.h"
+#include "MethodJIT-inl.h"
 
 #include "jsautooplen.h"
 
@@ -168,11 +169,6 @@ top:
 
     return NULL;
 }
-
-
-
-
-
 
 
 
@@ -313,7 +309,6 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
 
 
-
     fp->initCallFrameEarlyPrologue(fun, nactual);
 
     if (nactual != fp->numFormalArgs()) {
@@ -333,7 +328,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
     if (fun->isHeavyweight() && !js_GetCallObject(cx, fp))
         THROWV(NULL);
 
-    CompileStatus status = CanMethodJIT(cx, script, fp);
+    CompileStatus status = CanMethodJIT(cx, script, fp, CompileRequest_JIT);
     if (status == Compile_Okay)
         return script->getJIT(fp->isConstructing())->invokeEntry;
 
@@ -348,7 +343,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 }
 
 static inline bool
-UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
+UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint32 argc)
 {
     JSContext *cx = f.cx;
     Value *vp = f.regs.sp - (argc + 2);
@@ -380,11 +375,14 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
 
     
     if (newscript->getJITStatus(newfp->isConstructing()) == JITScript_None) {
-        if (mjit::TryCompile(cx, newfp) == Compile_Error) {
+        CompileStatus status = CanMethodJIT(cx, newscript, newfp, CompileRequest_Interpreter);
+        if (status == Compile_Error) {
             
             InlineReturn(f);
             return false;
         }
+        if (status == Compile_Abort)
+            *unjittable = true;
     }
 
     
@@ -420,7 +418,7 @@ stubs::UncachedNewHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr)
     
     if (IsFunctionObject(*vp, &ucr->fun) && ucr->fun->isInterpreted()) {
         ucr->callee = &vp->toObject();
-        if (!UncachedInlineCall(f, JSFRAME_CONSTRUCTING, &ucr->codeAddr, argc))
+        if (!UncachedInlineCall(f, JSFRAME_CONSTRUCTING, &ucr->codeAddr, &ucr->unjittable, argc))
             THROW();
     } else {
         if (!InvokeConstructor(cx, InvokeArgsAlreadyOnTheStack(vp, argc)))
@@ -470,7 +468,7 @@ stubs::UncachedCallHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr)
         ucr->fun = GET_FUNCTION_PRIVATE(cx, ucr->callee);
 
         if (ucr->fun->isInterpreted()) {
-            if (!UncachedInlineCall(f, 0, &ucr->codeAddr, argc))
+            if (!UncachedInlineCall(f, 0, &ucr->codeAddr, &ucr->unjittable, argc))
                 THROW();
             return;
         }

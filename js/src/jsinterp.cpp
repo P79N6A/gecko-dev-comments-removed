@@ -76,6 +76,7 @@
 #include "jslibmath.h"
 #include "jsvector.h"
 #include "methodjit/MethodJIT.h"
+#include "methodjit/MethodJIT-inl.h"
 #include "methodjit/Logging.h"
 
 #include "jsatominlines.h"
@@ -619,15 +620,6 @@ RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp)
 {
     JS_ASSERT(script);
 
-    
-    if (script->compileAndGo) {
-        int32 flags = fp->scopeChain().getGlobal()->getReservedSlot(JSRESERVED_GLOBAL_FLAGS).toInt32();
-        if (flags & JSGLOBAL_FLAGS_CLEARED) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CLEARED_SCOPE);
-            return false;
-        }
-    }
-
 #ifdef JS_METHODJIT_SPEW
     JMCheckLogging();
 #endif
@@ -638,7 +630,8 @@ RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp)
     JS_ASSERT(fp->script() == script);
 
 #ifdef JS_METHODJIT
-    mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, fp);
+    mjit::CompileStatus status =
+        mjit::CanMethodJIT(cx, script, fp, mjit::CompileRequest_Interpreter);
     if (status == mjit::Compile_Error)
         return JS_FALSE;
 
@@ -781,7 +774,7 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
 
 #ifdef JS_METHODJIT
         
-        mjit::CompileStatus status = mjit::CanMethodJIT(cx, script_, fp);
+        mjit::CompileStatus status = mjit::CanMethodJIT(cx, script_, fp, mjit::CompileRequest_JIT);
         if (status == mjit::Compile_Error)
             return false;
         if (status != mjit::Compile_Okay)
@@ -2331,6 +2324,30 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
 #define LOAD_DOUBLE(PCOFF, dbl)                                               \
     (dbl = script->getConst(GET_FULL_INDEX(PCOFF)).toDouble())
 
+#ifdef JS_METHODJIT
+
+#define MONITOR_BRANCH_METHODJIT()                                            \
+    JS_BEGIN_MACRO                                                            \
+        mjit::CompileStatus status =                                          \
+            mjit::CanMethodJITAtBranch(cx, script, regs.fp, regs.pc);         \
+        if (status == mjit::Compile_Error)                                    \
+            goto error;                                                       \
+        if (status == mjit::Compile_Okay) {                                   \
+            void *ncode =                                                     \
+                script->nativeCodeForPC(regs.fp->isConstructing(), regs.pc);  \
+            interpReturnOK = mjit::JaegerShotAtSafePoint(cx, ncode);          \
+            if (inlineCallCount)                                              \
+                goto jit_return;                                              \
+            goto leave_on_safe_point;                                         \
+        }                                                                     \
+    JS_END_MACRO
+
+#else
+
+#define MONITOR_BRANCH_METHODJIT() ((void) 0)
+
+#endif
+        
 #ifdef JS_TRACER
 
 #ifdef MOZ_TRACEVIS
@@ -2363,18 +2380,24 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
 #define MONITOR_BRANCH()                                                      \
     JS_BEGIN_MACRO                                                            \
         if (TRACING_ENABLED(cx)) {                                            \
-            MonitorResult r = MonitorLoopEdge(cx, inlineCallCount);           \
-            if (r == MONITOR_RECORDING) {                                     \
-                JS_ASSERT(TRACE_RECORDER(cx));                                \
-                JS_ASSERT(!TRACE_PROFILER(cx));                               \
-                MONITOR_BRANCH_TRACEVIS;                                      \
-                ENABLE_INTERRUPTS();                                          \
-                CLEAR_LEAVE_ON_TRACE_POINT();                                 \
+            if (!TRACE_RECORDER(cx) && !TRACE_PROFILER(cx) &&                 \
+                interpMode == JSINTERP_NORMAL)                                \
+            {                                                                 \
+                MONITOR_BRANCH_METHODJIT();                                   \
+            } else {                                                          \
+                MonitorResult r = MonitorLoopEdge(cx, inlineCallCount);       \
+                if (r == MONITOR_RECORDING) {                                 \
+                    JS_ASSERT(TRACE_RECORDER(cx));                            \
+                    JS_ASSERT(!TRACE_PROFILER(cx));                           \
+                    MONITOR_BRANCH_TRACEVIS;                                  \
+                    ENABLE_INTERRUPTS();                                      \
+                    CLEAR_LEAVE_ON_TRACE_POINT();                             \
+                }                                                             \
+                RESTORE_INTERP_VARS();                                        \
+                JS_ASSERT_IF(cx->isExceptionPending(), r == MONITOR_ERROR);   \
+                if (r == MONITOR_ERROR)                                       \
+                    goto error;                                               \
             }                                                                 \
-            RESTORE_INTERP_VARS();                                            \
-            JS_ASSERT_IF(cx->isExceptionPending(), r == MONITOR_ERROR);       \
-            if (r == MONITOR_ERROR)                                           \
-                goto error;                                                   \
         }                                                                     \
     JS_END_MACRO
 
@@ -4702,7 +4725,10 @@ BEGIN_CASE(JSOP_FUNCALL)
 
 #ifdef JS_METHODJIT
             
-            mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, regs.fp);
+            mjit::CompileRequest request = (interpMode == JSINTERP_NORMAL)
+                                           ? mjit::CompileRequest_Interpreter
+                                           : mjit::CompileRequest_JIT;
+            mjit::CompileStatus status = mjit::CanMethodJIT(cx, script, regs.fp, request);
             if (status == mjit::Compile_Error)
                 goto error;
             if (!TRACE_RECORDER(cx) && !TRACE_PROFILER(cx) && status == mjit::Compile_Okay) {
@@ -6929,7 +6955,7 @@ END_CASE(JSOP_ARRAYPUSH)
 
 
 
-#if defined(JS_TRACER) && defined(JS_METHODJIT)
+#if defined(JS_METHODJIT)
   leave_on_safe_point:
 #endif
     return interpReturnOK;
