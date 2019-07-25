@@ -90,7 +90,6 @@ class Element;
 
 enum {
   
-  
   NODE_HAS_LISTENERMANAGER =     0x00000001U,
 
   
@@ -1308,6 +1307,7 @@ public:
     { SetBoolFlag(NodeIsPurpleRoot, aValue); }
   bool IsPurpleRoot() const { return GetBoolFlag(NodeIsPurpleRoot); }
 
+  bool HasListenerManager() { return HasFlag(NODE_HAS_LISTENERMANAGER); }
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }
