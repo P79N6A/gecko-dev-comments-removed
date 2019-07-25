@@ -546,6 +546,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     MacroAssembler masm;
     GeneralRegisterSet regs = GeneralRegisterSet(Register::Codes::WrapperMask);
+    JS_ASSERT(Register::Codes::WrapperMask > Register::Codes::ArgRegMask);
 
     
     

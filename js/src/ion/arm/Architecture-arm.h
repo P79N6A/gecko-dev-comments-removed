@@ -145,7 +145,6 @@ class Registers
         VolatileMask |         
         (1 << Registers::r4) | 
         (1 << Registers::r5);  
-    JS_STATIC_ASSERT(WrapperMask > ArgRegMask);
 
     static const uint32 SingleByteRegs =
         VolatileMask | NonVolatileMask;
