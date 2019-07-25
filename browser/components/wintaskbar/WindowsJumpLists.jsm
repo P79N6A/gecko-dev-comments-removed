@@ -105,6 +105,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "_winShellService",
                                    "@mozilla.org/browser/shell-service;1",
                                    "nsIWindowsShellService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "_privateBrowsingSvc",
+                                   "@mozilla.org/privatebrowsing;1",
+                                   "nsIPrivateBrowsingService");
+
 
 
 
@@ -146,6 +150,26 @@ var tasksCfg = [
     iconIndex:        0, 
     open:             true,
     close:            false, 
+  },
+
+  
+  {
+    get title() {
+      if (_privateBrowsingSvc.privateBrowsingEnabled)
+        return _getString("taskbar.tasks.exitPrivacyMode.label");
+      else
+        return _getString("taskbar.tasks.enterPrivacyMode.label");
+    },
+    get description() {
+      if (_privateBrowsingSvc.privateBrowsingEnabled)
+        return _getString("taskbar.tasks.exitPrivacyMode.description");
+      else
+        return _getString("taskbar.tasks.enterPrivacyMode.description");
+    },
+    args:             "-private-toggle",
+    iconIndex:        0, 
+    open:             true,
+    close:            true,
   },
 ];
 
@@ -194,12 +218,6 @@ var WinTaskbarJumpList =
       return;
 
     
-    if (this._inPrivateBrowsing) {
-      this._deleteActiveJumpList();
-      return;
-    }
-
-    
     this._buildList();
   },
 
@@ -231,7 +249,6 @@ var WinTaskbarJumpList =
     if (this._showTasks && !this._buildTasks())
       return;
 
-    
     
     if (this._showFrequent && !this._buildFrequent())
       return;
@@ -460,11 +477,6 @@ var WinTaskbarJumpList =
     this._showRecent = _prefs.getBoolPref(PREF_TASKBAR_RECENT);
     this._showTasks = _prefs.getBoolPref(PREF_TASKBAR_TASKS);
     this._maxItemCount = _prefs.getIntPref(PREF_TASKBAR_ITEMCOUNT);
-
-    
-    this._inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
-                              getService(Ci.nsIPrivateBrowsingService).
-                              privateBrowsingEnabled;
   },
 
   
@@ -528,14 +540,6 @@ var WinTaskbarJumpList =
       break;
 
       case "private-browsing":
-        switch (aData) {
-          case "enter":
-            this._inPrivateBrowsing = true;
-            break;
-          case "exit":
-            this._inPrivateBrowsing = false;
-            break;
-        }
         this.update();
       break;
     }
