@@ -100,6 +100,55 @@ PRBool gfxFontEntry::TestCharacterMap(PRUint32 aCh)
 }
 
 
+nsresult gfxFontEntry::InitializeUVSMap()
+{
+    
+    
+    if (!mCmapInitialized) {
+        ReadCMAP();
+    }
+
+    if (!mUVSOffset) {
+        return NS_ERROR_FAILURE;
+    }
+
+    if (!mUVSData) {
+        const PRUint32 kCmapTag = TRUETYPE_TAG('c','m','a','p');
+        nsAutoTArray<PRUint8,16384> buffer;
+        if (GetFontTable(kCmapTag, buffer) != NS_OK) {
+            mUVSOffset = 0; 
+            return NS_ERROR_FAILURE;
+        }
+
+        PRUint8* uvsData;
+        nsresult rv = gfxFontUtils::ReadCMAPTableFormat14(
+                          buffer.Elements() + mUVSOffset,
+                          buffer.Length() - mUVSOffset,
+                          uvsData);
+        if (NS_FAILED(rv)) {
+            mUVSOffset = 0; 
+            return rv;
+        }
+
+        mUVSData = uvsData;
+    }
+
+    return NS_OK;
+}
+
+
+PRUint16 gfxFontEntry::GetUVSGlyph(PRUint32 aCh, PRUint32 aVS)
+{
+    InitializeUVSMap();
+
+    if (mUVSData) {
+        return gfxFontUtils::MapUVSToGlyphFormat14(mUVSData, aCh, aVS);
+    }
+
+    return 0;
+}
+
+
 nsresult gfxFontEntry::ReadCMAP()
 {
     mCmapInitialized = PR_TRUE;
@@ -1999,6 +2048,18 @@ gfxFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh, PRUint32 aNextCh, 
             selectedFont = aPrevMatchedFont;
             return selectedFont.forget();
         }
+    }
+
+    
+    
+    
+    if (gfxFontUtils::IsVarSelector(aCh)) {
+        if (aPrevMatchedFont) {
+            selectedFont = aPrevMatchedFont;
+            return selectedFont.forget();
+        }
+        
+        return nsnull;
     }
 
     
