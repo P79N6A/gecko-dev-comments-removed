@@ -1667,6 +1667,13 @@ public:
 
 
 
+  static nsIWidget *WidgetForDocument(nsIDocument *aDoc);
+
+  
+
+
+
+
 
 
 
