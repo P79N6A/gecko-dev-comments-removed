@@ -48,7 +48,7 @@
 #include "nsXPCOM.h"
 #include "mozilla/Services.h"
 
-#if defined(XP_WIN) && !defined(WINCE)
+#if defined(XP_WIN)
 #include <ole2.h>
 #endif
 
@@ -110,7 +110,7 @@ nsClipboardPrivacyHandler::Observe(nsISupports *aSubject, char const *aTopic, PR
                                            nsIClipboard::kGlobalClipboard,
                                            &haveFlavors);
     if (NS_SUCCEEDED(rv) && haveFlavors) {
-#if defined(XP_WIN) && !defined(WINCE)
+#if defined(XP_WIN)
       
       
       

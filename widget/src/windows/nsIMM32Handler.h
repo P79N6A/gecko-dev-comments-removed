@@ -57,9 +57,7 @@ class nsIWidget;
 class nsWindow;
 struct nsIntRect;
 
-#ifndef WINCE
 #define ENABLE_IME_MOUSE_HANDLING 1
-#endif 
 
 #define NS_WM_IMEFIRST WM_IME_SETCONTEXT
 #define NS_WM_IMELAST  WM_IME_KEYUP
@@ -334,10 +332,8 @@ protected:
   static PRPackedBool sIsIME;
   static PRPackedBool sIsIMEOpening;
 
-#ifndef WINCE
   static UINT sCodePage;
   static DWORD sIMEProperty;
-#endif 
 };
 
 #endif 

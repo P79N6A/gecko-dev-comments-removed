@@ -92,10 +92,8 @@ PRPackedBool nsIMM32Handler::sIsStatusChanged = PR_FALSE;
 PRPackedBool nsIMM32Handler::sIsIME = PR_TRUE;
 PRPackedBool nsIMM32Handler::sIsIMEOpening = PR_FALSE;
 
-#ifndef WINCE
 UINT nsIMM32Handler::sCodePage = 0;
 DWORD nsIMM32Handler::sIMEProperty = 0;
-#endif
 
  void
 nsIMM32Handler::EnsureHandlerInstance()
@@ -197,22 +195,16 @@ nsIMM32Handler::IsDoingKakuteiUndo(HWND aWnd)
  PRBool
 nsIMM32Handler::ShouldDrawCompositionStringOurselves()
 {
-#ifdef WINCE
-  
-  return PR_TRUE;
-#else
   
   
   
   return !(sIMEProperty & IME_PROP_SPECIAL_UI) &&
           (sIMEProperty & IME_PROP_AT_CARET);
-#endif
 }
 
  void
 nsIMM32Handler::InitKeyboardLayout(HKL aKeyboardLayout)
 {
-#ifndef WINCE
   WORD langID = LOWORD(aKeyboardLayout);
   ::GetLocaleInfoW(MAKELCID(langID, SORT_DEFAULT),
                    LOCALE_IDEFAULTANSICODEPAGE | LOCALE_RETURN_NUMBER,
@@ -222,32 +214,23 @@ nsIMM32Handler::InitKeyboardLayout(HKL aKeyboardLayout)
   PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
     ("IMM32: InitKeyboardLayout, aKeyboardLayout=%08x, sCodePage=%lu, sIMEProperty=%08x sIsIME=%s\n",
      aKeyboardLayout, sCodePage, sIMEProperty, sIsIME ? "TRUE" : "FALSE"));
-#endif
 }
 
  UINT
 nsIMM32Handler::GetKeyboardCodePage()
 {
-#ifdef WINCE
-  return ::GetACP();
-#else
   return sCodePage;
-#endif
 }
 
  PRBool
 nsIMM32Handler::CanOptimizeKeyAndIMEMessages(MSG *aNextKeyOrIMEMessage)
 {
-#ifdef WINCE
-  return PR_TRUE;
-#else
   
   
   
   
   
   return !sIsIMEOpening;
-#endif
 }
 
 
@@ -1189,7 +1172,6 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
     nsresult rv = EnsureClauseArray(clauseArrayLength);
     NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
-#ifndef WINCE
     
     
     
@@ -1199,15 +1181,12 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
     PR_LOG(gIMM32Log, PR_LOG_ALWAYS,
       ("IMM32: HandleComposition, GCS_COMPCLAUSE, useA_API=%s\n",
        useA_API ? "TRUE" : "FALSE"));
-#endif
 
     long clauseArrayLength2 = 
-#ifndef WINCE
       useA_API ?
         ::ImmGetCompositionStringA(aIMEContext.get(), GCS_COMPCLAUSE,
                                    mClauseArray.Elements(),
                                    mClauseArray.Capacity() * sizeof(PRUint32)) :
-#endif
         ::ImmGetCompositionStringW(aIMEContext.get(), GCS_COMPCLAUSE,
                                    mClauseArray.Elements(),
                                    mClauseArray.Capacity() * sizeof(PRUint32));
@@ -1221,7 +1200,6 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
         clauseArrayLength = clauseArrayLength2;
     }
 
-#ifndef WINCE
     if (useA_API) {
       
       
@@ -1239,7 +1217,6 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
         }
       }
     }
-#endif
   }
   
   

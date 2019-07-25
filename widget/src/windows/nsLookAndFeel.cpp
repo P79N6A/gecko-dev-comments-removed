@@ -45,8 +45,6 @@
 #include <shellapi.h>
 #include "nsWindow.h"
 #include "nsStyleConsts.h"
-
-#ifndef WINCE
 #include "nsUXThemeData.h"
 #include "nsUXThemeConstants.h"
 
@@ -69,7 +67,6 @@ static nsresult GetColorFromTheme(nsUXThemeClass cls,
   }
   return NS_ERROR_FAILURE;
 }
-#endif
 
 static PRInt32 GetSystemParam(long flag, PRInt32 def)
 {
@@ -79,26 +76,22 @@ static PRInt32 GetSystemParam(long flag, PRInt32 def)
 
 nsLookAndFeel::nsLookAndFeel() : nsXPLookAndFeel()
 {
-#ifndef WINCE
   gShell32DLLInst = LoadLibraryW(L"Shell32.dll");
   if (gShell32DLLInst)
   {
       gSHAppBarMessage = (SHAppBarMessagePtr) GetProcAddress(gShell32DLLInst,
                                                              "SHAppBarMessage");
   }
-#endif
 }
 
 nsLookAndFeel::~nsLookAndFeel()
 {
-#ifndef WINCE
    if (gShell32DLLInst)
    {
        FreeLibrary(gShell32DLLInst);
        gShell32DLLInst = NULL;
        gSHAppBarMessage = NULL;
    }
-#endif
 }
 
 nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
@@ -206,7 +199,6 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
       idx = COLOR_HIGHLIGHT;
       break;
     case eColor__moz_menubarhovertext:
-#ifndef WINCE
       if (!nsUXThemeData::sIsVistaOrLater || !nsUXThemeData::isAppThemed())
       {
         idx = nsUXThemeData::sFlatMenus ?
@@ -214,10 +206,8 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
                 COLOR_MENUTEXT;
         break;
       }
-#endif
       
     case eColor__moz_menuhovertext:
-#ifndef WINCE
       if (nsUXThemeData::IsAppThemed() && nsUXThemeData::sIsVistaOrLater)
       {
         res = ::GetColorFromTheme(eUXMenu,
@@ -226,7 +216,6 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
           return res;
         
       }
-#endif
     case eColor_highlighttext:
     case eColor__moz_html_cellhighlighttext:
       idx = COLOR_HIGHLIGHTTEXT;
@@ -295,19 +284,16 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
       idx = COLOR_3DFACE;
       break;
     case eColor__moz_win_mediatext:
-#ifndef WINCE
       if (nsUXThemeData::IsAppThemed() && nsUXThemeData::sIsVistaOrLater) {
         res = ::GetColorFromTheme(eUXMediaToolbar,
                                   TP_BUTTON, TS_NORMAL, TMT_TEXTCOLOR, aColor);
         if (NS_SUCCEEDED(res))
           return res;
       }
-#endif
       
       idx = COLOR_WINDOWTEXT;
       break;
     case eColor__moz_win_communicationstext:
-#ifndef WINCE
       if (nsUXThemeData::IsAppThemed() && nsUXThemeData::sIsVistaOrLater)
       {
         res = ::GetColorFromTheme(eUXCommunicationsToolbar,
@@ -315,7 +301,6 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
         if (NS_SUCCEEDED(res))
           return res;
       }
-#endif
       
       idx = COLOR_WINDOWTEXT;
       break;
@@ -330,12 +315,7 @@ nsresult nsLookAndFeel::NativeGetColor(const nsColorID aID, nscolor &aColor)
       idx = COLOR_3DDKSHADOW;
       break;
     case eColor__moz_nativehyperlinktext:
-#ifndef WINCE
       idx = COLOR_HOTLIGHT;
-#else
-      aColor = NS_RGB(0, 0, 0xee);
-      return NS_OK;
-#endif
       break;
     default:
       idx = COLOR_WINDOW;
@@ -373,17 +353,12 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
     case eMetric_SubmenuDelay:
         
         
-#ifndef WINCE
         aMetric = GetSystemParam(SPI_GETMENUSHOWDELAY, 400);
-#else
-        aMetric = 400;
-#endif
         break;
     case eMetric_MenusCanOverlapOSBar:
         
         aMetric = 1;
         break;
-#ifndef WINCE
     case eMetric_DragThresholdX:
         
         
@@ -404,7 +379,6 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
 
         aMetric = ((contrastThemeInfo.dwFlags & HCF_HIGHCONTRASTON) != 0);
         break;
-#endif
     case eMetric_ScrollArrowStyle:
         aMetric = eMetric_ScrollArrowStyleSingle;
         break;
@@ -427,28 +401,16 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
         aMetric = 3;
         break;
     case eMetric_WindowsClassic:
-#ifndef WINCE
         aMetric = !nsUXThemeData::IsAppThemed();
-#else
-        aMetric = 0;
-#endif
         break;
     case eMetric_TouchEnabled:
         aMetric = 0;
-#ifndef WINCE
         PRInt32 touchCapabilities;
         touchCapabilities = ::GetSystemMetrics(SM_DIGITIZER);
         if ((touchCapabilities & NID_READY) && 
            (touchCapabilities & (NID_EXTERNAL_TOUCH | NID_INTEGRATED_TOUCH))) {
             aMetric = 1;
         }
-#elif defined(WINCE_WINDOWS_MOBILE)
-        WCHAR platformType[MAX_PATH];
-        SystemParametersInfo(SPI_GETPLATFORMTYPE, sizeof(platformType),
-                             platformType, 0);
-        if (!wcscmp(platformType, L"PocketPC"))
-            aMetric = 1;
-#endif
         break;
     case eMetric_WindowsDefaultTheme:
         aMetric = nsUXThemeData::IsDefaultWindowTheme();
@@ -462,15 +424,10 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
         res = NS_ERROR_NOT_IMPLEMENTED;
         break;
     case eMetric_DWMCompositor:
-#ifndef WINCE
         aMetric = nsUXThemeData::CheckForCompositor();
-#else
-        aMetric = 0;
-#endif
         break;
     case eMetric_AlertNotificationOrigin:
         aMetric = 0;
-#ifndef WINCE
         if (gSHAppBarMessage)
         {
           
@@ -508,7 +465,6 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricID aID, PRInt32 & aMetric)
             }
           }
         }
-#endif 
         break;
     case eMetric_IMERawInputUnderlineStyle:
     case eMetric_IMEConvertedTextUnderlineStyle:
@@ -553,9 +509,6 @@ NS_IMETHODIMP nsLookAndFeel::GetMetric(const nsMetricFloatID aID, float & aMetri
 PRUnichar nsLookAndFeel::GetPasswordCharacter()
 {
 #define UNICODE_BLACK_CIRCLE_CHAR 0x25cf
-#ifdef WINCE
-  return UNICODE_BLACK_CIRCLE_CHAR;
-#else
   static PRUnichar passwordCharacter = 0;
   if (!passwordCharacter) {
     passwordCharacter = '*';
@@ -563,7 +516,6 @@ PRUnichar nsLookAndFeel::GetPasswordCharacter()
       passwordCharacter = UNICODE_BLACK_CIRCLE_CHAR;
   }
   return passwordCharacter;
-#endif
 }
 
 #ifdef NS_DEBUG
