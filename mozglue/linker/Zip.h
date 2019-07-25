@@ -9,6 +9,8 @@
 #include <stdint.h>
 #include <vector>
 #include "Utils.h"
+
+#undef DEBUG
 #include "mozilla/RefPtr.h"
 
 
