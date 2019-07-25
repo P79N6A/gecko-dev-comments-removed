@@ -223,7 +223,7 @@ public:
   nsMargin GetDesiredScrollbarSizes(nsBoxLayoutState* aState);
   PRBool IsLTR() const;
   PRBool IsScrollbarOnRight() const;
-  PRBool IsScrollingActive() const;
+  PRBool IsScrollingActive() const { return mScrollingActive; }
   
   
   
