@@ -918,16 +918,6 @@ obj_valueOf(JSContext *cx, uintN argc, Value *vp)
 }
 
 
-
-
-
-JSBool
-js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeobj)
-{
-    return scopeobj->getGlobal()->isEvalAllowed(cx);
-}
-
-
 static void
 AssertInnerizedScopeChain(JSContext *cx, JSObject &scopeobj)
 {
@@ -1129,11 +1119,7 @@ EvalKernel(JSContext *cx, const CallArgs &call, EvalType evalType, StackFrame *c
     JS_ASSERT((evalType == INDIRECT_EVAL) == (caller == NULL));
     AssertInnerizedScopeChain(cx, scopeobj);
 
-    
-
-
-
-    if (!js_CheckContentSecurityPolicy(cx, &scopeobj)) {
+    if (!scopeobj.getGlobal()->isRuntimeCodeGenEnabled(cx)) {
         JS_ReportError(cx, "call to eval() blocked by CSP");
         return false;
     }

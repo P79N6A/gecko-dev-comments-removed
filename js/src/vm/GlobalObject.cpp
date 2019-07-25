@@ -173,7 +173,7 @@ GlobalObject::clear(JSContext *cx)
     RegExpStatics::extractFrom(this)->clear();
 
     
-    setSlot(EVAL_ALLOWED, UndefinedValue());
+    setSlot(RUNTIME_CODEGEN_ENABLED, UndefinedValue());
 
     
 
@@ -185,9 +185,9 @@ GlobalObject::clear(JSContext *cx)
 }
 
 bool
-GlobalObject::isEvalAllowed(JSContext *cx)
+GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx)
 {
-    Value &v = getSlotRef(EVAL_ALLOWED);
+    Value &v = getSlotRef(RUNTIME_CODEGEN_ENABLED);
     if (v.isUndefined()) {
         JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
 
