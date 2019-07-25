@@ -94,8 +94,8 @@ TextUpdater::DoUpdate(const nsAString& aNewText, const nsAString& aOldText,
     skipEnd++;
   }
 
-  PRInt32 strLen1 = oldLen - aSkipStart - skipEnd;
-  PRInt32 strLen2 = newLen - aSkipStart - skipEnd;
+  PRUint32 strLen1 = oldLen - aSkipStart - skipEnd;
+  PRUint32 strLen2 = newLen - aSkipStart - skipEnd;
 
   const nsAString& str1 = Substring(aOldText, aSkipStart, strLen1);
   const nsAString& str2 = Substring(aNewText, aSkipStart, strLen2);
@@ -187,7 +187,7 @@ TextUpdater::ComputeTextChangeEvents(const nsAString& aStr1,
 
   PRInt32 colLen = colEnd + 1;
   PRUint32* row = aEntries + rowIdx * colLen;
-  PRInt32 dist = row[colIdx]; 
+  PRUint32 dist = row[colIdx]; 
   while (rowIdx && colIdx) { 
     if (aStr1[colIdx - 1] == aStr2[rowIdx - 1]) { 
       if (rowIdx < rowEnd) { 
