@@ -1615,7 +1615,7 @@ struct nsStyleDisplay {
 
   
   PRBool HasTransform() const {
-    return mSpecifiedTransform != nsnull;
+    return mSpecifiedTransform != nsnull || mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D;
   }
 };
 

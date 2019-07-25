@@ -254,6 +254,16 @@ nsFrame::RootFrameList(nsPresContext* aPresContext, FILE* out, PRInt32 aIndent)
 }
 #endif
 
+static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
+                                    const nsIFrame* aFrame,
+                                    const nsStyleDisplay* aDisp, 
+                                    nsRect* aRect);
+
+static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
+                                  const nsStyleDisplay* aDisp, 
+                                  const nsIFrame* aFrame,
+                                  nsRect* aRect);
+
 void
 NS_MergeReflowStatusInto(nsReflowStatus* aPrimary, nsReflowStatus aSecondary)
 {
@@ -762,6 +772,25 @@ nsIFrame::IsTransformed() const
     GetStyleDisplay()->HasTransform();
 }
 
+PRBool
+nsIFrame::Preserves3DChildren() const
+{
+  return GetStyleDisplay()->mTransformStyle == NS_STYLE_TRANSFORM_STYLE_PRESERVE_3D && IsTransformed();
+}
+
+PRBool
+nsIFrame::Preserves3D() const
+{
+  if (!GetParent() || !GetParent()->Preserves3DChildren() || !IsTransformed()) {
+    return PR_FALSE;
+  }
+
+  nsRect temp;
+  return (!ApplyOverflowClipping(nsnull, this, GetStyleDisplay(), &temp) &&
+          !ApplyAbsPosClipping(nsnull, GetStyleDisplay(), this, &temp) &&
+          !nsSVGIntegrationUtils::UsingEffectsForFrame(this));
+}
+
 nsRect
 nsIFrame::GetContentRectRelativeToSelf() const
 {
@@ -1205,7 +1234,7 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
 
 PRBool
 nsIFrame::GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
-                            const nsSize& aSize)
+                            const nsSize& aSize) const
 {
   NS_PRECONDITION(aRect, "Must have aRect out parameter");
 
@@ -1224,12 +1253,14 @@ nsIFrame::GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
 }
 
 static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
-                                  const nsStyleDisplay* aDisp, nsIFrame* aFrame,
+                                  const nsStyleDisplay* aDisp, const nsIFrame* aFrame,
                                   nsRect* aRect) {
   if (!aFrame->GetAbsPosClipRect(aDisp, aRect, aFrame->GetSize()))
     return PR_FALSE;
 
-  *aRect += aBuilder->ToReferenceFrame(aFrame);
+  if (aBuilder) {
+    *aRect += aBuilder->ToReferenceFrame(aFrame);
+  }
   return PR_TRUE;
 }
 
@@ -1237,7 +1268,7 @@ static PRBool ApplyAbsPosClipping(nsDisplayListBuilder* aBuilder,
 
 
 
-static inline PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
+static inline PRBool ApplyOverflowHiddenClipping(const nsIFrame* aFrame,
                                                  const nsStyleDisplay* aDisp)
 {
   if (aDisp->mOverflowX != NS_STYLE_OVERFLOW_HIDDEN)
@@ -1256,7 +1287,7 @@ static inline PRBool ApplyOverflowHiddenClipping(nsIFrame* aFrame,
 }
 
 static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
-                                    nsIFrame* aFrame,
+                                    const nsIFrame* aFrame,
                                     const nsStyleDisplay* aDisp, nsRect* aRect) {
   
   
@@ -1276,8 +1307,10 @@ static PRBool ApplyOverflowClipping(nsDisplayListBuilder* aBuilder,
     
   }
   
-  *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition() +
-    aBuilder->ToReferenceFrame(aFrame);
+  *aRect = aFrame->GetPaddingRect() - aFrame->GetPosition();
+  if (aBuilder) {
+    *aRect += aBuilder->ToReferenceFrame(aFrame);
+  }
   return PR_TRUE;
 }
 
@@ -1427,6 +1460,49 @@ DisplayDebugBorders(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
 }
 #endif
 
+static nsresult
+WrapPreserve3DList(nsIFrame *aFrame, nsDisplayListBuilder *aBuilder, nsDisplayList *aList)
+{
+  nsresult rv = NS_OK;
+  nsDisplayList newList;
+  while (nsDisplayItem *item = aList->RemoveBottom()) {
+    if (item->GetUnderlyingFrame() && item->GetUnderlyingFrame()->GetParent()->Preserves3DChildren()) {
+      switch (item->GetType()) {
+        case nsDisplayItem::TYPE_TRANSFORM: {
+          
+          
+          NS_ASSERTION(item->GetUnderlyingFrame()->Preserves3D(), "Child transform frame must preserve 3d!");
+          break;
+        }
+        case nsDisplayItem::TYPE_WRAP_LIST: {
+          nsDisplayWrapList *list = static_cast<nsDisplayWrapList*>(item);
+          rv = WrapPreserve3DList(aFrame, aBuilder, list->GetList());
+          break;
+        }
+        case nsDisplayItem::TYPE_OPACITY: {
+          nsDisplayOpacity *opacity = static_cast<nsDisplayOpacity*>(item);
+          rv = WrapPreserve3DList(aFrame, aBuilder, opacity->GetList());
+          break;
+        }
+        default: {
+          item = new (aBuilder) nsDisplayTransform(aBuilder, item->GetUnderlyingFrame(), item);
+          break;
+        }
+      } 
+    } else {
+      item = new (aBuilder) nsDisplayTransform(aBuilder, item->GetUnderlyingFrame(), item);
+    }
+ 
+    if (NS_FAILED(rv) || !item)
+      return rv;
+
+    newList.AppendToTop(item);
+  }
+
+  aList->AppendToTop(&newList);
+  return NS_OK;
+}
+
 nsresult
 nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
                                              const nsRect&         aDirtyRect,
@@ -1457,7 +1533,7 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform()) {
     
-    if (!nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+    if (Preserves3DChildren() || !nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
     }
     inTransform = PR_TRUE;
@@ -1581,12 +1657,33 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
 
 
+
+
+
+
+
+
+
+
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform() && !resultList.IsEmpty()) {
-    rv = resultList.AppendNewToTop(
+    if (Preserves3DChildren()) {
+      rv = WrapPreserve3DList(this, aBuilder, &resultList);
+      if (NS_FAILED(rv))
+        return rv;
+
+      if (resultList.Count() > 1) {
+        rv = resultList.AppendNewToTop(
+          new (aBuilder) nsDisplayWrapList(aBuilder, this, &resultList));
+        if (NS_FAILED(rv))
+          return rv;
+      }
+    } else {
+      rv = resultList.AppendNewToTop(
         new (aBuilder) nsDisplayTransform(aBuilder, this, &resultList));
-    if (NS_FAILED(rv))
-      return rv;
+      if (NS_FAILED(rv))
+        return rv;
+    }
   }
 
   aList->AppendToTop(&resultList);
@@ -4158,6 +4255,23 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
 
 
 
+
+
+
+
+
+
+
+  
+  PRBool rectIsTransformed = (aFlags & INVALIDATE_ALREADY_TRANSFORMED);
+  if (!Preserves3D()) {
+    
+    
+    
+    
+    aFlags &= ~INVALIDATE_ALREADY_TRANSFORMED;
+  }
+
   if ((mState & NS_FRAME_HAS_CONTAINER_LAYER) &&
       !(aFlags & INVALIDATE_NO_THEBES_LAYERS)) {
     
@@ -4175,10 +4289,18 @@ nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
       return;
     }
   }
-  if (IsTransformed()) {
+  if (IsTransformed() && !rectIsTransformed) {
     nsRect newDamageRect;
     newDamageRect.UnionRect(nsDisplayTransform::TransformRectOut
                             (aDamageRect, this, nsPoint(-aX, -aY)), aDamageRect);
+
+    
+    
+    
+    if (Preserves3D()) {
+      aFlags |= INVALIDATE_ALREADY_TRANSFORMED;
+    }
+
     GetParent()->
       InvalidateInternal(newDamageRect, aX + mRect.x, aY + mRect.y, this,
                          aFlags);
@@ -4215,23 +4337,18 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
   
 
 
-  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
-
-  
-
-
 
   if (IsTransformed()) {
     
 
 
-    NS_ASSERTION(*aOutAncestor, "Cannot transform the viewport frame!");
-    nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
+    NS_ASSERTION(nsLayoutUtils::GetCrossDocParentFrame(this), "Cannot transform the viewport frame!");
     PRInt32 scaleFactor = PresContext()->AppUnitsPerDevPixel();
 
     gfx3DMatrix result =
       nsDisplayTransform::GetResultingTransformMatrix(this, nsPoint(0, 0),
-                                                      scaleFactor);
+                                                      scaleFactor, nsnull, aOutAncestor);
+    nsPoint delta = GetOffsetToCrossDoc(*aOutAncestor);
     
     result *= gfx3DMatrix::Translation
       (NSAppUnitsToFloatPixels(delta.x, scaleFactor),
@@ -4239,6 +4356,8 @@ nsIFrame::GetTransformMatrix(nsIFrame **aOutAncestor)
        0.0f);
     return result;
   }
+  
+  *aOutAncestor = nsLayoutUtils::GetCrossDocParentFrame(this);
   
   
 
@@ -6266,9 +6385,13 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
 
     nsRect newBounds(nsPoint(0, 0), aNewSize);
     
-    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
-      nsRect& o = aOverflowAreas.Overflow(otype);
-      o = nsDisplayTransform::TransformRect(o, this, nsPoint(0, 0), &newBounds);
+    if (!Preserves3DChildren()) {
+      NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+        nsRect& o = aOverflowAreas.Overflow(otype);
+       o = nsDisplayTransform::TransformRect(o, this, nsPoint(0, 0), &newBounds);
+      }
+    } else {
+      ComputePreserve3DChildrenOverflow(aOverflowAreas, newBounds);
     }
   }
 
@@ -6323,6 +6446,37 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
                       nsDisplayItem::TYPE_TRANSFORM);
     }
   }
+}
+
+void
+nsIFrame::ComputePreserve3DChildrenOverflow(nsOverflowAreas& aOverflowAreas, const nsRect& aBounds)
+{
+  
+  
+  
+  nsRect childVisual;
+  nsRect childScrollable;
+  nsIFrame::ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
+      if (child->Preserves3D()) {
+        childVisual = childVisual.Union(child->GetVisualOverflowRect());
+        childScrollable = childScrollable.Union(child->GetScrollableOverflowRect());
+      } else {
+        childVisual = 
+          childVisual.Union(nsDisplayTransform::TransformRect(child->GetVisualOverflowRect(), 
+                            this, nsPoint(0,0), &aBounds));
+        childScrollable = 
+          childScrollable.Union(nsDisplayTransform::TransformRect(child->GetScrollableOverflowRect(), 
+                                this, nsPoint(0,0), &aBounds));
+      }
+    }
+  }
+
+  aOverflowAreas.Overflow(eVisualOverflow) = childVisual;
+  aOverflowAreas.Overflow(eScrollableOverflow) = childScrollable;
 }
 
 void

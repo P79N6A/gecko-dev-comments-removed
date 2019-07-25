@@ -1208,6 +1208,21 @@ public:
 
 
 
+  PRBool Preserves3DChildren() const;
+
+  
+
+
+
+  PRBool Preserves3D() const;
+
+  
+  void ComputePreserve3DChildrenOverflow(nsOverflowAreas& aOverflowAreas, const nsRect& aBounds);
+
+  
+
+
+
 
 
 
@@ -2116,7 +2131,8 @@ public:
     INVALIDATE_NO_THEBES_LAYERS = 0x10,
     INVALIDATE_ONLY_THEBES_LAYERS = 0x20,
     INVALIDATE_EXCLUDE_CURRENT_PAINT = 0x40,
-    INVALIDATE_NO_UPDATE_LAYER_TREE = 0x80
+    INVALIDATE_NO_UPDATE_LAYER_TREE = 0x80,
+    INVALIDATE_ALREADY_TRANSFORMED = 0x100
   };
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,
@@ -2503,7 +2519,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
   PRBool GetAbsPosClipRect(const nsStyleDisplay* aDisp, nsRect* aRect,
-                           const nsSize& aSize);
+                           const nsSize& aSize) const;
 
   
 

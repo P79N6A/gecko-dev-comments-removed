@@ -577,7 +577,7 @@ public:
                                nsIFrame** aContainingBlock = nsnull);
 
   
-  static PRBool ApplyPaginatedOverflowClipping(nsIFrame* aFrame)
+  static PRBool ApplyPaginatedOverflowClipping(const nsIFrame* aFrame)
   {
     
     
