@@ -1400,16 +1400,22 @@ pref("mousewheel.with_win.action", 1);
 
 pref("mousewheel.default.delta_multiplier_x", 100);
 pref("mousewheel.default.delta_multiplier_y", 100);
+pref("mousewheel.default.delta_multiplier_z", 100);
 pref("mousewheel.with_alt.delta_multiplier_x", 100);
 pref("mousewheel.with_alt.delta_multiplier_y", 100);
+pref("mousewheel.with_alt.delta_multiplier_z", 100);
 pref("mousewheel.with_control.delta_multiplier_x", 100);
 pref("mousewheel.with_control.delta_multiplier_y", 100);
+pref("mousewheel.with_control.delta_multiplier_z", 100);
 pref("mousewheel.with_meta.delta_multiplier_x", 100);  
 pref("mousewheel.with_meta.delta_multiplier_y", 100);  
+pref("mousewheel.with_meta.delta_multiplier_z", 100);  
 pref("mousewheel.with_shift.delta_multiplier_x", 100);
 pref("mousewheel.with_shift.delta_multiplier_y", 100);
+pref("mousewheel.with_shift.delta_multiplier_z", 100);
 pref("mousewheel.with_win.delta_multiplier_x", 100);
 pref("mousewheel.with_win.delta_multiplier_y", 100);
+pref("mousewheel.with_win.delta_multiplier_z", 100);
 
 
 
