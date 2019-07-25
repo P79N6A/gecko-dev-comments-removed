@@ -66,7 +66,7 @@ nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
   nsresult WriteMinidumpForException(EXCEPTION_POINTERS* aExceptionInfo);
 
 
-nsCString GetChildNotificationPipe();
+const char* GetChildNotificationPipe();
 
 bool SetRemoteExceptionHandler(const nsACString& crashPipe);
 #endif
