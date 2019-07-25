@@ -361,6 +361,10 @@ inline void ARMAssembler::fixUpOffsets(void * buffer)
         ARMWord* ldrAddr = reinterpret_cast<ARMWord*>(data + pos);
         ARMWord* addr = getLdrImmAddress(ldrAddr);
         if (*addr != InvalidBranchTarget) {
+
+
+
+#if 0
             if (!(*iter & 1)) {
                 int diff = reinterpret_cast<ARMWord*>(data + *addr) - (ldrAddr + DefaultPrefetching);
 
@@ -369,6 +373,7 @@ inline void ARMAssembler::fixUpOffsets(void * buffer)
                     continue;
                 }
             }
+#endif
             *addr = reinterpret_cast<ARMWord>(data + *addr);
         }
     }
