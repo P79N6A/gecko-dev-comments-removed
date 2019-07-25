@@ -505,7 +505,7 @@ var gViewController = {
   statePopped: function(e) {
     
     if (e.state) {
-      this.loadViewInternal(e.state.view, e.state.previousView);
+      this.loadViewInternal(e.state.view, e.state.previousView, e.state);
       return;
     }
 
@@ -542,11 +542,12 @@ var gViewController = {
     if (aViewId == this.currentViewId)
       return;
 
-    gHistory.pushState({
+    var state = {
       view: aViewId,
       previousView: this.currentViewId
-    }, document.title);
-    this.loadViewInternal(aViewId, this.currentViewId);
+    };
+    gHistory.pushState(state);
+    this.loadViewInternal(aViewId, this.currentViewId, state);
   },
 
   
@@ -555,25 +556,27 @@ var gViewController = {
     if (aViewId == this.currentViewId)
       return;
 
-    gHistory.replaceState({
+    var state = {
       view: aViewId,
       previousView: null
-    }, document.title);
-    this.loadViewInternal(aViewId, null);
+    };
+    gHistory.replaceState(state);
+    this.loadViewInternal(aViewId, null, state);
   },
 
   loadInitialView: function(aViewId) {
-    gHistory.replaceState({
+    var state = {
       view: aViewId,
       previousView: null
-    }, document.title);
+    };
+    gHistory.replaceState(state);
 
-    this.loadViewInternal(aViewId, null);
+    this.loadViewInternal(aViewId, null, state);
     this.initialViewSelected = true;
     notifyInitialized();
   },
 
-  loadViewInternal: function(aViewId, aPreviousView) {
+  loadViewInternal: function(aViewId, aPreviousView, aState) {
     var view = this.parseViewId(aViewId);
 
     if (!view.type || !(view.type in this.viewObjects))
@@ -602,7 +605,7 @@ var gViewController = {
 
     this.viewPort.selectedPanel = this.currentViewObj.node;
     this.viewPort.selectedPanel.setAttribute("loading", "true");
-    this.currentViewObj.show(view.param, ++this.currentViewRequest);
+    this.currentViewObj.show(view.param, ++this.currentViewRequest, aState);
   },
 
   
@@ -1640,7 +1643,7 @@ var gDiscoverView = {
                                               Ci.nsIWebProgress.NOTIFY_STATE_ALL);
 
       if (self.loaded)
-        self._loadBrowser(notifyInitialized);
+        self._loadURL(self.homepageURL.spec, notifyInitialized);
       else
         notifyInitialized();
     }
@@ -1673,11 +1676,18 @@ var gDiscoverView = {
     });
   },
 
-  show: function() {
+  show: function(aParam, aRequest, aState) {
+    gViewController.updateCommands();
+
+    
+    if (aState && "url" in aState) {
+      this.loaded = true;
+      this._loadURL(aState.url);
+    }
+
     
     
     if (this.loaded && this.node.selectedPanel != this._error) {
-      gViewController.updateCommands();
       gViewController.notifyViewChanged();
       return;
     }
@@ -1691,7 +1701,8 @@ var gDiscoverView = {
       return;
     }
 
-    this._loadBrowser(gViewController.notifyViewChanged.bind(gViewController));
+    this._loadURL(this.homepageURL.spec,
+                  gViewController.notifyViewChanged.bind(gViewController));
   },
 
   hide: function() { },
@@ -1700,22 +1711,38 @@ var gDiscoverView = {
     this.node.selectedPanel = this._error;
   },
 
-  _loadBrowser: function(aCallback) {
-    this.node.selectedPanel = this._loading;
-
+  _loadURL: function(aURL, aCallback) {
     if (aCallback)
       this._loadListeners.push(aCallback);
 
-    if (this._browser.currentURI.equals(this.homepageURL))
-      this._browser.reload();
-    else
-      this._browser.goHome();
+    this._browser.loadURIWithFlags(aURL,
+                                   Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY);
   },
 
   onLocationChange: function(aWebProgress, aRequest, aLocation) {
     
     if (aLocation.spec == "about:blank")
       return;
+
+    
+    
+    
+    if (gHistory == FakeHistory) {
+      var docshell = aWebProgress.QueryInterface(Ci.nsIDocShell);
+
+      var state = {
+        view: "addons://discover/",
+        url: aLocation.spec
+      };
+
+      var replaceHistory = Ci.nsIWebNavigation.LOAD_FLAGS_REPLACE_HISTORY << 16;
+      if (docshell.loadType & replaceHistory)
+        gHistory.replaceState(state);
+      else
+        gHistory.pushState(state);
+    }
+
+    gViewController.updateCommands();
 
     
     
@@ -1745,12 +1772,17 @@ var gDiscoverView = {
 
   onStateChange: function(aWebProgress, aRequest, aStateFlags, aStatus) {
     
-    if (!(aStateFlags & (Ci.nsIWebProgressListener.STATE_IS_NETWORK)) ||
-        !(aStateFlags & (Ci.nsIWebProgressListener.STATE_STOP)))
+    if (!(aStateFlags & (Ci.nsIWebProgressListener.STATE_IS_NETWORK)))
       return;
 
     
+    if (aStateFlags & (Ci.nsIWebProgressListener.STATE_START))
+      this.node.selectedPanel = this._loading;
+
     
+    if (!(aStateFlags & (Ci.nsIWebProgressListener.STATE_STOP)))
+      return;
+
     var location = this._browser.currentURI;
 
     
@@ -1761,9 +1793,7 @@ var gDiscoverView = {
     
     
     if (!Components.isSuccessCode(aStatus) ||
-        (aRequest && aRequest instanceof Ci.nsIHttpChannel && !aRequest.requestSucceeded) ||
-        location.host != this.homepageURL.host ||
-        (this.homepageURL.schemeIs("https") && !location.schemeIs("https"))) {
+        (aRequest && aRequest instanceof Ci.nsIHttpChannel && !aRequest.requestSucceeded)) {
       this.showError();
     } else {
       

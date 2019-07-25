@@ -178,6 +178,10 @@ function clickLink(aId, aCallback) {
 
   var link = browser.contentDocument.getElementById(aId);
   EventUtils.sendMouseEvent({type: "click"}, link);
+
+  executeSoon(function() {
+    ok(isLoading(), "Clicking a link should show the loading pane");
+  });
 }
 
 
