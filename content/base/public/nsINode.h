@@ -79,66 +79,58 @@ class Element;
 
 enum {
   
-  NODE_DOESNT_HAVE_SLOTS =       0x00000001U,
+  
+  NODE_HAS_LISTENERMANAGER =     0x00000001U,
 
   
-  
-  NODE_HAS_LISTENERMANAGER =     0x00000002U,
-
-  
-  NODE_HAS_PROPERTIES =          0x00000004U,
-
-  
-  
-  
-  
-  
-  NODE_IS_ANONYMOUS =            0x00000008U,
+  NODE_HAS_PROPERTIES =          0x00000002U,
 
   
   
   
   
   
-  
-  NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000010U,
+  NODE_IS_ANONYMOUS =            0x00000004U,
 
   
   
   
   
-  NODE_IS_NATIVE_ANONYMOUS_ROOT = 0x00000020U,
-
   
   
-  NODE_FORCE_XBL_BINDINGS =      0x00000040U,
-
-  
-  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000080U,
-
-  NODE_IS_EDITABLE =             0x00000100U,
+  NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000008U,
 
   
   
   
-  NODE_HAS_ID =                  0x00000200U,
   
-  
-  NODE_MAY_HAVE_CLASS =          0x00000400U,
-  NODE_MAY_HAVE_STYLE =          0x00000800U,
-
-  NODE_IS_INSERTION_PARENT =     0x00001000U,
-
-  
-  NODE_HAS_EMPTY_SELECTOR =      0x00002000U,
+  NODE_IS_NATIVE_ANONYMOUS_ROOT = 0x00000010U,
 
   
   
-  NODE_HAS_SLOW_SELECTOR =       0x00004000U,
+  NODE_FORCE_XBL_BINDINGS =      0x00000020U,
+
+  
+  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000040U,
+
+  NODE_IS_EDITABLE =             0x00000080U,
 
   
   
-  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00008000U,
+  NODE_MAY_HAVE_CLASS =          0x00000100U,
+
+  NODE_IS_INSERTION_PARENT =     0x00000200U,
+
+  
+  NODE_HAS_EMPTY_SELECTOR =      0x00000400U,
+
+  
+  
+  NODE_HAS_SLOW_SELECTOR =       0x00000800U,
+
+  
+  
+  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00001000U,
 
   
   
@@ -148,42 +140,33 @@ enum {
   
   
   NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS
-                               = 0x00010000U,
+                               = 0x00002000U,
 
   NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR |
                                  NODE_HAS_EDGE_CHILD_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS,
 
-  NODE_MAY_HAVE_CONTENT_EDITABLE_ATTR
-                               = 0x00020000U,
-
   NODE_ATTACH_BINDING_ON_POSTCREATE
-                               = 0x00040000U,
+                               = 0x00004000U,
 
   
   
-  NODE_NEEDS_FRAME =             0x00080000U,
+  NODE_NEEDS_FRAME =             0x00008000U,
 
   
   
   
-  NODE_DESCENDANTS_NEED_FRAMES = 0x00100000U,
+  NODE_DESCENDANTS_NEED_FRAMES = 0x00010000U,
 
   
-  NODE_HANDLING_CLICK          = 0x00200000U,
-  
-  
-  NODE_HAS_ACCESSKEY           = 0x00400000U,
-
-  
-  NODE_HAS_NAME                = 0x00800000U,
+  NODE_HAS_ACCESSKEY           = 0x00020000U,
 
   
   
   
   
-  NODE_SCRIPT_TYPE_OFFSET =               24,
+  NODE_SCRIPT_TYPE_OFFSET =               18,
 
   NODE_SCRIPT_TYPE_SIZE =                  2,
 
@@ -294,8 +277,8 @@ private:
 
 
 #define NS_INODE_IID \
-{ 0x2a8dc794, 0x9178, 0x400e, \
-  { 0x81, 0xff, 0x55, 0x30, 0x30, 0xb6, 0x74, 0x3b } }
+{ 0x4776aa9a, 0xa886, 0x40c9, \
+ { 0xae, 0x4c, 0x4d, 0x92, 0xe2, 0xf0, 0xd9, 0x61 } }
 
 
 
@@ -316,13 +299,13 @@ public:
 #ifdef MOZILLA_INTERNAL_API
   nsINode(already_AddRefed<nsINodeInfo> aNodeInfo)
   : mNodeInfo(aNodeInfo),
-    mParentPtrBits(0),
-    mFlagsOrSlots(NODE_DOESNT_HAVE_SLOTS),
+    mParent(nsnull),
+    mFlags(0),
+    mBoolFlags(0),
     mNextSibling(nsnull),
     mPreviousSibling(nsnull),
     mFirstChild(nsnull),
-    mNodeHasRenderingObservers(false),
-    mIsElement(false)
+    mSlots(nsnull)
   {
   }
 
@@ -374,8 +357,8 @@ public:
   
 
 
-  PRBool IsElement() const {
-    return mIsElement;
+  bool IsElement() const {
+    return GetBoolFlag(NodeIsElement);
   }
 
   
@@ -434,9 +417,9 @@ public:
 
 
 
-  PRBool IsInDoc() const
+  bool IsInDoc() const
   {
-    return mParentPtrBits & PARENT_BIT_INDOCUMENT;
+    return GetBoolFlag(IsInDocument);
   }
 
   
@@ -706,12 +689,9 @@ public:
 
 
 
-  nsIContent* GetParent() const
-  {
-    return NS_LIKELY(mParentPtrBits & PARENT_BIT_PARENT_IS_CONTENT) ?
-           reinterpret_cast<nsIContent*>
-                           (mParentPtrBits & ~kParentBitMask) :
-           nsnull;
+  nsIContent* GetParent() const {
+    return NS_LIKELY(GetBoolFlag(ParentIsContent)) ?
+      reinterpret_cast<nsIContent*>(mParent) : nsnull;
   }
 
   
@@ -721,7 +701,7 @@ public:
 
   nsINode* GetNodeParent() const
   {
-    return reinterpret_cast<nsINode*>(mParentPtrBits & ~kParentBitMask);
+    return mParent;
   }
 
   
@@ -801,9 +781,8 @@ public:
   class nsSlots
   {
   public:
-    nsSlots(PtrBits aFlags)
-      : mFlags(aFlags),
-        mChildNodes(nsnull),
+    nsSlots()
+      : mChildNodes(nsnull),
         mWeakReference(nsnull)
     {
     }
@@ -811,13 +790,6 @@ public:
     
     
     virtual ~nsSlots();
-
-    
-
-
-
-
-    PtrBits mFlags;
 
     
 
@@ -854,12 +826,12 @@ public:
     return !!(GetFlags() & aFlag);
   }
 
-  PtrBits GetFlags() const
+  PRUint32 GetFlags() const
   {
-    return NS_UNLIKELY(HasSlots()) ? FlagsAsSlots()->mFlags : mFlagsOrSlots;
+    return mFlags;
   }
 
-  void SetFlags(PtrBits aFlagsToSet)
+  void SetFlags(PRUint32 aFlagsToSet)
   {
     NS_ASSERTION(!(aFlagsToSet & (NODE_IS_ANONYMOUS |
                                   NODE_IS_NATIVE_ANONYMOUS_ROOT |
@@ -869,21 +841,17 @@ public:
                                   NODE_NEEDS_FRAME)) ||
                  IsNodeOfType(eCONTENT),
                  "Flag only permitted on nsIContent nodes");
-    PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
-                                  &mFlagsOrSlots;
-    *flags |= aFlagsToSet;
+    mFlags |= aFlagsToSet;
   }
 
-  void UnsetFlags(PtrBits aFlagsToUnset)
+  void UnsetFlags(PRUint32 aFlagsToUnset)
   {
     NS_ASSERTION(!(aFlagsToUnset &
                    (NODE_IS_ANONYMOUS |
                     NODE_IS_IN_ANONYMOUS_SUBTREE |
                     NODE_IS_NATIVE_ANONYMOUS_ROOT)),
                  "Trying to unset write-only flags");
-    PtrBits* flags = HasSlots() ? &FlagsAsSlots()->mFlags :
-                                  &mFlagsOrSlots;
-    *flags &= ~aFlagsToUnset;
+    mFlags &= ~aFlagsToUnset;
   }
 
   void SetEditableFlag(PRBool aEditable)
@@ -1149,10 +1117,80 @@ public:
     NS_NOTREACHED("How did we get here?");
   }
 
-  bool HasRenderingObservers() { return mNodeHasRenderingObservers; }
-  void SetHasRenderingObservers(bool aValue)
-    { mNodeHasRenderingObservers = aValue; }
+  
 
+
+private:
+  enum BooleanFlag {
+    
+    NodeHasRenderingObservers,
+    
+    
+    IsInDocument,
+    
+    ParentIsContent,
+    
+    NodeIsElement,
+    
+    
+    
+    ElementHasID,
+    
+    ElementMayHaveStyle,
+    
+    ElementHasName,
+    
+    ElementMayHaveContentEditableAttr,
+    
+    BooleanFlagCount
+  };
+
+  void SetBoolFlag(BooleanFlag name, bool value) {
+    PR_STATIC_ASSERT(BooleanFlagCount <= 8*sizeof(mBoolFlags));
+    mBoolFlags = (mBoolFlags & ~(1 << name)) | (value << name);
+  }
+
+  void SetBoolFlag(BooleanFlag name) {
+    PR_STATIC_ASSERT(BooleanFlagCount <= 8*sizeof(mBoolFlags));
+    mBoolFlags |= (1 << name);
+  }
+
+  void ClearBoolFlag(BooleanFlag name) {
+    PR_STATIC_ASSERT(BooleanFlagCount <= 8*sizeof(mBoolFlags));
+    mBoolFlags &= ~(1 << name);
+  }
+
+  bool GetBoolFlag(BooleanFlag name) const {
+    PR_STATIC_ASSERT(BooleanFlagCount <= 8*sizeof(mBoolFlags));
+    return mBoolFlags & (1 << name);
+  }
+
+public:
+  bool HasRenderingObservers() const
+    { return GetBoolFlag(NodeHasRenderingObservers); }
+  void SetHasRenderingObservers(bool aValue)
+    { SetBoolFlag(NodeHasRenderingObservers, aValue); }
+  bool HasID() const { return GetBoolFlag(ElementHasID); }
+  bool MayHaveStyle() const { return GetBoolFlag(ElementMayHaveStyle); }
+  bool HasName() const { return GetBoolFlag(ElementHasName); }
+  bool MayHaveContentEditableAttr() const
+    { return GetBoolFlag(ElementMayHaveContentEditableAttr); }
+
+protected:
+  void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
+  void SetInDocument() { SetBoolFlag(IsInDocument); }
+  void ClearInDocument() { ClearBoolFlag(IsInDocument); }
+  void SetIsElement() { SetBoolFlag(NodeIsElement); }
+  void ClearIsElement() { ClearBoolFlag(NodeIsElement); }
+  void SetHasID() { SetBoolFlag(ElementHasID); }
+  void ClearHasID() { ClearBoolFlag(ElementHasID); }
+  void SetMayHaveStyle() { SetBoolFlag(ElementMayHaveStyle); }
+  void SetHasName() { SetBoolFlag(ElementHasName); }
+  void ClearHasName() { ClearBoolFlag(ElementHasName); }
+  void SetMayHaveContentEditableAttr()
+    { SetBoolFlag(ElementMayHaveContentEditableAttr); }
+
+public:
   
   virtual nsXPCClassInfo* GetClassInfo() = 0;
 protected:
@@ -1162,37 +1200,25 @@ protected:
 
   PRBool HasSlots() const
   {
-    return !(mFlagsOrSlots & NODE_DOESNT_HAVE_SLOTS);
-  }
-
-  nsSlots* FlagsAsSlots() const
-  {
-    NS_ASSERTION(HasSlots(), "check HasSlots first");
-    return reinterpret_cast<nsSlots*>(mFlagsOrSlots);
+    return mSlots != nsnull;
   }
 
   nsSlots* GetExistingSlots() const
   {
-    return HasSlots() ? FlagsAsSlots() : nsnull;
+    return mSlots;
   }
 
   nsSlots* GetSlots()
   {
-    if (HasSlots()) {
-      return FlagsAsSlots();
+    if (!HasSlots()) {
+      mSlots = CreateSlots();
     }
-
-    nsSlots* newSlots = CreateSlots();
-    if (newSlots) {
-      mFlagsOrSlots = reinterpret_cast<PtrBits>(newSlots);
-    }
-
-    return newSlots;
+    return GetExistingSlots();
   }
 
   nsTObserverArray<nsIMutationObserver*> *GetMutationObservers()
   {
-    return HasSlots() ? &FlagsAsSlots()->mMutationObservers : nsnull;
+    return HasSlots() ? &GetExistingSlots()->mMutationObservers : nsnull;
   }
 
   PRBool IsEditableInternal() const;
@@ -1269,26 +1295,21 @@ protected:
 
   nsCOMPtr<nsINodeInfo> mNodeInfo;
 
-  enum { PARENT_BIT_INDOCUMENT = 1 << 0, PARENT_BIT_PARENT_IS_CONTENT = 1 << 1 };
-  enum { kParentBitMask = 0x3 };
+  nsINode* mParent;
 
-  PtrBits mParentPtrBits;
+  PRUint32 mFlags;
 
+private:
   
+  PRUint32 mBoolFlags;
 
-
-
-
-
-  PtrBits mFlagsOrSlots;
-
+protected:
   nsIContent* mNextSibling;
   nsIContent* mPreviousSibling;
   nsIContent* mFirstChild;
 
   
-  bool mNodeHasRenderingObservers : 1;
-  bool mIsElement : 1;
+  nsSlots* mSlots;
 };
 
 
