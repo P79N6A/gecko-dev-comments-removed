@@ -245,6 +245,12 @@ private:
   void ClearImageOverridePreserveAspectRatio();
   const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio();
 
+  
+  
+  
+  
+  PRBool ShouldSynthesizeViewBox();
+
 protected:
   
   PRBool IsEventName(nsIAtom* aName);
@@ -341,6 +347,7 @@ protected:
   PRPackedBool                      mStartAnimationOnBindToTree;
 #endif 
   PRPackedBool                      mImageNeedsTransformInvalidation;
+  PRPackedBool                      mIsPaintingSVGImageElement;
 };
 
 #endif

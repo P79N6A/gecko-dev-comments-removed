@@ -158,7 +158,7 @@ protected:
 
 
 
-  PRBool EmbeddedByReference(nsIFrame **aEmbeddingFrame = nsnull);
+  PRBool IsRootOfReplacedElementSubDoc(nsIFrame **aEmbeddingFrame = nsnull);
 
   
 
