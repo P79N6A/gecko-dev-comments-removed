@@ -1807,7 +1807,6 @@ let GroupItems = {
   
   arrange: function GroupItems_arrange() {
     var bounds = Items.getPageBounds();
-    bounds.bottom -= 20; 
 
     var count = this.groupItems.length - 1;
     var columns = Math.ceil(Math.sqrt(count));

@@ -134,14 +134,6 @@ let UI = {
         self.exit();
         self.blurAll();
       });
-        
-      
-      
-      
-      
-      
-      if (false)
-        this._addDevMenu();
 
       
       
@@ -1175,73 +1167,6 @@ let UI = {
       activeTabItem.zoomIn(); 
     else
       self.goToTab(gBrowser.selectedTab);
-  },
-
-  
-  
-  
-  _addDevMenu: function UI__addDevMenu() {
-    try {
-      var self = this;
-
-      var $select = iQ("<select>")
-        .css({
-          position: "absolute",
-          bottom: 5,
-          right: 5,
-          zIndex: 99999,
-          opacity: .2
-        })
-        .appendTo("#content")
-        .change(function () {
-          var index = iQ(this).val();
-          try {
-            commands[index].code.apply(commands[index].element);
-          } catch(e) {
-            Utils.log("dev menu error", e);
-          }
-          iQ(this).val(0);
-        });
-
-      var commands = [{
-        name: "dev menu",
-        code: function() { }
-      }, {
-        name: "show trenches",
-        code: function() {
-          Trenches.toggleShown();
-          iQ(this).html((Trenches.showDebug ? "hide" : "show") + " trenches");
-        }
-      }, {
-
-
-
-
-
-
-
-
-
-
-
-
-        name: "save",
-        code: function() {
-          self._saveAll();
-        }
-      }];
-
-      var count = commands.length;
-      var a;
-      for (a = 0; a < count; a++) {
-        commands[a].element = (iQ("<option>")
-          .val(a)
-          .html(commands[a].name)
-          .appendTo($select))[0];
-      }
-    } catch(e) {
-      Utils.log(e);
-    }
   },
 
   
