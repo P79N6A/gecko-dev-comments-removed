@@ -442,13 +442,6 @@ function SpecialPowersManager() {
 SpecialPowersManager.prototype = {
   handleEvent: function handleEvent(aEvent) {
     var window = aEvent.target.defaultView;
-
-    
-    var uri = window.document.documentURIObject;
-    if (uri.spec.split(":")[0] == "about") {
-      return;
-    }
-
     attachSpecialPowersToWindow(window);
   }
 };
