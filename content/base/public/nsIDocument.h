@@ -19,7 +19,6 @@
 #include "nsTObserverArray.h"
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
-#include "nsNodeInfoManager.h"
 #include "nsIVariant.h"
 #include "nsIObserver.h"
 #include "nsGkAtoms.h"
@@ -126,28 +125,9 @@ public:
   NS_DECL_AND_IMPL_ZEROING_OPERATOR_NEW
 
 #ifdef MOZILLA_INTERNAL_API
-  nsIDocument()
-    : nsINode(nsnull),
-      mCharacterSet(NS_LITERAL_CSTRING("ISO-8859-1")),
-      mNodeInfoManager(nsnull),
-      mCompatMode(eCompatibility_FullStandards),
-      mIsInitialDocumentInWindow(false),
-      mMayStartLayout(true),
-      mVisible(true),
-      mRemovedFromDocShell(false),
-      
-      
-      
-      
-      mAllowDNSPrefetch(true),
-      mIsBeingUsedAsImage(false),
-      mHasLinksToUpdate(false),
-      mPartID(0)
-  {
-    SetInDocument();
-  }
+  nsIDocument();
 #endif
-  
+
   
 
 
@@ -1205,11 +1185,6 @@ public:
     return mLoadedAsData;
   }
 
-  bool IsLoadedAsInteractiveData()
-  {
-    return mLoadedAsInteractiveData;
-  }
-
   bool MayStartLayout()
   {
     return mMayStartLayout;
@@ -1688,14 +1663,7 @@ private:
   PRUint64 mWarnedAbout;
 
 protected:
-  ~nsIDocument()
-  {
-    
-    
-    
-    
-  }
-
+  ~nsIDocument();
   nsPropertyTable* GetExtraPropertyTable(PRUint16 aCategory);
 
   
@@ -1753,10 +1721,8 @@ protected:
   mozilla::dom::Element* mCachedRootElement;
 
   
-  
-  
   nsNodeInfoManager* mNodeInfoManager; 
-  mozilla::css::Loader* mCSSLoader; 
+  nsRefPtr<mozilla::css::Loader> mCSSLoader;
   nsHTMLStyleSheet* mAttrStyleSheet;
 
   
@@ -1764,7 +1730,7 @@ protected:
   
   
   nsAutoPtr<nsTHashtable<nsPtrHashKey<nsIContent> > > mFreezableElements;
-  
+
   
   
   
@@ -1803,11 +1769,6 @@ protected:
   
   
   bool mLoadedAsData;
-
-  
-  
-  
-  bool mLoadedAsInteractiveData;
 
   
   
