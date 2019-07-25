@@ -290,6 +290,10 @@ NS_IMETHODIMP imgContainer::ExtractFrame(PRUint32 aWhichFrame,
     return NS_ERROR_FAILURE;
 
   
+  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
+    return NS_ERROR_FAILURE;
+
+  
   nsRefPtr<imgContainer> img(new imgContainer());
   NS_ENSURE_TRUE(img, NS_ERROR_OUT_OF_MEMORY);
 
@@ -531,6 +535,10 @@ NS_IMETHODIMP imgContainer::CopyFrame(PRUint32 aWhichFrame,
   if (mError)
     return NS_ERROR_FAILURE;
 
+  
+  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
+    return NS_ERROR_FAILURE;
+
   nsresult rv;
 
   
@@ -582,6 +590,10 @@ NS_IMETHODIMP imgContainer::GetFrame(PRUint32 aWhichFrame,
     return NS_ERROR_INVALID_ARG;
 
   if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return NS_ERROR_FAILURE;
 
   nsresult rv = NS_OK;
@@ -2336,10 +2348,7 @@ imgContainer::SyncDecode()
   
   
   
-  
   NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
-  if (mInDecoder)
-    return NS_ERROR_FAILURE;
 
   
   if (mDecoder && (mDecoderFlags & imgIDecoder::DECODER_FLAG_HEADERONLY)) {
@@ -2384,6 +2393,10 @@ NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext,
                                  PRUint32 aFlags)
 {
   if (mError)
+    return NS_ERROR_FAILURE;
+
+  
+  if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return NS_ERROR_FAILURE;
 
   NS_ENSURE_ARG_POINTER(aContext);
