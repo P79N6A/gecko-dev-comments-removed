@@ -72,7 +72,7 @@ public:
                              nsSVGElement *aSVGElement);
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
-  
+
 private:
 
   nsSVGViewBoxRect mBaseVal;
