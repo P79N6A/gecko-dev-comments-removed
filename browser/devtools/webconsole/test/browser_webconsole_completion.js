@@ -5,32 +5,46 @@
 
 
 
-const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/test-console.html";
+const TEST_URI = "data:text/html;charset=utf8,<p>test code completion";
+
+let testDriver;
 
 function test() {
   addTab(TEST_URI);
-  browser.addEventListener("DOMContentLoaded", testCompletion, false);
+  browser.addEventListener("load", function onLoad() {
+    browser.removeEventListener("load", onLoad, true);
+    openConsole(null, function(hud) {
+      testDriver = testCompletion(hud);
+      testDriver.next();
+    });
+  }, true);
 }
 
-function testCompletion() {
-  browser.removeEventListener("DOMContentLoaded", testCompletion, false);
+function testNext() {
+  executeSoon(function() {
+    testDriver.next();
+  });
+}
 
-  openConsole();
-
-  var jsterm = HUDService.getHudByWindow(content).jsterm;
-  var input = jsterm.inputNode;
-
-  
-  input.value = "docu";
-  input.setSelectionRange(4, 4);
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY);
-  is(input.value, "docu", "'docu' completion");
-  is(jsterm.completeNode.value, "    ment", "'docu' completion");
+function testCompletion(hud) {
+  let jsterm = hud.jsterm;
+  let input = jsterm.inputNode;
 
   
   input.value = "docu";
   input.setSelectionRange(4, 4);
-  jsterm.complete(jsterm.COMPLETE_FORWARD);
+  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
+  yield;
+
+  is(input.value, "docu", "'docu' completion (input.value)");
+  is(jsterm.completeNode.value, "    ment", "'docu' completion (completeNode)");
+
+  
+  input.value = "docu";
+  input.setSelectionRange(4, 4);
+  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
+  yield;
+
   is(input.value, "document", "'docu' tab completion");
   is(input.selectionStart, 8, "start selection is alright");
   is(input.selectionEnd, 8, "end selection is alright");
@@ -39,35 +53,45 @@ function testCompletion() {
   
   input.value = "document.getElem";
   input.setSelectionRange(16, 16);
-  jsterm.complete(jsterm.COMPLETE_FORWARD);
+  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
+  yield;
+
   is(input.value, "document.getElem", "'document.getElem' completion");
   is(jsterm.completeNode.value, "                entById", "'document.getElem' completion");
 
   
-  jsterm.complete(jsterm.COMPLETE_FORWARD);
+  jsterm.complete(jsterm.COMPLETE_FORWARD, testNext);
+  yield;
+
   is(input.value, "document.getElem", "'document.getElem' completion");
   is(jsterm.completeNode.value, "                entsByClassName", "'document.getElem' another tab completion");
 
   
-  jsterm.complete(jsterm.COMPLETE_BACKWARD);
+  jsterm.complete(jsterm.COMPLETE_BACKWARD, testNext);
+  yield;
+
   is(input.value, "document.getElem", "'document.getElem' untab completion");
   is(jsterm.completeNode.value, "                entById", "'document.getElem' completion");
 
   jsterm.clearOutput();
-  jsterm.history.splice(0, jsterm.history.length);   
 
   input.value = "docu";
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY);
+  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
+  yield;
+
   is(jsterm.completeNode.value, "    ment", "'docu' completion");
   jsterm.execute();
   is(jsterm.completeNode.value, "", "clear completion on execute()");
 
   
   input.value =                 "console.log('one');\nconsol";
-  jsterm.complete(jsterm.COMPLETE_HINT_ONLY);
+  jsterm.complete(jsterm.COMPLETE_HINT_ONLY, testNext);
+  yield;
+
   is(jsterm.completeNode.value, "                   \n      e", "multi-line completion");
 
-  jsterm = input = null;
-  finishTest();
+  testDriver = jsterm = input = null;
+  executeSoon(finishTest);
+  yield;
 }
 
