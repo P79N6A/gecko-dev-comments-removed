@@ -174,7 +174,7 @@ var gSyncSetup = {
     
     Weave.Svc.Prefs.reset("firstSync");
     this.setupInitialSync();
-    gSyncUtils.resetPassphrase();
+    gSyncUtils.resetPassphrase(true);
   },
 
   onResetPassphrase: function () {
