@@ -2945,7 +2945,7 @@ GC(JSContext *cx  GCTIMER_PARAM)
 
 
 static void
-LetOtherGCToFinish(JSContext *cx)
+LetOtherGCFinish(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
     JS_ASSERT(rt->gcThread);
@@ -2971,23 +2971,30 @@ LetOtherGCToFinish(JSContext *cx)
         rt->requestCount -= requestDebit;
         if (rt->requestCount == 0)
             JS_NOTIFY_REQUEST_DONE(rt);
-
-        
-        cx->thread->gcWaiting = true;
-        js_ShareWaitingTitles(cx);
-
-        
-
-
-
-        JS_ASSERT(rt->gcThread);
-        do {
-            JS_AWAIT_GC_DONE(rt);
-        } while (rt->gcThread);
-
-        cx->thread->gcWaiting = false;
-        rt->requestCount += requestDebit;
     }
+
+    
+    cx->thread->gcWaiting = true;
+    js_ShareWaitingTitles(cx);
+
+    
+
+
+
+    JS_ASSERT(rt->gcThread);
+
+    
+
+
+
+
+
+    do {
+        JS_AWAIT_GC_DONE(rt);
+    } while (rt->gcThread);
+
+    cx->thread->gcWaiting = false;
+    rt->requestCount += requestDebit;
 }
 
 #endif
@@ -3097,7 +3104,7 @@ GCUntilDone(JSContext *cx, JSGCInvocationKind gckind  GCTIMER_PARAM)
             JS_ASSERT(rt->gcRunning);
             return;
         }
-        LetOtherGCToFinish(cx);
+        LetOtherGCFinish(cx);
 
         
 
@@ -3217,7 +3224,7 @@ js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
 #ifdef JS_THREADSAFE
     if (rt->gcThread) {
         JS_ASSERT(cx->thread != rt->gcThread);
-        LetOtherGCToFinish(cx);
+        LetOtherGCFinish(cx);
     }
 #endif
 
