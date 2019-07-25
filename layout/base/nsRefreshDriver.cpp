@@ -41,8 +41,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsRefreshDriver.h"
 #include "nsPresContext.h"
 #include "nsComponentManagerUtils.h"
@@ -235,7 +233,7 @@ PRUint32
 nsRefreshDriver::ObserverCount() const
 {
   PRUint32 sum = 0;
-  for (PRUint32 i = 0; i < ArrayLength(mObservers); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     sum += mObservers[i].Length();
   }
   
@@ -321,7 +319,7 @@ nsRefreshDriver::Notify(nsITimer *aTimer)
 
 
 
-  for (PRUint32 i = 0; i < ArrayLength(mObservers); ++i) {
+  for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(mObservers); ++i) {
     ObserverArray::EndLimitedIterator etor(mObservers[i]);
     while (etor.HasMore()) {
       nsRefPtr<nsARefreshObserver> obs = etor.GetNext();

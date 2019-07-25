@@ -38,8 +38,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
 #include "nsDirectoryService.h"
@@ -73,8 +71,6 @@
 
 #include "SpecialSystemDirectory.h"
 #include "nsAppFileLocationProvider.h"
-
-using namespace mozilla;
 
 #define COMPONENT_DIRECTORY     NS_LITERAL_CSTRING("components")
 
@@ -306,7 +302,7 @@ nsDirectoryService::RealInit()
     if (NS_FAILED(rv))
         return rv;
 
-    NS_RegisterStaticAtoms(directory_atoms, ArrayLength(directory_atoms));
+    NS_RegisterStaticAtoms(directory_atoms, NS_ARRAY_LENGTH(directory_atoms));
     
     
     nsAppFileLocationProvider *defaultProvider = new nsAppFileLocationProvider;

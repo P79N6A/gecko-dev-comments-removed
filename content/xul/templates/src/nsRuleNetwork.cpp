@@ -1,56 +1,54 @@
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is mozilla.org code.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2000
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Chris Waterson <waterson@netscape.com>
+ *   Neil Deakin <enndeakin@sympatico.ca>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
+/*
 
+  Implementations for the rule network classes.
 
+  To Do.
 
+  - Constrain() & Propagate() still feel like they are poorly named.
+  - As do Instantiation and InstantiationSet.
+  - Make InstantiationSet share and do copy-on-write.
+  - Make things iterative, instead of recursive.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "mozilla/Util.h"
+ */
 
 #include "nscore.h"
 #include "nsCOMPtr.h"
@@ -75,12 +73,10 @@ extern PRLogModuleInfo* gXULTemplateLog;
 #include "nsRDFConMemberTestNode.h"
 #include "nsRDFPropertyTestNode.h"
 
-using namespace mozilla;
-
 bool MemoryElement::gPoolInited;
 nsFixedSizeAllocator MemoryElement::gPool;
 
-
+// static
 bool
 MemoryElement::Init()
 {
@@ -91,7 +87,7 @@ MemoryElement::Init()
         };
 
         if (NS_FAILED(gPool.Init("MemoryElement", bucketsizes,
-                                 ArrayLength(bucketsizes), 256)))
+                                 NS_ARRAY_LENGTH(bucketsizes), 256)))
             return PR_FALSE;
 
         gPoolInited = PR_TRUE;
@@ -100,19 +96,19 @@ MemoryElement::Init()
     return PR_TRUE;
 }
 
-
-
-
-
+//----------------------------------------------------------------------
+//
+// nsRuleNetwork
+//
 
 nsresult
 MemoryElementSet::Add(MemoryElement* aElement)
 {
     for (ConstIterator element = First(); element != Last(); ++element) {
         if (*element == *aElement) {
-            
-            
-            
+            // We've already got this element covered. Since Add()
+            // assumes ownership, and we aren't going to need this,
+            // just nuke it.
             aElement->Destroy();
             return NS_OK;
         }
@@ -132,14 +128,14 @@ MemoryElementSet::Add(MemoryElement* aElement)
 }
 
 
-
+//----------------------------------------------------------------------
 
 nsresult
 nsAssignmentSet::Add(const nsAssignment& aAssignment)
 {
     NS_PRECONDITION(! HasAssignmentFor(aAssignment.mVariable), "variable already bound");
 
-    
+    // XXXndeakin should this just silently fail?
     if (HasAssignmentFor(aAssignment.mVariable))
         return NS_ERROR_UNEXPECTED;
 
@@ -208,11 +204,11 @@ nsAssignmentSet::Equals(const nsAssignmentSet& aSet) const
     if (aSet.mAssignments == mAssignments)
         return PR_TRUE;
 
-    
+    // If they have a different number of assignments, then they're different.
     if (Count() != aSet.Count())
         return PR_FALSE;
 
-    
+    // XXX O(n^2)! Ugh!
     nsCOMPtr<nsIRDFNode> value;
     for (ConstIterator assignment = First(); assignment != Last(); ++assignment) {
         if (! aSet.GetAssignmentFor(assignment->mVariable, getter_AddRefs(value)))
@@ -225,7 +221,7 @@ nsAssignmentSet::Equals(const nsAssignmentSet& aSet) const
     return PR_TRUE;
 }
 
-
+//----------------------------------------------------------------------
 
 PLHashNumber
 Instantiation::Hash(const void* aKey)
@@ -253,10 +249,10 @@ Instantiation::Compare(const void* aLeft, const void* aRight)
 }
 
 
-
-
-
-
+//----------------------------------------------------------------------
+//
+// InstantiationSet
+//
 
 InstantiationSet::InstantiationSet()
 {
@@ -269,7 +265,7 @@ InstantiationSet::InstantiationSet(const InstantiationSet& aInstantiationSet)
 {
     mHead.mPrev = mHead.mNext = &mHead;
 
-    
+    // XXX replace with copy-on-write foo
     ConstIterator last = aInstantiationSet.Last();
     for (ConstIterator inst = aInstantiationSet.First(); inst != last; ++inst)
         Append(*inst);
@@ -280,7 +276,7 @@ InstantiationSet::InstantiationSet(const InstantiationSet& aInstantiationSet)
 InstantiationSet&
 InstantiationSet::operator=(const InstantiationSet& aInstantiationSet)
 {
-    
+    // XXX replace with copy-on-write foo
     Clear();
 
     ConstIterator last = aInstantiationSet.Last();
@@ -335,20 +331,20 @@ InstantiationSet::HasAssignmentFor(nsIAtom* aVariable) const
     return !Empty() ? First()->mAssignments.HasAssignmentFor(aVariable) : PR_FALSE;
 }
 
+//----------------------------------------------------------------------
+//
+// ReteNode
+//
+//   The basic node in the network.
+//
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+//----------------------------------------------------------------------
+//
+// TestNode
+//
+//   to do:
+//     - FilterInstantiations() is poorly named
+//
 
 
 TestNode::TestNode(TestNode* aParent)
@@ -369,20 +365,20 @@ TestNode::Propagate(InstantiationSet& aInstantiations,
     if (NS_FAILED(rv))
         return rv;
 
-    
-    
-    
-    
+    // if there is more than one child, each will need to be supplied with the
+    // original set of instantiations from this node, so create a copy in this
+    // case. If there is only one child, optimize and just pass the
+    // instantiations along to the child without copying
     bool shouldCopy = (mKids.Count() > 1);
 
-    
+    // See the header file for details about how instantiation ownership works.
     if (! aInstantiations.Empty()) {
         ReteNodeSet::Iterator last = mKids.Last();
         for (ReteNodeSet::Iterator kid = mKids.First(); kid != last; ++kid) {
             PR_LOG(gXULTemplateLog, PR_LOG_DEBUG,
                    ("TestNode[%p]: Propagate() passing to child %p", this, kid.operator->()));
 
-            
+            // create a copy of the instantiations
             if (shouldCopy) {
                 bool owned = false;
                 InstantiationSet* instantiations =
@@ -418,19 +414,19 @@ TestNode::Constrain(InstantiationSet& aInstantiations)
     PR_LOG(gXULTemplateLog, PR_LOG_DEBUG,
            ("TestNode[%p]: Constrain() begin", this));
 
-    
-    
-    
-    
-    
+    // if the cantHandleYet flag is set by FilterInstantiations,
+    // there isn't enough information yet available to fill in.
+    // For this, continue the constrain all the way to the top
+    // and then call FilterInstantiations again afterwards. This
+    // should fill in any missing information.
     bool cantHandleYet = false;
     rv = FilterInstantiations(aInstantiations, &cantHandleYet);
     if (NS_FAILED(rv)) return rv;
 
     if (mParent && (!aInstantiations.Empty() || cantHandleYet)) {
-        
-        
-        
+        // if we still have instantiations, or if the instantiations
+        // could not be filled in yet, then ride 'em on up to the
+        // parent to narrow them.
 
         PR_LOG(gXULTemplateLog, PR_LOG_DEBUG,
                ("TestNode[%p]: Constrain() passing to parent %p", this, mParent));
@@ -461,7 +457,7 @@ TestNode::HasAncestor(const ReteNode* aNode) const
 }
 
 
-
+//----------------------------------------------------------------------
 
 ReteNodeSet::ReteNodeSet()
     : mNodes(nsnull), mCount(0), mCapacity(0)

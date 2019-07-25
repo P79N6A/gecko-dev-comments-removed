@@ -1,42 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include "mozilla/Util.h"
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
+/* ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is TransforMiiX XSLT processor code.
+ *
+ * The Initial Developer of the Original Code is
+ * The MITRE Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1999
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Keith Visco <kvisco@ziplink.net> (Original Author)
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "txExpr.h"
 #include "nsAutoPtr.h"
@@ -49,8 +47,6 @@
 #include "txStringUtils.h"
 #include "txXMLUtils.h"
 
-using namespace mozilla;
-
 struct txCoreFunctionDescriptor
 {
     PRInt8 mMinParams;
@@ -59,50 +55,50 @@ struct txCoreFunctionDescriptor
     nsIAtom** mName;
 };
 
-
-
+// This must be ordered in the same order as txCoreFunctionCall::eType.
+// If you change one, change the other.
 static const txCoreFunctionDescriptor descriptTable[] =
 {
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::count }, 
-    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::id }, 
-    { 0, 0, Expr::NUMBER_RESULT,  &nsGkAtoms::last }, 
-    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::localName }, 
-    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::namespaceUri }, 
-    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::name }, 
-    { 0, 0, Expr::NUMBER_RESULT,  &nsGkAtoms::position }, 
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::count }, // COUNT
+    { 1, 1, Expr::NODESET_RESULT, &nsGkAtoms::id }, // ID
+    { 0, 0, Expr::NUMBER_RESULT,  &nsGkAtoms::last }, // LAST
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::localName }, // LOCAL_NAME
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::namespaceUri }, // NAMESPACE_URI
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::name }, // NAME
+    { 0, 0, Expr::NUMBER_RESULT,  &nsGkAtoms::position }, // POSITION
 
-    { 2, -1, Expr::STRING_RESULT, &nsGkAtoms::concat }, 
-    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::contains }, 
-    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::normalizeSpace }, 
-    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::startsWith }, 
-    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::string }, 
-    { 0, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::stringLength }, 
-    { 2, 3, Expr::STRING_RESULT,  &nsGkAtoms::substring }, 
-    { 2, 2, Expr::STRING_RESULT,  &nsGkAtoms::substringAfter }, 
-    { 2, 2, Expr::STRING_RESULT,  &nsGkAtoms::substringBefore }, 
-    { 3, 3, Expr::STRING_RESULT,  &nsGkAtoms::translate }, 
+    { 2, -1, Expr::STRING_RESULT, &nsGkAtoms::concat }, // CONCAT
+    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::contains }, // CONTAINS
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::normalizeSpace }, // NORMALIZE_SPACE
+    { 2, 2, Expr::BOOLEAN_RESULT, &nsGkAtoms::startsWith }, // STARTS_WITH
+    { 0, 1, Expr::STRING_RESULT,  &nsGkAtoms::string }, // STRING
+    { 0, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::stringLength }, // STRING_LENGTH
+    { 2, 3, Expr::STRING_RESULT,  &nsGkAtoms::substring }, // SUBSTRING
+    { 2, 2, Expr::STRING_RESULT,  &nsGkAtoms::substringAfter }, // SUBSTRING_AFTER
+    { 2, 2, Expr::STRING_RESULT,  &nsGkAtoms::substringBefore }, // SUBSTRING_BEFORE
+    { 3, 3, Expr::STRING_RESULT,  &nsGkAtoms::translate }, // TRANSLATE
 
-    { 0, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::number }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::round }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::floor }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::ceiling }, 
-    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::sum }, 
+    { 0, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::number }, // NUMBER
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::round }, // ROUND
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::floor }, // FLOOR
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::ceiling }, // CEILING
+    { 1, 1, Expr::NUMBER_RESULT,  &nsGkAtoms::sum }, // SUM
 
-    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::boolean }, 
-    { 0, 0, Expr::BOOLEAN_RESULT, &nsGkAtoms::_false }, 
-    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::lang }, 
-    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::_not }, 
-    { 0, 0, Expr::BOOLEAN_RESULT, &nsGkAtoms::_true } 
+    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::boolean }, // BOOLEAN
+    { 0, 0, Expr::BOOLEAN_RESULT, &nsGkAtoms::_false }, // _FALSE
+    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::lang }, // LANG
+    { 1, 1, Expr::BOOLEAN_RESULT, &nsGkAtoms::_not }, // _NOT
+    { 0, 0, Expr::BOOLEAN_RESULT, &nsGkAtoms::_true } // _TRUE
 };
 
 
-
-
-
-
-
-
-
+/*
+ * Evaluates this Expr based on the given context node and processor state
+ * @param context the context node for evaluation of this Expr
+ * @param ps the ContextState containing the stack information needed
+ * for evaluation
+ * @return the result of the evaluation
+ */
 nsresult
 txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
 {
@@ -179,7 +175,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
         case NAME:
         case NAMESPACE_URI:
         {
-            
+            // Check for optional arg
             nsRefPtr<txNodeSet> nodes;
             if (!mParams.IsEmpty()) {
                 rv = evaluateToNodeSet(mParams[0], aContext,
@@ -220,7 +216,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
                 }
                 case NAME:
                 {
-                    
+                    // XXX Namespace: namespaces have a name
                     if (txXPathNodeUtils::isAttribute(node) ||
                         txXPathNodeUtils::isElement(node) ||
                         txXPathNodeUtils::isProcessingInstruction(node)) {
@@ -249,7 +245,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
                                                          aResult);
         }
 
-        
+        // String functions
 
         case CONCAT:
         {
@@ -395,7 +391,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             rv = evaluateToNumber(mParams[1], aContext, &start);
             NS_ENSURE_SUCCESS(rv, rv);
 
-            
+            // check for NaN or +/-Inf
             if (Double::isNaN(start) ||
                 Double::isInfinite(start) ||
                 start >= src.Length() + 0.5) {
@@ -533,7 +529,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             return NS_OK;
         }
         
-        
+        // Number functions
 
         case NUMBER:
         {
@@ -615,7 +611,7 @@ txCoreFunctionCall::evaluate(txIEvalContext* aContext, txAExprResult** aResult)
             return aContext->recycler()->getNumberResult(res, aResult);
         }
         
-        
+        // Boolean functions
         
         case BOOLEAN:
         {
@@ -753,12 +749,12 @@ txCoreFunctionCall::isSensitiveTo(ContextSensitivity aContext)
     return PR_TRUE;
 }
 
-
+// static
 bool
 txCoreFunctionCall::getTypeFromAtom(nsIAtom* aName, eType& aType)
 {
     PRUint32 i;
-    for (i = 0; i < ArrayLength(descriptTable); ++i) {
+    for (i = 0; i < NS_ARRAY_LENGTH(descriptTable); ++i) {
         if (aName == *descriptTable[i].mName) {
             aType = static_cast<eType>(i);
 

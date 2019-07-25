@@ -1,13 +1,11 @@
 #include "tests.h"
 #include "jsatom.h"
 
-using namespace mozilla;
-
 BEGIN_TEST(testAtomizedIsNotInterned)
 {
     
     static const char someChars[] = "blah blah blah? blah blah blah";
-    JSAtom *atom = js_Atomize(cx, someChars, ArrayLength(someChars));
+    JSAtom *atom = js_Atomize(cx, someChars, JS_ARRAY_LENGTH(someChars));
     CHECK(!JS_StringHasBeenInterned(cx, atom));
     CHECK(JS_InternJSString(cx, atom));
     CHECK(JS_StringHasBeenInterned(cx, atom));

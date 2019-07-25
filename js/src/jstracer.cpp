@@ -39,8 +39,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "jsstdint.h"
 #include "jsprf.h"
 #include <math.h>               
@@ -117,8 +115,6 @@
 #include <string.h>
 #include <elf.h>
 #endif
-
-using namespace mozilla;
 
 #ifdef DEBUG
 namespace js {
@@ -12055,7 +12051,7 @@ SafeLookup(JSContext *cx, JSObject* obj, jsid id, JSObject** pobjp, const Shape*
 {
     do {
         
-        if (obj->getOps()->lookupGeneric)
+        if (obj->getOps()->lookupProperty)
             return false;
 
         if (const Shape *shape = obj->nativeLookup(cx, id)) {
@@ -12770,7 +12766,7 @@ GetPropertyWithNativeGetter(JSContext* cx, JSObject* obj, Shape* shape, Value* v
 #ifdef DEBUG
     JSProperty* prop;
     JSObject* pobj;
-    JS_ASSERT(obj->lookupGeneric(cx, shape->propid, &pobj, &prop));
+    JS_ASSERT(obj->lookupProperty(cx, shape->propid, &pobj, &prop));
     JS_ASSERT(prop == (JSProperty*) shape);
 #endif
 
@@ -13847,13 +13843,13 @@ TraceRecorder::record_JSOP_FUNAPPLY()
             RETURN_STOP_A("arguments parameter of apply is not a dense array or argments object");
         }
 
-        if (length >= ArrayLength(funapply_imacro_table))
+        if (length >= JS_ARRAY_LENGTH(funapply_imacro_table))
             RETURN_STOP_A("too many arguments to apply");
 
         return InjectStatus(callImacro(funapply_imacro_table[length]));
     }
 
-    if (argc >= ArrayLength(funcall_imacro_table))
+    if (argc >= JS_ARRAY_LENGTH(funcall_imacro_table))
         RETURN_STOP_A("too many arguments to call");
 
     return InjectStatus(callImacro(funcall_imacro_table[argc]));
@@ -15193,10 +15189,10 @@ TraceRecorder::record_JSOP_IN()
 
     JSObject* obj2;
     JSProperty* prop;
-    JSBool ok = obj->lookupGeneric(cx, id, &obj2, &prop);
+    JSBool ok = obj->lookupProperty(cx, id, &obj2, &prop);
 
     if (!ok)
-        RETURN_ERROR_A("obj->lookupGeneric failed in JSOP_IN");
+        RETURN_ERROR_A("obj->lookupProperty failed in JSOP_IN");
 
     
     if (!localtm.recorder)

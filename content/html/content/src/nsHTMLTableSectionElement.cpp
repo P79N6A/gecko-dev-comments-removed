@@ -34,9 +34,6 @@
 
 
 
-
-#include "mozilla/Util.h"
-
 #include "nsIDOMHTMLTableSectionElem.h"
 #include "nsIDOMEventTarget.h"
 #include "nsMappedAttributes.h"
@@ -49,8 +46,6 @@
 #include "nsDOMError.h"
 #include "nsIDocument.h"
 #include "nsContentUtils.h"
-
-using namespace mozilla;
 
 
 
@@ -326,7 +321,7 @@ nsHTMLTableSectionElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sBackgroundAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map, ArrayLength(map));
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

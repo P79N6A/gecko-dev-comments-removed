@@ -41,12 +41,8 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsGkAtoms.h"
 #include "nsStaticAtom.h"
-
-using namespace mozilla;
 
 
 #define GK_ATOM(name_, value_) nsIAtom* nsGkAtoms::name_;
@@ -65,6 +61,6 @@ static const nsStaticAtom GkAtoms_info[] = {
 
 void nsGkAtoms::AddRefAtoms()
 {
-  NS_RegisterStaticAtoms(GkAtoms_info, ArrayLength(GkAtoms_info));
+  NS_RegisterStaticAtoms(GkAtoms_info, NS_ARRAY_LENGTH(GkAtoms_info));
 }
 

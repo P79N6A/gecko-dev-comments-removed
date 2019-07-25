@@ -38,8 +38,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nspr.h"
 
 #include "nsIFileStreams.h"       
@@ -123,8 +121,6 @@
 #include "nsIProtocolHandler.h"
 
 #include "nsWebBrowserPersist.h"
-
-using namespace mozilla;
 
 
 #define BUFFERED_OUTPUT_SIZE (1024 * 32)
@@ -3953,7 +3949,7 @@ static bool IsSpecialXHTMLTag(nsIDOMNode *aNode)
         return PR_FALSE;
 
     aNode->GetLocalName(tmp);
-    for (PRUint32 i = 0; i < ArrayLength(kSpecialXHTMLTags); i++) {
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(kSpecialXHTMLTags); i++) {
         if (tmp.EqualsASCII(kSpecialXHTMLTags[i]))
         {
             

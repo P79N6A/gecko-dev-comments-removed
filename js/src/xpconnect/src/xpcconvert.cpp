@@ -43,8 +43,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "xpcprivate.h"
 #include "nsString.h"
 #include "nsIAtom.h"
@@ -57,8 +55,6 @@
 
 #include "dombindings.h"
 #include "nsWrapperCacheInlines.h"
-
-using namespace mozilla;
 
 
 #ifdef STRICT_CHECK_OF_UNICODE
@@ -743,7 +739,7 @@ XPCConvert::JSData2Native(XPCCallContext& ccx, void* d, jsval s,
                 if(isDOMString) 
                 {
                     chars  = VOID_STRING;
-                    length = ArrayLength(VOID_STRING) - 1;
+                    length = NS_ARRAY_LENGTH(VOID_STRING) - 1;
                 }
                 else
                 {

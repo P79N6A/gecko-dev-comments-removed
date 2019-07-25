@@ -35,16 +35,12 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsHTMLTags.h"
 #include "nsCRT.h"
 #include "nsReadableUtils.h"
 #include "nsString.h"
 #include "nsStaticAtom.h"
 #include "nsUnicharUtils.h"
-
-using namespace mozilla;
 
 
 
@@ -374,7 +370,7 @@ nsHTMLTags::AddRefTable(void)
 
   if (gTableRefCount++ == 0) {
     
-    NS_RegisterStaticAtoms(sTagAtoms_info, ArrayLength(sTagAtoms_info));
+    NS_RegisterStaticAtoms(sTagAtoms_info, NS_ARRAY_LENGTH(sTagAtoms_info));
 
 
     NS_ASSERTION(!gTagTable && !gTagAtomTable, "pre existing hash!");

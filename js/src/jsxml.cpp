@@ -44,9 +44,6 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-
-#include "mozilla/Util.h"
-
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsprf.h"
@@ -84,7 +81,6 @@
 #include <string.h>     
 #endif
 
-using namespace mozilla;
 using namespace js;
 using namespace js::gc;
 using namespace js::types;
@@ -1595,7 +1591,7 @@ ParseNodeToXML(Parser *parser, JSParseNode *pn,
             if (!qn)
                 goto fail;
 
-            str = pn->pn_pidata ? pn->pn_pidata : cx->runtime->emptyString;
+            str = pn->pn_atom2 ? pn->pn_atom2 : cx->runtime->emptyString;
             xml_class = JSXML_CLASS_PROCESSING_INSTRUCTION;
         } else {
             
@@ -3767,7 +3763,7 @@ GetProperty(JSContext *cx, JSObject *obj, jsid id, jsval *vp)
         return GetXMLFunction(cx, obj, funid, vp);
 
     jsval roots[2] = { OBJECT_TO_JSVAL(nameqn), JSVAL_NULL };
-    AutoArrayRooter tvr(cx, ArrayLength(roots), roots);
+    AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(roots), roots);
 
     listobj = js_NewXMLObject(cx, JSXML_CLASS_LIST);
     if (!listobj)
@@ -3868,7 +3864,7 @@ PutProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
     roots[OBJ_ROOT] = OBJECT_TO_JSVAL(obj);
     roots[ID_ROOT] = IdToJsval(id);
     roots[VAL_ROOT] = *vp;
-    AutoArrayRooter tvr(cx, ArrayLength(roots), roots);
+    AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(roots), roots);
 
     if (js_IdIsIndex(id, &index)) {
         if (xml->xml_class != JSXML_CLASS_LIST) {
@@ -4711,7 +4707,8 @@ xml_trace_vector(JSTracer *trc, JSXML **vec, uint32 len)
 
 
 static JSBool
-xml_lookupGeneric(JSContext *cx, JSObject *obj, jsid id, JSObject **objp, JSProperty **propp)
+xml_lookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                   JSProperty **propp)
 {
     JSBool found;
     JSXML *xml;
@@ -4748,13 +4745,6 @@ xml_lookupGeneric(JSContext *cx, JSObject *obj, jsid id, JSObject **objp, JSProp
 }
 
 static JSBool
-xml_lookupProperty(JSContext *cx, JSObject *obj, PropertyName *name, JSObject **objp,
-                   JSProperty **propp)
-{
-    return xml_lookupGeneric(cx, obj, ATOM_TO_JSID(name), objp, propp);
-}
-
-static JSBool
 xml_lookupElement(JSContext *cx, JSObject *obj, uint32 index, JSObject **objp,
                   JSProperty **propp)
 {
@@ -4784,7 +4774,7 @@ xml_lookupElement(JSContext *cx, JSObject *obj, uint32 index, JSObject **objp,
 static JSBool
 xml_lookupSpecial(JSContext *cx, JSObject *obj, SpecialId sid, JSObject **objp, JSProperty **propp)
 {
-    return xml_lookupGeneric(cx, obj, SPECIALID_TO_JSID(sid), objp, propp);
+    return xml_lookupProperty(cx, obj, SPECIALID_TO_JSID(sid), objp, propp);
 }
 
 static JSBool
@@ -5309,7 +5299,7 @@ JS_FRIEND_DATA(Class) js::XMLClass = {
     xml_trace,
     JS_NULL_CLASS_EXT,
     {
-        xml_lookupGeneric,
+        xml_lookupProperty,
         xml_lookupProperty,
         xml_lookupElement,
         xml_lookupSpecial,
@@ -7679,7 +7669,7 @@ js_FindXMLProperty(JSContext *cx, const Value &nameval, JSObject **objp, jsid *i
                 return JS_TRUE;
             }
         } else if (!JSID_IS_VOID(funid)) {
-            if (!target->lookupGeneric(cx, funid, &pobj, &prop))
+            if (!target->lookupProperty(cx, funid, &pobj, &prop))
                 return JS_FALSE;
             if (prop) {
                 *idp = funid;

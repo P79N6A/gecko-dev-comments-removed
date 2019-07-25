@@ -433,9 +433,9 @@ struct JSParseNode {
             JSParseNode         *tree;  
         } nameset;
         struct {                        
-            js::PropertyName *target;   
-            JSAtom           *data;     
-        } xmlpi;
+            JSAtom      *atom;          
+            JSAtom      *atom2;         
+        } apair;
         jsdouble        dval;           
     } pn_u;
 
@@ -467,8 +467,7 @@ struct JSParseNode {
 #define pn_names        pn_u.nameset.defnMap
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
-#define pn_pitarget     pn_u.xmlpi.target
-#define pn_pidata       pn_u.xmlpi.data
+#define pn_atom2        pn_u.apair.atom2
 
 protected:
     void init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
@@ -1259,7 +1258,7 @@ private:
     enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **list);
     JSParseNode *functionBody();
-    JSParseNode *functionDef(PropertyName *name, FunctionType type, FunctionSyntaxKind kind);
+    JSParseNode *functionDef(JSAtom *name, FunctionType type, FunctionSyntaxKind kind);
 
     JSParseNode *condition();
     JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,

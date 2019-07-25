@@ -34,9 +34,6 @@
 
 
 
-
-#include "mozilla/Util.h"
-
 #include "nsIDOMHTMLParagraphElement.h"
 #include "nsIDOMEventTarget.h"
 #include "nsGenericHTMLElement.h"
@@ -45,7 +42,6 @@
 #include "nsMappedAttributes.h"
 #include "nsRuleData.h"
 
-using namespace mozilla;
 
 
 
@@ -146,7 +142,7 @@ nsHTMLParagraphElement::IsAttributeMapped(const nsIAtom* aAttribute) const
     sCommonAttributeMap,
   };
 
-  return FindAttributeDependence(aAttribute, map, ArrayLength(map));
+  return FindAttributeDependence(aAttribute, map, NS_ARRAY_LENGTH(map));
 }
 
 

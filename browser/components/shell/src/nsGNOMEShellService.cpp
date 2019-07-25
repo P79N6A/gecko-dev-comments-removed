@@ -34,8 +34,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsCOMPtr.h"
 #include "nsGNOMEShellService.h"
 #include "nsShellService.h"
@@ -69,8 +67,6 @@
 #include <gdk-pixbuf/gdk-pixbuf.h>
 #include <limits.h>
 #include <stdlib.h>
-
-using namespace mozilla;
 
 struct ProtocolAssociation
 {
@@ -243,7 +239,7 @@ nsGNOMEShellService::IsDefaultBrowser(bool aStartupCheck,
   nsCAutoString handler;
   nsCOMPtr<nsIGIOMimeApp> gioApp;
 
-  for (unsigned int i = 0; i < ArrayLength(appProtocols); ++i) {
+  for (unsigned int i = 0; i < NS_ARRAY_LENGTH(appProtocols); ++i) {
     if (!appProtocols[i].essential)
       continue;
 
@@ -299,7 +295,7 @@ nsGNOMEShellService::SetDefaultBrowser(bool aClaimAllTypes,
 
     appKeyValue.AppendLiteral(" %s");
 
-    for (unsigned int i = 0; i < ArrayLength(appProtocols); ++i) {
+    for (unsigned int i = 0; i < NS_ARRAY_LENGTH(appProtocols); ++i) {
       if (appProtocols[i].essential || aClaimAllTypes) {
         gconf->SetAppForProtocol(nsDependentCString(appProtocols[i].name),
                                  appKeyValue);
@@ -332,7 +328,7 @@ nsGNOMEShellService::SetDefaultBrowser(bool aClaimAllTypes,
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    for (unsigned int i = 0; i < ArrayLength(appProtocols); ++i) {
+    for (unsigned int i = 0; i < NS_ARRAY_LENGTH(appProtocols); ++i) {
       if (appProtocols[i].essential || aClaimAllTypes) {
         appInfo->SetAsDefaultForURIScheme(nsDependentCString(appProtocols[i].name));
       }
@@ -341,7 +337,7 @@ nsGNOMEShellService::SetDefaultBrowser(bool aClaimAllTypes,
     
     if (aClaimAllTypes) {
       
-      for (unsigned int i = 0; i < ArrayLength(appTypes); ++i) {
+      for (unsigned int i = 0; i < NS_ARRAY_LENGTH(appTypes); ++i) {
         appInfo->SetAsDefaultForMimeType(nsDependentCString(appTypes[i].mimeType));
         appInfo->SetAsDefaultForFileExtensions(nsDependentCString(appTypes[i].extensions));
       }

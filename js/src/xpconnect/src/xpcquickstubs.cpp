@@ -37,8 +37,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "jsapi.h"
 #include "jscntxt.h"  
 #include "nsCOMPtr.h"
@@ -46,8 +44,6 @@
 #include "xpcinlines.h"
 #include "xpcquickstubs.h"
 #include "XPCWrapper.h"
-
-using namespace mozilla;
 
 static inline QITableEntry *
 GetOffsets(nsISupports *identity, XPCWrappedNativeProto* proto)
@@ -224,7 +220,7 @@ ReifyPropertyOps(JSContext *cx, JSObject *obj, jsid id, uintN orig_attrs,
 {
     
     jsval roots[2] = { JSVAL_NULL, JSVAL_NULL };
-    js::AutoArrayRooter tvr(cx, ArrayLength(roots), roots);
+    js::AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(roots), roots);
 
     uintN attrs = JSPROP_SHARED | (orig_attrs & JSPROP_ENUMERATE);
     JSObject *getterobj;

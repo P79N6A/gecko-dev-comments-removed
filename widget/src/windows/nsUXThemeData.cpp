@@ -39,8 +39,6 @@
 
 
 
-#include "mozilla/Util.h"
-
 #include "nsUXThemeData.h"
 #include "nsDebug.h"
 
@@ -425,7 +423,7 @@ nsUXThemeData::UpdateNativeThemeInfo()
   themeName = themeName ? themeName + 1 : themeFileName;
 
   WindowsTheme theme = WINTHEME_UNRECOGNIZED;
-  for (int i = 0; i < ArrayLength(knownThemes); ++i) {
+  for (int i = 0; i < NS_ARRAY_LENGTH(knownThemes); ++i) {
     if (!lstrcmpiW(themeName, knownThemes[i].name)) {
       theme = (WindowsTheme)knownThemes[i].type;
       break;
@@ -457,7 +455,7 @@ nsUXThemeData::UpdateNativeThemeInfo()
 
   
   WindowsThemeColor color = WINTHEMECOLOR_UNRECOGNIZED;
-  for (int i = 0; i < ArrayLength(knownColors); ++i) {
+  for (int i = 0; i < NS_ARRAY_LENGTH(knownColors); ++i) {
     if (!lstrcmpiW(themeColor, knownColors[i].name)) {
       color = (WindowsThemeColor)knownColors[i].type;
       break;

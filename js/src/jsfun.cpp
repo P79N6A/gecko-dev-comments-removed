@@ -42,9 +42,6 @@
 
 
 #include <string.h>
-
-#include "mozilla/Util.h"
-
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsutil.h"
@@ -98,7 +95,6 @@
 #include "vm/ArgumentsObject-inl.h"
 #include "vm/Stack-inl.h"
 
-using namespace mozilla;
 using namespace js;
 using namespace js::gc;
 using namespace js::types;
@@ -1406,7 +1402,7 @@ fun_enumerate(JSContext *cx, JSObject *obj)
     if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
         return false;
 
-    for (uintN i = 0; i < ArrayLength(poisonPillProps); i++) {
+    for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
         const uint16 offset = poisonPillProps[i];
         id = ATOM_TO_JSID(OFFSET_TO_ATOM(cx->runtime, offset));
         if (!obj->hasProperty(cx, id, &found, JSRESOLVE_QUALIFIED))
@@ -1512,7 +1508,7 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         return true;
     }
 
-    for (uintN i = 0; i < ArrayLength(poisonPillProps); i++) {
+    for (uintN i = 0; i < JS_ARRAY_LENGTH(poisonPillProps); i++) {
         const uint16 offset = poisonPillProps[i];
 
         if (JSID_IS_ATOM(id, OFFSET_TO_ATOM(cx->runtime, offset))) {
@@ -2225,21 +2221,26 @@ Function(JSContext *cx, uintN argc, Value *vp)
                     return OnBadFormal(cx, tt);
 
                 
-                PropertyName *name = ts.currentToken().name();
-                if (bindings.hasBinding(cx, name)) {
-                    JSAutoByteString bytes;
-                    if (!js_AtomToPrintableString(cx, name, &bytes))
+
+
+
+
+                JSAtom *atom = ts.currentToken().t_atom;
+
+                
+                if (bindings.hasBinding(cx, atom)) {
+                    JSAutoByteString name;
+                    if (!js_AtomToPrintableString(cx, atom, &name))
                         return false;
                     if (!ReportCompileErrorNumber(cx, &ts, NULL,
                                                   JSREPORT_WARNING | JSREPORT_STRICT,
-                                                  JSMSG_DUPLICATE_FORMAL, bytes.ptr()))
-                    {
+                                                  JSMSG_DUPLICATE_FORMAL, name.ptr())) {
                         return false;
                     }
                 }
 
                 uint16 dummy;
-                if (!bindings.addArgument(cx, name, &dummy))
+                if (!bindings.addArgument(cx, atom, &dummy))
                     return false;
 
                 
