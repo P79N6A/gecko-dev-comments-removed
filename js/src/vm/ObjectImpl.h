@@ -19,7 +19,6 @@
 
 namespace js {
 
-class Debugger;
 class ObjectImpl;
 
 class AutoPropDescArrayRooter;
@@ -41,32 +40,26 @@ CastAsStrictPropertyOp(JSObject *object)
 
 
 struct PropDesc {
-  private:
     
 
 
 
-    Value pd_;
+    Value pd;
 
-    Value value_, get_, set_;
+    Value value, get, set;
 
     
     uint8_t attrs;
 
     
-    bool hasGet_ : 1;
-    bool hasSet_ : 1;
-    bool hasValue_ : 1;
-    bool hasWritable_ : 1;
-    bool hasEnumerable_ : 1;
-    bool hasConfigurable_ : 1;
+    bool hasGet : 1;
+    bool hasSet : 1;
+    bool hasValue : 1;
+    bool hasWritable : 1;
+    bool hasEnumerable : 1;
+    bool hasConfigurable : 1;
 
-    
-    bool isUndefined_ : 1;
-
-  public:
     friend class AutoPropDescArrayRooter;
-    friend void JS::AutoGCRooter::trace(JSTracer *trc);
 
     PropDesc();
 
@@ -94,91 +87,52 @@ struct PropDesc {
     void initFromPropertyDescriptor(const PropertyDescriptor &desc);
     bool makeObject(JSContext *cx);
 
-    void setUndefined() { isUndefined_ = true; }
-
-    bool isUndefined() const { return isUndefined_; }
-
-    bool hasGet() const { MOZ_ASSERT(!isUndefined()); return hasGet_; }
-    bool hasSet() const { MOZ_ASSERT(!isUndefined()); return hasSet_; }
-    bool hasValue() const { MOZ_ASSERT(!isUndefined()); return hasValue_; }
-    bool hasWritable() const { MOZ_ASSERT(!isUndefined()); return hasWritable_; }
-    bool hasEnumerable() const { MOZ_ASSERT(!isUndefined()); return hasEnumerable_; }
-    bool hasConfigurable() const { MOZ_ASSERT(!isUndefined()); return hasConfigurable_; }
-
-    Value pd() const { MOZ_ASSERT(!isUndefined()); return pd_; }
-    void clearPd() { pd_ = UndefinedValue(); }
-
-    uint8_t attributes() const { MOZ_ASSERT(!isUndefined()); return attrs; }
-
     
     bool isAccessorDescriptor() const {
-        return !isUndefined() && (hasGet() || hasSet());
+        return hasGet || hasSet;
     }
 
     
     bool isDataDescriptor() const {
-        return !isUndefined() && (hasValue() || hasWritable());
+        return hasValue || hasWritable;
     }
 
     
     bool isGenericDescriptor() const {
-        return !isUndefined() && !isAccessorDescriptor() && !isDataDescriptor();
+        return !isAccessorDescriptor() && !isDataDescriptor();
     }
 
     bool configurable() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasConfigurable());
         return (attrs & JSPROP_PERMANENT) == 0;
     }
 
     bool enumerable() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasEnumerable());
         return (attrs & JSPROP_ENUMERATE) != 0;
     }
 
     bool writable() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasWritable());
         return (attrs & JSPROP_READONLY) == 0;
     }
 
-    const Value & value() const {
-        MOZ_ASSERT(hasValue());
-        return value_;
+    JSObject* getterObject() const {
+        return get.isUndefined() ? NULL : &get.toObject();
+    }
+    JSObject* setterObject() const {
+        return set.isUndefined() ? NULL : &set.toObject();
     }
 
-    JSObject * getterObject() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasGet());
-        return get_.isUndefined() ? NULL : &get_.toObject();
+    const Value &getterValue() const {
+        return get;
     }
-    JSObject * setterObject() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasSet());
-        return set_.isUndefined() ? NULL : &set_.toObject();
+    const Value &setterValue() const {
+        return set;
     }
-
-    const Value & getterValue() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasGet());
-        return get_;
-    }
-    const Value & setterValue() const {
-        MOZ_ASSERT(!isUndefined());
-        MOZ_ASSERT(hasSet());
-        return set_;
-    }
-
-    
-
-
 
     PropertyOp getter() const {
-        return CastAsPropertyOp(get_.isUndefined() ? NULL : &get_.toObject());
+        return CastAsPropertyOp(getterObject());
     }
     StrictPropertyOp setter() const {
-        return CastAsStrictPropertyOp(set_.isUndefined() ? NULL : &set_.toObject());
+        return CastAsStrictPropertyOp(setterObject());
     }
 
     
@@ -186,14 +140,8 @@ struct PropDesc {
 
 
 
-    bool checkGetter(JSContext *cx);
-    bool checkSetter(JSContext *cx);
-
-    bool unwrapDebuggerObjectsInto(JSContext *cx, Debugger *dbg, JSObject *obj,
-                                   PropDesc *unwrapped) const;
-
-    bool wrapInto(JSContext *cx, JSObject *obj, const jsid &id, jsid *wrappedId,
-                  PropDesc *wrappedDesc) const;
+    inline bool checkGetter(JSContext *cx);
+    inline bool checkSetter(JSContext *cx);
 };
 
 class DenseElementsHeader;
@@ -616,19 +564,18 @@ ElementsHeader::asArrayBufferElements()
     return *static_cast<ArrayBufferElementsHeader *>(this);
 }
 
+
+
+
+
+
+
 class ArrayBufferObject;
-
-
-
-
-
-
-
 class ObjectElements
 {
     friend struct ::JSObject;
     friend class ObjectImpl;
-    friend class ArrayBufferObject;
+    friend struct js::ArrayBufferObject;
 
     
     uint32_t capacity;
