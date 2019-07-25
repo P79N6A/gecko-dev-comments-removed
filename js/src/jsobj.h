@@ -466,8 +466,6 @@ struct JSObject {
 
     inline void voidDenseOnlyArraySlots();  
 
-    JSBool makeDenseArraySlow(JSContext *cx);
-
     
 
 
@@ -689,8 +687,6 @@ struct JSObject {
         if (map->ops->dropProperty)
             map->ops->dropProperty(cx, this, prop);
     }
-
-    JSCompartment *getCompartment(JSContext *cx);
 
     void swap(JSObject *obj);
 
@@ -1095,25 +1091,6 @@ js_IsCacheableNonGlobalScope(JSObject *obj)
     JS_ASSERT_IF(cacheable, obj->map->ops->lookupProperty == js_LookupProperty);
     return cacheable;
 }
-
-#ifdef DEBUG
-
-
-
-
-inline bool
-js_IsSaneThisObject(JSObject *obj)
-{
-    extern JS_FRIEND_DATA(JSClass) js_CallClass;
-    extern JS_FRIEND_DATA(JSClass) js_DeclEnvClass;
-
-    JSClass *clasp = obj->getClass();
-    return clasp != &js_CallClass &&
-           clasp != &js_BlockClass &&
-           clasp != &js_DeclEnvClass &&
-           clasp != &js_WithClass;
-}
-#endif
 
 
 
