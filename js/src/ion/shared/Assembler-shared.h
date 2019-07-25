@@ -264,42 +264,6 @@ class DeferredData : public TempObject
     virtual void copy(IonCode *code, uint8 *buffer) const = 0;
 };
 
-class IonCode;
-
-
-struct VMFunction
-{
-    enum OutParam {
-        OutParam_None,
-        OutParam_Value
-    };
-
-    enum ReturnType {
-        
-        ReturnBool,
-        
-        ReturnPointer
-    };
-
-    
-    void *wrapped;
-
-    
-    
-    uint32 explicitArgs;
-
-    ReturnType returnType;
-
-    
-    
-    OutParam outParam;
-
-    uint32 argc() const {
-        return explicitArgs + 1 +
-               (outParam == OutParam_None) ? 0 : 1;
-    }
-};
-
 } 
 } 
 

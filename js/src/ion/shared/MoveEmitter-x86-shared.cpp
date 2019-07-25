@@ -196,7 +196,11 @@ MoveEmitterX86::emitMove(const MoveOperand &from, const MoveOperand &to)
     } else {
         
         Register reg = tempReg();
+        
+        if (reg == from.base())
+            masm.mov(spillSlot(), from.base());
         masm.mov(toOperand(from), reg);
+        JS_ASSERT(to.base() != reg);
         masm.mov(reg, toOperand(to));
     }
 }

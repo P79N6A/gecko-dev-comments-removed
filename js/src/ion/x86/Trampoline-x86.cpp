@@ -40,6 +40,7 @@
 
 
 #include "jscompartment.h"
+#include "jsinterp.h"
 #include "assembler/assembler/MacroAssembler.h"
 #include "ion/IonCompartment.h"
 #include "ion/IonLinker.h"
@@ -417,7 +418,7 @@ IonCompartment::generateBailoutHandler(JSContext *cx)
 }
 
 IonCode *
-IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
+IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 {
     typedef MoveResolver::MoveOperand MoveOperand;
 
@@ -432,8 +433,7 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
 
     
     
-    const GeneralRegisterSet allocatableRegs(Registers::AllocatableMask & ~Registers::ArgRegMask);
-    GeneralRegisterSet regs(allocatableRegs);
+    GeneralRegisterSet regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet());
 
     
     
@@ -459,12 +459,12 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
         masm.movl(esp, outReg);
     }
 
-    Register temp = regs.takeAny();
+    Register temp = regs.getAny();
     masm.setupUnalignedABICall(f.argc(), temp);
 
     
     Register cxreg = regs.takeAny();
-    masm.movl(Operand(&JS_THREAD_DATA(cx)->ionTop), cxreg);
+    masm.movl(Operand(&JS_THREAD_DATA(cx)->ionJSContext), cxreg);
     masm.setABIArg(0, cxreg);
 
     
@@ -481,18 +481,38 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
 
     
     Label exception;
-    masm.testl(eax, eax);
-    masm.j(Assembler::Zero, &exception);
+    if (f.failCond != VMFunction::FallibleNone) {
+        
+        masm.testl(eax, eax);
+        masm.j(Assembler::Zero, &exception);
+    }
 
     
     if (f.outParam == VMFunction::OutParam_Value) {
+        JS_ASSERT(f.returnType == VMFunction::ReturnValue);
         masm.loadValue(Operand(esp, 0), JSReturnOperand);
         masm.freeStack(sizeof(Value));
     }
 
     
-    regs = GeneralRegisterSet(Registers::AllocatableMask & ~Registers::JSCCallMask);
-    temp = regs.takeAny();
+    switch (f.returnType) {
+      case VMFunction::ReturnNothing:
+        regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet());
+        break;
+      case VMFunction::ReturnBool:
+      case VMFunction::ReturnPointer:
+        regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet(Registers::JSCCallMask));
+        break;
+      case VMFunction::ReturnValue:
+        regs = GeneralRegisterSet::VolatileNot(GeneralRegisterSet(Registers::JSCallMask));
+        break;
+      default:
+        JS_NOT_REACHED("Unknown ReturnType.");
+        break;
+    }
+
+    
+    temp = regs.getAny();
 
     
     
@@ -501,9 +521,10 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
     masm.push(temp);
     masm.ret();
 
-    masm.bind(&exception);
-    masm.handleException();
-
+    if (f.failCond != VMFunction::FallibleNone) {
+        masm.bind(&exception);
+        masm.handleException();
+    }
 
     Linker linker(masm);
     IonCode *wrapper = linker.newCode(cx);

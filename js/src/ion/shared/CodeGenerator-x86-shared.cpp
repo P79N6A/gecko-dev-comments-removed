@@ -109,18 +109,15 @@ CodeGeneratorX86Shared::generateEpilogue()
 
 
 bool
-CodeGeneratorX86Shared::callVM(const VMFunction * f, LInstruction *ins)
+CodeGeneratorX86Shared::callVM(const VMFunction &fun, LInstruction *ins)
 {
-    JS_ASSERT(f);
-    const VMFunction& fun = *f;
-
     
     
     
 
     
     IonCompartment *ion = gen->cx->compartment->ionCompartment();
-    IonCode *wrapper = ion->generateCWrapper(gen->cx, fun);
+    IonCode *wrapper = ion->generateVMWrapper(gen->cx, fun);
     if (!wrapper)
         return false;
 
@@ -140,6 +137,9 @@ CodeGeneratorX86Shared::callVM(const VMFunction * f, LInstruction *ins)
     masm.call(wrapper);
     if (!createSafepoint(ins))
         return false;
+
+    
+    masm.implicitPop(fun.explicitArgs);
 
     
     
@@ -761,6 +761,22 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
     
     masm.jmp(pointer);
 
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::visitNewArray(LNewArray *ins)
+{
+    
+    
+    const Register type = ReturnReg;
+    masm.movePtr(ImmWord(ins->mir()->type()), type);
+
+    JS_ASSERT(ins->function().explicitArgs == 2);
+    masm.Push(type);
+    masm.Push(Imm32(ins->mir()->count()));
+    if (!callVM(ins->function(), ins))
+        return false;
     return true;
 }
 
