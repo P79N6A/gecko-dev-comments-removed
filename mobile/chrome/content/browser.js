@@ -1033,13 +1033,9 @@ var Browser = {
     this.hideSidebars();
     this.hideTitlebar();
 
-    
     browser.scale = this.selectedTab.clampZoomLevel(zoomLevel);
     let view = browser.getRootView();
-    if (view._contentView) {
-      view._contentView.scrollTo(scrollX, scrollY);
-      view._updateCacheViewport();
-    }
+    view.scrollTo(scrollX, scrollY);
   },
 
   zoomToPoint: function zoomToPoint(cX, cY, aRect) {
