@@ -546,7 +546,7 @@ WebGLContext::InitAndValidateGL()
         
 
         
-        error = gl->fGetError();
+        error = gl->GetAndClearError();
         if (error != LOCAL_GL_NO_ERROR) {
             LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
             return PR_FALSE;
@@ -616,7 +616,7 @@ WebGLContext::InitAndValidateGL()
 
     
     
-    error = gl->fGetError();
+    error = gl->GetAndClearError();
     if (error != LOCAL_GL_NO_ERROR) {
         LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
         return PR_FALSE;
