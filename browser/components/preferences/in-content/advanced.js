@@ -20,6 +20,9 @@ var gAdvancedPane = {
     if (preference.value !== null)
         advancedPrefs.selectedIndex = preference.value;
 
+#ifdef HAVE_SHELL_SERVICE
+    this.updateSetDefaultBrowser();
+#endif
 #ifdef MOZ_UPDATER
     this.updateReadPrefs();
 #endif
@@ -670,34 +673,23 @@ var gAdvancedPane = {
 
 
 
-
-
-  checkNow: function ()
+  updateSetDefaultBrowser: function()
   {
     var shellSvc = Components.classes["@mozilla.org/browser/shell-service;1"]
                              .getService(Components.interfaces.nsIShellService);
-    var brandBundle = document.getElementById("bundleBrand");
-    var shellBundle = document.getElementById("bundleShell");
-    var brandShortName = brandBundle.getString("brandShortName");
-    var promptTitle = shellBundle.getString("setDefaultBrowserTitle");
-    var promptMessage;
-    const IPS = Components.interfaces.nsIPromptService;
-    var psvc = Components.classes["@mozilla.org/embedcomp/prompt-service;1"]
-                         .getService(IPS);
-    if (!shellSvc.isDefaultBrowser(false)) {
-      promptMessage = shellBundle.getFormattedString("setDefaultBrowserMessage",
-                                                     [brandShortName]);
-      var rv = psvc.confirmEx(window, promptTitle, promptMessage,
-                              IPS.STD_YES_NO_BUTTONS,
-                              null, null, null, null, { });
-      if (rv == 0)
-        shellSvc.setDefaultBrowser(true, false);
-    }
-    else {
-      promptMessage = shellBundle.getFormattedString("alreadyDefaultBrowser",
-                                                     [brandShortName]);
-      psvc.alert(window, promptTitle, promptMessage);
-    }
+    let selectedIndex = shellSvc.isDefaultBrowser(false) ? 1 : 0;
+    document.getElementById("setDefaultPane").selectedIndex = selectedIndex;
+  },
+
+  
+
+
+  setDefaultBrowser: function()
+  {
+    var shellSvc = Components.classes["@mozilla.org/browser/shell-service;1"]
+                             .getService(Components.interfaces.nsIShellService);
+    shellSvc.setDefaultBrowser(true, false);
+    document.getElementById("setDefaultPane").selectedIndex = 1;
   }
 #endif
 };
