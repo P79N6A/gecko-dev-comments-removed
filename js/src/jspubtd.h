@@ -49,15 +49,15 @@
 JS_BEGIN_EXTERN_C
 
 
-typedef int32     jsint;
-typedef uint32    jsuint;
+typedef JSInt32   jsint;
+typedef JSUint32  jsuint;
 typedef float64   jsdouble;
-typedef int32     jsrefcount;   
+typedef JSInt32   jsrefcount;   
 
 #ifdef WIN32
 typedef wchar_t   jschar;
 #else
-typedef uint16    jschar;
+typedef JSUint16  jschar;
 #endif
 
 
