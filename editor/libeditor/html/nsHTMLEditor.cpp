@@ -136,10 +136,6 @@ nsHTMLEditor::~nsHTMLEditor()
   
   nsCOMPtr<nsIEditActionListener> mListener = do_QueryInterface(mRules);
   RemoveEditActionListener(mListener);
-  
-  
-  
-  HideAnonymousEditingUIs();
 
   
   
@@ -344,6 +340,10 @@ nsHTMLEditor::PreDestroy(bool aDestroyingFrames)
   {
     RemoveOverrideStyleSheet(mStyleSheetURLs[0]);
   }
+
+  
+  
+  HideAnonymousEditingUIs();
 
   return nsPlaintextEditor::PreDestroy(aDestroyingFrames);
 }
