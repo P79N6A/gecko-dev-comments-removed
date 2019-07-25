@@ -65,13 +65,6 @@ pref("browser.sessionhistory.max_total_viewers", 0);
 pref("browser.sessionhistory.max_entries", 50);
 
 
-pref("browser.dom.window.dump.enabled", true);
-pref("javascript.options.showInConsole", true);
-pref("javascript.options.strict", true);
-pref("nglayout.debug.disable_xul_cache", false);
-pref("nglayout.debug.disable_xul_fastload", false);
-
-
 pref("browser.download.useDownloadDir", true);
 pref("browser.download.folderList", 1); 
 pref("browser.download.manager.showAlertOnComplete", false);
