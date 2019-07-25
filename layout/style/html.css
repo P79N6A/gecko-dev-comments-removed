@@ -697,7 +697,7 @@ canvas {
 
 
 
-:-moz-focusring:not(input):not(button):not(select):not(textarea):not(iframe):not(frame) {
+:-moz-focusring:not(input):not(button):not(select):not(textarea) {
   
    outline: 1px dotted;
 }
