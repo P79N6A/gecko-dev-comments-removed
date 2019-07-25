@@ -341,6 +341,9 @@ nsSVGImageFrame::PaintSVG(nsRenderingContext *aContext,
     nscoord appUnitsPerDevPx = PresContext()->AppUnitsPerDevPixel();
     nsRect dirtyRect; 
     if (aDirtyRect) {
+      NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
+                   (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
+                   "Display lists handle dirty rect intersection test");
       dirtyRect = aDirtyRect->ToAppUnits(appUnitsPerDevPx);
       
       nsRect rootRect =

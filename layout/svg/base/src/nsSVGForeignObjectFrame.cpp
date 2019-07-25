@@ -167,6 +167,17 @@ nsSVGForeignObjectFrame::Reflow(nsPresContext*           aPresContext,
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsSVGForeignObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
+                                          const nsRect&           aDirtyRect,
+                                          const nsDisplayListSet& aLists)
+{
+  if (!static_cast<const nsSVGElement*>(mContent)->HasValidDimensions()) {
+    return NS_OK;
+  }
+  return BuildDisplayListForNonBlockChildren(aBuilder, aDirtyRect, aLists);
+}
+
 void
 nsSVGForeignObjectFrame::InvalidateInternal(const nsRect& aDamageRect,
                                             nscoord aX, nscoord aY,
@@ -198,6 +209,31 @@ nsSVGForeignObjectFrame::InvalidateInternal(const nsRect& aDamageRect,
   region->Or(*region, aDamageRect + nsPoint(aX, aY));
 }
 
+bool
+nsSVGForeignObjectFrame::IsSVGTransformed(gfxMatrix *aOwnTransform,
+                                         gfxMatrix *aFromParentTransform) const
+{
+  bool foundTransform = false;
+
+  
+  nsIFrame *parent = GetParent();
+  if (parent &&
+      parent->IsFrameOfType(nsIFrame::eSVG | nsIFrame::eSVGContainer)) {
+    foundTransform = static_cast<nsSVGContainerFrame*>(parent)->
+                       HasChildrenOnlyTransform(aFromParentTransform);
+  }
+
+  nsSVGElement *content = static_cast<nsSVGElement*>(mContent);
+  if (content->GetAnimatedTransformList()) {
+    if (aOwnTransform) {
+      *aOwnTransform = content->PrependLocalTransformsTo(gfxMatrix(),
+                                  nsSVGElement::eUserSpaceToParent);
+    }
+    foundTransform = true;
+  }
+  return foundTransform;
+}
+
 
 
 
@@ -218,6 +254,11 @@ NS_IMETHODIMP
 nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
                                   const nsIntRect *aDirtyRect)
 {
+  NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
+               (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
+               "If display lists are enabled, only painting of non-display "
+               "SVG should take this code path");
+
   if (IsDisabled())
     return NS_OK;
 
@@ -236,6 +277,9 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
 
   
   if (aDirtyRect) {
+    NS_ASSERTION(!NS_SVGDisplayListPaintingEnabled() ||
+                 (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
+                 "Display lists handle dirty rect intersection test");
     
     gfxMatrix invmatrix = canvasTM;
     invmatrix.Invert();
@@ -297,6 +341,11 @@ nsSVGForeignObjectFrame::PaintSVG(nsRenderingContext *aContext,
 NS_IMETHODIMP_(nsIFrame*)
 nsSVGForeignObjectFrame::GetFrameForPoint(const nsPoint &aPoint)
 {
+  NS_ASSERTION(!NS_SVGDisplayListHitTestingEnabled() ||
+               (mState & NS_STATE_SVG_NONDISPLAY_CHILD),
+               "If display lists are enabled, only hit-testing of a "
+               "clipPath's contents should take this code path");
+
   if (IsDisabled() || (GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD))
     return nsnull;
 

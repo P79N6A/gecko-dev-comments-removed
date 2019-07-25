@@ -258,8 +258,7 @@ public:
 
 
 
-
-  bool IsInTransform() { return mInTransform; }
+  bool IsInTransform() const { return mInTransform; }
   
 
 

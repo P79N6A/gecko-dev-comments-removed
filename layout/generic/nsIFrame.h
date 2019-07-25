@@ -2478,6 +2478,7 @@ public:
 
 
 
+
   bool IsPseudoStackingContextFromStyle() {
     const nsStyleDisplay* disp = GetStyleDisplay();
     return disp->mOpacity != 1.0f || disp->IsPositioned() || disp->IsFloating();
