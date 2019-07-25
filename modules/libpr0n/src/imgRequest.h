@@ -59,6 +59,7 @@
 #include "nsWeakReference.h"
 #include "ImageErrors.h"
 #include "imgIRequest.h"
+#include "imgStatusTracker.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 
 class imgCacheValidator;
@@ -195,6 +196,8 @@ private:
   
   nsCOMPtr<nsIURI> mKeyURI;
   nsCOMPtr<nsIPrincipal> mPrincipal;
+  
+  nsAutoPtr<imgStatusTracker> mStatusTracker;
   nsRefPtr<mozilla::imagelib::Image> mImage;
   nsCOMPtr<nsIProperties> mProperties;
   nsCOMPtr<nsISupports> mSecurityInfo;

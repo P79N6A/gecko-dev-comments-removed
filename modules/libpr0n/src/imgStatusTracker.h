@@ -91,6 +91,12 @@ public:
   
   
   
+  void SetImage(mozilla::imagelib::Image* aImage);
+
+  
+  
+  
+  
   
   void Notify(imgRequest* request, imgRequestProxy* proxy);
 

@@ -41,10 +41,15 @@ namespace mozilla {
 namespace imagelib {
 
 
-Image::Image() :
-  mStatusTracker(this),
+Image::Image(imgStatusTracker* aStatusTracker) :
   mInitialized(PR_FALSE)
 {
+  if (aStatusTracker) {
+    mStatusTracker = aStatusTracker;
+    mStatusTracker->SetImage(this);
+  } else {
+    mStatusTracker = new imgStatusTracker(this);
+  }
 }
 
 

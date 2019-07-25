@@ -48,7 +48,7 @@ namespace imagelib {
 class Image : public imgIContainer
 {
 public:
-  imgStatusTracker& GetStatusTracker() { return mStatusTracker; }
+  imgStatusTracker& GetStatusTracker() { return *mStatusTracker; }
   PRBool IsInitialized() const { return mInitialized; }
 
   
@@ -108,11 +108,11 @@ public:
   static eDecoderType GetDecoderType(const char *aMimeType);
 
 protected:
-  Image();
+  Image(imgStatusTracker* aStatusTracker);
 
   
-  imgStatusTracker   mStatusTracker;
-  PRPackedBool       mInitialized;   
+  nsAutoPtr<imgStatusTracker> mStatusTracker;
+  PRPackedBool                mInitialized;   
 };
 
 } 
