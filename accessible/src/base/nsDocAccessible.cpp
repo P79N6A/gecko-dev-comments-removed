@@ -549,8 +549,7 @@ nsDocAccessible::GetCachedAccessNode(void *aUniqueID)
   
   
   
-  nsRefPtr<nsAccessible> acc =
-    nsAccUtils::QueryObject<nsAccessible>(accessNode);
+  nsRefPtr<nsAccessible> acc = do_QueryObject(accessNode);
 
   if (acc) {
     nsAccessible* parent(acc->GetCachedParent());
@@ -1418,7 +1417,7 @@ nsDocAccessible::GetParent()
       
       nsCOMPtr<nsIAccessible> parent;
       accService->GetAccessibleFor(ownerNode, getter_AddRefs(parent));
-      mParent = nsAccUtils::QueryObject<nsAccessible>(parent);
+      mParent = do_QueryObject(parent);
     }
   }
 
@@ -1771,8 +1770,7 @@ nsDocAccessible::ProcessPendingEvent(nsAccEvent *aEvent)
 
 void nsDocAccessible::InvalidateChildrenInSubtree(nsIDOMNode *aStartNode)
 {
-  nsRefPtr<nsAccessible> acc =
-    nsAccUtils::QueryObject<nsAccessible>(GetCachedAccessNode(aStartNode));
+  nsRefPtr<nsAccessible> acc = do_QueryObject(GetCachedAccessNode(aStartNode));
   if (acc)
     acc->InvalidateChildren();
 
@@ -1796,8 +1794,7 @@ void nsDocAccessible::RefreshNodes(nsIDOMNode *aStartNode)
 
   
   
-  nsRefPtr<nsAccessible> accessible =
-    nsAccUtils::QueryObject<nsAccessible>(accessNode);
+  nsRefPtr<nsAccessible> accessible = do_QueryObject(accessNode);
   if (accessible) {
     
     PRUint32 role = nsAccUtils::Role(accessible);
