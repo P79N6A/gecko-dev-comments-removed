@@ -68,6 +68,7 @@ AssertInTopLevelChromeDoc(ContainerLayer* aContainer,
 
 static void
 SetTransformFor(ContainerLayer* aContainer, nsIFrame* aContainedFrame,
+                const FrameMetrics& aMetrics,
                 nsDisplayListBuilder* aBuilder)
 {
   NS_ABORT_IF_FALSE(aContainer && aContainedFrame, "args must be nonnull");
@@ -200,7 +201,7 @@ RenderFrameParent::BuildLayer(nsDisplayListBuilder* aBuilder,
   }
 
   if (mContainer) {
-    SetTransformFor(mContainer, aFrame, aBuilder);
+    SetTransformFor(mContainer, aFrame, shadowRoot->GetFrameMetrics(), aBuilder);
     mContainer->SetClipRect(nsnull);
   }
 
