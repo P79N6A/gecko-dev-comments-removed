@@ -46,6 +46,7 @@
 #include "nsMimeTypes.h"
 
 #include "nsDocLoader.h"
+#include "mozilla/Attributes.h"
 
 #include "mozilla/FunctionTimer.h"
 #ifdef NS_FUNCTION_TIMER
@@ -74,7 +75,7 @@ PRLogModuleInfo* nsURILoader::mLog = nsnull;
 
 
 
-class nsDocumentOpenInfo : public nsIStreamListener
+class nsDocumentOpenInfo MOZ_FINAL : public nsIStreamListener
 {
 public:
   
