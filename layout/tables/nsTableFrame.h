@@ -518,7 +518,7 @@ public:
 
   static void InvalidateFrame(nsIFrame* aFrame,
                               const nsRect& aOrigRect,
-                              const nsRect& aOrigOverflowRect,
+                              const nsRect& aOrigVisualOverflow,
                               PRBool aIsFirstReflow);
 
 protected:
@@ -608,7 +608,7 @@ protected:
                   nsIFrame*            aKidFrame,
                   nsHTMLReflowMetrics& aKidDesiredSize,
                   const nsRect&        aOriginalKidRect,
-                  const nsRect&        aOriginalKidOverflowRect);
+                  const nsRect&        aOriginalKidVisualOverflow);
    void PlaceRepeatedFooter(nsTableReflowState& aReflowState,
                             nsTableRowGroupFrame *aTfoot,
                             nscoord aFooterHeight);

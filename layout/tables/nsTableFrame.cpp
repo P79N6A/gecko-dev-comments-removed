@@ -2458,7 +2458,7 @@ void nsTableFrame::PlaceChild(nsTableReflowState&  aReflowState,
                               nsIFrame*            aKidFrame,
                               nsHTMLReflowMetrics& aKidDesiredSize,
                               const nsRect&        aOriginalKidRect,
-                              const nsRect&        aOriginalKidOverflowRect)
+                              const nsRect&        aOriginalKidVisualOverflow)
 {
   PRBool isFirstReflow =
     (aKidFrame->GetStateBits() & NS_FRAME_FIRST_REFLOW) != 0;
@@ -2467,7 +2467,7 @@ void nsTableFrame::PlaceChild(nsTableReflowState&  aReflowState,
   FinishReflowChild(aKidFrame, PresContext(), nsnull, aKidDesiredSize,
                     aReflowState.x, aReflowState.y, 0);
 
-  InvalidateFrame(aKidFrame, aOriginalKidRect, aOriginalKidOverflowRect,
+  InvalidateFrame(aKidFrame, aOriginalKidRect, aOriginalKidVisualOverflow,
                   isFirstReflow);
 
   
@@ -2639,7 +2639,7 @@ nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
   aReflowState.y += GetCellSpacingY();
 
   nsRect origTfootRect = aTfoot->GetRect();
-  nsRect origTfootOverflowRect = aTfoot->GetOverflowRect();
+  nsRect origTfootVisualOverflow = aTfoot->GetVisualOverflowRect();
           
   nsReflowStatus footerStatus;
   nsHTMLReflowMetrics desiredSize;
@@ -2648,7 +2648,7 @@ nsTableFrame::PlaceRepeatedFooter(nsTableReflowState& aReflowState,
               aReflowState.x, aReflowState.y,
               NS_FRAME_INVALIDATE_ON_MOVE, footerStatus);
   PlaceChild(aReflowState, aTfoot, desiredSize, origTfootRect,
-             origTfootOverflowRect);
+             origTfootVisualOverflow);
 }
                     
 
@@ -2740,7 +2740,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
       }
 
       nsRect oldKidRect = kidFrame->GetRect();
-      nsRect oldKidOverflowRect = kidFrame->GetOverflowRect();
+      nsRect oldKidVisualOverflow = kidFrame->GetVisualOverflowRect();
 
       nsHTMLReflowMetrics desiredSize;
       desiredSize.width = desiredSize.height = 0;
@@ -2795,7 +2795,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
             nsIFrame* nextRowGroupFrame = rowGroups[childX + 1];
             if (nextRowGroupFrame) {
               PlaceChild(aReflowState, kidFrame, desiredSize, oldKidRect,
-                         oldKidOverflowRect);
+                         oldKidVisualOverflow);
               if (allowRepeatedFooter) {
                 PlaceRepeatedFooter(aReflowState, tfoot, footerHeight);
               }
@@ -2832,7 +2832,7 @@ nsTableFrame::ReflowChildren(nsTableReflowState& aReflowState,
 
       
       PlaceChild(aReflowState, kidFrame, desiredSize, oldKidRect,
-                 oldKidOverflowRect);
+                 oldKidVisualOverflow);
 
       
       prevKidFrame = kidFrame;
@@ -3085,15 +3085,15 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
         }
 
         nsRect origRgRect = rgRect;
-        nsRect origRgOverflowRect = rgFrame->GetOverflowRect();
+        nsRect origRgVisualOverflow = rgFrame->GetVisualOverflowRect();
 
         rgRect.y = yOriginRG;
         rgRect.height += amountUsedByRG;
 
         rgFrame->SetRect(rgRect);
 
-        nsTableFrame::InvalidateFrame(rgFrame, origRgRect, origRgOverflowRect,
-                                      PR_FALSE);
+        nsTableFrame::InvalidateFrame(rgFrame, origRgRect,
+                                      origRgVisualOverflow, PR_FALSE);
       }
     }
     else if (amountUsed > 0 && yOriginRG != rgRect.y) {
@@ -3179,13 +3179,13 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
     nscoord amountUsedByRG = 0;
     nscoord yOriginRow = 0;
     nsRect rgRect = rgFrame->GetRect();
-    nsRect rgOverflowRect = rgFrame->GetOverflowRect();
+    nsRect rgVisualOverflow = rgFrame->GetVisualOverflowRect();
     
     if (!firstUnStyledRG || !rgFrame->HasStyleHeight() || !eligibleRows) {
       nsTableRowFrame* rowFrame = rgFrame->GetFirstRow();
       while (rowFrame) {
         nsRect rowRect = rowFrame->GetRect();
-        nsRect rowOverflowRect = rowFrame->GetOverflowRect();
+        nsRect rowVisualOverflow = rowFrame->GetVisualOverflowRect();
         
         if (!firstUnStyledRow || !rowFrame->HasStyleHeight() || !eligibleRows) {
           float ratio;
@@ -3227,7 +3227,7 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
           
           nsTableFrame::RePositionViews(rowFrame);
 
-          nsTableFrame::InvalidateFrame(rowFrame, rowRect, rowOverflowRect,
+          nsTableFrame::InvalidateFrame(rowFrame, rowRect, rowVisualOverflow,
                                         PR_FALSE);
         }
         else {
@@ -3250,7 +3250,7 @@ nsTableFrame::DistributeHeightToRows(const nsHTMLReflowState& aReflowState,
         rgFrame->SetRect(nsRect(rgRect.x, yOriginRG, rgRect.width,
                                 rgRect.height + amountUsedByRG));
 
-        nsTableFrame::InvalidateFrame(rgFrame, rgRect, rgOverflowRect,
+        nsTableFrame::InvalidateFrame(rgFrame, rgRect, rgVisualOverflow,
                                       PR_FALSE);
       }
       
@@ -7168,7 +7168,7 @@ PRBool nsTableFrame::RowIsSpannedInto(PRInt32 aRowIndex, PRInt32 aNumEffCols)
 void
 nsTableFrame::InvalidateFrame(nsIFrame* aFrame,
                               const nsRect& aOrigRect,
-                              const nsRect& aOrigOverflowRect,
+                              const nsRect& aOrigVisualOverflow,
                               PRBool aIsFirstReflow)
 {
   nsIFrame* parent = aFrame->GetParent();
@@ -7183,23 +7183,23 @@ nsTableFrame::InvalidateFrame(nsIFrame* aFrame,
   
   
   
-  nsRect overflowRect = aFrame->GetOverflowRect();
+  nsRect visualOverflow = aFrame->GetVisualOverflowRect();
   if (aIsFirstReflow ||
       aOrigRect.TopLeft() != aFrame->GetPosition() ||
-      aOrigOverflowRect.TopLeft() != overflowRect.TopLeft()) {
+      aOrigVisualOverflow.TopLeft() != visualOverflow.TopLeft()) {
     
     
     
     
     
     
-    aFrame->Invalidate(overflowRect);
-    parent->Invalidate(aOrigOverflowRect + aOrigRect.TopLeft());
+    aFrame->Invalidate(visualOverflow);
+    parent->Invalidate(aOrigVisualOverflow + aOrigRect.TopLeft());
   } else {
     nsRect rect = aFrame->GetRect();
-    aFrame->CheckInvalidateSizeChange(aOrigRect, aOrigOverflowRect,
+    aFrame->CheckInvalidateSizeChange(aOrigRect, aOrigVisualOverflow,
                                       rect.Size());
-    aFrame->InvalidateRectDifference(aOrigOverflowRect, overflowRect);
+    aFrame->InvalidateRectDifference(aOrigVisualOverflow, visualOverflow);
     parent->InvalidateRectDifference(aOrigRect, rect);
   }
 }
