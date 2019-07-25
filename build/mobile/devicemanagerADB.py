@@ -1,5 +1,5 @@
 import subprocess
-from devicemanager import DeviceManager, DMError
+from devicemanager import DeviceManager, DMError, _pop_last_line
 import re
 import os
 import sys
@@ -62,6 +62,47 @@ class DeviceManagerADB(DeviceManager):
           print "restarting as root failed, but run-as available"
         else:
           print "restarting as root failed"
+
+  
+  
+  
+  
+  def shell(self, cmd, outputfile, env=None, cwd=None):
+    
+    for (index, arg) in enumerate(cmd):
+      if arg.find(" ") or arg.find("(") or arg.find(")") or arg.find("\""):
+        cmd[index] = '\'%s\'' % arg
+
+    
+    
+    
+    
+    
+    cmdline = subprocess.list2cmdline(cmd) + "; echo $?"
+
+    
+    if cwd:
+      cmdline = "cd %s; %s" % (cwd, cmdline)
+    if env:
+      envstr = '; '.join(map(lambda x: 'export %s=%s' % (x[0], x[1]), env.iteritems()))
+      cmdline = envstr + "; " + cmdline
+
+    
+    proc = subprocess.Popen(["adb", "shell", cmdline],
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = proc.communicate()
+    outputfile.write(stdout.rstrip('\n'))
+
+    lastline = _pop_last_line(outputfile)
+    if lastline:
+      m = re.search('([0-9]+)', lastline)
+      if m:
+        return_code = m.group(1)
+        outputfile.seek(-2, 2)
+        outputfile.truncate() 
+        return return_code
+
+    return None
 
   
   
@@ -267,6 +308,7 @@ class DeviceManagerADB(DeviceManager):
   
   
   
+  
   def fireProcess(self, appname, failIfRunning=False):
     
     parts = appname.split('"');
@@ -274,6 +316,7 @@ class DeviceManagerADB(DeviceManager):
       parts = parts[2:]
     return self.launchProcess(parts, failIfRunning)
 
+  
   
   
   
@@ -327,6 +370,7 @@ class DeviceManagerADB(DeviceManager):
       if name == appname:
         p = self.runCmdAs(["shell", "kill", pid])
         return p.stdout.read()
+
     return None
 
   
@@ -611,7 +655,7 @@ class DeviceManagerADB(DeviceManager):
       args.insert(1, "run-as")
       args.insert(2, self.packageName)
     args.insert(0, "adb")
-    return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
   def runCmdAs(self, args):
     if self.useRunAs:
