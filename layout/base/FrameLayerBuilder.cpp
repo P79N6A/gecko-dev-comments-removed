@@ -62,9 +62,10 @@ namespace {
 
 class LayerManagerData : public LayerUserData {
 public:
-  LayerManagerData() :
+  LayerManagerData(LayerManager *aManager) :
     mInvalidateAllThebesContent(PR_FALSE),
-    mInvalidateAllLayers(PR_FALSE)
+    mInvalidateAllLayers(PR_FALSE),
+    mLayerManager(aManager)
   {
     MOZ_COUNT_CTOR(LayerManagerData);
     mFramesWithLayers.Init();
@@ -83,6 +84,8 @@ public:
   nsTHashtable<nsPtrHashKey<nsIFrame> > mFramesWithLayers;
   PRPackedBool mInvalidateAllThebesContent;
   PRPackedBool mInvalidateAllLayers;
+  
+  nsRefPtr<LayerManager> mLayerManager;
 };
 
 static void DestroyRegion(void* aPropertyValue)
@@ -407,12 +410,11 @@ FrameLayerBuilder::InternalDestroyDisplayItemData(nsIFrame* aFrame,
     NS_ASSERTION(data, "Frame with layer should have been recorded");
     data->mFramesWithLayers.RemoveEntry(aFrame);
     if (data->mFramesWithLayers.Count() == 0) {
-      manager->RemoveUserData(&gLayerManagerUserData);
       
       
       
       managerRef = manager;
-      NS_RELEASE(manager);
+      manager->RemoveUserData(&gLayerManagerUserData);
     }
   }
 
@@ -485,11 +487,8 @@ FrameLayerBuilder::WillEndTransaction(LayerManager* aManager)
     
     data->mFramesWithLayers.EnumerateEntries(UpdateDisplayItemDataForFrame, this);
   } else {
-    data = new LayerManagerData();
+    data = new LayerManagerData(mRetainingManager);
     mRetainingManager->SetUserData(&gLayerManagerUserData, data);
-    
-    
-    NS_ADDREF(mRetainingManager);
   }
   
   
