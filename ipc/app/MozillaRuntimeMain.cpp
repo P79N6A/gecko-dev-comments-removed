@@ -48,7 +48,11 @@
 #ifdef XP_WIN
 #include <windows.h>
 
+
+#define XRE_DONT_PROTECT_DLL_LOAD
 #include "nsWindowsWMain.cpp"
+
+#include "nsSetDllDirectory.h"
 #endif
 
 int
@@ -58,22 +62,20 @@ main(int argc, char* argv[])
     MessageBox(NULL, L"Hi", L"Hi", MB_OK);
 #endif
 
-#ifdef XP_WIN
-    typedef BOOL
-    (WINAPI *pfnSetDllDirectory) (LPCWSTR);
-    pfnSetDllDirectory setDllDirectory =
-        reinterpret_cast<pfnSetDllDirectory>
-        (GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetDllDirectoryW"));
-    if (setDllDirectory) {
-        setDllDirectory(L"");
-    }
-#endif
-
     
     
     if (argc < 1)
       return 1;
     GeckoProcessType proctype = XRE_StringToChildProcessType(argv[--argc]);
+
+#ifdef XP_WIN
+    
+    
+    
+    if (proctype != GeckoProcessType_Plugin) {
+        mozilla::NS_SetDllDirectory(L"");
+    }
+#endif
 
     nsresult rv = XRE_InitChildProcess(argc, argv, proctype);
     NS_ENSURE_SUCCESS(rv, 1);
