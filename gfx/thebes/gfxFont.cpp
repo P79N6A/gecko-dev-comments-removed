@@ -1350,6 +1350,48 @@ gfxFontCache::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf,
     SizeOfExcludingThis(aMallocSizeOf, aSizes);
 }
 
+ bool
+gfxFontShaper::MergeFontFeatures(
+    const nsTArray<gfxFontFeature>& aStyleRuleFeatures,
+    const nsTArray<gfxFontFeature>& aFontFeatures,
+    bool aDisableLigatures,
+    nsDataHashtable<nsUint32HashKey,PRUint32>& aMergedFeatures)
+{
+    
+    if (aStyleRuleFeatures.IsEmpty() &&
+        aFontFeatures.IsEmpty() &&
+        !aDisableLigatures) {
+        return false;
+    }
+
+    aMergedFeatures.Init();
+
+    
+    
+    if (aDisableLigatures) {
+        aMergedFeatures.Put(HB_TAG('l','i','g','a'), 0);
+        aMergedFeatures.Put(HB_TAG('c','l','i','g'), 0);
+    }
+
+    
+    PRUint32 i, count;
+
+    count = aFontFeatures.Length();
+    for (i = 0; i < count; i++) {
+        const gfxFontFeature& feature = aFontFeatures.ElementAt(i);
+        aMergedFeatures.Put(feature.mTag, feature.mValue);
+    }
+
+    
+    count = aStyleRuleFeatures.Length();
+    for (i = 0; i < count; i++) {
+        const gfxFontFeature& feature = aStyleRuleFeatures.ElementAt(i);
+        aMergedFeatures.Put(feature.mTag, feature.mValue);
+    }
+
+    return aMergedFeatures.Count() != 0;
+}
+
 void
 gfxFont::RunMetrics::CombineWith(const RunMetrics& aOther, bool aOtherIsOnLeft)
 {

@@ -1154,6 +1154,13 @@ public:
 
     gfxFont *GetFont() const { return mFont; }
 
+    
+    static bool
+    MergeFontFeatures(const nsTArray<gfxFontFeature>& aStyleRuleFeatures,
+                      const nsTArray<gfxFontFeature>& aFontFeatures,
+                      bool aDisableLigatures,
+                      nsDataHashtable<nsUint32HashKey,PRUint32>& aMergedFeatures);
+
 protected:
     
     gfxFont * mFont;
