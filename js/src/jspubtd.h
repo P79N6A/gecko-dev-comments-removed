@@ -242,8 +242,19 @@ typedef union jsval_payload
     JSWhyMagic     why;
 } jsval_data;
 
+#ifdef __GNUC__
+# define VALUE_ALIGNMENT        __attribute__((aligned (8)))
+# define ASSERT_DOUBLE_ALIGN()  JS_ASSERT(size_t(this) % sizeof(double) == 0)
+#elif defined(_MSC_VER)
+  
 
-#define ASSERT_DOUBLE_ALIGN() JS_ASSERT(size_t(this) % sizeof(double) == 0)
+
+
+# define VALUE_ALIGNMENT
+# define ASSERT_DOUBLE_ALIGN()
+#else
+# error "TODO: do something for compiler"
+#endif
 
 #if !defined(IS_LITTLE_ENDIAN)
 # error "Need to fix up jsval_layout"
