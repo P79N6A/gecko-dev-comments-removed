@@ -17,7 +17,7 @@ struct nsNameSpaceEntry
     : prefix(aPrefix) {}
 
   nsCOMPtr<nsIAtom> prefix;
-  PRInt32 nameSpaceID;
+  int32_t nameSpaceID;
 };
 
 
@@ -38,7 +38,7 @@ public:
 
 
 
-  NS_HIDDEN_(nsresult) AddPrefix(nsIAtom *aPrefix, PRInt32 aNameSpaceID);
+  NS_HIDDEN_(nsresult) AddPrefix(nsIAtom *aPrefix, int32_t aNameSpaceID);
 
   
 
@@ -52,13 +52,13 @@ public:
 
 
 
-  NS_HIDDEN_(PRInt32) FindNameSpaceID(nsIAtom *aPrefix) const;
+  NS_HIDDEN_(int32_t) FindNameSpaceID(nsIAtom *aPrefix) const;
 
   
 
 
 
-  NS_HIDDEN_(nsIAtom*) FindPrefix(PRInt32 aNameSpaceID) const;
+  NS_HIDDEN_(nsIAtom*) FindPrefix(int32_t aNameSpaceID) const;
 
   
   NS_HIDDEN_(void) Clear();

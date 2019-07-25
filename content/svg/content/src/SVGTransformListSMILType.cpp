@@ -77,8 +77,8 @@ SVGTransformListSMILType::IsEqual(const nsSMILValue& aLeft,
   }
 
   
-  PRUint32 length = leftArr.Length(); 
-  for (PRUint32 i = 0; i < length; ++i) {
+  uint32_t length = leftArr.Length(); 
+  for (uint32_t i = 0; i < length; ++i) {
     if (leftArr[i] != rightArr[i]) {
       return false;
     }
@@ -91,7 +91,7 @@ SVGTransformListSMILType::IsEqual(const nsSMILValue& aLeft,
 nsresult
 SVGTransformListSMILType::Add(nsSMILValue& aDest,
                               const nsSMILValue& aValueToAdd,
-                              PRUint32 aCount) const
+                              uint32_t aCount) const
 {
   NS_PRECONDITION(aDest.mType == this, "Unexpected SMIL type");
   NS_PRECONDITION(aDest.mType == aValueToAdd.mType, "Incompatible SMIL types");
@@ -340,7 +340,7 @@ SVGTransformListSMILType::AppendTransforms(const SVGTransformList& aList,
   if (!transforms.SetCapacity(transforms.Length() + aList.Length()))
     return false;
 
-  for (PRUint32 i = 0; i < aList.Length(); ++i) {
+  for (uint32_t i = 0; i < aList.Length(); ++i) {
     
     
     transforms.AppendElement(SVGTransformSMILData(aList[i]));
@@ -362,7 +362,7 @@ SVGTransformListSMILType::GetTransforms(const nsSMILValue& aValue,
   if (!aTransforms.SetCapacity(smilTransforms.Length()))
       return false;
 
-  for (PRUint32 i = 0; i < smilTransforms.Length(); ++i) {
+  for (uint32_t i = 0; i < smilTransforms.Length(); ++i) {
     
     
     aTransforms.AppendElement(smilTransforms[i].ToSVGTransform());

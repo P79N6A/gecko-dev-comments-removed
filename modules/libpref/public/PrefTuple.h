@@ -15,7 +15,7 @@ struct PrefTuple
   
   
   nsCAutoString stringVal;
-  PRInt32       intVal;
+  int32_t       intVal;
   bool          boolVal;
 
   enum {

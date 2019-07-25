@@ -32,7 +32,7 @@ public:
     
 
 
-    PRInt32 getLength();
+    int32_t getLength();
 
     
 
@@ -70,7 +70,7 @@ private:
 
       ListItem* firstItem;
       ListItem* lastItem;
-      PRInt32 itemCount;
+      int32_t itemCount;
 
       nsresult insertAfter(void* objPtr, ListItem* sItem);
       nsresult insertBefore(void* objPtr, ListItem* sItem);

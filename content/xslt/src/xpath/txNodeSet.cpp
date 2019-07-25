@@ -30,8 +30,8 @@
 #define LOG_CHUNK_MOVE(_start, _new_start, _count)
 #endif
 
-static const PRInt32 kTxNodeSetMinSize = 4;
-static const PRInt32 kTxNodeSetGrowFactor = 2;
+static const int32_t kTxNodeSetMinSize = 4;
+static const int32_t kTxNodeSetGrowFactor = 2;
 
 #define kForward   1
 #define kReversed -1
@@ -104,8 +104,8 @@ nsresult txNodeSet::add(const txXPathNode& aNode)
     }
 
     
-    PRInt32 moveSize = mEnd - pos;
-    PRInt32 offset = pos - mStart;
+    int32_t moveSize = mEnd - pos;
+    int32_t offset = pos - mStart;
     if (!ensureGrowSize(1)) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -220,7 +220,7 @@ nsresult txNodeSet::add(const txNodeSet& aNodes, transferOp aTransfer,
 
     bool dupe;
     txXPathNode* pos;
-    PRInt32 count;
+    int32_t count;
     while (thisPos > mStart || otherPos > aNodes.mStart) {
         
         
@@ -333,7 +333,7 @@ txNodeSet::append(const txNodeSet& aNodes)
         return NS_OK;
     }
 
-    PRInt32 appended = aNodes.size();
+    int32_t appended = aNodes.size();
     if (!ensureGrowSize(appended)) {
         return NS_ERROR_OUT_OF_MEMORY;
     }
@@ -345,12 +345,12 @@ txNodeSet::append(const txNodeSet& aNodes)
 }
 
 nsresult
-txNodeSet::mark(PRInt32 aIndex)
+txNodeSet::mark(int32_t aIndex)
 {
     NS_ASSERTION(aIndex >= 0 && mStart && mEnd - mStart > aIndex,
                  "index out of bounds");
     if (!mMarks) {
-        PRInt32 length = size();
+        int32_t length = size();
         mMarks = new bool[length];
         NS_ENSURE_TRUE(mMarks, NS_ERROR_OUT_OF_MEMORY);
         memset(mMarks, 0, length * sizeof(bool));
@@ -373,8 +373,8 @@ txNodeSet::sweep()
         clear();
     }
 
-    PRInt32 chunk, pos = 0;
-    PRInt32 length = size();
+    int32_t chunk, pos = 0;
+    int32_t length = size();
     txXPathNode* insertion = mStartBuffer;
 
     while (pos < length) {
@@ -421,8 +421,8 @@ txNodeSet::clear()
     mDirection = kForward;
 }
 
-PRInt32
-txNodeSet::indexOf(const txXPathNode& aNode, PRUint32 aStart) const
+int32_t
+txNodeSet::indexOf(const txXPathNode& aNode, uint32_t aStart) const
 {
     NS_ASSERTION(mDirection == kForward,
                  "only append(aNode) is supported on reversed nodesets");
@@ -442,7 +442,7 @@ txNodeSet::indexOf(const txXPathNode& aNode, PRUint32 aStart) const
 }
 
 const txXPathNode&
-txNodeSet::get(PRInt32 aIndex) const
+txNodeSet::get(int32_t aIndex) const
 {
     if (mDirection == kForward) {
         return mStart[aIndex];
@@ -488,7 +488,7 @@ txNodeSet::stringValuePointer()
     return nullptr;
 }
 
-bool txNodeSet::ensureGrowSize(PRInt32 aSize)
+bool txNodeSet::ensureGrowSize(int32_t aSize)
 {
     
     if (mDirection == kForward && aSize <= mEndBuffer - mEnd) {
@@ -500,9 +500,9 @@ bool txNodeSet::ensureGrowSize(PRInt32 aSize)
     }
 
     
-    PRInt32 oldSize = mEnd - mStart;
-    PRInt32 oldLength = mEndBuffer - mStartBuffer;
-    PRInt32 ensureSize = oldSize + aSize;
+    int32_t oldSize = mEnd - mStart;
+    int32_t oldLength = mEndBuffer - mStartBuffer;
+    int32_t ensureSize = oldSize + aSize;
     if (ensureSize <= oldLength) {
         
         txXPathNode* dest = mStartBuffer;
@@ -519,7 +519,7 @@ bool txNodeSet::ensureGrowSize(PRInt32 aSize)
 
     
     
-    PRInt32 newLength = NS_MAX(oldLength, kTxNodeSetMinSize);
+    int32_t newLength = NS_MAX(oldLength, kTxNodeSetMinSize);
 
     while (newLength < ensureSize) {
         newLength *= kTxNodeSetGrowFactor;

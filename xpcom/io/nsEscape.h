@@ -43,7 +43,7 @@ char * nsUnescape(char * str);
 
 
 
-PRInt32 nsUnescapeCount (char * str);
+int32_t nsUnescapeCount (char * str);
 	
 
 
@@ -54,7 +54,7 @@ nsEscapeHTML(const char * string);
 
 PRUnichar *
 nsEscapeHTML2(const PRUnichar *aSourceBuffer,
-              PRInt32 aSourceBufferLen = -1);
+              int32_t aSourceBufferLen = -1);
  
 
 
@@ -111,8 +111,8 @@ enum EscapeMask {
 
 
 bool NS_EscapeURL(const char *str,
-                           PRInt32 len,
-                           PRUint32 flags,
+                           int32_t len,
+                           uint32_t flags,
                            nsACString &result);
 
 
@@ -127,12 +127,12 @@ bool NS_EscapeURL(const char *str,
 
 
 bool NS_UnescapeURL(const char *str,
-                             PRInt32 len,
-                             PRUint32 flags,
+                             int32_t len,
+                             uint32_t flags,
                              nsACString &result);
 
 
-inline PRInt32 NS_UnescapeURL(char *str) {
+inline int32_t NS_UnescapeURL(char *str) {
     return nsUnescapeCount(str);
 }
 
@@ -140,13 +140,13 @@ inline PRInt32 NS_UnescapeURL(char *str) {
 
 
 inline const nsCSubstring &
-NS_EscapeURL(const nsCSubstring &str, PRUint32 flags, nsCSubstring &result) {
+NS_EscapeURL(const nsCSubstring &str, uint32_t flags, nsCSubstring &result) {
     if (NS_EscapeURL(str.Data(), str.Length(), flags, result))
         return result;
     return str;
 }
 inline const nsCSubstring &
-NS_UnescapeURL(const nsCSubstring &str, PRUint32 flags, nsCSubstring &result) {
+NS_UnescapeURL(const nsCSubstring &str, uint32_t flags, nsCSubstring &result) {
     if (NS_UnescapeURL(str.Data(), str.Length(), flags, result))
         return result;
     return str;

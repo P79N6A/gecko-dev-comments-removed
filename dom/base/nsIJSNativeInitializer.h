@@ -29,7 +29,7 @@ public:
 
 
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext *cx, JSObject *obj,
-                        PRUint32 argc, jsval *argv) = 0;
+                        uint32_t argc, jsval *argv) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIJSNativeInitializer,

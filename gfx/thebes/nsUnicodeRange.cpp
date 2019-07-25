@@ -184,7 +184,7 @@ static nsIAtom **gUnicodeRangeToLangGroupAtomTable[] =
 #define NUM_OF_SUBTABLES      10
 #define SUBTABLE_SIZE         16
 
-static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] = 
+static const uint8_t gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] = 
 { 
   { 
     kRangeTableBase+1,  
@@ -375,7 +375,7 @@ static const PRUint8 gUnicodeSubrangeTable[NUM_OF_SUBTABLES][SUBTABLE_SIZE] =
 
 #define TERTIARY_TABLE_SIZE ((0x1700 - 0x0700) / 0x80)
 
-static const PRUint8 gUnicodeTertiaryRangeTable[TERTIARY_TABLE_SIZE] =
+static const uint8_t gUnicodeTertiaryRangeTable[TERTIARY_TABLE_SIZE] =
 { 
     kRangeSyriac,            
     kRangeThaana,            
@@ -419,13 +419,13 @@ static const PRUint8 gUnicodeTertiaryRangeTable[TERTIARY_TABLE_SIZE] =
 
 
 
-PRUint32 FindCharUnicodeRange(PRUint32 ch)
+uint32_t FindCharUnicodeRange(uint32_t ch)
 {
-  PRUint32 range;
+  uint32_t range;
   
   
   if (ch > 0xFFFF) {
-    PRUint32 p = (ch >> 16);
+    uint32_t p = (ch >> 16);
     if (p == 1) {
         return kRangeSMP;
     } else if (p == 2) {
@@ -454,7 +454,7 @@ PRUint32 FindCharUnicodeRange(PRUint32 ch)
   return gUnicodeTertiaryRangeTable[(ch - 0x0700) >> 7];
 }
 
-nsIAtom *LangGroupFromUnicodeRange(PRUint8 unicodeRange)
+nsIAtom *LangGroupFromUnicodeRange(uint8_t unicodeRange)
 {
   if (kRangeSpecificItemNum > unicodeRange) {
     nsIAtom **atom = gUnicodeRangeToLangGroupAtomTable[unicodeRange];

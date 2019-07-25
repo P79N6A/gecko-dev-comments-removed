@@ -54,8 +54,8 @@ nsScreenManagerOS2 :: CreateNewScreenObject (  )
 
 
 NS_IMETHODIMP
-nsScreenManagerOS2 :: ScreenForRect ( PRInt32 , PRInt32 , PRInt32 ,
-                                       PRInt32 , nsIScreen **outScreen )
+nsScreenManagerOS2 :: ScreenForRect ( int32_t , int32_t , int32_t ,
+                                       int32_t , nsIScreen **outScreen )
 {
   GetPrimaryScreen ( outScreen );
   return NS_OK;
@@ -84,7 +84,7 @@ nsScreenManagerOS2 :: GetPrimaryScreen(nsIScreen * *aPrimaryScreen)
 
 
 NS_IMETHODIMP
-nsScreenManagerOS2 :: GetNumberOfScreens(PRUint32 *aNumberOfScreens)
+nsScreenManagerOS2 :: GetNumberOfScreens(uint32_t *aNumberOfScreens)
 {
   *aNumberOfScreens = 1;
   return NS_OK;

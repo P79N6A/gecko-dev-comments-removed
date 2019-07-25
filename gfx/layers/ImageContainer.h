@@ -107,9 +107,9 @@ class BufferRecycleBin {
 public:
   BufferRecycleBin();
 
-  void RecycleBuffer(PRUint8* aBuffer, PRUint32 aSize);
+  void RecycleBuffer(uint8_t* aBuffer, uint32_t aSize);
   
-  PRUint8* GetBuffer(PRUint32 aSize);
+  uint8_t* GetBuffer(uint32_t aSize);
 
 private:
   typedef mozilla::Mutex Mutex;
@@ -120,19 +120,19 @@ private:
 
   
   
-  nsTArray<nsAutoArrayPtr<PRUint8> > mRecycledBuffers;
+  nsTArray<nsAutoArrayPtr<uint8_t> > mRecycledBuffers;
   
-  PRUint32 mRecycledBufferSize;
+  uint32_t mRecycledBufferSize;
 };
 
 
 
 
 static inline bool
-FormatInList(const ImageFormat* aFormats, PRUint32 aNumFormats,
+FormatInList(const ImageFormat* aFormats, uint32_t aNumFormats,
              ImageFormat aFormat)
 {
-  for (PRUint32 i = 0; i < aNumFormats; ++i) {
+  for (uint32_t i = 0; i < aNumFormats; ++i) {
     if (aFormats[i] == aFormat) {
       return true;
     }
@@ -173,7 +173,7 @@ protected:
   virtual ~ImageFactory() {}
 
   virtual already_AddRefed<Image> CreateImage(const ImageFormat* aFormats,
-                                              PRUint32 aNumFormats,
+                                              uint32_t aNumFormats,
                                               const gfxIntSize &aScaleHint,
                                               BufferRecycleBin *aRecycleBin);
 
@@ -275,7 +275,7 @@ public:
 
 
   already_AddRefed<Image> CreateImage(const ImageFormat* aFormats,
-                                      PRUint32 aNumFormats);
+                                      uint32_t aNumFormats);
 
   
 
@@ -328,7 +328,7 @@ public:
 
 
 
-  PRUint64 GetAsyncContainerID() const;
+  uint64_t GetAsyncContainerID() const;
 
   
 
@@ -427,7 +427,7 @@ public:
 
 
 
-  PRUint32 GetPaintCount() {
+  uint32_t GetPaintCount() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return mPaintCount;
   }
@@ -507,7 +507,7 @@ protected:
   
   
   
-  PRUint32 mPaintCount;
+  uint32_t mPaintCount;
 
   
   
@@ -613,23 +613,23 @@ class THEBES_API PlanarYCbCrImage : public Image {
 public:
   struct Data {
     
-    PRUint8* mYChannel;
-    PRInt32 mYStride;
+    uint8_t* mYChannel;
+    int32_t mYStride;
     gfxIntSize mYSize;
-    PRInt32 mYOffset;
-    PRInt32 mYSkip;
+    int32_t mYOffset;
+    int32_t mYSkip;
     
-    PRUint8* mCbChannel;
-    PRUint8* mCrChannel;
-    PRInt32 mCbCrStride;
+    uint8_t* mCbChannel;
+    uint8_t* mCrChannel;
+    int32_t mCbCrStride;
     gfxIntSize mCbCrSize;
-    PRInt32 mCbOffset;
-    PRInt32 mCbSkip;
-    PRInt32 mCrOffset;
-    PRInt32 mCrSkip;
+    int32_t mCbOffset;
+    int32_t mCbSkip;
+    int32_t mCrOffset;
+    int32_t mCrSkip;
     
-    PRUint32 mPicX;
-    PRUint32 mPicY;
+    uint32_t mPicX;
+    uint32_t mPicY;
     gfxIntSize mPicSize;
     StereoMode mStereoMode;
 
@@ -667,7 +667,7 @@ public:
   
 
 
-  virtual PRUint32 GetDataSize() { return mBufferSize; }
+  virtual uint32_t GetDataSize() { return mBufferSize; }
 
   virtual bool IsValid() { return !!mBufferSize; }
 
@@ -688,15 +688,15 @@ protected:
 
 
 
-  virtual PRUint8* AllocateBuffer(PRUint32 aSize);
+  virtual uint8_t* AllocateBuffer(uint32_t aSize);
 
   already_AddRefed<gfxASurface> GetAsSurface();
 
   void SetOffscreenFormat(gfxASurface::gfxImageFormat aFormat) { mOffscreenFormat = aFormat; }
   gfxASurface::gfxImageFormat GetOffscreenFormat() { return mOffscreenFormat; }
 
-  nsAutoArrayPtr<PRUint8> mBuffer;
-  PRUint32 mBufferSize;
+  nsAutoArrayPtr<uint8_t> mBuffer;
+  uint32_t mBufferSize;
   Data mData;
   gfxIntSize mSize;
   gfxASurface::gfxImageFormat mOffscreenFormat;

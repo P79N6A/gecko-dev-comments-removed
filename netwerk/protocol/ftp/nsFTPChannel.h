@@ -59,7 +59,7 @@ public:
     bool ResumeRequested() { return mResumeRequested; }
 
     
-    PRUint64 StartPos() { return mStartPos; }
+    uint64_t StartPos() { return mStartPos; }
 
     
     const nsCString &EntityID() {
@@ -98,7 +98,7 @@ private:
     nsCOMPtr<nsIProxyInfo>    mProxyInfo; 
     nsCOMPtr<nsIFTPEventSink> mFTPEventSink;
     nsCOMPtr<nsIInputStream>  mUploadStream;
-    PRUint64                  mStartPos;
+    uint64_t                  mStartPos;
     nsCString                 mEntityID;
     bool                      mResumeRequested;
     PRTime                    mLastModifiedTime;

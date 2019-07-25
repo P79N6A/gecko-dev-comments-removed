@@ -101,18 +101,18 @@ public:
 
 
 
-  PRUint32 CountItems() const;
+  uint32_t CountItems() const;
 #endif
 
   
 
 
 
-  PRUint32 Length() const {
+  uint32_t Length() const {
     return mData.Length();
   }
 
-  const float& operator[](PRUint32 aIndex) const {
+  const float& operator[](uint32_t aIndex) const {
     return mData[aIndex];
   }
 
@@ -125,7 +125,7 @@ public:
                   mData.Length() * sizeof(float)) == 0;
   }
 
-  bool SetCapacity(PRUint32 aSize) {
+  bool SetCapacity(uint32_t aSize) {
     return mData.SetCapacity(aSize);
   }
 
@@ -136,7 +136,7 @@ public:
 
   float GetPathLength() const;
 
-  PRUint32 GetPathSegAtLength(float aLength) const;
+  uint32_t GetPathSegAtLength(float aLength) const;
 
   void GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const;
 
@@ -174,7 +174,7 @@ protected:
 
   nsresult CopyFrom(const SVGPathData& rhs);
 
-  float& operator[](PRUint32 aIndex) {
+  float& operator[](uint32_t aIndex) {
     return mData[aIndex];
   }
 
@@ -182,7 +182,7 @@ protected:
 
 
 
-  bool SetLength(PRUint32 aLength) {
+  bool SetLength(uint32_t aLength) {
     return mData.SetLength(aLength);
   }
 
@@ -200,7 +200,7 @@ protected:
   
   
 
-  nsresult AppendSeg(PRUint32 aType, ...); 
+  nsresult AppendSeg(uint32_t aType, ...); 
 
   iterator begin() { return mData.Elements(); }
   iterator end() { return mData.Elements() + mData.Length(); }

@@ -24,7 +24,7 @@ class RestyleTracker {
 public:
   typedef mozilla::dom::Element Element;
 
-  RestyleTracker(PRUint32 aRestyleBits,
+  RestyleTracker(uint32_t aRestyleBits,
                  nsCSSFrameConstructor* aFrameConstructor) :
     mRestyleBits(aRestyleBits), mFrameConstructor(aFrameConstructor),
     mHaveLaterSiblingRestyles(false)
@@ -47,7 +47,7 @@ public:
     mPendingRestyles.Init();
   }
 
-  PRUint32 Count() const {
+  uint32_t Count() const {
     return mPendingRestyles.Count();
   }
 
@@ -70,12 +70,12 @@ public:
   }
 
   
-  PRUint32 RestyleBit() const {
+  uint32_t RestyleBit() const {
     return mRestyleBits & ELEMENT_PENDING_RESTYLE_FLAGS;
   }
 
   
-  PRUint32 RootBit() const {
+  uint32_t RootBit() const {
     return mRestyleBits & ~ELEMENT_PENDING_RESTYLE_FLAGS;
   }
   
@@ -126,7 +126,7 @@ private:
   
   
   
-  PRUint32 mRestyleBits;
+  uint32_t mRestyleBits;
   nsCSSFrameConstructor* mFrameConstructor; 
   
   

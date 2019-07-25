@@ -55,23 +55,23 @@ public:
 
   void Fire();
   nsresult PostTimerEvent();
-  void SetDelayInternal(PRUint32 aDelay);
+  void SetDelayInternal(uint32_t aDelay);
 
   NS_DECL_ISUPPORTS
   NS_DECL_NSITIMER
 
-  PRInt32 GetGeneration() { return mGeneration; }
+  int32_t GetGeneration() { return mGeneration; }
 
 private:
   ~nsTimerImpl();
-  nsresult InitCommon(PRUint32 aType, PRUint32 aDelay);
+  nsresult InitCommon(uint32_t aType, uint32_t aDelay);
 
   void ReleaseCallback()
   {
     
     
     
-    PRUint8 cbType = mCallbackType;
+    uint8_t cbType = mCallbackType;
     mCallbackType = CALLBACK_TYPE_UNKNOWN; 
 
     if (cbType == CALLBACK_TYPE_INTERFACE)
@@ -106,11 +106,11 @@ private:
   nsCOMPtr<nsITimerCallback> mTimerCallbackWhileFiring;
 
   
-  PRUint8               mCallbackType;
+  uint8_t               mCallbackType;
 
   
   
-  PRUint8               mType;
+  uint8_t               mType;
   bool                  mFiring;
 
 
@@ -124,9 +124,9 @@ private:
   
   
   
-  PRInt32               mGeneration;
+  int32_t               mGeneration;
 
-  PRUint32              mDelay;
+  uint32_t              mDelay;
   TimeStamp             mTimeout;
 
 #ifdef DEBUG_TIMERS

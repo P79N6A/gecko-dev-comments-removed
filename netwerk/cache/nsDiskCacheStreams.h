@@ -28,18 +28,18 @@ public:
     
     NS_DECL_ISUPPORTS
 
-    nsresult    GetInputStream(PRUint32 offset, nsIInputStream ** inputStream);
-    nsresult    GetOutputStream(PRUint32 offset, nsIOutputStream ** outputStream);
+    nsresult    GetInputStream(uint32_t offset, nsIInputStream ** inputStream);
+    nsresult    GetOutputStream(uint32_t offset, nsIOutputStream ** outputStream);
 
     nsresult    CloseOutputStream(nsDiskCacheOutputStream * outputStream);
     nsresult    CloseOutputStreamInternal(nsDiskCacheOutputStream * outputStream);
         
     nsresult    Write( const char * buffer,
-                       PRUint32     count,
-                       PRUint32 *   bytesWritten);
+                       uint32_t     count,
+                       uint32_t *   bytesWritten);
 
-    nsresult    Seek(PRInt32 whence, PRInt32 offset);
-    nsresult    Tell(PRUint32 * position);    
+    nsresult    Seek(int32_t whence, int32_t offset);
+    nsresult    Tell(uint32_t * position);    
     nsresult    SetEOF();
 
     nsresult    ClearBinding();
@@ -69,15 +69,15 @@ private:
     nsDiskCacheBinding *        mBinding;       
     nsDiskCacheDevice *         mDevice;
     nsDiskCacheOutputStream *   mOutStream;     
-    PRInt32                     mInStreamCount;
+    int32_t                     mInStreamCount;
     nsCOMPtr<nsIFile>           mLocalFile;
     PRFileDesc *                mFD;
 
-    PRUint32                    mStreamPos;     
-    PRUint32                    mStreamEnd;
-    PRUint32                    mBufPos;        
-    PRUint32                    mBufEnd;        
-    PRUint32                    mBufSize;       
+    uint32_t                    mStreamPos;     
+    uint32_t                    mStreamEnd;
+    uint32_t                    mBufPos;        
+    uint32_t                    mBufEnd;        
+    uint32_t                    mBufSize;       
     bool                        mBufDirty;
     char *                      mBuffer;
     

@@ -17,7 +17,7 @@ class nsString;
 
 
 
-static const PRInt32 kNameSpaceID_None = 0;
+static const int32_t kNameSpaceID_None = 0;
 #define kNameSpaceID_XMLNS    1 // not really a namespace, but it needs to play the game
 #define kNameSpaceID_XML      2
 #define kNameSpaceID_XHTML    3
@@ -57,12 +57,12 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_INAMESPACEMANAGER_IID)
 
   virtual nsresult RegisterNameSpace(const nsAString& aURI,
-                                     PRInt32& aNameSpaceID) = 0;
+                                     int32_t& aNameSpaceID) = 0;
 
-  virtual nsresult GetNameSpaceURI(PRInt32 aNameSpaceID, nsAString& aURI) = 0;
-  virtual PRInt32 GetNameSpaceID(const nsAString& aURI) = 0;
+  virtual nsresult GetNameSpaceURI(int32_t aNameSpaceID, nsAString& aURI) = 0;
+  virtual int32_t GetNameSpaceID(const nsAString& aURI) = 0;
 
-  virtual bool HasElementCreator(PRInt32 aNameSpaceID) = 0;
+  virtual bool HasElementCreator(int32_t aNameSpaceID) = 0;
 };
  
 NS_DEFINE_STATIC_IID_ACCESSOR(nsINameSpaceManager, NS_INAMESPACEMANAGER_IID)

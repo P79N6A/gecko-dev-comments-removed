@@ -63,9 +63,9 @@ nsLegendFrame::Reflow(nsPresContext*          aPresContext,
 
 
 
-PRInt32 nsLegendFrame::GetAlign()
+int32_t nsLegendFrame::GetAlign()
 {
-  PRInt32 intValue = NS_STYLE_TEXT_ALIGN_LEFT;
+  int32_t intValue = NS_STYLE_TEXT_ALIGN_LEFT;
 #ifdef IBMBIDI
   if (mParent && NS_STYLE_DIRECTION_RTL == mParent->GetStyleVisibility()->mDirection) {
     intValue = NS_STYLE_TEXT_ALIGN_RIGHT;

@@ -147,7 +147,7 @@ private:
 
 
     nsCString                  mKey;
-    PRUint32                   mInfo;
+    uint32_t                   mInfo;
     nsICacheListener *         mListener;  
     nsCOMPtr<nsIThread>        mThread;
     Mutex                      mLock;

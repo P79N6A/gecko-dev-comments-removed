@@ -68,7 +68,7 @@ private:
   
 
 
-  void SetError(PRInt32 aError);
+  void SetError(int32_t aError);
 
   
 

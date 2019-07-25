@@ -102,7 +102,7 @@ class NS_STACK_CLASS AncestorFilter {
   nsAutoPtr<Filter> mFilter;
 
   
-  nsTArray<PRUint32> mPopTargets;
+  nsTArray<uint32_t> mPopTargets;
 
   
   
@@ -345,7 +345,7 @@ struct NS_STACK_CLASS AttributeRuleProcessorData : public RuleProcessorData {
   AttributeRuleProcessorData(nsPresContext* aPresContext,
                              mozilla::dom::Element* aElement,
                              nsIAtom* aAttribute,
-                             PRInt32 aModType,
+                             int32_t aModType,
                              bool aAttrHasChanged,
                              TreeMatchContext& aTreeMatchContext)
     : RuleProcessorData(aPresContext, aElement, nullptr, aTreeMatchContext),
@@ -357,7 +357,7 @@ struct NS_STACK_CLASS AttributeRuleProcessorData : public RuleProcessorData {
     NS_PRECONDITION(!aTreeMatchContext.mForStyling, "Not styling here!");
   }
   nsIAtom* mAttribute; 
-  PRInt32 mModType;    
+  int32_t mModType;    
   bool mAttrHasChanged; 
 };
 

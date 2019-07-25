@@ -42,7 +42,7 @@ public:
   
   
   
-  static PRUint8 GetOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsMargin& aMargin);
+  static uint8_t GetOffset(nsBoxLayoutState& aState, nsIFrame* aChild, nsMargin& aMargin);
 
 private:
   static nsBoxLayout* gInstance;

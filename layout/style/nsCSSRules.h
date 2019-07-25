@@ -54,12 +54,12 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
   virtual void SetStyleSheet(nsCSSStyleSheet* aSheet); 
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
   {
@@ -100,11 +100,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
   {
@@ -202,13 +202,13 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
 
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -231,7 +231,7 @@ protected:
 
 struct nsFontFaceRuleContainer {
   nsRefPtr<nsCSSFontFaceRule> mRule;
-  PRUint8 mSheetType;
+  uint8_t mSheetType;
 };
 
 inline nsCSSFontFaceRule*
@@ -268,11 +268,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
 
   
@@ -337,12 +337,12 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
   DECL_STYLE_RULE_INHERIT
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
 
   
@@ -381,11 +381,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
   virtual nsIDOMCSSRule* GetDOMRule()
   {
@@ -407,7 +407,7 @@ public:
   virtual size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
 
 private:
-  PRUint32 FindRuleIndexForKey(const nsAString& aKey);
+  uint32_t FindRuleIndexForKey(const nsAString& aKey);
 
   nsString                                   mName;
 };
@@ -423,11 +423,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<mozilla::css::Rule> Clone() const;
   virtual bool UseForPresentation(nsPresContext* aPresContext,
                                   nsMediaQueryResultCacheKey& aKey);

@@ -33,7 +33,7 @@ public:
   
   
   
-  virtual void GetLocation(const char **aFileName, PRUint32 *aLineNo) = 0;
+  virtual void GetLocation(const char **aFileName, uint32_t *aLineNo) = 0;
 
   
   

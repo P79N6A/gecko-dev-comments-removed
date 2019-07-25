@@ -34,7 +34,7 @@ private:
   
   
   nsresult IsTypeSupportedInternal(const nsCString& aType,
-                                   PRUint32* aIsSupported);
+                                   uint32_t* aIsSupported);
   
   nsCOMPtr<nsICategoryManager> mCategoryManager;
   

@@ -97,7 +97,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsresult    DrawAtPosition(nsIDOMNode* aNode, PRInt32 aOffset);
+    nsresult    DrawAtPosition(nsIDOMNode* aNode, int32_t aOffset);
 
     
 
@@ -106,7 +106,7 @@ class nsCaret : public nsISelectionListener
 
 
 
-    nsIFrame*     GetCaretFrame(PRInt32 *aOffset = nullptr);
+    nsIFrame*     GetCaretFrame(int32_t *aOffset = nullptr);
 
     
 
@@ -157,11 +157,11 @@ class nsCaret : public nsISelectionListener
     static void   CaretBlinkCallback(nsITimer *aTimer, void *aClosure);
 
     nsresult      GetCaretFrameForNodeOffset(nsIContent* aContentNode,
-                                             PRInt32 aOffset,
+                                             int32_t aOffset,
                                              nsFrameSelection::HINT aFrameHint,
-                                             PRUint8 aBidiLevel,
+                                             uint8_t aBidiLevel,
                                              nsIFrame** aReturnFrame,
-                                             PRInt32* aReturnOffset);
+                                             int32_t* aReturnOffset);
 
     NS_IMETHOD CheckCaretDrawingState();
 
@@ -178,18 +178,18 @@ protected:
     void          InvalidateTextOverflowBlock();
     
     bool          DrawAtPositionWithHint(nsIDOMNode* aNode,
-                                         PRInt32 aOffset,
+                                         int32_t aOffset,
                                          nsFrameSelection::HINT aFrameHint,
-                                         PRUint8 aBidiLevel,
+                                         uint8_t aBidiLevel,
                                          bool aInvalidate);
 
     struct Metrics {
       nscoord mBidiIndicatorSize; 
       nscoord mCaretWidth;        
     };
-    Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nscoord aCaretHeight);
+    Metrics ComputeMetrics(nsIFrame* aFrame, int32_t aOffset, nscoord aCaretHeight);
     nsresult GetGeometryForFrame(nsIFrame* aFrame,
-                                 PRInt32   aFrameOffset,
+                                 int32_t   aFrameOffset,
                                  nsRect*   aRect,
                                  nscoord*  aBidiIndicatorSize);
 
@@ -202,7 +202,7 @@ protected:
 
     void          DrawCaret(bool aInvalidate);
     void          DrawCaretAfterBriefDelay();
-    bool          UpdateCaretRects(nsIFrame* aFrame, PRInt32 aFrameOffset);
+    bool          UpdateCaretRects(nsIFrame* aFrame, int32_t aFrameOffset);
     static void   InvalidateRects(const nsRect &aRect, const nsRect &aHook,
                                   nsIFrame *aFrame);
     nsRect        GetHookRect()
@@ -236,7 +236,7 @@ protected:
 
     
     
-    PRUint32              mBlinkRate;         
+    uint32_t              mBlinkRate;         
     nscoord               mCaretWidthCSSPx;   
     float                 mCaretAspectRatio;  
     
@@ -254,7 +254,7 @@ protected:
     bool                  mKeyboardRTL;       
     bool                  mBidiUI;            
     nsRect                mHookRect;          
-    PRUint8               mLastBidiLevel;     
+    uint8_t               mLastBidiLevel;     
 #endif
     nsRect                mCaretRect;         
 
@@ -262,7 +262,7 @@ protected:
                                               
                                               
                                               
-    PRInt32               mLastContentOffset; 
+    int32_t               mLastContentOffset; 
 
     nsFrameSelection::HINT mLastHint;        
                                               

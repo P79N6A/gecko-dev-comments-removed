@@ -11,7 +11,7 @@
 
 
 static bool
-IsKeepEntry(PRUint32 aEntry)
+IsKeepEntry(uint32_t aEntry)
 {
     return !(aEntry & 1);
 }
@@ -26,12 +26,12 @@ gfxSkipChars::BuildShortcuts()
     if (!mShortcuts)
         return;
   
-    PRUint32 i;
-    PRUint32 nextShortcutIndex = 0;
-    PRUint32 originalCharOffset = 0;
-    PRUint32 skippedCharOffset = 0;
+    uint32_t i;
+    uint32_t nextShortcutIndex = 0;
+    uint32_t originalCharOffset = 0;
+    uint32_t skippedCharOffset = 0;
     for (i = 0; i < mListLength; ++i) {
-        PRUint8 len = mList[i];
+        uint8_t len = mList[i];
     
         
         
@@ -54,7 +54,7 @@ gfxSkipChars::BuildShortcuts()
 }
 
 void
-gfxSkipCharsIterator::SetOffsets(PRUint32 aOffset, bool aInOriginalString)
+gfxSkipCharsIterator::SetOffsets(uint32_t aOffset, bool aInOriginalString)
 {
     NS_ASSERTION(aOffset <= mSkipChars->mCharCount,
                  "Invalid offset");
@@ -78,10 +78,10 @@ gfxSkipCharsIterator::SetOffsets(PRUint32 aOffset, bool aInOriginalString)
     }
   
     if (aInOriginalString && mSkipChars->mShortcuts &&
-        abs(PRInt32(aOffset) - PRInt32(mListPrefixCharCount)) > SHORTCUT_FREQUENCY) {
+        abs(int32_t(aOffset) - int32_t(mListPrefixCharCount)) > SHORTCUT_FREQUENCY) {
         
         
-        PRUint32 shortcutIndex = aOffset/SHORTCUT_FREQUENCY;
+        uint32_t shortcutIndex = aOffset/SHORTCUT_FREQUENCY;
         if (shortcutIndex == 0) {
             mListPrefixLength = 0;
             mListPrefixKeepCharCount = 0;
@@ -94,14 +94,14 @@ gfxSkipCharsIterator::SetOffsets(PRUint32 aOffset, bool aInOriginalString)
         }
     }
   
-    PRInt32 currentRunLength = mSkipChars->mList[mListPrefixLength];
+    int32_t currentRunLength = mSkipChars->mList[mListPrefixLength];
     for (;;) {
         
         
-        PRUint32 segmentOffset = aInOriginalString ? mListPrefixCharCount : mListPrefixKeepCharCount;
+        uint32_t segmentOffset = aInOriginalString ? mListPrefixCharCount : mListPrefixKeepCharCount;
         if ((aInOriginalString || IsKeepEntry(mListPrefixLength)) &&
             aOffset >= segmentOffset && aOffset < segmentOffset + currentRunLength) {
-            PRInt32 offsetInSegment = aOffset - segmentOffset;
+            int32_t offsetInSegment = aOffset - segmentOffset;
             mOriginalStringOffset = mListPrefixCharCount + offsetInSegment;
             mSkippedStringOffset = mListPrefixKeepCharCount;
             if (IsKeepEntry(mListPrefixLength)) {
@@ -147,18 +147,18 @@ gfxSkipCharsIterator::SetOffsets(PRUint32 aOffset, bool aInOriginalString)
 }
 
 bool
-gfxSkipCharsIterator::IsOriginalCharSkipped(PRInt32* aRunLength) const
+gfxSkipCharsIterator::IsOriginalCharSkipped(int32_t* aRunLength) const
 {
     if (mSkipChars->mListLength == 0) {
         if (aRunLength) {
             *aRunLength = mSkipChars->mCharCount - mOriginalStringOffset;
         }
-        return mSkipChars->mCharCount == PRUint32(mOriginalStringOffset);
+        return mSkipChars->mCharCount == uint32_t(mOriginalStringOffset);
     }
   
-    PRUint32 listPrefixLength = mListPrefixLength;
+    uint32_t listPrefixLength = mListPrefixLength;
     
-    PRUint32 currentRunLength = mSkipChars->mList[listPrefixLength];
+    uint32_t currentRunLength = mSkipChars->mList[listPrefixLength];
     
     
     
@@ -168,10 +168,10 @@ gfxSkipCharsIterator::IsOriginalCharSkipped(PRInt32* aRunLength) const
         
         currentRunLength = mSkipChars->mList[listPrefixLength];
     }
-    NS_ASSERTION(PRUint32(mOriginalStringOffset) >= mListPrefixCharCount,
+    NS_ASSERTION(uint32_t(mOriginalStringOffset) >= mListPrefixCharCount,
                  "Invariant violation");
-    PRUint32 offsetIntoCurrentRun =
-      PRUint32(mOriginalStringOffset) - mListPrefixCharCount;
+    uint32_t offsetIntoCurrentRun =
+      uint32_t(mOriginalStringOffset) - mListPrefixCharCount;
     if (listPrefixLength >= mSkipChars->mListLength - 1 &&
         offsetIntoCurrentRun >= currentRunLength) {
         NS_ASSERTION(listPrefixLength == mSkipChars->mListLength - 1 &&
@@ -189,8 +189,8 @@ gfxSkipCharsIterator::IsOriginalCharSkipped(PRInt32* aRunLength) const
         
         
         
-        PRUint32 runLength = currentRunLength - offsetIntoCurrentRun;
-        for (PRUint32 i = listPrefixLength + 2; i < mSkipChars->mListLength; i += 2) {
+        uint32_t runLength = currentRunLength - offsetIntoCurrentRun;
+        for (uint32_t i = listPrefixLength + 2; i < mSkipChars->mListLength; i += 2) {
             if (mSkipChars->mList[i - 1] != 0)
                 break;
             runLength += mSkipChars->mList[i];
@@ -206,9 +206,9 @@ gfxSkipCharsBuilder::FlushRun()
     NS_ASSERTION((mBuffer.Length() & 1) == mRunSkipped,
                  "out of sync?");
     
-    PRUint32 charCount = mRunCharCount;
+    uint32_t charCount = mRunCharCount;
     for (;;) {
-        PRUint32 chars = NS_MIN<PRUint32>(255, charCount);
+        uint32_t chars = NS_MIN<uint32_t>(255, charCount);
         if (!mBuffer.AppendElement(chars)) {
             mInErrorState = true;
             return;

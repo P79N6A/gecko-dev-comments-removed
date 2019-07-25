@@ -40,7 +40,7 @@
 
 #define  UCS2_NO_MAPPING ((PRUnichar) 0xfffd)
 #define UINT8_IN_RANGE(a, b, c) \
- (((PRUint8)(a) <= (PRUint8)(b))&&((PRUint8)(b) <= (PRUint8)(c)))
+ (((uint8_t)(a) <= (uint8_t)(b))&&((uint8_t)(b) <= (uint8_t)(c)))
 #define UNICHAR_IN_RANGE(a, b, c) \
  (((PRUnichar)(a) <= (PRUnichar)(b))&&((PRUnichar)(b) <= (PRUnichar)(c)))
 #define CAST_CHAR_TO_UNICHAR(a) ((PRUnichar)((unsigned char)(a)))

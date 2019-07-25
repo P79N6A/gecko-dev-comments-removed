@@ -19,10 +19,10 @@ class nsDirectoryIndexStream MOZ_FINAL : public nsIInputStream
 {
 private:
     nsCString mBuf;
-    PRInt32 mOffset;
+    int32_t mOffset;
     nsresult mStatus;
 
-    PRInt32             mPos;   
+    int32_t             mPos;   
     nsCOMArray<nsIFile> mArray; 
 
     nsDirectoryIndexStream();

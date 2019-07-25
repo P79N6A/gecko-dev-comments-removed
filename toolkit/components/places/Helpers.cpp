@@ -36,7 +36,7 @@ AsyncStatementCallback::HandleResult(mozIStorageResultSet *aResultSet)
 }
 
 NS_IMETHODIMP
-AsyncStatementCallback::HandleCompletion(PRUint16 aReason)
+AsyncStatementCallback::HandleCompletion(uint16_t aReason)
 {
   return NS_OK;
 }
@@ -45,7 +45,7 @@ NS_IMETHODIMP
 AsyncStatementCallback::HandleError(mozIStorageError *aError)
 {
 #ifdef DEBUG
-  PRInt32 result;
+  int32_t result;
   nsresult rv = aError->GetResult(&result);
   NS_ENSURE_SUCCESS(rv, rv);
   nsCAutoString message;
@@ -72,7 +72,7 @@ AsyncStatementCallback::HandleError(mozIStorageError *aError)
 
 nsresult 
 URIBinder::Bind(mozIStorageStatement* aStatement,
-                PRInt32 aIndex,
+                int32_t aIndex,
                 nsIURI* aURI)
 {
   NS_ASSERTION(aStatement, "Must have non-null statement");
@@ -85,7 +85,7 @@ URIBinder::Bind(mozIStorageStatement* aStatement,
 
 nsresult 
 URIBinder::Bind(mozIStorageStatement* aStatement,
-                PRInt32 index,
+                int32_t index,
                 const nsACString& aURLString)
 {
   NS_ASSERTION(aStatement, "Must have non-null statement");
@@ -122,7 +122,7 @@ URIBinder::Bind(mozIStorageStatement* aStatement,
 
 nsresult 
 URIBinder::Bind(mozIStorageBindingParams* aParams,
-                PRInt32 aIndex,
+                int32_t aIndex,
                 nsIURI* aURI)
 {
   NS_ASSERTION(aParams, "Must have non-null statement");
@@ -135,7 +135,7 @@ URIBinder::Bind(mozIStorageBindingParams* aParams,
 
 nsresult 
 URIBinder::Bind(mozIStorageBindingParams* aParams,
-                PRInt32 index,
+                int32_t index,
                 const nsACString& aURLString)
 {
   NS_ASSERTION(aParams, "Must have non-null statement");
@@ -199,22 +199,22 @@ void
 ReverseString(const nsString& aInput, nsString& aReversed)
 {
   aReversed.Truncate(0);
-  for (PRInt32 i = aInput.Length() - 1; i >= 0; i--) {
+  for (int32_t i = aInput.Length() - 1; i >= 0; i--) {
     aReversed.Append(aInput[i]);
   }
 }
 
 static
 nsresult
-Base64urlEncode(const PRUint8* aBytes,
-                PRUint32 aNumBytes,
+Base64urlEncode(const uint8_t* aBytes,
+                uint32_t aNumBytes,
                 nsCString& _result)
 {
   
   
   
   
-  PRUint32 length = (aNumBytes + 2) / 3 * 4; 
+  uint32_t length = (aNumBytes + 2) / 3 * 4; 
   NS_ENSURE_TRUE(_result.SetCapacity(length + 1, fallible_t()),
                  NS_ERROR_OUT_OF_MEMORY);
   _result.SetLength(length);
@@ -237,8 +237,8 @@ Base64urlEncode(const PRUint8* aBytes,
 
 static
 nsresult
-GenerateRandomBytes(PRUint32 aSize,
-                    PRUint8* _buffer)
+GenerateRandomBytes(uint32_t aSize,
+                    uint8_t* _buffer)
 {
   
 #if defined(XP_WIN)
@@ -257,8 +257,8 @@ GenerateRandomBytes(PRUint32 aSize,
   PRFileDesc* urandom = PR_Open("/dev/urandom", PR_RDONLY, 0);
   nsresult rv = NS_ERROR_FAILURE;
   if (urandom) {
-    PRInt32 bytesRead = PR_Read(urandom, _buffer, aSize);
-    if (bytesRead == static_cast<PRInt32>(aSize)) {
+    int32_t bytesRead = PR_Read(urandom, _buffer, aSize);
+    if (bytesRead == static_cast<int32_t>(aSize)) {
       rv = NS_OK;
     }
     (void)PR_Close(urandom);
@@ -269,7 +269,7 @@ GenerateRandomBytes(PRUint32 aSize,
     do_GetService("@mozilla.org/security/random-generator;1");
   NS_ENSURE_STATE(rg);
 
-  PRUint8* temp;
+  uint8_t* temp;
   nsresult rv = rg->GenerateRandomBytes(aSize, &temp);
   NS_ENSURE_SUCCESS(rv, rv);
   memcpy(_buffer, temp, aSize);
@@ -285,10 +285,10 @@ GenerateGUID(nsCString& _guid)
 
   
   
-  const PRUint32 kRequiredBytesLength =
-    static_cast<PRUint32>(GUID_LENGTH / 4 * 3);
+  const uint32_t kRequiredBytesLength =
+    static_cast<uint32_t>(GUID_LENGTH / 4 * 3);
 
-  PRUint8 buffer[kRequiredBytesLength];
+  uint8_t buffer[kRequiredBytesLength];
   nsresult rv = GenerateRandomBytes(kRequiredBytesLength, buffer);
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -346,7 +346,7 @@ ForceWALCheckpoint()
 
 bool
 GetHiddenState(bool aIsRedirect,
-               PRUint32 aTransitionType)
+               uint32_t aTransitionType)
 {
   return aTransitionType == nsINavHistoryService::TRANSITION_FRAMED_LINK ||
          aTransitionType == nsINavHistoryService::TRANSITION_EMBED ||
@@ -387,7 +387,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(
 
 
 NS_IMETHODIMP
-AsyncStatementCallbackNotifier::HandleCompletion(PRUint16 aReason)
+AsyncStatementCallbackNotifier::HandleCompletion(uint16_t aReason)
 {
   if (aReason != mozIStorageStatementCallback::REASON_FINISHED)
     return NS_ERROR_UNEXPECTED;
@@ -404,7 +404,7 @@ AsyncStatementCallbackNotifier::HandleCompletion(PRUint16 aReason)
 
 
 NS_IMETHODIMP
-AsyncStatementTelemetryTimer::HandleCompletion(PRUint16 aReason)
+AsyncStatementTelemetryTimer::HandleCompletion(uint16_t aReason)
 {
   if (aReason == mozIStorageStatementCallback::REASON_FINISHED) {
     Telemetry::AccumulateTimeDelta(mHistogramId, mStart);

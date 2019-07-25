@@ -26,13 +26,13 @@ struct nsGenConNode : public PRCList {
   
   
   
-  const PRInt32 mContentIndex;
+  const int32_t mContentIndex;
 
   
   
   nsCOMPtr<nsIDOMCharacterData> mText;
 
-  nsGenConNode(PRInt32 aContentIndex)
+  nsGenConNode(int32_t aContentIndex)
     : mPseudoFrame(nullptr)
     , mContentIndex(aContentIndex)
   {
@@ -63,7 +63,7 @@ struct nsGenConNode : public PRCList {
 protected:
   void CheckFrameAssertions() {
     NS_ASSERTION(mContentIndex <
-                   PRInt32(mPseudoFrame->GetStyleContent()->ContentCount()),
+                   int32_t(mPseudoFrame->GetStyleContent()->ContentCount()),
                  "index out of range");
       
       
@@ -83,7 +83,7 @@ protected:
 class nsGenConList {
 protected:
   nsGenConNode* mFirstNode;
-  PRUint32 mSize;
+  uint32_t mSize;
 public:
   nsGenConList() : mFirstNode(nullptr), mSize(0) {}
   ~nsGenConList() { Clear(); }

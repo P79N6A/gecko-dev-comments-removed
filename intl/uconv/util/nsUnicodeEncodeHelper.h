@@ -24,15 +24,15 @@ public:
   
 
 
-  static nsresult ConvertByTable(const PRUnichar * aSrc, PRInt32 * aSrcLength, 
-      char * aDest, PRInt32 * aDestLength, uScanClassID aScanClass,
+  static nsresult ConvertByTable(const PRUnichar * aSrc, int32_t * aSrcLength, 
+      char * aDest, int32_t * aDestLength, uScanClassID aScanClass,
       uShiftOutTable * aShiftOutTable, uMappingTable  * aMappingTable);
 
   
 
 
-  static nsresult ConvertByMultiTable(const PRUnichar * aSrc, PRInt32 * aSrcLength,
-      char * aDest, PRInt32 * aDestLength, PRInt32 aTableCount, 
+  static nsresult ConvertByMultiTable(const PRUnichar * aSrc, int32_t * aSrcLength,
+      char * aDest, int32_t * aDestLength, int32_t aTableCount, 
       uScanClassID * aScanClassArray, 
       uShiftOutTable ** aShiftOutTable, uMappingTable  ** aMappingTable);
 };

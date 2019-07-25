@@ -44,7 +44,7 @@ nsEffectiveTLDService::Init()
   if (NS_FAILED(rv)) return rv;
 
   
-  for (PRUint32 i = 0; i < ArrayLength(gEntries) - 1; i++) {
+  for (uint32_t i = 0; i < ArrayLength(gEntries) - 1; i++) {
 #ifdef DEBUG
     nsDependentCString name(gEntries[i].domain);
     nsCAutoString normalizedName(gEntries[i].domain);
@@ -83,7 +83,7 @@ nsEffectiveTLDService::GetPublicSuffix(nsIURI     *aURI,
 
 NS_IMETHODIMP
 nsEffectiveTLDService::GetBaseDomain(nsIURI     *aURI,
-                                     PRUint32    aAdditionalParts,
+                                     uint32_t    aAdditionalParts,
                                      nsACString &aBaseDomain)
 {
   NS_ENSURE_ARG_POINTER(aURI);
@@ -118,7 +118,7 @@ nsEffectiveTLDService::GetPublicSuffixFromHost(const nsACString &aHostname,
 
 NS_IMETHODIMP
 nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
-                                             PRUint32          aAdditionalParts,
+                                             uint32_t          aAdditionalParts,
                                              nsACString       &aBaseDomain)
 {
   
@@ -137,7 +137,7 @@ nsEffectiveTLDService::GetBaseDomainFromHost(const nsACString &aHostname,
 
 nsresult
 nsEffectiveTLDService::GetBaseDomainInternal(nsCString  &aHostname,
-                                             PRUint32    aAdditionalParts,
+                                             uint32_t    aAdditionalParts,
                                              nsACString &aBaseDomain)
 {
   if (aHostname.IsEmpty())

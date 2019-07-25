@@ -91,8 +91,8 @@ public:
 
 
 
-  NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength, 
-      PRUnichar * aDest, PRInt32 * aDestLength) = 0;
+  NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength, 
+      PRUnichar * aDest, int32_t * aDestLength) = 0;
 
   
 
@@ -105,8 +105,8 @@ public:
 
 
 
-  NS_IMETHOD GetMaxLength(const char * aSrc, PRInt32 aSrcLength, 
-      PRInt32 * aDestLength) = 0;
+  NS_IMETHOD GetMaxLength(const char * aSrc, int32_t aSrcLength, 
+      int32_t * aDestLength) = 0;
 
   
 
@@ -121,7 +121,7 @@ public:
 
 
 
-  virtual void SetInputErrorBehavior(PRInt32 aBehavior) = 0;
+  virtual void SetInputErrorBehavior(int32_t aBehavior) = 0;
 
   
 

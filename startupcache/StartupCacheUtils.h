@@ -13,7 +13,7 @@ namespace mozilla {
 namespace scache {
 
 NS_EXPORT nsresult
-NewObjectInputStreamFromBuffer(char* buffer, PRUint32 len, 
+NewObjectInputStreamFromBuffer(char* buffer, uint32_t len, 
                                nsIObjectInputStream** stream);
 
 
@@ -32,7 +32,7 @@ NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
 
 NS_EXPORT nsresult
 NewBufferFromStorageStream(nsIStorageStream *storageStream, 
-                           char** buffer, PRUint32* len);
+                           char** buffer, uint32_t* len);
 
 NS_EXPORT nsresult
 PathifyURI(nsIURI *in, nsACString &out);

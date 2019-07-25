@@ -28,7 +28,7 @@ class nsJSUtils
 {
 public:
   static JSBool GetCallingLocation(JSContext* aContext, const char* *aFilename,
-                                   PRUint32* aLineno);
+                                   uint32_t* aLineno);
 
   static nsIScriptGlobalObject *GetStaticScriptGlobal(JSContext* aContext,
                                                       JSObject* aObj);
@@ -48,7 +48,7 @@ public:
 
 
 
-  static PRUint64 GetCurrentlyRunningCodeInnerWindowID(JSContext *aContext);
+  static uint64_t GetCurrentlyRunningCodeInnerWindowID(JSContext *aContext);
 };
 
 

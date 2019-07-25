@@ -37,7 +37,7 @@ private:
   
 
 
-  PRUint32 mNumCols;
+  uint32_t mNumCols;
 
   
 
@@ -47,7 +47,7 @@ private:
   
 
 
-  nsDataHashtable<nsCStringHashKey, PRUint32> mNameHashtable;
+  nsDataHashtable<nsCStringHashKey, uint32_t> mNameHashtable;
 };
 
 } 

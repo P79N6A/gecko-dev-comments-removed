@@ -21,13 +21,13 @@ public:
 
   
   
-  nsresult Create(HDC aHdc, PRUint32 aWidth, PRUint32 aHeight,
+  nsresult Create(HDC aHdc, uint32_t aWidth, uint32_t aHeight,
                   bool aTransparent);
 
   
   
   
-  nsresult Attach(Handle aHandle, PRUint32 aWidth, PRUint32 aHeight,
+  nsresult Attach(Handle aHandle, uint32_t aWidth, uint32_t aHeight,
                   bool aTransparent);
 
   
@@ -45,7 +45,7 @@ private:
   HGDIOBJ             mOldObj;
   void*               mBitmapBits;
 
-  PRUint32 SetupBitmapHeader(PRUint32 aWidth, PRUint32 aHeight,
+  uint32_t SetupBitmapHeader(uint32_t aWidth, uint32_t aHeight,
                              bool aTransparent, BITMAPV4HEADER *aHeader);
   nsresult SetupSurface(HDC aHdc, BITMAPV4HEADER *aHdr);
 };

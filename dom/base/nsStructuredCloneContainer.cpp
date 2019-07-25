@@ -88,7 +88,7 @@ nsStructuredCloneContainer::InitFromVariant(nsIVariant *aData, JSContext *aCx)
 
 nsresult
 nsStructuredCloneContainer::InitFromBase64(const nsAString &aData,
-                                           PRUint32 aFormatVersion,
+                                           uint32_t aFormatVersion,
                                            JSContext *aCx)
 {
   NS_ENSURE_STATE(!mData);
@@ -151,7 +151,7 @@ nsStructuredCloneContainer::GetDataAsBase64(nsAString &aOut)
 }
 
 nsresult
-nsStructuredCloneContainer::GetSerializedNBytes(PRUint64 *aSize)
+nsStructuredCloneContainer::GetSerializedNBytes(uint64_t *aSize)
 {
   NS_ENSURE_STATE(mData);
   NS_ENSURE_ARG_POINTER(aSize);
@@ -165,7 +165,7 @@ nsStructuredCloneContainer::GetSerializedNBytes(PRUint64 *aSize)
 }
 
 nsresult
-nsStructuredCloneContainer::GetFormatVersion(PRUint32 *aFormatVersion)
+nsStructuredCloneContainer::GetFormatVersion(uint32_t *aFormatVersion)
 {
   NS_ENSURE_STATE(mData);
   NS_ENSURE_ARG_POINTER(aFormatVersion);

@@ -9,7 +9,7 @@
 
 
 
-static const PRUint16 g_utMappingTable[] = {
+static const uint16_t g_utMappingTable[] = {
 #include "macfarsi.ut"
 };
 

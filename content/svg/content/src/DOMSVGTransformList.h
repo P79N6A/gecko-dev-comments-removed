@@ -76,7 +76,7 @@ public:
 
 
 
-  PRUint32 Length() const {
+  uint32_t Length() const {
     NS_ABORT_IF_FALSE(mItems.IsEmpty() ||
       mItems.Length() == InternalList().Length(),
       "DOM wrapper's list length is out of sync");
@@ -84,7 +84,7 @@ public:
   }
 
   
-  void InternalListLengthWillChange(PRUint32 aNewLength);
+  void InternalListLengthWillChange(uint32_t aNewLength);
 
 private:
 
@@ -110,10 +110,10 @@ private:
   SVGTransformList& InternalList() const;
 
   
-  void EnsureItemAt(PRUint32 aIndex);
+  void EnsureItemAt(uint32_t aIndex);
 
-  void MaybeInsertNullInAnimValListAt(PRUint32 aIndex);
-  void MaybeRemoveItemFromAnimValListAt(PRUint32 aIndex);
+  void MaybeInsertNullInAnimValListAt(uint32_t aIndex);
+  void MaybeRemoveItemFromAnimValListAt(uint32_t aIndex);
 
   
   

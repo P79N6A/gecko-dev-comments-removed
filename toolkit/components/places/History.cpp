@@ -99,7 +99,7 @@ struct VisitData {
 
 
 
-  void SetTransitionType(PRUint32 aTransitionType)
+  void SetTransitionType(uint32_t aTransitionType)
   {
     typed = aTransitionType == nsINavHistoryService::TRANSITION_TYPED;
     transitionType = aTransitionType;
@@ -125,17 +125,17 @@ struct VisitData {
     return true;
   }
 
-  PRInt64 placeId;
+  int64_t placeId;
   nsCString guid;
-  PRInt64 visitId;
-  PRInt64 sessionId;
+  int64_t visitId;
+  int64_t sessionId;
   nsCString spec;
   nsString revHost;
   bool hidden;
   bool typed;
-  PRUint32 transitionType;
+  uint32_t transitionType;
   PRTime visitTime;
-  PRInt32 frecency;
+  int32_t frecency;
 
   
 
@@ -359,7 +359,7 @@ public:
     return NS_OK;
   }
 
-  NS_IMETHOD HandleCompletion(PRUint16 aReason)
+  NS_IMETHOD HandleCompletion(uint16_t aReason)
   {
     if (aReason != mozIStorageStatementCallback::REASON_FINISHED) {
       return NS_OK;
@@ -784,7 +784,7 @@ private:
       
       
       if (i == 0) {
-        PRInt64 newSessionId = navHistory->GetNewSessionID();
+        int64_t newSessionId = navHistory->GetNewSessionID();
         if (mPlaces[0].sessionId > newSessionId) {
           mPlaces[0].sessionId = newSessionId;
         }
@@ -1022,7 +1022,7 @@ private:
     rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("visit_date"),
                                _place.visitTime);
     NS_ENSURE_SUCCESS(rv, rv);
-    PRUint32 transitionType = _place.transitionType;
+    uint32_t transitionType = _place.transitionType;
     NS_ASSERTION(transitionType >= nsINavHistoryService::TRANSITION_LINK &&
                  transitionType <= nsINavHistoryService::TRANSITION_FRAMED_LINK,
                  "Invalid transition type!");
@@ -1398,7 +1398,7 @@ StoreAndNotifyEmbedVisit(VisitData& aPlace,
 NS_MEMORY_REPORTER_MALLOC_SIZEOF_FUN(HistoryLinksHashtableMallocSizeOf,
                                      "history-links-hashtable")
 
-PRInt64 GetHistoryObserversSize()
+int64_t GetHistoryObserversSize()
 {
   History* history = History::GetService();
   return history ?
@@ -1459,7 +1459,7 @@ History::NotifyVisited(nsIURI* aURI)
   if (XRE_GetProcessType() == GeckoProcessType_Default) {
     nsTArray<ContentParent*> cplist;
     ContentParent::GetAll(cplist);
-    for (PRUint32 i = 0; i < cplist.Length(); ++i) {
+    for (uint32_t i = 0; i < cplist.Length(); ++i) {
       unused << cplist[i]->SendNotifyVisited(aURI);
     }
   }
@@ -1661,7 +1661,7 @@ History::FetchPageInfo(VisitData& _place)
     
     
     
-    PRInt32 hidden;
+    int32_t hidden;
     rv = stmt->GetInt32(2, &hidden);
     _place.hidden = !!hidden;
     NS_ENSURE_SUCCESS(rv, true);
@@ -1670,7 +1670,7 @@ History::FetchPageInfo(VisitData& _place)
   if (!_place.typed) {
     
     
-    PRInt32 typed;
+    int32_t typed;
     rv = stmt->GetInt32(3, &typed);
     _place.typed = !!typed;
     NS_ENSURE_SUCCESS(rv, true);
@@ -1784,7 +1784,7 @@ History::IsRecentlyVisitedURI(nsIURI* aURI) {
 NS_IMETHODIMP
 History::VisitURI(nsIURI* aURI,
                   nsIURI* aLastVisitedURI,
-                  PRUint32 aFlags)
+                  uint32_t aFlags)
 {
   NS_PRECONDITION(aURI, "URI should not be NULL.");
   if (mShuttingDown) {
@@ -1830,7 +1830,7 @@ History::VisitURI(nsIURI* aURI,
 
   
   
-  PRUint32 recentFlags = navHistory->GetRecentFlags(aURI);
+  uint32_t recentFlags = navHistory->GetRecentFlags(aURI);
   bool isFollowedLink = recentFlags & nsNavHistory::RECENT_ACTIVATED;
 
   
@@ -1839,7 +1839,7 @@ History::VisitURI(nsIURI* aURI,
   
   
 
-  PRUint32 transitionType = nsINavHistoryService::TRANSITION_LINK;
+  uint32_t transitionType = nsINavHistoryService::TRANSITION_LINK;
 
   if (!(aFlags & IHistory::TOP_LEVEL) && !isFollowedLink) {
     
@@ -2191,7 +2191,7 @@ History::UpdatePlaces(const jsval& aPlaceInfos,
       
       rv = GetIntFromJSObject(aCtx, visit, "visitDate", &data.visitTime);
       NS_ENSURE_SUCCESS(rv, rv);
-      PRUint32 transitionType = 0;
+      uint32_t transitionType = 0;
       rv = GetIntFromJSObject(aCtx, visit, "transitionType", &transitionType);
       NS_ENSURE_SUCCESS(rv, rv);
       NS_ENSURE_ARG_RANGE(transitionType,

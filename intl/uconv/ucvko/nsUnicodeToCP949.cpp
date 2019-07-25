@@ -13,13 +13,13 @@
 
 
 
-static const PRUint16 g_ufCP949NoKSCHangulMapping[] = {
+static const uint16_t g_ufCP949NoKSCHangulMapping[] = {
 #include "u20cp949hangul.uf"
 };
 
 
 
-static const PRUint16 *g_CP949MappingTable[3] = {
+static const uint16_t *g_CP949MappingTable[3] = {
   g_ucvko_AsciiMapping,
   g_ufKSC5601Mapping,
   g_ufCP949NoKSCHangulMapping

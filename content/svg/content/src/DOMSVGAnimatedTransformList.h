@@ -78,8 +78,8 @@ public:
 
 
 
-  void InternalBaseValListWillChangeLengthTo(PRUint32 aNewLength);
-  void InternalAnimValListWillChangeLengthTo(PRUint32 aNewLength);
+  void InternalBaseValListWillChangeLengthTo(uint32_t aNewLength);
+  void InternalAnimValListWillChangeLengthTo(uint32_t aNewLength);
 
   
 

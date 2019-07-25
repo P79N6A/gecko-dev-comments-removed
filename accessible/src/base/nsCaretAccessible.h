@@ -118,7 +118,7 @@ private:
   
   nsCOMPtr<nsIWeakReference> mLastUsedSelection; 
   nsRefPtr<HyperTextAccessible> mLastTextAccessible;
-  PRInt32 mLastCaretOffset;
+  int32_t mLastCaretOffset;
 
   mozilla::a11y::RootAccessible* mRootAccessible;
 };

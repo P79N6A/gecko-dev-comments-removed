@@ -48,11 +48,11 @@ NS_IMETHODIMP mozEnglishWordUtils::GetLanguage(PRUnichar * *aLanguage)
 
 
 
-NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, PRUint32 type, PRUnichar ***words, PRUint32 *count)
+NS_IMETHODIMP mozEnglishWordUtils::GetRootForm(const PRUnichar *aWord, uint32_t type, PRUnichar ***words, uint32_t *count)
 {
   nsAutoString word(aWord);
   PRUnichar **tmpPtr;
-  PRInt32 length = word.Length();
+  int32_t length = word.Length();
 
   *count = 0;
 
@@ -138,7 +138,7 @@ bool mozEnglishWordUtils::ucIsAlpha(PRUnichar aChar)
 }
 
 
-NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, PRUint32 length, PRUint32 offset, PRInt32 *begin, PRInt32 *end)
+NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, uint32_t length, uint32_t offset, int32_t *begin, int32_t *end)
 {
   const PRUnichar *p = word + offset;
   const PRUnichar *endbuf = word + length;
@@ -173,8 +173,8 @@ NS_IMETHODIMP mozEnglishWordUtils::FindNextWord(const PRUnichar *word, PRUint32 
        
         if (mURLDetector)
         {
-          PRInt32 startPos = -1;
-          PRInt32 endPos = -1;        
+          int32_t startPos = -1;
+          int32_t endPos = -1;        
 
           mURLDetector->FindURLInPlaintext(startWord, endbuf - startWord, p - startWord, &startPos, &endPos);
 
@@ -222,7 +222,7 @@ mozEnglishWordUtils::captype(const nsString &word)
     nsMemory::Free(lword);
     return NoCap;
   }
-  PRInt32 length=word.Length();
+  int32_t length=word.Length();
   if(Substring(word,1,length-1).Equals(lword+1)){
     nsMemory::Free(lword);
     return InitCap;
@@ -233,18 +233,18 @@ mozEnglishWordUtils::captype(const nsString &word)
 
 
 
-NS_IMETHODIMP mozEnglishWordUtils::FromRootForm(const PRUnichar *aWord, const PRUnichar **iwords, PRUint32 icount, PRUnichar ***owords, PRUint32 *ocount)
+NS_IMETHODIMP mozEnglishWordUtils::FromRootForm(const PRUnichar *aWord, const PRUnichar **iwords, uint32_t icount, PRUnichar ***owords, uint32_t *ocount)
 {
   nsAutoString word(aWord);
   nsresult rv = NS_OK;
 
-  PRInt32 length;
+  int32_t length;
   PRUnichar **tmpPtr  = (PRUnichar **)nsMemory::Alloc(sizeof(PRUnichar *)*icount);
   if (!tmpPtr)
     return NS_ERROR_OUT_OF_MEMORY;
 
   mozEnglishWordUtils::myspCapitalization ct = captype(word);
-  for(PRUint32 i = 0; i < icount; ++i) {
+  for(uint32_t i = 0; i < icount; ++i) {
     length = NS_strlen(iwords[i]);
     tmpPtr[i] = (PRUnichar *) nsMemory::Alloc(sizeof(PRUnichar) * (length + 1));
     if (NS_UNLIKELY(!tmpPtr[i])) {

@@ -50,7 +50,7 @@ public:
 
 
 
-  virtual void Pause(PRUint32 aType);
+  virtual void Pause(uint32_t aType);
 
   
 
@@ -59,7 +59,7 @@ public:
 
 
 
-  virtual void Resume(PRUint32 aType);
+  virtual void Resume(uint32_t aType);
 
   
 
@@ -69,7 +69,7 @@ public:
 
 
 
-  bool IsPausedByType(PRUint32 aType) const { return mPauseState & aType; }
+  bool IsPausedByType(uint32_t aType) const { return mPauseState & aType; }
 
   
 
@@ -267,7 +267,7 @@ protected:
   bool mIsSeeking; 
 
   
-  PRUint32 mPauseState;
+  uint32_t mPauseState;
 
   struct MilestoneEntry
   {

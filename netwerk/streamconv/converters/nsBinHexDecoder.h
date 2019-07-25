@@ -35,15 +35,15 @@
 
 typedef struct _binhex_header
 {
-  PRUint32 type, creator;
-  PRUint16 flags;
-  PRInt32 dlen, rlen;
+  uint32_t type, creator;
+  uint16_t flags;
+  int32_t dlen, rlen;
 } binhex_header;
 
 typedef union
 {
   unsigned char c[4];
-  PRUint32      val;
+  uint32_t      val;
 } longbuf;
 
 #define BINHEX_STATE_START    0
@@ -78,8 +78,8 @@ public:
 protected:
   virtual ~nsBinHexDecoder();
 
-  PRInt16  GetNextChar(PRUint32 numBytesInBuffer);
-  nsresult ProcessNextChunk(nsIRequest * aRequest, nsISupports * aContext, PRUint32 numBytesInBuffer);
+  int16_t  GetNextChar(uint32_t numBytesInBuffer);
+  nsresult ProcessNextChunk(nsIRequest * aRequest, nsISupports * aContext, uint32_t numBytesInBuffer);
   nsresult ProcessNextState(nsIRequest * aRequest, nsISupports * aContext);
   nsresult DetectContentType(nsIRequest * aRequest, const nsAFlatCString &aFilename);
 
@@ -90,13 +90,13 @@ protected:
   nsCOMPtr<nsIOutputStream>     mOutputStream;     
   nsCOMPtr<nsIInputStream>      mInputStream;
 
-  PRInt16   mState;      
-  PRUint16  mCRC;        
-  PRUint16  mFileCRC;    
+  int16_t   mState;      
+  uint16_t  mCRC;        
+  uint16_t  mFileCRC;    
   longbuf   mOctetBuf;   
-  PRInt16   mOctetin;    
-  PRInt16   mDonePos;    
-  PRInt16   mInCRC;      
+  int16_t   mOctetin;    
+  int16_t   mDonePos;    
+  int16_t   mInCRC;      
 
   
   binhex_header mHeader;
@@ -106,15 +106,15 @@ protected:
   
   char * mDataBuffer; 
   char * mOutgoingBuffer; 
-  PRUint32 mPosInDataBuffer;
+  uint32_t mPosInDataBuffer;
 
   unsigned char mRlebuf;  
 
-  PRUint32 mCount;        
-  PRInt16 mMarker;        
+  uint32_t mCount;        
+  int16_t mMarker;        
 
-  PRInt32 mPosInbuff;     
-  PRInt32 mPosOutputBuff; 
+  int32_t mPosInbuff;     
+  int32_t mPosOutputBuff; 
 };
 
 #endif 

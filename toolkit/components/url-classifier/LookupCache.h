@@ -94,8 +94,8 @@ public:
 
 
 
-  static nsresult KeyedHash(PRUint32 aPref, PRUint32 aHostKey,
-                            PRUint32 aUserKey, PRUint32* aOut,
+  static nsresult KeyedHash(uint32_t aPref, uint32_t aHostKey,
+                            uint32_t aUserKey, uint32_t* aOut,
                             bool aPassthrough);
 
   LookupCache(const nsACString& aTableName, nsIFile* aStoreFile,
@@ -109,7 +109,7 @@ public:
   
   nsresult Build(AddPrefixArray& aAddPrefixes,
                  AddCompleteArray& aAddCompletes);
-  nsresult GetPrefixes(nsTArray<PRUint32>* aAddPrefixes);
+  nsresult GetPrefixes(nsTArray<uint32_t>* aAddPrefixes);
 
 #if DEBUG && defined(PR_LOGGING)
   void Dump();
@@ -117,7 +117,7 @@ public:
   nsresult WriteFile();
   nsresult Has(const Completion& aCompletion,
                const Completion& aHostkey,
-               PRUint32 aHashKey,
+               uint32_t aHashKey,
                bool* aHas, bool* aComplete,
                Prefix* aOrigPrefix);
   bool IsPrimed();

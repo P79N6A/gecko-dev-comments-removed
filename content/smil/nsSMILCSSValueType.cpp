@@ -211,7 +211,7 @@ nsSMILCSSValueType::IsEqual(const nsSMILValue& aLeft,
 
 nsresult
 nsSMILCSSValueType::Add(nsSMILValue& aDest, const nsSMILValue& aValueToAdd,
-                        PRUint32 aCount) const
+                        uint32_t aCount) const
 {
   NS_ABORT_IF_FALSE(aValueToAdd.mType == aDest.mType,
                     "Trying to add invalid types");
@@ -347,16 +347,16 @@ ValueFromStringHelper(nsCSSProperty aPropID,
   
   
   bool isNegative = false;
-  PRUint32 subStringBegin = 0;
+  uint32_t subStringBegin = 0;
 
   
   
   
   if (aPropID != eCSSProperty_stroke_dasharray) {
-    PRInt32 absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
+    int32_t absValuePos = nsSMILParserUtils::CheckForNegativeNumber(aString);
     if (absValuePos > 0) {
       isNegative = true;
-      subStringBegin = (PRUint32)absValuePos; 
+      subStringBegin = (uint32_t)absValuePos; 
     }
   }
   nsDependentSubstring subString(aString, subStringBegin);

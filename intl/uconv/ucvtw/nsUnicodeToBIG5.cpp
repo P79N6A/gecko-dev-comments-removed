@@ -11,7 +11,7 @@
 
 
 
-static const PRUint16 *g_Big5MappingTable[2] = {
+static const uint16_t *g_Big5MappingTable[2] = {
   g_ASCIIMapping,
   g_ufBig5Mapping
 };

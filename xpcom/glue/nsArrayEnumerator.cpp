@@ -32,7 +32,7 @@ private:
 
 protected:
     nsCOMPtr<nsIArray> mValueArray;
-    PRUint32 mIndex;
+    uint32_t mIndex;
 };
 
 NS_IMPL_ISUPPORTS1(nsSimpleArrayEnumerator, nsISimpleEnumerator)
@@ -49,7 +49,7 @@ nsSimpleArrayEnumerator::HasMoreElements(bool* aResult)
         return NS_OK;
     }
 
-    PRUint32 cnt;
+    uint32_t cnt;
     nsresult rv = mValueArray->GetLength(&cnt);
     if (NS_FAILED(rv)) return rv;
     *aResult = (mIndex < cnt);
@@ -68,7 +68,7 @@ nsSimpleArrayEnumerator::GetNext(nsISupports** aResult)
         return NS_OK;
     }
 
-    PRUint32 cnt;
+    uint32_t cnt;
     nsresult rv = mValueArray->GetLength(&cnt);
     if (NS_FAILED(rv)) return rv;
     if (mIndex >= cnt)
@@ -118,8 +118,8 @@ private:
     ~nsCOMArrayEnumerator(void);
 
 protected:
-    PRUint32 mIndex;            
-    PRUint32 mArraySize;        
+    uint32_t mIndex;            
+    uint32_t mArraySize;        
     
     
     nsISupports* mValueArray[1];
@@ -186,8 +186,8 @@ nsCOMArrayEnumerator::operator new (size_t size, const nsCOMArray_base& aArray)
     
     
     
-    PRUint32 i;
-    PRUint32 max = result->mArraySize = aArray.Count();
+    uint32_t i;
+    uint32_t max = result->mArraySize = aArray.Count();
     for (i = 0; i<max; i++) {
         result->mValueArray[i] = aArray[i];
         NS_IF_ADDREF(result->mValueArray[i]);

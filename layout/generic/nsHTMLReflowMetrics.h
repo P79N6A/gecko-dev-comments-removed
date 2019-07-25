@@ -200,7 +200,7 @@ struct nsHTMLReflowMetrics {
   nscoord width, height;    
   nscoord ascent;           
 
-  PRUint32 mFlags;
+  uint32_t mFlags;
 
   enum { ASK_FOR_BASELINE = nscoord_MAX };
 
@@ -247,7 +247,7 @@ struct nsHTMLReflowMetrics {
   
   
   
-  nsHTMLReflowMetrics(PRUint32 aFlags = 0)
+  nsHTMLReflowMetrics(uint32_t aFlags = 0)
     : width(0), height(0), ascent(ASK_FOR_BASELINE), mFlags(aFlags)
   {}
 };

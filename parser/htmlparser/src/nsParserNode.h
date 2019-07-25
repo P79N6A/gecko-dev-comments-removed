@@ -36,7 +36,7 @@ class nsCParserNode :  public nsIParserNode {
 
   protected:
 
-    PRInt32 mRefCnt;
+    int32_t mRefCnt;
 
   public:
 
@@ -139,14 +139,14 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual PRInt32 GetNodeType()  const;
+    virtual int32_t GetNodeType()  const;
 
     
 
 
 
 
-    virtual PRInt32 GetTokenType()  const;
+    virtual int32_t GetTokenType()  const;
 
 
     
@@ -158,15 +158,7 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual PRInt32 GetAttributeCount(bool askToken=false) const;
-
-    
-
-
-
-
-
-    virtual const nsAString& GetKeyAt(PRUint32 anIndex) const;
+    virtual int32_t GetAttributeCount(bool askToken=false) const;
 
     
 
@@ -174,7 +166,15 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual const nsAString& GetValueAt(PRUint32 anIndex) const;
+    virtual const nsAString& GetKeyAt(uint32_t anIndex) const;
+
+    
+
+
+
+
+
+    virtual const nsAString& GetValueAt(uint32_t anIndex) const;
 
     
 
@@ -183,7 +183,7 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual PRInt32 TranslateToUnicodeStr(nsString& aString) const;
+    virtual int32_t TranslateToUnicodeStr(nsString& aString) const;
 
     
 
@@ -199,7 +199,7 @@ class nsCParserNode :  public nsIParserNode {
 
 
 
-    virtual PRInt32 GetSourceLineNumber(void) const;
+    virtual int32_t GetSourceLineNumber(void) const;
 
     
 
@@ -231,7 +231,7 @@ class nsCParserNode :  public nsIParserNode {
     virtual nsresult ReleaseAll();
 
     bool mGenericState;  
-    PRInt32      mUseCount;
+    int32_t      mUseCount;
     CToken*      mToken;
    
     nsTokenAllocator* mTokenAllocator;
@@ -281,9 +281,9 @@ public:
                           nsTokenAllocator* aTokenAllocator,
                           nsNodeAllocator* aNodeAllocator = 0);
     virtual void     AddAttribute(CToken* aToken);
-    virtual PRInt32  GetAttributeCount(bool askToken = false) const;
-    virtual const    nsAString& GetKeyAt(PRUint32 anIndex) const;
-    virtual const    nsAString& GetValueAt(PRUint32 anIndex) const;
+    virtual int32_t  GetAttributeCount(bool askToken = false) const;
+    virtual const    nsAString& GetKeyAt(uint32_t anIndex) const;
+    virtual const    nsAString& GetValueAt(uint32_t anIndex) const;
     virtual CToken*  PopAttributeToken();
     virtual CToken*  PopAttributeTokenFront();
     virtual void     GetSource(nsString& aString) const;

@@ -21,7 +21,7 @@ class nsIDOMWindow;
 @interface mozGrowlDelegate : NSObject <GrowlApplicationBridgeDelegate>
 {
 @private
-  PRUint32 mKey;
+  uint32_t mKey;
   NSMutableDictionary *mDict;
   NSMutableArray *mNames;
   NSMutableArray *mEnabled;
@@ -41,7 +41,7 @@ class nsIDOMWindow;
                   title:(const nsAString&)aTitle
             description:(const nsAString&)aText
                iconData:(NSData*)aImage
-                    key:(PRUint32)aKey
+                    key:(uint32_t)aKey
                  cookie:(const nsAString&)aCookie;
 
 
@@ -64,7 +64,7 @@ class nsIDOMWindow;
 
 
 
-- (PRUint32) addObserver:(nsIObserver*)aObserver;
+- (uint32_t) addObserver:(nsIObserver*)aObserver;
 
 
 

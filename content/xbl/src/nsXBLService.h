@@ -118,8 +118,8 @@ public:
   static nsHashtable* gClassTable;           
 
   static JSCList  gClassLRUList;             
-  static PRUint32 gClassLRUListLength;       
-  static PRUint32 gClassLRUListQuota;        
+  static uint32_t gClassLRUListLength;       
+  static uint32_t gClassLRUListQuota;        
   static bool     gAllowDataURIs;            
                                              
                                              

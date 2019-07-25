@@ -129,7 +129,7 @@ public:
 
   bool DeviceWasRemoved() { return mDeviceWasRemoved; }
 
-  PRUint32 GetDeviceResetCount() { return mDeviceResetCount; }
+  uint32_t GetDeviceResetCount() { return mDeviceResetCount; }
 
   
 
@@ -137,7 +137,7 @@ public:
 
   nsTArray<LayerD3D9*> mLayersWithResources;
 
-  PRInt32 GetMaxTextureSize() { return mMaxTextureSize; }
+  int32_t GetMaxTextureSize() { return mMaxTextureSize; }
 
 private:
   friend class SwapChainD3D9;
@@ -218,9 +218,9 @@ private:
   
   HMONITOR mDeviceMonitor;
 
-  PRUint32 mDeviceResetCount;
+  uint32_t mDeviceResetCount;
 
-  PRUint32 mMaxTextureSize;
+  uint32_t mMaxTextureSize;
 
   
   bool mHasDynamicTextures;

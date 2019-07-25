@@ -106,7 +106,7 @@ enum eGfxLog {
 };
 
 
-const PRUint32 kMaxLenPrefLangList = 32;
+const uint32_t kMaxLenPrefLangList = 32;
 
 #define UNINITIALIZED_VALUE  (-1)
 
@@ -285,8 +285,8 @@ public:
 
 
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const PRUint8 *aFontData,
-                                           PRUint32 aLength);
+                                           const uint8_t *aFontData,
+                                           uint32_t aLength);
 
     
 
@@ -325,15 +325,15 @@ public:
 
 
 
-    bool UseHarfBuzzForScript(PRInt32 aScriptCode);
+    bool UseHarfBuzzForScript(int32_t aScriptCode);
 
     
-    virtual bool IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags) { return false; }
+    virtual bool IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags) { return false; }
 
     void GetPrefFonts(nsIAtom *aLanguage, nsString& array, bool aAppendUnicode = true);
 
     
-    void GetLangPrefs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
+    void GetLangPrefs(eFontPrefLang aPrefLangs[], uint32_t &aLen, eFontPrefLang aCharLang, eFontPrefLang aPageLang);
     
     
 
@@ -342,7 +342,7 @@ public:
 
     typedef bool (*PrefFontCallback) (eFontPrefLang aLang, const nsAString& aName,
                                         void *aClosure);
-    static bool ForEachPrefFont(eFontPrefLang aLangArray[], PRUint32 aLangArrayLen,
+    static bool ForEachPrefFont(eFontPrefLang aLangArray[], uint32_t aLangArrayLen,
                                   PrefFontCallback aCallback,
                                   void *aClosure);
 
@@ -356,18 +356,18 @@ public:
     static const char* GetPrefLangName(eFontPrefLang aLang);
    
     
-    static eFontPrefLang GetFontPrefLangFor(PRUint8 aUnicodeRange);
+    static eFontPrefLang GetFontPrefLangFor(uint8_t aUnicodeRange);
 
     
     static bool IsLangCJK(eFontPrefLang aLang);
     
     
-    static void AppendPrefLang(eFontPrefLang aPrefLangs[], PRUint32& aLen, eFontPrefLang aAddLang);
+    static void AppendPrefLang(eFontPrefLang aPrefLangs[], uint32_t& aLen, eFontPrefLang aAddLang);
 
     
     
-    virtual void GetCommonFallbackFonts(const PRUint32 ,
-                                        PRInt32 ,
+    virtual void GetCommonFallbackFonts(const uint32_t ,
+                                        int32_t ,
                                         nsTArray<const char*>& )
     {
         
@@ -430,7 +430,7 @@ public:
 
     virtual void FontsPrefsChanged(const char *aPref);
 
-    PRInt32 GetBidiNumeralOption();
+    int32_t GetBidiNumeralOption();
 
     
 
@@ -458,7 +458,7 @@ protected:
     gfxPlatform();
     virtual ~gfxPlatform();
 
-    void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], PRUint32 &aLen, 
+    void AppendCJKPrefLangs(eFontPrefLang aPrefLangs[], uint32_t &aLen, 
                             eFontPrefLang aCharLang, eFontPrefLang aPageLang);
 
     
@@ -476,12 +476,12 @@ protected:
 
 
 
-    void InitCanvasBackend(PRUint32 aBackendBitmask);
+    void InitCanvasBackend(uint32_t aBackendBitmask);
     
 
 
 
-    static mozilla::gfx::BackendType GetCanvasBackendPref(PRUint32 aBackendBitmask);
+    static mozilla::gfx::BackendType GetCanvasBackendPref(uint32_t aBackendBitmask);
     static mozilla::gfx::BackendType BackendTypeForName(const nsCString& aName);
 
     virtual mozilla::gfx::BackendType GetContentBackend()
@@ -489,20 +489,20 @@ protected:
       return mozilla::gfx::BACKEND_NONE;
     }
 
-    PRInt8  mAllowDownloadableFonts;
-    PRInt8  mDownloadableFontsSanitize;
+    int8_t  mAllowDownloadableFonts;
+    int8_t  mDownloadableFontsSanitize;
 #ifdef MOZ_GRAPHITE
-    PRInt8  mGraphiteShapingEnabled;
+    int8_t  mGraphiteShapingEnabled;
 #endif
 
-    PRInt8  mBidiNumeralOption;
+    int8_t  mBidiNumeralOption;
 
     
     
-    PRInt8  mFallbackUsesCmaps;
+    int8_t  mFallbackUsesCmaps;
 
     
-    PRInt32 mUseHarfBuzzScripts;
+    int32_t mUseHarfBuzzScripts;
 
 private:
     
@@ -513,7 +513,7 @@ private:
     virtual qcms_profile* GetPlatformCMSOutputProfile();
 
     nsRefPtr<gfxASurface> mScreenReferenceSurface;
-    nsTArray<PRUint32> mCJKPrefLangs;
+    nsTArray<uint32_t> mCJKPrefLangs;
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
 

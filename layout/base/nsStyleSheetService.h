@@ -43,15 +43,15 @@ class nsStyleSheetService MOZ_FINAL : public nsIStyleSheetService
   NS_HIDDEN_(void) RegisterFromEnumerator(nsICategoryManager  *aManager,
                                           const char          *aCategory,
                                           nsISimpleEnumerator *aEnumerator,
-                                          PRUint32             aSheetType);
+                                          uint32_t             aSheetType);
 
-  NS_HIDDEN_(PRInt32) FindSheetByURI(const nsCOMArray<nsIStyleSheet> &sheets,
+  NS_HIDDEN_(int32_t) FindSheetByURI(const nsCOMArray<nsIStyleSheet> &sheets,
                                      nsIURI *sheetURI);
 
   
   
   NS_HIDDEN_(nsresult) LoadAndRegisterSheetInternal(nsIURI *aSheetURI,
-                                                    PRUint32 aSheetType);
+                                                    uint32_t aSheetType);
   
   nsCOMArray<nsIStyleSheet> mSheets[2];
 };

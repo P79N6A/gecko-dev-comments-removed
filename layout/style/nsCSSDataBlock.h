@@ -35,7 +35,7 @@ private:
 
     
     
-    nsCSSCompressedDataBlock(PRUint32 aNumProps)
+    nsCSSCompressedDataBlock(uint32_t aNumProps)
       : mStyleBits(0), mNumProps(aNumProps)
     {}
 
@@ -89,7 +89,7 @@ public:
     bool HasDefaultBorderImageRepeat() const;
 
 private:
-    void* operator new(size_t aBaseSize, PRUint32 aNumProps) {
+    void* operator new(size_t aBaseSize, uint32_t aNumProps) {
         NS_ABORT_IF_FALSE(aBaseSize == sizeof(nsCSSCompressedDataBlock),
                           "unexpected size for nsCSSCompressedDataBlock");
         return ::operator new(aBaseSize + DataSize(aNumProps));
@@ -100,18 +100,18 @@ public:
     
     
     
-    typedef PRInt16 CompressedCSSProperty;
+    typedef int16_t CompressedCSSProperty;
     static const size_t MaxCompressedCSSProperty = PR_INT16_MAX;
 
 private:
-    static size_t DataSize(PRUint32 aNumProps) {
+    static size_t DataSize(uint32_t aNumProps) {
         return size_t(aNumProps) *
                (sizeof(nsCSSValue) + sizeof(CompressedCSSProperty));
     }
 
-    PRInt32 mStyleBits; 
+    int32_t mStyleBits; 
                         
-    PRUint32 mNumProps;
+    uint32_t mNumProps;
     
     
     
@@ -127,27 +127,27 @@ private:
         return (CompressedCSSProperty*)(Values() + mNumProps);
     }
 
-    nsCSSValue* ValueAtIndex(PRUint32 i) const {
+    nsCSSValue* ValueAtIndex(uint32_t i) const {
         NS_ABORT_IF_FALSE(i < mNumProps, "value index out of range");
         return Values() + i;
     }
 
-    nsCSSProperty PropertyAtIndex(PRUint32 i) const {
+    nsCSSProperty PropertyAtIndex(uint32_t i) const {
         NS_ABORT_IF_FALSE(i < mNumProps, "property index out of range");
         nsCSSProperty prop = (nsCSSProperty)CompressedProperties()[i];
         NS_ABORT_IF_FALSE(!nsCSSProps::IsShorthand(prop), "out of range");
         return prop;
     }
 
-    void CopyValueToIndex(PRUint32 i, nsCSSValue* aValue) {
+    void CopyValueToIndex(uint32_t i, nsCSSValue* aValue) {
         new (ValueAtIndex(i)) nsCSSValue(*aValue);
     }
 
-    void RawCopyValueToIndex(PRUint32 i, nsCSSValue* aValue) {
+    void RawCopyValueToIndex(uint32_t i, nsCSSValue* aValue) {
         memcpy(ValueAtIndex(i), aValue, sizeof(nsCSSValue));
     }
 
-    void SetPropertyAtIndex(PRUint32 i, nsCSSProperty aProperty) {
+    void SetPropertyAtIndex(uint32_t i, nsCSSProperty aProperty) {
         NS_ABORT_IF_FALSE(i < mNumProps, "set property index out of range");
         CompressedProperties()[i] = (CompressedCSSProperty)aProperty;
     }
@@ -259,8 +259,8 @@ private:
 
 
 
-    void ComputeNumProps(PRUint32* aNumPropsNormal,
-                         PRUint32* aNumPropsImportant);
+    void ComputeNumProps(uint32_t* aNumPropsNormal,
+                         uint32_t* aNumPropsImportant);
     
     void DoExpand(nsCSSCompressedDataBlock *aBlock, bool aImportant);
 

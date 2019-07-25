@@ -52,7 +52,7 @@ class nsScanner {
 
 
 
-      nsScanner(const nsAString& anHTMLString, const nsACString& aCharset, PRInt32 aSource);
+      nsScanner(const nsAString& anHTMLString, const nsACString& aCharset, int32_t aSource);
 
       
 
@@ -64,7 +64,7 @@ class nsScanner {
 
 
 
-      nsScanner(nsString& aFilename,bool aCreateStream, const nsACString& aCharset, PRInt32 aSource);
+      nsScanner(nsString& aFilename,bool aCreateStream, const nsACString& aCharset, int32_t aSource);
 
       ~nsScanner();
 
@@ -85,9 +85,9 @@ class nsScanner {
 
 
 
-      nsresult Peek(PRUnichar& ch, PRUint32 aOffset=0);
+      nsresult Peek(PRUnichar& ch, uint32_t aOffset=0);
 
-      nsresult Peek(nsAString& aStr, PRInt32 aNumChars, PRInt32 aOffset = 0);
+      nsresult Peek(nsAString& aStr, int32_t aNumChars, int32_t aOffset = 0);
 
       
 
@@ -104,7 +104,7 @@ class nsScanner {
 
 
 
-      nsresult SkipWhitespace(PRInt32& aNewlinesSkipped);
+      nsresult SkipWhitespace(int32_t& aNewlinesSkipped);
 
       
 
@@ -122,13 +122,13 @@ class nsScanner {
 
 
       nsresult ReadEntityIdentifier(nsString& aString);
-      nsresult ReadNumber(nsString& aString,PRInt32 aBase);
+      nsresult ReadNumber(nsString& aString,int32_t aBase);
       nsresult ReadWhitespace(nsScannerSharedSubstring& aString, 
-                              PRInt32& aNewlinesSkipped,
+                              int32_t& aNewlinesSkipped,
                               bool& aHaveCR);
       nsresult ReadWhitespace(nsScannerIterator& aStart, 
                               nsScannerIterator& aEnd,
-                              PRInt32& aNewlinesSkipped);
+                              int32_t& aNewlinesSkipped);
 
       
 
@@ -175,7 +175,7 @@ class nsScanner {
 
 
 
-      PRInt32 Mark(void);
+      int32_t Mark(void);
 
       
 
@@ -215,7 +215,7 @@ class nsScanner {
 
 
 
-      nsresult Append(const char* aBuffer, PRUint32 aLen,
+      nsresult Append(const char* aBuffer, uint32_t aLen,
                       nsIRequest *aRequest);
 
       
@@ -248,7 +248,7 @@ class nsScanner {
 
 
 
-      nsresult SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource);
+      nsresult SetDocumentCharset(const nsACString& aCharset, int32_t aSource);
 
       void BindSubstring(nsScannerSubstring& aSubstring, const nsScannerIterator& aStart, const nsScannerIterator& aEnd);
       void CurrentPosition(nsScannerIterator& aPosition);
@@ -273,7 +273,7 @@ class nsScanner {
 
 
 
-      PRInt32 FirstNonWhitespacePosition()
+      int32_t FirstNonWhitespacePosition()
       {
         return mFirstNonWhitespacePosition;
       }
@@ -289,7 +289,7 @@ class nsScanner {
 
   protected:
 
-      bool AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest, PRInt32 aErrorPos = -1);
+      bool AppendToBuffer(nsScannerString::Buffer *, nsIRequest *aRequest, int32_t aErrorPos = -1);
       bool AppendToBuffer(const nsAString& aStr)
       {
         nsScannerString::Buffer* buf = nsScannerString::AllocBufferFromString(aStr);
@@ -305,13 +305,13 @@ class nsScanner {
       nsScannerIterator            mEndPosition;     
       nsScannerIterator            mFirstInvalidPosition; 
       nsString        mFilename;
-      PRUint32        mCountRemaining; 
+      uint32_t        mCountRemaining; 
                                        
       bool            mIncremental;
       bool            mHasInvalidCharacter;
       PRUnichar       mReplacementCharacter;
-      PRInt32         mFirstNonWhitespacePosition;
-      PRInt32         mCharsetSource;
+      int32_t         mFirstNonWhitespacePosition;
+      int32_t         mCharsetSource;
       nsCString       mCharset;
       nsCOMPtr<nsIUnicodeDecoder> mUnicodeDecoder;
 

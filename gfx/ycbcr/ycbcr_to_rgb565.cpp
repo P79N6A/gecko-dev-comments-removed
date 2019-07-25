@@ -21,10 +21,10 @@ namespace gfx {
 
 
 struct yuv2rgb565_row_scale_bilinear_ctx{
-  PRUint16 *rgb_row;
-  const PRUint8 *y_row;
-  const PRUint8 *u_row;
-  const PRUint8 *v_row;
+  uint16_t *rgb_row;
+  const uint8_t *y_row;
+  const uint8_t *u_row;
+  const uint8_t *v_row;
   int y_yweight;
   int y_pitch;
   int width;
@@ -44,10 +44,10 @@ struct yuv2rgb565_row_scale_bilinear_ctx{
 
 
 struct yuv2rgb565_row_scale_nearest_ctx{
-  PRUint16 *rgb_row;
-  const PRUint8 *y_row;
-  const PRUint8 *u_row;
-  const PRUint8 *v_row;
+  uint16_t *rgb_row;
+  const uint8_t *y_row;
+  const uint8_t *u_row;
+  const uint8_t *v_row;
   int width;
   int source_x0_q16;
   int source_dx_q16;
@@ -84,7 +84,7 @@ void __attribute((noinline)) yuv42x_to_rgb565_row_neon(uint16 *dst,
 
 
 
-static int bislerp(const PRUint8 *row,
+static int bislerp(const uint8_t *row,
                    int pitch,
                    int source_x,
                    int xweight,
@@ -105,7 +105,7 @@ static int bislerp(const PRUint8 *row,
 
 
 
-static PRUint16 yu2rgb565(int y, int u, int v, int dither) {
+static uint16_t yu2rgb565(int y, int u, int v, int dither) {
   
 
   static const int DITHER_BIAS[4][3]={
@@ -120,7 +120,7 @@ static PRUint16 yu2rgb565(int y, int u, int v, int dither) {
   r = clamped((74*y+102*v+DITHER_BIAS[dither][0])>>9, 0, 31);
   g = clamped((74*y-25*u-52*v+DITHER_BIAS[dither][1])>>8, 0, 63);
   b = clamped((74*y+129*u+DITHER_BIAS[dither][2])>>9, 0, 31);
-  return (PRUint16)(r<<11 | g<<5 | b);
+  return (uint16_t)(r<<11 | g<<5 | b);
 }
 
 static void ScaleYCbCr420ToRGB565_Bilinear_Row_C(
@@ -280,10 +280,10 @@ static void ScaleYCbCr444ToRGB565_Nearest_Row_C(
   }
 }
 
-NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
-                                 const PRUint8 *u_buf,
-                                 const PRUint8 *v_buf,
-                                 PRUint8 *rgb_buf,
+NS_GFX_(void) ScaleYCbCrToRGB565(const uint8_t *y_buf,
+                                 const uint8_t *u_buf,
+                                 const uint8_t *v_buf,
+                                 uint8_t *rgb_buf,
                                  int source_x0,
                                  int source_y0,
                                  int source_width,
@@ -343,8 +343,8 @@ NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
 
 
   NS_ASSERTION((y_pitch&15) == 0 && (uv_pitch&15) == 0 &&
-   ((y_buf-(PRUint8 *)NULL)&15) == 0 &&
-   ((u_buf-(PRUint8 *)NULL)&15) == 0 && ((v_buf-(PRUint8 *)NULL)&15) == 0,
+   ((y_buf-(uint8_t *)NULL)&15) == 0 &&
+   ((u_buf-(uint8_t *)NULL)&15) == 0 && ((v_buf-(uint8_t *)NULL)&15) == 0,
    "ScaleYCbCrToRGB565 source image unaligned");
   
 
@@ -422,7 +422,7 @@ NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
     ctx.source_uv_xoffs_q16 = source_uv_xoffs_q16;
     for (y=0; y<height; y++) {
       int source_y;
-      ctx.rgb_row = (PRUint16 *)(rgb_buf + y*rgb_pitch);
+      ctx.rgb_row = (uint16_t *)(rgb_buf + y*rgb_pitch);
       source_y = source_y0_q16>>16;
       source_y = clamped(source_y, ymin, ymax);
       ctx.y_row = y_buf + source_y*y_pitch;
@@ -500,7 +500,7 @@ NS_GFX_(void) ScaleYCbCrToRGB565(const PRUint8 *y_buf,
       int source_y;
       int yweight;
       int uvweight;
-      ctx.rgb_row = (PRUint16 *)(rgb_buf + y*rgb_pitch);
+      ctx.rgb_row = (uint16_t *)(rgb_buf + y*rgb_pitch);
       source_y = (source_y0_q16+128)>>16;
       yweight = ((source_y0_q16+128)>>8)&0xFF;
       if (source_y < ymin) {

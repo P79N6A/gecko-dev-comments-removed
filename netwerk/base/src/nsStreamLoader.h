@@ -28,16 +28,16 @@ public:
 
 protected:
   static NS_METHOD WriteSegmentFun(nsIInputStream *, void *, const char *,
-                                   PRUint32, PRUint32, PRUint32 *);
+                                   uint32_t, uint32_t, uint32_t *);
 
   nsCOMPtr<nsIStreamLoaderObserver> mObserver;
   nsCOMPtr<nsISupports>             mContext;  
   nsCOMPtr<nsIRequest>              mRequest;
 
-  PRUint8  *mData;      
-  PRUint32  mAllocated; 
+  uint8_t  *mData;      
+  uint32_t  mAllocated; 
                         
-  PRUint32  mLength;    
+  uint32_t  mLength;    
                         
 };
 

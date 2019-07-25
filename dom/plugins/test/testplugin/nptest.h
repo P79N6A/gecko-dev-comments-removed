@@ -86,7 +86,7 @@ typedef enum {
 typedef struct TestNPObject : NPObject {
   NPP npp;
   DrawMode drawMode;
-  PRUint32 drawColor; 
+  uint32_t drawColor; 
 } TestNPObject;
 
 typedef struct _PlatformData PlatformData;

@@ -10,7 +10,7 @@
 
 
 
-static const PRUint16 *g_JohabMappingTable[4] = {
+static const uint16_t *g_JohabMappingTable[4] = {
   g_ucvko_AsciiMapping,
   g_HangulNullMapping,
   g_ufJohabJamoMapping,

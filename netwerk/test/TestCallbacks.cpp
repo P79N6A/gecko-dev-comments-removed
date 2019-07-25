@@ -29,7 +29,7 @@
 static NS_DEFINE_CID(kIOServiceCID,              NS_IOSERVICE_CID);
 
 static bool gError = false;
-static PRInt32 gKeepRunning = 0;
+static int32_t gKeepRunning = 0;
 
 #define NS_IEQUALS_IID \
     { 0x11c5c8ee, 0x1dd2, 0x11b2, \
@@ -72,7 +72,7 @@ public:
     
     bool    mOnStart; 
     bool    mOnStop;  
-    PRInt32 mOnDataCount; 
+    int32_t mOnDataCount; 
     nsCOMPtr<nsIURI>     mURI;
     nsCOMPtr<nsIChannel> mChannel;
     nsCOMPtr<nsIEquals>  mContext;
@@ -129,7 +129,7 @@ Consumer::OnStopRequest(nsIRequest *request, nsISupports *aContext,
 NS_IMETHODIMP
 Consumer::OnDataAvailable(nsIRequest *request, nsISupports *aContext,
                           nsIInputStream *aIStream,
-                          PRUint32 aOffset, PRUint32 aLength) {
+                          uint32_t aOffset, uint32_t aLength) {
     fprintf(stderr, "Consumer::OnData() -> in\n\n");
 
     if (!mOnStart) {

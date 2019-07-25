@@ -40,7 +40,7 @@ public:
 
 
 
-  NS_IMETHOD_(nsIFormControl*) GetElementAt(PRInt32 aIndex) const = 0;
+  NS_IMETHOD_(nsIFormControl*) GetElementAt(int32_t aIndex) const = 0;
 
   
 
@@ -48,7 +48,7 @@ public:
 
 
 
-  NS_IMETHOD_(PRUint32) GetElementCount() const = 0;
+  NS_IMETHOD_(uint32_t) GetElementCount() const = 0;
 
   
 
@@ -66,7 +66,7 @@ public:
 
 
 
-  NS_IMETHOD_(PRInt32) IndexOfControl(nsIFormControl* aControl) = 0;
+  NS_IMETHOD_(int32_t) IndexOfControl(nsIFormControl* aControl) = 0;
 
   
 

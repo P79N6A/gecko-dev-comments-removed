@@ -34,7 +34,7 @@ public:
   
   
   void Start(Callback aCallback, void* aData,
-             PRUint32 aInitialDelay = INITAL_REPEAT_DELAY);
+             uint32_t aInitialDelay = INITAL_REPEAT_DELAY);
   
   
   

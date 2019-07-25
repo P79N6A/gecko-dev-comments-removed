@@ -41,17 +41,17 @@ class nsJARInputStream MOZ_FINAL : public nsIInputStream
   
   private:
     nsRefPtr<nsZipHandle>  mFd;         
-    PRUint32               mOutSize;    
-    PRUint32               mInCrc;      
-    PRUint32               mOutCrc;     
+    uint32_t               mOutSize;    
+    uint32_t               mInCrc;      
+    uint32_t               mOutCrc;     
     z_stream               mZs;         
 
     
     nsRefPtr<nsJAR>        mJar;        
-    PRUint32               mNameLen;    
+    uint32_t               mNameLen;    
     nsCString              mBuffer;     
-    PRUint32               mCurPos;     
-    PRUint32               mArrPos;     
+    uint32_t               mCurPos;     
+    uint32_t               mArrPos;     
     nsTArray<nsCString>    mArray;      
 
 	typedef enum {
@@ -64,9 +64,9 @@ class nsJARInputStream MOZ_FINAL : public nsIInputStream
 
     JISMode                mMode;		
 
-    nsresult ContinueInflate(char* aBuf, PRUint32 aCount, PRUint32* aBytesRead);
-    nsresult ReadDirectory(char* aBuf, PRUint32 aCount, PRUint32* aBytesRead);
-    PRUint32 CopyDataToBuffer(char* &aBuffer, PRUint32 &aCount);
+    nsresult ContinueInflate(char* aBuf, uint32_t aCount, uint32_t* aBytesRead);
+    nsresult ReadDirectory(char* aBuf, uint32_t aCount, uint32_t* aBytesRead);
+    uint32_t CopyDataToBuffer(char* &aBuffer, uint32_t &aCount);
 };
 
 #endif 

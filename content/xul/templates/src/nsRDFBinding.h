@@ -66,7 +66,7 @@ class RDFBindingSet
 protected:
 
     
-    PRInt32 mCount;
+    int32_t mCount;
 
     
     RDFBinding* mFirst;
@@ -84,7 +84,7 @@ public:
 
     NS_INLINE_DECL_REFCOUNTING(RDFBindingSet)
 
-    PRInt32 Count() const { return mCount; }
+    int32_t Count() const { return mCount; }
 
     
 
@@ -140,7 +140,7 @@ public:
 
 
 
-    PRInt32
+    int32_t
     LookupTargetIndex(nsIAtom* aTargetVariable, RDFBinding** aBinding);
 };
 

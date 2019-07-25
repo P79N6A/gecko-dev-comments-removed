@@ -66,16 +66,16 @@ class nsZipItem
 public:
   const char* Name() { return ((const char*)central) + ZIPCENTRAL_SIZE; }
 
-  PRUint32 LocalOffset();
-  PRUint32 Size();
-  PRUint32 RealSize();
-  PRUint32 CRC32();
-  PRUint16 Date();
-  PRUint16 Time();
-  PRUint16 Compression();
+  uint32_t LocalOffset();
+  uint32_t Size();
+  uint32_t RealSize();
+  uint32_t CRC32();
+  uint16_t Date();
+  uint16_t Time();
+  uint16_t Compression();
   bool     IsDirectory();
-  PRUint16 Mode();
-  const PRUint8* GetExtraField(PRUint16 aTag, PRUint16 *aBlockSize);
+  uint16_t Mode();
+  const uint8_t* GetExtraField(uint16_t aTag, uint16_t *aBlockSize);
   PRTime   LastModTime();
 
 #ifdef XP_UNIX
@@ -84,7 +84,7 @@ public:
 
   nsZipItem*         next;
   const ZipCentral*  central;
-  PRUint16           nameLength;
+  uint16_t           nameLength;
   bool               isSynthetic;
 };
 
@@ -185,7 +185,7 @@ public:
 
 
 
-  const PRUint8* GetData(nsZipItem* aItem);
+  const uint8_t* GetData(nsZipItem* aItem);
 
   bool GetComment(nsACString &aComment);
 
@@ -193,7 +193,7 @@ public:
 
 
 
-  PRInt64 SizeOfMapping();
+  int64_t SizeOfMapping();
 
   
 
@@ -209,7 +209,7 @@ private:
   PLArenaPool   mArena;
 
   const char*   mCommentPtr;
-  PRUint16      mCommentLen;
+  uint16_t      mCommentLen;
 
   
   bool          mBuiltSynthetics;
@@ -242,13 +242,13 @@ public:
   nsZipFind(nsZipArchive* aZip, char* aPattern, bool regExp);
   ~nsZipFind();
 
-  nsresult      FindNext(const char** aResult, PRUint16* aNameLen);
+  nsresult      FindNext(const char** aResult, uint16_t* aNameLen);
 
 private:
   nsRefPtr<nsZipArchive> mArchive;
   char*         mPattern;
   nsZipItem*    mItem;
-  PRUint16      mSlot;
+  uint16_t      mSlot;
   bool          mRegExp;
 
   nsZipFind& operator=(const nsZipFind& rhs) MOZ_DELETE;
@@ -270,7 +270,7 @@ public:
 
 
 
-  nsZipCursor(nsZipItem *aItem, nsZipArchive *aZip, PRUint8* aBuf = NULL, PRUint32 aBufSize = 0, bool doCRC = false);
+  nsZipCursor(nsZipItem *aItem, nsZipArchive *aZip, uint8_t* aBuf = NULL, uint32_t aBufSize = 0, bool doCRC = false);
 
   ~nsZipCursor();
 
@@ -281,7 +281,7 @@ public:
 
 
 
-  PRUint8* Read(PRUint32 *aBytesRead) {
+  uint8_t* Read(uint32_t *aBytesRead) {
     return ReadOrCopy(aBytesRead, false);
   }
 
@@ -291,19 +291,19 @@ public:
 
 
 
-  PRUint8* Copy(PRUint32 *aBytesRead) {
+  uint8_t* Copy(uint32_t *aBytesRead) {
     return ReadOrCopy(aBytesRead, true);
   }
 
 private:
   
-  PRUint8* ReadOrCopy(PRUint32 *aBytesRead, bool aCopy);
+  uint8_t* ReadOrCopy(uint32_t *aBytesRead, bool aCopy);
 
   nsZipItem *mItem; 
-  PRUint8  *mBuf; 
-  PRUint32  mBufSize; 
+  uint8_t  *mBuf; 
+  uint32_t  mBufSize; 
   z_stream  mZs;
-  PRUint32 mCRC;
+  uint32_t mCRC;
   bool mDoCRC;
 };
 
@@ -324,15 +324,15 @@ public:
 
   nsZipItemPtr_base(nsZipArchive *aZip, const char *aEntryName, bool doCRC);
 
-  PRUint32 Length() const {
+  uint32_t Length() const {
     return mReadlen;
   }
 
 protected:
   nsRefPtr<nsZipHandle> mZipHandle;
-  nsAutoArrayPtr<PRUint8> mAutoBuf;
-  PRUint8 *mReturnBuf;
-  PRUint32 mReadlen;
+  nsAutoArrayPtr<uint8_t> mAutoBuf;
+  uint8_t *mReturnBuf;
+  uint32_t mReadlen;
 };
 
 template <class T>
@@ -382,11 +382,11 @@ public:
   NS_METHOD_(nsrefcnt) AddRef(void);
   NS_METHOD_(nsrefcnt) Release(void);
 
-  PRInt64 SizeOfMapping();
+  int64_t SizeOfMapping();
 
 protected:
-  const PRUint8 * mFileData; 
-  PRUint32        mLen;      
+  const uint8_t * mFileData; 
+  uint32_t        mLen;      
   mozilla::FileLocation mFile; 
 
 private:
@@ -394,7 +394,7 @@ private:
   ~nsZipHandle();
 
   PRFileMap *                       mMap;    
-  nsAutoPtr<nsZipItemPtr<PRUint8> > mBuf;
+  nsAutoPtr<nsZipItemPtr<uint8_t> > mBuf;
   nsrefcnt                          mRefCnt; 
 };
 

@@ -82,7 +82,7 @@ public:
                       const nsIntRect& aTargetBounds,
                       const nsIntRect& aPostFilterDirtyRect,
                       const nsIntRect& aPreFilterDirtyRect,
-                      PRUint16 aPrimitiveUnits) :
+                      uint16_t aPrimitiveUnits) :
     mTargetFrame(aTargetFrame),
     mPaintCallback(aPaintCallback),
     mFilterElement(aFilterElement),
@@ -115,8 +115,8 @@ public:
 
 
   const nsIntSize& GetFilterSpaceSize() { return mFilterSpaceSize; }
-  PRUint32 GetFilterResX() const { return mFilterSpaceSize.width; }
-  PRUint32 GetFilterResY() const { return mFilterSpaceSize.height; }
+  uint32_t GetFilterResX() const { return mFilterSpaceSize.width; }
+  uint32_t GetFilterResY() const { return mFilterSpaceSize.height; }
 
   
 
@@ -125,8 +125,8 @@ public:
 
 
   const nsIntRect& GetSurfaceRect() const { return mSurfaceRect; }
-  PRInt32 GetSurfaceWidth() const { return mSurfaceRect.width; }
-  PRInt32 GetSurfaceHeight() const { return mSurfaceRect.height; }
+  int32_t GetSurfaceWidth() const { return mSurfaceRect.width; }
+  int32_t GetSurfaceHeight() const { return mSurfaceRect.height; }
 
   
 
@@ -162,11 +162,11 @@ public:
 
   nsresult ComputeOutputBBox(nsIntRect* aBBox);
 
-  float GetPrimitiveNumber(PRUint8 aCtxType, const nsSVGNumber2 *aNumber) const
+  float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumber2 *aNumber) const
   {
     return GetPrimitiveNumber(aCtxType, aNumber->GetAnimValue());
   }
-  float GetPrimitiveNumber(PRUint8 aCtxType, const nsSVGNumberPair *aNumberPair,
+  float GetPrimitiveNumber(uint8_t aCtxType, const nsSVGNumberPair *aNumberPair,
                            nsSVGNumberPair::PairIndex aIndex) const
   {
     return GetPrimitiveNumber(aCtxType, aNumberPair->GetAnimValue(aIndex));
@@ -205,7 +205,7 @@ public:
     return mFilterSpaceToFrameSpaceInCSSPxTransform;
   }
 
-  PRInt32 AppUnitsPerCSSPixel() const {
+  int32_t AppUnitsPerCSSPixel() const {
     return mTargetFrame->PresContext()->AppUnitsPerCSSPixel();
   }
 
@@ -258,7 +258,7 @@ private:
 
 
 
-    PRInt32   mImageUsers;
+    int32_t   mImageUsers;
   
     
     
@@ -367,7 +367,7 @@ private:
 
 
 
-  float GetPrimitiveNumber(PRUint8 aCtxType, float aValue) const;
+  float GetPrimitiveNumber(uint8_t aCtxType, float aValue) const;
 
   gfxRect UserSpaceToFilterSpace(const gfxRect& aUserSpace) const;
 
@@ -423,7 +423,7 @@ private:
   
 
 
-  PRUint16                mPrimitiveUnits;
+  uint16_t                mPrimitiveUnits;
 
   PrimitiveInfo           mSourceColorAlpha;
   PrimitiveInfo           mSourceAlpha;

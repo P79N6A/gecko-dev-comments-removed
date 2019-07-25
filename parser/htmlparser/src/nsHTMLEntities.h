@@ -19,8 +19,8 @@ public:
 
 
 
-  static PRInt32 EntityToUnicode(const nsAString& aEntity);
-  static PRInt32 EntityToUnicode(const nsCString& aEntity);
+  static int32_t EntityToUnicode(const nsAString& aEntity);
+  static int32_t EntityToUnicode(const nsCString& aEntity);
 
 
 
@@ -28,7 +28,7 @@ public:
 
 
 
-  static const char* UnicodeToEntity(PRInt32 aUnicode);
+  static const char* UnicodeToEntity(int32_t aUnicode);
 };
 
 

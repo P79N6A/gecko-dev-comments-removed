@@ -28,8 +28,8 @@
 #include "nsAutoPtr.h"
 #include "nsCOMArray.h"
 
-typedef PRInt16 DownloadState;
-typedef PRInt16 DownloadType;
+typedef int16_t DownloadState;
+typedef int16_t DownloadType;
 
 class nsDownload;
 
@@ -91,7 +91,7 @@ protected:
 
   nsresult RestoreActiveDownloads();
 
-  nsresult GetDownloadFromDB(PRUint32 aID, nsDownload **retVal);
+  nsresult GetDownloadFromDB(uint32_t aID, nsDownload **retVal);
 
   
 
@@ -106,32 +106,32 @@ protected:
 
 
 
-  PRInt64 AddDownloadToDB(const nsAString &aName,
+  int64_t AddDownloadToDB(const nsAString &aName,
                           const nsACString &aSource,
                           const nsACString &aTarget,
                           const nsAString &aTempPath,
-                          PRInt64 aStartTime,
-                          PRInt64 aEndTime,
+                          int64_t aStartTime,
+                          int64_t aEndTime,
                           const nsACString &aMimeType,
                           const nsACString &aPreferredApp,
                           nsHandlerInfoAction aPreferredAction);
 
-  void NotifyListenersOnDownloadStateChange(PRInt16 aOldState,
+  void NotifyListenersOnDownloadStateChange(int16_t aOldState,
                                             nsIDownload *aDownload);
   void NotifyListenersOnProgressChange(nsIWebProgress *aProgress,
                                        nsIRequest *aRequest,
-                                       PRInt64 aCurSelfProgress,
-                                       PRInt64 aMaxSelfProgress,
-                                       PRInt64 aCurTotalProgress,
-                                       PRInt64 aMaxTotalProgress,
+                                       int64_t aCurSelfProgress,
+                                       int64_t aMaxSelfProgress,
+                                       int64_t aCurTotalProgress,
+                                       int64_t aMaxTotalProgress,
                                        nsIDownload *aDownload);
   void NotifyListenersOnStateChange(nsIWebProgress *aProgress,
                                     nsIRequest *aRequest,
-                                    PRUint32 aStateFlags,
+                                    uint32_t aStateFlags,
                                     nsresult aStatus,
                                     nsIDownload *aDownload);
 
-  nsDownload *FindDownload(PRUint32 aID);
+  nsDownload *FindDownload(uint32_t aID);
 
   
 
@@ -185,14 +185,14 @@ protected:
   static void ResumeOnWakeCallback(nsITimer *aTimer, void *aClosure);
   nsCOMPtr<nsITimer> mResumeOnWakeTimer;
 
-  void ConfirmCancelDownloads(PRInt32 aCount,
+  void ConfirmCancelDownloads(int32_t aCount,
                               nsISupportsPRBool *aCancelDownloads,
                               const PRUnichar *aTitle,
                               const PRUnichar *aCancelMessageMultiple,
                               const PRUnichar *aCancelMessageSingle,
                               const PRUnichar *aDontCancelButton);
 
-  PRInt32 GetRetentionBehavior();
+  int32_t GetRetentionBehavior();
 
   
 
@@ -287,13 +287,13 @@ protected:
   
 
 
-  void SetStartTime(PRInt64 aStartTime);
+  void SetStartTime(int64_t aStartTime);
 
   
 
 
 
-  void SetProgressBytes(PRInt64 aCurrBytes, PRInt64 aMaxBytes);
+  void SetProgressBytes(int64_t aCurrBytes, int64_t aMaxBytes);
 
   
 
@@ -384,20 +384,20 @@ private:
   DownloadState mDownloadState;
   DownloadType mDownloadType;
 
-  PRUint32 mID;
-  PRInt32 mPercentComplete;
+  uint32_t mID;
+  int32_t mPercentComplete;
 
   
 
 
 
 
-  PRInt64 mCurrBytes;
-  PRInt64 mMaxBytes;
+  int64_t mCurrBytes;
+  int64_t mMaxBytes;
 
   PRTime mStartTime;
   PRTime mLastUpdate;
-  PRInt64 mResumedAt;
+  int64_t mResumedAt;
   double mSpeed;
 
   bool mHasMultipleFiles;

@@ -46,7 +46,7 @@ public:
     
 
 
-    PRUint64       mSequenceCounter;
+    uint64_t       mSequenceCounter;
   };
   
 

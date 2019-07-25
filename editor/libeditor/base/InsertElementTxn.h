@@ -29,7 +29,7 @@ public:
 
   NS_IMETHOD Init(nsIDOMNode *aNode,
                   nsIDOMNode *aParent,
-                  PRInt32     aOffset,
+                  int32_t     aOffset,
                   nsIEditor  *aEditor);
 
   InsertElementTxn();
@@ -51,7 +51,7 @@ protected:
   nsIEditor*           mEditor;
 
   
-  PRInt32 mOffset;
+  int32_t mOffset;
 };
 
 #endif

@@ -66,7 +66,7 @@ public:
     
     
     static PLDHashNumber    Hash(const char* key, PLDHashNumber initval=0);
-    static nsresult         Truncate(PRFileDesc *  fd, PRUint32  newEOF);
+    static nsresult         Truncate(PRFileDesc *  fd, uint32_t  newEOF);
 };
 
 #endif

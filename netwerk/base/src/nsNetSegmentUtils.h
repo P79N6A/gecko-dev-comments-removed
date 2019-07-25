@@ -11,7 +11,7 @@
 
 
 static inline void
-net_ResolveSegmentParams(PRUint32 &segsize, PRUint32 &segcount)
+net_ResolveSegmentParams(uint32_t &segsize, uint32_t &segcount)
 {
     if (!segsize)
         segsize = nsIOService::gDefaultSegmentSize;

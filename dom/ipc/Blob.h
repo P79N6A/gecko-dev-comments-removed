@@ -173,11 +173,11 @@ public:
   
   bool
   SetMysteryBlobInfo(const nsString& aName, const nsString& aContentType,
-                     PRUint64 aLength);
+                     uint64_t aLength);
 
   
   bool
-  SetMysteryBlobInfo(const nsString& aContentType, PRUint64 aLength);
+  SetMysteryBlobInfo(const nsString& aContentType, uint64_t aLength);
 
 private:
   

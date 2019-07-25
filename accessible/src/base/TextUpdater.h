@@ -38,7 +38,7 @@ private:
 
 
   void DoUpdate(const nsAString& aNewText, const nsAString& aOldText,
-                PRUint32 aSkipStart);
+                uint32_t aSkipStart);
 
 private:
   TextUpdater();
@@ -50,13 +50,13 @@ private:
 
   void ComputeTextChangeEvents(const nsAString& aStr1,
                                const nsAString& aStr2,
-                               PRUint32* aEntries,
+                               uint32_t* aEntries,
                                nsTArray<nsRefPtr<AccEvent> >& aEvents);
 
   
 
 
-  inline void FireInsertEvent(const nsAString& aText, PRUint32 aAddlOffset,
+  inline void FireInsertEvent(const nsAString& aText, uint32_t aAddlOffset,
                               nsTArray<nsRefPtr<AccEvent> >& aEvents)
   {
     nsRefPtr<AccEvent> event =
@@ -68,7 +68,7 @@ private:
   
 
 
-  inline void FireDeleteEvent(const nsAString& aText, PRUint32 aAddlOffset,
+  inline void FireDeleteEvent(const nsAString& aText, uint32_t aAddlOffset,
                               nsTArray<nsRefPtr<AccEvent> >& aEvents)
   {
     nsRefPtr<AccEvent> event =
@@ -81,13 +81,13 @@ private:
 
 
 
-  const static PRUint32 kMaxStrLen = 1 << 6;
+  const static uint32_t kMaxStrLen = 1 << 6;
 
 private:
   DocAccessible* mDocument;
   TextLeafAccessible* mTextLeaf;
   HyperTextAccessible* mHyperText;
-  PRInt32 mTextOffset;
+  int32_t mTextOffset;
 };
 
 } 

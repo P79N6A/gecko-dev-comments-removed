@@ -32,13 +32,13 @@ public:
   
 
 
-  PRInt32 rows() const { return mData.Count(); }
+  int32_t rows() const { return mData.Count(); }
 
 private:
   
 
 
-  PRInt32 mCurrentIndex;
+  int32_t mCurrentIndex;
 
   
 

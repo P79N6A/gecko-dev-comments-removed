@@ -19,7 +19,7 @@ namespace mozilla {
 namespace a11y {
 struct DOMPoint {
   nsINode* node;
-  PRInt32 idx;
+  int32_t idx;
 };
 }
 }
@@ -50,11 +50,11 @@ public:
   NS_DECL_NSIACCESSIBLEEDITABLETEXT
 
   
-  virtual PRInt32 GetLevelInternal();
+  virtual int32_t GetLevelInternal();
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual mozilla::a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   virtual void InvalidateChildren();
   virtual bool RemoveChild(Accessible* aAccessible);
@@ -62,12 +62,12 @@ public:
   
 
   
-  static nsresult ContentToRenderedOffset(nsIFrame *aFrame, PRInt32 aContentOffset,
-                                          PRUint32 *aRenderedOffset);
+  static nsresult ContentToRenderedOffset(nsIFrame *aFrame, int32_t aContentOffset,
+                                          uint32_t *aRenderedOffset);
   
   
-  static nsresult RenderedToContentOffset(nsIFrame *aFrame, PRUint32 aRenderedOffset,
-                                          PRInt32 *aContentOffset);
+  static nsresult RenderedToContentOffset(nsIFrame *aFrame, uint32_t aRenderedOffset,
+                                          int32_t *aContentOffset);
 
   
   
@@ -75,7 +75,7 @@ public:
   
 
 
-  PRUint32 GetLinkCount()
+  uint32_t GetLinkCount()
   {
     return EmbeddedChildCount();
   }
@@ -83,7 +83,7 @@ public:
   
 
 
-  Accessible* GetLinkAt(PRUint32 aIndex)
+  Accessible* GetLinkAt(uint32_t aIndex)
   {
     return GetEmbeddedChildAt(aIndex);
   }
@@ -91,7 +91,7 @@ public:
   
 
 
-  PRInt32 GetLinkIndex(Accessible* aLink)
+  int32_t GetLinkIndex(Accessible* aLink)
   {
     return GetIndexOfEmbeddedChild(aLink);
   }
@@ -99,7 +99,7 @@ public:
   
 
 
-  PRInt32 GetLinkIndexAtOffset(PRUint32 aOffset)
+  int32_t GetLinkIndexAtOffset(uint32_t aOffset)
   {
     Accessible* child = GetChildAtOffset(aOffset);
     return child ? GetLinkIndex(child) : -1;
@@ -134,8 +134,8 @@ public:
 
 
   Accessible* DOMPointToHypertextOffset(nsINode *aNode,
-                                        PRInt32 aNodeOffset,
-                                        PRInt32* aHypertextOffset,
+                                        int32_t aNodeOffset,
+                                        int32_t* aHypertextOffset,
                                         bool aIsEndOffset = false);
 
   
@@ -145,8 +145,8 @@ public:
 
 
 
-  nsresult HypertextOffsetsToDOMRange(PRInt32 aStartHTOffset,
-                                      PRInt32 aEndHTOffset,
+  nsresult HypertextOffsetsToDOMRange(int32_t aStartHTOffset,
+                                      int32_t aEndHTOffset,
                                       nsRange* aRange);
 
   
@@ -161,7 +161,7 @@ public:
   
 
 
-  PRUint32 CharacterCount()
+  uint32_t CharacterCount()
   {
     return GetChildOffset(ChildCount());
   }
@@ -177,8 +177,8 @@ public:
 
 
 
-  bool GetCharAt(PRInt32 aOffset, EGetTextType aShift, nsAString& aChar,
-                 PRInt32* aStartOffset = nullptr, PRInt32* aEndOffset = nullptr);
+  bool GetCharAt(int32_t aOffset, EGetTextType aShift, nsAString& aChar,
+                 int32_t* aStartOffset = nullptr, int32_t* aEndOffset = nullptr);
 
   
 
@@ -188,17 +188,17 @@ public:
 
 
 
-  PRInt32 GetChildOffset(Accessible* aChild,
+  int32_t GetChildOffset(Accessible* aChild,
                          bool aInvalidateAfter = false)
   {
-    PRInt32 index = GetIndexOf(aChild);
+    int32_t index = GetIndexOf(aChild);
     return index == -1 ? -1 : GetChildOffset(index, aInvalidateAfter);
   }
 
   
 
 
-  PRInt32 GetChildOffset(PRUint32 aChildIndex,
+  int32_t GetChildOffset(uint32_t aChildIndex,
                          bool aInvalidateAfter = false);
 
   
@@ -206,14 +206,14 @@ public:
 
 
 
-  PRInt32 GetChildIndexAtOffset(PRUint32 aOffset);
+  int32_t GetChildIndexAtOffset(uint32_t aOffset);
 
   
 
 
 
 
-  Accessible* GetChildAtOffset(PRUint32 aOffset)
+  Accessible* GetChildAtOffset(uint32_t aOffset)
   {
     return GetChildAt(GetChildIndexAtOffset(aOffset));
   }
@@ -221,7 +221,7 @@ public:
   
 
 
-  nsIntRect GetTextBounds(PRInt32 aStartOffset, PRInt32 aEndOffset)
+  nsIntRect GetTextBounds(int32_t aStartOffset, int32_t aEndOffset)
   {
     nsIntRect bounds;
     GetPosAndText(aStartOffset, aEndOffset, nullptr, nullptr, &bounds);
@@ -232,7 +232,7 @@ public:
 
 
 
-  PRInt32 CaretLineNumber();
+  int32_t CaretLineNumber();
 
   
   
@@ -248,13 +248,13 @@ protected:
   
 
 
-  PRInt32 ConvertMagicOffset(PRInt32 aOffset)
+  int32_t ConvertMagicOffset(int32_t aOffset)
   {
     if (aOffset == nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
       return CharacterCount();
 
     if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET) {
-      PRInt32 caretOffset = -1;
+      int32_t caretOffset = -1;
       GetCaretOffset(&caretOffset);
       return caretOffset;
     }
@@ -273,7 +273,7 @@ protected:
 
 
   nsresult GetTextHelper(EGetTextType aType, AccessibleTextBoundary aBoundaryType,
-                         PRInt32 aOffset, PRInt32 *aStartOffset, PRInt32 *aEndOffset,
+                         int32_t aOffset, int32_t *aStartOffset, int32_t *aEndOffset,
                          nsAString & aText);
 
   
@@ -290,8 +290,8 @@ protected:
 
 
 
-  PRInt32 GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame,
-                            PRInt32 aFromOffset, Accessible* aFromAccessible,
+  int32_t GetRelativeOffset(nsIPresShell *aPresShell, nsIFrame *aFromFrame,
+                            int32_t aFromOffset, Accessible* aFromAccessible,
                             nsSelectionAmount aAmount, nsDirection aDirection,
                             bool aNeedsStart);
 
@@ -320,14 +320,14 @@ protected:
 
 
 
-  nsIFrame* GetPosAndText(PRInt32& aStartOffset, PRInt32& aEndOffset,
+  nsIFrame* GetPosAndText(int32_t& aStartOffset, int32_t& aEndOffset,
                           nsAString *aText = nullptr,
                           nsIFrame **aEndFrame = nullptr,
                           nsIntRect *aBoundsRect = nullptr,
                           Accessible** aStartAcc = nullptr,
                           Accessible** aEndAcc = nullptr);
 
-  nsIntRect GetBoundsForString(nsIFrame *aFrame, PRUint32 aStartRenderedOffset, PRUint32 aEndRenderedOffset);
+  nsIntRect GetBoundsForString(nsIFrame *aFrame, uint32_t aStartRenderedOffset, uint32_t aEndRenderedOffset);
 
   
 
@@ -339,12 +339,12 @@ protected:
   
 
 
-  void GetSelectionDOMRanges(PRInt16 aType, nsTArray<nsRange*>* aRanges);
+  void GetSelectionDOMRanges(int16_t aType, nsTArray<nsRange*>* aRanges);
 
-  nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
+  nsresult SetSelectionRange(int32_t aStartPos, int32_t aEndPos);
 
   
-  nsresult GetDOMPointByFrameOffset(nsIFrame* aFrame, PRInt32 aOffset,
+  nsresult GetDOMPointByFrameOffset(nsIFrame* aFrame, int32_t aOffset,
                                     Accessible* aAccessible,
                                     mozilla::a11y::DOMPoint* aPoint);
 
@@ -365,7 +365,7 @@ protected:
   nsresult RangeBoundToHypertextOffset(nsRange *aRange,
                                        bool aIsStartBound,
                                        bool aIsStartOffset,
-                                       PRInt32 *aHTOffset);
+                                       int32_t *aHTOffset);
 
   
 
@@ -380,16 +380,16 @@ protected:
 
 
 
-  nsresult GetSpellTextAttribute(nsINode* aNode, PRInt32 aNodeOffset,
-                                 PRInt32 *aStartOffset,
-                                 PRInt32 *aEndOffset,
+  nsresult GetSpellTextAttribute(nsINode* aNode, int32_t aNodeOffset,
+                                 int32_t *aStartOffset,
+                                 int32_t *aEndOffset,
                                  nsIPersistentProperties *aAttributes);
 
 private:
   
 
 
-  nsTArray<PRUint32> mOffsets;
+  nsTArray<uint32_t> mOffsets;
 };
 
 

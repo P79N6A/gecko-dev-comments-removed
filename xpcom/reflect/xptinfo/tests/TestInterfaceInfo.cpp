@@ -107,7 +107,7 @@ int main (int argc, char **argv) {
     
     uint8 argnum;
     info5->GetInterfaceIsArgNumberForParam(6, &param3, &argnum);
-    fprintf(stderr, "param 3 referrs to param %d of method 6 - createInstanceByContractID\n", (PRUint32)argnum);
+    fprintf(stderr, "param 3 referrs to param %d of method 6 - createInstanceByContractID\n", (uint32_t)argnum);
     
     const nsXPTParamInfo& arg_param = mi->GetParam(argnum);
     const nsXPTType& arg_type = arg_param.GetType();

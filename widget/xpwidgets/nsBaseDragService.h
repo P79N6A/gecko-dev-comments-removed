@@ -48,7 +48,7 @@ public:
 
   void SetDragEndPoint(nsIntPoint aEndDragPoint) { mEndDragPoint = aEndDragPoint; }
 
-  PRUint16 GetInputSource() { return mInputSource; }
+  uint16_t GetInputSource() { return mInputSource; }
 
 protected:
 
@@ -75,7 +75,7 @@ protected:
 
   nsresult DrawDrag(nsIDOMNode* aDOMNode,
                     nsIScriptableRegion* aRegion,
-                    PRInt32 aScreenX, PRInt32 aScreenY,
+                    int32_t aScreenX, int32_t aScreenY,
                     nsIntRect* aScreenDragRect,
                     gfxASurface** aSurface,
                     nsPresContext **aPresContext);
@@ -87,7 +87,7 @@ protected:
   nsresult DrawDragForImage(nsPresContext* aPresContext,
                             nsIImageLoadingContent* aImageLoader,
                             nsICanvasElementExternal* aCanvas,
-                            PRInt32 aScreenX, PRInt32 aScreenY,
+                            int32_t aScreenX, int32_t aScreenY,
                             nsIntRect* aScreenDragRect,
                             gfxASurface** aSurface);
 
@@ -96,7 +96,7 @@ protected:
 
   void
   ConvertToUnscaledDevPixels(nsPresContext* aPresContext,
-                             PRInt32* aScreenX, PRInt32* aScreenY);
+                             int32_t* aScreenX, int32_t* aScreenY);
 
   
 
@@ -111,7 +111,7 @@ protected:
   
   bool mUserCancelled;
 
-  PRUint32 mDragAction;
+  uint32_t mDragAction;
   nsSize mTargetSize;
   nsCOMPtr<nsIDOMNode> mSourceNode;
   nsCOMPtr<nsIDOMDocument> mSourceDocument;       
@@ -121,8 +121,8 @@ protected:
   
   nsCOMPtr<nsIDOMNode> mImage;
   
-  PRInt32 mImageX;
-  PRInt32 mImageY;
+  int32_t mImageX;
+  int32_t mImageY;
 
   
   nsCOMPtr<nsISelection> mSelection;
@@ -134,16 +134,16 @@ protected:
   
   
   
-  PRInt32 mScreenX;
-  PRInt32 mScreenY;
+  int32_t mScreenX;
+  int32_t mScreenY;
 
   
   nsIntPoint mEndDragPoint;
 
-  PRUint32 mSuppressLevel;
+  uint32_t mSuppressLevel;
 
   
-  PRUint16 mInputSource;
+  uint16_t mInputSource;
 };
 
 #endif 

@@ -11,7 +11,7 @@
 #include "prbit.h" 
 #include "prio.h"  
 
-#define GFX_UINT32_FROM_BPTR(pbptr,i) (((PRUint32*)(pbptr))[i])
+#define GFX_UINT32_FROM_BPTR(pbptr,i) (((uint32_t*)(pbptr))[i])
 
 #if defined(IS_BIG_ENDIAN)
   #define GFX_NTOHL(x) (x)
@@ -65,7 +65,7 @@
 
 #define GFX_BLOCK_RGB_TO_FRGB(from,to) \
   PR_BEGIN_MACRO \
-    PRUint32 m0 = GFX_UINT32_FROM_BPTR(from,0), \
+    uint32_t m0 = GFX_UINT32_FROM_BPTR(from,0), \
              m1 = GFX_UINT32_FROM_BPTR(from,1), \
              m2 = GFX_UINT32_FROM_BPTR(from,2), \
              rgbr = GFX_NTOHL(m0), \
@@ -156,7 +156,7 @@ struct THEBES_API gfxRGBA {
 
 
 
-    gfxRGBA(PRUint32 c, PackedColorType colorType = PACKED_ABGR) {
+    gfxRGBA(uint32_t c, PackedColorType colorType = PACKED_ABGR) {
         if (colorType == PACKED_ABGR ||
             colorType == PACKED_ABGR_PREMULTIPLIED)
         {
@@ -204,23 +204,23 @@ struct THEBES_API gfxRGBA {
 
 
 
-    PRUint32 Packed(PackedColorType colorType = PACKED_ABGR) const {
+    uint32_t Packed(PackedColorType colorType = PACKED_ABGR) const {
         gfxFloat rb = (r * 255.0);
         gfxFloat gb = (g * 255.0);
         gfxFloat bb = (b * 255.0);
         gfxFloat ab = (a * 255.0);
 
         if (colorType == PACKED_ABGR) {
-            return (PRUint8(ab) << 24) |
-                   (PRUint8(bb) << 16) |
-                   (PRUint8(gb) << 8) |
-                   (PRUint8(rb) << 0);
+            return (uint8_t(ab) << 24) |
+                   (uint8_t(bb) << 16) |
+                   (uint8_t(gb) << 8) |
+                   (uint8_t(rb) << 0);
         }
         if (colorType == PACKED_ARGB || colorType == PACKED_XRGB) {
-            return (PRUint8(ab) << 24) |
-                   (PRUint8(rb) << 16) |
-                   (PRUint8(gb) << 8) |
-                   (PRUint8(bb) << 0);
+            return (uint8_t(ab) << 24) |
+                   (uint8_t(rb) << 16) |
+                   (uint8_t(gb) << 8) |
+                   (uint8_t(bb) << 0);
         }
 
         rb *= a;
@@ -228,16 +228,16 @@ struct THEBES_API gfxRGBA {
         bb *= a;
 
         if (colorType == PACKED_ABGR_PREMULTIPLIED) {
-            return (((PRUint8)(ab) << 24) |
-                    ((PRUint8)(bb) << 16) |
-                    ((PRUint8)(gb) << 8) |
-                    ((PRUint8)(rb) << 0));
+            return (((uint8_t)(ab) << 24) |
+                    ((uint8_t)(bb) << 16) |
+                    ((uint8_t)(gb) << 8) |
+                    ((uint8_t)(rb) << 0));
         }
         if (colorType == PACKED_ARGB_PREMULTIPLIED) {
-            return (((PRUint8)(ab) << 24) |
-                    ((PRUint8)(rb) << 16) |
-                    ((PRUint8)(gb) << 8) |
-                    ((PRUint8)(bb) << 0));
+            return (((uint8_t)(ab) << 24) |
+                    ((uint8_t)(rb) << 16) |
+                    ((uint8_t)(gb) << 8) |
+                    ((uint8_t)(bb) << 0));
         }
 
         return 0;

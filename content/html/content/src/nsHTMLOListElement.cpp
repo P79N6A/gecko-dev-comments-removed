@@ -47,7 +47,7 @@ public:
   
   
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -151,7 +151,7 @@ static const nsAttrValue::EnumTable kOldListTypeTable[] = {
 };
 
 bool
-nsHTMLSharedListElement::ParseAttribute(PRInt32 aNamespaceID,
+nsHTMLSharedListElement::ParseAttribute(int32_t aNamespaceID,
                                         nsIAtom* aAttribute,
                                         const nsAString& aValue,
                                         nsAttrValue& aResult)

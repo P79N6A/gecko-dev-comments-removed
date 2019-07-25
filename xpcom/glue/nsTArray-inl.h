@@ -27,7 +27,7 @@ const nsTArrayHeader* nsTArray_base<Alloc>::GetAutoArrayBufferUnsafe(size_t elem
   
   
 
-  const void* autoBuf = &reinterpret_cast<const nsAutoArrayBase<nsTArray<PRUint32>, 1>*>(this)->mAutoBuf;
+  const void* autoBuf = &reinterpret_cast<const nsAutoArrayBase<nsTArray<uint32_t>, 1>*>(this)->mAutoBuf;
 
   
   
@@ -108,7 +108,7 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   
   
-  if ((PRUint64)capacity * elemSize > size_type(-1)/2) {
+  if ((uint64_t)capacity * elemSize > size_type(-1)/2) {
     NS_ERROR("Attempting to allocate excessively large array");
     return false;
   }
@@ -130,11 +130,11 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   
   
-  const PRUint32 pageSizeBytes = 12;
-  const PRUint32 pageSize = 1 << pageSizeBytes;
+  const uint32_t pageSizeBytes = 12;
+  const uint32_t pageSize = 1 << pageSizeBytes;
 
-  PRUint32 minBytes = capacity * elemSize + sizeof(Header);
-  PRUint32 bytesToAlloc;
+  uint32_t minBytes = capacity * elemSize + sizeof(Header);
+  uint32_t bytesToAlloc;
   if (minBytes >= pageSize) {
     
     bytesToAlloc = pageSize * ((minBytes + pageSize - 1) / pageSize);
@@ -170,7 +170,7 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   }
 
   
-  PRUint32 newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
+  uint32_t newCapacity = (bytesToAlloc - sizeof(Header)) / elemSize;
   MOZ_ASSERT(newCapacity >= capacity, "Didn't enlarge the array enough!");
   header->mCapacity = newCapacity;
 
@@ -370,7 +370,7 @@ nsTArray_base<Alloc>::SwapArrayElements(nsTArray_base<Allocator>& other,
   
   
   
-  nsAutoTArray<PRUint8, 64, Alloc> temp;
+  nsAutoTArray<uint8_t, 64, Alloc> temp;
   if (!temp.SetCapacity(smallerLength * elemSize)) {
     return false;
   }

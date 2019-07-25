@@ -38,34 +38,34 @@ public:
   ~nsICOEncoder();
   
   
-  PRUint32 GetRealWidth() const
+  uint32_t GetRealWidth() const
   {
     return mICODirEntry.mWidth == 0 ? 256 : mICODirEntry.mWidth; 
   }
 
   
-  PRUint32 GetRealHeight() const
+  uint32_t GetRealHeight() const
   {
     return mICODirEntry.mHeight == 0 ? 256 : mICODirEntry.mHeight; 
   }
 
 protected:
-  nsresult ParseOptions(const nsAString& aOptions, PRUint32* bpp, 
+  nsresult ParseOptions(const nsAString& aOptions, uint32_t* bpp, 
                         bool *usePNG);
   void NotifyListener();
 
   
   void InitFileHeader();
   
-  void InitInfoHeader(PRUint32 aBPP, PRUint8 aWidth, PRUint8 aHeight);
+  void InitInfoHeader(uint32_t aBPP, uint8_t aWidth, uint8_t aHeight);
   
   void EncodeFileHeader();
   
   void EncodeInfoHeader();
   
-  inline PRInt32 GetCurrentImageBufferOffset()
+  inline int32_t GetCurrentImageBufferOffset()
   {
-    return static_cast<PRInt32>(mImageBufferCurr - mImageBufferStart);
+    return static_cast<int32_t>(mImageBufferCurr - mImageBufferStart);
   }
 
   
@@ -79,13 +79,13 @@ protected:
   mozilla::image::IconDirEntry mICODirEntry;
 
   
-  PRUint8* mImageBufferStart;
+  uint8_t* mImageBufferStart;
   
-  PRUint8* mImageBufferCurr;
+  uint8_t* mImageBufferCurr;
   
-  PRUint32 mImageBufferSize;
+  uint32_t mImageBufferSize;
   
-  PRUint32 mImageBufferReadPoint;
+  uint32_t mImageBufferReadPoint;
   
   bool mFinished;
   
@@ -93,5 +93,5 @@ protected:
 
   nsCOMPtr<nsIInputStreamCallback> mCallback;
   nsCOMPtr<nsIEventTarget> mCallbackTarget;
-  PRUint32 mNotifyThreshold;
+  uint32_t mNotifyThreshold;
 };

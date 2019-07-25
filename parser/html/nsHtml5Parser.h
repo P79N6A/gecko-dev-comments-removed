@@ -72,12 +72,12 @@ class nsHtml5Parser : public nsIParser,
 
 
 
-    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, PRInt32 aSource);
+    NS_IMETHOD_(void) SetDocumentCharset(const nsACString& aCharset, int32_t aSource);
 
     
 
 
-    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, PRInt32& aSource)
+    NS_IMETHOD_(void) GetDocumentCharset(nsACString& aCharset, int32_t& aSource)
     {
       NS_NOTREACHED("No one should call this.");
     }
@@ -236,7 +236,7 @@ class nsHtml5Parser : public nsIParser,
       return mTokenizer;
     }
 
-    void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, PRInt32 aLine);
+    void InitializeDocWriteParserState(nsAHtml5TreeBuilderState* aState, int32_t aLine);
 
     void DropStreamParser() {
       if (mStreamParser) {
@@ -286,7 +286,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    PRInt32                       mParserInsertedScriptsBeingEvaluated;
+    int32_t                       mParserInsertedScriptsBeingEvaluated;
 
     
 
@@ -340,7 +340,7 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    PRInt32                             mRootContextLineNumber;
+    int32_t                             mRootContextLineNumber;
     
     
 

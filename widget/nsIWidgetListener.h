@@ -68,13 +68,13 @@ public:
 
 
 
-  virtual bool WindowMoved(nsIWidget* aWidget, PRInt32 aX, PRInt32 aY) { return false; }
+  virtual bool WindowMoved(nsIWidget* aWidget, int32_t aX, int32_t aY) { return false; }
 
   
 
 
 
-  virtual bool WindowResized(nsIWidget* aWidget, PRInt32 aWidth, PRInt32 aHeight) { return false; }
+  virtual bool WindowResized(nsIWidget* aWidget, int32_t aWidth, int32_t aHeight) { return false; }
 
   
 

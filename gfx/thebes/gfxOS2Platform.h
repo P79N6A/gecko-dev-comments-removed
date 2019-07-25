@@ -47,10 +47,10 @@ public:
     
     
     
-    already_AddRefed<gfxOS2Font> FindFontForChar(PRUint32 aCh, gfxOS2Font *aFont);
+    already_AddRefed<gfxOS2Font> FindFontForChar(uint32_t aCh, gfxOS2Font *aFont);
 
     
-    bool noFontWithChar(PRUint32 aCh) {
+    bool noFontWithChar(uint32_t aCh) {
         return mCodepointsWithNoFonts.test(aCh);
     }
 

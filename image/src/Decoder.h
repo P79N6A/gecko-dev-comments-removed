@@ -52,7 +52,7 @@ public:
 
 
 
-  void Write(const char* aBuffer, PRUint32 aCount);
+  void Write(const char* aBuffer, uint32_t aCount);
 
   
 
@@ -98,10 +98,10 @@ public:
 
   
   
-  PRUint32 GetFrameCount() { return mFrameCount; }
+  uint32_t GetFrameCount() { return mFrameCount; }
 
   
-  PRUint32 GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
+  uint32_t GetCompleteFrameCount() { return mInFrame ? mFrameCount - 1 : mFrameCount; }
 
   
   bool HasError() { return HasDataError() || HasDecoderError(); };
@@ -120,8 +120,8 @@ public:
     DECODER_NO_PREMULTIPLY_ALPHA = 0x2,     
     DECODER_NO_COLORSPACE_CONVERSION = 0x4  
   };
-  void SetDecodeFlags(PRUint32 aFlags) { mDecodeFlags = aFlags; }
-  PRUint32 GetDecodeFlags() { return mDecodeFlags; }
+  void SetDecodeFlags(uint32_t aFlags) { mDecodeFlags = aFlags; }
+  uint32_t GetDecodeFlags() { return mDecodeFlags; }
 
   
   virtual Telemetry::ID SpeedHistogram() { return Telemetry::HistogramCount; }
@@ -133,7 +133,7 @@ protected:
 
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
   virtual void FinishInternal();
 
   
@@ -142,7 +142,7 @@ protected:
 
   
   
-  void PostSize(PRInt32 aWidth, PRInt32 aHeight);
+  void PostSize(int32_t aWidth, int32_t aHeight);
 
   
   
@@ -171,12 +171,12 @@ protected:
   RasterImage &mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
-  PRUint32 mDecodeFlags;
+  uint32_t mDecodeFlags;
   bool mDecodeDone;
   bool mDataError;
 
 private:
-  PRUint32 mFrameCount; 
+  uint32_t mFrameCount; 
 
   nsIntRect mInvalidRect; 
 

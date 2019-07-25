@@ -74,7 +74,7 @@ public:
                           bool above);
 
   NS_IMETHOD  InsertChild(nsIView *parent, nsIView *child,
-                          PRInt32 zindex);
+                          int32_t zindex);
 
   NS_IMETHOD  RemoveChild(nsIView *parent);
 
@@ -86,7 +86,7 @@ public:
 
   NS_IMETHOD  SetViewVisibility(nsIView *aView, nsViewVisibility aVisible);
 
-  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAuto, PRInt32 aZIndex, bool aTopMost=false);
+  NS_IMETHOD  SetViewZIndex(nsIView *aView, bool aAuto, int32_t aZIndex, bool aTopMost=false);
 
   virtual void SetPresShell(nsIPresShell *aPresShell) { mPresShell = aPresShell; }
   virtual nsIPresShell* GetPresShell() { return mPresShell; }
@@ -99,8 +99,8 @@ public:
   NS_IMETHOD GetRootWidget(nsIWidget **aWidget);
  
   NS_IMETHOD IsPainting(bool& aIsPainting);
-  NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
-  static PRUint32 gLastUserEventTime;
+  NS_IMETHOD GetLastUserEventTime(uint32_t& aTime);
+  static uint32_t gLastUserEventTime;
 
   
   void InvalidateHierarchy();
@@ -177,7 +177,7 @@ public:
   
   void PostPendingUpdate();
 
-  PRUint32 AppUnitsPerDevPixel() const
+  uint32_t AppUnitsPerDevPixel() const
   {
     return mContext->AppUnitsPerDevPixel();
   }
@@ -199,7 +199,7 @@ private:
   
   
   
-  PRInt32           mRefreshDisableCount;
+  int32_t           mRefreshDisableCount;
   
   bool              mPainting;
   bool              mRecursiveRefreshPending;
@@ -208,7 +208,7 @@ private:
   bool              mInScroll;
 
   
-  static PRInt32           mVMCount;        
+  static int32_t           mVMCount;        
 
   
   static nsVoidArray       *gViewManagers;

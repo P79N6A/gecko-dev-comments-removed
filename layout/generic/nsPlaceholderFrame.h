@@ -114,7 +114,7 @@ public:
 #endif 
   
 #ifdef DEBUG
-  NS_IMETHOD List(FILE* out, PRInt32 aIndent) const;
+  NS_IMETHOD List(FILE* out, int32_t aIndent) const;
 #endif 
 
   

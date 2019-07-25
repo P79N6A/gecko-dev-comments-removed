@@ -36,7 +36,7 @@ public:
 
 private:
     
-    static GdkAtom               GetSelectionAtom (PRInt32 aWhichClipboard);
+    static GdkAtom               GetSelectionAtom (int32_t aWhichClipboard);
     static GtkSelectionData     *GetTargets       (GdkAtom aWhichClipboard);
 
     
@@ -44,7 +44,7 @@ private:
 
     
     
-    nsITransferable             *GetTransferable  (PRInt32 aWhichClipboard);
+    nsITransferable             *GetTransferable  (int32_t aWhichClipboard);
 
     
     

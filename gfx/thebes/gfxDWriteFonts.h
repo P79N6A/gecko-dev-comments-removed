@@ -31,7 +31,7 @@ public:
 
     virtual const gfxFont::Metrics& GetMetrics();
 
-    virtual PRUint32 GetSpaceGlyph();
+    virtual uint32_t GetSpaceGlyph();
 
     virtual bool SetupCairoFont(gfxContext *aContext);
 
@@ -47,18 +47,18 @@ public:
 
     
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
-                               PRUint32 aStart, PRUint32 aEnd,
+                               uint32_t aStart, uint32_t aEnd,
                                BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
 
     
     
-    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
+    virtual hb_blob_t *GetFontTable(uint32_t aTag);
 
     virtual bool ProvidesGlyphWidths();
 
-    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID);
+    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID);
 
     virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions> GetGlyphRenderingOptions();
 
@@ -78,13 +78,13 @@ protected:
 
     void ComputeMetrics(AntialiasOption anAAOption);
 
-    bool HasBitmapStrikeForSize(PRUint32 aSize);
+    bool HasBitmapStrikeForSize(uint32_t aSize);
 
     cairo_font_face_t *CairoFontFace();
 
     cairo_scaled_font_t *CairoScaledFont();
 
-    gfxFloat MeasureGlyphWidth(PRUint16 aGlyph);
+    gfxFloat MeasureGlyphWidth(uint16_t aGlyph);
 
     static void DestroyBlobFunc(void* userArg);
 
@@ -97,7 +97,7 @@ protected:
     gfxFont::Metrics          *mMetrics;
 
     
-    nsDataHashtable<nsUint32HashKey,PRInt32>    mGlyphWidths;
+    nsDataHashtable<nsUint32HashKey,int32_t>    mGlyphWidths;
 
     bool mNeedsOblique;
     bool mNeedsBold;

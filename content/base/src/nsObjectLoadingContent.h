@@ -196,7 +196,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    virtual PRUint32 GetCapabilities() const;
+    virtual uint32_t GetCapabilities() const;
 
     
 
@@ -297,7 +297,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    bool CheckLoadPolicy(PRInt16 *aContentPolicy);
+    bool CheckLoadPolicy(int16_t *aContentPolicy);
 
     
 
@@ -307,7 +307,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    bool CheckProcessPolicy(PRInt16 *aContentPolicy);
+    bool CheckProcessPolicy(int16_t *aContentPolicy);
 
     
 

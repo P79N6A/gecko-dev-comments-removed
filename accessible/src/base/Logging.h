@@ -48,13 +48,13 @@ enum EModules {
 
 
 
-bool IsEnabled(PRUint32 aModules);
+bool IsEnabled(uint32_t aModules);
 
 
 
 
 void DocLoad(const char* aMsg, nsIWebProgress* aWebProgress,
-             nsIRequest* aRequest, PRUint32 aStateFlags);
+             nsIRequest* aRequest, uint32_t aStateFlags);
 void DocLoad(const char* aMsg, nsIDocument* aDocumentNode);
 
 

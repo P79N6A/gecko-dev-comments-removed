@@ -25,7 +25,7 @@ public:
   
   virtual mozilla::a11y::ENameValueFlag Name(nsString& aName);
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   
   virtual bool IsWidget() const;

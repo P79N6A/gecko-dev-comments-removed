@@ -262,7 +262,7 @@ public:
   
   
   
-  void NotifyDataLength(PRInt64 aLength);
+  void NotifyDataLength(int64_t aLength);
   
   
   
@@ -270,14 +270,14 @@ public:
   
   
   
-  void NotifyDataStarted(PRInt64 aOffset);
+  void NotifyDataStarted(int64_t aOffset);
   
   
   
   
   
   
-  void NotifyDataReceived(PRInt64 aSize, const char* aData,
+  void NotifyDataReceived(int64_t aSize, const char* aData,
                           nsIPrincipal* aPrincipal);
   
   void NotifyDataEnded(nsresult aStatus);
@@ -293,16 +293,16 @@ public:
   
   
   
-  PRInt64 GetLength();
+  int64_t GetLength();
   
   
-  PRInt64 GetResourceID() { return mResourceID; }
+  int64_t GetResourceID() { return mResourceID; }
   
   
-  PRInt64 GetCachedDataEnd(PRInt64 aOffset);
+  int64_t GetCachedDataEnd(int64_t aOffset);
   
   
-  PRInt64 GetNextCachedData(PRInt64 aOffset);
+  int64_t GetNextCachedData(int64_t aOffset);
   
   
   
@@ -314,21 +314,21 @@ public:
   
   
   nsresult ReadFromCache(char* aBuffer,
-                         PRInt64 aOffset,
-                         PRInt64 aCount);
+                         int64_t aOffset,
+                         int64_t aCount);
 
   
   
   
   
-  bool IsDataCachedToEndOfStream(PRInt64 aOffset);
+  bool IsDataCachedToEndOfStream(int64_t aOffset);
   
   void SetReadMode(ReadMode aMode);
   
   
   
   
-  void SetPlaybackRate(PRUint32 aBytesPerSecond);
+  void SetPlaybackRate(uint32_t aBytesPerSecond);
   
   bool IsSeekable();
 
@@ -343,13 +343,13 @@ public:
   
   
   
-  nsresult Seek(PRInt32 aWhence, PRInt64 aOffset);
-  PRInt64 Tell();
+  nsresult Seek(int32_t aWhence, int64_t aOffset);
+  int64_t Tell();
   
   
   
   
-  nsresult Read(char* aBuffer, PRUint32 aCount, PRUint32* aBytes);
+  nsresult Read(char* aBuffer, uint32_t aCount, uint32_t* aBytes);
 
 private:
   friend class nsMediaCache;
@@ -370,23 +370,23 @@ private:
       NS_ASSERTION(mFirstBlock == -1 && mCount == 0,
                    "Destroying non-empty block list");
     }
-    void AddFirstBlock(PRInt32 aBlock);
-    void AddAfter(PRInt32 aBlock, PRInt32 aBefore);
-    void RemoveBlock(PRInt32 aBlock);
+    void AddFirstBlock(int32_t aBlock);
+    void AddAfter(int32_t aBlock, int32_t aBefore);
+    void RemoveBlock(int32_t aBlock);
     
-    PRInt32 GetFirstBlock() const { return mFirstBlock; }
+    int32_t GetFirstBlock() const { return mFirstBlock; }
     
-    PRInt32 GetLastBlock() const;
-    
-    
-    PRInt32 GetNextBlock(PRInt32 aBlock) const;
+    int32_t GetLastBlock() const;
     
     
-    PRInt32 GetPrevBlock(PRInt32 aBlock) const;
+    int32_t GetNextBlock(int32_t aBlock) const;
+    
+    
+    int32_t GetPrevBlock(int32_t aBlock) const;
     bool IsEmpty() const { return mFirstBlock < 0; }
-    PRInt32 GetCount() const { return mCount; }
+    int32_t GetCount() const { return mCount; }
     
-    void NotifyBlockSwapped(PRInt32 aBlockIndex1, PRInt32 aBlockIndex2);
+    void NotifyBlockSwapped(int32_t aBlockIndex1, int32_t aBlockIndex2);
 #ifdef DEBUG
     
     void Verify();
@@ -400,27 +400,27 @@ private:
       Entry(const Entry& toCopy) : nsUint32HashKey(&toCopy.GetKey()),
         mNextBlock(toCopy.mNextBlock), mPrevBlock(toCopy.mPrevBlock) {}
 
-      PRInt32 mNextBlock;
-      PRInt32 mPrevBlock;
+      int32_t mNextBlock;
+      int32_t mPrevBlock;
     };
     nsTHashtable<Entry> mEntries;
 
     
-    PRInt32 mFirstBlock;
+    int32_t mFirstBlock;
     
-    PRInt32 mCount;
+    int32_t mCount;
   };
 
   
   
   
   
-  PRInt64 GetCachedDataEndInternal(PRInt64 aOffset);
+  int64_t GetCachedDataEndInternal(int64_t aOffset);
   
   
   
   
-  PRInt64 GetNextCachedDataInternal(PRInt64 aOffset);
+  int64_t GetNextCachedDataInternal(int64_t aOffset);
   
   
   
@@ -451,7 +451,7 @@ private:
   
   
   
-  PRInt64 mResourceID;
+  int64_t mResourceID;
   
   bool mIsSeekable;
   
@@ -461,19 +461,19 @@ private:
   
   bool mChannelEnded;
   
-  PRInt64      mChannelOffset;
+  int64_t      mChannelOffset;
   
   
-  PRInt64      mStreamLength;
+  int64_t      mStreamLength;
 
   
   
 
   
-  PRInt64           mStreamOffset;
+  int64_t           mStreamOffset;
   
   
-  nsTArray<PRInt32> mBlocks;
+  nsTArray<int32_t> mBlocks;
   
   
   
@@ -483,10 +483,10 @@ private:
   
   BlockList         mPlayedBlocks;
   
-  PRUint32          mPlaybackBytesPerSecond;
+  uint32_t          mPlaybackBytesPerSecond;
   
   
-  PRUint32          mPinCount;
+  uint32_t          mPinCount;
   
   
   nsresult          mNotifyDataEndedStatus;
@@ -503,7 +503,7 @@ private:
   
   
   
-  PRInt64           mPartialBlockBuffer[BLOCK_SIZE/sizeof(PRInt64)];
+  int64_t           mPartialBlockBuffer[BLOCK_SIZE/sizeof(int64_t)];
 };
 
 #endif

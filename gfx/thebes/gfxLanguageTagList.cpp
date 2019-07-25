@@ -12,7 +12,7 @@
 
 
 
-static const PRUint32 sLanguageTagList[] = {
+static const uint32_t sLanguageTagList[] = {
   TRUETYPE_TAG('a','a', 0 , 0 ), 
   TRUETYPE_TAG('a','b', 0 , 0 ), 
   TRUETYPE_TAG('a','e', 0 , 0 ), 

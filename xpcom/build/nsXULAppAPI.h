@@ -151,7 +151,7 @@
 
 XRE_API(int,
         XRE_main, (int argc, char* argv[], const nsXREAppData* aAppData,
-                   PRUint32 aFlags))
+                   uint32_t aFlags))
 
 
 
@@ -367,8 +367,8 @@ XRE_API(GeckoProcessType,
 #if defined(MOZ_CRASHREPORTER)
 
 XRE_API(bool,
-        XRE_TakeMinidumpForChild, (PRUint32 aChildPid, nsIFile** aDump,
-                                   PRUint32* aSequence))
+        XRE_TakeMinidumpForChild, (uint32_t aChildPid, nsIFile** aDump,
+                                   uint32_t* aSequence))
 
 
 XRE_API(bool,
@@ -438,7 +438,7 @@ XRE_API(void,
 #endif
 
 XRE_API(void,
-        XRE_TelemetryAccumulate, (int aID, PRUint32 aSample))
+        XRE_TelemetryAccumulate, (int aID, uint32_t aSample))
 
 XRE_API(void,
         XRE_StartupTimelineRecord, (int aEvent, PRTime aWhen))

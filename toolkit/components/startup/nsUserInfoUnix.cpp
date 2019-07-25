@@ -54,7 +54,7 @@ nsUserInfo::GetFullname(PRUnichar **aFullname)
     
     
     
-    PRInt32 index;
+    int32_t index;
     if ((index = fullname.Find(",")) != kNotFound)
         fullname.Truncate(index);
 

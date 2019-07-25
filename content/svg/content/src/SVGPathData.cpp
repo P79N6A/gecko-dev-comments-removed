@@ -17,7 +17,7 @@
 
 using namespace mozilla;
 
-static bool IsMoveto(PRUint16 aSegType)
+static bool IsMoveto(uint16_t aSegType)
 {
   return aSegType == nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS ||
          aSegType == nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL;
@@ -42,7 +42,7 @@ SVGPathData::GetValueAsString(nsAString& aValue) const
   if (!Length()) {
     return;
   }
-  PRUint32 i = 0;
+  uint32_t i = 0;
   for (;;) {
     nsAutoString segAsString;
     SVGPathSegUtils::GetValueAsString(&mData[i], segAsString);
@@ -69,17 +69,17 @@ SVGPathData::SetValueFromString(const nsAString& aValue)
 }
 
 nsresult
-SVGPathData::AppendSeg(PRUint32 aType, ...)
+SVGPathData::AppendSeg(uint32_t aType, ...)
 {
-  PRUint32 oldLength = mData.Length();
-  PRUint32 newLength = oldLength + 1 + SVGPathSegUtils::ArgCountForType(aType);
+  uint32_t oldLength = mData.Length();
+  uint32_t newLength = oldLength + 1 + SVGPathSegUtils::ArgCountForType(aType);
   if (!mData.SetLength(newLength)) {
     return NS_ERROR_OUT_OF_MEMORY;
   }
   mData[oldLength] = SVGPathSegUtils::EncodeType(aType);
   va_list args;
   va_start(args, aType);
-  for (PRUint32 i = oldLength + 1; i < newLength; ++i) {
+  for (uint32_t i = oldLength + 1; i < newLength; ++i) {
     
     mData[i] = float(va_arg(args, double));
   }
@@ -92,7 +92,7 @@ SVGPathData::GetPathLength() const
 {
   SVGPathTraversalState state;
 
-  PRUint32 i = 0;
+  uint32_t i = 0;
   while (i < mData.Length()) {
     SVGPathSegUtils::TraversePathSegment(&mData[i], state);
     i += 1 + SVGPathSegUtils::ArgCountForType(mData[i]);
@@ -104,10 +104,10 @@ SVGPathData::GetPathLength() const
 }
 
 #ifdef DEBUG
-PRUint32
+uint32_t
 SVGPathData::CountItems() const
 {
-  PRUint32 i = 0, count = 0;
+  uint32_t i = 0, count = 0;
 
   while (i < mData.Length()) {
     i += 1 + SVGPathSegUtils::ArgCountForType(mData[i]);
@@ -126,7 +126,7 @@ SVGPathData::GetSegmentLengths(nsTArray<double> *aLengths) const
   aLengths->Clear();
   SVGPathTraversalState state;
 
-  PRUint32 i = 0;
+  uint32_t i = 0;
   while (i < mData.Length()) {
     state.length = 0.0;
     SVGPathSegUtils::TraversePathSegment(&mData[i], state);
@@ -149,9 +149,9 @@ SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aOu
 
   aOutput->Clear();
 
-  PRUint32 i = 0;
+  uint32_t i = 0;
   while (i < mData.Length()) {
-    PRUint32 segType = SVGPathSegUtils::DecodeType(mData[i]);
+    uint32_t segType = SVGPathSegUtils::DecodeType(mData[i]);
     SVGPathSegUtils::TraversePathSegment(&mData[i], state);
 
     
@@ -178,7 +178,7 @@ SVGPathData::GetDistancesFromOriginToEndsOfVisibleSegments(nsTArray<double> *aOu
   return true;
 }
 
-PRUint32
+uint32_t
 SVGPathData::GetPathSegAtLength(float aDistance) const
 {
   
@@ -186,7 +186,7 @@ SVGPathData::GetPathSegAtLength(float aDistance) const
   
   
 
-  PRUint32 i = 0, segIndex = 0;
+  uint32_t i = 0, segIndex = 0;
   SVGPathTraversalState state;
 
   while (i < mData.Length()) {
@@ -258,7 +258,7 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
   bool subpathHasLength = false;  
   bool subpathContainsNonArc = false;
 
-  PRUint32 segType, prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
+  uint32_t segType, prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
   gfxPoint pathStart(0.0, 0.0); 
   gfxPoint segStart(0.0, 0.0);
   gfxPoint segEnd;
@@ -269,10 +269,10 @@ SVGPathData::ConstructPath(gfxContext *aCtx) const
   
   
 
-  PRUint32 i = 0;
+  uint32_t i = 0;
   while (i < mData.Length()) {
     segType = SVGPathSegUtils::DecodeType(mData[i++]);
-    PRUint32 argCount = SVGPathSegUtils::ArgCountForType(segType);
+    uint32_t argCount = SVGPathSegUtils::ArgCountForType(segType);
 
     switch (segType)
     {
@@ -532,16 +532,16 @@ SVGPathData::GetMarkerPositioningData(nsTArray<nsSVGMark> *aMarks) const
   float pathStartAngle = 0.0f;
 
   
-  PRUint16 prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
+  uint16_t prevSegType = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
   gfxPoint prevSegEnd(0.0, 0.0);
   float prevSegEndAngle = 0.0f;
   gfxPoint prevCP; 
 
-  PRUint32 i = 0;
+  uint32_t i = 0;
   while (i < mData.Length()) {
 
     
-    PRUint16 segType =
+    uint16_t segType =
       SVGPathSegUtils::DecodeType(mData[i++]); 
     gfxPoint &segStart = prevSegEnd;
     gfxPoint segEnd;

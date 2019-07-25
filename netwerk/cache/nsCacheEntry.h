@@ -45,20 +45,20 @@ public:
                                       
     nsCString *  Key()  { return &mKey; }
 
-    PRInt32  FetchCount()                              { return mFetchCount; }
-    void     SetFetchCount( PRInt32   count)           { mFetchCount = count; }
+    int32_t  FetchCount()                              { return mFetchCount; }
+    void     SetFetchCount( int32_t   count)           { mFetchCount = count; }
     void     Fetched();
 
-    PRUint32 LastFetched()                             { return mLastFetched; }
-    void     SetLastFetched( PRUint32  lastFetched)    { mLastFetched = lastFetched; }
+    uint32_t LastFetched()                             { return mLastFetched; }
+    void     SetLastFetched( uint32_t  lastFetched)    { mLastFetched = lastFetched; }
 
-    PRUint32 LastModified()                            { return mLastModified; }
-    void     SetLastModified( PRUint32 lastModified)   { mLastModified = lastModified; }
+    uint32_t LastModified()                            { return mLastModified; }
+    void     SetLastModified( uint32_t lastModified)   { mLastModified = lastModified; }
 
-    PRUint32 ExpirationTime()                     { return mExpirationTime; }
-    void     SetExpirationTime( PRUint32 expires) { mExpirationTime = expires; }
+    uint32_t ExpirationTime()                     { return mExpirationTime; }
+    void     SetExpirationTime( uint32_t expires) { mExpirationTime = expires; }
 
-    PRUint32 Size()                               
+    uint32_t Size()                               
         { return mDataSize + mMetaData.Size() + mKey.Length() ; }
 
     nsCacheDevice * CacheDevice()                            { return mCacheDevice; }
@@ -74,11 +74,11 @@ public:
     nsISupports *Data()                           { return mData; }
     void         SetData( nsISupports * data);
 
-    PRInt64  PredictedDataSize()                  { return mPredictedDataSize; }
-    void     SetPredictedDataSize(PRInt64 size)   { mPredictedDataSize = size; }
+    int64_t  PredictedDataSize()                  { return mPredictedDataSize; }
+    void     SetPredictedDataSize(int64_t size)   { mPredictedDataSize = size; }
 
-    PRUint32 DataSize()                           { return mDataSize; }
-    void     SetDataSize( PRUint32  size)         { mDataSize = size; }
+    uint32_t DataSize()                           { return mDataSize; }
+    void     SetDataSize( uint32_t  size)         { mDataSize = size; }
 
     void     TouchData();
     
@@ -89,9 +89,9 @@ public:
     nsresult     SetMetaDataElement( const char *  key,
                                      const char *  value) { return mMetaData.SetElement(key, value); }
     nsresult VisitMetaDataElements( nsICacheMetaDataVisitor * visitor) { return mMetaData.VisitElements(visitor); }
-    nsresult FlattenMetaData(char * buffer, PRUint32 bufSize) { return mMetaData.FlattenMetaData(buffer, bufSize); }
-    nsresult UnflattenMetaData(const char * buffer, PRUint32 bufSize) { return mMetaData.UnflattenMetaData(buffer, bufSize); }
-    PRUint32 MetaDataSize() { return mMetaData.Size(); }  
+    nsresult FlattenMetaData(char * buffer, uint32_t bufSize) { return mMetaData.FlattenMetaData(buffer, bufSize); }
+    nsresult UnflattenMetaData(const char * buffer, uint32_t bufSize) { return mMetaData.UnflattenMetaData(buffer, bufSize); }
+    uint32_t MetaDataSize() { return mMetaData.Size(); }  
 
     void     TouchMetaData();
 
@@ -210,14 +210,14 @@ private:
     void MarkInactive()        { mFlags &= ~eActiveMask; }
 
     nsCString               mKey;
-    PRUint32                mFetchCount;     
-    PRUint32                mLastFetched;    
-    PRUint32                mLastModified;   
-    PRUint32                mLastValidated;  
-    PRUint32                mExpirationTime; 
-    PRUint32                mFlags;          
-    PRInt64                 mPredictedDataSize;  
-    PRUint32                mDataSize;       
+    uint32_t                mFetchCount;     
+    uint32_t                mLastFetched;    
+    uint32_t                mLastModified;   
+    uint32_t                mLastValidated;  
+    uint32_t                mExpirationTime; 
+    uint32_t                mFlags;          
+    int64_t                 mPredictedDataSize;  
+    uint32_t                mDataSize;       
     nsCacheDevice *         mCacheDevice;    
     nsCacheDevice *         mCustomDevice;   
     nsCOMPtr<nsISupports>   mSecurityInfo;   
@@ -293,12 +293,12 @@ private:
     static
     PLDHashOperator       FreeCacheEntries(PLDHashTable *    table,
                                            PLDHashEntryHdr * hdr,
-                                           PRUint32          number,
+                                           uint32_t          number,
                                            void *            arg);
     static
     PLDHashOperator       VisitEntry(PLDHashTable *         table,
                                      PLDHashEntryHdr *      hdr,
-                                     PRUint32               number,
+                                     uint32_t               number,
                                      void *                 arg);
                                      
     

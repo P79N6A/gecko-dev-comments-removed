@@ -316,7 +316,7 @@ gfxImageSurface::MovePixels(const nsIntRect& aSourceRect,
     }
 
     
-    const PRInt32 bpp = BytePerPixelFromFormat(mFormat);
+    const int32_t bpp = BytePerPixelFromFormat(mFormat);
     const size_t nRowBytes = dest.width * bpp;
     
     

@@ -29,7 +29,7 @@ NS_IMPL_RELEASE(nsDOMCameraManager)
 
 
 
-nsDOMCameraManager::nsDOMCameraManager(PRUint64 aWindowId)
+nsDOMCameraManager::nsDOMCameraManager(uint64_t aWindowId)
   : mWindowId(aWindowId)
 {
   
@@ -43,14 +43,14 @@ nsDOMCameraManager::~nsDOMCameraManager()
 }
 
 void
-nsDOMCameraManager::OnNavigation(PRUint64 aWindowId)
+nsDOMCameraManager::OnNavigation(uint64_t aWindowId)
 {
   
 }
 
 
 already_AddRefed<nsDOMCameraManager>
-nsDOMCameraManager::Create(PRUint64 aWindowId)
+nsDOMCameraManager::Create(uint64_t aWindowId)
 {
   
 
@@ -64,7 +64,7 @@ nsDOMCameraManager::GetCamera(const JS::Value& aOptions, nsICameraGetCameraCallb
 {
   NS_ENSURE_TRUE(onSuccess, NS_ERROR_INVALID_ARG);
 
-  PRUint32 cameraId = 0;  
+  uint32_t cameraId = 0;  
   CameraSelector selector;
 
   nsresult rv = selector.Init(cx, &aOptions);

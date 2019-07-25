@@ -73,7 +73,7 @@ public:
   
   
   bool mInLoadResourcesFunc;
-  PRInt16 mPendingSheets; 
+  int16_t mPendingSheets; 
 
   
   nsCOMArray<nsIContent> mBoundElements;

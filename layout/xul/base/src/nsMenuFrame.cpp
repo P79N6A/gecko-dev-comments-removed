@@ -58,9 +58,9 @@ AssertNotCalled(void* aPropertyValue)
 }
 NS_DECLARE_FRAME_PROPERTY(PopupListProperty, AssertNotCalled)
 
-static PRInt32 gEatMouseMove = false;
+static int32_t gEatMouseMove = false;
 
-const PRInt32 kBlinkDelay = 67; 
+const int32_t kBlinkDelay = 67; 
 
 
 class nsMenuActivateEvent : public nsRunnable
@@ -414,7 +414,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
 
   if (aEvent->message == NS_KEY_PRESS && !IsDisabled()) {
     nsKeyEvent* keyEvent = (nsKeyEvent*)aEvent;
-    PRUint32 keyCode = keyEvent->keyCode;
+    uint32_t keyCode = keyEvent->keyCode;
 #ifdef XP_MACOSX
     
     if (!IsOpen() && ((keyEvent->charCode == NS_VK_SPACE && !keyEvent->IsMeta()) ||
@@ -526,7 +526,7 @@ nsMenuFrame::HandleEvent(nsPresContext* aPresContext,
     
     
     if (!IsDisabled() && IsMenu() && !IsOpen() && !mOpenTimer && !mMenuParent->IsMenuBar()) {
-      PRInt32 menuDelay =
+      int32_t menuDelay =
         LookAndFeel::GetInt(LookAndFeel::eIntID_SubmenuDelay, 300); 
 
       
@@ -640,9 +640,9 @@ nsMenuFrame::SelectMenu(bool aActivateFlag)
 }
 
 NS_IMETHODIMP
-nsMenuFrame::AttributeChanged(PRInt32 aNameSpaceID,
+nsMenuFrame::AttributeChanged(int32_t aNameSpaceID,
                               nsIAtom* aAttribute,
-                              PRInt32 aModType)
+                              int32_t aModType)
 {
   if (aAttribute == nsGkAtoms::acceltext && mIgnoreAccelTextChange) {
     
@@ -1068,7 +1068,7 @@ nsMenuFrame::BuildAcceleratorText(bool aNotify)
     }
   }
 
-  static PRInt32 accelKey = 0;
+  static int32_t accelKey = 0;
 
   if (!accelKey)
   {
@@ -1175,7 +1175,7 @@ nsMenuFrame::Execute(nsGUIEvent *aEvent)
 bool
 nsMenuFrame::ShouldBlink()
 {
-  PRInt32 shouldBlink =
+  int32_t shouldBlink =
     LookAndFeel::GetInt(LookAndFeel::eIntID_ChosenMenuItemsShouldBlink, 0);
   if (!shouldBlink)
     return false;

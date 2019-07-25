@@ -30,10 +30,10 @@ NS_IMETHODIMP
 nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
                                     nsICookie *aCookie,
                                     const nsACString &aHostname,
-                                    PRInt32 aCookiesFromHost,
+                                    int32_t aCookiesFromHost,
                                     bool aChangingCookie,
                                     bool *aRememberDecision,
-                                    PRInt32 *aAccept)
+                                    int32_t *aAccept)
 {
   nsresult rv;
 
@@ -82,7 +82,7 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
   if (NS_FAILED(rv)) return rv;
 
   
-  PRInt32 tempValue;
+  int32_t tempValue;
   block->GetInt(nsICookieAcceptDialog::ACCEPT_COOKIE, &tempValue);
   *aAccept = tempValue;
   

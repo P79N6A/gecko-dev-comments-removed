@@ -31,7 +31,7 @@ public:
 
 
 
-    bool Launch(PRInt32 timeoutMs);
+    bool Launch(int32_t timeoutMs);
 
     void Delete();
 

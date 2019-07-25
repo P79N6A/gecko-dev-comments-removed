@@ -63,18 +63,18 @@ public:
 
 
 
-  NS_IMETHOD_(PRInt32) GetCols() = 0;
+  NS_IMETHOD_(int32_t) GetCols() = 0;
 
   
 
 
-  NS_IMETHOD_(PRInt32) GetWrapCols() = 0;
+  NS_IMETHOD_(int32_t) GetWrapCols() = 0;
 
   
 
 
 
-  NS_IMETHOD_(PRInt32) GetRows() = 0;
+  NS_IMETHOD_(int32_t) GetRows() = 0;
 
   
 
@@ -160,10 +160,10 @@ public:
 
   NS_IMETHOD_(void) OnValueChanged(bool aNotify) = 0;
 
-  static const PRInt32 DEFAULT_COLS = 20;
-  static const PRInt32 DEFAULT_ROWS = 1;
-  static const PRInt32 DEFAULT_ROWS_TEXTAREA = 2;
-  static const PRInt32 DEFAULT_UNDO_CAP = 1000;
+  static const int32_t DEFAULT_COLS = 20;
+  static const int32_t DEFAULT_ROWS = 1;
+  static const int32_t DEFAULT_ROWS_TEXTAREA = 2;
+  static const int32_t DEFAULT_UNDO_CAP = 1000;
 
   
   typedef enum {

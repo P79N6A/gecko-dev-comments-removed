@@ -78,7 +78,7 @@ private:
 
   
   
-  void DrawBitmap(PRUint32 width, PRUint32 height, bool isPreview);
+  void DrawBitmap(uint32_t width, uint32_t height, bool isPreview);
 
   
   static bool MainWindowHook(void *aContext,

@@ -22,27 +22,27 @@ public:
     
     
   static void CreatePrimitiveForData ( const char* aFlavor, void* aDataBuff, 
-                                         PRUint32 aDataLen, nsISupports** aPrimitive ) ;
+                                         uint32_t aDataLen, nsISupports** aPrimitive ) ;
 
     
     
     
   static void CreateDataFromPrimitive ( const char* aFlavor, nsISupports* aPrimitive, 
-                                         void** aDataBuff, PRUint32 aDataLen ) ;
+                                         void** aDataBuff, uint32_t aDataLen ) ;
 
     
     
     
     
-  static nsresult ConvertUnicodeToPlatformPlainText ( PRUnichar* inUnicode, PRInt32 inUnicodeLen, 
-                                                    char** outPlainTextData, PRInt32* outPlainTextLen ) ;
+  static nsresult ConvertUnicodeToPlatformPlainText ( PRUnichar* inUnicode, int32_t inUnicodeLen, 
+                                                    char** outPlainTextData, int32_t* outPlainTextLen ) ;
 
     
     
     
     
-  static nsresult ConvertPlatformPlainTextToUnicode ( const char* inText, PRInt32 inTextLen, 
-                                                    PRUnichar** outUnicode, PRInt32* outUnicodeLen ) ;
+  static nsresult ConvertPlatformPlainTextToUnicode ( const char* inText, int32_t inTextLen, 
+                                                    PRUnichar** outUnicode, int32_t* outUnicodeLen ) ;
 
 }; 
 
@@ -58,7 +58,7 @@ public:
     
     
     
-  static nsresult ConvertPlatformToDOMLinebreaks ( const char* inFlavor, void** ioData, PRInt32* ioLengthInBytes ) ;
+  static nsresult ConvertPlatformToDOMLinebreaks ( const char* inFlavor, void** ioData, int32_t* ioLengthInBytes ) ;
 
 }; 
 

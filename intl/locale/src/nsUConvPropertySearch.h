@@ -22,7 +22,7 @@ class nsUConvPropertySearch
 
 
     static nsresult SearchPropertyValue(const char* aProperties[][3],
-                                        PRInt32 aNumberOfProperties,
+                                        int32_t aNumberOfProperties,
                                         const nsACString& aKey,
                                         nsACString& aValue);
 };

@@ -10,11 +10,11 @@ namespace mozilla {
 
     struct BMPFILEHEADER {
       char signature[2]; 
-      PRUint32 filesize;
-      PRInt32 reserved; 
-      PRUint32 dataoffset; 
+      uint32_t filesize;
+      int32_t reserved; 
+      uint32_t dataoffset; 
 
-      PRUint32 bihsize;
+      uint32_t bihsize;
     };
 
 
@@ -38,7 +38,7 @@ namespace mozilla {
 #define LCS_sRGB 0x73524742
     
     struct xyz {
-      PRInt32 x, y, z;
+      int32_t x, y, z;
     };
 
     struct xyzTriple {
@@ -46,50 +46,50 @@ namespace mozilla {
     };
 
     struct BITMAPV5HEADER {
-      PRInt32 width; 
-      PRInt32 height; 
-      PRUint16 planes; 
-      PRUint16 bpp; 
+      int32_t width; 
+      int32_t height; 
+      uint16_t planes; 
+      uint16_t bpp; 
       
-      PRUint32 compression; 
-      PRUint32 image_size; 
-      PRUint32 xppm; 
-      PRUint32 yppm; 
-      PRUint32 colors; 
-      PRUint32 important_colors; 
-      PRUint32 red_mask;   
-      PRUint32 green_mask; 
-      PRUint32 blue_mask;  
-      PRUint32 alpha_mask; 
-      PRUint32 color_space; 
+      uint32_t compression; 
+      uint32_t image_size; 
+      uint32_t xppm; 
+      uint32_t yppm; 
+      uint32_t colors; 
+      uint32_t important_colors; 
+      uint32_t red_mask;   
+      uint32_t green_mask; 
+      uint32_t blue_mask;  
+      uint32_t alpha_mask; 
+      uint32_t color_space; 
       
       xyzTriple white_point; 
-      PRUint32 gamma_red;   
-      PRUint32 gamma_green; 
-      PRUint32 gamma_blue;  
-      PRUint32 intent; 
+      uint32_t gamma_red;   
+      uint32_t gamma_green; 
+      uint32_t gamma_blue;  
+      uint32_t intent; 
       
-      PRUint32 profile_offset; 
-      PRUint32 profile_size; 
-      PRUint32 reserved; 
+      uint32_t profile_offset; 
+      uint32_t profile_size; 
+      uint32_t reserved; 
     };
 
     struct colorTable {
-      PRUint8 red;
-      PRUint8 green;
-      PRUint8 blue;
+      uint8_t red;
+      uint8_t green;
+      uint8_t blue;
     };
 
     struct bitFields {
-      PRUint32 red;
-      PRUint32 green;
-      PRUint32 blue;
-      PRUint8 redLeftShift;
-      PRUint8 redRightShift;
-      PRUint8 greenLeftShift;
-      PRUint8 greenRightShift;
-      PRUint8 blueLeftShift;
-      PRUint8 blueRightShift;
+      uint32_t red;
+      uint32_t green;
+      uint32_t blue;
+      uint8_t redLeftShift;
+      uint8_t redRightShift;
+      uint8_t greenLeftShift;
+      uint8_t greenRightShift;
+      uint8_t blueLeftShift;
+      uint8_t blueRightShift;
     };
 
   } 

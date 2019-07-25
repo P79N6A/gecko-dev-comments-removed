@@ -15,7 +15,7 @@ class nsParserMsgUtils {
   ~nsParserMsgUtils(); 
 public:
   static nsresult GetLocalizedStringByName(const char * aPropFileName, const char* aKey, nsString& aVal);
-  static nsresult GetLocalizedStringByID(const char * aPropFileName, PRUint32 aID, nsString& aVal);
+  static nsresult GetLocalizedStringByID(const char * aPropFileName, uint32_t aID, nsString& aVal);
 };
 
 #endif

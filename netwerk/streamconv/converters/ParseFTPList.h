@@ -68,23 +68,23 @@ struct list_state
   void           *magic;        
   PRTime         now_time;      
   PRExplodedTime now_tm;        
-  PRInt32        lstyle;        
-  PRInt32        parsed_one;    
+  int32_t        lstyle;        
+  int32_t        parsed_one;    
   char           carry_buf[84]; 
-  PRUint32       carry_buf_len; 
-  PRUint32       numlines;      
+  uint32_t       carry_buf_len; 
+  uint32_t       numlines;      
 };
 
 struct list_result
 {
-  PRInt32           fe_type;      
+  int32_t           fe_type;      
   const char *      fe_fname;     
-  PRUint32          fe_fnlen;     
+  uint32_t          fe_fnlen;     
   const char *      fe_lname;     
-  PRUint32          fe_lnlen;     
+  uint32_t          fe_lnlen;     
   char              fe_size[40];  
   PRExplodedTime    fe_time;      
-  PRInt32           fe_cinfs;     
+  int32_t           fe_cinfs;     
                                   
 };
 

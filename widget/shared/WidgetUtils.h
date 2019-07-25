@@ -28,7 +28,7 @@ public:
   
 
 
-  static PRUint32 ComputeKeyCodeFromChar(PRUint32 aCharCode);
+  static uint32_t ComputeKeyCodeFromChar(uint32_t aCharCode);
 
   
 
@@ -46,10 +46,10 @@ public:
 
 
 
-  static void GetLatinCharCodeForKeyCode(PRUint32 aKeyCode,
+  static void GetLatinCharCodeForKeyCode(uint32_t aKeyCode,
                                          bool aIsCapsLock,
-                                         PRUint32* aUnshiftedCharCode,
-                                         PRUint32* aShiftedCharCode);
+                                         uint32_t* aUnshiftedCharCode,
+                                         uint32_t* aShiftedCharCode);
 };
 
 } 

@@ -131,20 +131,20 @@ public:
 
 
 
-  nsresult AddColsToTable(PRInt32                   aFirstColIndex,
+  nsresult AddColsToTable(int32_t                   aFirstColIndex,
                           bool                      aResetSubsequentColIndices,
                           const nsFrameList::Slice& aCols);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
-  void Dump(PRInt32 aIndent);
+  void Dump(int32_t aIndent);
 #endif
 
   
 
 
 
-  virtual PRInt32 GetColCount() const;
+  virtual int32_t GetColCount() const;
 
   
   nsTableColFrame * GetFirstColumn();
@@ -156,15 +156,15 @@ public:
   
 
 
-  PRInt32 GetStartColumnIndex();
+  int32_t GetStartColumnIndex();
   
   
 
 
-  void SetStartColumnIndex(PRInt32 aIndex);
+  void SetStartColumnIndex(int32_t aIndex);
 
   
-  PRInt32 GetSpan();
+  int32_t GetSpan();
 
   
 
@@ -179,7 +179,7 @@ public:
 
 
   static void ResetColIndices(nsIFrame*       aFirstColGroup,
-                              PRInt32         aFirstColIndex,
+                              int32_t         aFirstColIndex,
                               nsIFrame*       aStartColFrame = nullptr);
 
   
@@ -193,21 +193,21 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(PRUint8     aForSide,
+  void SetContinuousBCBorderWidth(uint8_t     aForSide,
                                   BCPixelSize aPixelValue);
 protected:
   nsTableColGroupFrame(nsStyleContext* aContext);
 
-  void InsertColsReflow(PRInt32                   aColIndex,
+  void InsertColsReflow(int32_t                   aColIndex,
                         const nsFrameList::Slice& aCols);
 
   
   virtual int GetSkipSides() const;
 
   
-  PRInt32 mColCount;
+  int32_t mColCount;
   
-  PRInt32 mStartColIndex;
+  int32_t mStartColIndex;
 
   
   BCPixelSize mTopContBorderWidth;
@@ -220,17 +220,17 @@ inline nsTableColGroupFrame::nsTableColGroupFrame(nsStyleContext *aContext)
   SetColType(eColGroupContent);
 }
   
-inline PRInt32 nsTableColGroupFrame::GetStartColumnIndex()
+inline int32_t nsTableColGroupFrame::GetStartColumnIndex()
 {  
   return mStartColIndex;
 }
 
-inline void nsTableColGroupFrame::SetStartColumnIndex (PRInt32 aIndex)
+inline void nsTableColGroupFrame::SetStartColumnIndex (int32_t aIndex)
 {
   mStartColIndex = aIndex;
 }
 
-inline PRInt32 nsTableColGroupFrame::GetColCount() const
+inline int32_t nsTableColGroupFrame::GetColCount() const
 {  
   return mColCount;
 }

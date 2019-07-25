@@ -43,7 +43,7 @@ int commit_hook(void *aArg)
 void
 check_transaction(mozIStorageConnection *aDB,
                   mozIStorageBaseStatement **aStmts,
-                  PRUint32 aStmtsLen,
+                  uint32_t aStmtsLen,
                   bool aTransactionExpected)
 {
   
@@ -71,7 +71,7 @@ check_transaction(mozIStorageConnection *aDB,
   }
 
   
-  for (PRUint32 i = 0; i < aStmtsLen; ++i) {
+  for (uint32_t i = 0; i < aStmtsLen; ++i) {
     aStmts[i]->Finalize();
   }
   blocking_async_close(aDB);
@@ -352,7 +352,7 @@ test_MultipleParamsAsyncReadStatement()
   
   nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
   stmt->NewBindingParamsArray(getter_AddRefs(paramsArray));
-  for (PRInt32 i = 0; i < 2; i++) {
+  for (int32_t i = 0; i < 2; i++) {
     nsCOMPtr<mozIStorageBindingParams> params;
     paramsArray->NewBindingParams(getter_AddRefs(params));
     params->BindInt32ByName(NS_LITERAL_CSTRING("param"), 1);
@@ -386,7 +386,7 @@ test_MultipleParamsReadStatement()
   
   nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
   stmt->NewBindingParamsArray(getter_AddRefs(paramsArray));
-  for (PRInt32 i = 0; i < 2; i++) {
+  for (int32_t i = 0; i < 2; i++) {
     nsCOMPtr<mozIStorageBindingParams> params;
     paramsArray->NewBindingParams(getter_AddRefs(params));
     params->BindInt32ByName(NS_LITERAL_CSTRING("param"), 1);
@@ -428,7 +428,7 @@ test_MultipleParamsAsyncWriteStatement()
   
   nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
   stmt->NewBindingParamsArray(getter_AddRefs(paramsArray));
-  for (PRInt32 i = 0; i < 2; i++) {
+  for (int32_t i = 0; i < 2; i++) {
     nsCOMPtr<mozIStorageBindingParams> params;
     paramsArray->NewBindingParams(getter_AddRefs(params));
     params->BindInt32ByName(NS_LITERAL_CSTRING("param"), 1);
@@ -470,7 +470,7 @@ test_MultipleParamsWriteStatement()
   
   nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
   stmt->NewBindingParamsArray(getter_AddRefs(paramsArray));
-  for (PRInt32 i = 0; i < 2; i++) {
+  for (int32_t i = 0; i < 2; i++) {
     nsCOMPtr<mozIStorageBindingParams> params;
     paramsArray->NewBindingParams(getter_AddRefs(params));
     params->BindInt32ByName(NS_LITERAL_CSTRING("param"), 1);

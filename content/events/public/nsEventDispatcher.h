@@ -79,7 +79,7 @@ public:
 
 
 
-  PRUint16              mItemFlags;
+  uint16_t              mItemFlags;
 
   
 

@@ -61,9 +61,9 @@ struct GroupPos
 {
   GroupPos() : level(0), posInSet(0), setSize(0) { }
 
-  PRInt32 level;
-  PRInt32 posInSet;
-  PRInt32 setSize;
+  int32_t level;
+  int32_t posInSet;
+  int32_t setSize;
 };
 
 } 
@@ -157,7 +157,7 @@ public:
 
 
 
-  virtual void ApplyARIAState(PRUint64* aState) const;
+  virtual void ApplyARIAState(uint64_t* aState) const;
 
   
 
@@ -197,15 +197,15 @@ public:
   
 
 
-  virtual PRUint64 State();
+  virtual uint64_t State();
 
   
 
 
 
-  PRUint64 InteractiveState() const
+  uint64_t InteractiveState() const
   {
-    PRUint64 state = NativeInteractiveState();
+    uint64_t state = NativeInteractiveState();
     ApplyARIAState(&state);
     return state;
   }
@@ -213,9 +213,9 @@ public:
   
 
 
-  PRUint64 LinkState() const
+  uint64_t LinkState() const
   {
-    PRUint64 state = NativeLinkState();
+    uint64_t state = NativeLinkState();
     ApplyARIAState(&state);
     return state;
   }
@@ -224,22 +224,22 @@ public:
 
 
 
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   
 
 
-  virtual PRUint64 NativeInteractiveState() const;
+  virtual uint64_t NativeInteractiveState() const;
 
   
 
 
-  virtual PRUint64 NativeLinkState() const;
+  virtual uint64_t NativeLinkState() const;
 
   
 
 
-  PRUint64 VisibilityState();
+  uint64_t VisibilityState();
 
   
 
@@ -273,7 +273,7 @@ public:
 
 
 
-  virtual Accessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
+  virtual Accessible* ChildAtPoint(int32_t aX, int32_t aY,
                                    EWhichChildAtPoint aWhichChild);
 
   
@@ -284,7 +284,7 @@ public:
   
 
 
-  virtual PRInt32 GetLevelInternal();
+  virtual int32_t GetLevelInternal();
 
   
 
@@ -293,13 +293,13 @@ public:
 
 
 
-  virtual void GetPositionAndSizeInternal(PRInt32 *aPosInSet,
-                                          PRInt32 *aSetSize);
+  virtual void GetPositionAndSizeInternal(int32_t *aPosInSet,
+                                          int32_t *aSetSize);
 
   
 
 
-  virtual mozilla::a11y::Relation RelationByType(PRUint32 aType);
+  virtual mozilla::a11y::Relation RelationByType(uint32_t aType);
 
   
   
@@ -339,7 +339,7 @@ public:
 
 
   virtual bool AppendChild(Accessible* aChild);
-  virtual bool InsertChildAt(PRUint32 aIndex, Accessible* aChild);
+  virtual bool InsertChildAt(uint32_t aIndex, Accessible* aChild);
   virtual bool RemoveChild(Accessible* aChild);
 
   
@@ -353,22 +353,22 @@ public:
   
 
 
-  virtual Accessible* GetChildAt(PRUint32 aIndex);
+  virtual Accessible* GetChildAt(uint32_t aIndex);
 
   
 
 
-  virtual PRUint32 ChildCount() const;
+  virtual uint32_t ChildCount() const;
 
   
 
 
-  virtual PRInt32 GetIndexOf(Accessible* aChild);
+  virtual int32_t GetIndexOf(Accessible* aChild);
 
   
 
 
-  virtual PRInt32 IndexInParent() const;
+  virtual int32_t IndexInParent() const;
 
   
 
@@ -386,7 +386,7 @@ public:
     { return GetChildAt(0); }
   inline Accessible* LastChild()
   {
-    PRUint32 childCount = ChildCount();
+    uint32_t childCount = ChildCount();
     return childCount != 0 ? GetChildAt(childCount - 1) : nullptr;
   }
 
@@ -394,25 +394,25 @@ public:
   
 
 
-  PRUint32 EmbeddedChildCount();
+  uint32_t EmbeddedChildCount();
 
   
 
 
-  Accessible* GetEmbeddedChildAt(PRUint32 aIndex);
+  Accessible* GetEmbeddedChildAt(uint32_t aIndex);
 
   
 
 
-  PRInt32 GetIndexOfEmbeddedChild(Accessible* aChild);
+  int32_t GetIndexOfEmbeddedChild(Accessible* aChild);
 
   
 
 
 
 
-  PRUint32 ContentChildCount() const { return mChildren.Length(); }
-  Accessible* ContentChildAt(PRUint32 aIndex) const
+  uint32_t ContentChildCount() const { return mChildren.Length(); }
+  Accessible* ContentChildAt(uint32_t aIndex) const
     { return mChildren.ElementAt(aIndex); }
 
   
@@ -450,8 +450,8 @@ public:
 
 
 
-  virtual void AppendTextTo(nsAString& aText, PRUint32 aStartOffset = 0,
-                            PRUint32 aLength = PR_UINT32_MAX);
+  virtual void AppendTextTo(nsAString& aText, uint32_t aStartOffset = 0,
+                            uint32_t aLength = PR_UINT32_MAX);
 
   
 
@@ -523,7 +523,7 @@ public:
   
 
 
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 
   
 
@@ -547,12 +547,12 @@ public:
   
 
 
-  virtual PRUint32 StartOffset();
+  virtual uint32_t StartOffset();
 
   
 
 
-  virtual PRUint32 EndOffset();
+  virtual uint32_t EndOffset();
 
   
 
@@ -576,17 +576,17 @@ public:
   
 
 
-  virtual PRUint32 AnchorCount();
+  virtual uint32_t AnchorCount();
 
   
 
 
-  virtual Accessible* AnchorAt(PRUint32 aAnchorIndex);
+  virtual Accessible* AnchorAt(uint32_t aAnchorIndex);
 
   
 
 
-  virtual already_AddRefed<nsIURI> AnchorURIAt(PRUint32 aAnchorIndex);
+  virtual already_AddRefed<nsIURI> AnchorURIAt(uint32_t aAnchorIndex);
 
   
   
@@ -605,27 +605,27 @@ public:
   
 
 
-  virtual PRUint32 SelectedItemCount();
+  virtual uint32_t SelectedItemCount();
 
   
 
 
-  virtual Accessible* GetSelectedItem(PRUint32 aIndex);
+  virtual Accessible* GetSelectedItem(uint32_t aIndex);
 
   
 
 
-  virtual bool IsItemSelected(PRUint32 aIndex);
+  virtual bool IsItemSelected(uint32_t aIndex);
 
   
 
 
-  virtual bool AddItemToSelection(PRUint32 aIndex);
+  virtual bool AddItemToSelection(uint32_t aIndex);
 
   
 
 
-  virtual bool RemoveItemFromSelection(PRUint32 aIndex);
+  virtual bool RemoveItemFromSelection(uint32_t aIndex);
 
   
 
@@ -702,13 +702,13 @@ protected:
   
 
 
-  virtual void BindToParent(Accessible* aParent, PRUint32 aIndexInParent);
+  virtual void BindToParent(Accessible* aParent, uint32_t aIndexInParent);
   virtual void UnbindFromParent();
 
   
 
 
-  virtual Accessible* GetSiblingAtOffset(PRInt32 aOffset,
+  virtual Accessible* GetSiblingAtOffset(int32_t aOffset,
                                          nsresult *aError = nullptr) const;
 
   
@@ -814,15 +814,15 @@ protected:
 
 
 
-  void DoCommand(nsIContent *aContent = nullptr, PRUint32 aActionIndex = 0);
+  void DoCommand(nsIContent *aContent = nullptr, uint32_t aActionIndex = 0);
 
   
 
 
-  virtual void DispatchClickEvent(nsIContent *aContent, PRUint32 aActionIndex);
+  virtual void DispatchClickEvent(nsIContent *aContent, uint32_t aActionIndex);
 
   NS_DECL_RUNNABLEMETHOD_ARG2(Accessible, DispatchClickEvent,
-                              nsCOMPtr<nsIContent>, PRUint32)
+                              nsCOMPtr<nsIContent>, uint32_t)
 
   
   
@@ -847,7 +847,7 @@ protected:
 
 
 
-  PRUint32 GetActionRule();
+  uint32_t GetActionRule();
 
   
 
@@ -867,16 +867,16 @@ protected:
   
   nsRefPtr<Accessible> mParent;
   nsTArray<nsRefPtr<Accessible> > mChildren;
-  PRInt32 mIndexInParent;
+  int32_t mIndexInParent;
 
-  static const PRUint32 kChildrenFlagsMask =
+  static const uint32_t kChildrenFlagsMask =
     eChildrenUninitialized | eMixedChildren | eEmbeddedChildren;
 
-  PRUint32 mFlags;
+  uint32_t mFlags;
   friend class DocAccessible;
 
   nsAutoPtr<EmbeddedObjCollector> mEmbeddedObjCollector;
-  PRInt32 mIndexOfEmbeddedChild;
+  int32_t mIndexOfEmbeddedChild;
   friend class EmbeddedObjCollector;
 
   nsAutoPtr<AccGroupInfo> mGroupInfo;
@@ -902,19 +902,19 @@ public:
   
 
 
-  static const PRUint32 kShift = 1;
-  static const PRUint32 kControl = 2;
-  static const PRUint32 kAlt = 4;
-  static const PRUint32 kMeta = 8;
-  static const PRUint32 kOS = 16;
+  static const uint32_t kShift = 1;
+  static const uint32_t kControl = 2;
+  static const uint32_t kAlt = 4;
+  static const uint32_t kMeta = 8;
+  static const uint32_t kOS = 16;
 
   KeyBinding() : mKey(0), mModifierMask(0) {}
-  KeyBinding(PRUint32 aKey, PRUint32 aModifierMask) :
+  KeyBinding(uint32_t aKey, uint32_t aModifierMask) :
     mKey(aKey), mModifierMask(aModifierMask) {};
 
   inline bool IsEmpty() const { return !mKey; }
-  inline PRUint32 Key() const { return mKey; }
-  inline PRUint32 ModifierMask() const { return mModifierMask; }
+  inline uint32_t Key() const { return mKey; }
+  inline uint32_t ModifierMask() const { return mModifierMask; }
 
   enum Format {
     ePlatformFormat,
@@ -945,8 +945,8 @@ private:
   void ToPlatformFormat(nsAString& aValue) const;
   void ToAtkFormat(nsAString& aValue) const;
 
-  PRUint32 mKey;
-  PRUint32 mModifierMask;
+  uint32_t mKey;
+  uint32_t mModifierMask;
 };
 
 #endif

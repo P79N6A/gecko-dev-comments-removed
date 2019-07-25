@@ -18,12 +18,12 @@ public:
   CharDistributionAnalysis() {Reset(false);}
 
   
-  void HandleData(const char* aBuf, PRUint32 aLen) {}
+  void HandleData(const char* aBuf, uint32_t aLen) {}
   
   
-  void HandleOneChar(const char* aStr, PRUint32 aCharLen)
+  void HandleOneChar(const char* aStr, uint32_t aCharLen)
   {
-    PRInt32 order;
+    int32_t order;
 
     
     order = (aCharLen == 2) ? GetOrder(aStr) : -1;
@@ -32,7 +32,7 @@ public:
     {
       mTotalChars++;
       
-      if ((PRUint32)order < mTableSize)
+      if ((uint32_t)order < mTableSize)
       {
         if (512 > mCharToFreqOrder[order])
           mFreqChars++;
@@ -60,25 +60,25 @@ protected:
   
   
   
-  virtual PRInt32 GetOrder(const char* str) {return -1;}
+  virtual int32_t GetOrder(const char* str) {return -1;}
   
   
   bool     mDone;
 
   
-  PRUint32 mFreqChars;
+  uint32_t mFreqChars;
 
   
-  PRUint32 mTotalChars;
+  uint32_t mTotalChars;
 
   
-  PRUint32 mDataThreshold;
+  uint32_t mDataThreshold;
 
   
-  const PRInt16  *mCharToFreqOrder;
+  const int16_t  *mCharToFreqOrder;
 
   
-  PRUint32 mTableSize;
+  uint32_t mTableSize;
 
   
   
@@ -96,7 +96,7 @@ protected:
   
   
   
-  PRInt32 GetOrder(const char* str) 
+  int32_t GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xc4)  
       return 94*((unsigned char)str[0]-(unsigned char)0xc4) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
@@ -114,7 +114,7 @@ protected:
   
   
   
-  PRInt32 GetOrder(const char* str) 
+  int32_t GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xb0)  
       return 94*((unsigned char)str[0]-(unsigned char)0xb0) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
@@ -131,7 +131,7 @@ protected:
   
   
   
-  PRInt32 GetOrder(const char* str) 
+  int32_t GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xb0 && (unsigned char)str[1] >= (unsigned char)0xa1)  
       return 94*((unsigned char)str[0]-(unsigned char)0xb0) + (unsigned char)str[1] - (unsigned char)0xa1;
     else
@@ -149,7 +149,7 @@ protected:
   
   
   
-  PRInt32 GetOrder(const char* str) 
+  int32_t GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xa4)  
       if ((unsigned char)str[1] >= (unsigned char)0xa1)
         return 157*((unsigned char)str[0]-(unsigned char)0xa4) + (unsigned char)str[1] - (unsigned char)0xa1 +63;
@@ -169,9 +169,9 @@ protected:
   
   
   
-  PRInt32 GetOrder(const char* str) 
+  int32_t GetOrder(const char* str) 
   { 
-    PRInt32 order;
+    int32_t order;
     if ((unsigned char)*str >= (unsigned char)0x81 && (unsigned char)*str <= (unsigned char)0x9f)  
       order = 188 * ((unsigned char)str[0]-(unsigned char)0x81);
     else if ((unsigned char)*str >= (unsigned char)0xe0 && (unsigned char)*str <= (unsigned char)0xef)  
@@ -194,7 +194,7 @@ protected:
   
   
   
-  PRInt32 GetOrder(const char* str) 
+  int32_t GetOrder(const char* str) 
   { if ((unsigned char)*str >= (unsigned char)0xa0)  
       return 94*((unsigned char)str[0]-(unsigned char)0xa1) + (unsigned char)str[1] - (unsigned char)0xa1;
     else

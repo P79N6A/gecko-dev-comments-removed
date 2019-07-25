@@ -463,12 +463,12 @@ public:
   nsresult Redraw();
 
   
-  NS_IMETHOD SetDimensions(PRInt32 width, PRInt32 height);
-  NS_IMETHOD InitializeWithSurface(nsIDocShell *shell, gfxASurface *surface, PRInt32 width, PRInt32 height);
+  NS_IMETHOD SetDimensions(int32_t width, int32_t height);
+  NS_IMETHOD InitializeWithSurface(nsIDocShell *shell, gfxASurface *surface, int32_t width, int32_t height);
 
   NS_IMETHOD Render(gfxContext *ctx,
                     gfxPattern::GraphicsFilter aFilter,
-                    PRUint32 aFlags = RenderFlagPremultAlpha);
+                    uint32_t aFlags = RenderFlagPremultAlpha);
   NS_IMETHOD GetInputStream(const char* aMimeType,
                             const PRUnichar* aEncoderOptions,
                             nsIInputStream **aStream);
@@ -545,26 +545,26 @@ protected:
   
 
 
-  nsresult Initialize(PRInt32 width, PRInt32 height);
+  nsresult Initialize(int32_t width, int32_t height);
 
   nsresult InitializeWithTarget(mozilla::gfx::DrawTarget *surface,
-                                PRInt32 width, PRInt32 height);
+                                int32_t width, int32_t height);
 
   
 
 
 
-  static PRUint32 sNumLivingContexts;
+  static uint32_t sNumLivingContexts;
 
   
 
 
-  static PRUint8 (*sUnpremultiplyTable)[256];
+  static uint8_t (*sUnpremultiplyTable)[256];
 
   
 
 
-  static PRUint8 (*sPremultiplyTable)[256];
+  static uint8_t (*sPremultiplyTable)[256];
 
   
   void SetStyleFromJSValue(JSContext* cx, JS::Value& value, Style whichStyle);
@@ -624,7 +624,7 @@ protected:
   void DrawImage(const HTMLImageOrCanvasOrVideoElement &imgElt,
                  double sx, double sy, double sw, double sh,
                  double dx, double dy, double dw, double dh, 
-                 PRUint8 optional_argc, mozilla::ErrorResult& error);
+                 uint8_t optional_argc, mozilla::ErrorResult& error);
 
   nsString& GetFont()
   {
@@ -661,7 +661,7 @@ protected:
   }
 
   
-  PRInt32 mWidth, mHeight;
+  int32_t mWidth, mHeight;
 
   
   
@@ -736,8 +736,8 @@ protected:
   
 
 
-  PRUint32 mInvalidateCount;
-  static const PRUint32 kCanvasMaxInvalidateCount = 100;
+  uint32_t mInvalidateCount;
+  static const uint32_t kCanvasMaxInvalidateCount = 100;
 
   
 
@@ -924,10 +924,10 @@ protected:
   friend class AdjustedTarget;
 
   
-  void GetAppUnitsValues(PRUint32 *perDevPixel, PRUint32 *perCSSPixel) {
+  void GetAppUnitsValues(uint32_t *perDevPixel, uint32_t *perCSSPixel) {
     
-    PRUint32 devPixel = 60;
-    PRUint32 cssPixel = 60;
+    uint32_t devPixel = 60;
+    uint32_t cssPixel = 60;
 
     nsIPresShell *ps = GetPresShell();
     nsPresContext *pc;

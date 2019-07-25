@@ -65,7 +65,7 @@ public:
   }
 
   
-  virtual bool IsNodeOfType(PRUint32 aFlags) const;
+  virtual bool IsNodeOfType(uint32_t aFlags) const;
 
   
   virtual const nsTextFragment* GetText();

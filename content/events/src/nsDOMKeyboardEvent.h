@@ -26,7 +26,7 @@ public:
 
 protected:
   
-  virtual nsresult Which(PRUint32* aWhich);
+  virtual nsresult Which(uint32_t* aWhich);
 };
 
 

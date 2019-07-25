@@ -50,7 +50,7 @@ nsCollation::~nsCollation()
 
 nsresult nsCollation::NormalizeString(const nsAString& stringIn, nsAString& stringOut)
 {
-  PRInt32 aLength = stringIn.Length();
+  int32_t aLength = stringIn.Length();
 
   if (aLength <= 64) {
     PRUnichar conversionBuffer[64];
@@ -94,11 +94,11 @@ nsresult nsCollation::UnicodeToChar(const nsAString& aSrc, char** dst)
   if (NS_SUCCEEDED(res)) {
     const nsPromiseFlatString& src = PromiseFlatString(aSrc);
     const PRUnichar *unichars = src.get();
-    PRInt32 unicharLength = src.Length();
-    PRInt32 dstLength;
+    int32_t unicharLength = src.Length();
+    int32_t dstLength;
     res = mEncoder->GetMaxLength(unichars, unicharLength, &dstLength);
     if (NS_SUCCEEDED(res)) {
-      PRInt32 bufLength = dstLength + 1 + 32; 
+      int32_t bufLength = dstLength + 1 + 32; 
       *dst = (char *) PR_Malloc(bufLength);
       if (*dst) {
         **dst = '\0';
@@ -107,7 +107,7 @@ nsresult nsCollation::UnicodeToChar(const nsAString& aSrc, char** dst)
         if (NS_SUCCEEDED(res) || (NS_ERROR_UENC_NOMAPPING == res)) {
           
           
-          PRInt32 finishLength = bufLength - dstLength; 
+          int32_t finishLength = bufLength - dstLength; 
           if (finishLength > 0) {
             res = mEncoder->Finish((*dst + dstLength), &finishLength);
             if (NS_SUCCEEDED(res)) {

@@ -49,7 +49,7 @@ class NS_COM_GLUE nsTextFormatter {
 
 
 
-    static PRUint32 snprintf(PRUnichar *out, PRUint32 outlen, const PRUnichar *fmt, ...);
+    static uint32_t snprintf(PRUnichar *out, uint32_t outlen, const PRUnichar *fmt, ...);
 
     
 
@@ -57,14 +57,14 @@ class NS_COM_GLUE nsTextFormatter {
 
     static PRUnichar* smprintf(const PRUnichar *fmt, ...);
 
-    static PRUint32 ssprintf(nsAString& out, const PRUnichar* fmt, ...);
+    static uint32_t ssprintf(nsAString& out, const PRUnichar* fmt, ...);
 
     
 
 
-    static PRUint32 vsnprintf(PRUnichar *out, PRUint32 outlen, const PRUnichar *fmt, va_list ap);
+    static uint32_t vsnprintf(PRUnichar *out, uint32_t outlen, const PRUnichar *fmt, va_list ap);
     static PRUnichar* vsmprintf(const PRUnichar *fmt, va_list ap);
-    static PRUint32 vssprintf(nsAString& out, const PRUnichar *fmt, va_list ap);
+    static uint32_t vssprintf(nsAString& out, const PRUnichar *fmt, va_list ap);
 
     
 

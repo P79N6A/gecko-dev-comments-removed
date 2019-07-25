@@ -34,10 +34,10 @@ public:
                                     const nsIntSize& aDisplay);
 
   
-  PRUint32 mAudioRate;
+  uint32_t mAudioRate;
 
   
-  PRUint32 mAudioChannels;
+  uint32_t mAudioChannels;
 
   
   
@@ -80,12 +80,12 @@ class AudioData {
 public:
   typedef mozilla::SharedBuffer SharedBuffer;
 
-  AudioData(PRInt64 aOffset,
-            PRInt64 aTime,
-            PRInt64 aDuration,
-            PRUint32 aFrames,
+  AudioData(int64_t aOffset,
+            int64_t aTime,
+            int64_t aDuration,
+            uint32_t aFrames,
             AudioDataValue* aData,
-            PRUint32 aChannels)
+            uint32_t aChannels)
   : mOffset(aOffset),
     mTime(aTime),
     mDuration(aDuration),
@@ -104,16 +104,16 @@ public:
   
   void EnsureAudioBuffer();
 
-  PRInt64 GetEnd() { return mTime + mDuration; }
+  int64_t GetEnd() { return mTime + mDuration; }
 
   
   
-  const PRInt64 mOffset;
+  const int64_t mOffset;
 
-  PRInt64 mTime; 
-  const PRInt64 mDuration; 
-  const PRUint32 mFrames;
-  const PRUint32 mChannels;
+  int64_t mTime; 
+  const int64_t mDuration; 
+  const uint32_t mFrames;
+  const uint32_t mChannels;
   
   
   nsRefPtr<SharedBuffer> mAudioBuffer;
@@ -133,12 +133,12 @@ public:
   
   struct YCbCrBuffer {
     struct Plane {
-      PRUint8* mData;
-      PRUint32 mWidth;
-      PRUint32 mHeight;
-      PRUint32 mStride;
-      PRUint32 mOffset;
-      PRUint32 mSkip;
+      uint8_t* mData;
+      uint32_t mWidth;
+      uint32_t mHeight;
+      uint32_t mStride;
+      uint32_t mOffset;
+      uint32_t mSkip;
     };
 
     Plane mPlanes[3];
@@ -152,28 +152,28 @@ public:
   
   static VideoData* Create(nsVideoInfo& aInfo,
                            ImageContainer* aContainer,
-                           PRInt64 aOffset,
-                           PRInt64 aTime,
-                           PRInt64 aEndTime,
+                           int64_t aOffset,
+                           int64_t aTime,
+                           int64_t aEndTime,
                            const YCbCrBuffer &aBuffer,
                            bool aKeyframe,
-                           PRInt64 aTimecode,
+                           int64_t aTimecode,
                            nsIntRect aPicture);
 
   
   
   
-  static VideoData* CreateDuplicate(PRInt64 aOffset,
-                                    PRInt64 aTime,
-                                    PRInt64 aEndTime,
-                                    PRInt64 aTimecode)
+  static VideoData* CreateDuplicate(int64_t aOffset,
+                                    int64_t aTime,
+                                    int64_t aEndTime,
+                                    int64_t aTimecode)
   {
     return new VideoData(aOffset, aTime, aEndTime, aTimecode);
   }
 
   ~VideoData();
 
-  PRInt64 GetEnd() { return mEndTime; }
+  int64_t GetEnd() { return mEndTime; }
 
   
   
@@ -181,17 +181,17 @@ public:
   nsIntSize mDisplay;
 
   
-  PRInt64 mOffset;
+  int64_t mOffset;
 
   
-  PRInt64 mTime;
+  int64_t mTime;
 
   
-  PRInt64 mEndTime;
+  int64_t mEndTime;
 
   
   
-  PRInt64 mTimecode;
+  int64_t mTimecode;
 
   
   nsRefPtr<Image> mImage;
@@ -202,13 +202,13 @@ public:
   bool mKeyframe;
 
 public:
-  VideoData(PRInt64 aOffset, PRInt64 aTime, PRInt64 aEndTime, PRInt64 aTimecode);
+  VideoData(int64_t aOffset, int64_t aTime, int64_t aEndTime, int64_t aTimecode);
 
-  VideoData(PRInt64 aOffset,
-            PRInt64 aTime,
-            PRInt64 aEndTime,
+  VideoData(int64_t aOffset,
+            int64_t aTime,
+            int64_t aEndTime,
             bool aKeyframe,
-            PRInt64 aTimecode,
+            int64_t aTimecode,
             nsIntSize aDisplay);
 
 };
@@ -237,7 +237,7 @@ template <class T> class MediaQueue : private nsDeque {
     Reset();
   }
 
-  inline PRInt32 GetSize() { 
+  inline int32_t GetSize() { 
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     return nsDeque::GetSize();
   }
@@ -311,7 +311,7 @@ template <class T> class MediaQueue : private nsDeque {
   }
 
   
-  PRInt64 Duration() {
+  int64_t Duration() {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     if (GetSize() < 2) {
       return 0;
@@ -328,11 +328,11 @@ template <class T> class MediaQueue : private nsDeque {
 
   
   
-  void GetElementsAfter(PRInt64 aTime, nsTArray<T*>* aResult) {
+  void GetElementsAfter(int64_t aTime, nsTArray<T*>* aResult) {
     ReentrantMonitorAutoEnter mon(mReentrantMonitor);
     if (!GetSize())
       return;
-    PRInt32 i;
+    int32_t i;
     for (i = GetSize() - 1; i > 0; --i) {
       T* v = static_cast<T*>(ObjectAt(i));
       if (v->GetEnd() < aTime)
@@ -383,7 +383,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                PRInt64 aTimeThreshold) = 0;
+                                int64_t aTimeThreshold) = 0;
 
   virtual bool HasAudio() = 0;
   virtual bool HasVideo() = 0;
@@ -398,15 +398,15 @@ public:
   
   
   
-  VideoData* FindStartTime(PRInt64& aOutStartTime);
+  VideoData* FindStartTime(int64_t& aOutStartTime);
 
   
   
   
-  virtual nsresult Seek(PRInt64 aTime,
-                        PRInt64 aStartTime,
-                        PRInt64 aEndTime,
-                        PRInt64 aCurrentTime) = 0;
+  virtual nsresult Seek(int64_t aTime,
+                        int64_t aStartTime,
+                        int64_t aEndTime,
+                        int64_t aCurrentTime) = 0;
 
   
   
@@ -421,7 +421,7 @@ public:
   
   
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered,
-                               PRInt64 aStartTime) = 0;
+                               int64_t aStartTime) = 0;
 
   
   virtual bool IsSeekableInBufferedRanges() = 0;
@@ -432,10 +432,10 @@ public:
 
     virtual void* operator()(void* anObject);
 
-    PRInt64 mResult;
+    int64_t mResult;
   };
 
-  PRInt64 VideoQueueMemoryInUse() {
+  int64_t VideoQueueMemoryInUse() {
     VideoQueueMemoryFunctor functor;
     mVideoQueue.LockedForEach(functor);
     return functor.mResult;
@@ -451,10 +451,10 @@ public:
       return nullptr;
     }
 
-    PRInt64 mResult;
+    int64_t mResult;
   };
 
-  PRInt64 AudioQueueMemoryInUse() {
+  int64_t AudioQueueMemoryInUse() {
     AudioQueueMemoryFunctor functor;
     mAudioQueue.LockedForEach(functor);
     return functor.mResult;
@@ -462,13 +462,13 @@ public:
 
   
   
-  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset) {}
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {}
 
 protected:
 
   
   
-  nsresult DecodeToTarget(PRInt64 aTarget);
+  nsresult DecodeToTarget(int64_t aTarget);
 
   
   

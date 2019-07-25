@@ -16,19 +16,19 @@
 
 
 struct nsDiskCacheEntry {
-    PRUint32        mHeaderVersion; 
-    PRUint32        mMetaLocation;  
-    PRInt32         mFetchCount;
-    PRUint32        mLastFetched;
-    PRUint32        mLastModified;
-    PRUint32        mExpirationTime;
-    PRUint32        mDataSize;
-    PRUint32        mKeySize;       
-    PRUint32        mMetaDataSize;  
+    uint32_t        mHeaderVersion; 
+    uint32_t        mMetaLocation;  
+    int32_t         mFetchCount;
+    uint32_t        mLastFetched;
+    uint32_t        mLastModified;
+    uint32_t        mExpirationTime;
+    uint32_t        mDataSize;
+    uint32_t        mKeySize;       
+    uint32_t        mMetaDataSize;  
     
     
 
-    PRUint32        Size()    { return sizeof(nsDiskCacheEntry) + 
+    uint32_t        Size()    { return sizeof(nsDiskCacheEntry) + 
                                     mKeySize + mMetaDataSize;
                               }
 

@@ -40,7 +40,7 @@ protected:
   
   bool WalkHandlersAndExecute(nsIDOMKeyEvent* aKeyEvent, nsIAtom* aEventType,
                                 nsXBLPrototypeHandler* aHandler,
-                                PRUint32 aCharCode, bool aIgnoreShiftKey);
+                                uint32_t aCharCode, bool aIgnoreShiftKey);
 
   
   
@@ -48,7 +48,7 @@ protected:
 
   
   bool EventMatched(nsXBLPrototypeHandler* inHandler, nsIAtom* inEventType,
-                      nsIDOMKeyEvent* inEvent, PRUint32 aCharCode,
+                      nsIDOMKeyEvent* inEvent, uint32_t aCharCode,
                       bool aIgnoreShiftKey);
 
   
@@ -68,7 +68,7 @@ protected:
 
   
   static nsXBLSpecialDocInfo* sXBLSpecialDocInfo;
-  static PRUint32 sRefCnt;
+  static uint32_t sRefCnt;
 };
 
 nsresult

@@ -34,7 +34,7 @@ protected:
 public:
     nsrefcnt AddRef()
     {
-        NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "mRefCnt is negative");
+        NS_PRECONDITION(int32_t(mRefCnt) >= 0, "mRefCnt is negative");
         ++mRefCnt;
         NS_LOG_ADDREF(this, mRefCnt, "nsGtkIMModule", sizeof(*this));
         return mRefCnt;
@@ -131,7 +131,7 @@ protected:
     
     
     
-    PRUint32 mCompositionStart;
+    uint32_t mCompositionStart;
 
     
     
@@ -270,16 +270,16 @@ protected:
     void SetTextRangeList(nsTArray<nsTextRange> &aTextRangeList);
 
     
-    void SetCursorPosition(PRUint32 aTargetOffset);
+    void SetCursorPosition(uint32_t aTargetOffset);
 
     
-    PRUint32 GetSelectionOffset(nsWindow* aWindow);
+    uint32_t GetSelectionOffset(nsWindow* aWindow);
 
     
-    nsresult GetCurrentParagraph(nsAString& aText, PRUint32& aCursorPos);
+    nsresult GetCurrentParagraph(nsAString& aText, uint32_t& aCursorPos);
 
     
-    nsresult DeleteText(const PRInt32 aOffset, const PRUint32 aNChars);
+    nsresult DeleteText(const int32_t aOffset, const uint32_t aNChars);
 
     
     void InitEvent(nsGUIEvent& aEvent);

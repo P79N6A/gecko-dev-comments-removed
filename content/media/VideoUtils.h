@@ -91,26 +91,26 @@ private:
 
 
 
-CheckedInt64 FramesToUsecs(PRInt64 aFrames, PRUint32 aRate);
+CheckedInt64 FramesToUsecs(int64_t aFrames, uint32_t aRate);
 
 
 
 
 
-CheckedInt64 UsecsToFrames(PRInt64 aUsecs, PRUint32 aRate);
+CheckedInt64 UsecsToFrames(int64_t aUsecs, uint32_t aRate);
 
 
-static const PRInt64 USECS_PER_S = 1000000;
+static const int64_t USECS_PER_S = 1000000;
 
 
-static const PRInt64 USECS_PER_MS = 1000;
+static const int64_t USECS_PER_MS = 1000;
 
 
 
 
 
-static const PRInt32 MAX_VIDEO_WIDTH = 4000;
-static const PRInt32 MAX_VIDEO_HEIGHT = 3000;
+static const int32_t MAX_VIDEO_WIDTH = 4000;
+static const int32_t MAX_VIDEO_HEIGHT = 3000;
 
 
 

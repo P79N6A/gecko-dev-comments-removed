@@ -57,7 +57,7 @@ private:
   static nsThreadManager sInstance;
 
   nsRefPtrHashtable<nsPtrHashKey<PRThread>, nsThread> mThreadsByPRThread;
-  PRUintn             mCurThreadIndex;  
+  unsigned             mCurThreadIndex;  
   nsRefPtr<nsThread>  mMainThread;
   PRThread           *mMainPRThread;
   

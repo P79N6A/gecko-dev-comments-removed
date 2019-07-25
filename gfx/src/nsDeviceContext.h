@@ -51,14 +51,14 @@ public:
 
 
 
-    static PRInt32 AppUnitsPerCSSPixel() { return 60; }
+    static int32_t AppUnitsPerCSSPixel() { return 60; }
 
     
 
 
 
 
-    PRUint32 AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
+    uint32_t AppUnitsPerDevPixel() const { return mAppUnitsPerDevPixel; }
 
     
 
@@ -77,20 +77,20 @@ public:
 
 
 
-    PRInt32 AppUnitsPerPhysicalInch() const
+    int32_t AppUnitsPerPhysicalInch() const
     { return mAppUnitsPerPhysicalInch; }
 
     
 
 
 
-    static PRInt32 AppUnitsPerCSSInch() { return 96 * AppUnitsPerCSSPixel(); }
+    static int32_t AppUnitsPerCSSInch() { return 96 * AppUnitsPerCSSPixel(); }
 
     
 
 
 
-    PRInt32 UnscaledAppUnitsPerDevPixel() const
+    int32_t UnscaledAppUnitsPerDevPixel() const
     { return mAppUnitsPerDevNotScaledPixel; }
 
     
@@ -122,7 +122,7 @@ public:
     
 
 
-    nsresult GetDepth(PRUint32& aDepth);
+    nsresult GetDepth(uint32_t& aDepth);
 
     
 
@@ -173,8 +173,8 @@ public:
 
     nsresult BeginDocument(PRUnichar  *aTitle,
                            PRUnichar  *aPrintToFileName,
-                           PRInt32     aStartPage,
-                           PRInt32     aEndPage);
+                           int32_t     aStartPage,
+                           int32_t     aEndPage);
 
     
 
@@ -237,10 +237,10 @@ protected:
 
     nscoord  mWidth;
     nscoord  mHeight;
-    PRUint32 mDepth;
-    PRUint32  mAppUnitsPerDevPixel;
-    PRInt32  mAppUnitsPerDevNotScaledPixel;
-    PRInt32  mAppUnitsPerPhysicalInch;
+    uint32_t mDepth;
+    uint32_t  mAppUnitsPerDevPixel;
+    int32_t  mAppUnitsPerDevNotScaledPixel;
+    int32_t  mAppUnitsPerPhysicalInch;
     float    mPixelScale;
     float    mPrintingScale;
 

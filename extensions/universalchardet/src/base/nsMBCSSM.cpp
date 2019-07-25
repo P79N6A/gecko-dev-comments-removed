@@ -12,7 +12,7 @@
 
 
 
-static const PRUint32 BIG5_cls [ 256 / 8 ] = {
+static const uint32_t BIG5_cls [ 256 / 8 ] = {
 
 PCK4BITS(1,1,1,1,1,1,1,1),  
 PCK4BITS(1,1,1,1,1,1,0,0),  
@@ -49,13 +49,13 @@ PCK4BITS(3,3,3,3,3,3,3,0)
 };
 
 
-static const PRUint32 BIG5_st [ 3] = {
+static const uint32_t BIG5_st [ 3] = {
 PCK4BITS(eError,eStart,eStart,     3,eError,eError,eError,eError),
 PCK4BITS(eError,eError,eItsMe,eItsMe,eItsMe,eItsMe,eItsMe,eError),
 PCK4BITS(eError,eStart,eStart,eStart,eStart,eStart,eStart,eStart) 
 };
 
-static const PRUint32 Big5CharLenTable[] = {0, 1, 1, 2, 0};
+static const uint32_t Big5CharLenTable[] = {0, 1, 1, 2, 0};
 
 SMModel const Big5SMModel = {
   {eIdxSft4bits, eSftMsk4bits, eBitSft4bits, eUnitMsk4bits, BIG5_cls },
@@ -65,7 +65,7 @@ SMModel const Big5SMModel = {
   "Big5",
 };
 
-static const PRUint32 EUCJP_cls [ 256 / 8 ] = {
+static const uint32_t EUCJP_cls [ 256 / 8 ] = {
 
 PCK4BITS(4,4,4,4,4,4,4,4),  
 PCK4BITS(4,4,4,4,4,4,5,5),  
@@ -102,7 +102,7 @@ PCK4BITS(0,0,0,0,0,0,0,5)
 };
 
 
-static const PRUint32 EUCJP_st [ 5] = {
+static const uint32_t EUCJP_st [ 5] = {
 PCK4BITS(     3,     4,     3,     5,eStart,eError,eError,eError),
 PCK4BITS(eError,eError,eError,eError,eItsMe,eItsMe,eItsMe,eItsMe),
 PCK4BITS(eItsMe,eItsMe,eStart,eError,eStart,eError,eError,eError),
@@ -110,7 +110,7 @@ PCK4BITS(eError,eError,eStart,eError,eError,eError,     3,eError),
 PCK4BITS(     3,eError,eError,eError,eStart,eStart,eStart,eStart) 
 };
 
-static const PRUint32 EUCJPCharLenTable[] = {2, 2, 2, 3, 1, 0};
+static const uint32_t EUCJPCharLenTable[] = {2, 2, 2, 3, 1, 0};
 
 const SMModel EUCJPSMModel = {
   {eIdxSft4bits, eSftMsk4bits, eBitSft4bits, eUnitMsk4bits, EUCJP_cls },
@@ -120,7 +120,7 @@ const SMModel EUCJPSMModel = {
   "EUC-JP",
 };
 
-static const PRUint32 EUCKR_cls [ 256 / 8 ] = {
+static const uint32_t EUCKR_cls [ 256 / 8 ] = {
 
 PCK4BITS(1,1,1,1,1,1,1,1),  
 PCK4BITS(1,1,1,1,1,1,0,0),  
@@ -157,12 +157,12 @@ PCK4BITS(2,2,2,2,2,2,2,0)
 };
 
 
-static const PRUint32 EUCKR_st [ 2] = {
+static const uint32_t EUCKR_st [ 2] = {
 PCK4BITS(eError,eStart,     3,eError,eError,eError,eError,eError),
 PCK4BITS(eItsMe,eItsMe,eItsMe,eItsMe,eError,eError,eStart,eStart) 
 };
 
-static const PRUint32 EUCKRCharLenTable[] = {0, 1, 2, 0};
+static const uint32_t EUCKRCharLenTable[] = {0, 1, 2, 0};
 
 const SMModel EUCKRSMModel = {
   {eIdxSft4bits, eSftMsk4bits, eBitSft4bits, eUnitMsk4bits, EUCKR_cls },
@@ -172,7 +172,7 @@ const SMModel EUCKRSMModel = {
   "EUC-KR",
 };
 
-static const PRUint32 EUCTW_cls [ 256 / 8 ] = {
+static const uint32_t EUCTW_cls [ 256 / 8 ] = {
 
 PCK4BITS(2,2,2,2,2,2,2,2),  
 PCK4BITS(2,2,2,2,2,2,0,0),  
@@ -209,7 +209,7 @@ PCK4BITS(3,3,3,3,3,3,3,0)
 };
 
 
-static const PRUint32 EUCTW_st [ 6] = {
+static const uint32_t EUCTW_st [ 6] = {
 PCK4BITS(eError,eError,eStart,     3,     3,     3,     4,eError),
 PCK4BITS(eError,eError,eError,eError,eError,eError,eItsMe,eItsMe),
 PCK4BITS(eItsMe,eItsMe,eItsMe,eItsMe,eItsMe,eError,eStart,eError),
@@ -218,7 +218,7 @@ PCK4BITS(     5,eError,eError,eError,eStart,eError,eStart,eStart),
 PCK4BITS(eStart,eError,eStart,eStart,eStart,eStart,eStart,eStart) 
 };
 
-static const PRUint32 EUCTWCharLenTable[] = {0, 0, 1, 2, 2, 2, 3};
+static const uint32_t EUCTWCharLenTable[] = {0, 0, 1, 2, 2, 2, 3};
 
 const SMModel EUCTWSMModel = {
   {eIdxSft4bits, eSftMsk4bits, eBitSft4bits, eUnitMsk4bits, EUCTW_cls },
@@ -284,7 +284,7 @@ const SMModel EUCTWSMModel = {
 
 
 
-static const PRUint32 GB18030_cls [ 256 / 8 ] = {
+static const uint32_t GB18030_cls [ 256 / 8 ] = {
 PCK4BITS(1,1,1,1,1,1,1,1),  
 PCK4BITS(1,1,1,1,1,1,0,0),  
 PCK4BITS(1,1,1,1,1,1,1,1),  
@@ -320,7 +320,7 @@ PCK4BITS(6,6,6,6,6,6,6,0)
 };
 
 
-static const PRUint32 GB18030_st [ 6] = {
+static const uint32_t GB18030_st [ 6] = {
 PCK4BITS(eError,eStart,eStart,eStart,eStart,eStart,     3,eError),
 PCK4BITS(eError,eError,eError,eError,eError,eError,eItsMe,eItsMe),
 PCK4BITS(eItsMe,eItsMe,eItsMe,eItsMe,eItsMe,eError,eError,eStart),
@@ -334,7 +334,7 @@ PCK4BITS(eError,eError,eStart,eStart,eStart,eStart,eStart,eStart)
 
 
 
-static const PRUint32 GB18030CharLenTable[] = {0, 1, 1, 1, 1, 1, 2};
+static const uint32_t GB18030CharLenTable[] = {0, 1, 1, 1, 1, 1, 2};
 
 const SMModel GB18030SMModel = {
   {eIdxSft4bits, eSftMsk4bits, eBitSft4bits, eUnitMsk4bits, GB18030_cls },
@@ -346,7 +346,7 @@ const SMModel GB18030SMModel = {
 
 
 
-static const PRUint32 SJIS_cls [ 256 / 8 ] = {
+static const uint32_t SJIS_cls [ 256 / 8 ] = {
 
 PCK4BITS(1,1,1,1,1,1,1,1),  
 PCK4BITS(1,1,1,1,1,1,0,0),  
@@ -385,13 +385,13 @@ PCK4BITS(4,4,4,4,4,0,0,0)
 };
 
 
-static const PRUint32 SJIS_st [ 3] = {
+static const uint32_t SJIS_st [ 3] = {
 PCK4BITS(eError,eStart,eStart,     3,eError,eError,eError,eError),
 PCK4BITS(eError,eError,eError,eError,eItsMe,eItsMe,eItsMe,eItsMe),
 PCK4BITS(eItsMe,eItsMe,eError,eError,eStart,eStart,eStart,eStart) 
 };
 
-static const PRUint32 SJISCharLenTable[] = {0, 1, 1, 2, 0, 0};
+static const uint32_t SJISCharLenTable[] = {0, 1, 1, 2, 0, 0};
 
 const SMModel SJISSMModel = {
   {eIdxSft4bits, eSftMsk4bits, eBitSft4bits, eUnitMsk4bits, SJIS_cls },
@@ -402,7 +402,7 @@ const SMModel SJISSMModel = {
 };
 
 
-static const PRUint32 UTF8_cls [ 256 / 8 ] = {
+static const uint32_t UTF8_cls [ 256 / 8 ] = {
 
 PCK4BITS(1,1,1,1,1,1,1,1),  
 PCK4BITS(1,1,1,1,1,1,0,0),  
@@ -439,7 +439,7 @@ PCK4BITS(12,13,13,13,14,15,0,0)
 };
 
 
-static const PRUint32 UTF8_st [ 26] = {
+static const uint32_t UTF8_st [ 26] = {
 PCK4BITS(eError,eStart,eError,eError,eError,eError,     12,     10),
 PCK4BITS(     9,     11,     8,     7,     6,     5,     4,     3),
 PCK4BITS(eError,eError,eError,eError,eError,eError,eError,eError),
@@ -468,7 +468,7 @@ PCK4BITS(eError,eError,eStart,eStart,eStart,eStart,eError,eError),
 PCK4BITS(eError,eError,eError,eError,eError,eError,eError,eError) 
 };
 
-static const PRUint32 UTF8CharLenTable[] = {0, 1, 0, 0, 0, 0, 2, 3, 
+static const uint32_t UTF8CharLenTable[] = {0, 1, 0, 0, 0, 0, 2, 3, 
                             3, 3, 4, 4, 5, 5, 6, 6 };
 
 const SMModel UTF8SMModel = {

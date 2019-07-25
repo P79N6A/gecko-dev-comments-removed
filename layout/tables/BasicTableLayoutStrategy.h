@@ -41,8 +41,8 @@ private:
 
     
     void DistributePctWidthToColumns(float aSpanPrefPct,
-                                     PRInt32 aFirstCol,
-                                     PRInt32 aColCount);
+                                     int32_t aFirstCol,
+                                     int32_t aColCount);
 
     
     
@@ -60,8 +60,8 @@ private:
     
     
     void DistributeWidthToColumns(nscoord aWidth, 
-                                  PRInt32 aFirstCol, 
-                                  PRInt32 aColCount,
+                                  int32_t aFirstCol, 
+                                  int32_t aColCount,
                                   BtlsWidthType aWidthType,
                                   bool aSpanHasSpecifiedWidth);
  

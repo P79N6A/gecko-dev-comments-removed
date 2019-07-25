@@ -25,12 +25,12 @@ class MediaResource;
 
 
 
-static const PRUint32 FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
+static const uint32_t FRAMEBUFFER_LENGTH_PER_CHANNEL = 1024;
 
 
 
-static const PRUint32 FRAMEBUFFER_LENGTH_MIN = 512;
-static const PRUint32 FRAMEBUFFER_LENGTH_MAX = 16384;
+static const uint32_t FRAMEBUFFER_LENGTH_MIN = 512;
+static const uint32_t FRAMEBUFFER_LENGTH_MAX = 16384;
 
 
 
@@ -143,15 +143,15 @@ public:
     
     double mDownloadRate;
     
-    PRInt64 mTotalBytes;
+    int64_t mTotalBytes;
     
     
-    PRInt64 mDownloadPosition;
+    int64_t mDownloadPosition;
     
     
-    PRInt64 mDecoderPosition;
+    int64_t mDecoderPosition;
     
-    PRInt64 mPlaybackPosition;
+    int64_t mPlaybackPosition;
     
     
     
@@ -175,14 +175,14 @@ public:
 
     
     
-    PRUint32 GetParsedFrames() {
+    uint32_t GetParsedFrames() {
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mParsedFrames;
     }
 
     
     
-    PRUint32 GetDecodedFrames() {
+    uint32_t GetDecodedFrames() {
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mDecodedFrames;
     }
@@ -190,14 +190,14 @@ public:
     
     
     
-    PRUint32 GetPresentedFrames() {
+    uint32_t GetPresentedFrames() {
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
       return mPresentedFrames;
     }
 
     
     
-    void NotifyDecodedFrames(PRUint32 aParsed, PRUint32 aDecoded) {
+    void NotifyDecodedFrames(uint32_t aParsed, uint32_t aDecoded) {
       if (aParsed == 0 && aDecoded == 0)
         return;
       mozilla::ReentrantMonitorAutoEnter mon(mReentrantMonitor);
@@ -219,15 +219,15 @@ public:
 
     
     
-    PRUint32 mParsedFrames;
+    uint32_t mParsedFrames;
 
     
     
-    PRUint32 mDecodedFrames;
+    uint32_t mDecodedFrames;
 
     
     
-    PRUint32 mPresentedFrames;
+    uint32_t mPresentedFrames;
   };
 
   
@@ -235,15 +235,15 @@ public:
   
   class AutoNotifyDecoded {
   public:
-    AutoNotifyDecoded(nsMediaDecoder* aDecoder, PRUint32& aParsed, PRUint32& aDecoded)
+    AutoNotifyDecoded(nsMediaDecoder* aDecoder, uint32_t& aParsed, uint32_t& aDecoded)
       : mDecoder(aDecoder), mParsed(aParsed), mDecoded(aDecoded) {}
     ~AutoNotifyDecoded() {
       mDecoder->GetFrameStatistics().NotifyDecodedFrames(mParsed, mDecoded);
     }
   private:
     nsMediaDecoder* mDecoder;
-    PRUint32& mParsed;
-    PRUint32& mDecoded;
+    uint32_t& mParsed;
+    uint32_t& mDecoded;
   };
 
   
@@ -312,7 +312,7 @@ public:
 
   
   
-  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset) = 0;
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) = 0;
 
   
   
@@ -339,11 +339,11 @@ public:
 
   
   
-  PRUint32 GetFrameBufferLength() { return mFrameBufferLength; }
+  uint32_t GetFrameBufferLength() { return mFrameBufferLength; }
 
   
   
-  virtual nsresult RequestFrameBufferLength(PRUint32 aLength);
+  virtual nsresult RequestFrameBufferLength(uint32_t aLength);
 
   
   
@@ -362,8 +362,8 @@ public:
 
   
   
-  virtual PRInt64 VideoQueueMemoryInUse() = 0;
-  virtual PRInt64 AudioQueueMemoryInUse() = 0;
+  virtual int64_t VideoQueueMemoryInUse() = 0;
+  virtual int64_t AudioQueueMemoryInUse() = 0;
 
   VideoFrameContainer* GetVideoFrameContainer() { return mVideoFrameContainer; }
   mozilla::layers::ImageContainer* GetImageContainer()
@@ -410,7 +410,7 @@ protected:
   TimeStamp mDataTime;
 
   
-  PRUint32 mFrameBufferLength;
+  uint32_t mFrameBufferLength;
 
   
   
@@ -461,18 +461,18 @@ public:
     }
   }
 
-  static PRInt64 GetDecodedVideoMemory() {
+  static int64_t GetDecodedVideoMemory() {
     DecodersArray& decoders = Decoders();
-    PRInt64 result = 0;
+    int64_t result = 0;
     for (size_t i = 0; i < decoders.Length(); ++i) {
       result += decoders[i]->VideoQueueMemoryInUse();
     }
     return result;
   }
 
-  static PRInt64 GetDecodedAudioMemory() {
+  static int64_t GetDecodedAudioMemory() {
     DecodersArray& decoders = Decoders();
-    PRInt64 result = 0;
+    int64_t result = 0;
     for (size_t i = 0; i < decoders.Length(); ++i) {
       result += decoders[i]->AudioQueueMemoryInUse();
     }

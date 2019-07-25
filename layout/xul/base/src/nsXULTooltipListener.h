@@ -45,7 +45,7 @@ protected:
 
   
   static bool sShowTooltips;
-  static PRUint32 sTooltipListenerCount;
+  static uint32_t sTooltipListenerCount;
 
   void KillTooltipTimer();
 
@@ -77,7 +77,7 @@ protected:
 
   
   
-  PRInt32 mMouseScreenX, mMouseScreenY;
+  int32_t mMouseScreenX, mMouseScreenY;
 
   
   enum {
@@ -93,7 +93,7 @@ protected:
   
   bool mIsSourceTree;
   bool mNeedTitletip;
-  PRInt32 mLastTreeRow;
+  int32_t mLastTreeRow;
   nsCOMPtr<nsITreeColumn> mLastTreeCol;
 #endif
 };

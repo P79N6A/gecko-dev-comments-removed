@@ -44,9 +44,9 @@ nsMathMLmrowFrame::InheritAutomaticData(nsIFrame* aParent)
 }
 
 NS_IMETHODIMP
-nsMathMLmrowFrame::AttributeChanged(PRInt32  aNameSpaceID,
+nsMathMLmrowFrame::AttributeChanged(int32_t  aNameSpaceID,
                                     nsIAtom* aAttribute,
-                                    PRInt32  aModType)
+                                    int32_t  aModType)
 {
   
   

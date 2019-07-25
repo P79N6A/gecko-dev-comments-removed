@@ -235,7 +235,7 @@ gfxPlatformGtk::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
 
 gfxFontEntry* 
 gfxPlatformGtk::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry, 
-                                 const PRUint8 *aFontData, PRUint32 aLength)
+                                 const uint8_t *aFontData, uint32_t aLength)
 {
     
     return gfxPangoFontGroup::NewFontEntry(*aProxyEntry,
@@ -243,7 +243,7 @@ gfxPlatformGtk::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
 }
 
 bool
-gfxPlatformGtk::IsFontFormatSupported(nsIURI *aFontURI, PRUint32 aFormatFlags)
+gfxPlatformGtk::IsFontFormatSupported(nsIURI *aFontURI, uint32_t aFormatFlags)
 {
     
     NS_ASSERTION(!(aFormatFlags & gfxUserFontSet::FLAG_FORMAT_NOT_USED),
@@ -285,7 +285,7 @@ gfxPlatformGtk::UpdateFontList()
     FcPattern *pat = NULL;
     FcObjectSet *os = NULL;
     FcFontSet *fs = NULL;
-    PRInt32 result = -1;
+    int32_t result = -1;
 
     pat = FcPatternCreate();
     os = FcObjectSetBuild(FC_FAMILY, FC_FILE, FC_INDEX, FC_WEIGHT, FC_SLANT, FC_WIDTH, NULL);
@@ -450,16 +450,16 @@ gfxPlatformGtk::CreateFontGroup(const nsAString &aFamilies,
 
 #endif
 
-static PRInt32 sDPI = 0;
+static int32_t sDPI = 0;
 
-PRInt32
+int32_t
 gfxPlatformGtk::GetDPI()
 {
     if (!sDPI) {
         
         GdkScreen *screen = gdk_screen_get_default();
         gtk_settings_get_for_screen(screen);
-        sDPI = PRInt32(round(gdk_screen_get_resolution(screen)));
+        sDPI = int32_t(round(gdk_screen_get_resolution(screen)));
         if (sDPI <= 0) {
             
             sDPI = 96;
@@ -639,7 +639,7 @@ FindFontForCharProc(nsStringHashKey::KeyType aKey,
 }
 
 already_AddRefed<gfxFont>
-gfxPlatformGtk::FindFontForChar(PRUint32 aCh, gfxFont *aFont)
+gfxPlatformGtk::FindFontForChar(uint32_t aCh, gfxFont *aFont)
 {
     if (!gPlatformFonts || !gCodepointsWithNoFonts)
         return nullptr;

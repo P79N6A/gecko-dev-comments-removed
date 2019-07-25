@@ -64,7 +64,7 @@ public:
     GetDOMWrapper(SVGStringList *aList,
                   nsSVGElement *aElement,
                   bool aIsConditionalProcessingAttribute,
-                  PRUint8 aAttrEnum);
+                  uint8_t aAttrEnum);
 
 private:
   
@@ -72,7 +72,7 @@ private:
 
 
   DOMSVGStringList(nsSVGElement *aElement,
-                   bool aIsConditionalProcessingAttribute, PRUint8 aAttrEnum)
+                   bool aIsConditionalProcessingAttribute, uint8_t aAttrEnum)
     : mElement(aElement)
     , mAttrEnum(aAttrEnum)
     , mIsConditionalProcessingAttribute(aIsConditionalProcessingAttribute)
@@ -85,7 +85,7 @@ private:
   
   nsRefPtr<nsSVGElement> mElement;
 
-  PRUint8 mAttrEnum;
+  uint8_t mAttrEnum;
 
   bool    mIsConditionalProcessingAttribute;
 };

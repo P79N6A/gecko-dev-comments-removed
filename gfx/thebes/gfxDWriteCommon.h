@@ -21,7 +21,7 @@
 #include <dwrite.h>
 
 static DWRITE_FONT_STRETCH
-DWriteFontStretchFromStretch(PRInt16 aStretch) 
+DWriteFontStretchFromStretch(int16_t aStretch) 
 {
     switch (aStretch) {
         case NS_FONT_STRETCH_ULTRA_CONDENSED:
@@ -47,7 +47,7 @@ DWriteFontStretchFromStretch(PRInt16 aStretch)
     }
 }
 
-static PRInt16
+static int16_t
 FontStretchFromDWriteStretch(DWRITE_FONT_STRETCH aStretch) 
 {
     switch (aStretch) {
@@ -76,7 +76,7 @@ FontStretchFromDWriteStretch(DWRITE_FONT_STRETCH aStretch)
 
 struct ffReferenceKey
 {
-    FallibleTArray<PRUint8> *mArray;
+    FallibleTArray<uint8_t> *mArray;
     nsID mGUID;
 };
 
@@ -151,7 +151,7 @@ public:
 
 
 
-    gfxDWriteFontFileStream(FallibleTArray<PRUint8> *aData);
+    gfxDWriteFontFileStream(FallibleTArray<uint8_t> *aData);
     ~gfxDWriteFontFileStream();
 
     
@@ -170,7 +170,7 @@ public:
 
     IFACEMETHOD_(ULONG, AddRef)()
     {
-        NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");
+        NS_PRECONDITION(int32_t(mRefCnt) >= 0, "illegal refcnt");
         ++mRefCnt;
         return mRefCnt;
     }
@@ -199,7 +199,7 @@ public:
     virtual HRESULT STDMETHODCALLTYPE GetLastWriteTime(OUT UINT64* lastWriteTime);
 
 private:
-    FallibleTArray<PRUint8> mData;
+    FallibleTArray<uint8_t> mData;
     nsAutoRefCnt mRefCnt;
 }; 
 

@@ -82,7 +82,7 @@ class nsIWidget;
 struct nsArenaMemoryStats;
 
 typedef short SelectionType;
-typedef PRUint64 nsFrameState;
+typedef uint64_t nsFrameState;
 
 namespace mozilla {
 namespace dom {
@@ -167,7 +167,7 @@ protected:
   enum eRenderFlag {
     STATE_IGNORING_VIEWPORT_SCROLLING = 0x1
   };
-  typedef PRUint8 RenderFlags; 
+  typedef uint8_t RenderFlags; 
 
 public:
   virtual NS_HIDDEN_(nsresult) Init(nsIDocument* aDocument,
@@ -567,7 +567,7 @@ public:
     SCROLL_IF_NOT_FULLY_VISIBLE
   };
   typedef struct ScrollAxis {
-    PRInt16 mWhereToScroll;
+    int16_t mWhereToScroll;
     WhenToScroll mWhenToScroll : 16;
   
 
@@ -600,7 +600,7 @@ public:
 
 
 
-    ScrollAxis(PRInt16 aWhere = SCROLL_MINIMUM,
+    ScrollAxis(int16_t aWhere = SCROLL_MINIMUM,
                WhenToScroll aWhen = SCROLL_IF_NOT_FULLY_VISIBLE) :
                  mWhereToScroll(aWhere), mWhenToScroll(aWhen) {}
   } ScrollAxis;
@@ -628,7 +628,7 @@ public:
   virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
                                                      ScrollAxis  aVertical,
                                                      ScrollAxis  aHorizontal,
-                                                     PRUint32    aFlags) = 0;
+                                                     uint32_t    aFlags) = 0;
 
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
@@ -658,7 +658,7 @@ public:
                                        const nsRect& aRect,
                                        ScrollAxis    aVertical,
                                        ScrollAxis    aHorizontal,
-                                       PRUint32      aFlags) = 0;
+                                       uint32_t      aFlags) = 0;
 
   
 
@@ -722,14 +722,14 @@ public:
 
 
 
-  NS_IMETHOD SetSelectionFlags(PRInt16 aInEnable) = 0;
+  NS_IMETHOD SetSelectionFlags(int16_t aInEnable) = 0;
 
   
 
 
 
 
-  PRInt16 GetSelectionFlags() const { return mSelectionFlags; }
+  int16_t GetSelectionFlags() const { return mSelectionFlags; }
 
   virtual nsISelection* GetCurrentSelection(SelectionType aType) = 0;
 
@@ -869,7 +869,7 @@ public:
                                       nsPresContext * aPresContext,
                                       nsIFrame * aFrame,
                                       const nsPoint& aOffset,
-                                      PRUint32 aColor) = 0;
+                                      uint32_t aColor) = 0;
   virtual NS_HIDDEN_(void) SetPaintFrameCount(bool aOn) = 0;
   virtual bool IsPaintingFrameCounts() = 0;
 #endif
@@ -877,9 +877,9 @@ public:
 #ifdef DEBUG
   
   virtual void ListStyleContexts(nsIFrame *aRootFrame, FILE *out,
-                                 PRInt32 aIndent = 0) = 0;
+                                 int32_t aIndent = 0) = 0;
 
-  virtual void ListStyleSheets(FILE *out, PRInt32 aIndent = 0) = 0;
+  virtual void ListStyleSheets(FILE *out, int32_t aIndent = 0) = 0;
   virtual void VerifyStyleTree() = 0;
 #endif
 
@@ -965,7 +965,7 @@ public:
     RENDER_ASYNC_DECODE_IMAGES = 0x10,
     RENDER_DOCUMENT_RELATIVE = 0x20
   };
-  virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, PRUint32 aFlags,
+  virtual NS_HIDDEN_(nsresult) RenderDocument(const nsRect& aRect, uint32_t aFlags,
                                               nscolor aBackgroundColor,
                                               gfxContext* aRenderedContext) = 0;
 
@@ -1067,7 +1067,7 @@ public:
                                                 nsIFrame* aFrame,
                                                 const nsRect& aBounds,
                                                 nscolor aBackstopColor = NS_RGBA(0,0,0,0),
-                                                PRUint32 aFlags = 0) = 0;
+                                                uint32_t aFlags = 0) = 0;
 
 
   
@@ -1132,7 +1132,7 @@ public:
 
 
 
-  static void SetCapturingContent(nsIContent* aContent, PRUint8 aFlags);
+  static void SetCapturingContent(nsIContent* aContent, uint8_t aFlags);
 
   
 
@@ -1163,7 +1163,7 @@ public:
 
 
 
-  PRUint64 GetPaintCount() { return mPaintCount; }
+  uint64_t GetPaintCount() { return mPaintCount; }
   void IncrementPaintCount() { ++mPaintCount; }
 
   
@@ -1254,15 +1254,15 @@ public:
   
 
 
-  PRUint32 FontSizeInflationEmPerLine() const {
+  uint32_t FontSizeInflationEmPerLine() const {
     return mFontSizeInflationEmPerLine;
   }
 
-  PRUint32 FontSizeInflationMinTwips() const {
+  uint32_t FontSizeInflationMinTwips() const {
     return mFontSizeInflationMinTwips;
   }
 
-  PRUint32 FontSizeInflationLineThreshold() const {
+  uint32_t FontSizeInflationLineThreshold() const {
     return mFontSizeInflationLineThreshold;
   }
 
@@ -1347,11 +1347,11 @@ protected:
 #ifdef DEBUG
   nsIFrame*                 mDrawEventTargetFrame;
   
-  PRUint32                  mPresArenaAllocCount;
+  uint32_t                  mPresArenaAllocCount;
 #endif
 
   
-  PRUint64                  mPaintCount;
+  uint64_t                  mPaintCount;
 
   nsSize                    mScrollPositionClampingScrollPortSize;
 
@@ -1366,7 +1366,7 @@ protected:
   float                     mXResolution;
   float                     mYResolution;
 
-  PRInt16                   mSelectionFlags;
+  int16_t                   mSelectionFlags;
 
   
   
@@ -1402,9 +1402,9 @@ protected:
 
   
   
-  PRUint32 mFontSizeInflationEmPerLine;
-  PRUint32 mFontSizeInflationMinTwips;
-  PRUint32 mFontSizeInflationLineThreshold;
+  uint32_t mFontSizeInflationEmPerLine;
+  uint32_t mFontSizeInflationMinTwips;
+  uint32_t mFontSizeInflationLineThreshold;
 };
 
 

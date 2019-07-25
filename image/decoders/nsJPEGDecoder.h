@@ -56,7 +56,7 @@ public:
   virtual ~nsJPEGDecoder();
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
   virtual void FinishInternal();
 
   virtual Telemetry::ID SpeedHistogram();
@@ -66,32 +66,32 @@ protected:
   void OutputScanlines(bool* suspend);
 
 public:
-  PRUint8 *mImageData;
+  uint8_t *mImageData;
 
   struct jpeg_decompress_struct mInfo;
   struct jpeg_source_mgr mSourceMgr;
   decoder_error_mgr mErr;
   jstate mState;
 
-  PRUint32 mBytesToSkip;
+  uint32_t mBytesToSkip;
 
   const JOCTET *mSegment;   
-  PRUint32 mSegmentLen;     
+  uint32_t mSegmentLen;     
 
   JOCTET *mBackBuffer;
-  PRUint32 mBackBufferLen; 
-  PRUint32 mBackBufferSize; 
-  PRUint32 mBackBufferUnreadLen; 
+  uint32_t mBackBufferLen; 
+  uint32_t mBackBufferSize; 
+  uint32_t mBackBufferUnreadLen; 
 
   JOCTET  *mProfile;
-  PRUint32 mProfileLength;
+  uint32_t mProfileLength;
 
   qcms_profile *mInProfile;
   qcms_transform *mTransform;
 
   bool mReading;
 
-  PRUint32 mCMSMode;
+  uint32_t mCMSMode;
 };
 
 } 

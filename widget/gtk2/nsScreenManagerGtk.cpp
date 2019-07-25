@@ -202,8 +202,8 @@ nsScreenManagerGtk :: Init()
 
 
 NS_IMETHODIMP
-nsScreenManagerGtk :: ScreenForRect ( PRInt32 aX, PRInt32 aY,
-                                      PRInt32 aWidth, PRInt32 aHeight,
+nsScreenManagerGtk :: ScreenForRect ( int32_t aX, int32_t aY,
+                                      int32_t aWidth, int32_t aHeight,
                                       nsIScreen **aOutScreen )
 {
   nsresult rv;
@@ -213,23 +213,23 @@ nsScreenManagerGtk :: ScreenForRect ( PRInt32 aX, PRInt32 aY,
     return rv;
   }
   
-  PRUint32 which = 0;
+  uint32_t which = 0;
   
   
   
   if (mCachedScreenArray.Count() > 1) {
     
     
-    PRUint32 area = 0;
+    uint32_t area = 0;
     nsIntRect windowRect(aX, aY, aWidth, aHeight);
-    for (PRInt32 i = 0, i_end = mCachedScreenArray.Count(); i < i_end; ++i) {
-      PRInt32  x, y, width, height;
+    for (int32_t i = 0, i_end = mCachedScreenArray.Count(); i < i_end; ++i) {
+      int32_t  x, y, width, height;
       x = y = width = height = 0;
       mCachedScreenArray[i]->GetRect(&x, &y, &width, &height);
       
       nsIntRect screenRect(x, y, width, height);
       screenRect.IntersectRect(screenRect, windowRect);
-      PRUint32 tempArea = screenRect.width * screenRect.height;
+      uint32_t tempArea = screenRect.width * screenRect.height;
       if (tempArea >= area) {
         which = i;
         area = tempArea;
@@ -271,7 +271,7 @@ nsScreenManagerGtk :: GetPrimaryScreen(nsIScreen * *aPrimaryScreen)
 
 
 NS_IMETHODIMP
-nsScreenManagerGtk :: GetNumberOfScreens(PRUint32 *aNumberOfScreens)
+nsScreenManagerGtk :: GetNumberOfScreens(uint32_t *aNumberOfScreens)
 {
   nsresult rv;
   rv = EnsureInit();

@@ -23,28 +23,28 @@ public:
   
 
 
-  PRUint32 Count();
+  uint32_t Count();
 
   
 
 
-  Accessible* GetAccessibleAt(PRUint32 aIndex);
+  Accessible* GetAccessibleAt(uint32_t aIndex);
 
   
 
 
-  virtual PRInt32 GetIndexAt(Accessible* aAccessible);
+  virtual int32_t GetIndexAt(Accessible* aAccessible);
 
 protected:
   
 
 
-  Accessible* EnsureNGetObject(PRUint32 aIndex);
+  Accessible* EnsureNGetObject(uint32_t aIndex);
 
   
 
 
-  PRInt32 EnsureNGetIndex(Accessible* aAccessible);
+  int32_t EnsureNGetIndex(Accessible* aAccessible);
 
   
 
@@ -53,7 +53,7 @@ protected:
 
   filters::FilterFuncPtr mFilterFunc;
   Accessible* mRoot;
-  PRUint32 mRootChildIdx;
+  uint32_t mRootChildIdx;
 
   nsTArray<Accessible*> mObjects;
 
@@ -73,7 +73,7 @@ public:
   virtual ~EmbeddedObjCollector() { };
 
 public:
-  virtual PRInt32 GetIndexAt(Accessible* aAccessible);
+  virtual int32_t GetIndexAt(Accessible* aAccessible);
 
 protected:
   

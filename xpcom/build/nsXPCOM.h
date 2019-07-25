@@ -272,9 +272,9 @@ enum {
 
 
 XPCOM_API(void)
-NS_DebugBreak(PRUint32 aSeverity,
+NS_DebugBreak(uint32_t aSeverity,
               const char *aStr, const char *aExpr,
-              const char *aFile, PRInt32 aLine);
+              const char *aFile, int32_t aLine);
 
 
 
@@ -309,10 +309,10 @@ NS_LogTerm();
 
 
 XPCOM_API(void)
-NS_LogCtor(void *aPtr, const char *aTypeName, PRUint32 aInstanceSize);
+NS_LogCtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
 
 XPCOM_API(void)
-NS_LogDtor(void *aPtr, const char *aTypeName, PRUint32 aInstanceSize);
+NS_LogDtor(void *aPtr, const char *aTypeName, uint32_t aInstanceSize);
 
 
 
@@ -326,7 +326,7 @@ NS_LogDtor(void *aPtr, const char *aTypeName, PRUint32 aInstanceSize);
 
 XPCOM_API(void)
 NS_LogAddRef(void *aPtr, nsrefcnt aNewRefCnt,
-             const char *aTypeName, PRUint32 aInstanceSize);
+             const char *aTypeName, uint32_t aInstanceSize);
 
 XPCOM_API(void)
 NS_LogRelease(void *aPtr, nsrefcnt aNewRefCnt, const char *aTypeName);

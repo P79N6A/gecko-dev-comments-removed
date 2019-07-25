@@ -31,7 +31,7 @@ public:
 
   
   NS_IMETHOD Initialize(nsISupports* aOwner, JSContext* aContext,
-                        JSObject* aObject, PRUint32 aArgc, jsval* aArgv);
+                        JSObject* aObject, uint32_t aArgc, jsval* aArgv);
 
   Activity();
 

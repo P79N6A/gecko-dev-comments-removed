@@ -74,7 +74,7 @@ nsXPCException::IterateNSResults(nsresult* rv,
 }
 
 
-PRUint32
+uint32_t
 nsXPCException::GetNSResultCount()
 {
     return RESULT_COUNT;
@@ -153,7 +153,7 @@ nsXPCException::Reset()
         nsMemory::Free(mFilename);
         mFilename = nullptr;
     }
-    mLineNumber = (PRUint32)-1;
+    mLineNumber = (uint32_t)-1;
     NS_IF_RELEASE(mLocation);
     NS_IF_RELEASE(mData);
     NS_IF_RELEASE(mInner);
@@ -203,7 +203,7 @@ NS_IMETHODIMP nsXPCException::GetFilename(char * *aFilename)
 }
 
 
-NS_IMETHODIMP nsXPCException::GetLineNumber(PRUint32 *aLineNumber)
+NS_IMETHODIMP nsXPCException::GetLineNumber(uint32_t *aLineNumber)
 {
     if (!aLineNumber)
         return NS_ERROR_NULL_POINTER;
@@ -214,7 +214,7 @@ NS_IMETHODIMP nsXPCException::GetLineNumber(PRUint32 *aLineNumber)
 }
 
 
-NS_IMETHODIMP nsXPCException::GetColumnNumber(PRUint32 *aColumnNumber)
+NS_IMETHODIMP nsXPCException::GetColumnNumber(uint32_t *aColumnNumber)
 {
     NS_ENSURE_ARG_POINTER(aColumnNumber);
     if (!mInitialized)
@@ -419,8 +419,8 @@ nsXPCException::NewException(const char *aMessage,
         
         if (location)
             while (1) {
-                PRUint32 language;
-                PRInt32 lineNumber;
+                uint32_t language;
+                int32_t lineNumber;
                 if (NS_FAILED(location->GetLanguage(&language)) ||
                     language == nsIProgrammingLanguage::JAVASCRIPT ||
                     NS_FAILED(location->GetLineNumber(&lineNumber)) ||

@@ -41,10 +41,10 @@ public:
     
     nsresult InsertConnection(nsIURI *aKey, nsFtpControlConnection *aConn);
     nsresult RemoveConnection(nsIURI *aKey, nsFtpControlConnection **aConn);
-    PRUint32 GetSessionId() { return mSessionId; }
+    uint32_t GetSessionId() { return mSessionId; }
 
-    PRUint8 GetDataQoSBits() { return mDataQoSBits; }
-    PRUint8 GetControlQoSBits() { return mControlQoSBits; }
+    uint8_t GetDataQoSBits() { return mDataQoSBits; }
+    uint8_t GetControlQoSBits() { return mControlQoSBits; }
 
 private:
     
@@ -73,17 +73,17 @@ private:
     nsTArray<timerStruct*> mRootConnectionList;
 
     nsCOMPtr<nsICacheSession> mCacheSession;
-    PRInt32 mIdleTimeout;
+    int32_t mIdleTimeout;
 
     
     
     
     
     
-    PRUint32 mSessionId;
+    uint32_t mSessionId;
 
-    PRUint8 mControlQoSBits;
-    PRUint8 mDataQoSBits;
+    uint8_t mControlQoSBits;
+    uint8_t mDataQoSBits;
 };
 
 

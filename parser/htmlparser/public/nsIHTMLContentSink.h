@@ -81,7 +81,7 @@ public:
 
 
 
-  NS_IMETHOD BeginContext(PRInt32 aPosition) = 0;
+  NS_IMETHOD BeginContext(int32_t aPosition) = 0;
   
   
 
@@ -90,13 +90,13 @@ public:
 
 
 
-  NS_IMETHOD EndContext(PRInt32 aPosition) = 0;
+  NS_IMETHOD EndContext(int32_t aPosition) = 0;
   
   
 
 
 
-  NS_IMETHOD IsEnabled(PRInt32 aTag, bool* aReturn) = 0;
+  NS_IMETHOD IsEnabled(int32_t aTag, bool* aReturn) = 0;
 
   
 

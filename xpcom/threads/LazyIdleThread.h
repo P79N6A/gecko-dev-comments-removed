@@ -54,7 +54,7 @@ public:
 
 
 
-  LazyIdleThread(PRUint32 aIdleTimeoutMS,
+  LazyIdleThread(uint32_t aIdleTimeoutMS,
                  const nsCSubstring& aName,
                  ShutdownMethod aShutdownMethod = AutomaticShutdown,
                  nsIObserver* aIdleObserver = nullptr);
@@ -170,20 +170,20 @@ private:
   
 
 
-  const PRUint32 mIdleTimeoutMS;
+  const uint32_t mIdleTimeoutMS;
 
   
 
 
 
-  PRUint32 mPendingEventCount;
+  uint32_t mPendingEventCount;
 
   
 
 
 
 
-  PRUint32 mIdleNotificationCount;
+  uint32_t mIdleNotificationCount;
 
   
 

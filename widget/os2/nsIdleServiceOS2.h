@@ -18,7 +18,7 @@ public:
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  bool PollIdleTime(PRUint32 *aIdleTime);
+  bool PollIdleTime(uint32_t *aIdleTime);
 
   static already_AddRefed<nsIdleServiceOS2> GetInstance()
   {

@@ -62,7 +62,7 @@ public:
 
   
   
-  PRUint32          mRepeatIterationOrAccessKey;
+  uint32_t          mRepeatIterationOrAccessKey;
 };
 
 #endif 

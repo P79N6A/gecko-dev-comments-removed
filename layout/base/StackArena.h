@@ -44,10 +44,10 @@ private:
   StackMark* mMarks;
 
   
-  PRUint32 mStackTop;
+  uint32_t mStackTop;
 
   
-  PRUint32 mMarkLength;
+  uint32_t mMarkLength;
 };
 
 

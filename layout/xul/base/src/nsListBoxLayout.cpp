@@ -107,7 +107,7 @@ nsListBoxLayout::Layout(nsIFrame* aBox, nsBoxLayoutState& aState)
 NS_IMETHODIMP
 nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
 {
-  PRInt32 redrawStart = -1;
+  int32_t redrawStart = -1;
 
   
   nsListBoxBodyFrame* body = static_cast<nsListBoxBodyFrame*>(aBox);
@@ -166,7 +166,7 @@ nsListBoxLayout::LayoutInternal(nsIFrame* aBox, nsBoxLayoutState& aState)
     } else {
       
       
-      PRInt32 newPos = yOffset+margin.top;
+      int32_t newPos = yOffset+margin.top;
 
       
       

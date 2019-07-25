@@ -45,7 +45,7 @@ private:
 
 
   bool NotifyOfPivotChange(Accessible* aOldAccessible,
-                           PRInt32 aOldStart, PRInt32 aOldEnd,
+                           int32_t aOldStart, int32_t aOldEnd,
                            PivotMoveReason aReason);
 
   
@@ -88,12 +88,12 @@ private:
   
 
 
-  PRInt32 mStartOffset;
+  int32_t mStartOffset;
 
   
 
 
-  PRInt32 mEndOffset;
+  int32_t mEndOffset;
 
   
 

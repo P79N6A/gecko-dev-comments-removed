@@ -97,7 +97,7 @@ class SVGDrawingCallback : public gfxDrawingCallback {
 public:
   SVGDrawingCallback(SVGDocumentWrapper* aSVGDocumentWrapper,
                      const nsIntRect& aViewport,
-                     PRUint32 aImageFlags) :
+                     uint32_t aImageFlags) :
     mSVGDocumentWrapper(aSVGDocumentWrapper),
     mViewport(aViewport),
     mImageFlags(aImageFlags)
@@ -109,7 +109,7 @@ public:
 private:
   nsRefPtr<SVGDocumentWrapper> mSVGDocumentWrapper;
   const nsIntRect mViewport;
-  PRUint32        mImageFlags;
+  uint32_t        mImageFlags;
 };
 
 
@@ -147,7 +147,7 @@ SVGDrawingCallback::operator()(gfxContext* aContext,
                  presContext->DevPixelsToAppUnits(mViewport.width),
                  presContext->DevPixelsToAppUnits(mViewport.height));
 
-  PRUint32 renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
+  uint32_t renderDocFlags = nsIPresShell::RENDER_IGNORE_VIEWPORT_SCROLLING;
   if (!(mImageFlags & imgIContainer::FLAG_SYNC_DECODE)) {
     renderDocFlags |= nsIPresShell::RENDER_ASYNC_DECODE_IMAGES;
   }
@@ -191,7 +191,7 @@ nsresult
 VectorImage::Init(imgIDecoderObserver* aObserver,
                   const char* aMimeType,
                   const char* aURIString,
-                  PRUint32 aFlags)
+                  uint32_t aFlags)
 {
   
   if (mIsInitialized)
@@ -280,7 +280,7 @@ VectorImage::ShouldAnimate()
 
 
 NS_IMETHODIMP
-VectorImage::GetWidth(PRInt32* aWidth)
+VectorImage::GetWidth(int32_t* aWidth)
 {
   if (mError || !mIsFullyLoaded) {
     *aWidth = 0;
@@ -307,7 +307,7 @@ VectorImage::RequestRefresh(const mozilla::TimeStamp& aTime)
 
 
 NS_IMETHODIMP
-VectorImage::GetHeight(PRInt32* aHeight)
+VectorImage::GetHeight(int32_t* aHeight)
 {
   if (mError || !mIsFullyLoaded) {
     *aHeight = 0;
@@ -326,7 +326,7 @@ VectorImage::GetHeight(PRInt32* aHeight)
 
 
 NS_IMETHODIMP
-VectorImage::GetType(PRUint16* aType)
+VectorImage::GetType(uint16_t* aType)
 {
   NS_ENSURE_ARG_POINTER(aType);
 
@@ -336,7 +336,7 @@ VectorImage::GetType(PRUint16* aType)
 
 
 
-NS_IMETHODIMP_(PRUint16)
+NS_IMETHODIMP_(uint16_t)
 VectorImage::GetType()
 {
   return imgIContainer::TYPE_VECTOR;
@@ -368,8 +368,8 @@ VectorImage::GetCurrentFrameIsOpaque(bool* aIsOpaque)
 
 
 NS_IMETHODIMP
-VectorImage::GetFrame(PRUint32 aWhichFrame,
-                      PRUint32 aFlags,
+VectorImage::GetFrame(uint32_t aWhichFrame,
+                      uint32_t aFlags,
                       gfxASurface** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
@@ -385,8 +385,8 @@ VectorImage::GetFrame(PRUint32 aWhichFrame,
 
 
 NS_IMETHODIMP
-VectorImage::CopyFrame(PRUint32 aWhichFrame,
-                       PRUint32 aFlags,
+VectorImage::CopyFrame(uint32_t aWhichFrame,
+                       uint32_t aFlags,
                        gfxImageSurface** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
@@ -446,9 +446,9 @@ VectorImage::CopyFrame(PRUint32 aWhichFrame,
 
 
 NS_IMETHODIMP
-VectorImage::ExtractFrame(PRUint32 aWhichFrame,
+VectorImage::ExtractFrame(uint32_t aWhichFrame,
                           const nsIntRect& aRegion,
-                          PRUint32 aFlags,
+                          uint32_t aFlags,
                           imgIContainer** _retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
@@ -505,7 +505,7 @@ VectorImage::Draw(gfxContext* aContext,
                   const gfxRect& aFill,
                   const nsIntRect& aSubimage,
                   const nsIntSize& aViewportSize,
-                  PRUint32 aFlags)
+                  uint32_t aFlags)
 {
   NS_ENSURE_ARG_POINTER(aContext);
   if (mError || !mIsFullyLoaded)
@@ -693,8 +693,8 @@ VectorImage::OnStopRequest(nsIRequest* aRequest, nsISupports* aCtxt,
 
 NS_IMETHODIMP
 VectorImage::OnDataAvailable(nsIRequest* aRequest, nsISupports* aCtxt,
-                             nsIInputStream* aInStr, PRUint32 aSourceOffset,
-                             PRUint32 aCount)
+                             nsIInputStream* aInStr, uint32_t aSourceOffset,
+                             uint32_t aCount)
 {
   if (mError)
     return NS_ERROR_FAILURE;

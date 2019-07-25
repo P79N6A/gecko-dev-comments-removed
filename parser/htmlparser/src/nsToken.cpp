@@ -23,7 +23,7 @@ int CToken::GetTokenCount() {
 
 
 
-CToken::CToken(PRInt32 aTag) {
+CToken::CToken(int32_t aTag) {
   mAttrCount=0;
   mNewlineCount=0;
   mLineNumber = 0;
@@ -68,7 +68,7 @@ CToken::~CToken() {
 
 
 
-nsresult CToken::Consume(PRUnichar aChar,nsScanner& aScanner,PRInt32 aMode) {
+nsresult CToken::Consume(PRUnichar aChar,nsScanner& aScanner,int32_t aMode) {
   nsresult result=NS_OK;
   return result;
 }
@@ -98,7 +98,7 @@ void CToken::AppendSourceTo(nsAString& anOutputString) {
 
 
 
-PRInt32 CToken::GetTypeID(void) {
+int32_t CToken::GetTypeID(void) {
   return mTypeID;
 }
 
@@ -108,7 +108,7 @@ PRInt32 CToken::GetTypeID(void) {
 
 
 
-PRInt16 CToken::GetAttributeCount(void) {
+int16_t CToken::GetAttributeCount(void) {
   return mAttrCount;
 }
 
@@ -120,7 +120,7 @@ PRInt16 CToken::GetAttributeCount(void) {
 
 
 
-PRInt32 CToken::GetTokenType(void) {
+int32_t CToken::GetTokenType(void) {
   return -1;
 }
 

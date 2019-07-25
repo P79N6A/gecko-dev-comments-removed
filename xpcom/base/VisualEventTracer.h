@@ -154,7 +154,7 @@ enum MarkType {
 
 
 
-void Mark(PRUint32 aType, void * aItem, 
+void Mark(uint32_t aType, void * aItem, 
           const char * aText, const char * aText2 = 0);
 
 
@@ -172,8 +172,8 @@ class NS_STACK_CLASS AutoEventTracer
 {
 public:
   AutoEventTracer(void * aInstance, 
-               PRUint32 aTypeOn, 
-               PRUint32 aTypeOff, 
+               uint32_t aTypeOn, 
+               uint32_t aTypeOff, 
                const char * aName, 
                const char * aName2 = 0 
                MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
@@ -197,8 +197,8 @@ private:
   void * mInstance;
   const char * mName;
   const char * mName2;
-  PRUint32 mTypeOn;
-  PRUint32 mTypeOff;
+  uint32_t mTypeOn;
+  uint32_t mTypeOff;
 
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };

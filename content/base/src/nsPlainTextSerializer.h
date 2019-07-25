@@ -36,21 +36,21 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_IMETHOD Init(PRUint32 flags, PRUint32 aWrapColumn,
+  NS_IMETHOD Init(uint32_t flags, uint32_t aWrapColumn,
                   const char* aCharSet, bool aIsCopying,
                   bool aIsWholeDocument);
 
-  NS_IMETHOD AppendText(nsIContent* aText, PRInt32 aStartOffset,
-                        PRInt32 aEndOffset, nsAString& aStr);
+  NS_IMETHOD AppendText(nsIContent* aText, int32_t aStartOffset,
+                        int32_t aEndOffset, nsAString& aStr);
   NS_IMETHOD AppendCDATASection(nsIContent* aCDATASection,
-                                PRInt32 aStartOffset, PRInt32 aEndOffset,
+                                int32_t aStartOffset, int32_t aEndOffset,
                                 nsAString& aStr);
   NS_IMETHOD AppendProcessingInstruction(nsIContent* aPI,
-                                         PRInt32 aStartOffset,
-                                         PRInt32 aEndOffset,
+                                         int32_t aStartOffset,
+                                         int32_t aEndOffset,
                                          nsAString& aStr)  { return NS_OK; }
-  NS_IMETHOD AppendComment(nsIContent* aComment, PRInt32 aStartOffset,
-                           PRInt32 aEndOffset, nsAString& aStr)  { return NS_OK; }
+  NS_IMETHOD AppendComment(nsIContent* aComment, int32_t aStartOffset,
+                           int32_t aEndOffset, nsAString& aStr)  { return NS_OK; }
   NS_IMETHOD AppendDoctype(nsIContent *aDoctype,
                            nsAString& aStr)  { return NS_OK; }
   NS_IMETHOD AppendElementStart(mozilla::dom::Element* aElement,
@@ -65,9 +65,9 @@ public:
 
 protected:
   nsresult GetAttributeValue(nsIAtom* aName, nsString& aValueRet);
-  void AddToLine(const PRUnichar* aStringToAdd, PRInt32 aLength);
+  void AddToLine(const PRUnichar* aStringToAdd, int32_t aLength);
   void EndLine(bool softlinebreak, bool aBreakBySpace = false);
-  void EnsureVerticalSpace(PRInt32 noOfRows);
+  void EnsureVerticalSpace(int32_t noOfRows);
   void FlushLine();
   void OutputQuotesAndIndent(bool stripTrailingSpaces=false);
   void Output(nsString& aString);
@@ -108,7 +108,7 @@ protected:
   
 protected:
   nsString         mCurrentLine;
-  PRUint32         mHeadLevel;
+  uint32_t         mHeadLevel;
   bool             mAtFirstColumn;
 
   
@@ -127,28 +127,28 @@ protected:
   
   bool             mHasWrittenCiteBlockquote;
 
-  PRInt32          mIndent;
+  int32_t          mIndent;
   
   
   nsString         mInIndentString;
-  PRInt32          mCiteQuoteLevel;
-  PRInt32          mFlags;
-  PRInt32          mFloatingLines; 
+  int32_t          mCiteQuoteLevel;
+  int32_t          mFlags;
+  int32_t          mFloatingLines; 
 
   
   
   
-  PRUint32         mWrapColumn;
+  uint32_t         mWrapColumn;
 
   
-  PRUint32         mCurrentLineWidth; 
+  uint32_t         mCurrentLineWidth; 
 
   
   
-  PRInt32          mSpanLevel;
+  int32_t          mSpanLevel;
 
 
-  PRInt32          mEmptyLines; 
+  int32_t          mEmptyLines; 
                                 
                                 
 
@@ -162,12 +162,12 @@ protected:
   bool             mLineBreakDue; 
 
   nsString         mURL;
-  PRInt32          mHeaderStrategy;    
+  int32_t          mHeaderStrategy;    
 
 
 
 
-  PRInt32          mHeaderCounter[7];  
+  int32_t          mHeaderCounter[7];  
 
 
 
@@ -188,16 +188,16 @@ protected:
   
   
   nsIAtom**        mTagStack;
-  PRUint32         mTagStackIndex;
+  uint32_t         mTagStackIndex;
 
   
-  PRUint32          mIgnoreAboveIndex;
+  uint32_t          mIgnoreAboveIndex;
 
   
-  PRInt32         *mOLStack;
-  PRUint32         mOLStackIndex;
+  int32_t         *mOLStack;
+  uint32_t         mOLStackIndex;
 
-  PRUint32         mULCount;
+  uint32_t         mULCount;
 
   nsString                     mLineBreak;
   nsCOMPtr<nsILineBreaker>     mLineBreaker;

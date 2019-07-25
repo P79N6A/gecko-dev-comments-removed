@@ -64,7 +64,7 @@ class nsSHEntryShared MOZ_FINAL : public nsIBFCacheEntry,
 
     
     
-    PRUint64                        mDocShellID;
+    uint64_t                        mDocShellID;
     nsCOMArray<nsIDocShellTreeItem> mChildShells;
     nsCOMPtr<nsISupports>           mOwner;
     nsCString                       mContentType;
@@ -73,11 +73,11 @@ class nsSHEntryShared MOZ_FINAL : public nsIBFCacheEntry,
     bool                            mSticky;
     bool                            mDynamicallyCreated;
     nsCOMPtr<nsISupports>           mCacheKey;
-    PRUint32                        mLastTouched;
+    uint32_t                        mLastTouched;
 
     
     
-    PRUint64                        mID;
+    uint64_t                        mID;
     nsCOMPtr<nsIContentViewer>      mContentViewer;
     nsCOMPtr<nsIDocument>           mDocument;
     nsCOMPtr<nsILayoutHistoryState> mLayoutHistoryState;

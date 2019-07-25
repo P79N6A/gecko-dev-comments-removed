@@ -43,7 +43,7 @@ public:
 
   
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   
   virtual bool IsSelect();
@@ -82,21 +82,21 @@ public:
   virtual ~HTMLSelectOptionAccessible() {}
 
   
-  NS_IMETHOD DoAction(PRUint8 index);
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
   NS_IMETHOD SetSelected(bool aSelect);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
-  virtual PRUint64 NativeInteractiveState() const;
+  virtual uint64_t NativeState();
+  virtual uint64_t NativeInteractiveState() const;
 
-  virtual PRInt32 GetLevelInternal();
+  virtual int32_t GetLevelInternal();
   virtual void GetBoundsRect(nsRect& aTotalBounds, nsIFrame** aBoundingFrame);
 
   
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 
   
   virtual Accessible* ContainerWidget() const;
@@ -141,15 +141,15 @@ public:
   virtual ~HTMLSelectOptGroupAccessible() {}
 
   
-  NS_IMETHOD DoAction(PRUint8 index);
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
 
   
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeInteractiveState() const;
+  virtual uint64_t NativeInteractiveState() const;
 
   
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 
 protected:
   
@@ -174,8 +174,8 @@ public:
   virtual ~HTMLComboboxAccessible() {}
 
   
-  NS_IMETHOD DoAction(PRUint8 index);
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(uint8_t index);
+  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
 
   
   virtual void Shutdown();
@@ -184,11 +184,11 @@ public:
   virtual void Description(nsString& aDescription);
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
   virtual void InvalidateChildren();
 
   
-  virtual PRUint8 ActionCount();
+  virtual uint8_t ActionCount();
 
   
   virtual bool IsWidget() const;
@@ -229,7 +229,7 @@ public:
 
   
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
   virtual void GetBoundsRect(nsRect& aBounds, nsIFrame** aBoundingFrame);
 
   

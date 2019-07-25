@@ -22,17 +22,17 @@ public:
 
   
   
-  void Init(PRUint32 aChannels, PRUint32 aRate);
+  void Init(uint32_t aChannels, uint32_t aRate);
 
   
   
-  void DispatchPendingEvents(PRUint64 aCurrentTime);
+  void DispatchPendingEvents(uint64_t aCurrentTime);
 
   
   
   void QueueWrittenAudioData(AudioDataValue* aAudioData,
-                             PRUint32 aAudioDataLength,
-                             PRUint64 aEndTimeSampleOffset);
+                             uint32_t aAudioDataLength,
+                             uint64_t aEndTimeSampleOffset);
 
   
   
@@ -41,11 +41,11 @@ public:
   
   
   
-  void Drain(PRUint64 aTime);
+  void Drain(uint64_t aTime);
 
   
   
-  void SetSignalBufferLength(PRUint32 aLength);
+  void SetSignalBufferLength(uint32_t aLength);
 
   
   
@@ -65,13 +65,13 @@ private:
   nsAutoArrayPtr<float> mSignalBuffer;
 
   
-  PRUint32 mSignalBufferLength;
+  uint32_t mSignalBufferLength;
 
   
-  PRUint32 mNewSignalBufferLength;
+  uint32_t mNewSignalBufferLength;
 
   
-  PRUint32 mSignalBufferPosition;
+  uint32_t mSignalBufferPosition;
 
   
   

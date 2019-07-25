@@ -145,9 +145,9 @@ public:
     nsresult
     Init(const char* aName,
          const size_t* aBucketSizes,
-         PRInt32 aNumBuckets,
-         PRInt32 aInitialSize,
-         PRInt32 aAlign = 0);
+         int32_t aNumBuckets,
+         int32_t aInitialSize,
+         int32_t aAlign = 0);
 
     
 

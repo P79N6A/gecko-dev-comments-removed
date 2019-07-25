@@ -71,7 +71,7 @@ public:
 
 
 
-  NS_IMETHOD IsInRange(nsIDOMNode *aElement, PRUint32 *aState) = 0;
+  NS_IMETHOD IsInRange(nsIDOMNode *aElement, uint32_t *aState) = 0;
 
   
 

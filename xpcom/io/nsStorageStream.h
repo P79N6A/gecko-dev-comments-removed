@@ -48,19 +48,19 @@ private:
     ~nsStorageStream();
 
     nsSegmentedBuffer* mSegmentedBuffer;
-    PRUint32           mSegmentSize;       
+    uint32_t           mSegmentSize;       
                                            
-    PRUint32           mSegmentSizeLog2;   
+    uint32_t           mSegmentSizeLog2;   
     bool               mWriteInProgress;   
-    PRInt32            mLastSegmentNum;    
+    int32_t            mLastSegmentNum;    
     char*              mWriteCursor;       
     char*              mSegmentEnd;        
                                            
-    PRUint32           mLogicalLength;     
+    uint32_t           mLogicalLength;     
 
-    NS_METHOD Seek(PRInt32 aPosition);
-    PRUint32 SegNum(PRUint32 aPosition)    {return aPosition >> mSegmentSizeLog2;}
-    PRUint32 SegOffset(PRUint32 aPosition) {return aPosition & (mSegmentSize - 1);}
+    NS_METHOD Seek(int32_t aPosition);
+    uint32_t SegNum(uint32_t aPosition)    {return aPosition >> mSegmentSizeLog2;}
+    uint32_t SegOffset(uint32_t aPosition) {return aPosition & (mSegmentSize - 1);}
 };
 
 #endif 

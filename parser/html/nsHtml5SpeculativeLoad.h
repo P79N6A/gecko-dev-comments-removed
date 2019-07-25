@@ -92,7 +92,7 @@ class nsHtml5SpeculativeLoad {
 
 
     inline void InitSetDocumentCharset(nsACString& aCharset,
-                                       PRInt32 aCharsetSource) {
+                                       int32_t aCharsetSource) {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadSetDocumentCharset;

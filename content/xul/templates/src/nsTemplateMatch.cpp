@@ -26,7 +26,7 @@ nsTemplateMatch::Destroy(nsFixedSizeAllocator& aPool,
 nsresult
 nsTemplateMatch::RuleMatched(nsTemplateQuerySet* aQuerySet,
                              nsTemplateRule* aRule,
-                             PRInt16 aRuleIndex,
+                             int16_t aRuleIndex,
                              nsIXULTemplateResult* aResult)
 {
     

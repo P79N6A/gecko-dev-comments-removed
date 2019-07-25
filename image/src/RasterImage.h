@@ -148,17 +148,17 @@ public:
 
   
   
-  NS_IMETHOD GetWidth(PRInt32 *aWidth);
-  NS_IMETHOD GetHeight(PRInt32 *aHeight);
-  NS_IMETHOD GetType(PRUint16 *aType);
-  NS_IMETHOD_(PRUint16) GetType(void);
+  NS_IMETHOD GetWidth(int32_t *aWidth);
+  NS_IMETHOD GetHeight(int32_t *aHeight);
+  NS_IMETHOD GetType(uint16_t *aType);
+  NS_IMETHOD_(uint16_t) GetType(void);
   NS_IMETHOD GetAnimated(bool *aAnimated);
   NS_IMETHOD GetCurrentFrameIsOpaque(bool *aCurrentFrameIsOpaque);
-  NS_IMETHOD GetFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxASurface **_retval);
+  NS_IMETHOD GetFrame(uint32_t aWhichFrame, uint32_t aFlags, gfxASurface **_retval);
   NS_IMETHOD GetImageContainer(mozilla::layers::ImageContainer **_retval);
-  NS_IMETHOD CopyFrame(PRUint32 aWhichFrame, PRUint32 aFlags, gfxImageSurface **_retval);
-  NS_IMETHOD ExtractFrame(PRUint32 aWhichFrame, const nsIntRect & aRect, PRUint32 aFlags, imgIContainer **_retval);
-  NS_IMETHOD Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, const gfxMatrix & aUserSpaceToImageSpace, const gfxRect & aFill, const nsIntRect & aSubimage, const nsIntSize & aViewportSize, PRUint32 aFlags);
+  NS_IMETHOD CopyFrame(uint32_t aWhichFrame, uint32_t aFlags, gfxImageSurface **_retval);
+  NS_IMETHOD ExtractFrame(uint32_t aWhichFrame, const nsIntRect & aRect, uint32_t aFlags, imgIContainer **_retval);
+  NS_IMETHOD Draw(gfxContext *aContext, gfxPattern::GraphicsFilter aFilter, const gfxMatrix & aUserSpaceToImageSpace, const gfxRect & aFill, const nsIntRect & aSubimage, const nsIntSize & aViewportSize, uint32_t aFlags);
   NS_IMETHOD_(nsIFrame *) GetRootLayoutFrame(void);
   NS_IMETHOD RequestDecode(void);
   NS_IMETHOD LockImage(void);
@@ -178,21 +178,21 @@ public:
   nsresult Init(imgIDecoderObserver* aObserver,
                 const char* aMimeType,
                 const char* aURIString,
-                PRUint32 aFlags);
+                uint32_t aFlags);
   void     GetCurrentFrameRect(nsIntRect& aRect);
 
   
   static NS_METHOD WriteToRasterImage(nsIInputStream* aIn, void* aClosure,
                                       const char* aFromRawSegment,
-                                      PRUint32 aToOffset, PRUint32 aCount,
-                                      PRUint32* aWriteCount);
+                                      uint32_t aToOffset, uint32_t aCount,
+                                      uint32_t* aWriteCount);
 
   
 
-  PRUint32 GetCurrentFrameIndex();
+  uint32_t GetCurrentFrameIndex();
 
   
-  PRUint32 GetNumFrames();
+  uint32_t GetNumFrames();
 
   virtual size_t HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const;
   virtual size_t HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const;
@@ -204,19 +204,19 @@ public:
   void ForceDiscard() { Discard( true); }
 
   
-  nsresult SetFrameDisposalMethod(PRUint32 aFrameNum,
-                                  PRInt32 aDisposalMethod);
-  nsresult SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout);
-  nsresult SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBlendMethod);
-  nsresult SetFrameHasNoAlpha(PRUint32 aFrameNum);
-  nsresult SetFrameAsNonPremult(PRUint32 aFrameNum, bool aIsNonPremult);
+  nsresult SetFrameDisposalMethod(uint32_t aFrameNum,
+                                  int32_t aDisposalMethod);
+  nsresult SetFrameTimeout(uint32_t aFrameNum, int32_t aTimeout);
+  nsresult SetFrameBlendMethod(uint32_t aFrameNum, int32_t aBlendMethod);
+  nsresult SetFrameHasNoAlpha(uint32_t aFrameNum);
+  nsresult SetFrameAsNonPremult(uint32_t aFrameNum, bool aIsNonPremult);
 
   
 
 
 
 
-  nsresult SetSize(PRInt32 aWidth, PRInt32 aHeight);
+  nsresult SetSize(int32_t aWidth, int32_t aHeight);
 
 
   
@@ -225,26 +225,26 @@ public:
 
 
 
-  nsresult EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
-                       PRInt32 aWidth, PRInt32 aHeight,
+  nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
+                       int32_t aWidth, int32_t aHeight,
                        gfxASurface::gfxImageFormat aFormat,
-                       PRUint8 aPaletteDepth,
-                       PRUint8** imageData,
-                       PRUint32* imageLength,
-                       PRUint32** paletteData,
-                       PRUint32* paletteLength);
+                       uint8_t aPaletteDepth,
+                       uint8_t** imageData,
+                       uint32_t* imageLength,
+                       uint32_t** paletteData,
+                       uint32_t* paletteLength);
 
   
 
 
 
-  nsresult EnsureFrame(PRUint32 aFramenum, PRInt32 aX, PRInt32 aY,
-                       PRInt32 aWidth, PRInt32 aHeight,
+  nsresult EnsureFrame(uint32_t aFramenum, int32_t aX, int32_t aY,
+                       int32_t aWidth, int32_t aHeight,
                        gfxASurface::gfxImageFormat aFormat,
-                       PRUint8** imageData,
-                       PRUint32* imageLength);
+                       uint8_t** imageData,
+                       uint32_t* imageLength);
 
-  void FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
+  void FrameUpdated(uint32_t aFrameNum, nsIntRect& aUpdatedRect);
 
   
   nsresult DecodingComplete();
@@ -253,7 +253,7 @@ public:
 
 
 
-  void     SetLoopCount(PRInt32 aLoopCount);
+  void     SetLoopCount(int32_t aLoopCount);
 
   
 
@@ -263,7 +263,7 @@ public:
 
 
 
-  nsresult AddSourceData(const char *aBuffer, PRUint32 aCount);
+  nsresult AddSourceData(const char *aBuffer, uint32_t aCount);
 
   
   nsresult SourceDataComplete();
@@ -282,7 +282,7 @@ public:
 
 
 
-  nsresult SetSourceSizeHint(PRUint32 sizeHint);
+  nsresult SetSourceSizeHint(uint32_t sizeHint);
 
   
   
@@ -312,13 +312,13 @@ private:
   {
     
     nsIntRect                  firstFrameRefreshArea;
-    PRUint32                   currentAnimationFrameIndex; 
+    uint32_t                   currentAnimationFrameIndex; 
 
     
     TimeStamp                  currentAnimationFrameTime;
 
     
-    PRInt32                    lastCompositedFrameIndex;
+    int32_t                    lastCompositedFrameIndex;
     
 
 
@@ -493,14 +493,14 @@ private:
 
 
 
-  void DeleteImgFrame(PRUint32 framenum);
+  void DeleteImgFrame(uint32_t framenum);
 
-  imgFrame* GetImgFrameNoDecode(PRUint32 framenum);
-  imgFrame* GetImgFrame(PRUint32 framenum);
-  imgFrame* GetDrawableImgFrame(PRUint32 framenum);
+  imgFrame* GetImgFrameNoDecode(uint32_t framenum);
+  imgFrame* GetImgFrame(uint32_t framenum);
+  imgFrame* GetDrawableImgFrame(uint32_t framenum);
   imgFrame* GetCurrentImgFrame();
   imgFrame* GetCurrentDrawableImgFrame();
-  PRUint32 GetCurrentImgFrameIndex() const;
+  uint32_t GetCurrentImgFrameIndex() const;
   mozilla::TimeStamp GetCurrentImgFrameEndTime() const;
   
   inline void EnsureAnimExists()
@@ -536,7 +536,7 @@ private:
   nsresult DoComposite(nsIntRect* aDirtyRect,
                        imgFrame* aPrevFrame,
                        imgFrame* aNextFrame,
-                       PRInt32 aNextFrameIndex);
+                       int32_t aNextFrameIndex);
 
   
 
@@ -564,15 +564,15 @@ private:
                               imgFrame *aDstFrame,
                               nsIntRect& aRect);
 
-  nsresult InternalAddFrameHelper(PRUint32 framenum, imgFrame *frame,
-                                  PRUint8 **imageData, PRUint32 *imageLength,
-                                  PRUint32 **paletteData, PRUint32 *paletteLength);
-  nsresult InternalAddFrame(PRUint32 framenum, PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight,
-                            gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth,
-                            PRUint8 **imageData, PRUint32 *imageLength,
-                            PRUint32 **paletteData, PRUint32 *paletteLength);
+  nsresult InternalAddFrameHelper(uint32_t framenum, imgFrame *frame,
+                                  uint8_t **imageData, uint32_t *imageLength,
+                                  uint32_t **paletteData, uint32_t *paletteLength);
+  nsresult InternalAddFrame(uint32_t framenum, int32_t aX, int32_t aY, int32_t aWidth, int32_t aHeight,
+                            gfxASurface::gfxImageFormat aFormat, uint8_t aPaletteDepth,
+                            uint8_t **imageData, uint32_t *imageLength,
+                            uint32_t **paletteData, uint32_t *paletteLength);
 
-  bool ApplyDecodeFlags(PRUint32 aNewFlags);
+  bool ApplyDecodeFlags(uint32_t aNewFlags);
 
 private: 
 
@@ -586,7 +586,7 @@ private:
   
   
   
-  PRUint32                   mFrameDecodeFlags;
+  uint32_t                   mFrameDecodeFlags;
 
   
   
@@ -602,13 +602,13 @@ private:
   RasterImage::Anim*        mAnim;
   
   
-  PRInt32                    mLoopCount;
+  int32_t                    mLoopCount;
   
   
   nsWeakPtr                  mObserver;
 
   
-  PRUint32                   mLockCount;
+  uint32_t                   mLockCount;
   DiscardTracker::Node       mDiscardTrackerNode;
 
   
@@ -621,17 +621,17 @@ private:
   
   nsRefPtr<Decoder>              mDecoder;
   DecodeRequest                  mDecodeRequest;
-  PRUint32                       mBytesDecoded;
+  uint32_t                       mBytesDecoded;
 
   
   
-  PRInt32                        mDecodeCount;
+  int32_t                        mDecodeCount;
 
   
   nsRefPtr<mozilla::layers::ImageContainer> mImageContainer;
 
 #ifdef DEBUG
-  PRUint32                       mFramesNotified;
+  uint32_t                       mFramesNotified;
 #endif
 
   
@@ -655,8 +655,8 @@ private:
   nsresult WantDecodedFrames();
   nsresult SyncDecode();
   nsresult InitDecoder(bool aDoSizeDecode);
-  nsresult WriteToDecoder(const char *aBuffer, PRUint32 aCount);
-  nsresult DecodeSomeData(PRUint32 aMaxBytes);
+  nsresult WriteToDecoder(const char *aBuffer, uint32_t aCount);
+  nsresult DecodeSomeData(uint32_t aMaxBytes);
   bool     IsDecodeFinished();
   TimeStamp mDrawStartTime;
 

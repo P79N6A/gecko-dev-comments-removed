@@ -54,7 +54,7 @@ protected:
 
 
 
-  PRUint32  mOffset;
+  uint32_t  mOffset;
 
   
   nsCOMPtr<nsIDOMNode> mParent;

@@ -23,7 +23,7 @@ namespace layers {
 struct THEBES_API FrameMetrics {
 public:
   
-  typedef PRUint64 ViewID;
+  typedef uint64_t ViewID;
   static const ViewID NULL_SCROLL_ID;   
   static const ViewID ROOT_SCROLL_ID;   
   static const ViewID START_SCROLL_ID;  

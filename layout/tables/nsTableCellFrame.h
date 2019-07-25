@@ -57,9 +57,9 @@ public:
   virtual already_AddRefed<Accessible> CreateAccessible();
 #endif
 
-  NS_IMETHOD  AttributeChanged(PRInt32         aNameSpaceID,
+  NS_IMETHOD  AttributeChanged(int32_t         aNameSpaceID,
                                nsIAtom*        aAttribute,
-                               PRInt32         aModType);
+                               int32_t         aModType);
 
   
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
@@ -98,7 +98,7 @@ public:
 
   void PaintCellBackground(nsRenderingContext& aRenderingContext,
                            const nsRect& aDirtyRect, nsPoint aPt,
-                           PRUint32 aFlags);
+                           uint32_t aFlags);
 
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
   virtual nscoord GetPrefWidth(nsRenderingContext *aRenderingContext);
@@ -128,7 +128,7 @@ public:
 
 
 
-  PRUint8 GetVerticalAlign() const;
+  uint8_t GetVerticalAlign() const;
 
   bool HasVerticalAlignBaseline() const {
     return GetVerticalAlign() == NS_STYLE_VERTICAL_ALIGN_BASELINE;
@@ -150,7 +150,7 @@ public:
 
 
 
-  virtual PRInt32 GetRowSpan();
+  virtual int32_t GetRowSpan();
 
   
 
@@ -161,10 +161,10 @@ public:
 
 
 
-  NS_IMETHOD GetCellIndexes(PRInt32 &aRowIndex, PRInt32 &aColIndex);
+  NS_IMETHOD GetCellIndexes(int32_t &aRowIndex, int32_t &aColIndex);
 
   
-  virtual nsresult GetRowIndex(PRInt32 &aRowIndex) const;
+  virtual nsresult GetRowIndex(int32_t &aRowIndex) const;
 
   
 
@@ -172,11 +172,11 @@ public:
 
 
 
-  virtual PRInt32 GetColSpan();
+  virtual int32_t GetColSpan();
 
   
-  virtual nsresult GetColIndex(PRInt32 &aColIndex) const;
-  void SetColIndex(PRInt32 aColIndex);
+  virtual nsresult GetColIndex(int32_t &aColIndex) const;
+  void SetColIndex(int32_t aColIndex);
 
   
   inline nscoord GetPriorAvailWidth();
@@ -203,7 +203,7 @@ public:
   virtual void PaintBackground(nsRenderingContext& aRenderingContext,
                                const nsRect&        aDirtyRect,
                                nsPoint              aPt,
-                               PRUint32             aFlags);
+                               uint32_t             aFlags);
 
   void DecorateForSelection(nsRenderingContext& aRenderingContext,
                             nsPoint              aPt);
@@ -225,7 +225,7 @@ protected:
 
   friend class nsTableRowFrame;
 
-  PRUint32     mColIndex;             
+  uint32_t     mColIndex;             
 
   nscoord      mPriorAvailWidth;      
   nsSize       mDesiredSize;          
@@ -309,7 +309,7 @@ public:
   virtual void PaintBackground(nsRenderingContext& aRenderingContext,
                                const nsRect&        aDirtyRect,
                                nsPoint              aPt,
-                               PRUint32             aFlags);
+                               uint32_t             aFlags);
 
 private:
 

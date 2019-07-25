@@ -78,7 +78,7 @@ public:
 
   void SampleAt(nsSMILTime aSampleTime,
                 const nsSMILTimeValue& aSimpleDuration,
-                PRUint32 aRepeatIteration);
+                uint32_t aRepeatIteration);
 
   
 
@@ -89,7 +89,7 @@ public:
 
 
 
-  void SampleLastValue(PRUint32 aRepeatIteration);
+  void SampleLastValue(uint32_t aRepeatIteration);
 
   
 
@@ -135,7 +135,7 @@ public:
 
 
 
-  PRInt8 CompareTo(const nsSMILAnimationFunction* aOther) const;
+  int8_t CompareTo(const nsSMILAnimationFunction* aOther) const;
 
   
 
@@ -303,7 +303,7 @@ protected:
 
 
 
-  double   ScaleIntervalProgress(double aProgress, PRUint32 aIntervalIndex);
+  double   ScaleIntervalProgress(double aProgress, uint32_t aIntervalIndex);
 
   
   
@@ -319,9 +319,9 @@ protected:
   virtual nsresult GetValues(const nsISMILAttr& aSMILAttr,
                              nsSMILValueArray& aResult);
 
-  virtual void CheckValueListDependentAttrs(PRUint32 aNumValues);
-  void         CheckKeyTimes(PRUint32 aNumValues);
-  void         CheckKeySplines(PRUint32 aNumValues);
+  virtual void CheckValueListDependentAttrs(uint32_t aNumValues);
+  void         CheckKeyTimes(uint32_t aNumValues);
+  void         CheckKeySplines(uint32_t aNumValues);
 
   virtual bool IsToAnimation() const {
     return !HasAttr(nsGkAtoms::values) &&
@@ -405,7 +405,7 @@ protected:
   
   nsSMILTime                    mSampleTime; 
   nsSMILTimeValue               mSimpleDuration;
-  PRUint32                      mRepeatIteration;
+  uint32_t                      mRepeatIteration;
 
   nsSMILTime                    mBeginTime; 
 
@@ -418,7 +418,7 @@ protected:
   
   
   
-  PRUint16                      mErrorFlags;
+  uint16_t                      mErrorFlags;
 
   
   

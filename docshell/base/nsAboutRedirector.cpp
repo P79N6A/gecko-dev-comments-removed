@@ -15,7 +15,7 @@ NS_IMPL_ISUPPORTS1(nsAboutRedirector, nsIAboutModule)
 struct RedirEntry {
     const char* id;
     const char* url;
-    PRUint32 flags;  
+    uint32_t flags;  
                      
                      
 };
@@ -119,7 +119,7 @@ nsAboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
 }
 
 NS_IMETHODIMP
-nsAboutRedirector::GetURIFlags(nsIURI *aURI, PRUint32 *result)
+nsAboutRedirector::GetURIFlags(nsIURI *aURI, uint32_t *result)
 {
     NS_ENSURE_ARG_POINTER(aURI);
 

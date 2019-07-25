@@ -46,12 +46,12 @@ static const PRUnichar gBasicMapping[0x40] =
 #define NIGORI_MODIFIER 1
 #define MARU_MODIFIER   2
 
-static const PRUint16 g_ufAsciiMapping [] = {
+static const uint16_t g_ufAsciiMapping [] = {
   0x0001, 0x0004, 0x0005, 0x0008, 0x0000, 0x0000, 0x007F, 0x0000
 };
 
 #define SIZE_OF_TABLES 5
-static const PRUint16 * g_ufMappingTables[SIZE_OF_TABLES] = {
+static const uint16_t * g_ufMappingTables[SIZE_OF_TABLES] = {
   g_ufAsciiMapping,             
   g_uf0201GLMapping,            
   g_uf0208Mapping,              
@@ -84,9 +84,9 @@ nsUnicodeToISO2022JP::~nsUnicodeToISO2022JP()
 {
 }
 
-nsresult nsUnicodeToISO2022JP::ChangeCharset(PRInt32 aCharset,
+nsresult nsUnicodeToISO2022JP::ChangeCharset(int32_t aCharset,
                                              char * aDest, 
-                                             PRInt32 * aDestLength)
+                                             int32_t * aDestLength)
 {
   
   
@@ -140,9 +140,9 @@ nsresult nsUnicodeToISO2022JP::ChangeCharset(PRInt32 aCharset,
 }
 
 nsresult nsUnicodeToISO2022JP::ConvertHankaku(const PRUnichar * aSrc,
-                                              PRInt32 * aSrcLength,
+                                              int32_t * aSrcLength,
                                               char * aDest,
-                                              PRInt32 * aDestLength)
+                                              int32_t * aDestLength)
 {
   nsresult res = NS_OK;
 
@@ -151,7 +151,7 @@ nsresult nsUnicodeToISO2022JP::ConvertHankaku(const PRUnichar * aSrc,
   char * dest = aDest;
   char * destEnd = aDest + *aDestLength;
   PRUnichar srcChar, tempChar;
-  PRInt32 bcr, bcw;
+  int32_t bcr, bcw;
 
   bcw = destEnd - dest;
   res = ChangeCharset(JIS_X_208_INDEX, dest, &bcw);
@@ -198,9 +198,9 @@ nsresult nsUnicodeToISO2022JP::ConvertHankaku(const PRUnichar * aSrc,
 
 NS_IMETHODIMP nsUnicodeToISO2022JP::ConvertNoBuffNoErr(
                                     const PRUnichar * aSrc, 
-                                    PRInt32 * aSrcLength, 
+                                    int32_t * aSrcLength, 
                                     char * aDest, 
-                                    PRInt32 * aDestLength)
+                                    int32_t * aDestLength)
 {
   nsresult res = NS_OK;
 
@@ -208,8 +208,8 @@ NS_IMETHODIMP nsUnicodeToISO2022JP::ConvertNoBuffNoErr(
   const PRUnichar * srcEnd = aSrc + *aSrcLength;
   char * dest = aDest;
   char * destEnd = aDest + *aDestLength;
-  PRInt32 bcr, bcw;
-  PRInt32 i;
+  int32_t bcr, bcw;
+  int32_t i;
 
   while (src < srcEnd) {
     for (i=0; i< SIZE_OF_TABLES ; i++) {
@@ -259,7 +259,7 @@ NS_IMETHODIMP nsUnicodeToISO2022JP::ConvertNoBuffNoErr(
 }
 
 NS_IMETHODIMP nsUnicodeToISO2022JP::FinishNoBuff(char * aDest, 
-                                                 PRInt32 * aDestLength)
+                                                 int32_t * aDestLength)
 {
   ChangeCharset(0, aDest, aDestLength);
   return NS_OK;

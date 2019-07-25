@@ -18,8 +18,8 @@
 struct nsNativeKeyEvent
 {
   nsEvent *nativeEvent; 
-  PRUint32 keyCode;
-  PRUint32 charCode;
+  uint32_t keyCode;
+  uint32_t charCode;
   bool     altKey;
   bool     ctrlKey;
   bool     shiftKey;

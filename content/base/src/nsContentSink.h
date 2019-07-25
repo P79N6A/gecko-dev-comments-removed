@@ -100,7 +100,7 @@ class nsContentSink : public nsICSSLoaderObserver,
   NS_HIDDEN_(void) DropParserAndPerfHint(void);
   bool IsScriptExecutingImpl();
 
-  void NotifyAppend(nsIContent* aContent, PRUint32 aStartIndex);
+  void NotifyAppend(nsIContent* aContent, uint32_t aStartIndex);
 
   
   NS_DECL_NSIDOCUMENTOBSERVER_BEGINUPDATE
@@ -238,9 +238,9 @@ public:
 
 protected:
   void
-  FavorPerformanceHint(bool perfOverStarvation, PRUint32 starvationDelay);
+  FavorPerformanceHint(bool perfOverStarvation, uint32_t starvationDelay);
 
-  inline PRInt32 GetNotificationInterval()
+  inline int32_t GetNotificationInterval()
   {
     if (mDynamicLowerValue) {
       return 1000;
@@ -277,7 +277,7 @@ protected:
   nsRefPtr<nsScriptLoader>      mScriptLoader;
 
   
-  PRInt32 mBackoffCount;
+  int32_t mBackoffCount;
 
   
   
@@ -287,22 +287,22 @@ protected:
   nsCOMPtr<nsITimer> mNotificationTimer;
 
   
-  PRUint8 mBeganUpdate : 1;
-  PRUint8 mLayoutStarted : 1;
-  PRUint8 mDynamicLowerValue : 1;
-  PRUint8 mParsing : 1;
-  PRUint8 mDroppedTimer : 1;
+  uint8_t mBeganUpdate : 1;
+  uint8_t mLayoutStarted : 1;
+  uint8_t mDynamicLowerValue : 1;
+  uint8_t mParsing : 1;
+  uint8_t mDroppedTimer : 1;
   
-  PRUint8 mDeferredLayoutStart : 1;
+  uint8_t mDeferredLayoutStart : 1;
   
-  PRUint8 mDeferredFlushTags : 1;
-  
-  
-  
-  PRUint8 mIsDocumentObserver : 1;
+  uint8_t mDeferredFlushTags : 1;
   
   
-  PRUint8 mRunsToCompletion : 1;
+  
+  uint8_t mIsDocumentObserver : 1;
+  
+  
+  uint8_t mRunsToCompletion : 1;
   
   
   
@@ -310,26 +310,26 @@ protected:
 
   
   
-  PRUint32 mDeflectedCount;
+  uint32_t mDeflectedCount;
 
   
   bool mHasPendingEvent;
 
   
-  PRUint32 mCurrentParseEndTime;
+  uint32_t mCurrentParseEndTime;
 
-  PRInt32 mBeginLoadTime;
+  int32_t mBeginLoadTime;
 
   
   
-  PRUint32 mLastSampledUserEventTime;
+  uint32_t mLastSampledUserEventTime;
 
-  PRInt32 mInMonolithicContainer;
+  int32_t mInMonolithicContainer;
 
-  PRInt32 mInNotification;
-  PRUint32 mUpdatesInNotification;
+  int32_t mInNotification;
+  uint32_t mUpdatesInNotification;
 
-  PRUint32 mPendingSheetCount;
+  uint32_t mPendingSheetCount;
 
   nsRevocableEventPtr<nsRunnableMethod<nsContentSink, void, false> >
     mProcessLinkHeaderEvent;
@@ -337,27 +337,27 @@ protected:
   
   static bool sNotifyOnTimer;
   
-  static PRInt32 sBackoffCount;
+  static int32_t sBackoffCount;
   
-  static PRInt32 sNotificationInterval;
+  static int32_t sNotificationInterval;
   
-  static PRInt32 sInteractiveDeflectCount;
-  static PRInt32 sPerfDeflectCount;
+  static int32_t sInteractiveDeflectCount;
+  static int32_t sPerfDeflectCount;
   
   
   
-  static PRInt32 sPendingEventMode;
+  static int32_t sPendingEventMode;
   
-  static PRInt32 sEventProbeRate;
+  static int32_t sEventProbeRate;
   
-  static PRInt32 sInteractiveParseTime;
-  static PRInt32 sPerfParseTime;
+  static int32_t sInteractiveParseTime;
+  static int32_t sPerfParseTime;
   
-  static PRInt32 sInteractiveTime;
+  static int32_t sInteractiveTime;
   
-  static PRInt32 sInitialPerfTime;
+  static int32_t sInitialPerfTime;
   
-  static PRInt32 sEnablePerfMode;
+  static int32_t sEnablePerfMode;
 };
 
 #endif 

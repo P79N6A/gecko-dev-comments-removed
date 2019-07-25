@@ -32,7 +32,7 @@ public:
 
   NS_IMETHOD Init (nsEditor   *aEditor,
                    nsIDOMNode *aNode,
-                   PRInt32     aOffset);
+                   int32_t     aOffset);
 
   SplitElementTxn();
 
@@ -54,7 +54,7 @@ protected:
 
 
 
-  PRInt32  mOffset;
+  int32_t  mOffset;
 
   
   nsCOMPtr<nsIDOMNode> mNewLeftNode;

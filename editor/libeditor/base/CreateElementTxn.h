@@ -35,7 +35,7 @@ public:
   NS_IMETHOD Init(nsEditor *aEditor,
                   const nsAString& aTag,
                   nsIDOMNode *aParent,
-                  PRUint32 aOffsetInParent);
+                  uint32_t aOffsetInParent);
 
   CreateElementTxn();
 
@@ -60,7 +60,7 @@ protected:
   nsCOMPtr<nsIDOMNode> mParent;
 
   
-  PRUint32 mOffsetInParent;
+  uint32_t mOffsetInParent;
 
   
   nsCOMPtr<nsIDOMNode> mNewNode;  

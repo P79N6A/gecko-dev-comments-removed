@@ -92,11 +92,11 @@ public:
 
 protected:
     
-    PRInt32 FindToken(PRInt32 cursor, convToken* *_retval);
+    int32_t FindToken(int32_t cursor, convToken* *_retval);
 
     
     
-    PRInt32 CatHTML(PRInt32 front, PRInt32 back);
+    int32_t CatHTML(int32_t front, int32_t back);
 
     nsCOMPtr<nsIStreamListener>     mListener; 
     nsString                        mBuffer;   

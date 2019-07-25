@@ -74,12 +74,12 @@ public:
 
   
   
-  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
   }
-  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify);
 
@@ -90,7 +90,7 @@ public:
 
 
 
-  nsresult GetRowSpec(PRInt32 *aNumValues, const nsFramesetSpec** aSpecs);
+  nsresult GetRowSpec(int32_t *aNumValues, const nsFramesetSpec** aSpecs);
    
 
 
@@ -98,15 +98,15 @@ public:
 
 
 
-  nsresult GetColSpec(PRInt32 *aNumValues, const nsFramesetSpec** aSpecs);
+  nsresult GetColSpec(int32_t *aNumValues, const nsFramesetSpec** aSpecs);
 
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              PRInt32 aModType) const;
+                                              int32_t aModType) const;
 
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
@@ -120,17 +120,17 @@ public:
 
 private:
   nsresult ParseRowCol(const nsAString& aValue,
-                       PRInt32&         aNumSpecs,
+                       int32_t&         aNumSpecs,
                        nsFramesetSpec** aSpecs);
 
   
 
 
-  PRInt32          mNumRows;
+  int32_t          mNumRows;
   
 
 
-  PRInt32          mNumCols;
+  int32_t          mNumCols;
   
 
 

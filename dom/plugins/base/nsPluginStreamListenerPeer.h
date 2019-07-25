@@ -65,7 +65,7 @@ public:
 
   
   void
-  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, PRInt32 *numRequests);
+  MakeByteRangeString(NPByteRange* aRangeList, nsACString &string, int32_t *numRequests);
   
   bool UseExistingPluginCacheFile(nsPluginStreamListenerPeer* psi);
   
@@ -87,13 +87,13 @@ public:
   nsNPAPIPluginInstance *GetPluginInstance() { return mPluginInstance; }
   
   nsresult RequestRead(NPByteRange* rangeList);
-  nsresult GetLength(PRUint32* result);
+  nsresult GetLength(uint32_t* result);
   nsresult GetURL(const char** result);
-  nsresult GetLastModified(PRUint32* result);
+  nsresult GetLastModified(uint32_t* result);
   nsresult IsSeekable(bool* result);
   nsresult GetContentType(char** result);
-  nsresult GetStreamOffset(PRInt32* result);
-  nsresult SetStreamOffset(PRInt32 value);
+  nsresult GetStreamOffset(int32_t* result);
+  nsresult SetStreamOffset(int32_t value);
 
   void TrackRequest(nsIRequest* request)
   {
@@ -102,7 +102,7 @@ public:
 
   void ReplaceRequest(nsIRequest* oldRequest, nsIRequest* newRequest)
   {
-    PRInt32 i = mRequests.IndexOfObject(oldRequest);
+    int32_t i = mRequests.IndexOfObject(oldRequest);
     if (i == -1) {
       NS_ASSERTION(mRequests.Count() == 0,
                    "Only our initial stream should be unknown!");
@@ -117,19 +117,19 @@ public:
   {
     
     nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
       requestsCopy[i]->Cancel(status);
   }
 
   void SuspendRequests() {
     nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
       requestsCopy[i]->Suspend();
   }
 
   void ResumeRequests() {
     nsCOMArray<nsIRequest> requestsCopy(mRequests);
-    for (PRInt32 i = 0; i < requestsCopy.Count(); ++i)
+    for (int32_t i = 0; i < requestsCopy.Count(); ++i)
       requestsCopy[i]->Resume();
   }
 
@@ -155,8 +155,8 @@ private:
   bool              mStartBinding;
   bool              mHaveFiredOnStartRequest;
   
-  PRUint32                mLength;
-  PRInt32                 mStreamType;
+  uint32_t                mLength;
+  int32_t                 mStreamType;
   
   
   
@@ -166,14 +166,14 @@ private:
   
   nsCString mContentType;
   bool mSeekable;
-  PRUint32 mModified;
+  uint32_t mModified;
   nsRefPtr<nsNPAPIPluginInstance> mPluginInstance;
-  PRInt32 mStreamOffset;
+  int32_t mStreamOffset;
   bool mStreamComplete;
   
 public:
   bool                    mAbort;
-  PRInt32                 mPendingRequests;
+  int32_t                 mPendingRequests;
   nsWeakPtr               mWeakPtrChannelCallbacks;
   nsWeakPtr               mWeakPtrChannelLoadGroup;
   nsCOMArray<nsIRequest> mRequests;

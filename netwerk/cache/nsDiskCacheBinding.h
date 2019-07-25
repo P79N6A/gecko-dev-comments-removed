@@ -45,7 +45,7 @@ public:
     nsDiskCacheRecord       mRecord;
     nsDiskCacheStreamIO*    mStreamIO;      
     bool                    mDoomed;        
-    PRUint8                 mGeneration;    
+    uint8_t                 mGeneration;    
 
     
     
@@ -101,7 +101,7 @@ public:
     nsDiskCacheBinding *    CreateBinding(nsCacheEntry *       entry,
                                           nsDiskCacheRecord *  record);
 
-    nsDiskCacheBinding *    FindActiveBinding(PRUint32  hashNumber);
+    nsDiskCacheBinding *    FindActiveBinding(uint32_t  hashNumber);
     void                    RemoveBinding(nsDiskCacheBinding * binding);
     bool                    ActiveBindings();
     

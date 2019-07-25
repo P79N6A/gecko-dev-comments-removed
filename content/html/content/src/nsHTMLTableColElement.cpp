@@ -41,7 +41,7 @@ public:
   
   NS_DECL_NSIDOMHTMLTABLECOLELEMENT
 
-  virtual bool ParseAttribute(PRInt32 aNamespaceID,
+  virtual bool ParseAttribute(int32_t aNamespaceID,
                                 nsIAtom* aAttribute,
                                 const nsAString& aValue,
                                 nsAttrValue& aResult);
@@ -95,7 +95,7 @@ NS_IMPL_STRING_ATTR(nsHTMLTableColElement, Width, width)
 
 
 bool
-nsHTMLTableColElement::ParseAttribute(PRInt32 aNamespaceID,
+nsHTMLTableColElement::ParseAttribute(int32_t aNamespaceID,
                                       nsIAtom* aAttribute,
                                       const nsAString& aValue,
                                       nsAttrValue& aResult)
@@ -133,7 +133,7 @@ void MapAttributesIntoRule(const nsMappedAttributes* aAttributes, nsRuleData* aD
       
       const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::span);
       if (value && value->Type() == nsAttrValue::eInteger) {
-        PRInt32 val = value->GetIntegerValue();
+        int32_t val = value->GetIntegerValue();
         
         
         

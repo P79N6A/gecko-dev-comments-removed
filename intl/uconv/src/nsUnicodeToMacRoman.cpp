@@ -9,7 +9,7 @@
 
 
 
-static const PRUint16 g_MacRomanMappingTable[] = {
+static const uint16_t g_MacRomanMappingTable[] = {
 #include "macroman.uf"
 };
 

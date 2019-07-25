@@ -34,7 +34,7 @@ gfxFontconfigUtils::Shutdown() {
     NS_IF_RELEASE(gLangService);
 }
 
- PRUint8
+ uint8_t
 gfxFontconfigUtils::FcSlantToThebesStyle(int aFcSlant)
 {
     switch (aFcSlant) {
@@ -47,7 +47,7 @@ gfxFontconfigUtils::FcSlantToThebesStyle(int aFcSlant)
     }
 }
 
- PRUint8
+ uint8_t
 gfxFontconfigUtils::GetThebesStyle(FcPattern *aPattern)
 {
     int slant;
@@ -85,7 +85,7 @@ gfxFontconfigUtils::GetFcSlant(const gfxFontStyle& aFontStyle)
 #define FC_WEIGHT_EXTRABLACK        215
 #endif
 
- PRUint16
+ uint16_t
 gfxFontconfigUtils::GetThebesWeight(FcPattern *aPattern)
 {
     int weight;
@@ -117,7 +117,7 @@ gfxFontconfigUtils::GetThebesWeight(FcPattern *aPattern)
 }
 
  int
-gfxFontconfigUtils::FcWeightForBaseWeight(PRInt8 aBaseWeight)
+gfxFontconfigUtils::FcWeightForBaseWeight(int8_t aBaseWeight)
 {
     NS_PRECONDITION(aBaseWeight >= 0 && aBaseWeight <= 10,
                     "base weight out of range");
@@ -145,7 +145,7 @@ gfxFontconfigUtils::FcWeightForBaseWeight(PRInt8 aBaseWeight)
     return aBaseWeight < 2 ? FC_WEIGHT_THIN : FC_WEIGHT_EXTRABLACK;
 }
 
- PRInt16
+ int16_t
 gfxFontconfigUtils::GetThebesStretch(FcPattern *aPattern)
 {
     int width;
@@ -181,7 +181,7 @@ gfxFontconfigUtils::GetThebesStretch(FcPattern *aPattern)
 }
 
  int
-gfxFontconfigUtils::FcWidthForThebesStretch(PRInt16 aStretch)
+gfxFontconfigUtils::FcWidthForThebesStretch(int16_t aStretch)
 {
     switch (aStretch) {
         default: 
@@ -219,7 +219,7 @@ GuessFcWeight(const gfxFontStyle& aFontStyle)
 
 
 
-    PRInt8 weight = aFontStyle.ComputeWeight();
+    int8_t weight = aFontStyle.ComputeWeight();
 
     
     NS_ASSERTION(weight >= 0 && weight <= 10,
@@ -279,7 +279,7 @@ gfxFontconfigUtils::NewPattern(const nsTArray<nsString>& aFamilies,
     }
 
     bool useWeakBinding = false;
-    for (PRUint32 i = 0; i < aFamilies.Length(); ++i) {
+    for (uint32_t i = 0; i < aFamilies.Length(); ++i) {
         NS_ConvertUTF16toUTF8 family(aFamilies[i]);
         if (!useWeakBinding) {
             AddString(pattern, FC_FAMILY, family.get());
@@ -290,7 +290,7 @@ gfxFontconfigUtils::NewPattern(const nsTArray<nsString>& aFamilies,
             
             
             
-            for (PRUint32 g = 0;
+            for (uint32_t g = 0;
                  g < ArrayLength(sFontconfigGenerics);
                  ++g) {
                 if (0 == FcStrCmpIgnoreCase(ToFcChar8(sFontconfigGenerics[g]),
@@ -328,13 +328,13 @@ gfxFontconfigUtils::GetFontList(nsIAtom *aLangGroup,
     if (NS_FAILED(rv))
         return rv;
 
-    for (PRUint32 i = 0; i < fonts.Length(); ++i) {
+    for (uint32_t i = 0; i < fonts.Length(); ++i) {
         aListOfFonts.AppendElement(NS_ConvertUTF8toUTF16(fonts[i]));
     }
 
     aListOfFonts.Sort();
 
-    PRInt32 serif = 0, sansSerif = 0, monospace = 0;
+    int32_t serif = 0, sansSerif = 0, monospace = 0;
 
     
     
@@ -714,7 +714,7 @@ gfxFontconfigUtils::GetStandardFamilyName(const nsAString& aFontName, nsAString&
 
     
     
-    for (PRUint32 j = 0; j < candidates.Length(); ++j) {
+    for (uint32_t j = 0; j < candidates.Length(); ++j) {
         FcPatternDel(pat, FC_FAMILY);
         FcPatternAddString(pat, FC_FAMILY, (FcChar8 *)candidates[j].get());
 
@@ -915,7 +915,7 @@ gfxFontconfigUtils::GetFontsForFullname(const FcChar8 *aFullname)
 static FcLangResult
 CompareLangString(const FcChar8 *aLangA, const FcChar8 *aLangB) {
     FcLangResult result = FcLangDifferentLang;
-    for (PRUint32 i = 0; ; ++i) {
+    for (uint32_t i = 0; ; ++i) {
         FcChar8 a = FcToLower(aLangA[i]);
         FcChar8 b = FcToLower(aLangB[i]);
 
@@ -1079,7 +1079,7 @@ gfxFontconfigUtils::GetFontsForLang(const FcChar8 *aLang)
 
 bool
 gfxFontNameList::Exists(nsAString& aName) {
-    for (PRUint32 i = 0; i < Length(); i++) {
+    for (uint32_t i = 0; i < Length(); i++) {
         if (aName.Equals(ElementAt(i)))
             return true;
     }

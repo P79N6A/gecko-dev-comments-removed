@@ -9,7 +9,7 @@
 
 
 
-static const PRUint16 g_MacCEMappingTable[] = {
+static const uint16_t g_MacCEMappingTable[] = {
 #include "macce.ut"
 };
 

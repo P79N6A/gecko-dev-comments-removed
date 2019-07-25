@@ -88,12 +88,12 @@ NS_HIDDEN_(nsresult) net_ResolveRelativePath(const nsACString &relativePath,
 
 
 NS_HIDDEN_(nsresult) net_ExtractURLScheme(const nsACString &inURI,
-                                          PRUint32 *startPos, 
-                                          PRUint32 *endPos,
+                                          uint32_t *startPos, 
+                                          uint32_t *endPos,
                                           nsACString *scheme = nullptr);
 
 
-NS_HIDDEN_(bool) net_IsValidScheme(const char *scheme, PRUint32 schemeLen);
+NS_HIDDEN_(bool) net_IsValidScheme(const char *scheme, uint32_t schemeLen);
 
 inline bool net_IsValidScheme(const nsAFlatCString &scheme)
 {
@@ -141,7 +141,7 @@ NS_HIDDEN_(bool) net_NormalizeFileURL(const nsACString &aURL,
 
 
 
-NS_HIDDEN_(void) net_ToLowerCase(char* str, PRUint32 length);
+NS_HIDDEN_(void) net_ToLowerCase(char* str, uint32_t length);
 NS_HIDDEN_(void) net_ToLowerCase(char* str);
 
 
@@ -190,8 +190,8 @@ NS_HIDDEN_(void) net_ParseContentType(const nsACString &aHeaderStr,
                                       nsACString       &aContentType,
                                       nsACString       &aContentCharset,
                                       bool             *aHadCharset,
-                                      PRInt32          *aCharsetStart,
-                                      PRInt32          *aCharsetEnd);
+                                      int32_t          *aCharsetStart,
+                                      int32_t          *aCharsetEnd);
 
 
 
@@ -220,11 +220,11 @@ NS_HIDDEN_(bool) net_IsValidHostName(const nsCSubstring &host);
 
 
 
-NS_HIDDEN_(bool) net_IsValidIPv4Addr(const char *addr, PRInt32 addrLen);
+NS_HIDDEN_(bool) net_IsValidIPv4Addr(const char *addr, int32_t addrLen);
 
 
 
 
-NS_HIDDEN_(bool) net_IsValidIPv6Addr(const char *addr, PRInt32 addrLen);
+NS_HIDDEN_(bool) net_IsValidIPv6Addr(const char *addr, int32_t addrLen);
 
 #endif 

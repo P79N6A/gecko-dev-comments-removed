@@ -45,15 +45,15 @@ public:
 
 
 
-    void SetFocusTimestamp(PRUint32 aTimestamp) { mFocusTimestamp = aTimestamp; }
-    PRUint32 GetFocusTimestamp() { return mFocusTimestamp; }
+    void SetFocusTimestamp(uint32_t aTimestamp) { mFocusTimestamp = aTimestamp; }
+    uint32_t GetFocusTimestamp() { return mFocusTimestamp; }
 
 private:
     static nsGTKToolkit* gToolkit;
 
     GdkGC         *mSharedGC;
     nsCString      mDesktopStartupID;
-    PRUint32       mFocusTimestamp;
+    uint32_t       mFocusTimestamp;
 };
 
 #endif  

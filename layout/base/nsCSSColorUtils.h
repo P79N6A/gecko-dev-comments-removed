@@ -23,18 +23,18 @@ void NS_GetSpecial3DColors(nscolor aResult[2],
                            nscolor aBorderColor);
 
 
-int NS_GetBrightness(PRUint8 aRed, PRUint8 aGreen, PRUint8 aBlue);
+int NS_GetBrightness(uint8_t aRed, uint8_t aGreen, uint8_t aBlue);
 
 
 
-PRInt32 NS_GetLuminosity(nscolor aColor);
+int32_t NS_GetLuminosity(nscolor aColor);
 
 
-void NS_RGB2HSV(nscolor aColor, PRUint16 &aHue, PRUint16 &aSat,
-                PRUint16 &aValue, PRUint8 &aAlpha);
+void NS_RGB2HSV(nscolor aColor, uint16_t &aHue, uint16_t &aSat,
+                uint16_t &aValue, uint8_t &aAlpha);
 
 
-void NS_HSV2RGB(nscolor &aColor, PRUint16 aHue, PRUint16 aSat, PRUint16 aValue,
-                PRUint8 aAlpha);
+void NS_HSV2RGB(nscolor &aColor, uint16_t aHue, uint16_t aSat, uint16_t aValue,
+                uint8_t aAlpha);
 
 #endif

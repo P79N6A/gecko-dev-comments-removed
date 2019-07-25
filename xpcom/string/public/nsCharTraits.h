@@ -64,28 +64,28 @@
 
 
 
-#define PLANE1_BASE          PRUint32(0x00010000)
+#define PLANE1_BASE          uint32_t(0x00010000)
 
-#define NS_IS_HIGH_SURROGATE(u) ((PRUint32(u) & 0xFFFFFC00) == 0xD800)
+#define NS_IS_HIGH_SURROGATE(u) ((uint32_t(u) & 0xFFFFFC00) == 0xD800)
 
-#define NS_IS_LOW_SURROGATE(u)  ((PRUint32(u) & 0xFFFFFC00) == 0xDC00)
+#define NS_IS_LOW_SURROGATE(u)  ((uint32_t(u) & 0xFFFFFC00) == 0xDC00)
 
-#define IS_SURROGATE(u)      ((PRUint32(u) & 0xFFFFF800) == 0xD800)
-
-
-
-
-
-
-#define SURROGATE_TO_UCS4(h, l) (((PRUint32(h) & 0x03FF) << 10) + \
-                                 (PRUint32(l) & 0x03FF) + PLANE1_BASE)
+#define IS_SURROGATE(u)      ((uint32_t(u) & 0xFFFFF800) == 0xD800)
 
 
 
 
 
 
-#define H_SURROGATE(c) PRUnichar(PRUnichar(PRUint32(c) >> 10) + \
+#define SURROGATE_TO_UCS4(h, l) (((uint32_t(h) & 0x03FF) << 10) + \
+                                 (uint32_t(l) & 0x03FF) + PLANE1_BASE)
+
+
+
+
+
+
+#define H_SURROGATE(c) PRUnichar(PRUnichar(uint32_t(c) >> 10) + \
                                  PRUnichar(0xD7C0)) 
 
 
@@ -93,14 +93,14 @@
 
 
 
-#define L_SURROGATE(c) PRUnichar(PRUnichar(PRUint32(c) & PRUint32(0x03FF)) | \
+#define L_SURROGATE(c) PRUnichar(PRUnichar(uint32_t(c) & uint32_t(0x03FF)) | \
                                  PRUnichar(0xDC00))
 
-#define IS_IN_BMP(ucs) (PRUint32(ucs) < PLANE1_BASE)
+#define IS_IN_BMP(ucs) (uint32_t(ucs) < PLANE1_BASE)
 #define UCS2_REPLACEMENT_CHAR PRUnichar(0xFFFD)
 
-#define UCS_END PRUint32(0x00110000)
-#define IS_VALID_CHAR(c) ((PRUint32(c) < UCS_END) && !IS_SURROGATE(c))
+#define UCS_END uint32_t(0x00110000)
+#define IS_VALID_CHAR(c) ((uint32_t(c) < UCS_END) && !IS_SURROGATE(c))
 #define ENSURE_VALID_CHAR(c) (IS_VALID_CHAR(c) ? (c) : UCS2_REPLACEMENT_CHAR)
 
 template <class CharT> struct nsCharTraits {};
@@ -109,7 +109,7 @@ template <>
 struct nsCharTraits<PRUnichar>
   {
     typedef PRUnichar char_type;
-    typedef PRUint16  unsigned_char_type;
+    typedef uint16_t  unsigned_char_type;
     typedef char      incompatible_char_type;
 
     static char_type *sEmptyBuffer;
@@ -628,11 +628,11 @@ struct nsCharSourceTraits
     typedef typename InputIterator::difference_type difference_type;
 
     static
-    PRUint32
+    uint32_t
     readable_distance( const InputIterator& first, const InputIterator& last )
       {
         
-        return PRUint32(last.get() - first.get());
+        return uint32_t(last.get() - first.get());
       }
 
     static
@@ -658,18 +658,18 @@ struct nsCharSourceTraits<CharT*>
     typedef ptrdiff_t difference_type;
 
     static
-    PRUint32
+    uint32_t
     readable_distance( CharT* s )
       {
-        return PRUint32(nsCharTraits<CharT>::length(s));
+        return uint32_t(nsCharTraits<CharT>::length(s));
 
       }
 
     static
-    PRUint32
+    uint32_t
     readable_distance( CharT* first, CharT* last )
       {
-        return PRUint32(last-first);
+        return uint32_t(last-first);
       }
 
     static
@@ -695,18 +695,18 @@ struct nsCharSourceTraits<const char*>
     typedef ptrdiff_t difference_type;
 
     static
-    PRUint32
+    uint32_t
     readable_distance( const char* s )
       {
-        return PRUint32(nsCharTraits<char>::length(s));
+        return uint32_t(nsCharTraits<char>::length(s));
 
       }
 
     static
-    PRUint32
+    uint32_t
     readable_distance( const char* first, const char* last )
       {
-        return PRUint32(last-first);
+        return uint32_t(last-first);
       }
 
     static
@@ -731,18 +731,18 @@ struct nsCharSourceTraits<const PRUnichar*>
     typedef ptrdiff_t difference_type;
 
     static
-    PRUint32
+    uint32_t
     readable_distance( const PRUnichar* s )
       {
-        return PRUint32(nsCharTraits<PRUnichar>::length(s));
+        return uint32_t(nsCharTraits<PRUnichar>::length(s));
 
       }
 
     static
-    PRUint32
+    uint32_t
     readable_distance( const PRUnichar* first, const PRUnichar* last )
       {
-        return PRUint32(last-first);
+        return uint32_t(last-first);
       }
 
     static
@@ -768,7 +768,7 @@ struct nsCharSinkTraits
   {
     static
     void
-    write( OutputIterator& iter, const typename OutputIterator::value_type* s, PRUint32 n )
+    write( OutputIterator& iter, const typename OutputIterator::value_type* s, uint32_t n )
       {
         iter.write(s, n);
       }
@@ -781,7 +781,7 @@ struct nsCharSinkTraits<CharT*>
   {
     static
     void
-    write( CharT*& iter, const CharT* s, PRUint32 n )
+    write( CharT*& iter, const CharT* s, uint32_t n )
       {
         nsCharTraits<CharT>::move(iter, s, n);
         iter += n;
@@ -795,7 +795,7 @@ struct nsCharSinkTraits<char*>
   {
     static
     void
-    write( char*& iter, const char* s, PRUint32 n )
+    write( char*& iter, const char* s, uint32_t n )
       {
         nsCharTraits<char>::move(iter, s, n);
         iter += n;
@@ -807,7 +807,7 @@ struct nsCharSinkTraits<PRUnichar*>
   {
     static
     void
-    write( PRUnichar*& iter, const PRUnichar* s, PRUint32 n )
+    write( PRUnichar*& iter, const PRUnichar* s, uint32_t n )
       {
         nsCharTraits<PRUnichar>::move(iter, s, n);
         iter += n;

@@ -30,7 +30,7 @@ public:
 
 
 
-  virtual PRInt32 IndexOf(nsIContent* aContent) = 0;
+  virtual int32_t IndexOf(nsIContent* aContent) = 0;
 
   
 

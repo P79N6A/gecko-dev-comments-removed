@@ -54,7 +54,7 @@ protected:
                         bool *aUsesIndependentSelection);
   nsresult FindItNow(nsIPresShell *aPresShell, bool aIsLinksOnly,
                      bool aIsFirstVisiblePreferred, bool aFindPrev,
-                     PRUint16* aResult);
+                     uint16_t* aResult);
   nsresult GetSearchContainers(nsISupports *aContainer,
                                nsISelectionController *aSelectionController,
                                bool aIsFirstVisiblePreferred,
@@ -78,7 +78,7 @@ protected:
   nsCOMPtr<nsIDOMWindow> mCurrentWindow;
   
   
-  PRUint32 mLastFindLength;
+  uint32_t mLastFindLength;
 
   
   

@@ -175,7 +175,7 @@ public:
 
 
 
-  virtual nsISMILAttr* GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName) = 0;
+  virtual nsISMILAttr* GetAnimatedAttr(int32_t aNamespaceID, nsIAtom* aName) = 0;
 
   
 
@@ -208,7 +208,7 @@ public:
 
 
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                              PRInt32 aModType) const = 0;
+                                              int32_t aModType) const = 0;
 
   
 

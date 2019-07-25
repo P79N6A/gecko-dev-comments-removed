@@ -30,7 +30,7 @@
 
 
 
-#define MAX_ICON_FILESIZE(s) ((PRUint32) s*s*4)
+#define MAX_ICON_FILESIZE(s) ((uint32_t) s*s*4)
 
 
 class mozIStorageStatementCallback;
@@ -91,10 +91,10 @@ public:
   nsresult GetFaviconLinkForIconString(const nsCString& aIcon, nsIURI** aOutput);
   void GetFaviconSpecForIconString(const nsCString& aIcon, nsACString& aOutput);
 
-  nsresult OptimizeFaviconImage(const PRUint8* aData, PRUint32 aDataLen,
+  nsresult OptimizeFaviconImage(const uint8_t* aData, uint32_t aDataLen,
                                 const nsACString& aMimeType,
                                 nsACString& aNewData, nsACString& aNewMimeType);
-  PRInt32 GetOptimizedIconDimension() { return mOptimizedIconDimension; }
+  int32_t GetOptimizedIconDimension() { return mOptimizedIconDimension; }
 
   
 
@@ -152,10 +152,10 @@ private:
   
   
   
-  PRInt32 mOptimizedIconDimension;
+  int32_t mOptimizedIconDimension;
 
-  PRUint32 mFailedFaviconSerial;
-  nsDataHashtable<nsCStringHashKey, PRUint32> mFailedFavicons;
+  uint32_t mFailedFaviconSerial;
+  nsDataHashtable<nsCStringHashKey, uint32_t> mFailedFavicons;
 
   
   friend class mozilla::places::AsyncFetchAndSetIconForPage;

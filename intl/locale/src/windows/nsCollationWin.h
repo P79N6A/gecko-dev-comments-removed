@@ -18,7 +18,7 @@ class nsCollationWin : public nsICollation {
 
 protected:
   nsCollation   *mCollation;  
-  PRUint32      mLCID;        
+  uint32_t      mLCID;        
 
 public: 
   nsCollationWin();

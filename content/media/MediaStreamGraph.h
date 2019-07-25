@@ -28,7 +28,7 @@ extern PRLogModuleInfo* gMediaStreamGraphLog;
 
 
 
-typedef PRInt64 GraphTime;
+typedef int64_t GraphTime;
 const GraphTime GRAPH_TIME_MAX = MEDIA_TIME_MAX;
 
 
@@ -151,7 +151,7 @@ public:
   virtual void NotifyQueuedTrackChanges(MediaStreamGraph* aGraph, TrackID aID,
                                         TrackRate aTrackRate,
                                         TrackTicks aTrackOffset,
-                                        PRUint32 aTrackEvents,
+                                        uint32_t aTrackEvents,
                                         const MediaSegment& aQueuedMedia) {}
 };
 
@@ -286,7 +286,7 @@ public:
   void RemoveVideoOutput(VideoFrameContainer* aContainer);
   
   
-  void ChangeExplicitBlockerCount(PRInt32 aDelta);
+  void ChangeExplicitBlockerCount(int32_t aDelta);
   
   void AddListener(MediaStreamListener* aListener);
   void RemoveListener(MediaStreamListener* aListener);
@@ -351,7 +351,7 @@ public:
   {
     mVideoOutputs.RemoveElement(aContainer);
   }
-  void ChangeExplicitBlockerCountImpl(StreamTime aTime, PRInt32 aDelta)
+  void ChangeExplicitBlockerCountImpl(StreamTime aTime, int32_t aDelta)
   {
     mExplicitBlockerCount.SetAtAndAfter(aTime, mExplicitBlockerCount.GetAt(aTime) + aDelta);
   }
@@ -410,7 +410,7 @@ protected:
   VideoFrame mLastPlayedVideoFrame;
   
   
-  TimeVarying<GraphTime,PRUint32> mExplicitBlockerCount;
+  TimeVarying<GraphTime,uint32_t> mExplicitBlockerCount;
   nsTArray<nsRefPtr<MediaStreamListener> > mListeners;
   nsTArray<nsRefPtr<MainThreadMediaStreamListener> > mMainThreadListeners;
 
@@ -422,7 +422,7 @@ protected:
   
   TimeVarying<GraphTime,bool> mBlocked;
   
-  TimeVarying<GraphTime,PRInt64> mGraphUpdateIndices;
+  TimeVarying<GraphTime,int64_t> mGraphUpdateIndices;
 
   
   nsTArray<MediaInputPort*> mConsumers;
@@ -576,7 +576,7 @@ public:
     TrackTicks mStart;
     
     
-    PRUint32 mCommands;
+    uint32_t mCommands;
     
     
     nsAutoPtr<MediaSegment> mData;
@@ -587,7 +587,7 @@ public:
 protected:
   TrackData* FindDataForTrack(TrackID aID)
   {
-    for (PRUint32 i = 0; i < mUpdateTracks.Length(); ++i) {
+    for (uint32_t i = 0; i < mUpdateTracks.Length(); ++i) {
       if (mUpdateTracks[i].mID == aID) {
         return &mUpdateTracks[i];
       }
@@ -646,7 +646,7 @@ public:
   };
   
   MediaInputPort(MediaStream* aSource, ProcessedMediaStream* aDest,
-                 PRUint32 aFlags)
+                 uint32_t aFlags)
     : mSource(aSource)
     , mDest(aDest)
     , mFlags(aFlags)
@@ -692,7 +692,7 @@ protected:
   
   MediaStream* mSource;
   ProcessedMediaStream* mDest;
-  PRUint32 mFlags;
+  uint32_t mFlags;
 };
 
 
@@ -711,7 +711,7 @@ public:
 
 
 
-  MediaInputPort* AllocateInputPort(MediaStream* aStream, PRUint32 aFlags = 0);
+  MediaInputPort* AllocateInputPort(MediaStream* aStream, uint32_t aFlags = 0);
   
 
 
@@ -797,7 +797,7 @@ public:
 
 
 
-  PRInt64 GetCurrentGraphUpdateIndex() { return mGraphUpdatesSent; }
+  int64_t GetCurrentGraphUpdateIndex() { return mGraphUpdatesSent; }
 
   
 
@@ -827,7 +827,7 @@ protected:
   
   
   
-  PRInt64 mGraphUpdatesSent;
+  int64_t mGraphUpdatesSent;
 };
 
 }

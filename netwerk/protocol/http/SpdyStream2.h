@@ -21,12 +21,12 @@ public:
 
   SpdyStream2(nsAHttpTransaction *,
              SpdySession2 *, nsISocketTransport *,
-             PRUint32, z_stream *, PRInt32);
+             uint32_t, z_stream *, int32_t);
 
-  PRUint32 StreamID() { return mStreamID; }
+  uint32_t StreamID() { return mStreamID; }
 
-  nsresult ReadSegments(nsAHttpSegmentReader *,  PRUint32, PRUint32 *);
-  nsresult WriteSegments(nsAHttpSegmentWriter *, PRUint32, PRUint32 *);
+  nsresult ReadSegments(nsAHttpSegmentReader *,  uint32_t, uint32_t *);
+  nsresult WriteSegments(nsAHttpSegmentWriter *, uint32_t, uint32_t *);
 
   bool RequestBlockedOnRead()
   {
@@ -51,8 +51,8 @@ public:
   void SetRecvdFin(bool aStatus) { mRecvdFin = aStatus ? 1 : 0; }
   bool RecvdFin() { return mRecvdFin; }
 
-  void UpdateTransportSendEvents(PRUint32 count);
-  void UpdateTransportReadEvents(PRUint32 count);
+  void UpdateTransportSendEvents(uint32_t count);
+  void UpdateTransportReadEvents(uint32_t count);
 
   
   
@@ -82,16 +82,16 @@ private:
                                           void *);
 
   void     ChangeState(enum stateType);
-  nsresult ParseHttpRequestHeaders(const char *, PRUint32, PRUint32 *);
-  nsresult TransmitFrame(const char *, PRUint32 *);
-  void     GenerateDataFrameHeader(PRUint32, bool);
+  nsresult ParseHttpRequestHeaders(const char *, uint32_t, uint32_t *);
+  nsresult TransmitFrame(const char *, uint32_t *);
+  void     GenerateDataFrameHeader(uint32_t, bool);
 
   void     CompressToFrame(const nsACString &);
   void     CompressToFrame(const nsACString *);
-  void     CompressToFrame(const char *, PRUint32);
-  void     CompressToFrame(PRUint16);
+  void     CompressToFrame(const char *, uint32_t);
+  void     CompressToFrame(uint16_t);
   void     CompressFlushFrame();
-  void     ExecuteCompress(PRUint32);
+  void     ExecuteCompress(uint32_t);
   
   
   
@@ -117,42 +117,42 @@ private:
   nsAHttpSegmentWriter        *mSegmentWriter;
 
   
-  PRUint32                    mStreamID;
+  uint32_t                    mStreamID;
 
   
-  PRUint32                    mChunkSize;
+  uint32_t                    mChunkSize;
 
   
-  PRUint32                     mSynFrameComplete     : 1;
-
-  
-  
-  PRUint32                     mRequestBlockedOnRead : 1;
+  uint32_t                     mSynFrameComplete     : 1;
 
   
   
-  PRUint32                     mSentFinOnData        : 1;
+  uint32_t                     mRequestBlockedOnRead : 1;
 
   
   
-  PRUint32                     mRecvdFin             : 1;
+  uint32_t                     mSentFinOnData        : 1;
 
   
-  PRUint32                     mFullyOpen            : 1;
+  
+  uint32_t                     mRecvdFin             : 1;
 
   
-  PRUint32                     mSentWaitingFor       : 1;
+  uint32_t                     mFullyOpen            : 1;
+
+  
+  uint32_t                     mSentWaitingFor       : 1;
 
   
   
   nsAutoArrayPtr<char>         mTxInlineFrame;
-  PRUint32                     mTxInlineFrameSize;
-  PRUint32                     mTxInlineFrameUsed;
+  uint32_t                     mTxInlineFrameSize;
+  uint32_t                     mTxInlineFrameUsed;
 
   
   
   
-  PRUint32                     mTxStreamFrameSize;
+  uint32_t                     mTxStreamFrameSize;
 
   
   
@@ -165,14 +165,14 @@ private:
   
   
   
-  PRInt64                      mRequestBodyLenRemaining;
+  int64_t                      mRequestBodyLenRemaining;
 
   
-  PRInt32                      mPriority;
+  int32_t                      mPriority;
 
   
-  PRUint64                     mTotalSent;
-  PRUint64                     mTotalRead;
+  uint64_t                     mTotalSent;
+  uint64_t                     mTotalRead;
 };
 
 }} 

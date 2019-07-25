@@ -93,7 +93,7 @@ public:
   bool IsLoading() const;
 
   
-  PRUint32 GetImageStatus() const;
+  uint32_t GetImageStatus() const;
 
   
   
@@ -115,12 +115,12 @@ public:
   void SendStartDecode(imgRequestProxy* aProxy);
   void RecordStartContainer(imgIContainer* aContainer);
   void SendStartContainer(imgRequestProxy* aProxy, imgIContainer* aContainer);
-  void RecordStartFrame(PRUint32 aFrame);
-  void SendStartFrame(imgRequestProxy* aProxy, PRUint32 aFrame);
+  void RecordStartFrame(uint32_t aFrame);
+  void SendStartFrame(imgRequestProxy* aProxy, uint32_t aFrame);
   void RecordDataAvailable(bool aCurrentFrame, const nsIntRect* aRect);
   void SendDataAvailable(imgRequestProxy* aProxy, bool aCurrentFrame, const nsIntRect* aRect);
-  void RecordStopFrame(PRUint32 aFrame);
-  void SendStopFrame(imgRequestProxy* aProxy, PRUint32 aFrame);
+  void RecordStopFrame(uint32_t aFrame);
+  void SendStopFrame(imgRequestProxy* aProxy, uint32_t aFrame);
   void RecordStopContainer(imgIContainer* aContainer);
   void SendStopContainer(imgRequestProxy* aProxy, imgIContainer* aContainer);
   void RecordStopDecode(nsresult status, const PRUnichar* statusArg);
@@ -160,8 +160,8 @@ private:
   
   
   mozilla::image::Image* mImage;
-  PRUint32 mState;
-  PRUint32 mImageStatus;
+  uint32_t mState;
+  uint32_t mImageStatus;
   bool mHadLastPart;
 };
 

@@ -53,7 +53,7 @@ struct nsMediaFeature {
       const void* mInitializer_;
       
       
-      const PRInt32* mKeywordTable;
+      const int32_t* mKeywordTable;
       
       
       nsIAtom * const * mMetric;

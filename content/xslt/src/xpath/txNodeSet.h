@@ -108,7 +108,7 @@ public:
 
 
 
-    nsresult mark(PRInt32 aIndex);
+    nsresult mark(int32_t aIndex);
     nsresult sweep();
 
     
@@ -123,7 +123,7 @@ public:
 
 
 
-    PRInt32 indexOf(const txXPathNode& aNode, PRUint32 aStart = 0) const;
+    int32_t indexOf(const txXPathNode& aNode, uint32_t aStart = 0) const;
 
     
 
@@ -140,7 +140,7 @@ public:
 
 
 
-    const txXPathNode& get(PRInt32 aIndex) const;
+    const txXPathNode& get(int32_t aIndex) const;
 
     
 
@@ -155,7 +155,7 @@ public:
 
 
 
-    PRInt32 size() const
+    int32_t size() const
     {
         return mStart ? mEnd - mStart : 0;
     }
@@ -168,7 +168,7 @@ private:
 
 
 
-    bool ensureGrowSize(PRInt32 aSize);
+    bool ensureGrowSize(int32_t aSize);
 
     
 
@@ -209,7 +209,7 @@ private:
                  destroyOp aDestroy);
 
     txXPathNode *mStart, *mEnd, *mStartBuffer, *mEndBuffer;
-    PRInt32 mDirection;
+    int32_t mDirection;
     
     bool* mMarks;
 };

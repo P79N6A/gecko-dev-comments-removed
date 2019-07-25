@@ -16,262 +16,262 @@ namespace states {
   
 
 
-  const PRUint64 UNAVAILABLE = ((PRUint64) 0x1) << 0;
+  const uint64_t UNAVAILABLE = ((uint64_t) 0x1) << 0;
 
   
 
 
-  const PRUint64 SELECTED = ((PRUint64) 0x1) << 1;
+  const uint64_t SELECTED = ((uint64_t) 0x1) << 1;
 
   
 
 
-  const PRUint64 FOCUSED = ((PRUint64) 0x1) << 2;
+  const uint64_t FOCUSED = ((uint64_t) 0x1) << 2;
 
   
 
 
-  const PRUint64 PRESSED = ((PRUint64) 0x1) << 3;
-
-  
-
-
-
-  const PRUint64 CHECKED = ((PRUint64) 0x1) << 4;
+  const uint64_t PRESSED = ((uint64_t) 0x1) << 3;
 
   
 
 
 
-
-  const PRUint64 MIXED = ((PRUint64) 0x1) << 5;
-
-  
-
-
-  const PRUint64 READONLY = ((PRUint64) 0x1) << 6;
+  const uint64_t CHECKED = ((uint64_t) 0x1) << 4;
 
   
 
 
 
 
-
-  const PRUint64 HOTTRACKED = ((PRUint64) 0x1) << 7;
-
-  
-
-
-  const PRUint64 DEFAULT = ((PRUint64) 0x1) << 8;
+  const uint64_t MIXED = ((uint64_t) 0x1) << 5;
 
   
 
 
-
-
-  const PRUint64 EXPANDED = ((PRUint64) 0x1) << 9;
+  const uint64_t READONLY = ((uint64_t) 0x1) << 6;
 
   
 
 
 
 
-  const PRUint64 COLLAPSED = ((PRUint64) 0x1) << 10;
+
+  const uint64_t HOTTRACKED = ((uint64_t) 0x1) << 7;
 
   
 
 
-  const PRUint64 BUSY = ((PRUint64) 0x1) << 11;
-
-  
-
-
-
-  const PRUint64 FLOATING = ((PRUint64) 0x1) << 12;
-
-  
-
-
-  const PRUint64 CHECKABLE = ((PRUint64) 0x1) << 13;
-
-  
-
-
-  const PRUint64 ANIMATED = ((PRUint64) 0x1) << 14;
-
-  
-
-
-
-  const PRUint64 INVISIBLE = ((PRUint64) 0x1) << 15;
+  const uint64_t DEFAULT = ((uint64_t) 0x1) << 8;
 
   
 
 
 
 
-  const PRUint64 OFFSCREEN = ((PRUint64) 0x1) << 16;
-
-  
-
-
-  const PRUint64 SIZEABLE = ((PRUint64) 0x1) << 17;
-
-  
-
-
-  const PRUint64 MOVEABLE = ((PRUint64) 0x1) << 18;
+  const uint64_t EXPANDED = ((uint64_t) 0x1) << 9;
 
   
 
 
 
 
-  const PRUint64 SELFVOICING = ((PRUint64) 0x1) << 19;
+  const uint64_t COLLAPSED = ((uint64_t) 0x1) << 10;
 
   
 
 
-  const PRUint64 FOCUSABLE = ((PRUint64) 0x1) << 20;
-
-  
-
-
-  const PRUint64 SELECTABLE = ((PRUint64) 0x1) << 21;
-
-  
-
-
-  const PRUint64 LINKED = ((PRUint64) 0x1) << 22;
+  const uint64_t BUSY = ((uint64_t) 0x1) << 11;
 
   
 
 
 
-  const PRUint64 TRAVERSED = ((PRUint64) 0x1) << 23;
+  const uint64_t FLOATING = ((uint64_t) 0x1) << 12;
 
   
 
 
-  const PRUint64 MULTISELECTABLE = ((PRUint64) 0x1) << 24;
+  const uint64_t CHECKABLE = ((uint64_t) 0x1) << 13;
+
+  
+
+
+  const uint64_t ANIMATED = ((uint64_t) 0x1) << 14;
+
+  
+
+
+
+  const uint64_t INVISIBLE = ((uint64_t) 0x1) << 15;
 
   
 
 
 
 
-  const PRUint64 EXTSELECTABLE = ((PRUint64) 0x1) << 25;
+  const uint64_t OFFSCREEN = ((uint64_t) 0x1) << 16;
 
   
 
 
-  const PRUint64 REQUIRED = ((PRUint64) 0x1) << 26;
+  const uint64_t SIZEABLE = ((uint64_t) 0x1) << 17;
 
   
 
 
-  const PRUint64 ALERT = ((PRUint64) 0x1) << 27;
+  const uint64_t MOVEABLE = ((uint64_t) 0x1) << 18;
 
   
 
 
-  const PRUint64 INVALID = ((PRUint64) 0x1) << 28;
+
+
+  const uint64_t SELFVOICING = ((uint64_t) 0x1) << 19;
 
   
 
 
-  const PRUint64 PROTECTED = ((PRUint64) 0x1) << 29;
+  const uint64_t FOCUSABLE = ((uint64_t) 0x1) << 20;
 
   
 
 
- const PRUint64 HASPOPUP = ((PRUint64) 0x1) << 30;
+  const uint64_t SELECTABLE = ((uint64_t) 0x1) << 21;
+
+  
+
+
+  const uint64_t LINKED = ((uint64_t) 0x1) << 22;
+
+  
+
+
+
+  const uint64_t TRAVERSED = ((uint64_t) 0x1) << 23;
+
+  
+
+
+  const uint64_t MULTISELECTABLE = ((uint64_t) 0x1) << 24;
+
+  
+
+
+
+
+  const uint64_t EXTSELECTABLE = ((uint64_t) 0x1) << 25;
+
+  
+
+
+  const uint64_t REQUIRED = ((uint64_t) 0x1) << 26;
+
+  
+
+
+  const uint64_t ALERT = ((uint64_t) 0x1) << 27;
+
+  
+
+
+  const uint64_t INVALID = ((uint64_t) 0x1) << 28;
+
+  
+
+
+  const uint64_t PROTECTED = ((uint64_t) 0x1) << 29;
+
+  
+
+
+ const uint64_t HASPOPUP = ((uint64_t) 0x1) << 30;
 
  
 
 
-  const PRUint64 SUPPORTS_AUTOCOMPLETION = ((PRUint64) 0x1) << 31;
+  const uint64_t SUPPORTS_AUTOCOMPLETION = ((uint64_t) 0x1) << 31;
 
   
 
 
-  const PRUint64 DEFUNCT = ((PRUint64) 0x1) << 32;
+  const uint64_t DEFUNCT = ((uint64_t) 0x1) << 32;
 
   
 
 
-  const PRUint64 SELECTABLE_TEXT = ((PRUint64) 0x1) << 33;
+  const uint64_t SELECTABLE_TEXT = ((uint64_t) 0x1) << 33;
 
   
 
 
-  const PRUint64 EDITABLE = ((PRUint64) 0x1) << 34;
+  const uint64_t EDITABLE = ((uint64_t) 0x1) << 34;
 
   
 
 
-  const PRUint64 ACTIVE = ((PRUint64) 0x1) << 35;
-
-  
-
-
-
-
-  const PRUint64 MODAL = ((PRUint64) 0x1) << 36;
-
-  
-
-
-  const PRUint64 MULTI_LINE = ((PRUint64) 0x1) << 37;
-
-  
-
-
-  const PRUint64 HORIZONTAL = ((PRUint64) 0x1) << 38;
-
-  
-
-
-  const PRUint64 OPAQUE1 = ((PRUint64) 0x1) << 39;
-
-  
-
-
-  const PRUint64 SINGLE_LINE = ((PRUint64) 0x1) << 40;
+  const uint64_t ACTIVE = ((uint64_t) 0x1) << 35;
 
   
 
 
 
 
-  const PRUint64 TRANSIENT = ((PRUint64) 0x1) << 41;
+  const uint64_t MODAL = ((uint64_t) 0x1) << 36;
+
+  
+
+
+  const uint64_t MULTI_LINE = ((uint64_t) 0x1) << 37;
+
+  
+
+
+  const uint64_t HORIZONTAL = ((uint64_t) 0x1) << 38;
+
+  
+
+
+  const uint64_t OPAQUE1 = ((uint64_t) 0x1) << 39;
+
+  
+
+
+  const uint64_t SINGLE_LINE = ((uint64_t) 0x1) << 40;
 
   
 
 
 
-  const PRUint64 VERTICAL = ((PRUint64) 0x1) << 42;
 
-  
-
-
-  const PRUint64 STALE = ((PRUint64) 0x1) << 43;
-
-  
-
-
-  const PRUint64 ENABLED = ((PRUint64) 0x1) << 44;
-
-  
-
-
-  const PRUint64 SENSITIVE = ((PRUint64) 0x1) << 45;
+  const uint64_t TRANSIENT = ((uint64_t) 0x1) << 41;
 
   
 
 
 
-  const PRUint64 EXPANDABLE = ((PRUint64) 0x1) << 46;
+  const uint64_t VERTICAL = ((uint64_t) 0x1) << 42;
+
+  
+
+
+  const uint64_t STALE = ((uint64_t) 0x1) << 43;
+
+  
+
+
+  const uint64_t ENABLED = ((uint64_t) 0x1) << 44;
+
+  
+
+
+  const uint64_t SENSITIVE = ((uint64_t) 0x1) << 45;
+
+  
+
+
+
+  const uint64_t EXPANDABLE = ((uint64_t) 0x1) << 46;
 } 
 } 
 } 

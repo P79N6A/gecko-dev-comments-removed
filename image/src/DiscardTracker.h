@@ -82,7 +82,7 @@ class DiscardTracker
 
 
 
-    static void InformAllocation(PRInt64 bytes);
+    static void InformAllocation(int64_t bytes);
 
   private:
     
@@ -110,10 +110,10 @@ class DiscardTracker
     static nsCOMPtr<nsITimer> sTimer;
     static bool sInitialized;
     static bool sTimerOn;
-    static PRInt32 sDiscardRunnablePending;
-    static PRInt64 sCurrentDecodedImageBytes;
-    static PRUint32 sMinDiscardTimeoutMs;
-    static PRUint32 sMaxDecodedImageKB;
+    static int32_t sDiscardRunnablePending;
+    static int64_t sCurrentDecodedImageBytes;
+    static uint32_t sMinDiscardTimeoutMs;
+    static uint32_t sMaxDecodedImageKB;
     
     static PRLock *sAllocationLock;
 };

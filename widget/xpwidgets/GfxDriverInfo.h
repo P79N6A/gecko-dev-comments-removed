@@ -77,8 +77,8 @@ struct GfxDriverInfo
   
   
   GfxDriverInfo(OperatingSystem os, nsAString& vendor, GfxDeviceFamily* devices,
-                PRInt32 feature, PRInt32 featureStatus, VersionComparisonOp op,
-                PRUint64 driverVersion, const char *suggestedVersion = nullptr,
+                int32_t feature, int32_t featureStatus, VersionComparisonOp op,
+                uint64_t driverVersion, const char *suggestedVersion = nullptr,
                 bool ownDevices = false);
 
   GfxDriverInfo();
@@ -97,18 +97,18 @@ struct GfxDriverInfo
   bool mDeleteDevices;
 
   
-  PRInt32 mFeature;
-  static PRInt32 allFeatures;
+  int32_t mFeature;
+  static int32_t allFeatures;
 
   
-  PRInt32 mFeatureStatus;
+  int32_t mFeatureStatus;
 
   VersionComparisonOp mComparisonOp;
 
   
-  PRUint64 mDriverVersion;
-  PRUint64 mDriverVersionMax;
-  static PRUint64 allDriverVersions;
+  uint64_t mDriverVersion;
+  uint64_t mDriverVersionMax;
+  static uint64_t allDriverVersions;
 
   const char *mSuggestedVersion;
 
@@ -120,10 +120,10 @@ struct GfxDriverInfo
 };
 
 #define GFX_DRIVER_VERSION(a,b,c,d) \
-  ((PRUint64(a)<<48) | (PRUint64(b)<<32) | (PRUint64(c)<<16) | PRUint64(d))
+  ((uint64_t(a)<<48) | (uint64_t(b)<<32) | (uint64_t(c)<<16) | uint64_t(d))
 
 inline bool
-ParseDriverVersion(nsAString& aVersion, PRUint64 *aNumericVersion)
+ParseDriverVersion(nsAString& aVersion, uint64_t *aNumericVersion)
 {
 #if defined(XP_WIN)
   int a, b, c, d;

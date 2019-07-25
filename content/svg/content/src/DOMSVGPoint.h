@@ -57,7 +57,7 @@ public:
 
 
   DOMSVGPoint(DOMSVGPointList *aList,
-              PRUint32 aListIndex,
+              uint32_t aListIndex,
               bool aIsAnimValItem)
     : mList(aList)
     , mListIndex(aListIndex)
@@ -146,15 +146,15 @@ public:
 
 
   void InsertingIntoList(DOMSVGPointList *aList,
-                         PRUint32 aListIndex,
+                         uint32_t aListIndex,
                          bool aIsAnimValItem);
 
-  static PRUint32 MaxListIndex() {
+  static uint32_t MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(PRUint32 aListIndex) {
+  void UpdateListIndex(uint32_t aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -203,9 +203,9 @@ protected:
   
   
 
-  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  PRUint32 mIsReadonly:1;    
-  PRUint32 mIsAnimValItem:1; 
+  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  uint32_t mIsReadonly:1;    
+  uint32_t mIsAnimValItem:1; 
 
   
   SVGPoint mPt;

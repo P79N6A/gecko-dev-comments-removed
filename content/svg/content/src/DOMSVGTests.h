@@ -40,7 +40,7 @@ public:
 
 
 
-  PRInt32 GetBestLanguagePreferenceRank(const nsSubstring& aAcceptLangs) const;
+  int32_t GetBestLanguagePreferenceRank(const nsSubstring& aAcceptLangs) const;
 
   
 
@@ -78,10 +78,10 @@ public:
 
   void UnsetAttr(const nsIAtom* aAttribute);
 
-  nsIAtom* GetAttrName(PRUint8 aAttrEnum) const;
-  SVGStringList* GetStringListAttribute(PRUint8 aAttrEnum) const;
-  SVGStringList* GetOrCreateStringListAttribute(PRUint8 aAttrEnum) const;
-  void GetAttrValue(PRUint8 aAttrEnum, nsAttrValue &aValue) const;
+  nsIAtom* GetAttrName(uint8_t aAttrEnum) const;
+  SVGStringList* GetStringListAttribute(uint8_t aAttrEnum) const;
+  SVGStringList* GetOrCreateStringListAttribute(uint8_t aAttrEnum) const;
+  void GetAttrValue(uint8_t aAttrEnum, nsAttrValue &aValue) const;
 
   void MaybeInvalidate();
 

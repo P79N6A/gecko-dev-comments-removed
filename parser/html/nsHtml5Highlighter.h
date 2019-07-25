@@ -44,7 +44,7 @@ class nsHtml5Highlighter
 
 
 
-    PRInt32 Transition(PRInt32 aState, bool aReconsume, PRInt32 aPos);
+    int32_t Transition(int32_t aState, bool aReconsume, int32_t aPos);
 
     
 
@@ -61,7 +61,7 @@ class nsHtml5Highlighter
 
 
 
-    void DropBuffer(PRInt32 aPos);
+    void DropBuffer(int32_t aPos);
 
     
 
@@ -255,8 +255,8 @@ class nsHtml5Highlighter
 
 
     void AppendCharacters(const PRUnichar* aBuffer,
-                          PRInt32 aStart,
-                          PRInt32 aLength);
+                          int32_t aStart,
+                          int32_t aLength);
 
     
 
@@ -269,30 +269,30 @@ class nsHtml5Highlighter
     
 
 
-    PRInt32 mState;
+    int32_t mState;
 
     
 
 
 
-    PRInt32 mCStart;
+    int32_t mCStart;
 
     
 
 
 
-    PRInt32 mPos;
+    int32_t mPos;
 
     
 
 
-    PRInt32 mLineNumber;
+    int32_t mLineNumber;
 
     
 
 
 
-    PRInt32 mInlinesOpen;
+    int32_t mInlinesOpen;
 
     
 
@@ -344,7 +344,7 @@ class nsHtml5Highlighter
     
 
 
-    PRInt32 mHandlesUsed;
+    int32_t mHandlesUsed;
 
     
 

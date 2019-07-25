@@ -215,7 +215,7 @@ private:
     {
         return new PLHashEntry;
     }
-    static void EntryFree(void* , PLHashEntry* entry, PRUintn flag)
+    static void EntryFree(void* , PLHashEntry* entry, unsigned flag)
     {
         delete static_cast<T*>(const_cast<void*>(entry->key));
         delete static_cast<OrderingEntry*>(entry->value);
@@ -315,7 +315,7 @@ private:
     };
 
 public:
-    static const PRUint32 kDefaultNumBuckets;
+    static const uint32_t kDefaultNumBuckets;
 
     
 
@@ -324,7 +324,7 @@ public:
 
 
 
-    DeadlockDetector(PRUint32 aNumResourcesGuess = kDefaultNumBuckets)
+    DeadlockDetector(uint32_t aNumResourcesGuess = kDefaultNumBuckets)
     {
         mOrdering = PL_NewHashTable(aNumResourcesGuess,
                                     HashKey,
@@ -550,7 +550,7 @@ const PLHashAllocOps DeadlockDetector<T>::kAllocOps = {
 
 template<typename T>
 
-const PRUint32 DeadlockDetector<T>::kDefaultNumBuckets = 64;
+const uint32_t DeadlockDetector<T>::kDefaultNumBuckets = 64;
 
 
 } 

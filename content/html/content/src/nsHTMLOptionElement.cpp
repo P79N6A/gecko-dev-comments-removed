@@ -136,7 +136,7 @@ nsHTMLOptionElement::SetSelected(bool aValue)
   
   nsHTMLSelectElement* selectInt = GetSelect();
   if (selectInt) {
-    PRInt32 index;
+    int32_t index;
     GetIndex(&index);
     
     return selectInt->SetOptionsSelectedByIndex(index, index, aValue,
@@ -157,7 +157,7 @@ NS_IMPL_STRING_ATTR_WITH_FALLBACK(nsHTMLOptionElement, Value, value, GetText)
 NS_IMPL_BOOL_ATTR(nsHTMLOptionElement, Disabled, disabled)
 
 NS_IMETHODIMP
-nsHTMLOptionElement::GetIndex(PRInt32* aIndex)
+nsHTMLOptionElement::GetIndex(int32_t* aIndex)
 {
   
   *aIndex = 0;
@@ -196,7 +196,7 @@ nsHTMLOptionElement::DefaultSelected() const
 
 nsChangeHint
 nsHTMLOptionElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
-                                            PRInt32 aModType) const
+                                            int32_t aModType) const
 {
   nsChangeHint retval =
       nsGenericHTMLElement::GetAttributeChangeHint(aAttribute, aModType);
@@ -209,7 +209,7 @@ nsHTMLOptionElement::GetAttributeChangeHint(const nsIAtom* aAttribute,
 }
 
 nsresult
-nsHTMLOptionElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+nsHTMLOptionElement::BeforeSetAttr(int32_t aNamespaceID, nsIAtom* aName,
                                    const nsAttrValueOrString* aValue,
                                    bool aNotify)
 {
@@ -238,7 +238,7 @@ nsHTMLOptionElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
   bool inSetDefaultSelected = mIsInSetDefaultSelected;
   mIsInSetDefaultSelected = true;
   
-  PRInt32 index;
+  int32_t index;
   GetIndex(&index);
   
   
@@ -353,7 +353,7 @@ NS_IMETHODIMP
 nsHTMLOptionElement::Initialize(nsISupports* aOwner,
                                 JSContext* aContext,
                                 JSObject *aObj,
-                                PRUint32 argc, 
+                                uint32_t argc, 
                                 jsval *argv)
 {
   nsresult result = NS_OK;

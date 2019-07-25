@@ -44,7 +44,7 @@ struct nsSortState
   bool sortStaticsLast;
   bool isContainerRDFSeq;
 
-  PRUint32 sortHints;
+  uint32_t sortHints;
 
   nsSortState_direction direction;
   nsAutoString sort;
@@ -152,7 +152,7 @@ public:
 
   nsresult
   InvertSortInfo(nsTArray<contentSortInfo>& aData,
-                 PRInt32 aStart, PRInt32 aNumItems);
+                 int32_t aStart, int32_t aNumItems);
 
   
 
@@ -175,7 +175,7 @@ public:
 
 
 
-  static PRInt32 CompareValues(const nsAString& aLeft,
+  static int32_t CompareValues(const nsAString& aLeft,
                                const nsAString& aRight,
-                               PRUint32 aSortHints);
+                               uint32_t aSortHints);
 };

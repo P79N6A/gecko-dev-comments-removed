@@ -74,11 +74,11 @@ protected:
 
 
 struct FontListSizes {
-    PRUint32 mFontListSize; 
+    uint32_t mFontListSize; 
                             
                             
-    PRUint32 mFontTableCacheSize; 
-    PRUint32 mCharMapsSize; 
+    uint32_t mFontTableCacheSize; 
+    uint32_t mCharMapsSize; 
 };
 
 class gfxPlatformFontList : protected gfxFontInfoLoader
@@ -123,8 +123,8 @@ public:
     virtual void GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFamilyArray);
 
     virtual gfxFontEntry*
-    SystemFindFontForChar(const PRUint32 aCh,
-                          PRInt32 aRunScript,
+    SystemFindFontForChar(const uint32_t aCh,
+                          int32_t aRunScript,
                           const gfxFontStyle* aStyle);
 
     
@@ -158,8 +158,8 @@ public:
     
     
     virtual gfxFontEntry* MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
-                                           const PRUint8 *aFontData,
-                                           PRUint32 aLength) = 0;
+                                           const uint8_t *aFontData,
+                                           uint32_t aLength) = 0;
 
     
     
@@ -198,15 +198,15 @@ protected:
                                                void* userArg);
 
     
-    virtual gfxFontEntry* CommonFontFallback(const PRUint32 aCh,
-                                             PRInt32 aRunScript,
+    virtual gfxFontEntry* CommonFontFallback(const uint32_t aCh,
+                                             int32_t aRunScript,
                                              const gfxFontStyle* aMatchStyle);
 
     
-    virtual gfxFontEntry* GlobalFontFallback(const PRUint32 aCh,
-                                             PRInt32 aRunScript,
+    virtual gfxFontEntry* GlobalFontFallback(const uint32_t aCh,
+                                             int32_t aRunScript,
                                              const gfxFontStyle* aMatchStyle,
-                                             PRUint32& aCmapCount);
+                                             uint32_t& aCmapCount);
 
     
     
@@ -295,9 +295,9 @@ protected:
 
     
     nsTArray<nsRefPtr<gfxFontFamily> > mFontFamiliesToLoad;
-    PRUint32 mStartIndex;
-    PRUint32 mIncrement;
-    PRUint32 mNumFamilies;
+    uint32_t mStartIndex;
+    uint32_t mIncrement;
+    uint32_t mNumFamilies;
 };
 
 #endif

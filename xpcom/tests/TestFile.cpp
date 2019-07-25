@@ -37,7 +37,7 @@ static already_AddRefed<nsIFile> NewFile(nsIFile* aBase)
 static nsCString FixName(const char* aName)
 {
     nsCString name;
-    for (PRUint32 i = 0; aName[i]; ++i) {
+    for (uint32_t i = 0; aName[i]; ++i) {
         char ch = aName[i];
        
 #if defined(XP_WIN) || defined(XP_OS2)
@@ -70,7 +70,7 @@ static bool TestInvalidFileName(nsIFile* aBase, const char* aName)
 
 
 
-static bool TestCreate(nsIFile* aBase, const char* aName, PRInt32 aType, PRInt32 aPerm)
+static bool TestCreate(nsIFile* aBase, const char* aName, int32_t aType, int32_t aPerm)
 {
     gFunction = "TestCreate";
     nsCOMPtr<nsIFile> file = NewFile(aBase);
@@ -109,7 +109,7 @@ static bool TestCreate(nsIFile* aBase, const char* aName, PRInt32 aType, PRInt32
 
 
 
-static bool TestCreateUnique(nsIFile* aBase, const char* aName, PRInt32 aType, PRInt32 aPerm)
+static bool TestCreateUnique(nsIFile* aBase, const char* aName, int32_t aType, int32_t aPerm)
 {
     gFunction = "TestCreateUnique";
     nsCOMPtr<nsIFile> file = NewFile(aBase);
@@ -155,7 +155,7 @@ static bool TestCreateUnique(nsIFile* aBase, const char* aName, PRInt32 aType, P
 
 
 
-static bool TestDeleteOnClose(nsIFile* aBase, const char* aName, PRInt32 aFlags, PRInt32 aPerm)
+static bool TestDeleteOnClose(nsIFile* aBase, const char* aName, int32_t aFlags, int32_t aPerm)
 {
     gFunction = "TestDeleteOnClose";
     nsCOMPtr<nsIFile> file = NewFile(aBase);

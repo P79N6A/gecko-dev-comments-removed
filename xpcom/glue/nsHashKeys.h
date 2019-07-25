@@ -26,13 +26,13 @@ namespace mozilla {
 
 
 
-inline PRUint32
+inline uint32_t
 HashString(const nsAString& aStr)
 {
   return HashString(aStr.BeginReading(), aStr.Length());
 }
 
-inline PRUint32
+inline uint32_t
 HashString(const nsACString& aStr)
 {
   return HashString(aStr.BeginReading(), aStr.Length());
@@ -172,8 +172,8 @@ private:
 class nsUint32HashKey : public PLDHashEntryHdr
 {
 public:
-  typedef const PRUint32& KeyType;
-  typedef const PRUint32* KeyTypePointer;
+  typedef const uint32_t& KeyType;
+  typedef const uint32_t* KeyTypePointer;
   
   nsUint32HashKey(KeyTypePointer aKey) : mValue(*aKey) { }
   nsUint32HashKey(const nsUint32HashKey& toCopy) : mValue(toCopy.mValue) { }
@@ -187,7 +187,7 @@ public:
   enum { ALLOW_MEMMOVE = true };
 
 private:
-  const PRUint32 mValue;
+  const uint32_t mValue;
 };
 
 
@@ -198,8 +198,8 @@ private:
 class nsUint64HashKey : public PLDHashEntryHdr
 {
 public:
-  typedef const PRUint64& KeyType;
-  typedef const PRUint64* KeyTypePointer;
+  typedef const uint64_t& KeyType;
+  typedef const uint64_t* KeyTypePointer;
   
   nsUint64HashKey(KeyTypePointer aKey) : mValue(*aKey) { }
   nsUint64HashKey(const nsUint64HashKey& toCopy) : mValue(toCopy.mValue) { }
@@ -213,7 +213,7 @@ public:
   enum { ALLOW_MEMMOVE = true };
 
 private:
-  const PRUint64 mValue;
+  const uint64_t mValue;
 };
 
 
@@ -486,7 +486,7 @@ public:
 
     static const nsIHashable* KeyToPointer(nsIHashable* aKey) { return aKey; }
     static PLDHashNumber HashKey(const nsIHashable* aKey) {
-        PRUint32 code = 8888; 
+        uint32_t code = 8888; 
 #ifdef DEBUG
         nsresult rv =
 #endif

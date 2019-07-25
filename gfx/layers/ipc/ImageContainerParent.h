@@ -29,7 +29,7 @@ class ImageContainerParent : public PImageContainerParent
 {
 public:
 
-  ImageContainerParent(PRUint32 aContainerID);
+  ImageContainerParent(uint32_t aContainerID);
   ~ImageContainerParent();
 
   
@@ -50,7 +50,7 @@ public:
 
   void DoStop();
 
-  static SharedImage* GetSharedImage(PRUint64 aID);
+  static SharedImage* GetSharedImage(uint64_t aID);
   
 
 
@@ -58,14 +58,14 @@ public:
 
 
 
-  static PRUint32 GetSharedImageVersion(PRUint64 aID);
+  static uint32_t GetSharedImageVersion(uint64_t aID);
 
   
 
 
 
 
-  static bool IsExistingID(PRUint64 aID);
+  static bool IsExistingID(uint64_t aID);
 
   
 
@@ -77,12 +77,12 @@ public:
 
 
 
-  static bool SetCompositorIDForImage(PRUint64 aImageID, PRUint64 aCompositorID);
+  static bool SetCompositorIDForImage(uint64_t aImageID, uint64_t aCompositorID);
 
   
 
 
-  static PRUint64 GetCompositorIDForImage(PRUint64 aImageID);
+  static uint64_t GetCompositorIDForImage(uint64_t aImageID);
 
   
 
@@ -112,7 +112,7 @@ protected:
 
 
 
-  static SharedImage* SwapSharedImage(PRUint64 aID, SharedImage* aImage);
+  static SharedImage* SwapSharedImage(uint64_t aID, SharedImage* aImage);
 
   
 
@@ -122,10 +122,10 @@ protected:
 
 
 
-  static SharedImage* RemoveSharedImage(PRUint64 aID);
+  static SharedImage* RemoveSharedImage(uint64_t aID);
 
 private:
-  PRUint64 mID;
+  uint64_t mID;
   bool  mStop;
 };
 

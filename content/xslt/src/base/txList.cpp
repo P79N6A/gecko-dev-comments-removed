@@ -35,7 +35,7 @@ nsresult txList::add(void* objPtr)
 
 
 
-PRInt32 List::getLength() {
+int32_t List::getLength() {
    return itemCount;
 } 
 

@@ -91,7 +91,7 @@ public:
   
   
   
-  virtual void SetLineNumber(PRUint32 aLineNumber) = 0;
+  virtual void SetLineNumber(uint32_t aLineNumber) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIStyleSheetLinkingElement,

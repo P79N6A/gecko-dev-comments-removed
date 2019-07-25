@@ -9,7 +9,7 @@
 
 
 
-static const PRUint16 g_MacTurkishMappingTable[] = {
+static const uint16_t g_MacTurkishMappingTable[] = {
 #include "macturki.ut"
 };
 

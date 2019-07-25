@@ -11,8 +11,8 @@
 
 
 struct gfxFontFeature {
-    PRUint32 mTag; 
-    PRUint32 mValue; 
+    uint32_t mTag; 
+    uint32_t mValue; 
                      
 };
 

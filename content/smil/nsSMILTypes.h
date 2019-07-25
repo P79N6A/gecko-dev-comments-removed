@@ -20,6 +20,6 @@
 
 
 
-typedef PRInt64 nsSMILTime;
+typedef int64_t nsSMILTime;
 
 #endif 

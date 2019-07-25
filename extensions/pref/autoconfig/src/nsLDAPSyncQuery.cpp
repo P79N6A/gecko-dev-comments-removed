@@ -39,7 +39,7 @@ nsLDAPSyncQuery::~nsLDAPSyncQuery()
 NS_IMETHODIMP 
 nsLDAPSyncQuery::OnLDAPMessage(nsILDAPMessage *aMessage)
 {
-    PRInt32 messageType;
+    int32_t messageType;
 
     
     
@@ -143,7 +143,7 @@ nsresult
 nsLDAPSyncQuery::OnLDAPBind(nsILDAPMessage *aMessage)
 {
 
-    PRInt32 errCode;
+    int32_t errCode;
 
     mOperation = 0;  
 
@@ -179,10 +179,10 @@ nsLDAPSyncQuery::OnLDAPSearchEntry(nsILDAPMessage *aMessage)
     
     
     
-    for (PRUint32 i = 0; i < mAttrCount; i++) {
+    for (uint32_t i = 0; i < mAttrCount; i++) {
 
         PRUnichar **vals;
-        PRUint32 valueCount;
+        uint32_t valueCount;
 
         
         
@@ -197,7 +197,7 @@ nsLDAPSyncQuery::OnLDAPSearchEntry(nsILDAPMessage *aMessage)
 
         
         
-        for (PRUint32 j = 0; j < valueCount; j++) {
+        for (uint32_t j = 0; j < valueCount; j++) {
             mResults.Append(PRUnichar('\n'));
             mResults.AppendASCII(mAttrs[i]);
             mResults.Append(PRUnichar('='));
@@ -291,7 +291,7 @@ nsLDAPSyncQuery::StartLDAPSearch()
 
     
     
-    PRInt32 scope;
+    int32_t scope;
     rv = mServerURL->GetScope(&scope);
     if (NS_FAILED(rv)) {
         FinishLDAPQuery();
@@ -388,7 +388,7 @@ nsLDAPSyncQuery::FinishLDAPQuery()
 
 
 NS_IMETHODIMP nsLDAPSyncQuery::GetQueryResults(nsILDAPURL *aServerURL,
-                                               PRUint32 aProtocolVersion,
+                                               uint32_t aProtocolVersion,
                                                PRUnichar **_retval)
 {
     nsresult rv;

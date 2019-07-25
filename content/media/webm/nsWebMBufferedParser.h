@@ -18,20 +18,20 @@ using mozilla::ReentrantMonitor;
 
 struct nsWebMTimeDataOffset
 {
-  nsWebMTimeDataOffset(PRInt64 aOffset, PRUint64 aTimecode)
+  nsWebMTimeDataOffset(int64_t aOffset, uint64_t aTimecode)
     : mOffset(aOffset), mTimecode(aTimecode)
   {}
 
-  bool operator==(PRInt64 aOffset) const {
+  bool operator==(int64_t aOffset) const {
     return mOffset == aOffset;
   }
 
-  bool operator<(PRInt64 aOffset) const {
+  bool operator<(int64_t aOffset) const {
     return mOffset < aOffset;
   }
 
-  PRInt64 mOffset;
-  PRUint64 mTimecode;
+  int64_t mOffset;
+  uint64_t mTimecode;
 };
 
 
@@ -42,33 +42,33 @@ struct nsWebMTimeDataOffset
 
 struct nsWebMBufferedParser
 {
-  nsWebMBufferedParser(PRInt64 aOffset)
+  nsWebMBufferedParser(int64_t aOffset)
     : mStartOffset(aOffset), mCurrentOffset(aOffset), mState(CLUSTER_SYNC), mClusterIDPos(0)
   {}
 
   
   
   
-  void Append(const unsigned char* aBuffer, PRUint32 aLength,
+  void Append(const unsigned char* aBuffer, uint32_t aLength,
               nsTArray<nsWebMTimeDataOffset>& aMapping,
               ReentrantMonitor& aReentrantMonitor);
 
-  bool operator==(PRInt64 aOffset) const {
+  bool operator==(int64_t aOffset) const {
     return mCurrentOffset == aOffset;
   }
 
-  bool operator<(PRInt64 aOffset) const {
+  bool operator<(int64_t aOffset) const {
     return mCurrentOffset < aOffset;
   }
 
   
   
   
-  PRInt64 mStartOffset;
+  int64_t mStartOffset;
 
   
   
-  PRInt64 mCurrentOffset;
+  int64_t mCurrentOffset;
 
 private:
   enum State {
@@ -142,41 +142,41 @@ private:
 
   
   
-  PRUint32 mClusterIDPos;
+  uint32_t mClusterIDPos;
 
   
-  PRUint64 mVInt;
-
-  
-  
-  PRUint32 mVIntLength;
+  uint64_t mVInt;
 
   
   
-  PRUint32 mVIntLeft;
+  uint32_t mVIntLength;
 
   
   
-  PRUint64 mBlockSize;
-
-  
-  PRUint64 mClusterTimecode;
+  uint32_t mVIntLeft;
 
   
   
+  uint64_t mBlockSize;
+
   
-  PRInt64 mBlockOffset;
+  uint64_t mClusterTimecode;
 
   
   
-  PRInt16 mBlockTimecode;
+  
+  int64_t mBlockOffset;
 
   
-  PRUint32 mBlockTimecodeLength;
+  
+  int16_t mBlockTimecode;
+
+  
+  uint32_t mBlockTimecodeLength;
 
   
   
-  PRUint32 mSkipBytes;
+  uint32_t mSkipBytes;
 };
 
 class nsWebMBufferedState
@@ -192,9 +192,9 @@ public:
     MOZ_COUNT_DTOR(nsWebMBufferedState);
   }
 
-  void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset);
-  bool CalculateBufferedForRange(PRInt64 aStartOffset, PRInt64 aEndOffset,
-                                 PRUint64* aStartTime, PRUint64* aEndTime);
+  void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset);
+  bool CalculateBufferedForRange(int64_t aStartOffset, int64_t aEndOffset,
+                                 uint64_t* aStartTime, uint64_t* aEndTime);
 
 private:
   

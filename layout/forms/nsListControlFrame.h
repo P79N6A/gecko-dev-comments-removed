@@ -85,7 +85,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(uint32_t aFlags) const
   {
     return nsHTMLScrollFrame::IsFrameOfType(aFlags &
       ~(nsIFrame::eReplaced | nsIFrame::eReplacedContainsBlock));
@@ -93,7 +93,7 @@ public:
 
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aX, nscoord aY, nsIFrame* aForChild,
-                                  PRUint32 aFlags);
+                                  uint32_t aFlags);
 
 #ifdef DEBUG
   NS_IMETHOD GetFrameName(nsAString& aResult) const;
@@ -117,7 +117,7 @@ public:
 
     
   virtual void SetComboboxFrame(nsIFrame* aComboboxFrame);
-  virtual PRInt32 GetSelectedIndex();
+  virtual int32_t GetSelectedIndex();
   virtual already_AddRefed<nsIContent> GetCurrentOption();
 
   
@@ -125,11 +125,11 @@ public:
 
 
 
-  virtual void GetOptionText(PRInt32 aIndex, nsAString & aStr);
+  virtual void GetOptionText(int32_t aIndex, nsAString & aStr);
 
   virtual void CaptureMouseEvents(bool aGrabMouseEvents);
   virtual nscoord GetHeightOfARow();
-  virtual PRInt32 GetNumberOfOptions();  
+  virtual int32_t GetNumberOfOptions();  
   virtual void AboutToDropDown();
 
   
@@ -147,20 +147,20 @@ public:
 
 
 
-  virtual void ComboboxFinish(PRInt32 aIndex);
+  virtual void ComboboxFinish(int32_t aIndex);
   virtual void OnContentReset();
 
   
-  NS_IMETHOD AddOption(PRInt32 index);
-  NS_IMETHOD RemoveOption(PRInt32 index);
+  NS_IMETHOD AddOption(int32_t index);
+  NS_IMETHOD RemoveOption(int32_t index);
   NS_IMETHOD DoneAddingChildren(bool aIsDone);
 
   
 
 
 
-  NS_IMETHOD OnOptionSelected(PRInt32 aIndex, bool aSelected);
-  NS_IMETHOD OnSetSelectedIndex(PRInt32 aOldIndex, PRInt32 aNewIndex);
+  NS_IMETHOD OnOptionSelected(int32_t aIndex, bool aSelected);
+  NS_IMETHOD OnSetSelectedIndex(int32_t aOldIndex, int32_t aNewIndex);
 
   
   nsresult MouseDown(nsIDOMEvent* aMouseEvent); 
@@ -180,14 +180,14 @@ public:
 
 
   static already_AddRefed<nsIDOMHTMLOptionElement>
-    GetOption(nsIDOMHTMLOptionsCollection* aOptions, PRInt32 aIndex);
+    GetOption(nsIDOMHTMLOptionsCollection* aOptions, int32_t aIndex);
 
   
 
 
 
   static already_AddRefed<nsIContent>
-    GetOptionAsContent(nsIDOMHTMLOptionsCollection* aCollection,PRInt32 aIndex);
+    GetOptionAsContent(nsIDOMHTMLOptionsCollection* aCollection,int32_t aIndex);
 
   static void ComboboxFocusSet();
 
@@ -234,7 +234,7 @@ public:
   
 
 
-  PRUint32 GetNumDisplayRows() const { return mNumDisplayRows; }
+  uint32_t GetNumDisplayRows() const { return mNumDisplayRows; }
 
   
 
@@ -282,9 +282,9 @@ protected:
 
   void       DropDownToggleKey(nsIDOMEvent* aKeyEvent);
 
-  nsresult   IsOptionDisabled(PRInt32 anIndex, bool &aIsDisabled);
+  nsresult   IsOptionDisabled(int32_t anIndex, bool &aIsDisabled);
   nsresult   ScrollToFrame(nsIContent * aOptElement);
-  nsresult   ScrollToIndex(PRInt32 anIndex);
+  nsresult   ScrollToIndex(int32_t anIndex);
 
   
 
@@ -303,8 +303,8 @@ protected:
 
 
   void       UpdateInListState(nsIDOMEvent* aEvent);
-  void       AdjustIndexForDisabledOpt(PRInt32 aStartIndex, PRInt32 &anNewIndex,
-                                       PRInt32 aNumOptions, PRInt32 aDoAdjustInc, PRInt32 aDoAdjustIncNext);
+  void       AdjustIndexForDisabledOpt(int32_t aStartIndex, int32_t &anNewIndex,
+                                       int32_t aNumOptions, int32_t aDoAdjustInc, int32_t aDoAdjustIncNext);
 
   
 
@@ -316,7 +316,7 @@ protected:
   virtual ~nsListControlFrame();
 
   
-  nsresult GetSizeAttribute(PRUint32 *aSize);
+  nsresult GetSizeAttribute(uint32_t *aSize);
   nsIContent* GetOptionFromContent(nsIContent *aContent);
 
   
@@ -325,13 +325,13 @@ protected:
 
 
 
-  nsresult GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent, PRInt32& aCurIndex);
+  nsresult GetIndexFromDOMEvent(nsIDOMEvent* aMouseEvent, int32_t& aCurIndex);
 
   
 
 
 
-  already_AddRefed<nsIContent> GetOptionContent(PRInt32 aIndex) const;
+  already_AddRefed<nsIContent> GetOptionContent(int32_t aIndex) const;
 
   
 
@@ -343,10 +343,10 @@ protected:
   
 
 
-  bool     IsContentSelectedByIndex(PRInt32 aIndex) const;
+  bool     IsContentSelectedByIndex(int32_t aIndex) const;
 
   bool     CheckIfAllFramesHere();
-  PRInt32  GetIndexFromContent(nsIContent *aContent);
+  int32_t  GetIndexFromContent(nsIContent *aContent);
   bool     IsLeftButton(nsIDOMEvent* aMouseEvent);
 
   
@@ -354,10 +354,10 @@ protected:
 
   
   
-  nscoord CalcIntrinsicHeight(nscoord aHeightOfARow, PRInt32 aNumberOfOptions);
+  nscoord CalcIntrinsicHeight(nscoord aHeightOfARow, int32_t aNumberOfOptions);
 
   
-  void     SetComboboxItem(PRInt32 aIndex);
+  void     SetComboboxItem(int32_t aIndex);
 
   
 
@@ -370,18 +370,18 @@ protected:
                             nsReflowStatus&          aStatus);
 
   
-  bool     SetOptionsSelectedFromFrame(PRInt32 aStartIndex,
-                                       PRInt32 aEndIndex,
+  bool     SetOptionsSelectedFromFrame(int32_t aStartIndex,
+                                       int32_t aEndIndex,
                                        bool aValue,
                                        bool aClearAll);
-  bool     ToggleOptionSelectedFromFrame(PRInt32 aIndex);
-  bool     SingleSelection(PRInt32 aClickedIndex, bool aDoToggle);
-  bool     ExtendedSelection(PRInt32 aStartIndex, PRInt32 aEndIndex,
+  bool     ToggleOptionSelectedFromFrame(int32_t aIndex);
+  bool     SingleSelection(int32_t aClickedIndex, bool aDoToggle);
+  bool     ExtendedSelection(int32_t aStartIndex, int32_t aEndIndex,
                              bool aClearAll);
-  bool     PerformSelection(PRInt32 aClickedIndex, bool aIsShift,
+  bool     PerformSelection(int32_t aClickedIndex, bool aIsShift,
                             bool aIsControl);
-  bool     HandleListSelection(nsIDOMEvent * aDOMEvent, PRInt32 selectedIndex);
-  void     InitSelectionRange(PRInt32 aClickedIndex);
+  bool     HandleListSelection(nsIDOMEvent * aDOMEvent, int32_t selectedIndex);
+  void     InitSelectionRange(int32_t aClickedIndex);
 
 public:
   nsSelectsAreaFrame* GetOptionsContainer() const {
@@ -394,11 +394,11 @@ protected:
   }
   
   
-  PRInt32      mStartSelectionIndex;
-  PRInt32      mEndSelectionIndex;
+  int32_t      mStartSelectionIndex;
+  int32_t      mEndSelectionIndex;
 
   nsIComboboxControlFrame *mComboboxFrame;
-  PRUint32     mNumDisplayRows;
+  uint32_t     mNumDisplayRows;
   bool mChangesSinceDragStart:1;
   bool mButtonDown:1;
   
@@ -443,7 +443,7 @@ protected:
   static nsString * sIncrementalString;
 
 #ifdef DO_REFLOW_COUNTER
-  PRInt32 mReflowId;
+  int32_t mReflowId;
 #endif
 
 private:

@@ -64,7 +64,7 @@ public:
 
 
 
-  virtual nsresult Snapshot(PRUint32 aDuration, nsIDOMFile** aFile) = 0;
+  virtual nsresult Snapshot(uint32_t aDuration, nsIDOMFile** aFile) = 0;
 
   
   virtual nsresult Stop() = 0;
@@ -83,9 +83,9 @@ enum MediaEngineVideoCodecType {
 };
 
 struct MediaEngineVideoOptions {
-  PRUint32 mWidth;
-  PRUint32 mHeight;
-  PRUint32 mMaxFPS;
+  uint32_t mWidth;
+  uint32_t mHeight;
+  uint32_t mMaxFPS;
   MediaEngineVideoCodecType codecType;
 };
 

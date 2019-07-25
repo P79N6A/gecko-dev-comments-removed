@@ -62,7 +62,7 @@ public:
   void Close();
 
   
-  nsresult WriteBlock(PRUint32 aBlockIndex, const PRUint8* aData);
+  nsresult WriteBlock(uint32_t aBlockIndex, const uint8_t* aData);
 
   
   NS_IMETHOD Run();
@@ -70,14 +70,14 @@ public:
   
   
   
-  nsresult Read(PRInt64 aOffset,
-                PRUint8* aData,
-                PRInt32 aLength,
-                PRInt32* aBytes);
+  nsresult Read(int64_t aOffset,
+                uint8_t* aData,
+                int32_t aLength,
+                int32_t* aBytes);
 
   
   
-  nsresult MoveBlock(PRInt32 aSourceBlockIndex, PRInt32 aDestBlockIndex);
+  nsresult MoveBlock(int32_t aSourceBlockIndex, int32_t aDestBlockIndex);
 
   
   
@@ -88,20 +88,20 @@ public:
 
     
     
-    BlockChange(const PRUint8* aData)
+    BlockChange(const uint8_t* aData)
       : mSourceBlockIndex(-1)
     {
-      mData = new PRUint8[BLOCK_SIZE];
+      mData = new uint8_t[BLOCK_SIZE];
       memcpy(mData.get(), aData, BLOCK_SIZE);
     }
 
     
     
-    BlockChange(PRInt32 aSourceBlockIndex)
+    BlockChange(int32_t aSourceBlockIndex)
       : mSourceBlockIndex(aSourceBlockIndex) {}
 
-    nsAutoArrayPtr<PRUint8> mData;
-    const PRInt32 mSourceBlockIndex;
+    nsAutoArrayPtr<uint8_t> mData;
+    const int32_t mSourceBlockIndex;
 
     bool IsMove() const {
       return mSourceBlockIndex != -1;
@@ -114,18 +114,18 @@ public:
 
   class Int32Queue : private nsDeque {
   public:
-    PRInt32 PopFront() {
-      PRInt32 front = ObjectAt(0);
+    int32_t PopFront() {
+      int32_t front = ObjectAt(0);
       nsDeque::PopFront();
       return front;
     }
 
-    void PushBack(PRInt32 aValue) {
+    void PushBack(int32_t aValue) {
       nsDeque::Push(reinterpret_cast<void*>(aValue));
     }
 
-    bool Contains(PRInt32 aValue) {
-      for (PRInt32 i = 0; i < GetSize(); ++i) {
+    bool Contains(int32_t aValue) {
+      for (int32_t i = 0; i < GetSize(); ++i) {
         if (ObjectAt(i) == aValue) {
           return true;
         }
@@ -138,11 +138,11 @@ public:
     }
 
   private:
-    PRInt32 ObjectAt(PRInt32 aIndex) {
+    int32_t ObjectAt(int32_t aIndex) {
       void* v = nsDeque::ObjectAt(aIndex);
       
       
-      return *(reinterpret_cast<PRInt32*>(&v));
+      return *(reinterpret_cast<int32_t*>(&v));
     }
   };
 
@@ -152,21 +152,21 @@ private:
   
   mozilla::Monitor mFileMonitor;
   
-  nsresult MoveBlockInFile(PRInt32 aSourceBlockIndex,
-                           PRInt32 aDestBlockIndex);
+  nsresult MoveBlockInFile(int32_t aSourceBlockIndex,
+                           int32_t aDestBlockIndex);
   
-  nsresult Seek(PRInt64 aOffset);
+  nsresult Seek(int64_t aOffset);
   
-  nsresult ReadFromFile(PRInt32 aOffset,
-                        PRUint8* aDest,
-                        PRInt32 aBytesToRead,
-                        PRInt32& aBytesRead);
-  nsresult WriteBlockToFile(PRInt32 aBlockIndex, const PRUint8* aBlockData);
+  nsresult ReadFromFile(int32_t aOffset,
+                        uint8_t* aDest,
+                        int32_t aBytesToRead,
+                        int32_t& aBytesRead);
+  nsresult WriteBlockToFile(int32_t aBlockIndex, const uint8_t* aBlockData);
   
   
   PRFileDesc* mFD;
   
-  PRInt64 mFDCurrentPos;
+  int64_t mFDCurrentPos;
 
   
   

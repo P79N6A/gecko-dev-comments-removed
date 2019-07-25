@@ -100,7 +100,7 @@ public:
 
 
 
-  virtual void NotifySVGChanged(PRUint32 aFlags)=0;
+  virtual void NotifySVGChanged(uint32_t aFlags)=0;
 
   
 
@@ -124,7 +124,7 @@ public:
 
 
   virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      PRUint32 aFlags) = 0;
+                                      uint32_t aFlags) = 0;
 
   
   NS_IMETHOD_(bool) IsDisplayContainer()=0;

@@ -68,9 +68,9 @@ private:
     nsCString                       mContentDispositionHeader;
     
 
-    PRUint32                        mContentDisposition;
-    PRInt32                         mContentLength;
-    PRUint32                        mLoadFlags;
+    uint32_t                        mContentDisposition;
+    int32_t                         mContentLength;
+    uint32_t                        mLoadFlags;
     nsresult                        mStatus;
     bool                            mIsPending;
     bool                            mIsUnsafe;

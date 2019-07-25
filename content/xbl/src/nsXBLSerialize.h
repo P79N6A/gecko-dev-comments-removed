@@ -13,7 +13,7 @@
 #include "nsIObjectOutputStream.h"
 #include "nsINameSpaceManager.h"
 
-typedef PRUint8 XBLBindingSerializeDetails;
+typedef uint8_t XBLBindingSerializeDetails;
 
 
 

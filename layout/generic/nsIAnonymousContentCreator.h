@@ -65,7 +65,7 @@ public:
 
 
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
-                                        PRUint32 aFilter) = 0;
+                                        uint32_t aFilter) = 0;
 
   
 

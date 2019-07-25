@@ -16,27 +16,27 @@ namespace mozilla {
 
     struct IconFileHeader
     {
-      PRUint16   mReserved;
-      PRUint16   mType;
-      PRUint16   mCount;
+      uint16_t   mReserved;
+      uint16_t   mType;
+      uint16_t   mCount;
     };
 
     struct IconDirEntry
     {
-      PRUint8   mWidth;
-      PRUint8   mHeight;
-      PRUint8   mColorCount;
-      PRUint8   mReserved;
+      uint8_t   mWidth;
+      uint8_t   mHeight;
+      uint8_t   mColorCount;
+      uint8_t   mReserved;
       union {
-        PRUint16 mPlanes;   
-        PRUint16 mXHotspot; 
+        uint16_t mPlanes;   
+        uint16_t mXHotspot; 
       };
       union {
-        PRUint16 mBitCount; 
-        PRUint16 mYHotspot; 
+        uint16_t mBitCount; 
+        uint16_t mYHotspot; 
       };
-      PRUint32  mBytesInRes;
-      PRUint32  mImageOffset;
+      uint32_t  mBytesInRes;
+      uint32_t  mImageOffset;
     };
 
 

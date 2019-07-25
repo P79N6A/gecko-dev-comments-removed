@@ -31,7 +31,7 @@ class NotificationController;
 class nsIScrollableView;
 class nsAccessiblePivot;
 
-const PRUint32 kDefaultCacheSize = 256;
+const uint32_t kDefaultCacheSize = 256;
 
 class DocAccessible : public HyperTextAccessibleWrap,
                       public nsIAccessibleDocument,
@@ -82,10 +82,10 @@ public:
   virtual void Description(nsString& aDescription);
   virtual Accessible* FocusedChild();
   virtual mozilla::a11y::role NativeRole();
-  virtual PRUint64 NativeState();
-  virtual PRUint64 NativeInteractiveState() const;
+  virtual uint64_t NativeState();
+  virtual uint64_t NativeInteractiveState() const;
   virtual bool NativelyUnavailable() const;
-  virtual void ApplyARIAState(PRUint64* aState) const;
+  virtual void ApplyARIAState(uint64_t* aState) const;
 
   virtual void SetRoleMapEntry(nsRoleMapEntry* aRoleMapEntry);
 
@@ -142,8 +142,8 @@ public:
 
 
   bool HasLoadState(LoadState aState) const
-    { return (mLoadState & static_cast<PRUint32>(aState)) == 
-        static_cast<PRUint32>(aState); }
+    { return (mLoadState & static_cast<uint32_t>(aState)) == 
+        static_cast<uint32_t>(aState); }
 
   
 
@@ -159,13 +159,13 @@ public:
   
 
 
-  PRUint32 ChildDocumentCount() const
+  uint32_t ChildDocumentCount() const
     { return mChildDocuments.Length(); }
 
   
 
 
-  DocAccessible* GetChildDocumentAt(PRUint32 aIndex) const
+  DocAccessible* GetChildDocumentAt(uint32_t aIndex) const
     { return mChildDocuments.SafeElementAt(aIndex, nullptr); }
 
   
@@ -175,7 +175,7 @@ public:
 
 
 
-  nsresult FireDelayedAccessibleEvent(PRUint32 aEventType, nsINode *aNode,
+  nsresult FireDelayedAccessibleEvent(uint32_t aEventType, nsINode *aNode,
                                       AccEvent::EEventRule aAllowDupes = AccEvent::eRemoveDupes,
                                       EIsFromUserInput aIsFromUserInput = eAutoDetect);
 
@@ -324,7 +324,7 @@ protected:
   
 
 
-  void NotifyOfLoad(PRUint32 aLoadEventType)
+  void NotifyOfLoad(uint32_t aLoadEventType)
   {
     mLoadState |= eDOMLoaded;
     mLoadEventType = aLoadEventType;
@@ -406,7 +406,7 @@ protected:
 
 
 
-    void AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID, nsIAtom* aAttribute);
+    void AttributeChangedImpl(nsIContent* aContent, int32_t aNameSpaceID, nsIAtom* aAttribute);
 
     
 
@@ -458,7 +458,7 @@ protected:
     eAlertAccessible = 2
   };
 
-  PRUint32 UpdateTreeInternal(Accessible* aChild, bool aIsInsert);
+  uint32_t UpdateTreeInternal(Accessible* aChild, bool aIsInsert);
 
   
 
@@ -508,17 +508,17 @@ protected:
 
     nsCOMPtr<nsIDocument> mDocument;
     nsCOMPtr<nsITimer> mScrollWatchTimer;
-    PRUint16 mScrollPositionChangedTicks; 
+    uint16_t mScrollPositionChangedTicks; 
 
   
 
 
-  PRUint32 mLoadState;
+  uint32_t mLoadState;
 
   
 
 
-  PRUint32 mLoadEventType;
+  uint32_t mLoadEventType;
 
   
 

@@ -26,21 +26,21 @@ namespace mozilla { namespace net {
 class ASpdySession : public nsAHttpTransaction
 {
 public:
-  virtual bool AddStream(nsAHttpTransaction *, PRInt32) = 0;
+  virtual bool AddStream(nsAHttpTransaction *, int32_t) = 0;
   virtual bool CanReuse() = 0;
   virtual bool RoomForMoreStreams() = 0;
   virtual PRIntervalTime IdleTime() = 0;
   virtual void ReadTimeoutTick(PRIntervalTime now) = 0;
   virtual void DontReuse() = 0;
 
-  static ASpdySession *NewSpdySession(PRUint32 version,
+  static ASpdySession *NewSpdySession(uint32_t version,
                                       nsAHttpTransaction *,
                                       nsISocketTransport *,
-                                      PRInt32);
+                                      int32_t);
 
   virtual void PrintDiagnostics (nsCString &log) = 0;
 
-  const static PRUint32 kSendingChunkSize = 4096;
+  const static uint32_t kSendingChunkSize = 4096;
 };
 
 
@@ -54,23 +54,23 @@ public:
 
   
   
-  bool ProtocolEnabled(PRUint32 index);
+  bool ProtocolEnabled(uint32_t index);
 
   
   
-  nsresult GetNPNVersionIndex(const nsACString &npnString, PRUint8 *result);
+  nsresult GetNPNVersionIndex(const nsACString &npnString, uint8_t *result);
 
   
   
   nsresult GetAlternateProtocolVersionIndex(const char *val,
-                                            PRUint8 *result);
+                                            uint8_t *result);
 
   enum {
     SPDY_VERSION_2 = 2,
     SPDY_VERSION_3 = 3
   };
 
-  PRUint8   Version[2];
+  uint8_t   Version[2];
   nsCString VersionString[2];
   nsCString AlternateProtocolString[2];
 };

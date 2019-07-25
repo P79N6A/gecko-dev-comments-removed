@@ -32,13 +32,13 @@ protected:
 
   
   
-  NS_IMETHOD ConvertNoBuff(const char* aSrc, PRInt32 * aSrcLength, 
-                           PRUnichar *aDest, PRInt32 * aDestLength); 
+  NS_IMETHOD ConvertNoBuff(const char* aSrc, int32_t * aSrcLength, 
+                           PRUnichar *aDest, int32_t * aDestLength); 
   nsGBKConvUtil mUtil;
 
 private:
-  PRInt16 mHZState;
-  PRUint32 mRunLength; 
+  int16_t mHZState;
+  uint32_t mRunLength; 
   char mOddByte; 
 
 };

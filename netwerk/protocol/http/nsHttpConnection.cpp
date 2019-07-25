@@ -95,7 +95,7 @@ nsHttpConnection::~nsHttpConnection()
     }
 
     if (mTotalBytesRead) {
-        PRUint32 totalKBRead = static_cast<PRUint32>(mTotalBytesRead >> 10);
+        uint32_t totalKBRead = static_cast<uint32_t>(mTotalBytesRead >> 10);
         LOG(("nsHttpConnection %p read %dkb on connection spdy=%d\n",
              this, totalKBRead, mEverUsedSpdy));
         mozilla::Telemetry::Accumulate(
@@ -108,7 +108,7 @@ nsHttpConnection::~nsHttpConnection()
 
 nsresult
 nsHttpConnection::Init(nsHttpConnectionInfo *info,
-                       PRUint16 maxHangTime,
+                       uint16_t maxHangTime,
                        nsISocketTransport *transport,
                        nsIAsyncInputStream *instream,
                        nsIAsyncOutputStream *outstream,
@@ -148,7 +148,7 @@ nsHttpConnection::Init(nsHttpConnectionInfo *info,
 }
 
 void
-nsHttpConnection::StartSpdy(PRUint8 spdyVersion)
+nsHttpConnection::StartSpdy(uint8_t spdyVersion)
 {
     LOG(("nsHttpConnection::StartSpdy [this=%p]\n", this));
 
@@ -204,7 +204,7 @@ nsHttpConnection::StartSpdy(PRUint8 spdyVersion)
              "into SpdySession %p\n", mTransaction.get(), mSpdySession.get()));
     }
     else {
-        PRInt32 count = list.Length();
+        int32_t count = list.Length();
 
         LOG(("nsHttpConnection::StartSpdy moving transaction list len=%d "
              "into SpdySession %p\n", count, mSpdySession.get()));
@@ -214,7 +214,7 @@ nsHttpConnection::StartSpdy(PRUint8 spdyVersion)
             return;
         }
 
-        for (PRInt32 index = 0; index < count; ++index) {
+        for (int32_t index = 0; index < count; ++index) {
             if (!mSpdySession) {
                 mSpdySession = ASpdySession::NewSpdySession(spdyVersion,
                                                             list[index], mSocketTransport, 
@@ -275,7 +275,7 @@ nsHttpConnection::EnsureNPNComplete()
     
         
         
-        PRUint32 count = 0;
+        uint32_t count = 0;
         rv = mSocketOut->Write("", 0, &count);
 
         if (NS_FAILED(rv) && rv != NS_BASE_STREAM_WOULD_BLOCK)
@@ -289,7 +289,7 @@ nsHttpConnection::EnsureNPNComplete()
     LOG(("nsHttpConnection::EnsureNPNComplete %p negotiated to '%s'",
          this, negotiatedNPN.get()));
 
-    PRUint8 spdyVersion;
+    uint8_t spdyVersion;
     rv = gHttpHandler->SpdyInfo()->GetNPNVersionIndex(negotiatedNPN,
                                                       &spdyVersion);
     if (NS_SUCCEEDED(rv))
@@ -306,7 +306,7 @@ npnComplete:
 
 
 nsresult
-nsHttpConnection::Activate(nsAHttpTransaction *trans, PRUint8 caps, PRInt32 pri)
+nsHttpConnection::Activate(nsAHttpTransaction *trans, uint8_t caps, int32_t pri)
 {
     nsresult rv;
 
@@ -374,7 +374,7 @@ failed_activation:
 }
 
 void
-nsHttpConnection::SetupNPN(PRUint8 caps)
+nsHttpConnection::SetupNPN(uint8_t caps)
 {
     if (mSetupNPNCalled)                                
         return;
@@ -440,7 +440,7 @@ nsHttpConnection::HandleAlternateProtocol(nsHttpResponseHead *responseHead)
     
     
 
-    PRUint8 alternateProtocolVersion;
+    uint8_t alternateProtocolVersion;
     if (NS_SUCCEEDED(gHttpHandler->SpdyInfo()->
                      GetAlternateProtocolVersionIndex(val,
                                                       &alternateProtocolVersion))) {
@@ -452,7 +452,7 @@ nsHttpConnection::HandleAlternateProtocol(nsHttpResponseHead *responseHead)
 
 nsresult
 nsHttpConnection::AddTransaction(nsAHttpTransaction *httpTransaction,
-                                 PRInt32 priority)
+                                 int32_t priority)
 {
     LOG(("nsHttpConnection::AddTransaction for SPDY"));
 
@@ -562,7 +562,7 @@ nsHttpConnection::CanReuse()
     
     
 
-    PRUint64 dataSize;
+    uint64_t dataSize;
     if (canReuse && mSocketIn && !mUsingSpdyVersion && mHttp1xTransactionCount &&
         NS_SUCCEEDED(mSocketIn->Available(&dataSize)) && dataSize) {
         LOG(("nsHttpConnection::CanReuse %p %s"
@@ -593,12 +593,12 @@ nsHttpConnection::IdleTime()
 
 
 
-PRUint32
+uint32_t
 nsHttpConnection::TimeToLive()
 {
     if (IdleTime() >= mIdleTimeout)
         return 0;
-    PRUint32 timeToLive = PR_IntervalToSeconds(mIdleTimeout - IdleTime());
+    uint32_t timeToLive = PR_IntervalToSeconds(mIdleTimeout - IdleTime());
 
     
     
@@ -806,7 +806,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         if (!mUsingSpdyVersion) {
             const char *cp = PL_strcasestr(val, "timeout=");
             if (cp)
-                mIdleTimeout = PR_SecondsToInterval((PRUint32) atoi(cp + 8));
+                mIdleTimeout = PR_SecondsToInterval((uint32_t) atoi(cp + 8));
             else
                 mIdleTimeout = gHttpHandler->IdleTimeout();
 
@@ -815,7 +815,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
                 int val = atoi(cp + 4);
                 if (val > 0) {
                     foundKeepAliveMax = true;
-                    mRemainingConnectionUses = static_cast<PRUint32>(val);
+                    mRemainingConnectionUses = static_cast<uint32_t>(val);
                 }
             }
         }
@@ -902,7 +902,7 @@ nsHttpConnection::IsReused()
 }
 
 void
-nsHttpConnection::SetIsReusedAfter(PRUint32 afterMilliseconds)
+nsHttpConnection::SetIsReusedAfter(uint32_t afterMilliseconds)
 {
     mConsiderReusedAfterEpoch = PR_IntervalNow();
     mConsiderReusedAfterInterval = PR_MillisecondsToInterval(afterMilliseconds);
@@ -965,7 +965,7 @@ nsHttpConnection::ReadTimeoutTick(PRIntervalTime now)
     
     
 
-    PRUint32 pipelineDepth = mTransaction->PipelineDepth();
+    uint32_t pipelineDepth = mTransaction->PipelineDepth();
 
     if (delta >= gHttpHandler->GetPipelineRescheduleTimeout() &&
         pipelineDepth > 1) {
@@ -1020,7 +1020,7 @@ nsHttpConnection::GetSecurityInfo(nsISupports **secinfo)
 }
 
 nsresult
-nsHttpConnection::PushBack(const char *data, PRUint32 length)
+nsHttpConnection::PushBack(const char *data, uint32_t length)
 {
     LOG(("nsHttpConnection::PushBack [this=%p, length=%d]\n", this, length));
 
@@ -1150,9 +1150,9 @@ NS_METHOD
 nsHttpConnection::ReadFromStream(nsIInputStream *input,
                                  void *closure,
                                  const char *buf,
-                                 PRUint32 offset,
-                                 PRUint32 count,
-                                 PRUint32 *countRead)
+                                 uint32_t offset,
+                                 uint32_t count,
+                                 uint32_t *countRead)
 {
     
     nsHttpConnection *conn = (nsHttpConnection *) closure;
@@ -1161,8 +1161,8 @@ nsHttpConnection::ReadFromStream(nsIInputStream *input,
 
 nsresult
 nsHttpConnection::OnReadSegment(const char *buf,
-                                PRUint32 count,
-                                PRUint32 *countRead)
+                                uint32_t count,
+                                uint32_t *countRead)
 {
     if (count == 0) {
         
@@ -1193,7 +1193,7 @@ nsHttpConnection::OnSocketWritable()
          this, mConnInfo->Host()));
 
     nsresult rv;
-    PRUint32 n;
+    uint32_t n;
     bool again = true;
 
     do {
@@ -1281,8 +1281,8 @@ nsHttpConnection::OnSocketWritable()
 
 nsresult
 nsHttpConnection::OnWriteSegment(char *buf,
-                                 PRUint32 count,
-                                 PRUint32 *countWritten)
+                                 uint32_t count,
+                                 uint32_t *countWritten)
 {
     if (count == 0) {
         
@@ -1365,7 +1365,7 @@ nsHttpConnection::OnSocketReadable()
     mLastReadTime = now;
 
     nsresult rv;
-    PRUint32 n;
+    uint32_t n;
     bool again = true;
 
     do {
@@ -1540,8 +1540,8 @@ nsHttpConnection::OnOutputStreamReady(nsIAsyncOutputStream *out)
 NS_IMETHODIMP
 nsHttpConnection::OnTransportStatus(nsITransport *trans,
                                     nsresult status,
-                                    PRUint64 progress,
-                                    PRUint64 progressMax)
+                                    uint64_t progress,
+                                    uint64_t progressMax)
 {
     if (mTransaction)
         mTransaction->OnTransportStatus(trans, status, progress);

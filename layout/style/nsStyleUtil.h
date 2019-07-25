@@ -37,9 +37,9 @@ public:
 
   
   static void AppendBitmaskCSSValue(nsCSSProperty aProperty,
-                                    PRInt32 aMaskedValue,
-                                    PRInt32 aFirstMask,
-                                    PRInt32 aLastMask,
+                                    int32_t aMaskedValue,
+                                    int32_t aFirstMask,
+                                    int32_t aLastMask,
                                     nsAString& aResult);
 
   static void AppendFontFeatureSettings(const nsTArray<gfxFontFeature>& aFeatures,
@@ -52,7 +52,7 @@ public:
 
 
 
-  static PRUint8 FloatToColorComponent(float aAlpha)
+  static uint8_t FloatToColorComponent(float aAlpha)
   {
     NS_ASSERTION(0.0 <= aAlpha && aAlpha <= 1.0, "out of range");
     return NSToIntRound(aAlpha * 255);
@@ -65,7 +65,7 @@ public:
 
 
 
-  static float ColorComponentToFloat(PRUint8 aAlpha);
+  static float ColorComponentToFloat(uint8_t aAlpha);
 
   
 

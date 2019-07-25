@@ -174,9 +174,9 @@ nsSVGRenderingObserver::NotifyEvictedFromRenderingObserverList()
 void
 nsSVGRenderingObserver::AttributeChanged(nsIDocument* aDocument,
                                          dom::Element* aElement,
-                                         PRInt32 aNameSpaceID,
+                                         int32_t aNameSpaceID,
                                          nsIAtom* aAttribute,
-                                         PRInt32 aModType)
+                                         int32_t aModType)
 {
   
   
@@ -198,7 +198,7 @@ void
 nsSVGRenderingObserver::ContentAppended(nsIDocument *aDocument,
                                         nsIContent *aContainer,
                                         nsIContent *aFirstNewContent,
-                                        PRInt32 )
+                                        int32_t )
 {
   DoUpdate();
 }
@@ -207,7 +207,7 @@ void
 nsSVGRenderingObserver::ContentInserted(nsIDocument *aDocument,
                                         nsIContent *aContainer,
                                         nsIContent *aChild,
-                                        PRInt32 )
+                                        int32_t )
 {
   DoUpdate();
 }
@@ -216,7 +216,7 @@ void
 nsSVGRenderingObserver::ContentRemoved(nsIDocument *aDocument,
                                        nsIContent *aContainer,
                                        nsIContent *aChild,
-                                       PRInt32 aIndexInContainer,
+                                       int32_t aIndexInContainer,
                                        nsIContent *aPreviousSibling)
 {
   DoUpdate();
@@ -540,7 +540,7 @@ nsSVGRenderingObserverList::InvalidateAll()
   
   mObservers.EnumerateEntries(GatherEnumerator, &observers);
 
-  for (PRUint32 i = 0; i < observers.Length(); ++i) {
+  for (uint32_t i = 0; i < observers.Length(); ++i) {
     observers[i]->InvalidateViaReferencedElement();
   }
 }
@@ -555,7 +555,7 @@ nsSVGRenderingObserverList::RemoveAll()
 
   
   
-  for (PRUint32 i = 0; i < observers.Length(); ++i) {
+  for (uint32_t i = 0; i < observers.Length(); ++i) {
     observers[i]->NotifyEvictedFromRenderingObserverList();
   }
 }

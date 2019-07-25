@@ -33,14 +33,14 @@ public:
     
 
 
-    static PRUint32 ComputeDOMKeyCode(const GdkEventKey* aGdkKeyEvent);
+    static uint32_t ComputeDOMKeyCode(const GdkEventKey* aGdkKeyEvent);
 
     
 
 
 
 
-    static guint GuessGDKKeyval(PRUint32 aDOMKeyCode);
+    static guint GuessGDKKeyval(uint32_t aDOMKeyCode);
 
     
 
@@ -63,7 +63,7 @@ public:
 
 
 
-    typedef PRUint32 Modifiers;
+    typedef uint32_t Modifiers;
 
     
 
@@ -221,8 +221,8 @@ protected:
 
 
 
-    static PRUint32 GetCharCodeFor(const GdkEventKey *aGdkKeyEvent);
-    PRUint32 GetCharCodeFor(const GdkEventKey *aGdkKeyEvent,
+    static uint32_t GetCharCodeFor(const GdkEventKey *aGdkKeyEvent);
+    uint32_t GetCharCodeFor(const GdkEventKey *aGdkKeyEvent,
                             guint aModifierState,
                             gint aGroup);
 
@@ -261,7 +261,7 @@ protected:
 
 
 
-    static bool IsBasicLatinLetterOrNumeral(PRUint32 aCharCode);
+    static bool IsBasicLatinLetterOrNumeral(uint32_t aCharCode);
 
     
 
@@ -274,7 +274,7 @@ protected:
 
 
 
-    static PRUint32 GetDOMKeyCodeFromKeyPairs(guint aGdkKeyval);
+    static uint32_t GetDOMKeyCodeFromKeyPairs(guint aGdkKeyval);
 
     
 

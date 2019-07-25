@@ -41,22 +41,22 @@ typedef struct MBSPatchHeader_ {
   char tag[8];
   
   
-  PRUint32 slen;
+  uint32_t slen;
 
   
-  PRUint32 scrc32;
+  uint32_t scrc32;
 
   
-  PRUint32 dlen;
+  uint32_t dlen;
 
   
-  PRUint32 cblen;
+  uint32_t cblen;
 
   
-  PRUint32 difflen;
+  uint32_t difflen;
 
   
-  PRUint32 extralen;
+  uint32_t extralen;
 
   
   
@@ -86,9 +86,9 @@ int MBS_ApplyPatch(const MBSPatchHeader *header, FILE* patchFile,
                    unsigned char *fbuffer, FILE* file);
 
 typedef struct MBSPatchTriple_ {
-  PRUint32 x; 
-  PRUint32 y; 
-  PRInt32  z; 
+  uint32_t x; 
+  uint32_t y; 
+  int32_t  z; 
 } MBSPatchTriple;
 
 #endif  

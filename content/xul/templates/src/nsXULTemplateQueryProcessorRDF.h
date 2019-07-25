@@ -242,7 +242,7 @@ public:
     
 
 
-    PRInt32
+    int32_t
     GetContainerIndexOf(nsIXULTemplateResult* aResult);
 
     
@@ -293,7 +293,7 @@ protected:
     bool mGenerationStarted;
 
     
-    PRInt32 mUpdateBatchNest;
+    int32_t mUpdateBatchNest;
 
     
     

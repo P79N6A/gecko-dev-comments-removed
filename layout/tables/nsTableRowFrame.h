@@ -129,7 +129,7 @@ public:
   nscoord GetRowBaseline();
  
   
-  virtual PRInt32 GetRowIndex() const;
+  virtual int32_t GetRowIndex() const;
 
   
   void SetRowIndex (int aRowIndex);
@@ -164,7 +164,7 @@ public:
 
 
   void InsertCellFrame(nsTableCellFrame* aFrame,
-                       PRInt32           aColIndex);
+                       int32_t           aColIndex);
 
   nsresult CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
                                      nscoord&          aDesiredHeight);
@@ -220,7 +220,7 @@ public:
 
 
 
-  void SetContinuousBCBorderWidth(PRUint8     aForSide,
+  void SetContinuousBCBorderWidth(uint8_t     aForSide,
                                   BCPixelSize aPixelValue);
 
 #ifdef ACCESSIBILITY
@@ -295,9 +295,9 @@ private:
 
 };
 
-inline PRInt32 nsTableRowFrame::GetRowIndex() const
+inline int32_t nsTableRowFrame::GetRowIndex() const
 {
-  return PRInt32(mBits.mRowIndex);
+  return int32_t(mBits.mRowIndex);
 }
 
 inline void nsTableRowFrame::SetRowIndex (int aRowIndex)
@@ -414,7 +414,7 @@ inline nsMargin* nsTableRowFrame::GetBCBorderWidth(nsMargin& aBorder)
 inline void
 nsTableRowFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 {
-  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   aBorder.right = BC_BORDER_LEFT_HALF_COORD(aPixelsToTwips,
                                             mLeftContBorderWidth);
   aBorder.top = BC_BORDER_BOTTOM_HALF_COORD(aPixelsToTwips,
@@ -425,7 +425,7 @@ nsTableRowFrame::GetContinuousBCBorderWidth(nsMargin& aBorder)
 
 inline nscoord nsTableRowFrame::GetOuterTopContBCBorderWidth()
 {
-  PRInt32 aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
+  int32_t aPixelsToTwips = nsPresContext::AppUnitsPerCSSPixel();
   return BC_BORDER_TOP_HALF_COORD(aPixelsToTwips, mTopContBorderWidth);
 }
 

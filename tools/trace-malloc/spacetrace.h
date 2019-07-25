@@ -144,15 +144,15 @@
 
 #define ST_TIMEVAL_RESOLUTION 1000
 #define ST_TIMEVAL_FORMAT "%.3f"
-#define ST_TIMEVAL_PRINTABLE(timeval) ((PRFloat64)(timeval) / (PRFloat64)ST_TIMEVAL_RESOLUTION)
-#define ST_TIMEVAL_PRINTABLE64(timeval) ((PRFloat64)((PRInt64)(timeval)) / (PRFloat64)ST_TIMEVAL_RESOLUTION)
-#define ST_TIMEVAL_MAX ((PRUint32)-1 - ((PRUint32)-1 % ST_TIMEVAL_RESOLUTION))
+#define ST_TIMEVAL_PRINTABLE(timeval) ((double)(timeval) / (double)ST_TIMEVAL_RESOLUTION)
+#define ST_TIMEVAL_PRINTABLE64(timeval) ((double)((int64_t)(timeval)) / (double)ST_TIMEVAL_RESOLUTION)
+#define ST_TIMEVAL_MAX ((uint32_t)-1 - ((uint32_t)-1 % ST_TIMEVAL_RESOLUTION))
 
 #define ST_MICROVAL_RESOLUTION 1000000
 #define ST_MICROVAL_FORMAT "%.6f"
-#define ST_MICROVAL_PRINTABLE(timeval) ((PRFloat64)(timeval) / (PRFloat64)ST_MICROVAL_RESOLUTION)
-#define ST_MICROVAL_PRINTABLE64(timeval) ((PRFloat64)((PRInt64)(timeval)) / (PRFloat64)ST_MICROVAL_RESOLUTION)
-#define ST_MICROVAL_MAX ((PRUint32)-1 - ((PRUint32)-1 % ST_MICROVAL_RESOLUTION))
+#define ST_MICROVAL_PRINTABLE(timeval) ((double)(timeval) / (double)ST_MICROVAL_RESOLUTION)
+#define ST_MICROVAL_PRINTABLE64(timeval) ((double)((int64_t)(timeval)) / (double)ST_MICROVAL_RESOLUTION)
+#define ST_MICROVAL_MAX ((uint32_t)-1 - ((uint32_t)-1 % ST_MICROVAL_RESOLUTION))
 
 
 
@@ -179,21 +179,21 @@ typedef struct __struct_STAllocEvent
 
 
 
-        PRUint32 mTimeval;
+        uint32_t mTimeval;
         
         
 
 
 
 
-        PRUint32 mHeapID;
+        uint32_t mHeapID;
         
         
 
 
 
 
-        PRUint32 mHeapSize;
+        uint32_t mHeapSize;
 
         
 
@@ -217,19 +217,19 @@ typedef struct __struct_STAllocation
         
 
 
-        PRUint32 mEventCount;
+        uint32_t mEventCount;
         STAllocEvent* mEvents;
         
         
 
 
-        PRUint32 mMinTimeval;
-        PRUint32 mMaxTimeval;
+        uint32_t mMinTimeval;
+        uint32_t mMaxTimeval;
 
         
 
 
-        PRUint32 mRunIndex;
+        uint32_t mRunIndex;
 
         
 
@@ -237,7 +237,7 @@ typedef struct __struct_STAllocation
 
 
 
-        PRUint32 mHeapRuntimeCost;
+        uint32_t mHeapRuntimeCost;
 } STAllocation;
 
 
@@ -251,40 +251,40 @@ typedef struct __struct_STCallsiteStats
 
 
 
-        PRUint64 mTimeval64;
+        uint64_t mTimeval64;
 
         
 
 
 
-        PRUint64 mWeight64;
+        uint64_t mWeight64;
 
         
 
 
 
-        PRUint32 mSize;
-
-        
-
-
-
-
-        PRUint32 mStamp;
+        uint32_t mSize;
 
         
 
 
 
 
-        PRUint32 mCompositeCount;
+        uint32_t mStamp;
 
         
 
 
 
 
-        PRUint32 mHeapRuntimeCost;
+        uint32_t mCompositeCount;
+
+        
+
+
+
+
+        uint32_t mHeapRuntimeCost;
 } STCallsiteStats;
 
 
@@ -302,7 +302,7 @@ typedef struct __struct_STRun
         
 
 
-        PRUint32 mAllocationCount;
+        uint32_t mAllocationCount;
         STAllocation** mAllocations;
 
         
@@ -344,7 +344,7 @@ struct __struct_STCategoryNode
 
 
         STCategoryNode** children;
-        PRUint32 nchildren;
+        uint32_t nchildren;
 
         
 
@@ -363,8 +363,8 @@ struct __struct_STCategoryRule
 
 
         char* pats[ST_MAX_PATTERNS_PER_RULE];
-        PRUint32 patlen[ST_MAX_PATTERNS_PER_RULE];
-        PRUint32 npats;
+        uint32_t patlen[ST_MAX_PATTERNS_PER_RULE];
+        uint32_t npats;
 
         
 
@@ -423,9 +423,9 @@ STOptionGenre;
 #define ST_CMD_OPTION_BOOL(option_name, option_genre, option_help) PRBool m##option_name;
 #define ST_CMD_OPTION_STRING(option_name, option_genre, default_value, option_help) char m##option_name[ST_OPTION_STRING_MAX];
 #define ST_CMD_OPTION_STRING_ARRAY(option_name, option_genre, array_size, option_help) char m##option_name[array_size][ST_OPTION_STRING_MAX];
-#define ST_CMD_OPTION_STRING_PTR_ARRAY(option_name, option_genre, option_help) const char** m##option_name; PRUint32 m##option_name##Count;
-#define ST_CMD_OPTION_UINT32(option_name, option_genre, default_value, multiplier, option_help) PRUint32 m##option_name;
-#define ST_CMD_OPTION_UINT64(option_name, option_genre, default_value, multiplier, option_help) PRUint64 m##option_name##64;
+#define ST_CMD_OPTION_STRING_PTR_ARRAY(option_name, option_genre, option_help) const char** m##option_name; uint32_t m##option_name##Count;
+#define ST_CMD_OPTION_UINT32(option_name, option_genre, default_value, multiplier, option_help) uint32_t m##option_name;
+#define ST_CMD_OPTION_UINT64(option_name, option_genre, default_value, multiplier, option_help) uint64_t m##option_name##64;
 
 typedef struct __struct_STOptions
 {
@@ -473,7 +473,7 @@ typedef struct __struct_STContext
 
 {
     PRRWLock* mRWLock;
-    PRUint32 mIndex;
+    uint32_t mIndex;
     STRun* mSortedRun;
 #if ST_WANT_GRAPHS
     PRLock* mImageLock;
@@ -481,10 +481,10 @@ typedef struct __struct_STContext
     PRBool mTimevalCached;
     PRBool mLifespanCached;
     PRBool mWeightCached;
-    PRUint32 mFootprintYData[STGD_SPACE_X];
-    PRUint32 mTimevalYData[STGD_SPACE_X];
-    PRUint32 mLifespanYData[STGD_SPACE_X];
-    PRUint64 mWeightYData64[STGD_SPACE_X];
+    uint32_t mFootprintYData[STGD_SPACE_X];
+    uint32_t mTimevalYData[STGD_SPACE_X];
+    uint32_t mLifespanYData[STGD_SPACE_X];
+    uint64_t mWeightYData64[STGD_SPACE_X];
 #endif
 }
 STContext;
@@ -515,7 +515,7 @@ typedef struct __struct_STContextCacheItem
 {
     STOptions mOptions;
     STContext mContext;
-    PRInt32 mReferenceCount;
+    int32_t mReferenceCount;
     PRIntervalTime mLastAccessed;
     PRBool mInUse;
 }
@@ -540,7 +540,7 @@ typedef struct __struct_STContextCache
     PRLock* mLock;
     PRCondVar* mCacheMiss;
     STContextCacheItem* mItems;
-    PRUint32 mItemCount;
+    uint32_t mItemCount;
 }
 STContextCache;
 
@@ -608,15 +608,15 @@ typedef struct __struct_STGlobals
         
 
 
-        PRUint32 mMallocCount;
-        PRUint32 mCallocCount;
-        PRUint32 mReallocCount;
-        PRUint32 mFreeCount;
+        uint32_t mMallocCount;
+        uint32_t mCallocCount;
+        uint32_t mReallocCount;
+        uint32_t mFreeCount;
 
         
 
 
-        PRUint32 mOperationCount;
+        uint32_t mOperationCount;
 
         
 
@@ -628,26 +628,26 @@ typedef struct __struct_STGlobals
 
 
 
-        PRUint32 mMinTimeval;
-        PRUint32 mMaxTimeval;
+        uint32_t mMinTimeval;
+        uint32_t mMaxTimeval;
 
         
 
 
-        PRUint32 mPeakMemoryUsed;
-        PRUint32 mMemoryUsed;
+        uint32_t mPeakMemoryUsed;
+        uint32_t mMemoryUsed;
 
         
 
 
        STCategoryRule** mCategoryRules;
-       PRUint32 mNRules;
+       uint32_t mNRules;
 
        
 
 
        STCategoryMapEntry** mCategoryMap;
-       PRUint32 mNCategoryMap;
+       uint32_t mNCategoryMap;
 
        
 
@@ -666,7 +666,7 @@ typedef struct __struct_STGlobals
 
 
 
-extern STRun* createRun(STContext* inContext, PRUint32 aStamp);
+extern STRun* createRun(STContext* inContext, uint32_t aStamp);
 extern void freeRun(STRun* aRun);
 extern int initCategories(STGlobals* g);
 extern int categorizeRun(STOptions* inOptions, STContext* inContext, const STRun* aRun, STGlobals* g);
@@ -683,7 +683,7 @@ extern void htmlAnchor(STRequest* inRequest,
                        const char* aTarget,
                        const char* aClass,
                        STOptions* inOptions);
-extern char *FormatNumber(PRInt32 num);
+extern char *FormatNumber(int32_t num);
 
 
 

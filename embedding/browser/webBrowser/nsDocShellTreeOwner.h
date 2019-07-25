@@ -165,7 +165,7 @@ private:
   NS_IMETHOD AddTooltipListener();
   NS_IMETHOD RemoveTooltipListener();
 
-  NS_IMETHOD ShowTooltip ( PRInt32 inXCoords, PRInt32 inYCoords, const nsAString & inTipText ) ;
+  NS_IMETHOD ShowTooltip ( int32_t inXCoords, int32_t inYCoords, const nsAString & inTipText ) ;
   NS_IMETHOD HideTooltip ( ) ;
 
   nsWebBrowser* mWebBrowser;
@@ -182,8 +182,8 @@ private:
 
   nsCOMPtr<nsITimer> mTooltipTimer;
   static void sTooltipCallback ( nsITimer* aTimer, void* aListener ) ;
-  PRInt32 mMouseClientX, mMouseClientY;       
-  PRInt32 mMouseScreenX, mMouseScreenY;       
+  int32_t mMouseClientX, mMouseClientY;       
+  int32_t mMouseScreenX, mMouseScreenY;       
   bool mShowingTooltip;
 
     

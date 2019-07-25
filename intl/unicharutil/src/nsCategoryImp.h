@@ -16,7 +16,7 @@ public:
    
 
 
-   virtual nsUGenCategory Get(PRUint32 aChar);
+   virtual nsUGenCategory Get(uint32_t aChar);
 };
 
 #endif  

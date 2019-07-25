@@ -36,7 +36,7 @@ public:
   
   
   virtual bool DecodeVideoFrame(bool &aKeyframeSkip,
-                                  PRInt64 aTimeThreshold);
+                                  int64_t aTimeThreshold);
 
   virtual bool HasAudio() {
     return (mVorbisState != 0 && mVorbisState->mActive) ||
@@ -49,8 +49,8 @@ public:
 
   virtual nsresult ReadMetadata(nsVideoInfo* aInfo,
                                 nsHTMLMediaElement::MetadataTags** aTags);
-  virtual nsresult Seek(PRInt64 aTime, PRInt64 aStartTime, PRInt64 aEndTime, PRInt64 aCurrentTime);
-  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime);
+  virtual nsresult Seek(int64_t aTime, int64_t aStartTime, int64_t aEndTime, int64_t aCurrentTime);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered, int64_t aStartTime);
 
   
   virtual bool IsSeekableInBufferedRanges() {
@@ -74,10 +74,10 @@ private:
     SEEK_INDEX_FAIL,  
     SEEK_FATAL_ERROR  
   };
-  IndexedSeekResult SeekToKeyframeUsingIndex(PRInt64 aTarget);
+  IndexedSeekResult SeekToKeyframeUsingIndex(int64_t aTarget);
 
   
-  IndexedSeekResult RollbackIndexedSeek(PRInt64 aOffset);
+  IndexedSeekResult RollbackIndexedSeek(int64_t aOffset);
 
   
   
@@ -92,10 +92,10 @@ private:
         mTimeEnd(0)
     {}
 
-    SeekRange(PRInt64 aOffsetStart,
-              PRInt64 aOffsetEnd,
-              PRInt64 aTimeStart,
-              PRInt64 aTimeEnd)
+    SeekRange(int64_t aOffsetStart,
+              int64_t aOffsetEnd,
+              int64_t aTimeStart,
+              int64_t aTimeEnd)
       : mOffsetStart(aOffsetStart),
         mOffsetEnd(aOffsetEnd),
         mTimeStart(aTimeStart),
@@ -109,8 +109,8 @@ private:
              mTimeEnd == 0;
     }
 
-    PRInt64 mOffsetStart, mOffsetEnd; 
-    PRInt64 mTimeStart, mTimeEnd; 
+    int64_t mOffsetStart, mOffsetEnd; 
+    int64_t mTimeStart, mTimeEnd; 
   };
 
   
@@ -119,10 +119,10 @@ private:
   
   
   
-  nsresult SeekInBufferedRange(PRInt64 aTarget,
-                               PRInt64 aAdjustedTarget,
-                               PRInt64 aStartTime,
-                               PRInt64 aEndTime,
+  nsresult SeekInBufferedRange(int64_t aTarget,
+                               int64_t aAdjustedTarget,
+                               int64_t aStartTime,
+                               int64_t aEndTime,
                                const nsTArray<SeekRange>& aRanges,
                                const SeekRange& aRange);
 
@@ -132,14 +132,14 @@ private:
   
   
   
-  nsresult SeekInUnbuffered(PRInt64 aTarget,
-                            PRInt64 aStartTime,
-                            PRInt64 aEndTime,
+  nsresult SeekInUnbuffered(int64_t aTarget,
+                            int64_t aStartTime,
+                            int64_t aEndTime,
                             const nsTArray<SeekRange>& aRanges);
 
   
   
-  PRInt64 RangeEndTime(PRInt64 aEndOffset);
+  int64_t RangeEndTime(int64_t aEndOffset);
 
   
   
@@ -148,14 +148,14 @@ private:
   
   
   
-  PRInt64 RangeEndTime(PRInt64 aStartOffset,
-                       PRInt64 aEndOffset,
+  int64_t RangeEndTime(int64_t aStartOffset,
+                       int64_t aEndOffset,
                        bool aCachedDataOnly);
 
   
   
   
-  PRInt64 RangeStartTime(PRInt64 aOffset);
+  int64_t RangeStartTime(int64_t aOffset);
 
   
   
@@ -163,13 +163,13 @@ private:
   
   
   
-  nsresult SeekBisection(PRInt64 aTarget,
+  nsresult SeekBisection(int64_t aTarget,
                          const SeekRange& aRange,
-                         PRUint32 aFuzz);
+                         uint32_t aFuzz);
 
   
   
-  bool IsKnownStream(PRUint32 aSerial);
+  bool IsKnownStream(uint32_t aSerial);
 
   
   
@@ -186,9 +186,9 @@ private:
   
   
   SeekRange SelectSeekRange(const nsTArray<SeekRange>& aRanges,
-                            PRInt64 aTarget,
-                            PRInt64 aStartTime,
-                            PRInt64 aEndTime,
+                            int64_t aTarget,
+                            int64_t aStartTime,
+                            int64_t aEndTime,
                             bool aExact);
 private:
 
@@ -205,11 +205,11 @@ private:
   
   
   
-  nsresult DecodeTheora(ogg_packet* aPacket, PRInt64 aTimeThreshold);
+  nsresult DecodeTheora(ogg_packet* aPacket, int64_t aTimeThreshold);
 
   
   
-  PRInt64 ReadOggPage(ogg_page* aPage);
+  int64_t ReadOggPage(ogg_page* aPage);
 
   
   
@@ -224,7 +224,7 @@ private:
 
   
   
-  void BuildSerialList(nsTArray<PRUint32>& aTracks);
+  void BuildSerialList(nsTArray<uint32_t>& aTracks);
 
   
   nsClassHashtable<nsUint32HashKey, nsOggCodecState> mCodecStates;
@@ -233,7 +233,7 @@ private:
   
   
   
-  nsAutoTArray<PRUint32,4> mKnownStreams;
+  nsAutoTArray<uint32_t,4> mKnownStreams;
 
   
   nsTheoraState* mTheoraState;
@@ -261,16 +261,16 @@ private:
   
   
   
-  PRUint32 mVorbisSerial;
-  PRUint32 mOpusSerial;
-  PRUint32 mTheoraSerial;
+  uint32_t mVorbisSerial;
+  uint32_t mOpusSerial;
+  uint32_t mTheoraSerial;
   vorbis_info mVorbisInfo;
   int mOpusPreSkip;
   th_info mTheoraInfo;
 
   
   
-  PRInt64 mPageOffset;
+  int64_t mPageOffset;
 
   
   

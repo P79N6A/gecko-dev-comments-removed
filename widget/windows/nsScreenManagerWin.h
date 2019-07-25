@@ -40,7 +40,7 @@ private:
 
   nsIScreen* CreateNewScreenObject ( HMONITOR inScreen ) ;
 
-  PRUint32 mNumberOfScreens;
+  uint32_t mNumberOfScreens;
 
     
   nsAutoTArray<ScreenListItem, 8> mScreenList;

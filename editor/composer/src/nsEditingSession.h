@@ -72,11 +72,11 @@ protected:
   nsresult        SetupEditorCommandController(const char *aControllerClassName,
                                                nsIDOMWindow *aWindow,
                                                nsISupports *aContext,
-                                               PRUint32 *aControllerId);
+                                               uint32_t *aControllerId);
 
   nsresult        SetContextOnControllerById(nsIControllers* aControllers, 
                                             nsISupports* aContext,
-                                            PRUint32 aID);
+                                            uint32_t aID);
 
   nsresult        PrepareForEditing(nsIDOMWindow *aWindow);
 
@@ -127,7 +127,7 @@ protected:
   bool            mProgressListenerRegistered;
 
   
-  PRUint16        mImageAnimationMode;
+  uint16_t        mImageAnimationMode;
 
   
   
@@ -135,11 +135,11 @@ protected:
   
   
   nsCString       mEditorType; 
-  PRUint32        mEditorFlags;
-  PRUint32        mEditorStatus;
-  PRUint32        mBaseCommandControllerId;
-  PRUint32        mDocStateControllerId;
-  PRUint32        mHTMLCommandControllerId;
+  uint32_t        mEditorFlags;
+  uint32_t        mEditorStatus;
+  uint32_t        mBaseCommandControllerId;
+  uint32_t        mDocStateControllerId;
+  uint32_t        mHTMLCommandControllerId;
 
   
   nsWeakPtr       mDocShell;

@@ -20,7 +20,7 @@ public:
 
 
 
-  virtual void NotifyViewportOrTransformChanged(PRUint32 aFlags)=0; 
+  virtual void NotifyViewportOrTransformChanged(uint32_t aFlags)=0; 
 };
 
 #endif 

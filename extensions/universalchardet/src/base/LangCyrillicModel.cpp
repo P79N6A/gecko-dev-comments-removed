@@ -135,7 +135,7 @@ static const unsigned char IBM866_CharToOrderMap[] =
 
 
 
-static const PRUint8 RussianLangModel[] = 
+static const uint8_t RussianLangModel[] = 
 {
 0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1,1,3,3,3,3,1,3,3,3,2,3,2,3,3,
 3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,0,3,2,2,2,2,2,0,0,2,

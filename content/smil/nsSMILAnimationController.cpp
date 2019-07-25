@@ -70,7 +70,7 @@ nsSMILAnimationController::Disconnect()
 
 
 void
-nsSMILAnimationController::Pause(PRUint32 aType)
+nsSMILAnimationController::Pause(uint32_t aType)
 {
   nsSMILTimeContainer::Pause(aType);
 
@@ -81,7 +81,7 @@ nsSMILAnimationController::Pause(PRUint32 aType)
 }
 
 void
-nsSMILAnimationController::Resume(PRUint32 aType)
+nsSMILAnimationController::Resume(uint32_t aType)
 {
   bool wasPaused = (mPauseState != 0);
   
@@ -539,7 +539,7 @@ nsSMILAnimationController::DoMilestoneSamples()
     GetMilestoneElementsParams params;
     params.mMilestone = nextMilestone;
     mChildContainerTable.EnumerateEntries(GetMilestoneElements, &params);
-    PRUint32 length = params.mElements.Length();
+    uint32_t length = params.mElements.Length();
 
     
     
@@ -552,7 +552,7 @@ nsSMILAnimationController::DoMilestoneSamples()
     
     sampleTime = NS_MAX(nextMilestone.mTime, sampleTime);
 
-    for (PRUint32 i = 0; i < length; ++i) {
+    for (uint32_t i = 0; i < length; ++i) {
       nsISMILAnimationElement* elem = params.mElements[i].get();
       NS_ABORT_IF_FALSE(elem, "NULL animation element in list");
       nsSMILTimeContainer* container = elem->GetTimeContainer();
@@ -748,7 +748,7 @@ nsSMILAnimationController::GetTargetIdentifierForAnimation(
   
   
   nsCOMPtr<nsIAtom> attributeName;
-  PRInt32 attributeNamespaceID;
+  int32_t attributeNamespaceID;
   if (!aAnimElem->GetTargetAttributeName(&attributeNamespaceID,
                                          getter_AddRefs(attributeName)))
     

@@ -37,7 +37,7 @@ private:
   nsKeyObject(nsKeyObject&);
 
   
-  PRUint32 mKeyType;
+  uint32_t mKeyType;
   
   
   PK11SymKey* mSymKey;

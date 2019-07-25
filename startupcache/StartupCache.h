@@ -71,12 +71,12 @@ namespace scache {
 struct CacheEntry 
 {
   nsAutoArrayPtr<char> data;
-  PRUint32 size;
+  uint32_t size;
 
   CacheEntry() : data(nullptr), size(0) { }
 
   
-  CacheEntry(char* buf, PRUint32 len) : data(buf), size(len) { }
+  CacheEntry(char* buf, uint32_t len) : data(buf), size(len) { }
 
   ~CacheEntry()
   {
@@ -106,10 +106,10 @@ public:
   
 
   
-  nsresult GetBuffer(const char* id, char** outbuf, PRUint32* length);
+  nsresult GetBuffer(const char* id, char** outbuf, uint32_t* length);
 
   
-  nsresult PutBuffer(const char* id, const char* inbuf, PRUint32 length);
+  nsresult PutBuffer(const char* id, const char* inbuf, uint32_t length);
 
   
   void InvalidateCache();

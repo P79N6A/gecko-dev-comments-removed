@@ -111,7 +111,7 @@ public:
   
 
 
-  static PRInt32 GetMonitorCount();
+  static int32_t GetMonitorCount();
 
   
 
@@ -180,7 +180,7 @@ public:
 
 
 
-  static PRUint16 GetMouseInputSource();
+  static uint16_t GetMouseInputSource();
 
   
 
@@ -245,16 +245,16 @@ public:
   
   AsyncWriteIconToDisk(const nsAString &aIconPath,
                        const nsACString &aMimeTypeOfInputData,
-                       PRUint8 *aData, 
-                       PRUint32 aDataLen,
+                       uint8_t *aData, 
+                       uint32_t aDataLen,
                        const bool aURLShortcut);
   virtual ~AsyncWriteIconToDisk();
 
 private:
   nsAutoString mIconPath;
   nsCAutoString mMimeTypeOfInputData;
-  nsAutoArrayPtr<PRUint8> mBuffer;
-  PRUint32 mBufferLength;
+  nsAutoArrayPtr<uint8_t> mBuffer;
+  uint32_t mBufferLength;
 };
 
 class AsyncDeleteIconFromDisk : public nsIRunnable
@@ -304,7 +304,7 @@ public:
                                    nsCOMPtr<nsIThread> &aIOThread,
                                    bool aURLShortcut);
 
-  static PRInt32 GetICOCacheSecondsTimeout();
+  static int32_t GetICOCacheSecondsTimeout();
 };
 
 

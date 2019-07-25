@@ -6,7 +6,7 @@
 
 
 
-static const PRUint32 gLBClass00[32] = {
+static const uint32_t gLBClass00[32] = {
 0x55555555, 
 0x55555555, 
 0x55555555, 
@@ -41,7 +41,7 @@ static const PRUint32 gLBClass00[32] = {
 0x77777777, 
 };
 
-static const PRUint32 gLBClass20[32] = {
+static const uint32_t gLBClass20[32] = {
 0xB5555555, 
 0x77775555, 
 0x777277B7, 
@@ -76,7 +76,7 @@ static const PRUint32 gLBClass20[32] = {
 0x77777777, 
 };
 
-static const PRUint32 gLBClass21[32] = {
+static const uint32_t gLBClass21[32] = {
 0x77777777, 
 0x77777777, 
 0x73777777, 
@@ -111,7 +111,7 @@ static const PRUint32 gLBClass21[32] = {
 0x77777777, 
 };
 
-static const PRUint32 gLBClass30[32] = {
+static const uint32_t gLBClass30[32] = {
 0x55155115, 
 0x10101010, 
 0x10105510, 
@@ -146,7 +146,7 @@ static const PRUint32 gLBClass30[32] = {
 0x51111555, 
 };
 
-static const PRUint32 gLBClass0E[32] = {
+static const uint32_t gLBClass0E[32] = {
 0x88888888, 
 0x88888888, 
 0x88888888, 

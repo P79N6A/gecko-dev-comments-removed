@@ -32,7 +32,7 @@ ArenaStrdup(const nsAFlatString& aString, PLArenaPool* aArena)
 {
   void *mem;
   
-  PRInt32 len = (aString.Length()+1) * sizeof(PRUnichar);
+  int32_t len = (aString.Length()+1) * sizeof(PRUnichar);
   PL_ARENA_ALLOCATE(mem, aArena, len);
   NS_ASSERTION(mem, "Couldn't allocate space!\n");
   if (mem) {
@@ -46,7 +46,7 @@ ArenaStrdup(const nsAFlatCString& aString, PLArenaPool* aArena)
 {
   void *mem;
   
-  PRInt32 len = (aString.Length()+1) * sizeof(char);
+  int32_t len = (aString.Length()+1) * sizeof(char);
   PL_ARENA_ALLOCATE(mem, aArena, len);
   NS_ASSERTION(mem, "Couldn't allocate space!\n");
   if (mem)
@@ -95,7 +95,7 @@ public:
 
     
     PRUnichar backup_char;
-    PRUint32 minLength = mMinLength;
+    uint32_t minLength = mMinLength;
     if (minLength)
     {
       backup_char = mValue[minLength-1];
@@ -115,11 +115,11 @@ public:
   static NS_METHOD SegmentWriter(nsIUnicharInputStream* aStream,
                                  void* aClosure,
                                  const PRUnichar *aFromSegment,
-                                 PRUint32 aToOffset,
-                                 PRUint32 aCount,
-                                 PRUint32 *aWriteCount);
+                                 uint32_t aToOffset,
+                                 uint32_t aCount,
+                                 uint32_t *aWriteCount);
 
-  nsresult ParseBuffer(const PRUnichar* aBuffer, PRUint32 aBufferLength);
+  nsresult ParseBuffer(const PRUnichar* aBuffer, uint32_t aBufferLength);
 
 private:
   bool ParseValueCharacter(
@@ -159,7 +159,7 @@ private:
   nsAutoString mKey;
   nsAutoString mValue;
 
-  PRUint32  mUnicodeValuesRead; 
+  uint32_t  mUnicodeValuesRead; 
   PRUnichar mUnicodeValue;      
   bool      mHaveMultiLine;     
                                 
@@ -169,7 +169,7 @@ private:
                                 
                                 
   bool      mMultiLineCanSkipN; 
-  PRUint32  mMinLength;         
+  uint32_t  mMinLength;         
                                 
   EParserState mState;
   
@@ -341,9 +341,9 @@ bool nsPropertiesParser::ParseValueCharacter(
 NS_METHOD nsPropertiesParser::SegmentWriter(nsIUnicharInputStream* aStream,
                                             void* aClosure,
                                             const PRUnichar *aFromSegment,
-                                            PRUint32 aToOffset,
-                                            PRUint32 aCount,
-                                            PRUint32 *aWriteCount)
+                                            uint32_t aToOffset,
+                                            uint32_t aCount,
+                                            uint32_t *aWriteCount)
 {
   nsPropertiesParser *parser = 
     static_cast<nsPropertiesParser *>(aClosure);
@@ -355,7 +355,7 @@ NS_METHOD nsPropertiesParser::SegmentWriter(nsIUnicharInputStream* aStream,
 }
 
 nsresult nsPropertiesParser::ParseBuffer(const PRUnichar* aBuffer,
-                                         PRUint32 aBufferLength)
+                                         uint32_t aBufferLength)
 {
   const PRUnichar* cur = aBuffer;
   const PRUnichar* end = aBuffer + aBufferLength;
@@ -508,7 +508,7 @@ nsPersistentProperties::Load(nsIInputStream *aIn)
 
   nsPropertiesParser parser(mSubclass);
 
-  PRUint32 nProcessed;
+  uint32_t nProcessed;
   
   
   while (NS_SUCCEEDED(rv = mIn->ReadSegments(nsPropertiesParser::SegmentWriter, &parser, 4096, &nProcessed)) &&
@@ -587,7 +587,7 @@ nsPersistentProperties::GetStringProperty(const nsACString& aKey,
 
 static PLDHashOperator
 AddElemToArray(PLDHashTable* table, PLDHashEntryHdr *hdr,
-               PRUint32 i, void *arg)
+               uint32_t i, void *arg)
 {
   nsISupportsArray  *propArray = (nsISupportsArray *) arg;
   PropertyTableEntry* entry =
@@ -618,7 +618,7 @@ nsPersistentProperties::Enumerate(nsISimpleEnumerator** aResult)
     return NS_ERROR_OUT_OF_MEMORY;
 
   
-  PRUint32 n =
+  uint32_t n =
     PL_DHashTableEnumerate(&mTable, AddElemToArray, (void *)propArray);
   if (n < mTable.entryCount)
     return NS_ERROR_OUT_OF_MEMORY;
@@ -660,7 +660,7 @@ nsPersistentProperties::Has(const char* prop, bool *result)
 }
 
 NS_IMETHODIMP
-nsPersistentProperties::GetKeys(PRUint32 *count, char ***keys)
+nsPersistentProperties::GetKeys(uint32_t *count, char ***keys)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

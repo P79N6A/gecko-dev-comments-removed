@@ -135,8 +135,8 @@ nsresult nsClipboard::SetupNativeDataObject(nsITransferable * aTransferable, IDa
 
   
   
-  PRUint32 i;
-  PRUint32 cnt;
+  uint32_t i;
+  uint32_t cnt;
   dfList->Count(&cnt);
   for (i=0;i<cnt;i++) {
     nsCOMPtr<nsISupports> genericFlavor;
@@ -219,7 +219,7 @@ nsresult nsClipboard::SetupNativeDataObject(nsITransferable * aTransferable, IDa
 }
 
 
-NS_IMETHODIMP nsClipboard::SetNativeClipboardData ( PRInt32 aWhichClipboard )
+NS_IMETHODIMP nsClipboard::SetNativeClipboardData ( int32_t aWhichClipboard )
 {
   if ( aWhichClipboard != kGlobalClipboard )
     return NS_ERROR_FAILURE;
@@ -247,7 +247,7 @@ NS_IMETHODIMP nsClipboard::SetNativeClipboardData ( PRInt32 aWhichClipboard )
 
 
 
-nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void ** aData, PRUint32 * aLen)
+nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void ** aData, uint32_t * aLen)
 {
   
   
@@ -297,7 +297,7 @@ nsresult nsClipboard::GetGlobalData(HGLOBAL aHGBL, void ** aData, PRUint32 * aLe
 }
 
 
-nsresult nsClipboard::GetNativeDataOffClipboard(nsIWidget * aWindow, UINT , UINT aFormat, void ** aData, PRUint32 * aLen)
+nsresult nsClipboard::GetNativeDataOffClipboard(nsIWidget * aWindow, UINT , UINT aFormat, void ** aData, uint32_t * aLen)
 {
   HGLOBAL   hglb; 
   nsresult  result = NS_ERROR_FAILURE;
@@ -374,7 +374,7 @@ static HRESULT FillSTGMedium(IDataObject * aDataObject, UINT aFormat, LPFORMATET
 
 
 
-nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT aIndex, UINT aFormat, const char * aMIMEImageFormat, void ** aData, PRUint32 * aLen)
+nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT aIndex, UINT aFormat, const char * aMIMEImageFormat, void ** aData, uint32_t * aLen)
 {
   nsresult result = NS_ERROR_FAILURE;
   *aData = nullptr;
@@ -413,7 +413,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                 
                 
                 
-                PRUint32 allocLen = 0;
+                uint32_t allocLen = 0;
                 if ( NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen)) ) {
                   *aLen = strlen ( reinterpret_cast<char*>(*aData) );
                   result = NS_OK;
@@ -428,7 +428,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                 
                 
                 
-                PRUint32 allocLen = 0;
+                uint32_t allocLen = 0;
                 if ( NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen)) ) {
                   *aLen = NS_strlen(reinterpret_cast<PRUnichar*>(*aData)) * 2;
                   result = NS_OK;
@@ -438,7 +438,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
             case CF_DIBV5:
               if (aMIMEImageFormat)
               {
-                PRUint32 allocLen = 0;
+                uint32_t allocLen = 0;
                 unsigned char * clipboardData;
                 if (NS_SUCCEEDED(GetGlobalData(stm.hGlobal, (void **)&clipboardData, &allocLen)))
                 {
@@ -496,7 +496,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                 
                 
                 
-                PRUint32 allocLen = 0;
+                uint32_t allocLen = 0;
                 if ( NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen)) ) {
                   if ( fe.cfFormat == CF_HTML ) {
                     
@@ -561,8 +561,8 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
     return NS_ERROR_FAILURE;
 
   
-  PRUint32 i;
-  PRUint32 cnt;
+  uint32_t i;
+  uint32_t cnt;
   flavorList->Count(&cnt);
   for (i=0;i<cnt;i++) {
     nsCOMPtr<nsISupports> genericFlavor;
@@ -576,7 +576,7 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
       
       
       void* data = nullptr;
-      PRUint32 dataLen = 0;
+      uint32_t dataLen = 0;
       bool dataFound = false;
       if (nullptr != aDataObject) {
         if ( NS_SUCCEEDED(GetNativeDataOffClipboard(aDataObject, anIndex, format, flavorStr, &data, &dataLen)) )
@@ -636,7 +636,7 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
         else {
           
           
-          PRInt32 signedLen = static_cast<PRInt32>(dataLen);
+          int32_t signedLen = static_cast<int32_t>(dataLen);
           nsLinebreakHelpers::ConvertPlatformToDOMLinebreaks ( flavorStr, &data, &signedLen );
           dataLen = signedLen;
 
@@ -667,7 +667,7 @@ nsresult nsClipboard::GetDataFromDataObject(IDataObject     * aDataObject,
 
 
 bool
-nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
+nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void** outData, uint32_t* outDataLen )
 {
   
   
@@ -682,8 +682,8 @@ nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void*
   }
 
   char version[8] = { 0 };
-  PRInt32 startOfData = 0;
-  PRInt32 endOfData = 0;
+  int32_t startOfData = 0;
+  int32_t endOfData = 0;
   int numFound = sscanf((char*)*outData, "Version:%7s\nStartHTML:%d\nEndHTML:%d", 
                         version, &startOfData, &endOfData);
 
@@ -720,7 +720,7 @@ nsClipboard :: FindPlatformHTML ( IDataObject* inDataObject, UINT inIndex, void*
 
 
 bool
-nsClipboard :: FindUnicodeFromPlainText ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
+nsClipboard :: FindUnicodeFromPlainText ( IDataObject* inDataObject, UINT inIndex, void** outData, uint32_t* outDataLen )
 {
   bool dataFound = false;
 
@@ -730,7 +730,7 @@ nsClipboard :: FindUnicodeFromPlainText ( IDataObject* inDataObject, UINT inInde
   if ( NS_SUCCEEDED(loadResult) && *outData ) {
     const char* castedText = reinterpret_cast<char*>(*outData);          
     PRUnichar* convertedText = nullptr;
-    PRInt32 convertedTextLen = 0;
+    int32_t convertedTextLen = 0;
     nsPrimitiveHelpers::ConvertPlatformPlainTextToUnicode ( castedText, *outDataLen, 
                                                               &convertedText, &convertedTextLen );
     if ( convertedText ) {
@@ -756,7 +756,7 @@ nsClipboard :: FindUnicodeFromPlainText ( IDataObject* inDataObject, UINT inInde
 
 
 bool
-nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
+nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, void** outData, uint32_t* outDataLen )
 {
   bool dataFound = false;
 
@@ -816,12 +816,12 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
 
 
 bool
-nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, void** outData, PRUint32* outDataLen )
+nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, void** outData, uint32_t* outDataLen )
 {
   bool dataFound = false;
 
   void* tempOutData = nullptr;
-  PRUint32 tempDataLen = 0;
+  uint32_t tempDataLen = 0;
 
   nsresult loadResult = GetNativeDataOffClipboard(inDataObject, inIndex, ::RegisterClipboardFormat(CFSTR_INETURLW), nullptr, &tempOutData, &tempDataLen);
   if ( NS_SUCCEEDED(loadResult) && tempOutData ) {
@@ -895,7 +895,7 @@ nsClipboard :: IsInternetShortcut ( const nsAString& inFileName )
 
 
 NS_IMETHODIMP 
-nsClipboard::GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32 aWhichClipboard )
+nsClipboard::GetNativeClipboardData ( nsITransferable * aTransferable, int32_t aWhichClipboard )
 {
   
   if ( !aTransferable || aWhichClipboard != kGlobalClipboard )
@@ -921,15 +921,15 @@ nsClipboard::GetNativeClipboardData ( nsITransferable * aTransferable, PRInt32 a
 
 
 NS_IMETHODIMP nsClipboard::HasDataMatchingFlavors(const char** aFlavorList,
-                                                  PRUint32 aLength,
-                                                  PRInt32 aWhichClipboard,
+                                                  uint32_t aLength,
+                                                  int32_t aWhichClipboard,
                                                   bool *_retval)
 {
   *_retval = false;
   if (aWhichClipboard != kGlobalClipboard || !aFlavorList)
     return NS_OK;
 
-  for (PRUint32 i = 0;i < aLength; ++i) {
+  for (uint32_t i = 0;i < aLength; ++i) {
 #ifdef DEBUG
     if (strcmp(aFlavorList[i], kTextMime) == 0)
       NS_WARNING ( "DO NOT USE THE text/plain DATA FLAVOR ANY MORE. USE text/unicode INSTEAD" );

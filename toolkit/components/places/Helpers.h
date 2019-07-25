@@ -40,7 +40,7 @@ protected:
 
 #define NS_DECL_ASYNCSTATEMENTCALLBACK \
   NS_IMETHOD HandleResult(mozIStorageResultSet *); \
-  NS_IMETHOD HandleCompletion(PRUint16);
+  NS_IMETHOD HandleCompletion(uint16_t);
 
 
 
@@ -52,11 +52,11 @@ class URIBinder
 public:
   
   static nsresult Bind(mozIStorageStatement* statement,
-                       PRInt32 index,
+                       int32_t index,
                        nsIURI* aURI);
   
   static nsresult Bind(mozIStorageStatement* statement,
-                       PRInt32 index,
+                       int32_t index,
                        const nsACString& aURLString);
   
   static nsresult Bind(mozIStorageStatement* statement,
@@ -68,11 +68,11 @@ public:
                        const nsACString& aURLString);
   
   static nsresult Bind(mozIStorageBindingParams* aParams,
-                       PRInt32 index,
+                       int32_t index,
                        nsIURI* aURI);
   
   static nsresult Bind(mozIStorageBindingParams* aParams,
-                       PRInt32 index,
+                       int32_t index,
                        const nsACString& aURLString);
   
   static nsresult Bind(mozIStorageBindingParams* aParams,
@@ -209,7 +209,7 @@ void ForceWALCheckpoint();
 
 
 bool GetHiddenState(bool aIsRedirect,
-                    PRUint32 aTransitionType);
+                    uint32_t aTransitionType);
 
 
 
@@ -238,7 +238,7 @@ public:
   {
   }
 
-  NS_IMETHOD HandleCompletion(PRUint16 aReason);
+  NS_IMETHOD HandleCompletion(uint16_t aReason);
 
 private:
   const char* mTopic;
@@ -257,7 +257,7 @@ public:
   {
   }
 
-  NS_IMETHOD HandleCompletion(PRUint16 aReason);
+  NS_IMETHOD HandleCompletion(uint16_t aReason);
 
 private:
   const Telemetry::ID mHistogramId;

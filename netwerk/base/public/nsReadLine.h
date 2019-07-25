@@ -112,7 +112,7 @@ NS_ReadLine (StreamType* aStream, nsLineBuffer<CharT> * aBuffer,
 
   while (1) { 
     if (aBuffer->start == aBuffer->end) { 
-      PRUint32 bytesRead;
+      uint32_t bytesRead;
       nsresult rv = aStream->Read(aBuffer->buf, kLineBufferSize, &bytesRead);
       if (NS_FAILED(rv) || NS_UNLIKELY(bytesRead == 0)) {
         *more = false;

@@ -26,7 +26,7 @@ WebGLMemoryMultiReporter::GetName(nsACString &aName)
 }
 
 NS_IMETHODIMP
-WebGLMemoryMultiReporter::GetExplicitNonHeap(PRInt64 *aAmount)
+WebGLMemoryMultiReporter::GetExplicitNonHeap(int64_t *aAmount)
 {
     
     *aAmount = 0;

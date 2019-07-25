@@ -289,7 +289,7 @@ private:
 
 
 
-    static PRUintn sResourceAcqnChainFrontTPI;
+    static unsigned sResourceAcqnChainFrontTPI;
 
     
 

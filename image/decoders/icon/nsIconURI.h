@@ -32,12 +32,12 @@ public:
 
 protected:
   nsCOMPtr<nsIURL> mIconURL; 
-  PRUint32 mSize; 
+  uint32_t mSize; 
   nsCString mContentType; 
   nsCString mFileName; 
   nsCString mStockIcon;
-  PRInt32 mIconSize;     
-  PRInt32 mIconState;    
+  int32_t mIconSize;     
+  int32_t mIconState;    
 };
 
 #endif 

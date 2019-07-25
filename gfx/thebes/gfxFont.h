@@ -56,7 +56,7 @@ struct FontListSizes;
 
 struct THEBES_API gfxFontStyle {
     gfxFontStyle();
-    gfxFontStyle(PRUint8 aStyle, PRUint16 aWeight, PRInt16 aStretch,
+    gfxFontStyle(uint8_t aStyle, uint16_t aWeight, int16_t aStretch,
                  gfxFloat aSize, nsIAtom *aLanguage,
                  float aSizeAdjust, bool aSystemFont,
                  bool aPrinterFont,
@@ -90,14 +90,14 @@ struct THEBES_API gfxFontStyle {
     
     
     
-    PRUint32 languageOverride;
+    uint32_t languageOverride;
 
     
-    PRUint16 weight;
+    uint16_t weight;
 
     
     
-    PRInt8 stretch;
+    int8_t stretch;
 
     
     
@@ -108,7 +108,7 @@ struct THEBES_API gfxFontStyle {
     bool printerFont : 1;
 
     
-    PRUint8 style : 2;
+    uint8_t style : 2;
 
     
     
@@ -120,11 +120,11 @@ struct THEBES_API gfxFontStyle {
 
     PLDHashNumber Hash() const {
         return ((style + (systemFont << 7) +
-            (weight << 8)) + PRUint32(size*1000) + PRUint32(sizeAdjust*1000)) ^
+            (weight << 8)) + uint32_t(size*1000) + uint32_t(sizeAdjust*1000)) ^
             nsISupportsHashKey::HashKey(language);
     }
 
-    PRInt8 ComputeWeight() const;
+    int8_t ComputeWeight() const;
 
     bool Equals(const gfxFontStyle& other) const {
         return (size == other.size) &&
@@ -142,13 +142,13 @@ struct THEBES_API gfxFontStyle {
     static void ParseFontFeatureSettings(const nsString& aFeatureString,
                                          nsTArray<gfxFontFeature>& aFeatures);
 
-    static PRUint32 ParseFontLanguageOverride(const nsString& aLangTag);
+    static uint32_t ParseFontLanguageOverride(const nsString& aLangTag);
 };
 
 class gfxCharacterMap : public gfxSparseBitSet {
 public:
     nsrefcnt AddRef() {
-        NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");
+        NS_PRECONDITION(int32_t(mRefCnt) >= 0, "illegal refcnt");
         ++mRefCnt;
         NS_LOG_ADDREF(this, mRefCnt, "gfxCharacterMap", sizeof(*this));
         return mRefCnt;
@@ -177,7 +177,7 @@ public:
     }
 
     
-    PRUint32 mHash;
+    uint32_t mHash;
 
     
     bool mBuildOnTheFly;
@@ -231,8 +231,8 @@ public:
 
     gfxFontFamily* Family() const { return mFamily; }
 
-    PRUint16 Weight() const { return mWeight; }
-    PRInt16 Stretch() const { return mStretch; }
+    uint16_t Weight() const { return mWeight; }
+    int16_t Stretch() const { return mStretch; }
 
     bool IsUserFont() const { return mIsUserFont; }
     bool IsLocalUserFont() const { return mIsLocalUserFont; }
@@ -262,7 +262,7 @@ public:
         return mHasCmapTable;
     }
 
-    inline bool HasCharacter(PRUint32 ch) {
+    inline bool HasCharacter(uint32_t ch) {
         if (mCharacterMap && mCharacterMap->test(ch)) {
             return true;
         }
@@ -270,9 +270,9 @@ public:
     }
 
     virtual bool SkipDuringSystemFallback() { return false; }
-    virtual bool TestCharacterMap(PRUint32 aCh);
+    virtual bool TestCharacterMap(uint32_t aCh);
     nsresult InitializeUVSMap();
-    PRUint16 GetUVSGlyph(PRUint32 aCh, PRUint32 aVS);
+    uint16_t GetUVSGlyph(uint32_t aCh, uint32_t aVS);
     virtual nsresult ReadCMAP();
 
     virtual bool MatchesGenericFamily(const nsACString& aGeneric) const {
@@ -282,7 +282,7 @@ public:
         return true;
     }
 
-    virtual nsresult GetFontTable(PRUint32 aTableTag, FallibleTArray<PRUint8>& aBuffer) {
+    virtual nsresult GetFontTable(uint32_t aTableTag, FallibleTArray<uint8_t>& aBuffer) {
         return NS_ERROR_FAILURE; 
     }
 
@@ -301,7 +301,7 @@ public:
     
     
     
-    bool GetExistingFontTable(PRUint32 aTag, hb_blob_t** aBlob);
+    bool GetExistingFontTable(uint32_t aTag, hb_blob_t** aBlob);
 
     
     
@@ -310,8 +310,8 @@ public:
     
     
     
-    hb_blob_t *ShareFontTableAndGetBlob(PRUint32 aTag,
-                                        FallibleTArray<PRUint8>* aTable);
+    hb_blob_t *ShareFontTableAndGetBlob(uint32_t aTag,
+                                        FallibleTArray<uint8_t>* aTable);
 
     
     virtual void SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf,
@@ -333,8 +333,8 @@ public:
     bool             mIgnoreGDEF  : 1;
     bool             mIgnoreGSUB  : 1;
 
-    PRUint16         mWeight;
-    PRInt16          mStretch;
+    uint16_t         mWeight;
+    int16_t          mStretch;
 
 #ifdef MOZ_GRAPHITE
     bool             mHasGraphiteTables;
@@ -342,12 +342,12 @@ public:
 #endif
     bool             mHasCmapTable;
     nsRefPtr<gfxCharacterMap> mCharacterMap;
-    PRUint32         mUVSOffset;
-    nsAutoArrayPtr<PRUint8> mUVSData;
+    uint32_t         mUVSOffset;
+    nsAutoArrayPtr<uint8_t> mUVSData;
     gfxUserFontData* mUserFontData;
 
     nsTArray<gfxFontFeature> mFeatureSettings;
-    PRUint32         mLanguageOverride;
+    uint32_t         mLanguageOverride;
 
 protected:
     friend class gfxPlatformFontList;
@@ -458,12 +458,12 @@ private:
         
         
         hb_blob_t *
-        ShareTableAndGetBlob(FallibleTArray<PRUint8>& aTable,
+        ShareTableAndGetBlob(FallibleTArray<uint8_t>& aTable,
                              nsTHashtable<FontTableHashEntry> *aHashtable);
 
         
         
-        void SaveTable(FallibleTArray<PRUint8>& aTable);
+        void SaveTable(FallibleTArray<uint8_t>& aTable);
 
         
         
@@ -494,8 +494,8 @@ private:
 
 
 struct GlobalFontMatch {
-    GlobalFontMatch(const PRUint32 aCharacter,
-                    PRInt32 aRunScript,
+    GlobalFontMatch(const uint32_t aCharacter,
+                    int32_t aRunScript,
                     const gfxFontStyle *aStyle) :
         mCh(aCharacter), mRunScript(aRunScript), mStyle(aStyle),
         mMatchRank(0), mCount(0), mCmapsTested(0)
@@ -503,13 +503,13 @@ struct GlobalFontMatch {
 
         }
 
-    const PRUint32         mCh;          
-    PRInt32                mRunScript;   
+    const uint32_t         mCh;          
+    int32_t                mRunScript;   
     const gfxFontStyle*    mStyle;       
-    PRInt32                mMatchRank;   
+    int32_t                mMatchRank;   
     nsRefPtr<gfxFontEntry> mBestMatch;   
-    PRUint32               mCount;       
-    PRUint32               mCmapsTested; 
+    uint32_t               mCount;       
+    uint32_t               mCmapsTested; 
 };
 
 class gfxFontFamily {
@@ -531,7 +531,7 @@ public:
         
         
         
-        PRUint32 i = mAvailableFonts.Length();
+        uint32_t i = mAvailableFonts.Length();
         while (i) {
              gfxFontEntry *fe = mAvailableFonts[--i];
              if (fe) {
@@ -599,7 +599,7 @@ public:
 
     
     void ReadAllCMAPs() {
-        PRUint32 i, numFonts = mAvailableFonts.Length();
+        uint32_t i, numFonts = mAvailableFonts.Length();
         for (i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             
@@ -613,7 +613,7 @@ public:
         mFamilyCharacterMapInitialized = true;
     }
 
-    bool TestCharacterMap(PRUint32 aCh) {
+    bool TestCharacterMap(uint32_t aCh) {
         if (!mFamilyCharacterMapInitialized) {
             ReadAllCMAPs();
         }
@@ -664,15 +664,15 @@ protected:
     
     
     virtual bool FindWeightsForStyle(gfxFontEntry* aFontsForWeights[],
-                                       bool anItalic, PRInt16 aStretch);
+                                       bool anItalic, int16_t aStretch);
 
     bool ReadOtherFamilyNamesForFace(gfxPlatformFontList *aPlatformFontList,
-                                       FallibleTArray<PRUint8>& aNameTable,
+                                       FallibleTArray<uint8_t>& aNameTable,
                                        bool useFullName = false);
 
     
     void SetBadUnderlineFonts() {
-        PRUint32 i, numFonts = mAvailableFonts.Length();
+        uint32_t i, numFonts = mAvailableFonts.Length();
         for (i = 0; i < numFonts; i++) {
             if (mAvailableFonts[i]) {
                 mAvailableFonts[i]->mIsBadUnderlineFont = true;
@@ -711,17 +711,17 @@ struct gfxTextRange {
         kPrefsFallback  = 0x0002,
         kSystemFallback = 0x0004
     };
-    gfxTextRange(PRUint32 aStart, PRUint32 aEnd,
-                 gfxFont* aFont, PRUint8 aMatchType)
+    gfxTextRange(uint32_t aStart, uint32_t aEnd,
+                 gfxFont* aFont, uint8_t aMatchType)
         : start(aStart),
           end(aEnd),
           font(aFont),
           matchType(aMatchType)
     { }
-    PRUint32 Length() const { return end - start; }
-    PRUint32 start, end;
+    uint32_t Length() const { return end - start; }
+    uint32_t start, end;
     nsRefPtr<gfxFont> font;
-    PRUint8 matchType;
+    uint8_t matchType;
 };
 
 
@@ -970,10 +970,10 @@ public:
         gfxSkipChars *mSkipChars;
         
         
-        PRUint32     *mInitialBreaks;
-        PRUint32      mInitialBreakCount;
+        uint32_t     *mInitialBreaks;
+        uint32_t      mInitialBreakCount;
         
-        PRUint32      mAppUnitsPerDevUnit;
+        uint32_t      mAppUnitsPerDevUnit;
     };
 
     virtual ~gfxTextRunFactory() {}
@@ -994,7 +994,7 @@ public:
 
 class THEBES_API gfxGlyphExtents {
 public:
-    gfxGlyphExtents(PRUint32 aAppUnitsPerDevUnit) :
+    gfxGlyphExtents(uint32_t aAppUnitsPerDevUnit) :
         mAppUnitsPerDevUnit(aAppUnitsPerDevUnit) {
         MOZ_COUNT_CTOR(gfxGlyphExtents);
         mTightGlyphExtents.Init();
@@ -1007,16 +1007,16 @@ public:
     
     
     
-    PRUint16 GetContainedGlyphWidthAppUnits(PRUint32 aGlyphID) const {
+    uint16_t GetContainedGlyphWidthAppUnits(uint32_t aGlyphID) const {
         return mContainedGlyphWidths.Get(aGlyphID);
     }
 
-    bool IsGlyphKnown(PRUint32 aGlyphID) const {
+    bool IsGlyphKnown(uint32_t aGlyphID) const {
         return mContainedGlyphWidths.Get(aGlyphID) != INVALID_WIDTH ||
             mTightGlyphExtents.GetEntry(aGlyphID) != nullptr;
     }
 
-    bool IsGlyphKnownWithTightExtents(PRUint32 aGlyphID) const {
+    bool IsGlyphKnownWithTightExtents(uint32_t aGlyphID) const {
         return mTightGlyphExtents.GetEntry(aGlyphID) != nullptr;
     }
 
@@ -1024,14 +1024,14 @@ public:
     
     
     bool GetTightGlyphExtentsAppUnits(gfxFont *aFont, gfxContext *aContext,
-            PRUint32 aGlyphID, gfxRect *aExtents);
+            uint32_t aGlyphID, gfxRect *aExtents);
 
-    void SetContainedGlyphWidthAppUnits(PRUint32 aGlyphID, PRUint16 aWidth) {
+    void SetContainedGlyphWidthAppUnits(uint32_t aGlyphID, uint16_t aWidth) {
         mContainedGlyphWidths.Set(aGlyphID, aWidth);
     }
-    void SetTightGlyphExtents(PRUint32 aGlyphID, const gfxRect& aExtentsAppUnits);
+    void SetTightGlyphExtents(uint32_t aGlyphID, const gfxRect& aExtentsAppUnits);
 
-    PRUint32 GetAppUnitsPerDevUnit() { return mAppUnitsPerDevUnit; }
+    uint32_t GetAppUnitsPerDevUnit() { return mAppUnitsPerDevUnit; }
 
     size_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
     size_t SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
@@ -1054,38 +1054,38 @@ private:
 
     class GlyphWidths {
     public:
-        void Set(PRUint32 aIndex, PRUint16 aValue);
-        PRUint16 Get(PRUint32 aIndex) const {
-            PRUint32 block = aIndex >> BLOCK_SIZE_BITS;
+        void Set(uint32_t aIndex, uint16_t aValue);
+        uint16_t Get(uint32_t aIndex) const {
+            uint32_t block = aIndex >> BLOCK_SIZE_BITS;
             if (block >= mBlocks.Length())
                 return INVALID_WIDTH;
             PtrBits bits = mBlocks[block];
             if (!bits)
                 return INVALID_WIDTH;
-            PRUint32 indexInBlock = aIndex & (BLOCK_SIZE - 1);
+            uint32_t indexInBlock = aIndex & (BLOCK_SIZE - 1);
             if (bits & 0x1) {
                 if (GetGlyphOffset(bits) != indexInBlock)
                     return INVALID_WIDTH;
                 return GetWidth(bits);
             }
-            PRUint16 *widths = reinterpret_cast<PRUint16 *>(bits);
+            uint16_t *widths = reinterpret_cast<uint16_t *>(bits);
             return widths[indexInBlock];
         }
 
-        PRUint32 SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
+        uint32_t SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const;
         
         ~GlyphWidths();
 
     private:
-        static PRUint32 GetGlyphOffset(PtrBits aBits) {
+        static uint32_t GetGlyphOffset(PtrBits aBits) {
             NS_ASSERTION(aBits & 0x1, "This is really a pointer...");
             return (aBits >> 1) & ((1 << BLOCK_SIZE_BITS) - 1);
         }
-        static PRUint32 GetWidth(PtrBits aBits) {
+        static uint32_t GetWidth(PtrBits aBits) {
             NS_ASSERTION(aBits & 0x1, "This is really a pointer...");
             return aBits >> (1 + BLOCK_SIZE_BITS);
         }
-        static PtrBits MakeSingle(PRUint32 aGlyphOffset, PRUint16 aWidth) {
+        static PtrBits MakeSingle(uint32_t aGlyphOffset, uint16_t aWidth) {
             return (aWidth << (1 + BLOCK_SIZE_BITS)) + (aGlyphOffset << 1) + 1;
         }
 
@@ -1094,7 +1094,7 @@ private:
 
     GlyphWidths             mContainedGlyphWidths;
     nsTHashtable<HashEntry> mTightGlyphExtents;
-    PRUint32                mAppUnitsPerDevUnit;
+    uint32_t                mAppUnitsPerDevUnit;
 };
 
 
@@ -1136,7 +1136,7 @@ public:
     MergeFontFeatures(const nsTArray<gfxFontFeature>& aStyleRuleFeatures,
                       const nsTArray<gfxFontFeature>& aFontFeatures,
                       bool aDisableLigatures,
-                      nsDataHashtable<nsUint32HashKey,PRUint32>& aMergedFeatures);
+                      nsDataHashtable<nsUint32HashKey,uint32_t>& aMergedFeatures);
 
 protected:
     
@@ -1147,7 +1147,7 @@ protected:
 class THEBES_API gfxFont {
 public:
     nsrefcnt AddRef(void) {
-        NS_PRECONDITION(PRInt32(mRefCnt) >= 0, "illegal refcnt");
+        NS_PRECONDITION(int32_t(mRefCnt) >= 0, "illegal refcnt");
         if (mExpirationState.IsTracked()) {
             gfxFontCache::GetCache()->RemoveObject(this);
         }
@@ -1167,7 +1167,7 @@ public:
         return mRefCnt;
     }
 
-    PRInt32 GetRefCount() { return mRefCnt; }
+    int32_t GetRefCount() { return mRefCnt; }
 
     
     typedef enum {
@@ -1288,7 +1288,7 @@ public:
     
     
     
-    virtual hb_blob_t *GetFontTable(PRUint32 aTag);
+    virtual hb_blob_t *GetFontTable(uint32_t aTag);
 
     
     
@@ -1298,7 +1298,7 @@ public:
     }
     
     
-    virtual PRUint32 GetGlyph(PRUint32 unicode, PRUint32 variation_selector) {
+    virtual uint32_t GetGlyph(uint32_t unicode, uint32_t variation_selector) {
         return 0;
     }
 
@@ -1311,7 +1311,7 @@ public:
 
     
     
-    virtual PRInt32 GetGlyphWidth(gfxContext *aCtx, PRUint16 aGID) {
+    virtual int32_t GetGlyphWidth(gfxContext *aCtx, uint16_t aGID) {
         return -1;
     }
 
@@ -1319,7 +1319,7 @@ public:
     virtual mozilla::TemporaryRef<mozilla::gfx::GlyphRenderingOptions>
       GetGlyphRenderingOptions() { return nullptr; }
 
-    gfxFloat SynthesizeSpaceWidth(PRUint32 aCh);
+    gfxFloat SynthesizeSpaceWidth(uint32_t aCh);
 
     
     struct Metrics {
@@ -1415,7 +1415,7 @@ public:
 
 
 
-    virtual void Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
+    virtual void Draw(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aEnd,
                       gfxContext *aContext, DrawMode aDrawMode, gfxPoint *aBaselineOrigin,
                       Spacing *aSpacing, gfxPattern *aStrokePattern);
 
@@ -1441,7 +1441,7 @@ public:
 
 
     virtual RunMetrics Measure(gfxTextRun *aTextRun,
-                               PRUint32 aStart, PRUint32 aEnd,
+                               uint32_t aStart, uint32_t aEnd,
                                BoundingBoxType aBoundingBoxType,
                                gfxContext *aContextForTightBoundingBox,
                                Spacing *aSpacing);
@@ -1451,19 +1451,19 @@ public:
 
 
     bool NotifyLineBreaksChanged(gfxTextRun *aTextRun,
-                                   PRUint32 aStart, PRUint32 aLength)
+                                   uint32_t aStart, uint32_t aLength)
     { return false; }
 
     
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
     
-    virtual PRUint32 GetSpaceGlyph() = 0;
+    virtual uint32_t GetSpaceGlyph() = 0;
 
-    gfxGlyphExtents *GetOrCreateGlyphExtents(PRUint32 aAppUnitsPerDevUnit);
+    gfxGlyphExtents *GetOrCreateGlyphExtents(uint32_t aAppUnitsPerDevUnit);
 
     
-    virtual void SetupGlyphExtents(gfxContext *aContext, PRUint32 aGlyphID,
+    virtual void SetupGlyphExtents(gfxContext *aContext, uint32_t aGlyphID,
                                    bool aNeedTight, gfxGlyphExtents *aExtents);
 
     
@@ -1479,13 +1479,13 @@ public:
     }
 
     gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
-    bool HasCharacter(PRUint32 ch) {
+    bool HasCharacter(uint32_t ch) {
         if (!mIsValid)
             return false;
         return mFontEntry->HasCharacter(ch); 
     }
 
-    PRUint16 GetUVSGlyph(PRUint32 aCh, PRUint32 aVS) {
+    uint16_t GetUVSGlyph(uint32_t aCh, uint32_t aVS) {
         if (!mIsValid) {
             return 0;
         }
@@ -1499,20 +1499,20 @@ public:
     bool SplitAndInitTextRun(gfxContext *aContext,
                              gfxTextRun *aTextRun,
                              const T *aString,
-                             PRUint32 aRunStart,
-                             PRUint32 aRunLength,
-                             PRInt32 aRunScript);
+                             uint32_t aRunStart,
+                             uint32_t aRunLength,
+                             int32_t aRunScript);
 
     
     
     template<typename T>
     gfxShapedWord* GetShapedWord(gfxContext *aContext,
                                  const T *aText,
-                                 PRUint32 aLength,
-                                 PRUint32 aHash,
-                                 PRInt32 aRunScript,
-                                 PRInt32 aAppUnitsPerDevUnit,
-                                 PRUint32 aFlags);
+                                 uint32_t aLength,
+                                 uint32_t aHash,
+                                 int32_t aRunScript,
+                                 int32_t aAppUnitsPerDevUnit,
+                                 uint32_t aFlags);
 
     
     
@@ -1566,20 +1566,20 @@ protected:
 
     struct CacheHashKey {
         union {
-            const PRUint8   *mSingle;
+            const uint8_t   *mSingle;
             const PRUnichar *mDouble;
         }                mText;
-        PRUint32         mLength;
-        PRUint32         mFlags;
-        PRInt32          mScript;
-        PRInt32          mAppUnitsPerDevUnit;
+        uint32_t         mLength;
+        uint32_t         mFlags;
+        int32_t          mScript;
+        int32_t          mAppUnitsPerDevUnit;
         PLDHashNumber    mHashKey;
         bool             mTextIs8Bit;
 
-        CacheHashKey(const PRUint8 *aText, PRUint32 aLength,
-                     PRUint32 aStringHash,
-                     PRInt32 aScriptCode, PRInt32 aAppUnitsPerDevUnit,
-                     PRUint32 aFlags)
+        CacheHashKey(const uint8_t *aText, uint32_t aLength,
+                     uint32_t aStringHash,
+                     int32_t aScriptCode, int32_t aAppUnitsPerDevUnit,
+                     uint32_t aFlags)
             : mLength(aLength),
               mFlags(aFlags),
               mScript(aScriptCode),
@@ -1593,10 +1593,10 @@ protected:
             mText.mSingle = aText;
         }
 
-        CacheHashKey(const PRUnichar *aText, PRUint32 aLength,
-                     PRUint32 aStringHash,
-                     PRInt32 aScriptCode, PRInt32 aAppUnitsPerDevUnit,
-                     PRUint32 aFlags)
+        CacheHashKey(const PRUnichar *aText, uint32_t aLength,
+                     uint32_t aStringHash,
+                     int32_t aScriptCode, int32_t aAppUnitsPerDevUnit,
+                     uint32_t aFlags)
             : mLength(aLength),
               mFlags(aFlags),
               mScript(aScriptCode),
@@ -1645,7 +1645,7 @@ protected:
     nsTHashtable<CacheHashEntry> mWordCache;
 
     static PLDHashOperator AgeCacheEntry(CacheHashEntry *aEntry, void *aUserData);
-    static const PRUint32  kShapedWordCacheMaxAge = 3;
+    static const uint32_t  kShapedWordCacheMaxAge = 3;
 
     bool                       mIsValid;
 
@@ -1736,7 +1736,7 @@ protected:
 class gfxShapedWord
 {
 public:
-    static const PRUint32 kMaxLength = 0x7fff;
+    static const uint32_t kMaxLength = 0x7fff;
 
     
     
@@ -1747,17 +1747,17 @@ public:
     
     
     
-    static gfxShapedWord* Create(const PRUint8 *aText, PRUint32 aLength,
-                                 PRInt32 aRunScript,
-                                 PRInt32 aAppUnitsPerDevUnit,
-                                 PRUint32 aFlags) {
+    static gfxShapedWord* Create(const uint8_t *aText, uint32_t aLength,
+                                 int32_t aRunScript,
+                                 int32_t aAppUnitsPerDevUnit,
+                                 uint32_t aFlags) {
         NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
 
         
         
-        PRUint32 size =
+        uint32_t size =
             offsetof(gfxShapedWord, mCharacterGlyphs) +
-            aLength * (sizeof(CompressedGlyph) + sizeof(PRUint8));
+            aLength * (sizeof(CompressedGlyph) + sizeof(uint8_t));
         void *storage = moz_malloc(size);
         if (!storage) {
             return nullptr;
@@ -1768,10 +1768,10 @@ public:
                                            aAppUnitsPerDevUnit, aFlags);
     }
 
-    static gfxShapedWord* Create(const PRUnichar *aText, PRUint32 aLength,
-                                 PRInt32 aRunScript,
-                                 PRInt32 aAppUnitsPerDevUnit,
-                                 PRUint32 aFlags) {
+    static gfxShapedWord* Create(const PRUnichar *aText, uint32_t aLength,
+                                 int32_t aRunScript,
+                                 int32_t aAppUnitsPerDevUnit,
+                                 uint32_t aFlags) {
         NS_ASSERTION(aLength <= kMaxLength, "excessive length for gfxShapedWord!");
 
         
@@ -1781,11 +1781,11 @@ public:
             nsCAutoString narrowText;
             LossyAppendUTF16toASCII(nsDependentSubstring(aText, aLength),
                                     narrowText);
-            return Create((const PRUint8*)(narrowText.BeginReading()),
+            return Create((const uint8_t*)(narrowText.BeginReading()),
                           aLength, aRunScript, aAppUnitsPerDevUnit, aFlags);
         }
 
-        PRUint32 size =
+        uint32_t size =
             offsetof(gfxShapedWord, mCharacterGlyphs) +
             aLength * (sizeof(CompressedGlyph) + sizeof(PRUnichar));
         void *storage = moz_malloc(size);
@@ -1876,18 +1876,18 @@ public:
         
 
         
-        static bool IsSimpleGlyphID(PRUint32 aGlyph) {
+        static bool IsSimpleGlyphID(uint32_t aGlyph) {
             return (aGlyph & GLYPH_MASK) == aGlyph;
         }
         
         
-        static bool IsSimpleAdvance(PRUint32 aAdvance) {
+        static bool IsSimpleAdvance(uint32_t aAdvance) {
             return (aAdvance & (ADVANCE_MASK >> ADVANCE_SHIFT)) == aAdvance;
         }
 
         bool IsSimpleGlyph() const { return (mValue & FLAG_IS_SIMPLE_GLYPH) != 0; }
-        PRUint32 GetSimpleAdvance() const { return (mValue & ADVANCE_MASK) >> ADVANCE_SHIFT; }
-        PRUint32 GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
+        uint32_t GetSimpleAdvance() const { return (mValue & ADVANCE_MASK) >> ADVANCE_SHIFT; }
+        uint32_t GetSimpleGlyph() const { return mValue & GLYPH_MASK; }
 
         bool IsMissing() const { return (mValue & (FLAG_NOT_MISSING|FLAG_IS_SIMPLE_GLYPH)) == 0; }
         bool IsClusterStart() const {
@@ -1919,7 +1919,7 @@ public:
             return !IsSimpleGlyph() && (mValue & FLAG_CHAR_IS_LOW_SURROGATE) != 0;
         }
 
-        PRUint32 CharIdentityFlags() const {
+        uint32_t CharIdentityFlags() const {
             return IsSimpleGlyph() ? 0 : (mValue & CHAR_IDENTITY_FLAGS_MASK);
         }
 
@@ -1933,20 +1933,20 @@ public:
             }
         }
 
-        PRUint8 CanBreakBefore() const {
+        uint8_t CanBreakBefore() const {
             return (mValue & FLAGS_CAN_BREAK_BEFORE) >> FLAGS_CAN_BREAK_SHIFT;
         }
         
-        PRUint32 SetCanBreakBefore(PRUint8 aCanBreakBefore) {
+        uint32_t SetCanBreakBefore(uint8_t aCanBreakBefore) {
             NS_ASSERTION(aCanBreakBefore <= 2,
                          "Bogus break-before value!");
-            PRUint32 breakMask = (PRUint32(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT);
-            PRUint32 toggle = breakMask ^ (mValue & FLAGS_CAN_BREAK_BEFORE);
+            uint32_t breakMask = (uint32_t(aCanBreakBefore) << FLAGS_CAN_BREAK_SHIFT);
+            uint32_t toggle = breakMask ^ (mValue & FLAGS_CAN_BREAK_BEFORE);
             mValue ^= toggle;
             return toggle;
         }
 
-        CompressedGlyph& SetSimpleGlyph(PRUint32 aAdvanceAppUnits, PRUint32 aGlyph) {
+        CompressedGlyph& SetSimpleGlyph(uint32_t aAdvanceAppUnits, uint32_t aGlyph) {
             NS_ASSERTION(IsSimpleAdvance(aAdvanceAppUnits), "Advance overflow");
             NS_ASSERTION(IsSimpleGlyphID(aGlyph), "Glyph overflow");
             NS_ASSERTION(!CharIdentityFlags(), "Char identity flags lost");
@@ -1956,7 +1956,7 @@ public:
             return *this;
         }
         CompressedGlyph& SetComplex(bool aClusterStart, bool aLigatureStart,
-                PRUint32 aGlyphCount) {
+                uint32_t aGlyphCount) {
             mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_CHAR_IS_SPACE)) |
                 FLAG_NOT_MISSING |
                 CharIdentityFlags() |
@@ -1969,14 +1969,14 @@ public:
 
 
 
-        CompressedGlyph& SetMissing(PRUint32 aGlyphCount) {
+        CompressedGlyph& SetMissing(uint32_t aGlyphCount) {
             mValue = (mValue & (FLAGS_CAN_BREAK_BEFORE | FLAG_NOT_CLUSTER_START |
                                 FLAG_CHAR_IS_SPACE)) |
                 CharIdentityFlags() |
                 (aGlyphCount << GLYPH_COUNT_SHIFT);
             return *this;
         }
-        PRUint32 GetGlyphCount() const {
+        uint32_t GetGlyphCount() const {
             NS_ASSERTION(!IsSimpleGlyph(), "Expected non-simple-glyph");
             return (mValue & GLYPH_COUNT_MASK) >> GLYPH_COUNT_SHIFT;
         }
@@ -1998,7 +1998,7 @@ public:
         }
 
     private:
-        PRUint32 mValue;
+        uint32_t mValue;
     };
 
     
@@ -2008,32 +2008,32 @@ public:
     struct DetailedGlyph {
         
 
-        PRUint32 mGlyphID;
+        uint32_t mGlyphID;
         
 
 
    
-        PRInt32  mAdvance;
+        int32_t  mAdvance;
         float    mXOffset, mYOffset;
     };
 
-    bool IsClusterStart(PRUint32 aPos) {
+    bool IsClusterStart(uint32_t aPos) {
         NS_ASSERTION(aPos < Length(), "aPos out of range");
         return mCharacterGlyphs[aPos].IsClusterStart();
     }
 
-    bool IsLigatureGroupStart(PRUint32 aPos) {
+    bool IsLigatureGroupStart(uint32_t aPos) {
         NS_ASSERTION(aPos < Length(), "aPos out of range");
         return mCharacterGlyphs[aPos].IsLigatureGroupStart();
     }
 
-    PRUint32 Length() const {
+    uint32_t Length() const {
         return mLength;
     }
 
-    const PRUint8* Text8Bit() const {
+    const uint8_t* Text8Bit() const {
         NS_ASSERTION(TextIs8Bit(), "invalid use of Text8Bit()");
-        return reinterpret_cast<const PRUint8*>(&mCharacterGlyphs[Length()]);
+        return reinterpret_cast<const uint8_t*>(&mCharacterGlyphs[Length()]);
     }
 
     const PRUnichar* TextUnicode() const {
@@ -2041,13 +2041,13 @@ public:
         return reinterpret_cast<const PRUnichar*>(&mCharacterGlyphs[Length()]);
     }
 
-    PRUnichar GetCharAt(PRUint32 aOffset) const {
+    PRUnichar GetCharAt(uint32_t aOffset) const {
         NS_ASSERTION(aOffset < Length(), "aOffset out of range");
         return TextIs8Bit() ?
             PRUnichar(Text8Bit()[aOffset]) : TextUnicode()[aOffset];
     }
 
-    PRUint32 Flags() const {
+    uint32_t Flags() const {
         return mFlags;
     }
 
@@ -2067,42 +2067,42 @@ public:
         return (Flags() & gfxTextRunFactory::TEXT_IS_8BIT) != 0;
     }
 
-    PRInt32 Script() const {
+    int32_t Script() const {
         return mScript;
     }
 
-    PRInt32 AppUnitsPerDevUnit() const {
+    int32_t AppUnitsPerDevUnit() const {
         return mAppUnitsPerDevUnit;
     }
 
     void ResetAge() {
         mAgeCounter = 0;
     }
-    PRUint32 IncrementAge() {
+    uint32_t IncrementAge() {
         return ++mAgeCounter;
     }
 
-    void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
+    void SetSimpleGlyph(uint32_t aCharIndex, CompressedGlyph aGlyph) {
         NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
         NS_ASSERTION(mCharacterGlyphs, "mCharacterGlyphs pointer is null!");
         mCharacterGlyphs[aCharIndex] = aGlyph;
     }
 
-    void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
+    void SetGlyphs(uint32_t aCharIndex, CompressedGlyph aGlyph,
                    const DetailedGlyph *aGlyphs);
 
-    void SetMissingGlyph(PRUint32 aIndex, PRUint32 aChar, gfxFont *aFont);
+    void SetMissingGlyph(uint32_t aIndex, uint32_t aChar, gfxFont *aFont);
 
-    void SetIsSpace(PRUint32 aIndex) {
+    void SetIsSpace(uint32_t aIndex) {
         mCharacterGlyphs[aIndex].SetIsSpace();
     }
 
-    void SetIsLowSurrogate(PRUint32 aIndex) {
+    void SetIsLowSurrogate(uint32_t aIndex) {
         SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nullptr);
         mCharacterGlyphs[aIndex].SetIsLowSurrogate();
     }
 
-    bool FilterIfIgnorable(PRUint32 aIndex);
+    bool FilterIfIgnorable(uint32_t aIndex);
 
     const CompressedGlyph *GetCharacterGlyphs() const {
         return &mCharacterGlyphs[0];
@@ -2115,7 +2115,7 @@ public:
     
     
     
-    DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) const {
+    DetailedGlyph *GetDetailedGlyphs(uint32_t aCharIndex) const {
         NS_ASSERTION(HasDetailedGlyphs() &&
                      !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
                      mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
@@ -2130,16 +2130,16 @@ public:
     
     static void
     SetupClusterBoundaries(CompressedGlyph *aGlyphs,
-                           const PRUnichar *aString, PRUint32 aLength);
+                           const PRUnichar *aString, uint32_t aLength);
 
 private:
     
     friend class gfxTextRun;
 
     
-    gfxShapedWord(const PRUint8 *aText, PRUint32 aLength,
-                  PRInt32 aRunScript, PRInt32 aAppUnitsPerDevUnit,
-                  PRUint32 aFlags)
+    gfxShapedWord(const uint8_t *aText, uint32_t aLength,
+                  int32_t aRunScript, int32_t aAppUnitsPerDevUnit,
+                  uint32_t aFlags)
         : mLength(aLength)
         , mFlags(aFlags | gfxTextRunFactory::TEXT_IS_8BIT)
         , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
@@ -2147,13 +2147,13 @@ private:
         , mAgeCounter(0)
     {
         memset(mCharacterGlyphs, 0, aLength * sizeof(CompressedGlyph));
-        PRUint8 *text = reinterpret_cast<PRUint8*>(&mCharacterGlyphs[aLength]);
-        memcpy(text, aText, aLength * sizeof(PRUint8));
+        uint8_t *text = reinterpret_cast<uint8_t*>(&mCharacterGlyphs[aLength]);
+        memcpy(text, aText, aLength * sizeof(uint8_t));
     }
 
-    gfxShapedWord(const PRUnichar *aText, PRUint32 aLength,
-                  PRInt32 aRunScript, PRInt32 aAppUnitsPerDevUnit,
-                  PRUint32 aFlags)
+    gfxShapedWord(const PRUnichar *aText, uint32_t aLength,
+                  int32_t aRunScript, int32_t aAppUnitsPerDevUnit,
+                  uint32_t aFlags)
         : mLength(aLength)
         , mFlags(aFlags)
         , mAppUnitsPerDevUnit(aAppUnitsPerDevUnit)
@@ -2167,8 +2167,8 @@ private:
     }
 
     
-    DetailedGlyph *AllocateDetailedGlyphs(PRUint32 aCharIndex,
-                                          PRUint32 aCount);
+    DetailedGlyph *AllocateDetailedGlyphs(uint32_t aCharIndex,
+                                          uint32_t aCount);
 
     
     
@@ -2194,7 +2194,7 @@ private:
         
         
         
-        DetailedGlyph* Get(PRUint32 aOffset) {
+        DetailedGlyph* Get(uint32_t aOffset) {
             NS_ASSERTION(mOffsetToIndex.Length() > 0,
                          "no detailed glyph records!");
             DetailedGlyph* details = mDetails.Elements();
@@ -2218,8 +2218,8 @@ private:
             return details + mOffsetToIndex[mLastUsed].mIndex;
         }
 
-        DetailedGlyph* Allocate(PRUint32 aOffset, PRUint32 aCount) {
-            PRUint32 detailIndex = mDetails.Length();
+        DetailedGlyph* Allocate(uint32_t aOffset, uint32_t aCount) {
+            uint32_t detailIndex = mDetails.Length();
             DetailedGlyph *details = mDetails.AppendElements(aCount);
             if (!details) {
                 return nullptr;
@@ -2250,17 +2250,17 @@ private:
 
     private:
         struct DGRec {
-            DGRec(const PRUint32& aOffset, const PRUint32& aIndex)
+            DGRec(const uint32_t& aOffset, const uint32_t& aIndex)
                 : mOffset(aOffset), mIndex(aIndex) { }
-            PRUint32 mOffset; 
-            PRUint32 mIndex;  
+            uint32_t mOffset; 
+            uint32_t mIndex;  
         };
 
         struct CompareToOffset {
-            bool Equals(const DGRec& a, const PRUint32& b) const {
+            bool Equals(const DGRec& a, const uint32_t& b) const {
                 return a.mOffset == b;
             }
-            bool LessThan(const DGRec& a, const PRUint32& b) const {
+            bool LessThan(const DGRec& a, const uint32_t& b) const {
                 return a.mOffset < b;
             }
         };
@@ -2296,14 +2296,14 @@ private:
     
     
     
-    PRUint32                        mLength;
+    uint32_t                        mLength;
 
-    PRUint32                        mFlags;
+    uint32_t                        mFlags;
 
-    PRInt32                         mAppUnitsPerDevUnit;
-    PRInt32                         mScript;
+    int32_t                         mAppUnitsPerDevUnit;
+    int32_t                         mScript;
 
-    PRUint32                        mAgeCounter;
+    uint32_t                        mAgeCounter;
 
     
     
@@ -2352,43 +2352,43 @@ public:
 
     
 
-    bool IsClusterStart(PRUint32 aPos) {
+    bool IsClusterStart(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].IsClusterStart();
     }
-    bool IsLigatureGroupStart(PRUint32 aPos) {
+    bool IsLigatureGroupStart(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].IsLigatureGroupStart();
     }
-    bool CanBreakLineBefore(PRUint32 aPos) {
+    bool CanBreakLineBefore(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CanBreakBefore() ==
             CompressedGlyph::FLAG_BREAK_TYPE_NORMAL;
     }
-    bool CanHyphenateBefore(PRUint32 aPos) {
+    bool CanHyphenateBefore(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CanBreakBefore() ==
             CompressedGlyph::FLAG_BREAK_TYPE_HYPHEN;
     }
 
-    bool CharIsSpace(PRUint32 aPos) {
+    bool CharIsSpace(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsSpace();
     }
-    bool CharIsTab(PRUint32 aPos) {
+    bool CharIsTab(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsTab();
     }
-    bool CharIsNewline(PRUint32 aPos) {
+    bool CharIsNewline(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsNewline();
     }
-    bool CharIsLowSurrogate(PRUint32 aPos) {
+    bool CharIsLowSurrogate(uint32_t aPos) {
         NS_ASSERTION(aPos < mCharacterCount, "aPos out of range");
         return mCharacterGlyphs[aPos].CharIsLowSurrogate();
     }
 
-    PRUint32 GetLength() { return mCharacterCount; }
+    uint32_t GetLength() { return mCharacterCount; }
 
     
     
@@ -2408,8 +2408,8 @@ public:
 
 
 
-    virtual bool SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
-                                          PRUint8 *aBreakBefore,
+    virtual bool SetPotentialLineBreaks(uint32_t aStart, uint32_t aLength,
+                                          uint8_t *aBreakBefore,
                                           gfxContext *aRefContext);
 
     
@@ -2426,13 +2426,13 @@ public:
     public:
         
         
-        virtual void GetHyphenationBreaks(PRUint32 aStart, PRUint32 aLength,
+        virtual void GetHyphenationBreaks(uint32_t aStart, uint32_t aLength,
                                           bool *aBreakBefore) = 0;
 
         
         
         
-        virtual PRInt8 GetHyphensOption() = 0;
+        virtual int8_t GetHyphensOption() = 0;
 
         
         
@@ -2446,7 +2446,7 @@ public:
 
 
 
-        virtual void GetSpacing(PRUint32 aStart, PRUint32 aLength,
+        virtual void GetSpacing(uint32_t aStart, uint32_t aLength,
                                 Spacing *aSpacing) = 0;
     };
 
@@ -2458,17 +2458,17 @@ public:
 
         bool NextCluster();
 
-        PRUint32 Position() const {
+        uint32_t Position() const {
             return mCurrentChar;
         }
 
-        PRUint32 ClusterLength() const;
+        uint32_t ClusterLength() const;
 
         gfxFloat ClusterAdvance(PropertyProvider *aProvider) const;
 
     private:
         gfxTextRun *mTextRun;
-        PRUint32    mCurrentChar;
+        uint32_t    mCurrentChar;
     };
 
     
@@ -2510,7 +2510,7 @@ public:
 
     void Draw(gfxContext *aContext, gfxPoint aPt,
               gfxFont::DrawMode aDrawMode,
-              PRUint32 aStart, PRUint32 aLength,
+              uint32_t aStart, uint32_t aLength,
               PropertyProvider *aProvider,
               gfxFloat *aAdvanceWidth, gfxPattern *aStrokePattern,
               DrawCallbacks *aCallbacks = nullptr);
@@ -2520,7 +2520,7 @@ public:
 
 
 
-    Metrics MeasureText(PRUint32 aStart, PRUint32 aLength,
+    Metrics MeasureText(uint32_t aStart, uint32_t aLength,
                         gfxFont::BoundingBoxType aBoundingBoxType,
                         gfxContext *aRefContextForTightBoundingBox,
                         PropertyProvider *aProvider);
@@ -2529,7 +2529,7 @@ public:
 
 
 
-    gfxFloat GetAdvanceWidth(PRUint32 aStart, PRUint32 aLength,
+    gfxFloat GetAdvanceWidth(uint32_t aStart, uint32_t aLength,
                              PropertyProvider *aProvider);
 
     
@@ -2559,7 +2559,7 @@ public:
 
 
 
-    virtual bool SetLineBreaks(PRUint32 aStart, PRUint32 aLength,
+    virtual bool SetLineBreaks(uint32_t aStart, uint32_t aLength,
                                  bool aLineBreakBefore, bool aLineBreakAfter,
                                  gfxFloat *aAdvanceWidthDelta,
                                  gfxContext *aRefContext);
@@ -2622,7 +2622,7 @@ public:
 
 
 
-    PRUint32 BreakAndMeasureText(PRUint32 aStart, PRUint32 aMaxLength,
+    uint32_t BreakAndMeasureText(uint32_t aStart, uint32_t aMaxLength,
                                  bool aLineBreakBefore, gfxFloat aWidth,
                                  PropertyProvider *aProvider,
                                  bool aSuppressInitialBreak,
@@ -2631,7 +2631,7 @@ public:
                                  gfxFont::BoundingBoxType aBoundingBoxType,
                                  gfxContext *aRefContextForTightBoundingBox,
                                  bool *aUsedHyphenation,
-                                 PRUint32 *aLastBreak,
+                                 uint32_t *aLastBreak,
                                  bool aCanWordWrap,
                                  gfxBreakPriority *aBreakPriority);
 
@@ -2648,53 +2648,53 @@ public:
     gfxFloat GetDirection() const { return (mFlags & gfxTextRunFactory::TEXT_IS_RTL) ? -1.0 : 1.0; }
     void *GetUserData() const { return mUserData; }
     void SetUserData(void *aUserData) { mUserData = aUserData; }
-    PRUint32 GetFlags() const { return mFlags; }
-    void SetFlagBits(PRUint32 aFlags) {
+    uint32_t GetFlags() const { return mFlags; }
+    void SetFlagBits(uint32_t aFlags) {
       NS_ASSERTION(!(aFlags & ~gfxTextRunFactory::SETTABLE_FLAGS),
                    "Only user flags should be mutable");
       mFlags |= aFlags;
     }
-    void ClearFlagBits(PRUint32 aFlags) {
+    void ClearFlagBits(uint32_t aFlags) {
       NS_ASSERTION(!(aFlags & ~gfxTextRunFactory::SETTABLE_FLAGS),
                    "Only user flags should be mutable");
       mFlags &= ~aFlags;
     }
     const gfxSkipChars& GetSkipChars() const { return mSkipChars; }
-    PRUint32 GetAppUnitsPerDevUnit() const { return mAppUnitsPerDevUnit; }
+    uint32_t GetAppUnitsPerDevUnit() const { return mAppUnitsPerDevUnit; }
     gfxFontGroup *GetFontGroup() const { return mFontGroup; }
 
 
     
     
     static gfxTextRun *Create(const gfxTextRunFactory::Parameters *aParams,
-                              PRUint32 aLength, gfxFontGroup *aFontGroup,
-                              PRUint32 aFlags);
+                              uint32_t aLength, gfxFontGroup *aFontGroup,
+                              uint32_t aFlags);
 
     
     struct GlyphRun {
         nsRefPtr<gfxFont> mFont;   
-        PRUint32          mCharacterOffset; 
-        PRUint8           mMatchType;
+        uint32_t          mCharacterOffset; 
+        uint8_t           mMatchType;
     };
 
     class THEBES_API GlyphRunIterator {
     public:
-        GlyphRunIterator(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aLength)
+        GlyphRunIterator(gfxTextRun *aTextRun, uint32_t aStart, uint32_t aLength)
           : mTextRun(aTextRun), mStartOffset(aStart), mEndOffset(aStart + aLength) {
             mNextIndex = mTextRun->FindFirstGlyphRunContaining(aStart);
         }
         bool NextRun();
         GlyphRun *GetGlyphRun() { return mGlyphRun; }
-        PRUint32 GetStringStart() { return mStringStart; }
-        PRUint32 GetStringEnd() { return mStringEnd; }
+        uint32_t GetStringStart() { return mStringStart; }
+        uint32_t GetStringEnd() { return mStringEnd; }
     private:
         gfxTextRun *mTextRun;
         GlyphRun   *mGlyphRun;
-        PRUint32    mStringStart;
-        PRUint32    mStringEnd;
-        PRUint32    mNextIndex;
-        PRUint32    mStartOffset;
-        PRUint32    mEndOffset;
+        uint32_t    mStringStart;
+        uint32_t    mStringEnd;
+        uint32_t    mNextIndex;
+        uint32_t    mStartOffset;
+        uint32_t    mEndOffset;
     };
 
     class GlyphRunOffsetComparator {
@@ -2730,15 +2730,15 @@ public:
 
 
 
-    nsresult AddGlyphRun(gfxFont *aFont, PRUint8 aMatchType,
-                         PRUint32 aStartCharIndex, bool aForceNewRun);
+    nsresult AddGlyphRun(gfxFont *aFont, uint8_t aMatchType,
+                         uint32_t aStartCharIndex, bool aForceNewRun);
     void ResetGlyphRuns() { mGlyphRuns.Clear(); }
     void SortGlyphRuns();
     void SanitizeGlyphRuns();
 
     
     
-    void SetSimpleGlyph(PRUint32 aCharIndex, CompressedGlyph aGlyph) {
+    void SetSimpleGlyph(uint32_t aCharIndex, CompressedGlyph aGlyph) {
         NS_ASSERTION(aGlyph.IsSimpleGlyph(), "Should be a simple glyph here");
         mCharacterGlyphs[aCharIndex] = aGlyph;
     }
@@ -2747,10 +2747,10 @@ public:
 
 
 
-    void SetGlyphs(PRUint32 aCharIndex, CompressedGlyph aGlyph,
+    void SetGlyphs(uint32_t aCharIndex, CompressedGlyph aGlyph,
                    const DetailedGlyph *aGlyphs);
-    void SetMissingGlyph(PRUint32 aCharIndex, PRUint32 aUnicodeChar);
-    void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, PRUint32 aCharIndex);
+    void SetMissingGlyph(uint32_t aCharIndex, uint32_t aUnicodeChar);
+    void SetSpaceGlyph(gfxFont *aFont, gfxContext *aContext, uint32_t aCharIndex);
 
     
     
@@ -2766,7 +2766,7 @@ public:
     
     
     bool SetSpaceGlyphIfSimple(gfxFont *aFont, gfxContext *aContext,
-                               PRUint32 aCharIndex, PRUnichar aSpaceChar);
+                               uint32_t aCharIndex, PRUnichar aSpaceChar);
 
     
     
@@ -2774,7 +2774,7 @@ public:
     
     
     
-    void SetIsTab(PRUint32 aIndex) {
+    void SetIsTab(uint32_t aIndex) {
         CompressedGlyph *g = &mCharacterGlyphs[aIndex];
         if (g->IsSimpleGlyph()) {
             DetailedGlyph *details = AllocateDetailedGlyphs(aIndex, 1);
@@ -2785,7 +2785,7 @@ public:
         }
         g->SetIsTab();
     }
-    void SetIsNewline(PRUint32 aIndex) {
+    void SetIsNewline(uint32_t aIndex) {
         CompressedGlyph *g = &mCharacterGlyphs[aIndex];
         if (g->IsSimpleGlyph()) {
             DetailedGlyph *details = AllocateDetailedGlyphs(aIndex, 1);
@@ -2796,7 +2796,7 @@ public:
         }
         g->SetIsNewline();
     }
-    void SetIsLowSurrogate(PRUint32 aIndex) {
+    void SetIsLowSurrogate(uint32_t aIndex) {
         SetGlyphs(aIndex, CompressedGlyph().SetComplex(false, false, 0), nullptr);
         mCharacterGlyphs[aIndex].SetIsLowSurrogate();
     }
@@ -2816,7 +2816,7 @@ public:
     
     
     
-    DetailedGlyph *GetDetailedGlyphs(PRUint32 aCharIndex) {
+    DetailedGlyph *GetDetailedGlyphs(uint32_t aCharIndex) {
         NS_ASSERTION(mDetailedGlyphs != nullptr &&
                      !mCharacterGlyphs[aCharIndex].IsSimpleGlyph() &&
                      mCharacterGlyphs[aCharIndex].GetGlyphCount() > 0,
@@ -2825,29 +2825,29 @@ public:
     }
 
     bool HasDetailedGlyphs() { return mDetailedGlyphs != nullptr; }
-    PRUint32 CountMissingGlyphs();
-    const GlyphRun *GetGlyphRuns(PRUint32 *aNumGlyphRuns) {
+    uint32_t CountMissingGlyphs();
+    const GlyphRun *GetGlyphRuns(uint32_t *aNumGlyphRuns) {
         *aNumGlyphRuns = mGlyphRuns.Length();
         return mGlyphRuns.Elements();
     }
     
     
-    PRUint32 FindFirstGlyphRunContaining(PRUint32 aOffset);
+    uint32_t FindFirstGlyphRunContaining(uint32_t aOffset);
 
     
-    void CopyGlyphDataFrom(const gfxShapedWord *aSource, PRUint32 aStart);
+    void CopyGlyphDataFrom(const gfxShapedWord *aSource, uint32_t aStart);
 
     
     
-    void CopyGlyphDataFrom(gfxTextRun *aSource, PRUint32 aStart,
-                           PRUint32 aLength, PRUint32 aDest);
+    void CopyGlyphDataFrom(gfxTextRun *aSource, uint32_t aStart,
+                           uint32_t aLength, uint32_t aDest);
 
     nsExpirationState *GetExpirationState() { return &mExpirationState; }
 
     struct LigatureData {
         
-        PRUint32 mLigatureStart;
-        PRUint32 mLigatureEnd;
+        uint32_t mLigatureStart;
+        uint32_t mLigatureEnd;
         
         
         gfxFloat mPartAdvance;
@@ -2891,14 +2891,14 @@ protected:
 
 
     gfxTextRun(const gfxTextRunFactory::Parameters *aParams,
-               PRUint32 aLength, gfxFontGroup *aFontGroup, PRUint32 aFlags);
+               uint32_t aLength, gfxFontGroup *aFontGroup, uint32_t aFlags);
 
     
 
 
 
 
-    static void* AllocateStorageForTextRun(size_t aSize, PRUint32 aLength);
+    static void* AllocateStorageForTextRun(size_t aSize, uint32_t aLength);
 
     
     
@@ -2910,18 +2910,18 @@ private:
     
 
     
-    DetailedGlyph *AllocateDetailedGlyphs(PRUint32 aCharIndex, PRUint32 aCount);
+    DetailedGlyph *AllocateDetailedGlyphs(uint32_t aCharIndex, uint32_t aCount);
 
     
-    PRInt32 GetAdvanceForGlyphs(PRUint32 aStart, PRUint32 aEnd);
+    int32_t GetAdvanceForGlyphs(uint32_t aStart, uint32_t aEnd);
 
     
     
     
     
-    bool GetAdjustedSpacingArray(PRUint32 aStart, PRUint32 aEnd,
+    bool GetAdjustedSpacingArray(uint32_t aStart, uint32_t aEnd,
                                    PropertyProvider *aProvider,
-                                   PRUint32 aSpacingStart, PRUint32 aSpacingEnd,
+                                   uint32_t aSpacingStart, uint32_t aSpacingEnd,
                                    nsTArray<PropertyProvider::Spacing> *aSpacing);
 
     
@@ -2929,40 +2929,40 @@ private:
     
 
     
-    LigatureData ComputeLigatureData(PRUint32 aPartStart, PRUint32 aPartEnd,
+    LigatureData ComputeLigatureData(uint32_t aPartStart, uint32_t aPartEnd,
                                      PropertyProvider *aProvider);
-    gfxFloat ComputePartialLigatureWidth(PRUint32 aPartStart, PRUint32 aPartEnd,
+    gfxFloat ComputePartialLigatureWidth(uint32_t aPartStart, uint32_t aPartEnd,
                                          PropertyProvider *aProvider);
     void DrawPartialLigature(gfxFont *aFont, gfxContext *aCtx,
-                             PRUint32 aStart, PRUint32 aEnd, gfxPoint *aPt,
+                             uint32_t aStart, uint32_t aEnd, gfxPoint *aPt,
                              PropertyProvider *aProvider,
                              DrawCallbacks *aCallbacks);
     
     
-    void ShrinkToLigatureBoundaries(PRUint32 *aStart, PRUint32 *aEnd);
+    void ShrinkToLigatureBoundaries(uint32_t *aStart, uint32_t *aEnd);
     
-    gfxFloat GetPartialLigatureWidth(PRUint32 aStart, PRUint32 aEnd, PropertyProvider *aProvider);
+    gfxFloat GetPartialLigatureWidth(uint32_t aStart, uint32_t aEnd, PropertyProvider *aProvider);
     void AccumulatePartialLigatureMetrics(gfxFont *aFont,
-                                          PRUint32 aStart, PRUint32 aEnd,
+                                          uint32_t aStart, uint32_t aEnd,
                                           gfxFont::BoundingBoxType aBoundingBoxType,
                                           gfxContext *aRefContext,
                                           PropertyProvider *aProvider,
                                           Metrics *aMetrics);
 
     
-    void AccumulateMetricsForRun(gfxFont *aFont, PRUint32 aStart, PRUint32 aEnd,
+    void AccumulateMetricsForRun(gfxFont *aFont, uint32_t aStart, uint32_t aEnd,
                                  gfxFont::BoundingBoxType aBoundingBoxType,
                                  gfxContext *aRefContext,
                                  PropertyProvider *aProvider,
-                                 PRUint32 aSpacingStart, PRUint32 aSpacingEnd,
+                                 uint32_t aSpacingStart, uint32_t aSpacingEnd,
                                  Metrics *aMetrics);
 
     
     void DrawGlyphs(gfxFont *aFont, gfxContext *aContext,
                     gfxFont::DrawMode aDrawMode, gfxPoint *aPt,
-                    gfxPattern *aStrokePattern, PRUint32 aStart, PRUint32 aEnd,
+                    gfxPattern *aStrokePattern, uint32_t aStart, uint32_t aEnd,
                     PropertyProvider *aProvider,
-                    PRUint32 aSpacingStart, PRUint32 aSpacingEnd);
+                    uint32_t aSpacingStart, uint32_t aSpacingEnd);
 
     nsAutoPtr<DetailedGlyphStore>   mDetailedGlyphs;
 
@@ -2974,9 +2974,9 @@ private:
     gfxFontGroup     *mFontGroup; 
     gfxSkipChars      mSkipChars;
     nsExpirationState mExpirationState;
-    PRUint32          mAppUnitsPerDevUnit;
-    PRUint32          mFlags;
-    PRUint32          mCharacterCount;
+    uint32_t          mAppUnitsPerDevUnit;
+    uint32_t          mFlags;
+    uint32_t          mCharacterCount;
 
     bool              mSkipDrawing; 
                                     
@@ -2991,7 +2991,7 @@ public:
 
     virtual ~gfxFontGroup();
 
-    virtual gfxFont *GetFontAt(PRInt32 i) {
+    virtual gfxFont *GetFontAt(int32_t i) {
         
         
         
@@ -2999,13 +2999,13 @@ public:
         NS_ASSERTION(!mUserFontSet || mCurrGeneration == GetGeneration(),
                      "Whoever was caching this font group should have "
                      "called UpdateFontList on it");
-        NS_ASSERTION(mFonts.Length() > PRUint32(i), 
+        NS_ASSERTION(mFonts.Length() > uint32_t(i), 
                      "Requesting a font index that doesn't exist");
 
         return static_cast<gfxFont*>(mFonts[i]);
     }
 
-    PRUint32 FontListLength() const {
+    uint32_t FontListLength() const {
         return mFonts.Length();
     }
 
@@ -3022,7 +3022,7 @@ public:
 
 
 
-    static bool IsInvalidChar(PRUint8 ch);
+    static bool IsInvalidChar(uint8_t ch);
     static bool IsInvalidChar(PRUnichar ch);
 
     
@@ -3031,26 +3031,26 @@ public:
 
 
 
-    virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags);
+    virtual gfxTextRun *MakeTextRun(const PRUnichar *aString, uint32_t aLength,
+                                    const Parameters *aParams, uint32_t aFlags);
     
 
 
 
 
 
-    virtual gfxTextRun *MakeTextRun(const PRUint8 *aString, PRUint32 aLength,
-                                    const Parameters *aParams, PRUint32 aFlags);
+    virtual gfxTextRun *MakeTextRun(const uint8_t *aString, uint32_t aLength,
+                                    const Parameters *aParams, uint32_t aFlags);
 
     
 
 
 
     template<typename T>
-    gfxTextRun *MakeTextRun(const T *aString, PRUint32 aLength,
+    gfxTextRun *MakeTextRun(const T *aString, uint32_t aLength,
                             gfxContext *aRefContext,
-                            PRUint32 aAppUnitsPerDevUnit,
-                            PRUint32 aFlags)
+                            uint32_t aAppUnitsPerDevUnit,
+                            uint32_t aFlags)
     {
         gfxTextRunFactory::Parameters params = {
             aRefContext, nullptr, nullptr, nullptr, 0, aAppUnitsPerDevUnit
@@ -3092,20 +3092,20 @@ public:
     }
 
     virtual already_AddRefed<gfxFont>
-        FindFontForChar(PRUint32 ch, PRUint32 prevCh, PRInt32 aRunScript,
+        FindFontForChar(uint32_t ch, uint32_t prevCh, int32_t aRunScript,
                         gfxFont *aPrevMatchedFont,
-                        PRUint8 *aMatchType);
+                        uint8_t *aMatchType);
 
     
-    virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(PRUint32 aCh);
+    virtual already_AddRefed<gfxFont> WhichPrefFontSupportsChar(uint32_t aCh);
 
     virtual already_AddRefed<gfxFont>
-        WhichSystemFontSupportsChar(PRUint32 aCh, PRInt32 aRunScript);
+        WhichSystemFontSupportsChar(uint32_t aCh, int32_t aRunScript);
 
     template<typename T>
     void ComputeRanges(nsTArray<gfxTextRange>& mRanges,
-                       const T *aString, PRUint32 aLength,
-                       PRInt32 aRunScript);
+                       const T *aString, uint32_t aLength,
+                       int32_t aRunScript);
 
     gfxUserFontSet* GetUserFontSet();
 
@@ -3113,7 +3113,7 @@ public:
     
     
     
-    PRUint64 GetGeneration();
+    uint64_t GetGeneration();
 
     
     
@@ -3130,7 +3130,7 @@ protected:
     gfxFloat mUnderlineOffset;
 
     gfxUserFontSet* mUserFontSet;
-    PRUint64 mCurrGeneration;  
+    uint64_t mCurrGeneration;  
 
     
     nsRefPtr<gfxFontFamily> mLastPrefFamily;
@@ -3147,10 +3147,10 @@ protected:
 
 
 
-    gfxTextRun *MakeEmptyTextRun(const Parameters *aParams, PRUint32 aFlags);
-    gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, PRUint32 aFlags);
-    gfxTextRun *MakeBlankTextRun(PRUint32 aLength,
-                                 const Parameters *aParams, PRUint32 aFlags);
+    gfxTextRun *MakeEmptyTextRun(const Parameters *aParams, uint32_t aFlags);
+    gfxTextRun *MakeSpaceTextRun(const Parameters *aParams, uint32_t aFlags);
+    gfxTextRun *MakeBlankTextRun(uint32_t aLength,
+                                 const Parameters *aParams, uint32_t aFlags);
 
     
     
@@ -3170,7 +3170,7 @@ protected:
     void InitTextRun(gfxContext *aContext,
                      gfxTextRun *aTextRun,
                      const T *aString,
-                     PRUint32 aLength);
+                     uint32_t aLength);
 
     
     
@@ -3178,9 +3178,9 @@ protected:
     void InitScriptRun(gfxContext *aContext,
                        gfxTextRun *aTextRun,
                        const T *aString,
-                       PRUint32 aScriptRunStart,
-                       PRUint32 aScriptRunEnd,
-                       PRInt32 aRunScript);
+                       uint32_t aScriptRunStart,
+                       uint32_t aScriptRunEnd,
+                       int32_t aRunScript);
 
     
 
@@ -3204,7 +3204,7 @@ protected:
     
     
     already_AddRefed<gfxFont> TryOtherFamilyMembers(gfxFont* aFont,
-                                                    PRUint32 aCh);
+                                                    uint32_t aCh);
 
     static bool FontResolverProc(const nsAString& aName, void *aClosure);
 

@@ -40,11 +40,11 @@ public:
 
   
 #ifdef DEBUG
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const;
 #endif
 
   
-  virtual PRInt32 GetType() const;
+  virtual int32_t GetType() const;
   virtual already_AddRefed<Rule> Clone() const;
 
   void SetSheet(nsCSSStyleSheet*);

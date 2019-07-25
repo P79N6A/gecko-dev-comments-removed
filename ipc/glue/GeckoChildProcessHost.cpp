@@ -363,7 +363,7 @@ GeckoChildProcessHost::InitializeChannel()
   lock.Notify();
 }
 
-PRInt32 GeckoChildProcessHost::mChildCounter = 0;
+int32_t GeckoChildProcessHost::mChildCounter = 0;
 
 
 

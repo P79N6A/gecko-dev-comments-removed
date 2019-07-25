@@ -18,10 +18,10 @@ static const char* sDiscardTimeoutPref = "image.mem.min_discard_timeout_ms";
  nsCOMPtr<nsITimer> DiscardTracker::sTimer;
  bool DiscardTracker::sInitialized = false;
  bool DiscardTracker::sTimerOn = false;
- PRInt32 DiscardTracker::sDiscardRunnablePending = 0;
- PRInt64 DiscardTracker::sCurrentDecodedImageBytes = 0;
- PRUint32 DiscardTracker::sMinDiscardTimeoutMs = 10000;
- PRUint32 DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
+ int32_t DiscardTracker::sDiscardRunnablePending = 0;
+ int64_t DiscardTracker::sCurrentDecodedImageBytes = 0;
+ uint32_t DiscardTracker::sMinDiscardTimeoutMs = 10000;
+ uint32_t DiscardTracker::sMaxDecodedImageKB = 42 * 1024;
  PRLock * DiscardTracker::sAllocationLock = NULL;
 
 
@@ -127,7 +127,7 @@ DiscardTracker::DiscardAll()
 }
 
 void
-DiscardTracker::InformAllocation(PRInt64 bytes)
+DiscardTracker::InformAllocation(int64_t bytes)
 {
   
 
@@ -181,7 +181,7 @@ void
 DiscardTracker::ReloadTimeout()
 {
   
-  PRInt32 discardTimeout;
+  int32_t discardTimeout;
   nsresult rv = Preferences::GetInt(sDiscardTimeoutPref, &discardTimeout);
 
   
@@ -189,11 +189,11 @@ DiscardTracker::ReloadTimeout()
     return;
 
   
-  if ((PRUint32) discardTimeout == sMinDiscardTimeoutMs)
+  if ((uint32_t) discardTimeout == sMinDiscardTimeoutMs)
     return;
 
   
-  sMinDiscardTimeoutMs = (PRUint32) discardTimeout;
+  sMinDiscardTimeoutMs = (uint32_t) discardTimeout;
 
   
   DisableTimer();

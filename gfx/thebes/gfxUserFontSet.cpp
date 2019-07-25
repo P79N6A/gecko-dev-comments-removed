@@ -30,17 +30,17 @@ PRLogModuleInfo *gfxUserFontSet::sUserFontsLog = PR_NewLogModule("userfonts");
 #define LOG(args) PR_LOG(sUserFontsLog, PR_LOG_DEBUG, args)
 #define LOG_ENABLED() PR_LOG_TEST(sUserFontsLog, PR_LOG_DEBUG)
 
-static PRUint64 sFontSetGeneration = LL_INIT(0, 0);
+static uint64_t sFontSetGeneration = LL_INIT(0, 0);
 
 
 
 gfxProxyFontEntry::gfxProxyFontEntry(const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
              gfxMixedFontFamily *aFamily,
-             PRUint32 aWeight,
-             PRUint32 aStretch,
-             PRUint32 aItalicStyle,
+             uint32_t aWeight,
+             uint32_t aStretch,
+             uint32_t aItalicStyle,
              const nsTArray<gfxFontFeature>& aFeatureSettings,
-             PRUint32 aLanguageOverride,
+             uint32_t aLanguageOverride,
              gfxSparseBitSet *aUnicodeRanges)
     : gfxFontEntry(NS_LITERAL_STRING("Proxy"), aFamily),
       mLoadingState(NOT_LOADING),
@@ -82,9 +82,9 @@ gfxUserFontSet::~gfxUserFontSet()
 gfxFontEntry*
 gfxUserFontSet::AddFontFace(const nsAString& aFamilyName,
                             const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
-                            PRUint32 aWeight,
-                            PRUint32 aStretch,
-                            PRUint32 aItalicStyle,
+                            uint32_t aWeight,
+                            uint32_t aStretch,
+                            uint32_t aItalicStyle,
                             const nsTArray<gfxFontFeature>& aFeatureSettings,
                             const nsString& aLanguageOverride,
                             gfxSparseBitSet *aUnicodeRanges)
@@ -108,7 +108,7 @@ gfxUserFontSet::AddFontFace(const nsAString& aFamilyName,
     }
 
     
-    PRUint32 languageOverride =
+    uint32_t languageOverride =
         gfxFontStyle::ParseFontLanguageOverride(aLanguageOverride);
     proxyEntry =
         new gfxProxyFontEntry(aFontFaceSrcList, family, aWeight, aStretch,
@@ -209,8 +209,8 @@ gfxUserFontSet::FindFontEntry(const nsAString& aName,
 
 
 
-static const PRUint8*
-PrepareOpenTypeData(const PRUint8* aData, PRUint32* aLength)
+static const uint8_t*
+PrepareOpenTypeData(const uint8_t* aData, uint32_t* aLength)
 {
     switch(gfxFontUtils::DetermineFontDataType(aData, *aLength)) {
     
@@ -219,12 +219,12 @@ PrepareOpenTypeData(const PRUint8* aData, PRUint32* aLength)
         return aData;
         
     case GFX_USERFONT_WOFF: {
-        PRUint32 status = eWOFF_ok;
-        PRUint32 bufferSize = woffGetDecodedSize(aData, *aLength, &status);
+        uint32_t status = eWOFF_ok;
+        uint32_t bufferSize = woffGetDecodedSize(aData, *aLength, &status);
         if (WOFF_FAILURE(status)) {
             break;
         }
-        PRUint8* decodedData = static_cast<PRUint8*>(NS_Alloc(bufferSize));
+        uint8_t* decodedData = static_cast<uint8_t*>(NS_Alloc(bufferSize));
         if (!decodedData) {
             break;
         }
@@ -350,10 +350,10 @@ gfxUserFontSet::OTSMessage(void *aUserData, const char *format, ...)
 
 
 
-const PRUint8*
+const uint8_t*
 gfxUserFontSet::SanitizeOpenTypeData(gfxProxyFontEntry *aProxy,
-                                     const PRUint8* aData, PRUint32 aLength,
-                                     PRUint32& aSaneLength, bool aIsCompressed)
+                                     const uint8_t* aData, uint32_t aLength,
+                                     uint32_t& aSaneLength, bool aIsCompressed)
 {
     
     ExpandingMemoryStream output(aIsCompressed ? aLength * 2 : aLength,
@@ -377,7 +377,7 @@ gfxUserFontSet::SanitizeOpenTypeData(gfxProxyFontEntry *aProxy,
                      ERROR_REPORTING_ARGS
                      PRESERVE_GRAPHITE)) {
         aSaneLength = output.Tell();
-        return static_cast<PRUint8*>(output.forget());
+        return static_cast<uint8_t*>(output.forget());
     } else {
         aSaneLength = 0;
         return nullptr;
@@ -387,7 +387,7 @@ gfxUserFontSet::SanitizeOpenTypeData(gfxProxyFontEntry *aProxy,
 static void
 StoreUserFontData(gfxFontEntry* aFontEntry, gfxProxyFontEntry* aProxy,
                   const nsAString& aOriginalName,
-                  nsTArray<PRUint8>* aMetadata, PRUint32 aMetaOrigLen)
+                  nsTArray<uint8_t>* aMetadata, uint32_t aMetaOrigLen)
 {
     if (!aFontEntry->mUserFontData) {
         aFontEntry->mUserFontData = new gfxUserFontData;
@@ -425,10 +425,10 @@ struct WOFFHeader {
 };
 
 void
-gfxUserFontSet::CopyWOFFMetadata(const PRUint8* aFontData,
-                                 PRUint32 aLength,
-                                 nsTArray<PRUint8>* aMetadata,
-                                 PRUint32* aMetaOrigLen)
+gfxUserFontSet::CopyWOFFMetadata(const uint8_t* aFontData,
+                                 uint32_t aLength,
+                                 nsTArray<uint8_t>* aMetadata,
+                                 uint32_t* aMetaOrigLen)
 {
     
     
@@ -440,8 +440,8 @@ gfxUserFontSet::CopyWOFFMetadata(const PRUint8* aFontData,
         return;
     }
     const WOFFHeader* woff = reinterpret_cast<const WOFFHeader*>(aFontData);
-    PRUint32 metaOffset = woff->metaOffset;
-    PRUint32 metaCompLen = woff->metaCompLen;
+    uint32_t metaOffset = woff->metaOffset;
+    uint32_t metaCompLen = woff->metaCompLen;
     if (!metaOffset || !metaCompLen || !woff->metaOrigLen) {
         return;
     }
@@ -460,7 +460,7 @@ gfxUserFontSet::CopyWOFFMetadata(const PRUint8* aFontData,
 
 bool
 gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
-                               const PRUint8 *aFontData, PRUint32 aLength,
+                               const uint8_t *aFontData, uint32_t aLength,
                                nsresult aDownloadStatus)
 {
     
@@ -502,7 +502,7 @@ gfxUserFontSet::OnLoadComplete(gfxProxyFontEntry *aProxy,
 gfxUserFontSet::LoadStatus
 gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
 {
-    PRUint32 numSrc = aProxyEntry->mSrcList.Length();
+    uint32_t numSrc = aProxyEntry->mSrcList.Length();
 
     NS_ASSERTION(aProxyEntry->mSrcIndex < numSrc,
                  "already at the end of the src list for user font");
@@ -533,7 +533,7 @@ gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
                      this, aProxyEntry->mSrcIndex,
                      NS_ConvertUTF16toUTF8(currSrc.mLocalName).get(),
                      NS_ConvertUTF16toUTF8(aProxyEntry->mFamily->Name()).get(),
-                     PRUint32(mGeneration)));
+                     uint32_t(mGeneration)));
                 fe->mFeatureSettings.AppendElements(aProxyEntry->mFeatureSettings);
                 fe->mLanguageOverride = aProxyEntry->mLanguageOverride;
                 StoreUserFontData(fe, aProxyEntry, nsString(), nullptr, 0);
@@ -559,8 +559,8 @@ gfxUserFontSet::LoadNext(gfxProxyFontEntry *aProxyEntry)
                        &loadDoesntSpin);
 
                 if (NS_SUCCEEDED(rv) && loadDoesntSpin) {
-                    PRUint8 *buffer = nullptr;
-                    PRUint32 bufferLength = 0;
+                    uint8_t *buffer = nullptr;
+                    uint32_t bufferLength = 0;
 
                     
                     rv = SyncLoadFontData(aProxyEntry, &currSrc, buffer,
@@ -631,13 +631,13 @@ gfxUserFontSet::IncrementGeneration()
 
 gfxFontEntry*
 gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
-                         const PRUint8 *aFontData, PRUint32 &aLength)
+                         const uint8_t *aFontData, uint32_t &aLength)
 {
     
     
     
     if (!aProxy->Family()) {
-        NS_Free(const_cast<PRUint8*>(aFontData));
+        NS_Free(const_cast<uint8_t*>(aFontData));
         return nullptr;
     }
 
@@ -652,8 +652,8 @@ gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
     
     
     
-    nsTArray<PRUint8> metadata;
-    PRUint32 metaOrigLen = 0;
+    nsTArray<uint8_t> metadata;
+    uint32_t metaOrigLen = 0;
     if (fontType == GFX_USERFONT_WOFF) {
         CopyWOFFMetadata(aFontData, aLength, &metadata, &metaOrigLen);
     }
@@ -669,8 +669,8 @@ gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
     if (gfxPlatform::GetPlatform()->SanitizeDownloadedFonts()) {
        
         
-        PRUint32 saneLen;
-        const PRUint8* saneData =
+        uint32_t saneLen;
+        const uint8_t* saneData =
             SanitizeOpenTypeData(aProxy, aFontData, aLength, saneLen,
                                  fontType == GFX_USERFONT_WOFF);
         if (!saneData) {
@@ -742,7 +742,7 @@ gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
             LOG(("userfonts (%p) [src %d] loaded uri: (%s) for (%s) gen: %8.8x\n",
                  this, aProxy->mSrcIndex, fontURI.get(),
                  NS_ConvertUTF16toUTF8(aProxy->mFamily->Name()).get(),
-                 PRUint32(mGeneration)));
+                 uint32_t(mGeneration)));
         }
 #endif
         ReplaceFontEntry(aProxy, fe);

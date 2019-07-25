@@ -54,7 +54,7 @@ enum EStateRule
 
 
 
-bool MapToState(EStateRule aRule, dom::Element* aElement, PRUint64* aState);
+bool MapToState(EStateRule aRule, dom::Element* aElement, uint64_t* aState);
 
 } 
 } 

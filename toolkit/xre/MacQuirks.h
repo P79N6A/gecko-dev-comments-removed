@@ -18,12 +18,12 @@
 
 
 struct VersionPart {
-  PRInt32     numA;
+  int32_t     numA;
 
   const char *strB;    
-  PRUint32    strBlen;
+  uint32_t    strBlen;
 
-  PRInt32     numC;
+  int32_t     numC;
 
   char       *extraD;  
 };
@@ -98,7 +98,7 @@ ParseVP(char *part, VersionPart &result)
 
 
 
-static PRInt32
+static int32_t
 ns_strcmp(const char *str1, const char *str2)
 {
   
@@ -112,8 +112,8 @@ ns_strcmp(const char *str1, const char *str2)
 }
 
 
-static PRInt32
-ns_strnncmp(const char *str1, PRUint32 len1, const char *str2, PRUint32 len2)
+static int32_t
+ns_strnncmp(const char *str1, uint32_t len1, const char *str2, uint32_t len2)
 {
   
   if (!str1)
@@ -137,8 +137,8 @@ ns_strnncmp(const char *str1, PRUint32 len1, const char *str2, PRUint32 len2)
 }
 
 
-static PRInt32
-ns_cmp(PRInt32 n1, PRInt32 n2)
+static int32_t
+ns_cmp(int32_t n1, int32_t n2)
 {
   if (n1 < n2)
     return -1;
@@ -149,10 +149,10 @@ ns_cmp(PRInt32 n1, PRInt32 n2)
 
 
 
-static PRInt32
+static int32_t
 CompareVP(VersionPart &v1, VersionPart &v2)
 {
-  PRInt32 r = ns_cmp(v1.numA, v2.numA);
+  int32_t r = ns_cmp(v1.numA, v2.numA);
   if (r)
     return r;
 
@@ -169,7 +169,7 @@ CompareVP(VersionPart &v1, VersionPart &v2)
 
 
 
-PRInt32
+int32_t
 NS_CompareVersions(const char *A, const char *B)
 {
   char *A2 = strdup(A);
@@ -182,7 +182,7 @@ NS_CompareVersions(const char *A, const char *B)
     return 1;
   }
 
-  PRInt32 result;
+  int32_t result;
   char *a = A2, *b = B2;
 
   do {

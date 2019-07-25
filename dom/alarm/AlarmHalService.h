@@ -47,7 +47,7 @@ private:
   
   nsCOMPtr<nsITimezoneChangedCb> mTimezoneChangedCb;
 
-  PRInt32 GetTimezoneOffset(bool aIgnoreDST);
+  int32_t GetTimezoneOffset(bool aIgnoreDST);
 };
 
 } 

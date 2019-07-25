@@ -29,7 +29,7 @@ public:
     
     
     
-    PRUint16 mPollFlags;
+    uint16_t mPollFlags;
 
     
     
@@ -40,7 +40,7 @@ public:
     
     
     
-    PRUint16 mPollTimeout;
+    uint16_t mPollTimeout;
 
     
     
@@ -51,7 +51,7 @@ public:
     
     
     
-    virtual void OnSocketReady(PRFileDesc *fd, PRInt16 outFlags) = 0;
+    virtual void OnSocketReady(PRFileDesc *fd, int16_t outFlags) = 0;
 
     
     

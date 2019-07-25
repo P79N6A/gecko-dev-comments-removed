@@ -82,8 +82,8 @@ private:
   Page *mHead;
   Page *mTail;
 
-  PRUint16 mOffsetHead;  
-  PRUint16 mOffsetTail;  
+  uint16_t mOffsetHead;  
+  uint16_t mOffsetTail;  
 };
 
 #endif  

@@ -20,14 +20,14 @@ public:
   
   
 
-  NS_IMETHOD GetMaxLength(const char * aSrc, PRInt32 aSrcLength, 
-      PRInt32 * aDestLength);
+  NS_IMETHOD GetMaxLength(const char * aSrc, int32_t aSrcLength, 
+      int32_t * aDestLength);
   NS_IMETHOD Reset();
 
 protected:
-  PRUint8 mState;
+  uint8_t mState;
   
-  PRUint8 mOddByte;
+  uint8_t mOddByte;
   
   PRUnichar mOddHighSurrogate;
   
@@ -39,8 +39,8 @@ class nsUTF16BEToUnicode : public nsUTF16ToUnicodeBase
 {
 public:
 
-  NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength,
-      PRUnichar * aDest, PRInt32 * aDestLength); 
+  NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength,
+      PRUnichar * aDest, int32_t * aDestLength); 
 };
 
 
@@ -48,8 +48,8 @@ class nsUTF16LEToUnicode : public nsUTF16ToUnicodeBase
 {
 public:
 
-  NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength,
-      PRUnichar * aDest, PRInt32 * aDestLength); 
+  NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength,
+      PRUnichar * aDest, int32_t * aDestLength); 
 };
 
 
@@ -58,8 +58,8 @@ class nsUTF16ToUnicode : public nsUTF16ToUnicodeBase
 public:
 
   nsUTF16ToUnicode() { Reset();}
-  NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength,
-      PRUnichar * aDest, PRInt32 * aDestLength); 
+  NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength,
+      PRUnichar * aDest, int32_t * aDestLength); 
 
   NS_IMETHOD Reset();
 

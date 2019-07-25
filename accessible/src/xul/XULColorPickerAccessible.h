@@ -23,8 +23,8 @@ public:
   
   virtual void Value(nsString& aValue);
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
-  virtual PRUint64 NativeInteractiveState() const;
+  virtual uint64_t NativeState();
+  virtual uint64_t NativeInteractiveState() const;
 
   
   virtual Accessible* ContainerWidget() const;
@@ -41,7 +41,7 @@ public:
 
   
   virtual a11y::role NativeRole();
-  virtual PRUint64 NativeState();
+  virtual uint64_t NativeState();
 
   
   virtual bool IsWidget() const;

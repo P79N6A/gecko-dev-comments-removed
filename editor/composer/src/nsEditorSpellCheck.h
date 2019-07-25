@@ -48,12 +48,12 @@ protected:
   nsCOMPtr<nsISpellChecker> mSpellChecker;
 
   nsTArray<nsString>  mSuggestedWordList;
-  PRInt32        mSuggestedWordIndex;
+  int32_t        mSuggestedWordIndex;
 
   
   
   nsTArray<nsString>  mDictionaryList;
-  PRInt32        mDictionaryIndex;
+  int32_t        mDictionaryIndex;
 
   nsresult       DeleteSuggestedWordList();
 

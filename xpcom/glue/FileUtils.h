@@ -62,7 +62,7 @@ typedef Scoped<ScopedCloseFDTraits> ScopedClose;
 
 
 
-NS_COM_GLUE bool fallocate(PRFileDesc *aFD, PRInt64 aLength);
+NS_COM_GLUE bool fallocate(PRFileDesc *aFD, int64_t aLength);
 
 } 
 #endif

@@ -96,7 +96,7 @@ private:
 
 
   void HandleDOMDocumentLoad(nsIDocument* aDocument,
-                             PRUint32 aLoadEventType);
+                             uint32_t aLoadEventType);
 
   
 

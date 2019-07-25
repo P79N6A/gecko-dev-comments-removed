@@ -38,18 +38,18 @@ public:
 
 
 
-  NS_IMETHOD GetCellDataAt(PRInt32 aRowIndex, PRInt32 aColIndex,
+  NS_IMETHOD GetCellDataAt(int32_t aRowIndex, int32_t aColIndex,
                            nsIDOMElement* &aCell,   
-                           PRInt32& aStartRowIndex, PRInt32& aStartColIndex, 
-                           PRInt32& aRowSpan, PRInt32& aColSpan,
-                           PRInt32& aActualRowSpan, PRInt32& aActualColSpan,
+                           int32_t& aStartRowIndex, int32_t& aStartColIndex, 
+                           int32_t& aRowSpan, int32_t& aColSpan,
+                           int32_t& aActualRowSpan, int32_t& aActualColSpan,
                            bool& aIsSelected)=0;
 
   
 
 
 
-  NS_IMETHOD GetTableSize(PRInt32& aRowCount, PRInt32& aColCount)=0;
+  NS_IMETHOD GetTableSize(int32_t& aRowCount, int32_t& aColCount)=0;
 
   
 
@@ -61,8 +61,8 @@ public:
 
 
 
-  NS_IMETHOD GetIndexByRowAndColumn(PRInt32 aRow, PRInt32 aColumn,
-                                    PRInt32 *aIndex) = 0;
+  NS_IMETHOD GetIndexByRowAndColumn(int32_t aRow, int32_t aColumn,
+                                    int32_t *aIndex) = 0;
 
   
 
@@ -73,8 +73,8 @@ public:
 
 
 
-  NS_IMETHOD GetRowAndColumnByIndex(PRInt32 aIndex,
-                                    PRInt32 *aRow, PRInt32 *aColumn) = 0;
+  NS_IMETHOD GetRowAndColumnByIndex(int32_t aIndex,
+                                    int32_t *aRow, int32_t *aColumn) = 0;
 };
 
 #endif

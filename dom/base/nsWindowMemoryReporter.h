@@ -158,7 +158,7 @@ private:
 
 
 
-  PRUint32 GetGhostTimeout();
+  uint32_t GetGhostTimeout();
 
   void ObserveDOMWindowDetached(nsISupports* aWindow);
   void ObserveAfterMinimizeMemoryUsage();

@@ -77,7 +77,7 @@ public:
 
 #define NS_FREE_XPCOM_POINTER_ARRAY(size, array, freeFunc)                    \
     PR_BEGIN_MACRO                                                            \
-        PRInt32 iter_ = PRInt32(size);                                        \
+        int32_t iter_ = int32_t(size);                                        \
         while (--iter_ >= 0)                                                  \
             freeFunc((array)[iter_]);                                         \
         NS_Free((array));                                                     \

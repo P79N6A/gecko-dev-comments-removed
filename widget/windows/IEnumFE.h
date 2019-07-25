@@ -83,7 +83,7 @@ private:
     ULONG mRefCnt; 
     ULONG mCurrentIdx; 
 
-    void SetIndex(PRUint32 aIdx);
+    void SetIndex(uint32_t aIdx);
 };
 
 

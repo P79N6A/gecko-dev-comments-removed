@@ -15,21 +15,21 @@ enum {
 };
 
 typedef struct {
-		PRUint16 srcBegin;		
-		PRUint16 srcEnd;			
-		PRUint16 destBegin;		
+		uint16_t srcBegin;		
+		uint16_t srcEnd;			
+		uint16_t destBegin;		
 } uFormat0;
 
 typedef struct {
-		PRUint16 srcBegin;		
-		PRUint16 srcEnd;			
-		PRUint16	mappingOffset;	
+		uint16_t srcBegin;		
+		uint16_t srcEnd;			
+		uint16_t	mappingOffset;	
 } uFormat1;
 
 typedef struct {
-		PRUint16 srcBegin;		
-		PRUint16 srcEnd;			
-		PRUint16 destBegin;		
+		uint16_t srcBegin;		
+		uint16_t srcEnd;			
+		uint16_t destBegin;		
 } uFormat2;
 
 typedef struct  {
@@ -40,14 +40,14 @@ typedef struct  {
 	} fmt;
 } uMapCell;
 
-#define UMAPCELL_SIZE (3*sizeof(PRUint16))
+#define UMAPCELL_SIZE (3*sizeof(uint16_t))
 
 typedef struct  {
-	PRUint16 		itemOfList;
-	PRUint16		offsetToFormatArray;
-	PRUint16		offsetToMapCellArray;
-	PRUint16		offsetToMappingTable;
-	PRUint16		data[1];
+	uint16_t 		itemOfList;
+	uint16_t		offsetToFormatArray;
+	uint16_t		offsetToMapCellArray;
+	uint16_t		offsetToMappingTable;
+	uint16_t		data[1];
 } uTable;
 
 #endif

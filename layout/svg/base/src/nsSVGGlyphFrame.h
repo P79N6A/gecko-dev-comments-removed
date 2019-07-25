@@ -57,10 +57,10 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  nsresult GetStartPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
-  nsresult GetEndPositionOfChar(PRUint32 charnum, nsIDOMSVGPoint **_retval);
-  nsresult GetExtentOfChar(PRUint32 charnum, nsIDOMSVGRect **_retval);
-  nsresult GetRotationOfChar(PRUint32 charnum, float *_retval);
+  nsresult GetStartPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
+  nsresult GetEndPositionOfChar(uint32_t charnum, nsIDOMSVGPoint **_retval);
+  nsresult GetExtentOfChar(uint32_t charnum, nsIDOMSVGRect **_retval);
+  nsresult GetRotationOfChar(uint32_t charnum, float *_retval);
   
 
 
@@ -72,27 +72,27 @@ public:
   bool IsStartOfChunk(); 
 
   void GetXY(mozilla::SVGUserUnitList *aX, mozilla::SVGUserUnitList *aY);
-  void SetStartIndex(PRUint32 aStartIndex);
+  void SetStartIndex(uint32_t aStartIndex);
   
 
 
 
-  void GetEffectiveXY(PRInt32 strLength,
+  void GetEffectiveXY(int32_t strLength,
                       nsTArray<float> &aX, nsTArray<float> &aY);
   
 
 
 
-  void GetEffectiveDxDy(PRInt32 strLength, 
+  void GetEffectiveDxDy(int32_t strLength, 
                         nsTArray<float> &aDx,
                         nsTArray<float> &aDy);
   
 
 
 
-  void GetEffectiveRotate(PRInt32 strLength,
+  void GetEffectiveRotate(int32_t strLength,
                           nsTArray<float> &aRotate);
-  PRUint16 GetTextAnchor();
+  uint16_t GetTextAnchor();
   bool IsAbsolutelyPositioned();
   bool IsTextEmpty() const {
     return mContent->GetText()->GetLength() == 0;
@@ -117,7 +117,7 @@ public:
 
   virtual void DidSetStyleContext(nsStyleContext* aOldStyleContext);
 
-  NS_IMETHOD  IsSelectable(bool* aIsSelectable, PRUint8* aSelectStyle) const;
+  NS_IMETHOD  IsSelectable(bool* aIsSelectable, uint8_t* aSelectStyle) const;
 
   NS_IMETHOD Init(nsIContent*      aContent,
                   nsIFrame*        aParent,
@@ -130,7 +130,7 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  virtual bool IsFrameOfType(PRUint32 aFlags) const
+  virtual bool IsFrameOfType(uint32_t aFlags) const
   {
     
     
@@ -155,22 +155,22 @@ public:
                       const nsIntRect *aDirtyRect);
   NS_IMETHOD_(nsIFrame*) GetFrameForPoint(const nsPoint &aPoint);
   virtual SVGBBox GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
-                                      PRUint32 aFlags);
+                                      uint32_t aFlags);
 
   NS_IMETHOD_(nsRect) GetCoveredRegion();
   virtual void ReflowSVG();
-  virtual void NotifySVGChanged(PRUint32 aFlags);
+  virtual void NotifySVGChanged(uint32_t aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return false; }
 
   
-  gfxMatrix GetCanvasTM(PRUint32 aFor);
+  gfxMatrix GetCanvasTM(uint32_t aFor);
 
   
   
-  virtual PRUint32 GetNumberOfChars();
+  virtual uint32_t GetNumberOfChars();
   virtual float GetComputedTextLength();
-  virtual float GetSubStringLength(PRUint32 charnum, PRUint32 fragmentChars);
-  virtual PRInt32 GetCharNumAtPosition(nsIDOMSVGPoint *point);
+  virtual float GetSubStringLength(uint32_t charnum, uint32_t fragmentChars);
+  virtual int32_t GetCharNumAtPosition(nsIDOMSVGPoint *point);
   NS_IMETHOD_(nsSVGGlyphFrame *) GetFirstGlyphFrame();
   NS_IMETHOD_(nsSVGGlyphFrame *) GetNextGlyphFrame();
   NS_IMETHOD_(void) SetWhitespaceCompression(bool aCompressWhitespace) {
@@ -189,7 +189,7 @@ private:
 
   class AutoCanvasTMForMarker {
   public:
-    AutoCanvasTMForMarker(nsSVGGlyphFrame *aFrame, PRUint32 aFor)
+    AutoCanvasTMForMarker(nsSVGGlyphFrame *aFrame, uint32_t aFor)
       : mFrame(aFrame)
     {
       mOldFor = mFrame->mGetCanvasTMForFlag;
@@ -202,14 +202,14 @@ private:
     }
   private:
     nsSVGGlyphFrame *mFrame;
-    PRUint32 mOldFor;
+    uint32_t mOldFor;
   };
 
   
   
   
   
-  static PRUint32 GetTextRunUnitsFactor() { return 64; }
+  static uint32_t GetTextRunUnitsFactor() { return 64; }
   
   
 
@@ -227,7 +227,7 @@ private:
   bool GetCharacterData(nsAString & aCharacterData);
   bool GetCharacterPositions(nsTArray<CharacterPosition>* aCharacterPositions,
                                float aMetricsScale);
-  PRUint32 GetTextRunFlags(PRUint32 strLength);
+  uint32_t GetTextRunFlags(uint32_t strLength);
 
   void AddCharactersToPath(CharacterIterator *aIter,
                            gfxContext *aContext);
@@ -239,10 +239,10 @@ private:
                       gfxPattern *aStrokePattern = nullptr);
 
   void NotifyGlyphMetricsChange();
-  void SetupGlobalTransform(gfxContext *aContext, PRUint32 aFor);
-  nsresult GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
+  void SetupGlobalTransform(gfxContext *aContext, uint32_t aFor);
+  nsresult GetHighlight(uint32_t *charnum, uint32_t *nchars,
                         nscolor *foreground, nscolor *background);
-  float GetSubStringAdvance(PRUint32 charnum, PRUint32 fragmentChars,
+  float GetSubStringAdvance(uint32_t charnum, uint32_t fragmentChars,
                             float aMetricsScale);
   gfxFloat GetBaselineOffset(float aMetricsScale);
 
@@ -257,8 +257,8 @@ private:
   gfxTextRun *mTextRun;
   gfxPoint mPosition;
   
-  PRUint32 mStartIndex;
-  PRUint32 mGetCanvasTMForFlag;
+  uint32_t mStartIndex;
+  uint32_t mGetCanvasTMForFlag;
   bool mCompressWhitespace;
   bool mTrimLeadingWhitespace;
   bool mTrimTrailingWhitespace;

@@ -148,7 +148,7 @@ public:
 
   nsresult LoadInlineStyle(nsIContent* aElement,
                            const nsAString& aBuffer,
-                           PRUint32 aLineNumber,
+                           uint32_t aLineNumber,
                            const nsAString& aTitle,
                            const nsAString& aMedia,
                            nsICSSLoaderObserver* aObserver,
@@ -460,7 +460,7 @@ private:
   
   
   
-  PRUint32          mDatasToNotifyOn;
+  uint32_t          mDatasToNotifyOn;
 
   nsCompatibility   mCompatMode;
   nsString          mPreferredSheet;  

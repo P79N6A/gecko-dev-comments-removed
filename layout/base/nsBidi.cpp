@@ -234,7 +234,7 @@ void nsBidi::Free()
 
 
 
-nsresult nsBidi::SetPara(const PRUnichar *aText, PRInt32 aLength,
+nsresult nsBidi::SetPara(const PRUnichar *aText, int32_t aLength,
                          nsBidiLevel aParaLevel, nsBidiLevel *aEmbeddingLevels)
 {
   nsBidiDirection direction;
@@ -352,7 +352,7 @@ nsresult nsBidi::SetPara(const PRUnichar *aText, PRInt32 aLength,
       } else {
         
         nsBidiLevel *levels=mLevels;
-        PRInt32 start, limit=0;
+        int32_t start, limit=0;
         nsBidiLevel level, nextLevel;
         DirProp sor, eor;
 
@@ -418,7 +418,7 @@ void nsBidi::GetDirProps(const PRUnichar *aText)
 {
   DirProp *dirProps=mDirPropsMemory;    
 
-  PRInt32 i=0, length=mLength;
+  int32_t i=0, length=mLength;
   Flags flags=0;      
   PRUnichar uchar;
   DirProp dirProp;
@@ -429,7 +429,7 @@ void nsBidi::GetDirProps(const PRUnichar *aText)
       uchar=aText[i];
       if(!IS_FIRST_SURROGATE(uchar) || i+1==length || !IS_SECOND_SURROGATE(aText[i+1])) {
         
-        flags|=DIRPROP_FLAG(dirProps[i]=dirProp=GetBidiCat((PRUint32)uchar));
+        flags|=DIRPROP_FLAG(dirProps[i]=dirProp=GetBidiCat((uint32_t)uchar));
       } else {
         
         dirProps[i++]=BN;   
@@ -459,7 +459,7 @@ void nsBidi::GetDirProps(const PRUnichar *aText)
     uchar=aText[i];
     if(!IS_FIRST_SURROGATE(uchar) || i+1==length || !IS_SECOND_SURROGATE(aText[i+1])) {
       
-      flags|=DIRPROP_FLAG(dirProps[i]=GetBidiCat((PRUint32)uchar));
+      flags|=DIRPROP_FLAG(dirProps[i]=GetBidiCat((uint32_t)uchar));
     } else {
       
       dirProps[i++]=BN;   
@@ -533,7 +533,7 @@ nsBidiDirection nsBidi::ResolveExplicitLevels()
   const DirProp *dirProps=mDirProps;
   nsBidiLevel *levels=mLevels;
 
-  PRInt32 i=0, length=mLength;
+  int32_t i=0, length=mLength;
   Flags flags=mFlags;       
   DirProp dirProp;
   nsBidiLevel level=mParaLevel;
@@ -560,7 +560,7 @@ nsBidiDirection nsBidi::ResolveExplicitLevels()
     nsBidiLevel embeddingLevel=level, newLevel, stackTop=0;
 
     nsBidiLevel stack[NSBIDI_MAX_EXPLICIT_LEVEL];        
-    PRUint32 countOver60=0, countOver61=0;  
+    uint32_t countOver60=0, countOver61=0;  
 
     
     flags=0;
@@ -689,7 +689,7 @@ nsresult nsBidi::CheckExplicitLevels(nsBidiDirection *aDirection)
   const DirProp *dirProps=mDirProps;
   nsBidiLevel *levels=mLevels;
 
-  PRInt32 i, length=mLength;
+  int32_t i, length=mLength;
   Flags flags=0;  
   nsBidiLevel level, paraLevel=mParaLevel;
 
@@ -764,15 +764,15 @@ nsBidiDirection nsBidi::DirectionFromFlags(Flags aFlags)
 #define PREV_EN_AFTER_W2 4
 #define PREV_EN_AFTER_W4 8
 
-void nsBidi::ResolveImplicitLevels(PRInt32 aStart, PRInt32 aLimit,
+void nsBidi::ResolveImplicitLevels(int32_t aStart, int32_t aLimit,
                    DirProp aSOR, DirProp aEOR)
 {
   const DirProp *dirProps=mDirProps;
   nsBidiLevel *levels=mLevels;
 
-  PRInt32 i, next, neutralStart=-1;
+  int32_t i, next, neutralStart=-1;
   DirProp prevDirProp, dirProp, nextDirProp, lastStrong, beforeNeutral;
-  PRUint8 historyOfEN;
+  uint8_t historyOfEN;
 
   
   next=aStart;
@@ -1050,7 +1050,7 @@ void nsBidi::AdjustWSLevels()
 {
   const DirProp *dirProps=mDirProps;
   nsBidiLevel *levels=mLevels;
-  PRInt32 i;
+  int32_t i;
 
   if(mFlags&MASK_WS) {
     nsBidiLevel paraLevel=mParaLevel;
@@ -1101,7 +1101,7 @@ nsresult nsBidi::GetParaLevel(nsBidiLevel* aParaLevel)
 
 
 
-nsresult nsBidi::GetLength(PRInt32* aLength)
+nsresult nsBidi::GetLength(int32_t* aLength)
 {
   *aLength = mLength;
   return NS_OK;
@@ -1156,10 +1156,10 @@ nsresult nsBidi::GetLength(PRInt32* aLength)
 
 
 
-nsresult nsBidi::SetLine(nsIBidi* aParaBidi, PRInt32 aStart, PRInt32 aLimit)
+nsresult nsBidi::SetLine(nsIBidi* aParaBidi, int32_t aStart, int32_t aLimit)
 {
   nsBidi* pParent = (nsBidi*)aParaBidi;
-  PRInt32 length;
+  int32_t length;
 
   
   if(pParent==NULL) {
@@ -1198,7 +1198,7 @@ nsresult nsBidi::SetLine(nsIBidi* aParaBidi, PRInt32 aStart, PRInt32 aLimit)
       }
     } else {
       const nsBidiLevel *levels=mLevels;
-      PRInt32 i, trailingWSStart;
+      int32_t i, trailingWSStart;
       nsBidiLevel level;
       Flags flags=0;
 
@@ -1280,7 +1280,7 @@ void nsBidi::SetTrailingWSStart() {
 
   const DirProp *dirProps=mDirProps;
   nsBidiLevel *levels=mLevels;
-  PRInt32 start=mLength;
+  int32_t start=mLength;
   nsBidiLevel paraLevel=mParaLevel;
 
   
@@ -1296,7 +1296,7 @@ void nsBidi::SetTrailingWSStart() {
   mTrailingWSStart=start;
 }
 
-nsresult nsBidi::GetLevelAt(PRInt32 aCharIndex, nsBidiLevel* aLevel)
+nsresult nsBidi::GetLevelAt(int32_t aCharIndex, nsBidiLevel* aLevel)
 {
   
   if(aCharIndex<0 || mLength<=aCharIndex) {
@@ -1311,7 +1311,7 @@ nsresult nsBidi::GetLevelAt(PRInt32 aCharIndex, nsBidiLevel* aLevel)
 
 nsresult nsBidi::GetLevels(nsBidiLevel** aLevels)
 {
-  PRInt32 start, length;
+  int32_t start, length;
 
   length = mLength;
   if(length<=0) {
@@ -1354,7 +1354,7 @@ nsresult nsBidi::GetLevels(nsBidiLevel** aLevels)
 }
 #endif 
 
-nsresult nsBidi::GetCharTypeAt(PRInt32 aCharIndex, nsCharType* pType)
+nsresult nsBidi::GetCharTypeAt(int32_t aCharIndex, nsCharType* pType)
 {
   if(aCharIndex<0 || mLength<=aCharIndex) {
     return NS_ERROR_INVALID_ARG;
@@ -1363,9 +1363,9 @@ nsresult nsBidi::GetCharTypeAt(PRInt32 aCharIndex, nsCharType* pType)
   return NS_OK;
 }
 
-nsresult nsBidi::GetLogicalRun(PRInt32 aLogicalStart, PRInt32 *aLogicalLimit, nsBidiLevel *aLevel)
+nsresult nsBidi::GetLogicalRun(int32_t aLogicalStart, int32_t *aLogicalLimit, nsBidiLevel *aLevel)
 {
-  PRInt32 length = mLength;
+  int32_t length = mLength;
 
   if(aLogicalStart<0 || length<=aLogicalStart) {
     return NS_ERROR_INVALID_ARG;
@@ -1398,7 +1398,7 @@ nsresult nsBidi::GetLogicalRun(PRInt32 aLogicalStart, PRInt32 *aLogicalLimit, ns
 
 
 
-nsresult nsBidi::CountRuns(PRInt32* aRunCount)
+nsresult nsBidi::CountRuns(int32_t* aRunCount)
 {
   if(mRunCount<0 && !GetRuns()) {
     return NS_ERROR_OUT_OF_MEMORY;
@@ -1409,7 +1409,7 @@ nsresult nsBidi::CountRuns(PRInt32* aRunCount)
   }
 }
 
-nsresult nsBidi::GetVisualRun(PRInt32 aRunIndex, PRInt32 *aLogicalStart, PRInt32 *aLength, nsBidiDirection *aDirection)
+nsresult nsBidi::GetVisualRun(int32_t aRunIndex, int32_t *aLogicalStart, int32_t *aLength, nsBidiDirection *aDirection)
 {
   if( aRunIndex<0 ||
       (mRunCount==-1 && !GetRuns()) ||
@@ -1418,7 +1418,7 @@ nsresult nsBidi::GetVisualRun(PRInt32 aRunIndex, PRInt32 *aLogicalStart, PRInt32
     *aDirection = NSBIDI_LTR;
     return NS_OK;
   } else {
-    PRInt32 start=mRuns[aRunIndex].logicalStart;
+    int32_t start=mRuns[aRunIndex].logicalStart;
     if(aLogicalStart!=NULL) {
       *aLogicalStart=GET_INDEX(start);
     }
@@ -1451,7 +1451,7 @@ bool nsBidi::GetRuns()
     GetSingleRun(mParaLevel);
   } else  {
     
-    PRInt32 length=mLength, limit=length;
+    int32_t length=mLength, limit=length;
 
     
 
@@ -1470,7 +1470,7 @@ bool nsBidi::GetRuns()
       GetSingleRun(mParaLevel);
     } else {
       nsBidiLevel *levels=mLevels;
-      PRInt32 i, runCount;
+      int32_t i, runCount;
       nsBidiLevel level=NSBIDI_DEFAULT_LTR;   
 
       
@@ -1493,7 +1493,7 @@ bool nsBidi::GetRuns()
       } else  {
         
         Run *runs;
-        PRInt32 runIndex, start;
+        int32_t runIndex, start;
         nsBidiLevel minLevel=NSBIDI_MAX_EXPLICIT_LEVEL+1, maxLevel=0;
 
         
@@ -1630,7 +1630,7 @@ void nsBidi::ReorderLine(nsBidiLevel aMinLevel, nsBidiLevel aMaxLevel)
 {
   Run *runs;
   nsBidiLevel *levels;
-  PRInt32 firstRun, endRun, limitRun, runCount, temp;
+  int32_t firstRun, endRun, limitRun, runCount, temp;
 
   
   if(aMaxLevel<=(aMinLevel|1)) {
@@ -1718,9 +1718,9 @@ void nsBidi::ReorderLine(nsBidiLevel aMinLevel, nsBidiLevel aMaxLevel)
   }
 }
 
-nsresult nsBidi::ReorderVisual(const nsBidiLevel *aLevels, PRInt32 aLength, PRInt32 *aIndexMap)
+nsresult nsBidi::ReorderVisual(const nsBidiLevel *aLevels, int32_t aLength, int32_t *aIndexMap)
 {
-  PRInt32 start, end, limit, temp;
+  int32_t start, end, limit, temp;
   nsBidiLevel minLevel, maxLevel;
 
   if(aIndexMap==NULL || !PrepareReorder(aLevels, aLength, aIndexMap, &minLevel, &maxLevel)) {
@@ -1780,11 +1780,11 @@ nsresult nsBidi::ReorderVisual(const nsBidiLevel *aLevels, PRInt32 aLength, PRIn
   return NS_OK;
 }
 
-bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
-                PRInt32 *aIndexMap,
+bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, int32_t aLength,
+                int32_t *aIndexMap,
                 nsBidiLevel *aMinLevel, nsBidiLevel *aMaxLevel)
 {
-  PRInt32 start;
+  int32_t start;
   nsBidiLevel level, minLevel, maxLevel;
 
   if(aLevels==NULL || aLength<=0) {
@@ -1821,7 +1821,7 @@ bool nsBidi::PrepareReorder(const nsBidiLevel *aLevels, PRInt32 aLength,
 #ifdef FULL_BIDI_ENGINE
 
 
-nsresult nsBidi::GetVisualIndex(PRInt32 aLogicalIndex, PRInt32* aVisualIndex) {
+nsresult nsBidi::GetVisualIndex(int32_t aLogicalIndex, int32_t* aVisualIndex) {
   if(aLogicalIndex<0 || mLength<=aLogicalIndex) {
     return NS_ERROR_INVALID_ARG;
   } else {
@@ -1838,7 +1838,7 @@ nsresult nsBidi::GetVisualIndex(PRInt32 aLogicalIndex, PRInt32* aVisualIndex) {
           return NS_ERROR_OUT_OF_MEMORY;
         } else {
           Run *runs=mRuns;
-          PRInt32 i, visualStart=0, offset, length;
+          int32_t i, visualStart=0, offset, length;
 
           
           for(i=0;; ++i) {
@@ -1862,7 +1862,7 @@ nsresult nsBidi::GetVisualIndex(PRInt32 aLogicalIndex, PRInt32* aVisualIndex) {
   }
 }
 
-nsresult nsBidi::GetLogicalIndex(PRInt32 aVisualIndex, PRInt32 *aLogicalIndex)
+nsresult nsBidi::GetLogicalIndex(int32_t aVisualIndex, int32_t *aLogicalIndex)
 {
   if(aVisualIndex<0 || mLength<=aVisualIndex) {
     return NS_ERROR_INVALID_ARG;
@@ -1880,14 +1880,14 @@ nsresult nsBidi::GetLogicalIndex(PRInt32 aVisualIndex, PRInt32 *aLogicalIndex)
           return NS_ERROR_OUT_OF_MEMORY;
         } else {
           Run *runs=mRuns;
-          PRInt32 i, runCount=mRunCount, start;
+          int32_t i, runCount=mRunCount, start;
 
           if(runCount<=10) {
             
             for(i=0; aVisualIndex>=runs[i].visualLimit; ++i) {}
           } else {
             
-            PRInt32 start=0, limit=runCount;
+            int32_t start=0, limit=runCount;
 
             
             for(;;) {
@@ -1921,7 +1921,7 @@ nsresult nsBidi::GetLogicalIndex(PRInt32 aVisualIndex, PRInt32 *aLogicalIndex)
   }
 }
 
-nsresult nsBidi::GetLogicalMap(PRInt32 *aIndexMap)
+nsresult nsBidi::GetLogicalMap(int32_t *aIndexMap)
 {
   nsBidiLevel *levels;
   nsresult rv;
@@ -1937,9 +1937,9 @@ nsresult nsBidi::GetLogicalMap(PRInt32 *aIndexMap)
   }
 }
 
-nsresult nsBidi::GetVisualMap(PRInt32 *aIndexMap)
+nsresult nsBidi::GetVisualMap(int32_t *aIndexMap)
 {
-  PRInt32* runCount=NULL;
+  int32_t* runCount=NULL;
   nsresult rv;
 
   
@@ -1951,7 +1951,7 @@ nsresult nsBidi::GetVisualMap(PRInt32 *aIndexMap)
   } else {
     
     Run *runs=mRuns, *runsLimit=runs+mRunCount;
-    PRInt32 logicalStart, visualStart, visualLimit;
+    int32_t logicalStart, visualStart, visualLimit;
 
     visualStart=0;
     for(; runs<runsLimit; ++runs) {
@@ -1976,9 +1976,9 @@ nsresult nsBidi::GetVisualMap(PRInt32 *aIndexMap)
 
 
 
-nsresult nsBidi::ReorderLogical(const nsBidiLevel *aLevels, PRInt32 aLength, PRInt32 *aIndexMap)
+nsresult nsBidi::ReorderLogical(const nsBidiLevel *aLevels, int32_t aLength, int32_t *aIndexMap)
 {
-  PRInt32 start, limit, sumOfSosEos;
+  int32_t start, limit, sumOfSosEos;
   nsBidiLevel minLevel, maxLevel;
 
   if(aIndexMap==NULL || !PrepareReorder(aLevels, aLength, aIndexMap, &minLevel, &maxLevel)) {
@@ -2041,7 +2041,7 @@ nsresult nsBidi::ReorderLogical(const nsBidiLevel *aLevels, PRInt32 aLength, PRI
   return NS_OK;
 }
 
-nsresult nsBidi::InvertMap(const PRInt32 *aSrcMap, PRInt32 *aDestMap, PRInt32 aLength)
+nsresult nsBidi::InvertMap(const int32_t *aSrcMap, int32_t *aDestMap, int32_t aLength)
 {
   if(aSrcMap!=NULL && aDestMap!=NULL) {
     aSrcMap+=aLength;
@@ -2052,8 +2052,8 @@ nsresult nsBidi::InvertMap(const PRInt32 *aSrcMap, PRInt32 *aDestMap, PRInt32 aL
   return NS_OK;
 }
 
-PRInt32 nsBidi::doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
-                               PRUnichar *dest, PRUint16 options) {
+int32_t nsBidi::doWriteReverse(const PRUnichar *src, int32_t srcLength,
+                               PRUnichar *dest, uint16_t options) {
   
 
 
@@ -2072,8 +2072,8 @@ PRInt32 nsBidi::doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
 
 
 
-  PRInt32 i, j, destSize;
-  PRUint32 c;
+  int32_t i, j, destSize;
+  uint32_t c;
 
   
   switch(options&(NSBIDI_REMOVE_BIDI_CONTROLS|NSBIDI_DO_MIRRORING|NSBIDI_KEEP_BASE_COMBINING)) {
@@ -2140,13 +2140,13 @@ PRInt32 nsBidi::doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
       } else {
       
 
-        PRInt32 length=srcLength;
+        int32_t length=srcLength;
         PRUnichar ch;
 
         i=0;
         do {
           ch=*src++;
-          if (!IsBidiControl((PRUint32)ch)) {
+          if (!IsBidiControl((uint32_t)ch)) {
             ++i;
           }
         } while(--length>0);
@@ -2179,7 +2179,7 @@ PRInt32 nsBidi::doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
           
           c = SymmSwap(c);
 
-          PRInt32 k=0;
+          int32_t k=0;
           UTF_APPEND_CHAR_UNSAFE(dest, k, c);
           dest+=k;
           j+=k;
@@ -2193,7 +2193,7 @@ PRInt32 nsBidi::doWriteReverse(const PRUnichar *src, PRInt32 srcLength,
   return destSize;
 }
 
-nsresult nsBidi::WriteReverse(const PRUnichar *aSrc, PRInt32 aSrcLength, PRUnichar *aDest, PRUint16 aOptions, PRInt32 *aDestSize)
+nsresult nsBidi::WriteReverse(const PRUnichar *aSrc, int32_t aSrcLength, PRUnichar *aDest, uint16_t aOptions, int32_t *aDestSize)
 {
   if( aSrc==NULL || aSrcLength<0 ||
       aDest==NULL

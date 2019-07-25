@@ -288,7 +288,7 @@ private:
                                                     HDDEDATA hdata,
                                                     ULONG    dwData1,
                                                     ULONG    dwData2 );
-    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, PRUint32 aState);
+    static void HandleCommandLine(const char* aCmdLineString, nsIFile* aWorkingDir, uint32_t aState);
     static void ParseDDEArg( HSZ args, int index, nsCString& string);
     static void ParseDDEArg( const char* args, int index, nsCString& aString);
     static void ActivateLastWindow();
@@ -1033,7 +1033,7 @@ static nsCString hszValue( DWORD instance, HSZ hsz ) {
 
 
 static void escapeQuotes( nsAString &aString ) {
-    PRInt32 offset = -1;
+    int32_t offset = -1;
     while( 1 ) {
        
        offset = aString.FindChar( '"', ++offset );
@@ -1302,7 +1302,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 
 
 
-static PRInt32 advanceToEndOfQuotedArg( const char *p, PRInt32 offset, PRInt32 len ) {
+static int32_t advanceToEndOfQuotedArg( const char *p, int32_t offset, int32_t len ) {
     
     if ( p[++offset] == '"' ) {
         
@@ -1323,7 +1323,7 @@ void nsNativeAppSupportOS2::ParseDDEArg( const char* args, int index, nsCString&
         nsDependentCString temp(args, argLen);
 
         
-        PRInt32 offset = -1;
+        int32_t offset = -1;
         
         while( index-- ) {
             
@@ -1344,7 +1344,7 @@ void nsNativeAppSupportOS2::ParseDDEArg( const char* args, int index, nsCString&
         
         
         
-        PRInt32 end = advanceToEndOfQuotedArg( args, offset++, argLen );
+        int32_t end = advanceToEndOfQuotedArg( args, offset++, argLen );
         
         end = temp.FindChar( ',', end );
         if ( end == kNotFound ) {
@@ -1401,7 +1401,7 @@ HDDEDATA nsNativeAppSupportOS2::CreateDDEData( LPBYTE value, DWORD len ) {
 void
 nsNativeAppSupportOS2::HandleCommandLine(const char* aCmdLineString,
                                          nsIFile* aWorkingDir,
-                                         PRUint32 aState)
+                                         uint32_t aState)
 {
     nsresult rv;
 

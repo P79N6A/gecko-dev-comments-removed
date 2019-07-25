@@ -42,7 +42,7 @@ public:
 
 protected:
     
-    void FormatSizeString(PRInt64 inSize, nsString& outSizeString);
+    void FormatSizeString(int64_t inSize, nsString& outSizeString);
     nsresult FormatInputStream(nsIRequest* aRequest, nsISupports *aContext, const nsAString &aBuffer);
     
     nsresult DoOnStartRequest(nsIRequest* request, nsISupports *aContext,

@@ -242,22 +242,22 @@ public:
 
   
   
-  virtual PRInt64 GetDuration() = 0;
+  virtual int64_t GetDuration() = 0;
 
   
   
   
   
   
-  virtual void SetDuration(PRInt64 aDuration) = 0;
+  virtual void SetDuration(int64_t aDuration) = 0;
 
   
   
   
-  virtual void SetEndTime(PRInt64 aEndTime) = 0;
+  virtual void SetEndTime(int64_t aEndTime) = 0;
 
   
-  virtual void SetFragmentEndTime(PRInt64 aEndTime) = 0;
+  virtual void SetFragmentEndTime(int64_t aEndTime) = 0;
 
   
   
@@ -301,17 +301,17 @@ public:
   
   
   
-  virtual void UpdatePlaybackPosition(PRInt64 aTime) = 0;
+  virtual void UpdatePlaybackPosition(int64_t aTime) = 0;
 
   virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
 
   
   virtual bool IsSeekableInBufferedRanges() = 0;
 
-  virtual PRInt64 VideoQueueMemoryInUse() = 0;
-  virtual PRInt64 AudioQueueMemoryInUse() = 0;
+  virtual int64_t VideoQueueMemoryInUse() = 0;
+  virtual int64_t AudioQueueMemoryInUse() = 0;
 
-  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset) = 0;
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) = 0;
 
   
   
@@ -321,7 +321,7 @@ public:
 
   
   
-  virtual void SetFrameBufferLength(PRUint32 aLength) = 0;
+  virtual void SetFrameBufferLength(uint32_t aLength) = 0;
 
   
   
@@ -384,18 +384,18 @@ public:
     ~OutputMediaStream();
     OutputMediaStream(const OutputMediaStream& rhs);
 
-    void Init(PRInt64 aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded);
+    void Init(int64_t aInitialTime, SourceMediaStream* aStream, bool aFinishWhenEnded);
     
-    PRInt64 mLastAudioPacketTime; 
-    PRInt64 mLastAudioPacketEndTime; 
+    int64_t mLastAudioPacketTime; 
+    int64_t mLastAudioPacketEndTime; 
     
-    PRInt64 mAudioFramesWritten;
+    int64_t mAudioFramesWritten;
     
-    PRInt64 mAudioFramesWrittenBaseTime; 
+    int64_t mAudioFramesWrittenBaseTime; 
     
     
     
-    PRInt64 mNextVideoTime; 
+    int64_t mNextVideoTime; 
     
     
     nsRefPtr<Image> mLastVideoImage;
@@ -429,7 +429,7 @@ public:
   virtual void NotifyPrincipalChanged();
   
   
-  void NotifyBytesConsumed(PRInt64 aBytes);
+  void NotifyBytesConsumed(int64_t aBytes);
 
   
   
@@ -479,7 +479,7 @@ public:
   
   virtual void MoveLoadsToBackground();
 
-  void AudioAvailable(float* aFrameBuffer, PRUint32 aFrameBufferLength, float aTime);
+  void AudioAvailable(float* aFrameBuffer, uint32_t aFrameBufferLength, float aTime);
 
   
   
@@ -506,21 +506,21 @@ public:
     return NS_ERROR_FAILURE;
   }
 
-  virtual PRInt64 VideoQueueMemoryInUse() {
+  virtual int64_t VideoQueueMemoryInUse() {
     if (mDecoderStateMachine) {
       return mDecoderStateMachine->VideoQueueMemoryInUse();
     }
     return 0;
   }
 
-  virtual PRInt64 AudioQueueMemoryInUse() {
+  virtual int64_t AudioQueueMemoryInUse() {
     if (mDecoderStateMachine) {
       return mDecoderStateMachine->AudioQueueMemoryInUse();
     }
     return 0;
   }
 
-  virtual void NotifyDataArrived(const char* aBuffer, PRUint32 aLength, PRInt64 aOffset) {
+  virtual void NotifyDataArrived(const char* aBuffer, uint32_t aLength, int64_t aOffset) {
     if (mDecoderStateMachine) {
       mDecoderStateMachine->NotifyDataArrived(aBuffer, aLength, aOffset);
     }
@@ -528,7 +528,7 @@ public:
 
   
   
-  virtual nsresult RequestFrameBufferLength(PRUint32 aLength);
+  virtual nsresult RequestFrameBufferLength(uint32_t aLength);
 
   
   
@@ -556,7 +556,7 @@ public:
   
   
   
-  void UpdatePlaybackPosition(PRInt64 aTime)
+  void UpdatePlaybackPosition(int64_t aTime)
   {
     mDecoderStateMachine->UpdatePlaybackPosition(aTime);
   }
@@ -573,8 +573,8 @@ public:
 
   
   
-  void MetadataLoaded(PRUint32 aChannels,
-                      PRUint32 aRate,
+  void MetadataLoaded(uint32_t aChannels,
+                      uint32_t aRate,
                       bool aHasAudio,
                       const nsHTMLMediaElement::MetadataTags* aTags);
 
@@ -615,11 +615,11 @@ public:
 
   
   
-  PRInt64 GetDownloadPosition();
+  int64_t GetDownloadPosition();
 
   
   
-  void UpdatePlaybackOffset(PRInt64 aOffset);
+  void UpdatePlaybackOffset(int64_t aOffset);
 
   
   nsDecoderStateMachine* GetStateMachine() { return mDecoderStateMachine; }
@@ -650,12 +650,12 @@ public:
   
   
   
-  PRInt64 mDecoderPosition;
+  int64_t mDecoderPosition;
   
   
   
   
-  PRInt64 mPlaybackPosition;
+  int64_t mPlaybackPosition;
   
   
   
@@ -681,7 +681,7 @@ public:
   
   
   
-  PRInt64 mDuration;
+  int64_t mDuration;
 
   
   bool mInitialAudioCaptured;

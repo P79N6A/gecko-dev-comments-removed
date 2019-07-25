@@ -42,7 +42,7 @@ const char kTelemetryPrefName[] = "toolkit.telemetry.enabled";
 Monitor* gMonitor;
 
 
-PRInt32 gTimeout;
+int32_t gTimeout;
 
 PRThread* gThread;
 
@@ -58,17 +58,17 @@ volatile PRIntervalTime gTimestamp = PR_INTERVAL_NO_WAIT;
 static HANDLE winMainThreadHandle = NULL;
 
 
-static const PRInt32 DEFAULT_CHROME_HANG_INTERVAL = 5;
+static const int32_t DEFAULT_CHROME_HANG_INTERVAL = 5;
 
 
-static const PRInt32 MAX_CALL_STACK_PCS = 400;
+static const int32_t MAX_CALL_STACK_PCS = 400;
 #endif
 
 
 int
 PrefChanged(const char*, void*)
 {
-  PRInt32 newval = Preferences::GetInt(kHangMonitorPrefName);
+  int32_t newval = Preferences::GetInt(kHangMonitorPrefName);
 #ifdef REPORT_CHROME_HANGS
   
   if (newval == 0) {
@@ -183,8 +183,8 @@ ThreadMain(void*)
 #ifdef REPORT_CHROME_HANGS
         GetChromeHangReport(stack);
 #else
-        PRInt32 delay =
-          PRInt32(PR_IntervalToSeconds(now - timestamp));
+        int32_t delay =
+          int32_t(PR_IntervalToSeconds(now - timestamp));
         if (delay > gTimeout) {
           MonitorAutoUnlock unlock(*gMonitor);
           Crash();
@@ -195,7 +195,7 @@ ThreadMain(void*)
     else {
 #ifdef REPORT_CHROME_HANGS
       if (waitCount >= 2) {
-        PRUint32 hangDuration = PR_IntervalToSeconds(now - lastTimestamp);
+        uint32_t hangDuration = PR_IntervalToSeconds(now - lastTimestamp);
         Telemetry::RecordChromeHang(hangDuration, stack);
         stack.Clear();
       }
@@ -307,7 +307,7 @@ NotifyActivity(ActivityType activityType)
   }
 
   
-  static PRUint32 cumulativeUILagMS = 0;
+  static uint32_t cumulativeUILagMS = 0;
   switch(activityType) {
   case kActivityNoUIAVail:
     cumulativeUILagMS = 0;
@@ -331,7 +331,7 @@ NotifyActivity(ActivityType activityType)
   if (activityType == kUIActivity) {
     
     
-    static const PRUint32 kUIResponsivenessThresholdMS = 50;
+    static const uint32_t kUIResponsivenessThresholdMS = 50;
     if (cumulativeUILagMS > kUIResponsivenessThresholdMS) {
       mozilla::Telemetry::Accumulate(mozilla::Telemetry::EVENTLOOP_UI_LAG_EXP_MS,
                                      cumulativeUILagMS);

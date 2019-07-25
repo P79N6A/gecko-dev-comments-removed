@@ -49,7 +49,7 @@ nsScrollBoxObject::~nsScrollBoxObject()
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollTo(PRInt32 x, PRInt32 y)
+NS_IMETHODIMP nsScrollBoxObject::ScrollTo(int32_t x, int32_t y)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
@@ -59,9 +59,9 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollTo(PRInt32 x, PRInt32 y)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollBy(PRInt32 dx, PRInt32 dy)
+NS_IMETHODIMP nsScrollBoxObject::ScrollBy(int32_t dx, int32_t dy)
 {
-  PRInt32 x, y;
+  int32_t x, y;
   nsresult rv = GetPosition(&x, &y);
   if (NS_FAILED(rv))
     return rv;
@@ -70,7 +70,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollBy(PRInt32 dx, PRInt32 dy)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollByLine(PRInt32 dlines)
+NS_IMETHODIMP nsScrollBoxObject::ScrollByLine(int32_t dlines)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
@@ -103,7 +103,7 @@ static nsIFrame* GetScrolledBox(nsBoxObject* aScrollBox) {
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
+NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(int32_t dindexes)
 {
     nsIScrollableFrame* sf = GetScrollFrame();
     if (!sf)
@@ -120,10 +120,10 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
     bool horiz = scrolledBox->IsHorizontal();
     nsPoint cp = sf->GetScrollPosition();
     nscoord diff = 0;
-    PRInt32 curIndex = 0;
+    int32_t curIndex = 0;
     bool isLTR = scrolledBox->IsNormalDirection();
 
-    PRInt32 frameWidth = 0;
+    int32_t frameWidth = 0;
     if (!isLTR && horiz) {
       GetWidth(&frameWidth);
       nsCOMPtr<nsIPresShell> shell = GetPresShell(false);
@@ -158,7 +158,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
       curIndex++;
     }
 
-    PRInt32 count = 0;
+    int32_t count = 0;
 
     if (dindexes == 0)
        return NS_OK;
@@ -214,7 +214,7 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollByIndex(PRInt32 dindexes)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(PRInt32 line)
+NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(int32_t line)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
@@ -251,13 +251,13 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollToElement(nsIDOMElement *child)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::ScrollToIndex(PRInt32 index)
+NS_IMETHODIMP nsScrollBoxObject::ScrollToIndex(int32_t index)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::GetPosition(PRInt32 *x, PRInt32 *y)
+NS_IMETHODIMP nsScrollBoxObject::GetPosition(int32_t *x, int32_t *y)
 {
   nsIScrollableFrame* sf = GetScrollFrame();
   if (!sf)
@@ -271,7 +271,7 @@ NS_IMETHODIMP nsScrollBoxObject::GetPosition(PRInt32 *x, PRInt32 *y)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::GetScrolledSize(PRInt32 *width, PRInt32 *height)
+NS_IMETHODIMP nsScrollBoxObject::GetScrolledSize(int32_t *width, int32_t *height)
 {
     nsIFrame* scrolledBox = GetScrolledBox(this);
     if (!scrolledBox)
@@ -305,13 +305,13 @@ NS_IMETHODIMP nsScrollBoxObject::EnsureElementIsVisible(nsIDOMElement *child)
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::EnsureIndexIsVisible(PRInt32 index)
+NS_IMETHODIMP nsScrollBoxObject::EnsureIndexIsVisible(int32_t index)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsScrollBoxObject::EnsureLineIsVisible(PRInt32 line)
+NS_IMETHODIMP nsScrollBoxObject::EnsureLineIsVisible(int32_t line)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }

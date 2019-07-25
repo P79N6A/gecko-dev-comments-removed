@@ -78,9 +78,9 @@ public:
 
 
   DOMSVGLength(DOMSVGLengthList *aList,
-               PRUint8 aAttrEnum,
-               PRUint32 aListIndex,
-               PRUint8 aIsAnimValItem);
+               uint8_t aAttrEnum,
+               uint32_t aListIndex,
+               uint8_t aIsAnimValItem);
 
   
 
@@ -131,16 +131,16 @@ public:
 
 
   void InsertingIntoList(DOMSVGLengthList *aList,
-                         PRUint8 aAttrEnum,
-                         PRUint32 aListIndex,
-                         PRUint8 aIsAnimValItem);
+                         uint8_t aAttrEnum,
+                         uint32_t aListIndex,
+                         uint8_t aIsAnimValItem);
 
-  static PRUint32 MaxListIndex() {
+  static uint32_t MaxListIndex() {
     return (1U << MOZ_SVG_LIST_INDEX_BIT_COUNT) - 1;
   }
 
   
-  void UpdateListIndex(PRUint32 aListIndex) {
+  void UpdateListIndex(uint32_t aListIndex) {
     mListIndex = aListIndex;
   }
 
@@ -160,7 +160,7 @@ private:
     return mList->Element();
   }
 
-  PRUint8 AttrEnum() const {
+  uint8_t AttrEnum() const {
     return mAttrEnum;
   }
 
@@ -168,7 +168,7 @@ private:
 
 
 
-  PRUint8 Axis() const {
+  uint8_t Axis() const {
     return mList->Axis();
   }
 
@@ -192,12 +192,12 @@ private:
   
   
 
-  PRUint32 mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
-  PRUint32 mAttrEnum:4; 
-  PRUint32 mIsAnimValItem:1;
+  uint32_t mListIndex:MOZ_SVG_LIST_INDEX_BIT_COUNT;
+  uint32_t mAttrEnum:4; 
+  uint32_t mIsAnimValItem:1;
 
   
-  PRUint32 mUnit:5; 
+  uint32_t mUnit:5; 
   float mValue;
 };
 

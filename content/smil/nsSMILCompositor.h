@@ -76,7 +76,7 @@ public:
   
   
   
-  PRUint32 GetFirstFuncToAffectSandwich();
+  uint32_t GetFirstFuncToAffectSandwich();
 
   
   

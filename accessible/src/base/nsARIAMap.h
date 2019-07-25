@@ -96,13 +96,13 @@ const bool kUseNativeRole = false;
 
 
 
-const PRUint8 ATTR_BYPASSOBJ  = 0x0001;
+const uint8_t ATTR_BYPASSOBJ  = 0x0001;
 
 
 
 
 
-const PRUint8 ATTR_VALTOKEN   = 0x0010;
+const uint8_t ATTR_VALTOKEN   = 0x0010;
 
 
 
@@ -110,7 +110,7 @@ const PRUint8 ATTR_VALTOKEN   = 0x0010;
 struct nsAttributeCharacteristics
 {
   nsIAtom** attributeName;
-  const PRUint8 characteristics;
+  const uint8_t characteristics;
 };
 
 
@@ -169,7 +169,7 @@ struct nsRoleMapEntry
   ELiveAttrRule liveAttRule;
 
   
-  PRUint64 state;   
+  uint64_t state;   
 
   
   
@@ -203,7 +203,7 @@ struct nsARIAMap
 
 
   static nsAttributeCharacteristics gWAIUnivAttrMap[];
-  static PRUint32 gWAIUnivAttrMapLength;
+  static uint32_t gWAIUnivAttrMapLength;
 };
 
 namespace mozilla {
@@ -224,7 +224,7 @@ nsRoleMapEntry* GetRoleMap(nsINode* aNode);
 
 
 
-PRUint64 UniversalStatesFor(mozilla::dom::Element* aElement);
+uint64_t UniversalStatesFor(mozilla::dom::Element* aElement);
 
  
 
@@ -247,8 +247,8 @@ private:
   AttrIterator& operator= (const AttrIterator&) MOZ_DELETE;
 
   nsIContent* mContent;
-  PRUint32 mAttrIdx;
-  PRUint32 mAttrCount;
+  uint32_t mAttrIdx;
+  uint32_t mAttrCount;
 };
 
 } 

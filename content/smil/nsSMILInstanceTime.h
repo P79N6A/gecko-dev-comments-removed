@@ -94,8 +94,8 @@ public:
 
   
   
-  PRUint32 Serial() const { return mSerial; }
-  void SetSerial(PRUint32 aIndex) { mSerial = aIndex; }
+  uint32_t Serial() const { return mSerial; }
+  void SetSerial(uint32_t aIndex) { mSerial = aIndex; }
 
   NS_INLINE_DECL_REFCOUNTING(nsSMILInstanceTime)
 
@@ -131,7 +131,7 @@ protected:
     
     kWasDynamicEndpoint = 8
   };
-  PRUint8       mFlags;   
+  uint8_t       mFlags;   
   bool          mVisited; 
 
   
@@ -147,9 +147,9 @@ protected:
   
   
   
-  PRUint16      mFixedEndpointRefCnt;
+  uint16_t      mFixedEndpointRefCnt;
 
-  PRUint32      mSerial; 
+  uint32_t      mSerial; 
                          
                          
 

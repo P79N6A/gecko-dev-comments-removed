@@ -29,11 +29,11 @@ public:
   virtual ~nsPNGDecoder();
 
   virtual void InitInternal();
-  virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
+  virtual void WriteInternal(const char* aBuffer, uint32_t aCount);
   virtual Telemetry::ID SpeedHistogram();
 
   void CreateFrame(png_uint_32 x_offset, png_uint_32 y_offset,
-                   PRInt32 width, PRInt32 height,
+                   int32_t width, int32_t height,
                    gfxASurface::gfxImageFormat format);
   void SetAnimFrameInfo();
 
@@ -73,24 +73,24 @@ public:
   png_structp mPNG;
   png_infop mInfo;
   nsIntRect mFrameRect;
-  PRUint8 *mCMSLine;
-  PRUint8 *interlacebuf;
-  PRUint8 *mImageData;
+  uint8_t *mCMSLine;
+  uint8_t *interlacebuf;
+  uint8_t *mImageData;
   qcms_profile *mInProfile;
   qcms_transform *mTransform;
 
   gfxASurface::gfxImageFormat format;
 
   
-  PRUint8 *mHeaderBuf;
-  PRUint32 mHeaderBytesRead;
+  uint8_t *mHeaderBuf;
+  uint32_t mHeaderBytesRead;
 
-  PRUint8 mChannels;
+  uint8_t mChannels;
   bool mFrameHasNoAlpha;
   bool mFrameIsHidden;
 
   
-  PRUint32 mCMSMode;
+  uint32_t mCMSMode;
   bool mDisablePremultipliedAlpha;
   
   
@@ -113,7 +113,7 @@ public:
 
   
   
-  static const PRUint8 pngSignatureBytes[];
+  static const uint8_t pngSignatureBytes[];
 };
 
 } 

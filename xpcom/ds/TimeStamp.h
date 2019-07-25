@@ -120,7 +120,7 @@ private:
   friend class TimeStamp;
   friend struct IPC::ParamTraits<mozilla::TimeDuration>;
 
-  static TimeDuration FromTicks(PRInt64 aTicks) {
+  static TimeDuration FromTicks(int64_t aTicks) {
     TimeDuration t;
     t.mValue = aTicks;
     return t;
@@ -136,11 +136,11 @@ private:
     if (aTicks <= double(LL_MININT))
       return TimeDuration::FromTicks(LL_MININT);
 
-    return TimeDuration::FromTicks(PRInt64(aTicks));
+    return TimeDuration::FromTicks(int64_t(aTicks));
   }
 
   
-  PRInt64 mValue;
+  int64_t mValue;
 };
 
 
@@ -199,7 +199,7 @@ public:
     MOZ_ASSERT(!IsNull(), "Cannot compute with a null value");
     MOZ_ASSERT(!aOther.IsNull(), "Cannot compute with aOther null value");
     PR_STATIC_ASSERT(-LL_MAXINT > LL_MININT);
-    PRInt64 ticks = PRInt64(mValue - aOther.mValue);
+    int64_t ticks = int64_t(mValue - aOther.mValue);
     
     if (mValue > aOther.mValue) {
       if (ticks < 0) {
@@ -275,7 +275,7 @@ public:
 private:
   friend struct IPC::ParamTraits<mozilla::TimeStamp>;
 
-  TimeStamp(PRUint64 aValue) : mValue(aValue) {}
+  TimeStamp(uint64_t aValue) : mValue(aValue) {}
 
   
 
@@ -290,7 +290,7 @@ private:
 
 
 
-  PRUint64 mValue;
+  uint64_t mValue;
 };
 
 }

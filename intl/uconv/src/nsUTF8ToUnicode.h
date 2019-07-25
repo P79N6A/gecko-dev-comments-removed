@@ -39,22 +39,22 @@ public:
 
 protected:
 
-  PRUint32 mUcs4; 
-  PRUint8 mState; 
-  PRUint8 mBytes;
+  uint32_t mUcs4; 
+  uint8_t mState; 
+  uint8_t mBytes;
   bool mFirst;
 
   
   
 
-  NS_IMETHOD GetMaxLength(const char * aSrc, PRInt32 aSrcLength, 
-      PRInt32 * aDestLength);
+  NS_IMETHOD GetMaxLength(const char * aSrc, int32_t aSrcLength, 
+      int32_t * aDestLength);
 
   
   
 
-  NS_IMETHOD Convert(const char * aSrc, PRInt32 * aSrcLength, 
-      PRUnichar * aDest, PRInt32 * aDestLength);
+  NS_IMETHOD Convert(const char * aSrc, int32_t * aSrcLength, 
+      PRUnichar * aDest, int32_t * aDestLength);
 
   
   

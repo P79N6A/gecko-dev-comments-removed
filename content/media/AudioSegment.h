@@ -22,7 +22,7 @@ struct AudioChunk {
     NS_ASSERTION(aStart >= 0 && aStart < aEnd && aEnd <= mDuration,
                  "Slice out of bounds");
     if (mBuffer) {
-      mOffset += PRInt32(aStart);
+      mOffset += int32_t(aStart);
     }
     mDuration = aEnd - aStart;
   }
@@ -50,9 +50,9 @@ struct AudioChunk {
 
   TrackTicks mDuration;           
   nsRefPtr<SharedBuffer> mBuffer; 
-  PRInt32 mBufferLength;          
+  int32_t mBufferLength;          
   SampleFormat mBufferFormat;     
-  PRInt32 mOffset;                
+  int32_t mOffset;                
   float mVolume;                  
 };
 
@@ -81,13 +81,13 @@ public:
   {
     return mChannels > 0;
   }
-  void Init(PRInt32 aChannels)
+  void Init(int32_t aChannels)
   {
     NS_ASSERTION(aChannels > 0, "Bad number of channels");
     NS_ASSERTION(!IsInitialized(), "Already initialized");
     mChannels = aChannels;
   }
-  PRInt32 GetChannels()
+  int32_t GetChannels()
   {
     NS_ASSERTION(IsInitialized(), "Not initialized");
     return mChannels;
@@ -105,8 +105,8 @@ public:
     }
     return nsAudioStream::FORMAT_FLOAT32;
   }
-  void AppendFrames(already_AddRefed<SharedBuffer> aBuffer, PRInt32 aBufferLength,
-                    PRInt32 aStart, PRInt32 aEnd, SampleFormat aFormat)
+  void AppendFrames(already_AddRefed<SharedBuffer> aBuffer, int32_t aBufferLength,
+                    int32_t aStart, int32_t aEnd, SampleFormat aFormat)
   {
     NS_ASSERTION(mChannels > 0, "Not initialized");
     AudioChunk* chunk = AppendChunk(aEnd - aStart);
@@ -136,7 +136,7 @@ public:
   static Type StaticType() { return AUDIO; }
 
 protected:
-  PRInt32 mChannels;
+  int32_t mChannels;
 };
 
 }

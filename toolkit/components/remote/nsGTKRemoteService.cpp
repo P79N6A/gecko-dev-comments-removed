@@ -133,7 +133,7 @@ nsGTKRemoteService::Shutdown()
 
 void
 nsGTKRemoteService::SetDesktopStartupIDOrTimestamp(const nsACString& aDesktopStartupID,
-                                                   PRUint32 aTimestamp) {
+                                                   uint32_t aTimestamp) {
   nsGTKToolkit* toolkit = nsGTKToolkit::GetToolkit();
   if (!toolkit)
     return;

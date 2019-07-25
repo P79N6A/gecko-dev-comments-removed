@@ -42,7 +42,7 @@ void Init();
 
 
 
-void Accumulate(ID id, PRUint32 sample);
+void Accumulate(ID id, uint32_t sample);
 
 
 
@@ -79,7 +79,7 @@ private:
 template<ID id>
 class AutoCounter {
 public:
-  AutoCounter(PRUint32 counterStart = 0 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+  AutoCounter(uint32_t counterStart = 0 MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
     : counter(counterStart)
   {
     MOZ_GUARD_OBJECT_NOTIFIER_INIT;
@@ -100,7 +100,7 @@ public:
   }
 
 private:
-  PRUint32 counter;
+  uint32_t counter;
   MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
@@ -120,12 +120,12 @@ bool CanRecord();
 
 void RecordSlowSQLStatement(const nsACString &statement,
                             const nsACString &dbName,
-                            PRUint32 delay);
+                            uint32_t delay);
 
 
 
 
-const PRUint32 kSlowStatementThreshold = 100;
+const uint32_t kSlowStatementThreshold = 100;
 
 class ProcessedStack;
 
@@ -137,7 +137,7 @@ class ProcessedStack;
 
 
 #if defined(MOZ_ENABLE_PROFILER_SPS)
-void RecordChromeHang(PRUint32 duration,
+void RecordChromeHang(uint32_t duration,
                       ProcessedStack &aStack);
 #endif
 

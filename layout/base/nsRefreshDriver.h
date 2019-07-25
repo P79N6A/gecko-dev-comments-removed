@@ -63,7 +63,7 @@ public:
 
 
 
-  void AdvanceTimeAndRefresh(PRInt64 aMilliseconds);
+  void AdvanceTimeAndRefresh(int64_t aMilliseconds);
   void RestoreNormalRefresh();
 
   
@@ -77,7 +77,7 @@ public:
   
 
 
-  PRInt64 MostRecentRefreshEpochTime() const;
+  int64_t MostRecentRefreshEpochTime() const;
 
   
 
@@ -210,7 +210,7 @@ public:
   
 
 
-  static PRInt32 DefaultInterval();
+  static int32_t DefaultInterval();
 
 private:
   typedef nsTObserverArray<nsARefreshObserver*> ObserverArray;
@@ -219,8 +219,8 @@ private:
   void EnsureTimerStarted(bool aAdjustingTimer);
   void StopTimer();
 
-  PRUint32 ObserverCount() const;
-  PRUint32 ImageRequestCount() const;
+  uint32_t ObserverCount() const;
+  uint32_t ImageRequestCount() const;
   static PLDHashOperator ImageRequestEnumerator(nsISupportsHashKey* aEntry,
                                           void* aUserArg);
   void UpdateMostRecentRefresh();
@@ -228,8 +228,8 @@ private:
   
   void DoRefresh();
 
-  PRInt32 GetRefreshTimerInterval() const;
-  PRInt32 GetRefreshTimerType() const;
+  int32_t GetRefreshTimerInterval() const;
+  int32_t GetRefreshTimerType() const;
 
   bool HaveFrameRequestCallbacks() const {
     return mFrameRequestCallbackDocs.Length() != 0;
@@ -237,7 +237,7 @@ private:
 
   nsCOMPtr<nsITimer> mTimer;
   mozilla::TimeStamp mMostRecentRefresh; 
-  PRInt64 mMostRecentRefreshEpochTime;   
+  int64_t mMostRecentRefreshEpochTime;   
                                          
 
   nsPresContext *mPresContext; 
@@ -263,7 +263,7 @@ private:
 
   
   
-  mutable PRInt32 mLastTimerInterval;
+  mutable int32_t mLastTimerInterval;
 
   
   struct ImageRequestParameters {

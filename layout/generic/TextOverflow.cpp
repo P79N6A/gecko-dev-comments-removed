@@ -148,7 +148,7 @@ public:
   nsDisplayTextOverflowMarker(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
                               const nsRect& aRect, nscoord aAscent,
                               const nsString& aString,
-                              PRUint32 aIndex)
+                              uint32_t aIndex)
     : nsDisplayItem(aBuilder, aFrame), mRect(aRect), mString(aString),
       mAscent(aAscent), mIndex(aIndex) {
     MOZ_COUNT_CTOR(nsDisplayTextOverflowMarker);
@@ -167,7 +167,7 @@ public:
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsRenderingContext* aCtx);
 
-  virtual PRUint32 GetPerFrameKey() { 
+  virtual uint32_t GetPerFrameKey() { 
     return (mIndex << nsDisplayItem::TYPE_BITS) | nsDisplayItem::GetPerFrameKey(); 
   }
   void PaintTextToContext(nsRenderingContext* aCtx,
@@ -177,7 +177,7 @@ private:
   nsRect          mRect;   
   const nsString  mString; 
   nscoord         mAscent; 
-  PRUint32        mIndex;
+  uint32_t        mIndex;
 };
 
 static void
@@ -228,7 +228,7 @@ TextOverflow::Init(nsDisplayListBuilder*   aBuilder,
   mBlock = aBlockFrame;
   mContentArea = aBlockFrame->GetContentRectRelativeToSelf();
   mScrollableFrame = nsLayoutUtils::GetScrollableFrameFor(aBlockFrame);
-  PRUint8 direction = aBlockFrame->GetStyleVisibility()->mDirection;
+  uint8_t direction = aBlockFrame->GetStyleVisibility()->mDirection;
   mBlockIsRTL = direction == NS_STYLE_DIRECTION_RTL;
   mAdjustForPixelSnapping = false;
 #ifdef MOZ_XUL
@@ -473,7 +473,7 @@ TextOverflow::ExamineLineFrames(nsLineBox*      aLine,
     
     
     bool foundVisibleTextOrAtomic = false;
-    PRInt32 n = aLine->GetChildCount();
+    int32_t n = aLine->GetChildCount();
     nsIFrame* child = aLine->mFirstChild;
     InnerClipEdges clippedMarkerEdges;
     for (; n-- > 0; child = child->GetNextSibling()) {
@@ -590,7 +590,7 @@ TextOverflow::ProcessLine(const nsDisplayListSet& aLists,
 
   
   nsDisplayList* lists[] = { aLists.Content(), aLists.PositionedDescendants() };
-  for (PRUint32 i = 0; i < ArrayLength(lists); ++i) {
+  for (uint32_t i = 0; i < ArrayLength(lists); ++i) {
     PruneDisplayListContents(lists[i], framesToHide, insideMarkersArea);
   }
   CreateMarkers(aLine, needLeft, needRight, insideMarkersArea);

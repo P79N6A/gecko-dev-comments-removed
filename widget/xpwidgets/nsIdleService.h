@@ -24,10 +24,10 @@
 class IdleListener {
 public:
   nsCOMPtr<nsIObserver> observer;
-  PRUint32 reqIdleTime;
+  uint32_t reqIdleTime;
   bool isIdle;
 
-  IdleListener(nsIObserver* obs, PRUint32 reqIT, bool aIsIdle = false) :
+  IdleListener(nsIObserver* obs, uint32_t reqIT, bool aIsIdle = false) :
     observer(obs), reqIdleTime(reqIT), isIdle(aIsIdle) {}
   ~IdleListener() {}
 };
@@ -121,7 +121,7 @@ protected:
 
 
 
-  virtual bool PollIdleTime(PRUint32* aIdleTime);
+  virtual bool PollIdleTime(uint32_t* aIdleTime);
 
   
 
@@ -175,7 +175,7 @@ private:
 
 
 
-  PRUint32 mDeltaToNextIdleSwitchInS;
+  uint32_t mDeltaToNextIdleSwitchInS;
 
   
 

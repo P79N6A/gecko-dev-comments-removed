@@ -23,7 +23,7 @@ public:
   ~SharedDIB();
 
   
-  nsresult Create(PRUint32 aSize);
+  nsresult Create(uint32_t aSize);
 
   
   nsresult Close();
@@ -34,7 +34,7 @@ public:
   
   
   
-  nsresult Attach(Handle aHandle, PRUint32 aSize);
+  nsresult Attach(Handle aHandle, uint32_t aSize);
 
   
   nsresult ShareToProcess(base::ProcessHandle aChildProcess, Handle *aChildHandle);

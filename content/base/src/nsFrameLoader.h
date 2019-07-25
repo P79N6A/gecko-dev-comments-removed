@@ -177,14 +177,14 @@ public:
 
 
 
-  bool Show(PRInt32 marginWidth, PRInt32 marginHeight,
-              PRInt32 scrollbarPrefX, PRInt32 scrollbarPrefY,
+  bool Show(int32_t marginWidth, int32_t marginHeight,
+              int32_t scrollbarPrefX, int32_t scrollbarPrefY,
               nsSubDocumentFrame* frame);
 
   
 
 
-  void MarginsChanged(PRUint32 aMarginWidth, PRUint32 aMarginHeight);
+  void MarginsChanged(uint32_t aMarginWidth, uint32_t aMarginHeight);
 
   
 
@@ -382,11 +382,11 @@ private:
   
   
   
-  PRUint32 mRenderMode;
+  uint32_t mRenderMode;
 
   
   
-  PRUint32 mEventMode;
+  uint32_t mEventMode;
 };
 
 #endif

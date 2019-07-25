@@ -48,7 +48,7 @@
 
 
 
-#define RECENT_EVENT_THRESHOLD PRTime((PRInt64)15 * 60 * PR_USEC_PER_SEC)
+#define RECENT_EVENT_THRESHOLD PRTime((int64_t)15 * 60 * PR_USEC_PER_SEC)
 
 #ifdef MOZ_XUL
 
@@ -143,7 +143,7 @@ public:
 
 
   nsresult GetIdForPage(nsIURI* aURI,
-                        PRInt64* _pageId, nsCString& _GUID);
+                        int64_t* _pageId, nsCString& _GUID);
 
   
 
@@ -158,7 +158,7 @@ public:
 
 
   nsresult GetOrCreateIdForPage(nsIURI* aURI,
-                                PRInt64* _pageId, nsCString& _GUID);
+                                int64_t* _pageId, nsCString& _GUID);
 
   
 
@@ -168,7 +168,7 @@ public:
 
 
 
-  nsresult UpdateFrecency(PRInt64 aPlaceId);
+  nsresult UpdateFrecency(int64_t aPlaceId);
 
   
 
@@ -197,10 +197,10 @@ public:
   nsIStringBundle* GetDateFormatBundle();
   nsICollation* GetCollation();
   void GetStringFromName(const PRUnichar* aName, nsACString& aResult);
-  void GetAgeInDaysString(PRInt32 aInt, const PRUnichar *aName,
+  void GetAgeInDaysString(int32_t aInt, const PRUnichar *aName,
                           nsACString& aResult);
-  void GetMonthName(PRInt32 aIndex, nsACString& aResult);
-  void GetMonthYear(PRInt32 aMonth, PRInt32 aYear, nsACString& aResult);
+  void GetMonthName(int32_t aIndex, nsACString& aResult);
+  void GetMonthYear(int32_t aMonth, int32_t aYear, nsACString& aResult);
 
   
   bool IsHistoryDisabled() {
@@ -208,22 +208,22 @@ public:
   }
 
   
-  static const PRInt32 kGetInfoIndex_PageID;
-  static const PRInt32 kGetInfoIndex_URL;
-  static const PRInt32 kGetInfoIndex_Title;
-  static const PRInt32 kGetInfoIndex_RevHost;
-  static const PRInt32 kGetInfoIndex_VisitCount;
-  static const PRInt32 kGetInfoIndex_VisitDate;
-  static const PRInt32 kGetInfoIndex_FaviconURL;
-  static const PRInt32 kGetInfoIndex_SessionId;
-  static const PRInt32 kGetInfoIndex_ItemId;
-  static const PRInt32 kGetInfoIndex_ItemDateAdded;
-  static const PRInt32 kGetInfoIndex_ItemLastModified;
-  static const PRInt32 kGetInfoIndex_ItemParentId;
-  static const PRInt32 kGetInfoIndex_ItemTags;
-  static const PRInt32 kGetInfoIndex_Frecency;
+  static const int32_t kGetInfoIndex_PageID;
+  static const int32_t kGetInfoIndex_URL;
+  static const int32_t kGetInfoIndex_Title;
+  static const int32_t kGetInfoIndex_RevHost;
+  static const int32_t kGetInfoIndex_VisitCount;
+  static const int32_t kGetInfoIndex_VisitDate;
+  static const int32_t kGetInfoIndex_FaviconURL;
+  static const int32_t kGetInfoIndex_SessionId;
+  static const int32_t kGetInfoIndex_ItemId;
+  static const int32_t kGetInfoIndex_ItemDateAdded;
+  static const int32_t kGetInfoIndex_ItemLastModified;
+  static const int32_t kGetInfoIndex_ItemParentId;
+  static const int32_t kGetInfoIndex_ItemTags;
+  static const int32_t kGetInfoIndex_Frecency;
 
-  PRInt64 GetTagsFolder();
+  int64_t GetTagsFolder();
 
   
   
@@ -237,17 +237,17 @@ public:
   nsresult RowToResult(mozIStorageValueArray* aRow,
                        nsNavHistoryQueryOptions* aOptions,
                        nsNavHistoryResultNode** aResult);
-  nsresult QueryRowToResult(PRInt64 aItemId, const nsACString& aURI,
+  nsresult QueryRowToResult(int64_t aItemId, const nsACString& aURI,
                             const nsACString& aTitle,
-                            PRUint32 aAccessCount, PRTime aTime,
+                            uint32_t aAccessCount, PRTime aTime,
                             const nsACString& aFavicon,
                             nsNavHistoryResultNode** aNode);
 
-  nsresult VisitIdToResultNode(PRInt64 visitId,
+  nsresult VisitIdToResultNode(int64_t visitId,
                                nsNavHistoryQueryOptions* aOptions,
                                nsNavHistoryResultNode** aResult);
 
-  nsresult BookmarkIdToResultNode(PRInt64 aBookmarkId,
+  nsresult BookmarkIdToResultNode(int64_t aBookmarkId,
                                   nsNavHistoryQueryOptions* aOptions,
                                   nsNavHistoryResultNode** aResult);
   nsresult URIToResultNode(nsIURI* aURI,
@@ -256,17 +256,17 @@ public:
 
   
   
-  void SendPageChangedNotification(nsIURI* aURI, PRUint32 aChangedAttribute,
+  void SendPageChangedNotification(nsIURI* aURI, uint32_t aChangedAttribute,
                                    const nsAString& aValue,
                                    const nsACString& aGUID);
 
   
 
 
-  PRInt32 GetDaysOfHistory();
+  int32_t GetDaysOfHistory();
 
   
-  static PRUint32 GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQueries,
+  static uint32_t GetUpdateRequirements(const nsCOMArray<nsNavHistoryQuery>& aQueries,
                                         nsNavHistoryQueryOptions* aOptions,
                                         bool* aHasSearchTerms);
   bool EvaluateQueryForNode(const nsCOMArray<nsNavHistoryQuery>& aQueries,
@@ -277,7 +277,7 @@ public:
                                               nsACString& aAscii);
   void DomainNameFromURI(nsIURI* aURI,
                          nsACString& aDomainName);
-  static PRTime NormalizeTime(PRUint32 aRelative, PRTime aOffset);
+  static PRTime NormalizeTime(uint32_t aRelative, PRTime aOffset);
 
   
   
@@ -285,7 +285,7 @@ public:
   nsresult EndUpdateBatch();
 
   
-  PRInt32 mBatchLevel;
+  int32_t mBatchLevel;
   
   mozStorageTransaction* mBatchDBTransaction;
 
@@ -329,7 +329,7 @@ public:
 
 
 
-  PRUint32 GetRecentFlags(nsIURI *aURI);
+  uint32_t GetRecentFlags(nsIURI *aURI);
 
   
 
@@ -339,7 +339,7 @@ public:
 
 
 
-  void registerEmbedVisit(nsIURI* aURI, PRInt64 aTime);
+  void registerEmbedVisit(nsIURI* aURI, int64_t aTime);
 
   
 
@@ -355,7 +355,7 @@ public:
 
   void clearEmbedVisits();
 
-  PRInt32 GetFrecencyAgedWeight(PRInt32 aAgeInDays) const
+  int32_t GetFrecencyAgedWeight(int32_t aAgeInDays) const
   {
     if (aAgeInDays <= mFirstBucketCutoffInDays) {
       return mFirstBucketWeight;
@@ -372,7 +372,7 @@ public:
     return mDefaultWeight;
   }
 
-  PRInt32 GetFrecencyBucketWeight(PRInt32 aBucketIndex) const
+  int32_t GetFrecencyBucketWeight(int32_t aBucketIndex) const
   {
     switch(aBucketIndex) {
       case 1:
@@ -388,7 +388,7 @@ public:
     }
   }
 
-  PRInt32 GetFrecencyTransitionBonus(PRInt32 aTransitionType,
+  int32_t GetFrecencyTransitionBonus(int32_t aTransitionType,
                                      bool aVisited) const
   {
     switch (aTransitionType) {
@@ -415,22 +415,22 @@ public:
     }
   }
 
-  PRInt32 GetNumVisitsForFrecency() const
+  int32_t GetNumVisitsForFrecency() const
   {
     return mNumVisitsForFrecency;
   }
 
-  PRInt64 GetNewSessionID();
+  int64_t GetNewSessionID();
 
   
 
 
   void NotifyOnVisit(nsIURI* aURI,
-                     PRInt64 aVisitID,
+                     int64_t aVisitID,
                      PRTime aTime,
-                     PRInt64 aSessionID,
-                     PRInt64 referringVisitID,
-                     PRInt32 aTransitionType,
+                     int64_t aSessionID,
+                     int64_t referringVisitID,
+                     int32_t aTransitionType,
                      const nsACString& aGUID);
 
   
@@ -460,8 +460,8 @@ protected:
 
   nsresult DecayFrecency();
 
-  nsresult CalculateFrecency(PRInt64 aPageID, PRInt32 aTyped, PRInt32 aVisitCount, nsCAutoString &aURL, PRInt32 *aFrecency);
-  nsresult CalculateFrecencyInternal(PRInt64 aPageID, PRInt32 aTyped, PRInt32 aVisitCount, bool aIsBookmarked, PRInt32 *aFrecency);
+  nsresult CalculateFrecency(int64_t aPageID, int32_t aTyped, int32_t aVisitCount, nsCAutoString &aURL, int32_t *aFrecency);
+  nsresult CalculateFrecencyInternal(int64_t aPageID, int32_t aTyped, int32_t aVisitCount, bool aIsBookmarked, int32_t *aFrecency);
 
   nsresult RemovePagesInternal(const nsCString& aPlaceIdsQueryString);
   nsresult CleanupPlacesOnVisitsDelete(const nsCString& aPlaceIdsQueryString);
@@ -471,19 +471,19 @@ protected:
 
   nsresult AddVisitChain(nsIURI* aURI, PRTime aTime,
                          bool aToplevel, bool aRedirect,
-                         nsIURI* aReferrer, PRInt64* aVisitID,
-                         PRInt64* aSessionID);
+                         nsIURI* aReferrer, int64_t* aVisitID,
+                         int64_t* aSessionID);
   nsresult InternalAddNewPage(nsIURI* aURI, const nsAString& aTitle,
                               bool aHidden, bool aTyped,
-                              PRInt32 aVisitCount, bool aCalculateFrecency,
-                              PRInt64* aPageID, nsACString& guid);
-  nsresult InternalAddVisit(PRInt64 aPageID, PRInt64 aReferringVisit,
-                            PRInt64 aSessionID, PRTime aTime,
-                            PRInt32 aTransitionType, PRInt64* aVisitID);
+                              int32_t aVisitCount, bool aCalculateFrecency,
+                              int64_t* aPageID, nsACString& guid);
+  nsresult InternalAddVisit(int64_t aPageID, int64_t aReferringVisit,
+                            int64_t aSessionID, PRTime aTime,
+                            int32_t aTransitionType, int64_t* aVisitID);
   bool FindLastVisit(nsIURI* aURI,
-                       PRInt64* aVisitID,
+                       int64_t* aVisitID,
                        PRTime* aTime,
-                       PRInt64* aSessionID);
+                       int64_t* aSessionID);
   bool IsURIStringVisited(const nsACString& url);
 
   
@@ -515,10 +515,10 @@ protected:
 
   nsresult QueryToSelectClause(nsNavHistoryQuery* aQuery,
                                nsNavHistoryQueryOptions* aOptions,
-                               PRInt32 aQueryIndex,
+                               int32_t aQueryIndex,
                                nsCString* aClause);
   nsresult BindQueryClauseParameters(mozIStorageBaseStatement* statement,
-                                     PRInt32 aQueryIndex,
+                                     int32_t aQueryIndex,
                                      nsNavHistoryQuery* aQuery,
                                      nsNavHistoryQueryOptions* aOptions);
 
@@ -549,7 +549,7 @@ protected:
   nsCOMPtr<nsICollation> mCollation;
 
   
-  typedef nsDataHashtable<nsCStringHashKey, PRInt64> RecentEventHash;
+  typedef nsDataHashtable<nsCStringHashKey, int64_t> RecentEventHash;
   RecentEventHash mRecentTyped;
   RecentEventHash mRecentLink;
   RecentEventHash mRecentBookmark;
@@ -577,10 +577,10 @@ protected:
   void ExpireNonrecentEvents(RecentEventHash* hashTable);
 
   
-  PRInt64 mLastSessionID;
+  int64_t mLastSessionID;
 
 #ifdef MOZ_XUL
-  nsresult AutoCompleteFeedback(PRInt32 aIndex,
+  nsresult AutoCompleteFeedback(int32_t aIndex,
                                 nsIAutoCompleteController *aController);
 #endif
 
@@ -589,38 +589,38 @@ protected:
   bool mHistoryEnabled;
 
   
-  PRInt32 mNumVisitsForFrecency;
-  PRInt32 mFirstBucketCutoffInDays;
-  PRInt32 mSecondBucketCutoffInDays;
-  PRInt32 mThirdBucketCutoffInDays;
-  PRInt32 mFourthBucketCutoffInDays;
-  PRInt32 mFirstBucketWeight;
-  PRInt32 mSecondBucketWeight;
-  PRInt32 mThirdBucketWeight;
-  PRInt32 mFourthBucketWeight;
-  PRInt32 mDefaultWeight;
-  PRInt32 mEmbedVisitBonus;
-  PRInt32 mFramedLinkVisitBonus;
-  PRInt32 mLinkVisitBonus;
-  PRInt32 mTypedVisitBonus;
-  PRInt32 mBookmarkVisitBonus;
-  PRInt32 mDownloadVisitBonus;
-  PRInt32 mPermRedirectVisitBonus;
-  PRInt32 mTempRedirectVisitBonus;
-  PRInt32 mDefaultVisitBonus;
-  PRInt32 mUnvisitedBookmarkBonus;
-  PRInt32 mUnvisitedTypedBonus;
+  int32_t mNumVisitsForFrecency;
+  int32_t mFirstBucketCutoffInDays;
+  int32_t mSecondBucketCutoffInDays;
+  int32_t mThirdBucketCutoffInDays;
+  int32_t mFourthBucketCutoffInDays;
+  int32_t mFirstBucketWeight;
+  int32_t mSecondBucketWeight;
+  int32_t mThirdBucketWeight;
+  int32_t mFourthBucketWeight;
+  int32_t mDefaultWeight;
+  int32_t mEmbedVisitBonus;
+  int32_t mFramedLinkVisitBonus;
+  int32_t mLinkVisitBonus;
+  int32_t mTypedVisitBonus;
+  int32_t mBookmarkVisitBonus;
+  int32_t mDownloadVisitBonus;
+  int32_t mPermRedirectVisitBonus;
+  int32_t mTempRedirectVisitBonus;
+  int32_t mDefaultVisitBonus;
+  int32_t mUnvisitedBookmarkBonus;
+  int32_t mUnvisitedTypedBonus;
 
   
   nsresult TokensToQueries(const nsTArray<QueryKeyValuePair>& aTokens,
                            nsCOMArray<nsNavHistoryQuery>* aQueries,
                            nsNavHistoryQueryOptions* aOptions);
 
-  PRInt64 mTagsFolder;
+  int64_t mTagsFolder;
 
   bool mInPrivateBrowsing;
 
-  PRInt8 mHasHistoryEntries;
+  int8_t mHasHistoryEntries;
 
   
   bool mCanNotify;

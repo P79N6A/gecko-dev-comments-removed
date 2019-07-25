@@ -24,9 +24,9 @@ struct ProductInformationBlock {
 
 typedef struct MarItem_ {
   struct MarItem_ *next;  
-  PRUint32 offset;        
-  PRUint32 length;        
-  PRUint32 flags;         
+  uint32_t offset;        
+  uint32_t length;        
+  uint32_t flags;         
   char name[1];           
 } MarItem;
 
@@ -137,7 +137,7 @@ int mar_extract(const char *path);
 #ifdef XP_WIN
 int mar_verify_signatureW(MarFile *mar, 
                           const char *certData,
-                          PRUint32 sizeOfCertData);
+                          uint32_t sizeOfCertData);
 #endif
 
 

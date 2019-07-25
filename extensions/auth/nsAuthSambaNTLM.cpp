@@ -37,7 +37,7 @@ nsAuthSambaNTLM::Shutdown()
         mToChildFD = nullptr;
     }
     if (mChildPID) {
-        PRInt32 exitCode;
+        int32_t exitCode;
         PR_WaitProcess(mChildPID, &exitCode);
         mChildPID = nullptr;
     }
@@ -97,7 +97,7 @@ SpawnIOChild(char* const* aArgs, PRProcess** aPID,
 
 static bool WriteString(PRFileDesc* aFD, const nsACString& aString)
 {
-    PRInt32 length = aString.Length();
+    int32_t length = aString.Length();
     const char* s = aString.BeginReading();
     LOG(("Writing to ntlm_auth: %s", s));
 
@@ -134,11 +134,11 @@ static bool ReadLine(PRFileDesc* aFD, nsACString& aString)
 
 
 
-static PRUint8* ExtractMessage(const nsACString& aLine, PRUint32* aLen)
+static uint8_t* ExtractMessage(const nsACString& aLine, uint32_t* aLen)
 {
     
     
-    PRInt32 length = aLine.Length();
+    int32_t length = aLine.Length();
     
     
     NS_ASSERTION(length >= 4, "Line too short...");
@@ -156,13 +156,13 @@ static PRUint8* ExtractMessage(const nsACString& aLine, PRUint32* aLen)
 
     
     
-    PRInt32 numEquals;
+    int32_t numEquals;
     for (numEquals = 0; numEquals < length; ++numEquals) {
         if (s[length - 1 - numEquals] != '=')
             break;
     }
     *aLen = (length/4)*3 - numEquals;
-    return reinterpret_cast<PRUint8*>(PL_Base64Decode(s, length, nullptr));
+    return reinterpret_cast<uint8_t*>(PL_Base64Decode(s, length, nullptr));
 }
 
 nsresult
@@ -204,7 +204,7 @@ nsAuthSambaNTLM::SpawnNTLMAuthHelper()
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::Init(const char *serviceName,
-                      PRUint32    serviceFlags,
+                      uint32_t    serviceFlags,
                       const PRUnichar *domain,
                       const PRUnichar *username,
                       const PRUnichar *password)
@@ -215,9 +215,9 @@ nsAuthSambaNTLM::Init(const char *serviceName,
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::GetNextToken(const void *inToken,
-                              PRUint32    inTokenLen,
+                              uint32_t    inTokenLen,
                               void      **outToken,
-                              PRUint32   *outTokenLen)
+                              uint32_t   *outTokenLen)
 {
     if (!inToken) {
         
@@ -248,7 +248,7 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
         
         return NS_ERROR_FAILURE;
     }
-    PRUint8* buf = ExtractMessage(line, outTokenLen);
+    uint8_t* buf = ExtractMessage(line, outTokenLen);
     if (!buf)
         return NS_ERROR_FAILURE;
     
@@ -266,25 +266,25 @@ nsAuthSambaNTLM::GetNextToken(const void *inToken,
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::Unwrap(const void *inToken,
-                        PRUint32    inTokenLen,
+                        uint32_t    inTokenLen,
                         void      **outToken,
-                        PRUint32   *outTokenLen)
+                        uint32_t   *outTokenLen)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
 nsAuthSambaNTLM::Wrap(const void *inToken,
-                      PRUint32    inTokenLen,
+                      uint32_t    inTokenLen,
                       bool        confidential,
                       void      **outToken,
-                      PRUint32   *outTokenLen)
+                      uint32_t   *outTokenLen)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsAuthSambaNTLM::GetModuleProperties(PRUint32 *flags)
+nsAuthSambaNTLM::GetModuleProperties(uint32_t *flags)
 {
     *flags = 0;
     return NS_OK;

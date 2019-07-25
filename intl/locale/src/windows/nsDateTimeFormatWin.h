@@ -66,7 +66,7 @@ private:
 
   nsString    mLocale;
   nsString    mAppLocale;
-  PRUint32    mLCID;             
+  uint32_t    mLCID;             
 };
 
 #endif  

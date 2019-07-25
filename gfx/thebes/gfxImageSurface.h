@@ -54,14 +54,14 @@ public:
     gfxImageFormat Format() const { return mFormat; }
 
     virtual const gfxIntSize GetSize() const { return mSize; }
-    PRInt32 Width() const { return mSize.width; }
-    PRInt32 Height() const { return mSize.height; }
+    int32_t Width() const { return mSize.width; }
+    int32_t Height() const { return mSize.height; }
 
     
 
 
 
-    PRInt32 Stride() const { return mStride; }
+    int32_t Stride() const { return mStride; }
     
 
 
@@ -70,7 +70,7 @@ public:
     
 
 
-    PRInt32 GetDataSize() const { return mStride*mSize.height; }
+    int32_t GetDataSize() const { return mStride*mSize.height; }
 
     
     bool CopyFrom (gfxImageSurface *other);

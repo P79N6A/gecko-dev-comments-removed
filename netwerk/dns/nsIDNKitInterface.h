@@ -99,12 +99,12 @@ typedef struct idn_nameprep *idn_nameprep_t;
 
 
 idn_result_t	race_decode_decompress(const char *from,
-					       PRUint16 *buf,
+					       uint16_t *buf,
 					       size_t buflen);
-idn_result_t	race_compress_encode(const PRUint16 *p,
+idn_result_t	race_compress_encode(const uint16_t *p,
 					     int compress_mode,
 					     char *to, size_t tolen);
-int		get_compress_mode(PRUint16 *p);
+int		get_compress_mode(uint16_t *p);
 
 
 
@@ -139,8 +139,8 @@ idn_nameprep_destroy(idn_nameprep_t handle);
 
 
 idn_result_t
-idn_nameprep_map(idn_nameprep_t handle, const PRUint32 *from,
-		 PRUint32 *to, size_t tolen);
+idn_nameprep_map(idn_nameprep_t handle, const uint32_t *from,
+		 uint32_t *to, size_t tolen);
 
 
 
@@ -154,8 +154,8 @@ idn_nameprep_map(idn_nameprep_t handle, const PRUint32 *from,
 
 
 idn_result_t
-idn_nameprep_isprohibited(idn_nameprep_t handle, const PRUint32 *str,
-			  const PRUint32 **found);
+idn_nameprep_isprohibited(idn_nameprep_t handle, const uint32_t *str,
+			  const uint32_t **found);
 
 
 
@@ -169,8 +169,8 @@ idn_nameprep_isprohibited(idn_nameprep_t handle, const PRUint32 *str,
 
 
 idn_result_t
-idn_nameprep_isunassigned(idn_nameprep_t handle, const PRUint32 *str,
-			  const PRUint32 **found);
+idn_nameprep_isunassigned(idn_nameprep_t handle, const uint32_t *str,
+			  const uint32_t **found);
 
 
 
@@ -183,8 +183,8 @@ idn_nameprep_isunassigned(idn_nameprep_t handle, const PRUint32 *str,
 
 
 idn_result_t
-idn_nameprep_isvalidbidi(idn_nameprep_t handle, const PRUint32 *str,
-			 const PRUint32 **found);
+idn_nameprep_isvalidbidi(idn_nameprep_t handle, const uint32_t *str,
+			 const uint32_t **found);
 
 
 

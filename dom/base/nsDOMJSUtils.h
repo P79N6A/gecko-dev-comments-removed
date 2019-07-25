@@ -55,7 +55,7 @@ GetScriptContextPrincipalFromJSContext(JSContext *cx)
 
 
 
-nsresult NS_CreateJSArgv(JSContext *aContext, PRUint32 aArgc, void *aArgv,
+nsresult NS_CreateJSArgv(JSContext *aContext, uint32_t aArgc, void *aArgv,
                          nsIJSArgArray **aArray);
 
 #endif 

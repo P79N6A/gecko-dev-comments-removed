@@ -161,7 +161,7 @@ public:
 
 
 
-  virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter) = 0;
+  virtual already_AddRefed<nsINodeList> GetChildren(uint32_t aFilter) = 0;
 
   
 
@@ -244,7 +244,7 @@ public:
 
 
 
-  inline PRInt32 GetNameSpaceID() const
+  inline int32_t GetNameSpaceID() const
   {
     return mNodeInfo->NamespaceID();
   }
@@ -258,7 +258,7 @@ public:
     return mNodeInfo;
   }
 
-  inline bool IsInNamespace(PRInt32 aNamespace) const
+  inline bool IsInNamespace(int32_t aNamespace) const
   {
     return mNodeInfo->NamespaceID() == aNamespace;
   }
@@ -330,7 +330,7 @@ public:
 
 
 
-  nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
     return SetAttr(aNameSpaceID, aName, nullptr, aValue, aNotify);
@@ -350,7 +350,7 @@ public:
 
 
 
-  virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+  virtual nsresult SetAttr(int32_t aNameSpaceID, nsIAtom* aName,
                            nsIAtom* aPrefix, const nsAString& aValue,
                            bool aNotify) = 0;
 
@@ -364,7 +364,7 @@ public:
 
 
 
-  virtual bool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, 
+  virtual bool GetAttr(int32_t aNameSpaceID, nsIAtom* aName, 
                          nsAString& aResult) const = 0;
 
   
@@ -374,7 +374,7 @@ public:
 
 
 
-  virtual bool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const = 0;
+  virtual bool HasAttr(int32_t aNameSpaceID, nsIAtom* aName) const = 0;
 
   
 
@@ -386,7 +386,7 @@ public:
 
 
 
-  virtual bool AttrValueIs(PRInt32 aNameSpaceID,
+  virtual bool AttrValueIs(int32_t aNameSpaceID,
                              nsIAtom* aName,
                              const nsAString& aValue,
                              nsCaseTreatment aCaseSensitive) const
@@ -404,7 +404,7 @@ public:
 
 
 
-  virtual bool AttrValueIs(PRInt32 aNameSpaceID,
+  virtual bool AttrValueIs(int32_t aNameSpaceID,
                              nsIAtom* aName,
                              nsIAtom* aValue,
                              nsCaseTreatment aCaseSensitive) const
@@ -434,7 +434,7 @@ public:
 
 
   typedef nsIAtom* const* const AttrValuesArray;
-  virtual PRInt32 FindAttrValueIn(PRInt32 aNameSpaceID,
+  virtual int32_t FindAttrValueIn(int32_t aNameSpaceID,
                                   nsIAtom* aName,
                                   AttrValuesArray* aValues,
                                   nsCaseTreatment aCaseSensitive) const
@@ -450,7 +450,7 @@ public:
 
 
 
-  virtual nsresult UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr, 
+  virtual nsresult UnsetAttr(int32_t aNameSpaceID, nsIAtom* aAttr, 
                              bool aNotify) = 0;
 
 
@@ -465,14 +465,14 @@ public:
 
 
 
-  virtual const nsAttrName* GetAttrNameAt(PRUint32 aIndex) const = 0;
+  virtual const nsAttrName* GetAttrNameAt(uint32_t aIndex) const = 0;
 
   
 
 
 
 
-  virtual PRUint32 GetAttrCount() const = 0;
+  virtual uint32_t GetAttrCount() const = 0;
 
   
 
@@ -485,14 +485,14 @@ public:
 
 
 
-  virtual PRUint32 TextLength() const = 0;
+  virtual uint32_t TextLength() const = 0;
 
   
 
 
 
 
-  virtual nsresult SetText(const PRUnichar* aBuffer, PRUint32 aLength,
+  virtual nsresult SetText(const PRUnichar* aBuffer, uint32_t aLength,
                            bool aNotify) = 0;
 
   
@@ -500,7 +500,7 @@ public:
 
 
 
-  virtual nsresult AppendText(const PRUnichar* aBuffer, PRUint32 aLength,
+  virtual nsresult AppendText(const PRUnichar* aBuffer, uint32_t aLength,
                               bool aNotify) = 0;
 
   
@@ -547,7 +547,7 @@ public:
 
 
 
-  virtual bool IsFocusable(PRInt32 *aTabIndex = nullptr, bool aWithMouse = false)
+  virtual bool IsFocusable(int32_t *aTabIndex = nullptr, bool aWithMouse = false)
   {
     if (aTabIndex) 
       *aTabIndex = -1; 
@@ -862,13 +862,13 @@ public:
 
 
 
-  virtual void List(FILE* out = stdout, PRInt32 aIndent = 0) const = 0;
+  virtual void List(FILE* out = stdout, int32_t aIndent = 0) const = 0;
 
   
 
 
 
-  virtual void DumpContent(FILE* out = stdout, PRInt32 aIndent = 0,
+  virtual void DumpContent(FILE* out = stdout, int32_t aIndent = 0,
                            bool aDumpAll = true) const = 0;
 #endif
 
@@ -880,7 +880,7 @@ public:
   };
 
   
-  static PRInt32 sTabFocusModel;
+  static int32_t sTabFocusModel;
 
   
   

@@ -133,19 +133,19 @@ typedef char JOCTET;
 
 
 
-typedef PRUint8 UINT8;
+typedef uint8_t UINT8;
 
 
 
-typedef PRUint16 UINT16;
+typedef uint16_t UINT16;
 
 
 
-typedef PRInt16 INT16;
+typedef int16_t INT16;
 
 
 
-typedef PRInt32 INT32;
+typedef int32_t INT32;
 
 
 

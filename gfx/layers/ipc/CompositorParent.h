@@ -90,7 +90,7 @@ public:
   
 
 
-  static CompositorParent* GetCompositor(PRUint64 id);
+  static CompositorParent* GetCompositor(uint64_t id);
 
   
 
@@ -211,11 +211,11 @@ private:
   
 
 
-  static void AddCompositor(CompositorParent* compositor, PRUint64* id);
+  static void AddCompositor(CompositorParent* compositor, uint64_t* id);
   
 
 
-  static CompositorParent* RemoveCompositor(PRUint64 id);
+  static CompositorParent* RemoveCompositor(uint64_t id);
 
 
   
@@ -269,7 +269,7 @@ private:
   mozilla::Monitor mPauseCompositionMonitor;
   mozilla::Monitor mResumeCompositionMonitor;
 
-  PRUint64 mCompositorID;
+  uint64_t mCompositorID;
 
   DISALLOW_EVIL_CONSTRUCTORS(CompositorParent);
 };

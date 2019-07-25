@@ -16,7 +16,7 @@
 NS_COM_GLUE PLDHashOperator
 PL_DHashStubEnumRemove(PLDHashTable    *table,
                        PLDHashEntryHdr *entry,
-                       PRUint32         ordinal,
+                       uint32_t         ordinal,
                        void            *userArg);
 
 
@@ -93,14 +93,14 @@ public:
 
 
 
-  void Init(PRUint32 initSize = PL_DHASH_MIN_SIZE)
+  void Init(uint32_t initSize = PL_DHASH_MIN_SIZE)
   {
     if (!Init(initSize, fallible_t()))
       NS_RUNTIMEABORT("OOM");
   }
   bool Init(const fallible_t&) NS_WARN_UNUSED_RESULT
   { return Init(PL_DHASH_MIN_SIZE, fallible_t()); }
-  bool Init(PRUint32 initSize, const fallible_t&) NS_WARN_UNUSED_RESULT;
+  bool Init(uint32_t initSize, const fallible_t&) NS_WARN_UNUSED_RESULT;
 
   
 
@@ -112,7 +112,7 @@ public:
 
 
 
-  PRUint32 GetGeneration() const { return mTable.generation; }
+  uint32_t GetGeneration() const { return mTable.generation; }
 
   
 
@@ -128,7 +128,7 @@ public:
 
 
 
-  PRUint32 Count() const { return mTable.entryCount; }
+  uint32_t Count() const { return mTable.entryCount; }
 
   
 
@@ -229,7 +229,7 @@ public:
 
 
 
-  PRUint32 EnumerateEntries(Enumerator enumFunc, void* userArg)
+  uint32_t EnumerateEntries(Enumerator enumFunc, void* userArg)
   {
     NS_ASSERTION(mTable.entrySize, "nsTHashtable was not initialized properly.");
     
@@ -338,7 +338,7 @@ protected:
   
   static PLDHashOperator s_EnumStub(PLDHashTable    *table,
                                     PLDHashEntryHdr *entry,
-                                    PRUint32         number,
+                                    uint32_t         number,
                                     void            *arg);
 
   
@@ -386,7 +386,7 @@ nsTHashtable<EntryType>::~nsTHashtable()
 
 template<class EntryType>
 bool
-nsTHashtable<EntryType>::Init(PRUint32 initSize, const fallible_t&)
+nsTHashtable<EntryType>::Init(uint32_t initSize, const fallible_t&)
 {
   if (mTable.entrySize)
   {
@@ -477,7 +477,7 @@ template<class EntryType>
 PLDHashOperator
 nsTHashtable<EntryType>::s_EnumStub(PLDHashTable    *table,
                                     PLDHashEntryHdr *entry,
-                                    PRUint32         number,
+                                    uint32_t         number,
                                     void            *arg)
 {
   

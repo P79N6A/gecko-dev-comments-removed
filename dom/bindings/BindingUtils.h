@@ -833,7 +833,7 @@ struct FakeDependentString {
 private:
   const nsDependentString::char_type* mData;
   nsDependentString::size_type mLength;
-  PRUint32 mFlags;
+  uint32_t mFlags;
 
   
   

@@ -491,7 +491,7 @@ int ParseFTPList(const char *line, struct list_state *state,
 
 
 
-              PRUint64 fsz, factor;
+              uint64_t fsz, factor;
               LL_UI2L(fsz, strtoul(tokens[1], (char **)0, 10));
               LL_UI2L(factor, 512);
               LL_MUL(fsz, fsz, factor);
@@ -1189,7 +1189,7 @@ int ParseFTPList(const char *line, struct list_state *state,
         {
           
 
-          PRUint32 fe_size = atoi(result->fe_size);
+          uint32_t fe_size = atoi(result->fe_size);
 
           if (result->fe_fnlen > (fe_size + 4) &&
               PL_strncmp(result->fe_fname + result->fe_fnlen - fe_size - 4 , " -> ", 4) == 0)

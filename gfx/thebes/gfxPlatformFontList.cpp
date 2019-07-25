@@ -22,9 +22,9 @@
 using namespace mozilla;
 
 
-static const PRUint32 kDelayBeforeLoadingCmaps = 8 * 1000; 
-static const PRUint32 kIntervalBetweenLoadingCmaps = 150; 
-static const PRUint32 kNumFontsPerSlice = 10; 
+static const uint32_t kDelayBeforeLoadingCmaps = 8 * 1000; 
+static const uint32_t kIntervalBetweenLoadingCmaps = 150; 
+static const uint32_t kNumFontsPerSlice = 10; 
 
 #ifdef PR_LOGGING
 
@@ -120,7 +120,7 @@ gfxPlatformFontList::MemoryReporter::CollectReports
 }
 
 NS_IMETHODIMP
-gfxPlatformFontList::MemoryReporter::GetExplicitNonHeap(PRInt64* aAmount)
+gfxPlatformFontList::MemoryReporter::GetExplicitNonHeap(int64_t* aAmount)
 {
     
     *aAmount = 0;
@@ -243,8 +243,8 @@ gfxPlatformFontList::PreloadNamesList()
     nsAutoTArray<nsString, 10> preloadFonts;
     gfxFontUtils::GetPrefsFontList("font.preload-names-list", preloadFonts);
 
-    PRUint32 numFonts = preloadFonts.Length();
-    for (PRUint32 i = 0; i < numFonts; i++) {
+    uint32_t numFonts = preloadFonts.Length();
+    for (uint32_t i = 0; i < numFonts; i++) {
         nsAutoString key;
         GenerateFontListKey(preloadFonts[i], key);
         
@@ -266,7 +266,7 @@ gfxPlatformFontList::SetFixedPitch(const nsAString& aFamilyName)
     family->FindStyleVariations();
     nsTArray<nsRefPtr<gfxFontEntry> >& fontlist = family->GetFontList();
 
-    PRUint32 i, numFonts = fontlist.Length();
+    uint32_t i, numFonts = fontlist.Length();
 
     for (i = 0; i < numFonts; i++) {
         fontlist[i]->mFixedPitch = 1;
@@ -278,8 +278,8 @@ gfxPlatformFontList::LoadBadUnderlineList()
 {
     nsAutoTArray<nsString, 10> blacklist;
     gfxFontUtils::GetPrefsFontList("font.blacklist.underline_offset", blacklist);
-    PRUint32 numFonts = blacklist.Length();
-    for (PRUint32 i = 0; i < numFonts; i++) {
+    uint32_t numFonts = blacklist.Length();
+    for (uint32_t i = 0; i < numFonts; i++) {
         nsAutoString key;
         GenerateFontListKey(blacklist[i], key);
         mBadUnderlineFamilyNames.PutEntry(key);
@@ -378,8 +378,8 @@ gfxPlatformFontList::GetFontFamilyList(nsTArray<nsRefPtr<gfxFontFamily> >& aFami
 }
 
 gfxFontEntry*
-gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
-                                           PRInt32 aRunScript,
+gfxPlatformFontList::SystemFindFontForChar(const uint32_t aCh,
+                                           int32_t aRunScript,
                                            const gfxFontStyle* aStyle)
  {
     gfxFontEntry* fontEntry = nullptr;
@@ -411,7 +411,7 @@ gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
     fontEntry = CommonFontFallback(aCh, aRunScript, aStyle);
  
     
-    PRUint32 cmapCount = 0;
+    uint32_t cmapCount = 0;
     if (!fontEntry) {
         common = false;
         fontEntry = GlobalFontFallback(aCh, aRunScript, aStyle, cmapCount);
@@ -422,9 +422,9 @@ gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
     PRLogModuleInfo *log = gfxPlatform::GetLog(eGfxLog_textrun);
 
     if (NS_UNLIKELY(log)) {
-        PRUint32 charRange = gfxFontUtils::CharRangeBit(aCh);
-        PRUint32 unicodeRange = FindCharUnicodeRange(aCh);
-        PRInt32 script = mozilla::unicode::GetScriptCode(aCh);
+        uint32_t charRange = gfxFontUtils::CharRangeBit(aCh);
+        uint32_t unicodeRange = FindCharUnicodeRange(aCh);
+        int32_t script = mozilla::unicode::GetScriptCode(aCh);
         PR_LOG(log, PR_LOG_WARNING,\
                ("(textrun-systemfallback-%s) char: u+%6.6x "
                  "char-range: %d unicode-range: %d script: %d match: [%s]"
@@ -433,7 +433,7 @@ gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
                  charRange, unicodeRange, script,
                 (fontEntry ? NS_ConvertUTF16toUTF8(fontEntry->Name()).get() :
                     "<none>"),
-                PRInt32(elapsed.ToMicroseconds()),
+                int32_t(elapsed.ToMicroseconds()),
                 cmapCount));
     }
 #endif
@@ -447,7 +447,7 @@ gfxPlatformFontList::SystemFindFontForChar(const PRUint32 aCh,
  
     
     static bool first = true;
-    PRInt32 intElapsed = PRInt32(first ? elapsed.ToMilliseconds() :
+    int32_t intElapsed = int32_t(first ? elapsed.ToMilliseconds() :
                                          elapsed.ToMicroseconds());
     Telemetry::Accumulate((first ? Telemetry::SYSTEM_FONT_FALLBACK_FIRST :
                                    Telemetry::SYSTEM_FONT_FALLBACK),
@@ -476,12 +476,12 @@ gfxPlatformFontList::FindFontForCharProc(nsStringHashKey::KeyType aKey, nsRefPtr
 #define NUM_FALLBACK_FONTS        8
 
 gfxFontEntry*
-gfxPlatformFontList::CommonFontFallback(const PRUint32 aCh,
-                                        PRInt32 aRunScript,
+gfxPlatformFontList::CommonFontFallback(const uint32_t aCh,
+                                        int32_t aRunScript,
                                         const gfxFontStyle* aMatchStyle)
 {
     nsAutoTArray<const char*,NUM_FALLBACK_FONTS> defaultFallbacks;
-    PRUint32 i, numFallbacks;
+    uint32_t i, numFallbacks;
 
     gfxPlatform::GetPlatform()->GetCommonFallbackFonts(aCh, aRunScript,
                                                        defaultFallbacks);
@@ -510,10 +510,10 @@ gfxPlatformFontList::CommonFontFallback(const PRUint32 aCh,
 }
 
 gfxFontEntry*
-gfxPlatformFontList::GlobalFontFallback(const PRUint32 aCh,
-                                        PRInt32 aRunScript,
+gfxPlatformFontList::GlobalFontFallback(const uint32_t aCh,
+                                        int32_t aRunScript,
                                         const gfxFontStyle* aMatchStyle,
-                                        PRUint32& aCmapCount)
+                                        uint32_t& aCmapCount)
 {
     
     GlobalFontMatch data(aCh, aRunScript, aMatchStyle);
@@ -594,13 +594,13 @@ gfxPlatformFontList::FindFontForFamily(const nsAString& aFamily, const gfxFontSt
 bool
 gfxPlatformFontList::GetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> > *array)
 {
-    return mPrefFonts.Get(PRUint32(aLangGroup), array);
+    return mPrefFonts.Get(uint32_t(aLangGroup), array);
 }
 
 void
 gfxPlatformFontList::SetPrefFontFamilyEntries(eFontPrefLang aLangGroup, nsTArray<nsRefPtr<gfxFontFamily> >& array)
 {
-    mPrefFonts.Put(PRUint32(aLangGroup), array);
+    mPrefFonts.Put(uint32_t(aLangGroup), array);
 }
 
 void 
@@ -702,7 +702,7 @@ gfxPlatformFontList::InitLoader()
 bool
 gfxPlatformFontList::RunLoader()
 {
-    PRUint32 i, endIndex = (mStartIndex + mIncrement < mNumFamilies ? mStartIndex + mIncrement : mNumFamilies);
+    uint32_t i, endIndex = (mStartIndex + mIncrement < mNumFamilies ? mStartIndex + mIncrement : mNumFamilies);
     bool loadCmaps = !UsesSystemFallback() ||
         gfxPlatform::GetPlatform()->UseCmapsDuringSystemFallback();
 
@@ -788,7 +788,7 @@ SizeOfFontNameEntryExcludingThis(const nsAString&              aKey,
 
 static size_t
 SizeOfPrefFontEntryExcludingThis
-    (const PRUint32&                           aKey,
+    (const uint32_t&                           aKey,
      const nsTArray<nsRefPtr<gfxFontFamily> >& aList,
      nsMallocSizeOfFun                         aMallocSizeOf,
      void*                                     aUserArg)
@@ -814,7 +814,7 @@ SizeOfSharedCmapExcludingThis(CharMapHashKey*   aHashEntry,
 {
     FontListSizes *sizes = static_cast<FontListSizes*>(aUserArg);
 
-    PRUint32 size = aHashEntry->GetKey()->SizeOfIncludingThis(aMallocSizeOf);
+    uint32_t size = aHashEntry->GetKey()->SizeOfIncludingThis(aMallocSizeOf);
     sizes->mCharMapsSize += size;
 
     
