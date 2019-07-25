@@ -4359,17 +4359,17 @@ nsGlobalWindow::Focus()
     return NS_OK;
   }
 
+  nsIDOMWindowInternal *caller =
+    static_cast<nsIDOMWindowInternal*>(nsContentUtils::GetWindowFromCaller());
+  nsCOMPtr<nsIDOMWindowInternal> opener;
+  GetOpener(getter_AddRefs(opener));
+
   
-
-
-
-
-
-
-
-  PRBool canFocus =
-    CanSetProperty("dom.disable_window_flip") ||
-    RevisePopupAbuseLevel(gPopupControlState) < openAbused;
+  
+  
+  PRBool canFocus = CanSetProperty("dom.disable_window_flip") ||
+                    (opener == caller &&
+                     RevisePopupAbuseLevel(gPopupControlState) < openAbused);
 
   nsCOMPtr<nsIDOMWindow> activeWindow;
   fm->GetActiveWindow(getter_AddRefs(activeWindow));
@@ -4457,6 +4457,12 @@ NS_IMETHODIMP
 nsGlobalWindow::Blur()
 {
   FORWARD_TO_OUTER(Blur, (), NS_ERROR_NOT_INITIALIZED);
+
+  
+  
+  if (!CanSetProperty("dom.disable_window_flip")) {
+    return NS_OK;
+  }
 
   
   
