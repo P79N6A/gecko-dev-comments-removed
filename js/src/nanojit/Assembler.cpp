@@ -2036,12 +2036,20 @@ namespace nanojit
                     countlir_call();
                     for (int i = 0, argc = ins->argc(); i < argc; i++)
                         ins->arg(i)->setResultLive();
+
                     
                     
                     
                     
-                    NanoAssert(!ins->callInfo()->_isPure || ins->isExtant());
-                    asm_call(ins);
+                    
+                    
+                    
+                    
+                    
+                    
+                    if (!ins->callInfo()->_isPure || ins->isExtant()) {
+                        asm_call(ins);
+                    }
                     break;
 
                 #ifdef VMCFG_VTUNE

@@ -721,6 +721,10 @@ namespace nanojit
         
         
         
+        
+        
+        
+        
         bool isLive() const {
             return isV() ||
                    sharedFields.isResultLive ||
@@ -1773,9 +1777,9 @@ namespace nanojit
         char *formatImmD(RefBuf* buf, double c);
         void formatGuard(InsBuf* buf, LIns* ins);       
         void formatGuardXov(InsBuf* buf, LIns* ins);    
+        static const char* accNames[];                  
 
     public:
-        static const char* accNames[];                  
 
         LInsPrinter(Allocator& alloc, int embNumUsedAccs)
             : alloc(alloc), EMB_NUM_USED_ACCS(embNumUsedAccs)
