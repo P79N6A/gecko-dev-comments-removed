@@ -113,10 +113,24 @@ GfxInfo::GetAdapterDescription(nsAString & aAdapterDescription)
 
 
 NS_IMETHODIMP
+GfxInfo::GetAdapterDescription2(nsAString & aAdapterDescription)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetAdapterRAM(nsAString & aAdapterRAM)
 {
   aAdapterRAM.AssignLiteral("");
   return NS_OK;
+}
+
+
+NS_IMETHODIMP
+GfxInfo::GetAdapterRAM2(nsAString & aAdapterRAM)
+{
+  return NS_ERROR_FAILURE;
 }
 
 
@@ -129,10 +143,24 @@ GfxInfo::GetAdapterDriver(nsAString & aAdapterDriver)
 
 
 NS_IMETHODIMP
+GfxInfo::GetAdapterDriver2(nsAString & aAdapterDriver)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetAdapterDriverVersion(nsAString & aAdapterDriverVersion)
 {
   aAdapterDriverVersion.AssignLiteral("");
   return NS_OK;
+}
+
+
+NS_IMETHODIMP
+GfxInfo::GetAdapterDriverVersion2(nsAString & aAdapterDriverVersion)
+{
+  return NS_ERROR_FAILURE;
 }
 
 
@@ -145,6 +173,13 @@ GfxInfo::GetAdapterDriverDate(nsAString & aAdapterDriverDate)
 
 
 NS_IMETHODIMP
+GfxInfo::GetAdapterDriverDate2(nsAString & aAdapterDriverDate)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetAdapterVendorID(PRUint32 *aAdapterVendorID)
 {
   *aAdapterVendorID = 0;
@@ -153,10 +188,31 @@ GfxInfo::GetAdapterVendorID(PRUint32 *aAdapterVendorID)
 
 
 NS_IMETHODIMP
+GfxInfo::GetAdapterVendorID2(PRUint32 *aAdapterVendorID)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
 GfxInfo::GetAdapterDeviceID(PRUint32 *aAdapterDeviceID)
 {
   *aAdapterDeviceID = 0;
   return NS_OK;
+}
+
+
+NS_IMETHODIMP
+GfxInfo::GetAdapterDeviceID2(PRUint32 *aAdapterDeviceID)
+{
+  return NS_ERROR_FAILURE;
+}
+
+
+NS_IMETHODIMP
+GfxInfo::GetIsGPU2Active(PRBool* aIsGPU2Active)
+{
+  return NS_ERROR_FAILURE;
 }
 
 void
