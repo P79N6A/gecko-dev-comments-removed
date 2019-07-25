@@ -1758,6 +1758,7 @@ HUD_SERVICE.prototype =
     
     
     if (hud.consolePanel && hud.consolePanel.parentNode) {
+      hud.consolePanel.hidePopup();
       hud.consolePanel.parentNode.removeChild(hud.consolePanel);
       hud.consolePanel.removeAttribute("hudId");
       hud.consolePanel = null;
