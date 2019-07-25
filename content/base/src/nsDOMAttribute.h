@@ -137,6 +137,11 @@ private:
 
   void EnsureChildState();
 
+  
+
+
+  void doRemoveChild();
+
   nsString mValue;
   
   
