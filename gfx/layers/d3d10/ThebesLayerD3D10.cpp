@@ -470,17 +470,9 @@ ShadowThebesLayerD3D10::~ShadowThebesLayerD3D10()
 }
 
 void
-ShadowThebesLayerD3D10::SetFrontBuffer(const OptionalThebesBuffer& aNewFront,
-                                       const nsIntRegion& aValidRegion)
-{
-  NS_ABORT_IF_FALSE(OptionalThebesBuffer::Tnull_t == aNewFront.type(),
-                    "Expected dummy front buffer initially");
-}
-
-void
 ShadowThebesLayerD3D10::Swap(
   const ThebesBuffer& aNewFront, const nsIntRegion& aUpdatedRegion,
-  ThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
+  OptionalThebesBuffer* aNewBack, nsIntRegion* aNewBackValidRegion,
   OptionalThebesBuffer* aReadOnlyFront, nsIntRegion* aFrontUpdatedRegion)
 {
   nsRefPtr<ID3D10Texture2D> newBackBuffer = mTexture;
@@ -490,7 +482,7 @@ ShadowThebesLayerD3D10::Swap(
 
   
   
-  aNewBack->buffer() = aNewFront.buffer();
+  aNewBack->get_ThebesBuffer().buffer() = aNewFront.buffer();
 
   
   
