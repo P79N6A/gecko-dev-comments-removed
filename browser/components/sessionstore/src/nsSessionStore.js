@@ -853,7 +853,7 @@ SessionStoreService.prototype = {
 
     
     
-    this._resetTabRestoringState(aTab, true);
+    this._resetTabRestoringState(aTab, true, false);
 
     if (!aNoNotification) {
       this.saveStateDelayed(aWindow);
@@ -2197,7 +2197,7 @@ SessionStoreService.prototype = {
     
     if (aOverwriteTabs) {
       for (let i = 0; i < tabbrowser.tabs.length; i++)
-        this._resetTabRestoringState(tabbrowser.tabs[i], false);
+        this._resetTabRestoringState(tabbrowser.tabs[i], false, false);
     }
 
     
@@ -2435,7 +2435,10 @@ SessionStoreService.prototype = {
       history.PurgeHistory(history.count);
     }
     history.QueryInterface(Ci.nsISHistoryInternal);
-    
+
+    browser.__SS_shistoryListener = new SessionStoreSHistoryListener(this, tab);
+    history.addSHistoryListener(browser.__SS_shistoryListener);
+
     if (!tabData.entries) {
       tabData.entries = [];
     }
@@ -3518,8 +3521,26 @@ SessionStoreService.prototype = {
     this._tabsRestoringCount = 0;
   },
 
-  _resetTabRestoringState: function sss__resetTabRestoringState(aTab, aRestoreNextTab) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _resetTabRestoringState:
+    function sss__resetTabRestoringState(aTab, aRestoreNextTab, aRestoreThisTab) {
     let browser = aTab.linkedBrowser;
+
+    
+    delete browser.__SS_shistoryListener;
 
     if (browser.__SS_restoring) {
       delete browser.__SS_restoring;
@@ -3534,13 +3555,32 @@ SessionStoreService.prototype = {
       }
     }
     else if (browser.__SS_needsRestore) {
-      let window = aTab.ownerDocument.defaultView;
-      window.__SS_tabsToRestore--;
-      delete browser.__SS_needsRestore;
-      if (aTab.hidden)
-        this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
-      else
-        this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
+      
+      
+      let splicedTabs;
+      if (aTab.hidden) {
+        splicedTabs =
+          this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab), 1);
+      }
+      else {
+        splicedTabs =
+          this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab), 1);
+      }
+      if (aRestoreThisTab && splicedTabs.length) {
+        
+        
+        
+        this.restoreTab(aTab);
+      }
+      else {
+        
+        
+        
+        let window = aTab.ownerDocument.defaultView;
+        window.__SS_tabsToRestore--;
+        delete browser.__SS_needsRestore;
+      }
+
     }
   },
 
@@ -3676,10 +3716,9 @@ let gRestoreTabsProgressListener = {
   ss: null,
   onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
     
-    if (!aBrowser.__SS_restoring)
-      return;
-
-    if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+    
+    if (aBrowser.__SS_restoring &&
+        aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
         aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) {
       delete aBrowser.__SS_restoring;
@@ -3687,6 +3726,35 @@ let gRestoreTabsProgressListener = {
     }
   }
 }
+
+
+
+
+function SessionStoreSHistoryListener(ss, aTab) {
+  this.tab = aTab;
+  this.ss = ss;
+}
+SessionStoreSHistoryListener.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsISHistoryListener,
+                                         Ci.nsISupportsWeakReference]),
+  browser: null,
+  ss: null,
+  OnHistoryNewEntry: function(aNewURI) { },
+  OnHistoryGoBack: function(aBackURI) { return true; },
+  OnHistoryGoForward: function(aForwardURI) { return true; },
+  OnHistoryGotoIndex: function(aIndex, aGotoURI) { return true; },
+  OnHistoryPurge: function(aNumEntries) { return true; },
+  OnHistoryReload: function(aReloadURI, aReloadFlags) {
+    
+    
+    
+    
+    this.ss._resetTabRestoringState(this.tab, false, true);
+    
+    return false;
+  }
+}
+
 
 
 String.prototype.hasRootDomain = function hasRootDomain(aDomain)
