@@ -101,7 +101,7 @@ private:
   nsCString mFileName;
   PRUint32 mLineNo;
   PRUint32 mVersion;
-  nsCOMPtr<nsIArray> mArgv;
+  nsCOMPtr<nsIJSArgArray> mArgv;
 
   
   JSFlatString *mExpr;
@@ -326,7 +326,7 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
     
     
     
-    nsCOMPtr<nsIArray> array;
+    nsCOMPtr<nsIJSArgArray> array;
     
     rv = NS_CreateJSArgv(cx, NS_MAX(argc, 2u) - 2, nsnull,
                          getter_AddRefs(array));
@@ -336,8 +336,7 @@ nsJSScriptTimeoutHandler::Init(nsGlobalWindow *aWindow, bool *aIsInterval,
 
     PRUint32 dummy;
     jsval *jsargv = nsnull;
-    nsCOMPtr<nsIJSArgArray> jsarray(do_QueryInterface(array));
-    jsarray->GetArgs(&dummy, reinterpret_cast<void **>(&jsargv));
+    array->GetArgs(&dummy, reinterpret_cast<void **>(&jsargv));
 
     
     if (jsargv) {

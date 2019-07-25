@@ -5,6 +5,8 @@
 #include "jsapi.h"
 #include "nsIScriptContext.h"
 
+class nsIJSArgArray;
+
 
 
 inline nsIScriptContext *
@@ -50,6 +52,6 @@ GetScriptContextPrincipalFromJSContext(JSContext *cx)
 
 
 nsresult NS_CreateJSArgv(JSContext *aContext, PRUint32 aArgc, void *aArgv,
-                         nsIArray **aArray);
+                         nsIJSArgArray **aArray);
 
 #endif 

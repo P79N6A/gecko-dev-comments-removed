@@ -3909,7 +3909,7 @@ nsresult NS_CreateJSRuntime(nsIScriptRuntime **aRuntime)
 
 
 
-class nsJSArgArray : public nsIJSArgArray, public nsIArray {
+class nsJSArgArray : public nsIJSArgArray {
 public:
   nsJSArgArray(JSContext *aContext, PRUint32 argc, jsval *argv, nsresult *prv);
   ~nsJSArgArray();
@@ -4049,7 +4049,7 @@ NS_IMETHODIMP nsJSArgArray::Enumerate(nsISimpleEnumerator **_retval)
 
 
 nsresult NS_CreateJSArgv(JSContext *aContext, PRUint32 argc, void *argv,
-                         nsIArray **aArray)
+                         nsIJSArgArray **aArray)
 {
   nsresult rv;
   nsJSArgArray *ret = new nsJSArgArray(aContext, argc,
