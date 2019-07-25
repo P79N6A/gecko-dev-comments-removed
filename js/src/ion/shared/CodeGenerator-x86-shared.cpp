@@ -707,6 +707,9 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         return false;
 
     
+    masm.movePtr(Operand(objreg, offsetof(JSObject, privateData)), objreg);
+
+    
     
     masm.movl(Operand(objreg, offsetof(JSFunction, flags)), tokreg);
     masm.andl(Imm32(JSFUN_KINDMASK), tokreg);
