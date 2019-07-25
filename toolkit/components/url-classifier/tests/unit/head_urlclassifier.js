@@ -1,3 +1,4 @@
+
 function dumpn(s) {
   dump(s + "\n");
 }
@@ -276,6 +277,8 @@ function runNextTest()
   dbservice.resetDatabase();
   dbservice.setHashCompleter('test-phish-simple', null);
   dumpn("running " + gTests[gNextTest]);
+
+  dump("running " + gTests[gNextTest]);
 
   gTests[gNextTest++]();
 }

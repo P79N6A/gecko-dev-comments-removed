@@ -106,8 +106,8 @@ private:
   nsresult Shutdown();
 
   
-  nsresult CheckCleanHost(const nsACString &lookupKey,
-                          PRBool *clean);
+  nsresult CheckClean(const nsACString &lookupKey,
+                      PRBool *clean);
 
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
   nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;

@@ -25,44 +25,12 @@ function testCleanHostKeys() {
             });
           
           do_check_eq(result2, false);
+        do_throw("shouldn't get a callback");
         });
 
       
       do_check_eq(result, false);
       runNextTest();
-    }, updateError);
-}
-
-
-function testDirtyHostKeys() {
-  var addUrls = [ "foo.com/a" ];
-  var update = buildPhishingUpdate(
-        [
-          { "chunkNum" : 1,
-            "urls" : addUrls
-          }]);
-
-  doStreamUpdate(update, function() {
-      var ios = Components.classes["@mozilla.org/network/io-service;1"].
-        getService(Components.interfaces.nsIIOService);
-
-      
-      var uri = ios.newURI("http://foo.com/b", null, null);
-
-      
-      
-      
-      var classifier = dbservice.QueryInterface(Ci.nsIURIClassifier);
-      var result = classifier.classify(uri, function(errorCode) {
-          var result2 = classifier.classify(uri, function() {
-              runNextTest();
-            });
-          
-          do_check_eq(result2, true);
-        });
-
-      
-      do_check_eq(result, true);
     }, updateError);
 }
 
@@ -89,27 +57,26 @@ function testUpdate() {
     var classifier = dbservice.QueryInterface(Ci.nsIURIClassifier);
     var result = classifier.classify(uri, function(errorCode) {
       
-      
       do_check_eq(errorCode, Cr.NS_OK);
-
-      
-      var addUrls = [ "foo.com/a" ];
-      var update = buildPhishingUpdate(
-        [
-          { "chunkNum" : 1,
-            "urls" : addUrls
-          }]);
-      doStreamUpdate(update, function() {
-        
-        
-        var result2 = classifier.classify(uri, function(errorCode) {
-          do_check_eq(errorCode, Cr.NS_OK);
-          runNextTest();
-        });
-        
-        do_check_eq(result2, true);
-      }, updateError);
+      do_throw("shouldn't get a callback");
     });
+    do_check_eq(result, false);
+
+    
+    var addUrls = [ "foo.com/a" ];
+    var update = buildPhishingUpdate(
+      [
+        { "chunkNum" : 2,
+          "urls" : addUrls
+        }]);
+    doStreamUpdate(update, function() {
+      var result2 = classifier.classify(uri, function(errorCode) {
+        do_check_neq(errorCode, Cr.NS_OK);
+        runNextTest();
+      });
+      
+      do_check_eq(result2, true);
+    }, updateError);
   }, updateError);
 }
 
@@ -220,7 +187,6 @@ function run_test()
              
              testUpdate,
              testCleanHostKeys,
-             testDirtyHostKeys,
              testResetFullCache,
              testBug475436
   ]);
