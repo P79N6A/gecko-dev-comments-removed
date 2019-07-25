@@ -323,7 +323,8 @@ class IonBuilder : public MIRGenerator
 
     
     
-    void discardCallArgs(uint32 argc, MDefinition **argv);
+    bool discardCallArgs(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb);
+    bool discardCall(uint32 argc, MDefinitionVector &argv, MBasicBlock *bb);
     bool optimizeNativeCall(uint32 argc);
 
     

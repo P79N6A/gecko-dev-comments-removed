@@ -282,7 +282,7 @@ IonBuilder::build()
 
 bool
 IonBuilder::buildInline(MResumePoint *callerResumePoint, MDefinition *thisDefn,
-                        MDefinitionVector &args)
+                        MDefinitionVector &argv)
 {
     current = newBlock(pc);
     if (!current)
@@ -302,11 +302,11 @@ IonBuilder::buildInline(MResumePoint *callerResumePoint, MDefinition *thisDefn,
 
     
     const size_t nargs = info().nargs();
-    if (args.length() < nargs) {
-        for (size_t i = 0, missing = nargs - args.length(); i < missing; ++i) {
+    if (argv.length() - 1 < nargs) {
+        for (size_t i = 0, missing = nargs - (argv.length() - 1); i < missing; ++i) {
             MConstant *undef = MConstant::New(UndefinedValue());
             current->add(undef);
-            if (!args.append(undef))
+            if (!argv.append(undef))
                 return false;
         }
     }
@@ -323,9 +323,11 @@ IonBuilder::buildInline(MResumePoint *callerResumePoint, MDefinition *thisDefn,
     IonSpew(IonSpew_Inlining, "Initializing %u arg slots", nargs);
 
     
-    JS_ASSERT(args.length() >= nargs);
+    MDefinitionVector::Range args = argv.all();
+    args.popFront();
+    JS_ASSERT(args.remain() >= nargs);
     for (size_t i = 0; i < nargs; ++i) {
-        MDefinition *arg = args[i];
+        MDefinition *arg = args.popCopyFront();
         current->initSlot(info().argSlot(i), arg);
     }
 
@@ -2231,26 +2233,16 @@ IonBuilder::jsop_call_inline(uint32 argc, IonBuilder &inlineBuilder, InliningDat
     
     
     
-    MDefinitionVector args;
-    if (!args.growByUninitialized(argc))
+    MDefinitionVector argv;
+
+    
+    if (!discardCallArgs(argc, argv, top))
         return false;
 
-    
-    for (uintN i = argc - 1; i < argc; i--) {
-        MPassArg *passArg = top->pop()->toPassArg();
-        JS_ASSERT(passArg->useCount() == 0);
-        passArg->block()->discard(passArg);
-        MDefinition *wrapped = passArg->getArgument();
-        args[i] = wrapped;
-    }
-
-    MPassArg *thisArg = top->pop()->toPassArg();
-    MDefinition *thisDefn = thisArg->getArgument();
-    JS_ASSERT(thisArg->useCount() == 0);
-    thisArg->block()->discard(thisArg);
+    MDefinition *thisDefn = argv[0];
 
     
-    if (!inlineBuilder.buildInline(inlineResumePoint, thisDefn, args))
+    if (!inlineBuilder.buildInline(inlineResumePoint, thisDefn, argv))
         return false;
 
     MIRGraphExits &exits = inlineBuilder.graph().getExitAccumulator();
