@@ -622,6 +622,14 @@ gfxFontEntry*
 gfxUserFontSet::LoadFont(gfxProxyFontEntry *aProxy,
                          const PRUint8 *aFontData, PRUint32 &aLength)
 {
+    
+    
+    
+    if (!aProxy->Family()) {
+        NS_Free(aFontData);
+        return nsnull;
+    }
+
     gfxFontEntry *fe = nsnull;
 
     gfxUserFontType fontType =
