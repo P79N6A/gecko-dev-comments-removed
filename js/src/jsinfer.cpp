@@ -1412,6 +1412,13 @@ TypeSet::hasObjectFlags(JSContext *cx, TypeObjectFlags flags)
     if (unknown())
         return true;
 
+    
+
+
+
+    if (objectCount == 0)
+        return true;
+
     unsigned count = getObjectCount();
     for (unsigned i = 0; i < count; i++) {
         TypeObject *object = getObject(i);

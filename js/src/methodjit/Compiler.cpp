@@ -6927,7 +6927,14 @@ mjit::Compiler::arrayPrototypeHasIndexedProperty()
     JSObject *proto;
     if (!js_GetClassPrototype(cx, NULL, JSProto_Array, &proto, NULL))
         return false;
+
+    
+
+
+
+
+    if (proto->getType()->unknownProperties())
+        return true;
     types::TypeSet *arrayTypes = proto->getType()->getProperty(cx, JSID_VOID, false);
-    types::TypeSet *objectTypes = proto->getProto()->getType()->getProperty(cx, JSID_VOID, false);
-    return arrayTypes->knownNonEmpty(cx) || objectTypes->knownNonEmpty(cx);
+    return !arrayTypes || arrayTypes->knownNonEmpty(cx);
 }
