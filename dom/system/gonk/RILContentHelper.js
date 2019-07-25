@@ -85,6 +85,7 @@ MobileConnectionInfo.prototype = {
   
 
   connected: false,
+  state: null,
   emergencyCallsOnly: false,
   roaming: false,
   network: null,

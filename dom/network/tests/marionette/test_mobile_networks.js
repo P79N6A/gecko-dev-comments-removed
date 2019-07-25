@@ -2,7 +2,6 @@
 
 
 
-
 MARIONETTE_TIMEOUT = 60000;
  
 const WHITELIST_PREF = "dom.mobileconnection.whitelist";
@@ -35,6 +34,7 @@ function isTelkilaNetwork(network) {
 function testConnectionInfo() {
   let voice = connection.voice;
   is(voice.connected, true);
+  is(voice.state, "registered");
   is(voice.emergencyCallsOnly, false);
   is(voice.roaming, false);
   isAndroidNetwork(voice.network);
@@ -42,8 +42,9 @@ function testConnectionInfo() {
   let data = connection.data;
   
   
-  
-  
+  is(data.state, "registered");
+  is(data.emergencyCallsOnly, false);
+  is(data.roaming, false);
   isAndroidNetwork(data.network);
 
   testGetNetworks();
