@@ -59,6 +59,10 @@
 #include <dlfcn.h>
 #include "nscore.h"
 
+#ifdef __SUNPRO_CC
+#include <stdio.h>
+#endif
+
 namespace mozilla {
 namespace widget {
 
