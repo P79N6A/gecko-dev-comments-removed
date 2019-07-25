@@ -31,6 +31,9 @@ bool MarkPagesUnused(void *p, size_t size);
 
 bool MarkPagesInUse(void *p, size_t size);
 
+
+size_t GetPageFaultCount();
+
 } 
 } 
 
