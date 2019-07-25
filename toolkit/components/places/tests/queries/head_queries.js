@@ -112,14 +112,17 @@ function populateDB(aArray) {
             
             
             
-            let stmt = DBConn().createStatement(
+            
+            
+            
+            let stmt = DBConn().createAsyncStatement(
               "UPDATE moz_places SET hidden = 1 WHERE url = :url");
             stmt.params.url = qdata.uri;
             try {
-              stmt.execute();
+              stmt.executeAsync();
             }
             catch (ex) {
-              print("Error while setting visit_count.");
+              print("Error while setting hidden.");
             }
             finally {
               stmt.finalize();
