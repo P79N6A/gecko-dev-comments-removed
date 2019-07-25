@@ -2954,7 +2954,7 @@ nsJSContext::ShrinkGCBuffersNow()
 }
 
 static bool
-DoMergingCC()
+DoMergingCC(bool aForced)
 {
   return false;
 }
@@ -2962,7 +2962,8 @@ DoMergingCC()
 
 void
 nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
-                             PRInt32 aExtraForgetSkippableCalls)
+                             PRInt32 aExtraForgetSkippableCalls,
+                             bool aForced)
 {
   if (!NS_IsMainThread()) {
     return;
@@ -2994,7 +2995,7 @@ nsJSContext::CycleCollectNow(nsICycleCollectorListener *aListener,
     ++sCleanupsSinceLastGC;
   }
 
-  bool mergingCC = DoMergingCC();
+  bool mergingCC = DoMergingCC(aForced);
 
   nsCycleCollectorResults ccResults;
   nsCycleCollector_collect(mergingCC, &ccResults, aListener);
@@ -3197,7 +3198,7 @@ CCTimerFired(nsITimer *aTimer, void *aClosure)
     } else {
       
       
-      nsJSContext::CycleCollectNow();
+      nsJSContext::CycleCollectNow(nsnull, 0, false);
     }
   } else if ((sPreviousSuspectedCount + 100) <= suspected) {
     
