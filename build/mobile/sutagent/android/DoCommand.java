@@ -1,0 +1,2476 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.mozilla.SUTAgentAndroid;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.net.Socket;
+import java.net.SocketException;
+import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.List;
+import java.util.Timer;
+import java.util.zip.Adler32;
+import java.util.zip.CheckedInputStream;
+import java.util.zip.CheckedOutputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
+import org.apache.commons.net.ftp.FTP;
+import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
+import android.app.Activity;
+import android.app.ActivityManager;
+import android.content.ActivityNotFoundException;
+import android.content.Context;
+import android.content.ContextWrapper;
+import android.content.Intent;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.PackageManager.NameNotFoundException;
+import android.net.Uri;
+import android.os.Build;
+import android.os.Environment;
+import android.os.StatFs;
+import android.os.SystemClock;
+import android.util.DisplayMetrics;
+import android.util.Log;
+
+public class DoCommand {
+	
+	String lineSep = System.getProperty("line.separator");
+	Process	pProc;
+	OutputStream sutIn;
+	InputStream	sutErr;
+	InputStream	sutOut;
+
+	AlertLooperThread alrt = null;
+	
+	String	currentDir = "/";
+	
+	public enum Command
+		{
+		RUN ("run"),
+		EXEC ("exec"),
+		ARUN ("arun"),
+		KILL ("kill"),
+		PS ("ps"),
+		DEVINFO ("info"),
+		OS ("os"),
+		ID ("id"),
+		UPTIME ("uptime"),
+		SYSTIME ("systime"),
+		SCREEN ("screen"),
+		MEMORY ("memory"),
+		POWER ("power"),
+		PROCESS ("process"),
+		GETAPPROOT ("getapproot"),
+		TESTROOT ("testroot"),
+		ALRT ("alrt"),
+		DISK ("disk"),
+		CP ("cp"),
+		TIME ("time"),
+		HASH ("hash"),
+		CD ("cd"),
+		CAT ("cat"),
+		CWD ("cwd"),
+		MV ("mv"),
+		PUSH ("push"),
+		RM ("rm"),
+		PRUNE ("rmdr"),
+		MKDR ("mkdr"),
+		DIRWRITABLE ("dirw"),
+		DEAD ("dead"),
+		MEMS ("mems"),
+		LS ("ls"),
+		TMPD ("tmpd"),
+		PING ("ping"),
+		REBT ("rebt"),
+		UNZP ("unzp"),
+		ZIP ("zip"),
+		CLOK ("clok"),
+		STAT ("stat"),
+		QUIT ("quit"),
+		EXIT ("exit"),
+		HELP ("help"),
+		FTPG ("ftpg"),
+		FTPP ("ftpp"),
+		INST ("inst"),
+		UNINST ("uninst"),
+		TEST ("test"),
+		UNKNOWN ("unknown");
+		
+		private final String theCmd;
+		
+		Command(String theCmd) { this.theCmd = theCmd; }
+
+		public String theCmd() {return theCmd;}
+		
+		public static Command getCmd(String sCmd)
+			{
+			Command retCmd = UNKNOWN;
+			for (Command cmd : Command.values())
+				{
+				if (cmd.theCmd().equalsIgnoreCase(sCmd))
+					{
+					retCmd = cmd;
+					break;
+					}
+				}
+			return (retCmd);
+			}
+		}
+	
+
+	public String processCommand(String theCmdLine, PrintWriter out, BufferedInputStream in, OutputStream cmdOut)
+		{
+		String 	strReturn = "";
+		Command	cCmd = null;
+		Command cSubCmd = null;
+		
+		String [] Argv = parseCmdLine(theCmdLine);
+		
+		int Argc = Argv.length;
+		
+		cCmd = Command.getCmd(Argv[0]);
+		
+		switch(cCmd)
+			{
+			case CWD:
+				try {
+					strReturn = new java.io.File(currentDir).getCanonicalPath();
+					} 
+				catch (IOException e)
+					{
+					e.printStackTrace();
+					}
+				break;
+				
+			case CD:
+				if (Argc == 2)
+					strReturn = changeDir(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for cd command!";
+				break;
+			
+			case LS:
+				strReturn = PrintDir(((Argc > 1) ? Argv[1] : currentDir));
+				break;
+				
+			case GETAPPROOT:
+				if (Argc == 2)
+					strReturn = GetAppRoot(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for cd command!";
+				break;
+				
+			case TESTROOT:
+				strReturn = GetTestRoot();
+				break;
+				
+			case DEAD:
+				if (Argc == 2)
+					strReturn = (IsProcessDead(Argv[1]) ? (Argv[1] + " is hung or unresponsive") : (Argv[1] + " is ok"));
+				else
+					strReturn = "Wrong number of arguments for dead command!";
+				break;
+				
+			case PS:
+				strReturn = GetProcessInfo();
+				break;
+				
+			case PUSH:
+				if (Argc == 3)
+					{
+					long lArg = 0;
+				    try
+				    	{
+				        lArg = Long.parseLong(Argv[2].trim());
+				        System.out.println("long l = " + lArg);
+				    	}
+				    catch (NumberFormatException nfe)
+				    	{
+				        System.out.println("NumberFormatException: " + nfe.getMessage());
+				    	}
+					
+					strReturn = Push(Argv[1], in, lArg);
+					}
+				else
+					strReturn = "Wrong number of arguments for push command!";
+				break;
+				
+			case INST:
+				if (Argc == 2)
+					strReturn = InstallApp(Argv[1], cmdOut);
+				else
+					strReturn = "Wrong number of arguments for inst command!";
+				break;
+				
+			case UNINST:
+				if (Argc == 2)
+					strReturn = UnInstallApp(Argv[1], cmdOut);
+				else
+					strReturn = "Wrong number of arguments for inst command!";
+				break;
+				
+			case ALRT:
+				if (Argc == 2)
+					{
+					if (Argv[1].contentEquals("on"))
+						{
+						StartAlert();
+						}
+					else
+						{
+						StopAlert();
+						}
+					}
+				else
+					{
+					strReturn = "Wrong number of arguments for alrt command!";
+					}
+				break;
+				
+			case REBT:
+
+
+
+
+
+
+
+					
+
+
+				RunReboot(cmdOut);
+				break;
+				
+			case TMPD:
+				strReturn = GetTmpDir();
+				break;
+				
+			case DEVINFO:
+				if (Argc == 1)
+					{
+					strReturn += SUTAgentAndroid.sUniqueID;
+					strReturn += "\n";
+					strReturn += GetOSInfo();
+					strReturn += "\n";
+					strReturn += GetSystemTime();
+					strReturn += "\n";
+					strReturn += GetUptime();
+					strReturn += "\n";
+					strReturn += GetScreenInfo();
+					strReturn += "\n";
+					strReturn += GetMemoryInfo();
+					strReturn += "\n";
+					strReturn += GetPowerInfo();
+					strReturn += "\n";
+					strReturn += GetProcessInfo();
+					}
+				else
+					{
+					cSubCmd = Command.getCmd(Argv[1]);
+					switch(cSubCmd)
+						{
+						case ID:
+							strReturn = SUTAgentAndroid.sUniqueID;
+							break;
+							
+						case SCREEN:
+							strReturn = GetScreenInfo();
+							break;
+							
+						case PROCESS:
+							strReturn = GetProcessInfo();
+							break;
+							
+						case OS:
+							strReturn = GetOSInfo();
+							break;
+							
+						case SYSTIME:
+							strReturn = GetSystemTime();
+							break;
+							
+						case UPTIME:
+							strReturn = GetUptime();
+							break;
+							
+						case MEMORY:
+							strReturn = GetMemoryInfo();
+							break;
+							
+						case POWER:
+							strReturn += GetPowerInfo();
+							break;
+							
+						default:
+							break;
+						}
+					}
+				break;
+				
+			case STAT:
+				if (Argc == 2)
+					strReturn = StatProcess(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for ping command!";
+				break;
+				
+			case PING:
+				if (Argc == 2)
+					strReturn = SendPing(Argv[1], cmdOut);
+				else
+					strReturn = "Wrong number of arguments for ping command!";
+				break;
+				
+			case HASH:
+				if (Argc == 2)
+					strReturn = HashFile(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for hash command!";
+				break;
+				
+			case PRUNE:
+				if (Argc == 2)
+					strReturn = PruneDir(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for prune command!";
+				break;
+				
+			case FTPG:
+				if (Argc == 4)
+					strReturn = FTPGetFile(Argv[1], Argv[2], Argv[3], cmdOut);
+				else
+					strReturn = "Wrong number of arguments for ftpg command!";
+				break;
+				
+			case CAT:
+				if (Argc == 2)
+					strReturn = Cat(Argv[1], cmdOut);
+				else
+					strReturn = "Wrong number of arguments for cat command!";
+				break;
+				
+			case DIRWRITABLE:
+				if (Argc == 2)
+					strReturn = IsDirWritable(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for dirwritable command!";
+				break;
+				
+			case TIME:
+				if (Argc == 2)
+					strReturn = PrintFileTimestamp(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for time command!";
+				break;
+				
+			case MKDR:
+				if (Argc == 2)
+					strReturn = MakeDir(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for mkdr command!";
+				break;
+				
+			case RM:
+				if (Argc == 2)
+					strReturn = RemoveFile(Argv[1]);
+				else
+					strReturn = "Wrong number of arguments for mkdr command!";
+				break;
+				
+			case MV:
+				if (Argc == 3)
+					strReturn = Move(Argv[1], Argv[2]);
+				else
+					strReturn = "Wrong number of arguments for mv command!";
+				break;
+				
+			case CP:
+				if (Argc == 3)
+					strReturn = CopyFile(Argv[1], Argv[2]);
+				else
+					strReturn = "Wrong number of arguments for cp command!";
+				break;
+				
+			case QUIT:
+			case EXIT:
+				strReturn = Argv[0];
+				break;
+				
+			case TEST:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				
+
+				strReturn = InstallApp(Argv[1], cmdOut);
+				
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+				break;
+				
+			case EXEC:
+			case RUN:
+				if (Argc >= 2)
+					{
+					String [] theArgs = new String [Argc - 1];
+				
+					for (int lcv = 1; lcv < Argc; lcv++)
+						{
+						theArgs[lcv - 1] = Argv[lcv];
+						}
+				
+					if (Argv[1].contains("/") || Argv[1].contains("\\") || !Argv[1].contains("."))
+						strReturn = StartPrg(theArgs, cmdOut);
+					else
+						strReturn = StartJavaPrg(theArgs);
+					}
+				else
+					{
+					strReturn = "Wrong number of arguments for " + Argv[0] + " command!";
+					}
+				break;
+
+			case KILL:
+				if (Argc == 2)
+
+
+					strReturn = KillProcess(Argv[1], cmdOut);
+				else
+					strReturn = "Wrong number of arguments for kill command!";
+				break;
+				
+			case DISK:
+				strReturn = GetDiskInfo((Argc == 2 ? Argv[1] : "/"));
+				break;
+				
+			case UNZP:
+				strReturn = Unzip(Argv[1], (Argc == 3 ? Argv[2] : ""));
+				break;
+				
+			case ZIP:
+				strReturn = Zip(Argv[1], (Argc == 3 ? Argv[2] : ""));
+				break;
+				
+			case HELP:
+				strReturn = PrintUsage();
+				break;
+				
+			default:
+				strReturn = "[" + Argv[0] + "] command";
+				if (Argc > 1)
+					{
+					strReturn += " with arg(s) =";
+					for (int lcv = 1; lcv < Argc; lcv++)
+						{
+						strReturn += " [" + Argv[lcv] + "]";
+						}
+					}
+				strReturn += " is currently not implemented.";
+				break;
+			}
+		
+		return(strReturn);
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	public void StartAlert()
+		{
+		
+		alrt = new AlertLooperThread();
+		alrt.start();
+		}
+
+	public void StopAlert()
+		{
+		if (alrt == null)
+			return;
+		
+		Timer alertTimer = alrt.getAlertTimer();
+		
+		if (alertTimer != null)
+			{
+			
+			alertTimer.cancel();
+			alertTimer.purge();
+			alertTimer = null;
+			
+			alrt.term();
+			
+			try {
+				Thread.sleep(1000);
+				}
+			catch (InterruptedException e)
+				{
+				e.printStackTrace();
+				}
+			
+			alrt.quit();
+			alrt = null;
+			System.gc();
+			}
+		}
+
+	public String [] parseCmdLine(String theCmdLine) {
+		String	workingString;
+		String	workingString2;
+		List<String> lst = new ArrayList<String>();
+		int nLength = theCmdLine.length();
+		int nFirstSpace = theCmdLine.indexOf(' ');
+		
+		if (nFirstSpace == -1)
+			{
+			String [] theArgs = new String [1];
+			theArgs[0] = new String(theCmdLine);
+			return(theArgs);
+			}
+		
+		
+		lst.add(new String(theCmdLine.substring(0, nFirstSpace)));
+		
+		
+		workingString = (theCmdLine.substring(nFirstSpace + 1, nLength)).trim();
+		
+		while ((nLength = workingString.length()) > 0)
+			{
+			int nEnd = 0;
+			int	nStart = 0;
+			
+			
+			if (workingString.startsWith("\""))
+				{
+				
+				nStart = 1;
+				
+				nEnd = workingString.indexOf('"', nStart);
+				
+				if (nEnd == -1)
+					{
+					
+					nStart = 0;
+					
+					nEnd = workingString.indexOf(' ', nStart);
+					
+					if (nEnd == -1)
+						nEnd = nLength;	
+					}
+				}
+			else 
+				{
+				nEnd = workingString.indexOf(' ', nStart);
+				
+				if (nEnd == -1)
+					nEnd = nLength;	
+				}
+			
+			
+			workingString2 = workingString.substring(nStart, nEnd);
+			
+			
+			lst.add(new String(workingString2));
+			
+			
+			if (nStart > 0)
+				nEnd++; 
+			
+			
+			workingString = (workingString.substring(nEnd)).trim();
+			}
+		
+		int nItems = lst.size();
+		
+		String [] theArgs = new String [nItems];
+		
+		for (int lcv = 0; lcv < nItems; lcv++)
+			{
+			theArgs[lcv] = lst.get(lcv);
+			}
+	
+		return(theArgs);
+		}
+	
+	public String fixFileName(String fileName)
+		{
+		String	sRet = "";
+		String	sTmpFileName = "";
+		
+		sRet = fileName.replace('\\', '/');
+		
+		if (sRet.startsWith("/"))
+			sTmpFileName = sRet;
+		else
+			sTmpFileName = currentDir + "/" + sRet;
+		
+		sRet = sTmpFileName.replace('\\', '/');
+		sTmpFileName = sRet;
+		sRet = sTmpFileName.replace("//", "/");
+		
+		return(sRet);
+		}
+	
+	public String AddFilesToZip(ZipOutputStream out, String baseDir, String relDir)
+	{
+		final int 			BUFFER 	= 2048;
+		String				sRet	= "";
+		String 				curDir 	= "";
+		String				relFN	= "";
+		BufferedInputStream origin = null;
+	    byte 				data[] = new byte[BUFFER];
+	    
+	    if (relDir.length() > 0)
+	    	curDir = baseDir + "/" + relDir;
+	    else
+	    	curDir = baseDir;
+	    
+		File f = new File(curDir);
+		
+		if (f.isFile())
+			{
+		    try {
+		    	relFN = ((relDir.length() > 0) ? relDir + "/" + f.getName() : f.getName());
+		    	System.out.println("Adding: "+relFN);
+		    	sRet += "Adding: "+	relFN + lineSep;
+		    	FileInputStream fi = new FileInputStream(curDir);
+		    	origin = new BufferedInputStream(fi, BUFFER);
+		    	ZipEntry entry = new ZipEntry(relFN);
+		    	out.putNextEntry(entry);
+		    	int count;
+		    	while((count = origin.read(data, 0, BUFFER)) != -1)
+        			{
+		    		out.write(data, 0, count);
+        			}
+		    	origin.close();
+				}
+		    catch(Exception e)
+		    	{
+			    e.printStackTrace();
+		    	}
+		    
+		    return(sRet);
+			}
+		
+		String	files[] = f.list();
+		
+		if (files != null)
+			{
+			try {
+				for(int i = 0; i < files.length; i++)
+					{
+					f = new File(curDir + "/" + files[i]);
+					if (f.isDirectory())
+						{
+						if (relDir.length() > 0)
+							sRet += AddFilesToZip(out, baseDir, relDir + "/" + files[i]);
+						else
+							sRet += AddFilesToZip(out, baseDir, files[i]);
+						}
+					else
+						{
+						relFN = ((relDir.length() > 0) ? relDir + "/" + files[i] : files[i]);
+						System.out.println("Adding: "+relFN);
+						sRet += "Adding: "+	relFN + lineSep;
+						FileInputStream fi = new FileInputStream(curDir + "/" + files[i]);
+						origin = new BufferedInputStream(fi, BUFFER);
+						ZipEntry entry = new ZipEntry(relFN);
+						out.putNextEntry(entry);
+						int count;
+						while((count = origin.read(data, 0, BUFFER)) != -1)
+		        			{
+							out.write(data, 0, count);
+		        			}
+						origin.close();
+						}
+					}
+	    		}
+			catch(Exception e)
+	    		{
+				e.printStackTrace();
+	    		}
+			}
+
+		return(sRet);
+	}
+	
+	public String Zip(String zipFileName, String srcName)
+		{
+		String	fixedZipFileName = fixFileName(zipFileName);
+		String	fixedSrcName = fixFileName(srcName);
+		String sRet = "";
+		
+		try {
+		    FileOutputStream dest = new FileOutputStream(fixedZipFileName);
+		    CheckedOutputStream checksum = new CheckedOutputStream(dest, new Adler32());
+		    ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(checksum));
+		    out.setMethod(ZipOutputStream.DEFLATED);
+		    
+		    sRet += AddFilesToZip(out, fixedSrcName, "");
+		    
+		    out.close();
+		    System.out.println("checksum:		           "+checksum.getChecksum().getValue());
+	        sRet += "checksum:		           "+checksum.getChecksum().getValue();
+		    }
+		catch(Exception e)
+			{
+		    e.printStackTrace();
+		    }
+		
+		return(sRet);
+	}
+
+	public String Unzip(String zipFileName, String dstDirectory)
+		{
+		String 	sRet = "";
+		String	fixedZipFileName = fixFileName(zipFileName);
+		String	fixedDstDirectory = fixFileName(dstDirectory);
+		String	dstFileName = "";
+		int		nNumExtracted = 0;
+		boolean bRet = false;
+		
+		try {
+			final int BUFFER = 2048;
+			BufferedOutputStream dest = null;
+			ZipFile zipFile = new ZipFile(fixedZipFileName);
+			int nNumEntries = zipFile.size();
+			zipFile.close();
+			
+			FileInputStream fis = new FileInputStream(fixedZipFileName);
+			CheckedInputStream checksum = new CheckedInputStream(fis, new Adler32());
+			ZipInputStream zis = new ZipInputStream(new BufferedInputStream(checksum));
+			ZipEntry entry;
+
+			byte [] data = new byte[BUFFER];
+			
+			while((entry = zis.getNextEntry()) != null)
+        		{
+				System.out.println("Extracting: " + entry);
+
+				int count;
+
+				
+				if (fixedDstDirectory.length() > 0)
+					dstFileName = fixedDstDirectory + "/" + entry.getName();
+				else
+					dstFileName = entry.getName();
+				
+				String tmpDir = dstFileName.substring(0, dstFileName.lastIndexOf('/'));
+				File tmpFile = new File(tmpDir);
+				if (!tmpFile.exists())
+					{
+					bRet = tmpFile.mkdirs();
+					}
+				else
+					bRet = true;
+				
+				if (bRet)
+					{
+					FileOutputStream fos = new FileOutputStream(dstFileName);
+					dest = new BufferedOutputStream(fos, BUFFER);
+					while ((count = zis.read(data, 0, BUFFER)) != -1)
+        				{
+						dest.write(data, 0, count);
+        				}
+					dest.flush();
+					dest.close();
+					dest = null;
+					fos.close();
+					fos = null;
+
+					nNumExtracted++;
+					}
+				else
+					sRet += " - failed" + lineSep;
+				
+
+        		}
+			
+			data = null;
+			zis.close();
+			System.out.println("Checksum:          "+checksum.getChecksum().getValue());
+			sRet += "Checksum:          "+checksum.getChecksum().getValue();
+			sRet += lineSep + nNumExtracted + " of " + nNumEntries + " sucessfully extracted";
+			}
+		catch(Exception e)
+			{
+			e.printStackTrace();
+			}
+		
+		return(sRet);
+		}
+	
+	public String StatProcess(String string)
+		{
+		String sRet = "";
+		ActivityManager aMgr = (ActivityManager) SUTAgentAndroid.me.getSystemService(Activity.ACTIVITY_SERVICE);
+		int	[] nPids = new int [1];
+		
+		nPids[0] = Integer.parseInt(string);
+		
+		android.os.Debug.MemoryInfo[] mi = aMgr.getProcessMemoryInfo(nPids);
+		
+		sRet  = "Dalvik Private Dirty pages         " + mi[0].dalvikPrivateDirty     + " kb\n";
+		sRet += "Dalvik Proportional Set Size       " + mi[0].dalvikPss              + " kb\n";
+		sRet += "Dalvik Shared Dirty pages          " + mi[0].dalvikSharedDirty      + " kb\n\n";
+		sRet += "Native Private Dirty pages heap    " + mi[0].nativePrivateDirty     + " kb\n";
+		sRet += "Native Proportional Set Size heap  " + mi[0].nativePss              + " kb\n";
+		sRet += "Native Shared Dirty pages heap     " + mi[0].nativeSharedDirty      + " kb\n\n";
+		sRet += "Other Private Dirty pages          " + mi[0].otherPrivateDirty      + " kb\n";
+		sRet += "Other Proportional Set Size        " + mi[0].otherPss               + " kb\n";
+		sRet += "Other Shared Dirty pages           " + mi[0].otherSharedDirty       + " kb\n\n";
+		sRet += "Total Private Dirty Memory         " + mi[0].getTotalPrivateDirty() + " kb\n";
+		sRet += "Total Proportional Set Size Memory " + mi[0].getTotalPss()          + " kb\n";
+		sRet += "Total Shared Dirty Memory          " + mi[0].getTotalSharedDirty()  + " kb";
+		
+		
+		return(sRet);
+		}
+	
+	public String GetTestRoot()
+		{
+		String	sRet = null;
+		
+		if (Environment.getExternalStorageState().equalsIgnoreCase(Environment.MEDIA_MOUNTED))
+			{
+			sRet = Environment.getExternalStorageDirectory().getAbsolutePath();
+			}
+		else
+			{
+			sRet = GetTmpDir();			
+			}
+		
+		return(sRet);
+		}
+	
+	public String GetAppRoot(String AppName)
+		{
+		String sRet = "";
+		Context ctx = SUTAgentAndroid.me.getApplicationContext();
+		
+		if (ctx != null)
+			{
+			try {
+				Context appCtx = ctx.createPackageContext(AppName, 0);
+				ContextWrapper appCtxW = new ContextWrapper(appCtx);
+				sRet = appCtxW.getPackageResourcePath();
+				appCtxW = null;
+				appCtx = null;
+				ctx = null;
+				System.gc();
+				}
+			catch (NameNotFoundException e)
+				{
+				e.printStackTrace();
+				}
+			}
+		return(sRet);
+		}
+
+	public String changeDir(String newDir)
+		{
+		String	tmpDir	= fixFileName(newDir);
+		String	sRet = "Couldn't change directory to " + tmpDir;
+		
+		File tmpFile = new java.io.File(tmpDir);
+		
+		if (tmpFile.exists())
+			{
+			try {
+				currentDir = tmpFile.getCanonicalPath();
+				sRet = "";
+				}
+			catch (IOException e)
+				{
+				
+				e.printStackTrace();
+				}
+			}
+		
+		return(sRet);
+		}
+	
+	static final String HEXES = "0123456789abcdef";
+	
+	public static String getHex( byte [] raw )
+		{
+	    if ( raw == null )
+	    	{
+	    	return null;
+	    	}
+	    
+	    final StringBuilder hex = new StringBuilder( 2 * raw.length );
+	    for ( final byte b : raw )
+	    	{
+	    	hex.append(HEXES.charAt((b & 0xF0) >> 4)).append(HEXES.charAt((b & 0x0F)));
+	    	}
+	    return hex.toString();
+		}
+
+	public String HashFile(String fileName)
+		{
+		String			sTmpFileName = fixFileName(fileName);
+		String			sRet 		= "Couldn't calculate hash for file " + sTmpFileName;
+		byte[] 			buffer 		= new byte [4096];
+		int				nRead 		= 0;
+		long 			lTotalRead 	= 0;
+		MessageDigest	digest 		= null;
+		
+		try {
+			digest = java.security.MessageDigest.getInstance("MD5");
+			}
+		catch (NoSuchAlgorithmException e) {
+			
+			e.printStackTrace();
+			}
+		
+		try {
+			FileInputStream srcFile  = new FileInputStream(sTmpFileName);
+			while((nRead = srcFile.read(buffer)) != -1)
+				{
+				digest.update(buffer, 0, nRead);
+				lTotalRead += nRead;
+				}
+			srcFile.close();
+			byte [] hash = digest.digest();
+			
+			sRet = getHex(hash);
+			}
+		catch (FileNotFoundException e)
+			{
+			
+			e.printStackTrace();
+			}
+		catch (IOException e)
+			{
+			
+			e.printStackTrace();
+			} 
+		return(sRet);
+		}
+	
+	public String RemoveFile(String fileName)
+		{
+		String	sTmpFileName = fixFileName(fileName);
+		String	sRet = "Couldn't delete file " + sTmpFileName;
+		
+		File f = new File(sTmpFileName);
+		
+		if (f.delete())
+			sRet = "deleted " + sTmpFileName;
+		
+		return(sRet);
+		}
+	
+	public String PruneDir(String sDir)
+		{
+		String	sRet = "";
+		int nFiles = 0;
+		String sSubDir = null;
+		String	sTmpDir = fixFileName(sDir);
+		
+		File dir = new File(sTmpDir);
+		
+		if (dir.isDirectory())
+			{
+			sRet = "Deleting file(s) from " + sTmpDir;
+			
+			File [] files = dir.listFiles();
+			if (files != null)
+				{
+				if ((nFiles = files.length) > 0)
+					{
+					for (int lcv = 0; lcv < nFiles; lcv++)
+						{
+						if (files[lcv].isDirectory())
+							{
+							sSubDir = files[lcv].getAbsolutePath();
+							sRet += "\n" + PruneDir(sSubDir);
+							}
+						else
+							{
+							if (files[lcv].delete())
+								{
+								sRet += "\n\tDeleted " + files[lcv].getName();
+								}
+							else
+								{
+								sRet += "\n\tUnable to delete " + files[lcv].getName();
+								}
+							}
+						}
+					}
+				else
+					sRet += "\n\t<empty>";
+				}
+			
+			if (dir.delete())
+				{
+				sRet += "\nDeleting directory " + sTmpDir;
+				}
+			else
+				{
+				sRet += "\nUnable to delete directory " + sTmpDir;
+				}
+			}
+		else
+			{
+			sRet += sTmpDir + " is not a directory";
+			}
+		
+		return(sRet);
+		}
+	
+	public String PrintDir(String sDir)
+		{
+		String	sRet = "";
+		int nFiles = 0;
+		String	sTmpDir = fixFileName(sDir);
+		
+		File dir = new File(sTmpDir);
+		
+		if (dir.isDirectory())
+			{
+			File [] files = dir.listFiles();
+		
+			if (files != null)
+				{
+				if ((nFiles = files.length) > 0)
+					{
+					for (int lcv = 0; lcv < nFiles; lcv++)
+						{
+						sRet += files[lcv].getName();
+						if (lcv < (nFiles - 1))
+							sRet += "\n";
+						}
+					}
+				else
+					sRet = "<empty>";
+				}
+			}
+		else
+			{
+			sRet = sTmpDir + " is not a directory";
+			}
+		
+		return(sRet);
+		}
+	
+	public String Move(String srcFileName, String dstFileName)
+		{
+		String	sTmpSrcFileName = fixFileName(srcFileName);
+		String	sTmpDstFileName = fixFileName(dstFileName);
+		String sRet = "Could not move " + sTmpSrcFileName + " to " + sTmpDstFileName;
+		
+		File srcFile = new File(sTmpSrcFileName);
+		File dstFile = new File(sTmpDstFileName);
+		
+		if (srcFile.renameTo(dstFile))
+			sRet = sTmpSrcFileName + " moved to " + sTmpDstFileName;
+		
+		return (sRet);
+		}
+	
+	public String CopyFile(String srcFileName, String dstFileName)
+		{
+		String	sTmpSrcFileName = fixFileName(srcFileName);
+		String	sTmpDstFileName = fixFileName(dstFileName);
+		String sRet = "Could not copy " + sTmpSrcFileName + " to " + sTmpDstFileName;
+		File destFile = null;
+		byte[] buffer = new byte [4096];
+		int	nRead = 0;
+		long lTotalRead = 0;
+		long lTotalWritten = 0;
+		
+		try 
+			{
+			FileInputStream srcFile  = new FileInputStream(sTmpSrcFileName);
+			FileOutputStream dstFile = new FileOutputStream(sTmpDstFileName);
+			
+			while((nRead = srcFile.read(buffer)) != -1)
+				{
+				lTotalRead += nRead;
+				dstFile.write(buffer, 0, nRead);
+				}
+			dstFile.flush();
+			dstFile.close();
+			
+			destFile = new File(sTmpDstFileName);
+			lTotalWritten = destFile.length();
+
+			if (lTotalWritten == lTotalRead)
+				sRet = sTmpSrcFileName + " copied to " + sTmpDstFileName;
+			else
+				sRet = "Failed to copy " + sTmpSrcFileName + " [length = " + lTotalWritten + "] to " + sTmpDstFileName + " [length = " + lTotalRead + "]";
+			}
+		catch (FileNotFoundException e)
+			{
+			
+			e.printStackTrace();
+			} 
+		catch (IOException e)
+			{
+			
+			e.printStackTrace();
+			}
+
+		return (sRet);
+		}
+	
+	public String IsDirWritable(String sDir)
+		{
+		String sRet = "";
+		String	sTmpDir = fixFileName(sDir);
+		File dir = new File(sTmpDir);
+		
+		if (dir.isDirectory())
+			{
+			sRet = "[" + sDir + "] " + (dir.canWrite() ? "is" : "is not") + " writable";
+			}
+		else
+			{
+			sRet = "[" + sDir + "] is not a directory";
+			}
+		
+		return(sRet);
+		}
+	
+	public String Push(String fileName, BufferedInputStream bufIn, long lSize)
+	{
+		byte []				buffer 			= new byte [8192];
+		int					nRead			= 0;
+		long				lRead			= 0;
+		String				sTmpFileName 	= fixFileName(fileName);
+		String				sRet			= "Push failed!";
+		
+		try {
+			FileOutputStream dstFile = new FileOutputStream(sTmpFileName, false);
+			while((nRead != -1) && (lRead < lSize))
+				{
+				nRead = bufIn.read(buffer);
+				if (nRead != -1)
+					{
+					dstFile.write(buffer, 0, nRead);
+					dstFile.flush();
+					lRead += nRead;
+					}
+				}
+			
+			dstFile.flush();
+			dstFile.close();
+			
+			if (lRead == lSize)
+				{
+				sRet = HashFile(sTmpFileName);
+				
+				}
+			}
+		catch (IOException e)
+			{
+			e.printStackTrace();
+			}
+		
+		buffer = null;
+		
+		return(sRet);
+	}
+	
+	public String FTPGetFile(String sServer, String sSrcFileName, String sDstFileName, OutputStream out)
+		{
+		byte[] buffer = new byte [4096];
+		int	nRead = 0;
+		long lTotalRead = 0;
+		String sRet = "FTP Get failed for " + sSrcFileName;
+		String strRet = "";
+		int	reply = 0;
+		FileOutputStream outStream = null;
+		String	sTmpDstFileName = fixFileName(sDstFileName);
+		
+		FTPClient ftp = new FTPClient();
+		try 
+			{
+			ftp.connect(sServer);
+			reply = ftp.getReplyCode();
+		    if(FTPReply.isPositiveCompletion(reply))
+		    	{
+			    ftp.login("anonymous", "b@t.com");
+				reply = ftp.getReplyCode();
+			    if(FTPReply.isPositiveCompletion(reply))
+			    	{
+				    ftp.enterLocalPassiveMode();
+				    if (ftp.setFileType(FTP.BINARY_FILE_TYPE))
+				    	{
+				    	File dstFile = new File(sTmpDstFileName);
+				    	outStream = new FileOutputStream(dstFile);
+				    	FTPFile [] ftpFiles = ftp.listFiles(sSrcFileName);
+				    	long lFtpSize = ftpFiles[0].getSize();
+				    	if (lFtpSize <= 0)
+				    		lFtpSize = 1;
+				    	
+				    	InputStream ftpIn = ftp.retrieveFileStream(sSrcFileName);
+						while ((nRead = ftpIn.read(buffer)) != -1)
+							{
+							lTotalRead += nRead;
+							outStream.write(buffer, 0, nRead);
+							strRet = "\r" + lTotalRead + " of " + lFtpSize + " bytes received " + ((lTotalRead * 100) / lFtpSize) + "% completed";
+							out.write(strRet.getBytes());
+							out.flush();
+							}
+						ftpIn.close();
+						@SuppressWarnings("unused")
+						boolean bRet = ftp.completePendingCommand();
+						outStream.flush();
+				    	
+
+
+
+
+				    		
+			    		outStream.close();
+						strRet = ftp.getReplyString();
+						reply = ftp.getReplyCode();
+				    	}
+					strRet = ftp.getReplyString();
+					reply = ftp.getReplyCode();
+				    ftp.logout();
+				    ftp.disconnect();
+				    sRet = "\n" + strRet; 
+			    	}
+			    else
+			    	{
+			        ftp.disconnect();
+			        System.err.println("FTP server refused login.");
+			        }
+		    	}
+		    else
+		    	{
+		        ftp.disconnect();
+		        System.err.println("FTP server refused connection.");
+		        }
+			}
+		catch (SocketException e)
+			{
+			
+			sRet = e.getMessage();
+			strRet = ftp.getReplyString();
+			reply = ftp.getReplyCode();
+			sRet += "\n" + strRet;
+			e.printStackTrace();
+			}
+		catch (IOException e)
+			{
+			
+			sRet = e.getMessage();
+			strRet = ftp.getReplyString();
+			reply = ftp.getReplyCode();
+			sRet += "\n" + strRet;
+			e.printStackTrace();
+			}
+		return (sRet);
+	}
+	
+	public String Cat(String fileName, OutputStream out)
+		{
+		String	sTmpFileName = fixFileName(fileName);
+		String	sRet = "Could not read the file " + sTmpFileName;
+		byte[]	buffer = new byte [4096];
+		int		nRead = 0;
+		
+		try {
+			FileInputStream fin = new FileInputStream(sTmpFileName);
+			while ((nRead = fin.read(buffer)) != -1)
+				{
+				out.write(buffer,0,nRead);
+				}
+			out.flush();
+			sRet = "";
+			}
+		catch (FileNotFoundException e)
+			{
+			sRet = e.toString();
+			} 
+		catch (IOException e) 
+			{
+			sRet = e.toString();
+			}
+		return (sRet);
+		}
+	
+	public String MakeDir(String sDir)
+		{
+		String	sTmpDir = fixFileName(sDir);
+		String sRet = "Could not create the directory " + sTmpDir;
+		File dir = new File(sTmpDir);
+		
+		if (dir.mkdirs())
+			sRet = sDir + " successfully created";
+		
+		return (sRet);
+		}
+	
+	public String GetScreenInfo()
+		{
+		String sRet = "";
+		DisplayMetrics metrics = new DisplayMetrics();
+		SUTAgentAndroid.me.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+		sRet = "X:" + metrics.widthPixels + " Y:" + metrics.heightPixels;
+		return (sRet);
+		}
+	
+	public int [] GetScreenXY()
+		{
+			int [] nRetXY = new int [2];
+			DisplayMetrics metrics = new DisplayMetrics();
+			SUTAgentAndroid.me.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+			nRetXY[0] = metrics.widthPixels;
+			nRetXY[1] = metrics.heightPixels;
+			return(nRetXY);
+		}
+	
+	public String KillProcess(String sProcName, OutputStream out)
+		{
+		String [] theArgs = new String [3];
+		
+		theArgs[0] = "su";
+		theArgs[1] = "-c";
+		theArgs[2] = "kill";
+
+		String sRet = "Unable to kill " + sProcName + "\n";
+		ActivityManager aMgr = (ActivityManager) SUTAgentAndroid.me.getSystemService(Activity.ACTIVITY_SERVICE);
+		List <ActivityManager.RunningAppProcessInfo> lProcesses = aMgr.getRunningAppProcesses();
+		int lcv = 0;
+		String strProcName = "";
+		int	nPID = 0;
+		
+		for (lcv = 0; lcv < lProcesses.size(); lcv++)
+			{
+
+			if (lProcesses.get(lcv).processName.contains(sProcName))
+				{
+				strProcName = lProcesses.get(lcv).processName;
+				nPID = lProcesses.get(lcv).pid;
+				sRet = "Failed to kill " + nPID + " " + strProcName + "\n";
+
+				theArgs[2] += " " + nPID;
+				
+				try 
+					{
+					pProc = Runtime.getRuntime().exec(theArgs);
+					RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+					outThrd.start();
+					outThrd.join(5000);
+					}
+				catch (IOException e) 
+					{
+					sRet = e.getMessage();
+					e.printStackTrace();
+					} 
+				catch (InterruptedException e)
+					{
+					
+					e.printStackTrace();
+					}
+
+
+
+
+
+
+
+
+
+
+
+
+
+				break;
+				}
+			}
+		
+		if (nPID > 0)
+			{
+			sRet = "Successfully killed " + nPID + " " + strProcName + "\n";
+			lProcesses = aMgr.getRunningAppProcesses();
+			for (lcv = 0; lcv < lProcesses.size(); lcv++)
+				{
+
+				if (lProcesses.get(lcv).processName.contains(sProcName))
+					{
+					sRet = "Unable to kill " + nPID + " " + strProcName + "\n";
+					break;
+					}
+				}
+			}
+		
+		return (sRet);
+		}
+
+	public boolean IsProcessDead(String sProcName)
+		{
+		boolean bRet = false;
+		ActivityManager aMgr = (ActivityManager) SUTAgentAndroid.me.getSystemService(Activity.ACTIVITY_SERVICE);
+		List <ActivityManager.ProcessErrorStateInfo> lProcesses = aMgr.getProcessesInErrorState();
+		int lcv = 0;
+
+
+		
+		if (lProcesses != null)
+			{
+			for (lcv = 0; lcv < lProcesses.size(); lcv++)
+				{
+				if (lProcesses.get(lcv).processName.contentEquals(sProcName) && 
+					lProcesses.get(lcv).condition != ActivityManager.ProcessErrorStateInfo.NO_ERROR)
+					{
+
+
+					bRet = true;
+					break;
+					}
+				}
+			}
+	
+		return (bRet);
+		}
+
+	public String GetProcessInfo()
+		{
+		String sRet = "";
+		ActivityManager aMgr = (ActivityManager) SUTAgentAndroid.me.getSystemService(Activity.ACTIVITY_SERVICE);
+		List <ActivityManager.RunningAppProcessInfo> lProcesses = aMgr.getRunningAppProcesses();
+		int	nProcs = lProcesses.size();
+		int lcv = 0;
+		String strProcName = "";
+		int	nPID = 0;
+		int nUser = 0;
+		
+		for (lcv = 0; lcv < nProcs; lcv++)
+			{
+			strProcName = lProcesses.get(lcv).processName;
+			nPID = lProcesses.get(lcv).pid;
+			nUser = lProcesses.get(lcv).uid;
+			sRet += nUser + "\t" + nPID + "\t" + strProcName;
+			if (lcv < (nProcs - 1))
+				sRet += "\n";
+			}
+			
+		return (sRet);
+		}
+	
+	public String GetOSInfo()
+		{
+		String sRet = "";
+		
+		sRet = Build.DISPLAY;
+		
+		return (sRet);
+		}
+	
+	public String GetPowerInfo()
+		{
+		String sRet = "";
+	
+		sRet = "Power status:\n  AC power " + SUTAgentAndroid.sACStatus + "\n";
+		sRet += "  Battery charge " + SUTAgentAndroid.sPowerStatus + "\n";
+		sRet += "  Remaining charge:      " + SUTAgentAndroid.nChargeLevel + "%\n";
+		sRet += "  Battery Temperature:   " + (((float)(SUTAgentAndroid.nBatteryTemp))/10) + " (c)\n";
+		return (sRet);
+		}
+
+	public String GetDiskInfo(String sPath)
+		{
+		String sRet = "";
+		StatFs statFS = new StatFs(sPath);
+		
+		int nBlockCount = statFS.getBlockCount();
+		int nBlockSize = statFS.getBlockSize();
+		int nBlocksAvail = statFS.getAvailableBlocks();
+		int nBlocksFree = statFS.getFreeBlocks();
+	
+		sRet = "total:     " + (nBlockCount * nBlockSize) + "\nfree:      " + (nBlocksFree * nBlockSize) + "\navailable: " + (nBlocksAvail * nBlockSize);
+	
+		return (sRet);
+		}
+
+	public String GetMemoryInfo()
+		{
+		String sRet = "PA:" + GetMemoryConfig();
+		return (sRet);
+		}
+
+	public long GetMemoryConfig()
+		{
+		ActivityManager aMgr = (ActivityManager) SUTAgentAndroid.me.getSystemService(Activity.ACTIVITY_SERVICE);
+		ActivityManager.MemoryInfo outInfo = new ActivityManager.MemoryInfo();
+		aMgr.getMemoryInfo(outInfo);
+		long lMem = outInfo.availMem;
+
+
+		return (lMem);
+		}
+	
+	public String RegisterTheDevice(String sSrvr, String sPort, String sData)
+		{
+		String sRet = "";
+		String line = "";
+		
+		if (sSrvr != null && sPort != null && sData != null)
+			{
+			try
+				{
+				int nPort = Integer.parseInt(sPort);
+				Socket socket = new Socket(sSrvr, nPort);
+				PrintWriter out = new PrintWriter(socket.getOutputStream(), false);
+				BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+				out.println(sData);
+				if ( out.checkError() == false )
+					{
+					while (socket.isInputShutdown() == false)
+						{
+						line = in.readLine();
+						if ((line == null) || (line.contains("OK")))
+							{
+							sRet += line;
+							break;
+							}
+						sRet += line;
+						}
+					}
+				out.close();
+				in.close();
+				socket.close();
+				}
+			catch(NumberFormatException e)
+				{
+				e.printStackTrace();
+				} 
+			catch (UnknownHostException e)
+				{
+				
+				e.printStackTrace();
+				}
+			catch (IOException e)
+				{
+				
+				e.printStackTrace();
+				}
+			}
+		return(sRet);
+		}
+	
+	public String GetInternetData(String sHost, String sPort, String sURL)
+		{
+		String sRet = "";
+		String sNewURL = "";
+		HttpClient httpClient = new DefaultHttpClient();
+		try 
+			{
+			sNewURL = "http://" + sHost + ((sPort.length() > 0) ? (":" + sPort) : "") + sURL;
+
+			HttpGet request = new HttpGet(sNewURL);
+			HttpResponse response = httpClient.execute(request);
+			int status = response.getStatusLine().getStatusCode();
+			
+			if (status != HttpStatus.SC_OK)
+				{
+			    ByteArrayOutputStream ostream = new ByteArrayOutputStream();
+			    response.getEntity().writeTo(ostream);
+			    Log.e("HTTP CLIENT", ostream.toString());
+				}
+			else
+				{
+			    InputStream content = response.getEntity().getContent();
+
+
+			    byte [] data = new byte [2048];
+			    int nRead = content.read(data);
+			    sRet = new String(data, 0, nRead);
+			    content.close(); 
+				}
+			}
+		catch (IllegalArgumentException e)
+			{
+			
+			sRet = e.getLocalizedMessage();
+			e.printStackTrace();
+			}
+		catch (ClientProtocolException e)
+			{
+			
+			sRet = e.getLocalizedMessage();
+			e.printStackTrace();
+			}
+		catch (IOException e)
+			{
+			
+			sRet = e.getLocalizedMessage();
+			e.printStackTrace();
+			}
+		
+		return(sRet);
+		}
+
+	public String GetSystemTime()
+		{
+		String sRet = "";
+		Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss:SSS");
+		sRet = sdf.format(cal.getTime());
+	
+		return (sRet);
+		}
+	
+	public String GetUptime()
+		{
+		String sRet = "";
+		long lHold = 0;
+		long lUptime = SystemClock.elapsedRealtime();
+		int	nDays = 0;
+		int	nHours = 0;
+		int nMinutes = 0;
+		int nSecs = 0;
+		int nMilliseconds = 0;
+		
+		if (lUptime > 0)
+			{
+			nDays = (int)(lUptime / (24L * 60L * 60L * 1000L));
+			lHold = lUptime % (24L * 60L * 60L * 1000L);
+			nHours = (int)(lHold / (60L * 60L * 1000L));
+			lHold %= 60L * 60L * 1000L;
+			nMinutes = (int)(lHold / (60L * 1000L));
+			lHold %= 60L * 1000L;
+			nSecs = (int)(lHold / 1000L);
+			nMilliseconds = (int)(lHold % 1000);
+			sRet = "" + nDays + " days " + nHours + " hours " + nMinutes + " minutes " + nSecs + " seconds " + nMilliseconds + " ms";
+			}
+
+		return (sRet);
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	public String NewKillProc(String sProcId, OutputStream out)
+		{
+		String sRet = "";
+		String [] theArgs = new String [3];
+		
+		theArgs[0] = "su";
+		theArgs[1] = "-c";
+		theArgs[2] = "kill " + sProcId;
+
+		try 
+			{
+			pProc = Runtime.getRuntime().exec(theArgs);
+			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+			outThrd.start();
+			outThrd.join(5000);
+			}
+		catch (IOException e) 
+			{
+			sRet = e.getMessage();
+			e.printStackTrace();
+			} 
+		catch (InterruptedException e)
+			{
+			
+			e.printStackTrace();
+			}
+
+		return(sRet);
+		}
+	
+	public String SendPing(String sIPAddr, OutputStream out)
+		{
+		String sRet = "";
+		String [] theArgs = new String [4];
+		
+		theArgs[0] = "ping";
+		theArgs[1] = "-c";
+		theArgs[2] = "3";
+		theArgs[3] = sIPAddr;
+		
+		try 
+			{
+			pProc = Runtime.getRuntime().exec(theArgs);
+
+
+
+			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+			outThrd.start();
+			outThrd.join(5000);
+			if (out == null)
+				sRet = outThrd.strOutput;
+			}
+		catch (IOException e) 
+			{
+			sRet = e.getMessage();
+			e.printStackTrace();
+			} 
+		catch (InterruptedException e)
+			{
+			
+			e.printStackTrace();
+			}
+	
+		return (sRet);
+		}
+	
+	public String GetTmpDir()
+	{
+		String 	sRet = "";
+		Context ctx = SUTAgentAndroid.me.getApplicationContext();
+        File dir = ctx.getFilesDir();
+        ctx = null;
+        try {
+			sRet = dir.getCanonicalPath();
+			} 
+        catch (IOException e)
+        	{
+			e.printStackTrace();
+        	}
+        return(sRet);
+	}
+	
+	public String PrintFileTimestamp(String sFile)
+		{
+		String 	sRet = "";
+		String	sTmpFileName = fixFileName(sFile);
+		File 	theFile = new File(sTmpFileName);
+		
+		if (theFile.exists())
+			{
+			long lModified = theFile.lastModified();
+			Date dtModified = new Date(lModified);
+			SimpleDateFormat sdf = new SimpleDateFormat("yyyy/MM/dd hh:mm:ss:SSS");
+			sRet = "Last modified: " + sdf.format(dtModified);
+			}
+		else
+			{
+			sRet = "[" + sTmpFileName + "] doesn't exist";
+			}
+
+		return(sRet);
+		}
+	
+	public String GetIniData(String sSection, String sKey, String sFile)
+		{
+		String sRet = "";
+		String sComp = "";
+		String sLine = "";
+		boolean bFound = false;
+		BufferedReader in = null;
+		String	sTmpFileName = fixFileName(sFile);
+		
+		try {
+			in = new BufferedReader(new FileReader(sTmpFileName));
+			sComp = "[" + sSection + "]";
+			while ((sLine = in.readLine()) != null)
+				{
+				if (sLine.equalsIgnoreCase(sComp))
+					{
+					bFound = true;
+					break;
+					}
+				}
+			
+			if (bFound)
+				{
+				sComp = (sKey + " =").toLowerCase();
+				while ((sLine = in.readLine()) != null)
+					{
+					if (sLine.toLowerCase().contains(sComp))
+						{
+						String [] temp = null;
+						temp = sLine.split("=");
+						if (temp != null)
+							{
+							sRet = temp[1].trim();
+							}
+						break;
+						}
+					}
+				}
+			in.close();
+			}
+		catch (FileNotFoundException e)
+			{
+			sComp = e.toString();
+			} 
+		catch (IOException e) 
+			{
+			sComp = e.toString();
+			}
+		return (sRet);
+		}
+	
+	public String RunReboot(OutputStream out)
+		{
+		String sRet = "";
+		String [] theArgs = new String [3];
+	
+		theArgs[0] = "su";
+		theArgs[1] = "-c";
+		theArgs[2] = "reboot";
+	
+		try 
+			{
+			pProc = Runtime.getRuntime().exec(theArgs);
+			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+			outThrd.start();
+			outThrd.join(10000);
+			}
+		catch (IOException e) 
+			{
+			sRet = e.getMessage();
+			e.printStackTrace();
+			} 
+		catch (InterruptedException e)
+			{
+			
+			e.printStackTrace();
+			}
+
+		return (sRet);
+		}
+	
+	public String UnInstallApp(String sApp, OutputStream out)
+		{
+		String sRet = "";
+		String [] theArgs = new String [3];
+
+		theArgs[0] = "su";
+		theArgs[1] = "-c";
+		theArgs[2] = "pm uninstall " + sApp + ";reboot;exit";
+		
+		try 
+			{
+			pProc = Runtime.getRuntime().exec(theArgs);
+		
+			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+			outThrd.start();
+			outThrd.join(60000);
+			int nRet = pProc.exitValue();
+
+			sRet = "\nuninst complete [" + nRet + "]";
+			}
+		catch (IOException e) 
+			{
+			sRet = e.getMessage();
+			e.printStackTrace();
+			} 
+		catch (InterruptedException e)
+			{
+			
+			e.printStackTrace();
+			}
+		
+		return (sRet);
+	}
+	
+	public String InstallApp(String sApp, OutputStream out)
+		{
+		String sRet = "";
+		String [] theArgs = new String [3];
+		File	srcFile = new File(sApp);
+
+
+
+		theArgs[0] = "su";
+		theArgs[1] = "-c";
+		theArgs[2] = "mv " + GetTmpDir() + "/" + srcFile.getName() + " /data/local/tmp/" + srcFile.getName() + ";exit";
+
+
+
+		
+		sRet = CopyFile(sApp, GetTmpDir() + "/" + srcFile.getName());
+		try {
+			out.write(sRet.getBytes());
+			out.flush();
+		} catch (IOException e1) {
+			
+			e1.printStackTrace();
+		}
+
+
+		try 
+			{
+			pProc = Runtime.getRuntime().exec(theArgs);
+			
+			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+			outThrd.start();
+			outThrd.join(90000);
+			int nRet = pProc.exitValue();
+
+			sRet = "\nmove complete [" + nRet + "]";
+			try 
+				{
+				out.write(sRet.getBytes());
+				out.flush();
+				}
+			catch (IOException e1)
+				{
+				
+				e1.printStackTrace();
+				}
+			
+			theArgs[2] = "chmod 666 /data/local/tmp/" + srcFile.getName() + ";exit";
+			pProc = Runtime.getRuntime().exec(theArgs);
+			RedirOutputThread outThrd2 = new RedirOutputThread(pProc, out);
+			outThrd2.start();
+			outThrd2.join(10000);
+			int nRet2 = pProc.exitValue();
+
+			sRet = "\npermission change complete [" + nRet2 + "]\n";
+			try {
+				out.write(sRet.getBytes());
+				out.flush();
+				}
+			catch (IOException e1)
+				{
+				
+				e1.printStackTrace();
+				}
+			
+			theArgs[2] = "pm install /data/local/tmp/" + srcFile.getName() + " Cleanup" + ";exit";
+			pProc = Runtime.getRuntime().exec(theArgs);
+			RedirOutputThread outThrd3 = new RedirOutputThread(pProc, out);
+			outThrd3.start();
+			outThrd3.join(60000);
+			int nRet3 = pProc.exitValue();
+			sRet = "\ninstallation complete [" + nRet3 + "]";
+			try {
+				out.write(sRet.getBytes());
+				out.flush();
+				}
+			catch (IOException e1)
+				{
+				
+				e1.printStackTrace();
+				}
+			
+			theArgs[2] = "rm /data/local/tmp/" + srcFile.getName() + ";exit";
+			pProc = Runtime.getRuntime().exec(theArgs);
+			RedirOutputThread outThrd4 = new RedirOutputThread(pProc, out);
+			outThrd4.start();
+			outThrd4.join(60000);
+			int nRet4 = pProc.exitValue();
+			sRet = "\ntmp file removed [" + nRet4 + "]";
+			try {
+				out.write(sRet.getBytes());
+				out.flush();
+				}
+			catch (IOException e1)
+				{
+				
+				e1.printStackTrace();
+				}
+			sRet = "\nSuccess";
+			}
+		catch (IOException e) 
+			{
+			sRet = e.getMessage();
+			e.printStackTrace();
+			} 
+		catch (InterruptedException e)
+			{
+			
+			e.printStackTrace();
+			}
+
+		return (sRet);
+		}
+
+	public String StartJavaPrg(String [] sArgs)
+		{
+		String sRet = "";
+		String sArgList = "";
+		String sUrl = "";
+		String sRedirFileName = "";
+		
+		Context ctx = SUTAgentAndroid.me.getApplicationContext();
+		PackageManager pm = ctx.getPackageManager();
+
+		Intent prgIntent = new Intent();
+		prgIntent.setPackage(sArgs[0]);
+
+
+		try {
+			PackageInfo pi = pm.getPackageInfo(sArgs[0], PackageManager.GET_ACTIVITIES | PackageManager.GET_INTENT_FILTERS);
+
+			ActivityInfo [] ai = pi.activities;
+			for (int i = 0; i < ai.length; i++)
+				{
+				ActivityInfo a = ai[i];
+				if (a.name.length() > 0)
+					{
+					prgIntent.setClassName(a.packageName, a.name);
+					break;
+					}
+				}
+			}
+		catch (NameNotFoundException e)
+			{
+			e.printStackTrace();
+			}
+		
+		if (sArgs.length > 1)
+			{
+			if (sArgs[0].contains("android.browser"))
+				prgIntent.setAction(Intent.ACTION_VIEW);
+			
+			if (sArgs[0].contains("fennec"))
+				{
+				sArgList = "";
+				sUrl = "";
+				
+				for (int lcv = 1; lcv < sArgs.length; lcv++)
+					{
+					if (sArgs[lcv].contains("://"))
+						sUrl = sArgs[lcv];
+					else
+						{
+						if (sArgs[lcv].equals(">"))
+							{
+							lcv++;
+							if (lcv < sArgs.length)
+								sRedirFileName = sArgs[lcv++];
+							}
+						else
+							sArgList += " " + sArgs[lcv];
+						}
+					}
+				
+				if (sArgList.length() > 0)
+					prgIntent.putExtra("args", sArgList.trim());
+				
+				if (sUrl.length() > 0)
+					prgIntent.setData(Uri.parse(sUrl.trim()));
+				}
+			else
+				{
+				for (int lcv = 1; lcv < sArgs.length; lcv++)
+					sArgList += " " + sArgs[lcv];
+				
+				prgIntent.setData(Uri.parse(sArgList.trim()));
+				}
+			}
+		else
+			prgIntent.setData(Uri.parse("about:blank"));
+
+		try 
+			{
+
+
+			SUTAgentAndroid.me.startActivityForResult(prgIntent, SUTAgentAndroid.START_PRG);
+			}
+		catch(ActivityNotFoundException anf)
+			{
+			anf.printStackTrace();
+			}
+		
+		ctx = null;
+		return (sRet);
+		}
+
+	public String StartPrg(String [] progArray, OutputStream out)
+		{
+		String sRet = "";
+		
+		try 
+			{
+			pProc = Runtime.getRuntime().exec(progArray);
+			sutErr = pProc.getErrorStream(); 
+			sutIn = pProc.getOutputStream(); 
+			sutOut = pProc.getInputStream(); 
+			RedirOutputThread outThrd = new RedirOutputThread(pProc, out);
+			outThrd.start();
+			outThrd.join(10000);
+			}
+		catch (IOException e) 
+			{
+			e.printStackTrace();
+			}
+		catch (InterruptedException e)
+			{
+			
+			e.printStackTrace();
+			}
+
+		return (sRet);
+		}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	private String PrintUsage()
+		{
+		String sRet = "run [executable] [args]  - start program no wait\n" +
+			"exec [executable] [args] - start program wait\n" +
+			"fire [executable] [args] - start program no wait\n" +
+			"arun [executable] [args] - start program no wait\n" +
+			"kill [program name]      - kill program no path\n" +
+			"killall                  - kill all processes started\n" +
+			"ps                       - list of running processes\n" +
+			"nodebug                  - kill debugger loop\n" +
+			"info                     - list of device info\n" +
+			"        [os]             - os version for device\n" +
+			"        [id]             - unique identifier for device\n" +
+			"        [uptime]         - uptime for device\n" +
+			"        [systime]        - current system time on device\n" +
+			"        [screen]         - width, height and bits per pixel for device\n" +
+			"        [memory]         - physical, free, available, storage memory for device\n" +
+			"        [processes]      - list of running processes see 'ps'\n" +
+			"deadman timeout          - set the duration for the deadman timer\n" +
+			"alrt [on/off]            - start or stop sysalert behavior\n" +
+			"disk [arg]               - prints disk space info\n" +
+			"cp file1 file2           - copy file1 to file2 on device\n" +
+			"time file                - timestamp for file on device\n" +
+			"hash file                - generate hash for file on device\n" +
+			"cd directory             - change cwd on device\n" +
+			"cat file                 - cat file on device\n" +
+			"cwd                      - display cwd on device\n" +
+			"mv file1 file2           - move file1 to file2 on device\n" +
+			"push filename            - push file to device\n" +
+			"rm file                  - delete file on device\n" +
+			"rmdr directory           - delete directory on device even if not empty\n" +
+			"mkdr directory           - create directory on device\n" +
+			"dirw directory           - tests whether the directory is writable on the device\n" +
+			"stat processid           - stat process on device\n" +
+			"dead processid           - print whether the process is alive or hung on device\n" +
+			"mems                     - dump memory stats on device\n" +
+			"ls                       - print directory on device\n" +
+			"tmpd                     - print temp directory on device\n" +
+			"ping [hostname/ipaddr]   - ping a network device\n" +
+			"unzp zipfile destdir     - unzip the zipfile into the destination dir\n" +
+			"zip zipfile src          - zip the source file/dir into zipfile\n" +
+			"rebt                     - reboot device\n" +
+			"quit                     - disconnect SUTAgent\n" +
+			"exit                     - close SUTAgent\n" +
+			"help                     - you're reading it";
+		return (sRet);
+		}
+}
