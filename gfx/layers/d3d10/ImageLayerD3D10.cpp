@@ -461,6 +461,7 @@ CairoImageD3D10::GetAsSurface()
 
   
   
+  
   D3D10_TEXTURE2D_DESC texDesc;
   mTexture->GetDesc(&texDesc);
   texDesc.Usage = D3D10_USAGE_DEFAULT;
