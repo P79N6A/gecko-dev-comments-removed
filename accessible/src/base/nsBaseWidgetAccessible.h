@@ -110,12 +110,8 @@ protected:
 
   
 
-  
 
-
-  nsAccessible *GetActionAccessible() const;
-
-  nsCOMPtr<nsIContent> mActionContent;
+  nsAccessible* mActionAcc;
   PRPackedBool mIsLink;
   PRPackedBool mIsOnclick;
 };
