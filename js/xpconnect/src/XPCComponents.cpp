@@ -1856,39 +1856,18 @@ struct NS_STACK_CLASS ExceptionArgParser
         switch (argc) {
             default:    
                 
-            case 4:     
-                if (JSVAL_IS_NULL(argv[3])) {
-                    
-                } else {
-                    if (JSVAL_IS_PRIMITIVE(argv[3]) ||
-                        NS_FAILED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(argv[3]),
-                                              NS_GET_IID(nsISupports),
-                                              (void**)getter_AddRefs(eData))))
-                        return false;
-                }
-                
-            case 3:     
-                if (JSVAL_IS_NULL(argv[2])) {
-                    
-                } else {
-                    if (JSVAL_IS_PRIMITIVE(argv[2]) ||
-                        NS_FAILED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(argv[2]),
-                                              NS_GET_IID(nsIStackFrame),
-                                              (void**)getter_AddRefs(eStack))))
-                        return false;
-                }
-                
-            case 2:     
-                if (!JS_ValueToECMAInt32(cx, argv[1], (int32_t*) &eResult))
+            case 4:
+                if (!parseData(argv[3]))
                     return false;
-                
-            case 1:     
-                {
-                    JSString* str = JS_ValueToString(cx, argv[0]);
-                    if (!str || !(eMsg = messageBytes.encode(cx, str)))
-                        return false;
-                }
-                
+            case 3:
+                if (!parseStack(argv[2]))
+                    return false;
+            case 2:
+                if (!parseResult(argv[1]))
+                    return false;
+            case 1:
+                if (!parseMessage(argv[0]))
+                    return false;
             case 0: 
                 ;   
         }
@@ -1897,6 +1876,50 @@ struct NS_STACK_CLASS ExceptionArgParser
     }
 
   protected:
+
+    
+
+
+
+    bool parseMessage(JS::Value &v) {
+        JSString *str = JS_ValueToString(cx, v);
+        if (!str)
+           return false;
+        eMsg = messageBytes.encode(cx, str);
+        return !!eMsg;
+    }
+
+    bool parseResult(JS::Value &v) {
+        return JS_ValueToECMAInt32(cx, v, (int32_t*) &eResult);
+    }
+
+    bool parseStack(JS::Value &v) {
+        if (!v.isObject()) {
+            
+            
+            return true;
+        }
+
+        return NS_SUCCEEDED(xpc->WrapJS(cx, JSVAL_TO_OBJECT(v),
+                                        NS_GET_IID(nsIStackFrame),
+                                        getter_AddRefs(eStack)));
+    }
+
+    bool parseData(JS::Value &v) {
+        if (!v.isObject()) {
+            
+            
+            return true;
+        }
+
+        return NS_SUCCEEDED(xpc->WrapJS(cx, &v.toObject(),
+                                        NS_GET_IID(nsISupports),
+                                        getter_AddRefs(eData)));
+    }
+
+    
+
+
 
     
     JSAutoByteString messageBytes;
