@@ -9,6 +9,8 @@
 
 
 
+const TEST_ID = "0200";
+
 
 
 const FILE_UPDATER_INI_BAK = "updater.ini.bak";
