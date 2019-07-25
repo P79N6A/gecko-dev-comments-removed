@@ -119,6 +119,8 @@ struct nsCSSBorderRenderer {
   
   const PRUint8* mBorderStyles;
   const gfxFloat* mBorderWidths;
+  PRUint8* mSanitizedStyles;
+  gfxFloat* mSanitizedWidths;
   gfxCornerSizes mBorderRadii;
 
   
@@ -197,6 +199,34 @@ struct nsCSSBorderRenderer {
 
   
   void DrawDashedSide (mozilla::css::Side aSide);
+  
+  
+  void SetupStrokeStyle(mozilla::css::Side aSize);
+
+  
+  bool AllBordersSameWidth();
+
+  
+  
+  
+  bool AllBordersSolid(bool *aHasCompositeColors);
+
+  
+  
+  already_AddRefed<gfxPattern> CreateCornerGradient(mozilla::css::Corner aCorner,
+                                                    const gfxRGBA &aFirstColor,
+                                                    const gfxRGBA &aSecondColor);
+
+  
+  void DrawSingleWidthSolidBorder();
+
+  
+  
+  void DrawNoCompositeColorSolidBorder();
+
+  
+  
+  void DrawRectangularCompositeColors();
 
   
   void DrawBorders ();
