@@ -1421,11 +1421,11 @@ namespace nanojit
 
                     underrunProtect(5 * 4);             
 
-                    LUI(AT,hi(uint32_t(targ)));         
+                    LUI(RA,hi(uint32_t(targ)));         
 
                     
-                    trampADDIU(AT, AT, lo(uint32_t(targ)));
-                    trampJR(AT);
+                    trampADDIU(RA, RA, lo(uint32_t(targ)));
+                    trampJR(RA);
                     trampNOP();                         
 
                 }
@@ -1634,16 +1634,30 @@ namespace nanojit
     void Assembler::asm_j(NIns * const targ, bool bdelay)
     {
         if (targ == NULL) {
+            
             NanoAssert(bdelay);
             (void) asm_bxx(false, LIR_eqi, ZERO, ZERO, targ);
         }
-        else {
-            NanoAssert(SEG(targ) == SEG(_nIns));
+        else if (SEG(targ) == SEG(_nIns)) {
+            
             if (bdelay) {
                 underrunProtect(2*4);    
                 NOP();
             }
             J(targ);
+        }
+        else {
+            
+            
+            
+            
+            
+            
+            underrunProtect(4*4); 
+            if (bdelay)
+                NOP();
+            JR(RA);
+            asm_li(RA, (uint32_t)targ);
         }
         TAG("asm_j(targ=%p) bdelay=%d", targ);
     }
@@ -1877,7 +1891,6 @@ namespace nanojit
             
             
             
-            
             underrunProtect(2 * 4);     
             ADDIU(V0, V0, lo(int32_t(lr)));
             asm_j(_epilogue, false);
@@ -1989,7 +2002,8 @@ namespace nanojit
 
         MOVE(FP, SP);
         SW(FP, FP_OFFSET, SP);
-        SW(RA, RA_OFFSET, SP);        
+        underrunProtect(2 * 4);         
+        SW(RA, RA_OFFSET, SP);
         ADDIU(SP, SP, -FRAMESIZE);
 
         TAG("genPrologue()");
@@ -2007,11 +2021,11 @@ namespace nanojit
 
 
 
-        underrunProtect(2*4);   
+        underrunProtect(3*4);   
         ADDIU(SP, SP, FRAMESIZE);
         JR(RA);
-        LW(FP, FP_OFFSET, SP);
         LW(RA, RA_OFFSET, SP);
+        LW(FP, FP_OFFSET, SP);
         MOVE(SP, FP);
 
         TAG("genEpilogue()");
