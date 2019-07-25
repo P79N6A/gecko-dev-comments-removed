@@ -200,6 +200,8 @@ public:
   virtual PRBool IsLeaf() const;
 
   
+  void LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, PRBool aSizedToPopup);
+
   
   void AdjustView();
 
@@ -226,7 +228,6 @@ public:
   nsPopupType PopupType() const { return mPopupType; }
   PRBool IsMenu() { return mPopupType == ePopupTypeMenu; }
   PRBool IsOpen() { return mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible; }
-  PRBool HasOpenChanged() { return mIsOpenChanged; }
 
   
   
@@ -290,14 +291,6 @@ public:
   void SetConsumeRollupEvent(PRUint32 aConsumeMode);
 
   nsIScrollableFrame* GetScrollFrame(nsIFrame* aStart);
-
-  
-  void SetPreferredBounds(nsBoxLayoutState& aState, const nsRect& aRect);
-
-  
-  nsSize PreferredSize() { return mPrefSize; }
-  
-  void SetPreferredSize(nsSize aSize) { mPrefSize = aSize; }
 
   
   
@@ -365,9 +358,6 @@ protected:
 
   nsMenuFrame* mCurrentMenu; 
 
-  
-  
-  
   
   
   

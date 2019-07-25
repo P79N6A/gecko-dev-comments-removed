@@ -369,43 +369,86 @@ nsMenuPopupFrame::IsLeaf() const
 }
 
 void
-nsMenuPopupFrame::SetPreferredBounds(nsBoxLayoutState& aState,
-                                     const nsRect& aRect)
+nsMenuPopupFrame::LayoutPopup(nsBoxLayoutState& aState, nsIFrame* aParentMenu, PRBool aSizedToPopup)
 {
-  nsBox::SetBounds(aState, aRect, PR_FALSE);
-  mPrefSize = aRect.Size();
+  
+  PRBool isOpen = IsOpen();
+  if (!mGeneratedChildren || (!isOpen && !aSizedToPopup))
+    return;
+
+  
+  
+  nsSize prefSize = GetPrefSize(aState);
+  nsSize minSize = GetMinSize(aState); 
+  nsSize maxSize = GetMaxSize(aState);
+
+  if (aSizedToPopup) {
+    prefSize.width = aParentMenu->GetRect().width;
+  }
+  prefSize = BoundsCheck(minSize, prefSize, maxSize);
+
+  
+  PRBool sizeChanged = (mPrefSize != prefSize);
+  if (sizeChanged) {
+    SetBounds(aState, nsRect(0, 0, prefSize.width, prefSize.height), PR_FALSE);
+    mPrefSize = prefSize;
+  }
+
+  if (isOpen) {
+    SetPopupPosition(aParentMenu, PR_FALSE);
+  }
+
+  nsRect bounds(GetRect());
+  Layout(aState);
+
+  
+  
+  
+  
+  if (!aParentMenu) {
+    nsSize newsize = GetSize();
+    if (newsize.width > bounds.width || newsize.height > bounds.height) {
+      
+      
+      mPrefSize = newsize;
+      if (isOpen) {
+        SetPopupPosition(nsnull, PR_FALSE);
+      }
+    }
+  }
+
+  if (isOpen) {
+    AdjustView();
+  }
 }
 
 void
 nsMenuPopupFrame::AdjustView()
 {
-  if ((mPopupState == ePopupOpen || mPopupState == ePopupOpenAndVisible) &&
-      mGeneratedChildren) {
-    
-    if (mIsOpenChanged) {
-      nsIBox* child = GetChildBox();
-      nsIScrollableFrame *scrollframe = do_QueryFrame(child);
-      if (scrollframe)
-        scrollframe->ScrollTo(nsPoint(0,0), nsIScrollableFrame::INSTANT);
-    }
+  
+  if (mIsOpenChanged) {
+    nsIBox* child = GetChildBox();
+    nsIScrollableFrame *scrollframe = do_QueryFrame(child);
+    if (scrollframe)
+      scrollframe->ScrollTo(nsPoint(0,0), nsIScrollableFrame::INSTANT);
+  }
 
-    nsIView* view = GetView();
-    nsIViewManager* viewManager = view->GetViewManager();
-    nsRect rect = GetRect();
-    rect.x = rect.y = 0;
-    viewManager->ResizeView(view, rect);
-    viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
-    mPopupState = ePopupOpenAndVisible;
+  nsIView* view = GetView();
+  nsIViewManager* viewManager = view->GetViewManager();
+  nsRect rect = GetRect();
+  rect.x = rect.y = 0;
+  viewManager->ResizeView(view, rect);
+  viewManager->SetViewVisibility(view, nsViewVisibility_kShow);
+  mPopupState = ePopupOpenAndVisible;
 
-    nsPresContext* pc = PresContext();
-    nsContainerFrame::SyncFrameViewProperties(pc, this, nsnull, view, 0);
+  nsPresContext* pc = PresContext();
+  nsContainerFrame::SyncFrameViewProperties(pc, this, nsnull, view, 0);
 
-    
-    if (mIsOpenChanged) {
-      mIsOpenChanged = PR_FALSE;
-      nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
-      NS_DispatchToCurrentThread(event);
-    }
+  
+  if (mIsOpenChanged) {
+    mIsOpenChanged = PR_FALSE;
+    nsCOMPtr<nsIRunnable> event = new nsXULPopupShownEvent(GetContent(), pc);
+    NS_DispatchToCurrentThread(event);
   }
 }
 

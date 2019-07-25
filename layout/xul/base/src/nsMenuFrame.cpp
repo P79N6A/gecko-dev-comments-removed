@@ -746,55 +746,9 @@ nsMenuFrame::DoLayout(nsBoxLayoutState& aState)
   
   nsresult rv = nsBoxFrame::DoLayout(aState);
 
-  
   if (mPopupFrame) {
     PRBool sizeToPopup = IsSizedToPopup(mContent, PR_FALSE);
-    
-    nsSize prefSize = mPopupFrame->GetPrefSize(aState);
-    nsSize minSize = mPopupFrame->GetMinSize(aState); 
-    nsSize maxSize = mPopupFrame->GetMaxSize(aState);
-
-    prefSize = BoundsCheck(minSize, prefSize, maxSize);
-
-    if (sizeToPopup)
-        prefSize.width = mRect.width;
-
-    
-    PRBool sizeChanged = (mPopupFrame->PreferredSize() != prefSize);
-    if (sizeChanged) {
-      mPopupFrame->SetPreferredBounds(aState, nsRect(0,0,prefSize.width, prefSize.height));
-    }
-
-    
-    
-    
-    if (IsOpen() && (sizeChanged || mPopupFrame->HasOpenChanged()))
-      mPopupFrame->SetPopupPosition(this, PR_FALSE);
-
-    
-    nsIBox* child = mPopupFrame->GetChildBox();
-
-    nsRect bounds(mPopupFrame->GetRect());
-
-    nsIScrollableFrame *scrollframe = do_QueryFrame(child);
-    if (scrollframe &&
-        scrollframe->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_AUTO) {
-      if (bounds.height < prefSize.height) {
-        
-        mPopupFrame->Layout(aState);
-
-        nsMargin scrollbars = scrollframe->GetActualScrollbarSizes();
-        if (bounds.width < prefSize.width + scrollbars.left + scrollbars.right)
-        {
-          bounds.width += scrollbars.left + scrollbars.right;
-          mPopupFrame->SetBounds(aState, bounds);
-        }
-      }
-    }
-
-    
-    mPopupFrame->Layout(aState);
-    mPopupFrame->AdjustView();
+    mPopupFrame->LayoutPopup(aState, this, sizeToPopup);
   }
 
   return rv;

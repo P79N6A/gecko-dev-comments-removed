@@ -155,54 +155,7 @@ nsPopupSetFrame::DoLayout(nsBoxLayoutState& aState)
   
   for (nsFrameList::Enumerator e(mPopupList); !e.AtEnd(); e.Next()) {
     nsMenuPopupFrame* popupChild = static_cast<nsMenuPopupFrame*>(e.get());
-    if (popupChild->IsOpen()) {
-      
-      nsSize prefSize = popupChild->GetPrefSize(aState);
-      nsSize minSize = popupChild->GetMinSize(aState);
-      nsSize maxSize = popupChild->GetMaxSize(aState);
-
-      prefSize = BoundsCheck(minSize, prefSize, maxSize);
-
-      popupChild->SetPreferredBounds(aState, nsRect(0,0,prefSize.width, prefSize.height));
-      popupChild->SetPopupPosition(nsnull, PR_FALSE);
-
-      
-      nsIBox* child = popupChild->GetChildBox();
-
-      nsRect bounds(popupChild->GetRect());
-
-      nsIScrollableFrame *scrollframe = do_QueryFrame(child);
-      if (scrollframe &&
-          scrollframe->GetScrollbarStyles().mVertical == NS_STYLE_OVERFLOW_AUTO) {
-        
-        if (bounds.height < prefSize.height) {
-          
-          popupChild->Layout(aState);
-
-          nsMargin scrollbars = scrollframe->GetActualScrollbarSizes();
-          if (bounds.width < prefSize.width + scrollbars.left + scrollbars.right)
-          {
-            bounds.width += scrollbars.left + scrollbars.right;
-            popupChild->SetBounds(aState, bounds);
-          }
-        }
-      }
-
-      
-      popupChild->Layout(aState);
-      
-      
-      
-      
-      if (popupChild->GetRect().width > bounds.width ||
-          popupChild->GetRect().height > bounds.height) {
-        
-        
-        popupChild->SetPreferredSize(popupChild->GetSize());
-        popupChild->SetPopupPosition(nsnull, PR_FALSE);
-      }
-      popupChild->AdjustView();
-    }
+    popupChild->LayoutPopup(aState, nsnull, PR_FALSE);
   }
 
   return rv;
