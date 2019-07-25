@@ -212,7 +212,10 @@ FrameWorker.prototype = {
     
     Services.tm.mainThread.dispatch(function deleteWorkerFrame() {
       
-      this.frame.parentNode.removeChild(this.frame)
+      let doc = Cc["@mozilla.org/appshell/appShellService;1"]
+                      .getService(Ci.nsIAppShellService)
+                      .hiddenDOMWindow.document;
+      doc.documentElement.removeChild(this.frame);
       delete workerCache[this.url];
     }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
   }
