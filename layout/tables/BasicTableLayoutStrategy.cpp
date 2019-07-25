@@ -48,6 +48,9 @@
 #include "nsGkAtoms.h"
 #include "SpanningCellSorter.h"
 
+using namespace mozilla;
+using namespace mozilla::layout;
+
 namespace css = mozilla::css;
 
 #undef  DEBUG_TABLE_STRATEGY 
@@ -110,6 +113,10 @@ GetWidthInfo(nsRenderingContext *aRenderingContext,
 {
     nscoord minCoord, prefCoord;
     if (aIsCell) {
+        
+        
+        AutoMaybeNullInflationContainer an(aFrame);
+
         minCoord = aFrame->GetMinWidth(aRenderingContext);
         prefCoord = aFrame->GetPrefWidth(aRenderingContext);
     } else {

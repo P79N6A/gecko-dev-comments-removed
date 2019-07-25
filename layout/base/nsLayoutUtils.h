@@ -1638,6 +1638,43 @@ public:
 #endif
 };
 
+namespace mozilla {
+  namespace layout {
+
+    
+
+
+
+
+
+    class AutoMaybeNullInflationContainer {
+    public:
+      AutoMaybeNullInflationContainer(nsIFrame *aFrame)
+      {
+        if (nsLayoutUtils::IsContainerForFontSizeInflation(aFrame)) {
+          mPresContext = aFrame->PresContext();
+          mOldValue = mPresContext->mCurrentInflationContainer;
+          mPresContext->mCurrentInflationContainer = nsnull;
+        } else {
+          
+          mPresContext = nsnull;
+        }
+      }
+
+      ~AutoMaybeNullInflationContainer()
+      {
+        if (mPresContext) {
+          mPresContext->mCurrentInflationContainer = mOldValue;
+        }
+      }
+    private:
+      nsPresContext *mPresContext;
+      nsIFrame *mOldValue;
+    };
+
+  }
+}
+
 class nsSetAttrRunnable : public nsRunnable
 {
 public:

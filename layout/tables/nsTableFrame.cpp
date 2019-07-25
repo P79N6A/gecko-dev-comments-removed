@@ -76,6 +76,7 @@
 #include "nsCSSProps.h"
 
 using namespace mozilla;
+using namespace mozilla::layout;
 
 
 
@@ -1513,6 +1514,10 @@ nsTableFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                   aMargin, aBorder, aPadding, aShrinkWrap);
 
   
+  
+  AutoMaybeNullInflationContainer an(this);
+
+  
   nscoord minWidth = GetMinWidth(aRenderingContext);
   if (minWidth > result.width)
     result.width = minWidth;
@@ -1524,6 +1529,10 @@ nscoord
 nsTableFrame::TableShrinkWidthToFit(nsRenderingContext *aRenderingContext,
                                     nscoord aWidthInCB)
 {
+  
+  
+  AutoMaybeNullInflationContainer an(this);
+
   nscoord result;
   nscoord minWidth = GetMinWidth(aRenderingContext);
   if (minWidth > aWidthInCB) {
