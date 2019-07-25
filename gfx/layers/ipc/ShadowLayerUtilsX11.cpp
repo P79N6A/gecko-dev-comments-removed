@@ -51,6 +51,15 @@ namespace layers {
 
 
 
+static PRBool
+UsingXCompositing()
+{
+  return (gfxASurface::SurfaceTypeXlib ==
+          gfxPlatform::GetPlatform()->ScreenReferenceSurface()->GetType());
+}
+
+
+
 static XRenderPictFormat*
 GetXRenderPictFormatFromId(Display* aDisplay, PictFormat aFormatId)
 {
@@ -94,13 +103,14 @@ ShadowLayerForwarder::PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
                                                 SurfaceDescriptor* aFrontBuffer,
                                                 SurfaceDescriptor* aBackBuffer)
 {
-  gfxPlatform* platform = gfxPlatform::GetPlatform();
-#ifdef MOZ_WIDGET_QT
-  
-  if (platform->ScreenReferenceSurface()->GetType() != gfxASurface::SurfaceTypeXlib)
+  if (!UsingXCompositing()) {
+    
+    
+    
     return PR_FALSE;
-#endif
+  }
 
+  gfxPlatform* platform = gfxPlatform::GetPlatform();
   nsRefPtr<gfxASurface> front = platform->CreateOffscreenSurface(aSize, aContent);
   nsRefPtr<gfxASurface> back = platform->CreateOffscreenSurface(aSize, aContent);
   if (!front || !back ||
@@ -142,13 +152,26 @@ ShadowLayerForwarder::PlatformDestroySharedSurface(SurfaceDescriptor* aSurface)
  void
 ShadowLayerForwarder::PlatformSyncBeforeUpdate()
 {
-  XSync(DefaultXDisplay(), False);
+  if (UsingXCompositing()) {
+    
+    
+    
+    
+    XSync(DefaultXDisplay(), False);
+  }
 }
 
  void
 ShadowLayerManager::PlatformSyncBeforeReplyUpdate()
 {
-  XSync(DefaultXDisplay(), False);
+  if (UsingXCompositing()) {
+    
+    
+    
+    
+    
+    XSync(DefaultXDisplay(), False);
+  }
 }
 
 PRBool
