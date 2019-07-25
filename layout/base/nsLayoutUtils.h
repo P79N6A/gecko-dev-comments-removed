@@ -297,11 +297,8 @@ public:
 
 
 
-
-
   static nsIFrame* GetActiveScrolledRootFor(nsIFrame* aFrame,
-                                            nsIFrame* aStopAtAncestor,
-                                            nsPoint* aOffset);
+                                            nsIFrame* aStopAtAncestor);
 
   
 
