@@ -9,6 +9,11 @@ try {
 }
 
 function run_test() {
+  if (this.gczeal) {
+    _("Running crypto random tests with gczeal(2).");
+    gczeal(2);
+  }
+
   
   var salt;
 
@@ -69,4 +74,7 @@ function run_test() {
   do_check_neq(keydata, keydata2); 
   iv = cryptoSvc.generateRandomIV();
   do_check_eq(iv.length, 24);
+
+  if (this.gczeal)
+    gczeal(0);
 }

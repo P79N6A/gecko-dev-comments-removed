@@ -11,6 +11,13 @@ try {
 Cu.import("resource://services-sync/util.js");
 
 function run_test() {
+  if (this.gczeal) {
+    _("Running deriveKey tests with gczeal(2).");
+    gczeal(2);
+  } else {
+    _("Running deriveKey tests with default gczeal.");
+  }
+
   var iv = cryptoSvc.generateRandomIV();
   var der_passphrase = "secret phrase";
   var der_salt = "RE5YUHpQcGl3bg==";   
@@ -38,12 +45,6 @@ function run_test() {
   do_check_eq(cryptoSvc.decrypt(cryptoSvc.encrypt("bacon", der_key, iv), der_key, iv), "bacon");
   
   
-  
-  do_check_eq(
-      Utils.deriveEncodedKeyFromPassphrase(der_passphrase, der_salt, 16, false),
-      Utils.deriveEncodedKeyFromPassphrase(der_passphrase, der_salt, 16, true));
-  
-  
   var der_key = Utils.deriveEncodedKeyFromPassphrase(der_passphrase, der_salt, 16);
   _("Derived key in base64: " + der_key);
   do_check_eq("d2zG0d2cBfXnRwMUGyMwyg==", der_key);
@@ -58,4 +59,15 @@ function run_test() {
   do_check_eq(b32key.length, 26);
   do_check_eq(hyphenated.length, 31);  
   do_check_eq(hyphenated, "9-5wmnu-95tqc-78z2h-amkbw-izqzi");
+
+  if (this.gczeal)
+    gczeal(0);
+
+  
+  
+  
+  
+  do_check_eq(
+      Utils.deriveEncodedKeyFromPassphrase(der_passphrase, der_salt, 16, false),
+      Utils.deriveEncodedKeyFromPassphrase(der_passphrase, der_salt, 16, true));
 }
