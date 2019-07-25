@@ -500,19 +500,53 @@ class LValueToDouble : public LInstructionHelper<1, BOX_PIECES, 0>
 
 
 
+
 class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 1>
 {
   public:
+    enum Mode {
+        NORMAL,
+        TRUNCATE
+    };
+
+  private:
+    Mode mode_;
+
+  public:
     LIR_HEADER(ValueToInt32);
 
-    LValueToInt32(const LDefinition &temp) {
+    LValueToInt32(const LDefinition &temp, Mode mode) : mode_(mode) {
         setTemp(0, temp);
     }
 
     static const size_t Input = 0;
 
+    Mode mode() const {
+        return mode_;
+    }
     const LDefinition *tempFloat() {
         return getTemp(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+
+
+
+class LTruncateDToInt32 : public LInstructionHelper<1, 1, 0>
+{
+  public:
+    LIR_HEADER(TruncateDToInt32);
+
+    LTruncateDToInt32(const LAllocation &in) {
+        setOperand(0, in);
+    }
+
+    const LAllocation *input() {
+        return getOperand(0);
     }
     const LDefinition *output() {
         return getDef(0);
