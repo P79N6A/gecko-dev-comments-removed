@@ -236,7 +236,7 @@ function GroupItem(listOfEls, options) {
 
   AllTabs.tabs.forEach(function(xulTab) {
     if (xulTab.pinned && xulTab.ownerDocument.defaultView == gWindow)
-      self.addAppTab(xulTab);
+      self.addAppTab(xulTab, {dontAdjustTray: true});
   });
 
   
@@ -393,7 +393,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     if (!icons.length) {
       
       if (parseInt(container.css("width")) != 0) {
-        this.$appTabTray.css("-moz-column-count", 0);
+        this.$appTabTray.css("-moz-column-count", "auto");
         this.$appTabTray.css("height", 0);
         container.css("width", 0);
         container.css("height", 0);
@@ -417,6 +417,9 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     let columnsGap = parseInt(this.$appTabTray.css("-moz-column-gap"));
     let iconWidth = iconBounds.width + columnsGap;
     let maxColumns = Math.floor((boxBounds.width * 0.20) / iconWidth);
+
+    Utils.assert(rows > 0 && columns > 0 && maxColumns > 0,
+      "make sure the calculated rows, columns and maxColumns are correct");
 
     if (columns > maxColumns)
       container.addClass("appTabTrayContainerTruncated");
@@ -1113,7 +1116,15 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
 
   
   
-  addAppTab: function GroupItem_addAppTab(xulTab) {
+  
+  
+  
+  
+  
+  
+  
+  
+  addAppTab: function GroupItem_addAppTab(xulTab, options) {
     let self = this;
 
     xulTab.addEventListener("error", this._onAppTabError, false);
@@ -1134,7 +1145,8 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       });
 
     
-    this.adjustAppTabTray(true);
+    if (!options || !options.dontAdjustTray)
+      this.adjustAppTabTray(true);
   },
 
   
