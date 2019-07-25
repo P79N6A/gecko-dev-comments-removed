@@ -2,7 +2,7 @@
 
 
 
-function PlacesTreeView(aFlatList, aOnOpenFlatContainer) {
+function PlacesTreeView(aFlatList, aOnOpenFlatContainer, aController) {
   this._tree = null;
   this._result = null;
   this._selection = null;
@@ -10,6 +10,7 @@ function PlacesTreeView(aFlatList, aOnOpenFlatContainer) {
   this._rows = [];
   this._flatList = aFlatList;
   this._openContainerCallback = aOnOpenFlatContainer;
+  this._controller = aController;
 }
 
 PlacesTreeView.prototype = {
@@ -92,7 +93,7 @@ PlacesTreeView.prototype = {
 
   _isPlainContainer: function PTV__isPlainContainer(aContainer) {
     
-    if (aContainer._feedURI)
+    if (this._controller.hasCachedLivemarkInfo(aContainer))
       return true;
 
     
@@ -299,7 +300,7 @@ PlacesTreeView.prototype = {
       
       if (!this._flatList &&
           curChild instanceof Ci.nsINavHistoryContainerResultNode &&
-          !curChild._feedURI) {
+          !this._controller.hasCachedLivemarkInfo(curChild)) {
         let resource = this._getResourceForNode(curChild);
         let isopen = resource != null &&
                      PlacesUIUtils.localStore.HasAssertion(resource,
@@ -789,7 +790,7 @@ PlacesTreeView.prototype = {
 
   _populateLivemarkContainer: function PTV__populateLivemarkContainer(aNode) {
     PlacesUtils.livemarks.getLivemark({ id: aNode.itemId },
-      (function (aStatus, aLivemark) {
+      function (aStatus, aLivemark) {
         let placesNode = aNode;
         
         if (!Components.isSuccessCode(aStatus) || !placesNode.containerOpen)
@@ -800,7 +801,7 @@ PlacesTreeView.prototype = {
           let child = children[i];
           this.nodeInserted(placesNode, child, i);
         }
-      }).bind(this));
+      }.bind(this));
   },
 
   nodeTitleChanged: function PTV_nodeTitleChanged(aNode, aNewTitle) {
@@ -818,7 +819,7 @@ PlacesTreeView.prototype = {
   nodeHistoryDetailsChanged:
   function PTV_nodeHistoryDetailsChanged(aNode, aUpdatedVisitDate,
                                          aUpdatedVisitCount) {
-    if (aNode.parent && aNode.parent._feedURI) {
+    if (aNode.parent && this._controller.hasCachedLivemarkInfo(aNode.parent)) {
       
       let parentRow = this._flatList ? 0 : this._getRowForNode(aNode.parent);
       for (let i = parentRow; i < this._rows.length; i++) {
@@ -851,9 +852,9 @@ PlacesTreeView.prototype = {
     else if (aAnno == PlacesUtils.LMANNO_FEEDURI) {
       PlacesUtils.livemarks.getLivemark(
         { id: aNode.itemId },
-        (function (aStatus, aLivemark) {
+        function (aStatus, aLivemark) {
           if (Components.isSuccessCode(aStatus)) {
-            aNode._feedURI = aLivemark.feedURI;
+            this._controller.cacheLivemarkInfo(aNode, aLivemark);
             let properties = this._cellProperties.get(aNode, null);
             if (properties)
               properties.push(this._getAtomFor("livemark"));
@@ -861,7 +862,7 @@ PlacesTreeView.prototype = {
             
             this._invalidateCellValue(aNode, this.COLUMN_TYPE_TITLE);
           }
-        }).bind(this)
+        }.bind(this)
       );
     }
   },
@@ -887,10 +888,11 @@ PlacesTreeView.prototype = {
       }
 
       PlacesUtils.livemarks.getLivemark({ id: aNode.itemId },
-        (function (aStatus, aLivemark) {
+        function (aStatus, aLivemark) {
           if (Components.isSuccessCode(aStatus)) {
-            let shouldInvalidate = !aNode._feedURI;
-            aNode._feedURI = aLivemark.feedURI;
+            let shouldInvalidate = 
+              !this._controller.hasCachedLivemarkInfo(aNode);
+            this._controller.cacheLivemarkInfo(aNode, aLivemark);
             if (aNewState == Components.interfaces.nsINavHistoryContainerResultNode.STATE_OPENED) {
               aLivemark.registerForUpdates(aNode, this);
               
@@ -903,7 +905,7 @@ PlacesTreeView.prototype = {
               aLivemark.unregisterForUpdates(aNode);
             }
           }
-        }).bind(this)
+        }.bind(this)
       );
     }
   },
@@ -999,7 +1001,7 @@ PlacesTreeView.prototype = {
       }
     }
 
-    if (aContainer._feedURI) {
+    if (this._controller.hasCachedLivemarkInfo(aContainer)) {
       let queryOptions = PlacesUtils.asQuery(this._result.root).queryOptions;
       if (!queryOptions.excludeItems) {
         this._populateLivemarkContainer(aContainer);
@@ -1169,20 +1171,20 @@ PlacesTreeView.prototype = {
         }
         else if (nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER ||
                  nodeType == Ci.nsINavHistoryResultNode.RESULT_TYPE_FOLDER_SHORTCUT) {
-          if (node._feedURI) {
+          if (this._controller.hasCachedLivemarkInfo(node)) {
             properties.push(this._getAtomFor("livemark"));
           }
           else {
             PlacesUtils.livemarks.getLivemark(
               { id: node.itemId },
-              (function (aStatus, aLivemark) {
+              function (aStatus, aLivemark) {
                 if (Components.isSuccessCode(aStatus)) {
-                  node._feedURI = aLivemark.feedURI;
+                  this._controller.cacheLivemarkInfo(node, aLivemark);
                   properties.push(this._getAtomFor("livemark"));
                   
                   this._invalidateCellValue(node, this.COLUMN_TYPE_TITLE);
                 }
-              }).bind(this)
+              }.bind(this)
             );
           }
         }
@@ -1198,7 +1200,7 @@ PlacesTreeView.prototype = {
       else if (PlacesUtils.nodeIsURI(node)) {
         properties.push(this._getAtomFor(PlacesUIUtils.guessUrlSchemeForUI(node.uri)));
 
-        if (node.parent._feedURI) {
+        if (this._controller.hasCachedLivemarkInfo(node.parent)) {
           properties.push(this._getAtomFor("livemarkItem"));
           if (node.accessCount) {
             properties.push(this._getAtomFor("visited"));
@@ -1253,7 +1255,7 @@ PlacesTreeView.prototype = {
       return true;
 
     let node = this._rows[aRow];
-    if (node._feedURI) {
+    if (this._controller.hasCachedLivemarkInfo(node)) {
       let queryOptions = PlacesUtils.asQuery(this._result.root).queryOptions;
       return queryOptions.excludeItems;
     }
@@ -1503,7 +1505,7 @@ PlacesTreeView.prototype = {
     }
 
     
-    if (!node._feedURI) {
+    if (!this._controller.hasCachedLivemarkInfo(node)) {
       let resource = this._getResourceForNode(node);
       if (resource) {
         const openLiteral = PlacesUIUtils.RDF.GetResource("http://home.netscape.com/NC-rdf#open");

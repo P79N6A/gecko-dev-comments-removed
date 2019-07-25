@@ -79,6 +79,8 @@ function PlacesController(aView) {
   XPCOMUtils.defineLazyGetter(this, "profileName", function () {
     return Services.dirsvc.get("ProfD", Ci.nsIFile).leafName;
   });
+
+  this._cachedLivemarkInfoObjects = new WeakMap();
 }
 
 PlacesController.prototype = {
@@ -176,7 +178,7 @@ PlacesController.prototype = {
     case "placesCmd_reload":
       
       var selectedNode = this._view.selectedNode;
-      return selectedNode && !!selectedNode._feedURI;
+      return selectedNode && this.hasCachedLivemarkInfo(selectedNode);
     case "placesCmd_sortBy:name":
       var selectedNode = this._view.selectedNode;
       return selectedNode &&
@@ -469,7 +471,7 @@ PlacesController.prototype = {
             if (parentNode) {
               if (PlacesUtils.nodeIsTagQuery(parentNode))
                 nodeData["tagChild"] = true;
-              else if (parentNode._feedURI)
+              else if (this.hasCachedLivemarkInfo(parentNode))
                 nodeData["livemarkChild"] = true;
             }
           }
@@ -1038,8 +1040,9 @@ PlacesController.prototype = {
         addData(PlacesUtils.TYPE_X_MOZ_PLACE, i);
 
         
-        if (node._feedURI) {
-          addURIData(i, node._feedURI.spec);
+        let livemarkInfo = this.getCachedLivemarkInfo(node);
+        if (livemarkInfo) {
+          addURIData(i, livemarkInfo.feedURI.spec);
         }
         else if (node.uri) {
           addURIData(i);
@@ -1113,7 +1116,8 @@ PlacesController.prototype = {
       if (PlacesUtils.nodeIsFolder(node))
         copiedFolders.push(node);
 
-      let overrideURI = node._feedURI ? node._feedURI.spec : null;
+      let livemarkInfo = this.getCachedLivemarkInfo(node);
+      let overrideURI = livemarkInfo ? livemarkInfo.feedURI.spec : null;
       let resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
 
       contents.forEach(function (content) {
@@ -1281,7 +1285,39 @@ PlacesController.prototype = {
     }
     if (insertedNodeIds.length > 0)
       this._view.selectItems(insertedNodeIds, false);
-  }
+  },
+
+  
+
+
+
+
+
+
+
+  cacheLivemarkInfo: function PC_cacheLivemarkInfo(aNode, aLivemarkInfo) {
+    this._cachedLivemarkInfoObjects.set(aNode, aLivemarkInfo);
+  },
+
+  
+
+
+
+
+
+
+  hasCachedLivemarkInfo: function PC_hasCachedLivemarkInfo(aNode)
+    this._cachedLivemarkInfoObjects.has(aNode),
+
+  
+
+
+
+
+
+
+  getCachedLivemarkInfo: function PC_getCachedLivemarkInfo(aNode)
+    this._cachedLivemarkInfoObjects.get(aNode, null)
 };
 
 
