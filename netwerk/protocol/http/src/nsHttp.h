@@ -45,7 +45,21 @@
 #endif
 
 #ifdef MOZ_IPC
+
+
+
+
+
+
+
+
+
+
+#if defined(PR_LOG) && !defined(ALLOW_LATE_NSHTTP_H_INCLUDE)
+#error "If nsHttp.h #included it must come before any IPDL-generated files or other files that #include prlog.h"
+#endif
 #include "mozilla/net/NeckoChild.h"
+#undef LOG
 #endif 
 
 #include "plstr.h"
@@ -71,7 +85,6 @@
 extern PRLogModuleInfo *gHttpLog;
 #endif
 
-#undef LOG
 
 #define LOG1(args) PR_LOG(gHttpLog, 1, args)
 #define LOG2(args) PR_LOG(gHttpLog, 2, args)

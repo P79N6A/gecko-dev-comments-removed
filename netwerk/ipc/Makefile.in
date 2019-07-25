@@ -1,4 +1,3 @@
-#
 # ***** BEGIN LICENSE BLOCK *****
 # Version: MPL 1.1/GPL 2.0/LGPL 2.1
 #
@@ -12,14 +11,14 @@
 # for the specific language governing rights and limitations under the
 # License.
 #
-# The Original Code is mozilla.org code.
+# The Original Code is Mozilla Firefox.
 #
 # The Initial Developer of the Original Code is
-# Netscape Communications Corporation.
-# Portions created by the Initial Developer are Copyright (C) 1998
+# The Mozilla Foundation <http://www.mozilla.org/>.
+# Portions created by the Initial Developer are Copyright (C) 2009
 # the Initial Developer. All Rights Reserved.
 #
-# Contributor(s):
+# Contributor(s):  Jason Duell
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -35,65 +34,38 @@
 #
 # ***** END LICENSE BLOCK *****
 
-DEPTH		= ../../../..
-topsrcdir	= @top_srcdir@
-srcdir		= @srcdir@
-VPATH		= @srcdir@
+DEPTH = ../..
+topsrcdir = @top_srcdir@
+srcdir = @srcdir@
+VPATH = @srcdir@
 
 include $(DEPTH)/config/autoconf.mk
 
-MODULE		= necko
-LIBRARY_NAME = nkhttp_s
-LIBXUL_LIBRARY  = 1
+MODULE = necko
 
-ifdef MOZ_IPC
+LIBRARY_NAME = neckoipc_s
+LIBXUL_LIBRARY = 1
+FORCE_STATIC_LIB = 1
+EXPORT_LIBRARY = 1
+
 EXPORTS_NAMESPACES = mozilla/net
 
 EXPORTS_mozilla/net = \
-  HttpChannelParent.h \
-  HttpChannelChild.h  \
-  $(NULL)
-endif
-
-CPPSRCS		= \
-		nsHttp.cpp \
-		nsHttpHeaderArray.cpp \
-		nsHttpConnectionInfo.cpp \
-		nsHttpConnection.cpp \
-		nsHttpConnectionMgr.cpp \
-		nsHttpRequestHead.cpp \
-		nsHttpResponseHead.cpp \
-		nsHttpChunkedDecoder.cpp \
-		nsHttpAuthCache.cpp \
-		nsHttpAuthManager.cpp \
-		nsHttpBasicAuth.cpp \
-		nsHttpDigestAuth.cpp \
-		nsHttpNTLMAuth.cpp \
-		nsHttpTransaction.cpp \
-		nsHttpHandler.cpp \
-		nsHttpChannel.cpp \
-		nsHttpPipeline.cpp \
-		nsHttpActivityDistributor.cpp \
-		$(NULL)
-
-ifdef MOZ_IPC
-CPPSRCS += \
-  HttpChannelParent.cpp \
-  HttpChannelChild.cpp \
-  $(NULL)
-endif
-
-LOCAL_INCLUDES +=               \
-  -I$(srcdir)/../../../base/src \
-  -I$(topsrcdir)/xpcom/ds       \
+  NeckoParent.h       \
+  NeckoChild.h        \
+  NeckoCommon.h       \
   $(NULL)
 
-# we don't want the shared lib, but we want to force the creation of a
-# static lib.
-FORCE_STATIC_LIB = 1
+CPPSRCS =               \
+  NeckoChild.cpp        \
+  NeckoParent.cpp       \
+  $(NULL)
+
+LOCAL_INCLUDES +=                  \
+  -I$(srcdir)/../protocol/http/src \
+  -I$(srcdir)/../base/src          \
+  $(NULL)
 
 include $(topsrcdir)/config/config.mk
 include $(topsrcdir)/ipc/chromium/chromium-config.mk
 include $(topsrcdir)/config/rules.mk
-
-DEFINES += -DIMPL_NS_NET
