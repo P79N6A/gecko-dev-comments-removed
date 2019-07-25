@@ -283,7 +283,6 @@ public class PanZoomController
             
             synchronized (mTarget.getLock()) {
                 mTarget.setViewportMetrics(getValidViewportMetrics());
-                mTarget.notifyLayerClientOfGeometryChange();
             }
             break;
         }
@@ -321,7 +320,6 @@ public class PanZoomController
                     
                     
                     mTarget.setViewportMetrics(validated);
-                    mTarget.notifyLayerClientOfGeometryChange();
                 }
             }
         }
@@ -342,7 +340,6 @@ public class PanZoomController
             
             
             mTarget.setForceRedraw();
-            mTarget.notifyLayerClientOfGeometryChange();
             
         case FLING:
         case BOUNCE:
@@ -548,7 +545,6 @@ public class PanZoomController
         viewportMetrics.setOrigin(origin);
 
         mTarget.setViewportMetrics(viewportMetrics);
-        mTarget.notifyLayerClientOfGeometryChange();
     }
 
     private void fling() {
@@ -716,7 +712,6 @@ public class PanZoomController
                 float t = ZOOM_ANIMATION_FRAMES[mBounceFrame];
                 ViewportMetrics newMetrics = mBounceStartMetrics.interpolate(mBounceEndMetrics, t);
                 mTarget.setViewportMetrics(newMetrics);
-                mTarget.notifyLayerClientOfGeometryChange();
                 mBounceFrame++;
             }
         }
@@ -725,7 +720,6 @@ public class PanZoomController
         private void finishBounce() {
             synchronized (mTarget.getLock()) {
                 mTarget.setViewportMetrics(mBounceEndMetrics);
-                mTarget.notifyLayerClientOfGeometryChange();
                 mBounceFrame = -1;
             }
         }
@@ -787,7 +781,6 @@ public class PanZoomController
 
         
         mTarget.setForceRedraw();
-        mTarget.notifyLayerClientOfGeometryChange();
     }
 
     
@@ -974,7 +967,6 @@ public class PanZoomController
 
         
         mTarget.setForceRedraw();
-        mTarget.notifyLayerClientOfGeometryChange();
     }
 
     
@@ -985,7 +977,6 @@ public class PanZoomController
         ViewportMetrics viewportMetrics = getMutableMetrics();
         viewportMetrics.scaleTo(zoomFactor, focus);
         mTarget.setViewportMetrics(viewportMetrics);
-        mTarget.notifyLayerClientOfGeometryChange();
     }
 
     public boolean getRedrawHint() {
