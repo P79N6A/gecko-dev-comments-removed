@@ -470,15 +470,15 @@ inline bool
 js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
                          jsid *idp, js::Value *vp);
 
+namespace js {
+
 
 
 
 
 
 extern void
-js_InitAtomMap(JSContext *cx, js::AtomIndexMap *indices, JSAtom **atoms);
-
-namespace js {
+InitAtomMap(JSContext *cx, AtomIndexMap *indices, HeapPtrAtom *atoms);
 
 template<XDRMode mode>
 bool

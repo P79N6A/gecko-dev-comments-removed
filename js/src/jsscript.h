@@ -409,7 +409,7 @@ struct JSScript : public js::gc::Cell
 
 
     const char      *filename;  
-    JSAtom          **atoms;    
+    js::HeapPtrAtom *atoms;     
 
     JSPrincipals    *principals;
     JSPrincipals    *originPrincipals; 
@@ -755,7 +755,7 @@ struct JSScript : public js::gc::Cell
         return isValidOffset(closedVarsOffset) ? closedVars()->length : 0;
     }
 
-    JSAtom *getAtom(size_t index) {
+    js::HeapPtrAtom &getAtom(size_t index) const {
         JS_ASSERT(index < natoms);
         return atoms[index];
     }
