@@ -828,6 +828,9 @@ WeaveSvc.prototype = {
     let url = this.userAPI + username;
     let res = new Resource(url);
     res.authenticator = new Weave.NoOpAuthenticator();
+
+    
+    
     if (Svc.Prefs.isSet("admin-secret"))
       res.setHeader("X-Weave-Secret", Svc.Prefs.get("admin-secret", ""));
 
