@@ -217,9 +217,11 @@ IndexedDatabaseManager::GetOrCreate()
 
     if (sIsMainProcess) {
       nsCOMPtr<nsIFile> dbBaseDirectory;
-      rv = NS_GetSpecialDirectory(NS_APP_INDEXEDDB_PARENT_DIR, getter_AddRefs(dbBaseDirectory));
+      rv = NS_GetSpecialDirectory(NS_APP_INDEXEDDB_PARENT_DIR,
+                                  getter_AddRefs(dbBaseDirectory));
       if (NS_FAILED(rv)) {
-          rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR, getter_AddRefs(dbBaseDirectory));
+          rv = NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                                      getter_AddRefs(dbBaseDirectory));
       }
       NS_ENSURE_SUCCESS(rv, nullptr);
 
@@ -231,9 +233,10 @@ IndexedDatabaseManager::GetOrCreate()
 
       
       
-      instance->mIOThread = new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
-                                               NS_LITERAL_CSTRING("IndexedDB I/O"),
-                                               LazyIdleThread::ManualShutdown);
+      instance->mIOThread =
+        new LazyIdleThread(DEFAULT_THREAD_TIMEOUT_MS,
+                           NS_LITERAL_CSTRING("IndexedDB I/O"),
+                           LazyIdleThread::ManualShutdown);
 
       
       instance->mQuotaCallbackSingleton = new QuotaCallback();
@@ -1910,7 +1913,8 @@ IndexedDatabaseManager::InitWindowless(const jsval& aObj, JSContext* aCx)
   JSObject* global = JS_GetGlobalForObject(aCx, obj);
 
   nsRefPtr<IDBFactory> factory;
-  nsresult rv = IDBFactory::Create(aCx, global, getter_AddRefs(factory));
+  nsresult rv =
+    IDBFactory::Create(aCx, global, nullptr, getter_AddRefs(factory));
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
   NS_ASSERTION(factory, "This should never fail for chrome!");

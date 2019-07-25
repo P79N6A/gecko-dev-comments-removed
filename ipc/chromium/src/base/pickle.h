@@ -83,7 +83,8 @@ class Pickle {
   bool ReadWString(void** iter, std::wstring* result) const;
   bool ReadString16(void** iter, string16* result) const;
   bool ReadData(void** iter, const char** data, int* length) const;
-  bool ReadBytes(void** iter, const char** data, int length) const;
+  bool ReadBytes(void** iter, const char** data, int length,
+                 uint32 alignment = sizeof(uint32)) const;
 
   
   
@@ -147,7 +148,8 @@ class Pickle {
   bool WriteWString(const std::wstring& value);
   bool WriteString16(const string16& value);
   bool WriteData(const char* data, int length);
-  bool WriteBytes(const void* data, int data_len);
+  bool WriteBytes(const void* data, int data_len,
+                  uint32 alignment = sizeof(uint32));
 
   
   
@@ -231,7 +233,7 @@ class Pickle {
   
   
   
-  char* BeginWrite(uint32 length);
+  char* BeginWrite(uint32 length, uint32 alignment);
 
   
   
