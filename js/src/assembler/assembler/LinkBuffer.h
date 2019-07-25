@@ -67,8 +67,18 @@ public:
     
     LinkBuffer(MacroAssembler* masm, ExecutablePool* executablePool)
         : m_executablePool(executablePool)
-        , m_code(masm->m_assembler.executableCopy(m_executablePool))
+        , m_code(executableCopy(*masm, executablePool))
         , m_size(masm->m_assembler.size())
+#ifndef NDEBUG
+        , m_completed(false)
+#endif
+    {
+    }
+
+    LinkBuffer()
+        : m_executablePool(NULL)
+        , m_code(NULL)
+        , m_size(0)
 #ifndef NDEBUG
         , m_completed(false)
 #endif
@@ -179,12 +189,17 @@ public:
         return CodeLocationLabel(code());
     }
 
-private:
+protected:
     
     
     void* code()
     {
         return m_code;
+    }
+
+    void *executableCopy(MacroAssembler &masm, ExecutablePool *pool)
+    {
+        return masm.m_assembler.executableCopy(pool);
     }
 
     void performFinalization()
