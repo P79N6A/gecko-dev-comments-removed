@@ -18,5 +18,11 @@ void
 SetTimezone(const nsCString& aTimezoneSpec)
 {}
 
+nsCString
+GetTimezone()
+{
+  return EmptyCString();
+}
+
 } 
 } 

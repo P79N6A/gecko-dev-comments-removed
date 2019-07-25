@@ -252,6 +252,12 @@ void SetTimezone(const nsCString& aTimezoneSpec);
 
 
 
+
+nsCString GetTimezone();
+
+
+
+
 void Reboot();
 
 
