@@ -56,6 +56,14 @@
 #pragma warning( disable : 4800 )
 #endif
 
+#if !defined(OS_POSIX)
+
+
+
+
+
+namespace base { class FileDescriptor { }; }
+#endif
 
 namespace mozilla {
 
@@ -116,6 +124,22 @@ struct ParamTraits<PRUint8>
     return true;
   }
 };
+
+#if !defined(OS_POSIX)
+
+template<>
+struct ParamTraits<base::FileDescriptor>
+{
+  typedef base::FileDescriptor paramType;
+  static void Write(Message* aMsg, const paramType& aParam) {
+    NS_RUNTIMEABORT("FileDescriptor isn't meaningful on this platform");
+  }
+  static bool Read(const Message* aMsg, void** aIter, paramType* aResult) {
+    NS_RUNTIMEABORT("FileDescriptor isn't meaningful on this platform");
+    return false;
+  }
+};
+#endif  
 
 template <>
 struct ParamTraits<nsACString>
