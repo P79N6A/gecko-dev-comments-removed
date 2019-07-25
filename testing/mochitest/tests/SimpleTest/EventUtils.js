@@ -44,9 +44,6 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
     aTarget = aWindow.document.getElementById(aTarget);
   }
 
-  
-  netscape.security.PrivilegeManager.enablePrivilege('UniversalBrowserWrite');
-
   var event = aWindow.document.createEvent('MouseEvent');
 
   var typeArg          = aEvent.type;
@@ -72,7 +69,7 @@ function sendMouseEvent(aEvent, aTarget, aWindow) {
                        ctrlKeyArg, altKeyArg, shiftKeyArg, metaKeyArg,
                        buttonArg, relatedTargetArg);
 
-  aTarget.dispatchEvent(event);
+  SpecialPowers.dispatchEvent(aWindow, aTarget, event);
 }
 
 
@@ -145,14 +142,11 @@ function __doEventDispatch(aTarget, aCharCode, aKeyCode, aHasShift) {
     aTarget = "target";
   }
 
-  
-  netscape.security.PrivilegeManager.enablePrivilege("UniversalXPConnect");
-
   var event = document.createEvent("KeyEvents");
   event.initKeyEvent("keydown", true, true, document.defaultView,
                      false, false, aHasShift, false,
                      aKeyCode, 0);
-  var accepted = $(aTarget).dispatchEvent(event);
+  var accepted = SpecialPowers.dispatchEvent(window, aTarget, event);
 
   
   
@@ -169,14 +163,14 @@ function __doEventDispatch(aTarget, aCharCode, aKeyCode, aHasShift) {
   if (!accepted) {
     event.preventDefault();
   }
-  accepted = $(aTarget).dispatchEvent(event);
+  accepted = SpecialPowers.dispatchEvent(window, aTarget, event);
 
   
   var event = document.createEvent("KeyEvents");
   event.initKeyEvent("keyup", true, true, document.defaultView,
                      false, false, aHasShift, false,
                      aKeyCode, 0);
-  $(aTarget).dispatchEvent(event);
+  SpecialPowers.dispatchEvent(window, aTarget, event);
   return accepted;
 }
 
