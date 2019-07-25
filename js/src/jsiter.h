@@ -59,6 +59,9 @@
 #define JSITER_HIDDEN     0x10  /* also enumerate non-enumerable properties */
 
 
+
+
+
 #define JSITER_ACTIVE     0x1000
 
 struct NativeIterator {
