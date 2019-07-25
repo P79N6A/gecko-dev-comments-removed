@@ -2481,8 +2481,7 @@ mjit::Compiler::generateMethod()
             frame.pop();
 
             
-            masm.loadPtr(Address(reg, offsetof(JSObject, slots)), reg);
-            Address upvarAddress(reg, JSObject::JSSLOT_FLAT_CLOSURE_UPVARS * sizeof(Value));
+            Address upvarAddress(reg, JSObject::getFlatClosureUpvarsOffset());
             masm.loadPrivate(upvarAddress, reg);
             
             frame.freeReg(reg);

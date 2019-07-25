@@ -972,7 +972,7 @@ array_trace(JSTracer *trc, JSObject *obj)
     JS_ASSERT(obj->isDenseArray());
 
     uint32 capacity = obj->getDenseArrayInitializedLength();
-    MarkValueRange(trc, capacity, obj->slots, "element");
+    MarkValueRange(trc, capacity, obj->getDenseArrayElements(), "element");
 }
 
 static JSBool
@@ -1075,7 +1075,24 @@ JSObject::makeDenseArraySlow(JSContext *cx)
     if (!InitScopeForObject(cx, this, &js_SlowArrayClass, getType(), kind))
         return false;
 
-    uint32 initlen = getDenseArrayInitializedLength();
+    backfillDenseArrayHoles();
+
+    uint32 arrayCapacity = getDenseArrayCapacity();
+
+    
+
+
+
+
+    if (denseArrayHasInlineSlots()) {
+        if (!allocSlots(cx, numSlots())) {
+            setMap(oldMap);
+            return false;
+        }
+        JS_ASSERT(!denseArrayHasInlineSlots());
+    }
+    capacity = numFixedSlots() + arrayCapacity;
+    clasp = &js_SlowArrayClass;
 
     
 
@@ -1083,6 +1100,8 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
     if (!AddLengthProperty(cx, this)) {
         setMap(oldMap);
+        capacity = arrayCapacity;
+        clasp = &js_ArrayClass;
         return false;
     }
 
@@ -1091,25 +1110,27 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
     uint32 next = 0;
-    for (uint32 i = 0; i < initlen; i++) {
+    for (uint32 i = 0; i < arrayCapacity; i++) {
+        
         jsid id;
-        if (!ValueToId(cx, Int32Value(i), &id)) {
-            setMap(oldMap);
-            return false;
-        }
+        JS_ALWAYS_TRUE(ValueToId(cx, Int32Value(i), &id));
 
-        if (getDenseArrayElement(i).isMagic(JS_ARRAY_HOLE))
+        if (slots[i].isMagic(JS_ARRAY_HOLE))
             continue;
 
-        setDenseArrayElement(next, getDenseArrayElement(i));
+        setSlot(next, slots[i]);
 
         if (!addDataProperty(cx, id, next, JSPROP_ENUMERATE)) {
             setMap(oldMap);
+            capacity = arrayCapacity;
+            clasp = &js_ArrayClass;
             return false;
         }
 
         next++;
     }
+
+    clearSlotRange(next, capacity - next);
 
     
     initializedLength = 0;
@@ -1119,18 +1140,8 @@ JSObject::makeDenseArraySlow(JSContext *cx)
 
 
 
-    if (hasSlotsArray() && next <= numFixedSlots())
-        revertToFixedSlots(cx);
-
-    ClearValueRange(slots + next, this->capacity - next, false);
-
-    
 
 
-
-
-
-    clasp = &js_SlowArrayClass;
     return true;
 }
 

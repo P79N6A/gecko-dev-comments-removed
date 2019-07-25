@@ -1,6 +1,6 @@
 #include "tests.h"
 #include "jsobj.h"
-#include "vm/String.h"
+#include "jsstr.h"
 
 BEGIN_TEST(testConservativeGC)
 {
@@ -48,12 +48,13 @@ BEGIN_TEST(testConservativeGC)
 bool checkObjectFields(JSObject *savedCopy, JSObject *obj)
 {
     
-
-
-
-    savedCopy->objShape = obj->objShape;
-    savedCopy->setSlotsPtr(obj->getSlotsPtr());
-    CHECK(!memcmp(savedCopy, obj, sizeof(*obj)));
+    CHECK(savedCopy->map == obj->map);
+    CHECK(savedCopy->clasp == obj->clasp);
+    CHECK(savedCopy->flags == obj->flags);
+    CHECK(savedCopy->newType == obj->newType);
+    CHECK(savedCopy->type == obj->type);
+    CHECK(savedCopy->parent == obj->parent);
+    CHECK(savedCopy->privateData == obj->privateData);
     return true;
 }
 
