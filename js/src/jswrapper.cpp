@@ -112,7 +112,7 @@ bool
 JSWrapper::getPropertyDescriptor(JSContext *cx, JSObject *wrapper, jsid id,
                                  bool set, PropertyDescriptor *desc)
 {
-    desc->obj= NULL; 
+    desc->obj = NULL; 
     CHECKED(JS_GetPropertyDescriptorById(cx, wrappedObject(wrapper), id, JSRESOLVE_QUALIFIED,
                                          Jsvalify(desc)), set ? SET : GET);
 }

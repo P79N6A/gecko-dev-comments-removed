@@ -102,14 +102,9 @@ JSStackFrame::resetInvokeCallFrame()
 {
     
 
-    if (hasArgsObj())
-        args.nactual = argsObj().getArgsInitialLength();
-
     JS_ASSERT(!(flags_ & ~(JSFRAME_FUNCTION |
                            JSFRAME_OVERFLOW_ARGS |
                            JSFRAME_UNDERFLOW_ARGS |
-                           JSFRAME_HAS_CALL_OBJ |
-                           JSFRAME_HAS_ARGS_OBJ |
                            JSFRAME_OVERRIDE_ARGS |
                            JSFRAME_HAS_PREVPC |
                            JSFRAME_HAS_RVAL |
@@ -121,16 +116,8 @@ JSStackFrame::resetInvokeCallFrame()
               JSFRAME_HAS_PREVPC |
               JSFRAME_UNDERFLOW_ARGS;
 
-    JS_ASSERT_IF(!hasCallObj(), scopeChain_ == calleeValue().toObject().getParent());
-    JS_ASSERT_IF(hasCallObj(), scopeChain_ == callObj().getParent());
-    if (hasCallObj())
-        scopeChain_ = callObj().getParent();
-
-    JS_ASSERT(exec.fun == calleeValue().toObject().getFunctionPrivate());
-    JS_ASSERT(!hasImacropc());
-    JS_ASSERT(!hasHookData());
-    JS_ASSERT(annotation() == NULL);
-    JS_ASSERT(!hasCallObj());
+    JS_ASSERT(exec.fun == callee().getFunctionPrivate());
+    scopeChain_ = callee().getParent();
 }
 
 inline void
@@ -527,7 +514,8 @@ struct AutoInterpPreparer  {
 inline void
 PutActivationObjects(JSContext *cx, JSStackFrame *fp)
 {
-    JS_ASSERT(fp->isFunctionFrame() && !fp->isEvalFrame());
+    JS_ASSERT(!fp->isYielding());
+    JS_ASSERT(!fp->isEvalFrame() || fp->script()->strictModeCode);
 
     
     if (fp->hasCallObj()) {
@@ -535,6 +523,19 @@ PutActivationObjects(JSContext *cx, JSStackFrame *fp)
     } else if (fp->hasArgsObj()) {
         js_PutArgsObject(cx, fp);
     }
+}
+
+
+
+
+
+
+inline void
+PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp)
+{
+    JS_ASSERT(!fp->isYielding());
+    if (!fp->isEvalFrame() || fp->script()->strictModeCode)
+        PutActivationObjects(cx, fp);
 }
 
 class InvokeSessionGuard
@@ -552,7 +553,7 @@ class InvokeSessionGuard
 
   public:
     InvokeSessionGuard() : args_(), frame_() {}
-    ~InvokeSessionGuard() {}
+    inline ~InvokeSessionGuard();
 
     bool start(JSContext *cx, const Value &callee, const Value &thisv, uintN argc);
     bool invoke(JSContext *cx) const;
@@ -577,6 +578,13 @@ class InvokeSessionGuard
         return optimized() ? frame_.fp()->returnValue() : args_.rval();
     }
 };
+
+inline
+InvokeSessionGuard::~InvokeSessionGuard()
+{
+    if (frame_.pushed())
+        PutActivationObjects(frame_.pushedFrameContext(), frame_.fp());
+}
 
 inline bool
 InvokeSessionGuard::invoke(JSContext *cx) const
@@ -608,6 +616,7 @@ InvokeSessionGuard::invoke(JSContext *cx) const
     
     JSStackFrame *fp = frame_.fp();
     fp->clearMissingArgs();
+    PutActivationObjects(cx, frame_.fp());
     fp->resetInvokeCallFrame();
     SetValueRangeToUndefined(fp->slots(), script_->nfixed);
 
@@ -625,8 +634,6 @@ InvokeSessionGuard::invoke(JSContext *cx) const
 #endif
         Probes::exitJSFun(cx, fp->fun(), script_);
     }
-
-    PutActivationObjects(cx, fp);
 
     
     return ok;
@@ -661,6 +668,83 @@ class PrimitiveBehavior<double> {
 };
 
 } 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+inline bool
+ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp)
+{
+    vp->setUndefined();
+
+    if (!funval.isObject())
+        return true;
+
+    if (!obj->isGlobal()) {
+        if (IsCacheableNonGlobalScope(obj))
+            return true;
+    } else {
+        JSObject *callee = &funval.toObject();
+
+        if (callee->isProxy()) {
+            callee = callee->unwrap();
+            if (!callee->isFunction())
+                return true; 
+        }
+        if (callee->isFunction()) {
+            JSFunction *fun = callee->getFunctionPrivate();
+            if (fun->isInterpreted() && fun->inStrictMode())
+                return true;
+        }
+        if (callee->getGlobal() == cx->fp()->scopeChain().getGlobal())
+            return true;;
+    }
+
+    obj = obj->thisObject(cx);
+    if (!obj)
+        return false;
+
+    vp->setObject(*obj);
+    return true;
+}
 
 template <typename T>
 bool

@@ -214,7 +214,6 @@ struct JSStmtInfo {
 #define TCF_STRICT_MODE_CODE    0x40000
 
 
-#define TCF_FUN_PARAM_EVAL      0x80000
 
 
 
@@ -255,9 +254,17 @@ struct JSStmtInfo {
 
 
 
-
-
 #define TCF_FUN_MIGHT_ALIAS_LOCALS  0x4000000
+
+
+
+
+#define TCF_HAS_SINGLETONS       0x8000000
+
+
+
+
+#define TCF_IN_WITH             0x10000000
 
 
 
@@ -329,16 +336,22 @@ struct JSTreeContext {
 
     JSParseNode     *innermostWith; 
 
+    js::Bindings    bindings;       
+
+
 #ifdef JS_SCOPE_DEPTH_METER
     uint16          scopeDepth;     
     uint16          maxScopeDepth;  
 #endif
 
+    void trace(JSTracer *trc);
+
     JSTreeContext(js::Parser *prs)
-      : flags(0), bodyid(0), blockidGen(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
-        parser(prs), scopeChain_(NULL), parent(prs->tc), staticLevel(0),
-        funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
+      : flags(0), bodyid(0), blockidGen(0), topStmt(NULL), topScopeStmt(NULL),
+        blockChainBox(NULL), blockNode(NULL), parser(prs), scopeChain_(NULL),
+        parent(prs->tc), staticLevel(0), funbox(NULL), functionList(NULL),
+        innermostWith(NULL), bindings(prs->context, prs->emptyCallShape),
+        sharpSlotBase(-1)
     {
         prs->tc = this;
         JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);
@@ -451,7 +464,7 @@ struct JSTreeContext {
 
 
 inline bool JSTreeContext::needStrictChecks() {
-    return JS_HAS_STRICT_OPTION(parser->context) || inStrictMode();
+    return parser->context->hasStrictOption() || inStrictMode();
 }
 
 
@@ -640,19 +653,31 @@ struct JSCodeGenerator : public JSTreeContext
 
     bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie *cookie);
 
-    bool hasSharps() {
+    bool hasSharps() const {
         bool rv = !!(flags & TCF_HAS_SHARPS);
         JS_ASSERT((sharpSlotBase >= 0) == rv);
         return rv;
     }
 
-    uintN sharpSlots() {
+    uintN sharpSlots() const {
         return hasSharps() ? SHARP_NSLOTS : 0;
     }
 
-    bool compilingForEval() { return !!(flags & TCF_COMPILE_FOR_EVAL); }
+    bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
+    JSVersion version() const { return parser->versionWithFlags(); }
 
     bool shouldNoteClosedName(JSParseNode *pn);
+
+    bool checkSingletonContext() {
+        if (!compileAndGo() || inFunction())
+            return false;
+        for (JSStmtInfo *stmt = topStmt; stmt; stmt = stmt->down) {
+            if (STMT_IS_LOOP(stmt))
+                return false;
+        }
+        flags |= TCF_HAS_SINGLETONS;
+        return true;
+    }
 };
 
 #define CG_TS(cg)               TS((cg)->parser)

@@ -285,6 +285,9 @@ JS_BEGIN_EXTERN_C
 
 
 
+
+
+
 typedef enum JSParseNodeArity {
     PN_NULLARY,                         
     PN_UNARY,                           
@@ -377,6 +380,8 @@ struct JSParseNode {
             JSParseNode *kid;
             jsint       num;            
             JSBool      hidden;         
+
+
         } unary;
         struct {                        
             union {
@@ -427,6 +432,7 @@ struct JSParseNode {
 #define pn_kid          pn_u.unary.kid
 #define pn_num          pn_u.unary.num
 #define pn_hidden       pn_u.unary.hidden
+#define pn_prologue     pn_u.unary.hidden
 #define pn_atom         pn_u.name.atom
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
@@ -513,6 +519,7 @@ public:
                                               arguments occurs before function
                                               body */
 #define PNX_HOLEY      0x400            /* array initialiser has holes */
+#define PNX_NONCONST   0x800            /* initialiser has non-constants */
 
     uintN frameLevel() const {
         JS_ASSERT(pn_arity == PN_FUNC || pn_arity == PN_NAME);
@@ -570,7 +577,15 @@ public:
 
 
 
-    bool isDirectivePrologueMember() const {
+
+
+
+
+
+
+
+
+    bool isStringExprStatement() const {
         if (PN_TYPE(this) == js::TOK_SEMI) {
             JS_ASSERT(pn_arity == PN_UNARY);
             JSParseNode *kid = pn_kid;
@@ -583,10 +598,10 @@ public:
 
 
 
-    bool isDirective() const {
-        JS_ASSERT(isDirectivePrologueMember());
-        JSParseNode *kid = pn_kid;
-        JSString *str = ATOM_TO_STRING(kid->pn_atom);
+
+    bool isEscapeFreeStringLiteral() const {
+        JS_ASSERT(pn_type == js::TOK_STRING && !pn_parens);
+        JSString *str = ATOM_TO_STRING(pn_atom);
 
         
 
@@ -596,6 +611,9 @@ public:
         return (pn_pos.begin.lineno == pn_pos.end.lineno &&
                 pn_pos.begin.index + str->length() + 2 == pn_pos.end.index);
     }
+
+    
+    bool isDirectivePrologueMember() const { return pn_prologue; }
 
 #ifdef JS_HAS_GENERATOR_EXPRS
     
@@ -660,6 +678,9 @@ public:
         pn_tail = &pn->pn_next;
         pn_count++;
     }
+
+    bool getConstantValue(JSContext *cx, bool strictChecks, js::Value *vp);
+    inline bool isConstant();
 };
 
 namespace js {
@@ -831,10 +852,6 @@ struct LexicalScopeNode : public JSParseNode {
 
 
 
-
-
-
-
 #define dn_uses         pn_link
 
 struct JSDefinition : public JSParseNode
@@ -862,6 +879,11 @@ struct JSDefinition : public JSParseNode
     bool isFreeVar() const {
         JS_ASSERT(pn_defn);
         return pn_cookie.isFree() || test(PND_GVAR);
+    }
+
+    bool isGlobal() const {
+        JS_ASSERT(pn_defn);
+        return test(PND_GVAR);
     }
 
     
@@ -928,8 +950,9 @@ struct JSObjectBox {
     JSObjectBox         *traceLink;
     JSObjectBox         *emitLink;
     JSObject            *object;
-    uintN               index;
     JSObjectBox         *parent;
+    uintN               index;
+    bool                isFunctionBox;
 };
 
 #define JSFB_LEVEL_BITS 14
@@ -945,12 +968,19 @@ struct JSFunctionBox : public JSObjectBox
 
 
 
+    js::Bindings        bindings;               
     uint32              queued:1,
                         inLoop:1,               
                         level:JSFB_LEVEL_BITS;
     uint32              tcflags;
 
     bool joinable() const;
+
+    
+
+
+
+    bool inAnyDynamicScope() const;
 
     
 
@@ -978,11 +1008,11 @@ struct JSFunctionBoxQueue {
 
     bool init(uint32 count) {
         lengthMask = JS_BITMASK(JS_CeilingLog2(count));
-        vector = new JSFunctionBox*[length()];
+        vector = js_array_new<JSFunctionBox*>(length());
         return !!vector;
     }
 
-    ~JSFunctionBoxQueue() { delete[] vector; }
+    ~JSFunctionBoxQueue() { js_array_delete(vector); }
 
     void push(JSFunctionBox *funbox) {
         if (!funbox->queued) {
@@ -1013,7 +1043,7 @@ struct Parser : private js::AutoGCRooter
     JSContext           * const context; 
     JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
-    js::TokenStream     tokenStream;
+    TokenStream         tokenStream;
     void                *tempPoolMark;  
     JSPrincipals        *principals;    
     JSStackFrame *const callerFrame;    
@@ -1022,7 +1052,7 @@ struct Parser : private js::AutoGCRooter
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
     JSTreeContext       *tc;            
-    JSVersion           version;        
+    js::EmptyShape      *emptyCallShape;
 
     
     js::AutoKeepAtoms   keepAtoms;
@@ -1040,15 +1070,16 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    bool init(const jschar *base, size_t length,
-              const char *filename, uintN lineno);
+    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
+              JSVersion version);
 
     void setPrincipals(JSPrincipals *prin);
 
-    const char *getFilename()
-    {
-        return tokenStream.getFilename();
-    }
+    const char *getFilename() const { return tokenStream.getFilename(); }
+    JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
+    JSVersion versionNumber() const { return tokenStream.versionNumber(); }
+    bool hasXML() const { return tokenStream.hasXML(); }
+    bool hasAnonFunFix() const { return tokenStream.hasAnonFunFix(); }
 
     
 
@@ -1077,9 +1108,10 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    bool analyzeFunctions(JSFunctionBox *funbox, uint32& tcflags);
-    bool markFunArgs(JSFunctionBox *funbox, uintN tcflags);
-    void setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags);
+    bool analyzeFunctions(JSTreeContext *tc);
+    void cleanFunctionList(JSFunctionBox **funbox);
+    bool markFunArgs(JSFunctionBox *funbox);
+    void setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags);
 
     void trace(JSTracer *trc);
 
@@ -1126,7 +1158,7 @@ private:
     JSParseNode *unaryExpr();
     JSParseNode *memberExpr(JSBool allowCallSyntax);
     JSParseNode *primaryExpr(js::TokenKind tt, JSBool afterDot);
-    JSParseNode *parenExpr(JSParseNode *pn1, JSBool *genexp);
+    JSParseNode *parenExpr(JSBool *genexp = NULL);
 
     
 
@@ -1134,15 +1166,14 @@ private:
     bool recognizeDirectivePrologue(JSParseNode *pn, bool *isDirectivePrologueMember);
 
     enum FunctionType { GETTER, SETTER, GENERAL };
-    bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunction *fun,
-                           JSParseNode **list);
+    bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **list);
     JSParseNode *functionBody();
     JSParseNode *functionDef(JSAtom *name, FunctionType type, uintN lambda);
 
     JSParseNode *condition();
     JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid,
                                    js::TokenKind type = js::TOK_SEMI, JSOp op = JSOP_NOP);
-    JSParseNode *generatorExpr(JSParseNode *pn, JSParseNode *kid);
+    JSParseNode *generatorExpr(JSParseNode *kid);
     JSBool argumentList(JSParseNode *listNode);
     JSParseNode *bracketedExpr();
     JSParseNode *letBlock(JSBool statement);
@@ -1187,28 +1218,25 @@ struct Compiler
 
 
     inline bool
-    init(const jschar *base, size_t length,
-         const char *filename, uintN lineno)
+    init(const jschar *base, size_t length, const char *filename, uintN lineno, JSVersion version)
     {
-        return parser.init(base, length, filename, lineno);
+        return parser.init(base, length, filename, lineno, version);
     }
 
     static bool
     compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *principals,
-                        const jschar *chars, size_t length,
-                        const char *filename, uintN lineno);
+                        js::Bindings *bindings, const jschar *chars, size_t length,
+                        const char *filename, uintN lineno, JSVersion version);
 
     static JSScript *
     compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *callerFrame,
                   JSPrincipals *principals, uint32 tcflags,
                   const jschar *chars, size_t length,
-                  const char *filename, uintN lineno,
-                  JSString *source = NULL,
-                  uintN staticLevel = 0);
+                  const char *filename, uintN lineno, JSVersion version,
+                  JSString *source = NULL, uintN staticLevel = 0);
 
   private:
-    static bool
-    defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script);
+    static bool defineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript *script);
 };
 
 } 

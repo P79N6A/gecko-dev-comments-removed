@@ -156,7 +156,6 @@ typedef struct JSPropertyDescriptor JSPropertyDescriptor;
 typedef struct JSPropertySpec    JSPropertySpec;
 typedef struct JSObjectMap       JSObjectMap;
 typedef struct JSRuntime         JSRuntime;
-typedef struct JSScript          JSScript;
 typedef struct JSStackFrame      JSStackFrame;
 typedef struct JSXDRState        JSXDRState;
 typedef struct JSExceptionState  JSExceptionState;
@@ -185,6 +184,16 @@ typedef class JSCrossCompartmentWrapper JSCrossCompartmentWrapper;
 
 typedef JSBool
 (* JSPropertyOp)(JSContext *cx, JSObject *obj, jsid id, jsval *vp);
+
+
+
+
+
+
+
+
+typedef JSBool
+(* JSStrictPropertyOp)(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp);
 
 
 
@@ -335,19 +344,6 @@ typedef JSBool
 
 
 
-typedef uint32
-(* JSMarkOp)(JSContext *cx, JSObject *obj, void *arg);
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -362,18 +358,6 @@ typedef uint32
 
 typedef void
 (* JSTraceOp)(JSTracer *trc, JSObject *obj);
-
-#if defined __GNUC__ && __GNUC__ >= 4 && !defined __cplusplus
-# define JS_CLASS_TRACE(method)                                               \
-    (__builtin_types_compatible_p(JSTraceOp, __typeof(&(method)))             \
-     ? (JSMarkOp)(method)                                                     \
-     : js_WrongTypeForClassTracer)
-
-extern JSMarkOp js_WrongTypeForClassTracer;
-
-#else
-# define JS_CLASS_TRACE(method) ((JSMarkOp)(method))
-#endif
 
 
 
@@ -470,12 +454,6 @@ typedef void
 typedef JSBool
 (* JSOperationCallback)(JSContext *cx);
 
-
-
-
-typedef JSBool
-(* JSBranchCallback)(JSContext *cx, JSScript *script);
-
 typedef void
 (* JSErrorReporter)(JSContext *cx, const char *message, JSErrorReport *report);
 
@@ -531,7 +509,7 @@ typedef JSBool
                     jsval *rval);
 
 typedef JSBool
-(* JSLocaleToUnicode)(JSContext *cx, char *src, jsval *rval);
+(* JSLocaleToUnicode)(JSContext *cx, const char *src, jsval *rval);
 
 
 
@@ -599,8 +577,9 @@ typedef JSBool
 
 
 
+
 typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
-                                           uint32 tag, uint32 data);
+                                           uint32 tag, uint32 data, void *closure);
 
 
 
@@ -613,7 +592,8 @@ typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReade
 
 
 
-typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w, JSObject *obj);
+typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w,
+                                         JSObject *obj, void *closure);
 
 
 

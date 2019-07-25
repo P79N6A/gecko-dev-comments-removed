@@ -708,6 +708,14 @@ extern JS_PUBLIC_API(JSBool)
 JS_SameValue(JSContext *cx, jsval v1, jsval v2, JSBool *same);
 
 
+extern JS_PUBLIC_API(JSBool)
+JS_IsBuiltinEvalFunction(JSFunction *fun);
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_IsBuiltinFunctionConstructor(JSFunction *fun);
+
+
 
 
 
@@ -990,9 +998,6 @@ JS_SetWrapObjectCallbacks(JSRuntime *rt,
 extern JS_PUBLIC_API(JSCrossCompartmentCall *)
 JS_EnterCrossCompartmentCall(JSContext *cx, JSObject *target);
 
-extern JS_PUBLIC_API(JSCrossCompartmentCall *)
-JS_EnterCrossCompartmentCallScript(JSContext *cx, JSScript *target);
-
 extern JS_PUBLIC_API(void)
 JS_LeaveCrossCompartmentCall(JSCrossCompartmentCall *call);
 
@@ -1018,6 +1023,13 @@ js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *targetobj,
                                JSObject *targetwrapper);
 
+extern JS_FRIEND_API(JSObject *)
+js_TransplantObjectWithWrapper(JSContext *cx,
+                               JSObject *origobj,
+                               JSObject *origwrapper,
+                               JSObject *targetobj,
+                               JSObject *targetwrapper);
+
 #ifdef __cplusplus
 JS_END_EXTERN_C
 
@@ -1029,8 +1041,6 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
     JSAutoEnterCompartment() : call(NULL) {}
 
     bool enter(JSContext *cx, JSObject *target);
-
-    bool enter(JSContext *cx, JSScript *target);
 
     void enterAndIgnoreErrors(JSContext *cx, JSObject *target);
 
@@ -1471,6 +1481,13 @@ JS_BEGIN_EXTERN_C
 
 
 
+extern JS_NEVER_INLINE JS_PUBLIC_API(void)
+JS_AnchorPtr(void *p);
+
+
+
+
+
 #define JS_TYPED_ROOTING_API
 
 
@@ -1545,13 +1562,6 @@ JS_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
 extern JS_PUBLIC_API(void)
 JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_MarkGCThing(JSContext *cx, jsval v, const char *name, void *arg);
 
 
 
@@ -1926,7 +1936,7 @@ struct JSClass {
     JSNative            construct;
     JSXDRObjectOp       xdrObject;
     JSHasInstanceOp     hasInstance;
-    JSMarkOp            mark;
+    JSTraceOp           trace;
 
     JSClassInternal     reserved1;
     void                *reserved[19];
@@ -1964,23 +1974,22 @@ struct JSClass {
 #define JSCLASS_INTERNAL_FLAG1          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+0))
 #define JSCLASS_IS_ANONYMOUS            (1<<(JSCLASS_HIGH_FLAGS_SHIFT+1))
 #define JSCLASS_IS_GLOBAL               (1<<(JSCLASS_HIGH_FLAGS_SHIFT+2))
-
-
-#define JSCLASS_MARK_IS_TRACE           (1<<(JSCLASS_HIGH_FLAGS_SHIFT+3))
-#define JSCLASS_INTERNAL_FLAG2          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+4))
+#define JSCLASS_INTERNAL_FLAG2          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+3))
+#define JSCLASS_INTERNAL_FLAG3          (1<<(JSCLASS_HIGH_FLAGS_SHIFT+4))
 
 
 #define JSCLASS_FREEZE_PROTO            (1<<(JSCLASS_HIGH_FLAGS_SHIFT+5))
 #define JSCLASS_FREEZE_CTOR             (1<<(JSCLASS_HIGH_FLAGS_SHIFT+6))
 
 
-#define JSRESERVED_GLOBAL_SLOTS_COUNT     6
+#define JSRESERVED_GLOBAL_SLOTS_COUNT     7
 #define JSRESERVED_GLOBAL_THIS            (JSProto_LIMIT * 3)
 #define JSRESERVED_GLOBAL_THROWTYPEERROR  (JSRESERVED_GLOBAL_THIS + 1)
 #define JSRESERVED_GLOBAL_REGEXP_STATICS  (JSRESERVED_GLOBAL_THROWTYPEERROR + 1)
 #define JSRESERVED_GLOBAL_FUNCTION_NS     (JSRESERVED_GLOBAL_REGEXP_STATICS + 1)
 #define JSRESERVED_GLOBAL_EVAL_ALLOWED    (JSRESERVED_GLOBAL_FUNCTION_NS + 1)
-#define JSRESERVED_GLOBAL_FLAGS           (JSRESERVED_GLOBAL_EVAL_ALLOWED + 1)
+#define JSRESERVED_GLOBAL_EVAL            (JSRESERVED_GLOBAL_EVAL_ALLOWED + 1)
+#define JSRESERVED_GLOBAL_FLAGS           (JSRESERVED_GLOBAL_EVAL + 1)
 
 
 #define JSGLOBAL_FLAGS_CLEARED          0x1
@@ -2011,7 +2020,7 @@ struct JSClass {
                                           & JSCLASS_CACHED_PROTO_MASK))
 
 
-#define JSCLASS_NO_INTERNAL_MEMBERS     0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
+#define JSCLASS_NO_INTERNAL_MEMBERS     0,{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 #define JSCLASS_NO_OPTIONAL_MEMBERS     0,0,0,0,0,0,0,JSCLASS_NO_INTERNAL_MEMBERS
 
 struct JSIdArray {
@@ -2759,95 +2768,59 @@ extern JS_PUBLIC_API(JSBool)
 JS_BufferIsCompilableUnit(JSContext *cx, JSObject *obj,
                           const char *bytes, size_t length);
 
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileScript(JSContext *cx, JSObject *obj,
                  const char *bytes, size_t length,
                  const char *filename, uintN lineno);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileScriptForPrincipals(JSContext *cx, JSObject *obj,
                               JSPrincipals *principals,
                               const char *bytes, size_t length,
                               const char *filename, uintN lineno);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                      JSPrincipals *principals,
                                      const char *bytes, size_t length,
                                      const char *filename, uintN lineno,
                                      JSVersion version);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileUCScript(JSContext *cx, JSObject *obj,
                    const jschar *chars, size_t length,
                    const char *filename, uintN lineno);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileUCScriptForPrincipals(JSContext *cx, JSObject *obj,
                                 JSPrincipals *principals,
                                 const jschar *chars, size_t length,
                                 const char *filename, uintN lineno);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileUCScriptForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                        JSPrincipals *principals,
                                        const jschar *chars, size_t length,
                                        const char *filename, uintN lineno,
                                        JSVersion version);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileFile(JSContext *cx, JSObject *obj, const char *filename);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileFileHandle(JSContext *cx, JSObject *obj, const char *filename,
                      FILE *fh);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileFileHandleForPrincipals(JSContext *cx, JSObject *obj,
                                   const char *filename, FILE *fh,
                                   JSPrincipals *principals);
 
-extern JS_PUBLIC_API(JSScript *)
+extern JS_PUBLIC_API(JSObject *)
 JS_CompileFileHandleForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                          const char *filename, FILE *fh,
                                          JSPrincipals *principals,
                                          JSVersion version);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-JS_NewScriptObject(JSContext *cx, JSScript *script);
-
-
-
-
-
-extern JS_PUBLIC_API(JSObject *)
-JS_GetScriptObject(JSScript *script);
-
-extern JS_PUBLIC_API(void)
-JS_DestroyScript(JSContext *cx, JSScript *script);
 
 extern JS_PUBLIC_API(JSFunction *)
 JS_CompileFunction(JSContext *cx, JSObject *obj, const char *name,
@@ -2884,8 +2857,7 @@ JS_CompileUCFunctionForPrincipalsVersion(JSContext *cx, JSObject *obj,
                                          JSVersion version);
 
 extern JS_PUBLIC_API(JSString *)
-JS_DecompileScript(JSContext *cx, JSScript *script, const char *name,
-                   uintN indent);
+JS_DecompileScriptObject(JSContext *cx, JSObject *scriptObj, const char *name, uintN indent);
 
 
 
@@ -2935,10 +2907,10 @@ JS_DecompileFunctionBody(JSContext *cx, JSFunction *fun, uintN indent);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval);
+JS_ExecuteScript(JSContext *cx, JSObject *obj, JSObject *scriptObj, jsval *rval);
 
 extern JS_PUBLIC_API(JSBool)
-JS_ExecuteScriptVersion(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval,
+JS_ExecuteScriptVersion(JSContext *cx, JSObject *obj, JSObject *scriptObj, jsval *rval,
                         JSVersion version);
 
 
@@ -3880,28 +3852,6 @@ JS_SetContextThread(JSContext *cx);
 
 extern JS_PUBLIC_API(jsword)
 JS_ClearContextThread(JSContext *cx);
-
-#ifdef MOZ_TRACE_JSCALLS
-typedef void (*JSFunctionCallback)(const JSFunction *fun,
-                                   const JSScript *scr,
-                                   const JSContext *cx,
-                                   int entering);
-
-
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetFunctionCallback(JSContext *cx, JSFunctionCallback fcb);
-
-extern JS_PUBLIC_API(JSFunctionCallback)
-JS_GetFunctionCallback(JSContext *cx);
-#endif
 
 
 

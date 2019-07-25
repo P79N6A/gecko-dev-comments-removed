@@ -46,6 +46,7 @@
 #include "jspubtd.h"
 #include "jsobj.h"
 #include "jsatom.h"
+#include "jsscript.h"
 #include "jsstr.h"
 #include "jsopcode.h"
 
@@ -113,29 +114,6 @@
                               JS_ASSERT((fun)->flags & JSFUN_TRCINFO),        \
                               fun->u.n.trcinfo)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-enum JSLocalKind {
-    JSLOCAL_NONE,
-    JSLOCAL_ARG,
-    JSLOCAL_VAR,
-    JSLOCAL_CONST,
-    JSLOCAL_UPVAR
-};
-
 struct JSFunction : public JSObject_Slots2
 {
     
@@ -152,9 +130,6 @@ struct JSFunction : public JSObject_Slots2
         } n;
         struct Scripted {
             JSScript    *script;  
-            uint16      nvars;    
-            uint16      nupvars;  
-
             uint16       skipmin; 
 
 
@@ -180,83 +155,22 @@ struct JSFunction : public JSObject_Slots2
 
     bool isFunctionPrototype() const { return flags & JSFUN_PROTOTYPE; }
 
+    
     inline bool inStrictMode() const;
 
-    bool acceptsPrimitiveThis() const { return flags & JSFUN_PRIMITIVE_THIS; }
-
-    uintN countVars() const {
-        JS_ASSERT(FUN_INTERPRETED(this));
-        return u.i.nvars;
+    void setArgCount(uint16 nargs) {
+        JS_ASSERT(this->nargs == 0);
+        this->nargs = nargs;
     }
 
     
     enum { MAX_ARGS_AND_VARS = 2 * ((1U << 16) - 1) };
 
-    uintN countArgsAndVars() const {
-        JS_ASSERT(FUN_INTERPRETED(this));
-        return nargs + u.i.nvars;
-    }
-
-    uintN countLocalNames() const {
-        JS_ASSERT(FUN_INTERPRETED(this));
-        return countArgsAndVars() + u.i.nupvars;
-    }
-
-    bool hasLocalNames() const {
-        JS_ASSERT(FUN_INTERPRETED(this));
-        return countLocalNames() != 0;
-    }
-
-    int sharpSlotBase(JSContext *cx);
-
-    uint32 countUpvarSlots() const;
-
-    const js::Shape *lastArg() const;
-    const js::Shape *lastVar() const;
-    const js::Shape *lastUpvar() const { return u.i.names; }
-
-    bool addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind);
-
-    
-
-
-
-
-
-    JSLocalKind lookupLocal(JSContext *cx, JSAtom *atom, uintN *indexp);
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    jsuword *getLocalNameArray(JSContext *cx, struct JSArenaPool *pool);
-
-    void freezeLocalNames(JSContext *cx);
-
-    
-
-
-
-    JSAtom *findDuplicateFormal() const;
-
 #define JS_LOCAL_NAME_TO_ATOM(nameWord)  ((JSAtom *) ((nameWord) & ~(jsuword) 1))
 #define JS_LOCAL_NAME_IS_CONST(nameWord) ((((nameWord) & (jsuword) 1)) != 0)
 
     bool mightEscape() const {
-        return FUN_INTERPRETED(this) && (FUN_FLAT_CLOSURE(this) || u.i.nupvars == 0);
+        return isInterpreted() && (isFlatClosure() || !script()->bindings.hasUpvars());
     }
 
     bool joinable() const {
@@ -410,6 +324,15 @@ namespace js {
 
 
 
+
+
+
+extern JSObject *
+NewCallObject(JSContext *cx, js::Bindings *bindings, JSObject &scopeChain, JSObject *callee);
+
+
+
+
 #define VALUE_IS_FUNCTION(cx, v)                                              \
     (!JSVAL_IS_PRIMITIVE(v) && JSVAL_TO_OBJECT(v)->isFunction())
 
@@ -506,6 +429,24 @@ GetFunctionNameBytes(JSContext *cx, JSFunction *fun, JSAutoByteString *bytes)
     return js_anonymous_str;
 }
 
+extern bool
+IsBuiltinFunctionConstructor(JSFunction *fun);
+
+
+
+
+
+
+
+
+
+
+
+
+
+const Shape *
+LookupInterpretedFunctionPrototype(JSContext *cx, JSObject *funobj);
+
 } 
 
 extern JSString *
@@ -545,7 +486,7 @@ CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent)
 extern JSObject * JS_FASTCALL
 js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);
 
-extern JS_REQUIRES_STACK JSObject *
+extern JSObject *
 js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen);
 
 extern JS_REQUIRES_STACK JSObject *
@@ -604,10 +545,16 @@ extern JSBool
 GetCallVarChecked(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-SetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+GetCallUpvar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
 
 extern JSBool
-SetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+SetCallArg(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
+
+extern JSBool
+SetCallVar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
+
+extern JSBool
+SetCallUpvar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
 
 } 
 

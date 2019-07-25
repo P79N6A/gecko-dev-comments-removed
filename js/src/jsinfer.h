@@ -378,9 +378,6 @@ struct TypeObject
     TypeObject *instanceNext;
 
     
-
-
-
     TypeObject *next;
 
     
@@ -579,10 +576,7 @@ struct TypeCompartment
     unsigned scriptCount;
 
     
-    TypeObject *typeEmpty;
-
-    
-    TypeObject *typeGetSet;
+    TypeObject typeEmpty;
 
     
 
@@ -690,10 +684,10 @@ struct TypeCompartment
 
     
     void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset);
-};
 
-void CondenseTypeObjectList(JSContext *cx, TypeCompartment *compartment, TypeObject *objects);
-void SweepTypeObjectList(JSContext *cx, TypeObject *&objects);
+    void condense(JSContext *cx);
+    void sweep(JSContext *cx);
+};
 
 enum SpewChannel {
     ISpewDynamic,  

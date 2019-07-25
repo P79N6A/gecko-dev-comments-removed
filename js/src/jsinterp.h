@@ -250,6 +250,12 @@ struct JSStackFrame
         return slots() + script()->nfixed;
     }
 
+    js::Value &varSlot(uintN i) {
+        JS_ASSERT(i < script()->nfixed);
+        JS_ASSERT_IF(maybeFun(), i < script()->bindings.countVars());
+        return slots()[i];
+    }
+
     
 
 
@@ -834,6 +840,9 @@ bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
 inline void
 PutActivationObjects(JSContext *cx, JSStackFrame *fp);
 
+inline void
+PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp);
+
 
 
 
@@ -841,28 +850,7 @@ PutActivationObjects(JSContext *cx, JSStackFrame *fp);
 
 
 extern bool
-ComputeThisFromArgv(JSContext *cx, js::Value *argv);
-
-JS_ALWAYS_INLINE JSObject *
-ComputeThisFromVp(JSContext *cx, js::Value *vp)
-{
-    extern bool ComputeThisFromArgv(JSContext *, js::Value *);
-    return ComputeThisFromArgv(cx, vp + 2) ? &vp[1].toObject() : NULL;
-}
-
-JS_ALWAYS_INLINE bool
-ComputeThisFromVpInPlace(JSContext *cx, js::Value *vp)
-{
-    extern bool ComputeThisFromArgv(JSContext *, js::Value *);
-    return ComputeThisFromArgv(cx, vp + 2);
-}
-
-
-JS_ALWAYS_INLINE bool
-PrimitiveThisTest(JSFunction *fun, const Value &v)
-{
-    return !v.isPrimitive() || fun->acceptsPrimitiveThis();
-}
+BoxThisForVp(JSContext *cx, js::Value *vp);
 
 
 
@@ -882,10 +870,6 @@ struct CallArgs
     Value *argv() const { return argv_; }
     uintN argc() const { return argc_; }
     Value &rval() const { return argv_[-2]; }
-
-    bool computeThis(JSContext *cx) const {
-        return ComputeThisFromArgv(cx, argv_);
-    }
 };
 
 
@@ -954,13 +938,6 @@ extern bool
 ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
                uintN argc, Value *argv, Value *rval);
 
-static JS_ALWAYS_INLINE bool
-ExternalInvoke(JSContext *cx, JSObject *obj, const Value &fval,
-               uintN argc, Value *argv, Value *rval)
-{
-    return ExternalInvoke(cx, ObjectOrNullValue(obj), fval, argc, argv, rval);
-}
-
 extern bool
 ExternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
                  JSAccessMode mode, uintN argc, Value *argv, Value *rval);
@@ -989,10 +966,8 @@ ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *a
 
 
 
-
-
 extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
+DirectEval(JSContext *cx, uint32 argc, Value *vp);
 
 
 
@@ -1022,11 +997,8 @@ Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, JSInte
 extern JS_REQUIRES_STACK bool
 RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp);
 
-#define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
-
 extern bool
-CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
-                   JSObject **objp, JSProperty **propp);
+CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs);
 
 extern bool
 StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval, JSBool *equal);

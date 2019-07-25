@@ -121,20 +121,37 @@ CastAsObjectJsval(StrictPropertyOp op)
     return ObjectOrNullValue(CastAsObject(op));
 }
 
-} 
-
 
 
 
 
 struct PropDesc {
+    
+
+
+
+    js::Value pd;
+
+    js::Value value, get, set;
+
+    
+    uint8 attrs;
+
+    
+    bool hasGet : 1;
+    bool hasSet : 1;
+    bool hasValue : 1;
+    bool hasWritable : 1;
+    bool hasEnumerable : 1;
+    bool hasConfigurable : 1;
+
     friend class js::AutoPropDescArrayRooter;
 
     PropDesc();
 
   public:
     
-    bool initialize(JSContext* cx, jsid id, const js::Value &v);
+    bool initialize(JSContext* cx, const js::Value &v);
 
     
     bool isAccessorDescriptor() const {
@@ -183,24 +200,7 @@ struct PropDesc {
     js::StrictPropertyOp setter() const {
         return js::CastAsStrictPropertyOp(setterObject());
     }
-
-    js::Value pd;
-    jsid id;
-    js::Value value, get, set;
-
-    
-    uint8 attrs;
-
-    
-    bool hasGet : 1;
-    bool hasSet : 1;
-    bool hasValue : 1;
-    bool hasWritable : 1;
-    bool hasEnumerable : 1;
-    bool hasConfigurable : 1;
 };
-
-namespace js {
 
 typedef Vector<PropDesc, 1> PropDescArray;
 
@@ -1058,6 +1058,12 @@ struct JSObject : js::gc::Cell {
 
 
 
+    inline JSScript *getScript() const;
+
+    
+
+
+
     
 
 
@@ -1302,6 +1308,7 @@ struct JSObject : js::gc::Cell {
     inline bool isClonedBlock() const;
     inline bool isCall() const;
     inline bool isRegExp() const;
+    inline bool isScript() const;
     inline bool isXML() const;
     inline bool isXMLId() const;
     inline bool isNamespace() const;
@@ -1936,8 +1943,16 @@ extern bool
 EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
            JSObject *scopeobj);
 
-extern JS_FRIEND_API(bool)
-IsBuiltinEvalFunction(JSFunction *fun);
+
+
+
+
+extern bool
+IsBuiltinEvalForScope(JSObject *scopeChain, const js::Value &v);
+
+
+extern bool
+IsAnyBuiltinEval(JSFunction *fun);
 
 }
 

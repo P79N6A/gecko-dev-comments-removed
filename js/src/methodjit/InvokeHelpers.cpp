@@ -372,10 +372,6 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     JS_ASSERT(newfp == f.regs.fp);
 
     
-    if (newfun->isHeavyweight() && !js_GetCallObject(cx, newfp))
-        return false;
-
-    
     if (newscript->getJITStatus(newfp->isConstructing()) == JITScript_None) {
         CompileStatus status = CanMethodJIT(cx, newscript, newfp, CompileRequest_Interpreter);
         if (status == Compile_Error) {
@@ -386,6 +382,10 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
         if (status == Compile_Abort)
             *unjittable = true;
     }
+
+    
+    if (newfun->isHeavyweight() && !js_GetCallObject(cx, newfp))
+        return false;
 
     
     if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
@@ -441,19 +441,14 @@ stubs::Eval(VMFrame &f, uint32 argc)
 {
     Value *vp = f.regs.sp - (argc + 2);
 
-    JSObject *callee;
-    JSFunction *fun;
-
-    if (!IsFunctionObject(*vp, &callee) ||
-        !IsBuiltinEvalFunction((fun = callee->getFunctionPrivate())))
-    {
+    if (!IsBuiltinEvalForScope(&f.regs.fp->scopeChain(), *vp)) {
         if (!Invoke(f.cx, InvokeArgsAlreadyOnTheStack(vp, argc), 0))
             THROW();
         return;
     }
 
     JS_ASSERT(f.regs.fp == f.cx->fp());
-    if (!DirectEval(f.cx, fun, argc, vp))
+    if (!DirectEval(f.cx, argc, vp))
         THROW();
 }
 
@@ -764,15 +759,22 @@ PartialInterpret(VMFrame &f)
 JS_STATIC_ASSERT(JSOP_NOP == 0);
 
 
-static inline JSOp
+
+
+
+
+
+
+
+static inline bool
 FrameIsFinished(JSContext *cx)
 {
     JSOp op = JSOp(*cx->regs->pc);
     return (op == JSOP_RETURN ||
             op == JSOP_RETRVAL ||
             op == JSOP_STOP)
-        ? op
-        : JSOP_NOP;
+        ? true
+        : cx->fp()->finishedInInterpreter();
 }
 
 

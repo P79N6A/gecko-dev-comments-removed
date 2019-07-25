@@ -824,6 +824,7 @@ pref("network.IDN.whitelist.sh", true);
 pref("network.IDN.whitelist.th", true);
 pref("network.IDN.whitelist.tm", true);
 pref("network.IDN.whitelist.tw", true);
+pref("network.IDN.whitelist.ua", true);
 pref("network.IDN.whitelist.vn", true);
 
 
@@ -832,6 +833,8 @@ pref("network.IDN.whitelist.xn--mgbaam7a8h", true);
 
 pref("network.IDN.whitelist.xn--fiqz9s", true); 
 pref("network.IDN.whitelist.xn--fiqs8s", true); 
+
+pref("network.IDN.whitelist.xn--wgbh1c", true);
 
 pref("network.IDN.whitelist.xn--j6w193g", true);
 
@@ -2618,7 +2621,7 @@ pref("font.name.sans-serif.he", "Droid Sans");
 pref("font.name.monospace.he", "Droid Sans Mono");
 
 pref("font.name.serif.ja", "Droid Serif");
-pref("font.name.sans-serif.ja", "Droid Sans");
+pref("font.name.sans-serif.ja", "Droid Sans Japanese");
 pref("font.name.monospace.ja", "Droid Sans Mono");
 
 pref("font.name.serif.ko", "Droid Serif");
@@ -3257,9 +3260,11 @@ pref("geo.enabled", true);
 pref("accelerometer.enabled", true);
 
 
-pref("html5.enable", true);
+pref("html5.parser.enable", true);
 
 pref("html5.offmainthread", true);
+
+pref("html5.hotmailworkaround", true);
 
 
 

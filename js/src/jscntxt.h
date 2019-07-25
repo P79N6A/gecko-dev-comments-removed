@@ -419,6 +419,8 @@ class StackSegment
 #ifdef DEBUG
     JS_REQUIRES_STACK bool contains(const JSStackFrame *fp) const;
 #endif
+
+    JSStackFrame *computeNextFrame(JSStackFrame *fp) const;
 };
 
 static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
@@ -461,6 +463,7 @@ class InvokeFrameGuard
     InvokeFrameGuard() : cx_(NULL) {}
     ~InvokeFrameGuard() { if (pushed()) pop(); }
     bool pushed() const { return cx_ != NULL; }
+    JSContext *pushedFrameContext() const { JS_ASSERT(pushed()); return cx_; }
     void pop();
     JSStackFrame *fp() const { return regs_.fp; }
 };
@@ -985,7 +988,7 @@ typedef void
 
 namespace js {
 
-typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> WrapperVector;
+typedef js::Vector<JSCompartment *, 0, js::SystemAllocPolicy> CompartmentVector;
 
 }
 
@@ -997,7 +1000,7 @@ struct JSRuntime {
 #endif
 
     
-    js::WrapperVector compartments;
+    js::CompartmentVector compartments;
 
     
     JSRuntimeState      state;
@@ -1784,9 +1787,6 @@ struct JSContext
     void restoreSegment();
 
     
-    inline JSStackFrame *computeNextFrame(JSStackFrame *fp);
-
-    
 
 
 
@@ -2175,9 +2175,6 @@ public:
 
     
     inline js::types::TypeObject *getTypeEmpty();
-
-    
-    inline js::types::TypeObject *getTypeGetSet();
 
     
     inline bool aliasTypeProperties(js::types::TypeObject *obj, jsid first, jsid second);
@@ -3296,6 +3293,9 @@ class AutoVectorRooter : protected AutoGCRooter
     size_t length() const { return vector.length(); }
 
     bool append(const T &v) { return vector.append(v); }
+
+    
+    void infallibleAppend(const T &v) { vector.infallibleAppend(v); }
 
     void popBack() { vector.popBack(); }
 

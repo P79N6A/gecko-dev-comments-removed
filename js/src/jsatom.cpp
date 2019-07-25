@@ -55,7 +55,6 @@
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsparse.h"
-#include "jsscan.h"
 #include "jsstr.h"
 #include "jsversion.h"
 #include "jsxml.h"
@@ -183,6 +182,7 @@ const char *const js_common_atom_names[] = {
     "line",                     
     "Infinity",                 
     "NaN",                      
+    "builder",                  
 
 #if JS_HAS_XML_SUPPORT
     js_etago_str,               
@@ -210,7 +210,7 @@ const char *const js_common_atom_names[] = {
 
     "has",                      
     "hasOwn",                   
-    "enumerateOwn",             
+    "keys",                     
     "iterate"                   
 };
 
@@ -449,8 +449,8 @@ js_SweepAtomState(JSContext *cx)
         AtomEntryType entry = e.front();
         if (AtomEntryFlags(entry) & (ATOM_PINNED | ATOM_INTERNED)) {
             
-            JS_ASSERT(!IsAboutToBeFinalized(AtomEntryToKey(entry)));
-        } else if (IsAboutToBeFinalized(AtomEntryToKey(entry))) {
+            JS_ASSERT(!IsAboutToBeFinalized(cx, AtomEntryToKey(entry)));
+        } else if (IsAboutToBeFinalized(cx, AtomEntryToKey(entry))) {
             e.removeFront();
         }
     }
@@ -479,7 +479,7 @@ js_AtomizeString(JSContext *cx, JSString *strArg, uintN flags)
     JSAtomState *state = &cx->runtime->atomState;
     AtomSet &atoms = state->atoms;
 
-    AutoLockDefaultCompartment lock(cx);
+    AutoLockAtomsCompartment lock(cx);
     AtomSet::AddPtr p = atoms.lookupForAdd(str);
 
     
@@ -494,7 +494,7 @@ js_AtomizeString(JSContext *cx, JSString *strArg, uintN flags)
 
 
         bool needNewString = !!(flags & ATOM_TMPSTR) ||
-                             str->asCell()->compartment() != cx->runtime->defaultCompartment;
+                             str->asCell()->compartment() != cx->runtime->atomsCompartment;
 
         
 
@@ -508,7 +508,7 @@ js_AtomizeString(JSContext *cx, JSString *strArg, uintN flags)
             atoms.add(p, StringToInitialAtomEntry(key));
         } else {
             if (needNewString) {
-                SwitchToCompartment sc(cx, cx->runtime->defaultCompartment);
+                SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
                 if (flags & ATOM_NOCOPY) {
                     key = js_NewString(cx, const_cast<jschar *>(str->flatChars()), length);
                     if (!key)
@@ -588,6 +588,10 @@ js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags)
     JSString str;
 
     CHECK_REQUEST(cx);
+
+    if (!CheckStringLength(cx, length))
+        return NULL;
+
     str.initFlatNotTerminated((jschar *)chars, length);
     return js_AtomizeString(cx, &str, ATOM_TMPSTR | flags);
 }

@@ -305,6 +305,13 @@ class FrameState
 
 
 
+    inline void pushUntypedValue(const Value &value);
+
+    
+
+
+
+
 
 
 
@@ -820,6 +827,8 @@ class FrameState
     }
 
     void setAnalysis(analyze::Script *analysis) { this->analysis = analysis; }
+
+    inline uint32 regsInUse() const { return Registers::AvailRegs & ~freeRegs.freeMask; }
 
     bool pushLoop(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
     void popLoop(jsbytecode *head, Jump *pentry, jsbytecode **pentryTarget);

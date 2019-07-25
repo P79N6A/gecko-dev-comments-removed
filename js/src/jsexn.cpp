@@ -51,7 +51,6 @@
 #include "jsapi.h"
 #include "jscntxt.h"
 #include "jsversion.h"
-#include "jsdbgapi.h"
 #include "jsexn.h"
 #include "jsfun.h"
 #include "jsinterp.h"
@@ -91,23 +90,23 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 Class js_ErrorClass = {
     js_Error_str,
-    JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE | JSCLASS_MARK_IS_TRACE |
+    JSCLASS_HAS_PRIVATE | JSCLASS_NEW_RESOLVE |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Error),
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
+    PropertyStub,         
+    PropertyStub,         
+    PropertyStub,         
+    StrictPropertyStub,   
     exn_enumerate,
     (JSResolveOp)exn_resolve,
     ConvertStub,
     exn_finalize,
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    NULL,           
-    JS_CLASS_TRACE(exn_trace)
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    NULL,                 
+    exn_trace
 };
 
 typedef struct JSStackTraceElem {
@@ -476,6 +475,15 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         atom = cx->runtime->atomState.messageAtom;
         if (str == ATOM_TO_STRING(atom)) {
             prop = js_message_str;
+
+            
+
+
+
+
+            if (!priv->message)
+                return true;
+
             v = STRING_TO_JSVAL(priv->message);
             goto define;
         }
@@ -498,7 +506,7 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         if (str == ATOM_TO_STRING(atom)) {
             stack = StackTraceToString(cx, priv);
             if (!stack)
-                return JS_FALSE;
+                return false;
 
             
             priv->stackDepth = 0;
@@ -507,13 +515,13 @@ exn_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
             goto define;
         }
     }
-    return JS_TRUE;
+    return true;
 
   define:
     if (!JS_DefineProperty(cx, obj, prop, v, NULL, NULL, JSPROP_ENUMERATE))
-        return JS_FALSE;
+        return false;
     *objp = obj;
-    return JS_TRUE;
+    return true;
 }
 
 JSErrorReport *
@@ -719,6 +727,11 @@ Exception(JSContext *cx, uintN argc, Value *vp)
     if (!callee.getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom), &protov))
         return JS_FALSE;
 
+    if (!protov.isObject()) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_PROTOTYPE, "Error");
+        return JS_FALSE;
+    }
+
     JSObject *errProto = &protov.toObject();
     JSObject *obj = NewNativeClassInstance(cx, &js_ErrorClass, errProto, errProto->getParent());
     if (!obj)
@@ -733,13 +746,13 @@ Exception(JSContext *cx, uintN argc, Value *vp)
 
     
     Value *argv = vp + 2;
-    if (argc != 0) {
+    if (argc != 0 && !argv[0].isUndefined()) {
         message = js_ValueToString(cx, argv[0]);
         if (!message)
             return JS_FALSE;
         argv[0].setString(message);
     } else {
-        message = cx->runtime->emptyString;
+        message = NULL;
     }
 
     
@@ -790,14 +803,15 @@ Exception(JSContext *cx, uintN argc, Value *vp)
 static JSBool
 exn_toString(JSContext *cx, uintN argc, Value *vp)
 {
-    JSObject *obj;
     jsval v;
     JSString *name, *message, *result;
     jschar *chars, *cp;
     size_t name_length, message_length, length;
 
-    obj = ComputeThisFromVp(cx, vp);
-    if (!obj || !obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.nameAtom), Valueify(&v)))
+    JSObject *obj = ToObject(cx, &vp[1]);
+    if (!obj)
+        return JS_FALSE;
+    if (!obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.nameAtom), Valueify(&v)))
         return JS_FALSE;
     name = JSVAL_IS_STRING(v) ? JSVAL_TO_STRING(v) : cx->runtime->emptyString;
     vp->setString(name);
@@ -850,14 +864,15 @@ exn_toString(JSContext *cx, uintN argc, Value *vp)
 static JSBool
 exn_toSource(JSContext *cx, uintN argc, Value *vp)
 {
-    JSObject *obj;
     JSString *name, *message, *filename, *lineno_as_str, *result;
     jsval localroots[3] = {JSVAL_NULL, JSVAL_NULL, JSVAL_NULL};
     size_t lineno_length, name_length, message_length, filename_length, length;
     jschar *chars, *cp;
 
-    obj = ComputeThisFromVp(cx, vp);
-    if (!obj || !obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.nameAtom), vp))
+    JSObject *obj = ToObject(cx, &vp[1]);
+    if (!obj)
+        return false;
+    if (!obj->getProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.nameAtom), vp))
         return false;
     name = js_ValueToString(cx, *vp);
     if (!name)
@@ -1009,9 +1024,6 @@ GetExceptionProtoKey(intN exn)
 JSObject *
 js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 {
-    jsval roots[3];
-    JSObject *obj_proto, *error_proto;
-
     
 
 
@@ -1022,83 +1034,50 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 
 
 
+    JSObject *obj_proto;
     if (!js_GetClassPrototype(cx, obj, JSProto_Object, &obj_proto))
         return NULL;
 
-    PodArrayZero(roots);
-    AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(roots), Valueify(roots));
-
-#ifdef __GNUC__
-    error_proto = NULL;   
-#endif
-
-    jsval empty = STRING_TO_JSVAL(cx->runtime->emptyString);
-
     
+    Value empty = StringValue(cx->runtime->emptyString);
+    jsid nameId = ATOM_TO_JSID(cx->runtime->atomState.nameAtom);
+    jsid messageId = ATOM_TO_JSID(cx->runtime->atomState.messageAtom);
+    jsid fileNameId = ATOM_TO_JSID(cx->runtime->atomState.fileNameAtom);
+    jsid lineNumberId = ATOM_TO_JSID(cx->runtime->atomState.lineNumberAtom);
+    JSObject *error_proto = NULL;
     for (intN i = JSEXN_ERR; i != JSEXN_LIMIT; i++) {
-        
+        JSProtoKey protoKey = GetExceptionProtoKey(i);
+        JSAtom *atom = cx->runtime->atomState.classAtoms[protoKey];
         JSObject *proto =
-            NewNonFunction<WithProto::Class>(cx, &js_ErrorClass, (i != JSEXN_ERR) ? error_proto : obj_proto, obj);
+            DefineConstructorAndPrototype(cx, obj, protoKey, atom,
+                                          (i == JSEXN_ERR) ? obj_proto : error_proto,
+                                          &js_ErrorClass, Exception, 1, JS_TypeHandlerNew,
+                                          NULL, (i == JSEXN_ERR) ? exception_methods : NULL,
+                                          NULL, NULL);
         if (!proto)
             return NULL;
-        if (i == JSEXN_ERR) {
+        JS_ASSERT(proto->privateData == NULL);
+
+        if (i == JSEXN_ERR)
             error_proto = proto;
-            roots[0] = OBJECT_TO_JSVAL(proto);
-        } else {
-            
-            
-            roots[1] = OBJECT_TO_JSVAL(proto);
-        }
 
         
-        proto->setPrivate(NULL);
-
-        
-        JSProtoKey protoKey = GetExceptionProtoKey(i);
-        const char *fullName = js_common_atom_names[1 + 2 + JSTYPE_LIMIT + 1 + protoKey];
-
-        jsid id = ATOM_TO_JSID(cx->runtime->atomState.classAtoms[protoKey]);
-        JSFunction *fun = js_DefineFunction(cx, obj, id, Exception, 1, JSFUN_CONSTRUCTOR,
-                                            JS_TypeHandlerNew, fullName);
-        if (!fun)
-            return NULL;
-        roots[2] = OBJECT_TO_JSVAL(FUN_OBJECT(fun));
-
-        
-        FUN_CLASP(fun) = &js_ErrorClass;
-
-        
-        if (!js_SetClassPrototype(cx, FUN_OBJECT(fun), proto,
-                                  JSPROP_READONLY | JSPROP_PERMANENT)) {
-            return NULL;
-        }
-
-        
-        if (!JS_DefinePropertyWithType(cx, proto, js_name_str,
-                                       STRING_TO_JSVAL(JSID_TO_STRING(id)),
-                                       NULL, NULL, JSPROP_ENUMERATE)) {
-            return NULL;
-        }
-
-        
-        if (!js_SetClassObject(cx, obj, protoKey, FUN_OBJECT(fun), proto))
-            return NULL;
-
-        
-        if (!JS_DefinePropertyWithType(cx, proto, js_message_str, empty, NULL, NULL, JSPROP_ENUMERATE) ||
-            !JS_DefinePropertyWithType(cx, proto, js_fileName_str, empty, NULL, NULL, JSPROP_ENUMERATE) ||
-            !JS_DefinePropertyWithType(cx, proto, js_lineNumber_str, JSVAL_ZERO, NULL, NULL,
-                                       JSPROP_ENUMERATE)) {
+        JSAutoResolveFlags rf(cx, JSRESOLVE_QUALIFIED | JSRESOLVE_DECLARING);
+        if (!js_DefineNativePropertyWithType(cx, proto, nameId, StringValue(atom),
+                                             PropertyStub, StrictPropertyStub,
+                                             JSPROP_ENUMERATE, 0, 0, NULL) ||
+            !js_DefineNativePropertyWithType(cx, proto, messageId, empty,
+                                             PropertyStub, StrictPropertyStub,
+                                             JSPROP_ENUMERATE, 0, 0, NULL) ||
+            !js_DefineNativePropertyWithType(cx, proto, fileNameId, empty,
+                                             PropertyStub, StrictPropertyStub,
+                                             JSPROP_ENUMERATE, 0, 0, NULL) ||
+            !js_DefineNativePropertyWithType(cx, proto, lineNumberId, Valueify(JSVAL_ZERO),
+                                             PropertyStub, StrictPropertyStub,
+                                             JSPROP_ENUMERATE, 0, 0, NULL)) {
             return NULL;
         }
     }
-
-    if (!JS_DefineFunctionsWithPrefix(cx, error_proto, exception_methods, "Error"))
-        return NULL;
-
-    
-
-    JS_AddTypeProperty(cx, error_proto, "stack", empty);
 
     return error_proto;
 }

@@ -127,38 +127,40 @@ enum LC_TMBits {
 
 
 
+
 static const nanojit::AccSet ACCSET_STATE         = (1 <<  0);
 static const nanojit::AccSet ACCSET_STACK         = (1 <<  1);
 static const nanojit::AccSet ACCSET_RSTACK        = (1 <<  2);
 static const nanojit::AccSet ACCSET_CX            = (1 <<  3);
-static const nanojit::AccSet ACCSET_EOS           = (1 <<  4);
-static const nanojit::AccSet ACCSET_ALLOC         = (1 <<  5);
-static const nanojit::AccSet ACCSET_FRAMEREGS     = (1 <<  6);
-static const nanojit::AccSet ACCSET_STACKFRAME    = (1 <<  7);
-static const nanojit::AccSet ACCSET_RUNTIME       = (1 <<  8);
+static const nanojit::AccSet ACCSET_TM            = (1 <<  4);
+static const nanojit::AccSet ACCSET_EOS           = (1 <<  5);
+static const nanojit::AccSet ACCSET_ALLOC         = (1 <<  6);
+static const nanojit::AccSet ACCSET_FRAMEREGS     = (1 <<  7);
+static const nanojit::AccSet ACCSET_STACKFRAME    = (1 <<  8);
+static const nanojit::AccSet ACCSET_RUNTIME       = (1 <<  9);
 
 
-static const nanojit::AccSet ACCSET_OBJ_CLASP     = (1 <<  9);
-static const nanojit::AccSet ACCSET_OBJ_FLAGS     = (1 << 10);
-static const nanojit::AccSet ACCSET_OBJ_SHAPE     = (1 << 11);
-static const nanojit::AccSet ACCSET_OBJ_TYPE      = (1 << 12);
-static const nanojit::AccSet ACCSET_OBJ_PARENT    = (1 << 13);
-static const nanojit::AccSet ACCSET_OBJ_PRIVATE   = (1 << 14);
-static const nanojit::AccSet ACCSET_OBJ_CAPACITY  = (1 << 15);
-static const nanojit::AccSet ACCSET_OBJ_SLOTS     = (1 << 16);  
+static const nanojit::AccSet ACCSET_OBJ_CLASP     = (1 << 10);
+static const nanojit::AccSet ACCSET_OBJ_FLAGS     = (1 << 11);
+static const nanojit::AccSet ACCSET_OBJ_SHAPE     = (1 << 12);
+static const nanojit::AccSet ACCSET_OBJ_TYPE      = (1 << 13);
+static const nanojit::AccSet ACCSET_OBJ_PARENT    = (1 << 14);
+static const nanojit::AccSet ACCSET_OBJ_PRIVATE   = (1 << 15);
+static const nanojit::AccSet ACCSET_OBJ_CAPACITY  = (1 << 16);
+static const nanojit::AccSet ACCSET_OBJ_SLOTS     = (1 << 17);  
 
-static const nanojit::AccSet ACCSET_SLOTS         = (1 << 17);  
-static const nanojit::AccSet ACCSET_TARRAY        = (1 << 18);
-static const nanojit::AccSet ACCSET_TARRAY_DATA   = (1 << 19);
-static const nanojit::AccSet ACCSET_ITER          = (1 << 20);
-static const nanojit::AccSet ACCSET_ITER_PROPS    = (1 << 21);
-static const nanojit::AccSet ACCSET_STRING        = (1 << 22);
-static const nanojit::AccSet ACCSET_STRING_MCHARS = (1 << 23);
-static const nanojit::AccSet ACCSET_TYPEMAP       = (1 << 24);
-static const nanojit::AccSet ACCSET_FCSLOTS       = (1 << 25);
-static const nanojit::AccSet ACCSET_ARGS_DATA     = (1 << 26);
+static const nanojit::AccSet ACCSET_SLOTS         = (1 << 18);  
+static const nanojit::AccSet ACCSET_TARRAY        = (1 << 19);
+static const nanojit::AccSet ACCSET_TARRAY_DATA   = (1 << 20);
+static const nanojit::AccSet ACCSET_ITER          = (1 << 21);
+static const nanojit::AccSet ACCSET_ITER_PROPS    = (1 << 22);
+static const nanojit::AccSet ACCSET_STRING        = (1 << 23);
+static const nanojit::AccSet ACCSET_STRING_MCHARS = (1 << 24);
+static const nanojit::AccSet ACCSET_TYPEMAP       = (1 << 25);
+static const nanojit::AccSet ACCSET_FCSLOTS       = (1 << 26);
+static const nanojit::AccSet ACCSET_ARGS_DATA     = (1 << 27);
 
-static const uint8_t TM_NUM_USED_ACCS = 27; 
+static const uint8_t TM_NUM_USED_ACCS = 28; 
 
 
 
@@ -244,10 +246,10 @@ struct FCSlotsAddress : Address
       : Address(base, slot * sizeof(Value), ACCSET_FCSLOTS) {}
 };
 
-struct ArgsSlotsAddress : Address
+struct ArgsSlotOffsetAddress : Address
 {
-    ArgsSlotsAddress(nj::LIns *base, unsigned slot = 0)
-      : Address(base, slot * sizeof(Value), ACCSET_ARGS_DATA) {}
+    ArgsSlotOffsetAddress(nj::LIns *base, unsigned offset = 0)
+      : Address(base, offset, ACCSET_ARGS_DATA) {}
 };
 
 struct AnyAddress : Address
@@ -267,10 +269,11 @@ struct OffsetAddress : Address
       : Address(addr, offset) {}
 };
 
-bool IsPromoteInt(nj::LIns *ins);
-bool IsPromoteUint(nj::LIns *ins);
-bool IsPromote(nj::LIns *ins);
-nj::LIns *Demote(nj::LirWriter *out, nj::LIns *ins);
+bool IsPromotedInt32(nj::LIns *ins);
+bool IsPromotedUint32(nj::LIns *ins);
+bool IsPromotedInt32OrUint32(nj::LIns *ins);
+nj::LIns *DemoteToInt32(nj::LirWriter *out, nj::LIns *ins);
+nj::LIns *DemoteToUint32(nj::LirWriter *out, nj::LIns *ins);
 
 
 static const size_t sPayloadOffset = offsetof(jsval_layout, s.payload);
@@ -336,12 +339,13 @@ class Writer
     nj::CseFilter *const cse;   
 
     nj::LogControl *logc;       
+    nj::Config     *njConfig;   
 
   public:
     Writer(nj::Allocator *alloc, nj::LirBuffer *lirbuf)
-      : alloc(alloc), lirbuf(lirbuf), lir(NULL), cse(NULL), logc(NULL) {}
+      : alloc(alloc), lirbuf(lirbuf), lir(NULL), cse(NULL), logc(NULL), njConfig(NULL) {}
 
-    void init(nj::LogControl *logc); 
+    void init(nj::LogControl *logc, nj::Config *njConfig); 
 
     nj::LIns *name(nj::LIns *ins, const char *name) const {
 #ifdef JS_JIT_SPEW
@@ -429,6 +433,12 @@ class Writer
     }
     #define stContextField(value, fieldname) \
         stContextField((value), cx_ins, offsetof(JSContext, fieldname))
+
+    nj::LIns *stTraceMonitorField(nj::LIns *value, void *dest, const char *destName) const {
+        return lir->insStore(value, name(lir->insImmP(dest), destName), 0, ACCSET_TM);
+    }
+    #define stTraceMonitorField(value, fieldname) \
+        stTraceMonitorField(value, &traceMonitor->fieldname, #fieldname)
 
     nj::LIns *ldiAlloc(nj::LIns *alloc) const {
         return lir->insLoad(nj::LIR_ldi, alloc, 0, ACCSET_ALLOC);
@@ -794,10 +804,6 @@ class Writer
         return lir->insGuard(nj::LIR_xt, cond, gr);
     }
 
-    nj::LIns *xtbl(nj::LIns *index, nj::GuardRecord *gr) const {
-        return lir->insGuard(nj::LIR_xtbl, index, gr);
-    }
-
     nj::LIns *xbarrier(nj::GuardRecord *gr) const {
         return lir->insGuard(nj::LIR_xbarrier, NULL, gr);
     }
@@ -903,6 +909,10 @@ class Writer
 
     nj::LIns *ltuiN(nj::LIns *x, int32 imm) const {
         return lir->ins2ImmI(nj::LIR_ltui, x, imm);
+    }
+
+    nj::LIns *gtui(nj::LIns *x, nj::LIns *y) const {
+        return lir->ins2(nj::LIR_gtui, x, y);
     }
 
     nj::LIns *leui(nj::LIns *x, nj::LIns *y) const {
@@ -1060,13 +1070,13 @@ class Writer
     nj::LIns *cmovi(nj::LIns *cond, nj::LIns *t, nj::LIns *f) const {
         
         NanoAssert(t->isI() && f->isI());
-        return lir->insChoose(cond, t, f, avmplus::AvmCore::use_cmov());
+        return lir->insChoose(cond, t, f, njConfig->use_cmov());
     }
 
     nj::LIns *cmovp(nj::LIns *cond, nj::LIns *t, nj::LIns *f) const {
         
         NanoAssert(t->isP() && f->isP());
-        return lir->insChoose(cond, t, f, avmplus::AvmCore::use_cmov());
+        return lir->insChoose(cond, t, f, njConfig->use_cmov());
     }
 
     nj::LIns *cmovd(nj::LIns *cond, nj::LIns *t, nj::LIns *f) const {
@@ -1129,8 +1139,12 @@ class Writer
     }
 #endif
 
-    nj::LIns *demote(nj::LIns *ins) const {
-        return Demote(lir, ins);
+    nj::LIns *demoteToInt32(nj::LIns *ins) const {
+        return DemoteToInt32(lir, ins);
+    }
+
+    nj::LIns *demoteToUint32(nj::LIns *ins) const {
+        return DemoteToUint32(lir, ins);
     }
 
     
