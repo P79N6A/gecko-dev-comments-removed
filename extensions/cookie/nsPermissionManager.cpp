@@ -19,6 +19,7 @@
 #include "nsAppDirectoryServiceDefs.h"
 #include "prprf.h"
 #include "mozilla/storage.h"
+#include "mozilla/Attributes.h"
 #include "nsXULAppAPI.h"
 #include "nsIPrincipal.h"
 
@@ -115,7 +116,7 @@ nsHostEntry::nsHostEntry(const nsHostEntry& toCopy)
 
 
 
-class CloseDatabaseListener : public mozIStorageCompletionCallback
+class CloseDatabaseListener MOZ_FINAL : public mozIStorageCompletionCallback
 {
 public:
   NS_DECL_ISUPPORTS
@@ -164,7 +165,7 @@ CloseDatabaseListener::Complete()
 
 
 
-class DeleteFromMozHostListener : public mozIStorageStatementCallback
+class DeleteFromMozHostListener MOZ_FINAL : public mozIStorageStatementCallback
 {
 public:
   NS_DECL_ISUPPORTS
