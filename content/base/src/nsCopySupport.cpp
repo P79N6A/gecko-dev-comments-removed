@@ -735,11 +735,20 @@ nsCopySupport::FireClipboardEvent(PRInt32 aType, nsIPresShell* aPresShell, nsISe
   if (status == nsEventStatus_eConsumeNoDefault)
     return PR_FALSE;
 
+  if (presShell->IsDestroying())
+    return PR_FALSE;
+
   
   
   
   if (aType == NS_PASTE)
     return PR_TRUE;
+
+  
+  
+  presShell->FlushPendingNotifications(Flush_Frames);
+  if (presShell->IsDestroying())
+    return PR_FALSE;
 
   
   if (NS_FAILED(nsCopySupport::HTMLCopy(sel, doc, nsIClipboard::kGlobalClipboard)))
