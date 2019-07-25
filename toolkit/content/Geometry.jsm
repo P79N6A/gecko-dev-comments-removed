@@ -59,9 +59,9 @@ let Util = {
         instance[key] = bind(instance[key], instance);
   },
 
+  
   dumpLn: function dumpLn() {
-    
-    for (var i = 0; i < arguments.length; i++) { dump(arguments[i]); }
+    for (var i = 0; i < arguments.length; i++) { dump(arguments[i] + ' '); }
     dump("\n");
   }
 };
