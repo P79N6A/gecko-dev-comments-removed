@@ -40,7 +40,9 @@ Presenter.prototype = {
 
 
 
-  pivotChanged: function pivotChanged(aContext) {},
+
+
+  pivotChanged: function pivotChanged(aContext, aReason) {},
 
   
 
@@ -140,7 +142,7 @@ VisualPresenter.prototype = {
       this._highlight(this._currentObject);
   },
 
-  pivotChanged: function VisualPresenter_pivotChanged(aContext) {
+  pivotChanged: function VisualPresenter_pivotChanged(aContext, aReason) {
     this._currentObject = aContext.accessible;
 
     if (!aContext.accessible) {
@@ -159,7 +161,7 @@ VisualPresenter.prototype = {
   },
 
   tabSelected: function VisualPresenter_tabSelected(aDocContext, aVCContext) {
-    this.pivotChanged(aVCContext);
+    this.pivotChanged(aVCContext, Ci.nsIAccessiblePivot.REASON_NONE);
   },
 
   tabStateChanged: function VisualPresenter_tabStateChanged(aDocObj,
@@ -229,22 +231,53 @@ AndroidPresenter.prototype = {
   ANDROID_VIEW_FOCUSED: 0x08,
   ANDROID_VIEW_TEXT_CHANGED: 0x10,
   ANDROID_WINDOW_STATE_CHANGED: 0x20,
+  ANDROID_VIEW_HOVER_ENTER: 0x80,
+  ANDROID_VIEW_HOVER_EXIT: 0x100,
   ANDROID_VIEW_SCROLLED: 0x1000,
 
   attach: function AndroidPresenter_attach(aWindow) {
     this.chromeWin = aWindow;
   },
 
-  pivotChanged: function AndroidPresenter_pivotChanged(aContext) {
+  pivotChanged: function AndroidPresenter_pivotChanged(aContext, aReason) {
     if (!aContext.accessible)
       return;
 
+    let isExploreByTouch = (aReason == Ci.nsIAccessiblePivot.REASON_POINT &&
+                            Utils.AndroidSdkVersion >= 14);
+
+    if (isExploreByTouch) {
+      
+      
+      this.sendMessageToJava({
+         gecko: {
+           type: 'Accessibility:Event',
+           eventType: this.ANDROID_VIEW_HOVER_EXIT,
+           text: []
+         }
+      });
+    }
+
     let output = [];
-    aContext.newAncestry.forEach(
-      function(acc) {
-        output.push.apply(output, UtteranceGenerator.genForObject(acc));
+
+    if (isExploreByTouch) {
+      
+      
+      for (var i = aContext.newAncestry.length - 1; i >= 0; i--) {
+        let utter = UtteranceGenerator.genForObject(aContext.newAncestry[i]);
+        if (utter.length) {
+          output.push.apply(output, utter);
+          break;
+        }
       }
-    );
+    } else {
+      
+      aContext.newAncestry.forEach(
+        function(acc) {
+          output.push.apply(output, UtteranceGenerator.genForObject(acc));
+        }
+      );
+    }
 
     output.push.apply(output,
                       UtteranceGenerator.genForObject(aContext.accessible));
@@ -258,7 +291,9 @@ AndroidPresenter.prototype = {
     this.sendMessageToJava({
       gecko: {
         type: 'Accessibility:Event',
-        eventType: this.ANDROID_VIEW_FOCUSED,
+        eventType: isExploreByTouch ?
+          this.ANDROID_VIEW_HOVER_ENTER :
+          this.ANDROID_VIEW_FOCUSED,
         text: output
       }
     });
@@ -276,7 +311,7 @@ AndroidPresenter.prototype = {
 
   tabSelected: function AndroidPresenter_tabSelected(aDocContext, aVCContext) {
     
-    this.pivotChanged(aVCContext);
+    this.pivotChanged(aVCContext, Ci.nsIAccessiblePivot.REASON_NONE);
   },
 
   tabStateChanged: function AndroidPresenter_tabStateChanged(aDocObj,
