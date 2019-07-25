@@ -102,8 +102,9 @@ gTests.push({
 
   onPrefsView: function() {
     let prefsList = document.getElementById("prefs-list");
-    let w = prefsList.clientWidth;
-    let h = prefsList.clientHeight;
+    let prefsListRect = prefsList.getBoundingClientRect();
+    let w = prefsListRect.width;
+    let h = prefsListRect.height;
 
     
     ok(BrowserUI.isPanelVisible(), "Preferences panel must now be visble");
@@ -144,6 +145,9 @@ gTests.push({
     
     gCurrentTest._prefsScrollbox.getPosition(x, y);
     ok((x.value == 0 && y.value == 0), "Preferences pane is panned down", "Got " + x.value + " " + y.value + ", expected 0,0");
+
+    
+    gCurrentTest._prefsScrollbox.scrollTo(0, 0);
 
     
     
