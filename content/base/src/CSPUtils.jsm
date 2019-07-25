@@ -417,7 +417,11 @@ CSPRep.prototype = {
       if (dirv === SD.ALLOW) continue;
       if (!this._directives[dirv]) {
         
-        this._directives[dirv] = allowDir.clone();
+        
+        if (dirv === SD.FRAME_ANCESTORS)
+          this._directives[dirv] = CSPSourceList.fromString("*");
+        else
+          this._directives[dirv] = allowDir.clone();
         this._directives[dirv]._isImplicit = true;
       }
     }
