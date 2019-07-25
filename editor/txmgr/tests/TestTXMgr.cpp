@@ -4484,7 +4484,7 @@ stress_test(TestTransactionFactory *factory, PRInt32 iterations)
       printf("%i ", j);
   } 
 
-  printf(passed"\n");
+  printf("passed\n");
 
   result = mgr->Clear();
   if (NS_FAILED(result)) {
