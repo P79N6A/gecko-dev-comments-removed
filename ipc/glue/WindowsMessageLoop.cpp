@@ -101,8 +101,10 @@ using namespace mozilla::ipc::windows;
 
 
 extern const PRUnichar* kAppShellEventId;
+#if defined(ACCESSIBILITY)
 
 extern const PRUnichar* kPropNameTabContent;
+#endif
 
 namespace {
 
@@ -381,11 +383,13 @@ WindowIsDeferredWindow(HWND hWnd)
     return false;
   }
 
+#if defined(ACCESSIBILITY)
   
   
   if (::GetPropW(hWnd, kPropNameTabContent)) {
     return false;
   }
+#endif
 
   
   nsDependentString className(buffer, length);
