@@ -1505,23 +1505,16 @@ CheckStrictParameters(JSContext *cx, JSTreeContext *tc)
 JSParseNode *
 Parser::functionBody()
 {
-    JSStmtInfo stmtInfo;
-    uintN oldflags, firstLine;
-    JSParseNode *pn;
-
     JS_ASSERT(tc->inFunction());
+
+    JSStmtInfo stmtInfo;
     js_PushStatement(tc, &stmtInfo, STMT_BLOCK, -1);
     stmtInfo.flags = SIF_BODY_BLOCK;
 
-    oldflags = tc->flags;
+    uintN oldflags = tc->flags;
     tc->flags &= ~(TCF_RETURN_EXPR | TCF_RETURN_VOID);
 
-    
-
-
-
-
-    firstLine = tokenStream.getLineno();
+    JSParseNode *pn;
 #if JS_HAS_EXPR_CLOSURES
     if (tokenStream.currentToken().type == TOK_LC) {
         pn = statements();
@@ -1552,7 +1545,6 @@ Parser::functionBody()
     if (pn) {
         JS_ASSERT(!(tc->topStmt->flags & SIF_SCOPE));
         js_PopStatement(tc);
-        pn->pn_pos.begin.lineno = firstLine;
 
         
         if (context->hasStrictOption() && (tc->flags & TCF_RETURN_EXPR) &&
@@ -3509,9 +3501,9 @@ Parser::statements()
 
 
 
-            if (tc->atBodyLevel())
+            if (tc->atBodyLevel()) {
                 pn->pn_xflags |= PNX_FUNCDEFS;
-            else {
+            } else {
                 tc->flags |= TCF_HAS_FUNCTION_STMT;
                 
                 tc->noteHasExtensibleScope();
