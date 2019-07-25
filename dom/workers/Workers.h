@@ -3,46 +3,17 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_workers_workers_h__
 #define mozilla_dom_workers_workers_h__
 
-#include "jspubtd.h"
 #include "jsapi.h"
-#include "nsISupportsImpl.h"
+#include "mozilla/Attributes.h"
 #include "mozilla/Mutex.h"
+#include "mozilla/StandardInteger.h"
+#include "nsAutoPtr.h"
+#include "nsCOMPtr.h"
+#include "nsDebug.h"
+#include "nsStringGlue.h"
 
 #define BEGIN_WORKERS_NAMESPACE \
   namespace mozilla { namespace dom { namespace workers {

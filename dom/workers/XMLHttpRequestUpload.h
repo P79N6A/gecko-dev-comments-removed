@@ -1,0 +1,40 @@
+
+
+
+
+
+#ifndef mozilla_dom_workers_xmlhttprequestupload_h__
+#define mozilla_dom_workers_xmlhttprequestupload_h__
+
+#include "mozilla/dom/workers/bindings/XMLHttpRequestEventTarget.h"
+
+BEGIN_WORKERS_NAMESPACE
+
+class XMLHttpRequest;
+
+class XMLHttpRequestUpload : public XMLHttpRequestEventTarget
+{
+  XMLHttpRequest* mXHR;
+
+protected:
+  XMLHttpRequestUpload(JSContext* aCx, XMLHttpRequest* aXHR)
+  : XMLHttpRequestEventTarget(aCx), mXHR(aXHR)
+  { }
+
+  virtual ~XMLHttpRequestUpload()
+  { }
+
+public:
+  static XMLHttpRequestUpload*
+  Create(JSContext* aCx, XMLHttpRequest* aXHR);
+
+  virtual void
+  _Trace(JSTracer* aTrc) MOZ_OVERRIDE;
+
+  virtual void
+  _Finalize(JSContext* aCx) MOZ_OVERRIDE;
+};
+
+END_WORKERS_NAMESPACE
+
+#endif 

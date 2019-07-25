@@ -6580,16 +6580,17 @@ nsContentUtils::ReleaseWrapper(nsISupports* aScriptObjectHolder,
                                nsWrapperCache* aCache)
 {
   if (aCache->PreservingWrapper()) {
+    
+    
+    
     JSObject* obj = aCache->GetWrapperPreserveColor();
-    if (aCache->IsDOMBinding()) {
+    if (aCache->IsDOMBinding() && obj) {
       JSCompartment *compartment = js::GetObjectCompartment(obj);
       xpc::CompartmentPrivate *priv =
         static_cast<xpc::CompartmentPrivate *>(JS_GetCompartmentPrivate(compartment));
       priv->RemoveDOMExpandoObject(obj);
     }
-    else {
-      DropJSObjects(aScriptObjectHolder);
-    }
+    DropJSObjects(aScriptObjectHolder);
 
     aCache->SetPreservingWrapper(false);
   }

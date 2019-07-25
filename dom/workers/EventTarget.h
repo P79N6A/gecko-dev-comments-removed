@@ -3,108 +3,66 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef mozilla_dom_workers_eventtarget_h__
 #define mozilla_dom_workers_eventtarget_h__
 
-#include "jspubtd.h"
+#include "mozilla/dom/workers/bindings/DOMBindingBase.h"
 
-#include "ListenerManager.h"
+
+#include "mozilla/dom/workers/bindings/EventListenerManager.h"
+
+#include "mozilla/dom/bindings/Nullable.h"
+
+using namespace mozilla::dom::bindings;
 
 BEGIN_WORKERS_NAMESPACE
 
-namespace events {
-
-
-
-class EventTarget : public PrivatizableBase
+class EventTarget : public DOMBindingBase
 {
-  ListenerManager mListenerManager;
+  EventListenerManager mListenerManager;
 
 protected:
-  EventTarget();
-  ~EventTarget();
+  EventTarget(JSContext* aCx)
+  : DOMBindingBase(aCx)
+  { }
 
-  void
-  TraceInstance(JSTracer* aTrc)
-  {
-    mListenerManager.Trace(aTrc);
-  }
-
-  void
-  FinalizeInstance(JSContext* aCx)
-  {
-    mListenerManager.Finalize(aCx);
-  }
-
-  bool
-  GetEventListenerOnEventTarget(JSContext* aCx, const char* aType, jsval* aVp);
-
-  bool
-  SetEventListenerOnEventTarget(JSContext* aCx, const char* aType, jsval* aVp);
+  virtual ~EventTarget()
+  { }
 
 public:
-  static EventTarget*
-  FromJSObject(JSObject* aObj);
+  virtual void
+  _Trace(JSTracer* aTrc) MOZ_OVERRIDE;
 
-  static JSBool
-  AddEventListener(JSContext* aCx, unsigned aArgc, jsval* aVp);
+  virtual void
+  _Finalize(JSContext* aCx) MOZ_OVERRIDE;
 
-  static JSBool
-  RemoveEventListener(JSContext* aCx, unsigned aArgc, jsval* aVp);
+  void
+  AddEventListener(const nsAString& aType, JSObject* aListener,
+                   bool aCapture, Nullable<bool> aWantsUntrusted, nsresult& aRv);
 
-  static JSBool
-  DispatchEvent(JSContext* aCx, unsigned aArgc, jsval* aVp);
+  void
+  RemoveEventListener(const nsAString& aType, JSObject* aListener,
+                      bool aCapture, nsresult& aRv);
 
   bool
-  HasListeners()
+  DispatchEvent(JSObject* aEvent, nsresult& aRv) const
+  {
+    return mListenerManager.DispatchEvent(GetJSContext(), *this, aEvent, aRv);
+  }
+
+  JSObject*
+  GetEventListener(const nsAString& aType, nsresult& aRv) const;
+
+  void
+  SetEventListener(const nsAString& aType, JSObject* aListener,
+                   nsresult& aRv);
+
+  bool
+  HasListeners() const
   {
     return mListenerManager.HasListeners();
   }
-
-  bool
-  HasListenersForType(JSContext* aCx, JSString* aType)
-  {
-    return mListenerManager.HasListenersForType(aCx, aType);
-  }
 };
-
-JSObject*
-InitEventTargetClass(JSContext* aCx, JSObject* aGlobal, bool aMainRuntime);
-
-} 
 
 END_WORKERS_NAMESPACE
 

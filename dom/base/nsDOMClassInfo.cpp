@@ -57,6 +57,8 @@
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
 
+#include "mozilla/dom/bindings/Common.h"
+
 #include "nscore.h"
 #include "nsDOMClassInfo.h"
 #include "nsCRT.h"
@@ -501,7 +503,6 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 
 #include "nsDOMTouchEvent.h"
 #include "nsIDOMCustomEvent.h"
-#include "nsDOMMutationObserver.h"
 
 #include "nsWrapperCacheInlines.h"
 #include "dombindings.h"
@@ -640,7 +641,6 @@ DOMCI_DATA(DOMConstructor, void)
     0,                                                                        \
     false,                                                                 \
     false,                                                                 \
-    NULL,                                                                     \
     NS_DEFINE_CLASSINFO_DATA_DEBUG(_class)                                    \
   },
 
@@ -657,7 +657,6 @@ DOMCI_DATA(DOMConstructor, void)
     0,                                                                        \
     true,                                                                  \
     false,                                                                 \
-    NULL,                                                                     \
     NS_DEFINE_CLASSINFO_DATA_DEBUG(_class)                                    \
   },
 
@@ -1618,10 +1617,7 @@ static nsDOMClassInfoData sClassInfoData[] = {
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
   NS_DEFINE_CLASSINFO_DATA(CustomEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(MozMutationObserver, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
-  NS_DEFINE_CLASSINFO_DATA(MutationRecord, nsDOMGenericSH,
-                           DOM_DEFAULT_SCRIPTABLE_FLAGS)
+
   NS_DEFINE_CLASSINFO_DATA(MozSettingsEvent, nsDOMGenericSH,
                            DOM_DEFAULT_SCRIPTABLE_FLAGS)
 
@@ -1670,7 +1666,6 @@ static const nsContractIDMapData kConstructorMap[] =
   NS_DEFINE_CONSTRUCTOR_DATA(XSLTProcessor,
                              "@mozilla.org/document-transformer;1?type=xslt")
   NS_DEFINE_CONSTRUCTOR_DATA(EventSource, NS_EVENTSOURCE_CONTRACTID)
-  NS_DEFINE_CONSTRUCTOR_DATA(MozMutationObserver, NS_DOMMUTATIONOBSERVER_CONTRACTID)
 };
 
 #define NS_DEFINE_EVENT_CTOR(_class)                        \
@@ -2408,12 +2403,6 @@ nsDOMClassInfo::Init()
 
   sXPConnect->SetFunctionThisTranslator(NS_GET_IID(nsIDOMEventListener),
                                         elt, getter_AddRefs(old));
-
-  nsCOMPtr<nsIXPCFunctionThisTranslator> mctl = new nsMutationCallbackThisTranslator();
-  NS_ENSURE_TRUE(elt, NS_ERROR_OUT_OF_MEMORY);
-
-  sXPConnect->SetFunctionThisTranslator(NS_GET_IID(nsIMutationObserverCallback),
-                                        mctl, getter_AddRefs(old));
 
   nsCOMPtr<nsIScriptSecurityManager> sm =
     do_GetService("@mozilla.org/scriptsecuritymanager;1", &rv);
@@ -4381,14 +4370,6 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(MozMutationObserver, nsIDOMMozMutationObserver)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozMutationObserver)
-  DOM_CLASSINFO_MAP_END
-
-  DOM_CLASSINFO_MAP_BEGIN(MutationRecord, nsIDOMMutationRecord)
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMMutationRecord)
-  DOM_CLASSINFO_MAP_END
-
   DOM_CLASSINFO_MAP_BEGIN(MozSettingsEvent, nsIDOMMozSettingsEvent)
      DOM_CLASSINFO_MAP_ENTRY(nsIDOMMozSettingsEvent)
      DOM_CLASSINFO_EVENT_MAP_ENTRIES
@@ -4484,7 +4465,11 @@ nsDOMClassInfo::Init()
   sDisableGlobalScopePollutionSupport =
     Preferences::GetBool("browser.dom.global_scope_pollution.disabled");
 
-  mozilla::dom::binding::Register(sClassInfoData);
+  
+  mozilla::dom::binding::Register(nameSpaceManager);
+
+  
+  mozilla::dom::bindings::Register(nameSpaceManager);
 
   sIsInitialized = true;
 
@@ -6590,6 +6575,15 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     
     
 
+    
+    mozilla::dom::binding::DefineInterface define =
+      name_struct->mDefineDOMInterface;
+    if (define && mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
+      *did_resolve = NS_SUCCEEDED(rv);
+
+      return rv;
+    }
+
     nsRefPtr<nsDOMConstructor> constructor;
     rv = nsDOMConstructor::Create(class_name,
                                   nsnull,
@@ -6647,7 +6641,7 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
     
     if (name_struct->mType == nsGlobalNameStruct::eTypeClassConstructor) {
       mozilla::dom::binding::DefineInterface define =
-        sClassInfoData[name_struct->mDOMClassInfoID].mDefineDOMInterface;
+        name_struct->mDefineDOMInterface;
       if (define && mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
         *did_resolve = NS_SUCCEEDED(rv);
 
@@ -6686,6 +6680,16 @@ nsWindowSH::GlobalResolve(nsGlobalWindow *aWin, JSContext *cx,
   if (name_struct->mType == nsGlobalNameStruct::eTypeClassProto) {
     
     
+
+    
+    mozilla::dom::binding::DefineInterface define =
+      name_struct->mDefineDOMInterface;
+    if (define && mozilla::dom::binding::DefineConstructor(cx, obj, define, &rv)) {
+      *did_resolve = NS_SUCCEEDED(rv);
+
+      return rv;
+    }
+
     return ResolvePrototype(sXPConnect, aWin, cx, obj, class_name, nsnull,
                             name_struct, nameSpaceManager, nsnull, true,
                             did_resolve);
@@ -7856,10 +7860,6 @@ NS_IMETHODIMP
 nsEventTargetSH::AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
                              JSObject *obj, jsid id, jsval *vp, bool *_retval)
 {
-  if (id == sAddEventListener_id) {
-    return NS_OK;
-  }
-
   nsEventTargetSH::PreserveWrapper(GetNative(wrapper, obj));
 
   return NS_OK;
@@ -10654,28 +10654,6 @@ nsEventListenerThisTranslator::TranslateThis(nsISupports *aInitialThis,
 
   *_retval = target.forget().get();
 
-  return NS_OK;
-}
-
-NS_INTERFACE_MAP_BEGIN(nsMutationCallbackThisTranslator)
-  NS_INTERFACE_MAP_ENTRY(nsIXPCFunctionThisTranslator)
-  NS_INTERFACE_MAP_ENTRY(nsISupports)
-NS_INTERFACE_MAP_END
-
-NS_IMPL_ADDREF(nsMutationCallbackThisTranslator)
-NS_IMPL_RELEASE(nsMutationCallbackThisTranslator)
-
-NS_IMETHODIMP
-nsMutationCallbackThisTranslator::TranslateThis(nsISupports *aInitialThis,
-                                                nsIInterfaceInfo *aInterfaceInfo,
-                                                PRUint16 aMethodIndex,
-                                                bool *aHideFirstParamFromJS,
-                                                nsIID * *aIIDOfResult,
-                                                nsISupports **_retval)
-{
-  *aHideFirstParamFromJS = false;
-  *aIIDOfResult = nsnull;
-  NS_IF_ADDREF(*_retval = nsDOMMutationObserver::CurrentObserver());
   return NS_OK;
 }
 

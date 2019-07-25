@@ -41,10 +41,6 @@
 
 #include "Workers.h"
 
-#include "jspubtd.h"
-#include "nsTArray.h"
-#include "nsCOMPtr.h"
-
 class JSAutoStructuredCloneBuffer;
 
 BEGIN_WORKERS_NAMESPACE

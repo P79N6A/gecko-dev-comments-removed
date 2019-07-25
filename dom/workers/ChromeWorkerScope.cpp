@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "ChromeWorkerScope.h"
 
 #include "jsapi.h"
@@ -133,15 +100,11 @@ DefineCTypesLazyGetter(JSContext* aCx, JSObject* aGlobal)
 
 BEGIN_WORKERS_NAMESPACE
 
-namespace chromeworker {
-
 bool
 DefineChromeWorkerFunctions(JSContext* aCx, JSObject* aGlobal)
 {
   
   return DefineCTypesLazyGetter(aCx, aGlobal);
 }
-
-} 
 
 END_WORKERS_NAMESPACE
