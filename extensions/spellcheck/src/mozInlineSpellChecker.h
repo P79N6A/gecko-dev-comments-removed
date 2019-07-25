@@ -48,15 +48,12 @@
 #include "nsIDOMTreeWalker.h"
 #include "nsWeakReference.h"
 #include "nsIEditor.h"
-#include "nsIDOMEventListener.h"
+#include "nsIDOMFocusListener.h"
+#include "nsIDOMMouseListener.h"
+#include "nsIDOMKeyListener.h"
 #include "nsWeakReference.h"
 #include "mozISpellI18NUtil.h"
 #include "nsCycleCollectionParticipant.h"
-
-
-#ifdef KeyPress
-#undef KeyPress
-#endif
 
 class nsIDOMMouseEventListener;
 class mozInlineSpellWordUtil;
@@ -142,10 +139,8 @@ protected:
                                     nsIDOMRange** aRange);
 };
 
-class mozInlineSpellChecker : public nsIInlineSpellChecker,
-                              public nsIEditActionListener,
-                              public nsIDOMEventListener,
-                              public nsSupportsWeakReference
+class mozInlineSpellChecker : public nsIInlineSpellChecker, nsIEditActionListener, nsIDOMFocusListener, nsIDOMMouseListener, nsIDOMKeyListener,
+                                     nsSupportsWeakReference
 {
 private:
   friend class mozInlineSpellStatus;
@@ -226,15 +221,31 @@ public:
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
   NS_DECL_NSIEDITACTIONLISTENER
   NS_DECL_NSIINLINESPELLCHECKER
-  NS_DECL_NSIDOMEVENTLISTENER
-  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(mozInlineSpellChecker, nsIDOMEventListener)
+  NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(mozInlineSpellChecker, nsIDOMKeyListener)
 
   
   static PRBool CanEnableInlineSpellChecking();
 
-  nsresult Blur(nsIDOMEvent* aEvent);
-  nsresult MouseClick(nsIDOMEvent* aMouseEvent);
-  nsresult KeyPress(nsIDOMEvent* aKeyEvent);
+  
+  NS_IMETHOD Focus(nsIDOMEvent* aEvent);
+  NS_IMETHOD Blur(nsIDOMEvent* aEvent);
+  
+
+  
+  NS_IMETHOD HandleEvent(nsIDOMEvent* aEvent);
+  NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent);
+  NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent);
+  NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent);
+  NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent);
+  NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent);
+  NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent);
+  
+
+  
+  NS_IMETHOD KeyDown(nsIDOMEvent* aKeyEvent);
+  NS_IMETHOD KeyUp(nsIDOMEvent* aKeyEvent);
+  NS_IMETHOD KeyPress(nsIDOMEvent* aKeyEvent);
+   
 
   mozInlineSpellChecker();
   virtual ~mozInlineSpellChecker();
@@ -286,7 +297,7 @@ public:
   
   nsresult RegisterEventListeners();
   nsresult UnregisterEventListeners();
-  nsresult HandleNavigationEvent(PRBool aForceWordSpellCheck, PRInt32 aNewPositionOffset = 0);
+  nsresult HandleNavigationEvent(nsIDOMEvent * aEvent, PRBool aForceWordSpellCheck, PRInt32 aNewPositionOffset = 0);
 
   nsresult GetSpellCheckSelection(nsISelection ** aSpellCheckSelection);
   nsresult SaveCurrentSelectionPosition();
