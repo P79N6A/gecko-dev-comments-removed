@@ -59,10 +59,11 @@ struct JSFrameRegs
 };
 
 
-enum JSInterpFlags
+enum JSInterpMode
 {
-    JSINTERP_RECORD            =     0x1, 
-    JSINTERP_SAFEPOINT         =     0x2  
+    JSINTERP_NORMAL            =     0, 
+    JSINTERP_RECORD            =     1, 
+    JSINTERP_SAFEPOINT         =     2  
 };
 
 
@@ -83,7 +84,7 @@ enum JSFrameFlags
     
     JSFRAME_ASSIGNING          =   0x100, 
     JSFRAME_YIELDING           =   0x200, 
-    JSFRAME_BAILED_AT_RETURN   =   0x400, 
+    JSFRAME_FINISHED_IN_INTERPRETER = 0x400, 
 
     
     JSFRAME_OVERRIDE_ARGS      =  0x1000, 
@@ -171,6 +172,10 @@ struct JSStackFrame
     bool isEvalFrame() const {
         JS_ASSERT_IF(flags_ & JSFRAME_EVAL, isScriptFrame());
         return flags_ & JSFRAME_EVAL;
+    }
+
+    bool isExecuteFrame() const {
+        return !!(flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL));
     }
 
     
@@ -680,12 +685,12 @@ struct JSStackFrame
         flags_ &= ~JSFRAME_YIELDING;
     }
 
-    bool isBailedAtReturn() const {
-        return flags_ & JSFRAME_BAILED_AT_RETURN;
+    void setFinishedInInterpreter() {
+        flags_ |= JSFRAME_FINISHED_IN_INTERPRETER;
     }
 
-    void setBailedAtReturn() {
-        flags_ |= JSFRAME_BAILED_AT_RETURN;
+    bool finishedInInterpreter() const {
+        return !!(flags_ & JSFRAME_FINISHED_IN_INTERPRETER);
     }
 
     
@@ -982,7 +987,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 extern JS_REQUIRES_STACK JS_NEVER_INLINE bool
-Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, uintN interpFlags = 0);
+Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, JSInterpMode mode = JSINTERP_NORMAL);
 
 extern JS_REQUIRES_STACK bool
 RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp);
