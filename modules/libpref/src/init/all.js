@@ -177,7 +177,11 @@ pref("gfx.color_management.rendering_intent", 0);
 
 pref("gfx.downloadable_fonts.enabled", true);
 
+#ifdef XP_MACOSX
+pref("gfx.font_rendering.harfbuzz.level", 1);
+#else
 pref("gfx.font_rendering.harfbuzz.level", 0);
+#endif
 
 #ifdef XP_WIN
 #ifndef WINCE
@@ -781,6 +785,8 @@ pref("network.IDN.whitelist.tw", true);
 pref("network.IDN.whitelist.vn", true);
 
 
+
+pref("network.IDN.whitelist.xn--mgbaam7a8h", true); 
 
 pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
 
@@ -3100,6 +3106,18 @@ pref("image.cache.timeweight", 500);
 
 
 pref("image.http.accept", "image/png,image/*;q=0.8,*/*;q=0.5");
+
+
+
+
+
+
+
+pref("image.mem.discardable", false);
+
+
+
+pref("image.mem.decodeondraw", false);
 
 
 pref("webgl.enabled_for_all_sites", false);
