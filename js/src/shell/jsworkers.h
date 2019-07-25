@@ -75,7 +75,7 @@ namespace js {
 
 
 
-        void terminateAll(JSRuntime *rt, ThreadPool *tp);
+        void terminateAll(ThreadPool *tp);
 
 	
 
