@@ -26,7 +26,6 @@
 #include "nsIHttpAuthenticableChannel.h"
 #include "nsIHttpChannelAuthProvider.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
-#include "nsICryptoHash.h"
 #include "nsITimedChannel.h"
 #include "nsDNSPrefetch.h"
 #include "TimingStruct.h"
@@ -261,12 +260,6 @@ private:
 
     nsresult ProcessSTSHeader();
 
-    
-
-
-
-    nsresult Hash(const char *buf, nsACString &hash);
-
     void InvalidateCacheEntryForLocation(const char *location);
     void AssembleCacheKey(const char *spec, PRUint32 postID, nsACString &key);
     nsresult CreateNewURI(const char *loc, nsIURI **newURI);
@@ -348,8 +341,6 @@ private:
     PRUint32                          mRequestTimeInitialized : 1;
 
     nsTArray<nsContinueRedirectionFunc> mRedirectFuncStack;
-
-    nsCOMPtr<nsICryptoHash>        mHasher;
 
     PRTime                            mChannelCreationTime;
     mozilla::TimeStamp                mChannelCreationTimestamp;
