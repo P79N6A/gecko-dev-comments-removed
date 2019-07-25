@@ -399,7 +399,10 @@ var BrowserUI = {
 
   update : function(aState) {
     let icons = document.getElementById("urlbar-icons");
-    let uri = Browser.selectedBrowser.currentURI;
+
+    
+    
+    let uri = Browser.selectedBrowser.contentDocument.documentURIObject;
 
     switch (aState) {
       case TOOLBARSTATE_LOADED:
