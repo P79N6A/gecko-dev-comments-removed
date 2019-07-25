@@ -95,6 +95,8 @@ public:
   
   virtual PRUint32 GetScriptTypeID() = 0;
 
+  virtual void SetGlobalObject(nsIScriptGlobalObject* aGlobalObject) = 0;
+
   
 
 
@@ -316,19 +318,6 @@ public:
 
 
   virtual nsresult InitContext() = 0;
-
-  
-
-
-
-
-  virtual nsresult CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
-                                     nsIScriptGlobalObject *aCurrentInner) = 0;
-
-  
-
-
-  virtual nsresult SetOuterObject(JSObject* aOuterObject) = 0;
 
   
 

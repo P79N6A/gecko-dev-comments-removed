@@ -2109,47 +2109,6 @@ nsJSContext::InitContext()
 }
 
 nsresult
-nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
-                               nsIScriptGlobalObject *aCurrentInner)
-{
-  mGlobalObjectRef = aGlobalObject;
-
-  nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(aGlobalObject));
-
-  if (chromeWindow) {
-    
-    
-    
-    
-    JS_SetOptions(mContext, JS_GetOptions(mContext) | JSOPTION_XML);
-  }
-
-  JSObject *outer =
-    NS_NewOuterWindowProxy(mContext, aCurrentInner->GetGlobalJSObject());
-  if (!outer) {
-    return NS_ERROR_FAILURE;
-  }
-
-  js::SetProxyExtra(outer, 0, js::PrivateValue(aGlobalObject));
-
-  return SetOuterObject(outer);
-}
-
-nsresult
-nsJSContext::SetOuterObject(JSObject* aOuterObject)
-{
-  
-  
-  JS_SetGlobalObject(mContext, aOuterObject);
-
-  
-  JSObject *inner = JS_GetParent(aOuterObject);
-  JS_SetPrototype(mContext, aOuterObject, JS_GetPrototype(inner));
-
-  return NS_OK;
-}
-
-nsresult
 nsJSContext::InitOuterWindow()
 {
   JSObject *global = JS_ObjectToInnerObject(mContext, JS_GetGlobalObject(mContext));
