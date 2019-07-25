@@ -425,9 +425,11 @@ nsSVGUtils::CoordToFloat(nsPresContext *aPresContext,
 bool
 nsSVGUtils::EstablishesViewport(nsIContent *aContent)
 {
+  
+  
+  
   return aContent && aContent->IsSVG() &&
            (aContent->Tag() == nsGkAtoms::svg ||
-            aContent->Tag() == nsGkAtoms::image ||
             aContent->Tag() == nsGkAtoms::foreignObject ||
             aContent->Tag() == nsGkAtoms::symbol);
 }
