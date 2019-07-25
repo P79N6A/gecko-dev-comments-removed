@@ -644,7 +644,23 @@ XPC_COW_Enumerate(JSContext *cx, JSObject *obj)
     return ThrowException(NS_ERROR_FAILURE, cx);
   }
 
-  return XPCWrapper::Enumerate(cx, obj, wrappedObj);
+  jsval exposedProps;
+  if (!JS_GetReservedSlot(cx, obj, sExposedPropsSlot, &exposedProps)) {
+    return JS_FALSE;
+  }
+
+  JSObject *propertyContainer;
+  if (JSVAL_IS_VOID(exposedProps)) {
+    
+    propertyContainer = wrappedObj;
+  } else if (!JSVAL_IS_PRIMITIVE(exposedProps)) {
+    
+    propertyContainer = JSVAL_TO_OBJECT(exposedProps);
+  } else {
+    return JS_TRUE;
+  }
+
+  return XPCWrapper::Enumerate(cx, obj, propertyContainer);
 }
 
 static JSBool

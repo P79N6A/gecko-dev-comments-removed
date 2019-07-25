@@ -559,8 +559,8 @@ NewNativeClassInstance(JSContext *cx, Class *clasp, JSObject *proto, JSObject *p
 
 
 
-
     JSObject* obj = js_NewGCObject(cx);
+
     if (obj) {
         
 
@@ -628,14 +628,66 @@ NewBuiltinClassInstance(JSContext *cx, Class *clasp)
     return NewNativeClassInstance(cx, clasp, proto, global);
 }
 
-
-
-
-
-
-static inline JSObject *
-NewObjectWithGivenProto(JSContext *cx, Class *clasp, JSObject *proto, JSObject *parent)
+static inline JSProtoKey
+GetClassProtoKey(js::Class *clasp)
 {
+    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
+    if (key != JSProto_Null)
+        return key;
+    if (clasp->flags & JSCLASS_IS_ANONYMOUS)
+        return JSProto_Object;
+    return JSProto_Null;
+}
+
+namespace WithProto {
+    enum e {
+        Class = 0,
+        Given = 1
+    };
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+namespace detail
+{
+template <bool withProto, bool isFunction>
+static JS_ALWAYS_INLINE JSObject *
+NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
+{
+    
+    if (withProto == WithProto::Class && !proto) {
+        JSProtoKey protoKey = GetClassProtoKey(clasp);
+        if (!js_GetClassPrototype(cx, parent, protoKey, &proto, clasp))
+            return NULL;
+        if (!proto && !js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
+            return NULL;
+     }
+
+
     DTrace::ObjectCreationScope objectCreationScope(cx, cx->fp, clasp);
 
     
@@ -643,18 +695,12 @@ NewObjectWithGivenProto(JSContext *cx, Class *clasp, JSObject *proto, JSObject *
 
 
 
-    JSObject* obj;
-    if (clasp == &js_FunctionClass) {
-        obj = (JSObject*) js_NewGCFunction(cx);
-#ifdef DEBUG
-        if (obj) {
-            memset((uint8 *) obj + sizeof(JSObject), JS_FREE_PATTERN,
-                   sizeof(JSFunction) - sizeof(JSObject));
-        }
-#endif
-    } else {
-        obj = js_NewGCObject(cx);
-    }
+
+
+    JSObject* obj = isFunction
+                    ? (JSObject *)js_NewGCFunction(cx)
+                    : js_NewGCObject(cx);
+
     if (!obj)
         goto out;
 
@@ -680,40 +726,29 @@ out:
     objectCreationScope.handleCreation(obj);
     return obj;
 }
-
-static inline JSProtoKey
-GetClassProtoKey(js::Class *clasp)
-{
-    JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(clasp);
-    if (key != JSProto_Null)
-        return key;
-    if (clasp->flags & JSCLASS_IS_ANONYMOUS)
-        return JSProto_Object;
-    return JSProto_Null;
 }
 
+static JS_ALWAYS_INLINE JSObject *
+NewFunction(JSContext *cx, JSObject *proto, JSObject *parent)
+{
+    return detail::NewObject<WithProto::Class, true>(cx, &js_FunctionClass, proto, parent);
+}
 
+template <WithProto::e withProto>
+static JS_ALWAYS_INLINE JSObject *
+NewNonFunction(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
+{
+    return detail::NewObject<withProto, false>(cx, clasp, proto, parent);
+}
 
-
-
-
-
-
-
-
-static inline JSObject *
+template <WithProto::e withProto>
+static JS_ALWAYS_INLINE JSObject *
 NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent)
 {
-    
-    if (!proto) {
-        JSProtoKey protoKey = GetClassProtoKey(clasp);
-        if (!js_GetClassPrototype(cx, parent, protoKey, &proto, clasp))
-            return NULL;
-        if (!proto && !js_GetClassPrototype(cx, parent, JSProto_Object, &proto))
-            return NULL;
-    }
+    if (clasp == &js_FunctionClass)
+        return NewFunction(cx, NULL, parent);
 
-    return NewObjectWithGivenProto(cx, clasp, proto, parent);
+    return NewNonFunction<withProto>(cx, clasp, proto, parent);
 }
 
 } 

@@ -724,23 +724,6 @@ typedef enum BuiltinStatus {
     BUILTIN_ERROR = 2
 } BuiltinStatus;
 
-
-
-
-struct ArgsPrivateNative {
-    double      *argv;
-
-    static ArgsPrivateNative *create(VMAllocator &alloc, unsigned argc)
-    {
-        return (ArgsPrivateNative*) new (alloc) char[sizeof(ArgsPrivateNative) + argc];
-    }
-
-    JSValueType *typemap()
-    {
-        return (JSValueType*) (this+1);
-    }
-};
-
 static JS_INLINE void
 SetBuiltinError(JSContext *cx)
 {
