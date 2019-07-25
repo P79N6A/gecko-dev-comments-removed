@@ -197,7 +197,7 @@ UpdateDepth(JSContext *cx, JSCodeGenerator *cg, ptrdiff_t target)
     jsbytecode *pc;
     JSOp op;
     const JSCodeSpec *cs;
-    uintN extra, depth, nuses;
+    uintN extra, nuses;
     intN ndefs;
 
     pc = CG_CODE(cg, target);
@@ -209,32 +209,6 @@ UpdateDepth(JSContext *cx, JSCodeGenerator *cg, ptrdiff_t target)
 #else
     extra = 0;
 #endif
-    if ((cs->format & JOF_TMPSLOT_MASK) || extra) {
-        depth = (uintN) cg->stackDepth +
-                ((cs->format & JOF_TMPSLOT_MASK) >> JOF_TMPSLOT_SHIFT) +
-                extra;
-        
-        switch (op) {
-          case JSOP_PROPINC:
-          case JSOP_PROPDEC:
-            depth += 1;
-            break;
-          case JSOP_NAMEINC:
-          case JSOP_NAMEDEC:
-          case JSOP_INCNAME:
-          case JSOP_DECNAME:
-          case JSOP_GNAMEINC:
-          case JSOP_GNAMEDEC:
-          case JSOP_INCGNAME:
-          case JSOP_DECGNAME:
-            depth += 2;
-            break;
-          default:
-            break;
-        }
-        if (depth > cg->maxStackDepth)
-            cg->maxStackDepth = depth;
-    }
 
     nuses = js_GetStackUses(cs, op, pc);
     cg->stackDepth -= nuses;
@@ -268,6 +242,22 @@ UpdateDepth(JSContext *cx, JSCodeGenerator *cg, ptrdiff_t target)
     cg->stackDepth += ndefs;
     if ((uintN)cg->stackDepth > cg->maxStackDepth)
         cg->maxStackDepth = cg->stackDepth;
+}
+
+
+
+
+
+
+
+uint8 js_decomposeLengthTable[256] = {};
+
+static inline void
+SetDecomposeLength(JSOp op, uintN length)
+{
+    JS_ASSERT(length < 256);
+    JS_ASSERT_IF(js_decomposeLengthTable[op], js_decomposeLengthTable[op] == length);
+    js_decomposeLengthTable[op] = length;
 }
 
 ptrdiff_t
@@ -2922,6 +2912,105 @@ EmitPropOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg,
     return EmitAtomOp(cx, pn, op, cg);
 }
 
+static bool
+EmitPropIncDec(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
+{
+    if (!EmitPropOp(cx, pn, op, cg, false))
+        return false;
+
+    
+
+
+
+    int start = CG_OFFSET(cg);
+
+    const JSCodeSpec *cs = &js_CodeSpec[op];
+    JS_ASSERT(cs->format & JOF_PROP);
+    JS_ASSERT(cs->format & (JOF_INC | JOF_DEC));
+
+    bool post = (cs->format & JOF_POST);
+    JSOp binop = (cs->format & JOF_INC) ? JSOP_ADD : JSOP_SUB;
+
+                                                   
+    if (js_Emit1(cx, cg, JSOP_DUP) < 0)            
+        return false;
+    if (!EmitAtomOp(cx, pn, JSOP_GETPROP, cg))     
+        return false;
+    if (js_Emit1(cx, cg, JSOP_POS) < 0)            
+        return false;
+    if (post && js_Emit1(cx, cg, JSOP_DUP) < 0)    
+        return false;
+    if (js_Emit1(cx, cg, JSOP_ONE) < 0)            
+        return false;
+    if (js_Emit1(cx, cg, binop) < 0)               
+        return false;
+
+    if (post) {
+        if (js_Emit2(cx, cg, JSOP_PICK, (jsbytecode)2) < 0) 
+            return false;
+        if (js_Emit1(cx, cg, JSOP_SWAP) < 0)                
+            return false;
+    }
+
+    if (!EmitAtomOp(cx, pn, JSOP_SETPROP, cg))     
+        return false;
+    if (post && js_Emit1(cx, cg, JSOP_POP) < 0)    
+        return false;
+
+    SetDecomposeLength(op, CG_OFFSET(cg) - start);
+
+    return true;
+}
+
+static bool
+EmitNameIncDec(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
+{
+    if (!EmitAtomOp(cx, pn, op, cg))
+        return false;
+
+    
+    cg->stackDepth--;
+
+    int start = CG_OFFSET(cg);
+
+    const JSCodeSpec *cs = &js_CodeSpec[op];
+    JS_ASSERT((cs->format & JOF_NAME) || (cs->format & JOF_GNAME));
+    JS_ASSERT(cs->format & (JOF_INC | JOF_DEC));
+
+    bool global = (cs->format & JOF_GNAME);
+    bool post = (cs->format & JOF_POST);
+    JSOp binop = (cs->format & JOF_INC) ? JSOP_ADD : JSOP_SUB;
+
+    if (!EmitAtomOp(cx, pn, global ? JSOP_BINDGNAME : JSOP_BINDNAME, cg))  
+        return false;
+    if (!EmitAtomOp(cx, pn, global ? JSOP_GETGNAME : JSOP_NAME, cg))       
+        return false;
+    if (js_Emit1(cx, cg, JSOP_POS) < 0)            
+        return false;
+    if (post && js_Emit1(cx, cg, JSOP_DUP) < 0)    
+        return false;
+    if (js_Emit1(cx, cg, JSOP_ONE) < 0)            
+        return false;
+    if (js_Emit1(cx, cg, binop) < 0)               
+        return false;
+
+    if (post) {
+        if (js_Emit2(cx, cg, JSOP_PICK, (jsbytecode)2) < 0) 
+            return false;
+        if (js_Emit1(cx, cg, JSOP_SWAP) < 0)                
+            return false;
+    }
+
+    if (!EmitAtomOp(cx, pn, JSOP_SETPROP, cg))     
+        return false;
+    if (post && js_Emit1(cx, cg, JSOP_POP) < 0)    
+        return false;
+
+    SetDecomposeLength(op, CG_OFFSET(cg) - start);
+
+    return true;
+}
+
 static JSBool
 EmitElemOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
 {
@@ -3051,6 +3140,63 @@ EmitElemOp(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
     if (js_NewSrcNote2(cx, cg, SRC_PCBASE, CG_OFFSET(cg) - top) < 0)
         return JS_FALSE;
     return EmitElemOpBase(cx, cg, op);
+}
+
+static bool
+EmitElemIncDec(JSContext *cx, JSParseNode *pn, JSOp op, JSCodeGenerator *cg)
+{
+    if (!EmitElemOp(cx, pn, op, cg))
+        return false;
+
+    
+    cg->stackDepth++;
+
+    int start = CG_OFFSET(cg);
+
+    const JSCodeSpec *cs = &js_CodeSpec[op];
+    JS_ASSERT(cs->format & JOF_ELEM);
+    JS_ASSERT(cs->format & (JOF_INC | JOF_DEC));
+
+    bool post = (cs->format & JOF_POST);
+    JSOp binop = (cs->format & JOF_INC) ? JSOP_ADD : JSOP_SUB;
+
+    
+
+
+
+                                                 
+    if (js_Emit1(cx, cg, JSOP_TOID) < 0)         
+        return false;
+    if (js_Emit1(cx, cg, JSOP_DUP2) < 0)         
+        return false;
+    if (!EmitElemOpBase(cx, cg, JSOP_GETELEM))   
+        return false;
+    if (js_Emit1(cx, cg, JSOP_POS) < 0)          
+        return false;
+    if (post && js_Emit1(cx, cg, JSOP_DUP) < 0)  
+        return false;
+    if (js_Emit1(cx, cg, JSOP_ONE) < 0)          
+        return false;
+    if (js_Emit1(cx, cg, binop) < 0)             
+        return false;
+
+    if (post) {
+        if (js_Emit2(cx, cg, JSOP_PICK, (jsbytecode)3) < 0)  
+            return false;
+        if (js_Emit2(cx, cg, JSOP_PICK, (jsbytecode)3) < 0)  
+            return false;
+        if (js_Emit2(cx, cg, JSOP_PICK, (jsbytecode)2) < 0)  
+            return false;
+    }
+
+    if (!EmitElemOpBase(cx, cg, JSOP_SETELEM))   
+        return false;
+    if (post && js_Emit1(cx, cg, JSOP_POP) < 0)  
+        return false;
+
+    SetDecomposeLength(op, CG_OFFSET(cg) - start);
+
+    return true;
 }
 
 static JSBool
@@ -6519,7 +6665,7 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
                 EMIT_UINT16_IMM_OP(op, atomIndex);
             } else {
                 JS_ASSERT(JOF_OPTYPE(op) == JOF_ATOM);
-                if (!EmitAtomOp(cx, pn2, op, cg))
+                if (!EmitNameIncDec(cx, pn2, op, cg))
                     return JS_FALSE;
                 break;
             }
@@ -6537,11 +6683,11 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             }
             break;
           case TOK_DOT:
-            if (!EmitPropOp(cx, pn2, op, cg, JS_FALSE))
+            if (!EmitPropIncDec(cx, pn2, op, cg))
                 return JS_FALSE;
             break;
           case TOK_LB:
-            if (!EmitElemOp(cx, pn2, op, cg))
+            if (!EmitElemIncDec(cx, pn2, op, cg))
                 return JS_FALSE;
             break;
           case TOK_LP:

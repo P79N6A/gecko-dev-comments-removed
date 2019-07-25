@@ -1538,6 +1538,12 @@ mjit::Compiler::generateMethod()
             addCallSite(site);
         }
 
+        
+        if (js_CodeSpec[op].format & JOF_DECOMPOSE) {
+            PC += js_CodeSpec[op].length;
+            continue;
+        }
+
     
 
  
@@ -1669,6 +1675,39 @@ mjit::Compiler::generateMethod()
           BEGIN_CASE(JSOP_DUP2)
             frame.dup2();
           END_CASE(JSOP_DUP2)
+
+          BEGIN_CASE(JSOP_SWAP)
+            frame.dup2();
+            frame.shift(-3);
+            frame.shift(-1);
+          END_CASE(JSOP_SWAP)
+
+          BEGIN_CASE(JSOP_PICK)
+          {
+            int32 amt = GET_INT8(PC);
+
+            
+            
+            
+            frame.dupAt(-(amt + 1));
+
+            
+            
+            
+            
+            
+            
+            for (int32 i = -amt; i < 0; i++) {
+                frame.dupAt(i - 1);
+                frame.shift(i - 2);
+            }
+
+            
+            
+            
+            frame.shimmy(1);
+          }
+          END_CASE(JSOP_PICK)
 
           BEGIN_CASE(JSOP_BITOR)
           BEGIN_CASE(JSOP_BITXOR)
@@ -1904,106 +1943,6 @@ mjit::Compiler::generateMethod()
             frame.push(UndefinedValue());
           END_CASE(JSOP_VOID)
 
-          BEGIN_CASE(JSOP_INCNAME)
-          {
-            CompileStatus status = jsop_nameinc(op, STRICT_VARIANT(stubs::IncName), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_INCNAME)
-
-          BEGIN_CASE(JSOP_INCGNAME)
-            if (!jsop_gnameinc(op, STRICT_VARIANT(stubs::IncGlobalName), fullAtomIndex(PC)))
-                return Compile_Retry;
-          END_CASE(JSOP_INCGNAME)
-
-          BEGIN_CASE(JSOP_INCPROP)
-          {
-            CompileStatus status = jsop_propinc(op, STRICT_VARIANT(stubs::IncProp), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_INCPROP)
-
-          BEGIN_CASE(JSOP_INCELEM)
-            jsop_eleminc(op, STRICT_VARIANT(stubs::IncElem));
-          END_CASE(JSOP_INCELEM)
-
-          BEGIN_CASE(JSOP_DECNAME)
-          {
-            CompileStatus status = jsop_nameinc(op, STRICT_VARIANT(stubs::DecName), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_DECNAME)
-
-          BEGIN_CASE(JSOP_DECGNAME)
-            if (!jsop_gnameinc(op, STRICT_VARIANT(stubs::DecGlobalName), fullAtomIndex(PC)))
-                return Compile_Retry;
-          END_CASE(JSOP_DECGNAME)
-
-          BEGIN_CASE(JSOP_DECPROP)
-          {
-            CompileStatus status = jsop_propinc(op, STRICT_VARIANT(stubs::DecProp), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_DECPROP)
-
-          BEGIN_CASE(JSOP_DECELEM)
-            jsop_eleminc(op, STRICT_VARIANT(stubs::DecElem));
-          END_CASE(JSOP_DECELEM)
-
-          BEGIN_CASE(JSOP_NAMEINC)
-          {
-            CompileStatus status = jsop_nameinc(op, STRICT_VARIANT(stubs::NameInc), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_NAMEINC)
-
-          BEGIN_CASE(JSOP_GNAMEINC)
-            if (!jsop_gnameinc(op, STRICT_VARIANT(stubs::GlobalNameInc), fullAtomIndex(PC)))
-                return Compile_Retry;
-          END_CASE(JSOP_GNAMEINC)
-
-          BEGIN_CASE(JSOP_PROPINC)
-          {
-            CompileStatus status = jsop_propinc(op, STRICT_VARIANT(stubs::PropInc), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_PROPINC)
-
-          BEGIN_CASE(JSOP_ELEMINC)
-            jsop_eleminc(op, STRICT_VARIANT(stubs::ElemInc));
-          END_CASE(JSOP_ELEMINC)
-
-          BEGIN_CASE(JSOP_NAMEDEC)
-          {
-            CompileStatus status = jsop_nameinc(op, STRICT_VARIANT(stubs::NameDec), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_NAMEDEC)
-
-          BEGIN_CASE(JSOP_GNAMEDEC)
-            if (!jsop_gnameinc(op, STRICT_VARIANT(stubs::GlobalNameDec), fullAtomIndex(PC)))
-                return Compile_Retry;
-          END_CASE(JSOP_GNAMEDEC)
-
-          BEGIN_CASE(JSOP_PROPDEC)
-          {
-            CompileStatus status = jsop_propinc(op, STRICT_VARIANT(stubs::PropDec), fullAtomIndex(PC));
-            if (status != Compile_Okay)
-                return status;
-          }
-          END_CASE(JSOP_PROPDEC)
-
-          BEGIN_CASE(JSOP_ELEMDEC)
-            jsop_eleminc(op, STRICT_VARIANT(stubs::ElemDec));
-          END_CASE(JSOP_ELEMDEC)
-
           BEGIN_CASE(JSOP_GETPROP)
           BEGIN_CASE(JSOP_LENGTH)
             if (!jsop_getprop(script->getAtom(fullAtomIndex(PC)), knownPushedType(0)))
@@ -2014,6 +1953,10 @@ mjit::Compiler::generateMethod()
             if (!jsop_getelem(false))
                 return Compile_Error;
           END_CASE(JSOP_GETELEM)
+
+          BEGIN_CASE(JSOP_TOID)
+            jsop_toid();
+          END_CASE(JSOP_TOID)
 
           BEGIN_CASE(JSOP_SETELEM)
           BEGIN_CASE(JSOP_SETHOLE)
@@ -4289,10 +4232,9 @@ mjit::Compiler::jsop_getprop(JSAtom *atom, JSValueType knownType,
 
 
 
-    JSOp op = JSOp(*PC);
     jsid id = ATOM_TO_JSID(atom);
     types::TypeSet *types = frame.extra(top).types;
-    if (op == JSOP_GETPROP && types && !types->unknownObject() &&
+    if (types && !types->unknownObject() &&
         types->getObjectCount() == 1 &&
         types->getTypeObject(0) != NULL &&
         !types->getTypeObject(0)->unknownProperties() &&
@@ -5431,188 +5373,6 @@ mjit::Compiler::jsop_this()
 }
 
 bool
-mjit::Compiler::jsop_gnameinc(JSOp op, VoidStubAtom stub, uint32 index)
-{
-    JSAtom *atom = script->getAtom(index);
-
-#if defined JS_MONOIC
-    int amt = (op == JSOP_GNAMEINC || op == JSOP_INCGNAME) ? 1 : -1;
-
-    jsop_bindgname();
-    
-
-    jsop_getgname(index);
-    
-
-    if (!analysis->incrementInitialValueObserved(PC)) {
-        frame.push(Int32Value(-amt));
-        
-
-        
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, knownPushedType(0), pushedTypeSet(0)))
-            return false;
-        
-
-        jsop_setgname(atom, false, analysis->popGuaranteed(PC));
-        
-    } else {
-        jsop_pos();
-        
-
-        frame.swap();
-        
-
-        frame.dupAt(-2);
-        
-
-        frame.push(Int32Value(amt));
-        
-
-        if (!jsop_binary(JSOP_ADD, stubs::Add, knownPushedType(0), pushedTypeSet(0)))
-            return false;
-        
-
-        jsop_setgname(atom, false, true);
-        
-
-        frame.pop();
-        
-    }
-#else
-    prepareStubCall(Uses(0));
-    masm.move(ImmPtr(atom), Registers::ArgReg1);
-    INLINE_STUBCALL(stub, REJOIN_FALLTHROUGH);
-    frame.pushSynced(knownPushedType(0));
-#endif
-
-    return true;
-}
-
-CompileStatus
-mjit::Compiler::jsop_nameinc(JSOp op, VoidStubAtom stub, uint32 index)
-{
-    JSAtom *atom = script->getAtom(index);
-#if defined JS_POLYIC
-    int amt = (op == JSOP_NAMEINC || op == JSOP_INCNAME) ? 1 : -1;
-
-    jsop_bindname(atom, false);
-    
-
-    jsop_name(atom, JSVAL_TYPE_UNKNOWN, false);
-    
-
-    if (!analysis->incrementInitialValueObserved(PC)) {
-        frame.push(Int32Value(-amt));
-        
-
-        
-        frame.syncAt(-3);
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, knownPushedType(0), pushedTypeSet(0)))
-            return Compile_Retry;
-        
-
-        if (!jsop_setprop(atom, false, analysis->popGuaranteed(PC)))
-            return Compile_Error;
-        
-    } else {
-        jsop_pos();
-        
-
-        frame.swap();
-        
-
-        frame.dupAt(-2);
-        
-
-        frame.push(Int32Value(amt));
-        
-
-        frame.syncAt(-3);
-        if (!jsop_binary(JSOP_ADD, stubs::Add, knownPushedType(0), pushedTypeSet(0)))
-            return Compile_Retry;
-        
-
-        if (!jsop_setprop(atom, false, true))
-            return Compile_Error;
-        
-
-        frame.pop();
-        
-    }
-#else
-    prepareStubCall(Uses(0));
-    masm.move(ImmPtr(atom), Registers::ArgReg1);
-    INLINE_STUBCALL(stub);
-    frame.pushSynced(knownPushedType(0));
-#endif
-
-    return Compile_Okay;
-}
-
-CompileStatus
-mjit::Compiler::jsop_propinc(JSOp op, VoidStubAtom stub, uint32 index)
-{
-    JSAtom *atom = script->getAtom(index);
-#if defined JS_POLYIC
-    int amt = (op == JSOP_PROPINC || op == JSOP_INCPROP) ? 1 : -1;
-
-    frame.dup();
-    
-
-    if (!jsop_getprop(atom, JSVAL_TYPE_UNKNOWN))
-        return Compile_Error;
-    
-
-    if (!analysis->incrementInitialValueObserved(PC)) {
-        frame.push(Int32Value(-amt));
-        
-
-        
-        frame.syncAt(-3);
-        if (!jsop_binary(JSOP_SUB, stubs::Sub, knownPushedType(0), pushedTypeSet(0)))
-            return Compile_Retry;
-        
-
-        if (!jsop_setprop(atom, false, analysis->popGuaranteed(PC)))
-            return Compile_Error;
-        
-    } else {
-        jsop_pos();
-        
-
-        frame.swap();
-        
-
-        frame.dupAt(-2);
-        
-
-        frame.push(Int32Value(amt));
-        
-
-        frame.syncAt(-3);
-        if (!jsop_binary(JSOP_ADD, stubs::Add, knownPushedType(0), pushedTypeSet(0)))
-            return Compile_Retry;
-        
-
-        if (!jsop_setprop(atom, false, true))
-            return Compile_Error;
-        
-
-        frame.pop();
-        
-    }
-#else
-    prepareStubCall(Uses(1));
-    masm.move(ImmPtr(atom), Registers::ArgReg1);
-    INLINE_STUBCALL(stub);
-    frame.pop();
-    pushSyncedEntry(0);
-#endif
-
-    return Compile_Okay;
-}
-
-bool
 mjit::Compiler::iter(uintN flags)
 {
     FrameEntry *fe = frame.peek(-1);
@@ -5873,15 +5633,6 @@ mjit::Compiler::iterEnd()
 }
 
 void
-mjit::Compiler::jsop_eleminc(JSOp op, VoidStub stub)
-{
-    prepareStubCall(Uses(2));
-    INLINE_STUBCALL(stub, REJOIN_FALLTHROUGH);
-    frame.popn(2);
-    pushSyncedEntry(0);
-}
-
-void
 mjit::Compiler::jsop_getgname_slow(uint32 index)
 {
     prepareStubCall(Uses(0));
@@ -5929,24 +5680,18 @@ mjit::Compiler::jsop_getgname(uint32 index)
         return;
     }
 
-    
     jsid id = ATOM_TO_JSID(atom);
-    JSValueType type = JSVAL_TYPE_UNKNOWN;
+    JSValueType type = knownPushedType(0);
     if (cx->typeInferenceEnabled() && globalObj->isGlobal() && id == types::MakeTypeId(cx, id) &&
         !globalObj->type()->unknownProperties()) {
+        types::TypeSet *propertyTypes = globalObj->type()->getProperty(cx, id, false);
+        if (!propertyTypes)
+            return;
+
         
 
 
 
-
-
-        types::TypeSet *propertyTypes = globalObj->type()->getProperty(cx, id, false);
-        if (!propertyTypes)
-            return;
-        types::TypeSet *types = (JSOp(*PC) == JSOP_GETGNAME || JSOp(*PC) == JSOP_CALLGNAME)
-            ? pushedTypeSet(0)
-            : propertyTypes;
-        type = types->getKnownTypeTag(cx);
 
         const js::Shape *shape = globalObj->nativeLookup(ATOM_TO_JSID(atom));
         if (shape && shape->hasDefaultGetterOrIsMethod() && shape->hasSlot()) {
@@ -5961,8 +5706,6 @@ mjit::Compiler::jsop_getgname(uint32 index)
                 return;
             }
         }
-        if (knownPushedType(0) != type)
-            type = JSVAL_TYPE_UNKNOWN;
     }
 
 #if defined JS_MONOIC
@@ -6981,6 +6724,41 @@ mjit::Compiler::jsop_forgname(JSAtom *atom)
     
     
     frame.pop();
+}
+
+void
+mjit::Compiler::jsop_toid()
+{
+    
+
+
+
+
+    FrameEntry *top = frame.peek(-1);
+
+    if (top->isType(JSVAL_TYPE_INT32))
+        return;
+
+    if (top->isNotType(JSVAL_TYPE_INT32)) {
+        prepareStubCall(Uses(2));
+        INLINE_STUBCALL(stubs::ToId, REJOIN_FALLTHROUGH);
+        frame.pop();
+        pushSyncedEntry(0);
+        return;
+    }
+
+    frame.syncAt(-1);
+
+    Jump j = frame.testInt32(Assembler::NotEqual, top);
+    stubcc.linkExit(j, Uses(2));
+
+    stubcc.leave();
+    OOL_STUBCALL(stubs::ToId, REJOIN_FALLTHROUGH);
+
+    frame.pop();
+    pushSyncedEntry(0);
+
+    stubcc.rejoin(Changes(1));
 }
 
 
