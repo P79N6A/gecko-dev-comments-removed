@@ -252,8 +252,10 @@ TelemetryPing.prototype = {
       this.addValue(mr.path, id, val);
     }
     
-    
-    
+    let explicit = mgr.explicit;    
+    if (explicit != -1) {
+      this.addValue("explicit", "MEMORY_EXPLICIT", Math.floor(explicit / 1024));
+    }
   },
   
   
