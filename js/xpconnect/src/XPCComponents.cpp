@@ -1853,25 +1853,23 @@ struct NS_STACK_CLASS ExceptionArgParser
     
     bool parse(uint32_t argc, JS::Value *argv) {
         
-        switch (argc) {
-            default:    
-                
-            case 4:
-                if (!parseData(argv[3]))
-                    return false;
-            case 3:
-                if (!parseStack(argv[2]))
-                    return false;
-            case 2:
-                if (!parseResult(argv[1]))
-                    return false;
-            case 1:
-                if (!parseMessage(argv[0]))
-                    return false;
-            case 0: 
-                ;   
-        }
 
+
+
+
+
+
+
+
+
+        if (argc > 0 && !parseMessage(argv[0]))
+            return false;
+        if (argc > 1 && !parseResult(argv[1]))
+            return false;
+        if (argc > 2 && !parseStack(argv[2]))
+            return false;
+        if (argc > 3 && !parseData(argv[3]))
+            return false;
         return true;
     }
 
