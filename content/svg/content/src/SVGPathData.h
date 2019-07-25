@@ -105,6 +105,7 @@ class SVGPathData
   
 
 public:
+  typedef const float* const_iterator;
 
   SVGPathData(){}
   ~SVGPathData(){}
@@ -178,6 +179,9 @@ public:
 
   void ConstructPath(gfxContext *aCtx) const;
 
+  const_iterator begin() const { return mData.Elements(); }
+  const_iterator end() const { return mData.Elements() + mData.Length(); }
+
   
   
   
@@ -186,6 +190,7 @@ public:
   
 
 protected:
+  typedef float* iterator;
 
   
 
@@ -221,6 +226,9 @@ protected:
 
   nsresult AppendSeg(PRUint32 aType, ...); 
 
+  iterator begin() { return mData.Elements(); }
+  iterator end() { return mData.Elements() + mData.Length(); }
+
   nsTArray<float> mData;
 };
 
@@ -236,7 +244,6 @@ protected:
 class SVGPathDataAndOwner : public SVGPathData
 {
 public:
-
   SVGPathDataAndOwner(nsSVGElement *aElement = nsnull)
     : mElement(aElement)
   {}
@@ -260,8 +267,13 @@ public:
 
 
   using SVGPathData::CopyFrom;
+
+  
+  using SVGPathData::iterator;
   using SVGPathData::operator[];
   using SVGPathData::SetLength;
+  using SVGPathData::begin;
+  using SVGPathData::end;
 
 private:
   
