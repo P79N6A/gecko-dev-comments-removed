@@ -2163,7 +2163,7 @@ DebuggerScript_trace(JSTracer *trc, JSObject *obj)
         
         if (JSScript *script = GetScriptReferent(obj)) {
             MarkScriptUnbarriered(trc, &script, "Debugger.Script referent");
-            SetScriptReferent(obj, script);
+            obj->setPrivateUnbarriered(script);
         }
     }
 }
