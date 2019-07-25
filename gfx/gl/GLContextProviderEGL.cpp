@@ -2630,11 +2630,7 @@ GLContextProviderEGL::CreateOffscreen(const gfxIntSize& aSize,
     if (!glContext) {
         return nsnull;
     }
-    if (!glContext->GetSharedContext()) {
-        
-        
-        return nsnull;
-    }
+
     if (!gUseBackingSurface && !glContext->ResizeOffscreenFBO(glContext->OffscreenActualSize(), true)) {
         
         
