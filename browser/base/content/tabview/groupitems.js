@@ -90,14 +90,6 @@ function GroupItem(listOfEls, options) {
   
   this._activeTab = null;
 
-  
-  
-  
-  
-  
-  this.xDensity = 0;
-  this.yDensity = 0;
-
   if (Utils.isPoint(options.userSize))
     this.userSize = new Point(options.userSize);
 
@@ -1100,16 +1092,13 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           options = {};
 
         this._children.forEach(function(child) {
-            child.removeClass("stacked")
+          child.removeClass("stacked")
         });
 
         this.topChild = null;
 
-        if (!this._children.length) {
-          this.xDensity = 0;
-          this.yDensity = 0;
+        if (!this._children.length)
           return;
-        }
 
         var arrangeOptions = Utils.copy(options);
         Utils.extend(arrangeOptions, {
@@ -1120,13 +1109,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         
 
         var rects = Items.arrange(this._children, bb, arrangeOptions);
-
-        
-        
-        this.yDensity = (rects[rects.length - 1].bottom - bb.top) / (bb.height);
-
-        
-        
 
         
         var rightMostRight = 0;
@@ -1140,7 +1122,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
               break;
           }
         }
-        this.xDensity = (rightMostRight - bb.left) / (bb.width);
 
         this._isStacked = false;
       } else
@@ -1191,13 +1172,9 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       w = bb.width * scale;
       h = w * itemAspect;
       
-      this.xDensity = 1;
-      this.yDensity = h / (bb.height * scale);
     } else { 
       h = bb.height * scale;
       w = h * (1 / itemAspect);
-      this.yDensity = 1;
-      this.xDensity = h / (bb.width * scale);
     }
 
     
