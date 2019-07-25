@@ -1011,6 +1011,13 @@ pref("devtools.webconsole.position", "above");
 
 
 
+pref("devtools.hud.loglimit.network", 200);
+pref("devtools.hud.loglimit.cssparser", 200);
+pref("devtools.hud.loglimit.exception", 200);
+pref("devtools.hud.loglimit.console", 200);
+
+
+
 pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
 
 

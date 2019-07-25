@@ -1202,13 +1202,15 @@ NetworkPanel.prototype =
 
 
 
-function pruneConsoleOutputIfNecessary(aConsoleNode)
+
+
+function pruneConsoleOutputIfNecessary(aConsoleNode, aCategory)
 {
   
   let logLimit;
   try {
-    let prefBranch = Services.prefs.getBranch("devtools.hud.");
-    logLimit = prefBranch.getIntPref("loglimit");
+    let prefName = CATEGORY_CLASS_FRAGMENTS[aCategory];
+    logLimit = Services.prefs.getIntPref("devtools.hud.loglimit." + prefName);
   } catch (e) {
     logLimit = DEFAULT_LOG_LIMIT;
   }
@@ -1219,7 +1221,8 @@ function pruneConsoleOutputIfNecessary(aConsoleNode)
   let hudRef = HUDService.getHudReferenceForOutputNode(aConsoleNode);
 
   
-  let messageNodes = aConsoleNode.querySelectorAll(".hud-msg-node");
+  let messageNodes = aConsoleNode.querySelectorAll(".webconsole-msg-" +
+      CATEGORY_CLASS_FRAGMENTS[aCategory]);
   let removeNodes = messageNodes.length - logLimit;
   for (let i = 0; i < removeNodes; i++) {
     if (messageNodes[i].classList.contains("webconsole-msg-cssparser")) {
@@ -4515,8 +4518,6 @@ JSTerm.prototype = {
 
   get codeInputString()
   {
-    
-    
     return this.inputNode.value;
   },
 
@@ -5810,7 +5811,7 @@ ConsoleUtils = {
 
     HUDService.regroupOutput(outputNode);
 
-    if (pruneConsoleOutputIfNecessary(outputNode) == 0) {
+    if (pruneConsoleOutputIfNecessary(outputNode, aNode.category) == 0) {
       
       
       return;
