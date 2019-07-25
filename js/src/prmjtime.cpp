@@ -555,68 +555,6 @@ PRMJ_Now(void)
 }
 #endif
 
-
-JSInt64
-PRMJ_DSTOffset(JSInt64 local_time)
-{
-    JSInt64 us2s;
-    time_t local;
-    JSInt32 diff;
-    JSInt64  maxtimet;
-    struct tm tm;
-    PRMJTime prtm;
-#ifndef HAVE_LOCALTIME_R
-    struct tm *ptm;
-#endif
-
-
-    JSLL_UI2L(us2s, PRMJ_USEC_PER_SEC);
-    JSLL_DIV(local_time, local_time, us2s);
-
-    
-    JSLL_UI2L(maxtimet,PRMJ_MAX_UNIX_TIMET);
-
-    if(JSLL_CMP(local_time,>,maxtimet)){
-        JSLL_UI2L(local_time,PRMJ_MAX_UNIX_TIMET);
-    } else if(!JSLL_GE_ZERO(local_time)){
-        
-        JSLL_UI2L(local_time,PRMJ_DAY_SECONDS);
-    }
-
-#if defined(XP_WIN) && !defined(WINCE)
-    
-
-
-
-
-    _tzset();
-#endif
-
-    JSLL_L2UI(local,local_time);
-    PRMJ_basetime(local_time,&prtm);
-#ifndef HAVE_LOCALTIME_R
-    ptm = localtime(&local);
-    if(!ptm){
-        return 0;
-    }
-    tm = *ptm;
-#else
-    localtime_r(&local,&tm); 
-#endif
-
-    diff = ((tm.tm_hour - prtm.tm_hour) * PRMJ_HOUR_SECONDS) +
-           ((tm.tm_min - prtm.tm_min) * 60);
-
-    if (diff < 0)
-        diff += PRMJ_DAY_SECONDS;
-
-    JSLL_UI2L(local_time,diff);
-
-    JSLL_MUL(local_time,local_time,us2s);
-
-    return(local_time);
-}
-
 #ifdef NS_HAVE_INVALID_PARAMETER_HANDLER
 static void
 PRMJ_InvalidParameterHandler(const wchar_t *expression,
@@ -912,4 +850,53 @@ PRMJ_basetime(JSInt64 tsecs, PRMJTime *prtm)
     prtm->tm_wday  = (JSInt8)wday;
     prtm->tm_year  = (JSInt16)year;
     prtm->tm_yday  = (JSInt16)yday;
+}
+
+JSInt64
+DSTOffsetCache::computeDSTOffset(int64 localTime)
+{
+    localTime /= MICROSECONDS_PER_SECOND;
+
+    if (localTime > MAX_UNIX_TIMET) {
+        localTime = MAX_UNIX_TIMET;
+    } else if (localTime < 0) {
+        
+        localTime = SECONDS_PER_DAY;
+    }
+
+#if defined(XP_WIN) && !defined(WINCE)
+    
+
+
+
+
+    _tzset();
+#endif
+
+    time_t local = static_cast<time_t>(localTime);
+    PRMJTime prtm;
+    struct tm tm;
+    PRMJ_basetime(localTime, &prtm);
+#ifndef HAVE_LOCALTIME_R
+    struct tm *ptm = localtime(&local);
+    if (!ptm)
+        return 0;
+    tm = *ptm;
+#else
+    localtime_r(&local, &tm); 
+#endif
+
+    JSInt32 diff = ((tm.tm_hour - prtm.tm_hour) * SECONDS_PER_HOUR) +
+                   ((tm.tm_min - prtm.tm_min) * SECONDS_PER_MINUTE);
+
+    if (diff < 0)
+        diff += SECONDS_PER_DAY;
+
+    return diff * MICROSECONDS_PER_SECOND;
+}
+
+JSInt64
+DSTOffsetCache::getDSTOffset(JSInt64 localTime, JSContext *cx)
+{
+    return computeDSTOffset(localTime);
 }

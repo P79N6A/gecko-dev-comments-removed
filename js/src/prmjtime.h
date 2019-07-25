@@ -49,6 +49,22 @@
 #include "jscompat.h"
 #endif
 
+struct JSContext;
+
+class DSTOffsetCache {
+  public:
+    JSInt64 getDSTOffset(int64 localTime, JSContext *cx);
+
+  private:
+    JSInt64 computeDSTOffset(int64 localTime);
+
+    static const JSInt64 MAX_UNIX_TIMET = 2145859200; 
+    static const JSInt64 MICROSECONDS_PER_SECOND = 1000000;
+    static const JSInt64 SECONDS_PER_MINUTE = 60;
+    static const JSInt64 SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE;
+    static const JSInt64 SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR;
+};
+
 JS_BEGIN_EXTERN_C
 
 typedef struct PRMJTime       PRMJTime;
@@ -92,10 +108,6 @@ PRMJ_LocalGMTDifference(void);
 
 extern size_t
 PRMJ_FormatTime(char *buf, int buflen, const char *fmt, PRMJTime *tm);
-
-
-extern JSInt64
-PRMJ_DSTOffset(JSInt64 local_time);
 
 JS_END_EXTERN_C
 
