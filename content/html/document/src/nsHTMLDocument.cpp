@@ -1497,6 +1497,7 @@ nsHTMLDocument::SetCookie(const nsAString& aCookie)
       window->GetPrompter(getter_AddRefs(prompt));
     }
 
+    
     nsCOMPtr<nsIURI> codebaseURI;
     NodePrincipal()->GetURI(getter_AddRefs(codebaseURI));
 
