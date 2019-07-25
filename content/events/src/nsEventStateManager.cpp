@@ -3292,6 +3292,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
   
   mCurrentTarget = nsnull;
+  mCurrentTargetContent = nsnull;
 
   return ret;
 }
@@ -3611,6 +3612,7 @@ nsEventStateManager::DispatchMouseEvent(nsGUIEvent* aEvent, PRUint32 aMessage,
   event.inputSource = static_cast<nsMouseEvent*>(aEvent)->inputSource;
 
   mCurrentTargetContent = aTargetContent;
+  mCurrentTarget = nsnull;
 
   nsIFrame* targetFrame = nsnull;
   if (aTargetContent) {
@@ -3627,6 +3629,7 @@ nsEventStateManager::DispatchMouseEvent(nsGUIEvent* aEvent, PRUint32 aMessage,
   }
 
   mCurrentTargetContent = nsnull;
+  mCurrentTarget = nsnull;
 
   return targetFrame;
 }
@@ -3791,6 +3794,7 @@ nsEventStateManager::GenerateMouseEnterExit(nsGUIEvent* aEvent)
 
   
   mCurrentTargetContent = targetBeforeEvent;
+  mCurrentTarget = nsnull;
 }
 
 void
