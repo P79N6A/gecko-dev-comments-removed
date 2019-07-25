@@ -443,9 +443,16 @@ nsCOMPtr_base
 
         {
           private:
-            using T::AddRef;
-            using T::Release;
+            NS_METHOD_(nsrefcnt) AddRef();
+            NS_METHOD_(nsrefcnt) Release();
             
+            
+            
+
+
+
+
+
             ~nsDerivedSafe(); 
             
 
