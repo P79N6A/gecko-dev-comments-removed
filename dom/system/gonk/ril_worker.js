@@ -616,10 +616,10 @@ let RIL = {
 
 
 
-  enterICCPIN: function enterICCPIN(pin) {
+  enterICCPIN: function enterICCPIN(options) {
     Buf.newParcel(REQUEST_ENTER_SIM_PIN);
     Buf.writeUint32(1);
-    Buf.writeString(pin);
+    Buf.writeString(options.pin);
     Buf.sendParcel();
   },
 
@@ -633,11 +633,11 @@ let RIL = {
 
 
 
-  changeICCPIN: function changeICCPIN(oldPin, newPin) {
+  changeICCPIN: function changeICCPIN(options) {
     Buf.newParcel(REQUEST_CHANGE_SIM_PIN);
     Buf.writeUint32(2);
-    Buf.writeString(oldPin);
-    Buf.writeString(newPin);
+    Buf.writeString(options.oldPin);
+    Buf.writeString(options.newPin);
     Buf.sendParcel();
   },
 
@@ -651,11 +651,11 @@ let RIL = {
 
 
 
-   enterICCPUK: function enterICCPUK(puk, newPin) {
+   enterICCPUK: function enterICCPUK(options) {
      Buf.newParcel(REQUEST_ENTER_SIM_PUK);
      Buf.writeUint32(2);
-     Buf.writeString(puk);
-     Buf.writeString(newPin);
+     Buf.writeString(options.puk);
+     Buf.writeString(options.newPin);
      Buf.sendParcel();
    },
 
@@ -772,11 +772,11 @@ let RIL = {
 
 
 
-  dial: function dial(address, clirMode, uusInfo) {
+  dial: function dial(options) {
     let token = Buf.newParcel(REQUEST_DIAL);
-    Buf.writeString(address);
-    Buf.writeUint32(clirMode || 0);
-    Buf.writeUint32(uusInfo || 0);
+    Buf.writeString(options.number);
+    Buf.writeUint32(options.clirMode || 0);
+    Buf.writeUint32(options.uusInfo || 0);
     
     
     Buf.writeUint32(0);
@@ -789,10 +789,10 @@ let RIL = {
 
 
 
-  hangUp: function hangUp(callIndex) {
+  hangUp: function hangUp(options) {
     Buf.newParcel(REQUEST_HANGUP);
     Buf.writeUint32(1);
-    Buf.writeUint32(callIndex);
+    Buf.writeUint32(options.callIndex);
     Buf.sendParcel();
   },
 
@@ -850,10 +850,6 @@ let RIL = {
 
   sendSMS: function sendSMS(options) {
     let token = Buf.newParcel(REQUEST_SEND_SMS, options);
-    
-    
-    
-    
     Buf.writeUint32(2);
     Buf.writeString(options.SMSC);
     GsmPDUHelper.writeMessage(options);
@@ -882,9 +878,9 @@ let RIL = {
 
 
 
-  startTone: function startTone(dtmfChar) {
+  startTone: function startTone(options) {
     Buf.newParcel(REQUEST_DTMF_START);
-    Buf.writeString(dtmfChar);
+    Buf.writeString(options.dtmfChar);
     Buf.sendParcel();
   },
 
@@ -892,9 +888,15 @@ let RIL = {
     Buf.simpleRequest(REQUEST_DTMF_STOP);
   },
 
-  sendTone: function sendTone(dtmfChar) {
+  
+
+
+
+
+
+  sendTone: function sendTone(options) {
     Buf.newParcel(REQUEST_DTMF);
-    Buf.writeString(dtmfChar);
+    Buf.writeString(options.dtmfChar);
     Buf.sendParcel();
   },
 
@@ -914,9 +916,9 @@ let RIL = {
 
 
 
-  setSMSCAddress: function setSMSCAddress(smsc) {
+  setSMSCAddress: function setSMSCAddress(options) {
     Buf.newParcel(REQUEST_SET_SMSC_ADDRESS);
-    Buf.writeString(smsc);
+    Buf.writeString(options.SMSC);
     Buf.sendParcel();
   },
 
@@ -2123,7 +2125,7 @@ let Phone = {
 
 
   dial: function dial(options) {
-    RIL.dial(options.number, 0, 0);
+    RIL.dial(options);
   },
 
   
@@ -2133,7 +2135,7 @@ let Phone = {
 
 
   sendTone: function sendTone(options) {
-    RIL.sendTone(options.dtmfChar);
+    RIL.sendTone(options);
   },
 
   
@@ -2143,7 +2145,7 @@ let Phone = {
 
 
   startTone: function startTone(options) {
-    RIL.startTone(options.dtmfChar);
+    RIL.startTone(options);
   },
 
   
@@ -2162,7 +2164,7 @@ let Phone = {
   hangUp: function hangUp(options) {
     
     
-    RIL.hangUp(options.callIndex);
+    RIL.hangUp(options);
   },
 
   
