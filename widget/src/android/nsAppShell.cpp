@@ -60,7 +60,7 @@
 #include "prlog.h"
 #endif
 
-#ifdef ANDROID_DEBUG_EVENTS
+#ifdef DEBUG_ANDROID_EVENTS
 #define EVLOG(args...)  ALOG(args)
 #else
 #define EVLOG(args...) do { } while (0)
@@ -217,7 +217,7 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
         curEvent = GetNextEvent();
         if (!curEvent && mayWait) {
             
-#if defined(ANDROID_DEBUG_EVENTS)
+#if defined(DEBUG_ANDROID_EVENTS)
             PRTime t0, t1;
             EVLOG("nsAppShell: waiting on mQueueCond");
             t0 = PR_Now();
@@ -256,7 +256,7 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
             RemoveNextEvent();
             delete nextEvent;
 
-#if defined(ANDROID_DEBUG_EVENTS)
+#if defined(DEBUG_ANDROID_EVENTS)
             ALOG("# Removing DRAW event (%d outstanding)", mNumDraws);
 #endif
 
@@ -277,7 +277,7 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
               nextEvent->Action() == AndroidMotionEvent::ACTION_MOVE))
             break;
 
-#if defined(ANDROID_DEBUG_EVENTS)
+#if defined(DEBUG_ANDROID_EVENTS)
         ALOG("# Removing % 2d event", curType);
 #endif
 
