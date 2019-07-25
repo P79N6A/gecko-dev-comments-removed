@@ -1655,40 +1655,13 @@ XPCWrappedNative::ReparentWrapperIfFound(XPCCallContext& ccx,
                 }
 
                 
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                
-                JSObject *wwsaved = ww;
-                wrapper->SetWrapper(newwrapper);
                 ww = js_TransplantObjectWithWrapper(ccx, flat, ww, newobj,
                                                     newwrapper);
-                if (!ww) {
-                    wrapper->SetWrapper(wwsaved);
+                if (!ww)
                     return NS_ERROR_FAILURE;
-                }
 
                 flat = newobj;
+                wrapper->SetWrapper(ww);
             } else {
                 flat = JS_TransplantObject(ccx, flat, newobj);
                 if (!flat)
@@ -2233,10 +2206,6 @@ XPCWrappedNative::GetSameCompartmentSecurityWrapper(JSContext *cx)
     JSObject *flat = GetFlatJSObject();
     JSObject *wrapper = GetWrapper();
 
-    
-    
-    
-    
     
     if (wrapper)
         return wrapper;
