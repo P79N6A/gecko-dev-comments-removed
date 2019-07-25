@@ -40,7 +40,6 @@
 #include "prio.h"
 #include "prtypes.h"
 #include "pldhash.h"
-#include "nsXPCOMStrings.h"
 #include "mozilla/scache/StartupCache.h"
 
 #include "nsAutoPtr.h"
@@ -67,7 +66,6 @@
 #include "mozilla/Omnijar.h"
 #include "prenv.h"
 #include "mozilla/FunctionTimer.h"
-#include "mozilla/Telemetry.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
 #include "nsIProtocolHandler.h"
@@ -239,7 +237,7 @@ StartupCache::Init()
                                      false);
   NS_ENSURE_SUCCESS(rv, rv);
   
-  rv = LoadArchive(RECORD_AGE);
+  rv = LoadArchive();
   
   
   
@@ -260,7 +258,7 @@ StartupCache::Init()
 
 
 nsresult
-StartupCache::LoadArchive(enum TelemetrifyAge flag)
+StartupCache::LoadArchive() 
 {
   bool exists;
   mArchive = NULL;
@@ -269,34 +267,7 @@ StartupCache::LoadArchive(enum TelemetrifyAge flag)
     return NS_ERROR_FILE_NOT_FOUND;
   
   mArchive = new nsZipArchive();
-  rv = mArchive->OpenArchive(mFile);
-  if (NS_FAILED(rv) || flag == IGNORE_AGE)
-    return rv;
-
-  nsCString comment;
-  if (!mArchive->GetComment(comment)) {
-    return rv;
-  }
-
-  const char *data;
-  size_t len = NS_CStringGetData(comment, &data);
-  PRTime creationStamp;
-  
-  
-  if (len == sizeof(creationStamp)) {
-    memcpy(&creationStamp, data, len);
-    PRTime current = PR_Now();
-    PRInt64 diff = current - creationStamp;
-
-    
-    
-    PRInt64 usec_per_hour = PR_USEC_PER_SEC * PRInt64(3600);
-    PRInt64 hour_diff = (diff + usec_per_hour - 1) / usec_per_hour;
-    mozilla::Telemetry::Accumulate(Telemetry::STARTUP_CACHE_AGE_HOURS,
-                                   hour_diff);
-  }
-
-  return rv;
+  return mArchive->OpenArchive(mFile);
 }
 
 namespace {
@@ -464,17 +435,6 @@ StartupCache::WriteToDisk()
     return;
   } 
 
-  
-  
-  
-  
-  PRTime now = PR_Now();
-  if (!mArchive) {
-    nsCString comment;
-    comment.Assign((char *)&now, sizeof(now));
-    zipW->SetComment(comment);
-  }
-
   nsCOMPtr<nsIStringInputStream> stream 
     = do_CreateInstance("@mozilla.org/io/string-input-stream;1", &rv);
   if (NS_FAILED(rv)) {
@@ -485,7 +445,7 @@ StartupCache::WriteToDisk()
   CacheWriteHolder holder;
   holder.stream = stream;
   holder.writer = zipW;
-  holder.time = now;
+  holder.time = PR_Now();
 
   mTable.Enumerate(CacheCloseHelper, &holder);
 
@@ -494,7 +454,7 @@ StartupCache::WriteToDisk()
   zipW->Close();
 
   
-  LoadArchive(IGNORE_AGE);
+  LoadArchive();
   
   return;
 }
@@ -506,7 +466,7 @@ StartupCache::InvalidateCache()
   mTable.Clear();
   mArchive = NULL;
   mFile->Remove(false);
-  LoadArchive(IGNORE_AGE);
+  LoadArchive();
 }
 
 
