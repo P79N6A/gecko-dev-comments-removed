@@ -50,7 +50,8 @@ public class VirtualLayer extends Layer {
         
     }
 
-    void setPositionAndResolution(Rect newPosition, float newResolution) {
+    void setMetrics(Rect newPosition, Rect newDisplayPort, float newResolution) {
+        
         
         
         
@@ -69,6 +70,7 @@ public class VirtualLayer extends Layer {
         
         
         mPosition = newPosition;
+        mDisplayPort = newDisplayPort;
         mResolution = newResolution;
     }
 }
