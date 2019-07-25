@@ -1019,7 +1019,6 @@ pref("converter.html2txt.structs",          true);
 pref("converter.html2txt.header_strategy",  1); 
 
 pref("intl.accept_languages",               "chrome://global/locale/intl.properties");
-pref("intl.accept_charsets",                "iso-8859-1,*,utf-8");
 pref("intl.menuitems.alwaysappendaccesskeys","chrome://global/locale/intl.properties");
 pref("intl.menuitems.insertseparatorbeforeaccesskeys","chrome://global/locale/intl.properties");
 pref("intl.charsetmenu.browser.static",     "chrome://global/locale/intl.properties");
@@ -1048,6 +1047,11 @@ pref("font.language.group",                 "chrome://global/locale/intl.propert
 pref("intl.uidirection.ar", "rtl");
 pref("intl.uidirection.he", "rtl");
 pref("intl.uidirection.fa", "rtl");
+
+
+pref("intl.hyphenation-alias.en", "en-us");
+
+pref("intl.hyphenation-alias.en-*", "en-us");
 
 pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Standard Symbols L, DejaVu Sans, Cambria Math");
 

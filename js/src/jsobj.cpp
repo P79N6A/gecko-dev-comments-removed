@@ -509,13 +509,13 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
         ok = JS_FALSE;
         goto out;
     }
-    if (IS_SHARP(he)) {
+    if (!ida) {
         
 
 
 
 
-        JS_ASSERT(!ida);
+        JS_ASSERT(IS_SHARP(he));
 #if JS_HAS_SHARP_VARS
         nchars = js_strlen(chars);
 #else
@@ -526,7 +526,7 @@ obj_toSource(JSContext *cx, uintN argc, Value *vp)
 #endif
         goto make_string;
     }
-    JS_ASSERT(ida);
+    JS_ASSERT(!IS_SHARP(he));
     ok = JS_TRUE;
 
     if (!chars) {
@@ -894,19 +894,19 @@ obj_toString(JSContext *cx, uintN argc, Value *vp)
     return true;
 }
 
+
 static JSBool
 obj_toLocaleString(JSContext *cx, uintN argc, Value *vp)
 {
+    JS_CHECK_RECURSION(cx, return false);
+
+    
     JSObject *obj = ToObject(cx, &vp[1]);
     if (!obj)
         return false;
 
-    JSString *str = js_ValueToString(cx, ObjectValue(*obj));
-    if (!str)
-        return JS_FALSE;
-
-    vp->setString(str);
-    return JS_TRUE;
+    
+    return obj->callMethod(cx, ATOM_TO_JSID(cx->runtime->atomState.toStringAtom), 0, NULL, vp);
 }
 
 static JSBool
@@ -1344,7 +1344,7 @@ PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx)
 
 
 
-    JSPrincipals *calleePrincipals = call.callee().compartment()->principals;
+    JSPrincipals *calleePrincipals = call.callee().principals(cx);
 
 #ifdef DEBUG
     if (calleePrincipals) {
