@@ -358,6 +358,10 @@ let UI = {
                                    welcomeWidth, welcomeWidth * aspect);
       newTabItem.setBounds(welcomeBounds, true);
       GroupItems.setActiveGroupItem(groupItem);
+
+      
+      if (!this.isTabViewVisible())
+        GroupItems._updateTabBar();
     }
   },
 
