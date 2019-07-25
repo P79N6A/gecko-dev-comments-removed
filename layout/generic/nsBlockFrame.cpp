@@ -4257,11 +4257,7 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
   if (aState.mPresContext->BidiEnabled()) {
     if (!aState.mPresContext->IsVisualMode() ||
         GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL) {
-      nsBidiPresUtils* bidiUtils = aState.mPresContext->GetBidiUtils();
-
-      if (bidiUtils && bidiUtils->IsSuccessful() ) {
-        bidiUtils->ReorderFrames(aLine->mFirstChild, aLine->GetChildCount());
-      } 
+      nsBidiPresUtils::ReorderFrames(aLine->mFirstChild, aLine->GetChildCount());
     } 
   } 
 #endif 
@@ -7220,11 +7216,7 @@ nsBlockFrame::ResolveBidi()
     return NS_OK;
   }
 
-  nsBidiPresUtils* bidiUtils = presContext->GetBidiUtils();
-  if (!bidiUtils)
-    return NS_ERROR_NULL_POINTER;
-
-  return bidiUtils->Resolve(this);
+  return nsBidiPresUtils::Resolve(this);
 }
 #endif
 

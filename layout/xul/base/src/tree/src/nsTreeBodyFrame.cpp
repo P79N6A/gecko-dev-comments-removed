@@ -105,7 +105,7 @@
 #include "nsRenderingContext.h"
 
 #ifdef IBMBIDI
-#include "nsBidiPresUtils.h"
+#include "nsBidiUtils.h"
 #endif
 
 
