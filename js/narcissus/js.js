@@ -59,16 +59,8 @@
 
 
 
-
-
-
-
-function my_load(filename) {
-    evaluate(snarf(filename), filename, 1);
-}
-
-my_load('jsdefs.js');
-my_load('jslex.js');
-my_load('jsparse.js');
-my_load('jsexec.js');
+load('jsdefs.js');
+load('jslex.js');
+load('jsparse.js');
+load('jsexec.js');
 
