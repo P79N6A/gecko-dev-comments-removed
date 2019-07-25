@@ -299,6 +299,9 @@ class MacroAssemblerARM : public Assembler
     void ma_vxfer(FloatRegister src, Register dest);
     void ma_vxfer(FloatRegister src, Register dest1, Register dest2);
 
+    void ma_vxfer(VFPRegister src, Register dest);
+    void ma_vxfer(VFPRegister src, Register dest1, Register dest2);
+
     void ma_vdtr(LoadStore ls, const Operand &addr, FloatRegister dest, Condition cc = Always);
 
     void ma_vldr(VFPAddr addr, FloatRegister dest);
@@ -322,17 +325,29 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
 {
     
     
-    uint32 stackAdjust_;
-    bool dynamicAlignment_;
     bool inCall_;
-    bool enoughMemory_;
+    uint32 args_;
+    
+    
+    uint32 passedArgs_;
 
     
     
     
     
     
-    uint32 setupABICall(uint32 arg);
+    
+    uint32 usedSlots_;
+    bool dynamicAlignment_;
+
+    bool enoughMemory_;
+    VFPRegister floatArgsInGPR[2];
+    
+    
+    
+    
+    
+    void setupABICall(uint32 arg);
 
   protected:
     MoveResolver moveResolver_;
@@ -350,9 +365,13 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     typedef MoveResolver::MoveOperand MoveOperand;
     typedef MoveResolver::Move Move;
 
+    enum Result {
+        GENERAL,
+        DOUBLE
+    };
+
     MacroAssemblerARMCompat()
-      : stackAdjust_(0),
-        inCall_(false),
+      : inCall_(false),
         enoughMemory_(true),
         framePushed_(0)
     { }
@@ -851,12 +870,13 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     
     
     
-    
-    void setABIArg(uint32 arg, const MoveOperand &from);
-    void setABIArg(uint32 arg, const Register &reg);
+    void pushABIArg(const MoveOperand &from);
+    void pushABIArg(const Register &reg);
+    void pushABIArg(const FloatRegister &reg);
+    void pushABIArg(const ValueOperand &regs);
 
     
-    void callWithABI(void *fun);
+    void callWithABI(void *fun, Result result = GENERAL);
 
     CodeOffsetLabel labelForPatch() {
         return CodeOffsetLabel(nextOffset().getOffset());
