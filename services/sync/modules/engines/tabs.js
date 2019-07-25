@@ -41,8 +41,6 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
-const TAB_TIME_ATTR = "weave.tabEngine.lastUsed.timeStamp";
-
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/engines.js");
@@ -215,7 +213,7 @@ TabStore.prototype = {
 	  continue;
 
         
-        let lastUsedTimestamp = tab.getAttribute(TAB_TIME_ATTR);
+        let lastUsedTimestamp = tab.lastUsed;
 
         
 	let currentPage = tabState.entries[tabState.entries.length - 1];
@@ -357,100 +355,47 @@ TabTracker.prototype = {
     this.resetChanged();
 
     
-    this.onTabOpened = Utils.bind2(this, this.onTabOpened);
-    this.onTabClosed = Utils.bind2(this, this.onTabClosed);
-    this.onTabSelected = Utils.bind2(this, this.onTabSelected);
+    this.onTab = Utils.bind2(this, this.onTab);
 
     
+    Svc.WinWatcher.registerNotification(this);
 
     
-    var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"]
-	       .getService(Ci.nsIWindowWatcher);
-    ww.registerNotification(this);
-
-    
-
-    let wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
-                   .getService(Components.interfaces.nsIWindowMediator);
-    let enumerator = wm.getEnumerator("navigator:browser");
-    while (enumerator.hasMoreElements()) {
-      this._registerListenersForWindow(enumerator.getNext());
-    }
-  },
-
-  _getBrowser: function TabTracker__getBrowser(window) {
-    
-    if (typeof window.getBrowser != "function")
-      return null;
-
-    
-    let browser = window.getBrowser();
-    if (browser == null || typeof browser.tabContainer != "object")
-      return null;
-
-    return browser;
+    let wins = Svc.WinMediator.getEnumerator("navigator:browser");
+    while (wins.hasMoreElements())
+      this._registerListenersForWindow(wins.getNext());
   },
 
   _registerListenersForWindow: function TabTracker__registerListen(window) {
-    let browser = this._getBrowser(window);
-    if (browser == null)
-      return;
+    this._log.trace("Registering tab listeners in new window");
 
     
+    let topics = ["TabOpen", "TabClose", "TabSelect"];
+    let onTab = this.onTab;
+    let addRem = function(add) topics.forEach(function(topic) {
+      window[(add ? "add" : "remove") + "EventListener"](topic, onTab, false);
+    });
+
     
-    let container = browser.tabContainer;
-    container.addEventListener("TabOpen", this.onTabOpened, false);
-    container.addEventListener("TabClose", this.onTabClosed, false);
-    container.addEventListener("TabSelect", this.onTabSelected, false);
-  },
-
-  _unRegisterListenersForWindow: function TabTracker__unregister(window) {
-    let browser = this._getBrowser(window);
-    if (browser == null)
-      return;
-
-    let container = browser.tabContainer;
-    container.removeEventListener("TabOpen", this.onTabOpened, false);
-    container.removeEventListener("TabClose", this.onTabClosed, false);
-    container.removeEventListener("TabSelect", this.onTabSelected, false);
+    addRem(true);
+    window.addEventListener("unload", function() addRem(false), false);
   },
 
   observe: function TabTracker_observe(aSubject, aTopic, aData) {
     
-
     let window = aSubject.QueryInterface(Ci.nsIDOMWindow);
-    
-    if (aTopic == "domwindowopened") {
+    if (aTopic == "domwindowopened")
       this._registerListenersForWindow(window);
-    } else if (aTopic == "domwindowclosed") {
-      this._unRegisterListenersForWindow(window);
-    }
   },
 
-  _upScore: function _upScore(amount) {
-    this.score += amount;
+  onTab: function onTab(event) {
+    this._log.trace(event.type);
+    this.score += 1;
     this._changedIDs[Clients.clientID] = true;
-  },
 
-  onTabOpened: function TabTracker_onTabOpened(event) {
     
-    this._log.trace("Tab opened.");
-    event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
-    this._upScore(1);
+    event.originalTarget.lastUsed = Math.floor(Date.now() / 1000);
   },
-
-  onTabClosed: function TabTracker_onTabSelected(event) {
-    this._log.trace("Tab closed.");
-    this._upScore(1);
-  },
-
-  onTabSelected: function TabTracker_onTabSelected(event) {
-    
-    this._log.trace("Tab selected.");
-    event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
-    this._upScore(1);
-  },
-  
 
   get changedIDs() this._changedIDs,
 
