@@ -1065,7 +1065,10 @@ struct Parser : private js::AutoGCRooter
     
     js::AutoKeepAtoms   keepAtoms;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
+    
+    bool                foldConstants;
+
+    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL, bool fold = true);
     ~Parser();
 
     friend void js::AutoGCRooter::trace(JSTracer *trc);
