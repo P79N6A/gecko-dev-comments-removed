@@ -121,8 +121,6 @@ let Storage = {
       
       PinnedLinks.resetCache();
       BlockedLinks.resetCache();
-
-      Pages.update();
     }
   },
 
@@ -190,11 +188,6 @@ let AllPages = {
   
 
 
-  _observing: false,
-
-  
-
-
   _enabled: null,
 
   
@@ -203,12 +196,7 @@ let AllPages = {
 
   register: function AllPages_register(aPage) {
     this._pages.push(aPage);
-
-    
-    if (!this._observing) {
-      this._observing = true;
-      Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this, true);
-    }
+    this._addObserver();
   },
 
   
@@ -242,6 +230,14 @@ let AllPages = {
 
 
 
+  get length() {
+    return this._pages.length;
+  },
+
+  
+
+
+
   update: function AllPages_update(aExceptPage) {
     this._pages.forEach(function (aPage) {
       if (aExceptPage != aPage)
@@ -262,6 +258,15 @@ let AllPages = {
     this._pages.forEach(function (aPage) {
       aPage.observe.apply(aPage, args);
     }, this);
+  },
+
+  
+
+
+
+  _addObserver: function AllPages_addObserver() {
+    Services.prefs.addObserver(PREF_NEWTAB_ENABLED, this, true);
+    this._addObserver = function () {};
   },
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
@@ -512,6 +517,8 @@ let Links = {
         this._links = aLinks;
         executeCallbacks();
       }.bind(this));
+
+      this._addObserver();
     }
   },
 
@@ -544,7 +551,32 @@ let Links = {
 
   resetCache: function Links_resetCache() {
     this._links = [];
-  }
+  },
+
+  
+
+
+
+  observe: function Links_observe(aSubject, aTopic, aData) {
+    
+    
+    if (AllPages.length && AllPages.enabled)
+      this.populateCache(function () { AllPages.update() }, true);
+    else
+      this._links = null;
+  },
+
+  
+
+
+
+  _addObserver: function Links_addObserver() {
+    Services.obs.addObserver(this, "browser:purge-session-history", true);
+    this._addObserver = function () {};
+  },
+
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver,
+                                         Ci.nsISupportsWeakReference])
 };
 
 
