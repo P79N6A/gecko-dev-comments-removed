@@ -105,6 +105,17 @@ public:
         URLSegment() : mPos(0), mLen(-1) {}
         URLSegment(PRUint32 pos, PRInt32 len) : mPos(pos), mLen(len) {}
         void Reset() { mPos = 0; mLen = -1; }
+        
+        
+        
+        void Merge(const nsCString &spec, const char separator, const URLSegment &right) {
+            if (mLen >= 0 && 
+                *(spec.get() + mPos + mLen) == separator &&
+                mPos + mLen + 1 == right.mPos) {
+                mLen += 1 + right.mLen;
+            }
+        }
+            
     };
 
     

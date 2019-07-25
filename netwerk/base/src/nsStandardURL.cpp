@@ -2771,6 +2771,11 @@ nsStandardURL::Read(nsIObjectInputStream *stream)
     rv = ReadSegment(stream, mExtension);
     if (NS_FAILED(rv)) return rv;
 
+    
+    URLSegment old_param;
+    rv = ReadSegment(stream, old_param);
+    if (NS_FAILED(rv)) return rv;
+
     rv = ReadSegment(stream, mQuery);
     if (NS_FAILED(rv)) return rv;
 
@@ -2806,6 +2811,18 @@ nsStandardURL::Read(nsIObjectInputStream *stream)
         return NS_ERROR_UNEXPECTED;
     }
     mHostEncoding = hostEncoding;
+
+    
+    if (old_param.mLen >= 0) {  
+        
+        
+        
+        
+        mFilepath.Merge(mSpec,  ';', old_param);
+        mDirectory.Merge(mSpec, ';', old_param);
+        mBasename.Merge(mSpec,  ';', old_param);
+        mExtension.Merge(mSpec, ';', old_param);
+    }
     
     return NS_OK;
 }
@@ -2855,6 +2872,14 @@ nsStandardURL::Write(nsIObjectOutputStream *stream)
     if (NS_FAILED(rv)) return rv;
 
     rv = WriteSegment(stream, mExtension);
+    if (NS_FAILED(rv)) return rv;
+
+    
+    
+    
+    
+    URLSegment empty;
+    rv = WriteSegment(stream, empty);
     if (NS_FAILED(rv)) return rv;
 
     rv = WriteSegment(stream, mQuery);
