@@ -625,102 +625,15 @@ nsBlockReflowState::AddFloat(nsLineLayout*       aLineLayout,
 }
 
 PRBool
-nsBlockReflowState::CanPlaceFloat(const nsSize& aFloatSize, PRUint8 aFloats,
+nsBlockReflowState::CanPlaceFloat(nscoord aFloatWidth,
                                   const nsFlowAreaRect& aFloatAvailableSpace)
 {
   
   
-  PRBool result = PR_TRUE;
-  if (aFloatAvailableSpace.mHasFloats) {
-    
-    if (aFloatAvailableSpace.mRect.width < aFloatSize.width) {
-      
-      
-      result = PR_FALSE;
-    }
-  }
-
-  if (!result)
-    return result;
-
   
   
-  
-  if (NSCoordGreaterThan(aFloatSize.height,
-                         aFloatAvailableSpace.mRect.height)) {
-    
-    
-    
-    
-    
-    
-    
-    
-    nscoord xa;
-    if (NS_STYLE_FLOAT_LEFT == aFloats) {
-      xa = aFloatAvailableSpace.mRect.x;
-    }
-    else {
-      xa = aFloatAvailableSpace.mRect.XMost() - aFloatSize.width;
-
-      
-      
-      
-      if (xa < aFloatAvailableSpace.mRect.x) {
-        xa = aFloatAvailableSpace.mRect.x;
-      }
-    }
-    nscoord xb = xa + aFloatSize.width;
-
-    
-    
-    const nsMargin& borderPadding = BorderPadding();
-    nscoord ya = mY - borderPadding.top;
-    if (ya < 0) {
-      
-      
-      
-      
-      
-      ya = 0;
-    }
-    nscoord yb = ya + aFloatSize.height;
-
-    nscoord saveY = mY;
-    nsFlowAreaRect floatAvailableSpace(aFloatAvailableSpace);
-    for (;;) {
-      
-      if (floatAvailableSpace.mRect.height <= 0) {
-        
-        result = PR_FALSE;
-        break;
-      }
-
-      mY += floatAvailableSpace.mRect.height;
-      floatAvailableSpace = GetFloatAvailableSpace(mY);
-
-      if (floatAvailableSpace.mHasFloats) {
-        if (xa < floatAvailableSpace.mRect.x ||
-            xb > floatAvailableSpace.mRect.XMost()) {
-          
-          result = PR_FALSE;
-          break;
-        }
-      }
-
-      
-      if (yb <= mY + floatAvailableSpace.mRect.height) {
-        
-        
-        break;
-      }
-    }
-
-    
-    mY = saveY;
-  }
-
-  return result;
+  return !aFloatAvailableSpace.mHasFloats ||
+         aFloatAvailableSpace.mRect.width >= aFloatWidth;
 }
 
 PRBool
@@ -791,12 +704,16 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame*       aFloat,
   
   PRBool keepFloatOnSameLine = PR_FALSE;
 
-  while (!CanPlaceFloat(floatSize, floatDisplay->mFloats,
-                        floatAvailableSpace)) {
+  for (;;) {
     if (floatAvailableSpace.mRect.height <= 0) {
       
       mY = saveY;
       return PR_FALSE;
+    }
+
+    if (CanPlaceFloat(floatSize.width, floatAvailableSpace)) {
+      
+      break;
     }
 
     
