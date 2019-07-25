@@ -61,8 +61,8 @@ static POINTL gDragLastPoint;
 
 
 nsNativeDragTarget::nsNativeDragTarget(nsIWidget * aWnd)
-  : m_cRef(0), mCanMove(PR_TRUE), mTookOwnRef(PR_FALSE), mWindow(aWnd),
-  mDropTargetHelper(nsnull)
+  : m_cRef(0), mEffect(DROPEFFECT_MOVE | DROPEFFECT_COPY | DROPEFFECT_LINK), 
+    mTookOwnRef(PR_FALSE), mWindow(aWnd), mDropTargetHelper(nsnull)
 {
   mHWnd = (HWND)mWindow->GetNativeData(NS_NATIVE_WINDOW);
 
@@ -123,23 +123,25 @@ STDMETHODIMP_(ULONG) nsNativeDragTarget::Release(void)
 }
 
 void
-nsNativeDragTarget::GetGeckoDragAction(LPDATAOBJECT pData, DWORD grfKeyState,
-                                       LPDWORD pdwEffect,
+nsNativeDragTarget::GetGeckoDragAction(DWORD grfKeyState, LPDWORD pdwEffect,
                                        PRUint32 * aGeckoAction)
-{
-  
-  PRBool canLink = PR_FALSE;
-  if (pData)
-    canLink = (S_OK == ::OleQueryLinkFromData(pData) ? PR_TRUE : PR_FALSE);
-
+{  
   
   
   
   
-  if (mCanMove && (mMovePreferred || (grfKeyState & MK_SHIFT))) {
+  if ((mEffect & DROPEFFECT_MOVE) && 
+      (mMovePreferred || (grfKeyState & MK_SHIFT))) {
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_MOVE;
     *pdwEffect    = DROPEFFECT_MOVE;
-  } else {
+  } 
+  else if (!(mEffect & DROPEFFECT_MOVE) && 
+           !(mEffect & DROPEFFECT_COPY) && 
+           (mEffect & DROPEFFECT_LINK)) {
+    *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
+    *pdwEffect    = DROPEFFECT_LINK;
+  }
+  else {
     *aGeckoAction = nsIDragService::DRAGDROP_ACTION_COPY;
     *pdwEffect    = DROPEFFECT_COPY;
   }
@@ -147,7 +149,7 @@ nsNativeDragTarget::GetGeckoDragAction(LPDATAOBJECT pData, DWORD grfKeyState,
   
   
   if (grfKeyState & MK_CONTROL) {
-    if (canLink && (grfKeyState & MK_SHIFT)) {
+    if ((mEffect & DROPEFFECT_LINK) && (grfKeyState & MK_SHIFT)) {
       *aGeckoAction = nsIDragService::DRAGDROP_ACTION_LINK;
       *pdwEffect    = DROPEFFECT_LINK;
     } else {
@@ -196,15 +198,14 @@ nsNativeDragTarget::DispatchDragDropEvent(PRUint32 aEventType, POINTL aPT)
 }
 
 void
-nsNativeDragTarget::ProcessDrag(LPDATAOBJECT pData,
-                                PRUint32     aEventType,
+nsNativeDragTarget::ProcessDrag(PRUint32     aEventType,
                                 DWORD        grfKeyState,
                                 POINTL       ptl,
                                 DWORD*       pdwEffect)
 {
   
   PRUint32 geckoAction;
-  GetGeckoDragAction(pData, grfKeyState, pdwEffect, &geckoAction);
+  GetGeckoDragAction(grfKeyState, pdwEffect, &geckoAction);
 
   
   nsCOMPtr<nsIDragSession> currSession;
@@ -256,8 +257,14 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   
   mDragService->StartDragSession();
 
+  mEffect = *pdwEffect;
   
-  mCanMove = (*pdwEffect) & DROPEFFECT_MOVE;
+  
+  if (!(mEffect & DROPEFFECT_LINK) && pIDataSource) {
+    if (S_OK == ::OleQueryLinkFromData(pIDataSource)) {
+      mEffect |= DROPEFFECT_LINK;
+    }
+  }
 
   void* tempOutData = nsnull;
   PRUint32 tempDataLen = 0;
@@ -271,7 +278,7 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
     mMovePreferred = (preferredEffect & DROPEFFECT_MOVE) != 0;
   }
   else
-    mMovePreferred = mCanMove;
+    mMovePreferred = (mEffect & DROPEFFECT_MOVE) != 0;
 
   
   
@@ -283,7 +290,7 @@ nsNativeDragTarget::DragEnter(LPDATAOBJECT pIDataSource,
   winDragService->SetIDataObject(pIDataSource);
 
   
-  ProcessDrag(pIDataSource, NS_DRAGDROP_ENTER, grfKeyState, ptl, pdwEffect);
+  ProcessDrag(NS_DRAGDROP_ENTER, grfKeyState, ptl, pdwEffect);
 
   return S_OK;
 }
@@ -314,7 +321,7 @@ nsNativeDragTarget::DragOver(DWORD   grfKeyState,
 
   mDragService->FireDragEventAtSource(NS_DRAGDROP_DRAG);
   
-  ProcessDrag(nsnull, NS_DRAGDROP_OVER, grfKeyState, ptl, pdwEffect);
+  ProcessDrag(NS_DRAGDROP_OVER, grfKeyState, ptl, pdwEffect);
 
   this->Release();
 
@@ -408,7 +415,7 @@ nsNativeDragTarget::Drop(LPDATAOBJECT pData,
   nsCOMPtr<nsIDragService> serv = mDragService;
 
   
-  ProcessDrag(pData, NS_DRAGDROP_DROP, grfKeyState, aPT, pdwEffect);
+  ProcessDrag(NS_DRAGDROP_DROP, grfKeyState, aPT, pdwEffect);
 
   nsCOMPtr<nsIDragSession> currentDragSession;
   serv->GetCurrentSession(getter_AddRefs(currentDragSession));
