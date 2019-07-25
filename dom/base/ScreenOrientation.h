@@ -8,6 +8,9 @@
 namespace mozilla {
 namespace dom {
 
+
+
+
 enum ScreenOrientation {
   eScreenOrientation_Current            = 0,
   eScreenOrientation_PortraitPrimary    = 1,  
