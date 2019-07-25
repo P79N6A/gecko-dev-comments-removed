@@ -603,38 +603,6 @@ InspectorUI.prototype = {
   
 
 
-  toggleVeil: function IUI_toggleVeil()
-  {
-    if (this.currentInspector._highlighterShowVeil) {
-      this.highlighter.hideVeil();
-      this.currentInspector._highlighterShowVeil = false;
-      Services.prefs.setBoolPref("devtools.inspector.highlighterShowVeil", false);
-    } else {
-      this.highlighter.showVeil();
-      this.currentInspector._highlighterShowVeil = true;
-      Services.prefs.setBoolPref("devtools.inspector.highlighterShowVeil", true);
-    }
-  },
-
-  
-
-
-  toggleInfobar: function IUI_toggleInfobar()
-  {
-    if (this.currentInspector._highlighterShowInfobar) {
-      this.highlighter.hideInfobar();
-      this.currentInspector._highlighterShowInfobar = false;
-      Services.prefs.setBoolPref("devtools.inspector.highlighterShowInfobar", false);
-    } else {
-      this.highlighter.showInfobar();
-      this.currentInspector._highlighterShowInfobar = true;
-      Services.prefs.setBoolPref("devtools.inspector.highlighterShowInfobar", true);
-    }
-  },
-
-  
-
-
   get defaultSelection()
   {
     let doc = this.win.document;
@@ -713,6 +681,11 @@ InspectorUI.prototype = {
     });
 
     
+    let deck = this.chromeDoc.getElementById("devtools-sidebar-deck");
+    deck.addEventListener("mouseenter", this, true);
+    deck.addEventListener("mouseleave", this, true);
+
+    
     
     for each (let tool in InspectorUI._registeredSidebars) {
       this._sidebar.addTool(tool);
@@ -769,12 +742,6 @@ InspectorUI.prototype = {
 
       inspector._activeSidebar =
         Services.prefs.getCharPref("devtools.inspector.activeSidebar");
-
-      inspector._highlighterShowVeil =
-        Services.prefs.getBoolPref("devtools.inspector.highlighterShowVeil");
-
-      inspector._highlighterShowInfobar =
-        Services.prefs.getBoolPref("devtools.inspector.highlighterShowInfobar");
 
       this.win.addEventListener("pagehide", this, true);
 
@@ -856,10 +823,12 @@ InspectorUI.prototype = {
       this._sidebar = null;
     }
 
-    if (this.highlighter) {
-      this.highlighter.destroy();
-      this.highlighter = null;
-    }
+    let deck = this.chromeDoc.getElementById("devtools-sidebar-deck");
+    deck.removeEventListener("mouseenter", this, true);
+    deck.removeEventListener("mouseleave", this, true);
+
+    this.highlighter.destroy();
+    this.highlighter = null;
 
     if (this.breadcrumbs) {
       this.breadcrumbs.destroy();
@@ -1060,23 +1029,6 @@ InspectorUI.prototype = {
       this._sidebar.show();
     }
 
-    let menu = this.chromeDoc.getElementById("inspectorToggleVeil");
-    if (this.currentInspector._highlighterShowVeil) {
-      menu.setAttribute("checked", "true");
-    } else {
-      menu.removeAttribute("checked");
-      this.highlighter.hideVeil();
-    }
-
-    menu = this.chromeDoc.getElementById("inspectorToggleInfobar");
-    if (this.currentInspector._highlighterShowInfobar) {
-      menu.setAttribute("checked", "true");
-      this.highlighter.showInfobar();
-    } else {
-      menu.removeAttribute("checked");
-      this.highlighter.hideInfobar();
-    }
-
     Services.obs.notifyObservers({wrappedJSObject: this},
                                  INSPECTOR_NOTIFICATIONS.OPENED, null);
   },
@@ -1145,6 +1097,12 @@ InspectorUI.prototype = {
           this.tabbrowser.tabContainer.removeEventListener("TabSelect", this,
                                                          false);
         }
+        break;
+      case "mouseleave":
+        this.highlighter.show();
+        break;
+      case "mouseenter":
+        this.highlighter.hide();
         break;
     }
   },
