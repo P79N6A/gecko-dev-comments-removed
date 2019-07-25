@@ -766,12 +766,6 @@ public:
 
 
 
-  virtual ContainerLayer* AsContainerLayer() { return nsnull; }
-
-  
-
-
-
   virtual ShadowLayer* AsShadowLayer() { return nsnull; }
 
   
@@ -1034,8 +1028,6 @@ public:
   }
 
   
-
-  virtual ContainerLayer* AsContainerLayer() { return this; }
 
   virtual Layer* GetFirstChild() { return mFirstChild; }
   virtual Layer* GetLastChild() { return mLastChild; }

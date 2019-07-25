@@ -1961,8 +1961,7 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   dirtyRect.IntersectRect(aDirtyRect, mScrollPort);
 
   
-  PRBool usingDisplayport =
-    nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &dirtyRect);
+  nsLayoutUtils::GetDisplayPort(mOuter->GetContent(), &dirtyRect);
 
   nsDisplayListCollection set;
 
@@ -1977,42 +1976,30 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
+  PRInt32 appUnitsPerDevPixel = presContext->AppUnitsPerDevPixel();
   nsRect scrollRange = GetScrollRange();
   ScrollbarStyles styles = GetScrollbarStylesFromFrame();
   mShouldBuildLayer =
      (XRE_GetProcessType() == GeckoProcessType_Content &&
      (styles.mHorizontal != NS_STYLE_OVERFLOW_HIDDEN ||
       styles.mVertical != NS_STYLE_OVERFLOW_HIDDEN) &&
-     (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument()));
+     (scrollRange.width >= NSIntPixelsToAppUnits(20, appUnitsPerDevPixel) ||
+      scrollRange.height >= NSIntPixelsToAppUnits(20, appUnitsPerDevPixel))) &&
+     (!mIsRoot || !mOuter->PresContext()->IsRootContentDocument());
 
   if (ShouldBuildLayer()) {
+    
+    
+
     nsDisplayList list;
-    if (usingDisplayport) {
-      
-      
-      
-      
-      
-      
+    rv = mScrolledFrame->BuildDisplayListForStackingContext(
+      aBuilder, dirtyRect + mOuter->GetOffsetTo(mScrolledFrame), &list);
 
-      rv = mScrolledFrame->BuildDisplayListForStackingContext(
-        aBuilder, dirtyRect + mOuter->GetOffsetTo(mScrolledFrame), &list);
-
-      nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollLayer(
-        aBuilder, &list, mScrolledFrame, mOuter);
-      set.Content()->AppendNewToTop(layerItem);
-    } else {
-      
-      
-      
-
-      nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollInfoLayer(
-        aBuilder, &list, mScrolledFrame, mOuter);
-      set.Content()->AppendNewToTop(layerItem);
-
-      rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
-    }
-  } else {
+    nsDisplayScrollLayer* layerItem = new (aBuilder) nsDisplayScrollLayer(
+      aBuilder, &list, mScrolledFrame, mOuter);
+    set.Content()->AppendNewToTop(layerItem);
+  } else
+  {
     rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
   }
 
