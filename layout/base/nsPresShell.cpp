@@ -5935,6 +5935,12 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
       }
     }
 
+    
+    if (aEvent->eventStructType == NS_TOUCH_EVENT &&
+        aEvent->message != NS_TOUCH_START) {
+      captureRetarget = true;
+    }
+
     bool isWindowLevelMouseExit = (aEvent->message == NS_MOUSE_EXIT) &&
       (static_cast<nsMouseEvent*>(aEvent)->exit == nsMouseEvent::eTopLevel);
 
