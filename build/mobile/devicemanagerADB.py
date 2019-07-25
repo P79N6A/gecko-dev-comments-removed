@@ -96,6 +96,8 @@ class DeviceManagerADB(DeviceManager):
     
     
     try:
+      if (not self.dirExists(remoteDir)):
+        self.mkDirs(remoteDir+"/x")
       for root, dirs, files in os.walk(localDir):
         relRoot = os.path.relpath(root, localDir)
         for file in files:
