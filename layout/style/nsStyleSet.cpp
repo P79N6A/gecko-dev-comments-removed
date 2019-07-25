@@ -1134,15 +1134,35 @@ nsStyleSet::GCRuleTrees()
   }
 }
 
+static inline nsRuleNode*
+SkipTransitionRules(nsRuleNode* aRuleNode, Element* aElement)
+{
+  nsRuleNode* ruleNode = aRuleNode;
+  while (!ruleNode->IsRoot() &&
+         ruleNode->GetLevel() == nsStyleSet::eTransitionSheet) {
+    ruleNode = ruleNode->GetParent();
+  }
+  if (ruleNode != aRuleNode) {
+    NS_ASSERTION(aElement, "How can we have transition rules but no element?");
+    
+    
+    aRuleNode->GetPresContext()->PresShell()->RestyleForAnimation(aElement);
+  }
+  return ruleNode;
+}
+
 already_AddRefed<nsStyleContext>
 nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
-                                 nsStyleContext* aNewParentContext)
+                                 nsStyleContext* aNewParentContext,
+                                 Element* aElement)
 {
   if (!aStyleContext) {
     NS_NOTREACHED("must have style context");
     return nsnull;
   }
 
+  
+  
   if (aStyleContext->GetParent() == aNewParentContext) {
     aStyleContext->AddRef();
     return aStyleContext;
@@ -1151,6 +1171,17 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   nsIAtom* pseudoTag = aStyleContext->GetPseudo();
   nsCSSPseudoElements::Type pseudoType = aStyleContext->GetPseudoType();
   nsRuleNode* ruleNode = aStyleContext->GetRuleNode();
+
+  
+  
+  PRBool skipTransitionRules = PresContext()->IsProcessingRestyles() &&
+    !PresContext()->IsProcessingAnimationStyleChange();
+  if (skipTransitionRules) {
+    
+    
+    ruleNode = SkipTransitionRules(ruleNode, aElement);
+  }
+
   nsRuleNode* visitedRuleNode = nsnull;
   nsStyleContext* visitedContext = aStyleContext->GetStyleIfVisited();
   
@@ -1159,6 +1190,10 @@ nsStyleSet::ReparentStyleContext(nsStyleContext* aStyleContext,
   
   if (visitedContext) {
      visitedRuleNode = visitedContext->GetRuleNode();
+     
+     if (skipTransitionRules) {
+       visitedRuleNode = SkipTransitionRules(visitedRuleNode, aElement);
+     }
   }
 
   return GetContext(aNewParentContext, ruleNode, visitedRuleNode,

@@ -174,9 +174,13 @@ class nsStyleSet
   
   
   
+  
+  
+  
   already_AddRefed<nsStyleContext>
   ReparentStyleContext(nsStyleContext* aStyleContext,
-                       nsStyleContext* aNewParentContext);
+                       nsStyleContext* aNewParentContext,
+                       mozilla::dom::Element* aElement);
 
   
   PRBool HasDocumentStateDependentStyle(nsPresContext* aPresContext,
