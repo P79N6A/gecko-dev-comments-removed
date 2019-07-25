@@ -865,6 +865,11 @@ nsScriptSecurityManager::CheckPropertyAccessImpl(PRUint32 aAction,
             stringName.AssignLiteral("CallMethodDeniedOrigins");
         }
 
+        
+        
+        
+        objectPrincipal = nsnull;
+
         NS_ConvertUTF8toUTF16 className(classInfoData.GetName());
         nsCAutoString subjectOrigin;
         nsCAutoString subjectDomain;
