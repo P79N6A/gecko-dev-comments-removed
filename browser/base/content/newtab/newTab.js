@@ -45,3 +45,6 @@ const THUMB_HEIGHT = 127;
 #include dropTargetShim.js
 #include dropPreview.js
 #include updater.js
+
+
+gPage.init("#toolbar", "#grid");
