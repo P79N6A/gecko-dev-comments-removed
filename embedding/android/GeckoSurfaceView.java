@@ -169,8 +169,30 @@ class GeckoSurfaceView
     }
 
     public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+        
+        
+        
+        
+        
+        
+        if (mDrawMode == DRAW_GLES_2) {
+            
+            
+            
+            mDrawSingleFrame = true;
+            if (!mInDrawing) { 
+                
+                GeckoAppShell.scheduleRedraw();
+            }
+            GeckoAppShell.geckoEventSync();
+            mDrawSingleFrame = false;
+            mAbortDraw = false;
+        }
+
         if (mShowingSplashScreen)
             drawSplashScreen(holder, width, height);
+
         mSurfaceLock.lock();
 
         try {
@@ -221,6 +243,12 @@ class GeckoSurfaceView
             }
         } finally {
             mSurfaceLock.unlock();
+            if (mDrawMode == DRAW_GLES_2) {
+                
+                
+                GeckoAppShell.scheduleRedraw();
+                GeckoAppShell.geckoEventSync();
+            }
         }
 
         Object syncDrawObject = null;
@@ -293,11 +321,21 @@ class GeckoSurfaceView
     public static final int DRAW_ERROR = 0;
     public static final int DRAW_GLES_2 = 1;
     public static final int DRAW_2D = 2;
+    
+    
+    
+    public static final int DRAW_DISABLED = 3;
 
     public int beginDrawing() {
         if (mInDrawing) {
             Log.e(LOG_FILE_NAME, "Recursive beginDrawing call!");
             return DRAW_ERROR;
+        }
+
+        
+        
+        if (mAbortDraw) {
+            return DRAW_DISABLED;
         }
 
         
@@ -329,6 +367,9 @@ class GeckoSurfaceView
             Log.e(LOG_FILE_NAME, "endDrawing without beginDrawing!");
             return;
         }
+
+       if (mDrawSingleFrame)
+            mAbortDraw = true;
 
         try {
             if (!mSurfaceValid) {
@@ -656,6 +697,10 @@ class GeckoSurfaceView
 
     
     boolean mInDrawing;
+
+    
+    boolean mDrawSingleFrame = false;
+    boolean mAbortDraw = false;
 
     
     boolean mSyncDraw;
