@@ -1385,7 +1385,7 @@ nsJSContext::nsJSContext(JSRuntime *aRuntime)
     ::JS_SetContextPrivate(mContext, static_cast<nsIScriptContext *>(this));
 
     
-    ::JS_SetOptions(mContext, mDefaultJSOptions);
+    ::JS_SetOptions(mContext, ::JS_GetOptions(mContext) | mDefaultJSOptions);
 
     
     nsContentUtils::RegisterPrefCallback(js_options_dot_str,
@@ -3353,7 +3353,7 @@ nsJSContext::InitClasses(void *aGlobalObj)
                                            &OptionsClass, nsnull, 0);
   if (optionsObj &&
       ::JS_DefineProperties(mContext, optionsObj, OptionsProperties)) {
-    ::JS_SetOptions(mContext, mDefaultJSOptions);
+    ::JS_SetOptions(mContext, ::JS_GetOptions(mContext) | mDefaultJSOptions);
   } else {
     rv = NS_ERROR_FAILURE;
   }
