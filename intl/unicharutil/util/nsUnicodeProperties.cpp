@@ -38,7 +38,6 @@
 #define HB_DONT_DEFINE_STDINT  1
 
 #include "nsUnicodeProperties.h"
-#include "nsUnicodeScriptCodes.h"
 #include "nsUnicodePropertyData.cpp"
 
 #include "mozilla/Util.h"
@@ -47,6 +46,53 @@
 
 #define UNICODE_BMP_LIMIT 0x10000
 #define UNICODE_LIMIT     0x110000
+
+
+nsCharProps1
+GetCharProps1(PRUint32 aCh)
+{
+    if (aCh < UNICODE_BMP_LIMIT) {
+        return sCharProp1Values[sCharProp1Pages[0][aCh >> kCharProp1CharBits]]
+                               [aCh & ((1 << kCharProp1CharBits) - 1)];
+    }
+    if (aCh < (kCharProp1MaxPlane + 1) * 0x10000) {
+        return sCharProp1Values[sCharProp1Pages[sCharProp1Planes[(aCh >> 16) - 1]]
+                                               [(aCh & 0xffff) >> kCharProp1CharBits]]
+                               [aCh & ((1 << kCharProp1CharBits) - 1)];
+    }
+
+    
+    nsCharProps1 undefined = {0,       
+                              0,       
+                              0};      
+    return undefined;
+}
+
+nsCharProps2
+GetCharProps2(PRUint32 aCh)
+{
+    if (aCh < UNICODE_BMP_LIMIT) {
+        return sCharProp2Values[sCharProp2Pages[0][aCh >> kCharProp2CharBits]]
+                              [aCh & ((1 << kCharProp2CharBits) - 1)];
+    }
+    if (aCh < (kCharProp2MaxPlane + 1) * 0x10000) {
+        return sCharProp2Values[sCharProp2Pages[sCharProp2Planes[(aCh >> 16) - 1]]
+                                               [(aCh & 0xffff) >> kCharProp2CharBits]]
+                               [aCh & ((1 << kCharProp2CharBits) - 1)];
+    }
+
+    NS_NOTREACHED("Getting CharProps for codepoint outside Unicode range");
+    
+    nsCharProps2 undefined = {
+        MOZ_SCRIPT_UNKNOWN,                      
+        0,                                       
+        HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED,  
+        eCharType_LeftToRight,                   
+        mozilla::unicode::XIDMOD_NOT_CHARS,      
+        -1                                       
+    };
+    return undefined;
+}
 
 namespace mozilla {
 
@@ -113,81 +159,7 @@ nsIUGenCategory::nsUGenCategory sDetailedToGeneralCategory[] = {
 PRUint32
 GetMirroredChar(PRUint32 aCh)
 {
-    
-    if (aCh < UNICODE_BMP_LIMIT) {
-        int v = sMirrorValues[sMirrorPages[0][aCh >> kMirrorCharBits]]
-                             [aCh & ((1 << kMirrorCharBits) - 1)];
-        
-        
-        
-        
-        
-        if (v < kSmallMirrorOffset) {
-            return aCh + v;
-        }
-        return sDistantMirrors[v - kSmallMirrorOffset];
-    }
-    return aCh;
-}
-
-PRUint8
-GetCombiningClass(PRUint32 aCh)
-{
-    if (aCh < UNICODE_BMP_LIMIT) {
-        return sCClassValues[sCClassPages[0][aCh >> kCClassCharBits]]
-                            [aCh & ((1 << kCClassCharBits) - 1)];
-    }
-    if (aCh < (kCClassMaxPlane + 1) * 0x10000) {
-        return sCClassValues[sCClassPages[sCClassPlanes[(aCh >> 16) - 1]]
-                                         [(aCh & 0xffff) >> kCClassCharBits]]
-                            [aCh & ((1 << kCClassCharBits) - 1)];
-    }
-    return 0;
-}
-
-PRUint8
-GetGeneralCategory(PRUint32 aCh)
-{
-    if (aCh < UNICODE_BMP_LIMIT) {
-        return sCatEAWValues[sCatEAWPages[0][aCh >> kCatEAWCharBits]]
-                            [aCh & ((1 << kCatEAWCharBits) - 1)].mCategory;
-    }
-    if (aCh < (kCatEAWMaxPlane + 1) * 0x10000) {
-        return sCatEAWValues[sCatEAWPages[sCatEAWPlanes[(aCh >> 16) - 1]]
-                                         [(aCh & 0xffff) >> kCatEAWCharBits]]
-                            [aCh & ((1 << kCatEAWCharBits) - 1)].mCategory;
-    }
-    return PRUint8(HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED);
-}
-
-PRUint8
-GetEastAsianWidth(PRUint32 aCh)
-{
-    if (aCh < UNICODE_BMP_LIMIT) {
-        return sCatEAWValues[sCatEAWPages[0][aCh >> kCatEAWCharBits]]
-                            [aCh & ((1 << kCatEAWCharBits) - 1)].mEAW;
-    }
-    if (aCh < (kCatEAWMaxPlane + 1) * 0x10000) {
-        return sCatEAWValues[sCatEAWPages[sCatEAWPlanes[(aCh >> 16) - 1]]
-                                         [(aCh & 0xffff) >> kCatEAWCharBits]]
-                            [aCh & ((1 << kCatEAWCharBits) - 1)].mEAW;
-    }
-    return 0;
-}
-
-PRInt32
-GetScriptCode(PRUint32 aCh)
-{
-    if (aCh < UNICODE_BMP_LIMIT) {
-        return sScriptValues[sScriptPages[0][aCh >> kScriptCharBits]]
-                            [aCh & ((1 << kScriptCharBits) - 1)];
-    }
-    if (aCh < (kScriptMaxPlane + 1) * 0x10000) {
-        return sScriptValues[sScriptPages[sScriptPlanes[(aCh >> 16) - 1]]
-                                         [(aCh & 0xffff) >> kScriptCharBits]]
-                            [aCh & ((1 << kScriptCharBits) - 1)];
-    }
-    return MOZ_SCRIPT_UNKNOWN;
+    return aCh + sMirrorOffsets[GetCharProps1(aCh).mMirrorOffsetIndex];
 }
 
 PRUint32
@@ -198,17 +170,6 @@ GetScriptTagForCode(PRInt32 aScriptCode)
         return 0;
     }
     return sScriptCodeToTag[aScriptCode];
-}
-
-HSType
-GetHangulSyllableType(PRUint32 aCh)
-{
-    
-    if (aCh < UNICODE_BMP_LIMIT) {
-        return HSType(sHangulValues[sHangulPages[0][aCh >> kHangulCharBits]]
-                                   [aCh & ((1 << kHangulCharBits) - 1)]);
-    }
-    return HST_NONE;
 }
 
 static inline PRUint32
@@ -273,6 +234,25 @@ GetTitlecaseForAll(PRUint32 aCh)
         return GetTitlecaseForLower(aCh ^ (mapValue & kCaseMapCharMask));
     }
     return aCh;
+}
+
+HanVariantType
+GetHanVariant(PRUint32 aCh)
+{
+    
+    
+    
+    PRUint8 v = 0;
+    if (aCh < UNICODE_BMP_LIMIT) {
+        v = sHanVariantValues[sHanVariantPages[0][aCh >> kHanVariantCharBits]]
+                             [(aCh & ((1 << kHanVariantCharBits) - 1)) >> 2];
+    } else if (aCh < (kHanVariantMaxPlane + 1) * 0x10000) {
+        v = sHanVariantValues[sHanVariantPages[sHanVariantPlanes[(aCh >> 16) - 1]]
+                                              [(aCh & 0xffff) >> kHanVariantCharBits]]
+                             [(aCh & ((1 << kHanVariantCharBits) - 1)) >> 2];
+    }
+    
+    return HanVariantType((v >> ((aCh & 3) * 2)) & 3);
 }
 
 bool

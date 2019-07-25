@@ -74,8 +74,32 @@
 
 
 
+
+
+
+
+
+
+
+
 #ifndef NS_UNICODE_SCRIPT_CODES
 #define NS_UNICODE_SCRIPT_CODES
+struct nsCharProps1 {
+  unsigned char  mMirrorOffsetIndex:5;
+  unsigned char mHangulType:3;
+  unsigned char mCombiningClass:8;
+};
+
+struct nsCharProps2 {
+  unsigned char mScriptCode:8;
+  unsigned char mEAW:3;
+  unsigned char mCategory:5;
+  unsigned char mBidiCategory:5;
+  unsigned char mXidmod:4;
+  signed char mNumericValue:5;
+  unsigned char mHanVariant:2;
+};
+
 enum {
   MOZ_SCRIPT_COMMON = 0,
   MOZ_SCRIPT_INHERITED = 1,
