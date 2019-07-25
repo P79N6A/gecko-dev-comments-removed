@@ -130,8 +130,6 @@ protected:
     nsWeakPtr       mCurrentSearchFrame;    
     nsWeakPtr       mRootSearchFrame;       
     nsWeakPtr       mLastFocusedWindow;     
-    
-    nsCOMPtr<nsIFind> mFind;
 };
 
 #endif
