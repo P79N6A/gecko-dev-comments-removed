@@ -424,8 +424,13 @@ struct JSRuntime
     size_t              gcMaxBytes;
     size_t              gcMaxMallocBytes;
     uint32_t            gcEmptyArenaPoolLifespan;
+
     
-    volatile uint32_t   gcNumFreeArenas;
+
+
+
+
+    volatile uint32_t   gcNumArenasFreeCommitted;
     uint32_t            gcNumber;
     js::GCMarker        *gcIncrementalTracer;
     void                *gcVerifyData;
