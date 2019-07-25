@@ -72,7 +72,22 @@ function getFactory(comp)
     }
   }
 }
+
+
+
+function DownloadMgrUI() { }
+DownloadMgrUI.prototype = {
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIDownloadManagerUI]),
+  contractID: "@mozilla.org/download-manager-ui;1",
+  show: function (ir, aID, reason) { },
+
+  visible: false,
+
+  getAttention: function () { }
+}
+
 registerTemporaryComponent(HelperAppDlg);
+registerTemporaryComponent(DownloadMgrUI);
 
 function initChildTestEnv()
 {
