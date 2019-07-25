@@ -195,6 +195,8 @@ ThebesLayerD3D9::RenderLayer()
 
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
 
+  
+  
   D3DFORMAT fmt = UseOpaqueSurface(this) ? D3DFMT_X8R8G8B8 : D3DFMT_A8R8G8B8;
   if (mTexture) {
     D3DSURFACE_DESC desc;
