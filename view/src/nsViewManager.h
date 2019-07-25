@@ -81,8 +81,6 @@
 
 
 
-class nsInvalidateEvent;
-
 class nsViewManager : public nsIViewManager {
 public:
   nsViewManager();
@@ -142,7 +140,6 @@ public:
  
   NS_IMETHOD IsPainting(bool& aIsPainting);
   NS_IMETHOD GetLastUserEventTime(PRUint32& aTime);
-  void ProcessInvalidateEvent();
   static PRUint32 gLastUserEventTime;
 
   
@@ -259,8 +256,6 @@ private:
   
   nsViewManager     *mRootViewManager;
 
-  nsRevocableEventPtr<nsInvalidateEvent> mInvalidateEvent;
-
   
   
   
@@ -281,24 +276,6 @@ private:
 
   
   static nsVoidArray       *gViewManagers;
-
-  void PostInvalidateEvent();
-};
-
-class nsInvalidateEvent : public nsRunnable {
-public:
-  nsInvalidateEvent(class nsViewManager *vm) : mViewManager(vm) {
-    NS_ASSERTION(mViewManager, "null parameter");
-  }
-  void Revoke() { mViewManager = nsnull; }
-
-  NS_IMETHOD Run() {
-    if (mViewManager)
-      mViewManager->ProcessInvalidateEvent();
-    return NS_OK;
-  }
-protected:
-  class nsViewManager *mViewManager;
 };
 
 #endif 
