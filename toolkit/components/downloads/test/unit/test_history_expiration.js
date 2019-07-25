@@ -93,7 +93,7 @@ function run_test()
   
   
   
-  let expirableTime = Date.now() - 8 * 24 * 60 * 60 * 1000;
+  let expirableTime = Date.now() - 9 * 24 * 60 * 60 * 1000;
   histsvc.addVisit(theURI, expirableTime * 1000, null,
                    histsvc.TRANSITION_DOWNLOAD, false, 0);
 
