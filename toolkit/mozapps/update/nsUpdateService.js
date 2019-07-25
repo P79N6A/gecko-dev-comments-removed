@@ -67,7 +67,6 @@ const PREF_APP_UPDATE_CERT_ERRORS         = "app.update.cert.errors";
 const PREF_APP_UPDATE_CERT_MAXERRORS      = "app.update.cert.maxErrors";
 const PREF_APP_UPDATE_CERT_REQUIREBUILTIN = "app.update.cert.requireBuiltIn";
 const PREF_APP_UPDATE_CHANNEL             = "app.update.channel";
-const PREF_APP_UPDATE_DESIREDCHANNEL      = "app.update.desiredChannel";
 const PREF_APP_UPDATE_ENABLED             = "app.update.enabled";
 const PREF_APP_UPDATE_IDLETIME            = "app.update.idletime";
 const PREF_APP_UPDATE_INCOMPATIBLE_MODE   = "app.update.incompatible.mode";
@@ -114,7 +113,6 @@ const KEY_UPDROOT         = "UpdRootD";
 #endif
 
 const DIR_UPDATES         = "updates";
-const FILE_CHANNELCHANGE  = "channelchange";
 const FILE_UPDATE_STATUS  = "update.status";
 const FILE_UPDATE_VERSION = "update.version";
 #ifdef ANDROID
@@ -642,15 +640,6 @@ function writeVersionFile(dir, version) {
   writeStringToFile(versionFile, version);
 }
 
-function createChannelChangeFile(dir) {
-  var channelChangeFile = dir.clone();
-  channelChangeFile.append(FILE_CHANNELCHANGE);
-  if (!channelChangeFile.exists()) {
-    channelChangeFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE,
-                             FileUtils.PERMS_FILE);
-  }
-}
-
 
 
 
@@ -779,19 +768,6 @@ function getUpdateChannel() {
   }
 
   return channel;
-}
-
-function getDesiredChannel() {
-  let desiredChannel = getPref("getCharPref", PREF_APP_UPDATE_DESIREDCHANNEL, null);
-  if (!desiredChannel)
-    return null;
-  
-  if (desiredChannel == getUpdateChannel()) {
-    Services.prefs.clearUserPref(PREF_APP_UPDATE_DESIREDCHANNEL);
-    return null;
-  }
-  LOG("getDesiredChannel - channel set to: " + desiredChannel);
-  return desiredChannel;
 }
 
 
@@ -1302,9 +1278,6 @@ const UpdateServiceFactory = {
 
 function UpdateService() {
   Services.obs.addObserver(this, "xpcom-shutdown", false);
-  
-  
-  getDesiredChannel();
 }
 
 UpdateService.prototype = {
@@ -1409,9 +1382,6 @@ UpdateService.prototype = {
 
       
       cleanupActiveUpdate();
-
-      if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_DESIREDCHANNEL))      
-        Services.prefs.clearUserPref(PREF_APP_UPDATE_DESIREDCHANNEL);
     }
     else {
       
@@ -1589,12 +1559,6 @@ UpdateService.prototype = {
   selectUpdate: function AUS_selectUpdate(updates) {
     if (updates.length == 0)
       return null;
-
-    if (getDesiredChannel()) {
-      LOG("UpdateService:selectUpdate - skipping version checks for channel " +
-          "change request");
-      return updates[0];
-    }
 
     
     var majorUpdate = null;
@@ -1954,7 +1918,7 @@ UpdateService.prototype = {
     
     
     
-    if (!getDesiredChannel() && update.appVersion &&
+    if (update.appVersion &&
         (Services.vc.compare(update.appVersion, Services.appinfo.version) < 0 ||
          update.buildID && update.buildID == Services.appinfo.appBuildID &&
          update.appVersion == Services.appinfo.version)) {
@@ -2151,9 +2115,8 @@ UpdateManager.prototype = {
 
 
   get activeUpdate() {
-    let currentChannel = getDesiredChannel() || getUpdateChannel();
     if (this._activeUpdate &&
-        this._activeUpdate.channel != currentChannel) {
+        this._activeUpdate.channel != getUpdateChannel()) {
       
       
       this._activeUpdate = null;
@@ -2328,10 +2291,6 @@ Checker.prototype = {
                       getDistributionPrefValue(PREF_APP_DISTRIBUTION_VERSION));
     url = url.replace(/\+/g, "%2B");
 
-    let desiredChannel = getDesiredChannel();
-    if (desiredChannel)
-      url += (url.indexOf("?") != -1 ? "&" : "?") + "newchannel=" + desiredChannel;
-
     if (force)
       url += (url.indexOf("?") != -1 ? "&" : "?") + "force=1";
 
@@ -2349,11 +2308,6 @@ Checker.prototype = {
     var url = this.getUpdateURL(force);
     if (!url || (!this.enabled && !force))
       return;
-
-    
-    
-    if (force)
-      cleanUpUpdatesDir();
 
     this._request = Cc["@mozilla.org/xmlextras/xmlhttprequest;1"].
                     createInstance(Ci.nsISupports);
@@ -2422,7 +2376,7 @@ Checker.prototype = {
         continue;
       }
       update.serviceURL = this.getUpdateURL(this._forced);
-      update.channel = getDesiredChannel() || getUpdateChannel();
+      update.channel = getUpdateChannel();
       updates.push(update);
     }
 
@@ -2675,7 +2629,7 @@ Downloader.prototype = {
 
     
     
-    var useComplete = getDesiredChannel() ? true : false;
+    var useComplete = false;
     if (selectedPatch) {
       LOG("Downloader:_selectPatch - found existing patch with state: " +
           state);
@@ -2922,8 +2876,6 @@ Downloader.prototype = {
         
         writeStatusFile(getUpdatesDir(), state);
         writeVersionFile(getUpdatesDir(), this._update.appVersion);
-        if (getDesiredChannel())
-          createChannelChangeFile(getUpdatesDir());
         this._update.installDate = (new Date()).getTime();
         this._update.statusText = gUpdateBundle.GetStringFromName("installPending");
       }

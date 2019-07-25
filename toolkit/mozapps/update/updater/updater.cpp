@@ -65,10 +65,6 @@
 
 
 
-
-
-
-
 #include "bspatch.h"
 #include "progressui.h"
 #include "archivereader.h"
@@ -953,7 +949,7 @@ AddFile::Execute()
   if (!WideCharToMultiByte(CP_UTF8, 0, mFile, -1, sourcefile, MAXPATHLEN,
                            NULL, NULL)) {
     LOG(("error converting wchar to utf8: %d\n", GetLastError()));
-    return STRING_CONVERSION_ERROR;
+    return MEM_ERROR;
   }
 
   rv = gArchiveReader.ExtractFile(sourcefile, mFile);
@@ -1033,7 +1029,7 @@ PatchFile::LoadSourceFile(FILE* ofile)
 
   buf = (unsigned char *) malloc(header.slen);
   if (!buf)
-    return UPDATER_MEM_ERROR;
+    return MEM_ERROR;
 
   size_t r = header.slen;
   unsigned char *rb = buf;
@@ -1107,7 +1103,7 @@ PatchFile::Prepare()
   if (!WideCharToMultiByte(CP_UTF8, 0, mPatchFile, -1, sourcefile, MAXPATHLEN,
                            NULL, NULL)) {
     LOG(("error converting wchar to utf8: %d\n", GetLastError()));
-    return STRING_CONVERSION_ERROR;
+    return MEM_ERROR;
   }
 
   int rv = gArchiveReader.ExtractFileToStream(sourcefile, fp);
@@ -2317,7 +2313,7 @@ int add_dir_entries(const NS_tchar *dirpath, ActionList *list)
                      NS_T("%s"), ftsdirEntry->fts_accpath);
         quotedpath = get_quoted_path(foundpath);
         if (!quotedpath) {
-          rv = UPDATER_QUOTED_PATH_MEM_ERROR;
+          rv = MEM_ERROR;
           break;
         }
         action = new RemoveFile();
@@ -2334,7 +2330,7 @@ int add_dir_entries(const NS_tchar *dirpath, ActionList *list)
                      NS_T("%s/"), ftsdirEntry->fts_accpath);
         quotedpath = get_quoted_path(foundpath);
         if (!quotedpath) {
-          rv = UPDATER_QUOTED_PATH_MEM_ERROR;
+          rv = MEM_ERROR;
           break;
         }
 
@@ -2440,13 +2436,12 @@ GetManifestContents(const NS_tchar *manifest)
 #endif
 }
 
-int AddPreCompleteActions(ActionList *list, bool &isChannelChange)
+int AddPreCompleteActions(ActionList *list)
 {
   NS_tchar *rb = GetManifestContents(NS_T("precomplete"));
   if (rb == NULL) {
     LOG(("AddPreCompleteActions: error getting contents of precomplete " \
          "manifest\n"));
-    isChannelChange = false;
     
     return OK;
   }
@@ -2469,10 +2464,7 @@ int AddPreCompleteActions(ActionList *list, bool &isChannelChange)
       action = new RemoveFile();
     }
     else if (NS_tstrcmp(token, NS_T("remove-cc")) == 0) { 
-      if (!isChannelChange)
-        continue;
-
-      action = new RemoveFile();
+      continue;
     }
     else if (NS_tstrcmp(token, NS_T("rmdir")) == 0) { 
       action = new RemoveDir();
@@ -2483,7 +2475,7 @@ int AddPreCompleteActions(ActionList *list, bool &isChannelChange)
     }
 
     if (!action)
-      return BAD_ACTION_ERROR;
+      return MEM_ERROR;
 
     rv = action->Parse(line);
     if (rv)
@@ -2497,15 +2489,6 @@ int AddPreCompleteActions(ActionList *list, bool &isChannelChange)
 
 int DoUpdate()
 {
-  bool isChannelChange = false;
-  NS_tchar ccfile[MAXPATHLEN];
-  NS_tsnprintf(ccfile, sizeof(ccfile)/sizeof(ccfile[0]),
-               NS_T("%s/channelchange"), gSourcePath);
-  if (!NS_taccess(ccfile, F_OK)) {
-    LOG(("DoUpdate: changing update channel\n"));
-    isChannelChange = true;
-  }
-
   NS_tchar manifest[MAXPATHLEN];
   NS_tsnprintf(manifest, sizeof(manifest)/sizeof(manifest[0]),
                NS_T("%s/update.manifest"), gSourcePath);
@@ -2513,8 +2496,6 @@ int DoUpdate()
   
   int rv = gArchiveReader.ExtractFile("updatev2.manifest", manifest);
   if (rv) {
-    
-    isChannelChange = false;
     rv = gArchiveReader.ExtractFile("update.manifest", manifest);
     if (rv) {
       LOG(("DoUpdate: error extracting manifest file\n"));
@@ -2550,13 +2531,9 @@ int DoUpdate()
       LOG(("UPDATE TYPE " LOG_S "\n", type));
       if (NS_tstrcmp(type, NS_T("complete")) == 0) {
         isComplete = true;
-        rv = AddPreCompleteActions(&list, isChannelChange);
+        rv = AddPreCompleteActions(&list);
         if (rv)
           return rv;
-      }
-      else if (isChannelChange) {
-        LOG(("DoUpdate: unable to change channel with a partial update\n"));
-        isChannelChange = false;
       }
       isFirstAction = false;
       continue;
@@ -2598,18 +2575,7 @@ int DoUpdate()
       action = new PatchIfFile();
     }
     else if (NS_tstrcmp(token, NS_T("add-cc")) == 0) { 
-      
-      
-      
-
-      
-      if (!isComplete)
-        return PARSE_ERROR;
-      
-      if (!isChannelChange)
-        continue;
-
-      action = new AddFile();
+      continue;
     }
     else {
       LOG(("DoUpdate: unknown token: " LOG_S "\n", token));
@@ -2617,7 +2583,7 @@ int DoUpdate()
     }
 
     if (!action)
-      return BAD_ACTION_ERROR;
+      return MEM_ERROR;
 
     rv = action->Parse(line);
     if (rv)

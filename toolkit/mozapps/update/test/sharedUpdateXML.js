@@ -242,6 +242,9 @@ function getLocalPatchString(aType, aURL, aHashFunction, aHashValue, aSize,
 
 
 
+
+
+
 function getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
                          aPlatformVersion, aBuildID, aDetailsURL, aBillboardURL,
                          aLicenseURL, aShowPrompt, aShowNeverForVersion,
@@ -253,14 +256,17 @@ function getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
   if (aDisplayVersion || !aVersion) {
     displayVersion = "displayVersion=\"" +
                      (aDisplayVersion ? aDisplayVersion
-                                      : "version 99.0") + "\" ";
+                                      : "version " + DEFAULT_UPDATE_VERSION) +
+                     "\" ";
   }
   
   
   let version = aVersion ? "version=\"" + aVersion + "\" " : "";
   let appVersion = "";
   if (aAppVersion || !aExtensionVersion) {
-    appVersion = "appVersion=\"" + (aAppVersion ? aAppVersion : "99.0") + "\" ";
+    appVersion = "appVersion=\"" +
+                 (aAppVersion ? aAppVersion : DEFAULT_UPDATE_VERSION) +
+                 "\" ";
   }
   
   
@@ -270,7 +276,8 @@ function getUpdateString(aType, aName, aDisplayVersion, aAppVersion,
   let platformVersion = "";
   if (aPlatformVersion) {
     platformVersion = "platformVersion=\"" +
-                      (aPlatformVersion ? aPlatformVersion : "99.0") + "\" ";
+                      (aPlatformVersion ? aPlatformVersion
+                                        : DEFAULT_UPDATE_VERSION) + "\" ";
   }
   let buildID = aBuildID ? aBuildID : "20080811053724";
   

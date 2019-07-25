@@ -49,8 +49,7 @@ const MAX_TIME_DIFFERENCE = 60000;
 
 const TEST_FILES = [
 {
-  description      : "Only added by update.manifest for complete updates " +
-                     "when there is a channel change (add-cc)",
+  description      : "Should never change",
   fileName         : "channel-prefs.js",
   relPathDir       : "a/b/defaults/pref/",
   originalContents : "ShouldNotBeReplaced\n",
@@ -271,12 +270,6 @@ function run_test() {
 
   let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
   let applyToDir = getApplyDirFile();
-
-  
-  
-  let force = updatesDir.clone();
-  force.append(CHANNEL_CHANGE_FILE);
-  force.create(AUS_Ci.nsIFile.FILE_TYPE, PERMS_FILE);
 
   
   
