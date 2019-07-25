@@ -60,6 +60,16 @@ class Declaration;
 
 
 
+struct CDBValueStorage {
+    nsCSSProperty property;
+    nsCSSValue value;
+};
+
+
+
+
+
+
 
 class nsCSSCompressedDataBlock {
 private:
@@ -112,16 +122,10 @@ public:
     static nsCSSCompressedDataBlock* CreateEmptyBlock();
 
 private:
-    PRInt32 mStyleBits; 
-                        
-
-    enum { block_chars = 4 }; 
-                              
-
     void* operator new(size_t aBaseSize, size_t aDataSize) {
-        
-        return ::operator new(aBaseSize + aDataSize -
-                              sizeof(char) * block_chars);
+        NS_ABORT_IF_FALSE(aBaseSize == sizeof(nsCSSCompressedDataBlock),
+                          "unexpected size for nsCSSCompressedDataBlock");
+        return ::operator new(aBaseSize + aDataSize);
     }
 
     
@@ -129,15 +133,34 @@ private:
 
     void Destroy();
 
-    char* mBlockEnd; 
-    char mBlock_[block_chars]; 
+    PRInt32 mStyleBits; 
+                        
+    PRUint32 mDataSize;
+    
+    
+    
+    
+    
+    char* Block() { return (char*)this + sizeof(*this); }
+    char* BlockEnd() { return Block() + mDataSize; }
+    const char* Block() const { return (char*)this + sizeof(*this); }
+    const char* BlockEnd() const { return Block() + mDataSize; }
+    void SetBlockEnd(char *blockEnd) { 
+        
 
-    char* Block() { return mBlock_; }
-    char* BlockEnd() { return mBlockEnd; }
-    const char* Block() const { return mBlock_; }
-    const char* BlockEnd() const { return mBlockEnd; }
-    ptrdiff_t DataSize() const { return BlockEnd() - Block(); }
+
+
+
+        NS_ABORT_IF_FALSE(size_t(blockEnd - Block()) <= size_t(PR_UINT32_MAX),
+                          "overflow of mDataSize");
+        mDataSize = PRUint32(blockEnd - Block());
+    }
+    ptrdiff_t DataSize() const { return mDataSize; }
 };
+
+
+PR_STATIC_ASSERT(sizeof(nsCSSCompressedDataBlock) == 8);
+PR_STATIC_ASSERT(NS_ALIGNMENT_OF(CDBValueStorage) <= 8); 
 
 class nsCSSExpandedDataBlock {
     friend class nsCSSCompressedDataBlock;
