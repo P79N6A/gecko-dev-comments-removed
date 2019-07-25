@@ -1803,13 +1803,12 @@ function initializeSanitizer()
   }
 }
 
-function gotoHistoryIndex(aEvent)
-{
-  var index = aEvent.target.getAttribute("index");
+function gotoHistoryIndex(aEvent) {
+  let index = aEvent.target.getAttribute("index");
   if (!index)
     return false;
 
-  var where = whereToOpenLink(aEvent);
+  let where = whereToOpenLink(aEvent);
 
   if (where == "current") {
     
@@ -1822,20 +1821,14 @@ function gotoHistoryIndex(aEvent)
     }
     return true;
   }
-  else {
-    
-    
+  
 
-    var sessionHistory = getWebNavigation().sessionHistory;
-    var entry = sessionHistory.getEntryAtIndex(index, false);
-    var url = entry.URI.spec;
-    openUILinkIn(url, where, {relatedToCurrent: true});
-    return true;
-  }
+  duplicateTabIn(gBrowser.selectedTab, where, index);
+  return true;
 }
 
 function BrowserForward(aEvent) {
-  var where = whereToOpenLink(aEvent, false, true);
+  let where = whereToOpenLink(aEvent, false, true);
 
   if (where == "current") {
     try {
@@ -1845,16 +1838,13 @@ function BrowserForward(aEvent) {
     }
   }
   else {
-    var sessionHistory = getWebNavigation().sessionHistory;
-    var currentIndex = sessionHistory.index;
-    var entry = sessionHistory.getEntryAtIndex(currentIndex + 1, false);
-    var url = entry.URI.spec;
-    openUILinkIn(url, where, {relatedToCurrent: true});
+    let currentIndex = getWebNavigation().sessionHistory.index;
+    duplicateTabIn(gBrowser.selectedTab, where, currentIndex + 1);
   }
 }
 
 function BrowserBack(aEvent) {
-  var where = whereToOpenLink(aEvent, false, true);
+  let where = whereToOpenLink(aEvent, false, true);
 
   if (where == "current") {
     try {
@@ -1864,11 +1854,8 @@ function BrowserBack(aEvent) {
     }
   }
   else {
-    var sessionHistory = getWebNavigation().sessionHistory;
-    var currentIndex = sessionHistory.index;
-    var entry = sessionHistory.getEntryAtIndex(currentIndex - 1, false);
-    var url = entry.URI.spec;
-    openUILinkIn(url, where, {relatedToCurrent: true});
+    let currentIndex = getWebNavigation().sessionHistory.index;
+    duplicateTabIn(gBrowser.selectedTab, where, currentIndex - 1);
   }
 }
 
@@ -1918,12 +1905,11 @@ function BrowserReloadOrDuplicate(aEvent) {
     return;
   }
 
-  var where = whereToOpenLink(aEvent, false, true);
+  let where = whereToOpenLink(aEvent, false, true);
   if (where == "current")
     BrowserReload();
   else
-    openUILinkIn(getWebNavigation().currentURI.spec, where,
-                 {relatedToCurrent: true});
+    duplicateTabIn(gBrowser.selectedTab, where);
 }
 
 function BrowserReload() {
@@ -8112,3 +8098,48 @@ XPCOMUtils.defineLazyGetter(this, "HUDConsoleUI", function () {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+function duplicateTabIn(aTab, where, historyIndex) {
+  let newTab = gBrowser.duplicateTab(aTab);
+
+  
+  if (historyIndex != null) {
+    try {
+      gBrowser.getBrowserForTab(newTab).gotoIndex(historyIndex);
+    }
+    catch (ex) {
+      let sessionHistory = aTab.linkedBrowser.sessionHistory;
+      let entry = sessionHistory.getEntryAtIndex(historyIndex, false);
+      let fallbackUrl = entry.URI.spec;
+      gBrowser.getBrowserForTab(newTab).loadURI(fallbackUrl);
+    }
+  }
+
+  var loadInBackground =
+    getBoolPref("browser.tabs.loadBookmarksInBackground", false);
+
+  switch (where) {
+    case "window":
+      gBrowser.hideTab(newTab);
+      gBrowser.replaceTabWithWindow(newTab);
+      break;
+    case "tabshifted":
+      loadInBackground = !loadInBackground;
+      
+    case "tab":
+      if (!loadInBackground)
+        gBrowser.selectedTab = newTab;
+      break;
+  }
+}
