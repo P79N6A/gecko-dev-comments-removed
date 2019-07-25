@@ -202,6 +202,12 @@ public:
                                       PRInt32 *aEndOffset);
 
   
+
+
+
+  bool IsTextRole();
+
+  
   
 
   

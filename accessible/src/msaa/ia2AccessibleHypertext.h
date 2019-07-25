@@ -46,8 +46,8 @@
 #include "CAccessibleText.h"
 #include "AccessibleHypertext.h"
 
-class CAccessibleHypertext: public CAccessibleText,
-                            public IAccessibleHypertext
+class ia2AccessibleHypertext : public CAccessibleText,
+                               public IAccessibleHypertext
 {
 public:
 
@@ -59,15 +59,15 @@ public:
 
   
   virtual  HRESULT STDMETHODCALLTYPE get_nHyperlinks(
-       long *hyperlinkCount);
+       long* hyperlinkCount);
 
   virtual  HRESULT STDMETHODCALLTYPE get_hyperlink(
        long index,
-       IAccessibleHyperlink **hyperlink);
+       IAccessibleHyperlink** hyperlink);
 
   virtual  HRESULT STDMETHODCALLTYPE get_hyperlinkIndex(
        long charIndex,
-       long *hyperlinkIndex);
+       long* hyperlinkIndex);
 
   
   NS_IMETHOD QueryInterface(const nsIID& uuid, void** result) = 0;
