@@ -41,7 +41,7 @@
 #define _USE_MATH_DEFINES
 
 #include "nscore.h"
-#include <math.h>
+#include <cmath>
 #include <float.h>
 
 #ifdef SOLARIS
@@ -133,7 +133,7 @@ inline NS_HIDDEN_(bool) NS_finite(double d)
 #elif defined(XP_DARWIN)
     
     
-    return isfinite(d);
+    return std::isfinite(d);
 #else
     return finite(d);
 #endif
