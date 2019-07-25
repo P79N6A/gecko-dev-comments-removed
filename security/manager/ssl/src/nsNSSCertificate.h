@@ -85,6 +85,8 @@ public:
   static nsNSSCertificate* Create(CERTCertificate *cert = nsnull);
   static nsNSSCertificate* ConstructFromDER(char *certDER, int derLen);
 
+  
+  
   static char* defaultServerNickname(CERTCertificate* cert);
 
 private:
