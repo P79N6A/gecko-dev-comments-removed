@@ -210,6 +210,9 @@ bool InitEventTracing()
 void ShutdownEventTracing()
 {
   sExit = true;
+  
+  SignalTracerThread();
+
   if (sTracerThread)
     PR_JoinThread(sTracerThread);
   sTracerThread = NULL;
