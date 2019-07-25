@@ -141,10 +141,18 @@ nsJSUtils::GetStaticScriptGlobal(JSContext* aContext, JSObject* aObj)
     return nsnull;
   }
 
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper(do_QueryInterface(supports));
-  NS_ENSURE_TRUE(wrapper, nsnull);
-
-  nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryWrappedNative(wrapper));
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(supports));
+  if (!sgo) {
+    nsCOMPtr<nsIXPConnectWrappedNative> wrapper(do_QueryInterface(supports));
+    NS_ENSURE_TRUE(wrapper, nsnull);
+    sgo = do_QueryWrappedNative(wrapper);
+  }
 
   
   
