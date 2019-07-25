@@ -40,9 +40,6 @@
 #define MITRE_ERROROBSERVER_H
 
 #include "txCore.h"
-#ifdef TX_EXE
-#include <iostream.h>
-#endif
 
 
 
@@ -74,39 +71,4 @@ public:
 
 }; 
 
-#ifdef TX_EXE
-
-
-
-class SimpleErrorObserver : public ErrorObserver {
-
-public:
-
-    
-
-
-
-    SimpleErrorObserver();
-
-    
-
-
-
-    SimpleErrorObserver(ostream& errStream);
-
-    
-
-
-    void receiveError(const nsAString& errorMessage, nsresult aRes);
-
-    virtual void suppressWarnings(MBool suppress);
-
-private:
-
-    ostream* errStream;
-    MBool hideWarnings;
-}; 
 #endif
-
-#endif
-
