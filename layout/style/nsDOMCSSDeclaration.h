@@ -11,6 +11,7 @@
 #include "nsICSSDeclaration.h"
 #include "nsIDOMCSS2Properties.h"
 #include "nsCOMPtr.h"
+#include "mozilla/dom/CSS2PropertiesBinding.h"
 
 class nsCSSParser;
 class nsIURI;
@@ -96,6 +97,13 @@ public:
 
   virtual void IndexedGetter(uint32_t aIndex, bool& aFound, nsAString& aPropName);
 
+  virtual JSObject* WrapObject(JSContext *cx, JSObject *scope,
+                               bool *triedToWrap)
+  {
+    return mozilla::dom::CSS2PropertiesBinding::Wrap(cx, scope, this,
+                                                     triedToWrap);
+  }
+
 protected:
   
   
@@ -141,6 +149,10 @@ protected:
 
 protected:
   virtual ~nsDOMCSSDeclaration();
+  nsDOMCSSDeclaration()
+  {
+    SetIsDOMBinding();
+  }
 };
 
 #endif 
