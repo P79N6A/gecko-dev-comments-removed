@@ -742,7 +742,7 @@ nsHTMLFormElement::DoSubmit(nsEvent* aEvent)
 
   
   
-  nsPIDOMWindow *window = GetOwnerDoc()->GetWindow();
+  nsPIDOMWindow *window = OwnerDoc()->GetWindow();
 
   if (window) {
     mSubmitPopupState = window->GetPopupControlState();
@@ -973,7 +973,7 @@ nsHTMLFormElement::NotifySubmitObservers(nsIURI* aActionURL,
     
     
     
-    nsCOMPtr<nsPIDOMWindow> window = GetOwnerDoc()->GetWindow();
+    nsCOMPtr<nsPIDOMWindow> window = OwnerDoc()->GetWindow();
 
     bool loop = true;
     while (NS_SUCCEEDED(theEnum->HasMoreElements(&loop)) && loop) {
@@ -1464,7 +1464,7 @@ nsHTMLFormElement::GetActionURL(nsIURI** aActionURL,
   }
 
   
-  nsIDocument *document = GetOwnerDoc();
+  nsIDocument *document = OwnerDoc();
   nsIURI *docURI = document->GetDocumentURI();
   NS_ENSURE_TRUE(docURI, NS_ERROR_UNEXPECTED);
 
@@ -1635,7 +1635,7 @@ nsHTMLFormElement::CheckFormValidity(nsIMutableArray* aInvalidElements) const
         !cvElmt->IsValid()) {
       ret = false;
       bool defaultAction = true;
-      nsContentUtils::DispatchTrustedEvent(sortedControls[i]->GetOwnerDoc(),
+      nsContentUtils::DispatchTrustedEvent(sortedControls[i]->OwnerDoc(),
                                            static_cast<nsIContent*>(sortedControls[i]),
                                            NS_LITERAL_STRING("invalid"),
                                            false, true, &defaultAction);

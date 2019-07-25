@@ -883,7 +883,7 @@ nsXBLPrototypeBinding::LocateInstance(nsIContent* aBoundElement,
   if (childPoint && aBoundElement) {
     
     
-    nsIDocument* doc = aBoundElement->GetOwnerDoc();
+    nsIDocument* doc = aBoundElement->OwnerDoc();
     nsXBLBinding *binding = doc->BindingManager()->GetBinding(aBoundElement);
     nsIContent *anonContent = nsnull;
 

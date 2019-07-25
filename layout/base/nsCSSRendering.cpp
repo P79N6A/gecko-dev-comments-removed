@@ -974,7 +974,7 @@ nsCSSRendering::FindBackgroundStyleFrame(nsIFrame* aForFrame)
     return aForFrame;
   }
 
-  nsIDocument* document = content->GetOwnerDoc();
+  nsIDocument* document = content->OwnerDoc();
   if (!document) {
     return aForFrame;
   }
@@ -1058,7 +1058,7 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
     return true; 
 
   
-  nsIDocument* document = content->GetOwnerDoc();
+  nsIDocument* document = content->OwnerDoc();
   if (!document)
     return true;
 

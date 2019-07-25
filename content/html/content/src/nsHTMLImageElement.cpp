@@ -447,7 +447,7 @@ nsHTMLImageElement::IsHTMLFocusable(bool aWithMouse,
     
     
     
-    if (GetOwnerDoc() && GetOwnerDoc()->FindImageMap(usemap)) {
+    if (OwnerDoc() && OwnerDoc()->FindImageMap(usemap)) {
       if (aTabIndex) {
         
         *aTabIndex = (sTabFocusModel & eTabFocus_linksMask)? 0 : -1;
@@ -650,7 +650,7 @@ nsHTMLImageElement::GetNaturalWidth(PRUint32* aNaturalWidth)
 nsresult
 nsHTMLImageElement::CopyInnerTo(nsGenericElement* aDest) const
 {
-  if (aDest->GetOwnerDoc()->IsStaticDocument()) {
+  if (aDest->OwnerDoc()->IsStaticDocument()) {
     CreateStaticImageClone(static_cast<nsHTMLImageElement*>(aDest));
   }
   return nsGenericHTMLElement::CopyInnerTo(aDest);

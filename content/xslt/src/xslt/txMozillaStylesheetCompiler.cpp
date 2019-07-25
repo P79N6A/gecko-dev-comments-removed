@@ -720,7 +720,7 @@ TX_CompileStylesheet(nsINode* aNode, txMozillaXSLTProcessor* aProcessor,
                      txStylesheet** aStylesheet)
 {
     
-    nsCOMPtr<nsIDocument> doc = aNode->GetOwnerDoc();
+    nsCOMPtr<nsIDocument> doc = aNode->OwnerDoc();
     NS_ENSURE_TRUE(doc, NS_ERROR_FAILURE);
 
     nsCOMPtr<nsIURI> uri;

@@ -3247,7 +3247,7 @@ nsContentUtils::HasMutationListeners(nsINode* aNode,
                                      PRUint32 aType,
                                      nsINode* aTargetForSubtreeModified)
 {
-  nsIDocument* doc = aNode->GetOwnerDoc();
+  nsIDocument* doc = aNode->OwnerDoc();
   if (!doc) {
     return false;
   }
@@ -3321,7 +3321,7 @@ nsContentUtils::MaybeFireNodeRemoved(nsINode* aChild, nsINode* aParent,
 {
   NS_PRECONDITION(aChild, "Missing child");
   NS_PRECONDITION(aChild->GetNodeParent() == aParent, "Wrong parent");
-  NS_PRECONDITION(aChild->GetOwnerDoc() == aOwnerDoc, "Wrong owner-doc");
+  NS_PRECONDITION(aChild->OwnerDoc() == aOwnerDoc, "Wrong owner-doc");
 
   
   
@@ -3493,7 +3493,7 @@ nsContentUtils::CreateContextualFragment(nsINode* aContextNode,
 
   
   
-  nsCOMPtr<nsIDocument> document = aContextNode->GetOwnerDoc();
+  nsCOMPtr<nsIDocument> document = aContextNode->OwnerDoc();
   NS_ENSURE_TRUE(document, NS_ERROR_NOT_AVAILABLE);
 
   bool isHTML = document->IsHTML();
@@ -3736,7 +3736,7 @@ nsContentUtils::SetNodeTextContent(nsIContent* aContent,
   {
     
     
-    nsIDocument* doc = aContent->GetOwnerDoc();
+    nsIDocument* doc = aContent->OwnerDoc();
 
     
     if (HasMutationListeners(doc, NS_EVENT_BITS_MUTATION_NODEREMOVED)) {
@@ -3885,7 +3885,7 @@ public:
   AnonymousContentDestroyer(nsCOMPtr<nsIContent>* aContent) {
     mContent.swap(*aContent);
     mParent = mContent->GetParent();
-    mDoc = mContent->GetOwnerDoc();
+    mDoc = mContent->OwnerDoc();
   }
   NS_IMETHOD Run() {
     mContent->UnbindFromTree();
@@ -4736,7 +4736,7 @@ nsContentUtils::GetContextForEventHandlers(nsINode* aNode,
                                            nsresult* aRv)
 {
   *aRv = NS_OK;
-  nsIDocument* ownerDoc = aNode->GetOwnerDoc();
+  nsIDocument* ownerDoc = aNode->OwnerDoc();
   if (!ownerDoc) {
     *aRv = NS_ERROR_UNEXPECTED;
     return nsnull;
@@ -5185,7 +5185,7 @@ nsContentUtils::DispatchXULCommand(nsIContent* aTarget,
                                    bool aMeta)
 {
   NS_ENSURE_STATE(aTarget);
-  nsIDocument* doc = aTarget->GetOwnerDoc();
+  nsIDocument* doc = aTarget->OwnerDoc();
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(doc);
   NS_ENSURE_STATE(domDoc);
   nsCOMPtr<nsIDOMEvent> event;
@@ -5354,8 +5354,8 @@ AllocClassMatchingInfo(nsINode* aRootNode,
   }
 
   info->mCaseTreatment =
-    aRootNode->GetOwnerDoc() &&
-    aRootNode->GetOwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks ?
+    aRootNode->OwnerDoc() &&
+    aRootNode->OwnerDoc()->GetCompatibilityMode() == eCompatibility_NavQuirks ?
     eIgnoreCase : eCaseMatters;
   return info;
 }

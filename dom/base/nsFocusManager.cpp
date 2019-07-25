@@ -1190,7 +1190,7 @@ nsFocusManager::SetFocusInner(nsIContent* aNewContent, PRInt32 aFlags,
   
   
   if (sendFocusEvent && mFocusedContent &&
-      mFocusedContent->GetOwnerDoc() != aNewContent->GetOwnerDoc()) {
+      mFocusedContent->OwnerDoc() != aNewContent->OwnerDoc()) {
     
     
     

@@ -125,7 +125,7 @@ nsDOMCSSAttributeDeclaration::DocToUpdate()
  
   
   
-  return mElement->GetOwnerDoc();
+  return mElement->OwnerDoc();
 }
 
 css::Declaration*
@@ -175,7 +175,7 @@ nsDOMCSSAttributeDeclaration::GetCSSParsingEnvironment(CSSParsingEnvironment& aC
 {
   NS_ASSERTION(mElement, "Something is severely broken -- there should be an Element here!");
 
-  nsIDocument* doc = mElement->GetOwnerDoc();
+  nsIDocument* doc = mElement->OwnerDoc();
   if (!doc) {
     
     aCSSParseEnv.mPrincipal = nsnull;

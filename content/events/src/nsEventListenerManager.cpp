@@ -196,7 +196,7 @@ nsEventListenerManager::GetInnerWindowForTarget()
   if (node) {
     
     
-    nsIDocument* document = node->GetOwnerDoc();
+    nsIDocument* document = node->OwnerDoc();
     if (document)
       return document->GetInnerWindow();
   }
@@ -467,7 +467,7 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
     
     
     
-    doc = node->GetOwnerDoc();
+    doc = node->OwnerDoc();
     if (doc)
       global = doc->GetScriptGlobalObject();
   } else {
@@ -646,7 +646,7 @@ nsEventListenerManager::CompileEventHandlerInternal(nsListenerStruct *aListenerS
     nsCAutoString url (NS_LITERAL_CSTRING("-moz-evil:lying-event-listener"));
     nsCOMPtr<nsIDocument> doc;
     if (content) {
-      doc = content->GetOwnerDoc();
+      doc = content->OwnerDoc();
     } else {
       nsCOMPtr<nsPIDOMWindow> win = do_QueryInterface(mTarget);
       if (win) {
