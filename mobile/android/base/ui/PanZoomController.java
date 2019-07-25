@@ -211,7 +211,6 @@ public class PanZoomController
     }
 
     
-    @SuppressWarnings("fallthrough")
     public void abortAnimation() {
         checkMainThread();
         
@@ -281,7 +280,6 @@ public class PanZoomController
         return false;
     }
 
-    @SuppressWarnings("fallthrough")
     private boolean onTouchMove(MotionEvent event) {
         Log.d(LOGTAG, "onTouchMove in state " + mState);
 
@@ -291,13 +289,18 @@ public class PanZoomController
             
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             return false;
+
         case TOUCHING:
             if (panDistance(event) < PAN_THRESHOLD) {
                 return false;
             }
             cancelTouch();
+            startPanning(event.getX(0), event.getY(0), event.getEventTime());
             GeckoApp.mAppContext.hidePlugins(false );
-            
+            GeckoApp.mAppContext.mAutoCompletePopup.hide();
+            track(event);
+            return true;
+
         case PANNING_HOLD_LOCKED:
             GeckoApp.mAutoCompletePopup.hide();
             mState = PanZoomState.PANNING_LOCKED;
@@ -305,6 +308,7 @@ public class PanZoomController
         case PANNING_LOCKED:
             track(event);
             return true;
+
         case PANNING_HOLD:
             GeckoApp.mAutoCompletePopup.hide();
             mState = PanZoomState.PANNING;
@@ -312,6 +316,7 @@ public class PanZoomController
         case PANNING:
             track(event);
             return true;
+
         case ANIMATED_ZOOM:
         case PINCHING:
             
@@ -370,6 +375,29 @@ public class PanZoomController
         mLastEventTime = time;
     }
 
+    private void startPanning(float x, float y, long time) {
+        float dx = mX.panDistance(x);
+        float dy = mY.panDistance(y);
+        double angle = Math.atan2(dy, dx); 
+        angle = Math.abs(angle); 
+
+        
+        
+        mX.startTouch(x);
+        mY.startTouch(y);
+        mLastEventTime = time;
+
+        if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
+            mY.setScrollingDisabled(true);
+            mState = PanZoomState.PANNING_LOCKED;
+        } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
+            mX.setScrollingDisabled(true);
+            mState = PanZoomState.PANNING_LOCKED;
+        } else {
+            mState = PanZoomState.PANNING;
+        }
+    }
+
     private float panDistance(MotionEvent move) {
         float dx = mX.panDistance(move.getX(0));
         float dy = mY.panDistance(move.getY(0));
@@ -384,27 +412,6 @@ public class PanZoomController
             return;
         }
         mLastEventTime = time;
-
-        if (mState == PanZoomState.PANNING_LOCKED) {
-            
-            double angle = Math.atan2(mY.panDistance(y), mX.panDistance(x)); 
-            angle = Math.abs(angle); 
-            if (angle < AXIS_LOCK_ANGLE || angle > (Math.PI - AXIS_LOCK_ANGLE)) {
-                
-                mX.setScrollingDisabled(false);
-                mY.setScrollingDisabled(true);
-            } else if (Math.abs(angle - (Math.PI / 2)) < AXIS_LOCK_ANGLE) {
-                
-                mX.setScrollingDisabled(true);
-                mY.setScrollingDisabled(false);
-            } else {
-                
-                mState = PanZoomState.PANNING;
-                mX.setScrollingDisabled(false);
-                mY.setScrollingDisabled(false);
-                angle = Math.abs(angle - (Math.PI / 2));  
-            }
-        }
 
         mX.updateWithTouchAt(x, timeDelta);
         mY.updateWithTouchAt(y, timeDelta);
