@@ -292,7 +292,9 @@ nsMIMEHeaderParamImpl::GetParameterInternal(const char *aHeaderValue,
       PRBool needUnescape = *(tokenEnd - 1) == '*';
       
       
-      if ((*cp == '0' && needUnescape) || (tokenEnd - tokenStart == paramLen + 1))
+      
+      if (!needUnquote &&
+          ((*cp == '0' && needUnescape) || (tokenEnd - tokenStart == paramLen + 1)))
       {
         
         const char *sQuote1 = PL_strchr(valueStart, 0x27);
