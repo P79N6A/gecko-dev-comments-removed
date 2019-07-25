@@ -112,7 +112,7 @@ public:
         NS_IF_ADDREF(*result = mJarReader);
     }
 
-    PRInt64 GetContentLength()
+    PRInt32 GetContentLength()
     {
         return mContentLength;
     }
@@ -127,7 +127,7 @@ private:
     nsCString                   mJarDirSpec;
     nsCOMPtr<nsIInputStream>    mJarStream;
     nsCString                   mJarEntry;
-    PRInt64                     mContentLength;
+    PRInt32                     mContentLength;
 };
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsJARInputThunk, nsIInputStream)
@@ -173,11 +173,8 @@ nsJARInputThunk::EnsureJarStream()
     }
 
     
-    
-    PRUint32 contentLength;
-    rv = mJarStream->Available(&contentLength);
+    rv = mJarStream->Available((PRUint32 *) &mContentLength);
     if (NS_FAILED(rv)) return rv;
-    mContentLength = contentLength;
 
     return NS_OK;
 }
@@ -632,7 +629,7 @@ nsJARChannel::SetContentCharset(const nsACString &aContentCharset)
 }
 
 NS_IMETHODIMP
-nsJARChannel::GetContentLength(PRInt64 *result)
+nsJARChannel::GetContentLength(PRInt32 *result)
 {
     
     if (mContentLength < 0 && mJarInput)
@@ -643,7 +640,7 @@ nsJARChannel::GetContentLength(PRInt64 *result)
 }
 
 NS_IMETHODIMP
-nsJARChannel::SetContentLength(PRInt64 aContentLength)
+nsJARChannel::SetContentLength(PRInt32 aContentLength)
 {
     
     mContentLength = aContentLength;
@@ -905,14 +902,14 @@ nsJARChannel::OnDataAvailable(nsIRequest *req, nsISupports *ctx,
 
     nsresult rv;
 
-    
     rv = mListener->OnDataAvailable(this, mListenerContext, stream, offset, count);
 
     
     
+    
     if (mProgressSink && NS_SUCCEEDED(rv) && !(mLoadFlags & LOAD_BACKGROUND))
         mProgressSink->OnProgress(this, nsnull, PRUint64(offset + count),
-                                  mContentLength);
+                                  PRUint64(mContentLength));
 
     return rv; 
 }

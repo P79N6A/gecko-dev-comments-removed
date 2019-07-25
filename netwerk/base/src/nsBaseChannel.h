@@ -187,9 +187,8 @@ public:
 
   
   
-  PRInt64& ContentLength() {
-    return mContentLength;
-  }
+  void SetContentLength64(PRInt64 len);
+  PRInt64 ContentLength64();
 
   
   template <class T> void GetCallback(nsCOMPtr<T> &result) {
@@ -290,7 +289,6 @@ private:
   nsCOMPtr<nsIChannel>                mRedirectChannel;
   nsCString                           mContentType;
   nsCString                           mContentCharset;
-  PRInt64                             mContentLength;
   PRUint32                            mLoadFlags;
   nsresult                            mStatus;
   PRPackedBool                        mQueriedProgressSink;
