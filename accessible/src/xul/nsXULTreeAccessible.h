@@ -320,4 +320,14 @@ protected:
                                            nsresult *aError = nsnull) const;
 };
 
+
+
+
+inline nsXULTreeAccessible*
+nsAccessible::AsXULTree()
+{
+  return IsXULTree() ?
+    static_cast<nsXULTreeAccessible*>(this) : nsnull;
+}
+
 #endif
