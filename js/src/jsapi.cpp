@@ -3062,8 +3062,8 @@ JS_NewGlobalObject(JSContext *cx, JSClass *clasp)
     
     JSObject *res = regexp_statics_construct(cx, obj);
     if (!res ||
-        !js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_REGEXP_STATICS,
-                            ObjectValue(*res))) {
+        !js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_REGEXP_STATICS, ObjectValue(*res)) ||
+        !js_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_FLAGS, Int32Value(0))) {
         return NULL;
     }
 
@@ -3937,11 +3937,25 @@ JS_ClearScope(JSContext *cx, JSObject *obj)
 
     
     if (obj->isGlobal()) {
+        
+        obj->unbrand(cx);
+
         for (int key = JSProto_Null; key < JSProto_LIMIT * 3; key++)
             JS_SetReservedSlot(cx, obj, key, JSVAL_VOID);
 
         
+        RegExpStatics::extractFrom(obj)->clear();
+
+        
         JS_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_EVAL_ALLOWED, JSVAL_VOID);
+
+        
+
+
+
+        int32 flags = obj->getReservedSlot(JSRESERVED_GLOBAL_FLAGS).toInt32();
+        flags |= JSGLOBAL_FLAGS_CLEARED;
+        JS_SetReservedSlot(cx, obj, JSRESERVED_GLOBAL_FLAGS, Jsvalify(Int32Value(flags)));
     }
 
     js_InitRandom(cx);

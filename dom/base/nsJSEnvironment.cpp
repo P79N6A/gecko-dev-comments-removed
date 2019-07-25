@@ -3178,17 +3178,7 @@ nsJSContext::ClearScope(void *aGlobalObj, PRBool aClearFromProtoChain)
       JS_ClearPendingException(mContext);
     }
 
-    
-    
-    
-    
-    
-    
-    if (obj->isNative()) {
-      js_UnbrandAndClearSlots(mContext, obj);
-    } else {
-      JS_ClearScope(mContext, obj);
-    }
+    JS_ClearScope(mContext, obj);
 
     if (xpc::WrapperFactory::IsXrayWrapper(obj)) {
       JS_ClearScope(mContext, &obj->getProxyExtra().toObject());

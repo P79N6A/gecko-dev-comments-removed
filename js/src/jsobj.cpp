@@ -4450,40 +4450,6 @@ JSObject::freeSlot(JSContext *cx, uint32 slot)
     return false;
 }
 
-JS_FRIEND_API(void)
-js_UnbrandAndClearSlots(JSContext *cx, JSObject *obj)
-{
-    JS_ASSERT(obj->isNative());
-    JS_ASSERT(obj->isGlobal());
-
-    
-    obj->unbrand(cx);
-
-    
-
-
-
-
-    for (int key = JSProto_Null; key < JSRESERVED_GLOBAL_THIS; key++)
-        JS_SetReservedSlot(cx, obj, key, JSVAL_VOID);
-
-    
-
-
-    ClearValueRange(obj->slots + JSCLASS_RESERVED_SLOTS(obj->clasp),
-                    obj->capacity - JSCLASS_RESERVED_SLOTS(obj->clasp),
-                    obj->clasp == &js_ArrayClass);
-
-    
-
-
-
-
-
-    if (obj->hasPropertyTable())
-        obj->lastProperty()->getTable()->freelist = SHAPE_INVALID_SLOT;
-}
-
 
 #define JSBOXEDWORD_INT_MAX_STRING "1073741823"
 
