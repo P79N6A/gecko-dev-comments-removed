@@ -146,10 +146,7 @@ class ArgumentsObject : public ::JSObject
 
   public:
     
-
-
-
-    static ArgumentsObject *create(JSContext *cx, JSObject *parent, uint32 argc, JSObject &callee);
+    static ArgumentsObject *create(JSContext *cx, uint32 argc, JSObject &callee);
 
     
 
@@ -183,7 +180,7 @@ class NormalArgumentsObject : public ArgumentsObject
     friend bool JSObject::isNormalArguments() const;
     friend struct EmptyShape; 
     friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, JSObject *parent, uint32 argc, JSObject &callee);
+    ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee);
 
   public:
     
@@ -208,7 +205,7 @@ class StrictArgumentsObject : public ArgumentsObject
 
     friend bool JSObject::isStrictArguments() const;
     friend ArgumentsObject *
-    ArgumentsObject::create(JSContext *cx, JSObject *parent, uint32 argc, JSObject &callee);
+    ArgumentsObject::create(JSContext *cx, uint32 argc, JSObject &callee);
 };
 
 } 
