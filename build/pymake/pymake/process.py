@@ -15,19 +15,29 @@ if sys.platform=='win32':
 _log = logging.getLogger('pymake.process')
 
 _escapednewlines = re.compile(r'\\\n')
-_blacklist = re.compile(r'[$><;[~`|&()]' +
+
+
+_blacklist = re.compile(r'[$><;\[~`|&]' +
     r'|\${|(?:^|\s){(?:$|\s)')  
+
+
+_graylist = re.compile(r'[()]')
+
 _needsglob = re.compile(r'[\*\?]')
-def clinetoargv(cline):
+
+def clinetoargv(cline, blacklist_gray):
     """
     If this command line can safely skip the shell, return an argv array.
     @returns argv, badchar
     """
-
     str = _escapednewlines.sub('', cline)
     m = _blacklist.search(str)
     if m is not None:
         return None, m.group(0)
+    if blacklist_gray:
+        m = _graylist.search(str)
+        if m is not None:
+            return None, m.group(0)
 
     args = shlex.split(str, comments=True)
 
@@ -65,7 +75,7 @@ def call(cline, env, cwd, loc, cb, context, echo, justprint=False):
     if msys and cline.startswith('/'):
         shellreason = "command starts with /"
     else:
-        argv, badchar = clinetoargv(cline)
+        argv, badchar = clinetoargv(cline, blacklist_gray=True)
         if argv is None:
             shellreason = "command contains shell-special character '%s'" % (badchar,)
         elif len(argv) and argv[0] in shellwords:
