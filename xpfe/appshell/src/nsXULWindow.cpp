@@ -1414,6 +1414,12 @@ void nsXULWindow::SyncAttributesToWidget()
   }
 
   
+  rv = windowElement->GetAttribute(NS_LITERAL_STRING("fullscreenbutton"), attr);
+  if (NS_SUCCEEDED(rv)) {
+    mWindow->SetShowsFullScreenButton(attr.LowerCaseEqualsLiteral("true"));
+  }
+
+  
   rv = windowElement->GetAttribute(NS_LITERAL_STRING("macanimationtype"), attr);
   if (NS_SUCCEEDED(rv) && attr.EqualsLiteral("document")) {
     mWindow->SetWindowAnimationType(nsIWidget::eDocumentWindowAnimation);
