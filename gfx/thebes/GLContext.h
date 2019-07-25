@@ -1066,6 +1066,21 @@ protected:
     GLint mMaxRenderbufferSize;
 
 public:
+ 
+    
+
+
+    GLenum GetAndClearError() {
+        
+        GLenum error = fGetError();
+        
+        if (error) {
+            
+            while(fGetError()) {}
+        }
+        
+        return error;
+    }
 
 #ifdef DEBUG
 
@@ -1083,6 +1098,7 @@ protected:
     GLenum mGLError;
 
 public:
+
     void BeforeGLCall(const char* glFunction) {
         if (mDebugMode) {
             
