@@ -52,6 +52,19 @@ registerCleanupFunction(function() {
   while (windows.hasMoreElements())
     windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
 
+  windows = Services.wm.getEnumerator("Addons:Compatibility");
+  if (windows.hasMoreElements())
+    ok(false, "Found unexpected add-ons compatibility window still open");
+  while (windows.hasMoreElements())
+    windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
+
+  windows = Services.wm.getEnumerator("Addons:Install");
+  if (windows.hasMoreElements())
+    ok(false, "Found unexpected add-ons installation window still open");
+  while (windows.hasMoreElements())
+    windows.getNext().QueryInterface(Ci.nsIDOMWindow).close();
+
+
   
   
   AddonManager.getAllInstalls(function(aInstalls) {

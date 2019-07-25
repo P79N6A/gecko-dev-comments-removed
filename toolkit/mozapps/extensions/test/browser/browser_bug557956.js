@@ -102,6 +102,11 @@ function uninstall_test_addons(aCallback) {
 }
 
 function open_compatibility_window(aInactiveAddonIds, aCallback) {
+  
+  
+  
+  requestLongerTimeout(2);
+
   var variant = Cc["@mozilla.org/variant;1"].
                 createInstance(Ci.nsIWritableVariant);
   variant.setFromVariant(aInactiveAddonIds);
