@@ -379,7 +379,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
     } else {
       
-      if (!UI.creatingNewOrphanTab)
+      if (!TabItems.creatingNewOrphanTab)
         GroupItems.newTab(self, {immediately: true});
     }
 
@@ -563,7 +563,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         });
         group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
       }
-      group.newTab(null, { closedLastTab: true });
+      group.newTab();
     }
     
     
@@ -665,8 +665,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
       if (self.parent && self.parent.expanded)
         self.parent.collapse();
-
-      self._sendToSubscribers("zoomedIn");
     }
 
     let animateZoom = gPrefBranch.getBoolPref("animate_zoom");
@@ -805,6 +803,7 @@ let TabItems = {
   _lastUpdateTime: Date.now(),
   _eventListeners: [],
   _pauseUpdateForTest: false,
+  creatingNewOrphanTab: false,
   tempCanvas: null,
   _reconnectingPaused: false,
   tabItemPadding: {},

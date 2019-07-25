@@ -869,14 +869,7 @@ SessionStoreService.prototype = {
     if (!aWindow.__SSi || !this._windows[aWindow.__SSi]) {
       return;
     }
-
     
-    
-    
-    let event = aWindow.document.createEvent("Events");
-    event.initEvent("SSWindowClosing", true, false);
-    aWindow.dispatchEvent(event);
-
     if (this.windowToFocus && this.windowToFocus == aWindow) {
       delete this.windowToFocus;
     }
