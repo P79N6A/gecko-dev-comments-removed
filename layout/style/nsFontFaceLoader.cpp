@@ -779,9 +779,9 @@ nsUserFontSet::LogMessage(gfxProxyFontEntry *aProxy,
   NS_ENSURE_SUCCESS(rv, rv);
 
   uint64_t innerWindowID = GetPresContext()->Document()->InnerWindowID();
-  rv = scriptError->InitWithWindowID(NS_ConvertUTF8toUTF16(msg).get(),
-                                     href.get(),   
-                                     text.get(),   
+  rv = scriptError->InitWithWindowID(NS_ConvertUTF8toUTF16(msg),
+                                     href,         
+                                     text,         
                                      0, 0,         
                                      aFlags,       
                                      "CSS Loader", 
