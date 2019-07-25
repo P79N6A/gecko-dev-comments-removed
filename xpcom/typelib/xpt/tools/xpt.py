@@ -1118,6 +1118,42 @@ class Typelib(object):
                 if isinstance(m.result, InterfaceType) and m.result.iface not in self.interfaces:
                     raise DataError, "Interface method %s::%s, result references interface %s not present in typelib!" % (i.name, m.name, m.result.iface.name)
 
+    def writefd(self, fd):
+        
+        
+        headersize = (Typelib._header.size + 1)
+        if headersize % 4:
+            headersize += 4 - headersize % 4
+        fd.write("\x00" * headersize)
+        
+        interface_directory_offset = fd.tell()
+        
+        fd.write("\x00" * Interface._direntry.size * len(self.interfaces))
+        
+        data_pool_offset = fd.tell()
+        
+        for i in self.interfaces:
+            i.write_names(fd, data_pool_offset)
+            i.write(self, fd, data_pool_offset)
+        
+        file_len = fd.tell()
+        fd.seek(0)
+        fd.write(Typelib._header.pack(XPT_MAGIC,
+                                      TYPELIB_VERSION[0],
+                                      TYPELIB_VERSION[1],
+                                      len(self.interfaces),
+                                      file_len,
+                                      interface_directory_offset,
+                                      data_pool_offset))
+        
+        fd.write(struct.pack(">B", 0x80))
+        
+        
+        
+        fd.seek(interface_directory_offset - 1)
+        for i in self.interfaces:
+            i.write_directory_entry(fd)
+
     def write(self, filename):
         """
         Write the contents of this typelib to the file named |filename|.
@@ -1125,40 +1161,7 @@ class Typelib(object):
         """
         self._sanityCheck()
         with open(filename, "wb") as f:
-            
-            
-            headersize = (Typelib._header.size + 1)
-            if headersize % 4:
-                headersize += 4 - headersize % 4
-            f.write("\x00" * headersize)
-            
-            interface_directory_offset = f.tell()
-            
-            f.write("\x00" * Interface._direntry.size * len(self.interfaces))
-            
-            data_pool_offset = f.tell()
-            
-            for i in self.interfaces:
-                i.write_names(f, data_pool_offset)
-                i.write(self, f, data_pool_offset)
-            
-            file_len = f.tell()
-            f.seek(0)
-            f.write(Typelib._header.pack(XPT_MAGIC,
-                                         TYPELIB_VERSION[0],
-                                         TYPELIB_VERSION[1],
-                                         len(self.interfaces),
-                                         file_len,
-                                         interface_directory_offset,
-                                         data_pool_offset))
-            
-            f.write(struct.pack(">B", 0x80))
-            
-            
-            
-            f.seek(interface_directory_offset - 1)
-            for i in self.interfaces:
-                i.write_directory_entry(f)
+            self.writefd(f)
 
     def merge(self, other, sanitycheck=True):
         """
