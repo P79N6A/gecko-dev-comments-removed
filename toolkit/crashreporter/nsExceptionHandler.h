@@ -71,6 +71,10 @@ nsresult SetupExtraData(nsILocalFile* aAppDataDirectory,
                         const nsACString& aBuildID);
 
 
+nsresult RegisterAppMemory(void* ptr, size_t length);
+nsresult UnregisterAppMemory(void* ptr);
+
+
 typedef nsDataHashtable<nsCStringHashKey, nsCString> AnnotationTable;
 
 bool GetMinidumpForID(const nsAString& id, nsILocalFile** minidump);

@@ -219,6 +219,11 @@ class ExceptionHandler {
                       size_t mapping_size,
                       size_t file_offset);
 
+  
+  
+  void RegisterAppMemory(void *ptr, size_t length);
+  void UnregisterAppMemory(void *ptr);
+
  private:
   void Init(const std::string &dump_path,
             const int server_fd);
@@ -278,6 +283,10 @@ class ExceptionHandler {
   
   
   MappingList mapping_info_;
+
+  
+  
+  AppMemoryList app_memory_info_;
 };
 
 }  

@@ -67,6 +67,7 @@
 
 #include <string>
 #include <vector>
+#include <list>
 
 #include "client/windows/common/ipc_protocol.h"
 #include "client/windows/crash_generation/crash_generation_client.h"
@@ -77,6 +78,16 @@ namespace google_breakpad {
 
 using std::vector;
 using std::wstring;
+
+
+
+struct AppMemory {
+  AppMemory(ULONG64 ptr, ULONG length) : ptr(ptr), length(length) {}
+
+  ULONG64 ptr;
+  ULONG length;
+};
+typedef std::list<AppMemory> AppMemoryList;
 
 class ExceptionHandler {
  public:
@@ -221,6 +232,11 @@ class ExceptionHandler {
 
   
   bool IsOutOfProcess() const { return crash_generation_client_.get() != NULL; }
+
+  
+  
+  void RegisterAppMemory(void *ptr, size_t length);
+  void UnregisterAppMemory(void *ptr);
 
  private:
   friend class AutoExceptionHandler;
@@ -421,6 +437,10 @@ class ExceptionHandler {
   
   
   bool handle_debug_exceptions_;
+
+  
+  
+  AppMemoryList app_memory_info_;
 
   
   

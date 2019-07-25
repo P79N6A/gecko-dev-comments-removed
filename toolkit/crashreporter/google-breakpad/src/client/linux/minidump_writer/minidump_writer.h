@@ -46,6 +46,16 @@ typedef std::list<MappingEntry> MappingList;
 
 
 
+struct AppMemory {
+  AppMemory(void *ptr, size_t length) : ptr(ptr), length(length) {}
+
+  void *ptr;
+  size_t length;
+};
+typedef std::list<AppMemory> AppMemoryList;
+
+
+
 
 
 
@@ -66,9 +76,11 @@ bool WriteMinidump(const char* filename, pid_t process,
                    pid_t process_blamed_thread);
 
 
+
 bool WriteMinidump(const char* filename, pid_t crashing_process,
                    const void* blob, size_t blob_size,
-                   const MappingList& mappings);
+                   const MappingList& mappings,
+                   const AppMemoryList& appdata);
 
 }  
 
