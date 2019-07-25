@@ -294,7 +294,7 @@ public:
   
   virtual void UpdatePlaybackPosition(PRInt64 aTime) = 0;
 
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered) = 0;
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
   
   
   
@@ -430,7 +430,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
 
   
   
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered) {
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered) {
     return mDecoderStateMachine->GetBuffered(aBuffered);
   }
 

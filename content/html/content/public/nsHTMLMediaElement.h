@@ -489,7 +489,7 @@ protected:
   nsCOMPtr<nsIChannel> mChannel;
 
   
-  nsCOMPtr<nsIDOMHTMLMediaError> mError;
+  nsCOMPtr<nsIDOMMediaError> mError;
 
   
   

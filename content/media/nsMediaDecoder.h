@@ -51,7 +51,7 @@
 class nsHTMLMediaElement;
 class nsMediaStream;
 class nsIStreamListener;
-class nsHTMLTimeRanges;
+class nsTimeRanges;
 
 
 
@@ -239,7 +239,7 @@ public:
 
   
   
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered) = 0;
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered) = 0;
 
   
   

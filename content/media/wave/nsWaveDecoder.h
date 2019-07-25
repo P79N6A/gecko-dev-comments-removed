@@ -134,7 +134,7 @@
 
 
 class nsWaveStateMachine;
-class nsHTMLTimeRanges;
+class nsTimeRanges;
 
 class nsWaveDecoder : public nsMediaDecoder
 {
@@ -239,7 +239,7 @@ class nsWaveDecoder : public nsMediaDecoder
 
   
   
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered);
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered);
 
 private:
   

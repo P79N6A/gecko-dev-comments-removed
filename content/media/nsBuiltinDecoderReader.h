@@ -460,7 +460,7 @@ public:
   
   
   
-  virtual nsresult GetBuffered(nsHTMLTimeRanges* aBuffered,
+  virtual nsresult GetBuffered(nsTimeRanges* aBuffered,
                                PRInt64 aStartTime) = 0;
 
 protected:

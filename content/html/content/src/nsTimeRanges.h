@@ -36,16 +36,16 @@
 
 
 
-#include "nsIDOMHTMLTimeRanges.h"
+#include "nsIDOMTimeRanges.h"
 #include "nsISupports.h"
 #include "nsTArray.h"
 
 
 
-class nsHTMLTimeRanges : public nsIDOMHTMLTimeRanges {
+class nsTimeRanges : public nsIDOMTimeRanges {
 public:
   NS_DECL_ISUPPORTS
-  NS_DECL_NSIDOMHTMLTIMERANGES
+  NS_DECL_NSIDOMTIMERANGES
 
   void Add(float aStart, float aEnd);
 

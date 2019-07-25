@@ -36,29 +36,29 @@
 
 
 
-#include "nsHTMLTimeRanges.h"
+#include "nsTimeRanges.h"
 #include "nsDOMError.h"
 #include "nsContentUtils.h"
 
-NS_IMPL_ADDREF(nsHTMLTimeRanges)
-NS_IMPL_RELEASE(nsHTMLTimeRanges)
+NS_IMPL_ADDREF(nsTimeRanges)
+NS_IMPL_RELEASE(nsTimeRanges)
 
-DOMCI_DATA(HTMLTimeRanges, nsHTMLTimeRanges)
+DOMCI_DATA(TimeRanges, nsTimeRanges)
 
-NS_INTERFACE_MAP_BEGIN(nsHTMLTimeRanges)
+NS_INTERFACE_MAP_BEGIN(nsTimeRanges)
   NS_INTERFACE_MAP_ENTRY(nsISupports)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMHTMLTimeRanges)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(HTMLTimeRanges)
+  NS_INTERFACE_MAP_ENTRY(nsIDOMTimeRanges)
+  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(TimeRanges)
 NS_INTERFACE_MAP_END
 
 NS_IMETHODIMP
-nsHTMLTimeRanges::GetLength(PRUint32* aLength) {
+nsTimeRanges::GetLength(PRUint32* aLength) {
   *aLength = mRanges.Length();
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsHTMLTimeRanges::Start(PRUint32 aIndex, float* aTime) {
+nsTimeRanges::Start(PRUint32 aIndex, float* aTime) {
   if (aIndex >= mRanges.Length())
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   *aTime = mRanges[aIndex].mStart;
@@ -66,7 +66,7 @@ nsHTMLTimeRanges::Start(PRUint32 aIndex, float* aTime) {
 }
 
 NS_IMETHODIMP
-nsHTMLTimeRanges::End(PRUint32 aIndex, float* aTime) {
+nsTimeRanges::End(PRUint32 aIndex, float* aTime) {
   if (aIndex >= mRanges.Length())
     return NS_ERROR_DOM_INDEX_SIZE_ERR;
   *aTime = mRanges[aIndex].mEnd;
@@ -74,6 +74,6 @@ nsHTMLTimeRanges::End(PRUint32 aIndex, float* aTime) {
 }
 
 void
-nsHTMLTimeRanges::Add(float aStart, float aEnd) {
+nsTimeRanges::Add(float aStart, float aEnd) {
   mRanges.AppendElement(TimeRange(aStart,aEnd));
 }
