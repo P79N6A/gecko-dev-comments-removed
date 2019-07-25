@@ -2552,6 +2552,26 @@ stack[anonid=browserStack][responsivemode] {
 
 
 
+.web-console-frame {
+  border-bottom: 1px solid #aaa;
+}
+
+.web-console-frame[animated] {
+  transition: height 100ms;
+}
+
+.web-console-splitter {
+  box-shadow: 0 -1px 0 0 ThreeDShadow inset, 0 0 0 10px -moz-Dialog inset;
+}
+
+.web-console-panel {
+  -moz-appearance: none;
+  background-color: white;
+}
+
+
+
+
 .developer-toolbar-button {
   -moz-appearance: none;
   min-width: 78px;

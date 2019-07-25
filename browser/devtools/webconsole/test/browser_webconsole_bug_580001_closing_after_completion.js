@@ -10,17 +10,14 @@ const TEST_URI = "http://example.com/browser/browser/devtools/webconsole/test/te
 
 function test() {
   addTab(TEST_URI);
-  browser.addEventListener("DOMContentLoaded", testClosingAfterCompletion,
-                           false);
+  browser.addEventListener("load", function onLoad() {
+    browser.removeEventListener("load", onLoad, true);
+    openConsole(null, testClosingAfterCompletion);
+  }, true);
 }
 
-function testClosingAfterCompletion() {
-  browser.removeEventListener("DOMContentLoaded",
-                              testClosingAfterCompletion, false);
-
-  openConsole();
-
-  let inputNode = HUDService.getHudByWindow(content).jsterm.inputNode;
+function testClosingAfterCompletion(hud) {
+  let inputNode = hud.jsterm.inputNode;
 
   let errorWhileClosing = false;
   function errorListener(evt) {

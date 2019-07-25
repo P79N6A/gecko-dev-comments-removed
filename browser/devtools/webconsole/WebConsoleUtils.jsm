@@ -642,6 +642,28 @@ var WebConsoleUtils = {
 
     return false;
   },
+
+  
+
+
+
+
+
+
+
+
+
+  isMixedHTTPSRequest: function WCU_isMixedHTTPSRequest(aRequest, aLocation)
+  {
+    try {
+      let requestURI = Services.io.newURI(aRequest, null, null);
+      let contentURI = Services.io.newURI(aLocation, null, null);
+      return (contentURI.scheme == "https" && requestURI.scheme != "https");
+    }
+    catch (ex) {
+      return false;
+    }
+  },
 };
 
 

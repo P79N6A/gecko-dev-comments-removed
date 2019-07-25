@@ -3307,6 +3307,27 @@ stack[anonid=browserStack][responsivemode] {
 
 
 
+.web-console-frame {
+  border-bottom: 1px solid #aaa;
+}
+
+.web-console-frame[animated] {
+  transition: height 100ms;
+}
+
+.web-console-splitter {
+  border-bottom: solid #a5a5a5 1px;
+  background: url("chrome://global/skin/splitter/dimple.png") no-repeat center,
+    -moz-linear-gradient(top, #fcfcfc, #dfdfdf);
+}
+
+.web-console-panel {
+  -moz-appearance: none;
+  background-color: white;
+}
+
+
+
 .developer-toolbar-button {
   -moz-appearance: none;
   min-width: 78px;
@@ -3459,7 +3480,7 @@ stack[anonid=browserStack][responsivemode] {
   margin: -4px 0 0 0;
   padding: 0;
   border-radius: 0px;
-  background: white;
+  background-color: white;
 }
 
 #social-notification-panel .panel-arrow[side="top"] {
