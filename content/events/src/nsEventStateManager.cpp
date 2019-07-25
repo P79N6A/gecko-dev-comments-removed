@@ -4508,6 +4508,31 @@ nsEventStateManager::UpdateAncestorState(nsIContent* aStartNode,
       DoStateChange(labelTarget, aState, aAddState);
     }
   }
+
+  if (aAddState) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    for ( ; aStartNode; aStartNode = aStartNode->GetParent()) {
+      if (!aStartNode->IsElement()) {
+        continue;
+      }
+
+      Element* labelTarget = GetLabelTarget(aStartNode->AsElement());
+      if (labelTarget && !labelTarget->State().HasState(aState)) {
+        DoStateChange(labelTarget, aState, true);
+      }
+    }
+  }
 }
 
 bool
