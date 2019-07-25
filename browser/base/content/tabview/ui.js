@@ -51,8 +51,7 @@ window.Keys = { meta: false };
 var UIManager = {
   
   
-  
-  _devMode : true,
+  _frameInitalized: false,
 
   
   
@@ -89,17 +88,64 @@ var UIManager = {
   
   
   init: function() {
+    var self = this;
+    Profile.checkpoint(); 
+    Storage.onReady(function() {
+      self._delayInit();
+    });
+  },
+
+  
+  
+  
+  _delayInit : function() {
     try {
+      Profile.checkpoint("delay until _delayInit");
+      let self = this;
+
+      
       Storage.init();
-      TabItems.init();
+      let data = Storage.readUIData(gWindow);
+      this._storageSanity(data);
+      this._pageBounds = data.pageBounds;
+      
+      
+      this._setBrowserKeyHandlers();
 
-      var self = this;
+      gWindow.addEventListener("tabviewshow", function() {
+        self.showTabView(true);
+      }, false);
 
+      
+      if (data.tabViewVisible) {
+        this._stopZoomPreparation = true;
+
+        this.showTabView();
+        
+        
+        
+        
+        Groups.groups.forEach(function(group) {
+          self._reorderTabsOnHide.push(group);
+        });
+      }
+    } catch(e) {
+      Utils.log(e);
+    }
+  }, 
+  
+  
+  
+  
+  _initFrame: function() {
+    try {
+      Utils.assert("must not be already initialized", !this._frameInitalized);
+
+      let self = this;
       this._currentTab = gBrowser.selectedTab;
 
       
-      if (this._devMode)
-        this._addDevMenu();
+      this._addDevMenu();
 
       
       
@@ -114,10 +160,6 @@ var UIManager = {
         });
       });
 
-      gWindow.addEventListener("tabviewshow", function() {
-        self.showTabView(true);
-      }, false);
-
       gWindow.addEventListener("tabviewhide", function() {
         var activeTab = self.getActiveTab();
         if (activeTab)
@@ -125,31 +167,12 @@ var UIManager = {
       }, false);
 
       
-      this._setBrowserKeyHandlers();
       this._setTabViewFrameKeyHandlers();
 
       
       this._addTabActionHandlers();
 
       
-      Storage.onReady(function() {
-        self._delayInit();
-      });
-    } catch(e) {
-      Utils.log(e);
-    }
-  },
-
-  
-  
-  
-  _delayInit : function() {
-    try {
-      var self = this;
-
-      
-      var data = Storage.readUIData(gWindow);
-      this._storageSanity(data);
 
       var groupsData = Storage.readGroupsData(gWindow);
       var firstTime = !groupsData || Utils.isEmptyObject(groupsData);
@@ -199,40 +222,17 @@ var UIManager = {
       }
 
       
-      if (data.pageBounds) {
-        this._pageBounds = data.pageBounds;
+      TabItems.init();
+
+      
+      if (this._pageBounds) 
         this._resize(true);
-      } else
+      else
         this._pageBounds = Items.getPageBounds();
 
       iQ(window).resize(function() {
         self._resize();
       });
-
-      
-      if (data.tabViewVisible) {
-        var currentTab = self._currentTab;
-
-        if (currentTab && currentTab.tabItem)
-          currentTab.tabItem.setZoomPrep(false);
-        else
-          self._stopZoomPreparation = true;
-
-        self.showTabView();
-        
-        
-        
-        Groups.groups.forEach(function(group) {
-          self._reorderTabsOnHide.push(group);
-        });
-      } else {
-         self.hideTabView();
-        
-        
-        Groups.groups.forEach(function(group) {
-          self._reorderTabItemsOnShow.push(group);
-        });
-      }
 
       
       Components.utils.import("resource://gre/modules/Services.jsm");
@@ -248,7 +248,7 @@ var UIManager = {
       Services.obs.addObserver(observer, "quit-application-requested", false);
 
       
-      this._initialized = true;
+      this._frameInitalized = true;
       this._save();
     } catch(e) {
       Utils.log(e);
@@ -306,6 +306,10 @@ var UIManager = {
   
   showTabView: function(zoomOut) {
     var self = this;
+    
+    if (!this._frameInitalized) 
+      this._initFrame();
+      
     var currentTab = this._currentTab;
     var item = null;
 
@@ -1002,7 +1006,7 @@ var UIManager = {
   
   
   _save: function() {
-    if (!this._initialized)
+    if (!this._frameInitalized)
       return;
 
     var data = {
@@ -1068,7 +1072,9 @@ var UIManager = {
       } else
         leftovers.push(set[0]);
     }
-    putInGroup(leftovers, "mixed");
+    
+    if(leftovers.length)
+      putInGroup(leftovers, "mixed");
 
     Groups.arrange();
   },
