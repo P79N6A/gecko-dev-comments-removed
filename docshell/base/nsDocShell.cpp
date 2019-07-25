@@ -8349,6 +8349,13 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
         if (doShortCircuitedLoad) {
             
+            
+            
+            
+            
+            StopOutstandingOtherDocumentLoad();
+
+            
             nsCOMPtr<nsIURI> oldURI = mCurrentURI;
 
             
@@ -8645,6 +8652,47 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     }
 
     return rv;
+}
+
+
+
+void
+nsDocShell::StopOutstandingOtherDocumentLoad()
+{
+    nsCOMPtr<nsIChannel> docChannel = GetCurrentDocChannel();
+    if (!docChannel || !mLoadGroup) {
+        return;
+    }
+
+    nsCOMPtr<nsISimpleEnumerator> requests;
+    mLoadGroup->GetRequests(getter_AddRefs(requests));
+    if (!requests) {
+        return;
+    }
+
+    while (true) {
+        bool hasMoreElements = false;
+        requests->HasMoreElements(&hasMoreElements);
+        if (!hasMoreElements) {
+            break;
+        }
+
+        nsCOMPtr<nsISupports> next;
+        requests->GetNext(getter_AddRefs(next));
+
+        nsCOMPtr<nsIChannel> channel = do_QueryInterface(next);
+        if (!channel) {
+            continue;
+        }
+
+        nsLoadFlags flags;
+        channel->GetLoadFlags(&flags);
+
+        
+        if ((flags & nsIChannel::LOAD_DOCUMENT_URI) && channel != docChannel) {
+            channel->Cancel(NS_BINDING_ABORTED);
+        }
+    }
 }
 
 nsIPrincipal*
