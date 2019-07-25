@@ -77,6 +77,27 @@ let Utils = {
 
 
 
+  lock: function Utils_lock(func) {
+    let thisArg = this;
+    return function WrappedLock() {
+      if (!thisArg.lock())
+        throw "Could not acquire lock";
+
+      try {
+        return func.call(thisArg);
+      }
+      finally {
+        thisArg.unlock();
+      }
+    };
+  },
+
+  
+
+
+
+
+
 
 
   notify: function Utils_notify(prefix) {
