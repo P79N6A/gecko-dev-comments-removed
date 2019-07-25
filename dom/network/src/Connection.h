@@ -49,10 +49,14 @@ class Connection : public nsIDOMMozConnection
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMMOZCONNECTION
+
+private:
+  static const char* sMeteredPrefName;
+  static const bool  sMeteredDefaultValue;
 };
 
 } 
 } 
 } 
 
-#endif
+#endif 

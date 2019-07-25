@@ -3416,6 +3416,7 @@ pref("profiler.entries", 100000);
 
 
 pref("dom.network.enabled", true);
+pref("dom.network.metered", false);
 #ifdef XP_WIN
 
 
