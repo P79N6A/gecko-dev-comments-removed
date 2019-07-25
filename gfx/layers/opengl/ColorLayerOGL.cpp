@@ -12,6 +12,10 @@ static void
 RenderColorLayer(ColorLayer* aLayer, LayerManagerOGL *aManager,
                  const nsIntPoint& aOffset)
 {
+  if (aManager->CompositingDisabled()) {
+    return;
+  }
+
   aManager->MakeCurrent();
 
   
