@@ -36,4 +36,6 @@ private:
 } 
 } 
 
+#undef slots
+
 #endif
