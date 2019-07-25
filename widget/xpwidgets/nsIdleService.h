@@ -67,11 +67,6 @@ private:
   
 
 
-  bool mObservesIdle;
-
-  
-
-
 
   nsCOMPtr<nsITimer> mTimer;
 
