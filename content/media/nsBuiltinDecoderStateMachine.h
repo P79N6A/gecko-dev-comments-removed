@@ -243,6 +243,13 @@ public:
     return mSeekable;
   }
 
+  bool IsSeekableInBufferedRanges() {
+    if (mReader) {
+      return mReader->IsSeekableInBufferedRanges();
+    }
+    return false;
+  }
+
   
   
   virtual void SetFrameBufferLength(PRUint32 aLength);
