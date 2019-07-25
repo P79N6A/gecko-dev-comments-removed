@@ -35,6 +35,7 @@
 
 
 #include "xpctest_private.h"
+#include "xpctest_interfaces.h"
 
 NS_IMPL_ISUPPORTS1(nsXPCTestParams, nsIXPCTestParams)
 
@@ -59,6 +60,7 @@ nsXPCTestParams::~nsXPCTestParams()
 }
 
 #define TAKE_OWNERSHIP_NOOP(val) {}
+#define TAKE_OWNERSHIP_INTERFACE(val) {(val)->AddRef();}
 #define TAKE_OWNERSHIP_STRING(val) {                                          \
     nsDependentCString vprime(val);                                           \
     val = ToNewCString(vprime);                                               \
@@ -272,6 +274,16 @@ NS_IMETHODIMP nsXPCTestParams::TestWstringArray(PRUint32 aLength, const PRUnicha
                                                 PRUint32 *rvLength NS_OUTPARAM, PRUnichar * **rv NS_OUTPARAM)
 {
     BUFFER_METHOD_IMPL(PRUnichar*, 0, TAKE_OWNERSHIP_WSTRING);
+}
+
+
+
+
+NS_IMETHODIMP nsXPCTestParams::TestInterfaceArray(PRUint32 aLength, nsIXPCTestInterfaceA **a,
+                                                  PRUint32 *bLength NS_INOUTPARAM, nsIXPCTestInterfaceA * **b NS_INOUTPARAM,
+                                                  PRUint32 *rvLength NS_OUTPARAM, nsIXPCTestInterfaceA * **rv NS_OUTPARAM)
+{
+    BUFFER_METHOD_IMPL(nsIXPCTestInterfaceA*, 0, TAKE_OWNERSHIP_INTERFACE);
 }
 
 
