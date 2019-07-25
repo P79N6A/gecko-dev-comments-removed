@@ -1160,7 +1160,8 @@ WebGLContext::GetActiveUniform(nsIWebGLProgram *pobj, PRUint32 index, nsIWebGLAc
         return NS_OK;
     }
 
-    nsAutoArrayPtr<char> name(new char[len]);
+    nsAutoArrayPtr<char> name(new char[len + 3]); 
+
     PRInt32 attrsize = 0;
     PRUint32 attrtype = 0;
 
@@ -1168,6 +1169,25 @@ WebGLContext::GetActiveUniform(nsIWebGLProgram *pobj, PRUint32 index, nsIWebGLAc
     if (len == 0 || attrsize == 0 || attrtype == 0) {
         *retval = nsnull;
         return NS_OK;
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    if (attrsize > 1 && name[len-1] != ']') {
+        name[len++] = '[';
+        name[len++] = '0';
+        name[len++] = ']';
     }
 
     JSObjectHelper retobj(&js);
@@ -1907,14 +1927,37 @@ WebGLContext::GetUniform(nsIWebGLProgram *pobj, nsIWebGLUniformLocation *ploc, n
     
     GLenum uniformType = 0;
     nsAutoArrayPtr<GLchar> uniformName(new GLchar[uniformNameMaxLength]);
+    
+    nsAutoArrayPtr<GLchar> uniformNameBracketIndex(new GLchar[uniformNameMaxLength + 16]);
+
     GLint index;
     for (index = 0; index < uniforms; ++index) {
-        GLsizei dummyLength;
-        GLint dummySize;
-        gl->fGetActiveUniform(progname, index, uniformNameMaxLength, &dummyLength,
-                              &dummySize, &uniformType, uniformName);
+        GLsizei length;
+        GLint size;
+        gl->fGetActiveUniform(progname, index, uniformNameMaxLength, &length,
+                              &size, &uniformType, uniformName);
         if (gl->fGetUniformLocation(progname, uniformName) == location->Location())
             break;
+
+        
+        
+        
+        if (size > 1) {
+            bool found_it = false;
+            if (uniformName[length - 1] == ']') { 
+                
+                length -= 3;
+                uniformName[length] = 0;
+            }
+            for (GLint arrayIndex = 1; arrayIndex < size; arrayIndex++) {
+                sprintf(uniformNameBracketIndex.get(), "%s[%d]", uniformName.get(), arrayIndex);
+                if (gl->fGetUniformLocation(progname, uniformNameBracketIndex) == location->Location()) {
+                    found_it = true;
+                    break;
+                }
+            }
+            if (found_it) break;
+        }
     }
 
     if (index == uniforms)
@@ -2602,9 +2645,9 @@ WebGLContext::DOMElementToImageSurface(nsIDOMElement *imageOrCanvas,
     if (!GetConcreteObject(info, ploc, &location_object))               \
         return NS_OK;                                                   \
     if (mCurrentProgram != location_object->Program())                  \
-        return ErrorInvalidValue("%s: this uniform location corresponds to another program", info); \
+        return ErrorInvalidOperation("%s: this uniform location doesn't correspond to the current program", info); \
     if (mCurrentProgram->Generation() != location_object->ProgramGeneration())            \
-        return ErrorInvalidValue("%s: This uniform location is obsolete since the program has been relinked", info); \
+        return ErrorInvalidOperation("%s: This uniform location is obsolete since the program has been relinked", info); \
     GLint location = location_object->Location();
 
 #define SIMPLE_ARRAY_METHOD_UNIFORM(name, cnt, arrayType, ptrType)      \
