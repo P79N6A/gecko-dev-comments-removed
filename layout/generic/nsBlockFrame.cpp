@@ -674,8 +674,8 @@ static void ReparentFrame(nsIFrame* aFrame, nsIFrame* aOldParent,
 
   
   
-  nsHTMLContainerFrame::ReparentFrameView(aFrame->PresContext(), aFrame,
-                                          aOldParent, aNewParent);
+  nsContainerFrame::ReparentFrameView(aFrame->PresContext(), aFrame,
+                                      aOldParent, aNewParent);
 }
  
 

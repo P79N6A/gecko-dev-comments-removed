@@ -369,8 +369,8 @@ nsFirstLetterFrame::DrainOverflowFrames(nsPresContext* aPresContext)
 
       
       
-      nsHTMLContainerFrame::ReparentFrameViewList(aPresContext, *overflowFrames,
-                                                  prevInFlow, this);
+      nsContainerFrame::ReparentFrameViewList(aPresContext, *overflowFrames,
+                                              prevInFlow, this);
       mFrames.InsertFrames(this, nsnull, *overflowFrames);
     }
   }

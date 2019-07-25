@@ -287,7 +287,7 @@ SplitInlineAncestors(nsIFrame*     aFrame)
     nsFrameList tail = container->StealFramesAfter(frame);
 
     
-    rv = nsHTMLContainerFrame::ReparentFrameViewList(presContext, tail, parent, newParent);
+    rv = nsContainerFrame::ReparentFrameViewList(presContext, tail, parent, newParent);
     if (NS_FAILED(rv)) {
       return rv;
     }

@@ -118,7 +118,24 @@ public:
                                      PRBool         aDeletingEmptyFrames);
 
   
+
+
+
+  static nsresult CreateViewForFrame(nsIFrame* aFrame,
+                                     PRBool aForce);
+
+  
   static void PositionFrameView(nsIFrame* aKidFrame);
+
+  static nsresult ReparentFrameView(nsPresContext* aPresContext,
+                                    nsIFrame*       aChildFrame,
+                                    nsIFrame*       aOldParentFrame,
+                                    nsIFrame*       aNewParentFrame);
+
+  static nsresult ReparentFrameViewList(nsPresContext*     aPresContext,
+                                        const nsFrameList& aChildFrameList,
+                                        nsIFrame*          aOldParentFrame,
+                                        nsIFrame*          aNewParentFrame);
 
   
   

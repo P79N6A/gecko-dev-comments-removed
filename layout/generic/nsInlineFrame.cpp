@@ -328,9 +328,9 @@ nsInlineFrame::Reflow(nsPresContext*          aPresContext,
     if (prevOverflowFrames) {
       
       
-      nsHTMLContainerFrame::ReparentFrameViewList(aPresContext,
-                                                  *prevOverflowFrames,
-                                                  prevInFlow, this);
+      nsContainerFrame::ReparentFrameViewList(aPresContext,
+                                              *prevOverflowFrames,
+                                              prevInFlow, this);
 
       
       
@@ -436,9 +436,9 @@ nsInlineFrame::PullOverflowsFromPrevInFlow()
     nsAutoPtr<nsFrameList> prevOverflowFrames(prevInFlow->StealOverflowFrames());
     if (prevOverflowFrames) {
       
-      nsHTMLContainerFrame::ReparentFrameViewList(PresContext(),
-                                                  *prevOverflowFrames,
-                                                  prevInFlow, this);
+      nsContainerFrame::ReparentFrameViewList(PresContext(),
+                                              *prevOverflowFrames,
+                                              prevInFlow, this);
       mFrames.InsertFrames(this, nsnull, *prevOverflowFrames);
     }
   }
@@ -816,7 +816,7 @@ nsInlineFrame::PullOneFrame(nsPresContext* aPresContext,
       if (irs.mLineLayout) {
         irs.mLineLayout->SetDirtyNextLine();
       }
-      nsHTMLContainerFrame::ReparentFrameView(aPresContext, frame, nextInFlow, this);
+      nsContainerFrame::ReparentFrameView(aPresContext, frame, nextInFlow, this);
       break;
     }
     nextInFlow = (nsInlineFrame*) nextInFlow->GetNextInFlow();
