@@ -35,6 +35,7 @@
 
 
 
+
 .stylesheet-error-message {
   display: none;
 }
@@ -64,20 +65,15 @@ li.error > .stylesheet-info > .stylesheet-more  > .stylesheet-error-message {
 }
 
 .stylesheet-name {
-  
-  display: -moz-box;
-  direction: rtl;
-  text-align: left;
-  overflow: hidden;
+  outline: none;
+}
+
+.stylesheet-name > label {
+  cursor: pointer;
 }
 
 .splitview-nav > li > hgroup.stylesheet-info {
   -moz-box-pack: center;
-}
-
-.splitview-nav:-moz-locale-dir(ltr) > li.unsaved > hgroup .stylesheet-name:before,
-.splitview-nav:-moz-locale-dir(rtl) > li.unsaved > hgroup .stylesheet-name:after {
-  content: "* ";
 }
 
 .stylesheet-enabled {
