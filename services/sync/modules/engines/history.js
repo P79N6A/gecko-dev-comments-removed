@@ -433,7 +433,7 @@ HistoryTracker.prototype = {
 
 
   _upScore: function BMT__upScore() {
-    this.score += 1;
+    this.score += SCORE_INCREMENT_SMALL;
   },
 
   onVisit: function HT_onVisit(uri, vid, time, session, referrer, trans, guid) {
@@ -458,6 +458,6 @@ HistoryTracker.prototype = {
   },
   onClearHistory: function HT_onClearHistory() {
     this._log.trace("onClearHistory");
-    this.score += 500;
+    this.score += SCORE_INCREMENT_XLARGE;
   }
 };

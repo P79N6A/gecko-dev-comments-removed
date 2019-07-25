@@ -319,10 +319,12 @@ PasswordTracker.prototype = {
       return;
 
     
+    
     switch (aData) {
     case 'modifyLogin':
       aSubject = aSubject.QueryInterface(Ci.nsIArray).
         queryElementAt(1, Ci.nsILoginMetaInfo);
+      
     case 'addLogin':
     case 'removeLogin':
       
@@ -331,13 +333,13 @@ PasswordTracker.prototype = {
       if (aSubject.hostname == PWDMGR_HOST)
         break;
 
-      this.score += 15;
+      this.score += SCORE_INCREMENT_XLARGE;
       this._log.trace(aData + ": " + aSubject.guid);
       this.addChangedID(aSubject.guid);
       break;
     case 'removeAllLogins':
       this._log.trace(aData);
-      this.score += 500;
+      this.score += SCORE_INCREMENT_XLARGE;
       break;
     }
   }

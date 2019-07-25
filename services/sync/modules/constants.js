@@ -111,8 +111,14 @@ PASSWORDS_STORE_BATCH_SIZE:            50,
 
 
 SINGLE_USER_THRESHOLD:                 1000,
-MULTI_DESKTOP_THRESHOLD:               500,
-MULTI_MOBILE_THRESHOLD:                100,
+MULTI_DEVICE_THRESHOLD:                300,
+
+
+SCORE_INCREMENT_SMALL:                 1,
+SCORE_INCREMENT_MEDIUM:                10,
+
+
+SCORE_INCREMENT_XLARGE:                300 + 1, 
 
 
 MODE_RDONLY:                           0x01,

@@ -70,6 +70,7 @@ Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/async.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/constants.js");
 
 Cu.import("resource://services-sync/main.js");      
 
@@ -1319,7 +1320,7 @@ BookmarksTracker.prototype = {
 
   
   _upScore: function BMT__upScore() {
-    this.score += 10;
+    this.score += SCORE_INCREMENT_XLARGE;
   },
 
   

@@ -46,6 +46,7 @@ const WEAVE_SYNC_PREFS = "services.sync.prefs.sync.";
 Cu.import("resource://services-sync/engines.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Preferences.js");
 Cu.import("resource://gre/modules/LightweightThemeManager.jsm");
 
@@ -272,14 +273,9 @@ PrefTracker.prototype = {
       case "nsPref:changed":
         
         
-        let up;
-        if (aData.indexOf(WEAVE_SYNC_PREFS) == 0)
-          up = 100;
-        else if (this._prefs.get(WEAVE_SYNC_PREFS + aData, false))
-          up = 25;
-
-        if (up) {
-          this.score += up;
+        if (aData.indexOf(WEAVE_SYNC_PREFS) == 0 || 
+            this._prefs.get(WEAVE_SYNC_PREFS + aData, false)) {
+          this.score += SCORE_INCREMENT_XLARGE;
           this.modified = true;
           this._log.trace("Preference " + aData + " changed");
         }

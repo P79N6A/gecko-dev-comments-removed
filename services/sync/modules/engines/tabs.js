@@ -50,6 +50,7 @@ Cu.import("resource://services-sync/engines/clients.js");
 Cu.import("resource://services-sync/record.js");
 Cu.import("resource://services-sync/resource.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Preferences.js");
 
 
@@ -355,6 +356,6 @@ TabTracker.prototype = {
 
     
     if (Math.random() < chance)
-      this.score++;
+      this.score += SCORE_INCREMENT_SMALL;
   },
 }
