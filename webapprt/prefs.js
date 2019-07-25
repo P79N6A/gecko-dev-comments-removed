@@ -14,6 +14,8 @@ pref("xpinstall.enabled", false);
 
 pref("extensions.installDistroAddons", false);
 
+pref("extensions.showMismatchUI", false);
+
 
 pref("webapprt.firstrun", false);
 
