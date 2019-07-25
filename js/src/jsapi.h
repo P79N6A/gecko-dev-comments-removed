@@ -3053,7 +3053,6 @@ struct PrivateVoidPtrTag {
 
 
 
-VALUE_ALIGNMENT_BEFORE
 class Value
 {
     
@@ -3506,7 +3505,7 @@ class Value
         JS_ASSERT(mask == JSVAL_INT32_MASK);
         return data.u32;
     }
-} VALUE_ALIGNMENT_AFTER;
+} VALUE_ALIGNMENT;
 
 
 
