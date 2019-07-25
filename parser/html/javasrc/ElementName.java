@@ -408,6 +408,8 @@ public final class ElementName
 
 
 
+
+
     
     public static final ElementName A = new ElementName("a", "a", TreeBuilder.A);
     public static final ElementName B = new ElementName("b", "b", TreeBuilder.B_OR_BIG_OR_CODE_OR_EM_OR_I_OR_S_OR_SMALL_OR_STRIKE_OR_STRONG_OR_TT_OR_U);
@@ -713,6 +715,7 @@ public final class ElementName
     public static final ElementName LOWLIMIT = new ElementName("lowlimit", "lowlimit", TreeBuilder.OTHER);
     public static final ElementName METADATA = new ElementName("metadata", "metadata", TreeBuilder.OTHER);
     public static final ElementName MENCLOSE = new ElementName("menclose", "menclose", TreeBuilder.OTHER);
+    public static final ElementName MENUITEM = new ElementName("menuitem", "menuitem", TreeBuilder.MENUITEM | SPECIAL);
     public static final ElementName MPHANTOM = new ElementName("mphantom", "mphantom", TreeBuilder.OTHER);
     public static final ElementName NOFRAMES = new ElementName("noframes", "noframes", TreeBuilder.NOFRAMES | SPECIAL);
     public static final ElementName NOSCRIPT = new ElementName("noscript", "noscript", TreeBuilder.NOSCRIPT | SPECIAL);
@@ -1105,6 +1108,7 @@ public final class ElementName
     LOWLIMIT,
     METADATA,
     MENCLOSE,
+    MENUITEM,
     MPHANTOM,
     NOFRAMES,
     NOSCRIPT,
@@ -1498,6 +1502,7 @@ public final class ElementName
     281683369,
     282120228,
     282250732,
+    282498697,
     282508942,
     283743649,
     283787570,

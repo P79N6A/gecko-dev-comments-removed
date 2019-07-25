@@ -52,6 +52,8 @@ public final class UTF16Buffer {
     private int end;
 
     
+    
+    
 
 
 
@@ -67,6 +69,8 @@ public final class UTF16Buffer {
         this.end = end;
     }
 
+    
+    
     
 
 
