@@ -51,6 +51,8 @@ static char** sArgs = NULL;
 static int sArgsAllocated = 0;
 static int sArgsUsed = 0;
 
+static PRBool sBuildingCommandLine = PR_FALSE;
+
 void AddToCommandLine(const char* inArgText)
 {
   if (sArgsUsed >= sArgsAllocated - 1) {
@@ -81,6 +83,8 @@ void SetupMacCommandLine(int& argc, char**& argv, PRBool forRestart)
   sArgs[0] = NULL;
   sArgsUsed = 0;
 
+  sBuildingCommandLine = PR_TRUE;
+
   
   for (int arg = 0; arg < argc; arg++) {
     char* flag = argv[arg];
@@ -89,10 +93,27 @@ void SetupMacCommandLine(int& argc, char**& argv, PRBool forRestart)
       AddToCommandLine(flag);
   }
 
+  
+  
+  
+  
+  const EventTypeSpec kAppleEventList[] = {
+    { kEventClassAppleEvent, kEventAppleEvent },
+  };
+  EventRef carbonEvent;
+  while (::ReceiveNextEvent(GetEventTypeCount(kAppleEventList),
+                            kAppleEventList,
+                            kEventDurationNoWait,
+                            PR_TRUE,
+                            &carbonEvent) == noErr) {
+    ::AEProcessEvent(carbonEvent);
+    ::ReleaseEvent(carbonEvent);
+  }
+
+  
+  
+  
   if (forRestart) {
-    
-    
-    
     Boolean isForeground = false;
     ProcessSerialNumber psnSelf, psnFront;
     if (::GetCurrentProcess(&psnSelf) == noErr &&
@@ -103,8 +124,22 @@ void SetupMacCommandLine(int& argc, char**& argv, PRBool forRestart)
     }
   }
 
+  sBuildingCommandLine = PR_FALSE;
+
   argc = sArgsUsed;
   argv = sArgs;
+}
+
+PRBool AddURLToCurrentCommandLine(const char* aURL)
+{
+  if (!sBuildingCommandLine) {
+    return PR_FALSE;
+  }
+
+  AddToCommandLine("-url");
+  AddToCommandLine(aURL);
+
+  return PR_TRUE;
 }
 
 } 
