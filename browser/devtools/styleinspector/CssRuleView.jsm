@@ -732,8 +732,26 @@ CssRuleView.prototype = {
     }.bind(this);
 
     this._createEditors();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    this._focusBackstop = createChild(this.element, "div", {
+      tabindex: 0,
+    });
+    this._backstopHandler = function() {
+      
+      
+      moveFocus(this.doc.defaultView, FOCUS_FORWARD);
+    }.bind(this);
+    this._focusBackstop.addEventListener("focus", this._backstopHandler, false);
   },
-  
+
   
 
 
@@ -762,6 +780,12 @@ CssRuleView.prototype = {
     this._clearRules();
     this._viewedElement = null;
     this._elementStyle = null;
+
+    if (this._focusBackstop) {
+      this._focusBackstop.removeEventListener("focus", this._backstopHandler, false);
+      this._backstopHandler = null;
+      this._focusBackstop = null;
+    }
   },
 
   
@@ -845,7 +869,6 @@ RuleEditor.prototype = {
 
     this.openBrace = createChild(header, "span", {
       class: "ruleview-ruleopen",
-      tabindex: "0",
       textContent: " {"
     });
 
