@@ -52,6 +52,9 @@ void CleanUpWidgetTracing();
 
 bool FireAndWaitForTracerEvent();
 
+
+void SignalTracerThread();
+
 }
 
 #endif  
