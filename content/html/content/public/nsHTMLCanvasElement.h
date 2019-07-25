@@ -170,6 +170,10 @@ public:
   already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
                                                CanvasLayer *aOldLayer,
                                                LayerManager *aManager);
+  
+  
+  
+  PRBool ShouldForceInactiveLayer(LayerManager *aManager);
 
   
   
@@ -193,6 +197,7 @@ protected:
                             const nsAString& aType,
                             nsIDOMFile** aResult);
   nsresult GetContextHelper(const nsAString& aContextId,
+                            PRBool aForceThebes,
                             nsICanvasRenderingContextInternal **aContext);
 
   nsString mCurrentContextId;

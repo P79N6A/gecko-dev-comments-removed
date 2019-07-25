@@ -122,6 +122,11 @@ public:
                                                        CanvasLayer *aOldLayer,
                                                        LayerManager *aManager) = 0;
 
+  
+  
+  
+  virtual PRBool ShouldForceInactiveLayer(LayerManager *aManager) { return PR_FALSE; }
+
   virtual void MarkContextClean() = 0;
 
   
