@@ -9,7 +9,7 @@ var jabberDomain = "localhost";
 
 function run_test() {
   
-  
+  return;
 
   
   do_test_pending();
