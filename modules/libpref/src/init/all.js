@@ -3579,6 +3579,9 @@ pref("dom.mozContacts.enabled", false);
 pref("dom.mozContacts.whitelist", "");
 
 
+pref("dom.mozAlarms.enabled", false);
+
+
 pref("dom.mozSettings.enabled", false);
 
 
