@@ -233,3 +233,6 @@ pref("places.frecency.unvisitedTypedBonus", 200);
 
 
 pref("gfx.color_management.mode", 0);
+
+
+pref("dom.disable_window_move_resize", true);
