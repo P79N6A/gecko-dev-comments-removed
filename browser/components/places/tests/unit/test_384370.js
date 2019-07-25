@@ -224,24 +224,6 @@ function testCanonicalBookmarks() {
                                                         DESCRIPTION_ANNO));
 
   
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  
   testFolder.containerOpen = false;
   rootNode.containerOpen = false;
 }

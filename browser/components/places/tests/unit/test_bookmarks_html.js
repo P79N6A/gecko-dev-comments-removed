@@ -73,13 +73,6 @@ try {
 
 
 try {
-  var mssvc = Cc["@mozilla.org/microsummary/service;1"].getService(Ci.nsIMicrosummaryService);
-} catch(ex) {
-  do_throw("Could not get microsummary service\n");
-}
-
-
-try {
   var iosvc = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
 } catch (ex) {
   do_throw("Could not get io service\n");
@@ -265,23 +258,6 @@ function testCanonicalBookmarks(aFolder) {
   do_check_eq("item description",
               annosvc.getItemAnnotation(testBookmark1.itemId,
                                         DESCRIPTION_ANNO));
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   
   testFolder.containerOpen = false;

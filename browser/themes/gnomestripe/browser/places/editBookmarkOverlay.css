@@ -82,36 +82,6 @@
 
 
 
-#editBMPanel_namePicker[droppable="false"] {
-  
-  -moz-appearance: textfield; 
-  cursor: text;
-  border: 2px solid;
-  -moz-border-top-colors: ThreeDShadow ThreeDDarkShadow;
-  -moz-border-right-colors: ThreeDHighlight ThreeDLightShadow;
-  -moz-border-bottom-colors: ThreeDHighlight ThreeDLightShadow;
-  -moz-border-left-colors: ThreeDShadow ThreeDDarkShadow;
-  padding: 2px 2px 3px;
-  -moz-padding-start: 4px;
-  background-color: -moz-Field;
-  color: -moz-FieldText;
-}
-
-#editBMPanel_namePicker[droppable="false"] > .menulist-editable-box {
-  -moz-appearance: none; 
-  padding: 0;
-}
-
-#editBMPanel_namePicker[droppable="false"] > .menulist-dropmarker,
-#editBMPanel_namePicker[droppable="false"] > menupopup {
-  display: none;
-}
-
-
-
-
-
-
 #editBMPanel_tagsField #treecolAutoCompleteValue {
   visibility: collapse;
 }
