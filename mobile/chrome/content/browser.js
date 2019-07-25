@@ -1001,10 +1001,15 @@ var Browser = {
       let toolbarContainer = document.getElementById("toolbar-container");
 
       
+      
+      let urlbar = document.getElementById("urlbar-edit");
+      let url = urlbar.value;
+      setTimeout(function() { urlbar.value = url; }, 0);
+
+      
       dump("moving toolbar to stack\n");
       stackToolbarContainer.appendChild(toolbarMain);
       stackToolbarContainer.setAttribute("hidden", false);
-
       return true;
     }
     return false;
@@ -1022,7 +1027,14 @@ var Browser = {
     if (leftvis <= 0.002 && ritevis <= 0.002) {
       let stackToolbarContainer = document.getElementById("stack-toolbar-container");
 
+      
+      
+      let urlbar = document.getElementById("urlbar-edit");
+      let url = urlbar.value;
+      setTimeout(function() { urlbar.value = url; }, 0);
+
       dump("moving toolbar to scrollbox\n");
+      document.getElementById("urlbar-edit").boxObject.setProperty("value", "hello");
       toolbarContainer.appendChild(toolbarMain);
       stackToolbarContainer.setAttribute("hidden", true);
       return true;
