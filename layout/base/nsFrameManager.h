@@ -155,7 +155,7 @@ public:
                                         nsIStatefulFrame::SpecialStateID aID =
                                                       nsIStatefulFrame::eNoID);
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
   
 
 

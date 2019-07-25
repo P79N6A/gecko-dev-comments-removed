@@ -192,7 +192,7 @@ NS_IMPL_SETTER_STR(_class::Set##_postfix, _member)
 
 
 
-#if defined(NS_DEBUG)
+#if defined(DEBUG)
 #define NS_VERIFY_THREADSAFE_INTERFACE(_iface)                                \
  if (NULL != (_iface)) {                                                      \
    nsISupports* tmp;                                                          \

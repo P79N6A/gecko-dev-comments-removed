@@ -303,7 +303,7 @@ nsresult nsPluginFile::LoadPlugin(PRLibrary **outLibrary)
     pLibrary = *outLibrary;
 #endif  
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
     printf("LoadPlugin() %s returned %lx\n", 
            libSpec.value.pathname, (unsigned long)pLibrary);
 #endif

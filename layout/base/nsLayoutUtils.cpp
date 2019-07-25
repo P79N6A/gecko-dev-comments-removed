@@ -389,7 +389,7 @@ nsLayoutUtils::GetChildListNameFor(nsIFrame* aChildFrame)
     }
   }
 
-#ifdef NS_DEBUG
+#ifdef DEBUG
   
   
   nsIFrame* parent = aChildFrame->GetParent();

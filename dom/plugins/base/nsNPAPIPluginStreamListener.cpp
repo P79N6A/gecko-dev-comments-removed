@@ -66,7 +66,7 @@ mOwner(owner)
   
   NS_GetURLSpecFromFile(mTempFile, mFileURL);
   
-#ifdef NS_DEBUG
+#ifdef DEBUG
   printf("File URL = %s\n", mFileURL.get());
 #endif
 }
