@@ -71,10 +71,6 @@ gTests.push({
     
     is(prefs.panelContainer.hidden, false, "Preferences should be visible");
 
-    
-    var prefTitle = document.getElementById("panel-header");
-    is(prefTitle.value, "Preferences", "The title must be preferences");
-
     var prefsList = document.getElementById("prefs-messages");
 
     
