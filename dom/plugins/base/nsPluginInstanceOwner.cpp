@@ -263,8 +263,8 @@ nsPluginInstanceOwner::UseAsyncRendering()
           NS_SUCCEEDED(mInstance->UseAsyncPainting(&useAsyncRendering)) &&
           useAsyncRendering &&
 #ifdef XP_MACOSX
-          mObjectFrame && mObjectFrame->GetImageContainer().get() &&
-          mObjectFrame->GetImageContainer().get()->GetBackendType() == 
+          container &&
+          container->GetBackendType() == 
                   LayerManager::LAYERS_OPENGL
 #else
           (!mPluginWindow ||
@@ -532,7 +532,7 @@ NS_IMETHODIMP nsPluginInstanceOwner::GetURL(const char *aURL,
   nsAutoPopupStatePusher popupStatePusher((PopupControlState)blockPopups);
 
   rv = lh->OnLinkClick(mContent, uri, unitarget.get(), 
-                       aPostStream, headersDataStream, PR_TRUE);
+                       aPostStream, headersDataStream);
 
   return rv;
 }
