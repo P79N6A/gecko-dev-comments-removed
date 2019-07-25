@@ -269,7 +269,13 @@ ResponseListener.prototype =
     catch (ex) { }
 
     this.setResponseHeader(aRequest);
-    this.httpActivity.response.body = this.receivedData;
+
+    if (HUDService.saveRequestAndResponseBodies) {
+      this.httpActivity.response.body = this.receivedData;
+    }
+    else {
+      this.httpActivity.response.bodyDiscarded = true;
+    }
 
     if (HUDService.lastFinishedRequestCallback) {
       HUDService.lastFinishedRequestCallback(this.httpActivity);
@@ -1036,7 +1042,7 @@ NetworkPanel.prototype =
 
       case this._DISPLAYED_REQUEST_HEADER:
         
-        if (request.body) {
+        if (!request.bodyDiscarded && request.body) {
           
           if (this._isRequestBodyFormData) {
             this._displayRequestForm();
@@ -1062,7 +1068,10 @@ NetworkPanel.prototype =
       case this._DISPLAYED_RESPONSE_HEADER:
         
         if (timing.TRANSACTION_CLOSE && response.isDone) {
-          if (this._responseIsImage) {
+          if (response.bodyDiscarded) {
+            this._callIsDone();
+          }
+          else if (this._responseIsImage) {
             this._displayResponseImage();
             this._callIsDone();
           }
@@ -1238,6 +1247,12 @@ HUD_SERVICE.prototype =
 
 
   filterPrefs: {},
+
+  
+
+
+
+  saveRequestAndResponseBodies: false,
 
   
 
@@ -2251,6 +2266,11 @@ HUD_SERVICE.prototype =
 
             switch (aActivitySubtype) {
               case activityDistributor.ACTIVITY_SUBTYPE_REQUEST_BODY_SENT:
+                if (!self.saveRequestAndResponseBodies) {
+                  httpActivity.request.bodyDiscarded = true;
+                  break;
+                }
+
                 let gBrowser = HUDService.currentContext().gBrowser;
 
                 let sentBody = NetworkHelper.readPostTextFromRequest(
@@ -3203,6 +3223,17 @@ HeadsUpDisplay.prototype = {
     let menuPopup = this.makeXULNode("menupopup");
     let id = this.hudId + "-output-contextmenu";
     menuPopup.setAttribute("id", id);
+
+    let saveBodiesItem = this.makeXULNode("menuitem");
+    saveBodiesItem.setAttribute("label", this.getStr("saveBodies.label"));
+    saveBodiesItem.setAttribute("accesskey",
+                                 this.getStr("saveBodies.accesskey"));
+    saveBodiesItem.setAttribute("type", "checkbox");
+    saveBodiesItem.setAttribute("buttonType", "saveBodies");
+    saveBodiesItem.setAttribute("oncommand", "HUDConsoleUI.command(this);");
+    menuPopup.appendChild(saveBodiesItem);
+
+    menuPopup.appendChild(this.makeXULNode("menuseparator"));
 
     let copyItem = this.makeXULNode("menuitem");
     copyItem.setAttribute("label", this.getStr("copyCmd.label"));
@@ -4791,6 +4822,11 @@ HeadsUpDisplayUICommands = {
         let commandController = chromeWindow.commandController;
         commandController.selectAll(outputNode);
         break;
+      case "saveBodies": {
+        let checked = aButton.getAttribute("checked") === "true";
+        HUDService.saveRequestAndResponseBodies = checked;
+        break;
+      }
     }
   },
 
