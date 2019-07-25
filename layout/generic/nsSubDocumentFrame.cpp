@@ -154,6 +154,10 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
 
   
   
+  aContent->SetPrimaryFrame(this);
+
+  
+  
   
   
   nsRefPtr<nsFrameLoader> frameloader = FrameLoader();
@@ -173,11 +177,6 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     }
     frameloader->SetDetachedSubdocView(nullptr, nullptr);
   }
-
-  
-  
-  
-  aContent->SetPrimaryFrame(this);
 
   nsContentUtils::AddScriptRunner(new AsyncFrameInit(this));
   return NS_OK;
