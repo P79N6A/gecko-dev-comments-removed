@@ -34,6 +34,7 @@ enum {
 
 
 
+
 struct nsGlyphCode {
   PRUnichar code[2]; 
   PRInt32   font;
@@ -64,6 +65,7 @@ struct nsGlyphCode {
 
 
 
+
 class nsMathMLChar
 {
 public:
@@ -79,7 +81,8 @@ public:
     mMirrored = false;
   }
 
-  ~nsMathMLChar() { 
+  
+  ~nsMathMLChar() {
     MOZ_COUNT_DTOR(nsMathMLChar);
     
     
@@ -151,6 +154,7 @@ public:
     mRect = aRect;
     
     if (!mParent && mSibling) { 
+                                
       for (nsMathMLChar* child = mSibling; child; child = child->mSibling) {
         nsRect rect; 
         child->GetRect(rect);

@@ -84,6 +84,11 @@ typedef enum {eExtension_base, eExtension_variants, eExtension_parts}
 
 
 
+
+
+
+
+
 #define NS_TABLE_TYPE_UNICODE       0
 #define NS_TABLE_TYPE_GLYPH_INDEX   1
 
@@ -129,7 +134,8 @@ public:
     mFontName.AppendElement(aPrimaryFontName);
   }
 
-  ~nsGlyphTable() 
+  
+  ~nsGlyphTable()
   {
     MOZ_COUNT_DTOR(nsGlyphTable);
   }
@@ -173,7 +179,8 @@ public:
   nsGlyphCode GlueOf(nsPresContext* aPresContext, nsMathMLChar* aChar) {
     return ElementAt(aPresContext, aChar, 3);
   }
-  nsGlyphCode BigOf(nsPresContext* aPresContext, nsMathMLChar* aChar, PRInt32 aSize) {
+  nsGlyphCode BigOf(nsPresContext* aPresContext, nsMathMLChar* aChar,
+                    PRInt32 aSize) {
     return ElementAt(aPresContext, aChar, 4 + aSize);
   }
   nsGlyphCode LeftOf(nsPresContext* aPresContext, nsMathMLChar* aChar) {
@@ -184,7 +191,8 @@ public:
   }
 
 private:
-  nsGlyphCode ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint32 aPosition);
+  nsGlyphCode ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
+                        PRUint32 aPosition);
 
   
   PRInt32 mType;    
@@ -198,8 +206,12 @@ private:
   PRInt32 mState;
 
   
+  
   nsCOMPtr<nsIPersistentProperties> mGlyphProperties;
 
+  
+  
+  
   
   
   
@@ -221,7 +233,8 @@ private:
 };
 
 nsGlyphCode
-nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint32 aPosition)
+nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar,
+                        PRUint32 aPosition)
 {
   if (mState == NS_TABLE_STATE_ERROR) return kNullGlyph;
   
@@ -267,9 +280,13 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
     
     char key[10]; PR_snprintf(key, sizeof(key), "\\u%04X", uchar);
     nsAutoString value;
-    nsresult rv = mGlyphProperties->GetStringProperty(nsDependentCString(key), value);
+    nsresult rv = mGlyphProperties->GetStringProperty(nsDependentCString(key),
+                                                      value);
     if (NS_FAILED(rv)) return kNullGlyph;
     Clean(value);
+    
+    
+    
     
     
     
@@ -362,9 +379,11 @@ nsGlyphTable::ElementAt(nsPresContext* aPresContext, nsMathMLChar* aChar, PRUint
       offset += 5; 
       child = child->mSibling;
     }
-    length = 3*(offset + 4); 
+    
+    length = 3*(offset + 4);
   }
-  PRUint32 index = 3*(offset + aPosition); 
+  
+  PRUint32 index = 3*(offset + aPosition);
   if (index+2 >= length) return kNullGlyph;
   nsGlyphCode ch;
   ch.code[0] = mGlyphCache.CharAt(index);
@@ -582,6 +601,7 @@ GetFontExtensionPref(PRUnichar aChar,
   
   aValue.Truncate();
 
+  
   
   
   
@@ -854,7 +874,8 @@ IsSizeOK(nsPresContext* aPresContext, nscoord a, nscoord b, PRUint32 aHint)
   bool isNearer = false;
   if (aHint & (NS_STRETCH_NEARER | NS_STRETCH_LARGEOP)) {
     float c = NS_MAX(float(b) * NS_MATHML_DELIMITER_FACTOR,
-                     float(b) - nsPresContext::CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
+                     float(b) - nsPresContext::
+                     CSSPointsToAppUnits(NS_MATHML_DELIMITER_SHORTFALL_POINTS));
     isNearer = bool(float(NS_ABS(b - a)) <= (float(b) - c));
   }
   
@@ -1178,7 +1199,8 @@ nsMathMLChar::StretchEnumContext::TryVariants(nsGlyphTable*    aGlyphTable,
   }
 
   return haveBetter &&
-    (largeopOnly || IsSizeOK(mPresContext, bestSize, mTargetSize, mStretchHint));
+    (largeopOnly ||
+     IsSizeOK(mPresContext, bestSize, mTargetSize, mStretchHint));
 }
 
 
@@ -1316,6 +1338,7 @@ nsMathMLChar::StretchEnumContext::TryParts(nsGlyphTable*    aGlyphTable,
     
     
     mBoundingMetrics.ascent = bmdata[0].ascent; 
+                                                
     mBoundingMetrics.descent = computedSize - mBoundingMetrics.ascent;
     mBoundingMetrics.leftBearing = lbearing;
     mBoundingMetrics.rightBearing = rbearing;
@@ -1356,7 +1379,8 @@ nsMathMLChar::StretchEnumContext::EnumCallback(const nsString& aFamily,
   
   
   nsGlyphTable* glyphTable = aGeneric ?
-    &gGlyphTableList->mUnicodeTable : gGlyphTableList->GetGlyphTableFor(aFamily);
+    &gGlyphTableList->mUnicodeTable :
+    gGlyphTableList->GetGlyphTableFor(aFamily);
 
   if (context->mTablesTried.Contains(glyphTable))
     return true; 
@@ -1728,6 +1752,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   if (!count) return NS_ERROR_FAILURE;
   
   
+  
   nsMathMLChar* last = this;
   while ((i < count) && last->mSibling) {
     i++;
@@ -1754,6 +1779,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   nscoord dx = 0, dy = 0;
   for (i = 0, child = mSibling; child; child = child->mSibling, i++) {
     
+    
     child->mData = mData;
     child->mDirection = mDirection;
     child->mStyleContext = mStyleContext;
@@ -1764,12 +1790,15 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
     nsresult rv = child->Stretch(aPresContext, aRenderingContext, mDirection,
                                  splitSize, childSize, aStretchHint, mMirrored);
     
-    if (NS_FAILED(rv) || (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
+    
+    if (NS_FAILED(rv) ||
+        (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
       delete mSibling; 
       mSibling = nullptr;
       return NS_ERROR_FAILURE;
     }
-    child->SetRect(nsRect(dx, dy, childSize.width, childSize.ascent+childSize.descent));
+    child->SetRect(nsRect(dx, dy, childSize.width,
+                          childSize.ascent+childSize.descent));
     if (0 == i)
       aCompositeSize = childSize;
     else {
@@ -1827,7 +1856,8 @@ public:
   nsDisplayMathMLCharBackground(nsDisplayListBuilder* aBuilder,
                                 nsIFrame* aFrame, const nsRect& aRect,
                                 nsStyleContext* aStyleContext)
-    : nsDisplayItem(aBuilder, aFrame), mStyleContext(aStyleContext), mRect(aRect) {
+    : nsDisplayItem(aBuilder, aFrame), mStyleContext(aStyleContext),
+      mRect(aRect) {
     MOZ_COUNT_CTOR(nsDisplayMathMLCharBackground);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -1896,7 +1926,10 @@ public:
     return GetBounds(aBuilder, &snap);
   }
   
-  virtual PRUint32 GetPerFrameKey() { return (mIndex << nsDisplayItem::TYPE_BITS) | nsDisplayItem::GetPerFrameKey(); }
+  virtual PRUint32 GetPerFrameKey() {
+    return (mIndex << nsDisplayItem::TYPE_BITS)
+      | nsDisplayItem::GetPerFrameKey();
+  }
 
 private:
   nsMathMLChar* mChar;
@@ -1976,7 +2009,8 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
     if (styleContext != parentContext &&
         NS_GET_A(backg->mBackgroundColor) > 0) {
       rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-          nsDisplayMathMLCharBackground(aBuilder, aForFrame, mRect, styleContext));
+          nsDisplayMathMLCharBackground(aBuilder, aForFrame, mRect,
+                                        styleContext));
       NS_ENSURE_SUCCESS(rv, rv);
     }
     
@@ -1992,7 +2026,8 @@ nsMathMLChar::Display(nsDisplayListBuilder*   aBuilder,
   return aLists.Content()->AppendNewToTop(new (aBuilder)
         nsDisplayMathMLCharForeground(aBuilder, aForFrame, this,
                                       aIndex,
-                                      aSelectedRect && !aSelectedRect->IsEmpty()));
+                                      aSelectedRect &&
+                                      !aSelectedRect->IsEmpty()));
 }
 
 void
@@ -2070,8 +2105,8 @@ nsMathMLChar::PaintForeground(nsPresContext* aPresContext,
         PaintVertically(aPresContext, aRenderingContext, theFont, styleContext,
                         mGlyphTable, r);
       else if (NS_STRETCH_DIRECTION_HORIZONTAL == mDirection)
-        PaintHorizontally(aPresContext, aRenderingContext, theFont, styleContext,
-                          mGlyphTable, r);
+        PaintHorizontally(aPresContext, aRenderingContext, theFont,
+                          styleContext, mGlyphTable, r);
     }
   }
 
@@ -2240,6 +2275,7 @@ nsMathMLChar::PaintVertically(nsPresContext*      aPresContext,
   
   
   if (!chGlue.Exists()) { 
+    
     
     
     
