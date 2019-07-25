@@ -56,7 +56,7 @@ const TELEMETRY_INTERVAL = 60000;
 const TELEMETRY_DELAY = 60000;
 
 const MEM_HISTOGRAMS = {
-  "js-gc-heap": "MEMORY_JS_GC_HEAP",
+  "js-main-runtime-gc-heap-committed": "MEMORY_JS_GC_HEAP_COMMITTED",
   "js-compartments-system": "MEMORY_JS_COMPARTMENTS_SYSTEM",
   "js-compartments-user": "MEMORY_JS_COMPARTMENTS_USER",
   "explicit": "MEMORY_EXPLICIT",
