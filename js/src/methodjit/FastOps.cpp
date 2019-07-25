@@ -1111,7 +1111,7 @@ mjit::Compiler::jsop_setelem_dense()
     
     
     RegisterID slotsReg;
-    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, id);
+    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, 1);
 
     if (hoisted) {
         FrameEntry *slotsFe = loop->invariantSlots(obj);
@@ -1435,7 +1435,7 @@ mjit::Compiler::jsop_getelem_dense(bool isPacked)
     
     bool allowUndefined = mayPushUndefined(0);
 
-    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, id);
+    bool hoisted = loop && !a->parent && loop->hoistArrayLengthCheck(obj, 0);
 
     
     
