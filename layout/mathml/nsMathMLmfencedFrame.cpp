@@ -271,8 +271,9 @@ nsMathMLmfencedFrame::Reflow(nsPresContext*          aPresContext,
   if (firstChild || mOpenChar || mCloseChar || mSeparatorsCount > 0) {
     
     
-    fm->GetMaxAscent(ascent);
-    fm->GetMaxDescent(descent);
+    
+    ascent = fm->MaxAscent();
+    descent = fm->MaxDescent();
   }
   while (childFrame) {
     nsHTMLReflowMetrics childDesiredSize(aDesiredSize.mFlags

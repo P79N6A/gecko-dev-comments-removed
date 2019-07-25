@@ -1810,8 +1810,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           
           
-          nscoord parentSubscript;
-          fm->GetSubscriptOffset(parentSubscript);
+          nscoord parentSubscript = fm->SubscriptOffset();
           nscoord revisedBaselineY = baselineY + parentSubscript;
           pfd->mBounds.y = revisedBaselineY - pfd->mAscent;
           pfd->mVerticalAlign = VALIGN_OTHER;
@@ -1824,8 +1823,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
           
           
           
-          nscoord parentSuperscript;
-          fm->GetSuperscriptOffset(parentSuperscript);
+          nscoord parentSuperscript = fm->SuperscriptOffset();
           nscoord revisedBaselineY = baselineY - parentSuperscript;
           pfd->mBounds.y = revisedBaselineY - pfd->mAscent;
           pfd->mVerticalAlign = VALIGN_OTHER;
@@ -1866,8 +1864,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           
-          nscoord parentXHeight;
-          fm->GetXHeight(parentXHeight);
+          nscoord parentXHeight = fm->XHeight();
           if (frameSpan) {
             pfd->mBounds.y = baselineY -
               (parentXHeight + pfd->mBounds.height)/2;
@@ -1884,8 +1881,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           
-          nscoord parentAscent;
-          fm->GetMaxAscent(parentAscent);
+          nscoord parentAscent = fm->MaxAscent();
           if (frameSpan) {
             pfd->mBounds.y = baselineY - parentAscent -
               pfd->mBorderPadding.top + frameSpan->mTopLeading;
@@ -1901,8 +1897,7 @@ nsLineLayout::VerticalAlignFrames(PerSpanData* psd)
         {
           
           
-          nscoord parentDescent;
-          fm->GetMaxDescent(parentDescent);
+          nscoord parentDescent = fm->MaxDescent();
           if (frameSpan) {
             pfd->mBounds.y = baselineY + parentDescent -
               pfd->mBounds.height + pfd->mBorderPadding.bottom -

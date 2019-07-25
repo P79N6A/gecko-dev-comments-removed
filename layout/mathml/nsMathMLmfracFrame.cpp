@@ -436,8 +436,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
     nscoord slashRatio = 3;
 
     
-    nscoord em;
-    fm->GetEmHeight(em);
+    nscoord em = fm->EmHeight();
     nscoord slashMaxWidthConstant = 2 * em;
 
     
@@ -477,8 +476,7 @@ nsMathMLmfracFrame::PlaceInternal(nsRenderingContext& aRenderingContext,
       numShift += delta;
       denShift += delta;
     } else {
-      nscoord xHeight = 0;
-      fm->GetXHeight (xHeight);
+      nscoord xHeight = fm->XHeight();
       numShift += xHeight / 2;
       denShift += xHeight / 4;
     }

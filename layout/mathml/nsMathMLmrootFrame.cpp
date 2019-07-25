@@ -161,8 +161,7 @@ GetRadicalXOffsets(nscoord aIndexWidth, nscoord aSqrWidth,
   
   
   nscoord dxIndex, dxSqr;
-  nscoord xHeight = 0;
-  aFontMetrics->GetXHeight(xHeight);
+  nscoord xHeight = aFontMetrics->XHeight();
   nscoord indexRadicalKern = NSToCoordRound(1.35f * xHeight);
   if (indexRadicalKern > aIndexWidth) {
     dxIndex = indexRadicalKern - aIndexWidth;
@@ -281,7 +280,7 @@ nsMathMLmrootFrame::Reflow(nsPresContext*          aPresContext,
   
   nscoord phi = 0, psi = 0;
   if (NS_MATHML_IS_DISPLAYSTYLE(mPresentationData.flags))
-    fm->GetXHeight(phi);
+    phi = fm->XHeight();
   else
     phi = ruleThickness;
   psi = ruleThickness + phi/4;

@@ -976,10 +976,9 @@ nsImageFrame::DisplayAltText(nsPresContext*      aPresContext,
   
   nsFontMetrics* fm = aRenderingContext.FontMetrics();
 
-  nscoord maxAscent, maxDescent, height;
-  fm->GetMaxAscent(maxAscent);
-  fm->GetMaxDescent(maxDescent);
-  fm->GetMaxHeight(height);
+  nscoord maxAscent = fm->MaxAscent();
+  nscoord maxDescent = fm->MaxDescent();
+  nscoord height = fm->MaxHeight();
 
   
   

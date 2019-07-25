@@ -43,14 +43,10 @@
 #include "nsCoord.h"
 #include "nsFont.h"
 #include "gfxFont.h"
-#include "gfxTextRunCache.h"
 
-class gfxFontGroup;
-class gfxUserFontSet;
 class nsIAtom;
 class nsIDeviceContext;
 class nsRenderingContext;
-class nsString;
 class nsThebesDeviceContext;
 struct nsBoundingMetrics;
 
@@ -94,93 +90,103 @@ public:
 
 
 
-    nsresult Destroy();
+    void Destroy();
 
     
 
 
-    nsresult GetXHeight(nscoord& aResult);
-
-    
-
-
-
-
-    nsresult GetSuperscriptOffset(nscoord& aResult);
+    nscoord XHeight();
 
     
 
 
 
 
-    nsresult GetSubscriptOffset(nscoord& aResult);
+    nscoord SuperscriptOffset();
 
     
 
 
 
 
-    nsresult GetStrikeout(nscoord& aOffset, nscoord& aSize);
+    nscoord SubscriptOffset();
 
     
 
 
 
 
-    nsresult GetUnderline(nscoord& aOffset, nscoord& aSize);
+    void GetStrikeout(nscoord& aOffset, nscoord& aSize);
 
     
 
 
 
 
-    nsresult GetInternalLeading(nscoord &aLeading);
+    void GetUnderline(nscoord& aOffset, nscoord& aSize);
 
     
 
 
 
 
-    nsresult GetExternalLeading(nscoord &aLeading);
+    nscoord InternalLeading();
 
     
 
 
 
-    nsresult GetEmHeight(nscoord &aHeight);
 
-    
-
-
-    nsresult GetEmAscent(nscoord &aAscent);
-
-    
-
-
-    nsresult GetEmDescent(nscoord &aDescent);
+    nscoord ExternalLeading();
 
     
 
 
 
-    nsresult GetMaxHeight(nscoord &aHeight);
+    nscoord EmHeight();
+
+    
+
+
+    nscoord EmAscent();
+
+    
+
+
+    nscoord EmDescent();
 
     
 
 
 
-    nsresult GetMaxAscent(nscoord &aAscent);
+    nscoord MaxHeight();
 
     
 
 
 
-    nsresult GetMaxDescent(nscoord &aDescent);
+    nscoord MaxAscent();
 
     
 
 
-    nsresult GetMaxAdvance(nscoord &aAdvance);
+
+    nscoord MaxDescent();
+
+    
+
+
+    nscoord MaxAdvance();
+
+    
+
+
+    nscoord AveCharWidth();
+
+    
+
+
+    nscoord SpaceWidth();
 
     
 
@@ -191,44 +197,31 @@ public:
     
 
 
-    nsresult GetLanguage(nsIAtom** aLanguage);
-
-    
-
-
-    nsresult GetAveCharWidth(nscoord& aAveCharWidth);
-
-    
-
-
-    nsresult GetSpaceWidth(nscoord& aSpaceCharWidth);
+    already_AddRefed<nsIAtom> GetLanguage();
 
     PRInt32 GetMaxStringLength();
 
     
     
     
-    nsresult GetWidth(const char* aString, PRUint32 aLength, nscoord& aWidth,
-                      nsRenderingContext *aContext);
-    nsresult GetWidth(const PRUnichar* aString, PRUint32 aLength,
-                      nscoord& aWidth, PRInt32 *aFontID,
-                      nsRenderingContext *aContext);
+    nscoord GetWidth(const char* aString, PRUint32 aLength,
+                     nsRenderingContext *aContext);
+    nscoord GetWidth(const PRUnichar* aString, PRUint32 aLength,
+                     nsRenderingContext *aContext);
 
     
-    nsresult DrawString(const char *aString, PRUint32 aLength,
-                        nscoord aX, nscoord aY,
-                        const nscoord* aSpacing,
-                        nsRenderingContext *aContext);
-    nsresult DrawString(const PRUnichar* aString, PRUint32 aLength,
-                        nscoord aX, nscoord aY,
-                        nsRenderingContext *aContext,
-                        nsRenderingContext *aTextRunConstructionContext);
+    void DrawString(const char *aString, PRUint32 aLength,
+                    nscoord aX, nscoord aY,
+                    nsRenderingContext *aContext);
+    void DrawString(const PRUnichar* aString, PRUint32 aLength,
+                    nscoord aX, nscoord aY,
+                    nsRenderingContext *aContext,
+                    nsRenderingContext *aTextRunConstructionContext);
 
 #ifdef MOZ_MATHML
-    nsresult GetBoundingMetrics(const PRUnichar *aString,
-                                PRUint32 aLength,
-                                nsRenderingContext *aContext,
-                                nsBoundingMetrics &aBoundingMetrics);
+    nsBoundingMetrics GetBoundingMetrics(const PRUnichar *aString,
+                                         PRUint32 aLength,
+                                         nsRenderingContext *aContext);
 #endif 
 
     
