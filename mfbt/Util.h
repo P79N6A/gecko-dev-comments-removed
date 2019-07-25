@@ -40,6 +40,8 @@
 #ifndef mozilla_Util_h_
 #define mozilla_Util_h_
 
+#ifdef __cplusplus
+
 namespace mozilla {
 
 
@@ -82,11 +84,15 @@ struct DebugOnly
 #endif
 
     
-    
-    
+
+
+
+
     ~DebugOnly() {}
 };
 
 } 
+
+#endif 
 
 #endif  

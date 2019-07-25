@@ -1000,10 +1000,7 @@ js_DestroyContext(JSContext *cx, JSDestroyContextMode mode)
 
 
 
-#ifdef DEBUG
-            JSBool callbackStatus =
-#endif
-            cxCallback(cx, JSCONTEXT_DESTROY);
+            DebugOnly<JSBool> callbackStatus = cxCallback(cx, JSCONTEXT_DESTROY);
             JS_ASSERT(callbackStatus);
         }
     }
