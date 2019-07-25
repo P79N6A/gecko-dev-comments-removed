@@ -179,14 +179,24 @@ enum {
   NODE_HAS_NAME                = 0x00800000U,
 
   
+  
+  
+  
   NODE_SCRIPT_TYPE_OFFSET =               24,
 
-  NODE_SCRIPT_TYPE_SIZE =                  4,
+  NODE_SCRIPT_TYPE_SIZE =                  2,
+
+  NODE_SCRIPT_TYPE_MASK =  (1 << NODE_SCRIPT_TYPE_SIZE) - 1,
 
   
   NODE_TYPE_SPECIFIC_BITS_OFFSET =
     NODE_SCRIPT_TYPE_OFFSET + NODE_SCRIPT_TYPE_SIZE
 };
+
+PR_STATIC_ASSERT(PRUint32(nsIProgrammingLanguage::JAVASCRIPT) <=
+                   PRUint32(NODE_SCRIPT_TYPE_MASK));
+PR_STATIC_ASSERT(PRUint32(nsIProgrammingLanguage::PYTHON) <=
+                   PRUint32(NODE_SCRIPT_TYPE_MASK));
 
 
 
