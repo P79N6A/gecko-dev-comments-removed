@@ -625,11 +625,12 @@ input[type="file"] > input[type="text"] {
 
 
 
-
-
-
-:invalid {
+:not(output):invalid {
   box-shadow: 0 0 1.5px 1px red;
+}
+
+output:invalid {
+  color: red;
 }
 
 @media print {
