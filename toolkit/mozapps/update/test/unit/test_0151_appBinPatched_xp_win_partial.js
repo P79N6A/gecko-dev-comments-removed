@@ -4,45 +4,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const TEST_ID = "0111";
-
-
-
-const MAX_TIME_DIFFERENCE = 60000;
+const TEST_ID = "0151";
+const MAR_IN_USE_WIN_FILE = "data/partial_win.mar";
 
 
 
@@ -56,9 +19,7 @@ const TEST_FILES = [
   originalContents : "ShouldNotBeReplaced\n",
   compareContents  : "ShouldNotBeReplaced\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0644,
-  comparePerms     : null
+  compareFile      : null
 }, {
   description      : "Added by update.manifest (add)",
   fileName         : "precomplete",
@@ -66,9 +27,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete_precomplete",
-  compareFile      : "data/partial_precomplete",
-  originalPerms    : 0666,
-  comparePerms     : 0644
+  compareFile      : "data/partial_precomplete"
 }, {
   description      : "Added by update.manifest (add)",
   fileName         : "searchpluginstext0",
@@ -76,9 +35,7 @@ const TEST_FILES = [
   originalContents : "ToBeReplacedWithFromPartial\n",
   compareContents  : "FromPartial\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0775,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   description      : "Patched by update.manifest if the file exists " +
                      "(patch-if)",
@@ -87,9 +44,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0666,
-  comparePerms     : 0666
+  compareFile      : "data/partial.png"
 }, {
   description      : "Patched by update.manifest if the file exists " +
                      "(patch-if)",
@@ -98,9 +53,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0666,
-  comparePerms     : 0666
+  compareFile      : "data/partial.png"
 }, {
   description      : "Added by update.manifest if the parent directory " +
                      "exists (add-if)",
@@ -109,9 +62,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : "FromPartial\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   description      : "Patched by update.manifest if the parent directory " +
                      "exists (patch-if)",
@@ -120,9 +71,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0666,
-  comparePerms     : 0666
+  compareFile      : "data/partial.png"
 }, {
   description      : "Patched by update.manifest if the parent directory " +
                      "exists (patch-if)",
@@ -131,9 +80,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0666,
-  comparePerms     : 0666
+  compareFile      : "data/partial.png"
 }, {
   description      : "Added by update.manifest if the parent directory " +
                      "exists (add-if)",
@@ -142,9 +89,7 @@ const TEST_FILES = [
   originalContents : "ToBeReplacedWithFromPartial\n",
   compareContents  : "FromPartial\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   description      : "Patched by update.manifest if the parent directory " +
                      "exists (patch-if)",
@@ -153,9 +98,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : "data/partial.png"
 }, {
   description      : "Patched by update.manifest if the parent directory " +
                      "exists (patch-if)",
@@ -164,29 +107,23 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : "data/partial.png"
 }, {
   description      : "Patched by update.manifest (patch)",
   fileName         : "exe0.exe",
   relPathDir       : "a/b/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0755,
-  comparePerms     : null
+  originalFile     : "data/partial_in_use_win_before.exe",
+  compareFile      : "data/partial_in_use_win_after.exe"
 }, {
-  description      : "Patched by update.manifest (patch)",
+  description      : "Patched by update.manifest (patch) file in use",
   fileName         : "0exe0.exe",
   relPathDir       : "a/b/0/",
   originalContents : null,
   compareContents  : null,
-  originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0755,
-  comparePerms     : null
+  originalFile     : "data/partial_in_use_win_before.exe",
+  compareFile      : "data/partial_in_use_win_after.exe"
 }, {
   description      : "Added by update.manifest (add)",
   fileName         : "00text0",
@@ -194,9 +131,7 @@ const TEST_FILES = [
   originalContents : "ToBeReplacedWithFromPartial\n",
   compareContents  : "FromPartial\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : 0644,
-  comparePerms     : null
+  compareFile      : null
 }, {
   description      : "Patched by update.manifest (patch)",
   fileName         : "00png0.png",
@@ -204,9 +139,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : "data/complete.png",
-  compareFile      : "data/partial.png",
-  originalPerms    : 0666,
-  comparePerms     : 0666
+  compareFile      : "data/partial.png"
 }, {
   description      : "Added by update.manifest (add)",
   fileName         : "20text0",
@@ -214,9 +147,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : "FromPartial\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   description      : "Added by update.manifest (add)",
   fileName         : "20png0.png",
@@ -224,9 +155,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : null,
   originalFile     : null,
-  compareFile      : "data/partial.png",
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : "data/partial.png"
 }, {
   description      : "Added by update.manifest (add)",
   fileName         : "00text2",
@@ -234,9 +163,7 @@ const TEST_FILES = [
   originalContents : null,
   compareContents  : "FromPartial\n",
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : 0644
+  compareFile      : null
 }, {
   description      : "Removed by update.manifest (remove)",
   fileName         : "10text0",
@@ -244,9 +171,7 @@ const TEST_FILES = [
   originalContents : "ToBeDeleted\n",
   compareContents  : null,
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
+  compareFile      : null
 }, {
   description      : "Removed by update.manifest (remove)",
   fileName         : "00text1",
@@ -254,9 +179,7 @@ const TEST_FILES = [
   originalContents : "ToBeDeleted\n",
   compareContents  : null,
   originalFile     : null,
-  compareFile      : null,
-  originalPerms    : null,
-  comparePerms     : null
+  compareFile      : null
 }];
 
 ADDITIONAL_TEST_DIRS = [
@@ -271,33 +194,17 @@ ADDITIONAL_TEST_DIRS = [
 }];
 
 function run_test() {
-  if (IS_ANDROID) {
-    logTestInfo("this test is not applicable to Android... returning early");
+  if (!IS_WIN || IS_WINCE) {
+    logTestInfo("this test is only applicable to Windows... returning early");
     return;
   }
 
   do_test_pending();
   do_register_cleanup(cleanupUpdaterTest);
 
-  setupUpdaterTest(MAR_PARTIAL_FILE);
+  setupUpdaterTest(MAR_IN_USE_WIN_FILE);
 
-  let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
-  let applyToDir = getApplyDirFile();
-
-  
-  
-  let force = updatesDir.clone();
-  force.append(CHANNEL_CHANGE_FILE);
-  force.create(AUS_Ci.nsIFile.FILE_TYPE, PERMS_FILE);
-
-  
-  
-  
-  if (IS_MACOSX) {
-    let now = Date.now();
-    let yesterday = now - (1000 * 60 * 60 * 24);
-    applyToDir.lastModifiedTime = yesterday;
-  }
+  gCallbackBinFile = "exe0.exe";
 
   
   let exitValue = runUpdate();
@@ -306,20 +213,10 @@ function run_test() {
   do_check_eq(exitValue, 0);
 
   logTestInfo("testing update.status should be " + STATE_SUCCEEDED);
+  let updatesDir = do_get_file(TEST_ID + UPDATES_DIR_SUFFIX);
   do_check_eq(readStatusFile(updatesDir), STATE_SUCCEEDED);
 
-  
-  
-  if (IS_MACOSX) {
-    logTestInfo("testing last modified time on the apply to directory has " +
-                "changed after a successful update (bug 600098)");
-    let now = Date.now();
-    let timeDiff = Math.abs(applyToDir.lastModifiedTime - now);
-    do_check_true(timeDiff < MAX_TIME_DIFFERENCE);
-  }
-
   checkFilesAfterUpdateSuccess();
-  checkUpdateLogContents(LOG_PARTIAL_SUCCESS);
 
   logTestInfo("testing tobedeleted directory doesn't exist");
   let toBeDeletedDir = getApplyDirFile("tobedeleted", true);
