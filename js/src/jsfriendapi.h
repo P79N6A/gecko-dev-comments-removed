@@ -792,6 +792,15 @@ CastToJSFreeOp(FreeOp *fop)
     return reinterpret_cast<JSFreeOp *>(fop);
 }
 
+
+
+
+
+
+
+extern JS_FRIEND_API(const jschar*)
+GetErrorTypeNameFromNumber(JSContext* cx, const unsigned errorNumber);
+
 } 
 
 #endif
