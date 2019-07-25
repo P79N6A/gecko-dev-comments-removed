@@ -94,9 +94,7 @@ def build_interface(iface, ifaces):
                                         reference=False)
 
         if isinstance(type, xpidl.Array):
-            
-            
-            return xpt.ArrayType(get_type(type.type, calltype, iid_is), size_is,
+            return xpt.ArrayType(get_type(type.type, calltype), size_is,
                                  
                                  size_is)
 
