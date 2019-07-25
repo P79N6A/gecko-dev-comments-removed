@@ -443,8 +443,6 @@ var BrowserUI = {
     messageManager.addMessageListener("DOMTitleChanged", this);
     messageManager.addMessageListener("DOMWillOpenModalDialog", this);
     messageManager.addMessageListener("DOMWindowClose", this);
-    
-    messageManager.addMessageListener("pagehide", this);
 
     messageManager.addMessageListener("Browser:OpenURI", this);
     messageManager.addMessageListener("Browser:SaveAs:Return", this);
@@ -886,15 +884,6 @@ var BrowserUI = {
       case "DOMLinkAdded":
         if (Browser.selectedBrowser == browser)
           this._updateIcon(Browser.selectedBrowser.mIconURL);
-        break;
-      case "pagehide":
-        
-        
-        let utils = Util.getWindowUtils(window);
-        if (this.activePanel && !this._edit.readOnly && browser.currentURI.spec != "about:blank" && utils.IMEStatus == utils.IME_STATUS_DISABLED) {
-          this._edit.readOnly = !this._edit.readOnly;
-          this._edit.readOnly = !this._edit.readOnly;
-        }
         break;
       case "Browser:SaveAs:Return":
         if (json.type != Ci.nsIPrintSettings.kOutputFormatPDF)

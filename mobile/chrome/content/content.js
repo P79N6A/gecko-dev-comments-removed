@@ -338,14 +338,7 @@ Content.prototype = {
 
     switch (aMessage.name) {
       case "Browser:Blur": {
-        
-        
-        
-        let utils = Util.getWindowUtils(content);
-        let focusedElement = gFocusManager.focusedElement;
-        if (utils.IMEStatus != utils.IME_STATUS_DISABLED && (focusedElement && focusedElement.mozIsTextField && focusedElement.mozIsTextField(false)))
-          gFocusManager.clearFocus(content);
-
+        gFocusManager.clearFocus(content);
         docShell.isActive = false;
         this._selected = false;
         break;
