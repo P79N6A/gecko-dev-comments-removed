@@ -397,7 +397,6 @@ nsHTMLLinkElement::GetStyleSheetURL(PRBool* aIsInline)
   *aIsInline = PR_FALSE;
   nsAutoString href;
   GetAttr(kNameSpaceID_None, nsGkAtoms::href, href);
-  href.Trim(" \t\n\r\f"); 
   if (href.IsEmpty()) {
     return nsnull;
   }
