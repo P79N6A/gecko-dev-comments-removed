@@ -25,9 +25,6 @@ const Ci = Components.interfaces;
 Cu.import("resource:///modules/PageThumbs.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-XPCOMUtils.defineLazyModuleGetter(this, "NetUtil",
-  "resource://gre/modules/NetUtil.jsm");
-
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
   "resource://gre/modules/Services.jsm");
 
@@ -104,267 +101,251 @@ function Channel(aURI) {
 }
 
 Channel.prototype = {
-  
-
-
+  _uri: null,
+  _referrer: null,
+  _canceled: false,
+  _status: Cr.NS_OK,
+  _isPending: false,
   _wasOpened: false,
+  _responseText: "OK",
+  _responseStatus: 200,
+  _responseHeaders: null,
+  _requestMethod: "GET",
+  _requestStarted: false,
+  _allowPipelining: true,
+  _requestSucceeded: true,
 
   
 
+  get URI() this._uri,
+  owner: null,
+  notificationCallbacks: null,
+  get securityInfo() null,
 
+  contentType: PageThumbs.contentType,
+  contentCharset: null,
+  contentLength: -1,
 
+  get contentDisposition() {
+    throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
+  },
+
+  get contentDispositionFilename() {
+    throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
+  },
+
+  get contentDispositionHeader() {
+    throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
+  },
+
+  open: function Channel_open() {
+    throw (Components.returnCode = Cr.NS_ERROR_NOT_IMPLEMENTED);
+  },
 
   asyncOpen: function Channel_asyncOpen(aListener, aContext) {
+    if (this._isPending)
+      throw (Components.returnCode = Cr.NS_ERROR_IN_PROGRESS);
+
     if (this._wasOpened)
-      throw Cr.NS_ERROR_ALREADY_OPENED;
+      throw (Components.returnCode = Cr.NS_ERROR_ALREADY_OPENED);
 
-    if (this.canceled)
-      return;
-
-    this._listener = aListener;
-    this._context = aContext;
+    if (this._canceled)
+      return (Components.returnCode = this._status);
 
     this._isPending = true;
     this._wasOpened = true;
 
-    
-    this._readCache(function (aData) {
-      let telemetryThumbnailFound = true;
+    this._listener = aListener;
+    this._context = aContext;
 
-      
-      if (!aData) {
-        this._responseStatus = 404;
-        this._responseText = "Not Found";
-        telemetryThumbnailFound = false;
-      }
+    if (this.loadGroup)
+      this.loadGroup.addRequest(this, null);
 
-      Services.telemetry.getHistogramById("FX_THUMBNAILS_HIT_OR_MISS")
-        .add(telemetryThumbnailFound);
+    if (this._canceled)
+      return;
 
-      this._startRequest();
-
-      if (!this.canceled) {
-        this._addToLoadGroup();
-
-        if (aData)
-          this._serveData(aData);
-
-        if (!this.canceled)
-          this._stopRequest();
-      }
-    }.bind(this));
-  },
-
-  
-
-
-
-  _readCache: function Channel_readCache(aCallback) {
     let {url} = parseURI(this._uri);
-
-    
     if (!url) {
-      aCallback(null);
+      this._serveThumbnailNotFound();
       return;
     }
 
-    
     PageThumbsCache.getReadEntry(url, function (aEntry) {
       let inputStream = aEntry && aEntry.openInputStream(0);
-
-      function closeEntryAndFinish(aData) {
-        if (aEntry) {
-          aEntry.close();
-        }
-        aCallback(aData);
-      }
-
-      
       if (!inputStream || !inputStream.available()) {
-        closeEntryAndFinish();
+        if (aEntry)
+          aEntry.close();
+        this._serveThumbnailNotFound();
         return;
       }
 
-      try {
-        
-        NetUtil.asyncFetch(inputStream, function (aData, aStatus) {
-          
-          if (this.canceled)
-            return;
+      this._entry = aEntry;
+      this._pump = Cc["@mozilla.org/network/input-stream-pump;1"].
+                   createInstance(Ci.nsIInputStreamPump);
 
-          
-          if (!Components.isSuccessCode(aStatus) || !aData.available())
-            aData = null;
+      this._pump.init(inputStream, -1, -1, 0, 0, true);
+      this._pump.asyncRead(this, null);
 
-          closeEntryAndFinish(aData);
-        }.bind(this));
-      } catch (e) {
-        closeEntryAndFinish();
-      }
+      this._trackThumbnailHitOrMiss(true);
     }.bind(this));
   },
 
   
 
 
-  _startRequest: function Channel_startRequest() {
-    try {
-      this._listener.onStartRequest(this, this._context);
-    } catch (e) {
-      
-      this.cancel(Cr.NS_BINDING_ABORTED);
-    }
+  _serveThumbnailNotFound: function Channel_serveThumbnailNotFound() {
+    this._responseStatus = 404;
+    this._responseText = "Not Found";
+    this._requestSucceeded = false;
+
+    this.onStartRequest(this, null);
+    this.onStopRequest(this, null, Cr.NS_OK);
+
+    this._trackThumbnailHitOrMiss(false);
   },
 
   
 
 
 
-  _serveData: function Channel_serveData(aData) {
-    try {
-      let available = aData.available();
-      this._listener.onDataAvailable(this, this._context, aData, 0, available);
-    } catch (e) {
-      
-      this.cancel(Cr.NS_BINDING_ABORTED);
-    }
+  _trackThumbnailHitOrMiss: function Channel_trackThumbnailHitOrMiss(aFound) {
+    Services.telemetry.getHistogramById("FX_THUMBNAILS_HIT_OR_MISS")
+      .add(aFound);
   },
 
   
 
+  onStartRequest: function Channel_onStartRequest(aRequest, aContext) {
+    if (!this.canceled && Components.isSuccessCode(this._status))
+      this._status = aRequest.status;
 
-  _stopRequest: function Channel_stopRequest() {
-    try {
-      this._listener.onStopRequest(this, this._context, this.status);
-    } catch (e) {
-      
-    }
-
-    
-    this._cleanup();
+    this._requestStarted = true;
+    this._listener.onStartRequest(this, this._context);
   },
 
-  
+  onDataAvailable: function Channel_onDataAvailable(aRequest, aContext,
+                                                    aInStream, aOffset, aCount) {
+    this._listener.onDataAvailable(this, this._context, aInStream, aOffset, aCount);
+  },
 
+  onStopRequest: function Channel_onStopRequest(aRequest, aContext, aStatus) {
+    this._isPending = false;
+    this._status = aStatus;
 
-  _addToLoadGroup: function Channel_addToLoadGroup() {
+    this._listener.onStopRequest(this, this._context, aStatus);
+    this._listener = null;
+    this._context = null;
+
+    if (this._entry)
+      this._entry.close();
+
     if (this.loadGroup)
-      this.loadGroup.addRequest(this, this._context);
+      this.loadGroup.removeRequest(this, null, aStatus);
   },
 
   
 
+  get status() this._status,
+  get name() this._uri.spec,
+  isPending: function Channel_isPending() this._isPending,
 
-  _removeFromLoadGroup: function Channel_removeFromLoadGroup() {
-    if (!this.loadGroup)
+  loadFlags: Ci.nsIRequest.LOAD_NORMAL,
+  loadGroup: null,
+
+  cancel: function Channel_cancel(aStatus) {
+    if (this._canceled)
       return;
 
-    try {
-      this.loadGroup.removeRequest(this, this._context, this.status);
-    } catch (e) {
-      
-    }
+    this._canceled = true;
+    this._status = aStatus;
+
+    if (this._pump)
+      this._pump.cancel(aStatus);
+  },
+
+  suspend: function Channel_suspend() {
+    if (this._pump)
+      this._pump.suspend();
+  },
+
+  resume: function Channel_resume() {
+    if (this._pump)
+      this._pump.resume();
   },
 
   
 
+  get referrer() this._referrer,
 
-  _cleanup: function Channel_cleanup() {
-    this._removeFromLoadGroup();
-    this.loadGroup = null;
+  set referrer(aReferrer) {
+    if (this._wasOpened)
+      throw (Components.returnCode = Cr.NS_ERROR_IN_PROGRESS);
 
-    this._isPending = false;
-
-    delete this._listener;
-    delete this._context;
+    this._referrer = aReferrer;
   },
 
-  
+  get requestMethod() this._requestMethod,
 
-  contentType: PageThumbs.contentType,
-  contentLength: -1,
-  owner: null,
-  contentCharset: null,
-  notificationCallbacks: null,
+  set requestMethod(aMethod) {
+    if (this._wasOpened)
+      throw (Components.returnCode = Cr.NS_ERROR_IN_PROGRESS);
 
-  get URI() this._uri,
-  get securityInfo() null,
-
-  
-
-
-  open: function Channel_open() {
-    
-    throw Cr.NS_ERROR_NOT_IMPLEMENTED;
+    this._requestMethod = aMethod.toUpperCase();
   },
 
-  
+  get allowPipelining() this._allowPipelining,
+
+  set allowPipelining(aAllow) {
+    if (this._wasOpened)
+      throw (Components.returnCode = Cr.NS_ERROR_FAILURE);
+
+    this._allowPipelining = aAllow;
+  },
 
   redirectionLimit: 10,
-  requestMethod: "GET",
-  allowPipelining: true,
-  referrer: null,
 
-  get requestSucceeded() true,
+  get responseStatus() {
+    if (this._requestStarted)
+      throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
 
-  _responseStatus: 200,
-  get responseStatus() this._responseStatus,
-
-  _responseText: "OK",
-  get responseStatusText() this._responseText,
-
-  
-
-
-
-
-  isNoCacheResponse: function () false,
-
-  
-
-
-
-
-  isNoStoreResponse: function () false,
-
-  
-
-
-  getRequestHeader: function Channel_getRequestHeader() {
-    throw Cr.NS_ERROR_NOT_AVAILABLE;
+    return this._responseStatus;
   },
 
-  
+  get responseStatusText() {
+    if (this._requestStarted)
+      throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
 
+    return this._responseText;
+  },
 
+  get requestSucceeded() {
+    if (this._requestStarted)
+      throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
+
+    return this._requestSucceeded;
+  },
+
+  isNoCacheResponse: function Channel_isNoCacheResponse() false,
+  isNoStoreResponse: function Channel_isNoStoreResponse() false,
+
+  getRequestHeader: function Channel_getRequestHeader() {
+    throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
+  },
 
   setRequestHeader: function Channel_setRequestHeader() {
     if (this._wasOpened)
-      throw Cr.NS_ERROR_IN_PROGRESS;
+      throw (Components.returnCode = Cr.NS_ERROR_IN_PROGRESS);
   },
 
-  
-
-
-  visitRequestHeaders: function () {},
-
-  
-
-
-
+  visitRequestHeaders: function Channel_visitRequestHeaders() {},
 
   getResponseHeader: function Channel_getResponseHeader(aHeader) {
     let name = aHeader.toLowerCase();
     if (name in this._responseHeaders)
       return this._responseHeaders[name];
 
-    throw Cr.NS_ERROR_NOT_AVAILABLE;
+    throw (Components.returnCode = Cr.NS_ERROR_NOT_AVAILABLE);
   },
-
-  
-
-
-
 
   setResponseHeader: function Channel_setResponseHeader(aHeader, aValue, aMerge) {
     let name = aHeader.toLowerCase();
@@ -373,10 +354,6 @@ Channel.prototype = {
     else
       this._responseHeaders[name] = aValue;
   },
-
-  
-
-
 
   visitResponseHeaders: function Channel_visitResponseHeaders(aVisitor) {
     for (let name in this._responseHeaders) {
@@ -393,46 +370,15 @@ Channel.prototype = {
 
   
 
-  loadFlags: Ci.nsIRequest.LOAD_NORMAL,
-  loadGroup: null,
-
-  get name() this._uri.spec,
-
-  _status: Cr.NS_OK,
-  get status() this._status,
-
-  _isPending: false,
-  isPending: function () this._isPending,
-
-  resume: function () {},
-  suspend: function () {},
-
-  
-
-
-
-  cancel: function Channel_cancel(aStatus) {
-    if (this.canceled)
-      return;
-
-    this._isCanceled = true;
-    this._status = aStatus;
-
-    this._cleanup();
-  },
-
-  
-
   documentURI: null,
-
-  _isCanceled: false,
-  get canceled() this._isCanceled,
+  get canceled() this._canceled,
+  allowSpdy: false,
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIChannel,
                                          Ci.nsIHttpChannel,
                                          Ci.nsIHttpChannelInternal,
                                          Ci.nsIRequest])
-};
+}
 
 
 
