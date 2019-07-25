@@ -485,9 +485,10 @@ var BrowserUI = {
   },
 
   getDisplayURI : function(browser) {
-    if (Browser.selectedTab.isLoading() && browser.lastSpec == browser.currentURI.spec) {
+    let loadGroup = browser.webNavigation.QueryInterface(Ci.nsIDocumentLoader).loadGroup;
+    if (loadGroup.activeCount && loadGroup.defaultLoadRequest) {
       
-      return this._edit.value;
+      return loadGroup.defaultLoadRequest.name;
     }
 
     if (!this._URIFixup)
