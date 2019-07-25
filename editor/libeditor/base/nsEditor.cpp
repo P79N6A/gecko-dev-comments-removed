@@ -4283,19 +4283,20 @@ nsEditor::DeleteSelectionAndPrepareToCreateNode(nsCOMPtr<nsIDOMNode> &parentSele
     if (NS_FAILED(result)) {
       return result;
     }
-#ifdef NS_DEBUG
-    nsCOMPtr<nsIDOMNode>testSelectedNode;
-    nsresult debugResult = selection->GetAnchorNode(getter_AddRefs(testSelectedNode));
+
+    nsCOMPtr<nsIDOMNode> selectedNode;
+    selection->GetAnchorNode(getter_AddRefs(selectedNode));
     
     
-    if (testSelectedNode)
+    if (selectedNode)
     {
-      PRBool testCollapsed;
-      debugResult = selection->GetIsCollapsed(&testCollapsed);
-      NS_ASSERTION((NS_SUCCEEDED(result)), "couldn't get a selection after deletion");
-      NS_ASSERTION(testCollapsed, "selection not reset after deletion");
+      PRBool testCollapsed = PR_FALSE;
+      selection->GetIsCollapsed(&testCollapsed);
+      if (!testCollapsed) {
+        result = selection->CollapseToEnd();
+        NS_ENSURE_SUCCESS(result, result);
+      }
     }
-#endif
   }
   
   PRInt32 offsetOfSelectedNode;
