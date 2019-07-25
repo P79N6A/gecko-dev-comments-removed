@@ -102,7 +102,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
 
     
     
-    if (!script->bindings.init(cx, 0, 0, NULL))
+    if (!script->bindings.initWithTemporaryStorage(cx, 0, 0, NULL))
         return NULL;
 
     
