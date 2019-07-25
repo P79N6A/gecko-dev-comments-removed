@@ -113,6 +113,23 @@ let Utils = {
     return ret;
   },
 
+  exceptionStr: function Weave_exceptionStr(e) {
+    let message = e.message? e.message : e;
+    let location = e.location? " (" + e.location + ")" : "";
+    return message + location;
+  },
+
+  stackTrace: function Weave_stackTrace(stackFrame, str) {
+    if (stackFrame.caller)
+      str = Utils.stackTrace(stackFrame.caller, str);
+
+    if (!str)
+      str = "";
+    str += stackFrame + "\n";
+
+    return str;
+  },
+
   checkStatus: function Weave_checkStatus(code, msg, ranges) {
     if (!ranges)
       ranges = [[200,300]];
@@ -120,14 +137,19 @@ let Utils = {
     for (let i = 0; i < ranges.length; i++) {
       rng = ranges[i];
       if (typeof(rng) == "object" && code >= rng[0] && code < rng[1])
-        return;
+        return true;
       else if (typeof(rng) == "integer" && code == rng)
-        return;
+        return true;
     }
 
     let log = Log4Moz.Service.getLogger("Service.Util");
     log.error(msg + " Error code: " + code);
-    throw 'checkStatus failed';
+    return false;
+  },
+
+  ensureStatus: function Weave_ensureStatus(args) {
+    if (!Utils.checkStatus.apply(Utils, arguments))
+      throw 'checkStatus failed';
   },
 
   makeURI: function Weave_makeURI(URIString) {
@@ -145,73 +167,6 @@ let Utils = {
 
     return xmlDoc.evaluate(xpathString, xmlDoc, nsResolver,
                            Ci.nsIDOMXPathResult.ANY_TYPE, null);
-  },
-
-  bind2: function Weave_bind2(object, method) {
-    return function innerBind() { return method.apply(object, arguments); }
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-
-  generatorAsync: function Weave_generatorAsync(self, extra_args) {
-    try {
-      let args = Array.prototype.slice.call(arguments, 1);
-      let gen = this.apply(self, args);
-      gen.next(); 
-      gen.send([gen, function(data) {Utils.continueGenerator(gen, data);}]);
-      return gen;
-    } catch (e) {
-      if (e instanceof StopIteration) {
-        dump("async warning: generator stopped unexpectedly");
-        return null;
-      } else {
-        dump("Exception caught: " + e.message);
-      }
-    }
-  },
-
-  continueGenerator: function Weave_continueGenerator(generator, data) {
-    try { generator.send(data); }
-    catch (e) {
-      if (e instanceof StopIteration)
-        dump("continueGenerator warning: generator stopped unexpectedly");
-      else
-        dump("Exception caught: " + e.message);
-    }
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  generatorDone: function Weave_generatorDone(object, generator, callback, retval) {
-    if (object._timer)
-      throw "Called generatorDone when there is a timer already set."
-
-    let cb = Utils.bind2(object, function(event) {
-      generator.close();
-      generator = null;
-      object._timer = null;
-      if (callback)
-        callback(retval);
-    });
-
-    object._timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    object._timer.initWithCallback(new Utils.EventListener(cb),
-                                   0, object._timer.TYPE_ONE_SHOT);
   },
 
   runCmd: function Weave_runCmd() {
@@ -318,6 +273,10 @@ let Utils = {
     return ret;
   },
 
+  bind2: function Async_bind2(object, method) {
+    return function innerBind() { return method.apply(object, arguments); }
+  },
+
   
 
 
@@ -341,7 +300,7 @@ Utils.EventListener.prototype = {
 
   
   notify: function EL_notify(timer) {
-    this._log.trace("Timer fired");
+    
     this._handler(timer);
   }
 }
