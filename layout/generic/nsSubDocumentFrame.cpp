@@ -811,12 +811,14 @@ public:
       mPresShell->FlushPendingNotifications(Flush_Frames);
     }
     nsIFrame* frame = mFrameElement->GetPrimaryFrame();
-    if (!frame && mHideViewerIfFrameless) {
+    if ((!frame && mHideViewerIfFrameless) ||
+        mPresShell->IsDestroying()) {
+      
       
       
       mFrameLoader->SetDetachedSubdocView(nullptr, nullptr);
       mFrameLoader->Hide();
-   }
+    }
     return NS_OK;
   }
 private:
