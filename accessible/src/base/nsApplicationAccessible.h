@@ -63,6 +63,8 @@ class nsApplicationAccessible: public nsAccessibleWrap,
                                public nsIAccessibleApplication
 {
 public:
+  using nsAccessible::GetChildAtPoint;
+
   nsApplicationAccessible();
 
   

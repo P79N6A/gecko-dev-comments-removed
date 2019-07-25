@@ -103,6 +103,8 @@
 #include "nsIDOMCharacterData.h"
 #endif
 
+#include "mozilla/unused.h"
+
 
 
 
@@ -2885,7 +2887,7 @@ PRInt32
 nsAccessible::GetIndexInParent()
 {
   
-  nsAccessible* parent = GetParent();
+  GetParent();
   return mIndexInParent;
 }
 
