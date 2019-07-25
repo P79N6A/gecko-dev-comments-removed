@@ -154,6 +154,11 @@ public:
   nsresult ExtendSelectionForDelete(nsISelection* aSelection,
                                     nsIEditor::EDirection *aAction);
 
+  
+  
+  
+  bool IsSafeToInsertData(nsIDOMDocument* aSourceDoc);
+
   static void GetDefaultEditorPrefs(PRInt32 &aNewLineHandling,
                                     PRInt32 &aCaretStyle);
 
