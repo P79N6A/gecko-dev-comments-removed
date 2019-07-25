@@ -53,6 +53,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 
   
 #ifndef nsDebug_h___
@@ -277,8 +278,7 @@ class nsCOMPtr_helper
 class
   NS_COM_GLUE
   NS_STACK_CLASS
-  NS_FINAL_CLASS
-nsQueryInterface
+nsQueryInterface MOZ_FINAL
   {
     public:
       explicit
@@ -513,9 +513,7 @@ nsCOMPtr_base
 
 
 template <class T>
-class
-  NS_FINAL_CLASS
-nsCOMPtr
+class nsCOMPtr MOZ_FINAL
 #ifdef NSCAP_FEATURE_USE_BASE
     : private nsCOMPtr_base
 #endif

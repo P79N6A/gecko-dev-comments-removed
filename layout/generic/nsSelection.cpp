@@ -41,6 +41,8 @@
 
 
 
+#include "mozilla/Attributes.h"
+
 #include "nsCOMPtr.h"
 #include "nsWeakReference.h"
 #include "nsIFactory.h"
@@ -357,7 +359,7 @@ private:
 };
 
 
-class NS_STACK_CLASS NS_FINAL_CLASS nsSelectionBatcher
+class NS_STACK_CLASS nsSelectionBatcher MOZ_FINAL
 {
 private:
   nsCOMPtr<nsISelectionPrivate> mSelection;

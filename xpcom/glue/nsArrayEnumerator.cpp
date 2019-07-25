@@ -36,6 +36,8 @@
 
 
 
+#include "mozilla/Attributes.h"
+
 #include "nsArrayEnumerator.h"
 
 #include "nsIArray.h"
@@ -44,7 +46,7 @@
 #include "nsCOMArray.h"
 #include "nsCOMPtr.h"
 
-class nsSimpleArrayEnumerator : public nsISimpleEnumerator
+class nsSimpleArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
 {
 public:
     
@@ -126,7 +128,7 @@ NS_NewArrayEnumerator(nsISimpleEnumerator* *result,
 
 
 
-class nsCOMArrayEnumerator : public nsISimpleEnumerator
+class nsCOMArrayEnumerator MOZ_FINAL : public nsISimpleEnumerator
 {
 public:
     

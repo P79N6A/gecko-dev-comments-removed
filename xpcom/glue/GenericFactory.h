@@ -38,6 +38,8 @@
 #ifndef mozilla_GenericFactory_h
 #define mozilla_GenericFactory_h
 
+#include "mozilla/Attributes.h"
+
 #include "mozilla/Module.h"
 
 namespace mozilla {
@@ -47,7 +49,7 @@ namespace mozilla {
 
 
 
-class GenericFactory : public nsIFactory
+class GenericFactory MOZ_FINAL : public nsIFactory
 {
 public:
   typedef Module::ConstructorProcPtr ConstructorProcPtr;
