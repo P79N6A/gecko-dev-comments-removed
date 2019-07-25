@@ -4982,7 +4982,7 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles)
 
     JSObject *oldproto = obj;
     while (oldproto && oldproto->isNative()) {
-        if (!oldproto->setUncacheableProto(cx))
+        if (!oldproto->protoShapeChange(cx))
             return false;
         oldproto = oldproto->getProto();
     }
