@@ -213,14 +213,15 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
 
     
-    uint32 bailoutFrameSize = sizeof(void *) * Registers::Total +
-                              sizeof(double) * FloatRegisters::Total +
-                              sizeof(void *); 
-    masm.addq(Imm32(bailoutFrameSize), rsp);
-
     
+    
+    
+    
+    uint32 bailoutFrameSize = sizeof(void *) * Registers::Total +
+                              sizeof(double) * FloatRegisters::Total;
+    masm.addq(Imm32(bailoutFrameSize), rsp);
     masm.pop(rcx);
-    masm.addq(rcx, rsp);
+    masm.lea(Operand(rsp, rcx, TimesOne, sizeof(void *)), rsp);
 
     Label exception;
 
