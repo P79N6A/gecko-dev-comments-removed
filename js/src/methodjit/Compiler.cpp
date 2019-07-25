@@ -942,6 +942,17 @@ mjit::Compiler::generateMethod()
         SPEW_OPCODE();
         JS_ASSERT(frame.stackDepth() == opinfo->stackDepth);
 
+        
+        
+        
+        
+        
+        
+        if (op == JSOP_ENTERBLOCK && analysis->getCode(PC).exceptionEntry) {
+            restoreFrameRegs(masm);
+            interruptCheckHelper();
+        }
+
         if (trap) {
             prepareStubCall(Uses(0));
             masm.move(Imm32(trap), Registers::ArgReg1);
@@ -4831,17 +4842,6 @@ mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow)
 void
 mjit::Compiler::enterBlock(JSObject *obj)
 {
-    
-    
-    
-    
-    
-    
-    if (analysis->getCode(PC).exceptionEntry) {
-        restoreFrameRegs(masm);
-        interruptCheckHelper();
-    }
-
     uint32 oldFrameDepth = frame.localSlots();
 
     
