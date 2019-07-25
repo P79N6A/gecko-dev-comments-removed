@@ -659,6 +659,12 @@ pref("reader.has_used_toolbar", false);
 pref("media.plugins.enabled", true);
 
 
+
+
+
+pref("media.stagefright.omxcodec.flags", 0);
+
+
 pref("dom.event.touch.coalescing.enabled", true);
 
 

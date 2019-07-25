@@ -230,6 +230,33 @@ static sp<IOMX> GetOMX() {
 }
 #endif
 
+static uint32_t GetVideoCreationFlags(PluginHost* pluginHost)
+{
+#ifdef MOZ_WIDGET_GONK
+  
+  
+  return 0;
+#else
+  
+  
+  
+  
+  
+  
+  int32_t flags = 0;
+  pluginHost->GetIntPref("media.stagefright.omxcodec.flags", &flags);
+  if (flags != 0) {
+    LOG("media.stagefright.omxcodec.flags=%d", flags);
+    if ((flags & OMXCodec::kHardwareCodecsOnly) != 0) {
+      LOG("FORCE HARDWARE DECODING");
+    } else if ((flags & OMXCodec::kSoftwareCodecsOnly) != 0) {
+      LOG("FORCE SOFTWARE DECODING");
+    }
+  }
+  return static_cast<uint32_t>(flags);
+#endif
+}
+
 bool OmxDecoder::Init() {
   
   DataSource::RegisterDefaultSniffers();
@@ -291,13 +318,11 @@ bool OmxDecoder::Init() {
   }
   sp<IOMX> omx = mClient.interface();
 #endif
-  
-  
-  uint32_t flags = 0;
 
   sp<MediaSource> videoTrack;
   sp<MediaSource> videoSource;
   if (videoTrackIndex != -1 && (videoTrack = extractor->getTrack(videoTrackIndex)) != NULL) {
+    uint32_t flags = GetVideoCreationFlags(mPluginHost);
     videoSource = OMXCodec::Create(omx,
                                    videoTrack->getFormat(),
                                    false, 
@@ -406,7 +431,7 @@ bool OmxDecoder::SetVideoFormat() {
     LOG("rotation not available, assuming 0");
   }
 
-  LOG("width: %d height: %d component: %s format: %d stride: %d sliceHeight: %d rotation: %d",
+  LOG("width: %d height: %d component: %s format: %#x stride: %d sliceHeight: %d rotation: %d",
       mVideoWidth, mVideoHeight, componentName, mVideoColorFormat,
       mVideoStride, mVideoSliceHeight, mVideoRotation);
 
