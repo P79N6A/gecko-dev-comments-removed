@@ -165,38 +165,40 @@ function debugTile(i, j) {
   dump('------------------------------------\n');
 }
 
-function onKeyPress(ev) {
+function onDebugKeyPress(ev) {
   let bv = Browser._browserView;
 
   if (!ev.ctrlKey)
     return;
 
-  const a = 97;   
-  const b = 98;   
-  const c = 99;   
-  const d = 100;  
-  const e = 101;
-  const f = 102;
-  const g = 103;
-  const h = 104;
-  const i = 105;  
-  const j = 106;
-  const k = 107;
-  const l = 108;  
-  const m = 109;  
-  const n = 110;
-  const o = 111;
-  const p = 112;  
-  const q = 113;
-  const r = 114;  
-  const s = 115;
-  const t = 116;  
-  const u = 117;
-  const v = 118;
-  const w = 119;
-  const x = 120;
-  const y = 121;
-  const z = 122;  
+  
+  
+  const a = 65;   
+  const b = 66;   
+  const c = 67;   
+  const d = 68;  
+  const e = 69;
+  const f = 70;
+  const g = 71;
+  const h = 72;
+  const i = 73;  
+  const j = 74;
+  const k = 75;
+  const l = 76;  
+  const m = 77;  
+  const n = 78;
+  const o = 79;
+  const p = 80;  
+  const q = 81;
+  const r = 82;  
+  const s = 83;
+  const t = 84;  
+  const u = 85;
+  const v = 86;
+  const w = 87;
+  const x = 88;
+  const y = 89;
+  const z = 90;  
 
   if (window.tileMapMode) {
     function putChar(ev, col, row) {
