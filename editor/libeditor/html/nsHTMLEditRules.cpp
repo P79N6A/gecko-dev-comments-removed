@@ -7683,7 +7683,17 @@ nsHTMLEditRules::CheckInterlinePosition(nsISelection *aSelection)
   PRInt32 selOffset;
   res = mHTMLEditor->GetStartNodeAndOffset(aSelection, getter_AddRefs(selNode), &selOffset);
   NS_ENSURE_SUCCESS(res, res);
+
   
+  
+  
+  mHTMLEditor->GetPriorHTMLNode(selNode, selOffset, address_of(node), true);
+  if (node && nsTextEditUtils::IsBreak(node))
+  {
+    selPriv->SetInterlinePosition(true);
+    return NS_OK;
+  }
+
   
   mHTMLEditor->GetPriorHTMLSibling(selNode, selOffset, address_of(node));
   if (node && IsBlockNode(node))
@@ -7695,15 +7705,7 @@ nsHTMLEditRules::CheckInterlinePosition(nsISelection *aSelection)
   
   mHTMLEditor->GetNextHTMLSibling(selNode, selOffset, address_of(node));
   if (node && IsBlockNode(node))
-  {
     selPriv->SetInterlinePosition(false);
-    return NS_OK;
-  }
-  
-  
-  mHTMLEditor->GetPriorHTMLNode(selNode, selOffset, address_of(node), true);
-  if (node && nsTextEditUtils::IsBreak(node))
-      selPriv->SetInterlinePosition(true);
   return NS_OK;
 }
 
