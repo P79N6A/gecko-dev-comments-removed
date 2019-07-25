@@ -284,7 +284,6 @@ CssHtmlTree.prototype = {
     this.cssLogic.sourceFilter = this.showOnlyUserStyles ?
                                  CssLogic.FILTER.ALL :
                                  CssLogic.FILTER.UA;
-    
     this.refreshPanel();
   },
 
@@ -446,9 +445,25 @@ PropertyView.prototype = {
   
 
 
+  get hasMatchedSelectors()
+  {
+    return this.propertyInfo.hasMatchedSelectors();
+  },
+
+  
+
+
+  get hasUnmatchedSelectors()
+  {
+    return this.propertyInfo.hasUnmatchedSelectors();
+  },
+
+  
+
+
   get visible()
   {
-    if (this.tree.showOnlyUserStyles && this.matchedSelectorCount == 0) {
+    if (this.tree.showOnlyUserStyles && !this.hasMatchedSelectors) {
       return false;
     }
 
@@ -467,22 +482,6 @@ PropertyView.prototype = {
   get className()
   {
     return this.visible ? "property-view" : "property-view-hidden";
-  },
-
-  
-
-
-  get matchedSelectorCount()
-  {
-    return this.propertyInfo.matchedSelectors.length;
-  },
-
-  
-
-
-  get unmatchedSelectorCount()
-  {
-    return this.propertyInfo.unmatchedSelectors.length;
   },
 
   
@@ -520,10 +519,10 @@ PropertyView.prototype = {
 
   refreshMatchedSelectors: function PropertyView_refreshMatchedSelectors()
   {
-    this.matchedSelectorsTitleNode.innerHTML = this.matchedSelectorTitle();
-    this.matchedSelectorsContainer.hidden = this.matchedSelectorCount == 0;
+    let hasMatchedSelectors = this.hasMatchedSelectors;
+    this.matchedSelectorsContainer.hidden = !hasMatchedSelectors;
 
-    if (this.matchedExpanded && this.matchedSelectorCount > 0) {
+    if (this.matchedExpanded && hasMatchedSelectors) {
       CssHtmlTree.processTemplate(this.templateMatchedSelectors,
         this.matchedSelectorTable, this);
       this.matchedExpander.setAttribute("open", "");
@@ -536,11 +535,12 @@ PropertyView.prototype = {
   
 
 
-  refreshUnmatchedSelectors: function PropertyView_refreshUnmatchedSelectors() {
-    this.unmatchedSelectorsTitleNode.innerHTML = this.unmatchedSelectorTitle();
-    this.unmatchedSelectorsContainer.hidden = this.unmatchedSelectorCount == 0;
+  refreshUnmatchedSelectors: function PropertyView_refreshUnmatchedSelectors()
+  {
+    let hasUnmatchedSelectors = this.hasUnmatchedSelectors;
+    this.unmatchedSelectorsContainer.hidden = !hasUnmatchedSelectors;
 
-    if (this.unmatchedExpanded && this.unmatchedSelectorCount > 0) {
+    if (this.unmatchedExpanded && hasUnmatchedSelectors) {
       CssHtmlTree.processTemplate(this.templateUnmatchedSelectors,
           this.unmatchedSelectorTable, this);
       this.unmatchedExpander.setAttribute("open", "");
@@ -548,42 +548,6 @@ PropertyView.prototype = {
       this.unmatchedSelectorTable.innerHTML = "";
       this.unmatchedExpander.removeAttribute("open");
     }
-  },
-
-  
-
-
-
-
-
-  matchedSelectorTitle: function PropertyView_matchedSelectorTitle()
-  {
-    let result = "";
-
-    if (this.matchedSelectorCount > 0) {
-      let str = CssHtmlTree.l10n("property.numberOfMatchedSelectors");
-      result = PluralForm.get(this.matchedSelectorCount, str)
-                         .replace("#1", this.matchedSelectorCount);
-    }
-    return result;
-  },
-
-  
-
-
-
-
-
-  unmatchedSelectorTitle: function PropertyView_unmatchedSelectorTitle()
-  {
-    let result = "";
-
-    if (this.unmatchedSelectorCount > 0) {
-      let str = CssHtmlTree.l10n("property.numberOfUnmatchedSelectors");
-      result = PluralForm.get(this.unmatchedSelectorCount, str)
-                         .replace("#1", this.unmatchedSelectorCount);
-    }
-    return result;
   },
 
   
