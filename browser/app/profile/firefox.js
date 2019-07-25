@@ -431,6 +431,8 @@ pref("dom.max_script_run_time",                   20);
 
 pref("dom.disable_window_open_feature.location",  true);
 
+pref("dom.disable_window_status_change",          true);
+
 pref("dom.disable_window_move_resize",            false);
 
 pref("dom.disable_window_flip",                   true);
