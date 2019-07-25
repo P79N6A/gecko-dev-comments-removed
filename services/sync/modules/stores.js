@@ -781,8 +781,6 @@ CookieStore.prototype = {
         
 
 	this._log.info("CookieStore got createCommand: " + command );
-        if (this._cookieManager == null )
-	    throw "Cookie manager is null in CookieStore._createCommand.";
         
 	this._cookieManager.add( command.data.host,
 				  command.data.path,
@@ -805,8 +803,6 @@ CookieStore.prototype = {
         
         
 	
-        if (this._cookieManager == null )
-	    throw "Cookie manager is null in CookieStore._removeCommand.";
 	this._cookieManager.remove( command.data.host,
                                     command.data.name,
 				    command.data.path,
@@ -818,6 +814,9 @@ CookieStore.prototype = {
         
     
 	
+        
+        
+        
         this._log.info("CookieStore got editCommand: " + command );
   },
 
@@ -828,8 +827,6 @@ CookieStore.prototype = {
         
 
 	let items = {};
-        if (this._cookieManager == null )
-	    throw "Cookie manager is null in CookieStore.wrap.";
 	var iter = this._cookieManager.enumerator;
 	while (iter.hasMoreElements()){
 	    var cookie = iter.getNext();
@@ -864,8 +861,6 @@ CookieStore.prototype = {
         
         
         
-        if (this._cookieManager == null )
-	    throw "Cookie manager is null in CookieStore.wipe";
         this._cookieManager.removeAll()
   },
 
