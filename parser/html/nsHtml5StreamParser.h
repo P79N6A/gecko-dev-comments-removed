@@ -60,6 +60,28 @@ class nsHtml5Parser;
 #define NS_HTML5_STREAM_PARSER_READ_BUFFER_SIZE 1024
 #define NS_HTML5_STREAM_PARSER_SNIFFING_BUFFER_SIZE 1024
 
+enum eParserMode {
+  
+
+
+  NORMAL,
+
+  
+
+
+  VIEW_SOURCE_HTML,
+
+  
+
+
+  VIEW_SOURCE_XML,
+
+  
+
+
+  PLAIN_TEXT
+};
+
 enum eBomState {
   
 
@@ -118,7 +140,8 @@ class nsHtml5StreamParser : public nsIStreamListener,
     static void InitializeStatics();
 
     nsHtml5StreamParser(nsHtml5TreeOpExecutor* aExecutor,
-                        nsHtml5Parser* aOwner);
+                        nsHtml5Parser* aOwner,
+                        eParserMode aMode);
                         
     virtual ~nsHtml5StreamParser();
 
@@ -494,6 +517,11 @@ class nsHtml5StreamParser : public nsIStreamListener,
 
 
     bool                          mFlushTimerEverFired;
+
+    
+
+
+    eParserMode                   mMode;
 
     
 

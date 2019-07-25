@@ -112,6 +112,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     nsCOMPtr<nsIURI> mSpeculationBaseURI;
 
+    nsCOMPtr<nsIURI> mViewSourceBaseURI;
+
     
 
 
@@ -415,6 +417,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
       mStage.AssertEmpty();
     }
 #endif
+
+    nsIURI* GetViewSourceBaseURI();
 
     void PreloadScript(const nsAString& aURL,
                        const nsAString& aCharset,

@@ -301,7 +301,7 @@ class nsIParser : public nsISupports {
     
 
 
-    virtual void MarkAsNotScriptCreated() = 0;
+    virtual void MarkAsNotScriptCreated(const char* aCommand) = 0;
 
     
 

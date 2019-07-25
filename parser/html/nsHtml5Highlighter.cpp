@@ -1,0 +1,676 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsHtml5Highlighter.h"
+#include "nsDebug.h"
+#include "nsHtml5Tokenizer.h"
+#include "nsHtml5AttributeName.h"
+#include "nsString.h"
+#include "nsThreadUtils.h"
+#include "mozilla/Preferences.h"
+
+using namespace mozilla;
+
+PRUnichar nsHtml5Highlighter::sComment[] =
+  { 'c', 'o', 'm', 'm', 'e', 'n', 't', 0 };
+
+PRUnichar nsHtml5Highlighter::sCdata[] =
+  { 'c', 'd', 'a', 't', 'a', 0 };
+
+PRUnichar nsHtml5Highlighter::sEntity[] =
+  { 'e', 'n', 't', 'i', 't', 'y', 0 };
+
+PRUnichar nsHtml5Highlighter::sEndTag[] =
+  { 'e', 'n', 'd', '-', 't', 'a', 'g', 0 };
+
+PRUnichar nsHtml5Highlighter::sStartTag[] =
+  { 's', 't', 'a', 'r', 't', '-', 't', 'a', 'g', 0 };
+
+PRUnichar nsHtml5Highlighter::sAttributeName[] =
+  { 'a', 't', 't', 'r', 'i', 'b', 'u', 't', 'e', '-', 'n', 'a', 'm', 'e', 0 };
+
+PRUnichar nsHtml5Highlighter::sAttributeValue[] =
+  { 'a', 't', 't', 'r', 'i', 'b', 'u', 't', 'e', '-',
+    'v', 'a', 'l', 'u', 'e', 0 };
+
+PRUnichar nsHtml5Highlighter::sDoctype[] =
+  { 'd', 'o', 'c', 't', 'y', 'p', 'e', 0 };
+
+nsHtml5Highlighter::nsHtml5Highlighter(nsAHtml5TreeOpSink* aOpSink)
+ : mState(NS_HTML5TOKENIZER_DATA)
+ , mCStart(PR_INT32_MAX)
+ , mPos(0)
+ , mInlinesOpen(0)
+ , mBuffer(nsnull)
+ , mSyntaxHighlight(Preferences::GetBool("view_source.syntax_highlight",
+                                         true))
+ , mWrapLongLines(Preferences::GetBool("view_source.wrap_long_lines", true))
+ , mTabSize(Preferences::GetInt("view_source.tab_size", 4))
+ , mOpSink(aOpSink)
+ , mHandles(new nsIContent*[NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH])
+ , mHandlesUsed(0)
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+}
+
+nsHtml5Highlighter::~nsHtml5Highlighter()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+}
+
+void
+nsHtml5Highlighter::Start()
+{
+  
+  mOpQueue.AppendElement()->Init(nsGkAtoms::html, EmptyString(), EmptyString());
+
+  mOpQueue.AppendElement()->Init(STANDARDS_MODE);
+
+  nsIContent** root = CreateElement(nsHtml5Atoms::html, nsnull);
+  mOpQueue.AppendElement()->Init(eTreeOpAppendToDocument, root);
+  mStack.AppendElement(root);
+
+  Push(nsGkAtoms::head, nsnull);
+
+  Push(nsGkAtoms::title, nsnull);
+  
+  AppendCharacters(mURL.get(), 0, mURL.Length());
+  Pop(); 
+
+  nsHtml5HtmlAttributes* linkAttrs = new nsHtml5HtmlAttributes(0);
+  nsString* rel = new nsString(NS_LITERAL_STRING("stylesheet"));
+  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_REL, rel);
+  nsString* type = new nsString(NS_LITERAL_STRING("text/css"));
+  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_TYPE, type);
+  nsString* href = new nsString(
+      NS_LITERAL_STRING("resource://gre-resources/viewsource.css"));
+  linkAttrs->addAttribute(nsHtml5AttributeName::ATTR_HREF, href);
+  Push(nsGkAtoms::link, linkAttrs);
+
+  mOpQueue.AppendElement()->Init(eTreeOpUpdateStyleSheet, CurrentNode());
+
+  Pop(); 
+
+  Pop(); 
+
+  nsHtml5HtmlAttributes* bodyAttrs = new nsHtml5HtmlAttributes(0);
+  nsString* id = new nsString(NS_LITERAL_STRING("viewsource"));
+  bodyAttrs->addAttribute(nsHtml5AttributeName::ATTR_ID, id);
+
+  if (mWrapLongLines) {
+    nsString* klass = new nsString(NS_LITERAL_STRING("wrap"));
+    bodyAttrs->addAttribute(nsHtml5AttributeName::ATTR_CLASS, klass);
+  }
+
+  if (mTabSize > 0) {
+    nsString* style = new nsString(NS_LITERAL_STRING("-moz-tab-size: "));
+    style->AppendInt(mTabSize);
+    bodyAttrs->addAttribute(nsHtml5AttributeName::ATTR_CLASS, style);
+  }
+
+  Push(nsGkAtoms::body, bodyAttrs);
+
+  nsHtml5HtmlAttributes* preAttrs = new nsHtml5HtmlAttributes(0);
+  nsString* preId = new nsString(NS_LITERAL_STRING("line1"));
+  preAttrs->addAttribute(nsHtml5AttributeName::ATTR_ID, preId);
+  Push(nsGkAtoms::pre, preAttrs);
+
+  mOpQueue.AppendElement()->Init(eTreeOpStartLayout);
+}
+
+PRInt32
+nsHtml5Highlighter::Transition(PRInt32 aState, bool aReconsume, PRInt32 aPos)
+{
+  mPos = aPos;
+  switch (mState) {
+    case NS_HTML5TOKENIZER_SCRIPT_DATA:
+    case NS_HTML5TOKENIZER_RAWTEXT:
+    case NS_HTML5TOKENIZER_RCDATA:
+    case NS_HTML5TOKENIZER_DATA:
+      
+      
+      StartSpan();
+      break;
+    case NS_HTML5TOKENIZER_TAG_OPEN:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_TAG_NAME:
+          StartSpan(sStartTag);
+          break;
+        case NS_HTML5TOKENIZER_DATA:
+          EndInline(); 
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_TAG_NAME:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_NAME:
+          EndInline(); 
+          break;
+        case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+          EndInline(); 
+          StartSpan(); 
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_NAME:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_ATTRIBUTE_NAME:
+          StartSpan(sAttributeName);
+          break;
+        case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+          StartSpan(); 
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_ATTRIBUTE_NAME:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_AFTER_ATTRIBUTE_NAME:
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_VALUE:
+          EndInline(); 
+          break;
+        case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+          EndInline(); 
+          StartSpan(); 
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_VALUE:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_ATTRIBUTE_VALUE_DOUBLE_QUOTED:
+        case NS_HTML5TOKENIZER_ATTRIBUTE_VALUE_SINGLE_QUOTED:
+          FlushCurrent();
+          StartA();
+          break;
+        case NS_HTML5TOKENIZER_ATTRIBUTE_VALUE_UNQUOTED:
+          StartA();
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_ATTRIBUTE_VALUE_DOUBLE_QUOTED:
+    case NS_HTML5TOKENIZER_ATTRIBUTE_VALUE_SINGLE_QUOTED:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_AFTER_ATTRIBUTE_VALUE_QUOTED:
+          EndInline();
+          break;
+        case NS_HTML5TOKENIZER_CONSUME_CHARACTER_REFERENCE:
+          StartSpan();
+          break;
+        default:
+          NS_NOTREACHED("Impossible transition.");
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_AFTER_ATTRIBUTE_VALUE_QUOTED:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_NAME:
+          break;
+        case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+          StartSpan(); 
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_NAME:
+          FlushCurrent();
+          EndInline();
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_ATTRIBUTE_VALUE_UNQUOTED:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_NAME:
+          EndInline();
+          break;
+        case NS_HTML5TOKENIZER_CONSUME_CHARACTER_REFERENCE:
+          StartSpan();
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_AFTER_ATTRIBUTE_NAME:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+          StartSpan(); 
+          break;
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_VALUE:
+          break;
+        case NS_HTML5TOKENIZER_ATTRIBUTE_NAME:
+          StartSpan(sAttributeName);
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+      
+      
+    case NS_HTML5TOKENIZER_COMMENT_END:
+    case NS_HTML5TOKENIZER_COMMENT_END_BANG:
+    case NS_HTML5TOKENIZER_COMMENT_START_DASH:
+    case NS_HTML5TOKENIZER_BOGUS_COMMENT:
+    case NS_HTML5TOKENIZER_BOGUS_COMMENT_HYPHEN:
+      if (aState == NS_HTML5TOKENIZER_DATA) {
+        AddClass(sComment);
+        FinishTag();
+      }
+      break;
+      
+      
+    case NS_HTML5TOKENIZER_CDATA_RSQB_RSQB:
+      if (aState == NS_HTML5TOKENIZER_DATA) {
+        AddClass(sCdata);
+        FinishTag();
+      }
+      break;
+    case NS_HTML5TOKENIZER_CONSUME_CHARACTER_REFERENCE:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_CONSUME_NCR:
+        case NS_HTML5TOKENIZER_CHARACTER_REFERENCE_HILO_LOOKUP:
+          break;
+        default:
+          
+          EndInline();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_CHARACTER_REFERENCE_HILO_LOOKUP:
+      if (aState == NS_HTML5TOKENIZER_CHARACTER_REFERENCE_TAIL) {
+        break;
+      }
+      
+      EndInline();
+      break;
+    case NS_HTML5TOKENIZER_CHARACTER_REFERENCE_TAIL:
+      
+      if (!aReconsume) {
+        FlushCurrent();
+      }
+      EndInline();
+      break;
+    case NS_HTML5TOKENIZER_DECIMAL_NRC_LOOP:
+    case NS_HTML5TOKENIZER_HEX_NCR_LOOP:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_HANDLE_NCR_VALUE:
+          AddClass(sEntity);
+          FlushCurrent();
+          break;
+        case NS_HTML5TOKENIZER_HANDLE_NCR_VALUE_RECONSUME:
+          AddClass(sEntity);
+          break;
+      }
+      EndInline();
+      break;
+    case NS_HTML5TOKENIZER_CLOSE_TAG_OPEN:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_DATA:
+          FinishTag();
+          break;
+        case NS_HTML5TOKENIZER_TAG_NAME:
+          StartSpan(sEndTag);
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_RAWTEXT_RCDATA_LESS_THAN_SIGN:
+      if (aState == NS_HTML5TOKENIZER_NON_DATA_END_TAG_NAME) {
+        FlushCurrent();
+        StartSpan(); 
+        break;
+      }
+      EndInline();
+      break;
+    case NS_HTML5TOKENIZER_NON_DATA_END_TAG_NAME:
+      switch (aState) {
+        case NS_HTML5TOKENIZER_BEFORE_ATTRIBUTE_NAME:
+          AddClass(sEndTag);
+          EndInline();
+          break;
+        case NS_HTML5TOKENIZER_SELF_CLOSING_START_TAG:
+          AddClass(sEndTag);
+          EndInline();
+          StartSpan(); 
+          break;
+        case NS_HTML5TOKENIZER_DATA: 
+          AddClass(sEndTag);
+          FinishTag();
+          break;
+        default:
+          FinishTag();
+          break;
+      }
+      break;
+    case NS_HTML5TOKENIZER_SCRIPT_DATA_LESS_THAN_SIGN:
+    case NS_HTML5TOKENIZER_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN:
+      if (aState == NS_HTML5TOKENIZER_NON_DATA_END_TAG_NAME) {
+        break;
+      }
+      FinishTag();
+      break;
+    case NS_HTML5TOKENIZER_SCRIPT_DATA_ESCAPED_DASH_DASH:
+    case NS_HTML5TOKENIZER_SCRIPT_DATA_ESCAPED:
+    case NS_HTML5TOKENIZER_SCRIPT_DATA_ESCAPED_DASH:
+      if (aState == NS_HTML5TOKENIZER_SCRIPT_DATA_ESCAPED_LESS_THAN_SIGN) {
+        StartSpan();
+      }
+      break;
+      
+      
+      
+    case NS_HTML5TOKENIZER_BEFORE_DOCTYPE_NAME:
+    case NS_HTML5TOKENIZER_DOCTYPE_NAME:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_NAME:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_PUBLIC_KEYWORD:
+    case NS_HTML5TOKENIZER_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER:
+    case NS_HTML5TOKENIZER_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_PUBLIC_IDENTIFIER:
+    case NS_HTML5TOKENIZER_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS:
+    case NS_HTML5TOKENIZER_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER:
+    case NS_HTML5TOKENIZER_BOGUS_DOCTYPE:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_SYSTEM_KEYWORD:
+    case NS_HTML5TOKENIZER_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
+    case NS_HTML5TOKENIZER_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED:
+    case NS_HTML5TOKENIZER_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED:
+      if (aState == NS_HTML5TOKENIZER_DATA) {
+        AddClass(sDoctype);
+        FinishTag();
+      }
+      break;
+    default:
+      break;
+  }
+  mState = aState;
+  return aState;
+}
+
+void
+nsHtml5Highlighter::End()
+{
+  switch (mState) {
+    case NS_HTML5TOKENIZER_COMMENT_END:
+    case NS_HTML5TOKENIZER_COMMENT_END_BANG:
+    case NS_HTML5TOKENIZER_COMMENT_START_DASH:
+    case NS_HTML5TOKENIZER_BOGUS_COMMENT:
+    case NS_HTML5TOKENIZER_BOGUS_COMMENT_HYPHEN:
+      AddClass(sComment);
+      break;
+    case NS_HTML5TOKENIZER_CDATA_RSQB_RSQB:
+      AddClass(sCdata);
+      break;
+    case NS_HTML5TOKENIZER_DECIMAL_NRC_LOOP:
+    case NS_HTML5TOKENIZER_HEX_NCR_LOOP:
+      
+      break;
+    case NS_HTML5TOKENIZER_BEFORE_DOCTYPE_NAME:
+    case NS_HTML5TOKENIZER_DOCTYPE_NAME:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_NAME:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_PUBLIC_KEYWORD:
+    case NS_HTML5TOKENIZER_BEFORE_DOCTYPE_PUBLIC_IDENTIFIER:
+    case NS_HTML5TOKENIZER_DOCTYPE_PUBLIC_IDENTIFIER_DOUBLE_QUOTED:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_PUBLIC_IDENTIFIER:
+    case NS_HTML5TOKENIZER_BETWEEN_DOCTYPE_PUBLIC_AND_SYSTEM_IDENTIFIERS:
+    case NS_HTML5TOKENIZER_DOCTYPE_SYSTEM_IDENTIFIER_DOUBLE_QUOTED:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_SYSTEM_IDENTIFIER:
+    case NS_HTML5TOKENIZER_BOGUS_DOCTYPE:
+    case NS_HTML5TOKENIZER_AFTER_DOCTYPE_SYSTEM_KEYWORD:
+    case NS_HTML5TOKENIZER_BEFORE_DOCTYPE_SYSTEM_IDENTIFIER:
+    case NS_HTML5TOKENIZER_DOCTYPE_SYSTEM_IDENTIFIER_SINGLE_QUOTED:
+    case NS_HTML5TOKENIZER_DOCTYPE_PUBLIC_IDENTIFIER_SINGLE_QUOTED:
+      AddClass(sDoctype);
+      break;
+    default:
+      break;
+  }
+  FlushOps();
+}
+
+void
+nsHtml5Highlighter::SetBuffer(nsHtml5UTF16Buffer* aBuffer)
+{
+  NS_PRECONDITION(!mBuffer, "Old buffer still here!");
+  mBuffer = aBuffer;
+  mCStart = aBuffer->getStart();
+}
+
+void
+nsHtml5Highlighter::DropBuffer(PRInt32 aPos)
+{
+  NS_PRECONDITION(mBuffer, "No buffer to drop!");
+  mPos = aPos;
+  FlushChars();
+  mBuffer = nsnull;
+}
+
+void
+nsHtml5Highlighter::StartSpan()
+{
+  FlushChars();
+  Push(nsGkAtoms::span, nsnull);
+  ++mInlinesOpen;
+}
+
+void
+nsHtml5Highlighter::StartSpan(const PRUnichar* aClass)
+{
+  StartSpan();
+  AddClass(aClass);
+}
+
+void
+nsHtml5Highlighter::EndInline()
+{
+  FlushChars();
+  Pop();
+  --mInlinesOpen;
+}
+
+void
+nsHtml5Highlighter::StartA()
+{
+  FlushChars();
+  Push(nsGkAtoms::a, nsnull);
+  AddClass(sAttributeValue);
+  ++mInlinesOpen;
+}
+
+void
+nsHtml5Highlighter::FinishTag()
+{
+  while (mInlinesOpen > 1) {
+    EndInline();
+  }
+  FlushCurrent(); 
+  EndInline(); 
+  NS_ASSERTION(!mInlinesOpen, "mInlinesOpen got out of sync!");
+}
+
+void
+nsHtml5Highlighter::FlushChars()
+{
+  if (mPos > mCStart) {
+    AppendCharacters(mBuffer->getBuffer(), mCStart, mPos - mCStart);
+    mCStart = mPos;
+  }
+}
+
+void
+nsHtml5Highlighter::FlushCurrent()
+{
+  mPos++;
+  FlushChars();
+}
+
+bool
+nsHtml5Highlighter::FlushOps()
+{
+  bool hasOps = !mOpQueue.IsEmpty();
+  if (hasOps) {
+    mOpSink->MoveOpsFrom(mOpQueue);
+  }
+  return hasOps;
+}
+
+void
+nsHtml5Highlighter::MaybeLinkifyAttributeValue(nsHtml5AttributeName* aName,
+                                               nsString* aValue)
+{
+  if (!(nsHtml5AttributeName::ATTR_HREF == aName
+      || nsHtml5AttributeName::ATTR_SRC == aName
+      || nsHtml5AttributeName::ATTR_ACTION == aName
+      || nsHtml5AttributeName::ATTR_CITE == aName
+      || nsHtml5AttributeName::ATTR_BACKGROUND == aName
+      || nsHtml5AttributeName::ATTR_LONGDESC == aName
+      || nsHtml5AttributeName::ATTR_XLINK_HREF == aName
+      || nsHtml5AttributeName::ATTR_DEFINITIONURL == aName)) {
+    return;
+  }
+  AddViewSourceHref(*aValue);
+}
+
+void
+nsHtml5Highlighter::CompletedNamedCharacterReference()
+{
+  AddClass(sEntity);
+}
+
+nsIContent**
+nsHtml5Highlighter::AllocateContentHandle()
+{
+  if (mHandlesUsed == NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH) {
+    mOldHandles.AppendElement(mHandles.forget());
+    mHandles = new nsIContent*[NS_HTML5_HIGHLIGHTER_HANDLE_ARRAY_LENGTH];
+    mHandlesUsed = 0;
+  }
+#ifdef DEBUG
+  mHandles[mHandlesUsed] = (nsIContent*)0xC0DEDBAD;
+#endif
+  return &mHandles[mHandlesUsed++];
+}
+
+nsIContent**
+nsHtml5Highlighter::CreateElement(nsIAtom* aName,
+                                  nsHtml5HtmlAttributes* aAttributes)
+{
+  NS_PRECONDITION(aName, "Got null name.");
+  nsIContent** content = AllocateContentHandle();
+  mOpQueue.AppendElement()->Init(kNameSpaceID_XHTML,
+                                 aName,
+                                 aAttributes,
+                                 content,
+                                 true);
+  return content;
+}
+
+nsIContent**
+nsHtml5Highlighter::CurrentNode()
+{
+  NS_PRECONDITION(mStack.Length() >= 1, "Must have something on stack.");
+  return mStack[mStack.Length() - 1];
+}
+
+void
+nsHtml5Highlighter::Push(nsIAtom* aName,
+                         nsHtml5HtmlAttributes* aAttributes)
+{
+  NS_PRECONDITION(mStack.Length() >= 1, "Pushing without root.");
+  nsIContent** elt = CreateElement(aName, aAttributes); 
+  mOpQueue.AppendElement()->Init(eTreeOpAppend, elt, CurrentNode());
+  mStack.AppendElement(elt);
+}
+
+void
+nsHtml5Highlighter::Pop()
+{
+  NS_PRECONDITION(mStack.Length() >= 2, "Popping when stack too short.");
+  mStack.RemoveElementAt(mStack.Length() - 1);
+}
+
+void
+nsHtml5Highlighter::AppendCharacters(const PRUnichar* aBuffer,
+                                     PRInt32 aStart,
+                                     PRInt32 aLength)
+{
+  NS_PRECONDITION(aBuffer, "Null buffer");
+
+  PRUnichar* bufferCopy = new PRUnichar[aLength];
+  memcpy(bufferCopy, aBuffer + aStart, aLength * sizeof(PRUnichar));
+
+  mOpQueue.AppendElement()->Init(eTreeOpAppendText,
+                                 bufferCopy,
+                                 aLength,
+                                 CurrentNode());
+}
+
+
+void
+nsHtml5Highlighter::AddClass(const PRUnichar* aClass)
+{
+  mOpQueue.AppendElement()->InitAddClass(CurrentNode(), aClass);
+}
+
+void
+nsHtml5Highlighter::AddViewSourceHref(const nsString& aValue)
+{
+  PRUnichar* bufferCopy = new PRUnichar[aValue.Length() + 1];
+  memcpy(bufferCopy, aValue.get(), aValue.Length() * sizeof(PRUnichar));
+  bufferCopy[aValue.Length()] = 0;
+
+  mOpQueue.AppendElement()->Init(eTreeOpAddViewSourceHref,
+                                 bufferCopy,
+                                 aValue.Length(),
+                                 CurrentNode());
+}

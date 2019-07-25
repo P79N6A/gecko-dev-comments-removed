@@ -1221,6 +1221,9 @@ public class Tokenizer implements Locator {
             String val = longStrBufToString(); 
             
             
+            
+            
+            
             if (!endTag && html4 && html4ModeCompatibleWithXhtml1Schemata
                     && attributeName.isCaseFolded()) {
                 val = newAsciiLowerCaseStringFromString(val);
@@ -1316,8 +1319,17 @@ public class Tokenizer implements Locator {
 
 
 
+        
+        
+        
+        
+        
+        
+        
+        
         pos = stateLoop(state, c, pos, buffer.getBuffer(), false, returnState,
                 buffer.getEnd());
+        
         if (pos == buffer.getEnd()) {
             
             buffer.setStart(pos);
@@ -3149,6 +3161,7 @@ public class Tokenizer implements Locator {
 
 
 
+                        
                         @Const @NoLength char[] val = NamedCharacters.VALUES[candidate];
                         if (
                         
