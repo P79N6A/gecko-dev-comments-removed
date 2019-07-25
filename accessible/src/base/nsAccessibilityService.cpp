@@ -232,12 +232,10 @@ nsAccessibilityService::CreateHTMLButtonAccessible(nsIContent* aContent,
 
 already_AddRefed<nsAccessible>
 nsAccessibilityService::CreateHTMLLIAccessible(nsIContent* aContent,
-                                               nsIPresShell* aPresShell,
-                                               const nsAString& aBulletText)
+                                               nsIPresShell* aPresShell)
 {
   nsCOMPtr<nsIWeakReference> weakShell(do_GetWeakReference(aPresShell));
-  nsAccessible* accessible = new nsHTMLLIAccessible(aContent, weakShell,
-                                                    aBulletText);
+  nsAccessible* accessible = new nsHTMLLIAccessible(aContent, weakShell);
   NS_IF_ADDREF(accessible);
   return accessible;
 }
@@ -1634,8 +1632,7 @@ nsAccessibilityService::CreateHTMLAccessibleByMarkup(nsIFrame* aFrame,
     
     
     
-    nsAccessible* accessible = new nsHTMLLIAccessible(aContent, aWeakShell,
-                                                      EmptyString());
+    nsAccessible* accessible = new nsHTMLLIAccessible(aContent, aWeakShell);
     NS_IF_ADDREF(accessible);
     return accessible;
   }
