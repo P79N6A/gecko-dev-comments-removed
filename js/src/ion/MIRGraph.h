@@ -116,8 +116,8 @@ class MIRGenerator
 
     
     
-    
-    bool error(const char *message = NULL);
+    bool abort(const char *message, ...);
+
     bool errored() const {
         return error_;
     }
@@ -132,7 +132,6 @@ class MIRGenerator
     uint32 nslots_;
     MIRGraph &graph_;
     bool error_;
-    const char *message_;
 };
 
 class MIRGraph
