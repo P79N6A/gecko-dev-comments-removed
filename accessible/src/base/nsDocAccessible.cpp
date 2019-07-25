@@ -607,6 +607,12 @@ nsDocAccessible::Init()
   if (!mNotificationController)
     return PR_FALSE;
 
+  
+  
+  
+  if (mDocument->GetReadyStateEnum() == nsIDocument::READYSTATE_COMPLETE)
+    mIsLoaded = PR_TRUE;
+
   AddEventListeners();
   return PR_TRUE;
 }
