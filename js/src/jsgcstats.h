@@ -115,7 +115,6 @@ struct JSGCStats {
     uint32  maxunmarked;
 
 #endif
-    uint32  poke;           
     uint32  afree;          
     uint32  nallarenas;     
     uint32  maxnallarenas;  
@@ -126,8 +125,10 @@ struct JSGCStats {
 };
 
 extern void
-UpdateCompartmentStats(JSCompartment *comp, unsigned thingKind, uint32 nlivearenas,
-                       uint32 nkilledArenas, uint32 nthings);
+UpdateCompartmentGCStats(JSCompartment *comp, unsigned thingKind);
+
+extern void
+UpdateAllCompartmentGCStats(JSCompartment *comp);
 #endif 
 
 } 
