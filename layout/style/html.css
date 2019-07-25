@@ -750,6 +750,12 @@ audio:not([controls]) {
   display: none;
 }
 
+*|*::-moz-html-canvas-content {
+  display: block !important;
+  
+  -moz-transform: translate(0) !important;
+}
+
 
 marquee {
   width: -moz-available;
