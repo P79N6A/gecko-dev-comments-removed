@@ -724,3 +724,26 @@ pluginCrashInNestedLoop(InstanceData* instanceData)
   
   return true;
 }
+
+static int
+SleepThenDie(Display* display)
+{
+  NoteIntentionalCrash();
+  fprintf(stderr, "[testplugin:%d] SleepThenDie: sleeping\n", getpid());
+  sleep(1);
+
+  fprintf(stderr, "[testplugin:%d] SleepThenDie: dying\n", getpid());
+  _exit(1);
+}
+
+bool
+pluginDestroySharedGfxStuff(InstanceData* instanceData)
+{
+  
+  
+  
+  
+  XSetIOErrorHandler(SleepThenDie);
+  close(ConnectionNumber(GDK_DISPLAY()));
+  return true;
+}

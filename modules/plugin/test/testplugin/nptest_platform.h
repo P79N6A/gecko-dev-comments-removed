@@ -134,4 +134,15 @@ std::string pluginGetClipboardText(InstanceData* instanceData);
 
 bool pluginCrashInNestedLoop(InstanceData* instanceData);
 
+
+
+
+
+
+
+
+
+
+bool pluginDestroySharedGfxStuff(InstanceData* instanceData);
+
 #endif 
