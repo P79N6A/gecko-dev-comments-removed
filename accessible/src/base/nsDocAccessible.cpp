@@ -350,18 +350,15 @@ nsDocAccessible::GetAttributes(nsIPersistentProperties **aAttributes)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsDocAccessible::GetFocusedChild(nsIAccessible **aFocusedChild)
+nsAccessible*
+nsDocAccessible::FocusedChild()
 {
   
-  if (!gLastFocusedNode) {
-    *aFocusedChild = nsnull;
-    return NS_OK;
-  }
 
   
   
-  NS_IF_ADDREF(*aFocusedChild = GetAccService()->GetAccessible(gLastFocusedNode));
-  return NS_OK;
+  return gLastFocusedNode ? GetAccService()->GetAccessible(gLastFocusedNode) :
+    nsnull;
 }
 
 NS_IMETHODIMP nsDocAccessible::TakeFocus()

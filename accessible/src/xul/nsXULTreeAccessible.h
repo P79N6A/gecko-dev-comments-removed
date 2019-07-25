@@ -76,7 +76,6 @@ public:
 
   
   NS_IMETHOD GetValue(nsAString& aValue);
-  NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
 
   
   virtual bool IsDefunct() const;
@@ -87,6 +86,7 @@ public:
   virtual PRUint64 NativeState();
   virtual nsAccessible* ChildAtPoint(PRInt32 aX, PRInt32 aY,
                                      EWhichChildAtPoint aWhichChild);
+  virtual nsAccessible* FocusedChild();
 
   virtual nsAccessible* GetChildAt(PRUint32 aIndex);
   virtual PRInt32 GetChildCount();
@@ -182,8 +182,6 @@ public:
                                            nsAccessibleWrap)
 
   
-  NS_IMETHOD GetFocusedChild(nsIAccessible **aFocusedChild);
-
   NS_IMETHOD GetBounds(PRInt32 *aX, PRInt32 *aY,
                        PRInt32 *aWidth, PRInt32 *aHeight);
 
@@ -209,6 +207,7 @@ public:
   
   virtual PRUint64 NativeState();
   virtual PRInt32 IndexInParent() const;
+  virtual nsAccessible* FocusedChild();
 
   
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_XULTREEITEMBASEACCESSIBLE_IMPL_CID)
