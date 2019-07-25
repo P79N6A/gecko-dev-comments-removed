@@ -244,7 +244,11 @@ nsFileInputStream::Open(nsIFile* aFile, PRInt32 aIOFlags, PRInt32 aPerm)
         
         
         
-        aFile->Remove(PR_FALSE);
+        rv = aFile->Remove(PR_FALSE);
+        if (NS_SUCCEEDED(rv)) {
+          
+          mBehaviorFlags &= ~DELETE_ON_CLOSE;
+        }
     }
 
     return NS_OK;
