@@ -51,6 +51,14 @@
 
 
 
+#include "mozilla/StdInt.h"
+
+
+
+
+
+
+
 
 
 
@@ -58,18 +66,6 @@
 
 
 #include "jstypes.h"
-
-
-
-
-
-
-
-
-
-
-
-
 
 #define MOZ_EXPORT_API(type_)  JS_EXPORT_API(type_)
 #define MOZ_IMPORT_API(type_)  JS_IMPORT_API(type_)
