@@ -169,7 +169,6 @@ public:
 
 private:
   nsCOMPtr<nsIJSContextStack> mCXStack;
-  JSContext* mCX;
 };
 
 
