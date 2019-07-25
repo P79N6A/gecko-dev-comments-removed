@@ -579,46 +579,7 @@ struct JSObject : public js::ObjectImpl
 
     void rollbackProperties(JSContext *cx, uint32_t slotSpan);
 
-  private:
-    js::HeapSlot *getSlotAddressUnchecked(unsigned slot) {
-        size_t fixed = numFixedSlots();
-        if (slot < fixed)
-            return fixedSlots() + slot;
-        return slots + (slot - fixed);
-    }
-
-  public:
-    js::HeapSlot *getSlotAddress(unsigned slot) {
-        
-
-
-
-
-        JS_ASSERT(slotInRange(slot, SENTINEL_ALLOWED));
-        return getSlotAddressUnchecked(slot);
-    }
-
-    js::HeapSlot &getSlotRef(unsigned slot) {
-        JS_ASSERT(slotInRange(slot));
-        return *getSlotAddress(slot);
-    }
-
-    inline js::HeapSlot &nativeGetSlotRef(unsigned slot);
-
-    const js::Value &getSlot(unsigned slot) const {
-        JS_ASSERT(slotInRange(slot));
-        size_t fixed = numFixedSlots();
-        if (slot < fixed)
-            return fixedSlots()[slot];
-        return slots[slot - fixed];
-    }
-
-    inline const js::Value &nativeGetSlot(unsigned slot) const;
     inline JSFunction *nativeGetMethod(const js::Shape *shape) const;
-
-    inline void setSlot(unsigned slot, const js::Value &value);
-    inline void initSlot(unsigned slot, const js::Value &value);
-    inline void initSlotUnchecked(unsigned slot, const js::Value &value);
 
     inline void nativeSetSlot(unsigned slot, const js::Value &value);
     inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
@@ -627,21 +588,6 @@ struct JSObject : public js::ObjectImpl
     inline js::HeapSlot &getReservedSlotRef(unsigned index);
     inline void initReservedSlot(unsigned index, const js::Value &v);
     inline void setReservedSlot(unsigned index, const js::Value &v);
-
-    
-
-    js::HeapSlot &getFixedSlotRef(unsigned slot) {
-        JS_ASSERT(slot < numFixedSlots());
-        return fixedSlots()[slot];
-    }
-
-    const js::Value &getFixedSlot(unsigned slot) const {
-        JS_ASSERT(slot < numFixedSlots());
-        return fixedSlots()[slot];
-    }
-
-    inline void setFixedSlot(unsigned slot, const js::Value &value);
-    inline void initFixedSlot(unsigned slot, const js::Value &value);
 
     
 
