@@ -52,7 +52,6 @@ class nsIDocShell;
 class nsIRequest;
 class nsISaveAsCharset;
 class nsIMultiplexInputStream;
-class nsIDOMFile;
 
 
 
@@ -82,7 +81,7 @@ public:
 
 
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   nsIDOMFile* aFile) = 0;
+                                   nsIFile* aFile) = 0;
   
   
 
@@ -188,7 +187,7 @@ public:
   virtual nsresult AddNameValuePair(const nsAString& aName,
                                     const nsAString& aValue);
   virtual nsresult AddNameFilePair(const nsAString& aName,
-                                   nsIDOMFile* aFile);
+                                   nsIFile* aFile);
   virtual nsresult GetEncodedSubmission(nsIURI* aURI,
                                         nsIInputStream** aPostDataStream);
 
