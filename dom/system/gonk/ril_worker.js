@@ -2790,10 +2790,8 @@ let GsmPDUHelper = {
     
     let msg = {
       SMSC:      null,
-      reference: null,
       sender:    null,
       body:      null,
-      validity:  null,
       timestamp: null
     };
 
@@ -2813,12 +2811,6 @@ let GsmPDUHelper = {
 
     
     let hasUserDataHeader = firstOctet & PDU_UDHI;
-
-    
-    let isSmsSubmit = firstOctet & PDU_MTI_SMS_SUBMIT;
-    if (isSmsSubmit) {
-      msg.reference = this.readHexOctet(); 
-    }
 
     
     
@@ -2849,41 +2841,22 @@ let GsmPDUHelper = {
     let dataCodingScheme = this.readHexOctet();
 
     
-    
-    if (isSmsSubmit) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      if (firstOctet & (PDU_VPF_ABSOLUTE | PDU_VPF_RELATIVE | PDU_VPF_ENHANCED)) {
-        msg.validity = this.readHexOctet();
-      }
-      
-    } else {
-      
-      let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
-      let month  = this.readSwappedNibbleBCD(1) - 1;
-      let day    = this.readSwappedNibbleBCD(1);
-      let hour   = this.readSwappedNibbleBCD(1);
-      let minute = this.readSwappedNibbleBCD(1);
-      let second = this.readSwappedNibbleBCD(1);
-      msg.timestamp = Date.UTC(year, month, day, hour, minute, second);
+    let year   = this.readSwappedNibbleBCD(1) + PDU_TIMESTAMP_YEAR_OFFSET;
+    let month  = this.readSwappedNibbleBCD(1) - 1;
+    let day    = this.readSwappedNibbleBCD(1);
+    let hour   = this.readSwappedNibbleBCD(1);
+    let minute = this.readSwappedNibbleBCD(1);
+    let second = this.readSwappedNibbleBCD(1);
+    msg.timestamp = Date.UTC(year, month, day, hour, minute, second);
 
-      
-      
-      let tzOctet = this.readHexOctet();
-      let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
-      if (tzOctet & 0x08) {
-        msg.timestamp -= tzOffset;
-      } else {
-        msg.timestamp += tzOffset;
-      }
+    
+    
+    let tzOctet = this.readHexOctet();
+    let tzOffset = this.octetToBCD(tzOctet & ~0x08) * 15 * 60 * 1000;
+    if (tzOctet & 0x08) {
+      msg.timestamp -= tzOffset;
+    } else {
+      msg.timestamp += tzOffset;
     }
 
     
