@@ -1058,6 +1058,36 @@ HttpChannelChild::SetupFallbackChannel(const char *aFallbackKey)
 
 
 
+NS_IMETHODIMP
+HttpChannelChild::GetRemoteAddress(nsACString & _result)
+{
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+HttpChannelChild::GetRemotePort(PRInt32 * _result)
+{
+  NS_ENSURE_ARG_POINTER(_result);
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+HttpChannelChild::GetLocalAddress(nsACString & _result)
+{
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+NS_IMETHODIMP
+HttpChannelChild::GetLocalPort(PRInt32 * _result)
+{
+  NS_ENSURE_ARG_POINTER(_result);
+  return NS_ERROR_NOT_AVAILABLE;
+}
+
+
+
+
+
 
 NS_IMETHODIMP
 HttpChannelChild::GetCacheTokenExpirationTime(PRUint32 *_retval)
