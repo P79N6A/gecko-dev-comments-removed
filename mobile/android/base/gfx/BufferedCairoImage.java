@@ -46,22 +46,21 @@ import java.nio.ByteBuffer;
 
 public class BufferedCairoImage extends CairoImage {
     private ByteBuffer mBuffer;
-    private IntSize mSize;
-    private int mFormat;
+    private int mWidth, mHeight, mFormat;
     private boolean mNeedToFreeBuffer = false;
 
     
     public BufferedCairoImage(ByteBuffer inBuffer, int inWidth, int inHeight, int inFormat) {
-        mBuffer = inBuffer; mSize = new IntSize(inWidth, inHeight); mFormat = inFormat;
+        mBuffer = inBuffer; mWidth = inWidth; mHeight = inHeight; mFormat = inFormat;
     }
 
     
     public BufferedCairoImage(Bitmap bitmap) {
         mFormat = CairoUtils.bitmapConfigToCairoFormat(bitmap.getConfig());
-        mSize = new IntSize(bitmap.getWidth(), bitmap.getHeight());
+        mWidth = bitmap.getWidth();
+        mHeight = bitmap.getHeight();
         mNeedToFreeBuffer = true;
-        
-        mBuffer = GeckoAppShell.allocateDirectBuffer(mSize.getArea() * 4);
+        mBuffer = GeckoAppShell.allocateDirectBuffer(mWidth * mHeight * 4);
         bitmap.copyPixelsToBuffer(mBuffer.asIntBuffer());
     }
 
@@ -79,7 +78,9 @@ public class BufferedCairoImage extends CairoImage {
    @Override
     public ByteBuffer getBuffer() { return mBuffer; }
     @Override
-    public IntSize getSize() { return mSize; }
+    public int getWidth() { return mWidth; }
+    @Override
+    public int getHeight() { return mHeight; }
     @Override
     public int getFormat() { return mFormat; }
 }

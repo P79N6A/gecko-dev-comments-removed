@@ -44,7 +44,6 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import org.mozilla.gecko.FloatUtils;
 import org.mozilla.gecko.gfx.FloatSize;
-import org.mozilla.gecko.gfx.IntSize;
 import org.mozilla.gecko.gfx.LayerController;
 import org.mozilla.gecko.gfx.RectUtils;
 import org.json.JSONException;
@@ -65,7 +64,8 @@ public class ViewportMetrics {
     private float mZoomFactor;
 
     public ViewportMetrics() {
-        mPageSize = new FloatSize(1, 1);
+        mPageSize = new FloatSize(LayerController.TILE_WIDTH,
+                                  LayerController.TILE_HEIGHT);
         mViewportRect = new RectF(0, 0, 1, 1);
         mViewportOffset = new PointF(0, 0);
         mZoomFactor = 1.0f;
@@ -96,13 +96,13 @@ public class ViewportMetrics {
         mZoomFactor = zoom;
     }
 
-    public PointF getOptimumViewportOffset(IntSize displayportSize) {
+    public PointF getOptimumViewportOffset() {
         
         
         
         Point optimumOffset =
-            new Point((int)Math.round((displayportSize.width - mViewportRect.width()) / 2),
-                      (int)Math.round((displayportSize.height - mViewportRect.height()) / 2));
+            new Point((int)Math.round((LayerController.TILE_WIDTH - mViewportRect.width()) / 2),
+                      (int)Math.round((LayerController.TILE_HEIGHT - mViewportRect.height()) / 2));
 
         
 

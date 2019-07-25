@@ -81,9 +81,6 @@ public abstract class Layer {
     public abstract void draw(RenderContext context);
 
     
-    public abstract IntSize getSize();
-
-    
     protected RectF getBounds(RenderContext context, FloatSize size) {
         float scaleFactor = context.zoomFactor / mResolution;
         float x = mOrigin.x * scaleFactor, y = mOrigin.y * scaleFactor;
@@ -169,6 +166,20 @@ public abstract class Layer {
             mResolution = mNewResolution;
             mNewResolution = 0.0f;
         }
+    }
+
+    
+    protected static int nextPowerOfTwo(int value) {
+        
+        if (0 == value--) {
+            return 1;
+        }
+        value = (value >> 1) | value;
+        value = (value >> 2) | value;
+        value = (value >> 4) | value;
+        value = (value >> 8) | value;
+        value = (value >> 16) | value;
+        return value + 1;
     }
 
     public static class RenderContext {
