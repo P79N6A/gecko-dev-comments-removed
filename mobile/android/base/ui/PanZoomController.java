@@ -89,6 +89,9 @@ public class PanZoomController
     
     
     private static final float MAX_EVENT_ACCELERATION = 0.012f;
+    
+    
+    private static final float MIN_SCROLLABLE_DISTANCE = 0.5f;
 
     
     private static final float[] EASE_OUT_ANIMATION_FRAMES = {
@@ -728,6 +731,14 @@ public class PanZoomController
         }
 
         
+
+
+
+        private boolean scrollable() {
+            return getViewportLength() <= getPageLength() - MIN_SCROLLABLE_DISTANCE;
+        }
+
+        
         public void applyEdgeResistance() {
             float excess = getExcess();
             if (excess > 0.0f)
@@ -774,7 +785,7 @@ public class PanZoomController
 
         
         public void displace() {
-            if (locked)
+            if (locked || !scrollable())
                 return;
 
             if (mFlingState == FlingStates.PANNING)
