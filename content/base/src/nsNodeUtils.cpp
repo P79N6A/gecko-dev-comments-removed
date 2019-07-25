@@ -659,10 +659,11 @@ nsNodeUtils::CloneAndAdopt(nsINode *aNode, PRBool aClone, PRBool aDeep,
   
   else if (aDeep || aNode->IsNodeOfType(nsINode::eATTRIBUTE)) {
     
-    PRUint32 i, length = aNode->GetChildCount();
-    for (i = 0; i < length; ++i) {
+    for (nsIContent* cloneChild = aNode->GetFirstChild();
+         cloneChild;
+       cloneChild = cloneChild->GetNextSibling()) {
       nsCOMPtr<nsINode> child;
-      rv = CloneAndAdopt(aNode->GetChildAt(i), aClone, PR_TRUE, nodeInfoManager,
+      rv = CloneAndAdopt(cloneChild, aClone, PR_TRUE, nodeInfoManager,
                          aCx, aNewScope, aNodesWithProperties, clone,
                          getter_AddRefs(child));
       NS_ENSURE_SUCCESS(rv, rv);

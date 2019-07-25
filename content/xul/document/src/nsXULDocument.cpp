@@ -930,14 +930,14 @@ nsXULDocument::ExecuteOnBroadcastHandlerFor(nsIContent* aBroadcaster,
     
 
     nsCOMPtr<nsIContent> listener = do_QueryInterface(aListener);
-    PRUint32 count = listener->GetChildCount();
-    for (PRUint32 i = 0; i < count; ++i) {
-        
-        
-        
-        
-        nsIContent *child = listener->GetChildAt(i);
+    for (nsIContent* child = listener->GetFirstChild();
+         child;
+         child = child->GetNextSibling()) {
 
+        
+        
+        
+        
         if (!child->NodeInfo()->Equals(nsGkAtoms::observes, kNameSpaceID_XUL))
             continue;
 
@@ -1764,10 +1764,11 @@ nsXULDocument::AddSubtreeToDocument(nsIContent* aContent)
     if (NS_FAILED(rv)) return rv;
 
     
-    PRUint32 count = aElement->GetChildCount();
+    for (nsIContent* child = aElement->GetLastChild();
+         child;
+         child = child->GetPreviousSibling()) {
 
-    while (count-- > 0) {
-        rv = AddSubtreeToDocument(aElement->GetChildAt(count));
+        rv = AddSubtreeToDocument(child);
         if (NS_FAILED(rv))
             return rv;
     }
@@ -1798,10 +1799,11 @@ nsXULDocument::RemoveSubtreeFromDocument(nsIContent* aContent)
     }
 
     
-    PRUint32 count = aElement->GetChildCount();
+    for (nsIContent* child = aElement->GetLastChild();
+         child;
+         child = child->GetPreviousSibling()) {
 
-    while (count-- > 0) {
-        rv = RemoveSubtreeFromDocument(aElement->GetChildAt(count));
+        rv = RemoveSubtreeFromDocument(child);
         if (NS_FAILED(rv))
             return rv;
     }
@@ -4077,7 +4079,7 @@ nsXULDocument::OverlayForwardReference::Merge(nsIContent* aTargetNode,
     nsCOMPtr<nsIContent> currContent;
 
     for (i = 0; i < childCount; ++i) {
-        currContent = aOverlayNode->GetChildAt(0);
+        currContent = aOverlayNode->GetFirstChild();
 
         nsIAtom *idAtom = currContent->GetID();
 

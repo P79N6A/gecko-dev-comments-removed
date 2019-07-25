@@ -211,8 +211,9 @@ BuildHandlerChain(nsIContent* aContent, nsXBLPrototypeHandler** aResult)
   
   
   
-  for (PRUint32 j = aContent->GetChildCount(); j--; ) {
-    nsIContent *key = aContent->GetChildAt(j);
+  for (nsIContent* key = aContent->GetLastChild();
+       key;
+       key = key->GetPreviousSibling()) {
 
     if (key->NodeInfo()->Equals(nsGkAtoms::key, kNameSpaceID_XUL)) {
       
