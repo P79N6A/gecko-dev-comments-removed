@@ -97,10 +97,10 @@ ShowProgressUI()
 
   
   
-
+  
   usleep(500000);
 
-  if (sQuit || sProgressVal > 50.0f)
+  if (sQuit || sProgressVal > 70.0f)
     return 0;
 
   char ini_path[PATH_MAX];

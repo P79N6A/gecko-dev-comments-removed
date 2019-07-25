@@ -244,10 +244,10 @@ ShowProgressUI()
 {
   
   
-
+  
   Sleep(500);
 
-  if (sQuit || sProgress > 60.0f)
+  if (sQuit || sProgress > 70.0f)
     return 0;
 
   
