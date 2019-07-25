@@ -75,7 +75,8 @@ nsProxyAutoConfig.prototype = {
         }
 
         
-        this._sandBox = new Components.utils.Sandbox(pacURI);
+        this._sandBox = new Components.utils.Sandbox(pacURI, 
+                                                     {sandboxName: 'nsProxyAutoConfig'});
         Components.utils.evalInSandbox(pacUtils, this._sandBox);
 
         

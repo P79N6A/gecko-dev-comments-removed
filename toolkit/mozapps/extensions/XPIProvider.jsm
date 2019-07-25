@@ -3461,12 +3461,17 @@ var XPIProvider = {
 
     let principal = Cc["@mozilla.org/systemprincipal;1"].
                     createInstance(Ci.nsIPrincipal);
-    this.bootstrapScopes[aId] = new Components.utils.Sandbox(principal);
 
     if (!aFile.exists()) {
+      this.bootstrapScopes[aId] = new Components.utils.Sandbox(principal,
+                                                               {sandboxName: aFile.path});
       ERROR("Attempted to load bootstrap scope from missing directory " + bootstrap.path);
       return;
     }
+
+    let uri = getURIForResourceInFile(aFile, "bootstrap.js").spec;
+    this.bootstrapScopes[aId] = new Components.utils.Sandbox(principal,
+                                                             {sandboxName: uri});
 
     let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"].
                  createInstance(Ci.mozIJSSubScriptLoader);
@@ -3475,8 +3480,7 @@ var XPIProvider = {
       
       
       
-      this.bootstrapScopes[aId].__SCRIPT_URI_SPEC__ =
-          getURIForResourceInFile(aFile, "bootstrap.js").spec;
+      this.bootstrapScopes[aId].__SCRIPT_URI_SPEC__ = uri;
       Components.utils.evalInSandbox(
         "Components.classes['@mozilla.org/moz/jssubscript-loader;1'] \
                    .createInstance(Components.interfaces.mozIJSSubScriptLoader) \

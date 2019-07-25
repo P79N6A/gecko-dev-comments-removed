@@ -4315,7 +4315,7 @@ xpc_GetJSPrivate(JSObject *obj)
 
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop,
-                        JSObject *proto, bool preferXray);
+                        JSObject *proto, bool preferXray, const nsACString &sandboxName);
 
 
 
@@ -4394,6 +4394,7 @@ struct CompartmentPrivate
     JSObject2JSObjectMap *waiverWrapperMap;
     
     nsDataHashtable<nsPtrHashKey<XPCWrappedNative>, JSObject *> *expandoMap;
+    nsCString location;
 
     bool RegisterExpandoObject(XPCWrappedNative *wn, JSObject *expando) {
         if (!expandoMap) {
