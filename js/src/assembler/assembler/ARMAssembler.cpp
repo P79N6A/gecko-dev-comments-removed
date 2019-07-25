@@ -1,32 +1,32 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=79:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Copyright (C) 2009 University of Szeged
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- *
- * THIS SOFTWARE IS PROVIDED BY UNIVERSITY OF SZEGED ``AS IS'' AND ANY
- * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
- * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL UNIVERSITY OF SZEGED OR
- * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
- * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
- * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
- * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
- * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
- * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "assembler/wtf/Platform.h"
 
@@ -36,7 +36,7 @@
 
 namespace JSC {
 
-// Patching helpers
+
 
 void ARMAssembler::patchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
 {
@@ -53,7 +53,7 @@ void ARMAssembler::patchConstantPoolLoad(void* loadAddr, void* constPoolAddr)
         *ldr = (*ldr & ~(0xfff | ARMAssembler::DT_UP)) | sizeof(ARMWord);
 }
 
-// Handle immediates
+
 
 ARMWord ARMAssembler::getOp2(ARMWord imm)
 {
@@ -94,25 +94,25 @@ ARMWord ARMAssembler::getOp2(ARMWord imm)
 
 ARMWord ARMAssembler::getOp2RegScale(RegisterID reg, ARMWord scale)
 {
-    // The field that this method constructs looks like this:
-    // [11:7]   Shift immediate.
-    // [ 6:5]   Shift type. Only LSL ("00") is used here.
-    // [ 4:4]   0.
-    // [ 3:0]   The register to shift.
+    
+    
+    
+    
+    
 
-    ARMWord shift;  // Shift field. This is log2(scale).
-    ARMWord lz;     // Leading zeroes.
+    ARMWord shift;  
+    ARMWord lz;     
 
-    // Calculate shift=log2(scale).
+    
 #if WTF_ARM_ARCH_AT_LEAST(5)
     asm (
     "   clz     %[lz], %[scale]\n"
     : [lz]      "=r"  (lz)
     : [scale]   "r"   (scale)
-    : // No clobbers.
+    : 
     );
 #else
-    ARMWord lz = 0; // Accumulate leading zeroes.
+    ARMWord lz = 0; 
     for (ARMWord s = 16; s > 0; s /= 2) {
         ARMWord mask = 0xffffffff << (32-lz-s);
         if ((x & mask) == 0) {
@@ -124,7 +124,7 @@ ARMWord ARMAssembler::getOp2RegScale(RegisterID reg, ARMWord scale)
         return INVALID_IMM;
     }
     shift = 31-lz;
-    // Check that scale was a power of 2.
+    
     if ((1<<shift) != scale) {
         return INVALID_IMM;
     }
@@ -134,7 +134,7 @@ ARMWord ARMAssembler::getOp2RegScale(RegisterID reg, ARMWord scale)
 
 int ARMAssembler::genInt(int reg, ARMWord imm, bool positive)
 {
-    // Step1: Search a non-immediate part
+    
     ARMWord mask;
     ARMWord imm1;
     ARMWord imm2;
@@ -151,7 +151,7 @@ int ARMAssembler::genInt(int reg, ARMWord imm, bool positive)
         rol += 2;
         mask >>= 2;
         if (mask & 0x3) {
-            // rol 8
+            
             imm = (imm << 8) | (imm >> 24);
             mask = 0xff00;
             rol = 24;
@@ -242,15 +242,15 @@ int ARMAssembler::genInt(int reg, ARMWord imm, bool positive)
 }
 
 #ifdef __GNUC__
-// If the result of this function isn't used, the caller should probably be
-// using movImm.
+
+
 __attribute__((warn_unused_result))
 #endif
 ARMWord ARMAssembler::getImm(ARMWord imm, int tmpReg, bool invert)
 {
     ARMWord tmp;
 
-    // Do it by 1 instruction
+    
     tmp = getOp2(imm);
     if (tmp != INVALID_IMM)
         return tmp;
@@ -270,7 +270,7 @@ void ARMAssembler::moveImm(ARMWord imm, int dest)
 {
     ARMWord tmp;
 
-    // Do it by 1 instruction
+    
     tmp = getOp2(imm);
     if (tmp != INVALID_IMM) {
         mov_r(dest, tmp);
@@ -298,7 +298,7 @@ ARMWord ARMAssembler::encodeComplexImm(ARMWord imm, int dest)
     movt_r(dest, getImm16Op2(imm >> 16));
     return dest;
 #else
-    // Do it by 2 instruction
+    
     if (genInt(dest, imm, true))
         return dest;
     if (genInt(dest, ~imm, false))
@@ -309,16 +309,16 @@ ARMWord ARMAssembler::encodeComplexImm(ARMWord imm, int dest)
 #endif
 }
 
-// Memory load/store helpers
-// TODO: this does not take advantage of all of ARMv7's instruction encodings, it should.
+
+
 void ARMAssembler::dataTransferN(bool isLoad, bool isSigned, int size, RegisterID rt, RegisterID base, int32_t offset)
 {
     bool posOffset = true;
 
-    // there may be more elegant ways of handling this, but this one works.
+    
     if (offset == 0x80000000) {
-        // for even bigger offsets, load the entire offset into a register, then do an
-        // indexed load using the base register and the index register
+        
+        
         moveImm(offset, ARMRegisters::S0);
         mem_reg_off(isLoad, isSigned, size, posOffset, rt, base, ARMRegisters::S0);
         return;
@@ -328,21 +328,21 @@ void ARMAssembler::dataTransferN(bool isLoad, bool isSigned, int size, RegisterI
         posOffset = false;
     }
     if (offset <= 0xfff) {
-        // LDR rd, [rb, #+offset]
+        
         mem_imm_off(isLoad, isSigned, size, posOffset, rt, base, offset);
     } else if (offset <= 0xfffff) {
-        // add upper bits of offset to the base, and store the result into the temp registe
+        
         if (posOffset) {
             add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
         } else {
             sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
         }
-        // load using the lower bits of the offset
+        
         mem_imm_off(isLoad, isSigned, size, posOffset, rt,
                     ARMRegisters::S0, (offset & 0xfff));
     } else {
-        // for even bigger offsets, load the entire offset into a register, then do an
-        // indexed load using the base register and the index register
+        
+        
         moveImm(offset, ARMRegisters::S0);
         mem_reg_off(isLoad, isSigned, size, posOffset, rt, base, ARMRegisters::S0);
     }
@@ -352,21 +352,21 @@ void ARMAssembler::dataTransfer32(bool isLoad, RegisterID srcDst, RegisterID bas
 {
     if (offset >= 0) {
         if (offset <= 0xfff)
-            // LDR rd, [rb, +offset]
+            
             dtr_u(isLoad, srcDst, base, offset);
         else if (offset <= 0xfffff) {
-            // add upper bits of offset to the base, and store the result into the temp registe
+            
             add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 12) | (10 << 8));
-            // load using the lower bits of the register
+            
             dtr_u(isLoad, srcDst, ARMRegisters::S0, (offset & 0xfff));
         } else {
-            // for even bigger offsets, load the entire offset into a registe, then do an
-            // indexed load using the base register and the index register
+            
+            
             moveImm(offset, ARMRegisters::S0);
             dtr_ur(isLoad, srcDst, base, ARMRegisters::S0);
         }
     } else {
-        // negative offsets 
+        
         offset = -offset;
         if (offset <= 0xfff)
             dtr_d(isLoad, srcDst, base, offset);
@@ -379,7 +379,7 @@ void ARMAssembler::dataTransfer32(bool isLoad, RegisterID srcDst, RegisterID bas
         }
     }
 }
-/* this is large, ugly and obsolete.  dataTransferN is superior.*/
+
 void ARMAssembler::dataTransfer8(bool isLoad, RegisterID srcDst, RegisterID base, int32_t offset, bool isSigned)
 {
     if (offset >= 0) {
@@ -427,7 +427,7 @@ void ARMAssembler::dataTransfer8(bool isLoad, RegisterID srcDst, RegisterID base
     }
 }
 
-// rather X86-like, implements dest <- [base, index * shift + offset]
+
 void ARMAssembler::baseIndexTransfer32(bool isLoad, RegisterID srcDst, RegisterID base, RegisterID index, int scale, int32_t offset)
 {
     ARMWord op2;
@@ -475,7 +475,7 @@ void ARMAssembler::baseIndexTransferN(bool isLoad, bool isSigned, int size, Regi
 
 void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset)
 {
-    // This method does not support accesses that are not four-byte-aligned.
+    
     ASSERT((offset & 0x3) == 0);
 
     if (offset <= 0x3ff && offset >= 0) {
@@ -507,24 +507,24 @@ void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID b
 
 void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset, RegisterID index, int32_t scale)
 {
-    // This variant accesses memory at base+offset+(index*scale). VLDR and VSTR
-    // don't have such an addressing mode, so this access will require some
-    // arithmetic instructions.
+    
+    
+    
 
-    // This method does not support accesses that are not four-byte-aligned.
+    
     ASSERT((offset & 0x3) == 0);
 
-    // Catch the trivial case, where scale is 0.
+    
     if (scale == 0) {
         doubleTransfer(isLoad, srcDst, base, offset);
         return;
     }
 
-    // Calculate the address, excluding the non-scaled offset. This is
-    // efficient for scale factors that are powers of two.
+    
+    
     ARMWord op2_index = getOp2RegScale(index, scale);
     if (op2_index == INVALID_IMM) {
-        // Use MUL to calculate scale factors that are not powers of two.
+        
         moveImm(scale, ARMRegisters::S0);
         mul_r(ARMRegisters::S0, index, ARMRegisters::S0);
         op2_index = ARMRegisters::S0;
@@ -560,11 +560,11 @@ void ARMAssembler::floatTransfer(bool isLoad, FPRegisterID srcDst, RegisterID ba
         offset = -offset;
     }
 
-    // TODO: This is broken in the case that offset is unaligned. VFP can never
-    // perform unaligned accesses, even from an unaligned register base. (NEON
-    // can, but VFP isn't NEON. It is not advisable to interleave a NEON load
-    // with VFP code, so the best solution here is probably to perform an
-    // unaligned integer load, then move the result into VFP using VMOV.)
+    
+    
+    
+    
+    
     ASSERT((offset & 0x3) == 0);
 
     ldr_un_imm(ARMRegisters::S0, offset);
@@ -578,8 +578,8 @@ void ARMAssembler::baseIndexFloatTransfer(bool isLoad, bool isDouble, FPRegister
 
     ASSERT(scale >= 0 && scale <= 3);
     op2 = lsl(index, scale);
-    // vldr/vstr have a more restricted range than your standard ldr.
-    // they get 8 bits that are implicitly shifted left by 2.
+    
+    
     if (offset >= -(0xff<<2) && offset <= (0xff<<2)) {
         add_r(ARMRegisters::S0, base, op2);
         bool posOffset = true;
@@ -592,27 +592,27 @@ void ARMAssembler::baseIndexFloatTransfer(bool isLoad, bool isDouble, FPRegister
     }
 
     ldr_un_imm(ARMRegisters::S0, offset);
-    // vldr/vstr do not allow register-indexed operations, so we get to do this *manually*.
+    
     add_r(ARMRegisters::S0, ARMRegisters::S0, op2);
     add_r(ARMRegisters::S0, ARMRegisters::S0, base);
 
     fmem_imm_off(isLoad, isDouble, true, srcDst, ARMRegisters::S0, 0);
 }
 
-// Fix up the offsets and literal-pool loads in buffer. The buffer should
-// already contain the code from m_buffer.
+
+
 inline void ARMAssembler::fixUpOffsets(void * buffer)
 {
     char * data = reinterpret_cast<char *>(buffer);
     for (Jumps::Iterator iter = m_jumps.begin(); iter != m_jumps.end(); ++iter) {
-        // The last bit is set if the constant must be placed on constant pool.
+        
         int pos = (*iter) & (~0x1);
         ARMWord* ldrAddr = reinterpret_cast<ARMWord*>(data + pos);
         ARMWord* addr = getLdrImmAddress(ldrAddr);
         if (*addr != InvalidBranchTarget) {
-// The following is disabled for JM because we patch some branches after
-// calling fixUpOffset, and the branch patcher doesn't know how to handle 'B'
-// instructions.
+
+
+
 #if 0
             if (!(*iter & 1)) {
                 int diff = reinterpret_cast<ARMWord*>(data + *addr) - (ldrAddr + DefaultPrefetching);
@@ -630,7 +630,7 @@ inline void ARMAssembler::fixUpOffsets(void * buffer)
 
 void* ARMAssembler::executableAllocAndCopy(ExecutableAllocator* allocator, ExecutablePool **poolp)
 {
-    // 64-bit alignment is required for next constant pool and JIT code as well
+    
     m_buffer.flushWithoutBarrier(true);
     if (m_buffer.uncheckedSize() & 0x7)
         bkpt(0);
@@ -641,10 +641,10 @@ void* ARMAssembler::executableAllocAndCopy(ExecutableAllocator* allocator, Execu
     return data;
 }
 
-// This just dumps the code into the specified buffer, fixing up absolute
-// offsets and literal pool loads as it goes. The buffer is assumed to be large
-// enough to hold the code, and any pre-existing literal pool is assumed to
-// have been flushed.
+
+
+
+
 void ARMAssembler::executableCopy(void * buffer)
 {
     ASSERT(m_buffer.sizeOfConstantPool() == 0);
@@ -652,6 +652,6 @@ void ARMAssembler::executableCopy(void * buffer)
     fixUpOffsets(buffer);
 }
 
-} // namespace JSC
+} 
 
-#endif // ENABLE(ASSEMBLER) && CPU(ARM_TRADITIONAL)
+#endif 

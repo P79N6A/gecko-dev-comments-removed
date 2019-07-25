@@ -1236,12 +1236,12 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
 
         gc::FreeSpan *list = &cx->compartment->freeLists.lists[thingKind];
+        loadPtr(&list->first, result);
 
-        loadPtr(&list->start, result);
-        Jump jump = branchPtr(Assembler::Equal, AbsoluteAddress(&list->end), result);
+        Jump jump = branchPtr(Assembler::BelowOrEqual, AbsoluteAddress(&list->last), result);
 
         addPtr(Imm32(thingSize), result);
-        storePtr(result, &list->start);
+        storePtr(result, &list->first);
 
         
 
@@ -1254,6 +1254,7 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc  = JSC::SparcRegist
 
 
         
+
 
 
 
