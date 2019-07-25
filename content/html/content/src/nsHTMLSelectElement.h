@@ -60,7 +60,7 @@
 #include "nsIComponentManager.h"
 #include "nsCheapSets.h"
 #include "nsLayoutErrors.h"
-#include "nsHTMLOptionElement.h"
+
 
 class nsHTMLSelectElement;
 
@@ -87,7 +87,12 @@ public:
   
   
 
-  virtual nsISupports* GetNodeAt(PRUint32 aIndex, nsresult* aResult);
+  virtual nsISupports* GetNodeAt(PRUint32 aIndex, nsresult* aResult)
+  {
+    *aResult = NS_OK;
+
+    return mElements.SafeObjectAt(aIndex);
+  }
   virtual nsISupports* GetNamedItem(const nsAString& aName, nsresult* aResult);
 
   NS_DECL_CYCLE_COLLECTION_CLASS_AMBIGUOUS(nsHTMLOptionCollection,
@@ -99,18 +104,18 @@ public:
 
 
 
-  PRBool InsertOptionAt(nsHTMLOptionElement* aOption, PRUint32 aIndex)
+  PRBool InsertOptionAt(nsIDOMHTMLOptionElement* aOption, PRInt32 aIndex)
   {
-    return !!mElements.InsertElementAt(aIndex, aOption);
+    return mElements.InsertObjectAt(aOption, aIndex);
   }
 
   
 
 
 
-  void RemoveOptionAt(PRUint32 aIndex)
+  void RemoveOptionAt(PRInt32 aIndex)
   {
-    mElements.RemoveElementAt(aIndex);
+    mElements.RemoveObjectAt(aIndex);
   }
 
   
@@ -118,9 +123,9 @@ public:
 
 
 
-  nsHTMLOptionElement *ItemAsOption(PRUint32 aIndex)
+  nsIDOMHTMLOptionElement *ItemAsOption(PRInt32 aIndex)
   {
-    return mElements.SafeElementAt(aIndex, nsRefPtr<nsHTMLOptionElement>());
+    return mElements.SafeObjectAt(aIndex);
   }
 
   
@@ -134,9 +139,9 @@ public:
   
 
 
-  PRBool AppendOption(nsHTMLOptionElement* aOption)
+  PRBool AppendOption(nsIDOMHTMLOptionElement* aOption)
   {
-    return !!mElements.AppendElement(aOption);
+    return mElements.AppendObject(aOption);
   }
 
   
@@ -147,13 +152,13 @@ public:
   
 
 
-  nsresult GetOptionIndex(mozilla::dom::Element* aOption,
+  nsresult GetOptionIndex(nsIDOMHTMLOptionElement* aOption,
                           PRInt32 aStartIndex, PRBool aForward,
                           PRInt32* aIndex);
 
 private:
   
-  nsTArray<nsRefPtr<nsHTMLOptionElement> > mElements;
+  nsCOMArray<nsIDOMHTMLOptionElement> mElements;
   
   nsHTMLSelectElement* mSelect;
 };
@@ -303,16 +308,6 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED_NO_UNLINK(nsHTMLSelectElement,
                                                      nsGenericHTMLFormElement)
-
-  nsHTMLOptionCollection *GetOptions()
-  {
-    return mOptions;
-  }
-
-  static nsHTMLSelectElement *FromSupports(nsISupports *aSupports)
-  {
-    return static_cast<nsHTMLSelectElement*>(static_cast<nsINode*>(aSupports));
-  }
 
 protected:
   friend class nsSafeOptionListMutation;
