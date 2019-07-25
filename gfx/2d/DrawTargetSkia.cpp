@@ -325,9 +325,7 @@ struct AutoPaintSetup {
       mPaint.setAntiAlias(false);
     }
 
-    if (aOptions.mSnapping != SNAP_NONE) {
-      gfxDebug() << "Pixel snapping not supported yet!";
-    }
+    NS_ASSERTION(aOptions.mSnapping == SNAP_NONE, "Pixel snapping not supported yet!");
     
     
     
