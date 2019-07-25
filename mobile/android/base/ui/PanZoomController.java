@@ -84,7 +84,6 @@ public class PanZoomController
     
     private static final double AXIS_LOCK_ANGLE = Math.PI / 15.0; 
 
-    private long mLastTimestamp;
     private Timer mFlingTimer;
     private Axis mX, mY;
     
@@ -166,7 +165,6 @@ public class PanZoomController
             Log.e(LOGTAG, "Received impossible touch move while in " + mState);
             return false;
         case TOUCHING:
-            mLastTimestamp = System.currentTimeMillis();
             if (panDistance(event) < PAN_THRESHOLD)
                 return false;
             
@@ -174,13 +172,13 @@ public class PanZoomController
             mState = PanZoomState.PANNING_LOCKED;
             
         case PANNING_LOCKED:
-            track(event, System.currentTimeMillis());
+            track(event);
             return true;
         case PANNING_HOLD:
             mState = PanZoomState.PANNING;
             
         case PANNING:
-            track(event, System.currentTimeMillis());
+            track(event);
             return true;
         case PINCHING:
             
@@ -206,7 +204,7 @@ public class PanZoomController
         case PANNING_HOLD:
         case PANNING_HOLD_LOCKED:
             mState = PanZoomState.FLING;
-            fling(System.currentTimeMillis());
+            fling();
             return true;
         case PINCHING:
             int points = event.getPointerCount();
@@ -239,10 +237,7 @@ public class PanZoomController
         return (float)Math.sqrt(dx * dx + dy * dy);
     }
 
-    private void track(MotionEvent event, long timestamp) {
-        long timeStep = timestamp - mLastTimestamp;
-        mLastTimestamp = timestamp;
-
+    private void track(MotionEvent event) {
         float x = event.getX(0);
         float y = event.getY(0);
 
@@ -287,10 +282,7 @@ public class PanZoomController
         updatePosition();
     }
 
-    private void fling(long timestamp) {
-        long timeStep = timestamp - mLastTimestamp;
-        mLastTimestamp = timestamp;
-
+    private void fling() {
         if (mState != PanZoomState.FLING)
             mX.velocity = mY.velocity = 0.0f;
 
@@ -635,7 +627,6 @@ public class PanZoomController
     @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
         mState = PanZoomState.PANNING_HOLD_LOCKED;
-        mLastTimestamp = System.currentTimeMillis();
         mX.firstTouchPos = mX.touchPos = detector.getFocusX();
         mY.firstTouchPos = mY.touchPos = detector.getFocusY();
 
