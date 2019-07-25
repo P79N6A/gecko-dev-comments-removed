@@ -211,8 +211,6 @@ public:
     return mState.mIs2b ? m2b[aIndex] : static_cast<unsigned char>(m1b[aIndex]);
   }
 
-  bool SubstringEquals(PRInt32 aOffset, const PRUnichar* aString, PRInt32 aLength);
-
   struct FragmentBits {
     
     

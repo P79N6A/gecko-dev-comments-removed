@@ -54,12 +54,6 @@ public:
     FORMAT_FLOAT32
   };
 
-  nsAudioStream()
-    : mRate(0),
-      mChannels(0),
-      mFormat(FORMAT_S16_LE)
-  {}
-
   virtual ~nsAudioStream();
 
   
@@ -128,15 +122,8 @@ public:
   
   virtual PRInt32 GetMinWriteSize() = 0;
 
-  int GetRate() { return mRate; }
-  int GetChannels() { return mChannels; }
-  SampleFormat GetFormat() { return mFormat; }
-
 protected:
   nsCOMPtr<nsIThread> mAudioPlaybackThread;
-  int mRate;
-  int mChannels;
-  SampleFormat mFormat;
 };
 
 #endif
