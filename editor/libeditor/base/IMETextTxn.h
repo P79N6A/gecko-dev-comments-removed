@@ -51,6 +51,7 @@
 {0x9e, 0xa3, 0x0, 0x60, 0x8, 0x9f, 0xe5, 0x9b }}
 
 
+class nsIEditor;
 
 
 
@@ -73,7 +74,7 @@ public:
                   PRUint32 aReplaceLength,
                   nsIPrivateTextRangeList* aTextRangeList,
                   const nsAString& aString,
-                  nsWeakPtr aSelCon);
+                  nsIEditor* aEditor);
 
   IMETextTxn();
 
@@ -112,7 +113,7 @@ protected:
   nsCOMPtr<nsIPrivateTextRangeList>	mRangeList;
 
   
-  nsWeakPtr mSelConWeak;  
+  nsIEditor *mEditor;
 
   PRBool	mFixed;
 };
