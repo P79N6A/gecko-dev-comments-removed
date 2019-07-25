@@ -415,6 +415,16 @@ struct BaseRect {
     height = bottom - y;
   }
 
+  
+
+
+
+  Point ClampPoint(const Point& aPoint) const
+  {
+    return Point(NS_MAX(x, NS_MIN(XMost(), aPoint.x)),
+                 NS_MAX(y, NS_MIN(YMost(), aPoint.y)));
+  }
+
 private:
   
   
