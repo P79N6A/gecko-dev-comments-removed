@@ -158,9 +158,20 @@ struct DBState
   nsCOMPtr<mozIStorageStatement>  stmtDelete;
   nsCOMPtr<mozIStorageStatement>  stmtUpdate;
 
+  
+  
+  nsCOMPtr<mozIStorageStatement>        stmtReadDomain;
   nsCOMPtr<mozIStoragePendingStatement> pendingRead;
-  ReadCookieDBListener*                 readListener; 
+  
+  
+  ReadCookieDBListener*                 readListener;
+  
+  
   nsTArray<CookieDomainTuple>           hostArray;
+  
+  
+  
+  nsTHashtable<nsCStringHashKey>        readSet;
 };
 
 
@@ -206,8 +217,11 @@ class nsCookieService : public nsICookieService
     nsresult                      CreateTable();
     void                          CloseDB();
     nsresult                      Read();
-    void                          ReadRow(mozIStorageRow *aRow, CookieDomainTuple &aCookeTuple);
-    void                          ReadComplete();
+    template<class T> nsCookie*   GetCookieFromRow(T &aRow);
+    void                          AsyncReadComplete();
+    void                          CancelAsyncRead(PRBool aPurgeReadSet);
+    void                          EnsureReadDomain(const nsCString &aBaseDomain);
+    void                          EnsureReadComplete();
     nsresult                      NormalizeHost(nsCString &aHost);
     nsresult                      GetBaseDomain(nsIURI *aHostURI, nsCString &aBaseDomain, PRBool &aRequireHostMatch);
     nsresult                      GetBaseDomainFromHost(const nsACString &aHost, nsCString &aBaseDomain);
