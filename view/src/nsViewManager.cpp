@@ -719,20 +719,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
         break;
       }
 
-    case NS_DONESIZEMOVE:
-      {
-        if (mPresShell) {
-          nsPresContext* presContext = mPresShell->GetPresContext();
-          if (presContext) {
-            nsEventStateManager::ClearGlobalActiveContent(nullptr);
-          }
-
-        }
-
-        nsIPresShell::ClearMouseCapture(nullptr);
-      }
-      break;
-  
     case NS_XUL_CLOSE:
       {
         
@@ -843,26 +829,6 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
       *aStatus = nsEventStatus_eConsumeNoDefault;
       break;
-
-    case NS_DISPLAYCHANGED:
-
-      
-      
-      
-      *aStatus = nsEventStatus_eConsumeDoDefault;
-      break;
-
-    case NS_SYSCOLORCHANGED:
-      {
-        if (mPresShell) {
-          
-          
-          
-          nsCOMPtr<nsIPresShell> presShell = mPresShell;
-          presShell->HandleEvent(aView->GetFrame(), aEvent, false, aStatus);
-        }
-      }
-      break; 
 
     default:
       {

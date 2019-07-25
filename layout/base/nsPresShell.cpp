@@ -5745,27 +5745,12 @@ PresShell::HandleEvent(nsIFrame        *aFrame,
     }
   }
 
-  
-  if (aEvent->message == NS_THEMECHANGED && mPresContext) {
-    mPresContext->ThemeChanged();
-    return NS_OK;
-  }
-
   if (aEvent->message == NS_UISTATECHANGED && mDocument) {
     nsPIDOMWindow* win = mDocument->GetWindow();
     if (win) {
       nsUIStateChangeEvent* event = (nsUIStateChangeEvent*)aEvent;
       win->SetKeyboardIndicators(event->showAccelerators, event->showFocusRings);
     }
-    return NS_OK;
-  }
-
-  
-  
-  if ((aEvent->message == NS_SYSCOLORCHANGED) && mPresContext &&
-      aFrame == mFrameConstructor->GetRootFrame()) {
-    *aEventStatus = nsEventStatus_eConsumeDoDefault;
-    mPresContext->SysColorChanged();
     return NS_OK;
   }
 
@@ -7708,6 +7693,15 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
   }
 
   return !interrupted;
+}
+
+void
+PresShell::WindowSizeMoveDone()
+{
+  if (mPresContext) {
+    nsEventStateManager::ClearGlobalActiveContent(nullptr);
+    ClearMouseCapture(nullptr);
+  }
 }
 
 #ifdef MOZ_XUL

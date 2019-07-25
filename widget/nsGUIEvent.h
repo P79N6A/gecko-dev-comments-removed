@@ -189,17 +189,6 @@ class nsHashKey;
 #define NS_OS_TOOLBAR                   (NS_WINDOW_START + 36)
 
 
-#define NS_DISPLAYCHANGED                (NS_WINDOW_START + 40)
-
-
-#define NS_THEMECHANGED                 (NS_WINDOW_START + 41)
-
-
-
-
-#define NS_SYSCOLORCHANGED              (NS_WINDOW_START + 42)
-
-
 
 #define NS_UISTATECHANGED               (NS_WINDOW_START + 43)
 

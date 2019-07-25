@@ -160,6 +160,13 @@ public:
   NS_IMETHOD              RegisterTouchWindow();
   NS_IMETHOD              UnregisterTouchWindow();
 
+  void NotifySizeMoveDone();
+
+  
+  
+  void NotifySysColorChanged();
+  void NotifyThemeChanged();
+
   nsPopupLevel PopupLevel() { return mPopupLevel; }
 
   virtual nsIntSize       ClientToWindowSize(const nsIntSize& aClientSize)
