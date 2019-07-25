@@ -81,7 +81,7 @@ Observer.prototype = {
     
     
     
-    if (subject.wrappedJSObject)
+    if (subject && subject.wrappedJSObject)
       this._callback(subject.wrappedJSObject, topic, data);
     else
       this._callback(subject, topic, data);
