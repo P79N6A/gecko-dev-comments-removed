@@ -482,6 +482,11 @@ private:
     
     PRPackedBool          mFlash10Quirks;
 #endif
+#if (MOZ_PLATFORM_MAEMO == 5)
+    
+    
+    PRPackedBool          mMaemoImageRendering;
+#endif
 };
 
 } 
