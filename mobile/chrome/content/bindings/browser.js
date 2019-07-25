@@ -54,6 +54,12 @@ let WebProgressListener = {
     
     this.hashChanged = (location == this._lastLocation);
     this._lastLocation = location;
+
+    
+    addEventListener("MozAfterPaint", function(aEvent) {
+      removeEventListener("MozAfterPaint", arguments.callee, true);
+      sendAsyncMessage("Browser:FirstPaint", {});
+    }, true);
   },
 
   onStatusChange: function onStatusChange(aWebProgress, aRequest, aStatus, aMessage) {

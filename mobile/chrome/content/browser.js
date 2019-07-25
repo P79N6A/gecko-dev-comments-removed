@@ -1345,15 +1345,8 @@ Browser.WebProgress.prototype = {
           if (CrashReporter.enabled)
             CrashReporter.annotateCrashReport("URL", spec);
 #endif
-          if (tab == Browser.selectedTab) {
-            
-            
-            
-            Browser.scrollContentToTop({ x: 0 });
-          }
-
+          this._waitForLoad(tab);
           tab.useFallbackWidth = false;
-          tab.updateViewportSize();
         }
 
         let event = document.createEvent("UIEvents");
@@ -1404,6 +1397,26 @@ Browser.WebProgress.prototype = {
     
     
     aTab.pageScrollOffset = { x: 0, y: 0 };
+  },
+
+  _waitForLoad: function _waitForLoad(aTab) {
+    let browser = aTab.browser;
+    browser.messageManager.removeMessageListener("MozScrolledAreaChanged", aTab.scrolledAreaChanged);
+
+    browser.messageManager.addMessageListener("Browser:FirstPaint", function(aMessage) {
+      browser.messageManager.removeMessageListener(aMessage.name, arguments.callee);
+
+      
+      
+      
+      if (getBrowser() == browser) {
+        browser.getRootView().scrollTo(0, 0);
+        Browser.pageScrollboxScroller.scrollTo(0, 0);
+      }
+
+      aTab.scrolledAreaChanged();
+      browser.messageManager.addMessageListener("MozScrolledAreaChanged", aTab.scrolledAreaChanged);
+    });
   }
 };
 
@@ -2354,6 +2367,8 @@ function Tab(aURI, aParams) {
 
   
   this.active = false;
+
+  this.scrolledAreaChanged = this.scrolledAreaChanged.bind(this);
 }
 
 Tab.prototype = {
@@ -2551,11 +2566,6 @@ Tab.prototype = {
     let enabler = fl.QueryInterface(i);
     enabler.renderMode = i.RENDER_MODE_ASYNC_SCROLL;
 
-    browser.messageManager.addMessageListener("MozScrolledAreaChanged", (function() {
-      
-      setTimeout(this.scrolledAreaChanged.bind(this), 0);
-    }).bind(this));
-
     return browser;
   },
 
@@ -2617,8 +2627,20 @@ Tab.prototype = {
 
     let isDefault = this.isDefaultZoomLevel();
     this._defaultZoomLevel = this.getDefaultZoomLevel();
-    if (isDefault)
-      browser.scale = this._defaultZoomLevel;
+    if (isDefault) {
+      if (browser.scale != this._defaultZoomLevel) {
+        browser.scale = this._defaultZoomLevel;
+      }
+      else {
+        
+        
+        
+        
+        
+        
+        browser.getRootView()._updateCacheViewport();
+      }
+    }
   },
 
   isDefaultZoomLevel: function isDefaultZoomLevel() {
