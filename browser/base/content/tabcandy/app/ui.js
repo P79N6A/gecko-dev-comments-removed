@@ -176,15 +176,15 @@ window.Page = {
     this.hideChrome();
   },
 
-  isTabCandyDisplayed: function(){
+  isTabCandyVisible: function(){
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
              selectedIndex == 1);
   },
   
   hideChrome: function(){
     let currentWin = Utils.getCurrentWindow();
-    currentWin.document.getElementById("tab-candy-deck").selectedIndex = 1;
-
+    currentWin.document.getElementById("tab-candy-deck").selectedIndex = 1;    
+    
     
     Utils.getCurrentWindow().document.getElementById("main-window").
       setAttribute("activetitlebarcolor", "#C4C4C4");
@@ -361,7 +361,7 @@ window.Page = {
     var currentTab = UI.currentTab;
     
     UI.currentTab = focusTab;
-    if (this.isTabCandyDisplayed()) {
+    if (this.isTabCandyVisible()) {
       this.showChrome();    
     }
 
@@ -834,7 +834,7 @@ UIClass.prototype = {
     
     var isAnimating = iQ.isAnimating();
     if( force == false){
-      if( isAnimating || !Page.isTabCandyDisplayed() ) {
+      if( isAnimating || !Page.isTabCandyVisible() ) {
         
         
         
