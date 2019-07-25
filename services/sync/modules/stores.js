@@ -762,8 +762,13 @@ HistoryStore.prototype = {
 HistoryStore.prototype.__proto__ = new Store();
 
 
-function CookieStore() {
+function CookieStore( cookieManagerStub ) {
+  
+
+
+
   this._init();
+  this._cookieManagerStub = cookieManagerStub;
 }
 CookieStore.prototype = {
   _logName: "CookieStore",
@@ -785,9 +790,12 @@ CookieStore.prototype = {
   
   
 
-
   __cookieManager: null,
   get _cookieManager() {
+    if ( this._cookieManagerStub != undefined ) {
+      return this._cookieManagerStub;
+    }
+    
     if (!this.__cookieManager)
       this.__cookieManager = Cc["@mozilla.org/cookiemanager;1"].
                              getService(Ci.nsICookieManager2);
@@ -802,8 +810,7 @@ CookieStore.prototype = {
 
     this._log.info("CookieStore got createCommand: " + command );
     
-    if ( command.data.expiry ) {
-      
+    if ( !command.data.isSession ) {
       
       this._cookieManager.add( command.data.host,
 			       command.data.path,
@@ -844,7 +851,7 @@ CookieStore.prototype = {
     var matchingCookie = null;
     while (iter.hasMoreElements()){
       let cookie = iter.getNext();
-      if (cookie instanceof Ci.nsICookie){
+      if (cookie.QueryInterface( Ci.nsICookie ) ){
         
 	let key = cookie.host + ":" + cookie.path + ":" + cookie.name;
 	if (key == command.GUID) {
@@ -865,10 +872,8 @@ CookieStore.prototype = {
 				false );
 
     
-    if ( command.data.expiry ) {
+    if ( !command.data.isSession ) {
       
-
-
       this._cookieManager.add( matchingCookie.host,
 			       matchingCookie.path,
 			       matchingCookie.name,
@@ -892,14 +897,11 @@ CookieStore.prototype = {
     var iter = this._cookieManager.enumerator;
     while (iter.hasMoreElements()){
       var cookie = iter.getNext();
-      if (cookie instanceof Ci.nsICookie){
+      if (cookie.QueryInterface( Ci.nsICookie )){
 	
 	
-	if ( !cookie.expiry ) {
+	if ( cookie.isSession ) { 
 	  
-
-
-
 	  continue;
 	}
 
