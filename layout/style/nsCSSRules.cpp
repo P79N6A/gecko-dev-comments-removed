@@ -1309,17 +1309,11 @@ AppendSerializedUnicodeRange(nsCSSValue const & aValue,
 }
 
 
-
 nsCSSValue nsCSSFontFaceStyleDecl::* const
 nsCSSFontFaceStyleDecl::Fields[] = {
-    &nsCSSFontFaceStyleDecl::mFamily,
-    &nsCSSFontFaceStyleDecl::mStyle,
-    &nsCSSFontFaceStyleDecl::mWeight,
-    &nsCSSFontFaceStyleDecl::mStretch,
-    &nsCSSFontFaceStyleDecl::mSrc,
-    &nsCSSFontFaceStyleDecl::mUnicodeRange,
-    &nsCSSFontFaceStyleDecl::mFontFeatureSettings,
-    &nsCSSFontFaceStyleDecl::mFontLanguageOverride
+#define CSS_FONT_DESC(name_, method_) &nsCSSFontFaceStyleDecl::m##method_,
+#include "nsCSSFontDescList.h"
+#undef CSS_FONT_DESC
 };
 
 DOMCI_DATA(CSSFontFaceStyleDecl, nsCSSFontFaceStyleDecl)
