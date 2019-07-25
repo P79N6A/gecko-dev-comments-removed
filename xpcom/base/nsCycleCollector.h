@@ -92,7 +92,7 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
     
 
 
-    virtual void Collect() = 0;
+    virtual void Collect(bool shrinkingGC = false) = 0;
 };
 
 #ifdef DEBUG
