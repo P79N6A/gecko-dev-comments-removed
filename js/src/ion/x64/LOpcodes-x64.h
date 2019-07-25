@@ -47,7 +47,8 @@
     _(Unbox)                        \
     _(UnboxDouble)                  \
     _(DivI)                         \
-    _(ModI)
+    _(ModI)                         \
+    _(ModPowTwoI)
 
 #endif 
 

@@ -48,7 +48,8 @@
     _(Box)                      \
     _(BoxDouble)                \
     _(DivI)                     \
-    _(ModI)
+    _(ModI)                     \
+    _(ModPowTwoI)
 
 #endif 
 

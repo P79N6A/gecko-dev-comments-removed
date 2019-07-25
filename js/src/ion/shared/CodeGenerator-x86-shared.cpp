@@ -638,6 +638,35 @@ CodeGeneratorX86Shared::visitDivI(LDivI *ins)
 }
 
 bool
+CodeGeneratorX86Shared::visitModPowTwoI(LModPowTwoI *ins)
+{
+    Register lhs = ToRegister(ins->getOperand(0));
+    int32 shift = ins->shift();
+    Label negative, join;
+    
+    
+    masm.branchTest32(Assembler::Signed, lhs, lhs, &negative);
+    {
+        masm.andl(Imm32((1 << shift) - 1), lhs);
+        masm.jump(&join);
+    }
+    
+    {
+        masm.bind(&negative);
+        
+        
+        masm.negl(lhs);
+        masm.andl(Imm32((1 << shift) - 1), lhs);
+        masm.negl(lhs);
+        if (!bailoutIf(Assembler::Zero, ins->snapshot()))
+            return false;
+    }
+    masm.bind(&join);
+    return true;
+
+}
+
+bool
 CodeGeneratorX86Shared::visitModI(LModI *ins)
 {
     Register remainder = ToRegister(ins->remainder());

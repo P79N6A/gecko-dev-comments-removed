@@ -724,6 +724,64 @@ MacroAssemblerARM::ma_check_mul(Register src1, Imm32 imm, Register dest, Conditi
     return Always;
 }
 
+void
+MacroAssemblerARM::ma_mod_mask(Register src, Register dest, Register hold, int32 shift)
+{
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    int32 mask = (1 << shift) - 1;
+    Label head;
+
+    
+    
+    
+    
+    
+
+    
+    
+    as_mov(ScratchRegister, O2Reg(src), SetCond);
+    
+    ma_mov(Imm32(0), dest);
+    
+    ma_mov(Imm32(1), hold);
+    ma_mov(Imm32(-1), hold, NoSetCond, Signed);
+    ma_rsb(Imm32(0), ScratchRegister, SetCond, Signed);
+    
+    bind(&head);
+
+    
+    ma_and(Imm32(mask), ScratchRegister, lr);
+    
+    ma_add(lr, dest, dest);
+    
+    ma_sub(dest, Imm32(mask), lr, SetCond);
+    
+    ma_mov(lr, dest, NoSetCond, Unsigned);
+    
+    as_mov(ScratchRegister, lsr(ScratchRegister, shift), SetCond);
+    
+    ma_b(&head, NonZero);
+    
+    
+    ma_cmp(hold, Imm32(0));
+    
+    
+    ma_rsb(Imm32(0), dest, SetCond, Signed);
+    
+    
+
+}
 
 
 
