@@ -443,6 +443,12 @@ RegExp::createObjectNoStatics(JSContext *cx, const jschar *chars, size_t length,
     JSString *str = js_NewStringCopyN(cx, chars, length);
     if (!str)
         return NULL;
+    
+
+
+
+
+    JS::Anchor<JSString *> anchor(str);
     AlreadyIncRefed<RegExp> re = RegExp::create(cx, str, flags);
     if (!re)
         return NULL;
