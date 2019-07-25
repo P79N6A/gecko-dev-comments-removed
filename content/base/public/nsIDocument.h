@@ -527,13 +527,8 @@ public:
   
 
 
-  Element *GetRootElement() const
-  {
-    return (mCachedRootElement &&
-            mCachedRootElement->GetNodeParent() == this) ?
-           reinterpret_cast<Element*>(mCachedRootElement.get()) :
-           GetRootElementInternal();
-  }
+  Element *GetRootElement() const;
+
 protected:
   virtual Element *GetRootElementInternal() const = 0;
 
@@ -1644,9 +1639,7 @@ protected:
   nsIDocument* mParentDocument;
 
   
-  
-  
-  nsCOMPtr<nsINode> mCachedRootElement;
+  mozilla::dom::Element* mCachedRootElement;
 
   
   
