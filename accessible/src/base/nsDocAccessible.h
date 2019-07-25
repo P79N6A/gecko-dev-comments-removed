@@ -420,6 +420,11 @@ protected:
   
 
 
+  void CacheChildrenInSubtree(nsAccessible* aRoot);
+
+  
+
+
   void UncacheChildrenInSubtree(nsAccessible* aRoot);
 
   

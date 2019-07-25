@@ -1954,7 +1954,11 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
 
     updateFlags |= eAccessible;
 
-    if (!aIsInsert) {
+    if (aIsInsert) {
+      
+      CacheChildrenInSubtree(accessible);
+
+    } else {
       
 
       
@@ -2019,6 +2023,20 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
   }
 
   return updateFlags;
+}
+
+void
+nsDocAccessible::CacheChildrenInSubtree(nsAccessible* aRoot)
+{
+  aRoot->EnsureChildren();
+
+  PRUint32 count = aRoot->GetChildCount();
+  for (PRUint32 idx = 0; idx < count; idx++)  {
+    nsAccessible* child = aRoot->GetChildAt(idx);
+    
+    if (child->IsContent())
+      CacheChildrenInSubtree(child);
+  }
 }
 
 void
