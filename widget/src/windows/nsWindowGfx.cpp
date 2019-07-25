@@ -541,20 +541,24 @@ DDRAW_FAILED:
             BasicLayerManager::BUFFER_NONE;
           if (IsRenderMode(gfxWindowsPlatform::RENDER_GDI)) {
 # if defined(MOZ_XUL) && !defined(WINCE)
-            if (eTransparencyGlass == mTransparencyMode && nsUXThemeData::sHaveCompositor) {
-              doubleBuffering = BasicLayerManager::BUFFER_BUFFERED;
-           } else if (eTransparencyTransparent == mTransparencyMode) {
-              
-              
-              thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
-              thebesContext->Paint();
-              thebesContext->SetOperator(gfxContext::OPERATOR_OVER);
-            } else
-#endif
-            {
-              
-              doubleBuffering = BasicLayerManager::BUFFER_BUFFERED;
+            switch (mTransparencyMode) {
+              case eTransparencyGlass:
+              case eTransparencyBorderlessGlass:
+              default:
+                
+                doubleBuffering = BasicLayerManager::BUFFER_BUFFERED;
+                break;
+              case eTransparencyTransparent:
+                
+                
+                thebesContext->SetOperator(gfxContext::OPERATOR_CLEAR);
+                thebesContext->Paint();
+                thebesContext->SetOperator(gfxContext::OPERATOR_OVER);
+                break;
             }
+#else
+            doubleBuffering = BasicLayerManager::BUFFER_BUFFERED;
+#endif
           }
 
           {

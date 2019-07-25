@@ -69,7 +69,8 @@ class nsIWidget;
 enum nsTransparencyMode {
   eTransparencyOpaque = 0,  
   eTransparencyTransparent, 
-  eTransparencyGlass        
+  eTransparencyGlass,       
+  eTransparencyBorderlessGlass 
 };
 
 
