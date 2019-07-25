@@ -41,6 +41,7 @@
 #include "nsXPCOM.h"
 #include "nsIFile.h"
 #include "nsILocalFile.h"
+#include "mozilla/FileUtils.h"
 
 #include "nsAppRunner.h" 
 #include "nsStringAPI.h"
@@ -53,12 +54,13 @@
 
 #include <unistd.h>
 #include <sys/stat.h>
-#include <mozilla/FileUtils.h>
 
 
 
 
 #define UNIQ_LOOP_LIMIT 1000
+
+using namespace mozilla;
 
 static const char kRegFileGlobal[] = "global.reginfo";
 static const char kRegFileUser[] = "user.reginfo";
