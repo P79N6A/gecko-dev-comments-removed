@@ -1507,10 +1507,10 @@ var XPIProvider = {
 
 
   getInstallForURL: function XPI_getInstallForURL(url, hash, name, iconURL,
-                                                  version, loadgroup, callback) {
+                                                  version, loadGroup, callback) {
     AddonInstall.createDownload(function(install) {
       callback(install.wrapper);
-    }, url, hash, name, iconURL, version, loadgroup);
+    }, url, hash, name, iconURL, version, loadGroup);
   },
 
   
@@ -3083,11 +3083,11 @@ var XPIDatabase = {
 
 
 function AddonInstall(callback, installLocation, url, hash, name, type, iconURL,
-                      version, infoURL, existingAddon, loadgroup) {
+                      version, infoURL, existingAddon, loadGroup) {
   this.wrapper = new AddonInstallWrapper(this);
   this.installLocation = installLocation;
   this.sourceURL = url;
-  this.loadgroup = loadgroup;
+  this.loadGroup = loadGroup;
   this.listeners = [];
   this.existingAddon = existingAddon;
 
@@ -3166,7 +3166,7 @@ AddonInstall.prototype = {
   stream: null,
   crypto: null,
   hash: null,
-  loadgroup: null,
+  loadGroup: null,
   listeners: null,
 
   name: null,
@@ -3380,7 +3380,7 @@ AddonInstall.prototype = {
       listener.init(this, this.stream);
       let channel = NetUtil.newChannel(this.sourceURL);
       if (this.loadGroup)
-        channel.loadGroup = this.loadgroup;
+        channel.loadGroup = this.loadGroup;
 
       
       
@@ -3738,11 +3738,11 @@ AddonInstall.createInstall = function(callback, file) {
 
 
 AddonInstall.createDownload = function(callback, uri, hash, name, iconURL,
-                                       version, loadgroup) {
+                                       version, loadGroup) {
   let location = XPIProvider.installLocationsByName[KEY_APP_PROFILE];
   let url = NetUtil.newURI(uri);
   new AddonInstall(callback, location, url, hash, name, null,
-                   iconURL, version, null, null, loadgroup);
+                   iconURL, version, null, null, loadGroup);
 };
 
 
