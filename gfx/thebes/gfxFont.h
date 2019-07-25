@@ -494,6 +494,7 @@ public:
     
     void AddFontEntry(nsRefPtr<gfxFontEntry> aFontEntry) {
         mAvailableFonts.AppendElement(aFontEntry);
+        aFontEntry->SetFamily(this);
     }
 
     
