@@ -5063,8 +5063,34 @@ nsLayoutUtils::FontSizeInflationEnabled(nsPresContext *aPresContext)
     return false;
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  
+  
+  
+  nsresult result;
+  int32_t screenLeft, screenTop, screenWidth, screenHeight;
+  nsCOMPtr<nsIScreenManager> screenMgr =
+    do_GetService("@mozilla.org/gfx/screenmanager;1", &result);
+
+  nsCOMPtr<nsIScreen> screen;
+  screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
+  screen->GetRect(&screenLeft, &screenTop, &screenWidth, &screenHeight);
+
   ViewportInfo vInf =
-    nsContentUtils::GetViewportInfo(aPresContext->PresShell()->GetDocument());
+    nsContentUtils::GetViewportInfo(aPresContext->PresShell()->GetDocument(),
+                                    screenWidth, screenHeight);
 
   if (vInf.defaultZoom >= 1.0 || vInf.autoSize) {
     return false;
