@@ -65,6 +65,7 @@ class nsIPrefBranch;
 class nsIObserverService;
 class nsIURI;
 class nsIChannel;
+class mozIStorageService;
 class mozIStorageStatementCallback;
 class mozIStorageCompletionCallback;
 class ReadCookieDBListener;
@@ -160,6 +161,7 @@ struct DBState
 
   
   
+  nsCOMPtr<mozIStorageConnection>       syncConn;
   nsCOMPtr<mozIStorageStatement>        stmtReadDomain;
   nsCOMPtr<mozIStoragePendingStatement> pendingRead;
   
@@ -220,6 +222,7 @@ class nsCookieService : public nsICookieService
     template<class T> nsCookie*   GetCookieFromRow(T &aRow);
     void                          AsyncReadComplete();
     void                          CancelAsyncRead(PRBool aPurgeReadSet);
+    mozIStorageConnection*        GetSyncDBConn();
     void                          EnsureReadDomain(const nsCString &aBaseDomain);
     void                          EnsureReadComplete();
     nsresult                      NormalizeHost(nsCString &aHost);
@@ -253,6 +256,7 @@ class nsCookieService : public nsICookieService
     nsCOMPtr<nsICookiePermission>    mPermissionService;
     nsCOMPtr<nsIEffectiveTLDService> mTLDService;
     nsCOMPtr<nsIIDNService>          mIDNService;
+    nsCOMPtr<mozIStorageService>     mStorageService;
 
     
     

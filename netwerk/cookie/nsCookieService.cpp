@@ -643,6 +643,9 @@ nsCookieService::Init()
     PrefChanged(prefBranch);
   }
 
+  mStorageService = do_GetService("@mozilla.org/storage/service;1", &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   rv = InitDB();
@@ -721,14 +724,10 @@ nsCookieService::TryInitDB(PRBool aDeleteExistingDB)
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
-  nsCOMPtr<mozIStorageService> storage = do_GetService("@mozilla.org/storage/service;1");
-  if (!storage)
-    return NS_ERROR_UNEXPECTED;
-
   
   
   
-  rv = storage->OpenDatabase(cookieFile, getter_AddRefs(mDBState->dbConn));
+  rv = mStorageService->OpenDatabase(cookieFile, getter_AddRefs(mDBState->dbConn));
   NS_ENSURE_SUCCESS(rv, rv);
 
   PRBool tableExists = PR_FALSE;
@@ -971,8 +970,10 @@ nsCookieService::CloseDB()
   if (mDefaultDBState.dbConn) {
     
     
-    if (mDefaultDBState.pendingRead)
+    if (mDefaultDBState.pendingRead) {
       CancelAsyncRead(PR_TRUE);
+      mDefaultDBState.syncConn = nsnull;
+    }
 
     mDefaultDBState.dbConn->AsyncClose(mCloseListener);
     mDefaultDBState.dbConn = nsnull;
@@ -1488,6 +1489,7 @@ nsCookieService::AsyncReadComplete()
   mDefaultDBState.stmtReadDomain = nsnull;
   mDefaultDBState.pendingRead = nsnull;
   mDefaultDBState.readListener = nsnull;
+  mDefaultDBState.syncConn = nsnull;
   mDefaultDBState.hostArray.Clear();
   mDefaultDBState.readSet.Clear();
 
@@ -1521,6 +1523,23 @@ nsCookieService::CancelAsyncRead(PRBool aPurgeReadSet)
     mDefaultDBState.readSet.Clear();
 }
 
+mozIStorageConnection*
+nsCookieService::GetSyncDBConn()
+{
+  NS_ASSERTION(!mDefaultDBState.syncConn, "already have sync db connection");
+
+  
+  
+  nsCOMPtr<nsIFile> cookieFile;
+  mDefaultDBState.dbConn->GetDatabaseFile(getter_AddRefs(cookieFile));
+  NS_ASSERTION(cookieFile, "no cookie file on connection");
+
+  mStorageService->OpenDatabase(cookieFile,
+    getter_AddRefs(mDefaultDBState.syncConn));
+  NS_ASSERTION(mDefaultDBState.syncConn, "can't open sync db connection");
+  return mDefaultDBState.syncConn;
+}
+
 void
 nsCookieService::EnsureReadDomain(const nsCString &aBaseDomain)
 {
@@ -1538,8 +1557,11 @@ nsCookieService::EnsureReadDomain(const nsCString &aBaseDomain)
   
   nsresult rv;
   if (!mDefaultDBState.stmtReadDomain) {
+    if (!GetSyncDBConn())
+      return;
+
     
-    rv = mDefaultDBState.dbConn->CreateStatement(NS_LITERAL_CSTRING(
+    rv = mDefaultDBState.syncConn->CreateStatement(NS_LITERAL_CSTRING(
       "SELECT "
         "id, "
         "name, "
@@ -1557,6 +1579,8 @@ nsCookieService::EnsureReadDomain(const nsCString &aBaseDomain)
     
     if (NS_FAILED(rv)) return;
   }
+
+  NS_ASSERTION(mDefaultDBState.syncConn, "should have a sync db connection");
 
   mozStorageStatementScoper scoper(mDefaultDBState.stmtReadDomain);
 
@@ -1600,9 +1624,12 @@ nsCookieService::EnsureReadComplete()
   
   CancelAsyncRead(PR_FALSE);
 
+  if (!mDefaultDBState.syncConn && !GetSyncDBConn())
+    return;
+
   
   nsCOMPtr<mozIStorageStatement> stmt;
-  nsresult rv = mDefaultDBState.dbConn->CreateStatement(NS_LITERAL_CSTRING(
+  nsresult rv = mDefaultDBState.syncConn->CreateStatement(NS_LITERAL_CSTRING(
     "SELECT "
       "id, "
       "name, "
@@ -1640,6 +1667,7 @@ nsCookieService::EnsureReadComplete()
     ++readCount;
   }
 
+  mDefaultDBState.syncConn = nsnull;
   mDefaultDBState.readSet.Clear();
 
   mObserverService->NotifyObservers(nsnull, "cookie-db-read", nsnull);
