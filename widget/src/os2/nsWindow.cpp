@@ -1779,7 +1779,12 @@ MRESULT nsWindow::ProcessMessage(ULONG msg, MPARAM mp1, MPARAM mp2)
 
     case WM_BUTTON1DOWN:
       WinSetCapture(HWND_DESKTOP, mWnd);
-      DispatchMouseEvent(NS_MOUSE_BUTTON_DOWN, mp1, mp2);
+      isDone = DispatchMouseEvent(NS_MOUSE_BUTTON_DOWN, mp1, mp2);
+      
+      
+      if (mWindowType == eWindowType_popup) {
+        isDone = PR_TRUE;
+      }
       
       sLastButton1Down.x = XFROMMP(mp1);
       sLastButton1Down.y = YFROMMP(mp1);
