@@ -1560,12 +1560,17 @@ nsHyperTextAccessible::GetAssociatedEditor(nsIEditor **aEditor)
 nsresult
 nsHyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos)
 {
-  nsresult rv = TakeFocus();
-  NS_ENSURE_SUCCESS(rv, rv);
+  bool isFocusable = State() & states::FOCUSABLE;
+
+  
+  
+  
+  
+  if (isFocusable)
+    TakeFocus();
 
   
   SetSelectionBounds(0, aStartPos, aEndPos);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -1586,6 +1591,11 @@ nsHyperTextAccessible::SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos)
   }
 
   
+  
+  
+  if (isFocusable)
+    return NS_OK;
+
   nsFocusManager* DOMFocusManager = nsFocusManager::GetFocusManager();
   if (DOMFocusManager) {
     nsCOMPtr<nsIPresShell> shell = GetPresShell();
