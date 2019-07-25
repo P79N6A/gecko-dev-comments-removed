@@ -2582,7 +2582,7 @@ nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal
 {
   NS_ENSURE_ARG(aNewInner);
   JSObject *newInnerJSObject = (JSObject *)aNewInner->GetScriptGlobal(JAVASCRIPT);
-  JSObject *myobject = (JSObject *)aOuterGlobal;
+  JSObject *outerGlobal = (JSObject *)aOuterGlobal;
 
   
   
@@ -2603,12 +2603,18 @@ nsJSContext::ConnectToInner(nsIScriptGlobalObject *aNewInner, void *aOuterGlobal
   
   
   
-  JSObject *proto = ::JS_GetPrototype(mContext, myobject);
-  JSObject *innerProto = ::JS_GetPrototype(mContext, newInnerJSObject);
-  JSObject *innerProtoProto = ::JS_GetPrototype(mContext, innerProto);
+  JSObject *proto = JS_GetPrototype(mContext, outerGlobal);
+  JSObject *innerProto = JS_GetPrototype(mContext, newInnerJSObject);
+  JSObject *innerProtoProto = JS_GetPrototype(mContext, innerProto);
 
-  ::JS_SetPrototype(mContext, newInnerJSObject, proto);
-  ::JS_SetPrototype(mContext, proto, innerProtoProto);
+  JS_SetPrototype(mContext, newInnerJSObject, proto);
+  JS_SetPrototype(mContext, proto, innerProtoProto);
+
+  
+  
+  
+  
+  JS_SetGlobalObject(mContext, outerGlobal);
   return NS_OK;
 }
 
@@ -2648,11 +2654,8 @@ nsJSContext::InitContext()
 
 nsresult
 nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
-                               nsIPrincipal *aPrincipal)
+                               nsIScriptGlobalObject *aCurrentInner)
 {
-  NS_PRECONDITION(!JS_GetGlobalObject(mContext),
-                  "Outer window already initialized");
-
   nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(aGlobalObject));
   PRUint32 flags = 0;
 
@@ -2666,17 +2669,20 @@ nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
     
     
     
-    ::JS_SetOptions(mContext, ::JS_GetOptions(mContext) | JSOPTION_XML);
+    JS_SetOptions(mContext, JS_GetOptions(mContext) | JSOPTION_XML);
   }
 
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
   nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
-  nsresult rv =
-    xpc->InitClassesWithNewWrappedGlobal(mContext, aGlobalObject,
-                                         NS_GET_IID(nsISupports),
-                                         aPrincipal, EmptyCString(),
-                                         flags, getter_AddRefs(holder));
+  nsresult rv = xpc->WrapNative(mContext, aCurrentInner->GetGlobalJSObject(),
+                                aGlobalObject, NS_GET_IID(nsISupports),
+                                getter_AddRefs(holder));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  JSObject *globalObj;
+  holder->GetJSObject(&globalObj);
+  JS_SetGlobalObject(mContext, globalObj);
 
   
   
@@ -2696,14 +2702,9 @@ nsJSContext::InitOuterWindow()
   
   JS_ClearScope(mContext, global);
 
-  
-  
-  nsIXPConnect *xpc = nsContentUtils::XPConnect();
-  nsresult rv = xpc->InitClassesForOuterObject(mContext, global);
-  NS_ENSURE_SUCCESS(rv, rv);
+  nsresult rv = NS_OK;
 
   nsCOMPtr<nsIClassInfo> ci(do_QueryInterface(sgo));
-
   if (ci) {
     jsval v;
 
