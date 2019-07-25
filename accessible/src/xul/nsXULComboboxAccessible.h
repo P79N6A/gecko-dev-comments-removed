@@ -61,9 +61,6 @@ public:
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual PRBool Init();
-
-  
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
   virtual PRBool GetAllowsAnonChildAccessibles();

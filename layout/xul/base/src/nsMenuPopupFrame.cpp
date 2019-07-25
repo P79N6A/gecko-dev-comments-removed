@@ -1781,17 +1781,6 @@ nsMenuPopupFrame::AttributeChanged(PRInt32 aNameSpaceID,
     }
   }
 
-  
-  
-  if (aAttribute == nsGkAtoms::menugenerated &&
-      mFrames.IsEmpty() && !mGeneratedChildren) {
-    EnsureWidget();
-
-    
-    mGeneratedChildren = PR_TRUE;
-    PresContext()->PresShell()->FrameConstructor()->GenerateChildFrames(this);
-  }
-
   return rv;
 }
 

@@ -367,16 +367,6 @@ public:
     return aContent->NodeInfo()->Equals(nsAccessibilityAtoms::th) ||
       aContent->HasAttr(kNameSpaceID_None, nsAccessibilityAtoms::scope);
   }
-
-  
-
-
-
-
-
-
-  static void GeneratePopupTree(nsIContent *aContent,
-                                PRBool aIsAnon = PR_FALSE);
 };
 
 

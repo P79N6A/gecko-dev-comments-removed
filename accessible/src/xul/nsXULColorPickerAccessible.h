@@ -69,9 +69,6 @@ public:
   nsXULColorPickerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual PRBool Init();
-
-  
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
 

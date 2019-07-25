@@ -90,9 +90,6 @@ public:
   NS_IMETHOD GetNumActions(PRUint8 *_retval);
 
   
-  virtual PRBool Init();
-
-  
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();

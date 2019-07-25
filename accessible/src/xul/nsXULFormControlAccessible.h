@@ -67,9 +67,6 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  virtual PRBool Init();
-
-  
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
 
