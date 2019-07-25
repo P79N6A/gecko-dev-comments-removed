@@ -75,15 +75,17 @@ let Wrap = {
   notify: function Weave_notify(name, method ) {
     let savedName = name;
     let savedMethod = method;
-    let args = Array.prototype.slice.call(arguments, 2);
+    let savedArgs = Array.prototype.slice.call(arguments, 2);
 
     return function WeaveNotifyWrapper() {
       let self = yield;
       let ret;
+      let args = Array.prototype.slice.call(arguments);
 
       try {
         this._os.notifyObservers(null, this._osPrefix + savedName + ":start", "");
 
+        args = savedArgs.concat(args);
         args.unshift(this, savedMethod, self.cb);
         Async.run.apply(Async, args);
         ret = yield;
@@ -103,11 +105,12 @@ let Wrap = {
   
   lock: function WeaveSync_lock(method ) {
     let savedMethod = method;
-    let args = Array.prototype.slice.call(arguments, 1);
+    let savedArgs = Array.prototype.slice.call(arguments, 1);
 
-    return function WeaveLockWrapper() {
+    return function WeaveLockWrapper( ) {
       let self = yield;
       let ret;
+      let args = Array.prototype.slice.call(arguments);
 
       this._dav.lock.async(this._dav, self.cb);
       let locked = yield;
@@ -115,6 +118,7 @@ let Wrap = {
         throw "Could not acquire lock";
 
       try {
+        args = savedArgs.concat(args);
         args.unshift(this, savedMethod, self.cb);
         Async.run.apply(Async, args);
         ret = yield;
@@ -135,17 +139,19 @@ let Wrap = {
   
   localLock: function WeaveSync_localLock(method ) {
     let savedMethod = method;
-    let args = Array.prototype.slice.call(arguments, 1);
+    let savedArgs = Array.prototype.slice.call(arguments, 1);
 
     return function WeaveLocalLockWrapper() {
       let self = yield;
       let ret;
+      let args = Array.prototype.slice.call(arguments);
 
       if (this._dav.locked)
         throw "Could not acquire lock";
       this._dav.allowLock = false;
 
       try {
+        args = savedArgs.concat(args);
         args.unshift(this, savedMethod, self.cb);
         Async.run.apply(Async, args);
         ret = yield;
