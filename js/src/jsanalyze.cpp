@@ -941,14 +941,11 @@ ScriptAnalysis::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
 
 
 
-
-
-        var.lifetime = cx->typeLifoAlloc().new_<Lifetime>(start, 0, var.lifetime);
+        var.lifetime = cx->typeLifoAlloc().new_<Lifetime>(start, offset, var.lifetime);
         if (!var.lifetime) {
             setOOM(cx);
             return;
         }
-        var.lifetime->end = offset;
     } else {
         var.saved = var.lifetime;
         var.savedEnd = 0;
@@ -976,24 +973,6 @@ ScriptAnalysis::extendVariable(JSContext *cx, LifetimeVariable &var,
     var.lifetime->start = start;
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
