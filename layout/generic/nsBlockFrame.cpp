@@ -1940,9 +1940,10 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
       
       
-      
       if (line->IsDirty())
-        aState.mPrevChild = line.prev()->LastChild();
+        NS_ASSERTION(line->mFirstChild->GetPrevSibling() ==
+                     line.prev()->LastChild(), "unexpected line frames");
+        aState.mPrevChild = line->mFirstChild->GetPrevSibling();
     }
 
     
@@ -2133,8 +2134,10 @@ nsBlockFrame::ReflowDirtyLines(nsBlockReflowState& aState)
 
     
     
-    
-    aState.mPrevChild = line.prev()->LastChild();
+    NS_ASSERTION(line == line_end || line->mFirstChild->GetPrevSibling() ==
+                 line.prev()->LastChild(), "unexpected line frames");
+    aState.mPrevChild =
+      line == line_end ? mFrames.LastChild() : line->mFirstChild->GetPrevSibling();
   }
 
   
@@ -4396,7 +4399,12 @@ nsBlockFrame::PushLines(nsBlockReflowState&  aState,
       if (firstLine) {
         mFrames.Clear();
       } else {
-        mFrames.RemoveFramesAfter(aLineBefore->LastChild());
+        nsIFrame* f = overBegin->mFirstChild;
+        nsIFrame* lineBeforeLastFrame =
+          f ? f->GetPrevSibling() : aLineBefore->LastChild();
+        NS_ASSERTION(!f || lineBeforeLastFrame == aLineBefore->LastChild(),
+                     "unexpected line frames");
+        mFrames.RemoveFramesAfter(lineBeforeLastFrame);
       }
       if (!overflowLines->empty()) {
         
@@ -4713,7 +4721,9 @@ nsBlockFrame::AppendFrames(ChildListID  aListID,
   }
 
   
-  nsIFrame* lastKid = mLines.empty() ? nsnull : mLines.back()->LastChild();
+  nsIFrame* lastKid = mFrames.LastChild();
+  NS_ASSERTION((mLines.empty() ? nsnull : mLines.back()->LastChild()) ==
+               lastKid, "out-of-sync mLines / mFrames");
 
   
 #ifdef NOISY_REFLOW_REASON
@@ -5394,8 +5404,16 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
 
     
     
-    bool isLastFrameOnLine = (1 == line->GetChildCount() ||
-                                line->LastChild() == aDeletedFrame);
+    bool isLastFrameOnLine = 1 == line->GetChildCount();
+    if (!isLastFrameOnLine) {
+      line_iterator next = line.next();
+      nsIFrame* lastFrame = next != line_end ?
+        next->mFirstChild->GetPrevSibling() :
+        (searchingOverflowList ? line->LastChild() : mFrames.LastChild());
+      NS_ASSERTION(next == line_end || lastFrame == line->LastChild(),
+                   "unexpected line frames");
+      isLastFrameOnLine = lastFrame == aDeletedFrame;
+    }
 
     
     nsIFrame* nextFrame = aDeletedFrame->GetNextSibling();
