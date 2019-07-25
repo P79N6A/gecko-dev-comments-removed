@@ -413,7 +413,7 @@ Engine.prototype = {
           this._log.error("Could not upload files to server"); 
 
       } else {
-        this._remote.deltas.put(self.cb, server.deltas);
+        this._remote.deltas.put(self.cb, this._serializeCommands(server.deltas));
         yield;
 
         let c = 0;
@@ -649,95 +649,21 @@ Engine.prototype = {
     self.done(ret);
   },
 
-  _share: function Engine__share(username) {
-    let self = yield;
-    let prefix = DAV.defaultPrefix;
-
-    this._log.debug("Sharing bookmarks with " + username);
-
-    this._getSymKey.async(this, self.cb);
-    yield;
-
+  _share: function Engine__share(guid, username) {
     
-    DAV.GET(this.keysFile, self.cb);
-    let ret = yield;
-    Utils.ensureStatus(ret.status, "Could not get keys file.");
-    let keys = this._json.decode(ret.responseText);
 
-    
-    let serverURL = Utils.prefs.getCharPref("serverURL");
-    try {
-      DAV.defaultPrefix = "user/" + username + "/";  
-      DAV.GET("public/pubkey", self.cb);
-      ret = yield;
-    }
-    catch (e) { throw e; }
-    finally { DAV.defaultPrefix = prefix; }
 
-    Utils.ensureStatus(ret.status, "Could not get public key for " + username);
-
-    let id = new Identity();
-    id.pubkey = ret.responseText;
-
-    
-    Crypto.RSAencrypt.async(Crypto, self.cb, this._engineId.password, id);
-    let enckey = yield;
-    if (!enckey)
-      throw "Could not encrypt symmetric encryption key";
-
-    keys.ring[username] = enckey;
-    DAV.PUT(this.keysFile, this._json.encode(keys), self.cb);
-    ret = yield;
-    Utils.ensureStatus(ret.status, "Could not upload keyring file.");
-
-    this._createShare(username, username);
-
-    this._log.debug("All done sharing!");
-
-    self.done(true);
+    return;
   },
 
   
-  _createShare: function Engine__createShare(id, title) {
-    let bms = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-      getService(Ci.nsINavBookmarksService);
-    let ans = Cc["@mozilla.org/browser/annotation-service;1"].
-      getService(Ci.nsIAnnotationService);
-
-    let root;
-    let a = ans.getItemsWithAnnotation("weave/mounted-shares-folder", {});
-    if (a.length == 1)
-      root = a[0];
-
-    if (!root) {
-      root = bms.createFolder(bms.toolbarFolder, "Shared Folders",
-                              bms.DEFAULT_INDEX);
-      ans.setItemAnnotation(root, "weave/mounted-shares-folder", true, 0,
-                            ans.EXPIRE_NEVER);
-    }
-
-    let item;
-    a = ans.getItemsWithAnnotation("weave/mounted-share-id", {});
-    for (let i = 0; i < a.length; i++) {
-      if (ans.getItemAnnotation(a[i], "weave/mounted-share-id") == id) {
-        item = a[i];
-        break;
-      }
-    }
-
-    if (!item) {
-      let newId = bms.createFolder(root, title, bms.DEFAULT_INDEX);
-      ans.setItemAnnotation(newId, "weave/mounted-share-id", id, 0,
-                            ans.EXPIRE_NEVER);
-    }
-  },
 
   sync: function Engine_sync(onComplete) {
     return this._sync.async(this, onComplete);
   },
 
-  share: function Engine_share(onComplete, username) {
-    return this._share.async(this, onComplete, username);
+  share: function Engine_share(onComplete, guid, username) {
+    return this._share.async(this, onComplete, guid, username);
   },
 
   resetServer: function Engine_resetServer(onComplete) {

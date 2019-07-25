@@ -157,7 +157,7 @@ WeaveSvc.prototype = {
   get passphrase() { return ID.get('WeaveCryptoID').password; },
   set passphrase(value) { ID.get('WeaveCryptoID').password = value; },
 
-  get userPath() { return ID.get('WeaveID').username; },
+  get userPath() { return ID.get('WeaveID').userHash; },
 
   get currentUser() {
     if (this._loggedIn)
@@ -178,7 +178,7 @@ WeaveSvc.prototype = {
   onWindowOpened: function Weave__onWindowOpened() {
     if (!this._startupFinished) {
       if (Utils.prefs.getBoolPref("autoconnect") &&
-          this.username && this.username != 'nobody') {
+          this.username && this.username != 'nobody@mozilla.com') {
         
         let self = this;
         this.login(function() { self.sync(); });
@@ -561,16 +561,37 @@ WeaveSvc.prototype = {
     }
   },
 
-  shareBookmarks: function WeaveSync_shareBookmarks(onComplete, username) {
-    this._lock(this._notify("share-bookmarks",
-                            this._shareBookmarks,
+  shareData: function WeaveSync_shareData(dataType,
+                                          onComplete,
+                                          guid,
+                                          username) {
+    
+
+
+
+
+
+
+
+    
+    
+    let messageName = "share-" + dataType;
+    
+    
+    
+    this._lock(this._notify(messageName,
+                            this._shareData,
+                            dataType,
+                            guid,
                             username)).async(this, onComplete);
   },
-  _shareBookmarks: function WeaveSync__shareBookmarks(username) {
+  _shareBookmarks: function WeaveSync__shareBookmarks(dataType, 
+                                                      guid,
+                                                      username) {
     let self = yield;
-    if (Engines.get("bookmarks").enabled)
+    if (Engines.get(dataType).enabled)
       return;
-    Engines.get("bookmarks").share(self.cb, username);
+    Engines.get(dataType).share(self.cb, guid, username);
     let ret = yield;
     self.done(ret);
   }
