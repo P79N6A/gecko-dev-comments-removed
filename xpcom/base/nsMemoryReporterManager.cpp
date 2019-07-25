@@ -59,10 +59,6 @@
 
 
 
-
-
-
-
 extern "C" {
 extern void jemalloc_stats(jemalloc_stats_t* stats)
   NS_VISIBILITY_DEFAULT __attribute__((weak));
@@ -219,6 +215,10 @@ NS_IMPL_ISUPPORTS1(nsMemoryReporterManager, nsIMemoryReporterManager)
 NS_IMETHODIMP
 nsMemoryReporterManager::Init()
 {
+#if HAVE_JEMALLOC_STATS && defined(XP_LINUX)
+    if (!jemalloc_stats)
+        return NS_ERROR_FAILURE;
+#endif
     
 
 
