@@ -56,7 +56,6 @@ public:
   nsAutoJSValHolder()
     : mRt(NULL)
     , mVal(JSVAL_NULL)
-    , mGCThing(NULL)
     , mHeld(JS_FALSE)
   {
     
@@ -82,7 +81,7 @@ public:
 
   JSBool Hold(JSRuntime* aRt) {
     if (!mHeld) {
-      if (js_AddGCThingRootRT(aRt, &mGCThing, "nsAutoJSValHolder")) {
+      if (js_AddRootRT(aRt, &mVal, "nsAutoJSValHolder")) {
         mRt = aRt;
         mHeld = JS_TRUE;
       } else {
@@ -102,12 +101,11 @@ public:
     jsval oldval = mVal;
 
     if (mHeld) {
-      js_RemoveRoot(mRt, &mGCThing); 
+      js_RemoveRoot(mRt, &mVal); 
       mHeld = JS_FALSE;
     }
 
     mVal = JSVAL_NULL;
-    mGCThing = NULL;
     mRt = NULL;
 
     return oldval;
@@ -154,16 +152,12 @@ public:
     }
 #endif
     mVal = aOther;
-    mGCThing = JSVAL_IS_GCTHING(aOther)
-             ? JSVAL_TO_GCTHING(aOther)
-             : NULL;
     return *this;
   }
 
 private:
   JSRuntime* mRt;
   jsval mVal;
-  void* mGCThing;
   JSBool mHeld;
 };
 
