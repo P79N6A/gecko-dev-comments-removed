@@ -7,6 +7,7 @@ import imp
 from tempfile import mkdtemp
 from shutil import rmtree
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+from mozunit import MozTestRunner
 
 from UserString import UserString
 
@@ -35,7 +36,7 @@ config_unix = {
 
 config = sys.modules['expandlibs_config'] = imp.new_module('expandlibs_config')
 
-from expandlibs import LibDescriptor, ExpandArgs
+from expandlibs import LibDescriptor, ExpandArgs, relativize
 from expandlibs_gen import generate
 from expandlibs_exec import ExpandArgsMore
 
@@ -51,6 +52,21 @@ def Dll(name):
 def ImportLib(name):
     if not len(config.IMPORT_LIB_SUFFIX): return Dll(name)
     return config.LIB_PREFIX + name + config.IMPORT_LIB_SUFFIX
+
+class TestRelativize(unittest.TestCase):
+    def test_relativize(self):
+        '''Test relativize()'''
+        os_path_exists = os.path.exists
+        def exists(path):
+            return True
+        os.path.exists = exists
+        self.assertEqual(relativize(os.path.abspath(os.curdir)), os.curdir)
+        self.assertEqual(relativize(os.path.abspath(os.pardir)), os.pardir)
+        self.assertEqual(relativize(os.path.join(os.curdir, 'a')), 'a')
+        self.assertEqual(relativize(os.path.join(os.path.abspath(os.curdir), 'a')), 'a')
+        
+        self.assertEqual(relativize(os.sep), os.sep)
+        os.path.exists = os.path.exists
 
 class TestLibDescriptor(unittest.TestCase):
     def test_serialize(self):
@@ -83,8 +99,12 @@ def wrap_method(conf, wrapped_method):
         for key in conf:
             setattr(config, key, conf[key])
         self.init()
-        wrapped_method(self)
-        self.cleanup()
+        try:
+            wrapped_method(self)
+        except:
+            raise
+        finally:
+            self.cleanup()
     return _method
 
 class ReplicateTests(type):
@@ -101,7 +121,7 @@ class ReplicateTests(type):
 class TestCaseWithTmpDir(unittest.TestCase):
     __metaclass__ = ReplicateTests
     def init(self):
-        self.tmpdir = mkdtemp()
+        self.tmpdir = os.path.abspath(mkdtemp(dir=os.curdir))
 
     def cleanup(self):
         rmtree(self.tmpdir)
@@ -149,6 +169,9 @@ class TestExpandInit(TestCaseWithTmpDir):
         self.arg_files += [self.tmpfile(Lib('f'))]
         self.touch(self.files)
 
+    def assertRelEqual(self, args1, args2):
+        self.assertEqual(args1, [relativize(a) for a in args2])
+
 class TestExpandArgs(TestExpandInit):
     def test_expand(self):
         '''Test library expansion'''
@@ -156,44 +179,45 @@ class TestExpandArgs(TestExpandInit):
         
         
         args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
-        self.assertEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
+        self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
 
         
         
         self.touch([self.tmpfile('libx', Lib('x'))])
         args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
-        self.assertEqual(args, ['foo', '-bar'] + self.files + self.liby_files + [self.tmpfile('libx', Lib('x'))]) 
+        self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + [self.tmpfile('libx', Lib('x'))]) 
 
         self.touch([self.tmpfile('liby', Lib('y'))])
         args = ExpandArgs(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))])
-        self.assertEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+        self.assertRelEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
 
 class TestExpandArgsMore(TestExpandInit):
     def test_makelist(self):
         '''Test grouping object files in lists'''
         
         with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
-            self.assertEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
+            self.assertRelEqual(args, ['foo', '-bar'] + self.files + self.liby_files + self.libx_files) 
 
             
             args.makelist()
             
-            self.assertEqual(args[:3], ['foo', '-bar'] + self.files[:1])
-            self.assertEqual(args[4:], [self.files[3]] + self.files[5:] + [self.tmpfile('liby', Lib('z'))])
+            self.assertRelEqual(args[:3], ['foo', '-bar'] + self.files[:1])
+            self.assertRelEqual(args[4:], [self.files[3]] + self.files[5:] + [self.tmpfile('liby', Lib('z'))])
 
             
             objs = [f for f in self.files + self.liby_files + self.libx_files if f.endswith(config.OBJ_SUFFIX)]
             if config.EXPAND_LIBS_LIST_STYLE == "linkerscript":
                 self.assertNotEqual(args[3][0], '@')
                 filename = args[3]
-                content = ["INPUT(%s)" % f for f in objs]
+                content = ["INPUT(%s)" % relativize(f) for f in objs]
+                with open(filename, 'r') as f:
+                    self.assertEqual([l.strip() for l in f.readlines() if len(l.strip())], content)
             elif config.EXPAND_LIBS_LIST_STYLE == "list":
                 self.assertEqual(args[3][0], '@')
                 filename = args[3][1:]
                 content = objs
-
-            with open(filename, 'r') as f:
-                self.assertEqual([l.strip() for l in f.readlines() if len(l.strip())], content)
+                with open(filename, 'r') as f:
+                    self.assertRelEqual([l.strip() for l in f.readlines() if len(l.strip())], content)
 
             tmp = args.tmp
         
@@ -207,9 +231,9 @@ class TestExpandArgsMore(TestExpandInit):
         def call(args, **kargs):
             
             ar_extract = config.AR_EXTRACT.split()
-            self.assertEqual(args[:len(ar_extract)], ar_extract)
+            self.assertRelEqual(args[:len(ar_extract)], ar_extract)
             
-            self.assertEqual([os.path.splitext(arg)[1] for arg in args[len(ar_extract):]], [config.LIB_SUFFIX])
+            self.assertRelEqual([os.path.splitext(arg)[1] for arg in args[len(ar_extract):]], [config.LIB_SUFFIX])
             
             lib = os.path.splitext(os.path.basename(args[len(ar_extract)]))[0]
             extracted[lib] = os.path.join(kargs['cwd'], "%s" % Obj(lib))
@@ -219,7 +243,7 @@ class TestExpandArgsMore(TestExpandInit):
         
         self.touch([self.tmpfile('liby', Lib('y'))])
         with ExpandArgsMore(['foo', '-bar'] + self.arg_files + [self.tmpfile('liby', Lib('y'))]) as args:
-            self.assertEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
+            self.assertRelEqual(args, ['foo', '-bar'] + self.files + [self.tmpfile('liby', Lib('y'))])
 
             
             
@@ -230,11 +254,11 @@ class TestExpandArgsMore(TestExpandInit):
                 
                 
                 
-                self.assertEqual(args, ['foo', '-bar'] + files)
+                self.assertRelEqual(args, ['foo', '-bar'] + files)
             else:
                 
                 
-                self.assertEqual(args, ['foo', '-bar'] + [extracted[os.path.splitext(os.path.basename(f))[0]] if f.endswith(config.LIB_SUFFIX) else f for f in files])
+                self.assertRelEqual(args, ['foo', '-bar'] + [extracted[os.path.splitext(os.path.basename(f))[0]] if f.endswith(config.LIB_SUFFIX) else f for f in files])
 
             tmp = args.tmp
         
@@ -244,4 +268,4 @@ class TestExpandArgsMore(TestExpandInit):
         subprocess.call = subprocess_call
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main(testRunner=MozTestRunner())
