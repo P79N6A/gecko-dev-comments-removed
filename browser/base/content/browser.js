@@ -4259,8 +4259,13 @@ var XULBrowserWindow = {
 
     var uri = aRequest.QueryInterface(Ci.nsIChannel).URI;
 
+    
+    
+    
+    
     if (gURLBar &&
         gURLBar.value == "" &&
+        !content.opener &&
         getWebNavigation().currentURI.spec == "about:blank")
       URLBarSetURI(uri);
 
