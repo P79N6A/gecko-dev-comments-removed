@@ -94,17 +94,23 @@ ShadowLayerForwarder::PlatformAllocDoubleBuffer(const gfxIntSize& aSize,
                                                 SurfaceDescriptor* aFrontBuffer,
                                                 SurfaceDescriptor* aBackBuffer)
 {
-  return (PlatformAllocBuffer(aSize, aContent, aFrontBuffer) &&
-          PlatformAllocBuffer(aSize, aContent, aBackBuffer));
+  return (PlatformAllocBuffer(aSize, aContent, DEFAULT_BUFFER_CAPS, aFrontBuffer) &&
+          PlatformAllocBuffer(aSize, aContent, DEFAULT_BUFFER_CAPS, aBackBuffer));
 }
 
 bool
 ShadowLayerForwarder::PlatformAllocBuffer(const gfxIntSize& aSize,
                                           gfxASurface::gfxContentType aContent,
+                                          uint32_t aCaps,
                                           SurfaceDescriptor* aBuffer)
 {
   if (!UsingXCompositing()) {
     
+    
+    
+    return false;
+  }
+  if (MAP_AS_IMAGE_SURFACE & aCaps) {
     
     
     return false;
