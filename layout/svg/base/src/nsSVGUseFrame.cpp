@@ -88,6 +88,9 @@ public:
 #endif
 
   
+  virtual void NotifySVGChanged(PRUint32 aFlags);
+
+  
   virtual nsresult CreateAnonymousContent(nsTArray<ContentInfo>& aElements);
   virtual void AppendAnonymousContentTo(nsBaseContentList& aElements,
                                         PRUint32 aFilter);
@@ -176,6 +179,26 @@ nsSVGUseFrame::IsLeaf() const
   return true;
 }
 
+
+
+
+
+void
+nsSVGUseFrame::NotifySVGChanged(PRUint32 aFlags)
+{
+  if (aFlags & COORD_CONTEXT_CHANGED &&
+      !(aFlags & TRANSFORM_CHANGED)) {
+    
+    
+    nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
+    if (use->mLengthAttributes[nsSVGUseElement::X].IsPercentage() ||
+        use->mLengthAttributes[nsSVGUseElement::Y].IsPercentage()) {
+      aFlags |= TRANSFORM_CHANGED;
+    }
+  }
+
+  nsSVGUseFrameBase::NotifySVGChanged(aFlags);
+}
 
 
 
