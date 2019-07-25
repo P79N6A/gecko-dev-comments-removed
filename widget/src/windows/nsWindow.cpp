@@ -3721,6 +3721,7 @@ void nsWindow::DispatchPendingEvents()
     
     
     
+    nsWindow::DispatchStarvedPaints(topWnd, 0);
 #if !defined(WINCE)
     ::EnumChildWindows(topWnd, nsWindow::DispatchStarvedPaints, 0);
 #else
