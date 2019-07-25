@@ -2460,6 +2460,9 @@ function Tab(aURI, aParams) {
   
   
   this.create(aURI, aParams || {});
+
+  
+  this.active = false;
 }
 
 Tab.prototype = {
