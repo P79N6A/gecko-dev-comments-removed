@@ -1102,7 +1102,13 @@ var FormHelper = {
     }
 
     function orderByTabIndex(a, b) {
-      return a.tabIndex - b.tabIndex;
+      
+      
+      
+      if (a.tabIndex == 0 || b.tabIndex == 0)
+        return b.tabIndex;
+
+      return a.tabIndex > b.tabIndex;
     }
     return elements.sort(orderByTabIndex);
   },
