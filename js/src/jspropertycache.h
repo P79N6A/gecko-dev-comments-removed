@@ -84,7 +84,7 @@ class PCVal
     enum {
         OBJECT = 0,
         SLOT = 1,
-        SPROP = 2,
+        SHAPE = 2,
         TAG = 3
     };
 
@@ -95,16 +95,27 @@ class PCVal
     void setNull() { v = 0; }
 
     bool isFunObj() const { return (v & TAG) == OBJECT; }
-    JSObject &toFunObj() const { JS_ASSERT(isFunObj()); return *reinterpret_cast<JSObject *>(v); }
-    void setFunObj(JSObject &obj) { v = reinterpret_cast<jsuword>(&obj); }
+    JSObject &toFunObj() const {
+        JS_ASSERT(isFunObj());
+        return *reinterpret_cast<JSObject *>(v);
+    }
+    void setFunObj(JSObject &obj) {
+        v = reinterpret_cast<jsuword>(&obj);
+    }
 
     bool isSlot() const { return v & SLOT; }
     uint32 toSlot() const { JS_ASSERT(isSlot()); return uint32(v) >> 1; }
     void setSlot(uint32 slot) { v = (jsuword(slot) << 1) | SLOT; }
 
-    bool isSprop() const { return (v & TAG) == SPROP; }
-    JSScopeProperty *toSprop() const { JS_ASSERT(isSprop()); return reinterpret_cast<JSScopeProperty *>(v & ~TAG); }
-    void setSprop(JSScopeProperty *sprop) { JS_ASSERT(sprop); v = reinterpret_cast<jsuword>(sprop) | SPROP; }
+    bool isShape() const { return (v & TAG) == SHAPE; }
+    const js::Shape *toShape() const {
+        JS_ASSERT(isShape());
+        return reinterpret_cast<js::Shape *>(v & ~TAG);
+    }
+    void setShape(const js::Shape *shape) {
+        JS_ASSERT(shape);
+        v = reinterpret_cast<jsuword>(shape) | SHAPE;
+    }
 };
 
 struct PropertyCacheEntry
@@ -165,6 +176,7 @@ class PropertyCache
     uint32              rofills;        
     uint32              disfills;       
     uint32              oddfills;       
+    uint32              add2dictfills;  
     uint32              modfills;       
     uint32              brandfills;     
 
@@ -245,8 +257,8 @@ class PropertyCache
 
 
 
-    JS_ALWAYS_INLINE bool testForInit(JSRuntime *rt, jsbytecode *pc, JSObject *obj, JSScope *scope,
-                                      JSScopeProperty **spropp, PropertyCacheEntry **entryp);
+    JS_ALWAYS_INLINE bool testForInit(JSRuntime *rt, jsbytecode *pc, JSObject *obj,
+                                      const js::Shape **shapep, PropertyCacheEntry **entryp);
 
     
 
@@ -258,7 +270,7 @@ class PropertyCache
 
     JS_REQUIRES_STACK PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, uintN scopeIndex,
                                                uintN protoIndex, JSObject *pobj,
-                                               JSScopeProperty *sprop, JSBool adding = false);
+                                               const js::Shape *shape, JSBool adding = false);
 
     void purge(JSContext *cx);
     void purgeForScript(JSScript *script);

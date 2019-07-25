@@ -1110,8 +1110,9 @@ JSObject::removeProperty(JSContext *cx, jsid id)
 
 
 
-        if (shape != lastProp)
-            setOwnShape(lastProp->shape);
+
+
+        setOwnShape(lastProp->shape);
 
         Shape *oldLastProp = lastProp;
         shape->removeFromDictionary(this);

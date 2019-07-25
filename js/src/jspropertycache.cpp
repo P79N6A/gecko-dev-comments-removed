@@ -80,6 +80,15 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
 
+    if (adding && obj->inDictionaryMode()) {
+        PCMETER(add2dictfills++);
+        return JS_NO_PROP_CACHE_FILL;
+    }
+
+    
+
+
+
 
 
 
@@ -442,6 +451,7 @@ PropertyCache::purge(JSContext *cx)
         P(rofills);
         P(disfills);
         P(oddfills);
+        P(add2dictfills);
         P(modfills);
         P(brandfills);
         P(noprotos);
