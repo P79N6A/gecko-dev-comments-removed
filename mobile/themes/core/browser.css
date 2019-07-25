@@ -995,7 +995,9 @@ documenttab[reload="true"] > stack > .documenttab-reload {
 
 
 .prompt-buttons,
+#context-commands,
 #pageactions-container {
+  background: transparent;
   border-top: 1px solid rgb(205,205,205);
   padding: 0;
   -moz-user-focus: ignore;
@@ -1003,6 +1005,7 @@ documenttab[reload="true"] > stack > .documenttab-reload {
 }
 
 .prompt-button,
+.context-command,
 pageaction {
   -moz-border-top-colors: white;
   -moz-border-right-colors: rgb(175,175,175);
@@ -1011,7 +1014,21 @@ pageaction {
   border-style: solid;
   border-width: 1px !important;
   height: 64px;
+}
+
+
+#context-commands > scrollbox {
   width: 100%;
+}
+
+.context-command {
+  -moz-box-align: center;
+  min-height: 64px;
+  min-width: 200px; 
+}
+
+.context-command[selected="true"] {
+  background: transparent;
 }
 
 
@@ -1044,6 +1061,7 @@ pageaction {
 }
 
 .prompt-button:not([disabled]):hover:active,
+.context-command:hover:active,
 pageaction:not([disabled]):hover:active {
   background: url("chrome://browser/skin/images/popup-selected-item-hdpi.png") repeat-x !important;
   background-origin: border-box !important;
@@ -1063,6 +1081,7 @@ pageaction:not([image]) > hbox >.pageaction-image {
 }
 
 .prompt-button,
+.context-command,
 .pageaction-title {
   font-size: 24px !important;
   color: #414141 !important;
@@ -1075,6 +1094,12 @@ pageaction:not([image]) > hbox >.pageaction-image {
 
 .pageaction-desc[value=""] {
   display: none;
+}
+
+#share-title,
+#context-hint {
+  font-size: 18px;
+  padding: 4px;
 }
 
 
@@ -1455,45 +1480,6 @@ echrome-select-option[disabled="true"] {
 .menulist-command:not(.selected) > image[src=""] {
   visibility: hidden;
 }
-
-
-#context-popup {
-  
-  padding: 8px 0 0 0;
-  border: none;
-}
-
-#share-title,
-#context-hint {
-  font-size: 18px;
-  padding: 4px;
-}
-
-#context-commands {
-  border: 1px solid rgb(207,207,207);
-  -moz-border-radius: 0 0 8px 8px;
-}
-
-.context-command {
-  -moz-box-align: center;
-  background-color: rgb(245,245,245);
-  min-width: 200px; 
-}
-
-.context-command[selector="first-child"] {
-  background: -moz-linear-gradient(top, rgb(255,255,255), rgb(245,245,245));
-}
-
-.context-command[selector="last-child"] {
-  background: -moz-linear-gradient(top, rgb(245,245,245), rgb(215,215,215));
-  -moz-border-radius: 0 0 8px 8px;
-}
-
-
-.context-command:hover:active {
-  background: #8db8d8;
-}
-
 
 
 .full-screen {
