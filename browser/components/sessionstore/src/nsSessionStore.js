@@ -76,10 +76,6 @@ const NOTIFY_WINDOWS_RESTORED = "sessionstore-windows-restored";
 const NOTIFY_BROWSER_STATE_RESTORED = "sessionstore-browser-state-restored";
 
 
-
-const MAX_CONCURRENT_TAB_RESTORES = 3;
-
-
 const OBSERVING = [
   "domwindowopened", "domwindowclosed",
   "quit-application-requested", "quit-application-granted",
@@ -196,7 +192,7 @@ SessionStoreService.prototype = {
 
   
   
-  _restoreCount: -1,
+  _restoreCount: 0,
 
   
   _browserSetState: false,
@@ -234,8 +230,8 @@ SessionStoreService.prototype = {
   _tabsRestoringCount: 0,
 
   
-  _restoreOnDemand: false,
-
+  _maxConcurrentTabRestores: null,
+  
   
   _restoreHiddenTabs: null,
 
@@ -285,10 +281,7 @@ SessionStoreService.prototype = {
     var pbs = Cc["@mozilla.org/privatebrowsing;1"].
               getService(Ci.nsIPrivateBrowsingService);
     this._inPrivateBrowsing = pbs.privateBrowsingEnabled;
-
     
-    this._migratePrefs();
-
     
     this._prefBranch.addObserver("sessionstore.max_tabs_undo", this, true);
     this._prefBranch.addObserver("sessionstore.max_windows_undo", this, true);
@@ -297,9 +290,9 @@ SessionStoreService.prototype = {
     this._sessionhistory_max_entries =
       this._prefBranch.getIntPref("sessionhistory.max_entries");
 
-    this._restoreOnDemand =
-      this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
-    this._prefBranch.addObserver("sessionstore.restore_on_demand", this, true);
+    this._maxConcurrentTabRestores =
+      this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
+    this._prefBranch.addObserver("sessionstore.max_concurrent_tabs", this, true);
 
     this._restoreHiddenTabs =
       this._prefBranch.getBoolPref("sessionstore.restore_hidden_tabs");
@@ -371,9 +364,6 @@ SessionStoreService.prototype = {
           delete this._initialState.windows[0].hidden;
           
           delete this._initialState.windows[0].isPopup;
-          
-          if (this._initialState.windows[0].sizemode == "minimized")
-            this._initialState.windows[0].sizemode = "normal";
         }
       }
       catch (ex) { debug("The session file is invalid: " + ex); }
@@ -447,19 +437,6 @@ SessionStoreService.prototype = {
     if (this._saveTimer) {
       this._saveTimer.cancel();
       this._saveTimer = null;
-    }
-  },
-
-  _migratePrefs: function sss__migratePrefs() {
-    
-    
-    
-    if (this._prefBranch.prefHasUserValue("sessionstore.max_concurrent_tabs") &&
-        !this._prefBranch.prefHasUserValue("sessionstore.restore_on_demand")) {
-      let maxConcurrentTabs =
-        this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
-      this._prefBranch.setBoolPref("sessionstore.restore_on_demand", maxConcurrentTabs == 0);
-      this._prefBranch.clearUserPref("sessionstore.max_concurrent_tabs");
     }
   },
 
@@ -652,9 +629,9 @@ SessionStoreService.prototype = {
           this._clearDisk();
         this.saveState(true);
         break;
-      case "sessionstore.restore_on_demand":
-        this._restoreOnDemand =
-          this._prefBranch.getBoolPref("sessionstore.restore_on_demand");
+      case "sessionstore.max_concurrent_tabs":
+        this._maxConcurrentTabRestores =
+          this._prefBranch.getIntPref("sessionstore.max_concurrent_tabs");
         break;
       case "sessionstore.restore_hidden_tabs":
         this._restoreHiddenTabs =
@@ -785,7 +762,7 @@ SessionStoreService.prototype = {
     aWindow.__SSi = "window" + Date.now();
 
     
-    this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [] };
+    this._windows[aWindow.__SSi] = { tabs: [], selected: 0, _closedTabs: [], busy: false };
     if (!this._isWindowLoaded(aWindow))
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
@@ -969,6 +946,9 @@ SessionStoreService.prototype = {
       
       if (winData.tabs.length > 1 ||
           (winData.tabs.length == 1 && this._shouldSaveTabState(winData.tabs[0]))) {
+        
+        delete winData.busy;
+
         this._closedWindows.unshift(winData);
         this._capClosedWindows();
       }
@@ -1265,7 +1245,7 @@ SessionStoreService.prototype = {
       throw (Components.returnCode = Cr.NS_ERROR_INVALID_ARG);
     
     var window = aTab.ownerDocument.defaultView;
-    this._sendWindowStateEvent(window, "Busy");
+    this._setWindowStateBusy(window);
     this.restoreHistoryPrecursor(window, [aTab], [tabState], 0, 0, 0);
   },
 
@@ -1281,7 +1261,7 @@ SessionStoreService.prototype = {
     tabState.index = Math.max(1, Math.min(tabState.index, tabState.entries.length));
     tabState.pinned = false;
 
-    this._sendWindowStateEvent(aWindow, "Busy");
+    this._setWindowStateBusy(aWindow);
     let newTab = aTab == aWindow.gBrowser.selectedTab ?
       aWindow.gBrowser.addTab(null, {relatedToCurrent: true, ownerTab: aTab}) :
       aWindow.gBrowser.addTab();
@@ -1324,7 +1304,7 @@ SessionStoreService.prototype = {
     let closedTab = closedTabs.splice(aIndex, 1).shift();
     let closedTabState = closedTab.state;
 
-    this._sendWindowStateEvent(aWindow, "Busy");
+    this._setWindowStateBusy(aWindow);
     
     let browser = aWindow.gBrowser;
     let tab = browser.addTab();
@@ -2534,7 +2514,7 @@ SessionStoreService.prototype = {
 
     
     
-    this._sendWindowStateEvent(aWindow, "Busy");
+    this._setWindowStateBusy(aWindow);
 
     if (root._closedWindows)
       this._closedWindows = root._closedWindows;
@@ -2721,7 +2701,7 @@ SessionStoreService.prototype = {
     if (aTabs.length == 0) {
       
       
-      this._sendWindowStateEvent(aWindow, "Ready");
+      this._setWindowStateReady(aWindow);
       return;
     }
 
@@ -2866,7 +2846,7 @@ SessionStoreService.prototype = {
     if (aTabs.length == 0) {
       
       
-      this._sendWindowStateEvent(aWindow, "Ready");
+      this._setWindowStateReady(aWindow);
       return; 
     }
     
@@ -3062,8 +3042,8 @@ SessionStoreService.prototype = {
       return;
 
     
-    if (this._restoreOnDemand ||
-        this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
+    if (this._maxConcurrentTabRestores >= 0 &&
+        this._tabsRestoringCount >= this._maxConcurrentTabRestores)
       return;
 
     
@@ -3992,23 +3972,52 @@ SessionStoreService.prototype = {
   },
 
   _sendRestoreCompletedNotifications: function sss_sendRestoreCompletedNotifications() {
-    
-    if (this._restoreCount > 1) {
+    if (this._restoreCount) {
       this._restoreCount--;
-      return;
+      if (this._restoreCount == 0) {
+        
+        Services.obs.notifyObservers(null,
+          this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
+          "");
+        this._browserSetState = false;
+      }
     }
+  },
+
+  
+
+
+
+
+  _setWindowStateBusyValue:
+    function sss__changeWindowStateBusyValue(aWindow, aValue) {
+
+    this._windows[aWindow.__SSi].busy = aValue;
 
     
-    if (this._restoreCount == -1)
-      return;
-
     
-    Services.obs.notifyObservers(null,
-      this._browserSetState ? NOTIFY_BROWSER_STATE_RESTORED : NOTIFY_WINDOWS_RESTORED,
-      "");
+    if (!this._isWindowLoaded(aWindow)) {
+      let stateToRestore = this._statesToRestore[aWindow.__SS_restoreID].windows[0];
+      stateToRestore.busy = aValue;
+    }
+  },
 
-    this._browserSetState = false;
-    this._restoreCount = -1;
+  
+
+
+
+  _setWindowStateReady: function sss__setWindowStateReady(aWindow) {
+    this._setWindowStateBusyValue(aWindow, false);
+    this._sendWindowStateEvent(aWindow, "Ready");
+  },
+
+  
+
+
+
+  _setWindowStateBusy: function sss__setWindowStateBusy(aWindow) {
+    this._setWindowStateBusyValue(aWindow, true);
+    this._sendWindowStateEvent(aWindow, "Busy");
   },
 
   

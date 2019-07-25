@@ -187,6 +187,23 @@ let Storage = {
   
   
   
+  readWindowBusyState: function Storage_readWindowBusyState(win) {
+    let state;
+
+    try {
+      let data = this._sessionStore.getWindowState(win);
+      if (data)
+        state = JSON.parse(data);
+    } catch (e) {
+      Utils.log("Error while parsing window state");
+    }
+
+    return (state && state.windows[0].busy);
+  },
+
+  
+  
+  
   saveGroupItemsData: function Storage_saveGroupItemsData(win, data) {
     this.saveData(win, this.GROUPS_DATA_IDENTIFIER, data);
   },
