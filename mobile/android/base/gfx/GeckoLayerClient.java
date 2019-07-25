@@ -229,17 +229,17 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
 
         
-        float xBufferAmount = Math.min(desiredXMargins, Math.max(0, metrics.pageSizeWidth - metrics.getWidth()));
+        float xBufferAmount = Math.min(desiredXMargins, metrics.pageSizeWidth - metrics.getWidth());
         
         
         float savedPixels = (desiredXMargins - xBufferAmount) * (metrics.getHeight() + desiredYMargins);
         float extraYAmount = (float)Math.floor(savedPixels / (metrics.getWidth() + xBufferAmount));
-        float yBufferAmount = Math.min(desiredYMargins + extraYAmount, Math.max(0, metrics.pageSizeHeight - metrics.getHeight()));
+        float yBufferAmount = Math.min(desiredYMargins + extraYAmount, metrics.pageSizeHeight - metrics.getHeight());
         
         if (xBufferAmount == desiredXMargins && yBufferAmount < desiredYMargins) {
             savedPixels = (desiredYMargins - yBufferAmount) * (metrics.getWidth() + xBufferAmount);
             float extraXAmount = (float)Math.floor(savedPixels / (metrics.getHeight() + yBufferAmount));
-            xBufferAmount = Math.min(xBufferAmount + extraXAmount, Math.max(0, metrics.pageSizeWidth - metrics.getWidth()));
+            xBufferAmount = Math.min(xBufferAmount + extraXAmount, metrics.pageSizeWidth - metrics.getWidth());
         }
 
         
@@ -247,8 +247,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-        float leftMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.viewportRectLeft));
-        float rightMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.pageSizeWidth - (metrics.viewportRectLeft + metrics.getWidth())));
+        float leftMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.viewportRectLeft);
+        float rightMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.pageSizeWidth - (metrics.viewportRectLeft + metrics.getWidth()));
         if (leftMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
             rightMargin = xBufferAmount - leftMargin;
         } else if (rightMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
@@ -259,8 +259,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
             rightMargin += delta / 2;
         }
 
-        float topMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.viewportRectTop));
-        float bottomMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.pageSizeHeight - (metrics.viewportRectTop + metrics.getHeight())));
+        float topMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.viewportRectTop);
+        float bottomMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, metrics.pageSizeHeight - (metrics.viewportRectTop + metrics.getHeight()));
         if (topMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
             bottomMargin = yBufferAmount - topMargin;
         } else if (bottomMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
