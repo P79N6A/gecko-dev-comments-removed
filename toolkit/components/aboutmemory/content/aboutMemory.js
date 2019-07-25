@@ -497,10 +497,18 @@ function buildTree(aReporters, aTreeName)
         }
       }
       
+      if (r._amount !== kUnknown) {
+        u._amount = r._amount;
+      } else {
+        u._amount = 0;
+        u._isUnknown = true;
+      }
+      u._unsafeDescription = r._unsafeDescription;
       u._kind = r._kind;
       if (r._nMerged) {
         u._nMerged = r._nMerged;
       }
+      r._done = true;
     }
   }
 
@@ -510,28 +518,18 @@ function buildTree(aReporters, aTreeName)
 
   
   
-  function fillInTree(aT, aUnsafePrePath)
+  function fillInNonLeafNodes(aT)
   {
-    var unsafePath =
-      aUnsafePrePath ? aUnsafePrePath + '/' + aT._unsafeName : aT._unsafeName; 
     if (aT._kids.length === 0) {
       
       assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
-      aT._unsafeDescription = getUnsafeDescription(aReporters, unsafePath);
-      var amount = getBytes(aReporters, unsafePath);
-      if (amount !== kUnknown) {
-        aT._amount = amount;
-      } else {
-        aT._amount = 0;
-        aT._isUnknown = true;
-      }
     } else {
       
       
       assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
       var childrenBytes = 0;
       for (var i = 0; i < aT._kids.length; i++) {
-        childrenBytes += fillInTree(aT._kids[i], unsafePath);
+        childrenBytes += fillInNonLeafNodes(aT._kids[i]);
       }
       aT._amount = childrenBytes;
       aT._unsafeDescription =
@@ -541,7 +539,7 @@ function buildTree(aReporters, aTreeName)
     return aT._amount;
   }
 
-  fillInTree(t, "");
+  fillInNonLeafNodes(t);
 
   
   
@@ -571,7 +569,7 @@ function ignoreSmapsTrees(aReporters)
   for (var unsafePath in aReporters) {
     var r = aReporters[unsafePath];
     if (r.treeNameMatches("smaps")) {
-      var dummy = getBytes(aReporters, unsafePath);
+      r._done = true;
     }
   }
 }
@@ -606,7 +604,9 @@ function fixUpExplicitTree(aT, aReporters)
   
   
   
-  var heapAllocatedBytes = getBytes(aReporters, "heap-allocated", true);
+  var heapAllocatedReporter = aReporters["heap-allocated"];
+  assert(heapAllocatedReporter, "no 'heap-allocated' reporter");
+  var heapAllocatedBytes = heapAllocatedReporter._amount;
   var heapUnclassifiedT = new TreeNode("heap-unclassified");
   var hasKnownHeapAllocated = heapAllocatedBytes !== kUnknown;
   if (hasKnownHeapAllocated) {
@@ -924,44 +924,6 @@ function pad(aS, aN, aC)
     padding += aC;
   }
   return padding + aS;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-function getBytes(aReporters, aUnsafePath, aDoNotMark)
-{
-  var r = aReporters[aUnsafePath];
-  assert(r, "getBytes: no such Reporter: " + makeSafe(aUnsafePath));
-  if (!aDoNotMark) {
-    r._done = true;
-  }
-  return r._amount;
-}
-
-
-
-
-
-
-
-
-
-
-function getUnsafeDescription(aReporters, aUnsafePath)
-{
-  var r = aReporters[aUnsafePath];
-  assert(r, "getUnsafeDescription: no such Reporter: " + makeSafe(aUnsafePath));
-  return r._unsafeDescription;
 }
 
 
