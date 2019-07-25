@@ -38,11 +38,15 @@ def build_dict(env=os.environ):
     
     p = env["TARGET_CPU"]
     
-    
-    if p.startswith("arm"):
-        p = "arm"
-    elif re.match("i[3-9]86", p):
-        p = "x86"
+    if d["os"] == "mac" and "UNIVERSAL_BINARY" in env and env["UNIVERSAL_BINARY"] == "1":
+        p = "universal-x86-x86_64"
+    else:
+        
+        
+        if p.startswith("arm"):
+            p = "arm"
+        elif re.match("i[3-9]86", p):
+            p = "x86"
     d["processor"] = p
     
     if p in ["x86_64", "ppc64"]:

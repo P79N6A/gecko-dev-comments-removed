@@ -73,18 +73,16 @@ class unknown(object):
 unknown = unknown() 
 
 
-
 info = {'os': unknown,
         'processor': unknown,
         'version': unknown,
         'bits': unknown }
-
 (system, node, release, version, machine, processor) = platform.uname()
 (bits, linkage) = platform.architecture()
 
+
 if system in ["Microsoft", "Windows"]:
-    info['os'] = 'win'
-    
+    info['os'] = 'win'    
     
     
     if "PROCESSOR_ARCHITEW6432" in os.environ:
@@ -107,6 +105,7 @@ elif system == "Darwin":
 elif sys.platform in ('solaris', 'sunos5'):
     info['os'] = 'unix'
     version = sys.platform
+info['version'] = version 
 
 
 if processor in ["i386", "i686"]:
@@ -120,26 +119,48 @@ elif processor == "AMD64":
 elif processor == "Power Macintosh":
     processor = "ppc"
 bits = re.search('(\d+)bit', bits).group(1)
-
-info.update({'version': version,
-             'processor': processor,
+info.update({'processor': processor,
              'bits': int(bits),
             })
 
-def update(new_info):
-    """update the info"""
-    info.update(new_info)
-    globals().update(info)
-  
-update({})
 
 choices = {'os': ['linux', 'win', 'mac', 'unix'],
            'bits': [32, 64],
            'processor': ['x86', 'x86_64', 'ppc']}
 
 
+def sanitize(info):
+    """Do some sanitization of input values, primarily
+    to handle universal Mac builds."""
+    if "processor" in info and info["processor"] == "universal-x86-x86_64":
+        
+        if release[:4] >= "10.6":
+            info["processor"] = "x86_64"
+            info["bits"] = 64
+        else:
+            info["processor"] = "x86"
+            info["bits"] = 32
+
+
+def update(new_info):
+    """update the info"""
+    info.update(new_info)
+    sanitize(info)
+    globals().update(info)
+
+    
+    for os_name in choices['os']:
+        globals()['is' + os_name.title()] = info['os'] == os_name
+    
+    if isLinux:
+        globals()['isUnix'] = True
+
+update({})
+
+
 __all__ = info.keys()
-__all__ += ['info', 'unknown', 'main', 'choices']
+__all__ += ['is' + os_name.title() for os_name in choices['os']]
+__all__ += ['info', 'unknown', 'main', 'choices', 'update']
 
 
 def main(args=None):
