@@ -55,7 +55,7 @@
 
 
 
-nsDOMAttributeMap::nsDOMAttributeMap(nsIContent* aContent)
+nsDOMAttributeMap::nsDOMAttributeMap(Element* aContent)
   : mContent(aContent)
 {
   
