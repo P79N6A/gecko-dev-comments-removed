@@ -43,11 +43,6 @@
 
 
 
-
-#define XPCVARIANT_CID                                                        \
-    {0xdc524540, 0x487e, 0x4501,                                              \
-      { 0x9a, 0xc7, 0xaa, 0xa7, 0x84, 0xb1, 0x7c, 0x1c } }
-
 #define XPCVARIANT_CONTRACTID "@mozilla.org/xpcvariant;1"
 #define XPC_JSCONTEXT_STACK_ITERATOR_CONTRACTID                               \
     "@mozilla.org/js/xpc/ContextStackIterator;1"
