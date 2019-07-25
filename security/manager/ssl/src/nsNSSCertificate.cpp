@@ -59,7 +59,6 @@
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsIURI.h"
-#include "nsIProxyObjectManager.h"
 #include "nsCRT.h"
 #include "nsUsageArrayHelper.h"
 #include "nsICertificateDialogs.h"
@@ -374,6 +373,11 @@ GetKeyUsagesString(CERTCertificate *cert, nsINSSComponent *nssComponent,
 nsresult
 nsNSSCertificate::FormatUIStrings(const nsAutoString &nickname, nsAutoString &nickWithSerial, nsAutoString &details)
 {
+  if (!NS_IsMainThread()) {
+    NS_ERROR("nsNSSCertificate::FormatUIStrings called off the main thread");
+    return NS_ERROR_NOT_SAME_THREAD;
+  }
+  
   nsresult rv = NS_OK;
 
   nsCOMPtr<nsINSSComponent> nssComponent(do_GetService(kNSSComponentCID, &rv));
@@ -382,174 +386,147 @@ nsNSSCertificate::FormatUIStrings(const nsAutoString &nickname, nsAutoString &ni
     return NS_ERROR_FAILURE;
   }
   
-  nsCOMPtr<nsIX509Cert> x509Proxy;
-  NS_GetProxyForObject( NS_PROXY_TO_MAIN_THREAD,
-                        NS_GET_IID(nsIX509Cert),
-                        static_cast<nsIX509Cert*>(this),
-                        NS_PROXY_SYNC | NS_PROXY_ALWAYS,
-                        getter_AddRefs(x509Proxy));
+  nsAutoString info;
+  nsAutoString temp1;
 
-  if (!x509Proxy) {
-    rv = NS_ERROR_OUT_OF_MEMORY;
+  nickWithSerial.Append(nickname);
+
+  if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoIssuedFor", info))) {
+    details.Append(info);
+    details.Append(PRUnichar(' '));
+    if (NS_SUCCEEDED(GetSubjectName(temp1)) && !temp1.IsEmpty()) {
+      details.Append(temp1);
+    }
+    details.Append(PRUnichar('\n'));
   }
-  else {
-    rv = NS_OK;
 
-    nsAutoString info;
-    nsAutoString temp1;
-
-    nickWithSerial.Append(nickname);
-
-    if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoIssuedFor", info))) {
+  if (NS_SUCCEEDED(GetSerialNumber(temp1)) && !temp1.IsEmpty()) {
+    details.AppendLiteral("  ");
+    if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertDumpSerialNo", info))) {
       details.Append(info);
+      details.AppendLiteral(": ");
+    }
+    details.Append(temp1);
+
+    nickWithSerial.AppendLiteral(" [");
+    nickWithSerial.Append(temp1);
+    nickWithSerial.Append(PRUnichar(']'));
+
+    details.Append(PRUnichar('\n'));
+  }
+
+  nsCOMPtr<nsIX509CertValidity> validity;
+  rv = GetValidity(getter_AddRefs(validity));
+  if (NS_SUCCEEDED(rv) && validity) {
+    details.AppendLiteral("  ");
+    if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoValid", info))) {
+      details.Append(info);
+    }
+
+    if (NS_SUCCEEDED(validity->GetNotBeforeLocalTime(temp1)) && !temp1.IsEmpty()) {
       details.Append(PRUnichar(' '));
-      if (NS_SUCCEEDED(x509Proxy->GetSubjectName(temp1)) && !temp1.IsEmpty()) {
-        details.Append(temp1);
+      if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoFrom", info))) {
+        details.Append(info);
+        details.Append(PRUnichar(' '));
       }
-      details.Append(PRUnichar('\n'));
+      details.Append(temp1);
     }
 
-    if (NS_SUCCEEDED(x509Proxy->GetSerialNumber(temp1)) && !temp1.IsEmpty()) {
+    if (NS_SUCCEEDED(validity->GetNotAfterLocalTime(temp1)) && !temp1.IsEmpty()) {
+      details.Append(PRUnichar(' '));
+      if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoTo", info))) {
+        details.Append(info);
+        details.Append(PRUnichar(' '));
+      }
+      details.Append(temp1);
+    }
+
+    details.Append(PRUnichar('\n'));
+  }
+
+  if (NS_SUCCEEDED(GetKeyUsagesString(mCert, nssComponent, temp1)) && !temp1.IsEmpty()) {
+    details.AppendLiteral("  ");
+    if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertDumpKeyUsage", info))) {
+      details.Append(info);
+      details.AppendLiteral(": ");
+    }
+    details.Append(temp1);
+    details.Append(PRUnichar('\n'));
+  }
+
+  nsAutoString firstEmail;
+  const char *aWalkAddr;
+  for (aWalkAddr = CERT_GetFirstEmailAddress(mCert)
+        ;
+        aWalkAddr
+        ;
+        aWalkAddr = CERT_GetNextEmailAddress(mCert, aWalkAddr))
+  {
+    NS_ConvertUTF8toUTF16 email(aWalkAddr);
+    if (email.IsEmpty())
+      continue;
+
+    if (firstEmail.IsEmpty()) {
+      
+
+
+
+
+
+      firstEmail = email;
+
       details.AppendLiteral("  ");
-      if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertDumpSerialNo", info))) {
+      if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoEmail", info))) {
         details.Append(info);
         details.AppendLiteral(": ");
       }
-      details.Append(temp1);
-
-      nickWithSerial.AppendLiteral(" [");
-      nickWithSerial.Append(temp1);
-      nickWithSerial.Append(PRUnichar(']'));
-
-      details.Append(PRUnichar('\n'));
+      details.Append(email);
     }
-
-
-    {
-      nsCOMPtr<nsIX509CertValidity> validity;
-      nsCOMPtr<nsIX509CertValidity> originalValidity;
-      rv = x509Proxy->GetValidity(getter_AddRefs(originalValidity));
-      if (NS_SUCCEEDED(rv) && originalValidity) {
-        NS_GetProxyForObject( NS_PROXY_TO_MAIN_THREAD,
-                              NS_GET_IID(nsIX509CertValidity),
-                              originalValidity,
-                              NS_PROXY_SYNC | NS_PROXY_ALWAYS,
-                              getter_AddRefs(validity));
-      }
-
-      if (validity) {
-        details.AppendLiteral("  ");
-        if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoValid", info))) {
-          details.Append(info);
-        }
-
-        if (NS_SUCCEEDED(validity->GetNotBeforeLocalTime(temp1)) && !temp1.IsEmpty()) {
-          details.Append(PRUnichar(' '));
-          if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoFrom", info))) {
-            details.Append(info);
-            details.Append(PRUnichar(' '));
-          }
-          details.Append(temp1);
-        }
-
-        if (NS_SUCCEEDED(validity->GetNotAfterLocalTime(temp1)) && !temp1.IsEmpty()) {
-          details.Append(PRUnichar(' '));
-          if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoTo", info))) {
-            details.Append(info);
-            details.Append(PRUnichar(' '));
-          }
-          details.Append(temp1);
-        }
-
-        details.Append(PRUnichar('\n'));
-      }
-    }
-
-    if (NS_SUCCEEDED(GetKeyUsagesString(mCert, nssComponent, temp1)) && !temp1.IsEmpty()) {
-      details.AppendLiteral("  ");
-      if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertDumpKeyUsage", info))) {
-        details.Append(info);
-        details.AppendLiteral(": ");
-      }
-      details.Append(temp1);
-      details.Append(PRUnichar('\n'));
-    }
-
-    nsAutoString firstEmail;
-    const char *aWalkAddr;
-    for (aWalkAddr = CERT_GetFirstEmailAddress(mCert)
-         ;
-         aWalkAddr
-         ;
-         aWalkAddr = CERT_GetNextEmailAddress(mCert, aWalkAddr))
-    {
-      NS_ConvertUTF8toUTF16 email(aWalkAddr);
-      if (email.IsEmpty())
-        continue;
-
-      if (firstEmail.IsEmpty()) {
-        
-
-
-
-
-
-        firstEmail = email;
-
-        details.AppendLiteral("  ");
-        if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoEmail", info))) {
-          details.Append(info);
-          details.AppendLiteral(": ");
-        }
+    else {
+      
+      if (!firstEmail.Equals(email)) {
+        details.AppendLiteral(", ");
         details.Append(email);
       }
-      else {
-        
-        if (!firstEmail.Equals(email)) {
-          details.AppendLiteral(", ");
-          details.Append(email);
-        }
-      }
     }
-
-    if (!firstEmail.IsEmpty()) {
-      
-      details.Append(PRUnichar('\n'));
-    }
-
-    if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoIssuedBy", info))) {
-      details.Append(info);
-      details.Append(PRUnichar(' '));
-
-      if (NS_SUCCEEDED(x509Proxy->GetIssuerName(temp1)) && !temp1.IsEmpty()) {
-        details.Append(temp1);
-      }
-
-      details.Append(PRUnichar('\n'));
-    }
-
-    if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoStoredIn", info))) {
-      details.Append(info);
-      details.Append(PRUnichar(' '));
-
-      if (NS_SUCCEEDED(x509Proxy->GetTokenName(temp1)) && !temp1.IsEmpty()) {
-        details.Append(temp1);
-      }
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
   }
+
+  if (!firstEmail.IsEmpty()) {
+    
+    details.Append(PRUnichar('\n'));
+  }
+
+  if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoIssuedBy", info))) {
+    details.Append(info);
+    details.Append(PRUnichar(' '));
+
+    if (NS_SUCCEEDED(GetIssuerName(temp1)) && !temp1.IsEmpty()) {
+      details.Append(temp1);
+    }
+
+    details.Append(PRUnichar('\n'));
+  }
+
+  if (NS_SUCCEEDED(nssComponent->GetPIPNSSBundleString("CertInfoStoredIn", info))) {
+    details.Append(info);
+    details.Append(PRUnichar(' '));
+
+    if (NS_SUCCEEDED(GetTokenName(temp1)) && !temp1.IsEmpty()) {
+      details.Append(temp1);
+    }
+  }
+
+  
+
+
+
+
+
+
+
+
+
+
   
   return rv;
 }
