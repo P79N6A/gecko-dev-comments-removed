@@ -185,7 +185,12 @@ abstract class Axis {
 
     float getEdgeResistance() {
         float excess = getExcess();
-        return (excess > 0.0f) ? SNAP_LIMIT - excess / getViewportLength() : 1.0f;
+        if (excess > 0.0f) {
+            
+            
+            return Math.max(0.0f, SNAP_LIMIT - excess / getViewportLength());
+        }
+        return 1.0f;
     }
 
     
