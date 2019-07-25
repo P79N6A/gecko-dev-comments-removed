@@ -38,7 +38,7 @@
 
 
 #include "mozilla/ipc/AsyncChannel.h"
-#include "mozilla/ipc/GeckoThread.h"
+#include "mozilla/ipc/BrowserProcessSubThread.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 
 #include "nsDebug.h"

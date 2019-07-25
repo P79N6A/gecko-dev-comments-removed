@@ -42,10 +42,10 @@
 
 #include "base/basictypes.h"
 
-#include "chrome/common/child_thread.h"
+#include "mozilla/ipc/MozillaChildThread.h"
 #include "base/file_path.h"
+#include "base/process.h"
 
-#include "mozilla/ipc/GeckoThread.h"
 #include "mozilla/plugins/PluginModuleChild.h"
 
 namespace mozilla {
@@ -54,20 +54,22 @@ namespace plugins {
 
 
 
-class PluginThreadChild : public mozilla::ipc::GeckoThread {
+class PluginThreadChild : public mozilla::ipc::MozillaChildThread {
 public:
     PluginThreadChild(ProcessHandle aParentHandle);
     ~PluginThreadChild();
 
+    static PluginThreadChild* current() {
+        return gInstance;
+    }
+
 private:
+    static PluginThreadChild* gInstance;
+
     
     virtual void Init();
     virtual void CleanUp();
 
-    
-    
-    
-    
     PluginModuleChild mPlugin;
     IPC::Channel* mChannel;
 

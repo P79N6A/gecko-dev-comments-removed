@@ -38,7 +38,6 @@
 
 
 #include "mozilla/ipc/RPCChannel.h"
-#include "mozilla/ipc/GeckoThread.h"
 #include "mozilla/ipc/ProtocolUtils.h"
 
 #include "nsDebug.h"

@@ -37,6 +37,7 @@
 
 
 #include "nsTraceRefcntImpl.h"
+#include "nsXPCOMPrivate.h"
 #include "nscore.h"
 #include "nsISupports.h"
 #include "nsTArray.h"
@@ -64,6 +65,8 @@
 #ifdef NS_TRACE_MALLOC
 #include "nsTraceMalloc.h"
 #endif
+
+#include "mozilla/BlockingResourceBase.h"
 
 #ifdef HAVE_LIBDL
 #include <dlfcn.h>
@@ -922,10 +925,33 @@ NS_LogInit()
 EXPORT_XPCOM_API(void)
 NS_LogTerm()
 {
+  mozilla::LogTerm();
+}
+
+namespace mozilla {
+void
+LogTerm()
+{
   NS_ASSERTION(gInitCount > 0,
                "NS_LogTerm without matching NS_LogInit");
 
   if (--gInitCount == 0) {
+#ifdef DEBUG
+    
+
+
+
+
+
+
+
+
+
+
+
+    BlockingResourceBase::Shutdown();
+#endif
+    
     if (gInitialized) {
       nsTraceRefcntImpl::DumpStatistics();
       nsTraceRefcntImpl::ResetStatistics();
@@ -937,6 +963,8 @@ NS_LogTerm()
 #endif
   }
 }
+
+} 
 
 EXPORT_XPCOM_API(void)
 NS_LogAddRef(void* aPtr, nsrefcnt aRefcnt,

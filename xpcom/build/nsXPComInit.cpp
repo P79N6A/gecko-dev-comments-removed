@@ -142,8 +142,6 @@ NS_DECL_CLASSINFO(nsStringInputStream)
 #include "nsMemoryReporterManager.h"
 
 #include <locale.h>
-#include "mozilla/Services.h"
-#include "mozilla/FunctionTimer.h"
 
 #ifdef MOZ_IPC
 #include "base/at_exit.h"
@@ -164,6 +162,8 @@ static BrowserProcessSubThread* sIOThread;
 
 } 
 #endif
+
+using mozilla::TimeStamp;
 
 
 
@@ -281,7 +281,7 @@ nsXPTIInterfaceInfoManagerGetSingleton(nsISupports* outer,
     NS_ENSURE_TRUE(!outer, NS_ERROR_NO_AGGREGATION);
 
     nsCOMPtr<nsIInterfaceInfoManager> iim
-        (xptiInterfaceInfoManager::GetSingleton());
+        (xptiInterfaceInfoManager::GetInterfaceInfoManagerNoAddRef());
     if (!iim)
         return NS_ERROR_FAILURE;
 
@@ -476,8 +476,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
                               nsStaticModuleInfo const *staticComponents,
                               PRUint32 componentCount)
 {
-    NS_TIME_FUNCTION;
-
     nsresult rv = NS_OK;
 
 #ifdef MOZ_ENABLE_LIBXUL
@@ -490,13 +488,7 @@ NS_InitXPCOM3(nsIServiceManager* *result,
      
     gXPCOMShuttingDown = PR_FALSE;
 
-    NS_TIME_FUNCTION_MARK("Next: log init");
-
-    NS_LogInit();
-
 #ifdef MOZ_IPC
-    NS_TIME_FUNCTION_MARK("Next: IPC init");
-
     
     NS_ASSERTION(!sExitManager && !sMessageLoop, "Bad logic!");
 
@@ -524,21 +516,21 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     }
 #endif
 
-    NS_TIME_FUNCTION_MARK("Next: thread manager init");
+    NS_LogInit();
+
+    
+    rv = TimeStamp::Startup();
+    NS_ENSURE_SUCCESS(rv, rv);
 
     
     rv = nsThreadManager::get()->Init();
     if (NS_FAILED(rv)) return rv;
 
-    NS_TIME_FUNCTION_MARK("Next: timer startup");
-
     
     rv = nsTimerImpl::Startup();
     NS_ENSURE_SUCCESS(rv, rv);
 
-#if !defined(WINCE) && !defined(ANDROID)
-    NS_TIME_FUNCTION_MARK("Next: setlocale");
-
+#ifndef WINCE
     
     
     if (strcmp(setlocale(LC_ALL, NULL), "C") == 0)
@@ -546,12 +538,8 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 #endif
 
 #if defined(XP_UNIX) || defined(XP_OS2)
-    NS_TIME_FUNCTION_MARK("Next: startup native charset utils");
-
     NS_StartupNativeCharsetUtils();
 #endif
-    NS_TIME_FUNCTION_MARK("Next: startup local file");
-
     NS_StartupLocalFile();
 
     StartupSpecialSystemDirectory();
@@ -590,8 +578,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 
 #ifdef MOZ_IPC
     if ((sCommandLineWasInitialized = !CommandLine::IsInitialized())) {
-        NS_TIME_FUNCTION_MARK("Next: IPC command line init");
-
 #ifdef OS_WIN
         CommandLine::Init(0, nsnull);
 #else
@@ -615,8 +601,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 #endif
 
     NS_ASSERTION(nsComponentManagerImpl::gComponentManager == NULL, "CompMgr not null at init");
-
-    NS_TIME_FUNCTION_MARK("Next: component manager init");
 
     
     nsComponentManagerImpl *compMgr = new nsComponentManagerImpl();
@@ -648,8 +632,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
     rv = compMgr->RegisterService(kComponentManagerCID, static_cast<nsIComponentManager*>(compMgr));
     if (NS_FAILED(rv)) return rv;
 
-    NS_TIME_FUNCTION_MARK("Next: cycle collector startup");
-
     rv = nsCycleCollector_startup();
     if (NS_FAILED(rv)) return rv;
 
@@ -658,8 +640,6 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 
     
     {
-      NS_TIME_FUNCTION_MARK("Next: category manager factory init");
-
       nsCOMPtr<nsIFactory> categoryManagerFactory;
       if ( NS_FAILED(rv = NS_CategoryManagerGetFactory(getter_AddRefs(categoryManagerFactory))) )
         return rv;
@@ -694,30 +674,23 @@ NS_InitXPCOM3(nsIServiceManager* *result,
                           nsSimpleUnicharStreamFactory::GetInstance());
     }
 
-    NS_TIME_FUNCTION_MARK("Next: interface info manager init");
-
     
-    
-    (void) xptiInterfaceInfoManager::GetSingleton();
-
-    NS_TIME_FUNCTION_MARK("Next: try to load compreg.dat");
+    nsIInterfaceInfoManager* iim =
+        xptiInterfaceInfoManager::GetInterfaceInfoManagerNoAddRef();
 
     
     rv = nsComponentManagerImpl::gComponentManager->ReadPersistentRegistry();
     if (NS_FAILED(rv)) {
-        NS_TIME_FUNCTION_MARK("Next: try to register all components (compreg.dat not found)");
-
+        
+        
+        (void) iim->AutoRegisterInterfaces();
         nsComponentManagerImpl::gComponentManager->AutoRegister(nsnull);
     }
-
-    NS_TIME_FUNCTION_MARK("Next: register category providers");
 
     
     
     
     nsDirectoryService::gService->RegisterCategoryProviders();
-
-    NS_TIME_FUNCTION_MARK("Next: create services from category");
 
     
     NS_CreateServicesFromCategory(NS_XPCOM_STARTUP_CATEGORY, 
@@ -829,7 +802,7 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
     
     
     
-    mozilla::services::Shutdown();
+    gXPCOMShuttingDown = PR_TRUE;
 
 #ifdef DEBUG_dougt
     fprintf(stderr, "* * * * XPCOM shutdown. Access will be denied * * * * \n");
@@ -911,6 +884,10 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
 
     NS_IF_RELEASE(gDebug);
 
+    TimeStamp::Shutdown();
+
+    NS_LogTerm();
+
 #ifdef MOZ_IPC
     if (sIOThread) {
         delete sIOThread;
@@ -929,8 +906,6 @@ ShutdownXPCOM(nsIServiceManager* servMgr)
         sExitManager = nsnull;
     }
 #endif
-
-    NS_LogTerm();
 
     return NS_OK;
 }

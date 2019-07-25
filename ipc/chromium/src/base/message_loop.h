@@ -248,7 +248,6 @@ public:
   
   
   void SetNestableTasksAllowed(bool allowed);
-  void ScheduleWork();
   bool NestableTasksAllowed() const;
 
   
@@ -434,20 +433,14 @@ class MessageLoopForUI : public MessageLoop {
   MessageLoopForUI(Type type=TYPE_UI) : MessageLoop(type) {
   }
 
+#ifndef CHROMIUM_MOZILLA_BUILD
   
   static MessageLoopForUI* current() {
     MessageLoop* loop = MessageLoop::current();
-    if (!loop)
-      return NULL;
-#ifdef CHROMIUM_MOZILLA_BUILD
-    Type type = loop->type();
-    DCHECK(type == MessageLoop::TYPE_UI ||
-           type == MessageLoop::TYPE_MOZILLA_UI);
-#else
     DCHECK_EQ(MessageLoop::TYPE_UI, loop->type());
-#endif
     return static_cast<MessageLoopForUI*>(loop);
   }
+#endif
 
 #if defined(OS_WIN)
   typedef base::MessagePumpWin::Dispatcher Dispatcher;
