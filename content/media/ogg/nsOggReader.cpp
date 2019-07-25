@@ -284,14 +284,10 @@ nsresult nsOggReader::ReadMetadata()
   
   
   
-  if (mTheoraState) {
-    if (mTheoraState->Init()) {
-      gfxIntSize sz(mTheoraState->mInfo.pic_width,
-                    mTheoraState->mInfo.pic_height);
-      mDecoder->SetVideoData(sz, mTheoraState->mPixelAspectRatio, nsnull);
-    } else {
-      mTheoraState = nsnull;
-    }
+  if (mTheoraState && mTheoraState->Init()) {
+    gfxIntSize sz(mTheoraState->mInfo.pic_width,
+                  mTheoraState->mInfo.pic_height);
+    mDecoder->SetVideoData(sz, mTheoraState->mPixelAspectRatio, nsnull);
   }
   if (mVorbisState) {
     mVorbisState->Init();
@@ -910,7 +906,7 @@ PRInt64 nsOggReader::FindEndTime(PRInt64 aEndOffset,
       
       
       if (mustBackOff || readHead == aEndOffset) {
-        if (endTime != -1) {
+        if (endTime != -1 || readStartOffset == 0) {
           
           break;
         }
@@ -1542,6 +1538,16 @@ nsresult nsOggReader::SeekBisection(PRInt64 aTarget,
 nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+
+  
+  
+  
+  
+  if (!mInfo.mHasVideo && !mInfo.mHasAudio) {
+    
+    return NS_OK;
+  }
+
   nsMediaStream* stream = mDecoder->GetCurrentStream();
 
   
@@ -1603,6 +1609,16 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
       if (codecState && codecState->mActive) {
         startTime = codecState->Time(granulepos) - aStartTime;
         NS_ASSERTION(startTime > 0, "Must have positive start time");
+      }
+      else if(codecState) {
+        
+        startOffset += page.header_len + page.body_len;
+        continue;
+      }
+      else {
+        
+        
+        return PAGE_SYNC_ERROR;
       }
     }
 
