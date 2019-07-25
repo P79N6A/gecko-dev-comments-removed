@@ -46,6 +46,10 @@ const GLOBAL_SCOPE = this;
 
 
 function SmsDatabaseService() {
+  
+  
+  Services.dirsvc.get("ProfD", Ci.nsIFile);
+
   gIDBManager.initWindowless(GLOBAL_SCOPE);
 
   let that = this;
