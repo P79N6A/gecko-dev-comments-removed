@@ -70,16 +70,20 @@ class TPSTestThread(Thread):
     TPS.run_tests()
 
     
-    TPS = TPSTestRunner(self.extensionDir,
-                        emailresults=self.emailresults,
-                        testfile=self.testfile,
-                        logfile=self.logfile,
-                        binary=self.builddata['buildurl'],
-                        config=self.config,
-                        rlock=self.rlock,
-                        mobile=True,
-                        autolog=self.autolog)
-    TPS.run_tests()
+    
+    binary = TPS.firefoxRunner.binary
+
+    
+    TPS_mobile = TPSTestRunner(self.extensionDir,
+                               emailresults=self.emailresults,
+                               testfile=self.testfile,
+                               logfile=self.logfile,
+                               binary=binary,
+                               config=self.config,
+                               rlock=self.rlock,
+                               mobile=True,
+                               autolog=self.autolog)
+    TPS_mobile.run_tests()
 
     
     stageaccount = self.config.get('stageaccount')
@@ -90,13 +94,13 @@ class TPSTestThread(Thread):
       if username and password and passphrase:
         stageconfig = self.config.copy()
         stageconfig['account'] = stageaccount.copy()
-        TPS = TPSTestRunner(self.extensionDir,
-                            emailresults=self.emailresults,
-                            testfile=self.testfile,
-                            logfile=self.logfile,
-                            binary=self.builddata['buildurl'],
-                            config=stageconfig,
-                            rlock=self.rlock,
-                            mobile=False,
-                            autolog=self.autolog)
-        TPS.run_tests()
+        TPS_stage = TPSTestRunner(self.extensionDir,
+                                  emailresults=self.emailresults,
+                                  testfile=self.testfile,
+                                  logfile=self.logfile,
+                                  binary=binary,
+                                  config=stageconfig,
+                                  rlock=self.rlock,
+                                  mobile=False,
+                                  autolog=self.autolog)
+        TPS_stage.run_tests()
