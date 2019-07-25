@@ -157,11 +157,14 @@ protected:
 
 
 class nsCSSFontFaceRule;
-class nsCSSFontFaceStyleDecl : public nsIDOMCSSStyleDeclaration
+class nsCSSFontFaceStyleDecl : public nsICSSDeclaration
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIDOMCSSSTYLEDECLARATION
+  NS_DECL_NSICSSDECLARATION
+
+  virtual nsINode *GetParentObject();
 
   nsresult GetPropertyValue(nsCSSFontDesc aFontDescID,
                             nsAString & aResult) const;
