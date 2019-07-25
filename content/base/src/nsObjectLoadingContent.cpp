@@ -1812,7 +1812,8 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
   
   NotifyStateChanged(oldType, oldState, false, aNotify);
 
-  if (mType == eType_Null && mFallbackType != eFallbackAlternate) {
+  if (mType == eType_Null && !mContentType.IsEmpty() &&
+      mFallbackType != eFallbackAlternate) {
     
     
     
