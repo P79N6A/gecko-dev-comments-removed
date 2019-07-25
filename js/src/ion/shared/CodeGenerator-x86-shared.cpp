@@ -62,7 +62,7 @@ class DeferredJumpTable : public DeferredData
         void **jumpData = (void **)buffer;
 
         
-        for (uint j = 0; j < lswitch->mir()->numCases(); j++) { 
+        for (size_t j = 0; j < lswitch->mir()->numCases(); j++) { 
             LBlock *caseblock = lswitch->mir()->getCase(j)->lir();
             Label *caseheader = caseblock->label();
 
