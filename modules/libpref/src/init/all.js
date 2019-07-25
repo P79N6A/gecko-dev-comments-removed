@@ -3290,6 +3290,8 @@ pref("layers.acceleration.disabled", false);
 
 pref("layers.acceleration.force-enabled", false);
 
+pref("layers.acceleration.draw-fps", false);
+
 #ifdef XP_WIN
 
 #ifdef MOZ_E10S_COMPAT
