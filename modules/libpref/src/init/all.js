@@ -93,13 +93,6 @@ pref("offline-apps.quota.max",        204800);
 pref("offline-apps.quota.warn",        51200);
 
 
-
-
-
-
-pref("browser.cache.compression_level", 0);
-
-
 pref("dom.indexedDB.enabled", true);
 
 pref("dom.indexedDB.warningQuota", 50);
@@ -171,6 +164,10 @@ pref("browser.chrome.image_icons.max_size", 1024);
 pref("browser.triple_click_selects_paragraph", true);
 
 
+
+pref("media.enforce_same_site_origin", false);
+
+
 pref("media.cache_size", 512000);
 
 
@@ -204,13 +201,6 @@ pref("gfx.downloadable_fonts.fallback_delay", 3000);
 pref("gfx.downloadable_fonts.sanitize", true);
 
 
-pref("gfx.font_rendering.fallback.always_use_cmaps", false);
-
-#ifdef MOZ_GRAPHITE
-pref("gfx.font_rendering.graphite.enabled", false);
-#endif
-
-
 #ifdef XP_MACOSX
 
 pref("gfx.font_rendering.harfbuzz.scripts", 71);
@@ -219,7 +209,7 @@ pref("gfx.font_rendering.harfbuzz.scripts", 71);
 pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
 
-pref("gfx.font_rendering.harfbuzz.scripts", 7);
+pref("gfx.font_rendering.harfbuzz.scripts", 3);
 #endif
 #endif
 
@@ -230,10 +220,6 @@ pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
 
 #ifdef XP_WIN
 pref("gfx.canvas.azure.enabled", true);
-#else
-#ifdef XP_MACOSX
-pref("gfx.canvas.azure.enabled", true);
-#endif
 #endif
 
 pref("accessibility.browsewithcaret", false);
@@ -263,8 +249,6 @@ pref("ui.scrollToClick", 0);
 pref("accessibility.tabfocus_applies_to_xul", true);
 #endif
 
-pref("focusmanager.testmode", false);
-
 pref("accessibility.usetexttospeech", "");
 pref("accessibility.usebrailledisplay", "");
 pref("accessibility.accesskeycausesactivation", true);
@@ -290,9 +274,6 @@ pref("accessibility.typeaheadfind.prefillwithselection", true);
 pref("gfx.use_text_smoothing_setting", false);
 
 
-pref("gfx.show_checkerboard_pattern", true);
-
-
 pref("browser.frames.enabled", true);
 
 
@@ -300,8 +281,6 @@ pref("toolkit.autocomplete.richBoundaryCutoff", 200);
 
 pref("toolkit.scrollbox.smoothScroll", true);
 pref("toolkit.scrollbox.scrollIncrement", 20);
-
-pref("toolkit.scrollbox.verticalScrollDistance", 3);
 pref("toolkit.scrollbox.clickToScroll.scrollDelay", 150);
 
 
@@ -311,9 +290,6 @@ pref("toolkit.telemetry.server", "https://data.mozilla.com");
 pref("toolkit.telemetry.server_owner", "Mozilla");
 
 pref("toolkit.telemetry.infoURL", "http://www.mozilla.com/legal/privacy/firefox.html#telemetry");
-
-
-pref("devtools.debugger.log", false);
 
 
 pref("view_source.syntax_highlight", true);
@@ -329,9 +305,6 @@ pref("nglayout.events.dispatchLeftClickOnly", true);
 
 
 pref("nglayout.enable_drag_images", true);
-
-
-pref("nglayout.debug.paint_flashing", false);
 
 
 
@@ -413,6 +386,7 @@ pref("extensions.spellcheck.inline.max-misspellings", 500);
 
 pref("editor.use_custom_colors", false);
 pref("editor.singleLine.pasteNewlines",      2);
+pref("editor.quotesPreformatted",            false);
 pref("editor.use_css",                       true);
 pref("editor.css.default_length_unit",       "px");
 pref("editor.resizing.preserve_ratio",       true);
@@ -432,17 +406,21 @@ pref("capability.policy.default.DOMException.result", "allAccess");
 pref("capability.policy.default.DOMException.toString.get", "allAccess");
 
 pref("capability.policy.default.History.back.get", "allAccess");
-pref("capability.policy.default.History.current", "UniversalXPConnect");
+pref("capability.policy.default.History.current", "UniversalBrowserRead");
 pref("capability.policy.default.History.forward.get", "allAccess");
 pref("capability.policy.default.History.go.get", "allAccess");
-pref("capability.policy.default.History.item", "UniversalXPConnect");
-pref("capability.policy.default.History.next", "UniversalXPConnect");
-pref("capability.policy.default.History.previous", "UniversalXPConnect");
-pref("capability.policy.default.History.toString", "UniversalXPConnect");
+pref("capability.policy.default.History.item", "UniversalBrowserRead");
+pref("capability.policy.default.History.next", "UniversalBrowserRead");
+pref("capability.policy.default.History.previous", "UniversalBrowserRead");
+pref("capability.policy.default.History.toString", "UniversalBrowserRead");
 
 pref("capability.policy.default.Location.hash.set", "allAccess");
 pref("capability.policy.default.Location.href.set", "allAccess");
 pref("capability.policy.default.Location.replace.get", "allAccess");
+
+pref("capability.policy.default.Navigator.preference", "allAccess");
+pref("capability.policy.default.Navigator.preferenceinternal.get", "UniversalPreferencesRead");
+pref("capability.policy.default.Navigator.preferenceinternal.set", "UniversalPreferencesWrite");
 
 pref("capability.policy.default.Window.blur.get", "allAccess");
 pref("capability.policy.default.Window.close.get", "allAccess");
@@ -641,7 +619,6 @@ pref("privacy.popups.disable_from_plugins", 2);
 pref("privacy.donottrackheader.enabled",    false);
 
 pref("dom.event.contextmenu.enabled",       true);
-pref("dom.event.clipboardevents.enabled",   true);
 
 pref("javascript.enabled",                  true);
 pref("javascript.options.strict",           false);
@@ -663,8 +640,6 @@ pref("javascript.options.typeinference", true);
 pref("javascript.options.mem.high_water_mark", 128);
 pref("javascript.options.mem.max", -1);
 pref("javascript.options.mem.gc_per_compartment", true);
-pref("javascript.options.mem.gc_incremental", false);
-pref("javascript.options.mem.gc_incremental_slice_ms", 10);
 pref("javascript.options.mem.log", false);
 pref("javascript.options.gc_on_memory_pressure", true);
 
@@ -682,11 +657,6 @@ pref("security.fileuri.strict_origin_policy", true);
 
 
 
-
-
-
-
-pref("network.allow-experiments", true);
 
 
 pref("network.protocol-handler.external-default", true);      
@@ -822,15 +792,6 @@ pref("network.http.connection-retry-timeout", 250);
 pref("network.http.fast-fallback-to-IPv4", true);
 
 
-pref("network.http.spdy.enabled", true);
-pref("network.http.spdy.chunk-size", 4096);
-pref("network.http.spdy.timeout", 180);
-pref("network.http.spdy.coalesce-hostnames", true);
-pref("network.http.spdy.use-alternate-protocol", true);
-pref("network.http.spdy.ping-threshold", 44);
-pref("network.http.spdy.ping-timeout", 8);
-
-
 
 
 
@@ -843,7 +804,7 @@ pref("network.ftp.control.qos", 0);
 pref("network.websocket.enabled", true);
 
 
-pref("network.websocket.max-message-size", 2147483647);
+pref("network.websocket.max-message-size", 16000000);
 
 
 pref("network.websocket.auto-follow-http-redirects", false);
@@ -918,7 +879,6 @@ pref("network.IDN.whitelist.cl", true);
 pref("network.IDN.whitelist.cn", true);
 pref("network.IDN.whitelist.de", true);
 pref("network.IDN.whitelist.dk", true);
-pref("network.IDN.whitelist.ee", true);
 pref("network.IDN.whitelist.es", true);
 pref("network.IDN.whitelist.fi", true);
 pref("network.IDN.whitelist.gr", true);
@@ -940,7 +900,6 @@ pref("network.IDN.whitelist.pl", true);
 pref("network.IDN.whitelist.pr", true);
 pref("network.IDN.whitelist.se", true);
 pref("network.IDN.whitelist.sh", true);
-pref("network.IDN.whitelist.si", true);
 pref("network.IDN.whitelist.th", true);
 pref("network.IDN.whitelist.tm", true);
 pref("network.IDN.whitelist.tw", true);
@@ -968,8 +927,6 @@ pref("network.IDN.whitelist.xn--xkc2al3hye2a", true);
 
 pref("network.IDN.whitelist.xn--wgbl6a", true);
 
-pref("network.IDN.whitelist.xn--90a3ac", true);
-
 pref("network.IDN.whitelist.xn--p1ai", true);
 
 pref("network.IDN.whitelist.xn--mgberp4a5d4ar", true); 
@@ -978,8 +935,6 @@ pref("network.IDN.whitelist.xn--mgbqly7c0a67fbc", true);
 pref("network.IDN.whitelist.xn--mgbqly7cvafr", true);
 
 pref("network.IDN.whitelist.xn--ogbpf8fl", true);
-
-pref("network.IDN.whitelist.xn--o3cw4h", true);
 
 pref("network.IDN.whitelist.xn--kpry57d", true);  
 pref("network.IDN.whitelist.xn--kprw13d", true);  
@@ -1059,9 +1014,6 @@ pref("network.negotiate-auth.trusted-uris", "");
 pref("network.negotiate-auth.delegation-uris", "");
 
 
-pref("network.negotiate-auth.allow-non-fqdn", false);
-
-
 pref("network.negotiate-auth.allow-proxies", true);
 
 
@@ -1091,7 +1043,6 @@ pref("network.auth.force-generic-ntlm", false);
 
 
 pref("network.automatic-ntlm-auth.allow-proxies", true);
-pref("network.automatic-ntlm-auth.allow-non-fqdn", false);
 pref("network.automatic-ntlm-auth.trusted-uris", "");
 
 
@@ -1143,7 +1094,7 @@ pref("intl.charsetmenu.browser.static",     "chrome://global/locale/intl.propert
 pref("intl.charsetmenu.browser.more1",      "ISO-8859-1, ISO-8859-15, IBM850, x-mac-roman, windows-1252, ISO-8859-14, ISO-8859-7, x-mac-greek, windows-1253, x-mac-icelandic, ISO-8859-10, ISO-8859-3");
 pref("intl.charsetmenu.browser.more2",      "ISO-8859-4, ISO-8859-13, windows-1257, IBM852, ISO-8859-2, x-mac-ce, windows-1250, x-mac-croatian, IBM855, ISO-8859-5, ISO-IR-111, KOI8-R, x-mac-cyrillic, windows-1251, IBM866, KOI8-U, x-mac-ukrainian, ISO-8859-16, x-mac-romanian");
 pref("intl.charsetmenu.browser.more3",      "GB2312, gbk, gb18030, HZ-GB-2312, ISO-2022-CN, Big5, Big5-HKSCS, x-euc-tw, EUC-JP, ISO-2022-JP, Shift_JIS, EUC-KR, x-windows-949, x-johab, ISO-2022-KR");
-pref("intl.charsetmenu.browser.more4",      "armscii-8, TIS-620, ISO-8859-11, windows-874, IBM857, ISO-8859-9, x-mac-turkish, windows-1254, x-viet-tcvn5712, VISCII, x-viet-vps, windows-1258, x-mac-devanagari, x-mac-gujarati, x-mac-gurmukhi");
+pref("intl.charsetmenu.browser.more4",      "armscii-8, GEOSTD8, TIS-620, ISO-8859-11, windows-874, IBM857, ISO-8859-9, x-mac-turkish, windows-1254, x-viet-tcvn5712, VISCII, x-viet-vps, windows-1258, x-mac-devanagari, x-mac-gujarati, x-mac-gurmukhi");
 pref("intl.charsetmenu.browser.more5",      "ISO-8859-6, windows-1256, IBM864, ISO-8859-8-I, windows-1255, ISO-8859-8, IBM862");
 pref("intl.charsetmenu.browser.unicode",    "UTF-8, UTF-16LE, UTF-16BE");
 pref("intl.charsetmenu.mailedit",           "chrome://global/locale/intl.properties");
@@ -1205,7 +1156,6 @@ pref("intl.hyphenation-alias.uk-*", "uk");
 
 pref("intl.hyphenation-alias.de", "de-1996");
 pref("intl.hyphenation-alias.de-*", "de-1996");
-pref("intl.hyphenation-alias.de-AT-1901", "de-1901");
 pref("intl.hyphenation-alias.de-DE-1901", "de-1901");
 pref("intl.hyphenation-alias.de-CH-*", "de-CH");
 
@@ -1225,7 +1175,7 @@ pref("intl.hyphenation-alias.no-*", "nb");
 pref("intl.hyphenation-alias.nb-*", "nb");
 pref("intl.hyphenation-alias.nn-*", "nn");
 
-pref("font.mathfont-family", "MathJax_Main, STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Standard Symbols L, DejaVu Sans, Cambria Math");
+pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Standard Symbols L, DejaVu Sans, Cambria Math");
 
 
 
@@ -1329,36 +1279,6 @@ pref("mousewheel.horizscroll.withaltkey.sysnumlines",false);
 pref("mousewheel.horizscroll.withmetakey.action",0);
 pref("mousewheel.horizscroll.withmetakey.numlines",1);
 pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
-
-
-
-
-
-
-
-
-
-pref("general.smoothScroll.pixels.durationMinMS", 200);
-pref("general.smoothScroll.pixels.durationMaxMS", 800);
-pref("general.smoothScroll.lines.durationMinMS", 150);
-pref("general.smoothScroll.lines.durationMaxMS", 150);
-pref("general.smoothScroll.pages.durationMinMS", 150);
-pref("general.smoothScroll.pages.durationMaxMS", 150);
-pref("general.smoothScroll.scrollbars.durationMinMS", 150);
-pref("general.smoothScroll.scrollbars.durationMaxMS", 150);
-pref("general.smoothScroll.other.durationMinMS", 150);
-pref("general.smoothScroll.other.durationMaxMS", 150);
-pref("general.smoothScroll.pixels", true);
-pref("general.smoothScroll.lines", true);
-pref("general.smoothScroll.pages", true);
-pref("general.smoothScroll.scrollbars", true);
-pref("general.smoothScroll.other", true);
-
-
-
-
-
-pref("general.smoothScroll.durationToIntervalRatio", 200);
 
 pref("profile.confirm_automigration",true);
 
@@ -1514,6 +1434,12 @@ pref("browser.popups.showPopupBlocker", true);
 pref("viewmanager.do_doublebuffering", true);
 
 
+pref("config.use_system_prefs", false);
+
+
+pref("config.use_system_prefs.accessibility", false);
+
+
 pref("gestures.enable_single_finger_input", true);
 
 
@@ -1544,20 +1470,17 @@ pref("dom.max_script_run_time", 10);
 
 pref("hangmonitor.timeout", 0);
 
-
-pref("plugins.click_to_play", false);
-
 #ifndef DEBUG
 
 
-pref("dom.ipc.plugins.timeoutSecs", 45);
+pref("dom.ipc.plugins.timeoutSecs", 25);
 
 
 
-pref("dom.ipc.plugins.parentTimeoutSecs", 0);
+pref("dom.ipc.plugins.parentTimeoutSecs", 15);
 
 
-pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 25);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
@@ -1663,9 +1586,9 @@ pref("font.name-list.cursive.he", "Guttman Yad, Ktav, Arial");
 pref("font.name.serif.ja", "MS PMincho");
 pref("font.name.sans-serif.ja", "MS PGothic");
 pref("font.name.monospace.ja", "MS Gothic");
-pref("font.name-list.serif.ja", "MS PMincho, MS Mincho, MS PGothic, MS Gothic,Meiryo");
-pref("font.name-list.sans-serif.ja", "MS PGothic, MS Gothic, MS PMincho, MS Mincho,Meiryo");
-pref("font.name-list.monospace.ja", "MS Gothic, MS Mincho, MS PGothic, MS PMincho,Meiryo");
+pref("font.name-list.serif.ja", "MS PMincho, MS Mincho, MS PGothic, MS Gothic");
+pref("font.name-list.sans-serif.ja", "MS PGothic, MS Gothic, MS PMincho, MS Mincho");
+pref("font.name-list.monospace.ja", "MS Gothic, MS Mincho, MS PGothic, MS PMincho");
 
 pref("font.name.serif.ko", "Batang");
 pref("font.name.sans-serif.ko", "Gulim");
@@ -1715,27 +1638,27 @@ pref("font.name.cursive.x-western", "Comic Sans MS");
 pref("font.name.serif.zh-CN", "SimSun");
 pref("font.name.sans-serif.zh-CN", "SimSun");
 pref("font.name.monospace.zh-CN", "SimSun");
-pref("font.name-list.serif.zh-CN", "MS Song, SimSun, SimSun-ExtB");
-pref("font.name-list.sans-serif.zh-CN", "MS Song, SimSun, SimSun-ExtB");
-pref("font.name-list.monospace.zh-CN", "MS Song, SimSun, SimSun-ExtB");
+pref("font.name-list.serif.zh-CN", "MS Song, SimSun");
+pref("font.name-list.sans-serif.zh-CN", "MS Song, SimSun");
+pref("font.name-list.monospace.zh-CN", "MS Song, SimSun");
 
 
 
 pref("font.name.serif.zh-TW", "Times New Roman"); 
 pref("font.name.sans-serif.zh-TW", "Arial");
 pref("font.name.monospace.zh-TW", "MingLiU");
-pref("font.name-list.serif.zh-TW", "PMingLiu, MingLiU, MingLiU-ExtB");
-pref("font.name-list.sans-serif.zh-TW", "PMingLiU, MingLiU, MingLiU-ExtB");
-pref("font.name-list.monospace.zh-TW", "MingLiU, MingLiU-ExtB");
+pref("font.name-list.serif.zh-TW", "PMingLiu, MingLiU"); 
+pref("font.name-list.sans-serif.zh-TW", "PMingLiU, MingLiU");
+pref("font.name-list.monospace.zh-TW", "MingLiU");
 
 
 
 pref("font.name.serif.zh-HK", "Times New Roman");
 pref("font.name.sans-serif.zh-HK", "Arial");
 pref("font.name.monospace.zh-HK", "MingLiu_HKSCS");
-pref("font.name-list.serif.zh-HK", "MingLiu_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB");
-pref("font.name-list.sans-serif.zh-HK", "MingLiU_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB");
-pref("font.name-list.monospace.zh-HK", "MingLiU_HKSCS, Ming(for ISO10646), MingLiU, MingLiU_HKSCS-ExtB");
+pref("font.name-list.serif.zh-HK", "MingLiu_HKSCS, Ming(for ISO10646), MingLiU");
+pref("font.name-list.sans-serif.zh-HK", "MingLiU_HKSCS, Ming(for ISO10646), MingLiU");
+pref("font.name-list.monospace.zh-HK", "MingLiU_HKSCS, Ming(for ISO10646), MingLiU");
 
 pref("font.name.serif.x-devanagari", "Mangal");
 pref("font.name.sans-serif.x-devanagari", "Raghindi");
@@ -1969,7 +1892,7 @@ pref("font.size.variable.zh-HK", 16);
 pref("font.size.fixed.zh-HK", 16);
 
 
-pref("font.mathfont-family", "MathJax_Main, STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Symbol, DejaVu Sans, Cambria Math");
+pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Symbol, DejaVu Sans, Cambria Math");
 
 
 
@@ -2056,9 +1979,6 @@ pref("plugin.scan.WindowsMediaPlayer", "7.0");
 pref("plugin.scan.plid.all", true);
 
 
-pref("plugin.allow.asyncdrawing", false);
-
-
 
 pref("network.autodial-helper.enabled", true);
 
@@ -2131,16 +2051,16 @@ pref("font.name-list.monospace.ar", "Geeza Pro");
 pref("font.name-list.cursive.ar", "DecoType Naskh");
 pref("font.name-list.fantasy.ar", "KufiStandardGK");
 
-pref("font.name.serif.el", "Times");
-pref("font.name.sans-serif.el", "Helvetica");
-pref("font.name.monospace.el", "Courier New");
+pref("font.name.serif.el", "Lucida Grande");
+pref("font.name.sans-serif.el", "Lucida Grande");
+pref("font.name.monospace.el", "Lucida Grande");
 pref("font.name.cursive.el", "Lucida Grande");
 pref("font.name.fantasy.el", "Lucida Grande");
-pref("font.name-list.serif.el", "Times,Times New Roman");
-pref("font.name-list.sans-serif.el", "Helvetica,Lucida Grande");
-pref("font.name-list.monospace.el", "Courier New,Lucida Grande");
-pref("font.name-list.cursive.el", "Times,Lucida Grande");
-pref("font.name-list.fantasy.el", "Times,Lucida Grande");
+pref("font.name-list.serif.el", "Lucida Grande");
+pref("font.name-list.sans-serif.el", "Lucida Grande");
+pref("font.name-list.monospace.el", "Lucida Grande");
+pref("font.name-list.cursive.el", "Lucida Grande");
+pref("font.name-list.fantasy.el", "Lucida Grande");
 
 pref("font.name.serif.he", "Times New Roman");
 pref("font.name.sans-serif.he", "Arial");
@@ -2153,11 +2073,11 @@ pref("font.name-list.monospace.he", "Courier New");
 pref("font.name-list.cursive.he", "Times New Roman");
 pref("font.name-list.fantasy.he", "Times New Roman");
 
-pref("font.name.serif.ja", "Hiragino Mincho ProN");
-pref("font.name.sans-serif.ja", "Hiragino Kaku Gothic ProN");
+pref("font.name.serif.ja", "Hiragino Mincho Pro"); 
+pref("font.name.sans-serif.ja", "Hiragino Kaku Gothic Pro"); 
 pref("font.name.monospace.ja", "Osaka-Mono"); 
-pref("font.name-list.serif.ja", "Hiragino Mincho ProN,Hiragino Mincho Pro");
-pref("font.name-list.sans-serif.ja", "Hiragino Kaku Gothic ProN,Hiragino Kaku Gothic Pro");
+pref("font.name-list.serif.ja", "Hiragino Mincho Pro"); 
+pref("font.name-list.sans-serif.ja", "Hiragino Kaku Gothic Pro"); 
 pref("font.name-list.monospace.ja", "Osaka-Mono"); 
 
 pref("font.name.serif.ko", "AppleMyungjo"); 
@@ -2236,9 +2156,9 @@ pref("font.name.sans-serif.x-cyrillic", "Helvetica");
 pref("font.name.monospace.x-cyrillic", "Monaco");
 pref("font.name.cursive.x-cyrillic", "Geneva");
 pref("font.name.fantasy.x-cyrillic", "Charcoal CY");
-pref("font.name-list.serif.x-cyrillic", "Times,Times New Roman");
-pref("font.name-list.sans-serif.x-cyrillic", "Helvetica,Arial");
-pref("font.name-list.monospace.x-cyrillic", "Monaco,Courier New");
+pref("font.name-list.serif.x-cyrillic", "Times");
+pref("font.name-list.sans-serif.x-cyrillic", "Helvetica");
+pref("font.name-list.monospace.x-cyrillic", "Monaco");
 pref("font.name-list.cursive.x-cyrillic", "Geneva");
 pref("font.name-list.fantasy.x-cyrillic", "Charcoal CY");
 
@@ -2347,32 +2267,32 @@ pref("font.name.sans-serif.x-western", "Helvetica");
 pref("font.name.monospace.x-western", "Courier");
 pref("font.name.cursive.x-western", "Apple Chancery");
 pref("font.name.fantasy.x-western", "Papyrus");
-pref("font.name-list.serif.x-western", "Times,Times New Roman");
-pref("font.name-list.sans-serif.x-western", "Helvetica,Arial");
-pref("font.name-list.monospace.x-western", "Courier,Courier New");
+pref("font.name-list.serif.x-western", "Times");
+pref("font.name-list.sans-serif.x-western", "Helvetica");
+pref("font.name-list.monospace.x-western", "Courier");
 pref("font.name-list.cursive.x-western", "Apple Chancery");
 pref("font.name-list.fantasy.x-western", "Papyrus");
 
 pref("font.name.serif.zh-CN", "STSong");
 pref("font.name.sans-serif.zh-CN", "STHeiti");
 pref("font.name.monospace.zh-CN", "STHeiti");
-pref("font.name-list.serif.zh-CN", "STSong,Heiti SC");
-pref("font.name-list.sans-serif.zh-CN", "STHeiti,Heiti SC");
-pref("font.name-list.monospace.zh-CN", "STHeiti,Heiti SC");
+pref("font.name-list.serif.zh-CN", "STSong");
+pref("font.name-list.sans-serif.zh-CN", "STHeiti");
+pref("font.name-list.monospace.zh-CN", "STHeiti");
 
 pref("font.name.serif.zh-TW", "Apple LiSung"); 
 pref("font.name.sans-serif.zh-TW", "Apple LiGothic");  
 pref("font.name.monospace.zh-TW", "Apple LiGothic");  
-pref("font.name-list.serif.zh-TW", "Apple LiSung,Heiti TC");
-pref("font.name-list.sans-serif.zh-TW", "Apple LiGothic,Heiti TC");
-pref("font.name-list.monospace.zh-TW", "Apple LiGothic,Heiti TC");
+pref("font.name-list.serif.zh-TW", "Apple LiSung"); 
+pref("font.name-list.sans-serif.zh-TW", "Apple LiGothic");  
+pref("font.name-list.monospace.zh-TW", "Apple LiGothic");  
 
 pref("font.name.serif.zh-HK", "LiSong Pro");
 pref("font.name.sans-serif.zh-HK", "LiHei Pro");
 pref("font.name.monospace.zh-HK", "LiHei Pro");
-pref("font.name-list.serif.zh-HK", "LiSong Pro,Heiti TC");
-pref("font.name-list.sans-serif.zh-HK", "LiHei Pro,Heiti TC");
-pref("font.name-list.monospace.zh-HK", "LiHei Pro,Heiti TC");
+pref("font.name-list.serif.zh-HK", "LiSong Pro");
+pref("font.name-list.sans-serif.zh-HK", "LiHei Pro");
+pref("font.name-list.monospace.zh-HK", "LiHei Pro");
 
 pref("font.default.ar", "sans-serif");
 pref("font.size.variable.ar", 16);
@@ -2500,7 +2420,7 @@ pref("font.size.variable.zh-HK", 15);
 pref("font.size.fixed.zh-HK", 16);
 
 
-pref("font.mathfont-family", "MathJax_Main, STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Symbol, DejaVu Sans, Cambria Math");
+pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Symbol, DejaVu Sans, Cambria Math");
 
 
 
@@ -2549,7 +2469,7 @@ pref("ui.key.menuAccessKeyFocuses", true);
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace,Tms Rmn,Helv,Courier,Times New Roman");
 
-pref("font.mathfont-family", "MathJax_Main, STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, DejaVu Sans");
+pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, DejaVu Sans");
 
 
 
@@ -2723,6 +2643,10 @@ pref("browser.display.substitute_vector_fonts", true);
 
 pref("print.print_extra_margin", 90); 
 
+pref("applications.telnet", "telnetpm.exe");
+pref("applications.telnet.host", "%host%");
+pref("applications.telnet.port", "-p %port%");
+
 pref("mail.compose.max_recycled_windows", 0);
 
 
@@ -2772,6 +2696,10 @@ pref("helpers.global_mime_types_file", "/etc/mime.types");
 pref("helpers.global_mailcap_file", "/etc/mailcap");
 pref("helpers.private_mime_types_file", "~/.mime.types");
 pref("helpers.private_mailcap_file", "~/.mailcap");
+pref("applications.telnet", "xterm -e telnet %h %p");
+pref("applications.tn3270", "xterm -e tn3270 %h");
+pref("applications.rlogin", "xterm -e rlogin %h");
+pref("applications.rlogin_with_user", "xterm -e rlogin %h -l %u");
 pref("print.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 pref("print.printer_list", ""); 
 pref("print.print_reversed", false);
@@ -2783,6 +2711,7 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
+pref("font.allow_double_byte_special_chars", true);
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
@@ -2799,9 +2728,7 @@ pref("font.name.monospace.he", "Droid Sans Mono");
 
 pref("font.name.serif.ja", "Droid Serif");
 pref("font.name.sans-serif.ja", "Droid Sans Japanese");
-pref("font.name.monospace.ja", "MotoyaLMaru");
-pref("font.name-list.sans-serif.ja", "MotoyaLMaru, MotoyaLCedar, Droid Sans Japanese");
-pref("font.name-list.monospace.ja", "MotoyaLMaru, MotoyaLCedar");
+pref("font.name.monospace.ja", "Droid Sans Mono");
 
 pref("font.name.serif.ko", "Droid Serif");
 pref("font.name.sans-serif.ko", "Droid Sans");
@@ -2818,44 +2745,38 @@ pref("font.name.monospace.tr", "Droid Sans Mono");
 pref("font.name.serif.x-baltic", "Droid Serif");
 pref("font.name.sans-serif.x-baltic", "Droid Sans");
 pref("font.name.monospace.x-baltic", "Droid Sans Mono");
-pref("font.name-list.sans-serif.x-baltic", "Roboto, Droid Sans");
 
 pref("font.name.serif.x-central-euro", "Droid Serif");
 pref("font.name.sans-serif.x-central-euro", "Droid Sans");
 pref("font.name.monospace.x-central-euro", "Droid Sans Mono");
-pref("font.name-list.sans-serif.x-central-euro", "Roboto, Droid Sans");
 
 pref("font.name.serif.x-cyrillic", "Droid Serif");
 pref("font.name.sans-serif.x-cyrillic", "Droid Sans");
 pref("font.name.monospace.x-cyrillic", "Droid Sans Mono");
-pref("font.name-list.sans-serif.x-cyrillic", "Roboto, Droid Sans");
 
 pref("font.name.serif.x-unicode", "Droid Serif");
 pref("font.name.sans-serif.x-unicode", "Droid Sans");
 pref("font.name.monospace.x-unicode", "Droid Sans Mono");
-pref("font.name-list.sans-serif.x-unicode", "Roboto, Droid Sans");
 
 pref("font.name.serif.x-user-def", "Droid Serif");
 pref("font.name.sans-serif.x-user-def", "Droid Sans");
 pref("font.name.monospace.x-user-def", "Droid Sans Mono");
-pref("font.name-list.sans-serif.x-user-def", "Roboto, Droid Sans");
 
 pref("font.name.serif.x-western", "Droid Serif");
 pref("font.name.sans-serif.x-western", "Droid Sans");
 pref("font.name.monospace.x-western", "Droid Sans Mono");
-pref("font.name-list.sans-serif.x-western", "Roboto, Droid Sans");
 
 pref("font.name.serif.zh-CN", "Droid Serif");
 pref("font.name.sans-serif.zh-CN", "Droid Sans");
 pref("font.name.monospace.zh-CN", "Droid Sans Mono");
 
+
+
 pref("font.name.serif.zh-HK", "Droid Serif");
 pref("font.name.sans-serif.zh-HK", "Droid Sans");
 pref("font.name.monospace.zh-HK", "Droid Sans Mono");
 
-pref("font.name.serif.zh-TW", "Droid Serif");
-pref("font.name.sans-serif.zh-TW", "Droid Sans");
-pref("font.name.monospace.zh-TW", "Droid Sans Mono");
+
 
 pref("font.default.ar", "sans-serif");
 pref("font.size.variable.ar", 16);
@@ -3041,6 +2962,10 @@ pref("helpers.global_mime_types_file", "/etc/mime.types");
 pref("helpers.global_mailcap_file", "/etc/mailcap");
 pref("helpers.private_mime_types_file", "~/.mime.types");
 pref("helpers.private_mailcap_file", "~/.mailcap");
+pref("applications.telnet", "xterm -e telnet %h %p");
+pref("applications.tn3270", "xterm -e tn3270 %h");
+pref("applications.rlogin", "xterm -e rlogin %h");
+pref("applications.rlogin_with_user", "xterm -e rlogin %h -l %u");
 pref("print.print_command", "lpr ${MOZ_PRINTER_NAME:+-P\"$MOZ_PRINTER_NAME\"}");
 pref("print.printer_list", ""); 
 pref("print.print_reversed", false);
@@ -3052,6 +2977,7 @@ pref("print.print_paper_size", 0);
 
 pref("print.print_extra_margin", 0); 
 
+pref("font.allow_double_byte_special_chars", true);
 
 
 pref("font.alias-list", "sans,sans-serif,serif,monospace");
@@ -3457,7 +3383,6 @@ pref("full-screen-api.enabled", false);
 pref("full-screen-api.allow-trusted-requests-only", true);
 pref("full-screen-api.key-input-restricted", true);
 pref("full-screen-api.warning.enabled", true);
-pref("full-screen-api.exit-on-deactivate", true);
 
 
 
@@ -3465,10 +3390,6 @@ pref("dom.event.handling-user-input-time-limit", 1000);
  
 
 pref("layout.3d-transforms.enabled", true);
-
-pref("dom.vibrator.enabled", true);
-pref("dom.vibrator.max_vibrate_ms", 10000);
-pref("dom.vibrator.max_vibrate_list_len", 128);
 
 
 pref("dom.battery.enabled", true);
@@ -3478,35 +3399,4 @@ pref("dom.sms.enabled", false);
 pref("dom.sms.whitelist", "");
 
 
-pref("dom.mozContacts.enabled", false);
-pref("dom.mozContacts.whitelist", "");
-
-
 pref("browser.dom.window.dump.enabled", false);
-
-
-pref("profiler.enabled", false);
-pref("profiler.interval", 10);
-pref("profiler.entries", 100000);
-
-
-pref("dom.network.enabled", true);
-pref("dom.network.metered", false);
-#ifdef XP_WIN
-
-
-pref("memory.low_virtual_memory_threshold_mb", 128);
-
-
-
-pref("memory.low_commit_space_threshold_mb", 128);
-
-
-
-pref("memory.low_physical_memory_threshold_mb", 0);
-
-
-
-
-pref("memory.low_memory_notification_interval_ms", 10000);
-#endif
