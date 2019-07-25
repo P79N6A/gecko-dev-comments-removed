@@ -13,12 +13,36 @@
 
 namespace js {
 
+class Wrapper;
+
 
 class JS_FRIEND_API(BaseProxyHandler) {
     void *mFamily;
   public:
     explicit BaseProxyHandler(void *family);
     virtual ~BaseProxyHandler();
+
+    inline void *family() {
+        return mFamily;
+    };
+
+    virtual bool isOuterWindow() {
+        return false;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+    virtual Wrapper *toWrapper() {
+        return NULL;
+    }
 
     
     virtual bool getPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, bool set,
@@ -55,14 +79,6 @@ class JS_FRIEND_API(BaseProxyHandler) {
     virtual void finalize(JSFreeOp *fop, JSObject *proxy);
     virtual bool getElementIfPresent(JSContext *cx, JSObject *obj, JSObject *receiver,
                                      uint32_t index, Value *vp, bool *present);
-
-    virtual bool isOuterWindow() {
-        return false;
-    }
-
-    inline void *family() {
-        return mFamily;
-    }
 };
 
 class JS_PUBLIC_API(IndirectProxyHandler) : public BaseProxyHandler {
