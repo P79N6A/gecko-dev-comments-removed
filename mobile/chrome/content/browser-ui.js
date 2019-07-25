@@ -130,12 +130,11 @@ var BrowserUI = {
     if (browser && aDocument != browser.contentDocument)
       return;
 
-    var caption = aDocument.title;
-    if (!caption) {
-      caption = this.getDisplayURI(browser);
-      if (caption == "about:blank")
-        caption = "";
-    }
+    var url = this.getDisplayURI(browser);
+    var caption = aDocument.title || url;
+
+    if (Util.isURLEmpty(url))
+      caption = "";
 
     this._setURI(caption);
   },
@@ -256,7 +255,7 @@ var BrowserUI = {
       this._edit.defaultValue = this._edit.value;
 
       let urlString = this.getDisplayURI(Browser.selectedBrowser);
-      if (urlString == "about:blank")
+      if (Util.isURLEmpty(urlString))
         urlString = "";
       this._edit.value = urlString;
 
@@ -488,7 +487,9 @@ var BrowserUI = {
     let loadGroup = browser.webNavigation.QueryInterface(Ci.nsIDocumentLoader).loadGroup;
     if (loadGroup.activeCount && loadGroup.defaultLoadRequest) {
       
-      return loadGroup.defaultLoadRequest.name;
+      
+      
+      return loadGroup.defaultLoadRequest.QueryInterface(Ci.nsIChannel).originalURI.spec;
     }
 
     if (!this._URIFixup)
@@ -520,7 +521,7 @@ var BrowserUI = {
     this.updateStar();
 
     var urlString = this.getDisplayURI(browser);
-    if (urlString == "about:blank")
+    if (Util.isURLEmpty(urlString))
       urlString = "";
 
     this._setURI(urlString);

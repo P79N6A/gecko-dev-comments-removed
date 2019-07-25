@@ -183,6 +183,11 @@ let Util = {
   },
 
   
+  isURLEmpty: function isURLEmpty(aURL) {
+    return (!aURL || aURL == "about:blank" || aURL == "about:home");
+  },
+
+  
   getAllDocuments: function getAllDocuments(doc, resultSoFar) {
     resultSoFar = resultSoFar || [doc];
     if (!doc.defaultView)
