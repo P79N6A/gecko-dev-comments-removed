@@ -360,6 +360,17 @@ UncachedInlineCall(VMFrame &f, InitialFrameFlags initial,
     }
 
     
+
+
+
+
+
+    if (f.regs.inlined()) {
+        ExpandInlineFrames(cx->compartment, false);
+        JS_ASSERT(!f.regs.inlined());
+        regs.fp()->resetInlinePrev(f.fp(), f.regs.pc);
+    }
+
     bool ok = !!Interpret(cx, cx->fp());
     f.cx->stack.popInlineFrame(regs);
 
