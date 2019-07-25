@@ -176,6 +176,16 @@ function run_test() {
   do_check_eq(res.data, content);
 
   
+  let logger = res._log;
+  let dbg    = logger.debug;
+  let debugMessages = [];
+  logger.debug = function (msg) {
+    debugMessages.push(msg);
+    dbg.call(this, msg);
+  }
+
+  
+  
   
   let didThrow = false;
   try {
@@ -184,6 +194,10 @@ function run_test() {
     didThrow = true;
   }
   do_check_true(didThrow);
+  do_check_eq(debugMessages.length, 1);
+  do_check_eq(debugMessages[0],
+              "Parse fail: Response body starts: \"This path exists\".");
+  logger.debug = dbg;
 
   _("Test that the BasicAuthenticator doesn't screw up header case.");
   let res1 = new Resource("http://localhost:8080/foo");

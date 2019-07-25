@@ -387,7 +387,18 @@ AsyncResource.prototype = {
     
     
     
-    XPCOMUtils.defineLazyGetter(ret, "obj", function() JSON.parse(ret));
+    XPCOMUtils.defineLazyGetter(ret, "obj", function() {
+      try {
+        return JSON.parse(ret);
+      } catch (ex) {
+        this._log.warn("Got exception parsing response body: \"" + Utils.exceptionStr(ex));
+        
+        this._log.debug("Parse fail: Response body starts: \"" +
+                        JSON.stringify((ret + "").slice(0, 100)) +
+                        "\".");
+        throw ex;
+      }
+    }.bind(this));
 
     this._callback(null, ret);
   },

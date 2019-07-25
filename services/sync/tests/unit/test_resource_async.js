@@ -190,6 +190,15 @@ add_test(function test_get() {
     do_check_eq(res.data, content);
 
     
+    let logger = res._log;
+    let dbg    = logger.debug;
+    let debugMessages = [];
+    logger.debug = function (msg) {
+      debugMessages.push(msg);
+      dbg.call(this, msg);
+    }
+
+    
     
     let didThrow = false;
     try {
@@ -198,6 +207,10 @@ add_test(function test_get() {
       didThrow = true;
     }
     do_check_true(didThrow);
+    do_check_eq(debugMessages.length, 1);
+    do_check_eq(debugMessages[0],
+                "Parse fail: Response body starts: \"This path exists\".");
+    logger.debug = dbg;
 
     run_next_test();
   });
