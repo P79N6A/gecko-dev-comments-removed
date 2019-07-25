@@ -62,6 +62,11 @@
 
 
 
+
+
+
+
+
 #if defined(_WIN32) || defined(__VC32__) && !defined(__CYGWIN__) && !defined(__SCITECH_SNAP__) 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
@@ -77,6 +82,12 @@ typedef HWND    EGLNativeWindowType;
 typedef int   EGLNativeDisplayType;
 typedef void *EGLNativeWindowType;
 typedef void *EGLNativePixmapType;
+
+#elif defined(WL_EGL_PLATFORM)
+
+typedef struct wl_display     *EGLNativeDisplayType;
+typedef struct wl_egl_pixmap  *EGLNativePixmapType;
+typedef struct wl_egl_window  *EGLNativeWindowType;
 
 #elif defined(__unix__)
 

@@ -4,7 +4,9 @@
 
 
 
+#include "compiler/BuiltInFunctionEmulator.h"
 #include "compiler/DetectRecursion.h"
+#include "compiler/ForLoopUnroll.h"
 #include "compiler/Initialize.h"
 #include "compiler/ParseHelper.h"
 #include "compiler/ShHandle.h"
@@ -19,7 +21,10 @@ bool InitializeSymbolTable(
 {
     TIntermediate intermediate(infoSink);
     TExtensionBehavior extBehavior;
-    TParseContext parseContext(symbolTable, extBehavior, intermediate, type, spec, 0, NULL, infoSink);
+    InitExtensionBehavior(resources, extBehavior);
+    
+    
+    TParseContext parseContext(symbolTable, extBehavior, intermediate, type, spec, 0, false, NULL, infoSink);
 
     GlobalParseContext = &parseContext;
 
@@ -128,7 +133,7 @@ bool TCompiler::compile(const char* const shaderStrings[],
 
     TIntermediate intermediate(infoSink);
     TParseContext parseContext(symbolTable, extensionBehavior, intermediate,
-                               shaderType, shaderSpec, compileOptions,
+                               shaderType, shaderSpec, compileOptions, true,
                                sourcePath, infoSink);
     GlobalParseContext = &parseContext;
 
@@ -151,6 +156,14 @@ bool TCompiler::compile(const char* const shaderStrings[],
 
         if (success && (compileOptions & SH_VALIDATE_LOOP_INDEXING))
             success = validateLimitations(root);
+
+        
+        if (success && (compileOptions & SH_UNROLL_FOR_LOOP_WITH_INTEGER_INDEX))
+            ForLoopUnroll::MarkForLoopsWithIntegerIndicesForUnrolling(root);
+
+        
+        if (success && (compileOptions & SH_EMULATE_BUILT_IN_FUNCTIONS))
+            builtInFunctionEmulator.MarkBuiltInFunctionsForEmulation(root);
 
         
         
@@ -237,4 +250,14 @@ void TCompiler::mapLongVariableNames(TIntermNode* root)
 int TCompiler::getMappedNameMaxLength() const
 {
     return MAX_IDENTIFIER_NAME_SIZE + 1;
+}
+
+const TExtensionBehavior& TCompiler::getExtensionBehavior() const
+{
+    return extensionBehavior;
+}
+
+const BuiltInFunctionEmulator& TCompiler::getBuiltInFunctionEmulator() const
+{
+    return builtInFunctionEmulator;
 }

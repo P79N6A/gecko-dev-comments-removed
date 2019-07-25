@@ -17,7 +17,7 @@ extern "C" {
 
 
 
-#define SH_VERSION 104
+#define SH_VERSION 105
 
 
 
@@ -34,6 +34,12 @@ typedef enum {
   SH_GLES2_SPEC = 0x8B40,
   SH_WEBGL_SPEC = 0x8B41
 } ShShaderSpec;
+
+typedef enum {
+  SH_ESSL_OUTPUT = 0x8B45,
+  SH_GLSL_OUTPUT = 0x8B46,
+  SH_HLSL_OUTPUT = 0x8B47
+} ShShaderOutput;
 
 typedef enum {
   SH_NONE           = 0,
@@ -75,7 +81,11 @@ typedef enum {
   SH_ATTRIBUTES_UNIFORMS     = 0x0008,
   SH_LINE_DIRECTIVES         = 0x0010,
   SH_SOURCE_PATH             = 0x0020,
-  SH_MAP_LONG_VARIABLE_NAMES = 0x0040
+  SH_MAP_LONG_VARIABLE_NAMES = 0x0040,
+  SH_UNROLL_FOR_LOOP_WITH_INTEGER_INDEX = 0x0080,
+
+  
+  SH_EMULATE_BUILT_IN_FUNCTIONS = 0x0100
 } ShCompileOptions;
 
 
@@ -109,6 +119,7 @@ typedef struct
     
     
     int OES_standard_derivatives;
+    int OES_EGL_image_external;
 } ShBuiltInResources;
 
 
@@ -134,7 +145,11 @@ typedef void* ShHandle;
 
 
 
+
+
+
 ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
+                             ShShaderOutput output,
                              const ShBuiltInResources* resources);
 void ShDestruct(ShHandle handle);
 

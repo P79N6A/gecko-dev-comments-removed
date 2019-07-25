@@ -30,36 +30,41 @@ struct TPragma {
 
 
 struct TParseContext {
-    TParseContext(TSymbolTable& symt, const TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, int options, const char* sourcePath, TInfoSink& is) :
-            intermediate(interm), symbolTable(symt), extensionBehavior(ext), infoSink(is), shaderType(type), shaderSpec(spec), compileOptions(options), sourcePath(sourcePath), treeRoot(0),
-            recoveredFromError(false), numErrors(0), lexAfterType(false), loopNestingLevel(0),
-            inTypeParen(false), scanner(NULL), contextPragma(true, false) {  }
+    TParseContext(TSymbolTable& symt, TExtensionBehavior& ext, TIntermediate& interm, ShShaderType type, ShShaderSpec spec, int options, bool checksPrecErrors, const char* sourcePath, TInfoSink& is) :
+            intermediate(interm), symbolTable(symt), extensionBehavior(ext), infoSink(is), shaderType(type), shaderSpec(spec), compileOptions(options), checksPrecisionErrors(checksPrecErrors), sourcePath(sourcePath), treeRoot(0),
+            numErrors(0), lexAfterType(false), loopNestingLevel(0),
+            inTypeParen(false), contextPragma(true, false), scanner(NULL) {  }
     TIntermediate& intermediate; 
     TSymbolTable& symbolTable;   
-    TExtensionBehavior extensionBehavior;  
+    TExtensionBehavior& extensionBehavior;  
     TInfoSink& infoSink;
     ShShaderType shaderType;              
     ShShaderSpec shaderSpec;              
     int compileOptions;
     const char* sourcePath;      
     TIntermNode* treeRoot;       
-    bool recoveredFromError;     
     int numErrors;
     bool lexAfterType;           
     int loopNestingLevel;        
     bool inTypeParen;            
     const TType* currentFunctionType;  
     bool functionReturnsValue;   
+    bool checksPrecisionErrors;  
+    struct TPragma contextPragma;
+    TString HashErrMsg;
+    bool AfterEOF;
+    void* scanner;
 
     void error(TSourceLoc loc, const char *reason, const char* token,
                const char* extraInfoFormat, ...);
     void warning(TSourceLoc loc, const char* reason, const char* token,
                  const char* extraInfoFormat, ...);
-    bool reservedErrorCheck(int line, const TString& identifier);
     void recover();
 
     bool parseVectorFields(const TString&, int vecSize, TVectorFields&, int line);
     bool parseMatrixFields(const TString&, int matSize, TMatrixFields&, int line);
+
+    bool reservedErrorCheck(int line, const TString& identifier);
     void assignError(int line, const char* op, TString left, TString right);
     void unaryOpError(int line, const char* op, TString operand);
     void binaryOpError(int line, const char* op, TString left, TString right);
@@ -79,15 +84,19 @@ struct TParseContext {
     bool samplerErrorCheck(int line, const TPublicType& pType, const char* reason);
     bool structQualifierErrorCheck(int line, const TPublicType& pType);
     bool parameterSamplerErrorCheck(int line, TQualifier qualifier, const TType& type);
-    bool containsSampler(TType& type);
     bool nonInitConstErrorCheck(int line, TString& identifier, TPublicType& type);
     bool nonInitErrorCheck(int line, TString& identifier, TPublicType& type, TVariable*& variable);
     bool paramErrorCheck(int line, TQualifier qualifier, TQualifier paramQualifier, TType* type);
     bool extensionErrorCheck(int line, const TString&);
+    bool supportsExtension(const char* extension);
+
+    bool containsSampler(TType& type);
+    bool areAllChildConst(TIntermAggregate* aggrNode);
     const TFunction* findFunction(int line, TFunction* pfnCall, bool *builtIn = 0);
     bool executeInitializer(TSourceLoc line, TString& identifier, TPublicType& pType,
                             TIntermTyped* initializer, TIntermNode*& intermNode, TVariable* variable = 0);
-    bool areAllChildConst(TIntermAggregate* aggrNode);
+    bool arraySetMaxSize(TIntermSymbol*, TType*, int, bool, TSourceLoc);
+
     TIntermTyped* addConstructor(TIntermNode*, const TType*, TOperator, TFunction*, TSourceLoc);
     TIntermTyped* foldConstConstructor(TIntermAggregate* aggrNode, const TType& type);
     TIntermTyped* constructStruct(TIntermNode*, TType*, int, TSourceLoc, bool subset);
@@ -96,11 +105,6 @@ struct TParseContext {
     TIntermTyped* addConstMatrixNode(int , TIntermTyped*, TSourceLoc);
     TIntermTyped* addConstArrayNode(int index, TIntermTyped* node, TSourceLoc line);
     TIntermTyped* addConstStruct(TString& , TIntermTyped*, TSourceLoc);
-    bool arraySetMaxSize(TIntermSymbol*, TType*, int, bool, TSourceLoc);
-    void* scanner;
-    struct TPragma contextPragma;
-    TString HashErrMsg;
-    bool AfterEOF;
 };
 
 int PaParseStrings(int count, const char* const string[], const int length[],

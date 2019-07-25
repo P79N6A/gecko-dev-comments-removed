@@ -55,6 +55,8 @@ bool Texture::Image::isRenderable() const
       case D3DFMT_L8:
       case D3DFMT_A8L8:
       case D3DFMT_DXT1:
+      case D3DFMT_DXT3:
+      case D3DFMT_DXT5:
         return false;
       case D3DFMT_A8R8G8B8:
       case D3DFMT_X8R8G8B8:
@@ -74,6 +76,14 @@ D3DFORMAT Texture::Image::getD3DFormat() const
         format == GL_COMPRESSED_RGBA_S3TC_DXT1_EXT)
     {
         return D3DFMT_DXT1;
+    }
+    else if (format == GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE)
+    {
+        return D3DFMT_DXT3;
+    }
+    else if (format == GL_COMPRESSED_RGBA_S3TC_DXT5_ANGLE)
+    {
+        return D3DFMT_DXT5;
     }
     else if (type == GL_FLOAT)
     {
@@ -773,6 +783,132 @@ void Texture::loadBGRAImageData(GLint xoffset, GLint yoffset, GLsizei width, GLs
 }
 
 void Texture::loadCompressedImageData(GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
+                                      int inputPitch, const void *input, size_t outputPitch, void *output) const {
+    switch (getD3DFormat())
+    {
+        case D3DFMT_DXT1:
+          loadDXT1ImageData(xoffset, yoffset, width, height, inputPitch, input, outputPitch, output);
+          break;
+        case D3DFMT_DXT3:
+          loadDXT3ImageData(xoffset, yoffset, width, height, inputPitch, input, outputPitch, output);
+          break;
+        case D3DFMT_DXT5:
+          loadDXT5ImageData(xoffset, yoffset, width, height, inputPitch, input, outputPitch, output);
+          break;
+    }
+}
+
+static void FlipCopyDXT1BlockFull(const unsigned int* source, unsigned int* dest) {
+  
+  
+  
+  
+  
+  
+
+  
+  dest[0] = source[0];
+
+  
+  dest[1] = (source[1] >> 24) |
+            ((source[1] << 8) & 0x00FF0000) |
+            ((source[1] >> 8) & 0x0000FF00) |
+            (source[1] << 24);
+}
+
+
+static void FlipCopyDXT1BlockHalf(const unsigned int* source, unsigned int* dest) {
+  
+  dest[0] = source[0];
+  dest[1] = ((source[1] << 8) & 0x0000FF00) |
+            ((source[1] >> 8) & 0x000000FF);
+}
+
+
+static void FlipCopyDXT3BlockFull(const unsigned int* source, unsigned int* dest) {
+  
+  
+  
+
+  
+  dest[0] = (source[1] >> 16) | (source[1] << 16);
+  dest[1] = (source[0] >> 16) | (source[0] << 16);
+
+  
+  FlipCopyDXT1BlockFull(source + 2, dest + 2);
+}
+
+
+static void FlipCopyDXT3BlockHalf(const unsigned int* source, unsigned int* dest) {
+  
+  dest[0] = (source[1] >> 16) | (source[1] << 16);
+  FlipCopyDXT1BlockHalf(source + 2, dest + 2);
+}
+
+
+static void FlipCopyDXT5BlockFull(const unsigned int* source, unsigned int* dest) {
+  
+  
+  
+  
+  
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  const unsigned char* sourceBytes = static_cast<const unsigned char*>(static_cast<const void*>(source));
+  unsigned char* destBytes = static_cast<unsigned char*>(static_cast<void*>(dest));
+  unsigned int line_0_1 = sourceBytes[2] + 256 * (sourceBytes[3] + 256 * sourceBytes[4]);
+  unsigned int line_2_3 = sourceBytes[5] + 256 * (sourceBytes[6] + 256 * sourceBytes[7]);
+  
+  unsigned int line_1_0 = ((line_0_1 & 0x000fff) << 12) |
+                          ((line_0_1 & 0xfff000) >> 12);
+  
+  unsigned int line_3_2 = ((line_2_3 & 0x000fff) << 12) |
+                          ((line_2_3 & 0xfff000) >> 12);
+  destBytes[0] = sourceBytes[0];
+  destBytes[1] = sourceBytes[1];
+  destBytes[2] = line_3_2 & 0xff;
+  destBytes[3] = (line_3_2 & 0xff00) >> 8;
+  destBytes[4] = (line_3_2 & 0xff0000) >> 16;
+  destBytes[5] = line_1_0 & 0xff;
+  destBytes[6] = (line_1_0 & 0xff00) >> 8;
+  destBytes[7] = (line_1_0 & 0xff0000) >> 16;
+
+  
+  FlipCopyDXT1BlockFull(source + 2, dest + 2);
+}
+
+
+static void FlipCopyDXT5BlockHalf(const unsigned int* source, unsigned int* dest) {
+  
+  const unsigned char* sourceBytes = static_cast<const unsigned char*>(static_cast<const void*>(source));
+  unsigned char* destBytes = static_cast<unsigned char*>(static_cast<void*>(dest));
+  unsigned int line_0_1 = sourceBytes[2] + 256 * (sourceBytes[3] + 256 * sourceBytes[4]);
+  unsigned int line_1_0 = ((line_0_1 & 0x000fff) << 12) |
+                          ((line_0_1 & 0xfff000) >> 12);
+  destBytes[0] = sourceBytes[0];
+  destBytes[1] = sourceBytes[1];
+  destBytes[2] = line_1_0 & 0xff;
+  destBytes[3] = (line_1_0 & 0xff00) >> 8;
+  destBytes[4] = (line_1_0 & 0xff0000) >> 16;
+  FlipCopyDXT1BlockHalf(source + 2, dest + 2);
+}
+
+void Texture::loadDXT1ImageData(GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
                                       int inputPitch, const void *input, size_t outputPitch, void *output) const
 {
     ASSERT(xoffset % 4 == 0);
@@ -784,29 +920,24 @@ void Texture::loadCompressedImageData(GLint xoffset, GLint yoffset, GLsizei widt
     const unsigned int *source = reinterpret_cast<const unsigned int*>(input);
     unsigned int *dest = reinterpret_cast<unsigned int*>(output);
 
+    
+    int blocksAcross = (width + 3) / 4;
+    int intsAcross = blocksAcross * 2;
+
     switch (height)
     {
         case 1:
-            
-            for (int x = 0; x < (width + 1) / 2; x += 2)
+            for (int x = 0; x < intsAcross; x += 2)
             {
                 
                 dest[x] = source[x];
-
-                
                 dest[x + 1] = source[x + 1];
             }
             break;
         case 2:
-            
-            for (int x = 0; x < (width + 1) / 2; x += 2)
+            for (int x = 0; x < intsAcross; x += 2)
             {
-                
-                dest[x] = source[x];
-
-                
-                dest[x + 1] = ((source[x + 1] << 8) & 0x0000FF00) |
-                              ((source[x + 1] >> 8) & 0x000000FF);       
+                FlipCopyDXT1BlockHalf(source + x, dest + x);
             }
             break;
         default:
@@ -816,17 +947,109 @@ void Texture::loadCompressedImageData(GLint xoffset, GLint yoffset, GLsizei widt
                 const unsigned int *source = reinterpret_cast<const unsigned int*>(static_cast<const unsigned char*>(input) + y * inputPitch);
                 unsigned int *dest = reinterpret_cast<unsigned int*>(static_cast<unsigned char*>(output) + (y + yoffset) * outputPitch + xoffset * 8);
 
-                
-                for (int x = 0; x < (width + 1) / 2; x += 2)
+                for (int x = 0; x < intsAcross; x += 2)
                 {
-                    
-                    dest[x] = source[x];
+                    FlipCopyDXT1BlockFull(source + x, dest + x);
+                }
+            }
+            break;
+    }
+}
 
-                    
-                    dest[x + 1] = (source[x + 1] >> 24) | 
-                                  ((source[x + 1] << 8) & 0x00FF0000) |
-                                  ((source[x + 1] >> 8) & 0x0000FF00) |
-                                  (source[x + 1] << 24);                    
+void Texture::loadDXT3ImageData(GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
+                                int inputPitch, const void *input, size_t outputPitch, void *output) const
+{
+    ASSERT(xoffset % 4 == 0);
+    ASSERT(yoffset % 4 == 0);
+    ASSERT(width % 4 == 0 || width == 2 || width == 1);
+    ASSERT(inputPitch % 16 == 0);
+    ASSERT(outputPitch % 16 == 0);
+
+    const unsigned int *source = reinterpret_cast<const unsigned int*>(input);
+    unsigned int *dest = reinterpret_cast<unsigned int*>(output);
+
+    
+    int blocksAcross = (width + 3) / 4;
+    int intsAcross = blocksAcross * 4;
+
+    switch (height)
+    {
+        case 1:
+            for (int x = 0; x < intsAcross; x += 4)
+            {
+                
+                dest[x] = source[x];
+                dest[x + 1] = source[x + 1];
+                dest[x + 2] = source[x + 2];
+                dest[x + 3] = source[x + 3];
+            }
+            break;
+        case 2:
+            for (int x = 0; x < intsAcross; x += 4)
+            {
+                FlipCopyDXT3BlockHalf(source + x, dest + x);
+            }
+            break;
+        default:
+            ASSERT(height % 4 == 0);
+            for (int y = 0; y < height / 4; ++y)
+            {
+                const unsigned int *source = reinterpret_cast<const unsigned int*>(static_cast<const unsigned char*>(input) + y * inputPitch);
+                unsigned int *dest = reinterpret_cast<unsigned int*>(static_cast<unsigned char*>(output) + (y + yoffset) * outputPitch + xoffset * 16);
+
+                for (int x = 0; x < intsAcross; x += 4)
+                {
+                  FlipCopyDXT3BlockFull(source + x, dest + x);
+                }
+            }
+            break;
+    }
+}
+
+void Texture::loadDXT5ImageData(GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
+                                int inputPitch, const void *input, size_t outputPitch, void *output) const
+{
+    ASSERT(xoffset % 4 == 0);
+    ASSERT(yoffset % 4 == 0);
+    ASSERT(width % 4 == 0 || width == 2 || width == 1);
+    ASSERT(inputPitch % 16 == 0);
+    ASSERT(outputPitch % 16 == 0);
+
+    const unsigned int *source = reinterpret_cast<const unsigned int*>(input);
+    unsigned int *dest = reinterpret_cast<unsigned int*>(output);
+
+    
+    int blocksAcross = (width + 3) / 4;
+    int intsAcross = blocksAcross * 4;
+
+    switch (height)
+    {
+        case 1:
+            for (int x = 0; x < intsAcross; x += 4)
+            {
+                
+                dest[x] = source[x];
+                dest[x + 1] = source[x + 1];
+                dest[x + 2] = source[x + 2];
+                dest[x + 3] = source[x + 3];
+            }
+            break;
+        case 2:
+            for (int x = 0; x < intsAcross; x += 4)
+            {
+                FlipCopyDXT5BlockHalf(source + x, dest + x);
+            }
+            break;
+        default:
+            ASSERT(height % 4 == 0);
+            for (int y = 0; y < height / 4; ++y)
+            {
+                const unsigned int *source = reinterpret_cast<const unsigned int*>(static_cast<const unsigned char*>(input) + y * inputPitch);
+                unsigned int *dest = reinterpret_cast<unsigned int*>(static_cast<unsigned char*>(output) + (y + yoffset) * outputPitch + xoffset * 16);
+
+                for (int x = 0; x < intsAcross; x += 4)
+                {
+                    FlipCopyDXT5BlockFull(source + x, dest + x);
                 }
             }
             break;
@@ -2261,6 +2484,9 @@ void TextureCubeMap::convertToRenderTarget()
 
                         return error(GL_OUT_OF_MEMORY);
                     }
+
+                    source->Release();
+                    dest->Release();
                 }
             }
         }

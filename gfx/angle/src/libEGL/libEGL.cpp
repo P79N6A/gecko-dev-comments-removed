@@ -99,18 +99,7 @@ EGLDisplay __stdcall eglGetDisplay(EGLNativeDisplayType display_id)
 
     try
     {
-        
-
-        if (display_id == EGL_DEFAULT_DISPLAY)
-        {
-            return new egl::Display((HDC)NULL);
-        }
-        else
-        {
-            
-
-            return new egl::Display((HDC)display_id);
-        }
+        return egl::Display::getDisplay(display_id);
     }
     catch(std::bad_alloc&)
     {

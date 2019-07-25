@@ -16,6 +16,7 @@
 
 #include "GLSLANG/ShaderLang.h"
 
+#include "compiler/BuiltInFunctionEmulator.h"
 #include "compiler/ExtensionBehavior.h"
 #include "compiler/InfoSink.h"
 #include "compiler/SymbolTable.h"
@@ -77,6 +78,10 @@ protected:
     void mapLongVariableNames(TIntermNode* root);
     
     virtual void translate(TIntermNode* root) = 0;
+    
+    const TExtensionBehavior& getExtensionBehavior() const;
+
+    const BuiltInFunctionEmulator& getBuiltInFunctionEmulator() const;
 
 private:
     ShShaderType shaderType;
@@ -87,6 +92,8 @@ private:
     TSymbolTable symbolTable;
     
     TExtensionBehavior extensionBehavior;
+
+    BuiltInFunctionEmulator builtInFunctionEmulator;
 
     
     TInfoSink infoSink;  
@@ -106,7 +113,8 @@ private:
 
 
 
-TCompiler* ConstructCompiler(ShShaderType type, ShShaderSpec spec);
+TCompiler* ConstructCompiler(
+    ShShaderType type, ShShaderSpec spec, ShShaderOutput output);
 void DeleteCompiler(TCompiler*);
 
 #endif 
