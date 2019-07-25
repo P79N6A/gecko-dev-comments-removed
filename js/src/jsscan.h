@@ -234,7 +234,7 @@ struct TokenPos {
 struct Token {
     TokenKind           type;           
     TokenPos            pos;            
-    jschar              *ptr;           
+    const jschar        *ptr;           
     union {
         struct {                        
             JSOp        op;             
@@ -254,7 +254,7 @@ enum TokenStreamFlags
 {
     TSF_ERROR = 0x01,           
     TSF_EOF = 0x02,             
-    TSF_NEWLINES = 0x04,        
+    TSF_EOL = 0x04,             
     TSF_OPERAND = 0x08,         
     TSF_UNEXPECTED_EOF = 0x10,  
     TSF_KEYWORD_IS_NAME = 0x20, 
@@ -296,6 +296,12 @@ enum TokenStreamFlags
 
 class TokenStream
 {
+    
+    enum {
+        LINE_SEPARATOR = 0x2028,
+        PARA_SEPARATOR = 0x2029
+    };
+
     static const size_t ntokens = 4;                
 
     static const uintN ntokensMask = ntokens - 1;
@@ -395,14 +401,13 @@ class TokenStream
 
     TokenKind getToken() {
         
-        while (lookahead != 0) {
+        if (lookahead != 0) {
             JS_ASSERT(!(flags & TSF_XMLTEXTMODE));
             lookahead--;
             cursor = (cursor + 1) & ntokensMask;
             TokenKind tt = currentToken().type;
-            JS_ASSERT(!(flags & TSF_NEWLINES));
-            if (tt != TOK_EOL)
-                return tt;
+            JS_ASSERT(tt != TOK_EOL);
+            return tt;
         }
 
         
@@ -439,10 +444,25 @@ class TokenStream
     }
 
     TokenKind peekTokenSameLine(uintN withFlags = 0) {
-        Flagger flagger(this, withFlags);
         if (!onCurrentLine(currentToken().pos))
             return TOK_EOL;
-        TokenKind tt = peekToken(TSF_NEWLINES);
+
+        if (lookahead != 0) {
+            JS_ASSERT(lookahead == 1);
+            return tokens[(cursor + lookahead) & ntokensMask].type;
+        }
+
+        
+
+
+
+        flags &= ~TSF_EOL;
+        TokenKind tt = getToken(withFlags);
+        if (flags & TSF_EOL) {
+            tt = TOK_EOL;
+            flags &= ~TSF_EOL;
+        }
+        ungetToken();
         return tt;
     }
 
@@ -458,11 +478,89 @@ class TokenStream
     }
 
   private:
-    typedef struct TokenBuf {
-        jschar              *base;      
-        jschar              *limit;     
-        jschar              *ptr;       
-    } TokenBuf;
+    
+
+
+
+
+
+
+    class TokenBuf {
+      public:
+        TokenBuf() : base(NULL), limit(NULL), ptr(NULL) { }
+
+        void init(const jschar *buf, size_t length) {
+            base = ptr = buf;
+            limit = base + length;
+        }
+
+        bool hasRawChars() const {
+            return ptr < limit;
+        }
+
+        bool atStart() const {
+            return ptr == base;
+        }
+
+        int32 getRawChar() {
+            return *ptr++;      
+        }
+
+        int32 peekRawChar() const {
+            return *ptr;        
+        }
+
+        bool matchRawChar(int32 c) {
+            if (*ptr == c) {    
+                ptr++;
+                return true;
+            }
+            return false;
+        }
+
+        bool matchRawCharBackwards(int32 c) {
+            JS_ASSERT(ptr);     
+            if (*(ptr - 1) == c) {
+                ptr--;
+                return true;
+            }
+            return false;
+        }
+
+        void ungetRawChar() {
+            JS_ASSERT(ptr);     
+            ptr--;
+        }
+
+        const jschar *addressOfNextRawChar() {
+            JS_ASSERT(ptr);     
+            return ptr;
+        }
+
+#ifdef DEBUG
+        
+
+
+
+
+        void poison() {
+            ptrWhenPoisoned = ptr;
+            ptr = NULL;
+        }
+#endif
+
+        static bool isRawEOLChar(int32 c) {
+            return (c == '\n' || c == '\r' || c == LINE_SEPARATOR || c == PARA_SEPARATOR);
+        }
+
+        const jschar *findEOL();
+
+      private:
+        const jschar *base;             
+        const jschar *limit;            
+        const jschar *ptr;              
+        const jschar *ptrWhenPoisoned;  
+    };
 
     TokenKind getTokenInternal();     
 
@@ -476,7 +574,6 @@ class TokenStream
     bool matchUnicodeEscapeIdent(int32 *c);
     JSBool peekChars(intN n, jschar *cp);
     JSBool getXMLEntity();
-    jschar *findEOL();
 
     JSBool matchChar(int32 expect) {
         int32 c = getChar();
@@ -503,8 +600,8 @@ class TokenStream
     uintN               lookahead;      
     uintN               lineno;         
     uintN               flags;          
-    jschar              *linebase;      
-    jschar              *prevLinebase;  
+    const jschar        *linebase;      
+    const jschar        *prevLinebase;  
     TokenBuf            userbuf;        
     const char          *filename;      
     JSSourceHandler     listener;       
@@ -518,10 +615,6 @@ class TokenStream
 };
 
 } 
-
-
-#define LINE_SEPARATOR  0x2028
-#define PARA_SEPARATOR  0x2029
 
 extern void
 js_CloseTokenStream(JSContext *cx, js::TokenStream *ts);
