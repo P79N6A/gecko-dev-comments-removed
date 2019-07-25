@@ -1456,18 +1456,20 @@ nsUrlClassifierDBServiceWorker::GetLookupFragments(const nsACString& spec,
   nsTArray<nsCString> hosts;
   hosts.AppendElement(host);
 
-  host.BeginReading(begin);
-  host.EndReading(end);
-  int numHostComponents = 0;
-  while (RFindInReadable(NS_LITERAL_CSTRING("."), begin, end) &&
-         numHostComponents < MAX_HOST_COMPONENTS) {
-    
-    if (++numHostComponents >= 2) {
-      host.EndReading(iter);
-      hosts.AppendElement(Substring(end, iter));
-    }
-    end = begin;
+  if (!IsCanonicalizedIP(host)) {
     host.BeginReading(begin);
+    host.EndReading(end);
+    int numHostComponents = 0;
+    while (RFindInReadable(NS_LITERAL_CSTRING("."), begin, end) &&
+           numHostComponents < MAX_HOST_COMPONENTS) {
+      
+      if (++numHostComponents >= 2) {
+        host.EndReading(iter);
+        hosts.AppendElement(Substring(end, iter));
+      }
+      end = begin;
+      host.BeginReading(begin);
+    }
   }
 
   
