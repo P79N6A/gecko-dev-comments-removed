@@ -49,9 +49,7 @@
 #include "nsIForm.h"
 #include "nsIDOMText.h"
 #include "nsIDOMNode.h"
-#include "nsGenericElement.h"
 #include "nsIDOMHTMLCollection.h"
-#include "nsISelectElement.h"
 #include "nsISelectControlFrame.h"
 
 
@@ -136,8 +134,7 @@ nsHTMLOptionElement::GetForm(nsIDOMHTMLFormElement** aForm)
   NS_ENSURE_ARG_POINTER(aForm);
   *aForm = nsnull;
 
-  nsCOMPtr<nsIDOMHTMLSelectElement> selectControl =
-    do_QueryInterface(GetSelect());
+  nsHTMLSelectElement* selectControl = GetSelect();
 
   if (selectControl) {
     selectControl->GetForm(aForm);
@@ -202,7 +199,7 @@ nsHTMLOptionElement::SetSelected(PRBool aValue)
 {
   
   
-  nsCOMPtr<nsISelectElement> selectInt = do_QueryInterface(GetSelect());
+  nsHTMLSelectElement* selectInt = GetSelect();
   if (selectInt) {
     PRInt32 index;
     GetIndex(&index);
@@ -231,8 +228,7 @@ nsHTMLOptionElement::GetIndex(PRInt32* aIndex)
   *aIndex = -1; 
 
   
-  nsCOMPtr<nsIDOMHTMLSelectElement> selectElement =
-    do_QueryInterface(GetSelect());
+  nsHTMLSelectElement* selectElement = GetSelect();
 
   if (selectElement) {
     
@@ -291,7 +287,7 @@ nsHTMLOptionElement::BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
   
   
   
-  nsCOMPtr<nsISelectElement> selectInt = do_QueryInterface(GetSelect());
+  nsHTMLSelectElement* selectInt = GetSelect();
   if (!selectInt) {
     return NS_OK;
   }
