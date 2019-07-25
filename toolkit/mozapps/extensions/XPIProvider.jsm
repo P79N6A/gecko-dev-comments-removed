@@ -4297,7 +4297,20 @@ AddonInternal.prototype = {
     this.appDisabled = !isUsableAddon(this);
   },
 
-  toJSON: function(key) {
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  toJSON: function(aKey) {
     let obj = {};
     for (let prop in this) {
       
