@@ -3071,7 +3071,6 @@ private:
     nsXPCWrappedJS* mRoot;
     nsXPCWrappedJS* mNext;
     nsISupports* mOuter;    
-    nsCOMPtr<nsIThread> mThread;
 };
 
 
