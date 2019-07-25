@@ -274,8 +274,7 @@ bool HTTPUpload::GenerateRequestBody(const map<wstring, wstring> &parameters,
                                      const wstring &boundary,
                                      string *request_body) {
   vector<char> contents;
-  GetFileContents(upload_file, &contents);
-  if (contents.empty()) {
+  if (!GetFileContents(upload_file, &contents)) {
     return false;
   }
 
@@ -322,7 +321,7 @@ bool HTTPUpload::GenerateRequestBody(const map<wstring, wstring> &parameters,
 }
 
 
-void HTTPUpload::GetFileContents(const wstring &filename,
+bool HTTPUpload::GetFileContents(const wstring &filename,
                                  vector<char> *contents) {
   
   
@@ -339,13 +338,13 @@ void HTTPUpload::GetFileContents(const wstring &filename,
     std::streamoff length = file.tellg();
     contents->resize(length);
     if (length != 0) {
-        file.seekg(0, ios::beg);
-        file.read(&((*contents)[0]), length);
+      file.seekg(0, ios::beg);
+      file.read(&((*contents)[0]), length);
     }
     file.close();
-  } else {
-    contents->clear();
+    return true;
   }
+  return false;
 }
 
 
