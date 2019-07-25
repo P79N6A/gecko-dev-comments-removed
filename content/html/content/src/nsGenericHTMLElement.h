@@ -695,7 +695,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) GetFloatAttr(nsIAtom* aAttr, float aDefault, float* aValue);
+  NS_HIDDEN_(nsresult) GetFloatAttr(nsIAtom* aAttr, double aDefault, double* aValue);
 
   
 
@@ -705,7 +705,7 @@ protected:
 
 
 
-  NS_HIDDEN_(nsresult) SetFloatAttr(nsIAtom* aAttr, float aValue);
+  NS_HIDDEN_(nsresult) SetFloatAttr(nsIAtom* aAttr, double aValue);
 
   
 
@@ -1193,17 +1193,17 @@ protected:
 
 
 
-#define NS_IMPL_FLOAT_ATTR(_class, _method, _atom)                    \
-  NS_IMPL_FLOAT_ATTR_DEFAULT_VALUE(_class, _method, _atom, 0.0)
+#define NS_IMPL_DOUBLE_ATTR(_class, _method, _atom)                    \
+  NS_IMPL_DOUBLE_ATTR_DEFAULT_VALUE(_class, _method, _atom, 0.0)
 
-#define NS_IMPL_FLOAT_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default)  \
+#define NS_IMPL_DOUBLE_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default) \
   NS_IMETHODIMP                                                             \
-  _class::Get##_method(float* aValue)                                   \
+  _class::Get##_method(double* aValue)                                      \
   {                                                                         \
     return GetFloatAttr(nsGkAtoms::_atom, _default, aValue);                \
   }                                                                         \
   NS_IMETHODIMP                                                             \
-  _class::Set##_method(float aValue)                                    \
+  _class::Set##_method(double aValue)                                       \
   {                                                                         \
     return SetFloatAttr(nsGkAtoms::_atom, aValue);                          \
   }
