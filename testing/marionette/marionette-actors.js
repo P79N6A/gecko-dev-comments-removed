@@ -301,7 +301,19 @@ MarionetteDriverActor.prototype = {
     this.curFrame = null;
     this.addBrowser(win);
     this.curBrowser.newSession = newSession;
-    this.curBrowser.startSession(newSession);
+    this.curBrowser.startSession(newSession, win, this.whenBrowserStarted.bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+
+  whenBrowserStarted: function MDA_whenBrowserStarted(win, newSession) {
     try {
       if (!Services.prefs.getBoolPref("marionette.contentListener") || !newSession) {
         this.curBrowser.loadFrameScript("chrome://marionette/content/marionette-listener.js", win);
@@ -371,7 +383,7 @@ MarionetteDriverActor.prototype = {
     else if ((appName == "B2G") && (this.curBrowser == null)) {
       
       this.addBrowser(this.getCurrentWindow());
-      this.curBrowser.startSession(false);
+      this.curBrowser.startSession(false, this.getCurrentWindow(), this.whenBrowserStarted);
       this.messageManager.broadcastAsyncMessage("Marionette:restart", {});
     }
     else {
@@ -1558,21 +1570,27 @@ BrowserObj.prototype = {
 
 
 
-  startSession: function BO_startSession(newTab) {
+  startSession: function BO_startSession(newTab, win, callback) {
     if (appName == "B2G") {
-      return;
+      callback(win, newTab);
     }
-    if (newTab) {
+    else if (newTab) {
       this.addTab(this.startPage);
       
       this.browser.selectedTab = this.tab;
       let newTabBrowser = this.browser.getBrowserForTab(this.tab);
+      
+      newTabBrowser.addEventListener("load", function onLoad() {
+        newTabBrowser.removeEventListener("load", onLoad, true);
+        callback(win, newTab);
+      }, true);
     }
     else {
       
       if (this.browser != undefined && this.browser.selectedTab != undefined) {
         this.tab = this.browser.selectedTab;
       }
+      callback(win, newTab);
     }
   },
 
