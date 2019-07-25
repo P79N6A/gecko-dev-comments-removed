@@ -389,6 +389,12 @@ struct Lifetime
 
 
 
+    uint32 savedEnd;
+
+    
+
+
+
 
     bool loopTail;
 
@@ -401,8 +407,9 @@ struct Lifetime
     
     Lifetime *next;
 
-    Lifetime(uint32 offset, Lifetime *next)
-        : start(offset), end(offset), loopTail(false), write(false), next(next)
+    Lifetime(uint32 offset, uint32 savedEnd, Lifetime *next)
+        : start(offset), end(offset), savedEnd(savedEnd),
+          loopTail(false), write(false), next(next)
     {}
 };
 

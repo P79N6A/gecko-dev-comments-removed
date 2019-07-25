@@ -1046,7 +1046,17 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
             for (unsigned i = 0; i < savedCount; i++) {
                 LifetimeVariable &var = *saved[i];
                 JS_ASSERT(!var.lifetime && var.saved);
-                if (!var.savedEnd) {
+                if (var.live(targetOffset)) {
+                    
+
+
+
+                    var.lifetime = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
+                    if (!var.lifetime)
+                        return false;
+                    var.saved = NULL;
+                    saved[i--] = saved[--savedCount];
+                } else if (loop && !var.savedEnd) {
                     
 
 
@@ -1055,17 +1065,6 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
 
 
                     var.savedEnd = offset;
-                }
-                if (var.live(targetOffset)) {
-                    
-
-
-
-                    var.lifetime = ArenaNew<Lifetime>(pool, offset, var.saved);
-                    if (!var.lifetime)
-                        return false;
-                    var.saved = NULL;
-                    saved[i--] = saved[--savedCount];
                 }
             }
             break;
@@ -1078,7 +1077,7 @@ LifetimeScript::analyze(JSContext *cx, analyze::Script *analysis, JSScript *scri
             
             for (unsigned i = 0; i < savedCount; i++) {
                 LifetimeVariable &var = *saved[i];
-                var.lifetime = ArenaNew<Lifetime>(pool, offset, var.saved);
+                var.lifetime = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
                 if (!var.lifetime)
                     return false;
                 var.saved = NULL;
@@ -1135,7 +1134,7 @@ LifetimeScript::addVariable(JSContext *cx, LifetimeVariable &var, unsigned offse
                 }
             }
         }
-        var.lifetime = ArenaNew<Lifetime>(pool, offset, var.saved);
+        var.lifetime = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
         if (!var.lifetime)
             return false;
         var.saved = NULL;
@@ -1148,10 +1147,13 @@ LifetimeScript::killVariable(JSContext *cx, LifetimeVariable &var, unsigned offs
 {
     if (!var.lifetime) {
         
-        var.saved = ArenaNew<Lifetime>(pool, offset, var.saved);
+        if (!var.saved)
+            saved[savedCount++] = &var;
+        var.saved = ArenaNew<Lifetime>(pool, offset, var.savedEnd, var.saved);
         if (!var.saved)
             return false;
         var.saved->write = true;
+        var.savedEnd = 0;
         return true;
     }
     JS_ASSERT(offset < var.lifetime->start);
@@ -1179,20 +1181,69 @@ LifetimeScript::extendVariable(JSContext *cx, LifetimeVariable &var, unsigned st
     JS_ASSERT(var.lifetime);
     var.lifetime->start = start;
 
-    Lifetime *segment = var.lifetime;
-    if (segment->start >= end)
-        return true;
-    while (segment->next && segment->next->start < end)
-        segment = segment->next;
-    if (segment->end >= end)
-        return true;
+    
 
-    Lifetime *tail = ArenaNew<Lifetime>(pool, end, segment->next);
-    if (!tail)
-        return false;
-    tail->start = segment->end;
-    tail->loopTail = true;
-    segment->next = tail;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    Lifetime *segment = var.lifetime;
+    while (segment && segment->start < end) {
+        uint32 savedEnd = segment->savedEnd;
+        if (!segment->next || segment->next->start >= end) {
+            
+
+
+
+
+            if (segment->end >= end) {
+                
+                break;
+            }
+            savedEnd = end;
+        }
+        JS_ASSERT(savedEnd <= end);
+        if (savedEnd > segment->end) {
+            Lifetime *tail = ArenaNew<Lifetime>(pool, savedEnd, 0, segment->next);
+            if (!tail)
+                return false;
+            tail->start = segment->end;
+            tail->loopTail = true;
+
+            
+
+
+
+
+            if (segment->savedEnd > end) {
+                JS_ASSERT(savedEnd == end);
+                tail->savedEnd = segment->savedEnd;
+            }
+            segment->savedEnd = 0;
+
+            segment->next = tail;
+            segment = tail->next;
+        } else {
+            JS_ASSERT(segment->savedEnd == 0);
+            segment = segment->next;
+        }
+    }
 
     return true;
 }
