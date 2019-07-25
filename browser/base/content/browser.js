@@ -1400,7 +1400,7 @@ var gBrowserInit = {
 
       
       if (gPrefService.getBoolPref("devtools.toolbar.visible")) {
-        this.DeveloperToolbar.show();
+        DeveloperToolbar.show();
       }
     }
 
