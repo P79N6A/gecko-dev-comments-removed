@@ -1038,7 +1038,7 @@ namespace nanojit
     
     
 
-    void Assembler::asm_i2f(LIns *ins) {
+    void Assembler::asm_i2d(LIns *ins) {
         LIns *a = ins->oprnd1();
         NanoAssert(ins->isD() && a->isI());
 
@@ -1049,7 +1049,7 @@ namespace nanojit
         freeResourcesOf(ins);
     }
 
-    void Assembler::asm_u2f(LIns *ins) {
+    void Assembler::asm_ui2d(LIns *ins) {
         LIns *a = ins->oprnd1();
         NanoAssert(ins->isD() && a->isI());
 
@@ -1062,7 +1062,7 @@ namespace nanojit
         freeResourcesOf(ins);
     }
 
-    void Assembler::asm_f2i(LIns *ins) {
+    void Assembler::asm_d2i(LIns *ins) {
         LIns *a = ins->oprnd1();
         NanoAssert(ins->isI() && a->isD());
 
@@ -1138,7 +1138,7 @@ namespace nanojit
         NanoAssert(cond->isCmp());
         LOpcode condop = cond->opcode();
         if (isCmpDOpcode(condop))
-            return asm_fbranch(onFalse, cond, target);
+            return asm_branchd(onFalse, cond, target);
 
         
         
@@ -1282,7 +1282,7 @@ namespace nanojit
     
     
 
-    NIns* Assembler::asm_fbranch(bool onFalse, LIns *cond, NIns *target) {
+    NIns* Assembler::asm_branchd(bool onFalse, LIns *cond, NIns *target) {
         LOpcode condop = cond->opcode();
         NIns *patch;
         LIns *a = cond->oprnd1();
@@ -1325,11 +1325,11 @@ namespace nanojit
             }
             patch = _nIns;
         }
-        asm_fcmp(a, b);
+        asm_cmpd(a, b);
         return patch;
     }
 
-    void Assembler::asm_fcond(LIns *ins) {
+    void Assembler::asm_condd(LIns *ins) {
         LOpcode op = ins->opcode();
         LIns *a = ins->oprnd1();
         LIns *b = ins->oprnd2();
@@ -1359,13 +1359,13 @@ namespace nanojit
 
         freeResourcesOf(ins);
 
-        asm_fcmp(a, b);
+        asm_cmpd(a, b);
     }
 
     
     
     
-    void Assembler::asm_fcmp(LIns *a, LIns *b) {
+    void Assembler::asm_cmpd(LIns *a, LIns *b) {
         Register ra, rb;
         findRegFor2(FpRegs, a, ra, FpRegs, b, rb);
         UCOMISD(ra, rb);
@@ -1413,7 +1413,7 @@ namespace nanojit
             asm_immq(r, ins->immQ(), false);
         }
         else if (ins->isImmD()) {
-            asm_immf(r, ins->immQ(), false);
+            asm_immd(r, ins->immDasQ(), false);
         }
         else if (canRematLEA(ins)) {
             Register lhsReg = ins->oprnd1()->getReg();
@@ -1638,9 +1638,9 @@ namespace nanojit
         freeResourcesOf(ins);
     }
 
-    void Assembler::asm_immf(LIns *ins) {
+    void Assembler::asm_immd(LIns *ins) {
         Register r = prepareResultReg(ins, FpRegs);
-        asm_immf(r, ins->immQ(), true);
+        asm_immd(r, ins->immDasQ(), true);
         freeResourcesOf(ins);
     }
 
@@ -1669,7 +1669,7 @@ namespace nanojit
         }
     }
 
-    void Assembler::asm_immf(Register r, uint64_t v, bool canClobberCCs) {
+    void Assembler::asm_immd(Register r, uint64_t v, bool canClobberCCs) {
         NanoAssert(IsFpReg(r));
         if (v == 0 && canClobberCCs) {
             XORPS(r);
