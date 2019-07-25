@@ -119,9 +119,20 @@ class nsACString;
 
 class nsStringContainer;
 
+
+
+
+
+
+
+
+
+
+
+
 struct nsStringContainer_base
 {
-private:
+protected:
   void *d1;
   PRUint32 d2;
   PRUint32 d3;
