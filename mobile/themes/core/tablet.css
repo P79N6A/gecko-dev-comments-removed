@@ -50,7 +50,7 @@
   -moz-padding-start: 0px;
 }
 
-documenttab[tablet="true"] {
+#tabs[tablet="true"] documenttab {
   
   width: 200px;
   padding: 12px;
@@ -58,7 +58,7 @@ documenttab[tablet="true"] {
   background: none;
 }
 
-documenttab[tablet="true"][selected="true"] {
+#tabs[tablet="true"] documenttab[selected="true"] {
   background: none;
 }
 
