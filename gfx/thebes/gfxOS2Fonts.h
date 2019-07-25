@@ -66,8 +66,6 @@ public:
     cairo_font_face_t *CairoFontFace();
     cairo_scaled_font_t *CairoScaledFont();
 
-    virtual nsString GetUniqueName();
-
     
     virtual PRUint32 GetSpaceGlyph() {
         if (!mMetrics)

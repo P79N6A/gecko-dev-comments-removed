@@ -170,12 +170,6 @@ gfxFT2FontBase::GetMetrics()
     return mMetrics;
 }
 
-nsString
-gfxFT2FontBase::GetUniqueName()
-{
-    return GetName();
-}
-
 
 PRUint32
 gfxFT2FontBase::GetSpaceGlyph()
