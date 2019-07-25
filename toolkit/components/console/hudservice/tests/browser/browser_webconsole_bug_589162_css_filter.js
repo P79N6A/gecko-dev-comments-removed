@@ -8,6 +8,7 @@
 
 
 
+
 const TEST_URI = "data:text/html,<div style='font-size:3em;" +
   "foobarCssParser:baz'>test CSS parser filter</div>"
 
@@ -15,8 +16,8 @@ function onContentLoaded()
 {
   browser.removeEventListener("load", arguments.callee, true);
 
-  let HUD = HUDService.getDisplayByURISpec(content.location.href);
-  let hudId = HUD.getAttribute("id");
+  hudId = HUDService.displaysIndex()[0];
+  HUD = HUDService.hudWeakReferences[hudId].get().HUDBox;
   let filterBox = HUD.querySelector(".hud-filter-box");
   let outputNode = HUD.querySelector(".hud-output-node");
 

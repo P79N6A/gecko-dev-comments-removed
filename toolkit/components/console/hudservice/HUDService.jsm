@@ -1444,40 +1444,6 @@ HUD_SERVICE.prototype =
 
 
 
-
-
-
-
-  setOnErrorHandler: function HS_setOnErrorHandler(aWindow) {
-    var self = this;
-    var window = aWindow.wrappedJSObject;
-    var console = window.console;
-    var origOnerrorFunc = window.onerror;
-    window.onerror = function windowOnError(aErrorMsg, aURL, aLineNumber)
-    {
-      if (aURL && !(aURL in self.uriRegistry)) {
-        var lineNum = "";
-        if (aLineNumber) {
-          lineNum = self.getFormatStr("errLine", [aLineNumber]);
-        }
-        console.error(aErrorMsg + " @ " + aURL + " " + lineNum);
-      }
-
-      if (origOnerrorFunc) {
-        origOnerrorFunc(aErrorMsg, aURL, aLineNumber);
-      }
-
-      return false;
-    };
-  },
-
-  
-
-
-
-
-
-
   registerActiveContext: function HS_registerActiveContext(aContextDOMId)
   {
     this.activatedContexts.push(aContextDOMId);
@@ -1932,8 +1898,8 @@ HUD_SERVICE.prototype =
     parent.removeChild(outputNode);
 
     this.windowRegistry[id].forEach(function(aContentWindow) {
-      if (aContentWindow.wrappedJSObject.console instanceof HUDConsole) {
-        delete aContentWindow.wrappedJSObject.console;
+      if (aContentWindow.console instanceof HUDConsole) {
+        delete aContentWindow.console;
       }
     });
 
@@ -1981,37 +1947,46 @@ HUD_SERVICE.prototype =
 
 
 
-  getDisplayByURISpec: function HS_getDisplayByURISpec(aURISpec)
-  {
-    
-    var hudIds = this.uriRegistry[aURISpec];
-    if (hudIds.length == 1) {
-      
-      return this.getHeadsUpDisplay(hudIds[0]);
-    }
-    else {
-      
-      
-      return this.getHeadsUpDisplay(hudIds[0]);
-    }
-  },
-
-  
-
-
-
-
-
 
   getHudIdByWindow: function HS_getHudIdByWindow(aContentWindow)
   {
+    
     for (let hudId in this.windowRegistry) {
       if (this.windowRegistry[hudId] &&
           this.windowRegistry[hudId].indexOf(aContentWindow) != -1) {
         return hudId;
       }
     }
-    return null;
+
+    
+    
+    
+    let [ , tabBrowser, browser ] = ConsoleUtils.getParents(aContentWindow);
+    if (!tabBrowser) {
+      return null;
+    }
+
+    let notificationBox = tabBrowser.getNotificationBox(browser);
+    let hudBox = notificationBox.querySelector(".hud-box");
+    if (!hudBox) {
+      return null;
+    }
+
+    
+    let hudId = hudBox.id;
+    this.windowRegistry[hudId].push(aContentWindow);
+
+    let wu = aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                           .getInterface(Ci.nsIDOMWindowUtils);
+
+    let uri = aContentWindow.document.location.href;
+    if (!this.uriRegistry[uri]) {
+      this.uriRegistry[uri] = [ hudId ];
+    } else {
+      this.uriRegistry[uri].push(hudId);
+    }
+
+    return hudId;
   },
 
   
@@ -2043,20 +2018,6 @@ HUD_SERVICE.prototype =
 
   displays: function HS_displays() {
     return this._headsUpDisplays;
-  },
-
-  
-
-
-
-
-
-  getHUDIdsForURISpec: function HS_getHUDIdsForURISpec(aURISpec)
-  {
-    if (this.uriRegistry[aURISpec]) {
-      return this.uriRegistry[aURISpec];
-    }
-    return [];
   },
 
   
@@ -2221,34 +2182,6 @@ HUD_SERVICE.prototype =
 
 
 
-  reportConsoleServiceMessage:
-  function HS_reportConsoleServiceMessage(aConsoleMessage)
-  {
-    this.logActivity("console-listener", null, aConsoleMessage);
-  },
-
-  
-
-
-
-
-  reportConsoleServiceContentScriptError:
-  function HS_reportConsoleServiceContentScriptError(aScriptError)
-  {
-    try {
-      var uri = Services.io.newURI(aScriptError.sourceName, null, null);
-    }
-    catch(ex) {
-      var uri = { spec: "" };
-    }
-    this.logActivity("console-listener", uri, aScriptError);
-  },
-
-  
-
-
-
-
 
 
   generateConsoleMessage:
@@ -2396,8 +2329,7 @@ HUD_SERVICE.prototype =
             };
 
             
-            let loggedNode =
-              self.logActivity("network", aChannel.URI, httpActivity);
+            let loggedNode = self.logActivity("network", hudId, httpActivity);
 
             
             
@@ -2590,7 +2522,9 @@ HUD_SERVICE.prototype =
 
 
 
-  logNetActivity: function HS_logNetActivity(aType, aURI, aActivityObject)
+
+
+  logNetActivity: function HS_logNetActivity(aType, aActivityObject)
   {
     var outputNode, hudId;
     try {
@@ -2640,22 +2574,10 @@ HUD_SERVICE.prototype =
 
 
 
-  logConsoleActivity: function HS_logConsoleActivity(aURI, aActivityObject)
-  {
-    var displayNode, outputNode, hudId;
-    try {
-        var hudIds = this.uriRegistry[aURI.spec];
-        hudId = hudIds[0];
-    }
-    catch (ex) {
-      
-      
-      
-      if (!displayNode) {
-        return;
-      }
-    }
 
+
+  logConsoleActivity: function HS_logConsoleActivity(aHUDId, aActivityObject)
+  {
     var _msgLogLevel = this.scriptMsgLogLevel[aActivityObject.flags];
     var msgLogLevel = this.getStr(_msgLogLevel);
 
@@ -2670,7 +2592,7 @@ HUD_SERVICE.prototype =
     var message = {
       activity: aActivityObject,
       origin: "console-listener",
-      hudId: hudId,
+      hudId: aHUDId,
     };
 
     var lineColSubs = [aActivityObject.lineNumber,
@@ -2691,8 +2613,7 @@ HUD_SERVICE.prototype =
                       lineCol + " " +
                       msgCategory + " " + aActivityObject.category;
 
-    displayNode = this.getHeadsUpDisplay(hudId);
-    outputNode = displayNode.querySelectorAll(".hud-output-node")[0];
+    let outputNode = this.hudWeakReferences[aHUDId].get().outputNode;
 
     var messageObject =
     this.messageFactory(message, message.level, outputNode, aActivityObject);
@@ -2711,15 +2632,14 @@ HUD_SERVICE.prototype =
 
 
 
-  logActivity: function HS_logActivity(aType, aURI, aActivityObject)
-  {
-    var displayNode, outputNode, hudId;
 
+  logActivity: function HS_logActivity(aType, aHUDId, aActivityObject)
+  {
     if (aType == "network") {
-      return this.logNetActivity(aType, aURI, aActivityObject);
+      return this.logNetActivity(aType, aActivityObject);
     }
     else if (aType == "console-listener") {
-      this.logConsoleActivity(aURI, aActivityObject);
+      this.logConsoleActivity(aHUDId, aActivityObject);
     }
   },
 
@@ -2761,25 +2681,6 @@ HUD_SERVICE.prototype =
 
     aConsoleNode.appendChild(groupNode);
     return groupNode;
-  },
-
-  
-
-
-
-
-
-
-  getActivityOutputNode: function HS_getActivityOutputNode(aURI)
-  {
-    
-    var display = this.getDisplayByURISpec(aURI.spec);
-    if (display) {
-      return this.getOutputNodeById(display);
-    }
-    else {
-      throw new Error("Cannot get outputNode by hudId");
-    }
   },
 
   
@@ -3023,9 +2924,6 @@ HUD_SERVICE.prototype =
     else {
       aContentWindow.wrappedJSObject.console = hud.console;
     }
-
-    
-    this.setOnErrorHandler(aContentWindow);
 
     
     this.createController(xulWindow);
@@ -5059,6 +4957,79 @@ ConsoleUtils = {
     let boxObject = scrollBoxNode.boxObject;
     let nsIScrollBoxObject = boxObject.QueryInterface(Ci.nsIScrollBoxObject);
     nsIScrollBoxObject.ensureElementIsVisible(aNode);
+  },
+
+  
+
+
+
+
+
+
+
+  getHUDIdsForScriptError:
+  function ConsoleUtils_getHUDIdsForScriptError(aScriptError) {
+    if (aScriptError instanceof Ci.nsIScriptError2) {
+      let windowID = aScriptError.outerWindowID;
+      if (windowID) {
+        
+        
+        let someWindow = Services.wm.getMostRecentWindow(null);
+        if (someWindow) {
+          let windowUtils = someWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                      .getInterface(Ci.nsIDOMWindowUtils);
+
+          
+          
+          
+          
+          let content = windowUtils.getOuterWindowWithId(windowID);
+          if (content) {
+            let hudId = HUDService.getHudIdByWindow(content);
+            if (hudId) {
+              return [ hudId ];
+            }
+          }
+        }
+      }
+    }
+
+    
+    
+    let hudIds = HUDService.uriRegistry[aScriptError.sourceName];
+    return hudIds ? hudIds : [];
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  getParents: function ConsoleUtils_getParents(aContentWindow) {
+    let chromeEventHandler =
+      aContentWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                    .getInterface(Ci.nsIWebNavigation)
+                    .QueryInterface(Ci.nsIDocShell)
+                    .chromeEventHandler;
+    if (!chromeEventHandler) {
+      return [ null, null, null ];
+    }
+
+    let chromeWindow = chromeEventHandler.ownerDocument.defaultView;
+    let gBrowser = XPCNativeWrapper.unwrap(chromeWindow).gBrowser;
+    let documentElement = chromeWindow.document.documentElement;
+    if (!documentElement || !gBrowser ||
+        documentElement.getAttribute("windowtype") !== "navigator:browser") {
+      
+      return [ chromeWindow, null, null ];
+    }
+
+    return [ chromeWindow, gBrowser, chromeEventHandler ];
   }
 };
 
@@ -5516,86 +5487,26 @@ HUDConsoleObserver = {
     }
 
     if (aSubject instanceof Ci.nsIScriptError) {
+      let hudIds = ConsoleUtils.getHUDIdsForScriptError(aSubject);
+
       switch (aSubject.category) {
         
         
         case "XPConnect JavaScript":
-          
-          
         case "component javascript":
         case "chrome javascript":
-          
         case "chrome registration":
-          
         case "XBL":
-          
         case "XBL Prototype Handler":
-          
         case "XBL Content Sink":
-          
         case "xbl javascript":
-          
         case "FrameConstructor":
-          
           return;
 
-        
-        case "HUDConsole":
-        case "CSS Parser":
-          
-        case "CSS Loader":
-          
-        case "content javascript":
-          
-        case "DOM Events":
-          
-          
-          
-          
-          
-        case "DOM:HTML":
-          
-        case "DOM Window":
-          
-          
-          
-        case "SVG":
-          
-          
-        case "ImageMap":
-          
-        case "HTML":
-          
-        case "Canvas":
-          
-          
-          
-        case "DOM3 Load":
-          
-          
-          
-          
-          
-        case "DOM":
-          
-          
-          
-          
-        case "malformed-xml":
-          
-          
-          
-          
-        case "DOM Worker javascript":
-          
-          
-          
-          
-          
-          HUDService.reportConsoleServiceContentScriptError(aSubject);
-          return;
         default:
-          HUDService.reportConsoleServiceMessage(aSubject);
+          for (let i = 0; i < hudIds.length; i++) {
+            HUDService.logActivity("console-listener", hudIds[i], aSubject);
+          }
           return;
       }
     }
