@@ -155,7 +155,9 @@ TiledThebesLayerOGL::ProcessUploadQueue()
       resolution.height *= metrics.mResolution.height;
     }
 
+    const FrameMetrics& metrics = GetParent()->GetFrameMetrics();
     mReusableTileStore->HarvestTiles(&mVideoMemoryTiledBuffer,
+                                     metrics.mContentSize,
                                      mVideoMemoryTiledBuffer.GetValidRegion(),
                                      mMainMemoryTiledBuffer.GetValidRegion(),
                                      mVideoMemoryTiledBuffer.GetResolution(),
@@ -212,10 +214,13 @@ TiledThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer, const nsIntPoint& aOf
   ProcessUploadQueue();
 
   
-  if (mReusableTileStore)
-    mReusableTileStore->DrawTiles(this, mVideoMemoryTiledBuffer.GetValidRegion(),
+  if (mReusableTileStore) {
+    const FrameMetrics& metrics = GetParent()->GetFrameMetrics();
+    mReusableTileStore->DrawTiles(this, metrics.mContentSize,
+                                  mVideoMemoryTiledBuffer.GetValidRegion(),
                                   mVideoMemoryTiledBuffer.GetResolution(),
                                   GetEffectiveTransform(), aOffset);
+  }
 
   
   const nsIntRegion& visibleRegion = GetEffectiveVisibleRegion();

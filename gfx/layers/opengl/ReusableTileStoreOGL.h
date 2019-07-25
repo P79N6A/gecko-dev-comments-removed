@@ -62,6 +62,7 @@ public:
   
   
   void HarvestTiles(TiledLayerBufferOGL* aVideoMemoryTiledBuffer,
+                    const nsIntSize& aContentSize,
                     const nsIntRegion& aOldValidRegion,
                     const nsIntRegion& aNewValidRegion,
                     const gfxSize& aOldResolution,
@@ -71,6 +72,7 @@ public:
   
   
   void DrawTiles(TiledThebesLayerOGL* aLayer,
+                 const nsIntSize& aContentSize,
                  const nsIntRegion& aValidRegion,
                  const gfxSize& aResolution,
                  const gfx3DMatrix& aTransform,
