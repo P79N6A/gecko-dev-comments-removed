@@ -5383,9 +5383,6 @@ WebGLContext::VertexAttribPointer(WebGLuint index, WebGLint size, WebGLenum type
                                   WebGLboolean normalized, WebGLsizei stride,
                                   WebGLintptr byteOffset)
 {
-    
-    byteOffset = int32_t(byteOffset);
-
     if (!IsContextStable())
         return;
 
