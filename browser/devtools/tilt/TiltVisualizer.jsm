@@ -853,6 +853,7 @@ TiltVisualizer.Controller = function TV_Controller(aCanvas, aPresenter)
   aCanvas.addEventListener("MozMousePixelScroll", this.onMozScroll, false);
   aCanvas.addEventListener("keydown", this.onKeyDown, false);
   aCanvas.addEventListener("keyup", this.onKeyUp, false);
+  aCanvas.addEventListener("blur", this.onBlur, false);
 
   
   aPresenter.contentWindow.addEventListener("resize", this.onResize, false);
@@ -1011,6 +1012,13 @@ TiltVisualizer.Controller.prototype = {
   
 
 
+  onBlur: function TVC_onBlur(e) {
+    this.arcball._keyCode = {};
+  },
+
+  
+
+
   onResize: function TVC_onResize(e)
   {
     let width = e.target.innerWidth;
@@ -1049,6 +1057,7 @@ TiltVisualizer.Controller.prototype = {
     canvas.removeEventListener("MozMousePixelScroll", this.onMozScroll, false);
     canvas.removeEventListener("keydown", this.onKeyDown, false);
     canvas.removeEventListener("keyup", this.onKeyUp, false);
+    canvas.removeEventListener("blur", this.onBlur, false);
     presenter.contentWindow.removeEventListener("resize", this.onResize,false);
     presenter.ondraw = null;
   }
