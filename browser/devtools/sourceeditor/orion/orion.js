@@ -5673,7 +5673,10 @@ orion.textview.TextView = (function() {
 				this._ignorePaste = true;
 				try {
 					result = document.execCommand("paste", false, null);
-				} catch (ex) {}
+				} catch (ex) {
+					
+					result = clipboardDiv.childNodes.length > 1 || clipboardDiv.firstChild && clipboardDiv.firstChild.childNodes.length > 0;
+				}
 				this._ignorePaste = false;
 				if (!result) {
 					
