@@ -244,7 +244,9 @@ ElementManager.prototype = {
 
 
 
-  find: function EM_find(win, values, notify, all) {
+
+
+  find: function EM_find(win, values, on_success, on_error, all) {
     let startTime = values.time ? values.time : new Date().getTime();
     let startNode = (values.element != undefined) ? this.getKnownElement(values.element, win) : win.document;
     if (this.elementStrategies.indexOf(values.using) < 0) {
@@ -258,19 +260,19 @@ ElementManager.prototype = {
         for (let i = 0 ; i < found.length ; i++) {
           ids.push(this.addToKnownElements(found[i]));
         }
-        notify(ids);
+        on_success(ids);
       }
       else {
         let id = this.addToKnownElements(found);
-        notify(id);
+        on_success(id);
       }
       return;
     } else {
       if (this.searchTimeout == 0 || new Date().getTime() - startTime > this.searchTimeout) {
-        throw new ElementException("Unable to locate element: " + values.value, 7, null);
+        on_error("Unable to locate element: " + values.value, 7, null);
       } else {
         values.time = startTime;
-        this.timer.initWithCallback(this.find.bind(this, win, values, notify, all), 100, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
+        this.timer.initWithCallback(this.find.bind(this, win, values, on_success, on_error, all), 100, Components.interfaces.nsITimer.TYPE_ONE_SHOT);
       }
     }
   },
