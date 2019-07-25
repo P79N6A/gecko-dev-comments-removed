@@ -9234,14 +9234,7 @@ nsHTMLPluginObjElementSH::GetPluginInstanceIfSafe(nsIXPConnectWrappedNative *wra
   nsCOMPtr<nsIObjectLoadingContent> objlc(do_QueryInterface(content));
   NS_ASSERTION(objlc, "Object nodes must implement nsIObjectLoadingContent");
 
-  
-  
-  if (!nsContentUtils::IsSafeToRunScript()) {
-    return objlc->GetPluginInstance(_result);
-  }
-
-  
-  return objlc->EnsureInstantiation(_result);
+  return objlc->GetPluginInstance(_result);
 }
 
 
@@ -9345,19 +9338,8 @@ nsHTMLPluginObjElementSH::SetupProtoChain(nsIXPConnectWrappedNative *wrapper,
 
   if (!pi_obj) {
     
-
     return NS_OK;
   }
-
-  if (IsObjInProtoChain(cx, obj, pi_obj)) {
-    
-    
-    
-    
-
-    return NS_OK;
-  }
-
 
   
   
