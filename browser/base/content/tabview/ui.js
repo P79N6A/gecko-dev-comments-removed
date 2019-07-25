@@ -1206,12 +1206,17 @@ let UI = {
 
     
     
+    
+    
     if (!force && !this.isTabViewVisible())
       return;
 
-    var oldPageBounds = new Rect(this._pageBounds);
-    var newPageBounds = Items.getPageBounds();
+    let oldPageBounds = new Rect(this._pageBounds);
+    let newPageBounds = Items.getPageBounds();
     if (newPageBounds.equals(oldPageBounds))
+      return;
+
+    if (!this.shouldResizeItems())
       return;
 
     var items = Items.getTopLevelItems();
@@ -1280,6 +1285,58 @@ let UI = {
 
     this._pageBounds = Items.getPageBounds();
     this._save();
+  },
+  
+  
+  
+  
+  
+  
+  
+  
+  shouldResizeItems: function UI_shouldResizeItems() {
+
+    let newPageBounds = Items.getPageBounds();
+    
+    
+    if (this._minimalRect === undefined || this._feelsCramped === undefined) {
+
+      
+      
+      
+      let feelsCramped = false;
+      let minimalRect = new Rect(0, 0, 1, 1);
+      
+      Items.getTopLevelItems()
+        .forEach(function UI_shouldResizeItems_checkItem(item) {
+          let bounds = new Rect(item.getBounds());
+          feelsCramped = feelsCramped || (item.userSize &&
+            (item.userSize.x > bounds.width || item.userSize.y > bounds.height));
+          bounds.inset(-Trenches.defaultRadius, -Trenches.defaultRadius);
+          minimalRect = minimalRect.union(bounds);
+        });
+      
+      
+      minimalRect.left = 0;
+      minimalRect.top  = 0;
+  
+      this._minimalRect = minimalRect;
+      this._feelsCramped = feelsCramped;
+    }
+
+    return this._minimalRect.width > newPageBounds.width ||
+      this._minimalRect.height > newPageBounds.height ||
+      this._feelsCramped;
+  },
+  
+  
+  
+  
+  
+  
+  clearShouldResizeItems: function UI_clearShouldResizeItems() {
+    delete this._minimalRect;
+    delete this._feelsCramped;
   },
 
   
