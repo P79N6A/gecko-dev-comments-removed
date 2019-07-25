@@ -1153,9 +1153,15 @@ class ScriptAnalysis
                            Vector<SlotValue> *pending);
     void checkBranchTarget(JSContext *cx, uint32_t targetOffset, Vector<uint32_t> &branchTargets,
                            SSAValue *values, uint32_t stackDepth);
+    void checkExceptionTarget(JSContext *cx, uint32_t catchOffset,
+                              Vector<uint32_t> &exceptionTargets);
     void mergeBranchTarget(JSContext *cx, const SSAValue &value, uint32_t slot,
                            const Vector<uint32_t> &branchTargets);
-    void removeBranchTarget(Vector<uint32_t> &branchTargets, uint32_t offset);
+    void mergeExceptionTarget(JSContext *cx, const SSAValue &value, uint32_t slot,
+                              const Vector<uint32_t> &exceptionTargets);
+    bool removeBranchTarget(Vector<uint32_t> &branchTargets,
+                            Vector<uint32_t> &exceptionTargets,
+                            uint32_t offset);
     void freezeNewValues(JSContext *cx, uint32_t offset);
 
     struct TypeInferenceState {
