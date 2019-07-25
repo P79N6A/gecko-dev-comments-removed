@@ -84,7 +84,6 @@
 #include "nsILocalFileWin.h"
 #endif
 #include "xpcprivate.h"
-#include "nsIResProtocolHandler.h"
 
 #ifdef MOZ_ENABLE_LIBXUL
 #include "mozilla/scache/StartupCache.h"
@@ -622,11 +621,24 @@ mozJSComponentLoader::LoadModuleFromJAR(nsILocalFile *aJarFile,
 {
     nsresult rv;
 
-    nsCAutoString fullSpec, fileSpec;
-    NS_GetURLSpecFromActualFile(aJarFile, fileSpec);
-    fullSpec = "jar:";
-    fullSpec += fileSpec;
-    fullSpec += "!/";
+    nsCAutoString fullSpec;
+
+#ifdef MOZ_OMNIJAR
+    PRBool equal;
+    rv = aJarFile->Equals(mozilla::OmnijarPath(), &equal);
+    if (NS_SUCCEEDED(rv) && equal) {
+        fullSpec = "resource://gre/";
+    } else {
+#endif
+        nsCAutoString fileSpec;
+        NS_GetURLSpecFromActualFile(aJarFile, fileSpec);
+        fullSpec = "jar:";
+        fullSpec += fileSpec;
+        fullSpec += "!/";
+#ifdef MOZ_OMNIJAR
+    }
+#endif
+
     fullSpec += aComponentPath;
 
     nsCOMPtr<nsIURI> uri;
@@ -807,35 +819,6 @@ class JSPrincipalsHolder
     JSPrincipals *mPrincipals;
 };
 
-static const char baseName[2][5] = { "gre/", "app/" };
-
-static inline PRBool
-canonicalizeBase(nsCAutoString &spec, nsACString &out, mozilla::Omnijar::Type aType)
-{
-    nsCAutoString base;
-    nsresult rv = mozilla::Omnijar::GetURIString(aType, base);
-
-    if (NS_FAILED(rv) || !base.Length())
-        return PR_FALSE;
-
-    if (base.Compare(spec.get(), PR_FALSE, base.Length()))
-        return PR_FALSE;
-
-    out.Append("/resource/");
-    out.Append(baseName[aType]);
-    out.Append(Substring(spec, base.Length()));
-    return PR_TRUE;
-}
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -854,81 +837,29 @@ canonicalizeBase(nsCAutoString &spec, nsACString &out, mozilla::Omnijar::Type aT
 static nsresult
 PathifyURI(nsIURI *in, nsACString &out)
 { 
-    PRBool equals;
-    nsresult rv;
-    nsCOMPtr<nsIURI> uri = in;
-    nsCAutoString spec;
-
-    out = "jsloader";
-
-    
-    
-    if (NS_SUCCEEDED(in->SchemeIs("resource", &equals)) && equals) {
-        nsCOMPtr<nsIIOService> ioService = do_GetIOService(&rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIProtocolHandler> ph;
-        rv = ioService->GetProtocolHandler("resource", getter_AddRefs(ph));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIResProtocolHandler> irph(do_QueryInterface(ph, &rv));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = irph->ResolveURI(in, spec);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = ioService->NewURI(spec, nsnull, nsnull, getter_AddRefs(uri));
-        NS_ENSURE_SUCCESS(rv, rv);
-    } else {
-        rv = in->GetSpec(spec);
-        NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-    if (!canonicalizeBase(spec, out, mozilla::Omnijar::GRE) &&
-        !canonicalizeBase(spec, out, mozilla::Omnijar::APP)) {
-        if (NS_SUCCEEDED(uri->SchemeIs("file", &equals)) && equals) {
-            nsCOMPtr<nsIFileURL> baseFileURL;
-            baseFileURL = do_QueryInterface(uri, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCAutoString path;
-            rv = baseFileURL->GetPath(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            out.Append(path);
-        } else if (NS_SUCCEEDED(uri->SchemeIs("jar", &equals)) && equals) {
-            nsCOMPtr<nsIJARURI> jarURI = do_QueryInterface(uri, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCOMPtr<nsIURI> jarFileURI;
-            rv = jarURI->GetJARFile(getter_AddRefs(jarFileURI));
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCOMPtr<nsIFileURL> jarFileURL;
-            jarFileURL = do_QueryInterface(jarFileURI, &rv);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            nsCAutoString path;
-            rv = jarFileURL->GetPath(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-            out.Append(path);
-
-            rv = jarURI->GetJAREntry(path);
-            NS_ENSURE_SUCCESS(rv, rv);
-            out.Append("/");
-            out.Append(path);
-        } else { 
-            nsCAutoString spec;
-            rv = uri->GetSpec(spec);
-            NS_ENSURE_SUCCESS(rv, rv);
-
-            out.Append("/");
-            out.Append(spec);
-        }
-    }
-
-    out.Append(".bin");
-    return NS_OK;
+   out = "jsloader/";
+   nsCAutoString scheme;
+   nsresult rv = in->GetScheme(scheme);
+   NS_ENSURE_SUCCESS(rv, rv);
+   out.Append(scheme);
+   nsCAutoString host;
+   
+   in->GetHost(host);
+#ifdef MOZ_OMNIJAR
+   if (scheme.Equals("resource") && host.Length() == 0){
+       host = "gre";
+   }
+#endif
+   if (host.Length()) {
+       out.Append("/");
+       out.Append(host);
+   }
+   nsCAutoString path;
+   rv = in->GetPath(path);
+   NS_ENSURE_SUCCESS(rv, rv);
+   out.Append(path);
+   out.Append(".bin");
+   return NS_OK;
 }
 
 
