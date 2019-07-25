@@ -334,9 +334,6 @@ public:
   PRInt32 GetInFlowContentLength();
 
   
-  
-  void ClearTextRun();
-  
 
 
 
@@ -355,6 +352,12 @@ public:
 
   gfxTextRun* GetTextRun() { return mTextRun; }
   void SetTextRun(gfxTextRun* aTextRun) { mTextRun = aTextRun; }
+  
+
+
+
+
+  void ClearTextRun(nsTextFrame* aStartContinuation);
 
   
   
