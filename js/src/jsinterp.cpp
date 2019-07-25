@@ -199,7 +199,6 @@ js::GetBlockChainFast(JSContext *cx, StackFrame *fp, JSOp op, size_t oplen)
 
     pc += oplen;
     op = JSOp(*pc);
-    JS_ASSERT(js_GetOpcode(cx, fp->script(), pc) == op);
 
     
     if (op == JSOP_NULLBLOCKCHAIN)
