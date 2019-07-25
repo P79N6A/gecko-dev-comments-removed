@@ -22,61 +22,68 @@ function onTabViewLoadedAndShown() {
   ok(TabView.isVisible(), "Tab View is visible");
 
   
-  contentWindow = document.getElementById("tab-view").contentWindow;  
+  contentWindow = document.getElementById("tab-view").contentWindow;
   verifyCleanState("start");
-  
+
   
   registerCleanupFunction(function() {
     pb.privateBrowsingEnabled = false;
   });
-  
+
   
   let box = new contentWindow.Rect(20, 20, 180, 180);
   let groupItem = new contentWindow.GroupItem([], {bounds: box, title: "test1"});
-  let id = groupItem.id; 
+  let id = groupItem.id;
   is(contentWindow.GroupItems.groupItems.length, 2, "we now have two groups");
   registerCleanupFunction(function() {
     contentWindow.GroupItems.groupItem(id).close();
   });
-  
+
   
   contentWindow.UI.setActive(groupItem);
-  
+
   
   let count = contentWindow.GroupItems.groupItems.length;
   for (let a = 0; a < count; a++) {
     let gi = contentWindow.GroupItems.groupItems[a];
     groupTitles[a] = gi.getTitle();
   }
+
   
-  
-  gBrowser.addTab("about:robots");
+  gBrowser.loadOneTab("about:robots", { inBackground: false });
   is(gBrowser.tabs.length, 2, "we now have 2 tabs");
   registerCleanupFunction(function() {
     gBrowser.removeTab(gBrowser.tabs[1]);
   });
 
   afterAllTabsLoaded(function() {
-    
-    for (let a = 0; a < gBrowser.tabs.length; a++)
-      normalURLs.push(gBrowser.tabs[a].linkedBrowser.currentURI.spec);
-
-    
-    verifyNormal();
-
-    
-    togglePBAndThen(function() {
-      ok(!TabView.isVisible(), "Tab View is no longer visible");
-      verifyPB();
+    showTabView(function() {
       
+      for (let a = 0; a < gBrowser.tabs.length; a++)
+        normalURLs.push(gBrowser.tabs[a].linkedBrowser.currentURI.spec);
+
+      
+      verifyNormal();
+
       
       togglePBAndThen(function() {
-        ok(TabView.isVisible(), "Tab View is visible again");
-        verifyNormal();
+        whenTabViewIsHidden(function() {
+          ok(!TabView.isVisible(), "Tab View is no longer visible");
 
-        hideTabView(onTabViewHidden);
+          verifyPB();
+
+          
+          togglePBAndThen(function() {
+            whenTabViewIsShown(function() {
+              ok(TabView.isVisible(), "Tab View is visible again");
+              verifyNormal();
+
+              hideTabView(onTabViewHidden);
+            });
+          });
+        });
       });
-    });
+    }); 
   });
 }
 
