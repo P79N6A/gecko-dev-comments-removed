@@ -10,6 +10,8 @@
 #include "nsISVGSVGFrame.h"
 #include "nsSVGContainerFrame.h"
 
+class nsSVGForeignObjectFrame;
+
 
 
 
@@ -26,6 +28,13 @@ protected:
 public:
   NS_DECL_QUERYFRAME
   NS_DECL_FRAMEARENA_HELPERS
+
+#ifdef DEBUG
+  ~nsSVGOuterSVGFrame() {
+    NS_ASSERTION(mForeignObjectHash.Count() == 0,
+                 "foreignObject(s) still registered!");
+  }
+#endif
 
   
   virtual nscoord GetMinWidth(nsRenderingContext *aRenderingContext);
@@ -105,6 +114,18 @@ public:
   
   virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
 
+  
+
+
+
+
+
+
+
+
+  void RegisterForeignObject(nsSVGForeignObjectFrame* aFrame);
+  void UnregisterForeignObject(nsSVGForeignObjectFrame* aFrame);
+
   virtual bool HasChildrenOnlyTransform(gfxMatrix *aTransform) const {
     
     
@@ -137,6 +158,13 @@ protected:
 
 
   bool IsRootOfImage();
+
+  
+  
+  
+  
+  
+  nsTHashtable<nsVoidPtrHashKey> mForeignObjectHash;
 
   nsAutoPtr<gfxMatrix> mCanvasTM;
 
