@@ -5,11 +5,11 @@
 
 
 
-#ifndef TreeContext_inl_h__
-#define TreeContext_inl_h__
+#ifndef SharedContext_inl_h__
+#define SharedContext_inl_h__
 
 #include "frontend/Parser.h"
-#include "frontend/TreeContext.h"
+#include "frontend/SharedContext.h"
 
 namespace js {
 namespace frontend {

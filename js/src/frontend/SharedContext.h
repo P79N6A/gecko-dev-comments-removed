@@ -5,8 +5,8 @@
 
 
 
-#ifndef TreeContext_h__
-#define TreeContext_h__
+#ifndef SharedContext_h__
+#define SharedContext_h__
 
 #include "jstypes.h"
 #include "jsatom.h"
