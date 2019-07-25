@@ -953,7 +953,7 @@ function JSPropertyProvider(aScope, aInputValue)
     return null;
   }
 
-  let matches = Object.keys(getMatchedProps(obj, matchProp));
+  let matches = Object.keys(getMatchedProps(obj, {matchProp:matchProp}));
 
   return {
     matchProp: matchProp,
@@ -976,37 +976,46 @@ function JSPropertyProvider(aScope, aInputValue)
 
 
 
-function getMatchedProps(aObj, aMatchProp = "")
+
+function getMatchedProps(aObj, aOptions = {matchProp: ""})
 {
+  
+  aOptions.matchProp = aOptions.matchProp || "";
+
+  if (aObj == null) { return {}; }
+  try {
+    Object.getPrototypeOf(aObj);
+  } catch(e) {
+    aObj = aObj.constructor.prototype;
+  }
   let c = MAX_COMPLETIONS;
   let names = {};   
-  let ownNames = Object.getOwnPropertyNames(aObj);
-  for (let i = 0; i < ownNames.length; i++) {
-    if (ownNames[i].indexOf(aMatchProp) == 0) {
-      if (names[ownNames[i]] != true) {
-        c--;
-        if (c < 0) {
-          return names;
-        }
+
+  
+  let ownNames = null;
+  while (aObj !== null) {
+    ownNames = Object.getOwnPropertyNames(aObj);
+    for (let i = 0; i < ownNames.length; i++) {
+      
+      
+      if (ownNames[i].indexOf(aOptions.matchProp) != 0 ||
+          names[ownNames[i]] == true) {
+        continue;
+      }
+      c--;
+      if (c < 0) {
+        return names;
+      }
+      
+      
+      
+      if (+ownNames[i] != +ownNames[i]) {
         names[ownNames[i]] = true;
       }
     }
+    aObj = Object.getPrototypeOf(aObj);
   }
 
-  
-  aObj = Object.getPrototypeOf(aObj);
-  if (aObj !== null) {
-    let parentScope = getMatchedProps(aObj, aMatchProp);
-    for (let name in parentScope) {
-      if (names[name] != true) {
-        c--;
-        if (c < 0) {
-          return names;
-        }
-        names[name] = true;
-      }
-    }
-  }
   return names;
 }
 
