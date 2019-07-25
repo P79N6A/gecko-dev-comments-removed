@@ -7,6 +7,24 @@ Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/NetUtil.jsm");
 Cu.import("resource://gre/modules/Services.jsm")
 
+
+const kPanDeceleration = 0.999;
+
+
+const kSwipeLength = 1000;
+
+
+
+const kMinKineticSpeed = 0.015;
+
+
+
+const kMaxKineticSpeed = 3;
+
+
+
+const kAxisLockRatio = 5;
+
 function dump(a) {
   Cc["@mozilla.org/consoleservice;1"].getService(Ci.nsIConsoleService).logStringMessage(a);
 }
@@ -319,9 +337,6 @@ Tab.prototype = {
 
 var BrowserEventHandler = {
   init: function init() {
-    this.motionBuffer = [];
-    this._updateLastPosition(0, 0, 0, 0);
-
     window.addEventListener("click", this, true);
     window.addEventListener("mousedown", this, true);
     window.addEventListener("mouseup", this, true);
@@ -406,14 +421,12 @@ var BrowserEventHandler = {
         this.firstMovement = true;
         this.firstXMovement = 0;
         this.firstYMovement = 0;
-  
+
+        this.motionBuffer = [];
         this._updateLastPosition(aEvent.clientX, aEvent.clientY, 0, 0);
         this.panElement = this._findScrollableElement(aEvent.originalTarget,
                                                       true);
 
-        
-        
-        
         if (this.panElement)
           this.panning = true;
 
@@ -486,19 +499,18 @@ var BrowserEventHandler = {
           this.blockClick = true;
           aEvent.stopPropagation();
           aEvent.preventDefault();
-        }
-
-        if (isDrag &&
-            (this.motionBuffer[4].time - this.motionBuffer[0].time) < 1000) {
-          
 
           
+          this.panLastTime = window.mozAnimationStartTime;
           this.panX = 0;
           this.panY = 0;
           let nEvents = 0;
-          for (let i = 1; i < 5; i++) {
+          for (let i = 0; i < this.motionBuffer.length - 1; i++) {
+              if (this.motionBuffer[i].time < this.panLastTime - kSwipeLength)
+                break;
+
               let timeDelta = this.motionBuffer[i].time -
-                this.motionBuffer[i - 1].time;
+                this.motionBuffer[i + 1].time;
               if (timeDelta <= 0)
                 continue;
 
@@ -506,11 +518,19 @@ var BrowserEventHandler = {
               this.panY += this.motionBuffer[i].dy / timeDelta;
               nEvents ++;
           }
+          if (nEvents == 0)
+            break;
+
           this.panX /= nEvents;
           this.panY /= nEvents;
+          if (Math.abs(this.panX) > kMaxKineticSpeed)
+            this.panX = (this.panX > 0) ? kMaxKineticSpeed : -kMaxKineticSpeed;
+          if (Math.abs(this.panY) > kMaxKineticSpeed)
+            this.panY = (this.panY > 0) ? kMaxKineticSpeed : -kMaxKineticSpeed;
 
           
-          if (this.panX == 0 && this.panY == 0)
+          if (Math.abs(this.panX) < kMinKineticSpeed &&
+              Math.abs(this.panY) < kMinKineticSpeed)
             break;
 
           
@@ -522,10 +542,8 @@ var BrowserEventHandler = {
           this._scrollElementBy(this.panElement, -this.panX, -this.panY);
 
           
-          this.panDeceleration = 0.999;
           this.panAccumulatedDeltaX = 0;
           this.panAccumulatedDeltaY = 0;
-          this.panLastTime = window.mozAnimationStartTime;
 
           let self = this;
           let panElement = this.panElement;
@@ -538,8 +556,8 @@ var BrowserEventHandler = {
               self.panLastTime = timeStamp;
 
               
-              self.panX *= Math.pow(self.panDeceleration, timeDelta);
-              self.panY *= Math.pow(self.panDeceleration, timeDelta);
+              self.panX *= Math.pow(kPanDeceleration, timeDelta);
+              self.panY *= Math.pow(kPanDeceleration, timeDelta);
 
               
               let dx = self.panX * timeDelta;
@@ -566,20 +584,16 @@ var BrowserEventHandler = {
 
               self._scrollElementBy(panElement, -dx, -dy);
 
-              
-              
-              
-              
-              if (Math.abs(self.panX) >= 0.015 || Math.abs(self.panY) >= 0.015)
+              if (Math.abs(self.panX) >= kMinKineticSpeed ||
+                  Math.abs(self.panY) >= kMinKineticSpeed)
                 window.mozRequestAnimationFrame(this);
             }
           };
 
           
-          
-          if (Math.abs(this.panX) < Math.abs(this.panY) / 5)
+          if (Math.abs(this.panX) < Math.abs(this.panY) / kAxisLockRatio)
             this.panX = 0;
-          else if (Math.abs(this.panY) < Math.abs(this.panX) / 5)
+          else if (Math.abs(this.panY) < Math.abs(this.panX) / kAxisLockRatio)
             this.panY = 0;
 
           
@@ -611,16 +625,7 @@ var BrowserEventHandler = {
     this.lastY = y;
     this.lastTime = Date.now();
 
-    for (let i = 0; i < 4; i++) {
-      if (this.panning) {
-        this.motionBuffer[i] = this.motionBuffer[i + 1];
-      } else {
-        this.motionBuffer[i] = { dx: 0, dy: 0, time: this.lastTime };
-      }
-    }
-
-    this.motionBuffer[4] =
-      { dx: dx, dy: dy, time: this.lastTime };
+    this.motionBuffer.unshift({ dx: dx, dy: dy, time: this.lastTime });
   },
 
   _findScrollableElement: function(elem, checkElem) {
