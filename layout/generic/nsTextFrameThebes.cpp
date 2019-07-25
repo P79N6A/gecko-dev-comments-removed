@@ -7608,11 +7608,6 @@ nsresult nsTextFrame::GetRenderedText(nsAString* aAppendToString,
        textFrame = static_cast<nsTextFrame*>(textFrame->GetNextContinuation())) {
     
 
-    if (textFrame->GetStateBits() & NS_FRAME_IS_DIRTY) {
-      
-      break;
-    }
-
     
     gfxSkipCharsIterator iter = textFrame->EnsureTextRun();
     if (!textFrame->mTextRun)
