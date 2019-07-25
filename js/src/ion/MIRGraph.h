@@ -159,11 +159,11 @@ class MBasicBlock : public TempObject
 
     
     
-    bool add(MInstruction *ins);
+    void add(MInstruction *ins);
 
     
     
-    bool end(MControlInstruction *ins);
+    void end(MControlInstruction *ins);
 
     
     bool addPhi(MPhi *phi);
@@ -178,8 +178,8 @@ class MBasicBlock : public TempObject
     
     bool setBackedge(MBasicBlock *block, MBasicBlock *successor);
 
-    bool insertBefore(MInstruction *at, MInstruction *ins);
-    bool insertAfter(MInstruction *at, MInstruction *ins);
+    void insertBefore(MInstruction *at, MInstruction *ins);
+    void insertAfter(MInstruction *at, MInstruction *ins);
 
     
     
