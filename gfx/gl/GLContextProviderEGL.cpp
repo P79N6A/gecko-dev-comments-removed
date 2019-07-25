@@ -32,6 +32,7 @@
 
 #if defined(MOZ_WIDGET_ANDROID)
 #include "AndroidBridge.h"
+#include "nsSurfaceTexture.h"
 #endif
 #include <android/log.h>
 #define LOG(args...)  __android_log_print(ANDROID_LOG_INFO, "Gonk" , ## args)
@@ -120,6 +121,7 @@ public:
 #include "nsIWidget.h"
 
 #include "gfxCrashReporterUtils.h"
+
 
 #if defined(MOZ_PLATFORM_MAEMO) || defined(MOZ_WIDGET_GONK)
 static bool gUseBackingSurface = true;
@@ -627,10 +629,16 @@ public:
     }
 
     virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType);
+    virtual SharedTextureHandle CreateSharedHandle(TextureImage::TextureShareType aType,
+                                                   void* aBuffer,
+                                                   SharedTextureBufferType aBufferType);
     virtual void UpdateSharedHandle(TextureImage::TextureShareType aType,
                                     SharedTextureHandle aSharedHandle);
     virtual void ReleaseSharedHandle(TextureImage::TextureShareType aType,
                                      SharedTextureHandle aSharedHandle);
+    virtual bool GetSharedHandleDetails(TextureImage::TextureShareType aType,
+                                        SharedTextureHandle aSharedHandle,
+                                        SharedHandleDetails& aDetails);
     virtual bool AttachSharedHandle(TextureImage::TextureShareType aType,
                                     SharedTextureHandle aSharedHandle);
 protected:
@@ -692,14 +700,61 @@ protected:
     }
 };
 
-class EGLTextureWrapper
+typedef enum {
+    Image
+#ifdef MOZ_WIDGET_ANDROID
+    , SurfaceTexture
+#endif
+} SharedHandleType;
+
+class SharedTextureHandleWrapper
 {
 public:
-    EGLTextureWrapper(GLContext* aContext, GLuint aTexture)
-        : mContext(aContext)
+    SharedTextureHandleWrapper(SharedHandleType aHandleType) : mHandleType(aHandleType)
+    {
+    }
+
+    virtual ~SharedTextureHandleWrapper()
+    {
+    }
+
+    SharedHandleType Type() { return mHandleType; }
+
+    SharedHandleType mHandleType;
+};
+
+#ifdef MOZ_WIDGET_ANDROID
+
+class SurfaceTextureWrapper: public SharedTextureHandleWrapper
+{
+public:
+    SurfaceTextureWrapper(nsSurfaceTexture* aSurfaceTexture) :
+        SharedTextureHandleWrapper(SharedHandleType::SurfaceTexture)
+        , mSurfaceTexture(aSurfaceTexture)
+    {
+    }
+
+    virtual ~SurfaceTextureWrapper() {
+        mSurfaceTexture = nsnull;
+    }
+
+    nsSurfaceTexture* SurfaceTexture() { return mSurfaceTexture; }
+
+    nsRefPtr<nsSurfaceTexture> mSurfaceTexture;
+};
+
+#endif 
+
+class EGLTextureWrapper : public SharedTextureHandleWrapper
+{
+public:
+    EGLTextureWrapper(GLContext* aContext, GLuint aTexture, bool aOwnsTexture) :
+        SharedTextureHandleWrapper(SharedHandleType::Image)
+        , mContext(aContext)
         , mTexture(aTexture)
         , mEGLImage(nsnull)
         , mSyncObject(nsnull)
+        , mOwnsTexture(aOwnsTexture)
     {
     }
 
@@ -774,11 +829,16 @@ public:
         return result == LOCAL_EGL_CONDITION_SATISFIED;
     }
 
+    bool OwnsTexture() {
+        return mOwnsTexture;
+    }
+
 private:
     nsRefPtr<GLContext> mContext;
     GLuint mTexture;
     EGLImage mEGLImage;
     EGLSync mSyncObject;
+    bool mOwnsTexture;
 };
 
 void
@@ -790,9 +850,12 @@ GLContextEGL::UpdateSharedHandle(TextureImage::TextureShareType aType,
         return;
     }
 
+    SharedTextureHandleWrapper* wrapper = reinterpret_cast<SharedTextureHandleWrapper*>(aSharedHandle);
+
+    NS_ASSERTION(wrapper->Type() == SharedHandleType::Image, "Expected EGLImage shared handle");
     NS_ASSERTION(mShareWithEGLImage, "EGLImage not supported or disabled in runtime");
 
-    EGLTextureWrapper* wrap = (EGLTextureWrapper*)aSharedHandle;
+    EGLTextureWrapper* wrap = reinterpret_cast<EGLTextureWrapper*>(wrapper);
     
     
     
@@ -832,17 +895,49 @@ GLContextEGL::CreateSharedHandle(TextureImage::TextureShareType aType)
     CreateTextureForOffscreen(ChooseGLFormats(fmt, GLContext::ForceRGBA), mOffscreenSize, texture);
     
     
-    EGLTextureWrapper* tex = new EGLTextureWrapper(this, texture);
+    EGLTextureWrapper* tex = new EGLTextureWrapper(this, texture, true);
     if (!tex->CreateEGLImage()) {
         NS_ERROR("EGLImage creation for EGLTextureWrapper failed");
         ReleaseSharedHandle(aType, (SharedTextureHandle)tex);
-
-        
-        mShareWithEGLImage = false;
         return nsnull;
     }
     
     return (SharedTextureHandle)tex;
+}
+
+SharedTextureHandle
+GLContextEGL::CreateSharedHandle(TextureImage::TextureShareType aType,
+                                 void* aBuffer,
+                                 SharedTextureBufferType aBufferType)
+{
+    
+    if (aType != TextureImage::ThreadShared)
+        return nsnull;
+
+    switch (aBufferType) {
+#ifdef MOZ_WIDGET_ANDROID
+    case SharedTextureBufferType::SurfaceTexture:
+        
+        return (SharedTextureHandle) new SurfaceTextureWrapper(reinterpret_cast<nsSurfaceTexture*>(aBuffer));
+#endif
+    case SharedTextureBufferType::TextureID: {
+        if (!mShareWithEGLImage)
+            return nsnull;
+
+        GLuint texture = (GLuint)aBuffer;
+        EGLTextureWrapper* tex = new EGLTextureWrapper(this, texture, false);
+        if (!tex->CreateEGLImage()) {
+            NS_ERROR("EGLImage creation for EGLTextureWrapper failed");
+            delete tex;
+            return nsnull;
+        }
+
+        return (SharedTextureHandle)tex;
+    }
+    default:
+        NS_ERROR("Unknown shared texture buffer type");
+        return nsnull;
+    }
 }
 
 void GLContextEGL::ReleaseSharedHandle(TextureImage::TextureShareType aType,
@@ -853,22 +948,72 @@ void GLContextEGL::ReleaseSharedHandle(TextureImage::TextureShareType aType,
         return;
     }
 
-    NS_ASSERTION(mShareWithEGLImage, "EGLImage not supported or disabled in runtime");
+    SharedTextureHandleWrapper* wrapper = reinterpret_cast<SharedTextureHandleWrapper*>(aSharedHandle);
 
-    EGLTextureWrapper* wrap = (EGLTextureWrapper*)aSharedHandle;
-    GLContext *ctx = wrap->GetContext();
-    if (ctx->IsDestroyed() || !ctx->IsOwningThreadCurrent()) {
-        ctx = ctx->GetSharedContext();
+    switch (wrapper->Type()) {
+#ifdef MOZ_WIDGET_ANDROID
+    case SharedHandleType::SurfaceTexture:
+        delete wrapper;
+        break;
+#endif
+    
+    case SharedHandleType::Image: {
+        NS_ASSERTION(mShareWithEGLImage, "EGLImage not supported or disabled in runtime");
+
+        EGLTextureWrapper* wrap = (EGLTextureWrapper*)aSharedHandle;
+        GLContext *ctx = wrap->GetContext();
+        if (ctx->IsDestroyed() || !ctx->IsOwningThreadCurrent()) {
+            ctx = ctx->GetSharedContext();
+        }
+        
+        
+        
+        
+        if (wrap->OwnsTexture() && ctx && !ctx->IsDestroyed() && ctx->MakeCurrent()) {
+            GLuint texture = wrap->GetTextureID();
+            ctx->fDeleteTextures(1, &texture);
+        }
+        delete wrap;
+        break;
     }
-    
-    
-    
-    
-    if (ctx && !ctx->IsDestroyed() && ctx->MakeCurrent()) {
-        GLuint texture = wrap->GetTextureID();
-        ctx->fDeleteTextures(1, &texture);
+
+    default:
+        NS_ERROR("Unknown shared handle type");
     }
-    delete wrap;
+}
+
+bool GLContextEGL::GetSharedHandleDetails(TextureImage::TextureShareType aType,
+                                          SharedTextureHandle aSharedHandle,
+                                          SharedHandleDetails& aDetails)
+{
+    if (aType != TextureImage::ThreadShared)
+        return false;
+
+    SharedTextureHandleWrapper* wrapper = reinterpret_cast<SharedTextureHandleWrapper*>(aSharedHandle);
+
+    switch (wrapper->Type()) {
+#ifdef MOZ_WIDGET_ANDROID
+    case SharedHandleType::SurfaceTexture: {
+        SurfaceTextureWrapper* surfaceWrapper = reinterpret_cast<SurfaceTextureWrapper*>(wrapper);
+
+        aDetails.mTarget = LOCAL_GL_TEXTURE_EXTERNAL;
+        aDetails.mProgramType = RGBALayerExternalProgramType;
+        surfaceWrapper->SurfaceTexture()->GetTransformMatrix(aDetails.mTextureTransform);
+        break;
+    }
+#endif
+
+    case SharedHandleType::Image:
+        aDetails.mTarget = LOCAL_GL_TEXTURE_2D;
+        aDetails.mProgramType = RGBALayerProgramType;
+        break;
+
+    default:
+        NS_ERROR("Unknown shared handle type");
+        return false;
+    }
+
+    return true;
 }
 
 bool GLContextEGL::AttachSharedHandle(TextureImage::TextureShareType aType,
@@ -877,11 +1022,41 @@ bool GLContextEGL::AttachSharedHandle(TextureImage::TextureShareType aType,
     if (aType != TextureImage::ThreadShared)
         return false;
 
-    NS_ASSERTION(mShareWithEGLImage, "EGLImage not supported or disabled in runtime");
+    SharedTextureHandleWrapper* wrapper = reinterpret_cast<SharedTextureHandleWrapper*>(aSharedHandle);
 
-    EGLTextureWrapper* wrap = (EGLTextureWrapper*)aSharedHandle;
-    wrap->WaitSync();
-    sEGLLibrary.fImageTargetTexture2DOES(LOCAL_GL_TEXTURE_2D, wrap->GetEGLImage());
+    switch (wrapper->Type()) {
+#ifdef MOZ_WIDGET_ANDROID
+    case SharedHandleType::SurfaceTexture: {
+        
+
+
+
+#ifndef DEBUG
+        GetAndClearError();
+#endif
+        SurfaceTextureWrapper* surfaceTextureWrapper = reinterpret_cast<SurfaceTextureWrapper*>(wrapper);
+
+        
+        
+        
+        surfaceTextureWrapper->SurfaceTexture()->UpdateTexImage();
+        break;
+    }
+#endif 
+    
+    case SharedHandleType::Image: {
+        NS_ASSERTION(mShareWithEGLImage, "EGLImage not supported or disabled in runtime");
+
+        EGLTextureWrapper* wrap = (EGLTextureWrapper*)aSharedHandle;
+        fImageTargetTexture2D(LOCAL_GL_TEXTURE_2D, wrap->GetEGLImage());
+        break;
+    }
+
+    default:
+        NS_ERROR("Unknown shared handle type");
+        return false;
+    }
+
     return true;
 }
 
