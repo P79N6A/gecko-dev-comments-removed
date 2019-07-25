@@ -395,6 +395,9 @@ SyncEngine.prototype = {
   
   
   _reconcile: function SyncEngine__reconcile(item) {
+    if (this._log.level <= Log4Moz.Level.Trace)
+      this._log.trace("Incoming: " + item);
+
     
     
     this._log.trace("Reconcile step 1");
@@ -435,8 +438,6 @@ SyncEngine.prototype = {
 
   
   _applyIncoming: function SyncEngine__applyIncoming(item) {
-    if (this._log.level <= Log4Moz.Level.Trace)
-      this._log.trace("Incoming: " + item);
     try {
       this._tracker.ignoreAll = true;
       this._store.applyIncoming(item);

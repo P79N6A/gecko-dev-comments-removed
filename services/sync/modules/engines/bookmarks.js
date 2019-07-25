@@ -866,6 +866,12 @@ BookmarksTracker.prototype = {
       return;
 
     
+    if (property == "places/excludeFromBackup") {
+      this.removeChangedID(GUIDForId(itemId));
+      return;
+    }
+
+    
     let annos = ["bookmarkProperties/description",
       "bookmarkProperties/loadInSidebar", "bookmarks/staticTitle",
       "livemark/feedURI", "livemark/siteURI", "microsummary/generatorURI"];
