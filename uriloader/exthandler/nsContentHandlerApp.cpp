@@ -1,0 +1,111 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "nsContentHandlerApp.h"
+#include "nsIURI.h"
+#include "nsIGenericFactory.h"
+#include "nsIClassInfoImpl.h"
+#include "nsCOMPtr.h"
+#include "nsString.h"
+
+NS_IMPL_ISUPPORTS1_CI(nsContentHandlerApp, nsIHandlerApp)
+
+nsContentHandlerApp::nsContentHandlerApp(nsString aName, nsCString aType,
+                                         ContentAction::Action& aAction) :
+  mName(aName),
+  mType(aType),
+  mAction(aAction)
+{
+}
+
+
+
+
+NS_IMETHODIMP nsContentHandlerApp::GetName(nsAString& aName)
+{
+  aName.Assign(mName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsContentHandlerApp::SetName(const nsAString& aName)
+{
+  mName.Assign(aName);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsContentHandlerApp::Equals(nsIHandlerApp *aHandlerApp, PRBool *_retval)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+NS_IMETHODIMP nsContentHandlerApp::GetDetailedDescription(nsAString& aDetailedDescription)
+{
+  aDetailedDescription.Assign(mDetailedDescription);
+  return NS_OK;
+}
+
+NS_IMETHODIMP nsContentHandlerApp::SetDetailedDescription(const nsAString& aDetailedDescription)
+{
+  mDetailedDescription.Assign(aDetailedDescription);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsContentHandlerApp::LaunchWithURI(nsIURI *aURI,
+                                   nsIInterfaceRequestor *aWindowContext)
+{
+  nsCAutoString spec;
+  nsresult rv = aURI->GetAsciiSpec(spec);
+  NS_ENSURE_SUCCESS(rv,rv);
+  const char* url = spec.get();
+
+  QList<ContentAction::Action> actions = 
+    ContentAction::Action::actionsForFile(QUrl(url), QString(mType.get()));
+  for (int i = 0; i < actions.size(); ++i) {
+    if (actions[i].name() == QString((QChar*)mName.get(), mName.Length())) {
+      actions[i].trigger();
+      break;
+    }
+  }
+
+  return NS_OK;
+}
+
+NS_DECL_CLASSINFO(nsContentHandlerApp)
+
