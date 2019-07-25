@@ -994,16 +994,13 @@ nsXULDocument::AttributeWillChange(nsIDocument* aDocument,
 
 void
 nsXULDocument::AttributeChanged(nsIDocument* aDocument,
-                                nsIContent* aElementContent, PRInt32 aNameSpaceID,
+                                Element* aElement, PRInt32 aNameSpaceID,
                                 nsIAtom* aAttribute, PRInt32 aModType)
 {
     NS_ASSERTION(aDocument == this, "unexpected doc");
 
     
     nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
-
-    
-    Element* aElement = aElementContent->AsElement();
 
     
     

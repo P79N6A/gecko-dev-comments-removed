@@ -186,10 +186,10 @@ nsSVGRenderingObserver::InvalidateViaReferencedElement()
 }
 
 void
-nsSVGRenderingObserver::AttributeChanged(nsIDocument *aDocument,
-                                         nsIContent *aContent,
+nsSVGRenderingObserver::AttributeChanged(nsIDocument* aDocument,
+                                         dom::Element* aElement,
                                          PRInt32 aNameSpaceID,
-                                         nsIAtom *aAttribute,
+                                         nsIAtom* aAttribute,
                                          PRInt32 aModType)
 {
   
