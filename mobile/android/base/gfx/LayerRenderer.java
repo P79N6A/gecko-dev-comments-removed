@@ -639,6 +639,15 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
                 
                 Rect viewport = RectUtils.round(mPageContext.viewport);
                 Region validRegion = rootLayer.getValidRegion(mPageContext);
+
+                
+
+                if (!viewport.intersect(mPageRect)) {
+                    
+
+
+                    viewport.setEmpty();
+                }
                 validRegion.op(viewport, Region.Op.INTERSECT);
 
                 float checkerboard = 0.0f;
