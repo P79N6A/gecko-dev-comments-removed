@@ -333,19 +333,6 @@ JAR_digest_file(char *filename, JAR_Digest *dig);
 
 
 
-extern int PR_CALLBACK 
-JAR_cert_attribute(JAR *jar, jarCert attrib, long keylen, void *key,
-                   void **result, unsigned long *length);
-
-
-
-
-
-
-
-
-
-
 
 
 

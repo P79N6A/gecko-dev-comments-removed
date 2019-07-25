@@ -130,10 +130,32 @@ struct SEC_PKCS12DecoderContextStr {
     sec_PKCS12MacData		macData;
 
     
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     digestOpenFn 		dOpen;
     digestCloseFn 		dClose;
     digestIOFn 			dRead, dWrite;
     void 			*dArg;
+    PRBool			dIsOpen;  
 
     
     SECKEYGetPasswordKey 	pwfn;
@@ -915,6 +937,8 @@ sec_pkcs12_decode_start_asafes_cinfo(SEC_PKCS12DecoderContext *p12dcx)
 	p12dcx->errorValue = PORT_GetError();
 	goto loser;
     }
+    
+    p12dcx->dIsOpen = PR_TRUE;
 
     return SECSuccess;
 
@@ -1235,6 +1259,7 @@ SEC_PKCS12DecoderStart(SECItem *pwitem, PK11SlotInfo *slot, void *wincx,
     p12dcx->dClose = dClose;
     p12dcx->dRead = dRead;
     p12dcx->dArg = dArg;
+    p12dcx->dIsOpen = PR_FALSE;
     
     p12dcx->keyList = NULL;
     p12dcx->decitem.type = 0;
@@ -1431,6 +1456,7 @@ loser:
     
     if(p12dcx->dClose) {
 	(*p12dcx->dClose)(p12dcx->dArg, PR_TRUE);
+	p12dcx->dIsOpen = PR_FALSE;
     }
 
     if(pk11cx) {
@@ -1578,6 +1604,11 @@ SEC_PKCS12DecoderFinish(SEC_PKCS12DecoderContext *p12dcx)
     if(p12dcx->slot) {
 	PK11_FreeSlot(p12dcx->slot);
 	p12dcx->slot = NULL;
+    }
+
+    if(p12dcx->dIsOpen && p12dcx->dClose) {
+	(*p12dcx->dClose)(p12dcx->dArg, PR_TRUE);
+	p12dcx->dIsOpen = PR_FALSE;
     }
 
     if(p12dcx->arena) {

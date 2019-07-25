@@ -162,7 +162,6 @@ struct sec_pkcs12_hmac_and_output_info {
 typedef struct sec_PKCS12EncoderContextStr {
     PRArenaPool *arena;
     SEC_PKCS12ExportContext *p12exp;
-    PK11SymKey *encryptionKey;
 
     
 
@@ -1479,10 +1478,39 @@ loser:
 
 
 
+static void
+sec_pkcs12_encoder_destroy_context(sec_PKCS12EncoderContext *p12enc)
+{
+    if(p12enc) {
+	if(p12enc->outerA1ecx) {
+	    SEC_ASN1EncoderFinish(p12enc->outerA1ecx);
+	    p12enc->outerA1ecx = NULL;
+	}
+	if(p12enc->aSafeCinfo) {
+	    SEC_PKCS7DestroyContentInfo(p12enc->aSafeCinfo);
+	    p12enc->aSafeCinfo = NULL;
+	}
+	if(p12enc->middleP7ecx) {
+	    SEC_PKCS7EncoderFinish(p12enc->middleP7ecx, p12enc->p12exp->pwfn,
+				   p12enc->p12exp->pwfnarg);
+	    p12enc->middleP7ecx = NULL;
+	}
+	if(p12enc->middleA1ecx) {
+	    SEC_ASN1EncoderFinish(p12enc->middleA1ecx);
+	    p12enc->middleA1ecx = NULL;
+	}
+	if(p12enc->hmacCx) {
+	    PK11_DestroyContext(p12enc->hmacCx, PR_TRUE);
+	    p12enc->hmacCx = NULL;
+	}
+    }
+}
 
 
 
-sec_PKCS12EncoderContext *
+
+
+static sec_PKCS12EncoderContext *
 sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 {
     sec_PKCS12EncoderContext *p12enc = NULL;
@@ -1573,6 +1601,7 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 	    }
 	    if(SECITEM_CopyItem(p12exp->arena, &(p12enc->mac.macSalt), salt) 
 			!= SECSuccess) {
+		
 		PORT_SetError(SEC_ERROR_NO_MEMORY);
 		goto loser;
 	    }   
@@ -1581,6 +1610,7 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 	    if(!sec_pkcs12_convert_item_to_unicode(NULL, &pwd, 
 			p12exp->integrityInfo.pwdInfo.password, PR_TRUE, 
 			PR_TRUE, PR_TRUE)) {
+		
 		goto loser;
 	    }
 	    
@@ -1601,6 +1631,7 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
 	    case SEC_OID_MD2:
 		integrityMechType = CKM_NETSCAPE_PBE_MD2_HMAC_KEY_GEN;  break;
 	    default:
+		
 		goto loser;
 	    }
 
@@ -1639,14 +1670,7 @@ sec_pkcs12_encoder_start_context(SEC_PKCS12ExportContext *p12exp)
     return p12enc;
 
 loser:
-    if(p12enc) {
-	if(p12enc->aSafeCinfo) {
-	    SEC_PKCS7DestroyContentInfo(p12enc->aSafeCinfo);
-	}
-	if(p12enc->hmacCx) {
-	    PK11_DestroyContext(p12enc->hmacCx, PR_TRUE);
-	}
-    }
+    sec_pkcs12_encoder_destroy_context(p12enc);
     if (p12exp->arena != NULL)
 	PORT_ArenaRelease(p12exp->arena, mark);
 
@@ -2018,12 +2042,14 @@ SEC_PKCS12Encode(SEC_PKCS12ExportContext *p12exp,
     SEC_ASN1EncoderClearStreaming(p12enc->middleA1ecx);
     SEC_ASN1EncoderUpdate(p12enc->middleA1ecx, NULL, 0);
     SEC_ASN1EncoderFinish(p12enc->middleA1ecx);
+    p12enc->middleA1ecx = NULL;
 
     sec_FlushPkcs12OutputBuffer( &p12enc->middleBuf);
 
     
     rv = SEC_PKCS7EncoderFinish(p12enc->middleP7ecx, p12exp->pwfn, 
     				p12exp->pwfnarg);
+    p12enc->middleP7ecx = NULL;
     if(rv != SECSuccess) {
 	goto loser;
     }
@@ -2041,8 +2067,10 @@ SEC_PKCS12Encode(SEC_PKCS12ExportContext *p12exp,
     rv = SEC_ASN1EncoderUpdate(p12enc->outerA1ecx, NULL, 0);
 
     SEC_ASN1EncoderFinish(p12enc->outerA1ecx);
+    p12enc->outerA1ecx = NULL;
 
 loser:
+    sec_pkcs12_encoder_destroy_context(p12enc);
     return rv;
 }
 
@@ -2072,4 +2100,3 @@ SEC_PKCS12DestroyExportContext(SEC_PKCS12ExportContext *p12ecx)
 
     PORT_FreeArena(p12ecx->arena, PR_TRUE);
 }
-

@@ -453,6 +453,12 @@ void printflags(char *trusts, unsigned int flags);
 extern int ffs(unsigned int i);
 #endif
 
+
+
+CERTCertificate*
+SECU_FindCertByNicknameOrFilename(CERTCertDBHandle *handle,
+                                  char *name, PRBool ascii,
+                                  void *pwarg);
 #include "secerr.h"
 #include "sslerr.h"
 
