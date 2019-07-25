@@ -54,6 +54,22 @@
 
 namespace js {
 
+
+
+
+
+
+static inline bool
+IsCacheableNonGlobalScope(JSObject *obj)
+{
+    JS_ASSERT(obj->getParent());
+
+    bool cacheable = (obj->isCall() || obj->isBlock() || obj->isDeclEnv());
+
+    JS_ASSERT_IF(cacheable, !obj->getOps()->lookupProperty);
+    return cacheable;
+}
+
 inline void
 StackFrame::initPrev(JSContext *cx)
 {
@@ -62,7 +78,7 @@ StackFrame::initPrev(JSContext *cx)
         prev_ = regs->fp();
         prevpc_ = regs->pc;
         prevInline_ = regs->inlined();
-        JS_ASSERT_IF(!prev_->isDummyFrame(),
+        JS_ASSERT_IF(!prev_->isDummyFrame() && !prev_->hasImacropc(),
                      uint32(prevpc_ - prev_->script()->code) < prev_->script()->length);
     } else {
         prev_ = NULL;
@@ -120,6 +136,7 @@ StackFrame::initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
     scopeChain_ = callee.getParent();
     ncode_ = NULL;
     initPrev(cx);
+    JS_ASSERT(!hasImacropc());
     JS_ASSERT(!hasHookData());
     JS_ASSERT(annotation() == NULL);
     JS_ASSERT(!hasCallObj());
@@ -200,6 +217,13 @@ StackFrame::initJitFrameLatePrologue(JSContext *cx, Value **limit)
     scopeChain();
     SetValueRangeToUndefined(slots(), script()->nfixed);
     return true;
+}
+
+inline void
+StackFrame::overwriteCallee(JSObject &newCallee)
+{
+    JS_ASSERT(callee().getFunctionPrivate() == newCallee.getFunctionPrivate());
+    mutableCalleev().setObject(newCallee);
 }
 
 inline Value &
@@ -355,8 +379,10 @@ StackFrame::callObj() const
     JS_ASSERT_IF(isNonEvalFunctionFrame() || isStrictEvalFrame(), hasCallObj());
 
     JSObject *pobj = &scopeChain();
-    while (JS_UNLIKELY(!pobj->isCall()))
+    while (JS_UNLIKELY(!pobj->isCall())) {
+        JS_ASSERT(IsCacheableNonGlobalScope(pobj) || pobj->isWith());
         pobj = pobj->getParent();
+    }
     return pobj->asCall();
 }
 
@@ -443,6 +469,16 @@ StackFrame::markFunctionEpilogueDone()
 }
 
 
+
+#ifdef JS_TRACER
+JS_ALWAYS_INLINE bool
+StackSpace::ensureEnoughSpaceToEnterTrace(JSContext *cx)
+{
+    ptrdiff_t needed = TraceNativeStorage::MAX_NATIVE_STACK_SLOTS +
+                       TraceNativeStorage::MAX_CALL_STACK_ENTRIES * VALUES_PER_STACK_FRAME;
+    return ensureSpace(cx, DONT_REPORT_ERROR, firstUnused(), needed);
+}
+#endif
 
 STATIC_POSTCONDITION(!return || ubound(from) >= nvals)
 JS_ALWAYS_INLINE bool
@@ -676,6 +712,13 @@ ArgumentsObject::getElement(uint32 i, Value *vp)
 
 
 
+    if (onTrace())
+        return false;
+
+    
+
+
+
 
     StackFrame *fp = maybeStackFrame();
     JS_ASSERT_IF(isStrictArguments(), !fp);
@@ -707,6 +750,10 @@ ArgumentsObject::getElements(uint32 start, uint32 count, Value *vp)
         }
         return true;
     }
+
+    
+    if (onTrace())
+        return false;
 
     
     JS_ASSERT(fp->numActualArgs() <= StackSpace::ARGS_LENGTH_MAX);
