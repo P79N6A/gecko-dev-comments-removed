@@ -374,86 +374,7 @@ Engine.prototype = {
     if (!this._sync)
       throw "engine does not implement _sync method";
 
-    let times = {};
-    let wrapped = {};
-    
-    for (let _name in this) {
-      let name = _name;
-
-      
-      if (name.search(/^_(.+Obj|notify)$/) == 0)
-        continue;
-
-      
-      if (typeof this[name] == "function") {
-        times[name] = [];
-        wrapped[name] = this[name];
-
-        
-        this[name] = function() {
-          let start = Date.now();
-          try {
-            return wrapped[name].apply(this, arguments);
-          }
-          finally {
-            times[name].push(Date.now() - start);
-          }
-        };
-      }
-    }
-
-    try {
-      this._notify("sync", this.name, this._sync)();
-    }
-    finally {
-      
-      for (let [name, func] in Iterator(wrapped))
-        this[name] = func;
-
-      let stats = {};
-      for (let [name, time] in Iterator(times)) {
-        
-        let num = time.length;
-        if (num == 0)
-          continue;
-
-        
-        let stat = {
-          num: num,
-          sum: 0
-        };
-        time.forEach(function(val) {
-          if (stat.min == null || val < stat.min)
-            stat.min = val;
-          if (stat.max == null || val > stat.max)
-            stat.max = val;
-          stat.sum += val;
-        });
-
-        stat.avg = Number((stat.sum / num).toFixed(2));
-        stats[name] = stat;
-      }
-
-      stats.toString = function() {
-        let sums = [];
-        for (let [name, stat] in Iterator(this))
-          if (stat.sum != null)
-            sums.push(name.replace(/^_/, "") + " " + stat.sum);
-
-        
-        let nameOrder = ["sync", "processIncoming", "uploadOutgoing",
-          "syncStartup", "syncFinish"];
-        let getPos = function(str) {
-          let pos = nameOrder.indexOf(str.split(" ")[0]);
-          return pos != -1 ? pos : Infinity;
-        };
-        let order = function(a, b) getPos(a) > getPos(b);
-
-        return "Total (ms): " + sums.sort(order).join(", ");
-      };
-
-      this._log.debug(stats);
-    }
+    this._notify("sync", this.name, this._sync)();
   },
 
   
@@ -702,13 +623,16 @@ SyncEngine.prototype = {
       }
     }
 
-    newitems.recordHandler = Utils.bind2(this, function(item) {
+    
+    
+    let self = this;
+    newitems.recordHandler = function(item) {
       
-      if (this.lastModified == null || item.modified > this.lastModified)
-        this.lastModified = item.modified;
+      if (self.lastModified == null || item.modified > self.lastModified)
+        self.lastModified = item.modified;
 
       
-      item.collection = this.name;
+      item.collection = self.name;
       
       
       handled.push(item.id);
@@ -717,25 +641,25 @@ SyncEngine.prototype = {
         try {
           item.decrypt();
         } catch (ex if (Utils.isHMACMismatch(ex) &&
-                        this.handleHMACMismatch(item))) {
+                        self.handleHMACMismatch(item))) {
           
           
           
-          this._log.info("Trying decrypt again...");
+          self._log.info("Trying decrypt again...");
           item.decrypt();
         }       
       } catch (ex) {
-        this._log.warn("Error decrypting record: " + Utils.exceptionStr(ex));
+        self._log.warn("Error decrypting record: " + Utils.exceptionStr(ex));
         failed.push(item.id);
         return;
       }
 
       let shouldApply;
       try {
-        shouldApply = this._reconcile(item);
+        shouldApply = self._reconcile(item);
       } catch (ex) {
-        this._log.warn("Failed to reconcile incoming record " + item.id);
-        this._log.warn("Encountered exception: " + Utils.exceptionStr(ex));
+        self._log.warn("Failed to reconcile incoming record " + item.id);
+        self._log.warn("Encountered exception: " + Utils.exceptionStr(ex));
         failed.push(item.id);
         return;
       }
@@ -745,14 +669,14 @@ SyncEngine.prototype = {
         applyBatch.push(item);
       } else {
         count.reconciled++;
-        this._log.trace("Skipping reconciled incoming item " + item.id);
+        self._log.trace("Skipping reconciled incoming item " + item.id);
       }
 
-      if (applyBatch.length == this.applyIncomingBatchSize) {
-        doApplyBatch.call(this);
+      if (applyBatch.length == self.applyIncomingBatchSize) {
+        doApplyBatch.call(self);
       }
-      this._sleep(0);
-    });
+      self._sleep(0);
+    };
 
     
     if (this.lastModified == null || this.lastModified > this.lastSync) {
@@ -929,6 +853,7 @@ SyncEngine.prototype = {
 
   
   _uploadOutgoing: function SyncEngine__uploadOutgoing() {
+    this._log.trace("Uploading local changes to server.");
     if (this._modifiedIDs.length) {
       this._log.trace("Preparing " + this._modifiedIDs.length +
                       " outgoing records");

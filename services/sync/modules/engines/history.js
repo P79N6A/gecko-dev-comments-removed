@@ -223,7 +223,7 @@ HistoryStore.prototype = {
   setGUID: function setGUID(uri, guid) {
     uri = uri.spec ? uri.spec : uri;
 
-    if (arguments.length == 1)
+    if (!guid)
       guid = Utils.makeGUID();
 
     
