@@ -1078,8 +1078,6 @@ var gApplicationsPane = {
 
 
 
-
-
   _loadPluginHandlers: function() {
     for (let i = 0; i < navigator.plugins.length; ++i) {
       let plugin = navigator.plugins[i];
