@@ -338,7 +338,9 @@ GetProperty(DBusMessageIter aIter, Properties* aPropertyTypes,
         
         
         propertyValue = InfallibleTArray<nsString>();
+#ifdef DEBUG
         NS_WARNING("Received array type that's not a string array!");
+#endif
       }
       break;
     default:
@@ -605,7 +607,7 @@ BluetoothDBusService::StartInternal()
   }
   
   if (mConnection) {
-    return NS_OK;    
+    return NS_OK;
   }
 
   if (NS_FAILED(EstablishDBusConnection())) {
@@ -613,7 +615,23 @@ BluetoothDBusService::StartInternal()
     StopDBus();
     return NS_ERROR_FAILURE;
   }
-	
+
+  DBusError err;
+  dbus_error_init(&err);
+
+  
+  
+  
+  
+  for (uint32_t i = 0; i < ArrayLength(sBluetoothDBusSignals); ++i) {
+    dbus_bus_add_match(mConnection,
+                       sBluetoothDBusSignals[i],
+                       &err);
+    if (dbus_error_is_set(&err)) {
+      LOG_AND_FREE_DBUS_ERROR(&err);
+    }
+  }
+
   
   if (!dbus_connection_add_filter(mConnection, EventFilter,
                                   NULL, NULL)) {
@@ -634,7 +652,20 @@ BluetoothDBusService::StopInternal()
     StopDBus();
     return NS_OK;
   }
-  dbus_connection_remove_filter(mConnection, EventFilter, NULL);
+
+  DBusError err;
+  dbus_error_init(&err);
+  for (uint32_t i = 0; i < ArrayLength(sBluetoothDBusSignals); ++i) {
+    dbus_bus_remove_match(mConnection,
+                          sBluetoothDBusSignals[i],
+                          &err);
+    if (dbus_error_is_set(&err)) {
+      LOG_AND_FREE_DBUS_ERROR(&err);
+    }
+  }
+
+  dbus_connection_remove_filter(mConnection, EventFilter, nullptr);
+  
   mConnection = nullptr;
   mBluetoothSignalObserverTable.Clear();
   StopDBus();

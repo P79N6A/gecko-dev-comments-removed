@@ -77,21 +77,6 @@ enum {
   DBUS_EVENT_LOOP_REMOVE = 3,
 } DBusEventTypes;
 
-
-
-
-static const char* DBUS_SIGNALS[] =
-{
-  "type='signal',interface='org.bluez.Adapter'",
-  "type='signal',interface='org.bluez.Manager'",
-  "type='signal',interface='org.bluez.Device'",
-  "type='signal',interface='org.bluez.Input'",
-  "type='signal',interface='org.bluez.Network'",
-  "type='signal',interface='org.bluez.NetworkServer'",
-  "type='signal',interface='org.bluez.HealthDevice'",
-  "type='signal',interface='org.bluez.AudioSink'"
-};
-
 static unsigned int UnixEventsToDBusFlags(short events)
 {
   return (events & DBUS_WATCH_READABLE ? POLLIN : 0) |
@@ -150,7 +135,6 @@ struct DBusThread : public RawDBusConnection
 protected:
   bool SetUpEventLoop();
   bool TearDownData();
-  bool TearDownEventLoop();
 };
 
 static nsAutoPtr<DBusThread> sDBusThread;
@@ -322,19 +306,6 @@ DBusThread::SetUpEventLoop()
     return false;
   }
 
-  
-  
-  
-  
-  for (uint32_t i = 0; i < ArrayLength(DBUS_SIGNALS); ++i) {
-    dbus_bus_add_match(mConnection,
-                       DBUS_SIGNALS[i],
-                       &err);
-    if (dbus_error_is_set(&err)) {
-      LOG_AND_FREE_DBUS_ERROR(&err);
-      return false;
-    }
-  }
   return true;
 }
 
@@ -353,26 +324,6 @@ DBusThread::TearDownData()
   
   
   mWatchData.Clear();
-  return true;
-}
-
-bool
-DBusThread::TearDownEventLoop()
-{
-  MOZ_ASSERT(mConnection);
-
-  DBusError err;
-  dbus_error_init(&err);
-
-  for (uint32_t i = 0; i < ArrayLength(DBUS_SIGNALS); ++i) {
-    dbus_bus_remove_match(mConnection,
-                          DBUS_SIGNALS[i],
-                          &err);
-    if (dbus_error_is_set(&err)) {
-      LOG_AND_FREE_DBUS_ERROR(&err);
-    }
-  }
-
   return true;
 }
 
@@ -400,7 +351,6 @@ DBusThread::EventLoop()
               LOG("DBus Event Loop Exiting\n");
               dbus_connection_set_watch_functions(mConnection,
                                                   NULL, NULL, NULL, NULL, NULL);
-              TearDownEventLoop();
               return;
             case DBUS_EVENT_LOOP_ADD:
               HandleWatchAdd(this);
