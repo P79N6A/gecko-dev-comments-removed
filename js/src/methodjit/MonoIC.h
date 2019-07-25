@@ -89,7 +89,8 @@ struct MICInfo {
 
     
     JSC::CodeLocationJump traceHint;
-    JSC::CodeLocationJump slowTraceHint;
+    JSC::CodeLocationJump slowTraceHintOne;
+    JSC::CodeLocationJump slowTraceHintTwo;
 
     
     Kind kind : 3;
@@ -101,7 +102,10 @@ struct MICInfo {
             bool dataConst : 1;
         } name;
         
-        bool hasSlowTraceHint;
+        struct {
+            bool hasSlowTraceHintOne : 1;
+            bool hasSlowTraceHintTwo : 1;
+        } hints;
     } u;
 };
 
