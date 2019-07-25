@@ -1052,6 +1052,11 @@ public:
 
 
 
+
+
+
+
+
   static nsresult CreateContextualFragment(nsINode* aContextNode,
                                            const nsAString& aFragment,
                                            PRBool aWillOwnFragment,
