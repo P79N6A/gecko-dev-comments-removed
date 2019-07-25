@@ -3383,18 +3383,12 @@ nsXULDocument::LoadScript(nsXULPrototypeScript* aScriptProto, bool* aBlock)
     bool useXULCache = nsXULPrototypeCache::GetInstance()->IsEnabled();
 
     if (isChromeDoc && useXULCache) {
-        PRUint32 fetchedLang = nsIProgrammingLanguage::UNKNOWN;
         JSScript* newScriptObject =
             nsXULPrototypeCache::GetInstance()->GetScript(
-                                   aScriptProto->mSrcURI,
-                                   &fetchedLang);
+                                   aScriptProto->mSrcURI);
         if (newScriptObject) {
             
             
-            if (aScriptProto->mScriptObject.mLangID != fetchedLang) {
-                NS_ERROR("XUL cache gave me an incorrect script language");
-                return NS_ERROR_UNEXPECTED;
-            }
             aScriptProto->Set(newScriptObject);
         }
 
@@ -3558,7 +3552,6 @@ nsXULDocument::OnStreamComplete(nsIStreamLoader* aLoader,
             if (useXULCache && IsChromeURI(mDocumentURI)) {
                 nsXULPrototypeCache::GetInstance()->PutScript(
                                    scriptProto->mSrcURI,
-                                   scriptProto->mScriptObject.mLangID,
                                    scriptProto->mScriptObject.mObject);
             }
 
