@@ -1704,9 +1704,6 @@ struct JSContext
     JSOperationCallback operationCallback;
 
     
-    uintN               interpLevel;
-
-    
     void                *data;
     void                *data2;
 

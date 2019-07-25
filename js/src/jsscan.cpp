@@ -227,8 +227,7 @@ TokenStream::init(const jschar *base, size_t length, const char *fn, uintN ln, J
     return true;
 }
 
-void
-TokenStream::close()
+TokenStream::~TokenStream()
 {
     if (flags & TSF_OWNFILENAME)
         cx->free((void *) filename);
@@ -432,7 +431,6 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
     JSBool ok;
     const TokenPos *tp;
     uintN i;
-    JSErrorReporter onError;
 
     if (JSREPORT_IS_STRICT(flags) && !cx->hasStrictOption())
         return JS_TRUE;
@@ -513,44 +511,19 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
 
 
 
-
-
-
-    onError = cx->errorReporter;
-
-    
-
-
-
-
-    if (!(flags & TSF_ERROR)) {
-        if (js_ErrorToException(cx, message, &report, NULL, NULL))
-            onError = NULL;
-    }
-
-    
-
-
-
-
-
-    if (cx->interpLevel != 0 && !JSREPORT_IS_WARNING(flags))
-        onError = NULL;
-
-    if (onError) {
-        JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
-
+    if (!js_ErrorToException(cx, message, &report, NULL, NULL)) {
         
 
 
 
-        if (hook && !hook(cx, message, &report,
-                          cx->debugHooks->debugErrorHookData)) {
-            onError = NULL;
-        }
+        bool reportError = true;
+        if (JSDebugErrorHook hook = cx->debugHooks->debugErrorHook)
+            reportError = hook(cx, message, &report, cx->debugHooks->debugErrorHookData);
+
+        
+        if (reportError && cx->errorReporter)
+            cx->errorReporter(cx, message, &report);
     }
-    if (onError)
-        (*onError)(cx, message, &report);
 
   out:
     if (linebytes)
@@ -569,11 +542,6 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
                 cx->free((void *)report.messageArgs[i++]);
         }
         cx->free((void *)report.messageArgs);
-    }
-
-    if (!JSREPORT_IS_WARNING(flags)) {
-        
-        flags |= TSF_ERROR;
     }
 
     return warning;
@@ -1899,13 +1867,14 @@ TokenStream::getTokenInternal()
     return tt;
 
   error:
+    JS_ASSERT(cx->isExceptionPending());
+
     
 
 
 
 
 
-    flags |= TSF_ERROR;
     flags |= TSF_DIRTYLINE;
     tp->pos.end.index = tp->pos.begin.index + 1;
     tp->type = TOK_ERROR;
