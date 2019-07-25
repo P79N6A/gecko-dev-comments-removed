@@ -84,6 +84,54 @@ struct NS_GFX nsRect :
   
   
   
+
+  nsRect SaturatingUnion(const nsRect& aRect) const
+  {
+    if (IsEmpty()) {
+      return aRect;
+    } else if (aRect.IsEmpty()) {
+      return *static_cast<const nsRect*>(this);
+    } else {
+      return SaturatingUnionEdges(aRect);
+    }
+  }
+
+  nsRect SaturatingUnionEdges(const nsRect& aRect) const
+  {
+#ifdef NS_COORD_IS_FLOAT
+    return UnionEdges(aRect);
+#else
+    nsRect result;
+    result.x = NS_MIN(aRect.x, x);
+    result.y = NS_MIN(aRect.y, y);
+    PRInt64 w = NS_MAX(PRInt64(aRect.x) + aRect.width, PRInt64(x) + width) - result.x;
+    PRInt64 h = NS_MAX(PRInt64(aRect.y) + aRect.height, PRInt64(y) + height) - result.y;
+    if (w > nscoord_MAX) {
+      NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord width");
+      w = nscoord_MAX;
+    }
+    if (h > nscoord_MAX) {
+      NS_WARNING("Overflowed nscoord_MAX in conversion to nscoord height");
+      h = nscoord_MAX;
+    }
+    result.width = nscoord(w);
+    result.height = nscoord(h);
+    return result;
+#endif
+  }
+
+  void SaturatingUnionRect(const nsRect& aRect1, const nsRect& aRect2)
+  {
+    *this = aRect1.SaturatingUnion(aRect2);
+  }
+  void SaturatingUnionRectEdges(const nsRect& aRect1, const nsRect& aRect2)
+  {
+    *this = aRect1.SaturatingUnionEdges(aRect2);
+  }
+
+  
+  
+  
   
   
   inline nsRect ConvertAppUnitsRoundOut(PRInt32 aFromAPP, PRInt32 aToAPP) const;
