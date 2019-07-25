@@ -61,6 +61,8 @@
 
 #define PREF_LAST_DAILY "idle.lastDailyNotification"
 
+#define SECONDS_PER_DAY 86400
+
 
 class IdleListenerComparator
 {
@@ -72,6 +74,9 @@ public:
   }
 };
 
+
+
+
 NS_IMPL_ISUPPORTS1(nsIdleServiceDaily, nsIObserver)
 
 NS_IMETHODIMP
@@ -82,32 +87,57 @@ nsIdleServiceDaily::Observe(nsISupports *,
   
   nsCOMPtr<nsIObserverService> observerService =
     mozilla::services::GetObserverService();
-
-  observerService->NotifyObservers(nsnull,
-                                   OBSERVER_TOPIC_IDLE_DAILY,
-                                   nsnull);
+  NS_ENSURE_STATE(observerService);
+  (void)observerService->NotifyObservers(nsnull,
+                                         OBSERVER_TOPIC_IDLE_DAILY,
+                                         nsnull);
   
-  mIdleService->RemoveIdleObserver(this, MAX_IDLE_POLL_INTERVAL*1000);
-
-  
-  if (mTimer) {
-    mTimer->InitWithFuncCallback(DailyCallback, this, 24*60*60*1000,
-                                                       nsITimer::TYPE_ONE_SHOT);
+  if (NS_SUCCEEDED(mIdleService->RemoveIdleObserver(this, MAX_IDLE_POLL_INTERVAL))) {
+    mObservesIdle = false;
   }
+
+  
+  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (pref) {
+    PRInt32 nowSec = static_cast<PRInt32>(PR_Now() / PR_USEC_PER_SEC);
+    (void)pref->SetIntPref(PREF_LAST_DAILY, nowSec);
+  }
+
+  
+  (void)mTimer->InitWithFuncCallback(DailyCallback, this, SECONDS_PER_DAY * 1000,
+                                     nsITimer::TYPE_ONE_SHOT);
 
   return NS_OK;
 }
 
-void
-nsIdleServiceDaily::Init(nsIdleService *aIdleService)
+nsIdleServiceDaily::nsIdleServiceDaily(nsIdleService* aIdleService)
+  : mIdleService(aIdleService)
+  , mObservesIdle(false)
+  , mTimer(do_CreateInstance(NS_TIMER_CONTRACTID))
 {
-  nsresult rv;
-  mTimer = do_CreateInstance(NS_TIMER_CONTRACTID, &rv);
-
-  mIdleService = aIdleService;
+  
+  
+  PRInt32 lastDaily = 0;
+  PRInt32 nowSec = static_cast<PRInt32>(PR_Now() / PR_USEC_PER_SEC);
+  nsCOMPtr<nsIPrefBranch> pref = do_GetService(NS_PREFSERVICE_CONTRACTID);
+  if (pref) {
+    if (NS_FAILED(pref->GetIntPref(PREF_LAST_DAILY, &lastDaily)) ||
+        lastDaily < 0 || lastDaily > nowSec) {
+      
+      lastDaily = 0;
+    }
+  }
 
   
-  DailyCallback(0, this);
+  if (nowSec - lastDaily > SECONDS_PER_DAY) {
+    
+    DailyCallback(nsnull, this);
+  }
+  else {
+    
+    (void)mTimer->InitWithFuncCallback(DailyCallback, this, SECONDS_PER_DAY * 1000,
+                                       nsITimer::TYPE_ONE_SHOT);
+  }
 }
 
 void
@@ -117,11 +147,14 @@ nsIdleServiceDaily::Shutdown()
     mTimer->Cancel();
     mTimer = nsnull;
   }
-  if (mIdleService) {
-    mIdleService->RemoveIdleObserver(this, MAX_IDLE_POLL_INTERVAL*1000);
+  if (mIdleService && mObservesIdle) {
+    if (NS_SUCCEEDED(mIdleService->RemoveIdleObserver(this, MAX_IDLE_POLL_INTERVAL))) {
+      mObservesIdle = false;
+    }
     mIdleService = nsnull;
   }
 }
+
 
 void
 nsIdleServiceDaily::DailyCallback(nsITimer* aTimer, void* aClosure)
@@ -130,15 +163,17 @@ nsIdleServiceDaily::DailyCallback(nsITimer* aTimer, void* aClosure)
 
   
   
-  me->mIdleService->AddIdleObserver(me, MAX_IDLE_POLL_INTERVAL*1000);
+  if (NS_SUCCEEDED(me->mIdleService->AddIdleObserver(me, MAX_IDLE_POLL_INTERVAL))) {
+    me->mObservesIdle = true;
+  }
 }
+
+
+
 
 nsIdleService::nsIdleService() : mLastIdleReset(0), mLastHandledActivity(0)
 {
-  mDailyIdle = new nsIdleServiceDaily;
-  if (mDailyIdle) {
-    mDailyIdle->Init(this);
-  }
+  mDailyIdle = new nsIdleServiceDaily(this);
 }
 
 nsIdleService::~nsIdleService()
@@ -277,7 +312,7 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
 
 
 
-  PRUint32 curTime = PR_Now() / PR_USEC_PER_SEC;
+  PRUint32 curTime = static_cast<PRUint32>(PR_Now() / PR_USEC_PER_SEC);
   PRUint32 lastTime = curTime - mLastHandledActivity;
 
   

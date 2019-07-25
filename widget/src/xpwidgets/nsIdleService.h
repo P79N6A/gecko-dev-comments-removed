@@ -76,14 +76,7 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  
-
-
-
-
-
-
-  void Init(nsIdleService *aIdleService);
+  nsIdleServiceDaily(nsIdleService* aIdleService);
 
   
 
@@ -96,7 +89,12 @@ private:
 
 
 
-  nsIdleService *mIdleService;
+  nsIdleService* mIdleService;
+
+  
+
+
+  bool mObservesIdle;
 
   
 
