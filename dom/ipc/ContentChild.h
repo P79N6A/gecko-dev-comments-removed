@@ -199,6 +199,8 @@ private:
     gfxIntSize mScreenSize;
 #endif
 
+    AppInfo mAppInfo;
+
     
 
 
@@ -207,8 +209,6 @@ private:
 
 
     PRUint64 mID;
-
-    AppInfo mAppInfo;
 
     static ContentChild* sSingleton;
 

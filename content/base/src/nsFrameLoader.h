@@ -299,12 +299,6 @@ private:
 
 
 
-  bool OwnerIsBrowserFrame();
-
-  
-
-
-
   nsresult MaybeCreateDocShell();
   nsresult EnsureMessageManager();
   NS_HIDDEN_(void) GetURL(nsString& aURL);
