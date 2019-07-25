@@ -184,6 +184,7 @@
 }
 
 %ifdef MOZ_OFFICIAL_BRANDING
+.tab-drag-preview::before,
 #appmenu-button {
   background-image: -moz-linear-gradient(rgb(247,182,82), rgb(215,98,10) 95%);
   border-color: rgba(83,42,6,.9);
@@ -207,6 +208,7 @@
 }
 %else
 %if MOZ_UPDATE_CHANNEL == aurora
+.tab-drag-preview::before,
 #appmenu-button {
   background-image: -moz-linear-gradient(hsl(208,99%,37%), hsl(214,90%,23%) 95%);
   border-color: hsla(214,89%,21%,.9);
@@ -229,6 +231,7 @@
               0 1px 1px rgba(0,0,0,.2) inset;
 }
 %else
+.tab-drag-preview::before,
 #appmenu-button {
   background-image: -moz-linear-gradient(hsl(211,33%,32%), hsl(209,53%,10%) 95%);
   border-color: hsla(210,59%,13%,.9);
@@ -253,6 +256,7 @@
 %endif
 %endif
 
+#main-window[privatebrowsingmode=temporary] .tab-drag-preview::before,
 #main-window[privatebrowsingmode=temporary] #appmenu-button {
   background-image: -moz-linear-gradient(rgb(153,38,211), rgb(105,19,163) 95%);
   border-color: rgba(43,8,65,.9);
@@ -1923,6 +1927,24 @@ richlistitem[type~="action"][actiontype="switchtab"] > .ac-url-box > .ac-action-
 }
 
 
+.tab-drag-panel {
+  border: 0 !important;
+}
+
+.tab-drag-label {
+  margin: 0 !important;
+  padding: 5px;
+  border: 1px solid DimGray;
+}
+
+.tab-drag-panel:not([target]) > .tab-drag-label {
+  display: none;
+}
+
+.tab-drag-preview {
+  border: 1px solid rgba(0,0,0,.5);
+}
+
 .tab-drop-indicator {
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
   margin-bottom: -11px;
@@ -2647,7 +2669,7 @@ panel[dimmed="true"] {
 
 #inspector-toolbar {
   -moz-appearance: none;
-  padding: 4px 3px;
+  padding: 0 3px 4px;
   border-top: 1px solid hsla(211,68%,6%,.65) !important;
   box-shadow: 0 1px 0 hsla(209,29%,72%,.25) inset;
   background-image: -moz-linear-gradient(top, hsl(209,18%,34%), hsl(210,24%,16%));
@@ -2693,11 +2715,31 @@ panel[dimmed="true"] {
 
 
 
-
-#inspector-horizontal-splitter {
-  background: none !important;
+.inspector-resizer {
   -moz-appearance: none;
   cursor: n-resize;
+}
+
+.inspector-resizer[disabled] {
+  visibility: hidden;
+}
+
+#inspector-top-resizer {
+  background: none;
+  height: 4px;
+}
+
+#inspector-end-resizer {
+  width: 12px;
+  height: 8px;
+  background-image: -moz-linear-gradient(top, black 1px, rgba(255,255,255,0.2) 1px);
+  background-size: 10px 2px;
+  background-clip: padding-box;
+  background-repeat: repeat-y;
+  border-width: 1px 1px 0;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.05);
+  margin: 7px 7px 8px;
 }
 
 

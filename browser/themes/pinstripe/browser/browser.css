@@ -1563,6 +1563,7 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
   height: 26px;
 }
 
+.tab-drag-label,
 .tabbrowser-tab,
 .tabs-newtab-button {
   -moz-appearance: none;
@@ -1840,6 +1841,19 @@ toolbarbutton.chevron > .toolbarbutton-menu-dropmarker {
 
 
 
+
+.tab-drag-label {
+  background: -moz-linear-gradient(#eee, #ccc);
+  padding: 4px 8px;
+  border-radius: 4px;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.6);
+}
+
+.tab-drag-panel:not([target]) > .tab-drag-label {
+  background: -moz-linear-gradient(#ddd, #bbb);
+  border-bottom: 1px solid #999;
+  border-radius: 3px 3px 0 0;
+}
 
 .tab-drop-indicator {
   list-style-image: url(chrome://browser/skin/tabbrowser/tabDragIndicator.png);
@@ -2549,7 +2563,7 @@ panel[dimmed="true"] {
 
 #inspector-toolbar {
   -moz-appearance: none;
-  padding: 4px 3px;
+  padding: 0 3px 4px;
   border-top: 1px solid hsla(210, 8%, 5%, .65);
   box-shadow: 0 1px 0 0 hsla(210, 16%, 76%, .2) inset;
   background-image: -moz-linear-gradient(top, hsl(210,11%,36%), hsl(210,11%,18%));
@@ -2595,11 +2609,31 @@ panel[dimmed="true"] {
 
 
 
-
-#inspector-horizontal-splitter {
-  background: none !important;
+.inspector-resizer {
   -moz-appearance: none;
   cursor: n-resize;
+}
+
+.inspector-resizer[disabled] {
+  visibility: hidden;
+}
+
+#inspector-top-resizer {
+  background: none;
+  height: 4px;
+}
+
+#inspector-end-resizer {
+  width: 12px;
+  height: 8px;
+  background-image: -moz-linear-gradient(top, black 1px, rgba(255,255,255,0.2) 1px);
+  background-size: 10px 2px;
+  background-clip: padding-box;
+  background-repeat: repeat-y;
+  border-width: 1px 1px 0;
+  border-style: solid;
+  border-color: rgba(255, 255, 255, 0.05);
+  margin: 7px 7px 8px;
 }
 
 
