@@ -48,18 +48,14 @@
 
 class nsXULTextAccessible : public nsHyperTextAccessibleWrap
 {
-
 public:
   nsXULTextAccessible(nsIContent *aContent, nsIWeakReference *aShell);
-
-  
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
+  virtual Relation RelationByType(PRUint32 aRelationType);
 };
 
 

@@ -177,12 +177,9 @@ public:
   nsHTMLGroupboxAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-
-  
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aType);
 
 protected:
   nsIContent* GetLegend();
@@ -198,11 +195,8 @@ public:
   nsHTMLLegendAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetRelationByType(PRUint32 aRelationType,
-                               nsIAccessibleRelation **aRelation);
-
-  
   virtual PRUint32 NativeRole();
+  virtual Relation RelationByType(PRUint32 aType);
 };
 
 #endif  

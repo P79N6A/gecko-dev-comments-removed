@@ -38,12 +38,13 @@
 
 #include "nsHTMLFormControlAccessible.h"
 
+#include "Relation.h"
 #include "States.h"
 #include "nsAccessibilityAtoms.h"
 #include "nsAccUtils.h"
-#include "nsRelUtils.h"
 #include "nsTextEquivUtils.h"
 
+#include "nsIAccessibleRelation.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLInputElement.h"
 #include "nsIDOMNSHTMLElement.h"
@@ -615,23 +616,16 @@ nsHTMLGroupboxAccessible::GetNameInternal(nsAString& aName)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsHTMLGroupboxAccessible::GetRelationByType(PRUint32 aRelationType,
-                                            nsIAccessibleRelation **aRelation)
+Relation
+nsHTMLGroupboxAccessible::RelationByType(PRUint32 aType)
 {
-  nsresult rv = nsHyperTextAccessibleWrap::GetRelationByType(aRelationType,
-                                                             aRelation);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  if (aRelationType == nsIAccessibleRelation::RELATION_LABELLED_BY) {
+  Relation rel = nsHyperTextAccessibleWrap::RelationByType(aType);
     
-    return nsRelUtils::
-      AddTargetFromContent(aRelationType, aRelation, GetLegend());
-  }
+  if (aType == nsIAccessibleRelation::RELATION_LABELLED_BY)
+    rel.AppendTarget(GetLegend());
 
-  return NS_OK;
+  return rel;
 }
-
 
 
 
@@ -643,35 +637,18 @@ nsHTMLLegendAccessible::
 {
 }
 
-NS_IMETHODIMP
-nsHTMLLegendAccessible::GetRelationByType(PRUint32 aRelationType,
-                                          nsIAccessibleRelation **aRelation)
+Relation
+nsHTMLLegendAccessible::RelationByType(PRUint32 aType)
 {
-  nsresult rv = nsHyperTextAccessibleWrap::
-    GetRelationByType(aRelationType, aRelation);
-  NS_ENSURE_SUCCESS(rv, rv);
+  Relation rel = nsHyperTextAccessibleWrap::RelationByType(aType);
+  if (aType != nsIAccessibleRelation::RELATION_LABEL_FOR)
+    return rel;
 
-  if (aRelationType == nsIAccessibleRelation::RELATION_LABEL_FOR) {
-    
-    nsAccessible* groupbox = Parent();
+  nsAccessible* groupbox = Parent();
+  if (groupbox && groupbox->Role() == nsIAccessibleRole::ROLE_GROUPING)
+    rel.AppendTarget(groupbox);
 
-    if (groupbox && groupbox->Role() == nsIAccessibleRole::ROLE_GROUPING) {
-      
-      
-      nsCOMPtr<nsIAccessible> testLabelAccessible =
-        nsRelUtils::GetRelatedAccessible(groupbox,
-                                         nsIAccessibleRelation::RELATION_LABELLED_BY);
-
-      if (testLabelAccessible == this) {
-        
-        
-        return nsRelUtils::
-          AddTarget(aRelationType, aRelation, groupbox);
-      }
-    }
-  }
-
-  return NS_OK;
+  return rel;
 }
 
 PRUint32
