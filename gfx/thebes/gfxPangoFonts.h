@@ -57,10 +57,12 @@
 
 
 
-class gfxFcPangoFontSet;
+class gfxFcFontSet;
+class gfxFcFont;
 class gfxProxyFontEntry;
 typedef struct _FcPattern FcPattern;
 typedef struct FT_FaceRec_* FT_Face;
+typedef struct FT_LibraryRec_  *FT_Library;
 
 class THEBES_API gfxPangoFontGroup : public gfxFontGroup {
 public:
@@ -103,14 +105,14 @@ public:
     
     
     
-    gfxFcPangoFontSet *GetFontSet(PangoLanguage *aLang = NULL);
+    gfxFcFontSet *GetFontSet(PangoLanguage *aLang = NULL);
 
-protected:
+private:
     class FontSetByLangEntry {
     public:
-        FontSetByLangEntry(PangoLanguage *aLang, gfxFcPangoFontSet *aFontSet);
+        FontSetByLangEntry(PangoLanguage *aLang, gfxFcFontSet *aFontSet);
         PangoLanguage *mLang;
-        nsRefPtr<gfxFcPangoFontSet> mFontSet;
+        nsRefPtr<gfxFcFontSet> mFontSet;
     };
     
     
@@ -155,11 +157,12 @@ protected:
     
     
     
-    already_AddRefed<gfxFcPangoFontSet>
+    already_AddRefed<gfxFcFontSet>
     MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
                 nsAutoRef<FcPattern> *aMatchPattern = NULL);
 
-    gfxFcPangoFontSet *GetBaseFontSet();
+    gfxFcFontSet *GetBaseFontSet();
+    gfxFcFont *GetBaseFont();
 
     gfxFloat GetSizeAdjustFactor()
     {
@@ -167,6 +170,8 @@ protected:
             GetBaseFontSet();
         return mSizeAdjustFactor;
     }
+
+    static FT_Library GetFTLibrary();
 };
 
 #endif 

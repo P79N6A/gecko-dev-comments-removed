@@ -946,11 +946,11 @@ GetFontGroup(PangoContext *aContext)
 
 
 
-class gfxFcPangoFontSet {
+class gfxFcFontSet {
 public:
-    NS_INLINE_DECL_REFCOUNTING(gfxFcPangoFontSet)
+    NS_INLINE_DECL_REFCOUNTING(gfxFcFontSet)
     
-    explicit gfxFcPangoFontSet(FcPattern *aPattern,
+    explicit gfxFcFontSet(FcPattern *aPattern,
                                gfxUserFontSet *aUserFontSet)
         : mSortPattern(aPattern), mUserFontSet(aUserFontSet),
           mFcFontSet(SortPreferredFonts()), mFcFontsTrimmed(0),
@@ -960,7 +960,7 @@ public:
 
     
     
-    PangoFont *GetFontAt(PRUint32 i)
+    PangoFont *GetPangoFontAt(PRUint32 i)
     {
         if (i >= mFonts.Length() || !mFonts[i].mFont) { 
             
@@ -1127,7 +1127,7 @@ SizeIsAcceptable(FcPattern *aFont, double aRequestedSize)
 
 
 nsReturnRef<FcFontSet>
-gfxFcPangoFontSet::SortPreferredFonts()
+gfxFcFontSet::SortPreferredFonts()
 {
     gfxFontconfigUtils *utils = gfxFontconfigUtils::GetFontconfigUtils();
     if (!utils)
@@ -1348,7 +1348,7 @@ gfxFcPangoFontSet::SortPreferredFonts()
 }
 
 nsReturnRef<FcFontSet>
-gfxFcPangoFontSet::SortFallbackFonts()
+gfxFcFontSet::SortFallbackFonts()
 {
     
     
@@ -1365,7 +1365,7 @@ gfxFcPangoFontSet::SortFallbackFonts()
 
 
 FcPattern *
-gfxFcPangoFontSet::GetFontPatternAt(PRUint32 i)
+gfxFcFontSet::GetFontPatternAt(PRUint32 i)
 {
     while (i >= mFonts.Length()) {
         while (!mFcFontSet) {
@@ -1441,7 +1441,7 @@ struct gfxPangoFontset {
     PangoFontset parent_instance;
 
     PangoLanguage *mLanguage;
-    gfxFcPangoFontSet *mGfxFontSet;
+    gfxFcFontSet *mGfxFontSet;
     PangoFont *mBaseFont;
     gfxPangoFontGroup *mFontGroup;
 
@@ -1523,7 +1523,7 @@ gfx_pango_fontset_get_language(PangoFontset *fontset)
     return self->mLanguage;
 }
 
-static gfxFcPangoFontSet *
+static gfxFcFontSet *
 GetGfxFontSet(gfxPangoFontset *self)
 {
     if (!self->mGfxFontSet && self->mFontGroup) {
@@ -1554,7 +1554,7 @@ gfx_pango_fontset_foreach(PangoFontset *fontset, PangoFontsetForeachFunc func,
     }        
 
     
-    gfxFcPangoFontSet *gfxFontSet = GetGfxFontSet(self);
+    gfxFcFontSet *gfxFontSet = GetGfxFontSet(self);
     if (!gfxFontSet)
         return;
 
@@ -1565,7 +1565,7 @@ gfx_pango_fontset_foreach(PangoFontset *fontset, PangoFontsetForeachFunc func,
         if (pattern == baseFontPattern) {
             continue;
         }
-        PangoFont *font = gfxFontSet->GetFontAt(i);
+        PangoFont *font = gfxFontSet->GetPangoFontAt(i);
         if (font) {
             if ((*func)(fontset, font, data))
                 return;
@@ -1599,7 +1599,7 @@ gfx_pango_fontset_get_font(PangoFontset *fontset, guint wc)
 
     if (!result) {
         
-        gfxFcPangoFontSet *gfxFontSet = GetGfxFontSet(self);
+        gfxFcFontSet *gfxFontSet = GetGfxFontSet(self);
 
         if (gfxFontSet) {
             for (PRUint32 i = 0;
@@ -1611,7 +1611,7 @@ gfx_pango_fontset_get_font(PangoFontset *fontset, guint wc)
                 }
 
                 if (HasChar(pattern, wc)) {
-                    result = gfxFontSet->GetFontAt(i);
+                    result = gfxFontSet->GetPangoFontAt(i);
                     break;
                 }
             }
@@ -1622,7 +1622,7 @@ gfx_pango_fontset_get_font(PangoFontset *fontset, guint wc)
             if (self->mBaseFont) {
                 result = self->mBaseFont;
             } else if (gfxFontSet) {
-                result = gfxFontSet->GetFontAt(0);
+                result = gfxFontSet->GetPangoFontAt(0);
             }
         }
     }
@@ -1943,7 +1943,18 @@ gfxPangoFontGroup::GetFcFamilies(nsTArray<nsString> *aFcFamilyList,
 PangoFont *
 gfxPangoFontGroup::GetBasePangoFont()
 {
-    return GetBaseFontSet()->GetFontAt(0);
+    return GetBaseFontSet()->GetPangoFontAt(0);
+}
+
+gfxFcFont *
+gfxPangoFontGroup::GetBaseFont()
+{
+    if (!mFonts[0]) {
+        PangoFont *pangoFont = GetBasePangoFont();
+        mFonts[0] = gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangoFont));
+    }
+
+    return static_cast<gfxFcFont*>(mFonts[0].get());
 }
 
 gfxFont *
@@ -1958,12 +1969,7 @@ gfxPangoFontGroup::GetFontAt(PRInt32 i) {
 
     NS_PRECONDITION(i == 0, "Only have one font");
 
-    if (!mFonts[0]) {
-        PangoFont *pangoFont = GetBasePangoFont();
-        mFonts[0] = gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangoFont));
-    }
-
-    return mFonts[0];
+    return GetBaseFont();
 }
 
 void
@@ -1982,7 +1988,7 @@ gfxPangoFontGroup::UpdateFontList()
     mCurrGeneration = newGeneration;
 }
 
-already_AddRefed<gfxFcPangoFontSet>
+already_AddRefed<gfxFcFontSet>
 gfxPangoFontGroup::MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
                                nsAutoRef<FcPattern> *aMatchPattern)
 {
@@ -2010,8 +2016,8 @@ gfxPangoFontGroup::MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
 
     PrepareSortPattern(pattern, mStyle.size, aSizeAdjustFactor, mStyle.printerFont);
 
-    nsRefPtr<gfxFcPangoFontSet> fontset =
-        new gfxFcPangoFontSet(pattern, mUserFontSet);
+    nsRefPtr<gfxFcFontSet> fontset =
+        new gfxFcFontSet(pattern, mUserFontSet);
 
     if (aMatchPattern)
         aMatchPattern->steal(pattern);
@@ -2021,12 +2027,12 @@ gfxPangoFontGroup::MakeFontSet(PangoLanguage *aLang, gfxFloat aSizeAdjustFactor,
 
 gfxPangoFontGroup::
 FontSetByLangEntry::FontSetByLangEntry(PangoLanguage *aLang,
-                                       gfxFcPangoFontSet *aFontSet)
+                                       gfxFcFontSet *aFontSet)
     : mLang(aLang), mFontSet(aFontSet)
 {
 }
 
-gfxFcPangoFontSet *
+gfxFcFontSet *
 gfxPangoFontGroup::GetFontSet(PangoLanguage *aLang)
 {
     GetBaseFontSet(); 
@@ -2039,7 +2045,7 @@ gfxPangoFontGroup::GetFontSet(PangoLanguage *aLang)
             return mFontSets[i].mFontSet;
     }
 
-    nsRefPtr<gfxFcPangoFontSet> fontSet =
+    nsRefPtr<gfxFcFontSet> fontSet =
         MakeFontSet(aLang, mSizeAdjustFactor);
     mFontSets.AppendElement(FontSetByLangEntry(aLang, fontSet));
 
@@ -2132,8 +2138,8 @@ gfxPangoFontGroup::NewFontEntry(const gfxProxyFontEntry &aProxyEntry,
     return nsnull;
 }
 
-static FT_Library
-GetFTLibrary()
+ FT_Library
+gfxPangoFontGroup::GetFTLibrary()
 {
     if (!gFTLibrary) {
         
@@ -2149,7 +2155,7 @@ GetFTLibrary()
             new gfxPangoFontGroup(NS_LITERAL_STRING("sans-serif"),
                                   &style, nsnull);
 
-        gfxFcFont *font = static_cast<gfxFcFont*>(fontGroup->GetFontAt(0));
+        gfxFcFont *font = fontGroup->GetBaseFont();
         if (!font)
             return NULL;
 
@@ -2299,7 +2305,7 @@ GetPangoContext()
     return context;
 }
 
-gfxFcPangoFontSet *
+gfxFcFontSet *
 gfxPangoFontGroup::GetBaseFontSet()
 {
     if (mFontSets.Length() > 0)
@@ -2307,13 +2313,13 @@ gfxPangoFontGroup::GetBaseFontSet()
 
     mSizeAdjustFactor = 1.0; 
     nsAutoRef<FcPattern> pattern;
-    nsRefPtr<gfxFcPangoFontSet> fontSet =
+    nsRefPtr<gfxFcFontSet> fontSet =
         MakeFontSet(mPangoLanguage, mSizeAdjustFactor, &pattern);
 
     double size = GetPixelSize(pattern);
     if (size != 0.0 && mStyle.sizeAdjust != 0.0) {
-        gfxFcFont *font =
-            gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(fontSet->GetFontAt(0)));
+        gfxFcFont *font = gfxPangoFcFont::
+            GfxFont(GFX_PANGO_FC_FONT(fontSet->GetPangoFontAt(0)));
         if (font) {
             const gfxFont::Metrics& metrics = font->GetMetrics();
 
@@ -2328,7 +2334,7 @@ gfxPangoFontGroup::GetBaseFontSet()
                 FcPatternDel(pattern, FC_PIXEL_SIZE);
                 FcPatternAddDouble(pattern, FC_PIXEL_SIZE, size);
 
-                fontSet = new gfxFcPangoFontSet(pattern, mUserFontSet);
+                fontSet = new gfxFcFontSet(pattern, mUserFontSet);
             }
         }
     }
@@ -2406,7 +2412,7 @@ gfxPangoFontGroup::CanTakeFastPath(PRUint32 aFlags)
     
     PRBool speed = aFlags & gfxTextRunFactory::TEXT_OPTIMIZE_SPEED;
     PRBool isRTL = aFlags & gfxTextRunFactory::TEXT_IS_RTL;
-    return speed && !isRTL && PANGO_IS_FC_FONT(GetBasePangoFont());
+    return speed && !isRTL;
 }
 #endif
 
@@ -2959,8 +2965,7 @@ gfxPangoFontGroup::CreateGlyphRunsFast(gfxTextRun *aTextRun,
                                        const gchar *aUTF8, PRUint32 aUTF8Length)
 {
     const gchar *p = aUTF8;
-    PangoFont *pangofont = GetBasePangoFont();
-    gfxFcFont *gfxFont = gfxPangoFcFont::GfxFont(GFX_PANGO_FC_FONT(pangofont));
+    gfxFcFont *gfxFont = GetBaseFont();
     PRUint32 utf16Offset = 0;
     gfxTextRun::CompressedGlyph g;
     const PRUint32 appUnitsPerDevUnit = aTextRun->GetAppUnitsPerDevUnit();
