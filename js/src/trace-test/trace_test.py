@@ -60,7 +60,7 @@ class Test:
         t.error = self.error
         return t
 
-    COOKIE = '|jit-test|'
+    COOKIE = '|trace-test|'
 
     @classmethod
     def from_file(cls, path, options):
@@ -83,7 +83,7 @@ class Test:
                     elif name == 'error':
                         test.error = value
                     else:
-                        print('warning: unrecognized |jit-test| attribute %s'%part)
+                        print('warning: unrecognized |trace-test| attribute %s'%part)
                 else:
                     if name == 'slow':
                         test.slow = True
@@ -92,7 +92,7 @@ class Test:
                     elif name == 'valgrind':
                         test.valgrind = options.valgrind
                     else:
-                        print('warning: unrecognized |jit-test| attribute %s'%part)
+                        print('warning: unrecognized |trace-test| attribute %s'%part)
 
         if options.valgrind_all:
             test.valgrind = True
@@ -230,7 +230,7 @@ def run_tests(tests, test_dir, lib_dir):
 
             if OPTIONS.tinderbox:
                 if ok:
-                    print('TEST-PASS | jit_test.py | %s'%test.path)
+                    print('TEST-PASS | trace_test.py | %s'%test.path)
                 else:
                     lines = [ _ for _ in out.split('\n') + err.split('\n')
                               if _ != '' ]
@@ -238,7 +238,7 @@ def run_tests(tests, test_dir, lib_dir):
                         msg = lines[-1]
                     else:
                         msg = ''
-                    print('TEST-UNEXPECTED-FAIL | jit_test.py | %s: %s'%
+                    print('TEST-UNEXPECTED-FAIL | trace_test.py | %s: %s'%
                           (test.path, msg))
 
             n = i + 1
@@ -247,7 +247,7 @@ def run_tests(tests, test_dir, lib_dir):
                 pb.update(n)
         complete = True
     except KeyboardInterrupt:
-        print('TEST-UNEXPECTED_FAIL | jit_test.py | %s'%test.path)
+        print('TEST-UNEXPECTED_FAIL | trace_test.py | %s'%test.path)
 
     if pb:
         pb.finish()
