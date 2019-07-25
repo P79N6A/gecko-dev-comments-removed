@@ -1072,6 +1072,34 @@ JS_GetGlobalForScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSBool)
 JS_InitCTypesClass(JSContext *cx, JSObject *global);
+
+
+
+
+
+
+typedef char *
+(* JSCTypesUnicodeToNativeFun)(JSContext *cx, const jschar *source, size_t slen);
+
+
+
+
+
+
+struct JSCTypesCallbacks {
+    JSCTypesUnicodeToNativeFun unicodeToNative;
+};
+
+typedef struct JSCTypesCallbacks JSCTypesCallbacks;
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(JSBool)
+JS_SetCTypesCallbacks(JSContext *cx, JSObject *ctypesObj, JSCTypesCallbacks *callbacks);
 #endif
 
 
