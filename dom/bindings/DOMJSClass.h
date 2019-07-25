@@ -45,14 +45,8 @@ struct NativePropertyHooks
   const NativePropertyHooks *mProtoHooks;
 };
 
-
-struct DOMJSClass
+struct DOMClass
 {
-  
-  
-  
-  JSClass mBase;
-
   
   
   const prototypes::ID mInterfaceChain[prototypes::id::_ID_Count];
@@ -61,14 +55,26 @@ struct DOMJSClass
   
   
   
-  const int16_t mGetWrapperCacheVTableOffset;
-
-  
-  
-  
   const bool mDOMObjectIsISupports;
 
   const NativePropertyHooks* mNativeHooks;
+};
+
+
+struct DOMJSClass
+{
+  
+  
+  
+  JSClass mBase;
+
+  DOMClass mClass;
+
+  
+  
+  
+  
+  const int16_t mGetWrapperCacheVTableOffset;
 
   static DOMJSClass* FromJSClass(JSClass* base) {
     MOZ_ASSERT(base->flags & JSCLASS_IS_DOMJSCLASS);

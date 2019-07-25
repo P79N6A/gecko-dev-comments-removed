@@ -8,6 +8,7 @@
 #define mozilla_dom_BindingUtils_h__
 
 #include "mozilla/dom/DOMJSClass.h"
+#include "mozilla/dom/DOMJSProxyHandler.h"
 #include "mozilla/dom/workers/Workers.h"
 #include "mozilla/ErrorResult.h"
 
@@ -78,13 +79,34 @@ IsDOMClass(const js::Class* clasp)
   return IsDOMClass(Jsvalify(clasp));
 }
 
+
+
+
+enum DOMObjectSlot {
+  eNonDOMObject = -1,
+  eRegularDOMObject = DOM_OBJECT_SLOT,
+  eProxyDOMObject = DOM_PROXY_OBJECT_SLOT
+};
+
 template <class T>
 inline T*
-UnwrapDOMObject(JSObject* obj)
+UnwrapDOMObject(JSObject* obj, DOMObjectSlot slot)
 {
-  MOZ_ASSERT(IsDOMClass(JS_GetClass(obj)));
+  MOZ_ASSERT(slot != eNonDOMObject,
+             "Don't pass non-DOM objects to this function");
 
-  JS::Value val = js::GetReservedSlot(obj, DOM_OBJECT_SLOT);
+#ifdef DEBUG
+  if (IsDOMClass(js::GetObjectClass(obj))) {
+    MOZ_ASSERT(slot == eRegularDOMObject);
+  } else {
+    MOZ_ASSERT(js::IsObjectProxyClass(js::GetObjectClass(obj)) ||
+               js::IsFunctionProxyClass(js::GetObjectClass(obj)));
+    MOZ_ASSERT(js::GetProxyHandler(obj)->family() == ProxyFamily());
+    MOZ_ASSERT(slot == eProxyDOMObject);
+  }
+#endif
+
+  JS::Value val = js::GetReservedSlot(obj, slot);
   
   
   
@@ -97,6 +119,62 @@ UnwrapDOMObject(JSObject* obj)
 }
 
 
+inline const DOMClass*
+GetDOMClass(JSObject* obj)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  if (IsDOMClass(clasp)) {
+    return &DOMJSClass::FromJSClass(clasp)->mClass;
+  }
+
+  js::BaseProxyHandler* handler = js::GetProxyHandler(obj);
+  MOZ_ASSERT(handler->family() == ProxyFamily());
+  return &static_cast<DOMProxyHandler*>(handler)->mClass;
+}
+
+inline DOMObjectSlot
+GetDOMClass(JSObject* obj, const DOMClass*& result)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  if (IsDOMClass(clasp)) {
+    result = &DOMJSClass::FromJSClass(clasp)->mClass;
+    return eRegularDOMObject;
+  }
+
+  if (js::IsObjectProxyClass(clasp) || js::IsFunctionProxyClass(clasp)) {
+    js::BaseProxyHandler* handler = js::GetProxyHandler(obj);
+    if (handler->family() == ProxyFamily()) {
+      result = &static_cast<DOMProxyHandler*>(handler)->mClass;
+      return eProxyDOMObject;
+    }
+  }
+
+  return eNonDOMObject;
+}
+
+inline bool
+UnwrapDOMObjectToISupports(JSObject* obj, nsISupports*& result)
+{
+  const DOMClass* clasp;
+  DOMObjectSlot slot = GetDOMClass(obj, clasp);
+  if (slot == eNonDOMObject || !clasp->mDOMObjectIsISupports) {
+    return false;
+  }
+ 
+  result = UnwrapDOMObject<nsISupports>(obj, slot);
+  return true;
+}
+
+inline bool
+IsDOMObject(JSObject* obj)
+{
+  js::Class* clasp = js::GetObjectClass(obj);
+  return IsDOMClass(clasp) ||
+         ((js::IsObjectProxyClass(clasp) || js::IsFunctionProxyClass(clasp)) &&
+          js::GetProxyHandler(obj)->family() == ProxyFamily());
+}
+
+
 
 
 
@@ -105,8 +183,9 @@ inline nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   
-  JSClass* clasp = js::GetObjectJSClass(obj);
-  if (!IsDOMClass(clasp)) {
+  const DOMClass* domClass;
+  DOMObjectSlot slot = GetDOMClass(obj, domClass);
+  if (slot == eNonDOMObject) {
     
     if (!js::IsWrapper(obj)) {
       
@@ -118,22 +197,19 @@ UnwrapObject(JSContext* cx, JSObject* obj, U& value)
       return NS_ERROR_XPC_SECURITY_MANAGER_VETO;
     }
     MOZ_ASSERT(!js::IsWrapper(obj));
-    clasp = js::GetObjectJSClass(obj);
-    if (!IsDOMClass(clasp)) {
+    slot = GetDOMClass(obj, domClass);
+    if (slot == eNonDOMObject) {
       
       return NS_ERROR_XPC_BAD_CONVERT_JS;
     }
   }
 
-  MOZ_ASSERT(IsDOMClass(clasp));
-
   
 
 
-  DOMJSClass* domClass = DOMJSClass::FromJSClass(clasp);
   if (domClass->mInterfaceChain[PrototypeTraits<PrototypeID>::Depth] ==
       PrototypeID) {
-    value = UnwrapDOMObject<T>(obj);
+    value = UnwrapDOMObject<T>(obj, slot);
     return NS_OK;
   }
 
@@ -309,7 +385,7 @@ JSObject*
 CreateInterfaceObjects(JSContext* cx, JSObject* global, JSObject* receiver,
                        JSObject* protoProto, JSClass* protoClass,
                        JSClass* constructorClass, JSNative constructor,
-                       unsigned ctorNargs, JSClass* instanceClass,
+                       unsigned ctorNargs, const DOMClass* domClass,
                        Prefable<JSFunctionSpec>* methods,
                        Prefable<JSPropertySpec>* properties,
                        Prefable<ConstantSpec>* constants,
@@ -555,6 +631,22 @@ GetParentPointer(const ParentObject& aObject)
   return ToSupports(aObject.mObject);
 }
 
+template<class T>
+inline void
+ClearWrapper(T* p, nsWrapperCache* cache)
+{
+  cache->ClearWrapper();
+}
+
+template<class T>
+inline void
+ClearWrapper(T* p, void*)
+{
+  nsWrapperCache* cache;
+  CallQueryInterface(p, &cache);
+  ClearWrapper(p, cache);
+}
+
 
 
 JSBool
@@ -699,6 +791,14 @@ JSBool
 QueryInterface(JSContext* cx, unsigned argc, JS::Value* vp);
 JSBool
 ThrowingConstructor(JSContext* cx, unsigned argc, JS::Value* vp);
+
+bool
+GetPropertyOnPrototype(JSContext* cx, JSObject* proxy, jsid id, bool* found,
+                       JS::Value* vp);
+
+bool
+HasPropertyOnPrototype(JSContext* cx, JSObject* proxy, DOMProxyHandler* handler,
+                       jsid id);
 
 template<class T>
 class NonNull
