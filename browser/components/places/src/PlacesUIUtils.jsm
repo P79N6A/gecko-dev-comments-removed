@@ -774,8 +774,9 @@ var PlacesUIUtils = {
 
     
     
-    var browserWindow =
-      aWindow.document.documentElement.getAttribute("windowtype") == "navigator:browser" ?
+    var browserWindow = null;
+    browserWindow =
+      aWindow && aWindow.document.documentElement.getAttribute("windowtype") == "navigator:browser" ?
       aWindow : this._getTopBrowserWin();
 
     
@@ -783,8 +784,16 @@ var PlacesUIUtils = {
     var where = browserWindow ?
                 browserWindow.whereToOpenLink(aEvent, false, true) : "window";
     if (where == "window") {
-      aWindow.openDialog(aWindow.getBrowserURL(), "_blank",
-                         "chrome,all,dialog=no", urls.join("|"));
+      
+      var uriList = Cc["@mozilla.org/supports-string;1"].
+                  createInstance(Ci.nsISupportsString);
+      uriList.data = urls.join("|");
+      var args = Cc["@mozilla.org/supports-array;1"].
+                  createInstance(Ci.nsISupportsArray);
+      args.AppendElement(uriList);      
+      browserWindow = Services.ww.openWindow(aWindow,
+                                             "chrome://browser/content/browser.xul",
+                                             null, "chrome,dialog=no,all", args);
       return;
     }
 
