@@ -623,8 +623,6 @@ js::RunScript(JSContext *cx, JSScript *script, StackFrame *fp)
 bool
 js::InvokeKernel(JSContext *cx, const CallArgs &argsRef, MaybeConstruct construct)
 {
-    
-
     CallArgs args = argsRef;
     JS_ASSERT(args.argc() <= StackSpace::ARGS_LENGTH_MAX);
 
@@ -686,111 +684,9 @@ js::InvokeKernel(JSContext *cx, const CallArgs &argsRef, MaybeConstruct construc
 }
 
 bool
-InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &thisv, uintN argc)
-{
-#ifdef JS_TRACER
-    if (TRACE_RECORDER(cx))
-        AbortRecording(cx, "attempt to reenter VM while recording");
-    LeaveTrace(cx);
-#endif
-
-    
-    ContextStack &stack = cx->stack;
-    if (!stack.pushInvokeArgs(cx, argc, &args_))
-        return false;
-
-    
-    savedCallee_ = args_.calleev() = calleev;
-    savedThis_ = args_.thisv() = thisv;
-
-    
-    MakeRangeGCSafe(args_.argv(), args_.argc());
-
-    do {
-        
-        if (!calleev.isObject())
-            break;
-        JSObject &callee = calleev.toObject();
-        if (callee.getClass() != &FunctionClass)
-            break;
-        JSFunction *fun = callee.getFunctionPrivate();
-        if (fun->isNative())
-            break;
-        script_ = fun->script();
-        if (!script_->ensureRanAnalysis(cx, fun, callee.getParent()))
-            return false;
-        if (FunctionNeedsPrologue(cx, fun) || script_->isEmpty())
-            break;
-
-        
-
-
-
-        if (callee.getGlobal() != GetGlobalForScopeChain(cx))
-            break;
-
-        
-        if (!stack.pushInvokeFrame(cx, args_, INITIAL_NONE, &ifg_))
-            return false;
-
-        
-
-
-
-
-        TypeScript::SetThis(cx, script_, thisv);
-        for (unsigned i = argc; i < fun->nargs; i++)
-            TypeScript::SetArgument(cx, script_, i, types::Type::UndefinedType());
-
-        StackFrame *fp = ifg_.fp();
-#ifdef JS_METHODJIT
-        
-        mjit::CompileStatus status = mjit::CanMethodJIT(cx, script_, false,
-                                                        mjit::CompileRequest_JIT);
-        if (status == mjit::Compile_Error)
-            return false;
-        if (status != mjit::Compile_Okay)
-            break;
-        
-
-        
-        JS_CHECK_RECURSION(cx, return false);
-        stackLimit_ = stack.space().getStackLimit(cx, REPORT_ERROR);
-        if (!stackLimit_)
-            return false;
-
-        stop_ = script_->code + script_->length - 1;
-        JS_ASSERT(*stop_ == JSOP_STOP);
-#endif
-
-        
-        nformals_ = fp->numFormalArgs();
-        formals_ = fp->formalArgs();
-        actuals_ = args_.argv();
-        JS_ASSERT(actuals_ == fp->actualArgs());
-        return true;
-    } while (0);
-
-    
-
-
-
-
-
-
-    if (ifg_.pushed())
-        ifg_.pop();
-    formals_ = actuals_ = args_.argv();
-    nformals_ = (unsigned)-1;
-    return true;
-}
-
-bool
 js::Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *argv,
            Value *rval)
 {
-    LeaveTrace(cx);
-
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return false;
@@ -821,8 +717,6 @@ js::Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Val
 bool
 js::InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Value *rval)
 {
-    LeaveTrace(cx);
-
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return false;
@@ -1244,8 +1138,6 @@ bool
 js::InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                    uintN argc, Value *argv, Value *rval)
 {
-    LeaveTrace(cx);
-
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, argc, &args))
         return JS_FALSE;
