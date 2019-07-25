@@ -43,8 +43,8 @@
 
 <!ENTITY new_tab "New Tab">
 
-<!ENTITY settings "Settings">
-<!ENTITY settings_title "Settings">
+<!ENTITY preferences "Preferences">
+<!ENTITY preferences_title "Preferences">
 <!ENTITY pref_category_general "General">
 <!ENTITY pref_category_privacy "Privacy &amp; Security">
 <!ENTITY pref_category_content "Content">
@@ -80,6 +80,10 @@
 <!ENTITY save_as_pdf "Save as PDF">
 <!ENTITY agent_request_desktop "Request Desktop Site">
 <!ENTITY agent_request_mobile "Request Mobile Site">
+
+<!ENTITY contextmenu_open_new_tab "Open in New Tab">
+<!ENTITY contextmenu_add_to_launcher "Add to Home Screen">
+<!ENTITY contextmenu_share "Share">
 
 <!ENTITY site_settings_title        "Clear Site Settings">
 <!ENTITY site_settings_cancel       "Cancel">
