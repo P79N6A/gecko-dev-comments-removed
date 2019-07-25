@@ -447,10 +447,10 @@ struct JSObject {
 
 
 
-  private:
     
     static const uint32 JSSLOT_ARRAY_LENGTH = JSSLOT_PRIVATE;
 
+  private:
     
     static const uint32 JSSLOT_DENSE_ARRAY_COUNT     = JSSLOT_PRIVATE + 1;
     static const uint32 JSSLOT_DENSE_ARRAY_MINLENCAP = JSSLOT_PRIVATE + 2;

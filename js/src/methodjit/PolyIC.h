@@ -67,6 +67,8 @@ struct PICInfo {
         SET
     };
 
+    static const uint32 LENGTH_ATOM = 0xFFFFFFFF;
+
     Kind kind : 2;
 
     
@@ -78,12 +80,14 @@ struct PICInfo {
     bool shapeRegHasBaseShape : 1;
     RegisterID shapeReg : 5;        
     RegisterID objReg   : 5;        
+    RegisterID typeReg  : 5;        
+    bool hasTypeCheck   : 1;        
 
     
     bool startsWithShapeLoad : 1;
 
     
-    uint32 stubsGenerated : 8;
+    uint32 stubsGenerated : 5;
 
     
     int shapeGuard : 8;
@@ -111,6 +115,9 @@ struct PICInfo {
 
     
     JSC::CodeLocationLabel slowPathStart;
+
+    
+    uint8 typeCheckOffset;
 
     
     JSC::CodeLocationLabel lastStubStart;
