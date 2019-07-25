@@ -117,8 +117,8 @@ void test()
 
     test_twice_bigger_type<T>::run();
 
-    CheckedInt<T> max_value(integer_traits<T>::max());
-    CheckedInt<T> min_value(integer_traits<T>::min());
+    CheckedInt<T> max_value(integer_traits<T>::max_value());
+    CheckedInt<T> min_value(integer_traits<T>::min_value());
 
     
     
@@ -415,10 +415,10 @@ void test()
         if (is_U_signed) \
             VERIFY_IS_VALID_IF(CheckedInt<T>(U(-1)), is_signed); \
         if (sizeof(U) > sizeof(T)) \
-            VERIFY_IS_INVALID(CheckedInt<T>(U(integer_traits<T>::max())+1)); \
-        VERIFY_IS_VALID_IF(CheckedInt<T>(integer_traits<U>::max()), \
+            VERIFY_IS_INVALID(CheckedInt<T>(U(integer_traits<T>::max_value())+1)); \
+        VERIFY_IS_VALID_IF(CheckedInt<T>(integer_traits<U>::max_value()), \
             (sizeof(T) > sizeof(U) || ((sizeof(T) == sizeof(U)) && (is_U_signed || !is_signed)))); \
-        VERIFY_IS_VALID_IF(CheckedInt<T>(integer_traits<U>::min()), \
+        VERIFY_IS_VALID_IF(CheckedInt<T>(integer_traits<U>::min_value()), \
             is_U_signed == false ? 1 : \
             bool(is_signed) == false ? 0 : \
             sizeof(T) >= sizeof(U)); \

@@ -89,6 +89,8 @@ CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint64, unsupported_type)
 
 
 
+
+
 template<typename T> struct is_unsupported_type { enum { answer = 0 }; };
 template<> struct is_unsupported_type<unsupported_type> { enum { answer = 1 }; };
 
@@ -107,15 +109,15 @@ template<typename T> struct integer_traits
         is_signed = (T(-1) > T(0)) ? 0 : 1
     };
 
-    static T min()
+    static T min_value()
     {
         
         return is_signed ? T(T(1) << position_of_sign_bit) : T(0);
     }
 
-    static T max()
+    static T max_value()
     {
-        return ~min();
+        return ~min_value();
     }
 };
 
@@ -145,8 +147,8 @@ struct is_in_range_impl<T, U, true, true>
 {
     static T run(U x)
     {
-        return (x <= integer_traits<T>::max()) &
-               (x >= integer_traits<T>::min());
+        return (x <= integer_traits<T>::max_value()) &
+               (x >= integer_traits<T>::min_value());
     }
 };
 
@@ -155,7 +157,7 @@ struct is_in_range_impl<T, U, false, false>
 {
     static T run(U x)
     {
-        return x <= integer_traits<T>::max();
+        return x <= integer_traits<T>::max_value();
     }
 };
 
@@ -167,7 +169,7 @@ struct is_in_range_impl<T, U, true, false>
         if (sizeof(T) > sizeof(U))
             return 1;
         else
-            return x <= U(integer_traits<T>::max());
+            return x <= U(integer_traits<T>::max_value());
     }
 };
 
@@ -179,7 +181,7 @@ struct is_in_range_impl<T, U, false, true>
         if (sizeof(T) >= sizeof(U))
             return x >= 0;
         else
-            return x >= 0 && x <= U(integer_traits<T>::max());
+            return x >= 0 && x <= U(integer_traits<T>::max_value());
     }
 };
 
@@ -240,8 +242,8 @@ struct is_mul_valid_impl<T, true, false>
 {
     static T run(T x, T y)
     {
-        const T max_value = integer_traits<T>::max();
-        const T min_value = integer_traits<T>::min();
+        const T max_value = integer_traits<T>::max_value();
+        const T min_value = integer_traits<T>::min_value();
 
         if (x == 0 || y == 0) return true;
 
@@ -264,7 +266,7 @@ struct is_mul_valid_impl<T, false, false>
 {
     static T run(T x, T y)
     {
-        const T max_value = integer_traits<T>::max();
+        const T max_value = integer_traits<T>::max_value();
         if (x == 0 || y == 0) return true;
         return x <= max_value / y;
     }
@@ -279,7 +281,7 @@ template<typename T> inline T is_div_valid(T x, T y)
 {
     return integer_traits<T>::is_signed ?
                         
-                        y != 0 && (x != integer_traits<T>::min() || y != T(-1))
+                        y != 0 && (x != integer_traits<T>::min_value() || y != T(-1))
                     :
                         y != 0;
 }
