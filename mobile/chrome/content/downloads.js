@@ -1,0 +1,572 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Components.utils.import("resource://gre/modules/DownloadUtils.jsm");
+
+const URI_GENERIC_ICON_DOWNLOAD = "chrome://mozapps/skin/downloads/downloadIcon.png";
+
+var DownloadsView = {
+  _pref: null,
+  _list: null,
+  _dlmgr: null,
+  _progress: null,
+
+  _initStatement: function dv__initStatement(aMode) {
+    aMode = aMode || "date";
+
+    if (this._stmt)
+      this._stmt.finalize();
+
+    let order = "endTime DESC, startTime DESC";
+    if (aMode == "name")
+      order = "name ASC";
+    else if (aMode == "site")
+      order = "REPLACE(REPLACE(REPLACE(source, \"http://\", \"\"), \"https://\", \"\"), \"ftp://\", \"\") ASC";
+
+    this._stmt = this._dlmgr.DBConnection.createStatement(
+      "SELECT id, target, name, source, state, startTime, endTime, referrer, " +
+             "currBytes, maxBytes, state IN (?1, ?2, ?3, ?4, ?5) isActive " +
+      "FROM moz_downloads " +
+      "ORDER BY isActive DESC, " + order);
+  },
+
+  _getLocalFile: function dv__getLocalFile(aFileURI) {
+    
+    let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
+
+    
+    const fileUrl = ios.newURI(aFileURI, null, null).QueryInterface(Ci.nsIFileURL);
+    return fileUrl.file.clone().QueryInterface(Ci.nsILocalFile);
+  },
+
+  _getReferrerOrSource: function dv__getReferrerOrSource(aItem) {
+    
+    return aItem.getAttribute("referrer") || aItem.getAttribute("uri");
+  },
+
+  _createItem: function dv__createItem(aAttrs) {
+    let item = document.createElement("richlistitem");
+
+    
+    for (let attr in aAttrs)
+      item.setAttribute(attr, aAttrs[attr]);
+
+    
+    item.setAttribute("typeName", "download");
+    item.setAttribute("id", "dl-" + aAttrs.id);
+    item.setAttribute("downloadID", aAttrs.id);
+    item.setAttribute("iconURL", "moz-icon://" + aAttrs.file + "?size=32");
+    item.setAttribute("lastSeconds", Infinity);
+
+    
+    this._updateTime(item);
+    this._updateStatus(item);
+
+    return item;
+  },
+
+  _removeItem: function dv__removeItem(aItem) {
+    
+    if (!aItem)
+      return;
+
+    let index = this._list.selectedIndex;
+    this._list.removeChild(aItem);
+    this._list.selectedIndex = Math.min(index, this._list.itemCount - 1);
+  },
+
+  _clearList: function dv__clearList() {
+    
+    let empty = this._list.cloneNode(false);
+    this._list.parentNode.replaceChild(empty, this._list);
+    this._list = empty;
+  },
+
+  get visible() {
+    let panel = document.getElementById("panel-container");
+    let items = document.getElementById("panel-items");
+    if (panel.hidden == false && items.selectedPanel.id == "downloads-container")
+      return true;
+    return false;
+  },
+
+  init: function dv_init() {
+    if (this._dlmgr)
+      return;
+
+    this._dlmgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
+    this._pref = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch2);
+
+    this._progress = new DownloadProgressListener();
+    this._dlmgr.addListener(this._progress);
+
+    var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+    os.addObserver(this, "download-manager-remove-download", false);
+
+    let self = this;
+    let panels = document.getElementById("panel-items");
+    panels.addEventListener("select",
+                            function(aEvent) {
+                              if (panels.selectedPanel.id == "downloads-container")
+                                self.show();
+                            },
+                            false);
+  },
+
+  show: function dv_show() {
+    if (this._list)
+      return;
+
+    this._list = document.getElementById("downloads-list");
+
+    this._initStatement();
+    this.getDownloads();
+  },
+
+  getDownloads: function dv_getDownloads() {
+    clearTimeout(this._timeoutID);
+    this._stmt.reset();
+
+    
+    let search = document.getElementById("downloads-search-text");
+    this._searchTerms = search.value.trim().toLowerCase().split(/\s+/);
+
+    
+    this._clearList();
+
+    this._stmt.bindInt32Parameter(0, Ci.nsIDownloadManager.DOWNLOAD_NOTSTARTED);
+    this._stmt.bindInt32Parameter(1, Ci.nsIDownloadManager.DOWNLOAD_DOWNLOADING);
+    this._stmt.bindInt32Parameter(2, Ci.nsIDownloadManager.DOWNLOAD_PAUSED);
+    this._stmt.bindInt32Parameter(3, Ci.nsIDownloadManager.DOWNLOAD_QUEUED);
+    this._stmt.bindInt32Parameter(4, Ci.nsIDownloadManager.DOWNLOAD_SCANNING);
+
+    
+    let self = this;
+    this._timeoutID = setTimeout(function() {
+      
+      self._stepDownloads(1);
+      self._list.selectedIndex = 0;
+    }, 0);
+  },
+
+  _stepDownloads: function dv__stepDownloads(aNumItems) {
+    try {
+      
+      if (!this._stmt.executeStep()) {
+        
+        setTimeout(function() {
+          let os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+          os.notifyObservers(window, "download-manager-ui-done", null);
+        }, 0);
+        return;
+      }
+
+      
+      let attrs = {
+        id: this._stmt.getInt64(0),
+        file: this._stmt.getString(1),
+        target: this._stmt.getString(2),
+        uri: this._stmt.getString(3),
+        state: this._stmt.getInt32(4),
+        startTime: Math.round(this._stmt.getInt64(5) / 1000),
+        endTime: Math.round(this._stmt.getInt64(6) / 1000),
+        currBytes: this._stmt.getInt64(8),
+        maxBytes: this._stmt.getInt64(9)
+      };
+
+      
+      let (referrer = this._stmt.getString(7)) {
+        if (referrer)
+          attrs.referrer = referrer;
+      }
+
+      
+      let isActive = this._stmt.getInt32(10);
+      attrs.progress = isActive ? this._dlmgr.getDownload(attrs.id).percentComplete : 100;
+
+      
+      let item = this._createItem(attrs);
+      if (item && (isActive || this._matchesSearch(item))) {
+        
+        this._list.appendChild(item);
+      }
+      else {
+        
+        
+        aNumItems += .9;
+      }
+    }
+    catch (e) {
+      
+      this._stmt.reset();
+      return;
+    }
+
+    
+    
+    if (aNumItems > 1) {
+      this._stepDownloads(aNumItems - 1);
+    }
+    else {
+      
+      let delay = Math.min(this._list.itemCount * 10, 300);
+      let self = this;
+      this._timeoutID = setTimeout(function() { self._stepDownloads(5); }, delay);
+    }
+  },
+
+  _matchesSearch: function dv__matchesSearch(aItem) {
+    const searchAttributes = ["target", "status", "datetime"];
+
+    
+    if (this._searchTerms.length == 0)
+      return true;
+
+    
+    
+    let combinedSearch = "";
+    for each (let attr in searchAttributes)
+      combinedSearch += aItem.getAttribute(attr).toLowerCase() + " ";
+
+    
+    for each (let term in this._searchTerms)
+      if (combinedSearch.search(term) == -1)
+        return false;
+
+    return true;
+  },
+
+  downloadStarted: function dv_downloadStarted(aDownload) {
+    let attrs = {
+      id: aDownload.id,
+      file: aDownload.target.spec,
+      target: aDownload.displayName,
+      uri: aDownload.source.spec,
+      state: aDownload.state,
+      progress: aDownload.percentComplete,
+      startTime: Math.round(aDownload.startTime / 1000),
+      endTime: Date.now(),
+      currBytes: aDownload.amountTransferred,
+      maxBytes: aDownload.size
+    };
+
+    
+    let item = this._createItem(attrs);
+    if (item) {
+      
+      this._list.insertBefore(item, this._list.firstChild);
+    }
+
+    if (this.visible)
+      return;
+
+    let strings = document.getElementById("bundle_browser");
+    var notifier = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
+    notifier.showAlertNotification(URI_GENERIC_ICON_DOWNLOAD, strings.getString("alertDownloads"),
+                                   strings.getFormattedString("alertDownloadsStart", [attrs.target]), true, "", this);
+  },
+
+  downloadCompleted: function dv_downloadCompleted(aDownload) {
+    let element = this.getElementForDownload(aDownload.id);
+
+    
+    if (this._matchesSearch(element)) {
+      
+      let next = element.nextSibling;
+      while (next && next.inProgress)
+        next = next.nextSibling;
+
+      
+      this._list.insertBefore(element, next);
+    }
+    else {
+      this._removeItem(element);
+    }
+
+    if (this.visible)
+      return;
+
+    let target = element.getAttribute("target");
+    let strings = document.getElementById("bundle_browser");
+    var notifier = Cc["@mozilla.org/alerts-service;1"].getService(Ci.nsIAlertsService);
+    notifier.showAlertNotification(URI_GENERIC_ICON_DOWNLOAD, strings.getString("alertDownloads"),
+                                   strings.getFormattedString("alertDownloadsDone", [target]), true, "", this);
+  },
+
+  _updateStatus: function dv__updateStatus(aItem) {
+    let strings = document.getElementById("bundle_browser");
+
+    let status = "";
+    let state = Number(aItem.getAttribute("state"));
+
+    
+    let fileSize = Number(aItem.getAttribute("maxBytes"));
+    let sizeText = strings.getString("downloadsUnknownSize");
+    if (fileSize >= 0) {
+      let [size, unit] = DownloadUtils.convertByteUnits(fileSize);
+      sizeText = this._replaceInsert(strings.getString("downloadsKnownSize"), 1, size);
+      sizeText = this._replaceInsert(sizeText, 2, unit);
+    }
+
+    
+    status = this._replaceInsert(strings.getString("downloadsStatus"), 1, sizeText);
+
+    
+    let [displayHost, fullHost] = DownloadUtils.getURIHost(this._getReferrerOrSource(aItem));
+    status = this._replaceInsert(status, 2, displayHost);
+
+    aItem.setAttribute("status", status);
+  },
+
+  _updateTime: function dv__updateTime(aItem) {
+    
+    if (aItem.inProgress)
+      return;
+
+    let dts = Cc["@mozilla.org/intl/scriptabledateformat;1"].getService(Ci.nsIScriptableDateFormat);
+
+    
+    let now = new Date();
+    let today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+    
+    let end = new Date(parseInt(aItem.getAttribute("endTime")));
+
+    
+    let dateTime;
+    if (end >= today) {
+      
+      dateTime = dts.FormatTime("", dts.timeFormatNoSeconds, end.getHours(), end.getMinutes(), 0);
+    }
+    else if (today - end < (24 * 60 * 60 * 1000)) {
+      
+      dateTime = "Yesterday";
+    }
+    else if (today - end < (6 * 24 * 60 * 60 * 1000)) {
+      
+      dateTime = end.toLocaleFormat("%A");
+    }
+    else {
+      
+      let month = end.toLocaleFormat("%B");
+      
+      let date = Number(end.toLocaleFormat("%d"));
+      
+      dateTime = this._replaceInsert("#1 #2", 1, month);
+      dateTime = this._replaceInsert(dateTime, 2, date);
+    }
+
+    aItem.setAttribute("datetime", dateTime);
+  },
+
+  _replaceInsert: function dv__replaceInsert(aText, aIndex, aValue) {
+    return aText.replace("#" + aIndex, aValue);
+  },
+
+  toggleMode: function dv_toggleMode() {
+    let mode = document.getElementById("downloads-sort-mode");
+    if (mode.value == "search") {
+      document.getElementById("downloads-search-box").collapsed = false;
+      document.getElementById("downloads-search-text").value = "";
+    }
+    else {
+      document.getElementById("downloads-search-box").collapsed = true;
+      this._initStatement(mode.value);
+      this.getDownloads();
+    }
+  },
+
+  getElementForDownload: function dv_getElementFromDownload(aID) {
+    return document.getElementById("dl-" + aID);
+  },
+
+  openDownload: function dv_openDownload(aItem) {
+    let f = this._getLocalFile(aItem.getAttribute("file"));
+    try {
+      f.launch();
+    } catch (ex) { }
+
+    
+  },
+
+  showDownload: function dv_showDownload(aItem) {
+    let f = this._getLocalFile(aItem.getAttribute("file"));
+    try {
+      f.reveal();
+    } catch (ex) { }
+
+    
+  },
+
+  removeDownload: function dv_removeDownload(aItem) {
+    this._dlmgr.removeDownload(aItem.getAttribute("downloadID"));
+  },
+
+  cancelDownload: function dv_cancelDownload(aItem) {
+    this._dlmgr.cancelDownload(aItem.getAttribute("downloadID"));
+    var f = this._getLocalFile(aItem.getAttribute("file"));
+    if (f.exists())
+      f.remove(false);
+  },
+
+  pauseDownload: function dv_pauseDownload(aItem) {
+    this._dlmgr.pauseDownload(aItem.getAttribute("downloadID"));
+  },
+
+  resumeDownload: function dv_resumeDownload(aItem) {
+    this._dlmgr.resumeDownload(aItem.getAttribute("downloadID"));
+  },
+
+  retryDownload: function dv_retryDownload(aItem) {
+    this._removeItem(aItem);
+    this._dlmgr.retryDownload(aItem.getAttribute("downloadID"));
+  },
+
+  showPage: function dv_showPage(aItem) {
+    BrowserUI.goToURI(this._getReferrerOrSource(aItem));
+  },
+
+  observe: function (aSubject, aTopic, aData) {
+    switch (aTopic) {
+      case "download-manager-remove-download":
+        
+        if (!aSubject) {
+          
+          this.getDownloads();
+          break;
+        }
+
+        
+        let id = aSubject.QueryInterface(Ci.nsISupportsPRUint32);
+        let element = this.getElementForDownload(id.data);
+        this._removeItem(element);
+        break;
+    }
+  },
+
+  QueryInterface: function (aIID) {
+    if (!aIID.equals(Ci.nsIObserver) &&
+        !aIID.equals(Ci.nsISupports))
+      throw Components.results.NS_ERROR_NO_INTERFACE;
+    return this;
+  }
+};
+
+function DownloadProgressListener() { }
+
+DownloadProgressListener.prototype = {
+  
+  
+  onDownloadStateChange: function dlPL_onDownloadStateChange(aState, aDownload) {
+    let state = aDownload.state;
+    switch (state) {
+      case Ci.nsIDownloadManager.DOWNLOAD_QUEUED:
+        DownloadsView.downloadStarted(aDownload);
+        break;
+
+      case Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_POLICY:
+        DownloadsView.downloadStarted(aDownload);
+        
+        
+      case Ci.nsIDownloadManager.DOWNLOAD_FAILED:
+      case Ci.nsIDownloadManager.DOWNLOAD_CANCELED:
+      case Ci.nsIDownloadManager.DOWNLOAD_BLOCKED_PARENTAL:
+      case Ci.nsIDownloadManager.DOWNLOAD_DIRTY:
+      case Ci.nsIDownloadManager.DOWNLOAD_FINISHED:
+        DownloadsView.downloadCompleted(aDownload);
+        break;
+    }
+
+    let element = DownloadsView.getElementForDownload(aDownload.id);
+
+    
+    let referrer = aDownload.referrer;
+    if (referrer && element.getAttribute("referrer") != referrer.spec)
+      element.setAttribute("referrer", referrer.spec);
+
+    
+    element.setAttribute("state", state);
+    element.setAttribute("currBytes", aDownload.amountTransferred);
+    element.setAttribute("maxBytes", aDownload.size);
+    element.setAttribute("endTime", Date.now());
+
+    
+    DownloadsView._updateTime(element);
+    DownloadsView._updateStatus(element);
+  },
+
+  onProgressChange: function(aWebProgress, aRequest, aCurSelfProgress, aMaxSelfProgress, aCurTotalProgress, aMaxTotalProgress, aDownload) {
+    let element = DownloadsView.getElementForDownload(aDownload.id);
+    if (!element)
+      return;
+
+    
+    if (aDownload.percentComplete == -1) {
+      element.setAttribute("progressmode", "undetermined");
+    }
+    else {
+      element.setAttribute("progressmode", "normal");
+      element.setAttribute("progress", aDownload.percentComplete);
+    }
+
+    
+    let event = document.createEvent("Events");
+    event.initEvent("ValueChange", true, true);
+    let progmeter = document.getAnonymousElementByAttribute(element, "anonid", "progressmeter");
+    if (progmeter)
+      progmeter.dispatchEvent(event);
+
+    
+    element.setAttribute("currBytes", aDownload.amountTransferred);
+    element.setAttribute("maxBytes", aDownload.size);
+
+    
+    DownloadsView._updateStatus(element);
+  },
+
+  onStateChange: function(aWebProgress, aRequest, aState, aStatus, aDownload) { },
+  onSecurityChange: function(aWebProgress, aRequest, aState, aDownload) { },
+
+  
+  
+  QueryInterface: function (aIID) {
+    if (!aIID.equals(Ci.nsIDownloadProgressListener) &&
+        !aIID.equals(Ci.nsISupports))
+      throw Components.results.NS_ERROR_NO_INTERFACE;
+    return this;
+  }
+};
