@@ -1414,7 +1414,10 @@ nsExpatDriver::MaybeStopParser(nsresult aState)
         mInternalState == NS_ERROR_HTMLPARSER_INTERRUPTED ||
         (mInternalState == NS_ERROR_HTMLPARSER_BLOCK &&
          aState != NS_ERROR_HTMLPARSER_INTERRUPTED)) {
-      mInternalState = aState;
+      mInternalState = (aState == NS_ERROR_HTMLPARSER_INTERRUPTED ||
+                        aState == NS_ERROR_HTMLPARSER_BLOCK) ?
+                       aState :
+                       NS_ERROR_HTMLPARSER_STOPPARSING;
     }
 
     
