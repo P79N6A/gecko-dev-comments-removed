@@ -1095,6 +1095,9 @@ class ScriptAnalysis
         return getValueTypes(poppedValue(pc, which));
     }
 
+    
+    bool integerOperation(JSContext *cx, jsbytecode *pc);
+
     bool trackUseChain(const SSAValue &v) {
         JS_ASSERT_IF(v.kind() == SSAValue::VAR, trackSlot(v.varSlot()));
         return v.kind() != SSAValue::EMPTY &&
