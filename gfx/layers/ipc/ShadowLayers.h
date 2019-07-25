@@ -163,9 +163,6 @@ public:
 
 
 
-  void CreatedImageBuffer(ShadowableLayer* aImage,
-                          nsIntSize aSize,
-                          const SharedImage& aInitialFrontImage);
   void CreatedCanvasBuffer(ShadowableLayer* aCanvas,
                            nsIntSize aSize,
                            const SurfaceDescriptor& aInitialFrontSurface,
@@ -181,7 +178,6 @@ public:
 
   void DestroyedThebesBuffer(ShadowableLayer* aThebes,
                              const SurfaceDescriptor& aBackBufferToDestroy);
-  void DestroyedImageBuffer(ShadowableLayer* aImage);
   void DestroyedCanvasBuffer(ShadowableLayer* aCanvas);
 
 
@@ -435,6 +431,17 @@ protected:
 
 
 
+class ISurfaceDeAllocator
+{
+public:
+  virtual void DestroySharedSurface(gfxSharedImageSurface* aSurface) = 0;
+  virtual void DestroySharedSurface(SurfaceDescriptor* aSurface) = 0;
+protected:
+  ~ISurfaceDeAllocator() {};
+};
+
+
+
 
 
 
@@ -449,11 +456,15 @@ public:
   
 
 
-  void SetAllocator(PLayersParent* aAllocator)
+
+
+  virtual void SetAllocator(ISurfaceDeAllocator* aAllocator)
   {
-    NS_ABORT_IF_FALSE(!mAllocator, "Stomping allocator?");
+    NS_ASSERTION(!mAllocator || mAllocator == aAllocator, "Stomping allocator?");
     mAllocator = aAllocator;
   }
+
+  virtual void DestroyFrontBuffer() { };
 
   
 
@@ -491,7 +502,7 @@ protected:
     , mUseShadowClipRect(PR_FALSE)
   {}
 
-  PLayersParent* mAllocator;
+  ISurfaceDeAllocator* mAllocator;
   nsIntRegion mShadowVisibleRegion;
   gfx3DMatrix mShadowTransform;
   nsIntRect mShadowClipRect;
@@ -621,24 +632,8 @@ public:
 
 
 
-
-
-
-
-  virtual PRBool Init(const SharedImage& front, const nsIntSize& aSize) = 0;
-
-  
-
-
-
-  virtual void Swap(const SharedImage& aFront, SharedImage* aNewBack) = 0;
-
-  
-
-
-
-
-  virtual void DestroyFrontBuffer() = 0;
+  virtual void Swap(const SharedImage& aFront,
+                    SharedImage* aNewBack) = 0;
 
   virtual ShadowLayer* AsShadowLayer() { return this; }
 
