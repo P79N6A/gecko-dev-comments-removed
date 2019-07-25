@@ -337,6 +337,9 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
         return script->getJIT(fp->isConstructing())->invokeEntry;
 
     
+    fp->prev()->pc(cx, fp);
+
+    
     JSBool ok = Interpret(cx, fp);
     InlineReturn(f);
 
