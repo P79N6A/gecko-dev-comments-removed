@@ -69,12 +69,17 @@ using namespace mozilla::plugins;
 #ifndef WM_MOUSEHWHEEL
 #define WM_MOUSEHWHEEL     0x020E
 #endif
+const PRUnichar * kFlashFullscreenClass = L"ShockwaveFlashFullScreen";
 #endif
 
 namespace {
 PluginModuleChild* gInstance = nsnull;
 }
 
+#ifdef XP_WIN
+
+static bool gDelayFlashFocusReplyUntilEval = false;
+#endif
 
 PluginModuleChild::PluginModuleChild() :
     mLibrary(0),
@@ -1167,6 +1172,13 @@ _evaluate(NPP aNPP,
         return false;
     }
 
+#ifdef XP_WIN
+    if (gDelayFlashFocusReplyUntilEval) {
+        ReplyMessage(0);
+        gDelayFlashFocusReplyUntilEval = false;
+    }
+#endif
+
     return actor->Evaluate(aScript, aResult);
 }
 
@@ -1884,6 +1896,8 @@ PluginModuleChild::ExitedCall()
 LRESULT CALLBACK
 PluginModuleChild::CallWindowProcHook(int nCode, WPARAM wParam, LPARAM lParam)
 {
+    gDelayFlashFocusReplyUntilEval = false;
+
     
     
     if (nCode >= 0 &&
@@ -1892,7 +1906,6 @@ PluginModuleChild::CallWindowProcHook(int nCode, WPARAM wParam, LPARAM lParam)
         switch(pCwp->message) {
             
             case WM_SETFOCUS:
-            case WM_KILLFOCUS:
             case WM_MOUSEHWHEEL:
             case WM_MOUSEWHEEL:
             case WM_HSCROLL:
@@ -1901,6 +1914,23 @@ PluginModuleChild::CallWindowProcHook(int nCode, WPARAM wParam, LPARAM lParam)
             case WM_IME_SETCONTEXT:
             case WM_WINDOWPOSCHANGED:
                 ReplyMessage(0);
+            break;
+            case WM_KILLFOCUS:
+            {
+                
+                
+                
+                
+                PRUnichar szClass[26];
+                if (GetClassNameW(pCwp->hwnd, szClass,
+                                  sizeof(szClass)/sizeof(PRUnichar)) &&
+                    !wcscmp(szClass, kFlashFullscreenClass)) {
+                    gDelayFlashFocusReplyUntilEval = true;
+                }
+                else {
+                    ReplyMessage(0);
+                }
+            }
             break;
             
             case WM_WINDOWPOSCHANGING:
