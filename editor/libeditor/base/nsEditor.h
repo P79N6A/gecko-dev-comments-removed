@@ -218,6 +218,8 @@ public:
   void SwitchTextDirectionTo(PRUint32 aDirection);
 
 protected:
+  nsCString mContentMIMEType;       
+
   nsresult DetermineCurrentDirection();
 
   
@@ -791,60 +793,59 @@ public:
   };
 
 protected:
+
+  PRUint32        mModCount;     
+  PRUint32        mFlags;        
+
+  nsWeakPtr       mSelConWeak;   
+  PRInt32         mUpdateCount;
+
+  
   enum Tristate {
     eTriUnset,
     eTriFalse,
     eTriTrue
-  };
-  
-  nsCString mContentMIMEType;       
-
+  }                 mSpellcheckCheckboxState;
   nsCOMPtr<nsIInlineSpellChecker> mInlineSpellChecker;
 
   nsCOMPtr<nsITransactionManager> mTxnMgr;
-  nsCOMPtr<mozilla::dom::Element> mRootElement; 
+  nsWeakPtr         mPlaceHolderTxn;     
+  nsIAtom          *mPlaceHolderName;    
+  PRInt32           mPlaceHolderBatch;   
+  nsSelectionState *mSelState;           
+  nsSelectionState  mSavedSel;           
+  nsRangeUpdater    mRangeUpdater;       
+  nsCOMPtr<mozilla::dom::Element> mRootElement;   
+  PRInt32           mAction;             
+  EDirection        mDirection;          
+  
+  
   nsCOMPtr<nsIPrivateTextRangeList> mIMETextRangeList; 
   nsCOMPtr<nsIDOMCharacterData>     mIMETextNode;      
-  nsCOMPtr<nsIDOMEventTarget> mEventTarget; 
-  nsCOMPtr<nsIDOMEventListener> mEventListener;
-  nsWeakPtr        mSelConWeak;          
-  nsWeakPtr        mPlaceHolderTxn;      
-  nsWeakPtr        mDocWeak;             
-  nsIAtom          *mPlaceHolderName;    
-  nsSelectionState *mSelState;           
-  nsString         *mPhonetic;
+  PRUint32                          mIMETextOffset;    
+  PRUint32                          mIMEBufferLength;  
+  bool                              mInIMEMode;        
+  bool                              mIsIMEComposing;   
+                                                       
 
-  
+  bool                          mShouldTxnSetSelection;  
+  bool                          mDidPreDestroy;    
+  bool                          mDidPostCreate;    
+   
   nsCOMArray<nsIEditActionListener> mActionListeners;  
   nsCOMArray<nsIEditorObserver> mEditorObservers;  
   nsCOMArray<nsIDocumentStateListener> mDocStateListeners;
 
-  nsSelectionState  mSavedSel;           
-  nsRangeUpdater    mRangeUpdater;       
+  PRInt8                        mDocDirtyState;		
+  nsWeakPtr        mDocWeak;  
+  
+  nsCOMPtr<nsIDOMEventTarget> mEventTarget;
 
-  PRUint32          mModCount;     
-  PRUint32          mFlags;        
+  nsString* mPhonetic;
 
-  PRInt32           mUpdateCount;
+ nsCOMPtr<nsIDOMEventListener> mEventListener;
 
-  PRInt32           mPlaceHolderBatch;   
-  PRInt32           mAction;             
-  PRUint32          mHandlingActionCount;
-
-  PRUint32          mIMETextOffset;    
-  PRUint32          mIMEBufferLength;  
-
-  EDirection        mDirection;          
-  PRInt8            mDocDirtyState;      
-  PRUint8           mSpellcheckCheckboxState; 
-
-  bool mInIMEMode;        
-  bool mIsIMEComposing;   
-                                                       
-
-  bool mShouldTxnSetSelection;  
-  bool mDidPreDestroy;    
-  bool mDidPostCreate;    
+  PRUint32 mHandlingActionCount;
   bool mHandlingTrustedAction;
   bool mDispatchInputEvent;
 
