@@ -117,104 +117,19 @@ const char *const js_common_atom_names[] = {
     "boolean",                  
     js_null_str,                
     "xml",                      
-    js_null_str,                
+    js_null_str                 
 
-#define JS_PROTO(name,code,init) js_##name##_str,
+#define JS_PROTO(name,code,init) ,js_##name##_str
 #include "jsproto.tbl"
 #undef JS_PROTO
 
-    js_anonymous_str,           
-    js_apply_str,               
-    js_arguments_str,           
-    js_arity_str,               
-    js_BYTES_PER_ELEMENT_str,   
-    js_call_str,                
-    js_callee_str,              
-    js_caller_str,              
-    js_classPrototype_str,      
-    js_constructor_str,         
-    js_each_str,                
-    js_eval_str,                
-    js_fileName_str,            
-    js_get_str,                 
-    js_global_str,              
-    js_ignoreCase_str,          
-    js_index_str,               
-    js_input_str,               
-    js_toISOString_str,         
-    js_iterator_str,            
-    js_join_str,                
-    js_lastIndex_str,           
-    js_length_str,              
-    js_lineNumber_str,          
-    js_message_str,             
-    js_multiline_str,           
-    js_name_str,                
-    js_next_str,                
-    js_noSuchMethod_str,        
-    js_objectNull_str,          
-    js_objectUndefined_str,     
-    js_of_str,                  
-    js_proto_str,               
-    js_set_str,                 
-    js_source_str,              
-    js_stack_str,               
-    js_sticky_str,              
-    js_toGMTString_str,         
-    js_toLocaleString_str,      
-    js_toSource_str,            
-    js_toString_str,            
-    js_toUTCString_str,         
-    js_valueOf_str,             
-    js_toJSON_str,              
-    js_void0_str,               
-    js_enumerable_str,          
-    js_configurable_str,        
-    js_writable_str,            
-    js_value_str,               
-    js_test_str,                
-    js_useStrict_str,           
-    js_loc_str,                 
-    js_line_str,                
-    js_Infinity_str,            
-    js_NaN_str,                 
-    js_builder_str,             
-
-#if JS_HAS_XML_SUPPORT
-    js_etago_str,               
-    js_namespace_str,           
-    js_ptagc_str,               
-    js_qualifier_str,           
-    js_space_str,               
-    js_stago_str,               
-    js_star_str,                
-    js_starQualifier_str,       
-    js_tagc_str,                
-    js_xml_str,                 
-    js_functionNamespaceURI_str,
-#endif
-
-    js_Proxy_str,                       
-
-    js_getOwnPropertyDescriptor_str,    
-    js_getPropertyDescriptor_str,       
-    js_defineProperty_str,              
-    js_delete_str,                      
-    js_getOwnPropertyNames_str,         
-    js_enumerate_str,                   
-    js_fix_str,                         
-
-    js_has_str,                         
-    js_hasOwn_str,                      
-    js_keys_str,                        
-    js_iterate_str,                     
-
-    js_WeakMap_str,                     
-
-    js_byteLength_str,                  
-
-    js_return_str,                      
-    js_throw_str                        
+#define DEFINE_ATOM(id, text)          ,js_##id##_str
+#define DEFINE_PROTOTYPE_ATOM(id)      ,js_##id##_str
+#define DEFINE_KEYWORD_ATOM(id)        ,js_##id##_str
+#include "jsatom.tbl"
+#undef DEFINE_ATOM
+#undef DEFINE_PROTOTYPE_ATOM
+#undef DEFINE_KEYWORD_ATOM
 };
 
 void
@@ -251,90 +166,13 @@ const size_t js_common_atom_count = JS_ARRAY_LENGTH(js_common_atom_names);
 const char js_undefined_str[]       = "undefined";
 const char js_object_str[]          = "object";
 
-const char js_anonymous_str[]       = "anonymous";
-const char js_apply_str[]           = "apply";
-const char js_arguments_str[]       = "arguments";
-const char js_arity_str[]           = "arity";
-const char js_BYTES_PER_ELEMENT_str[] = "BYTES_PER_ELEMENT";
-const char js_call_str[]            = "call";
-const char js_callee_str[]          = "callee";
-const char js_caller_str[]          = "caller";
-const char js_classPrototype_str[]  = "prototype";
-const char js_constructor_str[]     = "constructor";
-const char js_each_str[]            = "each";
-const char js_eval_str[]            = "eval";
-const char js_fileName_str[]        = "fileName";
-const char js_get_str[]             = "get";
-const char js_global_str[]          = "global";
-const char js_ignoreCase_str[]      = "ignoreCase";
-const char js_index_str[]           = "index";
-const char js_input_str[]           = "input";
-const char js_toISOString_str[]     = "toISOString";
-const char js_iterator_str[]        = "__iterator__";
-const char js_join_str[]            = "join";
-const char js_lastIndex_str[]       = "lastIndex";
-const char js_length_str[]          = "length";
-const char js_lineNumber_str[]      = "lineNumber";
-const char js_message_str[]         = "message";
-const char js_multiline_str[]       = "multiline";
-const char js_name_str[]            = "name";
-const char js_next_str[]            = "next";
-const char js_noSuchMethod_str[]    = "__noSuchMethod__";
-const char js_objectNull_str[]      = "[object Null]";
-const char js_objectUndefined_str[] = "[object Undefined]";
-const char js_of_str[]              = "of";
-const char js_proto_str[]           = "__proto__";
-const char js_set_str[]             = "set";
-const char js_source_str[]          = "source";
-const char js_stack_str[]           = "stack";
-const char js_sticky_str[]          = "sticky";
-const char js_toGMTString_str[]     = "toGMTString";
-const char js_toLocaleString_str[]  = "toLocaleString";
-const char js_toSource_str[]        = "toSource";
-const char js_toString_str[]        = "toString";
-const char js_toUTCString_str[]     = "toUTCString";
-const char js_valueOf_str[]         = "valueOf";
-const char js_toJSON_str[]          = "toJSON";
-const char js_void0_str[]           = "(void 0)";
-const char js_enumerable_str[]      = "enumerable";
-const char js_configurable_str[]    = "configurable";
-const char js_writable_str[]        = "writable";
-const char js_value_str[]           = "value";
-const char js_test_str[]            = "test";
-const char js_useStrict_str[]       = "use strict";
-const char js_loc_str[]             = "loc";
-const char js_line_str[]            = "line";
-const char js_Infinity_str[]        = "Infinity";
-const char js_NaN_str[]             = "NaN";
-const char js_builder_str[]         = "builder";
-
-#if JS_HAS_XML_SUPPORT
-const char js_etago_str[]           = "</";
-const char js_namespace_str[]       = "namespace";
-const char js_ptagc_str[]           = "/>";
-const char js_qualifier_str[]       = "::";
-const char js_space_str[]           = " ";
-const char js_stago_str[]           = "<";
-const char js_star_str[]            = "*";
-const char js_starQualifier_str[]   = "*::";
-const char js_tagc_str[]            = ">";
-const char js_xml_str[]             = "xml";
-const char js_functionNamespaceURI_str[] = "@mozilla.org/js/function";
-#endif
-
-const char js_getOwnPropertyDescriptor_str[] = "getOwnPropertyDescriptor";
-const char js_getPropertyDescriptor_str[] = "getPropertyDescriptor";
-const char js_defineProperty_str[] = "defineProperty";
-const char js_getOwnPropertyNames_str[] = "getOwnPropertyNames";
-const char js_enumerate_str[] =     "enumerate";
-const char js_fix_str[] =           "fix";
-const char js_has_str[] =           "has";
-const char js_hasOwn_str[] =        "hasOwn";
-const char js_keys_str[] =          "keys";
-const char js_iterate_str[] =       "iterate";
-const char js_byteLength_str[] =    "byteLength";
-const char js_return_str[] =        "return";
-const char js_throw_str[] =         "throw";
+#define DEFINE_ATOM(id, text)          const char js_##id##_str[] = text;
+#define DEFINE_PROTOTYPE_ATOM(id)
+#define DEFINE_KEYWORD_ATOM(id)
+#include "jsatom.tbl"
+#undef DEFINE_ATOM
+#undef DEFINE_PROTOTYPE_ATOM
+#undef DEFINE_KEYWORD_ATOM
 
 #if JS_HAS_GENERATORS
 const char js_close_str[]           = "close";
