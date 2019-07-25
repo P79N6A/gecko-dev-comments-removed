@@ -568,12 +568,6 @@ nsHTMLScrollFrame::GuessVScrollbarNeeded(const ScrollReflowState& aState)
   if (mInner.mIsRoot) {
     
     
-    PRBool hint;
-    nsresult rv = mInner.GetVScrollbarHintFromGlobalHistory(&hint);
-    if (NS_SUCCEEDED(rv))
-      return hint;
-    
-    
     
     
     return PR_TRUE;
@@ -866,11 +860,6 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
 
   if (!InInitialReflow() && !mInner.mHadNonInitialReflow) {
     mInner.mHadNonInitialReflow = PR_TRUE;
-    if (mInner.mIsRoot) {
-      
-      
-      mInner.SaveVScrollbarStateToGlobalHistory();
-    }
   }
 
   if (mInner.mIsRoot && oldScrolledAreaBounds != newScrolledAreaBounds) {
@@ -1297,8 +1286,6 @@ nsGfxScrollFrameInner::nsGfxScrollFrameInner(nsContainerFrame* aOuter,
     mIsXUL(aIsXUL),
     mSupppressScrollbarUpdate(PR_FALSE),
     mSkippedScrollbarLayout(PR_FALSE),
-    mDidLoadHistoryVScrollbarHint(PR_FALSE),
-    mHistoryVScrollbarHint(PR_FALSE),
     mHadNonInitialReflow(PR_FALSE),
     mHorizontalOverflow(PR_FALSE),
     mVerticalOverflow(PR_FALSE),
@@ -3321,59 +3308,6 @@ static nsIURI* GetDocURI(nsIFrame* aFrame)
   if (!doc)
     return nsnull;
   return doc->GetDocumentURI();
-}
-
-void
-nsGfxScrollFrameInner::SaveVScrollbarStateToGlobalHistory()
-{
-  NS_ASSERTION(mIsRoot, "Only use this on viewports");
-
-  
-  
-  if (mDidLoadHistoryVScrollbarHint &&
-      (mHistoryVScrollbarHint == mHasVerticalScrollbar))
-    return;
-
-  nsIURI* uri = GetDocURI(mOuter);
-  if (!uri)
-    return;
-
-  nsCOMPtr<nsIGlobalHistory3> history(do_GetService(NS_GLOBALHISTORY2_CONTRACTID));
-  if (!history)
-    return;
-  
-  PRUint32 flags = 0;
-  if (mHasVerticalScrollbar) {
-    flags |= NS_GECKO_FLAG_NEEDS_VERTICAL_SCROLLBAR;
-  }
-  history->SetURIGeckoFlags(uri, flags);
-  
-}
-
-nsresult
-nsGfxScrollFrameInner::GetVScrollbarHintFromGlobalHistory(PRBool* aVScrollbarNeeded)
-{
-  NS_ASSERTION(mIsRoot, "Only use this on viewports");
-  NS_ASSERTION(!mDidLoadHistoryVScrollbarHint,
-               "Should only load a hint once, it can be expensive");
-
-  nsIURI* uri = GetDocURI(mOuter);
-  if (!uri)
-    return NS_ERROR_FAILURE;
-
-  nsCOMPtr<nsIGlobalHistory3> history(do_GetService(NS_GLOBALHISTORY2_CONTRACTID));
-  if (!history)
-    return NS_ERROR_FAILURE;
-  
-  PRUint32 flags;
-  nsresult rv = history->GetURIGeckoFlags(uri, &flags);
-  if (NS_FAILED(rv))
-    return rv;
-
-  *aVScrollbarNeeded = (flags & NS_GECKO_FLAG_NEEDS_VERTICAL_SCROLLBAR) != 0;
-  mDidLoadHistoryVScrollbarHint = PR_TRUE;
-  mHistoryVScrollbarHint = *aVScrollbarNeeded;
-  return NS_OK;
 }
 
 nsPresState*

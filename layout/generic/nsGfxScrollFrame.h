@@ -160,8 +160,6 @@ public:
 
   nsPresState* SaveState(nsIStatefulFrame::SpecialStateID aStateID);
   void RestoreState(nsPresState* aState);
-  void SaveVScrollbarStateToGlobalHistory();
-  nsresult GetVScrollbarHintFromGlobalHistory(PRBool* aVScrollbarNeeded);
 
   nsIFrame* GetScrolledFrame() const { return mScrolledFrame; }
   nsIBox* GetScrollbarBox(PRBool aVertical) const {
@@ -272,11 +270,7 @@ public:
   
   
   PRPackedBool mSkippedScrollbarLayout:1;
-  
-  
-  PRPackedBool mDidLoadHistoryVScrollbarHint:1;
-  
-  PRPackedBool mHistoryVScrollbarHint:1;
+
   PRPackedBool mHadNonInitialReflow:1;
   
   
