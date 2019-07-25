@@ -1234,11 +1234,8 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
   PRUint32 nextAttrParamIndex = 0;
 
   
-  if (!wmodeType.IsEmpty()) {
-    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(NS_LITERAL_STRING("wmode"));
-    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
-    nextAttrParamIndex++;
-  }
+  
+  bool wmodeSet = false;
 
   
   for (PRInt32 index = start; index != end; index += increment) {
@@ -1252,7 +1249,25 @@ nsresult nsPluginInstanceOwner::EnsureCachedAttrParamArrays()
     FixUpURLS(name, value);
 
     mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(name);
-    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(value);
+    if (!wmodeType.IsEmpty() && 
+        0 == PL_strcasecmp(mCachedAttrParamNames[nextAttrParamIndex], "wmode")) {
+      mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
+
+      if (!wmodeSet) {
+        
+        mNumCachedAttrs--;
+        wmodeSet = true;
+      }
+    } else {
+      mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(value);
+    }
+    nextAttrParamIndex++;
+  }
+
+  
+  if (!wmodeType.IsEmpty() && !wmodeSet) {
+    mCachedAttrParamNames [nextAttrParamIndex] = ToNewUTF8String(NS_LITERAL_STRING("wmode"));
+    mCachedAttrParamValues[nextAttrParamIndex] = ToNewUTF8String(NS_ConvertUTF8toUTF16(wmodeType));
     nextAttrParamIndex++;
   }
 
