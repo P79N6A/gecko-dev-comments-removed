@@ -601,11 +601,6 @@ class JSGCConstList {
 
 struct JSCodeGenerator : public JSTreeContext
 {
-    JSArenaPool     *codePool;      
-    JSArenaPool     *notePool;      
-    void            *codeMark;      
-    void            *noteMark;      
-
     struct {
         jsbytecode  *base;          
         jsbytecode  *limit;         
@@ -665,14 +660,7 @@ struct JSCodeGenerator : public JSTreeContext
     uint16          traceIndex;     
     uint16          typesetCount;   
 
-    
-
-
-
-
-    JSCodeGenerator(js::Parser *parser,
-                    JSArenaPool *codePool, JSArenaPool *notePool,
-                    uintN lineno);
+    JSCodeGenerator(js::Parser *parser, uintN lineno);
     bool init(JSContext *cx, JSTreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
 
     JSContext *context() {
