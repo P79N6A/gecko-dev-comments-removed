@@ -213,25 +213,7 @@ public:
 
 
 
-  void IgnorePaintSuppression() {
-    mIsBackgroundOnly = PR_FALSE;
-    mIgnoreSuppression = PR_TRUE;
-  }
-  
-
-
-
-  PRBool IsIgnoringPaintSuppression() { return mIgnoreSuppression; }
-  
-
-
-
-  void SetHadToIgnorePaintSuppression() { mHadToIgnoreSuppression = PR_TRUE; }
-  
-
-
-
-  PRBool GetHadToIgnorePaintSuppression() { return mHadToIgnoreSuppression; }
+  void IgnorePaintSuppression() { mIsBackgroundOnly = PR_FALSE; }
   
 
 
@@ -404,8 +386,6 @@ private:
   PRPackedBool                   mBuildCaret;
   PRPackedBool                   mEventDelivery;
   PRPackedBool                   mIsBackgroundOnly;
-  PRPackedBool                   mIgnoreSuppression;
-  PRPackedBool                   mHadToIgnoreSuppression;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
   PRPackedBool                   mSelectedFramesOnly;
   PRPackedBool                   mAccurateVisibleRegions;
@@ -871,25 +851,8 @@ public:
 
 
 
-
-
-
-
-  PRBool ComputeVisibilityForSublist(nsDisplayListBuilder* aBuilder,
-                                     nsRegion* aVisibleRegion,
-                                     const nsRect& aListVisibleBounds);
-
-  
-
-
-
-
-
-
-
-  PRBool ComputeVisibilityForRoot(nsDisplayListBuilder* aBuilder,
-                                  nsRegion* aVisibleRegion);
-
+  PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                           nsRegion* aVisibleRegion);
   
 
 
