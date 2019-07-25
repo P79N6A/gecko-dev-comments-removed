@@ -812,7 +812,7 @@ nsHyperTextAccessible::GetRelativeOffset(nsIPresShell *aPresShell,
     
     if (pos.mContentOffset == 0 && firstChild &&
         nsAccUtils::Role(firstChild) == nsIAccessibleRole::ROLE_STATICTEXT &&
-        nsAccUtils::TextLength(firstChild) == hyperTextOffset) {
+        static_cast<PRInt32>(nsAccUtils::TextLength(firstChild)) == hyperTextOffset) {
       
       hyperTextOffset = 0;
     }

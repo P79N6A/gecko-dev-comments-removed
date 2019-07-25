@@ -546,8 +546,6 @@ nsAccDocManager::ClearDocCacheEntry(const void* aKey,
                                     nsRefPtr<nsDocAccessible>& aDocAccessible,
                                     void* aUserArg)
 {
-  nsAccDocManager *accDocMgr = static_cast<nsAccDocManager*>(aUserArg);
-
   NS_ASSERTION(aDocAccessible,
                "Calling ClearDocCacheEntry with a NULL pointer!");
 
