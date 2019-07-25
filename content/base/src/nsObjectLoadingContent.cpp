@@ -188,9 +188,6 @@ nsPluginErrorEvent::Run()
     case nsObjectLoadingContent::eFallbackClickToPlay:
       type = NS_LITERAL_STRING("PluginClickToPlay");
       break;
-    case nsObjectLoadingContent::eFallbackPlayPreview:
-      type = NS_LITERAL_STRING("PluginPlayPreview");
-      break;
     case nsObjectLoadingContent::eFallbackUnsupported:
       type = NS_LITERAL_STRING("PluginNotFound");
       break;
@@ -662,7 +659,6 @@ nsObjectLoadingContent::nsObjectLoadingContent()
   , mInstantiating(false)
   , mNetworkCreated(true)
   , mActivated(false)
-  , mPlayPreviewCanceled(false)
   , mIsStopping(false)
   , mIsLoading(false)
   , mSrcStreamLoading(false) {}
@@ -1045,8 +1041,6 @@ nsObjectLoadingContent::ObjectState() const
           return NS_EVENT_STATE_USERDISABLED;
         case eFallbackClickToPlay:
           return NS_EVENT_STATE_TYPE_CLICK_TO_PLAY;
-        case eFallbackPlayPreview:
-          return NS_EVENT_STATE_TYPE_PLAY_PREVIEW;
         case eFallbackDisabled:
           return NS_EVENT_STATE_BROKEN | NS_EVENT_STATE_HANDLER_DISABLED;
         case eFallbackBlocklisted:
@@ -1433,7 +1427,6 @@ nsObjectLoadingContent::UpdateObjectParameters()
 
   if (stateInvalid) {
     newType = eType_Null;
-    newMime.Truncate();
   } else if (useChannel) {
       
       newType = GetTypeOfContent(newMime);
@@ -1650,15 +1643,6 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         fallbackType = eFallbackSuppressed;
       }
     }
-  }
-
-  
-  
-  if ((mType == eType_Null || mType == eType_Plugin) && ShouldPreview()) {
-    
-    LOG(("OBJLC [%p]: Using plugin preview", this));
-    mType = eType_Null;
-    fallbackType = eFallbackPlayPreview;
   }
 
   
@@ -2467,7 +2451,7 @@ NS_IMETHODIMP
 nsObjectLoadingContent::GetActivated(bool *aActivated)
 {
   FallbackType reason;
-  *aActivated = ShouldPlay(reason) && !ShouldPreview();
+  *aActivated = ShouldPlay(reason);
   return NS_OK;
 }
 
@@ -2477,31 +2461,6 @@ nsObjectLoadingContent::GetPluginFallbackType(uint32_t* aPluginFallbackType)
   NS_ENSURE_TRUE(nsContentUtils::IsCallerChrome(), NS_ERROR_NOT_AVAILABLE);
   *aPluginFallbackType = mFallbackType;
   return NS_OK;
-}
-
-NS_IMETHODIMP
-nsObjectLoadingContent::CancelPlayPreview()
-{
-  if (!nsContentUtils::IsCallerChrome())
-    return NS_ERROR_NOT_AVAILABLE;
-
-  if (mPlayPreviewCanceled || mActivated)
-    return NS_OK;
-
-  mPlayPreviewCanceled = true;
-  return LoadObject(true, true);
-}
-
-bool
-nsObjectLoadingContent::ShouldPreview()
-{
-  if (mPlayPreviewCanceled || mActivated)
-    return false;
-
-  nsRefPtr<nsPluginHost> pluginHost =
-    already_AddRefed<nsPluginHost>(nsPluginHost::GetInst());
-
-  return pluginHost->IsPluginPlayPreviewForType(mContentType.get());
 }
 
 bool
