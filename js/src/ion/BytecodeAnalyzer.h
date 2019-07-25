@@ -67,7 +67,9 @@ class BytecodeAnalyzer : public MIRGenerator
             IF_TRUE_EMPTY_ELSE, 
             IF_ELSE_TRUE,       
             IF_ELSE_FALSE,      
-            DO_WHILE_LOOP
+            DO_WHILE_LOOP,      
+            WHILE_LOOP_COND,    
+            WHILE_LOOP_BODY     
         };
 
         State state;            
@@ -82,12 +84,22 @@ class BytecodeAnalyzer : public MIRGenerator
             } branch;
             struct {
                 MBasicBlock *entry;     
+
+                union {
+                    struct {
+                        jsbytecode *bodyStart;  
+                        jsbytecode *bodyEnd;    
+                        MBasicBlock *successor; 
+                    } w;
+                };
             } loop;
         };
 
         static CFGState If(jsbytecode *join, MBasicBlock *ifFalse);
         static CFGState IfElse(jsbytecode *trueEnd, jsbytecode *falseEnd, MBasicBlock *ifFalse);
         static CFGState DoWhile(jsbytecode *ifne, MBasicBlock *entry);
+        static CFGState While(jsbytecode *ifne, jsbytecode *bodyStart, jsbytecode *bodyEnd,
+                              MBasicBlock *entry);
     };
 
   public:
@@ -110,6 +122,8 @@ class BytecodeAnalyzer : public MIRGenerator
     ControlStatus processIfElseTrueEnd(CFGState &state);
     ControlStatus processIfElseFalseEnd(CFGState &state);
     ControlStatus processDoWhileEnd(CFGState &state);
+    ControlStatus processWhileCondEnd(CFGState &state);
+    ControlStatus processWhileBodyEnd(CFGState &state);
     ControlStatus processReturn(JSOp op);
 
     MBasicBlock *newBlock(MBasicBlock *predecessor, jsbytecode *pc);
@@ -125,12 +139,10 @@ class BytecodeAnalyzer : public MIRGenerator
     bool forLoop(JSOp op, jssrcnote *sn) {
         return false;
     }
-    bool whileLoop(JSOp op, jssrcnote *sn) {
-        return false;
-    }
     bool forInLoop(JSOp op, jssrcnote *sn) {
         return false;
     }
+    bool whileLoop(JSOp op, jssrcnote *sn);
     bool doWhileLoop(JSOp op, jssrcnote *sn);
 
     bool pushConstant(const Value &v);
