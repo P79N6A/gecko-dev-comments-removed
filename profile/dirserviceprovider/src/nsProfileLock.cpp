@@ -390,10 +390,7 @@ nsresult nsProfileLock::LockWithSymlink(const nsACString& lockFilePath, PRBool a
             if (!setupPidLockCleanup++)
             {
                 
-                
-                
-                
-                static RemovePidLockFilesExiting r;
+                atexit(RemovePidLockFilesExiting);
 
                 
                 

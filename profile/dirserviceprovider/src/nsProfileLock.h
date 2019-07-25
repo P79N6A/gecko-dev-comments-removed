@@ -99,12 +99,14 @@ private:
     LHANDLE                 mLockFileHandle;
 #elif defined (XP_UNIX)
 
-    struct RemovePidLockFilesExiting {
-        RemovePidLockFilesExiting() {}
-        ~RemovePidLockFilesExiting() {
-            RemovePidLockFiles(PR_FALSE);
-        }
-    };
+    static void             RemovePidLockFilesExiting()
+    {
+      
+      
+      
+
+      RemovePidLockFiles(PR_FALSE);
+    }
 
     static void             RemovePidLockFiles(PRBool aFatalSignal);
     static void             FatalSignalHandler(int signo
