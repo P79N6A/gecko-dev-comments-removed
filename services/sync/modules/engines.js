@@ -724,7 +724,7 @@ SyncEngine.prototype = {
     
     
     if (needsWipe) {
-      this.wipeServer();
+      this.wipeServer(true);
     }
 
     
@@ -1248,10 +1248,7 @@ SyncEngine.prototype = {
   },
 
   wipeServer: function wipeServer() {
-    let response = new Resource(this.engineURL).delete();
-    if (response.status != 200 && response.status != 404) {
-      throw response;
-    }
+    new Resource(this.engineURL).delete();
     this._resetClient();
   },
 
