@@ -2505,20 +2505,16 @@ nsXPConnect::Push(JSContext * cx)
 }
 
 
-NS_IMETHODIMP
-nsXPConnect::GetSafeJSContext(JSContext * *aSafeJSContext)
+JSContext*
+nsXPConnect::GetSafeJSContext()
 {
-    NS_ASSERTION(aSafeJSContext, "loser!");
-
-    XPCPerThreadData* data = XPCPerThreadData::GetData(nsnull);
+    XPCPerThreadData *data = XPCPerThreadData::GetData(NULL);
 
     if (!data) {
-        *aSafeJSContext = nsnull;
-        return NS_ERROR_FAILURE;
+        return NULL;
     }
 
-    *aSafeJSContext = data->GetJSContextStack()->GetSafeJSContext();
-    return *aSafeJSContext ? NS_OK : NS_ERROR_FAILURE;
+    return data->GetJSContextStack()->GetSafeJSContext();
 }
 
 nsIPrincipal*
