@@ -743,6 +743,15 @@ ConvertJSValueToString(JSContext* cx, const JS::Value& v, JS::Value* pval,
   return true;
 }
 
+
+
+
+
+template<typename T>
+class Sequence : public AutoFallibleTArray<T, 16>
+{
+};
+
 } 
 } 
 

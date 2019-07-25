@@ -1375,10 +1375,11 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if failureCode is not None:
             raise TypeError("Can't handle sequences when failureCode is not None")
         nullable = type.nullable();
+        
         if nullable:
-            type = type.inner;
-
-        elementType = type.inner;
+            elementType = type.inner.inner
+        else:
+            elementType = type.inner
         
         
         (elementTemplate, elementDeclType,
@@ -1387,11 +1388,12 @@ def getJSToNativeConversionTemplate(type, descriptorProvider, failureCode=None,
         if elementHolderType is not None:
             raise TypeError("Shouldn't need holders for sequences")
 
-        
-        
-        typeName = CGWrapper(elementDeclType, pre="nsTArray< ", post=" >")
+        typeName = CGWrapper(elementDeclType, pre="Sequence< ", post=" >")
         if nullable:
             typeName = CGWrapper(typeName, pre="Nullable< ", post=" >")
+            arrayRef = "${holderName}.Value()"
+        else:
+            arrayRef = "${holderName}"
         templateBody = ("""JSObject* seq = &${val}.toObject();\n
 if (!IsArrayLike(cx, seq)) {
   return Throw<%s>(cx, NS_ERROR_XPC_BAD_CONVERT_JS);
@@ -1401,9 +1403,7 @@ uint32_t length;
 if (!JS_GetArrayLength(cx, seq, &length)) {
   return false;
 }
-// Jump through a hoop to do a fallible allocation but later end up with
-// an infallible array.
-FallibleTArray< %s > arr;
+Sequence< %s > &arr = %s;
 if (!arr.SetCapacity(length)) {
   return Throw<%s>(cx, NS_ERROR_OUT_OF_MEMORY);
 }
@@ -1414,31 +1414,28 @@ for (uint32_t i = 0; i < length; ++i) {
   }
 """ % (toStringBool(descriptorProvider.workers),
        elementDeclType.define(),
+       arrayRef,
        toStringBool(descriptorProvider.workers)))
 
         templateBody += CGIndenter(CGGeneric(
                 string.Template(elementTemplate).substitute(
                     {
                         "val" : "temp",
-                        "declName" : "*arr.AppendElement()"
+                        "declName" : "(*arr.AppendElement())"
                         }
                     ))).define()
 
-        templateBody += """
-}
-// And the other half of the hoop-jump"""
-        if nullable:
-            templateBody += """
-${declName}.SetValue().SwapElements(arr);
-"""
-        else:
-            templateBody += """
-${declName}.SwapElements(arr);
-"""
+        templateBody += "\n}"
         templateBody = wrapObjectTemplate(templateBody, isDefinitelyObject,
-                                          type, "${declName}.SetNull()",
+                                          type, "${holderName}.SetNull()",
                                           descriptorProvider.workers)
-        return (templateBody, typeName, None)
+        
+        
+        templateBody += ("\n" + "${declName} = &${holderName};")
+        
+        
+        return (templateBody, CGWrapper(typeName, pre="NonNull<const ", post=" >"),
+                typeName)
 
     if type.isGeckoInterface():
         descriptor = descriptorProvider.getDescriptor(
@@ -1457,7 +1454,6 @@ ${declName}.SwapElements(arr);
         typeName = descriptor.nativeType
         typePtr = typeName + "*"
 
-        
         
         
         
