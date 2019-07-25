@@ -81,7 +81,7 @@ struct PICInfo {
             bool hasTypeCheck   : 1;  
 
             
-            uint8 typeCheckOffset : 8;
+            uint16 typeCheckOffset : 9;
 
             
             uint32 objRemat    : 20;
