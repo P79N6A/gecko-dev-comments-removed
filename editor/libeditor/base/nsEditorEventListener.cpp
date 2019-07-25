@@ -27,7 +27,6 @@
 #include "nsIDOMEventTarget.h"          
 #include "nsIDOMKeyEvent.h"             
 #include "nsIDOMMouseEvent.h"           
-#include "nsIDOMNSEvent.h"              
 #include "nsIDOMNode.h"                 
 #include "nsIDOMRange.h"                
 #include "nsIDocument.h"                
@@ -453,8 +452,7 @@ nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
   }
 
   
-  nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aKeyEvent);
-  nsEditor::HandlingTrustedAction operation(mEditor, NSEvent);
+  nsEditor::HandlingTrustedAction operation(mEditor, aKeyEvent);
 
   
   
@@ -608,8 +606,7 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
   }
 
   
-  nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aTextEvent);
-  nsEditor::HandlingTrustedAction operation(mEditor, NSEvent);
+  nsEditor::HandlingTrustedAction operation(mEditor, aTextEvent);
 
   return mEditor->UpdateIMEComposition(composedText, textRangeList);
 }
@@ -850,8 +847,7 @@ nsEditorEventListener::HandleEndComposition(nsIDOMEvent* aCompositionEvent)
   }
 
   
-  nsCOMPtr<nsIDOMNSEvent> NSEvent = do_QueryInterface(aCompositionEvent);
-  nsEditor::HandlingTrustedAction operation(mEditor, NSEvent);
+  nsEditor::HandlingTrustedAction operation(mEditor, aCompositionEvent);
 
   mEditor->EndIMEComposition();
 }

@@ -51,7 +51,6 @@
 #include "nsIStyleRule.h"
 #include "nsIDOMEventListener.h"
 #include "nsGUIEvent.h"
-#include "nsIDOMNSEvent.h"
 
 #include "nsIDOMCharacterData.h" 
 #include "nsIDOMNodeList.h" 
