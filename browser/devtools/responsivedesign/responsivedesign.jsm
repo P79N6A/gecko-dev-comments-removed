@@ -4,39 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
@@ -47,6 +14,9 @@ var EXPORTED_SYMBOLS = ["ResponsiveUIManager"];
 
 const MIN_WIDTH = 50;
 const MIN_HEIGHT = 50;
+
+const MAX_WIDTH = 10000;
+const MAX_HEIGHT = 10000;
 
 let ResponsiveUIManager = {
   
@@ -66,21 +36,21 @@ let ResponsiveUIManager = {
   },
 }
 
-let presets =  [
+let presets = [
   
-  {width: 320, height: 480},    
-  {width: 360, height: 640},    
+  {key: "320x480", width: 320, height: 480},    
+  {key: "360x640", width: 360, height: 640},    
 
   
-  {width: 768, height: 1024},   
-  {width: 800, height: 1280},   
+  {key: "768x1024", width: 768, height: 1024},   
+  {key: "800x1280", width: 800, height: 1280},   
 
   
-  {width: 980, height: 1280},
+  {key: "980x1280", width: 980, height: 1280},
 
   
-  {width: 1280, height: 600},
-  {width: 1920, height: 900},
+  {key: "1280x600", width: 1280, height: 600},
+  {key: "1920x900", width: 1920, height: 900},
 ];
 
 function ResponsiveUI(aWindow, aTab)
@@ -103,17 +73,29 @@ function ResponsiveUI(aWindow, aTab)
   }
 
   if (Array.isArray(presets)) {
-    this.presets = [{custom: true}].concat(presets)
+    this.presets = [{key: "custom", custom: true}].concat(presets)
   } else {
     Cu.reportError("Presets value (devtools.responsiveUI.presets) is malformated.");
-    this.presets = [{custom: true}];
+    this.presets = [{key: "custom", custom: true}];
   }
 
-  
-  let bbox = this.stack.getBoundingClientRect();
-  this.presets[0].width = bbox.width - 40; 
-  this.presets[0].height = bbox.height - 80; 
-  this.currentPreset = 0; 
+  try {
+    let width = Services.prefs.getIntPref("devtools.responsiveUI.customWidth");
+    let height = Services.prefs.getIntPref("devtools.responsiveUI.customHeight");
+    this.presets[0].width = Math.min(MAX_WIDTH, width);
+    this.presets[0].height = Math.min(MAX_HEIGHT, height);
+
+    let key = Services.prefs.getCharPref("devtools.responsiveUI.currentPreset");
+    let idx = this.getPresetIdx(key);
+    this.currentPreset = (idx == -1 ? 0 : idx);
+  } catch(e) {
+    
+    let bbox = this.stack.getBoundingClientRect();
+
+    this.presets[0].width = bbox.width - 40; 
+    this.presets[0].height = bbox.height - 80; 
+    this.currentPreset = 0; 
+  }
 
   this.container.setAttribute("responsivemode", "true");
   this.stack.setAttribute("responsivemode", "true");
@@ -133,6 +115,12 @@ function ResponsiveUI(aWindow, aTab)
 
   this.buildUI();
   this.checkMenus();
+
+  try {
+    if (Services.prefs.getBoolPref("devtools.responsiveUI.rotate")) {
+      this.rotate();
+    }
+  } catch(e) {}
 }
 
 ResponsiveUI.prototype = {
@@ -159,7 +147,10 @@ ResponsiveUI.prototype = {
                 "min-height: 0;";
     this.stack.setAttribute("style", style);
 
-    this.stopResizing();
+    if (this.isResizing)
+      this.stopResizing();
+
+    this.saveCurrentPreset();
 
     
     this.mainWindow.removeEventListener("keypress", this.bound_onKeypress, true);
@@ -179,6 +170,21 @@ ResponsiveUI.prototype = {
 
     delete this.tab.responsiveUI;
   },
+
+  
+
+
+
+
+
+   getPresetIdx: function RUI_getPresetIdx(aKey) {
+     for (let i = 0; i < this.presets.length; i++) {
+       if (this.presets[i].key == aKey) {
+         return i;
+       }
+     }
+     return -1;
+   },
 
   
 
@@ -290,12 +296,14 @@ ResponsiveUI.prototype = {
   registerPresets: function RUI_registerPresets(aParent) {
     let fragment = this.chromeDoc.createDocumentFragment();
     let doc = this.chromeDoc;
-    let self = this;
-    this.presets.forEach(function(preset) {
-        let menuitem = doc.createElement("menuitem");
-        self.setMenuLabel(menuitem, preset);
-        fragment.appendChild(menuitem);
-    });
+
+    for (let i = 0; i < this.presets.length; i++) {
+      let menuitem = doc.createElement("menuitem");
+      if (i == this.currentPreset)
+        menuitem.setAttribute("selected", "true");
+      this.setMenuLabel(menuitem, this.presets[i]);
+      fragment.appendChild(menuitem);
+    }
     aParent.appendChild(fragment);
   },
 
@@ -319,6 +327,7 @@ ResponsiveUI.prototype = {
 
 
   presetSelected: function RUI_presetSelected() {
+    this.rotateValue = false;
     this.currentPreset = this.menulist.selectedIndex;
     let preset = this.presets[this.currentPreset];
     this.loadPreset(preset);
@@ -338,6 +347,11 @@ ResponsiveUI.prototype = {
 
   rotate: function RUI_rotate() {
     this.setSize(this.currentHeight, this.currentWidth);
+    if (this.currentPreset == 0) {
+      this.saveCustomSize();
+    } else {
+      this.rotateValue = !this.rotateValue;
+    }
   },
 
   
@@ -402,6 +416,8 @@ ResponsiveUI.prototype = {
     this.lastClientY = aEvent.clientY;
 
     this.ignoreY = (aEvent.target === this.resizeBar);
+
+    this.isResizing = true;
   },
 
   
@@ -443,12 +459,32 @@ ResponsiveUI.prototype = {
     this.mainWindow.removeEventListener("mouseup", this.bound_stopResizing, true);
     this.mainWindow.removeEventListener("mousemove", this.bound_onDrag, true);
 
+    this.saveCustomSize();
+
     delete this._resizing;
     if (this.transitionsEnabled) {
       this.stack.removeAttribute("notransition");
     }
     this.ignoreY = false;
+    this.isResizing = false;
   },
+
+  
+
+
+   saveCustomSize: function RUI_saveCustomSize() {
+     Services.prefs.setIntPref("devtools.responsiveUI.customWidth", this.currentWidth);
+     Services.prefs.setIntPref("devtools.responsiveUI.customHeight", this.currentHeight);
+   },
+
+  
+
+
+   saveCurrentPreset: function RUI_saveCurrentPreset() {
+     let key = this.presets[this.currentPreset].key;
+     Services.prefs.setCharPref("devtools.responsiveUI.currentPreset", key);
+     Services.prefs.setBoolPref("devtools.responsiveUI.rotate", this.rotateValue);
+   },
 }
 
 XPCOMUtils.defineLazyGetter(ResponsiveUI.prototype, "strings", function () {
