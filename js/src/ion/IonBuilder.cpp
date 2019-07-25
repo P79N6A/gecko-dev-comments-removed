@@ -582,6 +582,9 @@ IonBuilder::processIfElseFalseEnd(CFGState &state)
         if (!join->addPredecessor(other))
             return ControlStatus_Error;
     }
+
+    
+    pc = state.branch.falseEnd;
   
     
     current = join;
