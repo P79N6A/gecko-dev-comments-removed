@@ -110,7 +110,10 @@ private:
 
   nsCOMPtr<nsIURI> mDocumentURI;
   nsCOMPtr<nsIApplicationCacheService> mApplicationCacheService;
+  nsCOMPtr<nsIApplicationCache> mAvailableApplicationCache;
   nsCOMPtr<nsIOfflineCacheUpdate> mCacheUpdate;
+  bool mExposeCacheUpdateStatus;
+  PRUint16 mStatus;
 
   
   char **mCachedKeys;

@@ -8164,6 +8164,22 @@ nsGlobalWindow::Observe(nsISupports* aSubject, const char* aTopic,
     return NS_OK;
   }
 
+  if (!nsCRT::strcmp(aTopic, "offline-cache-update-added")) {
+    if (mApplicationCache)
+      return NS_OK;
+
+    
+    
+    
+    nsCOMPtr<nsIDOMOfflineResourceList> applicationCache;
+    GetApplicationCache(getter_AddRefs(applicationCache));
+    nsCOMPtr<nsIObserver> observer = do_QueryInterface(applicationCache);
+    if (observer)
+      observer->Observe(aSubject, aTopic, aData);
+
+    return NS_OK;
+  }
+
   NS_WARNING("unrecognized topic in nsGlobalWindow::Observe");
   return NS_ERROR_FAILURE;
 }

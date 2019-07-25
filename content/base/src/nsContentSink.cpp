@@ -74,7 +74,6 @@
 #include "nsIApplicationCache.h"
 #include "nsIApplicationCacheContainer.h"
 #include "nsIApplicationCacheChannel.h"
-#include "nsIApplicationCacheService.h"
 #include "nsIScriptSecurityManager.h"
 #include "nsIDOMLoadStatus.h"
 #include "nsICookieService.h"
@@ -943,29 +942,6 @@ nsContentSink::PrefetchDNS(const nsAString &aHref)
 }
 
 nsresult
-nsContentSink::GetChannelCacheKey(nsIChannel* aChannel, nsACString& aCacheKey)
-{
-  aCacheKey.Truncate();
-
-  nsresult rv;
-  nsCOMPtr<nsICachingChannel> cachingChannel = do_QueryInterface(aChannel, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsISupports> cacheKey;
-  rv = cachingChannel->GetCacheKey(getter_AddRefs(cacheKey));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsISupportsCString> cacheKeyString = 
-        do_QueryInterface(cacheKey, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  rv = cacheKeyString->GetData(aCacheKey);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  return NS_OK;
-}
-
-nsresult
 nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
                                  nsIURI *aManifestURI,
                                  PRBool aFetchedWithHTTPGetOrEquiv,
@@ -996,15 +972,6 @@ nsContentSink::SelectDocAppCache(nsIApplicationCache *aLoadApplicationCache,
     if (!equal) {
       
       
-      
-
-      nsCAutoString cachekey;
-      rv = GetChannelCacheKey(mDocument->GetChannel(), cachekey);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = aLoadApplicationCache->MarkEntry(cachekey,
-                                            nsIApplicationCache::ITEM_FOREIGN);
-      NS_ENSURE_SUCCESS(rv, rv);
 
       *aAction = CACHE_SELECTION_RELOAD;
     }
@@ -1219,6 +1186,13 @@ nsContentSink::ProcessOfflineManifest(const nsAString& aManifestSpec)
   case CACHE_SELECTION_RELOAD: {
     
     
+    
+    
+    
+    
+
+    applicationCacheChannel->MarkOfflineCacheEntryAsForeign();
+
     nsCOMPtr<nsIWebNavigation> webNav = do_QueryInterface(mDocShell);
 
     webNav->Stop(nsIWebNavigation::STOP_ALL);
