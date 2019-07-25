@@ -51,7 +51,7 @@
 #include "nsXPCOMCID.h"
 #include "nsServiceManagerUtils.h"
 
-#include "imgContainer.h"
+#include "RasterImage.h"
 
 
 
