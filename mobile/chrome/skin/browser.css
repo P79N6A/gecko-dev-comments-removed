@@ -251,21 +251,6 @@ toolbarbutton[open="true"] {
   font-size: 1.5em;
 }
 
-.deckpage-container {
-  margin: 10px;
-}
-
-.deckpage-close {
-  width: 32px;
-  height: 32px;
-  list-style-image: url(chrome://browser/skin/images/close-small.png);
-}
-
-
-
-
-
-
 
 #identity-popup-icon {
   height: 64px;
