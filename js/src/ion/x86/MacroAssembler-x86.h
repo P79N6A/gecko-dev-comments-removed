@@ -158,12 +158,21 @@ class MacroAssemblerX86 : public MacroAssemblerX86Shared
 
         
         
-        if (Register::FromCode(type.base()) != val.payloadReg()) {
-            movl(payload, val.payloadReg());
+        Register baseReg = Register::FromCode(src.base());
+        Register indexReg = (src.kind() == Operand::SCALE) ? Register::FromCode(src.index()) : InvalidReg;
+
+        if (baseReg == val.payloadReg() || indexReg == val.payloadReg()) {
+            JS_ASSERT(baseReg != val.typeReg());
+            JS_ASSERT(indexReg != val.typeReg());
+
             movl(type, val.typeReg());
+            movl(payload, val.payloadReg());
         } else {
-            movl(type, val.typeReg());
+            JS_ASSERT(baseReg != val.payloadReg());
+            JS_ASSERT(indexReg != val.payloadReg());
+
             movl(payload, val.payloadReg());
+            movl(type, val.typeReg());
         }
     }
     void loadValue(Address src, ValueOperand val) {
