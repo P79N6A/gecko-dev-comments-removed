@@ -1082,9 +1082,9 @@ var Browser = {
 
     let bv = this._browserView;
     let vis = bv.getVisibleRect();
-   
-    return bv.clampZoomLevel(bv.getZoomLevel() * vis.width / (rect.width + margin * 2));
-  }, 
+
+    return bv.clampZoomLevel(vis.width / (rect.width + margin * 2));
+  },
 
   
 
