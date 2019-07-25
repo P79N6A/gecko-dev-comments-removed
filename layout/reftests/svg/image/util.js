@@ -82,7 +82,10 @@ function generateImageElementForParams(aX, aY, aWidth, aHeight,
 
 
 
-function generateImageGrid(aHref, aWidth, aHeight) {
+
+
+
+function generateImageGrid(aHref, aWidth, aHeight, aBonusPARVal) {
   var grid = document.createElementNS(SVGNS, "g");
   var y = 0;
   var x = 0;
@@ -105,6 +108,18 @@ function generateImageGrid(aHref, aWidth, aHeight) {
       x += IMAGE_OFFSET;
     }
   }
+
+  if (aBonusPARVal) {
+    
+    y += IMAGE_OFFSET;
+    x = 0;
+    var border = generateBorderRect(x, y, aWidth, aHeight);
+    var image  = generateImageElementForParams(x, y, aWidth, aHeight,
+                                               aHref, aBonusPARVal, "");
+    grid.appendChild(border);
+    grid.appendChild(image);
+  }
+
   return grid;
 }
 
@@ -140,7 +155,11 @@ function generateUseElementForParams(aTargetURI, aX, aY, aWidth, aHeight) {
 
 
 
-function generateSymbolGrid(aHref, aWidth, aHeight) {
+
+
+
+
+function generateSymbolGrid(aHref, aWidth, aHeight, aBonusPARVal) {
   var grid = document.createElementNS(SVGNS, "g");
   var y = 0;
   var x = 0;
@@ -167,5 +186,21 @@ function generateSymbolGrid(aHref, aWidth, aHeight) {
       x += IMAGE_OFFSET;
     }
   }
+
+  if (aBonusPARVal) {
+    
+    y += IMAGE_OFFSET;
+    x = 0;
+    var border = generateBorderRect(x, y, aWidth, aHeight);
+    var symbolID = "symbol_Bonus";
+    var symbol = generateSymbolElementForParams(symbolID, aHref,
+                                                aBonusPARVal, "");
+    var use = generateUseElementForParams("#" + symbolID,
+                                          x, y, aWidth, aHeight);
+    grid.appendChild(symbol); 
+    grid.appendChild(border);
+    grid.appendChild(use);
+  }
+
   return grid;
 }
