@@ -68,7 +68,7 @@ class NS_STACK_CLASS nsSVGFilterInstance
 public:
   nsSVGFilterInstance(nsIFrame *aTargetFrame,
                       nsSVGFilterPaintCallback *aPaintCallback,
-                      nsSVGFilterElement *aFilterElement,
+                      const nsSVGFilterElement *aFilterElement,
                       const gfxRect &aTargetBBox,
                       const gfxRect& aFilterRect,
                       const nsIntSize& aFilterSpaceSize,
@@ -208,7 +208,7 @@ private:
 
   nsIFrame*               mTargetFrame;
   nsSVGFilterPaintCallback* mPaintCallback;
-  nsSVGFilterElement*     mFilterElement;
+  const nsSVGFilterElement* mFilterElement;
   
   gfxRect                 mTargetBBox;
   gfxMatrix               mFilterSpaceToDeviceSpaceTransform;

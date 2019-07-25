@@ -50,6 +50,9 @@ class nsIPresShell;
 class nsRenderingContext;
 class nsStyleContext;
 class nsSVGFilterPaintCallback;
+class nsSVGFilterElement;
+class nsSVGIntegerPair;
+class nsSVGLength2;
 
 typedef nsSVGContainerFrame nsSVGFilterFrameBase;
 
@@ -59,7 +62,9 @@ class nsSVGFilterFrame : public nsSVGFilterFrameBase
   NS_NewSVGFilterFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
   nsSVGFilterFrame(nsStyleContext* aContext)
-    : nsSVGFilterFrameBase(aContext)
+    : nsSVGFilterFrameBase(aContext),
+      mLoopFlag(false),
+      mNoHRefURI(false)
   {
     AddStateBits(NS_STATE_SVG_NONDISPLAY_CHILD);
   }
@@ -110,6 +115,41 @@ public:
 
 
   virtual nsIAtom* GetType() const;
+
+private:
+  
+  
+  
+  class AutoFilterReferencer;
+  friend class nsAutoFilterInstance;
+  nsSVGFilterFrame* GetReferencedFilter();
+  nsSVGFilterFrame* GetReferencedFilterIfNotInUse();
+
+  
+  PRUint16 GetEnumValue(PRUint32 aIndex, nsIContent *aDefault);
+  PRUint16 GetEnumValue(PRUint32 aIndex)
+  {
+    return GetEnumValue(aIndex, mContent);
+  }
+  const nsSVGIntegerPair *GetIntegerPairValue(PRUint32 aIndex, nsIContent *aDefault);
+  const nsSVGIntegerPair *GetIntegerPairValue(PRUint32 aIndex)
+  {
+    return GetIntegerPairValue(aIndex, mContent);
+  }
+  const nsSVGLength2 *GetLengthValue(PRUint32 aIndex, nsIContent *aDefault);
+  const nsSVGLength2 *GetLengthValue(PRUint32 aIndex)
+  {
+    return GetLengthValue(aIndex, mContent);
+  }
+  const nsSVGFilterElement *GetFilterContent(nsIContent *aDefault);
+  const nsSVGFilterElement *GetFilterContent()
+  {
+    return GetFilterContent(mContent);
+  }
+
+  
+  bool                              mLoopFlag;
+  bool                              mNoHRefURI;
 };
 
 #endif
