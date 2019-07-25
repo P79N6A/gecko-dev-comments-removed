@@ -44,6 +44,7 @@
 #include "ScaledFontDWrite.h"
 #include "Logging.h"
 #include "Tools.h"
+#include <algorithm>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -187,6 +188,20 @@ DrawTargetD2D::~DrawTargetD2D()
   if (mTempRT) {
     mTempRT->EndDraw();
   }
+
+  
+  
+  for (std::vector<DrawTargetD2D*>::iterator iter = mDependentTargets.begin();
+       iter != mDependentTargets.end(); iter++) {
+    (*iter)->mDependingOnTargets.erase(
+      std::find((*iter)->mDependingOnTargets.begin(), (*iter)->mDependingOnTargets.end(), this));
+  }
+  
+  for (std::vector<DrawTargetD2D*>::iterator iter = mDependingOnTargets.begin();
+       iter != mDependingOnTargets.end(); iter++) {
+    (*iter)->mDependentTargets.erase(
+      std::find((*iter)->mDependentTargets.begin(), (*iter)->mDependentTargets.end(), this));
+  }
 }
 
 
@@ -218,6 +233,14 @@ DrawTargetD2D::Flush()
   if (FAILED(hr)) {
     gfxWarning() << "Error reported when trying to flush D2D rendertarget. Code: " << hr;
   }
+
+  
+  for (std::vector<DrawTargetD2D*>::iterator iter = mDependingOnTargets.begin();
+       iter != mDependingOnTargets.end(); iter++) {
+    (*iter)->mDependentTargets.erase(
+      std::find((*iter)->mDependentTargets.begin(), (*iter)->mDependentTargets.end(), this));
+  }
+  mDependingOnTargets.clear();
 }
 
 void
@@ -272,6 +295,7 @@ DrawTargetD2D::DrawSurface(SourceSurface *aSurface,
 
       if (!srcSurf->IsCopy()) {
         srcSurf->mDrawTarget->mDependentTargets.push_back(this);
+        mDependingOnTargets.push_back(srcSurf->mDrawTarget);
       }
     }
     break;
@@ -700,6 +724,7 @@ DrawTargetD2D::CopySurface(SourceSurface *aSurface,
 
       if (!srcSurf->IsCopy()) {
         srcSurf->mDrawTarget->mDependentTargets.push_back(this);
+        mDependingOnTargets.push_back(srcSurf->mDrawTarget);
       }
     }
     break;
@@ -1255,11 +1280,14 @@ DrawTargetD2D::MarkChanged()
     mSnapshots.clear();
   }
   if (mDependentTargets.size()) {
-    for (std::vector<RefPtr<DrawTargetD2D>>::iterator iter = mDependentTargets.begin();
-         iter != mDependentTargets.end(); iter++) {
+    
+    std::vector<DrawTargetD2D*> tmpTargets = mDependentTargets;
+    for (std::vector<DrawTargetD2D*>::iterator iter = tmpTargets.begin();
+         iter != tmpTargets.end(); iter++) {
       (*iter)->Flush();
     }
-    mDependentTargets.clear();
+    
+    MOZ_ASSERT(!mDependentTargets.size());
   }
 }
 
@@ -1655,6 +1683,7 @@ DrawTargetD2D::CreateBrushForPattern(const Pattern &aPattern, Float aAlpha)
 
         if (!surf->IsCopy()) {
           surf->mDrawTarget->mDependentTargets.push_back(this);
+          mDependingOnTargets.push_back(surf->mDrawTarget);
         }
       }
       break;

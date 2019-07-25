@@ -198,7 +198,9 @@ private:
   
   std::vector<SourceSurfaceD2DTarget*> mSnapshots;
   
-  std::vector<RefPtr<DrawTargetD2D>> mDependentTargets;
+  std::vector<DrawTargetD2D*> mDependentTargets;
+  
+  std::vector<DrawTargetD2D*> mDependingOnTargets;
 
   
   bool mClipsArePushed;
