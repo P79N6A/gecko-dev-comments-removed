@@ -418,10 +418,32 @@ Keychain.prototype = {
     identity.bulkKey = symkey;
     identity.bulkIV  = iv;
   },
+  _setKey: function KeyChain__setKey(bulkID, newID) {
+    
+
+
+
+
+
+
+
+    let self = yield;
+
+    this.get(self.cb);
+    yield;
+    
+    let wrappedKey = yield Crypto.wrapKey.async(Crypto, self.cb,
+                          bulkID.bulkKey, newID);
+    this.data.ring[newID.username] = wrappedKey;
+    this.put(self.cb, this.data);
+    yield;
+  },
   getKeyAndIV: function Keychain_getKeyAndIV(onComplete, identity) {
     this._getKeyAndIV.async(this, onComplete, identity);
+  },
+  setKey: function Keychain_setKey(onComplete, bulkID, newID) {
+    this._setKey.async(this, onComplete, bulkID, newID);
   }
-  
 };
 
 function RemoteStore(engine) {
