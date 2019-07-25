@@ -251,6 +251,8 @@ function restoreSingleTab(aIx, aShifted) {
   var ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
   var tabState = gStateObject.windows[item.parent.ix]
                              .tabs[aIx - gTreeData.indexOf(item.parent) - 1];
+  
+  tabState.hidden = false;
   ss.setTabState(newTab, JSON.stringify(tabState));
   
   
