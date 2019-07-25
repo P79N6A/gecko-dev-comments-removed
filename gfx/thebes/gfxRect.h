@@ -114,7 +114,14 @@ struct THEBES_API gfxRect {
     gfxRect Union(const gfxRect& aRect) const;
     PRBool Contains(const gfxRect& aRect) const;
     PRBool Contains(const gfxPoint& aPoint) const;
+
     
+
+
+
+
+
+    PRBool WithinEpsilonOfIntegerPixels(gfxFloat aEpsilon) const;
 
     gfxPoint TopLeft() { return pos; }
     gfxPoint BottomRight() { return gfxPoint(XMost(), YMost()); }
