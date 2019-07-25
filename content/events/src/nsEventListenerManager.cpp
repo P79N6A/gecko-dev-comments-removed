@@ -563,7 +563,8 @@ nsEventListenerManager::AddScriptEventListener(nsIAtom *aName,
     
     
     
-    global = node->OwnerDoc()->GetScriptGlobalObject();
+    doc = node->OwnerDoc();
+    global = doc->GetScriptGlobalObject();
   } else {
     nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mTarget));
     if (win) {
