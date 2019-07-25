@@ -1516,7 +1516,6 @@ nsGenericHTMLElement::ParseAlignValue(const nsAString& aString,
 
 
 
-
 static const nsAttrValue::EnumTable kTableHAlignTable[] = {
   { "left",   NS_STYLE_TEXT_ALIGN_LEFT },
   { "right",  NS_STYLE_TEXT_ALIGN_RIGHT },
@@ -1526,26 +1525,10 @@ static const nsAttrValue::EnumTable kTableHAlignTable[] = {
   { 0 }
 };
 
-
-static const nsAttrValue::EnumTable kCompatTableHAlignTable[] = {
-  { "left",   NS_STYLE_TEXT_ALIGN_LEFT },
-  { "right",  NS_STYLE_TEXT_ALIGN_RIGHT },
-  { "center", NS_STYLE_TEXT_ALIGN_CENTER },
-  { "char",   NS_STYLE_TEXT_ALIGN_CHAR },
-  { "justify",NS_STYLE_TEXT_ALIGN_JUSTIFY },
-  { "abscenter", NS_STYLE_TEXT_ALIGN_CENTER },
-  { "absmiddle", NS_STYLE_TEXT_ALIGN_CENTER },
-  { "middle", NS_STYLE_TEXT_ALIGN_CENTER },
-  { 0 }
-};
-
 PRBool
 nsGenericHTMLElement::ParseTableHAlignValue(const nsAString& aString,
-                                            nsAttrValue& aResult) const
+                                            nsAttrValue& aResult)
 {
-  if (InNavQuirksMode(GetOwnerDoc())) {
-    return aResult.ParseEnumValue(aString, kCompatTableHAlignTable, PR_FALSE);
-  }
   return aResult.ParseEnumValue(aString, kTableHAlignTable, PR_FALSE);
 }
 

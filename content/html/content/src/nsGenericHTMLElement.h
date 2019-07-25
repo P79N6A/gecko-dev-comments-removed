@@ -264,8 +264,8 @@ public:
 
 
 
-  PRBool ParseTableHAlignValue(const nsAString& aString,
-                               nsAttrValue& aResult) const;
+  static PRBool ParseTableHAlignValue(const nsAString& aString,
+                                      nsAttrValue& aResult);
 
   
 
