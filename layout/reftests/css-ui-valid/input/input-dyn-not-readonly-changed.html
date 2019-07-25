@@ -3,8 +3,9 @@
   
 
   <link rel='stylesheet' type='text/css' href='style.css'>
-  <body onload="document.getElementById('t').removeAttribute('readonly');
+  <body onload="document.getElementById('i').removeAttribute('readonly');
+                document.getElementById('i').value = '';
                 document.documentElement.className='';">
-    <textarea class='notvalid' id='t' readonly></textarea>
+    <input class='valid' id='i' readonly>
   </body>
 </html>
