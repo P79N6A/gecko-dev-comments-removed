@@ -1431,13 +1431,10 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
     
     
     PRInt8 caps;
-    bool usingConnect;
-    bool usingHttpProxy = NS_IsHttpProxy(proxyInfo, https, &usingConnect);
-    if (usingHttpProxy && !usingConnect) {
+    if (proxyInfo && !nsCRT::strcmp(proxyInfo->Type(), "http") && !https)
         caps = mProxyCapabilities;
-    } else {
+    else
         caps = mCapabilities;
-    }
 
     if (https) {
         
