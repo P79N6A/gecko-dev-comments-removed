@@ -4747,13 +4747,7 @@ nsComputedDOMStyle::GetQueryablePropertyMap(PRUint32* aLength)
 
 
 
-  static
-#ifndef XP_MACOSX
-    
-    
-  const
-#endif
-  ComputedStyleMapEntry map[] = {
+  static const ComputedStyleMapEntry map[] = {
     
 
 
