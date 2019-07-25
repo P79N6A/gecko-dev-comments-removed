@@ -392,7 +392,7 @@ nsUnknownContentTypeDialog.prototype = {
 
         onRefreshAttempted: function( aWebProgress, aURI, aDelay, aSameURI ) {
           return true;
-	}
+        }
     },
 
     
@@ -403,21 +403,21 @@ nsUnknownContentTypeDialog.prototype = {
       
       var url   = this.mLauncher.source;
       var fname = "";
+      var iconPath = "goat";
       this.mSourcePath = url.prePath;
-      try {
-          url = url.QueryInterface( Components.interfaces.nsIURL );
+      if (url instanceof Components.interfaces.nsIURL) {
           
-          fname = url.fileName;
+          fname = iconPath = url.fileName;
           this.mSourcePath += url.directory;
-      } catch (ex) {
+      } else {
           
           fname = url.path;
           this.mSourcePath += url.path;
       }
 
       if (suggestedFileName)
-        fname = suggestedFileName;
-      
+        fname = iconPath = suggestedFileName;
+
       var displayName = fname.replace(/ +/g, " ");
 
       this.mTitle = this.dialogElement("strings").getFormattedString("title", [displayName]);
@@ -426,7 +426,7 @@ nsUnknownContentTypeDialog.prototype = {
       
       this.initIntro(url, fname, displayName);
 
-      var iconString = "moz-icon://" + fname + "?size=16&contentType=" + this.mLauncher.MIMEInfo.MIMEType;
+      var iconString = "moz-icon://" + iconPath + "?size=16&contentType=" + this.mLauncher.MIMEInfo.MIMEType;
       this.dialogElement("contentTypeImage").setAttribute("src", iconString);
 
       
