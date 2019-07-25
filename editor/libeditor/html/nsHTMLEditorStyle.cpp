@@ -374,11 +374,46 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
   aProperty->ToString(tag);
   ToLowerCase(tag);
 
+  
+  
+  if (!TagCanContain(NS_LITERAL_STRING("span"), aNode)) {
+    nsCOMPtr<nsIDOMNodeList> childNodes;
+    res = aNode->GetChildNodes(getter_AddRefs(childNodes));
+    NS_ENSURE_SUCCESS(res, res);
+    if (childNodes) {
+      PRInt32 j;
+      PRUint32 childCount;
+      childNodes->GetLength(&childCount);
+      if (childCount) {
+        nsCOMArray<nsIDOMNode> arrayOfNodes;
+        nsCOMPtr<nsIDOMNode> node;
+
+        
+        for (j = 0; j < (PRInt32)childCount; j++) {
+          nsCOMPtr<nsIDOMNode> childNode;
+          res = childNodes->Item(j, getter_AddRefs(childNode));
+          if ((NS_SUCCEEDED(res)) && childNode && IsEditable(childNode)) {
+            arrayOfNodes.AppendObject(childNode);
+          }
+        }
+
+        
+        PRInt32 listCount = arrayOfNodes.Count();
+        for (j = 0; j < listCount; j++) {
+          node = arrayOfNodes[j];
+          res = SetInlinePropertyOnNode(node, aProperty, aAttribute, aValue);
+          NS_ENSURE_SUCCESS(res, res);
+        }
+      }
+    }
+    return res;
+  }
+
   bool useCSS = (IsCSSEnabled() &&
     mHTMLCSSUtils->IsCSSEditableProperty(aNode, aProperty, aAttribute)) ||
     
     aAttribute->EqualsLiteral("bgcolor");
-  
+
   if (useCSS) {
     nsCOMPtr<nsIDOMNode> tmp = aNode;
     if (IsTextNode(tmp))
@@ -445,71 +480,32 @@ nsHTMLEditor::SetInlinePropertyOnNode( nsIDOMNode *aNode,
   }
   
   
-  if (TagCanContain(tag, aNode))
-  {
-    nsCOMPtr<nsIDOMNode> priorNode, nextNode;
-    
-    GetPriorHTMLSibling(aNode, address_of(priorNode));
-    GetNextHTMLSibling(aNode, address_of(nextNode));
-    if (priorNode && NodeIsType(priorNode, aProperty) && 
-        HasAttrVal(priorNode, aAttribute, aValue)     &&
-        IsOnlyAttribute(priorNode, aAttribute) )
-    {
-      
-      res = MoveNode(aNode, priorNode, -1);
-    }
-    else if (nextNode && NodeIsType(nextNode, aProperty) && 
-             HasAttrVal(nextNode, aAttribute, aValue)    &&
-             IsOnlyAttribute(priorNode, aAttribute) )
-    {
-      
-      res = MoveNode(aNode, nextNode, 0);
-    }
-    else
-    {
-      
-      res = InsertContainerAbove(aNode, address_of(tmp), tag, aAttribute, aValue);
-    }
-    NS_ENSURE_SUCCESS(res, res);
-    return RemoveStyleInside(aNode, aProperty, aAttribute);
-  }
+
+  nsCOMPtr<nsIDOMNode> priorNode, nextNode;
   
-  nsCOMPtr<nsIDOMNodeList> childNodes;
-  res = aNode->GetChildNodes(getter_AddRefs(childNodes));
-  NS_ENSURE_SUCCESS(res, res);
-  if (childNodes)
+  GetPriorHTMLSibling(aNode, address_of(priorNode));
+  GetNextHTMLSibling(aNode, address_of(nextNode));
+  if (priorNode && NodeIsType(priorNode, aProperty) && 
+      HasAttrVal(priorNode, aAttribute, aValue)     &&
+      IsOnlyAttribute(priorNode, aAttribute) )
   {
-    PRInt32 j;
-    PRUint32 childCount;
-    childNodes->GetLength(&childCount);
-    if (childCount)
-    {
-      nsCOMArray<nsIDOMNode> arrayOfNodes;
-      nsCOMPtr<nsIDOMNode> node;
-      
-      
-      for (j=0 ; j < (PRInt32)childCount; j++)
-      {
-        nsCOMPtr<nsIDOMNode> childNode;
-        res = childNodes->Item(j, getter_AddRefs(childNode));
-        if ((NS_SUCCEEDED(res)) && (childNode) && IsEditable(childNode))
-        {
-          arrayOfNodes.AppendObject(childNode);
-        }
-      }
-      
-      
-      PRInt32 listCount = arrayOfNodes.Count();
-      for (j = 0; j < listCount; j++)
-      {
-        node = arrayOfNodes[j];
-        res = SetInlinePropertyOnNode(node, aProperty, aAttribute, aValue);
-        NS_ENSURE_SUCCESS(res, res);
-      }
-      arrayOfNodes.Clear();
-    }
+    
+    res = MoveNode(aNode, priorNode, -1);
   }
-  return res;
+  else if (nextNode && NodeIsType(nextNode, aProperty) && 
+           HasAttrVal(nextNode, aAttribute, aValue)    &&
+           IsOnlyAttribute(priorNode, aAttribute) )
+  {
+    
+    res = MoveNode(aNode, nextNode, 0);
+  }
+  else
+  {
+    
+    res = InsertContainerAbove(aNode, address_of(tmp), tag, aAttribute, aValue);
+  }
+  NS_ENSURE_SUCCESS(res, res);
+  return RemoveStyleInside(aNode, aProperty, aAttribute);
 }
 
 
