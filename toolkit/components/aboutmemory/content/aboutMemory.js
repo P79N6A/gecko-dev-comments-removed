@@ -36,13 +36,17 @@
 
 
 
+
+
 "use strict";
+
+
+
+
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
-
-let gAddedObserver = false;
 
 const KIND_NONHEAP           = Ci.nsIMemoryReporter.KIND_NONHEAP;
 const KIND_HEAP              = Ci.nsIMemoryReporter.KIND_HEAP;
@@ -54,9 +58,18 @@ const UNITS_PERCENTAGE       = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
 
 
+const gVerbose = location.href === "about:memory?verbose" ||
+                 location.href === "about:compartments?verbose";
+
+let gChildMemoryListener = undefined;
 
 
-function makeSafe(aUnsafeStr)
+
+
+
+
+
+function flipBackslashes(aUnsafeStr)
 {
   return aUnsafeStr.replace(/\\/g, '/');
 }
@@ -70,22 +83,34 @@ function assert(aCond, aMsg)
 
 function debug(x)
 {
-  let content = document.getElementById("content");
-  appendElementWithText(content, "div", "legend", JSON.stringify(x));
+  appendElementWithText(document.body, "div", "legend", JSON.stringify(x));
 }
 
 
 
-function onLoad()
+function addChildObserversAndUpdate(aUpdateFn)
 {
   let os = Cc["@mozilla.org/observer-service;1"].
       getService(Ci.nsIObserverService);
   os.notifyObservers(null, "child-memory-reporter-request", null);
 
-  os.addObserver(ChildMemoryListener, "child-memory-reporter-update", false);
-  gAddedObserver = true;
+  gChildMemoryListener = aUpdateFn;
+  os.addObserver(gChildMemoryListener, "child-memory-reporter-update", false);
+ 
+  gChildMemoryListener();
+}
 
-  update();
+function onLoad()
+{
+  if (location.href.indexOf("about:memory") === 0) {
+    document.title = "about:memory";
+    onLoadAboutMemory();
+  } else if (location.href.indexOf("about:compartment") === 0) {
+    document.title = "about:compartments";
+    onLoadAboutCompartments();
+  } else {
+    assert(false, "Unknown location");
+  }
 }
 
 function onUnload()
@@ -93,18 +118,20 @@ function onUnload()
   
   
   
-  if (gAddedObserver) {
+  if (gChildMemoryListener) {
     let os = Cc["@mozilla.org/observer-service;1"].
         getService(Ci.nsIObserverService);
-    os.removeObserver(ChildMemoryListener, "child-memory-reporter-update");
+    os.removeObserver(gChildMemoryListener, "child-memory-reporter-update");
   }
 }
 
 
 
 
-function sendHeapMinNotifications()
+function minimizeMemoryUsage3x(fAfter)
 {
+  let i = 0;
+
   function runSoon(f)
   {
     let tm = Cc["@mozilla.org/thread-manager;1"]
@@ -119,17 +146,83 @@ function sendHeapMinNotifications()
              .getService(Ci.nsIObserverService);
     os.notifyObservers(null, "memory-pressure", "heap-minimize");
 
-    if (++j < 3)
+    if (++i < 3)
       runSoon(sendHeapMinNotificationsInner);
     else
-      runSoon(update);
+      runSoon(fAfter);
   }
 
-  let j = 0;
   sendHeapMinNotificationsInner();
 }
 
 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function processMemoryReporters(aMgr, aIgnoreSingle, aIgnoreMulti,
+                                aHandleReport)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  let e = aMgr.enumerateReporters();
+  while (e.hasMoreElements()) {
+    let rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
+    let unsafePath = rOrig.path;
+    try {
+      if (!aIgnoreSingle(unsafePath)) {
+        aHandleReport(rOrig.process, unsafePath, rOrig.kind, rOrig.units,
+                      rOrig.amount, rOrig.description);
+      }
+    }
+    catch (e) {
+      debug("Bad memory reporter " + unsafePath + ": " + e);
+    }
+  }
+  let e = aMgr.enumerateMultiReporters();
+  while (e.hasMoreElements()) {
+    let mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
+    let name = mrOrig.name;
+    try {
+      if (!aIgnoreMulti(name)) {
+        mrOrig.collectReports(aHandleReport, null);
+      }
+    }
+    catch (e) {
+      debug("Bad memory multi-reporter " + name + ": " + e);
+    }
+  }
+}
+
+
+
+function clearBody()
+{
+  let oldBody = document.body;
+  let body = oldBody.cloneNode(false);
+  oldBody.parentNode.replaceChild(body, oldBody);
+  body.classList.add(gVerbose ? 'verbose' : 'non-verbose');
+  return body;
+}
 
 function appendTextNode(aP, aText)
 {
@@ -157,7 +250,7 @@ function appendElementWithText(aP, aTagName, aClassName, aText)
 
 
 
-const gVerbose = location.href === "about:memory?verbose";
+
 
 const kUnknown = -1;    
 
@@ -225,9 +318,9 @@ const kMapTreePaths =
 
 
 
-function ChildMemoryListener(aSubject, aTopic, aData)
+function onLoadAboutMemory()
 {
-  update();
+  addChildObserversAndUpdate(updateAboutMemory);
 }
 
 function doGlobalGC()
@@ -236,7 +329,7 @@ function doGlobalGC()
   let os = Cc["@mozilla.org/observer-service;1"]
             .getService(Ci.nsIObserverService);
   os.notifyObservers(null, "child-gc-request", null);
-  update();
+  updateAboutMemory();
 }
 
 function doCC()
@@ -247,7 +340,7 @@ function doCC()
   let os = Cc["@mozilla.org/observer-service;1"]
             .getService(Ci.nsIObserverService);
   os.notifyObservers(null, "child-cc-request", null);
-  update();
+  updateAboutMemory();
 }
 
 
@@ -255,14 +348,12 @@ function doCC()
 
 
 
-function update()
+function updateAboutMemory()
 {
   
   
-  let oldContent = document.getElementById("content");
-  let content = oldContent.cloneNode(false);
-  oldContent.parentNode.replaceChild(content, oldContent);
-  content.classList.add(gVerbose ? 'verbose' : 'non-verbose');
+  
+  let body = clearBody();
 
   let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
       getService(Ci.nsIMemoryReporterManager);
@@ -271,16 +362,16 @@ function update()
   
   let reportsByProcess = getReportsByProcess(mgr);
   let hasMozMallocUsableSize = mgr.hasMozMallocUsableSize;
-  appendProcessElements(content, "Main", reportsByProcess["Main"],
-                        hasMozMallocUsableSize);
+  appendProcessReportsElements(body, "Main", reportsByProcess["Main"],
+                               hasMozMallocUsableSize);
   for (let process in reportsByProcess) {
     if (process !== "Main") {
-      appendProcessElements(content, process, reportsByProcess[process],
-                            hasMozMallocUsableSize);
+      appendProcessReportsElements(body, process, reportsByProcess[process],
+                                   hasMozMallocUsableSize);
     }
   }
 
-  appendElement(content, "hr");
+  appendElement(body, "hr");
 
   
   const UpDesc = "Re-measure.";
@@ -294,7 +385,7 @@ function update()
 
   function appendButton(aTitle, aOnClick, aText, aId)
   {
-    let b = appendElementWithText(content, "button", "", aText);
+    let b = appendElementWithText(body, "button", "", aText);
     b.title = aTitle;
     b.onclick = aOnClick
     if (aId) {
@@ -303,12 +394,13 @@ function update()
   }
 
   
-  appendButton(UpDesc, update,                   "Update", "updateButton");
-  appendButton(GCDesc, doGlobalGC,               "GC");
-  appendButton(CCDesc, doCC,                     "CC");
-  appendButton(MPDesc, sendHeapMinNotifications, "Minimize memory usage");
+  appendButton(UpDesc, updateAboutMemory, "Update", "updateButton");
+  appendButton(GCDesc, doGlobalGC,        "GC");
+  appendButton(CCDesc, doCC,              "CC");
+  appendButton(MPDesc, function() { minimizeMemoryUsage3x(updateAboutMemory); },
+                                          "Minimize memory usage");
 
-  let div1 = appendElement(content, "div");
+  let div1 = appendElement(body, "div");
   if (gVerbose) {
     let a = appendElementWithText(div1, "a", "option", "Less verbose");
     a.href = "about:memory";
@@ -317,7 +409,7 @@ function update()
     a.href = "about:memory?verbose";
   }
 
-  let div2 = appendElement(content, "div");
+  let div2 = appendElement(body, "div");
   let a = appendElementWithText(div2, "a", "option",
                                 "Troubleshooting information");
   a.href = "about:support";
@@ -327,8 +419,8 @@ function update()
   let legendText2 = "Hover the pointer over the name of a memory report " +
                     "to see a description of what it measures.";
 
-  appendElementWithText(content, "div", "legend", legendText1);
-  appendElementWithText(content, "div", "legend", legendText2);
+  appendElementWithText(body, "div", "legend", legendText1);
+  appendElementWithText(body, "div", "legend", legendText2);
 }
 
 
@@ -372,12 +464,19 @@ function getReportsByProcess(aMgr)
   
   
   
-  
-  
-  
-  
-  
-  
+
+  function ignoreSingle(aPath) 
+  {
+    return (aPath.indexOf("smaps/") === 0 && !gVerbose) ||
+           (aPath.indexOf("compartments/") === 0)
+  }
+
+  function ignoreMulti(aName)
+  {
+    return ((aName === "smaps" && !gVerbose) ||
+            (aName === "compartments"));
+  }
+
   let reportsByProcess = {};
 
   function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount,
@@ -399,34 +498,7 @@ function getReportsByProcess(aMgr)
     }
   }
 
-  
-  let e = aMgr.enumerateReporters();
-  while (e.hasMoreElements()) {
-    let rOrig = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-    try {
-      handleReport(rOrig.process, rOrig.path, rOrig.kind, rOrig.units,
-                   rOrig.amount, rOrig.description);
-    }
-    catch(e) {
-      debug("An error occurred when collecting results from the memory reporter " +
-            rOrig.path + ": " + e);
-    }
-  }
-  let e = aMgr.enumerateMultiReporters();
-  while (e.hasMoreElements()) {
-    let mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
-    
-    if (!gVerbose && mrOrig.name === "smaps") {
-      continue;
-    }
-
-    try {
-      mrOrig.collectReports(handleReport, null);
-    }
-    catch(e) {
-      debug("An error occurred when collecting a multi-reporter's results: " + e);
-    }
-  }
+  processMemoryReporters(aMgr, ignoreSingle, ignoreMulti, handleReport);
 
   return reportsByProcess;
 }
@@ -781,7 +853,7 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
     {
       appendTextNode(ul, " ");
       appendElementWithText(ul, "li", "", 
-        makeSafe(gUnsafePathsWithInvalidValuesForThisProcess[i]));
+        flipBackslashes(gUnsafePathsWithInvalidValuesForThisProcess[i]));
       appendTextNode(ul, "\n");
     }
 
@@ -806,7 +878,8 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
 
 
-function appendProcessElements(aP, aProcess, aReports, aHasMozMallocUsableSize)
+function appendProcessReportsElements(aP, aProcess, aReports,
+                                      aHasMozMallocUsableSize)
 {
   appendElementWithText(aP, "h1", "", aProcess + " Process");
   appendTextNode(aP, "\n\n");   
@@ -1017,8 +1090,8 @@ function appendMrNameSpan(aP, aKind, aKidsState, aUnsafeDesc, aUnsafeName,
   }
 
   let nameSpan = appendElementWithText(aP, "span", "mrName",
-                                       makeSafe(aUnsafeName));
-  nameSpan.title = kindToString(aKind) + makeSafe(aUnsafeDesc);
+                                       flipBackslashes(aUnsafeName));
+  nameSpan.title = kindToString(aKind) + flipBackslashes(aUnsafeDesc);
 
   if (aIsUnknown) {
     let noteSpan = appendElementWithText(aP, "span", "mrNote", " [*]");
@@ -1105,7 +1178,7 @@ function expandPathToThisElement(aElement)
     expandPathToThisElement(aElement.parentNode);       
 
   } else {
-    assertClassListContains(aElement, "tree");
+    assertClassListContains(aElement, "entries");
   }
 }
 
@@ -1197,7 +1270,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
     if (hasKids) {
       
       
-      let safeTreeId = makeSafe(aProcess + ":" + unsafePath);
+      let safeTreeId = flipBackslashes(aProcess + ":" + unsafePath);
       showSubtrees = !aT._hideKids;
       if (gTogglesBySafeTreeId[safeTreeId]) {
         showSubtrees = !showSubtrees;
@@ -1259,7 +1332,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
 
   appendSectionHeader(aPOuter, kTreeNames[aT._unsafeName]);
  
-  let pre = appendElement(aPOuter, "pre", "tree");
+  let pre = appendElement(aPOuter, "pre", "entries");
   appendTreeElements2(pre, "", aT, [], "", rootStringLength);
   appendTextNode(aPOuter, "\n");  
 }
@@ -1328,7 +1401,7 @@ function appendOtherElements(aP, aReportsByProcess)
 {
   appendSectionHeader(aP, kTreeNames['other']);
 
-  let pre = appendElement(aP, "pre", "tree");
+  let pre = appendElement(aP, "pre", "entries");
 
   
   
@@ -1339,7 +1412,7 @@ function appendOtherElements(aP, aReportsByProcess)
     let r = aReportsByProcess[unsafePath];
     if (!r._done) {
       assert(r._kind === KIND_OTHER,
-             "_kind !== KIND_OTHER for " + makeSafe(r._unsafePath));
+             "_kind !== KIND_OTHER for " + flipBackslashes(r._unsafePath));
       assert(r._nMerged === undefined);  
       let o = new OtherReport(r._unsafePath, r._units, r._amount,
                               r._unsafeDescription);
@@ -1370,7 +1443,197 @@ function appendOtherElements(aP, aReportsByProcess)
 
 function appendSectionHeader(aP, aText)
 {
-  appendElementWithText(aP, "h2", "sectionHeader", aText);
+  appendElementWithText(aP, "h2", "", aText);
   appendTextNode(aP, "\n");
+}
+
+
+
+
+
+function onLoadAboutCompartments()
+{
+  
+  
+  minimizeMemoryUsage3x(
+    function() { addChildObserversAndUpdate(updateAboutCompartments); });
+}
+
+
+
+
+function updateAboutCompartments()
+{
+  
+  
+  
+  let body = clearBody();
+
+  let mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
+      getService(Ci.nsIMemoryReporterManager);
+
+  
+  
+  let compartmentsByProcess = getCompartmentsByProcess(mgr);
+  appendProcessCompartmentsElements(body, "Main",
+                                    compartmentsByProcess["Main"]);
+  for (let process in compartmentsByProcess) {
+    if (process !== "Main") {
+      appendProcessCompartmentsElements(body, process,
+                                        compartmentsByProcess[process]);
+    }
+  }
+
+  appendElement(body, "hr");
+
+  let div1 = appendElement(body, "div");
+  let a;
+  if (gVerbose) {
+    let a = appendElementWithText(div1, "a", "option", "Less verbose");
+    a.href = "about:compartments";
+  } else {
+    let a = appendElementWithText(div1, "a", "option", "More verbose");
+    a.href = "about:compartments?verbose";
+  }
+
+  
+  
+  let e = document.createEvent("Event");
+  e.initEvent("bodygenerated", false, false);
+  document.dispatchEvent(e);
+}
+
+
+
+function Compartment(aUnsafeName, aIsSystemCompartment)
+{
+  this._unsafeName          = aUnsafeName;
+  this._isSystemCompartment = aIsSystemCompartment;
+  
+}
+
+Compartment.prototype = {
+  merge: function(r) {
+    this._nMerged = this._nMerged ? this._nMerged + 1 : 2;
+  }
+};
+
+function getCompartmentsByProcess(aMgr)
+{
+  
+  
+  
+
+  function ignoreSingle(aPath) 
+  {
+    return aPath.indexOf("compartments/") !== 0;
+  }
+
+  function ignoreMulti(aName)
+  {
+    return aName !== "compartments";
+  }
+
+  let compartmentsByProcess = {};
+
+  function handleReport(aProcess, aUnsafePath, aKind, aUnits, aAmount, aDesc)
+  {
+    let process = aProcess === "" ? "Main" : aProcess;
+
+    assert(aKind   === KIND_OTHER, "bad kind");
+    assert(aUnits  === UNITS_COUNT, "bad units");
+    assert(aAmount === 1, "bad amount");
+    assert(aDesc   === "", "bad description");
+
+    let unsafeNames = aUnsafePath.split('/');
+
+    let isSystemCompartment;
+    if (unsafeNames[0] === "compartments" && unsafeNames[1] == "system" &&
+        unsafeNames.length == 3)
+    {
+      isSystemCompartment = true;
+
+    } else if (unsafeNames[0] === "compartments" && unsafeNames[1] == "user" &&
+        unsafeNames.length == 3)
+    {
+      isSystemCompartment = false;
+      
+      
+      
+      if (unsafeNames[2].indexOf("moz-nullprincipal:{") === 0) {
+        isSystemCompartment = true;
+      }
+
+    } else {
+      assert(false, "bad compartments path: " + aUnsafePath);
+    }
+    let c = new Compartment(unsafeNames[2], isSystemCompartment);
+
+    if (!compartmentsByProcess[process]) {
+      compartmentsByProcess[process] = {};
+    }
+    let compartments = compartmentsByProcess[process];
+    let cOld = compartments[c._unsafeName];
+    if (cOld) {
+      
+      
+      cOld.merge(c);
+    } else {
+      compartments[c._unsafeName] = c;
+    }
+  }
+
+  processMemoryReporters(aMgr, ignoreSingle, ignoreMulti, handleReport);
+
+  return compartmentsByProcess;
+}
+
+
+
+function appendProcessCompartmentsElementsHelper(aP, aCompartments, aKindString)
+{
+  appendElementWithText(aP, "h2", "", aKindString + " Compartments\n");
+
+  let compartmentTextArray = [];
+  let uPre = appendElement(aP, "pre", "entries");
+  for (let name in aCompartments) {
+    let c = aCompartments[name];
+    let isSystemKind = aKindString === "System";
+    if (c._isSystemCompartment === isSystemKind) {
+      let text = flipBackslashes(c._unsafeName);
+      if (c._nMerged) {
+        text += " [" + c._nMerged + "]";
+      }
+      text += "\n";
+      compartmentTextArray.push(text);
+    }
+  }
+  compartmentTextArray.sort();
+
+  for (var i = 0; i < compartmentTextArray.length; i++) {
+    appendElementWithText(uPre, "span", "", compartmentTextArray[i]);
+  }
+
+  appendTextNode(aP, "\n");   
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function appendProcessCompartmentsElements(aP, aProcess, aCompartments)
+{
+  appendElementWithText(aP, "h1", "", aProcess + " Process");
+  appendTextNode(aP, "\n\n");   
+  
+  appendProcessCompartmentsElementsHelper(aP, aCompartments, "User");
+  appendProcessCompartmentsElementsHelper(aP, aCompartments, "System");
 }
 

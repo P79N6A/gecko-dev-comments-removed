@@ -35,17 +35,19 @@
 
 
 
+
+
 body.verbose {
   
   max-width: 100% !important;
 }
 
-body.non-verbose pre.tree {
+body.non-verbose pre.entries {
   overflow-x: hidden;
   text-overflow: ellipsis;
 }
 
-.sectionHeader {
+h2 {
   background: #ddd;
   padding-left: .1em;
 }
