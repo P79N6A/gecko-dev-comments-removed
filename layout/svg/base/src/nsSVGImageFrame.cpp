@@ -240,36 +240,25 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
       currentRequest->GetImage(getter_AddRefs(mImageContainer));
   }
 
-  
-  
-  
-  
-  nsRefPtr<gfxASurface> currentFrame;
-  if (mImageContainer)
-    mImageContainer->GetFrame(imgIContainer::FRAME_CURRENT,
-                              imgIContainer::FLAG_SYNC_DECODE,
-                              getter_AddRefs(currentFrame));
+  if (mImageContainer) {
+    if (mImageContainer->GetType() == imgIContainer::TYPE_VECTOR) {
+      
+      return NS_ERROR_FAILURE;
+    }
 
-  
-  
-  nsRefPtr<gfxPattern> thebesPattern;
-  if (currentFrame)
-    thebesPattern = new gfxPattern(currentFrame);
-
-  if (thebesPattern) {
-
-    thebesPattern->SetFilter(nsLayoutUtils::GetGraphicsFilterForFrame(this));
-    thebesPattern->SetExtend(gfxPattern::EXTEND_PAD_EDGE);
-
-    gfxContext *gfx = aContext->GetGfxContext();
+    gfxContext* ctx = aContext->GetGfxContext();
+    gfxContextAutoSaveRestore autoRestorer(ctx);
 
     if (GetStyleDisplay()->IsScrollableOverflow()) {
-      gfx->Save();
-
-      gfxRect clipRect =
-        nsSVGUtils::GetClipRectForFrame(this, x, y, width, height);
-      nsSVGUtils::SetClipRect(gfx, GetCanvasTM(), clipRect);
+      gfxRect clipRect = nsSVGUtils::GetClipRectForFrame(this, x, y,
+                                                         width, height);
+      nsSVGUtils::SetClipRect(ctx, GetCanvasTM(), clipRect);
     }
+
+    
+    
+    
+    ctx->SetMatrix(GetImageTransform());
 
     
     
@@ -279,15 +268,33 @@ nsSVGImageFrame::PaintSVG(nsSVGRenderState *aContext,
       opacity = GetStyleDisplay()->mOpacity;
     }
 
-    PRInt32 nativeWidth, nativeHeight;
-    mImageContainer->GetWidth(&nativeWidth);
-    mImageContainer->GetHeight(&nativeHeight);
+    if (opacity != 1.0f) {
+      ctx->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+    }
 
-    nsSVGUtils::CompositePatternMatrix(gfx, thebesPattern, GetImageTransform(),
-                                       nativeWidth, nativeHeight, opacity);
+    nsRect dirtyRect; 
+    if (aDirtyRect) {
+      dirtyRect = aDirtyRect->ToAppUnits(PresContext()->AppUnitsPerDevPixel());
+    }
 
-    if (GetStyleDisplay()->IsScrollableOverflow())
-      gfx->Restore();
+    
+    
+    
+    
+    nsLayoutUtils::DrawSingleUnscaledImage(
+      aContext->GetRenderingContext(this),
+      mImageContainer,
+      nsLayoutUtils::GetGraphicsFilterForFrame(this),
+      nsPoint(0, 0),
+      aDirtyRect ? &dirtyRect : nsnull,
+      imgIContainer::FLAG_SYNC_DECODE);
+
+    if (opacity != 1.0f) {
+      ctx->PopGroupToSource();
+      ctx->SetOperator(gfxContext::OPERATOR_OVER);
+      ctx->Paint(opacity);
+    }
+    
   }
 
   return rv;
