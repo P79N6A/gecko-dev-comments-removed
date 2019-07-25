@@ -145,10 +145,9 @@ protected:
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
   void UpdateGraphic();
 
-  gfxMatrix GetCanvasTMWithTranslation();
   
   
-  gfxMatrix GetScaledMatrixForChildren(gfxMatrix canvasTMWithTranslation) const;
+  gfxMatrix GetCanvasTMForChildren();
   void InvalidateDirtyRect(nsSVGOuterSVGFrame* aOuter,
                            const nsRect& aRect, PRUint32 aFlags);
   void FlushDirtyRegion();
