@@ -68,28 +68,19 @@ private:
   nsRefPtr<ID3D10ShaderResourceView> mSRView;
 
   
-  nsRefPtr<ID3D10Texture2D> mTextureOnWhite;
-
-  
-  nsRefPtr<ID3D10ShaderResourceView> mSRViewOnWhite;
-
-  
   nsIntRegion mTextureRegion;
 
   
-  void VerifyContentType(SurfaceMode aMode);
+  void VerifyContentType();
 
   
   nsRefPtr<gfxASurface> mD2DSurface;
 
   
-  nsRefPtr<gfxASurface> mD2DSurfaceOnWhite;
+  void DrawRegion(const nsIntRegion &aRegion);
 
   
-  void DrawRegion(const nsIntRegion &aRegion, SurfaceMode aMode);
-
-  
-  void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
+  void CreateNewTexture(const gfxIntSize &aSize);
 
   
   void CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcOffset,
