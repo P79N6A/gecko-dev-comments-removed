@@ -347,7 +347,7 @@ ElfDynamic_Section *Elf::getDynSection()
     return NULL;
 }
 
-void Elf::write(std::ofstream &file)
+void Elf::normalize()
 {
     
     
@@ -387,6 +387,11 @@ void Elf::write(std::ofstream &file)
     ehdr->e_shoff = shdr_section->getOffset();
     ehdr->e_entry = eh_entry.getValue();
     ehdr->e_shstrndx = eh_shstrndx->getIndex();
+}
+
+void Elf::write(std::ofstream &file)
+{
+    normalize();
     for (ElfSection *section = ehdr;
          section != NULL; section = section->getNext()) {
         file.seekp(section->getOffset());
