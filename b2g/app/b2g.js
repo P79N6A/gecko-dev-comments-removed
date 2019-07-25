@@ -454,3 +454,24 @@ pref("ril.data.roaming.enabled", false);
 pref("ril.data.apn", "");
 pref("ril.data.user", "");
 pref("ril.data.passwd", "");
+
+#ifdef MOZ_UPDATER
+pref("app.update.enabled", true);
+pref("app.update.auto", true);
+pref("app.update.silent", true);
+pref("app.update.mode", 0);
+pref("app.update.incompatible.mode", 0);
+pref("app.update.service.enabled", true);
+
+
+
+
+pref("app.update.interval", 86400); 
+
+
+pref("app.update.timerFirstInterval", 30000);
+
+
+
+pref("app.update.log", true);
+#endif
