@@ -553,7 +553,7 @@ public:
     
 
 
-    PRBool HasES2Compatibility() const {
+    PRBool HasES2Compatibility() {
         return mIsGLES2 || IsExtensionSupported(ARB_ES2_compatibility);
     }
 
@@ -882,9 +882,12 @@ public:
         Extensions_Max
     };
 
-    PRBool IsExtensionSupported(GLExtensions aKnownExtension) const {
+    PRBool IsExtensionSupported(GLExtensions aKnownExtension) {
         return mAvailableExtensions[aKnownExtension];
     }
+
+    
+    PRBool IsExtensionSupported(const char *extension);
 
     
     static PRBool ListHasExtension(const GLubyte *extensions,
@@ -892,6 +895,25 @@ public:
 
     GLint GetMaxTextureSize() { return mMaxTextureSize; }
     void SetFlipped(PRBool aFlipped) { mFlipped = aFlipped; }
+
+    
+    
+    
+    
+    template<size_t setlen>
+    struct ExtensionBitset {
+        ExtensionBitset() {
+            for (size_t i = 0; i < setlen; ++i)
+                values[i] = false;
+        }
+
+        bool& operator[](size_t index) {
+            NS_ASSERTION(index < setlen, "out of range");
+            return values[index];
+        }
+
+        bool values[setlen];
+    };
 
 protected:
     PRPackedBool mInitialized;
@@ -942,27 +964,6 @@ protected:
     GLuint mOffscreenDepthRB;
     GLuint mOffscreenStencilRB;
 
-    
-    
-    
-    template<size_t setlen>
-    struct ExtensionBitset {
-        ExtensionBitset() {
-            for (size_t i = 0; i < setlen; ++i)
-                values[i] = false;
-        }
-
-        bool& operator[](size_t index) {
-            NS_ASSERTION(index < setlen, "out of range");
-            return values[index];
-        }
-
-        const bool& operator[](size_t index) const {
-            return const_cast<ExtensionBitset*>(this)->operator[](index);
-        }
-
-        bool values[setlen];
-    };
     ExtensionBitset<Extensions_Max> mAvailableExtensions;
 
     
@@ -980,7 +981,6 @@ protected:
     PRBool InitWithPrefix(const char *prefix, PRBool trygl);
 
     void InitExtensions();
-    PRBool IsExtensionSupported(const char *extension);
 
     virtual already_AddRefed<TextureImage>
     CreateBasicTextureImage(GLuint aTexture,
