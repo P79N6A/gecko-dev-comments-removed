@@ -1274,7 +1274,10 @@ var Browser = {
     switch (aMessage.name) {
       case "Browser:ViewportMetadata":
         let tab = Browser.getTabForBrowser(aMessage.target);
-        tab.updateViewportMetadata(json);
+        
+        
+        if (tab)
+          tab.updateViewportMetadata(json);
         break;
 
       case "Browser:FormSubmit":
