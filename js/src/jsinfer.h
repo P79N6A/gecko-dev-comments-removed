@@ -1182,7 +1182,7 @@ struct TypeCompartment
 
     
     inline void addPending(JSContext *cx, TypeConstraint *constraint, TypeSet *source, Type type);
-    void growPendingArray(JSContext *cx);
+    bool growPendingArray(JSContext *cx);
 
     
     inline void resolvePending(JSContext *cx);
