@@ -40,7 +40,7 @@
 #include "prtypes.h"
 #include "prefapi.h"
 
-NSPR_BEGIN_EXTERN_C
+PR_BEGIN_EXTERN_C
 
 
 
@@ -129,5 +129,5 @@ void PREF_FinalizeParseState(PrefParseState *ps);
 
 PRBool PREF_ParseBuf(PrefParseState *ps, const char *buf, int bufLen);
 
-NSPR_END_EXTERN_C
+PR_END_EXTERN_C
 #endif 
