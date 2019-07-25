@@ -86,7 +86,8 @@ var gLastValidURLStr = "";
 var gInPrintPreviewMode = false;
 var gDownloadMgr = null;
 var gContextMenu = null; 
-var gDelayedStartupTimeoutId;
+var gDelayedStartupTimeoutId; 
+var gFirstPaintListener = null;
 var gStartupRan = false;
 
 #ifndef XP_MACOSX
@@ -1383,7 +1384,18 @@ function BrowserStartup() {
 
   retrieveToolbarIconsizesFromTheme();
 
-  gDelayedStartupTimeoutId = setTimeout(delayedStartup, 0, isLoadingBlank, mustLoadSidebar);
+  
+  
+  
+  gFirstPaintListener = function(e) {
+    if (e.target == window) {
+      window.removeEventListener("MozAfterPaint", gFirstPaintListener, false);
+      gFirstPaintListener = null;
+      delayedStartup(isLoadingBlank, mustLoadSidebar);
+    }
+  };
+  window.addEventListener("MozAfterPaint", gFirstPaintListener, false);
+
   gStartupRan = true;
 }
 
@@ -1514,7 +1526,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   Cu.import("resource:///modules/TelemetryTimestamps.jsm", tmp);
   let TelemetryTimestamps = tmp.TelemetryTimestamps;
   TelemetryTimestamps.add("delayedStartupStarted");
-  gDelayedStartupTimeoutId = null;
 
   Services.obs.addObserver(gSessionHistoryObserver, "browser:purge-session-history", false);
   Services.obs.addObserver(gXPInstallObserver, "addon-install-disabled", false);
@@ -1867,8 +1878,9 @@ function BrowserShutdown() {
 
   
   
-  if (gDelayedStartupTimeoutId) {
-    clearTimeout(gDelayedStartupTimeoutId);
+  if (gFirstPaintListener) {
+    window.removeEventListener("MozAfterPaint", gFirstPaintListener, false);
+    gFirstPaintListener = null;
   } else {
     if (Win7Features)
       Win7Features.onCloseWindow();
