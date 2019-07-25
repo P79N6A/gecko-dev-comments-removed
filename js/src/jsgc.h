@@ -42,40 +42,21 @@
 
 
 
-#include <setjmp.h>
-
-#include "jstypes.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsdhash.h"
 #include "jsbit.h"
-#include "jsgcchunk.h"
 #include "jsutil.h"
 #include "jstask.h"
 #include "jsvector.h"
 #include "jsversion.h"
-#include "jsobj.h"
-#include "jsfun.h"
-#include "jsgcstats.h"
 
-#define JSTRACE_XML         2
+#define JSTRACE_XML         3
 
 
 
 
-#define JSTRACE_LIMIT       3
-
-
-
-
-const size_t GC_ARENA_ALLOCATION_TRIGGER = 25 * js::GC_CHUNK_SIZE;
-
-
-
-
-
-
-const float GC_HEAP_GROWTH_FACTOR = 1.5;
+#define JSTRACE_LIMIT       4
 
 const uintN JS_EXTERNAL_STRING_LIMIT = 8;
 
@@ -88,9 +69,6 @@ js_GetExternalStringGCType(JSString *str);
 
 extern JS_FRIEND_API(uint32)
 js_GetGCThingTraceKind(void *thing);
-
-extern size_t
-ThingsPerArena(size_t thingSize);
 
 
 
@@ -121,15 +99,18 @@ js_ChangeExternalStringFinalizer(JSStringFinalizeOp oldop,
                                  JSStringFinalizeOp newop);
 
 extern JSBool
-js_AddRoot(JSContext *cx, js::Value *vp, const char *name);
+js_AddRoot(JSContext *cx, void *rp, const char *name);
 
 extern JSBool
-js_AddGCThingRoot(JSContext *cx, void **rp, const char *name);
+js_AddRootRT(JSRuntime *rt, void *rp, const char *name);
+
+extern JSBool
+js_RemoveRoot(JSRuntime *rt, void *rp);
 
 #ifdef DEBUG
 extern void
 js_DumpNamedRoots(JSRuntime *rt,
-                  void (*dump)(const char *name, void *rp, JSGCRootType type, void *data),
+                  void (*dump)(const char *name, void *rp, void *data),
                   void *data);
 #endif
 
@@ -145,6 +126,20 @@ typedef struct JSPtrTable {
 extern JSBool
 js_RegisterCloseableIterator(JSContext *cx, JSObject *obj);
 
+
+
+
+
+extern JSBool
+js_NewDoubleInRootedValue(JSContext *cx, jsdouble d, jsval *vp);
+
+
+
+
+
+extern jsdouble *
+js_NewWeaklyRootedDouble(JSContext *cx, jsdouble d);
+
 #ifdef JS_TRACER
 extern JSBool
 js_ReserveObjects(JSContext *cx, size_t nobjects);
@@ -156,11 +151,8 @@ js_LockGCThingRT(JSRuntime *rt, void *thing);
 extern void
 js_UnlockGCThingRT(JSRuntime *rt, void *thing);
 
-extern JS_FRIEND_API(bool)
+extern bool
 js_IsAboutToBeFinalized(void *thing);
-
-extern JS_FRIEND_API(bool)
-js_GCThingIsMarked(void *thing, uint32 color);
 
 
 
@@ -173,6 +165,14 @@ js_GCThingIsMarked(void *thing, uint32 color);
 #else
 # define JS_IS_VALID_TRACE_KIND(kind) ((uint32)(kind) <= JSTRACE_STRING)
 #endif
+
+
+
+
+
+
+extern void
+js_CallValueTracerIfGCThing(JSTracer *trc, jsval v);
 
 extern void
 js_TraceStackFrame(JSTracer *trc, JSStackFrame *fp);
@@ -209,27 +209,20 @@ typedef enum JSGCInvocationKind {
     
 
 
-    GC_LOCK_HELD        = 0x10
+    GC_LOCK_HELD        = 0x10,
+
+    
+
+
+
+    GC_SET_SLOT_REQUEST = GC_LOCK_HELD | 1
 } JSGCInvocationKind;
 
 extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
-#ifdef JS_THREADSAFE
-
-
-
-
-
-
 extern void
-js_WaitForGC(JSRuntime *rt);
-
-#else 
-
-# define js_WaitForGC(rt)    ((void) 0)
-
-#endif
+js_CallGCMarker(JSTracer *trc, void *thing, uint32 kind);
 
 
 
@@ -241,7 +234,6 @@ enum JSFinalizeGCThingKind {
 #if JS_HAS_XML_SUPPORT
     FINALIZE_XML,
 #endif
-    FINALIZE_SHORT_STRING,
     FINALIZE_STRING,
     FINALIZE_EXTERNAL_STRING0,
     FINALIZE_EXTERNAL_STRING1,
@@ -258,7 +250,7 @@ enum JSFinalizeGCThingKind {
 static inline bool
 IsFinalizableStringKind(unsigned thingKind)
 {
-    return unsigned(FINALIZE_SHORT_STRING) <= thingKind &&
+    return unsigned(FINALIZE_STRING) <= thingKind &&
            thingKind <= unsigned(FINALIZE_EXTERNAL_STRING_LAST);
 }
 
@@ -283,14 +275,6 @@ js_NewGCString(JSContext *cx)
     return (JSString *) js_NewFinalizableGCThing(cx, FINALIZE_STRING);
 }
 
-struct JSShortString;
-
-static inline JSShortString *
-js_NewGCShortString(JSContext *cx)
-{
-    return (JSShortString *) js_NewFinalizableGCThing(cx, FINALIZE_SHORT_STRING);
-}
-
 static inline JSString *
 js_NewGCExternalString(JSContext *cx, uintN type)
 {
@@ -299,19 +283,10 @@ js_NewGCExternalString(JSContext *cx, uintN type)
     return (JSString *) js_NewFinalizableGCThing(cx, type);
 }
 
-static inline JSFunction *
+static inline JSFunction*
 js_NewGCFunction(JSContext *cx)
 {
-    JSFunction* obj = (JSFunction *)js_NewFinalizableGCThing(cx, FINALIZE_FUNCTION);
-
-#ifdef DEBUG
-    if (obj) {
-        memset((uint8 *) obj + sizeof(JSObject), JS_FREE_PATTERN,
-               sizeof(JSFunction) - sizeof(JSObject));
-    }
-#endif
-
-    return obj;
+    return (JSFunction *) js_NewFinalizableGCThing(cx, FINALIZE_FUNCTION);
 }
 
 #if JS_HAS_XML_SUPPORT
@@ -323,6 +298,7 @@ js_NewGCXML(JSContext *cx)
 #endif
 
 struct JSGCArena;
+struct JSGCChunkInfo;
 
 struct JSGCArenaList {
     JSGCArena       *head;          
@@ -332,7 +308,13 @@ struct JSGCArenaList {
 
 };
 
+struct JSGCDoubleArenaList {
+    JSGCArena       *head;          
+    JSGCArena       *cursor;        
+};
+
 struct JSGCFreeLists {
+    JSGCThing       *doubles;
     JSGCThing       *finalizables[FINALIZE_LIMIT];
 
     void purge();
@@ -340,6 +322,8 @@ struct JSGCFreeLists {
 
 #ifdef DEBUG
     bool isEmpty() const {
+        if (doubles)
+            return false;
         for (size_t i = 0; i != JS_ARRAY_LENGTH(finalizables); ++i) {
             if (finalizables[i])
                 return false;
@@ -352,9 +336,25 @@ struct JSGCFreeLists {
 extern void
 js_DestroyScriptsToGC(JSContext *cx, JSThreadData *data);
 
-namespace js {
+struct JSWeakRoots {
+    
+    void            *finalizableNewborns[FINALIZE_LIMIT];
+    jsdouble        *newbornDouble;
+
+    
+    jsval           lastAtom;
+
+    
+    jsval           lastInternalResult;
+
+    void mark(JSTracer *trc);
+};
+
+#define JS_CLEAR_WEAK_ROOTS(wr) (memset((wr), 0, sizeof(JSWeakRoots)))
 
 #ifdef JS_THREADSAFE
+
+namespace js {
 
 
 
@@ -388,7 +388,7 @@ class BackgroundSweepTask : public JSBackgroundTask {
     BackgroundSweepTask()
         : freeCursor(NULL), freeCursorEnd(NULL) { }
 
-    void freeLater(void *ptr) {
+    void freeLater(void* ptr) {
         if (freeCursor != freeCursorEnd)
             *freeCursor++ = ptr;
         else
@@ -398,107 +398,74 @@ class BackgroundSweepTask : public JSBackgroundTask {
     virtual void run();
 };
 
-#endif 
-
-
-struct GCChunkInfo;
-
-struct GCChunkHasher {
-    typedef jsuword Lookup;
-
-    
-
-
-
-    static HashNumber hash(jsuword chunk) {
-        JS_ASSERT(!(chunk & GC_CHUNK_MASK));
-        return HashNumber(chunk >> GC_CHUNK_SHIFT);
-    }
-
-    static bool match(jsuword k, jsuword l) {
-        JS_ASSERT(!(k & GC_CHUNK_MASK));
-        JS_ASSERT(!(l & GC_CHUNK_MASK));
-        return k == l;
-    }
-};
-
-typedef HashSet<jsuword, GCChunkHasher, SystemAllocPolicy> GCChunkSet;
-typedef Vector<GCChunkInfo *, 32, SystemAllocPolicy> GCChunkInfoVector;
-
-struct ConservativeGCThreadData {
-
-    
-
-
-
-    jsuword             *nativeStackTop;
-
-    union {
-        jmp_buf         jmpbuf;
-        jsuword         words[JS_HOWMANY(sizeof(jmp_buf), sizeof(jsuword))];
-    } registerSnapshot;
-
-    int                 enableCount;
-
-    JS_NEVER_INLINE JS_FRIEND_API(void) enable(bool knownStackBoundary = false);
-    JS_FRIEND_API(void) disable();
-    bool isEnabled() const { return enableCount > 0; }
-};
-
-struct GCMarker : public JSTracer {
-  private:
-    
-    uint32 color;
-
-    
-    JSGCArena           *unmarkedArenaStackTop;
-#ifdef DEBUG
-    size_t              markLaterCount;
+}
 #endif
-
-  public:
-#if defined(JS_DUMP_CONSERVATIVE_GC_ROOTS) || defined(JS_GCMETER)
-    ConservativeGCStats conservativeStats;
-#endif
-   
-#ifdef JS_DUMP_CONSERVATIVE_GC_ROOTS
-    struct ConservativeRoot { void *thing; uint32 traceKind; };
-    Vector<ConservativeRoot, 0, SystemAllocPolicy> conservativeRoots;
-    const char *conservativeDumpFileName;
-
-    void dumpConservativeRoots();
-#endif
-
-    js::Vector<JSObject *, 0, js::SystemAllocPolicy> arraysToSlowify;
-
-  public:
-    explicit GCMarker(JSContext *cx);
-    ~GCMarker();
-
-    uint32 getMarkColor() const {
-        return color;
-    }
-
-    void setMarkColor(uint32 newColor) {
-        
-
-
-
-        markDelayedChildren();
-        color = newColor;
-    }
-
-    void delayMarkingChildren(void *thing);
-
-    JS_FRIEND_API(void) markDelayedChildren();
-
-    void slowifyArrays();
-};
-
-} 
 
 extern void
 js_FinalizeStringRT(JSRuntime *rt, JSString *str);
+
+#if defined JS_GCMETER
+const bool JS_WANT_GC_METER_PRINT = true;
+#elif defined DEBUG
+# define JS_GCMETER 1
+const bool JS_WANT_GC_METER_PRINT = false;
+#endif
+
+#ifdef JS_GCMETER
+
+struct JSGCArenaStats {
+    uint32  alloc;          
+    uint32  localalloc;     
+    uint32  retry;          
+    uint32  fail;           
+    uint32  nthings;        
+    uint32  maxthings;      
+    double  totalthings;    
+    uint32  narenas;        
+    uint32  newarenas;      
+    uint32  livearenas;     
+    uint32  maxarenas;      
+    uint32  totalarenas;    
+
+};
+
+struct JSGCStats {
+    uint32  finalfail;  
+    uint32  lockborn;   
+    uint32  lock;       
+    uint32  unlock;     
+    uint32  depth;      
+    uint32  maxdepth;   
+    uint32  cdepth;     
+    uint32  maxcdepth;  
+    uint32  unmarked;   
+
+#ifdef DEBUG
+    uint32  maxunmarked;
+
+#endif
+    uint32  maxlevel;       
+    uint32  poke;           
+    uint32  afree;          
+    uint32  stackseg;       
+    uint32  segslots;       
+    uint32  nclose;         
+    uint32  maxnclose;      
+    uint32  closelater;     
+    uint32  maxcloselater;  
+    uint32  nallarenas;     
+    uint32  maxnallarenas;  
+    uint32  nchunks;        
+    uint32  maxnchunks;     
+
+    JSGCArenaStats  arenaStats[FINALIZE_LIMIT];
+    JSGCArenaStats  doubleArenaStats;
+};
+
+extern JS_FRIEND_API(void)
+js_DumpGCStats(JSRuntime *rt, FILE *fp);
+
+#endif 
 
 
 
@@ -509,154 +476,34 @@ js_MarkTraps(JSTracer *trc);
 
 namespace js {
 
-
-
-
-
-
-
-
-extern bool
-SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto);
-
-
 void
-Mark(JSTracer *trc, void *thing, uint32 kind);
+TraceObjectVector(JSTracer *trc, JSObject **vec, uint32 len);
 
-static inline void
-Mark(JSTracer *trc, void *thing, uint32 kind, const char *name)
+inline void
+#ifdef DEBUG
+TraceValues(JSTracer *trc, jsval *beg, jsval *end, const char *name)
+#else
+TraceValues(JSTracer *trc, jsval *beg, jsval *end, const char *) 
+#endif
 {
-    JS_ASSERT(thing);
-    JS_SET_TRACING_NAME(trc, name);
-    Mark(trc, thing, kind);
-}
-
-static inline void
-MarkString(JSTracer *trc, JSString *str)
-{
-    JS_ASSERT(str);
-    Mark(trc, str, JSTRACE_STRING);
-}
-
-static inline void
-MarkString(JSTracer *trc, JSString *str, const char *name)
-{
-    JS_ASSERT(str);
-    JS_SET_TRACING_NAME(trc, name);
-    Mark(trc, str, JSTRACE_STRING);
-}
-
-static inline void
-MarkAtomRange(JSTracer *trc, size_t len, JSAtom **vec, const char *name)
-{
-    for (uint32 i = 0; i < len; i++) {
-        if (JSAtom *atom = vec[i]) {
-            JS_SET_TRACING_INDEX(trc, name, i);
-            Mark(trc, ATOM_TO_STRING(atom), JSTRACE_STRING);
+    for (jsval *vp = beg; vp < end; ++vp) {
+        jsval v = *vp;
+        if (JSVAL_IS_TRACEABLE(v)) {
+            JS_SET_TRACING_INDEX(trc, name, vp - beg);
+            js_CallGCMarker(trc, JSVAL_TO_TRACEABLE(v), JSVAL_TRACE_KIND(v));
         }
     }
 }
 
-static inline void
-MarkObject(JSTracer *trc, JSObject *obj, const char *name)
+inline void
+#ifdef DEBUG
+TraceValues(JSTracer *trc, size_t len, jsval *vec, const char *name)
+#else
+TraceValues(JSTracer *trc, size_t len, jsval *vec, const char *) 
+#endif
 {
-    JS_ASSERT(obj);
-    JS_SET_TRACING_NAME(trc, name);
-    Mark(trc, obj, JSTRACE_OBJECT);
+    TraceValues(trc, vec, vec + len, name);
 }
-
-static inline void
-MarkObjectRange(JSTracer *trc, size_t len, JSObject **vec, const char *name)
-{
-    for (uint32 i = 0; i < len; i++) {
-        if (JSObject *obj = vec[i]) {
-            JS_SET_TRACING_INDEX(trc, name, i);
-            Mark(trc, obj, JSTRACE_OBJECT);
-        }
-    }
-}
-
-
-static inline void
-MarkValueRaw(JSTracer *trc, const js::Value &v)
-{
-    if (v.isMarkable())
-        return Mark(trc, v.asGCThing(), v.gcKind());
-}
-
-static inline void
-MarkValue(JSTracer *trc, const js::Value &v, const char *name)
-{
-    JS_SET_TRACING_NAME(trc, name);
-    MarkValueRaw(trc, v);
-}
-
-static inline void
-MarkValueRange(JSTracer *trc, Value *beg, Value *end, const char *name)
-{
-    for (Value *vp = beg; vp < end; ++vp) {
-        JS_SET_TRACING_INDEX(trc, name, vp - beg);
-        MarkValueRaw(trc, *vp);
-    }
-}
-
-static inline void
-MarkValueRange(JSTracer *trc, size_t len, Value *vec, const char *name)
-{
-    MarkValueRange(trc, vec, vec + len, name);
-}
-
-static inline void
-MarkId(JSTracer *trc, jsid id)
-{
-    if (JSID_IS_STRING(id))
-        Mark(trc, JSID_TO_STRING(id), JSTRACE_STRING);
-    else if (JS_UNLIKELY(JSID_IS_OBJECT(id)))
-        Mark(trc, JSID_TO_OBJECT(id), JSTRACE_OBJECT);
-}
-
-static inline void
-MarkId(JSTracer *trc, jsid id, const char *name)
-{
-    JS_SET_TRACING_NAME(trc, name);
-    MarkId(trc, id);
-}
-
-static inline void
-MarkIdRange(JSTracer *trc, jsid *beg, jsid *end, const char *name)
-{
-    for (jsid *idp = beg; idp != end; ++idp) {
-        JS_SET_TRACING_INDEX(trc, name, (idp - beg));
-        MarkId(trc, *idp);
-    }
-}
-
-static inline void
-MarkIdRange(JSTracer *trc, size_t len, jsid *vec, const char *name)
-{
-    MarkIdRange(trc, vec, vec + len, name);
-}
-
-
-void
-MarkGCThing(JSTracer *trc, void *thing);
-
-static inline void
-MarkGCThing(JSTracer *trc, void *thing, const char *name)
-{
-    JS_SET_TRACING_NAME(trc, name);
-    MarkGCThing(trc, thing);
-}
-
-static inline void
-MarkGCThing(JSTracer *trc, void *thing, const char *name, size_t index)
-{
-    JS_SET_TRACING_INDEX(trc, name, index);
-    MarkGCThing(trc, thing);
-}
-
-JSCompartment *
-NewCompartment(JSContext *cx, JSPrincipals *principals);
 
 } 
 

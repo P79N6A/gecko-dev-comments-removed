@@ -48,12 +48,12 @@
 #include "jsfun.h"
 #include "jsopcode.h"
 #include "jsscript.h"
-#include "jsvalue.h"
+
+JS_BEGIN_EXTERN_C
 
 typedef struct JSFrameRegs {
-    JSStackFrame    *fp;            
     jsbytecode      *pc;            
-    js::Value       *sp;            
+    jsval           *sp;            
 } JSFrameRegs;
 
 
@@ -67,10 +67,9 @@ enum JSFrameFlags {
     JSFRAME_EVAL               =  0x10, 
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
-    JSFRAME_GENERATOR          =  0x80, 
-    JSFRAME_OVERRIDE_ARGS      = 0x100, 
-    JSFRAME_DUMMY              = 0x200, 
-    JSFRAME_IN_IMACRO          = 0x400, 
+    JSFRAME_ITERATOR           =  0x80, 
+    JSFRAME_GENERATOR          = 0x200, 
+    JSFRAME_OVERRIDE_ARGS      = 0x400, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -83,103 +82,26 @@ enum JSFrameFlags {
 
 
 
+
+
 struct JSStackFrame
 {
-  private:
-    JSObject            *callobj;       
-    JSObject            *argsobj;       
-    JSObject            *scopeChain;    
-    JSObject            *blockChain;    
+    JSFrameRegs         *regs;
     jsbytecode          *imacpc;        
-    void                *annotation;    
-    void                *hookData;      
-    JSVersion           callerVersion;  
+    JSObject            *callobj;       
+    jsval               argsobj;        
+
     JSScript            *script;        
     JSFunction          *fun;           
-    js::Value           thisv;          
-    js::Value           rval;           
+    jsval               thisv;          
     uintN               argc;           
-
-  public:
-    js::Value           *argv;          
+    jsval               *argv;          
+    jsval               rval;           
+    void                *annotation;    
 
     
     JSStackFrame        *down;          
 
-    jsbytecode          *savedPC;       
-#ifdef DEBUG
-    static jsbytecode *const sInvalidPC;
-#endif
-
-    uint32              flags;          
-
-    void                *padding;
-
-    
-    jsbytecode *pc(JSContext *cx) const;
-
-    js::Value *argEnd() const {
-        return (js::Value *)this;
-    }
-
-    js::Value *slots() const {
-        return (js::Value *)(this + 1);
-    }
-
-    js::Value *base() const {
-        return slots() + getScript()->nfixed;
-    }
-
-    
-
-    bool hasCallObj() const {
-        return callobj != NULL;
-    }
-
-    JSObject* getCallObj() const {
-        JS_ASSERT(hasCallObj());
-        return callobj;
-    }
-
-    JSObject* maybeCallObj() const {
-        return callobj;
-    }
-
-    void setCallObj(JSObject *obj) {
-        callobj = obj;
-    }
-
-    static size_t offsetCallObj() {
-        return offsetof(JSStackFrame, callobj);
-    }
-
-    
-
-    bool hasArgsObj() const {
-        return argsobj != NULL;
-    }
-
-    JSObject* getArgsObj() const {
-        JS_ASSERT(hasArgsObj());
-        JS_ASSERT(!isEvalFrame());
-        return argsobj;
-    }
-
-    JSObject* maybeArgsObj() const {
-        return argsobj;
-    }
-
-    void setArgsObj(JSObject *obj) {
-        argsobj = obj;
-    }
-
-    JSObject** addressArgsObj() {
-        return &argsobj;
-    }
-
-    static size_t offsetArgsObj() {
-        return offsetof(JSStackFrame, argsobj);
-    }
 
     
 
@@ -217,271 +139,56 @@ struct JSStackFrame
 
 
 
+    union {
+        JSObject    *scopeChain;
+        jsval       scopeChainVal;
+    };
+    JSObject        *blockChain;
+
+    uint32          flags;          
+    JSStackFrame    *displaySave;   
+
 
     
+    JSFrameRegs     callerRegs;     
+    void            *hookData;      
+    JSVersion       callerVersion;  
 
-    bool hasScopeChain() const {
-        return scopeChain != NULL;
-    }
-
-    JSObject* getScopeChain() const {
-        JS_ASSERT(hasScopeChain());
-        return scopeChain;
-    }
-
-    JSObject* maybeScopeChain() const {
-        return scopeChain;
-    }
-
-    void setScopeChain(JSObject *obj) {
-        scopeChain = obj;
-    }
-
-    JSObject** addressScopeChain() {
-        return &scopeChain;
-    }
-
-    static size_t offsetScopeChain() {
-        return offsetof(JSStackFrame, scopeChain);
-    }
-
-    
-
-    bool hasBlockChain() const {
-        return blockChain != NULL;
-    }
-
-    JSObject* getBlockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return blockChain;
-    }
-
-    JSObject* maybeBlockChain() const {
-        return blockChain;
-    }
-
-    void setBlockChain(JSObject *obj) {
-        blockChain = obj;
-    }
-
-    
-
-    bool hasIMacroPC() const { return flags & JSFRAME_IN_IMACRO; }
-
-    
-
-
-
-
-
-    jsbytecode *getIMacroPC() const {
-        JS_ASSERT(flags & JSFRAME_IN_IMACRO);
-        return imacpc;
-    }
-
-    
-    jsbytecode *maybeIMacroPC() const { return hasIMacroPC() ? getIMacroPC() : NULL; }
-
-    void clearIMacroPC() { flags &= ~JSFRAME_IN_IMACRO; }
-
-    void setIMacroPC(jsbytecode *newIMacPC) {
-        JS_ASSERT(newIMacPC);
-        JS_ASSERT(!(flags & JSFRAME_IN_IMACRO));
-        imacpc = newIMacPC;
-        flags |= JSFRAME_IN_IMACRO;
-    }
-
-    
-
-    bool hasAnnotation() const {
-        return annotation != NULL;
-    }
-
-    void* getAnnotation() const {
-        JS_ASSERT(hasAnnotation());
-        return annotation;
-    }
-
-    void* maybeAnnotation() const {
-        return annotation;
-    }
-
-    void setAnnotation(void *annot) {
-        annotation = annot;
-    }
-
-    
-
-    bool hasHookData() const {
-        return hookData != NULL;
-    }
-
-    void* getHookData() const {
-        JS_ASSERT(hasHookData());
-        return hookData;
-    }
-
-    void* maybeHookData() const {
-        return hookData;
-    }
-
-    void setHookData(void *data) {
-        hookData = data;
-    }
-
-    
-
-    JSVersion getCallerVersion() const {
-        return callerVersion;
-    }
-
-    void setCallerVersion(JSVersion version) {
-        callerVersion = version;
-    }
-
-    
-
-    bool hasScript() const {
-        return script != NULL;
-    }
-
-    JSScript* getScript() const {
-        JS_ASSERT(hasScript());
-        return script;
-    }
-
-    JSScript* maybeScript() const {
-        return script;
-    }
-
-    size_t getFixedCount() const {
-        return getScript()->nfixed;
-    }
-
-    size_t getSlotCount() const {
-        return getScript()->nslots;
-    }
-
-    void setScript(JSScript *s) {
-        script = s;
-    }
-
-    static size_t offsetScript() {
-        return offsetof(JSStackFrame, script);
-    }
-
-    
-
-    bool hasFunction() const {
-        return fun != NULL;
-    }
-
-    JSFunction* getFunction() const {
-        JS_ASSERT(hasFunction());
-        return fun;
-    }
-
-    JSFunction* maybeFunction() const {
-        return fun;
-    }
-
-    size_t numFormalArgs() const {
-        JS_ASSERT(!isEvalFrame());
-        return getFunction()->nargs;
-    }
-
-    void setFunction(JSFunction *f) {
-        fun = f;
-    }
-
-    
-
-    const js::Value& getThisValue() {
-        return thisv;
-    }
-
-    void setThisValue(const js::Value &v) {
-        thisv = v;
-    }
-
-    
-
-    const js::Value& getReturnValue() {
-        return rval;
-    }
-
-    void setReturnValue(const js::Value &v) {
-        rval = v;
-    }
-
-    void clearReturnValue() {
-        rval.setUndefined();
-    }
-
-    js::Value* addressReturnValue() {
-        return &rval;
-    }
-
-    static size_t offsetReturnValue() {
-        return offsetof(JSStackFrame, rval);
-    }
-
-    
-
-    size_t numActualArgs() const {
-        JS_ASSERT(!isEvalFrame());
-        return argc;
-    }
-
-    void setNumActualArgs(size_t n) {
-        argc = n;
-    }
-
-    static size_t offsetNumActualArgs() {
-        return offsetof(JSStackFrame, argc);
-    }
-
-    
+    inline void assertValidStackDepth(uintN depth);
 
     void putActivationObjects(JSContext *cx) {
         
 
 
 
-        if (hasCallObj()) {
+        if (callobj) {
             js_PutCallObject(cx, this);
-            JS_ASSERT(!hasArgsObj());
-        } else if (hasArgsObj()) {
+            JS_ASSERT(!argsobj);
+        } else if (argsobj) {
             js_PutArgsObject(cx, this);
         }
     }
 
-    const js::Value &calleeValue() {
+    jsval *argEnd() const {
+        return (jsval *)this;
+    }
+
+    jsval *slots() const {
+        return (jsval *)(this + 1);
+    }
+
+    jsval calleeValue() {
         JS_ASSERT(argv);
         return argv[-2];
     }
 
-    
-    JSObject &calleeObject() const {
+    JSObject *calleeObject() {
         JS_ASSERT(argv);
-        return argv[-2].toObject();
-    }
-
-    
-
-
-
-
-
-    bool getValidCalleeObject(JSContext *cx, js::Value *vp);
-
-    void setCalleeObject(JSObject &callable) {
-        JS_ASSERT(argv);
-        argv[-2].setObject(callable);
+        return JSVAL_TO_OBJECT(argv[-2]);
     }
 
     JSObject *callee() {
-        return argv ? &argv[-2].toObject() : NULL;
+        return argv ? JSVAL_TO_OBJECT(argv[-2]) : NULL;
     }
 
     
@@ -489,45 +196,61 @@ struct JSStackFrame
 
 
 
-    JSObject *varobj(js::StackSegment *seg) const;
+    JSObject *varobj(js::CallStack *cs) const;
 
     
     JSObject *varobj(JSContext *cx) const;
 
     inline JSObject *getThisObject(JSContext *cx);
 
-    bool isGenerator() const { return !!(flags & JSFRAME_GENERATOR); }
+    bool isGenerator() const { return flags & JSFRAME_GENERATOR; }
     bool isFloatingGenerator() const {
-        JS_ASSERT_IF(flags & JSFRAME_FLOATING_GENERATOR, isGenerator());
-        return !!(flags & JSFRAME_FLOATING_GENERATOR);
+        if (flags & JSFRAME_FLOATING_GENERATOR) {
+            JS_ASSERT(isGenerator());
+            return true;
+        }
+        return false;
     }
-
-    bool isDummyFrame() const { return !!(flags & JSFRAME_DUMMY); }
-    bool isEvalFrame() const { return !!(flags & JSFRAME_EVAL); }
-
-    
-    inline void staticAsserts();
 };
 
 namespace js {
 
-JS_STATIC_ASSERT(sizeof(JSStackFrame) % sizeof(Value) == 0);
-static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value);
+static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(jsval);
+JS_STATIC_ASSERT(sizeof(JSStackFrame) % sizeof(jsval) == 0);
 
-} 
-
-inline void
-JSStackFrame::staticAsserts()
-{
-    JS_STATIC_ASSERT(offsetof(JSStackFrame, rval) % sizeof(js::Value) == 0);
-    JS_STATIC_ASSERT(offsetof(JSStackFrame, thisv) % sizeof(js::Value) == 0);
 }
+
+#ifdef __cplusplus
+static JS_INLINE uintN
+FramePCOffset(JSStackFrame* fp)
+{
+    return uintN((fp->imacpc ? fp->imacpc : fp->regs->pc) - fp->script->code);
+}
+#endif
+
+static JS_INLINE jsval *
+StackBase(JSStackFrame *fp)
+{
+    return fp->slots() + fp->script->nfixed;
+}
+
+#ifdef DEBUG
+void
+JSStackFrame::assertValidStackDepth(uintN depth)
+{
+    JS_ASSERT(0 <= regs->sp - StackBase(this));
+    JS_ASSERT(depth <= uintptr_t(regs->sp - StackBase(this)));
+}
+#else
+void
+JSStackFrame::assertValidStackDepth(uintN ){}
+#endif
 
 static JS_INLINE uintN
 GlobalVarCount(JSStackFrame *fp)
 {
-    JS_ASSERT(!fp->hasFunction());
-    return fp->getScript()->nfixed;
+    JS_ASSERT(!fp->fun);
+    return fp->script->nfixed;
 }
 
 
@@ -550,10 +273,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
 
 
 extern JSBool
-js_GetPrimitiveThis(JSContext *cx, js::Value *vp, js::Class *clasp,
-                    const js::Value **vpp);
-
-namespace js {
+js_GetPrimitiveThis(JSContext *cx, jsval *vp, JSClass *clasp, jsval *thisvp);
 
 
 
@@ -563,47 +283,14 @@ namespace js {
 
 
 extern JSObject *
-ComputeThisFromArgv(JSContext *cx, js::Value *argv);
+js_ComputeThis(JSContext *cx, jsval *argv);
 
-JS_ALWAYS_INLINE JSObject *
-ComputeThisFromVp(JSContext *cx, js::Value *vp)
-{
-    return ComputeThisFromArgv(cx, vp + 2);
-}
+extern const uint16 js_PrimitiveTestFlags[];
 
-JS_ALWAYS_INLINE bool
-PrimitiveThisTest(JSFunction *fun, const Value &v)
-{
-    uint16 flags = fun->flags;
-    return (v.isString() && !!(flags & JSFUN_THISP_STRING)) ||
-           (v.isNumber() && !!(flags & JSFUN_THISP_NUMBER)) ||
-           (v.isBoolean() && !!(flags & JSFUN_THISP_BOOLEAN));
-}
-
-
-
-
-
-struct CallArgs
-{
-    Value *argv_;
-    uintN argc_;
-  protected:
-    CallArgs() {}
-    CallArgs(Value *argv, uintN argc) : argv_(argv), argc_(argc) {}
-  public:
-    Value *base() const { return argv_ - 2; }
-    Value &callee() const { return argv_[-2]; }
-    Value &thisv() const { return argv_[-1]; }
-    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
-    Value *argv() const { return argv_; }
-    uintN argc() const { return argc_; }
-    Value &rval() const { return argv_[-2]; }
-
-    JSObject *computeThis(JSContext *cx) const {
-        return ComputeThisFromArgv(cx, argv_);
-    }
-};
+#define PRIMITIVE_THIS_TEST(fun,thisv)                                        \
+    (JS_ASSERT(!JSVAL_IS_VOID(thisv)),                                        \
+     JSFUN_THISP_TEST(JSFUN_THISP_FLAGS((fun)->flags),                        \
+                      js_PrimitiveTestFlags[JSVAL_TAG(thisv) - 1]))
 
 
 
@@ -613,8 +300,8 @@ struct CallArgs
 
 
 
-extern JS_REQUIRES_STACK bool
-Invoke(JSContext *cx, const CallArgs &args, uintN flags);
+extern JS_REQUIRES_STACK JS_FRIEND_API(JSBool)
+js_Invoke(JSContext *cx, const js::InvokeArgsGuard &args, uintN flags);
 
 
 
@@ -630,98 +317,63 @@ Invoke(JSContext *cx, const CallArgs &args, uintN flags);
 
 
 #define JSINVOKE_CONSTRUCT      JSFRAME_CONSTRUCTING
+#define JSINVOKE_ITERATOR       JSFRAME_ITERATOR
 
 
 
 
-#define JSINVOKE_FUNFLAGS       JSINVOKE_CONSTRUCT
+#define JSINVOKE_FUNFLAGS       (JSINVOKE_CONSTRUCT | JSINVOKE_ITERATOR)
 
 
 
 
+
+#define js_InternalCall(cx,obj,fval,argc,argv,rval)                           \
+    js_InternalInvoke(cx, obj, fval, 0, argc, argv, rval)
+
+#define js_InternalConstruct(cx,obj,fval,argc,argv,rval)                      \
+    js_InternalInvoke(cx, obj, fval, JSINVOKE_CONSTRUCT, argc, argv, rval)
 
 extern JSBool
-InternalInvoke(JSContext *cx, const Value &thisv, const Value &fval, uintN flags,
-               uintN argc, Value *argv, Value *rval);
+js_InternalInvoke(JSContext *cx, JSObject *obj, jsval fval, uintN flags,
+                  uintN argc, jsval *argv, jsval *rval);
 
-static JS_ALWAYS_INLINE bool
-InternalCall(JSContext *cx, JSObject *obj, const Value &fval,
-             uintN argc, Value *argv, Value *rval)
-{
-    return InternalInvoke(cx, ObjectOrNullValue(obj), fval, 0, argc, argv, rval);
-}
+extern JSBool
+js_InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, jsval fval,
+                    JSAccessMode mode, uintN argc, jsval *argv, jsval *rval);
 
-static JS_ALWAYS_INLINE bool
-InternalConstruct(JSContext *cx, JSObject *obj, const Value &fval,
-                  uintN argc, Value *argv, Value *rval)
-{
-    return InternalInvoke(cx, ObjectOrNullValue(obj), fval, JSINVOKE_CONSTRUCT, argc, argv, rval);
-}
+extern JS_FORCES_STACK JSBool
+js_Execute(JSContext *cx, JSObject *chain, JSScript *script,
+           JSStackFrame *down, uintN flags, jsval *result);
 
-extern bool
-InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
-                 JSAccessMode mode, uintN argc, Value *argv, Value *rval);
+extern JS_REQUIRES_STACK JSBool
+js_InvokeConstructor(JSContext *cx, const js::InvokeArgsGuard &args, JSBool clampReturn);
 
-extern JS_FORCES_STACK bool
-Execute(JSContext *cx, JSObject *chain, JSScript *script,
-        JSStackFrame *down, uintN flags, Value *result);
-
-extern JS_REQUIRES_STACK bool
-InvokeConstructor(JSContext *cx, const CallArgs &args);
-
-extern JS_REQUIRES_STACK bool
-Interpret(JSContext *cx);
+extern JS_REQUIRES_STACK JSBool
+js_Interpret(JSContext *cx);
 
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
-extern bool
-CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
-                   JSObject **objp, JSProperty **propp);
-
-extern bool
-StrictlyEqual(JSContext *cx, const Value &lval, const Value &rval);
-
-
-extern bool
-SameValue(const Value &v1, const Value &v2, JSContext *cx);
-
-extern JSType
-TypeOfValue(JSContext *cx, const Value &v);
-
-inline bool
-InstanceOf(JSContext *cx, JSObject *obj, Class *clasp, Value *argv)
-{
-    if (obj && obj->getClass() == clasp)
-        return true;
-    extern bool InstanceOfSlow(JSContext *, JSObject *, Class *, Value *);
-    return InstanceOfSlow(cx, obj, clasp, argv);
-}
+extern JSBool
+js_CheckRedeclaration(JSContext *cx, JSObject *obj, jsid id, uintN attrs,
+                      JSObject **objp, JSProperty **propp);
 
 extern JSBool
-HasInstance(JSContext *cx, JSObject *obj, const js::Value *v, JSBool *bp);
+js_StrictlyEqual(JSContext *cx, jsval lval, jsval rval);
 
-inline void *
-GetInstancePrivate(JSContext *cx, JSObject *obj, Class *clasp, Value *argv)
-{
-    if (!InstanceOf(cx, obj, clasp, argv))
-        return NULL;
-    return obj->getPrivate();
-}
 
-extern bool
-ValueToId(JSContext *cx, const Value &v, jsid *idp);
+extern JSBool
+js_SameValue(jsval v1, jsval v2, JSContext *cx);
+
+extern JSBool
+js_InternNonIntElementId(JSContext *cx, JSObject *obj, jsval idval, jsid *idp);
 
 
 
 
 
-
-
-
-extern const js::Value &
-GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
-
-} 
+extern jsval&
+js_GetUpvar(JSContext *cx, uintN level, uintN cookie);
 
 
 
@@ -749,13 +401,31 @@ GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
 #else
 # define JS_STATIC_INTERPRET
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+extern JSObject *
+js_ComputeGlobalThis(JSContext *cx, jsval *argv);
+
 extern JS_REQUIRES_STACK JSBool
 js_EnterWith(JSContext *cx, jsint stackIndex);
 
 extern JS_REQUIRES_STACK void
 js_LeaveWith(JSContext *cx);
 
-extern JS_REQUIRES_STACK js::Class *
+extern JS_REQUIRES_STACK JSClass *
 js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
 
 
@@ -763,10 +433,11 @@ js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
 
 
 extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
+js_UnwindScope(JSContext *cx, JSStackFrame *fp, jsint stackDepth,
+               JSBool normalUnwind);
 
 extern JSBool
-js_OnUnknownMethod(JSContext *cx, js::Value *vp);
+js_OnUnknownMethod(JSContext *cx, jsval *vp);
 
 
 
@@ -775,7 +446,7 @@ js_OnUnknownMethod(JSContext *cx, js::Value *vp);
 
 
 extern JSBool
-js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, js::Value *vp, js::Value *vp2);
+js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, jsval *vp, jsval *vp2);
 
 
 
@@ -795,17 +466,19 @@ js_MeterSlotOpcode(JSOp op, uint32 slot);
 
 #endif 
 
+JS_END_EXTERN_C
+
 inline JSObject *
 JSStackFrame::getThisObject(JSContext *cx)
 {
-    JS_ASSERT(!isDummyFrame());
     if (flags & JSFRAME_COMPUTED_THIS)
-        return &thisv.toObject();
-    if (!js::ComputeThisFromArgv(cx, argv))
+        return JSVAL_TO_OBJECT(thisv);  
+    JSObject* obj = js_ComputeThis(cx, argv);
+    if (!obj)
         return NULL;
-    setThisValue(argv[-1]);
+    thisv = OBJECT_TO_JSVAL(obj);
     flags |= JSFRAME_COMPUTED_THIS;
-    return &thisv.toObject();
+    return obj;
 }
 
 #endif 

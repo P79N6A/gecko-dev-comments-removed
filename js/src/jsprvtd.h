@@ -57,7 +57,25 @@
 #include "jspubtd.h"
 #include "jsutil.h"
 
-JS_BEGIN_EXTERN_C
+
+
+#define JSID_IS_ATOM(id)            JSVAL_IS_STRING((jsval)(id))
+#define JSID_TO_ATOM(id)            ((JSAtom *)(id))
+#define ATOM_TO_JSID(atom)          (JS_ASSERT(ATOM_IS_STRING(atom)),         \
+                                     (jsid)(atom))
+
+#define JSID_IS_INT(id)             JSVAL_IS_INT((jsval)(id))
+#define JSID_TO_INT(id)             JSVAL_TO_INT((jsval)(id))
+#define INT_TO_JSID(i)              ((jsid)INT_TO_JSVAL(i))
+#define INT_JSVAL_TO_JSID(v)        ((jsid)(v))
+#define INT_JSID_TO_JSVAL(id)       ((jsval)(id))
+
+#define JSID_IS_OBJECT(id)          JSVAL_IS_OBJECT((jsval)(id))
+#define JSID_TO_OBJECT(id)          JSVAL_TO_OBJECT((jsval)(id))
+#define OBJECT_TO_JSID(obj)         ((jsid)OBJECT_TO_JSVAL(obj))
+#define OBJECT_JSVAL_TO_JSID(v)     ((jsid)v)
+
+#define ID_TO_VALUE(id)             ((jsval)(id))
 
 
 
@@ -66,13 +84,21 @@ JS_BEGIN_EXTERN_C
 #define JS_BITS_PER_UINT32      32
 
 
-static const uintN JS_GCTHING_ALIGN = 8;
-static const uintN JS_GCTHING_ZEROBITS = 3;
-
-
 typedef uint8  jsbytecode;
 typedef uint8  jssrcnote;
 typedef uint32 jsatomid;
+
+#ifdef __cplusplus
+
+
+extern "C++" {
+namespace js {
+struct Parser;
+struct Compiler;
+}
+}
+
+#endif
 
 
 typedef struct JSArgumentFormatMap  JSArgumentFormatMap;
@@ -85,10 +111,12 @@ typedef struct JSObjectBox          JSObjectBox;
 typedef struct JSParseNode          JSParseNode;
 typedef struct JSProperty           JSProperty;
 typedef struct JSSharpObjectMap     JSSharpObjectMap;
+typedef struct JSEmptyScope         JSEmptyScope;
 typedef struct JSThread             JSThread;
 typedef struct JSThreadData         JSThreadData;
 typedef struct JSTreeContext        JSTreeContext;
 typedef struct JSTryNote            JSTryNote;
+typedef struct JSWeakRoots          JSWeakRoots;
 
 
 typedef struct JSAtom               JSAtom;
@@ -98,7 +126,11 @@ typedef struct JSAtomMap            JSAtomMap;
 typedef struct JSAtomState          JSAtomState;
 typedef struct JSCodeSpec           JSCodeSpec;
 typedef struct JSPrinter            JSPrinter;
+typedef struct JSRegExp             JSRegExp;
 typedef struct JSRegExpStatics      JSRegExpStatics;
+typedef struct JSScope              JSScope;
+typedef struct JSScopeOps           JSScopeOps;
+typedef struct JSScopeProperty      JSScopeProperty;
 typedef struct JSStackHeader        JSStackHeader;
 typedef struct JSSubString          JSSubString;
 typedef struct JSNativeTraceInfo    JSNativeTraceInfo;
@@ -119,21 +151,14 @@ extern "C++" {
 
 namespace js {
 
-struct ArgumentsData;
-
-class RegExp;
-class RegExpStatics;
-class AutoStringRooter;
 class ExecuteArgsGuard;
 class InvokeFrameGuard;
 class InvokeArgsGuard;
 class TraceRecorder;
-struct TraceMonitor;
+class TraceMonitor;
 class StackSpace;
-class StackSegment;
+class CallStack;
 
-struct Compiler;
-struct Parser;
 class TokenStream;
 struct Token;
 struct TokenPos;
@@ -166,8 +191,11 @@ class DeflatedStringCache;
 class PropertyCache;
 struct PropertyCacheEntry;
 
-struct Shape;
-struct EmptyShape;
+static inline JSPropertyOp
+CastAsPropertyOp(JSObject *object)
+{
+    return JS_DATA_TO_FUNC_PTR(JSPropertyOp, object);
+}
 
 } 
 
@@ -203,7 +231,7 @@ typedef JSTrapStatus
                 void *closure);
 
 typedef JSBool
-(* JSWatchPointHandler)(JSContext *cx, JSObject *obj, jsid id, jsval old,
+(* JSWatchPointHandler)(JSContext *cx, JSObject *obj, jsval id, jsval old,
                         jsval *newp, void *closure);
 
 
@@ -254,6 +282,9 @@ typedef void *
 (* JSInterpreterHook)(JSContext *cx, JSStackFrame *fp, JSBool before,
                       JSBool *ok, void *closure);
 
+typedef void
+(* JSObjectHook)(JSContext *cx, JSObject *obj, JSBool isNew, void *closure);
+
 typedef JSBool
 (* JSDebugErrorHook)(JSContext *cx, const char *message, JSErrorReport *report,
                      void *closure);
@@ -273,6 +304,8 @@ typedef struct JSDebugHooks {
     void                *executeHookData;
     JSInterpreterHook   callHook;
     void                *callHookData;
+    JSObjectHook        objectHook;
+    void                *objectHookData;
     JSThrowHook         throwHook;
     void                *throwHookData;
     JSDebugErrorHook    debugErrorHook;
@@ -307,7 +340,7 @@ typedef JSBool
 
 
 typedef JSBool
-(* JSDefinePropOp)(JSContext *cx, JSObject *obj, jsid id, const jsval *value,
+(* JSDefinePropOp)(JSContext *cx, JSObject *obj, jsid id, jsval value,
                    JSPropertyOp getter, JSPropertyOp setter, uintN attrs);
 
 
@@ -325,30 +358,29 @@ typedef JSBool
 
 
 
-typedef JSBool
-(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, uintN *attrsp);
-
-
-
-
 
 
 typedef JSBool
-(* JSCallOp)(JSContext *cx, uintN argc, jsval *vp);
+(* JSAttributesOp)(JSContext *cx, JSObject *obj, jsid id, JSProperty *prop,
+                   uintN *attrsp);
 
 
 
 
 
-typedef JSObject *
-(* JSObjectOp)(JSContext *cx, JSObject *obj);
+
+typedef JSBool
+(* JSCheckAccessIdOp)(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
+                      jsval *vp, uintN *attrsp);
 
 
 
 
 
-typedef JSObject *
-(* JSIteratorOp)(JSContext *cx, JSObject *obj, JSBool keysonly);
+
+
+typedef void
+(* JSPropertyRefOp)(JSContext *cx, JSObject *obj, JSProperty *prop);
 
 
 
@@ -359,14 +391,5 @@ typedef JSObject *
 #else
 extern JSBool js_CStringsAreUTF8;
 #endif
-
-
-
-
-
-extern JS_FRIEND_API(JSObject *)
-js_ObjectToOuterObject(JSContext *cx, JSObject *obj);
-
-JS_END_EXTERN_C
 
 #endif 

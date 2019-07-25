@@ -78,6 +78,7 @@
 #include "jstypedarray.h"
 
 #include "jsatominlines.h"
+#include "jscntxtinlines.h"
 #include "jspropertycacheinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
@@ -1751,7 +1752,7 @@ VisitFrameSlots(Visitor &visitor, unsigned depth, JSStackFrame *fp,
         if (!visitor.visitStackSlots(&fp->scopeChainVal, 1, fp))
             return false;
         visitor.setStackSlotKind("var");
-        if (!visitor.visitStackSlots(fp->slots, fp->script->nfixed, fp))
+        if (!visitor.visitStackSlots(fp->slots(), fp->script->nfixed, fp))
             return false;
     }
     visitor.setStackSlotKind("stack");
@@ -2525,7 +2526,7 @@ TraceRecorder::nativeStackOffset(jsval* p) const
 
 
     if (!visitor.stopped()) {
-        JS_ASSERT(size_t(p - cx->fp->slots) < cx->fp->script->nslots);
+        JS_ASSERT(size_t(p - cx->fp->slots()) < cx->fp->script->nslots);
         offset += size_t(p - cx->fp->regs->sp) * sizeof(double);
     }
     return offset;
@@ -3054,7 +3055,7 @@ GetUpvarArgOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDept
 
 struct UpvarVarTraits {
     static jsval interp_get(JSStackFrame* fp, int32 slot) {
-        return fp->slots[slot];
+        return fp->slots()[slot];
     }
 
     static uint32 native_slot(uint32 argc, int32 slot) {
@@ -3075,7 +3076,7 @@ GetUpvarVarOnTrace(JSContext* cx, uint32 upvarLevel, int32 slot, uint32 callDept
 
 struct UpvarStackTraits {
     static jsval interp_get(JSStackFrame* fp, int32 slot) {
-        return fp->slots[slot + fp->script->nfixed];
+        return fp->slots()[slot + fp->script->nfixed];
     }
 
     static uint32 native_slot(uint32 argc, int32 slot) {
@@ -3225,7 +3226,7 @@ struct VarClosureTraits
     }
 
     
-    static inline jsval* slots(JSStackFrame* fp) { return fp->slots; }
+    static inline jsval* slots(JSStackFrame* fp) { return fp->slots(); }
     static inline jsval* slots(JSObject* obj) {
         
         return obj->dslots + slot_offset(obj);
@@ -3627,7 +3628,7 @@ TraceRecorder::attemptImport(jsval* p)
     CountSlotsVisitor countVisitor(p);
     VisitStackSlots(countVisitor, cx, callDepth);
 
-    if (countVisitor.stopped() || size_t(p - cx->fp->slots) < cx->fp->script->nslots)
+    if (countVisitor.stopped() || size_t(p - cx->fp->slots()) < cx->fp->script->nslots)
         return get(p);
 
     return NULL;
@@ -5383,122 +5384,90 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
                  js_ReconstructStackDepth(cx, fp->script, fi.pc) ==
                  uintN(fi.spdist - fp->script->nfixed));
 
-    uintN nframeslots = JS_HOWMANY(sizeof(JSInlineFrame), sizeof(jsval));
-    JSScript* script = fun->u.i.script;
-    size_t nbytes = (nframeslots + script->nslots) * sizeof(jsval);
-
     
-    JSArena* a = cx->stackPool.current;
-    void* newmark = (void*) a->avail;
+    JSScript* newscript = fun->u.i.script;
+    jsval* sp = fp->slots() + fi.spdist;
     uintN argc = fi.get_argc();
-    jsval* vp = fp->slots + fi.spdist - (2 + argc);
-    uintN missing = 0;
-    jsval* newsp;
-
-    if (fun->nargs > argc) {
-        const JSFrameRegs& regs = *fp->regs;
-
-        newsp = vp + 2 + fun->nargs;
-        JS_ASSERT(newsp > regs.sp);
-        if ((jsuword) newsp <= a->limit) {
-            if ((jsuword) newsp > a->avail)
-                a->avail = (jsuword) newsp;
-            jsval* argsp = newsp;
-            do {
-                *--argsp = JSVAL_VOID;
-            } while (argsp != regs.sp);
-            missing = 0;
-        } else {
-            missing = fun->nargs - argc;
-            nbytes += (2 + fun->nargs) * sizeof(jsval);
-        }
-    }
+    jsval* vp = sp - (2 + argc);
 
     
-    if (a->avail + nbytes <= a->limit) {
-        newsp = (jsval *) a->avail;
-        a->avail += nbytes;
-        JS_ASSERT(missing == 0);
-    } else {
-        JS_ARENA_ALLOCATE_CAST(newsp, jsval *, &cx->stackPool, nbytes);
-        if (!newsp)
-            OutOfMemoryAbort();
-
-        
-
-
-
-        if (missing) {
-            memcpy(newsp, vp, (2 + argc) * sizeof(jsval));
-            vp = newsp;
-            newsp = vp + 2 + argc;
-            do {
-                *newsp++ = JSVAL_VOID;
-            } while (--missing != 0);
-        }
-    }
-
-    
-    JSInlineFrame* newifp = (JSInlineFrame *) newsp;
-    newsp += nframeslots;
-
-    newifp->frame.callobj = NULL;
-    newifp->frame.argsobj = NULL;
-    newifp->frame.script = script;
-    newifp->frame.fun = fun;
-
-    bool constructing = fi.is_constructing();
-    newifp->frame.argc = argc;
-    newifp->callerRegs.pc = fi.pc;
-    newifp->callerRegs.sp = fp->slots + fi.spdist;
+    fp->regs->sp = sp;
+    fp->regs->pc = fi.pc;
     fp->imacpc = fi.imacpc;
 
+    fp->blockChain = fi.block;
 #ifdef DEBUG
     if (fi.block != fp->blockChain) {
         for (JSObject* obj = fi.block; obj != fp->blockChain; obj = obj->getParent())
             JS_ASSERT(obj);
     }
 #endif
-    fp->blockChain = fi.block;
 
-    newifp->frame.argv = newifp->callerRegs.sp - argc;
-    JS_ASSERT(newifp->frame.argv);
+    
+
+
+
+
+
+
+
+    StackSpace &stack = cx->stack();
+    uintN nslots = newscript->nslots;
+    uintN funargs = fun->nargs;
+    jsval *argv = vp + 2;
+    JSStackFrame *newfp;
+    if (argc < funargs) {
+        uintN missing = funargs - argc;
+        newfp = stack.getInlineFrame(cx, sp, missing, nslots);
+        for (jsval *v = argv + argc, *end = v + missing; v != end; ++v)
+            *v = JSVAL_VOID;
+    } else {
+        newfp = stack.getInlineFrame(cx, sp, 0, nslots);
+    }
+
+    
+    newfp->callobj = NULL;
+    newfp->argsobj = NULL;
+    newfp->script = newscript;
+    newfp->fun = fun;
+    newfp->argc = argc;
+    newfp->argv = argv;
 #ifdef DEBUG
     
     
-    newifp->frame.argv[-1] = JSVAL_HOLE;
+    newfp->argv[-1] = JSVAL_HOLE;
 #endif
-    JS_ASSERT(newifp->frame.argv >= StackBase(fp) + 2);
-
-    newifp->frame.rval = JSVAL_VOID;
-    newifp->frame.down = fp;
-    newifp->frame.annotation = NULL;
-    newifp->frame.scopeChain = NULL; 
-    newifp->frame.flags = constructing ? JSFRAME_CONSTRUCTING : 0;
-    newifp->frame.blockChain = NULL;
-    newifp->mark = newmark;
-    newifp->frame.thisv = JSVAL_NULL; 
-
-    newifp->frame.regs = fp->regs;
-    newifp->frame.regs->pc = script->code;
-    newifp->frame.regs->sp = newsp + script->nfixed;
-    newifp->frame.imacpc = NULL;
-    newifp->frame.slots = newsp;
-    if (script->staticLevel < JS_DISPLAY_SIZE) {
-        JSStackFrame **disp = &cx->display[script->staticLevel];
-        newifp->frame.displaySave = *disp;
-        *disp = &newifp->frame;
+    newfp->rval = JSVAL_VOID;
+    newfp->annotation = NULL;
+    newfp->scopeChain = NULL; 
+    newfp->flags = fi.is_constructing() ? JSFRAME_CONSTRUCTING : 0;
+    newfp->blockChain = NULL;
+    newfp->thisv = JSVAL_NULL; 
+    newfp->imacpc = NULL;
+    if (newscript->staticLevel < JS_DISPLAY_SIZE) {
+        JSStackFrame **disp = &cx->display[newscript->staticLevel];
+        newfp->displaySave = *disp;
+        *disp = newfp;
     }
 
     
 
 
 
-    newifp->callerVersion = (JSVersion) fp->script->version;
+    newfp->callerVersion = (JSVersion) fp->script->version;
 
     
-    fp->regs = &newifp->callerRegs;
-    fp = cx->fp = &newifp->frame;
+
+
+
+    newfp->callerRegs = *fp->regs;
+    newfp->regs = fp->regs;
+    fp->regs = &newfp->callerRegs;
+    newfp->regs->pc = newscript->code;
+    newfp->regs->sp = newfp->slots() + newscript->nfixed;
+
+    
+    stack.pushInlineFrame(cx, fp, newfp);
 
     
 
@@ -5506,9 +5475,9 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
 
     JSInterpreterHook hook = cx->debugHooks->callHook;
     if (hook) {
-        newifp->hookData = hook(cx, fp, JS_TRUE, 0, cx->debugHooks->callHookData);
+        newfp->hookData = hook(cx, newfp, JS_TRUE, 0, cx->debugHooks->callHookData);
     } else {
-        newifp->hookData = NULL;
+        newfp->hookData = NULL;
     }
 
     
@@ -5519,29 +5488,30 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
 
 
 
-    return (fi.spdist - fp->down->script->nfixed) +
-           ((fun->nargs > fp->argc) ? fun->nargs - fp->argc : 0) +
-           script->nfixed + SPECIAL_FRAME_SLOTS;
+    return (fi.spdist - newfp->down->script->nfixed) +
+           ((fun->nargs > newfp->argc) ? fun->nargs - newfp->argc : 0) +
+           newscript->nfixed + SPECIAL_FRAME_SLOTS;
 }
 
-static void
+JS_REQUIRES_STACK static void
 SynthesizeSlowNativeFrame(TracerState& state, JSContext *cx, VMSideExit *exit)
 {
-    VOUCH_DOES_NOT_REQUIRE_STACK();
-
-    void *mark;
-    JSInlineFrame *ifp;
-
     
-    mark = JS_ARENA_MARK(&cx->stackPool);
-    JS_ARENA_ALLOCATE_CAST(ifp, JSInlineFrame *, &cx->stackPool, sizeof(JSInlineFrame));
-    if (!ifp)
-        OutOfMemoryAbort();
 
-    JSStackFrame *fp = &ifp->frame;
+
+
+
+    CallStack *cs;
+    JSStackFrame *fp;
+    cx->stack().getSynthesizedSlowNativeFrame(cx, cs, fp);
+
+    JSObject *callee = JSVAL_TO_OBJECT(state.nativeVp[0]);
+    JSFunction *fun = GET_FUNCTION_PRIVATE(cx, callee);
+    JS_ASSERT(!fun->isInterpreted() && !fun->isFastNative());
+    JS_ASSERT(fun->u.n.extra == 0);
+
     fp->regs = NULL;
     fp->imacpc = NULL;
-    fp->slots = NULL;
     fp->callobj = NULL;
     fp->argsobj = NULL;
     fp->script = NULL;
@@ -5550,7 +5520,6 @@ SynthesizeSlowNativeFrame(TracerState& state, JSContext *cx, VMSideExit *exit)
     fp->argv = state.nativeVp + 2;
     fp->fun = GET_FUNCTION_PRIVATE(cx, fp->calleeObject());
     fp->rval = JSVAL_VOID;
-    fp->down = cx->fp;
     fp->annotation = NULL;
     JS_ASSERT(cx->fp->scopeChain);
     fp->scopeChain = cx->fp->scopeChain;
@@ -5558,8 +5527,7 @@ SynthesizeSlowNativeFrame(TracerState& state, JSContext *cx, VMSideExit *exit)
     fp->flags = exit->constructing() ? JSFRAME_CONSTRUCTING : 0;
     fp->displaySave = NULL;
 
-    ifp->mark = mark;
-    cx->fp = fp;
+    cx->stack().pushSynthesizedSlowNativeFrame(cx, cs, fp);
 }
 
 static JS_REQUIRES_STACK bool
@@ -6445,7 +6413,7 @@ ExecuteTree(JSContext* cx, TreeFragment* f, uintN& inlineCallCount,
     JS_ASSERT(f->root == f && f->code());
     TraceMonitor* tm = &JS_TRACE_MONITOR(cx);
 
-    if (!ScopeChainCheck(cx, f)) {
+    if (!ScopeChainCheck(cx, f) || !cx->stack().ensureEnoughSpaceToEnterTrace()) {
         *lrp = NULL;
         return true;
     }
@@ -6589,14 +6557,8 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
 
 
 
-        if (!cx->fp->script) {
-            JSStackFrame *fp = cx->fp;
-            JS_ASSERT(FUN_SLOW_NATIVE(fp->fun));
-            JS_ASSERT(!fp->regs);
-            JS_ASSERT(fp->down->regs != &((JSInlineFrame *) fp)->callerRegs);
-            cx->fp = fp->down;
-            JS_ARENA_RELEASE(&cx->stackPool, ((JSInlineFrame *) fp)->mark);
-        }
+        if (!cx->fp->script)
+            cx->stack().popSynthesizedSlowNativeFrame(cx);
         JS_ASSERT(cx->fp->script);
 
         if (!(bs & BUILTIN_ERROR)) {
@@ -6642,7 +6604,7 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
             regs->sp += cs.ndefs;
             regs->pc += cs.length;
             JS_ASSERT_IF(!cx->fp->imacpc,
-                         cx->fp->slots + cx->fp->script->nfixed +
+                         cx->fp->slots() + cx->fp->script->nfixed +
                          js_ReconstructStackDepth(cx, cx->fp->script, regs->pc) ==
                          regs->sp);
 
@@ -6764,7 +6726,7 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
     fp->imacpc = innermost->imacpc;
     fp->regs->sp = StackBase(fp) + (innermost->sp_adj / sizeof(double)) - calldepth_slots;
     JS_ASSERT_IF(!fp->imacpc,
-                 fp->slots + fp->script->nfixed +
+                 fp->slots() + fp->script->nfixed +
                  js_ReconstructStackDepth(cx, fp->script, fp->regs->pc) == fp->regs->sp);
 
 #ifdef EXECUTE_TREE_TIMER
@@ -7749,7 +7711,7 @@ JS_REQUIRES_STACK jsval&
 TraceRecorder::varval(unsigned n) const
 {
     JS_ASSERT(n < cx->fp->script->nslots);
-    return cx->fp->slots[n];
+    return cx->fp->slots()[n];
 }
 
 JS_REQUIRES_STACK jsval&
@@ -7918,7 +7880,7 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, jsval*& vp,
         } else if (sprop->getterOp() == js_GetCallVar ||
                    sprop->getterOp() == js_GetCallVarChecked) {
             JS_ASSERT(slot < cfp->script->nslots);
-            vp = &cfp->slots[slot];
+            vp = &cfp->slots()[slot];
             upvar_slot = cx->fp->fun->nargs + slot;
             nr.v = *vp;
         } else {
@@ -9652,8 +9614,8 @@ TraceRecorder::clearFrameSlotsFromTracker(Tracker& which, JSStackFrame* fp, unsi
         which.set(&fp->argsobj, (LIns*)0);
         which.set(&fp->scopeChain, (LIns*)0);
     }
-    vp = &fp->slots[0];
-    vpstop = &fp->slots[nslots];
+    vp = &fp->slots()[0];
+    vpstop = &fp->slots()[nslots];
     while (vp < vpstop)
         which.set(vp++, (LIns*)0);
 }
@@ -9722,7 +9684,7 @@ TraceRecorder::putActivationObjects()
         if (nslots) {
             slots_ins = lir->insAlloc(sizeof(jsval) * nslots);
             for (int i = 0; i < nslots; ++i) {
-                LIns* slot_ins = box_jsval(cx->fp->slots[i], get(&cx->fp->slots[i]));
+                LIns* slot_ins = box_jsval(cx->fp->slots()[i], get(&cx->fp->slots()[i]));
                 lir->insStore(slot_ins, slots_ins, i * sizeof(jsval), ACC_OTHER);
             }
         } else {
@@ -9782,18 +9744,38 @@ TraceRecorder::record_EnterFrame(uintN& inlineCallCount)
     
     
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
     jsval* vp = &fp->argv[fp->argc];
     jsval* vpstop = vp + ptrdiff_t(fp->fun->nargs) - ptrdiff_t(fp->argc);
-    while (vp < vpstop) {
-        nativeFrameTracker.set(vp, (LIns*)0);
-        set(vp++, void_ins);
+    for (; vp < vpstop; ++vp) {
+        nativeFrameTracker.set(vp, NULL);
+        set(vp, void_ins);
     }
 
-    vp = &fp->slots[0];
-    vpstop = vp + fp->script->nfixed;
-    while (vp < vpstop)
-        set(vp++, void_ins);
+    nativeFrameTracker.set(&fp->argsobj, NULL);
     set(&fp->argsobj, INS_NULL());
+    nativeFrameTracker.set(&fp->scopeChain, NULL);
+
+    vp = fp->slots();
+    vpstop = vp + fp->script->nfixed;
+    for (; vp < vpstop; ++vp) {
+        nativeFrameTracker.set(vp, NULL);
+        set(vp, void_ins);
+    }
+
+    vp = vpstop;
+    vpstop = vp + (fp->script->nslots - fp->script->nfixed);
+    for (; vp < vpstop; ++vp)
+        nativeFrameTracker.set(vp, NULL);
 
     LIns* callee_ins = get(&cx->fp->argv[-2]);
     LIns* scopeChain_ins = stobj_get_parent(callee_ins);
@@ -11377,7 +11359,7 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, JSScopeProperty
         if (sprop->setterOp() == SetCallVar) {
             JS_ASSERT(sprop->hasShortID());
             uintN slot = uint16(sprop->shortid);
-            jsval *vp2 = &fp->slots[slot];
+            jsval *vp2 = &fp->slots()[slot];
             CHECK_STATUS(setUpwardTrackedVar(vp2, v, v_ins));
             return RECORD_CONTINUE;
         }
@@ -12561,12 +12543,6 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
     JSStackFrame* fp = cx->fp;
 
     
-    if (argc < fun->nargs &&
-        jsuword(fp->regs->sp + (fun->nargs - argc)) > cx->stackPool.current->limit) {
-        RETURN_STOP("can't trace calls with too few args requiring argv move");
-    }
-
-    
     unsigned stackSlots = NativeStackSlots(cx, 0 );
     FrameInfo* fi = (FrameInfo*)
         tempAlloc().alloc(sizeof(FrameInfo) + stackSlots * sizeof(TraceType));
@@ -12583,7 +12559,7 @@ TraceRecorder::interpretedFunctionCall(jsval& fval, JSFunction* fun, uintN argc,
         tree->gcthings.addUnique(OBJECT_TO_JSVAL(fp->blockChain));
     fi->pc = fp->regs->pc;
     fi->imacpc = fp->imacpc;
-    fi->spdist = fp->regs->sp - fp->slots;
+    fi->spdist = fp->regs->sp - fp->slots();
     fi->set_argc(uint16(argc), constructing);
     fi->callerHeight = stackSlots - (2 + argc);
     fi->callerArgc = fp->argc;
@@ -13904,7 +13880,7 @@ TraceRecorder::record_JSOP_BINDNAME()
         
         while (obj->getClass() == &js_BlockClass) {
             
-            JS_ASSERT(obj->getPrivate() == fp);
+            JS_ASSERT(obj->getPrivate() == js_FloatingFrameIfGenerator(cx, fp));
             obj = obj->getParent();
             
             JS_ASSERT(obj);
@@ -14497,7 +14473,7 @@ TraceRecorder::record_JSOP_RETRVAL()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_GETGVAR()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         return ARECORD_CONTINUE; 
 
@@ -14513,7 +14489,7 @@ TraceRecorder::record_JSOP_GETGVAR()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_SETGVAR()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         return ARECORD_CONTINUE; 
 
@@ -14529,7 +14505,7 @@ TraceRecorder::record_JSOP_SETGVAR()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_INCGVAR()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         
         return ARECORD_CONTINUE;
@@ -14545,7 +14521,7 @@ TraceRecorder::record_JSOP_INCGVAR()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_DECGVAR()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         
         return ARECORD_CONTINUE;
@@ -14561,7 +14537,7 @@ TraceRecorder::record_JSOP_DECGVAR()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_GVARINC()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         
         return ARECORD_CONTINUE;
@@ -14577,7 +14553,7 @@ TraceRecorder::record_JSOP_GVARINC()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_GVARDEC()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         
         return ARECORD_CONTINUE;
@@ -14985,8 +14961,8 @@ TraceRecorder::record_JSOP_ARRAYPUSH()
 {
     uint32_t slot = GET_UINT16(cx->fp->regs->pc);
     JS_ASSERT(cx->fp->script->nfixed <= slot);
-    JS_ASSERT(cx->fp->slots + slot < cx->fp->regs->sp - 1);
-    jsval &arrayval = cx->fp->slots[slot];
+    JS_ASSERT(cx->fp->slots() + slot < cx->fp->regs->sp - 1);
+    jsval &arrayval = cx->fp->slots()[slot];
     JS_ASSERT(JSVAL_IS_OBJECT(arrayval));
     JS_ASSERT(JSVAL_TO_OBJECT(arrayval)->isDenseArray());
     LIns *array_ins = get(&arrayval);
@@ -15066,7 +15042,7 @@ TraceRecorder::record_JSOP_INDEXBASE3()
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_CALLGVAR()
 {
-    jsval slotval = cx->fp->slots[GET_SLOTNO(cx->fp->regs->pc)];
+    jsval slotval = cx->fp->slots()[GET_SLOTNO(cx->fp->regs->pc)];
     if (JSVAL_IS_NULL(slotval))
         
         return ARECORD_CONTINUE;
