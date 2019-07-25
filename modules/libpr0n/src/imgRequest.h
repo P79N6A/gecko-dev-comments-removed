@@ -90,7 +90,7 @@ public:
   NS_DECL_ISUPPORTS
 
   nsresult Init(nsIURI *aURI,
-                nsIURI *aCurrentURI,
+                nsIURI *aKeyURI,
                 nsIRequest *aRequest,
                 nsIChannel *aChannel,
                 imgCacheEntry *aCacheEntry,
@@ -128,12 +128,6 @@ public:
   inline PRUint64 WindowID() const {
     return mWindowId;
   }
-
-  
-  
-  
-  
-  static void SetCacheValidation(imgCacheEntry* aEntry, nsIRequest* aRequest);
 
 private:
   friend class imgCacheEntry;
@@ -212,10 +206,9 @@ private:
 
   nsCOMPtr<nsIRequest> mRequest;
   
-  
   nsCOMPtr<nsIURI> mURI;
   
-  nsCOMPtr<nsIURI> mCurrentURI;
+  nsCOMPtr<nsIURI> mKeyURI;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
   nsAutoPtr<imgStatusTracker> mStatusTracker;
