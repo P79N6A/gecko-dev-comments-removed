@@ -1117,8 +1117,7 @@ class TypeScript
     static inline void Monitor(JSContext *cx, const js::Value &rval);
 
     
-    static inline void MonitorAssign(JSContext *cx, JSScript *script, jsbytecode *pc,
-                                     JSObject *obj, jsid id, const js::Value &val);
+    static inline void MonitorAssign(JSContext *cx, JSObject *obj, jsid id);
 
     
     static inline void SetThis(JSContext *cx, JSScript *script, Type type);
