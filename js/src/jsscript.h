@@ -59,6 +59,50 @@ typedef enum JSTryNoteKind {
     JSTRY_ITER
 } JSTryNoteKind;
 
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class UpvarCookie 
+{
+    uint32 value;
+
+    static const uint32 FREE_VALUE = 0xfffffffful;
+
+  public:
+    
+
+
+
+    static const uint16 FREE_LEVEL = 0x3fff;
+    static const uint16 CALLEE_SLOT = 0xffff;
+    static bool isLevelReserved(uint16 level) { return level >= FREE_LEVEL; }
+
+    bool isFree() const { return value == FREE_VALUE; }
+    uint32 asInteger() const { return value; }
+    
+    uint16 level() const { JS_ASSERT(!isFree()); return value >> 16; }
+    uint16 slot() const { JS_ASSERT(!isFree()); return value; }
+
+    void set(const UpvarCookie &other) { set(other.level(), other.slot()); }
+    void set(uint16 newLevel, uint16 newSlot) { value = (uint32(newLevel) << 16) | newSlot; }
+    void makeFree() { set(0xffff, 0xffff); JS_ASSERT(isFree()); }
+};
+JS_STATIC_ASSERT(sizeof(UpvarCookie) == sizeof(uint32));
+
+}
+
 
 
 
@@ -82,7 +126,7 @@ typedef struct JSObjectArray {
 } JSObjectArray;
 
 typedef struct JSUpvarArray {
-    uint32          *vector;    
+    js::UpvarCookie *vector;    
     uint32          length;     
 } JSUpvarArray;
 
@@ -91,45 +135,11 @@ typedef struct JSConstArray {
     uint32          length;
 } JSConstArray;
 
-namespace js {
-
-struct GlobalSlotArray {
-    struct Entry {
-        uint32      atomIndex;  
-        uint32      slot;       
-    };
-    Entry           *vector;
-    uint32          length;
-};
-
-} 
-
-#define CALLEE_UPVAR_SLOT               0xffff
-#define FREE_STATIC_LEVEL               0x3fff
-#define FREE_UPVAR_COOKIE               0xffffffff
-#define MAKE_UPVAR_COOKIE(skip,slot)    ((skip) << 16 | (slot))
-#define UPVAR_FRAME_SKIP(cookie)        ((uint32)(cookie) >> 16)
-#define UPVAR_FRAME_SLOT(cookie)        ((uint16)(cookie))
-
 #define JS_OBJECT_ARRAY_SIZE(length)                                          \
     (offsetof(JSObjectArray, vector) + sizeof(JSObject *) * (length))
 
 #if defined DEBUG && defined JS_THREADSAFE
 # define CHECK_SCRIPT_OWNER 1
-#endif
-
-#ifdef JS_METHODJIT
-namespace JSC {
-    class ExecutablePool;
-}
-namespace js {
-namespace mjit {
-namespace ic {
-    struct PICInfo;
-    struct MICInfo;
-}
-}
-}
 #endif
 
 struct JSScript {
@@ -147,8 +157,6 @@ struct JSScript {
 
     uint8           trynotesOffset; 
 
-    uint8           globalsOffset;  
-
     uint8           constOffset;    
 
     bool            noScriptRval:1; 
@@ -156,8 +164,6 @@ struct JSScript {
     bool            savedCallerFun:1; 
     bool            hasSharps:1;      
     bool            strictModeCode:1; 
-    bool            compileAndGo:1;   
-    bool            usesEval:1;       
 
     jsbytecode      *main;      
     JSAtomMap       atomMap;    
@@ -173,32 +179,6 @@ struct JSScript {
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
-#ifdef JS_METHODJIT
-    
-    
-    void            *ncode;     
-    void            **nmap;     
-    JSC::ExecutablePool *execPool;  
-    js::mjit::ic::PICInfo *pics; 
-    js::mjit::ic::MICInfo *mics; 
-# ifdef DEBUG
-    uint32          jitLength;  
-
-    inline bool isValidJitCode(void *jcode) {
-        return (char*)jcode >= (char*)ncode &&
-               (char*)jcode < (char*)ncode + jitLength;
-    }
-# endif
-
-    inline uint32 numPICs() {
-        return pics ? *(uint32*)((uint8 *)pics - sizeof(uint32)) : 0;
-    }
-#endif
-#if 0 
-    js::TraceTreeCache  *trees; 
-    uint32          tmGen;      
-#endif
-    uint32          tracePoints; 
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
@@ -223,11 +203,6 @@ struct JSScript {
         return (JSTryNoteArray *) ((uint8 *) this + trynotesOffset);
     }
 
-    js::GlobalSlotArray *globals() {
-        JS_ASSERT(globalsOffset != 0);
-        return (js::GlobalSlotArray *) ((uint8 *)this + globalsOffset);
-    }
-
     JSConstArray *consts() {
         JS_ASSERT(constOffset != 0);
         return (JSConstArray *) ((uint8 *) this + constOffset);
@@ -242,18 +217,6 @@ struct JSScript {
         JSObjectArray *arr = objects();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
-    }
-
-    uint32 getGlobalSlot(size_t index) {
-        js::GlobalSlotArray *arr = globals();
-        JS_ASSERT(index < arr->length);
-        return arr->vector[index].slot;
-    }
-
-    JSAtom *getGlobalAtom(size_t index) {
-        js::GlobalSlotArray *arr = globals();
-        JS_ASSERT(index < arr->length);
-        return getAtom(arr->vector[index].atomIndex);
     }
 
     inline JSFunction *getFunction(size_t index);
@@ -282,17 +245,6 @@ struct JSScript {
     static JSScript *emptyScript() {
         return const_cast<JSScript *>(&emptyScriptConst);
     }
-
-#ifdef JS_METHODJIT
-    
-
-
-    void *pcToNative(jsbytecode *pc) {
-        JS_ASSERT(nmap);
-        JS_ASSERT(nmap[pc - code]);
-        return nmap[pc - code];
-    }
-#endif
 
   private:
     
@@ -389,7 +341,7 @@ js_SweepScriptFilenames(JSRuntime *rt);
 extern JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
              uint32 nobjects, uint32 nupvars, uint32 nregexps,
-             uint32 ntrynotes, uint32 nconsts, uint32 nglobals);
+             uint32 ntrynotes, uint32 nconsts);
 
 extern JSScript *
 js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);

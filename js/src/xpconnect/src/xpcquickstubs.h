@@ -143,6 +143,9 @@ xpc_qsThrowBadSetterValue(JSContext *cx, nsresult rv, JSObject *obj,
                           jsid propId);
 
 
+JSBool
+xpc_qsGetterOnlyPropertyStub(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
+
 
 
 inline JSBool

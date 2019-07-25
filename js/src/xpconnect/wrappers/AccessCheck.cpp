@@ -207,7 +207,7 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
         
         
         fp = NULL;
-    } else if (!fp->hasScript()) {
+    } else if (!fp->script) {
         fp = NULL;
     }
 
@@ -222,7 +222,7 @@ AccessCheck::isSystemOnlyAccessPermitted(JSContext *cx)
     static const char prefix[] = "chrome://global/";
     const char *filename;
     if (fp &&
-        (filename = fp->getScript()->filename) &&
+       (filename = fp->script->filename) &&
         !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
         return true;
     }
@@ -241,7 +241,7 @@ AccessCheck::needsSystemOnlyWrapper(JSObject *obj)
 void
 AccessCheck::deny(JSContext *cx, jsid id)
 {
-    if (id == JSID_VOID) {
+    if (id == JSVID_VOID) {
         JS_ReportError(cx, "Permission denied to access object");
     } else {
         jsval idval;
@@ -273,7 +273,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, bool set
         return true; 
     }
 
-    if (id == JSID_VOID) {
+    if (id == JSVAL_VOID) {
         
         perm = PermitPropertyAccess;
         return true;

@@ -485,6 +485,8 @@ public:
 
   static imgILoader* GetImgLoader()
   {
+    if (!sImgLoaderInitialized)
+      InitImgLoader();
     return sImgLoader;
   }
 
@@ -1688,6 +1690,10 @@ private:
   
   static nsCOMArray<nsPrefOldCallback> *sPrefCallbackList;
 
+  static bool sImgLoaderInitialized;
+  static void InitImgLoader();
+
+  
   static imgILoader* sImgLoader;
   static imgICache* sImgCache;
 
