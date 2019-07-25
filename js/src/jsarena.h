@@ -241,9 +241,7 @@ class JSArenaPool {
 
 
     JSArena ***ptrToHeader(void *p) const {
-#ifdef JS_ALIGN_OF_POINTER
         JS_ASSERT((jsuword(p) & headerBaseMask()) == 0);
-#endif
         return (JSArena ***)(p) - 1;
     }
 
