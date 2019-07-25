@@ -970,6 +970,32 @@ class MNewArray : public MNullaryInstruction
     }
 };
 
+class MNewObject : public MNullaryInstruction
+{
+    HeapPtrObject baseObj_;
+    HeapPtr<types::TypeObject> type_;
+
+    MNewObject(JSObject *baseObj, types::TypeObject *type)
+      : baseObj_(baseObj), type_(type)
+    {
+        setResultType(MIRType_Object);
+    }
+
+  public:
+    INSTRUCTION_HEADER(NewObject);
+
+    static MNewObject *New(JSObject *baseObj, types::TypeObject *type) {
+        return new MNewObject(baseObj, type);
+    }
+
+    JSObject *baseObj() const {
+        return baseObj_;
+    }
+    types::TypeObject *type() const {
+        return type_;
+    }
+};
+
 
 
 
