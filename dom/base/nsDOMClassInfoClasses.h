@@ -434,6 +434,7 @@ DOMCI_CLASS(MozSmsManager)
 DOMCI_CLASS(MozSmsMessage)
 DOMCI_CLASS(MozSmsEvent)
 DOMCI_CLASS(MozSmsRequest)
+DOMCI_CLASS(MozSmsFilter)
 
 
 DOMCI_CLASS(CSSFontFaceRule)

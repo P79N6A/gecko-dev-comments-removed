@@ -38,6 +38,8 @@
 #ifndef mozilla_dom_sms_Types_h
 #define mozilla_dom_sms_Types_h
 
+#include "IPCMessageUtils.h"
+
 namespace mozilla {
 namespace dom {
 namespace sms {
