@@ -17,6 +17,7 @@ import org.mozilla.gecko.sync.syncadapter.SyncAdapter;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -364,25 +365,40 @@ public class SyncAccounts {
     ContentResolver.setSyncAutomatically(account, authority, syncAutomatically);
   }
 
-  public static Intent openSyncSettings(Context context) {
-    Intent intent = null;
+  
 
+
+
+
+
+  public static Intent openSyncSettings(Context context) {
+    
+    
+    
     try {
       
       final int contextFlags = Context.CONTEXT_INCLUDE_CODE | Context.CONTEXT_IGNORE_SECURITY;
       Context foreignContext = context.createPackageContext(MOTO_BLUR_PACKAGE, contextFlags);
       Class<?> motorolaAccounts = foreignContext.getClassLoader().loadClass(MOTO_BLUR_SETTINGS_ACTIVITY);
       Logger.info(LOG_TAG, "Blur package found. Launching Moto activity.");
-      intent = new Intent(foreignContext, motorolaAccounts);
+
+      final Intent intent = new Intent(foreignContext, motorolaAccounts);
+      intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      context.startActivity(intent);
+      return intent;
     } catch (NameNotFoundException e) {
-      Logger.debug(LOG_TAG, "No Blur package. Using default Sync Settings intent.");
-      intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
+      Logger.debug(LOG_TAG, "Blur package not found. Launching Sync Settings normally.");
     } catch (ClassNotFoundException e) {
-      Logger.warn(LOG_TAG, "Blur package found but no class. Launching Sync Settings normally.", e);
-      intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
+      Logger.warn(LOG_TAG, "Blur package found but class not found. Launching Sync Settings normally.", e);
+    } catch (ActivityNotFoundException e) {
+      
+      Logger.warn(LOG_TAG, "Blur package and class found, but activity not found. Launching Sync Settings normally.", e);
     }
+
+    
+    final Intent intent = new Intent(Settings.ACTION_SYNC_SETTINGS);
     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-    context.startActivity(intent);
+    context.startActivity(intent); 
     return intent;
   }
 
