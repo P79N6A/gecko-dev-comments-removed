@@ -55,6 +55,20 @@ typedef struct cairo_quartz_surface {
 
     cairo_surface_clipper_t clipper;
     cairo_rectangle_int_t extents;
+
+    
+
+
+    CGAffineTransform sourceTransform;
+
+    CGImageRef sourceImage;
+    cairo_surface_t *sourceImageSurface;
+    CGRect sourceImageRect;
+
+    CGShadingRef sourceShading;
+    CGPatternRef sourcePattern;
+
+    CGInterpolationQuality oldInterpolationQuality;
 } cairo_quartz_surface_t;
 
 typedef struct cairo_quartz_image_surface {
