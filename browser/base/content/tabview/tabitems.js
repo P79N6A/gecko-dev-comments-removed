@@ -351,7 +351,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (tabData.groupID) {
         var groupItem = GroupItems.groupItem(tabData.groupID);
         if (groupItem) {
-          groupItem.add(this, null, {immediately: true});
+          groupItem.add(this, {immediately: true});
 
           
           
