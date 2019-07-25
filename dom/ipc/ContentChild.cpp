@@ -76,6 +76,7 @@
 #include "nsIConsoleService.h"
 #include "nsJSEnvironment.h"
 #include "SandboxHal.h"
+#include "nsDebugImpl.h"
 
 #include "History.h"
 #include "nsDocShellCID.h"
@@ -237,6 +238,9 @@ ContentChild::ContentChild()
  , mID(PRUint64(-1))
 #endif
 {
+    
+    
+    nsDebugImpl::SetMultiprocessMode("Child");
 }
 
 ContentChild::~ContentChild()

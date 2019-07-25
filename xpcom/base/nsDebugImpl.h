@@ -46,6 +46,14 @@ public:
     NS_DECL_NSIDEBUG2
     
     static nsresult Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
+
+    
+
+
+
+
+
+    static void SetMultiprocessMode(const char *aDesc);
 };
 
 

@@ -111,6 +111,7 @@
 #include "nsWidgetsCID.h"
 #include "nsISupportsPrimitives.h"
 #include "mozilla/dom/sms/SmsParent.h"
+#include "nsDebugImpl.h"
 
 static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 static const char* sClipboardTextFlavors[] = { kUnicodeMime };
@@ -410,6 +411,10 @@ ContentParent::ContentParent()
     , mIsAlive(true)
     , mSendPermissionUpdates(false)
 {
+    
+    
+    nsDebugImpl::SetMultiprocessMode("Parent");
+
     NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
     mSubprocess = new GeckoChildProcessHost(GeckoProcessType_Content);
     mSubprocess->AsyncLaunch();
