@@ -507,7 +507,7 @@ gfxWindowsPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
 {
 #ifdef XP_WIN
   if (aTarget->GetType() == BACKEND_DIRECT2D) {
-    void *surface = aTarget->GetUserData(&ThebesSurfaceKey);
+    void *surface = aTarget->GetUserData(&kThebesSurfaceKey);
     if (surface) {
       nsRefPtr<gfxASurface> surf = static_cast<gfxASurface*>(surface);
       return surf.forget();
@@ -526,7 +526,7 @@ gfxWindowsPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
 
       
       surf->AddRef();
-      aTarget->AddUserData(&ThebesSurfaceKey, surf.get(), DestroyThebesSurface);
+      aTarget->AddUserData(&kThebesSurfaceKey, surf.get(), DestroyThebesSurface);
       
 
 
