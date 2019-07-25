@@ -1792,8 +1792,7 @@ nsCanvasRenderingContext2D::ShadowInitialize(const gfxRect& extents, gfxAlphaBox
     mThebes->SetMatrix(matrix);
     
     
-    clipExtents.Outset(blurRadius.height, blurRadius.width,
-                       blurRadius.height, blurRadius.width);
+    clipExtents.Inflate(blurRadius.width, blurRadius.height);
     drawExtents = drawExtents.Intersect(clipExtents - CurrentState().shadowOffset);
 
     gfxContext* ctx = blur.Init(drawExtents, gfxIntSize(0,0), blurRadius, nsnull, nsnull);
@@ -2795,7 +2794,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
 
     if (doDrawShadow) {
         
-        processor.mBoundingBox.Outset(2.0);
+        processor.mBoundingBox.Inflate(2.0);
 
         
         
