@@ -321,8 +321,9 @@ function finish() {
   }
 
   
+  let opener = window.opener;
   window.close();
-  window.opener.wrappedJSObject.SimpleTest.finish();
+  opener.wrappedJSObject.SimpleTest.finish();
 }
 
 
