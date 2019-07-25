@@ -155,7 +155,6 @@ struct SharedContext {
     FunctionBox     *funbox;        
 
 
-    FunctionBox     *functionList;
 
     Bindings        bindings;       
 
@@ -239,6 +238,7 @@ struct TreeContext {
     ParseNode       *yieldNode;     
 
 
+    FunctionBox     *functionList;
 
   private:
     TreeContext     **parserTC;     
