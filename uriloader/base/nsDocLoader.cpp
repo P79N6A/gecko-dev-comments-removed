@@ -627,12 +627,10 @@ nsDocLoader::OnStopRequest(nsIRequest *aRequest,
   
   nsRequestInfo *info = GetRequestInfo(aRequest);
   if (info) {
-    if (info->mLastStatus) {
-      
-      
-      
-      info->mLastStatus = nsnull;
-    }
+    
+    
+    
+    info->mLastStatus = nsnull;
 
     PRInt64 oldMax = info->mMaxProgress;
 
