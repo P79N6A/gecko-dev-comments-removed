@@ -422,7 +422,14 @@ function openTabPrompt(domWin, tabPrompt, args) {
         callbackInvoked = true;
         if (newPrompt)
             tabPrompt.removePrompt(newPrompt);
+
         winUtils.leaveModalState();
+
+        
+        let fm = Cc["@mozilla.org/focus-manager;1"].
+                 getService(Ci.nsIFocusManager);
+        let e = fm.getFocusedElementForWindow(domWin.top, false, {});
+        fm.setFocus(e, fm.FLAG_NOSCROLL);
     }
 
     let newPrompt;
