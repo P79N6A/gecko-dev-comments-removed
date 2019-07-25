@@ -331,19 +331,6 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
       
       
       presShell->SetIgnoreViewportScrolling(true);
-
-      
-      
-      
-      
-      nsPresContext* presContext = GetPresContext();
-      if (presContext && presContext->IsRoot()) {
-        nsIFrame* rootFrame = presShell->GetRootFrame();
-        nsIView* view = rootFrame->GetView();
-        if (view) {
-          view->SetInvalidationDimensions(&displayport);
-        }
-      }
     }
   }
 
