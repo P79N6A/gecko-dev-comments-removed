@@ -61,7 +61,7 @@ gfxReusableSurfaceWrapper::GetWritable(gfxImageSurface** aSurface)
   }
 
   
-  gfxImageSurface* copySurface = new gfxImageSurface(mSurface->GetSize(), mSurface->Format());
+  gfxImageSurface* copySurface = new gfxImageSurface(mSurface->GetSize(), mSurface->Format(), false);
   copySurface->CopyFrom(mSurface);
   *aSurface = copySurface;
 
