@@ -1879,14 +1879,6 @@ nsEventStateManager::FillInEventFromGestureDown(nsMouseEvent* aEvent)
 
 
 
-
-
-
-
-
-
-
-
 void
 nsEventStateManager::GenerateDragGesture(nsPresContext* aPresContext,
                                          nsMouseEvent *aEvent)
@@ -3107,6 +3099,10 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
 
         nsMouseEvent* mouseEvent = static_cast<nsMouseEvent*>(aEvent);
         event.refPoint = mouseEvent->refPoint;
+        if (mouseEvent->widget) {
+          event.refPoint += mouseEvent->widget->WidgetToScreenOffset();
+        }
+        event.refPoint -= widget->WidgetToScreenOffset();
         event.isShift = mouseEvent->isShift;
         event.isControl = mouseEvent->isControl;
         event.isAlt = mouseEvent->isAlt;

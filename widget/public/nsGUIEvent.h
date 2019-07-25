@@ -515,6 +515,7 @@ public:
   
   PRUint32    message;
   
+  
   nsIntPoint  refPoint;
   
   
