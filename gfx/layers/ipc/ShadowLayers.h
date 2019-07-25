@@ -169,7 +169,8 @@ public:
                           const SharedImage& aInitialFrontImage);
   void CreatedCanvasBuffer(ShadowableLayer* aCanvas,
                            nsIntSize aSize,
-                           const SurfaceDescriptor& aInitialFrontSurface);
+                           const SurfaceDescriptor& aInitialFrontSurface,
+                           bool aNeedYFlip);
 
   
 
@@ -579,7 +580,7 @@ public:
 
 
 
-  virtual void Init(const SurfaceDescriptor& front, const nsIntSize& aSize) = 0;
+  virtual void Init(const SurfaceDescriptor& front, const nsIntSize& aSize, bool needYFlip) = 0;
 
   
 

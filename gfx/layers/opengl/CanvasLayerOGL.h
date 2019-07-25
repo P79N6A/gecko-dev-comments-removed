@@ -110,7 +110,7 @@ public:
 
   
   virtual void Initialize(const Data& aData);
-  virtual void Init(const SurfaceDescriptor& aNewFront, const nsIntSize& aSize);
+  virtual void Init(const SurfaceDescriptor& aNewFront, const nsIntSize& aSize, bool needYFlip);
 
   
   virtual void Updated(const nsIntRect&) {}
@@ -133,6 +133,7 @@ private:
   nsRefPtr<TextureImage> mTexImage;
 
   SurfaceDescriptor mDeadweight;
+  PRPackedBool mNeedsYFlip;
 };
 
 } 
