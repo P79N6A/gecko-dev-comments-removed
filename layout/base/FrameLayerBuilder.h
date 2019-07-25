@@ -229,9 +229,10 @@ public:
 
 
 
+  struct Clip;
   void AddThebesDisplayItem(ThebesLayer* aLayer,
                             nsDisplayItem* aItem,
-                            const nsRect* aClipRect,
+                            const Clip& aClip,
                             nsIFrame* aContainerLayerFrame,
                             LayerState aLayerState,
                             LayerManager* aTempManager);
@@ -264,6 +265,55 @@ public:
 
   nscolor FindOpaqueColorCovering(nsDisplayListBuilder* aBuilder,
                                   ThebesLayer* aLayer, const nsRect& aRect);
+
+  
+
+
+
+  struct Clip {
+    struct RoundedRect {
+      nsRect mRect;
+      
+      nscoord mRadii[8];
+
+      bool operator==(const RoundedRect& aOther) const {
+        if (mRect != aOther.mRect) {
+          return false;
+        }
+
+        NS_FOR_CSS_HALF_CORNERS(corner) {
+          if (mRadii[corner] != aOther.mRadii[corner]) {
+            return false;
+          }
+        }
+        return true;
+      }
+      bool operator!=(const RoundedRect& aOther) const {
+        return !(*this == aOther);
+      }
+    };
+    nsRect mClipRect;
+    nsTArray<RoundedRect> mRoundedClipRects;
+    PRPackedBool mHaveClipRect;
+
+    Clip() : mHaveClipRect(PR_FALSE) {}
+
+    
+    Clip(const Clip& aOther, nsDisplayItem* aClipItem);
+
+    
+    
+    void ApplyTo(gfxContext* aContext, nsPresContext* aPresContext);
+
+    bool operator==(const Clip& aOther) const {
+      return mHaveClipRect == aOther.mHaveClipRect &&
+             (!mHaveClipRect || mClipRect == aOther.mClipRect) &&
+             mRoundedClipRects == aOther.mRoundedClipRects;
+    }
+    bool operator!=(const Clip& aOther) const {
+      return !(*this == aOther);
+    }
+  };
 
 protected:
   
@@ -325,18 +375,14 @@ protected:
 
 
   struct ClippedDisplayItem {
-    ClippedDisplayItem(nsDisplayItem* aItem, const nsRect* aClipRect)
-      : mItem(aItem), mHasClipRect(aClipRect != nsnull)
+    ClippedDisplayItem(nsDisplayItem* aItem, const Clip& aClip)
+      : mItem(aItem), mClip(aClip)
     {
-      if (mHasClipRect) {
-        mClipRect = *aClipRect;
-      }
     }
 
     nsDisplayItem* mItem;
     nsRefPtr<LayerManager> mTempLayerManager;
-    nsRect         mClipRect;
-    PRPackedBool   mHasClipRect;
+    Clip mClip;
   };
 
   

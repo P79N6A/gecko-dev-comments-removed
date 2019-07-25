@@ -403,7 +403,7 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
     
     rv = aLists.Content()->AppendNewToTop(
-        new (aBuilder) nsDisplayClip(aBuilder, this, this, &childItems,
+        new (aBuilder) nsDisplayClip(aBuilder, this, &childItems,
                                      subdocBoundsInParentUnits));
   }
   

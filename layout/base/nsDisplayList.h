@@ -1307,6 +1307,7 @@ public:
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
   {
+    
     aOutFrames->AppendElement(mFrame);
   }
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
@@ -1414,6 +1415,7 @@ public:
   virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                        HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames)
   {
+    
     aOutFrames->AppendElement(mFrame);
   }
   NS_DISPLAY_DECL_NAME("EventReceiver", TYPE_EVENT_RECEIVER)
@@ -1581,10 +1583,8 @@ public:
 
 
   nsDisplayClip(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                nsIFrame* aClippingFrame, 
                 nsDisplayItem* aItem, const nsRect& aRect);
   nsDisplayClip(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
-                nsIFrame* aClippingFrame,
                 nsDisplayList* aList, const nsRect& aRect);
 #ifdef NS_BUILD_REFCNT_LOGGING
   virtual ~nsDisplayClip();
@@ -1600,18 +1600,52 @@ public:
   
   const nsRect& GetClipRect() { return mClip; }
   void SetClipRect(const nsRect& aRect) { mClip = aRect; }
-  nsIFrame* GetClippingFrame() { return mClippingFrame; }
 
   virtual nsDisplayWrapList* WrapWithClone(nsDisplayListBuilder* aBuilder,
                                            nsDisplayItem* aItem);
 
-private:
-  
-  
-  
-  
-  nsIFrame* mClippingFrame;
+protected:
   nsRect    mClip;
+};
+
+
+
+
+
+class nsDisplayClipRoundedRect : public nsDisplayClip {
+public:
+  
+
+
+
+
+  nsDisplayClipRoundedRect(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                           nsDisplayItem* aItem,
+                           const nsRect& aRect, nscoord aRadii[8]);
+  nsDisplayClipRoundedRect(nsDisplayListBuilder* aBuilder, nsIFrame* aFrame,
+                           nsDisplayList* aList,
+                           const nsRect& aRect, nscoord aRadii[8]);
+#ifdef NS_BUILD_REFCNT_LOGGING
+  virtual ~nsDisplayClipRoundedRect();
+#endif
+
+  virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
+  virtual void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
+                       HitTestState* aState, nsTArray<nsIFrame*> *aOutFrames);
+  virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
+                                   nsRegion* aVisibleRegion);
+  virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
+  NS_DISPLAY_DECL_NAME("ClipRoundedRect", TYPE_CLIP_ROUNDED_RECT)
+
+  virtual nsDisplayWrapList* WrapWithClone(nsDisplayListBuilder* aBuilder,
+                                           nsDisplayItem* aItem);
+
+  void GetRadii(nscoord aRadii[8]) {
+    memcpy(aRadii, mRadii, sizeof(mRadii));
+  }
+
+private:
+  nscoord mRadii[8];
 };
 
 
