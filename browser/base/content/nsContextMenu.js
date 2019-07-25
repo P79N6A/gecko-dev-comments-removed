@@ -92,6 +92,7 @@ nsContextMenu.prototype = {
     } catch (e) { }
     this.isTextSelected = this.isTextSelection();
     this.isContentSelected = this.isContentSelection();
+    this.onPlainTextLink = false;
 
     
     this.initItems();
@@ -132,7 +133,6 @@ nsContextMenu.prototype = {
 
     
     
-    var onPlainTextLink = false;
     if (this.isTextSelected && !this.onLink) {
       
       let selection =  document.commandDispatcher.focusedWindow
@@ -190,14 +190,14 @@ nsContextMenu.prototype = {
       if (uri && uri.host) {
         this.linkURI = uri;
         this.linkURL = this.linkURI.spec;
-        onPlainTextLink = true;
+        this.onPlainTextLink = true;
       }
     }
 
-    var shouldShow = this.onSaveableLink || isMailtoInternal || onPlainTextLink;
+    var shouldShow = this.onSaveableLink || isMailtoInternal || this.onPlainTextLink;
     this.showItem("context-openlink", shouldShow);
     this.showItem("context-openlinkintab", shouldShow);
-    this.showItem("context-openlinkincurrent", onPlainTextLink);
+    this.showItem("context-openlinkincurrent", this.onPlainTextLink);
     this.showItem("context-sep-open", shouldShow);
   },
 
@@ -223,8 +223,8 @@ nsContextMenu.prototype = {
     this.showItem("context-sendpage", shouldShow);
 
     
-    this.showItem("context-savelink", this.onSaveableLink);
-    this.showItem("context-sendlink", this.onSaveableLink);
+    this.showItem("context-savelink", this.onSaveableLink || this.onPlainTextLink);
+    this.showItem("context-sendlink", this.onSaveableLink || this.onPlainTextLink);
 
     
     this.showItem("context-saveimage", this.onLoadedImage || this.onCanvas);
@@ -310,7 +310,7 @@ nsContextMenu.prototype = {
     this.showItem("context-bookmarkpage",
                   !(this.isContentSelected || this.onTextInput || this.onLink ||
                     this.onImage || this.onVideo || this.onAudio));
-    this.showItem("context-bookmarklink", this.onLink && !this.onMailtoLink);
+    this.showItem("context-bookmarklink", (this.onLink && !this.onMailtoLink) || this.onPlainTextLink);
     this.showItem("context-searchselect", isTextSelected);
     this.showItem("context-keywordfield",
                   this.onTextInput && this.onKeywordField);
@@ -1073,9 +1073,15 @@ nsContextMenu.prototype = {
   
   saveLink: function() {
     var doc =  this.target.ownerDocument;
+    var linkText;
+    
+    if (this.onPlainTextLink)
+      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
+    else
+      linkText = this.linkText();
     urlSecurityCheck(this.linkURL, doc.nodePrincipal);
 
-    this.saveHelper(this.linkURL, this.linkText(), null, true, doc);
+    this.saveHelper(this.linkURL, linkText, null, true, doc);
   },
 
   sendLink: function() {
@@ -1390,8 +1396,14 @@ nsContextMenu.prototype = {
   },
 
   bookmarkLink: function CM_bookmarkLink() {
+    var linkText;
+    
+    if (this.onPlainTextLink)
+      linkText = document.commandDispatcher.focusedWindow.getSelection().toString().trim();
+    else
+      linkText = this.linkText();
     window.top.PlacesCommandHook.bookmarkLink(PlacesUtils.bookmarksMenuFolderId, this.linkURL,
-                                              this.linkText());
+                                              linkText);
   },
 
   addBookmarkForFrame: function CM_addBookmarkForFrame() {
