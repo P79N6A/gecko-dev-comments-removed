@@ -381,6 +381,11 @@ public:
   
 
 
+  void AbortDragForSelection();
+
+  
+
+
   PRBool GetTableCellSelection() const { return mSelectingTableCellMode != 0; }
   void ClearTableCellSelection() { mSelectingTableCellMode = 0; }
 
@@ -616,7 +621,11 @@ public:
 
   nsIPresShell *GetShell()const  { return mShell; }
 
-  void DisconnectFromPresShell() { StopAutoScrollTimer(); mShell = nsnull; }
+  void DisconnectFromPresShell()
+  {
+    AbortDragForSelection();
+    mShell = nsnull;
+  }
 private:
   nsresult TakeFocus(nsIContent *aNewFocus,
                      PRUint32 aContentOffset,
