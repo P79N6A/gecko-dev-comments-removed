@@ -28,7 +28,8 @@ function crashMe(n)
 var count = 64; 
 assertEq(crashMe(count + 1).length, count);
 
-gczeal(0); 
+if (typeof gczeal === "function")
+    gczeal(0); 
 
 
 
