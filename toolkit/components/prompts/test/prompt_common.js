@@ -67,7 +67,7 @@ function getTabModalPromptBox(domWin) {
                                .getInterface(Ci.nsIWebNavigation)
                                .QueryInterface(Ci.nsIDocShell)
                                .chromeEventHandler.ownerDocument.defaultView;
-        return chromeWin;
+        return XPCNativeWrapper.unwrap(chromeWin);
     }
 
     try {
@@ -76,7 +76,7 @@ function getTabModalPromptBox(domWin) {
 
         
         
-        var chromeWin = getChromeWindow(promptWin).wrappedJSObject;
+        var chromeWin = getChromeWindow(promptWin);
 
         if (chromeWin.getTabModalPromptBox)
             promptBox = chromeWin.getTabModalPromptBox(promptWin);
