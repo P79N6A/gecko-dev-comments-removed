@@ -1057,7 +1057,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
     oldContext->AddRef();
 
 #ifdef ACCESSIBILITY
-    PRBool wasFrameVisible = mPresShell->IsAccessibilityActive() ?
+    PRBool wasFrameVisible = nsIPresShell::IsAccessibilityActive() ?
       oldContext->GetStyleVisibility()->IsVisible() : PR_FALSE;
 #endif
 
@@ -1429,7 +1429,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
       
       
-      if (mPresShell->IsAccessibilityActive() && !aFrame->GetPrevContinuation() &&
+      if (nsIPresShell::IsAccessibilityActive() &&
+          !aFrame->GetPrevContinuation() &&
           !nsLayoutUtils::FrameIsNonFirstInIBSplit(aFrame)) {
         if (aDesiredA11yNotifications == eSendAllNotifications) {
           PRBool isFrameVisible = newContext->GetStyleVisibility()->IsVisible();

@@ -1267,13 +1267,14 @@ nsListBoxBodyFrame::GetNextItemBox(nsIBox* aBox, PRInt32 aOffset,
 
 PRBool
 nsListBoxBodyFrame::ContinueReflow(nscoord height) 
-{ 
-  nsPresContext* presContext = PresContext();
-  if (presContext->PresShell()->IsAccessibilityActive()) {
+{
+#ifdef ACCESSIBILITY
+  if (nsIPresShell::IsAccessibilityActive()) {
     
     
     return PR_TRUE;
   }
+#endif
 
   if (height <= 0) {
     nsIFrame* lastChild = GetLastFrame();
