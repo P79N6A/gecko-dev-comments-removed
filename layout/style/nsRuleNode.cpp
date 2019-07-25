@@ -125,6 +125,9 @@ static void EnsureBlockDisplay(PRUint8& display)
   case NS_STYLE_DISPLAY_TABLE :
   case NS_STYLE_DISPLAY_BLOCK :
   case NS_STYLE_DISPLAY_LIST_ITEM :
+#ifdef MOZ_FLEXBOX
+  case NS_STYLE_DISPLAY_FLEX :
+#endif 
     
     
     
@@ -136,6 +139,13 @@ static void EnsureBlockDisplay(PRUint8& display)
     
     display = NS_STYLE_DISPLAY_TABLE;
     break;
+
+#ifdef MOZ_FLEXBOX
+  case NS_STYLE_DISPLAY_INLINE_FLEX:
+    
+    display = NS_STYLE_DISPLAY_FLEX;
+    break;
+#endif 
 
   default :
     
