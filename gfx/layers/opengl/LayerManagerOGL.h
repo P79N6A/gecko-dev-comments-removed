@@ -342,6 +342,8 @@ public:
                                       GLenum aWrapMode = LOCAL_GL_REPEAT,
                                       bool aFlipped = false);
 
+  virtual gfxASurface::gfxImageFormat MaskImageFormat() 
+  { return gfxASurface::ImageFormatARGB32; }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const { return "OGL"; }
@@ -521,6 +523,22 @@ public:
   LayerManagerOGL* OGLManager() const { return mOGLManager; }
   GLContext *gl() const { return mOGLManager->gl(); }
   virtual void CleanupResources() = 0;
+
+  
+
+
+
+
+
+
+
+
+
+  virtual bool LoadAsTexture(GLuint aTextureUnit, gfxIntSize* aSize)
+  {
+    NS_WARNING("LoadAsTexture called without being overriden");
+    return false;
+  }
 
 protected:
   LayerManagerOGL *mOGLManager;

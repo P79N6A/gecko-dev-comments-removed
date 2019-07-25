@@ -2761,9 +2761,9 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     return;
   }
   
-  nsRefPtr<gfxASurface> surface =
-    aLayer->Manager()->CreateOptimalSurface(boundingRect.Size(),
-                                            aLayer->Manager()->MaskImageFormat());
+   nsRefPtr<gfxASurface> surface =
+     aLayer->Manager()->CreateOptimalSurface(boundingRect.Size(),
+                                             aLayer->Manager()->MaskImageFormat());
 
   
   if (!surface || surface->CairoStatus()) {
