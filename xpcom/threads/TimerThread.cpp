@@ -50,6 +50,8 @@
 #include "nsIProxyObjectManager.h"
 #include "mozilla/Services.h"
 
+#include <math.h>
+
 NS_IMPL_THREADSAFE_ISUPPORTS2(TimerThread, nsIRunnable, nsIObserver)
 
 TimerThread::TimerThread() :
@@ -61,8 +63,7 @@ TimerThread::TimerThread() :
   mWaiting(PR_FALSE),
   mSleeping(PR_FALSE),
   mDelayLineCounter(0),
-  mMinTimerPeriod(0),
-  mTimeoutAdjustment(0)
+  mMinTimerPeriod(0)
 {
 }
 
@@ -191,26 +192,27 @@ nsresult TimerThread::Shutdown()
 
 
 
-void TimerThread::UpdateFilter(PRUint32 aDelay, PRIntervalTime aTimeout,
-                               PRIntervalTime aNow)
+void TimerThread::UpdateFilter(PRUint32 aDelay, TimeStamp aTimeout,
+                               TimeStamp aNow)
 {
-  PRInt32 slack = (PRInt32) (aTimeout - aNow);
+  TimeDuration slack = aTimeout - aNow;
   double smoothSlack = 0;
   PRUint32 i, filterLength;
-  static PRIntervalTime kFilterFeedbackMaxTicks =
-    PR_MillisecondsToInterval(FILTER_FEEDBACK_MAX);
+  static TimeDuration kFilterFeedbackMaxTicks =
+    TimeDuration::FromMilliseconds(FILTER_FEEDBACK_MAX);
+  static TimeDuration kFilterFeedbackMinTicks =
+    TimeDuration::FromMilliseconds(-FILTER_FEEDBACK_MAX);
 
-  if (slack > 0) {
-    if (slack > (PRInt32)kFilterFeedbackMaxTicks)
-      slack = kFilterFeedbackMaxTicks;
-  } else {
-    if (slack < -(PRInt32)kFilterFeedbackMaxTicks)
-      slack = -(PRInt32)kFilterFeedbackMaxTicks;
-  }
-  mDelayLine[mDelayLineCounter & DELAY_LINE_LENGTH_MASK] = slack;
+  if (slack > kFilterFeedbackMaxTicks)
+    slack = kFilterFeedbackMaxTicks;
+  else if (slack < kFilterFeedbackMinTicks)
+    slack = kFilterFeedbackMinTicks;
+
+  mDelayLine[mDelayLineCounter & DELAY_LINE_LENGTH_MASK] =
+    slack.ToMilliseconds();
   if (++mDelayLineCounter < DELAY_LINE_LENGTH) {
     
-    PR_ASSERT(mTimeoutAdjustment == 0);
+    PR_ASSERT(mTimeoutAdjustment.ToSeconds() == 0);
     filterLength = 0;
   } else {
     
@@ -231,7 +233,7 @@ void TimerThread::UpdateFilter(PRUint32 aDelay, PRIntervalTime aTimeout,
     smoothSlack /= filterLength;
 
     
-    mTimeoutAdjustment = (PRInt32) (smoothSlack * 1.5);
+    mTimeoutAdjustment = TimeDuration::FromMilliseconds(smoothSlack * 1.5);
   }
 
 #ifdef DEBUG_TIMERS
@@ -247,6 +249,7 @@ NS_IMETHODIMP TimerThread::Run()
   nsAutoLock lock(mLock);
 
   while (!mShutdown) {
+    
     PRIntervalTime waitFor;
 
     if (mSleeping) {
@@ -254,13 +257,13 @@ NS_IMETHODIMP TimerThread::Run()
       waitFor = PR_MillisecondsToInterval(100);
     } else {
       waitFor = PR_INTERVAL_NO_TIMEOUT;
-      PRIntervalTime now = PR_IntervalNow();
+      TimeStamp now = TimeStamp::Now();
       nsTimerImpl *timer = nsnull;
 
       if (!mTimers.IsEmpty()) {
         timer = mTimers[0];
 
-        if (!TIMER_LESS_THAN(now, timer->mTimeout + mTimeoutAdjustment)) {
+        if (now >= timer->mTimeout + mTimeoutAdjustment) {
     next:
           
           
@@ -278,10 +281,7 @@ NS_IMETHODIMP TimerThread::Run()
           if (PR_LOG_TEST(gTimerLog, PR_LOG_DEBUG)) {
             PR_LOG(gTimerLog, PR_LOG_DEBUG,
                    ("Timer thread woke up %dms from when it was supposed to\n",
-                    (now >= timer->mTimeout)
-                    ? PR_IntervalToMilliseconds(now - timer->mTimeout)
-                    : -(PRInt32)PR_IntervalToMilliseconds(timer->mTimeout-now))
-                  );
+                    PRInt32(fabs((now - timer->mTimeout).ToMilliseconds()))));
           }
 #endif
 
@@ -313,20 +313,20 @@ NS_IMETHODIMP TimerThread::Run()
 
           
           
-          now = PR_IntervalNow();
+          now = TimeStamp::Now();
         }
       }
 
       if (!mTimers.IsEmpty()) {
         timer = mTimers[0];
 
-        PRIntervalTime timeout = timer->mTimeout + mTimeoutAdjustment;
+        TimeStamp timeout = timer->mTimeout + mTimeoutAdjustment;
 
         
         
-        if (!TIMER_LESS_THAN(now, timeout))
+        if (now >= timeout)
           goto next;
-        waitFor = timeout - now;
+        waitFor = PR_MillisecondsToInterval((timeout - now).ToMilliseconds());
       }
 
 #ifdef DEBUG_TIMERS
@@ -411,23 +411,22 @@ PRInt32 TimerThread::AddTimerInternal(nsTimerImpl *aTimer)
   if (mShutdown)
     return -1;
 
-  PRIntervalTime now = PR_IntervalNow();
+  TimeStamp now = TimeStamp::Now();
   PRUint32 count = mTimers.Length();
   PRUint32 i = 0;
   for (; i < count; i++) {
     nsTimerImpl *timer = mTimers[i];
 
     
-    
-    
+
     
     
     
 
     
 
-    if (TIMER_LESS_THAN(now, timer->mTimeout) &&
-        TIMER_LESS_THAN(aTimer->mTimeout, timer->mTimeout)) {
+    if (now < timer->mTimeout + mTimeoutAdjustment &&
+        aTimer->mTimeout < timer->mTimeout) {
       break;
     }
   }
@@ -473,7 +472,7 @@ void TimerThread::DoAfterSleep()
   }
 
   
-  mTimeoutAdjustment = 0;
+  mTimeoutAdjustment = TimeDuration(0);
   mDelayLineCounter = 0;
   mSleeping = PR_FALSE;
 }
