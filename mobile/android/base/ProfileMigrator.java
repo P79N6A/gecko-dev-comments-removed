@@ -801,6 +801,9 @@ public class ProfileMigrator {
             File dbFile = new File(dbPath);
             if (!dbFile.exists()) {
                 Log.i(LOGTAG, "No database");
+                
+                setMigratedBookmarks();
+                setMigratedHistory();
                 return;
             }
             File dbFileWal = new File(dbPathWal);
