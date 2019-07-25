@@ -34,10 +34,11 @@
 
 
 
-const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 
 
@@ -50,8 +51,7 @@ AlertsService.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIAlertsService]),
 
   showAlertNotification: function(aImageUrl, aTitle, aText, aTextClickable, aCookie, aAlertListener, aName) {
-    let wm = Cc["@mozilla.org/appshell/window-mediator;1"].getService(Ci.nsIWindowMediator);
-    let browser = wm.getMostRecentWindow("navigator:browser");
+    let browser = Services.wm.getMostRecentWindow("navigator:browser");
     browser.AlertsHelper.showAlertNotification(aImageUrl, aTitle, aText, aTextClickable, aCookie, aAlertListener);
   }
 };

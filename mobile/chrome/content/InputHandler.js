@@ -973,13 +973,13 @@ function KineticController(aPanBy, aEndCallback) {
 
   
   
-  this._updateInterval = gPrefService.getIntPref("browser.ui.kinetic.updateInterval");
+  this._updateInterval = Services.prefs.getIntPref("browser.ui.kinetic.updateInterval");
   
-  this._decelerationRate = gPrefService.getIntPref("browser.ui.kinetic.decelerationRate") / 10000;
+  this._decelerationRate = Services.prefs.getIntPref("browser.ui.kinetic.decelerationRate") / 10000;
   
-  this._speedSensitivity = gPrefService.getIntPref("browser.ui.kinetic.speedSensitivity") / 100;
+  this._speedSensitivity = Services.prefs.getIntPref("browser.ui.kinetic.speedSensitivity") / 100;
   
-  this._swipeLength = gPrefService.getIntPref("browser.ui.kinetic.swipeLength");
+  this._swipeLength = Services.prefs.getIntPref("browser.ui.kinetic.swipeLength");
 
   this._reset();
 }
@@ -1305,9 +1305,9 @@ GestureModule.prototype = {
     this._ignoreNextUpdate = true; 
 
     
-    this._maxGrowth = gPrefService.getIntPref("browser.ui.pinch.maxGrowth");
-    this._maxShrink = gPrefService.getIntPref("browser.ui.pinch.maxShrink");
-    this._scalingFactor = gPrefService.getIntPref("browser.ui.pinch.scalingFactor");
+    this._maxGrowth = Services.prefs.getIntPref("browser.ui.pinch.maxGrowth");
+    this._maxShrink = Services.prefs.getIntPref("browser.ui.pinch.maxShrink");
+    this._scalingFactor = Services.prefs.getIntPref("browser.ui.pinch.scalingFactor");
 
     
     [this._pinchStartX, this._pinchStartY] =

@@ -41,7 +41,6 @@ const URI_GENERIC_ICON_DOWNLOAD = "chrome://browser/skin/images/alert-downloads-
 
 var DownloadsView = {
   _initialized: false,
-  _pref: null,
   _list: null,
   _dlmgr: null,
   _progress: null,
@@ -59,10 +58,8 @@ var DownloadsView = {
 
   _getLocalFile: function dv__getLocalFile(aFileURI) {
     
-    let ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
-
     
-    const fileUrl = ios.newURI(aFileURI, null, null).QueryInterface(Ci.nsIFileURL);
+    const fileUrl = Services.io.newURI(aFileURI, null, null).QueryInterface(Ci.nsIFileURL);
     return fileUrl.file.clone().QueryInterface(Ci.nsILocalFile);
   },
 
@@ -130,7 +127,7 @@ var DownloadsView = {
     this._initialized = true;
 
     
-    var os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
+    var os = Services.obs;
     os.addObserver(this, "dl-start", true);
     os.addObserver(this, "dl-failed", true);
     os.addObserver(this, "dl-done", true);
@@ -158,7 +155,6 @@ var DownloadsView = {
     this._list = document.getElementById("downloads-list");
 
     this._dlmgr = Cc["@mozilla.org/download-manager;1"].getService(Ci.nsIDownloadManager);
-    this._pref = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch2);
     this._progress = new DownloadProgressListener();
     this._dlmgr.addListener(this._progress);
 
@@ -197,8 +193,7 @@ var DownloadsView = {
         
         
         setTimeout(function() {
-          let os = Cc["@mozilla.org/observer-service;1"].getService(Ci.nsIObserverService);
-          os.notifyObservers(window, "download-manager-ui-done", null);
+          Services.obs.notifyObservers(window, "download-manager-ui-done", null);
         }, 0);
         return;
       }
