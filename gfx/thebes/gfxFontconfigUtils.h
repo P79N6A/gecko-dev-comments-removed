@@ -169,7 +169,7 @@ public:
 
 
 
-    static void GetSampleLangForGroup(const nsACString& aLangGroup,
+    static void GetSampleLangForGroup(nsIAtom *aLangGroup,
                                       nsACString *aFcLang);
 
 protected:
@@ -324,7 +324,7 @@ protected:
     PRBool IsExistingFamily(const nsCString& aFamilyName);
 
     nsresult GetFontListInternal(nsTArray<nsCString>& aListOfFonts,
-                                 const nsACString& aLangGroup);
+                                 nsIAtom *aLangGroup);
     nsresult UpdateFontListInternal(PRBool aForce = PR_FALSE);
 
     void AddFullnameEntries();
