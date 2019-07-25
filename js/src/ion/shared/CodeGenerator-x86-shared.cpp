@@ -359,6 +359,7 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
 
     return true;
 }
+
 bool
 CodeGeneratorX86Shared::visitMathD(LMathD *math)
 {
@@ -373,6 +374,46 @@ CodeGeneratorX86Shared::visitMathD(LMathD *math)
         JS_NOT_REACHED("unexpected opcode");
         return false;
     }
+    return true;
+}
+
+
+
+
+bool
+CodeGeneratorX86Shared::emitDoubleToInt32(const FloatRegister &src, const Register &dest, LSnapshot *snapshot)
+{
+    
+    
+    
+    masm.cvttsd2s(src, dest);
+    masm.cvtsi2sd(dest, ScratchFloatReg);
+    masm.ucomisd(src, ScratchFloatReg);
+    if (!bailoutIf(Assembler::Parity, snapshot))
+        return false;
+    if (!bailoutIf(Assembler::NotEqual, snapshot))
+        return false;
+
+    
+    Label notZero;
+    masm.testl(dest, dest);
+    masm.j(Assembler::NonZero, &notZero);
+
+    if (Assembler::HasSSE41()) {
+        masm.ptest(src, src);
+        if (!bailoutIf(Assembler::NonZero, snapshot))
+            return false;
+    } else {
+        
+        
+        masm.movmskpd(src, dest);
+        masm.andl(Imm32(1), dest);
+        if (!bailoutIf(Assembler::NonZero, snapshot))
+            return false;
+    }
+    
+    masm.bind(&notZero);
+
     return true;
 }
 

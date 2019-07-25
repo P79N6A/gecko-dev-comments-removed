@@ -301,6 +301,41 @@ class LMathD : public LInstructionHelper<1, 2, 0>
     }
 };
 
+
+class LValueToDouble : public LInstructionHelper<1, BOX_PIECES, 0>
+{
+  public:
+    LIR_HEADER(ValueToDouble);
+
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
+
+
+
+
+
+class LValueToInt32 : public LInstructionHelper<1, BOX_PIECES, 1>
+{
+  public:
+    LIR_HEADER(ValueToInt32);
+
+    LValueToInt32(const LDefinition &temp) {
+        setTemp(0, temp);
+    }
+
+    static const size_t Input = 0;
+
+    const LDefinition *tempFloat() {
+        return getTemp(0);
+    }
+    const LDefinition *output() {
+        return getDef(0);
+    }
+};
+
 class MPhi;
 
 

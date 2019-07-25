@@ -177,20 +177,13 @@ IonBuilder::build()
         current->initSlot(localSlot(i), undef);
     }
 
-    
-    
-    
-    
-    MStart *start = new MStart;
-    if (!snapshotAt(start, pc))
-        return false;
-    current->makeStart(start);
+    current->makeStart(new MStart());
 
     
     
     for (uint32 i = 0; i < CountArgSlots(fun()); i++) {
         MParameter *param = current->getEntrySlot(i)->toInstruction()->toParameter();
-        param->setSnapshot(start->snapshot());
+        param->setSnapshot(current->entrySnapshot());
     }
 
     if (!traverseBytecode())

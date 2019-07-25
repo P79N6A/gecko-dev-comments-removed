@@ -898,6 +898,10 @@ class MToDouble : public MUnaryInstruction
     {
         return new MToDouble(def);
     }
+
+    MDefinition *input() const {
+        return getOperand(0);
+    }
 };
 
 
@@ -917,6 +921,10 @@ class MToInt32 : public MUnaryInstruction
     static MToInt32 *New(MDefinition *def)
     {
         return new MToInt32(def);
+    }
+
+    MDefinition *input() const {
+        return getOperand(0);
     }
 };
 

@@ -118,6 +118,32 @@ LIRGeneratorShared::defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, M
     return add(lir);
 }
 
+
+
+
+
+static inline bool
+IsCompatibleLIRCoercion(MIRType to, MIRType from)
+{
+    if (to == from)
+        return true;
+    if ((to == MIRType_Int32 || to == MIRType_Boolean) &&
+        (from == MIRType_Int32 || from == MIRType_Boolean)) {
+        return true;
+    }
+    return false;
+}
+
+bool
+LIRGeneratorShared::redefine(MDefinition *def, MDefinition *as)
+{
+    JS_ASSERT(IsCompatibleLIRCoercion(def->type(), as->type()));
+    if (!ensureDefined(as))
+        return false;
+    def->setId(as->id());
+    return true;
+}
+
 bool
 LIRGeneratorShared::ensureDefined(MDefinition *mir)
 {
@@ -186,6 +212,12 @@ LIRGeneratorShared::temp(LDefinition::Type type)
         return LDefinition();
     }
     return LDefinition(vreg, type);
+}
+
+LDefinition
+LIRGeneratorShared::tempFloat()
+{
+    return temp(LDefinition::DOUBLE);
 }
 
 template <typename T> bool

@@ -64,6 +64,11 @@ class LIRGeneratorX86 : public LIRGeneratorShared
 
     
     
+    bool useBox(LInstruction *lir, size_t n, MDefinition *mir,
+                LUse::Policy policy = LUse::REGISTER);
+
+    
+    
     
     bool fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir);
 
@@ -76,6 +81,8 @@ class LIRGeneratorX86 : public LIRGeneratorShared
                      MDefinition *rhs);
     bool lowerForFPU(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs,
                      MDefinition *rhs);
+
+    bool lowerConstantDouble(double d, MInstruction *ins);
 
   public:
     bool visitConstant(MConstant *ins);

@@ -108,6 +108,7 @@ class LIRGeneratorShared : public MInstructionVisitor
 
     
     inline LDefinition temp(LDefinition::Type type);
+    inline LDefinition tempFloat();
 
     template <size_t Ops, size_t Temps>
     inline bool defineBox(LInstructionHelper<BOX_PIECES, Ops, Temps> *lir, MDefinition *mir,
@@ -123,6 +124,10 @@ class LIRGeneratorShared : public MInstructionVisitor
 
     template <size_t Ops, size_t Temps>
     inline bool defineReuseInput(LInstructionHelper<1, Ops, Temps> *lir, MDefinition *mir);
+
+    
+    
+    inline bool redefine(MDefinition *ins, MDefinition *as);
 
     uint32 getVirtualRegister() {
         return lirGraph_.getVirtualRegister();

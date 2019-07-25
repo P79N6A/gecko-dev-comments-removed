@@ -42,6 +42,7 @@
 #include "CodeGenerator.h"
 #include "IonLinker.h"
 #include "MIRGenerator.h"
+#include "shared/CodeGenerator-shared-inl.h"
 
 using namespace js;
 using namespace js::ion;
@@ -49,6 +50,57 @@ using namespace js::ion;
 CodeGenerator::CodeGenerator(MIRGenerator *gen, LIRGraph &graph)
   : CodeGeneratorSpecific(gen, graph)
 {
+}
+
+bool
+CodeGenerator::visitValueToInt32(LValueToInt32 *lir)
+{
+    ValueOperand operand = ToValue(lir, LValueToInt32::Input);
+    Register output = ToRegister(lir->output());
+
+    Assembler::Condition cond;
+    Label done, simple, isInt32, isBool, notDouble;
+
+    
+    cond = masm.testInt32(Assembler::Equal, operand);
+    masm.j(cond, &isInt32);
+    cond = masm.testBoolean(Assembler::Equal, operand);
+    masm.j(cond, &isBool);
+    cond = masm.testDouble(Assembler::NotEqual, operand);
+    masm.j(cond, &notDouble);
+
+    
+    
+    FloatRegister temp = ToFloatRegister(lir->tempFloat());
+    masm.unboxDouble(operand, temp);
+    if (!emitDoubleToInt32(temp, output, lir->snapshot()))
+        return false;
+    masm.jump(&done);
+
+    masm.bind(&notDouble);
+
+    
+    
+    cond = masm.testNull(Assembler::NotEqual, operand);
+    if (!bailoutIf(cond, lir->snapshot()))
+        return false;
+    
+    
+    masm.mov(Imm32(0), output);
+    masm.jump(&done);
+
+    
+    masm.bind(&isBool);
+    masm.unboxBoolean(operand, output);
+    masm.jump(&done);
+
+    
+    masm.bind(&isInt32);
+    masm.unboxInt32(operand, output);
+
+    masm.bind(&done);
+
+    return true;
 }
 
 bool
