@@ -133,6 +133,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     inlining_(false),
     hasGlobalReallocation(false),
     oomInVector(false),
+    gcNumber(cx->runtime->gcNumber),
     applyTricks(NoApplyTricks),
     pcLengths(NULL)
 {
@@ -188,7 +189,7 @@ mjit::Compiler::checkAnalysis(JSScript *script)
         return Compile_Abort;
     }
 
-    if (!script->ensureRanBytecode(cx))
+    if (!script->ensureRanAnalysis(cx))
         return Compile_Error;
     if (cx->typeInferenceEnabled() && !script->ensureRanInference(cx))
         return Compile_Error;
@@ -334,6 +335,11 @@ mjit::Compiler::scanInlineCalls(uint32 index, uint32 depth)
 
             
             if (nextDepth + script->nslots >= stackLimit) {
+                okay = false;
+                break;
+            }
+
+            if (!script->types || !script->types->hasScope()) {
                 okay = false;
                 break;
             }
@@ -742,27 +748,60 @@ mjit::Compiler::generatePrologue()
             }
         }
 
+        types::TypeScriptNesting *nesting = script->nesting();
+
         
+
+
+
+        JS_ASSERT_IF(nesting && nesting->children, script->function()->isHeavyweight());
         if (script->function()->isHeavyweight()) {
             prepareStubCall(Uses(0));
-            INLINE_STUBCALL(stubs::CreateFunCallObject, REJOIN_CREATE_CALL_OBJECT);
-        }
-
-        j.linkTo(masm.label(), &masm);
-
-        if (analysis->usesScopeChain() && !script->function()->isHeavyweight()) {
+            INLINE_STUBCALL(stubs::FunctionFramePrologue, REJOIN_FUNCTION_PROLOGUE);
+        } else {
             
 
 
 
 
-            RegisterID t0 = Registers::ReturnReg;
-            Jump hasScope = masm.branchTest32(Assembler::NonZero,
-                                              FrameFlagsAddress(), Imm32(StackFrame::HAS_SCOPECHAIN));
-            masm.loadPayload(Address(JSFrameReg, StackFrame::offsetOfCallee(script->function())), t0);
-            masm.loadPtr(Address(t0, offsetof(JSObject, parent)), t0);
-            masm.storePtr(t0, Address(JSFrameReg, StackFrame::offsetOfScopeChain()));
-            hasScope.linkTo(masm.label(), &masm);
+
+            if (analysis->usesScopeChain() || nesting) {
+                RegisterID t0 = Registers::ReturnReg;
+                Jump hasScope = masm.branchTest32(Assembler::NonZero,
+                                                  FrameFlagsAddress(), Imm32(StackFrame::HAS_SCOPECHAIN));
+                masm.loadPayload(Address(JSFrameReg, StackFrame::offsetOfCallee(script->function())), t0);
+                masm.loadPtr(Address(t0, offsetof(JSObject, parent)), t0);
+                masm.storePtr(t0, Address(JSFrameReg, StackFrame::offsetOfScopeChain()));
+                hasScope.linkTo(masm.label(), &masm);
+            }
+
+            if (nesting) {
+                
+
+
+
+
+
+
+
+
+                JSScript *parent = nesting->parent;
+                JS_ASSERT(parent);
+                JS_ASSERT_IF(parent->hasAnalysis() && parent->analysis()->ranBytecode(),
+                             !parent->analysis()->addsScopeObjects());
+
+                RegisterID t0 = Registers::ReturnReg;
+                masm.move(ImmPtr(&parent->nesting()->activeCall), t0);
+                masm.loadPtr(Address(t0), t0);
+
+                Address scopeChain(JSFrameReg, StackFrame::offsetOfScopeChain());
+                Jump mismatch = masm.branchPtr(Assembler::NotEqual, t0, scopeChain);
+                masm.add32(Imm32(1), AbsoluteAddress(&nesting->activeFrames));
+
+                stubcc.linkExitDirect(mismatch, stubcc.masm.label());
+                OOL_STUBCALL(stubs::FunctionFramePrologue, REJOIN_FUNCTION_PROLOGUE);
+                stubcc.crossJump(stubcc.masm.jump(), masm.label());
+            }
         }
 
         if (outerScript->usesArguments && !script->function()->isHeavyweight()) {
@@ -780,6 +819,8 @@ mjit::Compiler::generatePrologue()
                           Address(JSFrameReg, StackFrame::offsetOfArgs()));
             hasArgs.linkTo(masm.label(), &masm);
         }
+
+        j.linkTo(masm.label(), &masm);
     }
 
     if (cx->typeInferenceEnabled()) {
@@ -844,6 +885,13 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 
 
     if (globalSlots && globalObj->getRawSlots() != globalSlots)
+        return Compile_Retry;
+
+    
+
+
+
+    if (cx->runtime->gcNumber != gcNumber)
         return Compile_Retry;
 
     for (size_t i = 0; i < branchPatches.length(); i++) {
@@ -2704,9 +2752,8 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_UNBRAND)
 
           BEGIN_CASE(JSOP_UNBRANDTHIS)
-            jsop_this();
-            jsop_unbrand();
-            frame.pop();
+            prepareStubCall(Uses(1));
+            INLINE_STUBCALL(stubs::UnbrandThis, REJOIN_FALLTHROUGH);
           END_CASE(JSOP_UNBRANDTHIS)
 
           BEGIN_CASE(JSOP_GETGLOBAL)
@@ -3115,22 +3162,31 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
 
 
 
-    if (script->hasFunction && script->function()->isHeavyweight()) {
-        
-        prepareStubCall(Uses(fe ? 1 : 0));
-        INLINE_STUBCALL(stubs::PutActivationObjects, REJOIN_NONE);
-    } else {
-        
-        Jump putObjs = masm.branchTest32(Assembler::NonZero,
-                                         Address(JSFrameReg, StackFrame::offsetOfFlags()),
-                                         Imm32(StackFrame::HAS_CALL_OBJ | StackFrame::HAS_ARGS_OBJ));
-        stubcc.linkExit(putObjs, Uses(frame.frameSlots()));
+    if (script->hasFunction) {
+        types::TypeScriptNesting *nesting = script->nesting();
+        if (script->function()->isHeavyweight() || (nesting && nesting->children)) {
+            prepareStubCall(Uses(fe ? 1 : 0));
+            INLINE_STUBCALL(stubs::FunctionFrameEpilogue, REJOIN_NONE);
+        } else {
+            
+            Jump putObjs = masm.branchTest32(Assembler::NonZero,
+                                             Address(JSFrameReg, StackFrame::offsetOfFlags()),
+                                             Imm32(StackFrame::HAS_CALL_OBJ | StackFrame::HAS_ARGS_OBJ));
+            stubcc.linkExit(putObjs, Uses(frame.frameSlots()));
 
-        stubcc.leave();
-        OOL_STUBCALL(stubs::PutActivationObjects, REJOIN_NONE);
+            stubcc.leave();
+            OOL_STUBCALL(stubs::FunctionFrameEpilogue, REJOIN_NONE);
 
-        emitReturnValue(&stubcc.masm, fe);
-        emitFinalReturn(stubcc.masm);
+            emitReturnValue(&stubcc.masm, fe);
+            emitFinalReturn(stubcc.masm);
+
+            
+
+
+
+            if (nesting)
+                masm.sub32(Imm32(1), AbsoluteAddress(&nesting->activeFrames));
+        }
     }
 
     emitReturnValue(&masm, fe);
@@ -5046,6 +5102,22 @@ mjit::Compiler::jsop_setprop(JSAtom *atom, bool usePropCache, bool popGuaranteed
 
 
 
+    if (cx->typeInferenceEnabled() && js_CodeSpec[*PC].format & JOF_NAME) {
+        ScriptAnalysis::NameAccess access =
+            analysis->resolveNameAccess(cx, ATOM_TO_JSID(atom), true);
+        if (access.nesting) {
+            Address address = frame.loadNameAddress(access);
+            frame.storeTo(rhs, address, popGuaranteed);
+            frame.shimmy(1);
+            frame.freeReg(address.base);
+            return true;
+        }
+    }
+
+    
+
+
+
     jsid id = ATOM_TO_JSID(atom);
     types::TypeSet *types = frame.extra(lhs).types;
     if (JSOp(*PC) == JSOP_SETPROP && id == types::MakeTypeId(cx, id) &&
@@ -5204,6 +5276,26 @@ mjit::Compiler::jsop_setprop(JSAtom *atom, bool usePropCache, bool popGuaranteed
 void
 mjit::Compiler::jsop_name(JSAtom *atom, JSValueType type, bool isCall)
 {
+    
+
+
+
+
+    if (cx->typeInferenceEnabled()) {
+        ScriptAnalysis::NameAccess access =
+            analysis->resolveNameAccess(cx, ATOM_TO_JSID(atom), true);
+        if (access.nesting) {
+            Address address = frame.loadNameAddress(access);
+            JSValueType type = knownPushedType(0);
+            BarrierState barrier = pushAddressMaybeBarrier(address, type, true,
+                                                            true);
+            finishBarrier(barrier, REJOIN_GETTER, 0);
+            if (isCall)
+                jsop_callgname_epilogue();
+            return;
+        }
+    }
+
     PICGenInfo pic(isCall ? ic::PICInfo::CALLNAME : ic::PICInfo::NAME, JSOp(*PC), true);
 
     RESERVE_IC_SPACE(masm);
@@ -5261,6 +5353,24 @@ mjit::Compiler::jsop_name(JSAtom *atom, JSValueType type, bool isCall)
 bool
 mjit::Compiler::jsop_xname(JSAtom *atom)
 {
+    
+
+
+
+    if (cx->typeInferenceEnabled()) {
+        ScriptAnalysis::NameAccess access =
+            analysis->resolveNameAccess(cx, ATOM_TO_JSID(atom), true);
+        if (access.nesting) {
+            frame.pop();
+            Address address = frame.loadNameAddress(access);
+            JSValueType type = knownPushedType(0);
+            BarrierState barrier = pushAddressMaybeBarrier(address, type, true,
+                                                            true);
+            finishBarrier(barrier, REJOIN_GETTER, 0);
+            return true;
+        }
+    }
+
     PICGenInfo pic(ic::PICInfo::XNAME, JSOp(*PC), true);
 
     FrameEntry *fe = frame.peek(-1);
@@ -5320,6 +5430,23 @@ mjit::Compiler::jsop_xname(JSAtom *atom)
 void
 mjit::Compiler::jsop_bindname(JSAtom *atom, bool usePropCache)
 {
+    
+
+
+
+    if (cx->typeInferenceEnabled()) {
+        ScriptAnalysis::NameAccess access =
+            analysis->resolveNameAccess(cx, ATOM_TO_JSID(atom), true);
+        if (access.nesting) {
+            RegisterID reg = frame.allocReg();
+            JSObject **pobj = &access.nesting->activeCall;
+            masm.move(ImmPtr(pobj), reg);
+            masm.loadPtr(Address(reg), reg);
+            frame.pushTypedPayload(JSVAL_TYPE_OBJECT, reg);
+            return;
+        }
+    }
+
     PICGenInfo pic(ic::PICInfo::BIND, JSOp(*PC), usePropCache);
 
     
@@ -5460,6 +5587,16 @@ mjit::Compiler::jsop_this()
                 OOL_STUBCALL(stubs::This, REJOIN_FALLTHROUGH);
                 stubcc.rejoin(Changes(1));
             }
+
+            
+
+
+
+
+
+
+            if (cx->typeInferenceEnabled() && knownPushedType(0) != JSVAL_TYPE_OBJECT)
+                return;
 
             
             frame.pop();
@@ -5911,7 +6048,7 @@ mjit::Compiler::jsop_callgname_epilogue()
     
     if (fval->isConstant()) {
         JSObject *obj = &fval->getValue().toObject();
-        if (obj->getParent() == globalObj) {
+        if (obj->getGlobal() == globalObj) {
             frame.push(UndefinedValue());
         } else {
             prepareStubCall(Uses(1));
@@ -5919,6 +6056,20 @@ mjit::Compiler::jsop_callgname_epilogue()
             frame.pushSynced(JSVAL_TYPE_UNKNOWN);
         }
         return;
+    }
+
+    
+
+
+
+
+
+    if (cx->typeInferenceEnabled()) {
+        types::TypeSet *types = analysis->pushedTypes(PC, 0);
+        if (types->hasGlobalObject(cx, globalObj)) {
+            frame.push(UndefinedValue());
+            return;
+        }
     }
 
     
@@ -6945,7 +7096,7 @@ mjit::Compiler::fixDoubleTypes(jsbytecode *target)
                 } else {
                     JS_ASSERT(vt.type == JSVAL_TYPE_DOUBLE);
                 }
-            } else if (fe->isType(JSVAL_TYPE_DOUBLE)) {
+            } else if (vt.type == JSVAL_TYPE_DOUBLE) {
                 fixedDoubleToAnyEntries.append(newv->slot);
                 frame.syncAndForgetFe(fe);
                 frame.forgetLoopReg(fe);

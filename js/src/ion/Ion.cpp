@@ -621,7 +621,7 @@ ion::Cannon(JSContext *cx, StackFrame *fp)
 
     
     fp->setReturnValue(result);
-    fp->markActivationObjectsAsPut();
+    fp->markFunctionEpilogueDone();
 
     return !!ok;
 }

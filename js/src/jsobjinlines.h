@@ -143,7 +143,7 @@ JSObject::getProperty(JSContext *cx, JSObject *receiver, jsid id, js::Value *vp)
     } else {
         if (!js_GetProperty(cx, this, receiver, id, vp))
             return false;
-        JS_ASSERT_IF(!hasSingletonType(),
+        JS_ASSERT_IF(!hasSingletonType() && nativeContains(js_CheckForStringIndex(id)),
                      js::types::TypeHasProperty(cx, type(), id, *vp));
     }
     return true;
@@ -404,6 +404,17 @@ JSObject::hasSlotsArray() const
     return slots && slots != fixedSlots();
 }
 
+inline bool
+JSObject::hasContiguousSlots(size_t start, size_t count) const
+{
+    
+
+
+
+    JS_ASSERT(start + count <= numSlots());
+    return (start + count <= numFixedSlots()) || (start >= numFixedSlots());
+}
+
 inline size_t
 JSObject::structSize() const
 {
@@ -600,6 +611,14 @@ JSObject::setCallObjArg(uintN i, const js::Value &v)
     setSlot(JSObject::CALL_RESERVED_SLOTS + i, v);
 }
 
+inline js::Value *
+JSObject::callObjArgArray()
+{
+    js::DebugOnly<JSFunction*> fun = getCallObjCalleeFunction();
+    JS_ASSERT(hasContiguousSlots(JSObject::CALL_RESERVED_SLOTS, fun->nargs));
+    return getSlotAddress(JSObject::CALL_RESERVED_SLOTS);
+}
+
 inline const js::Value &
 JSObject::callObjVar(uintN i) const
 {
@@ -617,6 +636,29 @@ JSObject::setCallObjVar(uintN i, const js::Value &v)
     JS_ASSERT(i < fun->script()->bindings.countVars());
     setSlot(JSObject::CALL_RESERVED_SLOTS + fun->nargs + i, v);
 }
+
+inline js::Value *
+JSObject::callObjVarArray()
+{
+    JSFunction *fun = getCallObjCalleeFunction();
+    JS_ASSERT(hasContiguousSlots(JSObject::CALL_RESERVED_SLOTS + fun->nargs,
+                                 fun->script()->bindings.countVars()));
+    return getSlotAddress(JSObject::CALL_RESERVED_SLOTS + fun->nargs);
+}
+
+namespace js {
+
+
+
+
+
+static inline JSAtom *
+CallObjectLambdaName(JSFunction *fun)
+{
+    return (fun->flags & JSFUN_LAMBDA) ? fun->atom : NULL;
+}
+
+} 
 
 inline const js::Value &
 JSObject::getDateUTCTime() const
@@ -852,7 +894,7 @@ JSObject::getType(JSContext *cx)
 }
 
 inline js::types::TypeObject *
-JSObject::getNewType(JSContext *cx, JSScript *script, bool markUnknown)
+JSObject::getNewType(JSContext *cx, JSFunction *fun, bool markUnknown)
 {
     if (isDenseArray() && !makeDenseArraySlow(cx))
         return NULL;
@@ -868,12 +910,12 @@ JSObject::getNewType(JSContext *cx, JSScript *script, bool markUnknown)
 
 
 
-        if (newType->newScript && newType->newScript->script != script)
+        if (newType->newScript && newType->newScript->fun != fun)
             newType->clearNewScript(cx);
         if (markUnknown && cx->typeInferenceEnabled() && !newType->unknownProperties())
             newType->markUnknown(cx);
     } else {
-        makeNewType(cx, script, markUnknown);
+        makeNewType(cx, fun, markUnknown);
     }
     return newType;
 }

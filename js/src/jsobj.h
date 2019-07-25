@@ -478,7 +478,7 @@ struct JSObject : js::gc::Cell {
         jsuword initializedLength;
     };
 
-    JS_FRIEND_API(size_t) sizeOfSlotsArray(size_t(*mus)(void *));
+    JS_FRIEND_API(size_t) sizeOfSlotsArray(JSUsableSizeFun usf);
 
     JSObject    *parent;                    
     void        *privateData;               
@@ -733,6 +733,7 @@ struct JSObject : js::gc::Cell {
 
   private:
     inline js::Value* fixedSlots() const;
+    inline bool hasContiguousSlots(size_t start, size_t count) const;
 
   public:
     
@@ -793,12 +794,22 @@ struct JSObject : js::gc::Cell {
 
     void rollbackProperties(JSContext *cx, uint32 slotSpan);
 
-    js::Value& getSlotRef(uintN slot) {
-        JS_ASSERT(slot < capacity);
+    js::Value *getSlotAddress(uintN slot) {
+        
+
+
+
+
+        JS_ASSERT(slot <= capacity);
         size_t fixed = numFixedSlots();
         if (slot < fixed)
-            return fixedSlots()[slot];
-        return slots[slot - fixed];
+            return fixedSlots() + slot;
+        return slots + (slot - fixed);
+    }
+
+    js::Value &getSlotRef(uintN slot) {
+        JS_ASSERT(slot < capacity);
+        return *getSlotAddress(slot);
     }
 
     inline js::Value &nativeGetSlotRef(uintN slot);
@@ -888,10 +899,10 @@ struct JSObject : js::gc::Cell {
     inline void clearType();
     inline void setType(js::types::TypeObject *newType);
 
-    inline js::types::TypeObject *getNewType(JSContext *cx, JSScript *script = NULL,
+    inline js::types::TypeObject *getNewType(JSContext *cx, JSFunction *fun = NULL,
                                              bool markUnknown = false);
   private:
-    void makeNewType(JSContext *cx, JSScript *script, bool markUnknown);
+    void makeNewType(JSContext *cx, JSFunction *fun, bool markUnknown);
   public:
 
     
@@ -1097,6 +1108,14 @@ struct JSObject : js::gc::Cell {
     
     inline const js::Value &callObjVar(uintN i) const;
     inline void setCallObjVar(uintN i, const js::Value &v);
+
+    
+
+
+
+
+    inline js::Value *callObjArgArray();
+    inline js::Value *callObjVarArray();
 
     
 

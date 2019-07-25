@@ -268,6 +268,13 @@ static JS_INLINE void js_free(void* p) {
 }
 #endif
 
+
+
+
+
+
+typedef size_t(*JSUsableSizeFun)(void *p);
+
 JS_END_EXTERN_C
 
 

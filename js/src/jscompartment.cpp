@@ -627,7 +627,26 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 #endif
 
-    if (!activeAnalysis) {
+#ifdef JS_METHODJIT
+    if (types.inferenceEnabled)
+        mjit::ClearAllFrames(this);
+#endif
+
+    if (activeAnalysis) {
+        
+
+
+
+
+#ifdef JS_METHODJIT
+        if (types.inferenceEnabled) {
+            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                JSScript *script = i.get<JSScript>();
+                mjit::ReleaseScriptCode(cx, script);
+            }
+        }
+#endif
+    } else {
         
 
 
@@ -641,9 +660,6 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
 
         if (types.inferenceEnabled) {
-#ifdef JS_METHODJIT
-            mjit::ClearAllFrames(this);
-#endif
             for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
                 JSScript *script = i.get<JSScript>();
                 if (script->types) {
@@ -657,6 +673,7 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
                     if (discardScripts) {
                         script->types->destroy();
                         script->types = NULL;
+                        script->typesPurged = true;
                     }
                 }
             }
@@ -666,8 +683,7 @@ JSCompartment::sweep(JSContext *cx, uint32 releaseInterval)
 
         for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
             JSScript *script = i.get<JSScript>();
-            if (script->types)
-                script->types->analysis = NULL;
+            script->clearAnalysis();
         }
 
         

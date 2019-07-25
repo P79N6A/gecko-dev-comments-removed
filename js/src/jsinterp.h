@@ -191,32 +191,6 @@ InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, uintN argc
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-class InvokeSessionGuard;
-
-
-
-
-
 extern JS_REQUIRES_STACK bool
 InvokeConstructorKernel(JSContext *cx, const CallArgs &args);
 

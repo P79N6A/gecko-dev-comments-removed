@@ -71,108 +71,6 @@ class AutoPreserveEnumerators {
     }
 };
 
-class InvokeSessionGuard
-{
-    InvokeArgsGuard args_;
-    InvokeFrameGuard ifg_;
-    Value savedCallee_, savedThis_;
-    Value *formals_, *actuals_;
-    unsigned nformals_;
-    JSScript *script_;
-    Value *stackLimit_;
-    jsbytecode *stop_;
-
-    bool optimized() const { return ifg_.pushed(); }
-
-  public:
-    InvokeSessionGuard() : args_(), ifg_() {}
-    ~InvokeSessionGuard() {}
-
-    bool start(JSContext *cx, const Value &callee, const Value &thisv, uintN argc);
-    bool invoke(JSContext *cx);
-
-    bool started() const {
-        return args_.pushed();
-    }
-
-    Value &operator[](unsigned i) const {
-        JS_ASSERT(i < argc());
-        Value &arg = i < nformals_ ? formals_[i] : actuals_[i];
-        JS_ASSERT_IF(optimized(), &arg == &ifg_.fp()->canonicalActualArg(i));
-        JS_ASSERT_IF(!optimized(), &arg == &args_[i]);
-        return arg;
-    }
-
-    uintN argc() const {
-        return args_.argc();
-    }
-
-    const Value &rval() const {
-        return optimized() ? ifg_.fp()->returnValue() : args_.rval();
-    }
-};
-
-inline bool
-InvokeSessionGuard::invoke(JSContext *cx)
-{
-    
-
-    
-    formals_[-2] = savedCallee_;
-    formals_[-1] = savedThis_;
-
-    
-    args_.calleeHasBeenReset();
-
-    if (!optimized())
-        return Invoke(cx, args_);
-
-    
-
-
-
-    for (unsigned i = 0; i < Min(argc(), nformals_); i++)
-        types::TypeScript::SetArgument(cx, script_, i, (*this)[i]);
-
-#ifdef JS_METHODJIT
-    mjit::JITScript *jit = script_->getJIT(false );
-    if (!jit) {
-        
-        mjit::CompileStatus status = mjit::TryCompile(cx, script_, false);
-        if (status == mjit::Compile_Error)
-            return false;
-        JS_ASSERT(status == mjit::Compile_Okay);
-        jit = script_->getJIT(false);
-    }
-    void *code;
-    if (!(code = jit->invokeEntry))
-        return Invoke(cx, args_);
-#endif
-
-    
-    StackFrame *fp = ifg_.fp();
-    fp->resetCallFrame(script_);
-
-    JSBool ok;
-    {
-        AutoPreserveEnumerators preserve(cx);
-        args_.setActive();  
-        Probes::enterJSFun(cx, fp->fun(), script_);
-#ifdef JS_METHODJIT
-        ok = mjit::EnterMethodJIT(cx, fp, code, stackLimit_,  false);
-        cx->regs().pc = stop_;
-#else
-        cx->regs().pc = script_->code;
-        ok = Interpret(cx, cx->fp());
-#endif
-        Probes::exitJSFun(cx, fp->fun(), script_);
-        args_.setInactive();
-    }
-
-    
-    return ok;
-}
-
 namespace detail {
 
 template<typename T> class PrimitiveBehavior { };
@@ -329,6 +227,20 @@ ValuePropertyBearer(JSContext *cx, const Value &v, int spindex)
     if (!js_GetClassPrototype(cx, NULL, protoKey, &pobj))
         return NULL;
     return pobj;
+}
+
+inline bool
+FunctionNeedsPrologue(JSContext *cx, JSFunction *fun)
+{
+    
+    if (fun->isHeavyweight())
+        return true;
+
+    
+    if (cx->typeInferenceEnabled() && fun->script()->nesting())
+        return true;
+
+    return false;
 }
 
 inline bool

@@ -401,6 +401,12 @@ SpecialPowers.prototype = {
   closeLogFile: function() {
     this._mfl.close();
   },
+
+  addCategoryEntry: function(category, entry, value, persists, replace) {
+    Cc["@mozilla.org/categorymanager;1"].
+      getService(Components.interfaces.nsICategoryManager).
+      addCategoryEntry(category, entry, value, persists, replace);
+  },
 };
 
 
@@ -436,13 +442,6 @@ function SpecialPowersManager() {
 SpecialPowersManager.prototype = {
   handleEvent: function handleEvent(aEvent) {
     var window = aEvent.target.defaultView;
-
-    
-    var uri = window.document.documentURIObject;
-    if (uri.spec.split(":")[0] == "about") {
-      return;
-    }
-
     attachSpecialPowersToWindow(window);
   }
 };

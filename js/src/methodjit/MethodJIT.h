@@ -290,7 +290,10 @@ enum RejoinState {
     REJOIN_CHECK_ARGUMENTS,
 
     
-    REJOIN_CREATE_CALL_OBJECT,
+
+
+
+    REJOIN_FUNCTION_PROLOGUE,
 
     
 
@@ -640,7 +643,8 @@ struct JITScript {
 
     void trace(JSTracer *trc);
 
-    size_t scriptDataSize(size_t(*mus)(void *));
+    
+    size_t scriptDataSize(JSUsableSizeFun usf);
 
     jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
 

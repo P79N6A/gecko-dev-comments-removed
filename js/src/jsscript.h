@@ -518,12 +518,18 @@ struct JSScript : public js::gc::Cell {
 
 
     bool            hasSingletons:1;  
-    bool            hasFunction:1;    
+    bool            hasFunction:1;       
+    bool            isHeavyweightFunction:1; 
+    bool            isOuterFunction:1;       
+    bool            isInnerFunction:1;       
+
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
     bool            usedLazyArgs:1;   
     bool            createdArgs:1;    
     bool            uninlineable:1;   
+    bool            reentrantOuterFunction:1; 
+    bool            typesPurged:1;    
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            failedBoundsCheck:1; 
@@ -542,8 +548,10 @@ struct JSScript : public js::gc::Cell {
 
 
 
+#if JS_BITS_PER_WORD == 64
 #define JS_SCRIPT_INLINE_DATA_LIMIT 4
     uint8           inlineData[JS_SCRIPT_INLINE_DATA_LIMIT];
+#endif
 
     const char      *filename;  
     JSAtom          **atoms;    
@@ -586,19 +594,6 @@ struct JSScript : public js::gc::Cell {
 # endif
 #endif
 
-    union {
-        
-        JSFunction *fun;
-
-        
-        js::GlobalObject *global;
-    } where;
-
-    inline JSFunction *function() const {
-        JS_ASSERT(hasFunction);
-        return where.fun;
-    }
-
 #ifdef JS_CRASH_DIAGNOSTICS
     JSObject        *ownerObject;
 
@@ -607,17 +602,6 @@ struct JSScript : public js::gc::Cell {
 #endif
 
     void setOwnerObject(JSObject *owner);
-
-    
-
-
-
-    bool typeSetFunction(JSContext *cx, JSFunction *fun, bool singleton = false);
-
-    inline bool hasGlobal() const;
-    inline js::GlobalObject *global() const;
-
-    inline bool hasClearedGlobal() const;
 
 #ifdef DEBUG
     
@@ -635,16 +619,40 @@ struct JSScript : public js::gc::Cell {
     js::types::TypeScript *types;
 
     
-    inline bool ensureHasTypes(JSContext *cx);
-    inline bool ensureRanBytecode(JSContext *cx);
-    inline bool ensureRanInference(JSContext *cx);
+    inline bool ensureHasTypes(JSContext *cx, JSFunction *fun = NULL);
 
     
+
+
+
+
+
+    inline bool ensureRanAnalysis(JSContext *cx, JSFunction *fun = NULL, JSObject *scope = NULL);
+
+    
+    inline bool ensureRanInference(JSContext *cx);
+
     inline bool hasAnalysis();
+    inline void clearAnalysis();
     inline js::analyze::ScriptAnalysis *analysis();
 
+    
+
+
+
+    bool typeSetFunction(JSContext *cx, JSFunction *fun, bool singleton = false);
+
+    inline bool hasGlobal() const;
+    inline bool hasClearedGlobal() const;
+
+    inline JSFunction *function() const;
+    inline js::GlobalObject *global() const;
+    inline js::types::TypeScriptNesting *nesting() const;
+
+    inline void clearNesting();
+
   private:
-    bool makeTypes(JSContext *cx);
+    bool makeTypes(JSContext *cx, JSFunction *fun);
     bool makeAnalysis(JSContext *cx);
   public:
 
@@ -689,7 +697,7 @@ struct JSScript : public js::gc::Cell {
     }
 
     
-    JS_FRIEND_API(size_t) jitDataSize(size_t(*mus)(void *));
+    JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
     
 #endif
 
@@ -697,7 +705,13 @@ struct JSScript : public js::gc::Cell {
         return code + mainOffset;
     }
 
-    JS_FRIEND_API(size_t) dataSize();   
+    
+
+
+
+
+    JS_FRIEND_API(size_t) dataSize();                       
+    JS_FRIEND_API(size_t) dataSize(JSUsableSizeFun usf);    
     uint32 numNotes();                  
 
     

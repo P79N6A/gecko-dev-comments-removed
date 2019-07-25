@@ -2110,18 +2110,6 @@ nsXPConnect::EvalInSandboxObject(const nsAString& source, JSContext *cx,
 }
 
 
-NS_IMETHODIMP
-nsXPConnect::GetXPCWrappedNativeJSClassInfo(JSEqualityOp *equality)
-{
-    
-    
-
-    *equality = &XPC_WN_Equality;
-
-    return NS_OK;
-}
-
-
 NS_IMETHODIMP 
 nsXPConnect::GetWrappedNativePrototype(JSContext * aJSContext, 
                                        JSObject * aScope, 

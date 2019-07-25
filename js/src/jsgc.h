@@ -1488,9 +1488,8 @@ struct GCMarker : public JSTracer {
   public:
     
     js::gc::ArenaHeader *unmarkedArenaStackTop;
-#ifdef DEBUG
-    size_t              markLaterArenas;
-#endif
+    
+    DebugOnly<size_t> markLaterArenas;
 
 #ifdef JS_DUMP_CONSERVATIVE_GC_ROOTS
     js::gc::ConservativeGCStats conservativeStats;

@@ -1546,13 +1546,20 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   nsRect dirtyRect = aDirtyRect;
 
   PRBool inTransform = aBuilder->IsInTransform();
-  
-
-
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform()) {
     
+    
+    
+    
+    
+    
+    
+    
+    
+    
     if (Preserves3DChildren() || !nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+      
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
     }
     inTransform = PR_TRUE;
@@ -1645,7 +1652,11 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   
   resultList.AppendToTop(set.PositionedDescendants());
 
-  if (applyAbsPosClipping) {
+  
+
+
+  if (applyAbsPosClipping &&
+      (!resultList.IsEmpty() || usingSVGEffects)) {
     nsAbsPosClipWrapper wrapper(absPosClip);
     nsDisplayItem* item = wrapper.WrapList(aBuilder, this, &resultList);
     if (!item)
@@ -1653,20 +1664,23 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
     
     resultList.AppendToTop(item);
   }
- 
+
   
+
+
+
+
   if (usingSVGEffects) {
     
     rv = resultList.AppendNewToTop(
         new (aBuilder) nsDisplaySVGEffects(aBuilder, this, &resultList));
     if (NS_FAILED(rv))
       return rv;
-  } else
-
+  }
   
 
 
-  if (disp->mOpacity < 1.0f && !resultList.IsEmpty()) {
+  else if (disp->mOpacity < 1.0f && !resultList.IsEmpty()) {
     rv = resultList.AppendNewToTop(
         new (aBuilder) nsDisplayOpacity(aBuilder, this, &resultList));
     if (NS_FAILED(rv))
@@ -1809,11 +1823,12 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 
   
   
-  PRBool isComposited = disp->mOpacity != 1.0f || aChild->IsTransformed()
+  PRBool isVisuallyAtomic = disp->mOpacity != 1.0f
+    || aChild->IsTransformed()
     || nsSVGIntegrationUtils::UsingEffectsForFrame(aChild);
 
   PRBool isPositioned = disp->IsPositioned();
-  if (isComposited || isPositioned || disp->IsFloating() ||
+  if (isVisuallyAtomic || isPositioned || disp->IsFloating() ||
       (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
     
     pseudoStackingContext = PR_TRUE;
@@ -1858,7 +1873,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   nsDisplayList extraPositionedDescendants;
   const nsStylePosition* pos = aChild->GetStylePosition();
   if ((isPositioned && pos->mZIndex.GetUnit() == eStyleUnit_Integer) ||
-      isComposited || (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
+      isVisuallyAtomic || (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
     
     rv = aChild->BuildDisplayListForStackingContext(aBuilder, dirty, &list);
     if (NS_SUCCEEDED(rv)) {
@@ -1910,7 +1925,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   }
   NS_ENSURE_SUCCESS(rv, rv);
     
-  if (isPositioned || isComposited ||
+  if (isPositioned || isVisuallyAtomic ||
       (aFlags & DISPLAY_CHILD_FORCE_STACKING_CONTEXT)) {
     
     

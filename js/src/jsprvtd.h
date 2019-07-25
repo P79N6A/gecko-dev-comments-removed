@@ -134,7 +134,6 @@ class AutoStringRooter;
 class ExecuteArgsGuard;
 class InvokeFrameGuard;
 class InvokeArgsGuard;
-class InvokeSessionGuard;
 class StringBuffer;
 class TraceRecorder;
 struct TraceMonitor;
@@ -316,11 +315,6 @@ typedef struct JSDebugHooks {
     JSDebugErrorHook    debugErrorHook;
     void                *debugErrorHookData;
 } JSDebugHooks;
-
-
-
-
-
 
 
 

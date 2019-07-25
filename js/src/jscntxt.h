@@ -513,14 +513,6 @@ struct JSRuntime {
     volatile ptrdiff_t  gcMallocBytes;
 
   public:
-    js::GCChunkAllocator    *gcChunkAllocator;
-
-    void setCustomGCChunkAllocator(js::GCChunkAllocator *allocator) {
-        JS_ASSERT(allocator);
-        JS_ASSERT(state == JSRTS_DOWN);
-        gcChunkAllocator = allocator;
-    }
-
     
 
 
@@ -1498,8 +1490,7 @@ class AutoGCRooter {
         STRING =      -14, 
         IDVECTOR =    -15, 
         OBJVECTOR =   -16, 
-        TYPE =        -17, 
-        IONMASM =     -18  
+        IONMASM =     -17  
     };
 
     private:
