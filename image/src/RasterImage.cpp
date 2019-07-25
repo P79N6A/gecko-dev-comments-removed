@@ -55,7 +55,6 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 static bool gInitializedPrefCaches = false;
 static PRUint32 gDecodeBytesAtATime = 0;
 static PRUint32 gMaxMSBeforeYield = 0;
-static PRUint32 gMaxBytesForSyncDecode = 0;
 
 static void
 InitPrefCaches()
@@ -64,8 +63,6 @@ InitPrefCaches()
                                "image.mem.decode_bytes_at_a_time", 200000);
   Preferences::AddUintVarCache(&gMaxMSBeforeYield,
                                "image.mem.max_ms_before_yield", 400);
-  Preferences::AddUintVarCache(&gMaxBytesForSyncDecode,
-                               "image.mem.max_bytes_for_sync_decode", 150000);
   gInitializedPrefCaches = true;
 }
 
@@ -2463,8 +2460,12 @@ RasterImage::RequestDecode()
     return NS_OK;
 
   
-  if (!mDecoded && !mInDecoder && mHasSourceData && (mSourceData.Length() < gMaxBytesForSyncDecode))
-    return SyncDecode();
+  
+  
+  if (!mDecoded && !mInDecoder && mHasSourceData) {
+    DecodeWorker::Singleton()->DecodeABitOf(this);
+    return NS_OK;
+  }
 
   
   
@@ -2894,6 +2895,25 @@ RasterImage::DecodeWorker::RequestDecode(RasterImage* aImg)
 {
   AddDecodeRequest(&aImg->mDecodeRequest);
   EnsurePendingInEventLoop();
+}
+
+void
+RasterImage::DecodeWorker::DecodeABitOf(RasterImage* aImg)
+{
+  TimeStamp eventStart = TimeStamp::Now();
+
+  do {
+    DecodeSomeOfImage(aImg);
+
+    
+    
+    if (aImg->mDecoder &&
+        !aImg->mError &&
+        !aImg->IsDecodeFinished() &&
+        aImg->mSourceData.Length() > aImg->mBytesDecoded) {
+      RequestDecode(aImg);
+    }
+  } while ((TimeStamp::Now() - eventStart).ToMilliseconds() <= gMaxMSBeforeYield);
 }
 
 void

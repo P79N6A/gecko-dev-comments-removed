@@ -398,6 +398,12 @@ private:
 
 
 
+    void DecodeABitOf(RasterImage* aImg);
+
+    
+
+
+
 
 
 
