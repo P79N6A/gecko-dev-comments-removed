@@ -78,8 +78,7 @@ pref("browser.dictionaries.download.url", "https://addons.mozilla.org/%LOCALE%/%
 
 
 
-
-pref("app.update.timer", 600000);
+pref("app.update.timerMinimumDelay", 120);
 
 
 
