@@ -231,7 +231,7 @@ ArchiveReader::VerifyProductInformation(const char *MARChannelID,
 
     int versionCompareResult = 
       NS_CompareVersions(appVersion, productInfoBlock.productVersion);
-    if (-1 == versionCompareResult) {
+    if (1 == versionCompareResult) {
       rv = VERSION_DOWNGRADE_ERROR;
     }
   }
