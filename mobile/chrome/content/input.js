@@ -859,87 +859,90 @@ KineticController.prototype = {
     this._velocity.set(0, 0);
   },
 
+  isActive: function isActive() {
+    return this._active;
+  },
+
   _startTimer: function _startTimer() {
-    this._active = true;
-    mozRequestAnimationFrame(this);
-  },
+    let self = this;
 
-  _calcP: function _calcP(v0, a, t) {
-    
-    
-    
-    
-    
-    
-    
-    let c = this._exponentialC;
-    return v0 * Math.exp(-t / c) * -c + a * t * t + v0 * c;
-  },
-
-  _calcV: function _calcV(v0, a, t) {
-    let c = this._exponentialC;
-    return v0 * Math.exp(-t / c) + 2 * a * t;
-  },
-
-  onBeforePaint: function onBeforePaint(timeStamp) {
     let lastp = this._position;  
     let v0 = this._velocity;  
     let a = this._acceleration;  
-    let px = 0;
-    let py = 0;
+    let c = this._exponentialC;
+    let p = new Point(0, 0);
     let dx, dy, t, realt;
 
-    
-    
-    if (!this.isActive() || this._paused)
-      return;
-
-    
-    
-    
-    realt = timeStamp - this._initialTime;
-    this._time += this._updateInterval;
-    t = (this._time + realt) / 2;
-
-    
-    px = this._calcP(v0.x, a.x, t);
-    py = this._calcP(v0.y, a.y, t);
-    dx = Math.round(px - lastp.x);
-    dy = Math.round(py - lastp.y);
-
-    
-    if (dx * a.x > 0) {
-      dx = 0;
-      lastp.x = 0;
-      v0.x = 0;
-      a.x = 0;
-    }
-    
-    if (dy * a.y > 0) {
-      dy = 0;
-      lastp.y = 0;
-      v0.y = 0;
-      a.y = 0;
+    function calcP(v0, a, t) {
+      
+      
+      
+      
+      
+      
+      
+      return v0 * Math.exp(-t / c) * -c + a * t * t + v0 * c;
     }
 
-    if (v0.x == 0 && v0.y == 0) {
-      this.end();
-    } else {
-      let panStop = false;
-      if (dx != 0 || dy != 0) {
-        try { panStop = !this._panBy(-dx, -dy, true); } catch (e) {}
-        lastp.add(dx, dy);
+    this._calcV = function(v0, a, t) {
+      return v0 * Math.exp(-t / c) + 2 * a * t;
+    }
+
+    let callback = {
+      onBeforePaint: function kineticHandleEvent(timeStamp) {
+        
+        
+        if (!self.isActive() || self._paused)
+          return;
+
+        
+        
+        
+        realt = timeStamp - self._initialTime;
+        self._time += self._updateInterval;
+        t = (self._time + realt) / 2;
+
+        
+        p.x = calcP(v0.x, a.x, t);
+        p.y = calcP(v0.y, a.y, t);
+        dx = Math.round(p.x - lastp.x);
+        dy = Math.round(p.y - lastp.y);
+
+        
+        if (dx * a.x > 0) {
+          dx = 0;
+          lastp.x = 0;
+          v0.x = 0;
+          a.x = 0;
+        }
+        
+        if (dy * a.y > 0) {
+          dy = 0;
+          lastp.y = 0;
+          v0.y = 0;
+          a.y = 0;
+        }
+
+        if (v0.x == 0 && v0.y == 0) {
+          self.end();
+        } else {
+          let panStop = false;
+          if (dx != 0 || dy != 0) {
+            try { panStop = !self._panBy(-dx, -dy, true); } catch (e) {}
+            lastp.add(dx, dy);
+          }
+
+          if (panStop)
+            self.end();
+          else
+            mozRequestAnimationFrame(this);
+        }
       }
+    };
 
-      if (panStop)
-        this.end();
-      else
-        mozRequestAnimationFrame(this);
-    }
-  },
-
-  isActive: function isActive() {
-    return this._active;
+    this._active = true;
+    this._paused = false;
+    mozRequestAnimationFrame(callback);
   },
 
   start: function start() {
@@ -975,6 +978,7 @@ KineticController.prototype = {
     let currentVelocityY = 0;
 
     if (this.isActive()) {
+      
       let currentTime = Date.now() - this._initialTime;
       currentVelocityX = Util.clamp(this._calcV(this._velocity.x, this._acceleration.x, currentTime), -kMaxVelocity, kMaxVelocity);
       currentVelocityY = Util.clamp(this._calcV(this._velocity.y, this._acceleration.y, currentTime), -kMaxVelocity, kMaxVelocity);
