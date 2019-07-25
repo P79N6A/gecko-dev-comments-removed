@@ -1583,6 +1583,7 @@ SessionStoreService.prototype = {
       entry.cacheKey = cacheKey.data;
     }
     entry.ID = aEntry.ID;
+    entry.docshellID = aEntry.docshellID;
     
     if (aEntry.referrerURI)
       entry.referrer = aEntry.referrerURI.spec;
@@ -2698,7 +2699,12 @@ SessionStoreService.prototype = {
 
       didStartLoad = true;
       try {
-        browser.webNavigation.gotoIndex(activeIndex);
+        
+        
+        
+        browser.webNavigation.sessionHistory.getEntryAtIndex(activeIndex, true);
+        browser.webNavigation.sessionHistory.
+          QueryInterface(Ci.nsISHistory_2_0_BRANCH).reloadCurrentEntry();
       }
       catch (ex) {
         
@@ -2812,6 +2818,9 @@ SessionStoreService.prototype = {
       }
       shEntry.ID = id;
     }
+
+    if (aEntry.docshellID)
+      shEntry.docshellID = aEntry.docshellID;
 
     if (aEntry.stateData) {
       shEntry.stateData = aEntry.stateData;
