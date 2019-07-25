@@ -1209,6 +1209,22 @@ NS_INTERFACE_MAP_END
 
 
 NS_IMETHODIMP
+WebGLContext::GetDrawingBufferWidth(WebGLsizei *aWidth)
+{
+    *aWidth = mWidth;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
+WebGLContext::GetDrawingBufferHeight(WebGLsizei *aHeight)
+{
+    *aHeight = mHeight;
+    return NS_OK;
+}
+
+
+NS_IMETHODIMP
 WebGLUniformLocation::GetLocation(WebGLint *aLocation)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
