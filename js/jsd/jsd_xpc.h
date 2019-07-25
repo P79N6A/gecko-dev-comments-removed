@@ -13,6 +13,7 @@
 #include "nsCOMPtr.h"
 #include "nspr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -33,7 +34,7 @@ struct PCMapEntry {
 
 
 
-class jsdObject : public jsdIObject
+class jsdObject MOZ_FINAL : public jsdIObject
 {
   public:
     NS_DECL_ISUPPORTS
