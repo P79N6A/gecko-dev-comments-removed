@@ -64,8 +64,6 @@
 
 
 
-
-
 #ifdef DEBUG
 nsresult
 nsHTMLEditorEventListener::Connect(nsEditor* aEditor)
@@ -134,17 +132,8 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
   nsresult res = mouseEvent->GetButton(&buttonNumber);
   NS_ENSURE_SUCCESS(res, res);
 
-  PRBool isContextClick;
+  PRBool isContextClick = buttonNumber == 2;
 
-#if defined(XP_MACOSX)
-  
-  res = mouseEvent->GetCtrlKey(&isContextClick);
-  NS_ENSURE_SUCCESS(res, res);
-#else
-  
-  isContextClick = buttonNumber == 2;
-#endif
-  
   PRInt32 clickCount;
   res = mouseEvent->GetDetail(&clickCount);
   NS_ENSURE_SUCCESS(res, res);
@@ -245,14 +234,8 @@ nsHTMLEditorEventListener::MouseDown(nsIDOMEvent* aMouseEvent)
           }
         }
 
-
-
-        if (nsTextEditUtils::IsBody(node) ||
-            nsHTMLEditUtils::IsTableCellOrCaption(node) ||
-            nsHTMLEditUtils::IsTableRow(node) ||
-            nsHTMLEditUtils::IsTable(node))
+        if (isContextClick && !nsHTMLEditUtils::IsImage(node))
         {
-          
           selection->Collapse(parent, offset);
         }
         else
