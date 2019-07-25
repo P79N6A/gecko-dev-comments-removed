@@ -3120,10 +3120,13 @@ IonBuilder::jsop_getelem_dense()
     if (!needsHoleCheck && !barrier) {
         knownType = types->getKnownTypeTag(cx);
 
-        if (knownType == JSVAL_TYPE_UNDEFINED)
-            return pushConstant(UndefinedValue());
-        if (knownType == JSVAL_TYPE_NULL)
-            return pushConstant(NullValue());
+        
+        
+        
+        
+        
+        if (knownType == JSVAL_TYPE_UNDEFINED || knownType == JSVAL_TYPE_NULL)
+            knownType = JSVAL_TYPE_UNKNOWN;
     }
 
     
