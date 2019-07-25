@@ -835,59 +835,74 @@ Narcissus.jsexec = (function() {
         jsdefs.defineProperty(proto, "constructor", this, false, false, true);
     }
 
+    function getPropertyDescriptor(obj, name) {
+        while (obj) {
+            if (({}).hasOwnProperty.call(obj, name))
+                return Object.getOwnPropertyDescriptor(obj, name);
+            obj = Object.getPrototypeOf(obj);
+        }
+    }
+
+    function getOwnProperties(obj) {
+        var map = {};
+        for (var name in Object.getOwnPropertyNames(obj))
+            map[name] = Object.getOwnPropertyDescriptor(obj, name);
+        return map;
+    }
+
     
-    function newFunction(n,x) {
-        var f = new FunctionObject(n, x.scope);
-        var p = Proxy.createFunction(
+    function newFunction(n, x) {
+        var fobj = new FunctionObject(n, x.scope);
+
+        
+        
+        var handler = {
+            getOwnPropertyDescriptor: function(name) {
+                var desc = Object.getOwnPropertyDescriptor(fobj, name);
 
                 
+                desc.configurable = true;
+                return desc;
+            },
+            getPropertyDescriptor: function(name) {
+                var desc = getPropertyDescriptor(fobj, name);
+
                 
-                function(obj) { return {
-                    getOwnPropertyDescriptor: function(name) {
-                        var desc = Object.getOwnPropertyDescriptor(obj);
+                desc.configurable = true;
+                return desc;
+            },
+            getOwnPropertyNames: function() {
+                return Object.getOwnPropertyNames(fobj);
+            },
+            defineProperty: function(name, desc) {
+                Object.defineProperty(fobj, name, desc);
+            },
+            delete: function(name) { return delete fobj[name]; },
+            fix: function() {
+                if (Object.isFrozen(fobj)) {
+                    return getOwnProperties(fobj);
+                }
 
-                        
-                        desc.configurable = true;
-                        return desc;
-                     },
-                    getPropertyDescriptor: function(name) {
-                        var desc = Object.getPropertyDescriptor(obj); 
+                
+                return undefined; 
+            },
 
-                        
-                        desc.configurable = true;
-                        return desc;
-                    },
-                    getOwnPropertyNames: function() {
-                        return Object.getOwnPropertyNames(obj);
-                    },
-                    defineProperty: function(name, desc) {
-                        Object.defineProperty(obj, name, desc);
-                    },
-                    delete: function(name) { return delete obj[name]; },
-                    fix: function() {
-                        if (Object.isFrozen(obj)) {
-                            return Object.getOwnProperties(obj); 
-                        }
+            has: function(name) { return name in fobj; },
+            hasOwn: function(name) { return ({}).hasOwnProperty.call(fobj, name); },
+            get: function(receiver, name) { return fobj[name]; },
 
-                        
-                        return undefined; 
-                    },
-
-                    has: function(name) { return name in obj; },
-                    hasOwn: function(name) { return ({}).hasOwnProperty.call(obj, name); },
-                    get: function(receiver, name) { return obj[name]; },
-
-                    
-                    set: function(receiver, name, val) { obj[name] = val; return true; },
-                    enumerate: function() {
-                        var result = [];
-                        for (name in obj) { result.push(name); };
-                        return result;
-                    },
-                    enumerateOwn: function() { return Object.keys(obj); } };
-                }(f),
-                function() { return f.__call__(this, arguments, x); },
-                function() { return f.__construct__(arguments, x); });
+            
+            set: function(receiver, name, val) { fobj[name] = val; return true; },
+            enumerate: function() {
+                var result = [];
+                for (name in fobj) { result.push(name); };
+                return result;
+            },
+            keys: function() { return Object.keys(fobj); }
+        };
+        var p = Proxy.createFunction(handler,
+                                     function() { return fobj.__call__(this, arguments, x); },
+                                     function() { return fobj.__construct__(arguments, x); });
         return p;
     }
 
