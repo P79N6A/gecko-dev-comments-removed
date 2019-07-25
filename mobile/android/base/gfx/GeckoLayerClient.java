@@ -74,7 +74,7 @@ public abstract class GeckoLayerClient extends LayerClient implements GeckoEvent
     
     protected ViewportMetrics mNewGeckoViewport;
 
-    private static final long MIN_VIEWPORT_CHANGE_DELAY = 200L;
+    private static final long MIN_VIEWPORT_CHANGE_DELAY = 25L;
     private long mLastViewportChangeTime;
     private boolean mPendingViewportAdjust;
     private boolean mViewportSizeChanged;
