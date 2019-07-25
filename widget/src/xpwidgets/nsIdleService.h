@@ -48,6 +48,7 @@
 #include "nsTArray.h"
 #include "nsIObserver.h"
 #include "nsIIdleService.h"
+#include "nsCategoryCache.h"
 
 
 
@@ -106,6 +107,11 @@ private:
 
 
   static void DailyCallback(nsITimer* aTimer, void* aClosure);
+
+  
+
+
+  nsCategoryCache<nsIObserver> mCategoryObservers;
 };
 
 class nsIdleService : public nsIIdleService

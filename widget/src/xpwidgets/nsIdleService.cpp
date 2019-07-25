@@ -91,6 +91,13 @@ nsIdleServiceDaily::Observe(nsISupports *,
   (void)observerService->NotifyObservers(nsnull,
                                          OBSERVER_TOPIC_IDLE_DAILY,
                                          nsnull);
+
+  
+  const nsCOMArray<nsIObserver> &entries = mCategoryObservers.GetEntries();
+  for (PRInt32 i = 0; i < entries.Count(); ++i) {
+    (void)entries[i]->Observe(nsnull, OBSERVER_TOPIC_IDLE_DAILY, nsnull);
+  }
+
   
   if (NS_SUCCEEDED(mIdleService->RemoveIdleObserver(this, MAX_IDLE_POLL_INTERVAL))) {
     mObservesIdle = false;
@@ -114,6 +121,7 @@ nsIdleServiceDaily::nsIdleServiceDaily(nsIdleService* aIdleService)
   : mIdleService(aIdleService)
   , mObservesIdle(false)
   , mTimer(do_CreateInstance(NS_TIMER_CONTRACTID))
+  , mCategoryObservers(OBSERVER_TOPIC_IDLE_DAILY)
 {
   
   
