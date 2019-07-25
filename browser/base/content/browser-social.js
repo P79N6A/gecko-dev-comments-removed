@@ -205,10 +205,8 @@ var SocialToolbar = {
 
   showAmbientPopup: function SocialToolbar_showAmbientPopup(iconContainer) {
     let iconImage = iconContainer.firstChild;
-    let panel = document.getElementById("social-notification-panel");
-    let notifBrowser = document.getElementById("social-notification-browser");
-
-    panel.hidden = false;
+    var panel = document.getElementById("social-notification-panel");
+    var notifBrowser = document.getElementById("social-notification-browser");
 
     function sizePanelToContent() {
       

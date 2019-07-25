@@ -221,7 +221,7 @@
       </hbox>
     </panel>
 
-    <panel id="social-notification-panel" type="arrow" hidden="true" noautofocus="true">
+    <panel id="social-notification-panel" type="arrow">
       <browser id="social-notification-browser" type="content" flex="1"/>
     </panel>
 
