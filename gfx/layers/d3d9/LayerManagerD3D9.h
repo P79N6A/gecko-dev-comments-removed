@@ -180,8 +180,9 @@ public:
 
   void SetClippingEnabled(bool aEnabled);
 
-  void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode)
-    { mDeviceManager->SetShaderMode(aMode); }
+  void SetShaderMode(DeviceManagerD3D9::ShaderMode aMode,
+                     Layer* aMask, bool aIs2D = true)
+    { mDeviceManager->SetShaderMode(aMode, aMask, aIs2D); }
 
   IDirect3DDevice9 *device() const { return mDeviceManager->device(); }
   DeviceManagerD3D9 *deviceManager() const { return mDeviceManager; }
@@ -195,6 +196,9 @@ public:
     if(aDeviceManager == mDefaultDeviceManager)
       mDefaultDeviceManager = nsnull;
   }
+
+  virtual gfxASurface::gfxImageFormat MaskImageFormat() 
+  { return gfxASurface::ImageFormatARGB32; }
 
 #ifdef MOZ_LAYERS_HAVE_LOG
   virtual const char* Name() const { return "D3D9"; }
@@ -297,6 +301,22 @@ public:
     device()->SetPixelShaderConstantF(CBfLayerOpacity, opacity, 1);
   }
 
+  
+
+
+
+
+
+
+
+
+
+
+  virtual already_AddRefed<IDirect3DTexture9> GetAsTexture(gfxIntSize* aSize)
+  {
+    return nsnull;
+  }
+ 
 protected:
   LayerManagerD3D9 *mD3DManager;
 };
