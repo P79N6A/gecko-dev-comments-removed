@@ -76,6 +76,9 @@ public:
   
   
   
+  
+  
+  
   virtual nsresult Init();
 
 protected:
