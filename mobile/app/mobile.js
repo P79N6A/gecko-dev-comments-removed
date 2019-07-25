@@ -48,6 +48,9 @@ pref("browser.ui.panning.fixup.mousemove", true);
 pref("browser.ui.panning.fixup.mousemove", false);
 #endif
 
+
+pref("ui.use_native_popup_windows", true);
+
 pref("javascript.options.showInConsole", false);
 
 
