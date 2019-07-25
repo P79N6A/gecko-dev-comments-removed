@@ -2684,6 +2684,10 @@ js_GC(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind)
     JSRuntime *rt = cx->runtime;
 
     
+    if (rt->inOOMReport)
+        return;
+
+    
 
 
 

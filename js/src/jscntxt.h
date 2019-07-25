@@ -705,6 +705,13 @@ struct JSRuntime {
     size_t               mjitDataSize;
 #endif
 
+    
+
+
+
+
+    bool                 inOOMReport;
+
     JSRuntime();
     ~JSRuntime();
 
