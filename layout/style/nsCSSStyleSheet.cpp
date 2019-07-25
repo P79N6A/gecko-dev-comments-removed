@@ -1589,7 +1589,7 @@ nsCSSStyleSheet::DidDirty()
 }
 
 nsresult
-nsCSSStyleSheet::SubjectSubsumesInnerPrincipal() const
+nsCSSStyleSheet::SubjectSubsumesInnerPrincipal()
 {
   
   nsIScriptSecurityManager *securityManager =
@@ -1612,7 +1612,26 @@ nsCSSStyleSheet::SubjectSubsumesInnerPrincipal() const
   }
   
   if (!nsContentUtils::IsCallerTrustedForWrite()) {
-    return NS_ERROR_DOM_SECURITY_ERR;
+    
+    if (GetCORSMode() == CORS_NONE) {
+      return NS_ERROR_DOM_SECURITY_ERR;
+    }
+
+    
+    
+    
+    
+    
+    if (!mInner->mComplete) {
+      return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+    }
+
+    rv = WillDirty();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mInner->mPrincipal = subjectPrincipal;
+
+    DidDirty();
   }
 
   return NS_OK;

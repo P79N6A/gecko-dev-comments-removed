@@ -266,7 +266,8 @@ protected:
   
   
   
-  nsresult SubjectSubsumesInnerPrincipal() const;
+  
+  nsresult SubjectSubsumesInnerPrincipal();
 
   
   nsresult RegisterNamespaceRule(mozilla::css::Rule* aRule);
