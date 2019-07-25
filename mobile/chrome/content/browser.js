@@ -135,6 +135,7 @@ var Browser = {
   supportsCommand : function(cmd) {
     var isSupported = false;
     switch (cmd) {
+      case "cmd_menu":
       case "cmd_fullscreen":
       case "cmd_addons":
       case "cmd_downloads":
@@ -153,10 +154,14 @@ var Browser = {
 
   doCommand : function(cmd) {
     var browser = this.content.browser;
+    var controls = document.getElementById("browser-controls");
 
     switch (cmd) {
+      case "cmd_menu":
+        controls.collapsed = !controls.collapsed;
+        break;
       case "cmd_fullscreen":
-        window.fullScreen = window.fullScreen ? false : true;
+        window.fullScreen = !window.fullScreen;
         break;
       case "cmd_addons":
       {
@@ -239,9 +244,9 @@ ProgressController.prototype = {
 
   
   onLocationChange : function(aWebProgress, aRequest, aLocation) {
-    
+
     this._hostChanged = true;
-    
+
     if (aWebProgress.DOMWindow == this._browser.contentWindow) {
       BrowserUI.setURI();
       this._tabbrowser.updateCanvasState(true);
@@ -293,7 +298,7 @@ ProgressController.prototype = {
       
     }
     getIdentityHandler().checkIdentity(this._state, locationObj);
-    
+
   },
 
   QueryInterface : function(aIID) {
@@ -313,13 +318,13 @@ function IdentityHandler() {
   this._stringBundle = document.getElementById("bundle_browser");
   this._staticStrings = {};
   this._staticStrings[this.IDENTITY_MODE_DOMAIN_VERIFIED] = {
-    encryption_label: this._stringBundle.getString("identity.encrypted")  
+    encryption_label: this._stringBundle.getString("identity.encrypted")
   };
   this._staticStrings[this.IDENTITY_MODE_IDENTIFIED] = {
     encryption_label: this._stringBundle.getString("identity.encrypted")
   };
   this._staticStrings[this.IDENTITY_MODE_UNKNOWN] = {
-    encryption_label: this._stringBundle.getString("identity.unencrypted")  
+    encryption_label: this._stringBundle.getString("identity.unencrypted")
   };
 
   this._cacheElements();
@@ -358,7 +363,7 @@ IdentityHandler.prototype = {
     displaySecurityInfo();
     event.stopPropagation();
   },
-  
+
   
 
 
@@ -367,10 +372,10 @@ IdentityHandler.prototype = {
     var result = {};
     var status = this._lastStatus.QueryInterface(Components.interfaces.nsISSLStatus);
     var cert = status.serverCert;
-    
+
     
     result.subjectOrg = cert.organization;
-    
+
     
     if (cert.subjectName) {
       result.subjectNameFields = {};
@@ -378,20 +383,20 @@ IdentityHandler.prototype = {
         var field = v.split("=");
         this[field[0]] = field[1];
       }, result.subjectNameFields);
-      
+
       
       result.city = result.subjectNameFields.L;
       result.state = result.subjectNameFields.ST;
       result.country = result.subjectNameFields.C;
     }
-    
+
     
     result.caOrg =  cert.issuerOrganization || cert.issuerCommonName;
     result.cert = cert;
-    
+
     return result;
   },
-  
+
   
 
 
@@ -407,7 +412,7 @@ IdentityHandler.prototype = {
                                 .SSLStatus;
     this._lastStatus = currentStatus;
     this._lastLocation = location;
-    
+
     if (state & Components.interfaces.nsIWebProgressListener.STATE_IDENTITY_EV_TOPLEVEL)
       this.setMode(this.IDENTITY_MODE_IDENTIFIED);
     else if (state & Components.interfaces.nsIWebProgressListener.STATE_SECURE_HIGH)
@@ -415,7 +420,7 @@ IdentityHandler.prototype = {
     else
       this.setMode(this.IDENTITY_MODE_UNKNOWN);
   },
-  
+
   
 
 
@@ -432,7 +437,7 @@ IdentityHandler.prototype = {
       return this._lastLocation.hostname;
     }
   },
-  
+
   
 
 
@@ -446,12 +451,12 @@ IdentityHandler.prototype = {
 
     this._identityBox.className = newMode;
     this.setIdentityMessages(newMode);
-    
+
     
     if (this._identityPopup.state == "open")
       this.setPopupMessages(newMode);
   },
-  
+
   
 
 
@@ -477,30 +482,30 @@ IdentityHandler.prototype = {
       
       var tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                           [iData.caOrg]);
+
       
       
       
       
-      
-      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname, 
+      if (this._overrideService.hasMatchingOverride(this._lastLocation.hostname,
                                                     (this._lastLocation.port || 443),
                                                     iData.cert, {}, {}))
         tooltip = this._stringBundle.getString("identity.identified.verified_by_you");
     }
     else if (newMode == this.IDENTITY_MODE_IDENTIFIED) {
       
-      iData = this.getIdentityData();  
+      iData = this.getIdentityData();
       tooltip = this._stringBundle.getFormattedString("identity.identified.verifier",
                                                       [iData.caOrg]);
     }
     else {
       tooltip = this._stringBundle.getString("identity.unknown.tooltip");
     }
-    
+
     
     this._identityBox.tooltipText = tooltip;
   },
-  
+
   
 
 
@@ -509,17 +514,17 @@ IdentityHandler.prototype = {
 
 
   setPopupMessages : function(newMode) {
-      
+
     this._identityPopup.className = newMode;
     this._identityPopupContentBox.className = newMode;
-    
+
     
     this._identityPopupEncLabel.textContent = this._staticStrings[newMode].encryption_label;
-    
+
     
     var supplemental = "";
     var verifier = "";
-    
+
     if (newMode == this.IDENTITY_MODE_DOMAIN_VERIFIED) {
       var iData = this.getIdentityData();
       var host = this.getEffectiveHost();
@@ -531,12 +536,12 @@ IdentityHandler.prototype = {
       
       iData = this.getIdentityData();
       host = this.getEffectiveHost();
-      owner = iData.subjectOrg; 
+      owner = iData.subjectOrg;
       verifier = this._identityBox.tooltipText;
 
       
       if (iData.city)
-        supplemental += iData.city + "\n";        
+        supplemental += iData.city + "\n";
       if (iData.state && iData.country)
         supplemental += this._stringBundle.getFormattedString("identity.identified.state_and_country",
                                                               [iData.state, iData.country]);
@@ -550,7 +555,7 @@ IdentityHandler.prototype = {
       host = "";
       owner = "";
     }
-    
+
     
     this._identityPopupContentHost.textContent = host;
     this._identityPopupContentOwner.textContent = owner;
@@ -566,9 +571,9 @@ IdentityHandler.prototype = {
 
 
   handleIdentityButtonEvent : function(event) {
-  
+
     event.stopPropagation();
- 
+
     if ((event.type == "click" && event.button != 0) ||
         (event.type == "keypress" && event.charCode != KeyEvent.DOM_VK_SPACE &&
          event.keyCode != KeyEvent.DOM_VK_RETURN))
@@ -577,20 +582,20 @@ IdentityHandler.prototype = {
     
     
     this._identityPopup.hidden = false;
-    
+
     
     this._identityPopup.popupBoxObject
         .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-    
+
     
     this.setPopupMessages(this._identityBox.className);
-    
+
     
     this._identityPopup.openPopup(this._identityBox, 'after_start');
   }
 };
 
-var gIdentityHandler; 
+var gIdentityHandler;
 
 
 
@@ -599,5 +604,5 @@ var gIdentityHandler;
 function getIdentityHandler() {
   if (!gIdentityHandler)
     gIdentityHandler = new IdentityHandler();
-  return gIdentityHandler;    
+  return gIdentityHandler;
 }
