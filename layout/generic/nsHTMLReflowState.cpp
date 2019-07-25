@@ -534,12 +534,8 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameT
     (mStylePosition->HeightDependsOnContainer() &&
      
      mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) ||
-    (mStylePosition->MinHeightDependsOnContainer() &&
-     
-     mStylePosition->mMinHeight.GetUnit() != eStyleUnit_Auto) ||
-    (mStylePosition->MaxHeightDependsOnContainer() &&
-     
-     mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_Auto) ||
+    mStylePosition->MinHeightDependsOnContainer() ||
+    mStylePosition->MaxHeightDependsOnContainer() ||
     mStylePosition->OffsetHasPercent(NS_SIDE_TOP) ||
     mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
     frame->IsBoxFrame();
