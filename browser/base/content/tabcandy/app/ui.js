@@ -34,7 +34,7 @@ Navbar = {
       el.collapsed = false; 
     else { 
       var self = this;
-      setTimeout(function() {
+      iQ.timeout(function() {
         self.show();
       }, 300); 
     }
@@ -47,7 +47,7 @@ Navbar = {
       el.collapsed = true; 
     else { 
       var self = this;
-      setTimeout(function() {
+      iQ.timeout(function() {
         self.hide();
       }, 300); 
     }
@@ -269,7 +269,7 @@ window.Page = {
     this.setupKeyHandlers();
         
     Tabs.onClose(function(){
-      setTimeout(function() { 
+      iQ.timeout(function() { 
         
         
         var group = Groups.getActiveGroup();
@@ -289,15 +289,11 @@ window.Page = {
     
     Tabs.onFocus(function() {
       var focusTab = this;
-      
-      var sTime = (new Date()).getTime();
-      Utils.log("Tabcandy got focus. Timer starter:", sTime);
 
       
       if( focusTab.contentWindow == window ){
         UI.focused = true;
         Page.hideChrome();
-        Utils.log("Chrome Hidden. Elapsed time:", (new Date()).getTime()-sTime);
         var currentTab = UI.currentTab;
         if(currentTab != null && currentTab.mirror != null) {
           
@@ -330,23 +326,14 @@ window.Page = {
               zIndex: 999999,
               '-moz-transform': 'rotate(0deg)'
           });
-          Utils.log("Tab CSS set. Elapsed time:", (new Date()).getTime()-sTime);
           
-          setTimeout(function() { 
-            
-            
-            
-            Utils.log("Start animation elapsed time:", (new Date()).getTime()-sTime);
-            var animStart = (new Date()).getTime();
+          iQ.timeout(function() { 
             $tab.animate({
               top: pos.top, left: pos.left,
               width: w, height: h
             }, {
               duration: 350,
               complete: function() { 
-                
-                
-                Utils.log("350ms animation took (in ms)", (new Date()).getTime()-animStart);              
                 $tab.css({
                   zIndex: z,
                   '-moz-transform': transform
@@ -363,7 +350,7 @@ window.Page = {
           }, 1);
         }
       } else { 
-        setTimeout(function() { 
+        iQ.timeout(function() { 
           UI.focused = false;
           Page.showChrome();
           var item = TabItems.getItemByTabElement(Utils.activeTab.mirror.el);
@@ -544,7 +531,7 @@ UIClass.prototype = {
       }
       
       Tabs.onOpen(function(a, b) {
-        setTimeout(function() { 
+        iQ.timeout(function() { 
           self.navBar.show();
         }, 1);
       });

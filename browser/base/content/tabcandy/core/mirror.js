@@ -186,7 +186,7 @@ TabMirror.prototype = {
     
     Tabs.onOpen(function() { 
       var tab = this;
-      setTimeout(function() { 
+      iQ.timeout(function() { 
         self.update(tab);
       }, 1);
     });
@@ -194,7 +194,7 @@ TabMirror.prototype = {
     
     Tabs.onReady( function(evt){
       var tab = evt.tab;
-      setTimeout(function() { 
+      iQ.timeout(function() { 
         self.update(tab);
       }, 1);
     });
@@ -202,7 +202,7 @@ TabMirror.prototype = {
     
     Tabs.onClose( function(){
       var tab = this;
-      setTimeout(function() { 
+      iQ.timeout(function() { 
         self.unlink(tab);
       }, 1);
     });
@@ -286,7 +286,7 @@ TabMirror.prototype = {
   
   _fireNextHeartbeat: function() {
     var self = this;
-    window.setTimeout(function() {
+    iQ.timeout(function() {
       self._heartbeat();
     }, 100);
   },   

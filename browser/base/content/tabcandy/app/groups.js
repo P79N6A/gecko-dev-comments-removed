@@ -1097,7 +1097,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     
     
     
-    setTimeout(function(){
+    iQ.timeout(function(){
       Page.hideChrome()
     }, 1);
     
@@ -1140,7 +1140,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
                 
                 
                 
-                setTimeout(function(){
+                iQ.timeout(function(){
                   UI.tabBar.showOnlyTheseTabs(Groups.getActiveGroup()._children);
                 }, 400);
               }
