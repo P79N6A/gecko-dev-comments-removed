@@ -50,15 +50,6 @@
 namespace js {
 namespace mjit {
 
-struct StateRemat {
-    typedef JSC::MacroAssembler::RegisterID RegisterID;
-    union {
-        RegisterID reg : 31;
-        uint32 offset  : 31;
-    };
-    bool inReg : 1;
-};
-
 struct Uses {
     explicit Uses(uint32 nuses)
       : nuses(nuses)
@@ -71,38 +62,6 @@ struct Changes {
       : nchanges(nchanges)
     { }
     uint32 nchanges;
-};
-
-class MaybeRegisterID {
-    typedef JSC::MacroAssembler::RegisterID RegisterID;
-
-  public:
-    MaybeRegisterID()
-      : reg_(Registers::ReturnReg), set(false)
-    { }
-
-    MaybeRegisterID(RegisterID reg)
-      : reg_(reg), set(true)
-    { }
-
-    inline RegisterID reg() const { JS_ASSERT(set); return reg_; }
-    inline void setReg(const RegisterID r) { reg_ = r; set = true; }
-    inline bool isSet() const { return set; }
-
-    MaybeRegisterID & operator =(const MaybeRegisterID &other) {
-        set = other.set;
-        reg_ = other.reg_;
-        return *this;
-    }
-
-    MaybeRegisterID & operator =(RegisterID r) {
-        setReg(r);
-        return *this;
-    }
-
-  private:
-    RegisterID reg_;
-    bool set;
 };
 
 
@@ -248,12 +207,14 @@ class FrameState
         }
 
         void pin() {
+            JS_ASSERT(fe_ != NULL);
             assertConsistency();
             save_ = fe_;
             fe_ = NULL;
         }
 
         void unpin() {
+            JS_ASSERT(save_ != NULL);
             assertConsistency();
             fe_ = save_;
             save_ = NULL;
@@ -412,13 +373,6 @@ class FrameState
 
 
 
-    inline void emitLoadTypeTag(FrameEntry *fe, RegisterID reg) const;
-    inline void emitLoadTypeTag(Assembler &masm, FrameEntry *fe, RegisterID reg) const;
-
-    
-
-
-
     inline void convertInt32ToDouble(Assembler &masm, FrameEntry *fe,
                                      FPRegisterID fpreg) const;
 
@@ -490,7 +444,7 @@ class FrameState
     void unpinEntry(const ValueRemat &vr);
 
     
-    void syncEntry(Assembler &masm, FrameEntry *fe, const ValueRemat &vr);
+    void ensureValueSynced(Assembler &masm, FrameEntry *fe, const ValueRemat &vr);
 
     struct BinaryAlloc {
         MaybeRegisterID lhsType;
@@ -516,7 +470,7 @@ class FrameState
                         bool resultNeeded = true);
 
     
-    void ensureFullRegs(FrameEntry *fe);
+    void ensureFullRegs(FrameEntry *fe, MaybeRegisterID *typeReg, MaybeRegisterID *dataReg);
 
     
 
@@ -590,7 +544,7 @@ class FrameState
 
 
 
-    void loadTo(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
+    void loadForReturn(FrameEntry *fe, RegisterID typeReg, RegisterID dataReg, RegisterID tempReg);
 
     
 
@@ -669,6 +623,12 @@ class FrameState
 
 
 
+    inline Jump testUndefined(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
     inline Jump testInt32(Assembler::Condition cond, FrameEntry *fe);
 
     
@@ -718,6 +678,11 @@ class FrameState
 
 
     inline void unpinKilledReg(RegisterID reg);
+
+    
+    MaybeRegisterID maybePinData(FrameEntry *fe);
+    MaybeRegisterID maybePinType(FrameEntry *fe);
+    void maybeUnpinReg(MaybeRegisterID reg);
 
     
 
@@ -792,15 +757,26 @@ class FrameState
     void evictReg(RegisterID reg);
     inline FrameEntry *rawPush();
     inline void addToTracker(FrameEntry *fe);
-    inline void syncType(const FrameEntry *fe, Address to, Assembler &masm) const;
-    inline void syncData(const FrameEntry *fe, Address to, Assembler &masm) const;
+
+    
+    inline void ensureFeSynced(const FrameEntry *fe, Assembler &masm) const;
+    inline void ensureTypeSynced(const FrameEntry *fe, Assembler &masm) const;
+    inline void ensureDataSynced(const FrameEntry *fe, Assembler &masm) const;
+
+    
+    inline void syncFe(FrameEntry *fe);
+    inline void syncType(FrameEntry *fe);
+    inline void syncData(FrameEntry *fe);
+
     inline FrameEntry *getLocal(uint32 slot);
     inline void forgetAllRegs(FrameEntry *fe);
     inline void swapInTracker(FrameEntry *lhs, FrameEntry *rhs);
     inline uint32 localIndex(uint32 n);
     void pushCopyOf(uint32 index);
+#if defined JS_NUNBOX32
     void syncFancy(Assembler &masm, Registers avail, FrameEntry *resumeAt,
                    FrameEntry *bottom) const;
+#endif
     inline bool tryFastDoubleLoad(FrameEntry *fe, FPRegisterID fpReg, Assembler &masm) const;
     void resetInternalState();
 
@@ -874,7 +850,9 @@ class FrameState
 
     RegisterState regstate[Assembler::TotalRegisters];
 
+#if defined JS_NUNBOX32
     mutable ImmutableSync reifier;
+#endif
 
     JSPackedBool *closedVars;
     bool eval;

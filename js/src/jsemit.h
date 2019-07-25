@@ -557,6 +557,8 @@ struct JSCodeGenerator : public JSTreeContext
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
+    uint16          traceIndex;     
+    
     
 
 
@@ -808,6 +810,7 @@ typedef enum JSSrcNoteType {
     SRC_WHILE       = 4,        
 
 
+    SRC_TRACE       = 4,        
     SRC_CONTINUE    = 5,        
 
 

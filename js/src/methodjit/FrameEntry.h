@@ -97,6 +97,12 @@ class FrameEntry
         return isTypeKnown() && getKnownType() != type_;
     }
 
+    
+    
+    bool mightBeType(JSValueType type_) const {
+        return !isNotType(type_);
+    }
+
 #if defined JS_NUNBOX32
     uint32 getPayload() const {
         
@@ -195,6 +201,7 @@ class FrameEntry
 
     FrameEntry *copyOf() const {
         JS_ASSERT(isCopy());
+        JS_ASSERT(copy < this);
         return copy;
     }
 

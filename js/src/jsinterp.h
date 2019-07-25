@@ -59,10 +59,12 @@ struct JSFrameRegs
 };
 
 
-enum JSInterpFlags
+enum JSInterpMode
 {
-    JSINTERP_RECORD            =     0x1, 
-    JSINTERP_SAFEPOINT         =     0x2  
+    JSINTERP_NORMAL            =     0, 
+    JSINTERP_RECORD            =     1, 
+    JSINTERP_SAFEPOINT         =     2, 
+    JSINTERP_PROFILE           =     3  
 };
 
 
@@ -83,7 +85,7 @@ enum JSFrameFlags
     
     JSFRAME_ASSIGNING          =   0x100, 
     JSFRAME_YIELDING           =   0x200, 
-    JSFRAME_BAILED_AT_RETURN   =   0x400, 
+    JSFRAME_FINISHED_IN_INTERPRETER = 0x400, 
 
     
     JSFRAME_OVERRIDE_ARGS      =  0x1000, 
@@ -129,10 +131,6 @@ struct JSStackFrame
     void                *hookData_;     
     void                *annotation_;   
 
-#if JS_BITS_PER_WORD == 32
-    void                *padding;
-#endif
-
     friend class js::StackSpace;
     friend class js::FrameRegsIter;
     friend struct JSContext;
@@ -177,6 +175,10 @@ struct JSStackFrame
         return flags_ & JSFRAME_EVAL;
     }
 
+    bool isExecuteFrame() const {
+        return !!(flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL));
+    }
+
     
 
 
@@ -190,6 +192,9 @@ struct JSStackFrame
     
     inline void initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
                               uint32 nactual, uint32 flags);
+
+    
+    inline void resetInvokeCallFrame();
 
     
     inline void initCallFrameCallerHalf(JSContext *cx, uint32 nactual, uint32 flags);
@@ -368,7 +373,8 @@ struct JSStackFrame
     template <class Op> inline void forEachCanonicalActualArg(Op op);
     template <class Op> inline void forEachFormalArg(Op op);
 
-    
+    inline void clearMissingArgs();
+
     bool hasArgsObj() const {
         return !!(flags_ & JSFRAME_HAS_ARGS_OBJ);
     }
@@ -423,7 +429,7 @@ struct JSStackFrame
         return formalArgs()[-1];
     }
 
-    inline JSObject *computeThisObject(JSContext *cx);
+    inline bool computeThis(JSContext *cx);
 
     
 
@@ -558,7 +564,7 @@ struct JSStackFrame
 
     
 
-    const js::Value& returnValue() {
+    const js::Value &returnValue() {
         if (!(flags_ & JSFRAME_HAS_RVAL))
             rval_.setUndefined();
         return rval_;
@@ -680,12 +686,12 @@ struct JSStackFrame
         flags_ &= ~JSFRAME_YIELDING;
     }
 
-    bool isBailedAtReturn() const {
-        return flags_ & JSFRAME_BAILED_AT_RETURN;
+    void setFinishedInInterpreter() {
+        flags_ |= JSFRAME_FINISHED_IN_INTERPRETER;
     }
 
-    void setBailedAtReturn() {
-        flags_ |= JSFRAME_BAILED_AT_RETURN;
+    bool finishedInInterpreter() const {
+        return !!(flags_ & JSFRAME_FINISHED_IN_INTERPRETER);
     }
 
     
@@ -777,27 +783,34 @@ namespace js {
 
 static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value);
 
-} 
+extern JSObject *
+GetBlockChain(JSContext *cx, JSStackFrame *fp);
+
+extern JSObject *
+GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+
+extern JSObject *
+GetScopeChain(JSContext *cx);
+
+
+
+
+
+
 
 
 extern JSObject *
-js_GetBlockChain(JSContext *cx, JSStackFrame *fp);
+GetScopeChain(JSContext *cx, JSStackFrame *fp);
 
 extern JSObject *
-js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
 
 
 
 
-
-
-
-extern JSObject *
-js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
-
-extern JSObject *
-js_GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+void
+ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp);
 
 
 
@@ -807,12 +820,8 @@ js_GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
 
 
-
-extern JSBool
-js_GetPrimitiveThis(JSContext *cx, js::Value *vp, js::Class *clasp,
-                    const js::Value **vpp);
-
-namespace js {
+template <typename T>
+bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
 
 inline void
 PutActivationObjects(JSContext *cx, JSStackFrame *fp);
@@ -840,13 +849,11 @@ ComputeThisFromVpInPlace(JSContext *cx, js::Value *vp)
     return ComputeThisFromArgv(cx, vp + 2);
 }
 
+
 JS_ALWAYS_INLINE bool
 PrimitiveThisTest(JSFunction *fun, const Value &v)
 {
-    uint16 flags = fun->flags;
-    return (v.isString() && !!(flags & JSFUN_THISP_STRING)) ||
-           (v.isNumber() && !!(flags & JSFUN_THISP_NUMBER)) ||
-           (v.isBoolean() && !!(flags & JSFUN_THISP_BOOLEAN));
+    return !v.isPrimitive() || fun->acceptsPrimitiveThis();
 }
 
 
@@ -884,6 +891,32 @@ struct CallArgs
 
 extern JS_REQUIRES_STACK bool
 Invoke(JSContext *cx, const CallArgs &args, uint32 flags);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class InvokeSessionGuard;
 
 
 
@@ -953,7 +986,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
 
 
 extern JS_REQUIRES_STACK JS_NEVER_INLINE bool
-Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, uintN interpFlags = 0);
+Interpret(JSContext *cx, JSStackFrame *stopFp, uintN inlineCallCount = 0, JSInterpMode mode = JSINTERP_NORMAL);
 
 extern JS_REQUIRES_STACK bool
 RunScript(JSContext *cx, JSScript *script, JSStackFrame *fp);
@@ -1055,7 +1088,7 @@ js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, js::Value *vp, js::Value *vp2);
 
 
 extern JS_REQUIRES_STACK void
-js_TraceOpcode(JSContext *cx);
+js_LogOpcode(JSContext *cx);
 
 
 
