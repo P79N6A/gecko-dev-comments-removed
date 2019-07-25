@@ -1152,6 +1152,13 @@ pref("intl.hyphenation-alias.sh-*", "sh");
 pref("intl.hyphenation-alias.sr-*", "sh");
 pref("intl.hyphenation-alias.bs-*", "sh");
 
+
+
+pref("intl.hyphenation-alias.no", "nb");
+pref("intl.hyphenation-alias.no-*", "nb");
+pref("intl.hyphenation-alias.nb-*", "nb");
+pref("intl.hyphenation-alias.nn-*", "nn");
+
 pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Standard Symbols L, DejaVu Sans, Cambria Math");
 
 
