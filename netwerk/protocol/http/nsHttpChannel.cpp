@@ -4298,8 +4298,26 @@ nsHttpChannel::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult st
         mListenerContext = 0;
     }
 
-    if (mCacheEntry)
+    if (mCacheEntry) {
+        bool asFile = false;
+        if (mInitedCacheEntry && !mCachedContentIsPartial &&
+            (NS_SUCCEEDED(mStatus) || contentComplete) &&
+            (mCacheAccess & nsICache::ACCESS_WRITE) &&
+            NS_SUCCEEDED(GetCacheAsFile(&asFile)) && asFile) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            mCacheEntry->MarkValid();
+        }
         CloseCacheEntry(!contentComplete);
+    }
 
     if (mOfflineCacheEntry)
         CloseOfflineCacheEntry();
