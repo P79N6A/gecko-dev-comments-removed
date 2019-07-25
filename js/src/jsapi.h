@@ -1599,26 +1599,26 @@ typedef void (*JSClassInternal)();
 
 
 struct JSClass {
-    const char          *name;                                                \
-    uint32              flags;                                                \
-                                                                              \
-                            \
-    JSPropertyOp        addProperty;                                          \
-    JSPropertyOp        delProperty;                                          \
-    JSPropertyOp        getProperty;                                          \
-    JSPropertyOp        setProperty;                                          \
-    JSEnumerateOp       enumerate;                                            \
-    JSResolveOp         resolve;                                              \
-    JSConvertOp         convert;                                              \
-    JSFinalizeOp        finalize;                                             \
-                                                                              \
-                                 \
-    JSClassInternal     reserved0;                                            \
-    JSCheckAccessOp     checkAccess;                                          \
-    JSNative            call;                                                 \
-    JSNative            construct;                                            \
-    JSXDRObjectOp       xdrObject;                                            \
-    JSHasInstanceOp     hasInstance;                                          \
+    const char          *name;
+    uint32              flags;
+
+    
+    JSPropertyOp        addProperty;
+    JSPropertyOp        delProperty;
+    JSPropertyOp        getProperty;
+    JSPropertyOp        setProperty;
+    JSEnumerateOp       enumerate;
+    JSResolveOp         resolve;
+    JSConvertOp         convert;
+    JSFinalizeOp        finalize;
+
+    
+    JSClassInternal     reserved0;
+    JSCheckAccessOp     checkAccess;
+    JSNative            call;
+    JSNative            construct;
+    JSXDRObjectOp       xdrObject;
+    JSHasInstanceOp     hasInstance;
     JSMarkOp            mark;
 
     JSClassInternal     reserved1;
