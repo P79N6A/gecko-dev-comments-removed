@@ -36,9 +36,12 @@
 
 #include <stdlib.h>
 #include <time.h>
+extern "C" {
 #include "sydney_audio.h"
+}
 
 #include "android/log.h"
+#include "media/AudioTrack.h"
 
 #ifndef ALOG
 #if defined(DEBUG) || defined(FORCE_ALOG)
@@ -46,15 +49,19 @@
 #else
 #define ALOG(args...)
 #endif
-#endif 
+#endif
 
 
 
-
+#define NANOSECONDS_PER_SECOND     1000000000
 #define NANOSECONDS_IN_MILLISECOND 1000000
 #define MILLISECONDS_PER_SECOND    1000
 
+using namespace android;
+
 struct sa_stream {
+  AudioTrack *output_unit;
+
   unsigned int rate;
   unsigned int channels;
   unsigned int isPaused;
@@ -103,10 +110,11 @@ sa_stream_create_pcm(
 
 
   sa_stream_t *s;
-  if ((s = malloc(sizeof(sa_stream_t))) == NULL) {
+  if ((s = (sa_stream_t *)malloc(sizeof(sa_stream_t))) == NULL) {
     return SA_ERROR_OOM;
   }
 
+  s->output_unit = NULL;
   s->rate        = rate;
   s->channels    = channels;
   s->isPaused    = 0;
@@ -115,7 +123,7 @@ sa_stream_create_pcm(
   s->timePlaying = 0;
   s->amountWritten = 0;
 
-  s->bufferSize = rate * channels;
+  s->bufferSize = 0;
 
   *_s = s;
   return SA_SUCCESS;
@@ -128,8 +136,47 @@ sa_stream_open(sa_stream_t *s) {
   if (s == NULL) {
     return SA_ERROR_NO_INIT;
   }
+  if (s->output_unit != NULL) {
+    return SA_ERROR_INVALID;
+  }
 
-  return SA_ERROR_NO_DEVICE;
+  int32_t chanConfig = s->channels == 1 ?
+    AudioSystem::CHANNEL_OUT_MONO : AudioSystem::CHANNEL_OUT_STEREO;
+
+  int frameCount;
+  if (AudioTrack::getMinFrameCount(&frameCount, AudioSystem::DEFAULT,
+                                   s->rate) != NO_ERROR) {
+    return SA_ERROR_INVALID;
+  }
+  int minsz = frameCount * s->channels * sizeof(int16_t);
+
+  s->bufferSize = s->rate * s->channels * sizeof(int16_t);
+  if (s->bufferSize < minsz) {
+    s->bufferSize = minsz;
+  }
+
+  AudioTrack *track =
+    new AudioTrack(AudioSystem::SYSTEM,
+                   s->rate,
+                   AudioSystem::PCM_16_BIT,
+                   chanConfig,
+                   frameCount,
+                   0,
+                   NULL, NULL,
+                   0,
+                   0);
+
+  if (track->initCheck() != NO_ERROR) {
+    delete track;
+    return SA_ERROR_INVALID;
+  }
+
+  s->output_unit = track;
+
+  ALOG("%p - New stream %u %u bsz=%u min=%u", s, s->rate, s->channels,
+       s->bufferSize, minsz);
+
+  return SA_SUCCESS;
 }
 
 
@@ -140,6 +187,19 @@ sa_stream_destroy(sa_stream_t *s) {
     return SA_ERROR_NO_INIT;
   }
 
+  static bool firstLeaked = 0;
+  if (s->output_unit) {
+    s->output_unit->stop();
+    s->output_unit->flush();
+    
+    if (firstLeaked)
+      delete s->output_unit;
+    else
+      firstLeaked = true;
+  }
+  free(s);
+
+  ALOG("%p - Stream destroyed", s);
   return SA_SUCCESS;
 }
 
@@ -153,14 +213,42 @@ sa_stream_destroy(sa_stream_t *s) {
 int
 sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
 
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
   if (nbytes == 0) {
     return SA_SUCCESS;
   }
 
-  return SA_SUCCESS;
+  const char *p = (char *)data;
+  ssize_t r = 0;
+  size_t wrote = 0;
+  do {
+    size_t towrite = nbytes - wrote;
+
+    r = s->output_unit->write(p, towrite);
+    if (r < 0) {
+      ALOG("%p - Write failed %d", s, r);
+      break;
+    }
+
+    
+
+
+
+    if (r != towrite) {
+      ALOG("%p - Buffer full, starting playback", s);
+      sa_stream_resume(s);
+    }
+
+    p += r;
+    wrote += r;
+  } while (wrote < nbytes);
+
+  ALOG("%p - Wrote %u", s,  nbytes);
+  s->amountWritten += nbytes;
+
+  return r < 0 ? SA_ERROR_INVALID : SA_SUCCESS;
 }
 
 
@@ -173,10 +261,20 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
 int
 sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
 
+  
+
+  *size = s->bufferSize - ((s->timePlaying * s->channels * s->rate * sizeof(int16_t) /
+                            MILLISECONDS_PER_SECOND) - s->amountWritten);
+
+  
+  if (*size > s->bufferSize) {
+    *size = s->bufferSize;
+  }
+  ALOG("%p - Write Size tp=%lld aw=%u sz=%zu", s, s->timePlaying, s->amountWritten, *size);
 
   return SA_SUCCESS;
 }
@@ -185,11 +283,20 @@ sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 int
 sa_stream_get_position(sa_stream_t *s, sa_position_t position, int64_t *pos) {
 
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
 
+  ALOG("%p - get position", s);
 
+  uint32_t framePosition;
+  if (s->output_unit->getPosition(&framePosition) != NO_ERROR)
+    return SA_ERROR_INVALID;
+
+  
+
+
+  *pos = framePosition * s->channels * sizeof(int16_t);
   return SA_SUCCESS;
 }
 
@@ -197,11 +304,23 @@ sa_stream_get_position(sa_stream_t *s, sa_position_t position, int64_t *pos) {
 int
 sa_stream_pause(sa_stream_t *s) {
 
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
 
+  s->isPaused = 1;
 
+  
+  if (s->lastStartTime != 0) {
+    
+    struct timespec current_time;
+    clock_gettime(CLOCK_REALTIME, &current_time);
+    int64_t ticker = current_time.tv_sec * 1000 + current_time.tv_nsec / 1000000;
+    s->timePlaying += ticker - s->lastStartTime;
+  }
+  ALOG("%p - Pause total time playing: %lld total written: %lld", s,  s->timePlaying, s->amountWritten);
+
+  s->output_unit->pause();
   return SA_SUCCESS;
 }
 
@@ -209,11 +328,21 @@ sa_stream_pause(sa_stream_t *s) {
 int
 sa_stream_resume(sa_stream_t *s) {
 
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
 
+  ALOG("%p - resume", s);
 
+  s->isPaused = 0;
+
+  
+  struct timespec current_time;
+  clock_gettime(CLOCK_REALTIME, &current_time);
+  int64_t ticker = current_time.tv_sec * 1000 + current_time.tv_nsec / 1000000;
+  s->lastStartTime = ticker;
+
+  s->output_unit->start();
   return SA_SUCCESS;
 }
 
@@ -221,10 +350,35 @@ sa_stream_resume(sa_stream_t *s) {
 int
 sa_stream_drain(sa_stream_t *s)
 {
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
 
+
+
+
+
+
+
+
+
+  size_t available;
+  sa_stream_get_write_size(s, &available);
+
+  void *p = calloc(1, s->bufferSize);
+  sa_stream_write(s, p, s->bufferSize);
+  free(p);
+
+  
+
+  unsigned long long x = (s->bufferSize - available) * 1000 / s->channels / s->rate /
+                         sizeof(int16_t) * NANOSECONDS_IN_MILLISECOND;
+  ALOG("%p - Drain - flush %u, sleep for %llu ns", s, available, x);
+
+  struct timespec ts = {(time_t)(x / NANOSECONDS_PER_SECOND),
+                        (time_t)(x % NANOSECONDS_PER_SECOND)};
+  nanosleep(&ts, NULL);
+  s->output_unit->flush();
 
   return SA_SUCCESS;
 }
@@ -239,11 +393,11 @@ sa_stream_drain(sa_stream_t *s)
 int
 sa_stream_set_volume_abs(sa_stream_t *s, float vol) {
 
-  if (s == NULL) {
+  if (s == NULL || s->output_unit == NULL) {
     return SA_ERROR_NO_INIT;
   }
 
-
+  s->output_unit->setVolume(vol, vol);
   return SA_SUCCESS;
 }
 
