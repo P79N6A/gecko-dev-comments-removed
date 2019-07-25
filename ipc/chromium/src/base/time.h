@@ -182,15 +182,15 @@ class Time {
   
   
   struct Exploded {
-    int year;          
-    int month;         
-    int day_of_week;   
-    int day_of_month;  
-    int hour;          
-    int minute;        
-    int second;        
-                       
-    int millisecond;   
+    int year;                 
+    signed char month;        
+    signed char day_of_week;  
+    signed char day_of_month; 
+    signed char hour;         
+    signed char minute;       
+    signed char second;       
+                              
+    int millisecond;          
   };
 
   
