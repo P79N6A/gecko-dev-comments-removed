@@ -1644,9 +1644,11 @@ AndroidBridge::CheckURIVisited(const nsAString& aURI)
     if (!env)
         return;
 
-    AutoLocalJNIFrame jniFrame(env);
+    AutoLocalJNIFrame jniFrame(env, 1);
     jstring jstrURI = env->NewString(nsPromiseFlatString(aURI).get(), aURI.Length());
-    env->CallStaticVoidMethod(mGeckoAppShellClass, jCheckUriVisited, jstrURI);
+    
+    if (!jniFrame.CheckForException())
+        env->CallStaticVoidMethod(mGeckoAppShellClass, jCheckUriVisited, jstrURI);
 }
 
 void
