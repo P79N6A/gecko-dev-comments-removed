@@ -34,71 +34,175 @@
 
 
 
-
-
-#ifndef __NS_SVGPATHSEG_H__
-#define __NS_SVGPATHSEG_H__
+#ifndef MOZILLA_DOMSVGPATHSEG_H__
+#define MOZILLA_DOMSVGPATHSEG_H__
 
 #include "nsIDOMSVGPathSeg.h"
-#include "nsIWeakReference.h"
-#include "nsSVGUtils.h"
-#include "nsSVGPathDataParser.h"
+#include "DOMSVGPathSegList.h"
+#include "SVGPathSegUtils.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsAutoPtr.h"
+
+class nsSVGElement;
 
 
-#define NS_SVGPATHSEG_IID \
-  { 0x0dfd1b3c, 0x5638, 0x4813, \
-    { 0xa6, 0xf8, 0x5a, 0x32, 0x5a, 0x35, 0xd0, 0x6e } }
 
-#define NS_ENSURE_NATIVE_PATH_SEG(obj, retval)            \
-  {                                                       \
-    nsCOMPtr<nsSVGPathSeg> path = do_QueryInterface(obj); \
-    if (!path) {                                          \
-      *retval = nsnull;                                   \
-      return NS_ERROR_DOM_SVG_WRONG_TYPE_ERR;             \
-    }                                                     \
-  }
 
-class nsSVGPathSegList;
-class nsISVGValue;
 
-struct nsSVGPathSegTraversalState {
-  float curPosX, startPosX, quadCPX, cubicCPX;
-  float curPosY, startPosY, quadCPY, cubicCPY;
-  nsSVGPathSegTraversalState()
-  {
-    curPosX = startPosX = quadCPX = cubicCPX = 0;
-    curPosY = startPosY = quadCPY = cubicCPY = 0;
-  }
-};
 
-class nsSVGPathSeg : public nsIDOMSVGPathSeg
+#define MOZILLA_DOMSVGPATHSEG_IID \
+  { 0x494A7566, 0xDC26, 0x40C8, { 0x91, 0x22, 0x52, 0xAB, 0xD7, 0x68, 0x70, 0xC4 } }
+
+namespace mozilla {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class DOMSVGPathSeg : public nsIDOMSVGPathSeg
 {
 public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_SVGPATHSEG_IID)
-
-  nsSVGPathSeg() : mCurrentList(nsnull) {}
-  nsresult SetCurrentList(nsISVGValue* aList);
-  nsQueryReferent GetCurrentList() const;
-
-  
-  NS_DECL_ISUPPORTS
+  NS_DECLARE_STATIC_IID_ACCESSOR(MOZILLA_DOMSVGPATHSEG_IID)
+  NS_DECL_CYCLE_COLLECTING_ISUPPORTS
+  NS_DECL_CYCLE_COLLECTION_CLASS(DOMSVGPathSeg)
+  NS_DECL_NSIDOMSVGPATHSEG
 
   
-  NS_IMETHOD GetPathSegType(PRUint16 *aPathSegType) = 0;
-  NS_IMETHOD GetPathSegTypeAsLetter(nsAString & aPathSegTypeAsLetter) = 0;
+
+
+  static DOMSVGPathSeg *CreateFor(DOMSVGPathSegList *aList,
+                                  PRUint32 aListIndex,
+                                  PRBool aIsAnimValItem);
 
   
-  NS_IMETHOD GetValueString(nsAString& aValue) = 0;
-  virtual float GetLength(nsSVGPathSegTraversalState *ts) = 0;
+
+
+
+  virtual DOMSVGPathSeg* Clone() = 0;
+
+  PRBool IsInList() const {
+    return !!mList;
+  }
+
+  
+
+
+
+  PRBool HasOwner() const {
+    return !!mList;
+  }
+
+  
+
+
+
+
+
+
+
+
+  void InsertingIntoList(DOMSVGPathSegList *aList,
+                         PRUint32 aListIndex,
+                         PRBool aIsAnimValItem);
+
+  
+  void UpdateListIndex(PRUint8 aListIndex) {
+    mListIndex = aListIndex;
+  }
+
+  
+
+
+
+
+
+  void RemovingFromList();
+
+  
+
+
+
+
+
+  void ToSVGPathSegEncodedData(float *aData);
+
+  
+
+
+  virtual PRUint32 Type() const = 0;
 
 protected:
-  void DidModify();
 
-private:
-  nsCOMPtr<nsIWeakReference> mCurrentList;
+  
+
+
+  DOMSVGPathSeg(DOMSVGPathSegList *aList,
+                PRUint32 aListIndex,
+                PRBool aIsAnimValItem);
+
+  
+
+
+
+
+  DOMSVGPathSeg();
+
+  virtual ~DOMSVGPathSeg() {
+    
+    
+    
+    if (mList) {
+      mList->ItemAt(mListIndex) = nsnull;
+    }
+  }
+
+  nsSVGElement* Element() {
+    return mList->Element();
+  }
+
+  
+
+
+
+
+
+
+
+
+  float* InternalItem();
+
+  virtual float* PtrToMemberArgs() = 0;
+
+#ifdef DEBUG
+  PRBool IndexIsValid();
+#endif
+
+  nsRefPtr<DOMSVGPathSegList> mList;
+
+  
+  
+
+  PRUint32 mListIndex:31;
+  PRUint32 mIsAnimValItem:1; 
 };
 
-NS_DEFINE_STATIC_IID_ACCESSOR(nsSVGPathSeg, NS_SVGPATHSEG_IID)
+NS_DEFINE_STATIC_IID_ACCESSOR(DOMSVGPathSeg, MOZILLA_DOMSVGPATHSEG_IID)
+
+} 
 
 nsIDOMSVGPathSeg*
 NS_NewSVGPathSegClosePath();
@@ -168,6 +272,5 @@ NS_NewSVGPathSegCurvetoQuadraticSmoothAbs(float x, float y);
 
 nsIDOMSVGPathSeg*
 NS_NewSVGPathSegCurvetoQuadraticSmoothRel(float x, float y);
-
 
 #endif 

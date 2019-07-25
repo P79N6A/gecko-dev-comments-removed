@@ -75,6 +75,11 @@ public:
   virtual nsSMILTargetAttrType GetTargetAttributeType() const;
 
   
+  virtual nsIAtom* GetPathDataAttrName() const {
+    return nsGkAtoms::path;
+  }
+
+  
   
   void MpathChanged() { mAnimationFunction.MpathChanged(); }
 

@@ -75,6 +75,7 @@
 #include "nsSVGViewBox.h"
 #include "nsSVGString.h"
 #include "SVGAnimatedLengthList.h"
+#include "SVGAnimatedPathSegList.h"
 #include "nsIDOMSVGUnitTypes.h"
 #include "nsIDOMSVGNumberList.h"
 #include "nsIDOMSVGAnimatedNumberList.h"
@@ -178,6 +179,9 @@ nsSVGElement::Init()
   for (i = 0; i < lengthListInfo.mLengthListCount; i++) {
     lengthListInfo.Reset(i);
   }
+
+  
+  
 
   StringAttributesInfo stringInfo = GetStringInfo();
 
@@ -375,6 +379,22 @@ nsSVGElement::ParseAttribute(PRInt32 aNamespaceID,
 
     if (!foundMatch) {
       
+      if (GetPathDataAttrName() == aAttribute) {
+        SVGAnimatedPathSegList* segList = GetAnimPathSegList();
+        if (segList) {
+          rv = segList->SetBaseValueString(aValue);
+          if (NS_FAILED(rv)) {
+            ReportAttributeParseFailure(GetOwnerDoc(), aAttribute, aValue);
+            
+            
+          }
+          foundMatch = PR_TRUE;
+        }
+      }
+    }
+
+    if (!foundMatch) {
+      
       NumberAttributesInfo numberInfo = GetNumberInfo();
       for (i = 0; i < numberInfo.mNumberCount; i++) {
         if (aAttribute == *numberInfo.mNumberInfo[i].mName) {
@@ -564,6 +584,18 @@ nsSVGElement::UnsetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
           DidChangeLengthList(i, PR_FALSE);
           foundMatch = PR_TRUE;
           break;
+        }
+      }
+    }
+
+    if (!foundMatch) {
+      
+      if (GetPathDataAttrName() == aName) {
+        SVGAnimatedPathSegList *segList = GetAnimPathSegList();
+        if (segList) {
+          segList->ClearBaseValue();
+          DidChangePathSegList(PR_FALSE);
+          foundMatch = PR_TRUE;
         }
       }
     }
@@ -1546,6 +1578,36 @@ nsSVGElement::GetAnimatedLengthList(PRUint8 aAttrEnum)
   return nsnull;
 }
 
+
+void
+nsSVGElement::DidChangePathSegList(PRBool aDoSetAttr)
+{
+  NS_ABORT_IF_FALSE(GetPathDataAttrName(), "Changing non-existant path data?");
+
+  if (!aDoSetAttr)
+    return;
+
+  nsAutoString newStr;
+  GetAnimPathSegList()->GetBaseValue().GetValueAsString(newStr);
+
+  SetAttr(kNameSpaceID_None, GetPathDataAttrName(), newStr, PR_TRUE);
+}
+
+void
+nsSVGElement::DidAnimatePathSegList()
+{
+  NS_ABORT_IF_FALSE(GetPathDataAttrName(),
+                    "Animatinging non-existant path data?");
+
+  nsIFrame* frame = GetPrimaryFrame();
+
+  if (frame) {
+    frame->AttributeChanged(kNameSpaceID_None,
+                            GetPathDataAttrName(),
+                            nsIDOMMutationEvent::MODIFICATION);
+  }
+}
+
 nsSVGElement::NumberAttributesInfo
 nsSVGElement::GetNumberInfo()
 {
@@ -2211,6 +2273,16 @@ nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
       if (aNamespaceID == info.mStringInfo[i].mNamespaceID &&
           aName == *info.mStringInfo[i].mName) {
         return info.mStrings[i].ToSMILAttr(this);
+      }
+    }
+  }
+
+  
+  {
+    if (GetPathDataAttrName() == aName) {
+      SVGAnimatedPathSegList *segList = GetAnimPathSegList();
+      if (segList) {
+        return segList->ToSMILAttr(this);
       }
     }
   }

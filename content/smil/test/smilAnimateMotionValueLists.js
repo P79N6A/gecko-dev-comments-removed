@@ -113,12 +113,18 @@ const gValidPath = [
  "m0 0", "M0, 0"
 ];
 
+
 const gInvalidPath = [
- "m0 0 L30,,30",
- "M20 20em",
  "M20in 20",
  "h30",
  "L50 50",
  "abc",
+];
+
+
+
+const gValidPathWithErrors = [
+ "M20 20em",
+ "m0 0 L30,,30",
  "M10 10 L50 50 abc",
 ];

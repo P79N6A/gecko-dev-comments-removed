@@ -41,7 +41,6 @@
 #include "SVGMotionSMILType.h"
 #include "SVGMotionSMILPathUtils.h"
 #include "nsSVGPathDataParser.h"
-#include "nsSVGPathSeg.h"
 #include "nsSVGPathElement.h" 
 #include "nsSVGMpathElement.h"
 
@@ -253,13 +252,15 @@ SVGMotionSMILAnimationFunction::
   
   nsSVGPathElement* pathElem = aMpathElem->GetReferencedPath();
   if (pathElem) {
-    const nsAttrValue* value = pathElem->GetParsedAttr(nsGkAtoms::d);
-    if (value) {
-      const nsAString& pathSpec = value->GetStringValue();
-      nsresult rv = SetPathVerticesFromPathString(pathSpec);
-      if (NS_SUCCEEDED(rv)) {
+    const SVGPathData &path = pathElem->GetAnimPathSegList()->GetAnimValue();
+    
+    
+    if (path.Length()) {
+      PRBool ok =
+        path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
+      if (ok && mPathVertices.Length()) {
         mPath = pathElem->GetFlattenedPath(
-          pathElem->PrependLocalTransformTo(gfxMatrix()));
+                  pathElem->PrependLocalTransformTo(gfxMatrix()));
       }
     }
   }
@@ -272,63 +273,23 @@ SVGMotionSMILAnimationFunction::RebuildPathAndVerticesFromPathAttr()
   mPathSourceType = ePathSourceType_PathAttr;
 
   
-  nsresult rv;
-  nsSVGPathList pathData;
-  nsSVGPathDataParserToInternal pathParser(&pathData);
-  rv = pathParser.Parse(pathSpec);
-  if (NS_FAILED(rv)) {
-    
+  SVGPathData path;
+  nsSVGPathDataParserToInternal pathParser(&path);
+
+  
+  
+  
+  
+  pathParser.Parse(pathSpec);
+  if (!path.Length()) {
     return;
   }
-  mPath = pathData.GetFlattenedPath(gfxMatrix());
 
-  
-  rv = SetPathVerticesFromPathString(pathSpec);
-
-  if (NS_FAILED(rv)) {
-    
-    
-    
+  mPath = path.ToFlattenedPath(gfxMatrix());
+  PRBool ok = path.GetDistancesFromOriginToEndsOfVisibleSegments(&mPathVertices);
+  if (!ok || !mPathVertices.Length()) {
     mPath = nsnull;
-    NS_WARNING("nsSVGPathDataParserToInternal successfully parsed path string, but "
-               "nsSVGPathDataParserToDOM did not");
   }
-}
-
-nsresult
-SVGMotionSMILAnimationFunction::SetPathVerticesFromPathString(const nsAString& aPathSpec)
-{
-  
-  nsCOMArray<nsIDOMSVGPathSeg> pathSegments;
-  nsSVGPathDataParserToDOM segmentParser(&pathSegments);
-  nsresult rv = segmentParser.Parse(aPathSpec);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  PRUint32 numSegments = pathSegments.Count();
-  nsSVGPathSegTraversalState ts;
-  double runningDistTotal = 0.0;
-  for (PRUint32 i = 0; i < numSegments; ++i) {
-    nsSVGPathSeg* segment = static_cast<nsSVGPathSeg*>(pathSegments[i]);
-
-    PRUint16 type = nsIDOMSVGPathSeg::PATHSEG_UNKNOWN;
-    segment->GetPathSegType(&type);
-    if (i == 0 ||
-        (type != nsIDOMSVGPathSeg::PATHSEG_MOVETO_ABS &&
-         type != nsIDOMSVGPathSeg::PATHSEG_MOVETO_REL)) {
-
-      
-      runningDistTotal += segment->GetLength(&ts);
-
-      
-      if (!mPathVertices.AppendElement(runningDistTotal)) {
-        return NS_ERROR_OUT_OF_MEMORY;
-      }
-    }
-  }
-  return NS_OK;
 }
 
 
