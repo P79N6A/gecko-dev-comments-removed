@@ -40,6 +40,7 @@
 
 
 
+#include "mozilla/Attributes.h"
 
 #include <stdio.h>
 #include <stdlib.h>

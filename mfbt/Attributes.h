@@ -48,10 +48,6 @@
 
 
 
-#ifndef __cplusplus
-#error "mozilla/Attributes.h is only relevant to C++ code."
-#endif
-
 
 
 
@@ -75,6 +71,9 @@
 #  if __has_extension(cxx_override_control)
 #    define MOZ_HAVE_CXX11_OVERRIDE
 #    define MOZ_HAVE_CXX11_FINAL         final
+#  endif
+#  if __has_attribute(noreturn)
+#    define MOZ_HAVE_NORETURN            __attribute__((noreturn))
 #  endif
 #elif defined(__GNUC__)
 #  if defined(__GXX_EXPERIMENTAL_CXX0X__) || __cplusplus >= 201103L
@@ -101,13 +100,37 @@
 #      endif
 #    endif
 #  endif
+#  define MOZ_HAVE_NORETURN              __attribute__((noreturn))
 #elif defined(_MSC_VER)
 #  if _MSC_VER >= 1400
 #    define MOZ_HAVE_CXX11_OVERRIDE
 
 #    define MOZ_HAVE_CXX11_FINAL         sealed
 #  endif
+#  define MOZ_HAVE_NORETURN              __declspec(noreturn)
 #endif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if defined(MOZ_HAVE_NORETURN)
+#  define MOZ_NORETURN          MOZ_HAVE_NORETURN
+#else
+#  define MOZ_NORETURN
+#endif
+
+#ifdef __cplusplus
 
 
 
@@ -246,5 +269,7 @@
 #else
 #  define MOZ_FINAL
 #endif
+
+#endif 
 
 #endif  

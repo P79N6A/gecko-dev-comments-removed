@@ -41,6 +41,8 @@
 #ifndef mozilla_mozalloc_abort_h
 #define mozilla_mozalloc_abort_h
 
+#include "mozilla/Attributes.h"
+
 #if defined(MOZALLOC_EXPORT)
 
 
@@ -58,7 +60,7 @@
 
 
 
-MOZALLOC_EXPORT void mozalloc_abort(const char* const msg) NS_NORETURN;
+MOZ_NORETURN MOZALLOC_EXPORT void mozalloc_abort(const char* const msg);
 
 
 #endif  
