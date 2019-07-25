@@ -1383,16 +1383,7 @@ class Anchor: AnchorPermitted<T> {
         
 
 
-
-
-
-
-
-
-
-
-
-        sink.asBits = hold.asBits;
+        doAssignment(sink, hold);
 #else
         sink = hold;
 #endif
@@ -1412,13 +1403,40 @@ class Anchor: AnchorPermitted<T> {
 
 
 
-template<> class AnchorPermitted<JSObject *> { };
-template<> class AnchorPermitted<const JSObject *> { };
-template<> class AnchorPermitted<JSFunction *> { };
-template<> class AnchorPermitted<const JSFunction *> { };
-template<> class AnchorPermitted<JSString *> { };
-template<> class AnchorPermitted<const JSString *> { };
-template<> class AnchorPermitted<jsval> { };
+class Anchor_base {
+protected:
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+    template<typename T> void doAssignment(volatile T &lhs, const T &rhs) {
+        lhs = rhs;
+    }
+#endif
+};
+template<> class AnchorPermitted<JSObject *> : protected Anchor_base { };
+template<> class AnchorPermitted<const JSObject *> : protected Anchor_base { };
+template<> class AnchorPermitted<JSFunction *> : protected Anchor_base { };
+template<> class AnchorPermitted<const JSFunction *> : protected Anchor_base { };
+template<> class AnchorPermitted<JSString *> : protected Anchor_base { };
+template<> class AnchorPermitted<const JSString *> : protected Anchor_base { };
+template<> class AnchorPermitted<jsval> : protected Anchor_base {
+protected:
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+    void doAssignment(volatile jsval &lhs, const jsval &rhs) {
+        
+
+
+
+
+
+
+
+
+
+
+
+        lhs.asBits = rhs.asBits;
+#endif
+    }
+};
 
 }  
 
