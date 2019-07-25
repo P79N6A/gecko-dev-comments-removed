@@ -360,7 +360,10 @@ nsDOMWindowUtils::SetDisplayPortForElement(float aXPx, float aYPx,
         nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
 
       
-      if (displayport.IsEmpty()) {
+      
+      
+      if (displayport.IsEmpty() &&
+          rootFrame == nsLayoutUtils::GetDisplayRootFrame(rootFrame)) {
         nsCOMPtr<nsIWidget> widget = GetWidget();
         if (widget) {
           bool isRetainingManager;
