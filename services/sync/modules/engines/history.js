@@ -88,7 +88,7 @@ function HistoryStore(name) {
   Store.call(this, name);
 
   
-  Observers.add("places-shutdown", function() {
+  Svc.Obs.add("places-shutdown", function() {
     for each([query, stmt] in Iterator(this._stmts))
       stmt.finalize();
     this.__hsvc = null;
