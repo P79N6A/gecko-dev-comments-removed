@@ -398,7 +398,7 @@ CSS_PROP_BACKGROUND(
     background-attachment,
     background_attachment,
     BackgroundAttachment,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Color,
@@ -411,7 +411,7 @@ CSS_PROP_BACKGROUND(
     background-clip,
     background_clip,
     BackgroundClip,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Color,
@@ -437,7 +437,7 @@ CSS_PROP_BACKGROUND(
     background-image,
     background_image,
     BackgroundImage,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS |
         CSS_PROPERTY_IGNORED_WHEN_COLORS_DISABLED |
@@ -464,7 +464,7 @@ CSS_PROP_BACKGROUND(
     background-origin,
     background_origin,
     BackgroundOrigin,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Color,
@@ -491,7 +491,7 @@ CSS_PROP_BACKGROUND(
     background-repeat,
     background_repeat,
     BackgroundRepeat,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_APPLIES_TO_FIRST_LETTER_AND_FIRST_LINE |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Color,
@@ -2570,11 +2570,11 @@ CSS_PROP_DISPLAY(
     -moz-transition-delay,
     transition_delay,
     MozTransitionDelay,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Display,
     mTransitionDelay,
-    0,
+    VARIANT_TIME, 
     nsnull,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -2582,11 +2582,11 @@ CSS_PROP_DISPLAY(
     -moz-transition-duration,
     transition_duration,
     MozTransitionDuration,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Display,
     mTransitionDuration,
-    0,
+    VARIANT_TIME, 
     nsnull,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
@@ -2606,11 +2606,11 @@ CSS_PROP_DISPLAY(
     -moz-transition-timing-function,
     transition_timing_function,
     MozTransitionTimingFunction,
-    CSS_PROPERTY_PARSE_FUNCTION |
+    CSS_PROPERTY_PARSE_VALUE_LIST |
         CSS_PROPERTY_VALUE_LIST_USES_COMMAS,
     Display,
     mTransitionTimingFunction,
-    0,
+    VARIANT_TIMING_FUNCTION, 
     kTransitionTimingFunctionKTable,
     CSS_PROP_NO_OFFSET,
     eStyleAnimType_None)
