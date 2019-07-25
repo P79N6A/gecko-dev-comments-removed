@@ -2756,6 +2756,14 @@ js_InitFunctionClass(JSContext *cx, JSObject *obj)
     if (!proto)
         return NULL;
 
+    
+
+
+
+    TypeObject *newType = proto->getNewType(cx);
+    if (!newType || !cx->markTypeObjectUnknownProperties(newType))
+        return NULL;
+
     JSFunction *fun = js_NewFunction(cx, proto, NULL, 0, JSFUN_INTERPRETED, obj, NULL, NULL, NULL);
     if (!fun)
         return NULL;
