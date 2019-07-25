@@ -1259,6 +1259,11 @@ public:
   
 
 
+  static PRBool IsSystemPrincipal(nsIPrincipal* aPrincipal);
+
+  
+
+
 
 
 
@@ -1453,6 +1458,13 @@ public:
   
 
 
+
+  static PRBool EqualsIgnoreASCIICase(const nsAString& aStr1,
+                                      const nsAString& aStr2);
+
+  
+
+
   static void ASCIIToLower(const nsAString& aSource, nsAString& aDest);
 
   
@@ -1536,6 +1548,7 @@ public:
     return WrapNative(cx, scope, native, nsnull, vp, aHolder, aAllowWrapping);
   }
 
+  static void StripNullChars(const nsAString& aInStr, nsAString& aOutStr);
 private:
 
   static PRBool InitializeEventTable();

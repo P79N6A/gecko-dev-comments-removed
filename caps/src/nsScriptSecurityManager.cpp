@@ -71,7 +71,6 @@
 #include "nsIFile.h"
 #include "nsIFileURL.h"
 #include "nsIZipReader.h"
-#include "nsIJAR.h"
 #include "nsIPluginInstance.h"
 #include "nsIXPConnect.h"
 #include "nsIScriptGlobalObject.h"
@@ -94,6 +93,7 @@
 #include "nsCDefaultURIFixup.h"
 #include "nsIChromeRegistry.h"
 #include "nsPrintfCString.h"
+#include "nsIContentSecurityPolicy.h"
 
 static NS_DEFINE_CID(kZipReaderCID, NS_ZIPREADER_CID);
 
@@ -512,6 +512,50 @@ NS_IMPL_ISUPPORTS5(nsScriptSecurityManager,
 
 
 
+
+
+JSBool
+nsScriptSecurityManager::ContentSecurityPolicyPermitsJSAction(JSContext *cx)
+{
+    
+    nsScriptSecurityManager *ssm =
+        nsScriptSecurityManager::GetScriptSecurityManager();
+
+    NS_ASSERTION(ssm, "Failed to get security manager service");
+    if (!ssm)
+        return JS_FALSE;
+
+    nsresult rv;
+    nsIPrincipal* subjectPrincipal = ssm->GetSubjectPrincipal(cx, &rv);
+
+    NS_ASSERTION(NS_SUCCEEDED(rv), "CSP: Failed to get nsIPrincipal from js context");
+    if (NS_FAILED(rv))
+        return JS_FALSE; 
+
+    if (!subjectPrincipal)
+        return JS_FALSE;
+
+    nsCOMPtr<nsIContentSecurityPolicy> csp;
+    rv = subjectPrincipal->GetCsp(getter_AddRefs(csp));
+    NS_ASSERTION(NS_SUCCEEDED(rv), "CSP: Failed to get CSP from principal.");
+
+    
+    if (!csp)
+        return JS_TRUE;
+
+    PRBool evalOK = PR_TRUE;
+    
+    
+    rv = csp->GetAllowsEval(&evalOK);
+
+    if (NS_FAILED(rv))
+    {
+        NS_WARNING("CSP: failed to get allowsEval");
+        return JS_TRUE; 
+    }
+
+    return evalOK;
+}
 
 
 JSBool
@@ -1360,6 +1404,19 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
        return NS_ERROR_DOM_BAD_URI;
     }
 
+    NS_NAMED_LITERAL_STRING(errorTag, "CheckLoadURIError");
+
+    
+    PRBool hasFlags;
+    rv = NS_URIChainHasFlags(targetBaseURI,
+                             nsIProtocolHandler::URI_LOADABLE_BY_SUBSUMERS,
+                             &hasFlags);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    if (hasFlags) {
+        return aPrincipal->CheckMayLoad(targetBaseURI, PR_TRUE);
+    }
+
     
     nsCAutoString sourceScheme;
     rv = sourceBaseURI->GetScheme(sourceScheme);
@@ -1379,8 +1436,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
         return NS_OK;
     }
 
-    NS_NAMED_LITERAL_STRING(errorTag, "CheckLoadURIError");
-    
     
     
     
@@ -1398,7 +1453,6 @@ nsScriptSecurityManager::CheckLoadURIWithPrincipal(nsIPrincipal* aPrincipal,
     }
 
     
-    PRBool hasFlags;
     rv = NS_URIChainHasFlags(targetBaseURI,
                              nsIProtocolHandler::URI_IS_UI_RESOURCE,
                              &hasFlags);
@@ -1973,6 +2027,20 @@ nsScriptSecurityManager::CreateCodebasePrincipal(nsIURI* aURI, nsIPrincipal **re
     
     
     
+
+    nsCOMPtr<nsIURIWithPrincipal> uriPrinc = do_QueryInterface(aURI);
+    if (uriPrinc) {
+        nsCOMPtr<nsIPrincipal> principal;
+        uriPrinc->GetPrincipal(getter_AddRefs(principal));
+        if (!principal || principal == mSystemPrincipal) {
+            return CallCreateInstance(NS_NULLPRINCIPAL_CONTRACTID, result);
+        }
+
+        principal.forget(result);
+
+        return NS_OK;
+    }
+
     nsRefPtr<nsPrincipal> codebase = new nsPrincipal();
     if (!codebase)
         return NS_ERROR_OUT_OF_MEMORY;
@@ -2847,9 +2915,7 @@ nsScriptSecurityManager::SetCanEnableCapability(const nsACString& certFingerprin
         rv = systemCertZip->Open(systemCertFile);
         if (NS_SUCCEEDED(rv))
         {
-            nsCOMPtr<nsIJAR> systemCertJar(do_QueryInterface(systemCertZip, &rv));
-            if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
-            rv = systemCertJar->GetCertificatePrincipal(nsnull,
+            rv = systemCertZip->GetCertificatePrincipal(nsnull,
                                                         getter_AddRefs(mSystemCertificate));
             if (NS_FAILED(rv)) return NS_ERROR_FAILURE;
         }
@@ -3340,9 +3406,10 @@ nsresult nsScriptSecurityManager::Init()
     NS_ENSURE_SUCCESS(rv, rv);
 
     static JSSecurityCallbacks securityCallbacks = {
-      CheckObjectAccess,
-      NULL,
-      NULL
+        CheckObjectAccess,
+        NULL,
+        NULL,
+        ContentSecurityPolicyPermitsJSAction
     };
 
 #ifdef DEBUG

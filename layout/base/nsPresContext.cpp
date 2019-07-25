@@ -432,13 +432,19 @@ nsPresContext::GetFontPreferences()
   mDefaultFixedFont.size = CSSPixelsToAppUnits(13);
 
   
-  const char *langGroup = "x-western"; 
+  nsCAutoString langGroup;
   if (mLanguage && mLangService) {
     nsresult rv;
     nsIAtom *group = mLangService->GetLanguageGroup(mLanguage, &rv);
     if (NS_SUCCEEDED(rv) && group) {
-      group->GetUTF8String(&langGroup);
+      group->ToUTF8String(langGroup);
     }
+    else {
+      langGroup.AssignLiteral("x-western"); 
+    }
+  }
+  else {
+    langGroup.AssignLiteral("x-western"); 
   }
 
   nsCAutoString pref;
@@ -1129,8 +1135,8 @@ void
 nsPresContext::SetSMILAnimations(nsIDocument *aDoc, PRUint16 aNewMode,
                                  PRUint16 aOldMode)
 {
-  nsSMILAnimationController *controller = aDoc->GetAnimationController();
-  if (controller) {
+  if (aDoc->HasAnimationController()) {
+    nsSMILAnimationController* controller = aDoc->GetAnimationController();
     switch (aNewMode)
     {
       case imgIContainer::kNormalAnimMode:
@@ -2436,11 +2442,6 @@ nsRootPresContext::GetPluginGeometryUpdates(nsIFrame* aChangedSubtree,
   nsRect bounds;
   if (bounds.IntersectRect(closure.mAffectedPluginBounds,
                            closure.mRootFrame->GetRect())) {
-    
-    
-    
-    nsAutoDisableGetUsedXAssertions disableAssertions;
-
     nsDisplayListBuilder builder(closure.mRootFrame, PR_FALSE, PR_FALSE);
     builder.SetAccurateVisibleRegions();
     nsDisplayList list;

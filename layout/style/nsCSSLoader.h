@@ -46,7 +46,6 @@
 #include "nsCompatibility.h"
 #include "nsDataHashtable.h"
 #include "nsInterfaceHashtable.h"
-#include "nsRefPtrHashtable.h"
 #include "nsTArray.h"
 #include "nsTObserverArray.h"
 #include "nsURIHashKey.h"
@@ -54,12 +53,13 @@
 class nsIAtom;
 class nsICSSImportRule;
 class nsICSSLoaderObserver;
-class nsCSSStyleSheet;
+class nsICSSStyleSheet;
 class nsIContent;
 class nsIDocument;
 class nsIUnicharInputStream;
 class nsCSSParser;
 class nsMediaList;
+class nsPresContext;
 
 namespace mozilla {
 
@@ -154,6 +154,7 @@ public:
   { mCompatMode = aCompatMode; }
   nsCompatibility GetCompatibilityMode() { return mCompatMode; }
   nsresult SetPreferredSheet(const nsAString& aTitle);
+  nsresult GetPreferredSheet(nsAString& aTitle);
 
   
 
@@ -229,7 +230,7 @@ public:
 
 
 
-  nsresult LoadChildSheet(nsCSSStyleSheet* aParentSheet,
+  nsresult LoadChildSheet(nsICSSStyleSheet* aParentSheet,
                           nsIURI* aURL,
                           nsMediaList* aMedia,
                           nsICSSImportRule* aRule);
@@ -263,12 +264,12 @@ public:
 
   nsresult LoadSheetSync(nsIURI* aURL, PRBool aEnableUnsafeRules,
                          PRBool aUseSystemPrincipal,
-                         nsCSSStyleSheet** aSheet);
+                         nsICSSStyleSheet** aSheet);
 
   
 
 
-  nsresult LoadSheetSync(nsIURI* aURL, nsCSSStyleSheet** aSheet) {
+  nsresult LoadSheetSync(nsIURI* aURL, nsICSSStyleSheet** aSheet) {
     return LoadSheetSync(aURL, PR_FALSE, PR_FALSE, aSheet);
   }
 
@@ -296,7 +297,7 @@ public:
                      nsIPrincipal* aOriginPrincipal,
                      const nsCString& aCharset,
                      nsICSSLoaderObserver* aObserver,
-                     nsCSSStyleSheet** aSheet);
+                     nsICSSStyleSheet** aSheet);
 
   
 
@@ -317,7 +318,7 @@ public:
 
 
 
-
+  nsresult StopLoadingSheet(nsIURI* aURL);
 
   
 
@@ -384,25 +385,25 @@ private:
                        nsIPrincipal* aLoaderPrincipal,
                        PRBool aSyncLoad,
                        StyleSheetState& aSheetState,
-                       nsCSSStyleSheet** aSheet);
+                       nsICSSStyleSheet** aSheet);
 
   
   
   
   
-  nsresult PrepareSheet(nsCSSStyleSheet* aSheet,
+  nsresult PrepareSheet(nsICSSStyleSheet* aSheet,
                         const nsAString& aTitle,
                         const nsAString& aMediaString,
                         nsMediaList* aMediaList,
                         PRBool aHasAlternateRel = PR_FALSE,
                         PRBool *aIsAlternate = nsnull);
 
-  nsresult InsertSheetInDoc(nsCSSStyleSheet* aSheet,
+  nsresult InsertSheetInDoc(nsICSSStyleSheet* aSheet,
                             nsIContent* aLinkingContent,
                             nsIDocument* aDocument);
 
-  nsresult InsertChildSheet(nsCSSStyleSheet* aSheet,
-                            nsCSSStyleSheet* aParentSheet,
+  nsresult InsertChildSheet(nsICSSStyleSheet* aSheet,
+                            nsICSSStyleSheet* aParentSheet,
                             nsICSSImportRule* aParentRule);
 
   nsresult InternalLoadNonDocumentSheet(nsIURI* aURL,
@@ -410,7 +411,7 @@ private:
                                         PRBool aUseSystemPrincipal,
                                         nsIPrincipal* aOriginPrincipal,
                                         const nsCString& aCharset,
-                                        nsCSSStyleSheet** aSheet,
+                                        nsICSSStyleSheet** aSheet,
                                         nsICSSLoaderObserver* aObserver);
 
   
@@ -420,7 +421,7 @@ private:
   
   
   nsresult PostLoadEvent(nsIURI* aURI,
-                         nsCSSStyleSheet* aSheet,
+                         nsICSSStyleSheet* aSheet,
                          nsICSSLoaderObserver* aObserver,
                          PRBool aWasAlternate);
 
@@ -452,7 +453,7 @@ private:
   void DoSheetComplete(SheetLoadData* aLoadData, nsresult aStatus,
                        LoadDataArray& aDatasToNotify);
 
-  nsRefPtrHashtable<URIAndPrincipalHashKey, nsCSSStyleSheet>
+  nsInterfaceHashtable<URIAndPrincipalHashKey, nsICSSStyleSheet>
                     mCompleteSheets;
   nsDataHashtable<URIAndPrincipalHashKey, SheetLoadData*>
                     mLoadingDatas; 
