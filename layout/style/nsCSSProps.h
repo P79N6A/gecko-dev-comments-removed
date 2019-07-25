@@ -107,6 +107,19 @@
 PR_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
                   CSS_PROPERTY_VALUE_PARSER_FUNCTION) == 0);
 
+#define CSS_PROPERTY_VALUE_RESTRICTION_MASK       (3<<13)
+
+
+#define CSS_PROPERTY_VALUE_NONNEGATIVE            (1<<13)
+
+
+#define CSS_PROPERTY_VALUE_POSITIVE_NONZERO       (2<<13)
+
+
+#define CSS_PROPERTY_VALUE_AT_LEAST_ONE           (3<<13)
+
+
+
 
 
 
@@ -226,6 +239,26 @@ public:
                       "out of range");
     return nsCSSProps::kFlagsTable[aProperty] &
            CSS_PROPERTY_PARSE_PROPERTY_MASK;
+  }
+
+  static inline PRUint32 ValueRestrictions(nsCSSProperty aProperty)
+  {
+    NS_ABORT_IF_FALSE(0 <= aProperty && aProperty < eCSSProperty_COUNT,
+                      "out of range");
+    return nsCSSProps::kFlagsTable[aProperty] &
+           CSS_PROPERTY_VALUE_RESTRICTION_MASK;
+  }
+
+private:
+  
+  static const PRUint32 kParserVariantTable[eCSSProperty_COUNT_no_shorthands];
+
+public:
+  static inline PRUint32 ParserVariant(nsCSSProperty aProperty) {
+    NS_ABORT_IF_FALSE(0 <= aProperty &&
+                      aProperty < eCSSProperty_COUNT_no_shorthands,
+                      "out of range");
+    return nsCSSProps::kParserVariantTable[aProperty];
   }
 
 private:
