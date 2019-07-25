@@ -251,9 +251,9 @@ public:
                               bool aNullParent = true);
 #if 0
   virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter);
+#endif
   virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
-#endif
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
@@ -317,7 +317,9 @@ public:
   virtual bool TextIsOnlyWhitespace();
   virtual void AppendTextTo(nsAString& aResult);
   virtual nsIContent *GetBindingParent() const;
+#endif
   virtual bool IsNodeOfType(PRUint32 aFlags) const;
+#if 0
   virtual bool IsLink(nsIURI** aURI) const;
 
   virtual void DestroyContent();
@@ -352,7 +354,6 @@ public:
   virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
                                       const nsAString* aSerialized,
                                       bool aNotify);
-#if 0
   NS_IMETHOD_(bool)
     IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
@@ -377,15 +378,12 @@ public:
   {
     return FindAttributeDependence(aAttribute, aMaps, N);
   }
-#endif
 
 private:
-#if 0
   static bool
   FindAttributeDependence(const nsIAtom* aAttribute,
                           const MappedAttributeEntry* const aMaps[],
                           PRUint32 aMapCount);
-#endif
 
 public:
 #if 0
@@ -434,6 +432,7 @@ public:
     
     return nsNodeUtils::CloneNodeImpl(this, aDeep, true, aResult);
   }
+#endif
 
   
 
@@ -453,6 +452,7 @@ public:
 
   nsresult LeaveLink(nsPresContext* aPresContext);
 
+#if 0
   
 
 
@@ -465,9 +465,11 @@ public:
                                       const nsAString& aFeature,
                                       const nsAString& aVersion,
                                       bool* aReturn);
+#endif
 
   static bool ShouldBlur(nsIContent *aContent);
 
+#if 0
   
 
 
@@ -484,6 +486,7 @@ public:
   static nsresult doQuerySelectorAll(nsINode* aRoot,
                                      const nsAString& aSelector,
                                      nsIDOMNodeList **aReturn);
+#endif
 
   
 
@@ -560,7 +563,6 @@ public:
   virtual void RecompileScriptEventListeners()
   {
   }
-#endif
 
   PRInt32 GetScrollTop();
   PRInt32 GetScrollLeft();
@@ -603,11 +605,13 @@ public:
 
 #if 0
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(nsGenericElement)
+#endif
 
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
   {
   }
 
+#if 0
   
 
 
@@ -643,6 +647,7 @@ public:
                            void *aData);
   static void MarkUserDataHandler(void* aObject, nsIAtom* aKey, void* aChild,
                                   void* aData);
+#endif
 
   
 
@@ -661,10 +666,8 @@ public:
 
 
   static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
-#endif
 
 protected:
-#if 0
   
 
 
@@ -675,7 +678,6 @@ protected:
   static const bool kDontNotifyDocumentObservers = false;
   static const bool kCallAfterSetAttr            = true;
   static const bool kDontCallAfterSetAttr        = false;
-#endif
 
   
 
@@ -759,7 +761,6 @@ protected:
 
   
   
-#if 0
   virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
                                  const nsAttrValueOrString* aValue,
                                  bool aNotify)
@@ -794,17 +795,18 @@ protected:
   virtual nsEventListenerManager*
     GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
 
+#if 0
   
 
 
 
   nsresult CopyInnerTo(nsGenericElement* aDest);
+#endif
 
   
 
 
   virtual const nsAttrName* InternalGetExistingAttrNameFromQName(const nsAString& aStr) const;
-#endif
 
   
 
@@ -923,6 +925,7 @@ protected:
   {
     return static_cast<nsDOMSlots*>(GetExistingSlots());
   }
+#endif
 
   void RegisterFreezableElement() {
     OwnerDoc()->RegisterFreezableElement(this);
@@ -931,7 +934,6 @@ protected:
     OwnerDoc()->UnregisterFreezableElement(this);
   }
 
-#endif
   
 
 
@@ -956,7 +958,6 @@ protected:
       }
     }
   }
-#if 0
 
   
 
@@ -996,6 +997,7 @@ protected:
 
   virtual void GetLinkTarget(nsAString& aTarget);
 
+#if 0
   friend class ContentUnbinder;
   
 
@@ -1017,7 +1019,6 @@ private:
 #endif
 };
 
-#if 0
 
 
 
@@ -1094,6 +1095,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
     return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nullptr, aValue, true); \
   }
 
+#if 0
 
 
 

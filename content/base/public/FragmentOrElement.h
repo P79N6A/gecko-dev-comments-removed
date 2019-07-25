@@ -250,9 +250,9 @@ public:
                               bool aNullParent = true);
 #endif
   virtual already_AddRefed<nsINodeList> GetChildren(PRUint32 aFilter);
+#if 0
   virtual nsIAtom *GetClassAttributeName() const;
   virtual already_AddRefed<nsINodeInfo> GetExistingAttrNameFromQName(const nsAString& aStr) const;
-#if 0
   nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                    const nsAString& aValue, bool aNotify)
   {
@@ -316,7 +316,9 @@ public:
   virtual bool TextIsOnlyWhitespace();
   virtual void AppendTextTo(nsAString& aResult);
   virtual nsIContent *GetBindingParent() const;
+#if 0
   virtual bool IsNodeOfType(PRUint32 aFlags) const;
+#endif
   virtual bool IsLink(nsIURI** aURI) const;
 
   virtual void DestroyContent();
@@ -351,7 +353,6 @@ public:
   virtual nsresult SetInlineStyleRule(mozilla::css::StyleRule* aStyleRule,
                                       const nsAString* aSerialized,
                                       bool aNotify);
-#endif
   NS_IMETHOD_(bool)
     IsAttributeMapped(const nsIAtom* aAttribute) const;
   virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
@@ -382,6 +383,7 @@ private:
   FindAttributeDependence(const nsIAtom* aAttribute,
                           const MappedAttributeEntry* const aMaps[],
                           PRUint32 aMapCount);
+#endif
 
 public:
   
@@ -432,6 +434,7 @@ public:
 
   
 
+#if 0
   
 
 
@@ -447,6 +450,7 @@ public:
 
 
   nsresult LeaveLink(nsPresContext* aPresContext);
+#endif
 
   
 
@@ -461,7 +465,9 @@ public:
                                       const nsAString& aVersion,
                                       bool* aReturn);
 
+#if 0
   static bool ShouldBlur(nsIContent *aContent);
+#endif
 
   
 
@@ -480,6 +486,7 @@ public:
                                      const nsAString& aSelector,
                                      nsIDOMNodeList **aReturn);
 
+#if 0
   
 
 
@@ -556,7 +563,6 @@ public:
   {
   }
 
-#if 0
   PRInt32 GetScrollTop();
   PRInt32 GetScrollLeft();
   PRInt32 GetScrollHeight();
@@ -599,9 +605,11 @@ public:
 
   NS_DECL_CYCLE_COLLECTION_SKIPPABLE_SCRIPT_HOLDER_CLASS(FragmentOrElement)
 
+#if 0
   virtual void NodeInfoChanged(nsINodeInfo* aOldNodeInfo)
   {
   }
+#endif
 
   
 
@@ -639,6 +647,7 @@ public:
   static void MarkUserDataHandler(void* aObject, nsIAtom* aKey, void* aChild,
                                   void* aData);
 
+#if 0
   
 
 
@@ -656,8 +665,10 @@ public:
 
 
   static mozilla::CORSMode AttrValueToCORSMode(const nsAttrValue* aValue);
+#endif
 
 protected:
+#if 0
   
 
 
@@ -691,7 +702,6 @@ protected:
 
 
 
-#if 0
   nsresult SetAttrAndNotify(PRInt32 aNamespaceID,
                             nsIAtom* aName,
                             nsIAtom* aPrefix,
@@ -735,7 +745,6 @@ protected:
                                     nsIAtom* aName,
                                     nsAttrValue& aValue,
                                     nsresult* aRetval);
-#endif
 
   
 
@@ -786,6 +795,7 @@ protected:
 
   virtual nsEventListenerManager*
     GetEventListenerManagerForAttr(nsIAtom* aAttrName, bool* aDefer);
+#endif
 
   
 
@@ -793,6 +803,7 @@ protected:
 
   nsresult CopyInnerTo(FragmentOrElement* aDest);
 
+#if 0
   
 
 
@@ -805,7 +816,6 @@ protected:
 
 
 
-#if 0
   virtual void GetOffsetRect(nsRect& aRect, nsIContent** aOffsetParent);
 
   
@@ -915,6 +925,7 @@ protected:
     return static_cast<nsDOMSlots*>(GetExistingSlots());
   }
 
+#if 0
   void RegisterFreezableElement() {
     OwnerDoc()->RegisterFreezableElement(this);
   }
@@ -922,7 +933,6 @@ protected:
     OwnerDoc()->UnregisterFreezableElement(this);
   }
 
-#if 0
   
 
 
@@ -947,7 +957,6 @@ protected:
       }
     }
   }
-#endif
 
   
 
@@ -986,6 +995,7 @@ protected:
 
 
   virtual void GetLinkTarget(nsAString& aTarget);
+#endif
 
   friend class ::ContentUnbinder;
   
@@ -1011,6 +1021,7 @@ protected:
 } 
 } 
 
+#if 0
 
 
 
@@ -1086,6 +1097,7 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
   {                                                                     \
     return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nullptr, aValue, true); \
   }
+#endif
 
 
 

@@ -189,6 +189,31 @@ public:
 
   virtual bool IsLabelable() const = 0;
 
+  
+
+
+
+
+
+
+  NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const = 0;
+
+  
+
+
+
+
+
+  virtual nsChangeHint GetAttributeChangeHint(const nsIAtom* aAttribute,
+                                              PRInt32 aModType) const = 0;
+
+  
+
+
+
+
+  virtual nsIAtom *GetClassAttributeName() const = 0;
+
 protected:
   
 
