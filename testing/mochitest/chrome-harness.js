@@ -286,7 +286,7 @@ function extractJarToTmp(jar) {
   tmpdir.append("mochikit.tmp");
   
   
-  tmpdir.createUnique(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0777);
+  tmpdir.createUnique(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0777", 8));
 
   var zReader = Components.classes["@mozilla.org/libjar/zip-reader;1"].
                   createInstance(Components.interfaces.nsIZipReader);
@@ -314,7 +314,7 @@ function extractJarToTmp(jar) {
     var targetDir = buildRelativePath(dirs.getNext(), tmpdir, filepath);
     
     
-    targetDir.create(Components.interfaces.nsIFile.DIRECTORY_TYPE, 0777);
+    tmpdir.createUnique(Components.interfaces.nsIFile.DIRECTORY_TYPE, parseInt("0777", 8));
   }
 
   
