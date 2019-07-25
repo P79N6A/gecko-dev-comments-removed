@@ -1246,6 +1246,7 @@ nsGenericHTMLElement::GetEventListenerManagerForAttr(PRBool* aDefer)
     
     
     
+    
     *aDefer = PR_FALSE;
     if (document &&
         (win = document->GetInnerWindow()) && win->IsInnerWindow()) {

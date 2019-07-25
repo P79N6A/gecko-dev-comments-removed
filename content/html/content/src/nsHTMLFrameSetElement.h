@@ -74,6 +74,8 @@ struct nsFramesetSpec {
 
 #define NS_MAX_FRAMESET_SPEC_COUNT 16000
 
+
+
 class nsHTMLFrameSetElement : public nsGenericHTMLElement,
                               public nsIDOMHTMLFrameSetElement
 {
@@ -95,6 +97,16 @@ public:
 
   
   NS_DECL_NSIDOMHTMLFRAMESETELEMENT
+
+  
+  
+#define EVENT(name_, id_, type_, struct_)
+#define FORWARDED_EVENT(name_, id_, type_, struct_)                     \
+    NS_IMETHOD GetOn##name_(JSContext *cx, jsval *vp);            \
+    NS_IMETHOD SetOn##name_(JSContext *cx, const jsval &v);
+#include "nsEventNameList.h"
+#undef FORWARDED_EVENT
+#undef EVENT
 
   
   

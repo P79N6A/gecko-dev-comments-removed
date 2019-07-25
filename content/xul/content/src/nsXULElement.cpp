@@ -159,7 +159,6 @@ public:
 
     
     virtual nsresult CompileEventHandler(nsIScriptContext* aContext,
-                                         nsISupports* aTarget,
                                          nsIAtom *aName,
                                          const nsAString& aBody,
                                          const char* aURL,
@@ -743,7 +742,6 @@ nsScriptEventHandlerOwnerTearoff::GetCompiledEventHandler(
 nsresult
 nsScriptEventHandlerOwnerTearoff::CompileEventHandler(
                                                 nsIScriptContext* aContext,
-                                                nsISupports* aTarget,
                                                 nsIAtom *aName,
                                                 const nsAString& aBody,
                                                 const char* aURL,
@@ -786,8 +784,6 @@ nsScriptEventHandlerOwnerTearoff::CompileEventHandler(
         NS_ENSURE_TRUE(context, NS_ERROR_UNEXPECTED);
     }
     else {
-        
-        NS_ASSERTION(aTarget != nsnull, "no prototype and no target?!");
         context = aContext;
     }
 
@@ -806,12 +802,6 @@ nsScriptEventHandlerOwnerTearoff::CompileEventHandler(
                                       aBody, aURL, aLineNo,
                                       SCRIPTVERSION_DEFAULT,  
                                       aHandler);
-    if (NS_FAILED(rv)) return rv;
-
-    
-    
-    rv = aContext->BindCompiledEventHandler(aTarget, aContext->GetNativeGlobal(),
-                                            aName, aHandler);
     if (NS_FAILED(rv)) return rv;
 
     nsXULPrototypeAttribute *attr =

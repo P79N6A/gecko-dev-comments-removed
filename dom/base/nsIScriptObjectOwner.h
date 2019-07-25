@@ -94,9 +94,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptObjectOwner,
 class nsIAtom;
 
 #define NS_ISCRIPTEVENTHANDLEROWNER_IID \
-{ /* 2ad54ae0-a839-11d3-ba97-00104ba02d3d */ \
-0x2ad54ae0, 0xa839, 0x11d3, \
-  {0xba, 0x97, 0x00, 0x10, 0x4b, 0xa0, 0x2d, 0x3d} }
+{ 0x1e2be5d2, 0x381a, 0x46dc, \
+ { 0xae, 0x97, 0xa5, 0x5f, 0x45, 0xfd, 0x36, 0x63 } }
 
 
 
@@ -120,9 +119,7 @@ public:
 
 
 
-
   virtual nsresult CompileEventHandler(nsIScriptContext* aContext,
-                                       nsISupports* aTarget,
                                        nsIAtom *aName,
                                        const nsAString& aBody,
                                        const char* aURL,

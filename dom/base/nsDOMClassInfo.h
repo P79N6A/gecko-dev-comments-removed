@@ -292,16 +292,9 @@ public:
   static jsid sKeyPath_id;
   static jsid sAutoIncrement_id;
   static jsid sUnique_id;
+  static jsid sOnload_id;
+  static jsid sOnerror_id;
 
-#define EVENT(name_, id_, type_, struct_)       \
-  static jsid sOn##name_##_id;
-#define WINDOW_ONLY_EVENT EVENT
-#define TOUCH_EVENT EVENT
-#include "nsEventNameList.h"
-#undef TOUCH_EVENT
-#undef WINDOW_ONLY_EVENT
-#undef EVENT
-  
 protected:
   static JSPropertyOp sXPCNativeWrapperGetPropertyOp;
   static JSPropertyOp sXrayWrapperPropertyHolderGetPropertyOp;
@@ -347,53 +340,6 @@ do_QueryWrapper(JSContext *cx, JSObject *obj, nsresult* error)
 typedef nsDOMClassInfo nsDOMGenericSH;
 
 
-
-
-
-class nsEventReceiverSH : public nsDOMGenericSH
-{
-protected:
-  nsEventReceiverSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
-  {
-  }
-
-  virtual ~nsEventReceiverSH()
-  {
-  }
-
-  static PRBool ReallyIsEventName(jsid id, jschar aFirstChar);
-
-  static inline PRBool IsEventName(jsid id)
-  {
-    NS_ASSERTION(JSID_IS_STRING(id), "Don't pass non-string jsid's here!");
-
-    const jschar *str = ::JS_GetInternedStringChars(JSID_TO_STRING(id));
-
-    if (str[0] == 'o' && str[1] == 'n') {
-      return ReallyIsEventName(id, str[2]);
-    }
-
-    return PR_FALSE;
-  }
-
-  nsresult RegisterCompileHandler(nsIXPConnectWrappedNative *wrapper,
-                                  JSContext *cx, JSObject *obj, jsid id,
-                                  PRBool compile, PRBool remove,
-                                  PRBool *did_define);
-
-public:
-  NS_IMETHOD NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, PRUint32 flags,
-                        JSObject **objp, PRBool *_retval);
-  NS_IMETHOD SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, jsval *vp,
-                         PRBool *_retval);
-  NS_IMETHOD AddProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
-};
-
-
-
 class nsEventTargetSH : public nsDOMGenericSH
 {
 protected:
@@ -420,10 +366,10 @@ public:
 
 
 
-class nsWindowSH : public nsEventReceiverSH
+class nsWindowSH : public nsDOMGenericSH
 {
 protected:
-  nsWindowSH(nsDOMClassInfoData *aData) : nsEventReceiverSH(aData)
+  nsWindowSH(nsDOMClassInfoData *aData) : nsDOMGenericSH(aData)
   {
   }
 
@@ -451,7 +397,7 @@ public:
   NS_IMETHOD GetScriptableFlags(PRUint32 *aFlags)
   {
     PRUint32 flags;
-    nsresult rv = nsEventReceiverSH::GetScriptableFlags(&flags);
+    nsresult rv = nsDOMGenericSH::GetScriptableFlags(&flags);
     if (NS_SUCCEEDED(rv)) {
       *aFlags = flags | nsIXPCScriptable::WANT_POSTCREATE;
     }
@@ -548,10 +494,10 @@ public:
 
 
 
-class nsNodeSH : public nsEventReceiverSH
+class nsNodeSH : public nsDOMGenericSH
 {
 protected:
-  nsNodeSH(nsDOMClassInfoData* aData) : nsEventReceiverSH(aData)
+  nsNodeSH(nsDOMClassInfoData* aData) : nsDOMGenericSH(aData)
   {
   }
 
@@ -942,38 +888,6 @@ public:
   static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
   {
     return new nsHTMLDocumentSH(aData);
-  }
-};
-
-
-
-
-class nsHTMLBodyElementSH : public nsElementSH
-{
-protected:
-  nsHTMLBodyElementSH(nsDOMClassInfoData* aData) : nsElementSH(aData)
-  {
-  }
-
-  virtual ~nsHTMLBodyElementSH()
-  {
-  }
-
-public:
-  NS_IMETHOD NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                        JSObject *obj, jsid id, PRUint32 flags,
-                        JSObject **objp, PRBool *_retval);
-
-  NS_IMETHOD GetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, jsval *vp,
-                         PRBool *_retval);
-
-  NS_IMETHOD SetProperty(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
-                         JSObject *obj, jsid id, jsval *vp, PRBool *_retval);
-
-  static nsIClassInfo *doCreate(nsDOMClassInfoData* aData)
-  {
-    return new nsHTMLBodyElementSH(aData);
   }
 };
 

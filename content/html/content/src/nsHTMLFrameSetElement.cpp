@@ -36,6 +36,7 @@
 
 
 #include "nsHTMLFrameSetElement.h"
+#include "jsapi.h"
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(FrameSet)
 
@@ -347,3 +348,55 @@ nsHTMLFrameSetElement::ParseRowCol(const nsAString & aValue,
   
   return NS_OK;
 }
+
+
+
+
+
+
+
+#define EVENT(name_, id_, type_, struct_)
+#define FORWARDED_EVENT(name_, id_, type_, struct_)                   \
+  NS_IMETHODIMP nsHTMLFrameSetElement::GetOn##name_(JSContext *cx,    \
+                                               jsval *vp) {           \
+    /* XXXbz note to self: add tests for this! */                     \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    if (win && win->IsInnerWindow()) {                                \
+      nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win);   \
+      return ev->GetOn##name_(cx, vp);                                \
+    }                                                                 \
+    *vp = JSVAL_NULL;                                                 \
+    return NS_OK;                                                     \
+  }                                                                   \
+  NS_IMETHODIMP nsHTMLFrameSetElement::SetOn##name_(JSContext *cx,    \
+                                               const jsval &v) {      \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    if (win && win->IsInnerWindow()) {                                \
+      nsCOMPtr<nsIInlineEventHandlers> ev = do_QueryInterface(win);   \
+      return ev->SetOn##name_(cx, v);                                 \
+    }                                                                 \
+    return NS_OK;                                                     \
+  }
+#define WINDOW_EVENT(name_, id_, type_, struct_)                      \
+  NS_IMETHODIMP nsHTMLFrameSetElement::GetOn##name_(JSContext *cx,    \
+                                                    jsval *vp) {      \
+    /* XXXbz note to self: add tests for this! */                     \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    if (win && win->IsInnerWindow()) {                                \
+      return win->GetOn##name_(cx, vp);                               \
+    }                                                                 \
+    *vp = JSVAL_NULL;                                                 \
+    return NS_OK;                                                     \
+  }                                                                   \
+  NS_IMETHODIMP nsHTMLFrameSetElement::SetOn##name_(JSContext *cx,    \
+                                                    const jsval &v) { \
+    nsPIDOMWindow* win = GetOwnerDoc()->GetInnerWindow();             \
+    if (win && win->IsInnerWindow()) {                                \
+      return win->SetOn##name_(cx, v);                                \
+    }                                                                 \
+    return NS_OK;                                                     \
+  }
+#include "nsEventNameList.h"
+#undef WINDOW_EVENT
+#undef FORWARDED_EVENT
+#undef EVENT

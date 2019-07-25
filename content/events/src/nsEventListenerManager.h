@@ -50,6 +50,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsTObserverArray.h"
 #include "nsGUIEvent.h"
+#include "nsIJSEventListener.h"
 
 class nsIDOMEvent;
 class nsIAtom;
@@ -60,13 +61,19 @@ class nsEventTargetChainItem;
 class nsPIDOMWindow;
 class nsCxPusher;
 class nsIEventListenerInfo;
+class nsIDocument;
 
 typedef struct {
   nsRefPtr<nsIDOMEventListener> mListener;
   PRUint32                      mEventType;
   nsCOMPtr<nsIAtom>             mTypeAtom;
   PRUint16                      mFlags;
-  PRBool                        mHandlerIsString;
+  PRPackedBool                  mHandlerIsString;
+
+  nsIJSEventListener* GetJSListener() const {
+    return (mFlags & NS_PRIV_EVENT_FLAG_SCRIPT) ?
+      static_cast<nsIJSEventListener *>(mListener.get()) : nsnull;
+  }
 } nsListenerStruct;
 
 
@@ -102,18 +109,24 @@ public:
   void RemoveEventListenerByType(nsIDOMEventListener *aListener,
                                  const nsAString& type,
                                  PRInt32 aFlags);
+
+  
+
+
+
+
+
+  
+  
   nsresult AddScriptEventListener(nsIAtom *aName,
                                   const nsAString& aFunc,
                                   PRUint32 aLanguage,
                                   PRBool aDeferCompilation,
                                   PRBool aPermitUntrustedEvents);
-  nsresult RegisterScriptEventListener(nsIScriptContext *aContext,
-                                       void *aScopeObject,
-                                       nsIAtom* aName);
+  
+
+
   void RemoveScriptEventListener(nsIAtom *aName);
-  nsresult CompileScriptEventListener(nsIScriptContext *aContext,
-                                      void *aScopeObject,
-                                      nsIAtom* aName, PRBool *aDidCompile);
 
   void HandleEvent(nsPresContext* aPresContext,
                    nsEvent* aEvent, 
@@ -155,17 +168,45 @@ public:
                            nsEventStatus* aEventStatus,
                            nsCxPusher* aPusher);
 
+  
+
+
+
   void Disconnect();
+
+  
+
 
   PRBool HasMutationListeners();
 
+  
+
+
+
   PRBool HasUnloadListeners();
+
+  
+
+
+
+
+
 
   PRUint32 MutationListenerBits();
 
+  
+
+
   PRBool HasListenersFor(const nsAString& aEventName);
 
+  
+
+
   PRBool HasListeners();
+
+  
+
+
 
   nsresult GetListenerInfo(nsCOMArray<nsIEventListenerInfo>* aList);
 
@@ -198,18 +239,49 @@ protected:
                               nsIDOMEventTarget* aCurrentTarget,
                               PRUint32 aPhaseFlags,
                               nsCxPusher* aPusher);
-  nsresult CompileEventHandlerInternal(nsIScriptContext *aContext,
-                                       void *aScopeObject,
-                                       nsISupports *aObject,
-                                       nsIAtom *aName,
-                                       nsListenerStruct *aListenerStruct,
-                                       nsISupports* aCurrentTarget,
-                                       PRBool aNeedsCxPush);
+
+  
+
+
+
+
+  nsresult CompileEventHandlerInternal(nsListenerStruct *aListenerStruct,
+                                       PRBool aNeedsCxPush,
+                                       const nsAString* aBody);
+
+  
+
+
   nsListenerStruct* FindJSEventListener(PRUint32 aEventType, nsIAtom* aTypeAtom);
+
+  
+
+
+
+
+
   nsresult SetJSEventListener(nsIScriptContext *aContext,
                               void *aScopeGlobal,
-                              nsIAtom* aName, PRBool aIsString,
-                              PRBool aPermitUntrustedEvents);
+                              nsIAtom* aName,
+                              JSObject *aHandler,
+                              PRBool aPermitUntrustedEvents,
+                              nsListenerStruct **aListenerStruct);
+
+public:
+  
+
+
+
+
+  nsresult SetJSEventListenerToJsval(nsIAtom *aEventName, JSContext *cx,
+                                     JSObject *aScope, const jsval &v);
+  
+
+
+
+  void GetJSEventListener(nsIAtom *aEventName, jsval *vp);
+
+protected:
   void AddEventListener(nsIDOMEventListener *aListener, 
                         PRUint32 aType,
                         nsIAtom* aTypeAtom,

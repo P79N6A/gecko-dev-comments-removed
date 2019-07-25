@@ -104,6 +104,7 @@
 #include "nsFrameMessageManager.h"
 #include "mozilla/TimeStamp.h"
 #include "nsIDOMTouchEvent.h"
+#include "nsIInlineEventHandlers.h"
 
 
 #include "jsapi.h"
@@ -280,7 +281,8 @@ class nsGlobalWindow : public nsPIDOMWindow,
                        public nsWrapperCache,
                        public PRCListStr,
                        public nsIDOMWindowPerformance,
-                       public nsITouchEventReceiver
+                       public nsITouchEventReceiver,
+                       public nsIInlineEventHandlers
 {
 public:
   friend class nsDOMMozURLProperty;
@@ -334,6 +336,9 @@ public:
 
   
   NS_DECL_NSITOUCHEVENTRECEIVER
+
+  
+  NS_DECL_NSIINLINEEVENTHANDLERS
 
   
   virtual NS_HIDDEN_(nsPIDOMWindow*) GetPrivateRoot();

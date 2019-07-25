@@ -320,15 +320,17 @@ nsXBLPrototypeHandler::ExecuteHandler(nsIDOMEventTarget* aTarget,
 
   
   void *scope = boundGlobal->GetScriptGlobal(stID);
+  nsScriptObjectHolder boundHandler(boundContext);
   rv = boundContext->BindCompiledEventHandler(scriptTarget, scope,
-                                              onEventAtom, handler);
+                                              handler, boundHandler);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsCOMPtr<nsIDOMEventListener> eventListener;
-  NS_NewJSEventListener(boundContext, scope,
-                        scriptTarget, onEventAtom,
-                        getter_AddRefs(eventListener));
+  rv = NS_NewJSEventListener(boundContext, scope,
+                             scriptTarget, onEventAtom,
+                             boundHandler, getter_AddRefs(eventListener));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   eventListener->HandleEvent(aEvent);

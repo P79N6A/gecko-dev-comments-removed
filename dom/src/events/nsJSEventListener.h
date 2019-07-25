@@ -49,12 +49,11 @@
 
 
 
-class nsJSEventListener : public nsIDOMEventListener,
-                          public nsIJSEventListener
+class nsJSEventListener : public nsIJSEventListener
 {
 public:
   nsJSEventListener(nsIScriptContext *aContext, void *aScopeObject,
-                    nsISupports* aObject, nsIAtom* aType);
+                    nsISupports* aTarget, nsIAtom* aType, void *aHandler);
   virtual ~nsJSEventListener();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -63,10 +62,9 @@ public:
   NS_DECL_NSIDOMEVENTLISTENER
 
   
-  virtual nsresult GetJSVal(const nsAString& aEventName, jsval* aJSVal);
+  virtual void SetHandler(void *aHandler);
 
-  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS_AMBIGUOUS(nsJSEventListener,
-                                                         nsIDOMEventListener)
+  NS_DECL_CYCLE_COLLECTION_SCRIPT_HOLDER_CLASS(nsJSEventListener)
 protected:
   nsCOMPtr<nsIAtom> mEventName;
 };
