@@ -356,7 +356,7 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument* aDocument)
 
   
   nsIPresShell* presShell = aDocument->GetShell();
-  if (!presShell || !presShell->GetRootFrame())
+  if (!presShell || !presShell->GetRootFrame() || presShell->IsDestroying())
     return nullptr;
 
   
