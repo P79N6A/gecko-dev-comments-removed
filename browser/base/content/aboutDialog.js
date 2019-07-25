@@ -482,6 +482,13 @@ appUpdater.prototype =
       return;
     }
 
+    this.setupDownloadingUI();
+  },
+
+  
+
+
+  setupDownloadingUI: function() {
     this.downloadStatus = document.getElementById("downloadStatus");
     this.downloadStatus.value =
       DownloadUtils.getTransferTotal(0, this.update.selectedPatch.size);
@@ -527,7 +534,7 @@ appUpdater.prototype =
         let self = this;
         Services.obs.addObserver(function (aSubject, aTopic, aData) {
           
-          let status = update.state;
+          let status = aData;
           if (status == "applied" || status == "applied-service" ||
               status == "pending" || status == "pending-service") {
             
@@ -540,6 +547,12 @@ appUpdater.prototype =
             
             
             self.selectPanel("downloadFailed");
+          } else if (status == "downloading") {
+            
+            
+            
+            self.setupDownloadingUI();
+            return;
           }
           Services.obs.removeObserver(arguments.callee, "update-staged");
         }, "update-staged", false);

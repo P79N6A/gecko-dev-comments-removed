@@ -1602,6 +1602,12 @@ var gDownloadingPage = {
 
   observe: function(aSubject, aTopic, aData) {
     if (aTopic == "update-staged") {
+      if (aData == STATE_DOWNLOADING) {
+        
+        
+        this._setStatus("downloading");
+        return;
+      }
       this.cleanUp();
       if (aData == STATE_APPLIED ||
           aData == STATE_APPLIED_SVC ||
