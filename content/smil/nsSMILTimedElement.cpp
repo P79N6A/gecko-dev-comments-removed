@@ -683,12 +683,25 @@ nsSMILTimedElement::Rewind()
 {
   NS_ABORT_IF_FALSE(mAnimationElement,
       "Got rewind request before being attached to an animation element");
-  NS_ABORT_IF_FALSE(mSeekState == SEEK_NOT_SEEKING,
-      "Got rewind request whilst already seeking");
 
-  mSeekState = mElementState == STATE_ACTIVE ?
-               SEEK_BACKWARD_FROM_ACTIVE :
-               SEEK_BACKWARD_FROM_INACTIVE;
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (mSeekState == SEEK_NOT_SEEKING) {
+    mSeekState = mElementState == STATE_ACTIVE ?
+                 SEEK_BACKWARD_FROM_ACTIVE :
+                 SEEK_BACKWARD_FROM_INACTIVE;
+  }
+  NS_ABORT_IF_FALSE(mSeekState == SEEK_BACKWARD_FROM_INACTIVE ||
+                    mSeekState == SEEK_BACKWARD_FROM_ACTIVE,
+                    "Rewind in the middle of a forwards seek?");
 
   
   
@@ -1115,10 +1128,22 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
   }
 
   
-  
-  mPrevRegisteredMilestone = sMaxMilestone;
+  nsSMILTime containerTime = GetTimeContainer()->GetCurrentTime();
+  PRBool localRewind =
+    mElementState != STATE_STARTUP && mCurrentInterval &&
+    mCurrentInterval->Begin()->Time().GetMillis() > containerTime;
 
-  RegisterMilestone();
+  if (localRewind) {
+    Rewind();
+    
+    
+    GetTimeContainer()->SetCurrentTime(containerTime);
+  } else {
+    
+    
+    mPrevRegisteredMilestone = sMaxMilestone;
+    RegisterMilestone();
+  }
 }
 
 void
