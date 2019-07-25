@@ -387,7 +387,8 @@ add_test(function test_process_incoming_commands() {
 
   Svc.Obs.add(ev, handler);
 
-  Clients.processIncomingCommands();
+  
+  do_check_false(Clients.processIncomingCommands());
 });
 
 add_test(function test_command_sync() {
