@@ -35,10 +35,11 @@
 
 
 
-#ifndef MOZILLA_BASEPOINT_H_
-#define MOZILLA_BASEPOINT_H_
+#ifndef MOZILLA_GFX_BASEPOINT_H_
+#define MOZILLA_GFX_BASEPOINT_H_
 
 namespace mozilla {
+namespace gfx {
 
 
 
@@ -95,6 +96,7 @@ struct BasePoint {
   }
 };
 
+}
 }
 
 #endif 

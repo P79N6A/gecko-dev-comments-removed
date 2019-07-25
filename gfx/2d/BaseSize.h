@@ -35,10 +35,11 @@
 
 
 
-#ifndef MOZILLA_BASESIZE_H_
-#define MOZILLA_BASESIZE_H_
+#ifndef MOZILLA_GFX_BASESIZE_H_
+#define MOZILLA_GFX_BASESIZE_H_
 
 namespace mozilla {
+namespace gfx {
 
 
 
@@ -96,6 +97,7 @@ struct BaseSize {
   }
 };
 
+}
 }
 
 #endif 

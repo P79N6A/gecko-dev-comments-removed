@@ -35,12 +35,13 @@
 
 
 
-#ifndef MOZILLA_BASEMARGIN_H_
-#define MOZILLA_BASEMARGIN_H_
+#ifndef MOZILLA_GFX_BASEMARGIN_H_
+#define MOZILLA_GFX_BASEMARGIN_H_
 
-#include "gfxCore.h"
+#include "Types.h"
 
 namespace mozilla {
+namespace gfx {
 
 
 
@@ -68,12 +69,10 @@ struct BaseMargin {
   T TopBottom() const { return top + bottom; }
 
   T& Side(SideT aSide) {
-    NS_PRECONDITION(aSide <= NS_SIDE_LEFT, "Out of range side");
     
     return *(&top + aSide);
   }
   T Side(SideT aSide) const {
-    NS_PRECONDITION(aSide <= NS_SIDE_LEFT, "Out of range side");
     
     return *(&top + aSide);
   }
@@ -104,6 +103,7 @@ struct BaseMargin {
   }
 };
 
+}
 }
 
 #endif 
