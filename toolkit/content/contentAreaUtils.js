@@ -1,4 +1,4 @@
-# -*- Mode: Java; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- 
+# -*- Mode: javascript; tab-width: 2; indent-tabs-mode: nil; c-basic-offset: 2 -*- 
 # This Source Code Form is subject to the terms of the Mozilla Public
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
@@ -525,13 +525,13 @@ function initFileInfo(aFI, aURL, aURLCharset, aDocument,
 
 function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
 {
-  if (!getTargetFile.gDownloadLastDir)
-    Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", getTargetFile);
-  var gDownloadLastDir = getTargetFile.gDownloadLastDir;
+  let downloadModule = {};
+  Components.utils.import("resource://gre/modules/DownloadLastDir.jsm", downloadModule);
+  var gDownloadLastDir = new downloadModule.DownloadLastDir(window);
 
   var prefs = getPrefsBrowserDownload("browser.download.");
   var useDownloadDir = prefs.getBoolPref("useDownloadDir");
-  const nsILocalFile = Components.interfaces.nsILocalFile;
+  const nsIFile = Components.interfaces.nsIFile;
 
   if (!aSkipPrompt)
     useDownloadDir = false;
@@ -568,7 +568,7 @@ function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
     
     var fileLocator = Components.classes["@mozilla.org/file/directory_service;1"]
                                 .getService(Components.interfaces.nsIProperties);
-    dir = fileLocator.get("Desk", nsILocalFile);
+    dir = fileLocator.get("Desk", nsIFile);
   }
 
   var fp = makeFilePicker();
@@ -600,11 +600,11 @@ function getTargetFile(aFpP,  aSkipPrompt,  aRelatedURI)
     prefs.setIntPref("save_converter_index", fp.filterIndex);
 
   
-  var directory = fp.file.parent.QueryInterface(nsILocalFile);
+  var directory = fp.file.parent.QueryInterface(nsIFile);
   gDownloadLastDir.setFile(aRelatedURI, directory);
 
   fp.file.leafName = validateFileName(fp.file.leafName);
-  
+
   aFpP.saveAsType = fp.filterIndex;
   aFpP.file = fp.file;
   aFpP.fileURL = fp.fileURL;
