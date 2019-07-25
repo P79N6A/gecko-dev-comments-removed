@@ -7267,7 +7267,7 @@ var gIdentityHandler = {
 
     
     
-    var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_end' : 'after_start';
+    var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'bottomcenter topright' : 'bottomcenter topleft';
 
     
     this._identityBox.setAttribute("open", "true");

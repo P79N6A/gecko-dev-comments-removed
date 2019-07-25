@@ -347,7 +347,8 @@ var PlacesCommandHook = {
       if (starIcon && isElementVisible(starIcon)) {
         
         
-        var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_start' : 'after_end';
+        var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ?
+          'bottomcenter topleft' : 'bottomcenter topright';
         if (aShowEditUI)
           StarUI.showEditBookmarkPopup(itemId, starIcon, position);
         return;
