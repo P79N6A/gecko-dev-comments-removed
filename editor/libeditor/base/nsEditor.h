@@ -205,6 +205,8 @@ public:
                                         nsIPrivateTextRangeList *aTextRange)=0;
   nsresult EndIMEComposition();
 
+  void SwitchTextDirectionTo(PRUint32 aDirection);
+
   void BeginKeypressHandling() { mLastKeypressEventWasTrusted = eTriTrue; }
   void BeginKeypressHandling(nsIDOMNSEvent* aEvent);
   void EndKeypressHandling() { mLastKeypressEventWasTrusted = eTriUnset; }
@@ -230,6 +232,8 @@ public:
 
 protected:
   nsCString mContentMIMEType;       
+
+  nsresult DetermineCurrentDirection();
 
   
 

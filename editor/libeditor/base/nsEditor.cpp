@@ -5199,8 +5199,8 @@ nsEditor::GetRoot()
   return mRootElement;
 }
 
-NS_IMETHODIMP
-nsEditor::SwitchTextDirection()
+nsresult
+nsEditor::DetermineCurrentDirection()
 {
   
   nsIDOMElement *rootElement = GetRoot();
@@ -5226,6 +5226,18 @@ nsEditor::SwitchTextDirection()
     }
   }
 
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsEditor::SwitchTextDirection()
+{
+  
+  nsIDOMElement *rootElement = GetRoot();
+
+  nsresult rv = DetermineCurrentDirection();
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   if (mFlags & nsIPlaintextEditor::eEditorRightToLeft) {
     NS_ASSERTION(!(mFlags & nsIPlaintextEditor::eEditorLeftToRight),
@@ -5242,6 +5254,33 @@ nsEditor::SwitchTextDirection()
   }
 
   return rv;
+}
+
+void
+nsEditor::SwitchTextDirectionTo(PRUint32 aDirection)
+{
+  
+  nsIDOMElement *rootElement = GetRoot();
+
+  nsresult rv = DetermineCurrentDirection();
+  NS_ENSURE_SUCCESS(rv, );
+
+  
+  if (aDirection == nsIPlaintextEditor::eEditorLeftToRight &&
+      (mFlags & nsIPlaintextEditor::eEditorRightToLeft)) {
+    NS_ASSERTION(!(mFlags & nsIPlaintextEditor::eEditorLeftToRight),
+                 "Unexpected mutually exclusive flag");
+    mFlags &= ~nsIPlaintextEditor::eEditorRightToLeft;
+    mFlags |= nsIPlaintextEditor::eEditorLeftToRight;
+    rootElement->SetAttribute(NS_LITERAL_STRING("dir"), NS_LITERAL_STRING("ltr"));
+  } else if (aDirection == nsIPlaintextEditor::eEditorRightToLeft &&
+             (mFlags & nsIPlaintextEditor::eEditorLeftToRight)) {
+    NS_ASSERTION(!(mFlags & nsIPlaintextEditor::eEditorRightToLeft),
+                 "Unexpected mutually exclusive flag");
+    mFlags |= nsIPlaintextEditor::eEditorRightToLeft;
+    mFlags &= ~nsIPlaintextEditor::eEditorLeftToRight;
+    rootElement->SetAttribute(NS_LITERAL_STRING("dir"), NS_LITERAL_STRING("rtl"));
+  }
 }
 
 #if DEBUG_JOE

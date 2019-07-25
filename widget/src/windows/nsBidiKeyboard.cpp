@@ -121,6 +121,18 @@ NS_IMETHODIMP nsBidiKeyboard::IsLangRTL(PRBool *aIsRTL)
   return NS_OK;
 }
 
+NS_IMETHODIMP nsBidiKeyboard::GetHaveBidiKeyboards(PRBool* aResult)
+{
+  NS_ENSURE_ARG_POINTER(aResult);
+
+  nsresult result = SetupBidiKeyboards();
+  if (NS_FAILED(result))
+    return result;
+
+  *aResult = mHaveBidiKeyboards;
+  return NS_OK;
+}
+
 
 
 

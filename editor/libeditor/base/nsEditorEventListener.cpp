@@ -71,6 +71,7 @@
 #include "nsIFocusManager.h"
 #include "nsIDOMWindow.h"
 #include "nsContentUtils.h"
+#include "nsIBidiKeyboard.h"
 
 using namespace mozilla;
 
@@ -91,6 +92,11 @@ private:
 nsEditorEventListener::nsEditorEventListener() :
   mEditor(nsnull), mCommitText(PR_FALSE),
   mInTransaction(PR_FALSE)
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+  , mHaveBidiKeyboards(PR_FALSE)
+  , mShouldSwitchTextDirection(PR_FALSE)
+  , mSwitchToRTL(PR_FALSE)
+#endif
 {
 }
 
@@ -106,6 +112,15 @@ nsresult
 nsEditorEventListener::Connect(nsEditor* aEditor)
 {
   NS_ENSURE_ARG(aEditor);
+
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+  nsIBidiKeyboard* bidiKeyboard = nsContentUtils::GetBidiKeyboard();
+  if (bidiKeyboard) {
+    PRBool haveBidiKeyboards = PR_FALSE;
+    bidiKeyboard->GetHaveBidiKeyboards(&haveBidiKeyboards);
+    mHaveBidiKeyboards = haveBidiKeyboards;
+  }
+#endif
 
   mEditor = aEditor;
 
@@ -128,6 +143,16 @@ nsEditorEventListener::InstallToEditor()
   nsEventListenerManager* elmP = piTarget->GetListenerManager(PR_TRUE);
   NS_ENSURE_STATE(elmP);
 
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+  elmP->AddEventListenerByType(this,
+                               NS_LITERAL_STRING("keydown"),
+                               NS_EVENT_FLAG_BUBBLE |
+                               NS_EVENT_FLAG_SYSTEM_EVENT);
+  elmP->AddEventListenerByType(this,
+                               NS_LITERAL_STRING("keyup"),
+                               NS_EVENT_FLAG_BUBBLE |
+                               NS_EVENT_FLAG_SYSTEM_EVENT);
+#endif
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("keypress"),
                                NS_EVENT_FLAG_BUBBLE |
@@ -208,6 +233,16 @@ nsEditorEventListener::UninstallFromEditor()
     return;
   }
 
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+  elmP->RemoveEventListenerByType(this,
+                                  NS_LITERAL_STRING("keydown"),
+                                  NS_EVENT_FLAG_BUBBLE |
+                                  NS_EVENT_FLAG_SYSTEM_EVENT);
+  elmP->RemoveEventListenerByType(this,
+                                  NS_LITERAL_STRING("keyup"),
+                                  NS_EVENT_FLAG_BUBBLE |
+                                  NS_EVENT_FLAG_SYSTEM_EVENT);
+#endif
   elmP->RemoveEventListenerByType(this,
                                   NS_LITERAL_STRING("keypress"),
                                   NS_EVENT_FLAG_BUBBLE |
@@ -298,6 +333,12 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
       return Drop(dragEvent);
   }
 
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+  if (eventType.EqualsLiteral("keydown"))
+    return KeyDown(aEvent);
+  if (eventType.EqualsLiteral("keyup"))
+    return KeyUp(aEvent);
+#endif
   if (eventType.EqualsLiteral("keypress"))
     return KeyPress(aEvent);
   if (eventType.EqualsLiteral("mousedown"))
@@ -319,6 +360,117 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   return NS_OK;
 }
+
+#ifdef HANDLE_NATIVE_TEXT_DIRECTION_SWITCH
+#include <windows.h>
+
+namespace {
+
+
+bool IsCtrlShiftPressed(bool& isRTL)
+{
+  BYTE keystate[256];
+  if (!::GetKeyboardState(keystate)) {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  const int kKeyDownMask = 0x80;
+  if ((keystate[VK_CONTROL] & kKeyDownMask) == 0)
+    return false;
+
+  if (keystate[VK_RSHIFT] & kKeyDownMask) {
+    keystate[VK_RSHIFT] = 0;
+    isRTL = true;
+  } else if (keystate[VK_LSHIFT] & kKeyDownMask) {
+    keystate[VK_LSHIFT] = 0;
+    isRTL = false;
+  } else {
+    return false;
+  }
+
+  
+  
+  
+  
+  
+  
+  keystate[VK_SHIFT] = 0;
+  keystate[VK_CONTROL] = 0;
+  keystate[VK_RCONTROL] = 0;
+  keystate[VK_LCONTROL] = 0;
+  for (int i = 0; i <= VK_PACKET; ++i) {
+    if (keystate[i] & kKeyDownMask)
+      return false;
+  }
+  return true;
+}
+
+}
+
+
+
+
+NS_IMETHODIMP
+nsEditorEventListener::KeyUp(nsIDOMEvent* aKeyEvent)
+{
+  if (mHaveBidiKeyboards) {
+    nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
+    if (!keyEvent) {
+      
+      return NS_OK;
+    }
+
+    PRUint32 keyCode = 0;
+    keyEvent->GetKeyCode(&keyCode);
+    if (keyCode == nsIDOMKeyEvent::DOM_VK_SHIFT ||
+        keyCode == nsIDOMKeyEvent::DOM_VK_CONTROL) {
+      if (mShouldSwitchTextDirection && mEditor->IsPlaintextEditor()) {
+        mEditor->SwitchTextDirectionTo(mSwitchToRTL ?
+          nsIPlaintextEditor::eEditorRightToLeft :
+          nsIPlaintextEditor::eEditorLeftToRight);
+        mShouldSwitchTextDirection = PR_FALSE;
+      }
+    }
+  }
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsEditorEventListener::KeyDown(nsIDOMEvent* aKeyEvent)
+{
+  if (mHaveBidiKeyboards) {
+    nsCOMPtr<nsIDOMKeyEvent> keyEvent = do_QueryInterface(aKeyEvent);
+    if (!keyEvent) {
+      
+      return NS_OK;
+    }
+
+    PRUint32 keyCode = 0;
+    keyEvent->GetKeyCode(&keyCode);
+    if (keyCode == nsIDOMKeyEvent::DOM_VK_SHIFT) {
+      bool switchToRTL;
+      if (IsCtrlShiftPressed(switchToRTL)) {
+        mShouldSwitchTextDirection = PR_TRUE;
+        mSwitchToRTL = switchToRTL;
+      }
+    } else if (keyCode != nsIDOMKeyEvent::DOM_VK_CONTROL) {
+      
+      mShouldSwitchTextDirection = PR_FALSE;
+    }
+  }
+
+  return NS_OK;
+}
+#endif
 
 NS_IMETHODIMP
 nsEditorEventListener::KeyPress(nsIDOMEvent* aKeyEvent)
