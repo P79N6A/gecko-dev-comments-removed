@@ -400,7 +400,7 @@ JS_STATIC_ASSERT(offsetof(VMFrame, entryFp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
 JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
 JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) ==          (4*7));
-JS_STATIC_ASSERT(offsetof(VMFrame, unused) ==           (4*4));
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) ==          (4*4));
 JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*3));
 
 JS_STATIC_ASSERT(JSFrameReg == JSC::ARMRegisters::r11);
