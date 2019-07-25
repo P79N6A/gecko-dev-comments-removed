@@ -1538,18 +1538,15 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
       NS_WARNING("Flushing retained layers!");
       flags |= nsDisplayList::PAINT_FLUSH_LAYERS;
     } else if (widget && !(aFlags & PAINT_DOCUMENT_RELATIVE)) {
-      
-      
+      nsIWidget_MOZILLA_2_0_BRANCH* widget2 =
+        static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget);
       PRInt32 pixelRatio = presContext->AppUnitsPerDevPixel();
       nsIntRegion visibleWindowRegion(visibleRegion.ToOutsidePixels(pixelRatio));
-      nsIntRegion dirtyWindowRegion(aDirtyRegion.ToOutsidePixels(pixelRatio));
       builder.SetFinalTransparentRegion(visibleRegion);
-      widget->UpdatePossiblyTransparentRegion(dirtyWindowRegion, visibleWindowRegion);
+      widget2->UpdateTransparentRegion(visibleWindowRegion);
 
       
       
-      nsIWidget_MOZILLA_2_0_BRANCH* widget2 =
-        static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget);
       widget2->UpdateThemeGeometries(builder.GetThemeGeometries());
     }
   }

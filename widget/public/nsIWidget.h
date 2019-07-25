@@ -125,8 +125,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_MOZILLA_2_0_BRANCH_IID \
-  { 0xd64532e0, 0x03d6, 0x421c, \
-    { 0x8e, 0x63, 0xda, 0x2c, 0xff, 0x62, 0x48, 0x25 } }
+  { 0x8fc2d005, 0x5359, 0x4dbf, \
+    { 0xac, 0xb1, 0x70, 0x19, 0x92, 0xfb, 0x46, 0x17 } }
 
 
 
@@ -793,10 +793,6 @@ class nsIWidget : public nsISupports {
     
 
 
-
-
-
-
     virtual void UpdatePossiblyTransparentRegion(const nsIntRegion &aDirtyRegion,
                                                  const nsIntRegion &aPossiblyTransparentRegion) {};
 
@@ -1434,6 +1430,16 @@ class nsIWidget_MOZILLA_2_0_BRANCH : public nsIWidget {
 
 
     virtual void UpdateThemeGeometries(const nsTArray<ThemeGeometry>& aThemeGeometries) = 0;
+
+    
+
+
+
+
+
+
+
+    virtual void UpdateTransparentRegion(const nsIntRegion &aTransparentRegion) {};
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIWidget_MOZILLA_2_0_BRANCH, NS_IWIDGET_MOZILLA_2_0_BRANCH_IID)
