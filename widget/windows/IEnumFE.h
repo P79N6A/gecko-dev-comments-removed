@@ -13,6 +13,7 @@
 #include <ole2.h>
 
 #include "nsTArray.h"
+#include "mozilla/Attributes.h"
 
 
 class FormatEtc
@@ -56,7 +57,7 @@ private:
 
 
 
-class CEnumFormatEtc : public IEnumFORMATETC
+class CEnumFormatEtc MOZ_FINAL : public IEnumFORMATETC
 {
 public:
     CEnumFormatEtc(nsTArray<FormatEtc>& aArray);

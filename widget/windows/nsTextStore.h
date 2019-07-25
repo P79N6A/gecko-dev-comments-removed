@@ -11,6 +11,7 @@
 #include "nsCOMPtr.h"
 #include "nsITimer.h"
 #include "nsIWidget.h"
+#include "mozilla/Attributes.h"
 
 #include <msctf.h>
 #include <textstor.h>
@@ -31,8 +32,8 @@ class nsTextEvent;
 
 
 
-class nsTextStore : public ITextStoreACP,
-                    public ITfContextOwnerCompositionSink
+class nsTextStore MOZ_FINAL : public ITextStoreACP,
+                              public ITfContextOwnerCompositionSink
 {
 public: 
   STDMETHODIMP_(ULONG)  AddRef(void);

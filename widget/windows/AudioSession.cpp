@@ -19,6 +19,7 @@
 #include "nsString.h"
 #include "nsThreadUtils.h"
 #include "nsXULAppAPI.h"
+#include "mozilla/Attributes.h"
 
 #include <objbase.h>
 
@@ -30,7 +31,7 @@ namespace widget {
 
 
 
-class AudioSession: public IAudioSessionEvents {
+class AudioSession MOZ_FINAL : public IAudioSessionEvents {
 private:
   AudioSession();
   ~AudioSession();

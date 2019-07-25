@@ -87,7 +87,7 @@ class nsDataObj : public IDataObject,
 {
   public: 
     nsDataObj(nsIURI *uri = nsnull);
-    ~nsDataObj();
+    virtual ~nsDataObj();
 
 	public: 
 		STDMETHODIMP_(ULONG) AddRef        ();

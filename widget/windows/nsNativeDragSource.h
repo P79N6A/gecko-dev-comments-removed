@@ -10,6 +10,7 @@
 #include "nsCOMPtr.h"
 #include <ole2.h>
 #include <oleidl.h>
+#include "mozilla/Attributes.h"
 
 
 
@@ -17,7 +18,7 @@
 
 
 
-class nsNativeDragSource : public IDropSource
+class nsNativeDragSource MOZ_FINAL : public IDropSource
 {
 public:
 
