@@ -76,7 +76,7 @@ let FormWrapper = {
 
     
     let item = Utils.queryAsync(getQuery, "guid")[0];
-    if (item != null)
+    if (item.guid != null)
       return item.guid;
 
     
