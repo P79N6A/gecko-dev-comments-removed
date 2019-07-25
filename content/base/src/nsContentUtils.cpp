@@ -4674,6 +4674,7 @@ nsContentUtils::URIIsLocalFile(nsIURI *aURI)
   PRBool isFile;
   nsCOMPtr<nsINetUtil> util = do_QueryInterface(sIOService);
 
+  
   return util && NS_SUCCEEDED(util->ProtocolHasFlags(aURI,
                                 nsIProtocolHandler::URI_IS_LOCAL_FILE,
                                 &isFile)) &&
@@ -5719,6 +5720,71 @@ nsContentUtils::IsPatternMatching(nsAString& aValue, nsAString& aPattern,
                                   aValue.Length(), &idx, JS_TRUE, &rval);
 
   return res == JS_FALSE || rval != JSVAL_NULL;
+}
+
+
+nsresult
+nsContentUtils::URIInheritsSecurityContext(nsIURI *aURI, PRBool *aResult)
+{
+  
+  
+  return NS_URIChainHasFlags(aURI,
+                             nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
+                             aResult);
+}
+
+
+bool
+nsContentUtils::SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
+                                  nsIChannel* aChannel,
+                                  nsIURI* aURI,
+                                  PRBool aSetUpForAboutBlank)
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  PRBool inherit;
+  
+  
+  
+  
+  if (NS_SUCCEEDED(URIInheritsSecurityContext(aURI, &inherit)) &&
+      (inherit || (aSetUpForAboutBlank && NS_IsAboutBlank(aURI)))) {
+    aChannel->SetOwner(aLoadingPrincipal);
+    return true;
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (URIIsLocalFile(aURI) && aLoadingPrincipal &&
+      NS_SUCCEEDED(aLoadingPrincipal->CheckMayLoad(aURI, PR_FALSE)) &&
+      
+      
+      !IsSystemPrincipal(aLoadingPrincipal)) {
+    aChannel->SetOwner(aLoadingPrincipal);
+    return true;
+  }
+
+  return false;
 }
 
 PRBool

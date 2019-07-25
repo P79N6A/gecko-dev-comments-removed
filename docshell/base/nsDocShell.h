@@ -651,12 +651,6 @@ protected:
                               PRInt32 * cy);
     
     
-    static nsresult URIInheritsSecurityContext(nsIURI* aURI, PRBool* aResult);
-
-    
-    static PRBool URIIsLocalFile(nsIURI *aURI);
-
-    
     
     
     PRBool IsOKToLoadURI(nsIURI* aURI);

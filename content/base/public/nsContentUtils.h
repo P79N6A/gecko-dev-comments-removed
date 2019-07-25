@@ -1801,6 +1801,26 @@ public:
 
   static void InitializeTouchEventTable();
 
+  
+
+
+
+  static nsresult URIInheritsSecurityContext(nsIURI *aURI, PRBool *aResult);
+
+  
+
+
+
+
+
+
+
+
+  static bool SetUpChannelOwner(nsIPrincipal* aLoadingPrincipal,
+                                nsIChannel* aChannel,
+                                nsIURI* aURI,
+                                PRBool aSetUpForAboutBlank);
+
   static nsresult Btoa(const nsAString& aBinaryData,
                        nsAString& aAsciiBase64String);
 

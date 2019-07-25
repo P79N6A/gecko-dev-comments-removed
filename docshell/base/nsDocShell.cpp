@@ -8171,7 +8171,8 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         if (aLoadType != LOAD_NORMAL_EXTERNAL && !owner &&
             (aFlags & INTERNAL_LOAD_FLAGS_INHERIT_OWNER) &&
-            NS_SUCCEEDED(URIInheritsSecurityContext(aURI, &inherits)) &&
+            NS_SUCCEEDED(nsContentUtils::URIInheritsSecurityContext(aURI,
+                                                                    &inherits)) &&
             inherits) {
 
             owner = GetInheritedPrincipal(PR_TRUE);
@@ -8185,7 +8186,9 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         
-        rv = URIInheritsSecurityContext(aURI, &willInherit);
+        
+        
+        rv = nsContentUtils::URIInheritsSecurityContext(aURI, &willInherit);
         if (NS_FAILED(rv) || willInherit || NS_IsAboutBlank(aURI)) {
             nsCOMPtr<nsIDocShellTreeItem> treeItem = this;
             do {
@@ -9001,56 +9004,9 @@ nsDocShell::DoURILoad(nsIURI * aURI,
             httpChannel->SetReferrer(aReferrerURI);
         }
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    PRBool inherit;
-    
-    
-    
-    
-    rv = URIInheritsSecurityContext(aURI, &inherit);
-    if (NS_SUCCEEDED(rv) && (inherit || NS_IsAboutBlank(aURI))) {
-        channel->SetOwner(aOwner);
-    }
 
-    
-    
-    
-    
-    
-    
-    
-    
     nsCOMPtr<nsIPrincipal> ownerPrincipal(do_QueryInterface(aOwner));
-    if (URIIsLocalFile(aURI) && ownerPrincipal &&
-        NS_SUCCEEDED(ownerPrincipal->CheckMayLoad(aURI, PR_FALSE))) {
-        
-        
-        PRBool isSystem;
-        nsCOMPtr<nsIScriptSecurityManager> secMan =
-            do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID);
-        if (secMan &&
-            NS_SUCCEEDED(secMan->IsSystemPrincipal(ownerPrincipal,
-                                                   &isSystem)) &&
-            !isSystem) {
-            channel->SetOwner(aOwner);
-        }
-    }
+    nsContentUtils::SetUpChannelOwner(ownerPrincipal, channel, aURI, PR_TRUE);
 
     nsCOMPtr<nsIScriptChannel> scriptChannel = do_QueryInterface(channel);
     if (scriptChannel) {
@@ -9743,7 +9699,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
         }
 
         
-        if (!URIIsLocalFile(newURI)) {
+        if (!nsContentUtils::URIIsLocalFile(newURI)) {
             
             
             
@@ -11249,30 +11205,6 @@ nsDocShell::GetIsContent(PRBool *aIsContent)
 {
     *aIsContent = (mItemType == typeContent);
     return NS_OK;
-}
-
-
-nsresult
-nsDocShell::URIInheritsSecurityContext(nsIURI* aURI, PRBool* aResult)
-{
-    
-    
-    return NS_URIChainHasFlags(aURI,
-                               nsIProtocolHandler::URI_INHERITS_SECURITY_CONTEXT,
-                               aResult);
-}
-
-
-PRBool
-nsDocShell::URIIsLocalFile(nsIURI *aURI)
-{
-    PRBool isFile;
-    nsCOMPtr<nsINetUtil> util = do_GetNetUtil();
-
-    return util && NS_SUCCEEDED(util->ProtocolHasFlags(aURI,
-                                    nsIProtocolHandler::URI_IS_LOCAL_FILE,
-                                    &isFile)) &&
-           isFile;
 }
 
 PRBool
