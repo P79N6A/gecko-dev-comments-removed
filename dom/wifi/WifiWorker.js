@@ -1735,7 +1735,7 @@ function WifiWorker() {
       self.setWifiEnabled({enabled: true});
     },
   };
-  gSettingsService.getLock().get("wifi.enabled", initWifiEnabledCb);
+  gSettingsService.createLock().get("wifi.enabled", initWifiEnabledCb);
 }
 
 function translateState(state) {
@@ -2318,7 +2318,7 @@ WifiWorker.prototype = {
     
     
     
-    gSettingsService.getLock().set(
+    gSettingsService.createLock().set(
       "wifi.enabled", enabled, null, "fromInternalSetting");
   },
 

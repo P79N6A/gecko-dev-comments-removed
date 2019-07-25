@@ -183,16 +183,16 @@ function RadioInterfaceLayer() {
 
   
   
-  gSettingsService.getLock().get("ril.radio.disabled", this);
+  gSettingsService.createLock().get("ril.radio.disabled", this);
 
   
-  gSettingsService.getLock().get("ril.data.apn", this);
-  gSettingsService.getLock().get("ril.data.user", this);
-  gSettingsService.getLock().get("ril.data.passwd", this);
-  gSettingsService.getLock().get("ril.data.httpProxyHost", this);
-  gSettingsService.getLock().get("ril.data.httpProxyPort", this);
-  gSettingsService.getLock().get("ril.data.roaming_enabled", this);
-  gSettingsService.getLock().get("ril.data.enabled", this);
+  gSettingsService.createLock().get("ril.data.apn", this);
+  gSettingsService.createLock().get("ril.data.user", this);
+  gSettingsService.createLock().get("ril.data.passwd", this);
+  gSettingsService.createLock().get("ril.data.httpProxyHost", this);
+  gSettingsService.createLock().get("ril.data.httpProxyPort", this);
+  gSettingsService.createLock().get("ril.data.roaming_enabled", this);
+  gSettingsService.createLock().get("ril.data.enabled", this);
   this._dataCallSettingsToRead = ["ril.data.enabled",
                                   "ril.data.roaming_enabled",
                                   "ril.data.apn",
