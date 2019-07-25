@@ -212,12 +212,11 @@ BrowserIDService.prototype = {
     
     
     let pm = Services.perms;
-    let origin = Services.io.newURI(
-      win.wrappedJSObject.location.toString(), null, null
-    );
-    let oldPerm = pm.testExactPermission(origin, "popup");
+    let principal = win.document.nodePrincipal;
+
+    let oldPerm = pm.testExactPermissionFromPrincipal(principal, "popup");
     try {
-      pm.add(origin, "popup", pm.ALLOW_ACTION);
+      pm.addFromPrincipal(principal, "popup", pm.ALLOW_ACTION);
     } catch(e) {
       this._log.warn("Setting popup blocking to false failed " + e);
     }
@@ -232,7 +231,7 @@ BrowserIDService.prototype = {
     function callback(val) {
       
       try {
-        pm.add(origin, "popup", oldPerm);
+        pm.addFromPrincipal(principal, "popup", oldPerm);
       } catch(e) {
         this._log.warn("Setting popup blocking to original value failed " + e);
       }
