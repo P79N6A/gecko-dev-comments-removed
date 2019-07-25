@@ -2054,20 +2054,15 @@ namespace nanojit
         bool destKnown = (frag && frag->fragEntry);
         
         
-        if (guard->isop(LIR_xtbl)) {
-            NanoAssert(!guard->isop(LIR_xtbl));
-        } else {
-            
-            if (destKnown) {
-                JMP(frag->fragEntry);
-                lr = 0;
-            } else {  
-                if (!_epilogue)
-                    _epilogue = genEpilogue();
-                lr = guard->record();
-                JMPl(_epilogue);
-                lr->jmp = _nIns;
-            }
+        if (destKnown) {
+            JMP(frag->fragEntry);
+            lr = 0;
+        } else {  
+            if (!_epilogue)
+                _epilogue = genEpilogue();
+            lr = guard->record();
+            JMPl(_epilogue);
+            lr->jmp = _nIns;
         }
 
         

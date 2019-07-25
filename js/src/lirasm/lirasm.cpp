@@ -1229,7 +1229,6 @@ FragmentAssembler::assembleFragment(LirTokenStream &in, bool implicitBegin, cons
 
           case LIR_file:
           case LIR_line:
-          case LIR_xtbl:
           case LIR_jtbl:
             nyi(op);
             break;

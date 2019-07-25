@@ -411,19 +411,6 @@ namespace nanojit
     };
 
     
-
-
-    struct SwitchInfo
-    {
-        NIns**      table;       
-        uint32_t    count;       
-        
-        
-        
-        uint32_t    index;
-    };
-
-    
     extern const int8_t isCses[];       
 
     inline bool isCseOpcode(LOpcode op) {
@@ -947,8 +934,7 @@ namespace nanojit
             return isLInsLd();
         }
         bool isGuard() const {
-            return isop(LIR_x) || isop(LIR_xf) || isop(LIR_xt) ||
-                   isop(LIR_xbarrier) || isop(LIR_xtbl) ||
+            return isop(LIR_x) || isop(LIR_xf) || isop(LIR_xt) || isop(LIR_xbarrier) ||
                    isop(LIR_addxovi) || isop(LIR_subxovi) || isop(LIR_mulxovi);
         }
         bool isJov() const {
@@ -1402,7 +1388,6 @@ namespace nanojit
         case LIR_x:
         case LIR_xt:
         case LIR_xf:
-        case LIR_xtbl:
         case LIR_xbarrier:
             return (GuardRecord*)oprnd2();
 

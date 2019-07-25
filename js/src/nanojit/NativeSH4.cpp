@@ -1411,9 +1411,6 @@ namespace nanojit
         GuardRecord *guard_record = NULL;
 
         
-        NanoAssert(!guard->isop(LIR_xtbl));
-
-        
         if (target && target->fragEntry)
             JMP(target->fragEntry);
         else {
