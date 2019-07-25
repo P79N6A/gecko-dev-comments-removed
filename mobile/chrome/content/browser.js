@@ -390,6 +390,18 @@ var Browser = {
 
     ws.panTo(0,0, true);
 
+    let webProgress = this.currentBrowser.webProgress;
+    let securityUI = this.currentBrowser.securityUI;
+
+    try {
+      tab._listener.onLocationChange(webProgress, null, this.currentBrowser.currentURI);
+      if (securityUI)
+        tab._listener.onSecurityChange(webProgress, null, securityUI.state);
+    } catch (e) {
+      
+      Components.utils.reportError(e);
+    }
+
     let event = document.createEvent("Events");
     event.initEvent("TabSelect", true, false);
     tab.content.dispatchEvent(event);
@@ -1167,8 +1179,7 @@ ProgressController.prototype = {
   onSecurityChange: function(aWebProgress, aRequest, aState) {
     
     
-    if (this._state == aState &&
-        !this._hostChanged) {
+    if (this._state == aState && !this._hostChanged) {
       return;
     }
     this._state = aState;
@@ -1198,7 +1209,6 @@ ProgressController.prototype = {
       
     }
     getIdentityHandler().checkIdentity(this._state, locationObj);
-
   },
 
   QueryInterface: function(aIID) {
