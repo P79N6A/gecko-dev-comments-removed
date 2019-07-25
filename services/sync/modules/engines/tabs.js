@@ -241,6 +241,7 @@ TabStore.prototype = {
 	  if (urlHistory.length >= 10)
 	    break;
 	}
+        
         record.addTab(currentPage.title, urlHistory);
       }
     }
@@ -256,7 +257,9 @@ TabStore.prototype = {
       let urlHistory = [url];
       this._log.debug("Wrapping a tab with title " + title);
       
+      
       record.addTab(title, urlHistory);
+      
     }
   },
 
@@ -335,6 +338,10 @@ TabStore.prototype = {
   }
 
 };
+
+
+
+
 
 function TabTracker() {
   this._TabTracker_init();
