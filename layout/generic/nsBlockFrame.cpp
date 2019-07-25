@@ -1101,7 +1101,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   
   nscoord bottomEdgeOfChildren;
   ComputeFinalSize(aReflowState, state, aMetrics, &bottomEdgeOfChildren);
-  ComputeCombinedArea(aReflowState, aMetrics, bottomEdgeOfChildren);
+  ComputeOverflowAreas(aReflowState, aMetrics, bottomEdgeOfChildren);
   
   aMetrics.mOverflowAreas.UnionWith(ocBounds);
   
@@ -1429,14 +1429,15 @@ nsBlockFrame::ComputeFinalSize(const nsHTMLReflowState& aReflowState,
 }
 
 void
-nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
-                                  nsHTMLReflowMetrics&     aMetrics,
-                                  nscoord                  aBottomEdgeOfChildren)
+nsBlockFrame::ComputeOverflowAreas(const nsHTMLReflowState& aReflowState,
+                                   nsHTMLReflowMetrics&     aMetrics,
+                                   nscoord                  aBottomEdgeOfChildren)
 {
   
   
   
-  nsRect area(0, 0, aMetrics.width, aMetrics.height);
+  nsRect bounds(0, 0, aMetrics.width, aMetrics.height);
+  nsOverflowAreas areas(bounds, bounds);
 
   if (NS_STYLE_OVERFLOW_CLIP != aReflowState.mStyleDisplay->mOverflowX) {
     PRBool inQuirks = (PresContext()->CompatibilityMode() == eCompatibility_NavQuirks);
@@ -1446,12 +1447,12 @@ nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
 
       
       if (!inQuirks && line->IsInline()) {
-        nsRect shadowRect = nsLayoutUtils::GetTextShadowRectsUnion(line->GetCombinedArea(),
-                                                                   this);
-        area.UnionRect(area, shadowRect);
+        nsRect shadowRect = nsLayoutUtils::GetTextShadowRectsUnion(
+                              line->GetVisualOverflowArea(), this);
+        areas.VisualOverflow().UnionRect(areas.VisualOverflow(), shadowRect);
       }
 
-      area.UnionRect(area, line->GetCombinedArea());
+      areas.UnionWith(line->GetOverflowAreas());
     }
 
     
@@ -1460,7 +1461,7 @@ nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
     
     
     if (mBullet) {
-      area.UnionRect(area, mBullet->GetRect());
+      areas.UnionAllWith(mBullet->GetRect());
     }
 
     
@@ -1475,14 +1476,20 @@ nsBlockFrame::ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
       
       bottomEdgeOfContents += aReflowState.mComputedPadding.bottom;
     }
-    area.height = NS_MAX(area.YMost(), bottomEdgeOfContents) - area.y;
+    
+    
+    
+    NS_FOR_FRAME_OVERFLOW_TYPES(otype) {
+      nsRect& o = areas.Overflow(otype);
+      o.height = NS_MAX(o.YMost(), bottomEdgeOfContents) - o.y;
+    }
   }
 #ifdef NOISY_COMBINED_AREA
   ListTag(stdout);
   printf(": ca=%d,%d,%d,%d\n", area.x, area.y, area.width, area.height);
 #endif
 
-  aMetrics.mOverflowArea = area;
+  aMetrics.mOverflowAreas = areas;
 }
 
 nsresult

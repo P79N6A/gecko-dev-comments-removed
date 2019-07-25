@@ -223,6 +223,7 @@ public:
   
   
   
+  
 
   
   void ClearLineCursor();
@@ -396,9 +397,9 @@ protected:
                                 nsHTMLReflowMetrics&     aMetrics,
                                 nscoord*                 aBottomEdgeOfChildren);
 
-  void ComputeCombinedArea(const nsHTMLReflowState& aReflowState,
-                           nsHTMLReflowMetrics&     aMetrics,
-                           nscoord                  aBottomEdgeOfChildren);
+  void ComputeOverflowAreas(const nsHTMLReflowState& aReflowState,
+                            nsHTMLReflowMetrics&     aMetrics,
+                            nscoord                  aBottomEdgeOfChildren);
 
   
 
