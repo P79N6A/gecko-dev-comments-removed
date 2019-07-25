@@ -96,6 +96,10 @@
 
 
 
+
+
+
+
 #ifdef MOZ_MEMORY_ANDROID
 #define NO_TLS
 #define _pthread_self() pthread_self()
@@ -516,7 +520,14 @@ static const bool __isthreaded = true;
 #define	CACHELINE		((size_t)(1U << CACHELINE_2POW))
 
 
+
+
+
+#ifdef MOZ_MEMORY_WINDOWS
 #define	TINY_MIN_2POW		1
+#else
+#define TINY_MIN_2POW           (sizeof(void*) == 8 ? 3 : 2)
+#endif
 
 
 
