@@ -1,163 +1,163 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// -*- Mode: js2; tab-width: 2; indent-tabs-mode: nil; js2-basic-offset: 2; js2-skip-preprocessor-directives: t; -*-
+/*
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Mobile Browser.
+ *
+ * The Initial Developer of the Original Code is
+ * Mozilla Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 2009
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Roy Frostig <rfrostig@mozilla.com>
+ *   Stuart Parmenter <stuart@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
+
+/*
+#define FOREACH_RECT(rect, tilecache, fn)                                      \
+  {                                                                            \
+    let i    = (rect).left  >> kTileExponentWidth;                             \
+    let endi = (rect).right >> kTileExponentWidth;                             \
+    let j    = (rect).top    >> kTileExponentHeight;                           \
+    let endj = (rect).bottom >> kTileExponentHeight;                           \
+                                                                               \
+    let tile = null;                                                           \
+    for (; j <= endj; ++j) {                                                   \
+      for (; i <= endi; ++i) {                                                 \
+        tile = (tilecache).getTile(i, j, false);                               \
+        if (tile) {                                                            \
+          (fn)(tile);                                                          \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+  }
+
+#define FOREACH_RECT_CREATE(rect, tilecache, fn)                               \
+  {                                                                            \
+    let visited = {};                                                          \
+    let evictGuard = function evictGuard(tile)                                 \
+      { return !visited[tile.toString()]; };                                   \
+                                                                               \
+    let i    = (rect).left  >> kTileExponentWidth;                             \
+    let endi = (rect).right >> kTileExponentWidth;                             \
+    let j    = (rect).top    >> kTileExponentHeight;                           \
+    let endj = (rect).bottom >> kTileExponentHeight;                           \
+                                                                               \
+    let tile = null;                                                           \
+    for (; j <= endj; ++j) {                                                   \
+      for (; i <= endi; ++i) {                                                 \
+        tile = (tilecache).getTile(i, j, true, evictGuard);                    \
+        if (tile) {                                                            \
+          visited[tile.toString()] = true;                                     \
+          (fn)(tile);                                                          \
+        }                                                                      \
+      }                                                                        \
+    }                                                                          \
+  }
+*/
 
 const kXHTMLNamespaceURI  = "http://www.w3.org/1999/xhtml";
 
-
+// base-2 exponent for width, height of a single tile.
 const kTileExponentWidth  = 7;
 const kTileExponentHeight = 7;
-const kTileWidth  = Math.pow(2, kTileExponentWidth);   
-const kTileHeight = Math.pow(2, kTileExponentHeight);  
-const kTileLazyRoundTimeCap = 500;    
+const kTileWidth  = Math.pow(2, kTileExponentWidth);   // 2^7 = 128
+const kTileHeight = Math.pow(2, kTileExponentHeight);  // 2^7 = 128
+const kTileLazyRoundTimeCap = 500;    // millis
 
 
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * The Tile Manager!
+ *
+ * @param appendTile The function the tile manager should call in order to
+ * "display" a tile (e.g. append it to the DOM).  The argument to this
+ * function is a TileManager.Tile object.
+ * @param removeTile The function the tile manager should call in order to
+ * "undisplay" a tile (e.g. remove it from the DOM).  The argument to this
+ * function is a TileManager.Tile object.
+ * @param fakeWidth The width of the widest possible visible rectangle, e.g.
+ * the width of the screen.  This is used in setting the zoomLevel.
+ */
 function TileManager(appendTile, removeTile, browserView) {
-  
+  // backref to the BrowserView object that owns us
   this._browserView = browserView;
 
-  
+  // callbacks to append / remove a tile to / from the parent
   this._appendTile = appendTile;
   this._removeTile = removeTile;
 
-  
+  // tile cache holds tile objects and pools them under a given capacity
   let self = this;
   this._tileCache = new TileManager.TileCache(function(tile) { self._removeTileSafe(tile); },
                                               -1, -1, 200);
 
-  
-  
+  // Rectangle within the viewport that is visible to the user.  It is "critical"
+  // in the sense that it must be rendered as soon as it becomes dirty
   this._criticalRect = null;
 
-  
-  
-  
+  // if we have an outstanding paint timeout, its value is stored here
+  // for cancelling when we end page loads
+  //this._drawTimeout = 0;
   this._pageLoadResizerTimeout = 0;
 
-  
+  // timeout of the non-visible-tiles-crawler to cache renders from the browser
   this._idleTileCrawlerTimeout = 0;
 
-  
+  // object that keeps state on our current lazyload crawl
   this._crawler = null;
 
-  
-  
-  
+  // the max right coordinate we've seen from paint events
+  // while we were loading a page.  If we see something that's bigger than
+  // our width, we'll trigger a page zoom.
   this._pageLoadMaxRight = 0;
   this._pageLoadMaxBottom = 0;
 
-  
+  // Tells us to pan to top before first draw
   this._needToPanToTop = false;
 }
 
 TileManager.prototype = {
 
-  
-  
+  // This is the callback fired by our client whenever the viewport
+  // changed somehow (or didn't change but someone asked it to update).
   viewportChangeHandler: function viewportChangeHandler(viewportRect,
                                                         criticalRect,
                                                         boundsSizeChanged,
                                                         dirtyAll) {
-    
-    
-
-
-
-
-
-
-    
+    // !!! --- DEBUG BEGIN -----
+    /*
+    dump("***vphandler***\n");
+    dump(viewportRect.toString() + "\n");
+    dump((criticalRect ? criticalRect.toString() : "null") + "\n");
+    dump(boundsSizeChanged + "\n");
+    dump(dirtyAll + "\n***************\n");
+    */
+    // !!! --- DEBUG END -------
 
     let tc = this._tileCache;
 
@@ -170,7 +170,7 @@ TileManager.prototype = {
     }
 
     if (boundsSizeChanged) {
-      
+      // TODO fastpath if !dirtyAll
       this.dirtyRects([viewportRect.clone()], true);
     }
   },
@@ -223,7 +223,7 @@ TileManager.prototype = {
 
       let create = false;
 
-      
+      // this._tileCache.forEachIntersectingRect(destCriticalRect, false, appendNonDirtyTile, this);
       let visited = {};
       let evictGuard = null;
       if (create) {
@@ -243,32 +243,32 @@ TileManager.prototype = {
 
       for (var j = startj; j <= endj; ++j) {
 	for (var i = starti; i <= endi; ++i) {
-	  
-	  
-	  
+	  // 'this' for getTile needs to be tc
+	  //tile = this.getTile(i, j, create, evictGuard);
+	  //if (!tc.inBounds(i, j)) {
 	  if (0 <= i && 0 <= j && i <= tc.iBound && j <= tc.jBound) {
-	    
+	    //return null;
 	    break;
 	  }
 
 	  tile = null;
 
-	  
+	  //if (tc._isOccupied(i, j)) {
 	  if (!!(tc._tiles[i] && tc._tiles[i][j])) {
 	    tile = tc._tiles[i][j];
 	  } else if (create) {
-	    
+	    // NOTE: create is false here
 	    tile = tc._createTile(i, j, evictionGuard);
 	    if (tile) tile.markDirty();
 	  }
 
 	  if (tile) {
 	    visited[tile.toString()] = true;
-	    
-	    
-	    
+	    //fn.call(thisObj, tile);
+	    //function appendNonDirtyTile(tile) {
+	    //if (!tile.isDirty())
 	    if (!tile._dirtyTileCanvas) {
-	      
+	      //this._appendTileSafe(tile);
 	      if (!tile._appended) {
 		let astart = Date.now();
 		this._appendTile(tile);
@@ -277,7 +277,7 @@ TileManager.prototype = {
 		dump("append: " + (aend - astart) + "\n");
 	      }
 	    }
-	    
+	    //}
 	  }
 	}
       }
@@ -291,7 +291,7 @@ TileManager.prototype = {
     let tc = this._tileCache;
     let cr = this._criticalRect;
 
-    let dcr = destCriticalRect; 
+    let dcr = destCriticalRect; // XXX help the closure upval analyser with a local let
     let f = function releaseOldTile(tile) {
       if (!tile.boundRect.intersects(dcr))
         tc.releaseTile(tile);
@@ -443,32 +443,32 @@ TileManager.prototype = {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * The tile cache used by the tile manager to hold and index all
+ * tiles.  Also responsible for pooling tiles and maintaining the
+ * number of tiles under given capacity.
+ *
+ * @param onBeforeTileDetach callback set by the TileManager to call before
+ * we must "detach" a tile from a tileholder due to needing it elsewhere or
+ * having to discard it on capacity decrease
+ * @param capacity the initial capacity of the tile cache, i.e. the max number
+ * of tiles the cache can have allocated
+ */
 TileManager.TileCache = function TileCache(onBeforeTileDetach, iBound, jBound, capacity) {
   if (arguments.length <= 3 || capacity < 0)
     capacity = Infinity;
 
-  
-  
-  
-  
-  
-  
-  
+  // We track all pooled tiles in a 2D array (row, column) ordered as
+  // they "appear on screen".  The array is a grid that functions for
+  // storage of the tiles and as a lookup map.  Each array entry is
+  // a reference to the tile occupying that space ("tileholder").  Entries
+  // are not unique, so a tile could be referenced by multiple array entries,
+  // i.e. a tile could "span" many tile placeholders (e.g. if we merge
+  // neighbouring tiles).
   this._tiles = [];
 
-  
-  
+  // holds the same tiles that _tiles holds, but as contiguous array
+  // elements, for pooling tiles for reuse under finite capacity
   this._tilePool = (capacity == Infinity) ? new Array() : new Array(capacity);
 
   this._capacity = capacity;
@@ -486,10 +486,10 @@ TileManager.TileCache.prototype = {
   get size() { return this._nTiles; },
   get numFree() { return this._numFree; },
 
-  
-  
-  
-  
+  // A comparison function that will compare all free tiles as greater
+  // than all non-free tiles.  Useful because, for instance, to shrink
+  // the tile pool when capacity is lowered, we want to remove all tiles
+  // at the new cap and beyond, favoring removal of free tiles first.
   evictionCmp: function freeTilesLast(a, b) {
     if (a.free == b.free) return (a.j == b.j) ? b.i - a.i : b.j - a.j;
     return (a.free) ? 1 : -1;
@@ -505,30 +505,30 @@ TileManager.TileCache.prototype = {
       this._capacity = Infinity;
       return;
     } else if (this._capacity == Infinity) {
-      
+      // pretend we had a finite capacity all along and proceed normally
       this._capacity = this._tilePool.length;
     }
 
     let rem = null;
 
     if (newCap < this._capacity) {
-      
-      
-      
-      
-      
-      
+      // This case is obnoxious.  We're decreasing our capacity which means
+      // we may have to get rid of tiles.  Depending on our eviction comparator,
+      // we probably try to get rid free tiles first, but we might have to throw
+      // out some nonfree ones too.  Note that "throwing out" means the cache
+      // won't keep them, and they'll get GC'ed as soon as all other refholders
+      // let go of their refs to the tile.
       if (!skipEvictionQueueSort)
         this.sortEvictionQueue();
 
       rem = this._tilePool.splice(newCap);
 
     } else {
-      
+      // This case is win.  Extend our tile pool array with new empty space.
       this._tilePool.push.apply(this._tilePool, new Array(newCap - this._capacity));
     }
 
-    
+    // update state in the case that we threw things out.
     let nTilesDeleted = this._nTiles - newCap;
     if (nTilesDeleted > 0) {
       let nFreeDeleted = 0;
@@ -565,9 +565,9 @@ TileManager.TileCache.prototype = {
   },
 
   _reassignTile: function _reassignTile(tile, i, j) {
-    this._detachTile(tile.i, tile.j);    
-    tile.init(i, j);                     
-    this._tiles[i][j] = tile;            
+    this._detachTile(tile.i, tile.j);    // detach
+    tile.init(i, j);                     // re-init
+    this._tiles[i][j] = tile;            // attach
     return tile;
   },
 
@@ -595,14 +595,14 @@ TileManager.TileCache.prototype = {
     let tile = null;
 
     if (this._nTiles < this._capacity) {
-      
+      // either capacity is infinite, or we still have room to allocate more
       tile = new TileManager.Tile(i, j);
       this._tiles[i][j] = tile;
       this._tilePool[this._nTiles++] = tile;
       this._numFree++;
 
     } else {
-      
+      // assert: nTiles == capacity
       tile = this._evictTile(evictionGuard);
       if (tile)
         this._reassignTile(tile, i, j);
@@ -620,20 +620,20 @@ TileManager.TileCache.prototype = {
     this._tilePool.sort(cmp);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
+  /**
+   * Get a tile by its indices
+   *
+   * @param i Column
+   * @param j Row
+   * @param create Flag true if the tile should be created in case there is no
+   * tile at (i, j)
+   * @param reuseCondition Boolean-valued function to restrict conditions under
+   * which an old tile may be reused for creating this one.  This can happen if
+   * the cache has reached its capacity and must reuse existing tiles in order to
+   * create this one.  The function is given a Tile object as its argument and
+   * returns true if the tile is OK for reuse. This argument has no effect if the
+   * create argument is false.
+   */
   getTile: function getTile(i, j, create, evictionGuard) {
     if (!this.inBounds(i, j))
       return null;
@@ -650,14 +650,14 @@ TileManager.TileCache.prototype = {
     return tile;
   },
 
-  
-
-
-
-
-
-
-
+  /**
+   * Look up (possibly creating) a tile from its viewport coordinates.
+   *
+   * @param x
+   * @param y
+   * @param create Flag true if the tile should be created in case it doesn't
+   * already exist at the tileholder corresponding to (x, y)
+   */
   tileFromPoint: function tileFromPoint(x, y, create) {
     let i = x >> kTileExponentWidth;
     let j = y >> kTileExponentHeight;
@@ -665,10 +665,10 @@ TileManager.TileCache.prototype = {
     return this.getTile(i, j, create);
   },
 
-  
-
-
-
+  /**
+   * Hold a tile (i.e. mark it non-free).  Returns true if the operation
+   * actually did something, false elsewise.
+   */
   holdTile: function holdTile(tile) {
     if (tile && tile.free) {
       tile._hold();
@@ -678,10 +678,10 @@ TileManager.TileCache.prototype = {
     return false;
   },
 
-  
-
-
-
+  /**
+   * Release a tile (i.e. mark it free).  Returns true if the operation
+   * actually did something, false elsewise.
+   */
   releaseTile: function releaseTile(tile) {
     if (tile && !tile.free) {
       tile._release();
@@ -691,12 +691,12 @@ TileManager.TileCache.prototype = {
     return false;
   },
 
-  
-  
-  
-
-
-
+  // XXX the following two functions will iterate through duplicate tiles
+  // once we begin to merge tiles.
+  /**
+   * Fetch all tiles that share at least one point with this rect.  If `create'
+   * is true then any tileless tileholders will have tiles created for them.
+   */
   tilesIntersectingRect: function tilesIntersectingRect(rect, create) {
     let dx = (rect.right % kTileWidth) - (rect.left % kTileWidth);
     let dy = (rect.bottom % kTileHeight) - (rect.top % kTileHeight);
@@ -753,61 +753,61 @@ TileManager.TileCache.prototype = {
 
 
 TileManager.Tile = function Tile(i, j) {
-  
+  // canvas element is where we keep paint data from browser for this tile
   this._canvas = document.createElementNS(kXHTMLNamespaceURI, "canvas");
   this._canvas.setAttribute("width", String(kTileWidth));
   this._canvas.setAttribute("height", String(kTileHeight));
   this._canvas.setAttribute("moz-opaque", "true");
-  
+  //this._canvas.style.border = "1px solid red";
 
-  this.init(i, j);  
+  this.init(i, j);  // defines more properties, cf below
 };
 
 TileManager.Tile.prototype = {
 
-  
-  
-  
+  // essentially, this is part of constructor code, but since we reuse tiles
+  // in the tile cache, this is here so that we can reinitialize tiles when we
+  // reuse them
   init: function init(i, j) {
     if (!this.boundRect)
       this.boundRect = new wsRect(i * kTileWidth, j * kTileHeight, kTileWidth, kTileHeight);
     else
       this.boundRect.setRect(i * kTileWidth, j * kTileHeight, kTileWidth, kTileHeight);
 
-    
+    // indices!
     this.i = i;
     this.j = j;
 
-    
+    // flags true if we need to repaint our own local canvas
     this._dirtyTileCanvas = false;
 
-    
+    // keep a dirty rectangle (i.e. only part of the tile is dirty)
     this._dirtyTileCanvasRect = null;
 
-    
-    
+    // flag used by TileManager to avoid re-appending tiles that have already
+    // been appended
     this._appended = false;
 
-    
-    
-    
+    // We keep tile objects around after their use for later reuse, so this
+    // flags true for an unused pooled tile.  We don't actually care about
+    // this from within the Tile prototype, it is here for the cache to use.
     this.free = true;
   },
 
-  
+  // viewport coordinates
   get x() { return this.boundRect.left; },
   get y() { return this.boundRect.top; },
 
-  
-  
+  // the actual canvas that holds the most recently rendered image of this
+  // canvas
   getContentImage: function getContentImage() { return this._canvas; },
 
   isDirty: function isDirty() { return this._dirtyTileCanvas; },
 
-  
-
-
-
+  /**
+   * Mark this entire tile as dirty (i.e. the whole tile needs to be rendered
+   * on next render).
+   */
   markDirty: function markDirty() { this.updateDirtyRegion(); },
 
   unmarkDirty: function unmarkDirty() {
@@ -815,11 +815,11 @@ TileManager.Tile.prototype = {
     this._dirtyTileCanvas = false;
   },
 
-  
-
-
-
-
+  /**
+   * This will mark dirty at least everything in dirtyRect (which must be
+   * specified in canvas coordinates).  If dirtyRect is not given then
+   * the entire tile is marked dirty.
+   */
   updateDirtyRegion: function updateDirtyRegion(dirtyRect) {
     if (!dirtyRect) {
 
@@ -837,23 +837,23 @@ TileManager.Tile.prototype = {
 
     }
 
-    
-    
+    // TODO if after the above, the dirty rectangle is large enough,
+    // mark the whole tile dirty.
 
     if (this._dirtyTileCanvasRect)
       this._dirtyTileCanvas = true;
   },
 
-  
-
-
-
-
-
-
-
-
-
+  /**
+   * Actually draw the browser content into the dirty region of this
+   * tile.  This requires us to actually draw with the
+   * nsIDOMCanvasRenderingContext2D object's drawWindow method, which
+   * we expect to be a relatively heavy operation.
+   *
+   * You likely want to check if the tile isDirty() before asking it
+   * to render, as this will cause the entire tile to re-render in the
+   * case that it is not dirty.
+   */
   render: function render(browserView) {
     if (!this.isDirty())
       this.markDirty();
@@ -901,42 +901,42 @@ TileManager.Tile.prototype = {
 };
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * A CrawlIterator is in charge of creating and returning subsequent tiles "crawled"
+ * over as we render tiles lazily.  It supports iterator semantics so you can use
+ * CrawlIterator objects in for..in loops.
+ *
+ * Currently the CrawlIterator is built to expand a rectangle iteratively and return
+ * subsequent tiles that intersect the boundary of the rectangle.  Each expansion of
+ * the rectangle is one unit of tile dimensions in each direction.  This is repeated
+ * until all tiles from elsewhere have been reused (assuming the cache has finite
+ * capacity) in this crawl, so that we don't start reusing tiles from the beginning
+ * of our crawl.  Afterward, the CrawlIterator enters a state where it operates as a
+ * FIFO queue, and calls to next() simply dequeue elements, which must be added with
+ * enqueue().
+ *
+ * @param tileCache The TileCache over whose tiles this CrawlIterator will crawl
+ * @param startRect [optional] The rectangle that we grow in the first (rectangle
+ * expansion) iteration state.
+ */
 TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
   this._tileCache = tileCache;
   this._stepRect = startRect;
 
-  
+  // used to remember tiles that we've reused during this crawl
   this._visited = {};
 
-  
-  
+  // filters the tiles we've already reused once from being considered victims
+  // for reuse when we ask the tile cache to create a new tile
   let visited = this._visited;
   this._notVisited = function(tile) { return !visited[tile.toString()]; };
 
-  
-  
+  // a generator that generates tile indices corresponding to tiles intersecting
+  // the boundary of an expanding rectangle
   this._crawlIndices = !startRect ? null : (function indicesGenerator(rect, tc) {
     let outOfBounds = false;
     while (!outOfBounds) {
-      
+      // expand rect
       rect.left   -= kTileWidth;
       rect.right  += kTileWidth;
       rect.top    -= kTileHeight;
@@ -947,7 +947,7 @@ TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
 
       outOfBounds = true;
 
-      
+      // top, bottom borders
       for each (let y in [rect.top, rect.bottom]) {
         for (let x = rect.left; x <= rect.right - dx; x += kTileWidth) {
           let i = x >> kTileExponentWidth;
@@ -959,7 +959,7 @@ TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
         }
       }
 
-      
+      // left, right borders
       for each (let x in [rect.left, rect.right]) {
         for (let y = rect.top; y <= rect.bottom - dy; y += kTileHeight) {
           let i = x >> kTileExponentWidth;
@@ -971,14 +971,14 @@ TileManager.CrawlIterator = function CrawlIterator(tileCache, startRect) {
         }
       }
     }
-  })(this._stepRect, this._tileCache),    
+  })(this._stepRect, this._tileCache),    // instantiate the generator
 
-  
+  // after we finish the rectangle iteration state, we enter the FIFO queue state
   this._queueState = !startRect;
   this._queue = [];
 
-  
-  
+  // used to prevent tiles from being enqueued twice --- "patience, we'll get to
+  // it in a moment"
   this._enqueued = {};
 };
 
