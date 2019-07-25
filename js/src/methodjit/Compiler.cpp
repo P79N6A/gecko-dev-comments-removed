@@ -4790,6 +4790,8 @@ mjit::Compiler::jsop_callprop_dispatch(JSAtom *atom)
 
     
 
+    frame.forgetMismatchedObject(top);
+
     if (!top->isType(JSVAL_TYPE_OBJECT)) {
         Jump notObject = frame.testObject(Assembler::NotEqual, top);
         stubcc.linkExit(notObject, Uses(1));
