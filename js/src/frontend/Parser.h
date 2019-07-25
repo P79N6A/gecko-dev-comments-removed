@@ -76,7 +76,6 @@ struct Parser : private AutoGCRooter
     const char *getFilename() const { return tokenStream.getFilename(); }
     JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
-    bool hasXML() const { return tokenStream.hasXML(); }
 
     
 
@@ -232,6 +231,9 @@ struct Parser : private AutoGCRooter
     ParseNode *identifierName(bool afterDoubleDot);
 
 #if JS_HAS_XML_SUPPORT
+    
+    bool allowsXML() const { return !tc->sc->inStrictMode(); }
+
     ParseNode *endBracketedExpr();
 
     ParseNode *propertySelector();

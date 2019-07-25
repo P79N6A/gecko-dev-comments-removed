@@ -919,9 +919,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           if (langID == nsIProgrammingLanguage::JAVASCRIPT) {
               
               
-              
-              
-              version = js::VersionSetXML(JSVersion(version), true);
+              version = js::VersionSetMoarXML(JSVersion(version), true);
 
               nsAutoString value;
               rv = parser.GetParameter("e4x", value);
@@ -930,7 +928,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
                       return rv;
               } else {
                   if (value.Length() == 1 && value[0] == '0')
-                    version = js::VersionSetXML(JSVersion(version), false);
+                    version = js::VersionSetMoarXML(JSVersion(version), false);
               }
           }
       }
@@ -944,7 +942,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
 
               
               
-              version = js::VersionSetXML(JSVersion(version), true);
+              version = js::VersionSetMoarXML(JSVersion(version), true);
           }
       }
       aAttributes += 2;

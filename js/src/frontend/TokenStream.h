@@ -467,8 +467,9 @@ class TokenStream
     
     JSVersion versionNumber() const { return VersionNumber(version); }
     JSVersion versionWithFlags() const { return version; }
-    bool hasXML() const { return xml || VersionShouldParseXML(versionNumber()); }
-    void setXML(bool enabled) { xml = enabled; }
+    bool allowsXML() const { return !isStrictMode(); }
+    bool hasMoarXML() const { return moarXML || VersionShouldParseXML(versionNumber()); }
+    void setMoarXML(bool enabled) { moarXML = enabled; }
 
     bool isCurrentTokenEquality() const {
         return TokenKindIsEquality(currentToken().type);
@@ -492,10 +493,10 @@ class TokenStream
     void setUnexpectedEOF(bool enabled = true) { setFlag(enabled, TSF_UNEXPECTED_EOF); }
     void setOctalCharacterEscape(bool enabled = true) { setFlag(enabled, TSF_OCTAL_CHAR); }
 
-    bool isStrictMode() { return strictModeGetter ? strictModeGetter->get() : false; }
-    bool isXMLTagMode() { return !!(flags & TSF_XMLTAGMODE); }
-    bool isXMLOnlyMode() { return !!(flags & TSF_XMLONLYMODE); }
-    bool isUnexpectedEOF() { return !!(flags & TSF_UNEXPECTED_EOF); }
+    bool isStrictMode() const { return strictModeGetter ? strictModeGetter->get() : false; }
+    bool isXMLTagMode() const { return !!(flags & TSF_XMLTAGMODE); }
+    bool isXMLOnlyMode() const { return !!(flags & TSF_XMLONLYMODE); }
+    bool isUnexpectedEOF() const { return !!(flags & TSF_UNEXPECTED_EOF); }
     bool isEOF() const { return !!(flags & TSF_EOF); }
     bool hasOctalCharacterEscape() const { return flags & TSF_OCTAL_CHAR; }
 
@@ -796,7 +797,7 @@ class TokenStream
     bool                maybeEOL[256];       
     bool                maybeStrSpecial[256];
     JSVersion           version;        
-    bool                xml;            
+    bool                moarXML;        
     JSContext           *const cx;
     JSPrincipals        *const originPrincipals;
     StrictModeGetter    *strictModeGetter; 

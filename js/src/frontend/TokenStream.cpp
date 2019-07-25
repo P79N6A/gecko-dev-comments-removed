@@ -139,7 +139,7 @@ TokenStream::TokenStream(JSContext *cx, JSPrincipals *prin, JSPrincipals *origin
     listenerTSData(),
     tokenbuf(cx),
     version(v),
-    xml(VersionHasXML(v)),
+    moarXML(VersionHasMoarXML(v)),
     cx(cx),
     originPrincipals(JSScript::normalizeOriginPrincipals(prin, originPrin)),
     strictModeGetter(smg)
@@ -1873,7 +1873,7 @@ TokenStream::getTokenInternal()
 
       case '<':
 #if JS_HAS_XML_SUPPORT
-        if ((flags & TSF_OPERAND) && !isStrictMode() && (hasXML() || peekChar() != '!')) {
+        if ((flags & TSF_OPERAND) && allowsXML() && (hasMoarXML() || peekChar() != '!')) {
             if (!getXMLMarkup(&tt, &tp))
                 goto error;
             goto out;

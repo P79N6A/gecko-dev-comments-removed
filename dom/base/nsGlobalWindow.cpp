@@ -1616,7 +1616,7 @@ nsGlobalWindow::CreateOuterObject(nsGlobalWindow* aNewInner)
     
     
     
-    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_XML);
+    JS_SetOptions(cx, JS_GetOptions(cx) | JSOPTION_MOAR_XML);
   }
 
   JSObject* outer = NewOuterWindowProxy(cx, aNewInner->FastGetGlobalJSObject());
