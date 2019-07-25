@@ -4079,7 +4079,15 @@ nsComputedDOMStyle::DoGetAnimationIterationCount()
     valueList->AppendCSSValue(iterationCount);
 
     float f = animation->GetIterationCount();
-    if (f == NS_IEEEPositiveInfinity()) {
+    
+
+
+
+#ifdef XP_MACOSX
+    volatile
+#endif
+      float inf = NS_IEEEPositiveInfinity();
+    if (f == inf) {
       iterationCount->SetIdent(eCSSKeyword_infinite);
     } else {
       iterationCount->SetNumber(f);
