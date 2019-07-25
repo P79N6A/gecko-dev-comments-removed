@@ -1324,17 +1324,11 @@ TokenStream::checkForKeyword(const jschar *s, size_t length, TokenKind *ttp, JSO
         }
 
         
-        if (kw->tokentype == TOK_LET) {
-            return ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
-                                            JSMSG_RESERVED_ID, kw->chars);
-        }
-
-        
 
 
 
 
-        if (kw->tokentype != TOK_YIELD)
+        if (kw->tokentype != TOK_LET && kw->tokentype != TOK_YIELD)
             return true;
     }
 
