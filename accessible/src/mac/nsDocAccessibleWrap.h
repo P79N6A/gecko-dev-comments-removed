@@ -53,7 +53,7 @@ public:
   
 
 
-  virtual PRBoo Init();
+  virtual PRBool Init();
 };
 
 #endif

@@ -62,7 +62,7 @@ class nsAccessibleWrap : public nsAccessible
     virtual ~nsAccessibleWrap();
     
     
-    NS_IMETHOD Init ();
+    virtual PRBool Init ();
     
     
     NS_IMETHOD GetNativeInterface (void **aOutAccessible);
