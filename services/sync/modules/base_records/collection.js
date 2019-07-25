@@ -75,7 +75,6 @@ Collection.prototype = {
       args.push('older=' + this.older);
     else if (this.newer) {
       args.push('newer=' + this.newer);
-      args.push('modified=' + this.newer); 
     }
     if (this.full)
       args.push('full=1');
