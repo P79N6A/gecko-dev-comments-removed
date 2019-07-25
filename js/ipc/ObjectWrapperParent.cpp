@@ -174,23 +174,23 @@ const js::Class ObjectWrapperParent::sCPOW_JSClass = {
       "CrossProcessObjectWrapper",
       JSCLASS_NEW_RESOLVE | JSCLASS_NEW_ENUMERATE |
       JSCLASS_HAS_PRIVATE | JSCLASS_HAS_RESERVED_SLOTS(sNumSlots),
-      JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_AddProperty),
-      JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_DelProperty),
-      JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_GetProperty),
-      JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_SetProperty),
+      ObjectWrapperParent::CPOW_AddProperty,
+      ObjectWrapperParent::CPOW_DelProperty,
+      ObjectWrapperParent::CPOW_GetProperty,
+      ObjectWrapperParent::CPOW_SetProperty,
       (JSEnumerateOp) ObjectWrapperParent::CPOW_NewEnumerate,
       (JSResolveOp) ObjectWrapperParent::CPOW_NewResolve,
-      JS_VALUEIFY(js::ConvertOp, ObjectWrapperParent::CPOW_Convert),
+      ObjectWrapperParent::CPOW_Convert,
       ObjectWrapperParent::CPOW_Finalize,
       nsnull, 
       nsnull, 
-      JS_VALUEIFY(js::CallOp, ObjectWrapperParent::CPOW_Call),
-      JS_VALUEIFY(js::CallOp, ObjectWrapperParent::CPOW_Construct),
+      ObjectWrapperParent::CPOW_Call,
+      ObjectWrapperParent::CPOW_Construct,
       nsnull, 
-      JS_VALUEIFY(js::HasInstanceOp, ObjectWrapperParent::CPOW_HasInstance),
+      ObjectWrapperParent::CPOW_HasInstance,
       nsnull, 
       {
-          JS_VALUEIFY(js::EqualityOp, ObjectWrapperParent::CPOW_Equality),
+          ObjectWrapperParent::CPOW_Equality,
           nsnull, 
           nsnull, 
           nsnull, 
@@ -450,8 +450,8 @@ ObjectWrapperParent::CPOW_GetProperty(JSContext *cx, JSObject *obj, jsid id,
 }
 
  JSBool
-ObjectWrapperParent::CPOW_SetProperty(JSContext *cx, JSObject *obj, jsid id,
-                                      jsval *vp)
+ObjectWrapperParent::CPOW_SetProperty(JSContext *cx, JSObject *obj, jsid id, 
+                                      JSBool strict, jsval *vp)
 {
     CPOW_LOG(("Calling CPOW_SetProperty (%s)...",
               JSVAL_TO_CSTR(cx, id)));

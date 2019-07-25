@@ -204,13 +204,13 @@ js::Class XPC_WN_NoHelper_Proto_JSClass = {
     WRAPPER_SLOTS,                  
 
     
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::PropertyStub,               
-    js::StrictPropertyStub,         
-    js::EnumerateStub,              
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_StrictPropertyStub,          
+    JS_EnumerateStub,               
     JS_ResolveStub,                 
-    js::ConvertStub,                
+    JS_ConvertStub,                 
     nsnull,                         
 
     

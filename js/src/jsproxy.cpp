@@ -124,7 +124,7 @@ JSProxyHandler::get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id,
         return true;
     }
     if (!desc.getter ||
-        (!(desc.attrs & JSPROP_GETTER) && desc.getter == PropertyStub)) {
+        (!(desc.attrs & JSPROP_GETTER) && desc.getter == JS_PropertyStub)) {
         *vp = desc.value;
         return true;
     }
@@ -152,8 +152,8 @@ JSProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id,
         if (desc.attrs & JSPROP_READONLY)
             return true;
         if (!desc.setter) {
-            desc.setter = StrictPropertyStub;
-        } else if ((desc.attrs & JSPROP_SETTER) || desc.setter != StrictPropertyStub) {
+            desc.setter = JS_StrictPropertyStub;
+        } else if ((desc.attrs & JSPROP_SETTER) || desc.setter != JS_StrictPropertyStub) {
             if (!CallSetter(cx, receiver, id, desc.setter, desc.attrs, desc.shortid, strict, vp))
                 return false;
             if (!proxy->isProxy() || proxy->getProxyHandler() != this)
@@ -162,7 +162,7 @@ JSProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id,
                 return true;
         }
         if (!desc.getter)
-            desc.getter = PropertyStub;
+            desc.getter = JS_PropertyStub;
         desc.value = *vp;
         return defineProperty(cx, receiver, id, &desc);
     }
@@ -172,8 +172,8 @@ JSProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id,
         if (desc.attrs & JSPROP_READONLY)
             return true;
         if (!desc.setter) {
-            desc.setter = StrictPropertyStub;
-        } else if ((desc.attrs & JSPROP_SETTER) || desc.setter != StrictPropertyStub) {
+            desc.setter = JS_StrictPropertyStub;
+        } else if ((desc.attrs & JSPROP_SETTER) || desc.setter != JS_StrictPropertyStub) {
             if (!CallSetter(cx, receiver, id, desc.setter, desc.attrs, desc.shortid, strict, vp))
                 return false;
             if (!proxy->isProxy() || proxy->getProxyHandler() != this)
@@ -182,7 +182,7 @@ JSProxyHandler::set(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id,
                 return true;
         }
         if (!desc.getter)
-            desc.getter = PropertyStub;
+            desc.getter = JS_PropertyStub;
         return defineProperty(cx, receiver, id, &desc);
     }
 
@@ -1105,21 +1105,21 @@ proxy_TypeOf(JSContext *cx, JSObject *proxy)
 JS_FRIEND_DATA(Class) js::ObjectProxyClass = {
     "Proxy",
     Class::NON_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(3),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
-    EnumerateStub,
-    ResolveStub,
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
     proxy_Convert,
-    proxy_Finalize,       
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    proxy_HasInstance,    
-    proxy_TraceObject,    
+    proxy_Finalize,          
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    proxy_HasInstance,       
+    proxy_TraceObject,       
     JS_NULL_CLASS_EXT,
     {
         proxy_LookupProperty,
@@ -1136,37 +1136,37 @@ JS_FRIEND_DATA(Class) js::ObjectProxyClass = {
         proxy_SetElementAttributes,
         proxy_DeleteProperty,
         proxy_DeleteElement,
-        NULL,             
+        NULL,                
         proxy_TypeOf,
-        proxy_Fix,        
-        NULL,             
-        NULL,             
+        proxy_Fix,           
+        NULL,                
+        NULL,                
     }
 };
 
 JS_FRIEND_DATA(Class) js::OuterWindowProxyClass = {
     "Proxy",
     Class::NON_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(3),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
-    EnumerateStub,
-    ResolveStub,
-    ConvertStub,
-    proxy_Finalize,       
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    NULL,                 
-    proxy_TraceObject,    
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    proxy_Finalize,          
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    NULL,                    
+    proxy_TraceObject,       
     {
-        NULL,             
-        NULL,             
+        NULL,                
+        NULL,                
         proxy_innerObject,
-        NULL        
+        NULL                 
     },
     {
         proxy_LookupProperty,
@@ -1183,11 +1183,11 @@ JS_FRIEND_DATA(Class) js::OuterWindowProxyClass = {
         proxy_SetElementAttributes,
         proxy_DeleteProperty,
         proxy_DeleteElement,
-        NULL,             
-        NULL,             
-        NULL,             
-        NULL,             
-        NULL,             
+        NULL,                
+        NULL,                
+        NULL,                
+        NULL,                
+        NULL,                
     }
 };
 
@@ -1211,21 +1211,21 @@ proxy_Construct(JSContext *cx, uintN argc, Value *vp)
 JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
     "Proxy",
     Class::NON_NATIVE | JSCLASS_HAS_RESERVED_SLOTS(5),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
-    EnumerateStub,
-    ResolveStub,
-    ConvertStub,
-    NULL,                 
-    NULL,                 
-    NULL,                 
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    NULL,                    
+    NULL,                    
+    NULL,                    
     proxy_Call,
     proxy_Construct,
-    NULL,                 
+    NULL,                    
     FunctionClass.hasInstance,
-    proxy_TraceFunction,  
+    proxy_TraceFunction,     
     JS_NULL_CLASS_EXT,
     {
         proxy_LookupProperty,
@@ -1242,11 +1242,11 @@ JS_FRIEND_DATA(Class) js::FunctionProxyClass = {
         proxy_SetElementAttributes,
         proxy_DeleteProperty,
         proxy_DeleteElement,
-        NULL,             
+        NULL,                
         proxy_TypeOf,
-        NULL,             
-        NULL,             
-        NULL,             
+        NULL,                
+        NULL,                
+        NULL,                
     }
 };
 
@@ -1473,16 +1473,16 @@ callable_Construct(JSContext *cx, uintN argc, Value *vp)
 Class js::CallableObjectClass = {
     "Function",
     JSCLASS_HAS_RESERVED_SLOTS(2),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
-    EnumerateStub,
-    ResolveStub,
-    ConvertStub,
-    NULL,                 
-    NULL,                 
-    NULL,                 
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub,
+    NULL,                    
+    NULL,                    
+    NULL,                    
     callable_Call,
     callable_Construct,
 };
@@ -1545,13 +1545,13 @@ js::FixProxy(JSContext *cx, JSObject *proxy, JSBool *bp)
 Class js::ProxyClass = {
     "Proxy",
     JSCLASS_HAS_CACHED_PROTO(JSProto_Proxy),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
-    EnumerateStub,
-    ResolveStub,
-    ConvertStub
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub
 };
 
 JS_FRIEND_API(JSObject *)

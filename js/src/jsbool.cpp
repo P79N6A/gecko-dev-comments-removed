@@ -67,13 +67,13 @@ Class js::BooleanClass = {
     "Boolean",
     JSCLASS_HAS_RESERVED_SLOTS(1) |
     JSCLASS_HAS_CACHED_PROTO(JSProto_Boolean),
-    PropertyStub,         
-    PropertyStub,         
-    PropertyStub,         
-    StrictPropertyStub,   
-    EnumerateStub,
-    ResolveStub,
-    ConvertStub
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_PropertyStub,         
+    JS_StrictPropertyStub,   
+    JS_EnumerateStub,
+    JS_ResolveStub,
+    JS_ConvertStub
 };
 
 #if JS_HAS_TOSOURCE

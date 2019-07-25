@@ -332,7 +332,7 @@ struct Shape : public js::gc::Cell
 
   protected:
     union {
-        js::PropertyOp  rawGetter;      
+        PropertyOp      rawGetter;      
         JSObject        *getterObj;     
 
 
@@ -341,7 +341,7 @@ struct Shape : public js::gc::Cell
     };
 
     union {
-        js::StrictPropertyOp  rawSetter;
+        StrictPropertyOp rawSetter;     
 
         JSObject        *setterObj;     
 
@@ -511,7 +511,7 @@ struct Shape : public js::gc::Cell
         UNUSED_BITS     = 0x38
     };
 
-    Shape(jsid id, js::PropertyOp getter, js::StrictPropertyOp setter, uint32 slot, uintN attrs,
+    Shape(jsid id, PropertyOp getter, StrictPropertyOp setter, uint32 slot, uintN attrs,
           uintN flags, intN shortid, uint32 shape = INVALID_SHAPE, uint32 slotSpan = 0);
 
     
@@ -540,39 +540,39 @@ struct Shape : public js::gc::Cell
 
     JSObject &methodObject() const { JS_ASSERT(isMethod()); return *getterObj; }
 
-    js::PropertyOp getter() const { return rawGetter; }
+    PropertyOp getter() const { return rawGetter; }
     bool hasDefaultGetter() const  { return !rawGetter; }
-    js::PropertyOp getterOp() const { JS_ASSERT(!hasGetterValue()); return rawGetter; }
+    PropertyOp getterOp() const { JS_ASSERT(!hasGetterValue()); return rawGetter; }
     JSObject *getterObject() const { JS_ASSERT(hasGetterValue()); return getterObj; }
 
     
-    js::Value getterValue() const {
+    Value getterValue() const {
         JS_ASSERT(hasGetterValue());
         return getterObj ? js::ObjectValue(*getterObj) : js::UndefinedValue();
     }
 
-    js::Value getterOrUndefined() const {
+    Value getterOrUndefined() const {
         return hasGetterValue() && getterObj ? js::ObjectValue(*getterObj) : js::UndefinedValue();
     }
 
-    js::StrictPropertyOp setter() const { return rawSetter; }
+    StrictPropertyOp setter() const { return rawSetter; }
     bool hasDefaultSetter() const  { return !rawSetter; }
-    js::StrictPropertyOp setterOp() const { JS_ASSERT(!hasSetterValue()); return rawSetter; }
+    StrictPropertyOp setterOp() const { JS_ASSERT(!hasSetterValue()); return rawSetter; }
     JSObject *setterObject() const { JS_ASSERT(hasSetterValue()); return setterObj; }
 
     
-    js::Value setterValue() const {
+    Value setterValue() const {
         JS_ASSERT(hasSetterValue());
         return setterObj ? js::ObjectValue(*setterObj) : js::UndefinedValue();
     }
 
-    js::Value setterOrUndefined() const {
+    Value setterOrUndefined() const {
         return hasSetterValue() && setterObj ? js::ObjectValue(*setterObj) : js::UndefinedValue();
     }
 
     inline JSDHashNumber hash() const;
     inline bool matches(const js::Shape *p) const;
-    inline bool matchesParamsAfterId(js::PropertyOp agetter, js::StrictPropertyOp asetter,
+    inline bool matchesParamsAfterId(PropertyOp agetter, StrictPropertyOp asetter,
                                      uint32 aslot, uintN aattrs, uintN aflags,
                                      intN ashortid) const;
 
