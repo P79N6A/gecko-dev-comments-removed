@@ -189,9 +189,23 @@ public class LayerController {
     public void setViewportSize(FloatSize size) {
         
         
+        float oldHeight = mViewportMetrics.getSize().height;
         float oldWidth = mViewportMetrics.getSize().width;
         float oldZoomFactor = mViewportMetrics.getZoomFactor();
         mViewportMetrics.setSize(size);
+
+        
+        
+        
+        
+        
+        if (size.width >= oldWidth && size.height >= oldHeight) {
+            FloatSize pageSize = mViewportMetrics.getPageSize();
+            if (pageSize.width < size.width || pageSize.height < size.height) {
+                mViewportMetrics.setPageSize(new FloatSize(Math.max(pageSize.width, size.width),
+                                                           Math.max(pageSize.height, size.height)));
+            }
+        }
 
         PointF newFocus = new PointF(size.width / 2.0f, size.height / 2.0f);
         float newZoomFactor = size.width * oldZoomFactor / oldWidth;
