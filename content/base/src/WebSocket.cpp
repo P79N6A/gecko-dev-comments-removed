@@ -4,9 +4,8 @@
 
 
 
-#include "mozilla/Util.h"
-
-#include "nsWebSocket.h"
+#include "WebSocket.h"
+#include "mozilla/dom/WebSocketBinding.h"
 
 #include "nsIScriptGlobalObject.h"
 #include "nsIDOMWindow.h"
@@ -50,33 +49,15 @@
 #include "nsIObserverService.h"
 #include "GeneratedEvents.h"
 
-using namespace mozilla;
+namespace mozilla {
+namespace dom {
 
 #define UTF_8_REPLACEMENT_CHAR    static_cast<PRUnichar>(0xFFFD)
-
-#define TRUE_OR_FAIL_WEBSOCKET(x, ret)                                    \
-  PR_BEGIN_MACRO                                                          \
-    if (NS_UNLIKELY(!(x))) {                                              \
-      NS_WARNING("TRUE_OR_FAIL_WEBSOCKET(" #x ") failed");                \
-      FailConnection(nsIWebSocketChannel::CLOSE_INTERNAL_ERROR);          \
-      return ret;                                                         \
-    }                                                                     \
-  PR_END_MACRO
-
-#define SUCCESS_OR_FAIL_WEBSOCKET(res, ret)                               \
-  PR_BEGIN_MACRO                                                          \
-    nsresult __rv = res;                                                  \
-    if (NS_FAILED(__rv)) {                                                \
-      NS_ENSURE_SUCCESS_BODY(res, ret)                                    \
-      FailConnection(nsIWebSocketChannel::CLOSE_INTERNAL_ERROR);          \
-      return ret;                                                         \
-    }                                                                     \
-  PR_END_MACRO
 
 class CallDispatchConnectionCloseEvents: public nsRunnable
 {
 public:
-CallDispatchConnectionCloseEvents(nsWebSocket *aWebSocket)
+CallDispatchConnectionCloseEvents(WebSocket* aWebSocket)
   : mWebSocket(aWebSocket)
   {}
 
@@ -87,7 +68,7 @@ CallDispatchConnectionCloseEvents(nsWebSocket *aWebSocket)
   }
 
 private:
-  nsRefPtr<nsWebSocket> mWebSocket;
+  nsRefPtr<WebSocket> mWebSocket;
 };
 
 
@@ -95,14 +76,14 @@ private:
 
 
 nsresult
-nsWebSocket::PrintErrorOnConsole(const char *aBundleURI,
-                                 const PRUnichar *aError,
-                                 const PRUnichar **aFormatStrings,
-                                 uint32_t aFormatStringsLen)
+WebSocket::PrintErrorOnConsole(const char *aBundleURI,
+                               const PRUnichar *aError,
+                               const PRUnichar **aFormatStrings,
+                               uint32_t aFormatStringsLen)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsresult rv;
 
+  nsresult rv;
   nsCOMPtr<nsIStringBundleService> bundleService =
     do_GetService(NS_STRINGBUNDLE_CONTRACTID, &rv);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -145,31 +126,31 @@ nsWebSocket::PrintErrorOnConsole(const char *aBundleURI,
 }
 
 nsresult
-nsWebSocket::CloseConnection(uint16_t aReasonCode,
+WebSocket::CloseConnection(uint16_t aReasonCode,
                              const nsACString& aReasonString)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  if (mReadyState == nsIWebSocket::CLOSING ||
-      mReadyState == nsIWebSocket::CLOSED) {
+  if (mReadyState == WebSocket::CLOSING ||
+      mReadyState == WebSocket::CLOSED) {
     return NS_OK;
   }
 
   
   if (mChannel) {
-    mReadyState = nsIWebSocket::CLOSING;
+    mReadyState = WebSocket::CLOSING;
     return mChannel->Close(aReasonCode, aReasonString);
   }
 
   
   
-  MOZ_ASSERT(mReadyState == nsIWebSocket::CONNECTING,
+  MOZ_ASSERT(mReadyState == WebSocket::CONNECTING,
              "Should only get here for early websocket cancel/error");
 
   
   mCloseEventCode = aReasonCode;
   CopyUTF8toUTF16(aReasonString, mCloseEventReason);
 
-  mReadyState = nsIWebSocket::CLOSING;
+  mReadyState = WebSocket::CLOSING;
 
   
   
@@ -184,20 +165,19 @@ nsWebSocket::CloseConnection(uint16_t aReasonCode,
 }
 
 nsresult
-nsWebSocket::ConsoleError()
+WebSocket::ConsoleError()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsresult rv;
 
   nsAutoCString targetSpec;
-  rv = mURI->GetSpec(targetSpec);
+  nsresult rv = mURI->GetSpec(targetSpec);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to get targetSpec");
   } else {
     NS_ConvertUTF8toUTF16 specUTF16(targetSpec);
-    const PRUnichar *formatStrings[] = { specUTF16.get() };
+    const PRUnichar* formatStrings[] = { specUTF16.get() };
 
-    if (mReadyState < nsIWebSocket::OPEN) {
+    if (mReadyState < WebSocket::OPEN) {
       PrintErrorOnConsole("chrome://global/locale/appstrings.properties",
                           NS_LITERAL_STRING("connectionFailure").get(),
                           formatStrings, ArrayLength(formatStrings));
@@ -213,8 +193,8 @@ nsWebSocket::ConsoleError()
 
 
 nsresult
-nsWebSocket::FailConnection(uint16_t aReasonCode,
-                            const nsACString& aReasonString)
+WebSocket::FailConnection(uint16_t aReasonCode,
+                          const nsACString& aReasonString)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
@@ -226,7 +206,7 @@ nsWebSocket::FailConnection(uint16_t aReasonCode,
 }
 
 nsresult
-nsWebSocket::Disconnect()
+WebSocket::Disconnect()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
@@ -246,7 +226,7 @@ nsWebSocket::Disconnect()
 
   
   
-  nsRefPtr<nsWebSocket> kungfuDeathGrip = this;
+  nsRefPtr<WebSocket> kungfuDeathGrip = this;
 
   DontKeepAliveAnyMore();
   mChannel = nullptr;
@@ -260,16 +240,16 @@ nsWebSocket::Disconnect()
 
 
 nsresult
-nsWebSocket::DoOnMessageAvailable(const nsACString & aMsg, bool isBinary)
+WebSocket::DoOnMessageAvailable(const nsACString& aMsg, bool isBinary)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
-  if (mReadyState == nsIWebSocket::CLOSED) {
+  if (mReadyState == WebSocket::CLOSED) {
     NS_ERROR("Received message after CLOSED");
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (mReadyState == nsIWebSocket::OPEN) {
+  if (mReadyState == WebSocket::OPEN) {
     
     nsresult rv = CreateAndDispatchMessageEvent(aMsg, isBinary);
     if (NS_FAILED(rv)) {
@@ -278,7 +258,7 @@ nsWebSocket::DoOnMessageAvailable(const nsACString & aMsg, bool isBinary)
   } else {
     
     
-    MOZ_ASSERT(mReadyState == nsIWebSocket::CLOSING,
+    MOZ_ASSERT(mReadyState == WebSocket::CLOSING,
                "Received message while CONNECTING or CLOSED");
   }
 
@@ -286,29 +266,29 @@ nsWebSocket::DoOnMessageAvailable(const nsACString & aMsg, bool isBinary)
 }
 
 NS_IMETHODIMP
-nsWebSocket::OnMessageAvailable(nsISupports *aContext, const nsACString & aMsg)
+WebSocket::OnMessageAvailable(nsISupports* aContext, const nsACString& aMsg)
 {
   return DoOnMessageAvailable(aMsg, false);
 }
 
 NS_IMETHODIMP
-nsWebSocket::OnBinaryMessageAvailable(nsISupports *aContext,
-                                      const nsACString & aMsg)
+WebSocket::OnBinaryMessageAvailable(nsISupports* aContext,
+                                    const nsACString& aMsg)
 {
   return DoOnMessageAvailable(aMsg, true);
 }
 
 NS_IMETHODIMP
-nsWebSocket::OnStart(nsISupports *aContext)
+WebSocket::OnStart(nsISupports* aContext)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
   
-  MOZ_ASSERT(mReadyState != nsIWebSocket::OPEN,
+  MOZ_ASSERT(mReadyState != WebSocket::OPEN,
              "readyState already OPEN! OnStart called twice?");
 
   
-  if (mReadyState != nsIWebSocket::CONNECTING) {
+  if (mReadyState != WebSocket::CONNECTING) {
     return NS_OK;
   }
 
@@ -326,7 +306,7 @@ nsWebSocket::OnStart(nsISupports *aContext)
   mChannel->GetExtensions(mEstablishedExtensions);
   UpdateURI();
 
-  mReadyState = nsIWebSocket::OPEN;
+  mReadyState = WebSocket::OPEN;
 
   
   rv = CreateAndDispatchSimpleEvent(NS_LITERAL_STRING("open"));
@@ -340,12 +320,12 @@ nsWebSocket::OnStart(nsISupports *aContext)
 }
 
 NS_IMETHODIMP
-nsWebSocket::OnStop(nsISupports *aContext, nsresult aStatusCode)
+WebSocket::OnStop(nsISupports* aContext, nsresult aStatusCode)
 {
   
   
   
-  MOZ_ASSERT(mReadyState != nsIWebSocket::CLOSED,
+  MOZ_ASSERT(mReadyState != WebSocket::CLOSED,
              "Shouldn't already be CLOSED when OnStop called");
 
   
@@ -353,9 +333,9 @@ nsWebSocket::OnStop(nsISupports *aContext, nsresult aStatusCode)
 }
 
 nsresult
-nsWebSocket::ScheduleConnectionCloseEvents(nsISupports *aContext,
-                                           nsresult aStatusCode,
-                                           bool sync)
+WebSocket::ScheduleConnectionCloseEvents(nsISupports* aContext,
+                                         nsresult aStatusCode,
+                                         bool sync)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
@@ -387,7 +367,7 @@ nsWebSocket::ScheduleConnectionCloseEvents(nsISupports *aContext,
 }
 
 NS_IMETHODIMP
-nsWebSocket::OnAcknowledge(nsISupports *aContext, uint32_t aSize)
+WebSocket::OnAcknowledge(nsISupports *aContext, uint32_t aSize)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
@@ -399,21 +379,21 @@ nsWebSocket::OnAcknowledge(nsISupports *aContext, uint32_t aSize)
 }
 
 NS_IMETHODIMP
-nsWebSocket::OnServerClose(nsISupports *aContext, uint16_t aCode,
+WebSocket::OnServerClose(nsISupports *aContext, uint16_t aCode,
                            const nsACString &aReason)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
-  MOZ_ASSERT(mReadyState != nsIWebSocket::CONNECTING,
+  MOZ_ASSERT(mReadyState != WebSocket::CONNECTING,
              "Received server close before connected?");
-  MOZ_ASSERT(mReadyState != nsIWebSocket::CLOSED,
+  MOZ_ASSERT(mReadyState != WebSocket::CLOSED,
              "Received server close after already closed!");
 
   
   mCloseEventCode = aCode;
   CopyUTF8toUTF16(aReason, mCloseEventReason);
 
-  if (mReadyState == nsIWebSocket::OPEN) {
+  if (mReadyState == WebSocket::OPEN) {
     
     
     
@@ -425,7 +405,7 @@ nsWebSocket::OnServerClose(nsISupports *aContext, uint16_t aCode,
     }
   } else {
     
-    MOZ_ASSERT(mReadyState == nsIWebSocket::CLOSING, "unknown state");
+    MOZ_ASSERT(mReadyState == WebSocket::CLOSING, "unknown state");
   }
 
   return NS_OK;
@@ -436,17 +416,16 @@ nsWebSocket::OnServerClose(nsISupports *aContext, uint16_t aCode,
 
 
 NS_IMETHODIMP
-nsWebSocket::GetInterface(const nsIID &aIID, void **aResult)
+WebSocket::GetInterface(const nsIID& aIID, void** aResult)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
-  if (mReadyState == nsIWebSocket::CLOSED)
+  if (mReadyState == WebSocket::CLOSED)
     return NS_ERROR_FAILURE;
 
   if (aIID.Equals(NS_GET_IID(nsIAuthPrompt)) ||
       aIID.Equals(NS_GET_IID(nsIAuthPrompt2))) {
     nsresult rv;
-
     nsIScriptContext* sc = GetContextForEventHandlers(&rv);
     nsCOMPtr<nsIDocument> doc =
       nsContentUtils::GetDocumentFromScriptContext(sc);
@@ -468,24 +447,27 @@ nsWebSocket::GetInterface(const nsIID &aIID, void **aResult)
 
 
 
-nsWebSocket::nsWebSocket() : mKeepingAlive(false),
-                             mCheckMustKeepAlive(true),
-                             mOnCloseScheduled(false),
-                             mFailed(false),
-                             mDisconnected(false),
-                             mCloseEventWasClean(false),
-                             mCloseEventCode(nsIWebSocketChannel::CLOSE_ABNORMAL),
-                             mReadyState(nsIWebSocket::CONNECTING),
-                             mOutgoingBufferedAmount(0),
-                             mBinaryType(WS_BINARY_TYPE_BLOB),
-                             mScriptLine(0),
-                             mInnerWindowID(0)
+WebSocket::WebSocket()
+: mKeepingAlive(false),
+  mCheckMustKeepAlive(true),
+  mOnCloseScheduled(false),
+  mFailed(false),
+  mDisconnected(false),
+  mCloseEventWasClean(false),
+  mCloseEventCode(nsIWebSocketChannel::CLOSE_ABNORMAL),
+  mReadyState(WebSocket::CONNECTING),
+  mOutgoingBufferedAmount(0),
+  mBinaryType(BinaryTypeValues::Blob),
+  mScriptLine(0),
+  mInnerWindowID(0)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   nsLayoutStatics::AddRef();
+
+  SetIsDOMBinding();
 }
 
-nsWebSocket::~nsWebSocket()
+WebSocket::~WebSocket()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
@@ -496,9 +478,110 @@ nsWebSocket::~nsWebSocket()
   nsLayoutStatics::Release();
 }
 
-NS_IMPL_CYCLE_COLLECTION_CLASS(nsWebSocket)
+JSObject*
+WebSocket::WrapObject(JSContext* cx, JSObject* scope, bool* triedToWrap)
+{
+  return WebSocketBinding::Wrap(cx, scope, this, triedToWrap);
+}
 
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsWebSocket)
+
+
+
+
+
+already_AddRefed<WebSocket>
+WebSocket::Constructor(JSContext* aCx,
+                       nsISupports* aGlobal,
+                       const nsAString& aUrl,
+                       ErrorResult& aRv)
+{
+  Sequence<nsString> protocols;
+  return WebSocket::Constructor(aCx, aGlobal, aUrl, protocols, aRv);
+}
+
+already_AddRefed<WebSocket>
+WebSocket::Constructor(JSContext* aCx,
+                       nsISupports* aGlobal,
+                       const nsAString& aUrl,
+                       const nsAString& aProtocol,
+                       ErrorResult& aRv)
+{
+  Sequence<nsString> protocols;
+  protocols.AppendElement(aProtocol);
+  return WebSocket::Constructor(aCx, aGlobal, aUrl, protocols, aRv);
+}
+
+already_AddRefed<WebSocket>
+WebSocket::Constructor(JSContext* aCx,
+                       nsISupports* aGlobal,
+                       const nsAString& aUrl,
+                       const Sequence<nsString>& aProtocols,
+                       ErrorResult& aRv)
+{
+  if (!PrefEnabled()) {
+    aRv.Throw(NS_ERROR_DOM_SECURITY_ERR);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal = do_QueryInterface(aGlobal);
+  if (!scriptPrincipal) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIPrincipal> principal = scriptPrincipal->GetPrincipal();
+  if (!principal) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(aGlobal);
+  if (!sgo) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsCOMPtr<nsPIDOMWindow> ownerWindow = do_QueryInterface(aGlobal);
+  if (!ownerWindow) {
+    aRv.Throw(NS_ERROR_FAILURE);
+    return nullptr;
+  }
+
+  nsTArray<nsString> protocolArray;
+
+  for (uint32_t index = 0, len = aProtocols.Length(); index < len; ++index) {
+
+    const nsString& protocolElement = aProtocols[index];
+
+    if (protocolElement.IsEmpty()) {
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+      return nullptr;
+    }
+    if (protocolArray.Contains(protocolElement)) {
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+      return nullptr;
+    }
+    if (protocolElement.FindChar(',') != -1)   {
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+      return nullptr;
+    }
+
+    protocolArray.AppendElement(protocolElement);
+  }
+
+  nsRefPtr<WebSocket> webSocket = new WebSocket();
+  nsresult rv = webSocket->Init(aCx, principal, ownerWindow, aUrl, protocolArray);
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+    return nullptr;
+  }
+
+  return webSocket.forget();
+}
+
+NS_IMPL_CYCLE_COLLECTION_CLASS(WebSocket)
+
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(WebSocket)
   bool isBlack = tmp->IsBlack();
   if (isBlack|| tmp->mKeepingAlive) {
     if (tmp->mListenerManager) {
@@ -511,26 +594,26 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_BEGIN(nsWebSocket)
   }
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_END
 
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(nsWebSocket)
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_BEGIN(WebSocket)
   return tmp->IsBlack();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_IN_CC_END
 
-NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsWebSocket)
+NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(WebSocket)
   return tmp->IsBlack();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
-NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(nsWebSocket,
+NS_IMPL_CYCLE_COLLECTION_TRACE_BEGIN_INHERITED(WebSocket,
                                                nsDOMEventTargetHelper)
 NS_IMPL_CYCLE_COLLECTION_TRACE_END
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(nsWebSocket,
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INHERITED(WebSocket,
                                                   nsDOMEventTargetHelper)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mPrincipal)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mURI)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR(mChannel)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
-NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsWebSocket,
+NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(WebSocket,
                                                 nsDOMEventTargetHelper)
   tmp->Disconnect();
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mPrincipal)
@@ -538,29 +621,24 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN_INHERITED(nsWebSocket,
   NS_IMPL_CYCLE_COLLECTION_UNLINK_NSCOMPTR(mChannel)
 NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 
-DOMCI_DATA(WebSocket, nsWebSocket)
-
-NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsWebSocket)
-  NS_INTERFACE_MAP_ENTRY(nsIWebSocket)
-  NS_INTERFACE_MAP_ENTRY(nsIJSNativeInitializer)
+NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(WebSocket)
   NS_INTERFACE_MAP_ENTRY(nsIInterfaceRequestor)
   NS_INTERFACE_MAP_ENTRY(nsIWebSocketListener)
   NS_INTERFACE_MAP_ENTRY(nsIObserver)
   NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
   NS_INTERFACE_MAP_ENTRY(nsIRequest)
-  NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO(WebSocket)
 NS_INTERFACE_MAP_END_INHERITING(nsDOMEventTargetHelper)
 
-NS_IMPL_ADDREF_INHERITED(nsWebSocket, nsDOMEventTargetHelper)
-NS_IMPL_RELEASE_INHERITED(nsWebSocket, nsDOMEventTargetHelper)
+NS_IMPL_ADDREF_INHERITED(WebSocket, nsDOMEventTargetHelper)
+NS_IMPL_RELEASE_INHERITED(WebSocket, nsDOMEventTargetHelper)
 
-NS_IMPL_EVENT_HANDLER(nsWebSocket, open)
-NS_IMPL_EVENT_HANDLER(nsWebSocket, error)
-NS_IMPL_EVENT_HANDLER(nsWebSocket, message)
-NS_IMPL_EVENT_HANDLER(nsWebSocket, close)
+NS_IMPL_EVENT_HANDLER(WebSocket, open)
+NS_IMPL_EVENT_HANDLER(WebSocket, error)
+NS_IMPL_EVENT_HANDLER(WebSocket, message)
+NS_IMPL_EVENT_HANDLER(WebSocket, close)
 
 void
-nsWebSocket::DisconnectFromOwner()
+WebSocket::DisconnectFromOwner()
 {
   nsDOMEventTargetHelper::DisconnectFromOwner();
   CloseConnection(nsIWebSocketChannel::CLOSE_GOING_AWAY);
@@ -571,116 +649,109 @@ nsWebSocket::DisconnectFromOwner()
 
 
 
-
-
-
-
-
-
-
-NS_IMETHODIMP
-nsWebSocket::Initialize(nsISupports* aOwner,
-                        JSContext* aContext,
-                        JSObject* aObject,
-                        uint32_t aArgc,
-                        JS::Value* aArgv)
+nsresult
+WebSocket::Init(JSContext* aCx,
+                nsIPrincipal* aPrincipal,
+                nsPIDOMWindow* aOwnerWindow,
+                const nsAString& aURL,
+                nsTArray<nsString>& aProtocolArray)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsAutoString urlParam;
+  MOZ_ASSERT(aPrincipal);
+  MOZ_ASSERT(aOwnerWindow);
+  MOZ_ASSERT(aOwnerWindow->IsInnerWindow());
 
   if (!PrefEnabled()) {
     return NS_ERROR_DOM_SECURITY_ERR;
   }
 
-  if (aArgc != 1 && aArgc != 2) {
-    return NS_ERROR_DOM_SYNTAX_ERR;
+  mPrincipal = aPrincipal;
+  BindToOwner(aOwnerWindow);
+
+  
+  nsresult rv = CheckInnerWindowCorrectness();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
+  NS_ENSURE_STATE(os);
+  rv = os->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, true);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = os->AddObserver(this, DOM_WINDOW_FROZEN_TOPIC, true);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  unsigned lineno;
+  JSScript* script;
+  if (JS_DescribeScriptedCaller(aCx, &script, &lineno)) {
+    mScriptFile = JS_GetScriptFilename(aCx, script);
+    mScriptLine = lineno;
   }
 
-  JSAutoRequest ar(aContext);
+  
+  mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(aCx);
 
-  JSString* jsstr = JS_ValueToString(aContext, aArgv[0]);
-  if (!jsstr) {
-    return NS_ERROR_DOM_SYNTAX_ERR;
-  }
+  
+  rv = ParseURL(PromiseFlatString(aURL));
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  JS::Anchor<JSString *> deleteProtector(jsstr);
-  size_t length;
-  const jschar *chars = JS_GetStringCharsAndLength(aContext, jsstr, &length);
-  if (!chars) {
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
+  nsIScriptContext* sc = GetContextForEventHandlers(&rv);
+  NS_ENSURE_SUCCESS(rv, rv);
 
-  urlParam.Assign(chars, length);
-  deleteProtector.clear();
+  nsCOMPtr<nsIDocument> originDoc = nsContentUtils::GetDocumentFromScriptContext(sc);
 
-  nsCOMPtr<nsPIDOMWindow> ownerWindow = do_QueryInterface(aOwner);
-  NS_ENSURE_STATE(ownerWindow);
-
-  nsCOMPtr<nsIScriptGlobalObject> sgo = do_QueryInterface(aOwner);
-  NS_ENSURE_STATE(sgo);
-  nsCOMPtr<nsIScriptContext> scriptContext = sgo->GetContext();
-  NS_ENSURE_STATE(scriptContext);
-
-  nsCOMPtr<nsIScriptObjectPrincipal> scriptPrincipal(do_QueryInterface(aOwner));
-  NS_ENSURE_STATE(scriptPrincipal);
-  nsCOMPtr<nsIPrincipal> principal = scriptPrincipal->GetPrincipal();
-  NS_ENSURE_STATE(principal);
-
-  nsTArray<nsString> protocolArray;
-
-  if (aArgc == 2) {
-    if (aArgv[1].isObject() &&
-        JS_IsArrayObject(aContext, &aArgv[1].toObject())) {
-      JSObject* jsobj = &aArgv[1].toObject();
-
-      uint32_t len;
-      JS_GetArrayLength(aContext, jsobj, &len);
-      
-      for (uint32_t index = 0; index < len; ++index) {
-        jsval value;
-
-        if (!JS_GetElement(aContext, jsobj, index, &value))
-          return NS_ERROR_DOM_SYNTAX_ERR;
-
-        jsstr = JS_ValueToString(aContext, value);
-        if (!jsstr)
-          return NS_ERROR_DOM_SYNTAX_ERR;
-
-        deleteProtector.set(jsstr);
-        chars = JS_GetStringCharsAndLength(aContext, jsstr, &length);
-        if (!chars)
-          return NS_ERROR_OUT_OF_MEMORY;
-
-        nsDependentString protocolElement(chars, length);
-        if (protocolElement.IsEmpty())
-          return NS_ERROR_DOM_SYNTAX_ERR;
-        if (protocolArray.Contains(protocolElement))
-          return NS_ERROR_DOM_SYNTAX_ERR;
-        if (protocolElement.FindChar(',') != -1)  
-          return NS_ERROR_DOM_SYNTAX_ERR;
-        protocolArray.AppendElement(protocolElement);
-        deleteProtector.clear();
-      }
-    } else {
-      jsstr = JS_ValueToString(aContext, aArgv[1]);
-      if (!jsstr)
-        return NS_ERROR_DOM_SYNTAX_ERR;
-      
-      deleteProtector.set(jsstr);
-      chars = JS_GetStringCharsAndLength(aContext, jsstr, &length);
-      if (!chars)
-        return NS_ERROR_OUT_OF_MEMORY;
-      
-      nsDependentString protocolElement(chars, length);
-      if (protocolElement.IsEmpty())
-        return NS_ERROR_DOM_SYNTAX_ERR;
-      if (protocolElement.FindChar(',') != -1)  
-        return NS_ERROR_DOM_SYNTAX_ERR;
-      protocolArray.AppendElement(protocolElement);
+  
+  if (!mSecure &&
+      !Preferences::GetBool("network.websocket.allowInsecureFromHTTPS",
+                            false)) {
+    
+    
+    
+    if (originDoc && originDoc->GetSecurityInfo()) {
+      return NS_ERROR_DOM_SECURITY_ERR;
     }
   }
 
-  return Init(principal, scriptContext, ownerWindow, urlParam, protocolArray);
+  
+  for (uint32_t index = 0; index < aProtocolArray.Length(); ++index) {
+    for (uint32_t i = 0; i < aProtocolArray[index].Length(); ++i) {
+      if (aProtocolArray[index][i] < static_cast<PRUnichar>(0x0021) ||
+          aProtocolArray[index][i] > static_cast<PRUnichar>(0x007E))
+        return NS_ERROR_DOM_SYNTAX_ERR;
+    }
+
+    if (!mRequestedProtocolList.IsEmpty()) {
+      mRequestedProtocolList.Append(NS_LITERAL_CSTRING(", "));
+    }
+
+    AppendUTF16toUTF8(aProtocolArray[index], mRequestedProtocolList);
+  }
+
+  
+  int16_t shouldLoad = nsIContentPolicy::ACCEPT;
+  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_WEBSOCKET,
+                                 mURI,
+                                 mPrincipal,
+                                 originDoc,
+                                 EmptyCString(),
+                                 nullptr,
+                                 &shouldLoad,
+                                 nsContentUtils::GetContentPolicy(),
+                                 nsContentUtils::GetSecurityManager());
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_CP_REJECTED(shouldLoad)) {
+    
+    return NS_ERROR_CONTENT_BLOCKED;
+  }
+
+  
+  
+  
+  if (NS_FAILED(EstablishConnection())) {
+    FailConnection(nsIWebSocketChannel::CLOSE_ABNORMAL);
+  }
+
+  return NS_OK;
 }
 
 
@@ -690,7 +761,7 @@ nsWebSocket::Initialize(nsISupports* aOwner,
 class nsAutoCloseWS
 {
 public:
-  nsAutoCloseWS(nsWebSocket *aWebSocket)
+  nsAutoCloseWS(WebSocket* aWebSocket)
     : mWebSocket(aWebSocket)
   {}
 
@@ -701,19 +772,18 @@ public:
     }
   }
 private:
-  nsRefPtr<nsWebSocket> mWebSocket;
+  nsRefPtr<WebSocket> mWebSocket;
 };
 
 nsresult
-nsWebSocket::EstablishConnection()
+WebSocket::EstablishConnection()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   NS_ABORT_IF_FALSE(!mChannel, "mChannel should be null");
 
-  nsresult rv;
-
   nsCOMPtr<nsIWebSocketChannel> wsChannel;
   nsAutoCloseWS autoClose(this);
+  nsresult rv;
 
   if (mSecure) {
     wsChannel =
@@ -758,11 +828,9 @@ nsWebSocket::EstablishConnection()
 }
 
 void
-nsWebSocket::DispatchConnectionCloseEvents()
+WebSocket::DispatchConnectionCloseEvents()
 {
-  nsresult rv;
-
-  mReadyState = nsIWebSocket::CLOSED;
+  mReadyState = WebSocket::CLOSED;
 
   
   if (mFailed) {
@@ -772,8 +840,8 @@ nsWebSocket::DispatchConnectionCloseEvents()
     }
   }
 
-  rv = CreateAndDispatchCloseEvent(mCloseEventWasClean, mCloseEventCode,
-                                   mCloseEventReason);
+  nsresult rv = CreateAndDispatchCloseEvent(mCloseEventWasClean, mCloseEventCode,
+                                            mCloseEventReason);
   if (NS_FAILED(rv)) {
     NS_WARNING("Failed to dispatch the close event");
   }
@@ -783,12 +851,11 @@ nsWebSocket::DispatchConnectionCloseEvents()
 }
 
 nsresult
-nsWebSocket::CreateAndDispatchSimpleEvent(const nsString& aName)
+WebSocket::CreateAndDispatchSimpleEvent(const nsString& aName)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsresult rv;
 
-  rv = CheckInnerWindowCorrectness();
+  nsresult rv = CheckInnerWindowCorrectness();
   if (NS_FAILED(rv)) {
     return NS_OK;
   }
@@ -808,13 +875,12 @@ nsWebSocket::CreateAndDispatchSimpleEvent(const nsString& aName)
 }
 
 nsresult
-nsWebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
-                                           bool isBinary)
+WebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
+                                         bool isBinary)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsresult rv;
 
-  rv = CheckInnerWindowCorrectness();
+  nsresult rv = CheckInnerWindowCorrectness();
   if (NS_FAILED(rv))
     return NS_OK;
 
@@ -833,11 +899,11 @@ nsWebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
   {
     JSAutoRequest ar(cx);
     if (isBinary) {
-      if (mBinaryType == WS_BINARY_TYPE_BLOB) {
+      if (mBinaryType == BinaryTypeValues::Blob) {
         rv = CreateResponseBlob(aData, cx, jsData);
         NS_ENSURE_SUCCESS(rv, rv);
-      } else if (mBinaryType == WS_BINARY_TYPE_ARRAYBUFFER) {
-        JSObject *arrayBuf;
+      } else if (mBinaryType == BinaryTypeValues::Arraybuffer) {
+        JSObject* arrayBuf;
         rv = nsContentUtils::CreateArrayBuffer(cx, aData, &arrayBuf);
         NS_ENSURE_SUCCESS(rv, rv);
         jsData = OBJECT_TO_JSVAL(arrayBuf);
@@ -880,11 +946,12 @@ nsWebSocket::CreateAndDispatchMessageEvent(const nsACString& aData,
 
 
 nsresult
-nsWebSocket::CreateResponseBlob(const nsACString& aData, JSContext *aCx,
-                                jsval &jsData)
+WebSocket::CreateResponseBlob(const nsACString& aData,
+                              JSContext *aCx,
+                              jsval &jsData)
 {
   uint32_t blobLen = aData.Length();
-  void *blobData = PR_Malloc(blobLen);
+  void* blobData = PR_Malloc(blobLen);
   nsCOMPtr<nsIDOMBlob> blob;
   if (blobData) {
     memcpy(blobData, aData.BeginReading(), blobLen);
@@ -897,14 +964,13 @@ nsWebSocket::CreateResponseBlob(const nsACString& aData, JSContext *aCx,
 }
 
 nsresult
-nsWebSocket::CreateAndDispatchCloseEvent(bool aWasClean,
-                                         uint16_t aCode,
-                                         const nsString &aReason)
+WebSocket::CreateAndDispatchCloseEvent(bool aWasClean,
+                                       uint16_t aCode,
+                                       const nsString &aReason)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsresult rv;
 
-  rv = CheckInnerWindowCorrectness();
+  nsresult rv = CheckInnerWindowCorrectness();
   if (NS_FAILED(rv)) {
     return NS_OK;
   }
@@ -929,23 +995,21 @@ nsWebSocket::CreateAndDispatchCloseEvent(bool aWasClean,
 }
 
 bool
-nsWebSocket::PrefEnabled()
+WebSocket::PrefEnabled()
 {
   return Preferences::GetBool("network.websocket.enabled", true);
 }
 
 nsresult
-nsWebSocket::ParseURL(const nsString& aURL)
+WebSocket::ParseURL(const nsString& aURL)
 {
-  nsresult rv;
-
   NS_ENSURE_TRUE(!aURL.IsEmpty(), NS_ERROR_DOM_SYNTAX_ERR);
 
   nsCOMPtr<nsIURI> uri;
-  rv = NS_NewURI(getter_AddRefs(uri), aURL);
+  nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_SYNTAX_ERR);
 
-  nsCOMPtr<nsIURL> parsedURL(do_QueryInterface(uri, &rv));
+  nsCOMPtr<nsIURL> parsedURL = do_QueryInterface(uri, &rv);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_SYNTAX_ERR);
 
   nsAutoCString fragment;
@@ -1023,7 +1087,7 @@ nsWebSocket::ParseURL(const nsString& aURL)
 
 
 void
-nsWebSocket::UpdateMustKeepAlive()
+WebSocket::UpdateMustKeepAlive()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   if (!mCheckMustKeepAlive) {
@@ -1035,7 +1099,7 @@ nsWebSocket::UpdateMustKeepAlive()
   if (mListenerManager) {
     switch (mReadyState)
     {
-      case nsIWebSocket::CONNECTING:
+      case WebSocket::CONNECTING:
       {
         if (mListenerManager->HasListenersFor(NS_LITERAL_STRING("open")) ||
             mListenerManager->HasListenersFor(NS_LITERAL_STRING("message")) ||
@@ -1046,8 +1110,8 @@ nsWebSocket::UpdateMustKeepAlive()
       }
       break;
 
-      case nsIWebSocket::OPEN:
-      case nsIWebSocket::CLOSING:
+      case WebSocket::OPEN:
+      case WebSocket::CLOSING:
       {
         if (mListenerManager->HasListenersFor(NS_LITERAL_STRING("message")) ||
             mListenerManager->HasListenersFor(NS_LITERAL_STRING("error")) ||
@@ -1058,7 +1122,7 @@ nsWebSocket::UpdateMustKeepAlive()
       }
       break;
 
-      case nsIWebSocket::CLOSED:
+      case WebSocket::CLOSED:
       {
         shouldKeepAlive = false;
       }
@@ -1075,7 +1139,7 @@ nsWebSocket::UpdateMustKeepAlive()
 }
 
 void
-nsWebSocket::DontKeepAliveAnyMore()
+WebSocket::DontKeepAliveAnyMore()
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   if (mKeepingAlive) {
@@ -1086,7 +1150,7 @@ nsWebSocket::DontKeepAliveAnyMore()
 }
 
 nsresult
-nsWebSocket::UpdateURI()
+WebSocket::UpdateURI()
 {
   
   nsCOMPtr<nsIURI> uri;
@@ -1107,9 +1171,9 @@ nsWebSocket::UpdateURI()
 }
 
 NS_IMETHODIMP
-nsWebSocket::RemoveEventListener(const nsAString& aType,
-                                 nsIDOMEventListener* aListener,
-                                 bool aUseCapture)
+WebSocket::RemoveEventListener(const nsAString& aType,
+                               nsIDOMEventListener* aListener,
+                               bool aUseCapture)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   nsresult rv = nsDOMEventTargetHelper::RemoveEventListener(aType,
@@ -1122,11 +1186,11 @@ nsWebSocket::RemoveEventListener(const nsAString& aType,
 }
 
 NS_IMETHODIMP
-nsWebSocket::AddEventListener(const nsAString& aType,
-                              nsIDOMEventListener *aListener,
-                              bool aUseCapture,
-                              bool aWantsUntrusted,
-                              uint8_t optional_argc)
+WebSocket::AddEventListener(const nsAString& aType,
+                            nsIDOMEventListener *aListener,
+                            bool aUseCapture,
+                            bool aWantsUntrusted,
+                            uint8_t optional_argc)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
   nsresult rv = nsDOMEventTargetHelper::AddEventListener(aType,
@@ -1144,342 +1208,181 @@ nsWebSocket::AddEventListener(const nsAString& aType,
 
 
 
-NS_IMETHODIMP
-nsWebSocket::GetUrl(nsAString& aURL)
+
+void
+WebSocket::GetUrl(nsAString& aURL)
 {
   if (mEffectiveURL.IsEmpty()) {
     aURL = mOriginalURL;
   } else {
     aURL = mEffectiveURL;
   }
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsWebSocket::GetExtensions(nsAString& aExtensions)
+
+void
+WebSocket::GetExtensions(nsAString& aExtensions)
 {
   CopyUTF8toUTF16(mEstablishedExtensions, aExtensions);
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsWebSocket::GetProtocol(nsAString& aProtocol)
+
+void
+WebSocket::GetProtocol(nsAString& aProtocol)
 {
   CopyUTF8toUTF16(mEstablishedProtocol, aProtocol);
-  return NS_OK;
 }
 
-NS_IMETHODIMP
-nsWebSocket::GetReadyState(uint16_t *aReadyState)
-{
-  *aReadyState = mReadyState;
-  return NS_OK;
-}
 
-NS_IMETHODIMP
-nsWebSocket::GetBufferedAmount(uint32_t *aBufferedAmount)
-{
-  *aBufferedAmount = mOutgoingBufferedAmount;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWebSocket::GetBinaryType(nsAString& aBinaryType)
-{
-  switch (mBinaryType) {
-  case WS_BINARY_TYPE_ARRAYBUFFER:
-    aBinaryType.AssignLiteral("arraybuffer");
-    break;
-  case WS_BINARY_TYPE_BLOB:
-    aBinaryType.AssignLiteral("blob");
-    break;
-  default:
-    NS_ERROR("Should not happen");
-  }
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWebSocket::SetBinaryType(const nsAString& aBinaryType)
-{
-  if (aBinaryType.EqualsLiteral("arraybuffer")) {
-    mBinaryType = WS_BINARY_TYPE_ARRAYBUFFER;
-  } else if (aBinaryType.EqualsLiteral("blob")) {
-    mBinaryType = WS_BINARY_TYPE_BLOB;
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWebSocket::Send(nsIVariant *aData, JSContext *aCx)
+void
+WebSocket::Send(const nsAString& aData,
+                ErrorResult& aRv)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
-  if (mReadyState == nsIWebSocket::CONNECTING) {
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  NS_ConvertUTF16toUTF8 msgString(aData);
+  Send(nullptr, msgString, msgString.Length(), false, aRv);
+}
+
+void
+WebSocket::Send(nsIDOMBlob* aData,
+                ErrorResult& aRv)
+{
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
+
+  nsCOMPtr<nsIInputStream> msgStream;
+  nsresult rv = aData->GetInternalStream(getter_AddRefs(msgStream));
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+    return;
   }
 
-  nsCString msgString;
-  nsCOMPtr<nsIInputStream> msgStream;
-  bool isBinary;
-  uint32_t msgLen;
-  nsresult rv = GetSendParams(aData, msgString, msgStream, isBinary, msgLen, aCx);
-  NS_ENSURE_SUCCESS(rv, rv);
+  uint64_t msgLength;
+  rv = aData->GetSize(&msgLength);
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+    return;
+  }
+
+  if (msgLength > PR_UINT32_MAX) {
+    aRv.Throw(NS_ERROR_FILE_TOO_BIG);
+    return;
+  }
+
+  Send(msgStream, EmptyCString(), msgLength, true, aRv);
+}
+
+void
+WebSocket::Send(ArrayBuffer& aData,
+                ErrorResult& aRv)
+{
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
+
+  MOZ_ASSERT(sizeof(*aData.Data()) == 1);
+  uint32_t len = aData.Length();
+  char* data = reinterpret_cast<char*>(aData.Data());
+
+  nsDependentCSubstring msgString(data, len);
+  Send(nullptr, msgString, len, true, aRv);
+}
+
+void
+WebSocket::Send(ArrayBufferView& aData,
+                ErrorResult& aRv)
+{
+  NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
+
+  MOZ_ASSERT(sizeof(*aData.Data()) == 1);
+  uint32_t len = aData.Length();
+  char* data = reinterpret_cast<char*>(aData.Data());
+
+  nsDependentCSubstring msgString(data, len);
+  Send(nullptr, msgString, len, true, aRv);
+}
+
+void
+WebSocket::Send(nsIInputStream* aMsgStream,
+                const nsACString& aMsgString,
+                uint32_t aMsgLength,
+                bool aIsBinary,
+                ErrorResult& aRv)
+{
+  if (mReadyState == WebSocket::CONNECTING) {
+    aRv.Throw(NS_ERROR_DOM_INVALID_STATE_ERR);
+    return;
+  }
 
   
-  mOutgoingBufferedAmount += msgLen;
+  mOutgoingBufferedAmount += aMsgLength;
 
-  if (mReadyState == nsIWebSocket::CLOSING ||
-      mReadyState == nsIWebSocket::CLOSED) {
-    return NS_OK;
+  if (mReadyState == WebSocket::CLOSING ||
+      mReadyState == WebSocket::CLOSED) {
+    return;
   }
 
-  MOZ_ASSERT(mReadyState == nsIWebSocket::OPEN,
-             "Unknown state in nsWebSocket::Send");
+  MOZ_ASSERT(mReadyState == WebSocket::OPEN,
+             "Unknown state in WebSocket::Send");
 
-  if (msgStream) {
-    rv = mChannel->SendBinaryStream(msgStream, msgLen);
+  nsresult rv;
+  if (aMsgStream) {
+    rv = mChannel->SendBinaryStream(aMsgStream, aMsgLength);
   } else {
-    if (isBinary) {
-      rv = mChannel->SendBinaryMsg(msgString);
+    if (aIsBinary) {
+      rv = mChannel->SendBinaryMsg(aMsgString);
     } else {
-      rv = mChannel->SendMsg(msgString);
+      rv = mChannel->SendMsg(aMsgString);
     }
   }
-  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (NS_FAILED(rv)) {
+    aRv.Throw(rv);
+    return;
+  }
 
   UpdateMustKeepAlive();
-
-  return NS_OK;
 }
 
-nsresult
-nsWebSocket::GetSendParams(nsIVariant *aData, nsCString &aStringOut,
-                           nsCOMPtr<nsIInputStream> &aStreamOut,
-                           bool &aIsBinary, uint32_t &aOutgoingLength,
-                           JSContext *aCx)
-{
-  
-  uint16_t dataType;
-  nsresult rv = aData->GetDataType(&dataType);
-  NS_ENSURE_SUCCESS(rv, rv);
 
-  if (dataType == nsIDataType::VTYPE_INTERFACE ||
-      dataType == nsIDataType::VTYPE_INTERFACE_IS) {
-    nsCOMPtr<nsISupports> supports;
-    nsID *iid;
-    rv = aData->GetAsInterface(&iid, getter_AddRefs(supports));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    nsMemory::Free(iid);
-
-    
-    jsval realVal;
-    JSObject* obj;
-    nsresult rv = aData->GetAsJSVal(&realVal);
-    if (NS_SUCCEEDED(rv) && !JSVAL_IS_PRIMITIVE(realVal) &&
-        (obj = JSVAL_TO_OBJECT(realVal)) &&
-        (JS_IsArrayBufferObject(obj, aCx))) {
-      int32_t len = JS_GetArrayBufferByteLength(obj, aCx);
-      char* data = reinterpret_cast<char*>(JS_GetArrayBufferData(obj, aCx));
-
-      aStringOut.Assign(data, len);
-      aIsBinary = true;
-      aOutgoingLength = len;
-      return NS_OK;
-    }
-
-    
-    nsCOMPtr<nsIDOMBlob> blob = do_QueryInterface(supports);
-    if (blob) {
-      rv = blob->GetInternalStream(getter_AddRefs(aStreamOut));
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      
-      uint64_t blobLen;
-      rv = blob->GetSize(&blobLen);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (blobLen > PR_UINT32_MAX) {
-        return NS_ERROR_FILE_TOO_BIG;
-      }
-      aOutgoingLength = static_cast<uint32_t>(blobLen);
-
-      aIsBinary = true;
-      return NS_OK;
-    }
-  }
-
-  
-  
-  
-  PRUnichar* data = nullptr;
-  uint32_t len = 0;
-  rv = aData->GetAsWStringWithSize(&len, &data);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsString text;
-  text.Adopt(data, len);
-
-  CopyUTF16toUTF8(text, aStringOut);
-
-  aIsBinary = false;
-  aOutgoingLength = aStringOut.Length();
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsWebSocket::Close(uint16_t code, const nsAString & reason, uint8_t argc)
+void
+WebSocket::Close(const Optional<uint16_t>& aCode,
+                 const Optional<nsAString>& aReason,
+                 ErrorResult& aRv)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
   
   uint16_t closeCode = 0;
-  if (argc >= 1) {
-    if (code != 1000 && (code < 3000 || code > 4999)) {
-      return NS_ERROR_DOM_INVALID_ACCESS_ERR;
+  if (aCode.WasPassed()) {
+    if (aCode.Value() != 1000 && (aCode.Value() < 3000 || aCode.Value() > 4999)) {
+      aRv.Throw(NS_ERROR_DOM_INVALID_ACCESS_ERR);
+      return;
     }
-    closeCode = code;
+    closeCode = aCode.Value();
   }
 
-  nsAutoCString closeReason;
-  if (argc >= 2) {
-    CopyUTF16toUTF8(reason, closeReason);
+  nsCString closeReason;
+  if (aReason.WasPassed()) {
+    CopyUTF16toUTF8(aReason.Value(), closeReason);
 
     
     if (closeReason.Length() > 123) {
-      return NS_ERROR_DOM_SYNTAX_ERR;
+      aRv.Throw(NS_ERROR_DOM_SYNTAX_ERR);
+      return;
     }
   }
 
-  if (mReadyState == nsIWebSocket::CLOSING ||
-      mReadyState == nsIWebSocket::CLOSED) {
-    return NS_OK;
+  if (mReadyState == WebSocket::CLOSING ||
+      mReadyState == WebSocket::CLOSED) {
+    return;
   }
 
-  if (mReadyState == nsIWebSocket::CONNECTING) {
+  if (mReadyState == WebSocket::CONNECTING) {
     FailConnection(closeCode, closeReason);
-    return NS_OK;
+    return;
   }
 
-  
+  MOZ_ASSERT(mReadyState == WebSocket::OPEN);
   CloseConnection(closeCode, closeReason);
-
-  return NS_OK;
-}
-
-
-
-
-NS_IMETHODIMP
-nsWebSocket::Init(nsIPrincipal* aPrincipal,
-                  nsIScriptContext* aScriptContext,
-                  nsPIDOMWindow* aOwnerWindow,
-                  const nsAString& aURL,
-                  nsTArray<nsString> & protocolArray)
-{
-  NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
-  nsresult rv;
-
-  NS_ENSURE_ARG(aPrincipal);
-
-  if (!PrefEnabled()) {
-    return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  mPrincipal = aPrincipal;
-  if (aOwnerWindow) {
-    BindToOwner(aOwnerWindow->IsOuterWindow() ?
-                aOwnerWindow->GetCurrentInnerWindow() : aOwnerWindow);
-  } else {
-    BindToOwner(aOwnerWindow);
-  }
-
-  
-  rv = CheckInnerWindowCorrectness();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  nsCOMPtr<nsIObserverService> os = mozilla::services::GetObserverService();
-  NS_ENSURE_STATE(os);
-  rv = os->AddObserver(this, DOM_WINDOW_DESTROYED_TOPIC, true);
-  NS_ENSURE_SUCCESS(rv, rv);
-  rv = os->AddObserver(this, DOM_WINDOW_FROZEN_TOPIC, true);
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsCOMPtr<nsIJSContextStack> stack =
-    do_GetService("@mozilla.org/js/xpc/ContextStack;1");
-  JSContext* cx = nullptr;
-  if (stack && NS_SUCCEEDED(stack->Peek(&cx)) && cx) {
-    unsigned lineno;
-    JSScript *script;
-
-    if (JS_DescribeScriptedCaller(cx, &script, &lineno)) {
-        mScriptFile = JS_GetScriptFilename(cx, script);
-        mScriptLine = lineno;
-    }
-
-    mInnerWindowID = nsJSUtils::GetCurrentlyRunningCodeInnerWindowID(cx);
-  }
-
-  
-  rv = ParseURL(PromiseFlatString(aURL));
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  nsIScriptContext* sc = GetContextForEventHandlers(&rv);
-  nsCOMPtr<nsIDocument> originDoc =
-    nsContentUtils::GetDocumentFromScriptContext(sc);
-
-  
-  if (!mSecure &&
-      !Preferences::GetBool("network.websocket.allowInsecureFromHTTPS",
-                            false)) {
-    
-    
-    
-    if (originDoc && originDoc->GetSecurityInfo())
-      return NS_ERROR_DOM_SECURITY_ERR;
-  }
-
-  
-  for (uint32_t index = 0; index < protocolArray.Length(); ++index) {
-    for (uint32_t i = 0; i < protocolArray[index].Length(); ++i) {
-      if (protocolArray[index][i] < static_cast<PRUnichar>(0x0021) ||
-          protocolArray[index][i] > static_cast<PRUnichar>(0x007E))
-        return NS_ERROR_DOM_SYNTAX_ERR;
-    }
-
-    if (!mRequestedProtocolList.IsEmpty())
-      mRequestedProtocolList.Append(NS_LITERAL_CSTRING(", "));
-    AppendUTF16toUTF8(protocolArray[index], mRequestedProtocolList);
-  }
-
-  
-  int16_t shouldLoad = nsIContentPolicy::ACCEPT;
-  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_WEBSOCKET,
-                                 mURI,
-                                 mPrincipal,
-                                 originDoc,
-                                 EmptyCString(),
-                                 nullptr,
-                                 &shouldLoad,
-                                 nsContentUtils::GetContentPolicy(),
-                                 nsContentUtils::GetSecurityManager());
-  NS_ENSURE_SUCCESS(rv, rv);
-  if (NS_CP_REJECTED(shouldLoad)) {
-    
-    return NS_ERROR_CONTENT_BLOCKED;
-  }
-
-  
-  
-  
-  if (NS_FAILED(EstablishConnection())) {
-    FailConnection(nsIWebSocketChannel::CLOSE_ABNORMAL);
-  }
-
-  return NS_OK;
 }
 
 
@@ -1487,12 +1390,12 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
 
 
 NS_IMETHODIMP
-nsWebSocket::Observe(nsISupports* aSubject,
-                     const char* aTopic,
-                     const PRUnichar* aData)
+WebSocket::Observe(nsISupports* aSubject,
+                   const char* aTopic,
+                   const PRUnichar* aData)
 {
-  if ((mReadyState == nsIWebSocket::CLOSING) ||
-      (mReadyState == nsIWebSocket::CLOSED)) {
+  if ((mReadyState == WebSocket::CLOSING) ||
+      (mReadyState == WebSocket::CLOSED)) {
     return NS_OK;
   }
 
@@ -1514,23 +1417,22 @@ nsWebSocket::Observe(nsISupports* aSubject,
 
 
 
-
 NS_IMETHODIMP
-nsWebSocket::GetName(nsACString &aName)
+WebSocket::GetName(nsACString& aName)
 {
   CopyUTF16toUTF8(mOriginalURL, aName);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWebSocket::IsPending(bool *aValue)
+WebSocket::IsPending(bool* aValue)
 {
-  *aValue = (mReadyState != nsIWebSocket::CLOSED);
+  *aValue = (mReadyState != WebSocket::CLOSED);
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWebSocket::GetStatus(nsresult *aStatus)
+WebSocket::GetStatus(nsresult* aStatus)
 {
   *aStatus = NS_OK;
   return NS_OK;
@@ -1538,7 +1440,7 @@ nsWebSocket::GetStatus(nsresult *aStatus)
 
 
 NS_IMETHODIMP
-nsWebSocket::Cancel(nsresult aStatus)
+WebSocket::Cancel(nsresult aStatus)
 {
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "Not running on main thread");
 
@@ -1552,19 +1454,19 @@ nsWebSocket::Cancel(nsresult aStatus)
 }
 
 NS_IMETHODIMP
-nsWebSocket::Suspend()
+WebSocket::Suspend()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsWebSocket::Resume()
+WebSocket::Resume()
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
-nsWebSocket::GetLoadGroup(nsILoadGroup **aLoadGroup)
+WebSocket::GetLoadGroup(nsILoadGroup** aLoadGroup)
 {
   *aLoadGroup = nullptr;
 
@@ -1581,21 +1483,24 @@ nsWebSocket::GetLoadGroup(nsILoadGroup **aLoadGroup)
 }
 
 NS_IMETHODIMP
-nsWebSocket::SetLoadGroup(nsILoadGroup *aLoadGroup)
+WebSocket::SetLoadGroup(nsILoadGroup* aLoadGroup)
 {
   return NS_ERROR_UNEXPECTED;
 }
 
 NS_IMETHODIMP
-nsWebSocket::GetLoadFlags(nsLoadFlags *aLoadFlags)
+WebSocket::GetLoadFlags(nsLoadFlags* aLoadFlags)
 {
   *aLoadFlags = nsIRequest::LOAD_BACKGROUND;
   return NS_OK;
 }
 
 NS_IMETHODIMP
-nsWebSocket::SetLoadFlags(nsLoadFlags aLoadFlags)
+WebSocket::SetLoadFlags(nsLoadFlags aLoadFlags)
 {
   
   return NS_OK;
 }
+
+} 
+} 
