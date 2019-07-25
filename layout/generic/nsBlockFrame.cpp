@@ -6341,9 +6341,25 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
     
     
     
-    const nsStyleDisplay* styleDisplay = GetStyleDisplay();
+    
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* possibleListItem = this;
+    while (1) {
+      nsIFrame* parent = possibleListItem->GetParent();
+      if (parent->GetContent() != GetContent()) {
+        break;
+      }
+      possibleListItem = parent;
+    }
     if ((nsnull == GetPrevInFlow()) &&
-        (NS_STYLE_DISPLAY_LIST_ITEM == styleDisplay->mDisplay) &&
+        (NS_STYLE_DISPLAY_LIST_ITEM ==
+           possibleListItem->GetStyleDisplay()->mDisplay) &&
         (nsnull == mBullet)) {
       
       const nsStyleList* styleList = GetStyleList();
@@ -6397,7 +6413,11 @@ nsBlockFrame::SetInitialChildList(nsIAtom*        aListName,
 PRBool
 nsBlockFrame::BulletIsEmpty() const
 {
-  NS_ASSERTION(GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_LIST_ITEM &&
+  NS_ASSERTION((GetStyleDisplay()->mDisplay == NS_STYLE_DISPLAY_LIST_ITEM ||
+                (GetStyleContext()->GetPseudo() ==
+                   nsCSSAnonBoxes::scrolledContent &&
+                 GetParent()->GetStyleDisplay()->mDisplay ==
+                   NS_STYLE_DISPLAY_LIST_ITEM)) &&
                HaveOutsideBullet(),
                "should only care when we have an outside bullet");
   const nsStyleList* list = GetStyleList();
