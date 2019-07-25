@@ -1179,17 +1179,10 @@ public:
 
 
 
-  void Updated() { mDirty = PR_TRUE; }
-
-  
 
 
-  typedef void (* DidTransactionCallback)(void* aClosureData);
-  void SetDidTransactionCallback(DidTransactionCallback aCallback, void* aClosureData)
-  {
-    mCallback = aCallback;
-    mCallbackData = aClosureData;
-  }
+
+  virtual void Updated(const nsIntRect& aRect) = 0;
 
   
 
@@ -1214,30 +1207,15 @@ public:
 
 protected:
   CanvasLayer(LayerManager* aManager, void* aImplData)
-    : Layer(aManager, aImplData),
-      mCallback(nsnull), mCallbackData(nsnull), mFilter(gfxPattern::FILTER_GOOD),
-      mDirty(PR_FALSE) {}
+    : Layer(aManager, aImplData), mFilter(gfxPattern::FILTER_GOOD) {}
 
   virtual nsACString& PrintInfo(nsACString& aTo, const char* aPrefix);
-
-  void FireDidTransactionCallback()
-  {
-    if (mCallback) {
-      mCallback(mCallbackData);
-    }
-  }
 
   
 
 
   nsIntRect mBounds;
-  DidTransactionCallback mCallback;
-  void* mCallbackData;
   gfxPattern::GraphicsFilter mFilter;
-  
-
-
-  PRPackedBool mDirty;
 };
 
 }

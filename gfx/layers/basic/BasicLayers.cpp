@@ -893,6 +893,7 @@ public:
   }
 
   virtual void Initialize(const Data& aData);
+  virtual void Updated(const nsIntRect& aRect);
   virtual void Paint(gfxContext* aContext);
 
   virtual void PaintWithOpacity(gfxContext* aContext,
@@ -903,11 +904,12 @@ protected:
   {
     return static_cast<BasicLayerManager*>(mManager);
   }
-  void UpdateSurface();
 
   nsRefPtr<gfxASurface> mSurface;
   nsRefPtr<mozilla::gl::GLContext> mGLContext;
   PRUint32 mCanvasFramebuffer;
+
+  nsIntRect mUpdatedRect;
 
   PRPackedBool mGLBufferIsPremultiplied;
   PRPackedBool mNeedsYFlip;
@@ -917,6 +919,8 @@ void
 BasicCanvasLayer::Initialize(const Data& aData)
 {
   NS_ASSERTION(mSurface == nsnull, "BasicCanvasLayer::Initialize called twice!");
+
+  mUpdatedRect.Empty();
 
   if (aData.mSurface) {
     mSurface = aData.mSurface;
@@ -937,11 +941,12 @@ BasicCanvasLayer::Initialize(const Data& aData)
 }
 
 void
-BasicCanvasLayer::UpdateSurface()
+BasicCanvasLayer::Updated(const nsIntRect& aRect)
 {
-  if (!mDirty)
-    return;
-  mDirty = PR_FALSE;
+  NS_ASSERTION(mUpdatedRect.IsEmpty(),
+               "CanvasLayer::Updated called more than once in a transaction!");
+
+  mUpdatedRect.UnionRect(mUpdatedRect, aRect);
 
   if (mGLContext) {
     nsRefPtr<gfxImageSurface> isurf =
@@ -971,6 +976,9 @@ BasicCanvasLayer::UpdateSurface()
     if (currentFramebuffer != mCanvasFramebuffer)
       mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, mCanvasFramebuffer);
 
+    
+    
+    
     mGLContext->ReadPixelsIntoImageSurface(0, 0,
                                            mBounds.width, mBounds.height,
                                            isurf);
@@ -989,13 +997,15 @@ BasicCanvasLayer::UpdateSurface()
     
     mSurface = isurf;
   }
+
+  
+  NS_ASSERTION(mUpdatedRect.IsEmpty() || mBounds.Contains(mUpdatedRect),
+               "CanvasLayer: Updated rect bigger than bounds!");
 }
 
 void
 BasicCanvasLayer::Paint(gfxContext* aContext)
 {
-  UpdateSurface();
-  FireDidTransactionCallback();
   PaintWithOpacity(aContext, GetEffectiveOpacity());
 }
 
@@ -1027,6 +1037,8 @@ BasicCanvasLayer::PaintWithOpacity(gfxContext* aContext,
   if (mNeedsYFlip) {
     aContext->SetMatrix(m);
   }
+
+  mUpdatedRect.Empty();
 }
 
 class BasicReadbackLayer : public ReadbackLayer,
@@ -2544,6 +2556,9 @@ public:
   }
 
   virtual void Initialize(const Data& aData);
+
+  virtual void Updated(const nsIntRect& aRect)
+  {}
 
   virtual already_AddRefed<gfxSharedImageSurface>
   Swap(gfxSharedImageSurface* newFront);

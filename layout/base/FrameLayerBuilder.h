@@ -193,8 +193,7 @@ public:
 
 
 
-
-  static Layer* GetDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
+  static PRBool HasDedicatedLayer(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
 
   
 
