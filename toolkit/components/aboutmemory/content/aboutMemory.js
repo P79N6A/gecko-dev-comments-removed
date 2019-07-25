@@ -36,180 +36,564 @@
 
 
 
+"use strict";
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
-var gMemReporters = { };
-
-function $(n) {
-    return document.getElementById(n);
-}
-
-function makeTableCell(content, c) {
-    var td = document.createElement("td");
-    if (typeof content == "string")
-      content = document.createTextNode(content);
-    td.appendChild(content);
-    if (c)
-        td.setAttribute("class", c);
-
-    return td;
-}
-
-function makeAbbrNode(str, title) {
-    var abbr = document.createElement("abbr");
-    var text = document.createTextNode(str);
-    abbr.appendChild(text);
-    abbr.setAttribute("title", title);
-
-    return abbr;
-}
-
-function makeTableRow() {
-    var row = document.createElement("tr");
-
-    for (var i = 0; i < arguments.length; ++i) {
-        var arg = arguments[i];
-        if (typeof(arg) == "string") {
-            row.appendChild(makeTableCell(arg));
-        } else if (arg.__proto__ == Array.prototype) {
-            row.appendChild(makeTableCell(makeAbbrNode(arg[0], arg[1])));
-        } else {
-            row.appendChild(arg);
-        }
-    }
-
-    return row;
-}
-
-function setTextContent(node, s) {
-    while (node.lastChild)
-        node.removeChild(node.lastChild);
-
-    node.appendChild(document.createTextNode(s));
-}
-
-function formatNumber(n) {
-    var s = "";
-    var neg = false;
-    if (n < 0) {
-        neg = true;
-        n = -n;
-    }
-
-    do {
-        var k = n % 1000;
-        if (n > 999) {
-            if (k > 99)
-                s = k + s;
-            else if (k > 9)
-                s = "0" + k + s;
-            else
-                s = "00" + k + s;
-        } else {
-            s = k + s;
-        }
-
-        n = Math.floor(n / 1000);
-        if (n > 0)
-            s = "," + s;
-    } while (n > 0);
-
-    return s;
-}
 
 
+var gVerbose = (location.href.split(/[\?,]/).indexOf("verbose") !== -1);
 
-
-function updateMemoryStatus()
+function onLoad()
 {
-    
-    
-    if ("malloc/mapped" in gMemReporters &&
-        "malloc/allocated" in gMemReporters)
-    {
-        
-        
-        setTextContent($("memMappedValue"),
-                       formatNumber(gMemReporters["malloc/mapped"][0].memoryUsed));
+  var os = Cc["@mozilla.org/observer-service;1"].
+      getService(Ci.nsIObserverService);
+  os.notifyObservers(null, "child-memory-reporter-request", null);
 
-        
-        setTextContent($("memInUseValue"),
-                       formatNumber(gMemReporters["malloc/allocated"][0].memoryUsed));
+  os.addObserver(ChildMemoryListener, "child-memory-reporter-update", false);
+
+  update();
+}
+
+function onUnload()
+{
+  var os = Cc["@mozilla.org/observer-service;1"].
+      getService(Ci.nsIObserverService);
+  os.removeObserver(ChildMemoryListener, "child-memory-reporter-update");
+}
+
+function ChildMemoryListener(aSubject, aTopic, aData)
+{
+  update();
+}
+
+function $(n)
+{
+  return document.getElementById(n);
+}
+
+
+
+
+function update()
+{
+  
+  
+  var content = $("content");
+  content.parentNode.replaceChild(content.cloneNode(false), content);
+  content = $("content");
+
+  var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
+      getService(Ci.nsIMemoryReporterManager);
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  var tmrTable = {};
+  var e = mgr.enumerateReporters();
+  while (e.hasMoreElements()) {
+    var mr = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
+    var process;
+    var tmr = {};
+    var i = mr.path.indexOf(':');
+    if (i === -1) {
+      process = "Main";
+      tmr._tpath = mr.path;
     } else {
-        $("memOverview").style.display = "none";
+      process = mr.path.slice(0, i);
+      tmr._tpath = mr.path.slice(i + 1);
     }
+    tmr._description = mr.description;
+    tmr._memoryUsed  = mr.memoryUsed;
 
-    var mo = $("memOtherRows");
-    while (mo.lastChild)
-        mo.removeChild(mo.lastChild);
-
-    var otherCount = 0;
-
-    for each (var reporters in gMemReporters) {
-        
-        
-        var total = 0;
-        reporters.forEach(function(reporter) {
-          total += reporter.memoryUsed;
-        });
-
-        var row = makeTableRow([reporters[0].path, reporters[0].description],
-                               makeTableCell(formatNumber(total), "memValue"));
-
-        mo.appendChild(row);
-
-        otherCount++;
+    if (!tmrTable[process]) {
+      tmrTable[process] = {};
     }
-
-    if (otherCount == 0) {
-        var row = makeTableRow("No other information available.");
-        mo.appendChild(row);
+    var tmrs = tmrTable[process];
+    if (tmrs[tmr._tpath]) {
+      
+      
+      tmrs[tmr._tpath]._memoryUsed += tmr._memoryUsed;
+    } else {
+      tmrs[tmr._tpath] = tmr;
     }
+  }
+
+  
+  
+  var text = genProcessText("Main", tmrTable["Main"]);
+  for (var process in tmrTable) {
+    if (process !== "Main") {
+      text += genProcessText(process, tmrTable[process]);
+    }
+  }
+
+  
+  text += gVerbose
+        ? "<span class='option'><a href='about:memory'>Less verbose</a></span>"
+        : "<span class='option'><a href='about:memory?verbose'>More verbose</a></span>";
+
+  var div = document.createElement("div");
+  div.innerHTML = text;
+  content.appendChild(div);
 }
 
 
 
 
-function updateMemoryReporters()
+
+
+
+
+
+
+function genProcessText(aProcess, aTmrs)
 {
-    gMemReporters = [];
+  
 
-    var mgr = Cc["@mozilla.org/memory-reporter-manager;1"].
-              getService(Ci.nsIMemoryReporterManager);
 
-    var e = mgr.enumerateReporters();
-    while (e.hasMoreElements()) {
-        var reporter = e.getNext().QueryInterface(Ci.nsIMemoryReporter);
-        if (!gMemReporters[reporter.path]) {
-          gMemReporters[reporter.path] = [];
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function buildTree(aTreeName, aTreeRootTpath, aTreeRootDesc, aOtherDescTail,
+                     aOmitThresholdPerc)
+  {
+    function findKid(aName, aKids)
+    {
+      for (var i = 0; i < aKids.length; i++) {
+        if (aKids[i]._name === aName) {
+          return aKids[i];
         }
-        gMemReporters[reporter.path].push(reporter);
+      }
+      return undefined;
     }
-}
 
-function ChildMemoryListener(subject, topic, data) {
-  updateMemoryReporters();
-  updateMemoryStatus();
-}
-
-
-function doLoad()
-{
-    var os = Components.classes["@mozilla.org/observer-service;1"].
-        getService(Components.interfaces.nsIObserverService);
-    os.notifyObservers(null, "child-memory-reporter-request", null);
-
-    os.addObserver(ChildMemoryListener, "child-memory-reporter-update", false);
-
-    updateMemoryReporters();
-    updateMemoryStatus();
-}
-
-function doUnload()
-{
-    var os = Components.classes["@mozilla.org/observer-service;1"].
-        getService(Components.interfaces.nsIObserverService);
-    os.removeObserver(ChildMemoryListener, "child-memory-reporter-update");
     
+    
+    var t = { _name:aTreeName, _kids:[] };
+    for (var _tpath in aTmrs) {
+      var tmr = aTmrs[_tpath];
+      if (tmr._tpath.slice(0, aTreeName.length + 1) === aTreeName + "/") {
+        var names = tmr._tpath.slice(aTreeName.length + 1).split('/');
+        var u = t;
+        for (var i = 0; i < names.length; i++) {
+          var name = names[i];
+          var uMatch = findKid(name, u._kids);
+          if (uMatch) {
+            u = uMatch;
+          } else {
+            var v = { _name:name, _kids:[] };
+            u._kids.push(v);
+            u = v;
+          }
+        }
+      }
+    }
+
+    
+    
+    function fillInTree(aT, aPretpath)
+    {
+      var tpath = aPretpath ? aPretpath + '/' + aT._name : aT._name;
+      if (aT._kids.length === 0) {
+        aT._memoryUsed = getBytes(aTmrs, tpath);
+        aT._description = getDescription(aTmrs, tpath);
+      } else {
+        var bytes = 0;
+        for (var i = 0; i < aT._kids.length; i++) {
+          
+          var b = fillInTree(aT._kids[i], tpath);
+          bytes += (b === -1 ? 0 : b);
+        }
+        aT._memoryUsed = bytes;
+        aT._description = "The sum of all entries below " + tpath + ".";
+      }
+      return aT._memoryUsed;
+    }
+    fillInTree(t, "");
+
+    
+    
+    
+    var nonOtherBytes = t._memoryUsed;
+    var treeBytes = getBytes(aTmrs, aTreeRootTpath);
+    if (treeBytes !== -1) {
+      var otherBytes = treeBytes - nonOtherBytes;
+      var other = {
+        _name:"other",
+        _description:"All unclassified " + aTreeName + " memory." +
+                     aOtherDescTail,
+        _memoryUsed:otherBytes,
+        _kids:[]
+      };
+      t._kids.push(other);
+    }
+    t._memoryUsed = treeBytes;
+    t._description = aTreeRootDesc;
+
+    function shouldOmit(aBytes)
+    {
+      return !gVerbose &&
+             treeBytes !== -1 &&
+             (100 * aBytes / treeBytes) < aOmitThresholdPerc;
+    }
+
+    
+
+
+
+
+
+
+    function filterTree(aT)
+    {
+      var cmpTmrs = function(a, b) { return b._memoryUsed - a._memoryUsed };
+      aT._kids.sort(cmpTmrs);
+
+      for (var i = 0; i < aT._kids.length; i++) {
+        if (shouldOmit(aT._kids[i]._memoryUsed)) {
+          
+          
+          
+          var i0 = i;
+          var aggBytes = 0;
+          var aggNames = [];
+          for ( ; i < aT._kids.length; i++) {
+            aggBytes += aT._kids[i]._memoryUsed;
+            aggNames.push(aT._kids[i]._name);
+          }
+          aT._kids.splice(i0);
+          var n = i - i0;
+          var tmrSub = {
+            _name: "(" + n + " omitted)",
+            _description: "Omitted sub-trees: " + aggNames.join(", ") + ".",
+            _memoryUsed: aggBytes,
+            _kids:[]
+          };
+          aT._kids[i0] = tmrSub;
+          break;
+        }
+        filterTree(aT._kids[i]);
+      }
+    }
+    filterTree(t);
+
+    return t;
+  }
+
+  var mappedOtherDescTail =
+      " This includes code and data segments, and thread stacks."
+  var mappedRootDesc = getDescription(aTmrs, "mapped");
+  
+  
+  
+  var mappedTree = buildTree("mapped", "mapped", mappedRootDesc,
+                             mappedOtherDescTail, 0.01);
+
+  var heapUsedOtherDescTail = "";
+  var heapUsedRootDesc = "See mapped/heap/used above.";
+  var heapUsedTree = buildTree("heap-used", "mapped/heap/used",
+                               heapUsedRootDesc, heapUsedOtherDescTail, 0.1);
+
+  
+  var text = "";
+  text += "<h1>" + aProcess + " Process</h1>\n\n";
+  text += genTreeText(mappedTree, "Mapped Memory");
+  text += genTreeText(heapUsedTree, "Used Heap Memory");
+  text += genOtherText(aTmrs);
+  text += "<hr></hr>";
+  return text;
 }
+
+
+
+
+
+
+
+
+function formatBytes(aBytes)
+{
+  var unit = gVerbose ? "B" : "MB";
+
+  if (aBytes === -1) {
+    return "??? " + unit;
+  }
+
+  function formatInt(aN)
+  {
+    var neg = false;
+    if (aN < 0) {
+      neg = true;
+      aN = -aN;
+    }
+    var s = "";
+    while (true) {
+      var k = aN % 1000;
+      aN = Math.floor(aN / 1000);
+      if (aN > 0) {
+        if (k < 10) {
+          s = ",00" + k + s;
+        } else if (k < 100) {
+          s = ",0" + k + s;
+        } else {
+          s = "," + k + s;
+        }
+      } else {
+        s = k + s;
+        break;
+      }
+    }
+    return neg ? "-" + s : s;
+  }
+
+  var s;
+  if (gVerbose) {
+    s = formatInt(aBytes) + " " + unit;
+  } else {
+    var mbytes = (aBytes / (1024 * 1024)).toFixed(2);
+    var a = String(mbytes).split(".");
+    s = formatInt(a[0]) + "." + a[1] + " " + unit;
+  }
+  return s;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+function pad(aS, aN, aC)
+{
+  var padding = "";
+  var n2 = aN - aS.length;
+  for (var i = 0; i < n2; i++) {
+    padding += aC;
+  }
+  return padding + aS;
+}
+
+
+
+
+
+
+
+
+
+
+function getBytes(aTmrs, aTpath)
+{
+  var tmr = aTmrs[aTpath];
+  if (tmr) {
+    var bytes = tmr._memoryUsed;
+    tmr.done = true;
+    return bytes;
+  }
+  
+  
+  
+  
+  return -2 * 1024 * 1024;
+}
+
+
+
+
+
+
+
+
+
+
+function getDescription(aTmrs, aTpath)
+{
+  var r = aTmrs[aTpath];
+  return r ? r._description : "???";
+}
+
+function genMrValueText(aValue)
+{
+  return "<span class='mrValue'>" + aValue + "</span>";
+}
+
+function genMrNameText(aDesc, aName)
+{
+  return "-- <span class='mrName' title=\"" + aDesc + "\">" +
+         aName + "</span>\n";
+}
+
+
+
+
+
+
+
+
+
+
+function genTreeText(aT, aTreeName)
+{
+  var treeBytes = aT._memoryUsed;
+  var treeBytesLength = formatBytes(treeBytes).length;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  function genTreeText2(aT, aIndentGuide, aParentBytesLength)
+  {
+    function repeatStr(aC, aN)
+    {
+      var s = "";
+      for (var i = 0; i < aN; i++) {
+        s += aC;
+      }
+      return s;
+    }
+
+    
+    
+    
+    
+    
+    const kHorizontal       = "\u2500",
+          kVertical         = "\u2502",
+          kUpAndRight       = "\u2514",
+          kVerticalAndRight = "\u251c";
+    var indent = "<span class='treeLine'>";
+    if (aIndentGuide.length > 0) {
+      for (var i = 0; i < aIndentGuide.length - 1; i++) {
+        indent += aIndentGuide[i]._isLastKid ? " " : kVertical;
+        indent += repeatStr(" ", aIndentGuide[i]._depth - 1);
+      }
+      indent += aIndentGuide[i]._isLastKid ? kUpAndRight : kVerticalAndRight;
+      indent += repeatStr(kHorizontal, aIndentGuide[i]._depth - 1);
+    }
+
+    
+    
+    var tMemoryUsedStr = formatBytes(aT._memoryUsed);
+    var tBytesLength = tMemoryUsedStr.length;
+    var extraIndentLength = Math.max(aParentBytesLength - tBytesLength, 0);
+    if (extraIndentLength > 0) {
+      for (var i = 0; i < extraIndentLength; i++) {
+        indent += kHorizontal;
+      }
+      aIndentGuide[aIndentGuide.length - 1]._depth += extraIndentLength;
+    }
+    indent += "</span>";
+
+    
+    var perc = "";
+    if (treeBytes !== -1) {
+      if (aT._memoryUsed === treeBytes) {
+        perc = "100.0";
+      } else {
+        perc = (100 * aT._memoryUsed / treeBytes).toFixed(2);
+        perc = pad(perc, 5, '0');
+      }
+      perc = "<span class='mrPerc'>(" + perc + "%)</span> ";
+    }
+
+    var text = indent + genMrValueText(tMemoryUsedStr) + " " + perc +
+               genMrNameText(aT._description, aT._name);
+
+    for (var i = 0; i < aT._kids.length; i++) {
+      
+      aIndentGuide.push({ _isLastKid:(i === aT._kids.length - 1), _depth:3 });
+      text += genTreeText2(aT._kids[i], aIndentGuide, tBytesLength);
+      aIndentGuide.pop();
+    }
+    return text;
+  }
+
+  var text = genTreeText2(aT, [], treeBytesLength);
+  
+  return "<h2>" + aTreeName + "</h2>\n<pre>" + text + "</pre>\n";
+}
+
+
+
+
+
+
+
+
+function genOtherText(aTmrs)
+{
+  
+  
+  
+  var maxBytes = 0;
+  for (var tpath in aTmrs) {
+    var tmr = aTmrs[tpath];
+    if (!tmr.done && tmr._memoryUsed > maxBytes) {
+      maxBytes = tmr._memoryUsed;
+    }
+  }
+
+  
+  var maxBytesLength = formatBytes(maxBytes).length;
+  var text = "";
+  for (var tpath in aTmrs) {
+    var tmr = aTmrs[tpath];
+    if (!tmr.done) {
+      text += genMrValueText(
+                pad(formatBytes(tmr._memoryUsed), maxBytesLength, ' ')) + " ";
+      text += genMrNameText(tmr._description, tmr._tpath);
+    }
+  }
+
+  
+  return "<h2>Other Measurements</h2>\n<pre>" + text + "</pre>\n";
+}
+
