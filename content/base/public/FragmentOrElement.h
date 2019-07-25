@@ -12,50 +12,29 @@
 #ifndef FragmentOrElement_h___
 #define FragmentOrElement_h___
 
-#include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
-#include "nsIContent.h"
-#include "nsIDOMElement.h"
-#include "nsIDOMDocumentFragment.h"
-#include "nsILinkHandler.h"
-#include "nsNodeUtils.h"
-#include "nsAttrAndChildArray.h"
-#include "mozFlushType.h"
-#include "nsDOMAttributeMap.h"
-#include "nsIWeakReference.h"
-#include "nsCycleCollectionParticipant.h"
-#include "nsIDocument.h"
-#include "nsIDOMNodeSelector.h"
-#include "nsIDOMXPathNSResolver.h"
-#include "nsPresContext.h"
-#include "nsIDOMDOMStringMap.h"
-#include "nsContentList.h"
-#include "nsDOMClassInfoID.h" 
-#include "nsIDOMTouchEvent.h"
-#include "nsIInlineEventHandlers.h"
-#include "mozilla/CORSMode.h"
-#include "mozilla/Attributes.h"
+#include "nsAttrAndChildArray.h"          
+#include "nsCOMPtr.h"                     
+#include "nsCycleCollectionParticipant.h" 
+#include "nsIContent.h"                   
+#include "nsIDOMNodeSelector.h"           
+#include "nsIDOMTouchEvent.h"             
+#include "nsIDOMXPathNSResolver.h"        
+#include "nsIInlineEventHandlers.h"       
+#include "nsINodeList.h"                  
+#include "nsIWeakReference.h"             
+#include "nsNodeUtils.h"                  
 
-#include "nsISMILAttr.h"
-
-class nsIDOMAttr;
-class nsIDOMEventListener;
-class nsIFrame;
-class nsIDOMNamedNodeMap;
-class nsICSSDeclaration;
-class nsIDOMCSSStyleDeclaration;
-class nsIURI;
-class nsINodeInfo;
-class nsIControllers;
-class nsEventListenerManager;
-class nsIScrollableFrame;
-class nsAttrValueOrString;
-class nsContentList;
-class nsDOMTokenList;
 class ContentUnbinder;
-struct nsRect;
-
-typedef PRUptrdiff PtrBits;
+class nsContentList;
+class nsDOMAttributeMap;
+class nsDOMTokenList;
+class nsIControllers;
+class nsICSSDeclaration;
+class nsIDocument;
+class nsIDOMDOMStringMap;
+class nsIDOMNamedNodeMap;
+class nsINodeInfo;
+class nsIURI;
 
 
 
