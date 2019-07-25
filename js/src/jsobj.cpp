@@ -2897,6 +2897,14 @@ JSObject::ReserveForTradeGuts(JSContext *cx, JSObject *a, JSObject *b,
 
 
 
+    
+
+
+
+    RootedObject na(cx, a), aProto(cx, a->getProto()), nb(cx, b), bProto(cx, b->getProto());
+    if (!SetProto(cx, na, bProto, false) || !SetProto(cx, nb, aProto, false))
+        return false;
+
     if (a->sizeOfThis() == b->sizeOfThis())
         return true;
 
@@ -3111,6 +3119,14 @@ JSObject::TradeGuts(JSContext *cx, JSObject *a, JSObject *b, TradeGutsReserved &
         a->lastProperty()->listp = &a->shape_;
     if (b->inDictionaryMode())
         b->lastProperty()->listp = &b->shape_;
+
+    
+
+
+
+    TypeObject *tmp = a->type_;
+    a->type_ = b->type_;
+    b->type_ = tmp;
 }
 
 
@@ -3736,7 +3752,6 @@ bool
 SetProto(JSContext *cx, HandleObject obj, HandleObject proto, bool checkForCycles)
 {
     JS_ASSERT_IF(!checkForCycles, obj != proto);
-    JS_ASSERT(obj->isExtensible());
 
 #if JS_HAS_XML_SUPPORT
     if (proto && proto->isXML()) {
