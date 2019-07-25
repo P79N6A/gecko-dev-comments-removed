@@ -312,6 +312,7 @@ function Content() {
   addMessageListener("Browser:Blur", this);
   addMessageListener("Browser:KeyEvent", this);
   addMessageListener("Browser:MouseOver", this);
+  addMessageListener("Browser:MouseDown", this);
   addMessageListener("Browser:MouseLong", this);
   addMessageListener("Browser:MouseUp", this);
   addMessageListener("Browser:SaveAs", this);
@@ -431,6 +432,13 @@ Content.prototype = {
 
         
         this._sendMouseEvent("mousemove", element, x, y);
+        break;
+      }
+
+      case "Browser:MouseDown": {
+        let element = elementFromPoint(x, y);
+        if (!element)
+          return;
 
         
         let isDisabled = element instanceof HTMLOptionElement ? (element.disabled || element.parentNode.disabled) : element.disabled;
