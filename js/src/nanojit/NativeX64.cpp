@@ -1181,12 +1181,21 @@ namespace nanojit
     }
 
     NIns* Assembler::asm_branch(bool onFalse, LIns *cond, NIns *target) {
-        if (target && !isTargetWithinS32(target)) {
-            setError(ConditionalBranchTooFar);
-            NanoAssert(0);
-        }
         NanoAssert(cond->isCmp());
         LOpcode condop = cond->opcode();
+
+        if (target && !isTargetWithinS32(target)) {
+            
+            
+            
+            
+            
+            NIns* shortTarget = _nIns;
+            JMP(target);
+            target = shortTarget;
+
+            onFalse = !onFalse;
+        }
         if (isCmpDOpcode(condop))
             return asm_branchd(onFalse, cond, target);
 
