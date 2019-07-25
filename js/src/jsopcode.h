@@ -46,6 +46,7 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsutil.h"
+#include "jsarena.h"
 
 #ifdef __cplusplus
 # include "jsvalue.h"
@@ -424,20 +425,6 @@ js_GetStackDefs(JSContext *cx, const JSCodeSpec *cs, JSOp op, JSScript *script,
 }
 #endif
 
-#ifdef DEBUG
-
-
-
-#include <stdio.h>
-
-extern JS_FRIEND_API(JSBool)
-js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, FILE *fp);
-
-extern JS_FRIEND_API(uintN)
-js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc, uintN loc,
-                JSBool lines, FILE *fp);
-#endif 
-
 
 
 
@@ -493,8 +480,59 @@ DecompileValueGenerator(JSContext *cx, intN spindex, const Value &v,
     return js_DecompileValueGenerator(cx, spindex, Jsvalify(v), fallback);
 }
 
+
+
+
+struct Sprinter {
+    JSContext       *context;       
+    JSArenaPool     *pool;          
+    char            *base;          
+    size_t          size;           
+    ptrdiff_t       offset;         
+};
+
+#define INIT_SPRINTER(cx, sp, ap, off) \
+    ((sp)->context = cx, (sp)->pool = ap, (sp)->base = NULL, (sp)->size = 0,  \
+     (sp)->offset = off)
+
+
+
+
+
+
+
+extern char *
+SprintReserveAmount(Sprinter *sp, size_t len);
+
+extern ptrdiff_t
+SprintPut(Sprinter *sp, const char *s, size_t len);
+
+extern ptrdiff_t
+SprintCString(Sprinter *sp, const char *s);
+
+extern ptrdiff_t
+SprintString(Sprinter *sp, JSString *str);
+
+extern ptrdiff_t
+Sprint(Sprinter *sp, const char *format, ...);
+
 }
 #endif
+
+#ifdef DEBUG
+#ifdef __cplusplus
+
+
+
+#include <stdio.h>
+extern JS_FRIEND_API(JSBool)
+js_Disassemble(JSContext *cx, JSScript *script, JSBool lines, js::Sprinter *sp);
+
+extern JS_FRIEND_API(uintN)
+js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc, uintN loc,
+                JSBool lines, js::Sprinter *sp);
+#endif 
+#endif 
 
 
 
