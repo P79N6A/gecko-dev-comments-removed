@@ -688,21 +688,27 @@ let TestPilotSetup = {
 
   _experimentRequirementsAreMet: function TPS__requirementsMet(experiment) {
     
-    
-    
-    
+
+
+
+
     let logger = this._logger;
     try {
-      let minTpVer, minFxVer, expName;
-      if (experiment.experimentInfo) {
-        minTpVer = experiment.experimentInfo.minTPVersion;
-        minFxVer = experiment.experimentInfo.minFXVersion;
-        expName =  experiment.experimentInfo.testName;
-      } else if (experiment.surveyInfo) {
-        minTpVer = experiment.surveyInfo.minTPVersion;
-        minFxVer = experiment.surveyInfo.minFXVersion;
-        expName = experiment.surveyInfo.surveyName;
+      let minTpVer, minFxVer, expName, runOrNotFunc;
+      
+
+      let info = experiment.experimentInfo ?
+                   experiment.experimentInfo :
+                   experiment.surveyInfo;
+      if (!info) {
+        
+        logger.warn("Study lacks minimum metadata to run.");
+        return false;
       }
+      minTpVer = info.minTPVersion;
+      minFxVer = info.minFXVersion;
+      expName =  info.testName;
+      runOrNotFunc = info.runOrNotFunc;
 
       
       if (minTpVer && this._isNewerThanMe(minTpVer)) {
@@ -727,6 +733,12 @@ let TestPilotSetup = {
         logger.warn("Not loading " + expName);
         logger.warn("Because it requires Firefox version " + minFxVer);
         return false;
+      }
+
+      
+
+      if (runOrNotFunc) {
+        return runOrNotFunc();
       }
     } catch (e) {
       logger.warn("Error in requirements check " +  e);
