@@ -657,6 +657,7 @@ BookmarksTracker.prototype = {
     
     
 
+let before = new Date();
     
     let store = new BookmarksStore();
     let all = store.getAllIDs();
@@ -664,6 +665,8 @@ BookmarksTracker.prototype = {
     for (let guid in all) {
       this._all[this._bms.getItemIdForGUID(guid)] = guid;
     }
+let after = new Date();
+dump((after - before) + "ms spent mapping id -> guid for " + [key for (key in all)].length + " bookmark items\n");
 
     
     
