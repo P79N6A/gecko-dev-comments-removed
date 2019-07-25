@@ -71,7 +71,7 @@
 #include <X11/Xatom.h>
 #endif
 
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
 struct DBusMessage;  
 
 #include <dbus/dbus.h>
@@ -178,7 +178,7 @@ public:
   NS_IMETHOD Enable();
 
 private:
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
   osso_context_t *m_osso_context;    
   
 
@@ -189,7 +189,7 @@ private:
 #endif
 };
 
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
 static nsresult
 GetMostRecentWindow(const PRUnichar* aType, nsIDOMWindowInternal** aWindow)
 {
@@ -451,7 +451,7 @@ nsNativeAppSupportUnix::Start(PRBool *aRetVal)
     exit(0);
   }
 
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
   
   memset(&m_hw_state, 0, sizeof(osso_hw_state_t));
 
@@ -600,7 +600,7 @@ nsNativeAppSupportUnix::Stop(PRBool *aResult)
   NS_ENSURE_ARG(aResult);
   *aResult = PR_TRUE;
 
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
   if (m_osso_context) {
     
     OssoRequestAccelerometer(m_osso_context, PR_FALSE);
@@ -621,7 +621,7 @@ nsNativeAppSupportUnix::Stop(PRBool *aResult)
 NS_IMETHODIMP
 nsNativeAppSupportUnix::Enable()
 {
-#ifdef MOZ_PLATFORM_MAEMO
+#if (MOZ_PLATFORM_MAEMO == 5)
   
   if (OssoIsScreenOn(m_osso_context))
       OssoRequestAccelerometer(m_osso_context, PR_TRUE);
