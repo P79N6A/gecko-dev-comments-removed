@@ -772,7 +772,11 @@ nsresult nsTextControlFrame::SetFormProperty(nsIAtom* aName, const nsAString& aV
       
       
 
-      SelectAllOrCollapseToEndOfText(PR_TRUE);
+      nsWeakFrame weakThis = this;
+      SelectAllOrCollapseToEndOfText(PR_TRUE);  
+      if (!weakThis.IsAlive()) {
+        return NS_OK;
+      }
     }
     mIsProcessing = PR_FALSE;
   }
@@ -846,12 +850,17 @@ nsTextControlFrame::SetSelectionInternal(nsIDOMNode *aStartNode,
   selCon->GetSelection(nsISelectionController::SELECTION_NORMAL, getter_AddRefs(selection));  
   NS_ENSURE_TRUE(selection, NS_ERROR_FAILURE);
 
-  rv = selection->RemoveAllRanges();  
-
+  rv = selection->RemoveAllRanges();
   NS_ENSURE_SUCCESS(rv, rv);
 
-  rv = selection->AddRange(range);
+  rv = selection->AddRange(range);  
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  selCon = txtCtrl->GetSelectionController();
+  if (!selCon) {
+    return NS_OK;  
+  }
 
   
   return selCon->ScrollSelectionIntoView(nsISelectionController::SELECTION_NORMAL,
