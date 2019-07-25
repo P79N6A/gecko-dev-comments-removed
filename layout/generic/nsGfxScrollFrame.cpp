@@ -491,12 +491,6 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
   nsPresContext* presContext = PresContext();
 
   
-  
-  presContext->PropertyTable()->
-    Set(mInner.mScrolledFrame, UsedPaddingProperty(),
-        new nsMargin(aState->mReflowState.mComputedPadding));
-
-  
   nsHTMLReflowState kidReflowState(presContext, aState->mReflowState,
                                    mInner.mScrolledFrame,
                                    nsSize(availWidth, NS_UNCONSTRAINEDSIZE),

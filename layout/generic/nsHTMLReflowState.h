@@ -188,12 +188,18 @@ public:
 
 private:
   
+
+
+
+
+  PRBool ComputeMargin(nscoord aContainingBlockWidth);
   
-  void ComputeMargin(nscoord aContainingBlockWidth);
   
-  
-  
-  void ComputePadding(nscoord aContainingBlockWidth);
+
+
+
+
+   PRBool ComputePadding(nscoord aContainingBlockWidth);
 
 protected:
 

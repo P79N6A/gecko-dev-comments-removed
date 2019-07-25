@@ -568,6 +568,7 @@ struct nsStyleMargin {
 
   nsStyleSides  mMargin;          
 
+  PRBool IsWidthDependent() const { return !mHasCachedMargin; }
   PRBool GetMargin(nsMargin& aMargin) const
   {
     if (mHasCachedMargin) {
@@ -602,6 +603,7 @@ struct nsStylePadding {
 
   nsStyleSides  mPadding;         
 
+  PRBool IsWidthDependent() const { return !mHasCachedPadding; }
   PRBool GetPadding(nsMargin& aPadding) const
   {
     if (mHasCachedPadding) {
