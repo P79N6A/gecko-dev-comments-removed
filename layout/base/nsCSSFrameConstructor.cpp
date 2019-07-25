@@ -145,7 +145,6 @@
 #include "DOMSVGTests.h"
 #include "nsSVGEffects.h"
 #include "nsSVGUtils.h"
-#include "nsSVGOuterSVGFrame.h"
 
 #include "nsRefreshDriver.h"
 #include "nsRuleProcessorData.h"
@@ -7686,23 +7685,7 @@ DoApplyRenderingChangeToTree(nsIFrame* aFrame,
     
     if (aChange & nsChangeHint_RepaintFrame) {
       if (aFrame->IsFrameOfType(nsIFrame::eSVG)) {
-        if (!(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
-          nsSVGOuterSVGFrame *outerSVGFrame = nsSVGUtils::GetOuterSVGFrame(aFrame);
-          if (outerSVGFrame) {
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            outerSVGFrame->UpdateAndInvalidateCoveredRegion(aFrame);
-          }
-        }
+        nsSVGUtils::UpdateGraphic(aFrame);
       } else {
         aFrame->InvalidateOverflowRect();
       }

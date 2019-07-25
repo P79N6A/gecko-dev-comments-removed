@@ -39,7 +39,6 @@
 #include "nsSVGSwitchElement.h"
 #include "DOMSVGTests.h"
 #include "nsIFrame.h"
-#include "nsISVGChildFrame.h"
 #include "nsSVGUtils.h"
 #include "mozilla/Preferences.h"
 
@@ -98,10 +97,7 @@ nsSVGSwitchElement::MaybeInvalidate()
 
   nsIFrame *frame = GetPrimaryFrame();
   if (frame) {
-    nsISVGChildFrame* svgFrame = do_QueryFrame(frame);
-    if (svgFrame) {
-      nsSVGUtils::UpdateGraphic(svgFrame);
-    }
+    nsSVGUtils::UpdateGraphic(frame);
   }
 }
 
