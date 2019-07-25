@@ -59,12 +59,12 @@ namespace net {
 
 
 HttpChannelChild::HttpChannelChild()
-  : ChannelEventQueue<HttpChannelChild>(this)
+  : HttpAsyncAborter<HttpChannelChild>(this)
+  , ChannelEventQueue<HttpChannelChild>(this)
   , mIsFromCache(PR_FALSE)
   , mCacheEntryAvailable(PR_FALSE)
   , mCacheExpirationTime(nsICache::NO_EXPIRATION_TIME)
   , mSendResumeAt(false)
-  , mSuspendCount(0)
   , mIPCOpen(false)
   , mKeptAlive(false)
 {
@@ -577,53 +577,53 @@ HttpChannelChild::OnStatus(const nsresult& status)
   }
 }
 
-class CancelEvent : public ChannelEvent
+class FailedAsyncOpenEvent : public ChannelEvent
 {
  public:
-  CancelEvent(HttpChannelChild* child, const nsresult& status)
+  FailedAsyncOpenEvent(HttpChannelChild* child, const nsresult& status)
   : mChild(child)
   , mStatus(status) {}
 
-  void Run() { mChild->OnCancel(mStatus); }
+  void Run() { mChild->FailedAsyncOpen(mStatus); }
  private:
   HttpChannelChild* mChild;
   nsresult mStatus;
 };
 
 bool
-HttpChannelChild::RecvCancelEarly(const nsresult& status)
+HttpChannelChild::RecvFailedAsyncOpen(const nsresult& status)
 {
   if (ShouldEnqueue()) {
-    EnqueueEvent(new CancelEvent(this, status));
+    EnqueueEvent(new FailedAsyncOpenEvent(this, status));
   } else {
-    OnCancel(status);
+    FailedAsyncOpen(status);
   }
   return true;
 }
 
+
+
+
 void
-HttpChannelChild::OnCancel(const nsresult& status)
+HttpChannelChild::HandleAsyncAbort()
 {
-  LOG(("HttpChannelChild::OnCancel [this=%p status=%x]\n", this, status));
+  HttpAsyncAborter<HttpChannelChild>::HandleAsyncAbort();
+}
 
-  if (mCanceled)
-    return;
+void
+HttpChannelChild::FailedAsyncOpen(const nsresult& status)
+{
+  LOG(("HttpChannelChild::FailedAsyncOpen [this=%p status=%x]\n", this, status));
 
-  mCanceled = true;
   mStatus = status;
+  mIsPending = PR_FALSE;
+  
+  HandleAsyncAbort();
+}
 
-  mIsPending = false;
-  if (mLoadGroup)
-    mLoadGroup->RemoveRequest(this, nsnull, mStatus);
-
-  if (mListener) {
-    mListener->OnStartRequest(this, mListenerContext);
-    mListener->OnStopRequest(this, mListenerContext, mStatus);
-  }
-
-  mListener = NULL;
-  mListenerContext = NULL;
-
+void
+HttpChannelChild::DoNotifyListenerCleanup()
+{
   if (mIPCOpen)
     PHttpChannelChild::Send__delete__(this);
 }
@@ -877,7 +877,10 @@ HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
   if (NS_SUCCEEDED(result))
     gHttpHandler->OnModifyRequest(newHttpChannel);
 
-  return SendRedirect2Verify(result, *headerTuples);
+  if (mIPCOpen)
+    SendRedirect2Verify(result, *headerTuples);
+
+  return NS_OK;
 }
 
 
@@ -907,11 +910,25 @@ HttpChannelChild::Suspend()
   return NS_OK;
 }
 
+void
+HttpChannelChild::CompleteResume()
+{
+  if (mCallOnResume) {
+    (this->*mCallOnResume)();
+    mCallOnResume = 0;
+  }
+
+  FlushEventQueue();
+}
+
 NS_IMETHODIMP
 HttpChannelChild::Resume()
 {
   NS_ENSURE_TRUE(mIPCOpen, NS_ERROR_NOT_AVAILABLE);
   NS_ENSURE_TRUE(mSuspendCount > 0, NS_ERROR_UNEXPECTED);
+
+  nsresult rv = NS_OK;
+
   SendResume();
   mSuspendCount--;
   if (!mSuspendCount) {
@@ -921,9 +938,9 @@ HttpChannelChild::Resume()
     
     if (mQueuePhase == PHASE_UNQUEUED)
       mQueuePhase = PHASE_FINISHED_QUEUEING;
-    FlushEventQueue();
+    rv = AsyncCall(&HttpChannelChild::CompleteResume);
   }
-  return NS_OK;
+  return rv;
 }
 
 
@@ -986,10 +1003,7 @@ HttpChannelChild::AsyncOpen(nsIStreamListener *listener, nsISupports *aContext)
     
     
     
-
-    
-    mCanceled = false;
-    OnCancel(mStatus);
+    AsyncAbort(mStatus);
     return NS_OK;
   }
 

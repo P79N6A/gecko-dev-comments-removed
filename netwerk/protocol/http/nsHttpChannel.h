@@ -77,6 +77,7 @@ using namespace mozilla::net;
 
 
 class nsHttpChannel : public HttpBaseChannel
+                    , public HttpAsyncAborter<nsHttpChannel>
                     , public nsIStreamListener
                     , public nsICachingChannel
                     , public nsICacheListener
@@ -145,7 +146,6 @@ public:
     NS_IMETHOD ResumeAt(PRUint64 startPos, const nsACString& entityID);
 
 public:  
-    typedef void (nsHttpChannel:: *nsAsyncCallback)(void);
 
     void InternalSetUploadStream(nsIInputStream *uploadStream) 
       { mUploadStream = uploadStream; }
@@ -164,18 +164,8 @@ public:
 private:
     typedef nsresult (nsHttpChannel::*nsContinueRedirectionFunc)(nsresult result);
 
-    
-    
-    
-    nsresult AsyncCall(nsAsyncCallback funcPtr,
-                       nsRunnableMethod<nsHttpChannel> **retval = nsnull);
-
     PRBool   RequestIsConditional();
     nsresult Connect(PRBool firstTime = PR_TRUE);
-    nsresult AsyncAbort(nsresult status);
-    
-    void     HandleAsyncNotifyListener();
-    void     DoNotifyListener();
     nsresult SetupTransaction();
     nsresult CallOnStartRequest();
     nsresult ProcessResponse();
@@ -191,6 +181,7 @@ private:
     nsresult ProcessFallback(PRBool *waitingForRedirectCallback);
     nsresult ContinueProcessFallback(nsresult);
     PRBool   ResponseWouldVary();
+    void     HandleAsyncAbort();
 
     nsresult ContinueOnStartRequest1(nsresult);
     nsresult ContinueOnStartRequest2(nsresult);
@@ -317,16 +308,7 @@ private:
     nsCOMPtr<nsIHttpChannelAuthProvider> mAuthProvider;
 
     
-    
-    
-    nsAsyncCallback                   mPendingAsyncCallOnResume;
-
-    
     nsCOMPtr<nsIProxyInfo>            mTargetProxyInfo;
-
-    
-    
-    PRUint32                          mSuspendCount;
 
     
     
@@ -334,6 +316,7 @@ private:
     nsCString                         mFallbackKey;
 
     friend class AutoRedirectVetoNotifier;
+    friend class HttpAsyncAborter<nsHttpChannel>;
     nsCOMPtr<nsIURI>                  mRedirectURI;
     nsCOMPtr<nsIChannel>              mRedirectChannel;
     PRUint32                          mRedirectType;
@@ -380,6 +363,9 @@ private:
     nsresult WaitForRedirectCallback();
     void PushRedirectAsyncFunc(nsContinueRedirectionFunc func);
     void PopRedirectAsyncFunc(nsContinueRedirectionFunc func);
+
+protected:
+    virtual void DoNotifyListenerCleanup();
 };
 
 #endif 
