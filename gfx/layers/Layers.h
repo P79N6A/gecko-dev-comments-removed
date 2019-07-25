@@ -86,7 +86,7 @@ class SpecificLayerAttributes;
 
 
 
-struct FrameMetrics {
+struct THEBES_API FrameMetrics {
 public:
   
   typedef PRUint64 ViewID;
