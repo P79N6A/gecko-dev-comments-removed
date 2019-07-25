@@ -62,7 +62,7 @@ WrapFunction(JSContext* cx, JSObject* funobj, jsval *rval);
 
 
 JSBool
-RewrapIfDeepWrapper(JSContext *cx, JSObject *obj, jsval v, jsval *rval);
+RewrapValue(JSContext *cx, JSObject *obj, jsval v, jsval *rval);
 
 } 
 
@@ -398,7 +398,7 @@ RewrapIfDeepWrapper(JSContext *cx, JSObject *obj, jsval v, jsval *rval,
 {
   *rval = v;
   return isNativeWrapper
-         ? XPCNativeWrapper::RewrapIfDeepWrapper(cx, obj, v, rval)
+         ? XPCNativeWrapper::RewrapValue(cx, obj, v, rval)
          : XPCCrossOriginWrapper::RewrapIfNeeded(cx, obj, rval);
 }
 
