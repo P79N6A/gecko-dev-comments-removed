@@ -222,7 +222,7 @@ var DownloadsView = {
       let (referrer = this._stmt.getString(7)) {
         if (referrer)
           attrs.referrer = referrer;
-      }
+      };
 
       
       let isActive = this._stmt.getInt32(10);

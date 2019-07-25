@@ -573,7 +573,7 @@ KineticData.prototype = {
     
     let visibleNow = ws.isWidgetVisible("tabs-container") || ws.isWidgetVisible("browser-controls");
     if (!visibleNow)
-      ws.unfreeze('toolbar-main')
+      ws.unfreeze('toolbar-main');
 
     this.reset();
   },
