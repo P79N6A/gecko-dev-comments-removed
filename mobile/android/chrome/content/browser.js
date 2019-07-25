@@ -2094,27 +2094,12 @@ var ErrorPageEventHandler = {
             }
             errorDoc.location.reload();
           } else if (target == errorDoc.getElementById("getMeOutOfHereButton")) {
-            errorDoc.location = this.getFallbackSafeURL();
+            errorDoc.location = "about:home";
           }
         }
         break;
       }
     }
-  },
-
-  getFallbackSafeURL: function getFallbackSafeURL() {
-    
-    let prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefService).getDefaultBranch(null);
-    let url = "about:home";
-    try {
-      url = prefs.getComplexValue("browser.startup.homepage", Ci.nsIPrefLocalizedString).data;
-      
-      if (url.indexOf("|") != -1)
-        url = url.split("|")[0];
-    } catch(e) {
-      Cu.reportError("Couldn't get homepage pref: " + e);
-    }
-    return url;
   }
 };
 
