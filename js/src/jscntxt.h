@@ -490,17 +490,11 @@ static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Val
 JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
 
 
-
-
-
-
-class InvokeArgsGuard
+class InvokeArgsGuard : public CallArgs
 {
     friend class StackSpace;
     JSContext        *cx;  
     StackSegment     *seg;
-    Value            *vp;
-    uintN            argc;
     Value            *prevInvokeArgEnd;
 #ifdef DEBUG
     StackSegment     *prevInvokeSegment;
@@ -511,8 +505,15 @@ class InvokeArgsGuard
     inline InvokeArgsGuard(JSContext *cx, Value *vp, uintN argc);
     inline ~InvokeArgsGuard();
     bool pushed() const { return cx != NULL; }
-    Value *getvp() const { JS_ASSERT(pushed()); return vp; }
-    uintN getArgc() const { JS_ASSERT(pushed()); return argc; }
+};
+
+
+
+
+
+struct InvokeArgsAlreadyOnTheStack : CallArgs
+{
+    InvokeArgsAlreadyOnTheStack(Value *vp, uintN argc) : CallArgs(vp + 2, argc) {}
 };
 
 
@@ -639,13 +640,12 @@ class StackSpace
                                                 InvokeArgsGuard &ag);
     JS_REQUIRES_STACK bool pushInvokeFrameSlow(JSContext *cx, const InvokeArgsGuard &ag,
                                                InvokeFrameGuard &fg);
-    JS_REQUIRES_STACK void popInvokeFrameSlow(const InvokeArgsGuard &ag);
+    JS_REQUIRES_STACK void popInvokeFrameSlow(const CallArgs &args);
     JS_REQUIRES_STACK void popSegmentForInvoke(const InvokeArgsGuard &ag);
 
     
     friend class InvokeArgsGuard;
-    JS_REQUIRES_STACK inline void bumpInvokeArgEnd(InvokeArgsGuard &ag);
-    JS_REQUIRES_STACK inline void popInvokeArgs(const InvokeArgsGuard &ag);
+    JS_REQUIRES_STACK inline void popInvokeArgs(const InvokeArgsGuard &args);
     friend class InvokeFrameGuard;
     JS_REQUIRES_STACK void popInvokeFrame(const InvokeFrameGuard &ag);
     friend class ExecuteFrameGuard;
@@ -732,13 +732,12 @@ class StackSpace
     bool pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard &ag);
 
     
-    bool getInvokeFrame(JSContext *cx, const InvokeArgsGuard &ag,
+    bool getInvokeFrame(JSContext *cx, const CallArgs &args,
                         uintN nmissing, uintN nfixed,
                         InvokeFrameGuard &fg) const;
 
     JS_REQUIRES_STACK
-    void pushInvokeFrame(JSContext *cx, const InvokeArgsGuard &ag,
-                         InvokeFrameGuard &fg);
+    void pushInvokeFrame(JSContext *cx, const CallArgs &args, InvokeFrameGuard &fg);
 
     
 

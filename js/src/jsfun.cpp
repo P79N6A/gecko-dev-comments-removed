@@ -2030,12 +2030,12 @@ js_fun_call(JSContext *cx, uintN argc, Value *vp)
         return JS_FALSE;
 
     
-    args.getvp()[0] = fval;
-    args.getvp()[1] = ObjectOrNullValue(obj);
-    memcpy(args.getvp() + 2, argv, argc * sizeof *argv);
+    args.callee() = fval;
+    args.thisv().setObjectOrNull(obj);
+    memcpy(args.argv(), argv, argc * sizeof *argv);
 
     bool ok = Invoke(cx, args, 0);
-    *vp = *args.getvp();
+    *vp = args.rval();
     return ok;
 }
 
@@ -2111,9 +2111,8 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
         return false;
 
     
-    Value *sp = args.getvp();
-    *sp++ = fval;
-    *sp++ = ObjectOrNullValue(obj);
+    args.callee() = fval;
+    args.thisv().setObjectOrNull(obj);
 
     
     if (aobj && aobj->isArguments() && !aobj->isArgsLengthOverridden()) {
@@ -2124,31 +2123,32 @@ js_fun_apply(JSContext *cx, uintN argc, Value *vp)
 
 
         JSStackFrame *fp = (JSStackFrame *) aobj->getPrivate();
+        Value *argv = args.argv();
         if (fp) {
-            memcpy(sp, fp->argv, n * sizeof(Value));
+            memcpy(argv, fp->argv, n * sizeof(Value));
             for (uintN i = 0; i < n; i++) {
                 if (aobj->getArgsElement(i).isMagic(JS_ARGS_HOLE)) 
-                    sp[i].setUndefined();
+                    argv[i].setUndefined();
             }
         } else {
             for (uintN i = 0; i < n; i++) {
-                sp[i] = aobj->getArgsElement(i);
-                if (sp[i].isMagic(JS_ARGS_HOLE))
-                    sp[i].setUndefined();
+                argv[i] = aobj->getArgsElement(i);
+                if (argv[i].isMagic(JS_ARGS_HOLE))
+                    argv[i].setUndefined();
             }
         }
     } else {
+        Value *argv = args.argv();
         for (uintN i = 0; i < n; i++) {
-            if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), sp))
+            if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), &argv[i]))
                 return JS_FALSE;
-            sp++;
         }
     }
 
     
     if (!Invoke(cx, args, 0))
         return false;
-    *vp = *args.getvp();
+    *vp = args.rval();
     return true;
 }
 

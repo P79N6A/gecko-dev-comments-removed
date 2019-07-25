@@ -296,12 +296,37 @@ PrimitiveThisTest(JSFunction *fun, const Value &v)
 
 
 
+struct CallArgs
+{
+    Value *argv_;
+    uintN argc_;
+  protected:
+    CallArgs() {}
+    CallArgs(Value *argv, uintN argc) : argv_(argv), argc_(argc) {}
+  public:
+    Value *base() const { return argv_ - 2; }
+    Value &callee() const { return argv_[-2]; }
+    Value &thisv() const { return argv_[-1]; }
+    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
+    Value *argv() const { return argv_; }
+    uintN argc() const { return argc_; }
+    Value &rval() const { return argv_[-2]; }
+
+    JSObject *computeThis(JSContext *cx) const {
+        return ComputeThisFromArgv(cx, argv_);
+    }
+};
+
+
+
+
+
 
 
 
 
 extern JS_REQUIRES_STACK bool
-Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags);
+Invoke(JSContext *cx, const CallArgs &args, uintN flags);
 
 
 
@@ -354,7 +379,7 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
         JSStackFrame *down, uintN flags, Value *result);
 
 extern JS_REQUIRES_STACK bool
-InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args);
+InvokeConstructor(JSContext *cx, const CallArgs &args);
 
 extern JS_REQUIRES_STACK bool
 Interpret(JSContext *cx);
