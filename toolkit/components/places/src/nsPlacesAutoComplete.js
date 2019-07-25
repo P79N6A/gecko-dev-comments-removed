@@ -325,22 +325,16 @@ function nsPlacesAutoComplete()
 
   XPCOMUtils.defineLazyGetter(this, "_openPagesQuery", function() {
     return this._db.createAsyncStatement(
-      "SELECT t.url, "
-    +        "IFNULL(h.title, t.url) AS c_title, f.url, "
-    +         kBookTagSQLFragment + ", "
-    +         "h.visit_count, h.typed, "
-    +         "h.id, :query_type, t.open_count, h.frecency "
+      "SELECT t.url, t.url, NULL, NULL, NULL, NULL, NULL, NULL, NULL, "
+    +         ":query_type, t.open_count, NULL "
     + "FROM moz_openpages_temp t "
     + "LEFT JOIN moz_places h ON h.url = t.url "
-    + "LEFT JOIN moz_favicons f ON f.id = h.favicon_id "
-    + "WHERE t.open_count > 0 "
-    +   "AND AUTOCOMPLETE_MATCH(:searchString, t.url, "
-    +                          "COALESCE(bookmark, c_title, t.url), tags, "
-    +                          "h.visit_count, h.typed, parent, "
-    +                          "t.open_count, "
+    + "WHERE h.id IS NULL "
+    +   "AND AUTOCOMPLETE_MATCH(:searchString, t.url, t.url, NULL, "
+    +                          "NULL, NULL, NULL, t.open_count, "
     +                          ":matchBehavior, :searchBehavior) "
-    + "ORDER BY h.frecency DESC, t.ROWID DESC "
-    + "LIMIT :maxResults"
+    + "ORDER BY t.ROWID DESC "
+    + "LIMIT :maxResults "
     );
   });
 
@@ -915,11 +909,13 @@ nsPlacesAutoComplete.prototype = {
     
     
     
+    
+    
+    
     let query = this._hasBehavior("tag") ? this._tagsQuery :
                 this._hasBehavior("bookmark") ? this._bookmarkQuery :
                 this._hasBehavior("typed") ? this._typedQuery :
                 this._hasBehavior("history") ? this._historyQuery :
-                this._hasBehavior("openpage") ? this._openPagesQuery :
                 this._defaultQuery;
 
     
@@ -947,7 +943,6 @@ nsPlacesAutoComplete.prototype = {
 
     
     let (params = query.params) {
-      params.parent = this._bs.tagsFolder;
       params.query_type = kQueryTypeFiltered;
       params.matchBehavior = this._matchBehavior;
       params.searchBehavior = this._behavior;
