@@ -5425,8 +5425,7 @@ IsAcceptableCaretPosition(const gfxSkipCharsIterator& aIter, gfxTextRun* aTextRu
   PRUint32 index = aIter.GetSkippedOffset();
   if (!aTextRun->IsClusterStart(index))
     return PR_FALSE;
-  return !(aFrame->GetStyleText()->NewlineIsSignificant() &&
-           aTextRun->GetChar(index) == '\n');
+  return PR_TRUE;
 }
 
 PRBool
@@ -5451,8 +5450,8 @@ nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
   PRInt32 startOffset = GetContentOffset() + (*aOffset < 0 ? contentLength : *aOffset);
 
   if (!aForward) {
-    PRInt32 i;
-    for (i = NS_MIN(trimmed.GetEnd(), startOffset) - 1;
+    
+    for (PRInt32 i = NS_MIN(trimmed.GetEnd(), startOffset) - 1;
          i >= trimmed.mStart; --i) {
       iter.SetOriginalOffset(i);
       if (IsAcceptableCaretPosition(iter, mTextRun, this)) {
@@ -5462,16 +5461,19 @@ nsTextFrame::PeekOffsetCharacter(PRBool aForward, PRInt32* aOffset)
     }
     *aOffset = 0;
   } else {
-    PRInt32 i;
-    for (i = startOffset + 1; i <= trimmed.GetEnd(); ++i) {
-      iter.SetOriginalOffset(i);
-      
-      
-      
-      if (i == trimmed.GetEnd() ||
-          IsAcceptableCaretPosition(iter, mTextRun, this)) {
-        *aOffset = i - mContentOffset;
-        return PR_TRUE;
+    
+    iter.SetOriginalOffset(startOffset);
+    if (iter.GetSkippedOffset() <= PRUint32(trimmed.GetEnd()) &&
+        !(iter.GetSkippedOffset() < PRUint32(trimmed.GetEnd()) &&
+          GetStyleText()->NewlineIsSignificant() &&
+          mTextRun->GetChar(iter.GetSkippedOffset()) == '\n')) {
+      for (PRInt32 i = startOffset + 1; i <= trimmed.GetEnd(); ++i) {
+        iter.SetOriginalOffset(i);
+        if (i == trimmed.GetEnd() ||
+            IsAcceptableCaretPosition(iter, mTextRun, this)) {
+          *aOffset = i - mContentOffset;
+          return PR_TRUE;
+        }
       }
     }
     *aOffset = contentLength;
