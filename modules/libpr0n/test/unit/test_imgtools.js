@@ -322,6 +322,26 @@ compareArrays(encodedBytes, referenceBytes);
 
 
 
+testnum++;
+testdesc = "test decoding a GIF";
+
+
+imgName = "image4.gif";
+inMimeType = "image/gif";
+imgFile = do_get_file(imgName);
+
+istream = getFileInputStream(imgFile);
+do_check_eq(istream.available(), 1809);
+
+outParam = { value: null };
+imgTools.decodeImageData(istream, inMimeType, outParam);
+container = outParam.value;
+
+
+
+do_check_eq(container.width, 32);
+do_check_eq(container.height, 32);
+
 
 
 testnum = 363986;
