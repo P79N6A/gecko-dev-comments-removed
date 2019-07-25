@@ -92,7 +92,7 @@ function debug() {
 
     let cr = bv._tileManager._criticalRect;
     dump('criticalRect from BV: ' + (cr ? cr.toString() : null) + endl);
-    dump('visibleRect from BV : ' + bv._visibleRect.toString() + endl);
+    dump('visibleRect from BV : ' + bv._visibleRect + endl);
     dump('visibleRect from foo: ' + Browser.getVisibleRect().toString() + endl);
 
     dump('bv batchops depth:    ' + bv._batchOps.length + endl);
@@ -250,7 +250,8 @@ function onKeyPress(ev) {
 
   switch (ev.charCode) {
   case r:
-    bv.setVisibleRect(Browser.getVisibleRect());
+    bv.onAfterVisibleMove();
+    
 
   case d:
     debug();
@@ -338,7 +339,7 @@ var Browser = {
     dump("begin startup\n");
 
     let container = document.getElementById("tile-container");
-    let bv = this._browserView = new BrowserView(container, Browser.getVisibleRect());
+    let bv = this._browserView = new BrowserView(container, Browser.getVisibleRect);
 
     
     container.customClicker = this._createContentCustomClicker(bv);
@@ -405,7 +406,7 @@ var Browser = {
         }
       }
 
-      bv.setVisibleRect(Browser.getVisibleRect());
+      bv.onAfterVisibleMove();
       bv.zoomToPage();
       bv.commitBatchOperation();
     }
@@ -1018,11 +1019,12 @@ var Browser = {
     const margin = 15;
 
     let bv = Browser._browserView;
+    let vis = bv.getVisibleRect();
     let scroller = Browser.contentScrollboxScroller;
 
     let elRect = Browser.getBoundingContentRect(aElement);
     let elWidth = elRect.width;
-    let vrWidth = bv.getVisibleRectWidth();
+    let vrWidth = vis.width;
     
 
     let zoomLevel = vrWidth / (elWidth + (2 * margin));
@@ -1038,8 +1040,8 @@ var Browser = {
     let screenW = vrWidth - bv.browserToViewport(elWidth);
     let xpadding = Math.max(margin, screenW);
 
-    let x0 = bv.getVisibleRectX();
-    let y0 = bv.getVisibleRectY();
+    let x0 = vis.left;
+    let y0 = vis.top;
 
     let x = bv.browserToViewport(elRect.left) - xpadding;
     let y = bv.browserToViewport(elRect.top) - margin;
@@ -1059,6 +1061,7 @@ var Browser = {
 
   zoomFromElement: function zoomFromElement(aElement) {
     let bv = Browser._browserView;
+    let vis = bv.getVisibleRect();
     let scroller = Browser.contentScrollboxScroller;
 
     let elRect = Browser.getBoundingContentRect(aElement);
@@ -1067,8 +1070,8 @@ var Browser = {
 
     bv.zoomToPage();
 
-    let x0 = bv.getVisibleRectX();
-    let y0 = bv.getVisibleRectY();
+    let x0 = vis.left;
+    let y0 = vis.top;
 
     let x = bv.browserToViewport(elRect.left);
     let y = bv.browserToViewport(elRect.top);
@@ -1148,14 +1151,14 @@ var Browser = {
 
   elementFromPoint: function elementFromPoint(x, y) {
     Util.dumpLn("*** elementFromPoint: page ", x, ",", y);
-    
+
     let browser = this._browserView.getBrowser();
     if (!browser) return null;
-    
+
     let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
 
     let scrollX = { value: 0 }, scrollY = { value: 0 };
-    cwu.getScrollXY(false, scrollX, scrollY); 
+    cwu.getScrollXY(false, scrollX, scrollY);
     x = x - scrollX.value;
     y = y - scrollY.value;
 
@@ -1168,15 +1171,15 @@ var Browser = {
       let frameWin = elem.ownerDocument.defaultView;
       let frameUtils = frameWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
       frameUtils.getScrollXY(false, scrollX, scrollY);
-      
+
       x = x - elem.offsetLeft + scrollX.value;
       y = y - elem.offsetTop + scrollY.value;
       elem = elem.contentDocument.elementFromPoint(x, y);
     }
-    
+
     return elem;
   },
-  
+
   
 
 
@@ -1228,15 +1231,15 @@ Browser.MainDragger.prototype = {
         return false;
       if (target === tileBox)
         return true;
-      
+
       target = target.parentNode;
     }
     return false;
   },
-  
+
   dragStart: function dragStart(clientX, clientY, target, scroller) {
     this.draggedFrame = null;
-    
+
     if (this._targetIsContent(target)) {
       
       
@@ -1248,55 +1251,55 @@ Browser.MainDragger.prototype = {
         this.draggedFrame = element.ownerDocument.defaultView;
       }
     }
-    
+
     this.bv.pauseRendering();
     this.floatedWhileDragging = false;
   },
-  
+
   _panFrame: function _panFrame(dx, dy) {
     if (this.draggedFrame === null)
       return false;
-    
+
     if (dx == 0 && dy == 0)
       return true;
-    
+
     let panned = false;
     let elem = this.draggedFrame;
-    
+
     
     
     
     while (elem && elem !== elem.parent.document.defaultView) {
       let windowUtils = elem.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      
+
       let origX = {}, origY = {};
       windowUtils.getScrollXY(false, origX, origY);
-      
+
       elem.scrollBy(dx, dy);
-      
+
       let newX = {}, newY = {};
       windowUtils.getScrollXY(false, newX, newY);
-      
+
       panned = (origX.value != newX.value) || (origY.value != newY.value);
-      
+
       if (panned) {
         
         
         this.bv.renderNow();
         break;
       }
-      
+
       elem = elem.parent.document.defaultView;
     }
-    
+
     return panned;
   },
-  
+
   dragStop: function dragStop(dx, dy, scroller) {
     let dx = this.dragMove(dx, dy, scroller, true);
-    
+
     dx += this.dragMove(Browser.snapSidebars(), 0, scroller, true);
-    
+
     Browser.tryUnfloatToolbar();
 
     this.bv.resumeRendering();
@@ -1689,14 +1692,14 @@ IdentityHandler.prototype = {
     this._identityPopup.focus();
 
     this._identityBox.setAttribute("open", "true");
-    
+
     
     this.setPopupMessages(this._identityBox.getAttribute("mode") || this.IDENTITY_MODE_UNKNOWN);
   },
 
   hide: function ih_hide() {
     this._identityPopup.hidden = true;
-    
+
     this._identityBox.removeAttribute("open");
   },
 
