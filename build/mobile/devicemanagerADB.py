@@ -1,16 +1,21 @@
 import subprocess
 from devicemanager import DeviceManager, DMError
 import re
+import os
 
 class DeviceManagerADB(DeviceManager):
 
-  def __init__(self, host = None, port = 20701, retrylimit = 5):
+  def __init__(self, host = None, port = 20701, retrylimit = 5, packageName = "org.mozilla.fennec_unofficial"):
     self.host = host
     self.port = port
     self.retrylimit = retrylimit
+    self.verifyPackage(packageName)
     self.retries = 0
     self._sock = None
-    self.getDeviceRoot()
+    root = self.getDeviceRoot()
+    self.tmpDir = root + "/tmp"
+    if (not self.dirExists(self.tmpDir)):
+      self.mkDir(self.tmpDir)
     try:
       
       self.checkCmd(["shell", "ls", "/sbin"])
@@ -26,7 +31,17 @@ class DeviceManagerADB(DeviceManager):
   
   def pushFile(self, localname, destname):
     try:
-      self.checkCmd(["push", localname, destname])
+      if (os.name == "nt"):
+        destname = destname.replace('\\', '/')
+      if (self.packageName):
+        remoteTmpFile = self.tmpDir + "/" + os.path.basename(localname)
+        self.checkCmd(["push", os.path.realpath(localname), remoteTmpFile])
+        self.checkCmdAs(["shell", "cp", remoteTmpFile, destname])
+        self.checkCmd(["shell", "rm", remoteTmpFile])
+      else:
+        self.checkCmd(["push", os.path.realpath(localname), destname])
+      if (self.isDir(destname)):
+        destname = destname + "/" + os.path.basename(localname)
       self.chmodDir(destname)
       return True
     except:
@@ -38,7 +53,7 @@ class DeviceManagerADB(DeviceManager):
   
   def mkDir(self, name):
     try:
-      self.checkCmd(["shell", "mkdir", name])
+      self.checkCmdAs(["shell", "mkdir", name])
       self.chmodDir(name)
       return name
     except:
@@ -50,8 +65,17 @@ class DeviceManagerADB(DeviceManager):
   
   
   def mkDirs(self, filename):
-    self.checkCmd(["shell", "mkdir", "-p ", name])
-    return filename
+    parts = filename.split('/')
+    name = ""
+    for part in parts:
+      if (part == parts[-1]): break
+      if (part != ""):
+        name += '/' + part
+        if (not self.dirExists(name)):
+          if (self.mkDir(name) == None):
+            print "failed making directory: " + str(name)
+            return None
+    return name
 
   
   
@@ -59,9 +83,27 @@ class DeviceManagerADB(DeviceManager):
   
   
   def pushDir(self, localDir, remoteDir):
+    
+    
+    
     try:
-      self.checkCmd(["push", localDir, remoteDir])
-      self.chmodDir(remoteDir)
+      for root, dirs, files in os.walk(localDir):
+        relRoot = os.path.relpath(root, localDir)
+        for file in files:
+          localFile = os.path.join(root, file)
+          remoteFile = remoteDir + "/"
+          if (relRoot!="."):
+            remoteFile = remoteFile + relRoot + "/"
+          remoteFile = remoteFile + file
+          self.pushFile(localFile, remoteFile)
+        for dir in dirs:
+          targetDir = remoteDir + "/"
+          if (relRoot!="."):
+            targetDir = targetDir + relRoot + "/"
+          targetDir = targetDir + dir
+          if (not self.dirExists(targetDir)):
+            self.mkDir(targetDir)
+      self.checkCmdAs(["shell", "chmod", "777", remoteDir])
       return True
     except:
       print "pushing " + localDir + " to " + remoteDir + " failed"
@@ -72,11 +114,7 @@ class DeviceManagerADB(DeviceManager):
   
   
   def dirExists(self, dirname):
-    try:
-      self.checkCmd(["shell", "ls", dirname])
-      return True
-    except:
-      return False
+    return self.isDir(dirname)
 
   
   
@@ -112,19 +150,19 @@ class DeviceManagerADB(DeviceManager):
               if (self.isDir(remoteDir.strip() + "/" + f.strip())):
                   out += self.removeDir(remoteDir.strip() + "/" + f.strip())
               else:
-                  out += self.removeFile(remoteDir.strip())
-          out += self.removeSingleDir(remoteDir)
+                  out += self.removeFile(remoteDir.strip() + "/" + f.strip())
+          out += self.removeSingleDir(remoteDir.strip())
       else:
           out += self.removeFile(remoteDir.strip())
       return out
 
   def isDir(self, remotePath):
-      p = self.runCmd(["shell", "ls", remotePath])
+      p = self.runCmd(["shell", "ls", "-a", remotePath])
       data = p.stdout.readlines()
       if (len(data) == 0):
           return True
       if (len(data) == 1):
-          if (data[0] == remotePath):
+          if (data[0].rstrip() == remotePath):
               return False
           if (data[0].find("No such file or directory") != -1):
               return False
@@ -133,7 +171,7 @@ class DeviceManagerADB(DeviceManager):
       return True
 
   def listFiles(self, rootdir):
-      p = self.runCmd(["shell", "ls", rootdir])
+      p = self.runCmd(["shell", "ls", "-a", rootdir])
       data = p.stdout.readlines()
       if (len(data) == 1):
           if (data[0] == rootdir):
@@ -165,7 +203,11 @@ class DeviceManagerADB(DeviceManager):
   
   
   def fireProcess(self, appname, failIfRunning=False):
-    return self.runCmd(["shell", appname]).pid
+    
+    parts = appname.split('"');
+    if (len(parts) > 2):
+      parts = parts[2:]
+    return self.launchProcess(parts, failIfRunning)
 
   
   
@@ -173,7 +215,7 @@ class DeviceManagerADB(DeviceManager):
   
   def launchProcess(self, cmd, outputFile = "process.txt", cwd = '', env = '', failIfRunning=False):
     acmd = ["shell", "am","start"]
-    cmd = ' '.join(cmd)
+    cmd = ' '.join(cmd).strip()
     i = cmd.find(" ")
     acmd.append("-n")
     acmd.append(cmd[0:i] + "/.App")
@@ -299,9 +341,18 @@ class DeviceManagerADB(DeviceManager):
   
   
   def getDeviceRoot(self):
-    if (not self.dirExists("/data/local/tests")):
-      self.mkDir("/data/local/tests")
-    return "/data/local/tests"
+    
+    
+    testRoot = "/data/local/tests"
+    if (self.dirExists(testRoot)):
+      return testRoot
+    root = "/mnt/sdcard"
+    if (not self.dirExists(root)):
+      root = "/data/local"
+    testRoot = root + "/tests"
+    if (not self.dirExists(testRoot)):
+      self.mkDir(testRoot)
+    return testRoot
 
   
   
@@ -319,10 +370,16 @@ class DeviceManagerADB(DeviceManager):
       return devroot + '/fennec'
     elif (self.dirExists(devroot + '/firefox')):
       return devroot + '/firefox'
-    elif (self.dirExsts('/data/data/org.mozilla.fennec')):
-      return 'org.mozilla.fennec'
+    elif (self.dirExists('/data/data/org.mozilla.fennec')):
+      return '/data/data/org.mozilla.fennec'
     elif (self.dirExists('/data/data/org.mozilla.firefox')):
-      return 'org.mozilla.firefox'
+      return '/data/data/org.mozilla.firefox'
+    elif (self.dirExists('/data/data/org.mozilla.fennec_unofficial')):
+      return '/data/data/org.mozilla.fennec_unofficial'
+    elif (self.dirExists('/data/data/org.mozilla.fennec_aurora')):
+      return '/data/data/org.mozilla.fennec_aurora'
+    elif (self.dirExists('/data/data/org.mozilla.firefox_beta')):
+      return '/data/data/org.mozilla.firefox_beta'
 
     
     return None
@@ -423,18 +480,35 @@ class DeviceManagerADB(DeviceManager):
     args.insert(0, "adb")
     return subprocess.check_call(args)
 
+  def checkCmdAs(self, args):
+    if (self.packageName):
+      args.insert(1, "run-as")
+      args.insert(2, self.packageName)
+    return self.checkCmd(args)
+
   def chmodDir(self, remoteDir):
-    print "called chmodDir"
+    
     if (self.isDir(remoteDir)):
       files = self.listFiles(remoteDir.strip())
       for f in files:
         if (self.isDir(remoteDir.strip() + "/" + f.strip())):
           self.chmodDir(remoteDir.strip() + "/" + f.strip())
         else:
-          self.checkCmd(["shell", "chmod", "777", remoteDir.strip()])
+          self.checkCmdAs(["shell", "chmod", "777", remoteDir.strip()])
           print "chmod " + remoteDir.strip()
-      self.checkCmd(["shell", "chmod", "777", remoteDir])
+      self.checkCmdAs(["shell", "chmod", "777", remoteDir])
       print "chmod " + remoteDir
     else:
-      self.checkCmd(["shell", "chmod", "777", remoteDir.strip()])
-      print "chmod " + remoteDir
+      self.checkCmdAs(["shell", "chmod", "777", remoteDir.strip()])
+      print "chmod " + remoteDir.strip()
+
+  def verifyPackage(self, packageName):
+    
+    
+    
+    self.packageName = None
+    if (packageName):
+      data = self.runCmd(["shell", "run-as", packageName, "pwd"]).stdout.read()
+      if (not re.search('is unknown', data)):
+        self.packageName = packageName
+        print "package set: " + self.packageName
