@@ -130,10 +130,8 @@ FindKeyword(const jschar *s, size_t length)
     return NULL;
 }
 
-} 
-
 JSBool
-js_IsIdentifier(JSLinearString *str)
+IsIdentifier(JSLinearString *str)
 {
     const jschar *chars = str->chars();
     size_t length = str->length();
@@ -258,34 +256,6 @@ TokenStream::~TokenStream()
 #else
 # define fast_getc getc
 #endif
-
-JS_FRIEND_API(int)
-js_fgets(char *buf, int size, FILE *file)
-{
-    int n, i, c;
-    JSBool crflag;
-
-    n = size - 1;
-    if (n < 0)
-        return -1;
-
-    crflag = JS_FALSE;
-    for (i = 0; i < n && (c = fast_getc(file)) != EOF; i++) {
-        buf[i] = c;
-        if (c == '\n') {        
-            i++;                
-            break;
-        }
-        if (crflag) {           
-            ungetc(c, file);
-            break;              
-        }
-        crflag = (c == '\r');
-    }
-
-    buf[i] = '\0';
-    return i;
-}
 
 JS_ALWAYS_INLINE void
 TokenStream::updateLineInfoForEOL()
@@ -578,8 +548,8 @@ TokenStream::reportCompileErrorNumberVA(ParseNode *pn, uintN flags, uintN errorN
 }
 
 bool
-js::ReportStrictModeError(JSContext *cx, TokenStream *ts, TreeContext *tc, ParseNode *pn,
-                          uintN errorNumber, ...)
+ReportStrictModeError(JSContext *cx, TokenStream *ts, TreeContext *tc, ParseNode *pn,
+                      uintN errorNumber, ...)
 {
     JS_ASSERT(ts || tc);
     JS_ASSERT(cx == ts->getContext());
@@ -603,8 +573,8 @@ js::ReportStrictModeError(JSContext *cx, TokenStream *ts, TreeContext *tc, Parse
 }
 
 bool
-js::ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, uintN flags,
-                             uintN errorNumber, ...)
+ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, uintN flags,
+                         uintN errorNumber, ...)
 {
     va_list ap;
 
@@ -2158,3 +2128,32 @@ TokenStream::getTokenInternal()
     return TOK_ERROR;
 }
 
+} 
+
+JS_FRIEND_API(int)
+js_fgets(char *buf, int size, FILE *file)
+{
+    int n, i, c;
+    JSBool crflag;
+
+    n = size - 1;
+    if (n < 0)
+        return -1;
+
+    crflag = JS_FALSE;
+    for (i = 0; i < n && (c = fast_getc(file)) != EOF; i++) {
+        buf[i] = c;
+        if (c == '\n') {        
+            i++;                
+            break;
+        }
+        if (crflag) {           
+            ungetc(c, file);
+            break;              
+        }
+        crflag = (c == '\r');
+    }
+
+    buf[i] = '\0';
+    return i;
+}

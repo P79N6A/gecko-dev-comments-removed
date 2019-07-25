@@ -434,7 +434,7 @@ struct TreeContext {
     int sharpSlotBase;
     bool ensureSharpSlots();
 
-    Compiler *compiler() { return (js::Compiler *)parser; }
+    Compiler *compiler() { return (Compiler *) parser; }
 
     
     

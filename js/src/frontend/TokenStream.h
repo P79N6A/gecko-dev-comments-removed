@@ -152,20 +152,20 @@ enum TokenKind {
     TOK_LIMIT                           
 };
 
-static inline bool
+inline bool
 TokenKindIsXML(TokenKind tt)
 {
     return tt == TOK_AT || tt == TOK_DBLCOLON || tt == TOK_ANYNAME;
 }
 
-static inline bool
+inline bool
 TreeTypeIsXML(TokenKind tt)
 {
     return tt == TOK_XMLCOMMENT || tt == TOK_XMLCDATA || tt == TOK_XMLPI ||
            tt == TOK_XMLELEM || tt == TOK_XMLLIST;
 }
 
-static inline bool
+inline bool
 TokenKindIsDecl(TokenKind tt)
 {
 #if JS_HAS_BLOCK_SCOPE
@@ -704,16 +704,6 @@ class TokenStream
     bool                xml;            
 };
 
-} 
-
-extern void
-js_CloseTokenStream(JSContext *cx, js::TokenStream *ts);
-
-extern JS_FRIEND_API(int)
-js_fgets(char *buf, int size, FILE *file);
-
-namespace js {
-
 struct KeywordInfo {
     const char  *chars;         
     TokenKind   tokentype;
@@ -725,31 +715,21 @@ struct KeywordInfo {
 
 
 
-extern const KeywordInfo *
+const KeywordInfo *
 FindKeyword(const jschar *s, size_t length);
 
-} 
 
 
 
 
-
-typedef void (*JSMapKeywordFun)(const char *);
-
-
-
-
-
-extern JSBool
-js_IsIdentifier(JSLinearString *str);
+JSBool
+IsIdentifier(JSLinearString *str);
 
 
 
 
 
 #define JSREPORT_UC 0x100
-
-namespace js {
 
 
 
@@ -782,5 +762,8 @@ ReportStrictModeError(JSContext *cx, TokenStream *ts, TreeContext *tc, ParseNode
                       uintN errorNumber, ...);
 
 } 
+
+extern JS_FRIEND_API(int)
+js_fgets(char *buf, int size, FILE *file);
 
 #endif 
