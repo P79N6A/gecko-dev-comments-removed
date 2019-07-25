@@ -54,7 +54,7 @@ namespace detail {
 
 
 template <class T, class HashPolicy, class AllocPolicy>
-class HashTable : AllocPolicy
+class HashTable : private AllocPolicy
 {
     typedef typename tl::StripConst<T>::result NonConstT;
     typedef typename HashPolicy::KeyType Key;
