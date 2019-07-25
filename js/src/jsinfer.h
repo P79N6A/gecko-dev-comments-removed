@@ -67,6 +67,7 @@ struct TypeCallsite;
 struct TypeObject;
 struct TypeFunction;
 struct TypeCompartment;
+struct ClonedTypeSet;
 
 
 
@@ -271,6 +272,9 @@ struct TypeSet
     inline void addType(JSContext *cx, jstype type);
 
     
+    void addTypeSet(JSContext *cx, ClonedTypeSet *types);
+
+    
     inline void add(JSContext *cx, TypeConstraint *constraint, bool callExisting = true);
     void addSubset(JSContext *cx, JSScript *script, TypeSet *target);
     void addGetProperty(JSContext *cx, JSScript *script, const jsbytecode *pc,
@@ -307,9 +311,6 @@ struct TypeSet
 
 
     
-    jstype getSingleType(JSContext *cx, JSScript *script);
-
-    
     JSValueType getKnownTypeTag(JSContext *cx, JSScript *script);
 
     
@@ -318,8 +319,22 @@ struct TypeSet
     
     bool knownNonEmpty(JSContext *cx, JSScript *script);
 
+    
+
+
+
+    static void Clone(JSContext *cx, JSScript *script, TypeSet *source, ClonedTypeSet *target);
+
   private:
     inline void markUnknown(JSContext *cx);
+};
+
+
+struct ClonedTypeSet
+{
+    TypeFlags typeFlags;
+    TypeObject **objectSet;
+    unsigned objectCount;
 };
 
 

@@ -104,8 +104,8 @@ struct UncachedCallResult {
 
 
 
-void UncachedCallHelper(VMFrame &f, uint32 argc, types::jstype *argTypes, UncachedCallResult *ucr);
-void UncachedNewHelper(VMFrame &f, uint32 argc, types::jstype *argTypes, UncachedCallResult *ucr);
+void UncachedCallHelper(VMFrame &f, uint32 argc, types::ClonedTypeSet *argTypes, UncachedCallResult *ucr);
+void UncachedNewHelper(VMFrame &f, uint32 argc, types::ClonedTypeSet *argTypes, UncachedCallResult *ucr);
 
 void JS_FASTCALL CreateThis(VMFrame &f, JSObject *proto);
 void JS_FASTCALL Throw(VMFrame &f);

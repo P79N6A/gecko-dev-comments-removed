@@ -454,7 +454,7 @@ struct PICInfo : public BasePolyIC {
     uint32 shapeGuard;
 
     
-    types::jstype knownType;
+    types::ClonedTypeSet *rhsTypes;
     
     inline bool isSet() const {
         return kind == SET || kind == SETMETHOD;
@@ -543,6 +543,11 @@ struct PICInfo : public BasePolyIC {
         BasePolyIC::reset();
         inlinePathPatched = false;
         shapeRegHasBaseShape = true;
+    }
+
+    ~PICInfo() {
+        if (typeMonitored)
+            js_free(rhsTypes);
     }
 };
 

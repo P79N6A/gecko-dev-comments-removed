@@ -256,7 +256,7 @@ struct CallICInfo {
 
 
 
-    types::jstype *argTypes;
+    types::ClonedTypeSet *argTypes;
 
     inline void reset() {
         fastGuardedObject = NULL;
