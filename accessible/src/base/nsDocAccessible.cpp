@@ -966,11 +966,16 @@ nsDocAccessible::AttributeChanged(nsIDocument *aDocument,
                                   PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                   PRInt32 aModType)
 {
+  NS_ASSERTION(!IsDefunct(),
+               "Attribute changed called on defunct document accessible!");
+
   
   
   if (UpdateAccessibleOnAttrChange(aElement, aAttribute))
     return;
 
+  
+  
   
   
   
@@ -1016,22 +1021,6 @@ nsDocAccessible::AttributeChangedImpl(nsIContent* aContent, PRInt32 aNameSpaceID
   
   
   
-
-  nsCOMPtr<nsISupports> container = mDocument->GetContainer();
-  nsCOMPtr<nsIDocShell> docShell = do_QueryInterface(container);
-  if (!docShell) {
-    return;
-  }
-
-  if (!IsContentLoaded())
-    return; 
-
-  nsCOMPtr<nsIPresShell> shell = GetPresShell();
-  if (!shell) {
-    return; 
-  }
-
-  NS_ASSERTION(aContent, "No node for attr modified");
 
   
   
