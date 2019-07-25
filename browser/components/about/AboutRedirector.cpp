@@ -121,15 +121,10 @@ AboutRedirector::NewChannel(nsIURI *aURI, nsIChannel **result)
 
       
       if (kRedirMap[i].flags & nsIAboutModule::URI_SAFE_FOR_UNTRUSTED_CONTENT) {
-        nsCOMPtr<nsIScriptSecurityManager> securityManager =
-          do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        nsCOMPtr<nsIPrincipal> principal;
-        rv = securityManager->GetCodebasePrincipal(aURI, getter_AddRefs(principal));
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        rv = tempChannel->SetOwner(principal);
+        
+        
+        
+        rv = tempChannel->SetOwner(nsnull);
         NS_ENSURE_SUCCESS(rv, rv);
       }
 

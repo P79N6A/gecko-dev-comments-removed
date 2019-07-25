@@ -95,10 +95,9 @@ AboutRedirector.prototype = {
     
     if (!moduleInfo.privileged) {
       
-      let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
-                   getService(Ci.nsIScriptSecurityManager);
-      let principal = secMan.getCodebasePrincipal(aURI);
-      channel.owner = principal;
+      
+      
+      channel.owner = null;
     }
 
     channel.originalURI = aURI;
