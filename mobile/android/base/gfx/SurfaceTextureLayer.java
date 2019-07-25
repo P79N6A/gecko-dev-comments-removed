@@ -61,6 +61,8 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
     private boolean mHaveFrame;
     private float[] mTextureTransform = new float[16];
 
+    private Rect mPageRect;
+
     private boolean mInverted;
     private boolean mNewInverted;
     private boolean mBlend;
@@ -120,6 +122,9 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
         mHaveFrame = true;
         mInverted = false;
 
+        
+        this.mUsesDefaultProgram = false;
+
         mSurfaceTexture = new SurfaceTexture(mTextureId);
         mSurfaceTexture.setOnFrameAvailableListener(this);
 
@@ -147,11 +152,10 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
         GeckoApp.mAppContext.requestRender();
     }
 
-    public void update(Rect position, float resolution, boolean inverted, boolean blend) {
-        beginTransaction(); 
+    public void update(Rect rect, boolean inverted, boolean blend) {
+        beginTransaction();
 
-        setPosition(position);
-        setResolution(resolution);
+        setPosition(rect);
 
         mNewInverted = inverted;
         mNewBlend = blend;
@@ -239,7 +243,6 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
 
         float[] textureCoords = mInverted ? TEXTURE_MAP_INVERTED : TEXTURE_MAP;
 
-        
         float[] coords = {
             
             rect.left/viewWidth, bot/viewHeight, 0,
@@ -270,6 +273,7 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
 
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glUniform1i(mSampleHandle, 0);
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, 0);
         GLES20.glBindTexture(LOCAL_GL_TEXTURE_EXTERNAL_OES, mTextureId);
       
         mSurfaceTexture.updateTexImage();
@@ -284,7 +288,7 @@ public class SurfaceTextureLayer extends Layer implements SurfaceTexture.OnFrame
 
         
         coordBuffer.position(3);
-        GLES20.glVertexAttribPointer(mTextureHandle, 3, GLES20.GL_FLOAT, false, 20,
+        GLES20.glVertexAttribPointer(mTextureHandle, 2, GLES20.GL_FLOAT, false, 20,
                 coordBuffer);
 
         if (mBlend) {

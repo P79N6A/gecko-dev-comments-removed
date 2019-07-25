@@ -193,7 +193,6 @@ public class LayerController {
         mViewportMetrics = new ImmutableViewportMetrics(viewportMetrics);
 
         notifyLayerClientOfGeometryChange();
-        GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
 
@@ -225,13 +224,6 @@ public class LayerController {
 
     public void setViewportMetrics(ViewportMetrics viewport) {
         mViewportMetrics = new ImmutableViewportMetrics(viewport);
-        
-        
-        GeckoApp.mAppContext.runOnUiThread(new Runnable() {
-            public void run() {
-                GeckoApp.mAppContext.repositionPluginViews(false);
-            }
-        });
         mView.requestRender();
     }
 
@@ -259,7 +251,6 @@ public class LayerController {
         
         
         notifyLayerClientOfGeometryChange();
-        GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
 

@@ -130,6 +130,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         JSONArray prefs = new JSONArray();
         DisplayPortCalculator.addPrefNames(prefs);
+        PluginLayer.addPrefNames(prefs);
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Preferences:Get", prefs.toString()));
     }
 
@@ -281,7 +282,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
                 
                 
                 
-                if (DisplayPortCalculator.setStrategy(prefValues)) {
+                if (DisplayPortCalculator.setStrategy(prefValues) && PluginLayer.setUsePlaceholder(prefValues)) {
                     GeckoAppShell.unregisterGeckoEventListener("Preferences:Data", this);
                 }
             }

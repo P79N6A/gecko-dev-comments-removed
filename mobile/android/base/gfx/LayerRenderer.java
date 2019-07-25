@@ -651,15 +651,15 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
         public void drawForeground() {
             
             if (mExtraLayers.size() > 0) {
-                
-                
-                
-                deactivateDefaultProgram();
-                
-                for (Layer layer : mExtraLayers)
+                for (Layer layer : mExtraLayers) {
+                    if (!layer.usesDefaultProgram())
+                        deactivateDefaultProgram();
+
                     layer.draw(mPageContext);
 
-                activateDefaultProgram();
+                    if (!layer.usesDefaultProgram())
+                        activateDefaultProgram();
+                }
             }
 
             
