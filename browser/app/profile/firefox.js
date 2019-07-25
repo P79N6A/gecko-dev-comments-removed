@@ -799,7 +799,7 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 
 
 
-pref("browser.sessionstore.restore_on_demand", true);
+pref("browser.sessionstore.restore_on_demand", false);
 
 pref("browser.sessionstore.restore_hidden_tabs", false);
 
@@ -1028,6 +1028,7 @@ pref("devtools.errorconsole.enabled", false);
 
 pref("devtools.inspector.enabled", true);
 pref("devtools.inspector.htmlHeight", 112);
+pref("devtools.inspector.htmlPanelOpen", false);
 
 
 pref("devtools.debugger.enabled", false);
