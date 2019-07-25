@@ -352,6 +352,27 @@ function test_asyncFetch_with_nsIFile()
   });
 }
 
+function test_asyncFetch_with_nsIInputString()
+{
+  const TEST_DATA = "this is a test string";
+  let istream = Cc["@mozilla.org/io/string-input-stream;1"].
+                createInstance(Ci.nsIStringInputStream);
+  istream.setData(TEST_DATA, TEST_DATA.length);
+
+  
+  NetUtil.asyncFetch(istream, function(aInputStream, aResult) {
+    
+    do_check_true(Components.isSuccessCode(aResult));
+
+    
+    do_check_eq(aInputStream.available(), TEST_DATA.length);
+    do_check_eq(NetUtil.readInputStreamToString(aInputStream, TEST_DATA.length),
+                TEST_DATA);
+
+    run_next_test();
+  });
+}
+
 function test_asyncFetch_does_not_block()
 {
   
@@ -533,6 +554,7 @@ let tests = [
   test_asyncFetch_with_nsIURI,
   test_asyncFetch_with_string,
   test_asyncFetch_with_nsIFile,
+  test_asyncFetch_with_nsIInputString,
   test_asyncFetch_does_not_block,
   test_newChannel_no_specifier,
   test_newChannel_with_string,
