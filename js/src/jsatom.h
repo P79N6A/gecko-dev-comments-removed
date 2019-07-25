@@ -405,7 +405,7 @@ struct JSAtomState
 
     JSAtom              *hasAtom;
     JSAtom              *hasOwnAtom;
-    JSAtom              *enumerateOwnAtom;
+    JSAtom              *keysAtom;
     JSAtom              *iterateAtom;
 
     

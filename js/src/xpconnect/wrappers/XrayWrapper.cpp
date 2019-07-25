@@ -781,10 +781,10 @@ XrayWrapper<Base, Policy>::hasOwn(JSContext *cx, JSObject *wrapper, jsid id, boo
 
 template <typename Base, typename Policy>
 bool
-XrayWrapper<Base, Policy>::enumerateOwn(JSContext *cx, JSObject *wrapper, js::AutoIdVector &props)
+XrayWrapper<Base, Policy>::keys(JSContext *cx, JSObject *wrapper, js::AutoIdVector &props)
 {
     
-    return JSProxyHandler::enumerateOwn(cx, wrapper, props);
+    return JSProxyHandler::keys(cx, wrapper, props);
 }
 
 template <typename Base, typename Policy>

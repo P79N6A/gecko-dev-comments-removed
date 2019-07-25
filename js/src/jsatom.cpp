@@ -211,7 +211,7 @@ const char *const js_common_atom_names[] = {
 
     "has",                      
     "hasOwn",                   
-    "enumerateOwn",             
+    "keys",                     
     "iterate"                   
 };
 
