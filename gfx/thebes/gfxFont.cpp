@@ -2666,7 +2666,6 @@ gfxFontGroup::GetGeneration()
 void
 gfxFontGroup::UpdateFontList()
 {
-    
     if (mUserFontSet && mCurrGeneration != GetGeneration()) {
         
         mFonts.Clear();

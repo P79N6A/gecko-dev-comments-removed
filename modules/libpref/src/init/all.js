@@ -1753,6 +1753,39 @@ pref("gfx.font_rendering.cleartype.use_for_downloadable_fonts", true);
 
 pref("gfx.font_rendering.cleartype.always_use_for_content", false);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pref("gfx.font_rendering.cleartype_params.gamma", -1);
+pref("gfx.font_rendering.cleartype_params.enhanced_contrast", -1);
+pref("gfx.font_rendering.cleartype_params.cleartype_level", -1);
+pref("gfx.font_rendering.cleartype_params.pixel_structure", -1);
+pref("gfx.font_rendering.cleartype_params.rendering_mode", -1);
+
 pref("ui.key.menuAccessKeyFocuses", true);
 
 

@@ -58,6 +58,10 @@
 #include "nsUnicodeRange.h"
 #include "nsCRT.h"
 
+#if defined(XP_WIN)
+#include "gfxWindowsPlatform.h"
+#endif
+
 #define FloatToFixed(f) (65536 * (f))
 #define FixedToFloat(f) ((f) * (1.0 / 65536.0))
 
@@ -947,7 +951,11 @@ GetRoundOffsetsToPixels(gfxContext *aContext,
         case CAIRO_FONT_TYPE_DWRITE:
             
             
-            return;
+            
+            if (gfxWindowsPlatform::GetPlatform()->DWriteMeasuringMode() ==
+                DWRITE_MEASURING_MODE_NATURAL) {
+                return;
+            }
 #endif
         case CAIRO_FONT_TYPE_QUARTZ:
             
