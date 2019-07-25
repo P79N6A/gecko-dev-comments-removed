@@ -107,12 +107,10 @@ class Bindings
 
 
 
-    bool slotIsArg(uint16_t i) const { return i < nargs; }
-    bool slotIsLocal(uint16_t i) const { return i >= nargs; }
-    uint16_t argToSlot(uint16_t i) { JS_ASSERT(i < nargs); return i; }
-    uint16_t localToSlot(uint16_t i) { return i + nargs; }
-    uint16_t slotToArg(uint16_t i) { JS_ASSERT(slotIsArg(i)); return i; }
-    uint16_t slotToLocal(uint16_t i) { JS_ASSERT(slotIsLocal(i)); return i - nargs; }
+
+
+    inline uint16_t formalIndexToSlot(uint16_t i);
+    inline uint16_t varIndexToSlot(uint16_t i);
 
     
     inline bool ensureShape(JSContext *cx);
@@ -187,6 +185,9 @@ class Bindings
     bool hasBinding(JSContext *cx, JSAtom *name) const {
         return lookup(cx, name, NULL) != NONE;
     }
+
+    
+    inline unsigned argumentsVarIndex(JSContext *cx) const;
 
     
 
@@ -451,10 +452,6 @@ struct JSScript : public js::gc::Cell
 
 
 
-#if JS_BITS_PER_WORD == 32
-    uint32_t        pad32;
-#endif
-
 #ifdef DEBUG
     
     
@@ -477,9 +474,6 @@ struct JSScript : public js::gc::Cell
 
     uint16_t        nslots;     
     uint16_t        staticLevel;
-
-  private:
-    uint16_t        argsLocal_; 
 
     
 
@@ -542,7 +536,7 @@ struct JSScript : public js::gc::Cell
 
   private:
     
-    bool            argsHasLocalBinding_:1;
+    bool            argsHasVarBinding_:1;
     bool            needsArgsAnalysis_:1;
     bool            needsArgsObj_:1;
 
@@ -570,10 +564,9 @@ struct JSScript : public js::gc::Cell
     void setVersion(JSVersion v) { version = v; }
 
     
-    bool argumentsHasLocalBinding() const { return argsHasLocalBinding_; }
+    bool argumentsHasVarBinding() const { return argsHasVarBinding_; }
     jsbytecode *argumentsBytecode() const { JS_ASSERT(code[0] == JSOP_ARGUMENTS); return code; }
-    unsigned argumentsLocal() const { JS_ASSERT(argsHasLocalBinding_); return argsLocal_; }
-    void setArgumentsHasLocalBinding(uint16_t local);
+    void setArgumentsHasVarBinding();
 
     
 
