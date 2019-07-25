@@ -47,6 +47,8 @@ Cu.import("resource://services-sync/stores.js");
 Cu.import("resource://services-sync/type_records/clients.js");
 Cu.import("resource://services-sync/util.js");
 
+const CLIENTS_TTL_REFRESH = 604800; 
+
 Utils.lazy(this, "Clients", ClientEngine);
 
 function ClientEngine() {
@@ -62,6 +64,13 @@ ClientEngine.prototype = {
 
   
   get enabled() true,
+
+  get lastRecordUpload() {
+    return Svc.Prefs.get(this.name + ".lastRecordUpload", 0);
+  },
+  set lastRecordUpload(value) {
+    Svc.Prefs.set(this.name + ".lastRecordUpload", Math.floor(value));
+  },
 
   
   get stats() {
@@ -148,6 +157,15 @@ ClientEngine.prototype = {
     if (this._store._remoteClients[id])
       return this._store._remoteClients[id].type == "mobile";
     return false;
+  },
+
+  _syncStartup: function _syncStartup() {
+    
+    if (Date.now() / 1000 - this.lastRecordUpload > CLIENTS_TTL_REFRESH) {
+      this._tracker.addChangedID(this.localID);
+      this.lastRecordUpload = Date.now() / 1000;
+    }
+    SyncEngine.prototype._syncStartup.call(this);
   },
 
   
