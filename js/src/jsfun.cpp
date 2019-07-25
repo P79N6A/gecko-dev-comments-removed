@@ -2290,11 +2290,6 @@ js_NewFlatClosure(JSContext *cx, JSFunction *fun, JSOp op, size_t oplen)
 
 
 
-
-
-
-
-    VOUCH_DOES_NOT_REQUIRE_STACK();
     JSObject *scopeChain = &cx->fp()->scopeChain();
 
     JSFunction *closure = js_AllocFlatClosure(cx, fun, scopeChain);
