@@ -460,6 +460,9 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
+    bool            warnedAboutUndefinedProp:1; 
+
+
     bool            hasSingletons:1;  
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
