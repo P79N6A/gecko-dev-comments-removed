@@ -25,12 +25,6 @@ nsXPCOMCycleCollectionParticipant::RootImpl(void *p)
 }
 
 nsresult
-nsXPCOMCycleCollectionParticipant::UnlinkImpl(void *p)
-{
-  return NS_OK;
-}
-
-nsresult
 nsXPCOMCycleCollectionParticipant::UnrootImpl(void *p)
 {
     nsISupports *s = static_cast<nsISupports*>(p);
@@ -38,18 +32,7 @@ nsXPCOMCycleCollectionParticipant::UnrootImpl(void *p)
     return NS_OK;
 }
 
-nsresult
-nsXPCOMCycleCollectionParticipant::TraverseImpl
-    (nsXPCOMCycleCollectionParticipant* that, void *p,
-     nsCycleCollectionTraversalCallback &cb)
-{
-  return NS_OK;
-}
 
-void
-nsXPCOMCycleCollectionParticipant::UnmarkIfPurpleImpl(nsISupports *n)
-{
-}
 
 NS_IMETHODIMP_(void)
 nsXPCOMCycleCollectionParticipant::TraceImpl(void *p, TraceCallback cb,
