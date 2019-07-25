@@ -154,6 +154,18 @@ function createStatement(aSQL)
 
 
 
+function createAsyncStatement(aSQL)
+{
+  return getOpenedDatabase().createAsyncStatement(aSQL);
+}
+
+
+
+
+
+
+
+
 
 
 
