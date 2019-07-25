@@ -1941,8 +1941,11 @@ nsWindow::CaptureRollupEvents(nsIRollupListener *aListener,
     else {
         if (!nsWindow::DragInProgress()) {
             ReleaseGrabs();
-            gtk_grab_remove(widget);
         }
+        
+        
+        
+        gtk_grab_remove(widget);
         gRollupListener = nsnull;
         NS_IF_RELEASE(gMenuRollup);
         gRollupWindow = nsnull;
