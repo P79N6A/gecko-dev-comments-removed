@@ -386,6 +386,7 @@ DOMCI_CLASS(MessageEvent)
 
 DOMCI_CLASS(DeviceStorage)
 DOMCI_CLASS(DeviceStorageCursor)
+DOMCI_CLASS(DeviceStorageStat)
 
 
 DOMCI_CLASS(GeoGeolocation)
