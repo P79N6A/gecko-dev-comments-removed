@@ -90,16 +90,8 @@ let gSyncUI = {
       Services.obs.addObserver(this, topic, true);
     }, this);
 
-    
-    if (gBrowser) {
-      let popup = document.getElementById("alltabs-popup");
-      if (popup) {
-        popup.addEventListener(
-          "popupshowing", this.alltabsPopupShowing.bind(this), true);
-      }
-
-      if (Weave.Notifications.notifications.length)
-        this.initNotifications();
+    if (gBrowser && Weave.Notifications.notifications.length) {
+      this.initNotifications();
     }
     this.updateUI();
   },
@@ -147,34 +139,6 @@ let gSyncUI = {
     this._updateLastSyncTime();
     if (needsSetup)
       button.removeAttribute("tooltiptext");
-  },
-
-  alltabsPopupShowing: function(event) {
-    
-    
-    
-    if (!Weave.Service.isLoggedIn || !Weave.Engines.get("tabs").enabled)
-      return;
-
-    let label = this._stringBundle.GetStringFromName("tabs.fromOtherComputers.label");
-
-    let popup = document.getElementById("alltabs-popup");
-    if (!popup)
-      return;
-
-    let menuitem = document.createElement("menuitem");
-    menuitem.setAttribute("id", "sync-tabs-menuitem");
-    menuitem.setAttribute("label", label);
-    menuitem.setAttribute("class", "alltabs-item");
-    menuitem.setAttribute("oncommand", "BrowserOpenSyncTabs();");
-
-    
-    
-    
-    menuitem.tab = { "linkedBrowser": { "currentURI": { "spec": label } } };
-
-    let sep = document.getElementById("alltabs-popup-separator");
-    popup.insertBefore(menuitem, sep);
   },
 
 
