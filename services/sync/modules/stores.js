@@ -804,6 +804,7 @@ CookieStore.prototype = {
     
     if ( command.data.expiry ) {
       
+      
       this._cookieManager.add( command.data.host,
 			       command.data.path,
 			       command.data.name,
@@ -867,6 +868,7 @@ CookieStore.prototype = {
     if ( command.data.expiry ) {
       
 
+
       this._cookieManager.add( matchingCookie.host,
 			       matchingCookie.path,
 			       matchingCookie.name,
@@ -895,6 +897,8 @@ CookieStore.prototype = {
 	
 	if ( !cookie.expiry ) {
 	  
+
+
 
 	  continue;
 	}
