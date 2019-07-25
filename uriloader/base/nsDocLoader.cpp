@@ -1138,7 +1138,7 @@ NS_IMETHODIMP nsDocLoader::OnStatus(nsIRequest* aRequest, nsISupports* ctxt,
   
   
   
-  if (aStatus) {
+  if (aStatus != NS_OK) {
     
     nsRequestInfo *info;
     info = GetRequestInfo(aRequest);
