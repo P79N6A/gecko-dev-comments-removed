@@ -285,7 +285,7 @@ NS_IMETHODIMP nsSystemPrefService::GetBoolPref(const char *aPrefName, PRBool *_r
 }
 
 
-NS_IMETHODIMP nsSystemPrefService::SetBoolPref(const char *aPrefName, PRInt32 aValue)
+NS_IMETHODIMP nsSystemPrefService::SetBoolPref(const char *aPrefName, PRBool aValue)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
