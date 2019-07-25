@@ -311,7 +311,7 @@ struct JSScript {
 
     
     inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,
-                                  JSObject *obj, jsid id, const js::Value &rval);
+                                  JSObject *obj, jsid id, const js::Value &rval, bool force = false);
 
     
     inline void typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
