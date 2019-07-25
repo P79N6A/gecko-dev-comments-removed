@@ -585,9 +585,11 @@ ArgSetter(JSContext *cx, JSObject *obj, jsid id, Value *vp)
 
 
 
+
+
     AutoValueRooter tvr(cx);
     return js_DeleteProperty(cx, obj, id, tvr.addr(), false) &&
-           js_SetProperty(cx, obj, id, vp, false);
+           js_DefineProperty(cx, obj, id, vp, NULL, NULL, JSPROP_ENUMERATE);
 }
 
 static JSBool
