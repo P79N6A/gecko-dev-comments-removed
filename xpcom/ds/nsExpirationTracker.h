@@ -48,6 +48,7 @@
 #include "nsIObserver.h"
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -315,7 +316,7 @@ template <class T, PRUint32 K> class nsExpirationTracker {
 
 
 
-    class ExpirationTrackerObserver : public nsIObserver {
+    class ExpirationTrackerObserver MOZ_FINAL : public nsIObserver {
     public:
       void Init(nsExpirationTracker<T,K> *obj) {
         mOwner = obj;
