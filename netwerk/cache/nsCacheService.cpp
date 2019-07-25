@@ -1298,6 +1298,7 @@ nsCacheService::OpenCacheEntry(nsCacheSession *           session,
 
     CACHE_LOG_DEBUG(("Created request %p\n", request));
 
+#if 0 
     
     
     if (NS_IsMainThread() && listener && gService->mCacheIOThread) {
@@ -1313,7 +1314,9 @@ nsCacheService::OpenCacheEntry(nsCacheSession *           session,
         if (NS_FAILED(rv))
             delete request;
     }
-    else {
+    else 
+#endif
+    {
         rv = gService->ProcessRequest(request, PR_TRUE, result);
 
         
