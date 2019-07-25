@@ -75,9 +75,12 @@ function getLocale() {
          getSelectedLocale('global');
 }
 
-XPCOMUtils.defineLazyGetter(this, "Telemetry", function () {
-  return Cc["@mozilla.org/base/telemetry;1"].getService(Ci.nsITelemetry);
-});
+XPCOMUtils.defineLazyServiceGetter(this, "Telemetry",
+                                   "@mozilla.org/base/telemetry;1",
+                                   "nsITelemetry");
+XPCOMUtils.defineLazyServiceGetter(this, "idleService",
+                                   "@mozilla.org/widget/idleservice;1",
+                                   "nsIIdleService");
 
 
 
@@ -346,7 +349,7 @@ TelemetryPing.prototype = {
     Services.obs.removeObserver(this, "idle-daily");
     Services.obs.removeObserver(this, "cycle-collector-begin");
     if (this._isIdleObserver) {
-      idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+      idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
       this._isIdleObserver = false;
     }
   },
@@ -431,7 +434,7 @@ TelemetryPing.prototype = {
         
         Services.obs.notifyObservers(null, "gather-telemetry", null);
         
-        idle.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+        idleService.addIdleObserver(this, IDLE_TIMEOUT_SECONDS);
         this._isIdleObserver = true;
       }).bind(this), Ci.nsIThread.DISPATCH_NORMAL);
       break;
@@ -440,7 +443,7 @@ TelemetryPing.prototype = {
       
     case "idle":
       if (this._isIdleObserver) {
-        idle.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
+        idleService.removeIdleObserver(this, IDLE_TIMEOUT_SECONDS);
         this._isIdleObserver = false;
       }
       this.send(aTopic == "idle" ? "idle-daily" : aTopic, server);
