@@ -722,6 +722,9 @@ pref("browser.safebrowsing.enabled", true);
 pref("browser.safebrowsing.malware.enabled", true);
 
 
+pref("browser.safebrowsing.debug", false);
+
+
 pref("browser.safebrowsing.provider.0.updateURL", "http://safebrowsing.clients.google.com/safebrowsing/downloads?client={moz:client}&appver={moz:version}&pver=2.2");
 
 pref("browser.safebrowsing.dataProvider", 0);

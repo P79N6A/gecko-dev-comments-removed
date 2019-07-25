@@ -525,9 +525,8 @@ function openFeedbackPage()
 function buildHelpMenu()
 {
   
-  
-  if (typeof safebrowsing != "undefined")
-    safebrowsing.setReportPhishingMenu();
+  if (typeof gSafeBrowsing != "undefined")
+    gSafeBrowsing.setReportPhishingMenu();
 }
 
 function isElementVisible(aElement)

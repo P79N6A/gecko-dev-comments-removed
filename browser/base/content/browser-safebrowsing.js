@@ -2,23 +2,14 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http:
 
-var safebrowsing = {
-  startup: function() {
-    setTimeout(function() {
-      safebrowsing.deferredStartup();
-    }, 2000);
-    window.removeEventListener("load", safebrowsing.startup, false);
-  },
-
-  deferredStartup: function() {
-    this.appContext.initialize();
-  },
+#ifdef MOZ_SAFE_BROWSING
+var gSafeBrowsing = {
 
   setReportPhishingMenu: function() {
-      
+
     
     var isPhishingPage = /^about:blocked\?e=phishingBlocked/.test(content.document.documentURI);
-    
+
     
     document.getElementById("menu_HelpPopup_reportPhishingtoolmenu")
             .hidden = isPhishingPage;
@@ -39,15 +30,6 @@ var safebrowsing = {
     else
       broadcaster.setAttribute("disabled", true);
   },
-  
-  
-
-
-  get appContext() {
-    delete this.appContext;
-    return this.appContext = Cc["@mozilla.org/safebrowsing/application;1"]
-                            .getService().wrappedJSObject;
-  },
 
   
 
@@ -55,13 +37,12 @@ var safebrowsing = {
 
 
   getReportURL: function(name) {
-    var reportUrl = this.appContext.getReportURL(name);
+    var reportUrl = SafeBrowsing.getReportURL(name);
 
-    var pageUrl = getBrowser().currentURI.asciiSpec;
+    var pageUrl = gBrowser.currentURI.asciiSpec;
     reportUrl += "&url=" + encodeURIComponent(pageUrl);
 
     return reportUrl;
   }
 }
-
-window.addEventListener("load", safebrowsing.startup, false);
+#endif
