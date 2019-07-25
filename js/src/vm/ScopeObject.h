@@ -250,7 +250,7 @@ class ClonedBlockObject : public BlockObject
 
 
 
-    bool put(JSContext *cx, JSBool normalUnwind);
+    void put(JSContext *cx);
 
     
     const Value &closedSlot(unsigned i);

@@ -1873,8 +1873,8 @@ stubs::LeaveBlock(VMFrame &f)
 
 
     JSObject &obj = fp->scopeChain();
-    if (obj.getProto() == &blockObj && !obj.asClonedBlock().put(cx, JS_TRUE))
-        THROW();
+    if (obj.getProto() == &blockObj)
+        obj.asClonedBlock().put(cx);
 
     fp->setBlockChain(blockObj.enclosingBlock());
 }

@@ -180,7 +180,7 @@ InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, uintN argc
 
 
 
-extern JS_REQUIRES_STACK bool
+extern bool
 InvokeConstructorKernel(JSContext *cx, const CallArgs &args);
 
 
@@ -201,7 +201,7 @@ InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Val
 
 
 
-extern JS_REQUIRES_STACK bool
+extern bool
 InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fval,
                                uintN argc, Value *argv, Value *rval);
 
@@ -233,10 +233,10 @@ enum InterpMode
 
 
 
-extern JS_REQUIRES_STACK JS_NEVER_INLINE bool
+extern JS_NEVER_INLINE bool
 Interpret(JSContext *cx, StackFrame *stopFp, InterpMode mode = JSINTERP_NORMAL);
 
-extern JS_REQUIRES_STACK bool
+extern bool
 RunScript(JSContext *cx, JSScript *script, StackFrame *fp);
 
 extern bool
@@ -323,8 +323,8 @@ class InterpreterFrames {
 
 
 
-extern bool
-UnwindScope(JSContext *cx, uint32_t stackDepth, JSBool normalUnwind);
+extern void
+UnwindScope(JSContext *cx, uint32_t stackDepth);
 
 extern bool
 OnUnknownMethod(JSContext *cx, js::Value *vp);

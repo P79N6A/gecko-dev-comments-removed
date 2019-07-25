@@ -420,7 +420,7 @@ js::OnUnknownMethod(JSContext *cx, Value *vp)
     return true;
 }
 
-static JS_REQUIRES_STACK JSBool
+static JSBool
 NoSuchMethod(JSContext *cx, uintN argc, Value *vp)
 {
     InvokeArgsGuard args;
@@ -446,7 +446,7 @@ NoSuchMethod(JSContext *cx, uintN argc, Value *vp)
 
 #endif 
 
-JS_REQUIRES_STACK bool
+bool
 js::RunScript(JSContext *cx, JSScript *script, StackFrame *fp)
 {
     JS_ASSERT(script);
@@ -1115,11 +1115,8 @@ js::IsActiveWithOrBlock(JSContext *cx, JSObject &obj, uint32_t stackDepth)
 }
 
 
-
-
-
-bool
-js::UnwindScope(JSContext *cx, uint32_t stackDepth, JSBool normalUnwind)
+void
+js::UnwindScope(JSContext *cx, uint32_t stackDepth)
 {
     JS_ASSERT(cx->fp()->base() + stackDepth <= cx->regs().sp);
 
@@ -1136,16 +1133,11 @@ js::UnwindScope(JSContext *cx, uint32_t stackDepth, JSBool normalUnwind)
         JSObject &scopeChain = fp->scopeChain();
         if (!IsActiveWithOrBlock(cx, scopeChain, stackDepth))
             break;
-        if (scopeChain.isClonedBlock()) {
-            
-            normalUnwind &= scopeChain.asClonedBlock().put(cx, normalUnwind);
-        } else {
+        if (scopeChain.isClonedBlock())
+            scopeChain.asClonedBlock().put(cx);
+        else
             LeaveWith(cx);
-        }
     }
-
-    cx->regs().sp = fp->base() + stackDepth;
-    return normalUnwind;
 }
 
 
@@ -5167,8 +5159,8 @@ BEGIN_CASE(JSOP_LEAVEBLOCKEXPR)
 
 
     JSObject &scope = regs.fp()->scopeChain();
-    if (scope.getProto() == &blockObj && !scope.asClonedBlock().put(cx, JS_TRUE))
-        goto error;
+    if (scope.getProto() == &blockObj)
+        scope.asClonedBlock().put(cx);
 
     regs.fp()->setBlockChain(blockObj.enclosingBlock());
 
@@ -5384,15 +5376,8 @@ END_CASE(JSOP_ARRAYPUSH)
 
             regs.pc = (script)->main() + tn->start + tn->length;
 
-            JSBool ok = UnwindScope(cx, tn->stackDepth, JS_TRUE);
-            JS_ASSERT(regs.sp == regs.fp()->base() + tn->stackDepth);
-            if (!ok) {
-                
-
-
-
-                goto error;
-            }
+            UnwindScope(cx, tn->stackDepth);
+            regs.sp = regs.fp()->base() + tn->stackDepth;
 
             switch (tn->kind) {
               case JSTRY_CATCH:
@@ -5428,7 +5413,7 @@ END_CASE(JSOP_ARRAYPUSH)
                 JS_ASSERT(JSOp(*regs.pc) == JSOP_ENDITER);
                 Value v = cx->getPendingException();
                 cx->clearPendingException();
-                ok = js_CloseIterator(cx, &regs.sp[-1].toObject());
+                bool ok = js_CloseIterator(cx, &regs.sp[-1].toObject());
                 regs.sp -= 1;
                 if (!ok)
                     goto error;
@@ -5454,15 +5439,8 @@ END_CASE(JSOP_ARRAYPUSH)
     }
 
   forced_return:
-    
-
-
-
-
-
-
-    interpReturnOK &= (JSBool)UnwindScope(cx, 0, interpReturnOK || cx->isExceptionPending());
-    JS_ASSERT(regs.sp == regs.fp()->base());
+    UnwindScope(cx, 0);
+    regs.sp = regs.fp()->base();
 
     if (entryFrame != regs.fp())
         goto inline_return;

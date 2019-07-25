@@ -1789,7 +1789,7 @@ extern JS_FRIEND_API(JSBool)
 js_FindProperty(JSContext *cx, jsid id, bool global,
                 JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
-extern JS_REQUIRES_STACK JSObject *
+extern JSObject *
 js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id);
 
 extern JSObject *
@@ -1952,7 +1952,7 @@ eval(JSContext *cx, uintN argc, Value *vp);
 
 
 
-extern JS_REQUIRES_STACK bool
+extern bool
 DirectEval(JSContext *cx, const CallArgs &args);
 
 

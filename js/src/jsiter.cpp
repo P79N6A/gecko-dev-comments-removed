@@ -866,7 +866,7 @@ js_ValueToIterator(JSContext *cx, uintN flags, Value *vp)
 }
 
 #if JS_HAS_GENERATORS
-static JS_REQUIRES_STACK JSBool
+static JSBool
 CloseGenerator(JSContext *cx, JSObject *genobj);
 #endif
 
@@ -1270,7 +1270,7 @@ Class js::GeneratorClass = {
 
 
 
-JS_REQUIRES_STACK JSObject *
+JSObject *
 js_NewGenerator(JSContext *cx)
 {
     FrameRegs &stackRegs = cx->regs();
@@ -1340,7 +1340,7 @@ typedef enum JSGeneratorOp {
 
 
 
-static JS_REQUIRES_STACK JSBool
+static JSBool
 SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
                 JSGenerator *gen, const Value &arg)
 {
@@ -1446,7 +1446,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
     return JS_FALSE;
 }
 
-static JS_REQUIRES_STACK JSBool
+static JSBool
 CloseGenerator(JSContext *cx, JSObject *obj)
 {
     JS_ASSERT(obj->isGenerator());

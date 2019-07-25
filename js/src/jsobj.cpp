@@ -3185,7 +3185,7 @@ js_CreateThisForFunction(JSContext *cx, JSObject *callee, bool newType)
 
 
 
-JS_REQUIRES_STACK JSBool
+JSBool
 Detecting(JSContext *cx, jsbytecode *pc)
 {
     jsbytecode *endpc;

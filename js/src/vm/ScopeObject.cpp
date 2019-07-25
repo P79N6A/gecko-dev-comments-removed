@@ -472,8 +472,8 @@ ClonedBlockObject::create(JSContext *cx, StaticBlockObject &block, StackFrame *f
     return &obj->asClonedBlock();
 }
 
-bool
-ClonedBlockObject::put(JSContext *cx, JSBool normalUnwind)
+void
+ClonedBlockObject::put(JSContext *cx)
 {
     StackFrame *fp = cx->fp();
     JS_ASSERT(maybeStackFrame() == js_FloatingFrameIfGenerator(cx, fp));
@@ -488,13 +488,11 @@ ClonedBlockObject::put(JSContext *cx, JSBool normalUnwind)
     
     JS_ASSERT(count >= 1);
 
-    if (normalUnwind)
-        copySlotRange(RESERVED_SLOTS, fp->base() + depth, count);
+    copySlotRange(RESERVED_SLOTS, fp->base() + depth, count);
 
     
     setPrivate(NULL);
     fp->setScopeChainNoCallObj(enclosingScope());
-    return normalUnwind;
 }
 
 static JSBool
