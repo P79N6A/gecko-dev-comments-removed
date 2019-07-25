@@ -108,6 +108,8 @@ public:
     return mItems.Length();
   }
 
+  nsIDOMSVGNumber* GetItemWithoutAddRef(PRUint32 aIndex);
+
   
   void InternalListLengthWillChange(PRUint32 aNewLength);
 

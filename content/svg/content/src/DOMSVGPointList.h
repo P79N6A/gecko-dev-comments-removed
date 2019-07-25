@@ -126,6 +126,8 @@ public:
     return mItems.Length();
   }
 
+  nsIDOMSVGPoint* GetItemWithoutAddRef(PRUint32 aIndex);
+
   
 
 
