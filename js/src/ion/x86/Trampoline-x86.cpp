@@ -44,7 +44,6 @@
 #include "ion/IonLinker.h"
 
 using namespace js::ion;
-using namespace JSC;
 
 
 
@@ -54,88 +53,21 @@ using namespace JSC;
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
-    typedef MacroAssembler::Label Label;
-    typedef MacroAssembler::Jump Jump;
-    typedef MacroAssembler::Address Address;
-    typedef MacroAssembler::Imm32 Imm32;
-
     MacroAssembler masm;
 
     
-    masm.push(X86Registers::ebp);
-    masm.move(X86Registers::esp, X86Registers::ebp);
+    masm.push(ebp);
+    masm.movl(Operand(esp), ebp);
 
     
-    masm.push(X86Registers::ebx);
-    masm.push(X86Registers::esi);
-    masm.push(X86Registers::edi);
-
-    
-    
-    masm.load32(Address(X86Registers::ebp, 12), X86Registers::eax);
-    masm.lshift32(Imm32(3), X86Registers::eax);
+    masm.push(ebx);
+    masm.push(esi);
+    masm.push(edi);
 
     
     
-    
-    
-    
-    
-    
-    masm.move(X86Registers::esp, X86Registers::ecx);
-    masm.subPtr(X86Registers::eax, X86Registers::ecx);
-    masm.sub32(Imm32(8), X86Registers::ecx);
-
-    
-    masm.andPtr(Imm32(15), X86Registers::ecx);
-    masm.subPtr(X86Registers::ecx, X86Registers::esp);
-
-    
-
-
-
-    
-    masm.sub32(Imm32(8), X86Registers::eax);
-
-    
-    masm.loadPtr(Address(X86Registers::ebp, 16), X86Registers::ebx);
-
-    
-    masm.add32(X86Registers::ebx, X86Registers::eax);
-
-    
-    Label loopHeader = masm.label();
-    Jump loopCondition = masm.branch32(MacroAssembler::LessThan, X86Registers::eax, X86Registers::ebx);
-
-    
-    masm.push(Address(X86Registers::eax, 4)); 
-    masm.push(Address(X86Registers::eax, 0)); 
-
-    
-    masm.sub32(Imm32(8), X86Registers::eax);
-
-    
-    masm.jump(loopHeader);
-    loopCondition.linkTo(masm.label(), &masm);
-
-    
-    
-    masm.load32(Address(X86Registers::ebp, 12), X86Registers::eax);
-    masm.lshift32(Imm32(3), X86Registers::eax);
-    masm.add32(X86Registers::eax, X86Registers::ecx);
-    masm.push(X86Registers::ecx);
-
-    
-
-
-
-    
-    masm.call(Address(X86Registers::ebp, 8));
-
-    
-    
-    masm.pop(X86Registers::eax);
-    masm.add32(X86Registers::eax, X86Registers::esp);
+    masm.movl(Operand(ebp, 12), eax);
+    masm.shll(Imm32(3), eax);
 
     
     
@@ -144,29 +76,94 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     
+    masm.movl(esp, ecx);
+    masm.subl(eax, ecx);
+    masm.subl(Imm32(8), ecx);
+
     
-    
-    
-    
-    
-    masm.loadPtr(Address(X86Registers::esp, 32), X86Registers::eax);
-    masm.store32(X86Registers::ecx, Address(X86Registers::eax, 4)); 
-    masm.store32(X86Registers::edx, Address(X86Registers::eax, 0)); 
+    masm.andl(Imm32(15), ecx);
+    masm.subl(ecx, esp);
 
     
 
 
 
     
-    masm.pop(X86Registers::edi);
-    masm.pop(X86Registers::esi);
-    masm.pop(X86Registers::ebx);
+    masm.subl(Imm32(8), eax);
 
     
-    masm.pop(X86Registers::ebp);
+    masm.movl(Operand(ebp, 16), ebx);
+
+    
+    masm.addl(ebx, eax);
+
+    
+    Label header, done;
+    masm.bind(&header);
+
+    masm.cmpl(eax, ebx);
+    masm.j(Assembler::LessThan, &done);
+
+    
+    masm.push(Operand(eax, 4));
+    masm.push(Operand(eax, 0));
+
+    
+    masm.subl(Imm32(8), eax);
+
+    
+    masm.jmp(&header);
+    masm.bind(&done);
+
+    
+    
+    masm.movl(Operand(ebp, 12), eax);
+    masm.shll(Imm32(3), eax);
+    masm.addl(eax, ecx);
+    masm.push(ecx);
+
+    
+
+
+
+    
+    masm.call(Operand(ebp, 8));
+
+    
+    
+    masm.pop(eax);
+    masm.addl(eax, esp);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    masm.movl(Operand(esp, 32), eax);
+    masm.movl(JSReturnReg_Type, Operand(eax, 4));
+    masm.movl(JSReturnReg_Data, Operand(eax, 0));
+
+    
+
+
+
+    
+    masm.pop(edi);
+    masm.pop(esi);
+    masm.pop(ebx);
+
+    
+    masm.pop(ebp);
     masm.ret();
 
-    LinkerT<MacroAssembler> linker(masm);
+    Linker linker(masm);
     return linker.newCode(cx);
 }
 

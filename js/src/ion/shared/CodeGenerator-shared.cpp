@@ -41,6 +41,7 @@
 #include "CodeGenerator-shared.h"
 #include "ion/MIRGenerator.h"
 #include "ion/IonFrames.h"
+#include "ion/IonLinker.h"
 
 using namespace js;
 using namespace js::ion;

@@ -54,7 +54,7 @@ using namespace JSC;
 IonCode *
 IonCompartment::generateEnterJIT(JSContext *cx)
 {
-    Assembler masm;
+    MacroAssembler masm;
 
     
     masm.push(rbp);
@@ -81,8 +81,8 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     
     
     masm.mov(ArgReg2, r12); 
-    masm.andl(Imm32(1), Operand(r12)); 
-    masm.xorl(Imm32(1), Operand(r12)); 
+    masm.andl(Imm32(1), r12); 
+    masm.xorl(Imm32(1), r12); 
     masm.shll(Imm32(3), r12); 
 
     masm.subq(r12, rsp); 
@@ -117,7 +117,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.addq(ArgReg2, r12); 
     masm.push(r12); 
 
-    masm.call(Operand(ArgReg1)); 
+    masm.call(ArgReg1); 
 
     masm.pop(r12); 
     masm.addq(r12, rsp); 
@@ -143,6 +143,7 @@ IonCompartment::generateEnterJIT(JSContext *cx)
     masm.pop(rbp);
     masm.ret();
 
-    LinkerT<Assembler> linker(masm);
+    Linker linker(masm);
     return linker.newCode(cx);
 }
+
