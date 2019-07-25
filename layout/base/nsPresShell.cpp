@@ -5276,7 +5276,12 @@ PresShell::RenderDocument(const nsRect& aRect, PRUint32 aFlags,
   nsIDeviceContext* devCtx = mPresContext->DeviceContext();
   gfxFloat scale = gfxFloat(devCtx->AppUnitsPerDevPixel())/nsPresContext::AppUnitsPerCSSPixel();
   aThebesContext->Scale(scale, scale);
+
   
+  
+  
+  aThebesContext->NudgeCurrentMatrixToIntegers();
+
   nsCOMPtr<nsIRenderingContext> rc;
   devCtx->CreateRenderingContextInstance(*getter_AddRefs(rc));
   rc->Init(devCtx, aThebesContext);

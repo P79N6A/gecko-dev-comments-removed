@@ -292,6 +292,13 @@ public:
 
 
 
+
+    void NudgeCurrentMatrixToIntegers();
+
+    
+
+
+
     gfxPoint DeviceToUser(const gfxPoint& point) const;
 
     
