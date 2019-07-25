@@ -82,6 +82,14 @@ enum HSType {
 
 HSType GetHangulSyllableType(PRUint32 aCh);
 
+
+
+
+PRUint32 GetUppercase(PRUint32 aCh);
+PRUint32 GetLowercase(PRUint32 aCh);
+PRUint32 GetTitlecaseForLower(PRUint32 aCh); 
+PRUint32 GetTitlecaseForAll(PRUint32 aCh); 
+
 enum ShapingType {
     SHAPING_DEFAULT   = 0x0001,
     SHAPING_ARABIC    = 0x0002,
