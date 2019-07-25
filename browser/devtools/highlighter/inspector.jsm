@@ -346,7 +346,7 @@ Highlighter.prototype = {
   highlight: function Highlighter_highlight(aScroll)
   {
     
-    if (!this.node || !this.isNodeHighlightable()) {
+    if (!this.node || !this.isNodeHighlightable(this.node)) {
       return;
     }
 
@@ -637,12 +637,14 @@ Highlighter.prototype = {
 
 
 
-  isNodeHighlightable: function Highlighter_isNodeHighlightable()
+
+
+  isNodeHighlightable: function Highlighter_isNodeHighlightable(aNode)
   {
-    if (!this.node || this.node.nodeType != this.node.ELEMENT_NODE) {
+    if (aNode.nodeType != aNode.ELEMENT_NODE) {
       return false;
     }
-    let nodeName = this.node.nodeName.toLowerCase();
+    let nodeName = aNode.nodeName.toLowerCase();
     return !INSPECTOR_INVISIBLE_ELEMENTS[nodeName];
   },
 
@@ -1169,6 +1171,69 @@ InspectorUI.prototype = {
               event.stopPropagation();
             }
             break;
+          case this.chromeWin.KeyEvent.DOM_VK_LEFT:
+            let node;
+            if (this.selection) {
+              node = this.selection.parentNode;
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.highlighter.isNodeHighlightable(node)) {
+              this.inspectNode(node, true);
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_RIGHT:
+            if (this.selection) {
+              
+              for (let i = 0; i < this.selection.childNodes.length; i++) {
+                node = this.selection.childNodes[i];
+                if (node && this.highlighter.isNodeHighlightable(node)) {
+                  break;
+                }
+              }
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.highlighter.isNodeHighlightable(node)) {
+              this.inspectNode(node, true);
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_UP:
+            if (this.selection) {
+              
+              node = this.selection.previousSibling;
+              while (node && !this.highlighter.isNodeHighlightable(node)) {
+                node = node.previousSibling;
+              }
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.highlighter.isNodeHighlightable(node)) {
+              this.inspectNode(node, true);
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            break;
+          case this.chromeWin.KeyEvent.DOM_VK_DOWN:
+            if (this.selection) {
+              
+              node = this.selection.nextSibling;
+              while (node && !this.highlighter.isNodeHighlightable(node)) {
+                node = node.nextSibling;
+              }
+            } else {
+              node = this.defaultSelection;
+            }
+            if (node && this.highlighter.isNodeHighlightable(node)) {
+              this.inspectNode(node, true);
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            break;
         }
         break;
     }
@@ -1204,10 +1269,12 @@ InspectorUI.prototype = {
 
 
 
-  inspectNode: function IUI_inspectNode(aNode)
+
+
+  inspectNode: function IUI_inspectNode(aNode, aScroll)
   {
     this.select(aNode, true, true);
-    this.highlighter.highlightNode(aNode);
+    this.highlighter.highlightNode(aNode, { scroll: aScroll });
   },
 
   
