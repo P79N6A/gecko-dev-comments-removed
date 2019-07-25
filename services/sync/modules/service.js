@@ -577,9 +577,6 @@ WeaveSvc.prototype = {
     let meta = yield Records.import(self.cb, this.clusterURL +
 				    this.username + "/meta/global");
 
-    
-    
-    meta.payload.storageVersion = MIN_SERVER_STORAGE_VERSION; 
     this._log.debug("Min server storage version is " + MIN_SERVER_STORAGE_VERSION);
     if (meta) {
           this._log.debug("payload storage version is " +
