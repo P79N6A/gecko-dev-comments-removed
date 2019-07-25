@@ -83,6 +83,7 @@ protected:
     nsISupports*                mStream;        
 
     bool                        mBufferDisabled;
+    bool                        mEOF;  
     PRUint8                     mGetBufferCount;
 };
 
