@@ -429,6 +429,9 @@ def main():
     reftest = RemoteReftest(automation, dm, options, SCRIPT_DIRECTORY)
 
     
+    os.system("ln -s ../jsreftest " + str(os.path.join(SCRIPT_DIRECTORY, "jsreftest")))
+
+    
     manifest = args[0]
     if os.path.exists(os.path.join(SCRIPT_DIRECTORY, args[0])):
         manifest = "http://" + str(options.remoteWebServer) + ":" + str(options.httpPort) + "/" + args[0]
@@ -438,9 +441,6 @@ def main():
     else:
         print "ERROR: Could not find test manifest '%s'" % manifest
         sys.exit(1)
-
-    
-    os.system("ln -s ../jsreftest " + str(os.path.join(SCRIPT_DIRECTORY, "jsreftest")))
 
     
     reftest.startWebServer(options)
