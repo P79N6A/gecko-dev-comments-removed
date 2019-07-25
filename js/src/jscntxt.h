@@ -1688,22 +1688,6 @@ class RuntimeAllocPolicy
     void reportAllocOverflow() const {}
 };
 
-
-
-
-class ContextAllocPolicy
-{
-    JSContext *const cx;
-
-  public:
-    ContextAllocPolicy(JSContext *cx) : cx(cx) {}
-    JSContext *context() const { return cx; }
-    void *malloc_(size_t bytes) { return cx->malloc_(bytes); }
-    void *realloc_(void *p, size_t oldBytes, size_t bytes) { return cx->realloc_(p, oldBytes, bytes); }
-    void free_(void *p) { cx->free_(p); }
-    void reportAllocOverflow() const { js_ReportAllocationOverflow(cx); }
-};
-
 } 
 
 #ifdef _MSC_VER
