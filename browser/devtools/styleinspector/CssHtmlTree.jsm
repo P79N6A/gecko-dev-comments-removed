@@ -135,7 +135,6 @@ XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
 CssHtmlTree.prototype = {
   
   _matchedProperties: null,
-  _unmatchedProperties: null,
 
   htmlComplete: false,
 
@@ -171,7 +170,6 @@ CssHtmlTree.prototype = {
     }
 
     this.viewedElement = aElement;
-    this._unmatchedProperties = null;
     this._matchedProperties = null;
 
     CssHtmlTree.processTemplate(this.templatePath, this.path, this);
@@ -198,7 +196,7 @@ CssHtmlTree.prototype = {
             let propView = new PropertyView(this, name);
             CssHtmlTree.processTemplate(this.templateProperty,
               this.propertyContainer, propView, true);
-            propView.refreshAllSelectors();
+            propView.refreshMatchedSelectors();
             this.propertyViews.push(propView);
           }
           if (i < max) {
@@ -362,41 +360,6 @@ CssHtmlTree.prototype = {
   
 
 
-
-
-
-
-  hasUnmatchedSelectors: function CssHtmlTree_hasUnmatchedSelectors(aProperty)
-  {
-    
-    
-    if (!this._unmatchedProperties) {
-      let properties = [];
-      CssHtmlTree.propertyNames.forEach(function(aName) {
-        if (!this.matchedProperties[aName]) {
-          properties.push(aName);
-        }
-      }, this);
-
-      if (properties.indexOf(aProperty) == -1) {
-        properties.push(aProperty);
-      }
-
-      this._unmatchedProperties = this.cssLogic.hasUnmatchedSelectors(properties);
-    }
-
-    
-    if (!(aProperty in this._unmatchedProperties)) {
-      let result = this.cssLogic.hasUnmatchedSelectors([aProperty]);
-      this._unmatchedProperties[aProperty] = result[aProperty];
-    }
-
-    return this._unmatchedProperties[aProperty];
-  },
-
-  
-
-
   destroy: function CssHtmlTree_destroy()
   {
     delete this.viewedElement;
@@ -444,7 +407,6 @@ function PropertyView(aTree, aName)
   this.link = "https://developer.mozilla.org/en/CSS/" + aName;
 
   this.templateMatchedSelectors = aTree.styleDocument.getElementById("templateMatchedSelectors");
-  this.templateUnmatchedSelectors = aTree.styleDocument.getElementById("templateUnmatchedSelectors");
 }
 
 PropertyView.prototype = {
@@ -461,31 +423,13 @@ PropertyView.prototype = {
   matchedExpanded: false,
 
   
-  unmatchedExpanded: false,
-
-  
-  unmatchedSelectorTable: null,
-
-  
   matchedSelectorsContainer: null,
 
   
   matchedExpander: null,
 
   
-  unmatchedExpander: null,
-
-  
-  unmatchedSelectorsContainer: null,
-
-  
-  unmatchedTitleBlock: null,
-
-  
   _matchedSelectorViews: null,
-
-  
-  _unmatchedSelectorViews: null,
 
   
   prevViewedElement: null,
@@ -515,14 +459,6 @@ PropertyView.prototype = {
   get hasMatchedSelectors()
   {
     return this.tree.matchedProperties[this.name];
-  },
-
-  
-
-
-  get hasUnmatchedSelectors()
-  {
-    return this.tree.hasUnmatchedSelectors(this.name);
   },
 
   
@@ -568,23 +504,19 @@ PropertyView.prototype = {
 
     if (this.prevViewedElement != this.tree.viewedElement) {
       this._matchedSelectorViews = null;
-      this._unmatchedSelectorViews = null;
       this.prevViewedElement = this.tree.viewedElement;
     }
 
     if (!this.tree.viewedElement || !this.visible) {
       this.valueNode.innerHTML = "";
       this.matchedSelectorsContainer.hidden = true;
-      this.unmatchedSelectorsContainer.hidden = true;
-      this.unmatchedSelectorTable.innerHTML = "";
       this.matchedSelectorsContainer.innerHTML = "";
       this.matchedExpander.removeAttribute("open");
-      this.unmatchedExpander.removeAttribute("open");
       return;
     }
 
     this.valueNode.innerHTML = this.propertyInfo.value;
-    this.refreshAllSelectors();
+    this.refreshMatchedSelectors();
   },
 
   
@@ -595,7 +527,7 @@ PropertyView.prototype = {
     let hasMatchedSelectors = this.hasMatchedSelectors;
     this.matchedSelectorsContainer.hidden = !hasMatchedSelectors;
 
-    if (hasMatchedSelectors || this.hasUnmatchedSelectors) {
+    if (hasMatchedSelectors) {
       this.propertyHeader.classList.add("expandable");
     } else {
       this.propertyHeader.classList.remove("expandable");
@@ -614,52 +546,6 @@ PropertyView.prototype = {
   
 
 
-  refreshUnmatchedSelectors: function PropertyView_refreshUnmatchedSelectors()
-  {
-    let hasMatchedSelectors = this.hasMatchedSelectors;
-
-    this.unmatchedSelectorTable.hidden = !this.unmatchedExpanded;
-
-    if (hasMatchedSelectors) {
-      this.unmatchedSelectorsContainer.hidden = !this.matchedExpanded ||
-        !this.hasUnmatchedSelectors;
-      this.unmatchedTitleBlock.hidden = false;
-    } else {
-      this.unmatchedSelectorsContainer.hidden = !this.unmatchedExpanded;
-      this.unmatchedTitleBlock.hidden = true;
-    }
-
-    if (this.unmatchedExpanded && this.hasUnmatchedSelectors) {
-      CssHtmlTree.processTemplate(this.templateUnmatchedSelectors,
-        this.unmatchedSelectorTable, this);
-      if (!hasMatchedSelectors) {
-        this.matchedExpander.setAttribute("open", "");
-        this.unmatchedSelectorTable.classList.add("only-unmatched");
-      } else {
-        this.unmatchedExpander.setAttribute("open", "");
-        this.unmatchedSelectorTable.classList.remove("only-unmatched");
-      }
-    } else {
-      if (!hasMatchedSelectors) {
-        this.matchedExpander.removeAttribute("open");
-      }
-      this.unmatchedExpander.removeAttribute("open");
-      this.unmatchedSelectorTable.innerHTML = "";
-    }
-  },
-
-  
-
-
-  refreshAllSelectors: function PropertyView_refreshAllSelectors()
-  {
-    this.refreshMatchedSelectors();
-    this.refreshUnmatchedSelectors();
-  },
-
-  
-
-
 
   get matchedSelectorViews()
   {
@@ -670,25 +556,7 @@ PropertyView.prototype = {
           this._matchedSelectorViews.push(new SelectorView(this.tree, aSelectorInfo));
         }, this);
     }
-
     return this._matchedSelectorViews;
-  },
-
-    
-
-
-
-  get unmatchedSelectorViews()
-  {
-    if (!this._unmatchedSelectorViews) {
-      this._unmatchedSelectorViews = [];
-      this.propertyInfo.unmatchedSelectors.forEach(
-        function unmatchedSelectorViews_convert(aSelectorInfo) {
-          this._unmatchedSelectorViews.push(new SelectorView(this.tree, aSelectorInfo));
-        }, this);
-    }
-
-    return this._unmatchedSelectorViews;
   },
 
   
@@ -702,22 +570,9 @@ PropertyView.prototype = {
   {
     if (aEvent.target.className != "helplink") {
       this.matchedExpanded = !this.matchedExpanded;
-      if (!this.hasMatchedSelectors && this.hasUnmatchedSelectors) {
-        this.unmatchedExpanded = !this.unmatchedExpanded;
-      }
-      this.refreshAllSelectors();
+      this.refreshMatchedSelectors();
       aEvent.preventDefault();
     }
-  },
-
-  
-
-
-  unmatchedSelectorsClick: function PropertyView_unmatchedSelectorsClick(aEvent)
-  {
-    this.unmatchedExpanded = !this.unmatchedExpanded;
-    this.refreshUnmatchedSelectors();
-    aEvent.preventDefault();
   },
 
   
@@ -752,7 +607,7 @@ SelectorView.STATUS_NAMES = [
 ];
 
 SelectorView.CLASS_NAMES = [
-  "unmatched", "parentmatch", "matched", "bestmatch"
+  "parentmatch", "matched", "bestmatch"
 ];
 
 SelectorView.prototype = {
@@ -773,7 +628,7 @@ SelectorView.prototype = {
 
     for (let status in CssLogic.STATUS) {
       let i = CssLogic.STATUS[status];
-      if (i > -1) {
+      if (i > CssLogic.STATUS.UNKNOWN) {
         let value = CssHtmlTree.l10n("rule.status." + status);
         
         SelectorView.STATUS_NAMES[i] = value.replace(/ /g, '\u00A0');
