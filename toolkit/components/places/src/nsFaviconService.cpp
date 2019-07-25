@@ -941,7 +941,7 @@ nsFaviconService::FinalizeStatements() {
   }
 
   
-  nsRefPtr<FinalizeStatementCacheProxy<mozIStorageStatement>> event =
+  nsRefPtr<FinalizeStatementCacheProxy<mozIStorageStatement> > event =
     new FinalizeStatementCacheProxy<mozIStorageStatement>(mSyncStatements);
   nsCOMPtr<nsIEventTarget> target = do_GetInterface(mDBConn);
   NS_ENSURE_TRUE(target, NS_ERROR_OUT_OF_MEMORY);
