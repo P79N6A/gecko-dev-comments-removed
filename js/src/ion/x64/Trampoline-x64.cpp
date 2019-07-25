@@ -46,6 +46,7 @@
 using namespace js::ion;
 
 IonCode *
-IonCompartment::GenerateTrampoline(JSC::ExecutableAllocator *execAlloc) {
+IonCompartment::generateEnterJIT(JSContext *cx)
+{
     return NULL;
 }
