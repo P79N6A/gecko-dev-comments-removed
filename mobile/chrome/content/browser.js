@@ -355,10 +355,12 @@ var Browser = {
         
         
         
-        let dummy = this.addTab("about:blank");
+        let dummy = this.addTab("about:blank", true);
         let dummyCleanup = {
-          observe: function() {
+          observe: function(aSubject, aTopic, aData) {
             Services.obs.removeObserver(dummyCleanup, "sessionstore-windows-restored");
+            if (aData == "fail")
+              Browser.addTab(commandURL || Browser.getHomePage(), true);
             dummy.chromeTab.ignoreUndo = true;
             Browser.closeTab(dummy, { forceClose: true });
           }
