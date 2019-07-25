@@ -59,22 +59,10 @@ IonBuilder::IonBuilder(JSContext *cx, JSScript *script, JSFunction *fun, TempAll
                        MIRGraph &graph, TypeOracle *oracle)
   : MIRGenerator(temp, script, fun, graph),
     cx(cx),
-    oracle(oracle),
-    sideEffectsOccurred_(false)
+    oracle(oracle)
 {
     pc = script->code;
     atoms = script->atomMap.vector;
-}
-
-static bool SnapshotBefore[256];
-
-void
-IonBuilder::SetupOpcodeFlags()
-{
-    SnapshotBefore[JSOP_BITAND] = true;
-    SnapshotBefore[JSOP_BITOR] = true;
-    SnapshotBefore[JSOP_BITXOR] = true;
-    SnapshotBefore[JSOP_ADD] = true;
 }
 
 static inline int32
@@ -198,7 +186,10 @@ IonBuilder::build()
     
     
     
-    current->makeStart(new MStart);
+    MStart *start = new MStart;
+    if (!snapshotAt(start, pc))
+        return false;
+    current->makeStart(start);
 
     if (!traverseBytecode())
         return false;
@@ -284,18 +275,8 @@ IonBuilder::traverseBytecode()
         
 
         JSOp op = JSOp(*pc);
-        if (SnapshotBefore[op] && !snapshotBefore())
-            return false;
-
         if (!inspectOpcode(op))
             return false;
-
-        if (sideEffectsOccurred_) {
-            JS_ASSERT(JSOp(*pc) == op);
-            sideEffectsOccurred_ = false;
-            if (!snapshotAfter())
-                return false;
-        }
 
         pc += js_CodeSpec[op].length;
     }
@@ -1313,36 +1294,19 @@ IonBuilder::newLoopHeader(MBasicBlock *predecessor, jsbytecode *pc)
 
 
 
-
-
-
-
-
-
-
-
-
-
+bool
+IonBuilder::snapshotAfter(MInstruction *ins)
+{
+    return snapshotAt(ins, GetNextPc(pc));
+}
 
 bool
-IonBuilder::snapshot(jsbytecode *pc)
+IonBuilder::snapshotAt(MInstruction *ins, jsbytecode *pc)
 {
     MSnapshot *snapshot = MSnapshot::New(current, pc);
     if (!snapshot)
         return false;
-    current->add(snapshot);
+    ins->setSnapshot(snapshot);
     return true;
-}
-
-bool
-IonBuilder::snapshotAfter()
-{
-    return snapshot(GetNextPc(pc));
-}
-
-bool
-IonBuilder::snapshotBefore()
-{
-    return snapshot(pc);
 }
 
