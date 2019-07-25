@@ -71,7 +71,7 @@ function TileManager(appendTile, removeTile, browserView) {
   
   let self = this;
   this._tileCache = new TileManager.TileCache(function(tile) { self._removeTileSafe(tile); },
-                                              -1, -1, 110);
+                                              -1, -1, 200);
 
   
   
@@ -109,7 +109,7 @@ TileManager.prototype = {
     
     dump("***vphandler***\n");
     dump(viewportRect.toString() + "\n");
-    dump(criticalRect.toString() + "\n");
+    dump((criticalRect ? criticalRect.toString() : "null") + "\n");
     dump(boundsSizeChanged + "\n");
     dump(dirtyAll + "\n***************\n");
     
@@ -251,7 +251,8 @@ TileManager.prototype = {
     if (cr)
       tc.forEachIntersectingRect(cr, false, f, this);
 
-    this._holdRect(destCriticalRect);
+    if (destCriticalRect)
+      this._holdRect(destCriticalRect);
 
     if (cr)
       cr.copyFrom(destCriticalRect);
@@ -819,7 +820,7 @@ TileManager.Tile.prototype = {
     ctx.translate(x, y);
     ctx.drawWindow(sourceContent,
                    rect.left, rect.top,
-                   rect.width, rect.height,
+                   rect.right - rect.left, rect.bottom - rect.top,
                    "grey",
                    (ctx.DRAWWINDOW_DO_NOT_FLUSH | ctx.DRAWWINDOW_DRAW_CARET));
 

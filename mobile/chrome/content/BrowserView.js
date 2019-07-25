@@ -40,102 +40,102 @@
 
 let Ci = Components.interfaces;
 
+const kBrowserViewZoomLevelMin = 0.2;
+const kBrowserViewZoomLevelMax = 4.0;
+const kBrowserViewZoomLevelPrecision = 10000;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 function BrowserView(container, visibleRect) {
   Util.bindAll(this);
   this.init(container, visibleRect);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-const kBrowserViewZoomLevelMin = 0.2;
-const kBrowserViewZoomLevelMax = 4.0;
-const kBrowserViewZoomLevelPrecision = 10000;
 
 
 
@@ -250,14 +250,6 @@ BrowserView.prototype = {
     this._renderMode = 0;
     this._tileManager = new TileManager(this._appendTile, this._removeTile, this);
     this.setVisibleRect(visibleRect);
-
-    
-    
-    this._resizeHack = {
-      maxSeenW: 0,
-      maxSeenH: 0
-    };
-    
   },
 
   setVisibleRect: function setVisibleRect(r) {
@@ -483,12 +475,6 @@ BrowserView.prototype = {
     let [scrollX, scrollY] = BrowserView.Util.getContentScrollValues(browser);
     let clientRects = ev.clientRects;
 
-    
-    
-    let hack = this._resizeHack;
-    let hackSizeChanged = false;
-    
-
     let rects = [];
     
     for (let i = clientRects.length - 1; i >= 0; --i) {
@@ -503,32 +489,18 @@ BrowserView.prototype = {
       if (r.right < 0 || r.bottom < 0)
         continue;
 
-      
-      
-      
-      
-      if (r.right > hack.maxW) {
-        hack.maxW = rect.right;
-        hackSizeChanged = true;
-      }
-      if (r.bottom > hack.maxH) {
-        hack.maxH = rect.bottom;
-        hackSizeChanged = true;
-      }
-      
-
       try {
         r.restrictTo(vs.viewportRect);
         rects.push(r);
-      } catch(ex) { dump("fail:(\n"); }
+      } catch(ex) { dump("fail\n"); }
     }
 
     tm.dirtyRects(rects, this.isRendering());
   },
 
   
-  simulateMozAfterSizeChange: function simulateMozAfterSizeChange(width, height) {
-    let [w, h] = getBrowserDimensions(this._browser);
+  simulateMozAfterSizeChange: function simulateMozAfterSizeChange() {
+    let [w, h] = BrowserView.Util.getBrowserDimensions(this._browser);
     let ev = document.createEvent("MouseEvents");
     ev.initMouseEvent("FakeMozAfterSizeChange", false, false, window, 0, w, h, 0, 0, false, false, false, false, 0, null);
     this._browser.dispatchEvent(ev);
@@ -643,21 +615,14 @@ BrowserView.prototype = {
     let bvs = this._browserViewportState;
     let vis = this._visibleRect;
 
-    
-    
-    
-    
-    
-
-
-
-
-
-
-    
-
     if (bvs) {
       BrowserView.Util.resizeContainerToViewport(this._container, bvs.viewportRect);
+
+      if (dirtyAll) {
+        
+        
+        BrowserView.Util.getBrowserDOMWindowUtils(this._browser).clearMozAfterPaintEvents();
+      }
 
       this._tileManager.viewportChangeHandler(bvs.viewportRect,
                                               BrowserView.Util.visibleRectToCriticalRect(vis, bvs),
@@ -673,6 +638,10 @@ BrowserView.prototype = {
     canvas.style.left = tile.x + "px";
     canvas.style.top  = tile.y + "px";
 
+    
+    
+    
+    
     
     
     
