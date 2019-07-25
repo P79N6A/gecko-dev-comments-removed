@@ -131,6 +131,14 @@ public:
 
   static PRBool CanOptimizeKeyAndIMEMessages(MSG *aNextKeyOrIMEMessage);
 
+#ifdef DEBUG
+  
+
+
+
+  static PRBool IsIMEAvailable() { return sIsIME; }
+#endif
+
   
   
   
