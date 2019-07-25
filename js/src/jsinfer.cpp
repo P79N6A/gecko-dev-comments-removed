@@ -3270,11 +3270,6 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
 
 
-
-
-
-
-
         if (!isGlobal()) {
             jsid id = GetAtomId(cx, this, pc, 0);
             TrashScope(cx, this, id);

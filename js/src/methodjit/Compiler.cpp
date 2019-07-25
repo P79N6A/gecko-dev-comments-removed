@@ -93,7 +93,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp)
         : NULL),
     isConstructing(fp->isConstructing()),
     analysis(NULL), jumpMap(NULL), savedTraps(NULL),
-    frame(cx, script, fun, masm),
+    frame(cx, script, fun, *this, masm, stubcc, liveness),
     branchPatches(CompilerAllocPolicy(cx, *thisFromCtor())),
 #if defined JS_MONOIC
     mics(CompilerAllocPolicy(cx, *thisFromCtor())),
@@ -108,11 +108,12 @@ mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp)
 #endif
     callPatches(CompilerAllocPolicy(cx, *thisFromCtor())),
     callSites(CompilerAllocPolicy(cx, *thisFromCtor())), 
-    doubleList(CompilerAllocPolicy(cx, *thisFromCtor())),
     stubcc(cx, *thisFromCtor(), frame, script),
     debugMode_(cx->compartment->debugMode),
 #if defined JS_TRACER
     addTraceHints(cx->traceJitEnabled),
+#else
+    addTraceHints(false),
 #endif
     recompiling(false),
 #if defined JS_TYPE_INFERENCE
@@ -200,6 +201,29 @@ mjit::Compiler::performCompilation(JITScript **jitp)
         JaegerSpew(JSpew_Abort, "couldn't analyze bytecode; probably switchX or OOM\n");
         return Compile_Abort;
     }
+    frame.setAnalysis(analysis);
+
+    if (!liveness.analyze(cx, analysis, script, fun)) {
+        js_ReportOutOfMemory(cx);
+        return Compile_Error;
+    }
+
+#ifdef JS_METHODJIT_SPEW
+    if (IsJaegerSpewChannelActive(JSpew_Regalloc)) {
+        for (unsigned i = 0; i < script->nfixed; i++) {
+            if (!analysis->localEscapes(i)) {
+                JaegerSpew(JSpew_Regalloc, "Local %u:", i);
+                liveness.dumpLocal(i);
+            }
+        }
+        for (unsigned i = 0; fun && i < fun->nargs; i++) {
+            if (!analysis->argEscapes(i)) {
+                JaegerSpew(JSpew_Regalloc, "Argument %u:", i);
+                liveness.dumpArg(i);
+            }
+        }
+    }
+#endif
 
     if (!frame.init())
         return Compile_Abort;
@@ -453,7 +477,8 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 
     size_t totalSize = masm.size() +
                        stubcc.size() +
-                       doubleList.length() * sizeof(double);
+                       (masm.numDoubles() * sizeof(double)) +
+                       (stubcc.masm.numDoubles() * sizeof(double));
 
     JSC::ExecutablePool *execPool = getExecPool(script, totalSize);
     if (!execPool)
@@ -502,7 +527,10 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     for (size_t i = 0; i < script->length; i++) {
         Label L = jumpMap[i];
         analyze::Bytecode *opinfo = analysis->maybeCode(i);
-        if (opinfo && opinfo->safePoint) {
+        if (!opinfo)
+            continue;
+        if (opinfo->exceptionEntry || opinfo->switchTarget ||
+            JSOp(script->code[i]) == JSOP_TRAP) {
             JS_ASSERT(L.isValid());
             nmap[i] = (uint8 *)(result + masm.distanceOf(L));
         }
@@ -619,9 +647,13 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 
     if (ic::EqualityICInfo *scriptEICs = jit->equalityICs) {
         for (size_t i = 0; i < equalityICs.length(); i++) {
-            uint32 offs = uint32(equalityICs[i].jumpTarget - script->code);
-            JS_ASSERT(jumpMap[offs].isValid());
-            scriptEICs[i].target = fullCode.locationOf(jumpMap[offs]);
+            if (equalityICs[i].trampoline) {
+                scriptEICs[i].target = stubCode.locationOf(equalityICs[i].trampolineStart);
+            } else {
+                uint32 offs = uint32(equalityICs[i].jumpTarget - script->code);
+                JS_ASSERT(jumpMap[offs].isValid());
+                scriptEICs[i].target = fullCode.locationOf(jumpMap[offs]);
+            }
             scriptEICs[i].stubEntry = stubCode.locationOf(equalityICs[i].stubEntry);
             scriptEICs[i].stubCall = stubCode.locationOf(equalityICs[i].stubCall);
             scriptEICs[i].stub = equalityICs[i].stub;
@@ -650,10 +682,14 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
             if (!traceICs[i].initialized)
                 continue;
 
-            uint32 offs = uint32(traceICs[i].jumpTarget - script->code);
-            JS_ASSERT(jumpMap[offs].isValid());
+            if (traceICs[i].trampoline) {
+                scriptTICs[i].jumpTarget = stubCode.locationOf(traceICs[i].trampolineStart);
+            } else {
+                uint32 offs = uint32(traceICs[i].jumpTarget - script->code);
+                JS_ASSERT(jumpMap[offs].isValid());
+                scriptTICs[i].jumpTarget = fullCode.locationOf(jumpMap[offs]);
+            }
             scriptTICs[i].traceHint = fullCode.locationOf(traceICs[i].traceHint);
-            scriptTICs[i].jumpTarget = fullCode.locationOf(jumpMap[offs]);
             scriptTICs[i].stubEntry = stubCode.locationOf(traceICs[i].stubEntry);
             scriptTICs[i].traceData = NULL;
 #ifdef DEBUG
@@ -795,21 +831,14 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
     
     stubcc.fixCrossJumps(result, masm.size(), masm.size() + stubcc.size());
 
-    
     size_t doubleOffset = masm.size() + stubcc.size();
-    double *doubleVec = (double *)(result + doubleOffset);
-    for (size_t i = 0; i < doubleList.length(); i++) {
-        DoublePatch &patch = doubleList[i];
-        doubleVec[i] = patch.d;
-        if (patch.ool)
-            stubCode.patch(patch.label, &doubleVec[i]);
-        else
-            fullCode.patch(patch.label, &doubleVec[i]);
-    }
+    double *inlineDoubles = (double *) (result + doubleOffset);
+    double *oolDoubles = (double*) (result + doubleOffset +
+                                    masm.numDoubles() * sizeof(double));
 
     
-    masm.finalize(fullCode);
-    stubcc.masm.finalize(stubCode);
+    masm.finalize(fullCode, inlineDoubles);
+    stubcc.masm.finalize(stubCode, oolDoubles);
 
     JSC::ExecutableAllocator::makeExecutable(result, masm.size() + stubcc.size());
     JSC::ExecutableAllocator::cacheFlush(result, masm.size() + stubcc.size());
@@ -865,6 +894,9 @@ mjit::Compiler::generateMethod()
 {
     mjit::AutoScriptRetrapper trapper(cx, script);
 
+    
+    bool fallthrough = true;
+
     for (;;) {
         JSOp op = JSOp(*PC);
         bool trap = (op == JSOP_TRAP);
@@ -887,17 +919,37 @@ mjit::Compiler::generateMethod()
             continue;
         }
 
+        frame.setPC(PC);
         frame.setInTryBlock(opinfo->inTryBlock);
         if (opinfo->jumpTarget || trap) {
-            if (opinfo->fallthrough)
+            if (fallthrough) {
                 fixDoubleTypes(Uses(0));
-            frame.syncAndForgetEverything(opinfo->stackDepth);
-            opinfo->safePoint = true;
-        }
-        jumpMap[uint32(PC - script->code)] = masm.label();
 
-        if (opinfo->jumpTarget)
+                
+
+
+
+
+
+                if (liveness.getCode(PC).loopBackedge) {
+                    frame.syncAndForgetEverything();
+                    Jump j = masm.jump();
+                    if (!frame.pushLoop(PC, j, PC))
+                        return Compile_Error;
+                } else {
+                    if (!frame.syncForBranch(PC, Uses(0)))
+                        return Compile_Error;
+                    JS_ASSERT(frame.consistentRegisters(PC));
+                }
+            }
+
+            if (!frame.discardForJoin(PC, opinfo->stackDepth))
+                return Compile_Error;
             restoreAnalysisTypes(opinfo->stackDepth);
+            fallthrough = true;
+        }
+
+        jumpMap[uint32(PC - script->code)] = masm.label();
 
         SPEW_OPCODE();
         JS_ASSERT(frame.stackDepth() == opinfo->stackDepth);
@@ -974,16 +1026,47 @@ mjit::Compiler::generateMethod()
 
           BEGIN_CASE(JSOP_RETURN)
             emitReturn(frame.peek(-1));
+            fallthrough = false;
           END_CASE(JSOP_RETURN)
 
           BEGIN_CASE(JSOP_GOTO)
           {
-            
+            jsbytecode *target = PC + GET_JUMP_OFFSET(PC);
             fixDoubleTypes(Uses(0));
-            frame.syncAndForgetEverything();
-            Jump j = masm.jump();
-            if (!jumpAndTrace(j, PC + GET_JUMP_OFFSET(PC)))
-                return Compile_Error;
+
+            
+
+
+
+
+
+            if (target < PC) {
+                if (JSOp(*target) == JSOP_GOTO) {
+                    target = target + GET_JUMP_OFFSET(target);
+                    JS_ASSERT(target >= PC);
+                } else if (JSOp(*target) == JSOP_GOTOX) {
+                    return Compile_Abort;
+                }
+            }
+
+            
+
+
+
+            jsbytecode *next = PC + JSOP_GOTO_LENGTH;
+            if (analysis->maybeCode(next) && liveness.getCode(next).loopBackedge) {
+                frame.syncAndForgetEverything();
+                Jump j = masm.jump();
+                if (!frame.pushLoop(next, j, target))
+                    return Compile_Error;
+            } else {
+                if (!frame.syncForBranch(target, Uses(0)))
+                    return Compile_Error;
+                Jump j = masm.jump();
+                if (!jumpAndTrace(j, target))
+                    return Compile_Error;
+            }
+            fallthrough = false;
           }
           END_CASE(JSOP_GOTO)
 
@@ -1101,11 +1184,19 @@ mjit::Compiler::generateMethod()
                         if (fused == JSOP_IFEQ)
                             result = !result;
 
-                        
                         if (result) {
-                            frame.syncAndForgetEverything();
+                            fixDoubleTypes(Uses(0));
+                            if (!frame.syncForBranch(target, Uses(0)))
+                                return Compile_Error;
                             Jump j = masm.jump();
                             if (!jumpAndTrace(j, target))
+                                return Compile_Error;
+                        } else {
+                            
+
+
+
+                            if (target < PC && !finishLoop(target))
                                 return Compile_Error;
                         }
                     }
@@ -1455,6 +1546,11 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_AND)
 
           BEGIN_CASE(JSOP_TABLESWITCH)
+            
+
+
+
+
             fixDoubleTypes(Uses(1));
             frame.syncAndForgetEverything();
             masm.move(ImmPtr(PC), Registers::ArgReg1);
@@ -1985,7 +2081,6 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_CALLELEM)
 
           BEGIN_CASE(JSOP_STOP)
-            
             emitReturn(NULL);
             goto done;
           END_CASE(JSOP_STOP)
@@ -2378,8 +2473,6 @@ mjit::Compiler::emitStubCall(void *ptr)
 void
 mjit::Compiler::interruptCheckHelper()
 {
-    RegisterID reg = frame.allocReg();
-
     
 
 
@@ -2397,34 +2490,18 @@ mjit::Compiler::interruptCheckHelper()
     Jump jump = masm.branch32(Assembler::NotEqual, AbsoluteAddress(interrupt), Imm32(0));
 #else
     
+    RegisterID reg = frame.allocReg();
     masm.move(ImmPtr(interrupt), reg);
     Jump jump = masm.branchTest32(Assembler::NonZero, Address(reg, 0));
+    frame.freeReg(reg);
 #endif
 
     stubcc.linkExitDirect(jump, stubcc.masm.label());
-
-#ifdef JS_THREADSAFE
-    
-
-
-
-
-    stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), reg);
-    stubcc.masm.loadPtr(Address(reg, offsetof(JSContext, thread)), reg);
-    Address flag(reg, offsetof(JSThread, data.interruptFlags));
-    Jump noInterrupt = stubcc.masm.branchTest32(Assembler::Zero, flag);
-#endif
 
     frame.sync(stubcc.masm, Uses(0));
     stubcc.masm.move(ImmPtr(PC), Registers::ArgReg1);
     OOL_STUBCALL(stubs::Interrupt);
     stubcc.rejoin(Changes(0));
-
-#ifdef JS_THREADSAFE
-    stubcc.linkRejoin(noInterrupt);
-#endif
-
-    frame.freeReg(reg);
 }
 
 void
@@ -2964,6 +3041,9 @@ mjit::Compiler::compareTwoValues(JSContext *cx, JSOp op, const Value &lhs, const
 bool
 mjit::Compiler::emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused)
 {
+    fixDoubleTypes(Uses(2));
+    frame.syncAndForgetEverything();
+
     prepareStubCall(Uses(2));
     INLINE_STUBCALL(stub);
     frame.pop();
@@ -2976,7 +3056,6 @@ mjit::Compiler::emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused)
     }
 
     JS_ASSERT(fused == JSOP_IFEQ || fused == JSOP_IFNE);
-    frame.syncAndForgetEverything();
     Assembler::Condition cond = (fused == JSOP_IFEQ)
                                 ? Assembler::Zero
                                 : Assembler::NonZero;
@@ -4314,27 +4393,6 @@ mjit::Compiler::iterNext()
 bool
 mjit::Compiler::iterMore()
 {
-    FrameEntry *fe= frame.peek(-1);
-    RegisterID reg = frame.tempRegForData(fe);
-
-    frame.pinReg(reg);
-    RegisterID T1 = frame.allocReg();
-    frame.unpinReg(reg);
-
-    
-    Jump notFast = masm.testObjClass(Assembler::NotEqual, reg, &js_IteratorClass);
-    stubcc.linkExitForBranch(notFast);
-
-    
-    masm.loadFunctionPrivate(reg, T1);
-
-    
-    RegisterID T2 = frame.allocReg();
-    frame.syncAndForgetEverything();
-    masm.loadPtr(Address(T1, offsetof(NativeIterator, props_cursor)), T2);
-    masm.loadPtr(Address(T1, offsetof(NativeIterator, props_end)), T1);
-    Jump jFast = masm.branchPtr(Assembler::LessThan, T2, T1);
-
     jsbytecode *target = &PC[JSOP_MOREITER_LENGTH];
     JSOp next = JSOp(*target);
     JS_ASSERT(next == JSOP_IFNE || next == JSOP_IFNEX);
@@ -4342,6 +4400,27 @@ mjit::Compiler::iterMore()
     target += (next == JSOP_IFNE)
               ? GET_JUMP_OFFSET(target)
               : GET_JUMPX_OFFSET(target);
+
+    fixDoubleTypes(Uses(0));
+    if (!frame.syncForBranch(target, Uses(1)))
+        return false;
+
+    FrameEntry *fe = frame.peek(-1);
+    RegisterID reg = frame.tempRegForData(fe);
+    RegisterID tempreg = frame.allocReg();
+
+    
+    Jump notFast = masm.testObjClass(Assembler::NotEqual, reg, &js_IteratorClass);
+    stubcc.linkExitForBranch(notFast);
+
+    
+    masm.loadFunctionPrivate(reg, reg);
+
+    
+    masm.loadPtr(Address(reg, offsetof(NativeIterator, props_cursor)), tempreg);
+    masm.loadPtr(Address(reg, offsetof(NativeIterator, props_end)), reg);
+
+    Jump jFast = masm.branchPtr(Assembler::LessThan, tempreg, reg);
 
     stubcc.leave();
     OOL_STUBCALL(stubs::IterMore);
@@ -4352,6 +4431,7 @@ mjit::Compiler::iterMore()
     PC += js_CodeSpec[next].length;
 
     stubcc.rejoin(Changes(1));
+    frame.freeReg(tempreg);
 
     return jumpAndTrace(jFast, target, &j);
 }
@@ -4870,6 +4950,43 @@ mjit::Compiler::jsop_newinit()
     frame.pushInitializerObject(Registers::ReturnReg, *PC == JSOP_NEWARRAY, baseobj);
 }
 
+bool
+mjit::Compiler::finishLoop(jsbytecode *head)
+{
+    
+
+
+
+
+
+    
+
+
+
+
+    Jump fallthrough = masm.jump();
+
+    Jump entry;
+    jsbytecode *entryTarget;
+    frame.popLoop(head, &entry, &entryTarget);
+
+    if (!jumpInScript(entry, entryTarget))
+        return false;
+
+    fallthrough.linkTo(masm.label(), &masm);
+
+    return true;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4877,39 +4994,78 @@ mjit::Compiler::jsop_newinit()
 
 
 bool
-mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow)
+mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow, bool *trampoline)
 {
-    
-#ifndef JS_TRACER
-    if (!jumpInScript(j, target))
-        return false;
+    if (trampoline)
+        *trampoline = false;
 
-    if (slow) {
-        if (!stubcc.jumpInScript(*slow, target))
+    
+
+
+
+    RegisterAllocation *&lvtarget = liveness.getCode(target).allocation;
+    if (!lvtarget) {
+        lvtarget = ArenaNew<RegisterAllocation>(liveness.pool, false);
+        if (!lvtarget)
             return false;
+        JS_ASSERT(frame.consistentRegisters(target));
     }
-#else
+
     if (!addTraceHints || target >= PC || JSOp(*target) != JSOP_TRACE
 #ifdef JS_MONOIC
         || GET_UINT16(target) == BAD_TRACEIC_INDEX
 #endif
         )
     {
-        if (!jumpInScript(j, target))
-            return false;
-        if (slow) {
-            if (!stubcc.jumpInScript(*slow, target))
-                stubcc.jumpInScript(*slow, target);
+        if (lvtarget->synced()) {
+            JS_ASSERT(frame.consistentRegisters(target));
+            if (!jumpInScript(j, target))
+                return false;
+            if (slow && !stubcc.jumpInScript(*slow, target))
+                return false;
+        } else {
+            if (frame.consistentRegisters(target)) {
+                if (!jumpInScript(j, target))
+                    return false;
+            } else {
+                
+
+
+
+                stubcc.linkExitDirect(j, stubcc.masm.label());
+                frame.prepareForJump(target, stubcc.masm, false);
+                if (!stubcc.jumpInScript(stubcc.masm.jump(), target))
+                    return false;
+                if (trampoline)
+                    *trampoline = true;
+            }
+
+            if (slow) {
+                slow->linkTo(stubcc.masm.label(), &stubcc.masm);
+                frame.prepareForJump(target, stubcc.masm, true);
+                if (!stubcc.jumpInScript(stubcc.masm.jump(), target))
+                    return false;
+            }
         }
+
+        if (target < PC && !finishLoop(target))
+            return false;
         return true;
     }
+
+    
+    JS_ASSERT(!trampoline);
+
+#ifndef JS_TRACER
+    JS_NOT_REACHED("Bad addTraceHints");
+    return false;
+#else
 
 # if JS_MONOIC
     TraceGenInfo ic;
 
     ic.initialized = true;
     ic.stubEntry = stubcc.masm.label();
-    ic.jumpTarget = target;
     ic.traceHint = j;
     if (slow)
         ic.slowTraceHint = *slow;
@@ -4927,7 +5083,6 @@ mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow)
         slow->linkTo(traceStart, &stubcc.masm);
 # if JS_MONOIC
     ic.addrLabel = stubcc.masm.moveWithPatch(ImmPtr(NULL), Registers::ArgReg1);
-    traceICs[index] = ic;
 # endif
 
     
@@ -4945,9 +5100,32 @@ mjit::Compiler::jumpAndTrace(Jump j, jsbytecode *target, Jump *slow)
     restoreFrameRegs(stubcc.masm);
     stubcc.masm.jump(Registers::ReturnReg);
     no.linkTo(stubcc.masm.label(), &stubcc.masm);
+
+#ifdef JS_MONOIC
+    ic.jumpTarget = target;
+    ic.trampoline = false;
+
+    if (!frame.consistentRegisters(target)) {
+        ic.trampoline = true;
+        ic.trampolineStart = stubcc.masm.label();
+    }
+
+    traceICs[index] = ic;
+#endif
+
+    
+
+
+
+
+    frame.prepareForJump(target, stubcc.masm, true);
+
     if (!stubcc.jumpInScript(stubcc.masm.jump(), target))
         return false;
 #endif
+
+    if (!finishLoop(target))
+        return false;
     return true;
 }
 
@@ -5049,16 +5227,16 @@ mjit::Compiler::jsop_callelem_slow()
     frame.pushSynced(knownPushedType(1));
 }
 
+
+
+
+
+
+
 void
 mjit::Compiler::fixDoubleTypes(Uses uses)
 {
 #ifdef JS_TYPE_INFERENCE
-    
-
-
-
-
-
     for (uint32 i = 0; fun && i < fun->nargs; i++) {
         JSValueType type = knownArgumentType(i);
         if (type == JSVAL_TYPE_DOUBLE) {
@@ -5067,6 +5245,7 @@ mjit::Compiler::fixDoubleTypes(Uses uses)
                 frame.ensureDouble(fe);
         }
     }
+
     for (uint32 i = 0; i < script->nfixed; i++) {
         JSValueType type = knownLocalType(i);
         if (type == JSVAL_TYPE_DOUBLE) {
@@ -5075,6 +5254,8 @@ mjit::Compiler::fixDoubleTypes(Uses uses)
                 frame.ensureDouble(fe);
         }
     }
+
+    
     analyze::Bytecode &opinfo = analysis->getCode(PC);
     for (uint32 i = 0; i < opinfo.stackDepth - uses.nuses; i++) {
         types::TypeSet *types = analysis->getStackTypes(script->nfixed + i, &opinfo);
@@ -5115,7 +5296,7 @@ mjit::Compiler::restoreAnalysisTypes(uint32 stackDepth)
         if (type != JSVAL_TYPE_UNKNOWN && !stack->ignoreTypeTag) {
             FrameEntry *fe = frame.getLocal(script->nfixed + depth);
             JS_ASSERT(!fe->isTypeKnown());
-            frame.learnType(fe, type, type != JSVAL_TYPE_DOUBLE);
+            frame.learnType(fe, type, false);
         }
         stack = stack->group()->innerStack;
     }

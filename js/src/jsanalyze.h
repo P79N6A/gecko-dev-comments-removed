@@ -48,6 +48,9 @@
 
 struct JSScript;
 
+
+namespace js { namespace mjit { struct RegisterAllocation; } }
+
 namespace js {
 namespace analyze {
 
@@ -65,6 +68,12 @@ struct Bytecode
     bool fallthrough : 1;
 
     
+    bool jumpFallthrough : 1;
+
+    
+    bool switchTarget : 1;
+
+    
     bool analyzed : 1;
 
     
@@ -72,9 +81,6 @@ struct Bytecode
 
     
     bool inTryBlock : 1;
-
-    
-    bool safePoint : 1;
 
     
 
@@ -172,6 +178,7 @@ class Script
     friend struct Bytecode;
 
     JSScript *script;
+
     Bytecode **codeArray;
 
     
@@ -523,6 +530,133 @@ GetDefCount(JSScript *script, unsigned offset)
         return js_CodeSpec[*pc].ndefs;
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct Lifetime
+{
+    
+
+
+
+    uint32 start;
+    uint32 end;
+
+    
+
+
+
+
+    bool loopTail;
+
+    
+    Lifetime *next;
+
+    Lifetime(uint32 offset, Lifetime *next)
+        : start(offset), end(offset), loopTail(false), next(next)
+    {}
+};
+
+
+struct LifetimeBytecode
+{
+    
+    uint32 loopBackedge;
+
+    
+    mjit::RegisterAllocation *allocation;
+};
+
+
+struct LifetimeVariable
+{
+    
+    Lifetime *lifetime;
+
+    
+    Lifetime *saved;
+
+    
+    uint32 savedEnd;
+
+    Lifetime * live(uint32 offset) {
+        if (lifetime && lifetime->end >= offset)
+            return lifetime;
+        Lifetime *segment = lifetime ? lifetime : saved;
+        while (segment && segment->start <= offset) {
+            if (segment->end >= offset)
+                return segment;
+            segment = segment->next;
+        }
+        return NULL;
+    }
+};
+
+
+
+
+
+
+class LifetimeScript
+{
+    analyze::Script *analysis;
+    JSScript *script;
+    JSFunction *fun;
+
+    LifetimeBytecode *codeArray;
+    LifetimeVariable *locals;
+    LifetimeVariable *args;
+    LifetimeVariable thisVar;
+
+    LifetimeVariable **saved;
+    unsigned savedCount;
+
+  public:
+    JSArenaPool pool;
+
+    LifetimeScript();
+    ~LifetimeScript();
+
+    bool analyze(JSContext *cx, analyze::Script *analysis, JSScript *script, JSFunction *fun);
+
+    LifetimeBytecode &getCode(uint32 offset) {
+        JS_ASSERT(analysis->maybeCode(offset));
+        return codeArray[offset];
+    }
+    LifetimeBytecode &getCode(jsbytecode *pc) { return getCode(pc - script->code); }
+
+#ifdef DEBUG
+    void dumpVariable(LifetimeVariable &var);
+    void dumpLocal(unsigned i) { dumpVariable(locals[i]); }
+    void dumpArg(unsigned i) { dumpVariable(args[i]); }
+#endif
+
+    Lifetime * argLive(uint32 arg, uint32 offset) { return args[arg].live(offset); }
+    Lifetime * localLive(uint32 local, uint32 offset) { return locals[local].live(offset); }
+    Lifetime * thisLive(uint32 offset) { return thisVar.live(offset); }
+
+  private:
+
+    inline bool addVariable(JSContext *cx, LifetimeVariable &var, unsigned offset);
+    inline void killVariable(JSContext *cx, LifetimeVariable &var, unsigned offset);
+    inline bool extendVariable(JSContext *cx, LifetimeVariable &var, unsigned start, unsigned end);
+};
 
 } 
 } 

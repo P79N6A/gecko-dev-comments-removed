@@ -40,6 +40,7 @@
 #if !defined jsjaeger_framestate_h__ && defined JS_METHODJIT
 #define jsjaeger_framestate_h__
 
+#include "jsanalyze.h"
 #include "jsapi.h"
 #include "methodjit/MachineRegs.h"
 #include "methodjit/FrameEntry.h"
@@ -63,6 +64,8 @@ struct Changes {
     { }
     uint32 nchanges;
 };
+
+class StubCompiler;
 
 
 
@@ -238,7 +241,9 @@ class FrameState
 
     FrameState *thisFromCtor() { return this; }
   public:
-    FrameState(JSContext *cx, JSScript *script, JSFunction *fun, Assembler &masm);
+    FrameState(JSContext *cx, JSScript *script, JSFunction *fun,
+               Compiler &cc, Assembler &masm, StubCompiler &stubcc,
+               analyze::LifetimeScript &liveness);
     ~FrameState();
     bool init();
 
@@ -550,7 +555,7 @@ class FrameState
     
 
 
-    void takeReg(RegisterID reg);
+    void takeReg(AnyRegisterID reg);
 
     
 
@@ -580,7 +585,6 @@ class FrameState
                   JSValueType type = JSVAL_TYPE_UNKNOWN);
     void storeTop(FrameEntry *target, bool popGuaranteed = false,
                   JSValueType type = JSVAL_TYPE_UNKNOWN);
-    void finishStore(FrameEntry *fe, bool closed);
 
     
 
@@ -609,25 +613,38 @@ class FrameState
 
 
 
-
-    inline void syncAndForgetEverything(uint32 newStackDepth);
-
-    
-
-
-
-    void syncAndForgetEverything();
-
-    
-
-
-
     void forgetEverything();
+
+    void syncAndForgetEverything()
+    {
+        syncAndKillEverything();
+        forgetEverything();
+    }
 
     
 
 
     void discardFrame();
+
+    
+
+
+
+
+
+    bool syncForBranch(jsbytecode *target, Uses uses);
+
+    
+    bool discardForJoin(jsbytecode *target, uint32 stackDepth);
+
+    
+    bool consistentRegisters(jsbytecode *target);
+
+    
+
+
+
+    void prepareForJump(jsbytecode *target, Assembler &masm, bool synced);
 
     
 
@@ -796,8 +813,29 @@ class FrameState
         this->inTryBlock = inTryBlock;
     }
 
+    void setAnalysis(analyze::Script *analysis) { this->analysis = analysis; }
+
+    bool pushLoop(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
+    void popLoop(jsbytecode *head, Jump *pentry, jsbytecode **pentryTarget);
+
+    void setPC(jsbytecode *PC) { this->PC = PC; }
+
+    struct StubJoin {
+        unsigned index;
+        bool script;
+    };
+
+    void addJoin(unsigned index, bool script) {
+        if (activeLoop) {
+            StubJoin r;
+            r.index = index;
+            r.script = script;
+            loopJoins.append(r);
+        }
+    }
+
   private:
-    inline AnyRegisterID allocReg(FrameEntry *fe, bool fp, RematInfo::RematType type);
+    inline AnyRegisterID allocAndLoadReg(FrameEntry *fe, bool fp, RematInfo::RematType type);
     inline void forgetReg(AnyRegisterID reg);
     AnyRegisterID evictSomeReg(uint32 mask);
     void evictReg(AnyRegisterID reg);
@@ -813,6 +851,7 @@ class FrameState
     inline void syncFe(FrameEntry *fe);
     inline void syncType(FrameEntry *fe);
     inline void syncData(FrameEntry *fe);
+    inline void syncAndForgetFe(FrameEntry *fe);
 
     inline FrameEntry *getOrTrack(uint32 index);
     inline FrameEntry *getCallee();
@@ -840,6 +879,12 @@ class FrameState
     FrameEntry *walkFrameForUncopy(FrameEntry *original);
 
     
+    bool hasOnlyCopy(FrameEntry *backing, FrameEntry *fe);
+
+    
+    bool isEntryCopied(FrameEntry *fe) const;
+
+    
 
 
 
@@ -850,9 +895,6 @@ class FrameState
         return &entries[index];
     }
 
-    AnyRegisterID evictSomeReg(bool fp) {
-        return evictSomeReg(fp ? Registers::AvailFPRegs : Registers::AvailRegs);
-    }
     uint32 indexOf(int32 depth) const {
         JS_ASSERT(uint32((sp + depth) - entries) < feLimit());
         return uint32((sp + depth) - entries);
@@ -863,8 +905,8 @@ class FrameState
     }
     uint32 feLimit() const { return script->nslots + nargs + 2; }
 
-    inline bool isClosedVar(uint32 slot);
-    inline bool isClosedArg(uint32 slot);
+    inline bool isClosedVar(uint32 slot) const;
+    inline bool isClosedArg(uint32 slot) const;
 
     RegisterState & regstate(AnyRegisterID reg) {
         JS_ASSERT(reg.reg_ < Registers::TotalAnyRegisters);
@@ -876,12 +918,34 @@ class FrameState
         return regstate_[reg.reg_];
     }
 
+    AnyRegisterID bestEvictReg(uint32 mask, bool includePinned) const;
+
+    inline analyze::Lifetime * variableLive(FrameEntry *fe, jsbytecode *pc) const;
+    inline bool binaryEntryLive(FrameEntry *fe) const;
+    RegisterAllocation * computeAllocation(jsbytecode *target);
+    void relocateReg(AnyRegisterID reg, RegisterAllocation *alloc, Uses uses);
+
+    bool isArg(FrameEntry *fe) const { return fun && fe >= args && fe - args < fun->nargs; }
+    bool isLocal(FrameEntry *fe) const { return fe >= locals && fe - locals < script->nfixed; }
+
+    inline void clearLoopReg(AnyRegisterID reg);
+    void setLoopReg(AnyRegisterID reg, FrameEntry *fe);
+    void flushLoopJoins();
+
+#ifdef DEBUG
+    const char * entryName(FrameEntry *fe) const;
+    void dumpAllocation(RegisterAllocation *alloc);
+#else
+    const char * entryName(FrameEntry *fe) const { return NULL; }
+#endif
+
   private:
     JSContext *cx;
     JSScript *script;
     JSFunction *fun;
     uint32 nargs;
     Assembler &masm;
+    StubCompiler &stubcc;
 
     
     Registers freeRegs;
@@ -913,6 +977,48 @@ class FrameState
 
     RegisterState regstate_[Registers::TotalAnyRegisters];
 
+    struct LoopState
+    {
+        LoopState *outer;
+        jsbytecode *head;
+        RegisterAllocation *alloc;
+
+        
+
+
+
+
+        Jump entry;
+        jsbytecode *entryTarget;
+    };
+
+    
+    LoopState *activeLoop;
+
+    
+    Registers loopRegs;
+
+    
+    Vector<StubJoin,16,CompilerAllocPolicy> loopJoins;
+
+    struct StubJoinPatch {
+        StubJoin join;
+        Address address;
+        AnyRegisterID reg;
+    };
+
+    
+    Vector<StubJoinPatch,16,CompilerAllocPolicy> loopPatches;
+
+    analyze::Script *analysis;
+
+    
+
+
+
+    analyze::LifetimeScript &liveness;
+    jsbytecode *PC;
+
 #if defined JS_NUNBOX32
     mutable ImmutableSync reifier;
 #endif
@@ -922,6 +1028,118 @@ class FrameState
     bool eval;
     bool usesArguments;
     bool inTryBlock;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct RegisterAllocation {
+  private:
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+    typedef JSC::MacroAssembler::FPRegisterID FPRegisterID;
+
+    
+    static const uint32 UNASSIGNED_REGISTER = 0xffffffff;
+
+    
+
+
+
+
+
+
+    static const uint32 LOOP_REGISTER = 0xfffffffe;
+
+    
+
+
+
+    uint32 regstate_[Registers::TotalAnyRegisters];
+
+    
+    static const uint32 SYNCED = 0x80000000;
+
+    uint32 & regstate(AnyRegisterID reg) {
+        JS_ASSERT(reg.reg_ < Registers::TotalAnyRegisters);
+        return regstate_[reg.reg_];
+    }
+
+  public:
+    RegisterAllocation(bool forLoop) {
+        uint32 entry = forLoop ? (uint32) LOOP_REGISTER : (uint32) UNASSIGNED_REGISTER;
+        for (unsigned i = 0; i < Registers::TotalAnyRegisters; i++) {
+            AnyRegisterID reg = AnyRegisterID::fromRaw(i);
+            bool avail = Registers::maskReg(reg) & Registers::AvailAnyRegs;
+            regstate_[i] = avail ? entry : UNASSIGNED_REGISTER;
+        }
+    }
+
+    bool assigned(AnyRegisterID reg) {
+        return regstate(reg) != UNASSIGNED_REGISTER && regstate(reg) != LOOP_REGISTER;
+    }
+
+    bool loop(AnyRegisterID reg) {
+        return regstate(reg) == LOOP_REGISTER;
+    }
+
+    bool synced(AnyRegisterID reg) {
+        JS_ASSERT(assigned(reg));
+        return regstate(reg) & SYNCED;
+    }
+
+    uint32 slot(AnyRegisterID reg) {
+        JS_ASSERT(assigned(reg));
+        return regstate(reg) & ~SYNCED;
+    }
+
+    void set(AnyRegisterID reg, uint32 slot, bool synced) {
+        JS_ASSERT(slot != LOOP_REGISTER && slot != UNASSIGNED_REGISTER);
+        regstate(reg) = slot | (synced ? SYNCED : 0);
+    }
+
+    void setUnassigned(AnyRegisterID reg) {
+        regstate(reg) = UNASSIGNED_REGISTER;
+    }
+
+    bool synced() {
+        for (unsigned i = 0; i < Registers::TotalAnyRegisters; i++) {
+            if (assigned(AnyRegisterID::fromRaw(i)))
+                return false;
+        }
+        return true;
+    }
+
+    void clearLoops() {
+        for (unsigned i = 0; i < Registers::TotalAnyRegisters; i++) {
+            AnyRegisterID reg = AnyRegisterID::fromRaw(i);
+            if (loop(reg))
+                setUnassigned(reg);
+        }
+    }
+
+    bool hasAnyReg(uint32 n) {
+        for (unsigned i = 0; i < Registers::TotalAnyRegisters; i++) {
+            AnyRegisterID reg = AnyRegisterID::fromRaw(i);
+            if (assigned(reg) && slot(reg) == n)
+                return true;
+        }
+        return false;
+    }
 };
 
 class AutoPreserveAcrossSyncAndKill;

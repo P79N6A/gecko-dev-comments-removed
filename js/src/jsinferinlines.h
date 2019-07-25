@@ -743,6 +743,11 @@ inline jsid
 Script::getLocalId(unsigned index, Bytecode *code)
 {
     if (index >= script->nfixed) {
+        
+
+
+
+
         if (!code)
             return JSID_VOID;
 
