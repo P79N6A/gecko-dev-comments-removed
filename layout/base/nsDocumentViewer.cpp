@@ -297,6 +297,7 @@ private:
 
 
 class DocumentViewerImpl : public nsIDocumentViewer,
+                           public nsIContentViewer_MOZILLA_2_0_BRANCH,
                            public nsIContentViewerEdit,
                            public nsIContentViewerFile,
                            public nsIMarkupDocumentViewer,
@@ -356,6 +357,8 @@ public:
   
   NS_DECL_NSIDOCUMENTVIEWERPRINT
 
+  
+  NS_DECL_NSICONTENTVIEWER_MOZILLA_2_0_BRANCH
 protected:
   virtual ~DocumentViewerImpl();
 
@@ -585,6 +588,7 @@ NS_INTERFACE_MAP_BEGIN(DocumentViewerImpl)
 #ifdef NS_PRINTING
     NS_INTERFACE_MAP_ENTRY(nsIWebBrowserPrint)
 #endif
+    NS_INTERFACE_MAP_ENTRY(nsIContentViewer_MOZILLA_2_0_BRANCH)
 NS_INTERFACE_MAP_END
 
 DocumentViewerImpl::~DocumentViewerImpl()
@@ -1014,7 +1018,6 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
     shell->FlushPendingNotifications(Flush_Layout);
   }
 
-  nsresult rv = NS_OK;
   NS_ENSURE_TRUE(mDocument, NS_ERROR_NOT_AVAILABLE);
 
   
@@ -1110,11 +1113,7 @@ DocumentViewerImpl::LoadComplete(nsresult aStatus)
   }
 #endif
 
-  if (!mStopped && window) {
-    window->DispatchSyncPopState();
-  }
-
-  return rv;
+  return mStopped ? NS_SUCCESS_LOAD_STOPPED : NS_OK;
 }
 
 NS_IMETHODIMP
@@ -1600,14 +1599,20 @@ DocumentViewerImpl::Destroy()
 
     
     
-    if (savePresentation) {
-      mSHEntry->SetContentViewer(this);
-    }
-    else {
-      mSHEntry->SyncPresentationState();
-    }
+
+    
+    
     nsCOMPtr<nsISHEntry> shEntry = mSHEntry; 
     mSHEntry = nsnull;
+
+    if (savePresentation) {
+      shEntry->SetContentViewer(this);
+    }
+
+    
+    
+    
+    shEntry->SyncPresentationState();
 
     
     
@@ -1793,6 +1798,7 @@ DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
   if (mPresContext) {
     DestroyPresContext();
 
+    mWindow = nsnull;
     InitInternal(mParentWidget, nsnull, mBounds, PR_TRUE, PR_TRUE, PR_FALSE);
   }
 
@@ -4296,6 +4302,13 @@ NS_IMETHODIMP
 DocumentViewerImpl::GetHistoryEntry(nsISHEntry **aHistoryEntry)
 {
   NS_IF_ADDREF(*aHistoryEntry = mSHEntry);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+DocumentViewerImpl::GetIsTabModalPromptAllowed(PRBool *aAllowed)
+{
+  *aAllowed = !(mInPermitUnload || mHidden);
   return NS_OK;
 }
 
