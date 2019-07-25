@@ -319,12 +319,15 @@ public class LayerController {
 
 
     public boolean getRedrawHint() {
+        
+        
+
         if (mForceRedraw) {
             mForceRedraw = false;
             return true;
         }
 
-        return aboutToCheckerboard() && mPanZoomController.getRedrawHint();
+        return mPanZoomController.getRedrawHint();
     }
 
     private RectF getTileRect() {
