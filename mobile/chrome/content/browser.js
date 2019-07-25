@@ -60,6 +60,7 @@ function getBrowser() {
   return Browser.selectedBrowser;
 }
 
+const kDefaultTextZoom = 1.2;
 const kDefaultBrowserWidth = 1024;
 
 function debug() {
@@ -2248,8 +2249,14 @@ ProgressController.prototype = {
   _networkStart: function _networkStart() {
     this._tab.startLoading();
 
-    if (Browser.selectedBrowser == this.browser)
+    if (Browser.selectedBrowser == this.browser) {
       BrowserUI.update(TOOLBARSTATE_LOADING);
+
+      
+      
+      if (this.browser.markupDocumentViewer.textZoom != kDefaultTextZoom)
+        this.browser.markupDocumentViewer.textZoom = kDefaultTextZoom;
+    }
 
     
     let event = document.createEvent("Events");
