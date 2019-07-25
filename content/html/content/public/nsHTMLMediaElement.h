@@ -51,12 +51,18 @@
 #include "nsAudioStream.h"
 #include "VideoFrameContainer.h"
 #include "mozilla/CORSMode.h"
+#include "nsDOMMediaStream.h"
+#include "mozilla/Mutex.h"
 
 
 
 
 typedef PRUint16 nsMediaNetworkState;
 typedef PRUint16 nsMediaReadyState;
+
+namespace mozilla {
+class MediaResource;
+}
 
 class nsHTMLMediaElement : public nsGenericHTMLElement,
                            public nsIObserver
@@ -65,6 +71,8 @@ public:
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::layers::ImageContainer ImageContainer;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
+  typedef mozilla::MediaStream MediaStream;
+  typedef mozilla::MediaResource MediaResource;
 
   enum CanPlayStatus {
     CANPLAY_NO,
@@ -253,6 +261,8 @@ public:
   bool IsPlaybackEnded() const;
 
   
+  
+  
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
@@ -370,8 +380,15 @@ public:
 
   void FireTimeUpdate(bool aPeriodic);
 
+  MediaStream* GetMediaStream()
+  {
+    NS_ASSERTION(mStream, "Don't call this when not playing a stream");
+    return mStream->GetStream();
+  }
+
 protected:
   class MediaLoadListener;
+  class StreamListener;
 
   
 
@@ -389,6 +406,15 @@ protected:
 
 
   void SetPlayedOrSeeked(bool aValue);
+
+  
+
+
+  void SetupMediaStreamPlayback();
+  
+
+
+  void EndMediaStreamPlayback();
 
   
 
@@ -415,7 +441,10 @@ protected:
 
 
 
-  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder);
+  nsresult FinishDecoderSetup(nsMediaDecoder* aDecoder,
+                              MediaResource* aStream,
+                              nsIStreamListener **aListener,
+                              nsMediaDecoder* aCloneDonor);
 
   
 
@@ -588,11 +617,24 @@ protected:
   void ProcessMediaFragmentURI();
 
   
+  
   nsRefPtr<nsMediaDecoder> mDecoder;
 
   
   
   nsRefPtr<VideoFrameContainer> mVideoFrameContainer;
+
+  
+  
+  nsRefPtr<nsDOMMediaStream> mSrcAttrStream;
+
+  
+  
+  
+  nsRefPtr<nsDOMMediaStream> mStream;
+
+  
+  StreamListener* mStreamListener;
 
   
   

@@ -133,22 +133,8 @@ nsHTMLAudioElement::Initialize(nsISupports* aOwner, JSContext* aContext,
   }
 
   
-  JSString* jsstr = JS_ValueToString(aContext, argv[0]);
-  if (!jsstr)
-    return NS_ERROR_FAILURE;
-
-  nsDependentJSString str;
-  if (!str.init(aContext, jsstr))
-    return NS_ERROR_FAILURE;
-
-  rv = SetAttr(kNameSpaceID_None, nsGkAtoms::src, str, true);
-  if (NS_FAILED(rv))
-    return rv;
-
   
-  QueueSelectResourceTask();
-
-  return NS_OK;
+  return SetSrc(aContext, argv[0]);
 }
 
 NS_IMETHODIMP
