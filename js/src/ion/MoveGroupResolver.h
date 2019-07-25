@@ -91,6 +91,8 @@ class MoveGroupResolver
         { }
     };
 
+    typedef InlineList<MoveGroupResolver::PendingMove>::iterator PendingMoveIterator;
+
   private:
     
     
