@@ -180,14 +180,24 @@ Mirror.prototype = $.extend(new Subscribable(), {
 
 
 
-var TabMirror = function( ){ this.init() }
+var TabMirror = function() {
+  if(window.Tabs) 
+    this.init();
+  else { 
+    var self = this;
+    TabsManager.addSubscriber(this, 'load', function() {
+      self.init();
+    });
+  }
+}
+
 TabMirror.prototype = {
   
   
   
   init: function(){
     var self = this;
-    
+        
     
     Tabs.onOpen(function() { 
       var tab = this;

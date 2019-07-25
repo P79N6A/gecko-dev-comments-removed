@@ -64,10 +64,14 @@ var Tabbar = {
   _hidden: false, 
   
   
-  get el(){ return window.Tabs[0].raw.parentNode; },
+  get el() {
+    return window.Tabs[0].raw.parentNode; 
+  },
 
   
-  height: window.Tabs[0].raw.parentNode.getBoundingClientRect().height,
+  get height() {
+    return window.Tabs[0].raw.parentNode.getBoundingClientRect().height;
+  },
 
   
   hide: function(animate) {
@@ -448,121 +452,133 @@ ArrangeClass.prototype = {
 
 
 function UIClass(){ 
-  
-  
-  this.navBar = Navbar;
-  
-  
-  
-  this.tabBar = Tabbar;
-  
-  
-  
-  
-  this.devMode = false;
-  
-  
-  
-  
-  this.currentTab = Utils.activeTab;
-  
-  
-  
-  this.focused = (Utils.activeTab == Utils.homeTab);
-  
-  var self = this;
-  
-  
-  var params = document.location.search.replace('?', '').split('&');
-  $.each(params, function(index, param) {
-    var parts = param.split('=');
-    if(parts[0] == 'dev' && parts[1] == '1') 
-      self.devMode = true;
-  });
-  
-  
-  if(this.devMode) {
-    Switch.insert('body', '');
-    $('<br><br>').appendTo("#actions");
-    this._addArrangements();
+  if(window.Tabs) 
+    this.init();
+  else { 
+    var self = this;
+    TabsManager.addSubscriber(this, 'load', function() {
+      self.init();
+    });
   }
-  
-  
-  if(this.focused) {
-    this.tabBar.hide();
-    this.navBar.hide();
-  }
-  
-  Tabs.onFocus(function() {
-    setTimeout(function() { 
-      try{
-        if(this.contentWindow.location.host == "tabcandy") {
-          self.focused = true;
-          self.navBar.hide();
-          self.tabBar.hide();
-        } else {
-          self.focused = false;
-          self.navBar.show();      
-        }
-      }catch(e){
-        Utils.log()
-      }
-    }, 1);
-  });
-
-  Tabs.onOpen(function(a, b) {
-    setTimeout(function() { 
-      self.navBar.show();
-    }, 1);
-  });
-
-  
-  Page.init();
-  
-  
-  var data = Storage.read();
-  var sane = this.storageSanity(data);
-  if(!sane || data.dataVersion < 2) {
-    data.groups = null;
-    data.tabs = null;
-    data.pageBounds = null;
-    
-    if(!sane)
-      alert('storage data is bad; starting fresh');
-  }
-   
-  Groups.reconstitute(data.groups);
-  TabItems.reconstitute(data.tabs);
-  
-  $(window).bind('beforeunload', function() {
-    if(self.initialized) 
-      self.save();
-      
-    self.navBar.show();
-    self.tabBar.show(false);    
-    self.tabBar.showAllTabs();
-  });
-  
-  
-  if(data.pageBounds) {
-    this.pageBounds = data.pageBounds;
-    this.resize();
-  } else 
-    this.pageBounds = Items.getPageBounds();    
-  
-  $(window).resize(function() {
-    self.resize();
-  });
-  
-  
-  this.addDevMenu();
-  
-  
-  this.initialized = true;
 };
 
 
 UIClass.prototype = {
+  
+  init: function() {
+    
+    
+    this.navBar = Navbar;
+    
+    
+    
+    this.tabBar = Tabbar;
+    
+    
+    
+    
+    this.devMode = false;
+    
+    
+    
+    
+    this.currentTab = Utils.activeTab;
+    
+    
+    
+    this.focused = (Utils.activeTab == Utils.homeTab);
+    
+    var self = this;
+    
+    
+    var params = document.location.search.replace('?', '').split('&');
+    $.each(params, function(index, param) {
+      var parts = param.split('=');
+      if(parts[0] == 'dev' && parts[1] == '1') 
+        self.devMode = true;
+    });
+    
+    
+    if(this.devMode) {
+      Switch.insert('body', '');
+      $('<br><br>').appendTo("#actions");
+      this._addArrangements();
+    }
+    
+    
+    if(this.focused) {
+      this.tabBar.hide();
+      this.navBar.hide();
+    }
+    
+    Tabs.onFocus(function() {
+      setTimeout(function() { 
+        try{
+          if(this.contentWindow.location.host == "tabcandy") {
+            self.focused = true;
+            self.navBar.hide();
+            self.tabBar.hide();
+          } else {
+            self.focused = false;
+            self.navBar.show();      
+          }
+        }catch(e){
+          Utils.log()
+        }
+      }, 1);
+    });
+  
+    Tabs.onOpen(function(a, b) {
+      setTimeout(function() { 
+        self.navBar.show();
+      }, 1);
+    });
+  
+    
+    Page.init();
+    
+    
+    var data = Storage.read();
+    var sane = this.storageSanity(data);
+    if(!sane || data.dataVersion < 2) {
+      data.groups = null;
+      data.tabs = null;
+      data.pageBounds = null;
+      
+      if(!sane)
+        alert('storage data is bad; starting fresh');
+    }
+     
+    Groups.reconstitute(data.groups);
+    TabItems.reconstitute(data.tabs);
+    
+    $(window).bind('beforeunload', function() {
+      if(self.initialized) 
+        self.save();
+        
+      self.navBar.show();
+      self.tabBar.show(false);    
+      self.tabBar.showAllTabs();
+    });
+    
+    
+    if(data.pageBounds) {
+      this.pageBounds = data.pageBounds;
+      this.resize();
+    } else 
+      this.pageBounds = Items.getPageBounds();    
+    
+    $(window).resize(function() {
+      self.resize();
+    });
+    
+    
+    this.addDevMenu();
+    
+    
+    this.initialized = true;
+  }, 
+  
   
   resize: function() {
 
