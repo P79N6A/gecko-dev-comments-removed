@@ -60,6 +60,7 @@
 #include "nsISerializable.h"
 #include "nsIClassInfo.h"
 #include "nsComponentManagerUtils.h"
+#include "nsIURI.h" 
 
 NS_IMPL_ISUPPORTS3(nsBinaryOutputStream, nsIObjectOutputStream, nsIBinaryOutputStream, nsIOutputStream)
 
@@ -758,6 +759,20 @@ nsBinaryInputStream::ReadObject(PRBool aIsStrongRef, nsISupports* *aObject)
 
     rv = ReadID(&iid);
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    
+    static const nsIID oldURIiid =
+        { 0x7a22cc0, 0xce5, 0x11d3,
+          { 0x93, 0x31, 0x0, 0x10, 0x4b, 0xa0, 0xfd, 0x40 }};
+
+    if (iid.Equals(oldURIiid)) {
+        const nsIID newURIiid = NS_IURI_IID;
+        iid = newURIiid;
+    }
+    
 
     nsCOMPtr<nsISupports> object = do_CreateInstance(cid, &rv);
     NS_ENSURE_SUCCESS(rv, rv);
