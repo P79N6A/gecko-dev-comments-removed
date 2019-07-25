@@ -1,0 +1,107 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "Layers.h"
+#include "RenderTrace.h"
+
+
+#ifdef MOZ_RENDERTRACE
+
+
+namespace mozilla {
+namespace layers {
+
+static int colorId = 0;
+
+
+const char* colors[] = {
+    "00", "01", "02", "03", "04", "05", "06", "07", "08", "09",
+    "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"
+    };
+
+static gfx3DMatrix GetRootTransform(Layer *aLayer) {
+  gfx3DMatrix layerTrans = aLayer->GetTransform().ProjectTo2D();
+  if (aLayer->GetParent() != NULL) {
+    return GetRootTransform(aLayer->GetParent()) * layerTrans;
+  }
+  return layerTrans;
+}
+
+void RenderTraceLayers(Layer *aLayer, const char *aColor, const gfx3DMatrix aRootTransform, bool aReset) {
+  if (!aLayer)
+    return;
+
+  gfx3DMatrix trans = aRootTransform * aLayer->GetTransform().ProjectTo2D();
+  nsIntRect clipRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
+  gfxRect rect(clipRect.x, clipRect.y, clipRect.width, clipRect.height);
+  trans.TransformBounds(rect);
+
+  printf_stderr("%s RENDERTRACE %u rect #%02X%s %i %i %i %i\n",
+    aLayer->Name(), (int)PR_IntervalNow(),
+    colorId, aColor,
+    (int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+
+  colorId++;
+
+  for (Layer* child = aLayer->GetFirstChild();
+        child; child = child->GetNextSibling()) {
+    RenderTraceLayers(child, aColor, aRootTransform, false);
+  }
+
+  if (aReset) colorId = 0;
+}
+
+void RenderTraceInvalidateStart(Layer *aLayer, const char *aColor, const nsIntRect aRect) {
+  gfx3DMatrix trans = GetRootTransform(aLayer);
+  gfxRect rect(aRect.x, aRect.y, aRect.width, aRect.height);
+  trans.TransformBounds(rect);
+
+  printf_stderr("%s RENDERTRACE %u fillrect #%s %i %i %i %i\n",
+    aLayer->Name(), (int)PR_IntervalNow(),
+    aColor,
+    (int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+}
+void RenderTraceInvalidateEnd(Layer *aLayer, const char *aColor) {
+  
+  RenderTraceInvalidateStart(aLayer, aColor, nsIntRect());
+}
+
+}
+}
+
+#endif
+
