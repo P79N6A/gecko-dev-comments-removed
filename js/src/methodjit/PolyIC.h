@@ -46,6 +46,7 @@
 #include "assembler/assembler/MacroAssembler.h"
 #include "assembler/assembler/CodeLocation.h"
 #include "methodjit/MethodJIT.h"
+#include "RematInfo.h"
 
 #define ENABLE_PIC 1
 
@@ -69,40 +70,68 @@ struct PICInfo {
 
     static const uint32 LENGTH_ATOM = 0xFFFFFFFF;
 
+    union {
+        struct {
+            RegisterID typeReg  : 5;  
+            bool hasTypeCheck   : 1;  
+
+            
+            uint8 typeCheckOffset;
+
+            
+            uint32 objRemat    : 20;
+            bool objNeedsRemat : 1;
+
+            
+            
+            
+            int secondShapeGuard : 8;
+
+            
+            
+            bool shapeRegHasBaseShape : 1;
+        } get;
+        ValueRemat vr;
+    } u;
+
     Kind kind : 2;
 
     
     bool hit : 1;                   
     bool inlinePathPatched : 1;     
 
-    
-    
-    bool shapeRegHasBaseShape : 1;
     RegisterID shapeReg : 5;        
     RegisterID objReg   : 5;        
-    RegisterID typeReg  : 5;        
-    bool hasTypeCheck   : 1;        
 
-    
-    bool startsWithShapeLoad : 1;
+    inline RegisterID typeReg() {
+        JS_ASSERT(kind == GET);
+        return u.get.typeReg;
+    }
+    inline bool hasTypeCheck() {
+        JS_ASSERT(kind == GET);
+        return u.get.hasTypeCheck;
+    }
+    inline uint32 objRemat() {
+        JS_ASSERT(kind == GET);
+        return u.get.objRemat;
+    }
+    inline bool objNeedsRemat() {
+        JS_ASSERT(kind == GET);
+        return u.get.objNeedsRemat;
+    }
+    inline bool shapeNeedsRemat() {
+        JS_ASSERT(kind == GET);
+        return u.get.shapeRegHasBaseShape;
+    }
 
     
     uint32 stubsGenerated : 5;
 
     
     int shapeGuard : 8;
-
     
-    
-    
-    int secondShapeGuard : 8;
-
     
     uint32 atomIndex;
-
-    
-    uint32 objRemat    : 20;
-    bool objNeedsRemat : 1;
 
     
     JSC::CodeLocationLabel fastPathStart;
@@ -115,9 +144,6 @@ struct PICInfo {
 
     
     JSC::CodeLocationLabel slowPathStart;
-
-    
-    uint8 typeCheckOffset;
 
     
     JSC::CodeLocationLabel lastStubStart;
@@ -152,9 +178,11 @@ struct PICInfo {
     void reset() {
         hit = false;
         inlinePathPatched = false;
-        objNeedsRemat = false;
-        shapeRegHasBaseShape = true;
-        secondShapeGuard = 0;
+        if (kind == GET) {
+            u.get.secondShapeGuard = 0;
+            u.get.objNeedsRemat = false;
+            u.get.shapeRegHasBaseShape = true;
+        }
         stubsGenerated = 0;
         releasePools();
         execPools.clear();
