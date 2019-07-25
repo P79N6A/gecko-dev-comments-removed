@@ -139,21 +139,7 @@ ClientEngine.prototype = {
   },
   set localName(value) Svc.Prefs.set("client.name", value),
 
-  get localType() {
-    
-    let localType = Svc.Prefs.get("client.type", "");
-    if (localType == "") {
-      
-      localType = "desktop";
-      switch (Svc.AppInfo.ID) {
-        case FENNEC_ID:
-          localType = "mobile";
-          break;
-      }
-      this.localType = localType;
-    }
-    return localType;
-  },
+  get localType() Svc.Prefs.get("client.type", "desktop"),
   set localType(value) Svc.Prefs.set("client.type", value),
 
   isMobile: function isMobile(id) {
