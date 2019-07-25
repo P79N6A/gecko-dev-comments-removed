@@ -1,6 +1,7 @@
 
 
 
+
 .viewContainer {
   background: #cddae5; 
   font-family: monospace;
@@ -23,16 +24,10 @@
 }
 
 
-.ruler.lines {
-  text-align: right;
-}
-
-
 .rulerLines {
   border-right: 1px solid #b4c4d3;
   background: #cddae5;
   color: #7a8a99;
-  min-width: 1.4em;
   padding-left: 4px;
   padding-right: 4px;
   text-align: end;
@@ -119,9 +114,6 @@
 .invalid {
   color: red;
   font-weight: bold;
-}
-
-.annotationRange.currentBracket {
 }
 
 .annotationRange.matchingBracket {

@@ -64,7 +64,7 @@ const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
 
 
 const ORION_THEMES = {
-  mozilla: ["chrome://browser/content/orion-mozilla.css"],
+  mozilla: ["chrome://browser/skin/devtools/orion.css"],
 };
 
 
