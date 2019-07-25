@@ -253,6 +253,11 @@ cairo_d2d_surface_create_for_texture(cairo_device_t *device,
 
 
 
+cairo_public struct ID3D10Texture2D *cairo_d2d_surface_get_texture(cairo_surface_t *surf);
+
+
+
+
 
 
 
