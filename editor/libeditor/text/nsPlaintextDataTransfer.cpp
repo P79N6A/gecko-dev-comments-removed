@@ -431,8 +431,14 @@ NS_IMETHODIMP nsPlaintextEditor::Paste(PRInt32 aSelectionType)
         return NS_OK;
 
       
+      NS_ASSERTION(mLastKeypressEventWasTrusted == eTriUnset, "How come our status is not clear?");
+      mLastKeypressEventWasTrusted = eTriTrue;
+
+      
       
       rv = InsertTextFromTransferable(trans, nsnull, nsnull, PR_TRUE);
+
+      mLastKeypressEventWasTrusted = eTriUnset;
     }
   }
 
