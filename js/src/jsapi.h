@@ -2892,6 +2892,13 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
     bool entered() const { return state != STATE_UNENTERED; }
 
+    
+
+
+
+
+    void leave();
+
     ~JSAutoEnterCompartment();
 };
 
