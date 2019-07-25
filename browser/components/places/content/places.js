@@ -39,6 +39,7 @@
 
 
 
+
 var PlacesOrganizer = {
   _places: null,
   _content: null,
@@ -114,6 +115,8 @@ var PlacesOrganizer = {
     
     document.getElementById("placesContext")
             .removeChild(document.getElementById("placesContext_show:info"));
+
+    gPrivateBrowsingListener.init();
   },
 
   QueryInterface: function PO_QueryInterface(aIID) {
@@ -145,6 +148,7 @@ var PlacesOrganizer = {
   },
 
   destroy: function PO_destroy() {
+    gPrivateBrowsingListener.uninit();
   },
 
   _location: null,
@@ -366,17 +370,22 @@ var PlacesOrganizer = {
   
 
 
-  importBookmarks: function PO_import() {
-    
-    var features = "modal,centerscreen,chrome,resizable=no";
 
+  importFromBrowser: function PO_importFromBrowser() {
+#ifdef XP_MACOSX
     
-    
-    window.fromFile = false;
-    openDialog("chrome://browser/content/migration/migration.xul",
-               "migration", features, "bookmarks");
-    if (window.fromFile)
-      this.importFromFile();
+    let win = Services.wm.getMostRecentWindow("Browser:MigrationWizard");
+    if (win) {
+      win.focus();
+      return;
+    }
+
+    let features = "centerscreen,chrome,resizable=no";
+#else
+    let features = "modal,centerscreen,chrome,resizable=no";
+#endif
+    window.openDialog("chrome://browser/content/migration/migration.xul",
+                      "migration", features);
   },
 
   
@@ -1339,5 +1348,42 @@ var ViewMenu = {
     var sortConst = "SORT_BY_" + colLookupTable[columnId].key + "_" + aDirection;
     result.sortingAnnotation = colLookupTable[columnId].anno || "";
     result.sortingMode = Ci.nsINavHistoryQueryOptions[sortConst];
+  }
+}
+
+
+
+
+
+let gPrivateBrowsingListener = {
+  _cmd_import: null,
+
+  init: function PO_PB_init() {
+    this._cmd_import = document.getElementById("OrganizerCommand_browserImport");
+
+    let pbs = Cc["@mozilla.org/privatebrowsing;1"].
+              getService(Ci.nsIPrivateBrowsingService);
+    if (pbs.privateBrowsingEnabled)
+      this.updateUI(true);
+
+    Services.obs.addObserver(this, "private-browsing", false);
+  },
+
+  uninit: function PO_PB_uninit() {
+    Services.obs.removeObserver(this, "private-browsing");
+  },
+
+  observe: function PO_PB_observe(aSubject, aTopic, aData) {
+    if (aData == "enter")
+      this.updateUI(true);
+    else if (aData == "exit")
+      this.updateUI(false);
+  },
+
+  updateUI: function PO_PB_updateUI(PBmode) {
+    if (PBmode)
+      this._cmd_import.setAttribute("disabled", "true");
+    else
+      this._cmd_import.removeAttribute("disabled");
   }
 };
