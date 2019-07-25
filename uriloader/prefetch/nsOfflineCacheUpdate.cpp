@@ -927,6 +927,18 @@ nsOfflineManifestItem::HandleManifestLine(const nsCString::const_iterator &aBegi
     }
 
     case PARSE_BYPASS_ENTRIES: {
+        if (line[0] == '*' && (line.Length() == 1 || line[1] == ' ' || line[1] == '\t'))
+        {
+          
+          
+          
+          
+          
+          AddNamespace(nsIApplicationCacheNamespace::NAMESPACE_BYPASS,
+                       EmptyCString(), EmptyCString());
+          break;
+        }
+
         nsCOMPtr<nsIURI> bypassURI;
         rv = NS_NewURI(getter_AddRefs(bypassURI), line, nsnull, mURI);
         if (NS_FAILED(rv))
