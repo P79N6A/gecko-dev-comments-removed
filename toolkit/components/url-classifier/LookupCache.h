@@ -137,8 +137,9 @@ public:
 
   nsresult Init();
   nsresult Open();
-  nsresult Build(const AddPrefixArray& aAddPrefixes,
-                 const AddCompleteArray& aAddCompletes);
+  
+  nsresult Build(AddPrefixArray& aAddPrefixes,
+                 AddCompleteArray& aAddCompletes);
   nsresult GetPrefixes(nsTArray<PRUint32>* aAddPrefixes);
 
 #if DEBUG && defined(PR_LOGGING)
@@ -160,9 +161,10 @@ private:
   nsresult ReadHeader();
   nsresult EnsureSizeConsistent();
   nsresult ReadCompletions();
-  
   nsresult LoadPrefixSet();
-  nsresult ConstructPrefixSet(const AddPrefixArray& aAddPrefixes);
+  
+  
+  nsresult ConstructPrefixSet(AddPrefixArray& aAddPrefixes);
 
   struct Header {
     uint32 magic;
