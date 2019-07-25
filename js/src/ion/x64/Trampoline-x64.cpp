@@ -528,7 +528,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register cxreg = IntArgReg0;
-    masm.loadJSContext(cx->runtime, cxreg);
+    masm.loadJSContext(cxreg);
 
     masm.passABIArg(cxreg);
 

@@ -542,7 +542,7 @@ CodeGenerator::visitCallNative(LCallNative *call)
     masm.Push(ObjectValue(*target));
 
     
-    masm.loadJSContext(gen->cx->runtime, argJSContextReg);
+    masm.loadJSContext(argJSContextReg);
     masm.move32(Imm32(call->nargs()), argUintNReg);
     masm.movePtr(StackPointer, argVpReg);
 
@@ -1496,54 +1496,193 @@ CodeGenerator::visitCallIteratorStart(LCallIteratorStart *lir)
     typedef JSObject *(*pf)(JSContext *, JSObject *, uint32_t);
     static const VMFunction Info = FunctionInfo<pf>(GetIteratorObject);
 
-    const Register objReg = ToRegister(lir->getOperand(0));
-
     pushArg(Imm32(lir->mir()->flags()));
-    pushArg(objReg);
+    pushArg(ToRegister(lir->object()));
     return callVM(Info, lir);
 }
 
 bool
-CodeGenerator::visitCallIteratorNext(LCallIteratorNext *lir)
+CodeGenerator::visitIteratorStart(LIteratorStart *lir)
 {
+    const Register obj = ToRegister(lir->object());
+    const Register output = ToRegister(lir->output());
+
+    uint32_t flags = lir->mir()->flags();
+
+    typedef JSObject *(*pf)(JSContext *, JSObject *, uint32_t);
+    static const VMFunction Info = FunctionInfo<pf>(GetIteratorObject);
+
+    OutOfLineCode *ool = oolCallVM(Info, lir, (ArgList(), obj, Imm32(flags)), StoreRegisterTo(output));
+    if (!ool)
+        return false;
+
+    const Register temp1 = ToRegister(lir->temp1());
+    const Register temp2 = ToRegister(lir->temp2());
+    const Register niTemp = ToRegister(lir->temp3()); 
+
+    
+    JS_ASSERT(flags == JSITER_ENUMERATE);
+
+    
+    masm.loadPtr(ImmWord(&gen->cx->compartment->nativeIterCache.last), output);
+    masm.branchTestPtr(Assembler::Zero, output, output, ool->entry());
+
+    
+    masm.loadObjPrivate(output, JSObject::ITER_CLASS_NFIXED_SLOTS, niTemp);
+
+    
+    masm.branchTest32(Assembler::NonZero, Address(niTemp, offsetof(NativeIterator, flags)),
+                      Imm32(JSITER_ACTIVE|JSITER_UNREUSABLE), ool->entry());
+
+    
+    masm.loadPtr(Address(niTemp, offsetof(NativeIterator, shapes_array)), temp2);
+
+    
+    masm.loadObjShape(obj, temp1);
+    masm.branchPtr(Assembler::NotEqual, Address(temp2, 0), temp1, ool->entry());
+
+    
+    masm.loadObjProto(obj, temp1);
+    masm.loadObjShape(temp1, temp1);
+    masm.branchPtr(Assembler::NotEqual, Address(temp2, sizeof(Shape *)), temp1, ool->entry());
+
+    
+    
+    
+    masm.loadObjProto(obj, temp1);
+    masm.loadObjProto(temp1, temp1);
+    masm.branchTestPtr(Assembler::NonZero, temp1, temp1, ool->entry());
+
+    
+    
+    if (gen->cx->compartment->needsBarrier()) {
+        masm.branchPtr(Assembler::NotEqual, Address(niTemp, offsetof(NativeIterator, obj)),
+                       obj, ool->entry());
+    }
+
+    
+    masm.storePtr(obj, Address(niTemp, offsetof(NativeIterator, obj)));
+    masm.or32(Imm32(JSITER_ACTIVE), Address(niTemp, offsetof(NativeIterator, flags)));
+
+    
+    masm.loadJSContext(temp1);
+    masm.loadPtr(Address(temp1, offsetof(JSContext, enumerators)), temp2);
+    masm.storePtr(temp2, Address(niTemp, offsetof(NativeIterator, next)));
+    masm.storePtr(output, Address(temp1, offsetof(JSContext, enumerators)));
+
+    masm.bind(ool->rejoin());
+    return true;
+}
+
+static void
+LoadNativeIterator(MacroAssembler &masm, Register obj, Register dest, Label *failures)
+{
+    JS_ASSERT(obj != dest);
+
+    
+    masm.branchTestObjClass(Assembler::NotEqual, obj, dest, &IteratorClass, failures);
+
+    
+    masm.loadObjPrivate(obj, JSObject::ITER_CLASS_NFIXED_SLOTS, dest);
+
+    
+    masm.branchTest32(Assembler::NonZero, Address(dest, offsetof(NativeIterator, flags)),
+                      Imm32(JSITER_FOREACH), failures);
+}
+
+bool
+CodeGenerator::visitIteratorNext(LIteratorNext *lir)
+{
+    const Register obj = ToRegister(lir->object());
+    const Register temp = ToRegister(lir->temp());
+    const ValueOperand output = ToOutValue(lir);
+
     typedef bool (*pf)(JSContext *, JSObject *, Value *);
     static const VMFunction Info = FunctionInfo<pf>(js_IteratorNext);
 
-    const Register objReg = ToRegister(lir->getOperand(0));
-
-    pushArg(objReg);
-    return callVM(Info, lir);
-}
-
-bool
-CodeGenerator::visitCallIteratorMore(LCallIteratorMore *lir)
-{
-    typedef bool (*pf)(JSContext *, JSObject *, Value *);
-    static const VMFunction Info = FunctionInfo<pf>(js_IteratorMore);
-
-    const Register objReg = ToRegister(lir->getOperand(0));
-
-    pushArg(objReg);
-    if (!callVM(Info, lir))
+    OutOfLineCode *ool = oolCallVM(Info, lir, (ArgList(), obj), StoreValueTo(output));
+    if (!ool)
         return false;
 
-    
-    Register output = ToRegister(lir->getDef(0));
-    masm.unboxValue(JSReturnOperand, AnyRegister(output));
+    LoadNativeIterator(masm, obj, temp, ool->entry());
 
+    
+    masm.loadPtr(Address(temp, offsetof(NativeIterator, props_cursor)), output.scratchReg());
+    masm.loadPtr(Address(output.scratchReg(), 0), output.scratchReg());
+    masm.tagValue(JSVAL_TYPE_STRING, output.scratchReg(), output);
+
+    
+    masm.addPtr(Imm32(sizeof(JSString *)), Address(temp, offsetof(NativeIterator, props_cursor)));
+
+    masm.bind(ool->rejoin());
     return true;
 }
 
 bool
-CodeGenerator::visitCallIteratorEnd(LCallIteratorEnd *lir)
+CodeGenerator::visitIteratorMore(LIteratorMore *lir)
 {
+    const Register obj = ToRegister(lir->object());
+    const Register output = ToRegister(lir->output());
+    const Register temp = ToRegister(lir->temp());
+
+    typedef bool (*pf)(JSContext *, JSObject *, JSBool *);
+    static const VMFunction Info = FunctionInfo<pf>(ion::IteratorMore);
+    OutOfLineCode *ool = oolCallVM(Info, lir, (ArgList(), obj), StoreRegisterTo(output));
+    if (!ool)
+        return false;
+
+    LoadNativeIterator(masm, obj, output, ool->entry());
+
+    
+    masm.loadPtr(Address(output, offsetof(NativeIterator, props_end)), temp);
+    masm.cmpPtr(Address(output, offsetof(NativeIterator, props_cursor)), temp);
+    emitSet(Assembler::LessThan, output);
+
+    masm.bind(ool->rejoin());
+    return true;
+}
+
+bool
+CodeGenerator::visitIteratorEnd(LIteratorEnd *lir)
+{
+    const Register obj = ToRegister(lir->object());
+    const Register temp1 = ToRegister(lir->temp1());
+    const Register temp2 = ToRegister(lir->temp2());
+
     typedef bool (*pf)(JSContext *, JSObject *);
     static const VMFunction Info = FunctionInfo<pf>(CloseIteratorFromIon);
 
-    const Register objReg = ToRegister(lir->getOperand(0));
+    OutOfLineCode *ool = oolCallVM(Info, lir, (ArgList(), obj), StoreNothing());
+    if (!ool)
+        return false;
 
-    pushArg(objReg);
-    return callVM(Info, lir);
+    LoadNativeIterator(masm, obj, temp1, ool->entry());
+
+    
+    masm.and32(Imm32(~JSITER_ACTIVE), Address(temp1, offsetof(NativeIterator, flags)));
+
+    
+    masm.loadPtr(Address(temp1, offsetof(NativeIterator, props_array)), temp2);
+    masm.storePtr(temp2, Address(temp1, offsetof(NativeIterator, props_cursor)));
+
+    
+    masm.loadJSContext(temp2);
+    masm.loadPtr(Address(temp1, offsetof(NativeIterator, next)), temp1);
+    masm.storePtr(temp1, Address(temp2, offsetof(JSContext, enumerators)));
+
+    
+    Label done;
+    masm.loadIonActivation(temp2);
+
+    Address savedEnumerators(temp2, IonActivation::offsetOfSavedEnumerators());
+    masm.branchPtr(Assembler::NotEqual, savedEnumerators, obj, &done);
+    {
+        masm.storePtr(temp1, savedEnumerators);
+    }
+    masm.bind(&done);
+
+    masm.bind(ool->rejoin());
+    return true;
 }
 
 bool
@@ -2133,7 +2272,7 @@ CodeGenerator::visitTypeOfV(LTypeOfV *lir)
     if (!addOutOfLineCode(ool))
         return false;
 
-    PropertyName **typeAtoms = GetIonContext()->cx->runtime->atomState.typeAtoms;
+    PropertyName **typeAtoms = gen->cx->runtime->atomState.typeAtoms;
 
     
     
