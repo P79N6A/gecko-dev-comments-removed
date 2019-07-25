@@ -3085,14 +3085,6 @@ nsGlobalWindow::GetTopImpl(nsIDOMWindow** aTop, bool aScriptable)
   return NS_OK;
 }
 
-
-
-NS_IMETHODIMP
-nsGlobalWindow::GetContentForCompat(nsIDOMWindow** aContent)
-{
-  return GetContent(aContent);
-}
-
 NS_IMETHODIMP
 nsGlobalWindow::GetContent(nsIDOMWindow** aContent)
 {
