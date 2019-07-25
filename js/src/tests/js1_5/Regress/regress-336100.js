@@ -44,11 +44,13 @@ var expect;
 printBugNumber(BUGNUMBER);
 printStatus (summary);
 
+var arguments = [];
+
 expect = '[object Arguments]';
 actual = (function(){return (arguments + '');})(); 
 reportCompare(expect, actual, summary);
 
 
-expect = typeof window == 'undefined' ? '' : '[object Arguments]';
+expect = '';
 actual = (function(){with (this) return(arguments + '');})();
 reportCompare(expect, actual, summary);
