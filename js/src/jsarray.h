@@ -4,40 +4,153 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef jsarray_h___
 #define jsarray_h___
 
 
 
-#include "jscntxt.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsatom.h"
 #include "jsobj.h"
 
 
-const unsigned MIN_SPARSE_INDEX = 256;
+const uintN MIN_SPARSE_INDEX = 256;
 
-namespace js {
+inline JSObject::EnsureDenseResult
+JSObject::ensureDenseArrayElements(JSContext *cx, uintN index, uintN extra)
+{
+    JS_ASSERT(isDenseArray());
+    uintN currentCapacity = numSlots();
 
-const uint32_t MAX_ARRAY_INDEX = 4294967294u;
+    uintN requiredCapacity;
+    if (extra == 1) {
+        
+        if (index < currentCapacity)
+            return ED_OK;
+        requiredCapacity = index + 1;
+        if (requiredCapacity == 0) {
+            
+            return ED_SPARSE;
+        }
+    } else {
+        requiredCapacity = index + extra;
+        if (requiredCapacity < index) {
+            
+            return ED_SPARSE;
+        }
+        if (requiredCapacity <= currentCapacity)
+            return ED_OK;
+    }
+
+    
+
+
+
+    if (requiredCapacity > MIN_SPARSE_INDEX &&
+        willBeSparseDenseArray(requiredCapacity, extra)) {
+        return ED_SPARSE;
+    }
+    return growSlots(cx, requiredCapacity) ? ED_OK : ED_FAILED;
 }
 
+extern bool
+js_StringIsIndex(JSLinearString *str, jsuint *indexp);
+
 inline JSBool
-js_IdIsIndex(jsid id, uint32_t *indexp)
+js_IdIsIndex(jsid id, jsuint *indexp)
 {
     if (JSID_IS_INT(id)) {
-        int32_t i = JSID_TO_INT(id);
+        jsint i;
+        i = JSID_TO_INT(id);
         if (i < 0)
             return JS_FALSE;
-        *indexp = (uint32_t)i;
+        *indexp = (jsuint)i;
         return JS_TRUE;
     }
 
     if (JS_UNLIKELY(!JSID_IS_STRING(id)))
         return JS_FALSE;
 
-    return js::StringIsArrayIndex(JSID_TO_ATOM(id), indexp);
+    return js_StringIsIndex(JSID_TO_ATOM(id), indexp);
+}
+
+extern js::Class js_ArrayClass, js_SlowArrayClass;
+
+inline bool
+JSObject::isDenseArray() const
+{
+    return getClass() == &js_ArrayClass;
+}
+
+inline bool
+JSObject::isSlowArray() const
+{
+    return getClass() == &js_SlowArrayClass;
+}
+
+inline bool
+JSObject::isArray() const
+{
+    return isDenseArray() || isSlowArray();
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static JS_INLINE JSObject *
+js_GetProtoIfDenseArray(JSObject *obj)
+{
+    return obj->isDenseArray() ? obj->getProto() : obj;
 }
 
 extern JSObject *
@@ -46,44 +159,72 @@ js_InitArrayClass(JSContext *cx, JSObject *obj);
 extern bool
 js_InitContextBusyArrayTable(JSContext *cx);
 
-namespace js {
+namespace js
+{
 
 
 extern JSObject * JS_FASTCALL
-NewDenseEmptyArray(JSContext *cx, RawObject proto = NULL);
+NewDenseEmptyArray(JSContext *cx, JSObject *proto=NULL);
 
 
 extern JSObject * JS_FASTCALL
-NewDenseAllocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL);
+NewDenseAllocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 
 
 
 extern JSObject * JS_FASTCALL
-NewDenseUnallocatedArray(JSContext *cx, uint32_t length, RawObject proto = NULL);
+NewDenseUnallocatedArray(JSContext *cx, uint length, JSObject *proto=NULL);
 
 
 extern JSObject *
-NewDenseCopiedArray(JSContext *cx, uint32_t length, const Value *vp, RawObject proto = NULL);
+NewDenseCopiedArray(JSContext *cx, uint length, const Value *vp, JSObject *proto=NULL);
 
 
 extern JSObject *
 NewSlowEmptyArray(JSContext *cx);
 
-extern JSBool
-GetLengthProperty(JSContext *cx, HandleObject obj, uint32_t *lengthp);
+}
 
 extern JSBool
-SetLengthProperty(JSContext *cx, HandleObject obj, double length);
+js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
 
 extern JSBool
-array_defineElement(JSContext *cx, HandleObject obj, uint32_t index, HandleValue value,
-                    PropertyOp getter, StrictPropertyOp setter, unsigned attrs);
+js_SetLengthProperty(JSContext *cx, JSObject *obj, jsdouble length);
+
+namespace js {
 
 extern JSBool
-array_deleteElement(JSContext *cx, HandleObject obj, uint32_t index,
-                    MutableHandleValue rval, JSBool strict);
+array_defineProperty(JSContext *cx, JSObject *obj, jsid id, const Value *value,
+                     PropertyOp getter, StrictPropertyOp setter, uintN attrs);
+
+extern JSBool
+array_deleteProperty(JSContext *cx, JSObject *obj, jsid id, Value *rval, JSBool strict);
+
+
+
+
+
+extern bool
+GetElements(JSContext *cx, JSObject *aobj, jsuint length, js::Value *vp);
+
+}
+
+
+
+
+typedef JSBool (*JSComparator)(void *arg, const void *a, const void *b,
+                               int *result);
+
+enum JSMergeSortElemType {
+    JS_SORTING_VALUES,
+    JS_SORTING_GENERIC
+};
+
+
+
+
 
 
 
@@ -92,30 +233,21 @@ array_deleteElement(JSContext *cx, HandleObject obj, uint32_t index,
 
 
 extern bool
-GetElements(JSContext *cx, HandleObject aobj, uint32_t length, js::Value *vp);
+js_MergeSort(void *vec, size_t nel, size_t elsize, JSComparator cmp,
+             void *arg, void *tmp, JSMergeSortElemType elemType);
 
 
 
+
+
+namespace js {
 extern JSBool
-array_sort(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern JSBool
-array_push(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern JSBool
-array_pop(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern JSBool
-array_concat(JSContext *cx, unsigned argc, js::Value *vp);
-
-extern JSBool
-array_shift(JSContext *cx, unsigned argc, js::Value *vp);
-
-} 
+array_sort(JSContext *cx, uintN argc, js::Value *vp);
+}
 
 #ifdef DEBUG
 extern JSBool
-js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
+js_ArrayInfo(JSContext *cx, uintN argc, jsval *vp);
 #endif
 
 
@@ -126,7 +258,7 @@ js_ArrayInfo(JSContext *cx, unsigned argc, js::Value *vp);
 
 
 extern JSBool
-js_NewbornArrayPush(JSContext *cx, js::HandleObject obj, const js::Value &v);
+js_NewbornArrayPush(JSContext *cx, JSObject *obj, const js::Value &v);
 
 JSBool
 js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
@@ -135,11 +267,14 @@ js_PrototypeHasIndexedProperties(JSContext *cx, JSObject *obj);
 
 
 JSBool
-js_GetDenseArrayElementValue(JSContext *cx, js::HandleObject obj, jsid id,
+js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
                              js::Value *vp);
 
 
 JSBool
-js_Array(JSContext *cx, unsigned argc, js::Value *vp);
+js_Array(JSContext *cx, uintN argc, js::Value *vp);
+
+extern JSBool JS_FASTCALL
+js_EnsureDenseArrayCapacity(JSContext *cx, JSObject *obj, jsint i);
 
 #endif 

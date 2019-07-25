@@ -402,7 +402,6 @@ struct JSRuntime {
     void                *gcMarkStackRopes[js::ROPES_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];
-    void                *gcMarkStackIonCode[js::IONCODE_MARK_STACK_SIZE / sizeof(void *)];
 
     
 
@@ -1439,8 +1438,7 @@ class AutoGCRooter {
         STRING =      -14, 
         IDVECTOR =    -15, 
         BINDINGS =    -16, 
-        SHAPEVECTOR = -17, 
-        IONMASM =     -18  
+        SHAPEVECTOR = -17  
     };
 
     private:

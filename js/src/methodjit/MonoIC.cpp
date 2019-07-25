@@ -5,31 +5,57 @@
 
 
 
-#include "jscntxt.h"
-#include "jsnum.h"
-#include "jsobj.h"
-#include "jsscope.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "jsscope.h"
+#include "jsnum.h"
+#include "MonoIC.h"
+#include "StubCalls.h"
+#include "StubCalls-inl.h"
 #include "assembler/assembler/LinkBuffer.h"
 #include "assembler/assembler/MacroAssembler.h"
 #include "assembler/assembler/CodeLocation.h"
-
 #include "methodjit/CodeGenIncludes.h"
 #include "methodjit/Compiler.h"
 #include "methodjit/ICRepatcher.h"
-#include "methodjit/InlineFrameAssembler.h"
-#include "methodjit/MonoIC.h"
 #include "methodjit/PolyIC.h"
-#include "methodjit/StubCalls.h"
-
-#include "builtin/RegExp.h"
+#include "InlineFrameAssembler.h"
+#include "jsobj.h"
 
 #include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
-
-#include "methodjit/StubCalls-inl.h"
 
 using namespace js;
 using namespace js::mjit;
@@ -43,87 +69,205 @@ typedef JSC::MacroAssembler::ImmPtr ImmPtr;
 typedef JSC::MacroAssembler::Call Call;
 typedef JSC::MacroAssembler::Label Label;
 typedef JSC::MacroAssembler::DataLabel32 DataLabel32;
-typedef JSC::MacroAssembler::DataLabelPtr DataLabelPtr;
 
 #if defined JS_MONOIC
 
 static void
 PatchGetFallback(VMFrame &f, ic::GetGlobalNameIC *ic)
 {
-    Repatcher repatch(f.chunk());
-    JSC::FunctionPtr fptr(JS_FUNC_TO_DATA_PTR(void *, stubs::Name));
+    Repatcher repatch(f.jit());
+    JSC::FunctionPtr fptr(JS_FUNC_TO_DATA_PTR(void *, stubs::GetGlobalName));
     repatch.relink(ic->slowPathCall, fptr);
 }
 
 void JS_FASTCALL
 ic::GetGlobalName(VMFrame &f, ic::GetGlobalNameIC *ic)
 {
-    RootedObject obj(f.cx, &f.fp()->global());
-    PropertyName *name = f.script()->getName(GET_UINT32_INDEX(f.pc()));
+    JSObject *obj = f.fp()->scopeChain().getGlobal();
+    JSAtom *atom = f.fp()->script()->getAtom(GET_INDEX(f.regs.pc));
+    jsid id = ATOM_TO_JSID(atom);
 
-    RecompilationMonitor monitor(f.cx);
-
-    Shape *shape = obj->nativeLookup(f.cx, NameToId(name));
-
-    if (monitor.recompiled()) {
-        stubs::Name(f);
-        return;
-    }
-
+    const Shape *shape = obj->nativeLookup(id);
     if (!shape ||
-        !shape->hasDefaultGetter() ||
+        !shape->hasDefaultGetterOrIsMethod() ||
         !shape->hasSlot())
     {
         if (shape)
             PatchGetFallback(f, ic);
-        stubs::Name(f);
+        stubs::GetGlobalName(f);
         return;
     }
-    uint32_t slot = shape->slot();
+    uint32 slot = shape->slot;
 
     
-    Repatcher repatcher(f.chunk());
-    repatcher.repatch(ic->fastPathStart.dataLabelPtrAtOffset(ic->shapeOffset), obj->lastProperty());
+    Repatcher repatcher(f.jit());
+    repatcher.repatch(ic->fastPathStart.dataLabel32AtOffset(ic->shapeOffset), obj->shape());
 
     
-    uint32_t index = obj->dynamicSlotIndex(slot);
     JSC::CodeLocationLabel label = ic->fastPathStart.labelAtOffset(ic->loadStoreOffset);
-    repatcher.patchAddressOffsetForValueLoad(label, index * sizeof(Value));
+    repatcher.patchAddressOffsetForValueLoad(label, slot * sizeof(Value));
 
     
-    stubs::Name(f);
+    stubs::GetGlobalName(f);
 }
 
+template <JSBool strict>
 static void JS_FASTCALL
 DisabledSetGlobal(VMFrame &f, ic::SetGlobalNameIC *ic)
 {
-    stubs::SetName(f, f.script()->getName(GET_UINT32_INDEX(f.pc())));
+    JSScript *script = f.fp()->script();
+    JSAtom *atom = script->getAtom(GET_INDEX(f.regs.pc));
+    stubs::SetGlobalName<strict>(f, atom);
 }
+
+template void JS_FASTCALL DisabledSetGlobal<true>(VMFrame &f, ic::SetGlobalNameIC *ic);
+template void JS_FASTCALL DisabledSetGlobal<false>(VMFrame &f, ic::SetGlobalNameIC *ic);
+
+template <JSBool strict>
+static void JS_FASTCALL
+DisabledSetGlobalNoCache(VMFrame &f, ic::SetGlobalNameIC *ic)
+{
+    JSScript *script = f.fp()->script();
+    JSAtom *atom = script->getAtom(GET_INDEX(f.regs.pc));
+    stubs::SetGlobalNameNoCache<strict>(f, atom);
+}
+
+template void JS_FASTCALL DisabledSetGlobalNoCache<true>(VMFrame &f, ic::SetGlobalNameIC *ic);
+template void JS_FASTCALL DisabledSetGlobalNoCache<false>(VMFrame &f, ic::SetGlobalNameIC *ic);
 
 static void
 PatchSetFallback(VMFrame &f, ic::SetGlobalNameIC *ic)
 {
-    Repatcher repatch(f.chunk());
-    VoidStubSetGlobal stub = DisabledSetGlobal;
+    JSScript *script = f.fp()->script();
+
+    Repatcher repatch(f.jit());
+    VoidStubSetGlobal stub = ic->usePropertyCache
+                             ? STRICT_VARIANT(DisabledSetGlobal)
+                             : STRICT_VARIANT(DisabledSetGlobalNoCache);
     JSC::FunctionPtr fptr(JS_FUNC_TO_DATA_PTR(void *, stub));
     repatch.relink(ic->slowPathCall, fptr);
 }
 
 void
-SetGlobalNameIC::patchInlineShapeGuard(Repatcher &repatcher, Shape *shape)
+SetGlobalNameIC::patchExtraShapeGuard(Repatcher &repatcher, int32 shape)
 {
-    JSC::CodeLocationDataLabelPtr label = fastPathStart.dataLabelPtrAtOffset(shapeOffset);
+    JS_ASSERT(hasExtraStub);
+
+    JSC::CodeLocationLabel label(JSC::MacroAssemblerCodePtr(extraStub.start()));
+    repatcher.repatch(label.dataLabel32AtOffset(extraShapeGuard), shape);
+}
+
+void
+SetGlobalNameIC::patchInlineShapeGuard(Repatcher &repatcher, int32 shape)
+{
+    JSC::CodeLocationDataLabel32 label = fastPathStart.dataLabel32AtOffset(shapeOffset);
     repatcher.repatch(label, shape);
 }
 
 static LookupStatus
-UpdateSetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, Shape *shape)
+UpdateSetGlobalNameStub(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, const Shape *shape)
+{
+    Repatcher repatcher(ic->extraStub);
+
+    ic->patchExtraShapeGuard(repatcher, obj->shape());
+
+    JSC::CodeLocationLabel label(JSC::MacroAssemblerCodePtr(ic->extraStub.start()));
+    label = label.labelAtOffset(ic->extraStoreOffset);
+    repatcher.patchAddressOffsetForValueStore(label, shape->slot * sizeof(Value),
+                                              ic->vr.isTypeKnown());
+
+    return Lookup_Cacheable;
+}
+
+static LookupStatus
+AttachSetGlobalNameStub(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, const Shape *shape)
+{
+    Assembler masm;
+
+    Label start = masm.label();
+
+    DataLabel32 shapeLabel;
+    Jump guard = masm.branch32WithPatch(Assembler::NotEqual, ic->shapeReg, Imm32(obj->shape()),
+                                        shapeLabel);
+
+    
+    if (ic->objConst)
+        masm.move(ImmPtr(obj), ic->objReg);
+
+    JS_ASSERT(obj->branded());
+
+    
+
+
+
+    masm.loadPtr(Address(ic->objReg, JSObject::offsetOfSlots()), ic->shapeReg);
+
+    
+    Address slot(ic->shapeReg, sizeof(Value) * shape->slot);
+    Jump isNotObject = masm.testObject(Assembler::NotEqual, slot);
+
+    
+    masm.loadPayload(slot, ic->shapeReg);
+    Jump isFun = masm.testFunction(Assembler::Equal, ic->shapeReg);
+
+    
+    if (ic->objConst)
+        masm.move(ImmPtr(obj), ic->objReg);
+    masm.loadPtr(Address(ic->objReg, JSObject::offsetOfSlots()), ic->shapeReg);
+
+    
+    isNotObject.linkTo(masm.label(), &masm);
+    DataLabel32 store = masm.storeValueWithAddressOffsetPatch(ic->vr, slot);
+
+    Jump done = masm.jump();
+
+    JITScript *jit = f.jit();
+    LinkerHelper linker(masm);
+    JSC::ExecutablePool *ep = linker.init(f.cx);
+    if (!ep)
+        return Lookup_Error;
+    if (!jit->execPools.append(ep)) {
+        ep->release();
+        js_ReportOutOfMemory(f.cx);
+        return Lookup_Error;
+    }
+
+    if (!linker.verifyRange(jit))
+        return Lookup_Uncacheable;
+
+    linker.link(done, ic->fastPathStart.labelAtOffset(ic->fastRejoinOffset));
+    linker.link(guard, ic->slowPathStart);
+    linker.link(isFun, ic->slowPathStart);
+
+    JSC::CodeLocationLabel cs = linker.finalize();
+    JaegerSpew(JSpew_PICs, "generated setgname stub at %p\n", cs.executableAddress());
+
+    Repatcher repatcher(f.jit());
+    repatcher.relink(ic->fastPathStart.jumpAtOffset(ic->inlineShapeJump), cs);
+
+    int offset = linker.locationOf(shapeLabel) - linker.locationOf(start);
+    ic->extraShapeGuard = offset;
+    JS_ASSERT(ic->extraShapeGuard == offset);
+
+    ic->extraStub = JSC::JITCode(cs.executableAddress(), linker.size());
+    offset = linker.locationOf(store) - linker.locationOf(start);
+    ic->extraStoreOffset = offset;
+    JS_ASSERT(ic->extraStoreOffset == offset);
+
+    ic->hasExtraStub = true;
+
+    return Lookup_Cacheable;
+}
+
+static LookupStatus
+UpdateSetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, const Shape *shape)
 {
     
     if (!shape)
         return Lookup_Uncacheable;
 
-    if (!shape->hasDefaultSetter() ||
+    if (shape->isMethod() ||
+        !shape->hasDefaultSetter() ||
         !shape->writable() ||
         !shape->hasSlot() ||
         obj->watched())
@@ -134,12 +278,36 @@ UpdateSetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, Shape *s
     }
 
     
-    Repatcher repatcher(f.chunk());
-    ic->patchInlineShapeGuard(repatcher, obj->lastProperty());
+    if (obj->branded()) {
+        
 
-    uint32_t index = obj->dynamicSlotIndex(shape->slot());
+
+
+
+
+        const Value &v = obj->getSlot(shape->slot);
+        if (v.isObject() && v.toObject().isFunction()) {
+            
+
+
+
+            if (!ChangesMethodValue(v, f.regs.sp[-1]))
+                PatchSetFallback(f, ic);
+            return Lookup_Uncacheable;
+        }
+
+        if (ic->hasExtraStub)
+            return UpdateSetGlobalNameStub(f, ic, obj, shape);
+
+        return AttachSetGlobalNameStub(f, ic, obj, shape);
+    }
+
+    
+    Repatcher repatcher(f.jit());
+    ic->patchInlineShapeGuard(repatcher, obj->shape());
+
     JSC::CodeLocationLabel label = ic->fastPathStart.labelAtOffset(ic->loadStoreOffset);
-    repatcher.patchAddressOffsetForValueStore(label, index * sizeof(Value),
+    repatcher.patchAddressOffsetForValueStore(label, shape->slot * sizeof(Value),
                                               ic->vr.isTypeKnown());
 
     return Lookup_Cacheable;
@@ -148,20 +316,19 @@ UpdateSetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic, JSObject *obj, Shape *s
 void JS_FASTCALL
 ic::SetGlobalName(VMFrame &f, ic::SetGlobalNameIC *ic)
 {
-    RootedObject obj(f.cx, &f.fp()->global());
-    RootedPropertyName name(f.cx, f.script()->getName(GET_UINT32_INDEX(f.pc())));
+    JSObject *obj = f.fp()->scopeChain().getGlobal();
+    JSScript *script = f.fp()->script();
+    JSAtom *atom = script->getAtom(GET_INDEX(f.regs.pc));
+    const Shape *shape = obj->nativeLookup(ATOM_TO_JSID(atom));
 
-    RecompilationMonitor monitor(f.cx);
+    LookupStatus status = UpdateSetGlobalName(f, ic, obj, shape);
+    if (status == Lookup_Error)
+        THROW();
 
-    Shape *shape = obj->nativeLookup(f.cx, NameToId(name));
-
-    if (!monitor.recompiled()) {
-        LookupStatus status = UpdateSetGlobalName(f, ic, obj, shape);
-        if (status == Lookup_Error)
-            THROW();
-    }
-
-    stubs::SetName(f, name);
+    if (ic->usePropertyCache)
+        STRICT_VARIANT(stubs::SetGlobalName)(f, atom);
+    else
+        STRICT_VARIANT(stubs::SetGlobalNameNoCache)(f, atom);
 }
 
 class EqualityICLinker : public LinkerHelper
@@ -170,16 +337,16 @@ class EqualityICLinker : public LinkerHelper
 
   public:
     EqualityICLinker(Assembler &masm, VMFrame &f)
-        : LinkerHelper(masm, JSC::METHOD_CODE), f(f)
+        : LinkerHelper(masm), f(f)
     { }
 
     bool init(JSContext *cx) {
         JSC::ExecutablePool *pool = LinkerHelper::init(cx);
         if (!pool)
             return false;
-        JS_ASSERT(!f.regs.inlined());
-        if (!f.chunk()->execPools.append(pool)) {
-            markVerified();
+        JSScript *script = f.fp()->script();
+        JITScript *jit = script->getJIT(f.fp()->isConstructing());
+        if (!jit->execPools.append(pool)) {
             pool->release();
             js_ReportOutOfMemory(cx);
             return false;
@@ -189,7 +356,7 @@ class EqualityICLinker : public LinkerHelper
 };
 
 
-static const uint32_t INLINE_PATH_LENGTH = 64;
+static const uint32 INLINE_PATH_LENGTH = 64;
 
 class EqualityCompiler : public BaseCompiler
 {
@@ -199,7 +366,7 @@ class EqualityCompiler : public BaseCompiler
     Vector<Jump, 4, SystemAllocPolicy> jumpList;
     Jump trueJump;
     Jump falseJump;
-
+    
   public:
     EqualityCompiler(VMFrame &f, EqualityICInfo &ic)
         : BaseCompiler(f.cx), f(f), ic(ic), jumpList(SystemAllocPolicy())
@@ -220,7 +387,7 @@ class EqualityCompiler : public BaseCompiler
     {
         falseJump = j;
     }
-
+    
     void generateStringPath(Assembler &masm)
     {
         const ValueRemat &lvr = ic.lvr;
@@ -233,24 +400,25 @@ class EqualityCompiler : public BaseCompiler
             Jump lhsFail = masm.testString(Assembler::NotEqual, lvr.typeReg());
             linkToStub(lhsFail);
         }
-
+        
         if (!rvr.isType(JSVAL_TYPE_STRING)) {
             Jump rhsFail = masm.testString(Assembler::NotEqual, rvr.typeReg());
             linkToStub(rhsFail);
         }
 
         RegisterID tmp = ic.tempReg;
-
         
-        Imm32 atomBit(JSString::ATOM_BIT);
-
+        
+        JS_STATIC_ASSERT(JSString::ATOM_FLAGS == 0);
+        Imm32 atomMask(JSString::ATOM_MASK);
+        
         masm.load32(Address(lvr.dataReg(), JSString::offsetOfLengthAndFlags()), tmp);
-        Jump lhsNotAtomized = masm.branchTest32(Assembler::Zero, tmp, atomBit);
+        Jump lhsNotAtomized = masm.branchTest32(Assembler::NonZero, tmp, atomMask);
         linkToStub(lhsNotAtomized);
 
         if (!rvr.isConstant()) {
             masm.load32(Address(rvr.dataReg(), JSString::offsetOfLengthAndFlags()), tmp);
-            Jump rhsNotAtomized = masm.branchTest32(Assembler::Zero, tmp, atomBit);
+            Jump rhsNotAtomized = masm.branchTest32(Assembler::NonZero, tmp, atomMask);
             linkToStub(rhsNotAtomized);
         }
 
@@ -272,21 +440,21 @@ class EqualityCompiler : public BaseCompiler
     {
         ValueRemat &lvr = ic.lvr;
         ValueRemat &rvr = ic.rvr;
-
+        
         if (!lvr.isConstant() && !lvr.isType(JSVAL_TYPE_OBJECT)) {
             Jump lhsFail = masm.testObject(Assembler::NotEqual, lvr.typeReg());
             linkToStub(lhsFail);
         }
-
+        
         if (!rvr.isConstant() && !rvr.isType(JSVAL_TYPE_OBJECT)) {
             Jump rhsFail = masm.testObject(Assembler::NotEqual, rvr.typeReg());
             linkToStub(rhsFail);
         }
 
-        masm.loadObjClass(lvr.dataReg(), ic.tempReg);
-        Jump lhsHasEq = masm.branchPtr(Assembler::NotEqual,
-                                       Address(ic.tempReg, offsetof(Class, ext.equality)),
-                                       ImmPtr(NULL));
+        Jump lhsHasEq = masm.branchTest32(Assembler::NonZero,
+                                          Address(lvr.dataReg(),
+                                                  offsetof(JSObject, flags)),
+                                          Imm32(JSObject::HAS_EQUALITY));
         linkToStub(lhsHasEq);
 
         if (rvr.isConstant()) {
@@ -308,14 +476,14 @@ class EqualityCompiler : public BaseCompiler
         if (!buffer.init(cx))
             return false;
 
-        Repatcher repatcher(f.chunk());
+        Repatcher repatcher(f.jit());
 
         
         JSC::FunctionPtr fptr(JS_FUNC_TO_DATA_PTR(void *, ic.stub));
         repatcher.relink(ic.stubCall, fptr);
 
         
-        if (!buffer.verifyRange(f.chunk()))
+        if (!buffer.verifyRange(f.jit()))
             return true;
 
         
@@ -327,7 +495,7 @@ class EqualityCompiler : public BaseCompiler
         buffer.link(trueJump, ic.target);
         buffer.link(falseJump, ic.fallThrough);
 
-        CodeLocationLabel cs = buffer.finalize(f);
+        CodeLocationLabel cs = buffer.finalize();
 
         
         repatcher.relink(ic.jumpToStub, cs);
@@ -338,11 +506,10 @@ class EqualityCompiler : public BaseCompiler
     bool update()
     {
         if (!ic.generated) {
-            SPSInstrumentation sps(&f);
-            Assembler masm(&sps);
+            Assembler masm;
             Value rval = f.regs.sp[-1];
             Value lval = f.regs.sp[-2];
-
+            
             if (rval.isObject() && lval.isObject()) {
                 generateObjectPath(masm);
                 ic.generated = true;
@@ -384,25 +551,8 @@ SlowNewFromIC(VMFrame &f, ic::CallICInfo *ic)
     return NULL;
 }
 
-bool
-NativeStubLinker::init(JSContext *cx)
-{
-    JSC::ExecutablePool *pool = LinkerHelper::init(cx);
-    if (!pool)
-        return false;
 
-    NativeCallStub stub;
-    stub.pc = pc;
-    stub.pool = pool;
-    stub.jump = locationOf(done);
-    if (!chunk->nativeCallStubs.append(stub)) {
-        markVerified();
-        pool->release();
-        return false;
-    }
 
-    return true;
-}
 
 
 
@@ -410,71 +560,25 @@ NativeStubLinker::init(JSContext *cx)
 
 
 
-bool
-mjit::NativeStubEpilogue(VMFrame &f, Assembler &masm, NativeStubLinker::FinalJump *result,
-                         int32_t initialFrameDepth, int32_t vpOffset,
-                         MaybeRegisterID typeReg, MaybeRegisterID dataReg)
-{
-    
-    masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
 
-    Jump hasException = masm.branchTest32(Assembler::Zero, Registers::ReturnReg,
-                                          Registers::ReturnReg);
 
-    Address resultAddress(JSFrameReg, vpOffset);
 
-    Vector<Jump> mismatches(f.cx);
-    if (f.cx->typeInferenceEnabled() && !typeReg.isSet()) {
-        
 
 
 
 
-        types::TypeSet *types = f.script()->analysis()->bytecodeTypes(f.pc());
-        if (!masm.generateTypeCheck(f.cx, resultAddress, types, &mismatches))
-            THROWV(false);
-    }
 
-    
 
 
 
-    masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
 
-    if (typeReg.isSet())
-        masm.loadValueAsComponents(resultAddress, typeReg.reg(), dataReg.reg());
 
-    
 
 
 
-    Label finished = masm.label();
-#ifdef JS_CPU_X64
-    JSC::MacroAssembler::DataLabelPtr done = masm.moveWithPatch(ImmPtr(NULL), Registers::ValueReg);
-    masm.jump(Registers::ValueReg);
-#else
-    Jump done = masm.jump();
-#endif
 
-    
-    if (!mismatches.empty()) {
-        for (unsigned i = 0; i < mismatches.length(); i++)
-            mismatches[i].linkTo(masm.label(), &masm);
-        masm.addPtr(Imm32(vpOffset), JSFrameReg, Registers::ArgReg1);
-        masm.fallibleVMCall(true, JS_FUNC_TO_DATA_PTR(void *, stubs::TypeBarrierReturn),
-                            f.regs.pc, NULL, initialFrameDepth);
-        masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
-        masm.jump().linkTo(finished, &masm);
-    }
 
-    
-    hasException.linkTo(masm.label(), &masm);
-    masm.storePtr(ImmPtr(NULL), FrameAddress(offsetof(VMFrame, stubRejoin)));
-    masm.throwInJIT();
 
-    *result = done;
-    return true;
-}
 
 
 
@@ -484,38 +588,6 @@ mjit::NativeStubEpilogue(VMFrame &f, Assembler &masm, NativeStubLinker::FinalJum
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-namespace js {
-namespace mjit {
 
 class CallCompiler : public BaseCompiler
 {
@@ -539,17 +611,17 @@ class CallCompiler : public BaseCompiler
         return ep;
     }
 
-    void disable()
+    void disable(JITScript *jit)
     {
         JSC::CodeLocationCall oolCall = ic.slowPathStart.callAtOffset(ic.oolCallOffset);
-        Repatcher repatch(f.chunk());
+        Repatcher repatch(jit);
         JSC::FunctionPtr fptr = callingNew
                                 ? JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, SlowNewFromIC))
                                 : JSC::FunctionPtr(JS_FUNC_TO_DATA_PTR(void *, SlowCallFromIC));
         repatch.relink(oolCall, fptr);
     }
 
-    bool generateFullCallStub(JSScript *script, uint32_t flags)
+    bool generateFullCallStub(JITScript *from, JSScript *script, uint32 flags)
     {
         
 
@@ -559,65 +631,46 @@ class CallCompiler : public BaseCompiler
 
         Assembler masm;
         InlineFrameAssembler inlFrame(masm, ic, flags);
-        RegisterID t0 = inlFrame.tempRegs.takeAnyReg().reg();
+        RegisterID t0 = inlFrame.tempRegs.takeAnyReg();
 
         
-        void *ncode = ic.funGuard.labelAtOffset(ic.joinPointOffset).executableAddress();
-        inlFrame.assemble(ncode, f.pc());
+        inlFrame.assemble(ic.funGuard.labelAtOffset(ic.joinPointOffset).executableAddress());
 
         
-        Address scriptAddr(ic.funObjReg, JSFunction::offsetOfNativeOrScript());
+        Address scriptAddr(ic.funPtrReg, offsetof(JSFunction, u) +
+                           offsetof(JSFunction::U::Scripted, script));
         masm.loadPtr(scriptAddr, t0);
 
         
-        
-        
-        
-        masm.loadPtr(Address(t0, JSScript::offsetOfMJITInfo()), t0);
-        Jump hasNoJitInfo = masm.branchPtr(Assembler::Equal, t0, ImmPtr(NULL));
-        size_t offset = JSScript::JITScriptSet::jitHandleOffset(callingNew,
-                                                                f.cx->compartment->compileBarriers());
+
+
+
+
+        size_t offset = callingNew
+                        ? offsetof(JSScript, jitArityCheckCtor)
+                        : offsetof(JSScript, jitArityCheckNormal);
         masm.loadPtr(Address(t0, offset), t0);
-        Jump hasNoJitCode = masm.branchPtr(Assembler::BelowOrEqual, t0,
-                                           ImmPtr(JSScript::JITScriptHandle::UNJITTABLE));
-
-        masm.loadPtr(Address(t0, offsetof(JITScript, arityCheckEntry)), t0);
-
-        Jump hasCode = masm.branchPtr(Assembler::NotEqual, t0, ImmPtr(0));
-
-        hasNoJitInfo.linkTo(masm.label(), &masm);
-        hasNoJitCode.linkTo(masm.label(), &masm);
+        Jump hasCode = masm.branchPtr(Assembler::Above, t0, ImmPtr(JS_UNJITTABLE_SCRIPT));
 
         
-
-
-
-
-        masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), false)),
-                      FrameAddress(offsetof(VMFrame, stubRejoin)));
-
-        masm.bumpStubCount(f.script(), f.pc(), Registers::tempCallReg());
-
-        
+        masm.storePtr(JSFrameReg, FrameAddress(VMFrame::offsetOfFp));
         void *compilePtr = JS_FUNC_TO_DATA_PTR(void *, stubs::CompileFunction);
-        DataLabelPtr inlined;
         if (ic.frameSize.isStatic()) {
             masm.move(Imm32(ic.frameSize.staticArgc()), Registers::ArgReg1);
-            masm.fallibleVMCall(cx->typeInferenceEnabled(),
-                                compilePtr, f.regs.pc, &inlined, ic.frameSize.staticLocalSlots());
+            
+
+
+
+
+            masm.fallibleVMCall(compilePtr, script->code, 0);
         } else {
-            masm.load32(FrameAddress(VMFrame::offsetOfDynamicArgc()), Registers::ArgReg1);
-            masm.fallibleVMCall(cx->typeInferenceEnabled(),
-                                compilePtr, f.regs.pc, &inlined, -1);
+            masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), Registers::ArgReg1);
+            masm.fallibleVMCall(compilePtr, script->code, -1);
         }
+        masm.loadPtr(FrameAddress(VMFrame::offsetOfFp), JSFrameReg);
 
         Jump notCompiled = masm.branchTestPtr(Assembler::Zero, Registers::ReturnReg,
                                               Registers::ReturnReg);
-        masm.loadPtr(FrameAddress(VMFrame::offsetOfRegsSp()), JSFrameReg);
-
-        
-        ncode = (uint8_t *) f.chunk()->code.m_code.executableAddress() + ic.call->codeOffset;
-        masm.storePtr(ImmPtr(ncode), Address(JSFrameReg, StackFrame::offsetOfNcode()));
 
         masm.jump(Registers::ReturnReg);
 
@@ -627,112 +680,99 @@ class CallCompiler : public BaseCompiler
         if (ic.frameSize.isStatic())
             masm.move(Imm32(ic.frameSize.staticArgc()), JSParamReg_Argc);
         else
-            masm.load32(FrameAddress(VMFrame::offsetOfDynamicArgc()), JSParamReg_Argc);
+            masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), JSParamReg_Argc);
         masm.jump(t0);
 
-        LinkerHelper linker(masm, JSC::METHOD_CODE);
+        LinkerHelper linker(masm);
         JSC::ExecutablePool *ep = poolForSize(linker, CallICInfo::Pool_ScriptStub);
         if (!ep)
             return false;
 
-        if (!linker.verifyRange(f.chunk())) {
-            disable();
+        if (!linker.verifyRange(from)) {
+            disable(from);
             return true;
         }
 
         linker.link(notCompiled, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
-        JSC::CodeLocationLabel cs = linker.finalize(f);
+        JSC::CodeLocationLabel cs = linker.finalize();
 
-        JaegerSpew(JSpew_PICs, "generated CALL stub %p (%lu bytes)\n", cs.executableAddress(),
-                   (unsigned long) masm.size());
+        JaegerSpew(JSpew_PICs, "generated CALL stub %p (%d bytes)\n", cs.executableAddress(),
+                   masm.size());
 
-        if (f.regs.inlined()) {
-            JSC::LinkBuffer code((uint8_t *) cs.executableAddress(), masm.size(), JSC::METHOD_CODE);
-            code.patch(inlined, f.regs.inlined());
-        }
-
-        Repatcher repatch(f.chunk());
+        Repatcher repatch(from);
         JSC::CodeLocationJump oolJump = ic.slowPathStart.jumpAtOffset(ic.oolJumpOffset);
         repatch.relink(oolJump, cs);
 
         return true;
     }
 
-    bool patchInlinePath(JSScript *script, JSObject *obj)
+    bool patchInlinePath(JITScript *from, JSScript *script, JSObject *obj)
     {
         JS_ASSERT(ic.frameSize.isStatic());
-        JITScript *jit = script->getJIT(callingNew, f.cx->compartment->compileBarriers());
+        JITScript *jit = script->getJIT(callingNew);
 
         
-        Repatcher repatch(f.chunk());
-
-        
-
-
-
-        void *entry = ic.typeMonitored ? jit->argsCheckEntry : jit->fastEntry;
+        Repatcher repatch(from);
 
         if (!repatch.canRelink(ic.funGuard.jumpAtOffset(ic.hotJumpOffset),
-                               JSC::CodeLocationLabel(entry))) {
+                               JSC::CodeLocationLabel(jit->fastEntry))) {
             return false;
         }
 
         ic.fastGuardedObject = obj;
-        JS_APPEND_LINK(&ic.links, &jit->callers);
 
         repatch.repatch(ic.funGuard, obj);
         repatch.relink(ic.funGuard.jumpAtOffset(ic.hotJumpOffset),
-                       JSC::CodeLocationLabel(entry));
+                       JSC::CodeLocationLabel(jit->fastEntry));
 
         JaegerSpew(JSpew_PICs, "patched CALL path %p (obj: %p)\n",
-                   ic.funGuard.executableAddress(),
-                   static_cast<void*>(ic.fastGuardedObject));
+                   ic.funGuard.executableAddress(), ic.fastGuardedObject);
 
         return true;
     }
 
-    bool generateStubForClosures(JSObject *obj)
+    bool generateStubForClosures(JITScript *from, JSObject *obj)
     {
         JS_ASSERT(ic.frameSize.isStatic());
 
         
         Assembler masm;
 
-        Registers tempRegs(Registers::AvailRegs);
+        Registers tempRegs;
         tempRegs.takeReg(ic.funObjReg);
 
-        RegisterID t0 = tempRegs.takeAnyReg().reg();
+        RegisterID t0 = tempRegs.takeAnyReg();
 
         
-        Jump claspGuard = masm.testObjClass(Assembler::NotEqual, ic.funObjReg, t0, &FunctionClass);
+        Jump claspGuard = masm.testObjClass(Assembler::NotEqual, ic.funObjReg, &js_FunctionClass);
 
         
-        Address scriptAddr(ic.funObjReg, JSFunction::offsetOfNativeOrScript());
-        Jump funGuard = masm.branchPtr(Assembler::NotEqual, scriptAddr,
-                                       ImmPtr(obj->toFunction()->script()));
+        JSFunction *fun = obj->getFunctionPrivate();
+        masm.loadObjPrivate(ic.funObjReg, t0);
+        Jump funGuard = masm.branchPtr(Assembler::NotEqual, t0, ImmPtr(fun));
         Jump done = masm.jump();
 
-        LinkerHelper linker(masm, JSC::METHOD_CODE);
+        LinkerHelper linker(masm);
         JSC::ExecutablePool *ep = poolForSize(linker, CallICInfo::Pool_ClosureStub);
         if (!ep)
             return false;
 
         ic.hasJsFunCheck = true;
 
-        if (!linker.verifyRange(f.chunk())) {
-            disable();
+        if (!linker.verifyRange(from)) {
+            disable(from);
             return true;
         }
 
         linker.link(claspGuard, ic.slowPathStart);
         linker.link(funGuard, ic.slowPathStart);
         linker.link(done, ic.funGuard.labelAtOffset(ic.hotPathOffset));
-        JSC::CodeLocationLabel cs = linker.finalize(f);
+        JSC::CodeLocationLabel cs = linker.finalize();
 
-        JaegerSpew(JSpew_PICs, "generated CALL closure stub %p (%lu bytes)\n",
-                   cs.executableAddress(), (unsigned long) masm.size());
+        JaegerSpew(JSpew_PICs, "generated CALL closure stub %p (%d bytes)\n",
+                   cs.executableAddress(), masm.size());
 
-        Repatcher repatch(f.chunk());
+        Repatcher repatch(from);
         repatch.relink(ic.funJump, cs);
 
         return true;
@@ -740,8 +780,10 @@ class CallCompiler : public BaseCompiler
 
     bool generateNativeStub()
     {
+        JITScript *jit = f.jit();
+
         
-        unsigned initialFrameDepth = f.regs.sp - f.fp()->slots();
+        uintN initialFrameDepth = f.regs.sp - f.regs.fp()->slots();
 
         
 
@@ -749,49 +791,28 @@ class CallCompiler : public BaseCompiler
 
         CallArgs args;
         if (ic.frameSize.isStatic()) {
-            JS_ASSERT(f.regs.sp - f.fp()->slots() == (int)ic.frameSize.staticLocalSlots());
+            JS_ASSERT(f.regs.sp - f.regs.fp()->slots() == (int)ic.frameSize.staticLocalSlots());
             args = CallArgsFromSp(ic.frameSize.staticArgc(), f.regs.sp);
         } else {
-            JS_ASSERT(!f.regs.inlined());
             JS_ASSERT(*f.regs.pc == JSOP_FUNAPPLY && GET_ARGC(f.regs.pc) == 2);
             if (!ic::SplatApplyArgs(f))       
                 THROWV(true);
             args = CallArgsFromSp(f.u.call.dynamicArgc, f.regs.sp);
         }
 
-        RootedFunction fun(cx);
-        if (!IsFunctionObject(args.calleev(), fun.address()))
+        JSObject *obj;
+        if (!IsFunctionObject(args.calleev(), &obj))
             return false;
 
-        if ((!callingNew && !fun->isNative()) || (callingNew && !fun->isNativeConstructor()))
+        JSFunction *fun = obj->getFunctionPrivate();
+        if ((!callingNew && !fun->isNative()) || (callingNew && !fun->isConstructor()))
             return false;
 
         if (callingNew)
-            args.setThis(MagicValue(JS_IS_CONSTRUCTING));
+            args.thisv().setMagicWithObjectOrNullPayload(NULL);
 
-        RecompilationMonitor monitor(cx);
-
-        if (!CallJSNative(cx, fun->native(), args))
+        if (!CallJSNative(cx, fun->u.n.native, args))
             THROWV(true);
-
-        types::TypeScript::Monitor(f.cx, f.script(), f.pc(), args.rval());
-
-        
-
-
-
-
-
-        if (f.script()->function()) {
-            f.script()->uninlineable = true;
-            MarkTypeObjectFlags(cx, f.script()->function(), types::OBJECT_FLAG_UNINLINEABLE);
-        }
-
-        
-        if (monitor.recompiled())
-            return true;
-
-        JS_ASSERT(!f.regs.inlined());
 
         
         if (ic.fastGuardedNative || ic.hasJsFunCheck)
@@ -807,150 +828,157 @@ class CallCompiler : public BaseCompiler
         Assembler masm;
 
         
-        Jump funGuard = masm.branchPtr(Assembler::NotEqual, ic.funObjReg, ImmPtr(fun));
-
-        
-
-
-
-
-
-        masm.storePtr(ImmPtr((void *) ic.frameSize.rejoinState(f.pc(), true)),
-                      FrameAddress(offsetof(VMFrame, stubRejoin)));
+        Jump funGuard = masm.branchPtr(Assembler::NotEqual, ic.funObjReg, ImmPtr(obj));
 
         
         if (ic.frameSize.isDynamic()) {
-            masm.bumpStubCount(f.script(), f.pc(), Registers::tempCallReg());
-            masm.fallibleVMCall(cx->typeInferenceEnabled(),
-                                JS_FUNC_TO_DATA_PTR(void *, ic::SplatApplyArgs),
-                                f.regs.pc, NULL, initialFrameDepth);
+            masm.fallibleVMCall(JS_FUNC_TO_DATA_PTR(void *, ic::SplatApplyArgs),
+                                f.regs.pc, initialFrameDepth);
         }
 
-        Registers tempRegs = Registers::tempCallRegMask();
-        RegisterID t0 = tempRegs.takeAnyReg().reg();
-        masm.bumpStubCount(f.script(), f.pc(), t0);
+        Registers tempRegs;
+#ifndef JS_CPU_X86
+        tempRegs.takeReg(Registers::ArgReg0);
+        tempRegs.takeReg(Registers::ArgReg1);
+        tempRegs.takeReg(Registers::ArgReg2);
+#endif
+        RegisterID t0 = tempRegs.takeAnyReg();
 
-        int32_t storeFrameDepth = ic.frameSize.isStatic() ? initialFrameDepth : -1;
-        masm.setupFallibleABICall(cx->typeInferenceEnabled(), f.regs.pc, storeFrameDepth);
+        
+        masm.storePtr(ImmPtr(cx->regs().pc),
+                       FrameAddress(offsetof(VMFrame, regs.pc)));
+
+        
+        if (ic.frameSize.isStatic()) {
+            uint32 spOffset = sizeof(StackFrame) + initialFrameDepth * sizeof(Value);
+            masm.addPtr(Imm32(spOffset), JSFrameReg, t0);
+            masm.storePtr(t0, FrameAddress(offsetof(VMFrame, regs.sp)));
+        }
+
+        
+        masm.storePtr(JSFrameReg, FrameAddress(VMFrame::offsetOfFp));
 
         
 #ifdef JS_CPU_X86
-        RegisterID cxReg = tempRegs.takeAnyReg().reg();
+        RegisterID cxReg = tempRegs.takeAnyReg();
 #else
         RegisterID cxReg = Registers::ArgReg0;
 #endif
         masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), cxReg);
 
         
-
-
-
-
 #ifdef JS_CPU_X86
         RegisterID vpReg = t0;
 #else
         RegisterID vpReg = Registers::ArgReg2;
 #endif
-        uint32_t vpOffset = (uint32_t) ((char *) args.base() - (char *) f.fp());
-        masm.addPtr(Imm32(vpOffset), JSFrameReg, vpReg);
-
-        
         MaybeRegisterID argcReg;
-        if (!ic.frameSize.isStatic()) {
-            argcReg = tempRegs.takeAnyReg().reg();
-            masm.load32(FrameAddress(VMFrame::offsetOfDynamicArgc()), argcReg.reg());
+        if (ic.frameSize.isStatic()) {
+            uint32 vpOffset = sizeof(StackFrame) + (args.base() - f.regs.fp()->slots()) * sizeof(Value);
+            masm.addPtr(Imm32(vpOffset), JSFrameReg, vpReg);
+        } else {
+            argcReg = tempRegs.takeAnyReg();
+            masm.load32(FrameAddress(offsetof(VMFrame, u.call.dynamicArgc)), argcReg.reg());
+            masm.loadPtr(FrameAddress(offsetof(VMFrame, regs.sp)), vpReg);
+
+            
+            RegisterID vpOff = tempRegs.takeAnyReg();
+            masm.move(argcReg.reg(), vpOff);
+            masm.add32(Imm32(2), vpOff);  
+            JS_STATIC_ASSERT(sizeof(Value) == 8);
+            masm.lshift32(Imm32(3), vpOff);
+            masm.subPtr(vpOff, vpReg);
+
+            tempRegs.putReg(vpOff);
         }
 
         
-        if (callingNew)
-            masm.storeValue(MagicValue(JS_IS_CONSTRUCTING), Address(vpReg, sizeof(Value)));
+        if (callingNew) {
+            Value v;
+            v.setMagicWithObjectOrNullPayload(NULL);
+            masm.storeValue(v, Address(vpReg, sizeof(Value)));
+        }
 
-        masm.restoreStackBase();
         masm.setupABICall(Registers::NormalCall, 3);
         masm.storeArg(2, vpReg);
         if (ic.frameSize.isStatic())
-            masm.storeArg(1, ImmIntPtr(intptr_t(ic.frameSize.staticArgc())));
+            masm.storeArg(1, Imm32(ic.frameSize.staticArgc()));
         else
             masm.storeArg(1, argcReg.reg());
         masm.storeArg(0, cxReg);
 
-        js::Native native = fun->native();
+        js::Native native = fun->u.n.native;
 
         
 
 
 
-
-
-        if (native == regexp_exec && !CallResultEscapes(f.pc()))
-            native = regexp_test;
+        if (native == js_regexp_exec && !CallResultEscapes(f.regs.pc))
+            native = js_regexp_test;
 
         masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, native), false);
 
-        NativeStubLinker::FinalJump done;
-        if (!NativeStubEpilogue(f, masm, &done, initialFrameDepth, vpOffset, MaybeRegisterID(), MaybeRegisterID()))
-            return false;
-        NativeStubLinker linker(masm, f.chunk(), f.regs.pc, done);
-        if (!linker.init(f.cx))
+        Jump hasException = masm.branchTest32(Assembler::Zero, Registers::ReturnReg,
+                                              Registers::ReturnReg);
+        
+
+        Jump done = masm.jump();
+
+        
+        hasException.linkTo(masm.label(), &masm);
+        masm.throwInJIT();
+
+        LinkerHelper linker(masm);
+        JSC::ExecutablePool *ep = poolForSize(linker, CallICInfo::Pool_NativeStub);
+        if (!ep)
             THROWV(true);
 
-        if (!linker.verifyRange(f.chunk())) {
-            disable();
+        ic.fastGuardedNative = obj;
+
+        if (!linker.verifyRange(jit)) {
+            disable(jit);
             return true;
         }
 
-        linker.patchJump(ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
-
-        ic.fastGuardedNative = fun;
-
+        linker.link(done, ic.slowPathStart.labelAtOffset(ic.slowJoinOffset));
         linker.link(funGuard, ic.slowPathStart);
-        JSC::CodeLocationLabel start = linker.finalize(f);
+        JSC::CodeLocationLabel cs = linker.finalize();
 
-        JaegerSpew(JSpew_PICs, "generated native CALL stub %p (%lu bytes)\n",
-                   start.executableAddress(), (unsigned long) masm.size());
+        JaegerSpew(JSpew_PICs, "generated native CALL stub %p (%d bytes)\n",
+                   cs.executableAddress(), masm.size());
 
-        Repatcher repatch(f.chunk());
-        repatch.relink(ic.funJump, start);
+        Repatcher repatch(jit);
+        repatch.relink(ic.funJump, cs);
 
         return true;
     }
 
     void *update()
     {
-        RecompilationMonitor monitor(cx);
-
-        bool lowered = ic.frameSize.lowered(f.pc());
-        JS_ASSERT_IF(lowered, !callingNew);
-
-        StackFrame *initialFp = f.fp();
+        JITScript *jit = f.jit();
 
         stubs::UncachedCallResult ucr;
         if (callingNew)
             stubs::UncachedNewHelper(f, ic.frameSize.staticArgc(), &ucr);
         else
-            stubs::UncachedCallHelper(f, ic.frameSize.getArgc(f), lowered, &ucr);
-
-        
-        
-        
-        
-        if (monitor.recompiled() || f.fp() != initialFp)
-            return ucr.codeAddr;
+            stubs::UncachedCallHelper(f, ic.frameSize.getArgc(f), &ucr);
 
         
         
         if (!ucr.codeAddr) {
             if (ucr.unjittable)
-                disable();
+                disable(jit);
             return NULL;
         }
-
+            
         JSFunction *fun = ucr.fun;
         JS_ASSERT(fun);
         JSScript *script = fun->script();
         JS_ASSERT(script);
+        JSObject *callee = ucr.callee;
+        JS_ASSERT(callee);
 
-        uint32_t flags = callingNew ? StackFrame::CONSTRUCTING : 0;
+        uint32 flags = callingNew ? StackFrame::CONSTRUCTING : 0;
 
         if (!ic.hit) {
             ic.hit = true;
@@ -958,23 +986,23 @@ class CallCompiler : public BaseCompiler
         }
 
         if (!ic.frameSize.isStatic() || ic.frameSize.staticArgc() != fun->nargs) {
-            if (!generateFullCallStub(script, flags))
+            if (!generateFullCallStub(jit, script, flags))
                 THROWV(NULL);
         } else {
-            if (!ic.fastGuardedObject && patchInlinePath(script, fun)) {
+            if (!ic.fastGuardedObject && patchInlinePath(jit, script, callee)) {
                 
             } else if (ic.fastGuardedObject &&
                        !ic.hasJsFunCheck &&
                        !ic.fastGuardedNative &&
-                       ic.fastGuardedObject->toFunction()->script() == fun->script()) {
+                       ic.fastGuardedObject->getFunctionPrivate() == fun) {
                 
 
 
 
-                if (!generateStubForClosures(fun))
+                if (!generateStubForClosures(jit, callee))
                     THROWV(NULL);
             } else {
-                if (!generateFullCallStub(script, flags))
+                if (!generateFullCallStub(jit, script, flags))
                     THROWV(NULL);
             }
         }
@@ -982,9 +1010,6 @@ class CallCompiler : public BaseCompiler
         return ucr.codeAddr;
     }
 };
-
-} 
-} 
 
 void * JS_FASTCALL
 ic::Call(VMFrame &f, CallICInfo *ic)
@@ -1000,26 +1025,24 @@ ic::New(VMFrame &f, CallICInfo *ic)
     return cc.update();
 }
 
-void * JS_FASTCALL
+void JS_FASTCALL
 ic::NativeCall(VMFrame &f, CallICInfo *ic)
 {
     CallCompiler cc(f, *ic, false);
     if (!cc.generateNativeStub())
         stubs::SlowCall(f, ic->frameSize.getArgc(f));
-    return NULL;
 }
 
-void * JS_FASTCALL
+void JS_FASTCALL
 ic::NativeNew(VMFrame &f, CallICInfo *ic)
 {
     CallCompiler cc(f, *ic, true);
     if (!cc.generateNativeStub())
         stubs::SlowNew(f, ic->frameSize.staticArgc());
-    return NULL;
 }
 
 static JS_ALWAYS_INLINE bool
-BumpStack(VMFrame &f, unsigned inc)
+BumpStack(VMFrame &f, uintN inc)
 {
     if (f.regs.sp + inc < f.stackLimit)
         return true;
@@ -1036,143 +1059,275 @@ JSBool JS_FASTCALL
 ic::SplatApplyArgs(VMFrame &f)
 {
     JSContext *cx = f.cx;
-    JS_ASSERT(!f.regs.inlined());
+    JS_ASSERT(GET_ARGC(f.regs.pc) == 2);
 
-    CallArgs args = CallArgsFromSp(GET_ARGC(f.regs.pc), f.regs.sp);
-    JS_ASSERT(args.length() == 2);
-    JS_ASSERT(IsNativeFunction(args.calleev(), js_fun_apply));
+    
 
-    if (IsOptimizedArguments(f.fp(), &args[1])) {
+
+
+
+
+
+
+
+
+
+    if (f.u.call.lazyArgsObj) {
+        Value *vp = f.regs.sp - 3;
+        JS_ASSERT(JS_CALLEE(cx, vp).toObject().getFunctionPrivate()->u.n.native == js_fun_apply);
+
+        StackFrame *fp = f.regs.fp();
+        if (!fp->hasOverriddenArgs()) {
+            uintN n;
+            if (!fp->hasArgsObj()) {
+                
+                n = fp->numActualArgs();
+                if (!BumpStack(f, n))
+                    THROWV(false);
+                Value *argv = JS_ARGV(cx, vp + 1 );
+                f.regs.sp += n;
+                fp->forEachCanonicalActualArg(CopyTo(argv));
+            } else {
+                
+                JSObject *aobj = &fp->argsObj();
+
+                
+                uintN length;
+                if (!js_GetLengthProperty(cx, aobj, &length))
+                    THROWV(false);
+
+                
+                n = Min(length, StackSpace::ARGS_LENGTH_MAX);
+
+                if (!BumpStack(f, n))
+                    THROWV(false);
+
+                
+                Value *argv = JS_ARGV(cx, &vp[1]);  
+                f.regs.sp += n;  
+                if (!GetElements(cx, aobj, n, argv))
+                    THROWV(false);
+            }
+
+            f.u.call.dynamicArgc = n;
+            return true;
+        }
+
         
-        
-        unsigned length = f.regs.fp()->numActualArgs();
-        JS_ASSERT(length <= StackSpace::ARGS_LENGTH_MAX);
 
-        f.regs.sp--;
-        if (!BumpStack(f, length))
+
+
+        f.regs.sp++;
+        if (!js_GetArgsValue(cx, fp, &vp[3]))
             THROWV(false);
-
-        
-        f.regs.fp()->forEachUnaliasedActual(CopyTo(f.regs.sp));
-
-        f.regs.sp += length;
-        f.u.call.dynamicArgc = length;
-        return true;
     }
 
-    
-
-
-
+    Value *vp = f.regs.sp - 4;
+    JS_ASSERT(JS_CALLEE(cx, vp).toObject().getFunctionPrivate()->u.n.native == js_fun_apply);
 
     
-    if (args[1].isNullOrUndefined()) {
+
+
+
+
+    
+    if (vp[3].isNullOrUndefined()) {
         f.regs.sp--;
         f.u.call.dynamicArgc = 0;
         return true;
     }
 
     
-    if (!args[1].isObject()) {
+    if (!vp[3].isObject()) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_BAD_APPLY_ARGS, js_apply_str);
         THROWV(false);
     }
 
     
-    RootedObject aobj(cx, &args[1].toObject());
-    uint32_t length;
-    if (!GetLengthProperty(cx, aobj, &length))
+    JSObject *aobj = &vp[3].toObject();
+    jsuint length;
+    if (!js_GetLengthProperty(cx, aobj, &length))
         THROWV(false);
+
+    JS_ASSERT(!JS_ON_TRACE(cx));
 
     
-    if (length > StackSpace::ARGS_LENGTH_MAX) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
-                             JSMSG_TOO_MANY_FUN_APPLY_ARGS);
+    uintN n = uintN(JS_MIN(length, StackSpace::ARGS_LENGTH_MAX));
+
+    intN delta = n - 1;
+    if (delta > 0 && !BumpStack(f, delta))
         THROWV(false);
-    }
-
-    int delta = length - 1;
-    if (delta > 0) {
-        if (!BumpStack(f, delta))
-            THROWV(false);
-
-        MakeRangeGCSafe(f.regs.sp, delta);
-    }
-
     f.regs.sp += delta;
 
     
-    if (!GetElements(cx, aobj, length, f.regs.sp - length))
+    if (!GetElements(cx, aobj, n, f.regs.sp - n))
         THROWV(false);
 
-    f.u.call.dynamicArgc = length;
+    f.u.call.dynamicArgc = n;
     return true;
 }
 
 void
-ic::GenerateArgumentCheckStub(VMFrame &f)
+JITScript::purgeMICs()
 {
-    JS_ASSERT(f.cx->typeInferenceEnabled());
-
-    JITScript *jit = f.jit();
-    StackFrame *fp = f.fp();
-    JSFunction *fun = fp->fun();
-    JSScript *script = fun->script();
-
-    if (jit->argsCheckPool)
-        jit->resetArgsCheck();
-
-    Assembler masm;
-    Vector<Jump> mismatches(f.cx);
-
-    if (!f.fp()->isConstructing()) {
-        types::TypeSet *types = types::TypeScript::ThisTypes(script);
-        Address address(JSFrameReg, StackFrame::offsetOfThis(fun));
-        if (!masm.generateTypeCheck(f.cx, address, types, &mismatches))
-            return;
-    }
-
-    for (unsigned i = 0; i < fun->nargs; i++) {
-        types::TypeSet *types = types::TypeScript::ArgTypes(script, i);
-        Address address(JSFrameReg, StackFrame::offsetOfFormalArg(fun, i));
-        if (!masm.generateTypeCheck(f.cx, address, types, &mismatches))
-            return;
-    }
-
-    Jump done = masm.jump();
-
-    LinkerHelper linker(masm, JSC::METHOD_CODE);
-    JSC::ExecutablePool *ep = linker.init(f.cx);
-    if (!ep)
+    if (!nGetGlobalNames || !nSetGlobalNames)
         return;
-    jit->argsCheckPool = ep;
 
-    if (!linker.verifyRange(f.chunk())) {
-        jit->resetArgsCheck();
-        return;
+    Repatcher repatch(this);
+
+    ic::GetGlobalNameIC *getGlobalNames_ = getGlobalNames();
+    for (uint32 i = 0; i < nGetGlobalNames; i++) {
+        ic::GetGlobalNameIC &ic = getGlobalNames_[i];
+        JSC::CodeLocationDataLabel32 label = ic.fastPathStart.dataLabel32AtOffset(ic.shapeOffset);
+        repatch.repatch(label, int(INVALID_SHAPE));
     }
 
-    for (unsigned i = 0; i < mismatches.length(); i++)
-        linker.link(mismatches[i], jit->argsCheckStub);
-    linker.link(done, jit->argsCheckFallthrough);
+    ic::SetGlobalNameIC *setGlobalNames_ = setGlobalNames();
+    for (uint32 i = 0; i < nSetGlobalNames; i++) {
+        ic::SetGlobalNameIC &ic = setGlobalNames_[i];
+        ic.patchInlineShapeGuard(repatch, int32(INVALID_SHAPE));
 
-    JSC::CodeLocationLabel cs = linker.finalize(f);
-
-    JaegerSpew(JSpew_PICs, "generated ARGS CHECK stub %p (%lu bytes)\n",
-               cs.executableAddress(), (unsigned long)masm.size());
-
-    Repatcher repatch(f.chunk());
-    repatch.relink(jit->argsCheckJump, cs);
+        if (ic.hasExtraStub) {
+            Repatcher repatcher(ic.extraStub);
+            ic.patchExtraShapeGuard(repatcher, int32(INVALID_SHAPE));
+        }
+    }
 }
 
 void
-JITScript::resetArgsCheck()
+ic::PurgeMICs(JSContext *cx, JSScript *script)
 {
-    argsCheckPool->release();
-    argsCheckPool = NULL;
+    
+    JS_ASSERT(cx->runtime->gcRegenShapes);
 
-    Repatcher repatch(chunk(script->code));
-    repatch.relink(argsCheckJump, argsCheckStub);
+    if (script->jitNormal)
+        script->jitNormal->purgeMICs();
+    if (script->jitCtor)
+        script->jitCtor->purgeMICs();
+}
+
+void
+JITScript::nukeScriptDependentICs()
+{
+    if (!nCallICs)
+        return;
+
+    Repatcher repatcher(this);
+
+    ic::CallICInfo *callICs_ = callICs();
+    for (uint32 i = 0; i < nCallICs; i++) {
+        ic::CallICInfo &ic = callICs_[i];
+        if (!ic.fastGuardedObject)
+            continue;
+        repatcher.repatch(ic.funGuard, NULL);
+        repatcher.relink(ic.funJump, ic.slowPathStart);
+        ic.releasePool(CallICInfo::Pool_ClosureStub);
+        ic.fastGuardedObject = NULL;
+        ic.hasJsFunCheck = false;
+    }
+}
+
+void
+JITScript::sweepCallICs(JSContext *cx, bool purgeAll)
+{
+    Repatcher repatcher(this);
+
+    
+
+
+
+
+
+    ic::CallICInfo *callICs_ = callICs();
+    for (uint32 i = 0; i < nCallICs; i++) {
+        ic::CallICInfo &ic = callICs_[i];
+
+        
+
+
+
+
+        bool fastFunDead = ic.fastGuardedObject &&
+            (purgeAll || IsAboutToBeFinalized(cx, ic.fastGuardedObject));
+        bool nativeDead = ic.fastGuardedNative &&
+            (purgeAll || IsAboutToBeFinalized(cx, ic.fastGuardedNative));
+
+        
+
+
+
+
+
+
+
+
+        if (purgeAll || nativeDead || (fastFunDead && ic.hasJsFunCheck)) {
+            repatcher.relink(ic.funJump, ic.slowPathStart);
+            ic.hit = false;
+        }
+
+        if (fastFunDead) {
+            repatcher.repatch(ic.funGuard, NULL);
+            ic.releasePool(CallICInfo::Pool_ClosureStub);
+            ic.hasJsFunCheck = false;
+            ic.fastGuardedObject = NULL;
+        }
+
+        if (nativeDead) {
+            ic.releasePool(CallICInfo::Pool_NativeStub);
+            ic.fastGuardedNative = NULL;
+        }
+
+        if (purgeAll) {
+            ic.releasePool(CallICInfo::Pool_ScriptStub);
+            JSC::CodeLocationJump oolJump = ic.slowPathStart.jumpAtOffset(ic.oolJumpOffset);
+            JSC::CodeLocationLabel icCall = ic.slowPathStart.labelAtOffset(ic.icCallOffset);
+            repatcher.relink(oolJump, icCall);
+        }
+    }
+
+    if (purgeAll) {
+        
+        uint32 released = 0;
+
+        ic::EqualityICInfo *equalityICs_ = equalityICs();
+        for (uint32 i = 0; i < nEqualityICs; i++) {
+            ic::EqualityICInfo &ic = equalityICs_[i];
+            if (!ic.generated)
+                continue;
+
+            JSC::FunctionPtr fptr(JS_FUNC_TO_DATA_PTR(void *, ic::Equality));
+            repatcher.relink(ic.stubCall, fptr);
+            repatcher.relink(ic.jumpToStub, ic.stubEntry);
+
+            ic.generated = false;
+            released++;
+        }
+
+        ic::SetGlobalNameIC *setGlobalNames_ = setGlobalNames();
+        for (uint32 i = 0; i < nSetGlobalNames; i ++) {
+            ic::SetGlobalNameIC &ic = setGlobalNames_[i];
+            if (!ic.hasExtraStub)
+                continue;
+            repatcher.relink(ic.fastPathStart.jumpAtOffset(ic.inlineShapeJump), ic.slowPathStart);
+            ic.hasExtraStub = false;
+            released++;
+        }
+
+        JS_ASSERT(released == execPools.length());
+        for (uint32 i = 0; i < released; i++)
+            execPools[i]->release();
+        execPools.clear();
+    }
+}
+
+void
+ic::SweepCallICs(JSContext *cx, JSScript *script, bool purgeAll)
+{
+    if (script->jitNormal)
+        script->jitNormal->sweepCallICs(cx, purgeAll);
+    if (script->jitCtor)
+        script->jitCtor->sweepCallICs(cx, purgeAll);
 }
 
 #endif 
