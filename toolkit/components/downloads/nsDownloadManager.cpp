@@ -2879,8 +2879,13 @@ nsDownload::OpenWithApplication()
 
     
     
-    if (appLauncher)
-      (void)appLauncher->DeleteTemporaryFileOnExit(target);
+    if (appLauncher) {
+      if (nsDownloadManager::gDownloadManagerService->mInPrivateBrowsing) {
+        (void)appLauncher->DeleteTemporaryPrivateFileWhenPossible(target);
+      } else {
+        (void)appLauncher->DeleteTemporaryFileOnExit(target);
+      }
+    }
   }
 
   return retVal;
