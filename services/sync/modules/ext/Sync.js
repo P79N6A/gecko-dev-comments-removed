@@ -51,6 +51,9 @@ const CB_FAIL = {};
 
 const SECRET = {};
 
+
+
+
 function checkAppReady() {
   
   let os = Cc["@mozilla.org/observer-service;1"].
@@ -117,9 +120,6 @@ function makeCallback() {
 function Sync(func, thisArg, callback) {
   return function syncFunc() {
     
-    checkAppReady();
-
-    
     let thread = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
 
     
@@ -138,7 +138,7 @@ function Sync(func, thisArg, callback) {
 
     
     let callbackData = instanceCallback._(SECRET);
-    while (callbackData.state == CB_READY && checkAppReady())
+    while (checkAppReady() && callbackData.state == CB_READY)
       thread.processNextEvent(true);
 
     
@@ -183,11 +183,12 @@ Sync.withCb = function Sync_withCb(func, thisArg) {
 function setTimeout(func, delay) {
   let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
   let callback = {
-    _func: func,
-    notify: function(timer) {
+    notify: function notify() {
       
+      timer = null;
+
       
-      (this._func)();
+      func();
     }
   }
   timer.initWithCallback(callback, delay, Ci.nsITimer.TYPE_ONE_SHOT);
