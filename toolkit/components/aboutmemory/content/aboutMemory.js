@@ -1273,13 +1273,17 @@ function appendTreeElements(aPOuter, aT, aProcess)
     
     
     let tString = aT.toString();
-    let extraIndentArray = [];
     let extraIndentLength = Math.max(aParentStringLength - tString.length, 0);
+    let indentText;
     if (extraIndentLength > 0) {
+      let extraIndentArray = [];
       repeatStr(extraIndentArray, kHorizontal, extraIndentLength);
       aIndentGuide[aIndentGuide.length - 1]._depth += extraIndentLength;
+      indentText = aBaseIndentText + extraIndentArray.join("");
     }
-    let indentText = aBaseIndentText + extraIndentArray.join("");
+    else {
+      indentText = aBaseIndentText;
+    }
     appendElementWithText(aP, "span", "treeLine", indentText);
 
     
