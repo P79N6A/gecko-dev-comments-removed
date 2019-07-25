@@ -1,8 +1,8 @@
 
 
-Object.prototype[1] = 'FAIL';
+Object.prototype[1] = 'peek';
 var log = [];
 for (var x of [0, , 2, 3])
     log.push(x);
-assertEq(log[1], undefined);
-assertEq(log.join(), "0,,2,3");
+assertEq(log[1], 'peek');
+assertEq(log.join(), "0,peek,2,3");
