@@ -82,27 +82,14 @@
 #define PREF_FORCE_DATABASE_REPLACEMENT "places.database.replaceOnStartup"
 
 
-#define PREF_OPTIMAL_DATABASE_SIZE "places.history.expiration.transient_optimal_database_size"
+
+#define DATABASE_CACHE_TO_DATABASE_PERC 10
 
 
+#define DATABASE_CACHE_MIN_BYTES (PRUint64)4194304 // 4MiB
 
 
-#define DATABASE_CACHE_TO_MEMORY_PERC 2
-
-
-#define DATABASE_CACHE_MIN_BYTES (PRUint64)5242880 // 5MiB
-
-
-
-
-
-#define DATABASE_TO_DISK_PERC 2
-
-
-#define DATABASE_MAX_SIZE (PRInt64)167772160 // 160MiB
-
-
-#define MEMSIZE_FALLBACK_BYTES 268435456 // 256 M
+#define DATABASE_CACHE_MAX_BYTES (PRUint64)8388608 // 8MiB
 
 
 
@@ -500,42 +487,6 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
   
   
-
-  
-  PRUint64 memSizeBytes = PR_GetPhysicalMemorySize();
-  if (memSizeBytes == 0) {
-    memSizeBytes = MEMSIZE_FALLBACK_BYTES;
-  }
-
-  PRUint64 cacheSize = memSizeBytes * DATABASE_CACHE_TO_MEMORY_PERC / 100;
-
-  
-  
-  
-  PRInt64 optimalDatabaseSize = NS_MIN(static_cast<PRInt64>(cacheSize) * 2,
-                                       DATABASE_MAX_SIZE);
-
-  
-  PRInt64 diskAvailableBytes = 0;
-  nsCOMPtr<nsIFile> databaseFile;
-  mMainConn->GetDatabaseFile(getter_AddRefs(databaseFile));
-  NS_ENSURE_STATE(databaseFile);
-  nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(databaseFile);
-  if (localFile &&
-      NS_SUCCEEDED(localFile->GetDiskSpaceAvailable(&diskAvailableBytes)) &&
-      diskAvailableBytes > 0) {
-    optimalDatabaseSize = NS_MIN(optimalDatabaseSize,
-                                 diskAvailableBytes * DATABASE_TO_DISK_PERC / 100);
-  }
-
-  
-  if (optimalDatabaseSize < PR_INT32_MAX) {
-    (void)Preferences::SetInt(PREF_OPTIMAL_DATABASE_SIZE,
-                              static_cast<PRInt32>(optimalDatabaseSize));
-  }
-
-  
-  
   PRUint64 databaseSizeBytes = 0;
   {
     nsCOMPtr<mozIStorageStatement> statement;
@@ -553,9 +504,10 @@ Database::InitSchema(bool* aDatabaseMigrated)
   }
 
   
-  cacheSize = NS_MIN(cacheSize, databaseSizeBytes / 2);
   
-  cacheSize = NS_MAX(cacheSize, DATABASE_CACHE_MIN_BYTES);
+  PRInt64 cacheSize = clamped(databaseSizeBytes *  DATABASE_CACHE_TO_DATABASE_PERC / 100,
+                              DATABASE_CACHE_MIN_BYTES,
+                              DATABASE_CACHE_MAX_BYTES);
 
   
   

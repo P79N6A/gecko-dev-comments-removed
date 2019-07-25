@@ -112,8 +112,18 @@ const PREF_INTERVAL_SECONDS_NOTSET = 3 * 60;
 
 
 
-const PREF_OPTIMAL_DATABASE_SIZE = "transient_optimal_database_size";
-const PREF_OPTIMAL_DATABASE_SIZE_NOTSET = 167772160; 
+
+const DATABASE_TO_MEMORY_PERC = 4;
+
+
+const DATABASE_TO_DISK_PERC = 2;
+
+
+const DATABASE_MAX_SIZE = 167772160; 
+
+const MEMSIZE_FALLBACK_BYTES = 268435456; 
+
+const DISKSIZE_FALLBACK_BYTES = 268435456; 
 
 
 
@@ -782,12 +792,36 @@ nsPlacesExpiration.prototype = {
       
       
       
-      let optimalDatabaseSize = PREF_OPTIMAL_DATABASE_SIZE_NOTSET;
+
+      let memSizeBytes = MEMSIZE_FALLBACK_BYTES;
       try {
-        optimalDatabaseSize = this._prefBranch.getIntPref(PREF_OPTIMAL_DATABASE_SIZE);
+        
+         memSizeBytes = this._sys.getProperty("memsize");
       } catch (ex) {}
+      if (memSizeBytes <= 0) {
+        memsize = MEMSIZE_FALLBACK_BYTES;
+      }
+
+      let diskAvailableBytes = DISKSIZE_FALLBACK_BYTES;
+      try {
+        
+        let dbFile = this._db.databaseFile;
+        dbFile.QueryInterface(Ci.nsILocalFile);
+        diskAvailableBytes = dbFile.diskSpaceAvailable;
+      } catch (ex) {}
+      if (diskAvailableBytes <= 0) {
+        diskAvailableBytes = DISKSIZE_FALLBACK_BYTES;
+      }
+
+      let optimalDatabaseSize = Math.min(
+        memSizeBytes * DATABASE_TO_MEMORY_PERC / 100,
+        diskAvailableBytes * DATABASE_TO_DISK_PERC / 100,
+        DATABASE_MAX_SIZE
+      );
+
       this._urisLimit = Math.ceil(optimalDatabaseSize / URIENTRY_AVG_SIZE);
     }
+
     
     this._prefBranch.setIntPref(PREF_READONLY_CALCULATED_MAX_URIS,
                                 this._urisLimit);
