@@ -1974,7 +1974,6 @@ mjit::Compiler::jsop_getelem_typed(int atype)
 
     frame.popn(2);
 
-    BarrierState barrier;
     if (dataReg.isFPReg()) {
         frame.pushDouble(dataReg.fpreg());
     } else if (typeReg.isSet()) {
@@ -1984,8 +1983,6 @@ mjit::Compiler::jsop_getelem_typed(int atype)
         frame.pushTypedPayload(JSVAL_TYPE_INT32, dataReg.reg());
     }
     stubcc.rejoin(Changes(2));
-
-    finishBarrier(barrier, REJOIN_FALLTHROUGH, 0);
 
     return true;
 }
@@ -2010,6 +2007,11 @@ mjit::Compiler::jsop_getelem(bool isCall)
     if (cx->typeInferenceEnabled() && id->mightBeType(JSVAL_TYPE_INT32) && !isCall) {
         types::TypeSet *types = analysis->poppedTypes(PC, 1);
         if (types->isLazyArguments(cx) && !outerScript->analysis()->modifiesArguments()) {
+            
+            
+            
+            
+            
             
             jsop_getelem_args();
             return true;
