@@ -164,8 +164,8 @@ VideoData* VideoData::Create(nsVideoInfo& aInfo,
   
   CheckedUint32 xLimit = aPicture.x + CheckedUint32(aPicture.width);
   CheckedUint32 yLimit = aPicture.y + CheckedUint32(aPicture.height);
-  if (!xLimit.valid() || xLimit.value() > aBuffer.mPlanes[0].mStride ||
-      !yLimit.valid() || yLimit.value() > aBuffer.mPlanes[0].mHeight)
+  if (!xLimit.isValid() || xLimit.value() > aBuffer.mPlanes[0].mStride ||
+      !yLimit.isValid() || yLimit.value() > aBuffer.mPlanes[0].mHeight)
   {
     
     
@@ -346,7 +346,7 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
         break;
       CheckedInt64 startFrame = UsecsToFrames(audio->mTime, mInfo.mAudioRate);
       CheckedInt64 targetFrame = UsecsToFrames(aTarget, mInfo.mAudioRate);
-      if (!startFrame.valid() || !targetFrame.valid()) {
+      if (!startFrame.isValid() || !targetFrame.isValid()) {
         return NS_ERROR_FAILURE;
       }
       if (startFrame.value() + audio->mFrames <= targetFrame.value()) {
@@ -390,7 +390,7 @@ nsresult nsBuiltinDecoderReader::DecodeToTarget(PRInt64 aTarget)
              audio->mAudioData.get() + (framesToPrune * channels),
              frames * channels * sizeof(AudioDataValue));
       CheckedInt64 duration = FramesToUsecs(frames, mInfo.mAudioRate);
-      if (!duration.valid()) {
+      if (!duration.isValid()) {
         return NS_ERROR_FAILURE;
       }
       nsAutoPtr<AudioData> data(new AudioData(audio->mOffset,
