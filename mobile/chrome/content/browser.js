@@ -1046,6 +1046,12 @@ ProgressController.prototype = {
   onLocationChange: function(aWebProgress, aRequest, aLocationURI) {
     
     var location = aLocationURI ? aLocationURI.spec : "";
+    let lastURI = selectedBrowser.lastURI    
+    
+    if (!lastURI && (location == "about:blank" || location == "about:firstrun" )) {
+      return
+    }
+    
     this._hostChanged = true;
 
     
@@ -1057,7 +1063,6 @@ ProgressController.prototype = {
     
     
     let selectedBrowser = Browser.selectedBrowser;
-    let lastURI = selectedBrowser.lastURI
     selectedBrowser.lastURI = aLocationURI;
     if (lastURI) {
       var oldSpec = lastURI.spec;
@@ -1077,10 +1082,6 @@ ProgressController.prototype = {
         
       }
     } 
-    
-    
-    if (!lastURI && location == "about:blank")
-      return
     
     if (aWebProgress.DOMWindow == selectedBrowser.contentWindow) {
       BrowserUI.setURI();
