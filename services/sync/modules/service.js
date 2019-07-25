@@ -878,7 +878,82 @@ WeaveSvc.prototype = {
       }
     }
     this._catchAll(this._notify("reset-client", "", fn)).async(this, onComplete);
-  }
+  },
+
+  
+
+
+
+
+  _commands: [
+    ["resetAll", 0, "Clear temporary local data for all engines"],
+    ["resetEngine", 1, "Clear temporary local data for engine"],
+    ["wipeAll", 0, "Delete all client data for all engines"],
+    ["wipeEngine", 1, "Delete all client data for engine"],
+  ].reduce(function WeaveSvc__commands(commands, entry) {
+    commands[entry[0]] = {};
+    for (let [i, attr] in Iterator(["args", "desc"]))
+      commands[entry[0]][attr] = entry[i + 1];
+    return commands;
+  }, {}),
+
+  
+
+
+
+
+
+
+
+
+
+  prepCommand: function WeaveSvc_prepCommand(command, args) {
+    let commandData = this._commands[command];
+    
+    if (commandData == null) {
+      this._log.error("Unknown command to send: " + command);
+      return;
+    }
+    
+    else if (args == null || args.length != commandData.args) {
+      this._log.error("Expected " + commandData.args + " args for '" +
+                      command + "', but got " + args);
+      return;
+    }
+
+    
+    let action = {
+      command: command,
+      args: args,
+    };
+    let actionStr = command + "(" + args + ")";
+
+    
+    let jsonArgs = Svc.Json.encode(args);
+    let notDupe = function(action) action.command != command ||
+      Svc.Json.encode(action.args) != jsonArgs;
+
+    this._log.info("Sending clients: " + actionStr + "; " + commandData.desc);
+
+    
+    for (let guid in Clients.getClients()) {
+      
+      if (guid == Clients.clientID)
+        continue;
+
+      let info = Clients.getInfo(guid);
+      
+      if (info.commands == null)
+        info.commands = [action];
+      
+      else if (info.commands.every(notDupe))
+        info.commands.push(action);
+      
+      else
+        continue;
+
+      Clients.setInfo(guid, info);
+      this._log.trace("Client " + guid + " got a new action: " + actionStr);
+    }
+  },
 };
-
-
