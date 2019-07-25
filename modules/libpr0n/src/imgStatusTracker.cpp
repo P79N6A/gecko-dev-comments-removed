@@ -45,6 +45,8 @@
 #include "Image.h"
 #include "ImageLogging.h"
 
+using namespace mozilla::imagelib;
+
 static nsresult
 GetResultFromImageStatus(PRUint32 aStatus)
 {
@@ -55,7 +57,7 @@ GetResultFromImageStatus(PRUint32 aStatus)
   return NS_OK;
 }
 
-imgStatusTracker::imgStatusTracker(imgIContainer* aImage)
+imgStatusTracker::imgStatusTracker(Image* aImage)
   : mImage(aImage),
     mState(0),
     mImageStatus(imgIRequest::STATUS_NONE),
@@ -170,7 +172,7 @@ class imgStatusNotifyRunnable : public nsRunnable
     imgStatusTracker mStatus;
     
     
-    nsRefPtr<imgIContainer> mImage;
+    nsRefPtr<Image> mImage;
     nsRefPtr<imgRequestProxy> mProxy;
 };
 

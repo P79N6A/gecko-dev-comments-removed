@@ -46,6 +46,12 @@ class imgRequest;
 class imgRequestProxy;
 class imgStatusNotifyRunnable;
 class imgRequestNotifyRunnable;
+namespace mozilla {
+namespace imagelib {
+class Image;
+} 
+} 
+
 
 #include "nsCOMPtr.h"
 #include "nsIRunnable.h"
@@ -78,7 +84,7 @@ public:
   
   
   
-  imgStatusTracker(imgIContainer* aImage);
+  imgStatusTracker(mozilla::imagelib::Image* aImage);
   imgStatusTracker(const imgStatusTracker& aOther);
 
   
@@ -168,7 +174,7 @@ private:
 
   
   
-  imgIContainer* mImage;
+  mozilla::imagelib::Image* mImage;
   PRUint32 mState;
   nsresult mImageStatus;
   PRPackedBool mHadLastPart;
