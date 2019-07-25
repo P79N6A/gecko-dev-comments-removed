@@ -139,9 +139,6 @@ static nscoord gPixelScrollDeltaX = 0;
 static nscoord gPixelScrollDeltaY = 0;
 static PRUint32 gPixelScrollDeltaTimeout = 0;
 
-static nscoord
-GetScrollableLineHeight(nsIFrame* aTargetFrame);
-
 TimeStamp nsEventStateManager::sHandlingInputStart;
 
 static inline bool
@@ -1213,18 +1210,21 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
 
       
       if (msEvent->scrollFlags & nsMouseScrollEvent::kNoLines) {
-        nscoord pixelHeight = aPresContext->AppUnitsToIntCSSPixels(
-          GetScrollableLineHeight(aTargetFrame));
-
+        nsIScrollableFrame* scrollableFrame =
+          ComputeScrollTarget(aTargetFrame, msEvent, false);
+        PRInt32 pixelsPerUnit =
+          nsPresContext::AppUnitsToIntCSSPixels(
+            GetScrollAmount(aPresContext, msEvent, aTargetFrame,
+                            scrollableFrame));
         if (msEvent->scrollFlags & nsMouseScrollEvent::kIsVertical) {
           gPixelScrollDeltaX += msEvent->delta;
-          if (!gPixelScrollDeltaX || !pixelHeight)
+          if (!gPixelScrollDeltaX || !pixelsPerUnit)
             break;
 
-          if (NS_ABS(gPixelScrollDeltaX) >= pixelHeight) {
-            PRInt32 numLines = (PRInt32)ceil((float)gPixelScrollDeltaX/(float)pixelHeight);
+          if (NS_ABS(gPixelScrollDeltaX) >= pixelsPerUnit) {
+            PRInt32 numLines = (PRInt32)ceil((float)gPixelScrollDeltaX/(float)pixelsPerUnit);
 
-            gPixelScrollDeltaX -= numLines*pixelHeight;
+            gPixelScrollDeltaX -= numLines*pixelsPerUnit;
 
             nsWeakFrame weakFrame(aTargetFrame);
             SendLineScrollEvent(aTargetFrame, msEvent, aPresContext,
@@ -1233,13 +1233,13 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
           }
         } else if (msEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal) {
           gPixelScrollDeltaY += msEvent->delta;
-          if (!gPixelScrollDeltaY || !pixelHeight)
+          if (!gPixelScrollDeltaY || !pixelsPerUnit)
             break;
 
-          if (NS_ABS(gPixelScrollDeltaY) >= pixelHeight) {
-            PRInt32 numLines = (PRInt32)ceil((float)gPixelScrollDeltaY/(float)pixelHeight);
+          if (NS_ABS(gPixelScrollDeltaY) >= pixelsPerUnit) {
+            PRInt32 numLines = (PRInt32)ceil((float)gPixelScrollDeltaY/(float)pixelsPerUnit);
 
-            gPixelScrollDeltaY -= numLines*pixelHeight;
+            gPixelScrollDeltaY -= numLines*pixelsPerUnit;
 
             nsWeakFrame weakFrame(aTargetFrame);
             SendLineScrollEvent(aTargetFrame, msEvent, aPresContext,
@@ -2625,25 +2625,6 @@ GetParentFrameToScroll(nsIFrame* aFrame)
   return aFrame->GetParent();
 }
 
-static nscoord
-GetScrollableLineHeight(nsIFrame* aTargetFrame)
-{
-  for (nsIFrame* f = aTargetFrame; f; f = GetParentFrameToScroll(f)) {
-    nsIScrollableFrame* sf = f->GetScrollTargetFrame();
-    if (sf)
-      return sf->GetLineScrollAmount().height;
-  }
-
-  
-  nsRefPtr<nsFontMetrics> fm;
-  nsLayoutUtils::GetFontMetricsForFrame(aTargetFrame, getter_AddRefs(fm),
-    nsLayoutUtils::FontSizeInflationFor(aTargetFrame));
-  NS_ASSERTION(fm, "FontMetrics is null!");
-  if (fm)
-    return fm->MaxHeight();
-  return 0;
-}
-
 void
 nsEventStateManager::SendLineScrollEvent(nsIFrame* aTargetFrame,
                                          nsMouseScrollEvent* aEvent,
@@ -2692,7 +2673,16 @@ nsEventStateManager::SendPixelScrollEvent(nsIFrame* aTargetFrame,
     targetContent = targetContent->GetParent();
   }
 
-  nscoord lineHeight = GetScrollableLineHeight(aTargetFrame);
+  
+  
+  
+  
+  
+  nsIScrollableFrame* scrollableFrame =
+    ComputeScrollTarget(aTargetFrame, aEvent, true);
+  PRInt32 pixelsPerUnit = nsPresContext::AppUnitsToIntCSSPixels(
+                            GetScrollAmount(aPresContext, aEvent, aTargetFrame,
+                                            scrollableFrame));
 
   bool isTrusted = (aEvent->flags & NS_EVENT_FLAG_TRUSTED) != 0;
   nsMouseScrollEvent event(isTrusted, NS_MOUSE_PIXEL_SCROLL, nullptr);
@@ -2703,7 +2693,12 @@ nsEventStateManager::SendPixelScrollEvent(nsIFrame* aTargetFrame,
   event.buttons = aEvent->buttons;
   event.scrollFlags = aEvent->scrollFlags;
   event.inputSource = static_cast<nsMouseEvent_base*>(aEvent)->inputSource;
-  event.delta = aPresContext->AppUnitsToIntCSSPixels(aEvent->delta * lineHeight);
+  if (aEvent->scrollFlags & nsMouseScrollEvent::kIsFullPage) {
+    event.delta = !aEvent->delta ? 0 :
+                  aEvent->delta > 0 ? pixelsPerUnit : -pixelsPerUnit;
+  } else {
+    event.delta = aEvent->delta * pixelsPerUnit;
+  }
 
   nsEventDispatcher::Dispatch(targetContent, aPresContext, &event, nullptr, aStatus);
 }
@@ -2810,36 +2805,45 @@ nsEventStateManager::UseSystemScrollSettingFor(nsMouseScrollEvent* aMouseEvent)
 
 nsIScrollableFrame*
 nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
-                                         nsMouseScrollEvent* aEvent)
+                                         nsMouseScrollEvent* aEvent,
+                                         bool aForDefaultAction)
 {
   PRInt32 numLines = aEvent->delta;
   bool isHorizontal = aEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal;
 
-  
-  
-  
-  
-  
-  
-  
-  
-  nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
-  if (lastScrollFrame) {
-    nsIScrollableFrame* frameToScroll = lastScrollFrame->GetScrollTargetFrame();
-    if (frameToScroll) {
-      return frameToScroll;
+  if (aForDefaultAction) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    nsIFrame* lastScrollFrame = nsMouseWheelTransaction::GetTargetFrame();
+    if (lastScrollFrame) {
+      nsIScrollableFrame* frameToScroll =
+        lastScrollFrame->GetScrollTargetFrame();
+      if (frameToScroll) {
+        return frameToScroll;
+      }
     }
   }
 
   nsIScrollableFrame* frameToScroll = nullptr;
-  bool passToParent = true;
-  for (nsIFrame* scrollFrame = aTargetFrame;
-       scrollFrame && passToParent;
+  for (nsIFrame* scrollFrame = aTargetFrame; scrollFrame;
        scrollFrame = GetParentFrameToScroll(scrollFrame)) {
     
     frameToScroll = scrollFrame->GetScrollTargetFrame();
     if (!frameToScroll) {
       continue;
+    }
+
+    
+    
+    if (!aForDefaultAction) {
+      return frameToScroll;
     }
 
     nsPresContext::ScrollbarStyles ss = frameToScroll->GetScrollbarStyles();
@@ -2849,36 +2853,69 @@ nsEventStateManager::ComputeScrollTarget(nsIFrame* aTargetFrame,
     }
 
     
-    nscoord lineHeight = frameToScroll->GetLineScrollAmount().height;
-    if (lineHeight != 0) {
-      if (CanScrollOn(frameToScroll, numLines, isHorizontal)) {
-        passToParent = false;
-      }
-
+    if (frameToScroll->GetLineScrollAmount().height) {
+      
+      
+      bool canScroll = CanScrollOn(frameToScroll, numLines, isHorizontal);
       
       nsIComboboxControlFrame* comboBox = do_QueryFrame(scrollFrame);
       if (comboBox) {
         if (comboBox->IsDroppedDown()) {
           
-          if (passToParent) {
-            passToParent = false;
-            frameToScroll = nullptr;
-          }
-        } else {
-          
-          passToParent = true;
+          return canScroll ? frameToScroll : nullptr;
         }
+        
+        continue;
+      }
+
+      if (canScroll) {
+        return frameToScroll;
       }
     }
   }
 
-  if (!passToParent) {
-    return frameToScroll;
-  }
-
   nsIFrame* newFrame = nsLayoutUtils::GetCrossDocParentFrame(
       aTargetFrame->PresContext()->FrameManager()->GetRootFrame());
-  return newFrame ? ComputeScrollTarget(newFrame, aEvent) : nullptr;
+  return newFrame ?
+    ComputeScrollTarget(newFrame, aEvent, aForDefaultAction) : nullptr;
+}
+
+nscoord
+nsEventStateManager::GetScrollAmount(nsPresContext* aPresContext,
+                                     nsMouseScrollEvent* aEvent,
+                                     nsIFrame* aTargetFrame,
+                                     nsIScrollableFrame* aScrollableFrame)
+{
+  MOZ_ASSERT(aPresContext);
+  MOZ_ASSERT(aEvent);
+  MOZ_ASSERT(aTargetFrame);
+
+  bool isPage = (aEvent->scrollFlags & nsMouseScrollEvent::kIsFullPage) != 0;
+  bool isHorizontal =
+    (aEvent->scrollFlags & nsMouseScrollEvent::kIsHorizontal) != 0;
+
+  if (aScrollableFrame) {
+    nsSize size = isPage ? aScrollableFrame->GetPageScrollAmount() :
+                           aScrollableFrame->GetLineScrollAmount();
+    return isHorizontal ? size.width : size.height;
+  }
+
+  
+  if (isPage) {
+    nsRect visibleRect = aPresContext->GetVisibleArea();
+    return isHorizontal ? visibleRect.width : visibleRect.height;
+  }
+
+  
+  nsIFrame* rootFrame = aPresContext->PresShell()->GetRootFrame();
+  if (!rootFrame) {
+    return 0;
+  }
+  nsRefPtr<nsFontMetrics> fm;
+  nsLayoutUtils::GetFontMetricsForFrame(rootFrame, getter_AddRefs(fm),
+    nsLayoutUtils::FontSizeInflationFor(rootFrame));
+  NS_ENSURE_TRUE(fm, 0);
+  return fm->MaxHeight();
 }
 
 nsresult
@@ -2892,7 +2929,7 @@ nsEventStateManager::DoScrollText(nsIFrame* aTargetFrame,
   aMouseEvent->scrollOverflow = aMouseEvent->delta;
 
   nsIScrollableFrame* frameToScroll =
-    ComputeScrollTarget(aTargetFrame, aMouseEvent);
+    ComputeScrollTarget(aTargetFrame, aMouseEvent, true);
   if (!frameToScroll) {
     nsMouseWheelTransaction::EndTransaction();
     return NS_OK;

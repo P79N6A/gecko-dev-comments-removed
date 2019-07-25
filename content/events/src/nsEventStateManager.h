@@ -335,8 +335,32 @@ protected:
 
 
 
+
+
+
+
   nsIScrollableFrame* ComputeScrollTarget(nsIFrame* aTargetFrame,
-                                          nsMouseScrollEvent* aMouseEvent);
+                                          nsMouseScrollEvent* aMouseEvent,
+                                          bool aForDefaultAction);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nscoord GetScrollAmount(nsPresContext* aPresContext,
+                          nsMouseScrollEvent* aEvent,
+                          nsIFrame* aTargetFrame,
+                          nsIScrollableFrame* aScrollableFrame);
 
   
 
