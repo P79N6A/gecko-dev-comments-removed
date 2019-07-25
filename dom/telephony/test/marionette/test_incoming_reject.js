@@ -37,9 +37,8 @@ function simulateIncoming() {
     is(incoming.state, "incoming");
 
     
-    
-    
-    
+    is(telephony.calls.length, 1);
+    is(telephony.calls[0], incoming);
 
     runEmulatorCmd("gsm list", function(result) {
       log("Call list is now: " + result);
@@ -68,7 +67,7 @@ function reject() {
     is(incoming.state, "disconnected");
     ok(gotDisconnecting);
 
-    
+    is(telephony.active, null);
     is(telephony.calls.length, 0);
 
     runEmulatorCmd("gsm list", function(result) {
