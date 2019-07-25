@@ -1716,14 +1716,16 @@ nsOverflowContinuationTracker::Finish(nsIFrame* aChild)
 {
   NS_PRECONDITION(aChild, "null ptr");
   NS_PRECONDITION(aChild->GetNextInFlow(),
-                "supposed to call Finish *before* deleting next-in-flow!");
+                  "supposed to call Finish *before* deleting next-in-flow!");
 
-  for (nsIFrame* f = aChild; f; f = f->GetNextInFlow()) {
+  for (nsIFrame* f = aChild; f; ) {
     
     
+    nsIFrame* nif = f->GetNextInFlow();
     if (mOverflowContList &&
-        mOverflowContList->FirstChild() == f->GetNextInFlow() &&
-        !f->GetNextInFlow()->GetNextSibling()) {
+        mOverflowContList->FirstChild() == nif &&
+        (!nif->GetNextSibling() ||
+         nif->GetNextSibling() == nif->GetNextInFlow())) {
       mOverflowContList = nsnull;
       mPrevOverflowCont = nsnull;
       mSentry = nsnull;
@@ -1734,12 +1736,13 @@ nsOverflowContinuationTracker::Finish(nsIFrame* aChild)
       
       nsIFrame* prevOverflowCont = mPrevOverflowCont;
       StepForward();
-      if (mPrevOverflowCont == f->GetNextInFlow()) {
+      if (mPrevOverflowCont == nif) {
         
         
         mPrevOverflowCont = prevOverflowCont;
       }
     }
+    f = nif;
   }
 }
 
