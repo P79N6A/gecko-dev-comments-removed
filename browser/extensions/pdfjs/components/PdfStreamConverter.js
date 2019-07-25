@@ -14,6 +14,7 @@ const MOZ_CENTRAL = true;
 const PDFJS_EVENT_ID = 'pdf.js.message';
 const PDF_CONTENT_TYPE = 'application/pdf';
 const PREF_PREFIX = 'pdfjs';
+const PDF_VIEWER_WEB_PAGE = 'resource://pdf.js/web/viewer.html';
 const MAX_DATABASE_LENGTH = 4096;
 const FIREFOX_ID = '{ec8030f7-c20a-464f-9b0e-13a3a9e97384}';
 const SEAMONKEY_ID = '{92650c4d-4b8e-4d2a-b7eb-24ecf4f6b63a}';
@@ -123,8 +124,66 @@ function getLocalizedString(strings, id, property) {
 }
 
 
-function ChromeActions(domWindow) {
+function PdfDataListener(length) {
+  this.length = length; 
+  this.data = new Uint8Array(length >= 0 ? length : 0x10000);
+  this.loaded = 0;
+}
+
+PdfDataListener.prototype = {
+  append: function PdfDataListener_append(chunk) {
+    var willBeLoaded = this.loaded + chunk.length;
+    if (this.length >= 0 && this.length < willBeLoaded) {
+      this.length = -1; 
+    }
+    if (this.length < 0 && this.data.length < willBeLoaded) {
+      
+      
+      var newLength = this.data.length;
+      for (; newLength < willBeLoaded; newLength *= 2) {}
+      var newData = new Uint8Array(newLength);
+      newData.set(this.data);
+      this.data = newData;
+    }
+    this.data.set(chunk, this.loaded);
+    this.loaded = willBeLoaded;
+    this.onprogress(this.loaded, this.length >= 0 ? this.length : void(0));
+  },
+  getData: function PdfDataListener_getData() {
+    var data = this.data;
+    if (this.loaded != data.length)
+      data = data.subarray(0, this.loaded);
+    delete this.data; 
+    return data;
+  },
+  finish: function PdfDataListener_finish() {
+    this.isDataReady = true;
+    if (this.oncompleteCallback) {
+      this.oncompleteCallback(this.getData());
+    }
+  },
+  error: function PdfDataListener_error(errorCode) {
+    this.errorCode = errorCode;
+    if (this.oncompleteCallback) {
+      this.oncompleteCallback(null, errorCode);
+    }
+  },
+  onprogress: function() {},
+  set oncomplete(value) {
+    this.oncompleteCallback = value;
+    if (this.isDataReady) {
+      value(this.getData());
+    }
+    if (this.errorCode) {
+      value(null, this.errorCode);
+    }
+  }
+};
+
+
+function ChromeActions(domWindow, dataListener) {
   this.domWindow = domWindow;
+  this.dataListener = dataListener;
 }
 
 ChromeActions.prototype = {
@@ -194,6 +253,38 @@ ChromeActions.prototype = {
   getLocale: function() {
     return getStringPref('general.useragent.locale', 'en-US');
   },
+  getLoadingType: function() {
+    return this.dataListener ? 'passive' : 'active';
+  },
+  initPassiveLoading: function() {
+    if (!this.dataListener)
+      return false;
+
+    var domWindow = this.domWindow;
+    this.dataListener.onprogress =
+      function ChromeActions_dataListenerProgress(loaded, total) {
+
+      domWindow.postMessage({
+        pdfjsLoadAction: 'progress',
+        loaded: loaded,
+        total: total
+      }, '*');
+    };
+
+    this.dataListener.oncomplete =
+      function ChromeActions_dataListenerComplete(data, errorCode) {
+
+      domWindow.postMessage({
+        pdfjsLoadAction: 'complete',
+        data: data,
+        errorCode: errorCode
+      }, '*');
+
+      delete this.dataListener;
+    };
+
+    return true;
+  },
   getStrings: function(data) {
     try {
       
@@ -219,9 +310,26 @@ ChromeActions.prototype = {
     var strings = getLocalizedStrings('chrome.properties');
     var message = getLocalizedString(strings, 'unsupported_feature');
 
-    var win = Services.wm.getMostRecentWindow('navigator:browser');
-    var browser = win.gBrowser.getBrowserForDocument(domWindow.top.document);
-    var notificationBox = win.gBrowser.getNotificationBox(browser);
+    var notificationBox = null;
+    
+    var windowsEnum = Services.wm
+                      .getZOrderDOMWindowEnumerator('navigator:browser', true);
+    while (windowsEnum.hasMoreElements()) {
+      var win = windowsEnum.getNext();
+      if (win.closed)
+        continue;
+      var browser = win.gBrowser.getBrowserForDocument(domWindow.top.document);
+      if (browser) {
+        
+        notificationBox = win.gBrowser.getNotificationBox(browser);
+        break;
+      }
+    }
+    if (!notificationBox) {
+      log('Unable to get a notification box for the fallback message');
+      return;
+    }
+
     
     
     
@@ -324,17 +432,21 @@ PdfStreamConverter.prototype = {
   asyncConvertData: function(aFromType, aToType, aListener, aCtxt) {
     if (!isEnabled())
       throw Cr.NS_ERROR_NOT_IMPLEMENTED;
-    
-    var skipConversion = false;
-    try {
-      var request = aCtxt;
-      request.QueryInterface(Ci.nsIHttpChannel);
-      skipConversion = (request.requestMethod !== 'GET');
-    } catch (e) {
+
+    var useFetchByChrome = getBoolPref(PREF_PREFIX + '.fetchByChrome', true);
+    if (!useFetchByChrome) {
       
+      var skipConversion = false;
+      try {
+        var request = aCtxt;
+        request.QueryInterface(Ci.nsIHttpChannel);
+        skipConversion = (request.requestMethod !== 'GET');
+      } catch (e) {
+        
+      }
+      if (skipConversion)
+        throw Cr.NS_ERROR_NOT_IMPLEMENTED;
     }
-    if (skipConversion)
-      throw Cr.NS_ERROR_NOT_IMPLEMENTED;
 
     
     this.listener = aListener;
@@ -342,8 +454,14 @@ PdfStreamConverter.prototype = {
 
   
   onDataAvailable: function(aRequest, aContext, aInputStream, aOffset, aCount) {
-    
-    log('SANITY CHECK: onDataAvailable SHOULD NOT BE CALLED!');
+    if (!this.dataListener) {
+      
+      return;
+    }
+
+    var binaryStream = this.binaryStream;
+    binaryStream.setInputStream(aInputStream);
+    this.dataListener.append(binaryStream.readByteArray(aCount));
   },
 
   
@@ -351,15 +469,27 @@ PdfStreamConverter.prototype = {
 
     
     aRequest.QueryInterface(Ci.nsIChannel);
-    
-    aRequest.cancel(Cr.NS_BINDING_ABORTED);
+    var useFetchByChrome = getBoolPref(PREF_PREFIX + '.fetchByChrome', true);
+    var dataListener;
+    if (useFetchByChrome) {
+      
+      var contentLength = aRequest.contentLength;
+      dataListener = new PdfDataListener(contentLength);
+      this.dataListener = dataListener;
+      this.binaryStream = Cc['@mozilla.org/binaryinputstream;1']
+                          .createInstance(Ci.nsIBinaryInputStream);
+    } else {
+      
+      aRequest.cancel(Cr.NS_BINDING_ABORTED);
+    }
 
     
     var ioService = Services.io;
     var channel = ioService.newChannel(
-                    'resource://pdf.js/web/viewer.html', null, null);
+                    PDF_VIEWER_WEB_PAGE, null, null);
 
     var listener = this.listener;
+    var self = this;
     
     
     var proxy = {
@@ -373,8 +503,8 @@ PdfStreamConverter.prototype = {
         var domWindow = getDOMWindow(channel);
         
         if (domWindow.document.documentURIObject.equals(aRequest.URI)) {
-          let requestListener = new RequestListener(
-                                      new ChromeActions(domWindow));
+          let actions = new ChromeActions(domWindow, dataListener);
+          let requestListener = new RequestListener(actions);
           domWindow.addEventListener(PDFJS_EVENT_ID, function(event) {
             requestListener.receive(event);
           }, false, true);
@@ -386,11 +516,33 @@ PdfStreamConverter.prototype = {
     
     channel.originalURI = aRequest.URI;
     channel.asyncOpen(proxy, aContext);
+    if (useFetchByChrome) {
+      
+      
+      var securityManager = Cc['@mozilla.org/scriptsecuritymanager;1']
+                            .getService(Ci.nsIScriptSecurityManager);
+      var uri = ioService.newURI(PDF_VIEWER_WEB_PAGE, null, null);
+      
+      var resourcePrincipal = 'getSimpleCodebasePrincipal' in securityManager ?
+                              securityManager.getSimpleCodebasePrincipal(uri) :
+                              securityManager.getCodebasePrincipal(uri);
+      channel.owner = resourcePrincipal;
+    }
   },
 
   
   onStopRequest: function(aRequest, aContext, aStatusCode) {
-    
+    if (!this.dataListener) {
+      
+      return;
+    }
+
+    if (Components.isSuccessCode(aStatusCode))
+      this.dataListener.finish();
+    else
+      this.dataListener.error(aStatusCode);
+    delete this.dataListener;
+    delete this.binaryStream;
   }
 };
 

@@ -207,7 +207,7 @@ var StepperManager = (function StepperManagerClosure() {
 var Stepper = (function StepperClosure() {
   function Stepper(panel, pageIndex, initialBreakPoints) {
     this.panel = panel;
-    this.len;
+    this.len = 0;
     this.breakPoint = 0;
     this.nextBreakPoint = null;
     this.pageIndex = pageIndex;
@@ -236,6 +236,7 @@ var Stepper = (function StepperClosure() {
       headerRow.appendChild(c('th', 'fn'));
       headerRow.appendChild(c('th', 'args'));
 
+      var self = this;
       for (var i = 0; i < IRQueue.fnArray.length; i++) {
         var line = c('tr');
         line.className = 'line';
@@ -249,7 +250,6 @@ var Stepper = (function StepperClosure() {
         cbox.type = 'checkbox';
         cbox.className = 'points';
         cbox.checked = checked;
-        var self = this;
         cbox.onclick = (function(x) {
           return function() {
             if (this.checked)
@@ -298,7 +298,7 @@ var Stepper = (function StepperClosure() {
             callback();
             break;
         }
-      }
+      };
       dom.addEventListener('keydown', listener, false);
       self.goTo(idx);
     },
@@ -429,12 +429,12 @@ var PDFBug = (function PDFBugClosure() {
 
       
       var tools = this.tools;
+      var self = this;
       for (var i = 0; i < tools.length; ++i) {
         var tool = tools[i];
         var panel = document.createElement('div');
         var panelButton = document.createElement('button');
         panelButton.textContent = tool.name;
-        var self = this;
         panelButton.addEventListener('click', (function(selected) {
           return function(event) {
             event.preventDefault();
