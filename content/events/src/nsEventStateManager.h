@@ -396,6 +396,9 @@ protected:
 
   PRPackedBool m_haveShutdown;
 
+
+public:
+  static nsresult UpdateUserActivityTimer(void);
   
   nsCOMArray<nsIContent> mAccessKeys;
 
