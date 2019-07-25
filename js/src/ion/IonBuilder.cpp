@@ -2694,6 +2694,9 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *isKnownConsta
     
     
     
+    
+    
+
     *isKnownConstant = false;
 
     JSObject *pobj = obj;
@@ -2724,6 +2727,78 @@ TestSingletonProperty(JSContext *cx, JSObject *obj, jsid id, bool *isKnownConsta
 
     *isKnownConstant = true;
     return true;
+}
+
+static inline bool
+TestSingletonPropertyTypes(JSContext *cx, types::TypeSet *types,
+                           GlobalObject *globalObj, jsid id,
+                           bool *isKnownConstant, bool *testObject)
+{
+    
+    
+    
+
+    *isKnownConstant = false;
+    *testObject = false;
+
+    if (!types || types->unknownObject())
+        return true;
+
+    JSObject *singleton = types->getSingleton(cx);
+    if (singleton)
+        return TestSingletonProperty(cx, singleton, id, isKnownConstant);
+
+    if (!globalObj)
+        return true;
+
+    JSProtoKey key;
+    JSValueType type = types->getKnownTypeTag(cx);
+    switch (type) {
+      case JSVAL_TYPE_STRING:
+        key = JSProto_String;
+        break;
+
+      case JSVAL_TYPE_INT32:
+      case JSVAL_TYPE_DOUBLE:
+        key = JSProto_Number;
+        break;
+
+      case JSVAL_TYPE_BOOLEAN:
+        key = JSProto_Boolean;
+        break;
+
+      case JSVAL_TYPE_OBJECT:
+      case JSVAL_TYPE_UNKNOWN:
+        
+        
+        
+        if (types->getObjectCount() == 1) {
+            types::TypeObject *object = types->getTypeObject(0);
+            if (!object)
+                return true;
+            if (object && object->proto) {
+                if (!TestSingletonProperty(cx, object->proto, id, isKnownConstant))
+                    return false;
+                if (*isKnownConstant) {
+                    types->addFreeze(cx);
+
+                    
+                    *testObject = (type != JSVAL_TYPE_OBJECT);
+                }
+                return true;
+            }
+        }
+        return true;
+
+      default:
+        return true;
+    }
+
+    JSObject *proto;
+    if (!js_GetClassPrototype(cx, globalObj, key, &proto, NULL))
+        return false;
+
+    return TestSingletonProperty(cx, proto, id, isKnownConstant);
 }
 
 
@@ -3175,6 +3250,34 @@ IonBuilder::jsop_length_fastPath()
     return false;
 }
 
+inline bool
+GetDefiniteSlot(JSContext *cx, types::TypeSet *types, JSAtom *atom, size_t *slotp)
+{
+    if (!types || types->unknownObject() || types->getObjectCount() != 1)
+        return false;
+
+    types::TypeObject *type = types->getTypeObject(0);
+    if (!type || type->unknownProperties())
+        return false;
+
+    jsid id = ATOM_TO_JSID(atom);
+    if (id != types::MakeTypeId(cx, id))
+        return false;
+
+    types::TypeSet *propertyTypes = type->getProperty(cx, id, false);
+    if (!propertyTypes ||
+        !propertyTypes->isDefiniteProperty() ||
+        propertyTypes->isOwnProperty(cx, type, true))
+    {
+        return false;
+    }
+
+    types->addFreeze(cx);
+
+    *slotp = propertyTypes->definiteSlot();
+    return true;
+}
+
 bool
 IonBuilder::jsop_getprop(JSAtom *atom)
 {
@@ -3185,6 +3288,39 @@ IonBuilder::jsop_getprop(JSAtom *atom)
     types::TypeSet *types = oracle->propertyRead(script, pc);
 
     TypeOracle::Unary unary = oracle->unaryOp(script, pc);
+    TypeOracle::UnaryTypes unaryTypes = oracle->unaryTypes(script, pc);
+
+    JSObject *singleton = types ? types->getSingleton(cx) : NULL;
+    if (singleton && !barrier) {
+        bool isKnownConstant, testObject;
+        if (!TestSingletonPropertyTypes(cx, unaryTypes.inTypes,
+                                        script->global(), ATOM_TO_JSID(atom),
+                                        &isKnownConstant, &testObject))
+        {
+            return false;
+        }
+
+        if (isKnownConstant) {
+            if (testObject) {
+                MGuardObject *guard = MGuardObject::New(obj);
+                current->add(guard);
+            }
+            return pushConstant(ObjectValue(*singleton));
+        }
+    }
+
+    size_t slot;
+    if (GetDefiniteSlot(cx, unaryTypes.inTypes, atom, &slot)) {
+        MLoadFixedSlot *fixed = MLoadFixedSlot::New(obj, slot);
+        if (!barrier)
+            fixed->setResultType(unary.rval);
+
+        current->add(fixed);
+        current->push(fixed);
+
+        return pushTypeBarrier(fixed, types, barrier);
+    }
+
     if (unary.ival == MIRType_Object) {
         MGetPropertyCache *load = MGetPropertyCache::New(obj, atom, script, pc);
         if (!barrier)
@@ -3215,6 +3351,18 @@ IonBuilder::jsop_setprop(JSAtom *atom)
     MDefinition *obj = current->pop();
 
     bool monitored = !oracle->propertyWriteCanSpecialize(script, pc);
+
+    TypeOracle::BinaryTypes binaryTypes = oracle->binaryTypes(script, pc);
+
+    if (!monitored) {
+        size_t slot;
+        if (GetDefiniteSlot(cx, binaryTypes.lhsTypes, atom, &slot)) {
+            MStoreFixedSlot *fixed = MStoreFixedSlot::New(obj, value, slot);
+            current->add(fixed);
+            current->push(value);
+            return resumeAfter(fixed);
+        }
+    }
 
     TypeOracle::Binary binary = oracle->binaryOp(script, pc);
     MGenericSetProperty *ins = MGenericSetProperty::New(obj, value, atom,
