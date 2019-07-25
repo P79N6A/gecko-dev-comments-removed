@@ -11157,6 +11157,41 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
                     return RECORD_CONTINUE;
                 }
             }
+        } else if (vp[2].isString() && mode == JSOP_CALL) {
+            if (native == js_regexp_exec) {
+                jsbytecode *pc = cx->regs->pc;
+                
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                if (pc[0] == JSOP_CALL) {
+                    if ((pc[JSOP_CALL_LENGTH] == JSOP_POP) ||
+                        (pc[JSOP_CALL_LENGTH] == JSOP_TRACE &&
+                         pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH] == JSOP_POP) ||
+                        (pc[JSOP_CALL_LENGTH] == JSOP_IFEQ) ||
+                        (pc[JSOP_CALL_LENGTH] == JSOP_TRACE &&
+                         pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH] == JSOP_IFEQ) ||
+                        (pc[JSOP_CALL_LENGTH] == JSOP_NOT &&
+                         pc[JSOP_CALL_LENGTH + JSOP_NOT_LENGTH] == JSOP_IFEQ) ||
+                        (pc[JSOP_CALL_LENGTH] == JSOP_TRACE &&
+                         pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH] == JSOP_NOT &&
+                         pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH + JSOP_NOT_LENGTH] == JSOP_IFEQ))
+                    {
+                        fun->u.n.native = js_regexp_test;
+                    }
+                }
+            }
         }
         break;
 
