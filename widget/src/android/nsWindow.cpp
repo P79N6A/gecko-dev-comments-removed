@@ -89,8 +89,8 @@ static nsRefPtr<gl::GLContext> sGLContext;
 static bool sFailedToCreateGLContext = false;
 
 
-static const double SWIPE_MAX_PINCH_DELTA = 100;
-static const double SWIPE_MIN_DISTANCE = 150;
+static const double SWIPE_MAX_PINCH_DELTA_INCHES = 0.4;
+static const double SWIPE_MIN_DISTANCE_INCHES = 0.6;
 
 static nsWindow*
 TopWindow()
@@ -198,6 +198,10 @@ nsWindow::Create(nsIWidget *aParent,
         parent->mChildren.AppendElement(this);
         mParent = parent;
     }
+
+    float dpi = GetDPI();
+    mSwipeMaxPinchDelta = SWIPE_MAX_PINCH_DELTA_INCHES * dpi;
+    mSwipeMinDistance = SWIPE_MIN_DISTANCE_INCHES * dpi;
 
     return NS_OK;
 }
@@ -1103,14 +1107,14 @@ void nsWindow::OnMultitouchEvent(AndroidGeckoEvent *ae)
 
         
         
-        if (fabs(pinchDist - mStartDist) > SWIPE_MAX_PINCH_DELTA)
+        if (fabs(pinchDist - mStartDist) > mSwipeMaxPinchDelta)
             mStartPoint = nsnull;
 
         
         
         if (mStartPoint) {
             double swipeDistance = getDistance(midPoint, *mStartPoint);
-            if (swipeDistance > SWIPE_MIN_DISTANCE) {
+            if (swipeDistance > mSwipeMinDistance) {
                 PRUint32 direction = 0;
                 nsIntPoint motion = midPoint - *mStartPoint;
 
