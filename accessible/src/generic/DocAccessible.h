@@ -12,7 +12,6 @@
 
 #include "HyperTextAccessibleWrap.h"
 #include "nsEventShell.h"
-#include "NotificationController.h"
 
 #include "nsClassHashtable.h"
 #include "nsDataHashtable.h"
@@ -25,6 +24,10 @@
 #include "nsIWeakReference.h"
 #include "nsCOMArray.h"
 #include "nsIDocShellTreeNode.h"
+
+template<class Class, class Arg>
+class TNotification;
+class NotificationController;
 
 class nsIScrollableView;
 class nsAccessiblePivot;
@@ -208,10 +211,7 @@ public:
   
 
 
-  void BindChildDocument(DocAccessible* aDocument)
-  {
-    mNotificationController->ScheduleChildDocBinding(aDocument);
-  }
+  void BindChildDocument(DocAccessible* aDocument);
 
   
 
@@ -222,14 +222,8 @@ public:
 
   template<class Class, class Arg>
   void HandleNotification(Class* aInstance,
-                                 typename TNotification<Class, Arg>::Callback aMethod,
-                                 Arg* aArg)
-  {
-    if (mNotificationController) {
-      mNotificationController->HandleNotification<Class, Arg>(aInstance,
-                                                              aMethod, aArg);
-    }
-  }
+                          typename TNotification<Class, Arg>::Callback aMethod,
+                          Arg* aArg);
 
   
 
@@ -329,14 +323,7 @@ public:
   
 
 
-  void UpdateText(nsIContent* aTextNode)
-  {
-    NS_ASSERTION(mNotificationController, "The document was shut down!");
-
-    
-    if (mNotificationController && HasLoadState(eTreeConstructed))
-      mNotificationController->ScheduleTextUpdate(aTextNode);
-  }
+  void UpdateText(nsIContent* aTextNode);
 
   
 
