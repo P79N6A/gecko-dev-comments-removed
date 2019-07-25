@@ -262,15 +262,11 @@ window.Page = {
       return false;
     });
     
-    Tabs.onFocus(function(){
-      
-      if( this.contentWindow == window){
-        var activeGroup = Groups.getActiveGroup();
-        if( activeGroup ) activeGroup.reorderBasedOnTabOrder();        
+    Tabs.onFocus(function() {
+      var focusTab = this;
 
-        if(window.UI)
-          UI.tabBar.hide();
-        
+      
+      if( focusTab.contentWindow == window){
         if(UI.currentTab != null && UI.currentTab.mirror != null) {
           
           
@@ -298,29 +294,33 @@ window.Page = {
           }).animate({
               top: pos.top, left: pos.left,
               width: w, height: h
-          },350, '', function() {
+          },350, '', function() { 
             $tab.css({
               zIndex: z,
               '-moz-transform': rotation
             });
             $("body").css("overflow", overflow);
+            var activeGroup = Groups.getActiveGroup();
+            if( activeGroup ) activeGroup.reorderBasedOnTabOrder();        
+    
+            if(window.UI)
+              UI.tabBar.hide(false);
+            
             window.Groups.setActiveGroup(null);
             TabMirror.resumePainting();
-
-
-
-
           });
         }
       } else { 
-        var item = TabItems.getItemByTab(Utils.activeTab);
-        if(item) 
-          Groups.setActiveGroup(item.parent);
-          
-        UI.tabBar.show();        
+        setTimeout(function() { 
+          var item = TabItems.getItemByTab(Utils.activeTab);
+          if(item) 
+            Groups.setActiveGroup(item.parent);
+            
+          UI.tabBar.show();        
+        }, 1);
       }
       
-      UI.currentTab = this;
+      UI.currentTab = focusTab;
     });
   },
   
