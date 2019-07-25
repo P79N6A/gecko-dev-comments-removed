@@ -28,6 +28,8 @@ const char kAPP_RT[] = "webapprt-stub";
 
 int* pargc;
 char*** pargv;
+char profile[MAXPATHLEN];
+bool isProfileOverridden = false;
 
 XRE_GetFileFromPathType XRE_GetFileFromPath;
 XRE_CreateAppDataType XRE_CreateAppData;
@@ -120,7 +122,7 @@ bool CopyFile(const char* inputFile, const char* outputFile)
   return (bytesRead >= 0);
 }
 
-bool GRELoadAndLaunch(const char* firefoxDir, const char* profile)
+bool GRELoadAndLaunch(const char* firefoxDir)
 {
   char xpcomDllPath[MAXPATHLEN];
   snprintf(xpcomDllPath, MAXPATHLEN, "%s/%s", firefoxDir, XPCOM_DLL);
@@ -135,11 +137,13 @@ bool GRELoadAndLaunch(const char* firefoxDir, const char* profile)
     return false;
   }
 
-  
-  
-  char programClass[MAXPATHLEN];
-  snprintf(programClass, MAXPATHLEN, "owa-%s", profile);
-  g_set_prgname(programClass);
+  if (!isProfileOverridden) {
+    
+    
+    char programClass[MAXPATHLEN];
+    snprintf(programClass, MAXPATHLEN, "owa-%s", profile);
+    g_set_prgname(programClass);
+  }
 
   
   { 
@@ -173,8 +177,10 @@ bool GRELoadAndLaunch(const char* firefoxDir, const char* profile)
       return false;
     }
 
-    SetAllocatedString(webShellAppData->profile, profile);
-    SetAllocatedString(webShellAppData->name, profile);
+    if (!isProfileOverridden) {
+      SetAllocatedString(webShellAppData->profile, profile);
+      SetAllocatedString(webShellAppData->name, profile);
+    }
 
     nsCOMPtr<nsIFile> directory;
     if (NS_FAILED(XRE_GetFileFromPath(rtPath, getter_AddRefs(directory)))) {
@@ -231,10 +237,29 @@ int main(int argc, char *argv[])
     ErrorDialog("Couldn't read current executable path");
     return 255;
   }
-
-  
   char curExeDir[MAXPATHLEN];
   GetDirFromPath(curExeDir, curExePath);
+
+  for (int i = 1; i < argc; i++) {
+    if (!strcmp(argv[i], "-profile")) {
+      isProfileOverridden = true;
+      break;
+    }
+  }
+
+  char firefoxDir[MAXPATHLEN];
+
+  
+  
+  snprintf(firefoxDir, MAXPATHLEN, "%s/../../dist/bin", curExeDir);
+  if (access(firefoxDir, F_OK) != -1) {
+    if (GRELoadAndLaunch(firefoxDir))
+      return 0;
+
+    return 255;
+  }
+
+  
   char webAppIniPath[MAXPATHLEN];
   snprintf(webAppIniPath, MAXPATHLEN, "%s/%s", curExeDir, kWEBAPP_INI);
 
@@ -252,14 +277,12 @@ int main(int argc, char *argv[])
   }
 
   
-  char profile[MAXPATHLEN];
   if (NS_FAILED(parser.GetString("Webapp", "Profile", profile, MAXPATHLEN))) {
     ErrorDialog("Couldn't retrieve profile from web app INI file");
     return 255;
   }
 
   
-  char firefoxDir[MAXPATHLEN];
   if (NS_FAILED(parser.GetString("WebappRT", "InstallDir", firefoxDir, MAXPATHLEN))) {
     ErrorDialog("Couldn't find your Firefox install directory.");
     return 255;
@@ -285,7 +308,7 @@ int main(int argc, char *argv[])
 
   
   if (!strcmp(buildid, NS_STRINGIFY(GRE_BUILDID))) {
-    if (GRELoadAndLaunch(firefoxDir, profile))
+    if (GRELoadAndLaunch(firefoxDir))
       return 0;
   }
   
