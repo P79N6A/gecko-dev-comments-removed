@@ -1,4 +1,8 @@
 
+
+
+
+
 const rightText="\u30E6\u30CB\u30B3\u30FC\u30C9\u306F\u3001\u3059\u3079\u3066\u306E\u6587\u5B57\u306B\u56FA\u6709\u306E\u756A\u53F7\u3092\u4ED8\u4E0E\u3057\u307E\u3059";
 
 
@@ -37,7 +41,13 @@ function afterChangeCharset() {
 function test() {
   waitForExplicitFinish();
 
-  var rootDir = getRootDirectory(gTestPath);
+  var jar = getJar(getRootDirectory(gTestPath));
+  var dir = jar ?
+              extractJarToTmp(jar) :
+              getChromeDir(getResolvedURI(gTestPath));
+
+  var rootDir = Services.io.newFileURI(dir).spec;
+
   gBrowser.selectedTab = gBrowser.addTab(rootDir + "test-form_sjis.html");
   gBrowser.selectedBrowser.addEventListener("load", afterOpen, true);
 }
