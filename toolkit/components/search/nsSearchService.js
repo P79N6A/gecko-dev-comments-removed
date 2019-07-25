@@ -734,9 +734,9 @@ function getMozParamPref(prefName)
 
 
 
-let gEnginesLoaded = false;
+let gInitialized = false;
 function notifyAction(aEngine, aVerb) {
-  if (gEnginesLoaded) {
+  if (gInitialized) {
     LOG("NOTIFY: Engine: \"" + aEngine.name + "\"; Verb: \"" + aVerb + "\"");
     Services.obs.notifyObservers(aEngine, SEARCH_ENGINE_TOPIC, aVerb);
   }
@@ -2466,22 +2466,84 @@ Submission.prototype = {
   }
 }
 
+function executeSoon(func) {
+  Services.tm.mainThread.dispatch(func, Ci.nsIThread.DISPATCH_NORMAL);
+}
+
 
 function SearchService() {
   
   if (getBoolPref(BROWSER_SEARCH_PREF + "log", false))
     LOG = DO_LOG;
 
-  try {
-    this._loadEngines();
-  } catch (ex) {
-    LOG("_init: failure loading engines: " + ex);
-  }
-  gEnginesLoaded = true;
-  this._addObservers();
+  
+
+
+
+
+
+  this._initObservers = [];
 }
+
 SearchService.prototype = {
   classID: Components.ID("{7319788a-fe93-4db3-9f39-818cf08f4256}"),
+
+  
+  
+  _initRV: Cr.NS_OK,
+
+  
+  
+  
+  _ensureInitialized: function  SRCH_SVC__ensureInitialized() {
+    if (gInitialized) {
+      if (!Components.isSuccessCode(this._initRV)) {
+        throw this._initRV;
+      }
+
+      
+      
+      
+      
+      delete this._ensureInitialized;
+      this._ensureInitialized = function SRCH_SVC__ensureInitializedDone() { };
+      return;
+    }
+
+    let warning = "Search service falling back to synchronous initialization at " + new Error().stack;
+    Components.utils.reportError(warning);
+    LOG(warning);
+
+    this._syncInit();
+    if (!Components.isSuccessCode(this._initRV)) {
+      throw this._initRV;
+    }
+  },
+
+  
+  
+  
+  _syncInit: function SRCH_SVC__syncInit() {
+    try {
+      this._loadEngines();
+    } catch (ex) {
+      this._initRV = Cr.NS_ERROR_FAILURE;
+      LOG("_syncInit: failure loading engines: " + ex);
+    }
+    this._addObservers();
+
+    gInitialized = true;
+
+    
+    this._initObservers.forEach(function (observer) {
+      try {
+        observer.onInitComplete(this._initRV);
+      } catch (x) {
+        LOG("nsIBrowserInitObserver failed with error " + x);
+      }
+    }, this);
+    this._initObservers = null;
+  },
 
   _engines: { },
   __sortedEngines: null,
@@ -3151,7 +3213,36 @@ SearchService.prototype = {
   },
 
   
+  init: function SRCH_SVC_init(observer) {
+    if (gInitialized) {
+      if (observer) {
+        executeSoon(function () {
+          observer.onInitComplete(this._initRV);
+        });
+      }
+      return;
+    }
+
+    if (observer)
+      this._initObservers.push(observer);
+
+    if (!this._initStarted) {
+      executeSoon((function () {
+        
+        
+        if (!gInitialized)
+          this._syncInit();
+      }).bind(this));
+      this._initStarted = true;
+    }
+  },
+
+  get isInitialized() {
+    return gInitialized;
+  },
+
   getEngines: function SRCH_SVC_getEngines(aCount) {
+    this._ensureInitialized();
     LOG("getEngines: getting all engines");
     var engines = this._getSortedEngines(true);
     aCount.value = engines.length;
@@ -3159,6 +3250,7 @@ SearchService.prototype = {
   },
 
   getVisibleEngines: function SRCH_SVC_getVisible(aCount) {
+    this._ensureInitialized();
     LOG("getVisibleEngines: getting all visible engines");
     var engines = this._getSortedEngines(false);
     aCount.value = engines.length;
@@ -3166,6 +3258,7 @@ SearchService.prototype = {
   },
 
   getDefaultEngines: function SRCH_SVC_getDefault(aCount) {
+    this._ensureInitialized();
     function isDefault(engine) {
       return engine._isDefault;
     };
@@ -3224,10 +3317,12 @@ SearchService.prototype = {
   },
 
   getEngineByName: function SRCH_SVC_getEngineByName(aEngineName) {
+    this._ensureInitialized();
     return this._engines[aEngineName] || null;
   },
 
   getEngineByAlias: function SRCH_SVC_getEngineByAlias(aAlias) {
+    this._ensureInitialized();
     for (var engineName in this._engines) {
       var engine = this._engines[engineName];
       if (engine && engine.alias == aAlias)
@@ -3239,6 +3334,7 @@ SearchService.prototype = {
   addEngineWithDetails: function SRCH_SVC_addEWD(aName, aIconURL, aAlias,
                                                  aDescription, aMethod,
                                                  aTemplate) {
+    this._ensureInitialized();
     if (!aName)
       FAIL("Invalid name passed to addEngineWithDetails!");
     if (!aMethod)
@@ -3258,6 +3354,7 @@ SearchService.prototype = {
   addEngine: function SRCH_SVC_addEngine(aEngineURL, aDataType, aIconURL,
                                          aConfirm) {
     LOG("addEngine: Adding \"" + aEngineURL + "\".");
+    this._ensureInitialized();
     try {
       var uri = makeURI(aEngineURL);
       var engine = new Engine(uri, aDataType, false);
@@ -3270,6 +3367,7 @@ SearchService.prototype = {
   },
 
   removeEngine: function SRCH_SVC_removeEngine(aEngine) {
+    this._ensureInitialized();
     if (!aEngine)
       FAIL("no engine passed to removeEngine!");
 
@@ -3317,6 +3415,7 @@ SearchService.prototype = {
   },
 
   moveEngine: function SRCH_SVC_moveEngine(aEngine, aNewIndex) {
+    this._ensureInitialized();
     if ((aNewIndex > this._sortedEngines.length) || (aNewIndex < 0))
       FAIL("SRCH_SVC_moveEngine: Index out of bounds!");
     if (!(aEngine instanceof Ci.nsISearchEngine))
@@ -3366,6 +3465,7 @@ SearchService.prototype = {
   },
 
   restoreDefaultEngines: function SRCH_SVC_resetDefaultEngines() {
+    this._ensureInitialized();
     for each (var e in this._engines) {
       
       if (e.hidden && e._isDefault)
@@ -3374,11 +3474,13 @@ SearchService.prototype = {
   },
 
   get originalDefaultEngine() {
+    this._ensureInitialized();
     const defPref = BROWSER_SEARCH_PREF + "defaultenginename";
     return this.getEngineByName(getLocalizedPref(defPref, ""));
   },
 
   get defaultEngine() {
+    this._ensureInitialized();
     let defaultEngine = this.originalDefaultEngine;
     if (!defaultEngine || defaultEngine.hidden)
       defaultEngine = this._getSortedEngines(false)[0] || null;
@@ -3386,6 +3488,7 @@ SearchService.prototype = {
   },
 
   get currentEngine() {
+    this._ensureInitialized();
     if (!this._currentEngine) {
       let selectedEngine = getLocalizedPref(BROWSER_SEARCH_PREF +
                                             "selectedEngine");
@@ -3397,6 +3500,7 @@ SearchService.prototype = {
     return this._currentEngine;
   },
   set currentEngine(val) {
+    this._ensureInitialized();
     if (!(val instanceof Ci.nsISearchEngine))
       FAIL("Invalid argument passed to currentEngine setter");
 
