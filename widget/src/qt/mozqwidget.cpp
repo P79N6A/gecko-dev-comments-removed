@@ -20,6 +20,13 @@
 
 static bool gKeyboardOpen = false;
 
+
+
+
+
+
+static bool gFailedOpenKeyboard = false;
+ 
 MozQWidget::MozQWidget(nsWindow* aReceiver, QGraphicsItem* aParent)
     : QGraphicsWidget(aParent),
       mReceiver(aReceiver)
@@ -90,6 +97,11 @@ void MozQWidget::dropEvent(QGraphicsSceneDragDropEvent* aEvent)
 void MozQWidget::focusInEvent(QFocusEvent* aEvent)
 {
     mReceiver->OnFocusInEvent(aEvent);
+
+    
+    
+    if (gFailedOpenKeyboard)
+        showVKB();
 }
 
 void MozQWidget::focusOutEvent(QFocusEvent* aEvent)
@@ -286,6 +298,14 @@ void MozQWidget::setModal(bool modal)
 
 QVariant MozQWidget::inputMethodQuery(Qt::InputMethodQuery aQuery) const
 {
+    
+    
+    
+    if (static_cast<Qt::InputMethodQuery>( 10004 ) == aQuery)
+    {
+        return QVariant( 1 );
+    }
+
     return QGraphicsWidget::inputMethodQuery(aQuery);
 }
 
@@ -306,6 +326,12 @@ void MozQWidget::showVKB()
         focusWidget->setAttribute(Qt::WA_InputMethodEnabled, true);
         inputContext->setFocusWidget(focusWidget);
         gKeyboardOpen = true;
+        gFailedOpenKeyboard = false;
+    }
+    else
+    {
+        
+        gFailedOpenKeyboard = true;
     }
 #else
     LOG(("VKB not supported in Qt < 4.6\n"));
