@@ -39,6 +39,7 @@ var gPlayTests = [
 
   
   { name:"bug461281.ogg", type:"application/ogg" },
+
   
   { name:"bug482461.ogv", type:"video/ogg", duration:4.34 },
   

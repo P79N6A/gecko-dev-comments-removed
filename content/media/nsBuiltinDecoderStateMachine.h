@@ -193,12 +193,7 @@ public:
   }
 
   
-  PRBool HaveNextFrameData() const {
-    PRUint32 audioQueueSize = mReader->mAudioQueue.GetSize();
-    return (mReader->mVideoQueue.GetSize() > 0 &&
-            (!HasAudio() || audioQueueSize > 0)) ||
-           audioQueueSize > 0;
-  }
+  PRBool HaveNextFrameData() const;
 
   
   PRBool IsBuffering() const {
@@ -239,6 +234,10 @@ public:
   State mState;
 
 protected:
+
+  
+  
+  PRBool HasFutureAudio() const;
 
   
   

@@ -84,6 +84,10 @@ static const PRUint32 LOW_AUDIO_MS = 100;
 
 
 
+const unsigned AMPLE_AUDIO_MS = 2000;
+
+
+
 
 
 
@@ -128,6 +132,20 @@ nsBuiltinDecoderStateMachine::~nsBuiltinDecoderStateMachine()
   MOZ_COUNT_DTOR(nsBuiltinDecoderStateMachine);
 }
 
+PRBool nsBuiltinDecoderStateMachine::HasFutureAudio() const {
+  mDecoder->GetMonitor().AssertCurrentThreadIn();
+  return HasAudio() &&
+         !mAudioCompleted &&
+         (mReader->mAudioQueue.GetSize() > 0 ||
+         mAudioEndTime - mCurrentFrameTime + mStartTime > LOW_AUDIO_MS);
+}
+
+PRBool nsBuiltinDecoderStateMachine::HaveNextFrameData() const {
+    return ((!HasAudio() || mReader->mAudioQueue.AtEndOfStream()) && 
+             mReader->mVideoQueue.GetSize() > 0) ||
+            HasFutureAudio();
+}
+
 void nsBuiltinDecoderStateMachine::DecodeLoop()
 {
   NS_ASSERTION(OnDecodeThread(), "Should be on decode thread.");
@@ -163,10 +181,6 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
   
   
   const unsigned audioPumpThresholdMs = 250;
-
-  
-  
-  const unsigned audioWaitThresholdMs = 2000;
 
   
   while (videoPlaying || audioPlaying) {
@@ -206,23 +220,24 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
       skipToNextKeyframe = PR_TRUE;
     }
 
+    
+    
+    int audioQueueSize = mReader->mAudioQueue.GetSize();
     PRInt64 initialDownloadPosition = 0;
     PRInt64 currentTime = 0;
+    PRInt64 audioDecoded = 0;
     {
       MonitorAutoEnter mon(mDecoder->GetMonitor());
+      currentTime = mCurrentFrameTime + mStartTime;
+      audioDecoded = mReader->mAudioQueue.Duration() +
+                     mAudioEndTime - currentTime;
       initialDownloadPosition =
         mDecoder->GetCurrentStream()->GetCachedDataEnd(mDecoder->mDecoderPosition);
-      currentTime = mCurrentFrameTime + mStartTime;
     }
 
     
     
-    int audioQueueSize = mReader->mAudioQueue.GetSize();
-    PRInt64 audioDecoded = mReader->mAudioQueue.Duration();
-
-    
-    
-    if (audioDecoded > audioWaitThresholdMs ||
+    if (audioDecoded > AMPLE_AUDIO_MS ||
         (skipToNextKeyframe && audioDecoded > audioPumpThresholdMs)) {
       audioWait = PR_TRUE;
     }
@@ -365,6 +380,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
       LOG(PR_LOG_DEBUG, ("First audio sample has timestamp %lldms", mAudioStartTime));
     }
 
+    PRInt64 audioEndTime = -1;
     {
       MonitorAutoEnter audioMon(mAudioMonitor);
       if (mAudioStream) {
@@ -379,7 +395,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
           mAudioStream->Write(sound->mAudioData,
                               sound->AudioDataLength(),
                               PR_TRUE);
-          mAudioEndTime = sound->mTime + sound->mDuration;
+          audioEndTime = sound->mTime + sound->mDuration;
           mDecoder->UpdatePlaybackOffset(sound->mOffset);
         } else {
           mReader->mAudioQueue.PushFront(sound);
@@ -389,19 +405,47 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
     }
     sound = nsnull;
 
-    if (mReader->mAudioQueue.AtEndOfStream()) {
-      
-      
-      MonitorAutoEnter audioMon(mAudioMonitor);
-      if (mAudioStream) {
-        mAudioStream->Drain();
+    {
+      MonitorAutoEnter mon(mDecoder->GetMonitor());
+      if (audioEndTime != -1) {
+        mAudioEndTime = audioEndTime;
       }
-      LOG(PR_LOG_DEBUG, ("%p Reached audio stream end.", mDecoder));
+      PRInt64 audioAhead = mAudioEndTime - mCurrentFrameTime - mStartTime;
+      if (audioAhead > AMPLE_AUDIO_MS) {
+        
+        
+        
+        
+        Wait(AMPLE_AUDIO_MS / 2);
+        
+        
+        
+        
+        
+        
+        mon.NotifyAll();
+      }
     }
+  }
+  if (mReader->mAudioQueue.AtEndOfStream() &&
+      mState != DECODER_STATE_SHUTDOWN &&
+      !mStopDecodeThreads)
+  {
+    
+    
+    MonitorAutoEnter audioMon(mAudioMonitor);
+    if (mAudioStream) {
+      mAudioStream->Drain();
+    }
+    LOG(PR_LOG_DEBUG, ("%p Reached audio stream end.", mDecoder));
   }
   {
     MonitorAutoEnter mon(mDecoder->GetMonitor());
     mAudioCompleted = PR_TRUE;
+    UpdateReadyState();
+    
+    
+    mDecoder->GetMonitor().NotifyAll();
   }
   LOG(PR_LOG_DEBUG, ("Audio stream finished playing, audio thread exit"));
 }
@@ -940,12 +984,13 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         }
 
         
-        while (mState == DECODER_STATE_COMPLETED &&
-               (mReader->mVideoQueue.GetSize() > 0 ||
-                (HasAudio() && !mAudioCompleted)))
-        {
+        
+        
+        do {
           AdvanceFrame();
-        }
+        } while (mState == DECODER_STATE_COMPLETED &&
+                 (mReader->mVideoQueue.GetSize() > 0 ||
+                 (HasAudio() && !mAudioCompleted)));
 
         if (mAudioStream) {
           
