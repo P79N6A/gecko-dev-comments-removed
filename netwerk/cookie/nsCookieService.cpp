@@ -2334,10 +2334,13 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
 
       
       RemoveCookieFromList(matchIter);
-
       COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
-        "stale cookie was deleted");
-      NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
+        "stale cookie was purged");
+
+      nsCOMPtr<nsIMutableArray> removedList =
+        do_CreateInstance(NS_ARRAY_CONTRACTID);
+      removedList->AppendElement(oldCookie, PR_FALSE);
+      NotifyChanged(removedList, NS_LITERAL_STRING("batch-deleted").get());
 
       
       
@@ -2355,13 +2358,12 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
       
       RemoveCookieFromList(matchIter);
 
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
-        "previously stored cookie was deleted");
-      NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
-
       
       
       if (aCookie->Expiry() <= currentTime) {
+        COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+          "previously stored cookie was deleted");
+        NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
         return;
       }
 
@@ -2382,12 +2384,16 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
     if (entry && entry->GetCookies().Length() >= mMaxCookiesPerHost) {
       nsListIter iter;
       FindStaleCookie(entry, currentTime, iter);
+      oldCookie = iter.Cookie();
 
       
-      COOKIE_LOGEVICTED(iter.Cookie(), "Too many cookies for this domain");
       RemoveCookieFromList(iter);
+      COOKIE_LOGEVICTED(oldCookie, "Too many cookies for this domain");
 
-      NotifyChanged(iter.Cookie(), NS_LITERAL_STRING("deleted").get());
+      nsCOMPtr<nsIMutableArray> removedList =
+        do_CreateInstance(NS_ARRAY_CONTRACTID);
+      removedList->AppendElement(oldCookie, PR_FALSE);
+      NotifyChanged(removedList, NS_LITERAL_STRING("batch-deleted").get());
 
     } else if (mDBState->cookieCount >= ADD_TEN_PERCENT(mMaxNumberOfCookies)) {
       PRInt64 maxAge = aCurrentTimeInUsec - mDBState->cookieOldestTime;
