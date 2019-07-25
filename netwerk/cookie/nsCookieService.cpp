@@ -2304,7 +2304,8 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
 
   
   if (!aFromHttp && aCookie->IsHttpOnly()) {
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie is httponly; coming from script");
+    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+      "cookie is httponly; coming from script");
     return;
   }
 
@@ -2318,32 +2319,58 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
 
     
     
-    if (!aFromHttp && oldCookie->IsHttpOnly() &&
-        oldCookie->Expiry() > currentTime) {
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "previously stored cookie is httponly; coming from script");
-      return;
-    }
+    
+    
+    if (oldCookie->Expiry() <= currentTime) {
+      if (aCookie->Expiry() <= currentTime) {
+        
+        COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+          "cookie has already expired");
+        return;
+      }
 
-    
-    
-    RemoveCookieFromList(matchIter);
+      
+      RemoveCookieFromList(matchIter);
 
-    COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "previously stored cookie was deleted");
-    NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
+      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+        "stale cookie was deleted");
+      NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
 
-    
-    
-    if (aCookie->Expiry() <= currentTime)
-      return;
+      
+      
+      
+      foundCookie = PR_FALSE;
 
-    
-    if (oldCookie)
+    } else {
+      
+      if (!aFromHttp && oldCookie->IsHttpOnly()) {
+        COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+          "previously stored cookie is httponly; coming from script");
+        return;
+      }
+
+      
+      RemoveCookieFromList(matchIter);
+
+      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+        "previously stored cookie was deleted");
+      NotifyChanged(oldCookie, NS_LITERAL_STRING("deleted").get());
+
+      
+      
+      if (aCookie->Expiry() <= currentTime) {
+        return;
+      }
+
+      
       aCookie->SetCreationTime(oldCookie->CreationTime());
+    }
 
   } else {
     
     if (aCookie->Expiry() <= currentTime) {
-      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader, "cookie has already expired");
+      COOKIE_LOGFAILURE(SET_COOKIE, aHostURI, aCookieHeader,
+        "cookie has already expired");
       return;
     }
 
