@@ -1064,6 +1064,9 @@ Services.prefs.setBoolPref("extensions.logging.enabled", true);
 Services.prefs.setIntPref("extensions.enabledScopes", AddonManager.SCOPE_PROFILE);
 
 
+Services.prefs.setIntPref("extensions.autoDisableScopes", 0);
+
+
 Services.prefs.setBoolPref("extensions.getAddons.cache.enabled", false);
 
 
