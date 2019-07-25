@@ -237,6 +237,9 @@ static void debug_only_printf(int mask, const char *fmt, ...) JS_BEGIN_MACRO JS_
 #elif defined(JS_JIT_SPEW)
 
 
+extern nanojit::Config NJConfig;
+
+
 extern nanojit::LogControl LogController;
 
 
