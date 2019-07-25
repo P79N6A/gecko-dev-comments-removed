@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.domain;
 
 import org.mozilla.gecko.sync.ExtendedJSONObject;
@@ -44,22 +11,23 @@ import org.mozilla.gecko.sync.repositories.android.RepoUtils;
 public class PasswordRecord extends Record {
 
   public static final String COLLECTION_NAME = "passwords";
+  public static long PASSWORDS_TTL = -1; 
 
-  public PasswordRecord(String guid, String collection, long lastModified,
-      boolean deleted) {
+  public PasswordRecord(String guid, String collection, long lastModified, boolean deleted) {
     super(guid, collection, lastModified, deleted);
+    this.ttl = PASSWORDS_TTL;
   }
   public PasswordRecord(String guid, String collection, long lastModified) {
-    super(guid, collection, lastModified, false);
+    this(guid, collection, lastModified, false);
   }
   public PasswordRecord(String guid, String collection) {
-    super(guid, collection, 0, false);
+    this(guid, collection, 0, false);
   }
   public PasswordRecord(String guid) {
-    super(guid, COLLECTION_NAME, 0, false);
+    this(guid, COLLECTION_NAME, 0, false);
   }
   public PasswordRecord() {
-    super(Utils.generateGuid(), COLLECTION_NAME, 0, false);
+    this(Utils.generateGuid(), COLLECTION_NAME, 0, false);
   }
 
   public String hostname;
@@ -81,6 +49,7 @@ public class PasswordRecord extends Record {
     PasswordRecord out = new PasswordRecord(guid, this.collection, this.lastModified, this.deleted);
     out.androidID = androidID;
     out.sortIndex = this.sortIndex;
+    out.ttl       = this.ttl;
 
     
     out.hostname      = this.hostname;

@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.domain;
 
 import java.io.UnsupportedEncodingException;
@@ -104,7 +70,22 @@ public abstract class Record {
   public long lastModified;
   public boolean deleted;
   public long androidID;
+  
+
+
+
+
   public long sortIndex;
+  
+
+
+
+
+
+
+
+
+  public long ttl;
 
   public Record(String guid, String collection, long lastModified, boolean deleted) {
     this.guid         = guid;
@@ -112,6 +93,7 @@ public abstract class Record {
     this.lastModified = lastModified;
     this.deleted      = deleted;
     this.sortIndex    = 0;
+    this.ttl          = 365 * 24 * 60 * 60; 
     this.androidID    = -1;
   }
 

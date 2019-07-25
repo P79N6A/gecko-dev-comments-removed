@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.domain;
 
 import java.io.UnsupportedEncodingException;
@@ -62,21 +28,23 @@ public class BookmarkRecord extends Record {
   private static final String LOG_TAG = "BookmarkRecord";
 
   public static final String COLLECTION_NAME = "bookmarks";
+  public static final long BOOKMARKS_TTL = -1; 
 
   public BookmarkRecord(String guid, String collection, long lastModified, boolean deleted) {
     super(guid, collection, lastModified, deleted);
+    this.ttl = BOOKMARKS_TTL;
   }
   public BookmarkRecord(String guid, String collection, long lastModified) {
-    super(guid, collection, lastModified, false);
+    this(guid, collection, lastModified, false);
   }
   public BookmarkRecord(String guid, String collection) {
-    super(guid, collection, 0, false);
+    this(guid, collection, 0, false);
   }
   public BookmarkRecord(String guid) {
-    super(guid, COLLECTION_NAME, 0, false);
+    this(guid, COLLECTION_NAME, 0, false);
   }
   public BookmarkRecord() {
-    super(Utils.generateGuid(), COLLECTION_NAME, 0, false);
+    this(Utils.generateGuid(), COLLECTION_NAME, 0, false);
   }
 
   
@@ -126,6 +94,7 @@ public class BookmarkRecord extends Record {
     BookmarkRecord out = new BookmarkRecord(guid, this.collection, this.lastModified, this.deleted);
     out.androidID = androidID;
     out.sortIndex = this.sortIndex;
+    out.ttl       = this.ttl;
 
     
     out.title           = this.title;

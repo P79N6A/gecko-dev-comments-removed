@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.domain;
 
 import java.util.HashMap;
@@ -57,22 +24,23 @@ public class HistoryRecord extends Record {
   private static final String LOG_TAG = "HistoryRecord";
 
   public static final String COLLECTION_NAME = "history";
+  public static final long HISTORY_TTL = 60 * 24 * 60 * 60; 
 
-  public HistoryRecord(String guid, String collection, long lastModified,
-      boolean deleted) {
+  public HistoryRecord(String guid, String collection, long lastModified, boolean deleted) {
     super(guid, collection, lastModified, deleted);
+    this.ttl = HISTORY_TTL;
   }
   public HistoryRecord(String guid, String collection, long lastModified) {
-    super(guid, collection, lastModified, false);
+    this(guid, collection, lastModified, false);
   }
   public HistoryRecord(String guid, String collection) {
-    super(guid, collection, 0, false);
+    this(guid, collection, 0, false);
   }
   public HistoryRecord(String guid) {
-    super(guid, COLLECTION_NAME, 0, false);
+    this(guid, COLLECTION_NAME, 0, false);
   }
   public HistoryRecord() {
-    super(Utils.generateGuid(), COLLECTION_NAME, 0, false);
+    this(Utils.generateGuid(), COLLECTION_NAME, 0, false);
   }
 
   public String    title;
@@ -96,6 +64,7 @@ public class HistoryRecord extends Record {
     HistoryRecord out = new HistoryRecord(guid, this.collection, this.lastModified, this.deleted);
     out.androidID = androidID;
     out.sortIndex = this.sortIndex;
+    out.ttl       = this.ttl;
 
     
     out.title             = this.title;
