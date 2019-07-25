@@ -1,3 +1,4 @@
+
 let Cc = Components.classes;
 let Ci = Components.interfaces;
 
@@ -363,7 +364,10 @@ let ContentScroll =  {
         
         
         if (json.id == 1 && json.scrollX >= 0 && json.scrollY >= 0)
-          winCwu.redraw();
+          win.setTimeout(
+            function() {
+              winCwu20.redraw();
+            }, 0);
 
         break;
       }
