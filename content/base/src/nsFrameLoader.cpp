@@ -83,7 +83,7 @@
 #include "nsISHistory.h"
 #include "nsISHistoryInternal.h"
 #include "nsIDocShellHistory.h"
-#include "nsIDOMNSHTMLDocument.h"
+#include "nsIDOMHTMLDocument.h"
 #include "nsIXULWindow.h"
 #include "nsIEditor.h"
 #include "nsIEditorDocShell.h"
@@ -820,7 +820,7 @@ nsFrameLoader::Show(PRInt32 marginWidth, PRInt32 marginHeight,
   nsCOMPtr<nsIPresShell> presShell;
   mDocShell->GetPresShell(getter_AddRefs(presShell));
   if (presShell) {
-    nsCOMPtr<nsIDOMNSHTMLDocument> doc =
+    nsCOMPtr<nsIDOMHTMLDocument> doc =
       do_QueryInterface(presShell->GetDocument());
 
     if (doc) {
