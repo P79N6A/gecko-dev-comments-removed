@@ -566,6 +566,8 @@ protected:
 
   static uint8_t (*sPremultiplyTable)[256];
 
+  static mozilla::gfx::DrawTarget* sErrorTarget;
+
   
   void SetStyleFromJSValue(JSContext* cx, JS::Value& value, Style whichStyle);
   void SetStyleFromString(const nsAString& str, Style whichStyle);
@@ -601,6 +603,11 @@ protected:
   
 
 
+  static void EnsureErrorTarget();
+
+  
+
+
 
 
   void EnsureWritablePath();
@@ -610,10 +617,32 @@ protected:
   
   void EnsureUserSpacePath(bool aCommitTransform = true);
 
+  
+
+
+
   void TransformWillUpdate();
 
   
   void FillRuleChanged();
+
+   
+
+
+
+
+
+  void EnsureTarget();
+
+  
+
+
+  void ClearTarget();
+
+  
+
+
+  bool IsTargetValid() { return mTarget != sErrorTarget; }
 
   
 
@@ -665,10 +694,6 @@ protected:
 
   
   
-  
-  bool mValid;
-  
-  
   bool mZero;
 
   bool mOpaque;
@@ -684,6 +709,8 @@ protected:
   
   nsCOMPtr<nsIDocShell> mDocShell;
 
+  
+  
   
   mozilla::RefPtr<mozilla::gfx::DrawTarget> mTarget;
 
