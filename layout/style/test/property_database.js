@@ -823,15 +823,9 @@ var gCSSProperties = {
 				"fixed repeat-y top left url(404.png), repeat-x green",
 				"url(404.png), -moz-linear-gradient(20px 20px -45deg, blue, green) black",
 				
-	
-	
-	
-	
-	
-
-
-
-
+				"url(404.png) green padding-box",
+				"url(404.png) border-box transparent",
+				"content-box url(404.png) blue",
 		],
 		invalid_values: [
 			
