@@ -79,7 +79,6 @@ _BROWSER_TEST_FILES = \
 	browser_webconsole_storage_record_entry.js \
 	browser_webconsole_storage_record_many_entries.js \
 	browser_webconsole_bug_587617_output_copy.js \
-	browser_webconsole_bug_588342_document_focus.js \
 	browser_webconsole_bug_585237_line_limit.js \
 	browser_webconsole_bug_581231_close_button.js \
 	browser_webconsole_bug_582201_duplicate_errors.js \
@@ -88,6 +87,7 @@ _BROWSER_TEST_FILES = \
 	browser_webconsole_bug_594477_clickable_output.js \
 	browser_webconsole_bug_589162_css_filter.js \
 	browser_webconsole_bug_597103_deactivateHUDForContext_unfocused_window.js \
+	browser_webconsole_bug_588342_document_focus.js \
 	head.js \
 	$(NULL)
 
