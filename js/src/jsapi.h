@@ -3599,24 +3599,6 @@ JS_SetErrorReporter(JSContext *cx, JSErrorReporter er);
 
 
 
-
-extern JS_PUBLIC_API(JSObject *)
-JS_NewDateObject(JSContext *cx, int y, int m, int d, int h, int m, int s);
-
-extern JS_PUBLIC_API(JSObject *)
-JS_NewDateObjectMsec(JSContext *cx, jsdouble msec);
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_ObjectIsDate(JSContext *cx, JSObject *obj);
-
-
-
-
-
-
 #define JSREG_FOLD      0x01    /* fold uppercase to lowercase */
 #define JSREG_GLOB      0x02    /* global exec, creates array of matches */
 #define JSREG_MULTILINE 0x04    /* treat ^ and $ as begin and end of line */
