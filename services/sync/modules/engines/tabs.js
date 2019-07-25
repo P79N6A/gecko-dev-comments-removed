@@ -100,13 +100,6 @@ TabStore.prototype = {
     return Clients.clientName;
   },
 
-  get _fennecTabs() {
-    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
-	       .getService(Ci.nsIWindowMediator);
-    let browserWindow = wm.getMostRecentWindow("navigator:browser");
-    return browserWindow.Browser._tabs;
-  },
-
   _writeToFile: function TabStore_writeToFile() {
     
     this._log.debug("Writing out to file...");
@@ -157,18 +150,6 @@ TabStore.prototype = {
     return this._json;
   },
 
-  _addTabToRecord: function( tab, record ) {
-    
-    let title = tab.contentDocument.title.innerHtml; 
-    this._log.debug("Wrapping a tab with title " + title);
-    let urlHistory = [];
-    let entries = tab.entries.slice(tab.entries.length - 10);
-    for (let entry in entries) {
-      urlHistory.push( entry.url );
-    }
-    record.addTab(title, urlHistory);
-  },
-
   _createLocalClientTabSetRecord: function TabStore__createLocalTabSet() {
     
     
@@ -176,24 +157,48 @@ TabStore.prototype = {
     record.setClientName( this._localClientName );
 
     if (Cc["@mozilla.org/browser/sessionstore;1"])  {
-      let session = this._json.decode(this._sessionStore.getBrowserState());
-      for (let i = 0; i < session.windows.length; i++) {
-	let window = session.windows[i];
-	
-
-
-	let windowID = i + 1;
-
-	for (let j = 0; j < window.tabs.length; j++) {
-	  this._addTabToRecord(window.tabs[j], record);
-	}
-      }
+      this._addFirefoxTabsToRecord(record);
     } else {
-      for each ( let tab in this._fennecTabs) {
-	this._addTabToRecord(tab, record);
-      }
+      this._addFennecTabsToRecord(record);
     }
     return record;
+  },
+
+  _addFirefoxTabsToRecord: function TabStore__addFirefoxTabs(record) {
+    let session = this._json.decode(this._sessionStore.getBrowserState());
+    for (let i = 0; i < session.windows.length; i++) {
+      let window = session.windows[i];
+      
+
+
+      let windowID = i + 1;
+
+      for (let j = 0; j < window.tabs.length; j++) {
+        let tab = window.tabs[j];
+        let title = tab.contentDocument.title.innerHtml; 
+        this._log.debug("Wrapping a tab with title " + title);
+        let urlHistory = [];
+        let entries = tab.entries.slice(tab.entries.length - 10);
+        for (let entry in entries) {
+          urlHistory.push( entry.url );
+        }
+        record.addTab(title, urlHistory);
+      }
+    }
+  },
+
+  _addFennecTabsToRecord: function TabStore__addFennecTabs(record) {
+    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+	       .getService(Ci.nsIWindowMediator);
+    let browserWindow = wm.getMostRecentWindow("navigator:browser");
+    for each (let tab in browserWindow.Browser._tabs ) {
+      let title = tab.browser.contentDocument.title;
+      let url = tab.browser.contentWindow.location;
+      let urlHistory = [url];
+      
+      dump("Making tab with title = " + title + ", url = " + url + "\n");
+      record.addTab(title, urlHistory);
+    }
   },
 
   itemExists: function TabStore_itemExists(id) {
