@@ -173,20 +173,13 @@ static struct nsKeyConverter nsKeycodes[] =
 };
 
 
-#define IS_XSUN_XSERVER(dpy) \
-    (strstr(XServerVendor(dpy), "Sun Microsystems") != NULL)
-
-
+#ifdef SOLARIS
 struct nsKeyConverter nsSunKeycodes[] = {
-    {NS_VK_ESCAPE, Qt::Key_F11 }, 
     {NS_VK_F1, Qt::Key_Help }, 
     {NS_VK_F11, 0x1005ff10 }, 
-    {NS_VK_F12, 0x1005ff11 }, 
-    {NS_VK_PAGE_UP,    Qt::Key_F29 }, 
-    {NS_VK_PAGE_DOWN,  Qt::Key_F35 }, 
-    {NS_VK_HOME,       Qt::Key_F27 }, 
-    {NS_VK_END,        Qt::Key_F33 }, 
+    {NS_VK_F12, 0x1005ff11 }  
 };
+#endif
 
 int
 QtKeyCodeToDOMKeyCode(int aKeysym)
@@ -210,14 +203,14 @@ QtKeyCodeToDOMKeyCode(int aKeysym)
 
 
 
+#ifdef SOLARIS
     
-
-
-
-
-
-
-
+    length = sizeof(nsSunKeycodes) / sizeof(struct nsKeyConverter);
+    for (i = 0; i < length; i++) {
+        if (nsSunKeycodes[i].keysym == aKeysym)
+            return(nsSunKeycodes[i].vkCode);
+    }
+#endif
 
     
     length = sizeof(nsKeycodes) / sizeof(struct nsKeyConverter);

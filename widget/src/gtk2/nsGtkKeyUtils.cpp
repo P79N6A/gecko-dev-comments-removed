@@ -178,22 +178,14 @@ struct nsKeyConverter nsKeycodes[] = {
     { NS_VK_EQUALS, GDK_plus }
 };
 
-#ifdef MOZ_X11
-#define IS_XSUN_XSERVER(dpy) \
-    (strstr(XServerVendor(dpy), "Sun Microsystems") != NULL)
-#endif 
-
+#ifdef SOLARIS
 
 struct nsKeyConverter nsSunKeycodes[] = {
-    {NS_VK_ESCAPE, GDK_F11 }, 
     {NS_VK_F1, GDK_Help }, 
     {NS_VK_F11, 0x1005ff10 }, 
-    {NS_VK_F12, 0x1005ff11 }, 
-    {NS_VK_PAGE_UP,    GDK_F29 }, 
-    {NS_VK_PAGE_DOWN,  GDK_F35 }, 
-    {NS_VK_HOME,       GDK_F27 }, 
-    {NS_VK_END,        GDK_F33 }, 
+    {NS_VK_F12, 0x1005ff11 }  
 };
+#endif
 
 int
 GdkKeyCodeToDOMKeyCode(int aKeysym)
@@ -219,14 +211,12 @@ GdkKeyCodeToDOMKeyCode(int aKeysym)
     if (aKeysym >= GDK_KP_0 && aKeysym <= GDK_KP_9)
         return aKeysym - GDK_KP_0 + NS_VK_NUMPAD0;
 
-#ifdef MOZ_X11
+#ifdef SOLARIS
     
-    if (IS_XSUN_XSERVER(GDK_DISPLAY())) {
-        length = sizeof(nsSunKeycodes) / sizeof(struct nsKeyConverter);
-        for (i = 0; i < length; i++) {
-            if (nsSunKeycodes[i].keysym == aKeysym)
-                return(nsSunKeycodes[i].vkCode);
-        }
+    length = sizeof(nsSunKeycodes) / sizeof(struct nsKeyConverter);
+    for (i = 0; i < length; i++) {
+        if (nsSunKeycodes[i].keysym == aKeysym)
+            return(nsSunKeycodes[i].vkCode);
     }
 #endif 
 
