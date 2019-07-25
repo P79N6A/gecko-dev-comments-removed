@@ -1601,6 +1601,7 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_RETURN)
 
           BEGIN_CASE(JSOP_GOTO)
+          BEGIN_CASE(JSOP_GOTOX)
           BEGIN_CASE(JSOP_DEFAULT)
           {
             unsigned targetOffset = FollowBranch(cx, script, PC - script->code);
@@ -1613,7 +1614,7 @@ mjit::Compiler::generateMethod()
 
 
 
-            jsbytecode *next = PC + JSOP_GOTO_LENGTH;
+            jsbytecode *next = PC + js_CodeSpec[op].length;
             if (cx->typeInferenceEnabled() && analysis->maybeCode(next) &&
                 analysis->getCode(next).loopHead) {
                 frame.syncAndForgetEverything();
@@ -1628,16 +1629,22 @@ mjit::Compiler::generateMethod()
                     return Compile_Error;
             }
             fallthrough = false;
+            PC += js_CodeSpec[op].length;
+            break;
           }
           END_CASE(JSOP_GOTO)
 
           BEGIN_CASE(JSOP_IFEQ)
           BEGIN_CASE(JSOP_IFNE)
+          BEGIN_CASE(JSOP_IFEQX)
+          BEGIN_CASE(JSOP_IFNEX)
           {
-            jsbytecode *target = PC + GET_JUMP_OFFSET(PC);
+            jsbytecode *target = PC + GetJumpOffset(PC, PC);
             fixDoubleTypes(target);
             if (!jsop_ifneq(op, target))
                 return Compile_Error;
+            PC += js_CodeSpec[op].length;
+            break;
           }
           END_CASE(JSOP_IFNE)
 
@@ -2082,6 +2089,7 @@ mjit::Compiler::generateMethod()
           END_CASE(JSOP_AND)
 
           BEGIN_CASE(JSOP_TABLESWITCH)
+          BEGIN_CASE(JSOP_TABLESWITCHX)
             
 
 
@@ -6743,9 +6751,12 @@ mjit::Compiler::jsop_tableswitch(jsbytecode *pc)
     return true;
 #else
     jsbytecode *originalPC = pc;
+    JSOp op = JSOp(*originalPC);
+    JS_ASSERT(op == JSOP_TABLESWITCH || op == JSOP_TABLESWITCHX);
 
-    uint32 defaultTarget = GET_JUMP_OFFSET(pc);
-    pc += JUMP_OFFSET_LEN;
+    uint32 defaultTarget = GetJumpOffset(pc, pc);
+    unsigned jumpLength = (op == JSOP_TABLESWITCHX) ? JUMPX_OFFSET_LEN : JUMP_OFFSET_LEN;
+    pc += jumpLength;
 
     jsint low = GET_JUMP_OFFSET(pc);
     pc += JUMP_OFFSET_LEN;
@@ -6797,12 +6808,12 @@ mjit::Compiler::jsop_tableswitch(jsbytecode *pc)
     jumpTables.append(jt);
 
     for (int i = 0; i < numJumps; i++) {
-        uint32 target = GET_JUMP_OFFSET(pc);
+        uint32 target = GetJumpOffset(originalPC, pc);
         if (!target)
             target = defaultTarget;
         uint32 offset = (originalPC + target) - script->code;
         jumpTableOffsets.append(offset);
-        pc += JUMP_OFFSET_LEN;
+        pc += jumpLength;
     }
     if (low != 0)
         masm.sub32(Imm32(low), dataReg);
