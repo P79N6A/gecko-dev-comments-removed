@@ -50,14 +50,15 @@
 #include "jsscript.h"
 
 typedef struct JSFrameRegs {
-    js::Value       *sp;            
     jsbytecode      *pc;            
+    js::Value       *sp;            
 } JSFrameRegs;
 
 
 enum JSFrameFlags {
     JSFRAME_CONSTRUCTING       =  0x01, 
-    JSFRAME_OVERRIDE_ARGS      =  0x02, 
+    JSFRAME_COMPUTED_THIS      =  0x02, 
+
     JSFRAME_ASSIGNING          =  0x04, 
 
     JSFRAME_DEBUGGER           =  0x08, 
@@ -65,6 +66,7 @@ enum JSFrameFlags {
     JSFRAME_FLOATING_GENERATOR =  0x20, 
     JSFRAME_YIELDING           =  0x40, 
     JSFRAME_GENERATOR          =  0x80, 
+    JSFRAME_OVERRIDE_ARGS      = 0x100, 
 
     JSFRAME_SPECIAL            = JSFRAME_DEBUGGER | JSFRAME_EVAL
 };
@@ -79,31 +81,15 @@ enum JSFrameFlags {
 
 struct JSStackFrame
 {
-    
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    js::Value           thisv;
-    js::Value           rval;           
-
     jsbytecode          *imacpc;        
     JSObject            *callobj;       
     js::Value           argsval;       
     JSScript            *script;        
     JSFunction          *fun;           
+    js::Value           thisv;          
     uintN               argc;           
     js::Value           *argv;          
+    js::Value           rval;           
     void                *annotation;    
 
     
@@ -112,12 +98,6 @@ struct JSStackFrame
     jsbytecode          *savedPC;       
 #ifdef DEBUG
     static jsbytecode *const sInvalidPC;
-#endif
-
-#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
-    void                *ncode;         
-    
-    void                *align_[3];
 #endif
 
     
@@ -240,14 +220,15 @@ struct JSStackFrame
         JS_ASSERT_IF(flags & JSFRAME_FLOATING_GENERATOR, isGenerator());
         return !!(flags & JSFRAME_FLOATING_GENERATOR);
     }
-
-  private:
-    JSObject *computeThisObject(JSContext *cx);
 };
 
 namespace js {
 JS_STATIC_ASSERT(sizeof(JSStackFrame) % sizeof(Value) == 0);
 static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value);
+
+JS_STATIC_ASSERT(offsetof(JSStackFrame, rval) % sizeof(Value) == 0);
+JS_STATIC_ASSERT(offsetof(JSStackFrame, thisv) % sizeof(Value) == 0);
+JS_STATIC_ASSERT(offsetof(JSStackFrame, scopeChain) % sizeof(Value) == 0);
 
 } 
 
@@ -282,6 +263,7 @@ js_GetPrimitiveThis(JSContext *cx, js::Value *vp, js::Class *clasp,
                     const js::Value **vpp);
 
 namespace js {
+
 
 
 
@@ -381,9 +363,6 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn
 extern JS_REQUIRES_STACK bool
 Interpret(JSContext *cx);
 
-extern JS_REQUIRES_STACK bool
-RunScript(JSContext *cx, JSScript *script, JSFunction *fun, JSObject *scopeChain);
-
 #define JSPROP_INITIALIZER 0x100   /* NB: Not a valid property attribute. */
 
 extern bool
@@ -461,6 +440,19 @@ js_EnterWith(JSContext *cx, jsint stackIndex);
 extern JS_REQUIRES_STACK void
 js_LeaveWith(JSContext *cx);
 
+extern JS_REQUIRES_STACK js::Class *
+js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
+
+
+
+
+
+extern JS_REQUIRES_STACK JSBool
+js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
+
+extern JSBool
+js_OnUnknownMethod(JSContext *cx, js::Value *vp);
+
 
 
 
@@ -488,23 +480,16 @@ js_MeterSlotOpcode(JSOp op, uint32 slot);
 
 #endif 
 
-extern JS_REQUIRES_STACK js::Class *
-js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
-
-
-
-
-
-extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
-
-extern JSBool
-js_OnUnknownMethod(JSContext *cx, js::Value *vp);
-
 inline JSObject *
 JSStackFrame::getThisObject(JSContext *cx)
 {
-    return thisv.isPrimitive() ? computeThisObject(cx) : &thisv.asObject();
+    if (flags & JSFRAME_COMPUTED_THIS)
+        return &thisv.asObject();
+    if (!js::ComputeThisFromArgv(cx, argv))
+        return NULL;
+    thisv = argv[-1];
+    flags |= JSFRAME_COMPUTED_THIS;
+    return &thisv.asObject();
 }
 
 #endif 
