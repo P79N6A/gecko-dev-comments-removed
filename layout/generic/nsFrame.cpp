@@ -591,6 +591,28 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   }
 }
 
+
+
+
+#ifndef _MSC_VER
+
+const nsIFrame::ChildListID nsIFrame::kPrincipalList;
+const nsIFrame::ChildListID nsIFrame::kAbsoluteList;
+const nsIFrame::ChildListID nsIFrame::kBulletList;
+const nsIFrame::ChildListID nsIFrame::kCaptionList;
+const nsIFrame::ChildListID nsIFrame::kColGroupList;
+const nsIFrame::ChildListID nsIFrame::kExcessOverflowContainersList;
+const nsIFrame::ChildListID nsIFrame::kFixedList;
+const nsIFrame::ChildListID nsIFrame::kFloatList;
+const nsIFrame::ChildListID nsIFrame::kOverflowContainersList;
+const nsIFrame::ChildListID nsIFrame::kOverflowList;
+const nsIFrame::ChildListID nsIFrame::kOverflowOutOfFlowList;
+const nsIFrame::ChildListID nsIFrame::kPopupList;
+const nsIFrame::ChildListID nsIFrame::kPushedFloatsList;
+const nsIFrame::ChildListID nsIFrame::kSelectPopupList;
+const nsIFrame::ChildListID nsIFrame::kNoReflowPrincipalList;
+#endif
+
  nsMargin
 nsIFrame::GetUsedMargin() const
 {
@@ -916,21 +938,6 @@ nsFrame::GetBaseline() const
   
   
   return mRect.height + GetUsedMargin().bottom;
-}
-
-
-
-nsIAtom*
-nsFrame::GetAdditionalChildListName(PRInt32 aIndex) const
-{
-  NS_PRECONDITION(aIndex >= 0, "invalid index number");
-  return nsnull;
-}
-
-nsFrameList
-nsFrame::GetChildList(nsIAtom* aListName) const
-{
-  return nsFrameList::EmptyList();
 }
 
 static nsIFrame*

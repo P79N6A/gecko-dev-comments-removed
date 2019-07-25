@@ -60,6 +60,7 @@
 #include "gfxMatrix.h"
 #include "nsFrameList.h"
 #include "nsAlgorithm.h"
+#include "mozilla/layout/FrameChildList.h"
 #include "FramePropertyTable.h"
 
 
@@ -525,6 +526,11 @@ public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef mozilla::FrameProperties FrameProperties;
   typedef mozilla::layers::Layer Layer;
+  typedef mozilla::layout::FrameChildList ChildList;
+  typedef mozilla::layout::FrameChildListID ChildListID;
+  typedef mozilla::layout::FrameChildListIDs ChildListIDs;
+  typedef mozilla::layout::FrameChildListIterator ChildListIterator;
+  typedef mozilla::layout::FrameChildListArrayIterator ChildListArrayIterator;
 
   NS_DECL_QUERYFRAME_TARGET(nsIFrame)
 
@@ -1024,31 +1030,42 @@ public:
 
 
 
-
-  virtual nsIAtom* GetAdditionalChildListName(PRInt32 aIndex) const = 0;
-
-  
-
-
-
-
-
-
-
-
   
   
   
   
-  virtual nsFrameList GetChildList(nsIAtom* aListName) const = 0;
+  virtual nsFrameList GetChildList(ChildListID aListID) const = 0;
+  nsFrameList PrincipalChildList() { return GetChildList(kPrincipalList); }
+  virtual void GetChildLists(nsTArray<ChildList>* aLists) const = 0;
   
-  nsIFrame* GetFirstChild(nsIAtom* aListName) const {
-    return GetChildList(aListName).FirstChild();
+  nsIFrame* GetFirstChild(ChildListID aListID) const {
+    return GetChildList(aListID).FirstChild();
   }
   
-  nsIFrame* GetLastChild(nsIAtom* aListName) const {
-    return GetChildList(aListName).LastChild();
+  nsIFrame* GetLastChild(ChildListID aListID) const {
+    return GetChildList(aListID).LastChild();
   }
+  nsIFrame* GetFirstPrincipalChild() const {
+    return GetFirstChild(kPrincipalList);
+  }
+
+  
+  static const ChildListID kPrincipalList = mozilla::layout::kPrincipalList;
+  static const ChildListID kAbsoluteList = mozilla::layout::kAbsoluteList;
+  static const ChildListID kBulletList = mozilla::layout::kBulletList;
+  static const ChildListID kCaptionList = mozilla::layout::kCaptionList;
+  static const ChildListID kColGroupList = mozilla::layout::kColGroupList;
+  static const ChildListID kExcessOverflowContainersList = mozilla::layout::kExcessOverflowContainersList;
+  static const ChildListID kFixedList = mozilla::layout::kFixedList;
+  static const ChildListID kFloatList = mozilla::layout::kFloatList;
+  static const ChildListID kOverflowContainersList = mozilla::layout::kOverflowContainersList;
+  static const ChildListID kOverflowList = mozilla::layout::kOverflowList;
+  static const ChildListID kOverflowOutOfFlowList = mozilla::layout::kOverflowOutOfFlowList;
+  static const ChildListID kPopupList = mozilla::layout::kPopupList;
+  static const ChildListID kPushedFloatsList = mozilla::layout::kPushedFloatsList;
+  static const ChildListID kSelectPopupList = mozilla::layout::kSelectPopupList;
+  
+  static const ChildListID kNoReflowPrincipalList = mozilla::layout::kNoReflowPrincipalList;
 
   
 
