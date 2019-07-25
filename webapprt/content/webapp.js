@@ -6,6 +6,7 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+Cu.import("resource://webapprt/modules/Startup.jsm");
 Cu.import("resource://webapprt/modules/WebappRT.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
@@ -48,51 +49,13 @@ let progressListener = {
 function onLoad() {
   window.removeEventListener("load", onLoad, false);
 
-  let cmdLineArgs = window.arguments && window.arguments[0] ?
-                    window.arguments[0].QueryInterface(Ci.nsIPropertyBag2) :
-                    null;
+  let args = window.arguments && window.arguments[0] ?
+             window.arguments[0].QueryInterface(Ci.nsIPropertyBag2) :
+             null;
 
-  
-  
-  if (cmdLineArgs && cmdLineArgs.hasKey("test-mode")) {
-    
-    
-    
-    
-    Services.obs.addObserver(function observeOnce(subj, topic, data) {
-      Services.obs.removeObserver(observeOnce, "webapprt-test-did-install");
-      gAppBrowser.addProgressListener(progressListener,
-                                      Ci.nsIWebProgress.NOTIFY_LOCATION);
-    }, "webapprt-test-did-install", false);
-
-    
-    Services.obs.addObserver(function observe(subj, topic, data) {
-      initWindow(false);
-    }, "webapprt-test-did-install", false);
-
-    let testURL = cmdLineArgs.get("test-mode");
-    if (testURL) {
-      gAppBrowser.loadURI(testURL);
-    }
-
-    return;
-  }
-
-  gAppBrowser.webProgress.
-    addProgressListener(progressListener, Ci.nsIWebProgress.NOTIFY_LOCATION |
-                                          Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
-
-  initWindow(!!cmdLineArgs);
-}
-window.addEventListener("load", onLoad, false);
-
-function onUnload() {
-  gAppBrowser.removeProgressListener(progressListener);
-}
-window.addEventListener("unload", onUnload, false);
-
-function initWindow(isMainWindow) {
-  let manifest = WebappRT.config.app.manifest;
+  gAppBrowser.addProgressListener(progressListener,
+                                  Ci.nsIWebProgress.NOTIFY_LOCATION |
+                                  Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
 
   updateMenuItems();
 
@@ -102,15 +65,19 @@ function initWindow(isMainWindow) {
   gAppBrowser.addEventListener("click", onContentClick, false, true);
 
   
-  if (isMainWindow) {
-    
-    let installRecord = WebappRT.config.app;
-    let url = Services.io.newURI(installRecord.origin, null, null);
-    if (manifest.launch_path)
-      url = Services.io.newURI(manifest.launch_path, null, url);
-    gAppBrowser.setAttribute("src", url.spec);
+  
+  
+  if (args && args.hasKey("url")) {
+    gAppBrowser.setAttribute("src", args.get("url"));
   }
+
 }
+window.addEventListener("load", onLoad, false);
+
+function onUnload() {
+  gAppBrowser.removeProgressListener(progressListener);
+}
+window.addEventListener("unload", onUnload, false);
 
 
 
@@ -199,11 +166,13 @@ function updateCrashReportURL(aURI) {
     return;
 
   let uri = aURI.clone();
-  if (uri.userPass != "") {
-    try {
+  
+  
+  try {
+    if (uri.userPass != "") {
       uri.userPass = "";
-    } catch (e) {}
-  }
+    }
+  } catch (e) {}
 
   gCrashReporter.annotateCrashReport("URL", uri.spec);
 #endif
