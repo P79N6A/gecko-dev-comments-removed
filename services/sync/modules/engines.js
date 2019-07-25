@@ -448,13 +448,14 @@ SyncEngine.prototype = {
     
     
     let fetchNum = Infinity;
-    if (Svc.Prefs.get("client.type") == "mobile")
-      fetchNum = 50;
 
     let newitems = new Collection(this.engineURL, this._recordObj);
+    if (Svc.Prefs.get("client.type") == "mobile") {
+      fetchNum = 50;
+      newitems.sort = "index";
+    }
     newitems.newer = this.lastSync;
     newitems.full = true;
-    newitems.sort = "index";
     newitems.limit = fetchNum;
 
     let count = {applied: 0, reconciled: 0};
