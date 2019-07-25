@@ -225,7 +225,7 @@ public class GeckoGLLayerClient extends GeckoLayerClient
     }
 
     
-    public LayerRenderer.Frame createFrame(float offsetX, float offsetY, float zoomFactor) {
+    public LayerRenderer.Frame createFrame() {
         
         if (!mLayerRendererInitialized) {
             mLayerRenderer.createProgram();
@@ -233,16 +233,9 @@ public class GeckoGLLayerClient extends GeckoLayerClient
         }
 
         
-        ViewportMetrics metrics = getLayerController().getViewportMetrics();
-        FloatSize pageSize = metrics.getPageSize(), screenSize = metrics.getSize();
-        RectF viewport = new RectF(offsetX, offsetY, offsetX + screenSize.width,
-                                   offsetY + screenSize.height);
-
-        
-        Layer.RenderContext pageContext = mLayerRenderer.createContext(viewport, pageSize,
-                                                                       zoomFactor);
+        Layer.RenderContext pageContext = mLayerRenderer.createPageContext();
         Layer.RenderContext screenContext = mLayerRenderer.createScreenContext();
-        return mLayerRenderer.createFrame(false, pageContext, screenContext);
+        return mLayerRenderer.createFrame(pageContext, screenContext);
     }
 
     

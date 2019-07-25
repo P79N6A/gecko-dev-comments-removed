@@ -186,14 +186,6 @@ CompositorParent::Composite()
   
 #endif
 
-#ifdef MOZ_WIDGET_ANDROID
-  
-  gfx3DMatrix transform = layer->GetTransform();
-  transform *= v;
-  TransformLayerUserData* transformUserData = new TransformLayerUserData(transform);
-  mLayerManager->SetUserData(nsGkAtoms::transform, transformUserData);
-#endif
-
   mLayerManager->EndEmptyTransaction();
 
 #ifdef COMPOSITOR_PERFORMANCE_WARNING
