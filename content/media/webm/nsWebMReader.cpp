@@ -330,11 +330,6 @@ nsresult nsWebMReader::ReadMetadata(nsVideoInfo* aInfo)
           mInfo.mStereoMode = STEREO_MODE_MONO;
         }
       }
-
-      
-      
-      
-      mInfo.mDataOffset = -1;
     }
     else if (!mHasAudio && type == NESTEGG_TRACK_AUDIO) {
       nestegg_audio_params params;

@@ -93,10 +93,6 @@ public:
   nsIntSize mDisplay;
 
   
-  
-  PRInt64 mDataOffset;
-
-  
   mozilla::layers::StereoMode mStereoMode;
 
   
@@ -512,10 +508,6 @@ protected:
   
   
   nsBuiltinDecoder* mDecoder;
-
-  
-  
-  PRInt64 mDataOffset;
 
   
   

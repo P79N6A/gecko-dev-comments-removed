@@ -282,6 +282,11 @@ private:
 
   
   PRInt64 mVorbisGranulepos;
+
+  
+  
+  
+  PRInt64 mDataOffset;
 };
 
 #endif
