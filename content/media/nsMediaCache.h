@@ -230,10 +230,10 @@ public:
   
   
   nsMediaCacheStream(ChannelMediaResource* aClient)
-    : mClient(aClient), mResourceID(0), mInitialized(false),
+    : mClient(aClient), mInitialized(false),
       mHasHadUpdate(false),
       mClosed(false),
-      mDidNotifyDataEnded(false),
+      mDidNotifyDataEnded(false), mResourceID(0),
       mIsSeekable(false), mCacheSuspended(false),
       mChannelEnded(false),
       mChannelOffset(0), mStreamLength(-1),  
@@ -326,6 +326,7 @@ public:
   
   
   PRInt64 GetLength();
+  
   
   PRInt64 GetResourceID() { return mResourceID; }
   
@@ -459,15 +460,11 @@ private:
   
   void CloseInternal(ReentrantMonitorAutoEnter& aReentrantMonitor);
   
-  void UpdatePrincipal(nsIPrincipal* aPrincipal);
+  bool UpdatePrincipal(nsIPrincipal* aPrincipal);
 
   
   ChannelMediaResource*  mClient;
   nsCOMPtr<nsIPrincipal> mPrincipal;
-  
-  
-  
-  PRInt64                mResourceID;
   
   bool                   mInitialized;
   
@@ -481,7 +478,12 @@ private:
 
   
   
+  
 
+  
+  
+  
+  PRInt64 mResourceID;
   
   bool mIsSeekable;
   

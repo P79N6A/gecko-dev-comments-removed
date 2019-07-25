@@ -41,6 +41,7 @@
 #include "ImageLayers.h"
 #include "mozilla/ReentrantMonitor.h"
 #include "VideoFrameContainer.h"
+#include "MediaStreamGraph.h"
 
 class nsHTMLMediaElement;
 class nsIStreamListener;
@@ -69,13 +70,14 @@ static const PRUint32 FRAMEBUFFER_LENGTH_MAX = 16384;
 class nsMediaDecoder : public nsIObserver
 {
 public:
+  typedef mozilla::layers::Image Image;
+  typedef mozilla::layers::ImageContainer ImageContainer;
   typedef mozilla::MediaResource MediaResource;
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
+  typedef mozilla::SourceMediaStream SourceMediaStream;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
-  typedef mozilla::layers::Image Image;
-  typedef mozilla::layers::ImageContainer ImageContainer;
 
   nsMediaDecoder();
   virtual ~nsMediaDecoder();
@@ -128,6 +130,13 @@ public:
 
   
   virtual void SetVolume(double aVolume) = 0;
+
+  
+  
+  virtual void SetAudioCaptured(bool aCaptured) = 0;
+
+  
+  virtual void AddOutputStream(SourceMediaStream* aStream, bool aFinishWhenEnded) = 0;
 
   
   
@@ -330,6 +339,10 @@ public:
   
   
   virtual void NotifyDownloadEnded(nsresult aStatus) = 0;
+
+  
+  
+  virtual void NotifyPrincipalChanged() = 0;
 
   
   

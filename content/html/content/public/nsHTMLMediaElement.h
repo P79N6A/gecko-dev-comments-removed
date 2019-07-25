@@ -266,6 +266,9 @@ public:
   already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   
+  void NotifyDecoderPrincipalChanged();
+
+  
   
   void UpdateMediaSize(nsIntSize size);
 
@@ -415,6 +418,15 @@ protected:
 
 
   void EndMediaStreamPlayback();
+
+  
+
+
+
+
+
+
+  already_AddRefed<nsDOMMediaStream> CaptureStreamInternal(bool aFinishWhenEnded);
 
   
 
@@ -634,6 +646,14 @@ protected:
   nsRefPtr<nsDOMMediaStream> mStream;
 
   
+  
+  struct OutputMediaStream {
+    nsRefPtr<nsDOMMediaStream> mStream;
+    bool mFinishWhenEnded;
+  };
+  nsTArray<OutputMediaStream> mOutputStreams;
+
+  
   StreamListener* mStreamListener;
 
   
@@ -771,6 +791,9 @@ protected:
 
   
   bool mMuted;
+
+  
+  bool mAudioCaptured;
 
   
   

@@ -240,6 +240,7 @@ public:
 
 
 
+
   class ResourceStreamIterator {
   public:
     ResourceStreamIterator(PRInt64 aResourceID) :
@@ -351,13 +352,14 @@ protected:
   
   
   PRInt64                       mNextResourceID;
-  
-  nsTArray<nsMediaCacheStream*> mStreams;
 
   
   
   
   ReentrantMonitor         mReentrantMonitor;
+  
+  
+  nsTArray<nsMediaCacheStream*> mStreams;
   
   nsTArray<Block> mIndex;
   
@@ -1703,10 +1705,10 @@ nsMediaCacheStream::NotifyDataStarted(PRInt64 aOffset)
   }
 }
 
-void
+bool
 nsMediaCacheStream::UpdatePrincipal(nsIPrincipal* aPrincipal)
 {
-  nsContentUtils::CombineResourcePrincipals(&mPrincipal, aPrincipal);
+  return nsContentUtils::CombineResourcePrincipals(&mPrincipal, aPrincipal);
 }
 
 void
@@ -1714,6 +1716,20 @@ nsMediaCacheStream::NotifyDataReceived(PRInt64 aSize, const char* aData,
     nsIPrincipal* aPrincipal)
 {
   NS_ASSERTION(NS_IsMainThread(), "Only call on main thread");
+
+  
+  
+  
+  
+  
+  {
+    nsMediaCache::ResourceStreamIterator iter(mResourceID);
+    while (nsMediaCacheStream* stream = iter.Next()) {
+      if (stream->UpdatePrincipal(aPrincipal)) {
+        stream->mClient->CacheClientNotifyPrincipalChanged();
+      }
+    }
+  }
 
   ReentrantMonitorAutoEnter mon(gMediaCache->GetReentrantMonitor());
   PRInt64 size = aSize;
@@ -1769,7 +1785,6 @@ nsMediaCacheStream::NotifyDataReceived(PRInt64 aSize, const char* aData,
       
       stream->mStreamLength = NS_MAX(stream->mStreamLength, mChannelOffset);
     }
-    stream->UpdatePrincipal(aPrincipal);
     stream->mClient->CacheClientNotifyDataReceived();
   }
 
