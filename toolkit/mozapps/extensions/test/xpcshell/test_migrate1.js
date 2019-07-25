@@ -20,7 +20,7 @@ var addon2 = {
   version: "2.0",
   name: "Test 2",
   targetApplications: [{
-    id: "xpcshell@tests.mozilla.org",
+    id: "toolkit@mozilla.org",
     minVersion: "1",
     maxVersion: "1"
   }]
@@ -42,7 +42,7 @@ var addon4 = {
   version: "2.0",
   name: "Test 4",
   targetApplications: [{
-    id: "xpcshell@tests.mozilla.org",
+    id: "toolkit@mozilla.org",
     minVersion: "1",
     maxVersion: "1"
   }]
@@ -53,7 +53,7 @@ profileDir.append("extensions");
 
 function run_test() {
   do_test_pending();
-  createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "1", "1.9.2");
+  createAppInfo("xpcshell@tests.mozilla.org", "XPCShell", "2", "2");
 
   var dest = profileDir.clone();
   dest.append("addon1@tests.mozilla.org");
@@ -79,15 +79,23 @@ function run_test() {
     
     do_check_neq(a1, null);
     do_check_false(a1.userDisabled);
+    do_check_false(a1.appDisabled);
+
     
     do_check_neq(a2, null);
     do_check_true(a2.userDisabled);
+    do_check_false(a2.appDisabled);
+
     
     do_check_neq(a3, null);
     do_check_true(a3.userDisabled);
+    do_check_true(a3.appDisabled);
+
     
     do_check_neq(a4, null);
     do_check_false(a4.userDisabled);
+    do_check_true(a4.appDisabled);
+
     do_test_finished();
   });
 }
