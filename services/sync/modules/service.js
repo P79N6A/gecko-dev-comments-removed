@@ -970,6 +970,7 @@ WeaveSvc.prototype = {
     }
     this._log.info("Got status " + uploadRes.status + " uploading keys.");
     let serverModified = uploadRes.obj;   
+    this._log.debug("Server reports crypto modified: " + serverModified);
 
     
     this._log.debug("Verifying server collection records.");
