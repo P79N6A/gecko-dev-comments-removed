@@ -1346,11 +1346,46 @@ DumpHelp()
   DumpArbitraryHelp();
 }
 
+#if defined(DEBUG) && defined(XP_WIN)
 #ifdef DEBUG_warren
-#ifdef XP_WIN
 #define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
 #endif
+
+
+
+#include <stdio.h>
+#include <crtdbg.h>
+#include "mozilla/mozalloc_abort.h"
+static int MSCRTReportHook( int aReportType, char *aMessage, int *oReturnValue)
+{
+  *oReturnValue = 0; 
+
+  
+  
+  
+  
+  
+
+  switch(aReportType) {
+  case 0:
+    fputs("\nWARNING: CRT WARNING", stderr);
+    fputs(aMessage, stderr);
+    fputs("\n", stderr);
+    break;
+  case 1:
+    fputs("\n###!!! ABORT: CRT ERROR ", stderr);
+    mozalloc_abort(aMessage);
+    break;
+  case 2:
+    fputs("\n###!!! ABORT: CRT ASSERT ", stderr);
+    mozalloc_abort(aMessage);
+    break;
+  }
+
+  
+  return 1;
+}
+
 #endif
 
 #if defined(FREEBSD)
@@ -4078,6 +4113,21 @@ SetupErrorHandling(const char* progname)
 
   SetErrorMode(realMode);
 
+#endif
+
+#if defined (DEBUG) && defined(XP_WIN)
+  
+  
+  
+
+  _CrtSetReportMode(_CRT_WARN, _CRTDBG_MODE_FILE);
+  _CrtSetReportFile(_CRT_WARN, _CRTDBG_FILE_STDERR);
+  _CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_FILE);
+  _CrtSetReportFile(_CRT_ERROR, _CRTDBG_FILE_STDERR);
+  _CrtSetReportMode(_CRT_ASSERT, _CRTDBG_MODE_FILE);
+  _CrtSetReportFile(_CRT_ASSERT, _CRTDBG_FILE_STDERR);
+
+  _CrtSetReportHook(MSCRTReportHook);
 #endif
 
 #ifndef XP_OS2
