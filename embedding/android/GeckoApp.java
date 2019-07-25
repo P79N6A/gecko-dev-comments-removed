@@ -45,7 +45,6 @@ import java.util.zip.*;
 import java.nio.*;
 import java.nio.channels.FileChannel;
 import java.util.concurrent.*;
-import java.lang.reflect.*;
 
 import android.os.*;
 import android.app.*;
@@ -63,9 +62,6 @@ import android.net.*;
 import android.database.*;
 import android.provider.*;
 import android.telephony.*;
-import android.content.pm.*;
-import android.content.pm.PackageManager.*;
-import dalvik.system.*;
 
 abstract public class GeckoApp
     extends Activity
@@ -78,7 +74,7 @@ abstract public class GeckoApp
     public static final String ACTION_DEBUG       = "org.mozilla.gecko.DEBUG";
     public static final String ACTION_BOOKMARK    = "org.mozilla.gecko.BOOKMARK";
 
-    public static AbsoluteLayout mainLayout;
+    public static FrameLayout mainLayout;
     public static GeckoSurfaceView surfaceView;
     public static GeckoApp mAppContext;
     public static boolean mFullscreen = false;
@@ -132,151 +128,6 @@ abstract public class GeckoApp
                                        System.exit(0);
                                    }
                                }).show();
-    }
-
-    public static final String PLUGIN_ACTION = "android.webkit.PLUGIN";
-
-    
-
-
-
-    public static final String PLUGIN_PERMISSION = "android.webkit.permission.PLUGIN";
-
-    private static final String LOGTAG = "PluginManager";
-
-    private static final String PLUGIN_SYSTEM_LIB = "/system/lib/plugins/";
-
-    private static final String PLUGIN_TYPE = "type";
-    private static final String TYPE_NATIVE = "native";
-    public ArrayList<PackageInfo> mPackageInfoCache = new ArrayList<PackageInfo>();
-
-    String[] getPluginDirectories() {
-
-        ArrayList<String> directories = new ArrayList<String>();
-        PackageManager pm = this.mAppContext.getPackageManager();
-        List<ResolveInfo> plugins = pm.queryIntentServices(new Intent(PLUGIN_ACTION),
-                PackageManager.GET_SERVICES | PackageManager.GET_META_DATA);
-
-        synchronized(mPackageInfoCache) {
-
-            
-            mPackageInfoCache.clear();
-
-
-            for (ResolveInfo info : plugins) {
-
-                
-                ServiceInfo serviceInfo = info.serviceInfo;
-                if (serviceInfo == null) {
-                    Log.w(LOGTAG, "Ignore bad plugin");
-                    continue;
-                }
-
-                Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName);
-
-
-                
-                PackageInfo pkgInfo;
-                try {
-                    pkgInfo = pm.getPackageInfo(serviceInfo.packageName,
-                                    PackageManager.GET_PERMISSIONS
-                                    | PackageManager.GET_SIGNATURES);
-                } catch (Exception e) {
-                    Log.w(LOGTAG, "Can't find plugin: " + serviceInfo.packageName);
-                    continue;
-                }
-                if (pkgInfo == null) {
-                    Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName + ". Could not load package information.");
-                    continue;
-                }
-
-                
-
-
-
-
-
-                String directory = pkgInfo.applicationInfo.dataDir + "/lib";
-                final int appFlags = pkgInfo.applicationInfo.flags;
-                final int updatedSystemFlags = ApplicationInfo.FLAG_SYSTEM |
-                                               ApplicationInfo.FLAG_UPDATED_SYSTEM_APP;
-                
-                if ((appFlags & updatedSystemFlags) == ApplicationInfo.FLAG_SYSTEM) {
-                    directory = PLUGIN_SYSTEM_LIB + pkgInfo.packageName;
-                }
-
-                
-                String permissions[] = pkgInfo.requestedPermissions;
-                if (permissions == null) {
-                    Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName + ". Does not have required permission.");
-                    continue;
-                }
-                boolean permissionOk = false;
-                for (String permit : permissions) {
-                    if (PLUGIN_PERMISSION.equals(permit)) {
-                        permissionOk = true;
-                        break;
-                    }
-                }
-                if (!permissionOk) {
-                    Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName + ". Does not have required permission (2).");
-                    continue;
-                }
-
-                
-                Signature signatures[] = pkgInfo.signatures;
-                if (signatures == null) {
-                    Log.w(LOGTAG, "Loading plugin: " + serviceInfo.packageName + ". Not signed.");
-                    continue;
-                }
-
-                
-                if (serviceInfo.metaData == null) {
-                    Log.e(LOGTAG, "The plugin '" + serviceInfo.name + "' has no type defined");
-                    continue;
-                }
-
-                String pluginType = serviceInfo.metaData.getString(PLUGIN_TYPE);
-                if (!TYPE_NATIVE.equals(pluginType)) {
-                    Log.e(LOGTAG, "Unrecognized plugin type: " + pluginType);
-                    continue;
-                }
-
-                try {
-                    Class<?> cls = getPluginClass(serviceInfo.packageName, serviceInfo.name);
-
-                    
-                    boolean classFound = true;
-
-                    if (!classFound) {
-                        Log.e(LOGTAG, "The plugin's class' " + serviceInfo.name + "' does not extend the appropriate class.");
-                        continue;
-                    }
-
-                } catch (NameNotFoundException e) {
-                    Log.e(LOGTAG, "Can't find plugin: " + serviceInfo.packageName);
-                    continue;
-                } catch (ClassNotFoundException e) {
-                    Log.e(LOGTAG, "Can't find plugin's class: " + serviceInfo.name);
-                    continue;
-                }
-
-                
-                mPackageInfoCache.add(pkgInfo);
-                directories.add(directory);
-            }
-        }
-
-        return directories.toArray(new String[directories.size()]);
-    }
-
-    Class<?> getPluginClass(String packageName, String className)
-            throws NameNotFoundException, ClassNotFoundException {
-        Context pluginContext = this.mAppContext.createPackageContext(packageName,
-                Context.CONTEXT_INCLUDE_CODE |
-                Context.CONTEXT_IGNORE_SECURITY);
-        ClassLoader pluginCL = pluginContext.getClassLoader();
-        return pluginCL.loadClass(className);
     }
 
     
@@ -378,14 +229,13 @@ abstract public class GeckoApp
         if (surfaceView == null)
             surfaceView = new GeckoSurfaceView(this);
         else
-            mainLayout.removeAllViews();
+            mainLayout.removeView(surfaceView);
 
-        mainLayout = new AbsoluteLayout(this);
+        mainLayout = new FrameLayout(this);
         mainLayout.addView(surfaceView,
-                           new AbsoluteLayout.LayoutParams(AbsoluteLayout.LayoutParams.MATCH_PARENT, 
-                                                           AbsoluteLayout.LayoutParams.MATCH_PARENT,
-                                                           0,
-                                                           0));
+                           new FrameLayout.LayoutParams(FrameLayout.LayoutParams.FILL_PARENT,
+                                                        FrameLayout.LayoutParams.FILL_PARENT));
+
         setContentView(mainLayout,
                        new ViewGroup.LayoutParams(ViewGroup.LayoutParams.FILL_PARENT,
                                                   ViewGroup.LayoutParams.FILL_PARENT));
