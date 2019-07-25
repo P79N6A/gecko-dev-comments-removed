@@ -1088,8 +1088,8 @@ gfxFontCache::MemoryReporter::GetExplicitNonHeap(PRInt64* aAmount)
 
 
 
-class MemoryPressureObserver : public nsIObserver,
-                               public nsSupportsWeakReference
+class MemoryPressureObserver MOZ_FINAL : public nsIObserver,
+                                         public nsSupportsWeakReference
 {
 public:
     NS_DECL_ISUPPORTS
