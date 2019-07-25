@@ -95,6 +95,8 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
 
     
     OBJ_TO_OUTER_OBJECT(cx, obj);
+    if (!obj)
+        return nsnull;
 
     
     
