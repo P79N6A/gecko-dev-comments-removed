@@ -720,12 +720,10 @@ class StackFrame
 
 
 
+    jsbytecode *pcQuadratic(const ContextStack &stack, size_t maxDepth = SIZE_MAX);
 
-
-    jsbytecode *pcQuadratic(const ContextStack &stack, StackFrame *next = NULL,
-                            InlinedSite **pinlined = NULL);
-
-    jsbytecode *prevpc(InlinedSite **pinlined) {
+    
+    jsbytecode *prevpc(InlinedSite **pinlined = NULL) {
         if (flags_ & HAS_PREVPC) {
             if (pinlined)
                 *pinlined = prevInline_;
@@ -1374,7 +1372,7 @@ class StackSegment
     bool contains(const FrameRegs *regs) const;
     bool contains(const CallArgsList *call) const;
 
-    StackFrame *computeNextFrame(const StackFrame *fp) const;
+    StackFrame *computeNextFrame(const StackFrame *fp, size_t maxDepth) const;
 
     Value *end() const;
 

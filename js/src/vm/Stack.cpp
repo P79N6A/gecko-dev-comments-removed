@@ -198,10 +198,8 @@ StackFrame::prevpcSlow(InlinedSite **pinlined)
 }
 
 jsbytecode *
-StackFrame::pcQuadratic(const ContextStack &stack, StackFrame *next, InlinedSite **pinlined)
+StackFrame::pcQuadratic(const ContextStack &stack, size_t maxDepth)
 {
-    JS_ASSERT_IF(next, next->prev() == this);
-
     StackSegment &seg = stack.space().containingSegment(this);
     FrameRegs &regs = seg.regs();
 
@@ -209,15 +207,19 @@ StackFrame::pcQuadratic(const ContextStack &stack, StackFrame *next, InlinedSite
 
 
 
-    if (regs.fp() == this) {
-        if (pinlined)
-            *pinlined = regs.inlined();
+    if (regs.fp() == this)
         return regs.pc;
-    }
 
-    if (!next)
-        next = seg.computeNextFrame(this);
-    return next->prevpc(pinlined);
+    
+
+
+
+
+    if (StackFrame *next = seg.computeNextFrame(this, maxDepth))
+        return next->prevpc();
+
+    
+    return regs.fp()->script()->code;
 }
 
 bool
@@ -428,15 +430,18 @@ StackSegment::contains(const CallArgsList *call) const
 }
 
 StackFrame *
-StackSegment::computeNextFrame(const StackFrame *f) const
+StackSegment::computeNextFrame(const StackFrame *f, size_t maxDepth) const
 {
     JS_ASSERT(contains(f) && f != fp());
 
     StackFrame *next = fp();
-    StackFrame *prev;
-    while ((prev = next->prev()) != f)
-        next = prev;
-    return next;
+    for (size_t i = 0; i <= maxDepth; ++i) {
+        if (next->prev() == f)
+            return next;
+        next = next->prev();
+    }
+
+    return NULL;
 }
 
 Value *

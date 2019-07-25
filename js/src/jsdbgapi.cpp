@@ -497,7 +497,14 @@ JS_GetFrameScript(JSContext *cx, JSStackFrame *fp)
 JS_PUBLIC_API(jsbytecode *)
 JS_GetFramePC(JSContext *cx, JSStackFrame *fp)
 {
-    return Valueify(fp)->pcQuadratic(cx->stack);
+    
+
+
+
+
+
+
+    return Valueify(fp)->pcQuadratic(cx->stack, 100);
 }
 
 JS_PUBLIC_API(void *)
