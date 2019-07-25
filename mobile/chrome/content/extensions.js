@@ -507,6 +507,9 @@ var ExtensionsView = {
   getAddonsFromRepo: function ev_getAddonsFromRepo(aTerms, aSelectFirstResult) {
     this.clearSection("repo");
 
+    
+    Util.forceOnline();
+
     if (this._repo.isSearching)
       this._repo.cancelSearch();
 
@@ -607,7 +610,10 @@ var ExtensionsView = {
   updateAll: function ev_updateAll() {
     if (!this._isXPInstallEnabled())
       return;
-  
+
+    
+    Util.forceOnline();
+
     
     let items = [];
     let start = this._localItem.nextSibling;

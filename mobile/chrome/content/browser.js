@@ -475,7 +475,7 @@ var Browser = {
     window.QueryInterface(Ci.nsIDOMChromeWindow).browserDOMWindow = new nsBrowserAccess();
 
     let browsers = document.getElementById("browsers");
-    browsers.addEventListener("command", this._handleContentCommand, false);
+    browsers.addEventListener("command", this._handleContentCommand, true);
     browsers.addEventListener("MozApplicationManifest", OfflineApps, false);
     browsers.addEventListener("DOMUpdatePageReport", gPopupBlockerObserver.onUpdatePageReport, false);
 
@@ -493,6 +493,9 @@ var Browser = {
 
     
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
+
+    
+    Util.forceOnline();
 
     
     let whereURI = "about:blank";
@@ -893,6 +896,12 @@ var Browser = {
         } catch (e) {  }
 
         Browser.selectedBrowser.loadURI(url, null, null, false);
+      }
+    } 
+    else if (/^about:neterror\?e=netOffline/.test(errorDoc.documentURI)) {
+      if (ot == errorDoc.getElementById("errorTryAgain") {
+        
+        Util.forceOnline();
       }
     }
   },

@@ -165,6 +165,14 @@ let Util = {
     }
 
     return "none";
+  },
+
+  
+  
+  forceOnline: function forceOnline() {
+#ifdef MOZ_PLATFORM_HILDON
+    gIOService.offline = false;
+#endif
   }
 };
 

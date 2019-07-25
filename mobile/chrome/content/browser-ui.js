@@ -496,6 +496,9 @@ var BrowserUI = {
       return;
 
     
+    Util.forceOnline();
+
+    
     Browser.hideSidebars();
 
     this._edit.popup.close();
@@ -529,6 +532,9 @@ var BrowserUI = {
     Browser.hideSidebars();
     
     this._edit.popup.closePopup();
+
+    
+    Util.forceOnline();
 
     var submission = button.engine.getSubmission(this._edit.value, null);
     getBrowser().loadURI(submission.uri.spec, null, submission.postData, false);
