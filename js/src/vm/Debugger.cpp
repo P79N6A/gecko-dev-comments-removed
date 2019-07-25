@@ -2109,9 +2109,9 @@ class Debugger::ScriptQuery {
 
 
 
-        for (FrameRegsIter fri(cx); !fri.done(); ++fri) {
-            if (fri.fp()->isEvalFrame()) {
-                JSScript *script = fri.fp()->script();
+        for (ScriptFrameIter fri(cx); !fri.done(); ++fri) {
+            if (fri.isEvalFrame()) {
+                JSScript *script = fri.script();
 
                 
 
