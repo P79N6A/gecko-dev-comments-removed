@@ -776,7 +776,7 @@ HttpBaseChannel::nsContentEncodings::PrepareForNext(void)
 NS_IMETHODIMP
 HttpBaseChannel::GetRequestMethod(nsACString& aMethod)
 {
-  aMethod = mRequestHead.Method();
+  mRequestHead.Method()->ToUTF8String(aMethod);
   return NS_OK;
 }
 
@@ -785,16 +785,27 @@ HttpBaseChannel::SetRequestMethod(const nsACString& aMethod)
 {
   ENSURE_CALLED_BEFORE_ASYNC_OPEN();
 
-  const nsCString& flatMethod = PromiseFlatCString(aMethod);
+  nsCAutoString upperCaseMethod;
+  ToUpperCase(aMethod, upperCaseMethod);
 
   
-  if (!nsHttp::IsValidToken(flatMethod))
+  if (!nsHttp::IsValidToken(upperCaseMethod))
     return NS_ERROR_INVALID_ARG;
 
-  nsHttpAtom atom = nsHttp::ResolveAtom(flatMethod.get());
-  if (!atom)
-    return NS_ERROR_FAILURE;
+  nsCOMPtr<nsIAtom> atom = do_GetAtom(upperCaseMethod);
 
+  
+  
+  
+#define HTTP_METHOD_ATOM(name_, value_)
+#define HTTP_CASE_INSENSITIVE_METHOD_ATOM(name_, value_) \
+  if (nsHttp::name_ == atom) {} else
+#include "nsHttpAtomList.h"
+#undef HTTP_CASE_INSENSITIVE_METHOD_ATOM
+#undef HTTP_METHOD_ATOM
+  { 
+    atom = do_GetAtom(aMethod);
+  }
   mRequestHead.SetMethod(atom);
   return NS_OK;
 }
@@ -1543,7 +1554,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
         PRInt64 len = clen ? nsCRT::atoll(clen) : -1;
         uploadChannel2->ExplicitSetUploadStream(
                                   mUploadStream, nsDependentCString(ctype), len,
-                                  nsDependentCString(mRequestHead.Method()),
+                                  nsAtomCString(mRequestHead.Method()),
                                   mUploadStreamHasHeaders);
       } else {
         if (mUploadStreamHasHeaders) {
@@ -1570,7 +1581,7 @@ HttpBaseChannel::SetupReplacementChannel(nsIURI       *newURI,
     
     
 
-    httpChannel->SetRequestMethod(nsDependentCString(mRequestHead.Method()));
+    httpChannel->SetRequestMethod(nsAtomCString(mRequestHead.Method()));
   }
   
   if (mReferrer)

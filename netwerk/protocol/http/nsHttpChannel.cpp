@@ -2412,7 +2412,9 @@ nsHttpChannel::CheckCache()
     rv = mCacheEntry->GetMetaDataElement("request-method", getter_Copies(buf));
     NS_ENSURE_SUCCESS(rv, rv);
 
-    nsHttpAtom method = nsHttp::ResolveAtom(buf);
+    nsCOMPtr<nsIAtom> method = do_GetAtom(buf);
+    NS_ENSURE_TRUE(method, NS_ERROR_OUT_OF_MEMORY);
+
     if (method == nsHttp::Head) {
         
         
@@ -2981,7 +2983,7 @@ nsHttpChannel::AddCacheEntryHeaders(nsICacheEntryDescriptor *entry)
     
     
     rv = entry->SetMetaDataElement("request-method",
-                                   mRequestHead.Method().get());
+                                   nsAtomCString(mRequestHead.Method()).get());
     if (NS_FAILED(rv)) return rv;
 
     
