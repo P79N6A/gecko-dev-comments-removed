@@ -1757,8 +1757,18 @@ function UpdateManager() {
   
   var updates = this._loadXMLFileIntoArray(getUpdateFile(
                   [FILE_UPDATE_ACTIVE]));
-  if (updates.length > 0)
-    this._activeUpdate = updates[0];
+  if (updates.length > 0) {
+    
+    
+    
+    
+    if (readStatusFile(getUpdatesDir()) == STATE_NONE) {
+      cleanUpUpdatesDir();
+      this._writeUpdatesToXMLFile([], getUpdateFile([FILE_UPDATE_ACTIVE]));
+    }
+    else
+      this._activeUpdate = updates[0];
+  }
 }
 UpdateManager.prototype = {
   
