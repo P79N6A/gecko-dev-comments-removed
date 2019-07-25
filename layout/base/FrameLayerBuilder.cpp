@@ -1991,7 +1991,8 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer,
       ThebesDisplayItemLayerUserData* data =
           static_cast<ThebesDisplayItemLayerUserData*>(t->GetUserData(&gThebesDisplayItemLayerUserData));
       InvalidatePostTransformRegion(t,
-          oldGeometry->ComputeInvalidationRegion().ScaleToOutsidePixels(data->mXScale, data->mYScale, mAppUnitsPerDevPixel),
+          oldGeometry->ComputeInvalidationRegion().
+            ScaleToOutsidePixels(data->mXScale, data->mYScale, mAppUnitsPerDevPixel),
           mLayerBuilder->GetLastPaintOffset(t));
     }
     if (aNewLayer) {
@@ -2000,7 +2001,8 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer,
         ThebesDisplayItemLayerUserData* data =
             static_cast<ThebesDisplayItemLayerUserData*>(newThebesLayer->GetUserData(&gThebesDisplayItemLayerUserData));
         InvalidatePostTransformRegion(newThebesLayer,
-            geometry->ComputeInvalidationRegion().ScaleToOutsidePixels(data->mXScale, data->mYScale, mAppUnitsPerDevPixel),
+            geometry->ComputeInvalidationRegion().
+              ScaleToOutsidePixels(data->mXScale, data->mYScale, mAppUnitsPerDevPixel),
             GetTranslationForThebesLayer(newThebesLayer));
       }
     }
@@ -2028,8 +2030,7 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer,
 #ifdef DEBUG_INVALIDATIONS
     printf("Display item type %s(%p) added to layer %p!\n", aItem->Name(), f, aNewLayer);
 #endif
-  } else if (aItem->IsInvalid() || *oldClip != aClip) {
-    
+  } else if (aItem->IsInvalid()) {
     
     
     combined.Or(geometry->ComputeInvalidationRegion(), oldGeometry->ComputeInvalidationRegion());
@@ -2037,18 +2038,19 @@ ContainerState::InvalidateForLayerChange(nsDisplayItem* aItem, Layer* aNewLayer,
     printf("Display item type %s(%p) (in layer %p) belongs to an invalidated frame!\n", aItem->Name(), f, aNewLayer);
 #endif
   } else {
-    
-    
-    ThebesDisplayItemLayerUserData* data =
-        static_cast<ThebesDisplayItemLayerUserData*>(newThebesLayer->GetUserData(&gThebesDisplayItemLayerUserData));
     nsIntPoint paintOffset = GetTranslationForThebesLayer(newThebesLayer);
     nsPoint offset((paintOffset.x + data->mActiveScrolledRootPosition.x) * mAppUnitsPerDevPixel / data->mXScale,
                    (paintOffset.y + data->mActiveScrolledRootPosition.y) * mAppUnitsPerDevPixel / data->mYScale);
     nsPoint prevOffset((oldGeometry->mPaintOffset.x + oldGeometry->mActiveScrolledRootPosition.x) * oldGeometry->mAppUnitsPerDevPixel / data->mXScale,
                        (oldGeometry->mPaintOffset.y + oldGeometry->mActiveScrolledRootPosition.y) * oldGeometry->mAppUnitsPerDevPixel / data->mYScale);
     nsPoint shift = offset - prevOffset;
+    
+    
     oldGeometry->MoveBy(shift);
     aItem->ComputeInvalidationRegion(mBuilder, oldGeometry, &combined);
+    oldClip->AddOffsetAndComputeDifference(shift, oldGeometry->ComputeInvalidationRegion(),
+                                           aClip, geometry->ComputeInvalidationRegion(),
+                                           &combined);
 #ifdef DEBUG_INVALIDATIONS
     if (!combined.IsEmpty()) {
       printf("Display item type %s(%p) (in layer %p) changed geometry!\n", aItem->Name(), f, aNewLayer);
@@ -3156,6 +3158,43 @@ FrameLayerBuilder::Clip::RemoveRoundedCorners()
 
   mClipRect = NonRoundedIntersection();
   mRoundedClipRects.Clear();
+}
+
+static void
+AccumulateRectDifference(const nsRect& aR1, const nsRect& aR2, nsRegion* aOut)
+{
+  if (aR1.IsEqualInterior(aR2))
+    return;
+  nsRegion r;
+  r.Xor(aR1, aR2);
+  aOut->Or(*aOut, r);
+}
+
+void
+FrameLayerBuilder::Clip::AddOffsetAndComputeDifference(const nsPoint& aOffset,
+                                                       const nsRect& aBounds,
+                                                       const Clip& aOther,
+                                                       const nsRect& aOtherBounds,
+                                                       nsRegion* aDifference)
+{
+  if (mHaveClipRect != aOther.mHaveClipRect ||
+      mRoundedClipRects.Length() != aOther.mRoundedClipRects.Length()) {
+    aDifference->Or(*aDifference, aBounds);
+    aDifference->Or(*aDifference, aOtherBounds);
+    return;
+  }
+  if (mHaveClipRect) {
+    AccumulateRectDifference((mClipRect + aOffset).Intersect(aBounds),
+                             aOther.mClipRect.Intersect(aOtherBounds),
+                             aDifference);
+  }
+  for (PRUint32 i = 0; i < mRoundedClipRects.Length(); ++i) {
+    if (mRoundedClipRects[i] + aOffset != aOther.mRoundedClipRects[i]) {
+      
+      aDifference->Or(*aDifference, mRoundedClipRects[i].mRect.Intersect(aBounds));
+      aDifference->Or(*aDifference, aOther.mRoundedClipRects[i].mRect.Intersect(aOtherBounds));
+    }
+  }
 }
 
 gfxRect
