@@ -50,11 +50,6 @@ const TESTS = [
     matchString: "fooBarSVG",
   },
   { 
-    file: "test-bug-595934-workers.html",
-    category: "Web Worker",
-    matchString: "fooBarWorker",
-  },
-  { 
     file: "test-bug-595934-dom-html-external.html",
     category: "DOM:HTML",
     matchString: "document.all",
@@ -94,6 +89,12 @@ const TESTS = [
     category: "Image",
     matchString: "corrupt",
   },
+  
+
+
+
+
+
 ];
 
 let pos = -1;
