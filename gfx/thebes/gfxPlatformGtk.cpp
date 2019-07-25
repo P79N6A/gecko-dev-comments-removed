@@ -146,8 +146,15 @@ gfxPlatformGtk::~gfxPlatformGtk()
     delete gCodepointsWithNoFonts;
     gCodepointsWithNoFonts = NULL;
 
+#ifdef NS_FREE_PERMANENT_DATA
+    
+    
+    
+    cairo_debug_reset_static_data();
+
     FT_Done_FreeType(gPlatformFTLibrary);
     gPlatformFTLibrary = NULL;
+#endif
 #endif
 
 #if 0
