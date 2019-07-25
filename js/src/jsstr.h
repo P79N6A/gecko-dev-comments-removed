@@ -1009,7 +1009,7 @@ ValueToString_TestForStringInline(JSContext *cx, const Value &v)
 
 
 
-extern bool
+inline bool
 ValueToStringBuffer(JSContext *cx, const Value &v, StringBuffer &sb);
 
 } 
