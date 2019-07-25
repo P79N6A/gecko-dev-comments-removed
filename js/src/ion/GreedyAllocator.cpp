@@ -568,6 +568,18 @@ GreedyAllocator::allocateInputs(LInstruction *ins)
 }
 
 bool
+GreedyAllocator::spillForCall(LInstruction *ins)
+{
+    GeneralRegisterSet genset(Registers::JSCallClobberMask);
+    FloatRegisterSet floatset(FloatRegisters::JSCallClobberMask);
+    for (AnyRegisterIterator iter(genset, floatset); iter.more(); iter++) {
+        if (!maybeEvict(*iter))
+            return false;
+    }
+    return true;
+}
+
+bool
 GreedyAllocator::informSnapshot(LSnapshot *snapshot)
 {
     for (size_t i = 0; i < snapshot->numEntries(); i++) {
@@ -616,6 +628,10 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
     
     reset();
     assertValidRegisterState();
+
+    
+    if (ins->isCallGeneric() && !spillForCall(ins))
+        return false;
 
     
     
