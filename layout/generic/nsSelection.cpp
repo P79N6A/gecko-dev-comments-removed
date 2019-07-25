@@ -1094,10 +1094,9 @@ nsTypedSelection::ToString(PRUnichar **aReturn)
   }
   
   
-  
-  nsCOMPtr<nsIPresShell> shell =
-    mFrameSelection ? mFrameSelection->GetShell() : nsnull;
-  if (!shell) {
+  nsCOMPtr<nsIPresShell> shell;
+  nsresult rv = GetPresShell(getter_AddRefs(shell));
+  if (NS_FAILED(rv) || !shell) {
     *aReturn = ToNewUnicode(EmptyString());
     return NS_OK;
   }
