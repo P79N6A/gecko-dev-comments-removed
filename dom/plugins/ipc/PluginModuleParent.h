@@ -244,7 +244,7 @@ private:
     virtual nsresult AsyncSetWindow(NPP instance, NPWindow* window);
     virtual nsresult GetImageContainer(NPP instance, mozilla::layers::ImageContainer** aContainer);
     virtual nsresult GetImageSize(NPP instance, nsIntSize* aSize);
-    NS_OVERRIDE virtual bool UseAsyncPainting() { return true; }
+    NS_OVERRIDE virtual bool IsOOP() { return true; }
     NS_OVERRIDE
     virtual nsresult SetBackgroundUnknown(NPP instance);
     NS_OVERRIDE
@@ -288,7 +288,6 @@ private:
     CrashReporterParent* CrashReporter();
 
 #ifdef MOZ_CRASHREPORTER
-    void ProcessFirstMinidump();
     void WriteExtraDataForMinidump(CrashReporter::AnnotationTable& notes);
 #endif
     void CleanupFromTimeout();
@@ -320,7 +319,7 @@ private:
 #ifdef MOZ_CRASHREPORTER_INJECTOR
     void InitializeInjector();
     
-    NS_OVERRIDE void OnCrash(DWORD processID);
+    NS_OVERRIDE void OnCrash(DWORD processID, const nsAString& aDumpID);
 
     DWORD mFlashProcess1;
     DWORD mFlashProcess2;
