@@ -38,6 +38,7 @@
 
 
 
+
 #ifndef nsFilePicker_h__
 #define nsFilePicker_h__
 
@@ -90,7 +91,13 @@ protected:
                           PRInt16 aMode);
   static void GetQualifiedPath(const PRUnichar *aInPath, nsString &aOutPath);
   void GetFilterListArray(nsString& aFilterList);
-  bool GetFileName(OPENFILENAMEW* ofn, PickerType aType);
+  bool FilePickerWrapper(OPENFILENAMEW* ofn, PickerType aType);
+  bool ShowFilePicker(const nsString& aInitialDir);
+  bool ShowFolderPicker(const nsString& aInitialDir);
+  void RememberLastUsedDirectory();
+  bool IsPrivacyModeEnabled();
+  bool IsDefaultPathLink();
+  bool IsDefaultPathHtml();
 
   nsCOMPtr<nsIWidget>    mParentWidget;
   nsString               mTitle;
@@ -104,22 +111,6 @@ protected:
   static char            mLastUsedDirectory[];
   nsString               mUnicodeFile;
   static PRUnichar      *mLastUsedUnicodeDirectory;
-};
-
-
-
-class AutoRestoreWorkingPath
-{
-public:
-  AutoRestoreWorkingPath();
-  ~AutoRestoreWorkingPath();
-  inline bool HasWorkingPath() const
-  {
-    return mWorkingPath != NULL;
-  }
-
-private:
-  nsAutoArrayPtr<PRUnichar> mWorkingPath;
 };
 
 #endif

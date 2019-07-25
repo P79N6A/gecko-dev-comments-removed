@@ -38,6 +38,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsGUIEvent.h"
 #include "nsReadableUtils.h"
@@ -61,12 +62,108 @@
 #include "nsString.h"
 #include "nsToolkit.h"
 
-NS_IMPL_ISUPPORTS1(nsFilePicker, nsIFilePicker)
-
 PRUnichar *nsFilePicker::mLastUsedUnicodeDirectory;
 char nsFilePicker::mLastUsedDirectory[MAX_PATH+1] = { 0 };
 
 #define MAX_EXTENSION_LENGTH 10
+
+
+
+
+
+class AutoSuppressEvents
+{
+public:
+  explicit AutoSuppressEvents(nsIWidget* aWidget) :
+    mWindow(static_cast<nsWindow *>(aWidget)) {
+    SuppressWidgetEvents(true);
+  }
+
+  ~AutoSuppressEvents() {
+    SuppressWidgetEvents(false);
+  }
+private:
+  void SuppressWidgetEvents(bool aFlag) {
+    if (mWindow) {
+      mWindow->SuppressBlurEvents(aFlag);
+    }
+  }
+  nsRefPtr<nsWindow> mWindow;
+};
+
+
+class AutoRestoreWorkingPath
+{
+public:
+  AutoRestoreWorkingPath() {
+    DWORD bufferLength = GetCurrentDirectoryW(0, NULL);
+    mWorkingPath = new PRUnichar[bufferLength];
+    if (GetCurrentDirectoryW(bufferLength, mWorkingPath) == 0) {
+      mWorkingPath = NULL;
+    }
+  }
+
+  ~AutoRestoreWorkingPath() {
+    if (HasWorkingPath()) {
+      ::SetCurrentDirectoryW(mWorkingPath);
+    }
+  }
+
+  inline bool HasWorkingPath() const {
+    return mWorkingPath != NULL;
+  }
+private:
+  nsAutoArrayPtr<PRUnichar> mWorkingPath;
+};
+
+
+
+
+class AutoDestroyTmpWindow
+{
+public:
+  explicit AutoDestroyTmpWindow(HWND aTmpWnd) :
+    mWnd(aTmpWnd) {
+  }
+
+  ~AutoDestroyTmpWindow() {
+    if (mWnd)
+      DestroyWindow(mWnd);
+  }
+  
+  inline HWND get() const { return mWnd; }
+private:
+  HWND mWnd;
+};
+
+
+class AutoWidgetPickerState
+{
+public:
+  explicit AutoWidgetPickerState(nsIWidget* aWidget) :
+    mWindow(static_cast<nsWindow *>(aWidget)) {
+    PickerState(true);
+  }
+
+  ~AutoWidgetPickerState() {
+    PickerState(false);
+  }
+private:
+  void PickerState(bool aFlag) {
+    if (mWindow) {
+      if (aFlag)
+        mWindow->PickerOpen();
+      else
+        mWindow->PickerClosed();
+    }
+  }
+  nsRefPtr<nsWindow> mWindow;
+};
+
+
+
+
+NS_IMPL_ISUPPORTS1(nsFilePicker, nsIFilePicker)
 
 nsFilePicker::nsFilePicker()
 {
@@ -82,7 +179,8 @@ nsFilePicker::~nsFilePicker()
 }
 
 
-int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
+int CALLBACK
+BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData)
 {
   if (uMsg == BFFM_INITIALIZED)
   {
@@ -95,7 +193,8 @@ int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpDa
   return 0;
 }
 
-static void EnsureWindowVisible(HWND hwnd) 
+static void
+EnsureWindowVisible(HWND hwnd) 
 {
   
   
@@ -114,8 +213,8 @@ static void EnsureWindowVisible(HWND hwnd)
 
 
 
-static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
-                                        WPARAM wParam, LPARAM lParam) 
+static UINT_PTR CALLBACK
+FilePickerHook(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) 
 {
   if (msg == WM_NOTIFY) {
     LPOFNOTIFYW lpofn = (LPOFNOTIFYW) lParam;
@@ -138,8 +237,8 @@ static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
 
 
 
-static UINT_PTR CALLBACK MultiFilePickerHook(HWND hwnd, UINT msg,
-                                             WPARAM wParam, LPARAM lParam)
+static UINT_PTR CALLBACK
+MultiFilePickerHook(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
   switch (msg) {
     case WM_INITDIALOG:
@@ -207,16 +306,57 @@ static UINT_PTR CALLBACK MultiFilePickerHook(HWND hwnd, UINT msg,
 
   return FilePickerHook(hwnd, msg, wParam, lParam);
 }
-  
-bool nsFilePicker::GetFileName(OPENFILENAMEW* ofn, PickerType aType)
+
+bool
+nsFilePicker::ShowFolderPicker(const nsString& aInitialDir)
 {
-  NS_ENSURE_ARG_POINTER(ofn);
   bool result = false;
-  
-  nsWindow* win = static_cast<nsWindow*>(mParentWidget.get());
-  if (win) {
-    win->PickerOpen();
+
+  nsAutoArrayPtr<PRUnichar> dirBuffer(new PRUnichar[FILE_BUFFER_SIZE]);
+  wcsncpy(dirBuffer, aInitialDir.get(), FILE_BUFFER_SIZE);
+  dirBuffer[FILE_BUFFER_SIZE-1] = '\0';
+
+  AutoDestroyTmpWindow adtw((HWND)(mParentWidget.get() ?
+    mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : NULL));
+
+  BROWSEINFOW browserInfo = {0};
+  browserInfo.pidlRoot       = nsnull;
+  browserInfo.pszDisplayName = (LPWSTR)dirBuffer;
+  browserInfo.lpszTitle      = mTitle.get();
+  browserInfo.ulFlags        = BIF_USENEWUI | BIF_RETURNONLYFSDIRS;
+  browserInfo.hwndOwner      = adtw.get(); 
+  browserInfo.iImage         = nsnull;
+
+  if (!aInitialDir.IsEmpty()) {
+    
+    
+    browserInfo.lParam = (LPARAM) aInitialDir.get();
+    browserInfo.lpfn   = &BrowseCallbackProc;
+  } else {
+    browserInfo.lParam = nsnull;
+    browserInfo.lpfn   = nsnull;
   }
+
+  LPITEMIDLIST list = ::SHBrowseForFolderW(&browserInfo);
+  if (list) {
+    result = ::SHGetPathFromIDListW(list, (LPWSTR)dirBuffer);
+    if (result)
+      mUnicodeFile.Assign(dirBuffer);
+    
+    CoTaskMemFree(list);
+  }
+
+  return result;
+}
+
+bool
+nsFilePicker::FilePickerWrapper(OPENFILENAMEW* ofn, PickerType aType)
+{
+  if (!ofn)
+    return false;
+
+  bool result = false;
+  AutoWidgetPickerState awps(mParentWidget);
   MOZ_SEH_TRY {
     if (aType == PICKER_TYPE_OPEN) 
       result = ::GetOpenFileNameW(ofn);
@@ -225,167 +365,90 @@ bool nsFilePicker::GetFileName(OPENFILENAMEW* ofn, PickerType aType)
   } MOZ_SEH_EXCEPT(true) {
     NS_ERROR("nsFilePicker GetFileName win32 call generated an exception! This is bad!");
   }
-  if (win) {
-    win->PickerClosed();
-  }
   return result;
 }
 
-NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
+bool
+nsFilePicker::ShowFilePicker(const nsString& aInitialDir)
 {
-  NS_ENSURE_ARG_POINTER(aReturnVal);
+  OPENFILENAMEW ofn = {0};
+  ofn.lStructSize = sizeof(ofn);
+  nsString filterBuffer = mFilterList;
+                                
+  nsAutoArrayPtr<PRUnichar> fileBuffer(new PRUnichar[FILE_BUFFER_SIZE]);
+  wcsncpy(fileBuffer,  mDefault.get(), FILE_BUFFER_SIZE);
+  fileBuffer[FILE_BUFFER_SIZE-1] = '\0'; 
+
+  if (!aInitialDir.IsEmpty()) {
+    ofn.lpstrInitialDir = aInitialDir.get();
+  }
+
+  AutoDestroyTmpWindow adtw((HWND) (mParentWidget.get() ?
+    mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : NULL));
+
+  ofn.lpstrTitle   = (LPCWSTR)mTitle.get();
+  ofn.lpstrFilter  = (LPCWSTR)filterBuffer.get();
+  ofn.nFilterIndex = mSelectedType;
+  ofn.lpstrFile    = fileBuffer;
+  ofn.nMaxFile     = FILE_BUFFER_SIZE;
+  ofn.hwndOwner    = adtw.get();
+  ofn.Flags = OFN_SHAREAWARE | OFN_LONGNAMES | OFN_OVERWRITEPROMPT |
+              OFN_HIDEREADONLY | OFN_PATHMUSTEXIST | OFN_ENABLESIZING | 
+              OFN_EXPLORER;
 
   
-  if (mParentWidget) {
-    nsIWidget *tmp = mParentWidget;
-    nsWindow *parent = static_cast<nsWindow *>(tmp);
-    parent->SuppressBlurEvents(true);
+  
+  
+  
+  if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
+    ofn.lpfnHook = FilePickerHook;
+    ofn.Flags |= OFN_ENABLEHOOK;
+  }
+
+  
+  if (IsPrivacyModeEnabled() || !mAddToRecentDocs) {
+    ofn.Flags |= OFN_DONTADDTORECENT;
+  }
+
+  NS_NAMED_LITERAL_STRING(htmExt, "html");
+
+  if (!mDefaultExtension.IsEmpty()) {
+    ofn.lpstrDefExt = mDefaultExtension.get();
+  } else {
+    
+    
+    if (IsDefaultPathHtml()) {
+      
+      
+      
+      
+      ofn.lpstrDefExt = htmExt.get();
+    }
+  }
+
+  
+  
+  
+  
+  
+  
+  AutoRestoreWorkingPath restoreWorkingPath;
+  
+  
+  if (!restoreWorkingPath.HasWorkingPath()) {
+    ofn.Flags |= OFN_NOCHANGEDIR;
   }
 
   bool result = false;
-  nsAutoArrayPtr<PRUnichar> fileBuffer(new PRUnichar[FILE_BUFFER_SIZE+1]);
-            
-  wcsncpy(fileBuffer,  mDefault.get(), FILE_BUFFER_SIZE);
-  fileBuffer[FILE_BUFFER_SIZE] = '\0'; 
 
-  NS_NAMED_LITERAL_STRING(htmExt, "html");
-  nsAutoString initialDir;
-  if (mDisplayDirectory)
-    mDisplayDirectory->GetPath(initialDir);
-
-  
-  if(initialDir.IsEmpty()) {
-    
-    initialDir = mLastUsedUnicodeDirectory;
-  }
-
-  mUnicodeFile.Truncate();
-
-  if (mMode == modeGetFolder) {
-    PRUnichar dirBuffer[MAX_PATH+1];
-    wcsncpy(dirBuffer, initialDir.get(), MAX_PATH);
-
-    BROWSEINFOW browserInfo;
-    browserInfo.hwndOwner      = (HWND)
-      (mParentWidget.get() ? mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : 0); 
-    browserInfo.pidlRoot       = nsnull;
-    browserInfo.pszDisplayName = (LPWSTR)dirBuffer;
-    browserInfo.lpszTitle      = mTitle.get();
-    browserInfo.ulFlags        = BIF_USENEWUI | BIF_RETURNONLYFSDIRS;
-    if (initialDir.Length()) {
-      
-      
-      browserInfo.lParam       = (LPARAM) initialDir.get();
-      browserInfo.lpfn         = &BrowseCallbackProc;
-    } else {
-      browserInfo.lParam       = nsnull;
-      browserInfo.lpfn         = nsnull;
-    }
-    browserInfo.iImage         = nsnull;
-
-    LPITEMIDLIST list = ::SHBrowseForFolderW(&browserInfo);
-    if (list != NULL) {
-      result = ::SHGetPathFromIDListW(list, (LPWSTR)fileBuffer);
-      if (result) {
-          mUnicodeFile.Assign(fileBuffer);
-      }
-  
-      
-      CoTaskMemFree(list);
-    }
-  } else {
-
-    OPENFILENAMEW ofn;
-    memset(&ofn, 0, sizeof(ofn));
-    ofn.lStructSize = sizeof(ofn);
-    nsString filterBuffer = mFilterList;
-                                  
-    if (!initialDir.IsEmpty()) {
-      
-      ofn.lpstrInitialDir = initialDir.get();
-    }
-
-    
-    ofn.lpstrTitle   = (LPCWSTR)mTitle.get();
-    
-    ofn.lpstrFilter  = (LPCWSTR)filterBuffer.get();
-    
-    ofn.nFilterIndex = mSelectedType;
-    
-    ofn.lpstrFile    = fileBuffer;
-    
-    ofn.nMaxFile     = FILE_BUFFER_SIZE;
-    ofn.hwndOwner    = (HWND) (mParentWidget.get() ?
-      mParentWidget->GetNativeData(NS_NATIVE_TMP_WINDOW) : 0); 
-    ofn.Flags = OFN_SHAREAWARE | OFN_LONGNAMES | OFN_OVERWRITEPROMPT |
-                OFN_HIDEREADONLY | OFN_PATHMUSTEXIST | OFN_ENABLESIZING | 
-                OFN_EXPLORER;
-
-    
-    
-    
-    
-    if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
-      ofn.lpfnHook = FilePickerHook;
-      ofn.Flags |= OFN_ENABLEHOOK;
-    }
-
-    
-    nsCOMPtr<nsIPrivateBrowsingService> pbs =
-      do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
-    bool privacyModeEnabled = false;
-    if (pbs) {
-      pbs->GetPrivateBrowsingEnabled(&privacyModeEnabled);
-    }
-    if (privacyModeEnabled || !mAddToRecentDocs) {
-      ofn.Flags |= OFN_DONTADDTORECENT;
-    }
-
-    if (!mDefaultExtension.IsEmpty()) {
-      ofn.lpstrDefExt = mDefaultExtension.get();
-    }
-    else {
-      
-      
-      
-      PRInt32 extIndex = mDefault.RFind(".");
-      if ( extIndex >= 0) {
-        nsAutoString ext;
-        mDefault.Right(ext, mDefault.Length() - extIndex);
-        
-        
-
-        if ( ext.LowerCaseEqualsLiteral(".htm")  ||
-             ext.LowerCaseEqualsLiteral(".html") ||
-             ext.LowerCaseEqualsLiteral(".shtml") ) {
-          
-          
-          
-          
-          ofn.lpstrDefExt = htmExt.get();
-        }
-      }
-    }
-
-    
-    
-    
-    
-    
-    
-    AutoRestoreWorkingPath restoreWorkingPath;
-    
-    
-    if (!restoreWorkingPath.HasWorkingPath()) {
-      ofn.Flags |= OFN_NOCHANGEDIR;
-    }
-    
-    if (mMode == modeOpen) {
+  switch(mMode) {
+    case modeOpen:
       
       ofn.Flags |= OFN_FILEMUSTEXIST;
-      result = GetFileName(&ofn, PICKER_TYPE_OPEN);
-    }
-    else if (mMode == modeOpenMultiple) {
+      result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
+      break;
+
+    case modeOpenMultiple:
       ofn.Flags |= OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT;
 
       
@@ -401,172 +464,165 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
       if (nsWindow::GetWindowsVersion() < VISTA_VERSION) {
         ofn.lpfnHook = MultiFilePickerHook;
         fileBuffer.forget();
-        result = GetFileName(&ofn, PICKER_TYPE_OPEN);
+        result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
         fileBuffer = ofn.lpstrFile;
-      }
-      else {
-        result = GetFileName(&ofn, PICKER_TYPE_OPEN);
-      }
-    }
-    else if (mMode == modeSave) {
-      ofn.Flags |= OFN_NOREADONLYRETURN;
-
-      
-      
-      NS_ConvertUTF16toUTF8 ext(mDefault);
-      ext.Trim(" .", false, true); 
-      ToLowerCase(ext);
-      if (StringEndsWith(ext, NS_LITERAL_CSTRING(".lnk")) ||
-          StringEndsWith(ext, NS_LITERAL_CSTRING(".pif")) ||
-          StringEndsWith(ext, NS_LITERAL_CSTRING(".url")))
-        ofn.Flags |= OFN_NODEREFERENCELINKS;
-
-      result = GetFileName(&ofn, PICKER_TYPE_SAVE);
-      if (!result) {
-        
-        if (::GetLastError() == ERROR_INVALID_PARAMETER 
-            || ::CommDlgExtendedError() == FNERR_INVALIDFILENAME
-            ) {
-          
-          
-          ofn.lpstrFile[0] = 0;
-          result = GetFileName(&ofn, PICKER_TYPE_SAVE);
-        }
-      }
-    } 
-    else {
-      NS_ERROR("unsupported mode"); 
-    }
-
-    if (result) {
-      
-      mSelectedType = (PRInt16)ofn.nFilterIndex;
-
-      
-      mFiles.Clear();
-
-      
-      if (mMode == modeOpenMultiple) {
-        
-        
-        
-        
-        
-        
-        
-        PRUnichar *current = fileBuffer;
-        
-        nsAutoString dirName(current);
-        
-        
-        if (current[dirName.Length() - 1] != '\\')
-          dirName.Append((PRUnichar)'\\');
-        
-        nsresult rv;
-        while (current && *current && *(current + nsCRT::strlen(current) + 1)) {
-          current = current + nsCRT::strlen(current) + 1;
-          
-          nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
-          NS_ENSURE_SUCCESS(rv,rv);
-
-          
-          nsAutoString path;
-          if (PathIsRelativeW(current)) {
-            path = dirName + nsDependentString(current);
-          } else {
-            path = current;
-          }
-
-          nsAutoString canonicalizedPath;
-          GetQualifiedPath(path.get(), canonicalizedPath);
-          
-          rv = file->InitWithPath(canonicalizedPath);
-          NS_ENSURE_SUCCESS(rv,rv);
-          
-          rv = mFiles.AppendObject(file);
-          NS_ENSURE_SUCCESS(rv,rv);
-        }
-        
-        
-        
-        
-        
-        
-        if (current && *current && (current == fileBuffer)) {
-          nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1", &rv);
-          NS_ENSURE_SUCCESS(rv,rv);
-          
-          nsAutoString canonicalizedPath;
-          GetQualifiedPath(current, canonicalizedPath);
-          rv = file->InitWithPath(canonicalizedPath);
-          NS_ENSURE_SUCCESS(rv,rv);
-          
-          rv = mFiles.AppendObject(file);
-          NS_ENSURE_SUCCESS(rv,rv);
-        }
       } else {
-        GetQualifiedPath(fileBuffer, mUnicodeFile);
+        result = FilePickerWrapper(&ofn, PICKER_TYPE_OPEN);
       }
-    }
-    if (ofn.hwndOwner) {
-      ::DestroyWindow(ofn.hwndOwner);
-    }
+      break;
+
+    case modeSave:
+      {
+        ofn.Flags |= OFN_NOREADONLYRETURN;
+
+        
+        
+        if (IsDefaultPathLink())
+          ofn.Flags |= OFN_NODEREFERENCELINKS;
+
+        result = FilePickerWrapper(&ofn, PICKER_TYPE_SAVE);
+        if (!result) {
+          
+          if (GetLastError() == ERROR_INVALID_PARAMETER ||
+              CommDlgExtendedError() == FNERR_INVALIDFILENAME) {
+            
+            
+            ofn.lpstrFile[0] = nsnull;
+            result = FilePickerWrapper(&ofn, PICKER_TYPE_SAVE);
+          }
+        }
+      }
+      break;
+
+    default:
+      NS_ERROR("unsupported file picker mode");
+      return false;
   }
 
-  if (result) {
-    PRInt16 returnOKorReplace = returnOK;
+  if (!result)
+    return false;
 
+  
+  mSelectedType = (PRInt16)ofn.nFilterIndex;
+
+  
+  if (mMode != modeOpenMultiple) {
+    GetQualifiedPath(fileBuffer, mUnicodeFile);
+    return true;
+  }
+
+  
+  mFiles.Clear();
+
+  
+  
+  
+  
+  
+  
+  PRUnichar *current = fileBuffer;
+  
+  nsAutoString dirName(current);
+  
+  if (current[dirName.Length() - 1] != '\\')
+    dirName.Append((PRUnichar)'\\');
+  
+  while (current && *current && *(current + nsCRT::strlen(current) + 1)) {
+    current = current + nsCRT::strlen(current) + 1;
+    
+    nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
+    NS_ENSURE_TRUE(file, false);
+
+    
+    nsAutoString path;
+    if (PathIsRelativeW(current)) {
+      path = dirName + nsDependentString(current);
+    } else {
+      path = current;
+    }
+
+    nsAutoString canonicalizedPath;
+    GetQualifiedPath(path.get(), canonicalizedPath);
+    if (NS_FAILED(file->InitWithPath(canonicalizedPath)) ||
+        !mFiles.AppendObject(file))
+      return false;
+  }
+  
+  
+  
+  
+  if (current && *current && (current == fileBuffer)) {
+    nsCOMPtr<nsILocalFile> file = do_CreateInstance("@mozilla.org/file/local;1");
+    NS_ENSURE_TRUE(file, false);
+    
+    nsAutoString canonicalizedPath;
+    GetQualifiedPath(current, canonicalizedPath);
+    if (NS_FAILED(file->InitWithPath(canonicalizedPath)) ||
+        !mFiles.AppendObject(file))
+      return false;
+  }
+
+  return true;
+}
+
+NS_IMETHODIMP
+nsFilePicker::ShowW(PRInt16 *aReturnVal)
+{
+  NS_ENSURE_ARG_POINTER(aReturnVal);
+
+  *aReturnVal = returnCancel;
+
+  AutoSuppressEvents supress(mParentWidget);
+
+  nsAutoString initialDir;
+  if (mDisplayDirectory)
+    mDisplayDirectory->GetPath(initialDir);
+
+  
+  if(initialDir.IsEmpty()) {
+    
+    initialDir = mLastUsedUnicodeDirectory;
+  }
+
+  mUnicodeFile.Truncate();
+
+  bool result = false;
+  if (mMode == modeGetFolder) {
+    result = ShowFolderPicker(initialDir);
+  } else {
+    result = ShowFilePicker(initialDir);
+  }
+
+  
+  if (!result)
+    return NS_OK;
+
+  RememberLastUsedDirectory();
+
+  PRInt16 retValue = returnOK;
+  if (mMode == modeSave) {
+    
     
     nsCOMPtr<nsILocalFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
-    NS_ENSURE_TRUE(file, NS_ERROR_FAILURE);
-
-    
-    file->InitWithPath(mUnicodeFile);
-    nsCOMPtr<nsIFile> dir;
-    if (NS_SUCCEEDED(file->GetParent(getter_AddRefs(dir)))) {
-      mDisplayDirectory = do_QueryInterface(dir);
-      if (mDisplayDirectory) {
-        if (mLastUsedUnicodeDirectory) {
-          NS_Free(mLastUsedUnicodeDirectory);
-          mLastUsedUnicodeDirectory = nsnull;
-        }
-
-        nsAutoString newDir;
-        mDisplayDirectory->GetPath(newDir);
-        if(!newDir.IsEmpty())
-          mLastUsedUnicodeDirectory = ToNewUnicode(newDir);
-      }
+    bool flag = false;
+    if (file && NS_SUCCEEDED(file->InitWithPath(mUnicodeFile)) &&
+        NS_SUCCEEDED(file->Exists(&flag)) && flag) {
+      retValue = returnReplace;
     }
-
-    if (mMode == modeSave) {
-      
-      
-      bool exists = false;
-      file->Exists(&exists);
-
-      if (exists)
-        returnOKorReplace = returnReplace;
-    }
-    *aReturnVal = returnOKorReplace;
-  }
-  else {
-    *aReturnVal = returnCancel;
-  }
-  if (mParentWidget) {
-    nsIWidget *tmp = mParentWidget;
-    nsWindow *parent = static_cast<nsWindow *>(tmp);
-    parent->SuppressBlurEvents(false);
   }
 
+  *aReturnVal = retValue;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFilePicker::Show(PRInt16 *aReturnVal)
+NS_IMETHODIMP
+nsFilePicker::Show(PRInt16 *aReturnVal)
 {
   return ShowW(aReturnVal);
 }
 
-NS_IMETHODIMP nsFilePicker::GetFile(nsILocalFile **aFile)
+NS_IMETHODIMP
+nsFilePicker::GetFile(nsILocalFile **aFile)
 {
   NS_ENSURE_ARG_POINTER(aFile);
   *aFile = nsnull;
@@ -585,7 +641,8 @@ NS_IMETHODIMP nsFilePicker::GetFile(nsILocalFile **aFile)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFilePicker::GetFileURL(nsIURI **aFileURL)
+NS_IMETHODIMP
+nsFilePicker::GetFileURL(nsIURI **aFileURL)
 {
   *aFileURL = nsnull;
   nsCOMPtr<nsILocalFile> file;
@@ -596,14 +653,16 @@ NS_IMETHODIMP nsFilePicker::GetFileURL(nsIURI **aFileURL)
   return NS_NewFileURI(aFileURL, file);
 }
 
-NS_IMETHODIMP nsFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
+NS_IMETHODIMP
+nsFilePicker::GetFiles(nsISimpleEnumerator **aFiles)
 {
   NS_ENSURE_ARG_POINTER(aFiles);
   return NS_NewArrayEnumerator(aFiles, mFiles);
 }
 
 
-NS_IMETHODIMP nsFilePicker::SetDefaultString(const nsAString& aString)
+NS_IMETHODIMP
+nsFilePicker::SetDefaultString(const nsAString& aString)
 {
   mDefault = aString;
 
@@ -635,42 +694,48 @@ NS_IMETHODIMP nsFilePicker::SetDefaultString(const nsAString& aString)
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFilePicker::GetDefaultString(nsAString& aString)
+NS_IMETHODIMP
+nsFilePicker::GetDefaultString(nsAString& aString)
 {
   return NS_ERROR_FAILURE;
 }
 
 
-NS_IMETHODIMP nsFilePicker::GetDefaultExtension(nsAString& aExtension)
+NS_IMETHODIMP
+nsFilePicker::GetDefaultExtension(nsAString& aExtension)
 {
   aExtension = mDefaultExtension;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFilePicker::SetDefaultExtension(const nsAString& aExtension)
+NS_IMETHODIMP
+nsFilePicker::SetDefaultExtension(const nsAString& aExtension)
 {
   mDefaultExtension = aExtension;
   return NS_OK;
 }
 
 
-NS_IMETHODIMP nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
+NS_IMETHODIMP
+nsFilePicker::GetFilterIndex(PRInt32 *aFilterIndex)
 {
   
   *aFilterIndex = mSelectedType - 1;
   return NS_OK;
 }
 
-NS_IMETHODIMP nsFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
+NS_IMETHODIMP
+nsFilePicker::SetFilterIndex(PRInt32 aFilterIndex)
 {
   
   mSelectedType = aFilterIndex + 1;
   return NS_OK;
 }
 
-void nsFilePicker::InitNative(nsIWidget *aParent,
-                              const nsAString& aTitle,
-                              PRInt16 aMode)
+void
+nsFilePicker::InitNative(nsIWidget *aParent,
+                         const nsAString& aTitle,
+                         PRInt16 aMode)
 {
   mParentWidget = aParent;
   mTitle.Assign(aTitle);
@@ -713,19 +778,69 @@ nsFilePicker::AppendFilter(const nsAString& aTitle, const nsAString& aFilter)
   return NS_OK;
 }
 
-AutoRestoreWorkingPath::AutoRestoreWorkingPath() 
+void
+nsFilePicker::RememberLastUsedDirectory()
 {
-  DWORD bufferLength = GetCurrentDirectoryW(0, NULL);
-  mWorkingPath = new PRUnichar[bufferLength];
-  if (GetCurrentDirectoryW(bufferLength, mWorkingPath) == 0) {
-    mWorkingPath = NULL;
+  nsCOMPtr<nsILocalFile> file(do_CreateInstance("@mozilla.org/file/local;1"));
+  if (!file || NS_FAILED(file->InitWithPath(mUnicodeFile))) {
+    NS_WARNING("RememberLastUsedDirectory failed to init file path.");
+    return;
   }
+
+  nsCOMPtr<nsIFile> dir;
+  nsAutoString newDir;
+  if (NS_FAILED(file->GetParent(getter_AddRefs(dir))) ||
+      !(mDisplayDirectory = do_QueryInterface(dir)) ||
+      NS_FAILED(mDisplayDirectory->GetPath(newDir)) ||
+      newDir.IsEmpty()) {
+    NS_WARNING("RememberLastUsedDirectory failed to get parent directory.");
+    return;
+  }
+
+  if (mLastUsedUnicodeDirectory) {
+    NS_Free(mLastUsedUnicodeDirectory);
+    mLastUsedUnicodeDirectory = nsnull;
+  }
+  mLastUsedUnicodeDirectory = ToNewUnicode(newDir);
 }
 
-AutoRestoreWorkingPath::~AutoRestoreWorkingPath()
+bool
+nsFilePicker::IsPrivacyModeEnabled()
 {
-  if (HasWorkingPath()) {
-    ::SetCurrentDirectoryW(mWorkingPath);
+  
+  nsCOMPtr<nsIPrivateBrowsingService> pbs =
+    do_GetService(NS_PRIVATE_BROWSING_SERVICE_CONTRACTID);
+  bool privacyModeEnabled = false;
+  if (pbs) {
+    pbs->GetPrivateBrowsingEnabled(&privacyModeEnabled);
   }
+  return privacyModeEnabled;
 }
 
+bool
+nsFilePicker::IsDefaultPathLink()
+{
+  NS_ConvertUTF16toUTF8 ext(mDefault);
+  ext.Trim(" .", false, true); 
+  ToLowerCase(ext);
+  if (StringEndsWith(ext, NS_LITERAL_CSTRING(".lnk")) ||
+      StringEndsWith(ext, NS_LITERAL_CSTRING(".pif")) ||
+      StringEndsWith(ext, NS_LITERAL_CSTRING(".url")))
+    return true;
+  return false;
+}
+
+bool
+nsFilePicker::IsDefaultPathHtml()
+{
+  PRInt32 extIndex = mDefault.RFind(".");
+  if (extIndex >= 0) {
+    nsAutoString ext;
+    mDefault.Right(ext, mDefault.Length() - extIndex);
+    if (ext.LowerCaseEqualsLiteral(".htm")  ||
+        ext.LowerCaseEqualsLiteral(".html") ||
+        ext.LowerCaseEqualsLiteral(".shtml"))
+      return true;
+  }
+  return false;
+}
