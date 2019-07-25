@@ -132,6 +132,17 @@ public:
   
 
 
+  nsIPresShell* PresShell() const { return mPresShell; }
+
+  
+
+
+  nsIWeakReference* GetWeakShell() const
+    { return do_GetWeakReference(mPresShell).get(); }
+
+  
+
+
   bool IsContentLoaded() const
   {
     
@@ -161,7 +172,8 @@ public:
 
 
   bool HasLoadState(LoadState aState) const
-    { return (mLoadState & aState) == aState; }
+    { return (mLoadState & static_cast<PRUint32>(aState)) == 
+        static_cast<PRUint32>(aState); }
 
   
 
@@ -367,6 +379,8 @@ public:
   void RecreateAccessible(nsIContent* aContent);
 
 protected:
+
+  void LastRelease();
 
   
   virtual void CacheChildren();
@@ -634,6 +648,10 @@ protected:
 
   nsRefPtr<NotificationController> mNotificationController;
   friend class NotificationController;
+
+private:
+
+  nsIPresShell* mPresShell;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsDocAccessible,
