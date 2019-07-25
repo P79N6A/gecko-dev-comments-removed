@@ -39,6 +39,7 @@
 #define __nsCheapSets_h__
 
 #include "nsHashSets.h"
+#include <stdint.h>
 
 
 
