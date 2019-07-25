@@ -2066,7 +2066,8 @@ mjit::Compiler::generateMethod()
                 callPatch.joinPoint = stubcc.masm.label();
                 callPatch.joinSlow = true;
 
-                stubcc.masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), JSFrameReg);
+                addReturnSite(true );
+
                 autoRejoinNcode.oolRejoin(stubcc.masm.label());
                 stubcc.masm.storeValueFromComponents(JSReturnReg_Type, JSReturnReg_Data,
                                                      frame.addressOf(frame.peek(-1)));
@@ -3231,10 +3232,11 @@ mjit::Compiler::recompileCheckHelper()
 }
 
 void
-mjit::Compiler::addReturnSite()
+mjit::Compiler::addReturnSite(bool ool)
 {
+    Assembler &masm = ool ? stubcc.masm : this->masm;
     InternalCallSite site(masm.distanceOf(masm.label()), a->inlineIndex, PC,
-                          CallSite::NCODE_RETURN_ID, false, true);
+                          CallSite::NCODE_RETURN_ID, ool, true);
     addCallSite(site);
     masm.loadPtr(Address(JSFrameReg, JSStackFrame::offsetOfPrev()), JSFrameReg);
 }
@@ -3264,7 +3266,7 @@ mjit::Compiler::emitUncachedCall(uint32 argc, bool callingNew)
 
     masm.jump(r0);
     callPatch.joinPoint = masm.label();
-    addReturnSite();
+    addReturnSite(false );
 
     frame.popn(argc + 2);
 
@@ -3687,7 +3689,7 @@ mjit::Compiler::inlineCallHelper(uint32 callImmArgc, bool callingNew, FrameSize 
     callIC.hotJump = masm.jump();
     callIC.joinPoint = callPatch.joinPoint = masm.label();
     callIC.callIndex = callSites.length();
-    addReturnSite();
+    addReturnSite(false );
     if (lowerFunCallOrApply)
         uncachedCallPatch.joinPoint = callIC.joinPoint;
 
@@ -3859,18 +3861,6 @@ mjit::Compiler::inlineScriptedFunction(uint32 argc, bool callingNew)
 
     if (types->getObjectCount() >= INLINE_SITE_LIMIT)
         return Compile_InlineAbort;
-
-    
-
-
-
-
-
-    for (unsigned i = 0; patchFrames && i < patchFrames->length(); i++) {
-        const PatchableFrame &frame = (*patchFrames)[i];
-        if (frame.pc == PC && !frame.scriptedCall)
-            return Compile_InlineAbort;
-    }
 
     
 
