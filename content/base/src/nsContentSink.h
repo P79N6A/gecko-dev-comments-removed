@@ -315,8 +315,6 @@ protected:
 
   nsCOMArray<nsIScriptElement> mScriptElements;
 
-  nsCString mRef; 
-
   
   PRInt32 mBackoffCount;
 
@@ -330,12 +328,10 @@ protected:
   
   PRUint8 mBeganUpdate : 1;
   PRUint8 mLayoutStarted : 1;
-  PRUint8 mScrolledToRefAlready : 1;
   PRUint8 mCanInterruptParser : 1;
   PRUint8 mDynamicLowerValue : 1;
   PRUint8 mParsing : 1;
   PRUint8 mDroppedTimer : 1;
-  PRUint8 mChangeScrollPosWhenScrollingToRef : 1;
   
   PRUint8 mDeferredLayoutStart : 1;
   
