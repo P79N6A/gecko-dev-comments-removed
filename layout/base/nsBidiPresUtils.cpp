@@ -489,14 +489,12 @@ MakeContinuationFluid(nsIFrame* aFrame, nsIFrame* aNext)
 
 
 
+
 static void
 JoinInlineAncestors(nsIFrame* aFrame)
 {
-  if (aFrame->GetNextSibling()) {
-    return;
-  }
-  nsIFrame* frame = aFrame->GetParent();
-  while (frame && IsBidiSplittable(frame)) {
+  nsIFrame* frame = aFrame;
+  do {
     nsIFrame* next = frame->GetNextContinuation();
     if (next) {
       
@@ -510,7 +508,7 @@ JoinInlineAncestors(nsIFrame* aFrame)
     if (frame->GetNextSibling())
       break;
     frame = frame->GetParent();
-  }
+  } while (frame && IsBidiSplittable(frame));
 }
 
 static nsresult
