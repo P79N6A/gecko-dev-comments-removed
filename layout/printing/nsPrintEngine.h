@@ -55,6 +55,7 @@ class nsIDocumentViewerPrint;
 class nsPrintObject;
 class nsIDocShell;
 class nsIPageSequenceFrame;
+class nsIWeakReference;
 
 
 
@@ -102,7 +103,7 @@ public:
   void DestroyPrintingData();
 
   nsresult Initialize(nsIDocumentViewerPrint* aDocViewerPrint, 
-                      nsISupports*            aContainer,
+                      nsIWeakReference*       aContainer,
                       nsIDocument*            aDocument,
                       float                   aScreenDPI,
                       FILE*                   aDebugFile);
@@ -280,7 +281,7 @@ protected:
   PRPackedBool mProgressDialogIsShown;
 
   nsCOMPtr<nsIDocumentViewerPrint> mDocViewerPrint;
-  nsISupports*            mContainer;      
+  nsWeakPtr               mContainer;
   float                   mScreenDPI;
   
   nsPrintData*            mPrt;
