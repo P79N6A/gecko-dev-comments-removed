@@ -24,6 +24,7 @@ public:
 
 
 
+
     enum Bits {
         kStyle_Bit      = 1 << 0,   
         kTextSkewX_Bit  = 1 << 1,   
@@ -33,7 +34,15 @@ public:
         kColorFilter_Bit = 1 << 5,  
         kXfermode_Bit   = 1 << 6,   
         
-        kEntirePaint_Bits = -1,      
+        
+
+
+
+
+
+
+        kEntirePaint_Bits = -1,
+        
     };
     typedef int32_t BitFlags;
 
@@ -97,6 +106,8 @@ public:
         return SkNEW_ARGS(SkLayerDrawLooper, (buffer));
     }
     
+    SK_DECLARE_FLATTENABLE_REGISTRAR()
+
 protected:
     SkLayerDrawLooper(SkFlattenableReadBuffer&);
 

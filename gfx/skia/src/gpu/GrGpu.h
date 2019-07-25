@@ -121,6 +121,19 @@ public:
     GrTexture* createTexture(const GrTextureDesc& desc,
                              const void* srcData, size_t rowBytes);
 
+    
+
+
+    GrTexture* createPlatformTexture(const GrPlatformTextureDesc& desc);
+
+    
+
+
+    GrRenderTarget* createPlatformRenderTarget(const GrPlatformRenderTargetDesc& desc);
+
+    
+
+
     GrResource* createPlatformSurface(const GrPlatformSurfaceDesc& desc);
 
     
@@ -177,6 +190,63 @@ public:
 
 
 
+    virtual GrPixelConfig preferredReadPixelsConfig(GrPixelConfig config)
+                                                                        const {
+        return config;
+    }
+
+    
+
+
+    virtual GrPixelConfig preferredWritePixelsConfig(GrPixelConfig config)
+                                                                        const {
+        return config;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     virtual bool readPixelsWillPayForYFlip(GrRenderTarget* renderTarget,
+                                            int left, int top,
+                                            int width, int height,
+                                            GrPixelConfig config,
+                                            size_t rowBytes) const = 0;
+     
+
+
+
+
+     virtual bool fullReadPixelsIsFasterThanPartial() const { return false; };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -187,7 +257,25 @@ public:
 
     bool readPixels(GrRenderTarget* renderTarget,
                     int left, int top, int width, int height,
-                    GrPixelConfig config, void* buffer);
+                    GrPixelConfig config, void* buffer, size_t rowBytes,
+                    bool invertY);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    void writeTexturePixels(GrTexture* texture,
+                            int left, int top, int width, int height,
+                            GrPixelConfig config, const void* buffer,
+                            size_t rowBytes);
 
     const GrGpuStats& getStats() const;
     void resetStats();
@@ -221,9 +309,26 @@ public:
     
     virtual void clear(const GrIRect* rect, GrColor color);
 
+    
+    
+    
+    
+    
+    
+    typedef uint64_t ResetTimestamp;
+
+    
+    static const ResetTimestamp kExpiredTimestamp = 0;
+    
+    
+    
+    ResetTimestamp getResetTimestamp() const {
+        return fResetTimestamp;
+    }
+
 protected:
-    enum PrivateStateBits {
-        kFirstBit = (kLastPublicStateBit << 1),
+    enum PrivateDrawStateStateBits {
+        kFirstBit = (GrDrawState::kLastPublicStateBit << 1),
 
         kModifyStencilClip_StateBit = kFirstBit, 
                                                  
@@ -250,8 +355,7 @@ protected:
 
     
     
-    static const GrStencilSettings gClipStencilSettings;
-
+    static const GrStencilSettings& gClipStencilSettings;
 
     GrGpuStats fStats;
 
@@ -288,12 +392,15 @@ protected:
 
     
     
-    virtual void resetContext() = 0;
+    virtual void onResetContext() = 0;
 
+    
     
     virtual GrTexture* onCreateTexture(const GrTextureDesc& desc,
                                        const void* srcData,
                                        size_t rowBytes) = 0;
+    virtual GrTexture* onCreatePlatformTexture(const GrPlatformTextureDesc& desc) = 0;
+    virtual GrRenderTarget* onCreatePlatformRenderTarget(const GrPlatformRenderTargetDesc& desc) = 0;
     virtual GrResource* onCreatePlatformSurface(const GrPlatformSurfaceDesc& desc) = 0;
     virtual GrVertexBuffer* onCreateVertexBuffer(uint32_t size,
                                                  bool dynamic) = 0;
@@ -321,7 +428,16 @@ protected:
     
     virtual bool onReadPixels(GrRenderTarget* target,
                               int left, int top, int width, int height,
-                              GrPixelConfig, void* buffer) = 0;
+                              GrPixelConfig,
+                              void* buffer,
+                              size_t rowBytes,
+                              bool invertY) = 0;
+
+    
+    virtual void onWriteTexturePixels(GrTexture* texture,
+                                      int left, int top, int width, int height,
+                                      GrPixelConfig config, const void* buffer,
+                                      size_t rowBytes) = 0;
 
     
     
@@ -361,6 +477,8 @@ protected:
 
 private:
     GrContext*                  fContext; 
+    
+    ResetTimestamp              fResetTimestamp;
 
     GrVertexBufferAllocPool*    fVertexPool;
 
@@ -409,6 +527,11 @@ private:
 
     
     GrPathRenderer* getClipPathRenderer(const SkPath& path, GrPathFill fill);
+
+    void resetContext() {
+        this->onResetContext();
+        ++fResetTimestamp;
+    }
 
     void handleDirtyContext() {
         if (fContextIsDirty) {

@@ -28,6 +28,31 @@ public:
 
 
 
+    virtual bool asColorMatrix(SkScalar matrix[20]);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    virtual bool asComponentTable(SkBitmap* table);
+
+    
+
+
+
+
 
 
     virtual void filterSpan(const SkPMColor src[], int count,
@@ -92,7 +117,8 @@ public:
 
 
     static SkColorFilter* CreateLightingFilter(SkColor mul, SkColor add);
-
+    
+    SK_DECLARE_FLATTENABLE_REGISTRAR()
 protected:
     SkColorFilter() {}
     SkColorFilter(SkFlattenableReadBuffer& rb) : INHERITED(rb) {}

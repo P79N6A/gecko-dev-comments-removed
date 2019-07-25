@@ -65,6 +65,13 @@ public:
 
 
 
+
+    SkISize getDeviceSize() const;
+
+    
+
+
+
     SkDevice* getDevice() const;
 
     
@@ -104,8 +111,34 @@ public:
 
 
 
-    bool readPixels(const SkIRect& srcRect, SkBitmap* bitmap);
-    bool readPixels(SkBitmap* bitmap);
+
+
+
+
+
+
+    enum Config8888 {
+        
+
+
+
+
+
+
+
+        kNative_Premul_Config8888,
+        kNative_Unpremul_Config8888,
+        
+
+
+        kBGRA_Premul_Config8888,
+        kBGRA_Unpremul_Config8888,
+        
+
+
+        kRGBA_Premul_Config8888,
+        kRGBA_Unpremul_Config8888,
+    };
 
     
 
@@ -115,7 +148,64 @@ public:
 
 
 
-    void writePixels(const SkBitmap& bitmap, int x, int y);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool readPixels(SkBitmap* bitmap,
+                    int x, int y,
+                    Config8888 config8888 = kNative_Premul_Config8888);
+
+    
+
+
+
+
+
+    bool readPixels(const SkIRect& srcRect, SkBitmap* bitmap);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    void writePixels(const SkBitmap& bitmap,
+                     int x, int y,
+                     Config8888 config8888 = kNative_Premul_Config8888);
 
     
 
@@ -196,6 +286,11 @@ public:
 
 
     void restoreToCount(int saveCount);
+
+    
+
+
+    bool isDrawingToLayer() const;
 
     
 
@@ -646,7 +741,7 @@ public:
                                 const SkPath& path, const SkMatrix* matrix,
                                 const SkPaint& paint);
 
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     
 
 
@@ -842,6 +937,7 @@ private:
 
     SkBounder*  fBounder;
     SkDevice*   fLastDeviceToGainFocus;
+    int         fLayerCount;    
 
     void prepareForDeviceDraw(SkDevice*, const SkMatrix&, const SkRegion&,
                               const SkClipStack& clipStack);

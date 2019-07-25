@@ -14,6 +14,7 @@
 #include "SkRect.h"
 #include "SkDOM.h"
 #include "SkTDict.h"
+#include "SkMatrix.h"
 
 class SkCanvas;
 class SkLayerView;
@@ -81,6 +82,12 @@ public:
     void        getLocalBounds(SkRect* bounds) const;
 
     
+
+
+
+
+
+    
     SkScalar    locX() const { return fLoc.fX; }
     
     SkScalar    locY() const { return fLoc.fY; }
@@ -89,6 +96,18 @@ public:
     void        setLoc(const SkPoint& loc) { this->setLoc(loc.fX, loc.fY); }
     void        setLocX(SkScalar x) { this->setLoc(x, fLoc.fY); }
     void        setLocY(SkScalar y) { this->setLoc(fLoc.fX, y); }
+    
+    
+
+
+
+
+
+
+
+    const SkMatrix& getLocalMatrix() const { return fMatrix; }
+    void            setLocalMatrix(const SkMatrix& matrix);
+
     
     void        offset(SkScalar dx, SkScalar dy);
 
@@ -338,6 +357,7 @@ protected:
 
 private:
     SkScalar    fWidth, fHeight;
+    SkMatrix    fMatrix;
     SkPoint     fLoc;
     SkView*     fParent;
     SkView*     fFirstChild;
@@ -354,6 +374,8 @@ private:
     bool    setFocusView(SkView* fvOrNull);
     SkView* acceptFocus(FocusDirection);
     void    detachFromParent_NoLayout();
+    
+    void    localToGlobal(SkMatrix* matrix) const;
 };
 
 #endif

@@ -41,34 +41,31 @@ bool GrDefaultPathRenderer::canDrawPath(const GrDrawTarget::Caps& targetCaps,
 
 
 
-static const GrStencilSettings gEOStencilPass = {
-    kInvert_StencilOp,           kInvert_StencilOp,
-    kKeep_StencilOp,             kKeep_StencilOp,
-    kAlwaysIfInClip_StencilFunc, kAlwaysIfInClip_StencilFunc,
-    0xffffffff,                  0xffffffff,
-    0xffffffff,                  0xffffffff,
-    0xffffffff,                  0xffffffff
-};
+GR_STATIC_CONST_SAME_STENCIL(gEOStencilPass,
+    kInvert_StencilOp,
+    kKeep_StencilOp,
+    kAlwaysIfInClip_StencilFunc,
+    0xffff,
+    0xffff,
+    0xffff);
 
 
-static const GrStencilSettings gEOColorPass = {
-    kZero_StencilOp,          kZero_StencilOp,
-    kZero_StencilOp,          kZero_StencilOp,
-    kNotEqual_StencilFunc,    kNotEqual_StencilFunc,
-    0xffffffff,               0xffffffff,
-    0x0,                      0x0,
-    0xffffffff,               0xffffffff
-};
+GR_STATIC_CONST_SAME_STENCIL(gEOColorPass,
+    kZero_StencilOp,
+    kZero_StencilOp,
+    kNotEqual_StencilFunc,
+    0xffff,
+    0x0000,
+    0xffff);
 
 
-static const GrStencilSettings gInvEOColorPass = {
-    kZero_StencilOp,            kZero_StencilOp,
-    kZero_StencilOp,            kZero_StencilOp,
-    kEqualIfInClip_StencilFunc, kEqualIfInClip_StencilFunc,
-    0xffffffff,                 0xffffffff,
-    0x0,                        0x0,
-    0xffffffff,                 0xffffffff
-};
+GR_STATIC_CONST_SAME_STENCIL(gInvEOColorPass,
+    kZero_StencilOp,
+    kZero_StencilOp,
+    kEqualIfInClip_StencilFunc,
+    0xffff,
+    0x0000,
+    0xffff);
 
 
 
@@ -76,95 +73,91 @@ static const GrStencilSettings gInvEOColorPass = {
 
 
 
-static const GrStencilSettings gWindStencilSeparateWithWrap = {
+GR_STATIC_CONST_STENCIL(gWindStencilSeparateWithWrap,
     kIncWrap_StencilOp,             kDecWrap_StencilOp,
     kKeep_StencilOp,                kKeep_StencilOp,
     kAlwaysIfInClip_StencilFunc,    kAlwaysIfInClip_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff
-};
+    0xffff,                         0xffff,
+    0xffff,                         0xffff,
+    0xffff,                         0xffff);
 
 
 
 
 
-static const GrStencilSettings gWindStencilSeparateNoWrap = {
+GR_STATIC_CONST_STENCIL(gWindStencilSeparateNoWrap,
     kInvert_StencilOp,              kInvert_StencilOp,
     kIncClamp_StencilOp,            kDecClamp_StencilOp,
     kEqual_StencilFunc,             kEqual_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0x0,
-    0xffffffff,                     0xffffffff
-};
+    0xffff,                         0xffff,
+    0xffff,                         0x0000,
+    0xffff,                         0xffff);
 
 
 
 
 
-static const GrStencilSettings gWindSingleStencilWithWrapInc = {
-    kIncWrap_StencilOp,             kIncWrap_StencilOp,
-    kKeep_StencilOp,                kKeep_StencilOp,
-    kAlwaysIfInClip_StencilFunc,    kAlwaysIfInClip_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff
-};
-static const GrStencilSettings gWindSingleStencilWithWrapDec = {
-    kDecWrap_StencilOp,             kDecWrap_StencilOp,
-    kKeep_StencilOp,                kKeep_StencilOp,
-    kAlwaysIfInClip_StencilFunc,    kAlwaysIfInClip_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff
-};
-static const GrStencilSettings gWindSingleStencilNoWrapInc = {
-    kInvert_StencilOp,              kInvert_StencilOp,
-    kIncClamp_StencilOp,            kIncClamp_StencilOp,
-    kEqual_StencilFunc,             kEqual_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff,
-    0xffffffff,                     0xffffffff
-};
-static const GrStencilSettings gWindSingleStencilNoWrapDec = {
-    kInvert_StencilOp,              kInvert_StencilOp,
-    kDecClamp_StencilOp,            kDecClamp_StencilOp,
-    kEqual_StencilFunc,             kEqual_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0x0,                            0x0,
-    0xffffffff,                     0xffffffff
-};
+GR_STATIC_CONST_SAME_STENCIL(gWindSingleStencilWithWrapInc,
+    kIncWrap_StencilOp,
+    kKeep_StencilOp,
+    kAlwaysIfInClip_StencilFunc,
+    0xffff,
+    0xffff,
+    0xffff);
 
-static const GrStencilSettings gWindColorPass = {
-    kZero_StencilOp,                kZero_StencilOp,
-    kZero_StencilOp,                kZero_StencilOp,
-    kNonZeroIfInClip_StencilFunc,   kNonZeroIfInClip_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0x0,                            0x0,
-    0xffffffff,                     0xffffffff
-};
+GR_STATIC_CONST_SAME_STENCIL(gWindSingleStencilWithWrapDec,
+    kDecWrap_StencilOp,
+    kKeep_StencilOp,
+    kAlwaysIfInClip_StencilFunc,
+    0xffff,
+    0xffff,
+    0xffff);
 
-static const GrStencilSettings gInvWindColorPass = {
-    kZero_StencilOp,                kZero_StencilOp,
-    kZero_StencilOp,                kZero_StencilOp,
-    kEqualIfInClip_StencilFunc,     kEqualIfInClip_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0x0,                            0x0,
-    0xffffffff,                     0xffffffff
-};
+GR_STATIC_CONST_SAME_STENCIL(gWindSingleStencilNoWrapInc,
+    kInvert_StencilOp,
+    kIncClamp_StencilOp,
+    kEqual_StencilFunc,
+    0xffff,
+    0xffff,
+    0xffff);
 
+GR_STATIC_CONST_SAME_STENCIL(gWindSingleStencilNoWrapDec,
+    kInvert_StencilOp,
+    kDecClamp_StencilOp,
+    kEqual_StencilFunc,
+    0xffff,
+    0x0000,
+    0xffff);
+
+
+
+GR_STATIC_CONST_SAME_STENCIL(gWindColorPass,
+    kZero_StencilOp,
+    kZero_StencilOp,
+    kNonZeroIfInClip_StencilFunc,
+    0xffff,
+    0x0000,
+    0xffff);
+
+GR_STATIC_CONST_SAME_STENCIL(gInvWindColorPass,
+    kZero_StencilOp,
+    kZero_StencilOp,
+    kEqualIfInClip_StencilFunc,
+    0xffff,
+    0x0000,
+    0xffff);
 
 
 
 
-static const GrStencilSettings gDirectToStencil = {
-    kZero_StencilOp,                kZero_StencilOp,
-    kIncClamp_StencilOp,            kIncClamp_StencilOp,
-    kAlwaysIfInClip_StencilFunc,    kAlwaysIfInClip_StencilFunc,
-    0xffffffff,                     0xffffffff,
-    0x0,                            0x0,
-    0xffffffff,                     0xffffffff
-};
+
+GR_STATIC_CONST_SAME_STENCIL(gDirectToStencil,
+    kZero_StencilOp,
+    kIncClamp_StencilOp,
+    kAlwaysIfInClip_StencilFunc,
+    0xffff,
+    0x0000,
+    0xffff);
 
 
 
@@ -190,7 +183,8 @@ static inline bool single_pass_path(const GrDrawTarget& target,
         return hint == kConvex_ConvexHint ||
                hint == kNonOverlappingConvexPieces_ConvexHint ||
                (hint == kSameWindingConvexPieces_ConvexHint &&
-                !target.drawWillReadDst() && !target.isDitherState());
+                !target.drawWillReadDst() &&
+                !target.getDrawState().isDitherState());
 
     }
     return false;
@@ -227,8 +221,8 @@ static inline void append_countour_edge_indices(GrPathFill fillType,
     *((*indices)++) = edgeV0Idx + 1;
 }
 
-bool GrDefaultPathRenderer::createGeom(GrScalar srcSpaceTol, 
-                                       GrDrawTarget::StageBitfield stages) {
+bool GrDefaultPathRenderer::createGeom(GrScalar srcSpaceTol,
+                                       GrDrawState::StageMask stageMask) {
     {
     SK_TRACE_EVENT0("GrDefaultPathRenderer::createGeom");
 
@@ -246,7 +240,7 @@ bool GrDefaultPathRenderer::createGeom(GrScalar srcSpaceTol,
 
     GrVertexLayout layout = 0;
     for (int s = 0; s < GrDrawState::kNumStages; ++s) {
-        if ((1 << s) & stages) {
+        if ((1 << s) & stageMask) {
             layout |= GrDrawTarget::StagePosAsTexCoordVertexLayoutBit(s);
         }
     }
@@ -377,16 +371,17 @@ FINISHED:
     
     
     fPreviousSrcTol = srcSpaceTol;
-    fPreviousStages = stages;
+    fPreviousStages = stageMask;
     return true;
 }
 
-void GrDefaultPathRenderer::onDrawPath(GrDrawTarget::StageBitfield stages,
+void GrDefaultPathRenderer::onDrawPath(GrDrawState::StageMask stageMask,
                                        bool stencilOnly) {
 
-    GrMatrix viewM = fTarget->getViewMatrix();
+    GrMatrix viewM = fTarget->getDrawState().getViewMatrix();
     GrScalar tol = GR_Scalar1;
     tol = GrPathUtils::scaleToleranceToSrc(tol, viewM, fPath->getBounds());
+    GrDrawState* drawState = fTarget->drawState();
 
     
     
@@ -397,17 +392,17 @@ void GrDefaultPathRenderer::onDrawPath(GrDrawTarget::StageBitfield stages,
     
     
     if (tol != fPreviousSrcTol ||
-        stages != fPreviousStages) {
-        if (!this->createGeom(tol, stages)) {
+        stageMask != fPreviousStages) {
+        if (!this->createGeom(tol, stageMask)) {
             return;
         }
     }
 
     GrAssert(NULL != fTarget);
     GrDrawTarget::AutoStateRestore asr(fTarget);
-    bool colorWritesWereDisabled = fTarget->isColorWriteDisabled();
+    bool colorWritesWereDisabled = drawState->isColorWriteDisabled();
     
-    GrAssert(GrDrawState::kBoth_DrawFace == fTarget->getDrawFace());
+    GrAssert(GrDrawState::kBoth_DrawFace == drawState->getDrawFace());
 
     int                         passCount = 0;
     const GrStencilSettings*    passes[3];
@@ -503,46 +498,46 @@ void GrDefaultPathRenderer::onDrawPath(GrDrawTarget::StageBitfield stages,
 
     {
     for (int p = 0; p < passCount; ++p) {
-        fTarget->setDrawFace(drawFace[p]);
+        drawState->setDrawFace(drawFace[p]);
         if (NULL != passes[p]) {
-            fTarget->setStencil(*passes[p]);
+            *drawState->stencil() = *passes[p];
         }
 
         if (lastPassIsBounds && (p == passCount-1)) {
             if (!colorWritesWereDisabled) {
-                fTarget->disableState(GrDrawTarget::kNoColorWrites_StateBit);
+                drawState->disableState(GrDrawState::kNoColorWrites_StateBit);
             }
             GrRect bounds;
             if (reverse) {
-                GrAssert(NULL != fTarget->getRenderTarget());
+                GrAssert(NULL != drawState->getRenderTarget());
                 
                 bounds.setLTRB(0, 0,
-                               GrIntToScalar(fTarget->getRenderTarget()->width()),
-                               GrIntToScalar(fTarget->getRenderTarget()->height()));
+                               GrIntToScalar(drawState->getRenderTarget()->width()),
+                               GrIntToScalar(drawState->getRenderTarget()->height()));
                 GrMatrix vmi;
                 
-                if (!fTarget->getViewMatrix().hasPerspective() &&
-                    fTarget->getViewInverse(&vmi)) {
+                if (!drawState->getViewMatrix().hasPerspective() &&
+                    drawState->getViewInverse(&vmi)) {
                     vmi.mapRect(&bounds);
                 } else {
-                    if (stages) {
-                        if (!fTarget->getViewInverse(&vmi)) {
+                    if (stageMask) {
+                        if (!drawState->getViewInverse(&vmi)) {
                             GrPrintf("Could not invert matrix.");
                             return;
                         }
-                        fTarget->preConcatSamplerMatrices(stages, vmi);
+                        drawState->preConcatSamplerMatrices(stageMask, vmi);
                     }
-                    fTarget->setViewMatrix(GrMatrix::I());
+                    drawState->setViewMatrix(GrMatrix::I());
                 }
             } else {
                 bounds = fPath->getBounds();
                 bounds.offset(fTranslate);
             }
             GrDrawTarget::AutoGeometryPush agp(fTarget);
-            fTarget->drawSimpleRect(bounds, NULL, stages);
+            fTarget->drawSimpleRect(bounds, NULL, stageMask);
         } else {
             if (passCount > 1) {
-                fTarget->enableState(GrDrawTarget::kNoColorWrites_StateBit);
+                drawState->enableState(GrDrawState::kNoColorWrites_StateBit);
             }
             if (fUseIndexedDraw) {
                 fTarget->drawIndexed(fPrimitiveType, 0, 0, 
@@ -560,8 +555,8 @@ void GrDefaultPathRenderer::onDrawPath(GrDrawTarget::StageBitfield stages,
     }
 }
 
-void GrDefaultPathRenderer::drawPath(GrDrawTarget::StageBitfield stages) {
-    this->onDrawPath(stages, false);
+void GrDefaultPathRenderer::drawPath(GrDrawState::StageMask stageMask) {
+    this->onDrawPath(stageMask, false);
 }
 
 void GrDefaultPathRenderer::drawPathToStencil() {

@@ -21,6 +21,7 @@ class SkFlattenableWriteBuffer;
 struct SkGlyph;
 struct SkRect;
 class SkGlyphCache;
+class SkImageFilter;
 class SkMaskFilter;
 class SkMatrix;
 class SkPath;
@@ -98,9 +99,7 @@ public:
         kLCDRenderText_Flag   = 0x200,  
         kEmbeddedBitmapText_Flag = 0x400, 
         kAutoHinting_Flag     = 0x800,  
-
-        
-        kForceAAText_Flag     = 0x1000,
+        kVerticalText_Flag    = 0x1000,
 
         
         
@@ -201,6 +200,20 @@ public:
 
 
     void setAutohinted(bool useAutohinter);
+
+    bool isVerticalText() const {
+        return SkToBool(this->getFlags() & kVerticalText_Flag);
+    }
+    
+    
+
+
+
+
+
+
+
+    void setVerticalText(bool);
 
     
 
@@ -595,6 +608,9 @@ public:
 
     SkRasterizer* setRasterizer(SkRasterizer* rasterizer);
 
+    SkImageFilter* getImageFilter() const { return fImageFilter; }
+    SkImageFilter* setImageFilter(SkImageFilter*);
+
     
 
 
@@ -752,10 +768,16 @@ public:
 
 
 
+
+
+
     SkScalar measureText(const void* text, size_t length,
                          SkRect* bounds, SkScalar scale = 0) const;
 
     
+
+
+
 
 
 
@@ -789,12 +811,17 @@ public:
 
 
 
+
+
+
     size_t  breakText(const void* text, size_t length, SkScalar maxWidth,
                       SkScalar* measuredWidth = NULL,
                       TextBufferDirection tbd = kForward_TextBufferDirection)
                       const;
 
     
+
+
 
 
 
@@ -814,10 +841,7 @@ public:
     void getTextPath(const void* text, size_t length, SkScalar x, SkScalar y,
                      SkPath* path) const;
 
-    void getPosTextPath(const void* text, size_t length, 
-                        const SkPoint pos[], SkPath* path) const;
-
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     const SkGlyph& getUnicharMetrics(SkUnichar);
     const void* findImage(const SkGlyph&);
 
@@ -841,20 +865,18 @@ private:
     SkColorFilter*  fColorFilter;
     SkRasterizer*   fRasterizer;
     SkDrawLooper*   fLooper;
+    SkImageFilter*  fImageFilter;
 
     SkColor         fColor;
     SkScalar        fWidth;
     SkScalar        fMiterLimit;
-    unsigned        fFlags : 13;
+    unsigned        fFlags : 14;
     unsigned        fTextAlign : 2;
     unsigned        fCapType : 2;
     unsigned        fJoinType : 2;
     unsigned        fStyle : 2;
     unsigned        fTextEncoding : 2;  
     unsigned        fHinting : 2;
-#ifdef ANDROID
-    uint32_t        fGenerationID;
-#endif
 
     SkDrawCacheProc    getDrawCacheProc() const;
     SkMeasureCacheProc getMeasureCacheProc(TextBufferDirection dir,
@@ -880,6 +902,12 @@ private:
     friend class SkDraw;
     friend class SkPDFDevice;
     friend class SkTextToPathIter;
+
+#ifdef SK_BUILD_FOR_ANDROID
+    
+    
+    uint32_t        fGenerationID;
+#endif
 };
 
 

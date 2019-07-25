@@ -21,10 +21,7 @@ typedef uint32_t GrColor;
 
 
 
-#define GrColor_INDEX_R     0
-#define GrColor_INDEX_G     1
-#define GrColor_INDEX_B     2
-#define GrColor_INDEX_A     3
+
 
 
 

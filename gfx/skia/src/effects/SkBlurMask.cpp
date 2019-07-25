@@ -10,6 +10,15 @@
 #include "SkBlurMask.h"
 #include "SkMath.h"
 #include "SkTemplates.h"
+#include "SkEndian.h"
+
+
+
+
+
+#if defined(BUILD_FOR_WIN_32)
+#define UNROLL_KERNEL_LOOP 1
+#endif
 
 
 
@@ -49,7 +58,39 @@ static void build_sum_buffer(uint32_t sum[], int srcW, int srcH,
         uint32_t L = 0;
         uint32_t C = 0;
         *sum++ = 0; 
-        for (x = srcW - 1; x >= 0; --x) {
+
+        for (x = srcW - 1; !SkIsAlign4((intptr_t) src) && x >= 0; x--) {
+            uint32_t T = sum[-sumW];
+            X = *src++ + L + T - C;
+            *sum++ = X;
+            L = X;
+            C = T;
+        }
+
+        for (; x >= 4; x-=4) {
+            uint32_t T = sum[-sumW];
+            X = *src++ + L + T - C;
+            *sum++ = X;
+            L = X;
+            C = T;
+            T = sum[-sumW];
+            X = *src++ + L + T - C;
+            *sum++ = X;
+            L = X;
+            C = T;
+            T = sum[-sumW];
+            X = *src++ + L + T - C;
+            *sum++ = X;
+            L = X;
+            C = T;
+            T = sum[-sumW];
+            X = *src++ + L + T - C;
+            *sum++ = X;
+            L = X;
+            C = T;
+        }
+
+        for (; x >= 0; --x) {
             uint32_t T = sum[-sumW];
             X = *src++ + L + T - C;
             *sum++ = X;
@@ -64,10 +105,10 @@ static void build_sum_buffer(uint32_t sum[], int srcW, int srcH,
 
 
 
+static void kernel_clamped(uint8_t dst[], int rx, int ry, const uint32_t sum[],
+                           int sw, int sh) {
+    SkASSERT(2*rx > sw);
 
-
-static void apply_kernel(uint8_t dst[], int rx, int ry, const uint32_t sum[],
-                         int sw, int sh) {
     uint32_t scale = (1 << 24) / ((2*rx + 1)*(2*ry + 1));
 
     int sumStride = sw + 1;
@@ -95,6 +136,7 @@ static void apply_kernel(uint8_t dst[], int rx, int ry, const uint32_t sum[],
             prev_x += 1;
             next_x += 1;
         }
+
         prev_y += 1;
         next_y += 1;
     }
@@ -106,10 +148,126 @@ static void apply_kernel(uint8_t dst[], int rx, int ry, const uint32_t sum[],
 
 
 
-static void apply_kernel_interp(uint8_t dst[], int rx, int ry,
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void apply_kernel(uint8_t dst[], int rx, int ry, const uint32_t sum[],
+                         int sw, int sh) {
+    if (2*rx > sw) {
+        kernel_clamped(dst, rx, ry, sum, sw, sh);
+        return;
+    }
+
+    uint32_t scale = (1 << 24) / ((2*rx + 1)*(2*ry + 1));
+
+    int sumStride = sw + 1;
+
+    int dw = sw + 2*rx;
+    int dh = sh + 2*ry;
+
+    int prev_y = -2*ry;
+    int next_y = 1;
+
+    SkASSERT(2*rx <= dw - 2*rx);
+
+    for (int y = 0; y < dh; y++) {
+        int py = SkClampPos(prev_y) * sumStride;
+        int ny = SkFastMin32(next_y, sh) * sumStride;
+
+        int prev_x = -2*rx;
+        int next_x = 1;
+        int x = 0;
+
+        for (; x < 2*rx; x++) {
+            SkASSERT(prev_x <= 0);
+            SkASSERT(next_x <= sw);
+
+            int px = 0;
+            int nx = next_x;
+
+            uint32_t tmp = sum[px+py] + sum[nx+ny] - sum[nx+py] - sum[px+ny];
+            *dst++ = SkToU8(tmp * scale >> 24);
+
+            prev_x += 1;
+            next_x += 1;
+        }
+
+        int i0 = prev_x + py;
+        int i1 = next_x + ny;
+        int i2 = next_x + py;
+        int i3 = prev_x + ny;
+
+#if UNROLL_KERNEL_LOOP
+        for (; x < dw - 2*rx - 4; x += 4) {
+            SkASSERT(prev_x >= 0);
+            SkASSERT(next_x <= sw);
+
+            uint32_t tmp = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            *dst++ = SkToU8(tmp * scale >> 24);
+            tmp = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            *dst++ = SkToU8(tmp * scale >> 24);
+            tmp = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            *dst++ = SkToU8(tmp * scale >> 24);
+            tmp = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            *dst++ = SkToU8(tmp * scale >> 24);
+
+            prev_x += 4;
+            next_x += 4;
+        }
+#endif
+
+        for (; x < dw - 2*rx; x++) {
+            SkASSERT(prev_x >= 0);
+            SkASSERT(next_x <= sw);
+
+            uint32_t tmp = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            *dst++ = SkToU8(tmp * scale >> 24);
+
+            prev_x += 1;
+            next_x += 1;
+        }
+
+        for (; x < dw; x++) {
+            SkASSERT(prev_x >= 0);
+            SkASSERT(next_x > sw);
+
+            int px = prev_x;
+            int nx = sw;
+
+            uint32_t tmp = sum[px+py] + sum[nx+ny] - sum[nx+py] - sum[px+ny];
+            *dst++ = SkToU8(tmp * scale >> 24);
+
+            prev_x += 1;
+            next_x += 1;
+        }
+
+        prev_y += 1;
+        next_y += 1;
+    }
+}
+
+
+
+
+
+static void kernel_interp_clamped(uint8_t dst[], int rx, int ry,
                 const uint32_t sum[], int sw, int sh, U8CPU outer_weight) {
-    SkASSERT(rx > 0 && ry > 0);
-    SkASSERT(outer_weight <= 255);
+    SkASSERT(2*rx > sw);
 
     int inner_weight = 255 - outer_weight;
 
@@ -145,13 +303,184 @@ static void apply_kernel_interp(uint8_t dst[], int rx, int ry,
             int ipx = SkClampPos(prev_x + 1);
             int inx = SkClampMax(next_x - 1, sw);
 
-            uint32_t outer_sum = sum[px+py] + sum[nx+ny] - sum[nx+py] - sum[px+ny];
-            uint32_t inner_sum = sum[ipx+ipy] + sum[inx+iny] - sum[inx+ipy] - sum[ipx+iny];
-            *dst++ = SkToU8((outer_sum * outer_scale + inner_sum * inner_scale) >> 24);
+            uint32_t outer_sum = sum[px+py] + sum[nx+ny]
+                               - sum[nx+py] - sum[px+ny];
+            uint32_t inner_sum = sum[ipx+ipy] + sum[inx+iny]
+                               - sum[inx+ipy] - sum[ipx+iny];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
 
             prev_x += 1;
             next_x += 1;
         }
+        prev_y += 1;
+        next_y += 1;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static void apply_kernel_interp(uint8_t dst[], int rx, int ry,
+                const uint32_t sum[], int sw, int sh, U8CPU outer_weight) {
+    SkASSERT(rx > 0 && ry > 0);
+    SkASSERT(outer_weight <= 255);
+
+    if (2*rx > sw) {
+        kernel_interp_clamped(dst, rx, ry, sum, sw, sh, outer_weight);
+        return;
+    }
+
+    int inner_weight = 255 - outer_weight;
+
+    
+    outer_weight += outer_weight >> 7;
+    inner_weight += inner_weight >> 7;
+
+    uint32_t outer_scale = (outer_weight << 16) / ((2*rx + 1)*(2*ry + 1));
+    uint32_t inner_scale = (inner_weight << 16) / ((2*rx - 1)*(2*ry - 1));
+
+    int sumStride = sw + 1;
+
+    int dw = sw + 2*rx;
+    int dh = sh + 2*ry;
+
+    int prev_y = -2*ry;
+    int next_y = 1;
+
+    SkASSERT(2*rx <= dw - 2*rx);
+
+    for (int y = 0; y < dh; y++) {
+        int py = SkClampPos(prev_y) * sumStride;
+        int ny = SkFastMin32(next_y, sh) * sumStride;
+
+        int ipy = SkClampPos(prev_y + 1) * sumStride;
+        int iny = SkClampMax(next_y - 1, sh) * sumStride;
+
+        int prev_x = -2*rx;
+        int next_x = 1;
+        int x = 0;
+
+        for (; x < 2*rx; x++) {
+            SkASSERT(prev_x < 0);
+            SkASSERT(next_x <= sw);
+
+            int px = 0;
+            int nx = next_x;
+
+            int ipx = 0;
+            int inx = next_x - 1;
+
+            uint32_t outer_sum = sum[px+py] + sum[nx+ny]
+                               - sum[nx+py] - sum[px+ny];
+            uint32_t inner_sum = sum[ipx+ipy] + sum[inx+iny]
+                               - sum[inx+ipy] - sum[ipx+iny];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+
+            prev_x += 1;
+            next_x += 1;
+        }
+
+        int i0 = prev_x + py;
+        int i1 = next_x + ny;
+        int i2 = next_x + py;
+        int i3 = prev_x + ny;
+        int i4 = prev_x + 1 + ipy;
+        int i5 = next_x - 1 + iny;
+        int i6 = next_x - 1 + ipy;
+        int i7 = prev_x + 1 + iny;
+
+#if UNROLL_KERNEL_LOOP
+        for (; x < dw - 2*rx - 4; x += 4) {
+            SkASSERT(prev_x >= 0);
+            SkASSERT(next_x <= sw);
+
+            uint32_t outer_sum = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            uint32_t inner_sum = sum[i4++] + sum[i5++] - sum[i6++] - sum[i7++];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+            outer_sum = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            inner_sum = sum[i4++] + sum[i5++] - sum[i6++] - sum[i7++];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+            outer_sum = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            inner_sum = sum[i4++] + sum[i5++] - sum[i6++] - sum[i7++];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+            outer_sum = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            inner_sum = sum[i4++] + sum[i5++] - sum[i6++] - sum[i7++];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+
+            prev_x += 4;
+            next_x += 4;
+        }
+#endif
+
+        for (; x < dw - 2*rx; x++) {
+            SkASSERT(prev_x >= 0);
+            SkASSERT(next_x <= sw);
+
+            uint32_t outer_sum = sum[i0++] + sum[i1++] - sum[i2++] - sum[i3++];
+            uint32_t inner_sum = sum[i4++] + sum[i5++] - sum[i6++] - sum[i7++];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+
+            prev_x += 1;
+            next_x += 1;
+        }
+
+        for (; x < dw; x++) {
+            SkASSERT(prev_x >= 0);
+            SkASSERT(next_x > sw);
+
+            int px = prev_x;
+            int nx = sw;
+
+            int ipx = prev_x + 1;
+            int inx = sw;
+
+            uint32_t outer_sum = sum[px+py] + sum[nx+ny]
+                               - sum[nx+py] - sum[px+ny];
+            uint32_t inner_sum = sum[ipx+ipy] + sum[inx+iny]
+                               - sum[inx+ipy] - sum[ipx+iny];
+            *dst++ = SkToU8((outer_sum * outer_scale
+                           + inner_sum * inner_scale) >> 24);
+
+            prev_x += 1;
+            next_x += 1;
+        }
+
         prev_y += 1;
         next_y += 1;
     }
@@ -205,7 +534,7 @@ static void clamp_with_orig(uint8_t dst[], int dstRowBytes,
             }
             break;
         default:
-            SkASSERT(!"Unexpected blur style here");
+            SkDEBUGFAIL("Unexpected blur style here");
             break;
         }
         dst += dstRowBytes - sw;

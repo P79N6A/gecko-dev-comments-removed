@@ -112,31 +112,35 @@ public:
 
 
 
-    virtual bool readPixels(const SkIRect& srcRect, SkBitmap* bitmap);
-
-    
 
 
 
 
-    virtual void writePixels(const SkBitmap& bitmap, int x, int y);
+
+
+
+
+
+    virtual void writePixels(const SkBitmap& bitmap, int x, int y,
+                             SkCanvas::Config8888 config8888 = SkCanvas::kNative_Premul_Config8888);
 
     
 
 
     virtual SkGpuRenderTarget* accessRenderTarget() { return NULL; }
 
-protected:
-    enum Usage {
-       kGeneral_Usage,
-       kSaveLayer_Usage, 
-    };
 
     
 
 
 
     const SkIPoint& getOrigin() const { return fOrigin; }
+
+protected:
+    enum Usage {
+       kGeneral_Usage,
+       kSaveLayer_Usage, 
+    };
 
     struct TextFlags {
         uint32_t            fFlags;     
@@ -226,7 +230,7 @@ protected:
     virtual void drawTextOnPath(const SkDraw&, const void* text, size_t len,
                                 const SkPath& path, const SkMatrix* matrix,
                                 const SkPaint& paint);
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     virtual void drawPosTextOnPath(const SkDraw& draw, const void* text, size_t len,
                                    const SkPoint pos[], const SkPaint& paint,
                                    const SkPath& path, const SkMatrix* matrix);
@@ -244,6 +248,37 @@ protected:
 
     
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool readPixels(SkBitmap* bitmap,
+                    int x, int y,
+                    SkCanvas::Config8888 config8888);
+
+    
+
     
 
 
@@ -256,6 +291,17 @@ protected:
         fBitmap.setPixelRef(pr, offset);
         return pr;
     }
+    
+    
+
+
+
+
+
+
+    virtual bool onReadPixels(const SkBitmap& bitmap,
+                              int x, int y,
+                              SkCanvas::Config8888 config8888);
 
     
 
@@ -263,12 +309,26 @@ protected:
     virtual void lockPixels();
     virtual void unlockPixels();
 
+    
+
+
+
+
+    virtual bool filterImage(SkImageFilter*, const SkBitmap& src,
+                             const SkMatrix& ctm,
+                             SkBitmap* result, SkIPoint* offset);
+
+    
+    
+    static const SkCanvas::Config8888 kPMColorAlias;
+
 private:
     friend class SkCanvas;
     friend struct DeviceCM; 
     friend class SkDraw;
     friend class SkDrawIter;
     friend class SkDeviceFilteredPaint;
+    friend class DeviceImageFilterProxy;
 
     
     void setOrigin(int x, int y) { fOrigin.set(x, y); }

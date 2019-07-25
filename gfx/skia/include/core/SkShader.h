@@ -100,6 +100,15 @@ public:
 
 
 
+
+
+
+    virtual bool isOpaque() const { return false; }
+
+    
+
+
+
     virtual uint8_t getSpan16Alpha() const { return fPaintAlpha; }
 
     

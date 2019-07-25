@@ -55,7 +55,7 @@
 
 
 #define GrALIGN4(n)     SkAlign4(n)
-#define GrIsALIGN4(n)   (((n) & 3) == 0)
+#define GrIsALIGN4(n)   SkIsAlign4(n)
 
 template <typename T> const T& GrMin(const T& a, const T& b) {
 	return (a < b) ? a : b;
@@ -269,15 +269,114 @@ static inline int GrMaskFormatBytesPerPixel(GrMaskFormat format) {
 
 
 
+
+
+
+
+
+
+
 enum GrPixelConfig {
     kUnknown_GrPixelConfig,
     kAlpha_8_GrPixelConfig,
     kIndex_8_GrPixelConfig,
     kRGB_565_GrPixelConfig,
-    kRGBA_4444_GrPixelConfig, 
-    kRGBA_8888_GrPixelConfig, 
-    kRGBX_8888_GrPixelConfig, 
+    
+
+
+    kRGBA_4444_GrPixelConfig,
+    
+
+
+    kRGBA_8888_PM_GrPixelConfig,
+    
+
+
+    kRGBA_8888_UPM_GrPixelConfig,
+    
+
+
+    kBGRA_8888_PM_GrPixelConfig,
+    
+
+
+    kBGRA_8888_UPM_GrPixelConfig,
 };
+
+
+#ifndef SK_CPU_LENDIAN
+    #error "Skia gpu currently assumes little endian"
+#endif
+#if 24 == SK_A32_SHIFT && 16 == SK_R32_SHIFT && \
+     8 == SK_G32_SHIFT &&  0 == SK_B32_SHIFT
+    static const GrPixelConfig kSkia8888_PM_GrPixelConfig = kBGRA_8888_PM_GrPixelConfig;
+    static const GrPixelConfig kSkia8888_UPM_GrPixelConfig = kBGRA_8888_UPM_GrPixelConfig;
+#elif 24 == SK_A32_SHIFT && 16 == SK_B32_SHIFT && \
+       8 == SK_G32_SHIFT &&  0 == SK_R32_SHIFT
+    static const GrPixelConfig kSkia8888_PM_GrPixelConfig = kRGBA_8888_PM_GrPixelConfig;
+    static const GrPixelConfig kSkia8888_UPM_GrPixelConfig = kRGBA_8888_UPM_GrPixelConfig;
+#else
+    #error "SK_*32_SHIFT values must correspond to GL_BGRA or GL_RGBA format."
+#endif
+
+
+
+
+static const GrPixelConfig kRGBA_8888_GrPixelConfig = kSkia8888_PM_GrPixelConfig;
+
+
+
+static inline bool GrPixelConfigIsRGBA8888(GrPixelConfig config) {
+    switch (config) {
+        case kRGBA_8888_PM_GrPixelConfig:
+        case kRGBA_8888_UPM_GrPixelConfig:
+            return true;
+        default:
+            return false;
+    }
+}
+
+
+
+static inline bool GrPixelConfigIsBGRA8888(GrPixelConfig config) {
+    switch (config) {
+        case kBGRA_8888_PM_GrPixelConfig:
+        case kBGRA_8888_UPM_GrPixelConfig:
+            return true;
+        default:
+            return false;
+    }
+}
+
+
+static inline bool GrPixelConfigIs32Bit(GrPixelConfig config) {
+    switch (config) {
+        case kRGBA_8888_PM_GrPixelConfig:
+        case kRGBA_8888_UPM_GrPixelConfig:
+        case kBGRA_8888_PM_GrPixelConfig:
+        case kBGRA_8888_UPM_GrPixelConfig:
+            return true;
+        default:
+            return false;
+    }
+}
+
+
+
+static inline GrPixelConfig GrPixelConfigSwapRAndB(GrPixelConfig config) {
+    switch (config) {
+        case kBGRA_8888_PM_GrPixelConfig:
+            return kRGBA_8888_PM_GrPixelConfig;
+        case kBGRA_8888_UPM_GrPixelConfig:
+            return kRGBA_8888_UPM_GrPixelConfig;
+        case kRGBA_8888_PM_GrPixelConfig:
+            return kBGRA_8888_PM_GrPixelConfig;
+        case kRGBA_8888_UPM_GrPixelConfig:
+            return kBGRA_8888_UPM_GrPixelConfig;
+        default:
+            return kUnknown_GrPixelConfig;
+    }
+}
 
 static inline size_t GrBytesPerPixel(GrPixelConfig config) {
     switch (config) {
@@ -287,8 +386,10 @@ static inline size_t GrBytesPerPixel(GrPixelConfig config) {
         case kRGB_565_GrPixelConfig:
         case kRGBA_4444_GrPixelConfig:
             return 2;
-        case kRGBA_8888_GrPixelConfig:
-        case kRGBX_8888_GrPixelConfig:
+        case kRGBA_8888_PM_GrPixelConfig:
+        case kRGBA_8888_UPM_GrPixelConfig:
+        case kBGRA_8888_PM_GrPixelConfig:
+        case kBGRA_8888_UPM_GrPixelConfig:
             return 4;
         default:
             return 0;
@@ -298,7 +399,20 @@ static inline size_t GrBytesPerPixel(GrPixelConfig config) {
 static inline bool GrPixelConfigIsOpaque(GrPixelConfig config) {
     switch (config) {
         case kRGB_565_GrPixelConfig:
-        case kRGBX_8888_GrPixelConfig:
+            return true;
+        default:
+            return false;
+    }
+}
+
+
+
+
+
+static inline bool GrPixelConfigIsUnpremultiplied(GrPixelConfig config) {
+    switch (config) {
+        case kRGBA_8888_UPM_GrPixelConfig:
+        case kBGRA_8888_UPM_GrPixelConfig:
             return true;
         default:
             return false;
@@ -376,7 +490,7 @@ struct GrTextureDesc {
 
 
 
-    GrPixelConfig          fFormat; 
+    GrPixelConfig          fConfig;
 };
 
 
@@ -499,6 +613,99 @@ enum GrConvexHint {
 
 
 
+
+typedef intptr_t GrPlatform3DObject;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum GrPlatformTextureFlags {
+    
+
+
+    kNone_GrPlatformTextureFlag              = 0x0,
+    
+
+
+
+
+
+
+    kRenderTarget_GrPlatformTextureFlag      = 0x1,
+};
+GR_MAKE_BITFIELD_OPS(GrPlatformTextureFlags)
+
+struct GrPlatformTextureDesc {
+    GrPlatformTextureDesc() { memset(this, 0, sizeof(*this)); }
+    GrPlatformTextureFlags          fFlags;
+    int                             fWidth;         
+    int                             fHeight;        
+    GrPixelConfig                   fConfig;        
+    
+
+
+
+    int                             fSampleCnt;
+    
+
+
+
+    GrPlatform3DObject              fTextureHandle;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct GrPlatformRenderTargetDesc {
+    GrPlatformRenderTargetDesc() { memset(this, 0, sizeof(*this)); }
+    int                             fWidth;         
+    int                             fHeight;        
+    GrPixelConfig                   fConfig;        
+    
+
+
+
+    int                             fSampleCnt;
+    
+
+
+    int                             fStencilBits;
+    
+
+
+
+    GrPlatform3DObject              fRenderTargetHandle;
+};
+
+
+
+
+
 enum GrPlatformSurfaceType {
     
 
@@ -531,12 +738,6 @@ enum GrPlatformRenderTargetFlags {
 };
 
 GR_MAKE_BITFIELD_OPS(GrPlatformRenderTargetFlags)
-
-
-typedef intptr_t GrPlatform3DObject;
-
-
-
 
 struct GrPlatformSurfaceDesc {
     GrPlatformSurfaceType           fSurfaceType;   

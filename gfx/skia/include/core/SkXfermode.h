@@ -133,6 +133,18 @@ public:
 
     
 
+
+
+
+
+
+
+
+
+    static bool IsMode(SkXfermode* xfer, Mode mode);
+
+    
+
     static SkXfermode* Create(Mode mode);
 
     
@@ -160,6 +172,7 @@ public:
         return AsMode(xfer, mode);
     }
 
+    SK_DECLARE_FLATTENABLE_REGISTRAR()
 protected:
     SkXfermode(SkFlattenableReadBuffer& rb) : SkFlattenable(rb) {}
 

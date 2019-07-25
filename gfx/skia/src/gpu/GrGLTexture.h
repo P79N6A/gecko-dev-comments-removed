@@ -10,9 +10,8 @@
 #ifndef GrGLTexture_DEFINED
 #define GrGLTexture_DEFINED
 
+#include "GrGpu.h"
 #include "GrGLRenderTarget.h"
-#include "GrScalar.h"
-#include "GrTexture.h"
 
 
 
@@ -56,63 +55,44 @@ public:
         GrGLenum fFilter;
         GrGLenum fWrapS;
         GrGLenum fWrapT;
+        GrGLenum fSwizzleRGBA[4];
         void invalidate() { memset(this, 0xff, sizeof(TexParams)); }
     };
 
     struct Desc {
-        int             fContentWidth;
-        int             fContentHeight;
-        int             fAllocWidth;
-        int             fAllocHeight;
-        GrPixelConfig   fFormat;
+        int             fWidth;
+        int             fHeight;
+        GrPixelConfig   fConfig;
         GrGLuint        fTextureID;
         bool            fOwnsID;
-        GrGLenum        fUploadFormat;
-        GrGLenum        fUploadByteCount;
-        GrGLenum        fUploadType;
         Orientation     fOrientation;
     };
 
     
     GrGLTexture(GrGpuGL* gpu,
                 const Desc& textureDesc,
-                const GrGLRenderTarget::Desc& rtDesc,
-                const TexParams& initialTexParams);
+                const GrGLRenderTarget::Desc& rtDesc);
 
     
     GrGLTexture(GrGpuGL* gpu,
-                const Desc& textureDesc,
-                const TexParams& initialTexParams);
+                const Desc& textureDesc);
 
 
     virtual ~GrGLTexture() { this->release(); }
 
-    
-    virtual void uploadTextureData(int x,
-                                   int y,
-                                   int width,
-                                   int height,
-                                   const void* srcData,
-                                   size_t rowBytes);
     virtual intptr_t getTextureHandle() const;
 
-    const TexParams& getTexParams() const { return fTexParams; }
-    void setTexParams(const TexParams& texParams) { fTexParams = texParams; }
+    
+    const TexParams& getCachedTexParams(GrGpu::ResetTimestamp* timestamp) const {
+        *timestamp = fTexParamsTimestamp;
+        return fTexParams;
+    }
+    void setCachedTexParams(const TexParams& texParams,
+                            GrGpu::ResetTimestamp timestamp) {
+        fTexParams = texParams;
+        fTexParamsTimestamp = timestamp;
+    }
     GrGLuint textureID() const { return fTexIDObj->id(); }
-
-    GrGLenum uploadFormat() const { return fUploadFormat; }
-    GrGLenum uploadByteCount() const { return fUploadByteCount; }
-    GrGLenum uploadType() const { return fUploadType; }
-
-    
-
-
-    GrScalar contentScaleX() const { return fScaleX; }
-
-    
-
-
-    GrScalar contentScaleY() const { return fScaleY; }
 
     
     
@@ -124,7 +104,7 @@ public:
     
     Orientation orientation() const { return fOrientation; }
 
-    static const GrGLenum* WrapMode2GLWrap(GrGLBinding binding);
+    static const GrGLenum* WrapMode2GLWrap();
 
 protected:
 
@@ -133,20 +113,14 @@ protected:
     virtual void onRelease();
 
 private:
-    TexParams           fTexParams;
-    GrGLTexID*          fTexIDObj;
-    GrGLenum            fUploadFormat;
-    GrGLenum            fUploadByteCount;
-    GrGLenum            fUploadType;
-    
-    GrScalar            fScaleX;
-    GrScalar            fScaleY;
-    Orientation         fOrientation;
+    TexParams                       fTexParams;
+    GrGpu::ResetTimestamp           fTexParamsTimestamp;
+    GrGLTexID*                      fTexIDObj;
+    Orientation                     fOrientation;
 
     void init(GrGpuGL* gpu,
               const Desc& textureDesc,
-              const GrGLRenderTarget::Desc* rtDesc,
-              const TexParams& initialTexParams);
+              const GrGLRenderTarget::Desc* rtDesc);
 
     typedef GrTexture INHERITED;
 };

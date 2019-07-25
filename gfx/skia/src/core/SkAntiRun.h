@@ -12,19 +12,35 @@
 
 #include "SkBlitter.h"
 
+
+
+
+
+
 class SkAlphaRuns {
 public:
     int16_t*    fRuns;
     uint8_t*     fAlpha;
 
+    
+    
     bool empty() const {
         SkASSERT(fRuns[0] > 0);
         return fAlpha[0] == 0 && fRuns[fRuns[0]] == 0;
     }
 
+    
     void    reset(int width);
     
     
+
+
+
+
+
+
+
+
 
 
 
@@ -35,7 +51,21 @@ public:
     SkDEBUGCODE(void assertValid(int y, int maxStep) const;)
     SkDEBUGCODE(void dump() const;)
 
+    
+
+
+
+
+
+
+
     static void Break(int16_t runs[], uint8_t alpha[], int x, int count);
+
+    
+
+
+
+
 
     static void BreakAt(int16_t runs[], uint8_t alpha[], int x) {
         while (x > 0) {

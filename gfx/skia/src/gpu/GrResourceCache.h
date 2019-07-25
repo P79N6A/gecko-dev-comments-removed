@@ -235,6 +235,12 @@ public:
 
 
 
+    bool hasKey(const GrResourceKey& key) const;
+
+    
+
+
+
 
 
     void detach(GrResourceEntry*);

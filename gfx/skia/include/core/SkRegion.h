@@ -283,7 +283,7 @@ public:
 
     bool op(const SkRegion& rgna, const SkRegion& rgnb, Op op);
 
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     
 
     char* toString();

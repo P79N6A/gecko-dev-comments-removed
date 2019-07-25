@@ -317,6 +317,13 @@ struct SK_API SkPoint {
 
     
 
+    bool equalsWithinTolerance(const SkPoint& v, SkScalar tol) const {
+        return SkScalarNearlyZero(fX - v.fX, tol)
+               && SkScalarNearlyZero(fY - v.fY, tol);
+    }
+
+    
+
 
     friend SkPoint operator-(const SkPoint& a, const SkPoint& b) {
         SkPoint v;

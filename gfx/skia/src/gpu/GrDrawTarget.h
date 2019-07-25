@@ -16,7 +16,6 @@
 #include "GrDrawState.h"
 #include "GrMatrix.h"
 #include "GrRefCnt.h"
-#include "GrRenderTarget.h"
 #include "GrSamplerState.h"
 #include "GrStencil.h"
 #include "GrTexture.h"
@@ -42,9 +41,7 @@ public:
         }
         void print() const;
         bool f8BitPaletteSupport        : 1;
-        bool fNPOTTextureSupport        : 1;
         bool fNPOTTextureTileSupport    : 1;
-        bool fNPOTRenderTargetSupport   : 1;
         bool fTwoSidedStencilSupport    : 1;
         bool fStencilWrapOpsSupport     : 1;
         bool fHWAALineSupport           : 1;
@@ -55,72 +52,13 @@ public:
         bool fDualSourceBlendingSupport : 1;
         bool fBufferLockSupport         : 1;
         bool fSupportPerVertexCoverage  : 1;
-        int fMinRenderTargetWidth;
-        int fMinRenderTargetHeight;
         int fMaxRenderTargetSize;
         int fMaxTextureSize;
     };
 
     
+    typedef GrDrawState::StageMask StageMask;
 
-
-    typedef int StageBitfield;
-    GR_STATIC_ASSERT(sizeof(StageBitfield)*8 >= GrDrawState::kNumStages);
-
-    
-
-
-
-    enum StateBits {
-        
-
-
-        kDither_StateBit        = 0x01,
-        
-
-
-
-
-        kHWAntialias_StateBit   = 0x02,
-        
-
-
-        kClip_StateBit          = 0x04,
-        
-
-
-
-        kNoColorWrites_StateBit = 0x08,
-        
-
-
-
-
-        kEdgeAAConcave_StateBit =  0x10,
-        
-        kDummyStateBit,
-        kLastPublicStateBit = kDummyStateBit-1
-    };
-
-    
-
-
-
-
-
-
-    void setStencil(const GrStencilSettings& settings) {
-        fCurrDrawState.fStencilSettings = settings;
-    }
-
-    
-
-
-    void disableStencil() {
-        fCurrDrawState.fStencilSettings.setDisabled();
-    }
-
-public:
     
 
     GrDrawTarget();
@@ -148,284 +86,19 @@ public:
 
     const GrClip& getClip() const;
 
-    
-
-
-
-
-
-
-
-    void setTexture(int stage, GrTexture* texture);
+    const GrDrawState& getDrawState() const { return fCurrDrawState; }
+    GrDrawState* drawState() { return &fCurrDrawState; }
 
     
-
-
-
-
-
-
-    const GrTexture* getTexture(int stage) const;
-    GrTexture* getTexture(int stage);
-
-    
-
-
-
-
-    void setRenderTarget(GrRenderTarget* target);
-
-    
-
-
-
-
-    const GrRenderTarget* getRenderTarget() const;
-    GrRenderTarget* getRenderTarget();
-
-    
-
-
-
-
-
-
-
-
-    void setSamplerState(int stage, const GrSamplerState& samplerState);
-
-    
-
-
-
-
-
-    void preConcatSamplerMatrix(int stage, const GrMatrix& matrix)  {
-        GrAssert(stage >= 0 && stage < GrDrawState::kNumStages);
-        fCurrDrawState.fSamplerStates[stage].preConcatMatrix(matrix);
-    }
-
-    
-
-
-
-    void preConcatSamplerMatrices(int stageMask, const GrMatrix& matrix) {
-        for (int i = 0; i < GrDrawState::kNumStages; ++i) {
-            if ((1 << i) & stageMask) {
-                this->preConcatSamplerMatrix(i, matrix);
-            }
-        }
-    }
-
-    
-
 
 
 
 
 
     void preConcatEnabledSamplerMatrices(const GrMatrix& matrix) {
-        StageBitfield stageMask = this->enabledStages();
-        this->preConcatSamplerMatrices(stageMask, matrix);
+        StageMask stageMask = this->enabledStages();
+        this->drawState()->preConcatSamplerMatrices(stageMask, matrix);
     }
-
-    
-
-
-
-
-
-    const GrMatrix& getSamplerMatrix(int stage) const {
-        return fCurrDrawState.fSamplerStates[stage].getMatrix();
-    }
-
-    
-
-
-
-
-
-    void setSamplerMatrix(int stage, const GrMatrix& matrix) {
-        fCurrDrawState.fSamplerStates[stage].setMatrix(matrix);
-    }
-
-    
-
-
-
-
-
-
-
-
-    void setViewMatrix(const GrMatrix& m);
-
-    
-
-
-
-
-
-
-
-
-
-    void preConcatViewMatrix(const GrMatrix& m);
-
-    
-
-
-
-
-
-
-
-
-
-    void postConcatViewMatrix(const GrMatrix& m);
-
-    
-
-
-
-    const GrMatrix& getViewMatrix() const;
-
-    
-
-
-
-
-
-
-
-
-    bool getViewInverse(GrMatrix* matrix) const;
-
-    
-
-
-
-
-    void setColor(GrColor);
-
-    
-
-
-
-    GrColor getColor() const { return fCurrDrawState.fColor; }
-
-    
-
-
-    void setColorFilter(GrColor, SkXfermode::Mode);
-
-    
-
-
-
-
-
-    void setAlpha(uint8_t alpha);
-
-    
-
-
-
-    void setDrawFace(GrDrawState::DrawFace face) {
-        fCurrDrawState.fDrawFace = face;
-    }
-
-    
-
-
-
-
-
-
-
-
-    void setFirstCoverageStage(int firstCoverageStage) { 
-        fCurrDrawState.fFirstCoverageStage = firstCoverageStage; 
-    }
-
-    
-
-
-    int getFirstCoverageStage() const { 
-        return fCurrDrawState.fFirstCoverageStage; 
-    }
-
-    
-
-
-
-
-    GrDrawState::DrawFace getDrawFace() const {
-        return fCurrDrawState.fDrawFace;
-    }
-
-    
-
-
-
-
-    void enableState(uint32_t stateBits);
-
-    
-
-
-
-
-    void disableState(uint32_t stateBits);
-
-    bool isDitherState() const {
-        return 0 != (fCurrDrawState.fFlagBits & kDither_StateBit);
-    }
-
-    bool isHWAntialiasState() const {
-        return 0 != (fCurrDrawState.fFlagBits & kHWAntialias_StateBit);
-    }
-
-    bool isClipState() const {
-        return 0 != (fCurrDrawState.fFlagBits & kClip_StateBit);
-    }
-
-    bool isColorWriteDisabled() const {
-        return 0 != (fCurrDrawState.fFlagBits & kNoColorWrites_StateBit);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    void setBlendFunc(GrBlendCoeff srcCoeff, GrBlendCoeff dstCoeff);
-
-    
-
-
-
-
-
-
-
-
-
-    void setBlendConstant(GrColor constant) { fCurrDrawState.fBlendConstant = constant; }
-
-    
-
-
-
-    GrColor getBlendConstant() const { return fCurrDrawState.fBlendConstant; }
 
     
 
@@ -456,29 +129,12 @@ public:
 
     bool canTweakAlphaForCoverage() const;
 
-     
-
-
-
-
-    void setVertexEdgeType(GrDrawState::VertexEdgeType type) {
-        fCurrDrawState.fVertexEdgeType = type;
-    }
-
     
 
 
 
 
     bool willUseHWAALines() const;
-
-    
-
-
-
-
-
-    void setEdgeAAData(const GrDrawState::Edge* edges, int numEdges);
 
     
 
@@ -844,7 +500,7 @@ public:
 
     virtual void drawRect(const GrRect& rect,
                           const GrMatrix* matrix,
-                          StageBitfield stageEnableBitfield,
+                          StageMask stageMask,
                           const GrRect* srcRects[],
                           const GrMatrix* srcMatrices[]);
 
@@ -854,7 +510,7 @@ public:
 
     void drawSimpleRect(const GrRect& rect,
                         const GrMatrix* matrix,
-                        StageBitfield stageEnableBitfield) {
+                        StageMask stageEnableBitfield) {
          drawRect(rect, matrix, stageEnableBitfield, NULL, NULL);
     }
 
@@ -896,46 +552,13 @@ public:
 
     
 
-    class AutoViewMatrixRestore : ::GrNoncopyable {
-    public:
-        AutoViewMatrixRestore() {
-            fDrawTarget = NULL;
-        }
-
-        AutoViewMatrixRestore(GrDrawTarget* target)
-            : fDrawTarget(target), fMatrix(fDrawTarget->getViewMatrix()) {
-            GrAssert(NULL != target);
-        }
-
-        void set(GrDrawTarget* target) {
-            GrAssert(NULL != target);
-            if (NULL != fDrawTarget) {
-                fDrawTarget->setViewMatrix(fMatrix);
-            }
-            fDrawTarget = target;
-            fMatrix = target->getViewMatrix();
-        }
-
-        ~AutoViewMatrixRestore() {
-            if (NULL != fDrawTarget) {
-                fDrawTarget->setViewMatrix(fMatrix);
-            }
-        }
-
-    private:
-        GrDrawTarget*       fDrawTarget;
-        GrMatrix            fMatrix;
-    };
-
-    
-
     
 
 
 
     class AutoDeviceCoordDraw : ::GrNoncopyable {
     public:
-        AutoDeviceCoordDraw(GrDrawTarget* target, int stageMask);
+        AutoDeviceCoordDraw(GrDrawTarget* target, StageMask stageMask);
         ~AutoDeviceCoordDraw();
     private:
         GrDrawTarget*       fDrawTarget;
@@ -1287,7 +910,8 @@ protected:
     
     static bool StageWillBeUsed(int stage, GrVertexLayout layout, 
                                 const GrDrawState& state) {
-        return NULL != state.fTextures[stage] && VertexUsesStage(stage, layout);
+        return NULL != state.getTexture(stage) &&
+               VertexUsesStage(stage, layout);
     }
 
     bool isStageEnabled(int stage) const {
@@ -1295,8 +919,8 @@ protected:
                                fCurrDrawState);
     }
 
-    StageBitfield enabledStages() const {
-        StageBitfield mask = 0;
+    StageMask enabledStages() const {
+        StageMask mask = 0;
         for (int s = 0; s < GrDrawState::kNumStages; ++s) {
             mask |= this->isStageEnabled(s) ? 1 : 0;
         }
@@ -1345,7 +969,7 @@ protected:
 
     
     
-    static GrVertexLayout GetRectVertexLayout(StageBitfield stageEnableBitfield,
+    static GrVertexLayout GetRectVertexLayout(StageMask stageEnableBitfield,
                                               const GrRect* srcRects[]);
 
     static void SetRectVertices(const GrRect& rect,
@@ -1366,7 +990,16 @@ protected:
 
     Caps fCaps;
 
+    
+    
+    
+    void releaseGeometry();
 private:
+    
+    
+    bool checkDraw(GrPrimitiveType type, int startVertex,
+                   int startIndex, int vertexCount,
+                   int indexCount) const;
     
     void releasePreviousVertexSource();
     void releasePreviousIndexSource();

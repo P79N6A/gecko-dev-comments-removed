@@ -79,6 +79,15 @@
 
 
 
+
+
+
+
+
+
+
+
+
 #if !defined(GR_GL_LOG_CALLS)
     #define GR_GL_LOG_CALLS                     GR_DEBUG
 #endif
@@ -111,21 +120,17 @@
     #define GR_GL_PER_GL_FUNC_CALLBACK          0
 #endif
 
+#if !defined(GR_GL_RGBA_8888_PIXEL_OPS_SLOW)
+    #define GR_GL_RGBA_8888_PIXEL_OPS_SLOW      0
+#endif
+
+#if !defined(GR_GL_FULL_READPIXELS_FASTER_THAN_PARTIAL)
+    #define GR_GL_FULL_READPIXELS_FASTER_THAN_PARTIAL 0
+#endif
+
 #if(GR_GL_NO_CONSTANT_ATTRIBUTES) && (GR_GL_ATTRIBUTE_MATRICES)
     #error "Cannot combine GR_GL_NO_CONSTANT_ATTRIBUTES and GR_GL_ATTRIBUTE_MATRICES"
 #endif
-
-
-
-
-
-
-
-
-#undef GR_SUPPORT_GLDESKTOP
-#undef GR_SUPPORT_GLES1
-#undef GR_SUPPORT_GLES2
-#undef GR_SUPPORT_GLES
 
 
 
@@ -148,16 +153,6 @@
     #define GR_GL_TEXT_TEXTURE_NORMALIZED   0
 #else
     #error "unknown GR_TEXT_SCALAR type"
-#endif
-
-
-
-#ifndef GR_GL_32BPP_COLOR_FORMAT
-    #if GR_WIN32_BUILD || GR_LINUX_BUILD
-        #define GR_GL_32BPP_COLOR_FORMAT    GR_GL_BGRA
-    #else
-        #define GR_GL_32BPP_COLOR_FORMAT    GR_GL_RGBA
-    #endif
 #endif
 
 
@@ -221,14 +216,6 @@ extern void GrGLClearErr(const GrGLInterface* gl);
     } while (false)
 
 #define GR_GL_GET_ERROR(IFACE) (IFACE)->fGetError()
-
-
-
-
-
-
-
-extern void GrGLResetRowLength(const GrGLInterface*);
 
 
 

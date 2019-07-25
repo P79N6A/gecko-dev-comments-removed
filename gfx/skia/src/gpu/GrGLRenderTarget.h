@@ -67,7 +67,9 @@ public:
         return this->textureFBOID();
     }
     virtual ResolveType getResolveType() const {
-        if (fRTFBOID == fTexFBOID) {
+
+        if (!this->isMultisampled() ||
+            fRTFBOID == fTexFBOID) {
             
             return kAutoResolves_ResolveType;
         } else if (kUnresolvableFBOID == fTexFBOID) {

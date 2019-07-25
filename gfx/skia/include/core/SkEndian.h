@@ -81,5 +81,18 @@ static inline void SkEndianSwap32s(uint32_t array[], int count) {
 #endif
 
 
+
+#ifdef SK_CPU_LENDIAN
+    #define SkEndian_Byte0Shift 0
+    #define SkEndian_Byte1Shift 8
+    #define SkEndian_Byte2Shift 16
+    #define SkEndian_Byte3Shift 24
+#else   
+    #define SkEndian_Byte0Shift 24
+    #define SkEndian_Byte1Shift 16
+    #define SkEndian_Byte2Shift 8
+    #define SkEndian_Byte3Shift 0
+#endif
+
 #endif
 

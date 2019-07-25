@@ -36,8 +36,6 @@ GrGLRenderTarget::GrGLRenderTarget(GrGpuGL* gpu,
                 texture,
                 viewport.fWidth,
                 viewport.fHeight,
-                texture->allocatedWidth(),
-                texture->allocatedHeight(),
                 desc.fConfig,
                 desc.fSampleCnt) {
     GrAssert(NULL != texID);
@@ -45,6 +43,11 @@ GrGLRenderTarget::GrGLRenderTarget(GrGpuGL* gpu,
     
     GrAssert(0 != desc.fRTFBOID);
     GrAssert(0 != desc.fTexFBOID);
+
+    
+    GrAssert(viewport.fWidth == texture->width());
+    GrAssert(viewport.fHeight == texture->height());
+
     this->init(desc, viewport, texID);
 }
 
@@ -55,8 +58,6 @@ GrGLRenderTarget::GrGLRenderTarget(GrGpuGL* gpu,
                 NULL,
                 viewport.fWidth,
                 viewport.fHeight,
-                viewport.fWidth,   
-                viewport.fHeight,  
                 desc.fConfig,
                 desc.fSampleCnt) {
     this->init(desc, viewport, NULL);

@@ -160,6 +160,19 @@ public:
 
     
 
+
+    bool isImmutable() const;
+
+    
+
+
+
+
+
+    void setImmutable();
+
+    
+
     bool isOpaque() const;
 
     
@@ -240,25 +253,9 @@ public:
 
 
 
-    bool copyPixelsTo(void* const dst, size_t dstSize, int dstRowBytes = -1)
+    bool copyPixelsTo(void* const dst, size_t dstSize, int dstRowBytes = -1,
+                      bool preserveDstPad = false)
          const;
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool copyPixelsFrom(const void* const src, size_t srcSize,
-                        int srcRowBytes = -1);
 
     
 
@@ -489,7 +486,17 @@ public:
 
 
 
+
     bool copyTo(SkBitmap* dst, Config c, Allocator* allocator = NULL) const;
+
+    
+
+
+
+
+
+
+    bool deepCopyTo(SkBitmap* dst, Config c) const;
 
     
 
@@ -595,8 +602,9 @@ private:
     mutable int         fRawPixelGenerationID;
 
     enum Flags {
-        kImageIsOpaque_Flag = 0x01,
-        kImageIsVolatile_Flag     = 0x02
+        kImageIsOpaque_Flag     = 0x01,
+        kImageIsVolatile_Flag   = 0x02,
+        kImageIsImmutable_Flag  = 0x04
     };
 
     uint32_t    fRowBytes;

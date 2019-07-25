@@ -337,8 +337,32 @@ struct SK_API SkRect {
 
     
 
-    bool        isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
-    bool        hasValidCoordinates() const;
+
+    bool isEmpty() const { return fLeft >= fRight || fTop >= fBottom; }
+    
+    
+
+
+
+
+    bool isFinite() const {
+#ifdef SK_SCALAR_IS_FLOAT
+        
+        
+        float value = fLeft * 0 + fTop * 0 + fRight * 0 + fBottom * 0;
+        
+        
+        
+        return value == value;
+#else
+        
+        
+        int isNaN = (SK_FixedNaN == fLeft)  | (SK_FixedNaN == fTop) |
+                    (SK_FixedNaN == fRight) | (SK_FixedNaN == fBottom);
+        return !isNaN;
+#endif
+    }
+
     SkScalar    left() const { return fLeft; }
     SkScalar    top() const { return fTop; }
     SkScalar    right() const { return fRight; }

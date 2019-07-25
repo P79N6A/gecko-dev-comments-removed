@@ -36,20 +36,6 @@ public:
 
 
 
-
-    int allocatedWidth() const { return fAllocatedWidth; }
-
-    
-
-
-
-
-    int allocatedHeight() const { return fAllocatedHeight; }
-
-    
-
-
-
     GrFixed normalizeFixedX(GrFixed x) const { GrAssert(GrIsPow2(fWidth));
                                                return x >> fShiftFixedX; }
     GrFixed normalizeFixedY(GrFixed y) const { GrAssert(GrIsPow2(fHeight));
@@ -64,9 +50,7 @@ public:
 
 
     virtual size_t sizeInBytes() const {
-        return (size_t) fAllocatedWidth *
-                        fAllocatedHeight *
-                        GrBytesPerPixel(fConfig);
+        return (size_t) fWidth * fHeight * GrBytesPerPixel(fConfig);
     }
 
     
@@ -81,12 +65,11 @@ public:
 
 
 
-    virtual void uploadTextureData(int x,
-                                   int y,
-                                   int width,
-                                   int height,
-                                   const void* srcData,
-                                   size_t rowBytes) = 0;
+
+
+    bool readPixels(int left, int top, int width, int height,
+                    GrPixelConfig config, void* buffer,
+                    size_t rowBytes);
 
     
 
@@ -99,9 +82,9 @@ public:
 
 
 
-
-    bool readPixels(int left, int top, int width, int height,
-                    GrPixelConfig config, void* buffer);
+    void writePixels(int left, int top, int width, int height,
+                     GrPixelConfig config, const void* buffer,
+                     size_t rowBytes);
 
     
 
@@ -141,15 +124,11 @@ protected:
     GrTexture(GrGpu* gpu,
               int width,
               int height,
-              int allocatedWidth,
-              int allocatedHeight,
               GrPixelConfig config)
     : INHERITED(gpu)
     , fRenderTarget(NULL)
     , fWidth(width)
     , fHeight(height)
-    , fAllocatedWidth(allocatedWidth)
-    , fAllocatedHeight(allocatedHeight)
     , fConfig(config) {
         
         fShiftFixedX = 31 - Gr_clz(fWidth);
@@ -166,8 +145,6 @@ protected:
 private:
     int fWidth;
     int fHeight;
-    int fAllocatedWidth;
-    int fAllocatedHeight;
 
     
     

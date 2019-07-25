@@ -38,7 +38,9 @@ public:
         
 
 
-        kConvolution_Filter
+        kConvolution_Filter,
+
+        kDefault_Filter = kNearest_Filter
     };
 
     
@@ -68,6 +70,8 @@ public:
         kRadial_SampleMode,     
         kRadial2_SampleMode,    
         kSweep_SampleMode,      
+
+        kDefault_SampleMode = kNormal_SampleMode
     };
 
     
@@ -77,7 +81,9 @@ public:
     enum WrapMode {
         kClamp_WrapMode,
         kRepeat_WrapMode,
-        kMirror_WrapMode
+        kMirror_WrapMode,
+
+        kDefault_WrapMode = kClamp_WrapMode
     };
 
     
@@ -88,57 +94,7 @@ public:
     : fRadial2CenterX1()
     , fRadial2Radius0()
     , fRadial2PosRoot() {
-        this->setClampNoFilter();
-    }
-
-    explicit GrSamplerState(Filter filter)
-    : fRadial2CenterX1()
-    , fRadial2Radius0()
-    , fRadial2PosRoot() {
-        fWrapX = kClamp_WrapMode;
-        fWrapY = kClamp_WrapMode;
-        fSampleMode = kNormal_SampleMode;
-        fFilter = filter;
-        fMatrix.setIdentity();
-        fTextureDomain.setEmpty();
-    }
-
-    GrSamplerState(WrapMode wx, WrapMode wy, Filter filter)
-    : fRadial2CenterX1()
-    , fRadial2Radius0()
-    , fRadial2PosRoot() {
-        fWrapX = wx;
-        fWrapY = wy;
-        fSampleMode = kNormal_SampleMode;
-        fFilter = filter;
-        fMatrix.setIdentity();
-        fTextureDomain.setEmpty();
-    }
-
-    GrSamplerState(WrapMode wx, WrapMode wy, 
-                   const GrMatrix& matrix, Filter filter)
-    : fRadial2CenterX1()
-    , fRadial2Radius0()
-    , fRadial2PosRoot() {
-        fWrapX = wx;
-        fWrapY = wy;
-        fSampleMode = kNormal_SampleMode;
-        fFilter = filter;
-        fMatrix = matrix;
-        fTextureDomain.setEmpty();
-    }
-
-    GrSamplerState(WrapMode wx, WrapMode wy, SampleMode sample, 
-                   const GrMatrix& matrix, Filter filter)
-    : fRadial2CenterX1()
-    , fRadial2Radius0()
-    , fRadial2PosRoot() {
-        fWrapX = wx;
-        fWrapY = wy;
-        fSampleMode = sample;
-        fMatrix = matrix;
-        fFilter = filter;
-        fTextureDomain.setEmpty();
+        this->reset();
     }
 
     WrapMode getWrapX() const { return fWrapX; }
@@ -151,6 +107,7 @@ public:
     int getKernelWidth() const { return fKernelWidth; }
     const float* getKernel() const { return fKernel; }
     const float* getImageIncrement() const { return fImageIncrement; }
+    bool swapsRAndB() const { return fSwapRAndB; }
 
     bool isGradient() const {
         return  kRadial_SampleMode == fSampleMode ||
@@ -166,15 +123,20 @@ public:
 
 
 
+    GrMatrix* matrix() { return &fMatrix; }
 
-    void setMatrix(const GrMatrix& matrix) { fMatrix = matrix; }
-    
     
 
 
 
 
     void setTextureDomain(const GrRect& textureDomain) { fTextureDomain = textureDomain; }
+
+    
+
+
+
+    void setRAndBSwap(bool swap) { fSwapRAndB = swap; }
 
     
 
@@ -194,18 +156,31 @@ public:
 
     void setFilter(Filter filter) { fFilter = filter; }
 
-    void setClampNoFilter() {
-        fWrapX = kClamp_WrapMode;
-        fWrapY = kClamp_WrapMode;
-        fSampleMode = kNormal_SampleMode;
-        fFilter = kNearest_Filter;
-        fMatrix.setIdentity();
+    void reset(WrapMode wrapXAndY,
+               Filter filter,
+               const GrMatrix& matrix) {
+        fWrapX = wrapXAndY;
+        fWrapY = wrapXAndY;
+        fSampleMode = kDefault_SampleMode;
+        fFilter = filter;
+        fMatrix = matrix;
         fTextureDomain.setEmpty();
+        fSwapRAndB = false;
+    }
+    void reset(WrapMode wrapXAndY,
+               Filter filter) {
+        this->reset(wrapXAndY, filter, GrMatrix::I());
+    }
+    void reset(const GrMatrix& matrix) {
+        this->reset(kDefault_WrapMode, kDefault_Filter, matrix);
+    }
+    void reset() {
+        this->reset(kDefault_WrapMode, kDefault_Filter, GrMatrix::I());
     }
 
     GrScalar getRadial2CenterX1() const { return fRadial2CenterX1; }
     GrScalar getRadial2Radius0() const { return fRadial2Radius0; }
-    bool     isRadial2PosRoot() const { return fRadial2PosRoot; }
+    bool     isRadial2PosRoot() const { return SkToBool(fRadial2PosRoot); }
     
     
     bool radial2IsDegenerate() const { return GR_Scalar1 == fRadial2CenterX1; }
@@ -236,29 +211,24 @@ public:
         }
     }
 
-    static const GrSamplerState& ClampNoFilter() {
-        return gClampNoFilter;
-    }
-
 private:
-    WrapMode    fWrapX;
-    WrapMode    fWrapY;
-    SampleMode  fSampleMode;
-    Filter      fFilter;
+    WrapMode    fWrapX : 8;
+    WrapMode    fWrapY : 8;
+    SampleMode  fSampleMode : 8;
+    Filter      fFilter : 8;
     GrMatrix    fMatrix;
+    bool        fSwapRAndB;
     GrRect      fTextureDomain;
 
     
     GrScalar    fRadial2CenterX1;
     GrScalar    fRadial2Radius0;
-    bool        fRadial2PosRoot;
+    SkBool8     fRadial2PosRoot;
 
     
-    int         fKernelWidth;
-    float       fKernel[MAX_KERNEL_WIDTH];
+    uint8_t     fKernelWidth;
     float       fImageIncrement[2];
-
-    static const GrSamplerState gClampNoFilter;
+    float       fKernel[MAX_KERNEL_WIDTH];
 };
 
 #endif

@@ -12,6 +12,7 @@
 
 #include "GrDrawState.h"
 #include "GrGLInterface.h"
+#include "GrGLSL.h"
 #include "GrStringBuilder.h"
 #include "GrGpu.h"
 
@@ -36,22 +37,6 @@ struct ShaderCodeSegments;
 
 class GrGLProgram {
 public:
-    
-    
-    enum GLSLVersion {
-        
-
-
-        k110_GLSLVersion,
-        
-
-
-        k130_GLSLVersion,
-        
-
-
-        k150_GLSLVersion,
-    };
 
     class CachedData;
 
@@ -64,7 +49,7 @@ public:
 
 
     bool genProgram(const GrGLInterface* gl,
-                    GLSLVersion glslVersion,
+                    GrGLSLGeneration glslVersion,
                     CachedData* programData) const;
 
      
@@ -102,6 +87,15 @@ public:
             memset(this, 0, sizeof(ProgramDesc));
         }
 
+        enum OutputPM {
+            
+            kYes_OutputPM,
+            
+            kNo_OutputPM,
+
+            kOutputPMCnt
+        };
+
         struct StageDesc {
             enum OptFlagBits {
                 kNoPerspective_OptFlagBit       = 1 << 0,
@@ -109,18 +103,45 @@ public:
                 kCustomTextureDomain_OptFlagBit = 1 << 2,
                 kIsEnabled_OptFlagBit           = 1 << 7
             };
-            enum Modulation {
-                kColor_Modulation,
-                kAlpha_Modulation,
-
-                kModulationCnt
-            };
             enum FetchMode {
                 kSingle_FetchMode,
                 k2x2_FetchMode,
                 kConvolution_FetchMode,
 
                 kFetchModeCnt,
+            };
+            
+
+
+
+            enum InConfigFlags {
+                kNone_InConfigFlag              = 0x0,
+
+                
+
+
+
+
+
+                kSwapRAndB_InConfigFlag         = 0x1,
+
+                
+
+
+
+
+
+                kSmearAlpha_InConfigFlag        = 0x2,
+
+                
+
+
+
+                kMulRGBByAlpha_InConfigFlag     =  0x4,
+
+                kDummyInConfigFlag,
+                kInConfigBitMask = (kDummyInConfigFlag-1) |
+                                   (kDummyInConfigFlag-2)
             };
             enum CoordMapping {
                 kIdentity_CoordMapping,
@@ -134,10 +155,13 @@ public:
             };
 
             uint8_t fOptFlags;
-            uint8_t fModulation;  
-            uint8_t fFetchMode;  
+            uint8_t fInConfigFlags; 
+            uint8_t fFetchMode;     
             uint8_t fCoordMapping;  
             uint8_t fKernelWidth;
+
+            GR_STATIC_ASSERT((InConfigFlags)(uint8_t)kInConfigBitMask ==
+                             kInConfigBitMask);
 
             inline bool isEnabled() const {
                 return SkToBool(fOptFlags & kIsEnabled_OptFlagBit);
@@ -153,13 +177,13 @@ public:
 
         
         
-        enum ColorType {
-            kSolidWhite_ColorType,
-            kTransBlack_ColorType,
-            kAttribute_ColorType,
-            kUniform_ColorType,
+        enum ColorInput {
+            kSolidWhite_ColorInput,
+            kTransBlack_ColorInput,
+            kAttribute_ColorInput,
+            kUniform_ColorInput,
 
-            kColorTypeCnt
+            kColorInputCnt
         };
         
         
@@ -186,16 +210,17 @@ public:
         bool fExperimentalGS;
 #endif
 
-        uint8_t fColorType;  
-        uint8_t fDualSrcOutput;  
+        uint8_t fColorInput;        
+        uint8_t fOutputPM;          
+        uint8_t fDualSrcOutput;     
         int8_t fFirstCoverageStage;
         SkBool8 fEmitsPointSize;
         SkBool8 fEdgeAAConcave;
+        SkBool8 fColorMatrixEnabled;
 
         int8_t fEdgeAANumEdges;
         uint8_t fColorFilterXfermode;  
-
-        uint8_t fPadTo32bLengthMultiple [1];
+        int8_t fPadding[3];
 
     } fProgramDesc;
     GR_STATIC_ASSERT(!(sizeof(ProgramDesc) % 4));
@@ -206,6 +231,7 @@ public:
 private:
 
     const ProgramDesc& getDesc() { return fProgramDesc; }
+    const char* adjustInColor(const GrStringBuilder& inColor) const;
 
 public:
     enum {
@@ -237,12 +263,16 @@ public:
         GrGLint fColorUni;
         GrGLint fEdgesUni;
         GrGLint fColorFilterUni;
+        GrGLint fColorMatrixUni;
+        GrGLint fColorMatrixVecUni;
         StageUniLocations fStages[GrDrawState::kNumStages];
         void reset() {
             fViewMatrixUni = kUnusedUniform;
             fColorUni = kUnusedUniform;
             fEdgesUni = kUnusedUniform;
             fColorFilterUni = kUnusedUniform;
+            fColorMatrixUni = kUnusedUniform;
+            fColorMatrixVecUni = kUnusedUniform;
             for (int s = 0; s < GrDrawState::kNumStages; ++s) {
                 fStages[s].reset();
             }
@@ -315,7 +345,7 @@ private:
                       StageUniLocations* locations) const;
 
     void genGeometryShader(const GrGLInterface* gl,
-                           GLSLVersion glslVersion,
+                           GrGLSLGeneration glslVersion,
                            ShaderCodeSegments* segments) const;
 
     
@@ -326,7 +356,7 @@ private:
                          ShaderCodeSegments* segments) const;
 
     static bool CompileShaders(const GrGLInterface* gl,
-                               GLSLVersion glslVersion,
+                               GrGLSLGeneration glslVersion,
                                const ShaderCodeSegments& segments, 
                                CachedData* programData);
 

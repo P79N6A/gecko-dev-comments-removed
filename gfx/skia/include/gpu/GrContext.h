@@ -39,11 +39,6 @@ public:
     static GrContext* Create(GrEngine engine,
                              GrPlatform3DContext context3D);
 
-    
-
-
-    static GrContext* CreateGLShaderContext();
-
     virtual ~GrContext();
 
     
@@ -117,19 +112,57 @@ public:
 
 
 
-    TextureCacheEntry findAndLockTexture(TextureKey key,
-                                         int width,
-                                         int height,
-                                         const GrSamplerState&);
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TextureCacheEntry createAndLockTexture(TextureKey key,
+                                           const GrSamplerState* sampler,
+                                           const GrTextureDesc& desc,
+                                           void* srcData, size_t rowBytes);
 
     
 
 
 
-    TextureCacheEntry createAndLockTexture(TextureKey key,
-                                           const GrSamplerState&,
-                                           const GrTextureDesc&,
-                                           void* srcData, size_t rowBytes);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    TextureCacheEntry findAndLockTexture(TextureKey key,
+                                         int width,
+                                         int height,
+                                         const GrSamplerState* sampler);
+    
+
+
+
+
+    bool isTextureInCache(TextureKey key,
+                          int width,
+                          int height,
+                          const GrSamplerState*) const;
 
     
 
@@ -182,7 +215,7 @@ public:
     
 
 
-    bool supportsIndex8PixelConfig(const GrSamplerState&,
+    bool supportsIndex8PixelConfig(const GrSamplerState*,
                                    int width,
                                    int height) const;
 
@@ -238,6 +271,35 @@ public:
     
 
     
+
+
+
+
+
+
+
+
+
+    GrTexture* createPlatformTexture(const GrPlatformTextureDesc& desc);
+
+    
+
+
+
+
+
+
+
+
+
+     GrRenderTarget* createPlatformRenderTarget(
+                                    const GrPlatformRenderTargetDesc& desc);
+
+    
+
+
+
+
 
 
 
@@ -421,8 +483,10 @@ public:
 
 
     void flush(int flagsBitfield = 0);
+
     
-    
+
+
 
 
 
@@ -439,7 +503,13 @@ public:
 
     bool readRenderTargetPixels(GrRenderTarget* target,
                                 int left, int top, int width, int height,
-                                GrPixelConfig config, void* buffer);
+                                GrPixelConfig config, void* buffer, 
+                                size_t rowBytes) {
+        return this->internalReadRenderTargetPixels(target, left, top,
+                                                    width, height,
+                                                    config, buffer,
+                                                    rowBytes, 0);
+    }
 
     
 
@@ -454,17 +524,64 @@ public:
 
 
 
-    bool readTexturePixels(GrTexture* target,
+
+    void writeRenderTargetPixels(GrRenderTarget* target,
+                                 int left, int top, int width, int height,
+                                 GrPixelConfig config, const void* buffer,
+                                 size_t rowBytes) {
+        this->internalWriteRenderTargetPixels(target, left, top, width, height,
+                                              config, buffer, rowBytes, 0);
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool readTexturePixels(GrTexture* texture,
                            int left, int top, int width, int height,
-                           GrPixelConfig config, void* buffer);
+                           GrPixelConfig config, void* buffer,
+                           size_t rowBytes) {
+        return this->internalReadTexturePixels(texture, left, top,
+                                               width, height,
+                                               config, buffer, rowBytes, 0);
+    }
 
     
 
 
 
-    void writePixels(int left, int top, int width, int height,
-                     GrPixelConfig, const void* buffer, size_t stride);
 
+
+
+
+
+
+
+
+    void writeTexturePixels(GrTexture* texture,
+                            int left, int top, int width, int height,
+                            GrPixelConfig config, const void* buffer,
+                            size_t rowBytes) {
+        this->internalWriteTexturePixels(texture, left, top, width, height, 
+                                         config, buffer, rowBytes, 0);
+    }
+    
+
+
+
+
+    void copyTexture(GrTexture* src, GrRenderTarget* dst);
     
 
 
@@ -581,7 +698,7 @@ private:
 
     void flushDrawBuffer();
 
-    static void SetPaint(const GrPaint& paint, GrDrawTarget* target);
+    void setPaint(const GrPaint& paint, GrDrawTarget* target);
 
     GrDrawTarget* prepareToDraw(const GrPaint& paint, DrawCategory drawType);
 
@@ -627,7 +744,43 @@ private:
                   float imageIncrement[2],
                   const float* kernel,
                   int kernelWidth);
+
     
+
+
+    enum PixelOpsFlags {
+        kDontFlush_PixelOpsFlag = 0x1,
+    };
+
+    bool internalReadRenderTargetPixels(GrRenderTarget* target,
+                                        int left, int top,
+                                        int width, int height,
+                                        GrPixelConfig config, void* buffer, 
+                                        size_t rowBytes, uint32_t flags);
+
+    void internalWriteRenderTargetPixels(GrRenderTarget* target,
+                                        int left, int top,
+                                        int width, int height,
+                                        GrPixelConfig, const void* buffer,
+                                        size_t rowBytes, uint32_t flags);
+
+    bool internalReadTexturePixels(GrTexture* texture,
+                                   int left, int top,
+                                   int width, int height,
+                                   GrPixelConfig config, void* buffer,
+                                   size_t rowBytes, uint32_t flags);
+
+    void internalWriteTexturePixels(GrTexture* texture,
+                                    int left, int top,
+                                    int width, int height,
+                                    GrPixelConfig config, const void* buffer,
+                                    size_t rowBytes, uint32_t flags);
+    
+    
+    
+    
+    friend class GrAtlas;
+
     
     
     

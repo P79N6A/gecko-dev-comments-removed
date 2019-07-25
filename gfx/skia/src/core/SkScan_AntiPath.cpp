@@ -31,7 +31,13 @@
 
 
 
-#define SK_SUPPORT_NEW_AA
+
+
+
+
+
+
+
 
 
 
@@ -40,24 +46,31 @@ public:
     BaseSuperBlitter(SkBlitter* realBlitter, const SkIRect& ir,
                      const SkRegion& clip);
 
+    
     virtual void blitAntiH(int x, int y, const SkAlpha antialias[],
-                           const int16_t runs[]) {
-        SkASSERT(!"How did I get here?");
+                           const int16_t runs[]) SK_OVERRIDE {
+        SkDEBUGFAIL("How did I get here?");
     }
-    virtual void blitV(int x, int y, int height, SkAlpha alpha) {
-        SkASSERT(!"How did I get here?");
-    }
-    virtual void blitRect(int x, int y, int width, int height) {
-        SkASSERT(!"How did I get here?");
+    
+    virtual void blitV(int x, int y, int height, SkAlpha alpha) SK_OVERRIDE {
+        SkDEBUGFAIL("How did I get here?");
     }
 
 protected:
     SkBlitter*  fRealBlitter;
+    
     int         fCurrIY;
-    int         fWidth, fLeft, fSuperLeft;
+    
+    int         fWidth;
+    
+    int         fLeft;
+    
+    int         fSuperLeft;
 
     SkDEBUGCODE(int fCurrX;)
+    
     int fCurrY;
+    
     int fTop;
 };
 
@@ -84,6 +97,7 @@ BaseSuperBlitter::BaseSuperBlitter(SkBlitter* realBlitter, const SkIRect& ir,
     SkDEBUGCODE(fCurrX = -1;)
 }
 
+
 class SuperBlitter : public BaseSuperBlitter {
 public:
     SuperBlitter(SkBlitter* realBlitter, const SkIRect& ir,
@@ -94,10 +108,16 @@ public:
         sk_free(fRuns.fRuns);
     }
 
+    
+    
     void flush();
 
-    virtual void blitH(int x, int y, int width);
-    virtual void blitRect(int x, int y, int width, int height);
+    
+    
+    virtual void blitH(int x, int y, int width) SK_OVERRIDE;
+    
+    
+    virtual void blitRect(int x, int y, int width, int height) SK_OVERRIDE;
 
 private:
     SkAlphaRuns fRuns;
@@ -136,9 +156,15 @@ static inline int coverage_to_alpha(int aa) {
     return aa;
 }
 
-#define SUPER_Mask      ((1 << SHIFT) - 1)
+static inline int coverage_to_exact_alpha(int aa) {
+    int alpha = (256 >> SHIFT) * aa;
+    
+    return alpha - (alpha >> 8);
+}
 
 void SuperBlitter::blitH(int x, int y, int width) {
+    SkASSERT(width > 0);
+
     int iy = y >> SHIFT;
     SkASSERT(iy >= fCurrIY);
 
@@ -163,16 +189,13 @@ void SuperBlitter::blitH(int x, int y, int width) {
         fCurrIY = iy;
     }
 
-    
-    
-
-
     int start = x;
     int stop = x + width;
 
     SkASSERT(start >= 0 && stop > start);
-    int fb = start & SUPER_Mask;
-    int fe = stop & SUPER_Mask;
+    
+    int fb = start & MASK;
+    int fe = stop & MASK;
     int n = (stop >> SHIFT) - (start >> SHIFT) - 1;
 
     if (n < 0) {
@@ -183,11 +206,13 @@ void SuperBlitter::blitH(int x, int y, int width) {
         if (fb == 0) {
             n += 1;
         } else {
-            fb = (1 << SHIFT) - fb;
+            fb = SCALE - fb;
         }
     }
 
-    fOffsetX = fRuns.add(x >> SHIFT, coverage_to_alpha(fb), n, coverage_to_alpha(fe),
+    
+    fOffsetX = fRuns.add(x >> SHIFT, coverage_to_alpha(fb),
+                         n, coverage_to_alpha(fe),
                          (1 << (8 - SHIFT)) - (((y & MASK) + 1) >> SHIFT),
                          fOffsetX);
 
@@ -197,13 +222,138 @@ void SuperBlitter::blitH(int x, int y, int width) {
 #endif
 }
 
-void SuperBlitter::blitRect(int x, int y, int width, int height) {
-    for (int i = 0; i < height; ++i) {
-        blitH(x, y + i, width);
+static void set_left_rite_runs(SkAlphaRuns& runs, int ileft, U8CPU leftA,
+                               int n, U8CPU riteA) {
+    SkASSERT(leftA <= 0xFF);
+    SkASSERT(riteA <= 0xFF);
+
+    int16_t* run = runs.fRuns;
+    uint8_t* aa = runs.fAlpha;
+
+    if (ileft > 0) {
+        run[0] = ileft;
+        aa[0] = 0;
+        run += ileft;
+        aa += ileft;
     }
 
-    flush();
+    SkASSERT(leftA < 0xFF);
+    if (leftA > 0) {
+        *run++ = 1;
+        *aa++ = leftA;
+    }
+
+    if (n > 0) {
+        run[0] = n;
+        aa[0] = 0xFF;
+        run += n;
+        aa += n;
+    }
+
+    SkASSERT(riteA < 0xFF);
+    if (riteA > 0) {
+        *run++ = 1;
+        *aa++ = riteA;
+    }
+    run[0] = 0;
 }
+
+void SuperBlitter::blitRect(int x, int y, int width, int height) {
+    SkASSERT(width > 0);
+    SkASSERT(height > 0);
+
+    
+    while ((y & MASK)) {
+        this->blitH(x, y++, width);
+        if (--height <= 0) {
+            return;
+        }
+    }
+    SkASSERT(height > 0);
+
+    
+    
+    
+    int start_y = y >> SHIFT;
+    int stop_y = (y + height) >> SHIFT;
+    int count = stop_y - start_y;
+    if (count > 0) {
+        y += count << SHIFT;
+        height -= count << SHIFT;
+
+        
+        int origX = x;
+
+        x -= fSuperLeft;
+        
+        if (x < 0) {
+            width += x;
+            x = 0;
+        }
+
+        
+        
+        
+        
+        int ileft = x >> SHIFT;
+        int xleft = x & MASK;
+        
+        
+        
+        int irite = (x + width) >> SHIFT;
+        int xrite = (x + width) & MASK;
+        if (!xrite) {
+            xrite = SCALE;
+            irite--;
+        }
+
+        
+        
+        SkASSERT(start_y > fCurrIY);
+        this->flush();
+
+        int n = irite - ileft - 1;
+        if (n < 0) {
+            
+            
+            xleft = xrite - xleft;
+            SkASSERT(xleft <= SCALE);
+            SkASSERT(xleft > 0);
+            xrite = 0;
+            fRealBlitter->blitV(ileft + fLeft, start_y, count,
+                coverage_to_exact_alpha(xleft));
+        } else {
+            
+            
+
+            xleft = SCALE - xleft;
+
+            
+            const int coverageL = coverage_to_exact_alpha(xleft);
+            const int coverageR = coverage_to_exact_alpha(xrite);
+
+            SkASSERT(coverageL > 0 || n > 0 || coverageR > 0);
+            SkASSERT((coverageL != 0) + n + (coverageR != 0) <= fWidth);
+
+            fRealBlitter->blitAntiRect(ileft + fLeft, start_y, n, count,
+                                       coverageL, coverageR);
+        }
+
+        
+        fCurrIY = stop_y - 1;
+        fOffsetX = 0;
+        fCurrY = y - 1;
+        fRuns.reset(fWidth);
+        x = origX;
+    }
+
+    
+    SkASSERT(height <= MASK);
+    while (--height >= 0) {
+        this->blitH(x, y++, width);
+    }
+}
+
 
 
 
@@ -215,7 +365,7 @@ public:
         fRealBlitter->blitMask(fMask, fClipRect);
     }
 
-    virtual void blitH(int x, int y, int width);
+    virtual void blitH(int x, int y, int width) SK_OVERRIDE;
 
     static bool CanHandleRect(const SkIRect& bounds) {
 #ifdef FORCE_RLE
@@ -364,18 +514,14 @@ void MaskSuperBlitter::blitH(int x, int y, int width) {
         x = 0;
     }
 
-    
-    
-
-
     uint8_t* row = fMask.fImage + iy * fMask.fRowBytes + (x >> SHIFT);
 
     int start = x;
     int stop = x + width;
 
     SkASSERT(start >= 0 && stop > start);
-    int fb = start & SUPER_Mask;
-    int fe = stop & SUPER_Mask;
+    int fb = start & MASK;
+    int fe = stop & MASK;
     int n = (stop >> SHIFT) - (start >> SHIFT) - 1;
 
 
@@ -388,10 +534,10 @@ void MaskSuperBlitter::blitH(int x, int y, int width) {
         if (0 == fb) {
             n += 1;
         } else {
-            fb = (1 << SHIFT) - fb;
+            fb = SCALE - fb;
         }
 #else
-        fb = (1 << SHIFT) - fb;
+        fb = SCALE - fb;
 #endif
         SkASSERT(row >= fMask.fImage);
         SkASSERT(row + n + 1 < fMask.fImage + kMAX_STORAGE + 1);
@@ -424,6 +570,9 @@ void SkScan::AntiFillPath(const SkPath& path, const SkRegion& clip,
     SkIRect ir;
     path.getBounds().roundOut(&ir);
     if (ir.isEmpty()) {
+        if (path.isInverseFillType()) {
+            blitter->blitRegion(clip);
+        }
         return;
     }
 

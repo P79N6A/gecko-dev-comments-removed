@@ -137,7 +137,7 @@ public:
 
 
 
-    virtual void drawPath(GrDrawTarget::StageBitfield stages) = 0;
+    virtual void drawPath(GrDrawState::StageMask stageMask) = 0;
 
     
 

@@ -72,15 +72,18 @@ static SkColor xferColor(SkColor src, SkColor dst, SkXfermode::Mode mode) {
     }
 }
 
+
+
+
 void SkLayerDrawLooper::ApplyInfo(SkPaint* dst, const SkPaint& src,
                                   const LayerInfo& info) {
 
     uint32_t mask = info.fFlagsMask;
     dst->setFlags((dst->getFlags() & ~mask) | (src.getFlags() & mask));
-
     dst->setColor(xferColor(src.getColor(), dst->getColor(), info.fColorMode));
 
     BitFlags bits = info.fPaintBits;
+    SkPaint::TextEncoding encoding = dst->getTextEncoding();
 
     if (0 == bits) {
         return;
@@ -92,6 +95,7 @@ void SkLayerDrawLooper::ApplyInfo(SkPaint* dst, const SkPaint& src,
         *dst = src;
         dst->setFlags(f);
         dst->setColor(c);
+        dst->setTextEncoding(encoding);
         return;
     }
 
@@ -125,11 +129,9 @@ void SkLayerDrawLooper::ApplyInfo(SkPaint* dst, const SkPaint& src,
 
     
 #if 0
-    dst->setFlags(src.getFlags());
     dst->setTypeface(src.getTypeface());
     dst->setTextSize(src.getTextSize());
     dst->setTextScaleX(src.getTextScaleX());
-    dst->setTextSkewX(src.getTextSkewX());
     dst->setRasterizer(src.getRasterizer());
     dst->setLooper(src.getLooper());
     dst->setTextEncoding(src.getTextEncoding());
@@ -243,5 +245,4 @@ SkLayerDrawLooper::SkLayerDrawLooper(SkFlattenableReadBuffer& buffer)
 
 
 
-static SkFlattenable::Registrar gReg("SkLayerDrawLooper",
-                                     SkLayerDrawLooper::CreateProc);
+SK_DEFINE_FLATTENABLE_REGISTRAR(SkLayerDrawLooper)

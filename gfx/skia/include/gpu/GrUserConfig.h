@@ -51,26 +51,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define GR_SCALAR_IS_FIXED          0
 #define GR_SCALAR_IS_FLOAT          1
 

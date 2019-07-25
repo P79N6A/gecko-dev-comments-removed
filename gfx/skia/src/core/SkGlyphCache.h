@@ -94,6 +94,10 @@ public:
         return fScalerContext->getMaskFormat();
     }
 
+    bool isSubpixel() const {
+        return fScalerContext->isSubpixel();
+    }
+
     
 
 
@@ -220,7 +224,7 @@ private:
     SkPaint::FontMetrics fFontMetricsY;
 
     enum {
-        kHashBits   = 8,
+        kHashBits   = 12,
         kHashCount  = 1 << kHashBits,
         kHashMask   = kHashCount - 1
     };

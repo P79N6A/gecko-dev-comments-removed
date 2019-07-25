@@ -81,7 +81,7 @@ public:
     
     virtual void drawRect(const GrRect& rect, 
                           const GrMatrix* matrix = NULL,
-                          int stageEnableMask = 0,
+                          StageMask stageEnableMask = 0,
                           const GrRect* srcRects[] = NULL,
                           const GrMatrix* srcMatrices[] = NULL);
 

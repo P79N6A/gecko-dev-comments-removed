@@ -29,9 +29,101 @@ public:
     GrGLBinding glBinding() const { return fGLBinding; }
     GrGLVersion glVersion() const { return fGLVersion; }
 
+    
+    virtual GrPixelConfig preferredReadPixelsConfig(GrPixelConfig config)
+                                                            const SK_OVERRIDE;
+    virtual GrPixelConfig preferredWritePixelsConfig(GrPixelConfig config)
+                                                            const SK_OVERRIDE;
+    virtual bool readPixelsWillPayForYFlip(
+                                    GrRenderTarget* renderTarget,
+                                    int left, int top,
+                                    int width, int height,
+                                    GrPixelConfig config,
+                                    size_t rowBytes) const SK_OVERRIDE;
+    virtual bool fullReadPixelsIsFasterThanPartial() const SK_OVERRIDE;
 protected:
     GrGpuGL(const GrGLInterface* glInterface, GrGLBinding glBinding);
 
+    struct GLCaps {
+        GLCaps()
+            
+            : fStencilFormats(8) 
+            , fMSFBOType(kNone_MSFBO)
+            , fMaxFragmentUniformVectors(0)
+            , fRGBA8RenderbufferSupport(false)
+            , fBGRAFormatSupport(false)
+            , fBGRAIsInternalFormat(false)
+            , fTextureSwizzleSupport(false)
+            , fUnpackRowLengthSupport(false)
+            , fUnpackFlipYSupport(false)
+            , fPackRowLengthSupport(false)
+            , fPackFlipYSupport(false)
+            , fTextureUsageSupport(false)
+            , fTexStorageSupport(false) {
+            memset(fAASamples, 0, sizeof(fAASamples));
+        }
+        SkTArray<GrGLStencilBuffer::Format, true> fStencilFormats;
+
+        enum {
+            
+
+
+            kNone_MSFBO = 0,  
+            
+
+
+            kDesktopARB_MSFBO,
+            
+
+
+            kDesktopEXT_MSFBO,
+            
+
+
+            kAppleES_MSFBO,
+        } fMSFBOType;
+
+        
+        GrGLuint fAASamples[4];
+
+        
+        int fMaxFragmentUniformVectors;
+
+        
+        bool fRGBA8RenderbufferSupport;
+
+        
+        bool fBGRAFormatSupport;
+
+        
+        
+        
+        bool fBGRAIsInternalFormat;
+
+        
+        bool fTextureSwizzleSupport;
+    
+        
+        bool fUnpackRowLengthSupport;
+
+        
+        bool fUnpackFlipYSupport;
+
+        
+        bool fPackRowLengthSupport;
+
+        
+        bool fPackFlipYSupport;
+
+        
+        bool fTextureUsageSupport;
+
+        
+        bool fTexStorageSupport;
+
+        void print() const;
+    } fGLCaps;
+ 
     struct {
         size_t                  fVertexOffset;
         GrVertexLayout          fVertexLayout;
@@ -69,8 +161,10 @@ protected:
         GrGLIRect   fViewportRect;
     } fHWBounds;
 
+    const GLCaps& glCaps() const { return fGLCaps; }
+
     
-    virtual void resetContext();
+    virtual void onResetContext() SK_OVERRIDE;
 
     virtual GrTexture* onCreateTexture(const GrTextureDesc& desc,
                                        const void* srcData,
@@ -80,6 +174,8 @@ protected:
     virtual GrIndexBuffer* onCreateIndexBuffer(uint32_t size,
                                                bool dynamic);
     virtual GrResource* onCreatePlatformSurface(const GrPlatformSurfaceDesc& desc);
+    virtual GrTexture* onCreatePlatformTexture(const GrPlatformTextureDesc& desc) SK_OVERRIDE;
+    virtual GrRenderTarget* onCreatePlatformRenderTarget(const GrPlatformRenderTargetDesc& desc) SK_OVERRIDE;
     virtual bool createStencilBufferForRenderTarget(GrRenderTarget* rt,
                                                     int width, int height);
     virtual bool attachStencilBufferToRenderTarget(GrStencilBuffer* sb,
@@ -90,8 +186,17 @@ protected:
     virtual void onForceRenderTargetFlush();
 
     virtual bool onReadPixels(GrRenderTarget* target,
-                              int left, int top, int width, int height,
-                              GrPixelConfig, void* buffer);
+                              int left, int top, 
+                              int width, int height,
+                              GrPixelConfig, 
+                              void* buffer,
+                              size_t rowBytes,
+                              bool invertY) SK_OVERRIDE;
+
+    virtual void onWriteTexturePixels(GrTexture* texture,
+                                      int left, int top, int width, int height,
+                                      GrPixelConfig config, const void* buffer,
+                                      size_t rowBytes) SK_OVERRIDE;
 
     virtual void onGpuDrawIndexed(GrPrimitiveType type,
                                   uint32_t startVertex,
@@ -178,21 +283,22 @@ private:
 
     void resolveRenderTarget(GrGLRenderTarget* texture);
 
-    bool canBeTexture(GrPixelConfig config,
-                      GrGLenum* internalFormat,
-                      GrGLenum* format,
-                      GrGLenum* type);
+    bool configToGLFormats(GrPixelConfig config,
+                           bool getSizedInternal,
+                           GrGLenum* internalFormat,
+                           GrGLenum* externalFormat,
+                           GrGLenum* externalType);
     
-    void allocateAndUploadTexData(const GrGLTexture::Desc& desc,
-                                  GrGLenum internalFormat,
-                                  const void* data,
-                                  size_t rowBytes);
+    bool uploadTexData(const GrGLTexture::Desc& desc,
+                       bool isNewTexture,
+                       int left, int top, int width, int height,
+                       GrPixelConfig dataConfig,
+                       const void* data,
+                       size_t rowBytes);
 
     bool createRenderTargetObjects(int width, int height,
                                    GrGLuint texID,
                                    GrGLRenderTarget::Desc* desc);
-
-    bool fboInternalFormat(GrPixelConfig config, GrGLenum* format);
 
     friend class GrGLVertexBuffer;
     friend class GrGLIndexBuffer;
@@ -202,43 +308,6 @@ private:
     
     SkString fExtensionString;
     GrGLVersion fGLVersion;
-
-    struct GLCaps {
-        
-        GLCaps() : fStencilFormats(8) {}
-        SkTArray<GrGLStencilBuffer::Format, true> fStencilFormats;
-
-        enum {
-            
-
-
-            kNone_MSFBO = 0,  
-            
-
-
-            kDesktopARB_MSFBO,
-            
-
-
-            kDesktopEXT_MSFBO,
-            
-
-
-            kAppleES_MSFBO,
-        } fMSFBOType;
-
-        
-        GrGLuint fAASamples[4];
-
-        
-        int fMaxFragmentUniformVectors;
-
-        
-        bool fRGBA8Renderbuffer;
-
-        void print() const;
-    } fGLCaps;
-
 
     
     

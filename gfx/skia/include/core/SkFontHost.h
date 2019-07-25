@@ -237,17 +237,6 @@ public:
 
 
 
-
-    static size_t ShouldPurgeFontCache(size_t sizeAllocatedSoFar);
-
-    
-
-
-    static int ComputeGammaFlag(const SkPaint& paint);
-
-    
-
-
     static void GetGammaTables(const uint8_t* tables[2]);
 
     
@@ -286,7 +275,7 @@ public:
     static void SetSubpixelOrder(LCDOrder order);
     static LCDOrder GetSubpixelOrder();
 
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     
 
     
@@ -297,6 +286,14 @@ public:
 
     static uint32_t GetUnitsPerEm(SkFontID fontID);
 #endif
+
+    
+
+
+
+
+
+    static void EnsureTypefaceAccessible(const SkTypeface& typeface);
 };
 
 #endif

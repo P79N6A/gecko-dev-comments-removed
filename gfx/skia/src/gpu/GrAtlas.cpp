@@ -9,6 +9,7 @@
 
 
 #include "GrAtlas.h"
+#include "GrContext.h"
 #include "GrGpu.h"
 #include "GrRectanizer.h"
 #include "GrPlotMgr.h"
@@ -109,7 +110,14 @@ bool GrAtlas::addSubImage(int width, int height, const void* image,
         image = storage.get();
     }
     adjustForPlot(loc, fPlot);
-    fTexture->uploadTextureData(loc->fX, loc->fY, dstW, dstH, image, 0);
+    GrContext* context = fTexture->getContext();
+    
+    
+    
+    context->internalWriteTexturePixels(fTexture, loc->fX, loc->fY,
+                                        dstW, dstH, fTexture->config(),
+                                        image, 0,
+                                        GrContext::kDontFlush_PixelOpsFlag);
 
     
     loc->fX += BORDER;
@@ -141,7 +149,7 @@ static GrPixelConfig maskformat2pixelconfig(GrMaskFormat format) {
         case kA565_GrMaskFormat:
             return kRGB_565_GrPixelConfig;
         case kA888_GrMaskFormat:
-            return kRGBA_8888_GrPixelConfig;
+            return kSkia8888_PM_GrPixelConfig;
         default:
             GrAssert(!"unknown maskformat");
     }

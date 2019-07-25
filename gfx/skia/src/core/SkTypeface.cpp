@@ -34,25 +34,25 @@ SkTypeface::~SkTypeface() {
 
 
 
+static SkTypeface* get_default_typeface() {
+    
+    
+    
+    static SkTypeface* gDefaultTypeface;
+
+    if (NULL == gDefaultTypeface) {
+        gDefaultTypeface =
+        SkFontHost::CreateTypeface(NULL, NULL, NULL, 0,
+                                   SkTypeface::kNormal);
+    }
+    return gDefaultTypeface;
+}
+
 uint32_t SkTypeface::UniqueID(const SkTypeface* face) {
-    if (face) {
-        return face->uniqueID();
+    if (NULL == face) {
+        face = get_default_typeface();
     }
-
-    
-    
-    
-    static uint32_t gDefaultFontID;
-
-    if (0 == gDefaultFontID) {
-        SkTypeface* defaultFace =
-                SkFontHost::CreateTypeface(NULL, NULL, NULL, 0,
-                                           SkTypeface::kNormal);
-        SkASSERT(defaultFace);
-        gDefaultFontID = defaultFace->uniqueID();
-        defaultFace->unref();
-    }
-    return gDefaultFontID;
+    return face->uniqueID();
 }
 
 bool SkTypeface::Equal(const SkTypeface* facea, const SkTypeface* faceb) {

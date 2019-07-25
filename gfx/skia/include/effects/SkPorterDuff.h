@@ -45,7 +45,7 @@ public:
         kMultiply_Mode, 
         kScreen_Mode,   
         kAdd_Mode,      
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
         kOverlay_Mode,
 #endif
 

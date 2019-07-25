@@ -10,10 +10,10 @@
 #ifndef SkPixelRef_DEFINED
 #define SkPixelRef_DEFINED
 
+#include "SkBitmap.h"
 #include "SkRefCnt.h"
 #include "SkString.h"
 
-class SkBitmap;
 class SkColorTable;
 struct SkIRect;
 class SkMutex;
@@ -22,6 +22,25 @@ class SkFlattenableWriteBuffer;
 
 
 class SkGpuTexture;
+
+#if SK_ALLOW_STATIC_GLOBAL_INITIALIZERS
+
+#define SK_DECLARE_PIXEL_REF_REGISTRAR() 
+
+#define SK_DEFINE_PIXEL_REF_REGISTRAR(pixelRef) \
+    static SkPixelRef::Registrar g##pixelRef##Reg(#pixelRef, \
+                                                  pixelRef::Create);
+                                                      
+#else
+
+#define SK_DECLARE_PIXEL_REF_REGISTRAR() static void Init();
+
+#define SK_DEFINE_PIXEL_REF_REGISTRAR(pixelRef) \
+    void pixelRef::Init() { \
+        SkPixelRef::Registrar(#pixelRef, Create); \
+    }
+
+#endif
 
 
 
@@ -119,12 +138,18 @@ public:
 
     
 
+
+
+    virtual SkPixelRef* deepCopy(SkBitmap::Config config) { return NULL; }
+
+    
+
     typedef SkPixelRef* (*Factory)(SkFlattenableReadBuffer&);
 
     virtual Factory getFactory() const { return NULL; }
     virtual void flatten(SkFlattenableWriteBuffer&) const;
 
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
     
 
 
@@ -181,6 +206,10 @@ protected:
     SkPixelRef(SkFlattenableReadBuffer&, SkMutex*);
 
 private:
+#if !SK_ALLOW_STATIC_GLOBAL_INITIALIZERS
+    static void InitializeFlattenables();
+#endif
+
     SkMutex*        fMutex; 
     void*           fPixels;
     SkColorTable*   fColorTable;    
@@ -192,6 +221,8 @@ private:
 
     
     bool    fIsImmutable;
+
+    friend class SkGraphics;
 };
 
 #endif

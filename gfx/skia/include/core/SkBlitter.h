@@ -17,15 +17,32 @@
 #include "SkRegion.h"
 #include "SkMask.h"
 
+
+
+
 class SkBlitter {
 public:
     virtual ~SkBlitter();
 
+    
     virtual void blitH(int x, int y, int width);
-    virtual void blitAntiH(int x, int y, const SkAlpha* antialias,
-                           const int16_t* runs);
+    
+    
+    virtual void blitAntiH(int x, int y, const SkAlpha antialias[],
+                           const int16_t runs[]);
+    
     virtual void blitV(int x, int y, int height, SkAlpha alpha);
+    
     virtual void blitRect(int x, int y, int width, int height);
+    
+
+
+
+
+    virtual void blitAntiRect(int x, int y, int width, int height,
+                              SkAlpha leftAlpha, SkAlpha rightAlpha);
+    
+    
     virtual void blitMask(const SkMask&, const SkIRect& clip);
 
     
@@ -38,8 +55,11 @@ public:
     void blitMaskRegion(const SkMask& mask, const SkRegion& clip);
     void blitRectRegion(const SkIRect& rect, const SkRegion& clip);
     void blitRegion(const SkRegion& clip);
+    
 
     
+
+
     static SkBlitter* Choose(const SkBitmap& device,
                              const SkMatrix& matrix,
                              const SkPaint& paint) {
@@ -56,6 +76,7 @@ public:
                                    const SkBitmap& src,
                                    int left, int top,
                                    void* storage, size_t storageSize);
+    
 
 private:
 };
@@ -85,12 +106,13 @@ public:
         fClipRect = clipRect;
     }
 
-    
     virtual void blitH(int x, int y, int width) SK_OVERRIDE;
     virtual void blitAntiH(int x, int y, const SkAlpha[],
                            const int16_t runs[]) SK_OVERRIDE;
     virtual void blitV(int x, int y, int height, SkAlpha alpha) SK_OVERRIDE;
     virtual void blitRect(int x, int y, int width, int height) SK_OVERRIDE;
+    virtual void blitAntiRect(int x, int y, int width, int height,
+                     SkAlpha leftAlpha, SkAlpha rightAlpha) SK_OVERRIDE;
     virtual void blitMask(const SkMask&, const SkIRect& clip) SK_OVERRIDE;
     virtual const SkBitmap* justAnOpaqueColor(uint32_t* value) SK_OVERRIDE;
 
@@ -111,12 +133,13 @@ public:
         fRgn = clipRgn;
     }
 
-    
     virtual void blitH(int x, int y, int width) SK_OVERRIDE;
     virtual void blitAntiH(int x, int y, const SkAlpha[],
                            const int16_t runs[]) SK_OVERRIDE;
     virtual void blitV(int x, int y, int height, SkAlpha alpha) SK_OVERRIDE;
     virtual void blitRect(int x, int y, int width, int height) SK_OVERRIDE;
+    virtual void blitAntiRect(int x, int y, int width, int height,
+                     SkAlpha leftAlpha, SkAlpha rightAlpha) SK_OVERRIDE;
     virtual void blitMask(const SkMask&, const SkIRect& clip) SK_OVERRIDE;
     virtual const SkBitmap* justAnOpaqueColor(uint32_t* value) SK_OVERRIDE;
 
@@ -124,6 +147,10 @@ private:
     SkBlitter*      fBlitter;
     const SkRegion* fRgn;
 };
+
+
+
+
 
 class SkBlitterClipper {
 public:

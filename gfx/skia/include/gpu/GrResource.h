@@ -13,6 +13,7 @@
 #include "GrRefCnt.h"
 
 class GrGpu;
+class GrContext;
 
 class GrResource : public GrRefCnt {
 public:
@@ -54,6 +55,15 @@ public:
 
 
      virtual size_t sizeInBytes() const = 0;
+
+     
+
+
+
+
+
+     const GrContext* getContext() const;
+     GrContext* getContext();
 
 protected:
 

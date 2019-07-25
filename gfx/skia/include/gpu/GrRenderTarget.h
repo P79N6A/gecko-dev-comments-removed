@@ -48,20 +48,6 @@ public:
 
 
 
-    int allocatedWidth() const { return fAllocatedWidth; }
-
-    
-
-
-
-
-    int allocatedHeight() const { return fAllocatedHeight; }
-
-    
-
-
-
-
     GrPixelConfig config() const { return fConfig; }
 
     
@@ -141,8 +127,25 @@ public:
 
 
 
+
+
     bool readPixels(int left, int top, int width, int height,
-                    GrPixelConfig config, void* buffer);
+                    GrPixelConfig config, void* buffer, size_t rowBytes);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+    void writePixels(int left, int top, int width, int height,
+                     GrPixelConfig config, const void* buffer, size_t rowBytes);
 
     
     
@@ -165,8 +168,6 @@ protected:
                    GrTexture* texture,
                    int width,
                    int height,
-                   int allocatedWidth,
-                   int allocatedHeight,
                    GrPixelConfig config,
                    int sampleCnt)
         : INHERITED(gpu)
@@ -174,8 +175,6 @@ protected:
         , fTexture(texture)
         , fWidth(width)
         , fHeight(height)
-        , fAllocatedWidth(allocatedWidth)
-        , fAllocatedHeight(allocatedHeight)
         , fConfig(config)
         , fSampleCnt(sampleCnt) {
         fResolveRect.setLargestInverted();
@@ -197,8 +196,6 @@ private:
     GrTexture*        fTexture; 
     int               fWidth;
     int               fHeight;
-    int               fAllocatedWidth;
-    int               fAllocatedHeight;
     GrPixelConfig     fConfig;
     int               fSampleCnt;
     GrIRect           fResolveRect;

@@ -91,7 +91,17 @@ public:
     }
 
     bool isEmpty() const { return fCount == 0; }
+
+    
+
+
     int count() const { return fCount; }
+
+    
+
+
+    size_t bytes() const { return fCount * sizeof(T); }
+
     T*  begin() const { return fArray; }
     T*  end() const { return fArray ? fArray + fCount : NULL; }
     T&  operator[](int index) const {

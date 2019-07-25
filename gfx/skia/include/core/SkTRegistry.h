@@ -21,7 +21,7 @@ public:
     typedef T (*Factory)(P);
 
     SkTRegistry(Factory fact) {
-#ifdef ANDROID
+#ifdef SK_BUILD_FOR_ANDROID
         
         {
             SkTRegistry* reg = gHead;
