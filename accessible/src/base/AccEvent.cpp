@@ -39,9 +39,9 @@
 
 #include "AccEvent.h"
 
+#include "ApplicationAccessibleWrap.h"
 #include "nsAccessibilityService.h"
 #include "nsAccUtils.h"
-#include "nsApplicationAccessibleWrap.h"
 #include "nsDocAccessible.h"
 #include "nsIAccessibleText.h"
 #include "nsAccEvent.h"
@@ -155,7 +155,7 @@ AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
     
     
     
-    nsApplicationAccessible *applicationAcc =
+    ApplicationAccessible* applicationAcc =
       nsAccessNode::GetApplicationAccessible();
 
     if (mAccessible != static_cast<nsIAccessible*>(applicationAcc))

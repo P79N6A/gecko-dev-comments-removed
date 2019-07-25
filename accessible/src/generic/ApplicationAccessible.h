@@ -40,8 +40,8 @@
 
 
 
-#ifndef __NS_APPLICATION_ACCESSIBLE_H__
-#define __NS_APPLICATION_ACCESSIBLE_H__
+#ifndef MOZILLA_A11Y_APPLICATION_ACCESSIBLE_H__
+#define MOZILLA_A11Y_APPLICATION_ACCESSIBLE_H__
 
 #include "nsAccessibleWrap.h"
 #include "nsIAccessibleApplication.h"
@@ -59,12 +59,12 @@
 
 
 
-class nsApplicationAccessible: public nsAccessibleWrap,
-                               public nsIAccessibleApplication
+class ApplicationAccessible: public nsAccessibleWrap,
+                             public nsIAccessibleApplication
 {
 public:
 
-  nsApplicationAccessible();
+  ApplicationAccessible();
 
   
   NS_DECL_ISUPPORTS_INHERITED

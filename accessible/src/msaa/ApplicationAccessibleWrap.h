@@ -38,15 +38,15 @@
 
 
 
-#ifndef __NS_APPLICATION_ACCESSIBLE_WRAP_H__
-#define __NS_APPLICATION_ACCESSIBLE_WRAP_H__
+#ifndef MOZILLA_A11Y_APPLICATION_ACCESSIBLE_WRAP_H__
+#define MOZILLA_A11Y_APPLICATION_ACCESSIBLE_WRAP_H__
 
-#include "nsApplicationAccessible.h"
+#include "ApplicationAccessible.h"
 
 #include "AccessibleApplication.h"
 
-class nsApplicationAccessibleWrap: public nsApplicationAccessible,
-                                   public IAccessibleApplication
+class ApplicationAccessibleWrap: public ApplicationAccessible,
+                                 public IAccessibleApplication
 {
 public:
   

@@ -38,7 +38,7 @@
 
 
 
-#include "nsApplicationAccessibleWrap.h"
+#include "ApplicationAccessibleWrap.h"
 
 #include "nsCOMPtr.h"
 #include "nsMai.h"
@@ -466,25 +466,19 @@ mai_util_remove_key_event_listener (guint remove_listener)
     }
 }
 
-AtkObject *
+AtkObject*
 mai_util_get_root(void)
 {
-    if (nsAccessibilityService::IsShutdown()) {
-        
-        
-        if (gail_get_root)
-            return gail_get_root();
-
-        return nsnull;
-    }
-
-    nsApplicationAccessible *applicationAcc =
-        nsAccessNode::GetApplicationAccessible();
-
-    if (applicationAcc)
-        return applicationAcc->GetAtkObject();
+  if (nsAccessibilityService::IsShutdown()) {
+    
+    
+    if (gail_get_root)
+      return gail_get_root();
 
     return nsnull;
+  }
+
+  return nsAccessNode::GetApplicationAccessible()->GetAtkObject();
 }
 
 G_CONST_RETURN gchar *
@@ -552,13 +546,13 @@ static nsresult LoadGtkModule(GnomeAccessibilityModule& aModule);
 
 
 
-nsApplicationAccessibleWrap::nsApplicationAccessibleWrap():
-    nsApplicationAccessible()
+ApplicationAccessibleWrap::ApplicationAccessibleWrap():
+  ApplicationAccessible()
 {
-    MAI_LOG_DEBUG(("======Create AppRootAcc=%p\n", (void*)this));
+  MAI_LOG_DEBUG(("======Create AppRootAcc=%p\n", (void*)this));
 }
 
-nsApplicationAccessibleWrap::~nsApplicationAccessibleWrap()
+ApplicationAccessibleWrap::~ApplicationAccessibleWrap()
 {
     MAI_LOG_DEBUG(("======Destory AppRootAcc=%p\n", (void*)this));
     nsAccessibleWrap::ShutdownAtkObject();
@@ -613,7 +607,7 @@ toplevel_event_watcher(GSignalInvocationHint* ihint,
 }
 
 bool
-nsApplicationAccessibleWrap::Init()
+ApplicationAccessibleWrap::Init()
 {
     if (ShouldA11yBeEnabled()) {
         
@@ -655,11 +649,11 @@ nsApplicationAccessibleWrap::Init()
         }
     }
 
-    return nsApplicationAccessible::Init();
+    return ApplicationAccessible::Init();
 }
 
 void
-nsApplicationAccessibleWrap::Unload()
+ApplicationAccessibleWrap::Unload()
 {
     if (sToplevel_event_hook_added) {
       sToplevel_event_hook_added = false;
@@ -697,7 +691,7 @@ nsApplicationAccessibleWrap::Unload()
 }
 
 NS_IMETHODIMP
-nsApplicationAccessibleWrap::GetName(nsAString& aName)
+ApplicationAccessibleWrap::GetName(nsAString& aName)
 {
   
   
@@ -707,7 +701,7 @@ nsApplicationAccessibleWrap::GetName(nsAString& aName)
 }
 
 NS_IMETHODIMP
-nsApplicationAccessibleWrap::GetNativeInterface(void **aOutAccessible)
+ApplicationAccessibleWrap::GetNativeInterface(void** aOutAccessible)
 {
     *aOutAccessible = nsnull;
 
@@ -745,9 +739,9 @@ gboolean fireRootAccessibleAddedCB(gpointer data)
 }
 
 bool
-nsApplicationAccessibleWrap::AppendChild(nsAccessible *aChild)
+ApplicationAccessibleWrap::AppendChild(nsAccessible* aChild)
 {
-    if (!nsApplicationAccessible::AppendChild(aChild))
+    if (!ApplicationAccessible::AppendChild(aChild))
       return false;
 
     AtkObject *atkAccessible = nsAccessibleWrap::GetAtkObject(aChild);
@@ -772,7 +766,7 @@ nsApplicationAccessibleWrap::AppendChild(nsAccessible *aChild)
 }
 
 bool
-nsApplicationAccessibleWrap::RemoveChild(nsAccessible* aChild)
+ApplicationAccessibleWrap::RemoveChild(nsAccessible* aChild)
 {
     PRInt32 index = aChild->IndexInParent();
 
@@ -781,11 +775,11 @@ nsApplicationAccessibleWrap::RemoveChild(nsAccessible* aChild)
     g_signal_emit_by_name(mAtkObject, "children_changed::remove", index,
                           atkAccessible, NULL);
 
-    return nsApplicationAccessible::RemoveChild(aChild);
+    return ApplicationAccessible::RemoveChild(aChild);
 }
 
 void
-nsApplicationAccessibleWrap::PreCreate()
+ApplicationAccessibleWrap::PreCreate()
 {
     if (!sATKChecked) {
         sATKLib = PR_LoadLibrary(sATKLibName);

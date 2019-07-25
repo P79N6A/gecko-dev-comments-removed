@@ -38,7 +38,6 @@
 
 
 #include "nsAccessNodeWrap.h"
-#include "nsApplicationAccessibleWrap.h"
 
 
 

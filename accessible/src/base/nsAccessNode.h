@@ -53,8 +53,8 @@
 #include "nsIStringBundle.h"
 #include "nsWeakReference.h"
 
+class ApplicationAccessible;
 class nsAccessNode;
-class nsApplicationAccessible;
 class nsDocAccessible;
 class nsIAccessibleDocument;
 class nsRootAccessible;
@@ -83,7 +83,7 @@ public:
   
 
 
-  static nsApplicationAccessible* GetApplicationAccessible();
+  static ApplicationAccessible* GetApplicationAccessible();
 
   
 
@@ -174,7 +174,7 @@ private:
   nsAccessNode(const nsAccessNode&) MOZ_DELETE;
   nsAccessNode& operator =(const nsAccessNode&) MOZ_DELETE;
   
-  static nsApplicationAccessible *gApplicationAccessible;
+  static ApplicationAccessible* gApplicationAccessible;
 };
 
 #endif
