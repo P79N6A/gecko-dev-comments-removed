@@ -359,6 +359,9 @@ nsDOMStorageDBWrapper::CreateDomainScopeDBKey(nsIURI* aUri, nsACString& aKey)
         (NS_SUCCEEDED(aUri->SchemeIs("moz-safe-about", &isAboutUrl)) && isAboutUrl)) {
       rv = aUri->GetPath(domainScope);
       NS_ENSURE_SUCCESS(rv, rv);
+      
+      
+      ToLowerCase(domainScope);
     }
   }
 
