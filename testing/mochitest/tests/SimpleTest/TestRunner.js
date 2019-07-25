@@ -199,6 +199,20 @@ TestRunner._makeIframe = function (url, retry) {
 
 
 
+TestRunner.getLoadedTestURL = function () {
+    var prefix = "";
+    
+    if ($('testframe').contentWindow.location.protocol == "chrome:") {
+      prefix = "chrome://mochitests";
+    }
+    return prefix + $('testframe').contentWindow.location.pathname;
+};
+
+
+
+
+
+
 
 TestRunner.runTests = function () {
     TestRunner.log("SimpleTest START");
@@ -367,9 +381,17 @@ TestRunner.testFinished = function(tests) {
     }
 
     function runNextTest() {
+        if (TestRunner.currentTestURL != TestRunner.getLoadedTestURL()) {
+            TestRunner.log("TEST-UNEXPECTED-FAIL | " +
+                           TestRunner.currentTestURL +
+                           " | finished in a non-clean fashion (in " +
+                           TestRunner.getLoadedTestURL() + ")");
+            tests.push({ result: false });
+        }
+
         var runtime = new Date().valueOf() - TestRunner._currentTestStartTime;
         TestRunner.log("TEST-END | " +
-                       TestRunner._urls[TestRunner._currentTest] +
+                       TestRunner.currentTestURL +
                        " | finished in " + runtime + "ms");
 
         TestRunner.updateUI(tests);
