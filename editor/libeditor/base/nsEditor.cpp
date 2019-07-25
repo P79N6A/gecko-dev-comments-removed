@@ -727,6 +727,7 @@ nsEditor::EnableUndo(bool aEnable)
     if (!mTxnMgr) {
       mTxnMgr = new nsTransactionManager();
     }
+    mTxnMgr->SetMaxTransactionCount(-1);
   } else if (mTxnMgr) {
     
     mTxnMgr->Clear();
