@@ -879,7 +879,7 @@ WeaveSvc.prototype = {
       
       
       Sync.sleep(15000);
-      
+
       
       if (!this._verifyLogin()) {
         Status.sync = CREDENTIALS_CHANGED;
@@ -1077,7 +1077,7 @@ WeaveSvc.prototype = {
       if (info && info.success) {
         
         
-        this._log.trace("Remote timestamp:" + info.obj["clients"] + 
+        this._log.trace("Remote timestamp:" + info.obj["clients"] +
                         " Local timestamp: " + Clients.lastSync);
         if (info.obj["clients"] > Clients.lastSync) {
           this._log.debug("New clients detected, triggering a full sync");
@@ -1092,7 +1092,7 @@ WeaveSvc.prototype = {
     } catch(ex) {
       
       this._log.debug("Heartbeat failed unexpectedly: " + ex);
-    } 
+    }
 
     
     this._scheduleHeartbeat();
@@ -1109,7 +1109,7 @@ WeaveSvc.prototype = {
         Status.enforceBackoff)
       return;
 
-    this._log.trace("Setting up heartbeat, next ping in " + 
+    this._log.trace("Setting up heartbeat, next ping in " +
                     Math.ceil(interval / 1000) + " sec.");
     Utils.delay(function() this._doHeartbeat(), interval, this, "_heartbeatTimer");
   },
