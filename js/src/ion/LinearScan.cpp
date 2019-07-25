@@ -401,9 +401,11 @@ void
 LinearScanAllocator::addSpillInterval(LInstruction *ins, const Requirement &req)
 {
     LiveInterval *bogus = new LiveInterval(NULL, 0);
+
     bogus->addRange(inputOf(ins), outputOf(ins));
     bogus->setRequirement(req);
-    unhandled.enqueue(bogus); 
+
+    unhandled.enqueueAtHead(bogus);
 }
 
 
@@ -499,8 +501,7 @@ LinearScanAllocator::buildLivenessInfo()
                 vregs[temp].getInterval(0)->addRange(inputOf(*ins), outputOf(*ins));
             }
 
-            for (LInstruction::InputIterator alloc(**ins); alloc.more(); alloc.next())
-            {
+            for (LInstruction::InputIterator alloc(**ins); alloc.more(); alloc.next()) {
                 if (alloc->isUse()) {
                     LUse *use = alloc->toUse();
 
@@ -596,6 +597,35 @@ LinearScanAllocator::buildLivenessInfo()
 
 
 
+void
+LinearScanAllocator::enqueueVirtualRegisterIntervals()
+{
+    
+    IntervalReverseIterator curr = unhandled.rbegin();
+
+    
+    for (size_t i = 1; i < graph.numVirtualRegisters(); i++) {
+        LiveInterval *live = vregs[i].getInterval(0);
+        if (live->numRanges() > 0) {
+            setIntervalRequirement(live);
+
+            
+            for (; curr != unhandled.rend(); curr++) {
+                if (curr->start() > live->start())
+                    break;
+            }
+
+            
+            
+            unhandled.enqueueForward(*curr, live);
+        }
+    }
+}
+
+
+
+
+
 
 
 
@@ -616,13 +646,11 @@ bool
 LinearScanAllocator::allocateRegisters()
 {
     
-    for (size_t i = 1; i < graph.numVirtualRegisters(); i++) {
-        LiveInterval *live = vregs[i].getInterval(0);
-        if (live->numRanges() > 0) {
-            setIntervalRequirement(live);
-            unhandled.enqueue(live);
-        }
-    }
+    
+    
+    
+    enqueueVirtualRegisterIntervals();
+    unhandled.assertSorted();
 
     
     while ((current = unhandled.dequeue()) != NULL) {
@@ -838,20 +866,16 @@ bool
 LinearScanAllocator::reifyAllocations()
 {
     
-    unhandled.enqueue(inactive);
-    unhandled.enqueue(active);
-    unhandled.enqueue(handled);
-
-    
-    LiveInterval *interval;
-    while ((interval = unhandled.dequeue()) != NULL) {
-        VirtualRegister *reg = interval->reg();
-
-        
-        if (!reg)
+    for (size_t j = 1; j < graph.numVirtualRegisters(); j++) {
+        VirtualRegister *reg = &vregs[j];
+    for (size_t k = 0; k < reg->numIntervals(); k++) {
+        LiveInterval *interval = reg->getInterval(k);
+        JS_ASSERT(reg == interval->reg());
+        if (!interval->numRanges())
             continue;
 
-        for (UsePositionIterator usePos(interval->usesBegin()); usePos != interval->usesEnd(); usePos++) {
+        UsePositionIterator usePos(interval->usesBegin());
+        for (; usePos != interval->usesEnd(); usePos++) {
             JS_ASSERT(UseCompatibleWith(usePos->use, *interval->getAllocation()));
             *static_cast<LAllocation *>(usePos->use) = *interval->getAllocation();
         }
@@ -940,7 +964,7 @@ LinearScanAllocator::reifyAllocations()
                 safepoint->addLiveRegister(a->toRegister());
             }
         }
-    }
+    }} 
 
     
     graph.setLocalSlotCount(stackSlotAllocator.stackHeight());
@@ -1134,7 +1158,11 @@ LinearScanAllocator::splitInterval(LiveInterval *interval, CodePosition pos)
     
     
     setIntervalRequirement(newInterval);
-    unhandled.enqueue(newInterval);
+
+    
+    
+    
+    unhandled.enqueueBackward(newInterval);
 
     return true;
 }
@@ -1840,10 +1868,35 @@ LinearScanAllocator::setIntervalRequirement(LiveInterval *interval)
 
 
 
+
+
 void
-LinearScanAllocator::UnhandledQueue::enqueue(LiveInterval *interval)
+LinearScanAllocator::UnhandledQueue::enqueueBackward(LiveInterval *interval)
 {
-    IntervalIterator i(begin());
+    IntervalReverseIterator i(rbegin()); 
+
+    for (; i != rend(); i++) {
+        if (i->start() > interval->start())
+            break;
+        if (i->start() == interval->start() &&
+            i->requirement()->priority() >= interval->requirement()->priority())
+        {
+            break;
+        }
+    }
+    insertAfter(*i, interval);
+}
+
+
+
+
+
+void
+LinearScanAllocator::UnhandledQueue::enqueueForward(LiveInterval *after, LiveInterval *interval)
+{
+    IntervalIterator i(begin(after));
+    i++; 
+
     for (; i != end(); i++) {
         if (i->start() < interval->start())
             break;
@@ -1854,6 +1907,42 @@ LinearScanAllocator::UnhandledQueue::enqueue(LiveInterval *interval)
         }
     }
     insertBefore(*i, interval);
+}
+
+
+
+
+void
+LinearScanAllocator::UnhandledQueue::enqueueAtHead(LiveInterval *interval)
+{
+#ifdef DEBUG
+    
+    
+    if (!empty()) {
+        LiveInterval *back = peekBack();
+        JS_ASSERT(back->start() >= interval->start());
+        JS_ASSERT_IF(back->start() == interval->start(),
+                     back->requirement()->priority() >= interval->requirement()->priority());
+    }
+#endif
+
+    pushBack(interval);
+}
+
+void
+LinearScanAllocator::UnhandledQueue::assertSorted()
+{
+#ifdef DEBUG
+    LiveInterval *prev = NULL;
+    for (IntervalIterator i(begin()); i != end(); i++) {
+        if (prev) {
+            JS_ASSERT(prev->start() >= i->start());
+            JS_ASSERT_IF(prev->start() == i->start(),
+                         prev->requirement()->priority() >= i->requirement()->priority());
+        }
+        prev = *i;
+    }
+#endif
 }
 
 LiveInterval *
