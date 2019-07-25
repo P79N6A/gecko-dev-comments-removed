@@ -66,30 +66,7 @@ Identity.prototype = {
   get username() { return this._username; },
   set username(value) { this._username = value; },
 
-  get userHash() {
-    
-
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].
-      createInstance(Ci.nsIScriptableUnicodeConverter);
-    converter.charset = "UTF-8";
-
-    let hasher = Cc["@mozilla.org/security/hash;1"]
-      .createInstance(Ci.nsICryptoHash);
-    hasher.init(hasher.SHA1);
-
-    let data = converter.convertToByteArray(this.username, {});
-    hasher.update(data, data.length);
-    let rawHash = hasher.finish(false);
-
-    
-    function toHexString(charCode) {
-      return ("0" + charCode.toString(16)).slice(-2);
-    }
-
-    let hash = [toHexString(rawHash.charCodeAt(i)) for (i in rawHash)].join("");
-    
-    return hash;
-  },
+  get userHash() { return Utils.sha1(this.username); },
 
   _privkey: null,
   get privkey() { return this._privkey; },
