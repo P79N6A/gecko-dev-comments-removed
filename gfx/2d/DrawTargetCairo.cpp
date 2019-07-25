@@ -118,6 +118,51 @@ PatternIsCompatible(const Pattern& aPattern)
   }
 }
 
+static cairo_user_data_key_t surfaceDataKey;
+
+void
+ReleaseData(void* aData)
+{
+  static_cast<DataSourceSurface*>(aData)->Release();
+}
+
+
+
+
+
+
+
+
+cairo_surface_t*
+GetCairoSurfaceForSourceSurface(SourceSurface *aSurface)
+{
+  if (aSurface->GetType() == SURFACE_CAIRO) {
+    cairo_surface_t* surf = static_cast<SourceSurfaceCairo*>(aSurface)->GetSurface();
+    cairo_surface_reference(surf);
+    return surf;
+  }
+
+  if (aSurface->GetType() == SURFACE_CAIRO_IMAGE) {
+    cairo_surface_t* surf =
+      static_cast<const DataSourceSurfaceCairo*>(aSurface)->GetSurface();
+    cairo_surface_reference(surf);
+    return surf;
+  }
+
+  RefPtr<DataSourceSurface> data = aSurface->GetDataSurface();
+  cairo_surface_t* surf =
+    cairo_image_surface_create_for_data(data->GetData(),
+                                        GfxFormatToCairoFormat(data->GetFormat()),
+                                        data->GetSize().width,
+                                        data->GetSize().height,
+                                        data->Stride());
+  cairo_surface_set_user_data(surf,
+ 				                      &surfaceDataKey,
+ 				                      data.forget().drop(),
+ 				                      ReleaseData);
+  return surf;
+}
+
 
 
 
@@ -142,28 +187,7 @@ GfxPatternToCairoPattern(const Pattern& aPattern, Float aAlpha)
     case PATTERN_SURFACE:
     {
       const SurfacePattern& pattern = static_cast<const SurfacePattern&>(aPattern);
-      cairo_surface_t* surf;
-
-      
-      
-      
-      if (pattern.mSurface->GetType() == SURFACE_CAIRO) {
-        const SourceSurfaceCairo* source = static_cast<const SourceSurfaceCairo*>(pattern.mSurface.get());
-        surf = source->GetSurface();
-        cairo_surface_reference(surf);
-      } else if (pattern.mSurface->GetType() == SURFACE_CAIRO_IMAGE) {
-        const DataSourceSurfaceCairo* source =
-          static_cast<const DataSourceSurfaceCairo*>(pattern.mSurface.get());
-        surf = source->GetSurface();
-        cairo_surface_reference(surf);
-      } else {
-        RefPtr<DataSourceSurface> source = pattern.mSurface->GetDataSurface();
-        surf = cairo_image_surface_create_for_data(source->GetData(),
-                                                   GfxFormatToCairoFormat(source->GetFormat()),
-                                                   source->GetSize().width,
-                                                   source->GetSize().height,
-                                                   source->Stride());
-      }
+      cairo_surface_t* surf = GetCairoSurfaceForSourceSurface(pattern.mSurface);
 
       pat = cairo_pattern_create_for_surface(surf);
       cairo_pattern_set_filter(pat, GfxFilterToCairoFilter(pattern.mFilter));
@@ -296,44 +320,6 @@ void
 DrawTargetCairo::PrepareForDrawing(cairo_t* aContext, const Path* aPath )
 {
   WillChange(aPath);
-}
-
-static cairo_user_data_key_t surfaceDataKey;
-
-void
-ReleaseData(void* aData)
-{
-  static_cast<DataSourceSurface*>(aData)->Release();
-}
-
-
-
-
-
-
-
-
-cairo_surface_t*
-GetCairoSurfaceForSourceSurface(SourceSurface *aSurface)
-{
-  if (aSurface->GetType() == SURFACE_CAIRO) {
-    cairo_surface_t* surf = static_cast<SourceSurfaceCairo*>(aSurface)->GetSurface();
-    cairo_surface_reference(surf);
-    return surf;
-  } else {
-    RefPtr<DataSourceSurface> data = aSurface->GetDataSurface();
-    cairo_surface_t* surf =
-      cairo_image_surface_create_for_data(data->GetData(),
-                                          GfxFormatToCairoFormat(data->GetFormat()),
-                                          data->GetSize().width,
-                                          data->GetSize().height,
-                                          data->Stride());
-    cairo_surface_set_user_data(surf,
-                                 &surfaceDataKey,
-                                 data.forget(),
-                                 ReleaseData);
-    return surf;
-  }
 }
 
 void
