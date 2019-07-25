@@ -83,15 +83,29 @@ function test() {
     is(fm.getFocusedElementForWindow(browser1.contentWindow, false, {}), null, "blur in unfocused tab");
 
     
+    expectFocusShift(function () gBrowser.selectedTab.focus(),
+                     window, gBrowser.selectedTab, true,
+                     "focusing tab element");
+    expectFocusShift(function () gBrowser.selectedTab = tab1,
+                     window, tab1, true,
+                     "tab change when selected tab element was focused");
+    expectFocusShift(function () gBrowser.selectedTab = tab2,
+                     window, tab2, true,
+                     "tab change when selected tab element was focused");
+    expectFocusShift(function () gBrowser.selectedTab.blur(),
+                     window, null, true,
+                     "blurring tab element");
+
+    
     
     button1.focus();
     expectFocusShift(function () gURLBar.focus(),
                      window, gURLBar.inputField, true,
                      "focusedWindow after url field focused");
-    is(fm.getFocusedElementForWindow(browser2.contentWindow, false, {}), button2, "url field focused, button in tab");
+    is(fm.getFocusedElementForWindow(browser2.contentWindow, false, {}), button2, "url field focused, button in browser");
     expectFocusShift(function () gURLBar.blur(),
                      window, null, true,
-                     "focusedWindow after browser focused");
+                     "blurring url field");
 
     
     
