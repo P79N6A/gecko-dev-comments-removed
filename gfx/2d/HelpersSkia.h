@@ -118,22 +118,29 @@ StrokeOptionsToPaint(SkPaint& aPaint, const StrokeOptions &aOptions)
   aPaint.setStrokeCap(CapStyleToSkiaCap(aOptions.mLineCap));
   aPaint.setStrokeJoin(JoinStyleToSkiaJoin(aOptions.mLineJoin));
 
-  
-  
-  
-  MOZ_ASSERT(aOptions.mDashLength % 2 == 0);
-  if (aOptions.mDashLength > 1) {
-    std::vector<SkScalar> pattern;
-    pattern.resize(aOptions.mDashLength);
-    for (uint32_t i = 0; i < aOptions.mDashLength; i++) {
-      pattern[i] = SkFloatToScalar(aOptions.mDashPattern[i]);
-    }
+  if (aOptions.mDashLength > 0) {
     
-    SkDashPathEffect* dash = new SkDashPathEffect(&pattern.front(), 
-                                                  aOptions.mDashLength, 
+    uint32_t dashCount;
+
+    if (aOptions.mDashLength % 2 == 0) {
+      dashCount = aOptions.mDashLength;
+    } else {
+      dashCount = aOptions.mDashLength * 2;
+    }
+
+    std::vector<SkScalar> pattern;
+    pattern.resize(dashCount);
+
+    for (uint32_t i = 0; i < dashCount; i++) {
+      pattern[i] = SkFloatToScalar(aOptions.mDashPattern[i % aOptions.mDashLength]);
+    }
+
+    SkDashPathEffect* dash = new SkDashPathEffect(&pattern.front(),
+                                                  dashCount, 
                                                   SkFloatToScalar(aOptions.mDashOffset));
     SkSafeUnref(aPaint.setPathEffect(dash));
   }
+
   aPaint.setStyle(SkPaint::kStroke_Style);
   return true;
 }
