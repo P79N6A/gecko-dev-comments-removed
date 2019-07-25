@@ -1458,15 +1458,6 @@ mjit::Compiler::emitReturn()
     stubcc.masm.ret();
 
     
-    Jump debugHook = masm.branchPtr(Assembler::NotEqual,
-                                    Address(JSFrameReg, offsetof(JSStackFrame, hookData)),
-                                    ImmPtr(0));
-    stubcc.linkExit(debugHook);
-    stubcc.leave();
-    stubcc.call(stubs::DebugHook);
-    stubcc.rejoin(0);
-
-    
     if (script->staticLevel < JS_DISPLAY_SIZE) {
         RegisterID t1 = frame.allocReg();
         masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), t0);
