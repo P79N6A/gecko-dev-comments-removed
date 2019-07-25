@@ -36,6 +36,14 @@ public:
     mIsNull = false;
   }
 
+  
+  
+  
+  T& SetValue() {
+    mIsNull = false;
+    return mValue;
+  }
+
   void SetNull() {
     mIsNull = true;
   }
