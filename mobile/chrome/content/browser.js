@@ -1253,6 +1253,7 @@ var Browser = {
 Browser.MainDragger = function MainDragger(browserView) {
   this.bv = browserView;
   this.draggedFrame = null;
+  this.contentScrollbox = null;
 };
 
 Browser.MainDragger.prototype = {
@@ -1264,6 +1265,44 @@ Browser.MainDragger.prototype = {
     let element = Browser.elementFromPoint(x, y);
 
     this.draggedFrame = null;
+    this.contentScrollbox = null;
+    
+    
+    if (element && element instanceof HTMLElement) {
+      let win = element.ownerDocument.defaultView; 
+      for (; element; element = element.parentNode) {
+        try {
+          let cs = win.getComputedStyle(element, null);
+          let overflow = cs.getPropertyValue("overflow");
+          let cbr = element.getBoundingClientRect();
+          if ((overflow == "scroll") ||
+              (overflow == "auto" && (cbr.height < target.scrollHeight || cbr.width < target.scrollWidth))) {
+            this.contentScrollbox = this._createDivScrollBox(element);
+            return;
+          }
+        } catch(e) {}
+      }
+    }
+    
+    
+    if (element && element instanceof XULElement) {
+      for (; element; element = element.parentNode) {
+        if (element.localName == "treechildren") {
+          this.contentScrollbox = this._createTreeScrollBox(element.parentNode);
+          return;
+        }
+        let wrapper = element.wrappedJSObject;
+        let scrollable = false;
+        try {
+          scrollable = (wrapper.scrollBoxObject != null) || (wrapper.boxObject.QueryInterface(Ci.nsIScrollBoxObject));
+        } catch(e) {}
+        if (scrollable) {
+          this.contentScrollbox = wrapper.scrollBoxObject || wrapper.boxObject.QueryInterface(Ci.nsIScrollBoxObject);
+          return;
+        }
+      }
+    }
+    
     if (element)
       this.draggedFrame = element.ownerDocument.defaultView;
 
@@ -1290,6 +1329,11 @@ Browser.MainDragger.prototype = {
     let panOffset = this._panControlsAwayOffset(doffset);
 
     
+    if (this.contentScrollbox && !doffset.isZero()) {
+        this._panScrollbox(this.contentScrollbox, doffset);
+    }
+    
+    
     if (elem) {
       while (elem.frameElement && !doffset.isZero()) {
         this._panFrame(elem, doffset);
@@ -1315,7 +1359,80 @@ Browser.MainDragger.prototype = {
 
     return !doffset.equals(dx, dy);
   },
+  
+  
 
+
+  _createDivScrollBox: function(div) {
+    let sbo = {
+     getScrolledSize: function(width, height) {
+       width.value = div.scrollWidth;
+       height.value = div.scrollHeight;
+     },
+     
+     getPosition: function(x, y) {
+       x.value = div.scrollLeft;
+       y.value = div.scrollTop;
+     },
+     
+     scrollBy: function(dx, dy) {
+       div.scrollTop += dy;
+       div.scrollLeft += dx;
+     }
+   }
+   return sbo;
+  },
+
+ 
+
+
+  _createTreeScrollBox: function(tree) {
+    let treeBox = tree.boxObject.QueryInterface(Ci.nsITreeBoxObject);
+    let sbo = {
+      pageLength: treeBox.getPageLength(),
+      rowHeight: treeBox.rowHeight,
+      rowWidth: treeBox.rowWidth,
+      rowCount: treeBox.view.rowCount,
+      targetY: treeBox.getFirstVisibleRow() * treeBox.rowHeight,
+      getScrolledSize: function(width, height) {
+        width.value = this.rowWidth;
+        height.value = this.rowHeight * this.rowCount;
+      },
+      
+      getPosition: function(x, y) {
+        x.value = treeBox.horizontalPosition;
+        y.value = this.targetY;
+      },
+      
+      scrollBy: function(dx, dy) {
+        this.targetY += dy;
+        if (this.targetY < 0)
+          this.targetY = 0;
+        let targetRow = Math.floor(this.targetY / this.rowHeight);
+        if ((targetRow + this.pageLength) > this.rowCount) {
+          targetRow = this.rowCount - this.pageLength;
+          this.targetY = targetRow * this.rowHeight;
+        }
+        treeBox.scrollToRow(targetRow);
+        treeBox.scrollToHorizontalPosition(treeBox.horizontalPosition + dx);
+      }
+    }
+    return sbo;
+  },
+  
+  
+
+
+  _panScrollbox: function(sbo, doffset) {
+    let origX = {}, origY = {}, newX = {}, newY = {};
+    
+    sbo.getPosition(origX, origY);
+    sbo.scrollBy(doffset.x, doffset.y);
+    sbo.getPosition(newX, newY);
+
+    doffset.subtract(newX.value - origX.value, newY.value - origY.value);
+  },
+  
   
   _panControlsAwayOffset: function(doffset) {
     let x = 0, y = 0, rect;
