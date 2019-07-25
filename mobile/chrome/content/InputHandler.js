@@ -520,8 +520,8 @@ KineticData.prototype = {
     }
 
     
-    this.speedX = tempX / mblen;
-    this.speedY = tempY / mblen;
+    this._speedX = tempX / mblen;
+    this._speedY = tempY / mblen;
 
     
     this._startKineticTimer();
