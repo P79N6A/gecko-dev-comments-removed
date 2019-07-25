@@ -458,11 +458,24 @@ nsJARURI::GetOriginCharset(nsACString &aOriginCharset)
 NS_IMETHODIMP
 nsJARURI::Equals(nsIURI *other, PRBool *result)
 {
-    nsresult rv;
+    return EqualsInternal(other, eHonorRef, result);
+}
 
+NS_IMETHODIMP
+nsJARURI::EqualsExceptRef(nsIURI *other, PRBool *result)
+{
+    return EqualsInternal(other, eIgnoreRef, result);
+}
+
+
+ nsresult
+nsJARURI::EqualsInternal(nsIURI *other,
+                         nsJARURI::RefHandlingEnum refHandlingMode,
+                         PRBool *result)
+{
     *result = PR_FALSE;
 
-    if (other == nsnull)
+    if (!other)
         return NS_OK;	
 
     nsRefPtr<nsJARURI> otherJAR;
@@ -471,13 +484,14 @@ nsJARURI::Equals(nsIURI *other, PRBool *result)
         return NS_OK;   
 
     PRBool equal;
-    rv = mJARFile->Equals(otherJAR->mJARFile, &equal);
+    nsresult rv = mJARFile->Equals(otherJAR->mJARFile, &equal);
     if (NS_FAILED(rv) || !equal) {
         return rv;   
     }
 
-    rv = mJAREntry->Equals(otherJAR->mJAREntry, result);
-    return rv;
+    return refHandlingMode == eHonorRef ?
+        mJAREntry->Equals(otherJAR->mJAREntry, result) :
+        mJAREntry->EqualsExceptRef(otherJAR->mJAREntry, result);
 }
 
 NS_IMETHODIMP

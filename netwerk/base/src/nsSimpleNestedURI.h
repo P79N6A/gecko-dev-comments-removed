@@ -74,7 +74,9 @@ public:
     
   
     
-    NS_IMETHOD Equals(nsIURI* other, PRBool *result);
+    virtual nsresult EqualsInternal(nsIURI* other,
+                                    RefHandlingEnum refHandlingMode,
+                                    PRBool* result);
     virtual nsSimpleURI* StartClone();
 
     

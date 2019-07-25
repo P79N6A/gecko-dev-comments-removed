@@ -131,9 +131,10 @@ nsSimpleNestedURI::GetInnermostURI(nsIURI** uri)
 }
 
 
-
-NS_IMETHODIMP
-nsSimpleNestedURI::Equals(nsIURI* other, PRBool *result)
+ nsresult
+nsSimpleNestedURI::EqualsInternal(nsIURI* other,
+                                  nsSimpleURI::RefHandlingEnum refHandlingMode,
+                                  PRBool* result)
 {
     *result = PR_FALSE;
     NS_ENSURE_TRUE(mInnerURI, NS_ERROR_NOT_INITIALIZED);
@@ -150,7 +151,9 @@ nsSimpleNestedURI::Equals(nsIURI* other, PRBool *result)
                 rv = nest->GetInnerURI(getter_AddRefs(otherInner));
                 NS_ENSURE_SUCCESS(rv, rv);
 
-                return otherInner->Equals(mInnerURI, result);
+                return (refHandlingMode == eHonorRef) ?
+                    otherInner->Equals(mInnerURI, result) :
+                    otherInner->EqualsExceptRef(mInnerURI, result);
             }
         }
     }

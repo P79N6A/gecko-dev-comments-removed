@@ -153,6 +153,18 @@ public:
     friend class nsSegmentEncoder;
 
 protected:
+    
+    enum RefHandlingEnum {
+        eIgnoreRef,
+        eHonorRef
+    };
+
+    
+    
+    nsresult EqualsInternal(nsIURI* unknownOther,
+                            RefHandlingEnum refHandlingMode,
+                            PRBool* result);
+
     virtual nsStandardURL* StartClone();
 
     
@@ -379,4 +391,4 @@ nsStandardURL::Filename()
     return Substring(mSpec, pos, len);
 }
 
-#endif 
+#endif

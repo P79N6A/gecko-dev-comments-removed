@@ -344,6 +344,22 @@ nsSimpleURI::SetRef(const nsACString &ref)
 NS_IMETHODIMP
 nsSimpleURI::Equals(nsIURI* other, PRBool *result)
 {
+    return EqualsInternal(other, eHonorRef, result);
+}
+
+NS_IMETHODIMP
+nsSimpleURI::EqualsExceptRef(nsIURI* other, PRBool *result)
+{
+    return EqualsInternal(other, eIgnoreRef, result);
+}
+
+ nsresult
+nsSimpleURI::EqualsInternal(nsIURI* other,
+                            nsSimpleURI::RefHandlingEnum refHandlingMode,
+                            PRBool* result)
+{
+    
+    
     PRBool eq = PR_FALSE;
     if (other) {
         nsSimpleURI* otherUrl;

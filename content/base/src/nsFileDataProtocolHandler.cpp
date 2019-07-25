@@ -149,7 +149,9 @@ public:
 
   
   NS_IMETHOD Clone(nsIURI** aClone);
-  NS_IMETHOD Equals(nsIURI* aOther, PRBool *aResult);
+  virtual nsresult EqualsInternal(nsIURI* aOther,
+                                  RefHandlingEnum aRefHandlingMode,
+                                  PRBool* aResult);
 
   
   virtual nsSimpleURI* StartClone()
@@ -236,8 +238,10 @@ nsFileDataURI::Clone(nsIURI** aClone)
   return NS_OK;
 }
 
-NS_IMETHODIMP
-nsFileDataURI::Equals(nsIURI* aOther, PRBool *aResult)
+ nsresult
+nsFileDataURI::EqualsInternal(nsIURI* aOther,
+                              nsSimpleURI::RefHandlingEnum aRefHandlingMode,
+                              PRBool* aResult)
 {
   if (!aOther) {
     *aResult = PR_FALSE;
@@ -258,7 +262,8 @@ nsFileDataURI::Equals(nsIURI* aOther, PRBool *aResult)
     return NS_OK;
   }
 
-  return nsSimpleURI::Equals(otherFileDataUri, aResult);
+  return nsSimpleURI::EqualsInternal(otherFileDataUri, aRefHandlingMode,
+                                     aResult);
 }
 
 

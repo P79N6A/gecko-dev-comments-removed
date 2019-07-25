@@ -137,6 +137,47 @@ function do_info(text, stack) {
 
 
 
+
+
+
+function do_check_uri_eq(aURI1, aURI2, aCheckTrueFunc) {
+  if (!aCheckTrueFunc) {
+    aCheckTrueFunc = do_check_true;
+  }
+
+  do_info("(uri equals check: '" + aURI1.spec + "' == '" + aURI2.spec + "')");
+  aCheckTrueFunc(aURI1.equals(aURI2));
+  do_info("(uri equals check: '" + aURI2.spec + "' == '" + aURI1.spec + "')");
+  aCheckTrueFunc(aURI2.equals(aURI1));
+
+  
+  
+  
+  if (aCheckTrueFunc == do_check_true) {
+    do_check_uri_eqExceptRef(aURI1, aURI2, aCheckTrueFunc);
+  }
+}
+
+
+
+
+
+function do_check_uri_eqExceptRef(aURI1, aURI2, aCheckTrueFunc) {
+  if (!aCheckTrueFunc) {
+    aCheckTrueFunc = do_check_true;
+  }
+
+  do_info("(uri equalsExceptRef check: '" +
+          aURI1.spec + "' == '" + aURI2.spec + "')");
+  aCheckTrueFunc(aURI1.equalsExceptRef(aURI2));
+  do_info("(uri equalsExceptRef check: '" +
+          aURI2.spec + "' == '" + aURI1.spec + "')");
+  aCheckTrueFunc(aURI2.equalsExceptRef(aURI1));
+}
+
+
+
+
 function do_check_property(aTest, aURI, aPropertyName, aTestFunctor) {
   var expectedVal = aTestFunctor ?
     aTestFunctor(aTest[aPropertyName]) :
@@ -154,7 +195,7 @@ function do_test_uri_basic(aTest) {
 
   
   do_info("testing " + aTest.spec + " equals a clone of itself");
-  do_check_true(URI.equals(URI.clone()));
+  do_check_uri_eq(URI, URI.clone());
   do_info("testing " + aTest.spec + " instanceof nsIURL");
   do_check_eq(URI instanceof Ci.nsIURL, aTest.nsIURL);
   do_info("testing " + aTest.spec + " instanceof nsINestedURI");
@@ -180,11 +221,10 @@ function do_test_uri_with_hash_suffix(aTest, aSuffix) {
   do_check_eq(aSuffix[0], "#");
 
   var testURI = NetUtil.newURI(aTest.spec + aSuffix);
+  var origURI = NetUtil.newURI(aTest.spec);
 
   do_info("testing " + aTest.spec +
           " doesn't equal self with '" + aSuffix + "' appended");
-
-  var origURI = NetUtil.newURI(aTest.spec);
   if (aTest.spec == "file://") {
     do_info("TODO: bug 656853");
     todo_check_false(origURI.equals(testURI));
@@ -204,6 +244,10 @@ function do_test_uri_with_hash_suffix(aTest, aSuffix) {
     var URL = testURI.QueryInterface(Ci.nsIURL);
     do_check_property(aTest, URL, "ref",
                       function(aStr) { return aSuffix.substr(1); });
+
+    do_info("testing " + aTest.spec +
+          " is equalExceptRef to self with '" + aSuffix + "' appended");
+    do_check_uri_eqExceptRef(origURI, testURI);
   }
 }
 
@@ -226,7 +270,7 @@ function do_test_mutate_ref(aTest, aSuffix) {
   if (aTest.spec == "file://") {
     do_info("TODO: bug 656853");
     testURI.ref = aSuffix;
-    todo_check_true(testURI.equals(refURIWithSuffix));
+    do_check_uri_eq(testURI, refURIWithSuffix, todo_check_true);
     return; 
   }
 
@@ -234,7 +278,8 @@ function do_test_mutate_ref(aTest, aSuffix) {
   do_info("testing that setting .ref on " + aTest.spec +
           " to '" + aSuffix + "' does what we expect");
   testURI.ref = aSuffix;
-  do_check_true(testURI.equals(refURIWithSuffix));
+  do_check_uri_eq(testURI, refURIWithSuffix);
+  do_check_uri_eqExceptRef(testURI, refURIWithoutSuffix);
 
   
   var suffixLackingHash = aSuffix.substr(1);
@@ -242,14 +287,16 @@ function do_test_mutate_ref(aTest, aSuffix) {
     do_info("testing that setting .ref on " + aTest.spec +
             " to '" + suffixLackingHash + "' does what we expect");
     testURI.ref = suffixLackingHash;
-    do_check_true(testURI.equals(refURIWithSuffix));
+    do_check_uri_eq(testURI, refURIWithSuffix);
+    do_check_uri_eqExceptRef(testURI, refURIWithoutSuffix);
   }
 
   
   do_info("testing that clearing .ref on " + testURI.spec +
           " does what we expect");
   testURI.ref = "";
-  do_check_true(testURI.equals(refURIWithoutSuffix));
+  do_check_uri_eq(testURI, refURIWithoutSuffix);
+  do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
 
   
   var specWithSuffix = aTest.spec + aSuffix;
@@ -259,9 +306,11 @@ function do_test_mutate_ref(aTest, aSuffix) {
   testURI.ref = "";
   if (aTest.spec == "http://" && aSuffix == "#") {
     do_info("TODO: bug 657033");
-    todo_check_true(testURI.equals(refURIWithoutSuffix));
+    do_check_uri_eq(testURI, refURIWithoutSuffix, todo_check_true);
+    do_check_uri_eqExceptRef(testURI, refURIWithSuffix, todo_check_true);
   } else {
-    do_check_true(testURI.equals(refURIWithoutSuffix));
+    do_check_uri_eq(testURI, refURIWithoutSuffix);
+    do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
   }
 
   
@@ -275,7 +324,8 @@ function do_test_mutate_ref(aTest, aSuffix) {
             pathWithSuffix + " and then clearing ref does what we expect");
     testURI.path = pathWithSuffix;
     testURI.ref = "";
-    do_check_true(testURI.equals(refURIWithoutSuffix));
+    do_check_uri_eq(testURI, refURIWithoutSuffix);
+    do_check_uri_eqExceptRef(testURI, refURIWithSuffix);
 
     
     testURI.path = pathWithSuffix;
