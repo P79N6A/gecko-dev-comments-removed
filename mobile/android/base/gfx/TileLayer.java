@@ -130,7 +130,7 @@ public abstract class TileLayer extends Layer {
     }
 
     @Override
-    protected boolean performUpdates(RenderContext context) {
+    protected void performUpdates(RenderContext context) {
         super.performUpdates(context);
 
         
@@ -138,7 +138,7 @@ public abstract class TileLayer extends Layer {
 
         
         if (!mImage.getSize().isPositive())
-            return true;
+            return;
 
         
         if (mTextureIDs == null) {
@@ -148,8 +148,6 @@ public abstract class TileLayer extends Layer {
         }
 
         mDirtyRect.setEmpty();
-
-        return true;
     }
 
     private void uploadFullTexture() {
