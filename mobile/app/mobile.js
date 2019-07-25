@@ -493,3 +493,6 @@ pref("services.sync.autoconnectDelay", 5);
 
 pref("ui.dragThresholdX", 25);
 pref("ui.dragThresholdY", 25);
+
+
+pref("layers.accelerate-all", false);
