@@ -1042,7 +1042,6 @@ StackIter::settleOnNewState()
 
 
 
-
             JSOp op = js_GetOpcode(cx_, fp_->script(), pc_);
             if (op == JSOP_CALL || op == JSOP_FUNCALL) {
                 uintN argc = GET_ARGC(pc_);
@@ -1053,6 +1052,25 @@ StackIter::settleOnNewState()
 
                 CrashIfInvalidSlot(fp_, vp);
                 if (IsNativeFunction(*vp)) {
+                    state_ = IMPLICIT_NATIVE;
+                    args_ = CallArgsFromVp(argc, vp);
+                    return;
+                }
+            } else if (op == JSOP_FUNAPPLY) {
+                JS_ASSERT(!fp_->hasImacropc());
+                uintN argc = GET_ARGC(pc_);
+                uintN spoff = js_ReconstructStackDepth(cx_, fp_->script(), pc_);
+                Value *sp = fp_->base() + spoff;
+                Value *vp = sp - (2 + argc);
+
+                CrashIfInvalidSlot(fp_, vp);
+                if (IsNativeFunction(*vp)) {
+                    if (sp_ != sp) {
+                        JS_ASSERT(argc == 2);
+                        JS_ASSERT(vp[0].toObject().getFunctionPrivate()->native() == js_fun_apply);
+                        JS_ASSERT(sp_ >= vp + 3);
+                        argc = sp_ - (vp + 2);
+                    }
                     state_ = IMPLICIT_NATIVE;
                     args_ = CallArgsFromVp(argc, vp);
                     return;
