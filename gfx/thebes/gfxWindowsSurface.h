@@ -98,10 +98,6 @@ public:
         FastMovePixels(aSourceRect, aDestTopLeft);
     }
 
-    
-    
-    virtual gfxASurface::MemoryLocation GetMemoryLocation() const;
-
 private:
     PRPackedBool mOwnsDC;
     PRPackedBool mForPrinting;

@@ -206,24 +206,7 @@ public:
     void RecordMemoryUsed(PRInt32 aBytes);
     void RecordMemoryFreed();
 
-    virtual PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
-
-    
-
-
-
-
-    enum MemoryLocation {
-      MEMORY_IN_PROCESS_HEAP,
-      MEMORY_IN_PROCESS_NONHEAP,
-      MEMORY_OUT_OF_PROCESS
-    };
-
-    
-
-
-
-    virtual MemoryLocation GetMemoryLocation() const;
+    PRInt32 KnownMemoryUsed() { return mBytesRecorded; }
 
     static PRInt32 BytePerPixelFromFormat(gfxImageFormat format);
 
