@@ -78,9 +78,8 @@ public:
   NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  NS_IMETHOD GetDescription(nsAString& aDescription);
-
   
+  virtual void Description(nsString& aDescription);
 
   
   virtual nsresult GetNameInternal(nsAString& aName);

@@ -184,7 +184,6 @@ public:
 
   
   NS_IMETHOD GetValue(nsAString& _retval);
-  NS_IMETHOD GetDescription(nsAString& aDescription);
   NS_IMETHOD DoAction(PRUint8 index);
   NS_IMETHOD GetNumActions(PRUint8 *aNumActions);
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
@@ -193,6 +192,7 @@ public:
   virtual void Shutdown();
 
   
+  virtual void Description(nsString& aDescription);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();
   virtual void InvalidateChildren();

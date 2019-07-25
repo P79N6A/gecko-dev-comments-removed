@@ -727,18 +727,19 @@ nsHTMLComboboxAccessible::NativeState()
   return state;
 }
 
-NS_IMETHODIMP nsHTMLComboboxAccessible::GetDescription(nsAString& aDescription)
+void
+nsHTMLComboboxAccessible::Description(nsString& aDescription)
 {
   aDescription.Truncate();
   
   
-  nsAccessible::GetDescription(aDescription);
-  if (!aDescription.IsEmpty()) {
-    return NS_OK;
-  }
+  nsAccessible::Description(aDescription);
+  if (!aDescription.IsEmpty())
+    return;
   
   nsAccessible *option = GetFocusedOptionAccessible();
-  return option ? option->GetDescription(aDescription) : NS_OK;
+  if (option)
+    option->Description(aDescription);
 }
 
 nsAccessible *

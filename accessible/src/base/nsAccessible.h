@@ -122,6 +122,11 @@ public:
   
 
 
+  virtual void Description(nsString& aDescription);
+
+  
+
+
   nsresult GetARIAName(nsAString& aName);
 
   

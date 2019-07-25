@@ -123,9 +123,9 @@ public:
   
   NS_IMETHOD GetActionName(PRUint8 index, nsAString& aName);
   
-  NS_IMETHOD GetDescription(nsAString& aDesc) { return nsAccessibleWrap::GetDescription(aDesc); }
 
   
+  virtual void Description(nsString& aDesc);
   virtual nsresult GetNameInternal(nsAString& aName);
   virtual PRUint32 NativeRole();
   virtual PRUint64 NativeState();

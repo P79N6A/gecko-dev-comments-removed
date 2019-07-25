@@ -864,6 +864,15 @@ nsXULListitemAccessible::GetListAccessible()
 
 
 
+void
+nsXULListitemAccessible::Description(nsString& aDesc)
+{
+  nsAccessibleWrap::Description(aDesc);
+}
+
+
+
+
 
 
 
