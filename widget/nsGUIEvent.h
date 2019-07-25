@@ -1341,29 +1341,25 @@ public:
     kIsFullPage =   1 << 0,
     kIsVertical =   1 << 1,
     kIsHorizontal = 1 << 2,
-    kHasPixels =    1 << 3, 
+    kHasPixels =    1 << 3  
                             
                             
                             
                             
                             
                             
-                            
-                            
-    kIsMomentum =   1 << 6  
                             
                             
 };
 
   nsMouseScrollEvent(bool isTrusted, PRUint32 msg, nsIWidget *w)
     : nsMouseEvent_base(isTrusted, msg, w, NS_MOUSE_SCROLL_EVENT),
-      scrollFlags(0), delta(0), scrollOverflow(0)
+      scrollFlags(0), delta(0)
   {
   }
 
   PRInt32               scrollFlags;
   PRInt32               delta;
-  PRInt32               scrollOverflow;
 };
 
 
