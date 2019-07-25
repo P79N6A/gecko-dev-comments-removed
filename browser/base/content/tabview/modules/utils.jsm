@@ -363,11 +363,8 @@ window.Range.prototype = {
 
 
 
-
-
 window.Subscribable = function() {
   this.subscribers = {};
-  this.onCloseSubscribers = null;
 };
 
 window.Subscribable.prototype = {
@@ -418,54 +415,6 @@ window.Subscribable.prototype = {
     var subsCopy = iQ.merge([], this.subscribers[eventName]);
     subsCopy.forEach(function(object) { 
       object.callback(self, eventInfo);
-    });
-  },
-  
-  
-  
-  
-  
-  addOnClose: function(referenceElement, callback) {
-    if (!this.onCloseSubscribers)
-      this.onCloseSubscribers = [];
-      
-    var existing = this.onCloseSubscribers.filter(function(element) {
-      return element.referenceElement == referenceElement;
-    });
-    
-    if (existing.length) {
-      Utils.assert('should only ever be one', existing.length == 1);
-      existing[0].callback = callback;
-    } else {  
-      this.onCloseSubscribers.push({
-        referenceElement: referenceElement, 
-        callback: callback
-      });
-    }
-  },
-  
-  
-  
-  
-  removeOnClose: function(referenceElement) {
-    if (!this.onCloseSubscribers)
-      return;
-      
-    this.onCloseSubscribers = this.onCloseSubscribers.filter(function(element) {
-      return element.referenceElement != referenceElement;
-    });
-  },
-  
-  
-  
-  
-  _sendOnClose: function() {
-    if (!this.onCloseSubscribers)
-      return;
-      
-    var self = this;
-    this.onCloseSubscribers.forEach(function(object) {
-      object.callback(self);
     });
   }
 };
