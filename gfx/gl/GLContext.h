@@ -1054,6 +1054,26 @@ public:
         }
     }
 
+    void fGetIntegerv(GLenum pname, GLint *params) {
+        switch (pname)
+        {
+            
+            
+            
+            case LOCAL_GL_FRAMEBUFFER_BINDING:
+                *params = GetUserBoundDrawFBO();
+                break;
+
+            case LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT:
+                *params = GetUserBoundReadFBO();
+                break;
+
+            default:
+                raw_fGetIntegerv(pname, params);
+                break;
+        }
+    }
+
 #ifdef DEBUG
     
     bool mInInternalBindingMode_DrawFBO;
@@ -1062,6 +1082,8 @@ public:
 
     GLuint GetUserBoundDrawFBO() {
 #ifdef DEBUG
+        MOZ_ASSERT(IsCurrent());
+
         GLint ret = 0;
         
         
@@ -1093,6 +1115,8 @@ public:
 
     GLuint GetUserBoundReadFBO() {
 #ifdef DEBUG
+        MOZ_ASSERT(IsCurrent());
+
         GLint ret = 0;
         
         
@@ -2399,26 +2423,6 @@ private:
     }
 
 public:
-    void fGetIntegerv(GLenum pname, GLint *params) {
-        switch (pname)
-        {
-            
-            
-            
-            case LOCAL_GL_FRAMEBUFFER_BINDING:
-                *params = GetUserBoundDrawFBO();
-                break;
-
-            case LOCAL_GL_READ_FRAMEBUFFER_BINDING_EXT:
-                *params = GetUserBoundReadFBO();
-                break;
-
-            default:
-                raw_fGetIntegerv(pname, params);
-                break;
-        }
-    }
-
     void GetUIntegerv(GLenum pname, GLuint *params) {
         fGetIntegerv(pname, reinterpret_cast<GLint*>(params));
     }
