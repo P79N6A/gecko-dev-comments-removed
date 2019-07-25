@@ -95,14 +95,30 @@ FormAssistant.prototype = {
 
     
     
-    if ((this._open && aElement == this.currentElement) || !this._isValidElement(aElement))
+    
+    
+    if (!this._isValidElement(aElement)) {
+      let passiveButtons = { button: true, checkbox: true, file: true, radio: true, reset: true };
+      if ((aElement instanceof HTMLInputElement || aElement instanceof HTMLButtonElement) &&
+          passiveButtons[aElement.type] && !aElement.disabled)
+        return false;
+
+      sendAsyncMessage("FormAssist:Hide", { });
       return this._open = false;
+    }
+
+    
+    
+    if (this._open && aElement == this.currentElement)
+      return false;
 
     
     
     this._enabled = Services.prefs.getBoolPref("formhelper.enabled");
-    if (!this._enabled && !this._isSelectElement(aElement))
+    if (!this._enabled && !this._isSelectElement(aElement)) {
+      sendAsyncMessage("FormAssist:Hide", { });
       return this._open = false;
+    }
 
     if (this._enabled) {
       this._elements = [];
@@ -227,7 +243,7 @@ FormAssistant.prototype = {
   },
 
   _isValidElement: function formHelperIsValidElement(aElement) {
-    let formExceptions = {button: true, checkbox: true, file: true, image: true, radio: true, reset: true, submit: true};
+    let formExceptions = { button: true, checkbox: true, file: true, image: true, radio: true, reset: true, submit: true };
     if (aElement instanceof HTMLInputElement && formExceptions[aElement.type])
       return false;
 
