@@ -236,6 +236,16 @@ public:
 
 
 
+  void Rewind();
+
+  
+
+
+
+
+
+
+
 
 
 
@@ -373,6 +383,8 @@ protected:
                                       nsIContent* aContextNode,
                                       PRBool aIsBegin);
   void              ClearBeginOrEndSpecs(PRBool aIsBegin);
+  void              RewindTiming();
+  void              RewindInstanceTimes(InstanceTimeList& aList);
   void              DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly);
 
   
@@ -395,6 +407,20 @@ protected:
 
 
   void Reset();
+
+  
+
+
+
+
+  void DoPostSeek();
+
+  
+
+
+
+
+  void UnpreserveInstanceTimes(InstanceTimeList& aList);
 
   
 
@@ -538,6 +564,16 @@ protected:
     STATE_POSTACTIVE
   };
   nsSMILElementState              mElementState;
+
+  enum nsSMILSeekState
+  {
+    SEEK_NOT_SEEKING,
+    SEEK_FORWARD_FROM_ACTIVE,
+    SEEK_FORWARD_FROM_INACTIVE,
+    SEEK_BACKWARD_FROM_ACTIVE,
+    SEEK_BACKWARD_FROM_INACTIVE
+  };
+  nsSMILSeekState                 mSeekState;
 };
 
 #endif 

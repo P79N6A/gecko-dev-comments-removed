@@ -46,6 +46,8 @@ nsSMILTimeContainer::nsSMILTimeContainer()
   mParentOffset(0L),
   mPauseStart(0L),
   mNeedsPauseSample(PR_FALSE),
+  mNeedsRewind(PR_FALSE),
+  mIsSeeking(PR_FALSE),
   mPauseState(PAUSE_BEGIN)
 {
 }
@@ -147,15 +149,26 @@ nsSMILTimeContainer::SetCurrentTime(nsSMILTime aSeekTo)
 {
   
   
+  aSeekTo = PR_MAX(0, aSeekTo);
+
+  
+  
   
   
   
   nsSMILTime parentTime = GetParentTime();
   mParentOffset = parentTime - aSeekTo;
+  mIsSeeking = PR_TRUE;
 
   if (IsPaused()) {
     mNeedsPauseSample = PR_TRUE;
     mPauseStart = parentTime;
+  }
+
+  if (aSeekTo < mCurrentTime) {
+    
+    mNeedsRewind = PR_TRUE;
+    ClearMilestones();
   }
 
   

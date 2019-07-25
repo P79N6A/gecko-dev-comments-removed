@@ -100,7 +100,9 @@ public:
   PRBool IsDynamic() const { return !!(mFlags & kDynamic); }
   PRBool IsFixedTime() const { return !(mFlags & kMayUpdate); }
   PRBool FromDOM() const { return !!(mFlags & kFromDOM); }
-  PRBool IsUsedAsFixedEndpoint() const { return mFixedEndpointRefCnt > 0; }
+
+  PRBool ShouldPreserve() const;
+  void   UnmarkShouldPreserve();
 
   void AddRefFixedEndpoint();
   void ReleaseFixedEndpoint();
@@ -153,7 +155,12 @@ protected:
     
     
     
-    kFromDOM = 4
+    kFromDOM = 4,
+
+    
+    
+    
+    kWasDynamicEndpoint = 8
   };
   PRUint8       mFlags;   
   PRPackedBool  mVisited; 

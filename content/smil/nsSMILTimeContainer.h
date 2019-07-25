@@ -174,6 +174,21 @@ public:
 
 
 
+  PRBool NeedsRewind() const { return mNeedsRewind; }
+  void ClearNeedsRewind() { mNeedsRewind = PR_FALSE; }
+
+  
+
+
+
+
+  PRBool IsSeeking() const { return mIsSeeking; }
+  void MarkSeekFinished() { mIsSeeking = PR_FALSE; }
+
+  
+
+
+
 
   nsresult SetParent(nsSMILTimeContainer* aParent);
 
@@ -278,6 +293,9 @@ protected:
 
   
   PRPackedBool mNeedsPauseSample;
+
+  PRPackedBool mNeedsRewind; 
+  PRPackedBool mIsSeeking; 
 
   
   PRUint32 mPauseState;
