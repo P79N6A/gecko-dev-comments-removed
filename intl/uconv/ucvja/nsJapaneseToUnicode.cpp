@@ -346,8 +346,8 @@ NS_IMETHODIMP nsEUCJPToUnicodeV2::Convert(
                
                
                
-               if ( ! (*src & 0xc0)  )
-                 *dest++ = (PRUnichar) *src;;
+              if ( (PRUint8)*src < (PRUint8)0x7f )
+                --src;
             } else {
                *dest++ = gJapaneseMap[mData+off];
             }
@@ -368,7 +368,7 @@ NS_IMETHODIMP nsEUCJPToUnicodeV2::Convert(
               
               
               if ( (PRUint8)*src < (PRUint8)0x7f )
-                 *dest++ = (PRUnichar) *src;
+                --src;
             }
             mState = 0;
             if(dest >= destEnd)
