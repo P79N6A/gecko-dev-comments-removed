@@ -64,10 +64,10 @@ public class SyncAccounts {
     public final AccountManager accountManager;
 
 
-    public final String username; 
-    public final String syncKey; 
-    public final String password; 
-    public final String serverURL; 
+    public final String username;   
+    public final String syncKey;    
+    public final String password;   
+    public final String serverURL;  
     public final String clusterURL; 
     public final String clientName; 
     public final String clientGuid; 
