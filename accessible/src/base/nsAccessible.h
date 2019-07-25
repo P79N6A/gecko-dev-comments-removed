@@ -169,6 +169,14 @@ public:
   
 
 
+  inline bool HasARIARole() const
+  {
+    return mRoleMapEntry;
+  }
+
+  
+
+
 
   inline mozilla::a11y::role ARIARole()
   {

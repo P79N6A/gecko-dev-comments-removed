@@ -909,19 +909,8 @@ static bool HasRelatedContent(nsIContent *aContent)
 
   
   
-  if (aContent->IsHTML() &&
-      nsAccUtils::GetDocAccessibleFor(aContent)->IsDependentID(id))
-    return true;
-
-  nsIContent *ancestorContent = aContent;
-  while ((ancestorContent = ancestorContent->GetParent()) != nsnull) {
-    if (ancestorContent->HasAttr(kNameSpaceID_None, nsGkAtoms::aria_activedescendant)) {
-        
-      return true;
-    }
-  }
-
-  return false;
+  return aContent->IsHTML() &&
+    nsAccUtils::GetDocAccessibleFor(aContent)->IsDependentID(id);
 }
 
 nsAccessible*
