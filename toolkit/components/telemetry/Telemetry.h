@@ -42,6 +42,10 @@
 #include "mozilla/TimeStamp.h"
 #include "mozilla/AutoRestore.h"
 
+namespace base {
+  class Histogram;
+}
+
 namespace mozilla {
 namespace Telemetry {
 
@@ -61,6 +65,11 @@ HistogramCount
 
 
 void Accumulate(ID id, PRUint32 sample);
+
+
+
+
+base::Histogram* GetHistogramById(ID id);
 
 template<ID id>
 class AutoTimer {
