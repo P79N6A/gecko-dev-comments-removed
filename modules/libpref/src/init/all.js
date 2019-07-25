@@ -1514,14 +1514,14 @@ pref("plugins.click_to_play", false);
 #ifndef DEBUG
 
 
-pref("dom.ipc.plugins.timeoutSecs", 25);
+pref("dom.ipc.plugins.timeoutSecs", 45);
 
 
 
 pref("dom.ipc.plugins.parentTimeoutSecs", 0);
 
 
-pref("dom.ipc.plugins.processLaunchTimeoutSecs", 25);
+pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 #else
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
