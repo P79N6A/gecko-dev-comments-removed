@@ -40,6 +40,9 @@ function test() {
   is(ss.getWindowValue(window, key), "", "window value was deleted");
   
   
+  ok(test(function() ss.deleteWindowValue(window, key)), "delete non-existent window value");
+  
+  
   
   
   key = "Unique name: " + Math.random();
@@ -56,7 +59,11 @@ function test() {
   
   ok(test(function() ss.deleteTabValue(tab, key)), "delete the tab value");
   
+  
   is(ss.getTabValue(tab, key), "", "tab value was deleted");
+  
+  
+  ok(test(function() ss.deleteTabValue(tab, key)), "delete non-existent tab value");
   
   
   tabbrowser.removeTab(tab);
