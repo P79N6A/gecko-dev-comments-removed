@@ -508,7 +508,6 @@ struct JSScript {
     bool            hasFunction:1;    
     bool            isActiveEval:1;   
     bool            isCachedEval:1;   
-    bool            isUncachedEval:1; 
     bool            usedLazyArgs:1;   
     bool            createdArgs:1;    
     bool            uninlineable:1;   

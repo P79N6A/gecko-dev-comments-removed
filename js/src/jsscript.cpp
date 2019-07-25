@@ -1508,7 +1508,7 @@ js_TraceScript(JSTracer *trc, JSScript *script, JSObject *owner)
 
 
 
-    if (!script->isCachedEval && !script->isUncachedEval && script->u.object)
+    if (!script->isCachedEval && script->u.object)
         MarkObject(trc, *script->u.object, "object");
     if (script->hasFunction)
         MarkObject(trc, *script->function(), "script_fun");

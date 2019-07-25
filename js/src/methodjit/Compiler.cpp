@@ -135,8 +135,6 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     applyTricks(NoApplyTricks),
     pcLengths(NULL)
 {
-    JS_ASSERT(!outerScript->isUncachedEval);
-
     
     if (cx->typeInferenceEnabled())
         addTraceHints = false;
@@ -609,10 +607,6 @@ mjit::TryCompile(JSContext *cx, StackFrame *fp)
 #endif
     bool ok = cx->compartment->ensureJaegerCompartmentExists(cx);
     if (!ok)
-        return Compile_Abort;
-
-    
-    if (fp->script()->isUncachedEval)
         return Compile_Abort;
 
     
