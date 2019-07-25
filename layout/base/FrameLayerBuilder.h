@@ -249,8 +249,10 @@ public:
 
 
 
+  struct Clip;
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
+                           const Clip& aClip,
                            LayerState aLayerState,
                            LayerManager* aManager = nsnull);
 
@@ -260,7 +262,6 @@ public:
 
 
 
-  struct Clip;
   void AddThebesDisplayItem(ThebesLayer* aLayer,
                             nsDisplayItem* aItem,
                             const Clip& aClip,
@@ -315,7 +316,8 @@ public:
 
 
 
-  Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, nsDisplayItemGeometry** aOldGeometry = nsnull);
+  Layer* GetOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey, 
+                        nsDisplayItemGeometry** aOldGeometry = nsnull, Clip** aOldClip = nsnull);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, PRUint32 aDisplayItemKey);
 
@@ -509,6 +511,7 @@ protected:
     nsRefPtr<Layer> mLayer;
     nsRefPtr<LayerManager> mInactiveManager;
     nsAutoPtr<nsDisplayItemGeometry> mGeometry;
+    Clip            mClip;
     PRUint32        mDisplayItemKey;
     PRUint32        mContainerLayerGeneration;
     LayerState      mLayerState;
