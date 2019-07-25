@@ -444,6 +444,10 @@ class JSFlatString : public JSLinearString
         JS_ASSERT(isFlat());
         return chars();
     }
+
+    
+
+    inline void finalize(JSRuntime *rt);
 };
 
 JS_STATIC_ASSERT(sizeof(JSFlatString) == sizeof(JSString));
@@ -627,6 +631,8 @@ class JSAtom : public JSFixedString
 
     
     static inline JSStaticAtom *lookupStatic(const jschar *chars, size_t length);
+
+    inline void finalize(JSRuntime *rt);
 };
 
 JS_STATIC_ASSERT(sizeof(JSAtom) == sizeof(JSString));
