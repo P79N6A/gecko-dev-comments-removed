@@ -476,7 +476,7 @@ JSStackFrame::getThisObject(JSContext *cx)
     if (flags & JSFRAME_COMPUTED_THIS)
         return thisv.asObjPtr();  
     if (!js::ComputeThisFromArgv(cx, argv))
-        return js::NullObjPtr();
+        return js::NullTag();
     thisv.copy(argv[-1]);
     flags |= JSFRAME_COMPUTED_THIS;
     return thisv.asObjPtr();
