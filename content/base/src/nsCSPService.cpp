@@ -268,19 +268,16 @@ CSPService::OnChannelRedirect(nsIChannel *oldChannel,
 #endif
 
   
-  if (aDecision != 1) {
-    newChannel->Cancel(NS_BINDING_FAILED);
-  }
+  if (aDecision != 1)
+    return NS_BINDING_FAILED;
 
-  else {
-    
-    
-    nsresult rv;
-    nsCOMPtr<nsIWritablePropertyBag2> props = do_QueryInterface(newChannel, &rv);
-    if (props)
-      props->SetPropertyAsInterface(NS_CHANNEL_PROP_CHANNEL_POLICY,
-                                    channelPolicy);
-  }
+  
+  
+  nsresult rv;
+  nsCOMPtr<nsIWritablePropertyBag2> props2 = do_QueryInterface(newChannel, &rv);
+  if (props2)
+    props2->SetPropertyAsInterface(NS_CHANNEL_PROP_CHANNEL_POLICY,
+                                   channelPolicy);
 
   return NS_OK;
 }
