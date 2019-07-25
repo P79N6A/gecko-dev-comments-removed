@@ -171,8 +171,7 @@ enum {
   
   NODE_HAS_ACCESSKEY           = 0x00400000U,
 
-  
-  NODE_HAS_NAME                = 0x00800000U,
+  UNUSED5                      = 0x00800000U,
 
   
   
@@ -1151,6 +1150,8 @@ private:
     
     ElementMayHaveStyle,
     
+    ElementHasName,
+    
     BooleanFlagCount
   };
 
@@ -1181,6 +1182,7 @@ public:
     { SetBoolFlag(NodeHasRenderingObservers, aValue); }
   bool HasID() const { return GetBoolFlag(ElementHasID); }
   bool MayHaveStyle() const { return GetBoolFlag(ElementMayHaveStyle); }
+  bool HasName() const { return GetBoolFlag(ElementHasName); }
 
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
@@ -1191,6 +1193,8 @@ protected:
   void SetHasID() { SetBoolFlag(ElementHasID); }
   void ClearHasID() { ClearBoolFlag(ElementHasID); }
   void SetMayHaveStyle() { SetBoolFlag(ElementMayHaveStyle); }
+  void SetHasName() { SetBoolFlag(ElementHasName); }
+  void ClearHasName() { ClearBoolFlag(ElementHasName); }
 
 public:
   
