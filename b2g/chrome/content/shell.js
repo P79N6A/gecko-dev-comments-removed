@@ -43,6 +43,10 @@ XPCOMUtils.defineLazyGetter(this, 'DebuggerServer', function() {
   return DebuggerServer;
 });
 
+function getContentWindow() {
+  return shell.contentBrowser.contentWindow;
+}
+
 
 
 
