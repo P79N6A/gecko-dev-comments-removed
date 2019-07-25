@@ -3,7 +3,7 @@
 
 
 
-llvm_revision = "160176"
+llvm_revision = "160227"
 moz_version = "moz0"
 
 
