@@ -130,7 +130,7 @@ GetBackendName(mozilla::gfx::BackendType aBackend)
       case mozilla::gfx::BACKEND_NONE:
         return "none";
   }
-  MOZ_NOT_REACHED("Incomplet switch");
+  MOZ_NOT_REACHED("Incomplete switch");
 }
 
 class THEBES_API gfxPlatform {
@@ -196,14 +196,11 @@ public:
                               int32_t aStride, mozilla::gfx::SurfaceFormat aFormat);
 
     
-    bool SupportsAzure(mozilla::gfx::BackendType& aBackend);
+    bool SupportsAzureCanvas(mozilla::gfx::BackendType& aBackend);
 
     
-    void GetAzureBackendInfo(mozilla::widget::InfoObject &aObj) {
-      mozilla::gfx::BackendType backend;
-      if (SupportsAzure(backend)) {
-        aObj.DefineProperty("AzureBackend", GetBackendName(backend)); 
-      }
+    void GetAzureCanvasBackendInfo(mozilla::widget::InfoObject &aObj) {
+      aObj.DefineProperty("AzureBackend", GetBackendName(mPreferredCanvasBackend));
     }
 
     
@@ -496,11 +493,6 @@ protected:
     
     PRInt32 mUseHarfBuzzScripts;
 
-    
-    mozilla::gfx::BackendType mPreferredCanvasBackend;
-    
-    mozilla::gfx::BackendType mFallbackCanvasBackend;
-
 private:
     
 
@@ -513,7 +505,13 @@ private:
     nsTArray<PRUint32> mCJKPrefLangs;
     nsCOMPtr<nsIObserver> mSRGBOverrideObserver;
     nsCOMPtr<nsIObserver> mFontPrefsObserver;
-    mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureBackendCollector;
+
+    
+    mozilla::gfx::BackendType mPreferredCanvasBackend;
+    
+    mozilla::gfx::BackendType mFallbackCanvasBackend;
+
+    mozilla::widget::GfxInfoCollector<gfxPlatform> mAzureCanvasBackendCollector;
     bool mWorkAroundDriverBugs;
 };
 
