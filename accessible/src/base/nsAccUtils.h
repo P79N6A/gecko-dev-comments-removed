@@ -107,7 +107,7 @@ public:
 
 
 
-  static PRInt32 GetARIAOrDefaultLevel(nsIAccessible *aAcc);
+  static PRInt32 GetARIAOrDefaultLevel(nsAccessible *aAccessible);
 
   
 
@@ -229,7 +229,7 @@ public:
 
 
 
-  static PRBool IsARIASelected(nsIAccessible *aAccessible);
+  static PRBool IsARIASelected(nsAccessible *aAccessible);
 
   
 

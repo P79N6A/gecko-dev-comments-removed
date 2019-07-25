@@ -101,7 +101,7 @@ public:
   
 
 
-  nsDocAccessible* GetDocAccessible() const;
+  inline nsDocAccessible *GetDocAccessible() const;
 
   
 

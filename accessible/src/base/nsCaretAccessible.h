@@ -38,17 +38,11 @@
 #ifndef __nsCaretAccessible_h__
 #define __nsCaretAccessible_h__
 
-#include "nsIWeakReference.h"
-#include "nsIAccessibleText.h"
-#include "nsIContent.h"
+#include "nsHyperTextAccessible.h"
+
 #include "nsISelectionListener.h"
-#include "nsISelectionController.h"
-#include "nsRect.h"
 
 class nsRootAccessible;
-class nsIView;
-class nsIPresShell;
-class nsIWidget;
 
 
 
@@ -144,7 +138,7 @@ private:
   
   
   nsCOMPtr<nsIWeakReference> mLastUsedSelection; 
-  nsCOMPtr<nsIAccessibleText> mLastTextAccessible;
+  nsRefPtr<nsHyperTextAccessible> mLastTextAccessible;
   PRInt32 mLastCaretOffset;
 
   nsRootAccessible *mRootAccessible;
