@@ -103,14 +103,26 @@ struct NS_GFX nsFont {
   float sizeAdjust;
 
   
+  nsString featureSettings;
+
+  
+  
+  
+  nsString languageOverride;
+
+  
   nsFont(const char* aName, PRUint8 aStyle, PRUint8 aVariant,
          PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
-         nscoord aSize, float aSizeAdjust=0.0f);
+         nscoord aSize, float aSizeAdjust=0.0f,
+         const nsString* aFeatureSettings = nsnull,
+         const nsString* aLanguageOverride = nsnull);
 
   
   nsFont(const nsString& aName, PRUint8 aStyle, PRUint8 aVariant,
          PRUint16 aWeight, PRInt16 aStretch, PRUint8 aDecoration,
-         nscoord aSize, float aSizeAdjust=0.0f);
+         nscoord aSize, float aSizeAdjust=0.0f,
+         const nsString* aFeatureSettings = nsnull,
+         const nsString* aLanguageOverride = nsnull);
 
   
   nsFont(const nsFont& aFont);

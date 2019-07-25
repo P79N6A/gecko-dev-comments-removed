@@ -183,6 +183,8 @@ private:
   
   nsresult GetColor(nsIDOMCSSValue** aValue);
   nsresult GetFontFamily(nsIDOMCSSValue** aValue);
+  nsresult GetMozFontFeatureSettings(nsIDOMCSSValue** aValue);
+  nsresult GetMozFontLanguageOverride(nsIDOMCSSValue** aValue);
   nsresult GetFontSize(nsIDOMCSSValue** aValue);
   nsresult GetFontSizeAdjust(nsIDOMCSSValue** aValue);
   nsresult GetFontStretch(nsIDOMCSSValue** aValue);

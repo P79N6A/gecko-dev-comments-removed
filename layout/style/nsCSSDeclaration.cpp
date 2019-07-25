@@ -1030,6 +1030,10 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
         *data->ValueStorageFor(eCSSProperty_font_stretch);
       const nsCSSValue &sizeAdjust =
         *data->ValueStorageFor(eCSSProperty_font_size_adjust);
+      const nsCSSValue &featureSettings =
+        *data->ValueStorageFor(eCSSProperty_font_feature_settings);
+      const nsCSSValue &languageOverride =
+        *data->ValueStorageFor(eCSSProperty_font_language_override);
 
       if (systemFont &&
           systemFont->GetUnit() != eCSSUnit_None &&
@@ -1041,7 +1045,9 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
             lh.GetUnit() != eCSSUnit_System_Font ||
             family.GetUnit() != eCSSUnit_System_Font ||
             stretch.GetUnit() != eCSSUnit_System_Font ||
-            sizeAdjust.GetUnit() != eCSSUnit_System_Font) {
+            sizeAdjust.GetUnit() != eCSSUnit_System_Font ||
+            featureSettings.GetUnit() != eCSSUnit_System_Font ||
+            languageOverride.GetUnit() != eCSSUnit_System_Font) {
           
           return NS_OK;
         }
@@ -1051,9 +1057,12 @@ nsCSSDeclaration::GetValue(nsCSSProperty aProperty,
         
         
         
+        
         if (stretch.GetUnit() != eCSSUnit_Enumerated ||
             stretch.GetIntValue() != NS_STYLE_FONT_STRETCH_NORMAL ||
-            sizeAdjust.GetUnit() != eCSSUnit_None) {
+            sizeAdjust.GetUnit() != eCSSUnit_None ||
+            featureSettings.GetUnit() != eCSSUnit_Normal ||
+            languageOverride.GetUnit() != eCSSUnit_Normal) {
           return NS_OK;
         }
 

@@ -283,6 +283,8 @@ struct nsCSSFont : public nsCSSStruct {
   nsCSSValue mSize;
   nsCSSValue mSizeAdjust; 
   nsCSSValue mStretch; 
+  nsCSSValue mFontFeatureSettings;
+  nsCSSValue mFontLanguageOverride;
 
 #ifdef MOZ_MATHML
   nsCSSValue mScriptLevel; 
