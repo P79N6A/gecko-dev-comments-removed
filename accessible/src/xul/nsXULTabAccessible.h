@@ -42,6 +42,7 @@
 
 #include "nsBaseWidgetAccessible.h"
 #include "nsXULMenuAccessible.h"
+#include "XULSelectControlAccessible.h"
 
 
 
@@ -72,7 +73,7 @@ public:
 
 
 
-class nsXULTabsAccessible : public nsXULSelectableAccessible
+class nsXULTabsAccessible : public XULSelectControlAccessible
 {
 public:
   nsXULTabsAccessible(nsIContent *aContent, nsIWeakReference *aShell);

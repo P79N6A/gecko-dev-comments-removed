@@ -43,8 +43,8 @@
 
 #include "nsAccessibleWrap.h"
 #include "nsFormControlAccessible.h"
-#include "nsXULMenuAccessible.h"
 #include "nsHyperTextAccessibleWrap.h"
+#include "XULSelectControlAccessible.h"
 
 
 
@@ -173,7 +173,7 @@ public:
 
 
 
-class nsXULRadioGroupAccessible : public nsXULSelectableAccessible
+class nsXULRadioGroupAccessible : public XULSelectControlAccessible
 {
 public:
   nsXULRadioGroupAccessible(nsIContent *aContent, nsIWeakReference *aShell);
@@ -284,5 +284,5 @@ protected:
 };
 
 
-#endif  
+#endif
 
