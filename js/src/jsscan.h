@@ -243,7 +243,7 @@ struct Token {
             JSOp        op;             
             union {
               private:
-                friend class Token;
+                friend struct Token;
                 PropertyName *name;     
                 JSAtom       *atom;     
             } n;
@@ -251,7 +251,7 @@ struct Token {
         uintN           reflags;        
 
         class {                         
-            friend class Token;
+            friend struct Token;
             JSAtom       *data;         
             PropertyName *target;       
         } xmlpi;
