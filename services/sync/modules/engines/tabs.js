@@ -176,6 +176,9 @@ TabStore.prototype = {
 
       for (let j = 0; j < window.tabs.length; j++) {
         let tab = window.tabs[j];
+	
+	if (tab.entries.length == 0)
+	  continue;
 	let currentPage = tab.entries[tab.entries.length - 1];
 	
 
@@ -190,7 +193,6 @@ TabStore.prototype = {
 	  if (urlHistory.length >= 10)
 	    break;
 	}
-	this._log.debug("This tab's url history is " + urlHistory + "\n");
         record.addTab(currentPage.title, urlHistory);
       }
     }
