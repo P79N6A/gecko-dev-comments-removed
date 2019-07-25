@@ -75,8 +75,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xf3840057, 0x4fe5, 0x4f92, \
- { 0xa3, 0xb8, 0x27, 0xd7, 0x44, 0x6f, 0x72, 0x4d } }
+{ 0x6d69fbee, 0x0723, 0x48f5, \
+ { 0x82, 0x48, 0xcd, 0xcf, 0x88, 0xac, 0x25, 0x74 } }
 
 
 
@@ -426,20 +426,6 @@ public:
 
 
   virtual nsresult InitClasses(JSObject* aGlobalObj) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-  virtual void ClearScope(void* aGlobalObj, bool aClearFromProtoChain) = 0;
 
   
 
