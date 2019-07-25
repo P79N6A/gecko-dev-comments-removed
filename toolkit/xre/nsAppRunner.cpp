@@ -806,13 +806,13 @@ nsXULAppInfo::InvalidateCachesOnRestart()
 }
 
 
-NS_IMETHODIMP nsXULAppInfo::GetLaunchTimestamp(PRUint32 *aTimestamp)
+NS_IMETHODIMP nsXULAppInfo::GetLaunchTimestamp(PRUint64 *aTimestamp)
 {
     return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 
-NS_IMETHODIMP nsXULAppInfo::GetStartupTimestamp(PRUint32 *aTimestamp)
+NS_IMETHODIMP nsXULAppInfo::GetStartupTimestamp(PRUint64 *aTimestamp)
 {
   *aTimestamp = gAppData->startupTimestamp;
   return NS_OK;
