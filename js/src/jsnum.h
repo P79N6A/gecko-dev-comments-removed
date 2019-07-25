@@ -179,9 +179,6 @@ extern JSBool
 js_InitRuntimeNumberState(JSContext *cx);
 
 extern void
-js_TraceRuntimeNumberState(JSTracer *trc);
-
-extern void
 js_FinishRuntimeNumberState(JSContext *cx);
 
 
@@ -217,7 +214,7 @@ js_NumberToString(JSContext *cx, jsdouble d);
 
 
 extern JSBool JS_FASTCALL
-js_NumberValueToCharBuffer(JSContext *cx, jsval v, JSCharBuffer &cb);
+js_NumberValueToCharBuffer(JSContext *cx, const js::Value &v, JSCharBuffer &cb);
 
 namespace js {
 
@@ -226,31 +223,28 @@ namespace js {
 
 
 JS_ALWAYS_INLINE bool
-ValueToNumber(JSContext *cx, js::Value *vp, double *out)
+ValueToNumber(JSContext *cx, const js::Value &v, double *out)
 {
-    if (vp->isInt32()) {
-        *out = vp->asInt32();
+    if (v.isNumber()) {
+        *out = v.asNumber();
         return true;
     }
-    if (vp->isDouble()) {
-        *out = vp->asDouble();
-        return true;
-    }
-    extern bool ValueToNumberSlow(JSContext *, js::Value *, double *);
-    return ValueToNumberSlow(cx, vp, out);
+    extern bool ValueToNumberSlow(JSContext *, js::Value, double *);
+    return ValueToNumberSlow(cx, copyable_cast(v), out);
 }
 
 
 JS_ALWAYS_INLINE bool
 ValueToNumber(JSContext *cx, js::Value *vp)
 {
-    if (vp->isInt32())
+    if (vp->isNumber())
         return true;
-    if (vp->isDouble())
-        return true;
-    double _;
-    extern bool ValueToNumberSlow(JSContext *, js::Value *, double *);
-    return ValueToNumberSlow(cx, vp, &_);
+    double d;
+    extern bool ValueToNumberSlow(JSContext *, js::Value, double *);
+    if (!ValueToNumberSlow(cx, copyable_cast(*vp), &d))
+        return false;
+    vp->setNumber(d);
+    return true;
 }
 
 
@@ -259,41 +253,25 @@ ValueToNumber(JSContext *cx, js::Value *vp)
 
 
 JS_ALWAYS_INLINE bool
-ValueToECMAInt32(JSContext *cx, js::Value *vp, int32_t *out)
+ValueToECMAInt32(JSContext *cx, const js::Value &v, int32_t *out)
 {
-    if (vp->isInt32()) {
-        *out = vp->asInt32();
+    if (v.isInt32()) {
+        *out = v.asInt32();
         return true;
     }
-    extern bool ValueToECMAInt32Slow(JSContext *, js::Value *, int32_t *);
-    return ValueToECMAInt32Slow(cx, vp, out);
+    extern bool ValueToECMAInt32Slow(JSContext *, const js::Value &, int32_t *);
+    return ValueToECMAInt32Slow(cx, v, out);
 }
 
 JS_ALWAYS_INLINE bool
-ValueToECMAUint32(JSContext *cx, js::Value *vp, uint32_t *out)
+ValueToECMAUint32(JSContext *cx, const js::Value &v, uint32_t *out)
 {
-    if (vp->isInt32()) {
-        *out = (uint32_t)vp->asInt32();
+    if (v.isInt32()) {
+        *out = (uint32_t)v.asInt32();
         return true;
     }
-    extern bool ValueToECMAUint32Slow(JSContext *, js::Value *, uint32_t *);
-    return ValueToECMAUint32Slow(cx, vp, out);
-}
-
-
-
-
-
-
-JS_ALWAYS_INLINE bool
-ValueToInt32(JSContext *cx, js::Value *vp, int32_t *out)
-{
-    if (vp->isInt32()) {
-        *out = vp->asInt32();
-        return true;
-    }
-    extern bool ValueToInt32Slow(JSContext *, js::Value *, int32_t *);
-    return ValueToInt32Slow(cx, vp, out);
+    extern bool ValueToECMAUint32Slow(JSContext *, const js::Value &, uint32_t *);
+    return ValueToECMAUint32Slow(cx, v, out);
 }
 
 
@@ -302,14 +280,30 @@ ValueToInt32(JSContext *cx, js::Value *vp, int32_t *out)
 
 
 JS_ALWAYS_INLINE bool
-ValueToUint16(JSContext *cx, js::Value *vp, uint16_t *out)
+ValueToInt32(JSContext *cx, const js::Value &v, int32_t *out)
 {
-    if (vp->isInt32()) {
-        *out = (uint16_t)vp->asInt32();
+    if (v.isInt32()) {
+        *out = v.asInt32();
         return true;
     }
-    extern bool ValueToUint16Slow(JSContext *, js::Value *, uint16_t *);
-    return ValueToUint16Slow(cx, vp, out);
+    extern bool ValueToInt32Slow(JSContext *, const js::Value &, int32_t *);
+    return ValueToInt32Slow(cx, v, out);
+}
+
+
+
+
+
+
+JS_ALWAYS_INLINE bool
+ValueToUint16(JSContext *cx, const js::Value &v, uint16_t *out)
+{
+    if (v.isInt32()) {
+        *out = (uint16_t)v.asInt32();
+        return true;
+    }
+    extern bool ValueToUint16Slow(JSContext *, const js::Value &, uint16_t *);
+    return ValueToUint16Slow(cx, v, out);
 }
 
 }  

@@ -39,6 +39,8 @@
 
 
 
+#define __STDC_LIMIT_MACROS
+
 #include <string.h>
 #include "jsapi.h"
 #include "jsarena.h"
@@ -77,7 +79,7 @@ struct JSONParser
 {
     JSONParser(JSContext *cx)
      : hexChar(), numHex(), statep(), stateStack(), rootVal(), objectStack(),
-       objectKey(cx), buffer(cx), suppressErrors(false)
+       objectKey(cx), buffer(cx)
     {}
 
     
@@ -86,11 +88,10 @@ struct JSONParser
 
     JSONParserState *statep;
     JSONParserState stateStack[JSON_MAX_DEPTH];
-    Value *rootVal;
+    jsval *rootVal;
     JSObject *objectStack;
     js::Vector<jschar, 8> objectKey;
     js::Vector<jschar, 8> buffer;
-    bool suppressErrors;
 };
 
 #ifdef _MSC_VER
@@ -100,23 +101,19 @@ struct JSONParser
 Class js_JSONClass = {
     js_JSON_str,
     JSCLASS_HAS_CACHED_PROTO(JSProto_JSON),
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    PropertyStub,   
-    EnumerateStub,
-    ResolveStub,
-    ConvertStub
+    PropertyStub,  PropertyStub,  PropertyStub,  PropertyStub,
+    EnumerateStub, ResolveStub,   ConvertStub,   NULL,
+    JSCLASS_NO_OPTIONAL_MEMBERS
 };
 
 JSBool
-js_json_parse(JSContext *cx, uintN argc, Value *vp)
+js_json_parse(JSContext *cx, uintN argc, jsval *vp)
 {
     JSString *s = NULL;
-    Value *argv = vp + 2;
+    jsval *argv = vp + 2;
     AutoValueRooter reviver(cx);
 
-    if (!JS_ConvertArguments(cx, argc, Jsvalify(argv), "S / v", &s, reviver.addr()))
+    if (!JS_ConvertArguments(cx, argc, argv, "S / v", &s, reviver.addr()))
         return JS_FALSE;
 
     JSONParser *jp = js_BeginJSONParse(cx, vp);
@@ -133,14 +130,14 @@ js_json_parse(JSContext *cx, uintN argc, Value *vp)
 }
 
 JSBool
-js_json_stringify(JSContext *cx, uintN argc, Value *vp)
+js_json_stringify(JSContext *cx, uintN argc, jsval *vp)
 {
-    Value *argv = vp + 2;
-    AutoValueRooter space(cx);
+    jsval *argv = vp + 2;
+    AutoValueRooter space(cx, JSVAL_NULL);
     AutoObjectRooter replacer(cx);
 
     
-    if (!JS_ConvertArguments(cx, argc, Jsvalify(argv), "v / o v", vp, replacer.addr(), space.addr()))
+    if (!JS_ConvertArguments(cx, argc, argv, "v / o v", vp, replacer.addr(), space.addr()))
         return JS_FALSE;
 
     JSCharBuffer cb(cx);
@@ -155,22 +152,22 @@ js_json_stringify(JSContext *cx, uintN argc, Value *vp)
         JSString *str = js_NewStringFromCharBuffer(cx, cb);
         if (!str)
             return JS_FALSE;
-        vp->setString(str);
+        *vp = STRING_TO_JSVAL(str);
     } else {
-        vp->setUndefined();
+        *vp = JSVAL_VOID;
     }
 
     return JS_TRUE;
 }
 
 JSBool
-js_TryJSON(JSContext *cx, Value *vp)
+js_TryJSON(JSContext *cx, jsval *vp)
 {
     
     JSBool ok = JS_TRUE;
 
-    if (vp->isObject()) {
-        JSObject *obj = &vp->toObject();
+    if (!JSVAL_IS_PRIMITIVE(*vp)) {
+        JSObject *obj = JSVAL_TO_OBJECT(*vp);
         ok = js_TryMethod(cx, obj, cx->runtime->atomState.toJSONAtom, 0, NULL, vp);
     }
 
@@ -225,55 +222,19 @@ class StringifyContext
 {
 public:
     StringifyContext(JSContext *cx, JSCharBuffer &cb, JSObject *replacer)
-    : cb(cb), gap(cx), replacer(replacer), depth(0), objectStack(cx)
+    : cb(cb), gap(cx), replacer(replacer), depth(0)
     {}
-
-    bool initializeGap(JSContext *cx, const Value &space) {
-        AutoValueRooter gapValue(cx, space);
-
-        if (space.isObject()) {
-            JSObject &obj = space.toObject();
-            Class *clasp = obj.getClass();
-            if (clasp == &js_NumberClass || clasp == &js_StringClass)
-                *gapValue.addr() = obj.getPrimitiveThis();
-        }
-
-        if (gapValue.value().isString()) {
-            if (!js_ValueToCharBuffer(cx, gapValue.value(), gap))
-                return false;
-            if (gap.length() > 10)
-                gap.resize(10);
-        } else if (gapValue.value().isNumber()) {
-            jsdouble d = gapValue.value().isInt32()
-                         ? gapValue.value().toInt32()
-                         : js_DoubleToInteger(gapValue.value().toDouble());
-            d = JS_MIN(10, d);
-            if (d >= 1 && !gap.appendN(' ', uint32(d)))
-                return false;
-        }
-
-        return true;
-    }
-
-    bool initializeStack() {
-        return objectStack.init(16);
-    }
-
-#ifdef DEBUG
-    ~StringifyContext() { JS_ASSERT(objectStack.empty()); }
-#endif
 
     JSCharBuffer &cb;
     JSCharBuffer gap;
     JSObject *replacer;
     uint32 depth;
-    HashSet<JSObject *> objectStack;
 };
 
 static JSBool CallReplacerFunction(JSContext *cx, jsid id, JSObject *holder,
-                                   StringifyContext *scx, Value *vp);
+                                   StringifyContext *scx, jsval *vp);
 static JSBool Str(JSContext *cx, jsid id, JSObject *holder,
-                  StringifyContext *scx, Value *vp, bool callReplacer = true);
+                  StringifyContext *scx, jsval *vp, bool callReplacer = true);
 
 static JSBool
 WriteIndent(JSContext *cx, StringifyContext *scx, uint32 limit)
@@ -290,78 +251,48 @@ WriteIndent(JSContext *cx, StringifyContext *scx, uint32 limit)
     return JS_TRUE;
 }
 
-class CycleDetector
-{
-  public:
-    CycleDetector(StringifyContext *scx, JSObject *obj)
-      : objectStack(scx->objectStack), obj(obj) {
-    }
-
-    bool init(JSContext *cx) {
-        HashSet<JSObject *>::AddPtr ptr = objectStack.lookupForAdd(obj);
-        if (ptr) {
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CYCLIC_VALUE, js_object_str);
-            return false;
-        }
-        return objectStack.add(ptr, obj);
-    }
-
-    ~CycleDetector() {
-        objectStack.remove(obj);
-    }
-
-  private:
-    HashSet<JSObject *> &objectStack;
-    JSObject *const obj;
-};
-
 static JSBool
-JO(JSContext *cx, Value *vp, StringifyContext *scx)
+JO(JSContext *cx, jsval *vp, StringifyContext *scx)
 {
-    JSObject *obj = &vp->toObject();
-
-    CycleDetector detect(scx, obj);
-    if (!detect.init(cx))
-        return JS_FALSE;
+    JSObject *obj = JSVAL_TO_OBJECT(*vp);
 
     if (!scx->cb.append('{'))
         return JS_FALSE;
 
-    Value vec[3] = { NullValue(), NullValue(), NullValue() };
+    jsval vec[4] = {JSVAL_NULL, JSVAL_NULL, JSVAL_NULL, JSVAL_NULL};
     AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(vec), vec);
-    Value& outputValue = vec[0];
-    Value& whitelistElement = vec[1];
-    AutoIdRooter idr(cx);
-    jsid& id = *idr.addr();
+    jsval& outputValue = vec[0];
+    jsval& whitelistElement = vec[1];
+    jsid& id = vec[2];
 
-    Value *keySource = vp;
+    jsval *keySource = vp;
     bool usingWhitelist = false;
 
     
     if (scx->replacer && JS_IsArrayObject(cx, scx->replacer)) {
         usingWhitelist = true;
-        vec[2].setObject(*scx->replacer);
-        keySource = &vec[2];
+        vec[3] = OBJECT_TO_JSVAL(scx->replacer);
+        keySource = &vec[3];
     }
 
     JSBool memberWritten = JS_FALSE;
-    AutoIdVector props(cx);
-    if (!GetPropertyNames(cx, &keySource->toObject(), JSITER_OWNONLY, props))
+    AutoIdArray ida(cx, JS_Enumerate(cx, JSVAL_TO_OBJECT(*keySource)));
+    if (!ida)
         return JS_FALSE;
 
-    for (size_t i = 0, len = props.length(); i < len; i++) {
-        outputValue.setUndefined();
+    for (jsint i = 0, len = ida.length(); i < len; i++) {
+        outputValue = JSVAL_VOID;
 
         if (!usingWhitelist) {
-            if (!js_ValueToStringId(cx, IdToValue(props[i]), &id))
+            if (!js_ValueToStringId(cx, ida[i], &id))
                 return JS_FALSE;
         } else {
             
             jsuint index = 0;
-            if (!js_IdIsIndex(props[i], &index))
+            if (!js_IdIsIndex(ID_TO_VALUE(ida[i]), &index))
                 continue;
 
-            if (!scx->replacer->getProperty(cx, props[i], &whitelistElement))
+            if (!scx->replacer->getProperty(cx, ID_TO_VALUE(ida[i]), &whitelistElement))
                 return JS_FALSE;
 
             if (!js_ValueToStringId(cx, whitelistElement, &id))
@@ -371,12 +302,12 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
         
         
         
-        JS_ASSERT(JSID_IS_ATOM(id));
+        JS_ASSERT(JSVAL_IS_STRING(ID_TO_VALUE(id)));
 
-        if (!JS_GetPropertyById(cx, obj, id, Jsvalify(&outputValue)))
+        if (!JS_GetPropertyById(cx, obj, id, &outputValue))
             return JS_FALSE;
 
-        if (outputValue.isObjectOrNull() && !js_TryJSON(cx, &outputValue))
+        if (JSVAL_IS_OBJECT(outputValue) && !js_TryJSON(cx, &outputValue))
             return JS_FALSE;
 
         
@@ -384,10 +315,10 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
         if (!CallReplacerFunction(cx, id, obj, scx, &outputValue))
             return JS_FALSE;
 
-        JSType type = JS_TypeOfValue(cx, Jsvalify(outputValue));
+        JSType type = JS_TypeOfValue(cx, outputValue);
 
         
-        if (outputValue.isUndefined() || type == JSTYPE_FUNCTION || type == JSTYPE_XML)
+        if (outputValue == JSVAL_VOID || type == JSTYPE_FUNCTION || type == JSTYPE_XML)
             continue;
 
         
@@ -399,7 +330,7 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
             return JS_FALSE;
 
         
-        JSString *s = js_ValueToString(cx, IdToValue(id));
+        JSString *s = js_ValueToString(cx, ID_TO_VALUE(id));
         if (!s)
             return JS_FALSE;
 
@@ -408,8 +339,7 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
         s->getCharsAndLength(chars, length);
         if (!write_string(cx, scx->cb, chars, length) ||
             !scx->cb.append(':') ||
-            !(scx->gap.empty() || scx->cb.append(' ')) ||
-            !Str(cx, id, obj, scx, &outputValue, true)) {
+            !Str(cx, id, obj, scx, &outputValue, false)) {
             return JS_FALSE;
         }
     }
@@ -421,13 +351,9 @@ JO(JSContext *cx, Value *vp, StringifyContext *scx)
 }
 
 static JSBool
-JA(JSContext *cx, Value *vp, StringifyContext *scx)
+JA(JSContext *cx, jsval *vp, StringifyContext *scx)
 {
-    JSObject *obj = &vp->toObject();
-
-    CycleDetector detect(scx, obj);
-    if (!detect.init(cx))
-        return JS_FALSE;
+    JSObject *obj = JSVAL_TO_OBJECT(*vp);
 
     if (!scx->cb.append('['))
         return JS_FALSE;
@@ -439,7 +365,7 @@ JA(JSContext *cx, Value *vp, StringifyContext *scx)
     if (length != 0 && !WriteIndent(cx, scx, scx->depth))
         return JS_FALSE;
 
-    AutoValueRooter outputValue(cx);
+    AutoValueRooter outputValue(cx, JSVAL_NULL);
 
     jsid id;
     jsuint i;
@@ -452,7 +378,7 @@ JA(JSContext *cx, Value *vp, StringifyContext *scx)
         if (!Str(cx, id, obj, scx, outputValue.addr()))
             return JS_FALSE;
 
-        if (outputValue.value().isUndefined()) {
+        if (outputValue.value() == JSVAL_VOID) {
             if (!js_AppendLiteral(scx->cb, "null"))
                 return JS_FALSE;
         }
@@ -472,63 +398,60 @@ JA(JSContext *cx, Value *vp, StringifyContext *scx)
 }
 
 static JSBool
-CallReplacerFunction(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp)
+CallReplacerFunction(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, jsval *vp)
 {
     if (scx->replacer && scx->replacer->isCallable()) {
-        Value vec[2] = { IdToValue(id), *vp};
-        if (!JS_CallFunctionValue(cx, holder, OBJECT_TO_JSVAL(scx->replacer),
-                                  2, Jsvalify(vec), Jsvalify(vp))) {
+        jsval vec[2] = {ID_TO_VALUE(id), *vp};
+        if (!JS_CallFunctionValue(cx, holder, OBJECT_TO_JSVAL(scx->replacer), 2, vec, vp))
             return JS_FALSE;
-        }
     }
 
     return JS_TRUE;
 }
 
 static JSBool
-Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp, bool callReplacer)
+Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, jsval *vp, bool callReplacer)
 {
     JS_CHECK_RECURSION(cx, return JS_FALSE);
 
-    if (vp->isObject() && !js_TryJSON(cx, vp))
+    if (!JSVAL_IS_PRIMITIVE(*vp) && !js_TryJSON(cx, vp))
         return JS_FALSE;
 
     if (callReplacer && !CallReplacerFunction(cx, id, holder, scx, vp))
         return JS_FALSE;
 
     
-    if (vp->isObject()) {
-        JSObject *obj = &vp->toObject();
-        Class *clasp = obj->getClass();
+    if (!JSVAL_IS_PRIMITIVE(*vp)) {
+        JSClass *clasp = JSVAL_TO_OBJECT(*vp)->getClass();
         if (clasp == &js_StringClass || clasp == &js_NumberClass)
-            *vp = obj->getPrimitiveThis();
+            *vp = JSVAL_TO_OBJECT(*vp)->getPrimitiveThis();
     }
 
-    if (vp->isString()) {
+    if (JSVAL_IS_STRING(*vp)) {
         const jschar *chars;
         size_t length;
-        vp->toString()->getCharsAndLength(chars, length);
+        JSVAL_TO_STRING(*vp)->getCharsAndLength(chars, length);
         return write_string(cx, scx->cb, chars, length);
     }
 
-    if (vp->isNull()) {
+    if (JSVAL_IS_NULL(*vp)) {
         return js_AppendLiteral(scx->cb, "null");
     }
 
-    if (vp->isBoolean()) {
-        return vp->toBoolean() ? js_AppendLiteral(scx->cb, "true")
-                               : js_AppendLiteral(scx->cb, "false");
+    if (JSVAL_IS_BOOLEAN(*vp)) {
+        return JSVAL_TO_BOOLEAN(*vp) ? js_AppendLiteral(scx->cb, "true")
+                                     : js_AppendLiteral(scx->cb, "false");
     }
 
-    if (vp->isNumber()) {
-        if (vp->isDouble()) {
-            jsdouble d = vp->toDouble();
+    if (JSVAL_IS_NUMBER(*vp)) {
+        if (JSVAL_IS_DOUBLE(*vp)) {
+            jsdouble d = *JSVAL_TO_DOUBLE(*vp);
             if (!JSDOUBLE_IS_FINITE(d))
                 return js_AppendLiteral(scx->cb, "null");
         }
 
         char numBuf[DTOSTR_STANDARD_BUFFER_SIZE], *numStr;
-        jsdouble d = vp->isInt32() ? jsdouble(vp->toInt32()) : vp->toDouble();
+        jsdouble d = JSVAL_IS_INT(*vp) ? jsdouble(JSVAL_TO_INT(*vp)) : *JSVAL_TO_DOUBLE(*vp);
         numStr = js_dtostr(JS_THREAD_DATA(cx)->dtoaState, numBuf, sizeof numBuf,
                            DTOSTR_STANDARD, 0, d);
         if (!numStr) {
@@ -544,29 +467,60 @@ Str(JSContext *cx, jsid id, JSObject *holder, StringifyContext *scx, Value *vp, 
         return scx->cb.append(dstr, dbufSize);
     }
 
-    if (vp->isObject() && !IsFunctionObject(*vp) && !IsXML(*vp)) {
+    if (JSVAL_IS_OBJECT(*vp) && !VALUE_IS_FUNCTION(cx, *vp) && !VALUE_IS_XML(cx, *vp)) {
         JSBool ok;
 
         scx->depth++;
-        ok = (JS_IsArrayObject(cx, &vp->toObject()) ? JA : JO)(cx, vp, scx);
+        ok = (JS_IsArrayObject(cx, JSVAL_TO_OBJECT(*vp)) ? JA : JO)(cx, vp, scx);
         scx->depth--;
 
         return ok;
     }
 
-    vp->setUndefined();
+    *vp = JSVAL_VOID;
+    return JS_TRUE;
+}
+
+static JSBool
+InitializeGap(JSContext *cx, jsval space, JSCharBuffer &cb)
+{
+    AutoValueRooter gap(cx, space);
+
+    if (!JSVAL_IS_PRIMITIVE(space)) {
+        JSObject *obj = JSVAL_TO_OBJECT(space);
+        JSClass *clasp = obj->getClass();
+        if (clasp == &js_NumberClass || clasp == &js_StringClass)
+            *gap.addr() = obj->getPrimitiveThis();
+    }
+
+    if (JSVAL_IS_STRING(gap.value())) {
+        if (!js_ValueToCharBuffer(cx, gap.value(), cb))
+            return JS_FALSE;
+        if (cb.length() > 10)
+            cb.resize(10);
+    }
+
+    if (JSVAL_IS_NUMBER(gap.value())) {
+        jsdouble d = JSVAL_IS_INT(gap.value())
+                     ? JSVAL_TO_INT(gap.value())
+                     : js_DoubleToInteger(*JSVAL_TO_DOUBLE(gap.value()));
+        d = JS_MIN(10, d);
+        if (d >= 1 && !cb.appendN(' ', uint32(d)))
+            return JS_FALSE;
+    }
+
     return JS_TRUE;
 }
 
 JSBool
-js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, const Value &space,
+js_Stringify(JSContext *cx, jsval *vp, JSObject *replacer, jsval space,
              JSCharBuffer &cb)
 {
     StringifyContext scx(cx, cb, replacer);
-    if (!scx.initializeGap(cx, space) || !scx.initializeStack())
+    if (!InitializeGap(cx, space, scx.gap))
         return JS_FALSE;
 
-    JSObject *obj = NewBuiltinClassInstance(cx, &js_ObjectClass);
+    JSObject *obj = NewObject(cx, &js_ObjectClass, NULL, NULL);
     if (!obj)
         return JS_FALSE;
 
@@ -589,7 +543,7 @@ static JSBool HandleData(JSContext *cx, JSONParser *jp, JSONDataType type);
 static JSBool PopState(JSContext *cx, JSONParser *jp);
 
 static bool
-Walk(JSContext *cx, jsid id, JSObject *holder, const Value &reviver, Value *vp)
+Walk(JSContext *cx, jsid id, JSObject *holder, jsval reviver, jsval *vp)
 {
     JS_CHECK_RECURSION(cx, return false);
 
@@ -598,8 +552,8 @@ Walk(JSContext *cx, jsid id, JSObject *holder, const Value &reviver, Value *vp)
 
     JSObject *obj;
 
-    if (vp->isObject() && !(obj = &vp->toObject())->isCallable()) {
-        AutoValueRooter propValue(cx);
+    if (!JSVAL_IS_PRIMITIVE(*vp) && !(obj = JSVAL_TO_OBJECT(*vp))->isCallable()) {
+        AutoValueRooter propValue(cx, JSVAL_NULL);
 
         if(obj->isArray()) {
             jsuint length = 0;
@@ -618,15 +572,15 @@ Walk(JSContext *cx, jsid id, JSObject *holder, const Value &reviver, Value *vp)
                     return false;
             }
         } else {
-            AutoIdVector props(cx);
-            if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, props))
+            AutoIdArray ida(cx, JS_Enumerate(cx, obj));
+            if (!ida)
                 return false;
 
-            for (size_t i = 0, len = props.length(); i < len; i++) {
-                jsid idName = props[i];
+            for (jsint i = 0, len = ida.length(); i < len; i++) {
+                jsid idName = ida[i];
                 if (!Walk(cx, idName, obj, reviver, propValue.addr()))
                     return false;
-                if (propValue.value().isUndefined()) {
+                if (propValue.value() == JSVAL_VOID) {
                     if (!js_DeleteProperty(cx, obj, idName, propValue.addr()))
                         return false;
                 } else {
@@ -640,39 +594,29 @@ Walk(JSContext *cx, jsid id, JSObject *holder, const Value &reviver, Value *vp)
     }
 
     
-    const Value &value = *vp;
-    JSString *key = js_ValueToString(cx, IdToValue(id));
+    jsval value = *vp;
+    JSString *key = js_ValueToString(cx, ID_TO_VALUE(id));
     if (!key)
         return false;
 
-    Value vec[2] = { StringValue(key), value };
-    Value reviverResult;
-    if (!JS_CallFunctionValue(cx, holder, Jsvalify(reviver),
-                              2, Jsvalify(vec), Jsvalify(&reviverResult))) {
+    jsval vec[2] = {STRING_TO_JSVAL(key), value};
+    jsval reviverResult;
+    if (!JS_CallFunctionValue(cx, holder, reviver, 2, vec, &reviverResult))
         return false;
-    }
 
     *vp = reviverResult;
     return true;
 }
 
-static JSBool
-JSONParseError(JSONParser *jp, JSContext *cx)
-{
-    if (!jp->suppressErrors)
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
-    return JS_FALSE;
-}
-
 static bool
-Revive(JSContext *cx, const Value &reviver, Value *vp)
+Revive(JSContext *cx, jsval reviver, jsval *vp)
 {
 
-    JSObject *obj = NewBuiltinClassInstance(cx, &js_ObjectClass);
+    JSObject *obj = NewObject(cx, &js_ObjectClass, NULL, NULL);
     if (!obj)
         return false;
 
-    AutoObjectRooter tvr(cx, obj);
+    AutoValueRooter tvr(cx, obj);
     if (!obj->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.emptyAtom),
                              *vp, NULL, NULL, JSPROP_ENUMERATE)) {
         return false;
@@ -682,7 +626,7 @@ Revive(JSContext *cx, const Value &reviver, Value *vp)
 }
 
 JSONParser *
-js_BeginJSONParse(JSContext *cx, Value *rootVal, bool suppressErrors )
+js_BeginJSONParse(JSContext *cx, jsval *rootVal)
 {
     if (!cx)
         return NULL;
@@ -696,23 +640,22 @@ js_BeginJSONParse(JSContext *cx, Value *rootVal, bool suppressErrors )
         return NULL;
 
     jp->objectStack = arr;
-    if (!JS_AddNamedObjectRoot(cx, &jp->objectStack, "JSON parse stack"))
+    if (!js_AddRoot(cx, &jp->objectStack, "JSON parse stack"))
         goto bad;
 
     jp->statep = jp->stateStack;
     *jp->statep = JSON_PARSE_STATE_INIT;
     jp->rootVal = rootVal;
-    jp->suppressErrors = suppressErrors;
 
     return jp;
 
 bad:
-    js_FinishJSONParse(cx, jp, NullValue());
+    js_FinishJSONParse(cx, jp, JSVAL_NULL);
     return NULL;
 }
 
 bool
-js_FinishJSONParse(JSContext *cx, JSONParser *jp, const Value &reviver)
+js_FinishJSONParse(JSContext *cx, JSONParser *jp, jsval reviver)
 {
     if (!jp)
         return true;
@@ -737,17 +680,20 @@ js_FinishJSONParse(JSContext *cx, JSONParser *jp, const Value &reviver)
     js_RemoveRoot(cx->runtime, &jp->objectStack);
 
     bool ok = *jp->statep == JSON_PARSE_STATE_FINISHED;
-    Value *vp = jp->rootVal;
-
-    if (!early_ok) {
-        ok = false;
-    } else if (!ok) {
-        JSONParseError(jp, cx);
-    } else if (reviver.isObject() && reviver.toObject().isCallable()) {
-        ok = Revive(cx, reviver, vp);
-    }
+    jsval *vp = jp->rootVal;
 
     cx->destroy(jp);
+
+    if (!early_ok)
+        return false;
+
+    if (!ok) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return false;
+    }
+
+    if (!JSVAL_IS_PRIMITIVE(reviver) && JSVAL_TO_OBJECT(reviver)->isCallable())
+        ok = Revive(cx, reviver, vp);
 
     return ok;
 }
@@ -757,13 +703,15 @@ PushState(JSContext *cx, JSONParser *jp, JSONParserState state)
 {
     if (*jp->statep == JSON_PARSE_STATE_FINISHED) {
         
-        return JSONParseError(jp, cx);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
     }
 
     jp->statep++;
     if ((uint32)(jp->statep - jp->stateStack) >= JS_ARRAY_LENGTH(jp->stateStack)) {
         
-        return JSONParseError(jp, cx);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
     }
 
     *jp->statep = state;
@@ -777,7 +725,8 @@ PopState(JSContext *cx, JSONParser *jp)
     jp->statep--;
     if (jp->statep < jp->stateStack) {
         jp->statep = jp->stateStack;
-        return JSONParseError(jp, cx);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
     }
 
     if (*jp->statep == JSON_PARSE_STATE_INIT)
@@ -787,7 +736,7 @@ PopState(JSContext *cx, JSONParser *jp)
 }
 
 static JSBool
-PushValue(JSContext *cx, JSONParser *jp, JSObject *parent, const Value &value)
+PushValue(JSContext *cx, JSONParser *jp, JSObject *parent, jsval value)
 {
     JSBool ok;
     if (parent->isArray()) {
@@ -801,7 +750,7 @@ PushValue(JSContext *cx, JSONParser *jp, JSObject *parent, const Value &value)
         }
     } else {
         ok = JS_DefineUCProperty(cx, parent, jp->objectKey.begin(),
-                                 jp->objectKey.length(), Jsvalify(value),
+                                 jp->objectKey.length(), value,
                                  NULL, NULL, JSPROP_ENUMERATE);
         jp->objectKey.clear();
     }
@@ -815,11 +764,13 @@ PushObject(JSContext *cx, JSONParser *jp, JSObject *obj)
     jsuint len;
     if (!js_GetLengthProperty(cx, jp->objectStack, &len))
         return JS_FALSE;
-    if (len >= JSON_MAX_DEPTH)
-        return JSONParseError(jp, cx);
+    if (len >= JSON_MAX_DEPTH) {
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
+    }
 
-    AutoObjectRooter tvr(cx, obj);
-    Value v = ObjectOrNullValue(obj);
+    jsval v = OBJECT_TO_JSVAL(obj);
+    AutoValueRooter tvr(cx, v);
 
     
     if (len == 0) {
@@ -832,11 +783,12 @@ PushObject(JSContext *cx, JSONParser *jp, JSObject *obj)
         return JS_TRUE;
     }
 
-    Value p;
+    jsval p;
     if (!jp->objectStack->getProperty(cx, INT_TO_JSID(len - 1), &p))
         return JS_FALSE;
 
-    JSObject *parent = &p.toObject();
+    JS_ASSERT(JSVAL_IS_OBJECT(p));
+    JSObject *parent = JSVAL_TO_OBJECT(p);
     if (!PushValue(cx, jp, parent, v))
         return JS_FALSE;
 
@@ -852,7 +804,7 @@ PushObject(JSContext *cx, JSONParser *jp, JSObject *obj)
 static JSBool
 OpenObject(JSContext *cx, JSONParser *jp)
 {
-    JSObject *obj = NewBuiltinClassInstance(cx, &js_ObjectClass);
+    JSObject *obj = NewObject(cx, &js_ObjectClass, NULL, NULL);
     if (!obj)
         return JS_FALSE;
 
@@ -889,7 +841,7 @@ CloseArray(JSContext *cx, JSONParser *jp)
 }
 
 static JSBool
-PushPrimitive(JSContext *cx, JSONParser *jp, const Value &value)
+PushPrimitive(JSContext *cx, JSONParser *jp, jsval value)
 {
     AutoValueRooter tvr(cx, value);
 
@@ -898,11 +850,12 @@ PushPrimitive(JSContext *cx, JSONParser *jp, const Value &value)
         return JS_FALSE;
 
     if (len > 0) {
-        Value o;
+        jsval o;
         if (!jp->objectStack->getProperty(cx, INT_TO_JSID(len - 1), &o))
             return JS_FALSE;
 
-        return PushValue(cx, jp, &o.toObject(), value);
+        JS_ASSERT(!JSVAL_IS_PRIMITIVE(o));
+        return PushValue(cx, jp, JSVAL_TO_OBJECT(o), value);
     }
 
     
@@ -919,10 +872,15 @@ HandleNumber(JSContext *cx, JSONParser *jp, const jschar *buf, uint32 len)
         return JS_FALSE;
     if (ep != buf + len) {
         
-        return JSONParseError(jp, cx);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
     }
 
-    return PushPrimitive(cx, jp, DoubleValue(val));
+    jsval numVal;
+    if (!JS_NewNumberValue(cx, val, &numVal))
+        return JS_FALSE;
+
+    return PushPrimitive(cx, jp, numVal);
 }
 
 static JSBool
@@ -932,27 +890,29 @@ HandleString(JSContext *cx, JSONParser *jp, const jschar *buf, uint32 len)
     if (!str)
         return JS_FALSE;
 
-    return PushPrimitive(cx, jp, StringValue(str));
+    return PushPrimitive(cx, jp, STRING_TO_JSVAL(str));
 }
 
 static JSBool
 HandleKeyword(JSContext *cx, JSONParser *jp, const jschar *buf, uint32 len)
 {
-    Value keyword;
+    jsval keyword;
     TokenKind tt = js_CheckKeyword(buf, len);
     if (tt != TOK_PRIMARY) {
         
-        return JSONParseError(jp, cx);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
     }
 
     if (buf[0] == 'n') {
-        keyword.setNull();
+        keyword = JSVAL_NULL;
     } else if (buf[0] == 't') {
-        keyword.setBoolean(true);
+        keyword = JSVAL_TRUE;
     } else if (buf[0] == 'f') {
-        keyword.setBoolean(false);
+        keyword = JSVAL_FALSE;
     } else {
-        return JSONParseError(jp, cx);
+        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+        return JS_FALSE;
     }
 
     return PushPrimitive(cx, jp, keyword);
@@ -988,30 +948,40 @@ HandleData(JSContext *cx, JSONParser *jp, JSONDataType type)
 }
 
 JSBool
-js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len,
-                   DecodingMode decodingMode)
+js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len)
 {
-    CHECK_REQUEST(cx);
+    uint32 i;
 
     if (*jp->statep == JSON_PARSE_STATE_INIT) {
         PushState(cx, jp, JSON_PARSE_STATE_VALUE);
     }
 
-    for (uint32 i = 0; i < len; i++) {
+    for (i = 0; i < len; i++) {
         jschar c = data[i];
         switch (*jp->statep) {
-          case JSON_PARSE_STATE_ARRAY_INITIAL_VALUE:
+          case JSON_PARSE_STATE_VALUE:
             if (c == ']') {
+                
                 if (!PopState(cx, jp))
                     return JS_FALSE;
-                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT);
+
+                if (*jp->statep != JSON_PARSE_STATE_ARRAY) {
+                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                    return JS_FALSE;
+                }
+
                 if (!CloseArray(cx, jp) || !PopState(cx, jp))
                     return JS_FALSE;
+
                 break;
             }
-            
 
-          case JSON_PARSE_STATE_VALUE:
+            if (c == '}') {
+                
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
+            }
+
             if (c == '"') {
                 *jp->statep = JSON_PARSE_STATE_STRING;
                 break;
@@ -1031,78 +1001,61 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                 break;
             }
 
+          
+          case JSON_PARSE_STATE_OBJECT_VALUE:
             if (c == '{') {
-                *jp->statep = JSON_PARSE_STATE_OBJECT_AFTER_PAIR;
-                if (!OpenObject(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_OBJECT_INITIAL_PAIR))
+                *jp->statep = JSON_PARSE_STATE_OBJECT;
+                if (!OpenObject(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_OBJECT_PAIR))
                     return JS_FALSE;
             } else if (c == '[') {
-                *jp->statep = JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT;
-                if (!OpenArray(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_ARRAY_INITIAL_VALUE))
-                    return JS_FALSE;
-            } else if (JS_ISXMLSPACE(c)) {
-                
-            } else if (decodingMode == LEGACY && c == ']') {
-                if (!PopState(cx, jp))
-                    return JS_FALSE;
-                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT);
-                if (!CloseArray(cx, jp) || !PopState(cx, jp))
-                    return JS_FALSE;
-            } else {
-                return JSONParseError(jp, cx);
-            }
-            break;
-
-          case JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT:
-            if (c == ',') {
-                if (!PushState(cx, jp, JSON_PARSE_STATE_VALUE))
-                    return JS_FALSE;
-            } else if (c == ']') {
-                if (!CloseArray(cx, jp) || !PopState(cx, jp))
+                *jp->statep = JSON_PARSE_STATE_ARRAY;
+                if (!OpenArray(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_VALUE))
                     return JS_FALSE;
             } else if (!JS_ISXMLSPACE(c)) {
-                return JSONParseError(jp, cx);
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             }
             break;
 
-          case JSON_PARSE_STATE_OBJECT_AFTER_PAIR:
-            if (c == ',') {
+          case JSON_PARSE_STATE_OBJECT:
+            if (c == '}') {
+                if (!CloseObject(cx, jp) || !PopState(cx, jp))
+                    return JS_FALSE;
+            } else if (c == ',') {
                 if (!PushState(cx, jp, JSON_PARSE_STATE_OBJECT_PAIR))
                     return JS_FALSE;
-            } else if (c == '}') {
-                if (!CloseObject(cx, jp) || !PopState(cx, jp))
-                    return JS_FALSE;
-            } else if (!JS_ISXMLSPACE(c)) {
-                return JSONParseError(jp, cx);
+            } else if (c == ']' || !JS_ISXMLSPACE(c)) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             }
             break;
 
-          case JSON_PARSE_STATE_OBJECT_INITIAL_PAIR:
-            if (c == '}') {
-                if (!PopState(cx, jp))
+          case JSON_PARSE_STATE_ARRAY :
+            if (c == ']') {
+                if (!CloseArray(cx, jp) || !PopState(cx, jp))
                     return JS_FALSE;
-                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_OBJECT_AFTER_PAIR);
-                if (!CloseObject(cx, jp) || !PopState(cx, jp))
+            } else if (c == ',') {
+                if (!PushState(cx, jp, JSON_PARSE_STATE_VALUE))
                     return JS_FALSE;
-                break;
+            } else if (!JS_ISXMLSPACE(c)) {
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             }
-            
+            break;
 
-          case JSON_PARSE_STATE_OBJECT_PAIR:
+          case JSON_PARSE_STATE_OBJECT_PAIR :
             if (c == '"') {
                 
                 *jp->statep = JSON_PARSE_STATE_OBJECT_IN_PAIR;
                 if (!PushState(cx, jp, JSON_PARSE_STATE_STRING))
                     return JS_FALSE;
-            } else if (JS_ISXMLSPACE(c)) {
+            } else if (c == '}') {
                 
-            } else if (decodingMode == LEGACY && c == '}') {
-                if (!PopState(cx, jp))
+                if (!CloseObject(cx, jp) || !PopState(cx, jp) || !PopState(cx, jp))
                     return JS_FALSE;
-                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_OBJECT_AFTER_PAIR);
-                if (!CloseObject(cx, jp) || !PopState(cx, jp))
-                    return JS_FALSE;
-            } else {
-                return JSONParseError(jp, cx);
+            } else if (c == ']' || !JS_ISXMLSPACE(c)) {
+              JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+              return JS_FALSE;
             }
             break;
 
@@ -1110,7 +1063,8 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
             if (c == ':') {
                 *jp->statep = JSON_PARSE_STATE_VALUE;
             } else if (!JS_ISXMLSPACE(c)) {
-                return JSONParseError(jp, cx);
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             }
             break;
 
@@ -1128,10 +1082,11 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                     return JS_FALSE;
             } else if (c == '\\') {
                 *jp->statep = JSON_PARSE_STATE_STRING_ESCAPE;
-            } else if (c <= 0x1F) {
+            } else if (c < 31) {
                 
                 
-                return JSONParseError(jp, cx);
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             } else {
                 if (!jp->buffer.append(c))
                     return JS_FALSE;
@@ -1156,7 +1111,8 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                     *jp->statep = JSON_PARSE_STATE_STRING_HEX;
                     continue;
                 } else {
-                    return JSONParseError(jp, cx);
+                    JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                    return JS_FALSE;
                 }
             }
 
@@ -1173,7 +1129,8 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
             } else if (('A' <= c) && (c <= 'F')) {
                 jp->hexChar = (jp->hexChar << 4) | (c - 'A' + 0x0a);
             } else {
-                return JSONParseError(jp, cx);
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             }
 
             if (++(jp->numHex) == 4) {
@@ -1217,7 +1174,8 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
           case JSON_PARSE_STATE_FINISHED:
             if (!JS_ISXMLSPACE(c)) {
                 
-                return JSONParseError(jp, cx);
+                JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_JSON_BAD_PARSE);
+                return JS_FALSE;
             }
             break;
 
@@ -1231,9 +1189,9 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
 
 #if JS_HAS_TOSOURCE
 static JSBool
-json_toSource(JSContext *cx, uintN argc, Value *vp)
+json_toSource(JSContext *cx, uintN argc, jsval *vp)
 {
-    vp->setString(ATOM_TO_STRING(CLASS_ATOM(cx, JSON)));
+    *vp = ATOM_KEY(CLASS_ATOM(cx, JSON));
     return JS_TRUE;
 }
 #endif
@@ -1252,7 +1210,7 @@ js_InitJSONClass(JSContext *cx, JSObject *obj)
 {
     JSObject *JSON;
 
-    JSON = NewNonFunction<WithProto::Class>(cx, &js_JSONClass, NULL, obj);
+    JSON = JS_NewObject(cx, &js_JSONClass, NULL, obj);
     if (!JSON)
         return NULL;
     if (!JS_DefineProperty(cx, obj, js_JSON_str, OBJECT_TO_JSVAL(JSON),
