@@ -2247,6 +2247,10 @@ var XPIProvider = {
 
     
     
+    Services.prefs.savePrefFile(null);
+
+    
+    
     if (previousTheme)
       this.updateAddonDisabledState(previousTheme, true);
   },

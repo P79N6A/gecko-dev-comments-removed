@@ -343,6 +343,9 @@ var LightweightThemeManager = {
       if (aPendingRestart) {
         AddonManagerPrivate.callAddonListeners("onEnabling", wrapper, true);
         Services.prefs.setCharPref(PREF_LWTHEME_TO_SELECT, id);
+
+        
+        Services.prefs.savePrefFile(null);
       }
       else {
         AddonManagerPrivate.callAddonListeners("onEnabling", wrapper, false);
