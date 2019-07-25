@@ -232,7 +232,7 @@ stubs::SetName(VMFrame &f, JSAtom *origAtom)
 
 
 
-                    obj->setSlot(slot, rval);
+                    obj->nativeSetSlotWithType(cx, shape, rval);
 
                     
 
