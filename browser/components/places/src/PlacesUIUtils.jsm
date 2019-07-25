@@ -772,16 +772,24 @@ var PlacesUIUtils = {
       urls.push(item.uri);
     }
 
-    var where = aWindow.whereToOpenLink(aEvent, false, true);
+    
+    
+    var browserWindow =
+      aWindow.document.documentElement.getAttribute("windowtype") == "navigator:browser" ?
+      aWindow : this._getTopBrowserWin();
+
+    
+    
+    var where = browserWindow ?
+                browserWindow.whereToOpenLink(aEvent, false, true) : "window";
     if (where == "window") {
-      aWindow.openDialog(win.getBrowserURL(), "_blank",
+      aWindow.openDialog(aWindow.getBrowserURL(), "_blank",
                          "chrome,all,dialog=no", urls.join("|"));
       return;
     }
 
     var loadInBackground = where == "tabshifted" ? true : false;
     var replaceCurrentTab = where == "tab" ? false : true;
-    var browserWindow = this._getTopBrowserWin();
     browserWindow.gBrowser.loadTabs(urls, loadInBackground, replaceCurrentTab);
   },
 
