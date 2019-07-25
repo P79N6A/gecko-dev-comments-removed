@@ -169,6 +169,7 @@ nsSecureBrowserUIImpl::nsSecureBrowserUIImpl()
   , mSubRequestsLowSecurity(0)
   , mSubRequestsBrokenSecurity(0)
   , mSubRequestsNoSecurity(0)
+  , mRestoreSubrequests(false)
 #ifdef DEBUG
   , mOnStateLocationChangeReentranceDetection(0)
 #endif
@@ -573,6 +574,11 @@ nsSecureBrowserUIImpl::EvaluateAndUpdateSecurityState(nsIRequest* aRequest, nsIS
         mCurrentToplevelSecurityInfo = aRequest;
     else
         mCurrentToplevelSecurityInfo = info;
+
+    
+    
+    
+    mRestoreSubrequests = false;
   }
 
   return UpdateSecurityState(aRequest, withNewLocation, 
@@ -1113,6 +1119,8 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
         prevContentSecurity->SetCountSubRequestsBrokenSecurity(saveSubBroken);
         prevContentSecurity->SetCountSubRequestsNoSecurity(saveSubNo);
         prevContentSecurity->Flush();
+        PR_LOG(gSecureDocLog, PR_LOG_DEBUG, ("SecureUI:%p: Saving subs in START to %p as %d,%d,%d,%d\n", 
+          this, prevContentSecurity.get(), saveSubHigh, saveSubLow, saveSubBroken, saveSubNo));      
       }
 
       bool retrieveAssociatedState = false;
@@ -1146,7 +1154,18 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
           newContentSecurity->GetCountSubRequestsLowSecurity(&newSubLow);
           newContentSecurity->GetCountSubRequestsBrokenSecurity(&newSubBroken);
           newContentSecurity->GetCountSubRequestsNoSecurity(&newSubNo);
+          PR_LOG(gSecureDocLog, PR_LOG_DEBUG, ("SecureUI:%p: Restoring subs in START from %p to %d,%d,%d,%d\n", 
+            this, newContentSecurity.get(), newSubHigh, newSubLow, newSubBroken, newSubNo));      
         }
+      }
+      else
+      {
+        
+        
+        
+        
+        
+        mRestoreSubrequests = true;
       }
     }
 
@@ -1214,20 +1233,75 @@ nsSecureBrowserUIImpl::OnStateChange(nsIWebProgress* aWebProgress,
       }
     }
 
+    bool sinkChanged = false;
+    bool inProgress;
     {
       ReentrantMonitorAutoEnter lock(mReentrantMonitor);
       if (allowSecurityStateChange)
       {
+        sinkChanged = (mToplevelEventSink != temp_ToplevelEventSink);
         mToplevelEventSink = temp_ToplevelEventSink;
       }
       --mDocumentRequestsInProgress;
+      inProgress = mDocumentRequestsInProgress > 0;
     }
 
     if (allowSecurityStateChange && requestHasTransferedData) {
       
       
 
-      return EvaluateAndUpdateSecurityState(aRequest, securityInfo, false);
+      
+      
+      
+      
+
+      if (sinkChanged)
+        return EvaluateAndUpdateSecurityState(aRequest, securityInfo, false);
+    }
+
+    if (mRestoreSubrequests && !inProgress)
+    {
+      
+      
+      
+      
+      
+      
+      nsCOMPtr<nsIAssociatedContentSecurity> currentContentSecurity;
+      {
+        ReentrantMonitorAutoEnter lock(mReentrantMonitor);
+        currentContentSecurity = do_QueryInterface(mCurrentToplevelSecurityInfo);
+
+        
+        
+        mRestoreSubrequests = false;
+
+        
+        mNewToplevelSecurityStateKnown = true;
+      }
+
+      PRInt32 subHigh = 0;
+      PRInt32 subLow = 0;
+      PRInt32 subBroken = 0;
+      PRInt32 subNo = 0;
+
+      if (currentContentSecurity)
+      {
+        currentContentSecurity->GetCountSubRequestsHighSecurity(&subHigh);
+        currentContentSecurity->GetCountSubRequestsLowSecurity(&subLow);
+        currentContentSecurity->GetCountSubRequestsBrokenSecurity(&subBroken);
+        currentContentSecurity->GetCountSubRequestsNoSecurity(&subNo);
+        PR_LOG(gSecureDocLog, PR_LOG_DEBUG, ("SecureUI:%p: Restoring subs in STOP from %p to %d,%d,%d,%d\n", 
+          this, currentContentSecurity.get(), subHigh, subLow, subBroken, subNo));      
+      }
+
+      {
+        ReentrantMonitorAutoEnter lock(mReentrantMonitor);
+        mSubRequestsHighSecurity = subHigh;
+        mSubRequestsLowSecurity = subLow;
+        mSubRequestsBrokenSecurity = subBroken;
+        mSubRequestsNoSecurity = subNo;
+      }
     }
     
     return NS_OK;
