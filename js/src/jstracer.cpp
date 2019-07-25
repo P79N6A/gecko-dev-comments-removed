@@ -15121,7 +15121,7 @@ TraceRecorder::record_JSOP_BINDNAME()
 #ifdef DEBUG
             
             while (obj->getPrivate() != fp2) {
-                JS_ASSERT(fp2->isEvalOrDebuggerFrame());
+                JS_ASSERT(fp2->isDirectEvalOrDebuggerFrame());
                 fp2 = fp2->prev();
                 if (!fp2)
                     JS_NOT_REACHED("bad stack frame");

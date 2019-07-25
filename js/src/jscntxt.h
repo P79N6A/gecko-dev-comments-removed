@@ -704,7 +704,6 @@ struct JSRuntime {
     
     size_t               mjitDataSize;
 #endif
-    size_t               stringMemoryUsed;
 
     JSRuntime();
     ~JSRuntime();
