@@ -4564,7 +4564,7 @@ var XPIDatabase = {
       
       stmt = this.getStatement("getVisibleAddons_" + aTypes.length, sql);
       for (let i = 0; i < aTypes.length; i++)
-        stmt.bindStringParameter(i, aTypes[i]);
+        stmt.bindByIndex(i, aTypes[i]);
     }
 
     stmt.executeAsync(new AsyncAddonListCallback(aCallback));
@@ -4633,7 +4633,7 @@ var XPIDatabase = {
       stmt = this.getStatement("getVisibleAddonsWithPendingOperations_" +
                                aTypes.length, sql);
       for (let i = 0; i < aTypes.length; i++)
-        stmt.bindStringParameter(i, aTypes[i]);
+        stmt.bindByIndex(i, aTypes[i]);
     }
 
     stmt.executeAsync(new AsyncAddonListCallback(aCallback));
