@@ -49,6 +49,13 @@
 #include <QFlags>
 #include <QStyleOptionComboBox>
 
+
+
+
+
+
+#undef slots
+
 #include "nsIFrame.h"
 
 #include "nsCoord.h"

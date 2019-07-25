@@ -51,6 +51,14 @@
 #ifdef MOZ_X11
 #include <QX11Info>
 #endif
+
+
+
+
+
+
+#undef slots
+
 #endif
 
 #include "nscore.h"
