@@ -373,20 +373,6 @@ CallSetter(JSContext *cx, JSObject *obj, jsid id, StrictPropertyOp op, uintN att
     return CallJSPropertyOpSetter(cx, op, obj, id, strict, vp);
 }
 
-static JS_INLINE void
-LeaveTraceIfGlobalObject(JSContext *cx, JSObject *obj)
-{
-    if (!obj->getParent())
-        LeaveTrace(cx);
-}
-
-static JS_INLINE void
-LeaveTraceIfArgumentsObject(JSContext *cx, JSObject *obj)
-{
-    if (obj->isArguments())
-        LeaveTrace(cx);
-}
-
 static inline JSAtom **
 FrameAtomBase(JSContext *cx, js::StackFrame *fp)
 {
@@ -512,13 +498,9 @@ JSContext::ensureParseMapPool()
 
 
 
-
-
 static JS_FORCES_STACK JS_INLINE js::StackFrame *
 js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
 {
-    js::LeaveTrace(cx);
-
 #ifdef JS_METHODJIT
     if (expand)
         js::mjit::ExpandInlineFrames(cx->compartment);

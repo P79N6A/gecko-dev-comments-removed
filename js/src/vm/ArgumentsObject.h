@@ -202,14 +202,7 @@ class ArgumentsObject : public ::JSObject
     
     inline js::StackFrame *maybeStackFrame() const;
     inline void setStackFrame(js::StackFrame *frame);
-
-    inline bool onTrace() const;
-    inline void setOnTrace();
-    inline void clearOnTrace();
 };
-
-
-
 
 
 

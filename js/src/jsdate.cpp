@@ -2147,7 +2147,6 @@ date_toJSON(JSContext *cx, uintN argc, Value *vp)
     }
 
     
-    LeaveTrace(cx);
     InvokeArgsGuard args;
     if (!cx->stack.pushInvokeArgs(cx, 0, &args))
         return false;

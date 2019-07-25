@@ -676,13 +676,6 @@ ArgumentsObject::getElement(uint32 i, Value *vp)
 
 
 
-    if (onTrace())
-        return false;
-
-    
-
-
-
 
     StackFrame *fp = maybeStackFrame();
     JS_ASSERT_IF(isStrictArguments(), !fp);
@@ -714,10 +707,6 @@ ArgumentsObject::getElements(uint32 start, uint32 count, Value *vp)
         }
         return true;
     }
-
-    
-    if (onTrace())
-        return false;
 
     
     JS_ASSERT(fp->numActualArgs() <= StackSpace::ARGS_LENGTH_MAX);
