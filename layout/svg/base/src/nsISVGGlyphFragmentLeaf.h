@@ -70,18 +70,21 @@ public:
 
 
 
-  NS_IMETHOD_(void) GetEffectiveXY(nsTArray<float> &aX, nsTArray<float> &aY)=0;
+  NS_IMETHOD_(void) GetEffectiveXY(PRInt32 strLength,
+                                   nsTArray<float> &aX, nsTArray<float> &aY)=0;
   
 
 
 
-  NS_IMETHOD_(void) GetEffectiveDxDy(nsTArray<float> &aDx,
+  NS_IMETHOD_(void) GetEffectiveDxDy(PRInt32 strLength, 
+                                     nsTArray<float> &aDx,
                                      nsTArray<float> &aDy)=0;
   
 
 
 
-  NS_IMETHOD_(void) GetEffectiveRotate(nsTArray<float> &aRotate)=0;
+  NS_IMETHOD_(void) GetEffectiveRotate(PRInt32 strLength,
+                                       nsTArray<float> &aRotate)=0;
   NS_IMETHOD_(PRUint16) GetTextAnchor()=0;
   NS_IMETHOD_(PRBool) IsAbsolutelyPositioned()=0;
 };
