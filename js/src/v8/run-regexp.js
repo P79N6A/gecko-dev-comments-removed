@@ -27,7 +27,7 @@
 
 
 load('base.js');
-load('earley-boyer.js');
+load('regexp.js');
 
 var success = true;
 

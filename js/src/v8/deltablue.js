@@ -23,7 +23,7 @@
 
 
 
-var DeltaBlue = new BenchmarkSuite('DeltaBlue', 71104, [
+var DeltaBlue = new BenchmarkSuite('DeltaBlue', 66118, [
   new Benchmark('DeltaBlue', deltaBlue)
 ]);
 
@@ -46,7 +46,7 @@ var DeltaBlue = new BenchmarkSuite('DeltaBlue', 71104, [
 
 
 
-Object.prototype.inherits = function (shuper) {
+Object.prototype.inheritsFrom = function (shuper) {
   function Inheriter() { }
   Inheriter.prototype = shuper.prototype;
   this.prototype = new Inheriter();
@@ -216,7 +216,7 @@ function UnaryConstraint(v, strength) {
   this.addConstraint();
 }
 
-UnaryConstraint.inherits(Constraint);
+UnaryConstraint.inheritsFrom(Constraint);
 
 
 
@@ -294,7 +294,7 @@ function StayConstraint(v, str) {
   StayConstraint.superConstructor.call(this, v, str);
 }
 
-StayConstraint.inherits(UnaryConstraint);
+StayConstraint.inheritsFrom(UnaryConstraint);
 
 StayConstraint.prototype.execute = function () {
   
@@ -312,7 +312,7 @@ function EditConstraint(v, str) {
   EditConstraint.superConstructor.call(this, v, str);
 }
 
-EditConstraint.inherits(UnaryConstraint);
+EditConstraint.inheritsFrom(UnaryConstraint);
 
 
 
@@ -346,7 +346,7 @@ function BinaryConstraint(var1, var2, strength) {
   this.addConstraint();
 }
 
-BinaryConstraint.inherits(Constraint);
+BinaryConstraint.inheritsFrom(Constraint);
 
 
 
@@ -355,7 +355,7 @@ BinaryConstraint.inherits(Constraint);
 
 BinaryConstraint.prototype.chooseMethod = function (mark) {
   if (this.v1.mark == mark) {
-    this.direction = (this.v1.mark != mark && Strength.stronger(this.strength, this.v2.walkStrength))
+    this.direction = (this.v2.mark != mark && Strength.stronger(this.strength, this.v2.walkStrength))
       ? Direction.FORWARD
       : Direction.NONE;
   }
@@ -459,7 +459,7 @@ function ScaleConstraint(src, scale, offset, dest, strength) {
   ScaleConstraint.superConstructor.call(this, src, dest, strength);
 }
 
-ScaleConstraint.inherits(BinaryConstraint);
+ScaleConstraint.inheritsFrom(BinaryConstraint);
 
 
 
@@ -515,7 +515,7 @@ function EqualityConstraint(var1, var2, strength) {
   EqualityConstraint.superConstructor.call(this, var1, var2, strength);
 }
 
-EqualityConstraint.inherits(BinaryConstraint);
+EqualityConstraint.inheritsFrom(BinaryConstraint);
 
 
 

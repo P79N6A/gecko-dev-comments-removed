@@ -35,7 +35,7 @@
 
 
 
-var Richards = new BenchmarkSuite('Richards', 34886, [
+var Richards = new BenchmarkSuite('Richards', 35302, [
   new Benchmark("Richards", runRichards)
 ]);
 
@@ -73,7 +73,7 @@ function runRichards() {
     var msg =
         "Error during execution: queueCount = " + scheduler.queueCount +
         ", holdCount = " + scheduler.holdCount + ".";
-    print(msg);
+    throw new Error(msg);
   }
 }
 

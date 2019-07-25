@@ -27,7 +27,7 @@
 
 
 load('base.js');
-load('earley-boyer.js');
+load('splay.js');
 
 var success = true;
 

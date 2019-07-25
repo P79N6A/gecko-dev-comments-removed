@@ -78,7 +78,7 @@ BenchmarkSuite.suites = [];
 
 
 
-BenchmarkSuite.version = '5';
+BenchmarkSuite.version = '6';
 
 
 
@@ -198,15 +198,33 @@ BenchmarkSuite.prototype.NotifyError = function(error) {
 
 
 
-BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark) {
-  var elapsed = 0;
-  var start = new Date();
-  for (var n = 0; elapsed < 1000; n++) {
-    benchmark.run();
-    elapsed = new Date() - start;
+BenchmarkSuite.prototype.RunSingleBenchmark = function(benchmark, data) {
+  function Measure(data) {
+    var elapsed = 0;
+    var start = new Date();
+    for (var n = 0; elapsed < 1000; n++) {
+      benchmark.run();
+      elapsed = new Date() - start;
+    }
+    if (data != null) {
+      data.runs += n;
+      data.elapsed += elapsed;
+    }
   }
-  var usec = (elapsed * 1000) / n;
-  this.NotifyStep(new BenchmarkResult(benchmark, usec));
+
+  if (data == null) {
+    
+    
+    Measure(null);
+    return { runs: 0, elapsed: 0 };
+  } else {
+    Measure(data);
+    
+    if (data.runs < 32) return data;
+    var usec = (data.elapsed * 1000) / data.runs;
+    this.NotifyStep(new BenchmarkResult(benchmark, usec));
+    return null;
+  }
 }
 
 
@@ -220,6 +238,7 @@ BenchmarkSuite.prototype.RunStep = function(runner) {
   var length = this.benchmarks.length;
   var index = 0;
   var suite = this;
+  var data;
 
   
   
@@ -241,12 +260,13 @@ BenchmarkSuite.prototype.RunStep = function(runner) {
 
   function RunNextBenchmark() {
     try {
-      suite.RunSingleBenchmark(suite.benchmarks[index]);
+      data = suite.RunSingleBenchmark(suite.benchmarks[index], data);
     } catch (e) {
       suite.NotifyError(e);
       return null;
     }
-    return RunNextTearDown;
+    
+    return (data == null) ? RunNextTearDown : RunNextBenchmark();
   }
 
   function RunNextTearDown() {
@@ -262,4 +282,3 @@ BenchmarkSuite.prototype.RunStep = function(runner) {
   
   return RunNextSetup();
 }
-
