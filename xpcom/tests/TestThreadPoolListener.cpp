@@ -37,7 +37,6 @@
 
 #include "TestHarness.h"
 
-#include "nsIProxyObjectManager.h"
 #include "nsIThread.h"
 #include "nsIThreadPool.h"
 
@@ -177,13 +176,6 @@ int main(int argc, char** argv)
   NS_ENSURE_TRUE(gReentrantMonitor, 1);
 
   nsresult rv;
-
-  
-  
-  
-  nsCOMPtr<nsIProxyObjectManager> proxyObjMgr =
-    do_GetService(NS_XPCOMPROXY_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIThreadPool> pool =
     do_CreateInstance(NS_THREADPOOL_CONTRACTID, &rv);

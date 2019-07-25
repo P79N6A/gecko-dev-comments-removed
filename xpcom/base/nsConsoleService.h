@@ -46,7 +46,8 @@
 #include "mozilla/Mutex.h"
 
 #include "nsCOMPtr.h"
-#include "nsHashtable.h"
+#include "nsInterfaceHashtable.h"
+#include "nsHashKeys.h"
 
 #include "nsIConsoleService.h"
 
@@ -63,10 +64,6 @@ private:
     ~nsConsoleService();
 
     
-    nsresult GetProxyForListener(nsIConsoleListener* aListener,
-                                 nsIConsoleListener** aProxy);
-
-    
     nsIConsoleMessage **mMessages;
 
     
@@ -79,11 +76,7 @@ private:
     bool mFull;
 
     
-    nsSupportsHashtable mListeners;
-
-    
-    
-    bool mListening;
+    nsInterfaceHashtable<nsISupportsHashKey, nsIConsoleListener> mListeners;
 
     
     mozilla::Mutex mLock;
