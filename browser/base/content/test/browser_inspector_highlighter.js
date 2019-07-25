@@ -102,7 +102,6 @@ function performTestComparisons(evt)
 
 function finishUp() {
   InspectorUI.closeInspectorUI();
-  ok(!InspectorUI.highlighter.isHighlighting, "panel is not highlighting");
   gBrowser.removeCurrentTab();
   finish();
 }
