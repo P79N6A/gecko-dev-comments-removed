@@ -52,26 +52,36 @@ var VirtualCursorController = {
         this.moveBackward(document, true);
         break;
       case aEvent.DOM_VK_RIGHT:
-        if (this._isEditableText(target) &&
-            target.selectionEnd != target.textLength)
-          
-          
-          return;
+        if (this._isEditableText(target)) {
+          if (target.selectionEnd != target.textLength)
+            
+            
+            return;
+          else
+            target.blur();
+        }
         this.moveForward(document, aEvent.shiftKey);
         break;
       case aEvent.DOM_VK_LEFT:
-        if (this._isEditableText(target) &&
-            target.selectionEnd != 0)
-          
-          
-          return;
+        if (this._isEditableText(target)) {
+          if (target.selectionEnd != 0)
+            
+            
+            return;
+          else
+            target.blur();
+        }
         this.moveBackward(document, aEvent.shiftKey);
         break;
       case aEvent.DOM_VK_UP:
-        if (this._isEditableText(target) == this.MULTI_LINE_EDITABLE &&
-            target.selectionEnd != 0)
-          
-          return;
+        if (this._isEditableText(target) == this.MULTI_LINE_EDITABLE) {
+          if (target.selectionEnd != 0)
+            
+            return;
+          else
+            target.blur();
+        }
+
         if (Services.appinfo.OS == 'Android')
           
           Cc['@mozilla.org/android/bridge;1'].
@@ -112,8 +122,8 @@ var VirtualCursorController = {
       try {
         virtualCursor.moveNext(this.SimpleTraversalRule);
       } catch (x) {
-        virtualCursor.position =
-          gAccRetrieval.getAccessibleFor(document.activeElement);
+        this.moveCursorToObject(
+          gAccRetrieval.getAccessibleFor(document.activeElement));
       }
     }
   },
@@ -126,8 +136,8 @@ var VirtualCursorController = {
       try {
         virtualCursor.movePrevious(this.SimpleTraversalRule);
       } catch (x) {
-        virtualCursor.position =
-          gAccRetrieval.getAccessibleFor(document.activeElement);
+        this.moveCursorToObject(
+          gAccRetrieval.getAccessibleFor(document.activeElement));
       }
     }
   },

@@ -222,19 +222,6 @@ var AccessFu = {
           this.presenters.forEach(
             function(p) { p.pivotChanged(presenterContext); });
 
-          if (position && position.DOMNode &&
-              doc instanceof Ci.nsIDOMDocument) {
-            
-            
-            
-            
-            
-            let sel = doc.getSelection();
-            sel.collapse(position.DOMNode, 0);
-            Cc["@mozilla.org/focus-manager;1"]
-              .getService(Ci.nsIFocusManager).moveFocus(
-                doc.defaultView, null, Ci.nsIFocusManager.MOVEFOCUS_CARET, 0);
-          }
           break;
         }
       case Ci.nsIAccessibleEvent.EVENT_STATE_CHANGE:
@@ -354,6 +341,15 @@ var AccessFu = {
       case Ci.nsIAccessibleEvent.EVENT_SCROLLING_START:
       {
         VirtualCursorController.moveCursorToObject(aEvent.accessible);
+        break;
+      }
+      case Ci.nsIAccessibleEvent.EVENT_FOCUS:
+      {
+        let acc = aEvent.accessible;
+        let doc = aEvent.accessibleDocument;
+        if (acc.role != Ci.nsIAccessibleRole.ROLE_DOCUMENT &&
+            doc.role != Ci.nsIAccessibleRole.ROLE_CHROME_WINDOW)
+          VirtualCursorController.moveCursorToObject(acc);
         break;
       }
       default:
