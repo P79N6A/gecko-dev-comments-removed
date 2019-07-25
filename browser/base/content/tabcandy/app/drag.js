@@ -65,6 +65,7 @@ var Drag = function(element, event) {
   this.$el.data('isDragging', true);
   this.item.setZ(999999);
   
+  this.safeWindowBounds = this.getSafeWindowBounds();
   Trenches.activateOthersTrenches(this.el);
   
   
@@ -83,10 +84,47 @@ Drag.prototype = {
   
   snap: function(event, ui){
     var bounds = this.item.getBounds();
+    var update = false; 
+    var updateX = false;
+    var updateY = false;
 
     
     var newRect = Trenches.snap(bounds,true);
     if (newRect) 
+      update = true;
+
+    
+    newRect = newRect || bounds;
+
+    var swb = this.safeWindowBounds;
+
+    if (newRect.left < swb.left) {
+      newRect.left = swb.left;
+      update = true;
+      updateX = true;
+    }
+    if (newRect.left + newRect.width > swb.left + swb.width) {
+      if (updateX)
+        newRect.width = swb.left + swb.width - newRect.left;
+      else
+        newRect.left = swb.left + swb.width - newRect.width;
+      update = true;
+    }
+    if (newRect.top < swb.top) {
+      newRect.top = swb.top;
+      update = true;
+      updateY = true;
+    }
+    if (newRect.top + newRect.height > swb.top + swb.height) {
+      if (updateY)
+        newRect.height = swb.top + swb.height - newRect.top;
+      else
+        newRect.top = swb.top + swb.height - newRect.height;
+      update = true;
+    }
+
+
+    if (update)
       this.item.setBounds(newRect,true);
 
     return ui;
@@ -149,5 +187,16 @@ Drag.prototype = {
     
     Trenches.disactivate();
     
+  },
+  getSafeWindowBounds: function() {
+    
+    var gutter = Items.defaultGutter;
+    var pageBounds = Items.getPageBounds();
+    var newTabGroupBounds = Groups.getBoundsForNewTabGroup();
+    
+    
+    
+    var topGutter = 5;
+    return new Rect( gutter, topGutter, pageBounds.width - 2 * gutter, newTabGroupBounds.top -  gutter - topGutter );
   }
 };

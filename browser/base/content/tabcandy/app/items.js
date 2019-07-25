@@ -516,6 +516,11 @@ window.Items = {
   
   
   
+  defaultGutter: 15,
+  
+  
+  
+  
   init: function() {
   },
   

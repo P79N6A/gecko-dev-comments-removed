@@ -49,12 +49,12 @@ var Trench = function(element, xory, type, edge) {
   this.edge = edge; 
 
   this.active = false;
-  this.gutter = 15;
+  this.gutter = Items.defaultGutter;
 
   
   this.position = 0;
   
-  this.radius = 10;
+  this.radius = Trenches.defaultRadius;
 
   
   this.range = {min: 0, max: 10000};
@@ -175,7 +175,7 @@ Trench.prototype = {
         edgeToCheck = "bottom";
       else if (this.edge == "bottom")
         edgeToCheck = "top";
-    } else if (this.type == "guide") {
+    } else { 
       edgeToCheck = this.edge;
     }
 
@@ -292,6 +292,7 @@ Trench.prototype = {
 
 var Trenches = {
   nextId: 0,
+  defaultRadius: 10,
   preferTop: true,
   preferLeft: true,
   activeTrenches: {},
