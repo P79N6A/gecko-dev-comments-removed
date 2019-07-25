@@ -1575,7 +1575,7 @@ mjit::Compiler::jsop_setelem(bool popGuaranteed)
     }
 #endif
 
-    SetElementICInfo ic = SetElementICInfo(JSOp(*PC));
+    SetElementICInfo ic;
 
     
     
@@ -2175,7 +2175,7 @@ mjit::Compiler::jsop_getelem()
         return true;
     }
 
-    GetElementICInfo ic = GetElementICInfo(JSOp(*PC));
+    GetElementICInfo ic;
 
     
     MaybeRegisterID pinnedIdData = frame.maybePinData(id);
