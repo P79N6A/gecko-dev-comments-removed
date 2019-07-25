@@ -56,7 +56,6 @@
 
 
 
-
 window.Item = function() {
   
   
@@ -143,7 +142,6 @@ window.Item.prototype = {
   
   _init: function(container) {
     Utils.assert('container must be a DOM element', Utils.isDOMElement(container));
-    Utils.assert('Subclass must provide reloadBounds', typeof(this.reloadBounds) == 'function');
     Utils.assert('Subclass must provide setBounds', typeof(this.setBounds) == 'function');
     Utils.assert('Subclass must provide setZ', typeof(this.setZ) == 'function');
     Utils.assert('Subclass must provide close', typeof(this.close) == 'function');
@@ -152,6 +150,7 @@ window.Item.prototype = {
     Utils.assert('Subclass must provide save', typeof(this.save) == 'function');
     Utils.assert('Subclass must provide defaultSize', isPoint(this.defaultSize));
     Utils.assert('Subclass must provide locked', this.locked);
+    Utils.assert('Subclass must provide bounds', isRect(this.bounds));
     
     this.container = container;
     
@@ -165,9 +164,6 @@ window.Item.prototype = {
         .appendTo('body');
     }
     
-    this.reloadBounds();        
-    Utils.assert('reloadBounds must set up this.bounds', this.bounds);
-
     iQ(this.container).data('item', this);
 
     

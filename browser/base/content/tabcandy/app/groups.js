@@ -133,6 +133,8 @@ window.Group = function(listOfEls, options) {
     if( this.isNewTabsGroup() ) $container.addClass("newTabGroup");
   }
   
+  this.bounds = $container.bounds();
+  
   this.isDragging = false;
   $container
     .css({zIndex: -100})
@@ -439,18 +441,6 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
       box.height -= 33; 
       
     return box;
-  },
-  
-  
-  
-  
-  reloadBounds: function() {
-    var bb = iQ(this.container).bounds();
-    
-    if(!this.bounds)
-      this.bounds = new Rect(0, 0, 0, 0);
-    
-    this.setBounds(bb, true);
   },
   
   
