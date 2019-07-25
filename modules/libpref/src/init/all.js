@@ -1338,11 +1338,9 @@ pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
 #endif
 
-#ifdef XP_WIN
 
 
 pref("dom.ipc.plugins.java.enabled", false);
-#endif
 
 #ifndef ANDROID
 #ifndef XP_MACOSX
