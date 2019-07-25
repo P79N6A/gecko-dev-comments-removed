@@ -1338,12 +1338,8 @@ Tab.prototype = {
     this._viewport.x = Math.round(this._viewport.x * this._viewport.zoom);
     this._viewport.y = Math.round(this._viewport.y * this._viewport.zoom);
 
-    
-
-
-
     let doc = this.browser.contentDocument;
-    if (doc != null && doc.readyState === 'complete') {
+    if (doc != null) {
       let pageWidth = this._viewport.width, pageHeight = this._viewport.height;
       let body = doc.body || { scrollWidth: pageWidth, scrollHeight: pageHeight };
       let html = doc.documentElement || { scrollWidth: pageWidth, scrollHeight: pageHeight };
@@ -1351,8 +1347,18 @@ Tab.prototype = {
       pageHeight = Math.max(body.scrollHeight, html.scrollHeight);
 
       
-      this._viewport.pageWidth = Math.round(pageWidth * this._viewport.zoom);
-      this._viewport.pageHeight = Math.round(pageHeight * this._viewport.zoom);
+      pageWidth = Math.round(pageWidth * this._viewport.zoom);
+      pageHeight = Math.round(pageHeight * this._viewport.zoom);
+
+      
+
+
+
+
+      if (doc.readyState === 'complete' || (pageWidth >= gScreenWidth && pageHeight >= gScreenHeight)) {
+        this._viewport.pageWidth = pageWidth;
+        this._viewport.pageHeight = pageHeight;
+      }
     }
 
     return this._viewport;
