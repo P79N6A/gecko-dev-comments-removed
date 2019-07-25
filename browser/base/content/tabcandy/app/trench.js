@@ -50,12 +50,20 @@
 
 
 
+
+
+
 var Trench = function(element, xory, type, edge) {
   
   
   
   this.id = Trenches.nextId++;
 
+  
+  
+  
+  
+  
   
   this.el = element;
   this.xory = xory; 
@@ -85,13 +93,21 @@ var Trench = function(element, xory, type, edge) {
   
   
   
+  
+  
   this.range = new Range(0,10000);
-  
   this.minRange = new Range(0,0);
-  
   this.activeRange = new Range(0,10000);
 };
 Trench.prototype = {
+  
+  
+  
+  
+  
+  
+  
+  
   setPosition: function Trench_setPos(position, range, minRange) {
     this.position = position;
     
@@ -113,6 +129,13 @@ Trench.prototype = {
     this.show(); 
 
   },
+  
+  
+  
+  
+  
+  
+  
   setActiveRange: function Trench_setActiveRect(activeRange) {
     if (!isRange(activeRange))
       return false;
@@ -122,7 +145,19 @@ Trench.prototype = {
     else
       this.activeRect = new Rect ( this.activeRange.min, this.position - this.radius, this.activeRange.extent, 2 * this.radius );    
   },
+  
+  
+  
+  
+  
+  
+  
+  
   setWithRect: function Trench_setWithRect(rect) {
+    
+    if (!isRect(rect))
+      Utils.error('argument must be Rect');
+    
     
     
     
@@ -153,6 +188,13 @@ Trench.prototype = {
         this.setPosition(rect.bottom, false, range);
     }
   },
+  
+  
+  
+  
+  
+  
+  
   show: function Trench_show() { 
     if (!Trenches.showDebug) {
       this.hide();
@@ -186,10 +228,35 @@ Trench.prototype = {
     iQ("body").append(visibleTrench);
     iQ("body").append(activeVisibleTrench);
   },
+  
+  
+  
+  
   hide: function Trench_hide() {
     if (this.visibleTrench)
       this.visibleTrench.remove();
   },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   rectOverlaps: function Trench_rectOverlaps(rect,assumeConstantSize,keepProportional) {
     var xRange = new Range(rect.left, rect.right);
     var yRange = new Range(rect.top, rect.bottom);
@@ -252,10 +319,30 @@ Trench.prototype = {
       
     return false;
   },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   ruleOverlaps: function Trench_ruleOverlaps(position, range) {
     return (this.position - this.radius <= position && position <= this.position + this.radius
             && this.activeRange.contains(range));
   },
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   adjustRangeIfIntercept: function Trench_adjustRangeIfIntercept(position, range) {
     if (this.position - this.radius > range.min && this.position + this.radius < range.max) {
       var activeRange = new Range(this.activeRange.min,this.activeRange.max);
@@ -277,6 +364,11 @@ Trench.prototype = {
     }
     return false;
   },
+  
+  
+  
+  
+  
   calculateActiveRange: function Trench_calculateActiveRange() {
     
     if (this.type != 'guide')
@@ -319,22 +411,58 @@ Trench.prototype = {
 
 
 
+
 var Trenches = {
+  
+  
+  
+  
+  
   nextId: 0,
+  showDebug: false,
   defaultRadius: 10,
+
+  
+  
+  
+  
   preferTop: true,
   preferLeft: true,
+  
   activeTrenches: {},
   trenches: [],
-  showDebug: false,
+
+  
+  
+  
+  
+  
+  
   getById: function Trenches_getById(id) {
     return this.trenches[id];
   },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
   register: function Trenches_register(element, xory, type, edge) {
     var trench = new Trench(element, xory, type, edge);
     this.trenches[trench.id] = trench;
     return trench.id;
   },
+
+  
+  
+  
+  
+  
+  
   unregister: function Trenches_unregister(ids) {
     if (!iQ.isArray(ids))
       ids = [ids];
@@ -344,6 +472,13 @@ var Trenches = {
       delete self.trenches[id];
     });
   },
+
+  
+  
+  
+  
+  
+  
   activateOthersTrenches: function Trenches_activateOthersTrenches(element) {
     this.trenches.forEach(function(t) {
       if (t.el === element)
@@ -353,12 +488,32 @@ var Trenches = {
       t.show(); 
     });
   },
+
+  
+  
+  
   disactivate: function Trenches_disactivate() {
     this.trenches.forEach(function(t) {
       t.active = false;
       t.show();
     });
   },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   snap: function Trenches_snap(rect,assumeConstantSize,keepProportional) {
     var aT = this.activeTrenches;
     
@@ -403,11 +558,19 @@ var Trenches = {
     else
       return false;
   },
+
+  
+  
+  
   show: function Trenches_show() {
     this.trenches.forEach(function(t){
       t.show();
     });
   }, 
+
+  
+  
+  
   toggleShown: function Trenches_toggleShown() {
     this.showDebug = !this.showDebug;
     this.show();
