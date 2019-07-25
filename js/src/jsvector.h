@@ -208,12 +208,30 @@ class Vector : private AllocPolicy
 
     
 
+    
+
+
+
+
+
+
+
+
+    template <int M, int Dummy>
+    struct ElemSize {
+        static const size_t result = sizeof(T);
+    };
+    template <int Dummy>
+    struct ElemSize<0, Dummy> {
+        static const size_t result = 1;
+    };
+
     static const size_t sInlineCapacity =
-        tl::Min<N, sMaxInlineBytes / sizeof(T)>::result;
+        tl::Min<N, sMaxInlineBytes / ElemSize<N, 0>::result>::result;
 
     
     static const size_t sInlineBytes =
-        tl::Max<1, sInlineCapacity * sizeof(T)>::result;
+        tl::Max<1, sInlineCapacity * ElemSize<N, 0>::result>::result;
 
     
 
