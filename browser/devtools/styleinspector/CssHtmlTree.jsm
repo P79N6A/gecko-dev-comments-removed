@@ -328,7 +328,7 @@ CssHtmlTree.prototype = {
 
     
     
-    let styles = this.styleWin.contentWindow.getComputedStyle(this.styleDocument.body);
+    let styles = this.styleWin.contentWindow.getComputedStyle(this.styleDocument.documentElement);
     let mozProps = [];
     for (let i = 0, numStyles = styles.length; i < numStyles; i++) {
       let prop = styles.item(i);
