@@ -644,7 +644,8 @@ struct JSCodeGenerator : public JSTreeContext
 
 
     js::OwnedAtomIndexMapPtr upvarIndices; 
-    JSUpvarArray    upvarMap;       
+
+    js::UpvarCookies upvarMap;      
 
     typedef js::Vector<js::GlobalSlotArray::Entry, 16> GlobalUseVector;
 
