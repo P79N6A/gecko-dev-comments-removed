@@ -467,16 +467,11 @@ txXPathNodeUtils::getNodeName(const txXPathNode& aNode, nsAString& aName)
     }
 
     if (aNode.isContent()) {
-        if (aNode.mNode->IsElement()) {
-            aName = aNode.Content()->NodeInfo()->QualifiedNameCorrectedCase();
-            return;
-        }
-
-        if (aNode.mNode->IsNodeOfType(nsINode::ePROCESSING_INSTRUCTION)) {
-            
-            nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode.mNode);
-            node->GetNodeName(aName);
-
+        
+        if (aNode.mNode->IsElement() ||
+            aNode.mNode->NodeType() ==
+            nsIDOMNode::PROCESSING_INSTRUCTION_NODE) {
+            aName = aNode.Content()->NodeName();
             return;
         }
 
@@ -486,11 +481,6 @@ txXPathNodeUtils::getNodeName(const txXPathNode& aNode, nsAString& aName)
     }
 
     aNode.Content()->GetAttrNameAt(aNode.mIndex)->GetQualifiedName(aName);
-
-    
-    if (aNode.Content()->IsHTML()) {
-        ToUpperCase(aName);
-    }
 }
 
 
