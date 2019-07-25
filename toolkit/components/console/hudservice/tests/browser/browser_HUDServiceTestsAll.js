@@ -35,6 +35,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -203,6 +204,14 @@ function testUnregister()  {
 function getHUDById() {
   let hud = HUDService.getHeadsUpDisplay(hudId);
   ok(hud.getAttribute("id") == hudId, "found HUD node by Id.");
+}
+
+
+
+function testInputFocus() {
+  let hud = HUDService.getHeadsUpDisplay(hudId);
+  let inputNode = hud.querySelectorAll(".jsterm-input-node")[0];
+  is(inputNode.getAttribute("focused"), "true", "input node is focused");
 }
 
 function testGetContentWindowFromHUDId() {
@@ -624,6 +633,7 @@ function test() {
       introspectLogNodes();
       getAllHUDS();
       getHUDById();
+      testInputFocus();
       testGetDisplayByLoadGroup();
       testGetContentWindowFromHUDId();
 

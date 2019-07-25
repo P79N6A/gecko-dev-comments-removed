@@ -39,6 +39,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
@@ -1522,6 +1523,7 @@ function HeadsUpDisplay(aConfig)
     this.contentWindow = aConfig.contentWindow;
     this.uriSpec = aConfig.contentWindow.location.href;
     this.reattachConsole();
+    this.HUDBox.querySelectorAll(".jsterm-input-node")[0].focus();
     return;
   }
 
@@ -1627,6 +1629,7 @@ function HeadsUpDisplay(aConfig)
   
   try {
     this.createConsoleInput(this.contentWindow, this.consoleWrap, this.outputNode);
+    this.HUDBox.querySelectorAll(".jsterm-input-node")[0].focus();
   }
   catch (ex) {
     Cu.reportError(ex);
