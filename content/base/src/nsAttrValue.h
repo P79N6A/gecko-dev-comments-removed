@@ -265,6 +265,21 @@ public:
 
 
 
+
+
+
+
+
+
+  PRBool ParsePositiveIntValue(const nsAString& aString);
+
+  
+
+
+
+
+
+
   PRBool ParseColor(const nsAString& aString, nsIDocument* aDocument);
 
   
