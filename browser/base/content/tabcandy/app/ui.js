@@ -137,7 +137,7 @@ var Tabbar = {
             
             visibleTabs.splice(i, 1);
             if (!options.dontReorg) {
-              tabbrowser.moveTabTo(tab, length - 1);
+              tabbrowser.moveTabTo(tab, tabBarTabs.length - 1);
             }
             return true;
           }
