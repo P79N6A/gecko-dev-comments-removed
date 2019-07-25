@@ -2537,116 +2537,263 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
     return BuildFlatReplacement(cx, rdata.str, rdata.repstr, *fm, vp);
 }
 
+class SplitMatchResult {
+    size_t endIndex_;
+    size_t length_;
 
+  public:
+    void setFailure() {
+        JS_STATIC_ASSERT(SIZE_MAX > JSString::MAX_LENGTH);
+        endIndex_ = SIZE_MAX;
+    }
+    bool isFailure() const {
+        return (endIndex_ == SIZE_MAX);
+    }
+    size_t endIndex() const {
+        JS_ASSERT(!isFailure());
+        return endIndex_;
+    }
+    size_t length() const {
+        JS_ASSERT(!isFailure());
+        return length_;
+    }
+    void setResult(size_t length, size_t endIndex) {
+        length_ = length;
+        endIndex_ = endIndex;
+    }
+};
 
-
-
-
-
-
-
-
-static jsint
-find_split(JSContext *cx, RegExpStatics *res, JSString *str, js::RegExp *re, jsint *ip,
-           JSSubString *sep)
+template<class Matcher>
+static JSObject *
+SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch)
 {
-    
-
-
-
-
-
-
-
-
-
-
-    jsint i = *ip;
-    size_t length = str->length();
-    if ((size_t)i > length)
-        return -1;
-
-    const jschar *chars = str->getChars(cx);
-    if (!chars)
-        return -2;
+    size_t strLength = str->length();
+    SplitMatchResult result;
 
     
+    if (strLength == 0) {
+        if (!splitMatch(cx, str, 0, &result))
+            return NULL;
 
-
-
-
-    if (re) {
-        size_t index;
-        Value rval;
-
-      again:
         
-        index = (size_t)i;
-        if (!re->execute(cx, res, str, &index, true, &rval))
-            return -2;
-        if (!rval.isTrue()) {
-            
-            sep->length = 1;
-            return length;
-        }
-        i = (jsint)index;
-        JS_ASSERT(sep);
-        res->getLastMatch(sep);
-        if (sep->length == 0) {
-            
 
 
 
 
-            if (i == *ip) {
-                
 
 
 
 
-                if ((size_t)i == length)
-                    return -1;
-                i++;
-                goto again;
-            }
-            if ((size_t)i == length) {
-                
 
+        if (!result.isFailure())
+            return NewDenseEmptyArray(cx);
 
-
-
-                sep->chars = NULL;
-            }
-        }
-        JS_ASSERT((size_t)i >= sep->length);
-        return i - sep->length;
+        Value v = StringValue(str);
+        return NewDenseCopiedArray(cx, 1, &v);
     }
 
     
-
-
-
-
-    if (sep->length == 0)
-        return ((size_t)i == length) ? -1 : i + 1;
+    size_t lastEndIndex = 0;
+    size_t index = 0;
 
     
+    AutoValueVector splits(cx);
+
+    while (index < strLength) {
+        
+        if (!splitMatch(cx, str, index, &result))
+            return NULL;
+
+        
 
 
 
 
-    jsint match = StringMatch(chars + i, length - i, sep->chars, sep->length);
-    return match == -1 ? length : match + i;
+
+
+
+
+
+
+
+
+
+
+        if (result.isFailure())
+            break;
+
+        
+        size_t sepLength = result.length();
+        size_t endIndex = result.endIndex();
+        if (sepLength == 0 && endIndex == strLength)
+            break;
+
+        
+        if (endIndex == lastEndIndex) {
+            index++;
+            continue;
+        }
+
+        
+        JS_ASSERT(lastEndIndex < endIndex);
+        JS_ASSERT(sepLength <= strLength);
+        JS_ASSERT(lastEndIndex + sepLength <= endIndex);
+
+        
+        size_t subLength = size_t(endIndex - sepLength - lastEndIndex);
+        JSString *sub = js_NewDependentString(cx, str, lastEndIndex, subLength);
+        if (!sub || !splits.append(StringValue(sub)))
+            return NULL;
+
+        
+        if (splits.length() == limit)
+            return NewDenseCopiedArray(cx, splits.length(), splits.begin());
+
+        
+        lastEndIndex = endIndex;
+
+        
+        if (Matcher::returnsCaptures) {
+            RegExpStatics *res = cx->regExpStatics();
+            for (size_t i = 0; i < res->parenCount(); i++) {
+                
+                if (res->pairIsPresent(i + 1)) {
+                    JSSubString parsub;
+                    res->getParen(i + 1, &parsub);
+                    sub = js_NewStringCopyN(cx, parsub.chars, parsub.length);
+                    if (!sub || !splits.append(StringValue(sub)))
+                        return NULL;
+                } else {
+                    if (!splits.append(UndefinedValue()))
+                        return NULL;
+                }
+
+                
+                if (splits.length() == limit)
+                    return NewDenseCopiedArray(cx, splits.length(), splits.begin());
+            }
+        }
+
+        
+        index = lastEndIndex;
+    }
+
+    
+    JSString *sub = js_NewDependentString(cx, str, lastEndIndex, strLength - lastEndIndex);
+    if (!sub || !splits.append(StringValue(sub)))
+        return NULL;
+
+    
+    return NewDenseCopiedArray(cx, splits.length(), splits.begin());
 }
+
+
+
+
+
+
+
+
+class SplitRegExpMatcher {
+    RegExpStatics *res;
+    RegExp *re;
+
+  public:
+    static const bool returnsCaptures = true;
+    SplitRegExpMatcher(RegExp *re, RegExpStatics *res) : res(res), re(re) {
+    }
+
+    inline bool operator()(JSContext *cx, JSLinearString *str, size_t index,
+                           SplitMatchResult *result) {
+        Value rval;
+        if (!re->execute(cx, res, str, &index, true, &rval))
+            return false;
+        if (!rval.isTrue()) {
+            result->setFailure();
+            return true;
+        }
+        JSSubString sep;
+        res->getLastMatch(&sep);
+
+        result->setResult(sep.length, index);
+        return true;
+    }
+};
+
+class SplitStringMatcher {
+    const jschar *sepChars;
+    size_t sepLength;
+
+  public:
+    static const bool returnsCaptures = false;
+    SplitStringMatcher(JSLinearString *sep) {
+        sepChars = sep->chars();
+        sepLength = sep->length();
+    }
+
+    inline bool operator()(JSContext *cx, JSLinearString *str, size_t index,
+                           SplitMatchResult *res) {
+        JS_ASSERT(index == 0 || index < str->length());
+        const jschar *chars = str->chars();
+        jsint match = StringMatch(chars + index, str->length() - index, sepChars, sepLength);
+        if (match == -1)
+            res->setFailure();
+        else
+            res->setResult(sepLength, index + match + sepLength);
+        return true;
+    }
+};
+
 
 static JSBool
 str_split(JSContext *cx, uintN argc, Value *vp)
 {
+    
     JSString *str = ThisToStringForStringProto(cx, vp);
     if (!str)
         return false;
 
-    if (argc == 0) {
+    
+    uint32 limit;
+    if (argc > 1 && !vp[3].isUndefined()) {
+        jsdouble d;
+        if (!ValueToNumber(cx, vp[3], &d))
+            return false;
+        limit = js_DoubleToECMAUint32(d);
+    } else {
+        limit = UINT32_MAX;
+    }
+
+    
+    RegExp *re = NULL;
+    JSLinearString *sepstr = NULL;
+    bool sepUndefined = (argc == 0 || vp[2].isUndefined());
+    if (!sepUndefined) {
+        if (VALUE_IS_REGEXP(cx, vp[2])) {
+            re = static_cast<RegExp *>(vp[2].toObject().getPrivate());
+        } else {
+            JSString *sep = js_ValueToString(cx, vp[2]);
+            if (!sep)
+                return false;
+            vp[2].setString(sep);
+
+            sepstr = sep->ensureLinear(cx);
+            if (!sepstr)
+                return false;
+        }
+    }
+
+    
+    if (limit == 0) {
+        JSObject *aobj = NewDenseEmptyArray(cx);
+        if (!aobj)
+            return false;
+        vp->setObject(*aobj);
+        return true;
+    }
+
+    
+    if (sepUndefined) {
         Value v = StringValue(str);
         JSObject *aobj = NewDenseCopiedArray(cx, 1, &v);
         if (!aobj)
@@ -2654,89 +2801,22 @@ str_split(JSContext *cx, uintN argc, Value *vp)
         vp->setObject(*aobj);
         return true;
     }
-
-    RegExp *re;
-    JSSubString *sep, tmp;
-    if (VALUE_IS_REGEXP(cx, vp[2])) {
-        re = static_cast<RegExp *>(vp[2].toObject().getPrivate());
-        sep = &tmp;
-
-        
-        sep->chars = NULL;
-        sep->length = 0;
-    } else {
-        JSString *sepstr = js_ValueToString(cx, vp[2]);
-        if (!sepstr)
-            return false;
-        vp[2].setString(sepstr);
-
-        
-
-
-
-        tmp.length = sepstr->length();
-        tmp.chars = sepstr->getChars(cx);
-        if (!tmp.chars)
-            return false;
-        re = NULL;
-        sep = &tmp;
-    }
+    JSLinearString *strlin = str->ensureLinear(cx);
+    if (!strlin)
+        return false;
 
     
-    uint32 limit = 0; 
-    bool limited = (argc > 1) && !vp[3].isUndefined();
-    if (limited) {
-        jsdouble d;
-        if (!ValueToNumber(cx, vp[3], &d))
-            return false;
-
+    JSObject *aobj;
+    if (re) {
+        aobj = SplitHelper(cx, strlin, limit, SplitRegExpMatcher(re, cx->regExpStatics()));
+    } else {
         
-        limit = js_DoubleToECMAUint32(d);
-        if (limit > str->length())
-            limit = 1 + str->length();
+        aobj = SplitHelper(cx, strlin, limit, SplitStringMatcher(sepstr));
     }
-
-    AutoValueVector splits(cx);
-
-    RegExpStatics *res = cx->regExpStatics();
-    jsint i, j;
-    uint32 len = i = 0;
-    while ((j = find_split(cx, res, str, re, &i, sep)) >= 0) {
-        if (limited && len >= limit)
-            break;
-
-        JSString *sub = js_NewDependentString(cx, str, i, size_t(j - i));
-        if (!sub || !splits.append(StringValue(sub)))
-            return false;
-        len++;
-
-        
-
-
-
-
-        if (re && sep->chars) {
-            for (uintN num = 0; num < res->parenCount(); num++) {
-                if (limited && len >= limit)
-                    break;
-                JSSubString parsub;
-                res->getParen(num + 1, &parsub);
-                sub = js_NewStringCopyN(cx, parsub.chars, parsub.length);
-                if (!sub || !splits.append(StringValue(sub)))
-                    return false;
-                len++;
-            }
-            sep->chars = NULL;
-        }
-        i = j + sep->length;
-    }
-
-    if (j == -2)
-        return false;
-
-    JSObject *aobj = NewDenseCopiedArray(cx, splits.length(), splits.begin());
     if (!aobj)
         return false;
+
+    
     vp->setObject(*aobj);
     return true;
 }

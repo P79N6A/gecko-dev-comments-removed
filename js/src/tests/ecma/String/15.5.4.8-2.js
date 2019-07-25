@@ -122,7 +122,7 @@ for ( var i = 0; i < TEST_STRING.length; i++ ) {
 
 
 var TEST_STRING = "thisundefinedisundefinedaundefinedstringundefinedobject";
-var EXPECT_STRING = new Array( "this", "is", "a", "string", "object" );
+var EXPECT_STRING = new Array( TEST_STRING );
 
 new TestCase(   SECTION,
 		"var s = new String( "+ TEST_STRING +" ); s.split(void 0).length",
