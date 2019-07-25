@@ -1004,6 +1004,7 @@ pref("devtools.errorconsole.enabled", false);
 
 
 pref("devtools.inspector.enabled", true);
+pref("devtools.inspector.htmlHeight", 112);
 
 
 pref("devtools.styleinspector.enabled", true);
