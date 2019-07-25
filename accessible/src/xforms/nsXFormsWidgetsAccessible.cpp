@@ -3,9 +3,41 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsXFormsWidgetsAccessible.h"
 
-#include "Role.h"
 #include "States.h"
 
 using namespace mozilla::a11y;
@@ -15,22 +47,22 @@ using namespace mozilla::a11y;
 
 
 nsXFormsDropmarkerWidgetAccessible::
-  nsXFormsDropmarkerWidgetAccessible(nsIContent* aContent,
-                                     DocAccessible* aDoc) :
-  LeafAccessible(aContent, aDoc)
+  nsXFormsDropmarkerWidgetAccessible(nsIContent *aContent,
+                                     nsIWeakReference *aShell) :
+  nsLeafAccessible(aContent, aShell)
 {
 }
 
-role
+PRUint32
 nsXFormsDropmarkerWidgetAccessible::NativeRole()
 {
-  return roles::PUSHBUTTON;
+  return nsIAccessibleRole::ROLE_PUSHBUTTON;
 }
 
-uint64_t
+PRUint64
 nsXFormsDropmarkerWidgetAccessible::NativeState()
 {
-  bool isOpen = false;
+  PRBool isOpen = PR_FALSE;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
   nsresult rv = sXFormsService->IsDropmarkerOpen(DOMNode, &isOpen);
   NS_ENSURE_SUCCESS(rv, 0);
@@ -38,20 +70,20 @@ nsXFormsDropmarkerWidgetAccessible::NativeState()
   return isOpen ? states::PRESSED: 0;
 }
 
-uint8_t
+PRUint8
 nsXFormsDropmarkerWidgetAccessible::ActionCount()
 {
   return 1;
 }
 
 NS_IMETHODIMP
-nsXFormsDropmarkerWidgetAccessible::GetActionName(uint8_t aIndex,
+nsXFormsDropmarkerWidgetAccessible::GetActionName(PRUint8 aIndex,
                                                   nsAString& aName)
 {
   if (aIndex != eAction_Click)
     return NS_ERROR_INVALID_ARG;
 
-  bool isOpen = false;
+  PRBool isOpen = PR_FALSE;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
   nsresult rv = sXFormsService->IsDropmarkerOpen(DOMNode, &isOpen);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -65,7 +97,7 @@ nsXFormsDropmarkerWidgetAccessible::GetActionName(uint8_t aIndex,
 }
 
 NS_IMETHODIMP
-nsXFormsDropmarkerWidgetAccessible::DoAction(uint8_t aIndex)
+nsXFormsDropmarkerWidgetAccessible::DoAction(PRUint8 aIndex)
 {
   if (aIndex != eAction_Click)
     return NS_ERROR_INVALID_ARG;
@@ -80,15 +112,15 @@ nsXFormsDropmarkerWidgetAccessible::DoAction(uint8_t aIndex)
 
 
 nsXFormsCalendarWidgetAccessible::
-  nsXFormsCalendarWidgetAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  AccessibleWrap(aContent, aDoc)
+nsXFormsCalendarWidgetAccessible(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsAccessibleWrap(aContent, aShell)
 {
 }
 
-role
+PRUint32
 nsXFormsCalendarWidgetAccessible::NativeRole()
 {
-  return roles::CALENDAR;
+  return nsIAccessibleRole::ROLE_CALENDAR;
 }
 
 
@@ -97,27 +129,29 @@ nsXFormsCalendarWidgetAccessible::NativeRole()
 
 
 nsXFormsComboboxPopupWidgetAccessible::
-  nsXFormsComboboxPopupWidgetAccessible(nsIContent* aContent,
-                                        DocAccessible* aDoc) :
-  nsXFormsAccessible(aContent, aDoc)
+  nsXFormsComboboxPopupWidgetAccessible(nsIContent *aContent,
+                                        nsIWeakReference *aShell) :
+  nsXFormsAccessible(aContent, aShell)
 {
 }
 
-role
+PRUint32
 nsXFormsComboboxPopupWidgetAccessible::NativeRole()
 {
-  return roles::LIST;
+  return nsIAccessibleRole::ROLE_LIST;
 }
 
-uint64_t
+PRUint64
 nsXFormsComboboxPopupWidgetAccessible::NativeState()
 {
-  uint64_t state = nsXFormsAccessible::NativeState();
+  PRUint64 state = nsXFormsAccessible::NativeState();
 
-  bool isOpen = false;
+  PRBool isOpen = PR_FALSE;
   nsCOMPtr<nsIDOMNode> DOMNode(do_QueryInterface(mContent));
   nsresult rv = sXFormsService->IsDropmarkerOpen(DOMNode, &isOpen);
   NS_ENSURE_SUCCESS(rv, state);
+
+  state |= states::FOCUSABLE;
 
   if (isOpen)
     state = states::FLOATING;
@@ -127,10 +161,11 @@ nsXFormsComboboxPopupWidgetAccessible::NativeState()
   return state;
 }
 
-uint64_t
-nsXFormsComboboxPopupWidgetAccessible::NativeInteractiveState() const
+NS_IMETHODIMP
+nsXFormsComboboxPopupWidgetAccessible::GetValue(nsAString& aValue)
 {
-  return NativelyUnavailable() ? states::UNAVAILABLE : states::FOCUSABLE;
+  aValue.Truncate();
+  return NS_OK;
 }
 
 nsresult
@@ -145,12 +180,6 @@ void
 nsXFormsComboboxPopupWidgetAccessible::Description(nsString& aDescription)
 {
   aDescription.Truncate();
-}
-
-void
-nsXFormsComboboxPopupWidgetAccessible::Value(nsString& aValue)
-{
-  aValue.Truncate();
 }
 
 void

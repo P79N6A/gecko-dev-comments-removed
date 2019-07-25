@@ -3,6 +3,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsXFormsFormControlsAccessible_H_
 #define _nsXFormsFormControlsAccessible_H_
 
@@ -15,12 +48,12 @@
 class nsXFormsLabelAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsLabelAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsLabelAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual void Description(nsString& aDescription);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -30,10 +63,10 @@ public:
 class nsXFormsOutputAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsOutputAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsOutputAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -43,18 +76,19 @@ public:
 class nsXFormsTriggerAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsTriggerAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsTriggerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetValue(nsAString& aValue);
+
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -64,19 +98,19 @@ public:
 class nsXFormsInputAccessible : public nsXFormsEditableAccessible
 {
 public:
-  nsXFormsInputAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsInputAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   NS_DECL_ISUPPORTS_INHERITED
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -86,18 +120,18 @@ public:
 class nsXFormsInputBooleanAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsInputBooleanAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsInputBooleanAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 };
 
 
@@ -107,10 +141,10 @@ public:
 class nsXFormsInputDateAccessible : public nsXFormsContainerAccessible
 {
 public:
-  nsXFormsInputDateAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsInputDateAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -120,12 +154,14 @@ public:
 class nsXFormsSecretAccessible : public nsXFormsInputAccessible
 {
 public:
-  nsXFormsSecretAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsSecretAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  NS_IMETHOD GetValue(nsAString& aValue);
+
+  
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 };
 
 
@@ -136,7 +172,7 @@ public:
 class nsXFormsRangeAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsRangeAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsRangeAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   NS_IMETHOD GetMaximumValue(double *aMaximumValue);
@@ -145,8 +181,8 @@ public:
   NS_IMETHOD GetCurrentValue(double *aCurrentValue);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 };
 
 
@@ -158,10 +194,10 @@ public:
 class nsXFormsSelectAccessible : public nsXFormsContainerAccessible
 {
 public:
-  nsXFormsSelectAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsSelectAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 };
 
 
@@ -172,13 +208,13 @@ public:
 class nsXFormsChoicesAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsChoicesAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsChoicesAccessible(nsIContent* aContent, nsIWeakReference *aShell);
 
   
+  NS_IMETHOD GetValue(nsAString& aValue);
 
   
-  virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 
 protected:
   
@@ -194,10 +230,10 @@ protected:
 class nsXFormsSelectFullAccessible : public nsXFormsSelectableAccessible
 {
 public:
-  nsXFormsSelectFullAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsSelectFullAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 
 protected:
   
@@ -214,15 +250,15 @@ protected:
 class nsXFormsItemCheckgroupAccessible : public nsXFormsSelectableItemAccessible
 {
 public:
-  nsXFormsItemCheckgroupAccessible(nsIContent* aContent,
-                                   DocAccessible* aDoc);
+  nsXFormsItemCheckgroupAccessible(nsIContent *aContent,
+                                   nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 };
 
 
@@ -235,15 +271,15 @@ public:
 class nsXFormsItemRadiogroupAccessible : public nsXFormsSelectableItemAccessible
 {
 public:
-  nsXFormsItemRadiogroupAccessible(nsIContent* aContent,
-                                   DocAccessible* aDoc);
+  nsXFormsItemRadiogroupAccessible(nsIContent *aContent,
+                                   nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 };
 
 
@@ -255,14 +291,13 @@ public:
 class nsXFormsSelectComboboxAccessible : public nsXFormsSelectableAccessible
 {
 public:
-  nsXFormsSelectComboboxAccessible(nsIContent* aContent,
-                                   DocAccessible* aDoc);
+  nsXFormsSelectComboboxAccessible(nsIContent *aContent,
+                                   nsIWeakReference *aShell);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
-  virtual bool CanHaveAnonChildren();
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
+  virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
 
@@ -275,16 +310,15 @@ public:
 class nsXFormsItemComboboxAccessible : public nsXFormsSelectableItemAccessible
 {
 public:
-  nsXFormsItemComboboxAccessible(nsIContent* aContent,
-                                 DocAccessible* aDoc);
+  nsXFormsItemComboboxAccessible(nsIContent *aContent,
+                                 nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 };
 
 #endif

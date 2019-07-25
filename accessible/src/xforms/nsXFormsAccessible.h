@@ -3,10 +3,43 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsXFormsAccessible_H_
 #define _nsXFormsAccessible_H_
 
-#include "HyperTextAccessibleWrap.h"
+#include "nsHyperTextAccessibleWrap.h"
 #include "nsIXFormsUtilityService.h"
 
 #define NS_NAMESPACE_XFORMS "http://www.w3.org/2002/xforms"
@@ -33,30 +66,31 @@ protected:
 
 
 
-class nsXFormsAccessible : public HyperTextAccessibleWrap,
+class nsXFormsAccessible : public nsHyperTextAccessibleWrap,
                            public nsXFormsAccessibleBase
 {
 public:
-  nsXFormsAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsAccessible(nsIContent *aContent, nsIWeakReference *aShell);
+
+  
+
+  
+  NS_IMETHOD GetValue(nsAString& aValue);
 
   
   
   virtual void Description(nsString& aDescription);
 
   
-  virtual void Value(nsString& aValue);
-
-  
   virtual nsresult GetNameInternal(nsAString& aName);
 
   
   
-  virtual uint64_t NativeState();
-  virtual bool NativelyUnavailable() const;
+  virtual PRUint64 NativeState();
 
   
   
-  virtual bool CanHaveAnonChildren();
+  virtual PRBool GetAllowsAnonChildAccessibles();
 
 protected:
   
@@ -71,7 +105,7 @@ protected:
   
   
   
-  void CacheSelectChildren(nsIDOMNode *aContainerNode = nullptr);
+  void CacheSelectChildren(nsIDOMNode *aContainerNode = nsnull);
 };
 
 
@@ -90,14 +124,14 @@ protected:
 class nsXFormsContainerAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsContainerAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsContainerAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 
   
   
-  virtual bool CanHaveAnonChildren();
+  virtual PRBool GetAllowsAnonChildAccessibles();
 };
 
 
@@ -108,13 +142,13 @@ public:
 class nsXFormsEditableAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsEditableAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsEditableAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
-  virtual already_AddRefed<nsIEditor> GetEditor() const;
+  NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
   
-  virtual uint64_t NativeState();
+  virtual PRUint64 NativeState();
 };
 
 
@@ -125,24 +159,24 @@ public:
 class nsXFormsSelectableAccessible : public nsXFormsEditableAccessible
 {
 public:
-  nsXFormsSelectableAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  nsXFormsSelectableAccessible(nsIContent *aContent, nsIWeakReference *aShell);
 
   
   virtual bool IsSelect();
   virtual already_AddRefed<nsIArray> SelectedItems();
-  virtual uint32_t SelectedItemCount();
-  virtual Accessible* GetSelectedItem(uint32_t aIndex);
-  virtual bool IsItemSelected(uint32_t aIndex);
-  virtual bool AddItemToSelection(uint32_t aIndex);
-  virtual bool RemoveItemFromSelection(uint32_t aIndex);
+  virtual PRUint32 SelectedItemCount();
+  virtual nsAccessible* GetSelectedItem(PRUint32 aIndex);
+  virtual bool IsItemSelected(PRUint32 aIndex);
+  virtual bool AddItemToSelection(PRUint32 aIndex);
+  virtual bool RemoveItemFromSelection(PRUint32 aIndex);
   virtual bool SelectAll();
   virtual bool UnselectAll();
 
 protected:
-  nsIContent* GetItemByIndex(uint32_t* aIndex,
-                             Accessible* aAccessible = nullptr);
+  nsIContent* GetItemByIndex(PRUint32* aIndex,
+                             nsAccessible* aAccessible = nsnull);
 
-  bool mIsSelect1Element;
+  PRBool mIsSelect1Element;
 };
 
 
@@ -152,16 +186,14 @@ protected:
 class nsXFormsSelectableItemAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsSelectableItemAccessible(nsIContent* aContent,
-                                   DocAccessible* aDoc);
+  nsXFormsSelectableItemAccessible(nsIContent *aContent,
+                                   nsIWeakReference *aShell);
 
-  NS_IMETHOD DoAction(uint8_t aIndex);
-
-  
-  virtual void Value(nsString& aValue);
+  NS_IMETHOD GetValue(nsAString& aValue);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 
 protected:
   bool IsSelected();

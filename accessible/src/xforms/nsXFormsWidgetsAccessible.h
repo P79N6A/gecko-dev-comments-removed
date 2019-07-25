@@ -3,48 +3,81 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef _nsXFormsWidgetsAccessible_H_
 #define _nsXFormsWidgetsAccessible_H_
 
-#include "BaseAccessibles.h"
 #include "nsXFormsAccessible.h"
+#include "nsBaseWidgetAccessible.h"
 
 
 
 
 
 
-class nsXFormsDropmarkerWidgetAccessible : public mozilla::a11y::LeafAccessible,
+class nsXFormsDropmarkerWidgetAccessible : public nsLeafAccessible,
                                            public nsXFormsAccessibleBase
 {
 public:
-  nsXFormsDropmarkerWidgetAccessible(nsIContent* aContent,
-                                     DocAccessible* aDoc);
+  nsXFormsDropmarkerWidgetAccessible(nsIContent *aContent,
+                                     nsIWeakReference *aShell);
 
   
-  NS_IMETHOD GetActionName(uint8_t aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(uint8_t aIndex);
+  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
+  NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 
   
-  virtual uint8_t ActionCount();
+  virtual PRUint8 ActionCount();
 };
 
 
 
 
 
-class nsXFormsCalendarWidgetAccessible : public AccessibleWrap
+class nsXFormsCalendarWidgetAccessible : public nsAccessibleWrap
 {
 public:
-  nsXFormsCalendarWidgetAccessible(nsIContent* aContent,
-                                   DocAccessible* aDoc);
+  nsXFormsCalendarWidgetAccessible(nsIContent *aContent,
+                                   nsIWeakReference *aShell);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual PRUint32 NativeRole();
 };
 
 
@@ -55,16 +88,17 @@ public:
 class nsXFormsComboboxPopupWidgetAccessible : public nsXFormsAccessible
 {
 public:
-  nsXFormsComboboxPopupWidgetAccessible(nsIContent* aContent,
-                                        DocAccessible* aDoc);
+  nsXFormsComboboxPopupWidgetAccessible(nsIContent *aContent,
+                                        nsIWeakReference *aShell);
+
+  
+  NS_IMETHOD GetValue(nsAString& aValue);
 
   
   virtual void Description(nsString& aDescription);
-  virtual void Value(nsString& aValue);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
-  virtual uint64_t NativeState();
-  virtual uint64_t NativeInteractiveState() const;
+  virtual PRUint32 NativeRole();
+  virtual PRUint64 NativeState();
 
 protected:
   
