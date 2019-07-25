@@ -3,7 +3,7 @@
 
 
 
-#include "TabMessageUtils.h"
+#include "mozilla/dom/TabMessageUtils.h"
 #include "nsCOMPtr.h"
 #include "nsIDOMEvent.h"
 
