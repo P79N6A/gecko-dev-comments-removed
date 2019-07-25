@@ -38,6 +38,7 @@
 
 
 
+#define ZLIB_INTERNAL
 #include "zlib.h"
 
 void xxxNeverCalledZLib()
