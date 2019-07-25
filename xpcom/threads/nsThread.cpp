@@ -45,7 +45,9 @@
 #include "nsCOMPtr.h"
 #include "prlog.h"
 #include "nsThreadUtilsInternal.h"
+#include "nsIObserverService.h"
 #include "mozilla/HangMonitor.h"
+#include "mozilla/Services.h"
 
 #define HAVE_UALARM _BSD_SOURCE || (_XOPEN_SOURCE >= 500 ||                 \
                       _XOPEN_SOURCE && _XOPEN_SOURCE_EXTENDED) &&           \
@@ -80,6 +82,23 @@ static PRLogModuleInfo *sLog = PR_NewLogModule("nsThread");
 NS_DECL_CI_INTERFACE_GETTER(nsThread)
 
 nsIThreadObserver* nsThread::sGlobalObserver;
+
+namespace mozilla {
+
+
+
+static PRInt32 sMemoryPressurePending = 0;
+
+
+
+
+
+void ScheduleMemoryPressureEvent()
+{
+  PR_ATOMIC_SET(&sMemoryPressurePending, 1);
+}
+
+};
 
 
 
@@ -576,6 +595,22 @@ nsThread::ProcessNextEvent(bool mayWait, bool *result)
 
   if (MAIN_THREAD == mIsMainThread && mayWait && !ShuttingDown())
     HangMonitor::Suspend();
+
+  
+  
+  if (MAIN_THREAD == mIsMainThread && !ShuttingDown()) {
+    bool mpPending = PR_ATOMIC_SET(&sMemoryPressurePending, 0);
+    if (mpPending) {
+      nsCOMPtr<nsIObserverService> os = services::GetObserverService();
+      if (os) {
+        os->NotifyObservers(nsnull, "memory-pressure",
+                            NS_LITERAL_STRING("low-memory").get());
+      }
+      else {
+        NS_WARNING("Can't get observer service!");
+      }
+    }
+  }
 
   bool notifyGlobalObserver = (sGlobalObserver != nsnull);
   if (notifyGlobalObserver) 
