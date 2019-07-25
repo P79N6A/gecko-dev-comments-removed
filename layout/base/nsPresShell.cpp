@@ -206,7 +206,7 @@
 #include "sampler.h"
 
 #include "Layers.h"
-#include "nsPLDOMEvent.h"
+#include "nsAsyncDOMEvent.h"
 
 #ifdef NS_FUNCTION_TIMER
 #define NS_TIME_FUNCTION_DECLARE_DOCURL                \
@@ -2110,10 +2110,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
     return NS_ERROR_NOT_AVAILABLE;
   }
 
-  nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
-  
-  nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
-
   if (!mIsDestroying && !mResizeEvent.IsPending() &&
       !mAsyncResizeTimerIsActive) {
     FireBeforeResizeEvent();
@@ -2122,10 +2118,13 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
   mPresContext->SetVisibleArea(nsRect(0, 0, aWidth, aHeight));
 
   
-  rootFrame = FrameManager()->GetRootFrame();
   if (!rootFrame)
     return NS_OK;
 
+  NS_ASSERTION(mViewManager, "Must have view manager");
+  nsCOMPtr<nsIViewManager> viewManagerDeathGrip = mViewManager;
+  
+  nsCOMPtr<nsIPresShell> kungFuDeathGrip(this);
   if (!GetPresContext()->SupressingResizeReflow())
   {
     nsIViewManager::UpdateViewBatch batch(mViewManager);
@@ -2141,8 +2140,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
       mFrameConstructor->ProcessPendingRestyles();
     }
 
-    rootFrame = FrameManager()->GetRootFrame();
-    if (!mIsDestroying && rootFrame) {
+    if (!mIsDestroying) {
       
       
 
@@ -2163,8 +2161,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
     batch.EndUpdateViewBatch(NS_VMREFRESH_NO_SYNC);
   }
 
-  rootFrame = FrameManager()->GetRootFrame();
-  if (aHeight == NS_UNCONSTRAINEDSIZE && rootFrame) {
+  if (aHeight == NS_UNCONSTRAINEDSIZE) {
     mPresContext->SetVisibleArea(
       nsRect(0, 0, aWidth, rootFrame->GetRect().height));
   }
@@ -6367,9 +6364,9 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsEventStatus* aStatus)
           
           
           
-          nsRefPtr<nsPLDOMEvent> e =
-            new nsPLDOMEvent(doc, NS_LITERAL_STRING("MozShowFullScreenWarning"),
-                             true, true);
+          nsRefPtr<nsAsyncDOMEvent> e =
+            new nsAsyncDOMEvent(doc, NS_LITERAL_STRING("MozShowFullScreenWarning"),
+                                true, true);
           e->PostDOMEvent();
         }
         

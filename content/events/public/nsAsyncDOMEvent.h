@@ -35,8 +35,8 @@
 
 
 
-#ifndef nsPLDOMEvent_h___
-#define nsPLDOMEvent_h___
+#ifndef nsAsyncDOMEvent_h___
+#define nsAsyncDOMEvent_h___
 
 #include "nsCOMPtr.h"
 #include "nsThreadUtils.h"
@@ -51,25 +51,21 @@
 
 
 
-
-
-
-
  
-class nsPLDOMEvent : public nsRunnable {
+class nsAsyncDOMEvent : public nsRunnable {
 public:
-  nsPLDOMEvent(nsINode *aEventNode, const nsAString& aEventType,
-               bool aBubbles, bool aDispatchChromeOnly)
+  nsAsyncDOMEvent(nsINode *aEventNode, const nsAString& aEventType,
+                  bool aBubbles, bool aDispatchChromeOnly)
     : mEventNode(aEventNode), mEventType(aEventType),
       mBubbles(aBubbles),
       mDispatchChromeOnly(aDispatchChromeOnly)
   { }
 
-  nsPLDOMEvent(nsINode *aEventNode, nsIDOMEvent *aEvent)
+  nsAsyncDOMEvent(nsINode *aEventNode, nsIDOMEvent *aEvent)
     : mEventNode(aEventNode), mEvent(aEvent), mDispatchChromeOnly(false)
   { }
 
-  nsPLDOMEvent(nsINode *aEventNode, nsEvent &aEvent);
+  nsAsyncDOMEvent(nsINode *aEventNode, nsEvent &aEvent);
 
   NS_IMETHOD Run();
   nsresult PostDOMEvent();
@@ -82,11 +78,11 @@ public:
   bool                  mDispatchChromeOnly;
 };
 
-class nsLoadBlockingPLDOMEvent : public nsPLDOMEvent {
+class nsLoadBlockingPLDOMEvent : public nsAsyncDOMEvent {
 public:
   nsLoadBlockingPLDOMEvent(nsINode *aEventNode, const nsAString& aEventType,
                            bool aBubbles, bool aDispatchChromeOnly)
-    : nsPLDOMEvent(aEventNode, aEventType, aBubbles, aDispatchChromeOnly),
+    : nsAsyncDOMEvent(aEventNode, aEventType, aBubbles, aDispatchChromeOnly),
       mBlockedDoc(aEventNode->OwnerDoc())
   {
     if (mBlockedDoc) {
@@ -95,7 +91,7 @@ public:
   }
 
   nsLoadBlockingPLDOMEvent(nsINode *aEventNode, nsIDOMEvent *aEvent)
-    : nsPLDOMEvent(aEventNode, aEvent),
+    : nsAsyncDOMEvent(aEventNode, aEvent),
       mBlockedDoc(aEventNode->OwnerDoc())
   {
     if (mBlockedDoc) {

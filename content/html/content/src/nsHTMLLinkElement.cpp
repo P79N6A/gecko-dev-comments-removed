@@ -55,7 +55,7 @@
 #include "nsParserUtils.h"
 #include "nsContentUtils.h"
 #include "nsPIDOMWindow.h"
-#include "nsPLDOMEvent.h"
+#include "nsAsyncDOMEvent.h"
 
 #include "Link.h"
 using namespace mozilla::dom;
@@ -279,8 +279,8 @@ nsHTMLLinkElement::CreateAndDispatchEvent(nsIDocument* aDoc,
                       strings, eIgnoreCase) != ATTR_VALUE_NO_MATCH)
     return;
 
-  nsRefPtr<nsPLDOMEvent> event = new nsPLDOMEvent(this, aEventName, true,
-                                                  true);
+  nsRefPtr<nsAsyncDOMEvent> event = new nsAsyncDOMEvent(this, aEventName, true,
+                                                        true);
   
   
   event->PostDOMEvent();
