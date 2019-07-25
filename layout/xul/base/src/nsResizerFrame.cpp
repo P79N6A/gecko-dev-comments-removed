@@ -399,11 +399,14 @@ nsResizerFrame::AdjustDimensions(PRInt32* aPos, PRInt32* aSize,
 {
   switch(aResizerDirection)
   {
-    case -1: 
+    case -1:
+      
       *aPos+= aMovement;
-    case 1: 
+      
+    case 1:
       *aSize+= aResizerDirection*aMovement;
-      if (*aSize < 1) 
+      
+      if (*aSize < 1)
         *aSize = 1;
   }
 }
