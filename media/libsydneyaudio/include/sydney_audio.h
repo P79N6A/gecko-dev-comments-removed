@@ -452,7 +452,7 @@ int sa_stream_drain(sa_stream_t *s);
 
 
 
-int sa_stream_get_min_write(sa_stream_t *s, size_t *samples);
+int sa_stream_get_min_write(sa_stream_t *s, size_t *size);
 
 
 const char *sa_strerror(int code);
