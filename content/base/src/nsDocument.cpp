@@ -8573,11 +8573,20 @@ ResetFullScreenElementInDocTree(nsIDocument* aDoc)
 NS_IMETHODIMP
 nsDocument::MozCancelFullScreen()
 {
+  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
+    return NS_OK;
+  }
+  CancelFullScreen();
+  return NS_OK;
+}
+
+void
+nsDocument::CancelFullScreen()
+{
   if (!nsContentUtils::IsFullScreenApiEnabled() ||
-      !nsContentUtils::IsRequestFullScreenAllowed() ||
       !IsFullScreenDoc() ||
       !GetWindow()) {
-    return NS_OK;
+    return;
   }
 
   
@@ -8586,7 +8595,7 @@ nsDocument::MozCancelFullScreen()
   
   GetWindow()->SetFullScreen(PR_FALSE);
 
-  return NS_OK;
+  return;
 }
 
 PRBool

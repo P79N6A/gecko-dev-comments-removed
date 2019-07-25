@@ -6988,6 +6988,43 @@ static PRBool CanHandleContextMenuEvent(nsMouseEvent* aMouseEvent,
   return PR_TRUE;
 }
 
+static PRBool
+IsFullScreenAndRestrictedKeyEvent(nsIContent* aTarget, const nsEvent* aEvent)
+{
+  NS_ABORT_IF_FALSE(aEvent, "Must have an event to check.");
+
+  
+  
+  nsIDocument *doc;
+  if (!aTarget ||
+      (aEvent->message != NS_KEY_DOWN &&
+      aEvent->message != NS_KEY_UP &&
+      aEvent->message != NS_KEY_PRESS) ||
+      !(doc = aTarget->GetOwnerDoc()) ||
+      !doc->IsFullScreenDoc() ||
+      !nsContentUtils::IsFullScreenKeyInputRestricted()) {
+    return PR_FALSE;
+  }
+
+  
+  
+  
+  
+  
+  
+  int key = static_cast<const nsKeyEvent*>(aEvent)->keyCode;
+  if ((key >= NS_VK_CANCEL && key <= NS_VK_CAPS_LOCK) ||
+      (key >= NS_VK_SPACE && key <= NS_VK_DELETE) ||
+      (key >= NS_VK_SEMICOLON && key <= NS_VK_EQUALS) ||
+      (key >= NS_VK_MULTIPLY && key <= NS_VK_META)) {
+    return PR_FALSE;
+  }
+
+  
+  
+  return PR_TRUE;
+}
+
 nsresult
 PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
                                nsEventStatus* aStatus)
@@ -7029,11 +7066,21 @@ PresShell::HandleEventInternal(nsEvent* aEvent, nsIView *aView,
     
     if (NS_IS_TRUSTED_EVENT(aEvent)) {
       switch (aEvent->message) {
-      case NS_MOUSE_BUTTON_DOWN:
-      case NS_MOUSE_BUTTON_UP:
       case NS_KEY_PRESS:
       case NS_KEY_DOWN:
       case NS_KEY_UP:
+        if (IsFullScreenAndRestrictedKeyEvent(mCurrentEventContent, aEvent) &&
+            aEvent->message == NS_KEY_DOWN) {
+          
+          
+          NS_DispatchToCurrentThread(
+            NS_NewRunnableMethod(mCurrentEventContent->GetOwnerDoc(),
+                                 &nsIDocument::CancelFullScreen));
+        }
+        
+        
+      case NS_MOUSE_BUTTON_DOWN:
+      case NS_MOUSE_BUTTON_UP:
         isHandlingUserInput = PR_TRUE;
         break;
       case NS_DRAGDROP_DROP:

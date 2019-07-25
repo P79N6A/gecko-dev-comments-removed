@@ -1713,6 +1713,13 @@ public:
 
   static PRBool IsRequestFullScreenAllowed();
 
+  
+
+
+
+
+  static PRBool IsFullScreenKeyInputRestricted();
+
   static void GetShiftText(nsAString& text);
   static void GetControlText(nsAString& text);
   static void GetMetaText(nsAString& text);
@@ -1879,6 +1886,7 @@ private:
   static PRBool sAllowXULXBL_for_file;
   static PRBool sIsFullScreenApiEnabled;
   static PRBool sTrustedFullScreenOnly;
+  static PRBool sFullScreenKeyInputRestricted;
 
   static nsHtml5Parser* sHTMLFragmentParser;
   static nsIParser* sXMLFragmentParser;
