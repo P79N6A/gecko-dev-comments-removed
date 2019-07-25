@@ -61,7 +61,7 @@ CookieServiceParent::~CookieServiceParent()
 
 bool
 CookieServiceParent::RecvGetCookieString(const IPC::URI& aHost,
-                                         const IPC::URI& aOriginating,
+                                         const bool& aIsForeign,
                                          const bool& aFromHttp,
                                          nsCString* aResult)
 {
@@ -71,18 +71,17 @@ CookieServiceParent::RecvGetCookieString(const IPC::URI& aHost,
   
   
   nsCOMPtr<nsIURI> hostURI(aHost);
-  nsCOMPtr<nsIURI> originatingURI(aOriginating);
   if (!hostURI)
     return false;
 
-  mCookieService->GetCookieStringInternal(hostURI, originatingURI,
+  mCookieService->GetCookieStringInternal(hostURI, aIsForeign,
                                           aFromHttp, *aResult);
   return true;
 }
 
 bool
 CookieServiceParent::RecvSetCookieString(const IPC::URI& aHost,
-                                         const IPC::URI& aOriginating,
+                                         const bool& aIsForeign,
                                          const nsCString& aCookieString,
                                          const nsCString& aServerTime,
                                          const bool& aFromHttp)
@@ -93,11 +92,10 @@ CookieServiceParent::RecvSetCookieString(const IPC::URI& aHost,
   
   
   nsCOMPtr<nsIURI> hostURI(aHost);
-  nsCOMPtr<nsIURI> originatingURI(aOriginating);
   if (!hostURI)
     return false;
 
-  mCookieService->SetCookieStringInternal(hostURI, originatingURI,
+  mCookieService->SetCookieStringInternal(hostURI, aIsForeign,
                                           aCookieString, aServerTime,
                                           aFromHttp);
   return true;
