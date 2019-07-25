@@ -541,6 +541,8 @@ nsContextMenu.prototype = {
       if (elem.nodeType == Node.ELEMENT_NODE) {
         
         if (!this.onLink &&
+            
+            
              ((elem instanceof HTMLAnchorElement && elem.href) ||
               (elem instanceof HTMLAreaElement && elem.href) ||
               elem instanceof HTMLLinkElement ||
@@ -550,23 +552,7 @@ nsContextMenu.prototype = {
           this.onLink = true;
 
           
-          
-          
-          var realLink = elem;
-          var parent = elem;
-          while ((parent = parent.parentNode) &&
-                 (parent.nodeType == Node.ELEMENT_NODE)) {
-            try {
-              if ((parent instanceof HTMLAnchorElement && parent.href) ||
-                  (parent instanceof HTMLAreaElement && parent.href) ||
-                  parent instanceof HTMLLinkElement ||
-                  parent.getAttributeNS("http://www.w3.org/1999/xlink", "type") == "simple")
-                realLink = parent;
-            } catch (e) { }
-          }
-
-          
-          this.link = realLink;
+          this.link = elem;
           this.linkURL = this.getLinkURL();
           this.linkURI = this.getLinkURI();
           this.linkProtocol = this.getLinkProtocol();

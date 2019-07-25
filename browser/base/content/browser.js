@@ -5036,41 +5036,23 @@ function hrefAndLinkNodeForClickEvent(event)
 {
   function isHTMLLink(aNode)
   {
-    return aNode instanceof HTMLAnchorElement ||
-           aNode instanceof HTMLAreaElement ||
-           aNode instanceof HTMLLinkElement;
+    
+    return ((aNode instanceof HTMLAnchorElement && aNode.href) ||
+            (aNode instanceof HTMLAreaElement && aNode.href) ||
+            aNode instanceof HTMLLinkElement);
   }
 
-  let linkNode;
-  if (isHTMLLink(event.target)) {
-    
-    
-    
-    
-    let node = event.target;
-    while (node) {
-      if (isHTMLLink(node) && node.hasAttribute("href"))
-        linkNode = node;
-      node = node.parentNode;
-    }
-  }
-  else {
-    let node = event.originalTarget;
-    while (node && !(node instanceof HTMLAnchorElement)) {
-      node = node.parentNode;
-    }
-    
-    
-    if (node && node.hasAttribute("href"))
-      linkNode = node;
+  let node = event.target;
+  while (node && !isHTMLLink(node)) {
+    node = node.parentNode;
   }
 
-  if (linkNode)
-    return [linkNode.href, linkNode];
+  if (node)
+    return [node.href, node];
 
   
   let href, baseURI;
-  let node = event.target;
+  node = event.target;
   while (node) {
     if (node.nodeType == Node.ELEMENT_NODE) {
       href = node.getAttributeNS("http://www.w3.org/1999/xlink", "href");
