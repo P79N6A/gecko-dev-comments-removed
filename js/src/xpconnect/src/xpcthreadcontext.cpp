@@ -301,32 +301,12 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
                 mSafeJSContext = nsnull;
             }
             
-            
-            
-            
-            
-            
             mOwnSafeJSContext = mSafeJSContext;
         }
     }
 
     *aSafeJSContext = mSafeJSContext;
     return mSafeJSContext ? NS_OK : NS_ERROR_UNEXPECTED;
-}
-
-NS_IMETHODIMP
-XPCJSContextStack::SetSafeJSContext(JSContext * aSafeJSContext)
-{
-    if(mOwnSafeJSContext &&
-       mOwnSafeJSContext == mSafeJSContext &&
-       mOwnSafeJSContext != aSafeJSContext)
-    {
-        JS_DestroyContextNoGC(mOwnSafeJSContext);
-        mOwnSafeJSContext = nsnull;
-    }
-
-    mSafeJSContext = aSafeJSContext;
-    return NS_OK;
 }
 
 
