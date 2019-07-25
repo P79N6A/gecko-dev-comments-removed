@@ -65,6 +65,8 @@ public:
   nsSMILTimedElement();
   ~nsSMILTimedElement();
 
+  typedef mozilla::dom::Element Element;
+
   
 
 
@@ -258,7 +260,7 @@ public:
 
 
   PRBool SetAttr(nsIAtom* aAttribute, const nsAString& aValue,
-                 nsAttrValue& aResult, nsIContent* aContextNode,
+                 nsAttrValue& aResult, Element* aContextNode,
                  nsresult* aParseResult = nsnull);
 
   
@@ -360,10 +362,10 @@ protected:
   
 
   nsresult          SetBeginSpec(const nsAString& aBeginSpec,
-                                 nsIContent* aContextNode,
+                                 Element* aContextNode,
                                  RemovalTestFunction aRemove);
   nsresult          SetEndSpec(const nsAString& aEndSpec,
-                               nsIContent* aContextNode,
+                               Element* aContextNode,
                                RemovalTestFunction aRemove);
   nsresult          SetSimpleDuration(const nsAString& aDurSpec);
   nsresult          SetMin(const nsAString& aMinSpec);
@@ -384,7 +386,7 @@ protected:
   void              UnsetFillMode();
 
   nsresult          SetBeginOrEndSpec(const nsAString& aSpec,
-                                      nsIContent* aContextNode,
+                                      Element* aContextNode,
                                       PRBool aIsBegin,
                                       RemovalTestFunction aRemove);
   void              ClearSpecs(TimeValueSpecList& aSpecs,

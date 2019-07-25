@@ -324,8 +324,8 @@ nsSMILAnimationFunction::CompareTo(const nsSMILAnimationFunction* aOther) const
 
   
   
-  nsIContent& thisContent = mAnimationElement->Content();
-  nsIContent& otherContent = aOther->mAnimationElement->Content();
+  nsIContent& thisContent = mAnimationElement->AsElement();
+  nsIContent& otherContent = aOther->mAnimationElement->AsElement();
 
   NS_ABORT_IF_FALSE(&thisContent != &otherContent,
       "Two animations cannot have the same animation content element!");

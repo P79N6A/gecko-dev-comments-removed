@@ -53,7 +53,6 @@ class nsISMILAttr;
 class nsSMILAnimationFunction;
 class nsSMILTimeContainer;
 class nsSMILTimedElement;
-class nsIContent;
 class nsIAtom;
 class nsAttrValue;
 
@@ -77,12 +76,12 @@ public:
   
 
 
-  virtual const nsIContent& Content() const = 0;
+  virtual const mozilla::dom::Element& AsElement() const = 0;
 
   
 
 
-  virtual nsIContent& Content() = 0;
+  virtual mozilla::dom::Element& AsElement() = 0;
 
   
 

@@ -346,7 +346,7 @@ SVGMotionSMILAnimationFunction::
   
   
   nsSVGMpathElement* firstMpathChild =
-    GetFirstMpathChild(&mAnimationElement->Content());
+    GetFirstMpathChild(&mAnimationElement->AsElement());
 
   if (firstMpathChild) {
     RebuildPathAndVerticesFromMpathElem(firstMpathChild);
