@@ -319,11 +319,17 @@ IsInRange(U x)
 
 template<typename T>
 inline bool
-IsAddValid(T x, T y, T result)
+IsAddValid(T x, T y)
 {
   
   
   
+  
+  
+
+  typename UnsignedType<T>::Type ux = x;
+  typename UnsignedType<T>::Type uy = y;
+  typename UnsignedType<T>::Type result = ux + uy;
   return IsSigned<T>::value
          ? HasSignBit(BinaryComplement(T((result ^ x) & (result ^ y))))
          : BinaryComplement(x) >= y;
@@ -331,10 +337,15 @@ IsAddValid(T x, T y, T result)
 
 template<typename T>
 inline bool
-IsSubValid(T x, T y, T result)
+IsSubValid(T x, T y)
 {
   
   
+  
+  typename UnsignedType<T>::Type ux = x;
+  typename UnsignedType<T>::Type uy = y;
+  typename UnsignedType<T>::Type result = ux - uy;
+
   return IsSigned<T>::value
          ? HasSignBit(BinaryComplement(T((result ^ x) & (x ^ y))))
          : x >= y;
@@ -392,7 +403,7 @@ struct IsMulValidImpl<T, false, false>
 
 template<typename T>
 inline bool
-IsMulValid(T x, T y, T )
+IsMulValid(T x, T y)
 {
   return IsMulValidImpl<T>::run(x, y);
 }
@@ -587,8 +598,7 @@ class CheckedInt
       
       return CheckedInt(result,
                         mIsValid && detail::IsSubValid(T(0),
-                                                       mValue,
-                                                       result));
+                                                       mValue));
     }
 
     
@@ -669,8 +679,7 @@ inline CheckedInt<T> operator OP(const CheckedInt<T> &lhs,            \
   T x = lhs.mValue;                                                   \
   T y = rhs.mValue;                                                   \
   T result = x OP y;                                                  \
-  T isOpValid                                                         \
-      = detail::Is##NAME##Valid(x, y, result);                        \
+  T isOpValid = detail::Is##NAME##Valid(x, y);                        \
   /* Help the compiler perform RVO (return value optimization). */    \
   return CheckedInt<T>(result,                                        \
                        lhs.mIsValid && rhs.mIsValid && isOpValid);    \
