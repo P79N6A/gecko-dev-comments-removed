@@ -223,6 +223,15 @@ let Storage = {
   
   
   
+  saveActiveGroupName: function Storage_saveActiveGroupName(win) {
+    let groupName = win.TabView.getActiveGroupName();
+    this._sessionStore.setWindowValue(
+      win, win.TabView.LAST_SESSION_GROUP_NAME_IDENTIFIER, groupName);
+  },
+
+  
+  
+  
   saveData: function Storage_saveData(win, id, data) {
     try {
       this._sessionStore.setWindowValue(win, id, JSON.stringify(data));
