@@ -178,6 +178,10 @@ XPCOMUtils.defineLazyGetter(this, "gABI", function aus_gABI() {
 
   if (macutils.isUniversalBinary)
     abi += "-u-" + macutils.architecturesInBinary;
+#ifdef MOZ_SHARK
+  
+  abi += "-shark"
+#endif
 #endif
   return abi;
 });
