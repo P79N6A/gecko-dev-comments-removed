@@ -186,8 +186,11 @@ private:
 enum nsStyleImageType {
   eStyleImageType_Null,
   eStyleImageType_Image,
-  eStyleImageType_Gradient
+  eStyleImageType_Gradient,
+  eStyleImageType_Element
 };
+
+
 
 
 
@@ -210,6 +213,7 @@ struct nsStyleImage {
   void SetNull();
   void SetImageData(imgIRequest* aImage);
   void SetGradientData(nsStyleGradient* aGradient);
+  void SetElementId(const PRUnichar* aElementId);
   void SetCropRect(nsStyleSides* aCropRect);
 
   nsStyleImageType GetType() const {
@@ -222,6 +226,10 @@ struct nsStyleImage {
   nsStyleGradient* GetGradientData() const {
     NS_ASSERTION(mType == eStyleImageType_Gradient, "Data is not a gradient!");
     return mGradient;
+  }
+  const PRUnichar* GetElementId() const {
+    NS_ASSERTION(mType == eStyleImageType_Element, "Data is not an element!");
+    return mElementId;
   }
   nsStyleSides* GetCropRect() const {
     NS_ASSERTION(mType == eStyleImageType_Image,
@@ -254,6 +262,7 @@ struct nsStyleImage {
 
 
 
+
   PRBool IsComplete() const;
   
 
@@ -282,6 +291,7 @@ private:
   union {
     imgIRequest* mImage;
     nsStyleGradient* mGradient;
+    PRUnichar* mElementId;
   };
   
   nsAutoPtr<nsStyleSides> mCropRect;
@@ -399,11 +409,15 @@ struct nsStyleBackground {
     
     
     
+    
+    
+    
     PRBool DependsOnFrameSize(nsStyleImageType aType) const {
       if (aType == eStyleImageType_Image) {
         return mWidthType <= ePercentage || mHeightType <= ePercentage;
       } else {
-        NS_ABORT_IF_FALSE(aType == eStyleImageType_Gradient,
+        NS_ABORT_IF_FALSE(aType == eStyleImageType_Gradient ||
+                          aType == eStyleImageType_Element,
                           "unrecognized image type");
         return mWidthType <= eAuto || mHeightType <= eAuto;
       }

@@ -476,12 +476,12 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
 
   
   
-  maxHint = NS_STYLE_HINT_VISUAL;
+  maxHint = nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_UpdateEffects);
+  DO_STRUCT_DIFFERENCE(Background);
 
   
-  
+  maxHint = NS_STYLE_HINT_VISUAL;
   DO_STRUCT_DIFFERENCE(Color);
-  DO_STRUCT_DIFFERENCE(Background);
 
 #undef DO_STRUCT_DIFFERENCE
 
