@@ -553,7 +553,7 @@ function TreeNode(aUnsafeName)
 {
   
   this._unsafeName = aUnsafeName;
-  this._kids = [];
+  
   
   
   
@@ -568,9 +568,11 @@ function TreeNode(aUnsafeName)
 
 TreeNode.prototype = {
   findKid: function(aUnsafeName) {
-    for (let i = 0; i < this._kids.length; i++) {
-      if (this._kids[i]._unsafeName === aUnsafeName) {
-        return this._kids[i];
+    if (this._kids) {
+      for (let i = 0; i < this._kids.length; i++) {
+        if (this._kids[i]._unsafeName === aUnsafeName) {
+          return this._kids[i];
+        }
       }
     }
     return undefined;
@@ -620,6 +622,9 @@ function buildTree(aReports, aTreePrefix)
           u = uMatch;
         } else {
           let v = new TreeNode(unsafeName);
+          if (!u._kids) {
+            u._kids = [];
+          }
           u._kids.push(v);
           u = v;
         }
@@ -650,7 +655,7 @@ function buildTree(aReports, aTreePrefix)
   
   function fillInNonLeafNodes(aT, aCannotMerge)
   {
-    if (aT._kids.length === 0) {
+    if (!aT._kids) {
       
       assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
 
@@ -661,13 +666,20 @@ function buildTree(aReports, aTreePrefix)
       let kid = aT._kids[0];
       let kidBytes = fillInNonLeafNodes(kid);
       aT._unsafeName += '/' + kid._unsafeName;
-      aT._kids = kid._kids;
+      if (kid._kids) {
+        aT._kids = kid._kids;
+      } else {
+        delete aT._kids;
+      }
       aT._amount = kid._amount;
       aT._description = kid._description;
-      aT._kind = kid._kind;
-      if (kid._nMerged) {
+      if (kid._kind !== undefined) {
+        aT._kind = kid._kind;
+      }
+      if (kid._nMerged !== undefined) {
         aT._nMerged = kid._nMerged
       }
+      assert(!aT._hideKids && !kid._hideKids, "_hideKids set when merging");
 
     } else {
       
@@ -725,7 +737,7 @@ function fixUpExplicitTree(aT, aReports)
   function getKnownHeapUsedBytes(aT)
   {
     let n = 0;
-    if (aT._kids.length === 0) {
+    if (!aT._kids) {
       
       assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
       n = aT._kind === KIND_HEAP ? aT._amount : 0;
@@ -778,7 +790,7 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
            (100 * aT._amount / aTotalBytes) < kSignificanceThresholdPerc;
   }
 
-  if (aT._kids.length === 0) {
+  if (!aT._kids) {
     return;
   }
 
@@ -805,6 +817,7 @@ function sortTreeAndInsertAggregateNodes(aTotalBytes, aT)
       let nAgg = aT._kids.length - i0;
       
       let aggT = new TreeNode("(" + nAgg + " tiny)");
+      aggT._kids = [];
       let aggBytes = 0;
       for ( ; i < aT._kids.length; i++) {
         aggBytes += aT._kids[i]._amount;
@@ -1274,10 +1287,9 @@ function appendTreeElements(aPOuter, aT, aProcess)
     
     
     let d;
-    let hasKids = aT._kids.length > 0;
     let sep;
     let showSubtrees;
-    if (hasKids) {
+    if (aT._kids) {
       
       
       let safeTreeId = flipBackslashes(aProcess + ":" + unsafePath);
@@ -1311,7 +1323,7 @@ function appendTreeElements(aPOuter, aT, aProcess)
       expandPathToThisElement(d);
     }
 
-    if (hasKids) {
+    if (aT._kids) {
       
       d = appendElement(aP, "span", showSubtrees ? "kids" : "kids hidden");
 
