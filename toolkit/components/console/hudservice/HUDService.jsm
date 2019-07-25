@@ -1201,11 +1201,17 @@ function pruneConsoleOutputIfNecessary(aConsoleNode)
   let scrollBox = aConsoleNode.scrollBoxObject.element;
   let oldScrollHeight = scrollBox.scrollHeight;
   let scrolledToBottom = ConsoleUtils.isOutputScrolledToBottom(aConsoleNode);
+  let hudRef = HUDService.getHudReferenceForOutputNode(aConsoleNode);
 
   
   let messageNodes = aConsoleNode.querySelectorAll(".hud-msg-node");
   let removeNodes = messageNodes.length - logLimit;
   for (let i = 0; i < removeNodes; i++) {
+    if (messageNodes[i].classList.contains("webconsole-msg-cssparser")) {
+      let desc = messageNodes[i].childNodes[2].textContent;
+      let location = messageNodes[i].childNodes[4].getAttribute("title");
+      delete hudRef.cssNodes[desc + location];
+    }
     messageNodes[i].parentNode.removeChild(messageNodes[i]);
   }
 
@@ -1456,6 +1462,12 @@ HUD_SERVICE.prototype =
   {
     if (typeof(aHUD) === "string") {
       aHUD = this.getOutputNodeById(aHUD);
+    }
+
+    let hudRef = HUDService.getHudReferenceForOutputNode(aHUD);
+
+    if (hudRef) {
+      hudRef.cssNodes = {};
     }
 
     var outputNode = aHUD.querySelector(".hud-output-node");
@@ -1734,6 +1746,9 @@ HUD_SERVICE.prototype =
     parent.removeChild(outputNode);
 
     
+    if ("cssNodes" in this.hudReferences[id]) {
+      delete this.hudReferences[id].cssNodes;
+    }
     delete this.hudReferences[id];
     
     this.storage.removeDisplay(id);
@@ -1825,6 +1840,39 @@ HUD_SERVICE.prototype =
   {
     let windowId = this.getWindowId(aContentWindow);
     return this.getHudIdByWindowId(windowId);
+  },
+
+  
+
+
+
+
+
+
+  getHudReferenceForOutputNode: function HS_getHudReferenceForOutputNode(aNode)
+  {
+    let node = aNode;
+    while (!node.classList.contains("hudbox-animated")) {
+      if (node.parent) {
+        node = node.parent;
+      }
+      else {
+        return null;
+      }
+    }
+    let id = node.id;
+    return id in this.hudReferences ? this.hudReferences[id] : null;
+  },
+
+  
+
+
+
+
+
+  getHudReferenceById: function HS_getHudReferenceById(aId)
+  {
+    return aId in this.hudReferences ? this.hudReferences[aId] : null;
   },
 
   
@@ -2987,6 +3035,9 @@ function HeadsUpDisplay(aConfig)
   catch (ex) {
     Cu.reportError(ex);
   }
+
+  
+  this.cssNodes = {};
 }
 
 HeadsUpDisplay.prototype = {
@@ -4329,6 +4380,11 @@ JSTerm.prototype = {
   clearOutput: function JST_clearOutput()
   {
     let outputNode = this.outputNode;
+    let hudRef = HUDService.getHudReferenceForOutputNode(outputNode);
+
+    if (hudRef) {
+      hudRef.cssNodes = {};
+    }
 
     while (outputNode.firstChild) {
       outputNode.removeChild(outputNode.firstChild);
@@ -4943,6 +4999,10 @@ ConsoleUtils = {
 
     bodyNode.appendChild(aBody);
 
+    let repeatNode = aDocument.createElementNS(XUL_NS, "xul:label");
+    repeatNode.setAttribute("value", "1");
+    repeatNode.classList.add("webconsole-msg-repeat");
+
     
     let timestampNode = aDocument.createElementNS(XUL_NS, "xul:label");
     timestampNode.classList.add("webconsole-timestamp");
@@ -4966,11 +5026,12 @@ ConsoleUtils = {
     node.timestamp = timestamp;
     ConsoleUtils.setMessageType(node, aCategory, aSeverity);
 
-    node.appendChild(timestampNode);
-    node.appendChild(iconContainer);
-    node.appendChild(bodyNode);
+    node.appendChild(timestampNode);  
+    node.appendChild(iconContainer);  
+    node.appendChild(bodyNode);       
+    node.appendChild(repeatNode);     
     if (locationNode) {
-      node.appendChild(locationNode);
+      node.appendChild(locationNode); 
     }
 
     return node;
@@ -5065,7 +5126,7 @@ ConsoleUtils = {
 
 
 
-  filterMessageNode: function(aNode, aHUDId) {
+  filterMessageNode: function ConsoleUtils_filterMessageNode(aNode, aHUDId) {
     
     let prefKey = MESSAGE_PREFERENCE_KEYS[aNode.category][aNode.severity];
     if (prefKey && !HUDService.getFilterState(aHUDId, prefKey)) {
@@ -5092,6 +5153,94 @@ ConsoleUtils = {
 
 
 
+  mergeFilteredMessageNode:
+  function ConsoleUtils_mergeFilteredMessageNode(aOriginal, aFiltered) {
+    
+    let repeatNode = aOriginal.childNodes[3];
+    if (!repeatNode) {
+      return aOriginal; 
+    }
+
+    let occurrences = parseInt(repeatNode.getAttribute("value")) + 1;
+    repeatNode.setAttribute("value", occurrences);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  filterRepeatedCSS:
+  function ConsoleUtils_filterRepeatedCSS(aNode, aOutput, aHUDId) {
+    let hud = HUDService.getHudReferenceById(aHUDId);
+
+    
+    let description = aNode.childNodes[2].textContent;
+    let location;
+
+    
+    
+    if (aNode.childNodes[4]) {
+      
+      location = aNode.childNodes[4].getAttribute("title");
+    }
+    else {
+      location = "";
+    }
+
+    let dupe = hud.cssNodes[description + location];
+    if (!dupe) {
+      
+      hud.cssNodes[description + location] = aNode;
+      return false;
+    }
+
+    this.mergeFilteredMessageNode(dupe, aNode);
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  filterRepeatedConsole:
+  function ConsoleUtils_filterRepeatedConsole(aNode, aOutput) {
+    let lastMessage = aOutput.lastChild;
+
+    
+    if (lastMessage &&
+        aNode.childNodes[2].textContent ==
+        lastMessage.childNodes[2].textContent) {
+      return true;
+    }
+
+    return false;
+  },
+
+  
+
+
+
+
+
+
+
   outputMessageNode: function ConsoleUtils_outputMessageNode(aNode, aHUDId) {
     ConsoleUtils.filterMessageNode(aNode, aHUDId);
 
@@ -5099,7 +5248,22 @@ ConsoleUtils = {
 
     let scrolledToBottom = ConsoleUtils.isOutputScrolledToBottom(outputNode);
 
-    outputNode.appendChild(aNode);
+    let isRepeated = false;
+    if (aNode.classList.contains("webconsole-msg-cssparser")) {
+      isRepeated = this.filterRepeatedCSS(aNode, outputNode, aHUDId);
+    }
+
+    if (!isRepeated &&
+        (aNode.classList.contains("webconsole-msg-console") ||
+         aNode.classList.contains("webconsole-msg-exception") ||
+         aNode.classList.contains("webconsole-msg-error"))) {
+      isRepeated = this.filterRepeatedConsole(aNode, outputNode, aHUDId);
+    }
+
+    if (!isRepeated) {
+      outputNode.appendChild(aNode);
+    }
+
     HUDService.regroupOutput(outputNode);
 
     if (pruneConsoleOutputIfNecessary(outputNode) == 0) {
@@ -5116,7 +5280,7 @@ ConsoleUtils = {
     
     
     
-    if (!isFiltered && (scrolledToBottom || isInputOutput)) {
+    if (!isFiltered && !isRepeated && (scrolledToBottom || isInputOutput)) {
       ConsoleUtils.scrollToVisible(aNode);
     }
   },

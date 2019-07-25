@@ -36,6 +36,7 @@
 
 
 
+
 %include shared.inc
 
 .hud-box {
@@ -97,6 +98,25 @@
 
 .webconsole-msg-url {
   margin: 0 6px;
+}
+
+
+.webconsole-msg-repeat {
+  margin: 2px 0;
+  padding-left: 4px;
+  padding-right: 4px;
+  width: 1em;
+  color: white;
+  background-color: red;
+  border-radius: 40px;
+  font: message-box;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+
+.webconsole-msg-repeat[value="1"] {
+  display: none;
 }
 
 .webconsole-location {
