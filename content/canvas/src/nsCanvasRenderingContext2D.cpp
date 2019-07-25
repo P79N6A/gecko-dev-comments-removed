@@ -2769,7 +2769,7 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     processor.mPt.y += anchorY;
 
     
-    processor.mBoundingBox.size.width = totalWidth;
+    processor.mBoundingBox.width = totalWidth;
     processor.mBoundingBox.MoveBy(processor.mPt);
 
     processor.mPt.x *= processor.mAppUnitsPerDevPixel;

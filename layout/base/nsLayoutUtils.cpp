@@ -1015,10 +1015,10 @@ nsLayoutUtils::RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor)
   scaledRect.RoundOut();
 
   
-  ConstrainToCoordValues(scaledRect.pos.x);
-  ConstrainToCoordValues(scaledRect.pos.y);
-  ConstrainToCoordValues(scaledRect.size.width);
-  ConstrainToCoordValues(scaledRect.size.height);
+  ConstrainToCoordValues(scaledRect.x);
+  ConstrainToCoordValues(scaledRect.y);
+  ConstrainToCoordValues(scaledRect.width);
+  ConstrainToCoordValues(scaledRect.height);
 
   
   return nsRect(nscoord(scaledRect.X()), nscoord(scaledRect.Y()),

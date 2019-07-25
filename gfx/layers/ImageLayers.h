@@ -344,7 +344,7 @@ public:
     gfxRect snap(0, 0, 0, 0);
     if (mContainer) {
       gfxIntSize size = mContainer->GetCurrentSize();
-      snap.size = gfxSize(size.width, size.height);
+      snap.SizeTo(gfxSize(size.width, size.height));
     }
     
     

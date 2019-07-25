@@ -275,7 +275,7 @@ nsSVGPathGeometryFrame::UpdateCoveredRegion()
       
       
       extent = context->GetUserStrokeExtent();
-      extent += extent.Size()/2;
+      extent += gfxPoint(extent.width, extent.height)/2;
       extent.SizeTo(gfxSize(0, 0));
     }
     extent = nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this);
