@@ -295,6 +295,23 @@ types::TypeFailure(JSContext *cx, const char *fmt, ...)
 
 
 
+TypeSet *
+TypeSet::make(JSContext *cx, const char *name)
+{
+    JS_ASSERT(cx->compartment->activeInference);
+
+    TypeSet *res = ArenaNew<TypeSet>(cx->compartment->pool);
+    if (!res) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return NULL;
+    }
+
+    InferSpew(ISpewOps, "typeSet: T%p intermediate %s", res, name);
+    res->setIntermediate();
+
+    return res;
+}
+
 void
 TypeSet::addTypeSet(JSContext *cx, ClonedTypeSet *types)
 {
@@ -596,11 +613,11 @@ TypeSet::addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid i
 
 class TypeConstraintNewObject : public TypeConstraint
 {
-    TypeFunction *fun;
+    TypeObject *fun;
     TypeSet *target;
 
   public:
-    TypeConstraintNewObject(JSScript *script, TypeFunction *fun, TypeSet *target)
+    TypeConstraintNewObject(JSScript *script, TypeObject *fun, TypeSet *target)
         : TypeConstraint("newObject", script), fun(fun), target(target)
     {}
 
@@ -608,7 +625,7 @@ class TypeConstraintNewObject : public TypeConstraint
 };
 
 void
-TypeSet::addNewObject(JSContext *cx, JSScript *script, TypeFunction *fun, TypeSet *target)
+TypeSet::addNewObject(JSContext *cx, JSScript *script, TypeObject *fun, TypeSet *target)
 {
     add(cx, ArenaNew<TypeConstraintNewObject>(cx->compartment->pool, script, fun, target));
 }
@@ -935,10 +952,21 @@ GetPropertyObject(JSContext *cx, JSScript *script, jstype type)
     return object;
 }
 
+static inline bool
+UsePropertyTypeBarrier(jsbytecode *pc)
+{
+    
+
+
+
+    uint32 format = js_CodeSpec[*pc].format;
+    return (format & JOF_TYPESET) && !(format & JOF_INVOKE);
+}
+
 static inline void
 MarkPropertyAccessUnknown(JSContext *cx, JSScript *script, jsbytecode *pc, TypeSet *target)
 {
-    if (CanHaveReadBarrier(pc))
+    if (UsePropertyTypeBarrier(pc))
         script->analysis(cx)->addTypeBarrier(cx, pc, target, TYPE_UNKNOWN);
     else
         target->addType(cx, TYPE_UNKNOWN);
@@ -983,7 +1011,7 @@ PropertyAccess(JSContext *cx, JSScript *script, jsbytecode *pc, TypeObject *obje
             return;
         if (assign)
             target->addSubset(cx, script, types);
-        else if (CanHaveReadBarrier(pc))
+        else if (UsePropertyTypeBarrier(pc))
             types->addSubsetBarrier(cx, script, pc, target);
         else
             types->addSubset(cx, script, target);
@@ -1082,16 +1110,16 @@ TypeConstraintNewObject::newType(JSContext *cx, TypeSet *source, jstype type)
                 return;
             newTypes->addSubset(cx, script, target);
         }
-    } else if (!fun->script) {
+    } else if (!fun->functionScript) {
         
 
 
 
 
-    } else if (!fun->script->hasGlobal()) {
+    } else if (!fun->functionScript->hasGlobal()) {
         target->addType(cx, TYPE_UNKNOWN);
     } else {
-        TypeObject *object = fun->script->types.standardType(cx, JSProto_Object);
+        TypeObject *object = fun->functionScript->types.standardType(cx, JSProto_Object);
         if (!object) {
             cx->compartment->types.setPendingNukeTypes(cx);
             return;
@@ -1122,17 +1150,23 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
         cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
         return;
     }
+
     if (!object->isFunction) {
         
-
-
-
         return;
     }
-    TypeFunction *function = object->asFunction();
 
-    if (!function->script) {
-        JS_ASSERT(function->handler && function->singleton);
+    if (object->isFunctionNative) {
+        
+
+
+
+
+
+        cx->compartment->types.monitorBytecode(cx, script, pc - script->code, true);
+
+        if (!object->singleton)
+            return;
 
         
 
@@ -1140,51 +1174,24 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
 
 
 
-        if (!script->hasGlobal() || script->global() != function->singleton->getGlobal()) {
-            callsite->returnTypes->addType(cx, TYPE_UNKNOWN);
-            return;
+
+        Native native = object->singleton->getFunctionPrivate()->maybeNative();
+        JS_ASSERT(native);
+
+        if (native == js::array_push) {
+            for (size_t ind = 0; ind < callsite->argumentCount; ind++) {
+                callsite->thisTypes->addSetProperty(cx, script, pc,
+                                                    callsite->argumentTypes[ind], JSID_VOID);
+            }
         }
 
-        if (function->isGeneric) {
-            if (callsite->argumentCount == 0) {
-                
-                return; 
-            }
-
-            
-
-
-
-
-
-            TypeSet *thisTypes = TypeSet::make(cx, "genericthis");
-            if (!thisTypes)
-                return;
-            callsite->argumentTypes[0]->addTransformThis(cx, script, thisTypes);
-
-            TypeCallsite *newSite = ArenaNew<TypeCallsite>(cx->compartment->pool,
-                                                           cx, script, pc, callsite->isNew,
-                                                           callsite->argumentCount - 1);
-            if (!newSite || (callsite->argumentCount > 1 && !newSite->argumentTypes)) {
-                cx->compartment->types.setPendingNukeTypes(cx);
-                return;
-            }
-
-            newSite->thisTypes = thisTypes;
-            newSite->returnTypes = callsite->returnTypes;
-            for (unsigned i = 0; i < callsite->argumentCount - 1; i++)
-                newSite->argumentTypes[i] = callsite->argumentTypes[i + 1];
-
-            function->handler(cx, (JSTypeFunction*)function, (JSTypeCallsite*)newSite);
-        } else {
-            
-            function->handler(cx, (JSTypeFunction*)function, (JSTypeCallsite*)callsite);
-        }
+        if (native == js::array_pop)
+            callsite->thisTypes->addGetProperty(cx, script, pc, callsite->returnTypes, JSID_VOID);
 
         return;
     }
 
-    JSScript *callee = function->script;
+    JSScript *callee = object->functionScript;
     unsigned nargs = callee->fun->nargs;
 
     if (!callee->types.ensureTypeArray(cx))
@@ -1252,14 +1259,10 @@ TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, jstype type
 
     
     TypeObject *object = (TypeObject*) type;
-    if (object->unknownProperties() || !object->isFunction)
-        return;
-    TypeFunction *function = object->asFunction();
-
-    if (!function->script)
+    if (object->unknownProperties() || !object->isFunction || !object->functionScript)
         return;
 
-    JSScript *callee = function->script;
+    JSScript *callee = object->functionScript;
 
     if (!callee->types.ensureTypeArray(cx))
         return;
@@ -1706,18 +1709,17 @@ ObjectStateChange(JSContext *cx, TypeObject *object, bool markingUnknown, bool f
     if (!elementTypes)
         return;
     if (markingUnknown) {
-        JSScript *fixArgsScript = NULL;
+        bool fixArgs = false;
         if (!(object->flags & OBJECT_FLAG_CREATED_ARGUMENTS) && object->isFunction) {
-            TypeFunction *fun = object->asFunction();
-            if (fun->script && fun->script->usedLazyArgs)
-                fixArgsScript = fun->script;
+            if (object->functionScript && object->functionScript->usedLazyArgs)
+                fixArgs = true;
         }
 
         
         object->flags = OBJECT_FLAG_UNKNOWN_MASK;
 
-        if (fixArgsScript)
-            FixLazyArguments(cx, fixArgsScript);
+        if (fixArgs)
+            FixLazyArguments(cx, object->functionScript);
     }
 
     TypeConstraint *constraint = elementTypes->constraintList;
@@ -1865,9 +1867,7 @@ TypeCompartment::newTypeObject(JSContext *cx, JSScript *script,
     jsid id = JSID_VOID;
 #endif
 
-    TypeObject *object = isFunction
-        ? cx->new_<TypeFunction>(id, proto)
-        : cx->new_<TypeObject>(id, proto);
+    TypeObject *object = cx->new_<TypeObject>(id, proto, isFunction);
     if (!object)
         return NULL;
 
@@ -2141,63 +2141,40 @@ TypeCompartment::addPendingRecompile(JSContext *cx, JSScript *script)
     }
 }
 
-static inline bool
-MonitorResultUnknown(JSOp op)
-{
-    
-
-
-
-    switch (op) {
-      case JSOP_INCNAME:
-      case JSOP_DECNAME:
-      case JSOP_NAMEINC:
-      case JSOP_NAMEDEC:
-      case JSOP_INCGNAME:
-      case JSOP_DECGNAME:
-      case JSOP_GNAMEINC:
-      case JSOP_GNAMEDEC:
-      case JSOP_INCELEM:
-      case JSOP_DECELEM:
-      case JSOP_ELEMINC:
-      case JSOP_ELEMDEC:
-      case JSOP_INCPROP:
-      case JSOP_DECPROP:
-      case JSOP_PROPINC:
-      case JSOP_PROPDEC:
-      case JSOP_CALL:
-      case JSOP_EVAL:
-      case JSOP_FUNCALL:
-      case JSOP_FUNAPPLY:
-      case JSOP_NEW:
-        return true;
-      default:
-        return false;
-    }
-}
-
 void
-TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset)
+TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset,
+                                 bool returnOnly)
 {
     ScriptAnalysis *analysis = script->analysis(cx);
-
-    if (analysis->getCode(offset).monitoredTypes)
-        return;
+    JS_ASSERT(analysis->ranInference());
 
     jsbytecode *pc = script->code + offset;
     UntrapOpcode untrap(cx, script, pc);
 
+    JS_ASSERT_IF(returnOnly, js_CodeSpec[*pc].format & JOF_INVOKE);
+
+    Bytecode &code = analysis->getCode(pc);
+
+    if (returnOnly ? code.monitoredTypesReturn : code.monitoredTypes)
+        return;
+
+    InferSpew(ISpewOps, "addMonitorNeeded:%s #%u:%05u", script->id(), offset,
+              returnOnly ? " returnOnly" : "");
+
     
 
 
 
 
-    if (MonitorResultUnknown(JSOp(*pc)) && analysis->hasPushedTypes(pc))
+    if (js_CodeSpec[*pc].format & (JOF_INC | JOF_DEC))
         analysis->addPushedType(cx, offset, 0, TYPE_UNKNOWN);
 
-    InferSpew(ISpewOps, "addMonitorNeeded: #%u:%05u", script->id(), offset);
+    
+    if (js_CodeSpec[*pc].format & JOF_INVOKE)
+        code.monitoredTypesReturn = true;
 
-    script->analysis(cx)->getCode(offset).monitoredTypes = true;
+    if (!returnOnly)
+        code.monitoredTypes = true;
 
     if (script->hasJITCode())
         cx->compartment->types.addPendingRecompile(cx, script);
@@ -2818,13 +2795,6 @@ TypeObject::markSlotReallocation(JSContext *cx)
     }
 }
 
-
-
-
-
-
-
-
 void
 TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
 {
@@ -2833,17 +2803,16 @@ TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
     JS_ASSERT(cx->compartment->activeInference);
     JS_ASSERT((this->flags & flags) != flags);
 
-    JSScript *fixArgsScript = NULL;
-    if ((flags & ~this->flags & OBJECT_FLAG_CREATED_ARGUMENTS) && isFunction) {
-        TypeFunction *fun = asFunction();
-        if (fun->script && fun->script->usedLazyArgs)
-            fixArgsScript = fun->script;
+    bool fixArgs = false;
+    if ((flags & ~this->flags & OBJECT_FLAG_CREATED_ARGUMENTS) &&
+        functionScript && functionScript->usedLazyArgs) {
+        fixArgs = true;
     }
 
     this->flags |= flags;
 
-    if (fixArgsScript)
-        FixLazyArguments(cx, fixArgsScript);
+    if (fixArgs)
+        FixLazyArguments(cx, functionScript);
 
     InferSpew(ISpewOps, "%s: setFlags %u", name(), flags);
 
@@ -3164,10 +3133,6 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         pushed[i].setIntermediate();
         InferSpew(ISpewOps, "typeSet: T%p pushed%u #%u:%05u", &pushed[i], i, script->id(), offset);
     }
-
-    
-    if (code.monitoredTypes && MonitorResultUnknown(op))
-        pushed[0].addType(cx, TYPE_UNKNOWN);
 
     
     switch (op) {
@@ -3662,6 +3627,9 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_FUNCALL:
       case JSOP_FUNAPPLY:
       case JSOP_NEW: {
+        TypeSet *seen = script->types.bytecodeTypes(pc);
+        seen->addSubset(cx, script, &pushed[0]);
+
         
         unsigned argCount = GetUseCount(script, offset) - 2;
         TypeCallsite *callsite = ArenaNew<TypeCallsite>(cx->compartment->pool,
@@ -3671,7 +3639,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
             break;
         }
         callsite->thisTypes = poppedTypes(pc, argCount);
-        callsite->returnTypes = &pushed[0];
+        callsite->returnTypes = seen;
 
         for (unsigned i = 0; i < argCount; i++)
             callsite->argumentTypes[i] = poppedTypes(pc, argCount - 1 - i);
@@ -4179,7 +4147,7 @@ ScriptAnalysis::analyzeTypesNew(JSContext *cx)
         return;
     }
 
-    TypeFunction *funType = script->fun->getType()->asFunction();
+    TypeObject *funType = script->fun->getType();
     TypeSet *prototypeTypes = funType->getProperty(cx, id_prototype(cx), false);
     if (!prototypeTypes)
         return;
@@ -4459,7 +4427,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
                 return false;
             }
             TypeObject *scriptObj = scriptTypes->getSingleObject();
-            if (!scriptObj || !scriptObj->isFunction || !scriptObj->asFunction()->script)
+            if (!scriptObj || !scriptObj->functionScript)
                 return false;
 
             
@@ -4487,7 +4455,7 @@ AnalyzeNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script, JS
                 return false;
             }
 
-            if (!AnalyzeNewScriptProperties(cx, type, scriptObj->asFunction()->script,
+            if (!AnalyzeNewScriptProperties(cx, type, scriptObj->functionScript,
                                             pbaseobj, initializerList)) {
                 return false;
             }
@@ -4709,16 +4677,9 @@ namespace js {
 namespace types {
 
 void
-MarkTypeCallerUnexpectedSlow(JSContext *cx, jstype type)
+MarkIteratorUnknownSlow(JSContext *cx)
 {
     
-
-
-
-
-
-
-
 
     jsbytecode *pc;
     JSScript *script = cx->stack.currentScript(&pc);
@@ -4734,27 +4695,8 @@ MarkTypeCallerUnexpectedSlow(JSContext *cx, jstype type)
 
     js::analyze::UntrapOpcode untrap(cx, script, pc);
 
-    switch ((JSOp)*pc) {
-      case JSOP_CALL:
-      case JSOP_EVAL:
-      case JSOP_FUNCALL:
-      case JSOP_FUNAPPLY:
-      case JSOP_NEW:
-        break;
-      case JSOP_ITER:
-        
-        break;
-      default:
-        return;
-    }
-
-    TypeDynamicResult(cx, script, pc, type);
-}
-
-void
-MarkTypeCallerUnexpectedSlow(JSContext *cx, const Value &value)
-{
-    MarkTypeCallerUnexpectedSlow(cx, GetValueType(cx, value));
+    if (JSOp(*pc) == JSOP_ITER)
+        TypeDynamicResult(cx, script, pc, TYPE_UNKNOWN);
 }
 
 void
@@ -4836,7 +4778,7 @@ TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc, jstype type)
     UntrapOpcode untrap(cx, script, pc);
 
     
-    if (CanHaveReadBarrier(pc)) {
+    if (js_CodeSpec[*pc].format & JOF_TYPESET) {
         TypeSet *types = script->types.bytecodeTypes(pc);
         if (!types->hasType(type)) {
             InferSpew(ISpewOps, "externalType: monitorResult #%u:%05u: %s",
@@ -5117,7 +5059,7 @@ JSScript::typeSetFunction(JSContext *cx, JSFunction *fun)
 
     if (!fun->setTypeAndUniqueShape(cx, type))
         return false;
-    type->asFunction()->script = this;
+    type->functionScript = this;
     this->fun = fun;
 
     return true;

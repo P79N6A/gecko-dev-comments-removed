@@ -394,19 +394,6 @@ typedef JSBool
 
 
 
-
-
-
-typedef struct JSTypeFunction JSTypeFunction;
-typedef struct JSTypeObject JSTypeObject;
-typedef struct JSTypeCallsite JSTypeCallsite;
-
-
-typedef void
-(* JSTypeHandler)(JSContext *cx, JSTypeFunction *fun, JSTypeCallsite *callsite);
-
-
-
 typedef enum JSContextOp {
     JSCONTEXT_NEW,
     JSCONTEXT_DESTROY

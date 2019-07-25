@@ -58,7 +58,6 @@ namespace types {
 class TypeSet;
 struct TypeCallsite;
 struct TypeObject;
-struct TypeFunction;
 struct TypeCompartment;
 struct ClonedTypeSet;
 
@@ -367,7 +366,7 @@ class TypeSet
     void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
     void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
-    void addNewObject(JSContext *cx, JSScript *script, TypeFunction *fun, TypeSet *target);
+    void addNewObject(JSContext *cx, JSScript *script, TypeObject *fun, TypeSet *target);
     void addCall(JSContext *cx, TypeCallsite *site);
     void addArith(JSContext *cx, JSScript *script,
                   TypeSet *target, TypeSet *other = NULL);
@@ -385,7 +384,7 @@ class TypeSet
 
 
 
-    static inline TypeSet* make(JSContext *cx, const char *name);
+    static TypeSet *make(JSContext *cx, const char *name);
 
     
 
@@ -627,6 +626,9 @@ struct TypeObject
     bool isFunction;
 
     
+    bool isFunctionNative;
+
+    
     bool marked;
 
     
@@ -701,17 +703,13 @@ struct TypeObject
     
     JSObject *singleton;
 
+    
+    JSScript *functionScript;
+
     TypeObject() {}
 
     
-    inline TypeObject(jsid id, JSObject *proto);
-
-    
-    TypeFunction* asFunction()
-    {
-        JS_ASSERT(isFunction);
-        return (TypeFunction *) this;
-    }
+    inline TypeObject(jsid id, JSObject *proto, bool isFunction);
 
     bool unknownProperties() { return flags == OBJECT_FLAG_UNKNOWN_MASK; }
     bool hasAnyFlags(TypeObjectFlags flags) { return (this->flags & flags) != 0; }
@@ -777,29 +775,6 @@ UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);
 
 void
 CheckNewScriptProperties(JSContext *cx, TypeObject *type, JSScript *script);
-
-
-
-
-
-
-struct TypeFunction : public TypeObject
-{
-    
-    JSTypeHandler handler;
-
-    
-    JSScript *script;
-
-    
-
-
-
-
-    bool isGeneric;
-
-    inline TypeFunction(jsid id, JSObject *proto);
-};
 
 
 
@@ -1042,7 +1017,8 @@ struct TypeCompartment
     void addPendingRecompile(JSContext *cx, JSScript *script);
 
     
-    void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset);
+    void monitorBytecode(JSContext *cx, JSScript *script, uint32 offset,
+                         bool returnOnly = false);
 
     void sweep(JSContext *cx);
 };
@@ -1080,14 +1056,5 @@ void TypeFailure(JSContext *cx, const char *fmt, ...);
 
 } 
 } 
-
-static JS_ALWAYS_INLINE js::types::TypeObject *
-Valueify(JSTypeObject *jstype) { return (js::types::TypeObject*) jstype; }
-
-static JS_ALWAYS_INLINE js::types::TypeFunction *
-Valueify(JSTypeFunction *jstype) { return (js::types::TypeFunction*) jstype; }
-
-static JS_ALWAYS_INLINE js::types::TypeCallsite *
-Valueify(JSTypeCallsite *jssite) { return (js::types::TypeCallsite*) jssite; }
 
 #endif 

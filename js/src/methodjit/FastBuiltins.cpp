@@ -484,6 +484,9 @@ mjit::Compiler::inlineNativeFunction(uint32 argc, bool callingNew)
 
 
 
+
+
+
             if (!thisTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY |
                                            types::OBJECT_FLAG_ITERATED) &&
                 !arrayPrototypeHasIndexedProperty()) {
@@ -522,7 +525,12 @@ mjit::Compiler::inlineNativeFunction(uint32 argc, bool callingNew)
             thisType == JSVAL_TYPE_STRING && type == JSVAL_TYPE_STRING) {
             return compileGetChar(thisValue, arg, GetChar);
         }
-        if (native == js::array_push && thisType == JSVAL_TYPE_OBJECT) {
+        if (native == js::array_push &&
+            thisType == JSVAL_TYPE_OBJECT && type == JSVAL_TYPE_INT32) {
+            
+
+
+
             if (!thisTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
                 !arrayPrototypeHasIndexedProperty()) {
                 return compileArrayPush(thisValue, arg);

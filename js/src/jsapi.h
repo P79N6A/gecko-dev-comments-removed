@@ -2093,9 +2093,6 @@ struct JSFunctionSpec {
     JSNative        call;
     uint16          nargs;
     uint16          flags;
-
-    
-    JSTypeHandler   handler;
 };
 
 
@@ -2110,14 +2107,9 @@ struct JSFunctionSpec {
 
 
 #define JS_FS(name,call,nargs,flags)                                          \
-    JS_FS_TYPE(name,call,nargs,flags,NULL)
-#define JS_FS_TYPE(name,call,nargs,flags,handler)                             \
-    {name, (JSNative) call, nargs, flags, handler}
-
+    {name, call, nargs, flags}
 #define JS_FN(name,call,nargs,flags)                                          \
-    JS_FN_TYPE(name,call,nargs,flags,NULL)
-#define JS_FN_TYPE(name,call,nargs,flags,handler)                             \
-    {name, (JSNative) call, nargs, (flags) | JSFUN_STUB_GSOPS, handler}
+    {name, call, nargs, (flags) | JSFUN_STUB_GSOPS}
 
 extern JS_PUBLIC_API(JSObject *)
 JS_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
@@ -2664,44 +2656,6 @@ JS_DefineFunctionById(JSContext *cx, JSObject *obj, jsid id, JSNative call,
 
 extern JS_PUBLIC_API(JSObject *)
 JS_CloneFunctionObject(JSContext *cx, JSObject *funobj, JSObject *parent);
-
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerDynamic(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerVoid(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerNull(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerBool(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerInt(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerFloat(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerString(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerNew(JSContext*, JSTypeFunction*, JSTypeCallsite*);
-
-
-extern JS_PUBLIC_API(void)
-JS_TypeHandlerThis(JSContext*, JSTypeFunction*, JSTypeCallsite*);
 
 
 
