@@ -410,31 +410,6 @@ CallThisObjectHook(JSContext *cx, JSObject *obj, Value *argv)
     return thisp;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-JS_STATIC_INTERPRET bool
-ComputeGlobalThis(JSContext *cx, Value *vp)
-{
-    JSObject *thisp = vp[0].toObject().getGlobal()->thisObject(cx);
-    if (!thisp)
-        return false;
-    vp[1].setObject(*thisp);
-    return true;
-}
-
 namespace js {
 
 void
@@ -478,24 +453,46 @@ ReportIncompatibleMethod(JSContext *cx, Value *vp, Class *clasp)
     }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 bool
-BoxThisForVp(JSContext *cx, Value *vp)
+BoxNonStrictThis(JSContext *cx, const CallReceiver &call)
 {
     
 
 
 
-    JS_ASSERT(!vp[1].isMagic());
+    Value &thisv = call.thisv();
+    JS_ASSERT(!thisv.isMagic());
+
 #ifdef DEBUG
-    JSFunction *fun = vp[0].toObject().isFunction() ? vp[0].toObject().getFunctionPrivate() : NULL;
+    JSFunction *fun = call.callee().isFunction() ? call.callee().getFunctionPrivate() : NULL;
     JS_ASSERT_IF(fun && fun->isInterpreted(), !fun->inStrictMode());
 #endif
 
-    if (vp[1].isNullOrUndefined())
-        return ComputeGlobalThis(cx, vp);
+    if (thisv.isNullOrUndefined()) {
+        JSObject *thisp = call.callee().getGlobal()->thisObject(cx);
+        if (!thisp)
+            return false;
+        call.thisv().setObject(*thisp);
+        return true;
+    }
 
-    if (!vp[1].isObject())
-        return !!js_PrimitiveToObject(cx, &vp[1]);
+    if (!thisv.isObject())
+        return !!js_PrimitiveToObject(cx, &thisv);
 
     return true;
 }
@@ -4037,14 +4034,14 @@ BEGIN_CASE(JSOP_LOCALINC)
 }
 
 BEGIN_CASE(JSOP_THIS)
-    if (!regs.fp->computeThis(cx))
+    if (!ComputeThis(cx, regs.fp))
         goto error;
     PUSH_COPY(regs.fp->thisValue());
 END_CASE(JSOP_THIS)
 
 BEGIN_CASE(JSOP_UNBRANDTHIS)
 {
-    if (!regs.fp->computeThis(cx))
+    if (!ComputeThis(cx, regs.fp))
         goto error;
     Value &thisv = regs.fp->thisValue();
     if (thisv.isObject()) {
@@ -4061,7 +4058,7 @@ END_CASE(JSOP_UNBRANDTHIS)
     jsint i;
 
 BEGIN_CASE(JSOP_GETTHISPROP)
-    if (!regs.fp->computeThis(cx))
+    if (!ComputeThis(cx, regs.fp))
         goto error;
     i = 0;
     PUSH_COPY(regs.fp->thisValue());

@@ -1245,24 +1245,70 @@ Debug_SetValueRangeToCrashOnTouch(Value *vec, size_t len)
 
 
 
-class CallArgs
+class CallReceiver
+{
+#ifdef DEBUG
+    mutable bool usedRval_;
+#endif
+  protected:
+    Value *argv_;
+    CallReceiver() {}
+    CallReceiver(Value *argv) : argv_(argv) {
+#ifdef DEBUG
+        usedRval_ = false;
+#endif
+    }
+
+  public:
+    friend CallReceiver CallReceiverFromVp(Value *);
+    friend CallReceiver CallReceiverFromArgv(Value *);
+    Value *base() const { return argv_ - 2; }
+    JSObject &callee() const { JS_ASSERT(!usedRval_); return argv_[-2].toObject(); }
+    Value &calleev() const { JS_ASSERT(!usedRval_); return argv_[-2]; }
+    Value &thisv() const { return argv_[-1]; }
+
+    Value &rval() const {
+#ifdef DEBUG
+        usedRval_ = true;
+#endif
+        return argv_[-2];
+    }
+
+    void calleeHasBeenReset() const {
+#ifdef DEBUG
+        usedRval_ = false;
+#endif
+    }
+};
+
+JS_ALWAYS_INLINE CallReceiver
+CallReceiverFromVp(Value *vp)
+{
+    return CallReceiver(vp + 2);
+}
+
+JS_ALWAYS_INLINE CallReceiver
+CallReceiverFromArgv(Value *argv)
+{
+    return CallReceiver(argv);
+}
+
+
+
+
+
+class CallArgs : public CallReceiver
 {
     uintN argc_;
-    Value *argv_;
   protected:
     CallArgs() {}
-    CallArgs(uintN argc, Value *argv) : argc_(argc), argv_(argv) {}
+    CallArgs(uintN argc, Value *argv) : CallReceiver(argv), argc_(argc) {}
+  public:
     friend CallArgs CallArgsFromVp(uintN, Value *);
     friend CallArgs CallArgsFromArgv(uintN, Value *);
-  public:
-    Value *base() const { return argv_ - 2; }
-    JSObject &callee() const { return argv_[-2].toObject(); }
-    Value &calleev() const { return argv_[-2]; }
-    Value &thisv() const { return argv_[-1]; }
     Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
     Value *argv() const { return argv_; }
     uintN argc() const { return argc_; }
-    Value &rval() const { return argv_[-2]; }
 };
 
 JS_ALWAYS_INLINE CallArgs

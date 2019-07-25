@@ -458,8 +458,6 @@ struct JSStackFrame
         return formalArgs()[-1];
     }
 
-    inline bool computeThis(JSContext *cx);
-
     
 
 
@@ -481,6 +479,10 @@ struct JSStackFrame
 
     JSObject *maybeCallee() const {
         return isFunctionFrame() ? &callee() : NULL;
+    }
+
+    js::CallReceiver callReceiver() const {
+        return js::CallReceiverFromArgv(formalArgs());
     }
 
     
@@ -929,7 +931,16 @@ ScriptDebugEpilogue(JSContext *cx, JSStackFrame *fp, bool ok);
 
 
 extern bool
-BoxThisForVp(JSContext *cx, js::Value *vp);
+BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
+
+
+
+
+
+
+
+inline bool
+ComputeThis(JSContext *cx, JSStackFrame *fp);
 
 
 

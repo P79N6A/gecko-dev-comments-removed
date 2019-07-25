@@ -9999,7 +9999,7 @@ TraceRecorder::getThis(LIns*& this_ins)
 
 
 
-    if (!fp->computeThis(cx))
+    if (!ComputeThis(cx, fp))
         RETURN_ERROR("computeThis failed");
 
     

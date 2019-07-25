@@ -352,29 +352,6 @@ JSStackFrame::clearMissingArgs()
         SetValueRangeToUndefined(formalArgs() + numActualArgs(), formalArgsEnd());
 }
 
-inline bool
-JSStackFrame::computeThis(JSContext *cx)
-{
-    js::Value &thisv = thisValue();
-    if (thisv.isObject())
-        return true;
-    if (isFunctionFrame()) {
-        if (fun()->inStrictMode())
-            return true;
-        
-
-
-
-
-
-
-        JS_ASSERT(!isEvalFrame());
-    }
-    if (!js::BoxThisForVp(cx, &thisv - 1))
-        return false;
-    return true;
-}
-
 inline JSObject &
 JSStackFrame::varobj(js::StackSegment *seg) const
 {
@@ -562,6 +539,9 @@ InvokeSessionGuard::invoke(JSContext *cx) const
     formals_[-2] = savedCallee_;
     formals_[-1] = savedThis_;
 
+    
+    args_.calleeHasBeenReset();
+
 #ifdef JS_METHODJIT
     void *code;
     if (!optimized() || !(code = script_->getJIT(false )->invokeEntry))
@@ -624,6 +604,27 @@ class PrimitiveBehavior<double> {
 };
 
 } 
+
+template <typename T>
+bool
+GetPrimitiveThis(JSContext *cx, Value *vp, T *v)
+{
+    typedef detail::PrimitiveBehavior<T> Behavior;
+
+    const Value &thisv = vp[1];
+    if (Behavior::isType(thisv)) {
+        *v = Behavior::extract(thisv);
+        return true;
+    }
+
+    if (thisv.isObject() && thisv.toObject().getClass() == Behavior::getClass()) {
+        *v = Behavior::extract(thisv.toObject().getPrimitiveThis());
+        return true;
+    }
+
+    ReportIncompatibleMethod(cx, vp, Behavior::getClass());
+    return false;
+}
 
 
 
@@ -702,25 +703,25 @@ ComputeImplicitThis(JSContext *cx, JSObject *obj, const Value &funval, Value *vp
     return true;
 }
 
-template <typename T>
-bool
-GetPrimitiveThis(JSContext *cx, Value *vp, T *v)
+inline bool
+ComputeThis(JSContext *cx, JSStackFrame *fp)
 {
-    typedef detail::PrimitiveBehavior<T> Behavior;
-
-    const Value &thisv = vp[1];
-    if (Behavior::isType(thisv)) {
-        *v = Behavior::extract(thisv);
+    Value &thisv = fp->thisValue();
+    if (thisv.isObject())
         return true;
-    }
+    if (fp->isFunctionFrame()) {
+        if (fp->fun()->inStrictMode())
+            return true;
+        
 
-    if (thisv.isObject() && thisv.toObject().getClass() == Behavior::getClass()) {
-        *v = Behavior::extract(thisv.toObject().getPrimitiveThis());
-        return true;
-    }
 
-    ReportIncompatibleMethod(cx, vp, Behavior::getClass());
-    return false;
+
+
+
+
+        JS_ASSERT(!fp->isEvalFrame());
+    }
+    return BoxNonStrictThis(cx, fp->callReceiver());
 }
 
 
