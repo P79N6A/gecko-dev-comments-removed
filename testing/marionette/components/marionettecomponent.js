@@ -71,6 +71,9 @@ MarionetteComponent.prototype = {
         Cu.import('resource:///modules/devtools/dbg-server.jsm');
         DebuggerServer.addActors('chrome://marionette/content/marionette-actors.js');
         
+        
+        Services.prefs.setBoolPref('devtools.debugger.remote-enabled', true);
+        
         DebuggerServer.initTransport(function () { return true; });
         DebuggerServer.openListener(port, true);
       }
