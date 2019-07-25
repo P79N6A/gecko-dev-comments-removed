@@ -6729,6 +6729,9 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
     RemoveStateBits(NS_FRAME_HAS_CLIP);
   }
 
+  bool preTransformVisualOverflowChanged =
+    !GetVisualOverflowRectRelativeToSelf().IsEqualInterior(aOverflowAreas.VisualOverflow());
+
   
   bool hasTransform = IsTransformed();
   if (hasTransform) {
@@ -6751,8 +6754,6 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
     Properties().Delete(nsIFrame::PreTransformOverflowAreasProperty());
   }
 
-  bool visualOverflowChanged =
-    !GetVisualOverflowRect().IsEqualInterior(aOverflowAreas.VisualOverflow());
   bool anyOverflowChanged;
   if (aOverflowAreas != nsOverflowAreas(bounds, bounds)) {
     anyOverflowChanged = SetOverflowAreas(aOverflowAreas);
@@ -6760,7 +6761,7 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
     anyOverflowChanged = ClearOverflowRects();
   }
 
-  if (visualOverflowChanged) {
+  if (preTransformVisualOverflowChanged) {
     if (hasOutlineOrEffects) {
       
       
@@ -6782,25 +6783,26 @@ nsIFrame::FinishAndStoreOverflow(nsOverflowAreas& aOverflowAreas,
       
       
       Invalidate(aOverflowAreas.VisualOverflow());
-    } else if (hasTransform) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      InvalidateLayer(aOverflowAreas.VisualOverflow(),
-                      nsDisplayItem::TYPE_TRANSFORM);
     }
+  }
+  if (anyOverflowChanged && hasTransform) {
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    InvalidateLayer(aOverflowAreas.VisualOverflow(),
+                    nsDisplayItem::TYPE_TRANSFORM);
   }
 
   return anyOverflowChanged;
