@@ -67,7 +67,6 @@
 #include "nsITheme.h"
 #include "nsThemeConstants.h"
 #include "nsIServiceManager.h"
-#include "nsIHTMLDocument.h"
 #include "nsLayoutUtils.h"
 #include "nsINameSpaceManager.h"
 #include "nsBlockFrame.h"
@@ -84,6 +83,8 @@
 #include "gfxDrawable.h"
 
 #include "nsCSSRenderingBorders.h"
+
+using namespace mozilla;
 
 
 
@@ -937,36 +938,43 @@ nsCSSRendering::FindBackgroundStyleFrame(nsIFrame* aForFrame)
   const nsStyleBackground* result = aForFrame->GetStyleBackground();
 
   
-  if (result->IsTransparent()) {
-    nsIContent* content = aForFrame->GetContent();
-    
-    
-    
-    if (content) {
-      nsIDocument* document = content->GetOwnerDoc();
-      nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
-      if (htmlDoc) {
-        nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (bodyContent) {
-          nsIFrame *bodyFrame = bodyContent->GetPrimaryFrame();
-          if (bodyFrame) {
-            return nsLayoutUtils::GetStyleFrame(bodyFrame);
-          }
-        }
-      }
-    }
+  if (!result->IsTransparent()) {
+    return aForFrame;
   }
 
-  return aForFrame;
+  nsIContent* content = aForFrame->GetContent();
+  
+  
+  
+  if (!content) {
+    return aForFrame;
+  }
+
+  nsIDocument* document = content->GetOwnerDoc();
+  if (!document) {
+    return aForFrame;
+  }
+
+  dom::Element* bodyContent = document->GetBodyElement();
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  if (!bodyContent) {
+    return aForFrame;
+  }
+
+  nsIFrame *bodyFrame = bodyContent->GetPrimaryFrame();
+  if (!bodyFrame) {
+    return aForFrame;
+  }
+
+  return nsLayoutUtils::GetStyleFrame(bodyFrame);
 }
 
 
@@ -1027,11 +1035,10 @@ FindElementBackground(nsIFrame* aForFrame, nsIFrame* aRootElementFrame,
 
   
   nsIDocument* document = content->GetOwnerDoc();
-  nsCOMPtr<nsIHTMLDocument> htmlDoc = do_QueryInterface(document);
-  if (!htmlDoc)
+  if (!document)
     return PR_TRUE;
 
-  nsIContent* bodyContent = htmlDoc->GetBodyContentExternal();
+  dom::Element* bodyContent = document->GetBodyElement();
   if (bodyContent != content)
     return PR_TRUE; 
 
