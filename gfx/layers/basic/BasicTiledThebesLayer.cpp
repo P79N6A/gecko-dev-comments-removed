@@ -169,7 +169,6 @@ BasicTiledLayerBuffer::ValidateTileInternal(BasicTiledLayerTile aTile,
 
 #ifdef GFX_TILEDLAYER_DEBUG_OVERLAY
   DrawDebugOverlay(writableSurface, aTileOrigin.x, aTileOrigin.y);
-  
 #endif
 
   return aTile;
@@ -228,9 +227,66 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
   if (regionToPaint.IsEmpty())
     return;
 
-  mTiledBuffer.PaintThebes(this, mVisibleRegion, regionToPaint, aCallback, aCallbackData);
+  bool useProgressivePaint = true;
+
+  if (useProgressivePaint) {
+    nsIntRegionRectIterator it(regionToPaint);
+    const nsIntRect* rect = it.Next();
+    if (!rect)
+      return;
+
+    
+    
+    
+    
+    
+    
+    
+    int paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->x);
+    int paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->y);
+
+    nsIntRegion maxPaint(
+      nsIntRect(paintTileStartX, paintTileStartY,
+                mTiledBuffer.GetTileLength(), mTiledBuffer.GetTileLength()));
+
+    if (!maxPaint.Contains(regionToPaint)) {
+      
+      
+      regionToPaint.And(regionToPaint, maxPaint);
+      BasicManager()->SetRepeatTransaction();
+    }
+
+    
+    
+    
+    gfxSize resolution(1, 1);
+    for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
+      const FrameMetrics& metrics = parent->GetFrameMetrics();
+      resolution.width *= metrics.mResolution.width;
+      resolution.height *= metrics.mResolution.height;
+    }
+
+    nsIntRegion regionToRetain(mTiledBuffer.GetValidRegion());
+    if (false && mTiledBuffer.GetResolution() == resolution) {
+      
+      
+      regionToRetain.And(regionToRetain, mVisibleRegion);
+      regionToRetain.Or(regionToRetain, regionToPaint);
+    } else {
+      regionToRetain = mValidRegion;
+      regionToRetain.Or(regionToRetain, regionToPaint);
+      mTiledBuffer.SetResolution(resolution);
+    }
+
+    
+    mTiledBuffer.PaintThebes(this, regionToRetain, regionToPaint, aCallback, aCallbackData);
+    mValidRegion.Or(mValidRegion, regionToPaint);
+  } else {
+    mTiledBuffer.PaintThebes(this, mVisibleRegion, regionToPaint, aCallback, aCallbackData);
+    mValidRegion = mVisibleRegion;
+  }
+
   mTiledBuffer.ReadLock();
-  mValidRegion = mVisibleRegion;
   if (aMaskLayer) {
     static_cast<BasicImplData*>(aMaskLayer->ImplData())
       ->Paint(aContext, nsnull);
