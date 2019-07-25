@@ -193,6 +193,8 @@ static NS_DEFINE_CID(kDOMEventGroupCID, NS_DOMEVENTGROUP_CID);
 
 
 #include "nsIContentSecurityPolicy.h"
+#include "nsHTMLStyleSheet.h"
+#include "nsHTMLCSSStyleSheet.h"
 
 #include "mozilla/dom/Link.h"
 using namespace mozilla::dom;
