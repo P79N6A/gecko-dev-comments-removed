@@ -135,7 +135,6 @@ Highlighter.prototype = {
     this.handleResize();
   },
 
-
   
 
 
@@ -555,6 +554,7 @@ Highlighter.prototype = {
 var InspectorUI = {
   browser: null,
   tools: {},
+  toolEvents: {},
   showTextNodesWithWhitespace: false,
   inspecting: false,
   treeLoaded: false,
@@ -814,6 +814,8 @@ var InspectorUI = {
     this.winID = this.getWindowID(this.win);
     this.toolbar = document.getElementById("inspector-toolbar");
 
+    this.initTools();
+
     if (!this.domplate) {
       Cu.import("resource:///modules/domplate.jsm", this);
       this.domplateUtils.setDOM(window);
@@ -825,6 +827,13 @@ var InspectorUI = {
     this.inspectCmd.setAttribute("checked", true);
 
     gBrowser.addProgressListener(InspectorProgressListener);
+  },
+
+  
+
+
+  initTools: function IUI_initTools()
+  {
   },
 
   
@@ -903,6 +912,12 @@ var InspectorUI = {
     }
 
     this.stopInspecting();
+
+    this.saveToolState(this.winID);
+    this.toolsDo(function IUI_toolsHide(aTool) {
+      this.unregisterTool(aTool);
+    }.bind(this));
+
     if (this.highlighter) {
       this.highlighter.destroy();
       this.highlighter = null;
@@ -929,13 +944,6 @@ var InspectorUI = {
       delete this.HTMLTemplates;
       delete this.domplateUtils;
     }
-
-    this.saveToolState(this.winID);
-    this.toolsDo(function IUI_toolsHide(aTool) {
-      if (aTool.panel) {
-        aTool.panel.hidePopup();
-      }
-    });
 
     this.inspectCmd.setAttribute("checked", false);
     this.browser = this.win = null; 
@@ -1020,11 +1028,8 @@ var InspectorUI = {
       }
       this.ioBox.select(this.selection, true, true, aScroll);
     }
-    this.toolsDo(function IUI_toolsOnSelect(aTool) {
-      if (aTool.panel.state == "open") {
-        aTool.onSelect.apply(aTool.context, [aNode]);
-      }
-    });
+
+    this.toolsSelect();
   },
 
   
@@ -1038,6 +1043,8 @@ var InspectorUI = {
     if (InspectorStore.getValue(this.winID, "inspecting")) {
       this.startInspecting();
     }
+
+    this.restoreToolState(this.winID);
 
     this.win.focus();
     Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.OPENED, null);
@@ -1073,7 +1080,6 @@ var InspectorUI = {
             }, INSPECTOR_NOTIFICATIONS.CLOSED, false);
           } else {
             this.openInspectorUI();
-            this.restoreToolState(winID);
           }
         }
 
@@ -1600,6 +1606,12 @@ var InspectorUI = {
 
 
 
+  getToolbarButtonId: function IUI_createButtonId(anId)
+  {
+    return "inspector-" + anId + "-toolbutton";
+  },
+
+  
 
 
 
@@ -1610,48 +1622,125 @@ var InspectorUI = {
 
 
 
-  registerTool: function IUI_RegisterTool(aRegObj) {
-    if (this.tools[aRegObj.id]) {
+
+
+
+
+
+
+
+
+
+
+
+  registerTool: function IUI_registerTool(aRegObj)
+  {
+    if (this.toolRegistered(aRegObj.id)) {
       return;
-    } else {
-      let id = aRegObj.id;
-      let buttonId = "inspector-" + id + "-toolbutton";
-      aRegObj.buttonId = buttonId;
-
-      aRegObj.panel.addEventListener("popuphiding",
-        function IUI_toolPanelHiding() {
-          btn.setAttribute("checked", "false");
-        }, false);
-      aRegObj.panel.addEventListener("popupshowing",
-        function IUI_toolPanelShowing() {
-          btn.setAttribute("checked", "true");
-        }, false);
-
-      this.tools[id] = aRegObj;
     }
 
-    let toolbox = document.getElementById("inspector-tools");
+    this.tools[aRegObj.id] = aRegObj;
+
+    let buttonContainer = document.getElementById("inspector-tools");
     let btn = document.createElement("toolbarbutton");
-    btn.setAttribute("id", aRegObj.buttonId);
+    let buttonId = this.getToolbarButtonId(aRegObj.id);
+    btn.setAttribute("id", buttonId);
     btn.setAttribute("label", aRegObj.label);
     btn.setAttribute("tooltiptext", aRegObj.tooltiptext);
     btn.setAttribute("accesskey", aRegObj.accesskey);
-    btn.setAttribute("class", "toolbarbutton-text");
     btn.setAttribute("image", aRegObj.icon || "");
-    toolbox.appendChild(btn);
+    buttonContainer.appendChild(btn);
 
-    btn.addEventListener("click",
-      function IUI_ToolButtonClick(aEvent) {
-        if (btn.getAttribute("checked") == "true") {
-          aRegObj.onHide.apply(aRegObj.context);
+    
+
+
+
+
+
+    function bindToolEvent(aWidget, aEvent, aCallback)
+    {
+      let toolEvent = aWidget.id + "_" + aEvent;
+      InspectorUI.toolEvents[toolEvent] = aCallback;
+      aWidget.addEventListener(aEvent, aCallback, false);
+    }
+
+    bindToolEvent(btn, "click",
+      function IUI_toolButtonClick(aEvent) {
+        if (btn.checked) {
+          this.toolHide(aRegObj);
         } else {
-          aRegObj.onShow.apply(aRegObj.context, [InspectorUI.selection]);
-          aRegObj.onSelect.apply(aRegObj.context, [InspectorUI.selection]);
+          this.toolShow(aRegObj);
         }
-      }, false);
+      }.bind(this));
+
+    if (aRegObj.panel) {
+      bindToolEvent(aRegObj.panel, "popuphiding",
+        function IUI_toolPanelHiding() {
+          btn.checked = false;
+        });
+    }
   },
 
+  
 
+
+
+  toolShow: function IUI_toolShow(aTool)
+  {
+    aTool.show.call(aTool.context, this.selection);
+    document.getElementById(this.getToolbarButtonId(aTool.id)).checked = true;
+  },
+
+  
+
+
+
+  toolHide: function IUI_toolHide(aTool)
+  {
+    aTool.hide.call(aTool.context);
+    document.getElementById(this.getToolbarButtonId(aTool.id)).checked = false;
+  },
+
+  
+
+
+
+
+
+  unregisterTool: function IUI_unregisterTool(aRegObj)
+  {
+    let button = document.getElementById(this.getToolbarButtonId(aRegObj.id));
+
+    
+
+
+
+    function unbindToolEvent(aWidget, aEvent)
+    {
+      let toolEvent = aWidget.id + "_" + aEvent;
+      if (!InspectorUI.toolEvents[toolEvent]) {
+        return;
+      }
+
+      aWidget.removeEventListener(aEvent, InspectorUI.toolEvents[toolEvent], false);
+      delete InspectorUI.toolEvents[toolEvent]
+    }
+
+    let buttonContainer = document.getElementById("inspector-tools");
+    unbindToolEvent(button, "click");
+
+    if (aRegObj.panel)
+      unbindToolEvent(aRegObj.panel, "popuphiding");
+
+    buttonContainer.removeChild(button);
+
+    if (aRegObj.unregister)
+      aRegObj.unregister.call(aRegObj.context);
+
+    delete this.tools[aRegObj.id];
+  },
+
+  
 
 
 
@@ -1660,14 +1749,14 @@ var InspectorUI = {
   {
     let openTools = {};
     this.toolsDo(function IUI_toolsSetId(aTool) {
-      if (aTool.panel.state == "open") {
+      if (aTool.isOpen) {
         openTools[aTool.id] = true;
       }
     });
     InspectorStore.setValue(aWinID, "openTools", openTools);
   },
 
-
+  
 
 
 
@@ -1676,18 +1765,29 @@ var InspectorUI = {
   restoreToolState: function IUI_restoreToolState(aWinID)
   {
     let openTools = InspectorStore.getValue(aWinID, "openTools");
-    InspectorUI.selection = InspectorUI.selection;
     if (openTools) {
       this.toolsDo(function IUI_toolsOnShow(aTool) {
         if (aTool.id in openTools) {
-          aTool.onShow.apply(aTool.context, [InspectorUI.selection]);
+          this.toolShow(aTool);
         }
-      });
+      }.bind(this));
     }
   },
-  
+
   
 
+
+
+  toolsSelect: function IUI_toolsSelect()
+  {
+    this.toolsDo(function IUI_toolsOnSelect(aTool) {
+      if (aTool.isOpen) {
+        aTool.onSelect.call(aTool.context, InspectorUI.selection);
+      }
+    });
+  },
+
+  
 
 
 
@@ -1696,6 +1796,15 @@ var InspectorUI = {
     for each (let tool in this.tools) {
       aFunction(tool);
     }
+  },
+
+  
+
+
+
+  toolRegistered: function IUI_toolRegistered(aId)
+  {
+    return aId in this.tools;
   },
 };
 
