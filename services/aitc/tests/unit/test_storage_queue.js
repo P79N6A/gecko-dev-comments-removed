@@ -97,19 +97,21 @@ add_test(function test_queue_multiaddremove() {
   });
 });
 
-add_test(function test_queue_writelock() {
-  
-  queue._writeLock = true;
-  let len = queue.length;
 
-  queue.enqueue("writeLock test", function(err, done) {
-    do_check_eq(err.toString(), "Error: _putFile already in progress");
-    do_check_eq(queue.length, len);
 
-    queue.dequeue(function(err, done) {
-      do_check_eq(err.toString(), "Error: _putFile already in progress");
-      do_check_eq(queue.length, len);
-      run_next_test();
-    });
-  });
-});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
