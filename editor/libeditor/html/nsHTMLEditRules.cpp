@@ -6790,6 +6790,12 @@ nsHTMLEditRules::ReturnInListItem(nsISelection *aSelection,
   if (isEmpty && (rootNode != list) && mReturnInEmptyLIKillsList)
   {
     
+    nsCOMPtr<nsIDOMNode> listparent;
+    PRInt32 offset;
+    res = nsEditor::GetNodeLocation(list, address_of(listparent), &offset);
+    NS_ENSURE_SUCCESS(res, res);
+
+    
     PRBool bIsLast;
     res = mHTMLEditor->IsLastEditableChild(aListItem, &bIsLast);
     NS_ENSURE_SUCCESS(res, res);
@@ -6802,10 +6808,6 @@ nsHTMLEditRules::ReturnInListItem(nsISelection *aSelection,
     }
 
     
-    nsCOMPtr<nsIDOMNode> listparent;
-    PRInt32 offset;
-    res = nsEditor::GetNodeLocation(list, address_of(listparent), &offset);
-    NS_ENSURE_SUCCESS(res, res);
     if (nsHTMLEditUtils::IsList(listparent))  
     {
       
