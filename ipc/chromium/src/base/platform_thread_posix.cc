@@ -61,6 +61,9 @@ void PlatformThread::Sleep(int duration_ms) {
     sleep_time = remaining;
 }
 
+#ifndef OS_MACOSX
+
+
 
 void PlatformThread::SetName(const char* name) {
   
@@ -70,6 +73,7 @@ void PlatformThread::SetName(const char* name) {
   
   
 }
+#endif 
 
 namespace {
 
