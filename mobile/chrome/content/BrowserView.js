@@ -218,7 +218,7 @@ BrowserView.prototype = {
       }
     }
 
-    this._tileManager = new TileManager(this._appendTile, this._removeTile, this, cacheSize);
+    this._tileManager = new TileManager(this._appendTile, this._removeTile, this, cacheSize, container);
     this._visibleRectFactory = visibleRectFactory;
 
     this._idleServiceObserver = new BrowserView.IdleServiceObserver(this);
@@ -779,7 +779,7 @@ BrowserView.prototype = {
     
     
     
-    canvas.setAttribute("style", "position: absolute; left: " + tile.boundRect.left + "px; " + "top: " + tile.boundRect.top + "px;");
+    canvas.setAttribute("style", "display: none; position: absolute; left: " + tile.boundRect.left + "px; " + "top: " + tile.boundRect.top + "px;");
 
     this._container.appendChild(canvas);
   },
