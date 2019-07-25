@@ -398,7 +398,7 @@ NS_INTERFACE_MAP_END_INHERITING(nsGenericHTMLElement)
 NS_IMPL_URI_ATTR(nsHTMLMediaElement, Src, src)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Controls, controls)
 NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Autoplay, autoplay)
-NS_IMPL_BOOL_ATTR(nsHTMLMediaElement, Autobuffer, autobuffer)
+NS_IMPL_STRING_ATTR(nsHTMLMediaElement, Preload, preload)
 
 
 NS_IMETHODIMP nsHTMLMediaElement::GetMozAutoplayEnabled(PRBool *aAutoplayEnabled)
@@ -610,6 +610,13 @@ void nsHTMLMediaElement::SelectResource()
     if (NS_SUCCEEDED(rv)) {
       LOG(PR_LOG_DEBUG, ("%p Trying load from src=%s", this, NS_ConvertUTF16toUTF8(src).get()));
       mIsLoadingFromSrcAttribute = PR_TRUE;
+      if (mPreloadAction == nsHTMLMediaElement::PRELOAD_NONE) {
+        
+        
+        SuspendLoad(uri);
+        return;
+      }
+
       rv = LoadResource(uri);
       if (NS_SUCCEEDED(rv))
         return;
@@ -647,6 +654,13 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
 
     mNetworkState = nsIDOMHTMLMediaElement::NETWORK_LOADING;
 
+    if (mPreloadAction == nsHTMLMediaElement::PRELOAD_NONE) {
+      
+      
+      SuspendLoad(uri);
+      return;
+    }
+
     rv = LoadResource(uri);
     if (NS_SUCCEEDED(rv))
       return;
@@ -654,6 +668,110 @@ void nsHTMLMediaElement::LoadFromSourceChildren()
     
   }
   NS_NOTREACHED("Execution should not reach here!");
+}
+
+void nsHTMLMediaElement::SuspendLoad(nsIURI* aURI)
+{
+  mLoadIsSuspended = PR_TRUE;
+  mPreloadURI = aURI;
+  mNetworkState = nsIDOMHTMLMediaElement::NETWORK_IDLE;
+  DispatchAsyncProgressEvent(NS_LITERAL_STRING("suspend"));
+  ChangeDelayLoadStatus(PR_FALSE);
+}
+
+void nsHTMLMediaElement::ResumeLoad(PreloadAction aAction)
+{
+  NS_ASSERTION(mLoadIsSuspended, "Can only resume preload if halted for one");
+  nsCOMPtr<nsIURI> uri = mPreloadURI;
+  mLoadIsSuspended = PR_FALSE;
+  mPreloadURI = nsnull;
+  mPreloadAction = aAction;
+  ChangeDelayLoadStatus(PR_TRUE);
+  if (mIsLoadingFromSrcAttribute) {
+    
+    if (NS_FAILED(LoadResource(uri))) {
+      NoSupportedMediaSourceError();
+    }
+  } else {
+    
+    
+    if (NS_FAILED(LoadResource(uri))) {
+      LoadFromSourceChildren();
+    }
+  }
+}
+
+static PRBool IsAutoplayEnabled()
+{
+  return nsContentUtils::GetBoolPref("media.autoplay.enabled");
+}
+
+void nsHTMLMediaElement::UpdatePreloadAction()
+{
+  PreloadAction nextAction = PRELOAD_UNDEFINED;
+  
+  
+  if (IsAutoplayEnabled() && HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay)) {
+    nextAction = nsHTMLMediaElement::PRELOAD_ENOUGH;
+  } else {
+    
+    const nsAttrValue* val = mAttrsAndChildren.GetAttr(nsGkAtoms::preload,
+                                                       kNameSpaceID_None);
+    if (!val) {
+      
+      nextAction = nsHTMLMediaElement::PRELOAD_METADATA;
+    } else if (val->Type() == nsAttrValue::eEnum) {
+      PreloadAttrValue attr = static_cast<PreloadAttrValue>(val->GetEnumValue());
+      if (attr == nsHTMLMediaElement::PRELOAD_ATTR_EMPTY ||
+          attr == nsHTMLMediaElement::PRELOAD_ATTR_AUTO)
+      {
+        nextAction = nsHTMLMediaElement::PRELOAD_ENOUGH;
+      } else if (attr == nsHTMLMediaElement::PRELOAD_ATTR_METADATA) {
+        nextAction = nsHTMLMediaElement::PRELOAD_METADATA;
+      } else if (attr == nsHTMLMediaElement::PRELOAD_ATTR_NONE) {
+        nextAction = nsHTMLMediaElement::PRELOAD_NONE;
+      }
+    } else {
+      
+      
+      nextAction = nsHTMLMediaElement::PRELOAD_METADATA;
+    }
+  }
+
+  if ((mBegun || mIsRunningSelectResource) && nextAction < mPreloadAction) {
+    
+    
+    
+    return;
+  }
+
+  PRBool wasPreloadNone = mPreloadAction == PRELOAD_NONE;
+  mPreloadAction = nextAction;
+  if (nextAction == nsHTMLMediaElement::PRELOAD_ENOUGH) {
+    if (mLoadIsSuspended) {
+      
+      
+      
+      ResumeLoad(PRELOAD_ENOUGH);
+    } else {
+      
+      
+      StopSuspendingAfterFirstFrame();
+    }
+
+  } else if (nextAction == nsHTMLMediaElement::PRELOAD_METADATA) {
+    
+    mAllowSuspendAfterFirstFrame = PR_TRUE;
+    if (mLoadIsSuspended) {
+      
+      
+      
+      
+      ResumeLoad(PRELOAD_METADATA);
+    }
+  }
+
+  return;
 }
 
 nsresult nsHTMLMediaElement::LoadResource(nsIURI* aURI)
@@ -994,7 +1112,9 @@ nsHTMLMediaElement::nsHTMLMediaElement(already_AddRefed<nsINodeInfo> aNodeInfo,
     mAllowSuspendAfterFirstFrame(PR_TRUE),
     mHasPlayedOrSeeked(PR_FALSE),
     mHasSelfReference(PR_FALSE),
-    mShuttingDown(PR_FALSE)
+    mShuttingDown(PR_FALSE),
+    mPreloadAction(PRELOAD_UNDEFINED),
+    mLoadIsSuspended(PR_FALSE)
 {
 #ifdef PR_LOGGING
   if (!gMediaElementLog) {
@@ -1059,6 +1179,8 @@ NS_IMETHODIMP nsHTMLMediaElement::Play()
   if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
     nsresult rv = Load();
     NS_ENSURE_SUCCESS(rv, rv);
+  }  else if (mLoadIsSuspended) {
+    ResumeLoad(PRELOAD_ENOUGH);
   } else if (mDecoder) {
     if (mDecoder->IsEnded()) {
       SetCurrentTime(0);
@@ -1099,6 +1221,15 @@ PRBool nsHTMLMediaElement::ParseAttribute(PRInt32 aNamespaceID,
                                           const nsAString& aValue,
                                           nsAttrValue& aResult)
 {
+  
+  static const nsAttrValue::EnumTable kPreloadTable[] = {
+    { "",         nsHTMLMediaElement::PRELOAD_ATTR_EMPTY },
+    { "none",     nsHTMLMediaElement::PRELOAD_ATTR_NONE },
+    { "metadata", nsHTMLMediaElement::PRELOAD_ATTR_METADATA },
+    { "auto",     nsHTMLMediaElement::PRELOAD_ATTR_AUTO },
+    { 0 }
+  };
+
   if (aNamespaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::src) {
       static const char* kWhitespace = " \n\r\t\b";
@@ -1114,6 +1245,9 @@ PRBool nsHTMLMediaElement::ParseAttribute(PRInt32 aNamespaceID,
     else if (ParseImageAttribute(aAttribute, aValue, aResult)) {
       return PR_TRUE;
     }
+    else if (aAttribute == nsGkAtoms::preload) {
+      return aResult.ParseEnumValue(aValue, kPreloadTable, PR_FALSE);
+    }
   }
 
   return nsGenericHTMLElement::ParseAttribute(aNamespaceID, aAttribute, aValue,
@@ -1127,6 +1261,8 @@ nsresult nsHTMLMediaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
   nsresult rv =
     nsGenericHTMLElement::SetAttr(aNameSpaceID, aName, aPrefix, aValue,
                                     aNotify);
+  if (NS_FAILED(rv))
+    return rv;
   if (aNotify && aNameSpaceID == kNameSpaceID_None) {
     if (aName == nsGkAtoms::src) {
       if (mLoadWaitStatus == WAITING_FOR_SRC_OR_SOURCE) {
@@ -1143,8 +1279,9 @@ nsresult nsHTMLMediaElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       }
       
       AddRemoveSelfReference();
-    } else if (aName == nsGkAtoms::autobuffer) {
-      StopSuspendingAfterFirstFrame();
+      UpdatePreloadAction();
+    } else if (aName == nsGkAtoms::preload) {
+      UpdatePreloadAction();
     }
   }
 
@@ -1155,21 +1292,19 @@ nsresult nsHTMLMediaElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttr,
                                        PRBool aNotify)
 {
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttr, aNotify);
+  if (NS_FAILED(rv))
+    return rv;
   if (aNotify && aNameSpaceID == kNameSpaceID_None) {
     if (aAttr == nsGkAtoms::autoplay) {
       
       AddRemoveSelfReference();
+      UpdatePreloadAction();
+    } else if (aAttr == nsGkAtoms::preload) {
+      UpdatePreloadAction();
     }
-    
-    
   }
 
   return rv;
-}
-
-static PRBool IsAutoplayEnabled()
-{
-  return nsContentUtils::GetBoolPref("media.autoplay.enabled");
 }
 
 nsresult nsHTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -1180,6 +1315,9 @@ nsresult nsHTMLMediaElement::BindToTree(nsIDocument* aDocument, nsIContent* aPar
     mIsBindingToTree = PR_TRUE;
     mAutoplayEnabled =
       IsAutoplayEnabled() && (!aDocument || !aDocument->IsStaticDocument());
+    
+    
+    UpdatePreloadAction();
   }
   nsresult rv = nsGenericHTMLElement::BindToTree(aDocument,
                                                  aParent,
@@ -1641,7 +1779,7 @@ void nsHTMLMediaElement::FirstFrameLoaded(PRBool aResourceFullyLoaded)
   if (mDecoder && mAllowSuspendAfterFirstFrame && mPaused &&
       !aResourceFullyLoaded &&
       !HasAttr(kNameSpaceID_None, nsGkAtoms::autoplay) &&
-      !HasAttr(kNameSpaceID_None, nsGkAtoms::autobuffer)) {
+      mPreloadAction == nsHTMLMediaElement::PRELOAD_METADATA) {
     mSuspendedAfterFirstFrame = PR_TRUE;
     mDecoder->Suspend();
   }
@@ -1944,6 +2082,7 @@ nsresult nsHTMLMediaElement::DoneAddingChildren(PRBool aHaveNotified)
   if (!mIsDoneAddingChildren) {
     mIsDoneAddingChildren = PR_TRUE;
 
+    UpdatePreloadAction();
     if (mNetworkState == nsIDOMHTMLMediaElement::NETWORK_EMPTY) {
       QueueSelectResourceTask();
     }
