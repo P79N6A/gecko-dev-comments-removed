@@ -134,6 +134,12 @@ DAVCollection.prototype = {
     request.open(op, this._baseURL + path, true);
 
     
+    let cb = function() { request.abort(); };
+    let listener = new Utils.EventListener(cb);
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    timer.initWithCallback(listener, 30000, timer.TYPE_ONE_SHOT);
+
+    
     let channel = request.channel;
     channel = channel.QueryInterface(Ci.nsIRequest);
     let loadFlags = channel.loadFlags;
@@ -156,7 +162,7 @@ DAVCollection.prototype = {
     if (ret.status == 423)
       this._log.warn("_makeRequest: got status " + ret.status + " (This is not necessarily bad. It could just mean that another Firefox was syncing at the same time.)");
     else
-    if (ret.status < 200 || ret.status >= 300) 
+    if (ret.status < 200 || ret.status >= 300)
       this._log.warn("_makeRequest: got status " + ret.status);
 
     self.done(ret);
