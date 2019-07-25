@@ -561,7 +561,7 @@ class Mochitest(object):
         URL parameters to test URL:
 
         autorun -- kick off tests automatically
-        closeWhenDone -- runs quit.js after tests
+        closeWhenDone -- closes the browser after the tests
         hideResultsTable -- hides the table of individual test results
         logFile -- logs test run to an absolute path
         totalChunks -- how many chunks to split tests into
@@ -813,16 +813,8 @@ toolbar#nav-bar {
 overlay chrome://browser/content/browser.xul chrome://mochikit/content/browser-test-overlay.xul
 overlay chrome://navigator/content/navigator.xul chrome://mochikit/content/browser-test-overlay.xul
 """
-    else:
-      
-      
-      chrome += """
-overlay chrome://browser/content/browser.xul chrome://mochikit/content/ipc-overlay.xul
-overlay chrome://navigator/content/navigator.xul chrome://mochikit/content/ipc-overlay.xul
-"""
 
     self.installChromeJar(jarDir, chrome, options)
-
     return manifest
 
   def installChromeJar(self, jarDirName, chrome, options):

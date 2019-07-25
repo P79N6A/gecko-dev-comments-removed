@@ -35,14 +35,6 @@ if (window.SpecialPowers == undefined && window.opener && window.opener.SpecialP
 }
 
 
-var ipcMode = false;
-if (parentRunner) {
-    ipcMode = parentRunner.ipcMode;
-} else if (typeof SpecialPowers != 'undefined') {
-    ipcMode = SpecialPowers.hasContentProcesses();
-}
-
-
 if (typeof(repr) == 'undefined') {
     function repr(o) {
         if (typeof(o) == "undefined") {

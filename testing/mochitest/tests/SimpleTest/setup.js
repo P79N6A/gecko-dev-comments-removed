@@ -115,7 +115,7 @@ if (params.repeat) {
 
 
 if (params.closeWhenDone) {
-  TestRunner.onComplete = goQuitApplication;
+  TestRunner.onComplete = SpecialPowers.quit;
 }
 
 
