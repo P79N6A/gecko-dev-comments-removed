@@ -754,11 +754,6 @@ public:
 
   
 
-
-  NS_HIDDEN_(nsBidiPresUtils*) GetBidiUtils();
-
-  
-
   
   NS_HIDDEN_(void) SetBidi(PRUint32 aBidiOptions,
                            PRBool aForceRestyle = PR_FALSE);
@@ -769,10 +764,6 @@ public:
 
   
   NS_HIDDEN_(PRUint32) GetBidi() const;
-
-  PRUint32 GetBidiMemoryUsed();
-#else
-  PRUint32 GetBidiMemoryUsed() { return 0; }
 #endif 
 
   
@@ -1005,7 +996,6 @@ public:
     PRUint32 result = 0;
 
     result += sizeof(nsPresContext);
-    result += GetBidiMemoryUsed();
 
     return result;
   }
@@ -1093,10 +1083,6 @@ protected:
 
   PRInt32               mCurAppUnitsPerDevPixel;
   PRInt32               mAutoQualityMinFontSizePixelsPref;
-
-#ifdef IBMBIDI
-  nsAutoPtr<nsBidiPresUtils> mBidiUtils;
-#endif
 
   nsCOMPtr<nsITheme> mTheme;
   nsCOMPtr<nsILanguageAtomService> mLangService;

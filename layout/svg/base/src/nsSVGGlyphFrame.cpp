@@ -1530,11 +1530,9 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
     if (!GetCharacterData(text))
       return PR_FALSE;
 
-    nsBidiPresUtils* bidiUtils = presContext->GetBidiUtils();
-    if (bidiUtils) {
-      nsAutoString visualText;
-
+    nsAutoString visualText;
       
+    
 
 
 
@@ -1559,19 +1557,18 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
 
 
 
-        
-      
-      
-      PRBool bidiOverride = (mParent->GetStyleTextReset()->mUnicodeBidi ==
-                             NS_STYLE_UNICODE_BIDI_OVERRIDE);
-      nsBidiLevel baseDirection =
-        GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL ?
-          NSBIDI_RTL : NSBIDI_LTR;
-      bidiUtils->CopyLogicalToVisual(text, visualText,
-                                     baseDirection, bidiOverride);
-      if (!visualText.IsEmpty()) {
-        text = visualText;
-      }
+    
+    
+    
+    PRBool bidiOverride = (mParent->GetStyleTextReset()->mUnicodeBidi ==
+                           NS_STYLE_UNICODE_BIDI_OVERRIDE);
+    nsBidiLevel baseDirection =
+      GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL ?
+        NSBIDI_RTL : NSBIDI_LTR;
+    nsBidiPresUtils::CopyLogicalToVisual(text, visualText,
+                                         baseDirection, bidiOverride);
+    if (!visualText.IsEmpty()) {
+      text = visualText;
     }
 
     gfxMatrix m;
