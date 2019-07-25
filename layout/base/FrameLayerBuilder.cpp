@@ -166,7 +166,7 @@ protected:
     ThebesLayerData() :
       mActiveScrolledRoot(nsnull), mLayer(nsnull),
       mIsSolidColorInVisibleRegion(PR_FALSE),
-      mHasText(PR_FALSE), mHasTextOverTransparent(PR_FALSE),
+      mHasTextOverTransparent(PR_FALSE),
       mForceTransparentSurface(PR_FALSE) {}
     
 
@@ -236,10 +236,6 @@ protected:
 
 
     PRPackedBool mIsSolidColorInVisibleRegion;
-    
-
-
-    PRPackedBool mHasText;
     
 
 
@@ -871,7 +867,6 @@ ContainerState::PopThebesLayerData()
   }
   PRUint32 flags =
     ((isOpaque && !data->mForceTransparentSurface) ? Layer::CONTENT_OPAQUE : 0) |
-    (data->mHasText ? 0 : Layer::CONTENT_NO_TEXT) |
     (data->mHasTextOverTransparent ? 0 : Layer::CONTENT_NO_TEXT_OVER_TRANSPARENT);
   layer->SetContentFlags(flags);
 
@@ -934,7 +929,6 @@ ContainerState::ThebesLayerData::Accumulate(nsDisplayListBuilder* aBuilder,
       mOpaqueRegion = tmp;
     }
   } else if (aItem->HasText()) {
-    mHasText = PR_TRUE;
     if (!mOpaqueRegion.Contains(aVisibleRect)) {
       mHasTextOverTransparent = PR_TRUE;
     }

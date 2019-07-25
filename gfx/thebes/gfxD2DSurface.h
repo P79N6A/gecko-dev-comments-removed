@@ -61,13 +61,6 @@ public:
 
     virtual ~gfxD2DSurface();
 
-    virtual TextQuality GetTextQualityInTransparentSurfaces()
-    {
-      
-      
-      return TEXT_QUALITY_BAD;
-    }
-
     void Present();
     void Scroll(const nsIntPoint &aDelta, const nsIntRect &aClip);
 

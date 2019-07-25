@@ -487,14 +487,7 @@ public:
 
 
 
-    CONTENT_NO_TEXT = 0x02,
-    
-
-
-
-
-
-    CONTENT_NO_TEXT_OVER_TRANSPARENT = 0x04
+    CONTENT_NO_TEXT_OVER_TRANSPARENT = 0x02
   };
   
 
