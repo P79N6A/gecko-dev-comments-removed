@@ -79,7 +79,7 @@ static android::FramebufferNativeWindow *gNativeWindow = nsnull;
 static bool sFramebufferOpen;
 static bool sUsingOMTC;
 static nsRefPtr<gfxASurface> sOMTCSurface;
-static nsCOMPtr<nsIThread> sFramebufferWatchThread;
+static pthread_t sFramebufferWatchThread;
 
 namespace {
 
@@ -112,17 +112,15 @@ private:
 static const char* kSleepFile = "/sys/power/wait_for_fb_sleep";
 static const char* kWakeFile = "/sys/power/wait_for_fb_wake";
 
-class FramebufferWatcher : public nsRunnable {
-public:
-    FramebufferWatcher()
-        : mScreenOnEvent(new ScreenOnOffEvent(true))
-        , mScreenOffEvent(new ScreenOnOffEvent(false))
-    {}
+static void *frameBufferWatcher(void *) {
 
-    NS_IMETHOD Run() {
-        int len = 0;
-        char buf;
+    int len = 0;
+    char buf;
 
+    nsRefPtr<ScreenOnOffEvent> mScreenOnEvent = new ScreenOnOffEvent(true);
+    nsRefPtr<ScreenOnOffEvent> mScreenOffEvent = new ScreenOnOffEvent(false);
+
+    while (true) {
         
         
         {
@@ -142,17 +140,10 @@ public:
             NS_WARN_IF_FALSE(len >= 0, "WAIT_FOR_FB_WAKE failed");
             NS_DispatchToMainThread(mScreenOnEvent);
         }
-
-        
-        NS_DispatchToCurrentThread(this);
-
-        return NS_OK;
     }
-
-private:
-    nsRefPtr<ScreenOnOffEvent> mScreenOnEvent;
-    nsRefPtr<ScreenOnOffEvent> mScreenOffEvent;
-};
+    
+    return NULL;
+}
 
 } 
 
@@ -163,7 +154,10 @@ nsWindow::nsWindow()
         hal::SetScreenEnabled(true);
 
         
-        NS_NewThread(getter_AddRefs(sFramebufferWatchThread), new FramebufferWatcher());
+        
+        if (pthread_create(&sFramebufferWatchThread, NULL, frameBufferWatcher, NULL)) {
+            NS_RUNTIMEABORT("Failed to create framebufferWatcherThread, aborting...");
+        }
 
         sUsingOMTC = Preferences::GetBool("layers.offmainthreadcomposition.enabled", false);
 
