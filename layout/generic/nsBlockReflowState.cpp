@@ -845,10 +845,8 @@ nsBlockReflowState::FlowAndPlaceFloat(nsIFrame* aFloat)
   nsContainerFrame::PositionChildViews(aFloat);
 
   
-  nsRect combinedArea = aFloat->GetOverflowRect() + origin;
-
   
-  mFloatCombinedArea.UnionRect(combinedArea, mFloatCombinedArea);
+  mFloatOverflowAreas.UnionWith(aFloat->GetOverflowAreas() + origin);
 
   
   

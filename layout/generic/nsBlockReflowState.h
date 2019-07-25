@@ -265,7 +265,7 @@ public:
   nscoord mY;
 
   
-  nsRect mFloatCombinedArea;
+  nsOverflowAreas mFloatOverflowAreas;
 
   nsFloatCacheFreeList mFloatCacheFreeList;
 
