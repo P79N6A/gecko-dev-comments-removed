@@ -215,7 +215,6 @@ function getFileListing(basePath, testPath, dir, srvScope)
     if (!testsDir.exists())
       return [];
 
-    
     if (testsDir.isFile()) {
       if (fileNameRegexp.test(testsDir.leafName))
         var singlePath = basePath + '/' + testPath;
