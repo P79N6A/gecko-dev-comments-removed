@@ -725,7 +725,7 @@ pref("network.ftp.control.qos", 0);
 
 
 
-pref("network.websocket.enabled", false);
+pref("network.websocket.enabled", true);
 
 
 
