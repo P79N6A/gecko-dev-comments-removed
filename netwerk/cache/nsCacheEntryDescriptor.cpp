@@ -609,34 +609,22 @@ nsOutputStreamWrapper::LazyInit()
     nsCacheEntry* cacheEntry = mDescriptor->CacheEntry();
     if (!cacheEntry) return NS_ERROR_NOT_AVAILABLE;
 
-    NS_ASSERTION(mOutput == nsnull, "mOutput set in LazyInit");
-
-    nsCOMPtr<nsIOutputStream> stream;
     rv = nsCacheService::OpenOutputStreamForEntry(cacheEntry, mode, mStartOffset,
-                                                  getter_AddRefs(stream));
-    if (NS_FAILED(rv))
-        return rv;
+                                                  getter_AddRefs(mOutput));
+    if (NS_FAILED(rv)) return rv;
+
+    mDescriptor->mOutput = mOutput;
 
     nsCacheDevice* device = cacheEntry->CacheDevice();
-    if (device) {
-        
-        PRInt32 size = cacheEntry->DataSize();
-        rv = device->OnDataSizeChange(cacheEntry, mStartOffset - size);
-        if (NS_SUCCEEDED(rv))
-            cacheEntry->SetDataSize(mStartOffset);
-    } else {
-        rv = NS_ERROR_NOT_AVAILABLE;
-    }
+    if (!device) return NS_ERROR_NOT_AVAILABLE;
 
     
-    
-    if (NS_FAILED(rv)) {
-        mDescriptor->InternalCleanup(stream);
-        return rv;
-    }
+    PRInt32 size = cacheEntry->DataSize();
+    rv = device->OnDataSizeChange(cacheEntry, mStartOffset - size);
+    if (NS_FAILED(rv)) return rv;
 
-    
-    mDescriptor->mOutput = mOutput = stream;
+    cacheEntry->SetDataSize(mStartOffset);
+
     mInitialized = PR_TRUE;
     return NS_OK;
 }
