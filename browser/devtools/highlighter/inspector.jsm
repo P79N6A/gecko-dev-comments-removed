@@ -383,7 +383,7 @@ InspectorUI.prototype = {
   
 
 
-  toggleHTMLPanel: function TP_toggle()
+  toggleHTMLPanel: function TP_toggleHTMLPanel()
   {
     if (this.treePanel.isOpen()) {
       this.treePanel.close();
@@ -404,6 +404,38 @@ InspectorUI.prototype = {
   get isInspectorOpen()
   {
     return !!(this.toolbar && !this.toolbar.hidden && this.highlighter);
+  },
+
+  
+
+
+  toggleVeil: function IUI_toggleVeil()
+  {
+    if (this.currentInspector._highlighterShowVeil) {
+      this.highlighter.hideVeil();
+      this.currentInspector._highlighterShowVeil = false;
+      Services.prefs.setBoolPref("devtools.inspector.highlighterShowVeil", false);
+    } else {
+      this.highlighter.showVeil();
+      this.currentInspector._highlighterShowVeil = true;
+      Services.prefs.setBoolPref("devtools.inspector.highlighterShowVeil", true);
+    }
+  },
+
+  
+
+
+  toggleInfobar: function IUI_toggleInfobar()
+  {
+    if (this.currentInspector._highlighterShowInfobar) {
+      this.highlighter.hideInfobar();
+      this.currentInspector._highlighterShowInfobar = false;
+      Services.prefs.setBoolPref("devtools.inspector.highlighterShowInfobar", false);
+    } else {
+      this.highlighter.showInfobar();
+      this.currentInspector._highlighterShowInfobar = true;
+      Services.prefs.setBoolPref("devtools.inspector.highlighterShowInfobar", true);
+    }
   },
 
   
@@ -502,7 +534,7 @@ InspectorUI.prototype = {
     
     
     
-    if (!this.toolbar.querySelector("-moz-focusring")) {
+    if (!this.toolbar.querySelector(":-moz-focusring")) {
       this.win.focus();
     }
 
@@ -542,6 +574,12 @@ InspectorUI.prototype = {
 
       inspector._activeSidebar =
         Services.prefs.getCharPref("devtools.inspector.activeSidebar");
+
+      inspector._highlighterShowVeil =
+        Services.prefs.getBoolPref("devtools.inspector.highlighterShowVeil");
+
+      inspector._highlighterShowInfobar =
+        Services.prefs.getBoolPref("devtools.inspector.highlighterShowInfobar");
 
       this.win.addEventListener("pagehide", this, true);
 
@@ -847,6 +885,23 @@ InspectorUI.prototype = {
 
     if (this.currentInspector._sidebarOpen) {
       this._sidebar.show();
+    }
+
+    let menu = this.chromeDoc.getElementById("inspectorToggleVeil");
+    if (this.currentInspector._highlighterShowVeil) {
+      menu.setAttribute("checked", "true");
+    } else {
+      menu.removeAttribute("checked");
+      this.highlighter.hideVeil();
+    }
+
+    menu = this.chromeDoc.getElementById("inspectorToggleInfobar");
+    if (this.currentInspector._highlighterShowInfobar) {
+      menu.setAttribute("checked", "true");
+      this.highlighter.showInfobar();
+    } else {
+      menu.removeAttribute("checked");
+      this.highlighter.hideInfobar();
     }
 
     Services.obs.notifyObservers({wrappedJSObject: this},

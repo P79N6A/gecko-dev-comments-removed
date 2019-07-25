@@ -135,6 +135,12 @@ const PSEUDO_CLASSES = [":hover", ":active", ":focus"];
 
 
 
+
+
+
+
+
+
 function Highlighter(aWindow)
 {
   this.chromeWin = aWindow;
@@ -171,6 +177,7 @@ Highlighter.prototype = {
     
     
     this.buildVeil(this.veilContainer);
+    this.showVeil();
 
     this.buildInfobar(controlsBox);
 
@@ -367,8 +374,37 @@ Highlighter.prototype = {
     let nodeName = aNode.nodeName.toLowerCase();
     return !INSPECTOR_INVISIBLE_ELEMENTS[nodeName];
   },
+
   
 
+
+   hideVeil: function Highlighter_hideVeil() {
+     this.veilContainer.removeAttribute("dim");
+   },
+
+  
+
+
+   showVeil: function Highlighter_showVeil() {
+     this.veilContainer.setAttribute("dim", "true");
+   },
+
+   
+
+
+    hideInfobar: function Highlighter_hideInfobar() {
+      this.nodeInfo.container.setAttribute("hidden", "true");
+    },
+
+   
+
+
+    showInfobar: function Highlighter_showInfobar() {
+      this.nodeInfo.container.removeAttribute("hidden");
+      this.moveInfobar();
+    },
+
+  
 
 
 
