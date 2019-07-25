@@ -4988,133 +4988,149 @@ function asyncOpenWebPanel(event)
 
 
 
- 
- 
- 
- function contentAreaClick(event, fieldNormalClicks)
- {
-   if (!event.isTrusted || event.getPreventDefault()) {
-     return true;
-   }
 
-   var target = event.target;
-   var linkNode;
 
-   if (target instanceof HTMLAnchorElement ||
-       target instanceof HTMLAreaElement ||
-       target instanceof HTMLLinkElement) {
-     if (target.hasAttribute("href"))
-       linkNode = target;
 
-     
-     
-     
-     var parent = target.parentNode;
-     while (parent) {
-       if (parent instanceof HTMLAnchorElement ||
-           parent instanceof HTMLAreaElement ||
-           parent instanceof HTMLLinkElement) {
-           if (parent.hasAttribute("href"))
-             linkNode = parent;
-       }
-       parent = parent.parentNode;
-     }
-   }
-   else {
-     linkNode = event.originalTarget;
-     while (linkNode && !(linkNode instanceof HTMLAnchorElement))
-       linkNode = linkNode.parentNode;
-     
-     
-     if (linkNode && !linkNode.hasAttribute("href"))
-       linkNode = null;
-   }
-   var wrapper = null;
-   if (linkNode) {
-     wrapper = linkNode;
-     if (event.button == 0 && !event.ctrlKey && !event.shiftKey &&
-         !event.altKey && !event.metaKey) {
-       
-       
-       
-       
-       
-       target = wrapper.getAttribute("target");
-       if (fieldNormalClicks &&
-           (!target || target == "_content" || target  == "_main"))
-         
-       {
-         if (!wrapper.href)
-           return true;
-         if (wrapper.getAttribute("onclick"))
-           return true;
-         
-         if (wrapper.href.substr(0, 11) === "javascript:")
-           return true;
-         
-         if (wrapper.href.substr(0, 5) === "data:")
-           return true;
 
-         try {
-           urlSecurityCheck(wrapper.href, wrapper.ownerDocument.nodePrincipal);
-         }
-         catch(ex) {
-           return false;
-         }
 
-         var postData = { };
-         var url = getShortcutOrURI(wrapper.href, postData);
-         if (!url)
-           return true;
-         loadURI(url, null, postData.value, false);
-         event.preventDefault();
-         return false;
-       }
-       else if (linkNode.getAttribute("rel") == "sidebar") {
-         
-         
-         
-         PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(wrapper.href),
-                                                wrapper.getAttribute("title"),
-                                                null, null, true, true);
-         event.preventDefault();
-         return false;
-       }
-     }
-     else {
-       handleLinkClick(event, wrapper.href, linkNode);
-     }
 
-     return true;
-   } else {
-     
-     var href, realHref, baseURI;
-     linkNode = target;
-     while (linkNode) {
-       if (linkNode.nodeType == Node.ELEMENT_NODE) {
-         wrapper = linkNode;
 
-         realHref = wrapper.getAttributeNS("http://www.w3.org/1999/xlink", "href");
-         if (realHref) {
-           href = realHref;
-           baseURI = wrapper.baseURI
-         }
-       }
-       linkNode = linkNode.parentNode;
-     }
-     if (href) {
-       href = makeURLAbsolute(baseURI, href);
-       handleLinkClick(event, href, null);
-       return true;
-     }
-   }
-   if (event.button == 1 &&
-       gPrefService.getBoolPref("middlemouse.contentLoadURL") &&
-       !gPrefService.getBoolPref("general.autoScroll")) {
-     middleMousePaste(event);
-   }
-   return true;
- }
+
+
+
+function hrefAndLinkNodeForClickEvent(event)
+{
+  function isHTMLLink(aNode)
+  {
+    return aNode instanceof HTMLAnchorElement ||
+           aNode instanceof HTMLAreaElement ||
+           aNode instanceof HTMLLinkElement;
+  }
+
+  let linkNode;
+  if (isHTMLLink(event.target)) {
+    
+    
+    
+    
+    let node = event.target;
+    while (node) {
+      if (isHTMLLink(node) && node.hasAttribute("href"))
+        linkNode = node;
+      node = node.parentNode;
+    }
+  }
+  else {
+    let node = event.originalTarget;
+    while (node && !(node instanceof HTMLAnchorElement)) {
+      node = node.parentNode;
+    }
+    
+    
+    if (node && node.hasAttribute("href"))
+      linkNode = node;
+  }
+
+  if (linkNode)
+    return [linkNode.href, linkNode];
+
+  
+  let href, baseURI;
+  let node = event.target;
+  while (node) {
+    if (node.nodeType == Node.ELEMENT_NODE) {
+      href = node.getAttributeNS("http://www.w3.org/1999/xlink", "href");
+      if (href)
+        baseURI = node.baseURI;
+    }
+    node = node.parentNode;
+  }
+
+  
+  
+  return [href ? makeURLAbsolute(baseURI, href) : null, null];
+}
+
+
+
+
+
+
+
+
+
+
+function contentAreaClick(event, isPanelClick)
+{
+  if (!event.isTrusted || event.getPreventDefault() || event.button == 2)
+    return true;
+
+  let [href, linkNode] = hrefAndLinkNodeForClickEvent(event);
+  if (!href) {
+    
+    if (event.button == 1 &&
+        gPrefService.getBoolPref("middlemouse.contentLoadURL") &&
+        !gPrefService.getBoolPref("general.autoScroll")) {
+      middleMousePaste(event);
+      event.preventDefault();
+    }
+    return true;
+  }
+
+  
+  
+  if (linkNode && event.button == 0 &&
+      !event.ctrlKey && !event.shiftKey && !event.altKey && !event.metaKey) {
+    
+    
+    
+    let target = linkNode.target;
+    let mainTarget = !target || target == "_content" || target  == "_main";
+    if (isPanelClick && mainTarget) {
+      
+      if (linkNode.getAttribute("onclick") ||
+          href.substr(0, 11) === "javascript:" ||
+          href.substr(0, 5) === "data:")
+        return true;
+
+      try {
+        urlSecurityCheck(href, linkNode.ownerDocument.nodePrincipal);
+      }
+      catch(ex) {
+        
+        event.preventDefault();
+        return true;
+      }
+
+      let postData = {};
+      let url = getShortcutOrURI(href, postData);
+      if (!url)
+        return true;
+      loadURI(url, null, postData.value, false);
+      event.preventDefault();
+      return true;
+    }
+
+    if (linkNode.getAttribute("rel") == "sidebar") {
+      
+      
+      
+      PlacesUIUtils.showMinimalAddBookmarkUI(makeURI(href),
+                                             linkNode.getAttribute("title"),
+                                             null, null, true, true);
+      event.preventDefault();
+      return true;
+    }
+  }
+
+  handleLinkClick(event, href, linkNode);
+  return true;
+}
+
+
+
+
+
 
 function handleLinkClick(event, href, linkNode) {
   if (event.button == 2) 
@@ -5129,6 +5145,7 @@ function handleLinkClick(event, href, linkNode) {
   if (where == "save") {
     saveURL(href, linkNode ? gatherTextUnder(linkNode) : "", null, true,
             true, doc.documentURIObject);
+    event.preventDefault();
     return true;
   }
 
@@ -5136,7 +5153,7 @@ function handleLinkClick(event, href, linkNode) {
   openLinkIn(href, where, { fromContent: true,
                             referrerURI: doc.documentURIObject,
                             charset: doc.characterSet });
-  event.stopPropagation();
+  event.preventDefault();
   return true;
 }
 
