@@ -113,6 +113,17 @@ struct GlobalSlotArray {
 # define CHECK_SCRIPT_OWNER 1
 #endif
 
+#ifdef JS_METHODJIT
+namespace JSC {
+    class ExecutablePool;
+}
+namespace js {
+    namespace mjit {
+        struct PICInfo;
+    }
+}
+#endif
+
 struct JSScript {
     jsbytecode      *code;      
     uint32          length;     
@@ -150,6 +161,28 @@ struct JSScript {
 #ifdef CHECK_SCRIPT_OWNER
     JSThread        *owner;     
 #endif
+#ifdef JS_METHODJIT
+    
+    
+    void            *ncode;     
+    void            **nmap;     
+    JSC::ExecutablePool *execPool;  
+    unsigned        npics;      
+    js::mjit::PICInfo *pics;      
+# ifdef DEBUG
+    size_t          jitLength;  
+
+    inline bool isValidJitCode(void *jcode) {
+        return (char*)jcode >= (char*)ncode &&
+               (char*)jcode < (char*)ncode + jitLength;
+    }
+# endif
+#endif
+#ifdef JS_TRACER
+    js::TraceTreeCache  *trees; 
+    uint32          tmGen;      
+#endif
+    uint32          tracePoints; 
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
@@ -222,6 +255,17 @@ struct JSScript {
     static JSScript *emptyScript() {
         return const_cast<JSScript *>(&emptyScriptConst);
     }
+
+#ifdef JS_METHODJIT
+    
+
+
+    void *pcToNative(jsbytecode *pc) {
+        JS_ASSERT(nmap);
+        JS_ASSERT(nmap[pc - code]);
+        return nmap[pc - code];
+    }
+#endif
 
   private:
     

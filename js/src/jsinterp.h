@@ -50,8 +50,8 @@
 #include "jsscript.h"
 
 typedef struct JSFrameRegs {
-    jsbytecode      *pc;            
     js::Value       *sp;            
+    jsbytecode      *pc;            
 } JSFrameRegs;
 
 
@@ -101,6 +101,12 @@ struct JSStackFrame
     jsbytecode          *savedPC;       
 #ifdef DEBUG
     static jsbytecode *const sInvalidPC;
+#endif
+
+#if defined(JS_CPU_X86) || defined(JS_CPU_ARM)
+    void                *ncode;         
+    
+    void                *align_[3];
 #endif
 
     

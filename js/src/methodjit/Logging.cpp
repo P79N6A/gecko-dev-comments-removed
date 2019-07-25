@@ -38,11 +38,9 @@
 
 
 
-#include <stdlib.h>
-#include <stdio.h>
 #include <stdarg.h>
 #include <string.h>
-#include "jsutil.h"
+#include "MethodJIT.h"
 #include "Logging.h"
 
 #if defined(JS_METHODJIT_SPEW)
