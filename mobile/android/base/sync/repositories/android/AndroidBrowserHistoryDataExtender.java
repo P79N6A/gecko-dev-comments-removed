@@ -2,49 +2,19 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.android;
+
+import java.util.ArrayList;
 
 import org.json.simple.JSONArray;
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.NullCursorException;
+import org.mozilla.gecko.sync.repositories.domain.HistoryRecord;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 
 public class AndroidBrowserHistoryDataExtender extends CachedSQLiteOpenHelper {
@@ -116,6 +86,30 @@ public class AndroidBrowserHistoryDataExtender extends CachedSQLiteOpenHelper {
     } else {
       long rowId = db.insert(TBL_HISTORY_EXT, null, cv);
       Logger.debug(LOG_TAG, "Inserted history extension record into row: " + rowId);
+    }
+  }
+
+  public void bulkInsert(ArrayList<HistoryRecord> records) {
+    SQLiteDatabase db = this.getCachedWritableDatabase();
+    try {
+      db.beginTransaction();
+
+      for (HistoryRecord record : records) {
+        ContentValues cv = new ContentValues();
+        cv.put(COL_GUID, record.guid);
+        if (record.visits == null) {
+          cv.put(COL_VISITS, "[]");
+        } else {
+          cv.put(COL_VISITS, record.visits.toJSONString());
+        }
+        db.insert(TBL_HISTORY_EXT, null, cv);
+      }
+
+      db.setTransactionSuccessful();
+    } catch (SQLException e) {
+      Logger.error(LOG_TAG, "Caught exception in bulkInsert new history visits.", e);
+    } finally {
+      db.endTransaction();
     }
   }
 
