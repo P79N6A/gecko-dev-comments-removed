@@ -633,9 +633,7 @@ JS_IsBuiltinFunctionConstructor(JSFunction *fun)
 
 
 
-#ifdef DEBUG
 static JSBool js_NewRuntimeWasCalled = JS_FALSE;
-#endif
 
 JSRuntime::JSRuntime()
   : gcChunkAllocator(&defaultGCChunkAllocator),
@@ -751,8 +749,11 @@ JSRuntime::~JSRuntime()
 JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32 maxbytes)
 {
-#ifdef DEBUG
     if (!js_NewRuntimeWasCalled) {
+#ifdef MOZ_ETW
+        EventRegisterMozillaSpiderMonkey();
+#endif
+#ifdef DEBUG
         
 
 
@@ -777,10 +778,10 @@ JS_NewRuntime(uint32 maxbytes)
     JS_END_MACRO;
 #include "js.msg"
 #undef MSG_DEF
+#endif 
 
         js_NewRuntimeWasCalled = JS_TRUE;
     }
-#endif 
 
     void *mem = OffTheBooks::calloc_(sizeof(JSRuntime));
     if (!mem)
@@ -812,6 +813,10 @@ JS_ShutDown(void)
     js_CleanupLocks();
 #endif
     PRMJ_NowShutdown();
+
+#ifdef MOZ_ETW
+    EventUnregisterMozillaSpiderMonkey();
+#endif
 }
 
 JS_PUBLIC_API(void *)
