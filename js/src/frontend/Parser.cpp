@@ -397,18 +397,49 @@ FunctionBox::FunctionBox(ObjectBox* traceListHead, JSObject *obj, ParseContext *
     bufEnd(0),
     ndefaults(0),
     strictModeState(sms),
-    inWith(outerpc->parsingWith),
+    inWith(false),                  
     inGenexpLambda(false),
-    cxFlags(outerpc->sc->context)     
+    cxFlags(outerpc->sc->context)   
 {
     isFunctionBox = true;
-    if (!outerpc->sc->inFunction()) {
+
+    if (outerpc->parsingWith) {
+        
+        
+        
+        
+        
+        
+        inWith = true;
+
+    } else if (!outerpc->sc->inFunction()) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
         JSObject *scope = outerpc->sc->scopeChain();
         while (scope) {
             if (scope->isWith())
                 inWith = true;
             scope = scope->enclosingScope();
         }
+    } else {
+        
+        
+        
+        
+        
+        
+        
+        FunctionBox *parent = outerpc->sc->funbox();
+        if (parent && parent->inWith)
+            inWith = true;
     }
 }
 
