@@ -6,7 +6,11 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 
 function run_test() {
+  
+  let profile = do_get_profile();
+
   var cs = Cc["@mozilla.org/cookieService;1"].getService(Ci.nsICookieService);
+  var cso = cs.QueryInterface(Ci.nsIObserver);
   var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);
   var ios = Cc["@mozilla.org/network/io-service;1"].getService(Ci.nsIIOService);
   var prefs = Cc["@mozilla.org/preferences-service;1"].getService(Ci.nsIPrefBranch);
@@ -21,20 +25,6 @@ function run_test() {
   var channel2 = ios.newChannelFromURI(uri2);
 
   
-  prefs.setIntPref("network.cookie.cookieBehavior", 0);
-  do_set_cookies(uri1, channel1, true, [1, 2, 3, 4]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [1, 2, 3, 4]);
-  cs.removeAll();
-
-  
-  prefs.setIntPref("network.cookie.cookieBehavior", 1);
-  do_set_cookies(uri1, channel1, true, [0, 0, 0, 0]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
-  cs.removeAll();
-
-  
   
   var httpchannel1 = channel1.QueryInterface(Ci.nsIHttpChannelInternal);
   var httpchannel2 = channel1.QueryInterface(Ci.nsIHttpChannelInternal);
@@ -43,16 +33,28 @@ function run_test() {
 
   
   prefs.setIntPref("network.cookie.cookieBehavior", 0);
-  do_set_cookies(uri1, channel1, true, [1, 2, 3, 4]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [1, 2, 3, 4]);
-  cs.removeAll();
+  prefs.setBoolPref("network.cookie.thirdparty.sessionOnly", false);
+  do_set_cookies(uri1, channel1, false, [1, 2, 3, 4]);
+  do_set_cookies(uri2, channel2, true, [1, 2, 3, 4]);
 
   
-  prefs.setIntPref("network.cookie.cookieBehavior", 1);
-  do_set_cookies(uri1, channel1, true, [0, 1, 1, 2]);
-  cs.removeAll();
-  do_set_cookies(uri1, channel2, true, [0, 0, 0, 0]);
-  cs.removeAll();
+  do_reload_profile(profile, cso);
+  do_check_eq(cs.countCookiesFromHost(uri1.host), 4);
+  do_check_eq(cs.countCookiesFromHost(uri2.host), 0);
+
+  
+  do_reload_profile(profile, cso, "shutdown-cleanse");
+  do_check_eq(cs.countCookiesFromHost(uri1.host), 0);
+  do_check_eq(cs.countCookiesFromHost(uri2.host), 0);
+
+  
+  prefs.setIntPref("network.cookie.lifetimePolicy", 2);
+  do_set_cookies(uri1, channel1, false, [1, 2, 3, 4]);
+  do_set_cookies(uri2, channel2, true, [1, 2, 3, 4]);
+
+  
+  do_reload_profile(profile, cso);
+  do_check_eq(cs.countCookiesFromHost(uri1.host), 0);
+  do_check_eq(cs.countCookiesFromHost(uri2.host), 0);
 }
 
