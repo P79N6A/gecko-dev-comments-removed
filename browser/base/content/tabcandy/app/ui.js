@@ -476,118 +476,136 @@ function UIClass(){
 UIClass.prototype = {
   
   init: function() {
-    
-    
-    this.navBar = Navbar;
-    
-    
-    
-    this.tabBar = Tabbar;
-    
-    
-    
-    
-    this.devMode = false;
-    
-    
-    
-    
-    this.currentTab = Utils.activeTab;
-    
-    
-    
-    this.focused = (Utils.activeTab == Utils.homeTab);
-    
-    var self = this;
-    
-    
-    var params = document.location.search.replace('?', '').split('&');
-    $.each(params, function(index, param) {
-      var parts = param.split('=');
-      if(parts[0] == 'dev' && parts[1] == '1') 
-        self.devMode = true;
-    });
-    
-    
-    if(this.devMode) {
-      Switch.insert('body', '');
-      $('<br><br>').appendTo("#actions");
-      this._addArrangements();
-    }
-    
-    
-    if(this.focused) {
-      this.tabBar.hide();
-      this.navBar.hide();
-    }
-    
-    Tabs.onFocus(function() {
-      var me = this;
-      setTimeout(function() { 
-        try{
-          if(me.contentWindow.location.host == "tabcandy") {
-            self.focused = true;
-            self.navBar.hide();
-            self.tabBar.hide();
-          } else {
-            self.focused = false;
-            self.navBar.show();  
-          }
-        }catch(e){
-          Utils.log(e)
-        }
-      }, 1);
-    });
-  
-    Tabs.onOpen(function(a, b) {
-      setTimeout(function() { 
-        self.navBar.show();
-      }, 1);
-    });
-  
-    
-    Page.init();
-    
-    
-    var data = Storage.read();
-    var sane = this.storageSanity(data);
-    if(!sane || data.dataVersion < 2) {
-      data.groups = null;
-      data.tabs = null;
-      data.pageBounds = null;
+    try {
       
-      if(!sane)
-        alert('storage data is bad; starting fresh');
-    }
-     
-    Groups.reconstitute(data.groups);
-    TabItems.reconstitute(data.tabs);
+      
+      this.navBar = Navbar;
+      
+      
+      
+      this.tabBar = Tabbar;
+      
+      
+      
+      
+      this.devMode = false;
+      
+      
+      
+      
+      this.currentTab = Utils.activeTab;
+      
+      
+      
+      this.focused = (Utils.activeTab == Utils.homeTab);
+      
+      var self = this;
+      
+      
+      var params = document.location.search.replace('?', '').split('&');
+      $.each(params, function(index, param) {
+        var parts = param.split('=');
+        if(parts[0] == 'dev' && parts[1] == '1') 
+          self.devMode = true;
+      });
+      
+      
+      if(this.devMode) {
+        Switch.insert('body', '');
+        $('<br><br>').appendTo("#actions");
+        this._addArrangements();
+      }
+      
+      
+      if(this.focused) {
+        this.tabBar.hide();
+        this.navBar.hide();
+      }
+      
+      Tabs.onFocus(function() {
+        var me = this;
+        setTimeout(function() { 
+          try{
+            if(me.contentWindow.location.host == "tabcandy") {
+              self.focused = true;
+              self.navBar.hide();
+              self.tabBar.hide();
+            } else {
+              self.focused = false;
+              self.navBar.show();  
+            }
+          }catch(e){
+            Utils.log(e)
+          }
+        }, 1);
+      });
     
-    $(window).bind('beforeunload', function() {
-      if(self.initialized) 
-        self.save();
+      Tabs.onOpen(function(a, b) {
+        setTimeout(function() { 
+          self.navBar.show();
+        }, 1);
+      });
+    
+      
+      Page.init();
+      
+      
+      var data = Storage.read();
+      var sane = this.storageSanity(data);
+      if(!sane || data.dataVersion < 2) {
+        data.groups = null;
+        data.tabs = null;
+        data.pageBounds = null;
         
-      self.navBar.show();
-      self.tabBar.show(false);    
-      self.tabBar.showAllTabs();
-    });
-    
-    
-    if(data.pageBounds) {
-      this.pageBounds = data.pageBounds;
-      this.resize();
-    } else 
-      this.pageBounds = Items.getPageBounds();    
-    
-    $(window).resize(function() {
-      self.resize();
-    });
-    
-    
-    this.addDevMenu();
-    
-    
-    this.initialized = true;
+        if(!sane)
+          alert('storage data is bad; starting fresh');
+      }
+       
+      var groupsData = Storage.readGroupsData(Utils.activeWindow);
+      var groupData = Storage.readGroupData(Utils.activeWindow);
+        
+
+
+
+
+
+
+      Groups.reconstitute(groupsData, groupData);
+      TabItems.init();
+      TabItems.reconstitute();
+      
+      $(window).bind('beforeunload', function() {
+        if(self.initialized) 
+          self.save();
+          
+        self.navBar.show();
+        self.tabBar.show(false);    
+        self.tabBar.showAllTabs();
+      });
+      
+      
+      data.pageBounds = null;
+      if(data.pageBounds) {
+        this.pageBounds = data.pageBounds;
+        this.resize();
+      } else 
+        this.pageBounds = Items.getPageBounds();    
+      
+      $(window).resize(function() {
+        self.resize();
+      });
+      
+      
+      this.addDevMenu();
+      
+      
+      this.initialized = true;
+    }catch(e) {
+      Utils.log("Error in UIClass(): " + e);
+      Utils.log(e.fileName);
+      Utils.log(e.lineNumber);
+      Utils.log(e.stack);
+    }
   }, 
   
   
@@ -609,6 +627,10 @@ UIClass.prototype = {
     var oldPageBounds = new Rect(this.pageBounds);
     
     var newPageBounds = Items.getPageBounds();
+    if(newPageBounds.equals(oldPageBounds))
+      return;
+      
+
     if(newPageBounds.width < this.pageBounds.width && newPageBounds.width > itemBounds.width)
       newPageBounds.width = this.pageBounds.width;
 
@@ -702,6 +724,7 @@ UIClass.prototype = {
 
   
   save: function() {  
+    return;
     var data = {
       dataVersion: 2,
       groups: Groups.getStorageData(),
@@ -709,6 +732,7 @@ UIClass.prototype = {
       pageBounds: Items.getPageBounds()
     };
     
+
     if(this.storageSanity(data))
       Storage.write(data);
     else

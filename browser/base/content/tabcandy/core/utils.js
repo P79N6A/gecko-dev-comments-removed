@@ -471,6 +471,16 @@ var Utils = {
     consoleService.logStringMessage(text);
   }, 
   
+  log2: function() { 
+    var text = this.expandArgumentsForLog(arguments);
+    var html = 
+      '<div style="position: relative; z-index: -9999">'
+      + text
+      + '</div>';
+      
+    $(html).prependTo('body');
+  }, 
+  
   error: function() { 
     var text = this.expandArgumentsForLog(arguments);
     Cu.reportError('tabcandy error: ' + text);

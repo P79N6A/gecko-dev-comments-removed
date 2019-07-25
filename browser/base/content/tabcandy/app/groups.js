@@ -49,9 +49,13 @@ function dropAcceptFunction(el) {
 
 
 window.Group = function(listOfEls, options) {
+  try {
+
+
   if(typeof(options) == 'undefined')
     options = {};
 
+  this._inited = false;
   this._children = []; 
   this.defaultSize = new Point(TabItems.tabWidth * 1.5, TabItems.tabHeight * 1.5);
   this.isAGroup = true;
@@ -239,6 +243,12 @@ window.Group = function(listOfEls, options) {
   
   if(!options.dontPush)
     this.pushAway();   
+
+  this._inited = true;
+  this.save();
+  } catch(e){
+    Utils.log("Error in Group(): " + e);
+  }
 };
 
 
@@ -261,6 +271,15 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
   
     return data;
   },
+
+  
+  save: function() {
+    if (!this._inited) 
+      return;
+    var data = this.getStorageData();
+
+    Storage.saveGroup(Utils.getCurrentWindow(), data);
+  },
   
   
   getTitle: function() {
@@ -271,6 +290,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
   
   setTitle: function(value) {
     this.$title.val(value); 
+    this.save();
   },
 
   
@@ -280,6 +300,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     var css = {width: w};
     this.$title.css(css);
     this.$titleShield.css(css);
+    this.save();
   },
   
   
@@ -393,6 +414,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
 
     if(!isRect(this.bounds))
       Utils.trace('Group.setBounds: this.bounds is not a real rectangle!', this.bounds);
+
+    this.save();
   },
   
   
@@ -427,6 +450,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
       $(this).remove();
       Items.unsquish();
     });
+
+    Storage.deleteGroup(Utils.getCurrentWindow(), this.id);
   },
   
   
@@ -536,6 +561,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
         
       if(item.tab == Utils.activeTab)
         Groups.setActiveGroup(this);
+
+      item.save();
     }
     
     if(!options.dontArrange)
@@ -545,7 +572,6 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
       this._nextNewTabCallback.apply(this, [item])
       this._nextNewTabCallback = null;
     }
-      
   },
   
   
@@ -601,6 +627,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     var toRemove = $.merge([], this._children);
     $.each(toRemove, function(index, child) {
       self.remove(child, {dontArrange: true});
+      child.save();
     });
   },
     
@@ -828,6 +855,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
                   
       this.arrange({z: z + 2});
     }
+
+    this.save();
   },
   
   
@@ -896,6 +925,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
       this.$resizer.fadeOut();
       $(this.container).resizable('disable');
     }
+
+    this.save();
   },
   
   
@@ -950,6 +981,8 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     
     
     self.onNextNewTab(doNextTab); 
+
+    this.save();
   },
 
   
@@ -976,6 +1009,7 @@ window.Group.prototype = $.extend(new Item(), new Subscribable(), {
     });
     
     this.arrange({animate: false});
+    
   },
   
   
@@ -1242,6 +1276,7 @@ window.Groups = {
   getNextID: function() {
     var result = this.nextID;
     this.nextID++;
+    Storage.saveGroupsData(Utils.getCurrentWindow(), {nextID:this.nextID});
     return result;
   },
 
@@ -1256,12 +1291,26 @@ window.Groups = {
   },
   
   
-  reconstitute: function(data) {
-    if(data && data.nextID)
-      this.nextID = data.nextID;
+  reconstitute: function(groupsData, groupData) {
+    try {
+
+    if(groupsData && groupsData.nextID)
+      this.nextID = groupsData.nextID;
+    else {
       
-    if(data && data.groups) {
-      $.each(data.groups, function(index, group) {
+      
+      --this.nextID;
+      this.getNextID();
+    }
+      
+    if(groupData) {
+      for (var id in groupData) {
+
+
+
+
+        var group = groupData[id];
+
         var isNewTabsGroup = (group.title == 'New Tabs');
         var options = {
           locked: {
@@ -1272,7 +1321,7 @@ window.Groups = {
         };
         
         new Group([], $.extend({}, group, options)); 
-      });
+      }
     }
     
     var group = this.getNewTabGroup();
@@ -1290,6 +1339,9 @@ window.Groups = {
 
       new Group([], options); 
     } 
+    }catch(e){
+      Utils.log("error in recons: "+e);
+    }
   },
   
   
@@ -1342,8 +1394,11 @@ window.Groups = {
   
   
   register: function(group) {
+    Utils.assert('group', group);
+
     Utils.assert('only register once per group', $.inArray(group, this.groups) == -1);
     this.groups.push(group);
+
   },
   
   
