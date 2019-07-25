@@ -612,7 +612,7 @@ struct JSCodeGenerator : public JSTreeContext
         jsbytecode  *next;          
         jssrcnote   *notes;         
         uintN       noteCount;      
-        uintN       noteMask;       
+        uintN       noteLimit;      
         ptrdiff_t   lastNoteOffset; 
         uintN       currentLine;    
     } prolog, main, *current;
@@ -761,7 +761,7 @@ struct JSCodeGenerator : public JSTreeContext
 
 #define CG_NOTES(cg)            ((cg)->current->notes)
 #define CG_NOTE_COUNT(cg)       ((cg)->current->noteCount)
-#define CG_NOTE_MASK(cg)        ((cg)->current->noteMask)
+#define CG_NOTE_LIMIT(cg)       ((cg)->current->noteLimit)
 #define CG_LAST_NOTE_OFFSET(cg) ((cg)->current->lastNoteOffset)
 #define CG_CURRENT_LINE(cg)     ((cg)->current->currentLine)
 
