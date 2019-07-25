@@ -123,6 +123,7 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 
   BOOL mIsPluginView;
   NPEventModel mPluginEventModel;
+  NPDrawingModel mPluginDrawingModel;
 
   
   
@@ -299,8 +300,6 @@ public:
   virtual nsIWidget*      GetParent(void);
   virtual float           GetDPI();
 
-  LayerManager*           GetLayerManager();
-
   NS_IMETHOD              ConstrainPosition(PRBool aAllowSlop,
                                             PRInt32 *aX, PRInt32 *aY);
   NS_IMETHOD              Move(PRInt32 aX, PRInt32 aY);
@@ -357,6 +356,7 @@ public:
 
   NS_IMETHOD        SetPluginEventModel(int inEventModel);
   NS_IMETHOD        GetPluginEventModel(int* outEventModel);
+  NS_IMETHOD        SetPluginDrawingModel(int inDrawingModel);
 
   NS_IMETHOD        StartComplexTextInputForCurrentEvent();
 
@@ -443,7 +443,6 @@ protected:
   PRPackedBool          mVisible;
   PRPackedBool          mDrawing;
   PRPackedBool          mPluginDrawing;
-  PRPackedBool          mPluginIsCG; 
   PRPackedBool          mIsDispatchPaint; 
 
   NP_CGContext          mPluginCGContext;
