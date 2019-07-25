@@ -119,6 +119,8 @@ function MarionetteDriverActor(aConnection)
   this.timer = null;
   this.marionetteLog = new MarionetteLogObj();
   this.command_id = null;
+  this.mainFrame = null; 
+  this.curFrame = null; 
 
   
   this.messageManager.addMessageListener("Marionette:ok", this);
@@ -219,10 +221,15 @@ MarionetteDriverActor.prototype = {
 
   getCurrentWindow: function MDA_getCurrentWindow() {
     let type = null;
-    if (appName != "B2G" && this.context == "content") {
-      type = 'navigator:browser';
+    if (this.curFrame == null) {
+      if (appName != "B2G" && this.context == "content") {
+        type = 'navigator:browser';
+      }
+      return this.windowMediator.getMostRecentWindow(type);
     }
-    return this.windowMediator.getMostRecentWindow(type);
+    else {
+      return this.curFrame;
+    }
   },
 
   
@@ -275,6 +282,8 @@ MarionetteDriverActor.prototype = {
 
 
   startBrowser: function MDA_startBrowser(win, newSession) {
+    this.mainFrame = win;
+    this.curFrame = null;
     this.addBrowser(win);
     this.curBrowser.newSession = newSession;
     this.curBrowser.startSession(newSession);
@@ -740,8 +749,71 @@ MarionetteDriverActor.prototype = {
 
 
 
+
+
+
   switchToFrame: function MDA_switchToFrame(aRequest) {
-    this.sendAsync("switchToFrame", aRequest);
+    let curWindow = this.getCurrentWindow();
+    if (this.context == "chrome") {
+      let foundFrame = null;
+      if ((aRequest.value == null) && (aRequest.element == null)) {
+        this.curFrame = null;
+        this.mainFrame.focus();
+        this.sendOk();
+        return;
+      }
+      if (aRequest.element != undefined) {
+        if (this.curBrowser.elementManager.seenItems[aRequest.element] != undefined) {
+          let wantedFrame = this.curBrowser.elementManager.getKnownElement(aRequest.element, curWindow); 
+          let numFrames = curWindow.frames.length;
+          for (let i = 0; i < numFrames; i++) {
+            if (curWindow.frames[i].frameElement == wantedFrame) {
+              curWindow = curWindow.frames[i]; 
+              this.curFrame = curWindow;
+              this.curFrame.focus();
+              this.sendOk();
+              return;
+          }
+        }
+      }
+    }
+    switch(typeof(aRequest.value)) {
+      case "string" :
+        let foundById = null;
+        let numFrames = curWindow.frames.length;
+        for (let i = 0; i < numFrames; i++) {
+          
+          let frame = curWindow.frames[i];
+          let frameElement = frame.frameElement;
+          if (frame.name == aRequest.value) {
+            foundFrame = i;
+            break;
+          } else if ((foundById == null) && (frameElement.id == aRequest.value)) {
+            foundById = i;
+          }
+        }
+        if ((foundFrame == null) && (foundById != null)) {
+          foundFrame = foundById;
+        }
+        break;
+      case "number":
+        if (curWindow.frames[aRequest.value] != undefined) {
+          foundFrame = aRequest.value;
+        }
+        break;
+      }
+      if (foundFrame != null) {
+        curWindow = curWindow.frames[foundFrame];
+        this.curFrame = curWindow;
+        this.curFrame.focus();
+        this.sendOk();
+      } else {
+        this.sendError("Unable to locate frame: " + aRequest.value, 8, null);
+      }
+    }
+    else {
+      this.sendAsync("switchToFrame", aRequest);
+    }
   },
 
   
@@ -1106,11 +1178,6 @@ MarionetteDriverActor.prototype = {
           }
         }
         return reg;
-      case "Marionette:goUrl":
-        
-        
-        this.curBrowser.loadURI(message.json.value, this);
-        break;
     }
   },
   
@@ -1241,25 +1308,6 @@ BrowserObj.prototype = {
 
   addTab: function BO_addTab(uri) {
     this.tab = this.browser.addTab(uri, true);
-  },
-
-  
-
-
-
-
-
-
-
-  loadURI: function BO_openURI(uri, listener) {
-    if (appName != "B2G") {
-      this.browser.addEventListener("DOMContentLoaded", listener, false);
-      this.browser.loadURI(uri);
-    }
-    else {
-      this.messageManager.addMessageListener("DOMContentLoaded", listener, true);
-      this.browser.selectedBrowser.loadURI(uri);
-    }
   },
 
   
