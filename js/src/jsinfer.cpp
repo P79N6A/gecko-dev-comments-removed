@@ -2158,6 +2158,20 @@ AnalyzeBytecode(JSContext *cx, AnalyzeState &state, JSScript *script, uint32 off
             id = GetAtomId(cx, script, pc, 0);
 
         
+
+
+
+
+
+        uint64_t startTime = cx->compartment->types.currentTime();
+        JSObject *obj;
+        JSProperty *prop;
+        js_LookupPropertyWithFlags(cx, script->getGlobal(), id,
+                                   JSRESOLVE_QUALIFIED, &obj, &prop);
+        uint64_t endTime = cx->compartment->types.currentTime();
+        cx->compartment->types.analysisTime -= (endTime - startTime);
+
+        
         PropertyAccess(cx, script, pc, script->getGlobalType(),
                        false, &pushed[0], id);
 
