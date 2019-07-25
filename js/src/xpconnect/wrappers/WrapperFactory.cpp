@@ -78,6 +78,17 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
     if (!obj)
         return nsnull;
 
+    
+    
+    if (JS_GET_CLASS(cx, obj) == &HolderClass) {
+        obj = XrayWrapper<JSCrossCompartmentWrapper>::unwrapHolder(cx, obj);
+        OBJ_TO_OUTER_OBJECT(cx, obj);
+        if (!JS_WrapObject(cx, &obj))
+            return nsnull;
+
+        return obj;
+    }
+
     JSCompartment *origin = obj->getCompartment(cx);
     JSCompartment *target = cx->compartment;
 
