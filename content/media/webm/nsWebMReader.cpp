@@ -791,24 +791,45 @@ nsresult nsWebMReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
   }
 
   
-  if (resource->IsDataCachedToEndOfResource(0)) {
+  bool isFullyCached = resource->IsDataCachedToEndOfResource(0);
+  if (isFullyCached) {
     uint64_t duration = 0;
     if (nestegg_duration(mContext, &duration) == 0) {
       aBuffered->Add(0, duration / NS_PER_S);
     }
-  } else {
+  }
+
+  PRUint32 bufferedLength = 0;
+  aBuffered->GetLength(&bufferedLength);
+
+  
+  
+  if (!isFullyCached || !bufferedLength) {
     MediaResource* resource = mDecoder->GetResource();
     nsTArray<MediaByteRange> ranges;
     nsresult res = resource->GetCachedRanges(ranges);
     NS_ENSURE_SUCCESS(res, res);
 
-    PRInt64 startTimeOffsetNS = aStartTime * NS_PER_USEC;
     for (PRUint32 index = 0; index < ranges.Length(); index++) {
-      mBufferedState->CalculateBufferedForRange(aBuffered,
-                                                ranges[index].mStart,
-                                                ranges[index].mEnd,
-                                                timecodeScale,
-                                                startTimeOffsetNS);
+      PRUint64 start, end;
+      bool rv = mBufferedState->CalculateBufferedForRange(ranges[index].mStart,
+                                                          ranges[index].mEnd,
+                                                          &start, &end);
+      if (rv) {
+        double startTime = start * timecodeScale / NS_PER_S - aStartTime;
+        double endTime = end * timecodeScale / NS_PER_S - aStartTime;
+
+        
+        
+        if (resource->IsDataCachedToEndOfResource(ranges[index].mStart)) {
+          uint64_t duration = 0;
+          if (nestegg_duration(mContext, &duration) == 0) {
+            endTime = duration / NS_PER_S;
+          }
+        }
+
+        aBuffered->Add(startTime, endTime);
+      }
     }
   }
 
