@@ -9970,7 +9970,7 @@ TraceRecorder::getThis(LIns*& this_ins)
     JS_ASSERT(fp->callee().getGlobal() == globalObj);    
     Value& thisv = fp->thisValue();
 
-    if (fp->fun()->inStrictMode() || thisv.isObject()) {
+    if (thisv.isObject() || fp->fun()->inStrictMode()) {
         
 
 

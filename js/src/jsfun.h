@@ -180,6 +180,7 @@ struct JSFunction : public JSObject_Slots2
 
     bool isFunctionPrototype() const { return flags & JSFUN_PROTOTYPE; }
 
+    
     inline bool inStrictMode() const;
 
     uintN countVars() const {
