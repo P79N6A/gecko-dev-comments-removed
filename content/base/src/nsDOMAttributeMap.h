@@ -45,7 +45,7 @@
 
 #include "nsIDOMNamedNodeMap.h"
 #include "nsString.h"
-#include "nsInterfaceHashtable.h"
+#include "nsRefPtrHashtable.h"
 #include "nsCycleCollectionParticipant.h"
 #include "prbit.h"
 #include "nsIDOMNode.h"
@@ -160,7 +160,7 @@ public:
 
   PRUint32 Count() const;
 
-  typedef nsInterfaceHashtable<nsAttrHashKey, nsIDOMNode> AttrCache;
+  typedef nsRefPtrHashtable<nsAttrHashKey, nsDOMAttribute> AttrCache;
 
   
 
@@ -170,8 +170,8 @@ public:
 
   PRUint32 Enumerate(AttrCache::EnumReadFunction aFunc, void *aUserArg) const;
 
-  nsIDOMNode* GetItemAt(PRUint32 aIndex, nsresult *rv);
-  nsIDOMNode* GetNamedItem(const nsAString& aAttrName, nsresult *rv);
+  nsDOMAttribute* GetItemAt(PRUint32 aIndex, nsresult *rv);
+  nsDOMAttribute* GetNamedItem(const nsAString& aAttrName, nsresult *rv);
 
   static nsDOMAttributeMap* FromSupports(nsISupports* aSupports)
   {
@@ -217,24 +217,7 @@ private:
                                   nsIDOMNode** aReturn,
                                   PRBool aRemove = PR_FALSE);
 
-  
-
-
-
-  nsresult GetAttribute(nsINodeInfo*     aNodeInfo,
-                        nsIDOMNode**     aReturn)
-  {
-    *aReturn = GetAttribute(aNodeInfo);
-    if (!*aReturn) {
-      return NS_ERROR_OUT_OF_MEMORY;
-    }
-
-    NS_ADDREF(*aReturn);
-
-    return NS_OK;
-  }
-
-  nsIDOMNode* GetAttribute(nsINodeInfo*     aNodeInfo);
+  nsDOMAttribute* GetAttribute(nsINodeInfo* aNodeInfo);
 
   
 
