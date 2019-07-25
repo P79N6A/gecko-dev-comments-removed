@@ -1176,6 +1176,7 @@ nsLocalFile::GetFileSizeOfLink(PRInt64 *aFileSize)
     return NS_OK;
 }
 
+#if defined(USE_LINUX_QUOTACTL)
 
 
 
@@ -1225,6 +1226,7 @@ GetDeviceName(int deviceMajor, int deviceMinor, nsACString &deviceName)
     fclose(f);
     return ret; 
 }
+#endif
 
 NS_IMETHODIMP
 nsLocalFile::GetDiskSpaceAvailable(PRInt64 *aDiskSpaceAvailable)
