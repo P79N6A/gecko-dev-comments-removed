@@ -2,3 +2,6 @@
 
 
 
+.close {
+  background: url("moz-icon://stock/gtk-close?size=menu") no-repeat;
+}

@@ -2,5 +2,6 @@
 
 
 
-
-
+.close {
+  background: url(chrome://global/skin/icons/closetab.png) no-repeat;
+}
