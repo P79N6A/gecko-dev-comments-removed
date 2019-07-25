@@ -1227,48 +1227,8 @@ nsGlobalWindow::ClearControllers()
   }
 }
 
-
 void
-nsGlobalWindow::TryClearWindowScope(nsISupports *aWindow)
-{
-  nsGlobalWindow *window =
-          static_cast<nsGlobalWindow *>(static_cast<nsIDOMWindow*>(aWindow));
-
-  
-  
-  
-  
-  window->ClearScopeWhenAllScriptsStop();
-}
-
-void
-nsGlobalWindow::ClearScopeWhenAllScriptsStop()
-{
-  NS_ASSERTION(IsInnerWindow(), "Must be an inner window");
-
-  
-  
-  
-  nsIScriptContext *jsscx = GetContextInternal();
-  if (jsscx && jsscx->GetExecutingScript()) {
-    
-    
-    
-    
-    jsscx->SetTerminationFunction(TryClearWindowScope,
-                                  static_cast<nsIDOMWindow *>(this));
-    return;
-  }
-
-  NotifyWindowIDDestroyed("inner-window-destroyed");
-  nsIScriptContext *scx = GetContextInternal();
-  if (scx) {
-    scx->ClearScope(mJSObject, true);
-  }
-}
-
-void
-nsGlobalWindow::FreeInnerObjects(bool aClearScope)
+nsGlobalWindow::FreeInnerObjects()
 {
   NS_ASSERTION(IsInnerWindow(), "Don't free inner objects on an outer window");
 
@@ -1330,9 +1290,7 @@ nsGlobalWindow::FreeInnerObjects(bool aClearScope)
 
   mIndexedDB = nsnull;
 
-  if (aClearScope) {
-    ClearScopeWhenAllScriptsStop();
-  }
+  NotifyWindowIDDestroyed("inner-window-destroyed");
 
   if (mDummyJavaPluginOwner) {
     
@@ -1666,7 +1624,6 @@ nsGlobalWindow::WouldReuseInnerWindow(nsIDocument *aNewDocument)
   
   
   if (mDoc == aNewDocument) {
-    
     return true;
   }
 
@@ -1841,9 +1798,7 @@ WindowStateHolder::~WindowStateHolder()
     
     
     
-    
-    
-    mInnerWindow->FreeInnerObjects(true);
+    mInnerWindow->FreeInnerObjects();
   }
 }
 
@@ -2006,12 +1961,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
   NS_ASSERTION(!aState || wsh, "What kind of weird state are you giving me here?");
 
-  
-  
-  
-  
-  mContext->ClearScope(mJSObject, false);
-
   if (reUseInnerWindow) {
     
     NS_ASSERTION(!currentInner->IsFrozen(),
@@ -2081,8 +2030,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     }
 
     if (currentInner && currentInner->mJSObject) {
-      bool termFuncSet = false;
-
       if (oldDoc == aDocument) {
         
         
@@ -2092,45 +2039,12 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
         if (newInnerWindow->mNavigator) {
           newInnerWindow->mNavigator->SetWindow(newInnerWindow);
         }
-
-        
-        
-        JSAutoSuspendRequest asr(cx);
-
-        
-        
-        cxPusher.Pop();
-
-        JSContext *oldCx = nsContentUtils::GetCurrentJSContext();
-
-        nsIScriptContext *callerScx;
-        if (oldCx && (callerScx = GetScriptContextFromJSContext(oldCx))) {
-          
-          
-          
-          
-          NS_ASSERTION(!currentInner->IsFrozen(),
-              "How does this opened window get into session history");
-
-          JSAutoRequest ar(oldCx);
-
-          callerScx->SetTerminationFunction(ClearWindowScope,
-                                            static_cast<nsIDOMWindow *>
-                                                       (currentInner));
-
-          termFuncSet = true;
-        }
-
-        
-        cxPusher.Push(cx);
       }
 
       
       
       if (!currentInner->IsFrozen()) {
-        
-        
-        currentInner->FreeInnerObjects(!termFuncSet);
+        currentInner->FreeInnerObjects();
       }
     }
 
@@ -2177,7 +2091,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
         JSCompartment *compartment = js::GetObjectCompartment(mJSObject);
         xpc::CompartmentPrivate *priv =
-          static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(cx, compartment));
+          static_cast<xpc::CompartmentPrivate*>(JS_GetCompartmentPrivate(compartment));
         if (priv && priv->waiverWrapperMap) {
           NS_ASSERTION(!JS_IsExceptionPending(cx),
                        "We might overwrite a pending exception!");
@@ -2433,7 +2347,7 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
          inner = (nsGlobalWindow*)PR_NEXT_LINK(inner)) {
       NS_ASSERTION(!inner->mOuterWindow || inner->mOuterWindow == this,
                    "bad outer window pointer");
-      inner->FreeInnerObjects(true);
+      inner->FreeInnerObjects();
     }
 
     
@@ -2453,10 +2367,6 @@ nsGlobalWindow::SetDocShell(nsIDocShell* aDocShell)
       mDocument = nsnull;
       mDoc = nsnull;
       mFocusedNode = nsnull;
-    }
-
-    if (mContext) {
-      mContext->ClearScope(mJSObject, true);
     }
 
     ClearControllers();
@@ -8983,17 +8893,6 @@ nsGlobalWindow::CloseWindow(nsISupports *aWindow)
   
   nsCloseEvent::PostCloseEvent(globalWin);
   
-}
-
-
-void
-nsGlobalWindow::ClearWindowScope(nsISupports *aWindow)
-{
-  nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(aWindow));
-  nsIScriptContext *scx = sgo->GetContext();
-  if (scx) {
-    scx->ClearScope(sgo->GetGlobalJSObject(), true);
-  }
 }
 
 

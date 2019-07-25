@@ -157,6 +157,8 @@
 #include "nsCycleCollector.h"
 #include "xpcpublic.h"
 #include "xpcprivate.h"
+#include "nsLayoutStatics.h"
+#include "mozilla/Telemetry.h"
 
 using namespace mozilla;
 using namespace mozilla::dom;
@@ -176,7 +178,7 @@ nsWrapperCache::RemoveExpandoObject()
   if (expando) {
     JSCompartment *compartment = js::GetObjectCompartment(expando);
     xpc::CompartmentPrivate *priv =
-      static_cast<xpc::CompartmentPrivate *>(js_GetCompartmentPrivate(compartment));
+      static_cast<xpc::CompartmentPrivate *>(JS_GetCompartmentPrivate(compartment));
     priv->RemoveDOMExpandoObject(expando);
   }
 }
@@ -4374,6 +4376,102 @@ nsINode::IsEqualNode(nsIDOMNode* aOther, bool* aReturn)
 
 NS_IMPL_CYCLE_COLLECTION_CLASS(nsGenericElement)
 
+#define SUBTREE_UNBINDINGS_PER_RUNNABLE 500
+
+class ContentUnbinder : public nsRunnable
+{
+public:
+  ContentUnbinder()
+  {
+    nsLayoutStatics::AddRef();
+    mLast = this;
+  }
+
+  ~ContentUnbinder()
+  {
+    Run();
+    nsLayoutStatics::Release();
+  }
+
+  void UnbindSubtree(nsIContent* aNode)
+  {
+    if (aNode->NodeType() != nsIDOMNode::ELEMENT_NODE &&
+        aNode->NodeType() != nsIDOMNode::DOCUMENT_FRAGMENT_NODE) {
+      return;  
+    }
+    nsGenericElement* container = static_cast<nsGenericElement*>(aNode);
+    PRUint32 childCount = container->mAttrsAndChildren.ChildCount();
+    if (childCount) {
+      while (childCount-- > 0) {
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIContent> child =
+          container->mAttrsAndChildren.TakeChildAt(childCount);
+        if (childCount == 0) {
+          container->mFirstChild = nsnull;
+        }
+        UnbindSubtree(child);
+        child->UnbindFromTree();
+      }
+    }
+  }
+
+  NS_IMETHOD Run()
+  {
+    nsAutoScriptBlocker scriptBlocker;
+    PRUint32 len = mSubtreeRoots.Length();
+    if (len) {
+      PRTime start = PR_Now();
+      for (PRUint32 i = 0; i < len; ++i) {
+        UnbindSubtree(mSubtreeRoots[i]);
+      }
+      mSubtreeRoots.Clear();
+      Telemetry::Accumulate(Telemetry::CYCLE_COLLECTOR_CONTENT_UNBIND,
+                            PRUint32(PR_Now() - start) / PR_USEC_PER_MSEC);
+    }
+    if (this == sContentUnbinder) {
+      sContentUnbinder = nsnull;
+      if (mNext) {
+        nsRefPtr<ContentUnbinder> next;
+        next.swap(mNext);
+        sContentUnbinder = next;
+        next->mLast = mLast;
+        mLast = nsnull;
+        NS_DispatchToMainThread(next);
+      }
+    }
+    return NS_OK;
+  }
+
+  static void Append(nsIContent* aSubtreeRoot)
+  {
+    if (!sContentUnbinder) {
+      sContentUnbinder = new ContentUnbinder();
+      nsCOMPtr<nsIRunnable> e = sContentUnbinder;
+      NS_DispatchToMainThread(e);
+    }
+
+    if (sContentUnbinder->mLast->mSubtreeRoots.Length() >=
+        SUBTREE_UNBINDINGS_PER_RUNNABLE) {
+      sContentUnbinder->mLast->mNext = new ContentUnbinder();
+      sContentUnbinder->mLast = sContentUnbinder->mLast->mNext;
+    }
+    sContentUnbinder->mLast->mSubtreeRoots.AppendElement(aSubtreeRoot);
+  }
+
+private:
+  nsAutoTArray<nsCOMPtr<nsIContent>,
+               SUBTREE_UNBINDINGS_PER_RUNNABLE> mSubtreeRoots;
+  nsRefPtr<ContentUnbinder>                     mNext;
+  ContentUnbinder*                              mLast;
+  static ContentUnbinder*                       sContentUnbinder;
+};
+
+ContentUnbinder* ContentUnbinder::sContentUnbinder = nsnull;
+
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
   nsINode::Unlink(tmp);
 
@@ -4383,16 +4481,12 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
   }
 
   
-  {
+  if (UnoptimizableCCNode(tmp) || !nsCCUncollectableMarker::sGeneration) {
     PRUint32 childCount = tmp->mAttrsAndChildren.ChildCount();
     if (childCount) {
       
       nsAutoScriptBlocker scriptBlocker;
       while (childCount-- > 0) {
-        
-        
-        
-
         
         
         
@@ -4405,7 +4499,12 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
         child->UnbindFromTree();
       }
     }
-  }  
+  } else if (!tmp->GetParent() && tmp->mAttrsAndChildren.ChildCount()) {
+    ContentUnbinder::Append(tmp);
+  } 
+
+
+
 
   
   {

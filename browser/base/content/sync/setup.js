@@ -2,6 +2,44 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const Ci = Components.interfaces;
 const Cc = Components.classes;
 const Cr = Components.results;
@@ -141,13 +179,13 @@ var gSyncSetup = {
   resetPassphrase: function resetPassphrase() {
     
     
-    Weave.Identity.account = document.getElementById("existingAccountName").value;
-    Weave.Identity.basicPassword = document.getElementById("existingPassword").value;
+    Weave.Service.account = document.getElementById("existingAccountName").value;
+    Weave.Service.password = document.getElementById("existingPassword").value;
 
     
     
     let passphrase = Weave.Utils.generatePassphrase();
-    Weave.Identity.syncKey = passphrase;
+    Weave.Service.passphrase = passphrase;
 
     
     Weave.Service.login();
@@ -171,8 +209,8 @@ var gSyncSetup = {
   },
 
   onResetPassphrase: function () {
-    document.getElementById("existingPassphrase").value =
-      Weave.Utils.hyphenatePassphrase(Weave.Identity.syncKey);
+    document.getElementById("existingPassphrase").value = 
+      Weave.Utils.hyphenatePassphrase(Weave.Service.passphrase);
     this.checkFields();
     this.wizard.advance();
   },
@@ -189,9 +227,9 @@ var gSyncSetup = {
     let send = function() {
       Services.obs.removeObserver("weave:service:sync:finish", send);
       Services.obs.removeObserver("weave:service:sync:error", send);
-      let credentials = {account:   Weave.Identity.account,
-                         password:  Weave.Identity.basicPassword,
-                         synckey:   Weave.Identity.syncKey,
+      let credentials = {account:   Weave.Service.account,
+                         password:  Weave.Service.password,
+                         synckey:   Weave.Service.passphrase,
                          serverURL: Weave.Service.serverURL};
       this._jpakeclient.sendAndComplete(credentials);
     }.bind(this);
@@ -330,7 +368,7 @@ var gSyncSetup = {
     this._setFeedbackMessage(feedback, valid, str);
     this.status.email = valid;
     if (valid)
-      Weave.Identity.account = value;
+      Weave.Service.account = value;
     this.checkFields();
   },
 
@@ -466,9 +504,9 @@ var gSyncSetup = {
                                                 challenge, response);
 
         if (error == null) {
-          Weave.Identity.account = email;
-          Weave.Identity.basicPassword = password;
-          Weave.Identity.syncKey = Weave.Utils.generatePassphrase();
+          Weave.Service.account = email;
+          Weave.Service.password = password;
+          Weave.Service.passphrase = Weave.Utils.generatePassphrase();
           this._handleNoScript(false);
           Weave.Svc.Prefs.set("firstSync", "newAccount");
           this.wizardFinish();
@@ -479,12 +517,11 @@ var gSyncSetup = {
         label.value = Weave.Utils.getErrorString(error);
         return false;
       case EXISTING_ACCOUNT_LOGIN_PAGE:
-        Weave.Identity.account = Weave.Utils.normalizeAccount(
+        Weave.Service.account = Weave.Utils.normalizeAccount(
           document.getElementById("existingAccountName").value);
-        Weave.Identity.basicPassword =
-          document.getElementById("existingPassword").value;
+        Weave.Service.password = document.getElementById("existingPassword").value;
         let pp = document.getElementById("existingPassphrase").value;
-        Weave.Identity.syncKey = Weave.Utils.normalizePassphrase(pp);
+        Weave.Service.passphrase = Weave.Utils.normalizePassphrase(pp);
         if (Weave.Service.login()) {
           this.wizardFinish();
         }
@@ -663,9 +700,9 @@ var gSyncSetup = {
       onPairingStart: function onPairingStart() {},
 
       onComplete: function onComplete(credentials) {
-        Weave.Identity.account = credentials.account;
-        Weave.Identity.basicPassword = credentials.password;
-        Weave.Identity.syncKey = credentials.synckey;
+        Weave.Service.account = credentials.account;
+        Weave.Service.password = credentials.password;
+        Weave.Service.passphrase = credentials.synckey;
         Weave.Service.serverURL = credentials.serverURL;
         gSyncSetup.wizardFinish();
       },
@@ -927,23 +964,6 @@ var gSyncSetup = {
 
         if (!Weave.Engines.get("prefs").enabled) {
           document.getElementById("prefsWipe").hidden = true;
-        }
-
-        if (Weave.Engines.get("addons").enabled) {
-          let ids = Weave.Engines.get("addons")._store.getAllIDs();
-          let blessedcount = 0;
-          for each (let i in ids) {
-            if (i) {
-              blessedcount++;
-            }
-          }
-          
-          document.getElementById("addonCount").value =
-            PluralForm.get(blessedcount,
-                           this._stringBundle.GetStringFromName("addonsCount.label"))
-                      .replace("#1", blessedcount);
-        } else {
-          document.getElementById("addonCount").hidden = true;
         }
 
         this._case1Setup = true;

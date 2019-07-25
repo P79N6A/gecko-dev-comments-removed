@@ -106,7 +106,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
 
     
 
-    intN argc;
+    int argc;
     JSNative callback;
 
     if (IsMethod()) {
@@ -115,7 +115,7 @@ XPCNativeMember::Resolve(XPCCallContext& ccx, XPCNativeInterface* iface,
             return false;
 
         
-        argc = (intN) info->GetParamCount();
+        argc = (int) info->GetParamCount();
         if (argc && info->GetParam((uint8_t)(argc-1)).IsRetval())
             argc-- ;
 

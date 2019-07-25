@@ -116,7 +116,7 @@ XBLFinalize(JSContext *cx, JSObject *obj)
 }
 
 static JSBool
-XBLResolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+XBLResolve(JSContext *cx, JSObject *obj, jsid id, unsigned flags,
            JSObject **objp)
 {
   

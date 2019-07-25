@@ -389,7 +389,7 @@ BEGIN_WORKERS_NAMESPACE
 
 
 JSBool
-ResolveWorkerClasses(JSContext* aCx, JSObject* aObj, jsid aId, uintN aFlags,
+ResolveWorkerClasses(JSContext* aCx, JSObject* aObj, jsid aId, unsigned aFlags,
                      JSObject** aObjp)
 {
   AssertIsOnMainThread();

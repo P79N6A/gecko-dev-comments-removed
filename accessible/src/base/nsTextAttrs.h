@@ -41,16 +41,9 @@
 
 class nsHyperTextAccessible;
 
-
-#include "nsIDOMNode.h"
-#include "nsIDOMElement.h"
-
 #include "nsIContent.h"
 #include "nsIFrame.h"
 #include "nsIPersistentProperties2.h"
-
-#include "nsCOMPtr.h"
-#include "nsString.h"
 
 class nsITextAttr;
 
@@ -100,7 +93,6 @@ public:
                          PRInt32 *aEndHTOffset = nsnull);
 
 protected:
-
   
 
 
@@ -330,6 +322,30 @@ protected:
 
 
 
+class FontFamilyTextAttr : public nsTextAttr<nsAutoString>
+{
+public:
+  FontFamilyTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame);
+
+  
+  virtual nsIAtom* GetName() const { return nsGkAtoms::font_family; }
+
+protected:
+
+  
+  virtual bool GetValueFor(nsIContent* aContent, nsAutoString* aValue);
+  virtual void Format(const nsAutoString& aValue, nsAString& aFormattedValue);
+
+private:
+
+  bool GetFontFamily(nsIFrame* aFrame, nsAutoString& aFamily);
+};
+
+
+
+
+
+
 class nsFontSizeTextAttr : public nsTextAttr<nscoord>
 {
 public:
@@ -355,6 +371,26 @@ private:
    nscoord GetFontSize(nsIFrame *aFrame);
 
   nsDeviceContext *mDC;
+};
+
+
+
+
+
+
+class FontStyleTextAttr : public nsTextAttr<nscoord>
+{
+public:
+  FontStyleTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame);
+
+  
+  virtual nsIAtom* GetName() const { return nsGkAtoms::font_style; }
+
+protected:
+
+  
+  virtual bool GetValueFor(nsIContent* aContent, nscoord* aValue);
+  virtual void Format(const nscoord &aValue, nsAString &aFormattedValue);
 };
 
 

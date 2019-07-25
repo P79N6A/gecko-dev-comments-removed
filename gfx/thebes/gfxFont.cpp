@@ -1877,16 +1877,6 @@ gfxFont::Measure(gfxTextRun *aTextRun,
                               
 
 static bool
-IsClusterExtender(PRUint32 aUSV)
-{
-    PRUint8 category = GetGeneralCategory(aUSV);
-    return ((category >= HB_UNICODE_GENERAL_CATEGORY_SPACING_MARK &&
-             category <= HB_UNICODE_GENERAL_CATEGORY_NON_SPACING_MARK) ||
-            (aUSV >= 0x200c && aUSV <= 0x200d) || 
-            (aUSV >= 0xff9e && aUSV <= 0xff9f));  
-}
-
-static bool
 IsBoundarySpace(PRUnichar aChar, PRUnichar aNextChar)
 {
     return (aChar == ' ' || aChar == 0x00A0) && !IsClusterExtender(aNextChar);
@@ -3797,95 +3787,25 @@ gfxShapedWord::SetupClusterBoundaries(CompressedGlyph *aGlyphs,
     gfxTextRun::CompressedGlyph extendCluster;
     extendCluster.SetComplex(false, true, 0);
 
-    HSType hangulState = HST_NONE;
+    ClusterIterator iter(aString, aLength);
 
-    for (PRUint32 i = 0; i < aLength; ++i) {
-        bool surrogatePair = false;
-        PRUint32 ch = aString[i];
-        if (NS_IS_HIGH_SURROGATE(ch) &&
-            i < aLength - 1 && NS_IS_LOW_SURROGATE(aString[i+1]))
-        {
-            ch = SURROGATE_TO_UCS4(ch, aString[i+1]);
-            surrogatePair = true;
-        }
+    
+    
+    if (aLength && IsClusterExtender(*aString)) {
+        *aGlyphs = extendCluster;
+    }
 
-        PRUint8 category = GetGeneralCategory(ch);
-        HSType hangulType = HST_NONE;
-
+    while (!iter.AtEnd()) {
         
-        if (IsClusterExtender(ch)) {
-            aGlyphs[i] = extendCluster;
-        } else if (category == HB_UNICODE_GENERAL_CATEGORY_OTHER_LETTER) {
-            
-#if 0
-            
-            
-            
-            
-            
-
-            if ((ch & ~0xff) == 0x0e00) {
-                
-                if ( ch == 0x0e30 ||
-                    (ch >= 0x0e32 && ch <= 0x0e33) ||
-                     ch == 0x0e45 ||
-                     ch == 0x0eb0 ||
-                    (ch >= 0x0eb2 && ch <= 0x0eb3))
-                {
-                    if (i > 0) {
-                        aTextRun->SetGlyphs(i, extendCluster, nsnull);
-                    }
-                }
-                else if ((ch >= 0x0e40 && ch <= 0x0e44) ||
-                         (ch >= 0x0ec0 && ch <= 0x0ec4))
-                {
-                    
-                    if (i < length - 1) {
-                        aTextRun->SetGlyphs(i+1, extendCluster, nsnull);
-                    }
-                }
-            } else
-#endif
-            if ((ch & ~0xff) == 0x1100 ||
-                (ch >= 0xa960 && ch <= 0xa97f) ||
-                (ch >= 0xac00 && ch <= 0xd7ff))
-            {
-                
-                hangulType = GetHangulSyllableType(ch);
-                switch (hangulType) {
-                case HST_L:
-                case HST_LV:
-                case HST_LVT:
-                    if (hangulState == HST_L) {
-                        aGlyphs[i] = extendCluster;
-                    }
-                    break;
-                case HST_V:
-                    if ( (hangulState != HST_NONE) &&
-                        !(hangulState & HST_T))
-                    {
-                        aGlyphs[i] = extendCluster;
-                    }
-                    break;
-                case HST_T:
-                    if (hangulState & (HST_V |
-                                       HST_T))
-                    {
-                        aGlyphs[i] = extendCluster;
-                    }
-                    break;
-                default:
-                    break;
-                }
-            }
+        iter.Next();
+        
+        aString++;
+        aGlyphs++;
+        
+        while (aString < iter) {
+            *aGlyphs++ = extendCluster;
+            aString++;
         }
-
-        if (surrogatePair) {
-            ++i;
-            aGlyphs[i] = extendCluster;
-        }
-
-        hangulState = hangulType;
     }
 }
 

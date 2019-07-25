@@ -39,7 +39,7 @@
 #include "nsMathUtils.h"
 #include "prtypes.h"
 
-#include "mozilla/StdInt.h"
+#include "mozilla/StandardInteger.h"
 
 
 

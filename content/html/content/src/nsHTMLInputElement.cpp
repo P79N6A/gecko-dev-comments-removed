@@ -121,6 +121,8 @@
 #include "mozilla/LookAndFeel.h"
 #include "mozilla/Util.h" 
 
+#include "nsIIDNService.h"
+
 using namespace mozilla;
 using namespace mozilla::dom;
 
@@ -3918,18 +3920,34 @@ nsHTMLInputElement::IsValidEmailAddressList(const nsAString& aValue)
 bool
 nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
 {
+  nsCAutoString value = NS_ConvertUTF16toUTF8(aValue);
   PRUint32 i = 0;
-  PRUint32 length = aValue.Length();
+  PRUint32 length = value.Length();
+
+  
+  nsCOMPtr<nsIIDNService> idnSrv = do_GetService(NS_IDNSERVICE_CONTRACTID);
+  if (idnSrv) {
+    bool ace;
+    if (NS_SUCCEEDED(idnSrv->IsACE(value, &ace)) && !ace) {
+      nsCAutoString punyCodedValue;
+      if (NS_SUCCEEDED(idnSrv->ConvertUTF8toACE(value, punyCodedValue))) {
+        value = punyCodedValue;
+        length = value.Length();
+      }
+    }
+  } else {
+    NS_ERROR("nsIIDNService isn't present!");
+  }
 
   
   
-  if (length == 0 || aValue[0] == '@' || aValue[length-1] == '.') {
+  if (length == 0 || value[0] == '@' || value[length-1] == '.') {
     return false;
   }
 
   
-  for (; i < length && aValue[i] != '@'; ++i) {
-    PRUnichar c = aValue[i];
+  for (; i < length && value[i] != '@'; ++i) {
+    PRUnichar c = value[i];
 
     
     if (!(nsCRT::IsAsciiAlpha(c) || nsCRT::IsAsciiDigit(c) ||
@@ -3948,17 +3966,17 @@ nsHTMLInputElement::IsValidEmailAddress(const nsAString& aValue)
   }
 
   
-  if (aValue[i] == '.') {
+  if (value[i] == '.') {
     return false;
   }
 
   
   for (; i < length; ++i) {
-    PRUnichar c = aValue[i];
+    PRUnichar c = value[i];
 
     if (c == '.') {
       
-      if (aValue[i-1] == '.') {
+      if (value[i-1] == '.') {
         return false;
       }
     } else if (!(nsCRT::IsAsciiAlpha(c) || nsCRT::IsAsciiDigit(c) ||

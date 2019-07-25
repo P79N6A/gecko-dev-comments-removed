@@ -86,7 +86,7 @@ using namespace js::frontend;
 namespace js {
 
 BindingKind
-Bindings::lookup(JSContext *cx, JSAtom *name, uintN *indexp) const
+Bindings::lookup(JSContext *cx, JSAtom *name, unsigned *indexp) const
 {
     if (!lastBinding)
         return NONE;
@@ -118,7 +118,7 @@ Bindings::add(JSContext *cx, JSAtom *name, BindingKind kind)
 
 
 
-    uintN attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT;
+    unsigned attrs = JSPROP_ENUMERATE | JSPROP_PERMANENT;
 
     uint16_t *indexp;
     PropertyOp getter;
@@ -235,19 +235,19 @@ Bindings::getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp)
     Vector<JSAtom *> &names = *namesp;
     JS_ASSERT(names.empty());
 
-    uintN n = countLocalNames();
+    unsigned n = countLocalNames();
     if (!names.growByUninitialized(n))
         return false;
 
 #ifdef DEBUG
     JSAtom * const POISON = reinterpret_cast<JSAtom *>(0xdeadbeef);
-    for (uintN i = 0; i < n; i++)
+    for (unsigned i = 0; i < n; i++)
         names[i] = POISON;
 #endif
 
     for (Shape::Range r = lastBinding->all(); !r.empty(); r.popFront()) {
         const Shape &shape = r.front();
-        uintN index = uint16_t(shape.shortid());
+        unsigned index = uint16_t(shape.shortid());
 
         if (shape.getter() == CallObject::getArgOp) {
             JS_ASSERT(index < nargs);
@@ -269,7 +269,7 @@ Bindings::getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp)
     }
 
 #ifdef DEBUG
-    for (uintN i = 0; i < n; i++)
+    for (unsigned i = 0; i < n; i++)
         JS_ASSERT(names[i] != POISON);
 #endif
 
@@ -503,7 +503,7 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
 
 
 
-        uintN bitmapLength = JS_HOWMANY(nameCount, JS_BITS_PER_UINT32);
+        unsigned bitmapLength = JS_HOWMANY(nameCount, JS_BITS_PER_UINT32);
         uint32_t *bitmap = cx->tempLifoAlloc().newArray<uint32_t>(bitmapLength);
         if (!bitmap) {
             js_ReportOutOfMemory(cx);
@@ -515,17 +515,17 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
             if (!script->bindings.getLocalNameArray(cx, &names))
                 return false;
             PodZero(bitmap, bitmapLength);
-            for (uintN i = 0; i < nameCount; i++) {
+            for (unsigned i = 0; i < nameCount; i++) {
                 if (i < nargs && names[i])
                     bitmap[i >> JS_BITS_PER_UINT32_LOG2] |= JS_BIT(i & (JS_BITS_PER_UINT32 - 1));
             }
         }
-        for (uintN i = 0; i < bitmapLength; ++i) {
+        for (unsigned i = 0; i < bitmapLength; ++i) {
             if (!JS_XDRUint32(xdr, &bitmap[i]))
                 return false;
         }
 
-        for (uintN i = 0; i < nameCount; i++) {
+        for (unsigned i = 0; i < nameCount; i++) {
             if (i < nargs &&
                 !(bitmap[i >> JS_BITS_PER_UINT32_LOG2] & JS_BIT(i & (JS_BITS_PER_UINT32 - 1))))
             {
@@ -547,7 +547,7 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
             if (xdr->mode == JSXDR_DECODE) {
                 BindingKind kind = (i < nargs)
                                    ? ARGUMENT
-                                   : (i < uintN(nargs + nvars))
+                                   : (i < unsigned(nargs + nvars))
                                    ? (bitmap[i >> JS_BITS_PER_UINT32_LOG2] &
                                       JS_BIT(i & (JS_BITS_PER_UINT32 - 1))
                                       ? CONSTANT
@@ -653,7 +653,7 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
 
         
         JSVersion version_ = JSVersion(version & JS_BITMASK(16));
-        JS_ASSERT((version_ & VersionFlags::FULL_MASK) == uintN(version_));
+        JS_ASSERT((version_ & VersionFlags::FULL_MASK) == unsigned(version_));
         script = JSScript::NewScript(cx, length, nsrcnotes, natoms, nobjects, nupvars,
                                      nregexps, ntrynotes, nconsts, 0, nClosedArgs,
                                      nClosedVars, nTypeSets, version_);
@@ -727,7 +727,7 @@ XDRScript(JSXDRState *xdr, JSScript **scriptp)
     }
 
     if (xdr->mode == JSXDR_DECODE) {
-        script->lineno = (uintN)lineno;
+        script->lineno = (unsigned)lineno;
         script->nslots = uint16_t(nslots);
         script->staticLevel = uint16_t(nslots >> 16);
     }
@@ -1549,7 +1549,7 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
     }
 
     if (cache->code != script->code && script->length >= GSN_CACHE_THRESHOLD) {
-        uintN nsrcnotes = 0;
+        unsigned nsrcnotes = 0;
         for (jssrcnote *sn = script->notes(); !SN_IS_TERMINATOR(sn);
              sn = SN_NEXT(sn)) {
             if (SN_IS_GETTABLE(sn))
@@ -1575,34 +1575,24 @@ js_GetSrcNoteCached(JSContext *cx, JSScript *script, jsbytecode *pc)
     return result;
 }
 
-uintN
-js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
+unsigned
+js::PCToLineNumber(unsigned startLine, jssrcnote *notes, jsbytecode *code, jsbytecode *pc)
 {
-    
-    if (!pc)
-        return 0;
-
-    
-
-
-
-    if (*pc == JSOP_DEFFUN)
-        return script->getFunction(GET_UINT32_INDEX(pc))->script()->lineno;
+    unsigned lineno = startLine;
 
     
 
 
 
 
-    uintN lineno = script->lineno;
     ptrdiff_t offset = 0;
-    ptrdiff_t target = pc - script->code;
-    for (jssrcnote *sn = script->notes(); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
+    ptrdiff_t target = pc - code;
+    for (jssrcnote *sn = notes; !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
         offset += SN_DELTA(sn);
         SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
         if (type == SRC_SETLINE) {
             if (offset <= target)
-                lineno = (uintN) js_GetSrcNoteOffset(sn, 0);
+                lineno = (unsigned) js_GetSrcNoteOffset(sn, 0);
         } else if (type == SRC_NEWLINE) {
             if (offset <= target)
                 lineno++;
@@ -1610,19 +1600,30 @@ js_PCToLineNumber(JSContext *cx, JSScript *script, jsbytecode *pc)
         if (offset > target)
             break;
     }
+
     return lineno;
+}
+
+unsigned
+js::PCToLineNumber(JSScript *script, jsbytecode *pc)
+{
+    
+    if (!pc)
+        return 0;
+
+    return PCToLineNumber(script->lineno, script->notes(), script->code, pc);
 }
 
 
 #define SN_LINE_LIMIT   (SN_3BYTE_OFFSET_FLAG << 16)
 
 jsbytecode *
-js_LineNumberToPC(JSScript *script, uintN target)
+js_LineNumberToPC(JSScript *script, unsigned target)
 {
     ptrdiff_t offset = 0;
     ptrdiff_t best = -1;
-    uintN lineno = script->lineno;
-    uintN bestdiff = SN_LINE_LIMIT;
+    unsigned lineno = script->lineno;
+    unsigned bestdiff = SN_LINE_LIMIT;
     for (jssrcnote *sn = script->notes(); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
         
 
@@ -1631,7 +1632,7 @@ js_LineNumberToPC(JSScript *script, uintN target)
         if (lineno == target && offset >= ptrdiff_t(script->mainOffset))
             goto out;
         if (lineno >= target) {
-            uintN diff = lineno - target;
+            unsigned diff = lineno - target;
             if (diff < bestdiff) {
                 bestdiff = diff;
                 best = offset;
@@ -1640,7 +1641,7 @@ js_LineNumberToPC(JSScript *script, uintN target)
         offset += SN_DELTA(sn);
         SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
         if (type == SRC_SETLINE) {
-            lineno = (uintN) js_GetSrcNoteOffset(sn, 0);
+            lineno = (unsigned) js_GetSrcNoteOffset(sn, 0);
         } else if (type == SRC_NEWLINE) {
             lineno++;
         }
@@ -1651,18 +1652,18 @@ out:
     return script->code + offset;
 }
 
-JS_FRIEND_API(uintN)
+JS_FRIEND_API(unsigned)
 js_GetScriptLineExtent(JSScript *script)
 {
-    uintN lineno = script->lineno;
-    uintN maxLineNo = 0;
+    unsigned lineno = script->lineno;
+    unsigned maxLineNo = 0;
     bool counting = true;
     for (jssrcnote *sn = script->notes(); !SN_IS_TERMINATOR(sn); sn = SN_NEXT(sn)) {
         SrcNoteType type = (SrcNoteType) SN_TYPE(sn);
         if (type == SRC_SETLINE) {
             if (maxLineNo < lineno)
                 maxLineNo = lineno;
-            lineno = (uintN) js_GetSrcNoteOffset(sn, 0);
+            lineno = (unsigned) js_GetSrcNoteOffset(sn, 0);
             counting = true;
             if (maxLineNo < lineno)
                 maxLineNo = lineno;
@@ -1682,14 +1683,14 @@ js_GetScriptLineExtent(JSScript *script)
 
 namespace js {
 
-uintN
+unsigned
 CurrentLine(JSContext *cx)
 {
-    return js_PCToLineNumber(cx, cx->fp()->script(), cx->regs().pc);
+    return PCToLineNumber(cx->fp()->script(), cx->regs().pc);
 }
 
 void
-CurrentScriptFileLineOriginSlow(JSContext *cx, const char **file, uintN *linenop,
+CurrentScriptFileLineOriginSlow(JSContext *cx, const char **file, unsigned *linenop,
                                 JSPrincipals **origin)
 {
     FrameRegsIter iter(cx);
@@ -1705,7 +1706,7 @@ CurrentScriptFileLineOriginSlow(JSContext *cx, const char **file, uintN *linenop
 
     JSScript *script = iter.fp()->script();
     *file = script->filename;
-    *linenop = js_PCToLineNumber(cx, iter.fp()->script(), iter.pc());
+    *linenop = PCToLineNumber(iter.fp()->script(), iter.pc());
     *origin = script->originPrincipals;
 }
 

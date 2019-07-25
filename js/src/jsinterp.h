@@ -165,7 +165,7 @@ Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONST
 
 
 extern bool
-Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *argv,
+Invoke(JSContext *cx, const Value &thisv, const Value &fval, unsigned argc, Value *argv,
        Value *rval);
 
 
@@ -173,7 +173,7 @@ Invoke(JSContext *cx, const Value &thisv, const Value &fval, uintN argc, Value *
 
 
 extern bool
-InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, uintN argc, Value *argv,
+InvokeGetterOrSetter(JSContext *cx, JSObject *obj, const Value &fval, unsigned argc, Value *argv,
                      Value *rval);
 
 
@@ -195,7 +195,7 @@ InvokeConstructor(JSContext *cx, InvokeArgsGuard &args)
 
 
 extern bool
-InvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv, Value *rval);
+InvokeConstructor(JSContext *cx, const Value &fval, unsigned argc, Value *argv, Value *rval);
 
 
 
@@ -257,11 +257,11 @@ ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
 
 extern const Value &
-GetUpvar(JSContext *cx, uintN level, UpvarCookie cookie);
+GetUpvar(JSContext *cx, unsigned level, UpvarCookie cookie);
 
 
 extern StackFrame *
-FindUpvarFrame(JSContext *cx, uintN targetLevel);
+FindUpvarFrame(JSContext *cx, unsigned targetLevel);
 
 
 

@@ -64,6 +64,10 @@
 
 #include "CheckedInt.h"
 
+#ifdef XP_MACOSX
+#include "ForceDiscreteGPUHelperCGL.h"
+#endif
+
 
 
 
@@ -942,6 +946,16 @@ protected:
     ContextStatus mContextStatus;
     bool mContextLostErrorSet;
     bool mContextLostDueToTest;
+
+#ifdef XP_MACOSX
+    
+    
+    
+    
+    
+    ForceDiscreteGPUHelperCGL mForceDiscreteGPUHelper;
+#endif
+
 
 public:
     

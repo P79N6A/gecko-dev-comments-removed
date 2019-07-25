@@ -337,7 +337,7 @@ struct TreeContext {
 
     OwnedAtomDefnMapPtr lexdeps;    
     TreeContext     *parent;        
-    uintN           staticLevel;    
+    unsigned           staticLevel;    
 
     FunctionBox     *funbox;        
 
@@ -372,7 +372,7 @@ struct TreeContext {
         return decls.init() && lexdeps.ensureMap(cx);
     }
 
-    uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
+    unsigned blockid() { return topStmt ? topStmt->blockid : bodyid; }
 
     
 
@@ -491,7 +491,7 @@ inline bool TreeContext::needStrictChecks() {
 namespace frontend {
 
 bool
-SetStaticLevel(TreeContext *tc, uintN staticLevel);
+SetStaticLevel(TreeContext *tc, unsigned staticLevel);
 
 bool
 GenerateBlockId(TreeContext *tc, uint32_t &blockid);
@@ -509,7 +509,7 @@ struct CGObjectList {
 
     CGObjectList() : length(0), lastbox(NULL) {}
 
-    uintN index(ObjectBox *objbox);
+    unsigned index(ObjectBox *objbox);
     void finish(JSObjectArray *array);
 };
 
@@ -560,25 +560,25 @@ struct BytecodeEmitter : public TreeContext
         jsbytecode  *limit;         
         jsbytecode  *next;          
         jssrcnote   *notes;         
-        uintN       noteCount;      
-        uintN       noteLimit;      
+        unsigned       noteCount;      
+        unsigned       noteLimit;      
         ptrdiff_t   lastNoteOffset; 
-        uintN       currentLine;    
+        unsigned       currentLine;    
     } prolog, main, *current;
 
     OwnedAtomIndexMapPtr atomIndices; 
     AtomDefnMapPtr  roLexdeps;
-    uintN           firstLine;      
+    unsigned           firstLine;      
 
-    intN            stackDepth;     
-    uintN           maxStackDepth;  
+    int            stackDepth;     
+    unsigned           maxStackDepth;  
 
-    uintN           ntrynotes;      
+    unsigned           ntrynotes;      
     TryNode         *lastTryNode;   
 
-    uintN           arrayCompDepth; 
+    unsigned           arrayCompDepth; 
 
-    uintN           emitLevel;      
+    unsigned           emitLevel;      
 
     typedef HashMap<JSAtom *, Value> ConstMap;
     ConstMap        constMap;       
@@ -607,7 +607,7 @@ struct BytecodeEmitter : public TreeContext
 
     uint16_t        typesetCount;   
 
-    BytecodeEmitter(Parser *parser, uintN lineno);
+    BytecodeEmitter(Parser *parser, unsigned lineno);
     bool init(JSContext *cx, TreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
 
     JSContext *context() {
@@ -689,10 +689,10 @@ struct BytecodeEmitter : public TreeContext
     void switchToProlog() { current = &prolog; }
 
     jssrcnote *notes() const { return current->notes; }
-    uintN noteCount() const { return current->noteCount; }
-    uintN noteLimit() const { return current->noteLimit; }
+    unsigned noteCount() const { return current->noteCount; }
+    unsigned noteLimit() const { return current->noteLimit; }
     ptrdiff_t lastNoteOffset() const { return current->lastNoteOffset; }
-    uintN currentLine() const { return current->currentLine; }
+    unsigned currentLine() const { return current->currentLine; }
 
     inline ptrdiff_t countFinalSourceNotes();
 };
@@ -954,13 +954,13 @@ namespace frontend {
 
 
 
-intN
+int
 NewSrcNote(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type);
 
-intN
+int
 NewSrcNote2(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset);
 
-intN
+int
 NewSrcNote3(JSContext *cx, BytecodeEmitter *bce, SrcNoteType type, ptrdiff_t offset1,
                ptrdiff_t offset2);
 
@@ -1040,12 +1040,12 @@ struct JSSrcNoteSpec {
 };
 
 extern JS_FRIEND_DATA(JSSrcNoteSpec)  js_SrcNoteSpec[];
-extern JS_FRIEND_API(uintN)         js_SrcNoteLength(jssrcnote *sn);
+extern JS_FRIEND_API(unsigned)         js_SrcNoteLength(jssrcnote *sn);
 
 
 
 
 extern JS_FRIEND_API(ptrdiff_t)
-js_GetSrcNoteOffset(jssrcnote *sn, uintN which);
+js_GetSrcNoteOffset(jssrcnote *sn, unsigned which);
 
 #endif 
