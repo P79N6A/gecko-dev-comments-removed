@@ -1267,6 +1267,9 @@ public:
 
 private:
   nsTHashtable<nsPtrHashKey<nsObjectFrame> > mRegisteredPlugins;
+  
+  
+  
   nsIFrame* mUpdatePluginGeometryForFrame;
   PRPackedBool mNeedsToUpdatePluginGeometry;
 };
