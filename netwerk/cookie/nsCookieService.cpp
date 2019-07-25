@@ -2352,9 +2352,6 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
     rv = aHostURI->GetAsciiHost(hostFromURI);
   if (NS_SUCCEEDED(rv))
     rv = aHostURI->GetPath(pathFromURI);
-  
-  if (!hostFromURI.IsEmpty() && hostFromURI.Last() == '.')
-    hostFromURI.Truncate(hostFromURI.Length() - 1);
   if (NS_FAILED(rv)) {
     COOKIE_LOGFAILURE(GET_COOKIE, aHostURI, nsnull, "invalid host/path from URI");
     return;
@@ -2996,8 +2993,8 @@ nsCookieService::GetBaseDomain(nsIURI    *aHostURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!aBaseDomain.IsEmpty() && aBaseDomain.Last() == '.')
-    aBaseDomain.Truncate(aBaseDomain.Length() - 1);
+  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.')
+    return NS_ERROR_INVALID_ARG;
 
   
   if (aBaseDomain.IsEmpty()) {
@@ -3022,7 +3019,7 @@ nsCookieService::GetBaseDomainFromHost(const nsACString &aHost,
                                        nsCString        &aBaseDomain)
 {
   
-  if (!aHost.IsEmpty() && aHost.Last() == '.')
+  if (aHost.Length() == 1 && aHost.Last() == '.')
     return NS_ERROR_INVALID_ARG;
 
   
@@ -3063,11 +3060,6 @@ nsCookieService::NormalizeHost(nsCString &aHost)
 
     aHost = host;
   }
-
-  
-  
-  if (aHost.Length() > 1 && aHost.Last() == '.')
-    aHost.Truncate(aHost.Length() - 1);
 
   ToLowerCase(aHost);
   return NS_OK;
@@ -3159,14 +3151,12 @@ nsCookieService::CheckDomain(nsCookieAttributes &aCookieAttributes,
   aHostURI->GetAsciiHost(hostFromURI);
 
   
-  if (!hostFromURI.IsEmpty() && hostFromURI.Last() == '.')
-    hostFromURI.Truncate(hostFromURI.Length() - 1);
-
-  
   if (!aCookieAttributes.host.IsEmpty()) {
     
-    if (aCookieAttributes.host.First() == '.')
+    if (aCookieAttributes.host.Length() > 1 &&
+        aCookieAttributes.host.First() == '.') {
       aCookieAttributes.host.Cut(0, 1);
+    }
 
     
     ToLowerCase(aCookieAttributes.host);

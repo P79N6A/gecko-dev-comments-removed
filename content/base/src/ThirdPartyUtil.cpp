@@ -81,8 +81,8 @@ ThirdPartyUtil::GetBaseDomain(nsIURI* aHostURI,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  if (!aBaseDomain.IsEmpty() && aBaseDomain.Last() == '.')
-    aBaseDomain.Truncate(aBaseDomain.Length() - 1);
+  if (aBaseDomain.Length() == 1 && aBaseDomain.Last() == '.')
+    return NS_ERROR_INVALID_ARG;
 
   
   
