@@ -67,14 +67,12 @@ nsIconDecoder::~nsIconDecoder()
 void
 nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
-  nsresult rv;
-
-  if (IsError())
-    return;
+  NS_ABORT_IF_FALSE(!IsError(), "Shouldn't call WriteInternal after error!");
 
   
   
   PRUint32 bytesToRead = 0;
+  nsresult rv;
 
   
   

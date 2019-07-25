@@ -134,8 +134,10 @@ nsGIFDecoder2::~nsGIFDecoder2()
 void
 nsGIFDecoder2::FinishInternal()
 {
+  NS_ABORT_IF_FALSE(!IsError(), "Shouldn't call FinishInternal after error!");
+
   
-  if (!IsSizeDecode() && !IsError() && mGIFOpen) {
+  if (!IsSizeDecode() && mGIFOpen) {
     if (mCurrentFrame == mGIFStruct.images_decoded)
       EndImageFrame();
     PostDecodeDone();
@@ -604,9 +606,7 @@ static void ConvertColormap(PRUint32 *aColormap, PRUint32 aColors)
 void
 nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
-  
-  if (IsError())
-    return;
+  NS_ABORT_IF_FALSE(!IsError(), "Shouldn't call WriteInternal after error!");
 
   
   const PRUint8 *buf = (const PRUint8 *)aBuffer;
