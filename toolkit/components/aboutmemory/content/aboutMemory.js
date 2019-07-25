@@ -166,6 +166,7 @@ function update()
   
   
   
+  
   var reportersByProcess = {};
 
   function addReporter(aProcess, aPath, aKind, aUnits, aAmount, aDescription)
@@ -182,10 +183,19 @@ function update()
       reportersByProcess[process] = {};
     }
     var reporters = reportersByProcess[process];
-    if (reporters[r._path]) {
+    var reporter = reporters[r._path];
+    if (reporter) {
       
       
-      reporters[r._path]._amount += r._amount;
+      
+      
+      
+      if (reporter._amount !== kUnknown && r._amount !== kUnknown) {
+        reporter._amount += r._amount;
+      } else if (reporter._amount === kUnknown && r._amount !== kUnknown) {
+        reporter._amount = r._amount;
+      }
+      reporter._nMerged = reporter._nMerged ? reporter._nMerged + 1 : 2;
     } else {
       reporters[r._path] = r;
     }
@@ -292,6 +302,7 @@ function genProcessText(aProcess, aReporters)
 
 
 
+
   function buildTree()
   {
     const treeName = "explicit";
@@ -307,6 +318,7 @@ function genProcessText(aProcess, aReporters)
       return undefined;
     }
 
+    
     
     
     
@@ -337,6 +349,9 @@ function genProcessText(aProcess, aReporters)
         }
         u._kind = r._kind;
         u._hasReporter = true;
+        if (r._nMerged) {
+          u._nMerged = r._nMerged;
+        }
       }
     }
     
@@ -695,19 +710,25 @@ function prepDesc(aStr)
   return escapeQuotes(flipBackslashes(aStr));
 }
 
-function genMrNameText(aKind, aDesc, aName, aHasProblem)
+function genMrNameText(aKind, aDesc, aName, aHasProblem, aNMerged)
 {
-  const problemDesc =
-    "Warning: this memory reporter was unable to compute a useful value. " +
-    "The reported value is the sum of all entries below '" + aName + "', " +
-    "which is probably less than the true value.";
   var text = "-- <span class='mrName hasDesc' title='" +
              kindToString(aKind) + prepDesc(aDesc) +
              "'>" + prepName(aName) + "</span>";
-  text += aHasProblem
-        ? " <span class='mrStar' title=\"" + problemDesc + "\">[*]</span>\n"
-        : "\n";
-  return text;
+  if (aHasProblem) {
+    const problemDesc =
+      "Warning: this memory reporter was unable to compute a useful value. " +
+      "The reported value is the sum of all entries below '" + aName + "', " +
+      "which is probably less than the true value.";
+    text += " <span class='mrStar' title=\"" + problemDesc + "\">[*]</span>";
+  }
+  if (aNMerged) {
+    const dupDesc = "This value is the sum of " + aNMerged +
+                    " memory reporters that all have the same path.";
+    text += " <span class='mrStar' title=\"" + dupDesc + "\">[" + 
+            aNMerged + "]</span>";
+  }
+  return text + '\n';
 }
 
 
@@ -791,7 +812,7 @@ function genTreeText(aT)
 
     var text = indent + genMrValueText(tMemoryUsedStr) + " " + perc +
                genMrNameText(aT._kind, aT._description, aT._name,
-                             aT._hasProblem);
+                             aT._hasProblem, aT._nMerged);
 
     for (var i = 0; i < aT._kids.length; i++) {
       
@@ -848,7 +869,8 @@ function genOtherText(aReporters)
         _units:       r._units,
         _amount:      hasProblem ? 0 : r._amount,
         _description: r._description,
-        _hasProblem:  hasProblem
+        _hasProblem:  hasProblem,
+        _nMerged:     r._nMerged
       };
       rArray.push(elem);
       var thisAmountLength = formatReporterAmount(elem).length;
@@ -866,7 +888,7 @@ function genOtherText(aReporters)
     text += genMrValueText(
               pad(formatReporterAmount(elem), maxAmountLength, ' ')) + " ";
     text += genMrNameText(elem._kind, elem._description, elem._path,
-                          elem._hasProblem);
+                          elem._hasProblem, elem._nMerged);
   }
 
   
