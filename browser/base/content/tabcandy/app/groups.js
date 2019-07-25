@@ -1285,7 +1285,7 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
     iQ.timeout(function(){
       Page.hideChrome()
     }, 1);
-    
+
     var self = this;
     var doNextTab = function(tab){
       var group = Groups.getActiveGroup();

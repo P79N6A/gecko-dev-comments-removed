@@ -478,7 +478,9 @@ window.Subscribable.prototype = {
 
 
 
-var Utils = {  
+var Utils = {
+  _isMac : null,
+  
   
 
   
@@ -707,6 +709,14 @@ var Utils = {
     }
       
     return value;
+  },
+
+  
+  isMac: function() {
+    if (this._isMac == null)
+      this._isMac = (navigator.platform.search(/mac/i) > -1);
+    
+    return this._isMac;
   }
 };
 

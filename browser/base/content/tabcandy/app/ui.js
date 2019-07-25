@@ -152,6 +152,7 @@ window.Page = {
   startY: 70,
   closedLastVisibleTab: false,
   closedSelectedTabInTabCandy: false,
+  stopZoomPreparation: false,
     
   isTabCandyVisible: function(){
     return (Utils.getCurrentWindow().document.getElementById("tab-candy-deck").
@@ -162,27 +163,37 @@ window.Page = {
     let currentWin = Utils.getCurrentWindow();
     currentWin.document.getElementById("tab-candy-deck").selectedIndex = 1;    
     
-    
-    Utils.getCurrentWindow().document.getElementById("main-window").
-      setAttribute("activetitlebarcolor", "#C4C4C4");
+    this._setActiveTitleColor(true);
+    UI.saveVisibility(true);
   },
-  
+    
   showChrome: function(){
     let currentWin = Utils.getCurrentWindow();
     let tabContainer = currentWin.gBrowser.tabContainer;
     currentWin.document.getElementById("tab-candy-deck").selectedIndex = 0;
-
+    
     
     iQ.timeout(function() { 
       tabContainer.adjustTabstrip();
     }, 1);
 
-    
-    Utils.getCurrentWindow().document.getElementById("main-window").
-      removeAttribute("activetitlebarcolor");
+    this._setActiveTitleColor(false);
+    UI.saveVisibility(false);
   },
 
-  showTabCandy : function() {
+  _setActiveTitleColor: function(set) {
+    
+    if (Utils.isMac()) {
+      let mainWindow =
+        Utils.getCurrentWindow().document.getElementById("main-window");
+      if (set)
+        mainWindow.setAttribute("activetitlebarcolor", "#C4C4C4");
+      else
+        mainWindow.removeAttribute("activetitlebarcolor");
+    }
+  },
+
+  showTabCandy: function() {
     let self = this;
     let currentTab = UI.currentTab;
     let item = null;
@@ -267,7 +278,6 @@ window.Page = {
       if ((e.which == 27 || e.which == 13) && iQ(":focus").length == 0 )
         if ( self.getActiveTab() ) self.getActiveTab().zoomIn();
     });
-    
   },
     
   
@@ -328,11 +338,14 @@ window.Page = {
       self.tabOnFocus(this);
     });
   },
-
+  
   
   tabOnFocus: function(tab) {
-    var focusTab = tab;
-    var currentTab = UI.currentTab;
+    let focusTab = tab;
+    let currentTab = UI.currentTab;
+    let currentWindow = Utils.getCurrentWindow();
+    let doSetup = false;
+    let self = this;
     
     UI.currentTab = focusTab;
     
@@ -341,12 +354,16 @@ window.Page = {
         this.showChrome();
         doSetup = true;
       }
-    } else {
+    } else
       doSetup = true;
-    }
     
     if (doSetup) {
       iQ.timeout(function() { 
+        
+        if (Page.stopZoomPreparation) {
+          self.stopZoomPreparation = false;
+          return;
+        }
         let visibleTabCount = Tabbar.getVisibleTabCount();
    
         if (focusTab != UI.currentTab) {
@@ -357,7 +374,7 @@ window.Page = {
         let newItem = null;
         if (focusTab && focusTab.mirror)
           newItem = TabItems.getItemByTabElement(focusTab.mirror.el);
-  
+    
         if (newItem)
           Groups.setActiveGroup(newItem.parent);
   
@@ -631,7 +648,7 @@ UIClass.prototype = {
       Storage.onReady(function() {
         self.delayInit();
       });
-    }catch(e) {
+    } catch(e) {
       Utils.log("Error in UIClass(): " + e);
       Utils.log(e.fileName);
       Utils.log(e.lineNumber);
@@ -644,6 +661,7 @@ UIClass.prototype = {
     try {
       
       let currentWindow = Utils.getCurrentWindow();
+      
       let data = Storage.readUIData(currentWindow);
       this.storageSanity(data);
   
@@ -680,8 +698,7 @@ UIClass.prototype = {
         });
         
         
-        var html = '<h1>Welcome to Firefox Tab Sets</h1>'
-          + '(more goes here)';
+        var html = '<h1>Welcome to Firefox Tab Sets</h1>(more goes here)';
         
         box.left = box.right + padding;
         box.width = infoWidth;
@@ -701,7 +718,24 @@ UIClass.prototype = {
       iQ(window).resize(function() {
         self.resize();
       });
-  
+
+      let visibilityData = Storage.readVisibilityData(currentWindow);
+      if (visibilityData && visibilityData.visible) {
+        let currentTab = UI.currentTab;
+        let item;
+
+        if (currentTab && currentTab.mirror) 
+          item = TabItems.getItemByTabElement(currentTab.mirror.el);
+          
+        if (item)
+          item.setZoomPrep(false);
+        else
+          Page.stopZoomPreparation = true;
+
+        Page.hideChrome();
+      } else
+        Page.showChrome();        
+
       
       this.initialized = true;
       this.save(); 
@@ -782,9 +816,8 @@ UIClass.prototype = {
         
         
         
-        var isMac = (navigator.platform.search(/mac/i) > -1);
-        
-        if ((isMac && event.metaKey) || (!isMac && event.ctrlKey)) {
+        if ((Utils.isMac() && event.metaKey) ||
+            (!Utils.isMac() && event.ctrlKey)) {
           var charCode = event.charCode;
           
           if (48 < charCode && charCode < 58) {
@@ -1038,7 +1071,14 @@ UIClass.prototype = {
       
     return true;
   },
+
   
+  saveVisibility: function(isVisible) {
+    Utils.log("isVisible: " + isVisible);
+    Storage.saveVisibilityData(
+      Utils.getCurrentWindow(), { visible: isVisible });
+  },
+
   
   arrangeBySite: function() {
     function putInGroup(set, key) {
