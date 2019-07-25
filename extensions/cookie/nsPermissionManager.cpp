@@ -343,6 +343,8 @@ nsPermissionManager::CreateTable()
   if (NS_FAILED(rv)) return rv;
 
   
+  
+  
   return mDBConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
     "CREATE TABLE moz_hosts ("
       " id INTEGER PRIMARY KEY"
