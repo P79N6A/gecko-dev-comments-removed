@@ -89,7 +89,7 @@ gfxImageSurface::gfxImageSurface(unsigned char *aData, const gfxIntSize& aSize,
 }
 
 gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) :
-    mSize(size), mOwnsData(PR_FALSE), mFormat(format)
+    mSize(size), mOwnsData(PR_FALSE), mData(nsnull), mFormat(format)
 {
     mStride = ComputeStride();
 
@@ -101,8 +101,6 @@ gfxImageSurface::gfxImageSurface(const gfxIntSize& size, gfxImageFormat format) 
         mData = (unsigned char *) calloc(mSize.height, mStride);
         if (!mData)
             return;
-    } else {
-        mData = nsnull;
     }
 
     mOwnsData = PR_TRUE;
