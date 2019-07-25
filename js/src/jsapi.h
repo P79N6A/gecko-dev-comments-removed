@@ -333,22 +333,16 @@ JSID_IS_ZERO(jsid id)
 }
 
 JS_PUBLIC_API(JSBool)
-JS_StringHasBeenInterned(JSContext *cx, JSString *str);
-
-
-
-
-
-
+JS_StringHasBeenInterned(JSString *str);
 
 
 static JS_ALWAYS_INLINE jsid
-INTERNED_STRING_TO_JSID(JSContext *cx, JSString *str)
+INTERNED_STRING_TO_JSID(JSString *str)
 {
     jsid id;
     JS_ASSERT(str);
+    JS_ASSERT(JS_StringHasBeenInterned(str));
     JS_ASSERT(((size_t)str & JSID_TYPE_MASK) == 0);
-    JS_ASSERT(JS_StringHasBeenInterned(cx, str));
     JSID_BITS(id) = (size_t)str;
     return id;
 }

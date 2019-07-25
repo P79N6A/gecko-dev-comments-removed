@@ -489,8 +489,7 @@ class JSFixedString : public JSFlatString
 
 
 
-
-    inline JSAtom *morphAtomizedStringIntoAtom();
+    inline JSAtom *morphInternedStringIntoAtom();
 };
 
 JS_STATIC_ASSERT(sizeof(JSFixedString) == sizeof(JSString));

@@ -67,14 +67,27 @@
 using namespace js;
 using namespace js::gc;
 
-const size_t JSAtomState::commonAtomsOffset = offsetof(JSAtomState, emptyAtom);
-const size_t JSAtomState::lazyAtomsOffset = offsetof(JSAtomState, lazy);
-
 
 
 
 JS_STATIC_ASSERT(sizeof(JSHashNumber) == 4);
 JS_STATIC_ASSERT(sizeof(JSAtom *) == JS_BYTES_PER_WORD);
+
+
+
+
+
+JS_STATIC_ASSERT(ATOM_OFFSET_START % sizeof(JSAtom *) == 0);
+JS_STATIC_ASSERT(ATOM_OFFSET_LIMIT % sizeof(JSAtom *) == 0);
+
+
+
+
+
+JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, booleanAtoms) - ATOM_OFFSET_START);
+JS_STATIC_ASSERT((1 + 2) * sizeof(JSAtom *) ==
+                 offsetof(JSAtomState, typeAtoms) - ATOM_OFFSET_START);
 
 const char *
 js_AtomToPrintableString(JSContext *cx, JSAtom *atom, JSAutoByteString *bytes)
@@ -204,28 +217,8 @@ const char *const js_common_atom_names[] = {
     "WeakMap"                   
 };
 
-void
-JSAtomState::checkStaticInvariants()
-{
-    
-
-
-
-    JS_STATIC_ASSERT(commonAtomsOffset % sizeof(JSAtom *) == 0);
-    JS_STATIC_ASSERT(sizeof(*this) % sizeof(JSAtom *) == 0);
-
-    
-
-
-
-    JS_STATIC_ASSERT(1 * sizeof(JSAtom *) ==
-                     offsetof(JSAtomState, booleanAtoms) - commonAtomsOffset);
-    JS_STATIC_ASSERT((1 + 2) * sizeof(JSAtom *) ==
-                     offsetof(JSAtomState, typeAtoms) - commonAtomsOffset);
-
-    JS_STATIC_ASSERT(JS_ARRAY_LENGTH(js_common_atom_names) * sizeof(JSAtom *) ==
-                     lazyAtomsOffset - commonAtomsOffset);
-}
+JS_STATIC_ASSERT(JS_ARRAY_LENGTH(js_common_atom_names) * sizeof(JSAtom *) ==
+                 LAZY_ATOM_OFFSET_START - ATOM_OFFSET_START);
 
 
 
@@ -306,6 +299,40 @@ const char js_send_str[]            = "send";
 
 
 
+inline AtomEntryType
+StringToInitialAtomEntry(JSString *str)
+{
+    return (AtomEntryType) str;
+}
+
+inline uintN
+AtomEntryFlags(AtomEntryType entry)
+{
+    return (uintN) (entry & ATOM_ENTRY_FLAG_MASK);
+}
+
+
+
+
+
+
+
+inline void
+AddAtomEntryFlags(const AtomEntryType &entry, uintN flags)
+{
+    const_cast<AtomEntryType &>(entry) |= AtomEntryType(flags);
+}
+
+inline void
+ClearAtomEntryFlags(const AtomEntryType &entry, uintN flags)
+{
+    const_cast<AtomEntryType &>(entry) &= ~AtomEntryType(flags);
+}
+
+
+
+
+
 
 
 #define JS_STRING_HASH_COUNT   1024
@@ -340,35 +367,47 @@ js_FinishAtomState(JSRuntime *rt)
     }
 
     for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront())
-        r.front().toAtom()->finalize(rt);
+        AtomEntryToKey(r.front())->finalize(rt);
 
 #ifdef JS_THREADSAFE
     js_FinishLock(&state->lock);
 #endif
 }
 
-bool
+JSBool
 js_InitCommonAtoms(JSContext *cx)
 {
     JSAtomState *state = &cx->runtime->atomState;
-    JSAtom **atoms = state->commonAtomsStart();
-    for (size_t i = 0; i < JS_ARRAY_LENGTH(js_common_atom_names); i++, atoms++) {
-        *atoms = js_Atomize(cx, js_common_atom_names[i], strlen(js_common_atom_names[i]),
-                            InternAtom);
-        if (!*atoms)
-            return false;
-    }
+    uintN i;
+    JSAtom **atoms;
 
-    state->clearLazyAtoms();
+    atoms = COMMON_ATOMS_START(state);
+    for (i = 0; i < JS_ARRAY_LENGTH(js_common_atom_names); i++, atoms++) {
+        *atoms = js_Atomize(cx, js_common_atom_names[i],
+                            strlen(js_common_atom_names[i]), ATOM_PINNED);
+        if (!*atoms)
+            return JS_FALSE;
+    }
+    JS_ASSERT((uint8 *)atoms - (uint8 *)state == LAZY_ATOM_OFFSET_START);
+    memset(atoms, 0, ATOM_OFFSET_LIMIT - LAZY_ATOM_OFFSET_START);
+
     cx->runtime->emptyString = state->emptyAtom;
-    return true;
+    return JS_TRUE;
 }
 
 void
 js_FinishCommonAtoms(JSContext *cx)
 {
     cx->runtime->emptyString = NULL;
-    cx->runtime->atomState.junkAtoms();
+    JSAtomState *state = &cx->runtime->atomState;
+
+    for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront())
+        ClearAtomEntryFlags(r.front(), ATOM_PINNED);
+
+#ifdef DEBUG
+    memset(COMMON_ATOMS_START(state), JS_FREE_PATTERN,
+           ATOM_OFFSET_LIMIT - ATOM_OFFSET_START);
+#endif
 }
 
 void
@@ -384,16 +423,20 @@ js_TraceAtomState(JSTracer *trc)
     if (rt->gcKeepAtoms) {
         for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront()) {
             JS_SET_TRACING_INDEX(trc, "locked_atom", number++);
-            MarkString(trc, r.front().toAtom());
+            MarkString(trc, AtomEntryToKey(r.front()));
         }
     } else {
         for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront()) {
-            AtomStateEntry entry = r.front();
-            if (!entry.isInterned())
-                continue;
-
-            JS_SET_TRACING_INDEX(trc, "interned_atom", number++);
-            MarkString(trc, entry.toAtom());
+            AtomEntryType entry = r.front();
+            uintN flags = AtomEntryFlags(entry);
+            if (flags & (ATOM_PINNED | ATOM_INTERNED)) {
+                JS_SET_TRACING_INDEX(trc,
+                                     flags & ATOM_PINNED
+                                     ? "pinned_atom"
+                                     : "interned_atom",
+                                     number++);
+                MarkString(trc, AtomEntryToKey(entry));
+            }
         }
     }
 }
@@ -404,55 +447,15 @@ js_SweepAtomState(JSContext *cx)
     JSAtomState *state = &cx->runtime->atomState;
 
     for (AtomSet::Enum e(state->atoms); !e.empty(); e.popFront()) {
-        AtomStateEntry entry = e.front();
-
-        if (entry.isInterned()) {
+        AtomEntryType entry = e.front();
+        if (AtomEntryFlags(entry) & (ATOM_PINNED | ATOM_INTERNED)) {
             
-            JS_ASSERT(!IsAboutToBeFinalized(cx, entry.toAtom()));
-            continue;
-        }
-        
-        if (IsAboutToBeFinalized(cx, entry.toAtom()))
+            JS_ASSERT(!IsAboutToBeFinalized(cx, AtomEntryToKey(entry)));
+        } else if (IsAboutToBeFinalized(cx, AtomEntryToKey(entry))) {
             e.removeFront();
+        }
     }
 }
-
-bool
-AtomIsInterned(JSContext *cx, JSAtom *atom)
-{
-    if (atom->isStaticAtom())
-        return true;
-
-    AutoLockAtomsCompartment lock(cx);
-    AtomSet::Ptr p = cx->runtime->atomState.atoms.lookup(atom);
-    if (!p)
-        return false;
-
-    return p->isInterned();
-}
-
-
-
-
-
-
-
-
-
-
-static void
-MakeInterned(const AutoLockAtomsCompartment &, const AtomStateEntry &entryRef, InternBehavior ib)
-{
-    AtomStateEntry *entry = const_cast<AtomStateEntry *>(&entryRef);
-    AtomStateEntry::makeInterned(entry, ib);
-    JS_ASSERT(entryRef.isInterned() >= ib);
-}
-
-enum OwnCharsBehavior
-{
-    CopyChars, 
-    TakeCharOwnership
-};
 
 
 
@@ -460,10 +463,10 @@ enum OwnCharsBehavior
 
 
 static JSAtom *
-Atomize(JSContext *cx, const jschar **pchars, size_t length,
-        InternBehavior ib, OwnCharsBehavior ocb = CopyChars)
+Atomize(JSContext *cx, const jschar **pchars, size_t length, uintN flags)
 {
     const jschar *chars = *pchars;
+    JS_ASSERT(!(flags & ~(ATOM_PINNED|ATOM_INTERNED|ATOM_NOCOPY)));
 
     if (JSAtom *s = JSAtom::lookupStatic(chars, length))
         return s;
@@ -473,65 +476,45 @@ Atomize(JSContext *cx, const jschar **pchars, size_t length,
     AtomSet &atoms = cx->runtime->atomState.atoms;
     AtomSet::AddPtr p = atoms.lookupForAdd(AtomHasher::Lookup(chars, length));
 
+    JSAtom *atom;
     if (p) {
-        JSAtom *atom = p->toAtom();
-        MakeInterned(lock, *p, ib);
-        return atom;
-    }
-
-    SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
-
-    JSFixedString *key;
-
-    if (ocb == TakeCharOwnership) {
-        key = js_NewString(cx, const_cast<jschar *>(chars), length);
-        if (!key)
-            return NULL;
-        *pchars = NULL; 
+        atom = AtomEntryToKey(*p);
     } else {
-        JS_ASSERT(ocb == CopyChars);
-        key = js_NewStringCopyN(cx, chars, length);
-        if (!key)
+        SwitchToCompartment sc(cx, cx->runtime->atomsCompartment);
+
+        JSFixedString *key;
+        if (flags & ATOM_NOCOPY) {
+            key = js_NewString(cx, const_cast<jschar *>(chars), length);
+            if (!key)
+                return NULL;
+            *pchars = NULL;  
+        } else {
+            key = js_NewStringCopyN(cx, chars, length);
+            if (!key)
+                return NULL;
+        }
+
+        
+
+
+
+        AtomHasher::Lookup lookup(chars, length);
+        if (!atoms.relookupOrAdd(p, lookup, StringToInitialAtomEntry(key))) {
+            JS_ReportOutOfMemory(cx); 
             return NULL;
+        }
+
+        atom = key->morphInternedStringIntoAtom();
     }
 
-    
-
-
-
-
-
-
-
-    AtomHasher::Lookup lookup(chars, length);
-    if (!atoms.relookupOrAdd(p, lookup, AtomStateEntry(key, ib))) {
-        JS_ReportOutOfMemory(cx); 
-        return NULL;
-    }
-
-    return key->morphAtomizedStringIntoAtom();
+    AddAtomEntryFlags(*p, flags & (ATOM_PINNED | ATOM_INTERNED));
+    return atom;
 }
 
 JSAtom *
-js_AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
+js_AtomizeString(JSContext *cx, JSString *str, uintN flags)
 {
-    if (str->isAtom()) {
-        JSAtom &atom = str->asAtom();
-        
-        if (ib != InternAtom || atom.isStaticAtom())
-            return &atom;
-
-        
-        AutoLockAtomsCompartment lock(cx);
-
-        AtomSet &atoms = cx->runtime->atomState.atoms;
-        AtomSet::Ptr p = atoms.lookup(AtomHasher::Lookup(&atom));
-        JS_ASSERT(p); 
-        JS_ASSERT(p->toAtom() == &atom);
-        JS_ASSERT(ib == InternAtom);
-        MakeInterned(lock, *p, ib);
-        return &atom;
-    }
+    JS_ASSERT(!(flags & ATOM_NOCOPY));
 
     if (str->isAtom())
         return &str->asAtom();
@@ -542,12 +525,13 @@ js_AtomizeString(JSContext *cx, JSString *str, InternBehavior ib)
         return NULL;
 
     JS_ASSERT(length <= JSString::MAX_LENGTH);
-    return Atomize(cx, &chars, length, ib);
+    return Atomize(cx, &chars, length, flags);
 }
 
 JSAtom *
-js_Atomize(JSContext *cx, const char *bytes, size_t length, InternBehavior ib, bool useCESU8)
+js_Atomize(JSContext *cx, const char *bytes, size_t length, uintN flags, bool useCESU8)
 {
+    JS_ASSERT(!(flags & ATOM_NOCOPY));
     CHECK_REQUEST(cx);
 
     if (!CheckStringLength(cx, length))
@@ -565,7 +549,6 @@ js_Atomize(JSContext *cx, const char *bytes, size_t length, InternBehavior ib, b
     size_t inflatedLength = ATOMIZE_BUF_MAX - 1;
 
     const jschar *chars;
-    OwnCharsBehavior ocb = CopyChars;
     if (length < ATOMIZE_BUF_MAX) {
         if (useCESU8)
             js_InflateUTF8StringToBuffer(cx, bytes, length, inflated, &inflatedLength, true);
@@ -578,24 +561,25 @@ js_Atomize(JSContext *cx, const char *bytes, size_t length, InternBehavior ib, b
         chars = js_InflateString(cx, bytes, &inflatedLength, useCESU8);
         if (!chars)
             return NULL;
-        ocb = TakeCharOwnership;
+        flags |= ATOM_NOCOPY;
     }
 
-    JSAtom *atom = Atomize(cx, &chars, inflatedLength, ib, ocb);
-    if (ocb == TakeCharOwnership && chars)
+    JSAtom *atom = Atomize(cx, &chars, inflatedLength, flags);
+    if ((flags & ATOM_NOCOPY) && chars)
         cx->free_((void *)chars);
     return atom;
 }
 
 JSAtom *
-js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, InternBehavior ib)
+js_AtomizeChars(JSContext *cx, const jschar *chars, size_t length, uintN flags)
 {
+    JS_ASSERT(!(flags & ATOM_NOCOPY));
     CHECK_REQUEST(cx);
 
     if (!CheckStringLength(cx, length))
         return NULL;
 
-    return Atomize(cx, &chars, length, ib);
+    return Atomize(cx, &chars, length, flags);
 }
 
 JSAtom *
@@ -605,7 +589,7 @@ js_GetExistingStringAtom(JSContext *cx, const jschar *chars, size_t length)
         return atom;
     AutoLockAtomsCompartment lock(cx);
     AtomSet::Ptr p = cx->runtime->atomState.atoms.lookup(AtomHasher::Lookup(chars, length));
-    return p ? p->toAtom() : NULL;
+    return p ? AtomEntryToKey(*p) : NULL;
 }
 
 #ifdef DEBUG
@@ -617,12 +601,21 @@ js_DumpAtoms(JSContext *cx, FILE *fp)
     fprintf(fp, "atoms table contents:\n");
     unsigned number = 0;
     for (AtomSet::Range r = state->atoms.all(); !r.empty(); r.popFront()) {
-        AtomStateEntry entry = r.front();
+        AtomEntryType entry = r.front();
         fprintf(fp, "%3u ", number++);
-        JSAtom *key = entry.toAtom();
-        FileEscapedString(fp, key, '"');
-        if (entry.isInterned())
-            fputs(" interned", fp);
+        if (entry == 0) {
+            fputs("<uninitialized>", fp);
+        } else {
+            JSAtom *key = AtomEntryToKey(entry);
+            FileEscapedString(fp, key, '"');
+            uintN flags = AtomEntryFlags(entry);
+            if (flags != 0) {
+                fputs((flags & (ATOM_PINNED | ATOM_INTERNED))
+                      ? " pinned | interned"
+                      : (flags & ATOM_PINNED) ? " pinned" : " interned",
+                      fp);
+            }
+        }
         putc('\n', fp);
     }
     putc('\n', fp);

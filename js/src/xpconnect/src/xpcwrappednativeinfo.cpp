@@ -382,7 +382,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
             failed = JS_TRUE;
             break;
         }
-        name = INTERNED_STRING_TO_JSID(ccx, str);
+        name = INTERNED_STRING_TO_JSID(str);
 
         if(info->IsSetter())
         {
@@ -426,7 +426,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
                 failed = JS_TRUE;
                 break;
             }
-            name = INTERNED_STRING_TO_JSID(ccx, str);
+            name = INTERNED_STRING_TO_JSID(str);
 
             
             
@@ -445,7 +445,7 @@ XPCNativeInterface::NewInstance(XPCCallContext& ccx,
         {
             failed = JS_TRUE;
         }
-        interfaceName = INTERNED_STRING_TO_JSID(ccx, str);
+        interfaceName = INTERNED_STRING_TO_JSID(str);
     }
 
     if(!failed)
