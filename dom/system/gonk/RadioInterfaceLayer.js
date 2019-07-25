@@ -181,6 +181,8 @@ function RadioInterfaceLayer() {
                      relSignalStrength: null},
   };
 
+  this.callWaitingStatus = null;
+
   
   
   gSettingsService.createLock().get("ril.radio.disabled", this);
@@ -200,6 +202,9 @@ function RadioInterfaceLayer() {
                                   "ril.data.passwd",
                                   "ril.data.httpProxyHost",
                                   "ril.data.httpProxyPort"];
+
+  
+  gSettingsService.getLock().get("ril.callwaiting.enabled", this);
 
   this._messageManagerByRequest = {};
 
@@ -392,6 +397,9 @@ RadioInterfaceLayer.prototype = {
         this.rilContext.cardState = message.cardState;
         ppmm.broadcastAsyncMessage("RIL:CardStateChanged", message);
         break;
+      case "setCallWaiting":
+        this.handleCallWaitingStatusChange(message);
+        break;
       case "sms-received":
         this.handleSmsReceived(message);
         return;
@@ -548,6 +556,12 @@ RadioInterfaceLayer.prototype = {
     voiceInfo.type = "gsm";
 
     
+    if (voiceInfo.connected && this.callWaitingStatus == null) {
+      
+      this.setCallWaitingEnabled(this._callWaitingEnabled);
+    }
+
+    
     
     if (newInfo.regState == RIL.NETWORK_CREG_STATE_UNKNOWN) {
       voiceInfo.network = null;
@@ -677,6 +691,42 @@ RadioInterfaceLayer.prototype = {
     if (this.rilContext.radioState == RIL.GECKO_RADIOSTATE_READY &&
         !this._radioEnabled) {
       this.setRadioEnabled(false);
+    }
+  },
+
+  handleCallWaitingStatusChange: function handleCallWaitingStatusChange(message) {
+    let newStatus = message.enabled;
+
+    
+    
+    if (!message.success) {
+      newStatus = !newStatus;
+      gSettingsService.getLock().set("ril.callwaiting.enabled",
+                                     newStatus,
+                                     null);
+      return;
+    }
+
+    this.callWaitingStatus = newStatus;
+  },
+
+  setCallWaitingEnabled: function setCallWaitingEnabled(value) {
+    debug("Current call waiting status is " + this.callWaitingStatus +
+          ", desired call waiting status is " + value);
+    if (!this.rilContext.voice.connected) {
+      
+      return;
+    }
+
+    if (value == null) {
+      
+      
+      return;
+    }
+
+    if (this.callWaitingStatus != value) {
+      debug("Setting call waiting status to " + value);
+      this.worker.postMessage({rilMessageType: "setCallWaiting", enabled: value});
     }
   },
 
@@ -1098,6 +1148,11 @@ RadioInterfaceLayer.prototype = {
   _radioEnabled: null,
 
   
+  
+  
+  _callWaitingEnabled: null,
+
+  
   dataCallSettings: {},
   _dataCallSettingsToRead: [],
   _oldRilDataEnabledState: null,
@@ -1129,9 +1184,13 @@ RadioInterfaceLayer.prototype = {
         }
         this.updateRILNetworkInterface();
         break;
+      case "ril.callwaiting.enabled":
+        this._callWaitingEnabled = aResult;
+        this.setCallWaitingEnabled(this._callWaitingEnabled);
+        break;
     };
   },
-    
+
   handleError: function handleError(aErrorMessage) {
     debug("There was an error while reading RIL settings.");
 
