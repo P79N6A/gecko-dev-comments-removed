@@ -568,8 +568,6 @@ Class js::NormalArgumentsObjectClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,                    
     args_trace,
     {
         NULL,       
@@ -600,8 +598,6 @@ Class js::StrictArgumentsObjectClass = {
     reinterpret_cast<JSResolveOp>(strictargs_resolve),
     JS_ConvertStub,
     args_finalize,           
-    NULL,                    
-    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
@@ -952,8 +948,6 @@ JS_PUBLIC_DATA(Class) js::CallClass = {
     JS_StrictPropertyStub,   
     JS_EnumerateStub,
     (JSResolveOp)call_resolve,
-    NULL,                    
-    NULL,                    
     NULL,                    
     NULL,                    
     NULL,                    
@@ -1350,7 +1344,7 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 
 JSBool
-js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
+js::XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
 {
     JSContext *cx;
     JSFunction *fun;
@@ -1393,7 +1387,7 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
     if (!JS_XDRUint32(xdr, &flagsword))
         return false;
 
-    if (!js_XDRScript(xdr, &script))
+    if (!XDRScript(xdr, &script))
         return false;
 
     if (xdr->mode == JSXDR_DECODE) {
@@ -1410,10 +1404,6 @@ js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp)
 
     return true;
 }
-
-#else  
-
-#define js_XDRFunctionObject NULL
 
 #endif 
 
@@ -1513,8 +1503,6 @@ JS_FRIEND_DATA(Class) js::FunctionClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,
     fun_hasInstance,
     fun_trace
 };
@@ -2232,7 +2220,7 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
             JS_ASSERT(script->compartment() != cx->compartment);
 
             clone->script().init(NULL);
-            JSScript *cscript = js_CloneScript(cx, script);
+            JSScript *cscript = CloneScript(cx, script);
             if (!cscript)
                 return NULL;
 

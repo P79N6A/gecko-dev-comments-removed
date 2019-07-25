@@ -3683,42 +3683,21 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
       container->SetCurrentImage(nsnull);
     }
 
+    
 #if defined(XP_MACOSX) && !defined(NP_NO_QUICKDRAW)
-    if (!aFrame) {
-      
-      
-      
-      
-      
-      for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-        nsIScrollableFrame* sf = do_QueryFrame(f);
-        if (sf) {
-          sf->RemoveScrollPositionListener(this);
-        }
+    
+    
+    
+    for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+      nsIScrollableFrame* sf = do_QueryFrame(f);
+      if (sf) {
+        sf->RemoveScrollPositionListener(this);
       }
     }
 #endif
 
     
     mObjectFrame->SetInstanceOwner(nsnull);
-  } else {
-    
-    
-    
-#if defined(XP_MACOSX) && !defined(NP_NO_QUICKDRAW)
-    if (aFrame) {
-      
-      
-      if (GetEventModel() == NPEventModelCarbon) {
-        for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-          nsIScrollableFrame* sf = do_QueryFrame(f);
-          if (sf) {
-            sf->AddScrollPositionListener(this);
-          }
-        }
-      }
-    }
-#endif
   }
 
   
@@ -3734,6 +3713,19 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
     }
     mObjectFrame->FixupWindow(mObjectFrame->GetContentRectRelativeToSelf().Size());
     mObjectFrame->Invalidate(mObjectFrame->GetContentRectRelativeToSelf());
+
+    
+#if defined(XP_MACOSX) && !defined(NP_NO_QUICKDRAW)
+    
+    if (GetEventModel() == NPEventModelCarbon) {
+      for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+        nsIScrollableFrame* sf = do_QueryFrame(f);
+        if (sf) {
+          sf->AddScrollPositionListener(this);
+        }
+      }
+    }
+#endif
   }
 }
 

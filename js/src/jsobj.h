@@ -1960,9 +1960,6 @@ ValueToObject(JSContext *cx, const Value &v)
 
 } 
 
-extern JSBool
-js_XDRObject(JSXDRState *xdr, JSObject **objp);
-
 extern void
 js_PrintObjectSlotName(JSTracer *trc, char *buf, size_t bufsize);
 

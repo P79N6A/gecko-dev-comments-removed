@@ -3538,19 +3538,15 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
     
     switch(event->message) {
       
+      case NS_SIZE:
+      case NS_DEACTIVATE:
+      case NS_ACTIVATE:
+      case NS_SIZEMODE:
       case NS_UISTATECHANGED:
       case NS_DESTROY:
       case NS_SETZLEVEL:
       case NS_XUL_CLOSE:
       case NS_MOVE:
-        (*mEventCallback)(event); 
-        return NS_OK;
-
-      
-      case NS_SIZE:
-      case NS_DEACTIVATE:
-      case NS_ACTIVATE:
-      case NS_SIZEMODE:
         (*mEventCallback)(event); 
         break;
     };

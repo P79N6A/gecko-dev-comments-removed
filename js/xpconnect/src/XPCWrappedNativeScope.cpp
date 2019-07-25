@@ -219,8 +219,6 @@ js::Class XPC_WN_NoHelper_Proto_JSClass = {
     nsnull,                         
     nsnull,                         
     nsnull,                         
-    nsnull,                         
-    nsnull,                         
 
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps

@@ -248,31 +248,31 @@ VectorImage::GetCurrentFrameRect(nsIntRect& aRect)
   aRect = nsIntRect::GetMaxSizedIntRect();
 }
 
-PRUint32
-VectorImage::GetDecodedHeapSize()
+size_t
+VectorImage::HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const
 {
   
-  return sizeof(*this);
+  
+  
+  return 0;
 }
 
-PRUint32
-VectorImage::GetDecodedNonheapSize()
+size_t
+VectorImage::HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const
+{
+  
+  return 0;
+}
+
+size_t
+VectorImage::NonHeapSizeOfDecoded() const
 {
   return 0;
 }
 
-PRUint32
-VectorImage::GetDecodedOutOfProcessSize()
+size_t
+VectorImage::OutOfProcessSizeOfDecoded() const
 {
-  return 0;
-}
-
-PRUint32
-VectorImage::GetSourceHeapSize()
-{
-  
-  
-  
   return 0;
 }
 

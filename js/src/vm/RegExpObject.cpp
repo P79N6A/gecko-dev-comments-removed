@@ -356,12 +356,6 @@ Class js::RegExpClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-#if JS_HAS_XDR
-    js_XDRRegExpObject,
-#else
-    NULL
-#endif
-    NULL,                    
     regexp_trace
 };
 
@@ -746,8 +740,8 @@ js::ParseRegExpFlags(JSContext *cx, JSString *flagStr, RegExpFlag *flagsOut)
 #if JS_HAS_XDR
 # include "jsxdrapi.h"
 
-JSBool
-js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp)
+bool
+js::XDRScriptRegExpObject(JSXDRState *xdr, HeapPtrObject *objp)
 {
     JSAtom *source = 0;
     uint32_t flagsword = 0;
@@ -770,7 +764,7 @@ js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp)
             return false;
         if (!reobj->clearType(xdr->cx))
             return false;
-        *objp = reobj;
+        objp->init(reobj);
     }
     return true;
 }

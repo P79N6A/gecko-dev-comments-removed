@@ -97,15 +97,15 @@ public:
 
 
 
-  PRUint32 GetDataSize();
+  PRUint32 SizeOfData();
 
   
 
       
-  virtual PRUint32 GetDecodedHeapSize() = 0;
-  virtual PRUint32 GetDecodedNonheapSize() = 0;
-  virtual PRUint32 GetDecodedOutOfProcessSize() = 0;
-  virtual PRUint32 GetSourceHeapSize() = 0;
+  virtual size_t HeapSizeOfSourceWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const = 0;
+  virtual size_t HeapSizeOfDecodedWithComputedFallback(nsMallocSizeOfFun aMallocSizeOf) const = 0;
+  virtual size_t NonHeapSizeOfDecoded() const = 0;
+  virtual size_t OutOfProcessSizeOfDecoded() const = 0;
 
   
   enum eDecoderType {

@@ -353,8 +353,6 @@ Class js::WeakMapClass = {
     NULL,                    
     NULL,                    
     NULL,                    
-    NULL,                    
-    NULL,                    
     WeakMap_mark
 };
 

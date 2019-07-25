@@ -100,7 +100,7 @@ struct BidiParagraphData {
       
       
       
-      mParaLevel = styleDirectionIsRTL ? NSBIDI_DEFAULT_RTL : NSBIDI_DEFAULT_LTR;
+      mParaLevel = NSBIDI_DEFAULT_LTR;
     } else {
       mParaLevel = styleDirectionIsRTL ? NSBIDI_RTL : NSBIDI_LTR;
     }
@@ -155,9 +155,9 @@ struct BidiParagraphData {
     
     
     
-    if (IS_DEFAULT_LEVEL(mParaLevel)) {
-      mParaLevel = (mParaLevel == NSBIDI_DEFAULT_RTL) ? NSBIDI_RTL : NSBIDI_LTR;
-    }                    
+    if (mParaLevel == NSBIDI_DEFAULT_LTR) {
+      mParaLevel = NSBIDI_LTR;
+    }
     mReset = false;
   }
 

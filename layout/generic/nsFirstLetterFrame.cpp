@@ -300,7 +300,7 @@ nsFirstLetterFrame::Reflow(nsPresContext*          aPresContext,
     else {
       
       
-      if (!GetStyleDisplay()->IsFloating()) {
+      if (!IsFloating()) {
         nsIFrame* nextInFlow;
         rv = CreateNextInFlow(aPresContext, kid, nextInFlow);
         if (NS_FAILED(rv)) {
@@ -342,7 +342,7 @@ nsFirstLetterFrame::CreateContinuationForFloatingParent(nsPresContext* aPresCont
                                                         nsIFrame** aContinuation,
                                                         bool aIsFluid)
 {
-  NS_ASSERTION(GetStyleDisplay()->IsFloating(),
+  NS_ASSERTION(IsFloating(),
                "can only call this on floating first letter frames");
   NS_PRECONDITION(aContinuation, "bad args");
 

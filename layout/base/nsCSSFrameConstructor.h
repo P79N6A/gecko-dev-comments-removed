@@ -727,6 +727,11 @@ private:
 
 
 #define FCDATA_FORCED_NON_SCROLLABLE_BLOCK 0x20000
+  
+
+
+
+#define FCDATA_CREATE_BLOCK_WRAPPER_FOR_ALL_KIDS 0x40000
 
   
 
@@ -745,6 +750,9 @@ private:
       FrameConstructionDataGetter mDataGetter;
     } mFunc;
     FrameFullConstructor mFullConstructor;
+    
+    
+    nsICSSAnonBoxPseudo * const * const mAnonBoxPseudo;
   };
 
   
@@ -1132,15 +1140,6 @@ protected:
 private:
   
   
-  nsresult ConstructButtonFrame(nsFrameConstructorState& aState,
-                                FrameConstructionItem&    aItem,
-                                nsIFrame*                aParentFrame,
-                                const nsStyleDisplay*    aStyleDisplay,
-                                nsFrameItems&            aFrameItems,
-                                nsIFrame**               aNewFrame);
-
-  
-  
   nsresult ConstructSelectFrame(nsFrameConstructorState& aState,
                                 FrameConstructionItem&   aItem,
                                 nsIFrame*                aParentFrame,
@@ -1328,13 +1327,6 @@ private:
                                                   nsIFrame* aParentFrame,
                                                   nsStyleContext* aStyleContext);
 
-  nsresult ConstructSVGForeignObjectFrame(nsFrameConstructorState& aState,
-                                          FrameConstructionItem&   aItem,
-                                          nsIFrame* aParentFrame,
-                                          const nsStyleDisplay* aStyleDisplay,
-                                          nsFrameItems& aFrameItems,
-                                          nsIFrame** aNewFrame);
-
   
 
   const FrameConstructionData*
@@ -1389,6 +1381,9 @@ private:
 
 
 
+
+
+
   nsresult ProcessChildren(nsFrameConstructorState& aState,
                            nsIContent*              aContent,
                            nsStyleContext*          aStyleContext,
@@ -1396,7 +1391,8 @@ private:
                            const bool               aCanHaveGeneratedContent,
                            nsFrameItems&            aFrameItems,
                            const bool               aAllowBlockStyles,
-                           PendingBinding*          aPendingBinding);
+                           PendingBinding*          aPendingBinding,
+                           nsIFrame*                aPossiblyLeafFrame = nsnull);
 
   nsIFrame* GetFrameFor(nsIContent* aContent);
 

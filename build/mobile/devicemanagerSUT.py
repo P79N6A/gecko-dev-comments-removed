@@ -209,17 +209,18 @@ class DeviceManagerSUT(DeviceManager):
             self._sock = None
             return None
 
-          
-          
-          if (self.agentErrorRE.match(temp)):
-            data = temp
-            break
-
           data += temp
 
+          
+          
+          if self.agentErrorRE.match(data):
+            break
+
           for line in data.splitlines():
-            if (promptre.match(line)):
+            if promptre.match(line):
               found = True
+              data = self._stripPrompt(data)
+              break
 
           
           
@@ -238,7 +239,7 @@ class DeviceManagerSUT(DeviceManager):
   
   
   
-  def stripPrompt(self, data):
+  def _stripPrompt(self, data):
     promptre = re.compile(self.prompt_regex + '.*')
     retVal = []
     lines = data.split('\n')
@@ -293,7 +294,7 @@ class DeviceManagerSUT(DeviceManager):
 
     validated = False
     if (retVal):
-      retline = self.stripPrompt(retVal).strip() 
+      retline = retVal.strip()
       if (retline == None):
         
         validated = self.validateFile(destname, localname)
@@ -379,11 +380,9 @@ class DeviceManagerSUT(DeviceManager):
     except(DMError):
       return False
 
-    retVal = self.stripPrompt(data)
-    data = retVal.split('\n')
     found = False
-    for d in data:
-      if (dirre.match(d)): 
+    for d in data.splitlines():
+      if (dirre.match(d)):
         found = True
 
     return found
@@ -417,8 +416,7 @@ class DeviceManagerSUT(DeviceManager):
     except(DMError):
       return []
 
-    retVal = self.stripPrompt(data)
-    files = filter(lambda x: x, retVal.split('\n'))
+    files = filter(lambda x: x, data.splitlines())
     if len(files) == 1 and files[0] == '<empty>':
       
       return []
@@ -460,11 +458,9 @@ class DeviceManagerSUT(DeviceManager):
     except DMError:
       return []
 
-    retVal = self.stripPrompt(data)
-    lines = retVal.split('\n')
     files = []
-    for line in lines:
-      if (line.strip() != ''):
+    for line in data.splitlines():
+      if line:
         pidproc = line.strip().split()
         if (len(pidproc) == 2):
           files += [[pidproc[0], pidproc[1]]]
@@ -552,7 +548,7 @@ class DeviceManagerSUT(DeviceManager):
     except(DMError):
       return None
 
-    return self.stripPrompt(data).strip('\n')
+    return data.strip()
 
   
   
@@ -564,7 +560,7 @@ class DeviceManagerSUT(DeviceManager):
     except(DMError):
       return None
 
-    return self.stripPrompt(data)
+    return data
   
   
   
@@ -754,7 +750,8 @@ class DeviceManagerSUT(DeviceManager):
       
       
       return False
-    retVal = self.stripPrompt(data).strip()
+
+    retVal = data.strip()
     if not retVal:
       raise FileError('isdir returned null')
     return retVal == 'TRUE'
@@ -787,9 +784,9 @@ class DeviceManagerSUT(DeviceManager):
     except(DMError):
       return None
 
-    retVal = self.stripPrompt(data)
-    if (retVal != None):
-      retVal = retVal.strip('\n')
+    retVal = None
+    if data:
+      retVal = data.strip()
     if (self.debug >= 3): print "remote hash returned: '" + retVal + "'"
     return retVal
     
@@ -815,8 +812,8 @@ class DeviceManagerSUT(DeviceManager):
       data = self.verifySendCMD(['testroot'])
     except:
       return None
-  
-    deviceRoot = self.stripPrompt(data).strip('\n') + '/tests'
+
+    deviceRoot = data.strip() + '/tests'
 
     if (not self.dirExists(deviceRoot)):
       if (self.mkDir(deviceRoot) == None):
@@ -829,9 +826,8 @@ class DeviceManagerSUT(DeviceManager):
       data = self.verifySendCMD(['getapproot '+packageName])
     except:
       return None
-  
-    appRoot = self.stripPrompt(data).strip('\n')
-    return appRoot
+
+    return data.strip()
 
   
   
@@ -925,7 +921,6 @@ class DeviceManagerSUT(DeviceManager):
       data = self.verifySendCMD(['info ' + d])
       if (data is None):
         continue
-      data = self.stripPrompt(data)
       data = collapseSpaces.sub(' ', data)
       result[d] = data.split('\n')
 
@@ -1055,7 +1050,7 @@ class DeviceManagerSUT(DeviceManager):
     except(DMError):
       return None
 
-    return self.stripPrompt(data).strip('\n')
+    return data.strip()
 
   """
     Connect the ipaddress and port for a callback ping.  Defaults to current IP address

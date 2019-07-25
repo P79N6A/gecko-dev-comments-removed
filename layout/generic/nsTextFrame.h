@@ -457,6 +457,8 @@ public:
                   nsRenderingContext* aRenderingContext, bool aShouldBlink,
                   nsHTMLReflowMetrics& aMetrics, nsReflowStatus& aStatus);
 
+  bool IsFloatingFirstLetterChild() const;
+
 protected:
   virtual ~nsTextFrame();
 
@@ -601,8 +603,6 @@ protected:
   
   bool CombineSelectionUnderlineRect(nsPresContext* aPresContext,
                                        nsRect& aRect);
-
-  bool IsFloatingFirstLetterChild();
 
   ContentOffsets GetCharacterOffsetAtFramePointInternal(const nsPoint &aPoint,
                    bool aForInsertionPoint);

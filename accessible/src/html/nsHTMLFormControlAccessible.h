@@ -123,33 +123,6 @@ public:
 
 
 
-class nsHTML4ButtonAccessible : public nsHyperTextAccessibleWrap
-{
-
-public:
-  enum { eAction_Click = 0 };
-
-  nsHTML4ButtonAccessible(nsIContent* aContent, nsDocAccessible* aDoc);
-
-  
-  NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
-  NS_IMETHOD DoAction(PRUint8 index);
-
-  
-  virtual mozilla::a11y::role NativeRole();
-  virtual PRUint64 NativeState();
-
-  
-  virtual PRUint8 ActionCount();
-
-  
-  virtual bool IsWidget() const;
-};
-
-
-
-
-
 class nsHTMLTextFieldAccessible : public nsHyperTextAccessibleWrap
 {
 
