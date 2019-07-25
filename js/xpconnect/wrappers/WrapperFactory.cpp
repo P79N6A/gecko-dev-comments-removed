@@ -615,10 +615,13 @@ WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
         return NULL;
 
     
-    JSObject *xrayHolder = XrayUtils::createHolder(cx, obj, parent);
-    if (!xrayHolder)
-        return nullptr;
-    js::SetProxyExtra(wrapperObj, 0, js::ObjectValue(*xrayHolder));
+    
+    if (type == XrayForWrappedNative) {
+        JSObject *xrayHolder = XrayUtils::createHolder(cx, obj, parent);
+        if (!xrayHolder)
+            return nullptr;
+        js::SetProxyExtra(wrapperObj, 0, js::ObjectValue(*xrayHolder));
+    }
     return wrapperObj;
 }
 
