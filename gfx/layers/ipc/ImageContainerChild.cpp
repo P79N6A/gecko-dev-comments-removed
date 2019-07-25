@@ -12,6 +12,8 @@
 #include "ImageContainer.h"
 #include "GonkIOSurfaceImage.h"
 #include "GrallocImages.h"
+#include "mozilla/ReentrantMonitor.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace layers {
@@ -38,6 +40,135 @@ namespace layers {
 
 static const unsigned int POOL_MAX_SHARED_IMAGES = 5;
 static const unsigned int MAX_ACTIVE_SHARED_IMAGES = 10;
+
+
+
+
+
+class SharedPlanarYCbCrImage : public PlanarYCbCrImage
+{
+  friend class mozilla::layers::ImageContainerChild;
+public:
+  SharedPlanarYCbCrImage(ImageContainerChild* aProtocol)
+  : PlanarYCbCrImage(nullptr), mImageDataAllocator(aProtocol), mSent(false)
+  {
+    MOZ_COUNT_CTOR(SharedPlanarYCbCrImage);
+  }
+
+  ~SharedPlanarYCbCrImage()
+  {
+    if (mYSurface) {
+      SharedImage* sharedImg = new SharedImage();
+      ToSharedImage(sharedImg);
+      mImageDataAllocator->RecycleSharedImage(sharedImg);
+    }
+    MOZ_COUNT_DTOR(SharedPlanarYCbCrImage);
+  }
+
+  
+
+
+
+
+  bool IsSent() const
+  {
+    return mSent;
+  }
+
+  SharedPlanarYCbCrImage* AsSharedPlanarYCbCrImage() MOZ_OVERRIDE
+  {
+    return this;
+  }
+
+  void ToSharedImage(SharedImage* aImage)
+  {
+    NS_ABORT_IF_FALSE(aImage, "aImage must be allocated");
+    *aImage = YUVImage(mYSurface->GetShmem(),
+                      mCbSurface->GetShmem(),
+                      mCrSurface->GetShmem(),
+                      mData.GetPictureRect(),
+                      reinterpret_cast<uintptr_t>(this));
+  }
+
+  
+
+
+
+  already_AddRefed<gfxASurface> GetAsSurface()
+  {
+    if (!mYSurface) {
+      return nullptr;
+    }
+    return PlanarYCbCrImage::GetAsSurface();
+  }
+
+  
+
+
+
+  virtual void Allocate(Data& aData) MOZ_OVERRIDE
+  {
+    
+    
+    
+    mData = aData;
+    
+    
+    mImageDataAllocator->AllocateSharedBufferForImage(this);
+    
+    aData.mYChannel  = mYSurface->Data();
+    aData.mCbChannel = mCbSurface->Data();
+    aData.mCrChannel = mCrSurface->Data();
+  }
+
+  
+
+
+  virtual void SetData(const Data& aData)
+  {
+    
+    
+    
+    mData = aData;
+    mBufferSize = mData.mCbCrStride * mData.mCbCrSize.height * 2 +
+                   mData.mYStride * mData.mYSize.height;
+    mSize = mData.mPicSize;
+
+    
+    
+    
+    if (!mYSurface) {
+      Data data = aData;
+      Allocate(data);
+    }
+    if (mYSurface->Data() != aData.mYChannel) {
+      ImageContainer::CopyPlane(mYSurface->Data(), aData.mYChannel,
+                                aData.mYSize,
+                                aData.mYStride, aData.mYSize.width,
+                                0,0);
+      ImageContainer::CopyPlane(mCbSurface->Data(), aData.mCbChannel,
+                                aData.mCbCrSize,
+                                aData.mCbCrStride, aData.mCbCrSize.width,
+                                0,0);
+      ImageContainer::CopyPlane(mCrSurface->Data(), aData.mCrChannel,
+                                aData.mCbCrSize,
+                                aData.mCbCrStride, aData.mCbCrSize.width,
+                                0,0);
+    }
+  }
+
+  void MarkAsSent() {
+    mSent = true;
+  }
+
+protected:
+  nsRefPtr<gfxSharedImageSurface> mYSurface;
+  nsRefPtr<gfxSharedImageSurface> mCbSurface;
+  nsRefPtr<gfxSharedImageSurface> mCrSurface;
+  nsRefPtr<ImageContainerChild>   mImageDataAllocator;
+  bool mSent;
+};
+
 
 ImageContainerChild::ImageContainerChild()
 : mImageContainerID(0), mActiveImageCount(0),
@@ -92,22 +223,30 @@ void ImageContainerChild::StopChild()
   if (mStop) {
     return;
   }
-  mStop = true;    
+  mStop = true;
 
   DispatchDestroy();
 }
 
 bool ImageContainerChild::RecvReturnImage(const SharedImage& aImage)
 {
-  SharedImage* img = new SharedImage(aImage);
   
   if (mImageQueue.Length() > 0) {
     mImageQueue.RemoveElementAt(0);
   }
-  if (!AddSharedImageToPool(img) || mStop) {
-    DestroySharedImage(*img);
-    delete img;
+
+  if (aImage.type() == SharedImage::TYUVImage &&
+      aImage.get_YUVImage().imageID() != 0) {
+    
+    
+    
+    
+    return true;
   }
+
+  SharedImage* img = new SharedImage(aImage);
+  RecycleSharedImageNow(img);
+
   return true;
 }
 
@@ -198,7 +337,8 @@ SharedImage* ImageContainerChild::CreateSharedImageFromData(Image* image)
               YUVImage(tempBufferY->GetShmem(),
                        tempBufferU->GetShmem(),
                        tempBufferV->GetShmem(),
-                       data->GetPictureRect()));
+                       data->GetPictureRect(),
+                       0));
     NS_ABORT_IF_FALSE(result->type() == SharedImage::TYUVImage,
                       "SharedImage type not set correctly");
     return result;
@@ -321,14 +461,32 @@ SharedImage* ImageContainerChild::ImageToSharedImage(Image* aImage)
   if (mStop) {
     return nullptr;
   }
+
+  NS_ABORT_IF_FALSE(InImageBridgeChildThread(),
+                    "Should be in ImageBridgeChild thread.");
+  if (aImage->GetFormat() == ImageFormat::PLANAR_YCBCR) {
+    SharedPlanarYCbCrImage* sharedYCbCr =
+      static_cast<PlanarYCbCrImage*>(aImage)->AsSharedPlanarYCbCrImage();
+    if (sharedYCbCr) {
+      if (sharedYCbCr->IsSent()) {
+        
+        return nullptr;
+      }
+      
+      
+      SharedImage* result = new SharedImage();
+      sharedYCbCr->ToSharedImage(result);
+      sharedYCbCr->MarkAsSent();
+      return result;
+    }
+  }
+
   if (mActiveImageCount > (int)MAX_ACTIVE_SHARED_IMAGES) {
     
     
     return nullptr;
   }
 
-  NS_ABORT_IF_FALSE(InImageBridgeChildThread(),
-                    "Should be in ImageBridgeChild thread.");
   SharedImage *img = GetSharedImageFor(aImage);
   if (img) {
     CopyDataIntoSharedImage(aImage, img);  
@@ -394,6 +552,113 @@ void ImageContainerChild::DispatchDestroy()
                     NewRunnableMethod(this, &ImageContainerChild::DestroyNow));
 }
 
-} 
-} 
 
+already_AddRefed<Image> ImageContainerChild::CreateImage(const ImageFormat *aFormats,
+                                                         uint32_t aNumFormats)
+{
+  
+  nsRefPtr<Image> img = new SharedPlanarYCbCrImage(this);
+  return img.forget();
+}
+
+void ImageContainerChild::AllocateSharedBufferForImageNow(Image* aImage)
+{
+  NS_ABORT_IF_FALSE(InImageBridgeChildThread(),
+                    "Should be in ImageBridgeChild thread.");
+  NS_ABORT_IF_FALSE(aImage && aImage->GetFormat() == ImageFormat::PLANAR_YCBCR,
+                    "Only YUV images supported now");
+
+  SharedPlanarYCbCrImage* sharedYCbCr =
+    static_cast<PlanarYCbCrImage*>(aImage)->AsSharedPlanarYCbCrImage();
+
+  
+  SharedImage* fromPool = GetSharedImageFor(aImage);
+  if (fromPool) {
+    YUVImage yuv = fromPool->get_YUVImage();
+    nsRefPtr<gfxSharedImageSurface> surfY =
+      gfxSharedImageSurface::Open(yuv.Ydata());
+    nsRefPtr<gfxSharedImageSurface> surfU =
+      gfxSharedImageSurface::Open(yuv.Udata());
+    nsRefPtr<gfxSharedImageSurface> surfV =
+      gfxSharedImageSurface::Open(yuv.Vdata());
+    sharedYCbCr->mYSurface  = surfY;
+    sharedYCbCr->mCbSurface = surfU;
+    sharedYCbCr->mCrSurface = surfV;
+  } else {
+    
+    nsRefPtr<gfxSharedImageSurface> surfY;
+    nsRefPtr<gfxSharedImageSurface> surfU;
+    nsRefPtr<gfxSharedImageSurface> surfV;
+    const PlanarYCbCrImage::Data* data = sharedYCbCr->GetData();
+    if (!AllocateSharedBuffer(this, data->mYSize, gfxASurface::CONTENT_ALPHA,
+                              getter_AddRefs(surfY)) ||
+        !AllocateSharedBuffer(this, data->mCbCrSize, gfxASurface::CONTENT_ALPHA,
+                              getter_AddRefs(surfU)) ||
+        !AllocateSharedBuffer(this, data->mCbCrSize, gfxASurface::CONTENT_ALPHA,
+                              getter_AddRefs(surfV))) {
+      NS_RUNTIMEABORT("creating SharedImage failed!");
+    }
+    sharedYCbCr->mYSurface  = surfY;
+    sharedYCbCr->mCbSurface = surfU;
+    sharedYCbCr->mCrSurface = surfV;
+  }
+
+}
+
+void ImageContainerChild::AllocateSharedBufferForImageSync(ReentrantMonitor* aBarrier,
+                                                           bool* aDone,
+                                                           Image* aImage)
+{
+  AllocateSharedBufferForImageNow(aImage);
+  ReentrantMonitorAutoEnter autoMon(*aBarrier);
+  *aDone = true;
+  aBarrier->NotifyAll();
+}
+
+
+void ImageContainerChild::AllocateSharedBufferForImage(Image* aImage)
+{
+  
+  if (InImageBridgeChildThread()) {
+    AllocateSharedBufferForImageNow(aImage);
+    return;
+  }
+
+  bool done = false;
+  ReentrantMonitor barrier("ImageBridgeChild::AllocateSharedBufferForImage");
+  ReentrantMonitorAutoEnter autoMon(barrier);
+  GetMessageLoop()->PostTask(FROM_HERE, 
+                             NewRunnableMethod(this,
+                                               &ImageContainerChild::AllocateSharedBufferForImageSync,
+                                               &barrier,
+                                               &done,
+                                               aImage));
+  while (!done) {
+    barrier.Wait();
+  }
+}
+
+void ImageContainerChild::RecycleSharedImageNow(SharedImage* aImage)
+{
+  NS_ABORT_IF_FALSE(InImageBridgeChildThread(),"Must be in the ImageBridgeChild Thread.");
+  
+  if (mStop || !AddSharedImageToPool(aImage)) {
+    DestroySharedImage(*aImage);
+    delete aImage;
+  }
+}
+
+void ImageContainerChild::RecycleSharedImage(SharedImage* aImage)
+{
+  if (InImageBridgeChildThread()) {
+    RecycleSharedImageNow(aImage);
+    return;
+  }
+  GetMessageLoop()->PostTask(FROM_HERE, 
+                             NewRunnableMethod(this,
+                                               &ImageContainerChild::RecycleSharedImageNow,
+                                               aImage));
+}
+
+} 
+} 
