@@ -72,6 +72,38 @@ struct Changes {
     uint32 nchanges;
 };
 
+class MaybeRegisterID {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+
+  public:
+    MaybeRegisterID()
+      : reg_(Registers::ReturnReg), set(false)
+    { }
+
+    MaybeRegisterID(RegisterID reg)
+      : reg_(reg), set(true)
+    { }
+
+    inline RegisterID reg() const { JS_ASSERT(set); return reg_; }
+    inline void setReg(const RegisterID r) { reg_ = r; set = true; }
+    inline bool isSet() const { return set; }
+
+    MaybeRegisterID & operator =(const MaybeRegisterID &other) {
+        set = other.set;
+        reg_ = other.reg_;
+        return *this;
+    }
+
+    MaybeRegisterID & operator =(RegisterID r) {
+        setReg(r);
+        return *this;
+    }
+
+  private:
+    RegisterID reg_;
+    bool set;
+};
+
 
 
 
@@ -246,13 +278,6 @@ class FrameState
 
 
 
-    inline RegisterID predictRegForType(FrameEntry *fe);
-
-    
-
-
-
-
     inline RegisterID tempRegForType(FrameEntry *fe);
 
     
@@ -346,6 +371,41 @@ class FrameState
 
     RegisterID copyInt32ConstantIntoReg(FrameEntry *fe);
     RegisterID copyInt32ConstantIntoReg(Assembler &masm, FrameEntry *fe);
+
+    struct BinaryAlloc {
+        MaybeRegisterID lhsType;
+        MaybeRegisterID lhsData;
+        MaybeRegisterID rhsType;
+        MaybeRegisterID rhsData;
+        MaybeRegisterID extraFree;
+        RegisterID result;  
+        bool resultHasRhs;  
+        bool lhsNeedsRemat; 
+        bool rhsNeedsRemat; 
+    };
+
+    
+
+
+
+
+
+
+
+    void allocForBinary(FrameEntry *lhs, FrameEntry *rhs, JSOp op, BinaryAlloc &alloc);
+
+    
+
+
+
+
+
+
+
+    void allocForSameBinary(FrameEntry *fe, JSOp op, BinaryAlloc &alloc);
+
+    
+    inline void loadDouble(FrameEntry *fe, FPRegisterID fpReg, Assembler &masm) const;
 
     
 
