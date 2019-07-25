@@ -41,14 +41,14 @@ var Feedback = {
   _manufacturer: "",
 
   init: function(aEvent) {
-    let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
-    document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
-
-    
-    messageManager.loadFrameScript("chrome://feedback/content/content.js", true);
-
     
     window.addEventListener("UIReadyDelayed", function(aEvent) {
+      let appInfo = Cc["@mozilla.org/xre/app-info;1"].getService(Ci.nsIXULAppInfo);
+      document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
+
+      
+      messageManager.loadFrameScript("chrome://feedback/content/content.js", true);
+
       window.removeEventListener(aEvent.type, arguments.callee, false);
       document.getElementById("feedback-container").hidden = false;
 
