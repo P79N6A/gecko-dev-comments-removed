@@ -6,9 +6,15 @@
 #ifdef MOZ_LOGGING
 #define FORCE_PR_LOG
 #endif
+
+#include "mozilla/layers/CompositorParent.h"
+
 #include "prlog.h"
+#include "prenv.h"
 
 #include "gfxPlatform.h"
+
+#include "nsXULAppAPI.h"
 
 #if defined(XP_WIN)
 #include "gfxWindowsPlatform.h"
@@ -60,6 +66,7 @@
 #include "nsIGfxInfo.h"
 
 using namespace mozilla;
+using namespace mozilla::layers;
 
 gfxPlatform *gPlatform = nsnull;
 static bool gEverInitialized = false;
@@ -243,6 +250,30 @@ gfxPlatform::Init()
     sCmapDataLog = PR_NewLogModule("cmapdata");;
 #endif
 
+    bool useOffMainThreadCompositing = false;
+#ifdef MOZ_X11
+    
+    
+    useOffMainThreadCompositing = (PR_GetEnv("MOZ_USE_OMTC") != NULL);
+#else
+    useOffMainThreadCompositing = Preferences::GetBool(
+          "layers.offmainthreadcomposition.enabled", 
+          false);
+    
+    
+    
+    
+    
+    if (!Preferences::GetBool("dom.ipc.tabs.disabled", true)) {
+        
+        useOffMainThreadCompositing = false;
+    }
+#endif
+
+    if (useOffMainThreadCompositing && (XRE_GetProcessType() == 
+                                        GeckoProcessType_Default)) {
+        CompositorParent::StartUp();
+    }
 
     
 
@@ -359,6 +390,8 @@ gfxPlatform::Shutdown()
     
     mozilla::gl::GLContextProviderEGL::Shutdown();
 #endif
+
+    CompositorParent::ShutDown();
 
     delete gPlatform;
     gPlatform = nsnull;

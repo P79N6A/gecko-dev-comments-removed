@@ -23,6 +23,10 @@
 
 class nsIWidget;
 
+namespace base {
+class Thread;
+}
+
 namespace mozilla {
 namespace layers {
 
@@ -53,8 +57,8 @@ class CompositorParent : public PCompositorParent,
 {
   NS_INLINE_DECL_THREADSAFE_REFCOUNTING(CompositorParent)
 public:
-  CompositorParent(nsIWidget* aWidget, MessageLoop* aMsgLoop,
-                   PlatformThreadId aThreadID, bool aRenderToEGLSurface = false,
+  CompositorParent(nsIWidget* aWidget,
+                   bool aRenderToEGLSurface = false,
                    int aSurfaceWidth = -1, int aSurfaceHeight = -1);
 
   virtual ~CompositorParent();
@@ -77,6 +81,23 @@ public:
   void SchedulePauseOnCompositorThread();
   void ScheduleResumeOnCompositorThread(int width, int height);
 
+  
+
+
+
+
+  static MessageLoop* CompositorLoop();
+
+  
+
+
+  static void StartUp();
+
+  
+
+
+  static void ShutDown();
+
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend& aBackendType, int* aMaxTextureSize);
   virtual bool DeallocPLayers(PLayersParent* aLayers);
@@ -96,8 +117,27 @@ private:
 
   void TransformShadowTree();
 
-  inline MessageLoop* CompositorLoop();
   inline PlatformThreadId CompositorThreadID();
+
+  
+
+
+
+
+
+
+
+
+  static bool CreateThread();
+
+  
+
+
+
+
+
+
+  static void DestroyThread();
 
   
   
@@ -143,8 +183,6 @@ private:
   
   bool mLayersUpdated;
 
-  MessageLoop* mCompositorLoop;
-  PlatformThreadId mThreadID;
   bool mRenderToEGLSurface;
   nsIntSize mEGLSurfaceSize;
 
