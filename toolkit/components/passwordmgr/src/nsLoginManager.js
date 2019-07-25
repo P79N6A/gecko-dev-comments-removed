@@ -978,12 +978,11 @@ LoginManager.prototype = {
     },
 
     _getActionOrigin : function (form) {
-        var uriString = form.action;
+        var uriString = form.mozActionUri;
 
         
-        
         if (uriString == "")
-            uriString = form.baseURI;
+            uriString = form.baseURI; 
 
         return this._getPasswordOrigin(uriString, true);
     },
