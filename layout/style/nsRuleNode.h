@@ -767,7 +767,11 @@ public:
   
   
   static nscoord ComputeCoordPercentCalc(const nsStyleCoord& aCoord,
-                                         nscoord aPercentageBasis);
+                                         nscoord aPercentageBasis)
+  {
+    
+    return ComputeComputedCalc(aCoord, aPercentageBasis);
+  }
 
   
   
