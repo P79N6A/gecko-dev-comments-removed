@@ -192,9 +192,10 @@ nsSecureBrowserUIImpl::~nsSecureBrowserUIImpl()
   }
 }
 
-NS_IMPL_THREADSAFE_ISUPPORTS6(nsSecureBrowserUIImpl,
+NS_IMPL_THREADSAFE_ISUPPORTS7(nsSecureBrowserUIImpl,
                               nsISecureBrowserUI,
                               nsIWebProgressListener,
+                              nsIWebProgressListener2,
                               nsIFormSubmitObserver,
                               nsIObserver,
                               nsISupportsWeakReference,
@@ -1517,6 +1518,39 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
                                         nsIRequest* aRequest,
                                         nsIURI* aLocation)
 {
+  NS_NOTREACHED("onLocationChange2(...) should be called instead.");
+  return NS_OK;
+}
+
+
+NS_IMETHODIMP 
+nsSecureBrowserUIImpl::OnProgressChange64(nsIWebProgress* aWebProgress,
+                                          nsIRequest* aRequest,
+                                          PRInt64 aCurSelfProgress,
+                                          PRInt64 aMaxSelfProgress,
+                                          PRInt64 aCurTotalProgress,
+                                          PRInt64 aMaxTotalProgress)
+{
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSecureBrowserUIImpl::OnRefreshAttempted(nsIWebProgress* aWebProgress,
+                                          nsIURI* aRefreshURI, PRInt32 aMillis,
+                                          PRBool aSameURI, PRBool* aResult)
+{
+  NS_NOTREACHED("notification excluded in AddProgressListener(...)");
+  *aResult = PR_TRUE;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsSecureBrowserUIImpl::OnLocationChange2(nsIWebProgress* aWebProgress,
+                                         nsIRequest* aRequest,
+                                         nsIURI* aLocation,
+                                         PRUint32 aFlags)
+{
 #ifdef DEBUG
   nsAutoAtomic atomic(mOnStateLocationChangeReentranceDetection);
   NS_ASSERTION(mOnStateLocationChangeReentranceDetection == 1,
@@ -1557,7 +1591,8 @@ nsSecureBrowserUIImpl::OnLocationChange(nsIWebProgress* aWebProgress,
 
   
   
-  if (!aRequest)
+  
+  if (aFlags & LOCATION_CHANGE_SAME_DOCUMENT)
     return NS_OK;
 
   

@@ -1730,13 +1730,16 @@ nsDocShell::GetChromeEventHandler(nsIDOMEventTarget** aChromeEventHandler)
 NS_IMETHODIMP
 nsDocShell::SetCurrentURI(nsIURI *aURI)
 {
-    SetCurrentURI(aURI, nsnull, PR_TRUE);
+    
+    
+    SetCurrentURI(aURI, nsnull, PR_TRUE,
+                  nsIWebProgressListener2::LOCATION_CHANGE_NORMAL);
     return NS_OK;
 }
 
 PRBool
 nsDocShell::SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
-                          PRBool aFireOnLocationChange)
+                          PRBool aFireOnLocationChange, PRUint32 aLocationFlags)
 {
 #ifdef PR_LOGGING
     if (gDocShellLeakLog && PR_LOG_TEST(gDocShellLeakLog, PR_LOG_DEBUG)) {
@@ -1780,7 +1783,7 @@ nsDocShell::SetCurrentURI(nsIURI *aURI, nsIRequest *aRequest,
     }
 
     if (aFireOnLocationChange) {
-        FireOnLocationChange(this, aRequest, aURI);
+        FireOnLocationChange(this, aRequest, aURI, aLocationFlags);
     }
     return !aFireOnLocationChange;
 }
@@ -3945,10 +3948,6 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
             
             error.AssignLiteral("unsafeContentType");
             break;
-        case NS_ERROR_CORRUPTED_CONTENT:
-            
-            error.AssignLiteral("corruptedContentError");
-            break;
         }
     }
 
@@ -5874,7 +5873,8 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                 
                 rv = AddToSessionHistory(uri, wcwgChannel, nsnull, PR_FALSE,
                                          getter_AddRefs(mLSHE));
-                SetCurrentURI(uri, aRequest, PR_TRUE);
+                SetCurrentURI(uri, aRequest, PR_TRUE,
+                              nsIWebProgressListener2::LOCATION_CHANGE_NORMAL);
                 
                 rv = PersistLayoutHistoryState();
                 
@@ -6128,7 +6128,6 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     
     if (url && NS_FAILED(aStatus)) {
         if (aStatus == NS_ERROR_FILE_NOT_FOUND ||
-            aStatus == NS_ERROR_CORRUPTED_CONTENT ||
             aStatus == NS_ERROR_INVALID_CONTENT_ENCODING) {
             DisplayLoadError(aStatus, url, nsnull, aChannel);
             return NS_OK;
@@ -6528,7 +6527,8 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
         viewer->SetContainer(static_cast<nsIContentViewerContainer *>(this));
         Embed(viewer, "", 0);
 
-        SetCurrentURI(blankDoc->GetDocumentURI(), nsnull, PR_TRUE);
+        SetCurrentURI(blankDoc->GetDocumentURI(), nsnull, PR_TRUE,
+                      nsIWebProgressListener2::LOCATION_CHANGE_NORMAL);
         rv = mIsBeingDestroyed ? NS_ERROR_NOT_AVAILABLE : NS_OK;
       }
     }
@@ -7179,7 +7179,8 @@ nsDocShell::RestoreFromHistory()
         
         nsCOMPtr<nsIURI> uri;
         origLSHE->GetURI(getter_AddRefs(uri));
-        SetCurrentURI(uri, document->GetChannel(), PR_TRUE);
+        SetCurrentURI(uri, document->GetChannel(), PR_TRUE,
+                      nsIWebProgressListener2::LOCATION_CHANGE_NORMAL);
     }
 
     
@@ -7518,7 +7519,8 @@ nsDocShell::CreateContentViewer(const char *aContentType,
     }
 
     if (onLocationChangeNeeded) {
-      FireOnLocationChange(this, request, mCurrentURI);
+      FireOnLocationChange(this, request, mCurrentURI,
+                           nsIWebProgressListener2::LOCATION_CHANGE_NORMAL);
     }
   
     return NS_OK;
@@ -8360,7 +8362,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             
             if (!aSHEntry) {
-                rv = ScrollToAnchor(curHash, newHash, aLoadType);
+                
+                
+                nsDependentCSubstring curHashName(curHash, 1);
+                nsDependentCSubstring newHashName(newHash, 1);
+                rv = ScrollToAnchor(curHashName, newHashName, aLoadType);
                 NS_ENSURE_SUCCESS(rv, rv);
             }
 
@@ -8382,6 +8388,11 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             if (mOSHE) {
                 mOSHE->GetOwner(getter_AddRefs(owner));
             }
+            
+            
+            
+            
+            
             
             
             
@@ -9157,18 +9168,14 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
 
     
     
-    nsDependentCSubstring newHashName(aNewHash, 1);
 
-    
-    
-
-    if (!newHashName.IsEmpty()) {
+    if (!aNewHash.IsEmpty()) {
         
         
         PRBool scroll = aLoadType != LOAD_HISTORY &&
                         aLoadType != LOAD_RELOAD_NORMAL;
 
-        char *str = ToNewCString(newHashName);
+        char *str = ToNewCString(aNewHash);
         if (!str) {
             return NS_ERROR_OUT_OF_MEMORY;
         }
@@ -9210,7 +9217,7 @@ nsDocShell::ScrollToAnchor(nsACString & aCurHash, nsACString & aNewHash,
             nsXPIDLString uStr;
 
             rv = textToSubURI->UnEscapeAndConvert(PromiseFlatCString(aCharset).get(),
-                                                  PromiseFlatCString(newHashName).get(),
+                                                  PromiseFlatCString(aNewHash).get(),
                                                   getter_Copies(uStr));
             NS_ENSURE_SUCCESS(rv, rv);
 
@@ -9464,8 +9471,14 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
 #endif
         }
     }
+
+    
+    PRUint32 locationFlags = aCloneSHChildren?
+        PRUint32(nsIWebProgressListener2::LOCATION_CHANGE_SAME_DOCUMENT) :
+        PRUint32(nsIWebProgressListener2::LOCATION_CHANGE_NORMAL);
     PRBool onLocationChangeNeeded = SetCurrentURI(aURI, aChannel,
-                                                  aFireOnLocationChange);
+                                                  aFireOnLocationChange,
+                                                  locationFlags);
     
     SetupReferrerFromChannel(aChannel);
     return onLocationChangeNeeded;
@@ -9769,8 +9782,15 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     
     
+    
+    
+    
+    
+    
+    
     if (!equalURIs) {
-        SetCurrentURI(newURI, nsnull, PR_TRUE);
+        SetCurrentURI(newURI, nsnull, PR_TRUE,
+                      nsIWebProgressListener2::LOCATION_CHANGE_SAME_DOCUMENT);
         document->SetDocumentURI(newURI);
 
         AddURIVisit(newURI, oldURI, oldURI, 0);
