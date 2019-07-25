@@ -227,9 +227,14 @@ iQ.fn = iQ.prototype = {
   
   
   each: function( callback ) {
+    if ( !iQ.isFunction(value) ) {
+      Utils.assert("each's argument must be a function", false);
+      return null;
+    }
     for ( var i = 0, elem; (elem = this[i]) != null; i++ ) {
       callback(elem);
     }
+    return this;
   },
 
   
