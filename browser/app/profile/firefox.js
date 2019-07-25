@@ -1048,3 +1048,8 @@ pref("devtools.errorconsole.enabled", false);
 
 
 pref("devtools.inspector.enabled", false);
+
+
+
+pref("browser.menu.showCharacterEncoding", "chrome://browser/locale/browser.properties");
+

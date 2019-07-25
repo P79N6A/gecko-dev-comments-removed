@@ -52,6 +52,7 @@
 #   Gavin Sharp <gavin@gavinsharp.com>
 #   Justin Dolske <dolske@mozilla.com>
 #   Rob Campbell <rcampbell@mozilla.com>
+#   Patrick Walton <pcwalton@mozilla.com>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -1597,6 +1598,18 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   if (consoleEnabled) {
     document.getElementById("javascriptConsole").hidden = false;
     document.getElementById("key_errorConsole").removeAttribute("disabled");
+  }
+
+  
+  
+  
+  const showCharacterEncodingPref = "browser.menu.showCharacterEncoding";
+  let extraCharacterEncodingMenuEnabled = gPrefService.
+    getComplexValue(showCharacterEncodingPref, Ci.nsIPrefLocalizedString).data;
+  if (extraCharacterEncodingMenuEnabled !== "true") {
+    let charsetMenu = document.getElementById("appmenu_charsetMenu");
+    if (charsetMenu)
+      charsetMenu.setAttribute("hidden", "true");
   }
 
   Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
