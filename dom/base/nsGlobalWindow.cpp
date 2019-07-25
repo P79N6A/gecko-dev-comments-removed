@@ -1246,13 +1246,11 @@ NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_BEGIN(nsGlobalWindow)
   return tmp->IsBlackForCC();
 NS_IMPL_CYCLE_COLLECTION_CAN_SKIP_THIS_END
 
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN_INTERNAL(nsGlobalWindow)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsGlobalWindow)
   if (NS_UNLIKELY(cb.WantDebugInfo())) {
     char name[512];
     PR_snprintf(name, sizeof(name), "nsGlobalWindow #%ld", tmp->mWindowID);
     cb.DescribeRefCountedNode(tmp->mRefCnt.get(), sizeof(nsGlobalWindow), name);
-  } else {
-    NS_IMPL_CYCLE_COLLECTION_DESCRIBE(nsGlobalWindow, tmp->mRefCnt.get())
   }
 
   if (!cb.WantAllTraces() && tmp->IsBlackForCC()) {
@@ -1548,6 +1546,39 @@ nsGlobalWindow::SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal)
       shell->InitialReflow(r.width, r.height);
     }
   }
+}
+
+void
+nsGlobalWindow::SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
+                                             nsIDOMWindow* aParent)
+{
+  nsIScriptSecurityManager* ssm = nsContentUtils::GetSecurityManager();
+  MOZ_ASSERT(ssm);
+
+  nsresult rv;
+  nsCOMPtr<nsIPrincipal> newWindowPrincipal;
+  rv = ssm->GetSubjectPrincipal(getter_AddRefs(newWindowPrincipal));
+  MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+  if (!newWindowPrincipal && aParent) {
+    nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(aParent));
+    if (sop) {
+      newWindowPrincipal = sop->GetPrincipal();
+    }
+  }
+
+  bool isSystem;
+  rv = ssm->IsSystemPrincipal(newWindowPrincipal, &isSystem);
+  if (NS_FAILED(rv) || isSystem) {
+    
+    int32_t itemType;
+    rv = aItem->GetItemType(&itemType);
+    if (NS_FAILED(rv) || itemType != nsIDocShellTreeItem::typeChrome) {
+      newWindowPrincipal = nullptr;
+    }
+  }
+
+  SetOpenerScriptPrincipal(newWindowPrincipal);
 }
 
 nsIPrincipal*

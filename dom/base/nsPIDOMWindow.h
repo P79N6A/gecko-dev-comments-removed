@@ -24,6 +24,7 @@
 
 class nsIIdleObserver;
 class nsIPrincipal;
+class nsIDocShellTreeItem; 
 
 
 
@@ -48,8 +49,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{0x66660102, 0xd875, 0x47e2, \
-  {0xa1, 0xf7, 0x12, 0xbc, 0x83, 0xc9, 0x93, 0xa9}}
+{ 0x0c5763c6, 0x5e87, 0x4f6f, \
+  { 0xa2, 0xef, 0xcf, 0x4d, 0xeb, 0xd1, 0xbc, 0xc3 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -286,6 +287,9 @@ public:
   
   
   virtual void SetOpenerScriptPrincipal(nsIPrincipal* aPrincipal) = 0;
+  virtual void SetInitialPrincipalToSubject(nsIDocShellTreeItem* aItem,
+                                            nsIDOMWindow* aParent) = 0;
+
   
   virtual nsIPrincipal* GetOpenerScriptPrincipal() = 0;
 
