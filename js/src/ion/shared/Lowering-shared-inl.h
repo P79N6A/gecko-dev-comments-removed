@@ -405,6 +405,8 @@ VirtualRegisterOfPayload(MDefinition *mir)
     return mir->id() + VREG_DATA_OFFSET;
 }
 
+
+
 LUse
 LIRGeneratorShared::useType(MDefinition *mir, LUse::Policy policy)
 {
