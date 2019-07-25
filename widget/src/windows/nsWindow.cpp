@@ -3116,20 +3116,15 @@ nsWindow::GetAttention(PRInt32 aCycleCount)
   if (!mWnd)
     return NS_ERROR_NOT_INITIALIZED;
 
-  
-  
+  HWND flashWnd = GetTopLevelHWND(mWnd, false, false);
   HWND fgWnd = ::GetForegroundWindow();
-  if (aCycleCount == 0 || fgWnd == GetTopLevelHWND(mWnd))
-    return NS_OK;
-
-  HWND flashWnd = mWnd;
-  while (HWND ownerWnd = ::GetWindow(flashWnd, GW_OWNER)) {
-    flashWnd = ownerWnd;
-  }
-
   
-  if (fgWnd == flashWnd)
+  
+  if (aCycleCount == 0 || 
+      flashWnd == fgWnd ||
+      flashWnd == GetTopLevelHWND(fgWnd, false, false)) {
     return NS_OK;
+  }
 
   DWORD defaultCycleCount = 0;
   ::SystemParametersInfo(SPI_GETFOREGROUNDFLASHCOUNT, 0, &defaultCycleCount, 0);
@@ -8895,7 +8890,9 @@ nsWindow* nsWindow::GetTopLevelWindow(bool aStopOnDialogOrPopup)
 
 
 
-HWND nsWindow::GetTopLevelHWND(HWND aWnd, bool aStopOnDialogOrPopup)
+HWND nsWindow::GetTopLevelHWND(HWND aWnd, 
+                               bool aStopIfNotChild, 
+                               bool aStopIfNotPopup)
 {
   HWND curWnd = aWnd;
   HWND topWnd = NULL;
@@ -8904,7 +8901,7 @@ HWND nsWindow::GetTopLevelHWND(HWND aWnd, bool aStopOnDialogOrPopup)
   while (curWnd) {
     topWnd = curWnd;
 
-    if (aStopOnDialogOrPopup) {
+    if (aStopIfNotChild) {
       DWORD_PTR style = ::GetWindowLongPtrW(curWnd, GWL_STYLE);
 
       VERIFY_WINDOW_STYLE(style);
@@ -8914,6 +8911,12 @@ HWND nsWindow::GetTopLevelHWND(HWND aWnd, bool aStopOnDialogOrPopup)
     }
 
     upWnd = ::GetParent(curWnd); 
+
+    
+    
+    if (!upWnd && !aStopIfNotPopup) {
+      upWnd = ::GetWindow(curWnd, GW_OWNER);
+    }
     curWnd = upWnd;
   }
 
