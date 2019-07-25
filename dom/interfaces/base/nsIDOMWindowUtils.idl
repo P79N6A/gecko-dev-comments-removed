@@ -69,7 +69,7 @@ interface nsIDOMBlob;
 interface nsIDOMFile;
 interface nsIFile;
 
-[scriptable, uuid(9df58cf3-7094-4c8d-96f2-bebd765099fe)]
+[scriptable, uuid(b9c1f815-c2f2-4607-a060-6a8566581927)]
 interface nsIDOMWindowUtils : nsISupports {
 
   /**
@@ -377,12 +377,6 @@ interface nsIDOMWindowUtils : nsISupports {
    *                   component)
    */
   void cycleCollect([optional] in nsICycleCollectorListener aListener);
-
-  /**
-   * Force processing of any queued paints
-   */
-
-  void processUpdates();
 
   /** Synthesize a simple gesture event for a window. The event types
    *  supported are: MozSwipeGesture, MozMagnifyGestureStart,
@@ -945,33 +939,28 @@ interface nsIDOMWindowUtils : nsISupports {
    * Begin opcode-level profiling of all JavaScript execution in the window's
    * runtime.
    */
-  [implicit_jscontext]
   void startPCCountProfiling();
 
   /**
    * Stop opcode-level profiling of JavaScript execution in the runtime, and
    * collect all counts for use by getPCCount methods.
    */
-  [implicit_jscontext]
   void stopPCCountProfiling();
 
   /**
    * Purge collected PC counters.
    */
-  [implicit_jscontext]
   void purgePCCounts();
 
   /**
    * Get the number of scripts with opcode-level profiling information.
    */
-  [implicit_jscontext]
   long getPCCountScriptCount();
 
   /**
    * Get a JSON string for a short summary of a script and the PC counts
    * accumulated for it.
    */
-  [implicit_jscontext]
   AString getPCCountScriptSummary(in long script);
 
   /**
@@ -979,6 +968,5 @@ interface nsIDOMWindowUtils : nsISupports {
    * including the decompilation of the script and placement of decompiled
    * operations within it, and PC counts for each operation.
    */
-  [implicit_jscontext]
   AString getPCCountScriptContents(in long script);
 };
