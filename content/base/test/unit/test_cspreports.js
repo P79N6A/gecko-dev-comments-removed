@@ -2,11 +2,16 @@
 
 
 
-Components.utils.import('resource://gre/modules/CSPUtils.jsm');
-Components.utils.import('resource://gre/modules/NetUtil.jsm');
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+const Cu = Components.utils;
+const Cr = Components.results;
+
+Cu.import('resource://gre/modules/CSPUtils.jsm');
+Cu.import('resource://gre/modules/NetUtil.jsm');
 
 
-do_load_httpd_js();
+Cu.import("resource://testing-common/httpd.js");
 
 const REPORT_SERVER_PORT = 9000;
 const REPORT_SERVER_URI = "http://localhost";
@@ -87,7 +92,7 @@ function run_test() {
                                ":" + REPORT_SERVER_PORT +
                                "/foo/self");
 
-  httpServer = new nsHttpServer();
+  httpServer = new HttpServer();
   httpServer.start(REPORT_SERVER_PORT);
 
   
