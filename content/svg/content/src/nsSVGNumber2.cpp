@@ -42,6 +42,7 @@
 #include "nsContentUtils.h" 
 #include "nsSMILValue.h"
 #include "nsSMILFloatType.h"
+#include "nsIDOMSVGNumber.h"
 
 class DOMSVGNumber : public nsIDOMSVGNumber
 {

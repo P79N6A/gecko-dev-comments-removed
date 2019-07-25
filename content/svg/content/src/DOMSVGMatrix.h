@@ -71,11 +71,11 @@
 #ifndef MOZILLA_DOMSVGMATRIX_H__
 #define MOZILLA_DOMSVGMATRIX_H__
 
-#include "nsIDOMSVGMatrix.h"
 #include "DOMSVGTransform.h"
 #include "gfxMatrix.h"
 #include "nsAutoPtr.h"
 #include "nsCycleCollectionParticipant.h"
+#include "nsIDOMSVGMatrix.h"
 
 
 
