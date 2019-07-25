@@ -48,8 +48,9 @@ namespace sms {
 enum DeliveryState {
   eDeliveryState_Sent,
   eDeliveryState_Received,
+  eDeliveryState_Unknown,
   
-  eDeliveryState_Unknown
+  eDeliveryState_EndGuard
 };
 
 } 
@@ -65,7 +66,7 @@ template <>
 struct ParamTraits<mozilla::dom::sms::DeliveryState>
   : public EnumSerializer<mozilla::dom::sms::DeliveryState,
                           mozilla::dom::sms::eDeliveryState_Sent,
-                          mozilla::dom::sms::eDeliveryState_Unknown>
+                          mozilla::dom::sms::eDeliveryState_EndGuard>
 {};
 
 } 
