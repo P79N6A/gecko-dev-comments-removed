@@ -43,7 +43,6 @@ const Cu = Components.utils;
 Cu.import("resource://weave/log4moz.js");
 Cu.import("resource://weave/async.js");
 Cu.import("resource://weave/engines.js");
-Cu.import("resource://weave/syncCores.js");
 Cu.import("resource://weave/stores.js");
 Cu.import("resource://weave/trackers.js");
 
@@ -53,7 +52,7 @@ function CookieEngine(pbeId) {
   this._init(pbeId);
 }
 CookieEngine.prototype = {
-  __proto__: new SyncEngine(),
+  __proto__: SyncEngine.prototype,
 
   get name() { return "cookies"; },
   get displayName() { return "Cookies"; },
@@ -67,13 +66,6 @@ CookieEngine.prototype = {
     return this.__store;
   },
 
-  __core: null,
-  get _core() {
-    if (!this.__core)
-      this.__core = new CookieSyncCore(this._store);
-    return this.__core;
-  },
-
   __tracker: null,
   get _tracker() {
     if (!this.__tracker)
@@ -82,27 +74,9 @@ CookieEngine.prototype = {
   }
 };
 
-function CookieSyncCore(store) {
-  this._store = store;
-  this._init();
-}
-CookieSyncCore.prototype = {
-  _logName: "CookieSync",
-  _store: null,
-
-  _commandLike: function CSC_commandLike(a, b) {
-    
-
-
-
-
-
-    return false;
-  }
-};
-CookieSyncCore.prototype.__proto__ = new SyncCore();
-
 function CookieStore( cookieManagerStub ) {
+  
+  return;
   
 
 
@@ -111,6 +85,7 @@ function CookieStore( cookieManagerStub ) {
   this._cookieManagerStub = cookieManagerStub;
 }
 CookieStore.prototype = {
+  __proto__: Store.prototype,
   _logName: "CookieStore",
   _lookup: null,
 
@@ -297,12 +272,14 @@ CookieStore.prototype = {
 
   }
 };
-CookieStore.prototype.__proto__ = new Store();
 
 function CookieTracker() {
+  
+  return;
   this._init();
 }
 CookieTracker.prototype = {
+  __proto__: Tracker.prototype,
   _logName: "CookieTracker",
 
   _init: function CT__init() {
@@ -332,4 +309,3 @@ CookieTracker.prototype = {
     }
   }
 }
-CookieTracker.prototype.__proto__ = new Tracker();
