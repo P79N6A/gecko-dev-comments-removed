@@ -1447,6 +1447,20 @@ abstract public class GeckoApp
     }
 
     
+    public void refreshActionBar() {
+        if (Build.VERSION.SDK_INT >= 11) {
+            mBrowserToolbar = (BrowserToolbar) getLayoutInflater().inflate(R.layout.browser_toolbar, null);
+            mBrowserToolbar.refresh();
+            GeckoActionBar.setBackgroundDrawable(this, getResources().getDrawable(R.drawable.gecko_actionbar_bg));
+            GeckoActionBar.setDisplayOptions(this, ActionBar.DISPLAY_SHOW_CUSTOM, ActionBar.DISPLAY_SHOW_CUSTOM |
+                                                                                  ActionBar.DISPLAY_SHOW_HOME |
+                                                                                  ActionBar.DISPLAY_SHOW_TITLE |
+                                                                                  ActionBar.DISPLAY_USE_LOGO);
+            GeckoActionBar.setCustomView(this, mBrowserToolbar);
+        }
+    }
+
+    
     @Override
     public void onCreate(Bundle savedInstanceState)
     {
@@ -1531,14 +1545,7 @@ abstract public class GeckoApp
         mOrientation = getResources().getConfiguration().orientation;
 
         if (Build.VERSION.SDK_INT >= 11) {
-            mBrowserToolbar = (BrowserToolbar) getLayoutInflater().inflate(R.layout.browser_toolbar, null);
-
-            GeckoActionBar.setBackgroundDrawable(this, getResources().getDrawable(R.drawable.gecko_actionbar_bg));
-            GeckoActionBar.setDisplayOptions(this, ActionBar.DISPLAY_SHOW_CUSTOM, ActionBar.DISPLAY_SHOW_CUSTOM |
-                                                                                  ActionBar.DISPLAY_SHOW_HOME |
-                                                                                  ActionBar.DISPLAY_SHOW_TITLE |
-                                                                                  ActionBar.DISPLAY_USE_LOGO);
-            GeckoActionBar.setCustomView(this, mBrowserToolbar);
+            refreshActionBar();
         } else {
             mBrowserToolbar = (BrowserToolbar) findViewById(R.id.browser_toolbar);
         }
@@ -1899,6 +1906,13 @@ abstract public class GeckoApp
         
         super.onResume();
 
+        int newOrientation = getResources().getConfiguration().orientation;
+
+        if (mOrientation != newOrientation) {
+            mOrientation = newOrientation;
+            refreshActionBar();
+        }
+
         
         if (checkLaunchState(LaunchState.Launching))
             onNewIntent(getIntent());
@@ -2012,23 +2026,7 @@ abstract public class GeckoApp
         if (mOrientation != newConfig.orientation) {
             mOrientation = newConfig.orientation;
             mAutoCompletePopup.hide();
-
-            if (Build.VERSION.SDK_INT >= 11) {
-                mBrowserToolbar = (BrowserToolbar) getLayoutInflater().inflate(R.layout.browser_toolbar, null);
-
-                Tab tab = Tabs.getInstance().getSelectedTab();
-                if (tab != null) {
-                    mBrowserToolbar.setTitle(tab.getDisplayTitle());
-                    mBrowserToolbar.setFavicon(tab.getFavicon());
-                    mBrowserToolbar.setSecurityMode(tab.getSecurityMode());
-                    mBrowserToolbar.setProgressVisibility(tab.isLoading());
-                    mBrowserToolbar.setShadowVisibility(!(tab.getURL().startsWith("about:")));
-                    mBrowserToolbar.updateTabs(Tabs.getInstance().getCount());
-                }
-
-                GeckoActionBar.setBackgroundDrawable(this, getResources().getDrawable(R.drawable.gecko_actionbar_bg));
-                GeckoActionBar.setCustomView(mAppContext, mBrowserToolbar);
-            }
+            refreshActionBar();
         }
     }
 
