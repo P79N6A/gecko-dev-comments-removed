@@ -207,7 +207,8 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   } else {
     
     
-    gfxMatrix canvasTM = nsSVGUtils::GetCanvasTM(aTarget);
+    gfxMatrix canvasTM =
+      nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_OUTERSVG_TM);
     if (canvasTM.IsSingular()) {
       
       return;
@@ -233,8 +234,8 @@ nsAutoFilterInstance::nsAutoFilterInstance(nsIFrame *aTarget,
   
   gfxMatrix filterToDeviceSpace;
   if (aPaint) {
-    filterToDeviceSpace =
-      filterToUserSpace * nsSVGUtils::GetCanvasTM(aTarget);
+    filterToDeviceSpace = filterToUserSpace *
+              nsSVGUtils::GetCanvasTM(aTarget, nsISVGChildFrame::FOR_PAINTING);
   }
 
   

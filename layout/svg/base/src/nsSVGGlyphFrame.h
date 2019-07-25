@@ -31,6 +31,9 @@ class nsSVGGlyphFrame : public nsSVGGlyphFrameBase,
                         public nsISVGGlyphFragmentNode,
                         public nsISVGChildFrame
 {
+  class AutoCanvasTMForMarker;
+  friend class AutoCanvasTMForMarker;
+  friend class CharacterIterator;
   friend nsIFrame*
   NS_NewSVGGlyphFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
@@ -38,6 +41,7 @@ protected:
     : nsSVGGlyphFrameBase(aContext),
       mTextRun(nsnull),
       mStartIndex(0),
+      mGetCanvasTMForFlag(nsISVGChildFrame::FOR_OUTERSVG_TM),
       mCompressWhitespace(true),
       mTrimLeadingWhitespace(false),
       mTrimTrailingWhitespace(false)
@@ -154,7 +158,7 @@ public:
   NS_IMETHOD_(bool) IsDisplayContainer() { return false; }
 
   
-  gfxMatrix GetCanvasTM();
+  gfxMatrix GetCanvasTM(PRUint32 aFor);
 
   
   
@@ -171,8 +175,30 @@ public:
     }
   }
 
-protected:
-  friend class CharacterIterator;
+private:
+
+  
+
+
+
+
+  class AutoCanvasTMForMarker {
+  public:
+    AutoCanvasTMForMarker(nsSVGGlyphFrame *aFrame, PRUint32 aFor)
+      : mFrame(aFrame)
+    {
+      mOldFor = mFrame->mGetCanvasTMForFlag;
+      mFrame->mGetCanvasTMForFlag = aFor;
+    }
+    ~AutoCanvasTMForMarker()
+    {
+      
+      mFrame->mGetCanvasTMForFlag = mOldFor;
+    }
+  private:
+    nsSVGGlyphFrame *mFrame;
+    PRUint32 mOldFor;
+  };
 
   
   
@@ -208,7 +234,7 @@ protected:
                       gfxPattern *aStrokePattern = nsnull);
 
   void NotifyGlyphMetricsChange();
-  void SetupGlobalTransform(gfxContext *aContext);
+  void SetupGlobalTransform(gfxContext *aContext, PRUint32 aFor);
   nsresult GetHighlight(PRUint32 *charnum, PRUint32 *nchars,
                         nscolor *foreground, nscolor *background);
   float GetSubStringAdvance(PRUint32 charnum, PRUint32 fragmentChars,
@@ -227,6 +253,7 @@ protected:
   gfxPoint mPosition;
   
   PRUint32 mStartIndex;
+  PRUint32 mGetCanvasTMForFlag;
   bool mCompressWhitespace;
   bool mTrimLeadingWhitespace;
   bool mTrimTrailingWhitespace;

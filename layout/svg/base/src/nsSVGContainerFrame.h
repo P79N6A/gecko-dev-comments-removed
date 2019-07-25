@@ -50,7 +50,9 @@ public:
   NS_DECL_FRAMEARENA_HELPERS
 
   
-  virtual gfxMatrix GetCanvasTM() { return gfxMatrix(); }
+  virtual gfxMatrix GetCanvasTM(PRUint32 aFor) {
+    return gfxMatrix();
+  }
 
   
 

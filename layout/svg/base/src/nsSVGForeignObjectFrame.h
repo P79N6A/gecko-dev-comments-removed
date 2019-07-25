@@ -80,7 +80,7 @@ public:
                                       PRUint32 aFlags);
   NS_IMETHOD_(bool) IsDisplayContainer() { return true; }
 
-  gfxMatrix GetCanvasTM();
+  gfxMatrix GetCanvasTM(PRUint32 aFor);
 
   nsRect GetInvalidRegion();
 
@@ -88,10 +88,6 @@ protected:
   
   void DoReflow();
   void RequestReflow(nsIPresShell::IntrinsicDirty aType);
-
-  
-  
-  gfxMatrix GetCanvasTMForChildren();
 
   
   bool IsDisabled() const { return mRect.width <= 0 || mRect.height <= 0; }

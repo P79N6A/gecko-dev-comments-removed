@@ -61,7 +61,7 @@ public:
   }
 #endif
   
-  virtual gfxMatrix GetCanvasTM();
+  virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
   
   
   virtual PRUint32 GetNumberOfChars();

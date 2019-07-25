@@ -86,7 +86,7 @@ private:
   float mStrokeWidth, mX, mY, mAutoAngle;
 
   
-  virtual gfxMatrix GetCanvasTM();
+  virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
 
   
   

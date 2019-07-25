@@ -63,7 +63,7 @@ public:
                                       PRUint32 aFlags);
   
   
-  virtual gfxMatrix GetCanvasTM();
+  virtual gfxMatrix GetCanvasTM(PRUint32 aFor);
   
   
   virtual PRUint32 GetNumberOfChars();
