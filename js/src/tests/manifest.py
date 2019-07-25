@@ -1,6 +1,6 @@
-# Library for JSTest manifests.
-#
-# This includes classes for representing and parsing JS manifests.
+
+
+
 
 import os, re, sys
 from subprocess import *
@@ -10,7 +10,7 @@ from tests import TestCase
 
 def split_path_into_dirs(path):
     dirs = [path]
-   
+
     while True:
         path, tail = os.path.split(path)
         if not tail:
@@ -23,25 +23,28 @@ class XULInfo:
         self.abi = abi
         self.os = os
         self.isdebug = isdebug
+        self.browserIsRemote = False
 
     def as_js(self):
         """Return JS that when executed sets up variables so that JS expression
         predicates on XUL build info evaluate properly."""
 
-        return 'var xulRuntime = { OS: "%s", XPCOMABI: "%s", shell: true }; var isDebugBuild=%s; var Android=%s;' % (
+        return ('var xulRuntime = { OS: "%s", XPCOMABI: "%s", shell: true };' +
+                'var isDebugBuild=%s; var Android=%s; var browserIsRemote=%s') % (
             self.os,
             self.abi,
             str(self.isdebug).lower(),
-            str(self.os == "Android").lower())
+            str(self.os == "Android").lower(),
+            str(self.browserIsRemote).lower())
 
     @classmethod
     def create(cls, jsdir):
         """Create a XULInfo based on the current platform's characteristics."""
 
-        # Our strategy is to find the autoconf.mk generated for the build and
-        # read the values from there.
+        
+        
 
-        # Find config/autoconf.mk.
+        
         dirs = split_path_into_dirs(os.getcwd()) + split_path_into_dirs(jsdir)
 
         path = None
@@ -55,7 +58,7 @@ class XULInfo:
             print "Can't find config/autoconf.mk on a directory containing the JS shell (searched from %s)"%jsdir
             sys.exit(1)
 
-        # Read the values.
+        
         val_re = re.compile(r'(TARGET_XPCOM_ABI|OS_TARGET|MOZ_DEBUG)\s*=\s*(.*)')
         kw = {}
         for line in open(path):
@@ -75,7 +78,7 @@ class XULInfoTester:
     def __init__(self, xulinfo, js_bin):
         self.js_prolog = xulinfo.as_js()
         self.js_bin = js_bin
-        # Maps JS expr to evaluation result.
+        
         self.cache = {}
 
     def test(self, cond):
@@ -116,14 +119,14 @@ def parse(filename, xul_tester, reldir = ''):
         sline = comment_re.sub('', line)
         parts = sline.split()
         if len(parts) == 0:
-            # line is empty or just a comment, skip
+            
             pass
         elif parts[0] == 'include':
             include_file = parts[1]
             include_reldir = os.path.join(reldir, os.path.dirname(include_file))
             ans += parse(os.path.join(dir, include_file), xul_tester, include_reldir)
         elif parts[0] == 'url-prefix':
-            # Doesn't apply to shell tests
+            
             pass
         else:
             script = None
@@ -150,8 +153,8 @@ def parse(filename, xul_tester, reldir = ''):
                         expect = False
                     pos += 1
                 elif parts[pos].startswith('asserts-if'):
-                    # This directive means we may flunk some number of
-                    # NS_ASSERTIONs in the browser. For the shell, ignore it.
+                    
+                    
                     pos += 1
                 elif parts[pos].startswith('skip-if'):
                     cond = parts[pos][len('skip-if('):-1]
@@ -189,7 +192,7 @@ def parse(filename, xul_tester, reldir = ''):
                     slow = True
                     pos += 1
                 elif parts[pos] == 'silentfail':
-                    # silentfails use tons of memory, and Darwin doesn't support ulimit.
+                    
                     if xul_tester.test("xulRuntime.OS == 'Darwin'"):
                         expect = enable = False
                     pos += 1
