@@ -195,9 +195,6 @@ public:
   th_setup_info *mSetup;
   th_dec_ctx* mCtx;
 
-  
-  PRUint32 mFrameDuration;
-
   float mPixelAspectRatio;
 };
 

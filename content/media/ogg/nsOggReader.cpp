@@ -68,7 +68,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-#define SEEK_DECODE_MARGIN 2000
+#define SEEK_DECODE_MARGIN 2000000
 
 
 
@@ -76,7 +76,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-#define SEEK_FUZZ_MS 500
+#define SEEK_FUZZ_USECS 500000
 
 enum PageSyncResult {
   PAGE_SYNC_ERROR = 1,
@@ -390,8 +390,7 @@ nsresult nsOggReader::DecodeVorbis(nsTArray<nsAutoPtr<SoundData> >& aChunks,
     }
 
     PRInt64 duration = mVorbisState->Time((PRInt64)samples);
-    PRInt64 startTime = (mVorbisGranulepos != -1) ?
-      mVorbisState->Time(mVorbisGranulepos) : -1;
+    PRInt64 startTime = mVorbisState->Time(mVorbisGranulepos);
     SoundData* s = new SoundData(mPageOffset,
                                  startTime,
                                  duration,
@@ -544,9 +543,8 @@ nsresult nsOggReader::DecodeTheora(nsTArray<nsAutoPtr<VideoData> >& aFrames,
   if (ret != 0 && ret != TH_DUPFRAME) {
     return NS_ERROR_FAILURE;
   }
-  PRInt64 time = (aPacket->granulepos != -1)
-    ? mTheoraState->StartTime(aPacket->granulepos) : -1;
-  PRInt64 endTime = time != -1 ? time + mTheoraState->mFrameDuration : -1;
+  PRInt64 time = mTheoraState->StartTime(aPacket->granulepos);
+  PRInt64 endTime = mTheoraState->Time(aPacket->granulepos);
   if (ret == TH_DUPFRAME) {
     VideoData* v = VideoData::CreateDuplicate(mPageOffset,
                                               time,
@@ -704,7 +702,7 @@ PRBool nsOggReader::DecodeVideoFrame(PRBool &aKeyframeSkip,
                      "Granulepos calculation is incorrect!");
 
         frames[i]->mTime = mTheoraState->StartTime(granulepos);
-        frames[i]->mEndTime = frames[i]->mTime + mTheoraState->mFrameDuration;
+        frames[i]->mEndTime = mTheoraState->Time(granulepos);
         NS_ASSERTION(frames[i]->mEndTime >= frames[i]->mTime, "Frame must start before it ends.");
         frames[i]->mTimecode = granulepos;
       }
@@ -1257,7 +1255,7 @@ nsresult nsOggReader::SeekInBufferedRange(PRInt64 aTarget,
                                   aStartTime,
                                   aEndTime,
                                   PR_FALSE);
-    res = SeekBisection(keyframeTime, k, SEEK_FUZZ_MS);
+    res = SeekBisection(keyframeTime, k, SEEK_FUZZ_USECS);
     NS_ASSERTION(mTheoraGranulepos == -1, "SeekBisection must reset Theora decode");
     NS_ASSERTION(mVorbisGranulepos == -1, "SeekBisection must reset Vorbis decode");
   }
@@ -1302,7 +1300,7 @@ nsresult nsOggReader::SeekInUnbuffered(PRInt64 aTarget,
   
   
   SeekRange k = SelectSeekRange(aRanges, seekTarget, aStartTime, aEndTime, PR_FALSE);
-  nsresult res = SeekBisection(seekTarget, k, SEEK_FUZZ_MS);
+  nsresult res = SeekBisection(seekTarget, k, SEEK_FUZZ_USECS);
   NS_ASSERTION(mTheoraGranulepos == -1, "SeekBisection must reset Theora decode");
   NS_ASSERTION(mVorbisGranulepos == -1, "SeekBisection must reset Vorbis decode");
   return res;
@@ -1786,9 +1784,8 @@ nsresult nsOggReader::GetBuffered(nsTimeRanges* aBuffered, PRInt64 aStartTime)
       
       PRInt64 endTime = FindEndTime(startOffset, endOffset, PR_TRUE, &state);
       if (endTime != -1) {
-        endTime -= aStartTime;
-        aBuffered->Add(static_cast<double>(startTime) / 1000.0,
-                       static_cast<double>(endTime) / 1000.0);
+        aBuffered->Add(startTime / static_cast<double>(USECS_PER_S),
+                       (endTime - aStartTime) / static_cast<double>(USECS_PER_S));
       }
     }
   }

@@ -257,6 +257,7 @@ public:
   
   
   
+  
   virtual void SetDuration(PRInt64 aDuration) = 0;
 
   
@@ -390,7 +391,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   
-  virtual void SetDuration(PRInt64 aDuration);
+  virtual void SetDuration(double aDuration);
 
   
   virtual void SetSeekable(PRBool aSeekable);

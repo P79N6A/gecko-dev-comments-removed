@@ -222,7 +222,7 @@ private:
   PRUint32 mAudioTrack;
 
   
-  PRInt64 mAudioStartMs;
+  PRInt64 mAudioStartUsec;
 
   
   PRUint64 mAudioSamples;
