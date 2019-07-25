@@ -3472,7 +3472,9 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
   
   
   nsRefPtr<ImageContainer> container = mObjectFrame->GetImageContainer();
+  gfxIntSize oldSize;
   if (container) {
+    oldSize = container->GetCurrentSize();
     SetCurrentImage(container);
   }
 
@@ -3503,14 +3505,24 @@ NS_IMETHODIMP nsPluginInstanceOwner::InvalidateRect(NPRect *invalidRect)
               presContext->DevPixelsToAppUnits(invalidRect->top),
               presContext->DevPixelsToAppUnits(invalidRect->right - invalidRect->left),
               presContext->DevPixelsToAppUnits(invalidRect->bottom - invalidRect->top));
+ if (container) {
+   gfxIntSize newSize = container->GetCurrentSize();
+   if (newSize != oldSize) {
+     
+     nsRect oldRect = nsRect(0, 0,
+                             presContext->DevPixelsToAppUnits(oldSize.width),
+                             presContext->DevPixelsToAppUnits(oldSize.height));
+     rect.UnionRect(rect, oldRect);
+   }
+ }
+ rect.MoveBy(mObjectFrame->GetUsedBorderAndPadding().TopLeft());
 #ifndef XP_MACOSX
-  mObjectFrame->InvalidateLayer(rect + mObjectFrame->GetUsedBorderAndPadding().TopLeft(), nsDisplayItem::TYPE_PLUGIN);
+  mObjectFrame->InvalidateLayer(rect, nsDisplayItem::TYPE_PLUGIN);
 #else
   if (mozilla::FrameLayerBuilder::HasDedicatedLayer(mObjectFrame, nsDisplayItem::TYPE_PLUGIN)) {
-    mObjectFrame->InvalidateWithFlags(rect + mObjectFrame->GetUsedBorderAndPadding().TopLeft(),
-                                      nsIFrame::INVALIDATE_NO_UPDATE_LAYER_TREE);
+    mObjectFrame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_UPDATE_LAYER_TREE);
   } else {
-    mObjectFrame->Invalidate(rect + mObjectFrame->GetUsedBorderAndPadding().TopLeft());
+    mObjectFrame->Invalidate(rect);
   }
 #endif
   return NS_OK;
