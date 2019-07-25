@@ -218,19 +218,20 @@ function run_test() {
     try { 
       let processType = Components.classes["@mozilla.org/xre/runtime;1"].
                         getService(Components.interfaces.nsIXULRuntime).processType;
-      if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+      if (processType != Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+        
         var chan = make_channel("http://localhost:4444/range");
         chan.nsIResumableChannel.resumeAt(1, entityID);
-        chan.nsIHttpChannel.setRequestHeader("X-Need-Auth", "true", false);
-        chan.asyncOpen(new ChannelListener(test_auth_nopw, null, CL_EXPECT_FAILURE), null);
+        chan.nsIHttpChannel.setRequestHeader("X-Want-404", "true", false);
+        chan.asyncOpen(new ChannelListener(test_404, null, CL_EXPECT_FAILURE), null);
+        return;
       }
     } catch (e) { }
 
-    
     var chan = make_channel("http://localhost:4444/range");
     chan.nsIResumableChannel.resumeAt(1, entityID);
-    chan.nsIHttpChannel.setRequestHeader("X-Want-404", "true", false);
-    chan.asyncOpen(new ChannelListener(test_404, null, CL_EXPECT_FAILURE), null);
+    chan.nsIHttpChannel.setRequestHeader("X-Need-Auth", "true", false);
+    chan.asyncOpen(new ChannelListener(test_auth_nopw, null, CL_EXPECT_FAILURE), null);
   }
 
   function test_auth_nopw(request, data, ctx) {
@@ -286,21 +287,10 @@ function run_test() {
     do_check_eq(request.nsIHttpChannel.responseStatus, 416);
 
     
-    try { 
-      let processType = Components.classes["@mozilla.org/xre/runtime;1"].
-                        getService(Components.interfaces.nsIXULRuntime).processType;
-      if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
-        
-        var chan = make_channel("http://localhost:4444/redir");
-        chan.nsIHttpChannel.setRequestHeader("X-Redir-To", "http://localhost:4444/range", false);
-        chan.nsIResumableChannel.resumeAt(1, entityID);
-        chan.asyncOpen(new ChannelListener(test_redir_resume, null), null);
-      } else {
-        httpserver.stop(do_test_finished);
-      }
-    } catch (e) {
-      httpserver.stop(do_test_finished);
-    }
+    var chan = make_channel("http://localhost:4444/redir");
+    chan.nsIHttpChannel.setRequestHeader("X-Redir-To", "http://localhost:4444/range", false);
+    chan.nsIResumableChannel.resumeAt(1, entityID);
+    chan.asyncOpen(new ChannelListener(test_redir_resume, null), null);
   }
 
   function test_redir_resume(request, data, ctx) {
