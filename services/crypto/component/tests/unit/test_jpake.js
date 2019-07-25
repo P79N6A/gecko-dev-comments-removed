@@ -1,3 +1,6 @@
+const Cc = Components.classes;
+const Ci = Components.interfaces;
+
 
 Cc["@mozilla.org/psm;1"].getService(Ci.nsISupports);
 
