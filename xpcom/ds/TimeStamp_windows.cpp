@@ -215,6 +215,8 @@ namespace mozilla {
 static ULONGLONG
 CalibratedPerformanceCounter();
 
+typedef ULONGLONG (WINAPI* GetTickCount64_t)();
+static GetTickCount64_t sGetTickCount64 = nullptr;
 
 static inline ULONGLONG
 InterlockedRead64(volatile ULONGLONG* destination)
@@ -412,8 +414,8 @@ InitResolution()
 
 
 
-static inline ULONGLONG
-TickCount64()
+static ULONGLONG WINAPI
+GetTickCount64Fallback()
 {
   DWORD now = GetTickCount();
   ULONGLONG lastResultHiPart = sLastGTCResult & (~0ULL << 32);
@@ -572,7 +574,7 @@ CalibratedPerformanceCounter()
   AutoCriticalSection lock(&sTimeStampLock);
 
   
-  ULONGLONG gtc = TickCount64();
+  ULONGLONG gtc = sGetTickCount64();
 
   LONGLONG diff = qpc - ms2mt(gtc) - sSkew;
   LONGLONG overflow = 0;
@@ -655,6 +657,15 @@ TimeStamp::Startup()
 {
   
 
+  HMODULE kernelDLL = GetModuleHandleW(L"kernel32.dll");
+  sGetTickCount64 = reinterpret_cast<GetTickCount64_t>
+    (GetProcAddress(kernelDLL, "GetTickCount64"));
+  if (!sGetTickCount64) {
+    
+    
+    sGetTickCount64 = GetTickCount64Fallback;
+  }
+
   InitializeCriticalSectionAndSpinCount(&sTimeStampLock, kLockSpinCount);
 
   LARGE_INTEGER freq;
@@ -672,7 +683,7 @@ TimeStamp::Startup()
   sFrequencyPerSec = freq.QuadPart;
 
   ULONGLONG qpc = PerformanceCounter();
-  sLastCalibrated = TickCount64();
+  sLastCalibrated = sGetTickCount64();
   sSkew = qpc - ms2mt(sLastCalibrated);
 
   InitThresholds();
