@@ -143,7 +143,7 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
 XPCOMUtils.defineLazyServiceGetter(this, "CookieSvc",
   "@mozilla.org/cookiemanager;1", "nsICookieManager2");
 
-#ifdef MOZ_CRASH_REPORTER
+#ifdef MOZ_CRASHREPORTER
 XPCOMUtils.defineLazyServiceGetter(this, "CrashReporter",
   "@mozilla.org/xre/app-info;1", "nsICrashReporter");
 #endif
@@ -3796,7 +3796,7 @@ SessionStoreService.prototype = {
 
 
   _updateCrashReportURL: function sss_updateCrashReportURL(aWindow) {
-#ifdef MOZ_CRASH_REPORTER
+#ifdef MOZ_CRASHREPORTER
     try {
       var currentURI = aWindow.gBrowser.currentURI.clone();
       
