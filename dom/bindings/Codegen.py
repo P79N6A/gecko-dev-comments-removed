@@ -2586,7 +2586,7 @@ if (!%(resultStr)s) {
                  IDLType.Tags.double]:
         
         
-        return wrapAndSetPtr("JS_NewNumberValue(cx, double(%s), ${jsvalPtr})" % result)
+        return setValue("JS_NumberValue(double(%s))" % result)
 
     elif tag == IDLType.Tags.uint32:
         return setValue("UINT_TO_JSVAL(%s)" % result)
