@@ -269,7 +269,7 @@ nsCaretAccessible::NormalSelectionChanged(nsISelection* aSelection)
     return; 
   }
 
-  nsRefPtr<nsHyperTextAccessible> textAcc =
+  nsHyperTextAccessible* textAcc =
     nsAccUtils::GetTextAccessibleFromSelection(aSelection);
   if (!textAcc)
     return;
@@ -287,7 +287,7 @@ nsCaretAccessible::NormalSelectionChanged(nsISelection* aSelection)
   }
 
   mLastCaretOffset = caretOffset;
-  mLastTextAccessible.swap(textAcc);
+  mLastTextAccessible = textAcc;
 
   nsRefPtr<AccEvent> event =
     new AccCaretMoveEvent(mLastTextAccessible->GetNode());
@@ -304,7 +304,7 @@ nsCaretAccessible::SpellcheckSelectionChanged(nsISelection* aSelection)
   
   
 
-  nsRefPtr<nsHyperTextAccessible> textAcc =
+  nsHyperTextAccessible* textAcc =
     nsAccUtils::GetTextAccessibleFromSelection(aSelection);
   if (!textAcc)
     return;
