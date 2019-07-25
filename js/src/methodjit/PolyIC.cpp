@@ -560,6 +560,7 @@ class SetPropCompiler : public PICStubCompiler
 
 
 
+            id = js_CheckForStringIndex(id);
             const Shape *shape =
                 obj->putProperty(cx, id, getter, clasp->setProperty,
                                  SHAPE_INVALID_SLOT, JSPROP_ENUMERATE, flags, 0);
