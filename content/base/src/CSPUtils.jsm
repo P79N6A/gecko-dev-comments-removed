@@ -162,7 +162,7 @@ CSPPolicyURIListener.prototype = {
     }
     else {
       
-      this._csp.refinePolicy("allow 'none'", null, this._docURI, this._docRequest);
+      this._csp.refinePolicy("allow 'none'", this._docURI, this._docRequest);
     }
     
     this._docRequest.resume();
