@@ -41,6 +41,8 @@
 
 "use strict";
 
+Components.utils.import("resource:///modules/source-editor.jsm");
+
 var gInitialized = false;
 var gClient = null;
 var gTabClient = null;
@@ -474,7 +476,41 @@ var SourceScripts = {
   onChange: function SS_onClick(aEvent) {
     let scripts = aEvent.target;
     let script = scripts.selectedItem.getUserData("sourceScript");
+    this.setEditorMode(script.url, script.contentType);
     this._showScript(script);
+  },
+
+  
+
+
+
+
+
+
+
+
+  setEditorMode: function SS_setEditorMode(aUrl, aContentType) {
+    if (aContentType) {
+      if (/javascript/.test(aContentType)) {
+        window.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
+      } else {
+        window.editor.setMode(SourceEditor.MODES.HTML);
+      }
+      return;
+    }
+
+    let url = aUrl;
+    
+    let q = url.indexOf('?');
+    if (q > -1) {
+      url = url.slice(0, q);
+    }
+
+    if (url.slice(-3) == ".js") {
+      window.editor.setMode(SourceEditor.MODES.JAVASCRIPT);
+    } else {
+      window.editor.setMode(SourceEditor.MODES.HTML);
+    }
   },
 
   
