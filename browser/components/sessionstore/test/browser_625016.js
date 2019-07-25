@@ -14,10 +14,14 @@ function test() {
   
 
   waitForExplicitFinish();
+  requestLongerTimeout(2);
 
   
   
-  Services.prefs.setIntPref("browser.sessionstore.interval", 2000);
+  Services.prefs.setIntPref("browser.sessionstore.interval", 4000);
+  registerCleanupFunction(function () {
+    Services.prefs.clearUserPref("browser.sessionstore.interval");
+  });
 
   
   
@@ -97,7 +101,6 @@ function openTab() {
 }
 
 function done() {
-  Services.prefs.clearUserPref("browser.sessionstore.interval");
   gBrowser.removeTab(newTab);
   
   
