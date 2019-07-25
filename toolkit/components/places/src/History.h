@@ -48,6 +48,7 @@
 #include "nsTArray.h"
 #include "nsDeque.h"
 #include "nsIObserver.h"
+#include "mozIStorageConnection.h"
 
 namespace mozilla {
 namespace places {
@@ -71,7 +72,7 @@ public:
 
 
 
-  void NotifyVisited(nsIURI *aURI);
+  void NotifyVisited(nsIURI* aURI);
 
   
 
@@ -96,16 +97,35 @@ public:
   
 
 
-  static History *GetService();
+  mozIStorageAsyncStatement* GetIsVisitedStatement();
+
+  
+
+
+  static History* GetService();
 
   
 
 
 
-  static History *GetSingleton();
+  static History* GetSingleton();
 
 private:
-  ~History();
+  virtual ~History();
+
+  
+
+
+
+
+  nsCOMPtr<mozIStorageConnection> mReadOnlyDBConn;
+
+  
+
+
+
+
+  nsCOMPtr<mozIStorageAsyncStatement> mIsVisitedStatement;
 
   
 
@@ -132,21 +152,21 @@ private:
 
   void Shutdown();
 
-  static History *gService;
+  static History* gService;
 
   
   bool mShuttingDown;
 
-  typedef nsTArray<mozilla::dom::Link *> ObserverArray;
+  typedef nsTArray<mozilla::dom::Link* > ObserverArray;
 
   class KeyClass : public nsURIHashKey
   {
   public:
-    KeyClass(const nsIURI *aURI)
+    KeyClass(const nsIURI* aURI)
     : nsURIHashKey(aURI)
     {
     }
-    KeyClass(const KeyClass &aOther)
+    KeyClass(const KeyClass& aOther)
     : nsURIHashKey(aOther)
     {
       NS_NOTREACHED("Do not call me!");
