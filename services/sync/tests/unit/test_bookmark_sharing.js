@@ -82,10 +82,16 @@ function run_test() {
 
   let username = "rusty";
   let engine = makeBookmarksEngine();
+  let shareManager = engine._sharing;
 
+  function setupShare(cb) {
+    
+    
+    
+    shareManager._share.async( shareManager, cb, folderToShare, "jonas" );
+  }
 
   
-
 
 
 
