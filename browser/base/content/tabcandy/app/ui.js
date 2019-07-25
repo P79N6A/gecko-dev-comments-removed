@@ -568,13 +568,28 @@ window.Page = {
 
 
 function UIClass(){ 
-  if (window.Tabs)
-    this.init();
-  else {
-    var self = this;
-    TabsManager.addSubscriber(this, 'load', function() {
-      self.init();
-    });
+  try {
+    Utils.log('TabCandy init --------------------');
+
+    
+    
+    this.navBar = Navbar;
+    
+    
+    
+    this.tabBar = Tabbar;
+    
+    
+    
+    
+    this.devMode = false;
+    
+    
+    
+    
+    this.currentTab = Utils.activeTab;
+  } catch(e) {
+    Utils.log(e);
   }
 };
 
@@ -583,26 +598,22 @@ UIClass.prototype = {
   
   init: function() {
     try {
-      Utils.log('TabCandy init --------------------');
-
-      
-      
-      this.navBar = Navbar;
-      
-      
-      
-      this.tabBar = Tabbar;
-      
-      
-      
-      
-      this.devMode = false;
-      
-      
-      
-      
-      this.currentTab = Utils.activeTab;
-      
+      if (window.Tabs)
+        this._secondaryInit();
+      else {
+        var self = this;
+        TabsManager.addSubscriber(this, 'load', function() {
+          self._secondaryInit();
+        });
+      }
+    } catch(e) {
+      Utils.log(e);
+    }
+  },
+  
+  
+  _secondaryInit: function() {
+    try {   
       var self = this;
       
       this.setBrowserKeyHandler();
@@ -650,10 +661,7 @@ UIClass.prototype = {
         self.delayInit();
       });
     } catch(e) {
-      Utils.log("Error in UIClass(): " + e);
-      Utils.log(e.fileName);
-      Utils.log(e.lineNumber);
-      Utils.log(e.stack);
+      Utils.log(e);
     }
   },
 
@@ -1145,5 +1153,6 @@ UIClass.prototype = {
 
 
 window.UI = new UIClass();
+window.UI.init();
 
 })();
