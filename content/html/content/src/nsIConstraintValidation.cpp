@@ -76,9 +76,9 @@ nsIConstraintValidation::GetValidationMessage(nsAString& aValidationMessage)
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_OVERFLOW);
     } else if (GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW)) {
       GetValidationMessage(aValidationMessage, VALIDITY_STATE_RANGE_UNDERFLOW);
+    } else if (GetValidityState(VALIDITY_STATE_STEP_MISMATCH)) {
+      GetValidationMessage(aValidationMessage, VALIDITY_STATE_STEP_MISMATCH);
     } else {
-      
-      
       
       return NS_ERROR_UNEXPECTED;
     }

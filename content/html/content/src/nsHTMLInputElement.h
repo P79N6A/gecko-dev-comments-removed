@@ -218,12 +218,14 @@ public:
   bool     HasPatternMismatch() const;
   bool     IsRangeOverflow() const;
   bool     IsRangeUnderflow() const;
+  bool     HasStepMismatch() const;
   void     UpdateTooLongValidityState();
   void     UpdateValueMissingValidityState();
   void     UpdateTypeMismatchValidityState();
   void     UpdatePatternMismatchValidityState();
   void     UpdateRangeOverflowValidityState();
   void     UpdateRangeUnderflowValidityState();
+  void     UpdateStepMismatchValidityState();
   void     UpdateAllValidityStates(bool aNotify);
   void     UpdateBarredFromConstraintValidation();
   nsresult GetValidationMessage(nsAString& aValidationMessage,
@@ -475,6 +477,11 @@ protected:
   
 
 
+  bool DoesStepApply() const { return DoesMinMaxApply(); }
+
+  
+
+
   bool MaxLengthApplies() const { return IsSingleLineTextControl(false, mType); }
 
   void FreeData();
@@ -555,6 +562,14 @@ protected:
 
   void UpdateHasRange();
 
+  
+
+
+
+
+
+  double GetStep() const;
+
   nsCOMPtr<nsIControllers> mControllers;
 
   
@@ -599,6 +614,11 @@ protected:
 
 
   nsString mFocusedValue;  
+
+  
+  static const double kDefaultStepBase;
+  
+  static const double kStepAny;
 
   
 
