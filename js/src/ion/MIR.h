@@ -353,13 +353,6 @@ class MDefinition : public MNode
     
     
     
-    virtual bool specializeTo(MIRType type) {
-        return false;
-    }
-
-    
-    
-    
     enum HoistWin {
         NO_WIN,
         POTENTIAL_WIN,
