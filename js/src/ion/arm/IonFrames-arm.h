@@ -50,7 +50,7 @@ class IonFramePrefix;
 
 class IonCommonFrameLayout
 {
-    void *returnAddress_;
+    uint8 *returnAddress_;
     void *padding;
     uintptr_t descriptor_;
 
@@ -71,8 +71,7 @@ class IonCommonFrameLayout
         descriptor_ = (size << FRAMETYPE_BITS) | type;
     }
     uint8 *returnAddress() const {
-        JS_NOT_REACHED("ReturnAddress NYI");
-        return NULL;
+        return returnAddress_;
     }
     uint8 **returnAddressPtr() {
         JS_NOT_REACHED("NYI");
@@ -122,6 +121,7 @@ class IonRectifierFrameLayout : public IonJSFrameLayout
 
 class IonExitFrameLayout : public IonCommonFrameLayout
 {
+    void *padding2;
 };
 
 } 

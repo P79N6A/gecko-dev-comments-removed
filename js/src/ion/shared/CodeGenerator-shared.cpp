@@ -52,7 +52,9 @@ CodeGeneratorShared::CodeGeneratorShared(MIRGenerator *gen, LIRGraph &graph)
   : gen(gen),
     graph(graph),
     deoptTable_(NULL),
+#ifdef DEBUG
     pushedArgs_(0),
+#endif
     osrEntryOffset_(0),
     frameDepth_(graph.localSlotCount() * sizeof(STACK_SLOT_SIZE) +
                 graph.argumentSlotCount() * sizeof(Value))
@@ -266,3 +268,47 @@ CodeGeneratorShared::assignFrameInfo(LSafepoint *safepoint, LSnapshot *snapshot)
     return frameInfoTable_.append(fi);
 }
 
+
+
+bool
+CodeGeneratorShared::callVM(const VMFunction &fun, LInstruction *ins)
+{
+    
+    
+    
+#ifdef DEBUG
+    JS_ASSERT(pushedArgs_ == fun.explicitArgs);
+    pushedArgs_ = 0;
+#endif
+
+    
+    IonCompartment *ion = gen->cx->compartment->ionCompartment();
+    IonCode *wrapper = ion->generateVMWrapper(gen->cx, fun);
+    if (!wrapper)
+        return false;
+
+#if defined(JS_CPU_ARM)
+    
+    
+    
+    uint32 argumentPadding = (fun.explicitArgs % (StackAlignment / sizeof(void *))) * sizeof(void *);
+    masm.reserveStack(argumentPadding);
+#else
+    uint32 argumentPadding = 0;
+#endif
+
+    
+    
+    
+    
+    masm.callWithExitFrame(wrapper);
+    if (!createSafepoint(ins))
+        return false;
+
+    
+    masm.implicitPop(fun.explicitArgs + argumentPadding / sizeof(void *));
+
+    
+    
+    return true;
+}

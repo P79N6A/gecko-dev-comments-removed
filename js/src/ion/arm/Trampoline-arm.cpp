@@ -507,21 +507,26 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     VMWrapperMap::AddPtr p = functionWrappers_->lookupForAdd(&f);
     if (p)
         return p->value;
+
+    
     MacroAssembler masm;
-    
-    
-    const GeneralRegisterSet allocatableRegs(Registers::AllocatableMask & ~Registers::ArgRegMask);
-    GeneralRegisterSet regs(allocatableRegs);
-    
-    
+    GeneralRegisterSet regs =
+        GeneralRegisterSet::Not(GeneralRegisterSet(Register::Codes::VolatileMask));
+
     
     
     
+    
+    
+    
+    masm.linkExitFrame();
+
     
     Register argsBase = InvalidReg;
+    uint32 argumentPadding = (f.explicitArgs % (StackAlignment / sizeof(void *))) * sizeof(void *);
     if (f.explicitArgs) {
         argsBase = regs.takeAny();
-        masm.ma_add(sp, Imm32(sizeof(IonExitFrameLayout)), argsBase);
+        masm.ma_add(sp, Imm32(sizeof(IonExitFrameLayout) + argumentPadding), argsBase);
     }
 
     
@@ -532,14 +537,13 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
         masm.ma_mov(sp, outReg);
     }
 
-    Register temp = regs.takeAny();
     
-    masm.setupUnalignedABICall(f.argc(), temp);
+    masm.setupAlignedABICall(f.argc());
 
     
     Register cxreg = r0;
-    
-    masm.movePtr(ImmWord(&JS_THREAD_DATA(cx)->ionJSContext), cxreg);
+    masm.movePtr(ImmWord(JS_THREAD_DATA(cx)), cxreg);
+    masm.loadPtr(Address(cxreg, offsetof(ThreadData, ionJSContext)), cxreg);
     masm.setABIArg(0, cxreg);
 
     
@@ -561,26 +565,11 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     if (f.outParam == Type_Value) {
-        masm.ma_ldrd(EDtrAddr(sp, EDtrOffImm(0)), JSReturnReg_Data, JSReturnReg_Type);
+        masm.loadValue(Address(sp, 0), JSReturnOperand);
         masm.freeStack(sizeof(Value));
     }
 
-    
-    regs = GeneralRegisterSet::Not(GeneralRegisterSet(Registers::JSCallMask | Registers::CallMask));
-    temp = regs.takeAny();
-
-    
-    
-    
-    
-    
-    
-    
-    masm.breakpoint();
-    masm.ma_sub(pc, Imm32(128), temp);
-    masm.ma_add(Imm32(sizeof(IonExitFrameLayout) + f.explicitArgs * sizeof(void *)), sp);
-    masm.ma_push(temp);
-    masm.ret();
+    masm.retn(Imm32(sizeof(IonExitFrameLayout) + argumentPadding + f.explicitArgs * sizeof(void *)));
 
     masm.bind(&exception);
     masm.handleException();

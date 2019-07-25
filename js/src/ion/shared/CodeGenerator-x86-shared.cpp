@@ -105,48 +105,6 @@ CodeGeneratorX86Shared::generateEpilogue()
     return true;
 }
 
-
-
-bool
-CodeGeneratorX86Shared::callVM(const VMFunction &fun, LInstruction *ins)
-{
-    
-    
-    
-    JS_ASSERT(pushedArgs_ == fun.explicitArgs);
-    pushedArgs_ = 0;
-
-    
-    IonCompartment *ion = gen->cx->compartment->ionCompartment();
-    IonCode *wrapper = ion->generateVMWrapper(gen->cx, fun);
-    if (!wrapper)
-        return false;
-
-    
-    uint32 descriptor = MakeFrameDescriptor(masm.framePushed(), IonFrame_JS);
-    masm.push(Imm32(descriptor));
-
-    
-    
-    
-    
-
-    
-    
-    
-    
-    masm.call(wrapper);
-    if (!createSafepoint(ins))
-        return false;
-
-    
-    masm.implicitPop(fun.explicitArgs);
-
-    
-    
-    return true;
-}
-
 bool
 OutOfLineBailout::accept(CodeGeneratorX86Shared *codegen)
 {
@@ -741,24 +699,6 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
 }
 
 bool
-CodeGeneratorX86Shared::visitNewArray(LNewArray *ins)
-{
-    typedef JSObject *(*pf)(JSContext *, uint32, types::TypeObject *);
-    static const VMFunction NewInitArrayInfo = FunctionInfo<pf>(NewInitArray);
-
-    
-    
-    const Register type = ReturnReg;
-    masm.movePtr(ImmWord(ins->mir()->type()), type);
-
-    pushArg(type);
-    pushArg(Imm32(ins->mir()->count()));
-    if (!callVM(NewInitArrayInfo, ins))
-        return false;
-    return true;
-}
-
-bool
 CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
 {
     
@@ -947,20 +887,6 @@ CodeGeneratorX86Shared::visitGuardClass(LGuardClass *guard)
     masm.loadBaseShape(obj, tmp);
     masm.cmpPtr(Operand(tmp, BaseShape::offsetOfClass()), ImmWord(guard->mir()->getClass()));
     if (!bailoutIf(Assembler::NotEqual, guard->snapshot()))
-        return false;
-    return true;
-}
-
-bool
-CodeGeneratorX86Shared::visitLoadPropertyGeneric(LLoadPropertyGeneric *ins)
-{
-    typedef bool (*pf)(JSContext *, JSObject *, JSAtom *, Value *);
-    static const VMFunction GetPropertyInfo = FunctionInfo<pf>(GetProperty);
-    const Register obj = ToRegister(ins->getOperand(0));
-
-    pushArg(ImmGCPtr(ins->mir()->atom()));
-    pushArg(obj);
-    if (!callVM(GetPropertyInfo, ins))
         return false;
     return true;
 }

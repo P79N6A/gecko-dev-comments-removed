@@ -464,10 +464,6 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     
     
 
-#ifdef JS_CPU_ARM
-    
-    return true;
-#else
     typedef bool (*pf)(JSContext *);
     static const VMFunction ReportOverRecursedInfo =
         FunctionInfo<pf>(ReportOverRecursed);
@@ -480,7 +476,6 @@ CodeGenerator::visitCheckOverRecursedFailure(CheckOverRecursedFailure *ool)
     masm.breakpoint();
 #endif
     return true;
-#endif
 }
 
 bool
@@ -496,6 +491,24 @@ CodeGenerator::generateBody()
         if (masm.oom())
             return false;
     }
+    return true;
+}
+
+bool
+CodeGenerator::visitNewArray(LNewArray *ins)
+{
+    typedef JSObject *(*pf)(JSContext *, uint32, types::TypeObject *);
+    static const VMFunction NewInitArrayInfo = FunctionInfo<pf>(NewInitArray);
+
+    
+    
+    const Register type = ReturnReg;
+    masm.movePtr(ImmWord(ins->mir()->type()), type);
+
+    pushArg(type);
+    pushArg(Imm32(ins->mir()->count()));
+    if (!callVM(NewInitArrayInfo, ins))
+        return false;
     return true;
 }
 
@@ -653,6 +666,20 @@ CodeGenerator::visitOutOfLineUnboxDouble(OutOfLineUnboxDouble *ool)
     return true;
 }
 
+bool
+CodeGenerator::visitLoadPropertyGeneric(LLoadPropertyGeneric *ins)
+{
+    typedef bool (*pf)(JSContext *, JSObject *, JSAtom *, Value *);
+    static const VMFunction GetPropertyInfo = FunctionInfo<pf>(GetProperty);
+    const Register obj = ToRegister(ins->getOperand(0));
+
+    pushArg(ImmGCPtr(ins->mir()->atom()));
+    pushArg(obj);
+    if (!callVM(GetPropertyInfo, ins))
+        return false;
+    return true;
+}
+
 
 class OutOfLineGetPropertyCache : public OutOfLineCodeBase<CodeGenerator>
 {
@@ -739,9 +766,12 @@ CodeGenerator::visitOutOfLineGetPropertyCache(OutOfLineGetPropertyCache *ool)
 
     masm.PushVolatileRegsInMask(liveRegs);
 
+    typedef bool (*pf)(JSContext *, size_t, JSObject *, Value *);
+    static const VMFunction GetPropertyCacheInfo = FunctionInfo<pf>(GetPropertyCache);
+
     pushArg(objReg);
     pushArg(Imm32(cacheIndex));
-    if (!callVM(GetPropertyCacheFun, ool->cache()))
+    if (!callVM(GetPropertyCacheInfo, ool->cache()))
         return false;
 
     masm.storeCallResult(output);

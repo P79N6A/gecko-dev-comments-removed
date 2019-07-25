@@ -56,53 +56,8 @@ static Register CallReg = ip;
 
 class MacroAssemblerARM : public Assembler
 {
-    
-    
-    uint32 stackAdjust_;
-    bool dynamicAlignment_;
-    bool inCall_;
-    bool enoughMemory_;
-
-    
-    
-    
-    
-    
-    uint32 setupABICall(uint32 arg);
-
-  protected:
-    MoveResolver moveResolver_;
-
-    
-    
-    
-    
-    
-    uint32 framePushed_;
-
   public:
-    typedef MoveResolver::MoveOperand MoveOperand;
-    typedef MoveResolver::Move Move;
-
-    MacroAssemblerARM()
-      : stackAdjust_(0),
-        inCall_(false),
-        enoughMemory_(true),
-        framePushed_(0)
-    { }
-
-    bool oom() const {
-        return Assembler::oom() || !enoughMemory_;
-    }
-
     void convertInt32ToDouble(const Register &src, const FloatRegister &dest);
-
-    uint32 framePushed() const {
-        return framePushed_;
-    }
-    void setFramePushed(uint32 framePushed) {
-        framePushed_ = framePushed;
-    }
 
     
     
@@ -342,29 +297,6 @@ class MacroAssemblerARM : public Assembler
     void ma_vstr(FloatRegister src, VFPAddr addr);
     void ma_vstr(FloatRegister src, const Operand &addr);
 
-    void loadDouble(Address addr, FloatRegister dest) {
-        JS_NOT_REACHED("NYI");
-    }
-    void storeDouble(FloatRegister src, Address addr) {
-        JS_NOT_REACHED("NYI");
-    }
-
-  public:
-    void reserveStack(uint32 amount);
-    void freeStack(uint32 amount);
-
-    void move32(const Imm32 &imm, const Register &dest);
-    void movePtr(ImmWord imm, const Register dest);
-    void movePtr(ImmGCPtr imm, const Register dest);
-    void load32(const Address &address, Register dest);
-    void loadPtr(const Address &address, Register dest);
-    void loadPtr(const ImmWord &imm, Register dest);
-    void storePtr(Register src, const Address &address);
-    void setStackArg(const Register &reg, uint32 arg);
-
-    void subPtr(Imm32 imm, const Register dest);
-    void addPtr(Imm32 imm, const Register dest);
-
     
     void ma_callIon(const Register reg);
     
@@ -372,42 +304,49 @@ class MacroAssemblerARM : public Assembler
     
     void ma_callIonHalfPush(const Register reg);
     void ma_call(void *dest);
-    void breakpoint();
-    Condition compareDoubles(JSOp compare, FloatRegister lhs, FloatRegister rhs);
-    void checkStackAlignment();
-
-    void rshiftPtr(Imm32 imm, const Register &dest) {
-        ma_lsr(imm, dest, dest);
-    }
-
-    
-    
-    
-    
-    
-    
-    
-    void setupAlignedABICall(uint32 args);
-
-    
-    
-    void setupUnalignedABICall(uint32 args, const Register &scratch);
-
-    
-    
-    
-    
-    
-    
-    void setABIArg(uint32 arg, const MoveOperand &from);
-    void setABIArg(uint32 arg, const Register &reg);
-
-    
-    void callWithABI(void *fun);
 };
 
 class MacroAssemblerARMCompat : public MacroAssemblerARM
 {
+    
+    
+    uint32 stackAdjust_;
+    bool dynamicAlignment_;
+    bool inCall_;
+    bool enoughMemory_;
+
+    
+    
+    
+    
+    
+    uint32 setupABICall(uint32 arg);
+
+  protected:
+    MoveResolver moveResolver_;
+
+    
+    
+    
+    
+    
+    uint32 framePushed_;
+
+  public:
+    typedef MoveResolver::MoveOperand MoveOperand;
+    typedef MoveResolver::Move Move;
+
+    MacroAssemblerARMCompat()
+      : stackAdjust_(0),
+        inCall_(false),
+        enoughMemory_(true),
+        framePushed_(0)
+    { }
+
+    bool oom() const {
+        return Assembler::oom() || !enoughMemory_;
+    }
+
   public:
     using MacroAssemblerARM::call;
 
@@ -457,14 +396,16 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_pop(pc);
         dumpPool();
     }
-#if 0
-    void Push(const Register &reg) {
-        as_dtr(IsStore, STACK_SLOT_SIZE*8, PreIndex,
-               reg,DTRAddr( sp, DtrOffImm(-STACK_SLOT_SIZE)));
-        framePushed_ += STACK_SLOT_SIZE;
+    void retn(Imm32 n) {
+        
+        ma_dtr(IsLoad, sp, n, pc, PostIndex);
+        dumpPool();
     }
-#endif
     void push(Imm32 imm) {
+        ma_mov(imm, ScratchRegister);
+        ma_push(ScratchRegister);
+    }
+    void push(ImmGCPtr imm) {
         ma_mov(imm, ScratchRegister);
         ma_push(ScratchRegister);
     }
@@ -566,16 +507,6 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         JS_NOT_REACHED("feature NYI");
     }
 
-    void Push(Imm32 imm) {
-        JS_NOT_REACHED("feature NYI");
-    }
-    void Push(Register reg) {
-        JS_NOT_REACHED("feature NYI");
-    }
-    void Pop(Register reg) {
-        JS_NOT_REACHED("feature NYI");
-    }
-
     template<typename T>
     void branchTestBooleanTruthy(bool b, const T & t, Label *label) {
         Condition c = testBooleanTruthy(b, t);
@@ -592,8 +523,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     }
     void branchPtr(Condition cond, Register lhs, ImmGCPtr ptr, Label *label) {
         movePtr(ptr, ScratchRegister);
-        ma_cmp(ScratchRegister, lhs);
-        ma_b(label, cond);
+        branchPtr(cond, lhs, ScratchRegister, label);
     }
     void branchPtr(Condition cond, Register lhs, ImmWord imm, Label *label) {
         ma_cmp(lhs, Imm32(imm.value));
@@ -621,7 +551,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         storeValue(val, Operand(dest));
     }
 
-    void loadValue(Operand src, ValueOperand val);
+    void loadValue(Address src, ValueOperand val);
     void pushValue(ValueOperand val);
     void popValue(ValueOperand val);
     void storePayload(const Value &val, Operand dest);
@@ -632,12 +562,96 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         ma_orr(Imm32(type), frameSizeReg);
     }
 
-    void loadValue(Address address, ValueOperand dest) {
+    void loadDouble(Address addr, FloatRegister dest) {
+        JS_NOT_REACHED("NYI");
+    }
+    void storeDouble(FloatRegister src, Address addr) {
         JS_NOT_REACHED("NYI");
     }
 
     void linkExitFrame();
     void handleException();
+
+    
+    
+    
+  public:
+    
+    void Push(const Register &reg) {
+        ma_push(reg);
+        framePushed_ += STACK_SLOT_SIZE;
+    }
+    void Push(const Imm32 imm) {
+        push(imm);
+        framePushed_ += STACK_SLOT_SIZE;
+    }
+    void Push(const ImmGCPtr ptr) {
+        push(ptr);
+        framePushed_ += STACK_SLOT_SIZE;
+    }
+    void Pop(const Register &reg) {
+        ma_pop(reg);
+        framePushed_ -= STACK_SLOT_SIZE;
+    }
+    void implicitPop(uint32 args) {
+        framePushed_ -= args * STACK_SLOT_SIZE;
+    }
+    uint32 framePushed() const {
+        return framePushed_;
+    }
+    void setFramePushed(uint32 framePushed) {
+        framePushed_ = framePushed;
+    }
+
+    void callWithExitFrame(IonCode *target);
+
+    void reserveStack(uint32 amount);
+    void freeStack(uint32 amount);
+
+    void move32(const Imm32 &imm, const Register &dest);
+    void movePtr(ImmWord imm, const Register dest);
+    void movePtr(ImmGCPtr imm, const Register dest);
+    void load32(const Address &address, Register dest);
+    void loadPtr(const Address &address, Register dest);
+    void loadPtr(const ImmWord &imm, Register dest);
+    void storePtr(Register src, const Address &address);
+    void setStackArg(const Register &reg, uint32 arg);
+
+    void subPtr(Imm32 imm, const Register dest);
+    void addPtr(Imm32 imm, const Register dest);
+
+    void breakpoint();
+    Condition compareDoubles(JSOp compare, FloatRegister lhs, FloatRegister rhs);
+    void checkStackAlignment();
+
+    void rshiftPtr(Imm32 imm, const Register &dest) {
+        ma_lsr(imm, dest, dest);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    void setupAlignedABICall(uint32 args);
+
+    
+    
+    void setupUnalignedABICall(uint32 args, const Register &scratch);
+
+    
+    
+    
+    
+    
+    
+    void setABIArg(uint32 arg, const MoveOperand &from);
+    void setABIArg(uint32 arg, const Register &reg);
+
+    
+    void callWithABI(void *fun);
 };
 
 typedef MacroAssemblerARMCompat MacroAssemblerSpecific;

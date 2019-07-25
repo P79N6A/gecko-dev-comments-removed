@@ -60,11 +60,6 @@ class LIRGeneratorARM : public LIRGeneratorShared
     bool useBox(LInstruction *lir, size_t n, MDefinition *mir,
                 LUse::Policy policy = LUse::REGISTER);
 
-    
-    
-    
-    bool fillBoxUses(LInstruction *lir, size_t n, MDefinition *mir);
-
     void lowerUntypedPhiInput(MPhi *phi, uint32 inputPosition, LBlock *block, size_t lirIndex);
     bool defineUntypedPhi(MPhi *phi, size_t lirIndex);
     bool lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mir, MDefinition *lhs, 

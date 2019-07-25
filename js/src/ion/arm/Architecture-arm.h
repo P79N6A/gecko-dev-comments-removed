@@ -123,9 +123,6 @@ class Registers
     static const uint32 AllMask = (1 << Total) - 1;
     static const uint32 ArgRegMask = (1 << r0) | (1 << r1) | (1 << r2) | (1 << r3);
 
-    
-    static const uint32 CallMask = (1 << r0) | (1 << r1) | (1 << r2) | (1 << r3);
-
     static const uint32 VolatileMask =
         (1 << r0) |
         (1 << r1) |
@@ -159,10 +156,12 @@ class Registers
 
     
     static const uint32 JSCallMask =
-              (1 << Registers::r0) |
-              (1 << Registers::r1) |
-              (1 << Registers::r2) |
-              (1 << Registers::r3);
+        (1 << Registers::r2) |
+        (1 << Registers::r3);
+
+    
+    static const uint32 CallMask =
+        (1 << Registers::r0);
 
     static const uint32 AllocatableMask = AllMask & ~NonAllocatableMask;
 };
