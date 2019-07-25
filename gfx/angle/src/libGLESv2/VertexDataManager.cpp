@@ -139,8 +139,6 @@ GLenum VertexDataManager::prepareVertexData(GLint start, GLsizei count, Translat
                 else if (staticBuffer->lookupAttribute(attribs[i]) == -1)
                 {
                     
-                    buffer->invalidateStaticData();
-
                     
                     for (int previous = 0; previous < i; previous++)
                     {
@@ -157,6 +155,8 @@ GLenum VertexDataManager::prepareVertexData(GLint start, GLsizei count, Translat
                     }
 
                     mStreamingBuffer->addRequiredSpace(spaceRequired(attribs[i], count));
+
+                    buffer->invalidateStaticData();
                 }    
             }
             else
