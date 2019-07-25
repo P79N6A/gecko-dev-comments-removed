@@ -305,12 +305,6 @@ nsHTMLReflowState::Init(nsPresContext* aPresContext,
                    "have unconstrained width; this should only result from "
                    "very large sizes, not attempts at intrinsic width "
                    "calculation");
-
-  if (frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) {
-    
-    
-    nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
-  }
 }
 
 void nsHTMLReflowState::InitCBReflowState()
@@ -364,34 +358,49 @@ IsQuirkContainingBlockHeight(const nsHTMLReflowState* rs, nsIAtom* aFrameType)
 void
 nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext, nsIAtom* aFrameType)
 {
-  mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
-                    frame->GetSize().width !=
-                      mComputedWidth + mComputedBorderPadding.LeftRight();
-  if (mFlags.mHResize &&
+  if ((frame->GetStateBits() & NS_FRAME_FONT_INFLATION_FLOW_ROOT) &&
       nsLayoutUtils::FontSizeInflationEnabled(aPresContext)) {
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+    bool dirty = nsFontInflationData::UpdateFontInflationDataWidthFor(*this);
+    if (dirty) {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
-    
-    
-    
-    
-    
-    frame->AddStateBits(NS_FRAME_IS_DIRTY);
+      
+      
+      
+      
+      
+      if (frame->GetType() == nsGkAtoms::svgForeignObjectFrame) {
+        
+        frame->AddStateBits(NS_FRAME_HAS_DIRTY_CHILDREN);
+        nsIFrame *kid = frame->GetFirstPrincipalChild();
+        if (kid) {
+          kid->AddStateBits(NS_FRAME_IS_DIRTY);
+        }
+      } else {
+        frame->AddStateBits(NS_FRAME_IS_DIRTY);
+      }
+    }
   }
+
+  mFlags.mHResize = !(frame->GetStateBits() & NS_FRAME_IS_DIRTY) &&
+                    frame->GetSize().width !=
+                      mComputedWidth + mComputedBorderPadding.LeftRight();
 
   
   
