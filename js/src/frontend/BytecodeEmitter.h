@@ -123,16 +123,11 @@ struct BytecodeEmitter
 
     uint16_t        typesetCount;   
 
-    
-    const bool      needScriptGlobal:1; 
-
-
     bool            hasSingletons:1;    
 
     bool            inForInit:1;        
 
-    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script, unsigned lineno,
-                    bool needScriptGlobal);
+    BytecodeEmitter(Parser *parser, SharedContext *sc, Handle<JSScript*> script, unsigned lineno);
     bool init();
 
     
