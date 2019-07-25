@@ -42,11 +42,11 @@
 #include "mozilla/jsipc/ContextWrapperParent.h"
 #include "mozilla/jsipc/CPOWTypes.h"
 #include "mozilla/unused.h"
-#include "nsJSUtils.h"
 
 #include "jsobj.h"
 #include "jsfun.h"
 #include "jsutil.h"
+#include "jsobjinlines.h"
 
 using namespace mozilla::jsipc;
 
@@ -177,7 +177,7 @@ const js::Class ObjectWrapperParent::sCPOW_JSClass = {
       JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_AddProperty),
       JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_DelProperty),
       JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_GetProperty),
-      JS_VALUEIFY(js::StrictPropertyOp, ObjectWrapperParent::CPOW_SetProperty),
+      JS_VALUEIFY(js::PropertyOp, ObjectWrapperParent::CPOW_SetProperty),
       (JSEnumerateOp) ObjectWrapperParent::CPOW_NewEnumerate,
       (JSResolveOp) ObjectWrapperParent::CPOW_NewResolve,
       JS_VALUEIFY(js::ConvertOp, ObjectWrapperParent::CPOW_Convert),
@@ -266,12 +266,8 @@ ObjectWrapperParent::jsval_to_JSVariant(JSContext* cx, jsval from,
         }
         return true;
     case JSTYPE_STRING:
-        {
-            nsDependentJSString depStr;
-            if (!depStr.init(cx, from))
-                return false;
-            *to = depStr;
-        }
+        *to = nsDependentString((PRUnichar*)JS_GetStringChars(JSVAL_TO_STRING(from)),
+                                JS_GetStringLength(JSVAL_TO_STRING(from)));
         return true;
     case JSTYPE_NUMBER:
         if (JSVAL_IS_INT(from))
@@ -384,12 +380,10 @@ static bool
 jsval_to_nsString(JSContext* cx, jsid from, nsString* to)
 {
     JSString* str;
-    const jschar* chars;
     jsval idval;
     if (JS_IdToValue(cx, from, &idval) &&
-        (str = JS_ValueToString(cx, idval)) &&
-        (chars = JS_GetStringCharsZ(cx, str))) {
-        *to = chars;
+        (str = JS_ValueToString(cx, idval))) {
+        *to = JS_GetStringChars(str);
         return true;
     }
     return false;
@@ -450,8 +444,8 @@ ObjectWrapperParent::CPOW_GetProperty(JSContext *cx, JSObject *obj, jsid id,
 }
 
  JSBool
-ObjectWrapperParent::CPOW_SetProperty(JSContext *cx, JSObject *obj, jsid id, 
-                                      JSBool strict, jsval *vp)
+ObjectWrapperParent::CPOW_SetProperty(JSContext *cx, JSObject *obj, jsid id,
+                                      jsval *vp)
 {
     CPOW_LOG(("Calling CPOW_SetProperty (%s)...",
               JSVAL_TO_CSTR(cx, id)));

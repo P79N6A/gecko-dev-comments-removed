@@ -39,6 +39,7 @@
 
 
 #include "xpcprivate.h"
+#include "jsobjinlines.h"
 
 #ifdef TAB
 #undef TAB
@@ -71,7 +72,7 @@ static char* FormatJSFrame(JSContext* cx, JSStackFrame* fp,
 {
     JSPropertyDescArray callProps = {0, nsnull};
     JSPropertyDescArray thisProps = {0, nsnull};
-    JSBool gotThisVal = JS_FALSE;
+    JSBool gotThisVal;
     jsval thisVal;
     JSObject* callObj = nsnull;
     JSString* funname = nsnull;
@@ -446,7 +447,7 @@ static const int tab_width = 2;
 
 static void PrintObjectBasics(JSObject* obj)
 {
-    if (JS_IsNative(obj))
+    if (obj->isNative())
         printf("%p 'native' <%s>",
                (void *)obj, obj->getClass()->name);
     else
@@ -470,7 +471,7 @@ static void PrintObject(JSObject* obj, int depth, ObjectPile* pile)
         return;
     }
 
-    if(!JS_IsNative(obj))
+    if(!obj->isNative())
         return;
 
     JSObject* parent = obj->getParent();

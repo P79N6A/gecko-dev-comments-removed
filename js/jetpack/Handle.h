@@ -46,6 +46,7 @@
 
 #include "jsapi.h"
 #include "jsobj.h"
+#include "jsobjinlines.h"
 #include "jscntxt.h"
 
 #include "mozilla/unused.h"
@@ -121,6 +122,8 @@ public:
 
   JSObject* ToJSObject(JSContext* cx) {
     if (!mObj && !mCx) {
+      JSAutoRequest request(cx);
+
       JSClass* clasp = const_cast<JSClass*>(&sHandle_JSClass);
       JSObject* obj = JS_NewObject(cx, clasp, NULL, NULL);
       if (!obj)
@@ -162,18 +165,14 @@ private:
         js::AutoObjectRooter obj(mCx, mObj);
         mObj = NULL;
 
-        
-        JSAutoEnterCompartment ac;
-        if (ac.enter(mCx, obj.object())) {
-          JSBool hasOnInvalidate;
-          if (JS_HasProperty(mCx, obj.object(), "onInvalidate",
-                             &hasOnInvalidate) && hasOnInvalidate) {
-            js::AutoValueRooter r(mCx);
-            JSBool ok = JS_CallFunctionName(mCx, obj.object(), "onInvalidate", 0,
-                                            NULL, r.jsval_addr());
-            if (!ok)
-              JS_ReportPendingException(mCx);
-          }
+        JSBool hasOnInvalidate;
+        if (JS_HasProperty(mCx, obj.object(), "onInvalidate",
+                           &hasOnInvalidate) && hasOnInvalidate) {
+          js::AutoValueRooter r(mCx);
+          JSBool ok = JS_CallFunctionName(mCx, obj.object(), "onInvalidate", 0,
+                                          NULL, r.jsval_addr());
+          if (!ok)
+            JS_ReportPendingException(mCx);
         }
 
         
@@ -249,7 +248,7 @@ private:
   }
 
   static JSBool
-  SetIsRooted(JSContext* cx, JSObject* obj, jsid, JSBool strict, jsval* vp) {
+  SetIsRooted(JSContext* cx, JSObject* obj, jsid, jsval* vp) {
     Handle* self = Unwrap(cx, obj);
     JSBool v;
     if (!JS_ValueToBoolean(cx, *vp, &v))
@@ -281,7 +280,7 @@ private:
 
     Handle* self = Unwrap(cx, JS_THIS_OBJECT(cx, vp));
     if (self)
-      unused << BaseType::Send__delete__(self);
+      unused << Send__delete__(self);
 
     JS_SET_RVAL(cx, vp, JSVAL_VOID);
 
@@ -320,7 +319,7 @@ private:
       NS_ASSERTION(!self->mRooted, "Finalizing a rooted object?");
       self->mCx = NULL;
       self->mObj = NULL;
-      unused << BaseType::Send__delete__(self);
+      unused << Send__delete__(self);
     }
   }
 };
@@ -330,7 +329,7 @@ const JSClass
 Handle<BaseType>::sHandle_JSClass = {
   "IPDL Handle", JSCLASS_HAS_PRIVATE,
   JS_PropertyStub, JS_PropertyStub,
-  JS_PropertyStub, JS_StrictPropertyStub,
+  JS_PropertyStub, JS_PropertyStub,
   JS_EnumerateStub, JS_ResolveStub,
   JS_ConvertStub, Handle::Finalize,
   JSCLASS_NO_OPTIONAL_MEMBERS
