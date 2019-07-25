@@ -125,8 +125,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x8e51e6d9, 0x914d, 0x46ba, \
-  { 0xb3, 0x11, 0x2f, 0x27, 0x3d, 0xe6, 0x0d, 0x19 } }
+{ 0x283ec27d, 0x5b23, 0x49b2, \
+  { 0x94, 0xd9, 0x9, 0xb5, 0xdb, 0x45, 0x30, 0x73 } }
 
 
 
@@ -182,6 +182,10 @@ public:
 #endif
   
   
+
+
+
+
 
 
 
@@ -1638,30 +1642,6 @@ public:
   
   virtual void DocSizeOfIncludingThis(nsWindowSizes* aWindowSizes) const;
 
-  PRBool MayHaveDOMMutationObservers()
-  {
-    return mMayHaveDOMMutationObservers;
-  }
-
-  void SetMayHaveDOMMutationObservers()
-  {
-    mMayHaveDOMMutationObservers = true;
-  }
-
-  bool IsInSyncOperation()
-  {
-    return mInSyncOperationCount != 0;
-  }
-
-  void SetIsInSyncOperation(bool aSync)
-  {
-    if (aSync) {
-      ++mInSyncOperationCount;
-    } else {
-      --mInSyncOperationCount;
-    }
-  }
-
 private:
   PRUint64 mWarnedAbout;
 
@@ -1834,9 +1814,6 @@ protected:
   bool mNeedStyleFlush;
 
   
-  bool mMayHaveDOMMutationObservers;
-
-  
   
   
   nsCOMPtr<nsIScriptGlobalObject> mScriptGlobalObject;
@@ -1931,8 +1908,6 @@ protected:
   nsCOMPtr<nsIVariant> mStateObjectCached;
 
   PRUint8 mDefaultElementType;
-
-  PRUint32 mInSyncOperationCount;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)
@@ -1977,16 +1952,6 @@ public:
 private:
   nsCOMPtr<nsINode>     mTarget;
   nsCOMPtr<nsIDocument> mSubtreeOwner;
-};
-
-class NS_STACK_CLASS nsAutoSyncOperation
-{
-public:
-  nsAutoSyncOperation(nsIDocument* aDocument);
-  ~nsAutoSyncOperation();
-private:
-  nsCOMArray<nsIDocument> mDocuments;
-  PRUint32                mMicroTaskLevel;
 };
 
 
