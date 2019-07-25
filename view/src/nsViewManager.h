@@ -151,6 +151,7 @@ private:
 
   void FlushPendingInvalidates();
   void ProcessPendingUpdates(nsView *aView, bool aDoInvalidate);
+  void FlushDirtyRegionToWidget(nsView* aView);
   
 
 
