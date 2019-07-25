@@ -55,6 +55,10 @@
 
 class nsIDOMSVGMatrix;
 class nsSMILTimeContainer;
+class nsSVGViewElement;
+namespace mozilla {
+  class SVGFragmentIdentifier;
+}
 
 typedef nsSVGStylableElement nsSVGSVGElementBase;
 
@@ -138,6 +142,7 @@ class nsSVGSVGElement : public nsSVGSVGElementBase,
   friend class nsSVGOuterSVGFrame;
   friend class nsSVGInnerSVGFrame;
   friend class nsSVGImageFrame;
+  friend class mozilla::SVGFragmentIdentifier;
 
   friend nsresult NS_NewSVGSVGElement(nsIContent **aResult,
                                       already_AddRefed<nsINodeInfo> aNodeInfo,
@@ -274,13 +279,6 @@ public:
 
 private:
   
-  
-  
-  void SetImageOverridePreserveAspectRatio(const SVGPreserveAspectRatio& aPAR);
-  void ClearImageOverridePreserveAspectRatio();
-  const SVGPreserveAspectRatio* GetImageOverridePreserveAspectRatio() const;
-
-  
   bool IsEventName(nsIAtom* aName);
 
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
@@ -289,6 +287,23 @@ private:
   virtual void UnbindFromTree(bool aDeep, bool aNullParent);
 
   
+
+  
+  
+  
+  void SetImageOverridePreserveAspectRatio(const SVGPreserveAspectRatio& aPAR);
+  void ClearImageOverridePreserveAspectRatio();
+
+  
+  bool SetPreserveAspectRatioProperty(const SVGPreserveAspectRatio& aPAR);
+  const SVGPreserveAspectRatio* GetPreserveAspectRatioProperty() const;
+  bool ClearPreserveAspectRatioProperty();
+  bool SetViewBoxProperty(const nsSVGViewBoxRect& aViewBox);
+  const nsSVGViewBoxRect* GetViewBoxProperty() const;
+  bool ClearViewBoxProperty();
+  bool SetZoomAndPanProperty(PRUint16 aValue);
+  const PRUint16* GetZoomAndPanProperty() const;
+  bool ClearZoomAndPanProperty();
 
   bool IsRoot() const {
     NS_ASSERTION((IsInDoc() && !GetParent()) ==
@@ -317,7 +332,7 @@ private:
 
 
   bool WillBeOutermostSVG(nsIContent* aParent,
-                            nsIContent* aBindingParent) const;
+                          nsIContent* aBindingParent) const;
 
   
   void InvalidateTransformNotifyFrame();
@@ -326,6 +341,19 @@ private:
   
   
   bool HasPreserveAspectRatio();
+
+ 
+
+
+
+
+  nsSVGViewBoxRect GetViewBoxWithSynthesis(
+      float aViewportWidth, float aViewportHeight) const;
+  
+
+
+
+  SVGPreserveAspectRatio GetPreserveAspectRatioWithOverride() const;
 
   virtual LengthAttributesInfo GetLengthInfo();
 

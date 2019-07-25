@@ -632,8 +632,8 @@ nsIAtom** const kAttributesSVG[] = {
   
   
   &nsGkAtoms::viewBox, 
+  &nsGkAtoms::viewTarget, 
   &nsGkAtoms::visibility, 
-  
   &nsGkAtoms::width, 
   
   &nsGkAtoms::word_spacing, 

@@ -248,6 +248,16 @@ public:
 
 
 
+
+  static void ActivateByHyperlink(nsIContent *aContent);
+
+  
+
+
+
+
+
+
   static float GetFontSize(mozilla::dom::Element *aElement);
   static float GetFontSize(nsIFrame *aFrame);
   static float GetFontSize(nsStyleContext *aStyleContext);
