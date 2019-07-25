@@ -130,6 +130,8 @@ Cu.import("resource://gre/modules/Services.jsm");
 
 Cu.import("resource://gre/modules/debug.js");
 
+Cu.import("resource:///modules/TelemetryTimestamps.jsm");
+
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
   Cu.import("resource://gre/modules/NetUtil.jsm");
   return NetUtil;
@@ -294,6 +296,7 @@ SessionStoreService.prototype = {
 
 
   initService: function() {
+    TelemetryTimestamps.add("sessionRestoreInitialized");
     OBSERVING.forEach(function(aTopic) {
       Services.obs.addObserver(this, aTopic, true);
     }, this);
@@ -833,7 +836,7 @@ SessionStoreService.prototype = {
       this._windows[aWindow.__SSi]._restoring = true;
     if (!aWindow.toolbar.visible)
       this._windows[aWindow.__SSi].isPopup = true;
-    
+
     
     if (this._loadState == STATE_STOPPED) {
       this._loadState = STATE_RUNNING;
@@ -841,6 +844,7 @@ SessionStoreService.prototype = {
       
       
       if (this._initialState) {
+        TelemetryTimestamps.add("sessionRestoreRestoring");
         
         this._initialState._firstTabs = true;
         this._restoreCount = this._initialState.windows ? this._initialState.windows.length : 0;
