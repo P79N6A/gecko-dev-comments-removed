@@ -41,8 +41,10 @@
 #include <stdio.h>
 #include <stdlib.h>             
 
-#if defined(XP_WIN)
+#if defined(_MSC_VER)           
 #  include <intrin.h>           
+#elif defined(XP_WIN)           
+#  include <windows.h>          
 #elif defined(XP_UNIX)
 #  include <unistd.h>           
 #endif
@@ -71,8 +73,10 @@ mozalloc_abort(const char* const msg)
 
 #if defined(XP_UNIX) && !defined(XP_MACOSX)
     abort();
-#elif defined(XP_WIN)
+#elif defined(_MSC_VER)
     __debugbreak();
+#elif defined(XP_WIN)
+    DebugBreak();
 #endif
     
     
