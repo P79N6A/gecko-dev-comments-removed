@@ -975,6 +975,8 @@ let RIL = {
 
 
 
+
+
   iccIO: function iccIO(options) {
     let token = Buf.newParcel(REQUEST_SIM_IO, options);
     Buf.writeUint32(options.command);
@@ -984,9 +986,9 @@ let RIL = {
     Buf.writeUint32(options.p2);
     Buf.writeUint32(options.p3);
     Buf.writeString(options.data);
-    if (options.pin2 != null) {
-      Buf.writeString(options.pin2);
-    }
+    Buf.writeString(options.pin2 ? options.pin2 : null);
+    let appIndex = this.iccStatus.gsmUmtsSubscriptionAppIndex;
+    Buf.writeString(this.iccStatus.apps[appIndex].aid);
     Buf.sendParcel();
   },
 
@@ -1051,7 +1053,7 @@ let RIL = {
     this.iccIO({
       command:   ICC_COMMAND_GET_RESPONSE,
       fileId:    ICC_EF_MSISDN,
-      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
+      pathId:    EF_PATH_MF_SIM + EF_PATH_ADF_USIM,
       p1:        0, 
       p2:        0, 
       p3:        GET_RESPONSE_EF_SIZE_BYTES,
@@ -1094,7 +1096,7 @@ let RIL = {
     this.iccIO({
       command:   ICC_COMMAND_GET_RESPONSE,
       fileId:    ICC_EF_AD,
-      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_GSM,
+      pathId:    EF_PATH_MF_SIM + EF_PATH_ADF_USIM,
       p1:        0, 
       p2:        0, 
       p3:        GET_RESPONSE_EF_SIZE_BYTES,
@@ -1146,7 +1148,7 @@ let RIL = {
     this.iccIO({
       command:   ICC_COMMAND_GET_RESPONSE,
       fileId:    ICC_EF_UST,
-      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_GSM,
+      pathId:    EF_PATH_MF_SIM + EF_PATH_ADF_USIM,
       p1:        0, 
       p2:        0, 
       p3:        GET_RESPONSE_EF_SIZE_BYTES,
@@ -1182,7 +1184,7 @@ let RIL = {
     let numLen = GsmPDUHelper.readHexOctet();
     if (numLen != 0xff) {
       if (numLen > MSISDN_MAX_NUMBER_SIZE_BYTES) {
-        debug("ICC_EF_FDN: invalid length of BCD number/SSC contents - " + numLen);
+        debug("invalid length of BCD number/SSC contents - " + numLen);
         return;
       }
 
@@ -1289,7 +1291,7 @@ let RIL = {
     this.iccIO({
       command:   ICC_COMMAND_GET_RESPONSE,
       fileId:    options.fileId,
-      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
+      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_TELECOM + EF_PATH_DF_PHONEBOOK,
       p1:        0, 
       p2:        0, 
       p3:        GET_RESPONSE_EF_SIZE_BYTES,
@@ -1326,7 +1328,7 @@ let RIL = {
     this.iccIO({
       command:   ICC_COMMAND_GET_RESPONSE,
       fileId:    ICC_EF_MBDN,
-      pathId:    EF_PATH_MF_SIM + EF_PATH_DF_GSM,
+      pathId:    EF_PATH_MF_SIM + EF_PATH_ADF_USIM,
       p1:        0, 
       p2:        0, 
       p3:        GET_RESPONSE_EF_SIZE_BYTES,
@@ -3219,10 +3221,8 @@ RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options)
   this[REQUEST_DATA_CALL_LIST](length, options);
 };
 RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
-  if (options.rilRequestError) {
-    return;
-  }
-
+  
+  
   let sw1 = Buf.readUint32();
   let sw2 = Buf.readUint32();
   if (sw1 != ICC_STATUS_NORMAL_ENDING) {
