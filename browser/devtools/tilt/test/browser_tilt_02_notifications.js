@@ -1,9 +1,5 @@
 
 
-
-
-
-
 "use strict";
 
 let tab0, tab1;

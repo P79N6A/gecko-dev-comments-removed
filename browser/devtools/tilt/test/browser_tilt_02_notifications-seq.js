@@ -1,10 +1,5 @@
 
 
-
-
-
-
-
 "use strict";
 
 let tabEvents = "";

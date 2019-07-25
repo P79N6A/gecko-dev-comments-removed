@@ -36,8 +36,6 @@
 
 
 
-
-
 "use strict";
 
 const SIXTEEN_OVER_255 = 16 / 255;

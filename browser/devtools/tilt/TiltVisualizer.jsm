@@ -36,9 +36,6 @@
 
 
 
-
-
-
 "use strict";
 
 const Cu = Components.utils;
@@ -508,7 +505,7 @@ TiltVisualizer.Presenter.prototype = {
 
 
 
-  setupMesh: function TVP_setupMesh(aData) 
+  setupMesh: function TVP_setupMesh(aData)
   {
     let renderer = this.renderer;
 

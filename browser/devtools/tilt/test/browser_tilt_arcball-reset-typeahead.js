@@ -1,9 +1,5 @@
 
 
-
-
-
-
 "use strict";
 
 function test() {
@@ -104,7 +100,7 @@ function performTest(canvas, arcball, callback) {
   }, Math.random() * 1000);
 }
 
-function cleanup() { 
+function cleanup() {
   info("Cleaning up arcball reset test.");
 
   Services.obs.removeObserver(cleanup, DESTROYED);

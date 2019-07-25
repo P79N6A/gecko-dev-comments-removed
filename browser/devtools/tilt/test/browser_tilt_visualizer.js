@@ -1,8 +1,5 @@
 
 
-
-
-
 "use strict";
 
 function test() {

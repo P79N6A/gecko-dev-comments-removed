@@ -1,8 +1,5 @@
 
 
-
-
-
 "use strict";
 
 let isWebGLAvailable;

@@ -1,8 +1,5 @@
 
 
-
-
-
 "use strict";
 
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
@@ -60,7 +57,7 @@ function test() {
 
     let nodeCoordinates = LayoutHelpers.getRect(
       iframe.contentDocument.getElementById("test-div"), iframe.contentWindow);
- 
+
     let frameOffset = LayoutHelpers.getIframeContentOffset(iframe);
     let frameRect = iframe.getBoundingClientRect();
 

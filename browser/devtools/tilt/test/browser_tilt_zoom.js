@@ -1,9 +1,5 @@
 
 
-
-
-
-
 "use strict";
 
 const ZOOM = 2;
