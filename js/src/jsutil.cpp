@@ -70,19 +70,26 @@ JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
 static JS_NEVER_INLINE void
 CrashInJS()
 {
+    
+
+
+
+
+
+
 #if defined(WIN32)
     
 
 
 
-    *((int *) NULL) = 0;
+    *((int *) NULL) = 123;
     exit(3);
 #elif defined(__APPLE__)
     
 
 
 
-    *((int *) NULL) = 0;  
+    *((int *) NULL) = 123;  
     raise(SIGABRT);  
 #else
     raise(SIGABRT);  
