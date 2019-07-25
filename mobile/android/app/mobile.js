@@ -168,6 +168,9 @@ pref("browser.formfill.enable", true);
 pref("layout.spellcheckDefault", 0);
 
 
+pref("dom.experimental_forms", true);
+
+
 pref("xpinstall.whitelist.add", "addons.mozilla.org");
 
 pref("extensions.enabledScopes", 1);
