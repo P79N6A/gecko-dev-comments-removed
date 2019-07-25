@@ -6107,6 +6107,10 @@ inline size_t
 TypeSet::dynamicSize()
 {
     
+
+
+
+
     uint32 count = baseObjectCount();
     if (count >= 2)
         return HashSetCapacity(count) * sizeof(TypeObject *);
@@ -6116,6 +6120,11 @@ TypeSet::dynamicSize()
 inline size_t
 TypeObject::dynamicSize()
 {
+    
+
+
+
+
     size_t bytes = 0;
 
     uint32 count = basePropertyCount();
@@ -6133,26 +6142,40 @@ TypeObject::dynamicSize()
 }
 
 static void
-GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats)
+GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats, JSUsableSizeFun usf)
 {
-    if (!script->types)
+    TypeScript *typeScript = script->types;
+    if (!typeScript)
         return;
 
+    size_t usable;
+
+    
     if (!script->compartment()->types.inferenceEnabled) {
-        stats->scripts += sizeof(TypeScript);
+        usable = usf(typeScript);
+        stats->scripts += usable ? usable : sizeof(TypeScript);
         return;
     }
 
-    unsigned count = TypeScript::NumTypeSets(script);
-    stats->scripts += sizeof(TypeScript) + count * sizeof(TypeSet);
+    usable = usf(typeScript->nesting);
+    stats->scripts += usable ? usable : sizeof(TypeScriptNesting);
 
-    TypeResult *result = script->types->dynamicList;
+    unsigned count = TypeScript::NumTypeSets(script);
+    usable = usf(typeScript);
+    stats->scripts += usable ? usable : sizeof(TypeScript) + count * sizeof(TypeSet);
+
+    TypeResult *result = typeScript->dynamicList;
     while (result) {
-        stats->scripts += sizeof(TypeResult);
+        usable = usf(result);
+        stats->scripts += usable ? usable : sizeof(TypeResult);
         result = result->next;
     }
 
-    TypeSet *typeArray = script->types->typeArray();
+    
+
+
+
+    TypeSet *typeArray = typeScript->typeArray();
     for (unsigned i = 0; i < count; i++) {
         size_t bytes = typeArray[i].dynamicSize();
         stats->scripts += bytes;
@@ -6162,44 +6185,54 @@ GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats)
 
 JS_FRIEND_API(void)
 JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
-                               TypeInferenceMemoryStats *stats)
+                               TypeInferenceMemoryStats *stats, JSUsableSizeFun usf)
 {
     
 
 
 
 
-    stats->temporary += compartment->typeLifoAlloc.used();
+    stats->temporary += compartment->typeLifoAlloc.sizeOf(usf, false);
 
     
-    stats->temporary += sizeof(TypeCompartment::PendingWork) * compartment->types.pendingCapacity;
+    size_t usable = usf(compartment->types.pendingArray);
+    stats->temporary +=
+        usable ? usable
+               : sizeof(TypeCompartment::PendingWork) * compartment->types.pendingCapacity;
+
+    
+    JS_ASSERT(!compartment->types.pendingRecompiles);
 
     for (gc::CellIter i(cx, compartment, gc::FINALIZE_SCRIPT); !i.done(); i.next())
-        GetScriptMemoryStats(i.get<JSScript>(), stats);
+        GetScriptMemoryStats(i.get<JSScript>(), stats, usf);
 
     if (compartment->types.allocationSiteTable)
-        stats->tables += compartment->types.allocationSiteTable->allocatedSize();
+        stats->tables += compartment->types.allocationSiteTable->sizeOf(usf, true);
 
     if (compartment->types.arrayTypeTable)
-        stats->tables += compartment->types.arrayTypeTable->allocatedSize();
+        stats->tables += compartment->types.arrayTypeTable->sizeOf(usf, true);
 
     if (compartment->types.objectTypeTable) {
-        stats->tables += compartment->types.objectTypeTable->allocatedSize();
+        stats->tables += compartment->types.objectTypeTable->sizeOf(usf, true);
 
         for (ObjectTypeTable::Enum e(*compartment->types.objectTypeTable);
              !e.empty();
-             e.popFront()) {
+             e.popFront())
+        {
             const ObjectTableKey &key = e.front().key;
-            stats->tables += key.nslots * (sizeof(jsid) + sizeof(Type));
+            const ObjectTableEntry &value = e.front().value;
+
+            
+            usable = usf(key.ids) + usf(value.types);
+            stats->tables += usable ? usable : key.nslots * (sizeof(jsid) + sizeof(Type));
         }
     }
 }
 
 JS_FRIEND_API(void)
-JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats)
+JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats, JSUsableSizeFun usf)
 {
     TypeObject *object = (TypeObject *) object_;
-    stats->objects += sizeof(TypeObject);
 
     if (object->singleton) {
         
@@ -6212,17 +6245,29 @@ JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats)
     }
 
     if (object->newScript) {
-        size_t length = 0;
-        for (TypeNewScript::Initializer *init = object->newScript->initializerList;; init++) {
-            length++;
-            if (init->kind == TypeNewScript::Initializer::DONE)
-                break;
+        
+        size_t usable = usf(object->newScript);
+        if (usable) {
+            stats->objects += usable;
+        } else {
+            stats->objects += sizeof(TypeNewScript);
+            for (TypeNewScript::Initializer *init = object->newScript->initializerList; ; init++) {
+                stats->objects += sizeof(TypeNewScript::Initializer);
+                if (init->kind == TypeNewScript::Initializer::DONE)
+                    break;
+            }
         }
-        stats->objects += sizeof(TypeNewScript) + (length * sizeof(TypeNewScript::Initializer));
     }
 
-    if (object->emptyShapes)
-        stats->emptyShapes += sizeof(EmptyShape*) * gc::FINALIZE_FUNCTION_AND_OBJECT_LAST;
+    if (object->emptyShapes) {
+        size_t usable = usf(object->emptyShapes);
+        stats->emptyShapes +=
+            usable ? usable : sizeof(EmptyShape*) * gc::FINALIZE_FUNCTION_AND_OBJECT_LAST;
+    }
+
+    
+
+
 
     size_t bytes = object->dynamicSize();
     stats->objects += bytes;
