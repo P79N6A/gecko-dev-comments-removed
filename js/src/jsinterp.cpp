@@ -742,10 +742,6 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
 #ifdef JS_TRACER
     if (TRACE_RECORDER(cx))
         AbortRecording(cx, "attempt to reenter VM while recording");
-#ifdef JS_METHODJIT
-    if (TRACE_PROFILER(cx))
-        AbortProfiling(cx);
-#endif
     LeaveTrace(cx);
 #endif
 
@@ -2392,7 +2388,7 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
             {                                                                 \
                 MONITOR_BRANCH_METHODJIT();                                   \
             } else {                                                          \
-                MonitorResult r = MonitorLoopEdge(cx, inlineCallCount);       \
+                MonitorResult r = MonitorLoopEdge(cx, inlineCallCount, interpMode); \
                 if (r == MONITOR_RECORDING) {                                 \
                     JS_ASSERT(TRACE_RECORDER(cx));                            \
                     JS_ASSERT(!TRACE_PROFILER(cx));                           \
@@ -2541,17 +2537,13 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
         ENABLE_INTERRUPTS();
     } else if (TRACE_RECORDER(cx)) {
         AbortRecording(cx, "attempt to reenter interpreter while recording");
-#ifdef JS_METHODJIT
-    } else if (TRACE_PROFILER(cx)) {
-        AbortProfiling(cx);
-#endif
     }
 
     if (regs.fp->hasImacropc())
         atoms = COMMON_ATOMS_START(&rt->atomState);
 #endif
 
-
+    
     if (interpMode == JSINTERP_NORMAL) {
         JS_ASSERT_IF(!regs.fp->isGeneratorFrame(), regs.pc == script->code);
         if (!ScriptPrologue(cx, regs.fp))
@@ -2667,7 +2659,8 @@ Interpret(JSContext *cx, JSStackFrame *entryFrame, uintN inlineCallCount, JSInte
 
 #ifdef JS_TRACER
 #ifdef JS_METHODJIT
-        if (LoopProfile *prof = TRACE_PROFILER(cx)) {
+        if (TRACE_PROFILER(cx) && interpMode == JSINTERP_PROFILE) {
+            LoopProfile *prof = TRACE_PROFILER(cx);
             JS_ASSERT(!TRACE_RECORDER(cx));
             LoopProfile::ProfileAction act = prof->profileOperation(cx, op);
             switch (act) {
