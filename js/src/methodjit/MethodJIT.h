@@ -454,8 +454,22 @@ enum JaegerStatus
 
 
 
-    Jaeger_UnfinishedAtTrap = 3
+    Jaeger_UnfinishedAtTrap = 3,
+
+    
+
+
+
+    Jaeger_ThrowBeforeEnter = 4
 };
+
+static inline bool
+JaegerStatusToSuccess(JaegerStatus status)
+{
+    JS_ASSERT(status != Jaeger_Unfinished);
+    JS_ASSERT(status != Jaeger_UnfinishedAtTrap);
+    return status == Jaeger_Returned;
+}
 
 
 
