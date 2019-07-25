@@ -150,14 +150,6 @@ inline bool
 ResetRegExpObject(JSContext *cx, AlreadyIncRefed<RegExpPrivate> rep);
 
 
-
-
-
-#if ENABLE_YARR_JIT && !defined(JS_METHODJIT)
-# error "YARR JIT without method JIT is an unsupported configuration."
-#endif
-
-
 class RegExpPrivateCode
 {
 #if ENABLE_YARR_JIT
