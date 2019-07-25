@@ -126,8 +126,7 @@ private:
 
 
 
-
-  void SyncViewportInfo();
+  void RequestViewTransform();
 
   
 

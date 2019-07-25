@@ -76,12 +76,6 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     private ViewportMetrics mGeckoViewport;
 
-    
-
-
-
-    private ImmutableViewportMetrics mFrameMetrics;
-
     private String mLastCheckerboardColor;
 
     
@@ -133,6 +127,11 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
     
     public void endDrawing() {
+        synchronized (mLayerController) {
+            RectF position = mGeckoViewport.getViewport();
+            mRootLayer.setPositionAndResolution(RectUtils.round(position), mGeckoViewport.getZoomFactor());
+        }
+
         
         if (mDrawListener != null) {
             mDrawListener.drawFinished();
@@ -370,26 +369,13 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-
-    public ViewTransform syncViewportInfo(int x, int y, int width, int height) {
+    public ViewTransform getViewTransform() {
         
         
-        
-        
-        
-        
-        
-        mFrameMetrics = mLayerController.getViewportMetrics();
-
-        
-        mRootLayer.setMetrics(RectUtils.round(mGeckoViewport.getViewport()),
-                              new Rect(x, y, x + width, y + height),
-                              mGeckoViewport.getZoomFactor());
-
-        mCurrentViewTransform.x = mFrameMetrics.viewportRectLeft;
-        mCurrentViewTransform.y = mFrameMetrics.viewportRectTop;
-        mCurrentViewTransform.scale = mFrameMetrics.zoomFactor;
-
+        ImmutableViewportMetrics viewportMetrics = mLayerController.getViewportMetrics();
+        mCurrentViewTransform.x = viewportMetrics.viewportRectLeft;
+        mCurrentViewTransform.y = viewportMetrics.viewportRectTop;
+        mCurrentViewTransform.scale = viewportMetrics.zoomFactor;
         return mCurrentViewTransform;
     }
 
@@ -403,7 +389,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         }
 
         
-        Layer.RenderContext pageContext = mLayerRenderer.createPageContext(mFrameMetrics);
+        Layer.RenderContext pageContext = mLayerRenderer.createPageContext();
         Layer.RenderContext screenContext = mLayerRenderer.createScreenContext();
         return mLayerRenderer.createFrame(pageContext, screenContext);
     }
