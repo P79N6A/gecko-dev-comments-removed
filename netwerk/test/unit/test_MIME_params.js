@@ -96,16 +96,16 @@ var tests = [
    "attachment", Cr.NS_ERROR_INVALID_ARG],
 
   
-  ["attachment; filename=basic; filename*0*=UTF-8''multi\r\n"
-    + " filename*1=line\r\n" 
+  ["attachment; filename=basic; filename*0*=UTF-8''multi;\r\n"
+    + " filename*1=line;\r\n" 
     + " filename*2*=%20extended",
    "attachment", "multiline extended",
    "attachment", "basic"],
 
   
   
-  ["attachment; filename=basic; filename*0*=UTF-8''multi\r\n"
-    + " filename*1=line\r\n" 
+  ["attachment; filename=basic; filename*0*=UTF-8''multi;\r\n"
+    + " filename*1=line;\r\n" 
     + " filename*3*=%20extended",
    "attachment", "multiline",
    "attachment", "basic"],
@@ -113,68 +113,60 @@ var tests = [
   
   
   ["attachment; filename=basic; filename*0*=UTF-8''multi\r\n"
-    + " filename*1=line\r\n" 
-    + " filename*0*=UTF-8''wrong\r\n"
-    + " filename*1=bad\r\n"
+    + " filename*1=line;\r\n" 
+    + " filename*0*=UTF-8''wrong;\r\n"
+    + " filename*1=bad;\r\n"
     + " filename*2=evil",
    "attachment", "multiline",
    "attachment", "basic"],
 
   
   
-  ["attachment; filename=basic; filename*0=UTF-8''multi\r\n"
-    + " filename*=UTF-8''extended\r\n"
-    + " filename*1=line\r\n" 
+  ["attachment; filename=basic; filename*0=UTF-8''multi\r\n;"
+    + " filename*=UTF-8''extended;\r\n"
+    + " filename*1=line;\r\n" 
     + " filename*2*=%20extended",
    "attachment", "extended"],
 
   
-  ["attachment; filename*0=UTF-8''unescaped\r\n"
+  ["attachment; filename*0=UTF-8''unescaped;\r\n"
     + " filename*1*=%20so%20includes%20UTF-8''%20in%20value", 
    "attachment", "UTF-8''unescaped so includes UTF-8'' in value",
    "attachment", Cr.NS_ERROR_INVALID_ARG],
 
   
-  ["attachment; filename=basic; filename*0=UTF-8''unescaped\r\n"
+  ["attachment; filename=basic; filename*0=UTF-8''unescaped;\r\n"
     + " filename*1*=%20so%20includes%20UTF-8''%20in%20value", 
    "attachment", "UTF-8''unescaped so includes UTF-8'' in value",
    "attachment", "basic"],
 
   
   
-  ["attachment; filename=basic; filename*1=multi\r\n"
-    + " filename*2=line\r\n" 
+  ["attachment; filename=basic; filename*1=multi;\r\n"
+    + " filename*2=line;\r\n" 
     + " filename*3*=%20extended",
    "attachment", "basic"],
 
   
-  ["attachment; filename=basic; filename*0*=UTF-8''0\r\n"
-    + " filename*1=1; filename*2=2;filename*3=3;filename*4=4;filename*5=5\r\n" 
-    + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a\r\n"
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*1=1; filename*2=2;filename*3=3;filename*4=4;filename*5=5;\r\n" 
+    + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a;\r\n"
     + " filename*11=b; filename*12=c;filename*13=d;filename*14=e;filename*15=f\r\n",
    "attachment", "0123456789abcdef",
    "attachment", "basic"],
 
   
-  ["attachment; filename=basic; filename*0*=UTF-8''0\r\n"
-    + " filename*1=1; filename*2=2;filename*3=3;filename*4=4;filename*5=5\r\n" 
-    + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a\r\n"
-    + " filename*11=b; filename*12=c;filename*13=d;filename*15=f;filename*14=e\r\n",
-   "attachment", "0123456789abcd" ,
-   "attachment", "basic"],
-
-  
-  ["attachment; filename=basic; filename*0*=UTF-8''0\r\n"
-    + " filename*1=1; filename*2=2;filename*3=3;filename*4=4;filename*5=5\r\n" 
-    + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a\r\n"
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*1=1; filename*2=2;filename*3=3;filename*4=4;filename*5=5;\r\n" 
+    + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a;\r\n"
     + " filename*11=b; filename*12=c;filename*14=e\r\n",
    "attachment", "0123456789abc",
    "attachment", "basic"],
 
   
   
-  ["attachment; filename*1=multi\r\n"
-    + " filename*2=line\r\n" 
+  ["attachment; filename*1=multi;\r\n"
+    + " filename*2=line;\r\n" 
     + " filename*3*=%20extended",
    "attachment", Cr.NS_ERROR_INVALID_ARG],
    
@@ -195,6 +187,53 @@ var tests = [
    "filename=foo.html", "foo.html",
    "filename=foo.html", "foo.html"],
    
+  
+
+  
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*1=1; filename*2=2;filename*3=3;filename*4=4;filename*5=5;\r\n" 
+    + " filename*6=6; filename*7=7;filename*8=8;filename*9=9;filename*10=a;\r\n"
+    + " filename*11=b; filename*12=c;filename*13=d;filename*15=f;filename*14=e;\r\n",
+   "attachment", "0123456789abcdef",
+   "attachment", "basic"],
+
+  
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*1a=1\r\n",
+   "attachment", "0",
+   "attachment", "basic"],
+
+  
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*0=bad; filename*1=1\;r\n",
+   "attachment", "0",
+   "attachment", "basic"],
+
+  
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*11111111111111111111111111111111111111111111111111111111111=1",
+   "attachment", "0",
+   "attachment", "basic"],
+
+  
+  ["attachment; filename=basic; filename*0*=UTF-8''0;\r\n"
+    + " filename*-1=1",
+   "attachment", "0",
+   "attachment", "basic"],
+
+  
+  ["attachment; filename=basic; filename*0=\"0\";\r\n"
+    + " filename*1=1;\r\n"
+    + " filename*2*=%32",
+   "attachment", "012",
+   "attachment", "basic"],
+
+  
+  ["attachment; filename=basic; filename**=UTF-8''0\r\n",
+   "attachment", "basic",
+   "attachment", "basic"],
+
+
   
   
 
@@ -301,6 +340,12 @@ var tests = [
 
   ["attachment; filename=\"", 
    "attachment", ""], 
+
+  
+
+  ["attachment; extension=bla filename=foo", 
+   "attachment", "foo"], 
+
 ];
 
 function do_tests(whichRFC)
