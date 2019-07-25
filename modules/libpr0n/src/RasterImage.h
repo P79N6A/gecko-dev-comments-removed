@@ -226,7 +226,7 @@ public:
                                PRUint32** paletteData,
                                PRUint32*  paletteLength);
 
-  nsresult FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
+  void FrameUpdated(PRUint32 aFrameNum, nsIntRect& aUpdatedRect);
 
   
   nsresult EndFrameDecode(PRUint32 aFrameNum);

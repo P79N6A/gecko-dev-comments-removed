@@ -155,13 +155,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         memcpy(mImageData + mPixBytesRead, aBuffer, bytesToRead);
 
         
-        rv = mImage->FrameUpdated(0, r);
-        if (NS_FAILED(rv)) {
-          mState = iconStateError;
-          return rv;
-        }
-        if (mObserver)
-          mObserver->OnDataAvailable(nsnull, PR_TRUE, &r);
+        PostInvalidation(r);
 
         
         aBuffer += bytesToRead;

@@ -163,19 +163,8 @@ nsresult
 nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
 {
   nsIntRect r(mGIFStruct.x_offset, mGIFStruct.y_offset + fromRow, mGIFStruct.width, rows);
+  PostInvalidation(r);
 
-  
-  nsresult rv = mImage->FrameUpdated(mGIFStruct.images_decoded, r);
-  if (NS_FAILED(rv)) {
-    return rv;
-  }
-
-  
-  
-  if (!mGIFStruct.images_decoded && mObserver) {
-    PRUint32 imgCurFrame = mImage->GetCurrentFrameIndex();
-    mObserver->OnDataAvailable(nsnull, imgCurFrame == PRUint32(mGIFStruct.images_decoded), &r);
-  }
   return NS_OK;
 }
 
@@ -285,22 +274,6 @@ void nsGIFDecoder2::EndGIF(PRBool aSuccess)
 
 nsresult nsGIFDecoder2::BeginImageFrame(gfx_depth aDepth)
 {
-  if (!mGIFStruct.images_decoded) {
-    
-    
-    
-    if (mGIFStruct.y_offset > 0) {
-      PRInt32 imgWidth;
-      mImage->GetWidth(&imgWidth);
-      PRUint32 imgCurFrame = mImage->GetCurrentFrameIndex();
-      nsIntRect r(0, 0, imgWidth, mGIFStruct.y_offset);
-      if (mObserver)
-        mObserver->OnDataAvailable(nsnull,
-                                   imgCurFrame == PRUint32(mGIFStruct.images_decoded),
-                                   &r);
-    }
-  }
-
   PRUint32 imageDataLength;
   nsresult rv;
   gfxASurface::gfxImageFormat format;
@@ -333,6 +306,18 @@ nsresult nsGIFDecoder2::BeginImageFrame(gfx_depth aDepth)
   
   PostFrameStart();
 
+  if (!mGIFStruct.images_decoded) {
+    
+    
+    
+    if (mGIFStruct.y_offset > 0) {
+      PRInt32 imgWidth;
+      mImage->GetWidth(&imgWidth);
+      nsIntRect r(0, 0, imgWidth, mGIFStruct.y_offset);
+      PostInvalidation(r);
+    }
+  }
+
   mCurrentFrame = mGIFStruct.images_decoded;
   return NS_OK;
 }
@@ -351,14 +336,10 @@ void nsGIFDecoder2::EndImageFrame()
     
     const PRUint32 realFrameHeight = mGIFStruct.height + mGIFStruct.y_offset;
     if (realFrameHeight < mGIFStruct.screen_height) {
-      PRUint32 imgCurFrame = mImage->GetCurrentFrameIndex();
       nsIntRect r(0, realFrameHeight,
                   mGIFStruct.screen_width,
                   mGIFStruct.screen_height - realFrameHeight);
-      if (mObserver)
-        mObserver->OnDataAvailable(nsnull,
-                                  imgCurFrame == PRUint32(mGIFStruct.images_decoded),
-                                  &r);
+      PostInvalidation(r);
     }
     
     if (mGIFStruct.is_transparent && !mSawTransparency) {
