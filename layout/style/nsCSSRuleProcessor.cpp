@@ -124,17 +124,80 @@ struct RuleSelectorPair {
   nsCSSSelector*    mSelector; 
 };
 
+#define NS_IS_ANCESTOR_OPERATOR(ch) \
+  ((ch) == PRUnichar(' ') || (ch) == PRUnichar('>'))
+
 
 
 
 
 
 struct RuleValue : RuleSelectorPair {
+  enum {
+    eMaxAncestorHashes = 4
+  };
+
   RuleValue(const RuleSelectorPair& aRuleSelectorPair, PRInt32 aIndex) :
     RuleSelectorPair(aRuleSelectorPair),
     mIndex(aIndex)
-  {}
+  {
+    CollectAncestorHashes();
+  }
+
   PRInt32 mIndex; 
+  uint32_t mAncestorSelectorHashes[eMaxAncestorHashes];
+
+private:
+  void CollectAncestorHashes() {
+    
+    
+    
+    
+    size_t hashIndex = 0;
+    for (nsCSSSelector* sel = mSelector->mNext; sel; sel = sel->mNext) {
+      if (!NS_IS_ANCESTOR_OPERATOR(sel->mOperator)) {
+        
+        
+        
+        
+        continue;
+      }
+
+      
+      
+      nsAtomList* ids = sel->mIDList;
+      while (ids) {
+        mAncestorSelectorHashes[hashIndex++] = ids->mAtom->hash();
+        if (hashIndex == eMaxAncestorHashes) {
+          return;
+        }
+        ids = ids->mNext;
+      }
+
+      nsAtomList* classes = sel->mClassList;
+      while (classes) {
+        mAncestorSelectorHashes[hashIndex++] = classes->mAtom->hash();
+        if (hashIndex == eMaxAncestorHashes) {
+          return;
+        }
+        classes = classes->mNext;
+      }
+
+      
+      
+      
+      if (sel->mLowercaseTag && sel->mCasedTag == sel->mLowercaseTag) {
+        mAncestorSelectorHashes[hashIndex++] = sel->mLowercaseTag->hash();
+        if (hashIndex == eMaxAncestorHashes) {
+          return;
+        }
+      }
+    }
+
+    while (hashIndex != eMaxAncestorHashes) {
+      mAncestorSelectorHashes[hashIndex++] = 0;
+    }
+  }
 };
 
 
@@ -2235,8 +2298,7 @@ static bool SelectorMatchesTree(Element* aPrevElement,
           selector->mNext &&
           selector->mNext->mOperator != selector->mOperator &&
           !(selector->mOperator == '~' &&
-            (selector->mNext->mOperator == PRUnichar(' ') ||
-             selector->mNext->mOperator == PRUnichar('>')))) {
+            NS_IS_ANCESTOR_OPERATOR(selector->mNext->mOperator))) {
 
         
         
