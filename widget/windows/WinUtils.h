@@ -51,6 +51,7 @@
 
 #include "nscore.h"
 #include <windows.h>
+#include <shobjidl.h>
 
 class nsWindow;
 
@@ -198,6 +199,28 @@ public:
 
 
   static PRUint16 GetMouseInputSource();
+
+  
+
+
+
+
+  static bool VistaCreateItemFromParsingNameInit();
+
+  
+
+
+
+
+  static HRESULT SHCreateItemFromParsingName(PCWSTR pszPath, IBindCtx *pbc,
+                                             REFIID riid, void **ppv);
+
+private:
+  typedef HRESULT (WINAPI * SHCreateItemFromParsingNamePtr)(PCWSTR pszPath,
+                                                            IBindCtx *pbc,
+                                                            REFIID riid,
+                                                            void **ppv);
+  static SHCreateItemFromParsingNamePtr sCreateItemFromParsingName;
 };
 
 } 
