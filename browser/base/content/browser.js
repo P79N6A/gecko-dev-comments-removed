@@ -1477,7 +1477,9 @@ var gBrowserInit = {
 #ifdef MENUBAR_CAN_AUTOHIDE
       document.getElementById("appmenu_styleeditor").hidden = false;
 #endif
-      document.getElementById("developer-toolbar-styleeditor").hidden = false;
+      
+      
+      
     }
 
 #ifdef MENUBAR_CAN_AUTOHIDE
