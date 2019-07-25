@@ -5855,15 +5855,12 @@ function warnAboutClosingWindow() {
     return gBrowser.warnAboutClosingTabs(true);
 
   
-  let foundOtherBrowserWindow = false;
   let e = Services.wm.getEnumerator("navigator:browser");
-  while (e.hasMoreElements() && !foundOtherBrowserWindow) {
+  while (e.hasMoreElements()) {
     let win = e.getNext();
     if (win != window && win.toolbar.visible)
-      foundOtherBrowserWindow = true;
+      return gBrowser.warnAboutClosingTabs(true);
   }
-  if (foundOtherBrowserWindow)
-    return gBrowser.warnAboutClosingTabs(true);
 
   let os = Services.obs;
 
