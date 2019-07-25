@@ -52,6 +52,20 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     static already_AddRefed<GLContext>
     CreateForWindow(nsIWidget *aWidget);
 
@@ -63,9 +77,20 @@ public:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
     static already_AddRefed<GLContext>
-    CreatePBuffer(const gfxIntSize &aSize,
-                  const ContextFormat& aFormat = ContextFormat::BasicRGBA32Format);
+    CreateOffscreen(const gfxIntSize& aSize,
+                    const ContextFormat& aFormat = ContextFormat::BasicRGBA32Format);
 
     
 
@@ -74,6 +99,13 @@ public:
 
 
 
+
     static already_AddRefed<GLContext>
     CreateForNativePixmapSurface(gfxASurface *aSurface);
+
+    
+
+
+    static GLContext *
+    GetGlobalContext();
 };

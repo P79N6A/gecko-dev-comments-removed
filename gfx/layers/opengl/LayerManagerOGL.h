@@ -80,7 +80,9 @@ class THEBES_API LayerManagerOGL : public LayerManager {
 public:
   LayerManagerOGL(nsIWidget *aWidget);
   virtual ~LayerManagerOGL();
-  
+
+  void CleanupResources();
+
   
 
 
