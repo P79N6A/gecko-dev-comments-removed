@@ -152,6 +152,13 @@
 
 
 
+#define GFX_PACKED_PIXEL_NO_PREMULTIPLY(a,r,g,b)                        \
+    (((a) << 24) | ((r) << 16) | ((g) << 8) | (b))
+
+
+
+
+
 
 
 

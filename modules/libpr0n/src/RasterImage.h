@@ -213,7 +213,8 @@ public:
   PRUint32 GetSourceDataSize();
 
   
-  void Discard();
+  void Discard(bool force = false);
+  void ForceDiscard() { Discard( true); }
 
   
   nsresult SetFrameDisposalMethod(PRUint32 aFrameNum,
@@ -450,7 +451,17 @@ private:
 private: 
 
   nsIntSize                  mSize;
+
   
+  
+  
+  
+  
+  
+  
+  
+  PRUint32                   mFrameDecodeFlags;
+
   
   
   
@@ -530,6 +541,7 @@ private:
   
   void DoError();
   PRBool CanDiscard();
+  PRBool CanForciblyDiscard();
   PRBool DiscardingActive();
   PRBool StoringSourceData();
 

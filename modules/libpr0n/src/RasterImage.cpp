@@ -70,6 +70,10 @@
 using namespace mozilla::imagelib;
 
 
+#define DECODE_FLAGS_MASK (imgIContainer::FLAG_DECODE_NO_PREMULTIPLY_ALPHA | imgIContainer::FLAG_DECODE_NO_COLORSPACE_CONVERSION)
+#define DECODE_FLAGS_DEFAULT 0
+
+
 #if defined(PR_LOGGING)
 static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("CompressedImageAccounting");
 #else
@@ -178,6 +182,7 @@ NS_IMPL_ISUPPORTS5(RasterImage, imgIContainer, nsITimerCallback, nsIProperties,
 RasterImage::RasterImage(imgStatusTracker* aStatusTracker) :
   Image(aStatusTracker), 
   mSize(0,0),
+  mFrameDecodeFlags(DECODE_FLAGS_DEFAULT),
   mAnim(nsnull),
   mLoopCount(-1),
   mObserver(nsnull),
@@ -340,7 +345,21 @@ RasterImage::ExtractFrame(PRUint32 aWhichFrame,
   img->SetSize(aRegion.width, aRegion.height);
   img->mDecoded = PR_TRUE; 
   img->mHasBeenDecoded = PR_TRUE;
+  img->mFrameDecodeFlags = aFlags & DECODE_FLAGS_MASK;
 
+  if (img->mFrameDecodeFlags != mFrameDecodeFlags) {
+    
+    
+    
+    if (!(aFlags & FLAG_SYNC_DECODE))
+      return NS_ERROR_NOT_AVAILABLE;
+    if (!CanForciblyDiscard() || mDecoder || mAnim)
+      return NS_ERROR_NOT_AVAILABLE;
+    ForceDiscard();
+
+    mFrameDecodeFlags = img->mFrameDecodeFlags;
+  }
+  
   
   if (aFlags & FLAG_SYNC_DECODE) {
     rv = SyncDecode();
@@ -590,6 +609,20 @@ RasterImage::CopyFrame(PRUint32 aWhichFrame,
 
   nsresult rv;
 
+  PRUint32 desiredDecodeFlags = aFlags & DECODE_FLAGS_MASK;
+  if (desiredDecodeFlags != mFrameDecodeFlags) {
+    
+    
+    
+    if (!(aFlags & FLAG_SYNC_DECODE))
+      return NS_ERROR_NOT_AVAILABLE;
+    if (!CanForciblyDiscard() || mDecoder || mAnim)
+      return NS_ERROR_NOT_AVAILABLE;
+    ForceDiscard();
+
+    mFrameDecodeFlags = desiredDecodeFlags;
+  }
+
   
   if (aFlags & FLAG_SYNC_DECODE) {
     rv = SyncDecode();
@@ -647,6 +680,21 @@ RasterImage::GetFrame(PRUint32 aWhichFrame,
     return NS_ERROR_FAILURE;
 
   nsresult rv = NS_OK;
+
+  PRUint32 desiredDecodeFlags = aFlags & DECODE_FLAGS_MASK;
+  if (desiredDecodeFlags != mFrameDecodeFlags) {
+    
+    
+    
+    if (!(aFlags & FLAG_SYNC_DECODE))
+      return NS_ERROR_NOT_AVAILABLE;
+    if (!CanForciblyDiscard() || mDecoder || mAnim)
+      return NS_ERROR_NOT_AVAILABLE;
+
+    ForceDiscard();
+
+    mFrameDecodeFlags = desiredDecodeFlags;
+  }
 
   
   if (aFlags & FLAG_SYNC_DECODE) {
@@ -1996,10 +2044,10 @@ RasterImage::GetKeys(PRUint32 *count, char ***keys)
 }
 
 void
-RasterImage::Discard()
+RasterImage::Discard(bool force)
 {
   
-  NS_ABORT_IF_FALSE(CanDiscard(), "Asked to discard but can't!");
+  NS_ABORT_IF_FALSE(force ? CanForciblyDiscard() : CanDiscard(), "Asked to discard but can't!");
 
   
   NS_ABORT_IF_FALSE(!mDecoder, "Asked to discard with open decoder!");
@@ -2024,6 +2072,9 @@ RasterImage::Discard()
   if (observer)
     observer->OnDiscard(nsnull);
 
+  if (force)
+    DiscardTracker::Remove(&mDiscardTrackerNode);
+
   
   PR_LOG(gCompressedImageAccountingLog, PR_LOG_DEBUG,
          ("CompressedImageAccounting: discarded uncompressed image "
@@ -2046,6 +2097,13 @@ RasterImage::CanDiscard() {
   return (DiscardingEnabled() && 
           mDiscardable &&        
           (mLockCount == 0) &&   
+          mHasSourceData &&      
+          mDecoded);             
+}
+
+PRBool
+RasterImage::CanForciblyDiscard() {
+  return (mDiscardable &&        
           mHasSourceData &&      
           mDecoded);             
 }
@@ -2110,6 +2168,7 @@ RasterImage::InitDecoder(bool aDoSizeDecode)
   
   nsCOMPtr<imgIDecoderObserver> observer(do_QueryReferent(mObserver));
   mDecoder->SetSizeDecode(aDoSizeDecode);
+  mDecoder->SetDecodeFlags(mFrameDecodeFlags);
   mDecoder->Init(this, observer);
   CONTAINER_ENSURE_SUCCESS(mDecoder->GetDecoderError());
 
@@ -2274,7 +2333,10 @@ RasterImage::RequestDecode()
 
 
   
-  if (mDecoder && mDecoder->IsSizeDecode()) {
+  
+  if (mDecoder &&
+      (mDecoder->IsSizeDecode() || mDecoder->GetDecodeFlags() != mFrameDecodeFlags))
+  {
     rv = ShutdownDecoder(eShutdownIntent_Interrupted);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2325,7 +2387,10 @@ RasterImage::SyncDecode()
   NS_ABORT_IF_FALSE(!mInDecoder, "Yikes, forcing sync in reentrant call!");
 
   
-  if (mDecoder && mDecoder->IsSizeDecode()) {
+  
+  if (mDecoder &&
+      (mDecoder->IsSizeDecode() || mDecoder->GetDecodeFlags() != mFrameDecodeFlags))
+  {
     rv = ShutdownDecoder(eShutdownIntent_Interrupted);
     CONTAINER_ENSURE_SUCCESS(rv);
   }
@@ -2384,7 +2449,22 @@ RasterImage::Draw(gfxContext *aContext,
   if (mInDecoder && (aFlags & imgIContainer::FLAG_SYNC_DECODE))
     return NS_ERROR_FAILURE;
 
+  
+  
+  
+  if ((aFlags & DECODE_FLAGS_MASK) != DECODE_FLAGS_DEFAULT)
+    return NS_ERROR_FAILURE;
+
   NS_ENSURE_ARG_POINTER(aContext);
+
+  
+  if (mFrameDecodeFlags != DECODE_FLAGS_DEFAULT) {
+    if (!CanForciblyDiscard())
+      return NS_ERROR_NOT_AVAILABLE;
+    ForceDiscard();
+
+    mFrameDecodeFlags = DECODE_FLAGS_DEFAULT;
+  }
 
   
   if (aFlags & FLAG_SYNC_DECODE) {
