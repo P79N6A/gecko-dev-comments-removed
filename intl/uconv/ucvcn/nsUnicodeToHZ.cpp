@@ -148,12 +148,3 @@ NS_IMETHODIMP nsUnicodeToHZ::FinishNoBuff(char * aDest, PRInt32 * aDestLength)
   }
   return NS_OK;
 }
-
-NS_IMETHODIMP nsUnicodeToHZ::FillInfo(PRUint32 *aInfo)
-{
-  mUtil.FillGB2312Info(aInfo);
-  
-  for ( PRUint16 u = 0x0000; u <= 0x007F; u++)
-    SET_REPRESENTABLE(aInfo, u);
-  return NS_OK;
-}

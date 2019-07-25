@@ -61,21 +61,7 @@ public:
   NS_DECLARE_STATIC_IID_ACCESSOR(NS_IELEMENTOBSERVER_IID)
 
   enum { IS_DOCUMENT_WRITE = 1U };
-  
 
-
-
-
-
-
-
-  NS_IMETHOD Notify(PRUint32 aDocumentID, eHTMLTags aTag, 
-                    PRUint32 numOfAttributes, const PRUnichar* nameArray[], 
-                    const PRUnichar* valueArray[]) = 0;
-
-  NS_IMETHOD Notify(PRUint32 aDocumentID, const PRUnichar* aTag, 
-                    PRUint32 numOfAttributes, const PRUnichar* nameArray[], 
-                    const PRUnichar* valueArray[]) = 0;
   
   NS_IMETHOD Notify(nsISupports* aDocShell, 
                     nsISupports* aChannel,

@@ -68,10 +68,6 @@ public:
   NS_IMETHOD ToLower( const PRUnichar* anArray, PRUnichar* aReturn, PRUint32 aLen) = 0;
 
   
-  NS_IMETHOD ToTitle( const PRUnichar* anArray, PRUnichar* aReturn, 
-                      PRUint32 aLen, PRBool aStartInWordBundary=PR_TRUE) = 0;
-
-  
   
   NS_IMETHOD CaseInsensitiveCompare(const PRUnichar* aLeft, const PRUnichar* aRight, PRUint32 aLength, PRInt32* aResult) = 0;
 };

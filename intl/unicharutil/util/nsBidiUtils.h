@@ -144,23 +144,6 @@ typedef enum nsCharType nsCharType;
   
 
 
-  PRUint32 SymmSwap(PRUint32 aChar);
-
-  
-
-
-  eBidiCategory GetBidiCategory(PRUint32 aChar);
-
-  
-
-
-
-
-  PRBool IsBidiCategory(PRUint32 aChar, eBidiCategory aBidiCategory);
-
-  
-
-
   nsCharType GetCharType(PRUint32 aChar);
 
   

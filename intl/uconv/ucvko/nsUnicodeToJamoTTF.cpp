@@ -58,7 +58,6 @@
 #include "nsIUnicodeDecoder.h"
 #include "nsServiceManagerUtils.h"
 #include "nsICharsetConverterManager.h"
-#include "nsICharRepresentable.h"
 #include <string.h>
 
 typedef struct { 
@@ -133,33 +132,25 @@ typedef struct {
 #define UP_VBASE 0xE300  // 0xE300 = Vfill, 0xE302 = Ah  
 #define UP_TBASE 0xE404  // 0xE400 = Tfill, 0xE404 = Kiyeok
 
-
-static nsCOMPtr<nsIUnicodeDecoder> gDecoder = 0;
-  
-static inline void FillInfoRange     (PRUint32* aInfo, PRUint32 aStart, 
-                                      PRUint32 aEnd);
 static nsresult     JamoNormalize    (const PRUnichar* aInSeq, 
                                       PRUnichar** aOutSeq, PRInt32* aLength);
 static void         JamosToExtJamos  (PRUnichar* aInSeq,  PRInt32* aLength);
 static const JamoNormMap* JamoClusterSearch(JamoNormMap aKey, 
                                             const JamoNormMap* aClusters,
                                             PRInt16 aClustersSize);
-static nsresult     FillInfoEUCKR    (PRUint32 *aInfo, PRUint16 aHigh1, 
-                                      PRUint16 aHigh2);
 
 static PRInt32      JamoNormMapComp  (const JamoNormMap& p1, 
                                       const JamoNormMap& p2);
 static PRInt16      JamoSrchReplace  (const JamoNormMap* aCluster, 
                                       PRUint16 aSize, PRUnichar *aIn, 
                                       PRInt32* aLength, PRUint16 aOffset);
-static nsresult     GetDecoder       (nsIUnicodeDecoder** aDecoder);
 static nsresult     ScanDecomposeSyllable (PRUnichar *aIn, PRInt32* aLength, 
                                            const PRInt32 aMaxLen);
 
 
 
   
-NS_IMPL_ISUPPORTS2(nsUnicodeToJamoTTF, nsIUnicodeEncoder, nsICharRepresentable)
+NS_IMPL_ISUPPORTS1(nsUnicodeToJamoTTF, nsIUnicodeEncoder)
 
 NS_IMETHODIMP 
 nsUnicodeToJamoTTF::SetOutputErrorBehavior(PRInt32 aBehavior, 
@@ -336,50 +327,6 @@ nsUnicodeToJamoTTF::GetMaxLength(const PRUnichar * aSrc, PRInt32 aSrcLength,
   
   *aDestLength = aSrcLength *  6;
   return NS_OK;
-}
-
-
-NS_IMETHODIMP 
-nsUnicodeToJamoTTF::FillInfo(PRUint32* aInfo)
-{
-  FillInfoRange(aInfo, SBASE, SEND);
-
-  PRUnichar i;
-
-  
-  for(i = 0x1100; i<= 0x1159; i++)
-     SET_REPRESENTABLE(aInfo, i);
-  SET_REPRESENTABLE(aInfo, 0x115f);
-  for(i = 0x1160; i <= 0x11a2; i++)
-     SET_REPRESENTABLE(aInfo, i);
-  for(i = 0x11a8; i <= 0x11f9; i++)
-     SET_REPRESENTABLE(aInfo, i);
-
-  
-  SET_REPRESENTABLE(aInfo, HTONE1);
-  SET_REPRESENTABLE(aInfo, HTONE2);
-
-  
-  for(i=0x20; i < 0x7f; i++)
-     SET_REPRESENTABLE(aInfo, i);
-
-  nsresult rv;
-
-  
-  
-  
-  
-  
-  
-  
-  
-    
-  
-  rv = FillInfoEUCKR(aInfo, 0xA1, 0xAF); 
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  return FillInfoEUCKR(aInfo, 0xCA, 0xFD); 
 }
 
 
@@ -683,89 +630,6 @@ nsUnicodeToJamoTTF::RenderAsPrecompSyllable (PRUnichar* aSrc,
 
   return composed;
 }
-
-
-
-inline void FillInfoRange(PRUint32* aInfo, PRUint32 aStart, PRUint32 aEnd)
-{
-
-  PRUint32 b = aStart >> 5; 
-  PRUint32 e = aEnd >> 5;
-
-  if (aStart & 0x1f)
-    aInfo[b++] |= ~ (0xFFFFFFFFL >> (32 - ((aStart) & 0x1f)));
-
-  for( ; b < e ; b++)
-    aInfo[b] |= 0xFFFFFFFFL;
-
-  aInfo[e] |= (0xFFFFFFFFL >> (31 - ((aEnd) & 0x1f)));
-}
-
-
-#define ROWLEN 94
-#define IS_GR94(x) (0xA0 < (x) && (x) < 0xFF)
-
-
-
-
-
-nsresult FillInfoEUCKR (PRUint32 *aInfo, PRUint16 aHigh1, PRUint16 aHigh2)
-{
-  char row[ROWLEN * 2];
-  PRUnichar dest[ROWLEN];
-  nsresult rv = NS_OK;
-
-  NS_ENSURE_TRUE(aInfo, NS_ERROR_NULL_POINTER);
-  NS_ENSURE_TRUE(IS_GR94(aHigh1) && IS_GR94(aHigh2), NS_ERROR_INVALID_ARG);
-
-  nsCOMPtr<nsIUnicodeDecoder> decoder;
-  rv = GetDecoder(getter_AddRefs(decoder));
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  for (PRUint16 i = aHigh1 ; i <= aHigh2; i++)
-  {
-    PRUint16 j;
-    
-    for (j = 0 ; j < ROWLEN; j++)
-    {
-      row[j * 2] = char(i);
-      row[j * 2 + 1] = char(j + 0xa1);
-    }
-    PRInt32 srcLen = ROWLEN * 2;
-    PRInt32 destLen = ROWLEN;
-    rv = decoder->Convert(row, &srcLen, dest, &destLen);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    
-    for (j = 0 ; j < ROWLEN; j++)
-      if (dest[j] != 0xFFFD)
-        SET_REPRESENTABLE(aInfo, dest[j]);
-  }
-  return rv;
-}
-
-
-nsresult GetDecoder(nsIUnicodeDecoder** aDecoder)
-{
-  nsresult rv; 
-
-  if (gDecoder) {
-    *aDecoder = gDecoder.get();
-    NS_ADDREF(*aDecoder);
-    return NS_OK;
-  }
-
-  nsCOMPtr<nsICharsetConverterManager> charsetConverterManager;
-  charsetConverterManager = do_GetService(NS_CHARSETCONVERTERMANAGER_CONTRACTID, &rv);
-  NS_ENSURE_SUCCESS(rv,rv);
-  rv = charsetConverterManager->GetUnicodeDecoderRaw("EUC-KR", getter_AddRefs(gDecoder));
-  NS_ENSURE_SUCCESS(rv,rv);
-
-  *aDecoder = gDecoder.get();
-  NS_ADDREF(*aDecoder);
-  return NS_OK;
-}
-
 
 
 PRInt32 JamoNormMapComp (const JamoNormMap& p1, const JamoNormMap& p2)

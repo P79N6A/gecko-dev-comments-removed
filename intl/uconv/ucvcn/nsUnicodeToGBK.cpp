@@ -46,7 +46,6 @@
 
 
 #include "nsUnicodeToGBK.h"
-#include "nsICharRepresentable.h"
 #include "nsUCvCnDll.h"
 #include "gbku.h"
 #include "uconvutil.h"
@@ -342,33 +341,4 @@ NS_IMETHODIMP nsUnicodeToGBK::ConvertNoBuff(
   *aDestLength = iDestLength;
   *aSrcLength = iSrcLength;
   return res;
-}
-
-
-
-
-NS_IMETHODIMP nsUnicodeToGBK::FillInfo(PRUint32 *aInfo)
-{
-  mUtil.FillInfo(aInfo, 0x81, 0xFE, 0x40, 0xFE);
-  if(! mExtensionEncoder )
-    CreateExtensionEncoder();
-  if(mExtensionEncoder) 
-  {
-    nsCOMPtr<nsICharRepresentable> aRep = do_QueryInterface(mExtensionEncoder);
-    aRep->FillInfo(aInfo);
-  }
-  
-  if(! m4BytesEncoder )
-    Create4BytesEncoder();
-  if(m4BytesEncoder) 
-  {
-    nsCOMPtr<nsICharRepresentable> aRep = do_QueryInterface(m4BytesEncoder);
-    aRep->FillInfo(aInfo);
-  }
-
-  
-  for (PRUint16 SrcUnicode = 0x0000; SrcUnicode <= 0x007F; SrcUnicode++)
-    SET_REPRESENTABLE(aInfo, SrcUnicode);
-  SET_REPRESENTABLE(aInfo, 0x20ac); 
-  return NS_OK;
 }

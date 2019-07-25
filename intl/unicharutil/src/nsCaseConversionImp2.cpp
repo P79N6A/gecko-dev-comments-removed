@@ -311,48 +311,6 @@ nsresult nsCaseConversionImp2::ToLower(
 
 
 
-nsresult nsCaseConversionImp2::ToTitle(
-  const PRUnichar* anArray, PRUnichar* aReturn, PRUint32 aLen,
-  PRBool aStartInWordBoundary
-)
-{
-  if(0 == aLen)
-    return NS_OK;
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  PRBool bLastIsSpace =  IS_ASCII_SPACE(anArray[0]);
-  if(aStartInWordBoundary)
-  {
-     this->ToTitle(anArray[0], &aReturn[0]);
-  }
-
-  PRUint32 i;
-  for(i=1;i<aLen;i++)
-  {
-    if(bLastIsSpace)
-    {
-      this->ToTitle(anArray[i], &aReturn[i]);
-    }
-    else
-    {
-      aReturn[i] = anArray[i];
-    }
-
-    bLastIsSpace = IS_ASCII_SPACE(aReturn[i]);
-  }
-  return NS_OK;
-}
-
-
 NS_IMETHODIMP
 nsCaseConversionImp2::CaseInsensitiveCompare(const PRUnichar *aLeft,
                                              const PRUnichar *aRight,

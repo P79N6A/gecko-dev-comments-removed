@@ -75,7 +75,6 @@ protected:
     return NS_OK;
   }   
 
-  NS_IMETHOD FillInfo(PRUint32 *aInfo);
 protected:
   nsGBKConvUtil mUtil;
 };

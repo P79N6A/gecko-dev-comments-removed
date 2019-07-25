@@ -78,8 +78,6 @@ protected:
     return NS_OK;
   }  
 
-  NS_IMETHOD FillInfo(PRUint32 *aInfo);
-
   virtual void CreateExtensionEncoder();
   virtual void Create4BytesEncoder();
 

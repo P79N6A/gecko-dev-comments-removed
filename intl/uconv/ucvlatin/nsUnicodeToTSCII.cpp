@@ -55,9 +55,9 @@
 
 
 
-  
-NS_IMPL_ISUPPORTS2(nsUnicodeToTSCII, nsIUnicodeEncoder, nsICharRepresentable)
 
+NS_IMPL_ISUPPORTS1(nsUnicodeToTSCII, nsIUnicodeEncoder)
+  
 
 
 
@@ -388,47 +388,6 @@ nsUnicodeToTSCII::GetMaxLength(const PRUnichar * aSrc, PRInt32 aSrcLength,
   return NS_OK;
 }
 
-
-NS_IMETHODIMP 
-nsUnicodeToTSCII::FillInfo(PRUint32* aInfo)
-{
-  
-  static const PRUint8 coverage[] = {
-    0xe8, 
-    0xc7, 
-    0x3d, 
-    0xd6, 
-    0x18, 
-    0xc7, 
-    0xbf, 
-    0xc7, 
-    0xc7, 
-    0x3d, 
-    0x80, 
-    0x00, 
-    0x80, 
-    0xff, 
-    0x07, 
-  };
-
-  PRUnichar i;
-  for(i = 0; i <  0x78; i++)
-    if (coverage[i / 8] & (1 << (i % 8)))
-      SET_REPRESENTABLE(aInfo, i + UNI_TAMIL_START);
-
-  
-  for(i = 0x20; i < 0x7f; i++)
-     SET_REPRESENTABLE(aInfo, i);
-
-  
-  SET_REPRESENTABLE(aInfo, 0xA9);   
-  SET_REPRESENTABLE(aInfo, UNI_LEFT_SINGLE_QUOTE);
-  SET_REPRESENTABLE(aInfo, UNI_RIGHT_SINGLE_QUOTE);
-  SET_REPRESENTABLE(aInfo, UNI_LEFT_DOUBLE_QUOTE);
-  SET_REPRESENTABLE(aInfo, UNI_RIGHT_DOUBLE_QUOTE);
-
-  return NS_OK;
-}
 
 NS_IMETHODIMP 
 nsUnicodeToTSCII::SetOutputErrorBehavior(PRInt32 aBehavior, 

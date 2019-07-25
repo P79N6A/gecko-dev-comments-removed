@@ -41,7 +41,6 @@
 #include "nsIUnicodeEncoder.h"
 #include "nsIUnicodeDecoder.h"
 #include "uconvutil.h"
-#include "nsICharRepresentable.h"
 
 
 NS_METHOD
