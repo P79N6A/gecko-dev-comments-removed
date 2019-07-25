@@ -1351,6 +1351,7 @@ public:
   virtual nsRect GetBounds(nsDisplayListBuilder* aBuilder);
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
+                                   const nsRect& aAllowVisibleRegionExpansion,
                                    PRBool& aContainsRootContentDocBG);
 
   NS_DISPLAY_DECL_NAME("PluginReadback", TYPE_PLUGIN_READBACK)
@@ -1408,14 +1409,20 @@ nsDisplayPluginReadback::GetBounds(nsDisplayListBuilder* aBuilder)
 PRBool
 nsDisplayPluginReadback::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                            nsRegion* aVisibleRegion,
+                                           const nsRect& aAllowVisibleRegionExpansion,
                                            PRBool& aContainsRootContentDocBG)
 {
-  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion, aContainsRootContentDocBG))
+  if (!nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
+                                        aAllowVisibleRegionExpansion,
+                                        aContainsRootContentDocBG))
     return PR_FALSE;
+
+  nsRect expand;
+  expand.IntersectRect(aAllowVisibleRegionExpansion, GetBounds(aBuilder));
   
   
   
-  aVisibleRegion->Or(*aVisibleRegion, GetBounds(aBuilder));
+  aVisibleRegion->Or(*aVisibleRegion, expand);
   return PR_TRUE;
 }
 
@@ -1444,10 +1451,12 @@ nsDisplayPlugin::Paint(nsDisplayListBuilder* aBuilder,
 PRBool
 nsDisplayPlugin::ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
+                                   const nsRect& aAllowVisibleRegionExpansion,
                                    PRBool& aContainsRootContentDocBG)
 {
   mVisibleRegion.And(*aVisibleRegion, GetBounds(aBuilder));  
   return nsDisplayItem::ComputeVisibility(aBuilder, aVisibleRegion,
+                                          aAllowVisibleRegionExpansion,
                                           aContainsRootContentDocBG);
 }
 
