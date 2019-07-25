@@ -37,6 +37,10 @@
 
 
 
+#ifdef MOZ_IPC
+# include "mozilla/layers/PLayers.h"
+#endif  
+
 #include "LayerManagerOGL.h"
 #include "ThebesLayerOGL.h"
 #include "ContainerLayerOGL.h"

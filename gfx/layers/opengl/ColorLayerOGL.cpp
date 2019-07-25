@@ -41,45 +41,56 @@
 namespace mozilla {
 namespace layers {
 
-Layer*
-ColorLayerOGL::GetLayer()
+static void
+RenderColorLayer(ColorLayer* aLayer, LayerManagerOGL *aManager,
+                 const nsIntPoint& aOffset)
 {
-  return this;
+  aManager->MakeCurrent();
+
+  
+
+  nsIntRect visibleRect = aLayer->GetEffectiveVisibleRegion().GetBounds();
+  
+  
+
+
+
+
+  float opacity = aLayer->GetOpacity();
+  gfxRGBA color(aLayer->GetColor());
+  color.r *= opacity;
+  color.g *= opacity;
+  color.b *= opacity;
+  color.a *= opacity;
+
+  SolidColorLayerProgram *program = aManager->GetColorLayerProgram();
+  program->Activate();
+  program->SetLayerQuadRect(visibleRect);
+  program->SetLayerTransform(aLayer->GetEffectiveTransform());
+  program->SetRenderOffset(aOffset);
+  program->SetRenderColor(color);
+
+  aManager->BindAndDrawQuad(program);
+
+  DEBUG_GL_ERROR_CHECK(aManager->gl());
 }
 
 void
 ColorLayerOGL::RenderLayer(int,
                            const nsIntPoint& aOffset)
 {
-  mOGLManager->MakeCurrent();
-
-  
-
-  nsIntRect visibleRect = GetEffectiveVisibleRegion().GetBounds();
-  
-  
-
-
-
-
-  float opacity = GetOpacity();
-  gfxRGBA color(mColor);
-  color.r *= opacity;
-  color.g *= opacity;
-  color.b *= opacity;
-  color.a *= opacity;
-
-  SolidColorLayerProgram *program = mOGLManager->GetColorLayerProgram();
-  program->Activate();
-  program->SetLayerQuadRect(visibleRect);
-  program->SetLayerTransform(GetEffectiveTransform());
-  program->SetRenderOffset(aOffset);
-  program->SetRenderColor(color);
-
-  mOGLManager->BindAndDrawQuad(program);
-
-  DEBUG_GL_ERROR_CHECK(gl());
+  return RenderColorLayer(this, mOGLManager, aOffset);
 }
+
+#ifdef MOZ_IPC
+void
+ShadowColorLayerOGL::RenderLayer(int,
+                                 const nsIntPoint& aOffset)
+{
+  return RenderColorLayer(this, mOGLManager, aOffset);
+}
+#endif  
+
 
 } 
 } 
