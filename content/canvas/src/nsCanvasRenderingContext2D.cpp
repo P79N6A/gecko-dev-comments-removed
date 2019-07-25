@@ -3388,7 +3388,7 @@ nsCanvasRenderingContext2D::DrawImage(nsIDOMElement *imgElt, float a1,
     
     
     if (!FloatValidate(sx + sw, sy + sh, dx + dw, dy + dh)) {
-        return NS_ERROR_DOM_SYNTAX_ERR;
+        return NS_OK;
     }
 
     
