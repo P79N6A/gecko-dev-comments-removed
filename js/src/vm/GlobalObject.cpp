@@ -359,7 +359,7 @@ GlobalObject::clear(JSContext *cx)
 
 
 
-    cx->compartment->newObjectCache.reset();
+    cx->runtime->newObjectCache.purge();
 
 #ifdef JS_METHODJIT
     

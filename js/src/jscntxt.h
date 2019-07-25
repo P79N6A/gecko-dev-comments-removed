@@ -195,6 +195,84 @@ struct ConservativeGCData
 
 
 
+class NewObjectCache
+{
+    
+    static const unsigned MAX_OBJ_SIZE = 4 * sizeof(void*) + 16 * sizeof(Value);
+    static inline void staticAsserts();
+
+    struct Entry
+    {
+        
+        Class *clasp;
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+        gc::Cell *key;
+
+        
+        gc::AllocKind kind;
+
+        
+        uint32_t nbytes;
+
+        
+
+
+
+        char templateObject[MAX_OBJ_SIZE];
+    };
+
+    Entry entries[41];  
+
+  public:
+
+    typedef int EntryIndex;
+
+    NewObjectCache() { PodZero(this); }
+    void purge() { PodZero(this); }
+
+    
+
+
+
+    inline bool lookupProto(Class *clasp, JSObject *proto, gc::AllocKind kind, EntryIndex *pentry);
+    inline bool lookupGlobal(Class *clasp, js::GlobalObject *global, gc::AllocKind kind, EntryIndex *pentry);
+    inline bool lookupType(Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, EntryIndex *pentry);
+
+    
+    inline JSObject *newObjectFromHit(JSContext *cx, EntryIndex entry);
+
+    
+    inline void fillProto(EntryIndex entry, Class *clasp, JSObject *proto, gc::AllocKind kind, JSObject *obj);
+    inline void fillGlobal(EntryIndex entry, Class *clasp, js::GlobalObject *global, gc::AllocKind kind, JSObject *obj);
+    inline void fillType(EntryIndex entry, Class *clasp, js::types::TypeObject *type, gc::AllocKind kind, JSObject *obj);
+
+    
+    void invalidateEntriesForShape(JSContext *cx, Shape *shape, JSObject *proto);
+
+  private:
+    inline bool lookup(Class *clasp, gc::Cell *key, gc::AllocKind kind, EntryIndex *pentry);
+    inline void fill(EntryIndex entry, Class *clasp, gc::Cell *key, gc::AllocKind kind, JSObject *obj);
+    static inline void copyCachedToObject(JSObject *dst, JSObject *src);
+};
+
+
+
+
+
+
 
 
 class FreeOp : public JSFreeOp {
@@ -626,6 +704,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
     js::GSNCache        gsnCache;
     js::PropertyCache   propertyCache;
+    js::NewObjectCache  newObjectCache;
 
     
     DtoaState           *dtoaState;

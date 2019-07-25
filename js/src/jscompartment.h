@@ -284,9 +284,6 @@ struct JSCompartment
     js::types::TypeObject *getLazyType(JSContext *cx, JSObject *proto);
 
     
-    js::NewObjectCache           newObjectCache;
-
-    
 
 
 
