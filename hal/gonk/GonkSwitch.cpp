@@ -22,6 +22,7 @@ namespace hal_impl {
 
 struct {const char* name; SwitchDevice device; } kSwitchNameMap[] = {
   { "h2w", SWITCH_HEADPHONES },
+  { "usb_configuration", SWITCH_USB },
   { NULL, SWITCH_DEVICE_UNKNOWN },
 };
 
@@ -112,7 +113,25 @@ private:
     
     NetlinkEvent *e = const_cast<NetlinkEvent*>(&event);
     const char* subsystem = e->getSubsystem();
- 
+
+    if (subsystem && (strcmp(subsystem, "android_usb") == 0)) {
+      
+      
+      
+
+      *name = "usb_configuration";
+      const char *usb_state = e->findParam("USB_STATE");
+      if (!usb_state) {
+        return false;
+      }
+      if (strcmp(usb_state, "CONFIGURED") == 0) {
+        *state = "1";
+        return true;
+      }
+      *state = "0";
+      return true;
+    }
+
     if (!subsystem || strcmp(subsystem, "switch")) {
       return false;
     }
