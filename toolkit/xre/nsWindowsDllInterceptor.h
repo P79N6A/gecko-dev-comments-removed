@@ -188,6 +188,8 @@ protected:
     byteptr_t origBytes = (byteptr_t) origFunction;
 
     int nBytes = 0;
+    int pJmp32 = -1;
+
 #if defined(_M_IX86)
     while (nBytes < 5) {
       
@@ -200,9 +202,23 @@ protected:
         unsigned char b = origBytes[nBytes+1];
         if (((b & 0xc0) == 0xc0) ||
             (((b & 0xc0) == 0x00) &&
-             ((b & 0x38) != 0x20) && ((b & 0x38) != 0x28)))
+             ((b & 0x07) != 0x04) && ((b & 0x07) != 0x05)))
         {
+          
           nBytes += 2;
+        } else if (((b & 0xc0) == 0x40) && ((b & 0x38) != 0x20)) {
+          
+          nBytes += 3;
+        } else {
+          
+          return 0;
+        }
+      } else if (origBytes[nBytes] == 0x83) {
+        
+        unsigned char b = origBytes[nBytes+1];
+        if ((b & 0xc0) == 0xc0) {
+          
+          nBytes += 3;
         } else {
           
           return 0;
@@ -216,14 +232,16 @@ protected:
       } else if (origBytes[nBytes] == 0x6A) {
         
         nBytes += 2;
+      } else if (origBytes[nBytes] == 0xe9) {
+        pJmp32 = nBytes;
+        
+        nBytes += 5;
       } else {
         
         return 0;
       }
     }
 #elif defined(_M_X64)
-    int pJmp32 = -1;
-
     while (nBytes < 13) {
 
       
@@ -257,7 +275,7 @@ protected:
         } else {
           return 0;
         }
-      } else if (origBytes[nBytes] == 0x48) {
+      } else if ((origBytes[nBytes] & 0xfb) == 0x48) {
         
         nBytes++;
 
@@ -272,7 +290,7 @@ protected:
                   (origBytes[nBytes+1] & 0xf8) == 0x60) {
           
           nBytes += 5;
-        } else if (origBytes[nBytes] == 0x89) {
+        } else if ((origBytes[nBytes] & 0xfd) == 0x89) {
           
           if ((origBytes[nBytes+1] & 0xc0) == 0x40) {
             if ((origBytes[nBytes+1] & 0x7) == 0x04) {
@@ -282,21 +300,9 @@ protected:
               
               nBytes += 3;
             }
-          } else {
-            
-            return 0;
-          }
-        } else if (origBytes[nBytes] == 0x8b) {
-          
-          if ((origBytes[nBytes+1] & 0xc0) == 0x40) {
-            if ((origBytes[nBytes+1] & 0x7) == 0x04) {
-              
-              nBytes += 4;
-            } else {
-              
-              nBytes += 3;
-            }
-          } else if ((origBytes[nBytes+1] & 0xc0) == 0xc0) {
+          } else if (((origBytes[nBytes+1] & 0xc0) == 0xc0) ||
+                     (((origBytes[nBytes+1] & 0xc0) == 0x00) &&
+                      ((origBytes[nBytes+1] & 0x07) != 0x04) && ((origBytes[nBytes+1] & 0x07) != 0x05))) {
             
             nBytes += 2;
           } else {
@@ -349,8 +355,15 @@ protected:
     byteptr_t trampDest = origBytes + nBytes;
 
 #if defined(_M_IX86)
-    tramp[nBytes] = 0xE9; 
-    *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
+    if (pJmp32 >= 0) {
+      
+      
+      
+      *((intptr_t*)(tramp+pJmp32+1)) += origBytes + pJmp32 - tramp;
+    } else {
+      tramp[nBytes] = 0xE9; 
+      *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
+    }
 #elif defined(_M_X64)
     
     if (pJmp32 >= 0) {
