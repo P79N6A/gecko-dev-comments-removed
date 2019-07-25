@@ -14,3 +14,8 @@
   nsIAccessibleEditableText *mGeckoEditableTextAccessible; 
 }
 @end
+
+@interface mozTextLeafAccessible : mozAccessible
+{
+}
+@end
