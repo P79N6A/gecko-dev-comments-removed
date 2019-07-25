@@ -41,6 +41,10 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+
+const INCOMING_SHARED_ANNO = "weave/shared-incoming";
+const OUTGOING_SHARED_ANNO = "weave/shared-outgoing";
+
 Cu.import("resource://weave/log4moz.js");
 Cu.import("resource://weave/dav.js");
 Cu.import("resource://weave/util.js");
@@ -82,12 +86,16 @@ BookmarksEngine.prototype = {
     return this.__tracker;
   },
 
-  sync: function BmkEngine_sync(onComplete) {
+  _sync: function BmkEngine_sync() {
     
 
-    Engine.sync.call(this, onComplete);
-    this.syncMounts(onComplete);
-  }
+    let self = yield;
+    this.__proto__.__proto__._sync.async(this, self.cb );
+    yield;
+    this.syncMounts(self.cb);
+    yield;
+    self.done();
+  },
 
   syncMounts: function BmkEngine_syncMounts(onComplete) {
     this._syncMounts.async(this, onComplete);
@@ -153,27 +161,24 @@ BookmarksEngine.prototype = {
     if (!enckey)
       throw "Could not encrypt symmetric encryption key";
 
+    
+
     keys.ring[username] = enckey;
     DAV.PUT(this.keysFile, this._json.encode(keys), self.cb);
     ret = yield;
     Utils.ensureStatus(ret.status, "Could not upload keyring file.");
 
-    this._createShare(guid, username, username);
+    
+
 
     this._log.debug("All done sharing!");
 
     self.done(true);
   },
 
-  _createShare: function BookmarkEngine__createShare(guid, id, title) {
-    
-
-
-
-
+  _createIncomingShare: function BookmarkEngine__createShare(guid, id, title) {
 
     
-
 
 
 
@@ -211,19 +216,25 @@ BookmarksEngine.prototype = {
     }
   },
 
-  _stopShare: function BookmarkeEngine__stopShare( guid, username) {
-    
-    
-  },
 
   _syncOneMount: function BmkEngine__syncOneMount(mountData) {
+    
+
+
+    
+
+
+
+
+
+    
+
     let self = yield;
     let user = mountData.userid;
     let prefix = DAV.defaultPrefix;
     let serverURL = Utils.prefs.getCharPref("serverURL");
     let snap = new SnapshotStore();
 
-    
     this._log.debug("Syncing shared folder from user " + user);
 
     try {
@@ -790,10 +801,14 @@ BookmarksStore.prototype = {
   },
 
   findMounts: function BStore_findMounts() {
+    
+
     let ret = [];
-    let a = this._ans.getItemsWithAnnotation("weave/mounted-share-id", {});
+    let a = this._ans.getItemsWithAnnotation(INCOMING_SHARED_ANNO, {});
     for (let i = 0; i < a.length; i++) {
-      let id = this._ans.getItemAnnotation(a[i], "weave/mounted-share-id");
+      
+
+      let id = this._ans.getItemAnnotation(a[i], INCOMING_SHARED_ANNO);
       ret.push(this._wrapMount(this._getNode(a[i]), id));
     }
     return ret;
