@@ -2721,83 +2721,94 @@ AddSelector(RuleCascadeData* aCascade,
             nsCSSSelector* aSelectorPart)
 {
   
-  for (nsPseudoClassList* pseudoClass = aSelectorPart->mPseudoClassList;
-       pseudoClass; pseudoClass = pseudoClass->mNext) {
-    switch (pseudoClass->mType) {
-      case nsCSSPseudoClasses::ePseudoClass_mozLocaleDir: {
-        aCascade->mSelectorDocumentStates |= NS_DOCUMENT_STATE_RTL_LOCALE;
-        break;
-      }
-      case nsCSSPseudoClasses::ePseudoClass_mozWindowInactive: {
-        aCascade->mSelectorDocumentStates |= NS_DOCUMENT_STATE_WINDOW_INACTIVE;
-        break;
-      }
-      case nsCSSPseudoClasses::ePseudoClass_mozTableBorderNonzero: {
-        nsTArray<nsCSSSelector*> *array =
-          aCascade->AttributeListFor(nsGkAtoms::border);
-        if (!array) {
-          return PR_FALSE;
+  
+  
+  
+  
+  
+  
+  
+  for (nsCSSSelector* negation = aSelectorPart; negation;
+       negation = negation->mNegations) {
+    
+    for (nsPseudoClassList* pseudoClass = negation->mPseudoClassList;
+         pseudoClass; pseudoClass = pseudoClass->mNext) {
+      switch (pseudoClass->mType) {
+        case nsCSSPseudoClasses::ePseudoClass_mozLocaleDir: {
+          aCascade->mSelectorDocumentStates |= NS_DOCUMENT_STATE_RTL_LOCALE;
+          break;
         }
-        array->AppendElement(aSelectorInTopLevel);
-        break;
-      }
-      default: {
-        break;
-      }
-    }
-  }
-
-  
-  if (IsStateSelector(*aSelectorPart))
-    aCascade->mStateSelectors.AppendElement(aSelectorInTopLevel);
-
-  
-  if (aSelectorPart->mIDList) {
-    aCascade->mIDSelectors.AppendElement(aSelectorInTopLevel);
-  }
-
-  
-  if (aSelectorPart == aSelectorInTopLevel) {
-    for (nsAtomList* curClass = aSelectorPart->mClassList; curClass;
-         curClass = curClass->mNext) {
-      ClassSelectorEntry *entry =
-        static_cast<ClassSelectorEntry*>(PL_DHashTableOperate(&aCascade->mClassSelectors,
-                                                              curClass->mAtom,
-                                                              PL_DHASH_ADD));
-      if (entry) {
-        entry->mSelectors.AppendElement(aSelectorInTopLevel);
+        case nsCSSPseudoClasses::ePseudoClass_mozWindowInactive: {
+          aCascade->mSelectorDocumentStates |= NS_DOCUMENT_STATE_WINDOW_INACTIVE;
+          break;
+        }
+        case nsCSSPseudoClasses::ePseudoClass_mozTableBorderNonzero: {
+          nsTArray<nsCSSSelector*> *array =
+            aCascade->AttributeListFor(nsGkAtoms::border);
+          if (!array) {
+            return PR_FALSE;
+          }
+          array->AppendElement(aSelectorInTopLevel);
+          break;
+        }
+        default: {
+          break;
+        }
       }
     }
-  } else if (aSelectorPart->mClassList) {
-    aCascade->mPossiblyNegatedClassSelectors.AppendElement(aSelectorInTopLevel);
-  }
 
-  
-  for (nsAttrSelector *attr = aSelectorPart->mAttrList; attr;
-       attr = attr->mNext) {
-    nsTArray<nsCSSSelector*> *array =
-      aCascade->AttributeListFor(attr->mCasedAttr);
-    if (!array) {
-      return PR_FALSE;
+    
+    if (IsStateSelector(*negation))
+      aCascade->mStateSelectors.AppendElement(aSelectorInTopLevel);
+
+    
+    if (negation->mIDList) {
+      aCascade->mIDSelectors.AppendElement(aSelectorInTopLevel);
     }
-    array->AppendElement(aSelectorInTopLevel);
-    if (attr->mLowercaseAttr != attr->mCasedAttr) {
-      array = aCascade->AttributeListFor(attr->mLowercaseAttr);
+
+    
+    if (negation == aSelectorInTopLevel) {
+      for (nsAtomList* curClass = negation->mClassList; curClass;
+           curClass = curClass->mNext) {
+        ClassSelectorEntry *entry =
+          static_cast<ClassSelectorEntry*>(PL_DHashTableOperate(&aCascade->mClassSelectors,
+                                                                curClass->mAtom,
+                                                                PL_DHASH_ADD));
+        if (entry) {
+          entry->mSelectors.AppendElement(aSelectorInTopLevel);
+        }
+      }
+    } else if (negation->mClassList) {
+      aCascade->mPossiblyNegatedClassSelectors.AppendElement(aSelectorInTopLevel);
+    }
+
+    
+    for (nsAttrSelector *attr = negation->mAttrList; attr;
+         attr = attr->mNext) {
+      nsTArray<nsCSSSelector*> *array =
+        aCascade->AttributeListFor(attr->mCasedAttr);
       if (!array) {
         return PR_FALSE;
       }
       array->AppendElement(aSelectorInTopLevel);
-    }
-  }
-
-  
-  for (nsPseudoClassList* pseudoClass = aSelectorPart->mPseudoClassList;
-       pseudoClass; pseudoClass = pseudoClass->mNext) {
-    if (pseudoClass->mType == nsCSSPseudoClasses::ePseudoClass_any) {
-      for (nsCSSSelectorList *l = pseudoClass->u.mSelectors; l; l = l->mNext) {
-        nsCSSSelector *s = l->mSelectors;
-        if (!AddSelector(aCascade, aSelectorInTopLevel, s)) {
+      if (attr->mLowercaseAttr != attr->mCasedAttr) {
+        array = aCascade->AttributeListFor(attr->mLowercaseAttr);
+        if (!array) {
           return PR_FALSE;
+        }
+        array->AppendElement(aSelectorInTopLevel);
+      }
+    }
+
+    
+    for (nsPseudoClassList* pseudoClass = negation->mPseudoClassList;
+         pseudoClass; pseudoClass = pseudoClass->mNext) {
+      if (pseudoClass->mType == nsCSSPseudoClasses::ePseudoClass_any) {
+        for (nsCSSSelectorList *l = pseudoClass->u.mSelectors; l; l = l->mNext) {
+          nsCSSSelector *s = l->mSelectors;
+          if (!AddSelector(aCascade, aSelectorInTopLevel, s)) {
+            return PR_FALSE;
+          }
         }
       }
     }
@@ -2869,19 +2880,8 @@ AddRule(RuleSelectorPair* aRuleInfo, RuleCascadeData* aCascade)
       
       continue;
     }
-    
-    
-    
-    
-    
-    
-    
-    
-    for (nsCSSSelector* negation = selector; negation;
-         negation = negation->mNegations) {
-      if (!AddSelector(cascade, selector, negation)) {
-        return PR_FALSE;
-      }
+    if (!AddSelector(cascade, selector, selector)) {
+      return PR_FALSE;
     }
   }
 
