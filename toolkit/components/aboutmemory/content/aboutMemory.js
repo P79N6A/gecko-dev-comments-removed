@@ -40,6 +40,7 @@
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cu = Components.utils;
 
 
 
@@ -71,6 +72,49 @@ function ChildMemoryListener(aSubject, aTopic, aData)
 function $(n)
 {
   return document.getElementById(n);
+}
+
+function doGlobalGC()
+{
+  Cu.forceGC();
+  update();
+}
+
+function doGlobalGCandCC()
+{
+  window.QueryInterface(Ci.nsIInterfaceRequestor)
+        .getInterface(Ci.nsIDOMWindowUtils)
+        .garbageCollect();
+  update();
+}
+
+
+
+
+function sendHeapMinNotifications()
+{
+  function runSoon(f)
+  {
+    var tm = Cc["@mozilla.org/thread-manager;1"]
+              .getService(Ci.nsIThreadManager);
+
+    tm.mainThread.dispatch({ run: f }, Ci.nsIThread.DISPATCH_NORMAL);
+  }
+
+  function sendHeapMinNotificationsInner()
+  {
+    var os = Cc["@mozilla.org/observer-service;1"]
+             .getService(Ci.nsIObserverService);
+    os.notifyObservers(null, "memory-pressure", "heap-minimize");
+
+    if (++j < 3)
+      runSoon(sendHeapMinNotificationsInner);
+    else
+      runSoon(update);
+  }
+
+  var j = 0;
+  sendHeapMinNotificationsInner();
 }
 
 
@@ -142,6 +186,23 @@ function update()
       text += genProcessText(process, tmrTable[process]);
     }
   }
+
+  
+  const GCDesc = "Do a global garbage collection.";
+  
+  const CCDesc = "Do a global garbage collection followed by a cycle " +
+                 "collection. (It currently is not possible to do a cycle " +
+                 "collection on its own, see bug 625302.)";
+  const MPDesc = "Send three \"heap-minimize\" notifications in a row.  Each " +
+                 "notification triggers a global garbage collection followed " +
+                 "by a cycle collection, and causes the process to reduce " +
+                 "memory usage in other ways, e.g. by flushing various caches.";
+
+  text += "<div>" +
+    "<button title='" + GCDesc + "' onclick='doGlobalGC()'>GC</button>" +
+    "<button title='" + CCDesc + "' onclick='doGlobalGCandCC()'>GC + CC</button>" +
+    "<button title='" + MPDesc + "' onclick='sendHeapMinNotifications()'>" + "Minimize memory usage</button>" +
+    "</div>";
 
   
   text += gVerbose
