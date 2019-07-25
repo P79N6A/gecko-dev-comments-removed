@@ -100,13 +100,24 @@ void GetDirname(const nsCString &aPath, nsACString &aOut)
 
 void GetBasename(const nsCString &aPath, nsACString &aOut)
 {
+  nsCString out;
   PRInt32 idx = aPath.RFind("/");
   if (idx == -1) {
-    aOut.Assign(aPath);
+    out.Assign(aPath);
   }
   else {
-    aOut.Assign(Substring(aPath, idx + 1));
+    out.Assign(Substring(aPath, idx + 1));
   }
+
+  
+  
+  
+  if (EndsWithLiteral(out, "(deleted)")) {
+    out.Assign(Substring(out, 0, out.RFind("(deleted)")));
+  }
+  out.StripChars(" ");
+
+  aOut.Assign(out);
 }
 
 
@@ -226,8 +237,9 @@ MapsReporter::FindLibxul()
 
   
   FILE *f = fopen("/proc/self/maps", "r");
-  if (!f)
+  if (!f) {
     return NS_ERROR_FAILURE;
+  }
 
   while (true) {
     
@@ -266,9 +278,9 @@ MapsReporter::ParseMapping(
   PR_STATIC_ASSERT(sizeof(long long) == sizeof(PRInt64));
   PR_STATIC_ASSERT(sizeof(int) == sizeof(PRInt32));
 
-  if (mLibxulDir.IsEmpty()) {
-    NS_ENSURE_SUCCESS(FindLibxul(), NS_ERROR_FAILURE);
-  }
+  
+  
+  FindLibxul();
 
   
   
@@ -362,8 +374,6 @@ MapsReporter::GetReporterNameAndDescription(
                  "syscall.");
   }
   else if (!basename.IsEmpty()) {
-    NS_ASSERTION(!mLibxulDir.IsEmpty(), "mLibxulDir should not be empty.");
-
     nsCAutoString dirname;
     GetDirname(absPath, dirname);
 
@@ -372,7 +382,8 @@ MapsReporter::GetReporterNameAndDescription(
     if (EndsWithLiteral(basename, ".so") ||
         (basename.Find(".so") != -1 && dirname.Find("/lib") != -1)) {
       aName.Append("shared-libraries/");
-      if (dirname.Equals(mLibxulDir) || mMozillaLibraries.Contains(basename)) {
+      if ((!mLibxulDir.IsEmpty() && dirname.Equals(mLibxulDir)) ||
+          mMozillaLibraries.Contains(basename)) {
         aName.Append("shared-libraries-mozilla/");
       }
       else {
