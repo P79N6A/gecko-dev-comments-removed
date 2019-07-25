@@ -217,6 +217,12 @@ public:
 
 
 
+  virtual void Mutated(Layer* aLayer) { }
+
+  
+
+
+
   virtual already_AddRefed<ThebesLayer> CreateThebesLayer() = 0;
   
 
@@ -332,7 +338,11 @@ public:
 
 
 
-  void SetIsOpaqueContent(PRBool aOpaque) { mIsOpaqueContent = aOpaque; }
+  void SetIsOpaqueContent(PRBool aOpaque)
+  {
+    mIsOpaqueContent = aOpaque;
+    Mutated();
+  }
   
 
 
@@ -340,14 +350,22 @@ public:
 
 
 
-  virtual void SetVisibleRegion(const nsIntRegion& aRegion) { mVisibleRegion = aRegion; }
+  virtual void SetVisibleRegion(const nsIntRegion& aRegion)
+  {
+    mVisibleRegion = aRegion;
+    Mutated();
+  }
 
   
 
 
 
 
-  void SetOpacity(float aOpacity) { mOpacity = aOpacity; }
+  void SetOpacity(float aOpacity)
+  {
+    mOpacity = aOpacity;
+    Mutated();
+  }
 
   
 
@@ -365,6 +383,7 @@ public:
     if (aRect) {
       mClipRect = *aRect;
     }
+    Mutated();
   }
   
 
@@ -384,6 +403,7 @@ public:
       mUseClipRect = PR_TRUE;
       mClipRect = aRect;
     }
+    Mutated();
   }
 
   
@@ -393,7 +413,11 @@ public:
 
 
 
-  void SetTransform(const gfx3DMatrix& aMatrix) { mTransform = aMatrix; }
+  void SetTransform(const gfx3DMatrix& aMatrix)
+  {
+    mTransform = aMatrix;
+    Mutated();
+  }
 
   
   float GetOpacity() { return mOpacity; }
@@ -477,6 +501,8 @@ protected:
     mUseClipRect(PR_FALSE),
     mIsOpaqueContent(PR_FALSE)
     {}
+
+  void Mutated() { mManager->Mutated(this); }
 
   
   
