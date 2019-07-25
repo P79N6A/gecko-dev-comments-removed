@@ -115,16 +115,25 @@ extern "C" {
 
 
 
-#ifdef WIN32
+#if defined(_MSC_VER)
+   
+
+
+
+
+
+
 #  ifdef __cplusplus
 #    define MOZ_CRASH() \
        do { \
+         __debugbreak(); \
          *((volatile int*) NULL) = 123; \
          ::exit(3); \
        } while (0)
 #  else
 #    define MOZ_CRASH() \
        do { \
+         __debugbreak(); \
          *((volatile int*) NULL) = 123; \
          exit(3); \
        } while (0)
