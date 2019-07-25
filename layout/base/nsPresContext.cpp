@@ -308,6 +308,9 @@ nsPresContext::~nsPresContext()
 
   delete mBidiUtils;
 #endif 
+  nsContentUtils::UnregisterPrefCallback("gfx.font_rendering.",
+                                         nsPresContext::PrefChangedCallback,
+                                         this);
   nsContentUtils::UnregisterPrefCallback("layout.css.dpi",
                                          nsPresContext::PrefChangedCallback,
                                          this);
@@ -806,6 +809,10 @@ nsPresContext::PreferenceChanged(const char* aPrefName)
     
     
   }
+  if (StringBeginsWith(prefName, NS_LITERAL_CSTRING("gfx.font_rendering."))) {
+    
+    mPrefChangePendingNeedsReflow = PR_TRUE;
+  }
   
   if (!mPrefChangedTimer)
   {
@@ -915,6 +922,8 @@ nsPresContext::Init(nsIDeviceContext* aDeviceContext)
   nsContentUtils::RegisterPrefCallback("bidi.", PrefChangedCallback,
                                        this);
 #endif
+  nsContentUtils::RegisterPrefCallback("gfx.font_rendering.", PrefChangedCallback,
+                                       this);
   nsContentUtils::RegisterPrefCallback("layout.css.dpi",
                                        nsPresContext::PrefChangedCallback,
                                        this);
