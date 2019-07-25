@@ -42,11 +42,9 @@ const Cr = Components.results;
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://weave/ext/Sync.js");
 Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/util.js");
-Cu.import("resource://weave/async.js");
-
-Function.prototype.async = Async.sugar;
 
 Utils.lazy(this, 'ID', IDManager);
 
@@ -137,25 +135,14 @@ Identity.prototype = {
 
   
   
-  
   onGetPassword: null,
 
   
-  _getPassword: function Id__getPassword() {
-    let self = yield;
-    let pass;
-
+  getPassword: function Identity_getPassword() {
     if (this.password)
-      pass = this.password;
-    else {
-      if (this.onGetPassword) {
-        yield Async.run(this, this.onGetPassword, self.cb, this);
-        pass = this.password; 
-      }
-    }
-    self.done(pass);
-  },
-  getPassword: function Id_getPassword(onComplete) {
-    this._getPassword.async(this, onComplete);
+      return this.password;
+
+    if (typeof this.onGetPassword == "function")
+      return this.password = Sync(this.onGetPassword)();
   }
 };
