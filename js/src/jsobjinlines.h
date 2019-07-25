@@ -474,6 +474,15 @@ JSObject::shrinkDenseArrayElements(JSContext *cx, uintN cap)
 }
 
 inline void
+JSObject::backfillDenseArrayHoles()
+{
+    
+    JS_ASSERT(isDenseArray());
+    ClearValueRange(slots + initializedLength, capacity - initializedLength, true);
+    initializedLength = capacity;
+}
+
+inline void
 JSObject::setArgsLength(uint32 argc)
 {
     JS_ASSERT(isArguments());

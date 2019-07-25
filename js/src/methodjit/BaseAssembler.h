@@ -581,8 +581,10 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
 
 
 #define STUB_CALL_TYPE(type)                                                             \
-    Call callWithVMFrame(type stub, jsbytecode *pc, DataLabelPtr *pinlined, uint32 fd) { \
-        return fallibleVMCall(JS_FUNC_TO_DATA_PTR(void *, stub), pc, pinlined, fd);      \
+    Call callWithVMFrame(bool inlining, type stub, jsbytecode *pc,                       \
+                         DataLabelPtr *pinlined, uint32 fd) {                            \
+        return fallibleVMCall(inlining, JS_FUNC_TO_DATA_PTR(void *, stub),               \
+                              pc, pinlined, fd);                                         \
     }
 
     STUB_CALL_TYPE(JSObjStub);
@@ -610,7 +612,8 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         move(MacroAssembler::stackPointerRegister, Registers::ArgReg0);
     }
 
-    void setupFallibleVMFrame(jsbytecode *pc, DataLabelPtr *pinlined, int32 frameDepth) {
+    void setupFallibleVMFrame(bool inlining, jsbytecode *pc,
+                              DataLabelPtr *pinlined, int32 frameDepth) {
         setupInfallibleVMFrame(frameDepth);
 
         
@@ -619,11 +622,13 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
         
         storePtr(ImmPtr(pc), FrameAddress(offsetof(VMFrame, regs.pc)));
 
-        
-        DataLabelPtr ptr = storePtrWithPatch(ImmPtr(NULL),
-                                             FrameAddress(offsetof(VMFrame, regs.inlined)));
-        if (pinlined)
-            *pinlined = ptr;
+        if (inlining) {
+            
+            DataLabelPtr ptr = storePtrWithPatch(ImmPtr(NULL),
+                                                 FrameAddress(offsetof(VMFrame, regs.inlined)));
+            if (pinlined)
+                *pinlined = ptr;
+        }
     }
 
     
@@ -637,13 +642,16 @@ static const JSC::MacroAssembler::RegisterID JSParamReg_Argc   = JSC::ARMRegiste
     
     
     
-    Call fallibleVMCall(void *ptr, jsbytecode *pc, DataLabelPtr *pinlined, int32 frameDepth) {
-        setupFallibleVMFrame(pc, pinlined, frameDepth);
+    Call fallibleVMCall(bool inlining, void *ptr, jsbytecode *pc,
+                        DataLabelPtr *pinlined, int32 frameDepth) {
+        setupFallibleVMFrame(inlining, pc, pinlined, frameDepth);
         Call call = wrapVMCall(ptr);
 
-        
-        
-        loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
+        if (inlining) {
+            
+            
+            loadPtr(FrameAddress(offsetof(VMFrame, regs.fp)), JSFrameReg);
+        }
 
         return call;
     }
