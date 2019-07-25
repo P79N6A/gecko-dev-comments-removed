@@ -67,8 +67,13 @@
 
 @media all and (-moz-windows-compositor) {
   
-  #titlebar-buttonbox {
+  #titlebar-buttonbox:not(:-moz-lwtheme),
+  .titlebar-button {
     display: none;
+  }
+
+  #main-window[sizemode="maximized"] #titlebar-buttonbox {
+    -moz-margin-end: 2px;
   }
 
   #main-window {
