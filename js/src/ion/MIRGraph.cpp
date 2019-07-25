@@ -209,8 +209,18 @@ MBasicBlock::setSlot(uint32 slot, MDefinition *ins)
         } while (true);
 
         
-        for (uint32 copy = var.firstCopy; copy != lowest; copy = slots_[copy].nextCopy)
+        for (uint32 copy = var.firstCopy; copy != lowest;) {
             slots_[copy].copyOf = lowest;
+
+            uint32 next = slots_[copy].nextCopy;
+
+            
+            
+            if (slots_[copy].nextCopy == lowest)
+                slots_[copy].nextCopy = NotACopy;
+
+            copy = next;
+        }
 
         
         slots_[lowest].copyOf = NotACopy;
