@@ -161,11 +161,7 @@ class RegExp
     bool multiline() const { return flags & JSREG_MULTILINE; }
     bool sticky() const { return flags & JSREG_STICKY; }
 
-    const uint32 &getFlags() const {
-        JS_ASSERT((flags & allFlags) == flags);
-        return flags;
-    }
-
+    const uint32 &getFlags() const { JS_ASSERT((flags & allFlags) == flags); return flags; }
     uint32 flagCount() const;
 };
 
@@ -622,62 +618,61 @@ RegExpStatics::createRightContext(JSContext *cx, Value *out) const
 }
 
 inline void
-RegExpStatics::getParen(size_t pairNum, JSSubString *out) const
+RegExpStatics::getParen(size_t num, JSSubString *out) const
 {
-    checkParenNum(pairNum);
+    size_t pairNum = num + 1;
     if (!pairIsPresent(pairNum)) {
         *out = js_EmptySubString;
         return;
     }
-    out->chars = matchPairsInput->chars() + get(pairNum, 0);
-    out->length = getParenLength(pairNum);
+    out->chars = matchPairsInput->chars() + getCrash(pairNum, 0);
+    out->length = getParenLength(num);
 }
 
 inline void
 RegExpStatics::getLastMatch(JSSubString *out) const
 {
-    if (!pairCount()) {
+    if (!pairCountCrash()) {
         *out = js_EmptySubString;
         return;
     }
-    JS_ASSERT(matchPairsInput);
-    out->chars = matchPairsInput->chars() + get(0, 0);
-    JS_ASSERT(get(0, 1) >= get(0, 0));
+    JS_CRASH_UNLESS(matchPairsInput);
+    out->chars = matchPairsInput->chars() + getCrash(0, 0);
+    JS_CRASH_UNLESS(getCrash(0, 1) >= getCrash(0, 0));
     out->length = get(0, 1) - get(0, 0);
 }
 
 inline void
 RegExpStatics::getLastParen(JSSubString *out) const
 {
-    size_t pc = pairCount();
-    
-    if (pc <= 1) {
+    size_t parenCount = getParenCount();
+    if (!parenCount) {
         *out = js_EmptySubString;
         return;
     }
-    getParen(pc - 1, out);
+    getParen(parenCount - 1, out);
 }
 
 inline void
 RegExpStatics::getLeftContext(JSSubString *out) const
 {
-    if (!pairCount()) {
+    if (!pairCountCrash()) {
         *out = js_EmptySubString;
         return;
     }
     out->chars = matchPairsInput->chars();
-    out->length = get(0, 0);
+    out->length = getCrash(0, 0);
 }
 
 inline void
 RegExpStatics::getRightContext(JSSubString *out) const
 {
-    if (!pairCount()) {
+    if (!pairCountCrash()) {
         *out = js_EmptySubString;
         return;
     }
-    out->chars = matchPairsInput->chars() + get(0, 1);
-    JS_ASSERT(get(0, 1) <= int(matchPairsInput->length()));
+    out->chars = matchPairsInput->chars() + getCrash(0, 1);
+    JS_CRASH_UNLESS(get(0, 1) <= int(matchPairsInput->length()));
     out->length = matchPairsInput->length() - get(0, 1);
 }
 
