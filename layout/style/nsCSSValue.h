@@ -115,9 +115,30 @@ enum nsCSSUnit {
   eCSSUnit_Function     = 24,     
                                   
 
-  eCSSUnit_URL          = 30,     
-  eCSSUnit_Image        = 31,     
-  eCSSUnit_Gradient     = 32,     
+  
+  
+  
+  
+
+  
+  
+  
+  
+  eCSSUnit_Calc         = 25,     
+  
+  
+  eCSSUnit_Calc_Plus    = 26,     
+  eCSSUnit_Calc_Minus   = 27,     
+  eCSSUnit_Calc_Times_L = 28,     
+  eCSSUnit_Calc_Times_R = 29,     
+  eCSSUnit_Calc_Divided = 30,     
+  
+  eCSSUnit_Calc_Minimum = 31,     
+  eCSSUnit_Calc_Maximum = 32,     
+
+  eCSSUnit_URL          = 40,     
+  eCSSUnit_Image        = 41,     
+  eCSSUnit_Gradient     = 42,     
   eCSSUnit_Integer      = 50,     
   eCSSUnit_Enumerated   = 51,     
   eCSSUnit_EnumColor    = 80,     
@@ -212,9 +233,13 @@ public:
     { return eCSSUnit_Hertz <= mUnit && mUnit <= eCSSUnit_Kilohertz; }
   PRBool    IsTimeUnit() const  
     { return eCSSUnit_Seconds <= mUnit && mUnit <= eCSSUnit_Milliseconds; }
+  PRBool    IsCalcUnit() const
+    { return eCSSUnit_Calc <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
 
   PRBool    UnitHasStringValue() const
     { return eCSSUnit_String <= mUnit && mUnit <= eCSSUnit_Font_Format; }
+  PRBool    UnitHasArrayValue() const
+    { return eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Calc_Maximum; }
 
   PRInt32 GetIntValue() const
   {
@@ -271,8 +296,7 @@ public:
 
   Array* GetArrayValue() const
   {
-    NS_ASSERTION(eCSSUnit_Array <= mUnit && mUnit <= eCSSUnit_Function,
-                 "not an array value");
+    NS_ASSERTION(UnitHasArrayValue(), "not an array value");
     return mValue.mArray;
   }
 
