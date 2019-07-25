@@ -145,6 +145,8 @@ typedef struct JSConstArray {
     uint32          length;
 } JSConstArray;
 
+struct JSArenaPool;
+
 namespace js {
 
 struct GlobalSlotArray {
@@ -154,6 +156,162 @@ struct GlobalSlotArray {
     };
     Entry           *vector;
     uint32          length;
+};
+
+class Shape;
+
+enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
+
+
+
+
+
+
+
+class Bindings {
+    js::Shape *lastBinding;
+    uint16 nargs;
+    uint16 nvars;
+    uint16 nupvars;
+
+  public:
+    inline Bindings(JSContext *cx);
+
+    
+
+
+
+
+    inline void transfer(JSContext *cx, Bindings *bindings);
+
+    
+
+
+
+
+    inline void clone(JSContext *cx, Bindings *bindings);
+
+    uint16 countArgs() const { return nargs; }
+    uint16 countVars() const { return nvars; }
+    uint16 countUpvars() const { return nupvars; }
+
+    uintN countArgsAndVars() const { return nargs + nvars; }
+
+    uintN countLocalNames() const { return nargs + nvars + nupvars; }
+
+    bool hasUpvars() const { return nupvars > 0; }
+    bool hasLocalNames() const { return countLocalNames() > 0; }
+
+    
+    inline const js::Shape *lastShape() const;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool add(JSContext *cx, JSAtom *name, BindingKind kind);
+
+    
+    bool addVariable(JSContext *cx, JSAtom *name) {
+        return add(cx, name, VARIABLE);
+    }
+    bool addConstant(JSContext *cx, JSAtom *name) {
+        return add(cx, name, CONSTANT);
+    }
+    bool addUpvar(JSContext *cx, JSAtom *name) {
+        return add(cx, name, UPVAR);
+    }
+    bool addArgument(JSContext *cx, JSAtom *name, uint16 *slotp) {
+        JS_ASSERT(name != NULL); 
+        *slotp = nargs;
+        return add(cx, name, ARGUMENT);
+    }
+    bool addDestructuring(JSContext *cx, uint16 *slotp) {
+        *slotp = nargs;
+        return add(cx, NULL, ARGUMENT);
+    }
+
+    
+
+
+
+
+
+    BindingKind lookup(JSAtom *name, uintN *indexp) const;
+
+    
+    bool hasBinding(JSAtom *name) const {
+        return lookup(name, NULL) != NONE;
+    }
+
+    
+
+
+
+    JSAtom *findDuplicateArgument() const;
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    jsuword *
+    getLocalNameArray(JSContext *cx, JSArenaPool *pool);
+
+    
+
+
+
+    int sharpSlotBase(JSContext *cx);
+
+    
+
+
+
+
+    void makeImmutable();
+
+    
+
+
+
+
+
+
+
+
+
+
+    const js::Shape *lastArgument() const;
+    const js::Shape *lastVariable() const;
+    const js::Shape *lastUpvar() const;
+
+    void trace(JSTracer *trc);
 };
 
 } 
@@ -255,6 +413,8 @@ struct JSScript {
     uint16          staticLevel;
     uint16          nClosedArgs; 
     uint16          nClosedVars; 
+    js::Bindings    bindings;   
+
     JSPrincipals    *principals;
     union {
         

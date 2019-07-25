@@ -194,7 +194,8 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
 #define JSXDR_MAGIC_SCRIPT_8        0xdead0008
 #define JSXDR_MAGIC_SCRIPT_9        0xdead0009
 #define JSXDR_MAGIC_SCRIPT_10       0xdead000a
-#define JSXDR_MAGIC_SCRIPT_CURRENT  JSXDR_MAGIC_SCRIPT_10
+#define JSXDR_MAGIC_SCRIPT_11       0xdead000b
+#define JSXDR_MAGIC_SCRIPT_CURRENT  JSXDR_MAGIC_SCRIPT_11
 
 
 
@@ -205,7 +206,7 @@ JS_XDRFindClassById(JSXDRState *xdr, uint32 id);
 
 
 
-#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 79)
+#define JSXDR_BYTECODE_VERSION      (0xb973c0de - 80)
 
 
 

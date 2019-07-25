@@ -332,16 +332,21 @@ struct JSTreeContext {
 
     JSParseNode     *innermostWith; 
 
+    js::Bindings    bindings;       
+
+
 #ifdef JS_SCOPE_DEPTH_METER
     uint16          scopeDepth;     
     uint16          maxScopeDepth;  
 #endif
 
+    void trace(JSTracer *trc);
+
     JSTreeContext(js::Parser *prs)
-      : flags(0), bodyid(0), blockidGen(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
-        parser(prs), scopeChain_(NULL), parent(prs->tc), staticLevel(0),
-        funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
+      : flags(0), bodyid(0), blockidGen(0), topStmt(NULL), topScopeStmt(NULL),
+        blockChainBox(NULL), blockNode(NULL), parser(prs), scopeChain_(NULL), parent(prs->tc),
+        staticLevel(0), funbox(NULL), functionList(NULL), innermostWith(NULL), bindings(prs->context),
+        sharpSlotBase(-1)
     {
         prs->tc = this;
         JS_SCOPE_DEPTH_METERING(scopeDepth = maxScopeDepth = 0);

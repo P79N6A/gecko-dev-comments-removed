@@ -295,6 +295,7 @@ struct Shape : public JSObjectMap
     friend struct ::JSObject;
     friend struct ::JSFunction;
     friend class js::PropertyTree;
+    friend class js::Bindings;
     friend bool HasUnreachableGCThings(TreeFragment *f);
 
   protected:
@@ -879,7 +880,7 @@ Shape::isSharedPermanent() const
     return (~attrs & (JSPROP_SHARED | JSPROP_PERMANENT)) == 0;
 }
 
-}
+} 
 
 #ifdef _MSC_VER
 #pragma warning(pop)

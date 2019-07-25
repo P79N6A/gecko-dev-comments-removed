@@ -41,10 +41,59 @@
 #ifndef jsscriptinlines_h___
 #define jsscriptinlines_h___
 
+#include "jscntxt.h"
 #include "jsfun.h"
 #include "jsopcode.h"
 #include "jsregexp.h"
 #include "jsscript.h"
+#include "jsscope.h"
+
+namespace js {
+
+inline
+Bindings::Bindings(JSContext *cx)
+  : lastBinding(cx->runtime->emptyCallShape), nargs(0), nvars(0), nupvars(0)
+{
+}
+
+inline void
+Bindings::transfer(JSContext *cx, Bindings *bindings)
+{
+    JS_ASSERT(lastBinding == cx->runtime->emptyCallShape);
+
+    *this = *bindings;
+#ifdef DEBUG
+    bindings->lastBinding = NULL;
+#endif
+
+    
+    if (lastBinding->inDictionary())
+        lastBinding->listp = &this->lastBinding;
+}
+
+inline void
+Bindings::clone(JSContext *cx, Bindings *bindings)
+{
+    JS_ASSERT(lastBinding == cx->runtime->emptyCallShape);
+
+    
+
+
+
+    JS_ASSERT(!bindings->lastBinding->inDictionary() || bindings->lastBinding->frozen());
+
+    *this = *bindings;
+}
+
+const Shape *
+Bindings::lastShape() const
+{
+    JS_ASSERT(lastBinding);
+    JS_ASSERT_IF(lastBinding->inDictionary(), lastBinding->frozen());
+    return lastBinding;
+}
+
+} 
 
 inline JSFunction *
 JSScript::getFunction(size_t index)
