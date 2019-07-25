@@ -385,10 +385,10 @@ NameOperation(JSContext *cx, JSScript *script, jsbytecode *pc, Value *vp)
         return true;
     }
 
-    RootedShape shape(cx);
-    if (!FindPropertyHelper(cx, name, true, obj, &obj, &obj2, &shape))
+    JSProperty *prop;
+    if (!FindPropertyHelper(cx, name, true, obj, &obj, &obj2, &prop))
         return false;
-    if (!shape) {
+    if (!prop) {
         
         JSOp op2 = JSOp(pc[JSOP_NAME_LENGTH]);
         if (op2 == JSOP_TYPEOF) {
@@ -407,6 +407,7 @@ NameOperation(JSContext *cx, JSScript *script, jsbytecode *pc, Value *vp)
         if (!obj->getGeneric(cx, id, vp))
             return false;
     } else {
+        Shape *shape = (Shape *)prop;
         Rooted<JSObject*> normalized(cx, obj);
         if (normalized->getClass() == &WithClass && !shape->hasDefaultGetter())
             normalized = &normalized->asWith().object();
@@ -423,7 +424,7 @@ DefVarOrConstOperation(JSContext *cx, HandleObject varobj, PropertyName *dn, uns
     JS_ASSERT(varobj->isVarObj());
     JS_ASSERT(!varobj->getOps()->defineProperty || varobj->isDebugScope());
 
-    RootedShape prop(cx);
+    JSProperty *prop;
     RootedObject obj2(cx);
     if (!varobj->lookupProperty(cx, dn, &obj2, &prop))
         return false;

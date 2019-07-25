@@ -193,7 +193,7 @@ stubs::ImplicitThis(VMFrame &f, PropertyName *name_)
     RootedPropertyName name(f.cx, name_);
 
     RootedObject obj(f.cx), obj2(f.cx);
-    RootedShape prop(f.cx);
+    JSProperty *prop;
     if (!FindPropertyHelper(f.cx, name, false, scopeObj, &obj, &obj2, &prop))
         THROW();
 
@@ -338,16 +338,16 @@ stubs::DefFun(VMFrame &f, JSFunction *fun_)
 
     
     PropertyName *name = fun->atom->asPropertyName();
-    RootedShape shape(cx);
+    JSProperty *prop = NULL;
     RootedObject pobj(cx);
-    if (!parent->lookupProperty(cx, name, &pobj, &shape))
+    if (!parent->lookupProperty(cx, name, &pobj, &prop))
         THROW();
 
     Value rval = ObjectValue(*fun);
 
     do {
         
-        if (!shape || pobj != parent) {
+        if (!prop || pobj != parent) {
             if (!parent->defineProperty(cx, name, rval,
                                         JS_PropertyStub, JS_StrictPropertyStub, attrs))
             {
@@ -358,6 +358,7 @@ stubs::DefFun(VMFrame &f, JSFunction *fun_)
 
         
         JS_ASSERT(parent->isNative());
+        Shape *shape = reinterpret_cast<Shape *>(prop);
         if (parent->isGlobal()) {
             if (shape->configurable()) {
                 if (!parent->defineProperty(cx, name, rval,
@@ -1338,7 +1339,7 @@ stubs::DelName(VMFrame &f, PropertyName *name_)
     RootedPropertyName name(f.cx, name_);
 
     RootedObject obj(f.cx), obj2(f.cx);
-    RootedShape prop(f.cx);
+    JSProperty *prop;
     if (!FindProperty(f.cx, name, scopeObj, &obj, &obj2, &prop))
         THROW();
 
@@ -1438,7 +1439,7 @@ stubs::In(VMFrame &f)
         THROWV(JS_FALSE);
 
     RootedObject obj2(cx);
-    RootedShape prop(cx);
+    JSProperty *prop;
     if (!obj->lookupGeneric(cx, id, &obj2, &prop))
         THROWV(JS_FALSE);
 
