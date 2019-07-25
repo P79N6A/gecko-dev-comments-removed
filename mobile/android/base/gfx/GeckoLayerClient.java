@@ -1,0 +1,324 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package org.mozilla.gecko.gfx;
+
+import org.mozilla.gecko.FloatUtils;
+import org.mozilla.gecko.GeckoApp;
+import org.mozilla.gecko.GeckoAppShell;
+import org.mozilla.gecko.GeckoEvent;
+import org.mozilla.gecko.GeckoEventListener;
+import org.json.JSONException;
+import org.json.JSONObject;
+import android.content.Context;
+import android.graphics.Color;
+import android.graphics.PointF;
+import android.graphics.Rect;
+import android.os.SystemClock;
+import android.util.DisplayMetrics;
+import android.util.Log;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public abstract class GeckoLayerClient extends LayerClient implements GeckoEventListener {
+    private static final String LOGTAG = "GeckoLayerClient";
+
+    protected IntSize mScreenSize;
+    protected IntSize mBufferSize;
+
+    protected Layer mTileLayer;
+
+    
+    protected ViewportMetrics mGeckoViewport;
+
+    
+    protected ViewportMetrics mNewGeckoViewport;
+
+    private static final long MIN_VIEWPORT_CHANGE_DELAY = 350L;
+    private long mLastViewportChangeTime;
+    private boolean mPendingViewportAdjust;
+    private boolean mViewportSizeChanged;
+
+    
+    
+    
+    
+    
+    private boolean mUpdateViewportOnEndDraw;
+
+    private static Pattern sColorPattern;
+
+    
+    private DrawListener mDrawListener;
+
+    protected abstract boolean handleDirectTextureChange(boolean hasDirectTexture);
+    protected abstract boolean shouldDrawProceed(int tileWidth, int tileHeight);
+    protected abstract void updateLayerAfterDraw(Rect updatedRect);
+    protected abstract IntSize getBufferSize();
+    protected abstract IntSize getTileSize();
+
+    public GeckoLayerClient(Context context) {
+        mScreenSize = new IntSize(0, 0);
+        mBufferSize = new IntSize(0, 0);
+    }
+
+    
+    @Override
+    public void setLayerController(LayerController layerController) {
+        super.setLayerController(layerController);
+
+        layerController.setRoot(mTileLayer);
+        if (mGeckoViewport != null) {
+            layerController.setViewportMetrics(mGeckoViewport);
+        }
+
+        GeckoAppShell.registerGeckoEventListener("Viewport:UpdateAndDraw", this);
+        GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
+
+        sendResizeEventIfNecessary();
+    }
+
+    public boolean beginDrawing(int width, int height, int tileWidth, int tileHeight,
+                                String metadata, boolean hasDirectTexture) {
+        
+        if (handleDirectTextureChange(hasDirectTexture)) {
+            return false;
+        }
+
+        if (!shouldDrawProceed(tileWidth, tileHeight)) {
+            return false;
+        }
+
+        try {
+            JSONObject viewportObject = new JSONObject(metadata);
+            mNewGeckoViewport = new ViewportMetrics(viewportObject);
+
+            
+            String backgroundColorString = viewportObject.optString("backgroundColor");
+            if (backgroundColorString != null) {
+                LayerController controller = getLayerController();
+                controller.setCheckerboardColor(parseColorFromGecko(backgroundColorString));
+            }
+        } catch (JSONException e) {
+            Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
+            return false;
+        }
+
+        beginTransaction(mTileLayer);
+        return true;
+    }
+
+    
+
+
+
+    public void endDrawing(int x, int y, int width, int height) {
+        synchronized (getLayerController()) {
+            try {
+                updateViewport(!mUpdateViewportOnEndDraw);
+                mUpdateViewportOnEndDraw = false;
+
+                Rect rect = new Rect(x, y, x + width, y + height);
+                updateLayerAfterDraw(rect);
+            } finally {
+                endTransaction(mTileLayer);
+            }
+        }
+        Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
+
+        
+        if (mDrawListener != null) {
+            mDrawListener.drawFinished(x, y, width, height);
+        }
+    }
+
+    protected void updateViewport(boolean onlyUpdatePageSize) {
+        
+        
+        
+        
+        FloatSize viewportSize = getLayerController().getViewportSize();
+        mGeckoViewport = mNewGeckoViewport;
+        mGeckoViewport.setSize(viewportSize);
+
+        LayerController controller = getLayerController();
+        PointF displayportOrigin = mGeckoViewport.getDisplayportOrigin();
+        mTileLayer.setOrigin(PointUtils.round(displayportOrigin));
+        mTileLayer.setResolution(mGeckoViewport.getZoomFactor());
+
+        if (onlyUpdatePageSize) {
+            
+            
+            if (FloatUtils.fuzzyEquals(controller.getZoomFactor(),
+                    mGeckoViewport.getZoomFactor()))
+                controller.setPageSize(mGeckoViewport.getPageSize());
+        } else {
+            controller.setViewportMetrics(mGeckoViewport);
+            controller.abortPanZoomAnimation();
+        }
+    }
+
+    
+    protected void sendResizeEventIfNecessary(boolean force) {
+        DisplayMetrics metrics = new DisplayMetrics();
+        GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getMetrics(metrics);
+
+        
+        
+        
+        boolean screenSizeChanged = (metrics.widthPixels != mScreenSize.width ||
+                                     metrics.heightPixels != mScreenSize.height);
+        boolean viewportSizeValid = (getLayerController() != null &&
+                                     getLayerController().getViewportSize().isPositive());
+        if (!(force || (screenSizeChanged && viewportSizeValid))) {
+            return;
+        }
+
+        mScreenSize = new IntSize(metrics.widthPixels, metrics.heightPixels);
+        IntSize bufferSize = getBufferSize(), tileSize = getTileSize();
+
+        Log.i(LOGTAG, "Screen-size changed to " + mScreenSize);
+        GeckoEvent event = new GeckoEvent(GeckoEvent.SIZE_CHANGED,
+                                          bufferSize.width, bufferSize.height,
+                                          metrics.widthPixels, metrics.heightPixels,
+                                          tileSize.width, tileSize.height);
+        GeckoAppShell.sendEventToGecko(event);
+    }
+
+    
+    
+    private static int parseColorFromGecko(String string) {
+        if (sColorPattern == null) {
+            sColorPattern = Pattern.compile("rgb\\((\\d+),\\s*(\\d+),\\s*(\\d+)\\)");
+        }
+
+        Matcher matcher = sColorPattern.matcher(string);
+        if (!matcher.matches()) {
+            return Color.WHITE;
+        }
+
+        int r = Integer.parseInt(matcher.group(1));
+        int g = Integer.parseInt(matcher.group(2));
+        int b = Integer.parseInt(matcher.group(3));
+        return Color.rgb(r, g, b);
+    }
+
+    @Override
+    public void render() {
+        adjustViewportWithThrottling();
+    }
+
+    private void adjustViewportWithThrottling() {
+        if (!getLayerController().getRedrawHint())
+            return;
+
+        if (mPendingViewportAdjust)
+            return;
+
+        long timeDelta = System.currentTimeMillis() - mLastViewportChangeTime;
+        if (timeDelta < MIN_VIEWPORT_CHANGE_DELAY) {
+            getLayerController().getView().postDelayed(
+                new Runnable() {
+                    public void run() {
+                        mPendingViewportAdjust = false;
+                        adjustViewport();
+                    }
+                }, MIN_VIEWPORT_CHANGE_DELAY - timeDelta);
+            mPendingViewportAdjust = true;
+            return;
+        }
+
+        adjustViewport();
+    }
+
+    @Override
+    public void viewportSizeChanged() {
+        mViewportSizeChanged = true;
+    }
+
+    private void adjustViewport() {
+        ViewportMetrics viewportMetrics =
+            new ViewportMetrics(getLayerController().getViewportMetrics());
+
+        PointF viewportOffset = viewportMetrics.getOptimumViewportOffset(mBufferSize);
+        viewportMetrics.setViewportOffset(viewportOffset);
+        viewportMetrics.setViewport(viewportMetrics.getClampedViewport());
+
+        GeckoAppShell.sendEventToGecko(new GeckoEvent(viewportMetrics));
+        if (mViewportSizeChanged) {
+            mViewportSizeChanged = false;
+            GeckoAppShell.viewSizeChanged();
+        }
+
+        mLastViewportChangeTime = System.currentTimeMillis();
+    }
+
+    public void handleMessage(String event, JSONObject message) {
+        if ("Viewport:UpdateAndDraw".equals(event)) {
+            mUpdateViewportOnEndDraw = true;
+
+            
+            Rect rect = new Rect(0, 0, mBufferSize.width, mBufferSize.height);
+            GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.DRAW, rect));
+        } else if ("Viewport:UpdateLater".equals(event)) {
+            mUpdateViewportOnEndDraw = true;
+        }
+    }
+
+    @Override
+    public void geometryChanged() {
+        
+        sendResizeEventIfNecessary();
+        render();
+    }
+
+    private void sendResizeEventIfNecessary() {
+        sendResizeEventIfNecessary(false);
+    }
+
+    
+    public void setDrawListener(DrawListener listener) {
+        mDrawListener = listener;
+    }
+
+    
+    public interface DrawListener {
+        public void drawFinished(int x, int y, int width, int height);
+    }
+}
+
