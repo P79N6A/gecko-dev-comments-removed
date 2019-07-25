@@ -76,6 +76,7 @@ public:
   nsIURI* BindingURI() const { return mBindingURI; }
   nsIURI* AlternateBindingURI() const { return mAlternateBindingURI; }
   nsIURI* DocURI() const { return mXBLDocInfoWeak->DocumentURI(); }
+  nsIURI* GetBaseBindingURI() const { return mBaseBindingURI; }
 
   
   
@@ -143,9 +144,6 @@ public:
   nsXBLDocumentInfo* XBLDocumentInfo() const { return mXBLDocInfoWeak; }
   bool IsChrome() { return mXBLDocInfoWeak->IsChrome(); }
   
-  bool HasBasePrototype() { return mHasBaseProto; }
-  void SetHasBasePrototype(bool aHasBase) { mHasBaseProto = aHasBase; }
-
   void SetInitialAttributes(nsIContent* aBoundElement, nsIContent* aAnonymousContent);
 
   nsIStyleRuleProcessor* GetRuleProcessor();
@@ -180,6 +178,8 @@ public:
   nsresult AddResourceListener(nsIContent* aBoundElement);
 
   void Initialize();
+
+  nsresult ResolveBaseBinding();
 
   const nsCOMArray<nsXBLKeyEventHandler>* GetKeyEventHandlers()
   {
@@ -266,13 +266,16 @@ protected:
   nsCOMPtr<nsIURI> mAlternateBindingURI; 
   nsCOMPtr<nsIContent> mBinding; 
   nsAutoPtr<nsXBLPrototypeHandler> mPrototypeHandler; 
+
   
+  nsCOMPtr<nsIURI> mBaseBindingURI;
+
   nsXBLProtoImpl* mImplementation; 
                                    
 
   nsXBLPrototypeBinding* mBaseBinding; 
   bool mInheritStyle;
-  bool mHasBaseProto;
+  bool mCheckedBaseProto;
   bool mKeyHandlersRegistered;
  
   nsXBLPrototypeResources* mResources; 

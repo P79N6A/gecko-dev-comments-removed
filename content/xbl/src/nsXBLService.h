@@ -64,6 +64,8 @@ class nsXBLService : public nsIXBLService,
 {
   NS_DECL_ISUPPORTS
 
+  static bool IsChromeOrResourceURI(nsIURI* aURI);
+
   
   
   NS_IMETHOD LoadBindings(nsIContent* aContent, nsIURI* aURL,
