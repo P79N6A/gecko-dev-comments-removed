@@ -405,6 +405,11 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
             ExpandableListView exList = (ExpandableListView)list;
             int childPosition = ExpandableListView.getPackedPositionChild(info.packedPosition);
             int groupPosition = ExpandableListView.getPackedPositionGroup(info.packedPosition);
+
+            
+            if (groupPosition < 0 || childPosition < 0)
+                return;
+
             selectedItem = exList.getExpandableListAdapter().getChild(groupPosition, childPosition);
 
             Map map = (Map)selectedItem;
