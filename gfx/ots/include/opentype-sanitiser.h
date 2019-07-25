@@ -15,6 +15,8 @@ typedef unsigned int uint32_t;
 typedef __int64 int64_t;
 typedef unsigned __int64 uint64_t;
 #include <Winsock2.h>  
+#undef min
+#undef max
 #else
 #include <arpa/inet.h>
 #include <stdint.h>
