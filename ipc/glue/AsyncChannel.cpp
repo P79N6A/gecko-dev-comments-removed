@@ -54,6 +54,32 @@ struct RunnableMethodTraits<mozilla::ipc::AsyncChannel>
     static void ReleaseCallee(mozilla::ipc::AsyncChannel* obj) { }
 };
 
+namespace {
+
+
+class GoodbyeMessage : public IPC::Message
+{
+public:
+    enum { ID = GOODBYE_MESSAGE_TYPE };
+    GoodbyeMessage() :
+        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
+    {
+    }
+    
+    
+    static bool Read(const Message* msg)
+    {
+        return true;
+    }
+    void Log(const std::string& aPrefix,
+             FILE* aOutf) const
+    {
+        fputs("(special `Goodbye' message)", aOutf);
+    }
+};
+
+} 
+
 namespace mozilla {
 namespace ipc {
 
@@ -150,7 +176,7 @@ AsyncChannel::Close()
         AssertWorkerThread();
 
         
-        SendGoodbye();
+        SendSpecialMessage(new GoodbyeMessage());
 
         mChannelState = ChannelClosing;
 
@@ -198,10 +224,12 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
     NS_ASSERTION(!msg.is_reply(), "can't process replies here");
     NS_ASSERTION(!(msg.is_sync() || msg.is_rpc()), "async dispatch only");
 
-    if (MaybeInterceptGoodbye(msg))
-        
-        
+    if (MSG_ROUTING_NONE == msg.routing_id()) {
+        if (!OnSpecialMessage(msg.type(), msg))
+            
+            NS_RUNTIMEABORT("unhandled special message!");
         return;
+    }
 
     
     
@@ -209,49 +237,31 @@ AsyncChannel::OnDispatchMessage(const Message& msg)
     (void)MaybeHandleError(mListener->OnMessageReceived(msg), "AsyncChannel");
 }
 
-
-class GoodbyeMessage : public IPC::Message
+bool
+AsyncChannel::OnSpecialMessage(uint16 id, const Message& msg)
 {
-public:
-    enum { ID = GOODBYE_MESSAGE_TYPE };
-    GoodbyeMessage() :
-        IPC::Message(MSG_ROUTING_NONE, ID, PRIORITY_NORMAL)
-    {
+    switch (id) {
+    case GOODBYE_MESSAGE_TYPE:
+        return ProcessGoodbyeMessage();
+
+    default:
+        return false;
     }
-    
-    
-    static bool Read(const Message* msg)
-    {
-        return true;
-    }
-    void Log(const std::string& aPrefix,
-             FILE* aOutf) const
-    {
-        fputs("(special `Goodbye' message)", aOutf);
-    }
-};
+}
 
 void
-AsyncChannel::SendGoodbye()
+AsyncChannel::SendSpecialMessage(Message* msg)
 {
     AssertWorkerThread();
 
     mIOLoop->PostTask(
         FROM_HERE,
-        NewRunnableMethod(this, &AsyncChannel::OnSend, new GoodbyeMessage()));
+        NewRunnableMethod(this, &AsyncChannel::OnSend, msg));
 }
 
 bool
-AsyncChannel::MaybeInterceptGoodbye(const Message& msg)
+AsyncChannel::ProcessGoodbyeMessage()
 {
-    
-    
-    if (MSG_ROUTING_NONE != msg.routing_id())
-        return false;
-
-    if (msg.is_sync() || msg.is_rpc() || GOODBYE_MESSAGE_TYPE != msg.type())
-        NS_RUNTIMEABORT("received unknown MSG_ROUTING_NONE message when expecting `Goodbye'");
-
     MutexAutoLock lock(mMutex);
     
     
