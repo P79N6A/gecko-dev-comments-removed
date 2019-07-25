@@ -1,3 +1,5 @@
+Cu.import("resource://weave/util.js");
+
 function run_test() {
   
   var passwords = loadInSandbox("resource://weave/engines/passwords.js");
@@ -13,10 +15,10 @@ function run_test() {
     passwordField: "test_password"
     };
 
-  
-  var fakeLoginManager = {
-    getAllLogins: function() { return [fakeUser]; }
-    };
+  Utils.getLoginManager = function fake_getLoginManager() {
+    
+    return {getAllLogins: function() { return [fakeUser]; }};
+  };
 
   
   var fakeUserHash = passwords._hashLoginInfo(fakeUser);
@@ -25,7 +27,6 @@ function run_test() {
 
   
   var psc = new passwords.PasswordSyncCore();
-  psc.__loginManager = fakeLoginManager;
   do_check_false(psc._itemExists("invalid guid"));
   do_check_true(psc._itemExists(fakeUserHash));
 }
