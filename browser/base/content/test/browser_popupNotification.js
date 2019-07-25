@@ -191,7 +191,7 @@ var wrongBrowserNotification;
 var tests = [
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       showNotification(this.notifyObj);
     },
     onShown: function (popup) {
@@ -206,7 +206,7 @@ var tests = [
   },
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       showNotification(this.notifyObj);
     },
     onShown: function (popup) {
@@ -221,7 +221,7 @@ var tests = [
   },
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       this.notification = showNotification(this.notifyObj);
     },
     onShown: function (popup) {
@@ -285,7 +285,7 @@ var tests = [
   
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       
       this.notification1 = showNotification(this.notifyObj);
       this.notification2 = showNotification(this.notifyObj);
@@ -332,7 +332,7 @@ var tests = [
   
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       this.notifyObj.mainAction = null;
       this.notification = showNotification(this.notifyObj);
     },
@@ -568,7 +568,7 @@ var tests = [
   
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       this.notification = showNotification(this.notifyObj);
     },
     onShown: function (popup) {
@@ -584,7 +584,7 @@ var tests = [
   
   { 
     run: function () {
-      this.notifyObj = new basicNotification(),
+      this.notifyObj = new basicNotification();
       this.notification = showNotification(this.notifyObj);
     },
     onShown: function (popup) {
@@ -677,7 +677,7 @@ var tests = [
         this.notification2.remove();
         ok(this.notifyObj2.removedCallbackTriggered, "removed callback triggered");
       }
-    ],
+    ]
   },
   
   { 
@@ -718,7 +718,7 @@ var tests = [
         gBrowser.selectedTab = this.oldSelectedTab;
         this.notificationOld.remove();
       }
-    ],
+    ]
   }
 ];
 
