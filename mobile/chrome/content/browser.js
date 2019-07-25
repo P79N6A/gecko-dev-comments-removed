@@ -407,10 +407,14 @@ var Browser = {
 
       
       BrowserUI.sizeControls(w, h);
-
-      bv.zoomToPage();
-      Browser.hideSidebars();
       
+      bv.zoomToPage();
+
+      
+      bv._browserViewportState.zoomChanged = false;
+
+      
+      Browser.hideSidebars();
 
       bv.commitBatchOperation();
     }
@@ -1030,9 +1034,11 @@ var Browser = {
     Browser.hideSidebars();
     Browser.hideTitlebar();
     bv.setZoomLevel(zoomLevel);
+    bv.forceViewportChange();  
+    Browser.forceChromeReflow();
     Browser.contentScrollboxScroller.scrollTo(scrollX, scrollY);
     bv.onAfterVisibleMove();
-    bv.renderNow();
+    bv.renderNow();  
 
     bv.commitOffscreenOperation();
   },
@@ -2449,6 +2455,9 @@ Tab.prototype = {
         
         
         bv.zoomToPage();
+        
+        
+        this._browserViewportState.zoomChanged = false;
       }
 
     }
