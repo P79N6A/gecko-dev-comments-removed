@@ -513,7 +513,7 @@ RadioInterfaceLayer.prototype = {
     
     
     
-    if (message.header.destinationPort != null) {
+    if (message.header && message.header.destinationPort != null) {
       let handler = this.portAddressedSmsApps[message.header.destinationPort];
       if (handler) {
         handler(message);
