@@ -38,6 +38,40 @@ void Warning(const char *f, int l, const char *format, ...)
 #endif
 #endif
 
+#ifdef MOZ_OTS_REPORT_ERRORS
+
+
+
+
+
+
+
+
+#define OTS_FAILURE_MSG_(otf_,msg_) \
+  ((otf_)->message_func && \
+    (*(otf_)->message_func)((otf_)->user_data, "%s", msg_) && \
+    false)
+
+
+#define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) \
+  ((otf_)->message_func && \
+    (*(otf_)->message_func)((otf_)->user_data, "table '%s': %s", tag_, msg_) && \
+    false)
+
+
+
+
+#define OTS_FAILURE_MSG(msg_) OTS_FAILURE_MSG_TAG_(file, msg_, TABLE_NAME)
+
+#else
+
+
+#define OTS_FAILURE_MSG_(otf_,msg_)          OTS_FAILURE()
+#define OTS_FAILURE_MSG_TAG_(otf_,msg_,tag_) OTS_FAILURE()
+#define OTS_FAILURE_MSG(msg_)                OTS_FAILURE()
+
+#endif
+
 
 
 
@@ -206,6 +240,11 @@ struct OpenTypeFile {
   uint16_t search_range;
   uint16_t entry_selector;
   uint16_t range_shift;
+
+#ifdef MOZ_OTS_REPORT_ERRORS
+  MessageFunc message_func;
+  void        *user_data;
+#endif
 
   
   
