@@ -75,8 +75,7 @@ public:
   virtual ~ShutdownObserver()
   {}
 
-  NS_IMETHOD QueryInterface(REFNSIID aIID, void ** aInstancePtr);
-  NS_INLINE_DECL_REFCOUNTING(ShutdownObserver)
+  NS_DECL_ISUPPORTS
 
   NS_IMETHOD Observe(nsISupports *aSubject, const char *aTopic,
                      const PRUnichar *aData)
@@ -95,8 +94,27 @@ private:
 };
 
 
+
+
+
+
+
+
+
+
+
 template<class SmartPtr>
-NS_IMPL_QUERY_INTERFACE1(ShutdownObserver<SmartPtr>, nsIObserver)
+NS_IMPL_ADDREF(mozilla::ClearOnShutdown_Internal::
+                 ShutdownObserver<SmartPtr>)
+
+template<class SmartPtr>
+NS_IMPL_RELEASE(mozilla::ClearOnShutdown_Internal::
+                  ShutdownObserver<SmartPtr>)
+
+template<class SmartPtr>
+NS_IMPL_QUERY_INTERFACE1(mozilla::ClearOnShutdown_Internal::
+                           ShutdownObserver<SmartPtr>,
+                         nsIObserver)
 
 } 
 
