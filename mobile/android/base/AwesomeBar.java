@@ -17,6 +17,7 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -649,6 +650,12 @@ public class AwesomeBar extends GeckoActivity {
             }
         }
         return true;
+    }
+
+    public static String getReaderForUrl(String url) {
+        
+        
+        return "about:reader?url=" + Uri.encode(url) + "&readingList=1";
     }
 
     private static boolean hasCompositionString(Editable content) {
