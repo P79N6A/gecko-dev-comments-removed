@@ -61,21 +61,6 @@
 
 namespace js {
 
-class AutoPreserveEnumerators {
-    JSContext *cx;
-    JSObject *enumerators;
-
-  public:
-    AutoPreserveEnumerators(JSContext *cx) : cx(cx), enumerators(cx->enumerators)
-    {
-    }
-
-    ~AutoPreserveEnumerators()
-    {
-        cx->enumerators = enumerators;
-    }
-};
-
 
 
 
