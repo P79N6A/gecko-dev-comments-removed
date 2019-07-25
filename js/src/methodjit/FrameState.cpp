@@ -762,7 +762,10 @@ FrameState::consistentRegisters(jsbytecode *target)
 
 
     RegisterAllocation *alloc = liveness.getCode(target).allocation;
-    JS_ASSERT(alloc);
+    if (!alloc) {
+        alloc = ArenaNew<RegisterAllocation>(liveness.pool, false);  
+        return true;
+    }
 
     Registers regs(Registers::AvailAnyRegs);
     while (!regs.empty()) {
