@@ -79,7 +79,7 @@
   
   margin: 0 10px;
   background-color: rgba(255,255,255,.5);
-  border-radius: 4px 4px;
+  border-radius: 2.5px;
 }
 
 .durationBox {
@@ -104,7 +104,7 @@
   
   margin: 10px 22px;
   background-color: rgba(255,255,255,.5);
-  border-radius: 4px;
+  border-radius: 2.5px;
 }
 
 .bufferBar,
@@ -127,13 +127,13 @@
 
 
   background-color: rgba(255,255,255,.5);
-  border-radius: 4px;
+  border-radius: 2.5px;
   -moz-appearance: none;
 }
 
 .progressBar .progress-bar {
   background-color: white;
-  border-radius: 4px 0 0 4px;
+  border-radius: 2.5px;
   -moz-appearance: none;
 }
 
