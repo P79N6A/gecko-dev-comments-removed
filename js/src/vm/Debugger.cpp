@@ -1224,6 +1224,21 @@ Debugger::onSingleStep(JSContext *cx, Value *vp)
 #endif
 
     
+    class PreserveIterValue {
+        JSContext *cx;
+        RootedValue savedIterValue;
+
+      public:
+        PreserveIterValue(JSContext *cx) : cx(cx), savedIterValue(cx, cx->iterValue) {
+            cx->iterValue.setMagic(JS_NO_ITER_VALUE);
+        }
+        ~PreserveIterValue() {
+            cx->iterValue = savedIterValue;
+        }
+    };
+    PreserveIterValue piv(cx);
+
+    
     for (JSObject **p = frames.begin(); p != frames.end(); p++) {
         JSObject *frame = *p;
         Debugger *dbg = Debugger::fromChildJSObject(frame);

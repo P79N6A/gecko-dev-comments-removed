@@ -314,6 +314,9 @@ js::InvokeKernel(JSContext *cx, CallArgs args, MaybeConstruct construct)
     JS_ASSERT(!cx->compartment->activeAnalysis);
 
     
+    JS_ASSERT(cx->iterValue.isMagic(JS_NO_ITER_VALUE));
+
+    
     InitialFrameFlags initial = (InitialFrameFlags) construct;
 
     if (args.calleev().isPrimitive())
