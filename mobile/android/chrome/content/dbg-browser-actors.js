@@ -14,7 +14,7 @@
 
 
 function createRootActor(aConnection) {
-  return new FennecRootActor(aConnection);
+  return new DeviceRootActor(aConnection);
 }
 
 
@@ -26,18 +26,18 @@ function createRootActor(aConnection) {
 
 
 
-function FennecRootActor(aConnection) {
+function DeviceRootActor(aConnection) {
   BrowserRootActor.call(this, aConnection);
 }
 
-FennecRootActor.prototype = new BrowserRootActor();
+DeviceRootActor.prototype = new BrowserRootActor();
 
 
 
 
 
 
-FennecRootActor.prototype.onListTabs = function FRA_onListTabs() {
+DeviceRootActor.prototype.onListTabs = function DRA_onListTabs() {
   
   
   
@@ -92,7 +92,7 @@ FennecRootActor.prototype.onListTabs = function FRA_onListTabs() {
 
 
 
-FennecRootActor.prototype.getTabContainer = function FRA_getTabContainer(aWindow) {
+DeviceRootActor.prototype.getTabContainer = function DRA_getTabContainer(aWindow) {
   return aWindow.document.getElementById("browsers");
 };
 
@@ -100,12 +100,12 @@ FennecRootActor.prototype.getTabContainer = function FRA_getTabContainer(aWindow
 
 
 
-FennecRootActor.prototype.onTabClosed = function FRA_onTabClosed(aEvent) {
+DeviceRootActor.prototype.onTabClosed = function DRA_onTabClosed(aEvent) {
   this.exitTabActor(aEvent.target.browser);
 };
 
 
-FennecRootActor.prototype.onCloseWindow = function FRA_onCloseWindow(aWindow) {
+DeviceRootActor.prototype.onCloseWindow = function DRA_onCloseWindow(aWindow) {
   if (aWindow.BrowserApp) {
     this.unwatchWindow(aWindow);
   }
@@ -114,6 +114,6 @@ FennecRootActor.prototype.onCloseWindow = function FRA_onCloseWindow(aWindow) {
 
 
 
-FennecRootActor.prototype.requestTypes = {
-  "listTabs": FennecRootActor.prototype.onListTabs
+DeviceRootActor.prototype.requestTypes = {
+  "listTabs": DeviceRootActor.prototype.onListTabs
 };
