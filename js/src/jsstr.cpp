@@ -2578,7 +2578,7 @@ class SplitMatchResult {
 
 template<class Matcher>
 static JSObject *
-SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch)
+SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch, TypeObject *type)
 {
     size_t strLength = str->length();
     SplitMatchResult result;
@@ -2677,6 +2677,9 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
                     if (!sub || !splits.append(StringValue(sub)))
                         return NULL;
                 } else {
+                    
+                    if (!cx->addTypePropertyId(type, JSID_VOID, UndefinedValue()))
+                        return NULL;
                     if (!splits.append(UndefinedValue()))
                         return NULL;
                 }
@@ -2827,10 +2830,10 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     
     JSObject *aobj;
     if (re) {
-        aobj = SplitHelper(cx, strlin, limit, SplitRegExpMatcher(re, cx->regExpStatics()));
+        aobj = SplitHelper(cx, strlin, limit, SplitRegExpMatcher(re, cx->regExpStatics()), type);
     } else {
         
-        aobj = SplitHelper(cx, strlin, limit, SplitStringMatcher(sepstr));
+        aobj = SplitHelper(cx, strlin, limit, SplitStringMatcher(sepstr), type);
     }
     if (!aobj)
         return false;
