@@ -1,33 +1,33 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=8 sw=4 et tw=79:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Copyright (C) 2008 Apple Inc.
+ * Copyright (C) 2009, 2010 University of Szeged
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice, this list of conditions and the following disclaimer.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice, this list of conditions and the following disclaimer in the
+ *    documentation and/or other materials provided with the distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY APPLE INC. ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL APPLE INC. OR
+ * CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+ * PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY
+ * OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+ * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+ * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ * 
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef MacroAssemblerARM_h
 #define MacroAssemblerARM_h
@@ -64,14 +64,14 @@ public:
     };
 
     enum DoubleCondition {
-        
+        // These conditions will only evaluate to true if the comparison is ordered - i.e. neither operand is NaN.
         DoubleEqual = ARMAssembler::EQ,
         DoubleNotEqual = ARMAssembler::NE | DoubleConditionBitSpecial,
         DoubleGreaterThan = ARMAssembler::GT,
         DoubleGreaterThanOrEqual = ARMAssembler::GE,
         DoubleLessThan = ARMAssembler::CC,
         DoubleLessThanOrEqual = ARMAssembler::LS,
-        
+        // If either operand is NaN, these conditions always evaluate to true.
         DoubleEqualOrUnordered = ARMAssembler::EQ | DoubleConditionBitSpecial,
         DoubleNotEqualOrUnordered = ARMAssembler::NE,
         DoubleGreaterThanOrUnordered = ARMAssembler::HI,
@@ -468,7 +468,7 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond), useConstantPool));
     }
 
-    
+    // As branch32, but allow the value ('right') to be patched.
     Jump branch32WithPatch(Condition cond, RegisterID left, Imm32 right, DataLabel32 &dataLabel)
     {
         dataLabel = moveWithPatch(right, ARMRegisters::S1);
@@ -650,13 +650,6 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond)));
     }
 
-    Jump branchSub32(Condition cond, Imm32 imm, Address dest)
-    {
-        ASSERT((cond == Overflow) || (cond == Signed) || (cond == Zero) || (cond == NonZero));
-        sub32(imm, dest);
-        return Jump(m_assembler.jmp(ARMCondition(cond)));
-    }
-
     Jump branchNeg32(Condition cond, RegisterID srcDest)
     {
         ASSERT((cond == Overflow) || (cond == Signed) || (cond == Zero) || (cond == NonZero));
@@ -671,8 +664,8 @@ public:
         return Jump(m_assembler.jmp(ARMCondition(cond)));
     }
 
-    
-    
+    // Encode a NOP using "MOV rX, rX", where 'X' is defined by 'tag', and is
+    // in the range r0-r14.
     void nop(int tag)
     {
         m_assembler.mov_r(tag, tag);
@@ -746,20 +739,20 @@ public:
 
     void set8(Condition cond, RegisterID left, RegisterID right, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         set32(cond, left, right, dest);
     }
 
     void set8(Condition cond, Address left, RegisterID right, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         load32(left, ARMRegisters::S1);
         set32(cond, ARMRegisters::S1, right, dest);
     }
 
     void set8(Condition cond, RegisterID left, Imm32 right, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         set32(cond, left, right, dest);
     }
 
@@ -776,7 +769,7 @@ public:
 
     void setTest8(Condition cond, Address address, Imm32 mask, RegisterID dest)
     {
-        
+        // ARM doesn't have byte registers
         setTest32(cond, address, mask, dest);
     }
 
@@ -792,7 +785,7 @@ public:
 
     void lea(BaseIndex address, RegisterID dest)
     {
-        
+        /* This could be better? */
         move(address.index, ARMRegisters::S1);
         if (address.scale != 0)
             lshift32(Imm32(address.scale), ARMRegisters::S1);
@@ -901,7 +894,7 @@ public:
         return storePtrWithPatch(ImmPtr(0), address);
     }
 
-    
+    // Floating point operators
     bool supportsFloatingPoint() const
     {
         return s_isVFPPresent;
@@ -957,7 +950,7 @@ public:
 
     void divDouble(Address src, FPRegisterID dest)
     {
-        ASSERT_NOT_REACHED(); 
+        ASSERT_NOT_REACHED(); // Untested
         loadDouble(src, ARMRegisters::SD0);
         divDouble(ARMRegisters::SD0, dest);
     }
@@ -1002,15 +995,15 @@ public:
 
     void convertInt32ToDouble(Address src, FPRegisterID dest)
     {
-        
+        // flds does not worth the effort here
         load32(src, ARMRegisters::S1);
         convertInt32ToDouble(ARMRegisters::S1, dest);
     }
 
     void convertInt32ToDouble(AbsoluteAddress src, FPRegisterID dest)
     {
-        ASSERT_NOT_REACHED(); 
-        
+        ASSERT_NOT_REACHED(); // Untested
+        // flds does not worth the effort here
         m_assembler.ldr_un_imm(ARMRegisters::S1, (ARMWord)src.m_ptr);
         m_assembler.dtr_u(true, ARMRegisters::S1, ARMRegisters::S1, 0);
         convertInt32ToDouble(ARMRegisters::S1, dest);
@@ -1025,35 +1018,35 @@ public:
         return Jump(m_assembler.jmp(static_cast<ARMAssembler::Condition>(cond & ~DoubleConditionMask)));
     }
 
-    
-    
-    
+    // Truncates 'src' to an integer, and places the resulting 'dest'.
+    // If the result is not representable as a 32 bit value, branch.
+    // May also branch for some values that are representable in 32 bits
     Jump branchTruncateDoubleToInt32(FPRegisterID src, RegisterID dest)
     {
         m_assembler.ftosizd_r(ARMRegisters::SD0, src);
-        
-        
-        
+        // If FTOSIZD (VCVT.S32.F64) can't fit the result into a 32-bit
+        // integer, it saturates at INT_MAX or INT_MIN. Testing this is
+        // probably quicker than testing FPSCR for exception.
         m_assembler.fmrs_r(dest, ARMRegisters::SD0);
         m_assembler.cmn_r(dest, ARMAssembler::getOp2(-0x7fffffff));
         m_assembler.cmp_r(dest, ARMAssembler::getOp2(0x80000000), ARMCondition(NonZero));
         return Jump(m_assembler.jmp(ARMCondition(Zero)));
     }
 
-    
-    
-    
-    
+    // Convert 'src' to an integer, and places the resulting 'dest'.
+    // If the result is not representable as a 32 bit value, branch.
+    // May also branch for some values that are representable in 32 bits
+    // (specifically, in this case, 0).
     void branchConvertDoubleToInt32(FPRegisterID src, RegisterID dest, JumpList& failureCases, FPRegisterID fpTemp)
     {
         m_assembler.ftosid_r(ARMRegisters::SD0, src);
         m_assembler.fmrs_r(dest, ARMRegisters::SD0);
 
-        
+        // Convert the integer result back to float & compare to the original value - if not equal or unordered (NaN) then jump.
         m_assembler.fsitod_r(ARMRegisters::SD0, ARMRegisters::SD0);
         failureCases.append(branchDouble(DoubleNotEqualOrUnordered, src, ARMRegisters::SD0));
 
-        
+        // If the result is zero, it might have been -0.0, and 0.0 equals to -0.0
         failureCases.append(branchTest32(Zero, dest));
     }
 
@@ -1143,23 +1136,23 @@ protected:
 #else
     void call32(RegisterID base, int32_t offset)
     {
-        
+        // TODO: Why is SP special?
         if (base == ARMRegisters::sp)
             offset += 4;
 
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        // Branch to the address stored in base+offset, using one of the
+        // following sequences:
+        // ----
+        //  LDR     ip, [base, ±offset]
+        //  BLX     ip
+        // ----
+        //  ADD/SUB ip, base, #(offset & 0xff000)
+        //  LDR     ip, [ip, #(offset & 0xfff)]
+        //  BLX     ip
+        // ----
+        //  LDR     ip, =offset
+        //  LDR     ip, [base, ±ip]
+        //  BLX     ip
 
         if (offset >= 0) {
             if (offset <= 0xfff) {
@@ -1211,6 +1204,6 @@ private:
 
 }
 
-#endif 
+#endif // ENABLE(ASSEMBLER) && CPU(ARM_TRADITIONAL)
 
-#endif 
+#endif // MacroAssemblerARM_h

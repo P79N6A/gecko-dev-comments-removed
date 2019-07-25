@@ -616,7 +616,7 @@ struct TreeFragment : public LinkableFragment
     uintN                   execs;
     
     uintN                   iters;
-    
+
     inline unsigned nGlobalTypes() {
         return typeMap.length() - nStackTypes;
     }
@@ -666,7 +666,6 @@ public:
         OP_FWDJUMP, 
         OP_NEW, 
         OP_RECURSIVE, 
-        OP_ARRAY_READ, 
         OP_TYPED_ARRAY, 
         OP_LIMIT
     };
@@ -685,9 +684,6 @@ public:
 
     
     bool profiled;
-
-    
-    bool undecided;
 
     
     bool traceOK;
@@ -729,10 +725,6 @@ public:
 
     
     bool maybeShortLoop;
-
-    
-    bool expensive;
-    bool unprofitable;
 
     
 
@@ -798,8 +790,6 @@ public:
     
     LoopProfile(JSStackFrame *entryfp, jsbytecode *top, jsbytecode *bottom);
 
-    void reset();
-    
     enum ProfileAction {
         ProfContinue,
         ProfComplete
@@ -822,8 +812,8 @@ public:
     ProfileAction profileOperation(JSContext *cx, JSOp op);
 
     
-    bool isCompilationExpensive(JSContext *cx);
-    bool isCompilationUnprofitable(JSContext *cx, uintN goodOps);
+    bool isCompilationExpensive(JSContext *cx, uintN depth);
+    bool isCompilationUnprofitable(JSContext *cx, uintN depth);
     void decide(JSContext *cx);
 };
 
@@ -1671,19 +1661,19 @@ RecordTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist);
 
 extern JS_REQUIRES_STACK TracePointAction
 MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
-                  void** traceData, uintN *traceEpoch, uint32 *loopCounter, uint32 hits);
+                  void** traceData, uintN *traceEpoch);
 
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
 
-extern bool
+extern void
 InitJIT(TraceMonitor *tm);
 
 extern void
 FinishJIT(TraceMonitor *tm);
 
 extern void
-PurgeScriptFragments(TraceMonitor* tm, JSScript* script);
+PurgeScriptFragments(JSContext* cx, JSScript* script);
 
 extern bool
 OverfullJITCache(TraceMonitor* tm);
