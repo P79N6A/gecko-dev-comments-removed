@@ -523,8 +523,10 @@ WeaveSvc.prototype = {
           return this.serverURL;
         case 0:
         case 200:
-          if (node == "null")
+          if (node == "null") {
             node = null;
+          }
+          this._log.trace("_findCluster successfully returning " + node);
           return node;
         default:
           ErrorHandler.checkServerError(node);
