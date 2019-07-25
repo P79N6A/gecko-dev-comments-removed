@@ -56,7 +56,7 @@
 #include "nsCycleCollectionParticipant.h"
 #include "nsWrapperCache.h"
 #include "nsCRT.h"
-#include "nsHashKeys.h"
+#include "mozilla/dom/Element.h"
 
 
 
@@ -74,11 +74,6 @@ typedef PRBool (*nsContentListMatchFunc)(nsIContent* aContent,
 typedef void (*nsContentListDestroyFunc)(void* aData);
 
 class nsIDocument;
-namespace mozilla {
-namespace dom {
-class Element;
-}
-}
 
 
 class nsBaseContentList : public nsINodeList

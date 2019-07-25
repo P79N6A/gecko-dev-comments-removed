@@ -99,7 +99,6 @@
 
 #include "nsIFrame.h"
 #include "nsIParserService.h"
-#include "mozilla/dom/Element.h"
 
 
 static char hrefText[] = "href";
