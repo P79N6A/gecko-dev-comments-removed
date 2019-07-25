@@ -498,6 +498,8 @@ ThreadClient.prototype = {
   get state() { return this._state; },
   get paused() { return this._state === "paused"; },
 
+  _pauseOnExceptions: false,
+
   _actor: null,
   get actor() { return this._actor; },
 
@@ -525,8 +527,12 @@ ThreadClient.prototype = {
     this._state = "resuming";
 
     let self = this;
-    let packet = { to: this._actor, type: DebugProtocolTypes.resume,
-                   resumeLimit: aLimit };
+    let packet = {
+      to: this._actor,
+      type: DebugProtocolTypes.resume,
+      resumeLimit: aLimit,
+      pauseOnExceptions: this._pauseOnExceptions
+    };
     this._client.request(packet, function(aResponse) {
       if (aResponse.error) {
         
@@ -581,6 +587,31 @@ ThreadClient.prototype = {
         aOnResponse(aResponse);
       }
     });
+  },
+
+  
+
+
+
+
+
+
+
+  pauseOnExceptions: function TC_pauseOnExceptions(aFlag, aOnResponse) {
+    this._pauseOnExceptions = aFlag;
+    
+    
+    
+    if (!this.paused) {
+      this.interrupt(function(aResponse) {
+        if (aResponse.error) {
+          
+          aOnResponse(aResponse);
+          return;
+        }
+        this.resume(aOnResponse);
+      }.bind(this));
+    }
   },
 
   

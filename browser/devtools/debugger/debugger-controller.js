@@ -366,6 +366,12 @@ StackFrames.prototype = {
   
 
 
+
+  pauseOnExceptions: false,
+
+  
+
+
   get activeThread() {
     return DebuggerController.activeThread;
   },
@@ -379,12 +385,14 @@ StackFrames.prototype = {
   connect: function SF_connect(aCallback) {
     window.addEventListener("Debugger:FetchedVariables", this._onFetchedVars, false);
 
+    this._onFramesCleared();
+
     this.activeThread.addListener("paused", this._onPaused);
     this.activeThread.addListener("resumed", this._onResume);
     this.activeThread.addListener("framesadded", this._onFrames);
     this.activeThread.addListener("framescleared", this._onFramesCleared);
 
-    this._onFramesCleared();
+    this.updatePauseOnExceptions(this.pauseOnExceptions);
 
     aCallback && aCallback();
   },
@@ -407,7 +415,16 @@ StackFrames.prototype = {
   
 
 
-  _onPaused: function SF__onPaused() {
+
+
+
+
+
+  _onPaused: function SF__onPaused(aEvent, aPacket) {
+    
+    if (aPacket.why.type == "exception") {
+      this.exception = aPacket.why.exception;
+    }
     this.activeThread.fillFrames(this.pageSize);
   },
 
@@ -445,12 +462,13 @@ StackFrames.prototype = {
 
 
   _onFramesCleared: function SF__onFramesCleared() {
+    this.selectedFrame = null;
+    this.exception = null;
     
     
     
     
     window.setTimeout(this._afterFramesCleared, FRAME_STEP_CACHE_DURATION);
-    this.selectedFrame = null;
   },
 
   
@@ -484,6 +502,18 @@ StackFrames.prototype = {
     } else {
       editor.setDebugLocation(-1);
     }
+  },
+
+  
+
+
+
+
+
+
+  updatePauseOnExceptions: function SF_updatePauseOnExceptions(aFlag) {
+    this.pauseOnExceptions = aFlag;
+    this.activeThread.pauseOnExceptions(this.pauseOnExceptions);
   },
 
   
@@ -558,13 +588,31 @@ StackFrames.prototype = {
         let scope = DebuggerView.Properties.addScope(label);
 
         
-        if (frame.this && env == frame.environment) {
-          let thisVar = scope.addVar("this");
-          thisVar.setGrip({
-            type: frame.this.type,
-            class: frame.this.class
-          });
-          this._addExpander(thisVar, frame.this);
+        if (env == frame.environment) {
+          
+          if (aDepth == 0 && this.exception) {
+            let excVar = scope.addVar("<exception>");
+            if (typeof this.exception == "object") {
+              excVar.setGrip({
+                type: this.exception.type,
+                class: this.exception.class
+              });
+              this._addExpander(excVar, this.exception);
+            } else {
+              excVar.setGrip(this.exception);
+            }
+          }
+
+          
+          if (frame.this) {
+            let thisVar = scope.addVar("this");
+            thisVar.setGrip({
+              type: frame.this.type,
+              class: frame.this.class
+            });
+            this._addExpander(thisVar, frame.this);
+          }
+
           
           scope.expand(true);
           scope.addToHierarchy();
