@@ -186,6 +186,11 @@ inline Type GetValueType(JSContext *cx, const Value &val);
 
 
 
+
+
+
+
+
 class TypeConstraint
 {
 public:
@@ -248,32 +253,29 @@ enum {
     TYPE_FLAG_BASE_MASK           = 0x000100ff,
 
     
-    TYPE_FLAG_INTERMEDIATE_SET    = 0x00020000,
 
     
 
-    
 
 
-
-    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00040000,
+    TYPE_FLAG_PROPAGATED_PROPERTY = 0x00020000,
 
     
-    TYPE_FLAG_OWN_PROPERTY        = 0x00080000,
+    TYPE_FLAG_OWN_PROPERTY        = 0x00040000,
 
     
 
 
 
 
-    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00100000,
+    TYPE_FLAG_CONFIGURED_PROPERTY = 0x00080000,
 
     
 
 
 
 
-    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00200000,
+    TYPE_FLAG_DEFINITE_PROPERTY   = 0x00100000,
 
     
     TYPE_FLAG_DEFINITE_MASK       = 0x0f000000,
@@ -370,7 +372,7 @@ class TypeSet
     void print(JSContext *cx);
 
     inline void sweep(JSContext *cx, JSCompartment *compartment);
-    size_t dynamicSize();
+    inline size_t dynamicSize();
 
     
     inline bool hasType(Type type);
@@ -412,8 +414,6 @@ class TypeSet
     inline JSObject *getSingleObject(unsigned i);
     inline TypeObject *getTypeObject(unsigned i);
 
-    bool intermediate() { return !!(flags & TYPE_FLAG_INTERMEDIATE_SET); }
-    void setIntermediate() { JS_ASSERT(!flags); flags = TYPE_FLAG_INTERMEDIATE_SET; }
     void setOwnProperty(bool configurable) {
         flags |= TYPE_FLAG_OWN_PROPERTY;
         if (configurable)
@@ -497,9 +497,6 @@ class TypeSet
 
     
     JSObject *getSingleton(JSContext *cx, bool freeze = true);
-
-    static bool
-    SweepTypeSet(JSContext *cx, JSCompartment *compartment, TypeSet *types);
 
     inline void clearObjects();
 
@@ -606,6 +603,10 @@ struct Property
 
     Property(jsid id)
         : id(id)
+    {}
+
+    Property(const Property &o)
+        : id(o.id), types(o.types)
     {}
 
     static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
@@ -833,6 +834,9 @@ struct TypeObject : gc::Cell
     void trace(JSTracer *trc, bool weak = false);
 
     inline void clearProperties();
+    inline void sweep(JSContext *cx);
+
+    inline size_t dynamicSize();
 
     
 
@@ -905,7 +909,6 @@ struct TypeScript
     static inline TypeSet *ThisTypes(JSScript *script);
     static inline TypeSet *ArgTypes(JSScript *script, unsigned i);
     static inline TypeSet *LocalTypes(JSScript *script, unsigned i);
-    static inline TypeSet *UpvarTypes(JSScript *script, unsigned i);
 
     
     static inline TypeSet *SlotTypes(JSScript *script, unsigned slot);
@@ -950,7 +953,6 @@ struct TypeScript
     static inline void SetLocal(JSContext *cx, JSScript *script, unsigned local, const js::Value &value);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, Type type);
     static inline void SetArgument(JSContext *cx, JSScript *script, unsigned arg, const js::Value &value);
-    static inline void SetUpvar(JSContext *cx, JSScript *script, unsigned upvar, const js::Value &value);
 
     static void Sweep(JSContext *cx, JSScript *script);
     void destroy();

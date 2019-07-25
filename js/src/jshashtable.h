@@ -404,6 +404,11 @@ class HashTable : private AllocPolicy
             destroyTable(*this, table, tableCapacity);
     }
 
+    size_t allocatedSize() const
+    {
+        return sizeof(Entry) * tableCapacity;
+    }
+
   private:
     static HashNumber hash1(HashNumber hash0, uint32 shift) {
         return hash0 >> shift;
@@ -1107,6 +1112,9 @@ class HashMap
     unsigned generation() const                       { return impl.generation(); }
 
     
+    size_t allocatedSize() const                      { return impl.allocatedSize(); }
+
+    
 
     bool has(const Lookup &l) const {
         return impl.lookup(l) != NULL;
@@ -1304,6 +1312,9 @@ class HashSet
 
 
     unsigned generation() const                       { return impl.generation(); }
+
+    
+    size_t allocatedSize() const                      { return impl.allocatedSize(); }
 
     
 

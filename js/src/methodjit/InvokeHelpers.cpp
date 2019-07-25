@@ -1487,6 +1487,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
           case JSOP_NAME:
           case JSOP_GETGNAME:
           case JSOP_GETGLOBAL:
+          case JSOP_GETFCSLOT:
           case JSOP_GETPROP:
           case JSOP_GETXPROP:
           case JSOP_LENGTH:
@@ -1501,6 +1502,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
             break;
 
           case JSOP_CALLGLOBAL:
+          case JSOP_CALLFCSLOT:
             
             nextsp[-1].setUndefined();
             f.regs.pc = nextpc;

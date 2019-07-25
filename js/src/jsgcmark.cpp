@@ -899,8 +899,11 @@ js::types::TypeObject::trace(JSTracer *trc, bool weak)
 
 
 
-    if (IS_GC_MARKING_TRACER(trc) && (!weak || !singleton))
+    if (IS_GC_MARKING_TRACER(trc) && (!weak || !singleton)) {
+        JS_ASSERT_IF(trc->context->runtime->gcCurrentCompartment,
+                     compartment() == trc->context->runtime->gcCurrentCompartment);
         markIfUnmarked(static_cast<GCMarker *>(trc)->getMarkColor());
+    }
 
 #ifdef DEBUG
     InlineMarkId(trc, name_, "type_name");
