@@ -301,6 +301,18 @@ public:
 
 
 
+  virtual bool EndEmptyTransaction()
+  {
+    return false;
+  }
+  
+
+
+
+
+
+
+
 
 
 
@@ -333,21 +345,6 @@ public:
 
   virtual void EndTransaction(DrawThebesLayerCallback aCallback,
                               void* aCallbackData) = 0;
-
-  
-
-
-
-
-
-
-
-
-
-  virtual bool DoEmptyTransaction()
-  {
-    return false;
-  }
 
   PRBool IsSnappingEffectiveTransforms() { return mSnapEffectiveTransforms; } 
 

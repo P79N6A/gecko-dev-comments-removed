@@ -1276,6 +1276,12 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
 
     
     
+    
+    
+    
+    
+    
+    
     if (useDoubleBuffering && !mTransactionIncomplete) {
       finalTarget->SetOperator(gfxContext::OPERATOR_SOURCE);
       PopGroupWithCachedSurface(finalTarget, cachedSurfaceOffset);
@@ -1290,23 +1296,25 @@ BasicLayerManager::EndTransactionInternal(DrawThebesLayerCallback aCallback,
 #endif
 
 #ifdef DEBUG
-  mPhase = PHASE_NONE;
+  
+  
+  mPhase = mTransactionIncomplete ? PHASE_CONSTRUCTION : PHASE_NONE;
 #endif
   mUsingDefaultTarget = PR_FALSE;
 
   NS_ASSERTION(!aCallback || !mTransactionIncomplete,
                "If callback is not null, transaction must be complete");
+
   return !mTransactionIncomplete;
 }
 
 bool
-BasicLayerManager::DoEmptyTransaction()
+BasicLayerManager::EndEmptyTransaction()
 {
   if (!mRoot) {
     return false;
   }
 
-  BeginTransaction();
   return EndTransactionInternal(nsnull, nsnull);
 }
 
@@ -2621,7 +2629,7 @@ BasicShadowLayerManager::BeginTransactionWithTarget(gfxContext* aTarget)
   
   
   
-  if (HasShadowManager() && !mTransactionIncomplete) {
+  if (HasShadowManager()) {
     ShadowLayerForwarder::BeginTransaction();
   }
   BasicLayerManager::BeginTransactionWithTarget(aTarget);
@@ -2636,14 +2644,9 @@ BasicShadowLayerManager::EndTransaction(DrawThebesLayerCallback aCallback,
 }
 
 bool
-BasicShadowLayerManager::DoEmptyTransaction()
+BasicShadowLayerManager::EndEmptyTransaction()
 {
-  if (!mRoot) {
-    return false;
-  }
-
-  BasicLayerManager::BeginTransaction();
-  if (!EndTransactionInternal(nsnull, nsnull)) {
+  if (!BasicLayerManager::EndEmptyTransaction()) {
     
     
     

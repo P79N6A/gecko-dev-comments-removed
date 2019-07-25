@@ -112,7 +112,7 @@ public:
 
 
 
-  void WillBeginRetainedLayerTransaction(LayerManager* aManager);
+  void DidBeginRetainedLayerTransaction(LayerManager* aManager);
 
   
 
