@@ -436,16 +436,16 @@ LoginManagerPrompter.prototype = {
           var canRememberLogin = (aSavePassword ==
                                   Ci.nsIAuthPrompt.SAVE_PASSWORD_PERMANENTLY) &&
                                  this._pwmgr.getLoginSavingEnabled(hostname);
-  
+
           
           if (canRememberLogin)
               checkBoxLabel = this._getLocalizedString("rememberPassword");
-  
+
           if (!aPassword.value) {
               
               var foundLogins = this._pwmgr.findLogins({}, hostname, null,
                                                        realm);
-  
+
               
               
               
