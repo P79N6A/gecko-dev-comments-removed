@@ -194,11 +194,11 @@ RadioInterfaceLayer.prototype = {
         
         this.handleEnumerateCalls(message.calls);
         break;
-      case "registrationstatechange":
-        this.updateDataConnection(message.registrationState);
+      case "voiceregistrationstatechange":
+        this.updateDataConnection(message.voiceRegistrationState);
         break;
-      case "gprsregistrationstatechange":
-        let state = message.gprsRegistrationState;
+      case "dataregistrationstatechange":
+        let state = message.dataRegistrationState;
         this.updateDataConnection(state);
 
         
