@@ -67,8 +67,10 @@ public:
 
   PRInt32 GetRootLength() { return mPrefRootLength; }
 
+  nsresult RemoveObserverFromList(const char *aDomain, nsISupports *aObserver);
+
 protected:
-  nsPrefBranch()	
+  nsPrefBranch()    
     { }
 
   nsresult   GetDefaultFromPropertiesFile(const char *aPrefName, PRUnichar **return_buf);
