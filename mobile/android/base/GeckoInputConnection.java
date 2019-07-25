@@ -281,13 +281,6 @@ class GeckoInputConnection
         
         
         
-
-        
-        
-        
-        if (text.length() == 0 && !hasCompositionString())
-            return true;
-
         return super.setComposingText(text, newCursorPosition);
     }
 
@@ -532,6 +525,7 @@ class GeckoInputConnection
     }
 
     protected void resetCompositionState() {
+        removeComposingSpans(mEditable);
         mCompositionStart = NO_COMPOSITION_STRING;
         mBatchMode = false;
         mUpdateRequest = null;
