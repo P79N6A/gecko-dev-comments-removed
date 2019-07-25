@@ -424,6 +424,16 @@ GetCustomIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
     JS_CHECK_RECURSION(cx, return false);
 
     
+
+
+
+    if (flags == JSITER_FOR_OF) {
+        js_ReportValueErrorFlags(cx, JSREPORT_ERROR, JSMSG_NOT_ITERABLE,
+                                 JSDVG_SEARCH_STACK, ObjectValue(*obj), NULL, NULL, NULL);
+        return false;
+    }
+
+    
     JSAtom *atom = cx->runtime->atomState.iteratorAtom;
     if (!js_GetMethod(cx, obj, ATOM_TO_JSID(atom), JSGET_NO_METHOD_BARRIER, vp))
         return false;
@@ -658,12 +668,22 @@ GetIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
     if (obj) {
         
         if (JSIteratorOp op = obj->getClass()->ext.iteratorObject) {
-            JSObject *iterobj = op(cx, obj, !(flags & JSITER_FOREACH));
-            if (!iterobj)
-                return false;
-            vp->setObject(*iterobj);
-            types::MarkIteratorUnknown(cx);
-            return true;
+            
+
+
+
+
+
+
+
+            if (!(obj->getClass()->flags & JSCLASS_FOR_OF_ITERATION) || flags == JSITER_FOR_OF) {
+                JSObject *iterobj = op(cx, obj, !(flags & (JSITER_FOREACH | JSITER_FOR_OF)));
+                if (!iterobj)
+                    return false;
+                vp->setObject(*iterobj);
+                types::MarkIteratorUnknown(cx);
+                return true;
+            }
         }
 
         if (keysOnly) {
@@ -1260,7 +1280,7 @@ Class js::GeneratorClass = {
         NULL,                
         NULL,                
         NULL,                
-        iterator_iterator,   
+        iterator_iterator,
         NULL                 
     }
 };

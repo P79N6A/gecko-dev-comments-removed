@@ -280,6 +280,7 @@ struct Parser : private AutoGCRooter
 #endif 
 
     bool setAssignmentLhsOps(ParseNode *pn, JSOp op);
+    bool matchInOrOf(bool *isForOfp);
 };
 
 inline bool
