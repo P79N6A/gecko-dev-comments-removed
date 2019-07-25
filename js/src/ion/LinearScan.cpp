@@ -720,12 +720,6 @@ LinearScanAllocator::allocateRegisters()
             if (!assign(req->allocation()))
                 return false;
             continue;
-        } else if (req->kind() == Requirement::SAME_AS_OTHER) {
-            LiveInterval *other = vregs[req->virtualRegister()].intervalFor(req->pos());
-            JS_ASSERT(other);
-            if (!assign(*other->getAllocation()))
-                return false;
-            continue;
         }
 
         
@@ -1470,14 +1464,21 @@ LinearScanAllocator::findBestFreeRegister(CodePosition *freeUntil)
                 bestCode = prevReg.code();
         }
     }
-    if (current->hint()->kind() == Requirement::FIXED &&
-        current->hint()->allocation().isRegister())
-    {
-        
-        
-        AnyRegister hintReg = current->hint()->allocation().toRegister();
-        if (freeUntilPos[hintReg.code()] > current->hint()->pos())
+
+    
+    Requirement *hint = current->hint();
+    if (hint->kind() == Requirement::FIXED && hint->allocation().isRegister()) {
+        AnyRegister hintReg = hint->allocation().toRegister();
+        if (freeUntilPos[hintReg.code()] > hint->pos())
             bestCode = hintReg.code();
+    } else if (hint->kind() == Requirement::SAME_AS_OTHER) {
+        LiveInterval *other = vregs[hint->virtualRegister()].intervalFor(hint->pos());
+        JS_ASSERT(other);
+        if (other->getAllocation()->isRegister()) {
+            AnyRegister hintReg = other->getAllocation()->toRegister();
+            if (freeUntilPos[hintReg.code()] > hint->pos())
+                bestCode = hintReg.code();
+        }
     }
 
     if (bestCode == AnyRegister::Invalid) {
@@ -1848,7 +1849,10 @@ LinearScanAllocator::setIntervalRequirement(LiveInterval *interval)
             interval->setRequirement(Requirement(LAllocation(required)));
     } else if (registerOp) {
         
-        interval->setHint(Requirement(Requirement::REGISTER, registerOp->pos));
+        
+        
+        if (interval->hint()->kind() == Requirement::NONE)
+            interval->setHint(Requirement(Requirement::REGISTER, registerOp->pos));
     }
 }
 
