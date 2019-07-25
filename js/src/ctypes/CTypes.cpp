@@ -288,7 +288,9 @@ namespace CDataFinalizer {
   
 
 
-  static void CallFinalizer(Private *p, JSObject *ctypes);
+  static void CallFinalizer(CDataFinalizer::Private *p,
+                            int* errnoStatus,
+                            int32_t* lastErrorStatus);
 
   
 
@@ -6653,8 +6655,13 @@ CDataFinalizer::Construct(JSContext* cx, unsigned argc, jsval *vp)
 
 
 
+
+
+
 void
-CDataFinalizer::CallFinalizer(CDataFinalizer::Private *p, JSObject *ctypes)
+CDataFinalizer::CallFinalizer(CDataFinalizer::Private *p,
+                              int* errnoStatus,
+                              int32_t* lastErrorStatus)
 {
   int savedErrno = errno;
   errno = 0;
@@ -6665,20 +6672,15 @@ CDataFinalizer::CallFinalizer(CDataFinalizer::Private *p, JSObject *ctypes)
 
   ffi_call(&p->CIF, FFI_FN(p->code), p->rvalue, &p->cargs);
 
-  int errnoStatus = errno;
+  if (errnoStatus) {
+    *errnoStatus = errno;
+  }
   errno = savedErrno;
 #if defined(XP_WIN)
-  int32_t lastErrorStatus = GetLastError();
-  SetLastError(savedLastError);
-#endif 
-
-  if (!ctypes) {
-    return;
+  if (lastErrorStatus) {
+    *lastErrorStatus = GetLastError();
   }
-
-  JS_SetReservedSlot(ctypes, SLOT_ERRNO, INT_TO_JSVAL(errnoStatus));
-#if defined(XP_WIN)
-  JS_SetReservedSlot(ctypes, SLOT_LASTERROR, INT_TO_JSVAL(lastErrorStatus));
+  SetLastError(savedLastError);
 #endif 
 }
 
@@ -6761,11 +6763,37 @@ CDataFinalizer::Methods::Dispose(JSContext* cx, unsigned argc, jsval *vp)
 
   JSObject *objCTypes = CType::GetGlobalCTypes(cx, JSVAL_TO_OBJECT(valType));
 
-  CDataFinalizer::CallFinalizer(p, objCTypes);
-  CDataFinalizer::Cleanup(p, obj);
+  jsval valCodePtrType = JS_GetReservedSlot(obj, SLOT_DATAFINALIZER_CODETYPE);
+  JS_ASSERT(!JSVAL_IS_PRIMITIVE(valCodePtrType));
+  JSObject *objCodePtrType = JSVAL_TO_OBJECT(valCodePtrType);
 
-  JS_SET_RVAL(cx, vp, JSVAL_VOID);
-  return JS_TRUE;
+  JSObject *objCodeType = PointerType::GetBaseType(objCodePtrType);
+  JS_ASSERT(objCodeType);
+  JS_ASSERT(CType::GetTypeCode(objCodeType) == TYPE_function);
+
+  JSObject *resultType = FunctionType::GetFunctionInfo(objCodeType)->mReturnType;
+  jsval result = JSVAL_VOID;
+
+  int errnoStatus;
+#if defined(XP_WIN)
+  int32_t lastErrorStatus;
+  CDataFinalizer::CallFinalizer(p, &errnoStatus, &lastErrorStatus);
+#else
+  CDataFinalizer::CallFinalizer(p, &errnoStatus, NULL);
+#endif 
+
+  JS_SetReservedSlot(objCTypes, SLOT_ERRNO, INT_TO_JSVAL(errnoStatus));
+#if defined(XP_WIN)
+  JS_SetReservedSlot(objCTypes, SLOT_LASTERROR, INT_TO_JSVAL(lastErrorStatus));
+#endif 
+
+  if (ConvertToJS(cx, resultType, NULL, p->rvalue, false, true, &result)) {
+    CDataFinalizer::Cleanup(p, obj);
+    JS_SET_RVAL(cx, vp, result);
+    return true;
+  }
+  CDataFinalizer::Cleanup(p, obj);
+  return false;
 }
 
 
@@ -6788,7 +6816,7 @@ CDataFinalizer::Finalize(JSFreeOp* fop, JSObject* obj)
     return;
   }
 
-  CDataFinalizer::CallFinalizer(p, NULL);
+  CDataFinalizer::CallFinalizer(p, NULL, NULL);
   CDataFinalizer::Cleanup(p, NULL);
 }
 
