@@ -288,6 +288,19 @@ private:
 
 
 
+  nsresult BuildSourcePaint(PrimitiveInfo *aPrimitive);
+
+  
+
+
+
+
+  nsresult BuildSourcePaints();
+
+  
+
+
+
 
 
   nsresult BuildSourceImages();
@@ -414,6 +427,8 @@ private:
 
   PrimitiveInfo           mSourceColorAlpha;
   PrimitiveInfo           mSourceAlpha;
+  PrimitiveInfo           mFillPaint;
+  PrimitiveInfo           mStrokePaint;
   nsTArray<PrimitiveInfo> mPrimitives;
 };
 
