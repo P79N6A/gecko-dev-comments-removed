@@ -603,7 +603,10 @@ NS_IMETHODIMP nsXULWindow::SetSize(PRInt32 aCX, PRInt32 aCY, PRBool aRepaint)
   if (!mChromeLoaded) {
     
     
+    
+    
     mIgnoreXULSize = PR_TRUE;
+    mIgnoreXULSizeMode = PR_TRUE;
     return NS_OK;
   }
   PersistentAttributesDirty(PAD_SIZE);
@@ -632,6 +635,7 @@ NS_IMETHODIMP nsXULWindow::SetPositionAndSize(PRInt32 aX, PRInt32 aY,
     
     mIgnoreXULPosition = PR_TRUE;
     mIgnoreXULSize = PR_TRUE;
+    mIgnoreXULSizeMode = PR_TRUE;
     return NS_OK;
   }
   PersistentAttributesDirty(PAD_POSITION | PAD_SIZE);
