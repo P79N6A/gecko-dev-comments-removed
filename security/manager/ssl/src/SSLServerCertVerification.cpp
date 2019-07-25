@@ -958,12 +958,12 @@ AuthCertificate(nsNSSSocketInfo * socketInfo, CERTCertificate * cert)
     if (rv == SECSuccess) {
       
       
-      nsSSLIOLayerHelpers::mHostsWithCertErrors->RememberCertHasError(
-        socketInfo, nsnull, rv);
+      RememberCertErrorsTable::GetInstance().RememberCertHasError(socketInfo,
+                                                                  nsnull, rv);
     }
     else {
       
-      nsSSLIOLayerHelpers::mHostsWithCertErrors->LookupCertErrorBits(
+      RememberCertErrorsTable::GetInstance().LookupCertErrorBits(
         socketInfo, status);
     }
 
