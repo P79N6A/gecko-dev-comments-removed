@@ -219,8 +219,7 @@ public:
   
   
   nsresult InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
-                                     nsIPluginInstanceOwner* aOwner,
-                                     PRBool aAllowOpeningStreams);
+                                     nsIPluginInstanceOwner* aOwner);
 
   nsresult InstantiateFullPagePlugin(const char *aMimeType,
                                      nsIURI* aURI,

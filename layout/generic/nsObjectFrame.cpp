@@ -1069,7 +1069,7 @@ nsObjectFrame::InstantiatePlugin(nsPluginHost* aPluginHost,
     if (NS_SUCCEEDED(rv))
       pDoc->SetStreamListener(stream);
   } else {   
-    rv = aPluginHost->InstantiateEmbeddedPlugin(aMimeType, aURI, mInstanceOwner, PR_TRUE);
+    rv = aPluginHost->InstantiateEmbeddedPlugin(aMimeType, aURI, mInstanceOwner);
   }
 
   

@@ -966,8 +966,7 @@ nsresult nsPluginHost::InstantiatePluginForChannel(nsIChannel* aChannel,
 
 nsresult
 nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
-                                        nsIPluginInstanceOwner* aOwner,
-                                        PRBool aAllowOpeningStreams)
+                                        nsIPluginInstanceOwner* aOwner)
 {
   NS_ENSURE_ARG_POINTER(aOwner);
 
@@ -1002,12 +1001,7 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
 
   
   
-  
-  
-  
-  
-  
-  if (aURL && aAllowOpeningStreams) {
+  if (aURL) {
     nsCOMPtr<nsIScriptSecurityManager> secMan =
                     do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID, &rv);
     if (NS_FAILED(rv))
@@ -1051,7 +1045,7 @@ nsPluginHost::InstantiateEmbeddedPlugin(const char *aMimeType, nsIURI* aURL,
   
   PRBool bCanHandleInternally = PR_FALSE;
   nsCAutoString scheme;
-  if (aURL && aAllowOpeningStreams && NS_SUCCEEDED(aURL->GetScheme(scheme))) {
+  if (aURL && NS_SUCCEEDED(aURL->GetScheme(scheme))) {
       nsCAutoString contractID(NS_NETWORK_PROTOCOL_CONTRACTID_PREFIX);
       contractID += scheme;
       ToLowerCase(contractID);

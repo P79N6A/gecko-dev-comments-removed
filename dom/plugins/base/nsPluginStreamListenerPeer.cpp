@@ -653,22 +653,8 @@ nsPluginStreamListenerPeer::OnStartRequest(nsIRequest *request,
     mOwner->GetWindow(window);
     if (!mPluginInstance && window) {
       nsRefPtr<nsPluginHost> pluginHost = dont_AddRef(nsPluginHost::GetInst());
-      
-      
-      PRInt32 mode;
-      mOwner->GetMode(&mode);
-      if (mode == NP_EMBED) {
-        
-        
-        
-        rv = pluginHost->InstantiateEmbeddedPlugin(aContentType.get(), aURL,
-                                                   mOwner, PR_FALSE);
-      }
-      else {
-        rv = pluginHost->SetUpPluginInstance(aContentType.get(), aURL, mOwner);
-      }
-      
-      if (NS_OK == rv) {
+      rv = pluginHost->SetUpPluginInstance(aContentType.get(), aURL, mOwner);
+      if (NS_SUCCEEDED(rv)) {
         mOwner->GetInstance(getter_AddRefs(pluginInstRefPtr));
         mPluginInstance = pluginInstRefPtr.get();
         if (mPluginInstance) {
