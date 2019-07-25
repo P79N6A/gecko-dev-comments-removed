@@ -223,16 +223,9 @@ nsSVGFeatures::PassesConditionalProcessingTests(nsIContent *aContent,
 
     
     if (!acceptLangs.IsEmpty()) {
-      
-#ifdef ANDROID
-      printf_stderr("Bug 652050 diagnostic: intl.accept_languages is nonempty.\n");
-#endif
       return MatchesLanguagePreferences(value, acceptLangs);
     } else {
       
-#ifdef ANDROID
-      printf_stderr("Bug 652050 diagnostic: intl.accept_languages is EMPTY!\n");
-#endif
       NS_WARNING("no default language specified for systemLanguage conditional test");
       return !value.IsEmpty();
     }
