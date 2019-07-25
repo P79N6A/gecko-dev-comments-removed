@@ -92,7 +92,6 @@ class Debug {
 
     inline bool hasAnyLiveHooks() const;
 
-    bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
     static void slowPathLeaveStackFrame(JSContext *cx);
 
     inline bool observesDebuggerStatement() const;
@@ -104,8 +103,10 @@ class Debug {
     bool init();
     inline JSObject *toJSObject() const;
     static inline Debug *fromJSObject(JSObject *obj);
+    static Debug *fromChildJSObject(JSObject *obj);
 
     
+
     
     
     
@@ -132,6 +133,8 @@ class Debug {
     static inline JSTrapStatus onDebuggerStatement(JSContext *cx, js::Value *vp);
 
     
+
+    
     
     
     
@@ -151,6 +154,8 @@ class Debug {
     
     bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
 
+    
+    bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
 };
 
 bool
