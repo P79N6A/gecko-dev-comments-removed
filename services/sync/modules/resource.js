@@ -54,23 +54,6 @@ Cu.import("resource://weave/auth.js");
 
 
 
-
-function RequestResponse(channel, response) {
-  this._channel = channel;
-  this._response = response;
-}
-RequestResponse.prototype = {
-  get response() { return this._response },
-  get status() { return this._channel.responseStatus },
-  getHeader: function ReqRe_getHeader(which) {
-    return this._channel.getResponseHeader(which);
-  }
-};
-
-
-
-
-
 function RequestException(resource, action, request) {
   this._resource = resource;
   this._action = action;
@@ -310,7 +293,7 @@ Resource.prototype = {
       this._log.debug(action + " request failed (" + channel.responseStatus + ")");
       if (this._data)
         this._log.debug("Error response: " + this._data);
-      return new RequestResponse(channel, this._data);
+      throw new RequestException(this, action, channel);
 
     } else {
       this._log.debug(action + " request successful (" + channel.responseStatus  + ")");
@@ -330,7 +313,7 @@ Resource.prototype = {
       }
     }
 
-    return new RequestResponse(channel, this._data);
+    return this._data;
   },
 
   
