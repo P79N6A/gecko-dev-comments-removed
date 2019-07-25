@@ -90,7 +90,7 @@ public:
   NS_DECL_ISUPPORTS
 
   nsresult Init(nsIURI *aURI,
-                nsIURI *aKeyURI,
+                nsIURI *aCurrentURI,
                 nsIRequest *aRequest,
                 nsIChannel *aChannel,
                 imgCacheEntry *aCacheEntry,
@@ -212,9 +212,10 @@ private:
 
   nsCOMPtr<nsIRequest> mRequest;
   
+  
   nsCOMPtr<nsIURI> mURI;
   
-  nsCOMPtr<nsIURI> mKeyURI;
+  nsCOMPtr<nsIURI> mCurrentURI;
   nsCOMPtr<nsIPrincipal> mPrincipal;
   
   nsAutoPtr<imgStatusTracker> mStatusTracker;
