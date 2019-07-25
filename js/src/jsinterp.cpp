@@ -4077,6 +4077,8 @@ BEGIN_CASE(JSOP_FUNAPPLY)
 
     JSObject *callee;
     JSFunction *fun;
+
+    
     if (!IsFunctionObject(args.calleev(), &callee, &fun) || !fun->isInterpretedConstructor()) {
         if (construct) {
             if (!InvokeConstructor(cx, args))
