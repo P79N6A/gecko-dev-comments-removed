@@ -786,7 +786,6 @@ protected:
   nsRefPtr<nsBarProp>           mStatusbar;
   nsRefPtr<nsBarProp>           mScrollbars;
   nsCOMPtr<nsIWeakReference>    mWindowUtils;
-  nsRefPtr<nsLocation>          mLocation;
   nsString                      mStatus;
   nsString                      mDefaultStatus;
   
@@ -808,6 +807,7 @@ protected:
   nsTimeout*                    mTimeoutInsertionPoint;
   PRUint32                      mTimeoutPublicIdCounter;
   PRUint32                      mTimeoutFiringDepth;
+  nsRefPtr<nsLocation>          mLocation;
 
   
   
