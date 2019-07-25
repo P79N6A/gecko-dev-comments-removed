@@ -109,7 +109,7 @@ public:
   
   void ScheduleRenderOnCompositorThread();
   void SchedulePauseOnCompositorThread();
-  void ScheduleResumeOnCompositorThread();
+  void ScheduleResumeOnCompositorThread(int width, int height);
 
 protected:
   virtual PLayersParent* AllocPLayers(const LayersBackend &backendType);
@@ -118,6 +118,7 @@ protected:
 private:
   void PauseComposition();
   void ResumeComposition();
+  void ResumeCompositionAndResize(int width, int height);
 
   void Composite();
   void ScheduleComposition();

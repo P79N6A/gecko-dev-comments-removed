@@ -431,12 +431,12 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     
-    public void compositionResumeRequested() {
+    public void compositionResumeRequested(int width, int height) {
         
         
         
         
-        GeckoAppShell.scheduleResumeComposition();
+        GeckoAppShell.scheduleResumeComposition(width, height);
         GeckoAppShell.sendEventToGecko(GeckoEvent.createCompositorResumeEvent());
     }
 
@@ -447,7 +447,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-        compositionResumeRequested();
+        compositionResumeRequested(width, height);
         renderRequested();
     }
 

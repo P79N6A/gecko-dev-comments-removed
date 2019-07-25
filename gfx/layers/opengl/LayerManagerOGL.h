@@ -90,7 +90,8 @@ class THEBES_API LayerManagerOGL :
   typedef mozilla::gl::ShaderProgramType ProgramType;
 
 public:
-  LayerManagerOGL(nsIWidget *aWidget);
+  LayerManagerOGL(nsIWidget *aWidget, int aSurfaceWidth = -1, int aSurfaceHeight = -1,
+                  bool aIsRenderingToEGLSurface = false);
   virtual ~LayerManagerOGL();
 
   void CleanupResources();
@@ -392,10 +393,18 @@ public:
   gfxMatrix& GetWorldTransform(void);
   void WorldTransformRect(nsIntRect& aRect);
 
+  
+
+
+  void SetSurfaceSize(int width, int height);
+
 private:
   
   nsIWidget *mWidget;
   nsIntSize mWidgetSize;
+
+  
+  nsIntSize mSurfaceSize;
 
   
 
@@ -429,6 +438,13 @@ private:
 
   
   bool mHasBGRA;
+
+  
+
+
+
+
+  bool mIsRenderingToEGLSurface;
 
   
   LayerOGL *RootLayer() const;
