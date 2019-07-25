@@ -55,12 +55,6 @@ HyperTextAccessible::QueryInterface(REFNSIID aIID, void** aInstancePtr)
 {
   *aInstancePtr = nsnull;
 
-  if (aIID.Equals(NS_GET_IID(HyperTextAccessible))) {
-    *aInstancePtr = static_cast<HyperTextAccessible*>(this);
-    NS_ADDREF_THIS();
-    return NS_OK;
-  }
-
   
   if (!IsTextRole())
     return Accessible::QueryInterface(aIID, aInstancePtr);
