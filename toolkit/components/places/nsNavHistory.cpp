@@ -5182,8 +5182,8 @@ nsNavHistory::AsyncExecuteLegacyQueries(nsINavHistoryQuery** aQueries,
                                      paramsPresent, addParams);
   NS_ENSURE_SUCCESS(rv,rv);
 
-  nsCOMPtr<mozIStorageStatement> statement;
-  rv = mDBConn->CreateStatement(queryString, getter_AddRefs(statement));
+  nsCOMPtr<mozIStorageAsyncStatement> statement;
+  rv = mDBConn->CreateAsyncStatement(queryString, getter_AddRefs(statement));
 #ifdef DEBUG
   if (NS_FAILED(rv)) {
     nsCAutoString lastErrorString;
@@ -5639,7 +5639,7 @@ nsNavHistory::QueryToSelectClause(nsNavHistoryQuery* aQuery,
 
 
 nsresult
-nsNavHistory::BindQueryClauseParameters(mozIStorageStatement* statement,
+nsNavHistory::BindQueryClauseParameters(mozIStorageBaseStatement* statement,
                                         PRInt32 aQueryIndex,
                                         nsNavHistoryQuery* aQuery, 
                                         nsNavHistoryQueryOptions* aOptions)
@@ -6774,8 +6774,8 @@ nsNavHistory::FixInvalidFrecencies()
   
   
   
-  nsCOMPtr<mozIStorageStatement> fixInvalidFrecenciesStmt;
-  nsresult rv = mDBConn->CreateStatement(NS_LITERAL_CSTRING(
+  nsCOMPtr<mozIStorageAsyncStatement> fixInvalidFrecenciesStmt;
+  nsresult rv = mDBConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
       "UPDATE moz_places "
       "SET frecency = CALCULATE_FRECENCY(id) "
       "WHERE frecency < 0"),
