@@ -1571,7 +1571,7 @@ var SelectionHandler = {
     selection.QueryInterface(Ci.nsISelectionPrivate).addSelectionListener(this);
 
     
-    this.cache = {};
+    this.cache = { start: {}, end: {}};
     this.updateCacheForSelection();
 
     this.showHandles();
@@ -1630,10 +1630,15 @@ var SelectionHandler = {
     
     let leftTop = "left:" + (aX + this._view.scrollX - this._viewOffset.left) + "px;" +
                   "top:" + (aY + this._view.scrollY - this._viewOffset.top) + "px;";
-    if (aIsStartHandle)
+    if (aIsStartHandle) {
       this._start.style.cssText = this._start.style.cssText + leftTop;
-    else
+      this.cache.start.left = aX;
+      this.cache.start.top = aY;
+    } else {
       this._end.style.cssText = this._end.style.cssText + leftTop;
+      this.cache.end.left = aX;
+      this.cache.end.top = aY;
+    }
 
     let cwu = this._view.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
 
@@ -1670,6 +1675,9 @@ var SelectionHandler = {
       this._end = oldStart;
 
       
+      this.updateCacheForHandleRects();
+
+      
       if (this._isRTL) {
         this._sendEndMouseEvents(cwu, false);
         this._sendStartMouseEvents(cwu, true);
@@ -1681,25 +1689,23 @@ var SelectionHandler = {
   },
 
   _sendStartMouseEvents: function sh_sendStartMouseEvents(cwu, useShift) {
-    let start = this._start.getBoundingClientRect();
-    let x = start.right - this.HANDLE_PADDING;
+    let x = this.cache.start.left + this.HANDLE_PADDING + this.HANDLE_WIDTH;
     
-    let y = start.top - 1;
+    let y = this.cache.start.top - 1;
 
     this._sendMouseEvents(cwu, useShift, x, y);
   },
 
   _sendEndMouseEvents: function sh_sendEndMouseEvents(cwu, useShift) {
-    let end = this._end.getBoundingClientRect();
-    let x = end.left + this.HANDLE_PADDING;
+    let x = this.cache.end.left + this.HANDLE_PADDING;
     
-    let y = end.top - 1;
+    let y = this.cache.end.top - 1;
 
     this._sendMouseEvents(cwu, useShift, x, y);
   },
 
   _sendMouseEvents: function sh_sendMouseEvents(cwu, useShift, x, y) {
-    let element = cwu.elementFromPoint(x, y, false, false);
+    let element = cwu.elementFromPoint(x, y, false, true);
     
     if (element instanceof Ci.nsIDOMHTMLHtmlElement)
       return;
@@ -1783,10 +1789,23 @@ var SelectionHandler = {
                           (!aIsStartHandle && (start.y < this.cache.start.y || (start.y == this.cache.start.y && start.x < this.cache.start.x)));
     }
 
-    this.cache.start = start;
-    this.cache.end = end;
+    this.cache.start.x = start.x;
+    this.cache.start.y = start.y;
+    this.cache.end.x = end.x;
+    this.cache.end.y = end.y;
 
     return selectionReversed;
+  },
+
+  
+  updateCacheForHandleRects: function sh_updateCacheForHandleRects() {
+    let start = this._start.getBoundingClientRect();
+    this.cache.start.left = start.left;
+    this.cache.start.top = start.top;
+
+    let end = this._end.getBoundingClientRect();
+    this.cache.end.left = end.left;
+    this.cache.end.top = end.top;
   },
 
   
@@ -1827,6 +1846,7 @@ var SelectionHandler = {
     }
 
     this.positionHandles(true);
+    this.updateCacheForHandleRects();
 
     this._start.setAttribute("showing", "true");
     this._end.setAttribute("showing", "true");
@@ -1876,6 +1896,9 @@ var SelectionHandler = {
         let rect = aEvent.target.getBoundingClientRect();
         this._touchDelta = { x: touch.clientX - rect.left,
                              y: touch.clientY - rect.top };
+
+        
+        this.updateCacheForHandleRects();
 
         aEvent.target.addEventListener("touchmove", this, false);
         break;
