@@ -26,7 +26,7 @@ namespace js {
 namespace gcstats {
 
 
-static const int64_t SLICE_MIN_REPORT_TIME = 12 * PRMJ_USEC_PER_MSEC;
+static const int64_t SLICE_MIN_REPORT_TIME = 42 * PRMJ_USEC_PER_MSEC;
 
 class StatisticsSerializer
 {
