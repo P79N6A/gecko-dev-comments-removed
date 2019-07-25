@@ -702,6 +702,20 @@ nsWaveStateMachine::Run()
         mSeekTime = NS_MIN(mSeekTime, GetDuration());
         float seekTime = mSeekTime;
 
+        
+        PRInt64 position = RoundDownToSample(TimeToBytes(seekTime));
+        NS_ABORT_IF_FALSE(position >= 0 && position <= GetDataLength(),
+                          "Invalid seek position");
+        
+        position += mWavePCMOffset;
+
+        
+        
+        
+        PRInt64 oldPosition = mPlaybackPosition;
+        mPlaybackPosition = position;
+        FirePositionChanged(PR_TRUE);
+
         monitor.Exit();
         nsCOMPtr<nsIRunnable> startEvent =
           NS_NewRunnableMethod(mDecoder, &nsWaveDecoder::SeekingStarted);
@@ -712,22 +726,14 @@ nsWaveStateMachine::Run()
           break;
         }
 
-        
-        PRInt64 position = RoundDownToSample(TimeToBytes(seekTime));
-        NS_ABORT_IF_FALSE(position >= 0 && position <= GetDataLength(),
-                          "Invalid seek position");
-        
-        position += mWavePCMOffset;
-
         monitor.Exit();
         nsresult rv;
         rv = mStream->Seek(nsISeekableStream::NS_SEEK_SET, position);
+        monitor.Enter();
         if (NS_FAILED(rv)) {
           NS_WARNING("Seek failed");
-        }
-        monitor.Enter();
-        if (NS_SUCCEEDED(rv)) {
-          mPlaybackPosition = position;
+          mPlaybackPosition = oldPosition;
+          FirePositionChanged(PR_TRUE);
         }
 
         if (mState == STATE_SHUTDOWN) {
@@ -757,8 +763,6 @@ nsWaveStateMachine::Run()
           }
           ChangeState(nextState);
         }
-
-        FirePositionChanged(PR_TRUE);
 
         monitor.Exit();
         nsCOMPtr<nsIRunnable> stopEvent =

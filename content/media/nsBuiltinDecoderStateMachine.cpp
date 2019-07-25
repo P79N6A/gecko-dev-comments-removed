@@ -36,7 +36,6 @@
 
 
 
-
 #include <limits>
 #include "nsAudioStream.h"
 #include "nsTArray.h"
@@ -980,6 +979,15 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         PRInt64 seekTime = mSeekTime;
         mDecoder->StopProgressUpdates();
 
+        PRBool currentTimeChanged = false;
+        if (mCurrentFrameTime != seekTime - mStartTime) {
+          currentTimeChanged = true;
+          
+          
+          
+          UpdatePlaybackPosition(seekTime);
+        }
+
         
         
         
@@ -989,7 +997,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
             NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::SeekingStarted);
           NS_DispatchToMainThread(startEvent, NS_DISPATCH_SYNC);
         }
-        if (mCurrentFrameTime != mSeekTime - mStartTime) {
+        if (currentTimeChanged) {
           
           
           
