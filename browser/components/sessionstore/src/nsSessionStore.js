@@ -143,6 +143,11 @@ XPCOMUtils.defineLazyGetter(this, "ScratchpadManager", function() {
   return ScratchpadManager;
 });
 
+XPCOMUtils.defineLazyGetter(this, "XPathGenerator", function() {
+  Cu.import("resource:///modules/sessionstore/XPathGenerator.jsm");
+  return XPathGenerator;
+});
+
 XPCOMUtils.defineLazyServiceGetter(this, "CookieSvc",
   "@mozilla.org/cookiemanager;1", "nsICookieManager2");
 
@@ -2226,8 +2231,8 @@ SessionStoreService.prototype = {
 
 
   _collectFormDataForFrame: function sss_collectFormDataForFrame(aDocument) {
-    let formNodes = aDocument.evaluate(XPathHelper.restorableFormNodes, aDocument,
-                                       XPathHelper.resolveNS,
+    let formNodes = aDocument.evaluate(XPathGenerator.restorableFormNodes, aDocument,
+                                       XPathGenerator.resolveNS,
                                        Ci.nsIDOMXPathResult.UNORDERED_NODE_ITERATOR_TYPE, null);
     let node = formNodes.iterateNext();
     if (!node)
@@ -2288,7 +2293,7 @@ SessionStoreService.prototype = {
         }
         else {
           generatedCount++;
-          data[XPathHelper.generate(node)] = value;
+          data[XPathGenerator.generate(node)] = value;
         }
       }
 
@@ -3401,7 +3406,7 @@ SessionStoreService.prototype = {
           return;
 
         let node = key.charAt(0) == "#" ? aDocument.getElementById(key.slice(1)) :
-                                          XPathHelper.resolve(aDocument, key);
+                                          XPathGenerator.resolve(aDocument, key);
         if (!node)
           continue;
 
@@ -4461,98 +4466,6 @@ SessionStoreService.prototype = {
                                      "");
       }
     });
-  }
-};
-
-let XPathHelper = {
-  
-  namespaceURIs:     { "xhtml": "http://www.w3.org/1999/xhtml" },
-  namespacePrefixes: { "http://www.w3.org/1999/xhtml": "xhtml" },
-
-  
-
-
-  generate: function sss_xph_generate(aNode) {
-    
-    if (!aNode.parentNode)
-      return "";
-    
-    
-    let nNamespaceURI = aNode.namespaceURI;
-    let nLocalName = aNode.localName;
-
-    let prefix = this.namespacePrefixes[nNamespaceURI] || null;
-    let tag = (prefix ? prefix + ":" : "") + this.escapeName(nLocalName);
-    
-    
-    if (aNode.id)
-      return "//" + tag + "[@id=" + this.quoteArgument(aNode.id) + "]";
-    
-    
-    
-    let count = 0;
-    let nName = aNode.name || null;
-    for (let n = aNode; (n = n.previousSibling); )
-      if (n.localName == nLocalName && n.namespaceURI == nNamespaceURI &&
-          (!nName || n.name == nName))
-        count++;
-    
-    
-    return this.generate(aNode.parentNode) + "/" + tag +
-           (nName ? "[@name=" + this.quoteArgument(nName) + "]" : "") +
-           (count ? "[" + (count + 1) + "]" : "");
-  },
-
-  
-
-
-  resolve: function sss_xph_resolve(aDocument, aQuery) {
-    let xptype = Ci.nsIDOMXPathResult.FIRST_ORDERED_NODE_TYPE;
-    return aDocument.evaluate(aQuery, aDocument, this.resolveNS, xptype, null).singleNodeValue;
-  },
-
-  
-
-
-  resolveNS: function sss_xph_resolveNS(aPrefix) {
-    return XPathHelper.namespaceURIs[aPrefix] || null;
-  },
-
-  
-
-
-  escapeName: function sss_xph_escapeName(aName) {
-    
-    
-    return /^\w+$/.test(aName) ? aName :
-           "*[local-name()=" + this.quoteArgument(aName) + "]";
-  },
-
-  
-
-
-  quoteArgument: function sss_xph_quoteArgument(aArg) {
-    return !/'/.test(aArg) ? "'" + aArg + "'" :
-           !/"/.test(aArg) ? '"' + aArg + '"' :
-           "concat('" + aArg.replace(/'+/g, "',\"$&\",'") + "')";
-  },
-
-  
-
-
-  get restorableFormNodes() {
-    
-    
-    let ignoreTypes = ["password", "hidden", "button", "image", "submit", "reset"];
-    
-    let toLowerCase = '"ABCDEFGHIJKLMNOPQRSTUVWXYZ", "abcdefghijklmnopqrstuvwxyz"';
-    let ignore = "not(translate(@type, " + toLowerCase + ")='" +
-      ignoreTypes.join("' or translate(@type, " + toLowerCase + ")='") + "')";
-    let formNodesXPath = "//textarea|//select|//xhtml:textarea|//xhtml:select|" +
-      "//input[" + ignore + "]|//xhtml:input[" + ignore + "]";
-    
-    delete this.restorableFormNodes;
-    return (this.restorableFormNodes = formNodesXPath);
   }
 };
 
