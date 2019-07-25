@@ -247,18 +247,14 @@ BookmarksSharingManager.prototype = {
     dump( "Value is " + selectedFolder  + "\n");
     let folderName = selectedFolder.getAttribute( "label" );
     let folderNode = selectedFolder.node;
-    
-    
-    if ( folderNode.itemId == undefined ) {
-      dump( "FolderNode.itemId is undefined!!\n" );
+
+    if (this._annoSvc.itemHasAnnotation(folderNode.itemId, SERVER_PATH_ANNO)){
+      let serverPath = this._annoSvc.getItemAnnotation(folderNode.itemId,
+                                                       SERVER_PATH_ANNO);
     } else {
-      dump( "folderNode.itemId is " + folderNode.itemId +"\n");
+      this._log.warn("The folder you are de-sharing has no path annotation.");
+      let serverPath = "";
     }
-    if (!this._annoSvc.itemHasAnnotation(folderNode.itemId, SERVER_PATH_ANNO)){
-      dump( "Expected annotation not found!!\n" );
-    }
-    let serverPath = this._annoSvc.getItemAnnotation(folderNode.itemId,
-                                                     SERVER_PATH_ANNO);
 
     
 
@@ -460,22 +456,20 @@ BookmarksSharingManager.prototype = {
 
 
     let self = yield;
-    let serverPath = this._annoSvc.getItemAnnotation( folderNode,
+    if (this._annoSvc.itemHasAnnotation(folderNode.itemId, SERVER_PATH_ANNO)){
+      let serverPath = this._annoSvc.getItemAnnotation( folderNode,
                                                       SERVER_PATH_ANNO );
-    let username = this._annoSvc.getItemAnnotation( folderNode,
-                                                    OUTGOING_SHARED_ANNO );
-
-    
-    
-    let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
-    keyringFile.delete(self.cb);
-    yield;
-    let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
-    keyringFile.delete(self.cb);
-    yield;
-    
-    
-
+      
+      
+      let keyringFile = new Resource(serverPath + "/" + KEYRING_FILE_NAME);
+      keyringFile.delete(self.cb);
+      yield;
+      let bmkFile = new Resource(serverPath + "/" + SHARED_BOOKMARK_FILE_NAME);
+      keyringFile.delete(self.cb);
+      yield;
+      
+      
+    }
     
     this._annoSvc.setItemAnnotation(folderNode,
                                     SERVER_PATH_ANNO,
