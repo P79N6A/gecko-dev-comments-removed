@@ -235,6 +235,19 @@ var gEventManager = {
     contextMenu.addEventListener("popupshowing", function() {
       var addon = gViewController.currentViewObj.getSelectedAddon();
       contextMenu.setAttribute("addontype", addon.type);
+      
+      var menuSep = document.getElementById("addonitem-menuseparator");
+      var countEnabledMenuCmds = 0;
+      for (var i = 0; i < contextMenu.children.length; i++) {
+        if (contextMenu.children[i].nodeName == "menuitem" && 
+          gViewController.isCommandEnabled(contextMenu.children[i].command)) {
+            countEnabledMenuCmds++;
+        }
+      }
+      
+      
+      menuSep.hidden = (countEnabledMenuCmds <= 1);
+      
     }, false);
   },
 
