@@ -552,15 +552,21 @@ var Browser = {
 
     
     
+    
+    
+    
+
+    
+    
     if (gPrefService.prefHasUserValue("temporary.disablePlugins")) {
       gPrefService.clearUserPref("temporary.disablePlugins");
       this.setPluginState(true);
     }
 
     
-    if (!gPrefService.prefHasUserValue("temporary.disabledFlash")) {
-      this.setPluginState(false, /flash/i);
-      gPrefService.setBoolPref("temporary.disabledFlash", true);
+    if (gPrefService.prefHasUserValue("temporary.disabledFlash")) {
+      this.setPluginState(true, /flash/i);
+      gPrefService.clearUserPref("temporary.disabledFlash");
     }
 
     
