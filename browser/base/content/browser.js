@@ -1402,10 +1402,12 @@ var gBrowserInit = {
     
     let devToolbarEnabled = gPrefService.getBoolPref("devtools.toolbar.enabled");
     if (devToolbarEnabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_DevToolbar");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_devToolbar").hidden = false;
+      document.getElementById("Tools:DevToolbar").removeAttribute("disabled");
       document.getElementById("Tools:DevToolbarFocus").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_devToolbar").hidden = false;
+#endif
 
       
       if (gPrefService.getBoolPref("devtools.toolbar.visible")) {
@@ -1416,25 +1418,33 @@ var gBrowserInit = {
     
     let enabled = gPrefService.getBoolPref("devtools.inspector.enabled");
     if (enabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_Inspect");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_pageinspect").hidden = false;
+      document.getElementById("Tools:Inspect").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_pageInspect").hidden = false;
+#endif
+      document.getElementById("developer-toolbar-inspector").hidden = false;
     }
 
     
     let enabled = gPrefService.getBoolPref("devtools.debugger.enabled");
     if (enabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_Debugger");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_debugger").hidden = false;
+      document.getElementById("Tools:Debugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_debugger").hidden = false;
+#endif
+      document.getElementById("developer-toolbar-debugger").hidden = false;
     }
 
     
     let enabled = gPrefService.getBoolPref("devtools.debugger.remote-enabled");
     if (enabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_RemoteDebugger");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_remoteDebugger").hidden = false;
+      document.getElementById("Tools:RemoteDebugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_remoteDebugger").hidden = false;
+#endif
     }
 
     
@@ -1442,34 +1452,45 @@ var gBrowserInit = {
                   gPrefService.getBoolPref("devtools.debugger.chrome-enabled") &&
                   gPrefService.getBoolPref("devtools.debugger.remote-enabled");
     if (enabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_ChromeDebugger");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_chromeDebugger").hidden = false;
+      document.getElementById("Tools:ChromeDebugger").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_chromeDebugger").hidden = false;
+#endif
     }
 
     
     
     let consoleEnabled = true || gPrefService.getBoolPref("devtools.errorconsole.enabled");
     if (consoleEnabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_ErrorConsole");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("javascriptConsole").hidden = false;
+      document.getElementById("key_errorConsole").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_errorConsole").hidden = false;
+#endif
     }
 
     
     let scratchpadEnabled = gPrefService.getBoolPref(Scratchpad.prefEnabledName);
     if (scratchpadEnabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_Scratchpad");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_scratchpad").hidden = false;
+      document.getElementById("Tools:Scratchpad").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_scratchpad").hidden = false;
+#endif
     }
 
     
     let styleEditorEnabled = gPrefService.getBoolPref(StyleEditor.prefEnabledName);
     if (styleEditorEnabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_StyleEditor");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_styleeditor").hidden = false;
+      document.getElementById("Tools:StyleEditor").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_styleeditor").hidden = false;
+#endif
+      
+      
+      
     }
 
 #ifdef MENUBAR_CAN_AUTOHIDE
@@ -1484,9 +1505,11 @@ var gBrowserInit = {
     
     let responsiveUIEnabled = gPrefService.getBoolPref("devtools.responsiveUI.enabled");
     if (responsiveUIEnabled) {
-      let broadcaster = document.getElementById("devtoolsMenuBroadcaster_ResponsiveUI");
-      broadcaster.removeAttribute("disabled");
-      broadcaster.removeAttribute("hidden");
+      document.getElementById("menu_responsiveUI").hidden = false;
+      document.getElementById("Tools:ResponsiveUI").removeAttribute("disabled");
+#ifdef MENUBAR_CAN_AUTOHIDE
+      document.getElementById("appmenu_responsiveUI").hidden = false;
+#endif
     }
 
     let appMenuButton = document.getElementById("appmenu-button");
