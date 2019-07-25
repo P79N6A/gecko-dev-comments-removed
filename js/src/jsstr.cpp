@@ -77,7 +77,6 @@
 #include "jsversion.h"
 
 #include "jsinferinlines.h"
-#include "jsinterpinlines.h"
 #include "jsobjinlines.h"
 #include "jsregexpinlines.h"
 #include "jsautooplen.h"        
@@ -457,9 +456,12 @@ str_quote(JSContext *cx, uintN argc, Value *vp)
 static JSBool
 str_toSource(JSContext *cx, uintN argc, Value *vp)
 {
+    CallArgs args = CallArgsFromVp(argc, vp);
+
     JSString *str;
-    if (!GetPrimitiveThis(cx, vp, &str))
-        return false;
+    bool ok;
+    if (!BoxedPrimitiveMethodGuard(cx, args, str_toSource, &str, &ok))
+        return ok;
 
     str = js_QuoteString(cx, str, '"');
     if (!str)
@@ -493,7 +495,7 @@ str_toSource(JSContext *cx, uintN argc, Value *vp)
         cx->free_(t);
         return false;
     }
-    vp->setString(str);
+    args.rval().setString(str);
     return true;
 }
 
@@ -502,10 +504,14 @@ str_toSource(JSContext *cx, uintN argc, Value *vp)
 JSBool
 js_str_toString(JSContext *cx, uintN argc, Value *vp)
 {
+    CallArgs args = CallArgsFromVp(argc, vp);
+
     JSString *str;
-    if (!GetPrimitiveThis(cx, vp, &str))
-        return false;
-    vp->setString(str);
+    bool ok;
+    if (!BoxedPrimitiveMethodGuard(cx, args, js_str_toString, &str, &ok))
+        return ok;
+
+    args.rval().setString(str);
     return true;
 }
 
@@ -1001,8 +1007,6 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
     
     jsint pos = 0;
 
-    
-
     for (JSLinearString **outerp = strs.begin(); outerp != strs.end(); ++outerp) {
         
         JSLinearString *outer = *outerp;
@@ -1010,17 +1014,12 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
         size_t len = outer->length();
         jsint matchResult = StringMatch(chars, len, pat, patlen);
         if (matchResult != -1) {
+            
             *match = pos + matchResult;
             return true;
         }
 
         
-        JSLinearString **innerp = outerp;
-
-        
-
-
-
         const jschar *const text = chars + (patlen > len ? 0 : len - patlen + 1);
         const jschar *const textend = chars + len;
         const jschar p0 = *pat;
@@ -1029,6 +1028,7 @@ RopeMatch(JSContext *cx, JSString *textstr, const jschar *pat, jsuint patlen, js
         for (const jschar *t = text; t != textend; ) {
             if (*t++ != p0)
                 continue;
+            JSLinearString **innerp = outerp;
             const jschar *ttend = textend;
             for (const jschar *pp = p1, *tt = t; pp != patend; ++pp, ++tt) {
                 while (tt == ttend) {
@@ -2087,7 +2087,7 @@ str_replace_flat_lambda(JSContext *cx, uintN argc, Value *vp, ReplaceData &rdata
     args.calleev().setObject(*rdata.lambda);
     args.thisv().setUndefined();
 
-    Value *sp = args.argv();
+    Value *sp = args.array();
     sp[0].setString(matchStr);
     sp[1].setInt32(fm.match());
     sp[2].setString(rdata.str);
