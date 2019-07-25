@@ -1411,7 +1411,7 @@ namespace {
     nsTArray<nscoord> mStops;
   };
 
-  const PRInt64 kVeryLargeNegativeNumber = 0xffff000000000000;
+  const PRInt64 kVeryLargeNegativeNumber = 0xffff000000000000ll;
 
   
   
@@ -1518,7 +1518,7 @@ nsRect nsRegion::GetLargestRectangle () const {
     PRInt64 bestArea = 0;
     struct {
       PRInt32 left, top, right, bottom;
-    } bestRectIndices;
+    } bestRectIndices = { 0, 0, 0, 0 };
     for (PRInt32 m1 = 0; m1 < m; m1++) {
       for (PRInt32 m2 = m1+1; m2 < m; m2++) {
         nsTArray<PRInt64> B;
