@@ -1993,7 +1993,7 @@ gfxFontGroup::BuildFontList()
 {
 
 
-#if defined(XP_MACOSX) || (defined(XP_WIN) && !defined(WINCE)) || defined(ANDROID)
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID)
     ForEachFont(FindPlatformFont, this);
 
     if (mFonts.Length() == 0) {
@@ -2731,7 +2731,7 @@ gfxFontGroup::UpdateFontList()
         mSkipDrawing = PR_FALSE;
 
         
-#if defined(XP_MACOSX) || (defined(XP_WIN) && !defined(WINCE)) || defined(ANDROID)
+#if defined(XP_MACOSX) || defined(XP_WIN) || defined(ANDROID)
         BuildFontList();
 #else
         ForEachFont(FindPlatformFont, this);
