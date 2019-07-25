@@ -282,6 +282,15 @@ SourceEditor.EVENTS = {
 
 
   BREAKPOINT_CHANGE: "BreakpointChange",
+
+  
+
+
+
+
+
+
+  DIRTY_CHANGED: "DirtyChanged",
 };
 
 

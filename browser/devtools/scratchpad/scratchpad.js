@@ -75,6 +75,8 @@ const BUTTON_POSITION_DONT_SAVE = 2;
 
 
 var Scratchpad = {
+  _initialWindowTitle: document.title,
+
   
 
 
@@ -151,7 +153,22 @@ var Scratchpad = {
 
   setFilename: function SP_setFilename(aFilename)
   {
-    document.title = this.filename = aFilename;
+    this.filename = aFilename;
+    this._updateTitle();
+  },
+
+  
+
+
+
+  _updateTitle: function SP__updateTitle()
+  {
+    if (this.filename) {
+      document.title = (this.editor && this.editor.dirty ? "*" : "") +
+                       this.filename;
+    } else {
+      document.title = this._initialWindowTitle;
+    }
   },
 
   
@@ -168,7 +185,7 @@ var Scratchpad = {
       filename: this.filename,
       text: this.getText(),
       executionContext: this.executionContext,
-      saved: this.saved
+      saved: !this.editor.dirty,
     };
   },
 
@@ -184,7 +201,9 @@ var Scratchpad = {
     if (aState.filename) {
       this.setFilename(aState.filename);
     }
-    this.saved = aState.saved;
+    if (this.editor) {
+      this.editor.dirty = !aState.saved;
+    }
 
     if (aState.executionContext == SCRATCHPAD_CONTEXT_BROWSER) {
       this.setBrowserContext();
@@ -638,7 +657,7 @@ var Scratchpad = {
     fp.defaultString = "";
     if (fp.show() != Ci.nsIFilePicker.returnCancel) {
       this.setFilename(fp.file.path);
-      this.importFromFile(fp.file, false, this.onTextSaved.bind(this));
+      this.importFromFile(fp.file, false);
     }
   },
 
@@ -658,7 +677,9 @@ var Scratchpad = {
     file.initWithPath(this.filename);
 
     this.exportToFile(file, true, false, function(aStatus) {
-      this.onTextSaved();
+      if (Components.isSuccessCode(aStatus)) {
+        this.editor.dirty = false;
+      }
       if (aCallback) {
         aCallback(aStatus);
       }
@@ -681,7 +702,9 @@ var Scratchpad = {
       this.setFilename(fp.file.path);
 
       this.exportToFile(fp.file, true, false, function(aStatus) {
-        this.onTextSaved();
+        if (Components.isSuccessCode(aStatus)) {
+          this.editor.dirty = false;
+        }
         if (aCallback) {
           aCallback(aStatus);
         }
@@ -783,7 +806,6 @@ var Scratchpad = {
     if (aEvent.target != document) {
       return;
     }
-
     let chrome = Services.prefs.getBoolPref(DEVTOOLS_CHROME_ENABLED);
     if (chrome) {
       let environmentMenu = document.getElementById("sp-environment-menu");
@@ -794,10 +816,11 @@ var Scratchpad = {
       errorConsoleCommand.removeAttribute("disabled");
     }
 
+    let state = null;
     let initialText = this.strings.GetStringFromName("scratchpadIntro");
     if ("arguments" in window &&
          window.arguments[0] instanceof Ci.nsIDialogParamBlock) {
-      let state = JSON.parse(window.arguments[0].GetString(0));
+      state = JSON.parse(window.arguments[0].GetString(0));
       this.setState(state);
       initialText = state.text;
     }
@@ -811,28 +834,31 @@ var Scratchpad = {
     };
 
     let editorPlaceholder = document.getElementById("scratchpad-editor");
-    this.editor.init(editorPlaceholder, config, this.onEditorLoad.bind(this));
+    this.editor.init(editorPlaceholder, config,
+                     this._onEditorLoad.bind(this, state));
   },
 
   
 
 
 
-  onEditorLoad: function SP_onEditorLoad()
+
+
+
+
+  _onEditorLoad: function SP__onEditorLoad(aState)
   {
     this.editor.addEventListener(SourceEditor.EVENTS.CONTEXT_MENU,
                                  this.onContextMenu);
+    this.editor.addEventListener(SourceEditor.EVENTS.DIRTY_CHANGED,
+                                 this._onDirtyChanged);
     this.editor.focus();
     this.editor.setCaretOffset(this.editor.getCharCount());
+    if (aState) {
+      this.editor.dirty = !aState.saved;
+    }
 
     this.initialized = true;
-
-    if (this.filename && !this.saved) {
-      this.onTextChanged();
-    }
-    else if (this.filename && this.saved) {
-      this.onTextSaved();
-    }
 
     this._triggerObservers("Ready");
   },
@@ -872,6 +898,20 @@ var Scratchpad = {
 
 
 
+
+
+
+  _onDirtyChanged: function SP__onDirtyChanged(aEvent)
+  {
+    Scratchpad._updateTitle();
+  },
+
+  
+
+
+
+
+
   onEditPopupShowing: function SP_onEditPopupShowing()
   {
     goUpdateGlobalEditMenuItems();
@@ -903,36 +943,6 @@ var Scratchpad = {
 
 
 
-  onTextSaved: function SP_onTextSaved(aStatus)
-  {
-    if (aStatus && !Components.isSuccessCode(aStatus)) {
-      return;
-    }
-    if (!document || !this.initialized) {
-      return;  
-    }
-    document.title = document.title.replace(/^\*/, "");
-    this.saved = true;
-    this.editor.addEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
-                                 this.onTextChanged);
-  },
-
-  
-
-
-
-  onTextChanged: function SP_onTextChanged()
-  {
-    document.title = "*" + document.title;
-    Scratchpad.saved = false;
-    Scratchpad.editor.removeEventListener(SourceEditor.EVENTS.TEXT_CHANGED,
-                                          Scratchpad.onTextChanged);
-  },
-
-  
-
-
-
 
 
   onUnload: function SP_onUnload(aEvent)
@@ -942,6 +952,8 @@ var Scratchpad = {
     }
 
     this.resetContext();
+    this.editor.removeEventListener(SourceEditor.EVENTS.DIRTY_CHANGED,
+                                    this._onDirtyChanged);
     this.editor.removeEventListener(SourceEditor.EVENTS.CONTEXT_MENU,
                                     this.onContextMenu);
     this.editor.destroy();
@@ -957,9 +969,14 @@ var Scratchpad = {
 
 
 
+
+
+
+
+
   promptSave: function SP_promptSave(aCallback)
   {
-    if (this.filename && !this.saved) {
+    if (this.filename && this.editor.dirty) {
       let ps = Services.prompt;
       let flags = ps.BUTTON_POS_0 * ps.BUTTON_TITLE_SAVE +
                   ps.BUTTON_POS_1 * ps.BUTTON_TITLE_CANCEL +
@@ -971,11 +988,24 @@ var Scratchpad = {
                           flags, null, null, null, null, {});
 
       if (button == BUTTON_POSITION_CANCEL) {
+        if (aCallback) {
+          aCallback(false, false);
+        }
         return false;
       }
+
       if (button == BUTTON_POSITION_SAVE) {
-        this.saveFile(aCallback);
+        this.saveFile(function(aStatus) {
+          if (aCallback) {
+            aCallback(true, true, aStatus);
+          }
+        });
+        return true;
       }
+    }
+
+    if (aCallback) {
+      aCallback(true, false);
     }
     return true;
   },
@@ -988,10 +1018,22 @@ var Scratchpad = {
 
   onClose: function SP_onClose(aEvent)
   {
-    let toClose = this.promptSave();
-    if (!toClose) {
-      aEvent.preventDefault();
+    if (this._skipClosePrompt) {
+      return;
     }
+
+    this.promptSave(function(aShouldClose, aSaved, aStatus) {
+      let shouldClose = aShouldClose;
+      if (aSaved && !Components.isSuccessCode(aStatus)) {
+        shouldClose = false;
+      }
+
+      if (shouldClose) {
+        this._skipClosePrompt = true;
+        window.close();
+      }
+    }.bind(this));
+    aEvent.preventDefault();
   },
 
   
@@ -1003,10 +1045,20 @@ var Scratchpad = {
 
   close: function SP_close(aCallback)
   {
-    let toClose = this.promptSave(aCallback);
-    if (toClose) {
-      window.close();
-    }
+    this.promptSave(function(aShouldClose, aSaved, aStatus) {
+      let shouldClose = aShouldClose;
+      if (aSaved && !Components.isSuccessCode(aStatus)) {
+        shouldClose = false;
+      }
+
+      if (shouldClose) {
+        this._skipClosePrompt = true;
+        window.close();
+      }
+      if (aCallback) {
+        aCallback();
+      }
+    }.bind(this));
   },
 
   _observers: [],
