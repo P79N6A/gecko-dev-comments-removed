@@ -332,8 +332,8 @@ nsresult nsGIFDecoder2::BeginImageFrame(gfx_depth aDepth)
   mImage->SetFrameDisposalMethod(mGIFStruct.images_decoded,
                                  mGIFStruct.disposal_method);
 
-  if (mObserver)
-    mObserver->OnStartFrame(nsnull, mGIFStruct.images_decoded);
+  
+  PostFrameStart();
 
   mCurrentFrame = mGIFStruct.images_decoded;
   return NS_OK;
@@ -370,8 +370,6 @@ void nsGIFDecoder2::EndImageFrame()
   mCurrentRow = mLastFlushedRow = -1;
   mCurrentPass = mLastFlushedPass = 0;
 
-  PRUint32 curframe = mGIFStruct.images_decoded;
-
   
   if (mGIFStruct.rows_remaining != mGIFStruct.height) {
     if (mGIFStruct.rows_remaining && mGIFStruct.images_decoded) {
@@ -394,8 +392,8 @@ void nsGIFDecoder2::EndImageFrame()
   
   mGIFStruct.images_decoded++;
 
-  if (mObserver)
-    mObserver->OnStopFrame(nsnull, curframe);
+  
+  PostFrameStop();
 
   
   if (mOldColor) {

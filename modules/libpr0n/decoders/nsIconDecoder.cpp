@@ -138,8 +138,9 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
           mState = iconStateError;
           return rv;
         }
-        if (mObserver)
-         mObserver->OnStartFrame(nsnull, 0);
+
+        
+        PostFrameStart();
 
         
         aBuffer++;
@@ -199,8 +200,7 @@ nsIconDecoder::NotifyDone(PRBool aSuccess)
   NS_ABORT_IF_FALSE(!mNotifiedDone, "Calling NotifyDone twice");
 
   
-  if (mObserver)
-    mObserver->OnStopFrame(nsnull, 0);
+  PostFrameStop();
   if (aSuccess)
     mImage->DecodingComplete();
   if (mObserver) {

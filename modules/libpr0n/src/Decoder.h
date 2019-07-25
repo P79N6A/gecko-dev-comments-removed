@@ -121,6 +121,10 @@ public:
     mSizeDecode = aSizeDecode;
   }
 
+  
+  
+  PRUint32 GetFrameCount() { return mFrameCount; }
+
 protected:
 
   
@@ -140,6 +144,11 @@ protected:
   
   void PostSize(PRInt32 aWidth, PRInt32 aHeight);
 
+  
+  
+  void PostFrameStart();
+  void PostFrameStop();
+
 
   
 
@@ -149,8 +158,11 @@ protected:
   nsRefPtr<RasterImage> mImage;
   nsCOMPtr<imgIDecoderObserver> mObserver;
 
+  PRUint32 mFrameCount; 
+
   bool mInitialized;
   bool mSizeDecode;
+  bool mInFrame;
 };
 
 } 
