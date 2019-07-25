@@ -435,13 +435,10 @@ SyncEngine.prototype = {
     }
 
     
-    
-    
     if (!this.lastSync) {
       this._log.debug("First sync, uploading all items");
-      this._tracker.clearChangedIDs();
-      [i for (i in this._store.getAllIDs())]
-        .forEach(function(id) this._tracker.changedIDs[id] = true, this);
+      for (let id in this._store.getAllIDs())
+        this._tracker.addChangedID(id, 0);
     }
 
     let outnum = [i for (i in this._tracker.changedIDs)].length;
@@ -592,7 +589,7 @@ SyncEngine.prototype = {
       this._log.trace("Preferring local id: " + [dupeId, item.id]);
       this._deleteId(item.id);
       item.id = dupeId;
-      this._tracker.changedIDs[dupeId] = true;
+      this._tracker.addChangedID(dupeId, 0);
     }
     else {
       this._log.trace("Switching local id to incoming: " + [item.id, dupeId]);
@@ -601,44 +598,36 @@ SyncEngine.prototype = {
     }
   },
 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
   _reconcile: function SyncEngine__reconcile(item) {
     if (this._log.level <= Log4Moz.Level.Trace)
       this._log.trace("Incoming: " + item);
 
-    
-    
-    this._log.trace("Reconcile step 1");
+    this._log.trace("Reconcile step 1: Check for conflicts");
     if (item.id in this._tracker.changedIDs) {
-      if (this._isEqual(item))
+      
+      if (this._isEqual(item)) {
         this._tracker.removeChangedID(item.id);
-      return false;
+        return false;
+      }
+
+      
+      let recordAge = Resource.serverTime - item.modified;
+      let localAge = Date.now() / 1000 - this._tracker.changedIDs[item.id];
+      this._log.trace("Record age vs local age: " + [recordAge, localAge]);
+
+      
+      return recordAge < localAge;
     }
 
-    
-    
-    this._log.trace("Reconcile step 2");
+    this._log.trace("Reconcile step 2: Check for updates");
     if (this._store.itemExists(item.id))
       return !this._isEqual(item);
 
-    
-    this._log.trace("Reconcile step 2.5");
+    this._log.trace("Reconcile step 2.5: Don't dupe deletes");
     if (item.deleted)
       return true;
 
-    
-    this._log.trace("Reconcile step 3");
+    this._log.trace("Reconcile step 3: Find dupes");
     let dupeId = this._findDupe(item);
     if (dupeId)
       this._handleDupe(item, dupeId);

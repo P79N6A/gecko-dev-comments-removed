@@ -206,7 +206,7 @@ BookmarksEngine.prototype = {
     
     this._store.changeItemID(dupeId, item.id);
     this._deleteId(dupeId);
-    this._tracker.changedIDs[item.id] = true;
+    this._tracker.addChangedID(item.id, 0);
   }
 };
 

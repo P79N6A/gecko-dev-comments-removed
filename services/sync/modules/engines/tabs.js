@@ -75,11 +75,6 @@ TabEngine.prototype = {
     this._store.wipe();
   },
 
-  _syncFinish: function _syncFinish() {
-    SyncEngine.prototype._syncFinish.call(this);
-    this._tracker.resetChanged();
-  },
-
   
 
 
@@ -209,8 +204,6 @@ TabStore.prototype = {
 function TabTracker(name) {
   Tracker.call(this, name);
 
-  this.resetChanged();
-
   
   this.onTab = Utils.bind2(this, this.onTab);
 
@@ -257,15 +250,10 @@ TabTracker.prototype = {
   onTab: function onTab(event) {
     this._log.trace(event.type);
     this.score += 1;
-    this._changedIDs[Clients.localID] = true;
+    this.addChangedID(Clients.localID);
 
     
     Svc.Session.setTabValue(event.originalTarget, "weaveLastUsed",
                             Math.floor(Date.now() / 1000));
   },
-
-  get changedIDs() this._changedIDs,
-
-  
-  resetChanged: function resetChanged() this._changedIDs = {}
 }
