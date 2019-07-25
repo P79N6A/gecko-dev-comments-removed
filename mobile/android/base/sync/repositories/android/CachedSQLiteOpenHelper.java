@@ -18,8 +18,8 @@ public abstract class CachedSQLiteOpenHelper extends SQLiteOpenHelper {
 
   
   
-  private static SQLiteDatabase readableDatabase;
-  private static SQLiteDatabase writableDatabase;
+  private SQLiteDatabase readableDatabase;
+  private SQLiteDatabase writableDatabase;
 
   synchronized protected SQLiteDatabase getCachedReadableDatabase() {
     if (readableDatabase == null) {
@@ -51,5 +51,11 @@ public abstract class CachedSQLiteOpenHelper extends SQLiteOpenHelper {
       writableDatabase = null;
     }
     super.close();
+  }
+
+  
+  public boolean isClosed() {
+    return readableDatabase == null &&
+           writableDatabase == null;
   }
 }

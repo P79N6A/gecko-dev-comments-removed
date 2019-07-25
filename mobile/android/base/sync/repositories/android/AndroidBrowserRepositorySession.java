@@ -649,4 +649,9 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
       delegate.onWipeSucceeded();
     }
   }
+
+  
+  public AndroidBrowserRepositoryDataAccessor getDBHelper() {
+    return dbHelper;
+  }
 }
