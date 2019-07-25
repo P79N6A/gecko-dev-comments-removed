@@ -40,6 +40,8 @@
 
 Components.utils.import("resource://gre/modules/Services.jsm");
 
+const PREF_EM_HOTFIX_ID = "extensions.hotfix.id";
+
 function init(aEvent)
 {
   if (aEvent.target != document)
@@ -378,6 +380,11 @@ appUpdater.prototype =
 
 
   checkAddonCompatibility: function() {
+    try {
+      var hotfixID = Services.prefs.getCharPref(PREF_EM_HOTFIX_ID);
+    }
+    catch (e) { }
+
     var self = this;
     AddonManager.getAllAddons(function(aAddons) {
       self.addons = [];
@@ -403,8 +410,9 @@ appUpdater.prototype =
         
         
         
+        
         try {
-          if (aAddon.type != "plugin" &&
+          if (aAddon.type != "plugin" && aAddon.id != hotfixID &&
               !aAddon.appDisabled && !aAddon.userDisabled &&
               aAddon.scope != AddonManager.SCOPE_APPLICATION &&
               aAddon.isCompatible &&

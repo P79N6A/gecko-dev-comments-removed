@@ -60,6 +60,8 @@ const PREF_APP_UPDATE_NEVER_BRANCH       = "app.update.never.";
 const PREF_APP_UPDATE_TEST_LOOP          = "app.update.test.loop";
 const PREF_PLUGINS_UPDATEURL             = "plugins.update.url";
 
+const PREF_EM_HOTFIX_ID                  = "extensions.hotfix.id";
+
 const UPDATE_TEST_LOOP_INTERVAL     = 2000;
 
 const URI_UPDATES_PROPERTIES  = "chrome://mozapps/locale/update/updates.properties";
@@ -521,6 +523,11 @@ var gUpdates = {
       return;
     }
 
+    try {
+      var hotfixID = Services.prefs.getCharPref(PREF_EM_HOTFIX_ID);
+    }
+    catch (e) { }
+
     var self = this;
     AddonManager.getAllAddons(function(addons) {
       self.addons = [];
@@ -545,8 +552,9 @@ var gUpdates = {
         
         
         
+        
         try {
-          if (addon.type != "plugin" &&
+          if (addon.type != "plugin" && addon.id != hotfixID &&
               !addon.appDisabled && !addon.userDisabled &&
               addon.scope != AddonManager.SCOPE_APPLICATION &&
               addon.isCompatible &&
