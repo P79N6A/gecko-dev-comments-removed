@@ -3278,6 +3278,13 @@ nsHTMLDocument::EditingStateChanged()
     nsCOMPtr<nsIPresShell> presShell = GetShell();
     NS_ENSURE_TRUE(presShell, NS_ERROR_FAILURE);
 
+    
+    
+    if (designMode) {
+      rv = editor->BeginningOfDocument();
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
+
     nsCOMArray<nsIStyleSheet> agentSheets;
     rv = presShell->GetAgentStyleSheets(agentSheets);
     NS_ENSURE_SUCCESS(rv, rv);
