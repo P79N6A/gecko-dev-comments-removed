@@ -408,6 +408,11 @@ public:
   void IndirectlyImplementedMethod();
   uint32_t GetDiamondImplementedProperty();
 
+  
+  void DontEnforceRangeOrClamp(int8_t);
+  void DoEnforceRange(int8_t);
+  void DoClamp(int8_t);
+
 private:
   
   
