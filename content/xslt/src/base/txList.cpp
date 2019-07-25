@@ -243,7 +243,7 @@ void txList::clear()
 txListIterator::txListIterator(txList* list) {
    this->list   = list;
    currentItem  = 0;
-   atEndOfList  = MB_FALSE;
+   atEndOfList  = false;
 } 
 
 
@@ -279,8 +279,8 @@ nsresult txListIterator::addBefore(void* objPtr)
 
 
 
-MBool txListIterator::hasNext() {
-    MBool hasNext = MB_FALSE;
+bool txListIterator::hasNext() {
+    bool hasNext = false;
     if (currentItem)
         hasNext = (currentItem->nextItem != 0);
     else if (!atEndOfList)
@@ -294,8 +294,8 @@ MBool txListIterator::hasNext() {
 
 
 
-MBool txListIterator::hasPrevious() {
-    MBool hasPrevious = MB_FALSE;
+bool txListIterator::hasPrevious() {
+    bool hasPrevious = false;
     if (currentItem)
         hasPrevious = (currentItem->prevItem != 0);
     else if (atEndOfList)
@@ -318,7 +318,7 @@ void* txListIterator::next() {
     if (currentItem)
         obj = currentItem->objPtr;
     else
-        atEndOfList = MB_TRUE;
+        atEndOfList = true;
 
     return obj;
 } 
@@ -338,7 +338,7 @@ void* txListIterator::previous() {
     if (currentItem)
         obj = currentItem->objPtr;
 
-    atEndOfList = MB_FALSE;
+    atEndOfList = false;
 
     return obj;
 } 
@@ -379,7 +379,7 @@ void* txListIterator::advance(int i) {
         for (; currentItem && i < 0; i++)
             currentItem = currentItem->prevItem;
 
-        atEndOfList = MB_FALSE;
+        atEndOfList = false;
     }
 
     if (currentItem)
@@ -409,7 +409,7 @@ void* txListIterator::remove() {
 
 
 void txListIterator::reset() {
-   atEndOfList = MB_FALSE;
+   atEndOfList = false;
    currentItem = 0;
 } 
 
@@ -417,6 +417,6 @@ void txListIterator::reset() {
 
 
 void txListIterator::resetToEnd() {
-   atEndOfList = MB_TRUE;
+   atEndOfList = true;
    currentItem = 0;
 } 

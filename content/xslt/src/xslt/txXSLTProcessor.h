@@ -48,7 +48,7 @@ public:
 
 
 
-    static MBool init();
+    static bool init();
     static void shutdown();
 
 

@@ -127,7 +127,7 @@ public:
 
 
     txDecimalFormat();
-    MBool isEqual(txDecimalFormat* other);
+    bool isEqual(txDecimalFormat* other);
     
     PRUnichar       mDecimalSeparator;
     PRUnichar       mGroupingSeparator;

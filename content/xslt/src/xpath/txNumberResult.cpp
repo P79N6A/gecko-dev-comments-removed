@@ -76,11 +76,11 @@ NumberResult::stringValuePointer()
     return nsnull;
 }
 
-MBool NumberResult::booleanValue() {
+bool NumberResult::booleanValue() {
   
   
   
-  return (MBool)(value != 0.0 && !Double::isNaN(value));
+  return (bool)(value != 0.0 && !Double::isNaN(value));
   
 } 
 

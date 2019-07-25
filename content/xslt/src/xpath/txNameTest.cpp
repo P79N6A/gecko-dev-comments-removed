@@ -69,18 +69,18 @@ bool txNameTest::matches(const txXPathNode& aNode, txIMatchContext* aContext)
 
     
     if (mLocalName == nsGkAtoms::_asterix && !mPrefix)
-        return MB_TRUE;
+        return true;
 
     
     if (mNamespace != txXPathNodeUtils::getNamespaceID(aNode) 
         && !(mNamespace == kNameSpaceID_None &&
              txXPathNodeUtils::isHTMLElementInHTMLDocument(aNode))
        )
-        return MB_FALSE;
+        return false;
 
     
     if (mLocalName == nsGkAtoms::_asterix)
-        return MB_TRUE;
+        return true;
 
     
     return txXPathNodeUtils::localNameEquals(aNode, mLocalName);

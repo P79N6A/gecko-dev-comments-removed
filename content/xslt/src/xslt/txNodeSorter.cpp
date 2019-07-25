@@ -78,14 +78,14 @@ txNodeSorter::addSortElement(Expr* aSelectExpr, Expr* aLangExpr,
     key->mExpr = aSelectExpr;
 
     
-    MBool ascending = MB_TRUE;
+    bool ascending = true;
     if (aOrderExpr) {
         nsAutoString attrValue;
         rv = aOrderExpr->evaluateToString(aContext, attrValue);
         NS_ENSURE_SUCCESS(rv, rv);
 
         if (TX_StringEqualsAtom(attrValue, nsGkAtoms::descending)) {
-            ascending = MB_FALSE;
+            ascending = false;
         }
         else if (!TX_StringEqualsAtom(attrValue, nsGkAtoms::ascending)) {
             
@@ -112,7 +112,7 @@ txNodeSorter::addSortElement(Expr* aSelectExpr, Expr* aLangExpr,
         }
 
         
-        MBool upperFirst = false;
+        bool upperFirst = false;
         if (aCaseOrderExpr) {
             nsAutoString attrValue;
 

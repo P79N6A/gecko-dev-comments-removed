@@ -52,7 +52,7 @@ public:
     }
 
     
-    MBool hasNext()
+    bool hasNext()
     {
         return mPosition < size();
     }
