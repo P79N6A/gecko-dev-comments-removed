@@ -373,7 +373,8 @@ protected:
   
   nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,
                                bool      aGoForward,
-                               bool      bNoBlockCrossing);
+                               bool      bNoBlockCrossing,
+                               nsIContent *aActiveEditorRoot);
 
   
   nsresult GetWidget(nsIWidget **aWidget);
@@ -475,17 +476,21 @@ public:
 
 
 
+
+
   nsresult GetPriorNode(nsIDOMNode  *aCurrentNode, 
                         bool         aEditableNode,
                         nsCOMPtr<nsIDOMNode> *aResultNode,
-                        bool         bNoBlockCrossing = false);
+                        bool         bNoBlockCrossing = false,
+                        nsIContent  *aActiveEditorRoot = nsnull);
 
   
   nsresult GetPriorNode(nsIDOMNode  *aParentNode, 
                         PRInt32      aOffset, 
                         bool         aEditableNode, 
                         nsCOMPtr<nsIDOMNode> *aResultNode,
-                        bool         bNoBlockCrossing = false);
+                        bool         bNoBlockCrossing = false,
+                        nsIContent  *aActiveEditorRoot = nsnull);
                        
   
 
@@ -497,20 +502,23 @@ public:
   nsresult GetNextNode(nsIDOMNode  *aCurrentNode, 
                        bool         aEditableNode,
                        nsCOMPtr<nsIDOMNode> *aResultNode,
-                       bool         bNoBlockCrossing = false);
+                       bool         bNoBlockCrossing = false,
+                       nsIContent  *aActiveEditorRoot = nsnull);
 
   
   nsresult GetNextNode(nsIDOMNode  *aParentNode, 
                        PRInt32      aOffset, 
                        bool         aEditableNode, 
                        nsCOMPtr<nsIDOMNode> *aResultNode,
-                       bool         bNoBlockCrossing = false);
+                       bool         bNoBlockCrossing = false,
+                       nsIContent  *aActiveEditorRoot = nsnull);
 
   
   nsIContent* FindNode(nsINode *aCurrentNode,
                        bool     aGoForward,
                        bool     aEditableNode,
-                       bool     bNoBlockCrossing);
+                       bool     bNoBlockCrossing,
+                       nsIContent *aActiveEditorRoot);
   
 
 
