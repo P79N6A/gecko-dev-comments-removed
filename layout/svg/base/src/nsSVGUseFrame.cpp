@@ -116,31 +116,37 @@ nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
                                 nsIAtom*        aAttribute,
                                 PRInt32         aModType)
 {
+  nsSVGUseElement *useElement = static_cast<nsSVGUseElement*>(mContent);
+
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::x ||
         aAttribute == nsGkAtoms::y) {
       
       mCanvasTM = nsnull;
-    
+      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
       nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
     } else if (aAttribute == nsGkAtoms::width ||
                aAttribute == nsGkAtoms::height) {
-      static_cast<nsSVGUseElement*>(mContent)->SyncWidthOrHeight(aAttribute);
-
-      if (mHasValidDimensions != 
-          static_cast<nsSVGUseElement*>(mContent)->HasValidDimensions()) {
-
+      bool invalidate = false;
+      if (mHasValidDimensions != useElement->HasValidDimensions()) {
         mHasValidDimensions = !mHasValidDimensions;
+        invalidate = true;
+      }
+      if (useElement->OurWidthAndHeightAreUsed()) {
+        invalidate = true;
+        useElement->SyncWidthOrHeight(aAttribute);
+      }
+      if (invalidate) {
         nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
       }
     }
   } else if (aNameSpaceID == kNameSpaceID_XLink &&
              aAttribute == nsGkAtoms::href) {
     
-    nsSVGUseElement *use = static_cast<nsSVGUseElement*>(mContent);
-    use->mOriginal = nsnull;
-    use->UnlinkSource();
-    use->TriggerReclone();
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+    useElement->mOriginal = nsnull;
+    useElement->UnlinkSource();
+    useElement->TriggerReclone();
   }
 
   return nsSVGUseFrameBase::AttributeChanged(aNameSpaceID,
@@ -191,6 +197,13 @@ nsSVGUseFrame::NotifySVGChanged(PRUint32 aFlags)
     if (use->mLengthAttributes[nsSVGUseElement::X].IsPercentage() ||
         use->mLengthAttributes[nsSVGUseElement::Y].IsPercentage()) {
       aFlags |= TRANSFORM_CHANGED;
+      
+      
+      
+      
+      
+      
+      nsSVGUtils::ScheduleBoundsUpdate(this);
     }
   }
 

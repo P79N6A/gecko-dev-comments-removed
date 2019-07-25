@@ -102,6 +102,12 @@ protected:
   virtual LengthAttributesInfo GetLengthInfo();
   virtual StringAttributesInfo GetStringInfo();
 
+  
+
+
+
+
+  bool OurWidthAndHeightAreUsed() const;
   void SyncWidthOrHeight(nsIAtom *aName);
   void LookupHref();
   void TriggerReclone();

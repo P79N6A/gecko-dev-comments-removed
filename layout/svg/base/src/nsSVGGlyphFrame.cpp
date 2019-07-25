@@ -508,9 +508,12 @@ nsSVGGlyphFrame::NotifySVGChanged(PRUint32 aFlags)
 
   
   
-  if (!(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
-  }
+  
+  
+  
+  
+  
+  nsSVGUtils::ScheduleBoundsUpdate(this);
 
   if (aFlags & TRANSFORM_CHANGED) {
     ClearTextRun();

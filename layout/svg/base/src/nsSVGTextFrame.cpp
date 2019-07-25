@@ -55,14 +55,14 @@ nsSVGTextFrame::AttributeChanged(PRInt32         aNameSpaceID,
     return NS_OK;
 
   if (aAttribute == nsGkAtoms::transform) {
-
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
     NotifySVGChanged(TRANSFORM_CHANGED);
-   
   } else if (aAttribute == nsGkAtoms::x ||
              aAttribute == nsGkAtoms::y ||
              aAttribute == nsGkAtoms::dx ||
              aAttribute == nsGkAtoms::dy ||
              aAttribute == nsGkAtoms::rotate) {
+    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
     NotifyGlyphMetricsChange();
   }
 
@@ -169,6 +169,16 @@ nsSVGTextFrame::NotifySVGChanged(PRUint32 aFlags)
     mCanvasTM = nsnull;
   }
 
+  if (updateGlyphMetrics) {
+    
+    
+    
+    
+    
+    
+    nsSVGUtils::ScheduleBoundsUpdate(this);
+  }
+
   nsSVGTextFrameBase::NotifySVGChanged(aFlags);
 
   if (updateGlyphMetrics) {
@@ -224,8 +234,13 @@ nsSVGTextFrame::UpdateBounds()
   
   nsSVGTextFrameBase::UpdateBounds();
 
-  
-  
+  if (!(GetParent()->GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    
+    
+    nsSVGUtils::InvalidateBounds(this, true);
+  }
 }
 
 SVGBBox
@@ -260,9 +275,32 @@ nsSVGTextFrame::GetCanvasTM()
 
 
 
+static void
+MarkDirtyBitsOnDescendants(nsIFrame *aFrame)
+{
+  if (aFrame->GetStateBits() & (NS_FRAME_IS_DIRTY | NS_FRAME_FIRST_REFLOW)) {
+    
+    
+    return;
+  }
+  nsIFrame* kid = aFrame->GetFirstPrincipalChild();
+  while (kid) {
+    nsISVGChildFrame* svgkid = do_QueryFrame(kid);
+    if (svgkid && !(kid->GetStateBits() & NS_FRAME_IS_DIRTY)) {
+      MarkDirtyBitsOnDescendants(kid);
+      kid->AddStateBits(NS_FRAME_IS_DIRTY);
+    }
+    kid = kid->GetNextSibling();
+  }
+}
+
 void
 nsSVGTextFrame::NotifyGlyphMetricsChange()
 {
+  
+  
+  MarkDirtyBitsOnDescendants(this);
+
   nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
 
   mPositioningDirty = true;

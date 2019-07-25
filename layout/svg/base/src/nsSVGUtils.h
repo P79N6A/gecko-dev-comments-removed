@@ -480,6 +480,13 @@ public:
   
 
 
+
+
+
+
+
+
+
   static void
   NotifyChildrenOfSVGChange(nsIFrame *aFrame, PRUint32 aFlags);
 

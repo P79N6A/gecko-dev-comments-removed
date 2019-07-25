@@ -425,7 +425,9 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
   }
 
   if (aFlags & TRANSFORM_CHANGED) {
-    needNewBounds = true; 
+    if (mCanvasTM && mCanvasTM->IsSingular()) {
+      needNewBounds = true; 
+    }
     needNewCanvasTM = true;
     
     
@@ -436,9 +438,13 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     
   }
 
-  if (needNewBounds &&
-      !(aFlags & DO_NOT_NOTIFY_RENDERING_OBSERVERS)) {
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+  if (needNewBounds) {
+    
+    
+    
+    
+    
+    nsSVGUtils::ScheduleBoundsUpdate(this);
   }
 
   
