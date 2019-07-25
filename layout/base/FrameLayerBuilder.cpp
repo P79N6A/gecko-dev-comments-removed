@@ -462,6 +462,18 @@ public:
 
 
 
+struct MaskLayerUserData : public LayerUserData
+{
+  
+  
+  nsTArray<FrameLayerBuilder::Clip::RoundedRect> mRoundedClipRects;
+  gfx3DMatrix mTransform;
+  nsIntRect mBounds;
+};
+
+
+
+
 
 
 
@@ -487,6 +499,12 @@ PRUint8 gImageLayerUserData;
 
 
 PRUint8 gLayerManagerUserData;
+
+
+
+
+
+PRUint8 gMaskLayerUserData;
 
 } 
 
