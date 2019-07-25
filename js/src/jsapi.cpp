@@ -1539,6 +1539,8 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 {
     AssertNoGC(cx);
     JS_ASSERT(origobj != target);
+    JS_ASSERT(!IsCrossCompartmentWrapper(origobj));
+    JS_ASSERT(!IsCrossCompartmentWrapper(target));
 
     JSCompartment *destination = target->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
@@ -1558,7 +1560,12 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         
         newIdentity = &p->value.toObject();
+
+        
+        
         map.remove(p);
+        NukeCrossCompartmentWrapper(newIdentity);
+
         if (!newIdentity->swap(cx, target))
             return NULL;
     } else {
@@ -1579,8 +1586,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
             return NULL;
         if (!origobj->swap(cx, newIdentityWrapper))
             return NULL;
-        origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity),
-                                                             origv);
+        origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity), origv);
     }
 
     
@@ -1615,8 +1621,12 @@ RemapWrappers(JSContext *cx, JSObject *orig, JSObject *target)
         JSObject *wobj = &begin->toObject();
         JSCompartment *wcompartment = wobj->compartment();
         WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
+
+        
+        
         JS_ASSERT(pmap.lookup(origv));
         pmap.remove(origv);
+        NukeCrossCompartmentWrapper(wobj);
 
         
         
@@ -1654,6 +1664,10 @@ js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *targetwrapper)
 {
     AssertNoGC(cx);
+    JS_ASSERT(!IsCrossCompartmentWrapper(origobj));
+    JS_ASSERT(!IsCrossCompartmentWrapper(origwrapper));
+    JS_ASSERT(!IsCrossCompartmentWrapper(origwrapper));
+    JS_ASSERT(!IsCrossCompartmentWrapper(origwrapper));
 
     JSObject *newWrapper;
     JSCompartment *destination = targetobj->compartment();
@@ -1669,7 +1683,12 @@ js_TransplantObjectWithWrapper(JSContext *cx,
         
         
         newWrapper = &p->value.toObject();
+
+        
+        
         map.remove(p);
+        NukeCrossCompartmentWrapper(newWrapper);
+
         if (!newWrapper->swap(cx, targetwrapper))
             return NULL;
     } else {
