@@ -62,7 +62,6 @@ var Drag = function(element, event) {
   this.startTime = Utils.getMilliseconds();
   
   this.item.isDragging = true;
-  this.$el.data('isDragging', true);
   this.item.setZ(999999);
   
   this.safeWindowBounds = Items.getSafeWindowBounds();
@@ -199,7 +198,6 @@ Drag.prototype = {
   
   stop: function() {
     this.item.isDragging = false;
-    this.$el.data('isDragging', false);    
 
     
     
