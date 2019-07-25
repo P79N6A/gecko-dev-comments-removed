@@ -13,6 +13,7 @@
 const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 XPCOMUtils.defineLazyModuleGetter(this, "Services",
                                   "resource://gre/modules/Services.jsm");
@@ -30,6 +31,41 @@ var gIoService = Components.classes["@mozilla.org/network/io-service;1"]
 
 var gETLDService = Components.classes["@mozilla.org/network/effective-tld-service;1"]
                    .getService(Components.interfaces.nsIEffectiveTLDService);
+
+
+
+const R_SCHEME     = new RegExp ("([a-zA-Z0-9\\-]+)", 'i');
+const R_GETSCHEME  = new RegExp ("^" + R_SCHEME.source + "(?=\\:)", 'i');
+
+
+const R_SCHEMESRC  = new RegExp ("^" + R_SCHEME.source + "\\:$", 'i');
+
+
+const R_HOSTCHAR   = new RegExp ("[a-zA-Z0-9\\-]", 'i');
+
+
+const R_HOST       = new RegExp ("\\*|(((\\*\\.)?" + R_HOSTCHAR.source +
+                                      "+)(\\." + R_HOSTCHAR.source +"+)+)",'i');
+
+const R_PORT       = new RegExp ("(\\:([0-9]+|\\*))", 'i');
+
+
+const R_HOSTSRC    = new RegExp ("^((" + R_SCHEME.source + "\\:\\/\\/)?("
+                                       +   R_HOST.source + ")"
+                                       +   R_PORT.source + "?)$", 'i');
+
+
+
+const R_EXTHOSTSRC = new RegExp ("^" + R_HOSTSRC.source + "\\/[:print:]+$", 'i');
+
+
+const R_KEYWORDSRC = new RegExp ("^('self'|'unsafe-inline'|'unsafe-eval')$", 'i');
+
+
+const R_SOURCEEXP  = new RegExp (R_SCHEMESRC.source + "|" +
+                                   R_HOSTSRC.source + "|" +
+                                R_KEYWORDSRC.source,  'i');
+
 
 var gPrefObserver = {
   get debugEnabled () {
@@ -590,9 +626,6 @@ function CSPSourceList() {
 CSPSourceList.fromString = function(aStr, self, enforceSelfChecks) {
   
   
-  
-  
-  
 
   
 
@@ -601,23 +634,33 @@ CSPSourceList.fromString = function(aStr, self, enforceSelfChecks) {
   }
 
   var slObj = new CSPSourceList();
-  if (aStr === "'none'")
-    return slObj;
-
-  if (aStr === "*") {
-    slObj._permitAllSources = true;
+  aStr = aStr.trim();
+  
+  if (aStr.toUpperCase() === "'NONE'"){
+    slObj._permitAllSources = false;
     return slObj;
   }
 
   var tokens = aStr.split(/\s+/);
   for (var i in tokens) {
-    if (tokens[i] === "") continue;
-    var src = CSPSource.create(tokens[i], self, enforceSelfChecks);
-    if (!src) {
-      CSPWarning(CSPLocalizer.getFormatStr("failedToParseUnrecognizedSource", [tokens[i]]));
+    if (!R_SOURCEEXP.test(tokens[i])){
+      CSPWarning(CSPLocalizer.getFormatStr("failedToParseUnrecognizedSource",
+                                           [tokens[i]]));
       continue;
     }
-    slObj._sources.push(src);
+    var src = CSPSource.create(tokens[i], self, enforceSelfChecks);
+    if (!src) {
+      CSPWarning(CSPLocalizer.getFormatStr("failedToParseUnrecognizedSource",
+                                           [tokens[i]]));
+      continue;
+    }
+    
+    if (src.permitAll){
+      slObj._permitAllSources = true;
+      return slObj;
+    } else {
+      slObj._sources.push(src);
+    }
   }
 
   return slObj;
@@ -788,6 +831,9 @@ function CSPSource() {
   this._host = undefined;
 
   
+  this._permitAll = false;
+
+  
   this._isSelf = false;
 }
 
@@ -924,6 +970,15 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
     return null;
   }
 
+  var sObj = new CSPSource();
+  sObj._self = self;
+
+  
+  if (aStr === "*"){
+    sObj._permitAll = true;
+    return sObj;
+  }
+
   if (!self && enforceSelfChecks) {
     CSPError(CSPLocalizer.getStr("selfDataNotProvided"));
     return null;
@@ -933,12 +988,50 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
     self = CSPSource.create(self, undefined, false);
   }
 
-  var sObj = new CSPSource();
-  sObj._self = self;
+  
+  if (R_SCHEMESRC.test(aStr)){
+    var schemeSrcMatch = R_GETSCHEME.exec(aStr);
+    sObj._scheme = schemeSrcMatch[0];
+    if (!sObj._host) sObj._host = CSPHost.fromString("*");
+    if (!sObj._port) sObj._port = "*";
+    return sObj;
+  }
 
   
-  if (aStr === "'self'") {
-    if (!self) {
+  if (R_HOSTSRC.test(aStr) || R_EXTHOSTSRC.test(aStr)){
+    var schemeMatch = R_GETSCHEME.exec(aStr);
+    if (!schemeMatch)
+      sObj._scheme = self.scheme;
+    else {
+      sObj._scheme = schemeMatch[0];
+    }
+
+    var hostMatch = R_HOST.exec(aStr);
+    if (!hostMatch) {
+      CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource", [aStr]));
+      return null;
+    }
+    sObj._host = CSPHost.fromString(hostMatch[0]);
+    var portMatch = R_PORT.exec(aStr);
+    if (!portMatch) {
+      
+      defPort = Services.io.getProtocolHandler(sObj._scheme).defaultPort;
+      if (!defPort) {
+        CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource", [aStr]));
+        return null;
+      }
+      sObj._port = defPort;
+    }
+    else {
+      
+      sObj._port = portMatch[0].substr(1);
+    }
+    return sObj;
+  }
+
+  
+  if (aStr.toUpperCase() === "'SELF'"){
+    if (!self){
       CSPError(CSPLocalizer.getStr("selfKeywordNoSelfData"));
       return null;
     }
@@ -946,119 +1039,8 @@ CSPSource.fromString = function(aStr, self, enforceSelfChecks) {
     sObj._isSelf = true;
     return sObj;
   }
-
-  
-  
-  
-
-  
-  var chunks = aStr.split(":");
-
-  
-  if (chunks.length == 1) {
-    sObj._host = CSPHost.fromString(chunks[0]);
-    if (!sObj._host) {
-      CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource",[aStr]));
-      return null;
-    }
-
-    
-    if (enforceSelfChecks) {
-      
-      if (!sObj.scheme || !sObj.port) {
-        CSPError(CSPLocalizer.getFormatStr("hostSourceWithoutData",[aStr]));
-        return null;
-      }
-    }
-    return sObj;
-  }
-
-  
-  
-  
-  if (chunks.length == 2) {
-
-    
-    if (chunks[1] === "*" || chunks[1].match(/^\d+$/)) {
-      sObj._port = chunks[1];
-      
-      if (chunks[0] !== "") {
-        sObj._host = CSPHost.fromString(chunks[0]);
-        if (!sObj._host) {
-          CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource",[aStr]));
-          return null;
-        }
-      }
-      
-      
-      
-      if (enforceSelfChecks) {
-        
-        if (!sObj.scheme || !sObj.host || !sObj.port) {
-          CSPError(CSPLocalizer.getFormatStr("sourceWithoutData",[aStr]));
-          return null;
-        }
-      }
-    }
-    
-    else if (CSPSource.validSchemeName(chunks[0])) {
-      sObj._scheme = chunks[0];
-      
-      if (chunks[1] === "") {
-        
-        
-        
-        if (!sObj._host) sObj._host = CSPHost.fromString("*");
-        if (!sObj._port) sObj._port = "*";
-      } else {
-        
-        
-        var cleanHost = chunks[1].replace(/^\/{0,3}/,"");
-        
-        sObj._host = CSPHost.fromString(cleanHost);
-        if (!sObj._host) {
-          CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidHost",[cleanHost]));
-          return null;
-        }
-      }
-
-      
-      
-      if (enforceSelfChecks) {
-        
-        if (!sObj.scheme || !sObj.host || !sObj.port) {
-          CSPError(CSPLocalizer.getFormatStr("sourceWithoutData",[aStr]));
-          return null;
-        }
-      }
-    }
-    else  {
-      
-      CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource",[aStr]));
-      return null;
-    }
-
-    return sObj;
-  }
-
-  
-  if (!CSPSource.validSchemeName(chunks[0])) {
-    CSPError(CSPLocalizer.getFormatStr("couldntParseScheme",[aStr]));
-    return null;
-  }
-  sObj._scheme = chunks[0];
-  if (!(chunks[2] === "*" || chunks[2].match(/^\d+$/))) {
-    CSPError(CSPLocalizer.getFormatStr("couldntParsePort",[aStr]));
-    return null;
-  }
-
-  sObj._port = chunks[2];
-
-  
-  var cleanHost = chunks[1].replace(/^\/{0,3}/,"");
-  sObj._host = CSPHost.fromString(cleanHost);
-
-  return sObj._host ? sObj : null;
+  CSPError(CSPLocalizer.getFormatStr("couldntParseInvalidSource",[aStr]));
+  return null;
 };
 
 CSPSource.validSchemeName = function(aStr) {
@@ -1086,6 +1068,12 @@ CSPSource.prototype = {
     if (!this._host && this._self)
       return this._self.host;
     return this._host;
+  },
+
+  get permitAll () {
+    if (this._isSelf && this._self)
+      return this._self.permitAll;
+    return this._permitAll;
   },
 
   

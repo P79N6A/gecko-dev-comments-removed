@@ -159,29 +159,35 @@ test(
     function test_CSPSource_fromString() {
     
       
-      do_check_neq(null, CSPSource.fromString("a.com"));
+      do_check_neq(null, CSPSource.fromString("a.com", "http://abc.com"));
 
       
-      do_check_neq(null, CSPSource.fromString("a2-c.com"));
+      do_check_neq(null, CSPSource.fromString("a2-c.com", "https://a.com"));
 
       
-      do_check_neq(null, CSPSource.fromString("*.a.com"));
+      do_check_neq(null, CSPSource.fromString("*.a.com", "http://abc.com"));
 
       
       
-      do_check_eq(null, CSPSource.fromString("x.*.a.com"));
+      do_check_eq(null, CSPSource.fromString("x.*.a.com", "http://a.com"));
 
       
-      do_check_eq(null, CSPSource.fromString("a#2-c.com"));
+      do_check_eq(null, CSPSource.fromString("a#2-c.com", "http://a.com"));
 
       
 
       
-      do_check_neq(null, CSPSource.create("a.com:23"));
+      do_check_neq(null, CSPSource.create("a.com:23", "http://a.com"));
       
-      do_check_neq(null, CSPSource.create("https://a.com"));
+      do_check_neq(null, CSPSource.create("https://a.com", "http://a.com"));
       
-      do_check_neq(null, CSPSource.create("https://a.com:200"));
+      do_check_neq(null, CSPSource.create("https://a.com:200", "http://a.com"));
+
+      
+      do_check_eq(null, CSPSource.create("http://foo.com:bar.com:23"));
+      
+      do_check_neq(null, CSPSource.create("data:"));
+      do_check_neq(null, CSPSource.create("javascript:"));
     });
 
 test(
@@ -270,6 +276,7 @@ test(
       var doubleSourceList = CSPSourceList.fromString("https://foo.com http://bar.com:88",
                                                       URI("http://self.com:88"));
       var allSourceList = CSPSourceList.fromString("*");
+      var allAndMoreSourceList = CSPSourceList.fromString("* https://bar.com 'none'");
 
       
       do_check_false( nullSourceList.permits("http://a.com"));
@@ -293,6 +300,8 @@ test(
       
       do_check_true( allSourceList.permits("http://a.b.c.d.e.f.g.h.i.j.k.l.x.com"));
 
+      
+      do_check_true(allAndMoreSourceList.permits("http://a.com"));
     });
 
 test(
@@ -301,7 +310,7 @@ test(
       
       
       var nullSourceList = CSPSourceList.fromString("'none'");
-      var simpleSourceList = CSPSourceList.fromString("a.com");
+      var simpleSourceList = CSPSourceList.fromString("http://a.com");
       var doubleSourceList = CSPSourceList.fromString("https://foo.com http://bar.com:88");
       var singleFooSourceList = CSPSourceList.fromString("https://foo.com");
       var allSourceList = CSPSourceList.fromString("*");
