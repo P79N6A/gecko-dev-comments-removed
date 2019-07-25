@@ -3186,11 +3186,14 @@ pref("gfx.color_management.mode", 0);
 pref("mozilla.widget.render-mode", -1);
 
 
-pref("mozilla.widget.accelerated-layers", true);
+pref("layers.accelerate-all", false);
+
+
+pref("layers.accelerate-none", false);
 
 #ifdef XP_WIN
 #ifndef WINCE
-pref("mozilla.layers.prefer-opengl", false);
+pref("layers.prefer-opengl", false);
 #endif
 #endif
 
