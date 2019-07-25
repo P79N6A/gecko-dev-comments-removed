@@ -650,12 +650,11 @@ AddonsStore.prototype = {
 
   getInstallFromSearchResult: function getInstallFromSearchResult(addon, cb) {
     
-    if (addon.install) {
-      cb(null, addon.install);
-      return;
-    }
-
-    this._log.debug("Manually obtaining install for " + addon.id);
+    
+    
+    
+    
+    this._log.debug("Obtaining install for " + addon.id);
 
     
     
@@ -956,6 +955,36 @@ AddonsStore.prototype = {
             }
           }
         }.bind(this);
+
+        
+        
+        
+        
+        
+        for each (let addon in addons) {
+          
+          
+          
+          try {
+            addon.sourceURI.QueryInterface(Ci.nsIURL);
+          } catch (ex) {
+            this._log.warn("Unable to QI sourceURI to nsIURL: " +
+                           addon.sourceURI.spec);
+            continue;
+          }
+
+          let params = addon.sourceURI.query.split("&").map(
+            function rewrite(param) {
+
+            if (param.indexOf("src=") == 0) {
+              return "src=sync";
+            } else {
+              return param;
+            }
+          });
+
+          addon.sourceURI.query = params.join("&");
+        }
 
         
         
