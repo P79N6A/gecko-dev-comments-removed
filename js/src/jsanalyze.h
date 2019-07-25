@@ -905,9 +905,10 @@ class ScriptAnalysis
     
     void analyzeTypesNew(JSContext *cx);
 
-    bool OOM() { return outOfMemory; }
-    bool failed() { return hadFailure; }
-    bool inlineable(uint32_t argc) { return isInlineable && argc == script->function()->nargs; }
+    bool OOM() const { return outOfMemory; }
+    bool failed() const { return hadFailure; }
+    bool inlineable() const { return isInlineable; }
+    bool inlineable(uint32_t argc) const { return isInlineable && argc == script->function()->nargs; }
 
     
     bool usesReturnValue() const { return usesReturnValue_; }
