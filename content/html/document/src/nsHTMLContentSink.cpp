@@ -953,9 +953,8 @@ SinkContext::AddLeaf(const nsIParserNode& aNode)
       
       switch (nodeType) {
       case eHTMLTag_meta:
-        
-        
-        rv = mSink->ProcessMETATag(content);
+        MOZ_NOT_REACHED("Must not use HTMLContentSink for metas.");
+        rv = NS_ERROR_NOT_IMPLEMENTED;
         break;
 
       case eHTMLTag_input:
