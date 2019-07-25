@@ -246,6 +246,10 @@ pref("browser.urlbar.default.behavior.emptyRestriction", 0);
 
 
 
+pref("places.favicons.optimizeToDimension", 32);
+
+
+
 pref("browser.urlbar.clickSelectsAll", true);
 pref("browser.urlbar.doubleClickSelectsAll", true);
 pref("browser.urlbar.autoFill", false);
