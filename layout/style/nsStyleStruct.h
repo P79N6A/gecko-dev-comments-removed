@@ -826,6 +826,11 @@ struct nsStyleBorder {
     return mComputedBorder;
   }
 
+  bool HasBorder() const
+  {
+    return mComputedBorder != nsMargin(0,0,0,0) || mBorderImageSource;
+  }
+
   
   
   

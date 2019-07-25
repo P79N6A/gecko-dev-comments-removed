@@ -1407,15 +1407,6 @@ nsIFrame::GetCaretColorAt(PRInt32 aOffset)
   return GetStyleColor()->mColor;
 }
 
-bool
-nsIFrame::HasBorder() const
-{
-  
-  
-  return (GetUsedBorder() != nsMargin(0,0,0,0) ||
-          GetStyleBorder()->IsBorderImageLoaded());
-}
-
 nsresult
 nsFrame::DisplayBackgroundUnconditional(nsDisplayListBuilder*   aBuilder,
                                         const nsDisplayListSet& aLists,
@@ -1466,8 +1457,7 @@ nsFrame::DisplayBorderBackgroundOutline(nsDisplayListBuilder*   aBuilder,
 
   
   
-  
-  if ((!bg || !bg->IsThemed()) && HasBorder()) {
+  if ((!bg || !bg->IsThemed()) && GetStyleBorder()->HasBorder()) {
     rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
         nsDisplayBorder(aBuilder, this));
     NS_ENSURE_SUCCESS(rv, rv);
@@ -3876,7 +3866,7 @@ nsRect
 nsFrame::ComputeSimpleTightBounds(gfxContext* aContext) const
 {
   if (GetStyleOutline()->GetOutlineStyle() != NS_STYLE_BORDER_STYLE_NONE ||
-      HasBorder() || !GetStyleBackground()->IsTransparent() ||
+      GetStyleBorder()->HasBorder() || !GetStyleBackground()->IsTransparent() ||
       GetStyleDisplay()->mAppearance) {
     
     
