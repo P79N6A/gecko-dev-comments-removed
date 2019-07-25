@@ -68,7 +68,9 @@ var TabletSidebar = {
 
   grab: function grab() {
     this._grabbed = true;
-    ViewableAreaObserver.update();
+    
+    
+    ViewableAreaObserver.update({ setIgnoreTabletSidebar: true });
 
     let ltr = (Util.localeDir == Util.LOCALE_DIR_LTR);
 
@@ -102,7 +104,7 @@ var TabletSidebar = {
       this.hide();
     else
       
-      ViewableAreaObserver.update();
+      ViewableAreaObserver.update({ setIgnoreTabletSidebar: false });
   },
 
   
