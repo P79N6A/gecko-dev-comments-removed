@@ -48,6 +48,8 @@ namespace mozilla {
 struct FramePropertyDescriptor;
 
 typedef void (*FramePropertyDestructor)(void* aPropertyValue);
+typedef void (*FramePropertyDestructorWithFrame)(nsIFrame* aFrame,
+                                                 void* aPropertyValue);
 
 
 
@@ -64,7 +66,20 @@ struct FramePropertyDescriptor {
   
 
 
-  FramePropertyDestructor mDestructor;
+  FramePropertyDestructor          mDestructor;
+  
+
+
+
+
+
+
+
+  FramePropertyDestructorWithFrame mDestructorWithFrame;
+  
+
+
+
 };
 
 
@@ -156,9 +171,11 @@ protected:
       return reinterpret_cast<nsTArray<PropertyValue>*>(&mValue);
     }
 
-    void DestroyValue() {
+    void DestroyValueFor(nsIFrame* aFrame) {
       if (mProperty->mDestructor) {
         mProperty->mDestructor(mValue);
+      } else if (mProperty->mDestructorWithFrame) {
+        mProperty->mDestructorWithFrame(aFrame, mValue);
       }
     }
 
