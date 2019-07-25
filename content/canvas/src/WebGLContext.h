@@ -395,6 +395,23 @@ public:
     
     void EnsureBackbufferClearedAsNeeded();
 
+    
+    
+    void UpdateWebGLErrorAndClearGLError(GLenum *currentGLError) {
+        
+        *currentGLError = gl->GetAndClearError();
+        
+        if (!mWebGLError)
+            mWebGLError = *currentGLError;
+    }
+    
+    
+    
+    void UpdateWebGLErrorAndClearGLError() {
+        GLenum currentGLError;
+        UpdateWebGLErrorAndClearGLError(&currentGLError);
+    }
+
 protected:
     void SetDontKnowIfNeedFakeBlack() {
         mFakeBlackStatus = DontKnowIfNeedFakeBlack;
