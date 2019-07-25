@@ -94,10 +94,11 @@ ArithPolicy::adjustInputs(MInstruction *ins)
 
         
         
-        
-        
-        if (in->type() == MIRType_Object || in->type() == MIRType_String)
+        if (in->type() == MIRType_Object || in->type() == MIRType_String ||
+            (in->type() == MIRType_Undefined && specialization_ == MIRType_Int32))
+        {
             in = boxAt(ins, in);
+        }
 
         if (ins->type() == MIRType_Double)
             replace = MToDouble::New(in);
