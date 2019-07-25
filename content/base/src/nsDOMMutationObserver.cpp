@@ -837,8 +837,10 @@ nsAutoMutationBatch::Done()
       m->mAddedNodes = addedList;
       m->mPreviousSibling = mPrevSibling;
       m->mNextSibling = mNextSibling;
-      ob->ScheduleForRun();
     }
+    
+    
+    ob->ScheduleForRun();
   }
   nsDOMMutationObserver::LeaveMutationHandling();
 }
