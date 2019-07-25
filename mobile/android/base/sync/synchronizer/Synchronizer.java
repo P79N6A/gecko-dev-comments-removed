@@ -28,6 +28,7 @@ import android.util.Log;
 
 
 public class Synchronizer {
+  protected String configSyncID; 
 
   
 
@@ -109,8 +110,7 @@ public class Synchronizer {
   }
 
   public SynchronizerConfiguration save() {
-    String syncID = null;      
-    return new SynchronizerConfiguration(syncID, bundleA, bundleB);
+    return new SynchronizerConfiguration(configSyncID, bundleA, bundleB);
   }
 
   
@@ -123,6 +123,6 @@ public class Synchronizer {
   public void load(SynchronizerConfiguration config) {
     bundleA = config.remoteBundle;
     bundleB = config.localBundle;
-    
+    configSyncID  = config.syncID;
   }
 }
