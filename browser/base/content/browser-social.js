@@ -348,7 +348,7 @@ var SocialToolbar = {
       let doc = notifBrowser.contentDocument;
       
       
-      let body = doc.getElementById("notif") || doc.body.firstChild;
+      let body = doc.getElementById("notif") || (doc.body && doc.body.firstChild);
       if (!body)
         return;
       let h = body.scrollHeight > 0 ? body.scrollHeight : 300;
@@ -378,10 +378,6 @@ var SocialToolbar = {
 var SocialSidebar = {
   
   init: function SocialSidebar_init() {
-    let sbrowser = document.getElementById("social-sidebar-browser");
-    
-    sbrowser.docShell.isAppTab = true;
-  
     this.updateSidebar();
   },
 
