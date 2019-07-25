@@ -464,6 +464,33 @@ public final class HtmlAttributes implements Attributes {
         return clone; 
     }
     
+    public boolean equalsAnother(HtmlAttributes other) {
+        assert mode == 0 || mode == 3 : "Trying to compare attributes in foreign content.";
+        int otherLength = other.getLength();
+        if (length != otherLength) {
+            return false;
+        }
+        for (int i = 0; i < length; i++) {
+            
+            boolean found = false;
+            
+            
+            @Local String ownLocal = names[i].getLocal(AttributeName.HTML);
+            for (int j = 0; j < otherLength; j++) {
+                if (ownLocal == other.names[j].getLocal(AttributeName.HTML)) {
+                    found = true;
+                    if (!Portability.stringEqualsString(values[i], other.values[j])) {
+                        return false;
+                    }
+                }
+            }
+            if (!found) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
     
     
     void processNonNcNames(TreeBuilder<?> treeBuilder, XmlViolationPolicy namePolicy) throws SAXException {
