@@ -182,6 +182,17 @@ public:
 
 
 
+  void SetInvalidationDimensions(const nsRect* aRect);
+
+  
+
+
+
+
+
+
+
+
 
 
 
