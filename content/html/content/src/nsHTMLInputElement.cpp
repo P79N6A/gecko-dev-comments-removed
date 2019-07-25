@@ -36,6 +36,7 @@
 
 
 
+
 #include "nsIDOMHTMLInputElement.h"
 #include "nsITextControlElement.h"
 #include "nsIDOMNSEditableElement.h"
@@ -540,6 +541,9 @@ UploadLastDir::StoreLastUsedDirectory(nsIURI* aURI, nsILocalFile* aFile)
   NS_PRECONDITION(aFile, "aFile is null");
   nsCOMPtr<nsIFile> parentFile;
   aFile->GetParent(getter_AddRefs(parentFile));
+  if (!parentFile) {
+    return NS_OK;
+  }
   nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(parentFile);
 
   
