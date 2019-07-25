@@ -1527,12 +1527,17 @@ nsHttpHandler::NewProxiedChannel(nsIURI *uri,
         if (mPipeliningOverSSL)
             caps |= NS_HTTP_ALLOW_PIPELINING;
 
-        
-        nsCOMPtr<nsISocketProviderService> spserv =
-                do_GetService(NS_SOCKETPROVIDERSERVICE_CONTRACTID);
-        if (spserv) {
-            nsCOMPtr<nsISocketProvider> provider;
-            spserv->GetSocketProvider("ssl", getter_AddRefs(provider));
+#ifdef MOZ_IPC
+        if (!IsNeckoChild()) 
+#endif
+        {
+            
+            nsCOMPtr<nsISocketProviderService> spserv =
+                    do_GetService(NS_SOCKETPROVIDERSERVICE_CONTRACTID);
+            if (spserv) {
+                nsCOMPtr<nsISocketProvider> provider;
+                spserv->GetSocketProvider("ssl", getter_AddRefs(provider));
+            }
         }
     }
 
