@@ -3392,7 +3392,9 @@ nsWindow::OnWindowStateEvent(GtkWidget *aWidget, GdkEventWindowState *aEvent)
     
     
     if ((aEvent->changed_mask
-         & (GDK_WINDOW_STATE_ICONIFIED|GDK_WINDOW_STATE_MAXIMIZED)) == 0) {
+         & (GDK_WINDOW_STATE_ICONIFIED |
+            GDK_WINDOW_STATE_MAXIMIZED |
+            GDK_WINDOW_STATE_FULLSCREEN)) == 0) {
         return;
     }
 
