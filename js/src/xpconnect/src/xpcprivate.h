@@ -1443,10 +1443,6 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSObject *obj);
      (clazz) == &XPC_WN_ModsAllowed_NoCall_Proto_JSClass)
 
 
-extern void
-xpc_TraceForValidWrapper(JSTracer *trc, XPCWrappedNative* wrapper);
-
-
 
 namespace XPCWrapper {
 
@@ -2577,6 +2573,8 @@ public:
                 XPCNativeInterface* Interface,
                 XPCWrappedNative** wrapper);
 
+    
+    
     
     
     static XPCWrappedNative*
