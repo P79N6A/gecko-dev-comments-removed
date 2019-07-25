@@ -309,15 +309,28 @@ XPCOMUtils.defineLazyGetter(this, "gOSVersion", function aus_gOSVersion() {
   return osVersion;
 });
 
+
+
+
+
+
+
+
+function testWriteAccess(updateTestFile, createDirectory) {
+  const NORMAL_FILE_TYPE = Ci.nsILocalFile.NORMAL_FILE_TYPE;
+  const DIRECTORY_TYPE = Ci.nsILocalFile.DIRECTORY_TYPE;
+  if (updateTestFile.exists())
+    updateTestFile.remove(false);
+  updateTestFile.create(createDirectory ? DIRECTORY_TYPE : NORMAL_FILE_TYPE,
+                        createDirectory ? FileUtils.PERMS_DIRECTORY : FileUtils.PERMS_FILE);
+  updateTestFile.remove(false);
+}
+
 XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpdates() {
   try {
-    const NORMAL_FILE_TYPE = Ci.nsILocalFile.NORMAL_FILE_TYPE;
     var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
     LOG("gCanApplyUpdates - testing write access " + updateTestFile.path);
-    if (updateTestFile.exists())
-      updateTestFile.remove(false);
-    updateTestFile.create(NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
-    updateTestFile.remove(false);
+    testWriteAccess(updateTestFile, false);
 #ifdef XP_WIN
     var sysInfo = Cc["@mozilla.org/system-info;1"].
                   getService(Ci.nsIPropertyBag2);
@@ -385,7 +398,7 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
       LOG("gCanApplyUpdates - testing write access " + appDirTestFile.path);
       if (appDirTestFile.exists())
         appDirTestFile.remove(false)
-      appDirTestFile.create(NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
+      appDirTestFile.create(Ci.nsILocalFile.NORMAL_FILE_TYPE, FileUtils.PERMS_FILE);
       appDirTestFile.remove(false);
     }
 #endif 
@@ -397,6 +410,47 @@ XPCOMUtils.defineLazyGetter(this, "gCanApplyUpdates", function aus_gCanApplyUpda
   }
 
   LOG("gCanApplyUpdates - able to apply updates");
+  return true;
+});
+
+XPCOMUtils.defineLazyGetter(this, "gCanStageUpdates", function aus_gCanStageUpdates() {
+  
+  if (!getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false)) {
+    LOG("gCanStageUpdates - staging updates is disabled by preference " + PREF_APP_UPDATE_BACKGROUND);
+    return false;
+  }
+
+#ifdef XP_WIN
+  if (getPref("getBoolPref", PREF_APP_UPDATE_SERVICE_ENABLED, false)) {
+    
+    
+    LOG("gCanStageUpdates - able to stage updates because we'll use the service");
+    return true;
+  }
+#endif
+
+  try {
+    var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
+    LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
+    testWriteAccess(updateTestFile, true);
+#ifndef XP_MACOSX
+    
+    
+    
+    updateTestFile = getUpdateFile(['..', FILE_PERMS_TEST]);
+    LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
+    updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
+                                FileUtils.PERMS_DIRECTORY);
+    updateTestFile.remove(false);
+#endif
+  }
+  catch (e) {
+     LOG("gCanStageUpdates - unable to stage updates. Exception: " + e);
+    
+    return false;
+  }
+
+  LOG("gCanStageUpdates - able to stage updates");
   return true;
 });
 
@@ -2023,7 +2077,7 @@ UpdateService.prototype = {
 
   applyUpdateInBackground: function AUS_applyUpdateInBackground(update) {
     
-    if (!getPref("getBoolPref", PREF_APP_UPDATE_BACKGROUND, false)) {
+    if (!gCanStageUpdates) {
       return;
     }
 
