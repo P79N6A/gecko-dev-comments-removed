@@ -116,14 +116,14 @@ extern "C" void JaegerTrampolineReturn();
 extern "C" void JS_FASTCALL
 PushActiveVMFrame(VMFrame &f)
 {
-    f.entryfp->script()->compartment->jaegerCompartment->pushActiveFrame(&f);
+    f.cx->jaegerCompartment()->pushActiveFrame(&f);
     f.regs.fp->setNativeReturnAddress(JS_FUNC_TO_DATA_PTR(void*, JaegerTrampolineReturn));
 }
 
 extern "C" void JS_FASTCALL
 PopActiveVMFrame(VMFrame &f)
 {
-    f.entryfp->script()->compartment->jaegerCompartment->popActiveFrame();
+    f.cx->jaegerCompartment()->popActiveFrame();
 }
 
 extern "C" void JS_FASTCALL
@@ -396,7 +396,7 @@ SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
 
 JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
 JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*19));
-JS_STATIC_ASSERT(offsetof(VMFrame, entryfp) ==          (4*10));
+JS_STATIC_ASSERT(offsetof(VMFrame, entryFp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
 JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
 JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) ==          (4*7));
@@ -682,7 +682,7 @@ JS_STATIC_ASSERT(JSVAL_PAYLOAD_MASK == 0x00007FFFFFFFFFFFLL);
 bool
 JaegerCompartment::Initialize()
 {
-    execAlloc = JSC::ExecutableAllocator::create();
+    execAlloc = new JSC::ExecutableAllocator();
     if (!execAlloc)
         return false;
     
@@ -809,9 +809,11 @@ mjit::JITScript::release()
 
 #if defined JS_POLYIC
     for (uint32 i = 0; i < nPICs; i++)
-        pics[i].finish();
+        Destroy(pics[i]);
     for (uint32 i = 0; i < nGetElems; i++)
-        getElems[i].finish();
+        Destroy(getElems[i]);
+    for (uint32 i = 0; i < nSetElems; i++)
+        Destroy(setElems[i]);
 #endif
 
 #if defined JS_MONOIC

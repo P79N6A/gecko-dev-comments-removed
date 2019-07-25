@@ -177,6 +177,8 @@ enum LookupStatus {
 };
 
 struct BaseIC : public MacroAssemblerTypedefs {
+    BaseIC() { }
+
     
     CodeLocationLabel fastPathStart;
 
@@ -191,11 +193,6 @@ struct BaseIC : public MacroAssemblerTypedefs {
 
     
     CodeLocationLabel lastStubStart;
-
-    typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
-
-    
-    ExecPoolVector execPools;
 
     
     
@@ -218,6 +215,33 @@ struct BaseIC : public MacroAssemblerTypedefs {
     
     JSOp op : 9;
 
+    void reset() {
+        hit = false;
+        slowCallPatched = false;
+        stubsGenerated = 0;
+        secondShapeGuard = 0;
+    }
+    bool shouldUpdate(JSContext *cx);
+    void spew(JSContext *cx, const char *event, const char *reason);
+    LookupStatus disable(JSContext *cx, const char *reason, void *stub);
+    bool isCallOp();
+};
+
+struct BasePolyIC : public BaseIC {
+    BasePolyIC() : execPools(SystemAllocPolicy()) { }
+    ~BasePolyIC() { releasePools(); }
+
+    void reset() {
+        BaseIC::reset();
+        releasePools();
+        execPools.clear();
+    }
+
+    typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
+
+    
+    ExecPoolVector execPools;
+
     
     void releasePools() {
         for (JSC::ExecutablePool **pExecPool = execPools.begin();
@@ -226,30 +250,11 @@ struct BaseIC : public MacroAssemblerTypedefs {
             (*pExecPool)->release();
         }
     }
-
-    void init() {
-        new (&execPools) ExecPoolVector(SystemAllocPolicy());
-    }
-    void finish() {
-        releasePools();
-        this->~BaseIC();
-    }
-
-    void reset() {
-        hit = false;
-        slowCallPatched = false;
-        stubsGenerated = 0;
-        secondShapeGuard = 0;
-        releasePools();
-        execPools.clear();
-    }
-    bool shouldUpdate(JSContext *cx);
-    void spew(JSContext *cx, const char *event, const char *reason);
-    LookupStatus disable(JSContext *cx, const char *reason, void *stub);
-    bool isCallOp();
 };
 
-struct GetElementIC : public BaseIC {
+struct GetElementIC : public BasePolyIC {
+    GetElementIC() { reset(); }
+
     
     
     
@@ -322,12 +327,8 @@ struct GetElementIC : public BaseIC {
         return !hasInlineTypeGuard() && !inlineClaspGuardPatched;
     }
 
-    void init() {
-        BaseIC::init();
-        reset();
-    }
     void reset() {
-        BaseIC::reset();
+        BasePolyIC::reset();
         inlineTypeGuardPatched = false;
         inlineClaspGuardPatched = false;
         typeRegHasBaseShape = false;
@@ -342,7 +343,69 @@ struct GetElementIC : public BaseIC {
     bool shouldUpdate(JSContext *cx);
 };
 
-struct PICInfo : public BaseIC {
+struct SetElementIC : public BaseIC {
+    SetElementIC() : execPool(NULL) { reset(); }
+    ~SetElementIC() {
+        if (execPool)
+            execPool->release();
+    }
+
+    
+    
+    
+    
+    RegisterID objReg    : 5;
+
+    
+    int32 objRemat       : MIN_STATE_REMAT_BITS;
+
+    
+    unsigned inlineClaspGuard : 6;
+
+    
+    bool inlineClaspGuardPatched : 1;
+
+    
+    unsigned inlineHoleGuard : 8;
+
+    
+    bool inlineHoleGuardPatched : 1;
+
+    
+    bool strictMode : 1;
+
+    
+    
+    bool hasConstantKey : 1;
+    union {
+        RegisterID keyReg;
+        int32      keyValue;
+    };
+
+    
+    ValueRemat vr;
+
+    
+    JSC::ExecutablePool *execPool;
+
+    void reset() {
+        BaseIC::reset();
+        if (execPool != NULL)
+            execPool->release();
+        execPool = NULL;
+        inlineClaspGuardPatched = false;
+        inlineHoleGuardPatched = false;
+    }
+    void purge();
+    LookupStatus attachHoleStub(JSContext *cx, JSObject *obj, int32 key);
+    LookupStatus update(JSContext *cx, const Value &objval, const Value &idval);
+    LookupStatus disable(JSContext *cx, const char *reason);
+    LookupStatus error(JSContext *cx);
+};
+
+struct PICInfo : public BasePolyIC {
+    PICInfo() { reset(); }
+
     
     enum Kind
 #ifdef _MSC_VER
@@ -420,17 +483,12 @@ struct PICInfo : public BaseIC {
     
     JSAtom *atom;
 
-    void init() {
-        BaseIC::init();
-        reset();
-    }
-
     
     
     void reset() {
+        BasePolyIC::reset();
         inlinePathPatched = false;
         shapeRegHasBaseShape = true;
-        BaseIC::reset();
     }
 };
 
@@ -443,6 +501,8 @@ void JS_FASTCALL Name(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL XName(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL BindName(VMFrame &f, ic::PICInfo *);
 void JS_FASTCALL GetElement(VMFrame &f, ic::GetElementIC *);
+void JS_FASTCALL CallElement(VMFrame &f, ic::GetElementIC *);
+template <JSBool strict> void JS_FASTCALL SetElement(VMFrame &f, ic::SetElementIC *);
 #endif
 
 } 
