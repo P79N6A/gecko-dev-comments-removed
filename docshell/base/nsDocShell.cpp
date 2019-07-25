@@ -8343,19 +8343,16 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         bool isNewWindow = false;
         if (!targetDocShell) {
-            nsCOMPtr<nsPIDOMWindow> win =
+            nsCOMPtr<nsIDOMWindow> win =
                 do_GetInterface(GetAsSupports(this));
             NS_ENSURE_TRUE(win, NS_ERROR_NOT_AVAILABLE);
 
             nsDependentString name(aWindowTarget);
             nsCOMPtr<nsIDOMWindow> newWin;
-            nsCAutoString spec;
-            if (aURI)
-                aURI->GetSpec(spec);
-            rv = win->OpenNoNavigate(NS_ConvertUTF8toUTF16(spec),
-                                     name,          
-                                     EmptyString(), 
-                                     getter_AddRefs(newWin));
+            rv = win->Open(EmptyString(), 
+                           name,          
+                           EmptyString(), 
+                           getter_AddRefs(newWin));
 
             
             
