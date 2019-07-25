@@ -3908,11 +3908,28 @@ var FullScreen = {
     }
   },
 
+  exitDomFullScreen : function(e) {
+    document.mozCancelFullScreen();
+  },
+
   enterDomFullScreen : function(event) {
-    if (!document.mozFullScreen) {
+    
+    
+    
+    
+    
+    if (!document.mozFullScreen || event.target.ownerDocument != document) {
       return;
     }
     this.showWarning(true);
+
+    
+    gBrowser.tabContainer.addEventListener("TabOpen", this.exitDomFullScreen);
+    gBrowser.tabContainer.addEventListener("TabClose", this.exitDomFullScreen);
+    gBrowser.tabContainer.addEventListener("TabSelect", this.exitDomFullScreen);
+
+    
+    window.addEventListener("deactivate", this.exitDomFullScreen, true);
 
     
     
@@ -3946,6 +3963,10 @@ var FullScreen = {
         fullScrToggler.removeEventListener("dragenter", this._expandCallback, false);
       }
       this.cancelWarning();
+      gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
+      gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
+      gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
+      window.removeEventListener("deactivate", this.exitDomFullScreen, true);
     }
   },
 
