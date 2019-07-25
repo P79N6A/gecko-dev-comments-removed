@@ -548,7 +548,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
   
   
   
-  chromeFlags = CalculateChromeFlags(features.get(), featuresSpecified,
+  chromeFlags = CalculateChromeFlags(aParent, features.get(), featuresSpecified,
                                      aDialog, uriToLoadIsChrome,
                                      hasChromeParent);
 
@@ -1421,7 +1421,9 @@ nsWindowWatcher::URIfromURL(const char *aURL,
 
 
 
-PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
+
+PRUint32 nsWindowWatcher::CalculateChromeFlags(nsIDOMWindow *aParent,
+                                               const char *aFeatures,
                                                bool aFeaturesSpecified,
                                                bool aDialog,
                                                bool aChromeURL,
@@ -1588,6 +1590,17 @@ PRUint32 nsWindowWatcher::CalculateChromeFlags(const char *aFeatures,
   if (!(chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME)) {
     
     chromeFlags &= ~nsIWebBrowserChrome::CHROME_DEPENDENT;
+  }
+
+  
+  
+  nsCOMPtr<nsIDocShell> docshell = do_GetInterface(aParent);
+  if (docshell) {
+    bool belowContentBoundary = false;
+    docshell->GetIsBelowContentBoundary(&belowContentBoundary);
+    if (belowContentBoundary) {
+      chromeFlags &= ~nsIWebBrowserChrome::CHROME_OPENAS_DIALOG;
+    }
   }
 
   return chromeFlags;
