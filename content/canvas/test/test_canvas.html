@@ -7604,12 +7604,12 @@ var _thrown_outer = false;
 try {
 
 todo(window.ImageData !== undefined, "window.ImageData !== undefined");
-todo(window.CanvasPixelArray !== undefined, "window.CanvasPixelArray !== undefined");
+ok(window.Uint8ClampedArray !== undefined, "window.Uint8ClampedArray !== undefined");
 window.ImageData.prototype.thisImplementsImageData = true;
-window.CanvasPixelArray.prototype.thisImplementsCanvasPixelArray = true;
+window.Uint8ClampedArray.prototype.thisImplementsUint8ClampedArray = true;
 var imgdata = ctx.createImageData(1, 1);
 ok(imgdata.thisImplementsImageData, "imgdata.thisImplementsImageData");
-ok(imgdata.data.thisImplementsCanvasPixelArray, "imgdata.data.thisImplementsCanvasPixelArray");
+ok(imgdata.data.thisImplementsUint8ClampedArray, "imgdata.data.thisImplementsUint8ClampedArray");
 
 } catch (e) {
     _thrown_outer = true;
@@ -7636,12 +7636,12 @@ var _thrown_outer = false;
 try {
 
 todo(window.ImageData !== undefined, "window.ImageData !== undefined");
-todo(window.CanvasPixelArray !== undefined, "window.CanvasPixelArray !== undefined");
+ok(window.Uint8ClampedArray !== undefined, "window.Uint8ClampedArray !== undefined");
 window.ImageData.prototype.thisImplementsImageData = true;
-window.CanvasPixelArray.prototype.thisImplementsCanvasPixelArray = true;
+window.Uint8ClampedArray.prototype.thisImplementsUint8ClampedArray = true;
 var imgdata = ctx.createImageData(ctx.createImageData(1, 1));
 todo(imgdata.thisImplementsImageData, "imgdata.thisImplementsImageData");
-todo(imgdata.data.thisImplementsCanvasPixelArray, "imgdata.data.thisImplementsCanvasPixelArray");
+ok(imgdata.data.thisImplementsUint8ClampedArray, "imgdata.data.thisImplementsUint8ClampedArray");
 
 } catch (e) {
     _thrown_outer = true;
@@ -8242,12 +8242,12 @@ var _thrown_outer = false;
 try {
 
 todo(window.ImageData !== undefined, "window.ImageData !== undefined");
-todo(window.CanvasPixelArray !== undefined, "window.CanvasPixelArray !== undefined");
+ok(window.Uint8ClampedArray !== undefined, "window.Uint8ClampedArray !== undefined");
 window.ImageData.prototype.thisImplementsImageData = true;
-window.CanvasPixelArray.prototype.thisImplementsCanvasPixelArray = true;
+window.Uint8ClampedArray.prototype.thisImplementsUint8ClampedArray = true;
 var imgdata = ctx.getImageData(0, 0, 1, 1);
 ok(imgdata.thisImplementsImageData, "imgdata.thisImplementsImageData");
-ok(imgdata.data.thisImplementsCanvasPixelArray, "imgdata.data.thisImplementsCanvasPixelArray");
+ok(imgdata.data.thisImplementsUint8ClampedArray, "imgdata.data.thisImplementsUint8ClampedArray");
 
 } catch (e) {
     _thrown_outer = true;
