@@ -2994,6 +2994,18 @@ void
 WebGLContext::GetProgramInfoLog(WebGLProgram *prog, nsAString& retval,
                                 ErrorResult& rv)
 {
+    nsCAutoString s;
+    GetProgramInfoLog(prog, s, rv);
+    if (s.IsVoid())
+        retval.SetIsVoid(true);
+    else
+        CopyASCIItoUTF16(s, retval);
+}
+
+void
+WebGLContext::GetProgramInfoLog(WebGLProgram *prog, nsACString& retval,
+                                ErrorResult& rv)
+{
     if (!IsContextStable())
     {
         retval.SetIsVoid(true);
@@ -3022,14 +3034,9 @@ WebGLContext::GetProgramInfoLog(WebGLProgram *prog, nsAString& retval,
         return;
     }
 
-    nsCAutoString log;
-    log.SetCapacity(k);
-
-    gl->fGetProgramInfoLog(progname, k, &k, (char*) log.BeginWriting());
-
-    log.SetLength(k);
-
-    CopyASCIItoUTF16(log, retval);
+    retval.SetCapacity(k);
+    gl->fGetProgramInfoLog(progname, k, &k, (char*) retval.BeginWriting());
+    retval.SetLength(k);
 }
 
 
@@ -3685,6 +3692,8 @@ WebGLContext::LinkProgram(WebGLProgram *program, ErrorResult& rv)
     }
 
     if (!program->HasBothShaderTypesAttached()) {
+        GenerateWarning("linkProgram: this program doesn't have both a vertex shader"
+                        " and a fragment shader");
         program->SetLinkStatus(false);
         return;
     }
@@ -3699,6 +3708,53 @@ WebGLContext::LinkProgram(WebGLProgram *program, ErrorResult& rv)
         program->SetLinkStatus(updateInfoSucceeded);
     } else {
         program->SetLinkStatus(false);
+
+        if (ShouldGenerateWarnings()) {
+
+            
+            
+            
+            
+            
+
+            ErrorResult rv;
+            nsCAutoString log;
+
+            bool alreadyReportedShaderInfoLog = false;
+
+            for (size_t i = 0; i < program->AttachedShaders().Length(); i++) {
+
+                WebGLShader* shader = program->AttachedShaders()[i];
+                GetShaderInfoLog(shader, log, rv);
+                if (rv.Failed() || log.IsEmpty())
+                    continue;
+
+                const char *shaderTypeName = nsnull;
+                if (shader->ShaderType() == LOCAL_GL_VERTEX_SHADER) {
+                    shaderTypeName = "vertex";
+                } else if (shader->ShaderType() == LOCAL_GL_FRAGMENT_SHADER) {
+                    shaderTypeName = "fragment";
+                } else {
+                    
+                    NS_ABORT();
+                    shaderTypeName = "<unknown>";
+                }
+
+                GenerateWarning("linkProgram: a %s shader used in this program failed to "
+                                "compile, with this log:\n%s\n",
+                                shaderTypeName,
+                                log.get());
+                alreadyReportedShaderInfoLog = true;
+            }
+
+            if (!alreadyReportedShaderInfoLog) {
+                GetProgramInfoLog(program, log, rv);
+                if (!(rv.Failed() || log.IsEmpty())) {
+                    GenerateWarning("linkProgram failed, with this log:\n%s\n",
+                                    log.get());
+                }
+            }
+        }
     }
 }
 
@@ -5233,6 +5289,18 @@ void
 WebGLContext::GetShaderInfoLog(WebGLShader *shader, nsAString& retval,
                                ErrorResult& rv)
 {
+    nsCAutoString s;
+    GetShaderInfoLog(shader, s, rv);
+    if (s.IsVoid())
+        retval.SetIsVoid(true);
+    else
+        CopyASCIItoUTF16(s, retval);
+}
+
+void
+WebGLContext::GetShaderInfoLog(WebGLShader *shader, nsACString& retval,
+                               ErrorResult& rv)
+{
     if (!IsContextStable())
     {
         retval.SetIsVoid(true);
@@ -5242,9 +5310,8 @@ WebGLContext::GetShaderInfoLog(WebGLShader *shader, nsAString& retval,
     if (!ValidateObject("getShaderInfoLog: shader", shader))
         return;
 
-    const nsCString& tlog = shader->TranslationLog();
-    if (!tlog.IsVoid()) {
-        CopyASCIItoUTF16(tlog, retval);
+    retval = shader->TranslationLog();
+    if (!retval.IsVoid()) {
         return;
     }
 
@@ -5262,14 +5329,9 @@ WebGLContext::GetShaderInfoLog(WebGLShader *shader, nsAString& retval,
         return;
     }
 
-    nsCAutoString log;
-    log.SetCapacity(k);
-
-    gl->fGetShaderInfoLog(shadername, k, &k, (char*) log.BeginWriting());
-
-    log.SetLength(k);
-
-    CopyASCIItoUTF16(log, retval);
+    retval.SetCapacity(k);
+    gl->fGetShaderInfoLog(shadername, k, &k, (char*) retval.BeginWriting());
+    retval.SetLength(k);
 }
 
 NS_IMETHODIMP
