@@ -59,13 +59,6 @@ public:
 
 protected:
     NS_OVERRIDE
-    virtual bool
-    AnswerStackFrame()
-    {
-        return CallStackFrame();
-    }
-
-    NS_OVERRIDE
     virtual PTestShutdownSubsubParent*
     AllocPTestShutdownSubsub(const bool& expectParentDelete)
     {
@@ -166,9 +159,6 @@ public:
     }
 
 protected:
-    NS_OVERRIDE
-    virtual bool AnswerStackFrame();
-
     NS_OVERRIDE
     virtual PTestShutdownSubsubChild*
     AllocPTestShutdownSubsub(const bool& expectParentDelete)

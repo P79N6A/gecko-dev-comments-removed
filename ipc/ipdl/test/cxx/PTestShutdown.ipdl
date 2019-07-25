@@ -1,9 +1,9 @@
-include protocol PTestShutdownSub;
+include protocol "PTestShutdownSub.ipdl";
 
 namespace mozilla {
 namespace _ipdltest {
 
-rpc protocol PTestShutdown {
+sync protocol PTestShutdown {
     manages PTestShutdownSub;
 
 child:
