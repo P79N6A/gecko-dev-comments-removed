@@ -116,7 +116,7 @@ nsFtpState::OnControlDataAvailable(const char *aData, PRUint32 aDataLen)
 
     if (!mReceivedControlData) {
         
-        OnTransportStatus(nsnull, NS_NET_STATUS_BEGIN_FTP_TRANSACTION, 0, 0);
+        OnTransportStatus(nullptr, NS_NET_STATUS_BEGIN_FTP_TRANSACTION, 0, 0);
         mReceivedControlData = true;
     }
 
@@ -241,7 +241,7 @@ nsFtpState::EstablishControlConnection()
     LOG(("FTP:(%x) trying cached control\n", this));
         
     
-    nsFtpControlConnection *connection = nsnull;
+    nsFtpControlConnection *connection = nullptr;
     
     if (!mChannel->HasLoadFlag(nsIRequest::LOAD_ANONYMOUS))
         gFtpHandler->RemoveConnection(mChannel->URI(), &connection);
@@ -273,8 +273,8 @@ nsFtpState::EstablishControlConnection()
         LOG(("FTP:(%p) cached CC(%p) is unusable\n", this,
             mControlConnection.get()));
 
-        mControlConnection->WaitData(nsnull);
-        mControlConnection = nsnull;
+        mControlConnection->WaitData(nullptr);
+        mControlConnection = nullptr;
     }
 
     LOG(("FTP:(%p) creating CC\n", this));
@@ -295,7 +295,7 @@ nsFtpState::EstablishControlConnection()
     if (NS_FAILED(rv)) {
         LOG(("FTP:(%p) CC(%p) failed to connect [rv=%x]\n", this,
             mControlConnection.get(), rv));
-        mControlConnection = nsnull;
+        mControlConnection = nullptr;
         return rv;
     }
 
@@ -896,7 +896,7 @@ nsFtpState::R_syst() {
             nsCOMPtr<nsIPrompt> prompter;
             mChannel->GetCallback(prompter);
             if (prompter)
-                prompter->Alert(nsnull, formattedString.get());
+                prompter->Alert(nullptr, formattedString.get());
             
             
             
@@ -1119,7 +1119,7 @@ nsFtpState::S_list() {
         
         if (NS_FAILED(InstallCacheListener())) {
             mCacheEntry->Doom();
-            mCacheEntry = nsnull;
+            mCacheEntry = nullptr;
         }
     }
 
@@ -1182,7 +1182,7 @@ nsFtpState::R_retr() {
         
         if (mCacheEntry) {
             (void)mCacheEntry->Doom();
-            mCacheEntry = nsnull;
+            mCacheEntry = nullptr;
         }
         if (HasPendingCallback())
             mDataStream->AsyncWait(this, 0, 0, CallbackTarget());
@@ -1424,8 +1424,8 @@ nsFtpState::R_pasv() {
 
         if (newDataConn) {
             mDataTransport->Close(NS_ERROR_ABORT);
-            mDataTransport = nsnull;
-            mDataStream = nsnull;
+            mDataTransport = nullptr;
+            mDataStream = nullptr;
         }
     }
 
@@ -1455,7 +1455,7 @@ nsFtpState::R_pasv() {
                 return FTP_ERROR;
         }
 
-        rv =  sts->CreateTransport(nsnull, 0, host,
+        rv =  sts->CreateTransport(nullptr, 0, host,
                                    port, mChannel->ProxyInfo(),
                                    getter_AddRefs(strans)); 
         if (NS_FAILED(rv))
@@ -1499,7 +1499,7 @@ nsFtpState::R_pasv() {
             if (NS_FAILED(rv))
                 return FTP_ERROR;
         
-            rv = copier->AsyncCopy(this, nsnull);
+            rv = copier->AsyncCopy(this, nullptr);
             if (NS_FAILED(rv))
                 return FTP_ERROR;
 
@@ -1615,7 +1615,7 @@ nsFtpState::InstallCacheListener()
             do_CreateInstance(NS_STREAMLISTENERTEE_CONTRACTID);
     NS_ENSURE_STATE(tee);
 
-    nsresult rv = tee->Init(mChannel->StreamListener(), out, nsnull);
+    nsresult rv = tee->Init(mChannel->StreamListener(), out, nullptr);
     NS_ENSURE_SUCCESS(rv, rv);
 
     mChannel->SetStreamListener(tee);
@@ -1796,7 +1796,7 @@ nsFtpState::KillControlConnection()
         return;
 
     
-    mControlConnection->WaitData(nsnull);
+    mControlConnection->WaitData(nullptr);
 
     if (NS_SUCCEEDED(mInternalError) &&
         NS_SUCCEEDED(mControlStatus) &&
@@ -1821,7 +1821,7 @@ nsFtpState::KillControlConnection()
         mControlConnection->Disconnect(NS_BINDING_ABORTED);
     }     
 
-    mControlConnection = nsnull;
+    mControlConnection = nullptr;
 }
 
 nsresult
@@ -1846,7 +1846,7 @@ nsFtpState::StopProcessing()
         nsCOMPtr<nsIPrompt> prompter;
         mChannel->GetCallback(prompter);
         if (prompter)
-            prompter->Alert(nsnull, NS_ConvertASCIItoUTF16(mResponseMsg).get());
+            prompter->Alert(nullptr, NS_ConvertASCIItoUTF16(mResponseMsg).get());
     }
     
     nsresult broadcastErrorCode = mControlStatus;
@@ -1858,7 +1858,7 @@ nsFtpState::StopProcessing()
     KillControlConnection();
 
     
-    OnTransportStatus(nsnull, NS_NET_STATUS_END_FTP_TRANSACTION, 0, 0);
+    OnTransportStatus(nullptr, NS_NET_STATUS_END_FTP_TRANSACTION, 0, 0);
 
     if (NS_FAILED(broadcastErrorCode))
         CloseWithStatus(broadcastErrorCode);
@@ -2033,7 +2033,7 @@ nsFtpState::OnTransportStatus(nsITransport *transport, nsresult status,
     
     
     
-    mChannel->OnTransportStatus(nsnull, status, progress,
+    mChannel->OnTransportStatus(nullptr, status, progress,
                                 mFileSize - mChannel->StartPos());
     return NS_OK;
 }
@@ -2084,7 +2084,7 @@ NS_IMETHODIMP
 nsFtpState::OnStopRequest(nsIRequest *request, nsISupports *context,
                           nsresult status)
 {
-    mUploadRequest = nsnull;
+    mUploadRequest = nullptr;
 
     
     
@@ -2138,19 +2138,19 @@ nsFtpState::CloseWithStatus(nsresult status)
 
     if (mUploadRequest) {
         mUploadRequest->Cancel(NS_ERROR_ABORT);
-        mUploadRequest = nsnull;
+        mUploadRequest = nullptr;
     }
 
     if (mDataTransport) {
         
         mDataTransport->Close(NS_ERROR_ABORT);
-        mDataTransport = nsnull;
+        mDataTransport = nullptr;
     }
 
-    mDataStream = nsnull;
+    mDataStream = nullptr;
     if (mDoomCache && mCacheEntry)
         mCacheEntry->Doom();
-    mCacheEntry = nsnull;
+    mCacheEntry = nullptr;
 
     return nsBaseContentStream::CloseWithStatus(status);
 }

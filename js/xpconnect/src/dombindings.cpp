@@ -1,9 +1,9 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=99 ft=cpp:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
+
+
+
 
 #include "mozilla/Util.h"
 
@@ -139,24 +139,24 @@ Unwrap(JSContext *cx, jsval v, NoType **ppArg, nsISupports **ppArgRef, jsval *vp
 }
 
 
-// Because we use proxies for wrapping DOM list objects we don't get the benefits of the property
-// cache. To improve performance when using a property that lives on the prototype chain we
-// implemented a cheap caching mechanism. Every DOM list proxy object stores a pointer to a shape
-// in an extra slot. The first time we access a property on the object that lives on the prototype
-// we check if all the DOM properties on the prototype chain are the real DOM properties and in
-// that case we store a pointer to the shape of the object's prototype in the extra slot. From
-// then on, every time we access a DOM property that lives on the prototype we check that the
-// shape of the prototype is still identical to the cached shape and we do a fast lookup of the
-// property. If the shape has changed, we recheck all the DOM properties on the prototype chain
-// and we update the shape pointer if they are still the real DOM properties. This mechanism
-// covers addition/removal of properties, changes in getters/setters, changes in the prototype
-// chain, ... It does not cover changes in the values of the properties. For those we store an
-// enum value in a reserved slot in every DOM prototype object. The value starts off as USE_CACHE.
-// If a property of a DOM prototype object is set to a different value, we set the value to
-// CHECK_CACHE. The next time we try to access the value of a property on that DOM prototype
-// object we check if all the DOM properties on that DOM prototype object still match the real DOM
-// properties. If they do we set the value to USE_CACHE again, if they're not we set the value to
-// DONT_USE_CACHE. If the value is USE_CACHE we do the fast lookup.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 template<class LC>
 typename ListBase<LC>::Properties ListBase<LC>::sProtoProperties[] = {
@@ -242,7 +242,7 @@ ListBase<LC>::instanceIsListObject(JSContext *cx, JSObject *obj, JSObject *calle
         return false;
 
     if (!objIsList(obj)) {
-        // FIXME: Throw a proper DOM exception.
+        
         JS_ReportError(cx, "type error: wrong object");
         return false;
     }
@@ -360,10 +360,10 @@ InvalidateProtoShape_set(JSContext *cx, JSHandleObject obj, JSHandleId id, JSBoo
 js::Class sInterfacePrototypeClass = {
     "Object",
     JSCLASS_HAS_RESERVED_SLOTS(1),
-    InvalidateProtoShape_add,   /* addProperty */
-    JS_PropertyStub,            /* delProperty */
-    JS_PropertyStub,            /* getProperty */
-    InvalidateProtoShape_set,   /* setProperty */
+    InvalidateProtoShape_add,   
+    JS_PropertyStub,            
+    JS_PropertyStub,            
+    InvalidateProtoShape_set,   
     JS_EnumerateStub,
     JS_ResolveStub,
     JS_ConvertStub
@@ -458,8 +458,8 @@ ListBase<LC>::getPrototype(JSContext *cx, XPCWrappedNativeScope *scope,
                            NULL, 0))
         return NULL;
 
-    // This needs to happen after we've set all our own properties on interfacePrototype, to
-    // overwrite the value set by InvalidateProtoShape_add when we set our own properties.
+    
+    
     js::SetReservedSlot(interfacePrototype, 0, PrivateUint32Value(USE_CACHE));
 
     if (!cache.Put(sInterfaceClass.name, interfacePrototype, fallible_t()))
@@ -602,7 +602,7 @@ ListBase<LC>::getOwnPropertyDescriptor(JSContext *cx, JSObject *proxy, jsid id, 
         if (!JS_GetPropertyDescriptorById(cx, expando, id, flags, desc))
             return false;
         if (desc->obj) {
-            // Pretend the property lives on the wrapper.
+            
             desc->obj = proxy;
             return true;
         }
@@ -665,7 +665,7 @@ ListBase<LC>::ensureExpandoObject(JSContext *cx, JSObject *obj)
     NS_ASSERTION(instanceIsProxy(obj), "expected a DOM proxy object");
     JSObject *expando = getExpandoObject(obj);
     if (!expando) {
-        expando = JS_NewObjectWithGivenProto(cx, &ExpandoClass, nsnull,
+        expando = JS_NewObjectWithGivenProto(cx, &ExpandoClass, nullptr,
                                              js::GetObjectParent(obj));
         if (!expando)
             return NULL;
@@ -744,7 +744,7 @@ ListBase<LC>::getOwnPropertyNames(JSContext *cx, JSObject *proxy, AutoIdVector &
         !js::GetPropertyNames(cx, expando, JSITER_OWNONLY | JSITER_HIDDEN, &props))
         return false;
 
-    // FIXME: Add named items
+    
     return true;
 }
 
@@ -814,12 +814,12 @@ ListBase<LC>::has(JSContext *cx, JSObject *proxy, jsid id, bool *bp)
 {
     if (!hasOwn(cx, proxy, id, bp))
         return false;
-    // We have the property ourselves; no need to worry about our
-    // prototype chain.
+    
+    
     if (*bp)
         return true;
 
-    // OK, now we have to look at the proto
+    
     JSObject *proto = js::GetObjectProto(proxy);
     if (!proto)
         return true;
@@ -912,8 +912,8 @@ ListBase<LC>::resolveNativeName(JSContext *cx, JSObject *proxy, jsid id, JSPrope
             desc->value.setObject(*funobj);
             desc->attrs = JSPROP_ENUMERATE;
             desc->obj = proxy;
-            desc->setter = nsnull;
-            desc->getter = nsnull;
+            desc->setter = nullptr;
+            desc->getter = nullptr;
             return true;
         }
     }
@@ -1039,7 +1039,7 @@ ListBase<LC>::hasPropertyOnPrototype(JSContext *cx, JSObject *proxy, jsid id)
     JS_ASSERT(objIsList(proxy));
 
     bool found;
-    // We ignore an error from getPropertyOnPrototype.
+    
     return !getPropertyOnPrototype(cx, proxy, id, &found, NULL) || found;
 }
 
@@ -1059,8 +1059,8 @@ ListBase<LC>::get(JSContext *cx, JSObject *proxy, JSObject *receiver, jsid id, V
             if (getItemAt(getListObject(proxy), PRUint32(index), result))
                 return Wrap(cx, proxy, result, vp);
 
-            // Even if we don't have this index, we don't forward the
-            // get on to our expando object.
+            
+            
             getFromExpandoObject = false;
         }
     }
@@ -1117,7 +1117,7 @@ ListBase<LC>::getElementIfPresent(JSContext *cx, JSObject *proxy, JSObject *rece
     if (!JS_IndexToId(cx, index, &id))
         return false;
 
-    // if hasIndexGetter, we skip the expando object
+    
     if (!hasIndexGetter) {
         JSObject *expando = getExpandoObject(proxy);
         if (expando) {
@@ -1131,7 +1131,7 @@ ListBase<LC>::getElementIfPresent(JSContext *cx, JSObject *proxy, JSObject *rece
         }
     }
 
-    // No need to worry about name getters here, so just check the proto.
+    
 
     JSObject *proto = js::GetObjectProto(proxy);
     if (proto) {
@@ -1143,7 +1143,7 @@ ListBase<LC>::getElementIfPresent(JSContext *cx, JSObject *proxy, JSObject *rece
     }
 
     *present = false;
-    // Can't Debug_SetValueRangeToCrashOnTouch because it's not public
+    
     return true;
 }
 
@@ -1182,7 +1182,7 @@ JSString *
 ListBase<LC>::obj_toString(JSContext *cx, JSObject *proxy)
 {
     const char *clazz = sInterfaceClass.name;
-    size_t nchars = 9 + strlen(clazz); /* 9 for "[object ]" */
+    size_t nchars = 9 + strlen(clazz); 
     jschar *chars = (jschar *)JS_malloc(cx, (nchars + 1) * sizeof(jschar));
     if (!chars)
         return NULL;
@@ -1225,9 +1225,9 @@ ListBase<LC>::finalize(JSFreeOp *fop, JSObject *proxy)
 JSObject*
 NoBase::getPrototype(JSContext *cx, XPCWrappedNativeScope *scope, JSObject *receiver)
 {
-    // We need to pass the object prototype to JS_NewObject. If we pass NULL then the JS engine
-    // will look up a prototype on the global by using the class' name and we'll recurse into
-    // getPrototype.
+    
+    
+    
     return JS_GetObjectPrototype(cx, receiver);
 }
 

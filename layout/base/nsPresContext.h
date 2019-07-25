@@ -267,7 +267,7 @@ public:
   {
     if (mShell)
       return mShell->AllocateMisc(aSize);
-    return nsnull;
+    return nullptr;
   }
 
   void FreeToShell(size_t aSize, void* aFreeChunk)
@@ -548,7 +548,7 @@ public:
 
 
 
-  float ScreenWidthInchesForFontInflation(bool* aChanged = nsnull);
+  float ScreenWidthInchesForFontInflation(bool* aChanged = nullptr);
 
   static PRInt32 AppUnitsPerCSSPixel() { return nsDeviceContext::AppUnitsPerCSSPixel(); }
   PRUint32 AppUnitsPerDevPixel() const  { return mDeviceContext->AppUnitsPerDevPixel(); }
@@ -979,7 +979,7 @@ protected:
   struct LangGroupFontPrefs {
     
     LangGroupFontPrefs()
-      : mLangGroup(nsnull)
+      : mLangGroup(nullptr)
       , mMinimumFontSize(0)
       , mDefaultVariableFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
                              NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0)
@@ -1038,10 +1038,10 @@ protected:
 
   void ResetCachedFontPrefs() {
     
-    mLangGroupFontPrefs.mNext = nsnull;
+    mLangGroupFontPrefs.mNext = nullptr;
 
     
-    mLangGroupFontPrefs.mLangGroup = nsnull;
+    mLangGroupFontPrefs.mLangGroup = nullptr;
   }
 
   NS_HIDDEN_(void) UpdateCharSet(const nsCString& aCharSet);
@@ -1265,7 +1265,7 @@ public:
   {
     if (mNotifyDidPaintTimer) {
       mNotifyDidPaintTimer->Cancel();
-      mNotifyDidPaintTimer = nsnull;
+      mNotifyDidPaintTimer = nullptr;
     }
   }
 
@@ -1363,7 +1363,7 @@ protected:
   class RunWillPaintObservers : public nsRunnable {
   public:
     RunWillPaintObservers(nsRootPresContext* aPresContext) : mPresContext(aPresContext) {}
-    void Revoke() { mPresContext = nsnull; }
+    void Revoke() { mPresContext = nullptr; }
     NS_IMETHOD Run()
     {
       if (mPresContext) {
@@ -1379,7 +1379,7 @@ protected:
   {
     if (mUpdatePluginGeometryTimer) {
       mUpdatePluginGeometryTimer->Cancel();
-      mUpdatePluginGeometryTimer = nsnull;
+      mUpdatePluginGeometryTimer = nullptr;
     }
   }
 

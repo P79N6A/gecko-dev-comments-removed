@@ -1,21 +1,21 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=8 sw=4 et tw=78:
- *
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-/* JavaScript JSClasses and JSOps for our Wrapped Native JS Objects. */
+
+
+
+
+
+
+
 
 #include "xpcprivate.h"
 #include "XPCWrapper.h"
 #include "nsWrapperCacheInlines.h"
 #include "mozilla/dom/BindingUtils.h"
 
-/***************************************************************************/
 
-// All of the exceptions thrown into JS from this file go through here.
-// That makes this a nice place to set a breakpoint.
+
+
+
 
 static JSBool Throw(unsigned errNum, JSContext* cx)
 {
@@ -23,7 +23,7 @@ static JSBool Throw(unsigned errNum, JSContext* cx)
     return false;
 }
 
-// Handy macro used in many callback stub below.
+
 
 #define MORPH_SLIM_WRAPPER(cx, obj)                                           \
     PR_BEGIN_MACRO                                                            \
@@ -40,7 +40,7 @@ static JSBool Throw(unsigned errNum, JSContext* cx)
         return Throw(NS_ERROR_XPC_HAS_BEEN_SHUTDOWN, cx);                     \
     PR_END_MACRO
 
-/***************************************************************************/
+
 
 static JSBool
 ToStringGuts(XPCCallContext& ccx)
@@ -67,7 +67,7 @@ ToStringGuts(XPCCallContext& ccx)
     return true;
 }
 
-/***************************************************************************/
+
 
 static JSBool
 XPC_WN_Shared_ToString(JSContext *cx, unsigned argc, jsval *vp)
@@ -120,26 +120,26 @@ XPC_WN_Shared_ToSource(JSContext *cx, unsigned argc, jsval *vp)
     return true;
 }
 
-/***************************************************************************/
 
-// A "double wrapped object" is a user JSObject that has been wrapped as a
-// wrappedJS in order to be used by native code and then re-wrapped by a
-// wrappedNative wrapper to be used by JS code. One might think of it as:
-//    wrappedNative(wrappedJS(underlying_JSObject))
-// This is done (as opposed to just unwrapping the wrapped JS and automatically
-// returning the underlying JSObject) so that JS callers will see what looks
-// Like any other xpcom object - and be limited to use its interfaces.
-//
-// See the comment preceding nsIXPCWrappedJSObjectGetter in nsIXPConnect.idl.
+
+
+
+
+
+
+
+
+
+
 
 static JSObject*
 GetDoubleWrappedJSObject(XPCCallContext& ccx, XPCWrappedNative* wrapper)
 {
-    JSObject* obj = nsnull;
+    JSObject* obj = nullptr;
     nsCOMPtr<nsIXPConnectWrappedJS>
         underware = do_QueryInterface(wrapper->GetIdentityObject());
     if (underware) {
-        JSObject* mainObj = nsnull;
+        JSObject* mainObj = nullptr;
         if (NS_SUCCEEDED(underware->GetJSObject(&mainObj)) && mainObj) {
             jsid id = ccx.GetRuntime()->
                     GetStringID(XPCJSRuntime::IDX_WRAPPED_JSOBJECT);
@@ -158,8 +158,8 @@ GetDoubleWrappedJSObject(XPCCallContext& ccx, XPCWrappedNative* wrapper)
     return obj;
 }
 
-// This is the getter native function we use to handle 'wrappedJSObject' for
-// double wrapped JSObjects.
+
+
 
 static JSBool
 XPC_WN_DoubleWrappedGetter(JSContext *cx, unsigned argc, jsval *vp)
@@ -177,15 +177,15 @@ XPC_WN_DoubleWrappedGetter(JSContext *cx, unsigned argc, jsval *vp)
 
     JSObject* realObject = GetDoubleWrappedJSObject(ccx, wrapper);
     if (!realObject) {
-        // This is pretty unexpected at this point. The object originally
-        // responded to this get property call and now gives no object.
-        // XXX Should this throw something at the caller?
+        
+        
+        
         *vp = JSVAL_NULL;
         return true;
     }
 
-    // It is a double wrapped object. Figure out if the caller
-    // is allowed to see it.
+    
+    
 
     nsIXPCSecurityManager* sm;
     XPCContext* xpcc = ccx.GetXPCContext();
@@ -208,7 +208,7 @@ XPC_WN_DoubleWrappedGetter(JSContext *cx, unsigned argc, jsval *vp)
                                     wrapper->GetIdentityObject(),
                                     wrapper->GetClassInfo(), id,
                                     wrapper->GetSecurityInfoAddr()))) {
-                // The SecurityManager should have set an exception.
+                
                 return false;
             }
         }
@@ -217,15 +217,15 @@ XPC_WN_DoubleWrappedGetter(JSContext *cx, unsigned argc, jsval *vp)
     return JS_WrapValue(cx, vp);
 }
 
-/***************************************************************************/
 
-// This is our shared function to define properties on our JSObjects.
 
-/*
- * NOTE:
- * We *never* set the tearoff names (e.g. nsIFoo) as JS_ENUMERATE.
- * We *never* set toString or toSource as JS_ENUMERATE.
- */
+
+
+
+
+
+
+
 
 static JSBool
 DefinePropertyIfFound(XPCCallContext& ccx,
@@ -251,7 +251,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
         else
             found = set->FindMember(id, &member, &iface);
     } else
-        found = (nsnull != (member = iface->FindMember(id)));
+        found = (nullptr != (member = iface->FindMember(id)));
 
     if (!found) {
         if (reflectToStringAndToSource) {
@@ -268,7 +268,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
             }
 
             else
-                call = nsnull;
+                call = nullptr;
 
             if (call) {
                 JSFunction* fun = JS_NewFunction(ccx, call, 0, 0, obj, name);
@@ -282,14 +282,14 @@ DefinePropertyIfFound(XPCCallContext& ccx,
                     *resolved = true;
                 return JS_DefinePropertyById(ccx, obj, id,
                                              OBJECT_TO_JSVAL(JS_GetFunctionObject(fun)),
-                                             nsnull, nsnull,
+                                             nullptr, nullptr,
                                              propFlags & ~JSPROP_ENUMERATE);
             }
         }
-        // This *might* be a tearoff name that is not yet part of our
-        // set. Let's lookup the name and see if it is the name of an
-        // interface. Then we'll see if the object actually *does* this
-        // interface and add a tearoff as necessary.
+        
+        
+        
+        
 
         if (wrapperToReflectInterfaceNames) {
             JSAutoByteString name;
@@ -301,28 +301,28 @@ DefinePropertyIfFound(XPCCallContext& ccx,
             if (JSID_IS_STRING(id) &&
                 name.encode(ccx, JSID_TO_STRING(id)) &&
                 (iface2 = XPCNativeInterface::GetNewOrUsed(ccx, name.ptr()), iface2) &&
-                nsnull != (to = wrapperToReflectInterfaceNames->
+                nullptr != (to = wrapperToReflectInterfaceNames->
                            FindTearOff(ccx, iface2, true, &rv)) &&
-                nsnull != (jso = to->GetJSObject()))
+                nullptr != (jso = to->GetJSObject()))
 
             {
                 AutoResolveName arn(ccx, id);
                 if (resolved)
                     *resolved = true;
                 return JS_DefinePropertyById(ccx, obj, id, OBJECT_TO_JSVAL(jso),
-                                             nsnull, nsnull,
+                                             nullptr, nullptr,
                                              propFlags & ~JSPROP_ENUMERATE);
             } else if (NS_FAILED(rv) && rv != NS_ERROR_NO_INTERFACE) {
                 return Throw(rv, ccx);
             }
         }
 
-        // This *might* be a double wrapped JSObject
+        
         if (wrapperToReflectDoubleWrap &&
             id == rt->GetStringID(XPCJSRuntime::IDX_WRAPPED_JSOBJECT) &&
             GetDoubleWrappedJSObject(ccx, wrapperToReflectDoubleWrap)) {
-            // We build and add a getter function.
-            // A security check is done on a per-get basis.
+            
+            
 
             JSFunction* fun;
 
@@ -348,7 +348,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
             return JS_DefinePropertyById(ccx, obj, id, JSVAL_VOID,
                                          JS_DATA_TO_FUNC_PTR(JSPropertyOp,
                                                              funobj),
-                                         nsnull, propFlags);
+                                         nullptr, propFlags);
         }
 
         if (resolved)
@@ -371,7 +371,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
             if (resolved)
                 *resolved = true;
             return JS_DefinePropertyById(ccx, obj, id, OBJECT_TO_JSVAL(jso),
-                                         nsnull, nsnull,
+                                         nullptr, nullptr,
                                          propFlags & ~JSPROP_ENUMERATE);
         }
         if (resolved)
@@ -385,7 +385,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
         if (resolved)
             *resolved = true;
         return member->GetConstantValue(ccx, iface, &val) &&
-               JS_DefinePropertyById(ccx, obj, id, val, nsnull, nsnull,
+               JS_DefinePropertyById(ccx, obj, id, val, nullptr, nullptr,
                                      propFlags);
     }
 
@@ -400,7 +400,7 @@ DefinePropertyIfFound(XPCCallContext& ccx,
     if (!member->NewFunctionObject(ccx, iface, obj, &funval))
         return false;
 
-    // protect funobj until it is actually attached
+    
     AUTO_MARK_JSVAL(ccx, funval);
 
 #ifdef off_DEBUG_jband
@@ -415,11 +415,11 @@ DefinePropertyIfFound(XPCCallContext& ccx,
         AutoResolveName arn(ccx, id);
         if (resolved)
             *resolved = true;
-        return JS_DefinePropertyById(ccx, obj, id, funval, nsnull, nsnull,
+        return JS_DefinePropertyById(ccx, obj, id, funval, nullptr, nullptr,
                                      propFlags);
     }
 
-    // else...
+    
 
     NS_ASSERTION(member->IsAttribute(), "way broken!");
 
@@ -443,17 +443,17 @@ DefinePropertyIfFound(XPCCallContext& ccx,
                                  propFlags);
 }
 
-/***************************************************************************/
-/***************************************************************************/
+
+
 
 static JSBool
 XPC_WN_OnlyIWrite_AddPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
 {
-    XPCCallContext ccx(JS_CALLER, cx, obj, nsnull, id);
+    XPCCallContext ccx(JS_CALLER, cx, obj, nullptr, id);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
-    // Allow only XPConnect to add/set the property
+    
     if (ccx.GetResolveName() == id)
         return true;
 
@@ -517,7 +517,7 @@ XPC_WN_Shared_Convert(JSContext *cx, JSHandleObject obj, JSType type, JSMutableH
         case JSTYPE_STRING:
         {
             ccx.SetName(ccx.GetRuntime()->GetStringID(XPCJSRuntime::IDX_TO_STRING));
-            ccx.SetArgsAndResultPtr(0, nsnull, vp.address());
+            ccx.SetArgsAndResultPtr(0, nullptr, vp.address());
 
             XPCNativeMember* member = ccx.GetMember();
             if (member && member->IsMethod()) {
@@ -528,7 +528,7 @@ XPC_WN_Shared_Convert(JSContext *cx, JSHandleObject obj, JSType type, JSMutableH
                     return true;
             }
 
-            // else...
+            
             return ToStringGuts(ccx);
         }
         default:
@@ -547,14 +547,14 @@ XPC_WN_Shared_Enumerate(JSContext *cx, JSHandleObject obj)
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
-    // Since we aren't going to enumerate tearoff names and the prototype
-    // handles non-mutated members, we can do this potential short-circuit.
+    
+    
     if (!wrapper->HasMutatedSet())
         return true;
 
     XPCNativeSet* set = wrapper->GetSet();
     XPCNativeSet* protoSet = wrapper->HasProto() ?
-                                wrapper->GetProto()->GetSet() : nsnull;
+                                wrapper->GetProto()->GetSet() : nullptr;
 
     PRUint16 interface_count = set->GetInterfaceCount();
     XPCNativeInterface** interfaceArray = set->GetInterfaceArray();
@@ -565,10 +565,10 @@ XPC_WN_Shared_Enumerate(JSContext *cx, JSHandleObject obj)
             XPCNativeMember* member = iface->GetMemberAt(k);
             jsid name = member->GetName();
 
-            // Skip if this member is going to come from the proto.
+            
             PRUint16 index;
             if (protoSet &&
-                protoSet->FindMember(name, nsnull, &index) && index == i)
+                protoSet->FindMember(name, nullptr, &index) && index == i)
                 continue;
             if (!xpc_ForcePropertyResolve(cx, obj, name))
                 return false;
@@ -577,7 +577,7 @@ XPC_WN_Shared_Enumerate(JSContext *cx, JSHandleObject obj)
     return true;
 }
 
-/***************************************************************************/
+
 
 #ifdef DEBUG_slimwrappers
 static PRUint32 sFinalizedSlimWrappers;
@@ -631,13 +631,13 @@ TraceInsideSlimWrapper(JSTracer *trc, JSObject *obj)
     GetSlimWrapperProto(obj)->TraceSelf(trc);
 }
 
-/*
- * General comment about XPConnect tracing: Given a C++ object |wrapper| and its
- * corresponding JS object |obj|, calling |wrapper->TraceSelf| will ask the JS
- * engine to mark |obj|. Eventually, this will lead to the trace hook being
- * called for |obj|. The trace hook should call |wrapper->TraceInside|, which
- * should mark any JS objects held by |wrapper| as members.
- */
+
+
+
+
+
+
+
 
 static void
 MarkWrappedNative(JSTracer *trc, JSObject *obj)
@@ -649,10 +649,10 @@ MarkWrappedNative(JSTracer *trc, JSObject *obj)
 
     JSObject *obj2;
 
-    // Pass null for the first JSContext* parameter  to skip any security
-    // checks and to avoid potential state change there.
+    
+    
     XPCWrappedNative* wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(nsnull, obj, nsnull, &obj2);
+        XPCWrappedNative::GetWrappedNativeOfJSObject(nullptr, obj, nullptr, &obj2);
 
     if (wrapper) {
         if (wrapper->IsValid())
@@ -672,7 +672,7 @@ static JSBool
 XPC_WN_NoHelper_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
 {
     MORPH_SLIM_WRAPPER(cx, obj);
-    XPCCallContext ccx(JS_CALLER, cx, obj, nsnull, id);
+    XPCCallContext ccx(JS_CALLER, cx, obj, nullptr, id);
     XPCWrappedNative* wrapper = ccx.GetWrapper();
     THROW_AND_RETURN_IF_BAD_WRAPPER(cx, wrapper);
 
@@ -680,16 +680,16 @@ XPC_WN_NoHelper_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
     if (!set)
         return true;
 
-    // Don't resolve properties that are on our prototype.
+    
     if (ccx.GetInterface() && !ccx.GetStaticMemberIsLocal())
         return true;
 
     return DefinePropertyIfFound(ccx, obj, id,
-                                 set, nsnull, nsnull, wrapper->GetScope(),
-                                 true, wrapper, wrapper, nsnull,
+                                 set, nullptr, nullptr, wrapper->GetScope(),
+                                 true, wrapper, wrapper, nullptr,
                                  JSPROP_ENUMERATE |
                                  JSPROP_READONLY |
-                                 JSPROP_PERMANENT, nsnull);
+                                 JSPROP_PERMANENT, nullptr);
 }
 
 nsISupports *
@@ -698,7 +698,7 @@ XPC_GetIdentityObject(JSContext *cx, JSObject *obj)
     XPCWrappedNative *wrapper =
         XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj);
 
-    return wrapper ? wrapper->GetIdentityObject() : nsnull;
+    return wrapper ? wrapper->GetIdentityObject() : nullptr;
 }
 
 JSBool
@@ -709,7 +709,7 @@ XPC_WN_Equality(JSContext *cx, JSHandleObject obj, const jsval *valp, JSBool *bp
 
     JSObject *obj2;
     XPCWrappedNative *wrapper =
-        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nsnull, &obj2);
+        XPCWrappedNative::GetWrappedNativeOfJSObject(cx, obj, nullptr, &obj2);
     if (obj2) {
         *bp = !JSVAL_IS_PRIMITIVE(v) && (JSVAL_TO_OBJECT(v) == obj2);
 
@@ -746,13 +746,13 @@ XPC_WN_OuterObject(JSContext *cx, JSHandleObject obj_)
     if (!wrapper) {
         Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
-        return nsnull;
+        return nullptr;
     }
 
     if (!wrapper->IsValid()) {
         Throw(NS_ERROR_XPC_HAS_BEEN_SHUTDOWN, cx);
 
-        return nsnull;
+        return nullptr;
     }
 
     XPCNativeScriptableInfo* si = wrapper->GetScriptableInfo();
@@ -764,7 +764,7 @@ XPC_WN_OuterObject(JSContext *cx, JSHandleObject obj_)
         if (NS_FAILED(rv)) {
             Throw(rv, cx);
 
-            return nsnull;
+            return nullptr;
         }
 
         obj = newThis;
@@ -774,80 +774,80 @@ XPC_WN_OuterObject(JSContext *cx, JSHandleObject obj_)
 }
 
 XPCWrappedNativeJSClass XPC_WN_NoHelper_JSClass = {
-  { // base
-    "XPCWrappedNative_NoHelper",    // name;
+  { 
+    "XPCWrappedNative_NoHelper",    
     WRAPPER_SLOTS |
-    JSCLASS_PRIVATE_IS_NSISUPPORTS, // flags
+    JSCLASS_PRIVATE_IS_NSISUPPORTS, 
 
-    /* Mandatory non-null function pointer members. */
-    XPC_WN_OnlyIWrite_AddPropertyStub, // addProperty
-    XPC_WN_CannotModifyPropertyStub,   // delProperty
-    JS_PropertyStub,                   // getProperty
-    XPC_WN_OnlyIWrite_SetPropertyStub, // setProperty
+    
+    XPC_WN_OnlyIWrite_AddPropertyStub, 
+    XPC_WN_CannotModifyPropertyStub,   
+    JS_PropertyStub,                   
+    XPC_WN_OnlyIWrite_SetPropertyStub, 
 
-    XPC_WN_Shared_Enumerate,           // enumerate
-    XPC_WN_NoHelper_Resolve,           // resolve
-    XPC_WN_Shared_Convert,             // convert
-    XPC_WN_NoHelper_Finalize,          // finalize
+    XPC_WN_Shared_Enumerate,           
+    XPC_WN_NoHelper_Resolve,           
+    XPC_WN_Shared_Convert,             
+    XPC_WN_NoHelper_Finalize,          
 
-    /* Optionally non-null members start here. */
-    nsnull,                         // checkAccess
-    nsnull,                         // call
-    nsnull,                         // construct
-    nsnull,                         // hasInstance
-    XPC_WN_NoHelper_Trace,          // trace
+    
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    XPC_WN_NoHelper_Trace,          
 
-    // ClassExtension
+    
     {
         XPC_WN_Equality,
-        nsnull, // outerObject
-        nsnull, // innerObject
-        nsnull, // iteratorObject
-        nsnull, // unused
-        true,   // isWrappedNative
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        true,   
     },
 
-    // ObjectOps
+    
     {
-        nsnull, // lookupGeneric
-        nsnull, // lookupProperty
-        nsnull, // lookupElement
-        nsnull, // lookupSpecial
-        nsnull, // defineGeneric
-        nsnull, // defineProperty
-        nsnull, // defineElement
-        nsnull, // defineSpecial
-        nsnull, // getGeneric
-        nsnull, // getProperty
-        nsnull, // getElement
-        nsnull, // getElementIfPresent
-        nsnull, // getSpecial
-        nsnull, // setGeneric
-        nsnull, // setProperty
-        nsnull, // setElement
-        nsnull, // setSpecial
-        nsnull, // getGenericAttributes
-        nsnull, // getAttributes
-        nsnull, // getElementAttributes
-        nsnull, // getSpecialAttributes
-        nsnull, // setGenericAttributes
-        nsnull, // setAttributes
-        nsnull, // setElementAttributes
-        nsnull, // setSpecialAttributes
-        nsnull, // deleteProperty
-        nsnull, // deleteElement
-        nsnull, // deleteSpecial
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
+        nullptr, 
         XPC_WN_JSOp_Enumerate,
         XPC_WN_JSOp_TypeOf_Object,
         XPC_WN_JSOp_ThisObject,
         XPC_WN_JSOp_Clear
     }
   },
-  0 // interfacesBitmap
+  0 
 };
 
 
-/***************************************************************************/
+
 
 static JSBool
 XPC_WN_MaybeResolvingPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id, JSMutableHandleValue vp)
@@ -869,7 +869,7 @@ XPC_WN_MaybeResolvingStrictPropertyStub(JSContext *cx, JSHandleObject obj, JSHan
     return XPC_WN_MaybeResolvingPropertyStub(cx, obj, id, vp);
 }
 
-// macro fun!
+
 #define PRE_HELPER_STUB_NO_SLIM                                               \
     XPCWrappedNative* wrapper =                                               \
         XPCWrappedNative::GetAndMorphWrappedNativeOfJSObject(cx, obj);        \
@@ -881,7 +881,7 @@ XPC_WN_MaybeResolvingStrictPropertyStub(JSContext *cx, JSHandleObject obj, JSHan
     XPCWrappedNative* wrapper;                                                \
     nsIXPCScriptable* si;                                                     \
     if (IS_SLIM_WRAPPER(obj)) {                                               \
-        wrapper = nsnull;                                                     \
+        wrapper = nullptr;                                                     \
         si = GetSlimWrapperProto(obj)->GetScriptableInfo()->GetCallback();    \
     }                                                                         \
     else                                                                      \
@@ -955,10 +955,10 @@ XPC_WN_Helper_CheckAccess(JSContext *cx, JSHandleObject obj, JSHandleId id,
 static JSBool
 XPC_WN_Helper_Call(JSContext *cx, unsigned argc, jsval *vp)
 {
-    // N.B. we want obj to be the callee, not JS_THIS(cx, vp)
+    
     JSObject *obj = JSVAL_TO_OBJECT(JS_CALLEE(cx, vp));
 
-    XPCCallContext ccx(JS_CALLER, cx, obj, nsnull, JSID_VOID,
+    XPCCallContext ccx(JS_CALLER, cx, obj, nullptr, JSID_VOID,
                        argc, JS_ARGV(cx, vp), vp);
     if (!ccx.IsValid())
         return false;
@@ -978,7 +978,7 @@ XPC_WN_Helper_Construct(JSContext *cx, unsigned argc, jsval *vp)
     if (!obj)
         return false;
 
-    XPCCallContext ccx(JS_CALLER, cx, obj, nsnull, JSID_VOID,
+    XPCCallContext ccx(JS_CALLER, cx, obj, nullptr, JSID_VOID,
                        argc, JS_ARGV(cx, vp), vp);
     if (!ccx.IsValid())
         return false;
@@ -1014,7 +1014,7 @@ XPC_WN_Helper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsig
 {
     nsresult rv = NS_OK;
     bool retval = true;
-    JSObject* obj2FromScriptable = nsnull;
+    JSObject* obj2FromScriptable = nullptr;
     if (IS_SLIM_WRAPPER(obj)) {
         XPCNativeScriptableInfo *si =
             GetSlimWrapperProto(obj)->GetScriptableInfo();
@@ -1025,7 +1025,7 @@ XPC_WN_Helper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsig
                      !si->GetFlags().AllowPropModsDuringResolve(),
                      "We don't support these flags for slim wrappers!");
 
-        rv = si->GetCallback()->NewResolve(nsnull, cx, obj, id, flags,
+        rv = si->GetCallback()->NewResolve(nullptr, cx, obj, id, flags,
                                            &obj2FromScriptable, &retval);
         if (NS_FAILED(rv))
             return Throw(rv, cx);
@@ -1067,12 +1067,12 @@ XPC_WN_Helper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsig
     if (obj2FromScriptable) {
         objp.set(obj2FromScriptable);
     } else if (wrapper->HasMutatedSet()) {
-        // We are here if scriptable did not resolve this property and
-        // it *might* be in the instance set but not the proto set.
+        
+        
 
         XPCNativeSet* set = wrapper->GetSet();
         XPCNativeSet* protoSet = wrapper->HasProto() ?
-                                    wrapper->GetProto()->GetSet() : nsnull;
+                                    wrapper->GetProto()->GetSet() : nullptr;
         XPCNativeMember* member;
         XPCNativeInterface* iface;
         JSBool IsLocal;
@@ -1089,7 +1089,7 @@ XPC_WN_Helper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsig
                 siFlags.DontEnumStaticProps() ? 0 : JSPROP_ENUMERATE;
 
             XPCWrappedNative* wrapperForInterfaceNames =
-                siFlags.DontReflectInterfaceNames() ? nsnull : wrapper;
+                siFlags.DontReflectInterfaceNames() ? nullptr : wrapper;
 
             JSBool resolved;
             oldResolvingWrapper = ccx.SetResolvingWrapper(wrapper);
@@ -1098,7 +1098,7 @@ XPC_WN_Helper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsig
                                            wrapper->GetScope(),
                                            false,
                                            wrapperForInterfaceNames,
-                                           nsnull, si,
+                                           nullptr, si,
                                            enumFlag, &resolved);
             (void)ccx.SetResolvingWrapper(oldResolvingWrapper);
             if (retval && resolved)
@@ -1109,42 +1109,42 @@ XPC_WN_Helper_NewResolve(JSContext *cx, JSHandleObject obj, JSHandleId id, unsig
     return retval;
 }
 
-/***************************************************************************/
 
-/*
-    Here are the enumerator cases:
 
-    set jsclass enumerate to stub (unless noted otherwise)
 
-    if ( helper wants new enumerate )
-        if ( DONT_ENUM_STATICS )
-            forward to scriptable enumerate
-        else
-            if ( set not mutated )
-                forward to scriptable enumerate
-            else
-                call shared enumerate
-                forward to scriptable enumerate
-    else if ( helper wants old enumerate )
-        use this JSOp
-        if ( DONT_ENUM_STATICS )
-            call scriptable enumerate
-            call stub
-        else
-            if ( set not mutated )
-                call scriptable enumerate
-                call stub
-            else
-                call shared enumerate
-                call scriptable enumerate
-                call stub
 
-    else //... if ( helper wants NO enumerate )
-        if ( DONT_ENUM_STATICS )
-            use enumerate stub - don't use this JSOp thing at all
-        else
-            do shared enumerate - don't use this JSOp thing at all
-*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 JSBool
 XPC_WN_JSOp_Enumerate(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
@@ -1152,9 +1152,9 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
 {
     js::Class *clazz = js::GetObjectClass(obj);
     if (!IS_WRAPPER_CLASS(clazz) || clazz == &XPC_WN_NoHelper_JSClass.base) {
-        // obj must be a prototype object or a wrapper w/o a
-        // helper. Short circuit this call to the default
-        // implementation.
+        
+        
+        
 
         return JS_EnumerateState(cx, obj, enum_op, statep, idp);
     }
@@ -1182,8 +1182,8 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
             return false;
         }
 
-        // XXX Might we really need to wrap this call and *also* call
-        // js_ObjectOps.enumerate ???
+        
+        
 
         rv = si->GetCallback()->
             NewEnumerate(wrapper, cx, obj, enum_op, statep, idp, &retval);
@@ -1217,11 +1217,11 @@ XPC_WN_JSOp_Enumerate(JSContext *cx, JSHandleObject obj, JSIterateOp enum_op,
                 return Throw(rv, cx);
             if (!retval)
                 return false;
-            // Then fall through and call the default implementation...
+            
         }
     }
 
-    // else call js_ObjectOps.enumerate...
+    
 
     return JS_EnumerateState(cx, obj, enum_op, statep, idp);
 }
@@ -1241,7 +1241,7 @@ XPC_WN_JSOp_TypeOf_Function(JSContext *cx, JSHandleObject obj)
 void
 XPC_WN_JSOp_Clear(JSContext *cx, JSHandleObject obj)
 {
-    // XXX Clear XrayWrappers?
+    
 }
 
 namespace {
@@ -1250,7 +1250,7 @@ NS_STACK_CLASS class AutoPopJSContext
 {
 public:
   AutoPopJSContext(XPCJSContextStack *stack)
-  : mCx(nsnull), mStack(stack)
+  : mCx(nullptr), mStack(stack)
   {
       NS_ASSERTION(stack, "Null stack!");
   }
@@ -1277,7 +1277,7 @@ private:
   XPCJSContextStack *mStack;
 };
 
-} // namespace
+} 
 
 JSObject*
 XPC_WN_JSOp_ThisObject(JSContext *cx, JSHandleObject obj)
@@ -1285,9 +1285,9 @@ XPC_WN_JSOp_ThisObject(JSContext *cx, JSHandleObject obj)
     return JS_ObjectToOuterObject(cx, obj);
 }
 
-/***************************************************************************/
 
-// static
+
+
 XPCNativeScriptableInfo*
 XPCNativeScriptableInfo::Construct(XPCCallContext& ccx,
                                    const XPCNativeScriptableCreateInfo* sci)
@@ -1298,19 +1298,19 @@ XPCNativeScriptableInfo::Construct(XPCCallContext& ccx,
     XPCNativeScriptableInfo* newObj =
         new XPCNativeScriptableInfo(sci->GetCallback());
     if (!newObj)
-        return nsnull;
+        return nullptr;
 
-    char* name = nsnull;
+    char* name = nullptr;
     if (NS_FAILED(sci->GetCallback()->GetClassName(&name)) || !name) {
         delete newObj;
-        return nsnull;
+        return nullptr;
     }
 
     JSBool success;
 
     XPCJSRuntime* rt = ccx.GetRuntime();
     XPCNativeScriptableSharedMap* map = rt->GetNativeScriptableSharedMap();
-    {   // scoped lock
+    {   
         XPCAutoLock lock(rt->GetMapLock());
         success = map->GetNewOrUsed(sci->GetFlags(), name,
                                     sci->GetInterfacesBitmap(), newObj);
@@ -1318,7 +1318,7 @@ XPCNativeScriptableInfo::Construct(XPCCallContext& ccx,
 
     if (!success) {
         delete newObj;
-        return nsnull;
+        return nullptr;
     }
 
     return newObj;
@@ -1374,7 +1374,7 @@ XPCNativeScriptableShared::PopulateJSClass()
         setProperty = XPC_WN_CannotModifyStrictPropertyStub;
     mJSClass.base.setProperty = setProperty;
 
-    // We figure out most of the enumerate strategy at call time.
+    
 
     if (mFlags.WantNewEnumerate() || mFlags.WantEnumerate() ||
         mFlags.DontEnumStaticProps())
@@ -1382,7 +1382,7 @@ XPCNativeScriptableShared::PopulateJSClass()
     else
         mJSClass.base.enumerate = XPC_WN_Shared_Enumerate;
 
-    // We have to figure out resolve strategy at call time
+    
     mJSClass.base.resolve = (JSResolveOp) XPC_WN_Helper_NewResolve;
 
     if (mFlags.WantConvert())
@@ -1395,15 +1395,15 @@ XPCNativeScriptableShared::PopulateJSClass()
     else
         mJSClass.base.finalize = XPC_WN_NoHelper_Finalize;
 
-    // We let the rest default to nsnull unless the helper wants them...
+    
     if (mFlags.WantCheckAccess())
         mJSClass.base.checkAccess = XPC_WN_Helper_CheckAccess;
 
-    // Note that we *must* set the ObjectOps (even for the cases were it does
-    // not do much) because with these dynamically generated JSClasses, the
-    // code in XPCWrappedNative::GetWrappedNativeOfJSObject() needs to look
-    // for that these callback pointers in order to identify that a given
-    // JSObject represents a wrapper.
+    
+    
+    
+    
+    
     js::ObjectOps *ops = &mJSClass.base.ops;
     ops->enumerate = XPC_WN_JSOp_Enumerate;
     ops->clear = XPC_WN_JSOp_Clear;
@@ -1423,7 +1423,7 @@ XPCNativeScriptableShared::PopulateJSClass()
         NS_ASSERTION(!mFlags.WantEquality(),
                      "If you want an Equality callback, you can't use a stub "
                      "equality hook");
-        mJSClass.base.ext.equality = nsnull;
+        mJSClass.base.ext.equality = nullptr;
     } else {
         mJSClass.base.ext.equality = XPC_WN_Equality;
     }
@@ -1442,8 +1442,8 @@ XPCNativeScriptableShared::PopulateJSClass()
     mJSClass.base.ext.isWrappedNative = true;
 }
 
-/***************************************************************************/
-/***************************************************************************/
+
+
 
 JSBool
 XPC_WN_CallMethod(JSContext *cx, unsigned argc, jsval *vp)
@@ -1492,7 +1492,7 @@ XPC_WN_GetterSetter(JSContext *cx, unsigned argc, jsval *vp)
 
 #ifdef DEBUG_slimwrappers
     {
-        const char* funname = nsnull;
+        const char* funname = nullptr;
         JSAutoByteString bytes;
         if (JS_TypeOfValue(cx, JS_CALLEE(cx, vp)) == JSTYPE_FUNCTION) {
             JSString *funid = JS_GetFunctionId(funobj->getFunctionPrivate());
@@ -1522,13 +1522,13 @@ XPC_WN_GetterSetter(JSContext *cx, unsigned argc, jsval *vp)
             *vp = JS_ARGV(cx, vp)[0];
         return retval;
     }
-    // else...
+    
 
     ccx.SetCallInfo(iface, member, false);
     return XPCWrappedNative::GetAttribute(ccx);
 }
 
-/***************************************************************************/
+
 
 static JSBool
 XPC_WN_Shared_Proto_Enumerate(JSContext *cx, JSHandleObject obj)
@@ -1574,7 +1574,7 @@ XPC_WN_Shared_Proto_Enumerate(JSContext *cx, JSHandleObject obj)
 static void
 XPC_WN_Shared_Proto_Finalize(js::FreeOp *fop, JSObject *obj)
 {
-    // This can be null if xpc shutdown has already happened
+    
     XPCWrappedNativeProto* p = (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
     if (p)
         p->JSProtoObjectFinalized(fop, obj);
@@ -1583,14 +1583,14 @@ XPC_WN_Shared_Proto_Finalize(js::FreeOp *fop, JSObject *obj)
 static void
 XPC_WN_Shared_Proto_Trace(JSTracer *trc, JSObject *obj)
 {
-    // This can be null if xpc shutdown has already happened
+    
     XPCWrappedNativeProto* p =
         (XPCWrappedNativeProto*) xpc_GetJSPrivate(obj);
     if (p)
         p->TraceInside(trc);
 }
 
-/*****************************************************/
+
 
 static JSBool
 XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
@@ -1614,63 +1614,63 @@ XPC_WN_ModsAllowed_Proto_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId i
                                                 0 : JSPROP_ENUMERATE;
 
     return DefinePropertyIfFound(ccx, obj, id,
-                                 self->GetSet(), nsnull, nsnull,
+                                 self->GetSet(), nullptr, nullptr,
                                  self->GetScope(),
-                                 true, nsnull, nsnull, si,
-                                 enumFlag, nsnull);
+                                 true, nullptr, nullptr, si,
+                                 enumFlag, nullptr);
 }
 
 js::Class XPC_WN_ModsAllowed_WithCall_Proto_JSClass = {
-    "XPC_WN_ModsAllowed_WithCall_Proto_JSClass", // name;
-    WRAPPER_SLOTS, // flags;
+    "XPC_WN_ModsAllowed_WithCall_Proto_JSClass", 
+    WRAPPER_SLOTS, 
 
-    /* Mandatory non-null function pointer members. */
-    JS_PropertyStub,                // addProperty;
-    JS_PropertyStub,                // delProperty;
-    JS_PropertyStub,                // getProperty;
-    JS_StrictPropertyStub,          // setProperty;
-    XPC_WN_Shared_Proto_Enumerate,  // enumerate;
-    XPC_WN_ModsAllowed_Proto_Resolve, // resolve;
-    JS_ConvertStub,                 // convert;
-    XPC_WN_Shared_Proto_Finalize,   // finalize;
+    
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_StrictPropertyStub,          
+    XPC_WN_Shared_Proto_Enumerate,  
+    XPC_WN_ModsAllowed_Proto_Resolve, 
+    JS_ConvertStub,                 
+    XPC_WN_Shared_Proto_Finalize,   
 
-    /* Optionally non-null members start here. */
-    nsnull,                         // checkAccess;
-    nsnull,                         // call;
-    nsnull,                         // construct;
-    nsnull,                         // hasInstance;
-    XPC_WN_Shared_Proto_Trace,      // trace;
+    
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
 };
 
 js::Class XPC_WN_ModsAllowed_NoCall_Proto_JSClass = {
-    "XPC_WN_ModsAllowed_NoCall_Proto_JSClass", // name;
-    WRAPPER_SLOTS,                  // flags;
+    "XPC_WN_ModsAllowed_NoCall_Proto_JSClass", 
+    WRAPPER_SLOTS,                  
 
-    /* Mandatory non-null function pointer members. */
-    JS_PropertyStub,                // addProperty;
-    JS_PropertyStub,                // delProperty;
-    JS_PropertyStub,                // getProperty;
-    JS_StrictPropertyStub,          // setProperty;
-    XPC_WN_Shared_Proto_Enumerate,  // enumerate;
-    XPC_WN_ModsAllowed_Proto_Resolve, // resolve;
-    JS_ConvertStub,                 // convert;
-    XPC_WN_Shared_Proto_Finalize,   // finalize;
+    
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_PropertyStub,                
+    JS_StrictPropertyStub,          
+    XPC_WN_Shared_Proto_Enumerate,  
+    XPC_WN_ModsAllowed_Proto_Resolve, 
+    JS_ConvertStub,                 
+    XPC_WN_Shared_Proto_Finalize,   
 
-    /* Optionally non-null members start here. */
-    nsnull,                         // checkAccess;
-    nsnull,                         // call;
-    nsnull,                         // construct;
-    nsnull,                         // hasInstance;
-    XPC_WN_Shared_Proto_Trace,      // trace;
+    
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
 
-/***************************************************************************/
+
 
 static JSBool
 XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, JSHandleObject obj, JSHandleId id,
@@ -1690,7 +1690,7 @@ XPC_WN_OnlyIWrite_Proto_AddPropertyStub(JSContext *cx, JSHandleObject obj, JSHan
         return false;
     ccx.SetScopeForNewJSObjects(obj);
 
-    // Allow XPConnect to add the property only
+    
     if (ccx.GetResolveName() == id)
         return true;
 
@@ -1726,65 +1726,65 @@ XPC_WN_NoMods_Proto_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
                                                 0 : JSPROP_ENUMERATE;
 
     return DefinePropertyIfFound(ccx, obj, id,
-                                 self->GetSet(), nsnull, nsnull,
+                                 self->GetSet(), nullptr, nullptr,
                                  self->GetScope(),
-                                 true, nsnull, nsnull, si,
+                                 true, nullptr, nullptr, si,
                                  JSPROP_READONLY |
                                  JSPROP_PERMANENT |
-                                 enumFlag, nsnull);
+                                 enumFlag, nullptr);
 }
 
 js::Class XPC_WN_NoMods_WithCall_Proto_JSClass = {
-    "XPC_WN_NoMods_WithCall_Proto_JSClass",    // name;
-    WRAPPER_SLOTS,                             // flags;
+    "XPC_WN_NoMods_WithCall_Proto_JSClass",    
+    WRAPPER_SLOTS,                             
 
-    /* Mandatory non-null function pointer members. */
-    XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   // addProperty;
-     XPC_WN_CannotModifyPropertyStub,          // delProperty;
-    JS_PropertyStub,                           // getProperty;
-    XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   // setProperty;
-    XPC_WN_Shared_Proto_Enumerate,             // enumerate;
-    XPC_WN_NoMods_Proto_Resolve,               // resolve;
-    JS_ConvertStub,                            // convert;
-    XPC_WN_Shared_Proto_Finalize,              // finalize;
+    
+    XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
+     XPC_WN_CannotModifyPropertyStub,          
+    JS_PropertyStub,                           
+    XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
+    XPC_WN_Shared_Proto_Enumerate,             
+    XPC_WN_NoMods_Proto_Resolve,               
+    JS_ConvertStub,                            
+    XPC_WN_Shared_Proto_Finalize,              
 
-    /* Optionally non-null members start here. */
-    nsnull,                         // checkAccess;
-    nsnull,                         // call;
-    nsnull,                         // construct;
-    nsnull,                         // hasInstance;
-    XPC_WN_Shared_Proto_Trace,      // trace;
+    
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_WithCall_ObjectOps
 };
 
 js::Class XPC_WN_NoMods_NoCall_Proto_JSClass = {
-    "XPC_WN_NoMods_NoCall_Proto_JSClass",      // name;
-    WRAPPER_SLOTS,                             // flags;
+    "XPC_WN_NoMods_NoCall_Proto_JSClass",      
+    WRAPPER_SLOTS,                             
 
-    /* Mandatory non-null function pointer members. */
-    XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   // addProperty;
-    XPC_WN_CannotModifyPropertyStub,           // delProperty;
-    JS_PropertyStub,                           // getProperty;
-    XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   // setProperty;
-    XPC_WN_Shared_Proto_Enumerate,             // enumerate;
-    XPC_WN_NoMods_Proto_Resolve,               // resolve;
-    JS_ConvertStub,                            // convert;
-    XPC_WN_Shared_Proto_Finalize,              // finalize;
+    
+    XPC_WN_OnlyIWrite_Proto_AddPropertyStub,   
+    XPC_WN_CannotModifyPropertyStub,           
+    JS_PropertyStub,                           
+    XPC_WN_OnlyIWrite_Proto_SetPropertyStub,   
+    XPC_WN_Shared_Proto_Enumerate,             
+    XPC_WN_NoMods_Proto_Resolve,               
+    JS_ConvertStub,                            
+    XPC_WN_Shared_Proto_Finalize,              
 
-    /* Optionally non-null members start here. */
-    nsnull,                         // checkAccess;
-    nsnull,                         // call;
-    nsnull,                         // construct;
-    nsnull,                         // hasInstance;
-    XPC_WN_Shared_Proto_Trace,      // trace;
+    
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    nullptr,                         
+    XPC_WN_Shared_Proto_Trace,      
 
     JS_NULL_CLASS_EXT,
     XPC_WN_NoCall_ObjectOps
 };
 
-/***************************************************************************/
+
 
 static JSBool
 XPC_WN_TearOff_Enumerate(JSContext *cx, JSHandleObject obj)
@@ -1797,7 +1797,7 @@ XPC_WN_TearOff_Enumerate(JSContext *cx, JSHandleObject obj)
     XPCWrappedNativeTearOff* to = ccx.GetTearOff();
     XPCNativeInterface* iface;
 
-    if (!to || nsnull == (iface = to->GetInterface()))
+    if (!to || nullptr == (iface = to->GetInterface()))
         return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
     PRUint16 member_count = iface->GetMemberCount();
@@ -1820,15 +1820,15 @@ XPC_WN_TearOff_Resolve(JSContext *cx, JSHandleObject obj, JSHandleId id)
     XPCWrappedNativeTearOff* to = ccx.GetTearOff();
     XPCNativeInterface* iface;
 
-    if (!to || nsnull == (iface = to->GetInterface()))
+    if (!to || nullptr == (iface = to->GetInterface()))
         return Throw(NS_ERROR_XPC_BAD_OP_ON_WN_PROTO, cx);
 
-    return DefinePropertyIfFound(ccx, obj, id, nsnull, iface, nsnull,
+    return DefinePropertyIfFound(ccx, obj, id, nullptr, iface, nullptr,
                                  wrapper->GetScope(),
-                                 true, nsnull, nsnull, nsnull,
+                                 true, nullptr, nullptr, nullptr,
                                  JSPROP_READONLY |
                                  JSPROP_PERMANENT |
-                                 JSPROP_ENUMERATE, nsnull);
+                                 JSPROP_ENUMERATE, nullptr);
 }
 
 static void
@@ -1842,15 +1842,15 @@ XPC_WN_TearOff_Finalize(js::FreeOp *fop, JSObject *obj)
 }
 
 js::Class XPC_WN_Tearoff_JSClass = {
-    "WrappedNative_TearOff",                   // name;
-    WRAPPER_SLOTS,                             // flags;
+    "WrappedNative_TearOff",                   
+    WRAPPER_SLOTS,                             
 
-    XPC_WN_OnlyIWrite_AddPropertyStub,         // addProperty;
-    XPC_WN_CannotModifyPropertyStub,           // delProperty;
-    JS_PropertyStub,                           // getProperty;
-    XPC_WN_OnlyIWrite_SetPropertyStub,         // setProperty;
-    XPC_WN_TearOff_Enumerate,                  // enumerate;
-    XPC_WN_TearOff_Resolve,                    // resolve;
-    XPC_WN_Shared_Convert,                     // convert;
-    XPC_WN_TearOff_Finalize                    // finalize;
+    XPC_WN_OnlyIWrite_AddPropertyStub,         
+    XPC_WN_CannotModifyPropertyStub,           
+    JS_PropertyStub,                           
+    XPC_WN_OnlyIWrite_SetPropertyStub,         
+    XPC_WN_TearOff_Enumerate,                  
+    XPC_WN_TearOff_Resolve,                    
+    XPC_WN_Shared_Convert,                     
+    XPC_WN_TearOff_Finalize                    
 };
