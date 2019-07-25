@@ -1541,7 +1541,9 @@ class ContextStack
 
 
 
-    void repointRegs(FrameRegs *regs) { JS_ASSERT(hasfp()); seg_->repointRegs(regs); }
+    void repointRegs(FrameRegs *regs) {
+        seg_->repointRegs(regs);
+    }
 
     
 

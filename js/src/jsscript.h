@@ -377,9 +377,10 @@ enum JITScriptStatus {
 
 namespace js {
 namespace mjit {
-
-struct JITScript;
-
+    struct JITScript;
+}
+namespace ion {
+    struct IonScript;
 }
 }
 #endif
@@ -543,6 +544,10 @@ struct JSScript {
     uint32          cookie2;
 
   public:
+#ifdef JS_ION
+    js::ion::IonScript *ion;          
+#endif
+
 #ifdef JS_METHODJIT
     
     
