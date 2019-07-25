@@ -42,16 +42,16 @@
             <menu id="file-menu" label="&fileMenu.label;"
                   accesskey="&fileMenu.accesskey;">
               <menupopup id="menu_FilePopup">
-                <menuitem id="menu_newNavigatorTab"
-                          label="&tabCmd.label;"
-                          command="cmd_newNavigatorTab"
-                          key="key_newNavigatorTab"
-                          accesskey="&tabCmd.accesskey;"/>
                 <menuitem id="menu_newNavigator"
                           label="&newNavigatorCmd.label;"
                           accesskey="&newNavigatorCmd.accesskey;"
                           key="key_newNavigator"
                           command="cmd_newNavigator"/>
+                <menuitem id="menu_newNavigatorTab"
+                          label="&tabCmd.label;"
+                          command="cmd_newNavigatorTab"
+                          key="key_newNavigatorTab"
+                          accesskey="&tabCmd.accesskey;"/>
                 <menuitem id="menu_openLocation"
                           label="&openLocationCmd.label;"
                           command="Browser:OpenLocation"
@@ -62,17 +62,17 @@
                           command="Browser:OpenFile"
                           key="openFileKb"
                           accesskey="&openFileCmd.accesskey;"/>
-                <menuitem id="menu_close"
-                          label="&closeCmd.label;"
-                          key="key_close"
-                          accesskey="&closeCmd.accesskey;"
-                          command="cmd_close"/>
                 <menuitem id="menu_closeWindow"
                           hidden="true"
                           command="cmd_closeWindow"
                           key="key_closeWindow"
                           label="&closeWindow.label;"
                           accesskey="&closeWindow.accesskey;"/>
+                <menuitem id="menu_close"
+                          label="&closeCmd.label;"
+                          key="key_close"
+                          accesskey="&closeCmd.accesskey;"
+                          command="cmd_close"/>
                 <menuseparator/>
                 <menuitem id="menu_savePage"
                           label="&savePageCmd.label;"
@@ -208,13 +208,16 @@
             <menu id="view-menu" label="&viewMenu.label;"
                   accesskey="&viewMenu.accesskey;">
               <menupopup id="menu_viewPopup">
+                <menuitem id="menu_tabcandy"
+                          label="&showTabCandy.label;"
+                          key="key_tabcandy"
+                          command="Browser:ShowTabCandy"/>
                 <menu id="viewToolbarsMenu"
                       label="&viewToolbarsMenu.label;"
                       accesskey="&viewToolbarsMenu.accesskey;">
                   <menupopup onpopupshowing="onViewToolbarsPopupShowing(event);">
                     <menuseparator/>
-                    <menuitem id="menu_tabsOnTop"
-                              command="cmd_ToggleTabsOnTop"
+                    <menuitem command="cmd_ToggleTabsOnTop"
                               type="checkbox"
                               label="&viewTabsOnTop.label;"
                               accesskey="&viewTabsOnTop.accesskey;"/>
@@ -323,7 +326,7 @@
                       onpopupshown="CreateMenu('more-menu');"
                       observes="isImage">
                     <template>
-                        <rule rdf:type="http:
+                        <rule rdf:type="http://home.netscape.com/NC-rdf#BookmarkSeparator">
                             <menupopup>
                             <menuseparator uri="..." />
                             </menupopup>
@@ -338,7 +341,7 @@
                     <menupopup>
                     <menu label="&charsetMenuAutodet.label;" accesskey="&charsetMenuAutodet.accesskey;" datasources="rdf:charset-menu" ref="NC:BrowserAutodetMenuRoot">
                         <template>
-                            <rule rdf:type="http:
+                            <rule rdf:type="http://home.netscape.com/NC-rdf#CharsetDetector">
                                 <menupopup>
                                 <menuitem type="radio" name="detectorGroup" checked="rdf:http://home.netscape.com/NC-rdf#Checked" uri="..." label="rdf:http://home.netscape.com/NC-rdf#Name"/>
                                 </menupopup>
@@ -501,12 +504,6 @@
                 <menuseparator id="endHistorySeparator"
                                class="hide-if-empty-places-result"
                                builder="end"/>
-#ifdef MOZ_SERVICES_SYNC
-                <menuitem id="sync-tabs-menuitem"
-                          label="&syncTabsMenu.label;"
-                          oncommand="BrowserOpenSyncTabs();"
-                          disabled="true"/>
-#endif
                 <menu id="historyUndoMenu"
                       label="&historyUndoMenu.label;"
                       disabled="true">
@@ -606,35 +603,6 @@
                         label="&addons.label;"
                         accesskey="&addons.accesskey;"
                         command="Tools:Addons"/>
-#ifdef MOZ_SERVICES_SYNC
-              <!-- only one of sync-setup or sync-menu will be showing at once -->
-              <menuitem id="sync-setup"
-                        label="&syncSetup.label;"
-                        accesskey="&syncSetup.accesskey;"
-                        oncommand="gSyncUI.openSetup()"/>
-              <menu id="sync-menu"
-                    label="&syncMenu.label;"
-                    accesskey="&syncMenu.accesskey;">
-                <menupopup id="sync-menu-popup"
-                           onpopupshowing="if (event.target == this) gSyncUI.doUpdateMenu(event);">
-                  <menuitem id="sync-loginitem"
-                            label="&syncLogInItem.label;"
-                            accesskey="&syncLogInItem.accesskey;"
-                            oncommand="gSyncUI.doLogin();"/>
-                  <menuitem id="sync-logoutitem"
-                            label="&syncLogOutItem.label;"
-                            accesskey="&syncLogOutItem.accesskey;"
-                            oncommand="gSyncUI.doLogout();"/>
-                  <menuitem id="sync-syncnowitem"
-                            label="&syncSyncNowItem.label;"
-                            accesskey="&syncSyncNowItem.accesskey;"
-                            oncommand="gSyncUI.doSync(event);"/>
-                  <menuseparator id="sync-lastsyncsep" hidden="true"/>
-                  <menuitem id="sync-lastsyncitem"
-                            disabled="true" hidden="true"/>
-                </menupopup>
-              </menu>
-#endif
               <menuseparator id="devToolsSeparator"/>
               <menuitem id="menu_pageinspect"
                         type="checkbox"
@@ -647,10 +615,10 @@
                         accesskey="&errorConsoleCmd.accesskey;"
                         key="key_errorConsole"
                         oncommand="toJavaScriptConsole();"/>
-              <menuitem id="webConsole"
-                        label="&webConsoleCmd.label;"
-                        accesskey="&webConsoleCmd.accesskey;"
-                        key="key_webConsole"
+              <menuitem id="headsUpDisplayConsole"
+                        label="&hudConsoleCmd.label;"
+                        accesskey="&hudConsoleCmd.accesskey;"
+                        key="key_hudConsole"
                         oncommand="HUDConsoleUI.toggleHUD();"/>
               <menuitem id="menu_pageInfo"
                         accesskey="&pageInfoCmd.accesskey;"
