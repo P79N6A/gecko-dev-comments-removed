@@ -215,18 +215,6 @@ typedef enum JSGCInvocationKind {
 extern void
 js_GC(JSContext *cx, JSGCInvocationKind gckind);
 
-
-
-
-
-
-
-
-
-extern bool
-js_SetProtoOrParentCheckingForCycles(JSContext *cx, JSObject *obj,
-                                     uint32 slot, JSObject *pobj);
-
 #ifdef JS_THREADSAFE
 
 
@@ -541,6 +529,16 @@ extern void
 js_MarkTraps(JSTracer *trc);
 
 namespace js {
+
+
+
+
+
+
+
+
+extern bool
+SetProtoCheckingForCycles(JSContext *cx, JSObject *obj, JSObject *proto);
 
 void
 TraceObjectVector(JSTracer *trc, JSObject **vec, uint32 len);
