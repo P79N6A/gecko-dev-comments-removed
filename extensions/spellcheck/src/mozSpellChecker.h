@@ -35,10 +35,12 @@
 
 
 
+
 #ifndef mozSpellChecker_h__
 #define mozSpellChecker_h__
 
 #include "nsCOMPtr.h"
+#include "nsCOMArray.h"
 #include "nsISpellChecker.h"
 #include "nsString.h"
 #include "nsITextServicesDocument.h"
@@ -75,17 +77,13 @@ public:
   NS_IMETHOD GetDictionaryList(nsTArray<nsString> *aDictionaryList);
   NS_IMETHOD GetCurrentDictionary(nsAString &aDictionary);
   NS_IMETHOD SetCurrentDictionary(const nsAString &aDictionary);
+  NS_IMETHOD CheckCurrentDictionary();
 
 protected:
   nsCOMPtr<mozISpellI18NUtil> mConverter;
   nsCOMPtr<nsITextServicesDocument> mTsDoc;
   nsCOMPtr<mozIPersonalDictionary> mPersonalDictionary;
 
-  
-  nsClassHashtable<nsStringHashKey, nsCString> mDictionariesMap;
-
-  nsString mDictionaryName;
-  nsCString *mCurrentEngineContractId;
   nsCOMPtr<mozISpellCheckingEngine>  mSpellCheckingEngine;
   PRBool mFromStart;
 
@@ -93,6 +91,6 @@ protected:
 
   nsresult GetCurrentBlockIndex(nsITextServicesDocument *aDoc, PRInt32 *outBlockIndex);
 
-  nsresult InitSpellCheckDictionaryMap();
+  nsresult GetEngineList(nsCOMArray<mozISpellCheckingEngine> *aDictionaryList);
 };
 #endif 

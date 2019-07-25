@@ -39,6 +39,7 @@
 
 
 
+
 #include "pratom.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMHTMLElement.h"
@@ -48,6 +49,11 @@
 #include "nsFocusManager.h"
 #include "nsUnicharUtils.h"
 #include "nsReadableUtils.h"
+#include "nsIObserverService.h"
+#include "mozilla/Services.h"
+#include "mozISpellCheckingEngine.h"
+#include "nsIEditorSpellCheck.h"
+#include "mozInlineSpellChecker.h"
 
 #include "nsIDOMText.h"
 #include "nsIDOMElement.h"
@@ -207,6 +213,7 @@ NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsEditor)
  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
  NS_INTERFACE_MAP_ENTRY(nsIEditorIMESupport)
  NS_INTERFACE_MAP_ENTRY(nsIEditor)
+ NS_INTERFACE_MAP_ENTRY(nsIObserver)
  NS_INTERFACE_MAP_ENTRY_AMBIGUOUS(nsISupports, nsIEditor)
 NS_INTERFACE_MAP_END
 
@@ -300,6 +307,13 @@ nsEditor::PostCreate()
     
     NotifyDocumentListeners(eDocumentCreated);
     NotifyDocumentListeners(eDocumentStateChanged);
+
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    if (obs) {
+      obs->AddObserver(this,
+                       SPELLCHECK_DICTIONARY_UPDATE_NOTIFICATION,
+                       PR_FALSE);
+    }
   }
 
   
@@ -411,6 +425,12 @@ nsEditor::PreDestroy(PRBool aDestroyingFrames)
 {
   if (mDidPreDestroy)
     return NS_OK;
+
+  nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+  if (obs) {
+    obs->RemoveObserver(this,
+                        SPELLCHECK_DICTIONARY_UPDATE_NOTIFICATION);
+  }
 
   
   
@@ -1283,6 +1303,13 @@ NS_IMETHODIMP nsEditor::GetInlineSpellChecker(PRBool autoCreate,
     return autoCreate ? NS_ERROR_NOT_AVAILABLE : NS_OK;
   }
 
+  
+  PRBool canSpell = mozInlineSpellChecker::CanEnableInlineSpellChecking();
+  if (!canSpell) {
+    *aInlineSpellChecker = nsnull;
+    return NS_ERROR_FAILURE;
+  }
+
   nsresult rv;
   if (!mInlineSpellChecker && autoCreate) {
     mInlineSpellChecker = do_CreateInstance(MOZ_INLINESPELLCHECKER_CONTRACTID, &rv);
@@ -1301,17 +1328,49 @@ NS_IMETHODIMP nsEditor::GetInlineSpellChecker(PRBool autoCreate,
   return NS_OK;
 }
 
+NS_IMETHODIMP nsEditor::Observe(nsISupports* aSubj, const char *aTopic,
+                                const PRUnichar *aData)
+{
+  NS_ASSERTION(!strcmp(aTopic,
+                       SPELLCHECK_DICTIONARY_UPDATE_NOTIFICATION),
+               "Unexpected observer topic");
+
+  
+  SyncRealTimeSpell();
+
+  
+  if (mInlineSpellChecker) {
+    
+    nsCOMPtr<nsIEditorSpellCheck> editorSpellCheck;
+    mInlineSpellChecker->GetSpellChecker(getter_AddRefs(editorSpellCheck));
+    if (editorSpellCheck) {
+      nsCOMPtr<nsISpellChecker> spellChecker;
+      editorSpellCheck->GetSpellChecker(getter_AddRefs(spellChecker));
+      spellChecker->CheckCurrentDictionary();
+    }
+
+    
+    mInlineSpellChecker->SpellCheckRange(nsnull); 
+  }
+
+  return NS_OK;
+}
+
 NS_IMETHODIMP nsEditor::SyncRealTimeSpell()
 {
   NS_TIME_FUNCTION;
 
   PRBool enable = GetDesiredSpellCheckState();
 
+  
   nsCOMPtr<nsIInlineSpellChecker> spellChecker;
   GetInlineSpellChecker(enable, getter_AddRefs(spellChecker));
 
-  if (spellChecker) {
-    spellChecker->SetEnableRealTimeSpell(enable);
+  if (mInlineSpellChecker) {
+    
+    
+    
+    mInlineSpellChecker->SetEnableRealTimeSpell(enable && spellChecker);
   }
 
   return NS_OK;

@@ -625,6 +625,12 @@ mozInlineSpellChecker::CanEnableInlineSpellChecking()
   return (gCanEnableSpellChecking == SpellCheck_Available);
 }
 
+void 
+mozInlineSpellChecker::UpdateCanEnableInlineSpellChecking()
+{
+  gCanEnableSpellChecking = SpellCheck_Uninitialized;
+}
+
 
 
 
