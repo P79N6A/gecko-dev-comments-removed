@@ -261,7 +261,6 @@ public:
 #endif 
 
     nsresult AsyncSetWindow(NPWindow* window);
-    nsresult NotifyPainted(void);
     nsresult GetSurface(gfxASurface** aSurface);
 
 private:
@@ -321,9 +320,6 @@ private:
 
     
     nsRefPtr<gfxASurface>    mFrontSurface;
-
-    
-    PRPackedBool             mSentPaintNotification;
 };
 
 

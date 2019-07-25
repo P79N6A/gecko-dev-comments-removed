@@ -1108,9 +1108,6 @@ nsObjectFrame::CallSetWindow()
   mInstanceOwner->FixUpPluginWindow(ePluginPaintDisable);
 #endif
 
-  if (IsHidden())
-    return;
-
   
   window->window = mInstanceOwner->GetPluginPortFromWidget();
 
@@ -1738,6 +1735,10 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
   if (window->width <= 0 || window->height <= 0)
     return nsnull;
 
+#ifndef XP_MACOSX
+  mInstanceOwner->UpdateWindowVisibility(PR_TRUE);
+#endif
+
   nsRect area = GetContentRect() + aBuilder->ToReferenceFrame(GetParent());
   gfxRect r = nsLayoutUtils::RectToGfxRect(area, PresContext()->AppUnitsPerDevPixel());
   
@@ -1751,6 +1752,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
     layer = aManager->CreateImageLayer();
   }
 
+#if 0
   nsCOMPtr<nsIPluginInstance> pi;
   mInstanceOwner->GetInstance(*getter_AddRefs(pi));
   
@@ -1759,6 +1761,7 @@ nsObjectFrame::BuildLayer(nsDisplayListBuilder* aBuilder,
       return nsnull;
     }
   }
+#endif
 
   if (!layer)
     return nsnull;
@@ -1944,8 +1947,6 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
 
     if (window->type == NPWindowTypeDrawable) {
       
-      PRBool doupdatewindow = PR_FALSE;
-      
       nsPoint origin;
 
       gfxWindowsNativeDrawing nativeDraw(ctx, frameGfxRect);
@@ -1979,6 +1980,11 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
           window->window = hdc;
           window->x = dest.left;
           window->y = dest.top;
+          window->clipRect.left = 0;
+          window->clipRect.top = 0;
+          
+          window->clipRect.right = window->width;
+          window->clipRect.bottom = window->height;
 
           
           
@@ -1999,8 +2005,6 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
 
           nsIntPoint origin = GetWindowOriginInPixels(PR_TRUE);
           nsIntRect winlessRect = nsIntRect(origin, nsIntSize(window->width, window->height));
-          
-          
           
           
           
@@ -6458,7 +6462,7 @@ void nsPluginInstanceOwner::UpdateWindowClipRect(PRBool aSetWindow)
   
   
   
-  if (aSetWindow && !mWidget && mPluginWindowVisible)
+  if (aSetWindow && !mWidget && mPluginWindowVisible && !UseLayers())
     return;
 
   const NPRect oldClipRect = mPluginWindow->clipRect;
