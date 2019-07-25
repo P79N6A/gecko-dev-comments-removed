@@ -1902,17 +1902,17 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                        scrollParts, createLayersForScrollbars);
   }
 
-  
-  
-  
-  
-  if (HasResizer() && mResizerBox) {
+  if (HasResizer()) {
     rv = mOuter->BuildDisplayListForChild(aBuilder, mResizerBox, aDirtyRect, scrollParts,
                                           nsIFrame::DISPLAY_CHILD_FORCE_STACKING_CONTEXT);
     NS_ENSURE_SUCCESS(rv, rv);
     
     
-    ::AppendToTop(aBuilder, aLists.Content(),
+    
+    
+    
+    ::AppendToTop(aBuilder,
+                  mIsRoot ? aLists.PositionedDescendants() : aLists.Content(),
                   scrollParts.PositionedDescendants(), mResizerBox,
                   createLayersForScrollbars);
   }
