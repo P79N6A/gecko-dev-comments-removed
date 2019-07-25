@@ -503,7 +503,6 @@ var BrowserUI = {
       
       ExtensionsView.init();
       DownloadsView.init();
-      PreferencesView.init();
       ConsoleView.init();
 
 #ifdef MOZ_IPC
@@ -534,6 +533,23 @@ var BrowserUI = {
       updatePrompt.checkForUpdates();
 #endif
     }, false);
+
+    let panels = document.getElementById("panel-items");
+    let panelViews = { 
+      "prefs-container": "PreferencesView",
+      "downloads-container": "DownloadsView",
+      "addons-container": "ExtensionsView",
+      "console-container": "ConsoleView"
+    };
+
+    
+    panels.addEventListener("select", function(aEvent) {
+      if (aEvent.target != panels)
+        return;
+      let viewName = panelViews[panels.selectedPanel.id];
+      if (viewName)
+        window[viewName].delayedInit();
+    }, true);
 
 #ifndef MOZ_OFFICIAL_BRANDING
       setTimeout(function() {
