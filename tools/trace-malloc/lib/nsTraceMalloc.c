@@ -962,7 +962,7 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
         
 
         info->entries = 0;
-        rv = NS_StackWalk(stack_callback, skip, info);
+        rv = NS_StackWalk(stack_callback, skip, info, 0);
         *immediate_abort = rv == NS_ERROR_UNEXPECTED;
         if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
             t->suppress_tracing--;
@@ -997,7 +997,7 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
         
         
         info->entries = 0;
-        rv = NS_StackWalk(stack_callback, skip, info);
+        rv = NS_StackWalk(stack_callback, skip, info, 0);
         *immediate_abort = rv == NS_ERROR_UNEXPECTED;
         if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
             t->suppress_tracing--;
@@ -1021,7 +1021,7 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
 
             
             info->entries = 0;
-            NS_StackWalk(stack_callback, skip, info);
+            NS_StackWalk(stack_callback, skip, info, 0);
 
             
             PR_ASSERT(info->entries * 2 == new_stack_buffer_size);

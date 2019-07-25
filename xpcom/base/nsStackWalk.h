@@ -43,6 +43,7 @@
 
 
 #include "nscore.h"
+#include <mozilla/StdInt.h>
 
 PR_BEGIN_EXTERN_C
 
@@ -68,9 +69,13 @@ typedef void
 
 
 
+
+
+
+
 XPCOM_API(nsresult)
 NS_StackWalk(NS_WalkStackCallback aCallback, PRUint32 aSkipFrames,
-             void *aClosure);
+             void *aClosure, uintptr_t aThread);
 
 typedef struct {
     
