@@ -442,6 +442,9 @@ nsScriptNameSpaceManager::Init()
   rv = FillHash(cm, JAVASCRIPT_GLOBAL_DYNAMIC_NAMESET_CATEGORY);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  rv = FillHash(cm, JAVASCRIPT_NAVIGATOR_PROPERTY_CATEGORY);
+  NS_ENSURE_SUCCESS(rv, rv);
+
   
   
   nsCOMPtr<nsIObserverService> serv = 
