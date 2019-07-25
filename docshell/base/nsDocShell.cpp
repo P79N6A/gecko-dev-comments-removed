@@ -9421,6 +9421,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     
     
+    
 
     nsresult rv;
 
@@ -9571,7 +9572,9 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     }
 
     
+    
     newSHEntry->SetStateData(dataStr);
+    newSHEntry->SetPostData(nsnull);
 
     
     
