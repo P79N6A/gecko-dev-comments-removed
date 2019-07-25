@@ -28,7 +28,7 @@ public:
 
 
 
-  const nsRect& ComputeInvalidationRegion() { return mBounds; }
+  nsRegion ComputeInvalidationRegion() { return mBounds; }
   
   
 
