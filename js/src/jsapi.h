@@ -1922,22 +1922,6 @@ JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
 
 
 
-
-
-
-
-
-
-extern JS_PUBLIC_API(void)
-JS_SetScriptStackQuota(JSContext *cx, size_t quota);
-
-#define JS_DEFAULT_SCRIPT_STACK_QUOTA   ((size_t) 0x8000000)
-
-
-
-
-
-
 typedef void (*JSClassInternal)();
 
 

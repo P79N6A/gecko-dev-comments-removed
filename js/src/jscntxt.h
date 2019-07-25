@@ -1082,9 +1082,6 @@ struct JSContext
     jsuword             stackLimit;
 
     
-    size_t              scriptStackQuota;
-
-    
     JSRuntime *const    runtime;
 
     
@@ -2330,12 +2327,6 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
 
 extern void
 js_ReportOutOfMemory(JSContext *cx);
-
-
-
-
-void
-js_ReportOutOfScriptQuota(JSContext *maybecx);
 
 
 JS_FRIEND_API(void)
