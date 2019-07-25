@@ -149,7 +149,7 @@ class IonBuilder : public MIRGenerator
                 MTableSwitch *ins;
 
                 
-                uint32 currentSuccessor;
+                uint32 currentBlock;
 
             } tableswitch;
         };

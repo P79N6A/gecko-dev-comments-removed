@@ -1339,14 +1339,14 @@ IonBuilder::processNextTableSwitchCase(CFGState &state)
 {
     JS_ASSERT(state.state == CFGState::TABLE_SWITCH);
 
-    state.tableswitch.currentSuccessor++;
+    state.tableswitch.currentBlock++;
 
     
-    if (state.tableswitch.currentSuccessor >= state.tableswitch.ins->numSuccessors())
+    if (state.tableswitch.currentBlock >= state.tableswitch.ins->numBlocks())
         return processTableSwitchEnd(state);
 
     
-    MBasicBlock *successor = state.tableswitch.ins->getSuccessor(state.tableswitch.currentSuccessor);
+    MBasicBlock *successor = state.tableswitch.ins->getBlock(state.tableswitch.currentBlock);
 
     
     
@@ -1358,8 +1358,8 @@ IonBuilder::processNextTableSwitchCase(CFGState &state)
 
     
     
-    if (state.tableswitch.currentSuccessor+1 < state.tableswitch.ins->numSuccessors())
-        state.stopAt = state.tableswitch.ins->getSuccessor(state.tableswitch.currentSuccessor+1)->pc();
+    if (state.tableswitch.currentBlock+1 < state.tableswitch.ins->numBlocks())
+        state.stopAt = state.tableswitch.ins->getBlock(state.tableswitch.currentBlock+1)->pc();
     else
         state.stopAt = state.tableswitch.exitpc;
 
@@ -1852,6 +1852,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     if (!defaultcase)
         return ControlStatus_Error;
     tableswitch->addDefault(defaultcase);
+    tableswitch->addBlock(defaultcase);
 
     
     jsbytecode *casepc = NULL;
@@ -1860,17 +1861,25 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
 
         JS_ASSERT(casepc >= pc && casepc <= exitpc);
 
+        MBasicBlock *caseblock = newBlock(current, casepc);
+        if (!caseblock)
+            return ControlStatus_Error;
+
+        
         
         
         
         if (casepc == pc) {
-            tableswitch->addCase(defaultcase, true);
-        } else {
-            MBasicBlock *caseblock = newBlock(current, casepc);
-            if (!caseblock)
-                return ControlStatus_Error;
-            tableswitch->addCase(caseblock);
+            caseblock->end(MGoto::New(defaultcase));
+            defaultcase->addPredecessor(caseblock);
         }
+
+        tableswitch->addCase(caseblock);
+        
+        
+        
+        if (casepc != pc)
+            tableswitch->addBlock(caseblock);
 
         pc2 += JUMP_OFFSET_LEN;
     }
@@ -1879,7 +1888,7 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     JS_ASSERT(tableswitch->numSuccessors() > 0);
 
     
-    qsort(tableswitch->successors(), tableswitch->numSuccessors(),
+    qsort(tableswitch->blocks(), tableswitch->numBlocks(),
           sizeof(MBasicBlock*), CmpSuccessors);
 
     
@@ -1893,18 +1902,18 @@ IonBuilder::tableSwitch(JSOp op, jssrcnote *sn)
     state.tableswitch.exitpc = exitpc;
     state.tableswitch.breaks = NULL;
     state.tableswitch.ins = tableswitch;
-    state.tableswitch.currentSuccessor = 0;
+    state.tableswitch.currentBlock = 0;
 
     
     current->end(tableswitch);
 
     
     
-    if (tableswitch->numSuccessors() == 1)
-        state.stopAt = state.tableswitch.exitpc;
+    if (tableswitch->numBlocks() == 1)
+        state.stopAt = exitpc;
     else
-        state.stopAt = tableswitch->getSuccessor(1)->pc();
-    current = tableswitch->getSuccessor(0);
+        state.stopAt = tableswitch->getBlock(1)->pc();
+    current = tableswitch->getBlock(0);
 
     if (!cfgStack_.append(state))
         return ControlStatus_Error;

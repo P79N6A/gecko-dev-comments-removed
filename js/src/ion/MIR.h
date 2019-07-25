@@ -715,23 +715,22 @@ class MTableSwitch
     public TableSwitchPolicy
 {
     
+    
+    
     Vector<MBasicBlock*, 0, IonAllocPolicy> successors_;
 
     
-    
-    Vector<MBasicBlock*, 0, IonAllocPolicy> cases_;
+    Vector<MBasicBlock*, 0, IonAllocPolicy> blocks_;
 
     MDefinition *operand_;
     int32 low_;
     int32 high_;
-    MBasicBlock *defaultCase_;
 
     MTableSwitch(MDefinition *ins, int32 low, int32 high)
       : successors_(),
-        cases_(),
+        blocks_(),
         low_(low),
-        high_(high),
-        defaultCase_(NULL)
+        high_(high)
     {
         initOperand(0, ins);
     }
@@ -758,13 +757,15 @@ class MTableSwitch
 
     void replaceSuccessor(size_t i, MBasicBlock *successor) {
         JS_ASSERT(i < numSuccessors());
-        if (successors_[i] == defaultCase_)
-            defaultCase_ = successor;
         successors_[i] = successor;
     }
 
-    MBasicBlock** successors() {
-        return &successors_[0];
+    MBasicBlock** blocks() {
+        return &blocks_[0];
+    }
+
+    size_t numBlocks() const {
+        return blocks_.length();
     }
 
     int32 low() const {
@@ -776,13 +777,11 @@ class MTableSwitch
     }
 
     MBasicBlock *getDefault() const {
-        JS_ASSERT(defaultCase_);
-        return defaultCase_;
+        return getSuccessor(0);
     }
 
     MBasicBlock *getCase(size_t i) const {
-        JS_ASSERT(i < cases_.length());
-        return cases_[i];
+        return getSuccessor(i+1);
     }
 
     size_t numCases() const {
@@ -790,18 +789,23 @@ class MTableSwitch
     }
 
     void addDefault(MBasicBlock *block) {
-        JS_ASSERT(!defaultCase_);
-        defaultCase_ = block;
+        JS_ASSERT(successors_.length() == 0);
         successors_.append(block);
     }
 
-    void addCase(MBasicBlock *block, bool isDefault = false) {
-        JS_ASSERT(cases_.length() < (size_t)(high_ - low_ + 1));
-        cases_.append(block);
-        if (!isDefault) {
-            JS_ASSERT(block != defaultCase_);
-            successors_.append(block);
-        }
+    void addCase(MBasicBlock *block) {
+        JS_ASSERT(successors_.length() < (size_t)(high_ - low_ + 2));
+        JS_ASSERT(successors_.length() != 0);
+        successors_.append(block);
+    }
+
+    MBasicBlock *getBlock(size_t i) const {
+        JS_ASSERT(i < numBlocks());
+        return blocks_[i];
+    }
+
+    void addBlock(MBasicBlock *block) {
+        blocks_.append(block);
     }
 
     MDefinition *getOperand(size_t index) const {
