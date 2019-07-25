@@ -854,8 +854,6 @@ namespace nanojit
     inline void Assembler::FLD1()      { count_fpu(); FPUc(0xd9e8);    asm_output("fld1"); fpu_push(); }
     inline void Assembler::FLDZ()      { count_fpu(); FPUc(0xd9ee);    asm_output("fldz"); fpu_push(); }
 
-    inline void Assembler::FFREE(R r)  { count_fpu(); FPU(0xddc0, r);  asm_output("ffree %s",gpn(r)); }
-
     inline void Assembler::FST32(bool p, I32 d, R b){ count_stq(); FPUm(0xd902|(p?1:0), d, b);   asm_output("fst%s32 %d(%s)", (p?"p":""), d, gpn(b)); if (p) fpu_pop(); }
     inline void Assembler::FSTQ(bool p, I32 d, R b) { count_stq(); FPUm(0xdd02|(p?1:0), d, b);   asm_output("fst%sq %d(%s)", (p?"p":""), d, gpn(b)); if (p) fpu_pop(); }
 
@@ -893,8 +891,6 @@ namespace nanojit
     inline void Assembler::FSUBRdm(const double* dm) { count_ldq(); FPUdm(0xdc05, dm); asm_output("fsubr (%p)", (void*)dm); }
     inline void Assembler::FMULdm( const double* dm) { count_ldq(); FPUdm(0xdc01, dm); asm_output("fmul (%p)", (void*)dm); }
     inline void Assembler::FDIVRdm(const double* dm) { count_ldq(); FPUdm(0xdc07, dm); asm_output("fdivr (%p)", (void*)dm); }
-
-    inline void Assembler::FINCSTP()   { count_fpu(); FPUc(0xd9f7); asm_output("fincstp"); fpu_pop(); }
 
     inline void Assembler::FCOMP()     { count_fpu(); FPUc(0xD8D9);    asm_output("fcomp"); fpu_pop();}
     inline void Assembler::FCOMPP()    { count_fpu(); FPUc(0xDED9);    asm_output("fcompp"); fpu_pop();fpu_pop();}
@@ -1521,19 +1517,18 @@ namespace nanojit
         }
     }
 
-    NIns* Assembler::asm_branch(bool branchOnFalse, LIns* cond, NIns* targ)
+    NIns* Assembler::asm_branch_helper(bool branchOnFalse, LIns* cond, NIns* targ)
     {
-        LOpcode condop = cond->opcode();
-        NanoAssert(cond->isCmp());
+        return isCmpDOpcode(cond->opcode())
+             ? asm_branchd_helper(branchOnFalse, cond, targ)
+             : asm_branchi_helper(branchOnFalse, cond, targ);
+    }
 
-        
-        if (isCmpDOpcode(condop)) {
-            return asm_branchd(branchOnFalse, cond, targ);
-        }
-
+    NIns* Assembler::asm_branchi_helper(bool branchOnFalse, LIns* cond, NIns* targ)
+    {
         if (branchOnFalse) {
             
-            switch (condop) {
+            switch (cond->opcode()) {
             case LIR_eqi:   JNE(targ);      break;
             case LIR_lti:   JNL(targ);      break;
             case LIR_lei:   JNLE(targ);     break;
@@ -1547,7 +1542,7 @@ namespace nanojit
             }
         } else {
             
-            switch (condop) {
+            switch (cond->opcode()) {
             case LIR_eqi:   JE(targ);       break;
             case LIR_lti:   JL(targ);       break;
             case LIR_lei:   JLE(targ);      break;
@@ -1560,7 +1555,12 @@ namespace nanojit
             default:        NanoAssert(0);  break;
             }
         }
-        NIns* at = _nIns;
+        return _nIns;
+    }
+
+    NIns* Assembler::asm_branch(bool branchOnFalse, LIns* cond, NIns* targ)
+    {
+        NIns* at = asm_branch_helper(branchOnFalse, cond, targ);
         asm_cmp(cond);
         return at;
     }
@@ -1584,46 +1584,51 @@ namespace nanojit
         JMP_indexed(indexreg, 2, table);
     }
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     void Assembler::asm_cmp(LIns *cond)
+    {
+        isCmpDOpcode(cond->opcode()) ? asm_cmpd(cond) : asm_cmpi(cond);
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    void Assembler::asm_cmpi(LIns *cond)
     {
         LIns* lhs = cond->oprnd1();
         LIns* rhs = cond->oprnd2();
@@ -1734,7 +1739,7 @@ namespace nanojit
 
         freeResourcesOf(ins);
 
-        asm_cmp(ins);
+        asm_cmpi(ins);
     }
 
     
@@ -2051,11 +2056,10 @@ namespace nanojit
                    (ins->isop(LIR_cmovd) && iftrue->isD() && iffalse->isD()));
 
         if (!_config.i386_sse2 && ins->isop(LIR_cmovd)) {
+            
             debug_only( Register rr = ) prepareResultReg(ins, x87Regs);
             NanoAssert(FST0 == rr);
-            NanoAssert(!iftrue->isInReg() || iftrue->getReg() == FST0);
-
-            NanoAssert(!iffalse->isInReg());
+            NanoAssert(!iftrue->isInReg() && !iffalse->isInReg());
 
             NIns* target = _nIns;
 
@@ -2065,47 +2069,68 @@ namespace nanojit
                 int df = findMemFor(iffalse);
                 FLDQ(df, FP);
             }
+            FSTP(FST0);     
+            asm_branch_helper(false, condval, target);
 
-            FINCSTP();
-            
-            
-            FFREE(FST0);
-            asm_branch(false, condval, target);
-
+            NanoAssert(ins->getReg() == rr);
             freeResourcesOf(ins);
             if (!iftrue->isInReg())
                 findSpecificRegForUnallocated(iftrue, FST0);
+
+            asm_cmp(condval);
 
             return;
         }
 
         RegisterMask allow = ins->isD() ? XmmRegs : GpRegs;
-
         Register rr = prepareResultReg(ins, allow);
-
         Register rf = findRegFor(iffalse, allow & ~rmask(rr));
 
         if (ins->isop(LIR_cmovd)) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
             NIns* target = _nIns;
             asm_nongp_copy(rr, rf);
-            asm_branch(false, condval, target);
+            asm_branch_helper(false, condval, target);
 
             
             Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
 
             if (rr != rt)
                 asm_nongp_copy(rr, rt);
+
+            NanoAssert(ins->getReg() == rr);
             freeResourcesOf(ins);
             if (!iftrue->isInReg()) {
                 NanoAssert(rt == rr);
                 findSpecificRegForUnallocated(iftrue, rr);
             }
+
+            asm_cmp(condval);
             return;
         }
 
         
         Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
-
         NanoAssert(ins->isop(LIR_cmovi));
 
         
@@ -2128,6 +2153,7 @@ namespace nanojit
         if (rr != rt)
             MR(rr, rt);
 
+        NanoAssert(ins->getReg() == rr);
         freeResourcesOf(ins);
         if (!iftrue->isInReg()) {
             NanoAssert(rt == rr);
@@ -2614,7 +2640,7 @@ namespace nanojit
         }
     }
 
-    NIns* Assembler::asm_branchd(bool branchOnFalse, LIns *cond, NIns *targ)
+    NIns* Assembler::asm_branchd_helper(bool branchOnFalse, LIns* cond, NIns *targ)
     {
         NIns* at = 0;
         LOpcode opcode = cond->opcode();
@@ -2673,7 +2699,6 @@ namespace nanojit
 
         if (!at)
             at = _nIns;
-        asm_cmpd(cond);
 
         return at;
     }
@@ -2698,7 +2723,6 @@ namespace nanojit
                 condop = LIR_ged;
                 LIns* t = lhs; lhs = rhs; rhs = t;
             }
-
 
             
             
@@ -2810,13 +2834,10 @@ namespace nanojit
             } else {
                 TEST_AH(mask);
                 FNSTSW_AX();        
-                if (rhs->isImmD())
-                {
+                if (rhs->isImmD()) {
                     const uint64_t* p = findImmDFromPool(rhs->immDasQ());
                     FCOMdm(pop, (const double*)p);
-                }
-                else
-                {
+                } else {
                     int d = findMemFor(rhs);
                     FCOM(pop, d, FP);
                 }
