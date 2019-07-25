@@ -338,7 +338,7 @@ CodeGeneratorX86::visitStoreElementT(LStoreElementT *store)
 
     
     if (valueType != store->mir()->elementType())
-        masm.storeTypeTag(ImmTag(MIRTypeToTag(valueType)), dest);
+        masm.storeTypeTag(ImmType(ValueTypeFromMIRType(valueType)), dest);
 
     
     if (value->isConstant())
