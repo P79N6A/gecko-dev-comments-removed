@@ -254,6 +254,22 @@ function nsPlacesAutoComplete()
     
     initTempTable(db);
 
+    
+    if (this._openPagesCache.length > 0) {
+      
+      let stmt = this._registerOpenPageQuery =
+        db.createAsyncStatement(this._registerOpenPageQuerySQL);
+      let params = stmt.newBindingParamsArray();
+      for (let i = 0; i < this._openPagesCache.length; i++) {
+        let bp = params.newBindingParams();
+        bp.bindByName("page_url", this._openPagesCache[i]);
+        params.addParams(bp);
+      }
+      stmt.bindParameters(params);
+      stmt.executeAsync();
+      delete this._openPagesCache;
+    }
+
     return db;
   });
 
@@ -379,20 +395,20 @@ function nsPlacesAutoComplete()
     );
   });
 
+  this._registerOpenPageQuerySQL = "INSERT OR REPLACE INTO moz_openpages_temp "
+                                 +   "(url, open_count) "
+                                 + "VALUES (:page_url, "
+                                 +   "IFNULL("
+                                 +     "("
+                                 +        "SELECT open_count + 1 "
+                                 +        "FROM moz_openpages_temp "
+                                 +        "WHERE url = :page_url "
+                                 +      "), "
+                                 +     "1"
+                                 +   ")"
+                                 + ")";
   XPCOMUtils.defineLazyGetter(this, "_registerOpenPageQuery", function() {
-    return this._db.createAsyncStatement(
-      "INSERT OR REPLACE INTO moz_openpages_temp (url, open_count) "
-    + "VALUES (:page_url, "
-    +   "IFNULL("
-    +     "("
-    +        "SELECT open_count + 1 "
-    +        "FROM moz_openpages_temp "
-    +        "WHERE url = :page_url "
-    +      "), "
-    +     "1"
-    +   ")"
-    + ")"
-    );
+    return this._db.createAsyncStatement(this._registerOpenPageQuerySQL);
   });
 
   XPCOMUtils.defineLazyGetter(this, "_unregisterOpenPageQuery", function() {
@@ -509,19 +525,33 @@ nsPlacesAutoComplete.prototype = {
   
   
 
+  
+  
+  _openPagesCache: [],
   registerOpenPage: function PAC_registerOpenPage(aURI)
   {
+    if (!this._databaseInitialized) {
+      this._openPagesCache.push(aURI.spec);
+      return;
+    }
+
     let stmt = this._registerOpenPageQuery;
     stmt.params.page_url = aURI.spec;
-
     stmt.executeAsync();
   },
 
   unregisterOpenPage: function PAC_unregisterOpenPage(aURI)
   {
+    if (!this._databaseInitialized) {
+      let index = this._openPagesCache.indexOf(aURI.spec);
+      if (index != -1) {
+        this._openPagesCache.splice(index, 1);
+      }
+      return;
+    }
+
     let stmt = this._unregisterOpenPageQuery;
     stmt.params.page_url = aURI.spec;
-
     stmt.executeAsync();
   },
 
@@ -613,7 +643,7 @@ nsPlacesAutoComplete.prototype = {
         }
       }
 
-      if (Object.getOwnPropertyDescriptor(this, "_db").value !== undefined) {
+      if (this._databaseInitialized) {
         this._db.asyncClose();
       }
     }
@@ -624,6 +654,9 @@ nsPlacesAutoComplete.prototype = {
 
   
   
+
+  get _databaseInitialized()
+    Object.getOwnPropertyDescriptor(this, "_db").value !== undefined,
 
   
 
