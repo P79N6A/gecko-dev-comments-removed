@@ -76,6 +76,43 @@ JSString::intString(jsint i)
     return const_cast<JSString *>(JSString::intStringTable[u]);
 }
 
+
+inline JSString *
+JSString::lookupStaticString(const jschar *chars, size_t length)
+{
+    if (length == 1) {
+        if (chars[0] < UNIT_STRING_LIMIT)
+            return unitString(chars[0]);
+    }
+
+    if (length == 2) {
+        if (fitsInSmallChar(chars[0]) && fitsInSmallChar(chars[1]))
+            return length2String(chars[0], chars[1]);
+    }
+
+    
+
+
+
+
+
+    JS_STATIC_ASSERT(INT_STRING_LIMIT <= 999);
+    if (length == 3) {
+        if ('1' <= chars[0] && chars[0] <= '9' &&
+            '0' <= chars[1] && chars[1] <= '9' &&
+            '0' <= chars[2] && chars[2] <= '9') {
+            jsint i = (chars[0] - '0') * 100 +
+                      (chars[1] - '0') * 10 +
+                      (chars[2] - '0');
+
+            if (jsuint(i) < INT_STRING_LIMIT)
+                return intString(i);
+        }
+    }
+
+    return NULL;
+}
+
 inline void
 JSString::finalize(JSContext *cx, unsigned thingKind) {
     if (JS_LIKELY(thingKind == js::gc::FINALIZE_STRING)) {

@@ -4459,14 +4459,6 @@ error:
     return false;
 }
 
-JS_FRIEND_API(JSBool)
-js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
-                  JSProperty **propp)
-{
-    return js_LookupPropertyWithFlags(cx, obj, id, cx->resolveFlags,
-                                      objp, propp) >= 0;
-}
-
 #define SCOPE_DEPTH_ACCUM(bs,val)                                             \
     JS_SCOPE_DEPTH_METERING(JS_BASIC_STATS_ACCUM(bs, val))
 
@@ -4588,7 +4580,7 @@ js_LookupPropertyWithFlagsInline(JSContext *cx, JSObject *obj, jsid id, uintN fl
                                  JSObject **objp, JSProperty **propp)
 {
     
-    id = js_CheckForStringIndex(id);
+    JS_ASSERT(id == js_CheckForStringIndex(id));
 
     
     JSObject *start = obj;
@@ -4636,10 +4628,23 @@ js_LookupPropertyWithFlagsInline(JSContext *cx, JSObject *obj, jsid id, uintN fl
     return protoIndex;
 }
 
+JS_FRIEND_API(JSBool)
+js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
+                  JSProperty **propp)
+{
+    
+    id = js_CheckForStringIndex(id);
+
+    return js_LookupPropertyWithFlagsInline(cx, obj, id, cx->resolveFlags, objp, propp) >= 0;
+}
+
 int
 js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
                            JSObject **objp, JSProperty **propp)
 {
+    
+    id = js_CheckForStringIndex(id);
+
     return js_LookupPropertyWithFlagsInline(cx, obj, id, flags, objp, propp);
 }
 
