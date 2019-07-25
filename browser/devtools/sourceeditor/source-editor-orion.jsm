@@ -40,6 +40,7 @@
 
 
 
+
 "use strict";
 
 const Cu = Components.utils;
@@ -149,6 +150,17 @@ const DEFAULT_KEYBINDINGS = [
     code: Ci.nsIDOMKeyEvent.DOM_VK_DOWN,
     ctrl: Services.appinfo.OS == "Darwin",
     alt: true,
+  },
+  {
+    action: "Comment",
+    code: Ci.nsIDOMKeyEvent.DOM_VK_SLASH,
+    accel: true,
+  },
+  {
+    action: "Uncomment",
+    code: Ci.nsIDOMKeyEvent.DOM_VK_SLASH,
+    accel: true,
+    shift: true,
   },
 ];
 
@@ -394,6 +406,8 @@ SourceEditor.prototype = {
       "Find Previous Occurrence": [this.ui.findPrevious, this.ui],
       "Goto Line...": [this.ui.gotoLine, this.ui],
       "Move Lines Down": [this._moveLines, this],
+      "Comment": [this._doComment, this],
+      "Uncomment": [this._doUncomment, this],
     };
 
     for (let name in actions) {
@@ -486,7 +500,7 @@ SourceEditor.prototype = {
     let selection = this.getSelection();
     let model = this._model;
     let firstLine = model.getLineAtOffset(selection.start);
-    let firstLineStart = model.getLineStart(firstLine);
+    let firstLineStart = this.getLineStart(firstLine);
     let lastLineOffset = selection.end > selection.start ?
                          selection.end - 1 : selection.end;
     let lastLine = model.getLineAtOffset(lastLineOffset);
@@ -501,7 +515,7 @@ SourceEditor.prototype = {
     
     if (firstLine != lastLine) {
       let lines = [""];
-      let lastLineEnd = model.getLineEnd(lastLine, true);
+      let lastLineEnd = this.getLineEnd(lastLine, true);
       let selectedLines = lastLine - firstLine + 1;
 
       for (let i = firstLine; i <= lastLine; i++) {
@@ -558,9 +572,9 @@ SourceEditor.prototype = {
       lines.push(line.substring(indent.length));
     }
 
-    let firstLineStart = model.getLineStart(firstLine);
-    let lastLineStart = model.getLineStart(lastLine);
-    let lastLineEnd = model.getLineEnd(lastLine, true);
+    let firstLineStart = this.getLineStart(firstLine);
+    let lastLineStart = this.getLineStart(lastLine);
+    let lastLineEnd = this.getLineEnd(lastLine, true);
 
     this.startCompoundChange();
 
@@ -602,7 +616,7 @@ SourceEditor.prototype = {
     let model = this._model;
     let lineIndex = model.getLineAtOffset(selection.start);
     let lineText = model.getLine(lineIndex, true);
-    let lineStart = model.getLineStart(lineIndex);
+    let lineStart = this.getLineStart(lineIndex);
     let index = 0;
     let lineOffset = selection.start - lineStart;
     while (index < lineOffset && /[ \t]/.test(lineText.charAt(index))) {
@@ -646,8 +660,8 @@ SourceEditor.prototype = {
     }
 
     let lastLine = model.getLineAtOffset(selection.end);
-    let firstLineStart = model.getLineStart(firstLine);
-    let lastLineStart = model.getLineStart(lastLine);
+    let firstLineStart = this.getLineStart(firstLine);
+    let lastLineStart = this.getLineStart(lastLine);
     if (selection.start != selection.end && lastLineStart == selection.end) {
       lastLine--;
     }
@@ -655,17 +669,17 @@ SourceEditor.prototype = {
       return true;
     }
 
-    let lastLineEnd = model.getLineEnd(lastLine, true);
+    let lastLineEnd = this.getLineEnd(lastLine, true);
     let text = this.getText(firstLineStart, lastLineEnd);
 
     if (aLineAbove) {
       let aboveLine = firstLine - 1;
-      let aboveLineStart = model.getLineStart(aboveLine);
+      let aboveLineStart = this.getLineStart(aboveLine);
 
       this.startCompoundChange();
       if (lastLine == (this.getLineCount() - 1)) {
-        let delimiterStart = model.getLineEnd(aboveLine);
-        let delimiterEnd = model.getLineEnd(aboveLine, true);
+        let delimiterStart = this.getLineEnd(aboveLine);
+        let delimiterEnd = this.getLineEnd(aboveLine, true);
         let lineDelimiter = this.getText(delimiterStart, delimiterEnd);
         text += lineDelimiter;
         this.setText("", firstLineStart - lineDelimiter.length, lastLineEnd);
@@ -677,12 +691,12 @@ SourceEditor.prototype = {
       this.setSelection(aboveLineStart, aboveLineStart + text.length);
     } else {
       let belowLine = lastLine + 1;
-      let belowLineEnd = model.getLineEnd(belowLine, true);
+      let belowLineEnd = this.getLineEnd(belowLine, true);
 
       let insertAt = belowLineEnd - lastLineEnd + firstLineStart;
       let lineDelimiter = "";
       if (belowLine == this.getLineCount() - 1) {
-        let delimiterStart = model.getLineEnd(lastLine);
+        let delimiterStart = this.getLineEnd(lastLine);
         lineDelimiter = this.getText(delimiterStart, lastLineEnd);
         text = lineDelimiter + text.substr(0, text.length -
                                               lineDelimiter.length);
@@ -803,8 +817,8 @@ SourceEditor.prototype = {
     }
 
     let line = model.getLineAtOffset(newSelection.start);
-    let lineStart = model.getLineStart(line);
-    let lineEnd = model.getLineEnd(line);
+    let lineStart = this.getLineStart(line);
+    let lineEnd = this.getLineEnd(line);
 
     let title = oldAnnotation ? oldAnnotation.title :
                 SourceEditorUI.strings.GetStringFromName("annotation.currentLine");
@@ -846,9 +860,9 @@ SourceEditor.prototype = {
       let selectionLineStart = model.getLineAtOffset(selection.start);
       let selectionLineEnd = model.getLineAtOffset(selection.end);
       let newStart = aLineIndex <= selectionLineStart ?
-                     model.getLineStart(aLineIndex) : selection.start;
+                     this.getLineStart(aLineIndex) : selection.start;
       let newEnd = aLineIndex <= selectionLineStart ?
-                   selection.end : model.getLineEnd(aLineIndex);
+                   selection.end : this.getLineEnd(aLineIndex);
       this.setSelection(newStart, newEnd);
     } else {
       this.setCaretPosition(aLineIndex);
@@ -871,8 +885,8 @@ SourceEditor.prototype = {
       return;
     }
 
-    let newStart = this._model.getLineStart(aLineIndex);
-    let newEnd = this._model.getLineEnd(aLineIndex);
+    let newStart = this.getLineStart(aLineIndex);
+    let newEnd = this.getLineEnd(aLineIndex);
     this.setSelection(newStart, newEnd);
   },
 
@@ -946,8 +960,8 @@ SourceEditor.prototype = {
       return;
     }
 
-    let lineStart = this._model.getLineStart(aLineIndex);
-    let lineEnd = this._model.getLineEnd(aLineIndex);
+    let lineStart = this.getLineStart(aLineIndex);
+    let lineEnd = this.getLineEnd(aLineIndex);
     let annotations = this._getAnnotationsByType("breakpoint", lineStart, lineEnd);
     if (annotations.length > 0) {
       this.removeBreakpoint(aLineIndex);
@@ -973,8 +987,8 @@ SourceEditor.prototype = {
     }
 
     let model = this._model;
-    let lineStart = model.getLineStart(aLineIndex);
-    let lineEnd = model.getLineEnd(aLineIndex);
+    let lineStart = this.getLineStart(aLineIndex);
+    let lineEnd = this.getLineEnd(aLineIndex);
     let annotations = this._annotationModel.getAnnotations(lineStart, lineEnd);
     let annotation = annotations.next();
 
@@ -995,6 +1009,158 @@ SourceEditor.prototype = {
 
   get editorElement() {
     return this._iframe;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  _getCommentStrings: function SE__getCommentStrings()
+  {
+    let line = "";
+    let blockCommentStart = "";
+    let blockCommentEnd = "";
+
+    switch (this.getMode()) {
+      case SourceEditor.MODES.JAVASCRIPT:
+        line = "//";
+        blockCommentStart = "/*";
+        blockCommentEnd = "*/";
+        break;
+      case SourceEditor.MODES.CSS:
+        blockCommentStart = "/*";
+        blockCommentEnd = "*/";
+        break;
+      case SourceEditor.MODES.HTML:
+      case SourceEditor.MODES.XML:
+        blockCommentStart = "<!--";
+        blockCommentEnd = "-->";
+        break;
+      default:
+        return null;
+    }
+    return {line: line, blockStart: blockCommentStart, blockEnd: blockCommentEnd};
+  },
+
+  
+
+
+
+
+
+
+  _doComment: function SE__doComment()
+  {
+    if (this.readOnly) {
+      return false;
+    }
+
+    let commentObject = this._getCommentStrings();
+    if (!commentObject) {
+      return false;
+    }
+
+    let selection = this.getSelection();
+
+    if (selection.start == selection.end) {
+      let selectionLine = this._model.getLineAtOffset(selection.start);
+      let lineStartOffset = this.getLineStart(selectionLine);
+      if (commentObject.line) {
+        this.setText(commentObject.line, lineStartOffset, lineStartOffset);
+      } else {
+        let lineEndOffset = this.getLineEnd(selectionLine);
+        this.startCompoundChange();
+        this.setText(commentObject.blockStart, lineStartOffset, lineStartOffset);
+        this.setText(commentObject.blockEnd,
+                     lineEndOffset + commentObject.blockStart.length,
+                     lineEndOffset + commentObject.blockStart.length);
+        this.endCompoundChange();
+      }
+    } else {
+      this.startCompoundChange();
+      this.setText(commentObject.blockStart, selection.start, selection.start);
+      this.setText(commentObject.blockEnd,
+                   selection.end + commentObject.blockStart.length,
+                   selection.end + commentObject.blockStart.length);
+      this.endCompoundChange();
+    }
+
+    return true;
+  },
+
+  
+
+
+
+
+
+
+  _doUncomment: function SE__doUncomment()
+  {
+    if (this.readOnly) {
+      return false;
+    }
+
+    let commentObject = this._getCommentStrings();
+    if (!commentObject) {
+      return false;
+    }
+
+    let selection = this.getSelection();
+    let firstLine = this._model.getLineAtOffset(selection.start);
+    let lastLine = this._model.getLineAtOffset(selection.end);
+
+    
+    let firstLineText = this._model.getLine(firstLine);
+    let lastLineText = this._model.getLine(lastLine);
+    let openIndex = firstLineText.indexOf(commentObject.blockStart);
+    let closeIndex = lastLineText.lastIndexOf(commentObject.blockEnd);
+    if (openIndex != -1 && closeIndex != -1) {
+      let firstLineStartOffset = this.getLineStart(firstLine);
+      let lastLineStartOffset = this.getLineStart(lastLine);
+      let openOffset = firstLineStartOffset + openIndex;
+      let closeOffset = lastLineStartOffset + closeIndex;
+
+      this.startCompoundChange();
+      this.setText("", closeOffset, closeOffset + commentObject.blockEnd.length);
+      this.setText("", openOffset, openOffset + commentObject.blockStart.length);
+      this.endCompoundChange();
+
+      return true;
+    }
+
+    if (!commentObject.line) {
+      return true;
+    }
+
+    
+    this.startCompoundChange();
+    let lineCaret = firstLine;
+    while (lineCaret <= lastLine) {
+      let currentLine = this._model.getLine(lineCaret);
+      let lineStart = this.getLineStart(lineCaret);
+      let openIndex = currentLine.indexOf(commentObject.line);
+      let openOffset = lineStart + openIndex;
+      let textUntilComment = this.getText(lineStart, openOffset);
+      if (openIndex != -1 &&
+          (!textUntilComment || /^\s+$/.test(textUntilComment))) {
+        this.setText("", openOffset, openOffset + commentObject.line.length);
+      }
+      lineCaret++;
+    }
+    this.endCompoundChange();
+
+    return true;
   },
 
   
@@ -1222,6 +1388,37 @@ SourceEditor.prototype = {
 
 
 
+
+
+  getLineStart: function SE_getLineStart(aLineIndex)
+  {
+    return this._model.getLineStart(aLineIndex);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  getLineEnd: function SE_getLineEnd(aLineIndex, aIncludeDelimiter)
+  {
+    return this._model.getLineEnd(aLineIndex, aIncludeDelimiter);
+  },
+
+  
+
+
+
+
+
   getCharCount: function SE_getCharCount()
   {
     return this._model.getCharCount();
@@ -1323,7 +1520,7 @@ SourceEditor.prototype = {
   {
     let offset = this.getCaretOffset();
     let line = this._model.getLineAtOffset(offset);
-    let lineStart = this._model.getLineStart(line);
+    let lineStart = this.getLineStart(line);
     let column = offset - lineStart;
     return {line: line, col: column};
   },
@@ -1350,7 +1547,7 @@ SourceEditor.prototype = {
     let halfVisible = Math.round(linesVisible/2);
     let firstVisible = this.getTopIndex();
     let lastVisible = this._view.getBottomIndex();
-    let caretOffset = this._model.getLineStart(aLine) + (aColumn || 0);
+    let caretOffset = this.getLineStart(aLine) + (aColumn || 0);
 
     this._view.setSelection(caretOffset, caretOffset, false);
 
@@ -1505,8 +1702,8 @@ SourceEditor.prototype = {
 
   addBreakpoint: function SE_addBreakpoint(aLineIndex, aCondition)
   {
-    let lineStart = this._model.getLineStart(aLineIndex);
-    let lineEnd = this._model.getLineEnd(aLineIndex);
+    let lineStart = this.getLineStart(aLineIndex);
+    let lineEnd = this.getLineEnd(aLineIndex);
 
     let annotations = this._getAnnotationsByType("breakpoint", lineStart, lineEnd);
     if (annotations.length > 0) {
@@ -1550,8 +1747,8 @@ SourceEditor.prototype = {
 
   removeBreakpoint: function SE_removeBreakpoint(aLineIndex)
   {
-    let lineStart = this._model.getLineStart(aLineIndex);
-    let lineEnd = this._model.getLineEnd(aLineIndex);
+    let lineStart = this.getLineStart(aLineIndex);
+    let lineEnd = this.getLineEnd(aLineIndex);
 
     let event = {
       type: SourceEditor.EVENTS.BREAKPOINT_CHANGE,
