@@ -590,6 +590,112 @@
 
      } 
 
+     
+
+
+
+
+
+
+
+
+
+
+
+     File.DirectoryIterator = function DirectoryIterator(path, options) {
+       let dir = throw_on_null("DirectoryIterator", UnixFile.opendir(path));
+       this._dir = dir;
+       this._path = path;
+     };
+     File.DirectoryIterator.prototype = {
+       __iterator__: function __iterator__() {
+         return this;
+       },
+       
+
+
+
+
+
+
+
+
+
+       next: function next() {
+         if (!this._dir) {
+           throw StopIteration;
+         }
+         for (let entry = UnixFile.readdir(this._dir);
+              entry != null && !entry.isNull();
+              entry = UnixFile.readdir(this._dir)) {
+           let contents = entry.contents;
+           if (contents.d_type == OS.Constants.libc.DT_DIR) {
+             let name = contents.d_name.readString();
+             if (name == "." || name == "..") {
+               continue;
+             }
+           }
+           return new File.DirectoryIterator.Entry(contents, this._path);
+         }
+         this.close();
+         throw StopIteration;
+       },
+
+       
+
+
+
+       close: function close() {
+         if (!this._dir) return;
+         UnixFile.closedir(this._dir);
+         this._dir = null;
+       }
+     };
+
+     
+
+
+     File.DirectoryIterator.Entry = function Entry(unix_entry, parent) {
+       
+       
+       this._d_type = unix_entry.d_type;
+       this._name = unix_entry.d_name.readString();
+       this._parent = parent;
+     };
+     File.DirectoryIterator.Entry.prototype = {
+       
+
+
+       get isDir() {
+         return this._d_type == OS.Constants.libc.DT_DIR;
+       },
+
+       
+
+
+       get isLink() {
+         return this._d_type == OS.Constants.libc.DT_LNK;
+       },
+
+       
+
+
+
+       get name() {
+         return this._name;
+       },
+
+       
+
+
+       get path() {
+         delete this.path;
+         let path = OS.Unix.Path.join(this._parent, this.name);
+         Object.defineProperty(this, "path", {value: path});
+         return path;
+       }
+     };
+
 
      
 
@@ -601,11 +707,10 @@
            );
          },
          get: function() {
-           let path = UnixFile.getwd(null);
-           if (path.isNull()) {
-             throw new File.Error("getwd");
-           }
-           return ctypes.CDataFinalizer(path, UnixFile.free);
+           let path = UnixFile.get_current_dir_name?UnixFile.get_current_dir_name():
+             UnixFile.getwd_auto(null);
+           throw_on_null("curDir",path);
+           return path.readString();
          }
        }
      );
@@ -633,6 +738,13 @@
 
      function throw_on_negative(operation, result) {
        if (result < 0) {
+         throw new File.Error(operation);
+       }
+       return result;
+     }
+
+     function throw_on_null(operation, result) {
+       if (result == null || (result.isNull && result.isNull())) {
          throw new File.Error(operation);
        }
        return result;
