@@ -60,16 +60,10 @@ Cu.import("resource://gre/modules/CSPUtils.jsm");
 function ContentSecurityPolicy() {
   CSPdebug("CSP CREATED");
   this._isInitialized = false;
-  this._reportOnlyMode = false;
-  this._policy = CSPRep.fromString("allow *");
-
-  
-  this._policy._allowInlineScripts = true;
-  this._policy._allowEval = true;
-
-  this._requestHeaders = []; 
+  this._enforcedPolicy = null;
+  this._reportOnlyPolicy = null;
+  this._requestHeaders = [];
   this._request = "";
-  CSPdebug("CSP POLICY INITED TO 'allow *'");
 
   this._observerService = Cc['@mozilla.org/observer-service;1']
                             .getService(Ci.nsIObserverService);
@@ -128,48 +122,76 @@ ContentSecurityPolicy.prototype = {
     return this._policy.toString();
   },
 
+  
+
+
+
+
   get allowsInlineScript() {
     
-    if (!this._policy.allowsInlineScripts) {
-      var violation = 'violated base restriction: Inline Scripts will not execute';
-      
-      
-      let wrapper = Cc["@mozilla.org/supports-cstring;1"]
+    
+    var violation = Cc["@mozilla.org/supports-cstring;1"]
                       .createInstance(Ci.nsISupportsCString);
-      wrapper.data = violation;
+    violation.data = 'base restriction: no inline scripts';
+
+    
+    
+    if (this._reportOnlyPolicy && !this._reportOnlyPolicy.allowsInlineScripts) {
       this._observerService.notifyObservers(
-                              wrapper,
+                              violation,
                               CSP_VIOLATION_TOPIC,
                               'inline script base restriction');
-      this.sendReports('self', violation);
+      this._sendReports(this._reportOnlyPolicy, 'self', violation.data);
     }
-    return this._reportOnlyMode || this._policy.allowsInlineScripts;
+
+    
+    
+    if (this._enforcedPolicy && !this._enforcedPolicy.allowsInlineScripts) {
+      this._observerService.notifyObservers(
+                              violation,
+                              CSP_VIOLATION_TOPIC,
+                              'inline script base restriction');
+      this._sendReports(this._enforcedPolicy, 'self', violation.data);
+      return false;
+    }
+
+    
+    return true;
   },
+
+  
+
+
+
 
   get allowsEval() {
     
-    if (!this._policy.allowsEvalInScripts) {
-      var violation = 'violated base restriction: Code will not be created from strings';
-      
-      
-      let wrapper = Cc["@mozilla.org/supports-cstring;1"]
-                      .createInstance(Ci.nsISupportsCString);
-      wrapper.data = violation;
+    
+    var violation = Cc["@mozilla.org/supports-cstring;1"]
+                             .createInstance(Ci.nsISupportsCString);
+    violation.data = 'base restriction: no eval-like function calls';
+
+    
+    
+    if (this._reportOnlyPolicy && !this._reportOnlyPolicy.allowsEvalInScripts) {
       this._observerService.notifyObservers(
-                              wrapper,
+                              violation,
                               CSP_VIOLATION_TOPIC,
                               'eval script base restriction');
-      this.sendReports('self', violation);
+      this._sendReports(this._reportOnlyPolicy, 'self', violation.data);
     }
-    return this._reportOnlyMode || this._policy.allowsEvalInScripts;
-  },
 
-  set reportOnlyMode(val) {
-    this._reportOnlyMode = val;
-  },
+    
+    if (this._enforcedPolicy && !this._enforcedPolicy.allowsEvalInScripts) {
+      this._observerService.notifyObservers(
+                              violation,
+                              CSP_VIOLATION_TOPIC,
+                              'eval script base restriction');
+      this._sendReports(this._enforcedPolicy, 'self', violation.data);
+      return false;
+    }
 
-  get reportOnlyMode () {
-    return this._reportOnlyMode;
+    return true;
   },
 
   
@@ -206,14 +228,8 @@ ContentSecurityPolicy.prototype = {
 
 
 
-  
-
-
-
-
-
-  refinePolicy:
-  function csp_refinePolicy(aPolicy, selfURI) {
+  function csp_refinePolicyInternal(policyToRefine, aPolicy, selfURI) {
+    CSPdebug("     REFINING: " + policyToRefine);
     CSPdebug("REFINE POLICY: " + aPolicy);
     CSPdebug("         SELF: " + selfURI.asciiSpec);
 
@@ -226,19 +242,40 @@ ContentSecurityPolicy.prototype = {
                                       selfURI.scheme + "://" + selfURI.hostPort);
 
     
-    var intersect = this._policy.intersectWith(newpolicy);
- 
+    if (!this[policyToRefine])
+      this[policyToRefine] = newpolicy;
+    else
+      this[policyToRefine] = this._policy.intersectWith(newpolicy);
+
     
-    this._policy = intersect;
     this._isInitialized = true;
   },
 
   
 
 
-  sendReports:
-  function(blockedUri, violatedDirective) {
-    var uriString = this._policy.getReportURIs();
+
+
+
+  refineEnforcedPolicy:
+  function csp_refineEnforcedPolicy(aPolicy, selfURI) {
+    return this._refinePolicyInternal("_enforcedPolicy", aPolicy, selfURI);
+  },
+
+  
+
+
+  refineReportOnlyPolicy:
+  function csp_refineReportOnlyPolicy(aPolicy, selfURI) {
+    return this._refinePolicyInternal("_reportOnlyPolicy", aPolicy, selfURI);
+  },
+
+  
+
+
+  _sendReports:
+  function(policyViolated, blockedUri, violatedDirective) {
+    var uriString = policyViolated.getReportURIs();
     var uris = uriString.split(/\s+/);
     if (uris.length > 0) {
       
@@ -341,22 +378,40 @@ ContentSecurityPolicy.prototype = {
     let cspContext = CSPRep.SRC_DIRECTIVES.FRAME_ANCESTORS;
     for (let i in ancestors) {
       let ancestor = ancestors[i].prePath;
-      if (!this._policy.permits(ancestor, cspContext)) {
-        
-        let directive = this._policy._directives[cspContext];
+
+      
+      if (this._reportOnlyPolicy) {
+        let directive = this._reportOnlyPolicy._directives[cspContext];
         let violatedPolicy = (directive._isImplicit
-                                ? 'allow' : 'frame-ancestors ')
-                                + directive.toString();
-        
-        this._observerService.notifyObservers(
-                                ancestors[i],
-                                CSP_VIOLATION_TOPIC, 
-                                violatedPolicy);
-        this.sendReports(ancestors[i].asciiSpec, violatedPolicy);
-        
-        return this._reportOnlyMode;
+                              ? 'allow' : 'frame-ancestors ')
+                              + directive.toString();
+        if (!this._reportOnlyPolicy.permits(ancestor, cspContext)) {
+          this._observerService.notifyObservers(
+                                  ancestors[i],
+                                  CSP_VIOLATION_TOPIC,
+                                  violatedPolicy);
+          this._sendReports(this._enforcedPolicy, ancestors[i].asciiSpec, violatedPolicy);
+        }
+      }
+
+      
+      if (this._enforcedPolicy) {
+        let directive = this._enforcedPolicy._directives[cspContext];
+        let violatedPolicy = (directive._isImplicit
+                              ? 'allow' : 'frame-ancestors ')
+                              + directive.toString();
+        if(!this._enforcedPolicy.permits(ancestor, cspContext)) {
+          this._observerService.notifyObservers(
+                                  ancestors[i],
+                                  CSP_VIOLATION_TOPIC,
+                                  violatedPolicy);
+          this._sendReports(this._enforcedPolicy, ancestors[i].asciiSpec, violatedPolicy);
+          return false;
+        }
       }
     }
+
+    
     return true;
   },
 
@@ -391,33 +446,58 @@ ContentSecurityPolicy.prototype = {
 
     
     
-    var res = this._policy.permits(aContentLocation, cspContext)
-              ? Ci.nsIContentPolicy.ACCEPT 
-              : Ci.nsIContentPolicy.REJECT_SERVER;
 
     
+    if (this._reportOnlyPolicy) {
+      var ro_res = this._reportOnlyPolicy.permits(aContentLocation, cspContext)
+                    ? Ci.nsIContentPolicy.ACCEPT
+                    : Ci.nsIContentPolicy.REJECT_SERVER;
 
-    
-    if (res != Ci.nsIContentPolicy.ACCEPT) { 
-      CSPdebug("blocking request for " + aContentLocation.asciiSpec);
-      try {
-        let directive = this._policy._directives[cspContext];
-        let violatedPolicy = (directive._isImplicit
-                                ? 'allow' : cspContext)
-                                + ' ' + directive.toString();
-        this._observerService.notifyObservers(
-                                aContentLocation,
-                                CSP_VIOLATION_TOPIC, 
-                                violatedPolicy);
-        this.sendReports(aContentLocation, violatedPolicy);
-      } catch(e) {
-        CSPdebug('---------------- ERROR: ' + e);
+      if (ro_res != Ci.nsIContentPolicy.ACCEPT) {
+        try {
+          let directive = this._reportOnlyPolicy._directives[cspContext];
+          let violatedPolicy = (directive._isImplicit
+                                  ? 'allow' : cspContext)
+                                  + ' ' + directive.toString();
+          this._observerService.notifyObservers(
+                                  aContentLocation,
+                                  CSP_VIOLATION_TOPIC,
+                                  violatedPolicy);
+          this._sendReports(this._reportOnlyPolicy, aContentLocation, violatedPolicy);
+        } catch(e) {
+          CSPdebug('---------------- ERROR: ' + e);
+        }
       }
     }
 
-    return (this._reportOnlyMode ? Ci.nsIContentPolicy.ACCEPT : res);
+    
+    if (this._enforcedPolicy) {
+      var en_res = this._enforcedPolicy.permits(aContentLocation, cspContext)
+                    ? Ci.nsIContentPolicy.ACCEPT
+                    : Ci.nsIContentPolicy.REJECT_SERVER;
+
+      if (en_res != Ci.nsIContentPolicy.ACCEPT) {
+        CSPdebug("blocking request for " + aContentLocation.asciiSpec);
+        try {
+          let directive = this._enforcedPolicy._directives[cspContext];
+          let violatedPolicy = (directive._isImplicit
+                                  ? 'allow' : cspContext)
+                                  + ' ' + directive.toString();
+          this._observerService.notifyObservers(
+                                  aContentLocation,
+                                  CSP_VIOLATION_TOPIC,
+                                  violatedPolicy);
+          this._sendReports(this._enforcedPolicy, aContentLocation, violatedPolicy);
+        } catch(e) {
+          CSPdebug('---------------- ERROR: ' + e);
+        }
+        return en_res;
+      }
+    }
+
+    return Ci.nsIContentPolicy.ACCEPT;
   },
-  
+
   shouldProcess:
   function csp_shouldProcess(aContentType,
                              aContentLocation,
