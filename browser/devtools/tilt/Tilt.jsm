@@ -46,7 +46,18 @@ const Cu = Components.utils;
 const TILT_NOTIFICATIONS = {
 
   
+  INITIALIZING: "tilt-initializing",
+
+  
+  
   INITIALIZED: "tilt-initialized",
+
+  
+  DESTROYING: "tilt-destroying",
+
+  
+  
+  BEFORE_DESTROYED: "tilt-before-destroyed",
 
   
   DESTROYED: "tilt-destroyed",
@@ -55,7 +66,16 @@ const TILT_NOTIFICATIONS = {
   SHOWN: "tilt-shown",
 
   
-  HIDDEN: "tilt-hidden"
+  HIDDEN: "tilt-hidden",
+
+  
+  HIGHLIGHTING: "tilt-highlighting",
+
+  
+  UNHIGHLIGHTING: "tilt-unhighlighting",
+
+  
+  NODE_REMOVED: "tilt-node-removed"
 };
 
 Cu.import("resource://gre/modules/Services.jsm");
@@ -109,7 +129,8 @@ Tilt.prototype = {
       parentNode: this.chromeWindow.gBrowser.selectedBrowser.parentNode,
       contentWindow: this.chromeWindow.gBrowser.selectedBrowser.contentWindow,
       requestAnimationFrame: this.chromeWindow.mozRequestAnimationFrame,
-      inspectorUI: this.chromeWindow.InspectorUI
+      inspectorUI: this.chromeWindow.InspectorUI,
+      notifications: this.NOTIFICATIONS
     });
 
     
@@ -118,7 +139,7 @@ Tilt.prototype = {
       return;
     }
 
-    Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.INITIALIZED, null);
+    Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.INITIALIZING, null);
   },
 
   
@@ -157,11 +178,12 @@ Tilt.prototype = {
       let controller = this.visualizers[aId].controller;
       let presenter = this.visualizers[aId].presenter;
 
-      TiltUtils.setDocumentZoom(presenter.transforms.zoom);
-
       let content = presenter.contentWindow;
-      let pageXOffset = content.pageXOffset * TiltUtils.getDocumentZoom();
-      let pageYOffset = content.pageYOffset * TiltUtils.getDocumentZoom();
+      let pageXOffset = content.pageXOffset * presenter.transforms.zoom;
+      let pageYOffset = content.pageYOffset * presenter.transforms.zoom;
+
+      Services.obs.notifyObservers(null, TILT_NOTIFICATIONS.DESTROYING, null);
+      TiltUtils.setDocumentZoom(presenter.transforms.zoom);
 
       controller.removeEventListeners();
       controller.arcball.reset([-pageXOffset, -pageYOffset]);
@@ -173,7 +195,7 @@ Tilt.prototype = {
 
 
 
-  _whenInitialized: function T__whenInitialized()
+  _whenInitializing: function T__whenInitializing()
   {
     this._whenShown();
   },
@@ -250,7 +272,7 @@ Tilt.prototype = {
 
     
     Services.obs.addObserver(
-      this._whenInitialized.bind(this), TILT_NOTIFICATIONS.INITIALIZED, false);
+      this._whenInitializing.bind(this), TILT_NOTIFICATIONS.INITIALIZING, false);
     Services.obs.addObserver(
       this._whenDestroyed.bind(this), TILT_NOTIFICATIONS.DESTROYED, false);
     Services.obs.addObserver(
@@ -284,7 +306,7 @@ Tilt.prototype = {
     Services.obs.addObserver(onClosed,
       this.chromeWindow.InspectorUI.INSPECTOR_NOTIFICATIONS.CLOSED, false);
     Services.obs.addObserver(onOpened,
-      TILT_NOTIFICATIONS.INITIALIZED, false);
+      TILT_NOTIFICATIONS.INITIALIZING, false);
     Services.obs.addObserver(onClosed,
       TILT_NOTIFICATIONS.DESTROYED, false);
 

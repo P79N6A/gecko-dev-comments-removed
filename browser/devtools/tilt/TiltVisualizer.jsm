@@ -78,12 +78,14 @@ const ARCBALL_RESET_INTERVAL = 1000 / 60;
 const TILT_CRAFTER = "resource:///modules/devtools/TiltWorkerCrafter.js";
 const TILT_PICKER = "resource:///modules/devtools/TiltWorkerPicker.js";
 
+Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource:///modules/devtools/TiltGL.jsm");
 Cu.import("resource:///modules/devtools/TiltMath.jsm");
 Cu.import("resource:///modules/devtools/TiltUtils.jsm");
 Cu.import("resource:///modules/devtools/TiltVisualizerStyle.jsm");
 
 let EXPORTED_SYMBOLS = ["TiltVisualizer"];
+
 
 
 
@@ -117,6 +119,7 @@ function TiltVisualizer(aProperties)
     aProperties.contentWindow,
     aProperties.requestAnimationFrame,
     aProperties.inspectorUI,
+    aProperties.notifications,
     aProperties.onError || null,
     aProperties.onLoad || null);
 
@@ -182,14 +185,21 @@ TiltVisualizer.prototype = {
 
 
 
+
+
 TiltVisualizer.Presenter = function TV_Presenter(
-  aCanvas, aContentWindow, aRequestAnimationFrame, aInspectorUI,
+  aCanvas, aContentWindow, aRequestAnimationFrame, aInspectorUI, aNotifications,
   onError, onLoad)
 {
   this.canvas = aCanvas;
   this.contentWindow = aContentWindow;
   this.inspectorUI = aInspectorUI;
   this.tiltUI = aInspectorUI.chromeWin.Tilt;
+
+  
+
+
+  this.NOTIFICATIONS = aNotifications;
 
   
 
@@ -234,8 +244,9 @@ TiltVisualizer.Presenter = function TV_Presenter(
   
 
 
-  this._initialSelection = false; 
   this._currentSelection = -1; 
+  this._initialSelection = false; 
+  this._initialMeshConfiguration = false; 
 
   
 
@@ -300,23 +311,7 @@ TiltVisualizer.Presenter = function TV_Presenter(
       this.ondraw(this.frames);
     }
 
-    if (!TiltVisualizer.Prefs.introTransition && !this.isExecutingDestruction) {
-      this.frames = INTRO_TRANSITION_DURATION;
-    }
-    if (!TiltVisualizer.Prefs.outroTransition && this.isExecutingDestruction) {
-      this.frames = OUTRO_TRANSITION_DURATION;
-    }
-
-    if ("function" === typeof this.onInitializationFinished &&
-        this.frames === INTRO_TRANSITION_DURATION &&
-       !this.isExecutingDestruction) {
-      this.onInitializationFinished();
-    }
-    if ("function" === typeof this.onDestructionFinished &&
-        this.frames === OUTRO_TRANSITION_DURATION &&
-        this.isExecutingDestruction) {
-      this.onDestructionFinished();
-    }
+    this.handleKeyframeNotifications();
   }.bind(this);
 
   setup();
@@ -629,10 +624,6 @@ TiltVisualizer.Presenter.prototype = {
 
   highlightNode: function TVP_highlightNode(aNode)
   {
-    if (!aNode) {
-      return;
-    }
-
     this.highlightNodeFor(this.traverseData.nodes.indexOf(aNode));
   },
 
@@ -701,10 +692,13 @@ TiltVisualizer.Presenter.prototype = {
     if (this._currentSelection === aNodeIndex) {
       return;
     }
+
     
     if (aNodeIndex < 0) {
       this._currentSelection = -1;
       this.highlight.disabled = true;
+
+      Services.obs.notifyObservers(null, this.NOTIFICATIONS.UNHIGHLIGHTING, null);
       return;
     }
 
@@ -732,6 +726,8 @@ TiltVisualizer.Presenter.prototype = {
     this._currentSelection = aNodeIndex;
     this.inspectorUI.inspectNode(node, this.contentWindow.innerHeight < y ||
                                        this.contentWindow.pageYOffset > 0);
+
+    Services.obs.notifyObservers(null, this.NOTIFICATIONS.HIGHLIGHTING, null);
   },
 
   
@@ -758,6 +754,9 @@ TiltVisualizer.Presenter.prototype = {
     this.meshStacks.vertices = new renderer.VertexBuffer(meshData.vertices, 3);
     this.highlight.disabled = true;
     this.redraw = true;
+
+    Services.obs.notifyObservers(null,
+      this.NOTIFICATIONS.NODE_REMOVED, null);
   },
 
   
@@ -869,11 +868,34 @@ TiltVisualizer.Presenter.prototype = {
   
 
 
-
-
-  isInitialized: function TVP_isInitialized()
+  handleKeyframeNotifications: function TV_handleKeyframeNotifications()
   {
-    return this.renderer && this.renderer.context;
+    if (!TiltVisualizer.Prefs.introTransition && !this.isExecutingDestruction) {
+      this.frames = INTRO_TRANSITION_DURATION;
+    }
+    if (!TiltVisualizer.Prefs.outroTransition && this.isExecutingDestruction) {
+      this.frames = OUTRO_TRANSITION_DURATION;
+    }
+
+    if (this.frames === INTRO_TRANSITION_DURATION &&
+       !this.isExecutingDestruction) {
+
+      Services.obs.notifyObservers(null, this.NOTIFICATIONS.INITIALIZED, null);
+
+      if ("function" === typeof this.onInitializationFinished) {
+        this.onInitializationFinished();
+      }
+    }
+
+    if (this.frames === OUTRO_TRANSITION_DURATION &&
+        this.isExecutingDestruction) {
+
+      Services.obs.notifyObservers(null, this.NOTIFICATIONS.BEFORE_DESTROYED, null);
+
+      if ("function" === typeof this.onDestructionFinished) {
+        this.onDestructionFinished();
+      }
+    }
   },
 
   
@@ -889,6 +911,10 @@ TiltVisualizer.Presenter.prototype = {
       this.isExecutingDestruction = true;
       this.onDestructionFinished = aCallback;
 
+      
+      
+      
+
       if (this.frames > OUTRO_TRANSITION_DURATION) {
         this.frames = 0;
         this.redraw = true;
@@ -896,6 +922,16 @@ TiltVisualizer.Presenter.prototype = {
         aCallback();
       }
     }
+  },
+
+  
+
+
+
+
+  isInitialized: function TVP_isInitialized()
+  {
+    return this.renderer && this.renderer.context;
   },
 
   
@@ -1156,9 +1192,10 @@ TiltVisualizer.Controller.prototype = {
   onKeyUp: function TVC_onKeyUp(e)
   {
     let code = e.keyCode || e.which;
+    let tilt = this.presenter.tiltUI;
 
     if (code === e.DOM_VK_ESCAPE) {
-      this.presenter.tiltUI.destroy(this.presenter.tiltUI.currentWindowId, 1);
+      tilt.destroy(tilt.currentWindowId, true);
       return;
     }
     if (code === e.DOM_VK_X) {
@@ -1758,8 +1795,8 @@ TiltVisualizer.Arcball.prototype = {
   
 
 
-  _loadKeys: function TVA__loadKeys() {
-
+  _loadKeys: function TVA__loadKeys()
+  {
     this.rotateKeys = {
       "up": Ci.nsIDOMKeyEvent["DOM_VK_W"],
       "down": Ci.nsIDOMKeyEvent["DOM_VK_S"],
