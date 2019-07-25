@@ -9,6 +9,9 @@
 #include "gfxUtils.h"
 #include "gfxSharedImageSurface.h"
 #include "mozilla/layers/ImageContainerChild.h"
+#ifdef MOZ_X11
+#include "gfxXlibSurface.h"
+#endif
 
 using namespace mozilla::gfx;
 
@@ -130,17 +133,17 @@ BasicImageLayer::PaintContext(gfxPattern* aPattern,
   
   gfxPattern::GraphicsExtend extend = gfxPattern::EXTEND_PAD;
 
+#ifdef MOZ_X11
+  
+  
   if (aContext->IsCairo()) {
-    
-    
     nsRefPtr<gfxASurface> target = aContext->CurrentSurface();
-    gfxASurface::gfxSurfaceType type = target->GetType();
-    if (type == gfxASurface::SurfaceTypeXlib ||
-        type == gfxASurface::SurfaceTypeXcb ||
-        type == gfxASurface::SurfaceTypeQuartz) {
+    if (target->GetType() == gfxASurface::SurfaceTypeXlib &&
+        static_cast<gfxXlibSurface*>(target.get())->IsPadSlow()) {
       extend = gfxPattern::EXTEND_NONE;
     }
   }
+#endif
 
   aContext->NewPath();
   
