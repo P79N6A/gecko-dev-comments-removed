@@ -1129,7 +1129,7 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
     JSString *str = argv[0].toString();
     JSScript *script = NULL;
-    
+
     const jschar *chars;
     size_t length;
     str->getCharsAndLength(chars, length);
@@ -5063,6 +5063,24 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
             shape = NULL;
         }
+
+        if (shape) {
+            if (shape->isMethod()) {
+                JS_ASSERT(pobj->hasMethodBarrier());
+            } else if ((defineHow & JSDNP_SET_METHOD) && obj->canHaveMethodBarrier()) {
+                JS_ASSERT(IsFunctionObject(*vp));
+                JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
+
+                JSObject *funobj = &vp->toObject();
+                JSFunction *fun = GET_FUNCTION_PRIVATE(cx, funobj);
+                if (fun == funobj) {
+                    funobj = CloneFunctionObject(cx, fun, fun->parent);
+                    if (!funobj)
+                        return JS_FALSE;
+                    vp->setObject(*funobj);
+                }
+            }
+        }
     }
 
     added = false;
@@ -6058,7 +6076,8 @@ JSObject::getCompartment(JSContext *cx)
 
         
         if (clasp == &js_NamespaceClass &&
-            obj->getNameURI() == ATOM_TO_JSVAL(cx->runtime->atomState.lazy.functionNamespaceURIAtom)) {
+            obj->getNameURI() == ATOM_TO_JSVAL(cx->runtime->
+                                               atomState.lazy.functionNamespaceURIAtom)) {
             return cx->runtime->defaultCompartment;
         }
 
@@ -6066,7 +6085,8 @@ JSObject::getCompartment(JSContext *cx)
 
 
 
-        if (clasp == &js_FunctionClass || clasp == &js_BlockClass || clasp == &js_RegExpClass || clasp == &js_ScriptClass) {
+        if (clasp == &js_FunctionClass || clasp == &js_BlockClass || clasp == &js_RegExpClass ||
+            clasp == &js_ScriptClass) {
             
             return cx->runtime->defaultCompartment;
         }
