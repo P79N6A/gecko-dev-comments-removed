@@ -480,18 +480,8 @@ RasterImage::ExtractFrame(PRUint32 aWhichFrame,
   img->mHasBeenDecoded = true;
   img->mFrameDecodeFlags = aFlags & DECODE_FLAGS_MASK;
 
-  if (img->mFrameDecodeFlags != mFrameDecodeFlags) {
-    
-    
-    
-    if (!(aFlags & FLAG_SYNC_DECODE))
-      return NS_ERROR_NOT_AVAILABLE;
-    if (!CanForciblyDiscard() || mDecoder || mAnim)
-      return NS_ERROR_NOT_AVAILABLE;
-    ForceDiscard();
-
-    mFrameDecodeFlags = img->mFrameDecodeFlags;
-  }
+  if (!ApplyDecodeFlags(aFlags))
+    return NS_ERROR_NOT_AVAILABLE;
   
   
   if (aFlags & FLAG_SYNC_DECODE) {
@@ -768,19 +758,8 @@ RasterImage::CopyFrame(PRUint32 aWhichFrame,
 
   nsresult rv;
 
-  PRUint32 desiredDecodeFlags = aFlags & DECODE_FLAGS_MASK;
-  if (desiredDecodeFlags != mFrameDecodeFlags) {
-    
-    
-    
-    if (!(aFlags & FLAG_SYNC_DECODE))
-      return NS_ERROR_NOT_AVAILABLE;
-    if (!CanForciblyDiscard() || mDecoder || mAnim)
-      return NS_ERROR_NOT_AVAILABLE;
-    ForceDiscard();
-
-    mFrameDecodeFlags = desiredDecodeFlags;
-  }
+  if (!ApplyDecodeFlags(aFlags))
+    return NS_ERROR_NOT_AVAILABLE;
 
   
   if (aFlags & FLAG_SYNC_DECODE) {
@@ -841,26 +820,8 @@ RasterImage::GetFrame(PRUint32 aWhichFrame,
 
   nsresult rv = NS_OK;
 
-  PRUint32 desiredDecodeFlags = aFlags & DECODE_FLAGS_MASK;
-
-  if (mDecoded) {
-    
-    
-
-    if (desiredDecodeFlags != mFrameDecodeFlags) {
-      
-      
-      
-      if (!(aFlags & FLAG_SYNC_DECODE))
-        return NS_ERROR_NOT_AVAILABLE;
-      if (!CanForciblyDiscard() || mDecoder || mAnim)
-        return NS_ERROR_NOT_AVAILABLE;
-  
-      ForceDiscard();
-    }
-  }
-
-  mFrameDecodeFlags = desiredDecodeFlags;
+  if (!ApplyDecodeFlags(aFlags))
+    return NS_ERROR_NOT_AVAILABLE;
 
   
   if (aFlags & FLAG_SYNC_DECODE) {
@@ -1085,6 +1046,27 @@ RasterImage::InternalAddFrame(PRUint32 framenum,
   EvaluateAnimation();
   
   return rv;
+}
+
+bool
+RasterImage::ApplyDecodeFlags(PRUint32 aNewFlags)
+{
+  if (mFrameDecodeFlags == (aNewFlags & DECODE_FLAGS_MASK))
+    return true; 
+
+  if (mDecoded) {
+    
+    
+    
+    if (!(aNewFlags & FLAG_SYNC_DECODE))
+      return false;
+    if (!CanForciblyDiscard() || mDecoder || mAnim)
+      return false;
+    ForceDiscard();
+  }
+
+  mFrameDecodeFlags = aNewFlags & DECODE_FLAGS_MASK;
+  return true;
 }
 
 nsresult
