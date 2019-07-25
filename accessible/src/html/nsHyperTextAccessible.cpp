@@ -2059,6 +2059,26 @@ nsHyperTextAccessible::ScrollSubstringToPoint(PRInt32 aStartIndex,
 
 
 
+nsresult
+nsHyperTextAccessible::GetNameInternal(nsAString& aName)
+{
+  nsresult rv = nsAccessibleWrap::GetNameInternal(aName);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  if (aName.IsEmpty() && mContent->IsHTML() &&
+      (mContent->Tag() == nsGkAtoms::abbr || mContent->Tag() == nsGkAtoms::acronym)) {
+    nsAutoString name;
+    if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::title, name)) {
+      name.CompressWhitespace();
+      aName = name;
+    }
+  }
+  return NS_OK;
+}
+
 void
 nsHyperTextAccessible::InvalidateChildren()
 {
