@@ -53,6 +53,28 @@ function testText(aIDs, aStartOffset, aEndOffset, aText)
 
 
 
+function testCharAtOffset(aIDs, aOffset, aChar, aStartOffset, aEndOffset)
+{
+  var IDs = (aIDs instanceof Array) ? aIDs : [ aIDs ];
+  for (var i = 0; i < IDs.length; i++) {
+    var acc = getAccessible(IDs[i], nsIAccessibleText);
+    testTextHelper(IDs[i], aOffset, BOUNDARY_CHAR,
+                   aChar, aStartOffset, aEndOffset,
+                   kOk, kOk, kOk,
+                   acc.getTextAtOffset, "getTextAtOffset ");
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -85,6 +107,27 @@ function testTextAtOffset(aOffset, aBoundaryType, aText,
 
 
 
+function testCharAfterOffset(aIDs, aOffset, aChar, aStartOffset, aEndOffset)
+{
+  var IDs = (aIDs instanceof Array) ? aIDs : [ aIDs ];
+  for (var i = 0; i < IDs.length; i++) {
+    var acc = getAccessible(IDs[i], nsIAccessibleText);
+    testTextHelper(IDs[i], aOffset, BOUNDARY_CHAR,
+                   aChar, aStartOffset, aEndOffset,
+                   kOk, kOk, kOk,
+                   acc.getTextAfterOffset, "getTextAfterOffset ");
+  }
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -104,6 +147,28 @@ function testTextAfterOffset(aOffset, aBoundaryType,
                    aText, aStartOffset, aEndOffset,
                    toDoFlag1, toDoFlag2, toDoFlag3, 
                    acc.getTextAfterOffset, "getTextAfterOffset ");
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+function testCharBeforeOffset(aIDs, aOffset, aChar, aStartOffset, aEndOffset)
+{
+  var IDs = (aIDs instanceof Array) ? aIDs : [ aIDs ];
+  for (var i = 0; i < IDs.length; i++) {
+    var acc = getAccessible(IDs[i], nsIAccessibleText);
+    testTextHelper(IDs[i], aOffset, BOUNDARY_CHAR,
+                   aChar, aStartOffset, aEndOffset,
+                   kOk, kOk, kOk,
+                   acc.getTextBeforeOffset, "getTextBeforeOffset ");
   }
 }
 

@@ -218,6 +218,20 @@ public:
 
 
 
+
+
+
+  bool GetCharAt(PRInt32 aOffset, EGetTextType aShift, nsAString& aChar,
+                 PRInt32* aStartOffset = nsnull, PRInt32* aEndOffset = nsnull);
+
+  
+
+
+
+
+
+
+
   PRInt32 GetChildOffset(nsAccessible* aChild,
                          PRBool aInvalidateAfter = PR_FALSE)
   {
@@ -250,6 +264,23 @@ public:
 
 protected:
   
+
+  
+
+
+  inline PRInt32 ConvertMagicOffset(PRInt32 aOffset)
+  {
+    if (aOffset == nsIAccessibleText::TEXT_OFFSET_END_OF_TEXT)
+      return CharacterCount();
+
+    if (aOffset == nsIAccessibleText::TEXT_OFFSET_CARET) {
+      PRInt32 caretOffset = -1;
+      GetCaretOffset(&caretOffset);
+      return caretOffset;
+    }
+
+    return aOffset;
+  }
 
   
 
