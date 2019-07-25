@@ -598,18 +598,6 @@ var gAdvancedPane = {
 
   
 
-
-
-  updateAddonUpdateUI: function ()
-  {
-    var enabledPref = document.getElementById("extensions.update.enabled");
-    var enableAddonUpdate = document.getElementById("enableAddonUpdate");
-
-    enableAddonUpdate.disabled = enabledPref.locked;
-  },
-
-  
-
   
 
 
