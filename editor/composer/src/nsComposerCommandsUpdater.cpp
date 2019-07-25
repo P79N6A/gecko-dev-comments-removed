@@ -4,19 +4,25 @@
 
 
 
-#include "nsPIDOMWindow.h"
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"
+#include "nsComponentManagerUtils.h"    
 #include "nsComposerCommandsUpdater.h"
-#include "nsComponentManagerUtils.h"
-#include "nsIDOMDocument.h"
-#include "nsISelection.h"
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsICommandManager.h"          
+#include "nsID.h"                       
+#include "nsIDOMWindow.h"               
+#include "nsIDocShell.h"                
+#include "nsIInterfaceRequestorUtils.h"  
+#include "nsISelection.h"               
+#include "nsITransactionManager.h"      
+#include "nsLiteralString.h"            
+#include "nsPICommandUpdater.h"         
+#include "nsPIDOMWindow.h"              
 
-#include "nsIInterfaceRequestorUtils.h"
-#include "nsString.h"
-
-#include "nsICommandManager.h"
-
-#include "nsIDocShell.h"
-#include "nsITransactionManager.h"
+class nsIDOMDocument;
+class nsITransaction;
 
 nsComposerCommandsUpdater::nsComposerCommandsUpdater()
 :  mDirtyState(eStateUninitialized)

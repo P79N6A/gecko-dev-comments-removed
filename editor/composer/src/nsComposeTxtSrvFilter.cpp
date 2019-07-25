@@ -3,11 +3,15 @@
 
 
 
+#include "nsCaseTreatment.h"
 #include "nsComposeTxtSrvFilter.h"
-#include "nsIContent.h"
-#include "nsIDOMNode.h"
-#include "nsString.h"
-#include "nsINameSpaceManager.h"
+#include "nsError.h"                    
+#include "nsIContent.h"                 
+#include "nsID.h"
+#include "nsIDOMNode.h"                 
+#include "nsINameSpaceManager.h"        
+#include "nsLiteralString.h"            
+#include "nscore.h"                     
 
 nsComposeTxtSrvFilter::nsComposeTxtSrvFilter() :
   mIsForMail(false)

@@ -4,26 +4,32 @@
 
 
 
-#include "nsIEditor.h"
-#include "nsIEditingSession.h"
-#include "nsIPlaintextEditor.h"
-#include "nsIHTMLEditor.h"
-#include "nsIHTMLObjectResizer.h"
-#include "nsIHTMLInlineTableEditor.h"
+#include "nsAutoPtr.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsCRT.h"                      
+#include "nsComposerCommands.h"         
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsICommandParams.h"           
+#include "nsIDOMDocument.h"             
+#include "nsIDocShell.h"                
+#include "nsIDocument.h"                
+#include "nsIEditingSession.h"          
+#include "nsIEditor.h"                  
+#include "nsIHTMLEditor.h"              
+#include "nsIHTMLInlineTableEditor.h"   
+#include "nsIHTMLObjectResizer.h"       
+#include "nsIPlaintextEditor.h"         
+#include "nsIPresShell.h"               
+#include "nsISelectionController.h"     
+#include "nsISupportsImpl.h"            
+#include "nsISupportsUtils.h"           
+#include "nsIURI.h"                     
+#include "nsPresContext.h"              
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
-#include "nsIDOMDocument.h"
-#include "nsIDocument.h"
-#include "nsISelectionController.h"
-#include "nsIPresShell.h"
-#include "nsPresContext.h"
-#include "nsIDocShell.h"
-#include "nsIURI.h"
-
-#include "nsCOMPtr.h"
-
-#include "nsComposerCommands.h"
-#include "nsICommandParams.h"
-#include "nsCRT.h"
+class nsISupports;
 
 
 #define STATE_ENABLED  "state_enabled"

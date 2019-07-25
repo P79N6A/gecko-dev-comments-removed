@@ -15,6 +15,8 @@
 
 
 
+
+
 #ifndef STYLE_STRUCT_INHERITED
 #define STYLE_STRUCT_INHERITED(name, checkdata_cb, ctor_args) \
   STYLE_STRUCT(name, checkdata_cb, ctor_args)

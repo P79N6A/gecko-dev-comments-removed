@@ -4,6 +4,8 @@
 
 
 
+
+
 #define CharT                               PRUnichar
 #define CharT_is_PRUnichar                  1
 #define nsTAString_IncompatibleCharT        nsACString

@@ -3,10 +3,18 @@
 
 
 
+#include "mozilla/mozalloc.h"
+#include "nsCOMPtr.h"
+#include "nsDebug.h"
+#include "nsError.h"
+#include "nsID.h"
+#include "nsISupportsUtils.h"
 #include "nsITransactionManager.h"
 #include "nsTransactionItem.h"
 #include "nsTransactionList.h"
 #include "nsTransactionStack.h"
+#include "nscore.h"
+#include "prtypes.h"
 
 NS_IMPL_ISUPPORTS1(nsTransactionList, nsITransactionList)
 

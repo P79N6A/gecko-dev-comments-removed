@@ -7,10 +7,14 @@
 #define nsComposerCommands_h_
 
 #include "nsIControllerCommand.h"
-#include "nsString.h"
+#include "nsISupportsImpl.h"            
+#include "nscore.h"                     
 
-class nsIEditor;
 class nsIAtom;
+class nsICommandParams;
+class nsIEditor;
+class nsISupports;
+class nsString;
 
 
 

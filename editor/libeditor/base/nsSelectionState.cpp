@@ -3,13 +3,21 @@
 
 
 
+#include "mozilla/Assertions.h"         
+#include "nsAString.h"                  
+#include "nsAutoPtr.h"                  
+#include "nsCycleCollectionParticipant.h"
+#include "nsDebug.h"                    
+#include "nsEditor.h"                   
+#include "nsEditorUtils.h"              
+#include "nsError.h"                    
+#include "nsIDOMCharacterData.h"        
+#include "nsIDOMNode.h"                 
+#include "nsIDOMRange.h"                
+#include "nsISelection.h"               
+#include "nsISupportsImpl.h"            
+#include "nsRange.h"                    
 #include "nsSelectionState.h"
-#include "nsIDOMCharacterData.h"
-#include "nsIDOMNode.h"
-#include "nsRange.h"
-#include "nsISelection.h"
-#include "nsEditor.h"
-#include "nsEditorUtils.h"
 
 
 

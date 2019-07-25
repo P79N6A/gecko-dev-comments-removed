@@ -6,10 +6,13 @@
 #ifndef SplitElementTxn_h__
 #define SplitElementTxn_h__
 
-#include "EditTxn.h"
-#include "nsIDOMNode.h"
-#include "nsCOMPtr.h"
-#include "nsIEditor.h"
+#include "EditTxn.h"                    
+#include "nsCOMPtr.h"                   
+#include "nsCycleCollectionParticipant.h"
+#include "nsIDOMNode.h"                 
+#include "nsISupportsImpl.h"            
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
 class nsEditor;
 

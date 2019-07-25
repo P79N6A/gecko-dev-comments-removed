@@ -6,10 +6,15 @@
 #ifndef InsertElementTxn_h__
 #define InsertElementTxn_h__
 
-#include "EditTxn.h"
-#include "nsIEditor.h"
-#include "nsIDOMNode.h"
-#include "nsCOMPtr.h"
+#include "EditTxn.h"                    
+#include "nsCOMPtr.h"                   
+#include "nsCycleCollectionParticipant.h"
+#include "nsIDOMNode.h"                 
+#include "nsISupportsImpl.h"            
+#include "nscore.h"                     
+#include "prtypes.h"                    
+
+class nsIEditor;
 
 
 

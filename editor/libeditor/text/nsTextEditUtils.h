@@ -6,7 +6,7 @@
 #ifndef nsTextEditUtils_h__
 #define nsTextEditUtils_h__
 
-#include "nsError.h"  
+#include "nscore.h"
 
 namespace mozilla {
 namespace dom {

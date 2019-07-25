@@ -4,25 +4,31 @@
 
 
 
-#include "nsIEditor.h"
-#include "nsIHTMLEditor.h"
-#include "nsIHTMLAbsPosEditor.h"
+#include <stdio.h>                      
 
-#include "nsIDOMElement.h"
-#include "nsIAtom.h"
-#include "nsGkAtoms.h"
-
-#include "nsIClipboard.h"
-
-#include "nsCOMPtr.h"
-
+#include "mozilla/Assertions.h"         
+#include "nsAString.h"
+#include "nsCOMPtr.h"                   
+#include "nsComponentManagerUtils.h"    
 #include "nsComposerCommands.h"
-#include "nsReadableUtils.h"
-#include "nsUnicharUtils.h"
-#include "nsICommandParams.h"
-#include "nsComponentManagerUtils.h"
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsGkAtoms.h"                  
+#include "nsIAtom.h"                    
+#include "nsIClipboard.h"               
+#include "nsICommandParams.h"           
+#include "nsID.h"
+#include "nsIDOMElement.h"              
+#include "nsIEditor.h"                  
+#include "nsIHTMLAbsPosEditor.h"        
+#include "nsIHTMLEditor.h"              
+#include "nsLiteralString.h"            
+#include "nsReadableUtils.h"            
+#include "nsString.h"                   
+#include "nsStringFwd.h"                
+#include "prtypes.h"                    
 
-#include "mozilla/Assertions.h"
+class nsISupports;
 
 
 nsresult GetListState(nsIHTMLEditor* aEditor, bool* aMixed,

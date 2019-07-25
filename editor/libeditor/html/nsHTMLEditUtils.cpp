@@ -3,24 +3,27 @@
 
 
 
+#include "./../../mozilla-config.h"     
+#include "mozilla/Assertions.h"         
+#include "mozilla/Util.h"               
+#include "mozilla/dom/Element.h"        
+#include "nsAString.h"                  
+#include "nsCOMPtr.h"                   
+#include "nsCaseTreatment.h"
+#include "nsDebug.h"                    
+#include "nsEditProperty.h"             
+#include "nsEditor.h"                   
+#include "nsError.h"                    
+#include "nsGkAtoms.h"                  
 #include "nsHTMLEditUtils.h"
-
-#include "mozilla/Assertions.h"
-#include "mozilla/Util.h"
-#include "mozilla/dom/Element.h"
-
-#include "nsTextEditUtils.h"
-
-#include "nsString.h"
-#include "nsUnicharUtils.h"
-#include "nsEditor.h"
-#include "nsEditProperty.h"
-#include "nsIAtom.h"
-#include "nsIDOMNode.h"
-#include "nsIContent.h"
-#include "nsIDOMNodeList.h"
-#include "nsIDOMHTMLAnchorElement.h"
 #include "nsHTMLTags.h"
+#include "nsIAtom.h"                    
+#include "nsIDOMHTMLAnchorElement.h"    
+#include "nsIDOMNode.h"                 
+#include "nsINameSpaceManager.h"        
+#include "nsLiteralString.h"            
+#include "nsString.h"                   
+#include "nsTextEditUtils.h"            
 
 using namespace mozilla;
 

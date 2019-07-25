@@ -4,6 +4,8 @@
 
 
 
+
+
 #define CharT                               char
 #define CharT_is_char                       1
 #define nsTAString_IncompatibleCharT        nsAString

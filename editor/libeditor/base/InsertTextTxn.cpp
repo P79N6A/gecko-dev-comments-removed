@@ -3,10 +3,17 @@
 
 
 
+#include <stdio.h>                      
+
 #include "InsertTextTxn.h"
-#include "nsIDOMCharacterData.h"
-#include "nsISelection.h"
-#include "EditAggregateTxn.h"
+#include "nsAString.h"
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsIDOMCharacterData.h"        
+#include "nsIEditor.h"                  
+#include "nsISelection.h"               
+#include "nsISupportsUtils.h"           
+#include "nsITransaction.h"             
 
 #ifdef DEBUG
 static bool gNoisy = false;

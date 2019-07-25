@@ -4,15 +4,20 @@
 
 
 
-#include "nsEditor.h"
+#include <stddef.h>                     
 
-#include "nsCSSStyleSheet.h"
-#include "nsIDocument.h"
-#include "nsIDocumentObserver.h"
-#include "nsISelectionController.h"
-
-
+#include "nsAString.h"
+#include "nsCOMPtr.h"                   
+#include "nsCSSStyleSheet.h"            
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsIDOMDocument.h"             
+#include "nsIDocument.h"                
+#include "nsIDocumentObserver.h"        
+#include "nsIEditor.h"                  
 #include "nsStyleSheetTxns.h"
+
+class nsIStyleSheet;
 
 static void
 AddStyleSheet(nsIEditor* aEditor, nsIStyleSheet* aSheet)

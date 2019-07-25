@@ -6,56 +6,76 @@
 #ifndef __editor_h__
 #define __editor_h__
 
-#include "nsCOMPtr.h"
-#include "nsWeakReference.h"
-
-#include "nsIEditor.h"
-#include "nsIPlaintextEditor.h"
-#include "nsIEditorIMESupport.h"
-#include "nsIPhonetic.h"
-
-#include "nsIAtom.h"
-#include "nsIDOMDocument.h"
-#include "mozilla/Selection.h"
-#include "nsIDOMCharacterData.h"
-#include "nsIPrivateTextRange.h"
-#include "nsTransactionManager.h"
-#include "nsIComponentManager.h"
-#include "nsCOMArray.h"
-#include "nsIEditActionListener.h"
-#include "nsIEditorObserver.h"
-#include "nsIDocumentStateListener.h"
-#include "nsIDOMElement.h"
-#include "nsSelectionState.h"
-#include "nsIEditorSpellCheck.h"
-#include "nsIInlineSpellChecker.h"
-#include "nsIDOMEventTarget.h"
-#include "nsStubMutationObserver.h"
-#include "nsIViewManager.h"
+#include "mozilla/Assertions.h"         
+#include "nsAutoPtr.h"                  
+#include "nsCOMArray.h"                 
+#include "nsCOMPtr.h"                   
 #include "nsCycleCollectionParticipant.h"
-#include "nsIObserver.h"
+#include "nsEditProperty.h"             
+#include "nsIEditor.h"                  
+#include "nsIEditorIMESupport.h"        
+#include "nsIObserver.h"                
+#include "nsIPhonetic.h"                
+#include "nsIPlaintextEditor.h"         
+#include "nsISupportsImpl.h"            
+#include "nsIWeakReferenceUtils.h"      
+#include "nsLiteralString.h"            
+#include "nsSelectionState.h"           
+#include "nsString.h"                   
+#include "nsWeakReference.h"            
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
-class nsIDOMCharacterData;
-class nsIDOMRange;
-class nsIPresShell;
+class AddStyleSheetTxn;
 class ChangeAttributeTxn;
 class CreateElementTxn;
-class InsertElementTxn;
 class DeleteNodeTxn;
-class InsertTextTxn;
 class DeleteTextTxn;
-class SplitElementTxn;
-class JoinElementTxn;
 class EditAggregateTxn;
 class IMETextTxn;
-class AddStyleSheetTxn;
+class InsertElementTxn;
+class InsertTextTxn;
+class JoinElementTxn;
 class RemoveStyleSheetTxn;
-class nsIFile;
-class nsISelectionController;
-class nsIDOMEventTarget;
+class SplitElementTxn;
 class nsCSSStyleSheet;
-class nsKeyEvent;
+class nsIAtom;
+class nsIContent;
+class nsIDOMCharacterData;
+class nsIDOMDataTransfer;
+class nsIDOMDocument;
+class nsIDOMElement;
+class nsIDOMEvent;
+class nsIDOMEventListener;
+class nsIDOMEventTarget;
+class nsIDOMKeyEvent;
 class nsIDOMNSEvent;
+class nsIDOMNode;
+class nsIDOMRange;
+class nsIDocument;
+class nsIDocumentStateListener;
+class nsIEditActionListener;
+class nsIEditorObserver;
+class nsIInlineSpellChecker;
+class nsINode;
+class nsIPresShell;
+class nsIPrivateTextRangeList;
+class nsISelection;
+class nsISupports;
+class nsITransaction;
+class nsIWidget;
+class nsKeyEvent;
+class nsRange;
+class nsString;
+class nsTransactionManager;
+
+namespace mozilla {
+class Selection;
+
+namespace dom {
+class Element;
+}  
+}  
 
 namespace mozilla {
 namespace widget {

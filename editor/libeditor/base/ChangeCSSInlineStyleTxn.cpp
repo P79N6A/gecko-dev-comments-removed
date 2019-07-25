@@ -4,14 +4,25 @@
 
 
 #include "ChangeCSSInlineStyleTxn.h"
-#include "nsIDOMElement.h"
-#include "nsIDOMCSSStyleDeclaration.h"
+#include "nsAString.h"                  
+#include "nsCRT.h"                      
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsGkAtoms.h"                  
+#include "nsIAtom.h"                    
+#include "nsIDOMCSSStyleDeclaration.h"  
+#include "nsIDOMElement.h"              
 #include "nsIDOMElementCSSInlineStyle.h"
-#include "nsReadableUtils.h"
+#include "nsISupportsImpl.h"            
+#include "nsISupportsUtils.h"           
+#include "nsLiteralString.h"            
+#include "nsReadableUtils.h"            
+#include "nsString.h"                   
 #include "nsUnicharUtils.h"
-#include "nsCRT.h"
-#include "nsIAtom.h"
-#include "nsGkAtoms.h"
+#include "nsXPCOM.h"                    
+#include "prtypes.h"                    
+
+class nsIEditor;
 
 #define kNullCh (PRUnichar('\0'))
 

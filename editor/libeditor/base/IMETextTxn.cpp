@@ -4,14 +4,25 @@
 
 
 #include "IMETextTxn.h"
-#include "nsIDOMCharacterData.h"
-#include "nsRange.h"
-#include "nsIPrivateTextRange.h"
-#include "nsISelection.h"
-#include "nsISelectionPrivate.h"
-#include "nsISelectionController.h"
-#include "nsComponentManagerUtils.h"
-#include "nsIEditor.h"
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"                  
+#include "nsAutoPtr.h"                  
+#include "nsDebug.h"                    
+#include "nsError.h"                    
+#include "nsGUIEvent.h"                 
+#include "nsIDOMCharacterData.h"        
+#include "nsIDOMRange.h"                
+#include "nsIEditor.h"                  
+#include "nsIPresShell.h"               
+#include "nsIPrivateTextRange.h"        
+#include "nsISelection.h"               
+#include "nsISelectionController.h"     
+#include "nsISelectionPrivate.h"        
+#include "nsISupportsImpl.h"            
+#include "nsISupportsUtils.h"           
+#include "nsITransaction.h"             
+#include "nsRange.h"                    
+#include "nsString.h"                   
 
 
 

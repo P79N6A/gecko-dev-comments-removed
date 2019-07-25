@@ -3,10 +3,14 @@
 
 
 
-#include "nsIControllerCommandTable.h"
+#include "mozilla/mozalloc.h"           
+#include "nsComposerCommands.h"         
 #include "nsComposerController.h"
-#include "nsComposerCommands.h"
-#include "nsGkAtoms.h"
+#include "nsError.h"                    
+#include "nsGkAtoms.h"                  
+#include "nsIControllerCommandTable.h"  
+
+class nsIControllerCommand;
 
 #define NS_REGISTER_ONE_COMMAND(_cmdClass, _cmdName)                    \
   {                                                                     \

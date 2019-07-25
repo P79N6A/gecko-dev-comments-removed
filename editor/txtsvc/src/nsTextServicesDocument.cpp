@@ -3,30 +3,40 @@
 
 
 
-#include "mozilla/Util.h"
+#include <stddef.h>                     
 
-#include "nscore.h"
-#include "nsLayoutCID.h"
-#include "nsIAtom.h"
-#include "nsStaticAtom.h"
-#include "nsString.h"
-#include "nsIEnumerator.h"
-#include "nsIContent.h"
-#include "nsIContentIterator.h"
-#include "nsIDOMNodeList.h"
-#include "nsIDOMRange.h"
-#include "nsContentUtils.h"
-#include "nsISelection.h"
-#include "nsIPlaintextEditor.h"
+#include "mozilla/Assertions.h"         
+#include "mozilla/mozalloc.h"           
+#include "nsAString.h"                  
+#include "nsAutoPtr.h"                  
+#include "nsContentUtils.h"             
+#include "nsDebug.h"                    
+#include "nsDependentSubstring.h"       
+#include "nsError.h"                    
+#include "nsFilteredContentIterator.h"  
+#include "nsIContent.h"                 
+#include "nsIContentIterator.h"         
+#include "nsID.h"                       
+#include "nsIDOMDocument.h"             
+#include "nsIDOMElement.h"              
+#include "nsIDOMHTMLDocument.h"         
+#include "nsIDOMHTMLElement.h"          
+#include "nsIDOMNode.h"                 
+#include "nsIDOMRange.h"                
+#include "nsIEditor.h"                  
+#include "nsINode.h"                    
+#include "nsIPlaintextEditor.h"         
+#include "nsISelection.h"               
+#include "nsISelectionController.h"     
+#include "nsISupportsBase.h"            
+#include "nsISupportsUtils.h"           
+#include "nsITextServicesFilter.h"      
+#include "nsIWordBreaker.h"             
+#include "nsRange.h"                    
+#include "nsStaticAtom.h"               
+#include "nsString.h"                   
 #include "nsTextServicesDocument.h"
-#include "nsFilteredContentIterator.h"
-
-#include "nsIDOMElement.h"
-#include "nsIDOMHTMLElement.h"
-#include "nsIDOMHTMLDocument.h"
-
-#include "nsIWordBreaker.h"
-#include "nsIServiceManager.h"
+#include "nscore.h"                     
 
 #define LOCK_DOC(doc)
 #define UNLOCK_DOC(doc)
@@ -65,7 +75,7 @@ public:
 };
 
 #define TS_ATOM(name_, value_) nsIAtom* nsTextServicesDocument::name_ = 0;
-#include "nsTSAtomList.h"
+#include "nsTSAtomList.h" 
 #undef TS_ATOM
 
 nsTextServicesDocument::nsTextServicesDocument()
@@ -86,7 +96,7 @@ nsTextServicesDocument::~nsTextServicesDocument()
 }
 
 #define TS_ATOM(name_, value_) NS_STATIC_ATOM_BUFFER(name_##_buffer, value_)
-#include "nsTSAtomList.h"
+#include "nsTSAtomList.h" 
 #undef TS_ATOM
 
 
@@ -95,7 +105,7 @@ nsTextServicesDocument::RegisterAtoms()
 {
   static const nsStaticAtom ts_atoms[] = {
 #define TS_ATOM(name_, value_) NS_STATIC_ATOM(name_##_buffer, &name_),
-#include "nsTSAtomList.h"
+#include "nsTSAtomList.h" 
 #undef TS_ATOM
   };
 

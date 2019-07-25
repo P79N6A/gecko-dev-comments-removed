@@ -4,6 +4,8 @@
 
 
 #include "EditTxn.h"
+#include "nsError.h"
+#include "nsISupportsBase.h"
 
 NS_IMPL_CYCLE_COLLECTION_0(EditTxn)
 

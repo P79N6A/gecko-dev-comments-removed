@@ -3,17 +3,29 @@
 
 
 
+#include <stddef.h>                     
+
+#include "mozilla/Module.h"             
 #include "mozilla/ModuleUtils.h"
+#include "mozilla/mozalloc.h"           
+#include "nsCOMPtr.h"                   
+#include "nsComponentManagerUtils.h"    
+#include "nsComposeTxtSrvFilter.h"      
+#include "nsComposerController.h"       
+#include "nsDebug.h"                    
+#include "nsEditingSession.h"           
+#include "nsEditorSpellCheck.h"         
+#include "nsError.h"                    
+#include "nsIController.h"              
+#include "nsIControllerCommandTable.h"  
+#include "nsIControllerContext.h"       
+#include "nsID.h"                       
+#include "nsISupportsImpl.h"
+#include "nsISupportsUtils.h"           
+#include "nsServiceManagerUtils.h"      
+#include "nscore.h"                     
 
-#include "nsEditingSession.h"       
-#include "nsComposerController.h"   
-#include "nsEditorSpellCheck.h"     
-#include "nsComposeTxtSrvFilter.h"
-#include "nsIController.h"
-#include "nsIControllerContext.h"
-#include "nsIControllerCommandTable.h"
-
-#include "nsServiceManagerUtils.h"
+class nsISupports;
 
 #define NS_HTMLEDITOR_COMMANDTABLE_CID \
 { 0x13e50d8d, 0x9cee, 0x4ad1, { 0xa3, 0xa2, 0x4a, 0x44, 0x2f, 0xdf, 0x7d, 0xfa } }

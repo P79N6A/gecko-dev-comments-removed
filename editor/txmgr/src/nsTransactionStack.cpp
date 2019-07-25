@@ -3,13 +3,13 @@
 
 
 
-#include "nsITransaction.h"
+#include "nsAutoPtr.h"
+#include "nsCOMPtr.h"
+#include "nsCycleCollectionParticipant.h"
+#include "nsISupportsUtils.h"
 #include "nsTransactionItem.h"
 #include "nsTransactionStack.h"
-#include "nsCOMPtr.h"
-#include "nsAutoPtr.h"
-#include "nsCycleCollectionParticipant.h"
-#include "mozilla/Util.h"
+#include "nscore.h"
 
 nsTransactionStack::nsTransactionStack(nsTransactionStack::Type aType)
   : mQue(0)

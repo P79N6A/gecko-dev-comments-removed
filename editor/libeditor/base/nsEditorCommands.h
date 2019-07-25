@@ -6,9 +6,12 @@
 #ifndef nsIEditorCommand_h_
 #define nsIEditorCommand_h_
 
-#include "nsCOMPtr.h"
 #include "nsIControllerCommand.h"
-#include "nsIAtom.h"
+#include "nsISupportsImpl.h"
+#include "nscore.h"
+
+class nsICommandParams;
+class nsISupports;
 
 
 

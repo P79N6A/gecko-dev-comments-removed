@@ -10,17 +10,20 @@
 #ifndef nsComposerCommandsUpdater_h__
 #define nsComposerCommandsUpdater_h__
 
-#include "nsCOMPtr.h"
-#include "nsITimer.h"
-#include "nsWeakPtr.h"
-#include "nsPICommandUpdater.h"
-
-#include "nsISelectionListener.h"
+#include "nsCOMPtr.h"                   
 #include "nsIDocumentStateListener.h"
-#include "nsITransactionListener.h"
+#include "nsISelectionListener.h"
+#include "nsISupportsImpl.h"            
+#include "nsITimer.h"                   
+#include "nsITransactionListener.h"     
+#include "nsIWeakReferenceUtils.h"      
+#include "nscore.h"                     
+#include "prtypes.h"                    
 
-class nsIDocShell;
+class nsIDOMWindow;
+class nsITransaction;
 class nsITransactionManager;
+class nsPICommandUpdater;
 
 class nsComposerCommandsUpdater : public nsISelectionListener,
                                   public nsIDocumentStateListener,

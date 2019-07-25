@@ -4,7 +4,13 @@
 
 
 #include "EditAggregateTxn.h"
-#include "nsCOMPtr.h"
+#include "nsAString.h"
+#include "nsCOMPtr.h"                   
+#include "nsError.h"                    
+#include "nsISupportsUtils.h"           
+#include "nsITransaction.h"             
+#include "nsString.h"                   
+#include "prtypes.h"                    
 
 EditAggregateTxn::EditAggregateTxn()
   : EditTxn()

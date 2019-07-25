@@ -4,19 +4,25 @@
 
 
 
+#include "nsCOMArray.h"
+#include "nsComponentManagerUtils.h"
 #include "nsEditorUtils.h"
-#include "nsIDOMDocument.h"
-#include "nsIDOMRange.h"
-#include "nsIContent.h"
-#include "nsLayoutCID.h"
-
+#include "nsError.h"
+#include "nsIClipboardDragDropHookList.h"
 
 #include "nsIClipboardDragDropHooks.h"
-#include "nsIClipboardDragDropHookList.h"
-#include "nsISimpleEnumerator.h"
+#include "nsIContent.h"
+#include "nsIContentIterator.h"
+#include "nsIDOMDocument.h"
 #include "nsIDocShell.h"
 #include "nsIDocument.h"
 #include "nsIInterfaceRequestorUtils.h"
+#include "nsINode.h"
+#include "nsISelection.h"
+#include "nsISimpleEnumerator.h"
+
+class nsIDOMRange;
+class nsISupports;
 
 
 
