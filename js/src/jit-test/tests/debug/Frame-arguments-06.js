@@ -10,24 +10,24 @@ var hits = 0;
 var fframe, farguments, fgetter;
 dbg.hooks = {
     debuggerHandler: function (frame) {
-	if (hits === 0) {
-	    fframe = frame;
-	    farguments = frame.arguments;
-	    fgetter = Object.getOwnPropertyDescriptor(farguments, "0").get;
-	    assertEq(fgetter instanceof Function, true);
+        if (hits === 0) {
+            fframe = frame;
+            farguments = frame.arguments;
+            fgetter = Object.getOwnPropertyDescriptor(farguments, "0").get;
+            assertEq(fgetter instanceof Function, true);
 
-	    
-	    
-	    assertThrowsInstanceOf(function () { fgetter.call(Math); }, TypeError);
-	} else {
-	    
-	    assertEq(fframe.live, true);
-	    assertEq(fgetter.call(farguments), 100);
+            
+            
+            assertThrowsInstanceOf(function () { fgetter.call(Math); }, TypeError);
+        } else {
+            
+            assertEq(fframe.live, true);
+            assertEq(fgetter.call(farguments), 100);
 
-	    
-	    assertEq(fgetter.call(frame.arguments), undefined);
-	}
-	hits++;
+            
+            assertEq(fgetter.call(frame.arguments), undefined);
+        }
+        hits++;
     }
 };
 
