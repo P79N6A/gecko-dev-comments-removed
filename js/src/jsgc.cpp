@@ -376,9 +376,11 @@ Chunk::init(JSRuntime *rt)
     Arena<FreeCell> *last = &arenas[JS_ARRAY_LENGTH(arenas) - 1];
     while (arena < last) {
         arena->header()->next = arena + 1;
+        arena->header()->isUsed = false;
         ++arena;
     }
     last->header()->next = NULL;
+    last->header()->isUsed = false;
     info.numFree = ArenasPerChunk;
 }
 
