@@ -132,6 +132,14 @@ window.Item.prototype = {
   getZ: function() {
     return parseInt($(this.container).css('zIndex'));
   },
+
+  
+  
+  
+  setRotation: function(degrees) {
+    var value = "rotate(%deg)".replace(/%/, degrees);
+    $(this.container).css({"-moz-transform": value});
+  },
     
   
   
@@ -477,7 +485,7 @@ window.Items = {
     }
     
     if(rows == 1) {
-      tabWidth = Math.min(bounds.width / count, bounds.height / tabAspect);
+      tabWidth = Math.min(bounds.width / Math.max(2, count), bounds.height / tabAspect);
       tabHeight = tabWidth * tabAspect;
     }
     
@@ -495,6 +503,7 @@ window.Items = {
         immediately = !animate;
         
       item.setBounds(box, immediately);
+      item.setRotation(0);
 
 
 
