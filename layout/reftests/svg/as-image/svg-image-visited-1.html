@@ -1,0 +1,21 @@
+
+
+
+
+
+<html class="reftest-wait">
+  <head>
+    <title>Test for bug 641731</title>
+    <script>
+      function snapshot() {
+        document.documentElement.removeAttribute("class");
+      }
+    </script>
+  </head>
+
+  
+
+  <body style="margin: 0" onload="setTimeout(snapshot, 100)">
+    <img src="svg-image-visited-1-helper.svg">
+  </body>
+</html>
