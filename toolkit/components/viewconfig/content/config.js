@@ -417,9 +417,16 @@ function ShowPrefs()
   if (!document.getElementById("showWarningNextTime").checked)
     gPrefBranch.setBoolPref("general.warnOnAboutConfig", false);
 
+  
   var textbox = document.getElementById("textbox");
+  var uri = document.documentURIObject;
+  var matches = /[?&]filter\=([^&]+)/i.exec(uri.path);
+  if (matches)
+    textbox.value = decodeURIComponent(matches[1]);
+
+  
+  
   if (textbox.value)
-    
     FilterPrefs();
   textbox.focus();
 }
