@@ -2740,6 +2740,14 @@ var BrowserEventHandler = {
   },
 
   _cancelTapHighlight: function _cancelTapHighlight() {
+    if (!this._highlightElement)
+      return;
+
+    
+    
+    if (this._highlightElement.ownerDocument != BrowserApp.selectedBrowser.contentWindow.document)
+      DOMUtils.setContentState(this._highlightElement.ownerDocument.documentElement, kStateActive);
+
     DOMUtils.setContentState(BrowserApp.selectedBrowser.contentWindow.document.documentElement, kStateActive);
     this._highlightElement = null;
   },
