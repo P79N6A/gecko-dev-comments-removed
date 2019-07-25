@@ -672,7 +672,7 @@ Invoke(JSContext *cx, const InvokeArgsGuard &args, uintN flags)
         JSBool alreadyThrowing = cx->throwing;
 #endif
         
-        JSObject *thisp = fun ? fp->getThisObject(cx) : NULL;
+        JSObject *thisp = fun ? fp->getThisObject(cx) : fp->thisv.asObjectOrNull();
         ok = native(cx, thisp, fp->argc, fp->argv, &fp->rval);
         JS_ASSERT(cx->fp == fp);
         JS_RUNTIME_METER(cx->runtime, nativeCalls);
@@ -759,7 +759,7 @@ InternalGetOrSet(JSContext *cx, JSObject *obj, jsid id, const Value &fval,
 }
 
 bool
-Execute(JSContext *cx, JSObject *chain, JSScript *script,
+Execute(JSContext *cx, JSObject *const chain, JSScript *script,
         JSStackFrame *down, uintN flags, Value *result)
 {
     if (script->isEmpty()) {
