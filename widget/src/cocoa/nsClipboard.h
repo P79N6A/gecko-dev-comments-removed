@@ -59,7 +59,7 @@ public:
 
   
   static NSDictionary* PasteboardDictFromTransferable(nsITransferable *aTransferable);
-  static PRBool IsStringType(const nsCString& aMIMEType, const NSString** aPasteboardType);
+  static PRBool IsStringType(const nsCString& aMIMEType, NSString** aPasteboardType);
   static NSString* WrapHtmlForSystemPasteboard(NSString* aString);
   static nsresult TransferableFromPasteboard(nsITransferable *aTransferable, NSPasteboard *pboard);
 
