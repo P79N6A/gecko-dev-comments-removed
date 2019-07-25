@@ -34,18 +34,38 @@
 #include <linux/limits.h>
 #include <stdint.h>
 #include <sys/types.h>
+#if !defined(__ANDROID__)
 #include <sys/user.h>
+#endif
 
 #include "common/memory.h"
 #include "google_breakpad/common/minidump_format.h"
 
 namespace google_breakpad {
 
+#if defined(__i386) || defined(__x86_64)
 typedef typeof(((struct user*) 0)->u_debugreg[0]) debugreg_t;
+#endif
 
 
 #if defined(__i386) || defined(__ARM_EABI__)
+#if !defined(__ANDROID__)
 typedef Elf32_auxv_t elf_aux_entry;
+#else
+
+typedef struct
+{
+  uint32_t a_type;              
+  union
+    {
+      uint32_t a_val;           
+    } a_un;
+} elf_aux_entry;
+
+#if !defined(AT_SYSINFO_EHDR)
+#define AT_SYSINFO_EHDR 33
+#endif
+#endif  
 #elif defined(__x86_64__)
 typedef Elf64_auxv_t elf_aux_entry;
 #endif
@@ -77,8 +97,12 @@ struct ThreadInfo {
 
 #elif defined(__ARM_EABI__)
   
+#if defined(__ANDROID__)
+  struct pt_regs regs;
+#else
   struct user_regs regs;
   struct user_fpregs fpregs;
+#endif  
 #endif
 };
 
