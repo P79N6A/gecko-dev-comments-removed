@@ -56,6 +56,18 @@ bool    pluginSupportsAsyncBitmapDrawing();
 
 
 
+static bool    pluginSupportsAsyncDXGIDrawing()
+{
+#ifdef XP_WIN
+  return true;
+#else
+  return false;
+#endif
+}
+
+
+
+
 
 NPError pluginInstanceInit(InstanceData* instanceData);
 
@@ -80,6 +92,10 @@ void    pluginWidgetInit(InstanceData* instanceData, void* oldWindow);
 
 
 int16_t pluginHandleEvent(InstanceData* instanceData, void* event);
+
+#ifdef XP_WIN
+void    pluginDrawAsyncDxgiColor(InstanceData* instanceData);
+#endif
 
 enum RectEdge {
   EDGE_LEFT = 0,
