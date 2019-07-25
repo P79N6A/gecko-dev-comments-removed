@@ -153,7 +153,8 @@ class RemoteAutomation(Automation):
 
             
             self.timeout = 3600
-            time.sleep(15)
+            
+            time.sleep(1)
 
         @property
         def pid(self):
