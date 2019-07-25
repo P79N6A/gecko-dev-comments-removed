@@ -102,7 +102,7 @@ nsCOMPtr<nsINode> nsEventShell::sEventTargetNode;
 
 
 nsAccEventQueue::nsAccEventQueue(nsDocAccessible *aDocument):
-  mObservingRefresh(PR_FALSE), mDocument(aDocument)
+  mProcessingStarted(PR_FALSE), mDocument(aDocument), mFlushingEventsCount(0)
 {
 }
 
@@ -157,13 +157,6 @@ nsAccEventQueue::Push(nsAccEvent *aEvent)
 void
 nsAccEventQueue::Shutdown()
 {
-  if (mObservingRefresh) {
-    nsCOMPtr<nsIPresShell> shell = mDocument->GetPresShell();
-    if (!shell ||
-        shell->RemoveRefreshObserver(this, Flush_Display)) {
-      mObservingRefresh = PR_FALSE;
-    }
-  }
   mDocument = nsnull;
   mEvents.Clear();
 }
@@ -176,19 +169,14 @@ nsAccEventQueue::PrepareFlush()
 {
   
   
-  if (mEvents.Length() > 0 && !mObservingRefresh) {
-    nsCOMPtr<nsIPresShell> shell = mDocument->GetPresShell();
-    
-    
-    if (shell &&
-        shell->AddRefreshObserver(this, Flush_Display)) {
-      mObservingRefresh = PR_TRUE;
-    }
+  if (mEvents.Length() > 0 && !mProcessingStarted) {
+    NS_DISPATCH_RUNNABLEMETHOD(Flush, this)
+    mProcessingStarted = PR_TRUE;
   }
 }
 
 void
-nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
+nsAccEventQueue::Flush()
 {
   
   
@@ -201,12 +189,18 @@ nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
 
   
   
-  nsTArray < nsRefPtr<nsAccEvent> > events;
-  events.SwapElements(mEvents);
-  PRUint32 length = events.Length();
-  NS_ASSERTION(length, "How did we get here without events to fire?");
+  
+  
+  
+  presShell->FlushPendingNotifications(Flush_Layout);
 
-  for (PRUint32 index = 0; index < length; index ++) {
+  
+  
+  mFlushingEventsCount = mEvents.Length();
+  NS_ASSERTION(mFlushingEventsCount,
+               "How did we get here without events to fire?");
+
+  for (PRUint32 index = 0; index < mFlushingEventsCount; index ++) {
 
     
     
@@ -218,12 +212,17 @@ nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
       mDocument->ProcessPendingEvent(accEvent);
   }
 
-  if (mEvents.Length() == 0) {
-    nsCOMPtr<nsIPresShell> shell = mDocument->GetPresShell();
-    if (!shell ||
-        shell->RemoveRefreshObserver(this, Flush_Display)) {
-      mObservingRefresh = PR_FALSE;
-    }
+  
+  mProcessingStarted = PR_FALSE;
+
+  
+  
+  
+  
+  if (mDocument && mDocument->HasWeakShell()) {
+    mEvents.RemoveElementsAt(0, mFlushingEventsCount);
+    mFlushingEventsCount = 0;
+    PrepareFlush();
   }
 }
 
@@ -242,7 +241,7 @@ nsAccEventQueue::CoalesceEvents()
   switch(tailEvent->mEventRule) {
     case nsAccEvent::eCoalesceFromSameSubtree:
     {
-      for (PRInt32 index = tail - 1; index >= 0; index--) {
+      for (PRInt32 index = tail - 1; index >= mFlushingEventsCount; index--) {
         nsAccEvent* thisEvent = mEvents[index];
 
         if (thisEvent->mEventType != tailEvent->mEventType)
@@ -366,7 +365,7 @@ nsAccEventQueue::CoalesceEvents()
           
           
           thisEvent->mEventRule = nsAccEvent::eDoNotEmit;
-          ApplyToSiblings(0, index, thisEvent->mEventType,
+          ApplyToSiblings(mFlushingEventsCount, index, thisEvent->mEventType,
                           thisEvent->mNode, nsAccEvent::eDoNotEmit);
           continue;
         }
@@ -387,7 +386,7 @@ nsAccEventQueue::CoalesceEvents()
       
       
       
-      for (PRInt32 index = tail - 1; index >= 0; index--) {
+      for (PRInt32 index = tail - 1; index >= mFlushingEventsCount; index--) {
         nsAccEvent* thisEvent = mEvents[index];
         if (thisEvent->mEventType == tailEvent->mEventType &&
             thisEvent->mEventRule == tailEvent->mEventRule &&
@@ -402,7 +401,7 @@ nsAccEventQueue::CoalesceEvents()
     {
       
       
-      for (PRInt32 index = tail - 1; index >= 0; index--) {
+      for (PRInt32 index = tail - 1; index >= mFlushingEventsCount; index--) {
         nsAccEvent* accEvent = mEvents[index];
         if (accEvent->mEventType == tailEvent->mEventType &&
             accEvent->mEventRule == tailEvent->mEventRule &&
