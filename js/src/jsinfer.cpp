@@ -5584,8 +5584,16 @@ JSObject::makeLazyType(JSContext *cx)
     if (getClass()->ext.equality)
         type->flags |= OBJECT_FLAG_SPECIAL_EQUALITY;
 
+    
+
+
+
+
     if (isSlowArray())
         type->flags |= OBJECT_FLAG_NON_DENSE_ARRAY | OBJECT_FLAG_NON_PACKED_ARRAY;
+
+    if (IsTypedArrayProto(this))
+        type->flags |= OBJECT_FLAG_NON_TYPED_ARRAY;
 
     type_ = type;
 }
