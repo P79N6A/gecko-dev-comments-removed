@@ -3493,9 +3493,9 @@ private:
 
 
 
-extern void xpc_InitJSxIDClassObjects();
-extern void xpc_DestroyJSxIDClassObjects();
 
+
+extern void xpc_DestroyJSxIDClassObjects();
 
 class nsJSID : public nsIJSID
 {
