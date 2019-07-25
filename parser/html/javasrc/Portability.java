@@ -87,14 +87,6 @@ public final class Portability {
     }
     
     
-
-
-
-    public static void releaseArray(Object arr) {
-        
-    }    
-    
-    
     
     
     public static void retainElement(Object elt) {

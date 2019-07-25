@@ -22,12 +22,14 @@
 
 package nu.validator.htmlparser.impl;
 
+import nu.validator.htmlparser.annotation.Auto;
+
 
 public class StateSnapshot<T> implements TreeBuilderState<T> {
 
-    private final StackNode<T>[] stack;
+    private final @Auto StackNode<T>[] stack;
 
-    private final StackNode<T>[] listOfActiveFormattingElements;
+    private final @Auto StackNode<T>[] listOfActiveFormattingElements;
 
     private final T formPointer;
 
@@ -183,13 +185,11 @@ public class StateSnapshot<T> implements TreeBuilderState<T> {
         for (int i = 0; i < stack.length; i++) {
             stack[i].release();
         }
-        Portability.releaseArray(stack);
         for (int i = 0; i < listOfActiveFormattingElements.length; i++) {
             if (listOfActiveFormattingElements[i] != null) {
                 listOfActiveFormattingElements[i].release();                
             }
         }
-        Portability.releaseArray(listOfActiveFormattingElements);
         Portability.retainElement(formPointer);
     }
 }

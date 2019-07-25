@@ -62,8 +62,8 @@ class nsHtml5Portability;
 class nsHtml5StateSnapshot : public nsAHtml5TreeBuilderState
 {
   private:
-    jArray<nsHtml5StackNode*,PRInt32> stack;
-    jArray<nsHtml5StackNode*,PRInt32> listOfActiveFormattingElements;
+    autoJArray<nsHtml5StackNode*,PRInt32> stack;
+    autoJArray<nsHtml5StackNode*,PRInt32> listOfActiveFormattingElements;
     nsIContent** formPointer;
     nsIContent** headPointer;
     nsIContent** deepTreeSurrogateParent;
@@ -92,9 +92,6 @@ class nsHtml5StateSnapshot : public nsAHtml5TreeBuilderState
     static void initializeStatics();
     static void releaseStatics();
 };
-
-#ifdef nsHtml5StateSnapshot_cpp__
-#endif
 
 
 

@@ -160,13 +160,11 @@ nsHtml5StateSnapshot::~nsHtml5StateSnapshot()
   for (PRInt32 i = 0; i < stack.length; i++) {
     stack[i]->release();
   }
-  stack.release();
   for (PRInt32 i = 0; i < listOfActiveFormattingElements.length; i++) {
     if (listOfActiveFormattingElements[i]) {
       listOfActiveFormattingElements[i]->release();
     }
   }
-  listOfActiveFormattingElements.release();
   ;
 }
 
