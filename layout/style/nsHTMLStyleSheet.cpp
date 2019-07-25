@@ -316,6 +316,13 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 
   
   if (element->IsAttributeMapped(aData->mAttribute)) {
+    
+    
+    if (aData->mAttribute == nsGkAtoms::cellpadding &&
+        element->IsHTML() &&
+        aData->mContentTag == nsGkAtoms::table) {
+      return eRestyle_Subtree;
+    }
     return eRestyle_Self;
   }
 
