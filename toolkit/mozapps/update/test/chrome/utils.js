@@ -154,7 +154,7 @@ const TEST_ADDONS = [ "appdisabled_1", "appdisabled_2",
                       "userdisabled_1", "userdisabled_2" ];
 
 
-const TEST_TIMEOUT = 20000; 
+const TEST_TIMEOUT = 25000; 
 var gTimeoutTimer;
 
 
