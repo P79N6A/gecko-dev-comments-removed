@@ -676,8 +676,12 @@ CallJSNativeConstructor(JSContext *cx, js::Native native, uintN argc, js::Value 
 
 
 
+
+
+
     extern JSBool proxy_Construct(JSContext *, uintN, Value *);
-    JS_ASSERT_IF(native != proxy_Construct,
+    JS_ASSERT_IF(native != proxy_Construct &&
+                 callee->getFunctionPrivate()->u.n.clasp != &js_ObjectClass,
                  !vp->isPrimitive() && callee != &vp[0].toObject());
 
     return true;
