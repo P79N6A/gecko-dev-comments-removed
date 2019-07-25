@@ -203,8 +203,7 @@ nsCoreUtils::GetDOMNodeFromDOMPoint(nsINode *aNode, PRUint32 aOffset)
 {
   if (aNode && aNode->IsElement()) {
     PRUint32 childCount = aNode->GetChildCount();
-    NS_ASSERTION(aOffset >= 0 && aOffset <= childCount,
-                 "Wrong offset of the DOM point!");
+    NS_ASSERTION(aOffset <= childCount, "Wrong offset of the DOM point!");
 
     
     
