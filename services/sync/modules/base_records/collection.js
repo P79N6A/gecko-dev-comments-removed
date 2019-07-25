@@ -59,7 +59,9 @@ Collection.prototype = {
 
   _Coll_init: function Coll_init(uri) {
     this._init(uri);
+    this.pushFilter(new JsonFilter());
     this._full = true;
+    this._ids = null;
     this._older = 0;
     this._newer = 0;
     this._data = [];
@@ -79,6 +81,8 @@ Collection.prototype = {
       args.push('full=1');
     if (this.sort)
       args.push('sort=' + this.sort);
+    if (this.ids != null)
+      args.push("ids=" + this.ids);
 
     this.uri.query = (args.length > 0)? '?' + args.join('&') : '';
   },
@@ -87,6 +91,13 @@ Collection.prototype = {
   get full() { return this._full; },
   set full(value) {
     this._full = value;
+    this._rebuildURL();
+  },
+
+  
+  get ids() this._ids,
+  set ids(value) {
+    this._ids = value;
     this._rebuildURL();
   },
 
