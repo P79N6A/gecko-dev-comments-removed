@@ -1175,7 +1175,7 @@ NewProxyObject(JSContext *cx, JSProxyHandler *handler, const Value &priv, JSObje
     }
 
     
-    cx->markTypeObjectUnknownProperties(obj->getType());
+    MarkTypeObjectUnknownProperties(cx, obj->getType());
 
     return obj;
 }

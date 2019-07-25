@@ -794,7 +794,7 @@ regexp_construct(JSContext *cx, uintN argc, Value *vp)
 
 
 
-            cx->markTypeCallerUnexpected(*vp);
+            MarkTypeCallerUnexpected(cx, *vp);
             return true;
         }
     }
@@ -907,12 +907,12 @@ js_InitRegExpClass(JSContext *cx, JSObject *global)
         return NULL;
 
     
-    cx->addTypeProperty(protoType, "source", TYPE_STRING);
-    cx->addTypeProperty(protoType, "global", TYPE_BOOLEAN);
-    cx->addTypeProperty(protoType, "ignoreCase", TYPE_BOOLEAN);
-    cx->addTypeProperty(protoType, "multiline", TYPE_BOOLEAN);
-    cx->addTypeProperty(protoType, "sticky", TYPE_BOOLEAN);
-    cx->addTypeProperty(protoType, "lastIndex", TYPE_INT32);
+    AddTypeProperty(cx, protoType, "source", TYPE_STRING);
+    AddTypeProperty(cx, protoType, "global", TYPE_BOOLEAN);
+    AddTypeProperty(cx, protoType, "ignoreCase", TYPE_BOOLEAN);
+    AddTypeProperty(cx, protoType, "multiline", TYPE_BOOLEAN);
+    AddTypeProperty(cx, protoType, "sticky", TYPE_BOOLEAN);
+    AddTypeProperty(cx, protoType, "lastIndex", TYPE_INT32);
 
     
     if (!DefineConstructorAndPrototype(cx, global, JSProto_RegExp, ctor, proto))

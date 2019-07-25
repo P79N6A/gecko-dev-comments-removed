@@ -1276,6 +1276,8 @@ struct JSContext
 
     bool                 inferenceEnabled;
 
+    bool typeInferenceEnabled() { return inferenceEnabled; }
+
     
     void updateJITEnabled();
 
@@ -1400,64 +1402,6 @@ struct JSContext
 
 
     JS_FRIEND_API(void) checkMallocGCPressure(void *p);
-
-  public:
-
-    inline bool typeInferenceEnabled();
-
-    
-
-
-
-    inline js::types::TypeObject *getTypeNewObject(JSProtoKey key);
-
-    
-    inline js::types::TypeObject *
-    getTypeCallerInitObject(bool isArray);
-
-    
-    inline void markTypeCallerUnexpected(js::types::jstype type);
-    inline void markTypeCallerUnexpected(const js::Value &value);
-    inline void markTypeCallerOverflow();
-
-    
-
-
-
-    inline void typeMonitorCall(const js::CallArgs &args, bool constructing);
-
-    
-    inline void addTypeProperty(js::types::TypeObject *obj, const char *name, js::types::jstype type);
-    inline void addTypeProperty(js::types::TypeObject *obj, const char *name, const js::Value &value);
-    inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, js::types::jstype type);
-    inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, const js::Value &value);
-    inline void addTypePropertyId(js::types::TypeObject *obj, jsid id, js::types::ClonedTypeSet *types);
-
-    
-    inline js::types::TypeObject *getTypeEmpty();
-
-    
-    inline void aliasTypeProperties(js::types::TypeObject *obj, jsid first, jsid second);
-
-    
-    inline void markTypeObjectFlags(js::types::TypeObject *obj, js::types::TypeObjectFlags flags);
-
-    
-    inline void markTypeObjectUnknownProperties(js::types::TypeObject *obj);
-
-    
-    inline void markTypePropertyConfigured(js::types::TypeObject *obj, jsid id);
-
-    
-    inline void markGlobalReallocation(JSObject *obj);
-
-    
-
-
-
-    inline void fixArrayType(JSObject *obj);
-    inline void fixObjectType(JSObject *obj);
-
 }; 
 
 namespace js {

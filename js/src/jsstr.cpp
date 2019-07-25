@@ -1059,7 +1059,7 @@ js_str_charCodeAt(JSContext *cx, uintN argc, Value *vp)
 
 out_of_range:
     vp->setDouble(js_NaN);
-    cx->markTypeCallerOverflow();
+    MarkTypeCallerOverflow(cx);
     return true;
 }
 
@@ -2632,7 +2632,7 @@ SplitHelper(JSContext *cx, JSLinearString *str, uint32 limit, Matcher splitMatch
                         return NULL;
                 } else {
                     
-                    cx->addTypePropertyId(type, JSID_VOID, UndefinedValue());
+                    AddTypePropertyId(cx, type, JSID_VOID, UndefinedValue());
                     if (!splits.append(UndefinedValue()))
                         return NULL;
                 }
@@ -2726,10 +2726,10 @@ str_split(JSContext *cx, uintN argc, Value *vp)
     if (!str)
         return false;
 
-    TypeObject *type = cx->getTypeCallerInitObject(true);
+    TypeObject *type = GetTypeCallerInitObject(cx, true);
     if (!type)
         return false;
-    cx->addTypePropertyId(type, JSID_VOID, types::TYPE_STRING);
+    AddTypePropertyId(cx, type, JSID_VOID, types::TYPE_STRING);
 
     
     uint32 limit;
@@ -3544,12 +3544,12 @@ js_InitStringClass(JSContext *cx, JSObject *global)
     }
 
     jsid lengthId = ATOM_TO_JSID(cx->runtime->atomState.lengthAtom);
-    cx->addTypePropertyId(proto->getType(), lengthId, TYPE_INT32);
+    AddTypePropertyId(cx, proto->getType(), lengthId, TYPE_INT32);
 
     TypeObject *type = proto->getNewType(cx);
     if (!type)
         return NULL;
-    cx->addTypePropertyId(type, JSID_VOID, TYPE_STRING);
+    AddTypePropertyId(cx, type, JSID_VOID, TYPE_STRING);
 
     
 

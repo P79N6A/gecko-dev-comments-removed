@@ -1369,20 +1369,17 @@ TypeConstraintTransformThis::newType(JSContext *cx, TypeSet *source, jstype type
 class TypeConstraintPushAll : public TypeConstraint
 {
 public:
-    const jsbytecode *pc;
+    jsbytecode *pc;
 
-    TypeConstraintPushAll(JSScript *script, const jsbytecode *pc)
+    TypeConstraintPushAll(JSScript *script, jsbytecode *pc)
         : TypeConstraint("pushAll", script), pc(pc)
     {}
 
-    void newType(JSContext *cx, TypeSet *source, jstype type)
-    {
-        cx->compartment->types.dynamicPush(cx, script, pc - script->code, type);
-    }
+    void newType(JSContext *cx, TypeSet *source, jstype type);
 };
 
 void
-TypeSet::pushAllTypes(JSContext *cx, JSScript *script, const jsbytecode *pc)
+TypeSet::pushAllTypes(JSContext *cx, JSScript *script, jsbytecode *pc)
 {
     add(cx, ArenaNew<TypeConstraintPushAll>(cx->compartment->pool, script, pc));
 }
@@ -2020,204 +2017,6 @@ TypeCompartment::growPendingArray(JSContext *cx)
 }
 
 void
-TypeCompartment::dynamicCall(JSContext *cx, JSObject *callee,
-                             const js::CallArgs &args, bool constructing)
-{
-    unsigned nargs = callee->getFunctionPrivate()->nargs;
-    JSScript *script = callee->getFunctionPrivate()->script();
-
-    if (!script->ensureTypeArray(cx))
-        return;
-
-    if (constructing) {
-        script->typeSetNewCalled(cx);
-    } else {
-        jstype type = GetValueType(cx, args.thisv());
-        script->typeSetThis(cx, type);
-    }
-
-    
-
-
-
-
-    unsigned arg = 0;
-    for (; arg < args.argc() && arg < nargs; arg++)
-        script->typeSetArgument(cx, arg, args[arg]);
-
-    
-    for (; arg < nargs; arg++)
-        script->typeSetArgument(cx, arg, UndefinedValue());
-}
-
-
-class TypeIntermediatePushed : public TypeIntermediate
-{
-    uint32 offset;
-    jstype type;
-
-  public:
-    TypeIntermediatePushed(uint32 offset, jstype type)
-        : offset(offset), type(type)
-    {}
-
-    void replay(JSContext *cx, JSScript *script)
-    {
-        TypeSet *pushed = script->analysis(cx)->pushedTypes(offset);
-        pushed->addType(cx, type);
-    }
-
-    bool hasDynamicResult(uint32 offset, jstype type) {
-        return this->offset == offset && this->type == type;
-    }
-
-    bool sweep(JSContext *cx, JSCompartment *compartment)
-    {
-        if (!TypeIsObject(type))
-            return true;
-
-        TypeObject *object = (TypeObject *) type;
-        if (object->marked)
-            return true;
-
-        if (object->unknownProperties()) {
-            type = (jstype) &compartment->types.typeEmpty;
-            return true;
-        }
-
-        return false;
-    }
-};
-
-void
-TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jstype type)
-{
-    JS_ASSERT(cx->typeInferenceEnabled());
-    AutoEnterTypeInference enter(cx);
-
-    jsbytecode *pc = script->code + offset;
-    UntrapOpcode untrap(cx, script, pc);
-
-    
-    if (CanHaveReadBarrier(pc)) {
-        TypeSet *types = script->bytecodeTypes(pc);
-        if (!types->hasType(type)) {
-            InferSpew(ISpewOps, "externalType: monitorResult #%u:%05u: %s",
-                      script->id(), offset, TypeString(type));
-            types->addType(cx, type);
-        }
-        return;
-    }
-
-    
-
-
-
-
-
-
-
-    JSOp op = JSOp(*pc);
-    const JSCodeSpec *cs = &js_CodeSpec[op];
-    if (cs->format & (JOF_INC | JOF_DEC)) {
-        switch (op) {
-          case JSOP_INCGNAME:
-          case JSOP_DECGNAME:
-          case JSOP_GNAMEINC:
-          case JSOP_GNAMEDEC: {
-            jsid id = GetAtomId(cx, script, pc, 0);
-            TypeObject *global = script->getGlobalType();
-            if (!global->unknownProperties()) {
-                TypeSet *types = global->getProperty(cx, id, true);
-                if (!types)
-                    break;
-                types->addType(cx, type);
-            }
-            break;
-          }
-
-          case JSOP_INCLOCAL:
-          case JSOP_DECLOCAL:
-          case JSOP_LOCALINC:
-          case JSOP_LOCALDEC:
-          case JSOP_INCARG:
-          case JSOP_DECARG:
-          case JSOP_ARGINC:
-          case JSOP_ARGDEC: {
-            
-
-
-
-
-
-            uint32 slot = GetBytecodeSlot(script, pc);
-            if (slot < TotalSlots(script)) {
-                TypeSet *types = script->slotTypes(slot);
-                types->addType(cx, type);
-            }
-            break;
-          }
-
-          default:;
-        }
-    }
-
-    if (script->hasAnalysis() && script->analysis(cx)->ranInference()) {
-        
-
-
-
-
-        TypeSet *pushed = script->analysis(cx)->pushedTypes(offset, 0);
-        if (pushed->hasType(type))
-            return;
-    } else {
-        
-        TypeIntermediate *result, **presult = &script->intermediateTypes;
-        while (*presult) {
-            result = *presult;
-            if (result->hasDynamicResult(offset, type)) {
-                if (presult != &script->intermediateTypes) {
-                    
-                    *presult = result->next;
-                    result->next = script->intermediateTypes;
-                    script->intermediateTypes = result;
-                }
-                return;
-            }
-            presult = &result->next;
-        }
-    }
-
-    InferSpew(ISpewOps, "externalType: monitorResult #%u:%05u: %s",
-               script->id(), offset, TypeString(type));
-
-    TypeIntermediatePushed *result = cx->new_<TypeIntermediatePushed>(offset, type);
-    if (!result) {
-        setPendingNukeTypes(cx);
-        return;
-    }
-    script->addIntermediateType(result);
-
-    if (script->hasAnalysis() && script->analysis(cx)->ranInference()) {
-        TypeSet *pushed = script->analysis(cx)->pushedTypes(offset, 0);
-        pushed->addType(cx, type);
-    } else if (script->ranInference) {
-        
-        ScriptAnalysis *analysis = script->analysis(cx);
-        if (!analysis) {
-            setPendingNukeTypes(cx);
-            return;
-        }
-        analysis->analyzeTypes(cx);
-    }
-
-    
-    if (script->fun)
-        ObjectStateChange(cx, script->fun->getType(), false, true);
-}
-
-void
 TypeCompartment::processPendingRecompiles(JSContext *cx)
 {
     
@@ -2581,7 +2380,7 @@ TypeCompartment::fixArrayType(JSContext *cx, JSObject *obj)
         }
         obj->setType(objType);
 
-        cx->addTypePropertyId(objType, JSID_VOID, type);
+        AddTypePropertyId(cx, objType, JSID_VOID, type);
 
         if (!arrayTypeTable->relookupOrAdd(p, key, objType)) {
             cx->compartment->types.setPendingNukeTypes(cx);
@@ -2674,7 +2473,7 @@ TypeCompartment::fixObjectType(JSContext *cx, JSObject *obj)
                         const Shape *shape = baseShape;
                         while (!JSID_IS_EMPTY(shape->propid)) {
                             if (shape->slot == i) {
-                                cx->addTypePropertyId(p->value.object, shape->propid, TYPE_DOUBLE);
+                                AddTypePropertyId(cx, p->value.object, shape->propid, TYPE_DOUBLE);
                                 break;
                             }
                             shape = shape->previous();
@@ -2731,7 +2530,7 @@ TypeCompartment::fixObjectType(JSContext *cx, JSObject *obj)
         while (!JSID_IS_EMPTY(shape->propid)) {
             ids[shape->slot] = shape->propid;
             types[shape->slot] = GetValueType(cx, obj->getSlot(shape->slot));
-            cx->addTypePropertyId(objType, shape->propid, types[shape->slot]);
+            AddTypePropertyId(cx, objType, shape->propid, types[shape->slot]);
             shape = shape->previous();
         }
 
@@ -2907,9 +2706,129 @@ TypeObject::addDefiniteProperties(JSContext *cx, JSObject *obj)
     return true;
 }
 
+inline void
+InlineAddTypeProperty(JSContext *cx, TypeObject *obj, jsid id, jstype type)
+{
+    
+    id = MakeTypeId(cx, id);
+
+    AutoEnterTypeInference enter(cx);
+
+    TypeSet *types = obj->getProperty(cx, id, true);
+    if (!types || types->hasType(type))
+        return;
+
+    InferSpew(ISpewOps, "externalType: property %s %s: %s",
+              obj->name(), TypeIdString(id), TypeString(type));
+    types->addType(cx, type);
+}
+
+void
+TypeObject::addPropertyType(JSContext *cx, jsid id, jstype type)
+{
+    InlineAddTypeProperty(cx, this, id, type);
+}
+
+void
+TypeObject::addPropertyType(JSContext *cx, jsid id, const Value &value)
+{
+    InlineAddTypeProperty(cx, this, id, GetValueType(cx, value));
+}
+
+void
+TypeObject::addPropertyType(JSContext *cx, const char *name, jstype type)
+{
+    jsid id = JSID_VOID;
+    if (name) {
+        JSAtom *atom = js_Atomize(cx, name, strlen(name));
+        if (!atom) {
+            AutoEnterTypeInference enter(cx);
+            cx->compartment->types.setPendingNukeTypes(cx);
+            return;
+        }
+        id = ATOM_TO_JSID(atom);
+    }
+    InlineAddTypeProperty(cx, this, id, type);
+}
+
+void
+TypeObject::addPropertyType(JSContext *cx, const char *name, const Value &value)
+{
+    addPropertyType(cx, name, GetValueType(cx, value));
+}
+
+void
+TypeObject::addPropertyTypeSet(JSContext *cx, jsid id, ClonedTypeSet *set)
+{
+    AutoEnterTypeInference enter(cx);
+
+    TypeSet *types = getProperty(cx, id, true);
+    if (!types)
+        return;
+
+    InferSpew(ISpewOps, "externalType: property %s %s", name(), TypeIdString(id));
+    types->addTypeSet(cx, set);
+}
+
+void
+TypeObject::aliasProperties(JSContext *cx, jsid first, jsid second)
+{
+    AutoEnterTypeInference enter(cx);
+
+    first = MakeTypeId(cx, first);
+    second = MakeTypeId(cx, second);
+
+    TypeSet *firstTypes = getProperty(cx, first, true);
+    TypeSet *secondTypes = getProperty(cx, second, true);
+    if (!firstTypes || !secondTypes)
+        return;
+
+    firstTypes->addBaseSubset(cx, this, secondTypes);
+    secondTypes->addBaseSubset(cx, this, firstTypes);
+}
+
+void
+TypeObject::markPropertyConfigured(JSContext *cx, jsid id)
+{
+    AutoEnterTypeInference enter(cx);
+
+    id = MakeTypeId(cx, id);
+
+    TypeSet *types = getProperty(cx, id, true);
+    if (types)
+        types->setOwnProperty(cx, true);
+}
+
+void
+TypeObject::markSlotReallocation(JSContext *cx)
+{
+    
+
+
+
+    AutoEnterTypeInference enter(cx);
+    TypeSet *types = getProperty(cx, JSID_VOID, false);
+    if (types) {
+        TypeConstraint *constraint = types->constraintList;
+        while (constraint) {
+            constraint->newObjectState(cx, this, true);
+            constraint = constraint->next;
+        }
+    }
+}
+
+
+
+
+
+
+
+
 void
 TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
 {
+    AutoEnterTypeInference enter(cx);
+
     JS_ASSERT(cx->compartment->activeInference);
     JS_ASSERT((this->flags & flags) != flags);
 
@@ -2933,6 +2852,8 @@ TypeObject::setFlags(JSContext *cx, TypeObjectFlags flags)
 void
 TypeObject::markUnknown(JSContext *cx)
 {
+    AutoEnterTypeInference enter(cx);
+
     JS_ASSERT(cx->compartment->activeInference);
     JS_ASSERT(!unknownProperties());
 
@@ -3810,7 +3731,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
                 if (state.hasGetSet)
                     types->addType(cx, TYPE_UNKNOWN);
                 else if (state.hasHole)
-                    cx->markTypeObjectFlags(initializer, js::types::OBJECT_FLAG_NON_PACKED_ARRAY);
+                    MarkTypeObjectFlags(cx, initializer, OBJECT_FLAG_NON_PACKED_ARRAY);
                 else
                     poppedTypes(pc, 0)->addSubset(cx, script, types);
             }
@@ -4131,7 +4052,7 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
 
 
-    if (script->fun->getType()->hasAnyFlags(types::OBJECT_FLAG_CREATED_ARGUMENTS))
+    if (script->fun->getType()->hasAnyFlags(OBJECT_FLAG_CREATED_ARGUMENTS))
         return;
 
     
@@ -4142,8 +4063,7 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
 
     if (script->fun->isHeavyweight() || cx->compartment->debugMode) {
-        cx->markTypeObjectFlags(script->fun->getType(),
-                                types::OBJECT_FLAG_CREATED_ARGUMENTS);
+        MarkTypeObjectFlags(cx, script->fun->getType(), OBJECT_FLAG_CREATED_ARGUMENTS);
         return;
     }
 
@@ -4155,8 +4075,8 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
         if (code && JSOp(*pc) == JSOP_ARGUMENTS) {
             Vector<SSAValue> seen(cx);
             if (!followEscapingArguments(cx, SSAValue::PushedValue(offset, 0), &seen)) {
-                cx->markTypeObjectFlags(script->fun->getType(),
-                                        types::OBJECT_FLAG_CREATED_ARGUMENTS);
+                MarkTypeObjectFlags(cx, script->fun->getType(),
+                                    OBJECT_FLAG_CREATED_ARGUMENTS);
                 return;
             }
         }
@@ -4737,6 +4657,289 @@ ScriptAnalysis::printTypes(JSContext *cx)
 
 
 
+namespace js { namespace types {
+
+void
+MarkTypeCallerUnexpectedSlow(JSContext *cx, jstype type)
+{
+    
+
+
+
+
+
+
+
+
+    StackFrame *caller = js_GetScriptedCaller(cx, NULL);
+    if (!caller)
+        return;
+
+    
+
+
+
+    if (caller->script()->compartment != cx->compartment)
+        return;
+
+    JSScript *script;
+    jsbytecode *pc = caller->inlinepc(cx, &script);
+
+    js::analyze::UntrapOpcode untrap(cx, script, pc);
+
+    switch ((JSOp)*pc) {
+      case JSOP_CALL:
+      case JSOP_EVAL:
+      case JSOP_FUNCALL:
+      case JSOP_FUNAPPLY:
+      case JSOP_NEW:
+        break;
+      case JSOP_ITER:
+        
+        break;
+      default:
+        return;
+    }
+
+    TypeDynamicResult(cx, script, pc, type);
+}
+
+void
+MarkTypeCallerUnexpectedSlow(JSContext *cx, const Value &value)
+{
+    MarkTypeCallerUnexpectedSlow(cx, GetValueType(cx, value));
+}
+
+void
+TypeMonitorCallSlow(JSContext *cx, JSObject *callee,
+                    const CallArgs &args, bool constructing)
+{
+    unsigned nargs = callee->getFunctionPrivate()->nargs;
+    JSScript *script = callee->getFunctionPrivate()->script();
+
+    if (!script->ensureTypeArray(cx))
+        return;
+
+    if (constructing) {
+        script->typeSetNewCalled(cx);
+    } else {
+        jstype type = GetValueType(cx, args.thisv());
+        script->typeSetThis(cx, type);
+    }
+
+    
+
+
+
+
+    unsigned arg = 0;
+    for (; arg < args.argc() && arg < nargs; arg++)
+        script->typeSetArgument(cx, arg, args[arg]);
+
+    
+    for (; arg < nargs; arg++)
+        script->typeSetArgument(cx, arg, UndefinedValue());
+}
+
+
+class TypeIntermediatePushed : public TypeIntermediate
+{
+    uint32 offset;
+    jstype type;
+
+  public:
+    TypeIntermediatePushed(uint32 offset, jstype type)
+        : offset(offset), type(type)
+    {}
+
+    void replay(JSContext *cx, JSScript *script)
+    {
+        TypeSet *pushed = script->analysis(cx)->pushedTypes(offset);
+        pushed->addType(cx, type);
+    }
+
+    bool hasDynamicResult(uint32 offset, jstype type) {
+        return this->offset == offset && this->type == type;
+    }
+
+    bool sweep(JSContext *cx, JSCompartment *compartment)
+    {
+        if (!TypeIsObject(type))
+            return true;
+
+        TypeObject *object = (TypeObject *) type;
+        if (object->marked)
+            return true;
+
+        if (object->unknownProperties()) {
+            type = (jstype) &compartment->types.typeEmpty;
+            return true;
+        }
+
+        return false;
+    }
+};
+
+void
+TypeDynamicResult(JSContext *cx, JSScript *script, jsbytecode *pc, jstype type)
+{
+    JS_ASSERT(cx->typeInferenceEnabled());
+    AutoEnterTypeInference enter(cx);
+
+    UntrapOpcode untrap(cx, script, pc);
+
+    
+    if (CanHaveReadBarrier(pc)) {
+        TypeSet *types = script->bytecodeTypes(pc);
+        if (!types->hasType(type)) {
+            InferSpew(ISpewOps, "externalType: monitorResult #%u:%05u: %s",
+                      script->id(), pc - script->code, TypeString(type));
+            types->addType(cx, type);
+        }
+        return;
+    }
+
+    
+
+
+
+
+
+
+
+    JSOp op = JSOp(*pc);
+    const JSCodeSpec *cs = &js_CodeSpec[op];
+    if (cs->format & (JOF_INC | JOF_DEC)) {
+        switch (op) {
+          case JSOP_INCGNAME:
+          case JSOP_DECGNAME:
+          case JSOP_GNAMEINC:
+          case JSOP_GNAMEDEC: {
+            jsid id = GetAtomId(cx, script, pc, 0);
+            TypeObject *global = script->getGlobalType();
+            if (!global->unknownProperties()) {
+                TypeSet *types = global->getProperty(cx, id, true);
+                if (!types)
+                    break;
+                types->addType(cx, type);
+            }
+            break;
+          }
+
+          case JSOP_INCLOCAL:
+          case JSOP_DECLOCAL:
+          case JSOP_LOCALINC:
+          case JSOP_LOCALDEC:
+          case JSOP_INCARG:
+          case JSOP_DECARG:
+          case JSOP_ARGINC:
+          case JSOP_ARGDEC: {
+            
+
+
+
+
+
+            uint32 slot = GetBytecodeSlot(script, pc);
+            if (slot < TotalSlots(script)) {
+                TypeSet *types = script->slotTypes(slot);
+                types->addType(cx, type);
+            }
+            break;
+          }
+
+          default:;
+        }
+    }
+
+    if (script->hasAnalysis() && script->analysis(cx)->ranInference()) {
+        
+
+
+
+
+        TypeSet *pushed = script->analysis(cx)->pushedTypes(pc, 0);
+        if (pushed->hasType(type))
+            return;
+    } else {
+        
+        TypeIntermediate *result, **presult = &script->intermediateTypes;
+        while (*presult) {
+            result = *presult;
+            if (result->hasDynamicResult(pc - script->code, type)) {
+                if (presult != &script->intermediateTypes) {
+                    
+                    *presult = result->next;
+                    result->next = script->intermediateTypes;
+                    script->intermediateTypes = result;
+                }
+                return;
+            }
+            presult = &result->next;
+        }
+    }
+
+    InferSpew(ISpewOps, "externalType: monitorResult #%u:%05u: %s",
+              script->id(), pc - script->code, TypeString(type));
+
+    TypeIntermediatePushed *result = cx->new_<TypeIntermediatePushed>(pc - script->code, type);
+    if (!result) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return;
+    }
+    script->addIntermediateType(result);
+
+    if (script->hasAnalysis() && script->analysis(cx)->ranInference()) {
+        TypeSet *pushed = script->analysis(cx)->pushedTypes(pc, 0);
+        pushed->addType(cx, type);
+    } else if (script->ranInference) {
+        
+        ScriptAnalysis *analysis = script->analysis(cx);
+        if (!analysis) {
+            cx->compartment->types.setPendingNukeTypes(cx);
+            return;
+        }
+        analysis->analyzeTypes(cx);
+    }
+
+    
+    if (script->fun)
+        ObjectStateChange(cx, script->fun->getType(), false, true);
+}
+
+void
+TypeMonitorResult(JSContext *cx, JSScript *script, jsbytecode *pc, const js::Value &rval)
+{
+    UntrapOpcode untrap(cx, script, pc);
+
+    
+    if (!(js_CodeSpec[*pc].format & JOF_TYPESET))
+        return;
+
+    jstype type = GetValueType(cx, rval);
+    TypeSet *types = script->bytecodeTypes(pc);
+    if (types->hasType(type))
+        return;
+
+    AutoEnterTypeInference enter(cx);
+
+    InferSpew(ISpewOps, "bytecodeType: #%u:%05u: %s",
+              script->id(), pc - script->code, TypeString(type));
+    types->addType(cx, type);
+}
+
+} } 
+
+void
+TypeConstraintPushAll::newType(JSContext *cx, TypeSet *source, jstype type)
+{
+    TypeDynamicResult(cx, script, pc, type);
+}
+
+
+
+
+
 
 
 
@@ -4894,7 +5097,7 @@ JSScript::typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value
 
         jstype type = GetValueType(cx, val);
 
-        if (!types::TypeMatches(cx, types, type)) {
+        if (!TypeMatches(cx, types, type)) {
             TypeFailure(cx, "Missing type at #%u:%05u pushed %u: %s",
                                    id(), pc - code, i, TypeString(type));
         }
