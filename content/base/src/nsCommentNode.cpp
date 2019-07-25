@@ -43,6 +43,7 @@
 #include "nsGenericDOMDataNode.h"
 #include "nsCOMPtr.h"
 #include "nsIDocument.h"
+#include "nsDOMMemoryReporter.h"
 
 class nsCommentNode : public nsGenericDOMDataNode,
                       public nsIDOMComment
@@ -59,6 +60,10 @@ public:
 
   
   NS_FORWARD_NSIDOMCHARACTERDATA(nsGenericDOMDataNode::)
+
+  
+  NS_DECL_AND_IMPL_DOM_MEMORY_REPORTER_SIZEOF(nsCommentNode,
+                                              nsGenericDOMDataNode)
 
   
   
