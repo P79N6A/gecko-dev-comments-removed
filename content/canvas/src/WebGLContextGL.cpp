@@ -2593,7 +2593,7 @@ WebGLContext::ValidateGL()
     gl->fGetIntegerv(LOCAL_GL_MAX_COLOR_ATTACHMENTS, &val);
     mFramebufferColorAttachments.SetLength(val);
 
-#ifdef DEBUG_vladimir
+#if defined(DEBUG_vladimir) && defined(USE_GLES2)
     gl->fGetIntegerv(LOCAL_GL_IMPLEMENTATION_COLOR_READ_FORMAT, &val);
     fprintf(stderr, "GL_IMPLEMENTATION_COLOR_READ_FORMAT: 0x%04x\n", val);
 
@@ -2602,6 +2602,7 @@ WebGLContext::ValidateGL()
 #endif
 
 #ifndef USE_GLES2
+    
     
     gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
 #endif
