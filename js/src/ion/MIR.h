@@ -2127,15 +2127,15 @@ class MPhi : public MDefinition, public InlineForwardListNode<MPhi>
 
 
 
-class MOsrValue : public MAryInstruction<1>
+class MOsrValue : public MUnaryInstruction
 {
   private:
     ptrdiff_t frameOffset_;
 
     MOsrValue(MOsrEntry *entry, ptrdiff_t frameOffset)
-      : frameOffset_(frameOffset)
+      : MUnaryInstruction(entry),
+        frameOffset_(frameOffset)
     {
-        setOperand(0, entry);
         setResultType(MIRType_Value);
     }
 
@@ -2160,12 +2160,12 @@ class MOsrValue : public MAryInstruction<1>
 
 
 
-class MOsrScopeChain : public MAryInstruction<1>
+class MOsrScopeChain : public MUnaryInstruction
 {
   private:
     MOsrScopeChain(MOsrEntry *entry)
+      : MUnaryInstruction(entry)
     {
-        setOperand(0, entry);
         setResultType(MIRType_Object);
     }
 
@@ -2541,8 +2541,8 @@ class MSetInitializedLength
 {
     MSetInitializedLength(MDefinition *elements, MDefinition *index)
     {
-        setOperand(0, elements);
-        setOperand(1, index);
+        initOperand(0, elements);
+        initOperand(1, index);
     }
 
   public:
@@ -3757,6 +3757,7 @@ class MResumePoint : public MNode
     void inherit(MBasicBlock *state);
 
   protected:
+    
     void setOperand(size_t index, MDefinition *operand) {
         JS_ASSERT(index < stackDepth_);
         operands_[index] = operand;

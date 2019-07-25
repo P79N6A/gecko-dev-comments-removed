@@ -214,8 +214,7 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
     void insertAfter(MInstruction *at, MInstruction *ins);
 
     
-    
-    void remove(MInstruction *ins);
+    void moveBefore(MInstruction *at, MInstruction *ins);
 
     
     void discard(MInstruction *ins);
