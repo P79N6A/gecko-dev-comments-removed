@@ -39,7 +39,7 @@
 #define _PKCS11N_H_
 
 #ifdef DEBUG
-static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19 $ $Date: 2009/03/25 05:21:03 $";
+static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19.22.2 $ $Date: 2010/12/04 19:10:46 $";
 #endif 
 
 
@@ -85,6 +85,10 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19 $
 
 #define CKK_NSS_PKCS8              (CKK_NSS + 1)
 
+#define CKK_NSS_JPAKE_ROUND1       (CKK_NSS + 2)
+#define CKK_NSS_JPAKE_ROUND2       (CKK_NSS + 3)
+
+
 
 
 
@@ -115,6 +119,15 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19 $
 #define CKA_NSS_PQG_SEED_BITS      (CKA_NSS +  23)
 #define CKA_NSS_MODULE_SPEC        (CKA_NSS +  24)
 #define CKA_NSS_OVERRIDE_EXTENSIONS (CKA_NSS +  25)
+
+#define CKA_NSS_JPAKE_SIGNERID     (CKA_NSS +  26)
+#define CKA_NSS_JPAKE_PEERID       (CKA_NSS +  27)
+#define CKA_NSS_JPAKE_GX1          (CKA_NSS +  28)
+#define CKA_NSS_JPAKE_GX2          (CKA_NSS +  29)
+#define CKA_NSS_JPAKE_GX3          (CKA_NSS +  30)
+#define CKA_NSS_JPAKE_GX4          (CKA_NSS +  31)
+#define CKA_NSS_JPAKE_X2           (CKA_NSS +  32)
+#define CKA_NSS_JPAKE_X2S          (CKA_NSS +  33)
 
 
 
@@ -169,6 +182,54 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19 $
 #define CKM_NSS_AES_KEY_WRAP_PAD  (CKM_NSS + 2)
 
 
+#define CKM_NSS_HKDF_SHA1         (CKM_NSS + 3)
+#define CKM_NSS_HKDF_SHA256       (CKM_NSS + 4)
+#define CKM_NSS_HKDF_SHA384       (CKM_NSS + 5)
+#define CKM_NSS_HKDF_SHA512       (CKM_NSS + 6)
+
+
+
+
+
+
+
+
+
+
+#define CKM_NSS_JPAKE_ROUND1_SHA1   (CKM_NSS + 7)
+#define CKM_NSS_JPAKE_ROUND1_SHA256 (CKM_NSS + 8)
+#define CKM_NSS_JPAKE_ROUND1_SHA384 (CKM_NSS + 9)
+#define CKM_NSS_JPAKE_ROUND1_SHA512 (CKM_NSS + 10)
+
+
+
+
+
+
+
+
+
+#define CKM_NSS_JPAKE_ROUND2_SHA1   (CKM_NSS + 11)
+#define CKM_NSS_JPAKE_ROUND2_SHA256 (CKM_NSS + 12)
+#define CKM_NSS_JPAKE_ROUND2_SHA384 (CKM_NSS + 13)
+#define CKM_NSS_JPAKE_ROUND2_SHA512 (CKM_NSS + 14)
+
+
+
+
+
+
+
+
+
+
+
+#define CKM_NSS_JPAKE_FINAL_SHA1    (CKM_NSS + 15)
+#define CKM_NSS_JPAKE_FINAL_SHA256  (CKM_NSS + 16)
+#define CKM_NSS_JPAKE_FINAL_SHA384  (CKM_NSS + 17)
+#define CKM_NSS_JPAKE_FINAL_SHA512  (CKM_NSS + 18)
+
+
 
 
 
@@ -187,6 +248,32 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19 $
 
 #define CKM_TLS_PRF_GENERAL                     0x80000373UL
 
+typedef struct CK_NSS_JPAKEPublicValue {
+    CK_BYTE * pGX;
+    CK_ULONG ulGXLen;
+    CK_BYTE * pGV;
+    CK_ULONG ulGVLen;
+    CK_BYTE * pR;
+    CK_ULONG ulRLen;
+} CK_NSS_JPAKEPublicValue;
+
+typedef struct CK_NSS_JPAKERound1Params {
+    CK_NSS_JPAKEPublicValue gx1; 
+    CK_NSS_JPAKEPublicValue gx2; 
+} CK_NSS_JPAKERound1Params;
+
+typedef struct CK_NSS_JPAKERound2Params {
+    CK_BYTE * pSharedKey;        
+    CK_ULONG ulSharedKeyLen;     
+    CK_NSS_JPAKEPublicValue gx3; 
+    CK_NSS_JPAKEPublicValue gx4; 
+    CK_NSS_JPAKEPublicValue A;   
+} CK_NSS_JPAKERound2Params;
+
+typedef struct CK_NSS_JPAKEFinalParams {
+    CK_NSS_JPAKEPublicValue B; 
+} CK_NSS_JPAKEFinalParams;
+
 
 
 
@@ -195,6 +282,33 @@ static const char CKT_CVS_ID[] = "@(#) $RCSfile: pkcs11n.h,v $ $Revision: 1.19 $
 
 #define CKR_NSS_CERTDB_FAILED      (CKR_NSS + 1)
 #define CKR_NSS_KEYDB_FAILED       (CKR_NSS + 2)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct CK_NSS_HKDFParams {
+    CK_BBOOL bExtract;
+    CK_BYTE_PTR pSalt;
+    CK_ULONG ulSaltLen;
+    CK_BBOOL bExpand;
+    CK_BYTE_PTR pInfo;
+    CK_ULONG ulInfoLen;
+} CK_NSS_HKDFParams;
 
 
 

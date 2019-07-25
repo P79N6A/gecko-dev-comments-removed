@@ -610,6 +610,16 @@ CERT_FindCertByNicknameOrEmailAddr(CERTCertDBHandle *handle, const char *name);
 
 
 
+
+CERTCertificate *
+CERT_FindCertByNicknameOrEmailAddrForUsage(CERTCertDBHandle *handle,
+                                           const char *name, 
+                                           SECCertUsage lookingForUsage);
+
+
+
+
+
 extern CERTCertificate *
 CERT_FindCertBySPKDigest(CERTCertDBHandle *handle, SECItem *spkDigest);
 

@@ -257,7 +257,18 @@ static const struct FREEBLVectorStr vector =
     PRNGTEST_Instantiate,
     PRNGTEST_Reseed,
     PRNGTEST_Generate,
-    PRNGTEST_Uninstantiate
+    PRNGTEST_Uninstantiate,
+
+    
+
+    RSA_PopulatePrivateKey,
+
+    DSA_NewRandom,
+
+    JPAKE_Sign,
+    JPAKE_Verify,
+    JPAKE_Round2,
+    JPAKE_Final,
 
     
 };

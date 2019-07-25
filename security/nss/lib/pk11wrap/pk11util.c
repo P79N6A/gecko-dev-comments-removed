@@ -1504,3 +1504,82 @@ SECMOD_CloseUserDB(PK11SlotInfo *slot)
     PR_smprintf_free(sendSpec);
     return rv;
 }
+
+
+
+
+SECStatus
+SECMOD_RestartModules(PRBool force)
+{
+    SECMODModuleList *mlp;
+    SECStatus rrv = SECSuccess;
+    int lastError = 0;
+
+    if (!moduleLock) {
+    	PORT_SetError(SEC_ERROR_NOT_INITIALIZED);
+	return SECFailure;
+    }
+
+    
+    SECMOD_GetReadLock(moduleLock);
+    for (mlp = modules; mlp != NULL; mlp = mlp->next) {
+	SECMODModule *mod = mlp->module;
+	CK_ULONG count;
+	SECStatus rv;
+	int i;
+
+	
+	if (force  || (PK11_GETTAB(mod)->
+			C_GetSlotList(CK_FALSE, NULL, &count) != CKR_OK)) {
+            PRBool alreadyLoaded;
+	    
+
+
+	    (void) PK11_GETTAB(mod)->C_Finalize(NULL);
+	    
+
+
+	    rv = secmod_ModuleInit(mod, NULL, &alreadyLoaded);
+	    if (rv != SECSuccess) {
+		
+		lastError = PORT_GetError();
+		rrv = rv;
+		
+		for (i=0; i < mod->slotCount; i++) {
+		    mod->slots[i]->disabled = PR_TRUE;
+		    mod->slots[i]->reason = PK11_DIS_COULD_NOT_INIT_TOKEN;
+		}
+		continue;
+	    }
+	    for (i=0; i < mod->slotCount; i++) {
+		
+
+
+		rv = PK11_InitToken(mod->slots[i],PR_TRUE);
+		
+
+
+		if (rv != SECSuccess && PK11_IsPresent(mod->slots[i])) {
+		    
+		    lastError = PORT_GetError();
+		    rrv = rv;
+		    
+		    mod->slots[i]->disabled = PR_TRUE;
+		    mod->slots[i]->reason = PK11_DIS_COULD_NOT_INIT_TOKEN;
+		}
+	    }
+	}
+    }
+    SECMOD_ReleaseReadLock(moduleLock);
+
+    
+
+
+
+    if (rrv != SECSuccess) {
+	
+	PORT_SetError(lastError);
+    }
+
+    return rrv;
+}

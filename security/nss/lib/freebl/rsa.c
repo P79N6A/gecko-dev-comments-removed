@@ -116,21 +116,21 @@ static struct RSABlindingParamsListStr blindingParamsList = { 0 };
 static PRBool nssRSAUseBlinding = PR_TRUE;
 
 static SECStatus
-rsa_keygen_from_primes(mp_int *p, mp_int *q, mp_int *e, RSAPrivateKey *key,
-                       unsigned int keySizeInBits)
+rsa_build_from_primes(mp_int *p, mp_int *q, 
+		mp_int *e, PRBool needPublicExponent, 
+		mp_int *d, PRBool needPrivateExponent,
+		RSAPrivateKey *key, unsigned int keySizeInBits)
 {
-    mp_int n, d, phi;
+    mp_int n, phi;
     mp_int psub1, qsub1, tmp;
     mp_err   err = MP_OKAY;
     SECStatus rv = SECSuccess;
     MP_DIGITS(&n)     = 0;
-    MP_DIGITS(&d)     = 0;
     MP_DIGITS(&phi)   = 0;
     MP_DIGITS(&psub1) = 0;
     MP_DIGITS(&qsub1) = 0;
     MP_DIGITS(&tmp)   = 0;
     CHECK_MPI_OK( mp_init(&n)     );
-    CHECK_MPI_OK( mp_init(&d)     );
     CHECK_MPI_OK( mp_init(&phi)   );
     CHECK_MPI_OK( mp_init(&psub1) );
     CHECK_MPI_OK( mp_init(&qsub1) );
@@ -143,12 +143,25 @@ rsa_keygen_from_primes(mp_int *p, mp_int *q, mp_int *e, RSAPrivateKey *key,
 	rv = SECFailure;
 	goto cleanup;
     }
+
+    
+    PORT_Assert(!(needPublicExponent && needPrivateExponent));
+
     
     CHECK_MPI_OK( mp_sub_d(p, 1, &psub1) );
     CHECK_MPI_OK( mp_sub_d(q, 1, &qsub1) );
-    CHECK_MPI_OK( mp_mul(&psub1, &qsub1, &phi) );
-    
-    err = mp_invmod(e, &phi, &d);
+    if (needPublicExponent || needPrivateExponent) {
+	CHECK_MPI_OK( mp_mul(&psub1, &qsub1, &phi) );
+	
+	
+	if (needPublicExponent) {
+	    err = mp_invmod(d, &phi, e);
+	} else {
+	    err = mp_invmod(e, &phi, d);
+	}
+    } else {
+	err = MP_OKAY;
+    }
     
     if (err != MP_OKAY) {
 	if (err == MP_UNDEF) {
@@ -158,20 +171,30 @@ rsa_keygen_from_primes(mp_int *p, mp_int *q, mp_int *e, RSAPrivateKey *key,
 	}
 	goto cleanup;
     }
-    MPINT_TO_SECITEM(&n, &key->modulus, key->arena);
-    MPINT_TO_SECITEM(&d, &key->privateExponent, key->arena);
+
     
-    CHECK_MPI_OK( mp_mod(&d, &psub1, &tmp) );
+    CHECK_MPI_OK( mp_mod(d, &psub1, &tmp) );
     MPINT_TO_SECITEM(&tmp, &key->exponent1, key->arena);
     
-    CHECK_MPI_OK( mp_mod(&d, &qsub1, &tmp) );
+    CHECK_MPI_OK( mp_mod(d, &qsub1, &tmp) );
     MPINT_TO_SECITEM(&tmp, &key->exponent2, key->arena);
     
     CHECK_MPI_OK( mp_invmod(q, p, &tmp) );
     MPINT_TO_SECITEM(&tmp, &key->coefficient, key->arena);
+
+    
+    key->modulus.data = NULL;
+    MPINT_TO_SECITEM(&n, &key->modulus, key->arena);
+    key->privateExponent.data = NULL;
+    MPINT_TO_SECITEM(d, &key->privateExponent, key->arena);
+    key->publicExponent.data = NULL;
+    MPINT_TO_SECITEM(e, &key->publicExponent, key->arena);
+    key->prime1.data = NULL;
+    MPINT_TO_SECITEM(p, &key->prime1, key->arena);
+    key->prime2.data = NULL;
+    MPINT_TO_SECITEM(q, &key->prime2, key->arena);
 cleanup:
     mp_clear(&n);
-    mp_clear(&d);
     mp_clear(&phi);
     mp_clear(&psub1);
     mp_clear(&qsub1);
@@ -229,7 +252,7 @@ RSAPrivateKey *
 RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
 {
     unsigned int primeLen;
-    mp_int p, q, e;
+    mp_int p, q, e, d;
     int kiter;
     mp_err   err = MP_OKAY;
     SECStatus rv = SECSuccess;
@@ -260,14 +283,15 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
     MP_DIGITS(&p) = 0;
     MP_DIGITS(&q) = 0;
     MP_DIGITS(&e) = 0;
+    MP_DIGITS(&d) = 0;
     CHECK_MPI_OK( mp_init(&p) );
     CHECK_MPI_OK( mp_init(&q) );
     CHECK_MPI_OK( mp_init(&e) );
+    CHECK_MPI_OK( mp_init(&d) );
     
     SECITEM_AllocItem(arena, &key->version, 1);
     key->version.data[0] = 0;
     
-    SECITEM_CopyItem(arena, &key->publicExponent, publicExponent);
     SECITEM_TO_MPINT(*publicExponent, &e);
     kiter = 0;
     do {
@@ -279,7 +303,10 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
 	if (mp_cmp(&p, &q) < 0)
 	    mp_exch(&p, &q);
 	
-	rv = rsa_keygen_from_primes(&p, &q, &e, key, keySizeInBits);
+	rv = rsa_build_from_primes(&p, &q, 
+			&e, PR_FALSE,  
+			&d, PR_TRUE,   
+			key, keySizeInBits);
 	if (rv == SECSuccess)
 	    break; 
 	prerr = PORT_GetError();
@@ -288,12 +315,11 @@ RSA_NewKey(int keySizeInBits, SECItem *publicExponent)
     } while (prerr == SEC_ERROR_NEED_RANDOM && kiter < MAX_KEY_GEN_ATTEMPTS);
     if (prerr)
 	goto cleanup;
-    MPINT_TO_SECITEM(&p, &key->prime1, arena);
-    MPINT_TO_SECITEM(&q, &key->prime2, arena);
 cleanup:
     mp_clear(&p);
     mp_clear(&q);
     mp_clear(&e);
+    mp_clear(&d);
     if (err) {
 	MP_TO_SEC_ERROR(err);
 	rv = SECFailure;
@@ -303,6 +329,484 @@ cleanup:
 	key = NULL;
     }
     return key;
+}
+
+mp_err
+rsa_is_prime(mp_int *p) {
+    int res;
+
+    
+    res = mpp_fermat(p, 2);
+    if (res != MP_OKAY) {
+	return res;
+    }
+
+    
+    res = mpp_pprime(p, 2);
+    return res;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static mp_err
+rsa_get_primes_from_exponents(mp_int *e, mp_int *d, mp_int *p, mp_int *q,
+			      mp_int *n, PRBool hasModulus, 
+			      unsigned int keySizeInBits)
+{
+    mp_int kphi; 
+    mp_int k;    
+    mp_int phi;  
+    mp_int s;    
+    mp_int r;    
+    mp_int tmp; 
+    mp_int sqrt; 
+    mp_err err = MP_OKAY;
+    unsigned int order_k;
+
+    MP_DIGITS(&kphi) = 0;
+    MP_DIGITS(&phi) = 0;
+    MP_DIGITS(&s) = 0;
+    MP_DIGITS(&k) = 0;
+    MP_DIGITS(&r) = 0;
+    MP_DIGITS(&tmp) = 0;
+    MP_DIGITS(&sqrt) = 0;
+    CHECK_MPI_OK( mp_init(&kphi) );
+    CHECK_MPI_OK( mp_init(&phi) );
+    CHECK_MPI_OK( mp_init(&s) );
+    CHECK_MPI_OK( mp_init(&k) );
+    CHECK_MPI_OK( mp_init(&r) );
+    CHECK_MPI_OK( mp_init(&tmp) );
+    CHECK_MPI_OK( mp_init(&sqrt) );
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if (mpl_significant_bits(e) > 23) {
+	err=MP_RANGE;
+	goto cleanup;
+    }
+
+    
+    CHECK_MPI_OK( mp_mul(e, d, &kphi) );
+    CHECK_MPI_OK( mp_sub_d(&kphi, 1, &kphi) );
+
+
+    
+
+
+
+
+
+    order_k = (unsigned)mpl_significant_bits(&kphi) - keySizeInBits;
+
+    
+    
+    CHECK_MPI_OK( mp_2expt(&k,keySizeInBits-1) );
+    CHECK_MPI_OK( mp_div(&kphi, &k, &k, NULL));
+    if (mp_cmp(&k,e) >= 0) {
+	
+        CHECK_MPI_OK( mp_sub_d(e, 1, &k) );
+    }
+
+    
+    
+
+    
+    
+    if (hasModulus) {
+	CHECK_MPI_OK( mp_add_d(n, 1, &tmp) );
+    } else {
+	CHECK_MPI_OK( mp_sub_d(p, 1, &tmp) );
+	CHECK_MPI_OK(mp_div(&kphi,&tmp,&kphi,&r));
+	if (mp_cmp_z(&r) != 0) {
+	    
+	    err=MP_RANGE;
+	    goto cleanup;
+	}
+	mp_zero(q);
+	
+    }
+
+    
+    for (; (err == MP_OKAY) && (mpl_significant_bits(&k) >= order_k); 
+						err = mp_sub_d(&k, 1, &k)) {
+	
+	CHECK_MPI_OK(mp_div(&kphi,&k,&phi,&r));
+	if (mp_cmp_z(&r) != 0) {
+	    
+	    continue;
+	}
+	
+	if (!hasModulus) {
+	    if ((unsigned)mpl_significant_bits(&phi) != keySizeInBits/2) {
+		
+		continue;
+	    }
+	    
+
+	    if (mpp_divis_d(&phi,2) == MP_NO) {
+		
+		continue;
+	    }
+	    
+	    CHECK_MPI_OK(mp_add_d(&phi, 1, &tmp));
+	    
+	    
+	    err = rsa_is_prime(&tmp);
+	    if (err != MP_OKAY) {
+		if (err == MP_NO) {
+		    
+		    err = MP_OKAY;
+        	    continue;
+		}
+		goto cleanup;
+	    }
+	    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	    if (mp_cmp_z(q) != 0) {
+		
+
+		err = MP_RANGE;
+		break;
+	    }
+	    
+
+	    CHECK_MPI_OK(mp_copy(&tmp, q));
+	    continue;
+	}
+	
+	
+	if ((unsigned)mpl_significant_bits(&phi) != keySizeInBits) {
+	    
+	    continue;
+	}
+	
+
+	if (mpp_divis_d(&phi,4) == MP_NO) {
+	    
+	    continue;
+	}
+	
+	CHECK_MPI_OK( mp_sub(&tmp, &phi, &s) );
+	CHECK_MPI_OK( mp_div_2(&s, &s) );
+
+	
+	CHECK_MPI_OK(mp_sqr(&s,&sqrt));
+	CHECK_MPI_OK(mp_sub(&sqrt,n,&r));  
+	CHECK_MPI_OK(mp_sqrt(&r,&sqrt));
+	
+	
+	
+	CHECK_MPI_OK(mp_sqr(&sqrt,q)); 
+	if (mp_cmp(&r,q) != 0) {
+	    
+	   CHECK_MPI_OK(mp_add_d(&sqrt,1,&sqrt));
+	   CHECK_MPI_OK(mp_sqr(&sqrt,q));
+	   if (mp_cmp(&r,q) != 0) {
+		
+		continue;
+	    }
+	}
+
+	
+
+
+
+
+
+
+
+
+
+
+	
+	
+	CHECK_MPI_OK(mp_add(&s,&sqrt,p));
+	CHECK_MPI_OK(mp_sub(&s,&sqrt,q));
+	break;
+    }
+    if ((unsigned)mpl_significant_bits(&k) < order_k) {
+	if (hasModulus || (mp_cmp_z(q) == 0)) {
+	    
+
+	    err = MP_RANGE; 
+	}
+    }
+cleanup:
+    mp_clear(&kphi);
+    mp_clear(&phi);
+    mp_clear(&s);
+    mp_clear(&k);
+    mp_clear(&r);
+    mp_clear(&tmp);
+    mp_clear(&sqrt);
+    return err;
+}
+     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+SECStatus
+RSA_PopulatePrivateKey(RSAPrivateKey *key)
+{
+    PRArenaPool *arena = NULL;
+    PRBool needPublicExponent = PR_TRUE;
+    PRBool needPrivateExponent = PR_TRUE;
+    PRBool hasModulus = PR_FALSE;
+    unsigned int keySizeInBits = 0;
+    int prime_count = 0;
+    
+    mp_int p, q, e, d, n;
+    
+    mp_int r;
+    mp_err err = 0;
+    SECStatus rv = SECFailure;
+
+    MP_DIGITS(&p) = 0;
+    MP_DIGITS(&q) = 0;
+    MP_DIGITS(&e) = 0;
+    MP_DIGITS(&d) = 0;
+    MP_DIGITS(&n) = 0;
+    MP_DIGITS(&r) = 0;
+    CHECK_MPI_OK( mp_init(&p) );
+    CHECK_MPI_OK( mp_init(&q) );
+    CHECK_MPI_OK( mp_init(&e) );
+    CHECK_MPI_OK( mp_init(&d) );
+    CHECK_MPI_OK( mp_init(&n) );
+    CHECK_MPI_OK( mp_init(&r) );
+ 
+    
+    if (key->arena == NULL) {
+	arena = PORT_NewArena(NSS_FREEBL_DEFAULT_CHUNKSIZE);
+	if (!arena) {
+	    goto cleanup;
+	}
+	key->arena = arena;
+    }
+
+    
+    if (key->publicExponent.data) {
+        SECITEM_TO_MPINT(key->publicExponent, &e);
+	needPublicExponent = PR_FALSE;
+    } 
+    if (key->privateExponent.data) {
+        SECITEM_TO_MPINT(key->privateExponent, &d);
+	needPrivateExponent = PR_FALSE;
+    }
+    if (needPrivateExponent && needPublicExponent) {
+	
+	err = MP_BADARG;
+	goto cleanup;
+    }
+
+    
+
+
+
+    if (key->prime1.data) {
+	int primeLen = key->prime1.len;
+	if (key->prime1.data[0] == 0) {
+	   primeLen--;
+	}
+	keySizeInBits = primeLen * 2 * BITS_PER_BYTE;
+        SECITEM_TO_MPINT(key->prime1, &p);
+	prime_count++;
+    }
+    if (key->prime2.data) {
+	int primeLen = key->prime2.len;
+	if (key->prime2.data[0] == 0) {
+	   primeLen--;
+	}
+	keySizeInBits = primeLen * 2 * BITS_PER_BYTE;
+        SECITEM_TO_MPINT(key->prime2, prime_count ? &q : &p);
+	prime_count++;
+    }
+    
+    if (key->modulus.data) {
+	int modLen = key->modulus.len;
+	if (key->modulus.data[0] == 0) {
+	   modLen--;
+	}
+	keySizeInBits = modLen * BITS_PER_BYTE;
+	SECITEM_TO_MPINT(key->modulus, &n);
+	hasModulus = PR_TRUE;
+    }
+    
+    if ((prime_count == 1) && (hasModulus)) {
+	mp_div(&n,&p,&q,&r);
+	if (mp_cmp_z(&r) != 0) {
+	   
+	   err = MP_BADARG;
+	   goto cleanup;
+	}
+	prime_count++;
+    }
+
+    
+
+    if (prime_count < 2) {
+	
+
+	if (!needPublicExponent && !needPrivateExponent &&
+		((prime_count > 0) || hasModulus)) {
+	    CHECK_MPI_OK(rsa_get_primes_from_exponents(&e,&d,&p,&q,
+			&n,hasModulus,keySizeInBits));
+	} else {
+	    
+	    err = MP_BADARG;
+	    goto cleanup;
+	}
+     }
+
+     
+     if (mp_cmp(&p, &q) < 0)
+	mp_exch(&p, &q);
+
+     
+
+     rv = rsa_build_from_primes(&p, &q, 
+			&e, needPublicExponent,
+			&d, needPrivateExponent,
+			key, keySizeInBits);
+cleanup:
+    mp_clear(&p);
+    mp_clear(&q);
+    mp_clear(&e);
+    mp_clear(&d);
+    mp_clear(&n);
+    mp_clear(&r);
+    if (err) {
+	MP_TO_SEC_ERROR(err);
+	rv = SECFailure;
+    }
+    if (rv && arena) {
+	PORT_FreeArena(arena, PR_TRUE);
+	key->arena = NULL;
+    }
+    return rv;
 }
 
 static unsigned int

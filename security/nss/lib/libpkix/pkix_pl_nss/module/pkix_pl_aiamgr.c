@@ -658,7 +658,8 @@ PKIX_PL_AIAMgr_GetAIACerts(
 				PKIX_AIAMGRGETLDAPCERTSFAILED);
                 } else {
                         
-			PKIX_ERROR(PKIX_UNKNOWNINFOACCESSTYPE);
+                        PKIX_DECREF(ia);
+                        continue;
                 }
 
                 if (nbio != NULL) { 

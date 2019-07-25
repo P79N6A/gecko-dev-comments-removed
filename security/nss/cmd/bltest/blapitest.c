@@ -121,7 +121,7 @@ static void Usage()
 #define PRINTUSAGE(subject, option, predicate) \
     fprintf(stderr, "%10s %s\t%s\n", subject, option, predicate);
     fprintf(stderr, "\n");
-    PRINTUSAGE(progName, "[-DEHSV]", "List available cipher modes"); 
+    PRINTUSAGE(progName, "[-DEHSVR]", "List available cipher modes"); 
     fprintf(stderr, "\n");
     PRINTUSAGE(progName, "-E -m mode ", "Encrypt a buffer");
     PRINTUSAGE("",	"", "[-i plaintext] [-o ciphertext] [-k key] [-v iv]");
@@ -217,6 +217,13 @@ static void Usage()
     PRINTUSAGE("",      "", "[-g keysize] [-u cxreps]");
     PRINTUSAGE("",	"-g", "key size (in bytes)");
     PRINTUSAGE("",      "-u", "number of repetitions of context creation");
+    fprintf(stderr, "\n");
+    PRINTUSAGE(progName, "-R [-g keysize] [-e exp]", 
+                                            "Test the RSA populate key function");
+    PRINTUSAGE("",      "", "[-r repetitions]");
+    PRINTUSAGE("",	"-g", "key size (in bytes)");
+    PRINTUSAGE("", 	"-e", "rsa public exponent");
+    PRINTUSAGE("", 	"-r", "repetitions of the test");
     fprintf(stderr, "\n");
     PRINTUSAGE(progName, "-F", "Run the FIPS self-test");
     fprintf(stderr, "\n");
@@ -3137,6 +3144,192 @@ void ThreadExecTest(void *data)
     cipherFinish(cipherInfo);
 }
 
+static void rsaPrivKeyReset(RSAPrivateKey *tstKey)
+{
+    PLArenaPool *arena;
+
+    tstKey->version.data = NULL;
+    tstKey->version.len = 0;
+    tstKey->modulus.data = NULL;
+    tstKey->modulus.len = 0;
+    tstKey->publicExponent.data = NULL;
+    tstKey->publicExponent.len = 0;
+    tstKey->privateExponent.data = NULL;
+    tstKey->privateExponent.len = 0;
+    tstKey->prime1.data = NULL;
+    tstKey->prime1.len = 0;
+    tstKey->prime2.data = NULL;
+    tstKey->prime2.len = 0;
+    tstKey->exponent1.data = NULL;
+    tstKey->exponent1.len = 0;
+    tstKey->exponent2.data = NULL;
+    tstKey->exponent2.len = 0;
+    tstKey->coefficient.data = NULL;
+    tstKey->coefficient.len = 0;
+
+    arena = tstKey->arena;
+    tstKey->arena = NULL;
+    if (arena) {
+	PORT_FreeArena(arena, PR_TRUE);
+    }
+}
+
+
+#define RSA_TEST_EQUAL(comp) \
+    if (!SECITEM_ItemsAreEqual(&(src->comp),&(dest->comp))) { \
+	fprintf(stderr, "key->" #comp " not equal"); \
+	if (src->comp.len != dest->comp.len) { \
+	    fprintf(stderr, "src_len = %d, dest_len = %d",  \
+					src->comp.len, dest->comp.len); \
+	} \
+	fprintf(stderr, "\n"); \
+	areEqual = PR_FALSE; \
+    }
+	    
+
+static PRBool rsaPrivKeysAreEqual(RSAPrivateKey *src, RSAPrivateKey *dest)
+{
+    PRBool areEqual = PR_TRUE;
+    RSA_TEST_EQUAL(modulus)
+    RSA_TEST_EQUAL(publicExponent)
+    RSA_TEST_EQUAL(privateExponent)
+    RSA_TEST_EQUAL(prime1)
+    RSA_TEST_EQUAL(prime2)
+    RSA_TEST_EQUAL(exponent1)
+    RSA_TEST_EQUAL(exponent2)
+    RSA_TEST_EQUAL(coefficient)
+    if (!areEqual) {
+	fprintf(stderr, "original key:\n");
+	dump_rsakey(src);
+	fprintf(stderr, "recreated key:\n");
+	dump_rsakey(dest);
+    }
+    return areEqual;
+}
+
+
+
+
+
+static int doRSAPopulateTest(unsigned int keySize, unsigned long exponent)
+{
+    RSAPrivateKey *srcKey;
+    RSAPrivateKey tstKey = { 0 };
+    SECItem expitem = { 0, 0, 0 };
+    SECStatus rv;
+    unsigned char pubExp[4];
+    int expLen = 0;
+    int failed = 0;
+    int i;
+
+    for (i=0; i < sizeof(unsigned long); i++) {
+	int shift = (sizeof(unsigned long) - i -1 ) * 8;
+	if (expLen || (exponent && ((unsigned long)0xffL << shift))) {
+	    pubExp[expLen] = (unsigned char) ((exponent >> shift) & 0xff);
+	    expLen++;
+        }
+    }
+
+    expitem.data = pubExp;
+    expitem.len = expLen;
+
+    srcKey = RSA_NewKey(keySize, &expitem);
+    if (srcKey == NULL) {
+	fprintf(stderr, "RSA Key Gen failed");
+	return -1;
+    }
+
+    
+    tstKey.arena = NULL;
+    rsaPrivKeyReset(&tstKey);
+
+    tstKey.publicExponent = srcKey->publicExponent;
+    tstKey.modulus = srcKey->modulus;
+    tstKey.prime1 = srcKey->prime1;
+
+    rv = RSA_PopulatePrivateKey(&tstKey);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "RSA Populate failed: pubExp mod p\n");
+	failed = 1;
+    } else if (!rsaPrivKeysAreEqual(&tstKey, srcKey)) {
+	fprintf(stderr, "RSA Populate key mismatch: pubExp mod p\n");
+	failed = 1;
+    }
+
+    
+    rsaPrivKeyReset(&tstKey);
+
+    tstKey.publicExponent = srcKey->publicExponent;
+    tstKey.modulus = srcKey->modulus;
+    tstKey.prime1 = srcKey->prime2; 
+
+    rv = RSA_PopulatePrivateKey(&tstKey);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "RSA Populate failed: pubExp mod q\n");
+	failed = 1;
+    } else if (!rsaPrivKeysAreEqual(&tstKey, srcKey)) {
+	fprintf(stderr, "RSA Populate key mismatch: pubExp mod q\n");
+	failed = 1;
+    }
+
+    
+    rsaPrivKeyReset(&tstKey);
+
+    tstKey.privateExponent = srcKey->privateExponent;
+    tstKey.prime1 = srcKey->prime2; 
+    tstKey.prime2 = srcKey->prime1; 
+
+    rv = RSA_PopulatePrivateKey(&tstKey);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "RSA Populate failed: privExp p q\n");
+	failed = 1;
+    } else if (!rsaPrivKeysAreEqual(&tstKey, srcKey)) {
+	fprintf(stderr, "RSA Populate key mismatch: privExp  p q\n");
+	failed = 1;
+    }
+
+    
+    rsaPrivKeyReset(&tstKey);
+
+    tstKey.privateExponent = srcKey->privateExponent;
+    tstKey.publicExponent = srcKey->publicExponent;
+    tstKey.prime2 = srcKey->prime2; 
+
+    rv = RSA_PopulatePrivateKey(&tstKey);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "RSA Populate failed: pubExp privExp q\n");
+	fprintf(stderr, " - not fatal\n");
+	
+
+
+    } else if (!rsaPrivKeysAreEqual(&tstKey, srcKey)) {
+	
+	fprintf(stderr, "RSA Populate key mismatch: pubExp privExp  q\n");
+	rv = RSA_PrivateKeyCheck(&tstKey);
+	failed = 1;
+    }
+
+    
+    rsaPrivKeyReset(&tstKey);
+
+    tstKey.privateExponent = srcKey->privateExponent;
+    tstKey.publicExponent = srcKey->publicExponent;
+    tstKey.modulus = srcKey->modulus;
+
+    rv = RSA_PopulatePrivateKey(&tstKey);
+    if (rv != SECSuccess) {
+	fprintf(stderr, "RSA Populate failed: pubExp privExp mod\n");
+	failed = 1;
+    } else if (!rsaPrivKeysAreEqual(&tstKey, srcKey)) {
+	fprintf(stderr, "RSA Populate key mismatch: pubExp privExp  mod\n");
+	failed = 1;
+    }
+
+    return failed ? -1 : 0;
+}
+
+
+
 
 enum {
     cmd_Decrypt = 0,
@@ -3145,6 +3338,7 @@ enum {
     cmd_Hash,
     cmd_Nonce,
     cmd_Dump,
+    cmd_RSAPopulate,
     cmd_Sign,
     cmd_SelfTest,
     cmd_Verify
@@ -3196,6 +3390,7 @@ static secuCommandFlag bltest_commands[] =
     {  'H', PR_FALSE, 0, PR_FALSE },
     {  'N', PR_FALSE, 0, PR_FALSE },
     {  'P', PR_FALSE, 0, PR_FALSE },
+    {  'R', PR_FALSE, 0, PR_FALSE },
     {  'S', PR_FALSE, 0, PR_FALSE },
     {  'T', PR_FALSE, 0, PR_FALSE },
     {  'V', PR_FALSE, 0, PR_FALSE }
@@ -3309,6 +3504,7 @@ int main(int argc, char **argv)
         goto print_usage;
     }
 
+
     if (bltest.commands[cmd_Sign].activated)
 	bltest.commands[cmd_Encrypt].activated = PR_TRUE;
     if (bltest.commands[cmd_Verify].activated)
@@ -3328,6 +3524,36 @@ int main(int argc, char **argv)
     
 
 
+
+    
+    if (bltest.commands[cmd_RSAPopulate].activated) {
+	unsigned int keySize = 1024;
+	unsigned long exponent = 65537;
+	int rounds = 1;
+	int ret;
+	
+	if (bltest.options[opt_KeySize].activated) {
+	    keySize = PORT_Atoi(bltest.options[opt_KeySize].arg);
+	}
+	if (bltest.options[opt_Rounds].activated) {
+	    rounds = PORT_Atoi(bltest.options[opt_Rounds].arg);
+	}
+	if (bltest.options[opt_Exponent].activated) {
+	    exponent = PORT_Atoi(bltest.options[opt_Exponent].arg);
+	}
+
+	for (i=0; i < rounds; i++) {
+	    printf("Running RSA Populate test round %d\n",i);
+	    ret = doRSAPopulateTest(keySize,exponent);
+	    if (ret != 0) {
+		break;
+	    }
+	}
+	if (ret != 0) {
+	    fprintf(stderr,"RSA Populate test round %d: FAILED\n",i);
+	}
+	return ret;
+    }
 
     
     if (bltest.commands[cmd_SelfTest].activated) {

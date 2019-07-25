@@ -653,6 +653,82 @@ loser:
     return NULL;
 }
 
+
+typedef struct FindCertsEmailArgStr {
+    char         *email;
+    CERTCertList *certList;
+} FindCertsEmailArg;
+
+SECStatus 
+FindCertsEmailCallback(CERTCertificate *cert, SECItem *item, void *arg)
+{
+    FindCertsEmailArg *cbparam = (FindCertsEmailArg *) arg;	
+    const char *cert_email = CERT_GetFirstEmailAddress(cert);
+    PRBool found = PR_FALSE;
+
+    
+    if (cert_email == NULL){
+	return SECSuccess;
+    }
+ 
+    
+    if (cbparam->email == NULL) {
+	return SECFailure;
+    }
+
+    
+    do {
+	if (!strcmp(cert_email, cbparam->email)) {
+	    
+	    PRTime now = PR_Now();
+	    found = PR_TRUE;
+	    CERT_AddCertToListSorted(cbparam->certList, 
+	                             CERT_DupCertificate(cert),
+			             CERT_SortCBValidity, &now);
+	}
+	cert_email = CERT_GetNextEmailAddress(cert, cert_email);
+    } while (cert_email && !found);   
+
+    return SECSuccess;
+}
+
+
+CERTCertList *
+PK11_FindCertsFromEmailAddress(const char *email, void *wincx) 
+{
+    FindCertsEmailArg cbparam;
+    SECStatus rv;
+
+    cbparam.certList = CERT_NewCertList();
+    if (cbparam.certList == NULL) {
+	return NULL;
+    }
+
+    cbparam.email = CERT_FixupEmailAddr(email);
+    if (cbparam.email == NULL) {
+	CERT_DestroyCertList(cbparam.certList);
+	return NULL;
+    }
+
+    rv = PK11_TraverseSlotCerts(FindCertsEmailCallback, &cbparam, NULL); 	
+    if (rv != SECSuccess) {
+	CERT_DestroyCertList(cbparam.certList);
+	PORT_Free(cbparam.email);
+	return NULL;
+    }
+
+    
+    if (CERT_LIST_HEAD(cbparam.certList) == NULL || 
+        CERT_LIST_END(CERT_LIST_HEAD(cbparam.certList), cbparam.certList)) {
+	CERT_DestroyCertList(cbparam.certList);
+	cbparam.certList = NULL;
+    }
+
+    PORT_Free(cbparam.email);
+    return cbparam.certList;
+}
+
+
 CERTCertList *
 PK11_FindCertsFromNickname(const char *nickname, void *wincx) 
 {

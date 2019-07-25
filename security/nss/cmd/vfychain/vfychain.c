@@ -729,8 +729,7 @@ breakout:
         
         if (secStatus != SECSuccess || log.count > 0) {
             CERTVerifyLogNode *node = NULL;
-            PRIntn err = PR_GetError();
-            fprintf(stderr, "Chain is bad, %d = %s\n", err, SECU_Strerror(err));
+            fprintf(stderr, "Chain is bad!\n");
             
             SECU_displayVerifyLog(stderr, &log, verbose); 
             

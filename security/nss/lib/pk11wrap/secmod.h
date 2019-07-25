@@ -98,6 +98,18 @@ SECMODModule * SECMOD_CreateModule(const char *lib, const char *name,
 
 
 
+
+
+
+
+
+
+
+
+SECStatus SECMOD_RestartModules(PRBool force);
+
+
+
 char **SECMOD_GetModuleSpecList(SECMODModule *module);
 SECStatus SECMOD_FreeModuleSpecList(SECMODModule *module,char **moduleSpecList);
 

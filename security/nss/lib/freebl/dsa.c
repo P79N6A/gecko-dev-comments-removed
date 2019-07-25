@@ -56,8 +56,6 @@
  
 #define NSS_FREEBL_DSA_DEFAULT_CHUNKSIZE 2048
 
-#define FIPS_DSA_Q     160
-#define QSIZE      (FIPS_DSA_Q / PR_BITS_PER_BYTE)
 
 
 
@@ -66,11 +64,9 @@
 
 
 
-
-SECStatus
-FIPS186Change_ReduceModQForDSA(const PRUint8 *w,
-                               const PRUint8 *q,
-                               PRUint8 *xj)
+static SECStatus
+fips186Change_ReduceModQForDSA(const PRUint8 *w, const PRUint8 *q,
+                               unsigned int qLen, PRUint8 * xj)
 {
     mp_int W, Q, Xj;
     mp_err err;
@@ -86,15 +82,16 @@ FIPS186Change_ReduceModQForDSA(const PRUint8 *w,
     
 
 
-    CHECK_MPI_OK( mp_read_unsigned_octets(&W, w, 2*QSIZE) );
-    CHECK_MPI_OK( mp_read_unsigned_octets(&Q, q, DSA_SUBPRIME_LEN) );
+    CHECK_MPI_OK( mp_read_unsigned_octets(&W, w, 2*qLen) );
+    CHECK_MPI_OK( mp_read_unsigned_octets(&Q, q, qLen) );
+
     
 
 
 
 
     CHECK_MPI_OK( mp_mod(&W, &Q, &Xj) );
-    CHECK_MPI_OK( mp_to_fixlen_octets(&Xj, xj, DSA_SUBPRIME_LEN) );
+    CHECK_MPI_OK( mp_to_fixlen_octets(&Xj, xj, qLen) );
 cleanup:
     mp_clear(&W);
     mp_clear(&Q);
@@ -104,6 +101,17 @@ cleanup:
 	rv = SECFailure;
     }
     return rv;
+}
+
+
+
+
+
+SECStatus
+FIPS186Change_ReduceModQForDSA(const unsigned char *w,
+                               const unsigned char *q,
+                               unsigned char *xj) {
+    return fips186Change_ReduceModQForDSA(w, q, DSA_SUBPRIME_LEN, xj);
 }
 
 
@@ -137,24 +145,36 @@ FIPS186Change_GenerateX(PRUint8 *XKEY, const PRUint8 *XSEEDj,
 
 
 static SECStatus 
-dsa_GenerateGlobalRandomBytes(void *dest, size_t len, const PRUint8 *q)
+dsa_GenerateGlobalRandomBytes(const SECItem * qItem, PRUint8 * dest,
+                              unsigned int * destLen, unsigned int maxDestLen)
 {
     SECStatus rv;
-    PRUint8 w[2*QSIZE];
+    SECItem w;
+    const PRUint8 * q = qItem->data;
+    unsigned int qLen = qItem->len;
 
-    PORT_Assert(q && len == DSA_SUBPRIME_LEN);
-    if (len != DSA_SUBPRIME_LEN) {
-	PORT_SetError(SEC_ERROR_OUTPUT_LEN);
-	return SECFailure;
-    }
     if (*q == 0) {
         ++q;
+        --qLen;
     }
-    rv = RNG_GenerateGlobalRandomBytes(w, 2*QSIZE);
-    if (rv != SECSuccess) {
-	return rv;
+    if (maxDestLen < qLen) {
+        
+
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
     }
-    FIPS186Change_ReduceModQForDSA(w, q, (PRUint8 *)dest);
+    w.data = NULL; 
+    if (!SECITEM_AllocItem(NULL, &w, 2*qLen)) {
+        return SECFailure;
+    }
+    *destLen = qLen;
+
+    rv = RNG_GenerateGlobalRandomBytes(w.data, w.len);
+    if (rv == SECSuccess) {
+        rv = fips186Change_ReduceModQForDSA(w.data, q, qLen, dest);
+    }
+
+    SECITEM_FreeItem(&w, PR_FALSE);
     return rv;
 }
 
@@ -163,9 +183,9 @@ static void translate_mpi_error(mp_err err)
     MP_TO_SEC_ERROR(err);
 }
 
-SECStatus 
-dsa_NewKey(const PQGParams *params, DSAPrivateKey **privKey, 
-           const unsigned char *xb)
+static SECStatus 
+dsa_NewKeyExtended(const PQGParams *params, const SECItem * seed,
+                   DSAPrivateKey **privKey)
 {
     mp_int p, g;
     mp_int x, y;
@@ -173,7 +193,7 @@ dsa_NewKey(const PQGParams *params, DSAPrivateKey **privKey,
     PRArenaPool *arena;
     DSAPrivateKey *key;
     
-    if (!params || !privKey) {
+    if (!params || !privKey || !seed || !seed->data) {
 	PORT_SetError(SEC_ERROR_INVALID_ARGS);
 	return SECFailure;
     }
@@ -208,10 +228,10 @@ dsa_NewKey(const PQGParams *params, DSAPrivateKey **privKey,
     
     SECITEM_TO_MPINT(params->prime, &p);
     SECITEM_TO_MPINT(params->base,  &g);
-    OCTETS_TO_MPINT(xb, &x, DSA_SUBPRIME_LEN);
+    OCTETS_TO_MPINT(seed->data, &x, seed->len);
     
-    SECITEM_AllocItem(arena, &key->privateValue, DSA_SUBPRIME_LEN);
-    memcpy(key->privateValue.data, xb, DSA_SUBPRIME_LEN);
+    SECITEM_AllocItem(arena, &key->privateValue, seed->len);
+    PORT_Memcpy(key->privateValue.data, seed->data, seed->len);
     
     CHECK_MPI_OK( mp_exptmod(&g, &x, &p, &y) );
     
@@ -232,6 +252,53 @@ cleanup:
     return SECSuccess;
 }
 
+SECStatus
+DSA_NewRandom(PLArenaPool * arena, const SECItem * q, SECItem * seed)
+{
+    int retries = 10;
+    unsigned int i;
+    PRBool good;
+
+    if (q == NULL || q->data == NULL || q->len == 0 ||
+        (q->data[0] == 0 && q->len == 1)) {
+        PORT_SetError(SEC_ERROR_INVALID_ARGS);
+        return SECFailure;
+    }
+
+    if (!SECITEM_AllocItem(arena, seed, q->len)) {
+        return SECFailure;
+    }
+
+    do {
+	
+        if (dsa_GenerateGlobalRandomBytes(q, seed->data, &seed->len,
+                                          seed->len)) {
+            goto loser;
+        }
+	
+	good = PR_FALSE;
+	for (i = 0; i < seed->len-1; i++) {
+	    if (seed->data[i] != 0) {
+		good = PR_TRUE;
+		break;
+	    }
+	}
+	if (!good && seed->data[i] > 1) {
+	    good = PR_TRUE;
+	}
+    } while (!good && --retries > 0);
+
+    if (!good) {
+	PORT_SetError(SEC_ERROR_NEED_RANDOM);
+loser:	if (arena != NULL) {
+            SECITEM_FreeItem(seed, PR_FALSE);
+        }
+	return SECFailure;
+    }
+
+    return SECSuccess;
+}
+
 
 
 
@@ -241,37 +308,21 @@ cleanup:
 SECStatus 
 DSA_NewKey(const PQGParams *params, DSAPrivateKey **privKey)
 {
+    SECItem seed;
     SECStatus rv;
-    unsigned char seed[DSA_SUBPRIME_LEN];
-    int retries = 10;
-    int i;
-    PRBool good;
 
-    do {
-	
-	if (dsa_GenerateGlobalRandomBytes(seed, DSA_SUBPRIME_LEN,
-					  params->subPrime.data))
-	    return SECFailure;
-	
-	good = PR_FALSE;
-	for (i = 0; i < DSA_SUBPRIME_LEN-1; i++) {
-	    if (seed[i] != 0) {
-		good = PR_TRUE;
-		break;
-	    }
-	}
-	if (!good && seed[i] > 1) {
-	    good = PR_TRUE;
-	}
-    } while (!good && --retries > 0);
+    seed.data = NULL;
 
-    if (!good) {
-	PORT_SetError(SEC_ERROR_NEED_RANDOM);
-	return SECFailure;
+    rv = DSA_NewRandom(NULL, &params->subPrime, &seed);
+    if (rv == SECSuccess) {
+        if (seed.len != DSA_SUBPRIME_LEN) {
+            PORT_SetError(SEC_ERROR_INVALID_ARGS);
+            rv = SECFailure;
+        } else {
+            rv = dsa_NewKeyExtended(params, &seed, privKey);
+        }
     }
-
-    
-    rv = dsa_NewKey(params, privKey, seed);
+    SECITEM_FreeItem(&seed, PR_FALSE);
     return rv;
 }
 
@@ -281,9 +332,11 @@ DSA_NewKeyFromSeed(const PQGParams *params,
                    const unsigned char *seed,
                    DSAPrivateKey **privKey)
 {
-    SECStatus rv;
-    rv = dsa_NewKey(params, privKey, seed);
-    return rv;
+    
+    SECItem seedItem;
+    seedItem.data = (unsigned char*) seed;
+    seedItem.len = DSA_SUBPRIME_LEN;
+    return dsa_NewKeyExtended(params, &seedItem, privKey);
 }
 
 static SECStatus 
@@ -393,18 +446,24 @@ DSA_SignDigest(DSAPrivateKey *key, SECItem *signature, const SECItem *digest)
     SECStatus rv;
     int       retries = 10;
     unsigned char kSeed[DSA_SUBPRIME_LEN];
-    int       i;
+    unsigned int kSeedLen = 0;
+    unsigned int i;
     PRBool    good;
 
     PORT_SetError(0);
     do {
-	rv = dsa_GenerateGlobalRandomBytes(kSeed, DSA_SUBPRIME_LEN, 
-					   key->params.subPrime.data);
+	rv = dsa_GenerateGlobalRandomBytes(&key->params.subPrime,
+                                           kSeed, &kSeedLen, sizeof kSeed);
 	if (rv != SECSuccess) 
 	    break;
+        if (kSeedLen != DSA_SUBPRIME_LEN) {
+            PORT_SetError(SEC_ERROR_INVALID_ARGS);
+            rv = SECFailure;
+            break;
+        }
 	
 	good = PR_FALSE;
-	for (i = 0; i < DSA_SUBPRIME_LEN; i++) {
+	for (i = 0; i < kSeedLen; i++) {
 	    if (kSeed[i] != 0) {
 		good = PR_TRUE;
 		break;
