@@ -5911,29 +5911,6 @@ nsDocument::GetMozSyntheticDocument(bool *aSyntheticDocument)
 }
 
 NS_IMETHODIMP
-nsDocument::GetXmlVersion(nsAString& aXmlVersion)
-{
-  WarnOnceAbout(eXmlVersion);
-  if (IsHTML()) {
-    SetDOMStringToNull(aXmlVersion);
-    return NS_OK;
-  }
-
-  
-
-  
-  aXmlVersion.AssignLiteral("1.0");
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDocument::SetXmlVersion(const nsAString& aXmlVersion)
-{
-  return IsHTML() ? NS_ERROR_DOM_NOT_SUPPORTED_ERR : NS_ERROR_NOT_IMPLEMENTED;
-}
-
-NS_IMETHODIMP
 nsDocument::GetDocumentURI(nsAString& aDocumentURI)
 {
   if (mDocumentURI) {
