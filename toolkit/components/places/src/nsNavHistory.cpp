@@ -710,6 +710,9 @@ nsNavHistory::InitDB()
   mozStorageTransaction transaction(mDBConn, PR_FALSE);
 
   
+  mDBConn->SetGrowthIncrement(10 * 1024 * 1024, EmptyCString());
+
+  
   
   
   rv = nsNavBookmarks::InitTables(mDBConn);
