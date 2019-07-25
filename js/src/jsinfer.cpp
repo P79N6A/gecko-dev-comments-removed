@@ -1862,7 +1862,7 @@ TypeCompartment::dynamicPush(JSContext *cx, JSScript *script, uint32 offset, jst
 
 
 
-    if (script->fun)
+    if (script->fun && !script->fun->getType()->unknownProperties)
         ObjectStateChange(cx, script->fun->getType(), false);
 
     
