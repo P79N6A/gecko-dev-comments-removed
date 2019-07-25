@@ -195,12 +195,6 @@ abstract public class GeckoApp
         boolean isTegra = (new File("/system/lib/hw/gralloc.tegra.so")).exists();
         if (isTegra) {
             
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB) {
-                Log.w(LOGTAG, "Blocking plugins because of Tegra 2 + Gingerbread bug (bug 703056)");
-                return null;
-            }
-
-            
             File vfile = new File("/proc/version");
             FileReader vreader = null;
             try {
