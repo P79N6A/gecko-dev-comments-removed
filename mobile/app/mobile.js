@@ -400,7 +400,7 @@ pref("dom.max_script_run_time", 20);
 
 pref("devtools.errorconsole.enabled", false);
 
-pref("browser.ui.layout.tablet", 0); 
+pref("browser.ui.layout.tablet", -1); 
 
 
 pref("browser.ui.kinetic.updateInterval", 16);
