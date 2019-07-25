@@ -70,8 +70,7 @@ class nsGfxScrollFrameInner : public nsIReflowCallback {
 public:
   class AsyncScroll;
 
-  nsGfxScrollFrameInner(nsContainerFrame* aOuter, PRBool aIsRoot,
-                        PRBool aIsXUL);
+  nsGfxScrollFrameInner(nsContainerFrame* aOuter, PRBool aIsRoot);
   ~nsGfxScrollFrameInner();
 
   typedef nsIScrollableFrame::ScrollbarStyles ScrollbarStyles;
@@ -153,6 +152,21 @@ public:
   nsRect GetScrollPortRect() const { return mScrollPort; }
   nsPoint GetScrollPosition() const {
     return mScrollPort.TopLeft() - mScrolledFrame->GetPosition();
+  }
+  
+
+
+
+
+
+
+  nsPoint GetLogicalScrollPosition() const {
+    nsPoint pt;
+    pt.x = IsLTR() ?
+      mScrollPort.x - mScrolledFrame->GetPosition().x :
+      mScrollPort.XMost() - mScrolledFrame->GetRect().XMost();
+    pt.y = mScrollPort.y - mScrolledFrame->GetPosition().y;
+    return pt;
   }
   nsRect GetScrollRange() const;
 
@@ -278,8 +292,6 @@ public:
   PRPackedBool mDidHistoryRestore:1;
   
   PRPackedBool mIsRoot:1;
-  
-  PRPackedBool mIsXUL:1;
   
   
   
@@ -600,7 +612,8 @@ public:
 
   virtual nsPoint GetPositionOfChildIgnoringScrolling(nsIFrame* aChild)
   { nsPoint pt = aChild->GetPosition();
-    if (aChild == mInner.GetScrolledFrame()) pt += GetScrollPosition();
+    if (aChild == mInner.GetScrolledFrame())
+      pt += mInner.GetLogicalScrollPosition();
     return pt;
   }
 
