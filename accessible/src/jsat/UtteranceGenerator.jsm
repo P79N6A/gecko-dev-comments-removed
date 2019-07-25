@@ -17,10 +17,10 @@ var gStringBundle = Cc['@mozilla.org/intl/stringbundle;1'].
   getService(Ci.nsIStringBundleService).
   createBundle('chrome://global/locale/AccessFu.properties');
 
-var gAccRetrieval = Cc['@mozilla.org/accessibleRetrieval;1'].
-  getService(Ci.nsIAccessibleRetrieval);
 
 var EXPORTED_SYMBOLS = ['UtteranceGenerator'];
+
+Cu.import('resource://gre/modules/accessibility/Utils.jsm');
 
 
 
@@ -66,7 +66,7 @@ var UtteranceGenerator = {
 
 
   genForObject: function genForObject(aAccessible) {
-    let roleString = gAccRetrieval.getStringRole(aAccessible.role);
+    let roleString = Utils.AccRetrieval.getStringRole(aAccessible.role);
 
     let func = this.objectUtteranceFunctions[roleString] ||
       this.objectUtteranceFunctions.defaultFunc;
