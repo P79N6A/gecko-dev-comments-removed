@@ -356,8 +356,9 @@ protected:
   NS_IMETHOD ScrollSelectionIntoView(bool aScrollToAnchor);
 
   
-  virtual bool IsBlockNode(nsIDOMNode *aNode);
-  virtual bool IsBlockNode(nsINode *aNode);
+  bool IsBlockNode(nsIDOMNode* aNode);
+  
+  virtual bool IsBlockNode(nsINode* aNode);
   
   
   nsIContent* FindNextLeafNode(nsINode  *aCurrentNode,

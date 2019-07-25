@@ -693,30 +693,62 @@ nsHTMLEditor::HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent)
   return TypedText(str, eTypedText);
 }
 
-
-
-
-
-nsresult
-nsHTMLEditor::NodeIsBlockStatic(nsIDOMNode *aNode, bool *aIsBlock)
+static void
+AssertParserServiceIsCorrect(nsIAtom* aTag, bool aIsBlock)
 {
-  if (!aNode || !aIsBlock) { return NS_ERROR_NULL_POINTER; }
-
-  *aIsBlock = false;
-
-#define USE_PARSER_FOR_BLOCKNESS 1
-#ifdef USE_PARSER_FOR_BLOCKNESS
-  nsresult rv;
-
-  nsCOMPtr<nsIDOMElement>element = do_QueryInterface(aNode);
-  if (!element)
+#ifdef DEBUG
+  
+  if (aTag==nsEditProperty::p          ||
+      aTag==nsEditProperty::div        ||
+      aTag==nsEditProperty::blockquote ||
+      aTag==nsEditProperty::h1         ||
+      aTag==nsEditProperty::h2         ||
+      aTag==nsEditProperty::h3         ||
+      aTag==nsEditProperty::h4         ||
+      aTag==nsEditProperty::h5         ||
+      aTag==nsEditProperty::h6         ||
+      aTag==nsEditProperty::ul         ||
+      aTag==nsEditProperty::ol         ||
+      aTag==nsEditProperty::dl         ||
+      aTag==nsEditProperty::noscript   ||
+      aTag==nsEditProperty::form       ||
+      aTag==nsEditProperty::hr         ||
+      aTag==nsEditProperty::table      ||
+      aTag==nsEditProperty::fieldset   ||
+      aTag==nsEditProperty::address    ||
+      aTag==nsEditProperty::caption    ||
+      aTag==nsEditProperty::col        ||
+      aTag==nsEditProperty::colgroup   ||
+      aTag==nsEditProperty::li         ||
+      aTag==nsEditProperty::dt         ||
+      aTag==nsEditProperty::dd         ||
+      aTag==nsEditProperty::legend     )
   {
-    
-    return NS_OK;
-  }
+    if (!aIsBlock) {
+      nsAutoString assertmsg (NS_LITERAL_STRING("Parser and editor disagree on blockness: "));
 
-  nsIAtom *tagAtom = GetTag(aNode);
-  NS_ENSURE_TRUE(tagAtom, NS_ERROR_NULL_POINTER);
+      nsAutoString tagName;
+      aTag->ToString(tagName);
+      assertmsg.Append(tagName);
+      char* assertstr = ToNewCString(assertmsg);
+      NS_ASSERTION(aIsBlock, assertstr);
+      NS_Free(assertstr);
+    }
+  }
+#endif 
+}
+
+
+
+
+
+bool
+nsHTMLEditor::NodeIsBlockStatic(const dom::Element* aElement)
+{
+  MOZ_ASSERT(aElement);
+
+  nsIAtom* tagAtom = aElement->Tag();
+  MOZ_ASSERT(tagAtom);
 
   
   
@@ -733,124 +765,28 @@ nsHTMLEditor::NodeIsBlockStatic(nsIDOMNode *aNode, bool *aIsBlock)
       tagAtom==nsEditProperty::dd         ||
       tagAtom==nsEditProperty::pre)
   {
-    *aIsBlock = true;
-    return NS_OK;
+    return true;
   }
 
-  rv = nsContentUtils::GetParserService()->
+  bool isBlock;
+  DebugOnly<nsresult> rv = nsContentUtils::GetParserService()->
     IsBlock(nsContentUtils::GetParserService()->HTMLAtomTagToId(tagAtom),
-            *aIsBlock);
+            isBlock);
+  MOZ_ASSERT(rv == NS_OK);
 
-#ifdef DEBUG
-  
-  if (tagAtom==nsEditProperty::p          ||
-      tagAtom==nsEditProperty::div        ||
-      tagAtom==nsEditProperty::blockquote ||
-      tagAtom==nsEditProperty::h1         ||
-      tagAtom==nsEditProperty::h2         ||
-      tagAtom==nsEditProperty::h3         ||
-      tagAtom==nsEditProperty::h4         ||
-      tagAtom==nsEditProperty::h5         ||
-      tagAtom==nsEditProperty::h6         ||
-      tagAtom==nsEditProperty::ul         ||
-      tagAtom==nsEditProperty::ol         ||
-      tagAtom==nsEditProperty::dl         ||
-      tagAtom==nsEditProperty::noscript   ||
-      tagAtom==nsEditProperty::form       ||
-      tagAtom==nsEditProperty::hr         ||
-      tagAtom==nsEditProperty::table      ||
-      tagAtom==nsEditProperty::fieldset   ||
-      tagAtom==nsEditProperty::address    ||
-      tagAtom==nsEditProperty::caption    ||
-      tagAtom==nsEditProperty::col        ||
-      tagAtom==nsEditProperty::colgroup   ||
-      tagAtom==nsEditProperty::li         ||
-      tagAtom==nsEditProperty::dt         ||
-      tagAtom==nsEditProperty::dd         ||
-      tagAtom==nsEditProperty::legend     )
-  {
-    if (!(*aIsBlock))
-    {
-      nsAutoString assertmsg (NS_LITERAL_STRING("Parser and editor disagree on blockness: "));
+  AssertParserServiceIsCorrect(tagAtom, isBlock);
 
-      nsAutoString tagName;
-      rv = element->GetTagName(tagName);
-      NS_ENSURE_SUCCESS(rv, rv);
+  return isBlock;
+}
 
-      assertmsg.Append(tagName);
-      char* assertstr = ToNewCString(assertmsg);
-      NS_ASSERTION(*aIsBlock, assertstr);
-      NS_Free(assertstr);
-    }
-  }
-#endif 
+nsresult
+nsHTMLEditor::NodeIsBlockStatic(nsIDOMNode *aNode, bool *aIsBlock)
+{
+  if (!aNode || !aIsBlock) { return NS_ERROR_NULL_POINTER; }
 
-  return rv;
-#else 
-  nsresult result = NS_ERROR_FAILURE;
-  *aIsBlock = false;
-  nsCOMPtr<nsIDOMElement>element;
-  element = do_QueryInterface(aNode);
-  if (element)
-  {
-    nsAutoString tagName;
-    result = element->GetTagName(tagName);
-    if (NS_SUCCEEDED(result))
-    {
-      ToLowerCase(tagName);
-      nsCOMPtr<nsIAtom> tagAtom = do_GetAtom(tagName);
-      if (!tagAtom) { return NS_ERROR_NULL_POINTER; }
-
-      if (tagAtom==nsEditProperty::p          ||
-          tagAtom==nsEditProperty::div        ||
-          tagAtom==nsEditProperty::blockquote ||
-          tagAtom==nsEditProperty::h1         ||
-          tagAtom==nsEditProperty::h2         ||
-          tagAtom==nsEditProperty::h3         ||
-          tagAtom==nsEditProperty::h4         ||
-          tagAtom==nsEditProperty::h5         ||
-          tagAtom==nsEditProperty::h6         ||
-          tagAtom==nsEditProperty::ul         ||
-          tagAtom==nsEditProperty::ol         ||
-          tagAtom==nsEditProperty::dl         ||
-          tagAtom==nsEditProperty::pre        ||
-          tagAtom==nsEditProperty::noscript   ||
-          tagAtom==nsEditProperty::form       ||
-          tagAtom==nsEditProperty::hr         ||
-          tagAtom==nsEditProperty::fieldset   ||
-          tagAtom==nsEditProperty::address    ||
-          tagAtom==nsEditProperty::body       ||
-          tagAtom==nsEditProperty::caption    ||
-          tagAtom==nsEditProperty::table      ||
-          tagAtom==nsEditProperty::tbody      ||
-          tagAtom==nsEditProperty::thead      ||
-          tagAtom==nsEditProperty::tfoot      ||
-          tagAtom==nsEditProperty::tr         ||
-          tagAtom==nsEditProperty::td         ||
-          tagAtom==nsEditProperty::th         ||
-          tagAtom==nsEditProperty::col        ||
-          tagAtom==nsEditProperty::colgroup   ||
-          tagAtom==nsEditProperty::li         ||
-          tagAtom==nsEditProperty::dt         ||
-          tagAtom==nsEditProperty::dd         ||
-          tagAtom==nsEditProperty::legend     )
-      {
-        *aIsBlock = true;
-      }
-      result = NS_OK;
-    }
-  } else {
-    
-    nsCOMPtr<nsIDOMCharacterData>nodeAsText = do_QueryInterface(aNode);
-    if (nodeAsText)
-    {
-      *aIsBlock = false;
-      result = NS_OK;
-    }
-  }
-  return result;
-
-#endif 
+  nsCOMPtr<dom::Element> element = do_QueryInterface(aNode);
+  *aIsBlock = element && NodeIsBlockStatic(element);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -860,20 +796,9 @@ nsHTMLEditor::NodeIsBlock(nsIDOMNode *aNode, bool *aIsBlock)
 }
 
 bool
-nsHTMLEditor::IsBlockNode(nsIDOMNode *aNode)
-{
-  bool isBlock;
-  NodeIsBlockStatic(aNode, &isBlock);
-  return isBlock;
-}
-
-bool
 nsHTMLEditor::IsBlockNode(nsINode *aNode)
 {
-  bool isBlock;
-  nsCOMPtr<nsIDOMNode> node = do_QueryInterface(aNode);
-  NodeIsBlockStatic(node, &isBlock);
-  return isBlock;
+  return aNode && aNode->IsElement() && NodeIsBlockStatic(aNode->AsElement());
 }
 
 
