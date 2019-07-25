@@ -1682,7 +1682,6 @@ JS_TransplantObject(JSContext *cx, JSObject *origobjArg, JSObject *targetArg)
 
 
 
-
 JS_FRIEND_API(JSObject *)
 js_TransplantObjectWithWrapper(JSContext *cx,
                                JSObject *origobjArg,
@@ -1741,8 +1740,21 @@ js_TransplantObjectWithWrapper(JSContext *cx,
     
     {
         AutoCompartment ac(cx, origobj);
+        if (!ac.enter())
+            return NULL;
+
+        
+        
+        
+        
+        
+        RootedObject reflectorGuts(cx, NewDeadProxyObject(cx, JS_GetGlobalForObject(cx, origobj)));
+        if (!reflectorGuts || !origobj->swap(cx, reflectorGuts))
+            return NULL;
+
+        
         RootedObject wrapperGuts(cx, targetobj);
-        if (!ac.enter() || !JS_WrapObject(cx, wrapperGuts.address()))
+        if (!JS_WrapObject(cx, wrapperGuts.address()))
             return NULL;
         if (!origwrapper->swap(cx, wrapperGuts))
             return NULL;
