@@ -1326,7 +1326,8 @@ nsXBLPrototypeBinding::ConstructInsertionTable(nsIContent* aContent)
       
       
       nsresult rv =
-        child->BindToTree(parent->GetCurrentDoc(), parent, nsnull, false);
+        child->BindToTree(parent->GetCurrentDoc(), parent,
+                          parent->GetBindingParent(), false);
       if (NS_FAILED(rv)) {
         
         
@@ -1997,7 +1998,8 @@ nsXBLPrototypeBinding::ReadContentNode(nsIObjectInputStream* aStream,
     if (defaultContent) {
       xblIns->SetDefaultContent(defaultContent);
 
-      rv = defaultContent->BindToTree(nsnull, content, nsnull, false);
+      rv = defaultContent->BindToTree(nsnull, content,
+                                      content->GetBindingParent(), false);
       if (NS_FAILED(rv)) {
         defaultContent->UnbindFromTree();
         return rv;
