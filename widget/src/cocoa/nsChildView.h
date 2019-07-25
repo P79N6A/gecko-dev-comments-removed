@@ -174,8 +174,12 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   
   
   TSMDocumentID mPluginTSMDoc;
+  BOOL mPluginTSMInComposition;
 #endif
   BOOL mPluginComplexTextInputRequested;
+
+  
+  BOOL mIgnoreNextKeyUpEvent;
 
   NSOpenGLContext *mGLContext;
 
