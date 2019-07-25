@@ -28,9 +28,14 @@ class TCompiler;
 
 class TShHandleBase {
 public:
-    TShHandleBase() { }
-    virtual ~TShHandleBase() { }
+    TShHandleBase();
+    virtual ~TShHandleBase();
     virtual TCompiler* getAsCompiler() { return 0; }
+
+protected:
+    
+    
+    TPoolAllocator allocator;
 };
 
 
@@ -54,10 +59,15 @@ public:
     const TVariableInfoList& getUniforms() const { return uniforms; }
 
 protected:
+    ShShaderType getShaderType() const { return shaderType; }
+    ShShaderSpec getShaderSpec() const { return shaderSpec; }
     
     bool InitBuiltInSymbolTable(const ShBuiltInResources& resources);
     
     void clearResults();
+    
+    
+    bool validateLimitations(TIntermNode* root);
     
     void collectAttribsUniforms(TIntermNode* root);
     

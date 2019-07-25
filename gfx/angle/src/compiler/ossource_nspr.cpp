@@ -25,7 +25,6 @@ OS_TLSIndex OS_AllocTLSIndex()
     return index;
 }
 
-
 bool OS_SetTLSValue(OS_TLSIndex nIndex, void *lpvValue)
 {
     if (nIndex == OS_INVALID_TLS_INDEX) {
@@ -36,9 +35,9 @@ bool OS_SetTLSValue(OS_TLSIndex nIndex, void *lpvValue)
     return PR_SetThreadPrivate(nIndex, lpvValue) == 0;
 }
 
-
 bool OS_FreeTLSIndex(OS_TLSIndex nIndex)
 {
     
     return true;
 }
+

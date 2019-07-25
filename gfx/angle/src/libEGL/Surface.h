@@ -42,19 +42,20 @@ class Surface
     virtual IDirect3DSurface9 *getDepthStencil();
 
     void setSwapInterval(EGLint interval);
+    bool checkForOutOfDateSwapChain();   
 
-  private:
+private:
     DISALLOW_COPY_AND_ASSIGN(Surface);
 
     Display *const mDisplay;
     IDirect3DSwapChain9 *mSwapChain;
     IDirect3DSurface9 *mBackBuffer;
-    IDirect3DSurface9 *mRenderTarget;
     IDirect3DSurface9 *mDepthStencil;
     IDirect3DTexture9 *mFlipTexture;
 
-    bool checkForOutOfDateSwapChain();
-
+    void subclassWindow();
+    void unsubclassWindow();
+    void resetSwapChain(int backbufferWidth, int backbufferHeight);
     static DWORD convertInterval(EGLint interval);
 
     void applyFlipState(IDirect3DDevice9 *device);
@@ -67,6 +68,7 @@ class Surface
     IDirect3DSurface9 *mPreFlipDepthStencil;
 
     const HWND mWindow;            
+    bool mWindowSubclassed;        
     const egl::Config *mConfig;    
     EGLint mHeight;                
     EGLint mWidth;                 

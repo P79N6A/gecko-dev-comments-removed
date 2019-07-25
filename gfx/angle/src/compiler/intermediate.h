@@ -184,6 +184,8 @@ enum TOperator {
     EOpDivAssign,
 };
 
+extern const char* getOperatorString(TOperator op);
+
 class TIntermTraverser;
 class TIntermAggregate;
 class TIntermBinary;
@@ -262,30 +264,38 @@ protected:
 
 
 
+enum TLoopType {
+    ELoopFor,
+    ELoopWhile,
+    ELoopDoWhile,
+};
+
 class TIntermLoop : public TIntermNode {
 public:
-    TIntermLoop(TIntermNode *init, TIntermNode* aBody, TIntermTyped* aTest, TIntermTyped* aTerminal, bool testFirst) : 
-            init(init),
-            body(aBody),
-            test(aTest),
-            terminal(aTerminal),
-            first(testFirst) { }
+    TIntermLoop(TLoopType aType,
+                TIntermNode *aInit, TIntermTyped* aCond, TIntermTyped* aExpr,
+                TIntermNode* aBody) :
+            type(aType),
+            init(aInit),
+            cond(aCond),
+            expr(aExpr),
+            body(aBody) { }
 
     virtual TIntermLoop* getAsLoopNode() { return this; }
     virtual void traverse(TIntermTraverser*);
 
-    TIntermNode *getInit() { return init; }
-    TIntermNode *getBody() { return body; }
-    TIntermTyped *getTest() { return test; }
-    TIntermTyped *getTerminal() { return terminal; }
-    bool testFirst() { return first; }
+    TLoopType getType() const { return type; }
+    TIntermNode* getInit() { return init; }
+    TIntermTyped* getCondition() { return cond; }
+    TIntermTyped* getExpression() { return expr; }
+    TIntermNode* getBody() { return body; }
 
 protected:
-    TIntermNode *init;
-    TIntermNode *body;       
-    TIntermTyped *test;      
-    TIntermTyped *terminal;  
-    bool first;              
+    TLoopType type;
+    TIntermNode* init;  
+    TIntermTyped* cond; 
+    TIntermTyped* expr; 
+    TIntermNode* body;  
 };
 
 

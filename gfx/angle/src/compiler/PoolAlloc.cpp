@@ -22,14 +22,10 @@ void InitializeGlobalPools()
     if (globalPools)
         return;
 
-    TPoolAllocator *globalPoolAllocator = new TPoolAllocator(true);
-
     TThreadGlobalPools* threadData = new TThreadGlobalPools();
-    
-    threadData->globalPoolAllocator = globalPoolAllocator;
-        
-    OS_SetTLSValue(PoolIndex, threadData);     
-    globalPoolAllocator->push();
+    threadData->globalPoolAllocator = 0;
+
+    OS_SetTLSValue(PoolIndex, threadData);
 }
 
 void FreeGlobalPools()
@@ -38,9 +34,7 @@ void FreeGlobalPools()
     TThreadGlobalPools* globalPools= static_cast<TThreadGlobalPools*>(OS_GetTLSValue(PoolIndex));    
     if (!globalPools)
         return;
-    
-    GlobalPoolAllocator.popAll();
-    delete &GlobalPoolAllocator;       
+ 
     delete globalPools;
 }
 
@@ -66,7 +60,7 @@ TPoolAllocator& GetGlobalPoolAllocator()
     return *threadData->globalPoolAllocator;
 }
 
-void SetGlobalPoolAllocatorPtr(TPoolAllocator* poolAllocator)
+void SetGlobalPoolAllocator(TPoolAllocator* poolAllocator)
 {
     TThreadGlobalPools* threadData = static_cast<TThreadGlobalPools*>(OS_GetTLSValue(PoolIndex));
 
@@ -77,13 +71,13 @@ void SetGlobalPoolAllocatorPtr(TPoolAllocator* poolAllocator)
 
 
 
-TPoolAllocator::TPoolAllocator(bool g, int growthIncrement, int allocationAlignment) : 
-    global(g),
+TPoolAllocator::TPoolAllocator(int growthIncrement, int allocationAlignment) : 
     pageSize(growthIncrement),
     alignment(allocationAlignment),
     freeList(0),
     inUseList(0),
-    numCalls(0)
+    numCalls(0),
+    totalBytes(0)
 {
     
     
@@ -123,23 +117,13 @@ TPoolAllocator::TPoolAllocator(bool g, int growthIncrement, int allocationAlignm
 
 TPoolAllocator::~TPoolAllocator()
 {
-    if (!global) {
-        
-        
-        
-        
-        
-        while (inUseList) {
-            tHeader* next = inUseList->nextPage;
-            inUseList->~tHeader();
-            delete [] reinterpret_cast<char*>(inUseList);
-            inUseList = next;
-        }
+    while (inUseList) {
+        tHeader* next = inUseList->nextPage;
+        inUseList->~tHeader();
+        delete [] reinterpret_cast<char*>(inUseList);
+        inUseList = next;
     }
 
-    
-    
-    
     
     
     

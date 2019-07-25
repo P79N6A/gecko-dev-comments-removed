@@ -4,6 +4,8 @@
 
 
 
+
+
 #include "compiler/UnfoldSelect.h"
 
 #include "compiler/InfoSink.h"
@@ -44,7 +46,7 @@ bool UnfoldSelect::visitSelection(Visit visit, TIntermSelection *node)
                "}\n"
                "else\n"
                "{\n";
-        node->getCondition()->traverse(this);
+        node->getFalseBlock()->traverse(this);
         out << "    t" << i << " = ";
         node->getFalseBlock()->traverse(mOutputHLSL);
         out << ";\n"

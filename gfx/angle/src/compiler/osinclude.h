@@ -7,12 +7,6 @@
 #ifndef __OSINCLUDE_H
 #define __OSINCLUDE_H
 
-#ifdef ANGLE_USE_NSPR
-
-#include "prthread.h"
-
-#else
-
 
 
 
@@ -28,7 +22,9 @@
 #error Unsupported platform.
 #endif
 
-#if defined(ANGLE_OS_WIN)
+#if defined(ANGLE_USE_NSPR)
+#include "prthread.h"
+#elif defined(ANGLE_OS_WIN)
 #define STRICT
 #define VC_EXTRALEAN 1
 #include <windows.h>
@@ -38,7 +34,6 @@
 #include <errno.h>
 #endif  
 
-#endif  
 
 #include "compiler/debug.h"
 
@@ -62,7 +57,7 @@ bool OS_FreeTLSIndex(OS_TLSIndex nIndex);
 
 inline void* OS_GetTLSValue(OS_TLSIndex nIndex)
 {
-    assert(nIndex != OS_INVALID_TLS_INDEX);
+    ASSERT(nIndex != OS_INVALID_TLS_INDEX);
 #if defined(ANGLE_USE_NSPR)
     return PR_GetThreadPrivate(nIndex);
 #elif defined(ANGLE_OS_WIN)

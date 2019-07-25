@@ -115,7 +115,7 @@ private:
 
 class TPoolAllocator {
 public:
-    TPoolAllocator(bool global = false, int growthIncrement = 8*1024, int allocationAlignment = 16);
+    TPoolAllocator(int growthIncrement = 8*1024, int allocationAlignment = 16);
 
     
     
@@ -194,7 +194,6 @@ protected:
         return TAllocation::offsetAllocation(memory);
     }
 
-    bool global;            
     size_t pageSize;        
     size_t alignment;       
                             
@@ -220,17 +219,14 @@ private:
 
 
 
-typedef TPoolAllocator* PoolAllocatorPointer;
 extern TPoolAllocator& GetGlobalPoolAllocator();
+extern void SetGlobalPoolAllocator(TPoolAllocator* poolAllocator);
 #define GlobalPoolAllocator GetGlobalPoolAllocator()
-
 
 struct TThreadGlobalPools
 {
     TPoolAllocator* globalPoolAllocator;
 };
-
-void SetGlobalPoolAllocatorPtr(TPoolAllocator* poolAllocator);
 
 
 

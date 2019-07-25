@@ -37,7 +37,7 @@ extern "C" {
 
 
 
-#define SH_VERSION 101
+#define SH_VERSION 103
 
 
 
@@ -87,10 +87,11 @@ typedef enum {
 
 
 typedef enum {
-  SH_VALIDATE            = 0,
-  SH_INTERMEDIATE_TREE   = 0x001,
-  SH_OBJECT_CODE         = 0x002,
-  SH_ATTRIBUTES_UNIFORMS = 0x004
+  SH_VALIDATE               = 0,
+  SH_VALIDATE_LOOP_INDEXING = 0x0001,
+  SH_INTERMEDIATE_TREE      = 0x0002,
+  SH_OBJECT_CODE            = 0x0004,
+  SH_ATTRIBUTES_UNIFORMS    = 0x0008
 } ShCompileOptions;
 
 
@@ -150,6 +151,13 @@ typedef void* ShHandle;
 ANGLE_API ShHandle ShConstructCompiler(ShShaderType type, ShShaderSpec spec,
                              const ShBuiltInResources* resources);
 ANGLE_API void ShDestruct(ShHandle handle);
+
+
+
+
+
+
+
 
 
 

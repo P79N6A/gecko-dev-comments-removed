@@ -120,7 +120,7 @@ class OutputHLSL : public TIntermTraverser
     ScopeBracket mScopeBracket;
     unsigned int mScopeDepth;
 
-    int mArgumentIndex;   
+    int mUniqueIndex;   
 };
 }
 

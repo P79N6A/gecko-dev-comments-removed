@@ -56,14 +56,15 @@ class Fence;
 
 enum
 {
-    MAX_VERTEX_ATTRIBS = 12,
-    MAX_VERTEX_UNIFORM_VECTORS = 128,
-    MAX_VARYING_VECTORS = 8,
+    MAX_VERTEX_ATTRIBS = 16 - 1,            
+    MAX_VERTEX_UNIFORM_VECTORS = 256 - 2,   
+    MAX_VARYING_VECTORS_SM2 = 8,
+    MAX_VARYING_VECTORS_SM3 = 10,
     MAX_COMBINED_TEXTURE_IMAGE_UNITS = 16,
     MAX_VERTEX_TEXTURE_IMAGE_UNITS = 0,
     MAX_TEXTURE_IMAGE_UNITS = 16,
-    MAX_FRAGMENT_UNIFORM_VECTORS = 16,
-    MAX_RENDERBUFFER_SIZE = 4096,   
+    MAX_FRAGMENT_UNIFORM_VECTORS_SM2 = 32 - 3,    
+    MAX_FRAGMENT_UNIFORM_VECTORS_SM3 = 224 - 3,
     MAX_DRAW_BUFFERS = 1,
 
     IMPLEMENTATION_COLOR_READ_FORMAT = GL_RGB,
@@ -182,8 +183,6 @@ struct State
     int activeSampler;   
     BindingPointer<Buffer> arrayBuffer;
     BindingPointer<Buffer> elementArrayBuffer;
-    BindingPointer<Texture> texture2D;
-    BindingPointer<Texture> textureCubeMap;
     GLuint readFramebuffer;
     GLuint drawFramebuffer;
     BindingPointer<Renderbuffer> renderbuffer;
@@ -383,6 +382,12 @@ class Context
     GLenum getError();
 
     bool supportsShaderModel3() const;
+    int getMaximumVaryingVectors() const;
+    int getMaximumFragmentUniformVectors() const;
+    int getMaximumRenderbufferDimension() const;
+    int getMaximumTextureDimension() const;
+    int getMaximumCubeTextureDimension() const;
+    int getMaximumTextureLevel() const;
     GLsizei getMaxSupportedSamples() const;
     int getNearestSupportedSamples(D3DFORMAT format, int requested) const;
     const char *getExtensionString() const;
@@ -394,6 +399,8 @@ class Context
     bool supportsHalfFloatTextures() const;
     bool supportsHalfFloatLinearFilter() const;
     bool supportsHalfFloatRenderableTextures() const;
+    bool supportsLuminanceTextures() const;
+    bool supportsLuminanceAlphaTextures() const;
 
     void blitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1, 
                          GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
@@ -459,6 +466,10 @@ class Context
     bool mDepthStencilInitialized;
 
     bool mSupportsShaderModel3;
+    int  mMaxRenderbufferDimension;
+    int  mMaxTextureDimension;
+    int  mMaxCubeTextureDimension;
+    int  mMaxTextureLevel;
     std::map<D3DFORMAT, bool *> mMultiSampleSupport;
     GLsizei mMaxSupportedSamples;
     bool mSupportsEventQueries;
@@ -469,6 +480,8 @@ class Context
     bool mSupportsHalfFloatTextures;
     bool mSupportsHalfFloatLinearFilter;
     bool mSupportsHalfFloatRenderableTextures;
+    bool mSupportsLuminanceTextures;
+    bool mSupportsLuminanceAlphaTextures;
 
     
     bool mClearStateDirty;

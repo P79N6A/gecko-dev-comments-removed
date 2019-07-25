@@ -14,9 +14,24 @@
 
 #include "compiler/PoolAlloc.h"
 
+
+
+
+
+
+
 typedef int TSourceLoc;
-const unsigned int SourceLocLineMask = 0xffff;
-const unsigned int SourceLocStringShift = 16;
+const unsigned int SOURCE_LOC_LINE_SIZE = 16;  
+const unsigned int SOURCE_LOC_LINE_MASK = (1 << SOURCE_LOC_LINE_SIZE) - 1;
+
+inline TSourceLoc EncodeSourceLoc(int string, int line) {
+    return (string << SOURCE_LOC_LINE_SIZE) | (line & SOURCE_LOC_LINE_MASK);
+}
+
+inline void DecodeSourceLoc(TSourceLoc loc, int* string, int* line) {
+    if (string) *string = loc >> SOURCE_LOC_LINE_SIZE;
+    if (line) *line = loc & SOURCE_LOC_LINE_MASK;
+}
 
 
 
