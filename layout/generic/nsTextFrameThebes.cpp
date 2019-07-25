@@ -6710,6 +6710,10 @@ nsTextFrame::AddInlineMinWidthForFlow(nsRenderingContext *aRenderingContext,
   }
 }
 
+bool nsTextFrame::IsCurrentFontInflation(float aInflation) const {
+  return fabsf(aInflation - GetFontSizeInflation()) < 1e-6;
+}
+
 
 
  void
@@ -6719,7 +6723,7 @@ nsTextFrame::AddInlineMinWidth(nsRenderingContext *aRenderingContext,
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
 
-  if (trtype == eInflated && inflation != GetFontSizeInflation()) {
+  if (trtype == eInflated && !IsCurrentFontInflation(inflation)) {
     
     
     ClearTextRun(nsnull, nsTextFrame::eInflated);
@@ -6855,7 +6859,7 @@ nsTextFrame::AddInlinePrefWidth(nsRenderingContext *aRenderingContext,
   float inflation = nsLayoutUtils::FontSizeInflationFor(this);
   TextRunType trtype = (inflation == 1.0f) ? eNotInflated : eInflated;
 
-  if (trtype == eInflated && inflation != GetFontSizeInflation()) {
+  if (trtype == eInflated && !IsCurrentFontInflation(inflation)) {
     
     
     ClearTextRun(nsnull, nsTextFrame::eInflated);
@@ -7395,7 +7399,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 
   float fontSizeInflation = nsLayoutUtils::FontSizeInflationFor(this);
 
-  if (fontSizeInflation != GetFontSizeInflation()) {
+  if (!IsCurrentFontInflation(fontSizeInflation)) {
     
     
     ClearTextRun(nsnull, nsTextFrame::eInflated);
@@ -7405,7 +7409,7 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
     EnsureTextRun(nsTextFrame::eInflated, ctx,
                   lineContainer, aLineLayout.GetLine(), &flowEndInTextRun);
 
-  NS_ABORT_IF_FALSE(GetFontSizeInflation() == fontSizeInflation,
+  NS_ABORT_IF_FALSE(IsCurrentFontInflation(fontSizeInflation),
                     "EnsureTextRun should have set font size inflation");
 
   if (mTextRun && iter.GetOriginalEnd() < offset + length) {
