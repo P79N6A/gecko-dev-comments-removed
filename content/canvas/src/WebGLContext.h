@@ -680,8 +680,6 @@ protected:
     
     nsTArray<WebGLVertexAttribData> mAttribBuffers;
 
-    
-    nsTArray<WebGLObjectRefPtr<WebGLTexture> > mUniformTextures;
 
     
     nsTArray<WebGLObjectRefPtr<WebGLTexture> > mBound2DTextures;
