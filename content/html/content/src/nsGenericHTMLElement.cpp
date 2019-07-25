@@ -746,11 +746,6 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
 
   nsCOMPtr<nsIDOMDocumentFragment> df;
 
-  
-  nsRefPtr<nsScriptLoader> loader = doc->ScriptLoader();
-  PRBool scripts_enabled = loader->GetEnabled();
-  loader->SetEnabled(PR_FALSE);
-
   if (doc->IsHTML()) {
     PRInt32 oldChildCount = GetChildCount();
     nsContentUtils::ParseFragmentHTML(aInnerHTML,
@@ -775,19 +770,23 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
       nsGenericElement::FireNodeInserted(doc, this, childNodes);
     }
   } else {
+    
+    nsRefPtr<nsScriptLoader> loader = doc->ScriptLoader();
+    PRBool scripts_enabled = loader->GetEnabled();
+    loader->SetEnabled(PR_FALSE);
+
     rv = nsContentUtils::CreateContextualFragment(this, aInnerHTML,
                                                   getter_AddRefs(df));
     nsCOMPtr<nsINode> fragment = do_QueryInterface(df);
     if (NS_SUCCEEDED(rv)) {
       static_cast<nsINode*>(this)->AppendChild(fragment, &rv);
     }
-  }
+    if (scripts_enabled) {
+      
+      
 
-  if (scripts_enabled) {
-    
-    
-
-    loader->SetEnabled(PR_TRUE);
+      loader->SetEnabled(PR_TRUE);
+    }
   }
 
   return rv;
