@@ -481,6 +481,8 @@ protected:
     bool mKeyPressDispatched;
     
     bool mKeyPressHandled;
+    
+    bool mCausedOtherKeyEvents;
 
     KeyEventState() : mKeyEvent(nsnull)
     {
@@ -502,6 +504,7 @@ protected:
       mKeyDownHandled = aOther.mKeyDownHandled;
       mKeyPressDispatched = aOther.mKeyPressDispatched;
       mKeyPressHandled = aOther.mKeyPressHandled;
+      mCausedOtherKeyEvents = aOther.mCausedOtherKeyEvents;
     }
 
     ~KeyEventState()
@@ -525,6 +528,7 @@ protected:
       mKeyDownHandled = false;
       mKeyPressDispatched = false;
       mKeyPressHandled = false;
+      mCausedOtherKeyEvents = false;
     }
 
     bool KeyDownOrPressHandled()
@@ -570,8 +574,15 @@ protected:
 
   KeyEventState* PushKeyEvent(NSEvent* aNativeKeyEvent)
   {
+    PRUint32 nestCount = mCurrentKeyEvents.Length();
+    for (PRUint32 i = 0; i < nestCount; i++) {
+      
+      
+      mCurrentKeyEvents[i]->mCausedOtherKeyEvents = true;
+    }
+
     KeyEventState* keyEvent = nsnull;
-    if (mCurrentKeyEvents.Length() == 0) {
+    if (nestCount == 0) {
       mFirstKeyEvent.Set(aNativeKeyEvent);
       keyEvent = &mFirstKeyEvent;
     } else {
