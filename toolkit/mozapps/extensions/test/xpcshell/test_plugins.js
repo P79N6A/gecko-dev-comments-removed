@@ -88,6 +88,9 @@ function run_test_1() {
       do_check_eq(p.pendingOperations, 0);
       do_check_true(p.size > 0);
       do_check_eq(p.size, getFileSize(testPlugin));
+      do_check_true(p.updateDate > 0);
+      do_check_eq(p.updateDate.getTime(), testPlugin.lastModifiedTime);
+      do_check_eq(p.installDate.getTime(), testPlugin.lastModifiedTime);
 
       
       
