@@ -1038,21 +1038,6 @@ var BrowserUI = {
         return this._domWindowClose(browser);
         break;
       case "DOMLinkAdded":
-        
-        
-        let rel = json.rel.toLowerCase().split(" ");
-        if ((rel.indexOf("icon") != -1) && !browser.appIcon) {
-          
-          
-          browser.appIcon = json.href;
-        }
-        else if (rel.indexOf("apple-touch-icon") != -1) {
-          
-          
-          browser.appIcon = json.href;
-        }
-
-        
         if (Browser.selectedBrowser == browser)
           this._updateIcon(Browser.selectedBrowser.mIconURL);
         break;
@@ -1253,8 +1238,7 @@ var BrowserUI = {
         this.activePanel = RemoteTabsList;
         break;
       case "cmd_quit":
-        
-        this._closeOrQuit();
+        GlobalOverlay.goQuitApplication();
         break;
       case "cmd_close":
         this._closeOrQuit();

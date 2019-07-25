@@ -385,7 +385,6 @@ var Browser = {
 
     
     
-    
     if (window.opener)
       resizeHandler({ target: window });
   },
@@ -942,7 +941,7 @@ var Browser = {
     function visibility(aSidebarRect, aVisibleRect) {
       let width = aSidebarRect.width;
       aSidebarRect.restrictTo(aVisibleRect);
-      return (width ? aSidebarRect.width / width : 0);
+      return (aSidebarRect.width ? aSidebarRect.width / width : 0);
     }
 
     if (!dx) dx = 0;
@@ -1493,7 +1492,6 @@ Browser.WebProgress.prototype = {
           tab.hostChanged = true;
           tab.browser.lastLocation = location;
           tab.browser.userTypedValue = "";
-          tab.browser.appIcon = null;
 
 #ifdef MOZ_CRASH_REPORTER
           if (CrashReporter.enabled)
@@ -1578,8 +1576,6 @@ Browser.WebProgress.prototype = {
 };
 
 
-const OPEN_APPTAB = 100; 
-
 function nsBrowserAccess() { }
 
 nsBrowserAccess.prototype = {
@@ -1622,31 +1618,13 @@ nsBrowserAccess.prototype = {
         tab.closeOnExit = true;
       browser = tab.browser;
       BrowserUI.hidePanel();
-    } else if (aWhere == OPEN_APPTAB) {
-      Browser.tabs.forEach(function(aTab) {
-        if ("appURI" in aTab.browser && aTab.browser.appURI.spec == aURI.spec) {
-          Browser.selectedTab = aTab;
-          browser = aTab.browser;
-        }
-      });
-
-      if (!browser) {
-        
-        let tab = Browser.addTab("about:blank", true, null, { getAttention: true });
-        browser = tab.browser;
-        browser.appURI = aURI;
-      } else {
-        
-        browser = null;
-      }
-      BrowserUI.hidePanel();
     } else { 
       browser = Browser.selectedBrowser;
     }
 
     try {
       let referrer;
-      if (aURI && browser) {
+      if (aURI) {
         if (aOpener) {
           location = aOpener.location;
           referrer = Services.io.newURI(location, null, null);
