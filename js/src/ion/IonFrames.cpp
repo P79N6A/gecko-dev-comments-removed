@@ -429,9 +429,8 @@ MarkIonJSFrame(JSTracer *trc, const IonFrameIterator &frame)
     SafepointReader safepoint(ionScript, si);
 
     
-#if 0
-    JS_ASSERT(actual.empty() && spilled.empty());
-#endif
+    JS_ASSERT(safepoint.gcSpills().empty());
+    JS_ASSERT(safepoint.allSpills().empty());
 
     
     
