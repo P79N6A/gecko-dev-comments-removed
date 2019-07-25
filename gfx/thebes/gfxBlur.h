@@ -42,7 +42,12 @@
 #include "gfxImageSurface.h"
 #include "gfxTypes.h"
 #include "gfxUtils.h"
-#include "nsRect.h"
+
+namespace mozilla {
+  namespace gfx {
+    class AlphaBoxBlur;
+  }
+}
 
 
 
@@ -125,15 +130,6 @@ protected:
     
 
 
-    gfxIntSize mSpreadRadius;
-    
-
-
-    gfxIntSize mBlurRadius;
-
-    
-
-
     nsRefPtr<gfxContext> mContext;
 
     
@@ -141,18 +137,10 @@ protected:
 
     nsRefPtr<gfxImageSurface> mImageSurface;
 
-    
+     
 
 
-
-    gfxRect mDirtyRect;
-    
-
-
-
-    nsIntRect mSkipRect;
-
-    bool mHasDirtyRect;
+    mozilla::gfx::AlphaBoxBlur *mBlur;
 };
 
 #endif 
