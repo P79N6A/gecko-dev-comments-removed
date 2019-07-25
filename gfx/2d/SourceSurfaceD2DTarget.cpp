@@ -166,12 +166,37 @@ SourceSurfaceD2DTarget::GetBitmap(ID2D1RenderTarget *aRT)
                                              AlphaMode(mFormat))),
                       byRef(mBitmap));
 
+    RefPtr<ID2D1RenderTarget> rt;
+
     if (mDrawTarget) {
-      mBitmap->CopyFromRenderTarget(NULL, mDrawTarget->mRT, NULL);
-      return mBitmap;
+      rt = mDrawTarget->mRT;
     }
-    gfxWarning() << "Failed to create shared bitmap for DrawTarget snapshot. Code: " << hr;
-    return NULL;
+
+    if (!rt) {
+      
+      
+      
+      RefPtr<IDXGISurface> surface;
+
+      hr = mTexture->QueryInterface((IDXGISurface**)byRef(surface));
+
+      if (FAILED(hr)) {
+        gfxWarning() << "Failed to QI texture to surface.";
+        return NULL;
+      }
+
+      D2D1_RENDER_TARGET_PROPERTIES props =
+        D2D1::RenderTargetProperties(D2D1_RENDER_TARGET_TYPE_DEFAULT, D2D1::PixelFormat(DXGIFormat(mFormat), AlphaMode(mFormat)));
+      hr = DrawTargetD2D::factory()->CreateDxgiSurfaceRenderTarget(surface, props, byRef(rt));
+
+      if (FAILED(hr)) {
+        gfxWarning() << "Failed to create D2D render target for texture.";
+        return NULL;
+      }
+    }
+
+    mBitmap->CopyFromRenderTarget(NULL, rt, NULL);
+    return mBitmap;
   }
 
   return mBitmap;
