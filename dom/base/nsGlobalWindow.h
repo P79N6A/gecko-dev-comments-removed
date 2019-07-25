@@ -102,6 +102,7 @@
 #include "nsIArray.h"
 #include "nsIContent.h"
 #include "nsIIndexedDatabaseRequest.h"
+#include "nsFrameMessageManager.h"
 
 #define DEFAULT_HOME_PAGE "www.mozilla.org"
 #define PREF_BROWSER_STARTUP_HOMEPAGE "browser.startup.homepage"
@@ -679,6 +680,7 @@ protected:
   already_AddRefed<nsPIWindowRoot> GetTopWindowRoot();
 
   static void NotifyDOMWindowDestroyed(nsGlobalWindow* aWindow);
+  void NotifyWindowIDDestroyed(const char* aTopic);
 
   
   
@@ -741,10 +743,13 @@ protected:
 
   
   
-  PRPackedBool           mFocusByKeyOccured : 1;
+  PRPackedBool           mFocusByKeyOccurred : 1;
 
   
   PRPackedBool           mHasAcceleration  : 1;
+
+  
+  PRPackedBool           mNotifiedIDDestroyed : 1;
 
   nsCOMPtr<nsIScriptContext>    mContext;
   nsWeakPtr                     mOpener;
@@ -822,6 +827,10 @@ protected:
 
   nsCOMPtr<nsIIndexedDatabaseRequest> mIndexedDB;
 
+  
+  
+  PRUint64 mWindowID;
+
   friend class nsDOMScriptableHelper;
   friend class nsDOMWindowUtils;
   friend class PostMessageEvent;
@@ -853,6 +862,7 @@ public:
 
 protected:
   nsCOMPtr<nsIBrowserDOMWindow> mBrowserDOMWindow;
+  nsCOMPtr<nsIChromeFrameMessageManager> mMessageManager;
 };
 
 
