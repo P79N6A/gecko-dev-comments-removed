@@ -361,34 +361,19 @@ class InterpreterFrames {
     const InterruptEnablerBase &enabler;
 };
 
-} 
-
-extern JS_REQUIRES_STACK JSBool
-js_EnterWith(JSContext *cx, jsint stackIndex, JSOp op, size_t oplen);
-
-extern JS_REQUIRES_STACK void
-js_LeaveWith(JSContext *cx);
 
 
 
 
+extern bool
+UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
 
+extern bool
+OnUnknownMethod(JSContext *cx, js::Value *vp);
 
+extern bool
+IsActiveWithOrBlock(JSContext *cx, JSObject &obj, int stackDepth);
 
-extern JSBool
-js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, js::Value *vp, js::Value *vp2);
-
-
-
-
-
-extern JS_REQUIRES_STACK JSBool
-js_UnwindScope(JSContext *cx, jsint stackDepth, JSBool normalUnwind);
-
-extern JSBool
-js_OnUnknownMethod(JSContext *cx, js::Value *vp);
-
-extern JS_REQUIRES_STACK js::Class *
-js_IsActiveWithOrBlock(JSContext *cx, JSObject *obj, int stackDepth);
+}  
 
 #endif 

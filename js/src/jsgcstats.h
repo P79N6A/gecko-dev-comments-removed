@@ -99,7 +99,6 @@ enum ConservativeGCTest
     CGCT_NOTARENA,  
     CGCT_NOTCHUNK,  
     CGCT_FREEARENA, 
-    CGCT_WRONGTAG,  
     CGCT_NOTLIVE,   
     CGCT_END
 };
@@ -163,7 +162,7 @@ struct GCTimer
         LASTDITCH,
         TOOMUCHMALLOC,
         ALLOCTRIGGER,
-        CHUNK,
+        REFILL,
         SHAPE,
         NOREASON
     };

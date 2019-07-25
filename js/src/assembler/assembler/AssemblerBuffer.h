@@ -192,7 +192,11 @@ namespace JSC {
 
         void grow(int extraCapacity = 0)
         {
-            int newCapacity = m_capacity + m_capacity / 2 + extraCapacity;
+            
+
+
+
+            int newCapacity = m_capacity + m_capacity + extraCapacity;
             char* newBuffer;
 
             

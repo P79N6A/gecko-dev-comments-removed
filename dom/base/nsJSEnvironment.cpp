@@ -2259,14 +2259,8 @@ nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
   mGlobalObjectRef = aGlobalObject;
 
   nsCOMPtr<nsIDOMChromeWindow> chromeWindow(do_QueryInterface(aGlobalObject));
-  PRUint32 flags = 0;
 
   if (chromeWindow) {
-    
-    
-    
-    flags = nsIXPConnect::FLAG_SYSTEM_GLOBAL_OBJECT;
-
     
     
     

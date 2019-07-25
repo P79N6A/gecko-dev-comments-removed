@@ -1,42 +1,42 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla SpiderMonkey JavaScript 1.9 code, released
+ * May 28, 2008.
+ *
+ * The Initial Developer of the Original Code is
+ *   Brendan Eich <brendan@mozilla.org>
+ *
+ * Contributor(s):
+ *   David Anderson <danderson@mozilla.com>
+ *   David Mandelin <dmandelin@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 #if !defined jsjaeger_compiler_h__ && defined JS_METHODJIT
 #define jsjaeger_compiler_h__
 
@@ -53,10 +53,10 @@
 namespace js {
 namespace mjit {
 
-
-
-
-
+/*
+ * Patch for storing call site and rejoin site return addresses at, for
+ * redirecting the return address in InvariantFailure.
+ */
 struct InvariantCodePatch {
     bool hasPatch;
     JSC::MacroAssembler::DataLabelPtr codePatch;
@@ -140,13 +140,13 @@ class Compiler : public BaseCompiler
         TraceGenInfo() : initialized(false) {}
     };
 
-    
+    /* InlineFrameAssembler wants to see this. */
   public:
     struct CallGenInfo {
-        
-
-
-
+        /*
+         * These members map to members in CallICInfo. See that structure for
+         * more comments.
+         */
         uint32       callIndex;
         DataLabelPtr funGuard;
         Jump         funJump;
@@ -169,10 +169,10 @@ class Compiler : public BaseCompiler
   private:
 #endif
 
-
-
-
-
+    /*
+     * Writes of call return addresses which needs to be delayed until the final
+     * absolute address of the join point is known.
+     */
     struct CallPatchInfo {
         CallPatchInfo() : hasFastNcode(false), hasSlowNcode(false), joinSlow(false) {}
         Label joinPoint;
@@ -373,19 +373,19 @@ class Compiler : public BaseCompiler
     JSScript *outerScript;
     bool isConstructing;
 
-    
+    /* SSA information for the outer script and all frames we will be inlining. */
     analyze::CrossScriptSSA ssa;
 
     GlobalObject *globalObj;
-    const Value *globalSlots;  
+    const Value *globalSlots;  /* Original slots pointer. */
 
     Assembler masm;
     FrameState frame;
 
-    
-
-
-
+    /*
+     * State for the current stack frame, and links to its parents going up to
+     * the outermost script.
+     */
 
     struct ActiveFrame {
         ActiveFrame *parent;
@@ -393,28 +393,28 @@ class Compiler : public BaseCompiler
         JSScript *script;
         Label *jumpMap;
 
-        
-
-
-
+        /*
+         * Index into inlineFrames or OUTER_FRAME, matches this frame's index
+         * in the cross script SSA.
+         */
         uint32 inlineIndex;
 
-        
+        /* Current types for non-escaping vars in the script. */
         VarType *varTypes;
 
-        
-        bool needReturnValue;          
-        bool syncReturnValue;          
-        bool returnValueDouble;        
-        bool returnSet;                
-        AnyRegisterID returnRegister;  
-        const FrameEntry *returnEntry; 
+        /* State for managing return from inlined frames. */
+        bool needReturnValue;          /* Return value will be used. */
+        bool syncReturnValue;          /* Return value should be fully synced. */
+        bool returnValueDouble;        /* Return value should be a double. */
+        bool returnSet;                /* Whether returnRegister is valid. */
+        AnyRegisterID returnRegister;  /* Register holding return value. */
+        const FrameEntry *returnEntry; /* Entry copied by return value. */
         Vector<Jump, 4, CompilerAllocPolicy> *returnJumps;
 
-        
-
-
-
+        /*
+         * Snapshot of the heap state to use after the call, in case
+         * there are multiple return paths the inlined frame could take.
+         */
         RegisterAllocation *exitState;
 
         ActiveFrame(JSContext *cx);
@@ -429,7 +429,7 @@ class Compiler : public BaseCompiler
 
     LoopState *loop;
 
-    
+    /* State spanning all stack frames. */
 
     js::Vector<ActiveFrame*, 4, CompilerAllocPolicy> inlineFrames;
     js::Vector<BranchPatch, 64, CompilerAllocPolicy> branchPatches;
@@ -467,7 +467,7 @@ class Compiler : public BaseCompiler
     bool addTraceHints;
     bool inlining_;
     bool hasGlobalReallocation;
-    bool oomInVector;       
+    bool oomInVector;       // True if we have OOM'd appending to a vector. 
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
     PCLengthEntry *pcLengths;
 
@@ -534,7 +534,7 @@ class Compiler : public BaseCompiler
     void popActiveFrame();
     void updatePCCounters(jsbytecode *pc, Label *start, bool *updated);
 
-    
+    /* Analysis helpers. */
     CompileStatus prepareInferenceTypes(JSScript *script, ActiveFrame *a);
     void ensureDoubleArguments();
     void fixDoubleTypes(jsbytecode *target);
@@ -567,14 +567,14 @@ class Compiler : public BaseCompiler
                              bool testUndefined = false, bool testReturn = false);
     void finishBarrier(const BarrierState &barrier, RejoinState rejoin, uint32 which);
 
-    
+    /* Non-emitting helpers. */
     void pushSyncedEntry(uint32 pushed);
     uint32 fullAtomIndex(jsbytecode *pc);
     bool jumpInScript(Jump j, jsbytecode *pc);
     bool compareTwoValues(JSContext *cx, JSOp op, const Value &lhs, const Value &rhs);
     bool canUseApplyTricks();
 
-    
+    /* Emitting helpers. */
     bool constantFoldBranch(jsbytecode *target, bool taken);
     bool emitStubCmpOp(BoolStub stub, jsbytecode *target, JSOp fused);
     bool iter(uintN flags);
@@ -591,16 +591,16 @@ class Compiler : public BaseCompiler
     bool constructThis();
     void ensureDouble(FrameEntry *fe);
 
-    
-
-
-
+    /*
+     * Ensure fe is an integer, truncating from double if necessary, or jump to
+     * the slow path per uses.
+     */
     void ensureInteger(FrameEntry *fe, Uses uses);
 
-    
+    /* Convert fe from a double to integer (per ValueToECMAInt32) in place. */
     void truncateDoubleToInt32(FrameEntry *fe, Uses uses);
 
-    
+    /* Opcode handlers. */
     bool jumpAndTrace(Jump j, jsbytecode *target, Jump *slow = NULL, bool *trampoline = NULL);
     bool startLoop(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
     bool finishLoop(jsbytecode *head);
@@ -656,7 +656,7 @@ class Compiler : public BaseCompiler
     void jsop_arguments(RejoinState rejoin);
     bool jsop_tableswitch(jsbytecode *pc);
 
-    
+    /* Fast arithmetic. */
     bool jsop_binary(JSOp op, VoidStub stub, JSValueType type, types::TypeSet *typeSet);
     void jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op, VoidStub stub,
                           JSValueType type, bool cannotOverflow, bool ignoreOverflow);
@@ -683,7 +683,7 @@ class Compiler : public BaseCompiler
     bool tryBinaryConstantFold(JSContext *cx, FrameState &frame, JSOp op,
                                FrameEntry *lhs, FrameEntry *rhs, Value *vp);
 
-    
+    /* Fast opcodes. */
     void jsop_bitop(JSOp op);
     bool jsop_mod();
     void jsop_neg();
@@ -747,7 +747,7 @@ class Compiler : public BaseCompiler
         return (fused == JSOP_IFEQ) ? Assembler::Zero : Assembler::NonZero;
     }
 
-    
+    /* Fast builtins. */
     JSObject *pushedSingleton(unsigned pushed);
     CompileStatus callArrayBuiltin(uint32 argc, bool callingNew);
     CompileStatus inlineNativeFunction(uint32 argc, bool callingNew);
@@ -771,22 +771,22 @@ class Compiler : public BaseCompiler
     Call emitStubCall(void *ptr, DataLabelPtr *pinline);
 };
 
-
-
+// Given a stub call, emits the call into the inline assembly path. rejoin
+// indicates how to rejoin should this call trigger expansion/discarding.
 #define INLINE_STUBCALL(stub, rejoin)                                       \
     inlineStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin)
 
-
-
+// Given a stub call, emits the call into the out-of-line assembly path.
+// Unlike the INLINE_STUBCALL variant, this returns the Call offset.
 #define OOL_STUBCALL(stub, rejoin)                                          \
     stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin)
 
-
+// Same as OOL_STUBCALL, but specifies a slot depth.
 #define OOL_STUBCALL_LOCAL_SLOTS(stub, rejoin, slots)                       \
     stubcc.emitStubCall(JS_FUNC_TO_DATA_PTR(void *, (stub)), rejoin, (slots))
 
-} 
-} 
+} /* namespace js */
+} /* namespace mjit */
 
 #endif
 

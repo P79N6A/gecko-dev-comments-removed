@@ -739,7 +739,7 @@ ScanObject(GCMarker *gcmarker, JSObject *obj)
 
     Class *clasp = obj->getClass();
     if (clasp->trace) {
-        if (clasp == &js_ArrayClass) {
+        if (clasp == &ArrayClass) {
             if (obj->getDenseArrayInitializedLength() > LARGE_OBJECT_CHUNK_SIZE) {
                 if (!gcmarker->largeStack.push(LargeMarkItem(obj)))
                     clasp->trace(gcmarker, obj);

@@ -4409,8 +4409,10 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
   PRBool rootWinFullScreen;
   GetFullScreen(&rootWinFullScreen);
   
-  if (aFullScreen == rootWinFullScreen || 
-      !nsContentUtils::IsCallerTrustedForWrite()) {
+  
+  if ((aFullScreen == rootWinFullScreen || 
+      !nsContentUtils::IsCallerTrustedForWrite()) &&
+      !nsContentUtils::IsFullScreenApiEnabled()) {
     return NS_OK;
   }
 
@@ -4459,6 +4461,14 @@ nsGlobalWindow::SetFullScreen(PRBool aFullScreen)
   nsCOMPtr<nsIWidget> widget = GetMainWidget();
   if (widget)
     widget->MakeFullScreen(aFullScreen);
+
+  if (!mFullScreen && mDocument) {
+    
+    
+    
+    
+    mDocument->MozCancelFullScreen();
+  }
 
   return NS_OK;
 }
