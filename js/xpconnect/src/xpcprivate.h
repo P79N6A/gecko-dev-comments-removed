@@ -48,6 +48,7 @@
 
 #include "mozilla/Assertions.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/Util.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -2021,6 +2022,7 @@ public:
     JSBool ClassInfoInterfacesOnly()      GET_IT(CLASSINFO_INTERFACES_ONLY)
     JSBool AllowPropModsDuringResolve()   GET_IT(ALLOW_PROP_MODS_DURING_RESOLVE)
     JSBool AllowPropModsToPrototype()     GET_IT(ALLOW_PROP_MODS_TO_PROTOTYPE)
+    JSBool IsGlobalObject()               GET_IT(IS_GLOBAL_OBJECT)
     JSBool DontReflectInterfaceNames()    GET_IT(DONT_REFLECT_INTERFACE_NAMES)
     JSBool UseStubEqualityHook()          GET_IT(USE_STUB_EQUALITY_HOOK)
 
@@ -3177,6 +3179,27 @@ public:
         GetXPCClassInfo();
 
         return mXPCClassInfo.forget();
+    }
+
+    
+    PRUint32 GetScriptableFlags()
+    {
+        
+        nsCOMPtr<nsIXPCScriptable> sinfo = GetXPCClassInfo();
+
+        
+        if (!sinfo)
+            sinfo = do_QueryInterface(GetCanonical());
+
+        
+        MOZ_ASSERT(sinfo);
+
+        
+        PRUint32 flags;
+        mozilla::DebugOnly<nsresult> rv = sinfo->GetScriptableFlags(&flags);
+        MOZ_ASSERT(NS_SUCCEEDED(rv));
+
+        return flags;
     }
 
     nsWrapperCache *GetWrapperCache()
