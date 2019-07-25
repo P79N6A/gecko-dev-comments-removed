@@ -86,7 +86,7 @@ static const PRUint8 IS_WHITESPACE = 0x08;
 #define XI  IS_IDENT            |IS_HEX_DIGIT
 #define XSI IS_IDENT|START_IDENT|IS_HEX_DIGIT
 
-static const PRUint8 gLexTable[256] = {
+static const PRUint8 gLexTable[] = {
 
    0,  0,  0,  0,  0,  0,  0,  0,  0,  W,  W,  0,  W,  W,  0,  0,
 
@@ -120,6 +120,8 @@ static const PRUint8 gLexTable[256] = {
 
    SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI, SI,
 };
+
+PR_STATIC_ASSERT(NS_ARRAY_LENGTH(gLexTable) == 256);
 
 #undef W
 #undef S
