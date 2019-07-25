@@ -2,9 +2,14 @@ function run_test() {
   var ioService = Components.classes["@mozilla.org/network/io-service;1"]
                             .getService(Components.interfaces.nsIIOService);
 
-  var linkService = Components.classes["@mozilla.org/network/network-link-service;1"]
-                              .getService(Components.interfaces.nsINetworkLinkService);
+  try {
+    var linkService = Components.classes["@mozilla.org/network/network-link-service;1"]
+                                .getService(Components.interfaces.nsINetworkLinkService);
 
-  
-  do_check_neq(ioService.offline, linkService.isLinkUp);
+    
+    do_check_neq(ioService.offline, linkService.isLinkUp);
+  } catch (e) {
+    
+    do_check_eq(ioService.offline, false);
+  }
 }
