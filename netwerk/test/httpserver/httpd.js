@@ -516,9 +516,11 @@ nsHttpServer.prototype =
     
     
     
+    
     var prefs = getRootPrefBranch();
-    var maxConnections =
-      prefs.getIntPref("network.http.max-persistent-connections-per-server") + 5;
+    var maxConnections = 5 + Math.max(
+      prefs.getIntPref("network.http.max-persistent-connections-per-server"),
+      prefs.getIntPref("network.http.max-persistent-connections-per-proxy"));
 
     try
     {
