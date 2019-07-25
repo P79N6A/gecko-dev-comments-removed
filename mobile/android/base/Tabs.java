@@ -129,7 +129,7 @@ public class Tabs implements GeckoEventListener {
 
         GeckoApp.mAppContext.mMainHandler.post(new Runnable() { 
             public void run() {
-                GeckoApp.mAutoCompletePopup.hide();
+                GeckoApp.mFormAssistPopup.hide();
                 
                 if (isSelectedTab(tab)) {
                     String url = tab.getURL();
