@@ -264,8 +264,7 @@ const DownloadsPanel = {
     
     this.hidePanel();
 
-    
-    PlacesCommandHook.showPlacesOrganizer("Downloads");
+    BrowserDownloadsUI();
   },
 
   

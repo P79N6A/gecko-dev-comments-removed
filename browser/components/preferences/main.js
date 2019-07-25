@@ -23,23 +23,10 @@ var gMainPane = {
 
     this.updateBrowserStartupLastSession();
 
-    this.setupDownloadsWindowOptions();
-
     
     Components.classes["@mozilla.org/observer-service;1"]
               .getService(Components.interfaces.nsIObserverService)
               .notifyObservers(window, "main-pane-loaded", null);
-  },
-
-  setupDownloadsWindowOptions: function ()
-  {
-    var showWhenDownloading = document.getElementById("showWhenDownloading");
-    var closeWhenDone = document.getElementById("closeWhenDone");
-
-    
-    let shouldHide = !DownloadsCommon.useToolkitUI;
-    showWhenDownloading.hidden = shouldHide;
-    closeWhenDone.hidden = shouldHide;
   },
 
   

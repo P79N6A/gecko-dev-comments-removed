@@ -70,50 +70,20 @@ DownloadsUI.prototype = {
     if (aReason == Ci.nsIDownloadManagerUI.REASON_NEW_DOWNLOAD) {
       
       
-      
-      
-      return;
-    }
-
-    
-    let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
-    if (browserWin) {
-      
-      
-      if (browserWin.windowState == Ci.nsIDOMChromeWindow.STATE_MINIMIZED) {
-        browserWin.restore();
+      let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
+      if (browserWin &&
+          browserWin.windowState != Ci.nsIDOMChromeWindow.STATE_MINIMIZED &&
+          browserWin.DownloadsButton.isVisible) {
+        return;
       }
-      browserWin.focus();
-      browserWin.DownloadsPanel.showPanel();
-      return;
     }
 
-    
-    
-    
-    Services.obs.addObserver(function DUIO_observe(aSubject, aTopic, aData) {
-      Services.obs.removeObserver(DUIO_observe, aTopic);
-      aSubject.DownloadsPanel.showPanel();
-    }, "browser-delayed-startup-finished", false);
-
-    
-    let windowFirstArg = Cc["@mozilla.org/supports-string;1"]
-                         .createInstance(Ci.nsISupportsString);
-    let windowArgs = Cc["@mozilla.org/supports-array;1"]
-                     .createInstance(Ci.nsISupportsArray);
-    windowArgs.AppendElement(windowFirstArg);
-    Services.ww.openWindow(null, "chrome://browser/content/browser.xul",
-                           null, "chrome,dialog=no,all", windowArgs);
+    this._toolkitUI.show(aWindowContext, aID, aReason);
   },
 
   get visible()
   {
-    if (DownloadsCommon.useToolkitUI) {
-      return this._toolkitUI.visible;
-    }
-
-    let browserWin = gBrowserGlue.getMostRecentBrowserWindow();
-    return browserWin ? browserWin.DownloadsPanel.isPanelShowing : false;
+    return this._toolkitUI.visible;
   },
 
   getAttention: function DUI_getAttention()

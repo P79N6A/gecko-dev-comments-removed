@@ -179,6 +179,18 @@ const DownloadsButton = {
   
 
 
+  get isVisible()
+  {
+    if (!this._placeholder) {
+      return false;
+    }
+    let element = DownloadsIndicatorView.indicator || this._placeholder;
+    return isElementVisible(element.parentNode);
+  },
+
+  
+
+
 
   _anchorRequested: false,
 
@@ -486,7 +498,7 @@ const DownloadsIndicatorView = {
       DownloadsCommon.indicatorData.attention = false;
     }
 
-    BrowserDownloadsUI();
+    DownloadsPanel.showPanel();
 
     aEvent.stopPropagation();
   },
