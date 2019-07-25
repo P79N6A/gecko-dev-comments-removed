@@ -1130,7 +1130,7 @@ Connection::SetGrowthIncrement(PRInt32 aChunkSize, const nsACString &aDatabaseNa
   
   
   
-#ifndef ANDROID
+#if !defined(ANDROID) && !defined(MOZ_PLATFORM_MAEMO)
   (void)::sqlite3_file_control(mDBConn,
                                aDatabaseName.Length() ? nsPromiseFlatCString(aDatabaseName).get() : NULL,
                                SQLITE_FCNTL_CHUNK_SIZE,

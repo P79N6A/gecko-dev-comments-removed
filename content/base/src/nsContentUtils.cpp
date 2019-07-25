@@ -258,9 +258,6 @@ PRUint32 nsContentUtils::sRunnersCountAtFirstBlocker = 0;
 PRUint32 nsContentUtils::sScriptBlockerCountWhereRunnersPrevented = 0;
 nsIInterfaceRequestor* nsContentUtils::sSameOriginChecker = nsnull;
 
-nsIJSRuntimeService *nsAutoGCRoot::sJSRuntimeService;
-JSRuntime *nsAutoGCRoot::sJSScriptRuntime;
-
 PRBool nsContentUtils::sIsHandlingKeyBoardEvent = PR_FALSE;
 PRBool nsContentUtils::sAllowXULXBL_for_file = PR_FALSE;
 
@@ -1202,8 +1199,6 @@ nsContentUtils::Shutdown()
 
   NS_IF_RELEASE(sSameOriginChecker);
   
-  nsAutoGCRoot::Shutdown();
-
   nsTextEditorState::ShutDown();
 }
 
@@ -1362,13 +1357,18 @@ nsContentUtils::InProlog(nsINode *aNode)
 }
 
 static JSContext *
-GetContextFromDocument(nsIDocument *aDocument)
+GetContextFromDocument(nsIDocument *aDocument, JSObject** aGlobalObject)
 {
   nsIScriptGlobalObject *sgo = aDocument->GetScopeObject();
   if (!sgo) {
     
+
+    *aGlobalObject = nsnull;
+
     return nsnull;
   }
+
+  *aGlobalObject = sgo->GetGlobalJSObject();
 
   nsIScriptContext *scx = sgo->GetContext();
   if (!scx) {
@@ -1382,27 +1382,39 @@ GetContextFromDocument(nsIDocument *aDocument)
 
 
 nsresult
-nsContentUtils::GetContextAndScope(nsIDocument *aOldDocument,
-                                   nsIDocument *aNewDocument, JSContext **aCx,
-                                   JSObject **aNewScope)
+nsContentUtils::GetContextAndScopes(nsIDocument *aOldDocument,
+                                    nsIDocument *aNewDocument, JSContext **aCx,
+                                    JSObject **aOldScope, JSObject **aNewScope)
 {
   *aCx = nsnull;
+  *aOldScope = nsnull;
   *aNewScope = nsnull;
 
-  JSObject *newScope = aNewDocument->GetWrapper();
-  JSObject *global;
-  if (!newScope) {
-    nsIScriptGlobalObject *newSGO = aNewDocument->GetScopeObject();
-    if (!newSGO || !(global = newSGO->GetGlobalJSObject())) {
-      return NS_OK;
-    }
+  JSObject *newScope = nsnull;
+  nsIScriptGlobalObject *newSGO = aNewDocument->GetScopeObject();
+  if (!newSGO || !(newScope = newSGO->GetGlobalJSObject())) {
+    return NS_OK;
   }
 
   NS_ENSURE_TRUE(sXPConnect, NS_ERROR_NOT_INITIALIZED);
 
-  JSContext *cx = aOldDocument ? GetContextFromDocument(aOldDocument) : nsnull;
+  
+  
+  
+  
+  
+  
+  
+  JSObject *oldScope = nsnull;
+  JSContext *cx = GetContextFromDocument(aOldDocument, &oldScope);
+
+  if (!oldScope) {
+    return NS_OK;
+  }
+
   if (!cx) {
-    cx = GetContextFromDocument(aNewDocument);
+    JSObject *dummy;
+    cx = GetContextFromDocument(aNewDocument, &dummy);
 
     if (!cx) {
       
@@ -1424,15 +1436,8 @@ nsContentUtils::GetContextAndScope(nsIDocument *aOldDocument,
     }
   }
 
-  if (!newScope && cx) {
-    jsval v;
-    nsresult rv = WrapNative(cx, global, aNewDocument, aNewDocument, &v);
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    newScope = JSVAL_TO_OBJECT(v);
-  }
-
   *aCx = cx;
+  *aOldScope = oldScope;
   *aNewScope = newScope;
 
   return NS_OK;
@@ -3264,53 +3269,6 @@ nsContentUtils::GetContentPolicy()
   }
 
   return sContentPolicyService;
-}
-
-
-nsresult
-nsAutoGCRoot::AddJSGCRoot(void* aPtr, RootType aRootType, const char* aName)
-{
-  if (!sJSScriptRuntime) {
-    nsresult rv = CallGetService("@mozilla.org/js/xpc/RuntimeService;1",
-                                 &sJSRuntimeService);
-    NS_ENSURE_TRUE(sJSRuntimeService, rv);
-
-    sJSRuntimeService->GetRuntime(&sJSScriptRuntime);
-    if (!sJSScriptRuntime) {
-      NS_RELEASE(sJSRuntimeService);
-      NS_WARNING("Unable to get JS runtime from JS runtime service");
-      return NS_ERROR_FAILURE;
-    }
-  }
-
-  PRBool ok;
-  if (aRootType == RootType_JSVal)
-    ok = ::js_AddRootRT(sJSScriptRuntime, (jsval *)aPtr, aName);
-  else
-    ok = ::js_AddGCThingRootRT(sJSScriptRuntime, (void **)aPtr, aName);
-  if (!ok) {
-    NS_WARNING("JS_AddNamedRootRT failed");
-    return NS_ERROR_OUT_OF_MEMORY;
-  }
-
-  return NS_OK;
-}
-
-
-nsresult
-nsAutoGCRoot::RemoveJSGCRoot(void* aPtr, RootType aRootType)
-{
-  if (!sJSScriptRuntime) {
-    NS_NOTREACHED("Trying to remove a JS GC root when none were added");
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  if (aRootType == RootType_JSVal)
-    ::js_RemoveRoot(sJSScriptRuntime, (jsval *)aPtr);
-  else
-    ::js_RemoveRoot(sJSScriptRuntime, (JSObject **)aPtr);
-
-  return NS_OK;
 }
 
 
@@ -5176,13 +5134,6 @@ nsContentUtils::EqualsIgnoreASCIICase(const nsAString& aStr1,
 }
 
 
-void
-nsAutoGCRoot::Shutdown()
-{
-  NS_IF_RELEASE(sJSRuntimeService);
-}
-
-
 nsIInterfaceRequestor*
 nsContentUtils::GetSameOriginChecker()
 {
@@ -6361,8 +6312,8 @@ nsContentUtils::PlatformToDOMLineBreaks(nsString &aString)
   }
 }
 
-already_AddRefed<LayerManager>
-nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
+static already_AddRefed<LayerManager>
+LayerManagerForDocumentInternal(nsIDocument *aDoc, bool aRequirePersistent)
 {
   nsIDocument* doc = aDoc;
   nsIDocument* displayDoc = doc->GetDisplayDocument();
@@ -6396,7 +6347,10 @@ nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
       nsIWidget* widget =
         nsLayoutUtils::GetDisplayRootFrame(rootFrame)->GetNearestWidget();
       if (widget) {
-        nsRefPtr<LayerManager> manager = widget->GetLayerManager();
+        nsRefPtr<LayerManager> manager =
+          static_cast<nsIWidget_MOZILLA_2_0_BRANCH*>(widget)->
+            GetLayerManager(aRequirePersistent ? nsIWidget_MOZILLA_2_0_BRANCH::LAYER_MANAGER_PERSISTENT : 
+                                                 nsIWidget_MOZILLA_2_0_BRANCH::LAYER_MANAGER_CURRENT);
         return manager.forget();
       }
     }
@@ -6404,6 +6358,18 @@ nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
 
   nsRefPtr<LayerManager> manager = new BasicLayerManager();
   return manager.forget();
+}
+
+already_AddRefed<LayerManager>
+nsContentUtils::LayerManagerForDocument(nsIDocument *aDoc)
+{
+  return LayerManagerForDocumentInternal(aDoc, false);
+}
+
+already_AddRefed<LayerManager>
+nsContentUtils::PersistentLayerManagerForDocument(nsIDocument *aDoc)
+{
+  return LayerManagerForDocumentInternal(aDoc, true);
 }
 
 bool
