@@ -1,0 +1,47 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+body {
+  font-family: helvetica,arial,clean,sans-serif;
+  color: #69645c;
+  background: white url("images/aboutBackground.jpg") top center repeat-x;
+}
+
+#wrapper {
+  max-width: 600px;
+  margin: 0 auto;
+}
