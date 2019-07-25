@@ -1589,6 +1589,11 @@ public:
 
 
 
+
+
+
+
+
   virtual nsRect ComputeTightBounds(gfxContext* aContext) const;
 
   

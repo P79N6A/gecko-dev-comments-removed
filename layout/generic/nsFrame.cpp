@@ -3439,7 +3439,7 @@ nsFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
 nsRect
 nsIFrame::ComputeTightBounds(gfxContext* aContext) const
 {
-  return GetOverflowRect();
+  return GetVisualOverflowRect();
 }
 
 nsRect
@@ -3450,7 +3450,7 @@ nsFrame::ComputeSimpleTightBounds(gfxContext* aContext) const
       GetStyleDisplay()->mAppearance) {
     
     
-    return GetOverflowRect();
+    return GetVisualOverflowRect();
   }
 
   nsRect r(0, 0, 0, 0);
