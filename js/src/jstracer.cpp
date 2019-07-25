@@ -8414,7 +8414,8 @@ TraceRecorder::alu(LOpcode v, jsdouble v0, jsdouble v1, LIns* s0, LIns* s1)
 
 
         guard(false, lir->ins2ImmI(LIR_lti, d0, 0), exit);
-        branch->setTarget(lir->ins0(LIR_label));
+        if (branch)
+            branch->setTarget(lir->ins0(LIR_label));
         break;
       }
 #endif
@@ -12948,16 +12949,25 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         if (!js_EnsureDenseArrayCapacity(cx, obj, idx.toInt32()))
             RETURN_STOP_A("couldn't ensure dense array capacity for setelem");
 
-        
-        
         LIns* capacity_ins =
             addName(stobj_get_fslot_uint32(obj_ins, JSObject::JSSLOT_DENSE_ARRAY_CAPACITY),
                     "capacity");
-        LIns* br = lir->insBranch(LIR_jt, lir->ins2(LIR_ltui, idx_ins, capacity_ins), NULL);
-        LIns* args[] = { idx_ins, obj_ins, cx_ins };
-        LIns* res_ins = lir->insCall(&js_EnsureDenseArrayCapacity_ci, args);
-        guard(false, lir->insEqI_0(res_ins), mismatchExit);
-        br->setTarget(lir->ins0(LIR_label));
+        LIns* inRange_ins = lir->ins2(LIR_ltui, idx_ins, capacity_ins);
+        if (inRange_ins->isImmI()) {
+            
+            
+            
+            
+            JS_ASSERT(inRange_ins->immI() == 1);
+        } else {
+            
+            
+            LIns* br = lir->insBranch(LIR_jt, lir->ins2(LIR_ltui, idx_ins, capacity_ins), NULL);
+            LIns* args[] = { idx_ins, obj_ins, cx_ins };
+            LIns* res_ins = lir->insCall(&js_EnsureDenseArrayCapacity_ci, args);
+            guard(false, lir->insEqI_0(res_ins), mismatchExit);
+            br->setTarget(lir->ins0(LIR_label));
+        }
 
         
         LIns *dslots_ins =
@@ -12985,7 +12995,8 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         LIns* res_ins2 = addName(lir->insCall(&js_Array_dense_setelem_hole_ci, args2),
                                  "hasNoIndexedProperties");
         guard(false, lir->insEqI_0(res_ins2), mismatchExit);
-        br2->setTarget(lir->ins0(LIR_label));
+        if (br2)
+            br2->setTarget(lir->ins0(LIR_label));
 
         
         box_value_into(v, v_ins, addr_ins, 0, ACCSET_OTHER);
