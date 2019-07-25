@@ -134,6 +134,7 @@ typedef void (* OnLeaveNodeFunPtr)(nsIDOMNode* aNode, void* aClosure);
 
 
 
+
 static nsIDOMNode*
 FindNextNode(nsIDOMNode* aNode, nsIDOMNode* aRoot,
              OnLeaveNodeFunPtr aOnLeaveNode = nsnull, void* aClosure = nsnull)
@@ -188,7 +189,8 @@ FindNextTextNode(nsIDOMNode* aNode, PRInt32 aOffset, nsIDOMNode* aRoot)
   } else {
     
     
-    nsINode* next = node->GetSibling(1);
+    
+    nsINode* next = node->GetNextSibling();
     if (!next) {
       nsCOMPtr<nsINode> root = do_QueryInterface(aRoot);
       while (!next) {
@@ -198,7 +200,7 @@ FindNextTextNode(nsIDOMNode* aNode, PRInt32 aOffset, nsIDOMNode* aRoot)
           return nsnull;
         }
         node = next;
-        next = node->GetSibling(1);
+        next = node->GetNextSibling();
       }
     }
     checkNode = do_QueryInterface(next);
