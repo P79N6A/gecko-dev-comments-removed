@@ -252,18 +252,10 @@ namespace nanojit
         }
     }
 
-#if defined NANOJIT_ARM && defined UNDER_CE
-    
-    
-    void CodeAlloc::flushICache(CodeList* &) {
-        FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
-    }
-#else
     void CodeAlloc::flushICache(CodeList* &blocks) {
         for (CodeList *b = blocks; b != 0; b = b->next)
             flushICache(b->start(), b->size());
     }
-#endif
 
 #if defined(AVMPLUS_UNIX) && defined(NANOJIT_ARM)
 #include <asm/unistd.h>
@@ -300,14 +292,6 @@ extern  "C" void sync_instruction_memory(caddr_t v, u_int len);
         (void)start;
         (void)len;
         VALGRIND_DISCARD_TRANSLATIONS(start, len);
-    }
-
-#elif defined NANOJIT_ARM && defined UNDER_CE
-    
-    
-    
-    void CodeAlloc::flushICache(void *, size_t) {
-        FlushInstructionCache(GetCurrentProcess(), NULL, NULL);
     }
 
 #elif defined NANOJIT_ARM && defined DARWIN

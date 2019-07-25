@@ -69,12 +69,6 @@
 
 namespace nanojit
 {
-#if defined VMCFG_DOUBLE_MSW_FIRST || defined _MSC_VER
-#  undef  NJ_ARM_EABI
-#else
-#  define NJ_ARM_EABI  1
-#endif
-
 
 
 #ifdef __ARM_PCS_VFP
@@ -152,7 +146,6 @@ static const Register
 
     SBZ = { 0 } ;   
                     
-
 
 static const uint32_t FirstRegNum = 0; 
 static const uint32_t LastRegNum = 23; 

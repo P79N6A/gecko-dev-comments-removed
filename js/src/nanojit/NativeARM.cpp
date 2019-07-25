@@ -42,10 +42,6 @@
 
 #include "nanojit.h"
 
-#ifdef UNDER_CE
-#include <cmnintrin.h>
-#endif
-
 #if defined(FEATURE_NANOJIT) && defined(NANOJIT_ARM)
 
 namespace nanojit
@@ -145,9 +141,6 @@ Assembler::CountLeadingZeroes(uint32_t data)
     } else {
         leading_zeroes = CountLeadingZeroesSlow(data);
     }
-#elif defined(UNDER_CE)
-    
-    leading_zeroes = _CountLeadingZeros(data);
 #else
     leading_zeroes = CountLeadingZeroesSlow(data);
 #endif
@@ -618,13 +611,6 @@ Assembler::genEpilogue()
 
 
 
-
-
-
-
-
-
-
 void
 Assembler::asm_arg(ArgType ty, LIns* arg, ParameterRegisters& params)
 {
@@ -674,7 +660,6 @@ Assembler::asm_arg_64(LIns* arg, ParameterRegisters& params)
     
     NanoAssert(ARM_VFP || arg->isop(LIR_ii2d));
 
-#ifdef NJ_ARM_EABI
     
     
     
@@ -683,18 +668,15 @@ Assembler::asm_arg_64(LIns* arg, ParameterRegisters& params)
     if ((params.r == R1) || (params.r == R3)) {
         params.r = Register(params.r + 1);
     }
-#endif
 
     if (params.r < R3) {
         Register    ra = params.r;
         Register    rb = Register(params.r + 1);
         params.r = Register(rb + 1);
 
-#ifdef NJ_ARM_EABI
         
         
         NanoAssert( ((ra == R0) && (rb == R1)) || ((ra == R2) && (rb == R3)) );
-#endif
 
         
         
@@ -706,48 +688,14 @@ Assembler::asm_arg_64(LIns* arg, ParameterRegisters& params)
             asm_regarg(ARGTYPE_I, arg->oprnd1(), ra);
             asm_regarg(ARGTYPE_I, arg->oprnd2(), rb);
         }
-
-#ifndef NJ_ARM_EABI
-    } else if (params.r == R3) {
-        
-        
-        
-        Register    ra = params.r; 
-        params.r = R4;
-
-        
-        
-        NanoAssert(params.stkd == 0);
-
-        if (ARM_VFP) {
-            Register dm = findRegFor(arg, FpRegs);
-            
-            
-            
-
-            
-            
-            STR(IP, SP, 0);
-            FMRRD(ra, IP, dm);
-        } else {
-            
-            
-            
-            asm_regarg(ARGTYPE_I, arg->oprnd1(), ra);
-            asm_stkarg(arg->oprnd2(), 0);
-        }
-        params.stkd += 4;
-#endif
     } else {
         
-#ifdef NJ_ARM_EABI
         
         if ((params.stkd & 7) != 0) {
             
             
             params.stkd += 4;
         }
-#endif
         if (ARM_VFP) {
             asm_stkarg(arg, params.stkd);
         } else {
@@ -805,10 +753,8 @@ Assembler::asm_stkarg(LIns* arg, int stkd)
         NanoAssert(arg->isD());
         NanoAssert(ARM_VFP);
         Register dt = findRegFor(arg, FpRegs);
-#ifdef NJ_ARM_EABI
         
         NanoAssert((stkd % 8) == 0);
-#endif
         FSTD(dt, SP, stkd);
     }
 }
@@ -906,14 +852,7 @@ Assembler::asm_call(LIns* ins)
     } else {
         
         if (ARM_ARCH_AT_LEAST(5)) {
-#ifndef UNDER_CE
-            
-            underrunProtect(8);
-            BLX(IP);
-            MOV(IP, LR);
-#else
             BLX(LR);
-#endif
         } else {
             underrunProtect(12);
             BX(IP);
@@ -1682,7 +1621,6 @@ void Assembler::asm_inc_m32(uint32_t* pCtr)
     
     
     
-    
 
     
     
@@ -1844,11 +1782,6 @@ Assembler::BLX(Register addr, bool chk )
     NanoAssert(ARM_ARCH_AT_LEAST(5));
 
     NanoAssert(IsGpReg(addr));
-#ifdef UNDER_CE
-    
-    
-    NanoAssert(addr != LR);
-#endif
 
     if (chk) {
         underrunProtect(4);
