@@ -1972,15 +1972,17 @@ RestrictToLayerPixels(nscoord aDesired, nscoord aLower,
                       double aRes, double aCurrentLayerOffset)
 {
   
-  double layerVal = aRes * double(aDesired) / aAppUnitsPerPixel;
-
   
-  layerVal -= aCurrentLayerOffset;
+  
+  
+  double layerVal = (aRes*aDesired)/aAppUnitsPerPixel + aCurrentLayerOffset;
 
   
   double nearestVal = NS_round(layerVal);
+  
+  
   nscoord nearestAppUnitVal =
-    NSToCoordRoundWithClamp(nearestVal * aAppUnitsPerPixel / aRes);
+    NSToCoordRoundWithClamp((nearestVal - aCurrentLayerOffset)*aAppUnitsPerPixel/aRes);
 
   
   if (nearestAppUnitVal >= aLower && nearestAppUnitVal <= aUpper) {
@@ -1989,7 +1991,7 @@ RestrictToLayerPixels(nscoord aDesired, nscoord aLower,
     
     double oppositeVal = nearestVal + ((nearestVal < layerVal) ? 1 : -1);
     nscoord oppositeAppUnitVal =
-      NSToCoordRoundWithClamp(oppositeVal * aAppUnitsPerPixel / aRes);
+      NSToCoordRoundWithClamp((oppositeVal - aCurrentLayerOffset)*aAppUnitsPerPixel/aRes);
     if (oppositeAppUnitVal >= aLower && oppositeAppUnitVal <= aUpper) {
       return oppositeAppUnitVal;
     }
