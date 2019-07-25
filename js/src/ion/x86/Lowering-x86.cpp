@@ -179,7 +179,7 @@ LIRGeneratorX86::assignSnapshot(LInstruction *ins)
         
         
         
-        if (ins->isConstant()) {
+        if (ins->isConstant() || ins->isUnused()) {
             *type = LConstantIndex::Bogus();
             *payload = LConstantIndex::Bogus();
         } else if (ins->type() != MIRType_Value) {

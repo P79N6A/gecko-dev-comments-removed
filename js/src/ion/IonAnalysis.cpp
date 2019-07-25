@@ -89,11 +89,68 @@ ion::EliminateDeadCode(MIRGraph &graph)
             else
                 inst++;
         }
+    }
 
-        
-        
-        
-        
+    return true;
+}
+
+static inline bool
+IsPhiObservable(MPhi *phi)
+{
+    
+    
+    
+    
+    for (MUseDefIterator iter(phi); iter; iter++) {
+        if (!iter.def()->isPhi())
+            return true;
+    }
+    return false;
+}
+
+bool
+ion::EliminateDeadPhis(MIRGraph &graph)
+{
+    Vector<MPhi *, 16, SystemAllocPolicy> worklist;
+
+    
+    
+    for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
+        for (MPhiIterator iter = block->phisBegin(); iter != block->phisEnd(); iter++) {
+            if (IsPhiObservable(*iter)) {
+                iter->setInWorklist();
+                if (!worklist.append(*iter))
+                    return false;
+            }
+        }
+    }
+
+    
+    while (!worklist.empty()) {
+        MPhi *phi = worklist.popCopy();
+
+        for (size_t i = 0; i < phi->numOperands(); i++) {
+            MDefinition *in = phi->getOperand(i);
+            if (!in->isPhi() || in->isInWorklist())
+                continue;
+            in->setInWorklist();
+            if (!worklist.append(in->toPhi()))
+                return false;
+        }
+    }
+
+    
+    for (PostorderIterator block = graph.poBegin(); block != graph.poEnd(); block++) {
+        MPhiIterator iter = block->phisBegin();
+        while (iter != block->phisEnd()) {
+            if (iter->isInWorklist()) {
+                iter->setNotInWorklist();
+                iter++;
+            } else {
+                iter->setUnused();
+                iter = block->removePhiAt(iter);
+            }
+        }
     }
 
     return true;

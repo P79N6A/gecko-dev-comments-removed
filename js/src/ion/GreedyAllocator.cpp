@@ -297,9 +297,11 @@ GreedyAllocator::allocateRegisterOperand(LAllocation *a, VirtualRegister *vr)
 
     
     
+    
+    
     if (vr->hasRegister()) {
         reg = vr->reg();
-        disallowed.add(reg);
+        disallowed.addUnchecked(reg);
     } else {
         
         if (!allocate(vr->type(), DISALLOW, &reg))
@@ -329,9 +331,9 @@ GreedyAllocator::allocateWritableOperand(LAllocation *a, VirtualRegister *vr)
             align(vr->reg(), reg);
         } else {
             
+            reg = vr->reg();
             if (!evict(vr->reg()))
                 return false;
-            reg = vr->reg();
         }
     }
 

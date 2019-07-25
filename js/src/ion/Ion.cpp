@@ -405,6 +405,12 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
         return false;
     
 
+    
+    
+    if (!EliminateDeadPhis(graph))
+        return false;
+    IonSpewPass("Eliminate dead phis");
+
     if (!BuildPhiReverseMapping(graph))
         return false;
     
