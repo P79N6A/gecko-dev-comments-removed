@@ -66,11 +66,11 @@ public:
     
     int Resize(const gfxIntSize& aSize);
 
-    HPS GetPS() { return mPS; }
+    HPS GetPS();
     gfxIntSize GetSize() { return mSize; }
 
 private:
-    PRBool mHasWnd; 
+    HWND mWnd; 
     HDC mDC; 
     HPS mPS; 
     HBITMAP mBitmap; 

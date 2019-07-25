@@ -45,7 +45,7 @@
 
 gfxOS2Surface::gfxOS2Surface(const gfxIntSize& aSize,
                              gfxASurface::gfxImageFormat aImageFormat)
-    : mHasWnd(PR_FALSE), mSize(aSize)
+    : mWnd(0), mSize(aSize)
 {
 #ifdef DEBUG_thebes_2
     printf("gfxOS2Surface[%#x]::gfxOS2Surface(Size=%dx%d, %d)\n", (unsigned int)this,
@@ -97,14 +97,12 @@ gfxOS2Surface::gfxOS2Surface(const gfxIntSize& aSize,
 }
 
 gfxOS2Surface::gfxOS2Surface(HWND aWnd)
-    : mHasWnd(PR_TRUE), mDC(nsnull), mBitmap(nsnull)
+    : mWnd(aWnd), mDC(nsnull), mPS(nsnull), mBitmap(nsnull)
 {
 #ifdef DEBUG_thebes_2
     printf("gfxOS2Surface[%#x]::gfxOS2Surface(HWND=%#x)\n", (unsigned int)this,
            (unsigned int)aWnd);
 #endif
-
-    mPS = WinGetPS(aWnd);
 
     RECTL rectl;
     WinQueryWindowRect(aWnd, &rectl);
@@ -112,25 +110,22 @@ gfxOS2Surface::gfxOS2Surface(HWND aWnd)
     mSize.height = rectl.yTop - rectl.yBottom;
     if (mSize.width == 0) mSize.width = 1;   
     if (mSize.height == 0) mSize.height = 1; 
-    cairo_surface_t *surf = cairo_os2_surface_create(mPS, mSize.width, mSize.height);
+
+    
+    
+    
+    cairo_surface_t *surf =
+        cairo_os2_surface_create_for_window(mWnd, mSize.width, mSize.height);
 #ifdef DEBUG_thebes_2
     printf("  type(%#x)=%d (ID=%#x, h/w=%d/%d)\n", (unsigned int)surf,
            cairo_surface_get_type(surf), (unsigned int)mPS, mSize.width, mSize.height);
 #endif
-    
-    
-    
-
-    
-    cairo_os2_surface_set_hwnd(surf, aWnd);
-    
-    cairo_os2_surface_set_manual_window_refresh(surf, 1);
 
     Init(surf);
 }
 
 gfxOS2Surface::gfxOS2Surface(HDC aDC, const gfxIntSize& aSize)
-    : mHasWnd(PR_FALSE), mDC(aDC), mBitmap(nsnull), mSize(aSize)
+    : mWnd(0), mDC(aDC), mBitmap(nsnull), mSize(aSize)
 {
 #ifdef DEBUG_thebes_2
     printf("gfxOS2Surface[%#x]::gfxOS2Surface(HDC=%#x, Size=%dx%d)\n", (unsigned int)this,
@@ -180,7 +175,7 @@ gfxOS2Surface::~gfxOS2Surface()
     
     
     
-    if (mHasWnd) {
+    if (mWnd) {
         if (mPS) {
             WinReleasePS(mPS);
         }
@@ -206,7 +201,7 @@ void gfxOS2Surface::Refresh(RECTL *aRect, HPS aPS)
            aRect->xLeft, aRect->xRight, aRect->yBottom, aRect->yTop,
            (unsigned int)aPS, (unsigned int)mPS);
 #endif
-    cairo_os2_surface_refresh_window(CairoSurface(), aPS, aRect);
+    cairo_os2_surface_refresh_window(CairoSurface(), (aPS ? aPS : mPS), aRect);
 }
 
 int gfxOS2Surface::Resize(const gfxIntSize& aSize)
@@ -219,3 +214,22 @@ int gfxOS2Surface::Resize(const gfxIntSize& aSize)
     
     return cairo_os2_surface_set_size(CairoSurface(), mSize.width, mSize.height, 50);
 }
+
+HPS gfxOS2Surface::GetPS()
+{
+    
+    
+    
+    
+    
+    if (!mPS) {
+        cairo_os2_surface_get_hps(CairoSurface(), &mPS);
+        if (!mPS && mWnd) {
+            mPS = WinGetPS(mWnd);
+            cairo_os2_surface_set_hps(CairoSurface(), mPS);
+        }
+    }
+
+    return mPS;
+}
+
