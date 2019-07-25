@@ -48,6 +48,15 @@ var SettingsListener = {
 SettingsListener.init();
 
 
+SettingsListener.observe('audio.volume.master', 0.5, function(value) {
+  let audioManager = Services.audioManager;
+  if (!audioManager)
+    return;
+
+  audioManager.masterVolume = Math.min(0, Math.max(value, 1));
+});
+
+
 
 SettingsListener.observe('language.current', 'en-US', function(value) {
   Services.prefs.setCharPref('intl.accept_languages', value);
