@@ -28,6 +28,21 @@ function httpd_basic_auth_handler(body, metadata, response) {
 
 
 
+function readBytesFromInputStream(inputStream, count) {
+  var BinaryInputStream = Components.Constructor(
+      "@mozilla.org/binaryinputstream;1",
+      "nsIBinaryInputStream",
+      "setInputStream");
+  if (!count) {
+    count = inputStream.available();
+  }
+  return new BinaryInputStream(inputStream).readBytes(count);
+}
+
+
+
+
+
 
 function ServerWBO(id, initialPayload) {
   this.id = id;

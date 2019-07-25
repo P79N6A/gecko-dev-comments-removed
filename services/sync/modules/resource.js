@@ -58,10 +58,15 @@ function Resource(uri) {
   this._log.level =
     Log4Moz.Level[Utils.prefs.getCharPref("log.logger.network.resources")];
   this.uri = uri;
-  this._headers = {'Content-type': 'text/plain'};
+  this._headers = {};
 }
 Resource.prototype = {
   _logName: "Net.Resource",
+
+  
+  
+  
+  serverTime: null,
 
   
   
@@ -94,7 +99,7 @@ Resource.prototype = {
     if (arguments.length % 2)
       throw "setHeader only accepts arguments in multiples of 2";
     for (let i = 0; i < arguments.length; i += 2) {
-      this._headers[arguments[i]] = arguments[i + 1];
+      this._headers[arguments[i].toLowerCase()] = arguments[i + 1];
     }
   },
 
@@ -144,7 +149,7 @@ Resource.prototype = {
     channel.loadFlags |= Ci.nsIRequest.INHIBIT_CACHING;
 
     
-    channel.notificationCallbacks = new badCertListener();
+    channel.notificationCallbacks = new BadCertListener();
 
     
     let headers = this.headers;
@@ -182,8 +187,8 @@ Resource.prototype = {
       this._log.debug(action + " Length: " + this._data.length);
       this._log.trace(action + " Body: " + this._data);
 
-      let type = ('Content-Type' in this._headers)?
-        this._headers['Content-Type'] : 'text/plain';
+      let type = ('content-type' in this._headers) ?
+        this._headers['content-type'] : 'text/plain';
 
       let stream = Cc["@mozilla.org/io/string-input-stream;1"].
         createInstance(Ci.nsIStringInputStream);
@@ -227,7 +232,7 @@ Resource.prototype = {
       
       channel.visitResponseHeaders({
         visitHeader: function visitHeader(header, value) {
-          headers[header] = value;
+          headers[header.toLowerCase()] = value;
         }
       });
       status = channel.responseStatus;
@@ -244,8 +249,8 @@ Resource.prototype = {
         this._log.trace(action + " body: " + this._data);
 
       
-      if (headers["X-Weave-Backoff"])
-        Observers.notify("weave:service:backoff:interval", parseInt(headers["X-Weave-Backoff"], 10))
+      if (headers["x-weave-backoff"])
+        Observers.notify("weave:service:backoff:interval", parseInt(headers["x-weave-backoff"], 10))
     }
     
     catch(ex) {
@@ -367,9 +372,9 @@ ChannelListener.prototype = {
 
 
 
-function badCertListener() {
+function BadCertListener() {
 }
-badCertListener.prototype = {
+BadCertListener.prototype = {
   getInterface: function(aIID) {
     return this.QueryInterface(aIID);
   },
