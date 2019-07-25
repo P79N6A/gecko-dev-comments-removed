@@ -134,6 +134,8 @@ class RegExpObject : public ::JSObject
         return RegExpFlag(flags);
     }
 
+    inline bool startsWithAtomizedGreedyStar() const;
+
     
 
     inline size_t *addressOfPrivateRefCount() const;
@@ -231,6 +233,8 @@ class RegExpObjectBuilder
 
 namespace detail {
 
+static const jschar GreedyStarChars[] = {'.', '*'};
+
 
 class RegExpPrivateCode
 {
@@ -306,6 +310,44 @@ class RegExpPrivateCode
                                    int *output, size_t outputCount);
 };
 
+enum RegExpPrivateCacheKind
+{
+    RegExpPrivateCache_TestOptimized,
+    RegExpPrivateCache_ExecCapable
+};
+
+class RegExpPrivateCacheValue
+{
+    union {
+        RegExpPrivate   *rep_;
+        uintptr_t       bits;
+    };
+
+  public:
+    RegExpPrivateCacheValue() : rep_(NULL) {}
+
+    RegExpPrivateCacheValue(RegExpPrivate *rep, RegExpPrivateCacheKind kind) {
+        reset(rep, kind);
+    }
+
+    RegExpPrivateCacheKind kind() const {
+        return (bits & 0x1)
+                 ? RegExpPrivateCache_TestOptimized
+                 : RegExpPrivateCache_ExecCapable;
+    }
+
+    RegExpPrivate *rep() {
+        return reinterpret_cast<RegExpPrivate *>(bits & ~uintptr_t(1));
+    }
+
+    void reset(RegExpPrivate *rep, RegExpPrivateCacheKind kind) {
+        rep_ = rep;
+        if (kind == RegExpPrivateCache_TestOptimized)
+            bits |= 0x1;
+        JS_ASSERT(this->kind() == kind);
+    }
+};
+
 
 
 
@@ -344,8 +386,9 @@ class RegExpPrivate
 
     static RegExpPrivateCache *getOrCreateCache(JSContext *cx);
     static bool cacheLookup(JSContext *cx, JSAtom *atom, RegExpFlag flags,
-                            AlreadyIncRefed<RegExpPrivate> *result);
-    static bool cacheInsert(JSContext *cx, JSAtom *atom, RegExpPrivate *priv);
+                            RegExpPrivateCacheKind kind, AlreadyIncRefed<RegExpPrivate> *result);
+    static bool cacheInsert(JSContext *cx, JSAtom *atom,
+                            RegExpPrivateCacheKind kind, RegExpPrivate *priv);
 
   public:
     static AlreadyIncRefed<RegExpPrivate>
@@ -353,6 +396,9 @@ class RegExpPrivate
 
     static AlreadyIncRefed<RegExpPrivate>
     create(JSContext *cx, JSLinearString *source, JSString *flags, TokenStream *ts);
+
+    static AlreadyIncRefed<RegExpPrivate>
+    createTestOptimized(JSContext *cx, JSAtom *originalSource, RegExpFlag flags);
 
     RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
                             LifoAllocScope &allocScope, MatchPairs **output);
@@ -421,6 +467,8 @@ class RegExpMatcher
     }
 
     inline bool reset(JSLinearString *patstr, JSString *opt);
+
+    bool resetWithTestOptimized(RegExpObject *reobj);
 
     RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
                             LifoAllocScope &allocScope, MatchPairs **output) {
