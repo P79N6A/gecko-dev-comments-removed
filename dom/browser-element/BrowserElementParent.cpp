@@ -170,12 +170,23 @@ BrowserElementParent::OpenWindowInProcess(nsIDOMWindow* aOpenerWindow,
 {
   *aReturnWindow = NULL;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMWindow> topWindow;
+  aOpenerWindow->GetScriptableTop(getter_AddRefs(topWindow));
+
   nsCOMPtr<nsIDOMElement> openerFrameDOMElement;
-  aOpenerWindow->GetFrameElement(getter_AddRefs(openerFrameDOMElement));
+  topWindow->GetFrameElement(getter_AddRefs(openerFrameDOMElement));
   NS_ENSURE_TRUE(openerFrameDOMElement, false);
 
-  nsCOMPtr<nsINode> openerFrameNode = do_QueryInterface(openerFrameDOMElement);
-  nsRefPtr<Element> openerFrameElement = openerFrameNode->AsElement();
+  nsCOMPtr<Element> openerFrameElement =
+    do_QueryInterface(openerFrameDOMElement);
 
   nsRefPtr<nsHTMLIFrameElement> popupFrameElement =
     CreateIframe(openerFrameElement);
