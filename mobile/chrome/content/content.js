@@ -68,11 +68,7 @@ const ElementTouchHelper = {
 
   
   getClosest: function getClosest(aWindowUtils, aX, aY) {
-    
-    if (!this.dpiRatio)
-      this.dpiRatio = aWindowUtils.displayDPI / kReferenceDpi;
-
-    let dpiRatio = this.dpiRatio;
+    let dpiRatio = aWindowUtils.displayDPI / kReferenceDpi;
 
     let target = aWindowUtils.elementFromPoint(aX, aY,
                                                true,   
