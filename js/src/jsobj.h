@@ -420,11 +420,6 @@ struct JSObject : public js::ObjectImpl
     void makeLazyType(JSContext *cx);
 
   public:
-    inline js::Shape *lastProperty() const {
-        JS_ASSERT(shape_);
-        return shape_;
-    }
-
     
 
 
@@ -462,9 +457,6 @@ struct JSObject : public js::ObjectImpl
 
     bool setSlotSpan(JSContext *cx, uint32_t span);
 
-    static inline size_t offsetOfShape() { return offsetof(JSObject, shape_); }
-    inline js::HeapPtrShape *addressOfShape() { return &shape_; }
-
     const js::Shape *nativeLookup(JSContext *cx, jsid id);
 
     inline bool nativeContains(JSContext *cx, jsid id);
@@ -474,23 +466,6 @@ struct JSObject : public js::ObjectImpl
     static const uint32_t NELEMENTS_LIMIT = JS_BIT(28);
 
   public:
-    inline bool isNative() const;
-
-    inline js::Class *getClass() const;
-    inline JSClass *getJSClass() const;
-    inline bool hasClass(const js::Class *c) const;
-    inline const js::ObjectOps *getOps() const;
-
-    
-
-
-
-
-
-
-
-
-    inline bool isDelegate() const;
     inline bool setDelegate(JSContext *cx);
 
     inline bool isBoundFunction() const;
@@ -555,13 +530,6 @@ struct JSObject : public js::ObjectImpl
 
     
     inline bool isIndexed() const;
-
-    
-
-
-
-
-    inline bool inDictionaryMode() const;
 
     inline uint32_t propertyCount() const;
 
@@ -740,34 +708,14 @@ struct JSObject : public js::ObjectImpl
 
 
 
-    bool hasSingletonType() const { return !!type_->singleton; }
-
-    
-
-
-
-    bool hasLazyType() const { return type_->lazy(); }
-
-    
-
-
-
     inline bool setSingletonType(JSContext *cx);
 
     inline js::types::TypeObject *getType(JSContext *cx);
-
-    js::types::TypeObject *type() const {
-        JS_ASSERT(!hasLazyType());
-        return type_;
-    }
 
     js::HeapPtr<js::types::TypeObject> &typeFromGC() {
         
         return type_;
     }
-
-    static inline size_t offsetOfType() { return offsetof(JSObject, type_); }
-    inline js::HeapPtrTypeObject *addressOfType() { return &type_; }
 
     inline void setType(js::types::TypeObject *newType);
 
@@ -798,10 +746,6 @@ struct JSObject : public js::ObjectImpl
 
 
     bool shouldSplicePrototype(JSContext *cx);
-
-    JSObject * getProto() const {
-        return type_->proto;
-    }
 
     
 
@@ -1357,13 +1301,12 @@ struct JSObject : public js::ObjectImpl
 
   private:
     static void staticAsserts() {
-        
-        JS_STATIC_ASSERT(sizeof(JSObject) % sizeof(js::Value) == 0);
-
-        JS_STATIC_ASSERT(offsetof(JSObject, shape_) == offsetof(js::shadow::Object, shape));
-        JS_STATIC_ASSERT(offsetof(JSObject, slots) == offsetof(js::shadow::Object, slots));
-        JS_STATIC_ASSERT(offsetof(JSObject, type_) == offsetof(js::shadow::Object, type));
-        JS_STATIC_ASSERT(sizeof(JSObject) == sizeof(js::shadow::Object));
+        MOZ_STATIC_ASSERT(sizeof(JSObject) == sizeof(js::shadow::Object),
+                          "shadow interface must match actual interface");
+        MOZ_STATIC_ASSERT(sizeof(JSObject) == sizeof(js::ObjectImpl),
+                          "JSObject itself must not have any fields");
+        MOZ_STATIC_ASSERT(sizeof(JSObject) % sizeof(js::Value) == 0,
+                          "fixed slots after an object must be aligned");
     }
 };
 

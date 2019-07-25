@@ -11,6 +11,9 @@
 #include "mozilla/Assertions.h"
 #include "mozilla/StdInt.h"
 
+#include "jsinfer.h"
+#include "jsval.h"
+
 #include "gc/Barrier.h"
 
 namespace js {
@@ -74,8 +77,11 @@ class ObjectElements
 
 extern HeapValue *emptyObjectElements;
 
-struct Shape;
+struct Class;
 struct GCMarker;
+struct ObjectOps;
+struct Shape;
+
 class NewObjectCache;
 
 
@@ -145,11 +151,93 @@ class ObjectImpl : public gc::Cell
     HeapValue *slots;     
     HeapValue *elements;  
 
-  protected:
-    friend struct Shape;
-    friend struct GCMarker;
-    friend class  NewObjectCache;
+  private:
+    static void staticAsserts() {
+        MOZ_STATIC_ASSERT(sizeof(ObjectImpl) == sizeof(shadow::Object),
+                          "shadow interface must match actual implementation");
+        MOZ_STATIC_ASSERT(sizeof(ObjectImpl) % sizeof(Value) == 0,
+                          "fixed slots after an object must be aligned");
 
+        MOZ_STATIC_ASSERT(offsetof(ObjectImpl, shape_) == offsetof(shadow::Object, shape),
+                          "shadow shape must match actual shape");
+        MOZ_STATIC_ASSERT(offsetof(ObjectImpl, type_) == offsetof(shadow::Object, type),
+                          "shadow type must match actual type");
+        MOZ_STATIC_ASSERT(offsetof(ObjectImpl, slots) == offsetof(shadow::Object, slots),
+                          "shadow slots must match actual slots");
+        MOZ_STATIC_ASSERT(offsetof(ObjectImpl, elements) == offsetof(shadow::Object, _1),
+                          "shadow placeholder must match actual elements");
+    }
+
+  protected:
+    friend struct GCMarker;
+    friend struct Shape;
+    friend class NewObjectCache;
+
+    
+
+
+
+
+  public:
+    Shape * lastProperty() const {
+        MOZ_ASSERT(shape_);
+        return shape_;
+    }
+
+    types::TypeObject *type() const {
+        MOZ_ASSERT(!hasLazyType());
+        return type_;
+    }
+
+    
+
+
+
+    bool hasSingletonType() const { return !!type_->singleton; }
+
+    
+
+
+
+    bool hasLazyType() const { return type_->lazy(); }
+
+    inline bool isNative() const;
+
+    inline Class *getClass() const;
+    inline JSClass *getJSClass() const;
+    inline bool hasClass(const Class *c) const;
+    inline const ObjectOps *getOps() const;
+
+    
+
+
+
+
+
+
+
+
+    inline bool isDelegate() const;
+
+    
+
+
+
+
+    inline bool inDictionaryMode() const;
+
+    
+    static inline size_t offsetOfShape() { return offsetof(ObjectImpl, shape_); }
+    inline HeapPtrShape *addressOfShape() { return &shape_; }
+    static inline size_t offsetOfType() { return offsetof(ObjectImpl, type_); }
+    HeapPtrTypeObject *addressOfType() { return &type_; }
+
+    
+
+  public:
+    JSObject * getProto() const {
+        return type_->proto;
+    }
 };
 
 } 
