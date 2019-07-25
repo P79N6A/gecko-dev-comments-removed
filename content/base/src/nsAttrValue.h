@@ -280,6 +280,7 @@ public:
 
 
 
+
   PRBool ParseColor(const nsAString& aString, nsIDocument* aDocument);
 
   
