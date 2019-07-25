@@ -71,10 +71,11 @@ function runOneTest(gl, info) {
         return;
       }
     }
-    if ((vShader != null) != info.vShaderSuccess) {
+    
+    
+    if (info.vShaderSuccess && !vShader) {
       testFailed("[unexpected vertex shader compile status] (expected: " +
-                info.vShaderSuccess + ") " + passMsg);
-      return;
+                 info.vShaderSuccess + ") " + passMsg);
     }
     
     if (vShader) {
@@ -96,7 +97,9 @@ function runOneTest(gl, info) {
       }
     }
     
-    if ((fShader != null) != info.fShaderSuccess) {
+    
+    
+    if (info.fShaderSuccess && !fShader) {
       testFailed("[unexpected fragment shader compile status] (expected: " +
                 info.fShaderSuccess + ") " + passMsg);
       return;
