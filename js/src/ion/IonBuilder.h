@@ -1,49 +1,49 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=79:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Mozilla Communicator client code, released
- * March 31, 1998.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   David Anderson <danderson@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef jsion_bytecode_analyzer_h__
 #define jsion_bytecode_analyzer_h__
 
-// This file declares the data structures for building a MIRGraph from a
-// JSScript.
+
+
 
 #include "MIR.h"
 #include "MIRGraph.h"
@@ -55,10 +55,10 @@ class IonBuilder : public MIRGenerator
 {
     enum ControlStatus {
         ControlStatus_Error,
-        ControlStatus_Ended,        // There is no continuation/join point.
-        ControlStatus_Joined,       // Created a join node.
-        ControlStatus_Jumped,       // Parsing another branch at the same level.
-        ControlStatus_None          // No control flow.
+        ControlStatus_Ended,        
+        ControlStatus_Joined,       
+        ControlStatus_Jumped,       
+        ControlStatus_None          
     };
 
     struct DeferredEdge : public TempObject
@@ -72,10 +72,10 @@ class IonBuilder : public MIRGenerator
     };
 
     struct ControlFlowInfo {
-        // Entry in the cfgStack.
+        
         uint32 cfgEntry;
 
-        // Label that continues go to.
+        
         jsbytecode *continuepc;
 
         ControlFlowInfo(uint32 cfgEntry, jsbytecode *continuepc)
@@ -84,71 +84,71 @@ class IonBuilder : public MIRGenerator
         { }
     };
 
-    // To avoid recursion, the bytecode analyzer uses a stack where each entry
-    // is a small state machine. As we encounter branches or jumps in the
-    // bytecode, we push information about the edges on the stack so that the
-    // CFG can be built in a tree-like fashion.
+    
+    
+    
+    
     struct CFGState {
         enum State {
-            IF_TRUE,            // if() { }, no else.
-            IF_TRUE_EMPTY_ELSE, // if() { }, empty else
-            IF_ELSE_TRUE,       // if() { X } else { }
-            IF_ELSE_FALSE,      // if() { } else { X }
-            DO_WHILE_LOOP_BODY, // do { x } while ()
-            DO_WHILE_LOOP_COND, // do { } while (x)
-            WHILE_LOOP_COND,    // while (x) { }
-            WHILE_LOOP_BODY,    // while () { x }
-            FOR_LOOP_COND,      // for (; x;) { }
-            FOR_LOOP_BODY,      // for (; ;) { x }
-            FOR_LOOP_UPDATE,    // for (; ; x) { }
-            TABLE_SWITCH,       // switch() { x }
-            AND_OR              // && x, || x
+            IF_TRUE,            
+            IF_TRUE_EMPTY_ELSE, 
+            IF_ELSE_TRUE,       
+            IF_ELSE_FALSE,      
+            DO_WHILE_LOOP_BODY, 
+            DO_WHILE_LOOP_COND, 
+            WHILE_LOOP_COND,    
+            WHILE_LOOP_BODY,    
+            FOR_LOOP_COND,      
+            FOR_LOOP_BODY,      
+            FOR_LOOP_UPDATE,    
+            TABLE_SWITCH,       
+            AND_OR              
         };
 
-        State state;            // Current state of this control structure.
-        jsbytecode *stopAt;     // Bytecode at which to stop the processing loop.
+        State state;            
+        jsbytecode *stopAt;     
         
-        // For if structures, this contains branch information.
+        
         union {
             struct {
                 MBasicBlock *ifFalse;
                 jsbytecode *falseEnd;
-                MBasicBlock *ifTrue;    // Set when the end of the true path is reached.
+                MBasicBlock *ifTrue;    
             } branch;
             struct {
-                // Common entry point.
+                
                 MBasicBlock *entry;
 
-                // Position of where the loop body starts and ends.
+                
                 jsbytecode *bodyStart;
                 jsbytecode *bodyEnd;
 
-                // pc immediately after the loop exits.
+                
                 jsbytecode *exitpc;
 
-                // Common exit point. Created lazily, so it may be NULL.
+                
                 MBasicBlock *successor;
 
-                // Deferred break and continue targets.
+                
                 DeferredEdge *breaks;
                 DeferredEdge *continues;
 
-                // For-loops only.
+                
                 jsbytecode *condpc;
                 jsbytecode *updatepc;
                 jsbytecode *updateEnd;
             } loop;
             struct {
-                // pc immediately after the switch.
+                
                 jsbytecode *exitpc;
 
-                // Deferred break and continue targets.
+                
                 DeferredEdge *breaks;
 
-                // MIR instruction
+                
                 MTableSwitch *ins;
 
-                // The number of current successor that get mapped into a block. 
+                
                 uint32 currentSuccessor;
 
             } tableswitch;
@@ -246,30 +246,27 @@ class IonBuilder : public MIRGenerator
         return newBlock(NULL, pc);
     }
 
-    // Given a list of pending breaks, creates a new block and inserts a Goto
-    // linking each break to the new block.
+    
+    
     MBasicBlock *createBreakCatchBlock(DeferredEdge *edge, jsbytecode *pc);
 
-    // Finishes loops that do not actually loop, containing only breaks or
-    // returns.
+    
+    
     ControlStatus processBrokenLoop(CFGState &state);
 
-    // Computes loop phis, places them in all successors of a loop, then
-    // handles any pending breaks.
+    
+    
     ControlStatus finishLoop(CFGState &state, MBasicBlock *successor);
 
     void assertValidLoopHeadOp(jsbytecode *pc);
 
-    bool forInLoop(JSOp op, jssrcnote *sn) {
-        return false;
-    }
     ControlStatus forLoop(JSOp op, jssrcnote *sn);
-    ControlStatus whileLoop(JSOp op, jssrcnote *sn);
+    ControlStatus whileOrForInLoop(JSOp op, jssrcnote *sn);
     ControlStatus doWhileLoop(JSOp op, jssrcnote *sn);
     ControlStatus tableSwitch(JSOp op, jssrcnote *sn);
 
-    // Please see the Big Honkin' Comment about how resume points work in
-    // IonBuilder.cpp, near the definition for this function.
+    
+    
     bool resumeAt(MInstruction *ins, jsbytecode *pc);
     bool resumeAfter(MInstruction *ins);
 
@@ -311,13 +308,17 @@ class IonBuilder : public MIRGenerator
     bool jsop_regexp(RegExpObject *reobj);
     bool jsop_object(JSObject *obj);
     bool jsop_this();
+    bool jsop_iter(uint8 flags);
+    bool jsop_iternext(uint8 depth);
+    bool jsop_itermore();
+    bool jsop_iterend();
 
-    // Replace generic calls to native function by instructions which can be
-    // specialized and which can enable GVN & LICM on these native calls.
+    
+    
     void discardCallArgs(uint32 argc, MDefinition **argv);
     bool optimizeNativeCall(uint32 argc);
 
-    /* Inlining. */
+    
 
     enum InliningStatus
     {
@@ -331,7 +332,7 @@ class IonBuilder : public MIRGenerator
     bool makeInliningDecision(uint32 argc, InliningData *data);
 
   public:
-    // A builder is inextricably tied to a particular script.
+    
     JSScript * const script;
 
   private:
@@ -340,7 +341,7 @@ class IonBuilder : public MIRGenerator
     MBasicBlock *current;
     MResumePoint *lastResumePoint_;
 
-    /* Information used for inline-call builders. */
+    
     MResumePoint *callerResumePoint_;
     jsbytecode *callerPC() {
         return callerResumePoint_ ? callerResumePoint_->pc() : NULL;
@@ -353,8 +354,8 @@ class IonBuilder : public MIRGenerator
     size_t inliningDepth;
 };
 
-} // namespace ion
-} // namespace js
+} 
+} 
 
-#endif // jsion_bytecode_analyzer_h__
+#endif 
 
