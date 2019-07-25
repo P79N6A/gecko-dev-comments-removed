@@ -344,27 +344,29 @@ nsInProcessTabChildGlobal::LoadFrameScript(const nsAString& aURL)
   }
 
   if (!dataString.IsEmpty()) {
-    JSAutoRequest ar(mCx);
-    jsval retval;
-    JSObject* global = nsnull;
-    mGlobal->GetJSObject(&global);
-    if (!global) {
-      return;
-    }
-
-    JSPrincipals* jsprin = nsnull;
-    mPrincipal->GetJSPrincipals(mCx, &jsprin);
-    nsContentUtils::XPConnect()->FlagSystemFilenamePrefix(url.get(), PR_TRUE);
     nsContentUtils::ThreadJSContextStack()->Push(mCx);
-    PRBool tmp = mLoadingScript;
-    mLoadingScript = PR_TRUE;
-    JS_EvaluateUCScriptForPrincipals(mCx, global, jsprin,
-                                     (jschar*)dataString.get(),
-                                     dataString.Length(),
-                                     url.get(), 1, &retval);
-    
-    JSPRINCIPALS_DROP(mCx, jsprin);
-    mLoadingScript = tmp;
+    {
+      
+      
+      JSAutoRequest ar(mCx);
+      jsval retval;
+      JSObject* global = nsnull;
+      mGlobal->GetJSObject(&global);
+      if (global) {
+        JSPrincipals* jsprin = nsnull;
+        mPrincipal->GetJSPrincipals(mCx, &jsprin);
+        nsContentUtils::XPConnect()->FlagSystemFilenamePrefix(url.get(), PR_TRUE);
+        PRBool tmp = mLoadingScript;
+        mLoadingScript = PR_TRUE;
+        JS_EvaluateUCScriptForPrincipals(mCx, global, jsprin,
+                                         (jschar*)dataString.get(),
+                                         dataString.Length(),
+                                         url.get(), 1, &retval);
+        
+        JSPRINCIPALS_DROP(mCx, jsprin);
+        mLoadingScript = tmp;
+      }
+    } 
     JSContext* unused;
     nsContentUtils::ThreadJSContextStack()->Pop(&unused);
   }
