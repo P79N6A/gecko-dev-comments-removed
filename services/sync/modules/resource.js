@@ -48,7 +48,6 @@ const Cu = Components.utils;
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Observers.js");
 Cu.import("resource://services-sync/ext/Preferences.js");
-Cu.import("resource://services-sync/ext/Sync.js");
 Cu.import("resource://services-sync/log4moz.js");
 Cu.import("resource://services-sync/util.js");
 
@@ -403,7 +402,7 @@ Resource.prototype = {
   
   
   _request: function Res__request(action, data) {
-    let [doRequest, cb] = Sync.withCb(this._doRequest, this);
+    let cb = Utils.makeSyncCallback();
     function callback(error, ret) {
       if (error)
         cb.throw(error);
@@ -412,7 +411,8 @@ Resource.prototype = {
 
     
     try {
-      return doRequest(action, data, callback);
+      this._doRequest(action, data, callback);
+      return Utils.waitForSyncCallback(cb);
     } catch(ex) {
       
       

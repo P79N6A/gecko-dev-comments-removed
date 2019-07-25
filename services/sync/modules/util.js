@@ -46,7 +46,6 @@ Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Observers.js");
 Cu.import("resource://services-sync/ext/Preferences.js");
 Cu.import("resource://services-sync/ext/StringBundle.js");
-Cu.import("resource://services-sync/ext/Sync.js");
 Cu.import("resource://services-sync/log4moz.js");
 
 let NetUtil;
@@ -57,6 +56,12 @@ try {
 } catch (ex) {
   
 }
+
+
+const CB_READY = {};
+const CB_COMPLETE = {};
+const CB_FAIL = {};
+
 
 
 
@@ -230,8 +235,8 @@ let Utils = {
       names = names == null ? [] : [names];
 
     
-    let [exec, execCb] = Sync.withCb(query.executeAsync, query);
-    return exec({
+    let execCb = Utils.makeSyncCallback();
+    query.executeAsync({
       items: [],
       handleResult: function handleResult(results) {
         let row;
@@ -249,6 +254,7 @@ let Utils = {
         execCb(this.items);
       }
     });
+    return Utils.waitForSyncCallback(execCb);
   },
 
   byteArrayToString: function byteArrayToString(bytes) {
@@ -1503,6 +1509,77 @@ let Utils = {
       this.__prefs.QueryInterface(Ci.nsIPrefBranch2);
     }
     return this.__prefs;
+  },
+
+  
+
+
+
+
+
+  
+
+
+  checkAppReady: function checkAppReady() {
+    
+    Svc.Obs.add("quit-application", function() {
+      Utils.checkAppReady = function() {
+        throw Components.Exception("App. Quitting", Cr.NS_ERROR_ABORT);
+      };
+    });
+    
+    return (Utils.checkAppReady = function() true)();
+  },
+
+  
+
+
+  makeSyncCallback: function makeSyncCallback() {
+    
+    let onComplete = function onComplete(data) {
+      onComplete.state = CB_COMPLETE;
+      onComplete.value = data;
+    };
+
+    
+    onComplete.state = CB_READY;
+    onComplete.value = null;
+
+    
+    onComplete.throw = function onComplete_throw(data) {
+      onComplete.state = CB_FAIL;
+      onComplete.value = data;
+
+      
+      throw data;
+    };
+
+    return onComplete;
+  },
+
+  
+
+
+  waitForSyncCallback: function waitForSyncCallback(callback) {
+    
+    let thread = Cc["@mozilla.org/thread-manager;1"].getService().currentThread;
+
+    
+    while (Utils.checkAppReady() && callback.state == CB_READY) {
+      thread.processNextEvent(true);
+    }
+
+    
+    let state = callback.state;
+    callback.state = CB_READY;
+
+    
+    if (state == CB_FAIL) {
+      throw callback.value;
+    }
+
+    
+    return callback.value;
   }
 };
 
