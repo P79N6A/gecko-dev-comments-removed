@@ -50,7 +50,6 @@
 #include "nsITreeView.h"
 #include "nsICSSPseudoComparator.h"
 #include "nsIScrollbarMediator.h"
-#include "nsIDragSession.h"
 #include "nsITimer.h"
 #include "nsIReflowCallback.h"
 #include "nsTArray.h"
@@ -536,6 +535,9 @@ protected:
       bool                     mDropAllowed;
 
       
+      bool mIsDragging;
+
+      
       PRInt32                  mDropRow;
 
       
@@ -546,8 +548,6 @@ protected:
 
       
       PRUint32                 mDragAction;
-
-      nsCOMPtr<nsIDragSession> mDragSession;
 
       
       nsCOMPtr<nsITimer>       mTimer;

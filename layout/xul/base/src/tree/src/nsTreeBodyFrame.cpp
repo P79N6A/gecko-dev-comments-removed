@@ -86,7 +86,6 @@
 #include "nsIURL.h"
 #include "nsNetUtil.h"
 #include "nsBoxLayoutState.h"
-#include "nsIDragService.h"
 #include "nsTreeContentView.h"
 #include "nsTreeUtils.h"
 #include "nsChildIterator.h"
@@ -103,6 +102,7 @@
 #include "nsDisplayList.h"
 #include "nsTreeBoxObject.h"
 #include "nsRenderingContext.h"
+#include "nsIScriptableRegion.h"
 
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
@@ -1948,7 +1948,7 @@ nsTreeBodyFrame::PrefillPropertyArray(PRInt32 aRowIndex, nsTreeColumn* aCol)
     mScratchArray->AppendElement(nsGkAtoms::sorted);
 
   
-  if (mSlots && mSlots->mDragSession)
+  if (mSlots && mSlots->mIsDragging)
     mScratchArray->AppendElement(nsGkAtoms::dragSession);
 
   if (aRowIndex != -1) {
@@ -2555,6 +2555,18 @@ nsTreeBodyFrame::GetCursor(const nsPoint& aPoint,
   return nsLeafBoxFrame::GetCursor(aPoint, aCursor);
 }
 
+static PRUint32 GetDropEffect(nsGUIEvent* aEvent)
+{
+  NS_ASSERTION(aEvent->eventStructType == NS_DRAG_EVENT, "wrong event type");
+  nsDragEvent* dragEvent = static_cast<nsDragEvent *>(aEvent);
+  nsContentUtils::SetDataTransferInEvent(dragEvent);
+
+  PRUint32 action = 0;
+  if (dragEvent->dataTransfer)
+    dragEvent->dataTransfer->GetDropEffectInt(&action);
+  return action;
+}
+
 NS_IMETHODIMP
 nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
                              nsGUIEvent* aEvent,
@@ -2593,17 +2605,10 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     }
 
     
-    nsCOMPtr<nsIDragService> dragService = 
-             do_GetService("@mozilla.org/widget/dragservice;1");
-    dragService->GetCurrentSession(getter_AddRefs(mSlots->mDragSession));
-    NS_ASSERTION(mSlots->mDragSession, "can't get drag session");
-
-    if (mSlots->mDragSession)
-      mSlots->mDragSession->GetDragAction(&mSlots->mDragAction);
-    else
-      mSlots->mDragAction = 0;
+    mSlots->mIsDragging = true;
     mSlots->mDropRow = -1;
     mSlots->mDropOrient = -1;
+    mSlots->mDragAction = GetDropEffect(aEvent);
   }
   else if (aEvent->message == NS_DRAGDROP_OVER) {
     
@@ -2627,8 +2632,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
 
     
     PRUint32 lastDragAction = mSlots->mDragAction;
-    if (mSlots->mDragSession)
-      mSlots->mDragSession->GetDragAction(&mSlots->mDragAction);
+    mSlots->mDragAction = GetDropEffect(aEvent);
 
     
     
@@ -2698,11 +2702,9 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
           }
         }
 
-        NS_ASSERTION(aEvent->eventStructType == NS_DRAG_EVENT, "wrong event type");
-        nsDragEvent* dragEvent = static_cast<nsDragEvent*>(aEvent);
-        nsContentUtils::SetDataTransferInEvent(dragEvent);
-
+        
         bool canDropAtNewLocation = false;
+        nsDragEvent* dragEvent = static_cast<nsDragEvent *>(aEvent);
         mView->CanDrop(mSlots->mDropRow, mSlots->mDropOrient,
                        dragEvent->dataTransfer, &canDropAtNewLocation);
 
@@ -2715,9 +2717,8 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     }
 
     
-    
-    if (mSlots->mDropAllowed && mSlots->mDragSession)
-      mSlots->mDragSession->SetCanDrop(true);
+    if (mSlots->mDropAllowed)
+      *aEventStatus = nsEventStatus_eConsumeNoDefault;
   }
   else if (aEvent->message == NS_DRAGDROP_DROP) {
      
@@ -2741,6 +2742,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     mView->Drop(mSlots->mDropRow, mSlots->mDropOrient, dragEvent->dataTransfer);
     mSlots->mDropRow = -1;
     mSlots->mDropOrient = -1;
+    mSlots->mIsDragging = false;
     *aEventStatus = nsEventStatus_eConsumeNoDefault; 
   }
   else if (aEvent->message == NS_DRAGDROP_EXIT) {
@@ -2756,7 +2758,7 @@ nsTreeBodyFrame::HandleEvent(nsPresContext* aPresContext,
     }
     else
       mSlots->mDropAllowed = false;
-    mSlots->mDragSession = nsnull;
+    mSlots->mIsDragging = false;
     mSlots->mScrollLines = 0;
     
     
