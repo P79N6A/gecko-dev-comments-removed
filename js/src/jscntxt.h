@@ -1296,12 +1296,6 @@ struct JSContext
     bool stackIterAssertionEnabled;
 #endif
 
-    
-
-
-
-    bool runningWithTrustedPrincipals() const;
-
   private:
     
 

@@ -80,32 +80,3 @@ JS_GetFrameScopeChainRaw(JSStackFrame *fp)
 {
     return &Valueify(fp)->scopeChain();
 }
-
-
-
-
-
-
-extern size_t sE4XObjectsCreated;
-
-JS_FRIEND_API(size_t)
-JS_GetE4XObjectsCreated(JSContext *)
-{
-  return sE4XObjectsCreated;
-}
-
-extern size_t sSetProtoCalled;
-
-JS_FRIEND_API(size_t)
-JS_SetProtoCalled(JSContext *)
-{
-  return sSetProtoCalled;
-}
-
-extern size_t sCustomIteratorCount;
-
-JS_FRIEND_API(size_t)
-JS_GetCustomIteratorCount(JSContext *cx)
-{
-  return sCustomIteratorCount;
-}
