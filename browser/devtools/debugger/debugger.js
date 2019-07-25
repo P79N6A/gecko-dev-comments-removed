@@ -311,6 +311,10 @@ var StackFrames = {
           paramVar.setGrip(paramVal);
           this._addExpander(paramVar, paramVal);
         }
+        
+        let evt = document.createEvent("Event");
+        evt.initEvent("Debugger:FetchedParameters", true, false);
+        document.documentElement.dispatchEvent(evt);
       }.bind(this));
     }
   },
@@ -469,11 +473,13 @@ var SourceScripts = {
     DebuggerView.Scripts.addChangeListener(this.onChange);
 
     this.activeThread = aThreadClient;
-    aThreadClient.addListener("paused", this.onPaused);
     aThreadClient.addListener("scriptsadded", this.onScripts);
     aThreadClient.addListener("scriptscleared", this.onScriptsCleared);
     this.clearLabelsCache();
     this.onScriptsCleared();
+    
+    
+    this.activeThread.fillScripts();
     aCallback && aCallback();
   },
 
@@ -481,19 +487,8 @@ var SourceScripts = {
 
 
   disconnect: function TS_disconnect() {
-    this.activeThread.removeListener("paused", this.onPaused);
     this.activeThread.removeListener("scriptsadded", this.onScripts);
     this.activeThread.removeListener("scriptscleared", this.onScriptsCleared);
-  },
-
-  
-
-
-
-
-  onPaused: function SS_onPaused() {
-    this.activeThread.removeListener("paused", this.onPaused);
-    this.activeThread.fillScripts();
   },
 
   
@@ -657,7 +652,6 @@ var SourceScripts = {
   }
 };
 
-SourceScripts.onPaused = SourceScripts.onPaused.bind(SourceScripts);
 SourceScripts.onScripts = SourceScripts.onScripts.bind(SourceScripts);
 SourceScripts.onNewScript = SourceScripts.onNewScript.bind(SourceScripts);
 SourceScripts.onScriptsCleared = SourceScripts.onScriptsCleared.bind(SourceScripts);
