@@ -11,9 +11,12 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
+#include "jpegcomp.h"
 
 
 
@@ -33,6 +36,79 @@ METHODDEF(int) consume_markers JPP((j_decompress_ptr cinfo));
 
 
 
+
+
+
+#if JPEG_LIB_VERSION >= 80
+
+
+
+
+
+
+GLOBAL(void)
+jpeg_core_output_dimensions (j_decompress_ptr cinfo)
+
+
+
+{
+#ifdef IDCT_SCALING_SUPPORTED
+  int ci;
+  jpeg_component_info *compptr;
+
+  
+  if (cinfo->scale_num * cinfo->block_size <= cinfo->scale_denom) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width, (long) cinfo->block_size);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height, (long) cinfo->block_size);
+    cinfo->min_DCT_h_scaled_size = 1;
+    cinfo->min_DCT_v_scaled_size = 1;
+  } else if (cinfo->scale_num * cinfo->block_size <= cinfo->scale_denom * 2) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 2L, (long) cinfo->block_size);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 2L, (long) cinfo->block_size);
+    cinfo->min_DCT_h_scaled_size = 2;
+    cinfo->min_DCT_v_scaled_size = 2;
+  } else if (cinfo->scale_num * cinfo->block_size <= cinfo->scale_denom * 4) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 4L, (long) cinfo->block_size);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 4L, (long) cinfo->block_size);
+    cinfo->min_DCT_h_scaled_size = 4;
+    cinfo->min_DCT_v_scaled_size = 4;
+  } else if (cinfo->scale_num * cinfo->block_size <= cinfo->scale_denom * 8) {
+    
+    cinfo->output_width = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_width * 8L, (long) cinfo->block_size);
+    cinfo->output_height = (JDIMENSION)
+      jdiv_round_up((long) cinfo->image_height * 8L, (long) cinfo->block_size);
+    cinfo->min_DCT_h_scaled_size = 8;
+    cinfo->min_DCT_v_scaled_size = 8;
+  }
+  
+  for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
+       ci++, compptr++) {
+    compptr->DCT_h_scaled_size = cinfo->min_DCT_h_scaled_size;
+    compptr->DCT_v_scaled_size = cinfo->min_DCT_v_scaled_size;
+  }
+
+#else 
+
+  
+  cinfo->output_width = cinfo->image_width;
+  cinfo->output_height = cinfo->image_height;
+  
+
+
+
+#endif 
+}
+#endif
 
 
 LOCAL(void)
@@ -70,16 +146,30 @@ initial_setup (j_decompress_ptr cinfo)
 				   compptr->v_samp_factor);
   }
 
+#if JPEG_LIB_VERSION >=80
+    cinfo->block_size = DCTSIZE;
+    cinfo->natural_order = jpeg_natural_order;
+    cinfo->lim_Se = DCTSIZE2-1;
+#endif
+
   
 
 
 
+#if JPEG_LIB_VERSION >= 70
+  cinfo->min_DCT_h_scaled_size = cinfo->min_DCT_v_scaled_size = DCTSIZE;
+#else
   cinfo->min_DCT_scaled_size = DCTSIZE;
+#endif
 
   
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
+#if JPEG_LIB_VERSION >= 70
+    compptr->DCT_h_scaled_size = compptr->DCT_v_scaled_size = DCTSIZE;
+#else
     compptr->DCT_scaled_size = DCTSIZE;
+#endif
     
     compptr->width_in_blocks = (JDIMENSION)
       jdiv_round_up((long) cinfo->image_width * (long) compptr->h_samp_factor,
@@ -138,7 +228,7 @@ per_scan_setup (j_decompress_ptr cinfo)
     compptr->MCU_width = 1;
     compptr->MCU_height = 1;
     compptr->MCU_blocks = 1;
-    compptr->MCU_sample_width = compptr->DCT_scaled_size;
+    compptr->MCU_sample_width = compptr->_DCT_scaled_size;
     compptr->last_col_width = 1;
     
 
@@ -174,7 +264,7 @@ per_scan_setup (j_decompress_ptr cinfo)
       compptr->MCU_width = compptr->h_samp_factor;
       compptr->MCU_height = compptr->v_samp_factor;
       compptr->MCU_blocks = compptr->MCU_width * compptr->MCU_height;
-      compptr->MCU_sample_width = compptr->MCU_width * compptr->DCT_scaled_size;
+      compptr->MCU_sample_width = compptr->MCU_width * compptr->_DCT_scaled_size;
       
       tmp = (int) (compptr->width_in_blocks % compptr->MCU_width);
       if (tmp == 0) tmp = compptr->MCU_width;

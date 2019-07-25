@@ -17,6 +17,7 @@
 
 
 
+
 #ifndef JMESSAGE
 #ifndef CDERROR_H
 #define CDERROR_H
@@ -45,6 +46,7 @@ JMESSAGE(JERR_BMP_BADHEADER, "Invalid BMP file: bad header length")
 JMESSAGE(JERR_BMP_BADPLANES, "Invalid BMP file: biPlanes not equal to 1")
 JMESSAGE(JERR_BMP_COLORSPACE, "BMP output must be grayscale or RGB")
 JMESSAGE(JERR_BMP_COMPRESSED, "Sorry, compressed BMPs not yet supported")
+JMESSAGE(JERR_BMP_EMPTY, "Empty BMP image")
 JMESSAGE(JERR_BMP_NOT, "Not a BMP file - does not start with BM")
 JMESSAGE(JTRC_BMP, "%ux%u 24-bit BMP image")
 JMESSAGE(JTRC_BMP_MAPPED, "%ux%u 8-bit colormapped BMP image")

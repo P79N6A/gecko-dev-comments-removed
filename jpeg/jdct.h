@@ -26,14 +26,22 @@
 
 
 
+
 #if BITS_IN_JSAMPLE == 8
+#ifndef WITH_SIMD
 typedef int DCTELEM;		
+typedef unsigned int UDCTELEM;
+typedef unsigned long long UDCTELEM2;
+#else
+typedef short DCTELEM;  
+typedef unsigned short UDCTELEM;
+typedef unsigned int UDCTELEM2;
+#endif
 #else
 typedef INT32 DCTELEM;		
+typedef UINT32 UDCTELEM;
+typedef unsigned long long UDCTELEM2;
 #endif
-
-typedef JMETHOD(void, forward_DCT_method_ptr, (DCTELEM * data));
-typedef JMETHOD(void, float_DCT_method_ptr, (FAST_FLOAT * data));
 
 
 

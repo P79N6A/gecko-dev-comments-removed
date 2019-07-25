@@ -17,6 +17,7 @@
 
 
 
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
@@ -74,29 +75,10 @@
 #define G_SCALE 3		/* scale G distances by this much */
 #define B_SCALE 1		/* and B by this much */
 
-
-
-
-
-
-
-
-#if RGB_RED == 0
-#define C0_SCALE R_SCALE
-#endif
-#if RGB_BLUE == 0
-#define C0_SCALE B_SCALE
-#endif
-#if RGB_GREEN == 1
-#define C1_SCALE G_SCALE
-#endif
-#if RGB_RED == 2
-#define C2_SCALE R_SCALE
-#endif
-#if RGB_BLUE == 2
-#define C2_SCALE B_SCALE
-#endif
-
+static const int c_scales[3]={R_SCALE, G_SCALE, B_SCALE};
+#define C0_SCALE c_scales[rgb_red[cinfo->out_color_space]]
+#define C1_SCALE c_scales[rgb_green[cinfo->out_color_space]]
+#define C2_SCALE c_scales[rgb_blue[cinfo->out_color_space]]
 
 
 
@@ -454,15 +436,16 @@ median_cut (j_decompress_ptr cinfo, boxptr boxlist, int numboxes,
     
 
 
-#if RGB_RED == 0
-    cmax = c1; n = 1;
-    if (c0 > cmax) { cmax = c0; n = 0; }
-    if (c2 > cmax) { n = 2; }
-#else
-    cmax = c1; n = 1;
-    if (c2 > cmax) { cmax = c2; n = 2; }
-    if (c0 > cmax) { n = 0; }
-#endif
+    if (rgb_red[cinfo->out_color_space] == 0) {
+      cmax = c1; n = 1;
+      if (c0 > cmax) { cmax = c0; n = 0; }
+      if (c2 > cmax) { n = 2; }
+    }
+    else {
+      cmax = c1; n = 1;
+      if (c2 > cmax) { cmax = c2; n = 2; }
+      if (c0 > cmax) { n = 0; }
+    }
     
 
 

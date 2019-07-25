@@ -18,9 +18,13 @@
 
 
 
+
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
+#include "jsimd.h"
+#include "jpegcomp.h"
 
 
 
@@ -418,7 +422,7 @@ jinit_upsampler (j_decompress_ptr cinfo)
   
 
 
-  do_fancy = cinfo->do_fancy_upsampling && cinfo->min_DCT_scaled_size > 1;
+  do_fancy = cinfo->do_fancy_upsampling && cinfo->_min_DCT_scaled_size > 1;
 
   
 
@@ -428,10 +432,10 @@ jinit_upsampler (j_decompress_ptr cinfo)
     
 
 
-    h_in_group = (compptr->h_samp_factor * compptr->DCT_scaled_size) /
-		 cinfo->min_DCT_scaled_size;
-    v_in_group = (compptr->v_samp_factor * compptr->DCT_scaled_size) /
-		 cinfo->min_DCT_scaled_size;
+    h_in_group = (compptr->h_samp_factor * compptr->_DCT_scaled_size) /
+		 cinfo->_min_DCT_scaled_size;
+    v_in_group = (compptr->v_samp_factor * compptr->_DCT_scaled_size) /
+		 cinfo->_min_DCT_scaled_size;
     h_out_group = cinfo->max_h_samp_factor;
     v_out_group = cinfo->max_v_samp_factor;
     upsample->rowgroup_height[ci] = v_in_group; 
@@ -447,18 +451,32 @@ jinit_upsampler (j_decompress_ptr cinfo)
     } else if (h_in_group * 2 == h_out_group &&
 	       v_in_group == v_out_group) {
       
-      if (do_fancy && compptr->downsampled_width > 2)
-	upsample->methods[ci] = h2v1_fancy_upsample;
-      else
-	upsample->methods[ci] = h2v1_upsample;
+      if (do_fancy && compptr->downsampled_width > 2) {
+	if (jsimd_can_h2v1_fancy_upsample())
+	  upsample->methods[ci] = jsimd_h2v1_fancy_upsample;
+	else
+	  upsample->methods[ci] = h2v1_fancy_upsample;
+      } else {
+	if (jsimd_can_h2v1_upsample())
+	  upsample->methods[ci] = jsimd_h2v1_upsample;
+	else
+	  upsample->methods[ci] = h2v1_upsample;
+      }
     } else if (h_in_group * 2 == h_out_group &&
 	       v_in_group * 2 == v_out_group) {
       
       if (do_fancy && compptr->downsampled_width > 2) {
-	upsample->methods[ci] = h2v2_fancy_upsample;
+	if (jsimd_can_h2v2_fancy_upsample())
+	  upsample->methods[ci] = jsimd_h2v2_fancy_upsample;
+	else
+	  upsample->methods[ci] = h2v2_fancy_upsample;
 	upsample->pub.need_context_rows = TRUE;
-      } else
-	upsample->methods[ci] = h2v2_upsample;
+      } else {
+	if (jsimd_can_h2v2_upsample())
+	  upsample->methods[ci] = jsimd_h2v2_upsample;
+	else
+	  upsample->methods[ci] = h2v2_upsample;
+      }
     } else if ((h_out_group % h_in_group) == 0 &&
 	       (v_out_group % v_in_group) == 0) {
       

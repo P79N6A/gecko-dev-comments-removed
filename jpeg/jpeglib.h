@@ -10,25 +10,10 @@
 
 
 
+
+
 #ifndef JPEGLIB_H
 #define JPEGLIB_H
-
-#ifdef XP_OS2
-
-
-
-
-#ifdef RGB_RED
-	#undef RGB_RED
-#endif
-#ifdef RGB_GREEN
-	#undef RGB_GREEN
-#endif
-#ifdef RGB_BLUE
-	#undef RGB_BLUE
-#endif
-
-#endif
 
 
 
@@ -43,16 +28,11 @@
 #include "jmorecfg.h"		
 
 
-#ifdef HAVE_MMX_INTEL_MNEMONICS
-	extern int MMXAvailable;
+#ifdef __cplusplus
+#ifndef DONT_USE_EXTERN_C
+extern "C" {
 #endif
-
-
-
-
-
-
-#define JPEG_LIB_VERSION  62	/* Version 6b */
+#endif
 
 
 
@@ -166,7 +146,12 @@ typedef struct {
 
 
 
+#if JPEG_LIB_VERSION >= 70
+  int DCT_h_scaled_size;
+  int DCT_v_scaled_size;
+#else
   int DCT_scaled_size;
+#endif
   
 
 
@@ -225,13 +210,22 @@ struct jpeg_marker_struct {
 
 
 
+#define JCS_EXTENSIONS 1
+
 typedef enum {
 	JCS_UNKNOWN,		
 	JCS_GRAYSCALE,		
 	JCS_RGB,		
+
 	JCS_YCbCr,		
 	JCS_CMYK,		
-	JCS_YCCK		
+	JCS_YCCK,		
+	JCS_EXT_RGB,		
+	JCS_EXT_RGBX,		
+	JCS_EXT_BGR,		
+	JCS_EXT_BGRX,		
+	JCS_EXT_XBGR,		
+	JCS_EXT_XRGB		
 } J_COLOR_SPACE;
 
 
@@ -313,6 +307,19 @@ struct jpeg_compress_struct {
 
 
 
+#if JPEG_LIB_VERSION >= 70
+  unsigned int scale_num, scale_denom; 
+
+  JDIMENSION jpeg_width;	
+  JDIMENSION jpeg_height;	
+  
+
+
+
+
+
+#endif
+
   int data_precision;		
 
   int num_components;		
@@ -320,14 +327,19 @@ struct jpeg_compress_struct {
 
   jpeg_component_info * comp_info;
   
-  
+
   JQUANT_TBL * quant_tbl_ptrs[NUM_QUANT_TBLS];
+#if JPEG_LIB_VERSION >= 70
+  int q_scale_factor[NUM_QUANT_TBLS];
+#endif
   
-  
+
+
+
   JHUFF_TBL * dc_huff_tbl_ptrs[NUM_HUFF_TBLS];
   JHUFF_TBL * ac_huff_tbl_ptrs[NUM_HUFF_TBLS];
   
-  
+
   UINT8 arith_dc_L[NUM_ARITH_TBLS]; 
   UINT8 arith_dc_U[NUM_ARITH_TBLS]; 
   UINT8 arith_ac_K[NUM_ARITH_TBLS]; 
@@ -343,6 +355,9 @@ struct jpeg_compress_struct {
   boolean arith_code;		
   boolean optimize_coding;	
   boolean CCIR601_sampling;	
+#if JPEG_LIB_VERSION >= 70
+  boolean do_fancy_downsampling; 
+#endif
   int smoothing_factor;		
   J_DCT_METHOD dct_method;	
 
@@ -386,6 +401,11 @@ struct jpeg_compress_struct {
   int max_h_samp_factor;	
   int max_v_samp_factor;	
 
+#if JPEG_LIB_VERSION >= 70
+  int min_DCT_h_scaled_size;	
+  int min_DCT_v_scaled_size;	
+#endif
+
   JDIMENSION total_iMCU_rows;	
   
 
@@ -410,6 +430,12 @@ struct jpeg_compress_struct {
   
 
   int Ss, Se, Ah, Al;		
+
+#if JPEG_LIB_VERSION >= 80
+  int block_size;		
+  const int * natural_order;	
+  int lim_Se;			
+#endif
 
   
 
@@ -557,6 +583,9 @@ struct jpeg_decompress_struct {
   jpeg_component_info * comp_info;
   
 
+#if JPEG_LIB_VERSION >= 80
+  boolean is_baseline;		
+#endif
   boolean progressive_mode;	
   boolean arith_code;		
 
@@ -597,7 +626,12 @@ struct jpeg_decompress_struct {
   int max_h_samp_factor;	
   int max_v_samp_factor;	
 
+#if JPEG_LIB_VERSION >= 70
+  int min_DCT_h_scaled_size;	
+  int min_DCT_v_scaled_size;	
+#else
   int min_DCT_scaled_size;	
+#endif
 
   JDIMENSION total_iMCU_rows;	
   
@@ -628,6 +662,14 @@ struct jpeg_decompress_struct {
   
 
   int Ss, Se, Ah, Al;		
+
+#if JPEG_LIB_VERSION >= 80
+  
+
+  int block_size;		
+  const int * natural_order; 
+  int lim_Se;			
+#endif
 
   
 
@@ -858,11 +900,18 @@ typedef JMETHOD(boolean, jpeg_marker_parser_method, (j_decompress_ptr cinfo));
 #define jpeg_destroy_decompress	jDestDecompress
 #define jpeg_stdio_dest		jStdDest
 #define jpeg_stdio_src		jStdSrc
+#if JPEG_LIB_VERSION >= 80
+#define jpeg_mem_dest		jMemDest
+#define jpeg_mem_src		jMemSrc
+#endif
 #define jpeg_set_defaults	jSetDefaults
 #define jpeg_set_colorspace	jSetColorspace
 #define jpeg_default_colorspace	jDefColorspace
 #define jpeg_set_quality	jSetQuality
 #define jpeg_set_linear_quality	jSetLQuality
+#if JPEG_LIB_VERSION >= 70
+#define jpeg_default_qtables	jDefQTables
+#endif
 #define jpeg_add_quant_table	jAddQuantTable
 #define jpeg_quality_scaling	jQualityScaling
 #define jpeg_simple_progression	jSimProgress
@@ -872,6 +921,9 @@ typedef JMETHOD(boolean, jpeg_marker_parser_method, (j_decompress_ptr cinfo));
 #define jpeg_start_compress	jStrtCompress
 #define jpeg_write_scanlines	jWrtScanlines
 #define jpeg_finish_compress	jFinCompress
+#if JPEG_LIB_VERSION >= 70
+#define jpeg_calc_jpeg_dimensions	jCjpegDimensions
+#endif
 #define jpeg_write_raw_data	jWrtRawData
 #define jpeg_write_marker	jWrtMarker
 #define jpeg_write_m_header	jWrtMHeader
@@ -888,6 +940,9 @@ typedef JMETHOD(boolean, jpeg_marker_parser_method, (j_decompress_ptr cinfo));
 #define jpeg_input_complete	jInComplete
 #define jpeg_new_colormap	jNewCMap
 #define jpeg_consume_input	jConsumeInput
+#if JPEG_LIB_VERSION >= 80
+#define jpeg_core_output_dimensions	jCoreDimensions
+#endif
 #define jpeg_calc_output_dimensions	jCalcDimensions
 #define jpeg_save_markers	jSaveMarkers
 #define jpeg_set_marker_processor	jSetMarker
@@ -901,9 +956,6 @@ typedef JMETHOD(boolean, jpeg_marker_parser_method, (j_decompress_ptr cinfo));
 #define jpeg_resync_to_restart	jResyncRestart
 #endif 
 
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 
 EXTERN(struct jpeg_error_mgr *) jpeg_std_error
@@ -935,6 +987,16 @@ EXTERN(void) jpeg_destroy_decompress JPP((j_decompress_ptr cinfo));
 EXTERN(void) jpeg_stdio_dest JPP((j_compress_ptr cinfo, FILE * outfile));
 EXTERN(void) jpeg_stdio_src JPP((j_decompress_ptr cinfo, FILE * infile));
 
+#if JPEG_LIB_VERSION >= 80
+
+EXTERN(void) jpeg_mem_dest JPP((j_compress_ptr cinfo,
+			       unsigned char ** outbuffer,
+			       unsigned long * outsize));
+EXTERN(void) jpeg_mem_src JPP((j_decompress_ptr cinfo,
+			      unsigned char * inbuffer,
+			      unsigned long insize));
+#endif
+
 
 EXTERN(void) jpeg_set_defaults JPP((j_compress_ptr cinfo));
 
@@ -946,6 +1008,10 @@ EXTERN(void) jpeg_set_quality JPP((j_compress_ptr cinfo, int quality,
 EXTERN(void) jpeg_set_linear_quality JPP((j_compress_ptr cinfo,
 					  int scale_factor,
 					  boolean force_baseline));
+#if JPEG_LIB_VERSION >= 70
+EXTERN(void) jpeg_default_qtables JPP((j_compress_ptr cinfo,
+				       boolean force_baseline));
+#endif
 EXTERN(void) jpeg_add_quant_table JPP((j_compress_ptr cinfo, int which_tbl,
 				       const unsigned int *basic_table,
 				       int scale_factor,
@@ -964,6 +1030,11 @@ EXTERN(JDIMENSION) jpeg_write_scanlines JPP((j_compress_ptr cinfo,
 					     JSAMPARRAY scanlines,
 					     JDIMENSION num_lines));
 EXTERN(void) jpeg_finish_compress JPP((j_compress_ptr cinfo));
+
+#if JPEG_LIB_VERSION >= 70
+
+EXTERN(void) jpeg_calc_jpeg_dimensions JPP((j_compress_ptr cinfo));
+#endif
 
 
 EXTERN(JDIMENSION) jpeg_write_raw_data JPP((j_compress_ptr cinfo,
@@ -1024,6 +1095,9 @@ EXTERN(int) jpeg_consume_input JPP((j_decompress_ptr cinfo));
 #define JPEG_SCAN_COMPLETED	4 /* Completed last iMCU row of a scan */
 
 
+#if JPEG_LIB_VERSION >= 80
+EXTERN(void) jpeg_core_output_dimensions JPP((j_decompress_ptr cinfo));
+#endif
 EXTERN(void) jpeg_calc_output_dimensions JPP((j_decompress_ptr cinfo));
 
 
@@ -1062,9 +1136,6 @@ EXTERN(void) jpeg_destroy JPP((j_common_ptr cinfo));
 EXTERN(boolean) jpeg_resync_to_restart JPP((j_decompress_ptr cinfo,
 					    int desired));
 
-#ifdef __cplusplus
-} 
-#endif 
 
 
 
@@ -1119,6 +1190,12 @@ struct jpeg_color_quantizer { long dummy; };
 #ifdef JPEG_INTERNALS
 #include "jpegint.h"		
 #include "jerror.h"		
+#endif
+
+#ifdef __cplusplus
+#ifndef DONT_USE_EXTERN_C
+}
+#endif
 #endif
 
 #endif

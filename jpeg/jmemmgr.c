@@ -69,8 +69,12 @@ extern char * getenv JPP((const char * name));
 
 
 
-#ifndef ALIGN_TYPE		
-#define ALIGN_TYPE  double
+#ifndef ALIGN_SIZE		
+#ifndef WITH_SIMD
+#define ALIGN_SIZE  SIZEOF(double)
+#else
+#define ALIGN_SIZE  16 /* Most SIMD implementations require this */
+#endif
 #endif
 
 
@@ -82,32 +86,21 @@ extern char * getenv JPP((const char * name));
 
 
 
+typedef struct small_pool_struct * small_pool_ptr;
 
-
-
-
-typedef union small_pool_struct * small_pool_ptr;
-
-typedef union small_pool_struct {
-  struct {
-    small_pool_ptr next;	
-    size_t bytes_used;		
-    size_t bytes_left;		
-  } hdr;
-  ALIGN_TYPE dummy;		
+typedef struct small_pool_struct {
+  small_pool_ptr next;	
+  size_t bytes_used;		
+  size_t bytes_left;		
 } small_pool_hdr;
 
-typedef union large_pool_struct FAR * large_pool_ptr;
+typedef struct large_pool_struct FAR * large_pool_ptr;
 
-typedef union large_pool_struct {
-  struct {
-    large_pool_ptr next;	
-    size_t bytes_used;		
-    size_t bytes_left;		
-  } hdr;
-  ALIGN_TYPE dummy;		
+typedef struct large_pool_struct {
+  large_pool_ptr next;	
+  size_t bytes_used;		
+  size_t bytes_left;		
 } large_pool_hdr;
-
 
 
 
@@ -129,7 +122,7 @@ typedef struct {
   jvirt_barray_ptr virt_barray_list;
 
   
-  long total_space_allocated;
+  size_t total_space_allocated;
 
   
 
@@ -197,16 +190,16 @@ print_mem_stats (j_common_ptr cinfo, int pool_id)
 	  pool_id, mem->total_space_allocated);
 
   for (lhdr_ptr = mem->large_list[pool_id]; lhdr_ptr != NULL;
-       lhdr_ptr = lhdr_ptr->hdr.next) {
+       lhdr_ptr = lhdr_ptr->next) {
     fprintf(stderr, "  Large chunk used %ld\n",
-	    (long) lhdr_ptr->hdr.bytes_used);
+	    (long) lhdr_ptr->bytes_used);
   }
 
   for (shdr_ptr = mem->small_list[pool_id]; shdr_ptr != NULL;
-       shdr_ptr = shdr_ptr->hdr.next) {
+       shdr_ptr = shdr_ptr->next) {
     fprintf(stderr, "  Small chunk used %ld free %ld\n",
-	    (long) shdr_ptr->hdr.bytes_used,
-	    (long) shdr_ptr->hdr.bytes_left);
+	    (long) shdr_ptr->bytes_used,
+	    (long) shdr_ptr->bytes_left);
   }
 }
 
@@ -223,6 +216,10 @@ out_of_memory (j_common_ptr cinfo, int which)
 #endif
   ERREXIT1(cinfo, JERR_OUT_OF_MEMORY, which);
 }
+
+
+
+
 
 
 
@@ -260,16 +257,19 @@ alloc_small (j_common_ptr cinfo, int pool_id, size_t sizeofobject)
   my_mem_ptr mem = (my_mem_ptr) cinfo->mem;
   small_pool_ptr hdr_ptr, prev_hdr_ptr;
   char * data_ptr;
-  size_t odd_bytes, min_request, slop;
+  size_t min_request, slop;
 
   
-  if (sizeofobject > (size_t) (MAX_ALLOC_CHUNK-SIZEOF(small_pool_hdr)))
+
+
+
+
+
+  sizeofobject = jround_up(sizeofobject, ALIGN_SIZE);
+
+  
+  if ((SIZEOF(small_pool_hdr) + sizeofobject + ALIGN_SIZE - 1) > MAX_ALLOC_CHUNK)
     out_of_memory(cinfo, 1);	
-
-  
-  odd_bytes = sizeofobject % SIZEOF(ALIGN_TYPE);
-  if (odd_bytes > 0)
-    sizeofobject += SIZEOF(ALIGN_TYPE) - odd_bytes;
 
   
   if (pool_id < 0 || pool_id >= JPOOL_NUMPOOLS)
@@ -277,16 +277,16 @@ alloc_small (j_common_ptr cinfo, int pool_id, size_t sizeofobject)
   prev_hdr_ptr = NULL;
   hdr_ptr = mem->small_list[pool_id];
   while (hdr_ptr != NULL) {
-    if (hdr_ptr->hdr.bytes_left >= sizeofobject)
+    if (hdr_ptr->bytes_left >= sizeofobject)
       break;			
     prev_hdr_ptr = hdr_ptr;
-    hdr_ptr = hdr_ptr->hdr.next;
+    hdr_ptr = hdr_ptr->next;
   }
 
   
   if (hdr_ptr == NULL) {
     
-    min_request = sizeofobject + SIZEOF(small_pool_hdr);
+    min_request = SIZEOF(small_pool_hdr) + sizeofobject + ALIGN_SIZE - 1;
     if (prev_hdr_ptr == NULL)	
       slop = first_pool_slop[pool_id];
     else
@@ -305,20 +305,23 @@ alloc_small (j_common_ptr cinfo, int pool_id, size_t sizeofobject)
     }
     mem->total_space_allocated += min_request + slop;
     
-    hdr_ptr->hdr.next = NULL;
-    hdr_ptr->hdr.bytes_used = 0;
-    hdr_ptr->hdr.bytes_left = sizeofobject + slop;
+    hdr_ptr->next = NULL;
+    hdr_ptr->bytes_used = 0;
+    hdr_ptr->bytes_left = sizeofobject + slop;
     if (prev_hdr_ptr == NULL)	
       mem->small_list[pool_id] = hdr_ptr;
     else
-      prev_hdr_ptr->hdr.next = hdr_ptr;
+      prev_hdr_ptr->next = hdr_ptr;
   }
 
   
-  data_ptr = (char *) (hdr_ptr + 1); 
-  data_ptr += hdr_ptr->hdr.bytes_used; 
-  hdr_ptr->hdr.bytes_used += sizeofobject;
-  hdr_ptr->hdr.bytes_left -= sizeofobject;
+  data_ptr = (char *) hdr_ptr; 
+  data_ptr += SIZEOF(small_pool_hdr); 
+  if ((size_t)data_ptr % ALIGN_SIZE) 
+    data_ptr += ALIGN_SIZE - (size_t)data_ptr % ALIGN_SIZE;
+  data_ptr += hdr_ptr->bytes_used; 
+  hdr_ptr->bytes_used += sizeofobject;
+  hdr_ptr->bytes_left -= sizeofobject;
 
   return (void *) data_ptr;
 }
@@ -344,38 +347,50 @@ alloc_large (j_common_ptr cinfo, int pool_id, size_t sizeofobject)
 {
   my_mem_ptr mem = (my_mem_ptr) cinfo->mem;
   large_pool_ptr hdr_ptr;
-  size_t odd_bytes;
+  char FAR * data_ptr;
 
   
-  if (sizeofobject > (size_t) (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)))
+
+
+
+
+  sizeofobject = jround_up(sizeofobject, ALIGN_SIZE);
+
+  
+  if ((SIZEOF(large_pool_hdr) + sizeofobject + ALIGN_SIZE - 1) > MAX_ALLOC_CHUNK)
     out_of_memory(cinfo, 3);	
-
-  
-  odd_bytes = sizeofobject % SIZEOF(ALIGN_TYPE);
-  if (odd_bytes > 0)
-    sizeofobject += SIZEOF(ALIGN_TYPE) - odd_bytes;
 
   
   if (pool_id < 0 || pool_id >= JPOOL_NUMPOOLS)
     ERREXIT1(cinfo, JERR_BAD_POOL_ID, pool_id);	
 
   hdr_ptr = (large_pool_ptr) jpeg_get_large(cinfo, sizeofobject +
-					    SIZEOF(large_pool_hdr));
+					    SIZEOF(large_pool_hdr) +
+					    ALIGN_SIZE - 1);
   if (hdr_ptr == NULL)
     out_of_memory(cinfo, 4);	
-  mem->total_space_allocated += sizeofobject + SIZEOF(large_pool_hdr);
+  mem->total_space_allocated += sizeofobject + SIZEOF(large_pool_hdr) + ALIGN_SIZE - 1;
 
   
-  hdr_ptr->hdr.next = mem->large_list[pool_id];
+  hdr_ptr->next = mem->large_list[pool_id];
   
 
 
-  hdr_ptr->hdr.bytes_used = sizeofobject;
-  hdr_ptr->hdr.bytes_left = 0;
+  hdr_ptr->bytes_used = sizeofobject;
+  hdr_ptr->bytes_left = 0;
   mem->large_list[pool_id] = hdr_ptr;
 
-  return (void FAR *) (hdr_ptr + 1); 
+  data_ptr = (char *) hdr_ptr; 
+  data_ptr += SIZEOF(small_pool_hdr); 
+  if ((size_t)data_ptr % ALIGN_SIZE) 
+    data_ptr += ALIGN_SIZE - (size_t)data_ptr % ALIGN_SIZE;
+
+  return (void FAR *) data_ptr;
 }
+
+
+
+
 
 
 
@@ -401,6 +416,11 @@ alloc_sarray (j_common_ptr cinfo, int pool_id,
   JSAMPROW workspace;
   JDIMENSION rowsperchunk, currow, i;
   long ltemp;
+
+  
+  if ((ALIGN_SIZE % SIZEOF(JSAMPLE)) != 0)
+    out_of_memory(cinfo, 5);	
+  samplesperrow = (JDIMENSION)jround_up(samplesperrow, (2 * ALIGN_SIZE) / SIZEOF(JSAMPLE));
 
   
   ltemp = (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)) /
@@ -449,6 +469,10 @@ alloc_barray (j_common_ptr cinfo, int pool_id,
   JBLOCKROW workspace;
   JDIMENSION rowsperchunk, currow, i;
   long ltemp;
+
+  
+  if ((SIZEOF(JBLOCK) % ALIGN_SIZE) != 0)
+    out_of_memory(cinfo, 6);	
 
   
   ltemp = (MAX_ALLOC_CHUNK-SIZEOF(large_pool_hdr)) /
@@ -584,8 +608,8 @@ realize_virt_arrays (j_common_ptr cinfo)
 
 {
   my_mem_ptr mem = (my_mem_ptr) cinfo->mem;
-  long space_per_minheight, maximum_space, avail_mem;
-  long minheights, max_minheights;
+  size_t space_per_minheight, maximum_space, avail_mem;
+  size_t minheights, max_minheights;
   jvirt_sarray_ptr sptr;
   jvirt_barray_ptr bptr;
 
@@ -968,9 +992,9 @@ free_pool (j_common_ptr cinfo, int pool_id)
   mem->large_list[pool_id] = NULL;
 
   while (lhdr_ptr != NULL) {
-    large_pool_ptr next_lhdr_ptr = lhdr_ptr->hdr.next;
-    space_freed = lhdr_ptr->hdr.bytes_used +
-		  lhdr_ptr->hdr.bytes_left +
+    large_pool_ptr next_lhdr_ptr = lhdr_ptr->next;
+    space_freed = lhdr_ptr->bytes_used +
+		  lhdr_ptr->bytes_left +
 		  SIZEOF(large_pool_hdr);
     jpeg_free_large(cinfo, (void FAR *) lhdr_ptr, space_freed);
     mem->total_space_allocated -= space_freed;
@@ -982,9 +1006,9 @@ free_pool (j_common_ptr cinfo, int pool_id)
   mem->small_list[pool_id] = NULL;
 
   while (shdr_ptr != NULL) {
-    small_pool_ptr next_shdr_ptr = shdr_ptr->hdr.next;
-    space_freed = shdr_ptr->hdr.bytes_used +
-		  shdr_ptr->hdr.bytes_left +
+    small_pool_ptr next_shdr_ptr = shdr_ptr->next;
+    space_freed = shdr_ptr->bytes_used +
+		  shdr_ptr->bytes_left +
 		  SIZEOF(small_pool_hdr);
     jpeg_free_small(cinfo, (void *) shdr_ptr, space_freed);
     mem->total_space_allocated -= space_freed;
@@ -1041,7 +1065,7 @@ jinit_memory_mgr (j_common_ptr cinfo)
 
 
 
-  if ((SIZEOF(ALIGN_TYPE) & (SIZEOF(ALIGN_TYPE)-1)) != 0)
+  if ((ALIGN_SIZE & (ALIGN_SIZE-1)) != 0)
     ERREXIT(cinfo, JERR_BAD_ALIGN_TYPE);
   
 
@@ -1050,7 +1074,7 @@ jinit_memory_mgr (j_common_ptr cinfo)
 
   test_mac = (size_t) MAX_ALLOC_CHUNK;
   if ((long) test_mac != MAX_ALLOC_CHUNK ||
-      (MAX_ALLOC_CHUNK % SIZEOF(ALIGN_TYPE)) != 0)
+      (MAX_ALLOC_CHUNK % ALIGN_SIZE) != 0)
     ERREXIT(cinfo, JERR_BAD_ALLOC_CHUNK);
 
   max_to_use = jpeg_mem_init(cinfo); 

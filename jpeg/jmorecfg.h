@@ -11,12 +11,7 @@
 
 
 
-
-
-
-
-
-
+#include "prtypes.h"
 
 
 
@@ -69,7 +64,7 @@ typedef unsigned char JSAMPLE;
 #else 
 
 typedef char JSAMPLE;
-#ifdef CHAR_IS_UNSIGNED
+#ifdef __CHAR_UNSIGNED__
 #define GETJSAMPLE(value)  ((int) (value))
 #else
 #define GETJSAMPLE(value)  ((int) (value) & 0xFF)
@@ -107,24 +102,6 @@ typedef short JCOEF;
 
 
 
-#if defined(XP_WIN32) && defined(_M_IX86) && !defined(__GNUC__)
-#define HAVE_MMX_INTEL_MNEMONICS 
-
-
-#define HAVE_SSE2_INTEL_MNEMONICS
-#define HAVE_SSE2_INTRINSICS
-#endif
-
-#if defined(__GNUC__) && defined(__i386__)
-#if defined(XP_MACOSX)
-#define HAVE_SSE2_INTRINSICS
-#endif 
-#endif 
-
-
-
-
-
 
 
 
@@ -138,7 +115,7 @@ typedef unsigned char JOCTET;
 #else 
 
 typedef char JOCTET;
-#ifdef CHAR_IS_UNSIGNED
+#ifdef __CHAR_UNSIGNED__
 #define GETJOCTET(value)  (value)
 #else
 #define GETJOCTET(value)  ((value) & 0xFF)
@@ -156,39 +133,19 @@ typedef char JOCTET;
 
 
 
-#ifdef HAVE_UNSIGNED_CHAR
-typedef unsigned char UINT8;
-#else 
-#ifdef CHAR_IS_UNSIGNED
-typedef char UINT8;
-#else 
-typedef short UINT8;
-#endif 
-#endif 
+typedef PRUint8 UINT8;
 
 
 
-#ifdef HAVE_UNSIGNED_SHORT
-typedef unsigned short UINT16;
-#else 
-typedef unsigned int UINT16;
-#endif 
+typedef PRUint16 UINT16;
 
 
 
-#ifndef XMD_H			
-typedef short INT16;
-#endif
+typedef PRInt16 INT16;
 
 
 
-#ifndef XMD_H			
-#ifndef _BASETSD_H_		
-#ifndef _BASETSD_H
-typedef long INT32;
-#endif
-#endif
-#endif
+typedef PRInt32 INT32;
 
 
 
@@ -210,20 +167,13 @@ typedef unsigned int JDIMENSION;
 
 
 
-
-
-
-#include "prtypes.h"
-
-
 #define METHODDEF(type)		static type
 
 #define LOCAL(type)		static type
 
-PR_BEGIN_EXTERN_C
-#define GLOBAL(type) type
-#define EXTERN(type) extern type
-PR_END_EXTERN_C
+#define GLOBAL(type)		type
+
+#define EXTERN(type)		extern type
 
 
 
@@ -245,13 +195,11 @@ PR_END_EXTERN_C
 
 
 
-#ifndef FAR
 #ifdef NEED_FAR_POINTERS
 #define FAR  far
 #else
 #define FAR
 #endif
-#endif
 
 
 
@@ -261,20 +209,8 @@ PR_END_EXTERN_C
 
 
 
-
-
-
-
-
-
-
-
-
-#if defined(MUST_UNDEF_HAVE_BOOLEAN_AFTER_INCLUDES) && defined(HAVE_BOOLEAN)
-#undef HAVE_BOOLEAN
-#endif
 #ifndef HAVE_BOOLEAN
-typedef unsigned char boolean;
+typedef int boolean;
 #endif
 #ifndef FALSE			
 #define FALSE	0		/* values of boolean */
@@ -310,18 +246,9 @@ typedef unsigned char boolean;
 
 
 
-
-
-
-
-
-
-
-
-
 #define DCT_ISLOW_SUPPORTED
-#undef  DCT_IFAST_SUPPORTED	/* faster, less accurate integer method */
-#undef  DCT_FLOAT_SUPPORTED	/* floating-point: accurate, fast on fast HW */
+#define DCT_IFAST_SUPPORTED
+#define DCT_FLOAT_SUPPORTED
 
 
 
@@ -337,7 +264,7 @@ typedef unsigned char boolean;
 
 
 
-#undef  INPUT_SMOOTHING_SUPPORTED   /* Input image smoothing option? */
+#define INPUT_SMOOTHING_SUPPORTED
 
 
 
@@ -346,11 +273,11 @@ typedef unsigned char boolean;
 #define D_PROGRESSIVE_SUPPORTED
 #define SAVE_MARKERS_SUPPORTED
 #define BLOCK_SMOOTHING_SUPPORTED
-#undef  IDCT_SCALING_SUPPORTED	    /* Output rescaling via IDCT? */
+#define IDCT_SCALING_SUPPORTED
 #undef  UPSAMPLE_SCALING_SUPPORTED  /* Output rescaling at upsample stage? */
 #define UPSAMPLE_MERGING_SUPPORTED
-#undef  QUANT_1PASS_SUPPORTED	    /* 1-pass color quantization? */
-#undef  QUANT_2PASS_SUPPORTED	    /* 2-pass color quantization? */
+#define QUANT_1PASS_SUPPORTED
+#define QUANT_2PASS_SUPPORTED
 
 
 
@@ -375,31 +302,24 @@ typedef unsigned char boolean;
 #define RGB_BLUE	2	/* Offset of Blue */
 #define RGB_PIXELSIZE	3	/* JSAMPLEs per RGB scanline element */
 
+#define JPEG_NUMCS 12
 
+static const int rgb_red[JPEG_NUMCS] = {
+	-1, -1, RGB_RED, -1, -1, -1, 0, 0, 2, 2, 3, 1
+};
 
+static const int rgb_green[JPEG_NUMCS] = {
+	-1, -1, RGB_GREEN, -1, -1, -1, 1, 1, 1, 1, 2, 2
+};
 
+static const int rgb_blue[JPEG_NUMCS] = {
+	-1, -1, RGB_BLUE, -1, -1, -1, 2, 2, 0, 0, 1, 3
+};
 
+static const int rgb_pixelsize[JPEG_NUMCS] = {
+	-1, -1, RGB_PIXELSIZE, -1, -1, -1, 3, 4, 3, 4, 4, 4
+};
 
-
-
-
-
-
-#ifndef INLINE
-#ifdef __GNUC__			
-#define INLINE __inline__
-#endif
-#if defined( __IBMC__ ) || defined (__IBMCPP__)
-#define INLINE _Inline
-#endif
-#ifndef INLINE
-#ifdef __cplusplus
-#define INLINE inline		/* a C++ compiler should have it too */
-#else
-#define INLINE
-#endif
-#endif
-#endif
 
 
 
@@ -408,7 +328,11 @@ typedef unsigned char boolean;
 
 
 #ifndef MULTIPLIER
-#define MULTIPLIER  int16		/* type for fastest integer multiply */
+#ifndef WITH_SIMD
+#define MULTIPLIER  int		/* type for fastest integer multiply */
+#else
+#define MULTIPLIER short  /* prefer 16-bit with SIMD for parellelism */
+#endif
 #endif
 
 

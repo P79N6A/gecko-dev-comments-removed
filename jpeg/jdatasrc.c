@@ -15,6 +15,7 @@
 
 
 
+
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jerror.h"
@@ -51,6 +52,14 @@ init_source (j_decompress_ptr cinfo)
 
   src->start_of_file = TRUE;
 }
+
+#if JPEG_LIB_VERSION >= 80
+METHODDEF(void)
+init_mem_source (j_decompress_ptr cinfo)
+{
+  
+}
+#endif
 
 
 
@@ -111,6 +120,28 @@ fill_input_buffer (j_decompress_ptr cinfo)
   return TRUE;
 }
 
+#if JPEG_LIB_VERSION >= 80
+METHODDEF(boolean)
+fill_mem_input_buffer (j_decompress_ptr cinfo)
+{
+  static JOCTET mybuffer[4];
+
+  
+
+
+
+  WARNMS(cinfo, JWRN_JPEG_EOF);
+  
+  mybuffer[0] = (JOCTET) 0xFF;
+  mybuffer[1] = (JOCTET) JPEG_EOI;
+
+  cinfo->src->next_input_byte = mybuffer;
+  cinfo->src->bytes_in_buffer = 2;
+
+  return TRUE;
+}
+#endif
+
 
 
 
@@ -127,22 +158,22 @@ fill_input_buffer (j_decompress_ptr cinfo)
 METHODDEF(void)
 skip_input_data (j_decompress_ptr cinfo, long num_bytes)
 {
-  my_src_ptr src = (my_src_ptr) cinfo->src;
+  struct jpeg_source_mgr * src = cinfo->src;
 
   
 
 
 
   if (num_bytes > 0) {
-    while (num_bytes > (long) src->pub.bytes_in_buffer) {
-      num_bytes -= (long) src->pub.bytes_in_buffer;
-      (void) fill_input_buffer(cinfo);
+    while (num_bytes > (long) src->bytes_in_buffer) {
+      num_bytes -= (long) src->bytes_in_buffer;
+      (void) (*src->fill_input_buffer) (cinfo);
       
 
 
     }
-    src->pub.next_input_byte += (size_t) num_bytes;
-    src->pub.bytes_in_buffer -= (size_t) num_bytes;
+    src->next_input_byte += (size_t) num_bytes;
+    src->bytes_in_buffer -= (size_t) num_bytes;
   }
 }
 
@@ -210,3 +241,40 @@ jpeg_stdio_src (j_decompress_ptr cinfo, FILE * infile)
   src->pub.bytes_in_buffer = 0; 
   src->pub.next_input_byte = NULL; 
 }
+
+
+#if JPEG_LIB_VERSION >= 80
+
+
+
+
+
+GLOBAL(void)
+jpeg_mem_src (j_decompress_ptr cinfo,
+	      unsigned char * inbuffer, unsigned long insize)
+{
+  struct jpeg_source_mgr * src;
+
+  if (inbuffer == NULL || insize == 0)	
+    ERREXIT(cinfo, JERR_INPUT_EMPTY);
+
+  
+
+
+
+  if (cinfo->src == NULL) {	
+    cinfo->src = (struct jpeg_source_mgr *)
+      (*cinfo->mem->alloc_small) ((j_common_ptr) cinfo, JPOOL_PERMANENT,
+				  SIZEOF(struct jpeg_source_mgr));
+  }
+
+  src = cinfo->src;
+  src->init_source = init_mem_source;
+  src->fill_input_buffer = fill_mem_input_buffer;
+  src->skip_input_data = skip_input_data;
+  src->resync_to_restart = jpeg_resync_to_restart; 
+  src->term_source = term_source;
+  src->bytes_in_buffer = (size_t) insize;
+  src->next_input_byte = (JOCTET *) inbuffer;
+}
+#endif

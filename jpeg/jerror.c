@@ -19,13 +19,6 @@
 
 
 
-
-
-
-
-
-
-
 #include "jinclude.h"
 #include "jpeglib.h"
 #include "jversion.h"
@@ -82,15 +75,7 @@ error_exit (j_common_ptr cinfo)
   
   jpeg_destroy(cinfo);
 
-
-
-
-
-
-
-#ifndef XP_WIN
   exit(EXIT_FAILURE);
-#endif
 }
 
 
@@ -116,6 +101,15 @@ output_message (j_common_ptr cinfo)
 
   
   (*cinfo->err->format_message) (cinfo, buffer);
+
+#ifdef USE_WINDOWS_MESSAGEBOX
+  
+  MessageBox(GetActiveWindow(), buffer, "JPEG Library Error",
+	     MB_OK | MB_ICONERROR);
+#else
+  
+  fprintf(stderr, "%s\n", buffer);
+#endif
 }
 
 

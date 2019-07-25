@@ -25,7 +25,6 @@
 
 
 
-
 typedef struct {
   INT32 put_buffer;		
   int put_bits;			

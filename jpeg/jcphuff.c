@@ -223,7 +223,6 @@ dump_buffer (phuff_entropy_ptr entropy)
 
 
 
-INLINE
 LOCAL(void)
 emit_bits (phuff_entropy_ptr entropy, unsigned int code, int size)
 
@@ -276,7 +275,6 @@ flush_bits (phuff_entropy_ptr entropy)
 
 
 
-INLINE
 LOCAL(void)
 emit_symbol (phuff_entropy_ptr entropy, int tbl_no, int symbol)
 {

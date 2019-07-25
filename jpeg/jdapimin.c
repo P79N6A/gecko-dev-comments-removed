@@ -20,62 +20,6 @@
 #include "jinclude.h"
 #include "jpeglib.h"
 
-#ifdef HAVE_MMX_INTEL_MNEMONICS
-#if _MSC_VER >= 1400
-#include "intrin.h"
-#else
-
-void __stdcall __cpuid( int CPUInfo[4], int InfoType )
-{
-  int my_eax = 0, my_ebx = 0, my_ecx = 0, my_edx = 0;
-  __asm {
-    
-    pushfd             
-    pop eax            
-    mov ecx, eax       
-    xor eax, 0x200000  
-    push eax           
-    popfd              
-    pushfd             
-    pop eax
-    xor eax, ecx       
-    jz NOT_SUPPORTED   
-
-    
-    xor eax, eax       
-    cpuid
-    cmp eax, InfoType
-    jl NOT_SUPPORTED   
-
-    
-    mov eax, InfoType
-    cpuid
-    mov my_eax, eax
-    mov my_ebx, ebx
-    mov my_ecx, ecx
-    mov my_edx, edx
-NOT_SUPPORTED:
-  }
-  CPUInfo[0] = my_eax;
-  CPUInfo[1] = my_ebx;
-  CPUInfo[2] = my_ecx;
-  CPUInfo[3] = my_edx;
-}
-#endif
-
-int MMXAvailable;
-static int mmxsupport();
-#endif
-
-#ifdef HAVE_SSE2_INTRINSICS
-int SSE2Available = 0;
-#ifdef HAVE_SSE2_INTEL_MNEMONICS
-static int sse2support();
-#else
-static int sse2supportGCC();
-#endif 
-#endif 
-
 
 
 
@@ -86,38 +30,6 @@ GLOBAL(void)
 jpeg_CreateDecompress (j_decompress_ptr cinfo, int version, size_t structsize)
 {
   int i;
-
-#ifdef HAVE_MMX_INTEL_MNEMONICS
-  static int cpuidDetected = 0;
-
-  if(!cpuidDetected)
-  {
-	MMXAvailable = mmxsupport();
-
-#ifdef HAVE_SSE2_INTEL_MNEMONICS
-	
-
-	if (MMXAvailable)
-	    SSE2Available = sse2support();
-#endif
-
-	cpuidDetected = 1;
-  }
-#else
-#ifdef HAVE_SSE2_INTRINSICS
-  static int cpuidDetected = 0;
-
-  if(!cpuidDetected) {
-    SSE2Available = sse2supportGCC();
-    cpuidDetected = 1;
-  }
-
-#endif 
-#endif 
-
-  
-
-
 
   
   cinfo->mem = NULL;		
@@ -192,6 +104,7 @@ jpeg_abort_decompress (j_decompress_ptr cinfo)
 {
   jpeg_abort((j_common_ptr) cinfo); 
 }
+
 
 
 
@@ -480,51 +393,3 @@ jpeg_finish_decompress (j_decompress_ptr cinfo)
   jpeg_abort((j_common_ptr) cinfo);
   return TRUE;
 }
-
-
-#ifdef HAVE_MMX_INTEL_MNEMONICS
-static int mmxsupport()
-{
-  int CPUInfo[4];
-
-  __cpuid(CPUInfo, 1);
-  if (CPUInfo[3] & (0x1 << 23))
-    return 1;
-  else
-    return 0;
-}
-#endif
-
-#ifdef HAVE_SSE2_INTEL_MNEMONICS
-static int sse2support()
-{
-  int CPUInfo[4];
-
-  __cpuid(CPUInfo, 1);
-  if (CPUInfo[3] & (0x1 << 26))
-    return 1;
-  else
-    return 2;
-}
-#else
-#ifdef HAVE_SSE2_INTRINSICS
-static int sse2supportGCC()
-{
-
-  
-
-#if defined(__GNUC__) && defined(__i386__)
-#if defined(XP_MACOSX)
-  return 1;
-#endif 
-#endif 
-
-  
-
-  
-
-  return 2;
-}
-#endif 
-#endif 
-

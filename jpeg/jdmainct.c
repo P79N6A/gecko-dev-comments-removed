@@ -13,9 +13,11 @@
 
 
 
+
 #define JPEG_INTERNALS
 #include "jinclude.h"
 #include "jpeglib.h"
+#include "jpegcomp.h"
 
 
 
@@ -161,7 +163,7 @@ alloc_funny_pointers (j_decompress_ptr cinfo)
 {
   my_main_ptr main = (my_main_ptr) cinfo->main;
   int ci, rgroup;
-  int M = cinfo->min_DCT_scaled_size;
+  int M = cinfo->_min_DCT_scaled_size;
   jpeg_component_info *compptr;
   JSAMPARRAY xbuf;
 
@@ -175,8 +177,8 @@ alloc_funny_pointers (j_decompress_ptr cinfo)
 
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
-    rgroup = (compptr->v_samp_factor * compptr->DCT_scaled_size) /
-      cinfo->min_DCT_scaled_size; 
+    rgroup = (compptr->v_samp_factor * compptr->_DCT_scaled_size) /
+      cinfo->_min_DCT_scaled_size; 
     
 
 
@@ -202,14 +204,14 @@ make_funny_pointers (j_decompress_ptr cinfo)
 {
   my_main_ptr main = (my_main_ptr) cinfo->main;
   int ci, i, rgroup;
-  int M = cinfo->min_DCT_scaled_size;
+  int M = cinfo->_min_DCT_scaled_size;
   jpeg_component_info *compptr;
   JSAMPARRAY buf, xbuf0, xbuf1;
 
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
-    rgroup = (compptr->v_samp_factor * compptr->DCT_scaled_size) /
-      cinfo->min_DCT_scaled_size; 
+    rgroup = (compptr->v_samp_factor * compptr->_DCT_scaled_size) /
+      cinfo->_min_DCT_scaled_size; 
     xbuf0 = main->xbuffer[0][ci];
     xbuf1 = main->xbuffer[1][ci];
     
@@ -242,14 +244,14 @@ set_wraparound_pointers (j_decompress_ptr cinfo)
 {
   my_main_ptr main = (my_main_ptr) cinfo->main;
   int ci, i, rgroup;
-  int M = cinfo->min_DCT_scaled_size;
+  int M = cinfo->_min_DCT_scaled_size;
   jpeg_component_info *compptr;
   JSAMPARRAY xbuf0, xbuf1;
 
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
-    rgroup = (compptr->v_samp_factor * compptr->DCT_scaled_size) /
-      cinfo->min_DCT_scaled_size; 
+    rgroup = (compptr->v_samp_factor * compptr->_DCT_scaled_size) /
+      cinfo->_min_DCT_scaled_size; 
     xbuf0 = main->xbuffer[0][ci];
     xbuf1 = main->xbuffer[1][ci];
     for (i = 0; i < rgroup; i++) {
@@ -277,8 +279,8 @@ set_bottom_pointers (j_decompress_ptr cinfo)
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
     
-    iMCUheight = compptr->v_samp_factor * compptr->DCT_scaled_size;
-    rgroup = iMCUheight / cinfo->min_DCT_scaled_size;
+    iMCUheight = compptr->v_samp_factor * compptr->_DCT_scaled_size;
+    rgroup = iMCUheight / cinfo->_min_DCT_scaled_size;
     
     rows_left = (int) (compptr->downsampled_height % (JDIMENSION) iMCUheight);
     if (rows_left == 0) rows_left = iMCUheight;
@@ -357,7 +359,7 @@ process_data_simple_main (j_decompress_ptr cinfo,
   }
 
   
-  rowgroups_avail = (JDIMENSION) cinfo->min_DCT_scaled_size;
+  rowgroups_avail = (JDIMENSION) cinfo->_min_DCT_scaled_size;
   
 
 
@@ -417,7 +419,7 @@ process_data_context_main (j_decompress_ptr cinfo,
   case CTX_PREPARE_FOR_IMCU:
     
     main->rowgroup_ctr = 0;
-    main->rowgroups_avail = (JDIMENSION) (cinfo->min_DCT_scaled_size - 1);
+    main->rowgroups_avail = (JDIMENSION) (cinfo->_min_DCT_scaled_size - 1);
     
 
 
@@ -440,8 +442,8 @@ process_data_context_main (j_decompress_ptr cinfo,
     main->buffer_full = FALSE;
     
     
-    main->rowgroup_ctr = (JDIMENSION) (cinfo->min_DCT_scaled_size + 1);
-    main->rowgroups_avail = (JDIMENSION) (cinfo->min_DCT_scaled_size + 2);
+    main->rowgroup_ctr = (JDIMENSION) (cinfo->_min_DCT_scaled_size + 1);
+    main->rowgroups_avail = (JDIMENSION) (cinfo->_min_DCT_scaled_size + 2);
     main->context_state = CTX_POSTPONED_ROW;
   }
 }
@@ -492,21 +494,21 @@ jinit_d_main_controller (j_decompress_ptr cinfo, boolean need_full_buffer)
 
 
   if (cinfo->upsample->need_context_rows) {
-    if (cinfo->min_DCT_scaled_size < 2) 
+    if (cinfo->_min_DCT_scaled_size < 2) 
       ERREXIT(cinfo, JERR_NOTIMPL);
     alloc_funny_pointers(cinfo); 
-    ngroups = cinfo->min_DCT_scaled_size + 2;
+    ngroups = cinfo->_min_DCT_scaled_size + 2;
   } else {
-    ngroups = cinfo->min_DCT_scaled_size;
+    ngroups = cinfo->_min_DCT_scaled_size;
   }
 
   for (ci = 0, compptr = cinfo->comp_info; ci < cinfo->num_components;
        ci++, compptr++) {
-    rgroup = (compptr->v_samp_factor * compptr->DCT_scaled_size) /
-      cinfo->min_DCT_scaled_size; 
+    rgroup = (compptr->v_samp_factor * compptr->_DCT_scaled_size) /
+      cinfo->_min_DCT_scaled_size; 
     main->buffer[ci] = (*cinfo->mem->alloc_sarray)
 			((j_common_ptr) cinfo, JPOOL_IMAGE,
-			 compptr->width_in_blocks * compptr->DCT_scaled_size,
+			 compptr->width_in_blocks * compptr->_DCT_scaled_size,
 			 (JDIMENSION) (rgroup * ngroups));
   }
 }
