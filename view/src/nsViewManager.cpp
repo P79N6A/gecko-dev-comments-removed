@@ -66,6 +66,7 @@ nsViewManager::nsViewManager()
 
   
   
+  mHasPendingUpdates = false;
   mHasPendingWidgetGeometryChanges = false;
   mRecursiveRefreshPending = false;
 }
@@ -429,6 +430,7 @@ void
 nsViewManager::PostPendingUpdate()
 {
   nsViewManager* rootVM = RootViewManager();
+  rootVM->mHasPendingUpdates = true;
   rootVM->mHasPendingWidgetGeometryChanges = true;
   if (rootVM->mPresShell) {
     rootVM->mPresShell->ScheduleViewManagerFlush();
@@ -574,6 +576,9 @@ NS_IMETHODIMP nsViewManager::InvalidateViewNoSuppression(nsIView *aView,
   
   
   AddDirtyRegion(displayRoot, nsRegion(damagedRect));
+
+  
+  PostPendingUpdate();
 
   return NS_OK;
 }
@@ -1307,7 +1312,10 @@ nsViewManager::ProcessPendingUpdates()
     return;
   }
 
-  ProcessPendingUpdatesForView(mRootView, true);
+  if (mHasPendingUpdates) {
+    ProcessPendingUpdatesForView(mRootView, true);
+    mHasPendingUpdates = false;
+  }
 }
 
 void

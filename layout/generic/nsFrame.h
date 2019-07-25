@@ -364,6 +364,16 @@ public:
   
 
   
+
+
+
+
+
+
+
+  void CheckInvalidateSizeChange(nsHTMLReflowMetrics&     aNewDesiredSize);
+
+  
   
   
   

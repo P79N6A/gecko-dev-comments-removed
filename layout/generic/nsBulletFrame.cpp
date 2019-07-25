@@ -1477,7 +1477,7 @@ NS_IMETHODIMP nsBulletFrame::OnDataAvailable(imgIRequest *aRequest,
   
   
   
-  InvalidateFrame();
+  Invalidate(nsRect(0, 0, mRect.width, mRect.height));
 
   return NS_OK;
 }
@@ -1519,7 +1519,7 @@ NS_IMETHODIMP nsBulletFrame::FrameChanged(imgIRequest *aRequest,
 {
   
   
-  InvalidateFrame();
+  Invalidate(nsRect(0, 0, mRect.width, mRect.height));
 
   return NS_OK;
 }

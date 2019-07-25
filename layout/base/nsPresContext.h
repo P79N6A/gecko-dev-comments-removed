@@ -117,17 +117,6 @@ public:
 };
 
 
-
-
-
-
-class ContainerLayerPresContext : public mozilla::layers::LayerUserData {
-public:
-  nsPresContext* mPresContext;
-};
-extern PRUint8 gNotifySubDocInvalidationData;
-
-
 #define NS_AUTHOR_SPECIFIED_BACKGROUND      (1 << 0)
 #define NS_AUTHOR_SPECIFIED_BORDER          (1 << 1)
 #define NS_AUTHOR_SPECIFIED_PADDING         (1 << 2)
@@ -851,16 +840,12 @@ public:
   bool EnsureSafeToHandOutCSSRules();
 
   void NotifyInvalidation(const nsRect& aRect, PRUint32 aFlags);
-  
-  void NotifyInvalidation(const nsIntRect& aRect, PRUint32 aFlags);
   void NotifyDidPaintForSubtree();
   void FireDOMPaintEvent();
 
-  
-  
-  static void NotifySubDocInvalidation(mozilla::layers::ContainerLayer* aContainer,
-                                       const nsIntRegion& aRegion);
-  bool IsDOMPaintEventPending();
+  bool IsDOMPaintEventPending() {
+    return !mInvalidateRequests.mRequests.IsEmpty();
+  }
   void ClearMozAfterPaintEvents() {
     mInvalidateRequests.mRequests.Clear();
   }
@@ -1075,21 +1060,11 @@ protected:
 public:
   void DoChangeCharSet(const nsCString& aCharSet);
 
-  
-
-
-  bool MayHavePaintEventListener();
-
-  
-
-
-
-
-  bool MayHavePaintEventListenerInSubDocument();
-
 protected:
   void InvalidateThebesLayers();
   void AppUnitsPerDevPixelChanged();
+
+  bool MayHavePaintEventListener();
 
   void HandleRebuildUserFontSet() {
     mPostedFlushUserFontSet = false;

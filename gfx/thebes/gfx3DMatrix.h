@@ -56,7 +56,6 @@ public:
 
 
   bool operator==(const gfx3DMatrix& aMatrix) const;
-  bool operator!=(const gfx3DMatrix& aMatrix) const;
   
   
 
