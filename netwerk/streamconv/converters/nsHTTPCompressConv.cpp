@@ -266,7 +266,8 @@ nsHTTPCompressConv::OnDataAvailable(nsIRequest* request,
 
                         
                         if (mDummyStreamInitialised) {
-                            NS_ERROR("endless loop detected");
+                            NS_WARNING("endless loop detected"
+                                       " - invalid deflate");
                             return NS_ERROR_INVALID_CONTENT_ENCODING;
                         }
                         mDummyStreamInitialised = PR_TRUE;
