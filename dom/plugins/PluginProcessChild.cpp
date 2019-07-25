@@ -60,7 +60,8 @@ PluginProcessChild::Init()
 {
 #ifdef XP_WIN
     
-    ::CoInitialize(NULL);
+    
+    ::OleInitialize(NULL);
 #endif
 
     
@@ -100,7 +101,7 @@ void
 PluginProcessChild::CleanUp()
 {
 #ifdef XP_WIN
-    ::CoUninitialize();
+    ::OleUninitialize();
 #endif
 }
 
