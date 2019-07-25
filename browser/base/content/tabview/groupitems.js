@@ -1344,7 +1344,6 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   _gridArrange: function GroupItem__gridArrange(childrenToArrange, box, options) {
-    this.topChild = null;
     let arrangeOptions;
     if (this.expanded) {
       
@@ -1352,6 +1351,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       box.inset(8, 8);
       arrangeOptions = Utils.extend({}, options, {z: 99999});
     } else {
+      this.topChild = null;
       this._isStacked = false;
       arrangeOptions = Utils.extend({}, options, {
         columns: this._columns

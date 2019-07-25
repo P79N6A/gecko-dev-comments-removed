@@ -134,13 +134,13 @@ function onTabViewWindowLoaded(win) {
       
       win.addEventListener("tabviewhidden", stage2hidden, false);
       
-      EventUtils.synthesizeMouse(children[0].container, 2, 2, {type: null}, contentWindow);
+      EventUtils.synthesizeMouse(children[1].container, 2, 2, {type: null}, contentWindow);
     };
   
     let stage2hidden = function() {
       win.removeEventListener("tabviewhidden", stage2hidden, false);
       
-      is(win.gBrowser.selectedTab, children[0].tab, "We clicked on the first child.");
+      is(win.gBrowser.selectedTab, children[1].tab, "We clicked on the second child.");
       
       win.addEventListener("tabviewshown", stage2shown, false);
       win.TabView.toggle();
@@ -155,21 +155,71 @@ function onTabViewWindowLoaded(win) {
       let stackCenter = children[0].getBounds().center();
       ok(stackCenter.y < expanderBounds.center().y, "The expander is below the stack.");
 
+      is(group.topChild, children[1], "The top child in the stack is the second tab item");
+      let topChildzIndex = children[1].zIndex;
       
-      let originalTabItem = originalTab._tabViewTabItem;
-      contentWindow.UI.setActiveTab(originalTabItem);
-  
+      
+      for (let i = 0; i < 6; i++) {
+        if (i != 1)
+          ok(children[i].zIndex < topChildzIndex,
+            "The child[" + i + "] has smaller zIndex than second dhild");
+      }
+
       
       group.addSubscriber("test stage 3", "expanded", stage3expanded);
       EventUtils.sendMouseEvent({ type: "click" }, expander[0], contentWindow);
     }
-  
-    
-    
+
     
     
     let stage3expanded = function() {
       group.removeSubscriber("test stage 3", "expanded", stage3expanded);
+
+      ok(group.expanded, "The group is now expanded.");
+      let overlay = contentWindow.document.getElementById("expandedTray");    
+      let $overlay = contentWindow.iQ(overlay);
+
+      group.addSubscriber("test stage 3", "collapsed", stage3collapsed);
+      
+      EventUtils.synthesizeMouse(contentWindow.document.body, 10, $overlay.bounds().bottom + 5,
+                                 {type: null}, contentWindow);
+    };
+
+    let stage3collapsed = function() {
+      group.removeSubscriber("test stage 3", "collapsed", stage3collapsed);
+
+      ok(!group.expanded, "The group is no longer expanded.");
+      isnot(expander[0].style.display, "none", "The expander is visible!");
+
+      let stackCenter = children[0].getBounds().center();
+      ok(stackCenter.y < expanderBounds.center().y, "The expander is below the stack.");
+
+      is(group.topChild, children[1], 
+         "The top child in the stack is still the second tab item");
+      let topChildzIndex = children[1].zIndex;
+      
+      
+      for (let i = 0; i < 6; i++) {
+        if (i != 1)
+          ok(children[i].zIndex < topChildzIndex,
+            "The child[" + i + "] has smaller zIndex than second dhild after a collapse.");
+      }
+
+      
+      let originalTabItem = originalTab._tabViewTabItem;
+      contentWindow.UI.setActiveTab(originalTabItem);
+
+      
+      group.addSubscriber("test stage 4", "expanded", stage4expanded);
+      EventUtils.sendMouseEvent({ type: "click" }, expander[0], contentWindow);
+    };
+
+    
+    
+    
+    
+    let stage4expanded = function() {
+      group.removeSubscriber("test stage 4", "expanded", stage4expanded);
     
       ok(group.expanded, "The group is now expanded.");
       is(expander[0].style.display, "none", "The expander is hidden!");
@@ -186,12 +236,12 @@ function onTabViewWindowLoaded(win) {
       ok(someChildIsActive, "Now one of the children in the group is active.");
             
       
-      win.addEventListener("tabviewhidden", stage3hidden, false);
+      win.addEventListener("tabviewhidden", stage4hidden, false);
       win.TabView.toggle();
     };
   
-    let stage3hidden = function() {
-      win.removeEventListener("tabviewhidden", stage3hidden, false);
+    let stage4hidden = function() {
+      win.removeEventListener("tabviewhidden", stage4hidden, false);
       
       isnot(win.gBrowser.selectedTab, originalTab, "We did not enter the original tab.");
 
@@ -199,12 +249,12 @@ function onTabViewWindowLoaded(win) {
                                   child.tab == win.gBrowser.selectedTab);
       ok(someChildIsSelected, "Instead we're in one of the stack's children.");
       
-      win.addEventListener("tabviewshown", stage3shown, false);
+      win.addEventListener("tabviewshown", stage4shown, false);
       win.TabView.toggle();
     };
     
-    let stage3shown = function() {
-      win.removeEventListener("tabviewshown", stage3shown, false);
+    let stage4shown = function() {
+      win.removeEventListener("tabviewshown", stage4shown, false);
   
       let overlay = contentWindow.document.getElementById("expandedTray");
       ok(!group.expanded, "The group is no longer expanded.");
