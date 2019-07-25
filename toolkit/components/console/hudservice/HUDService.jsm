@@ -1612,30 +1612,19 @@ HUD_SERVICE.prototype =
 
 
 
-  buildXPathFunctionForString: function HS_buildXPathFunctionForString(aStr)
+
+
+  stringMatchesFilters: function stringMatchesFilters(aString, aFilter)
   {
-    let words = aStr.split(/\s+/), results = [];
-    for (let i = 0; i < words.length; i++) {
-      let word = words[i];
-      if (word === "") {
-        continue;
-      }
-
-      let result;
-      if (word.indexOf('"') === -1) {
-        result = '"' + word + '"';
-      }
-      else if (word.indexOf("'") === -1) {
-        result = "'" + word + "'";
-      }
-      else {
-        result = 'concat("' + word.replace(/"/g, "\", '\"', \"") + '")';
-      }
-
-      results.push("contains(translate(., 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), " + result.toLowerCase() + ")");
+    if (!aFilter || !aString) {
+      return true;
     }
 
-    return (results.length === 0) ? "true()" : results.join(" and ");
+    let searchStr = aString.toLowerCase();
+    let filterStrings = aFilter.toLowerCase().split(/\s+/);
+    return !filterStrings.some(function (f) {
+      return searchStr.indexOf(f) == -1;
+    });
   },
 
   
@@ -1651,31 +1640,25 @@ HUD_SERVICE.prototype =
   adjustVisibilityOnSearchStringChange:
   function HS_adjustVisibilityOnSearchStringChange(aHUDId, aSearchString)
   {
-    let fn = this.buildXPathFunctionForString(aSearchString);
     let displayNode = this.getOutputNodeById(aHUDId);
     let outputNode = displayNode.querySelector(".hud-output-node");
     let doc = outputNode.ownerDocument;
 
-    
-    
-    let xpath = './/*[contains(@class, "hud-msg-node") and ' +
-      'not(contains(@class, "hud-filtered-by-string")) and not(' + fn + ')]';
-    let result = doc.evaluate(xpath, outputNode, null,
-      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-    for (let i = 0; i < result.snapshotLength; i++) {
-      let node = result.snapshotItem(i);
-      node.classList.add("hud-filtered-by-string");
-    }
+    let nodes = outputNode.querySelectorAll(".hud-msg-node");
 
-    
-    
-    xpath = './/*[contains(@class, "hud-msg-node") and contains(@class, ' +
-      '"hud-filtered-by-string") and ' + fn + ']';
-    result = doc.evaluate(xpath, outputNode, null,
-      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-    for (let i = 0; i < result.snapshotLength; i++) {
-      let node = result.snapshotItem(i);
-      node.classList.remove("hud-filtered-by-string");
+    for (let i = 0; i < nodes.length; ++i) {
+      let node = nodes[i];
+
+      
+      let text = node.clipboardText;
+
+      
+      if (this.stringMatchesFilters(text, aSearchString)) {
+        node.classList.remove("hud-filtered-by-string");
+      }
+      else {
+        node.classList.add("hud-filtered-by-string");
+      }
     }
 
     this.regroupOutput(outputNode);
@@ -5084,21 +5067,19 @@ ConsoleUtils = {
 
   filterMessageNode: function(aNode, aHUDId) {
     
-    let search = HUDService.getFilterStringByHUDId(aHUDId);
-    let xpath = ".[" + HUDService.buildXPathFunctionForString(search) + "]";
-    let doc = aNode.ownerDocument;
-    let result = doc.evaluate(xpath, aNode, null,
-      Ci.nsIDOMXPathResult.UNORDERED_NODE_SNAPSHOT_TYPE, null);
-    if (result.snapshotLength == 0) {
-      
-      aNode.classList.add("hud-filtered-by-string");
-    }
-
-    
     let prefKey = MESSAGE_PREFERENCE_KEYS[aNode.category][aNode.severity];
     if (prefKey && !HUDService.getFilterState(aHUDId, prefKey)) {
       
       aNode.classList.add("hud-filtered-by-type");
+    }
+
+    
+    let search = HUDService.getFilterStringByHUDId(aHUDId);
+    let text = aNode.clipboardText;
+
+    
+    if (!HUDService.stringMatchesFilters(text, search)) {
+      aNode.classList.add("hud-filtered-by-string");
     }
   },
 
