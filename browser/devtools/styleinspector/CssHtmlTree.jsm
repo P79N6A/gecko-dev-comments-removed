@@ -133,10 +133,14 @@ XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
         .createBundle("chrome:
 
 CssHtmlTree.prototype = {
+  
+  _matchedProperties: null,
+  _unmatchedProperties: null,
+
   htmlComplete: false,
 
   
-  filterChangedTimeout: null,
+  _filterChangedTimeout: null,
 
   
   searchField: null,
@@ -167,12 +171,18 @@ CssHtmlTree.prototype = {
     }
 
     this.viewedElement = aElement;
+    this._unmatchedProperties = null;
+    this._matchedProperties = null;
 
     CssHtmlTree.processTemplate(this.templatePath, this.path, this);
 
     if (this.htmlComplete) {
       this.refreshPanel();
     } else {
+      if (this._panelRefreshTimeout) {
+        this.win.clearTimeout(this._panelRefreshTimeout);
+      }
+
       CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
       
@@ -194,14 +204,17 @@ CssHtmlTree.prototype = {
           if (i < max) {
             
             
-            this.win.setTimeout(displayProperties.bind(this), 50);
+            this._panelRefreshTimeout =
+              this.win.setTimeout(displayProperties.bind(this), 15);
           } else {
             this.htmlComplete = true;
+            this._panelRefreshTimeout = null;
             Services.obs.notifyObservers(null, "StyleInspector-populated", null);
           }
         }
       }
-      this.win.setTimeout(displayProperties.bind(this), 50);
+      this._panelRefreshTimeout =
+        this.win.setTimeout(displayProperties.bind(this), 15);
     }
   },
 
@@ -210,7 +223,9 @@ CssHtmlTree.prototype = {
 
   refreshPanel: function CssHtmlTree_refreshPanel()
   {
-    this.win.clearTimeout(this._panelRefreshTimeout);
+    if (this._panelRefreshTimeout) {
+      this.win.clearTimeout(this._panelRefreshTimeout);
+    }
 
     
     this._darkStripe = true;
@@ -228,12 +243,13 @@ CssHtmlTree.prototype = {
       if (i < max) {
         
         
-        this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 0);
+        this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 15);
       } else {
+        this._panelRefreshTimeout = null;
         Services.obs.notifyObservers(null, "StyleInspector-populated", null);
       }
     }
-    this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 0);
+    this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 15);
   },
 
   
@@ -258,13 +274,14 @@ CssHtmlTree.prototype = {
   filterChanged: function CssHtmlTree_filterChanged(aEvent)
   {
     let win = this.styleWin.contentWindow;
-    if (this.filterChangedTimeout) {
-      win.clearTimeout(this.filterChangedTimeout);
-      this.filterChangeTimeout = null;
+
+    if (this._filterChangedTimeout) {
+      win.clearTimeout(this._filterChangedTimeout);
     }
 
-    this.filterChangedTimeout = win.setTimeout(function() {
+    this._filterChangedTimeout = win.setTimeout(function() {
       this.refreshPanel();
+      this._filterChangeTimeout = null;
     }.bind(this), FILTER_CHANGED_TIMEOUT);
   },
 
@@ -279,6 +296,7 @@ CssHtmlTree.prototype = {
 
   onlyUserStylesChanged: function CssHtmltree_onlyUserStylesChanged(aEvent)
   {
+    this._matchedProperties = null;
     this.cssLogic.sourceFilter = this.showOnlyUserStyles ?
                                  CssLogic.FILTER.ALL :
                                  CssLogic.FILTER.UA;
@@ -324,6 +342,56 @@ CssHtmlTree.prototype = {
     CssHtmlTree.propertyNames.sort();
     CssHtmlTree.propertyNames.push.apply(CssHtmlTree.propertyNames,
       mozProps.sort());
+  },
+
+  
+
+
+
+
+
+  get matchedProperties()
+  {
+    if (!this._matchedProperties) {
+      this._matchedProperties =
+        this.cssLogic.hasMatchedSelectors(CssHtmlTree.propertyNames);
+    }
+    return this._matchedProperties;
+  },
+
+  
+
+
+
+
+
+
+  hasUnmatchedSelectors: function CssHtmlTree_hasUnmatchedSelectors(aProperty)
+  {
+    
+    
+    if (!this._unmatchedProperties) {
+      let properties = [];
+      CssHtmlTree.propertyNames.forEach(function(aName) {
+        if (!this.matchedProperties[aName]) {
+          properties.push(aName);
+        }
+      }, this);
+
+      if (properties.indexOf(aProperty) == -1) {
+        properties.push(aProperty);
+      }
+
+      this._unmatchedProperties = this.cssLogic.hasUnmatchedSelectors(properties);
+    }
+
+    
+    if (!(aProperty in this._unmatchedProperties)) {
+      let result = this.cssLogic.hasUnmatchedSelectors([aProperty]);
+      this._unmatchedProperties[aProperty] = result[aProperty];
+    }
+
+    return this._unmatchedProperties[aProperty];
   },
 
   
@@ -446,7 +514,7 @@ PropertyView.prototype = {
 
   get hasMatchedSelectors()
   {
-    return this.propertyInfo.hasMatchedSelectors();
+    return this.tree.matchedProperties[this.name];
   },
 
   
@@ -454,7 +522,7 @@ PropertyView.prototype = {
 
   get hasUnmatchedSelectors()
   {
-    return this.propertyInfo.hasUnmatchedSelectors();
+    return this.tree.hasUnmatchedSelectors(this.name);
   },
 
   
