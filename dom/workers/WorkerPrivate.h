@@ -508,6 +508,7 @@ class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
 
   
   JSContext* mJSContext;
+  nsRefPtr<WorkerCrossThreadDispatcher> mCrossThreadDispatcher;
 
   
   nsTArray<ParentType*> mChildWorkers;
@@ -692,6 +693,9 @@ public:
   AssertIsOnWorkerThread() const
   { }
 #endif
+
+  WorkerCrossThreadDispatcher*
+  GetCrossThreadDispatcher();
 
 private:
   WorkerPrivate(JSContext* aCx, JSObject* aObject, WorkerPrivate* aParent,
