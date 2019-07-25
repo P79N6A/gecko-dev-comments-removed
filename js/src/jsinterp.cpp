@@ -5421,12 +5421,6 @@ END_CASE(JSOP_DEFVAR)
 
 BEGIN_CASE(JSOP_DEFFUN)
 {
-    PropertyOp getter, setter;
-    bool doSet;
-    JSObject *pobj;
-    JSProperty *prop;
-    uint32 old;
-
     
 
 
@@ -5499,26 +5493,11 @@ BEGIN_CASE(JSOP_DEFFUN)
 
 
 
-    getter = setter = PropertyStub;
-    uintN flags = JSFUN_GSFLAG2ATTR(fun->flags);
-    if (flags) {
-        
-        JS_ASSERT(flags == JSPROP_GETTER || flags == JSPROP_SETTER);
-        attrs |= flags | JSPROP_SHARED;
-        rval.setUndefined();
-        if (flags == JSPROP_GETTER)
-            getter = CastAsPropertyOp(obj);
-        else
-            setter = CastAsPropertyOp(obj);
-    }
-
-    
-
-
-
-
     JSObject *parent = fp->varobj(cx);
     JS_ASSERT(parent);
+
+    uint32 old;
+    bool doSet;
 
     
 
@@ -5526,7 +5505,8 @@ BEGIN_CASE(JSOP_DEFFUN)
 
 
     jsid id = ATOM_TO_JSID(fun->atom);
-    prop = NULL;
+    JSProperty *prop = NULL;
+    JSObject *pobj;
     JSBool ok = CheckRedeclaration(cx, parent, id, attrs, &pobj, &prop);
     if (!ok)
         goto restore_scope;
@@ -5556,13 +5536,13 @@ BEGIN_CASE(JSOP_DEFFUN)
 
             JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE|JSPROP_PERMANENT)));
             JS_ASSERT(!(old & JSPROP_READONLY));
-            doSet = JS_TRUE;
+            doSet = true;
         }
         pobj->dropProperty(cx, prop);
     }
     ok = doSet
          ? parent->setProperty(cx, id, &rval)
-         : parent->defineProperty(cx, id, rval, getter, setter, attrs);
+         : parent->defineProperty(cx, id, rval, PropertyStub, PropertyStub, attrs);
 
   restore_scope:
     
@@ -5590,37 +5570,18 @@ BEGIN_CASE(JSOP_DEFFUN_DBGFC)
                   ? JSPROP_ENUMERATE
                   : JSPROP_ENUMERATE | JSPROP_PERMANENT;
 
-    uintN flags = JSFUN_GSFLAG2ATTR(fun->flags);
-    if (flags) {
-        attrs |= flags | JSPROP_SHARED;
-        rval.setUndefined();
-    }
-
     JSObject *parent = fp->varobj(cx);
     JS_ASSERT(parent);
 
     jsid id = ATOM_TO_JSID(fun->atom);
-    JSBool ok = CheckRedeclaration(cx, parent, id, attrs, NULL, NULL);
-    if (ok) {
-        if (attrs == JSPROP_ENUMERATE) {
-            JS_ASSERT(fp->flags & JSFRAME_EVAL);
-            ok = parent->setProperty(cx, id, &rval);
-        } else {
-            JS_ASSERT(attrs & JSPROP_PERMANENT);
-
-            ok = parent->defineProperty(cx, id, rval,
-                                        (flags & JSPROP_GETTER)
-                                        ? CastAsPropertyOp(obj)
-                                        : PropertyStub,
-                                        (flags & JSPROP_SETTER)
-                                        ? CastAsPropertyOp(obj)
-                                        : PropertyStub,
-                                        attrs);
-        }
-    }
-
-    if (!ok)
+    if (!CheckRedeclaration(cx, parent, id, attrs, NULL, NULL))
         goto error;
+
+    if ((attrs == JSPROP_ENUMERATE)
+        ? !parent->setProperty(cx, id, &rval)
+        : !parent->defineProperty(cx, id, rval, PropertyStub, PropertyStub, attrs)) {
+        goto error;
+    }
 }
 END_CASE(JSOP_DEFFUN_FC)
 
