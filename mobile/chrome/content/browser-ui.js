@@ -328,6 +328,11 @@ var BrowserUI = {
   
   setURI : function() {
     var browser = Browser.currentBrowser;
+
+    
+    if (!browser.currentURI)
+      return;
+
     var back = document.getElementById("cmd_back");
     var forward = document.getElementById("cmd_forward");
 
