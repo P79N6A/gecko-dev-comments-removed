@@ -11,7 +11,7 @@ except (OSError, IOError):
     description = ''
 
 
-deps = ['manifestdestiny', 'mozhttpd >= 0.3']
+deps = ['manifestdestiny', 'mozhttpd >= 0.3', 'mozprocess']
 
 setup(name='marionette',
       version=version,
