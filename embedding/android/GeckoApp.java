@@ -161,6 +161,8 @@ abstract public class GeckoApp
     @Override
     public void onPause()
     {
+
+        Log.i("GeckoApp", "pause");
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_PAUSING));
         
         
@@ -176,6 +178,10 @@ abstract public class GeckoApp
     @Override
     public void onResume()
     {
+        Log.i("GeckoApp", "resume");
+        GeckoAppShell.onResume();
+        if (surfaceView != null)
+            surfaceView.mSurfaceNeedsRedraw = true;
         
         
         super.onResume();
