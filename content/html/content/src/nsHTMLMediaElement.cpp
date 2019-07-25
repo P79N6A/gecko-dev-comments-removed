@@ -496,6 +496,7 @@ void nsHTMLMediaElement::AbortExistingLoads()
   mIsLoadingFromSrcAttribute = PR_FALSE;
   mSuspendedAfterFirstFrame = PR_FALSE;
   mAllowSuspendAfterFirstFrame = PR_TRUE;
+  mSourcePointer = nsnull;
 
   
 
