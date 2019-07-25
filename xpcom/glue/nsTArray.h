@@ -432,12 +432,6 @@ public:
 
   
   
-  size_t SizeOf() const {
-    return Capacity() * sizeof(elem_type) + sizeof(mHdr);
-  }
-
-  
-  
   
 
   
