@@ -228,10 +228,12 @@ namespace mozilla {
 namespace xpconnect {
 namespace memory {
 
+
+
 void
-ReportJSRuntimeStats(const JS::RuntimeStats &rtStats, const nsACString &pathPrefix,
-                     nsIMemoryMultiReporterCallback *callback,
-                     nsISupports *closure);
+ReportJSRuntimeExplicitTreeStats(const JS::RuntimeStats &rtStats, const nsACString &pathPrefix,
+                                 nsIMemoryMultiReporterCallback *callback,
+                                 nsISupports *closure);
 
 } 
 } 
