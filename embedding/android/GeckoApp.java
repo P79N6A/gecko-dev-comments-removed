@@ -266,6 +266,9 @@ abstract public class GeckoApp
 
     boolean IsUnsupportedDevice() {
         
+        
+        
+        
         File meminfo = new File("/proc/meminfo");
         try {
             BufferedReader br = new BufferedReader(new FileReader(meminfo));
@@ -277,7 +280,7 @@ abstract public class GeckoApp
             totalMem = st.nextToken();
 
             Log.i("GeckoMemory", "MemTotal: " + Integer.parseInt(totalMem));
-            return Integer.parseInt(totalMem) <= 524288L;
+            return Integer.parseInt(totalMem) < 300000L;
         } catch (Exception ex) {
             
             
