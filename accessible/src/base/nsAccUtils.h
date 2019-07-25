@@ -377,16 +377,6 @@ public:
   
 
 
-  static inline PRBool IsLeaf(nsIAccessible *aAcc)
-  {
-    PRInt32 numChildren = 0;
-    aAcc->GetChildCount(&numChildren);
-    return numChildren == 0;
-  }
-
-  
-
-
 
   static PRBool MustPrune(nsIAccessible *aAccessible);
 
