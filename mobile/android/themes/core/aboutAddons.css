@@ -1,0 +1,107 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+html {
+  font-size: 24px;
+}
+
+.addons-header {
+  border-bottom: 3px solid black;
+}
+
+.addon-item {
+  border-bottom: 1px solid black;
+  padding: 8px;
+  position: relative;
+}
+
+.addon-item:last-child {
+  border-bottom: 0;
+}
+
+.addon-item:not([optionsURL]) .options-btn {
+  visibility: hidden;
+}
+
+
+.inner {
+  -moz-margin-start: 48px;
+}
+
+.title {
+  color: black;
+}
+
+.version {
+  
+  margin-left: 12px;
+  font-size: 18px;
+  color: gray;
+}
+
+.description {
+  width: 100%;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.buttons {
+  padding-top: 8px;
+}
+
+body[dir="ltr"] .favicon {
+  left: 12px;
+}
+
+body[dir="ltr"] .favicon {
+  right: 12px;
+}
+
+.favicon {
+  border: none;
+  top: 8;
+  width: 32px;
+  height: 32px;
+  position: absolute;
+}
+
+button {
+  color: black;
+  font-size: 28px !important;
+  padding: 5px;
+}
