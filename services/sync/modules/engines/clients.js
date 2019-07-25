@@ -42,7 +42,9 @@ const Cu = Components.utils;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
+Cu.import("resource://weave/ext/Preferences.js");
 Cu.import("resource://weave/log4moz.js");
+Cu.import("resource://weave/constants.js");
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/engines.js");
 Cu.import("resource://weave/stores.js");
@@ -55,7 +57,7 @@ Function.prototype.async = Async.sugar;
 Utils.lazy(this, 'Clients', ClientEngine);
 
 function ClientEngine() {
-  this._init();
+  this._ClientEngine_init();
 }
 ClientEngine.prototype = {
   __proto__: SyncEngine.prototype,
@@ -64,7 +66,60 @@ ClientEngine.prototype = {
   logName: "Clients",
   _storeObj: ClientStore,
   _trackerObj: ClientTracker,
-  _recordObj: ClientRecord
+  _recordObj: ClientRecord,
+
+  _ClientEngine_init: function ClientEngine__init() {
+    this._init();
+    if (!this.getInfo(this.clientID))
+      this.setInfo(this.clientID, {name: "Firefox", type: "desktop"});
+  },
+
+  
+  _createRecord: function SyncEngine__createRecord(id) {
+    let record = this._store.createRecord(id);
+    record.uri = this.engineURL + id;
+    return record;
+  },
+
+  
+
+  
+  
+
+  getClients: function ClientEngine_getClients() {
+    return this._store.clients;
+  },
+
+  getInfo: function ClientEngine_getInfo(id) {
+    return this._store.getInfo(id);
+  },
+
+  setInfo: function ClientEngine_setInfo(id, info) {
+    this._store.setInfo(id, info);
+    this._tracker.addChangedID(id);
+  },
+
+  
+
+  get clientID() {
+    if (!Preferences.get(PREFS_BRANCH + "client.GUID"))
+      Preferences.set(PREFS_BRANCH + "client.GUID", Utils.makeGUID());
+    return Preferences.get(PREFS_BRANCH + "client.GUID");
+  },
+
+  get clientName() { return this.getInfo(this.clientID).name; },
+  set clientName(value) {
+    let info = this.getInfo(this.clientID);
+    info.name = value;
+    this.setInfo(this.clientID, info);
+  },
+
+  get clientType() { return this.getInfo(this.clientID).type; },
+  set clientType(value) {
+    let info = this.getInfo(this.clientID);
+    info.type = value;
+    this.setInfo(this.clientID, info);
+  }
 };
 
 function ClientStore() {
@@ -74,32 +129,25 @@ ClientStore.prototype = {
   __proto__: Store.prototype,
   _logName: "Clients.Store",
 
-  get GUID() this._getCharPref("client.GUID", function() Utils.makeGUID()),
-  set GUID(value) Utils.prefs.setCharPref("client.GUID", value),
-
-  get name() this._getCharPref("client.name", function() "Firefox"),
-  set name(value) Utils.prefs.setCharPref("client.name", value),
-
-  get type() this._getCharPref("client.type", function() "desktop"),
-  set type(value) Utils.prefs.setCharPref("client.type", value),
-
-  
-  _getCharPref: function ClientData__getCharPref(pref, defaultCb) {
-    let value;
-    try {
-      value = Utils.prefs.getCharPref(pref);
-    } catch (e) {
-      value = defaultCb();
-      Utils.prefs.setCharPref(pref, value);
-    }
-    return value;
-  },
-
   _ClientStore_init: function ClientStore__init() {
     this._init.call(this);
     this.clients = {};
     this.loadSnapshot();
   },
+
+  
+  
+
+  getInfo: function ClientStore_getInfo(id) {
+    return this.clients[id];
+  },
+
+  setInfo: function ClientStore_setInfo(id, info) {
+    this.clients[id] = info;
+    this.saveSnapshot();
+  },
+
+  
 
   saveSnapshot: function ClientStore_saveSnapshot() {
     this._log.debug("Saving client list to disk");
@@ -132,13 +180,13 @@ ClientStore.prototype = {
     this.update(record);
   },
 
-  remove: function ClientStore_remove(record) {
-    delete this.clients[record.id];
+  update: function ClientStore_update(record) {
+    this.clients[record.id] = record.payload;
     this.saveSnapshot();
   },
 
-  update: function ClientStore_update(record) {
-    this.clients[record.id] = record.payload;
+  remove: function ClientStore_remove(record) {
+    delete this.clients[record.id];
     this.saveSnapshot();
   },
 
@@ -156,9 +204,6 @@ ClientStore.prototype = {
   
 
   getAllIDs: function ClientStore_getAllIDs() {
-    
-    
-    this.clients[this.GUID] = true;
     return this.clients;
   },
 
@@ -166,12 +211,9 @@ ClientStore.prototype = {
     return id in this.clients;
   },
 
-  createRecord: function ClientStore_createRecord(guid) {
+  createRecord: function ClientStore_createRecord(id) {
     let record = new ClientRecord();
-    if (guid == this.GUID)
-      record.payload = {name: this.name, type: this.type};
-    else
-      record.payload = this.clients[guid];
+    record.payload = this.clients[id];
     return record;
   }
 };
@@ -182,28 +224,6 @@ function ClientTracker() {
 ClientTracker.prototype = {
   __proto__: Tracker.prototype,
   _logName: "ClientTracker",
-
-  
-  get score() "75", 
-
-  
-  _init: function ClientTracker__init() {
-    this._log = Log4Moz.repository.getLogger(this._logName);
-    this._score = 0;
-    this._ignored = [];
-    this._store = new ClientStore(); 
-  },
-
-  
-  
-  get changedIDs() {
-    let items = {};
-    items[this._store.GUID] = true;
-    return items;
-  },
-
-  
-  addChangedID: function(id) {},
-  removeChangedID: function(id) {},
-  clearChangedIDs: function() {}
+  file: "clients",
+  get score() "75" 
 };
