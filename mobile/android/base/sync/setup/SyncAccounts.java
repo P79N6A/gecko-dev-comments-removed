@@ -17,10 +17,25 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 
+
+
+
+
+
+
 public class SyncAccounts {
 
   private final static String DEFAULT_SERVER = "https://auth.services.mozilla.com/";
   private static final String LOG_TAG = "SyncAccounts";
+
+  
+
+
+
+
+  public static boolean syncAccountsExist(Context c) {
+    return AccountManager.get(c).getAccountsByType("org.mozilla.firefox_sync").length > 0;
+  }
 
   
 
@@ -32,11 +47,10 @@ public class SyncAccounts {
     @Override
     protected Boolean doInBackground(Context... params) {
       Context c = params[0];
-      return AccountManager.get(c).getAccountsByType("org.mozilla.firefox_sync").length > 0;
+      return syncAccountsExist(c);
     }
   }
 
-  
   public static Intent createAccount(Context context,
                                      AccountManager accountManager,
                                      String username,
@@ -46,7 +60,7 @@ public class SyncAccounts {
 
     final Account account = new Account(username, Constants.ACCOUNTTYPE_SYNC);
     final Bundle userbundle = new Bundle();
-  
+
     
     userbundle.putString(Constants.OPTION_SYNCKEY, syncKey);
     if (serverURL != null) {
@@ -71,24 +85,24 @@ public class SyncAccounts {
         Log.e("FirefoxSync", "Unable to create account.", e);
       }
     }
-  
+
     Logger.debug(LOG_TAG, "Account: " + account + " added successfully? " + result);
     if (!result) {
       Logger.error(LOG_TAG, "Failed to add account!");
     }
-  
+
     
     ContentResolver.setMasterSyncAutomatically(true);
-  
+
     String authority = BrowserContract.AUTHORITY;
     Logger.debug(LOG_TAG, "Setting authority " + authority + " to sync automatically.");
     ContentResolver.setSyncAutomatically(account, authority, true);
     ContentResolver.setIsSyncable(account, authority, 1);
-  
+
     
     
     Logger.debug(LOG_TAG, "Finished setting syncables.");
-  
+
     
     Logger.info(LOG_TAG, "Clearing preferences for this account.");
     try {
@@ -96,7 +110,7 @@ public class SyncAccounts {
     } catch (Exception e) {
       Logger.error(LOG_TAG, "Could not clear prefs path!", e);
     }
-  
+
     final Intent intent = new Intent();
     intent.putExtra(AccountManager.KEY_ACCOUNT_NAME, username);
     intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, Constants.ACCOUNTTYPE_SYNC);

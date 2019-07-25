@@ -2,40 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories;
 
 import java.util.ArrayList;
@@ -51,6 +17,12 @@ import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionGuidsSince
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionStoreDelegate;
 import org.mozilla.gecko.sync.repositories.delegates.RepositorySessionWipeDelegate;
 import org.mozilla.gecko.sync.repositories.domain.Record;
+
+
+
+
+
+
 
 
 
@@ -192,6 +164,13 @@ public abstract class RepositorySession {
     this.transitionFrom(SessionStatus.UNSTARTED, SessionStatus.ACTIVE);
   }
 
+  
+
+
+
+
+
+
   public void begin(RepositorySessionBeginDelegate delegate) throws InvalidSessionTransitionException {
     sharedBegin();
     delegate.deferredBeginDelegate(delegateQueue).onBeginSucceeded(this);
@@ -228,6 +207,10 @@ public abstract class RepositorySession {
     delegate.deferredFinishDelegate(delegateQueue).onFinishSucceeded(this, this.getBundle(null));
   }
 
+  
+
+
+
   public void abort() {
     
     this.setStatus(SessionStatus.ABORTED);
@@ -242,6 +225,13 @@ public abstract class RepositorySession {
       Logger.error(LOG_TAG, "Caught exception shutting down delegate queue.", e);
     }
   }
+
+  
+
+
+
+
+
 
   public void finish(final RepositorySessionFinishDelegate delegate) throws InactiveSessionException {
     try {
