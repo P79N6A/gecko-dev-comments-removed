@@ -11,6 +11,8 @@ let SocialUI = {
 
     Services.prefs.addObserver("social.sidebar.open", this, false);
 
+    gBrowser.addEventListener("ActivateSocialFeature", this._activationEventHandler, true, true);
+
     Social.init(this._providerReady.bind(this));
   },
 
@@ -48,9 +50,69 @@ let SocialUI = {
 
   
   _providerReady: function SocialUI_providerReady() {
+    
+    if (!Social.provider)
+      return;
+
     SocialToolbar.init();
     SocialShareButton.init();
     SocialSidebar.init();
+  },
+
+  
+  
+  _activationEventHandler: function SocialUI_activationHandler(e) {
+    
+    
+    if (Social.active || !Social.provider)
+      return;
+
+    let targetDoc = e.target;
+
+    
+    if (!(targetDoc instanceof HTMLDocument))
+      return;
+
+    
+    if (targetDoc.defaultView.top != content)
+      return;
+
+    
+    let prePath = targetDoc.documentURIObject.prePath;
+    let whitelist = Services.prefs.getCharPref("browser.social.whitelist");
+    if (whitelist.split(",").indexOf(prePath) == -1)
+      return;
+
+    
+    let now = Date.now();
+    if (now - Social.lastEventReceived < 1000)
+      return;
+    Social.lastEventReceived = now;
+
+    
+    Social.active = true;
+
+    
+    let description = document.getElementById("social-activation-message");
+    let brandShortName = document.getElementById("bundle_brand").getString("brandShortName");
+    let message = gNavigatorBundle.getFormattedString("social.activated.message",
+                                                      [Social.provider.name, brandShortName]);
+    description.value = message;
+
+    SocialUI.notificationPanel.hidden = false;
+
+    setTimeout(function () {
+      SocialUI.notificationPanel.openPopup(SocialToolbar.button, "bottomcenter topright");
+    }.bind(this), 0);
+  },
+
+  get notificationPanel() {
+    return document.getElementById("socialActivatedNotification")
+  },
+
+  undoActivation: function SocialUI_undoActivation() {
+    Social.active = false;
+    this.notificationPanel.hidePopup();
   }
 }
 
@@ -153,22 +215,25 @@ var SocialToolbar = {
   
   init: function SocialToolbar_init() {
     document.getElementById("social-provider-image").setAttribute("image", Social.provider.iconURL);
-    
-    
-    document.getElementById("social-statusarea-popup").addEventListener("popupshowing", function(e) {
-      document.getElementById("social-toolbar-button").setAttribute("open", "true");
-    }, false);
-    document.getElementById("social-statusarea-popup").addEventListener("popuphiding", function(e) {
-      document.getElementById("social-toolbar-button").removeAttribute("open");
-    }, false);
+
+    let statusAreaPopup = document.getElementById("social-statusarea-popup");
+    statusAreaPopup.addEventListener("popupshowing", function(e) {
+      this.button.setAttribute("open", "true");
+    }.bind(this));
+    statusAreaPopup.addEventListener("popuphidden", function(e) {
+      this.button.removeAttribute("open");
+    }.bind(this));
 
     this.updateButton();
     this.updateProfile();
   },
 
+  get button() {
+    return document.getElementById("social-toolbar-button");
+  },
+
   updateButtonHiddenState: function SocialToolbar_updateButtonHiddenState() {
-    let toolbarbutton = document.getElementById("social-toolbar-button");
-    toolbarbutton.hidden = !Social.uiVisible;
+    this.button.hidden = !Social.uiVisible;
   },
 
   updateProfile: function SocialToolbar_updateProfile() {
@@ -254,13 +319,13 @@ var SocialToolbar = {
     panel.addEventListener("popuphiding", function onpopuphiding() {
       panel.removeEventListener("popuphiding", onpopuphiding);
       
-      document.getElementById("social-toolbar-button").removeAttribute("open");
+      SocialToolbar.button.removeAttribute("open");
       notifBrowser.setAttribute("src", "about:blank");
     });
 
     notifBrowser.setAttribute("origin", Social.provider.origin);
     notifBrowser.setAttribute("src", iconImage.getAttribute("contentPanel"));
-    document.getElementById("social-toolbar-button").setAttribute("open", "true");
+    this.button.setAttribute("open", "true");
     panel.openPopup(iconImage, "bottomcenter topleft", 0, 0, false, false);
   }
 }
