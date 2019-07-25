@@ -44,6 +44,7 @@
 
 class nsRuleNode;
 class nsStyleContext;
+class nsIAtom;
 class nsIContent;
 
 class inDOMUtils : public inIDOMUtils
@@ -58,6 +59,7 @@ public:
 private:
   
   static nsresult GetRuleNodeForContent(nsIContent* aContent,
+                                        nsIAtom* aPseudo,
                                         nsStyleContext** aStyleContext,
                                         nsRuleNode** aRuleNode);
 };
