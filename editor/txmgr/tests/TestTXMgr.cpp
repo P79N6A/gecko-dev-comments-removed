@@ -4702,7 +4702,7 @@ aggregation_batch_stress_test()
   
   
   
-  iterations = 500
+  500
 #endif
   ;
   return stress_test(&factory, iterations);
