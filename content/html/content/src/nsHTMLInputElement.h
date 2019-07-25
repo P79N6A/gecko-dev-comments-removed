@@ -85,8 +85,6 @@ public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
 
-  UploadLastDir();
-
   
 
 
@@ -104,10 +102,6 @@ public:
 
 
   nsresult StoreLastUsedDirectory(nsIURI* aURI, nsILocalFile* aFile);
-private:
-  
-  nsInterfaceHashtable<nsStringHashKey, nsILocalFile> mUploadLastDirStore;
-  PRBool mInPrivateBrowsing;
 };
 
 class nsHTMLInputElement : public nsGenericHTMLFormElement,

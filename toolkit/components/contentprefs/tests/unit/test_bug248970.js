@@ -84,7 +84,7 @@ function run_test() {
       
       cp.setPref(uri2, pref_name, zoomB);
       
-      do_check_eq(cp.getPref(uri2, pref_name), undefined);
+      do_check_eq(cp.getPref(uri2, pref_name), zoomB);
       
       cp.setPref(uri1, pref_name, zoomA_new);
       
@@ -92,7 +92,9 @@ function run_test() {
       
       pb.privateBrowsingEnabled = false;
       
-      do_check_eq(cp.getPref(uri1, pref_name), zoomA_new);
+      do_check_eq(cp.getPref(uri1, pref_name), zoomA);
+      
+      do_check_eq(cp.hasPref(uri2, pref_name), false);
     } catch (e) {
       do_throw("Unexpected exception: " + e);
     }
