@@ -669,6 +669,12 @@ class FrameState
 
 
 
+    inline Jump testUndefined(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
     inline Jump testInt32(Assembler::Condition cond, FrameEntry *fe);
 
     

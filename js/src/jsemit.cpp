@@ -6530,8 +6530,6 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 
 
 
-
-
         pn2 = pn->pn_head;
         switch (pn2->pn_type) {
           case TOK_NAME:
@@ -6558,16 +6556,12 @@ js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 #endif
             
           default:
-            
-
-
-
             if (!js_EmitTree(cx, cg, pn2))
                 return JS_FALSE;
             callop = false;             
             break;
         }
-        if (!callop && js_Emit1(cx, cg, JSOP_NULL) < 0)
+        if (!callop && js_Emit1(cx, cg, JSOP_PUSH) < 0)
             return JS_FALSE;
 
         
