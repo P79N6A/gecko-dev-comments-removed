@@ -194,7 +194,7 @@ nsInlineFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   if (!mFrames.FirstChild()) {
-    rv = DisplaySelectionOverlay(aBuilder, aLists);
+    rv = DisplaySelectionOverlay(aBuilder, aLists.Content());
   }
   return rv;
 }
