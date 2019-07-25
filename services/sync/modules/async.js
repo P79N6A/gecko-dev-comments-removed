@@ -254,7 +254,7 @@ function trace(frame, str) {
 
   
   
-  while (frame.name.match(/^Async(Gen|)_/))
+  while (frame.name && frame.name.match(/^Async(Gen|)_/))
     frame = frame.caller;
 
   if (frame.caller)
