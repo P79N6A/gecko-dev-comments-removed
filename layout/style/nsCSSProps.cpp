@@ -1578,7 +1578,6 @@ static const nsCSSProperty gAnimationSubpropTable[] = {
   eCSSProperty_animation_direction,
   eCSSProperty_animation_fill_mode,
   eCSSProperty_animation_iteration_count,
-  eCSSProperty_animation_play_state,
   
   
   
