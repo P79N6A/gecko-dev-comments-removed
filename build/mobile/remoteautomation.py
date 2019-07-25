@@ -129,6 +129,27 @@ class RemoteAutomation(Automation):
             exepath = cmd[0]
             name = exepath.split('/')[-1]
             self.procName = name
+            
+            
+            
+            
+            if cmd[0] == 'am' and cmd[1] == "instrument":
+              try:
+                i = cmd.index("class")
+              except ValueError:
+                
+                i = -1
+              if (i > 0):
+                classname = cmd[i+1]
+                parts = classname.split('.')
+                try:
+                  i = parts.index("tests")
+                except ValueError:
+                  
+                  i = -1
+                if (i > 0):
+                  self.procName = '.'.join(parts[0:i])
+                  print "Robocop derived process name: "+self.procName
 
             
             self.timeout = 3600
