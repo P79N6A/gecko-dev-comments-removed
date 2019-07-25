@@ -466,24 +466,52 @@ nsIconChannel::Init(nsIURI* aURI)
     direction = GTK_TEXT_DIR_RTL;
   }
 
-  PRBool haveDirection = direction != GTK_TEXT_DIR_NONE;
+  PRBool forceDirection = direction != GTK_TEXT_DIR_NONE;
   nsCAutoString stockID;
-  if (haveDirection) {
-    stockID = Substring(stockIcon, 0, stockIcon.Length() - 4);
-  } else {
+  PRBool useIconName = PR_FALSE;
+  if (!forceDirection) {
     direction = gtk_widget_get_default_direction();
     stockID = stockIcon;
+  } else {
+    
+    
+    stockID = Substring(stockIcon, 0, stockIcon.Length() - 4);
+    
+    
+    
+    
+    GtkIconTheme *icon_theme = gtk_icon_theme_get_default();
+    
+    
+    
+    gint width, height;
+    if (gtk_icon_size_lookup(icon_size, &width, &height)) {
+      gint size = NS_MIN(width, height);
+      
+      
+      
+      
+      GtkIconInfo *icon =
+        gtk_icon_theme_lookup_icon(icon_theme, stockIcon.get(),
+                                   size, (GtkIconLookupFlags)0);
+      if (icon) {
+        useIconName = PR_TRUE;
+        gtk_icon_info_free(icon);
+      }
+    }
   }
 
   ensure_stock_image_widget();
   GtkStyle *style = gtk_widget_get_style(gStockImageWidget);
-  GtkIconSet *icon_set = gtk_style_lookup_icon_set(style, stockID.get());
+  GtkIconSet *icon_set = NULL;
+  if (!useIconName) {
+    icon_set = gtk_style_lookup_icon_set(style, stockID.get());
+  }
 
-  if (icon_set) {
-    gtk_icon_set_ref(icon_set);
-  } else {
+  if (!icon_set) {
     
     
+    useIconName = PR_TRUE;
     
     
     
@@ -498,7 +526,9 @@ nsIconChannel::Init(nsIURI* aURI)
   GdkPixbuf *icon =
     gtk_icon_set_render_icon (icon_set, style, direction, state,
                               icon_size, gStockImageWidget, NULL);
-  gtk_icon_set_unref(icon_set);
+  if (useIconName) {
+    gtk_icon_set_unref(icon_set);
+  }
 
   
   
