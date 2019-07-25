@@ -1589,17 +1589,29 @@ nsHttpConnectionMgr::DispatchAbstractTransaction(nsConnectionEntry *ent,
 
 
 
-    nsRefPtr<nsHttpPipeline> pipeline;
-    nsresult rv = BuildPipeline(ent, aTrans, getter_AddRefs(pipeline));
-    if (!NS_SUCCEEDED(rv))
-        return rv;
+
+
+    nsRefPtr<nsAHttpTransaction> transaction;
+    nsresult rv;
+    if (conn->Classification() != nsAHttpTransaction::CLASS_SOLO) {
+        LOG(("   using pipeline datastructure.\n"));
+        nsRefPtr<nsHttpPipeline> pipeline;
+        rv = BuildPipeline(ent, aTrans, getter_AddRefs(pipeline));
+        if (!NS_SUCCEEDED(rv))
+            return rv;
+        transaction = pipeline;
+    }
+    else {
+        LOG(("   not using pipeline datastructure due to class solo.\n"));
+        transaction = aTrans;
+    }
 
     nsRefPtr<nsConnectionHandle> handle = new nsConnectionHandle(conn);
 
     
-    pipeline->SetConnection(handle);
+    transaction->SetConnection(handle);
 
-    rv = conn->Activate(pipeline, caps, priority);
+    rv = conn->Activate(transaction, caps, priority);
     if (NS_FAILED(rv)) {
         LOG(("  conn->Activate failed [rv=%x]\n", rv));
         ent->mActiveConns.RemoveElement(conn);
@@ -1610,7 +1622,7 @@ nsHttpConnectionMgr::DispatchAbstractTransaction(nsConnectionEntry *ent,
 
         
         
-        pipeline->SetConnection(nsnull);
+        transaction->SetConnection(nsnull);
         NS_RELEASE(handle->mConn);
         
         NS_RELEASE(conn);
@@ -2644,7 +2656,9 @@ nsHalfOpenSocket::OnOutputStreamReady(nsIAsyncOutputStream *out)
         
         
         
-        if (mEnt->mConnInfo->UsingSSL() && !mEnt->mPendingQ.Length()) {
+        
+        if (mEnt->mConnInfo->UsingSSL() && !mEnt->mPendingQ.Length() &&
+            !mEnt->mConnInfo->UsingHttpProxy()) {
             LOG(("nsHalfOpenSocket::OnOutputStreamReady null transaction will "
                  "be used to finish SSL handshake on conn %p\n", conn.get()));
             nsRefPtr<NullHttpTransaction>  trans =
