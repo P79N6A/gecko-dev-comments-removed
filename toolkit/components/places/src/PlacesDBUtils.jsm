@@ -140,8 +140,9 @@ nsPlacesDBUtils.prototype = {
     if (!selectPlacesRoot.executeStep()) {
       
       let createPlacesRoot = DBConn.createStatement(
-        "INSERT INTO moz_bookmarks (id, type, fk, parent, position, title) " +
-        "VALUES (:places_root, 2, NULL, 0, 0, :title)");
+        "INSERT INTO moz_bookmarks (id, type, fk, parent, position, title, "
+      +                            "guid) "
+      + "VALUES (:places_root, 2, NULL, 0, 0, :title, GENERATE_GUID())");
       createPlacesRoot.params["places_root"] = PlacesUtils.placesRootId;
       createPlacesRoot.params["title"] = "";
       cleanupStatements.push(createPlacesRoot);
