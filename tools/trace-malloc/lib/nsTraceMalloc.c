@@ -957,6 +957,18 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
     t->suppress_tracing++;
 
     if (!stacks_enabled) {
+#if defined(XP_MACOSX)
+        
+
+        info->entries = 0;
+        rv = NS_StackWalk(stack_callback, skip, info);
+        *immediate_abort = rv == NS_ERROR_UNEXPECTED;
+        if (rv == NS_ERROR_UNEXPECTED || info->entries == 0) {
+            t->suppress_tracing--;
+            return NULL;
+        }
+#endif
+
         
 
 
