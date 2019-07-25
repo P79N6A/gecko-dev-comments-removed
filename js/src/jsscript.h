@@ -367,7 +367,7 @@ struct JSScript {
     static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
                                uint32 nobjects, uint32 nupvars, uint32 nregexps,
                                uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint16 nClosedArgs, uint16 nClosedVars, JSVersion version);
+                               uint16 nClosedArgs, uint16 nClosedVars);
 
     static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
@@ -375,11 +375,7 @@ struct JSScript {
     JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
-
-  private:
     uint16          version;    
-
-  public:
     uint16          nfixed;     
 
 
@@ -550,6 +546,11 @@ struct JSScript {
 
     JSVersion getVersion() const {
         return JSVersion(version);
+    }
+
+    void setVersion(JSVersion newVersion) {
+        JS_ASSERT((newVersion & JS_BITMASK(16)) == uint32(newVersion));
+        version = newVersion;
     }
 
     inline JSFunction *getFunction(size_t index);
