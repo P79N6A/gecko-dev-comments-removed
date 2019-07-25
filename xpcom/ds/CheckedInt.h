@@ -434,6 +434,8 @@ inline T opposite_if_signed(T x) { return opposite_if_signed_impl<T>::run(x); }
 
 
 
+
+
 template<typename T>
 class CheckedInt
 {
@@ -511,6 +513,14 @@ public:
     }
 
     
+
+
+
+
+
+
+
+
     bool operator ==(const CheckedInt& other) const
     {
         return bool(mIsValid & other.mIsValid & (value() == other.mValue));
