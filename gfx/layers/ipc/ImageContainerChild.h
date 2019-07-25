@@ -161,7 +161,7 @@ protected:
 
 
 
-  SharedImage* PopSharedImageFromPool();
+  SharedImage* GetSharedImageFor(Image* aImage);
   
 
 
@@ -190,9 +190,7 @@ protected:
   SharedImage * CreateSharedImageFromData(Image* aImage);
 
 private:
-
   PRUint64 mImageContainerID;
-  nsIntSize mSize;
   nsTArray<SharedImage*> mSharedImagePool;
   int mActiveImageCount;
   bool mStop;
