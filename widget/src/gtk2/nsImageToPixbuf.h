@@ -51,6 +51,10 @@ class nsImageToPixbuf : public nsIImageToPixbuf {
 
         
         
+        
+
+
+
         static GdkPixbuf* ImageToPixbuf(imgIContainer * aImage);
         static GdkPixbuf* SurfaceToPixbuf(gfxASurface* aSurface,
                                           PRInt32 aWidth, PRInt32 aHeight);

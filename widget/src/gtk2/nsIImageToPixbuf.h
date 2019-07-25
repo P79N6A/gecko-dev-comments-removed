@@ -54,6 +54,10 @@ class nsIImageToPixbuf : public nsISupports {
     public:
         NS_DECLARE_STATIC_IID_ACCESSOR(NSIIMAGETOPIXBUF_IID)
 
+        
+
+
+
         NS_IMETHOD_(GdkPixbuf*) ConvertImageToPixbuf(imgIContainer* aImage) = 0;
 };
 
