@@ -1231,7 +1231,22 @@ void
 TypedArrayTemplate<float>::copyIndexToValue(JSContext *cx, uint32 index, Value *vp)
 {
     float val = getIndex(index);
-    vp->setDouble(val);
+    double dval = val;
+
+    
+
+
+
+
+
+
+
+
+
+    if (JS_UNLIKELY(JSDOUBLE_IS_NaN(dval)))
+        dval = js_NaN;
+
+    vp->setDouble(dval);
 }
 
 template<>
@@ -1239,6 +1254,17 @@ void
 TypedArrayTemplate<double>::copyIndexToValue(JSContext *cx, uint32 index, Value *vp)
 {
     double val = getIndex(index);
+
+    
+
+
+
+
+
+
+    if (JS_UNLIKELY(JSDOUBLE_IS_NaN(val)))
+        val = js_NaN;
+
     vp->setDouble(val);
 }
 
