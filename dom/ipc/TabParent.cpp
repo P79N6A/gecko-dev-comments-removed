@@ -589,20 +589,14 @@ TabParent::ReceiveMessage(const nsString& aMessage,
   nsRefPtr<nsFrameLoader> frameLoader = GetFrameLoader();
   if (frameLoader && frameLoader->GetFrameMessageManager()) {
     nsFrameMessageManager* manager = frameLoader->GetFrameMessageManager();
-
+    JSContext* ctx = manager->GetJSContext();
+    JSAutoRequest ar(ctx);
+    PRUint32 len = 0; 
     
     
-    JSObject* objectsArray;
-    {
-      JSContext* ctx = manager->GetJSContext();
-      JSAutoRequest ar(ctx);
-      PRUint32 len = 0; 
-      
-      
-      objectsArray = JS_NewArrayObject(ctx, len, NULL);
-      if (objectsArray == NULL) {
-        return false;
-      }
+    JSObject* objectsArray = JS_NewArrayObject(ctx, len, NULL);
+    if (!objectsArray) {
+      return false;
     }
 
     manager->ReceiveMessage(mFrameElement,
