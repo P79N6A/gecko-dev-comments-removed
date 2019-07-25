@@ -43,6 +43,7 @@
 #include "nsIWidget.h"
 
 class nsIContent;
+class nsIDOMMouseEvent;
 class nsPIDOMWindow;
 class nsPresContext;
 class nsTextStateManager;
@@ -97,6 +98,15 @@ public:
   
   static void UpdateIMEState(const IMEState &aNewIMEState,
                              nsIContent* aContent);
+
+  
+  
+  
+  
+  
+  static void OnClickInEditor(nsPresContext* aPresContext,
+                              nsIContent* aContent,
+                              nsIDOMMouseEvent* aMouseEvent);
 
 protected:
   static nsresult OnChangeFocusInternal(nsPresContext* aPresContext,

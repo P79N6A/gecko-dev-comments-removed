@@ -3277,7 +3277,8 @@ nsWindow::SetSoftwareKeyboardState(bool aOpen,
         
         if (mInputContext.mIMEState.mEnabled != IMEState::PLUGIN &&
             Preferences::GetBool("content.ime.strict_policy", false) &&
-            !aAction.ContentGotFocusByTrustedCause()) {
+            !aAction.ContentGotFocusByTrustedCause() &&
+            !aAction.UserMightRequestOpenVKB()) {
             return;
         }
 #if defined(MOZ_X11) && (MOZ_PLATFORM_MAEMO == 6)
