@@ -380,6 +380,10 @@ class Compiler : public BaseCompiler
         uint32_t source;
         uint32_t target;
 
+#ifdef JS_CPU_X64
+        Label sourceTrampoline;
+#endif
+
         Jump fastJump;
         MaybeJump slowJump;
     };
@@ -484,7 +488,7 @@ private:
     bool hasGlobalReallocation;
     bool oomInVector;       
     bool overflowICSpace;   
-    uint32_t gcNumber;
+    uint64_t gcNumber;
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
     PCLengthEntry *pcLengths;
 

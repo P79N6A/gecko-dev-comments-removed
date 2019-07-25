@@ -264,6 +264,7 @@ public:
     eUnit_Dasharray, 
     eUnit_Shadow, 
     eUnit_Transform, 
+    eUnit_BackgroundPosition, 
     eUnit_CSSValuePairList, 
     eUnit_UnparsedString 
   };
@@ -421,7 +422,7 @@ public:
     }
     static bool IsCSSValueListUnit(Unit aUnit) {
       return aUnit == eUnit_Dasharray || aUnit == eUnit_Shadow ||
-             aUnit == eUnit_Transform;
+             aUnit == eUnit_Transform || aUnit == eUnit_BackgroundPosition;
     }
     static bool IsCSSValuePairListUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePairList;

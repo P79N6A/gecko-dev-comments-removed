@@ -2917,9 +2917,18 @@ XPCWrappedNative::GetObjectPrincipal() const
 {
     nsIPrincipal* principal = GetScope()->GetPrincipal();
 #ifdef DEBUG
+    
+    
+    
     nsCOMPtr<nsIScriptObjectPrincipal> objPrin(do_QueryInterface(mIdentity));
-    NS_ASSERTION(!objPrin || objPrin->GetPrincipal() == principal,
-                 "Principal mismatch.  Expect bad things to happen");
+    if (objPrin) {
+        bool equal;
+        if (!principal)
+            equal = !objPrin->GetPrincipal();
+        else
+            principal->Equals(objPrin->GetPrincipal(), &equal);
+        NS_ASSERTION(equal, "Principal mismatch.  Expect bad things to happen");
+    }
 #endif
     return principal;
 }

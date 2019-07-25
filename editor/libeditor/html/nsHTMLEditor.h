@@ -370,8 +370,7 @@ public:
                               nsCOMPtr<nsIDOMNode> *ioParent, 
                               PRInt32 *ioOffset, 
                               bool aNoEmptyNodes);
-  already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode);
-                                
+  virtual already_AddRefed<nsIDOMNode> FindUserSelectAllNode(nsIDOMNode* aNode);
 
   
 
@@ -572,11 +571,20 @@ protected:
   NS_IMETHOD InsertAsPlaintextQuotation(const nsAString & aQuotedText,
                                         bool aAddCites,
                                         nsIDOMNode **aNodeInserted);
+  
+  
+  
+  bool IsSafeToInsertData(nsIDOMDocument* aSourceDoc);
+
+  nsresult InsertObject(const char* aType, nsISupports* aObject, bool aIsSafe,
+                        nsIDOMDocument *aSourceDoc,
+                        nsIDOMNode *aDestinationNode,
+                        PRInt32 aDestOffset,
+                        bool aDoDeleteSelection);
 
   
   NS_IMETHOD PrepareTransferable(nsITransferable **transferable);
   NS_IMETHOD PrepareHTMLTransferable(nsITransferable **transferable, bool havePrivFlavor);
-  nsresult   PutDragDataInTransferable(nsITransferable **aTransferable);
   NS_IMETHOD InsertFromTransferable(nsITransferable *transferable, 
                                     nsIDOMDocument *aSourceDoc,
                                     const nsAString & aContextStr,
@@ -584,6 +592,12 @@ protected:
                                     nsIDOMNode *aDestinationNode,
                                     PRInt32 aDestinationOffset,
                                     bool aDoDeleteSelection);
+  nsresult InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
+                                  PRInt32 aIndex,
+                                  nsIDOMDocument *aSourceDoc,
+                                  nsIDOMNode *aDestinationNode,
+                                  PRInt32 aDestOffset,
+                                  bool aDoDeleteSelection);
   bool HavePrivateHTMLFlavor( nsIClipboard *clipboard );
   nsresult   ParseCFHTML(nsCString & aCfhtml, PRUnichar **aStuffToPaste, PRUnichar **aCfcontext);
   nsresult   DoContentFilterCallback(const nsAString &aFlavor,
@@ -721,9 +735,6 @@ protected:
 
   nsresult GetFirstEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutFirstLeaf);
   nsresult GetLastEditableLeaf( nsIDOMNode *aNode, nsCOMPtr<nsIDOMNode> *aOutLastLeaf);
-
-  
-  bool     mIgnoreSpuriousDragEvent;
 
   nsresult GetInlinePropertyBase(nsIAtom *aProperty, 
                              const nsAString *aAttribute,

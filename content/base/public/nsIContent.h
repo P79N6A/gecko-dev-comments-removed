@@ -930,7 +930,7 @@ public:
         
         bool hasAttr = content->GetAttr(kNameSpaceID_XML, nsGkAtoms::lang,
                                           aResult);
-        if (!hasAttr && content->IsHTML()) {
+        if (!hasAttr && (content->IsHTML() || content->IsSVG())) {
           hasAttr = content->GetAttr(kNameSpaceID_None, nsGkAtoms::lang,
                                      aResult);
         }

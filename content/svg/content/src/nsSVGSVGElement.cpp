@@ -750,7 +750,16 @@ nsSVGSVGElement::GetCTM(nsIDOMSVGMatrix * *aCTM)
 NS_IMETHODIMP
 nsSVGSVGElement::GetScreenCTM(nsIDOMSVGMatrix **aCTM)
 {
-  gfxMatrix m = nsSVGUtils::GetCTM(this, true);
+  gfxMatrix m;
+  if (IsRoot()) {
+    
+    
+    
+    
+    m = PrependLocalTransformsTo(m);
+  } else {
+    m = nsSVGUtils::GetCTM(this, true);
+  }
   *aCTM = m.IsSingular() ? nsnull : new DOMSVGMatrix(m);
   NS_IF_ADDREF(*aCTM);
   return NS_OK;
@@ -992,6 +1001,10 @@ nsSVGSVGElement::GetViewBoxTransform() const
     viewportHeight = mViewportHeight;
   }
 
+  if (viewportWidth <= 0.0f || viewportHeight <= 0.0f) {
+    return gfxMatrix(0.0, 0.0, 0.0, 0.0, 0.0, 0.0); 
+  }
+
   nsSVGViewBoxRect viewBox;
   if (mViewBox.IsValid()) {
     viewBox = mViewBox.GetAnimValue();
@@ -1180,12 +1193,29 @@ nsSVGSVGElement::GetLength(PRUint8 aCtxType)
 
 
  gfxMatrix
-nsSVGSVGElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
+nsSVGSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+                                          TransformTypes aWhich) const
 {
+  NS_ABORT_IF_FALSE(aWhich != eChildToUserSpace || aMatrix.IsIdentity(),
+                    "Skipping eUserSpaceToParent transforms makes no sense");
+
   if (IsInner()) {
     float x, y;
     const_cast<nsSVGSVGElement*>(this)->GetAnimatedLengthValues(&x, &y, nsnull);
-    return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+    if (aWhich == eAllTransforms) {
+      
+      return GetViewBoxTransform() * gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+    }
+    if (aWhich == eUserSpaceToParent) {
+      return gfxMatrix().Translate(gfxPoint(x, y)) * aMatrix;
+    }
+    NS_ABORT_IF_FALSE(aWhich == eChildToUserSpace, "Unknown TransformTypes");
+    return GetViewBoxTransform(); 
+  }
+
+  if (aWhich == eUserSpaceToParent) {
+    
+    return aMatrix;
   }
 
   if (IsRoot()) {

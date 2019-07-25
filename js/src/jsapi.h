@@ -565,7 +565,6 @@ class Value
     JS_ALWAYS_INLINE
     uint32_t payloadAsRawUint32() const {
         JS_ASSERT(!isDouble());
-        JS_ASSERT_IF(isBoolean(), isTrue() || isFalse());
         return data.s.payload.u32;
     }
 
@@ -1031,7 +1030,7 @@ class AutoEnumStateRooter : private AutoGCRooter
   protected:
     void trace(JSTracer *trc);
 
-    JSObject * const obj;
+    JSObject *obj;
 
   private:
     Value stateValue;
@@ -1430,8 +1429,11 @@ typedef JSBool
 (* JSContextCallback)(JSContext *cx, uintN contextOp);
 
 typedef enum JSGCStatus {
+    
     JSGC_BEGIN,
     JSGC_END,
+
+    
     JSGC_MARK_END,
     JSGC_FINALIZE_END
 } JSGCStatus;
@@ -2689,6 +2691,18 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 JS_BEGIN_EXTERN_C
 #endif
 
+typedef void (*JSIterateCompartmentCallback)(JSContext *cx, void *data,
+              JSCompartment *compartment);
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_IterateCompartments(JSContext *cx, void *data,
+                       JSIterateCompartmentCallback compartmentCallback);
+
 extern JS_PUBLIC_API(JSObject *)
 JS_GetGlobalObject(JSContext *cx);
 
@@ -3067,6 +3081,7 @@ JS_SetExtraGCRootsTracer(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
 
 
+
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_TRACEABLE(jsval v)
 {
@@ -3291,7 +3306,10 @@ typedef enum JSGCParamKey {
     JSGC_UNUSED_CHUNKS = 7,
 
     
-    JSGC_TOTAL_CHUNKS = 8
+    JSGC_TOTAL_CHUNKS = 8,
+
+    
+    JSGC_SLICE_TIME_BUDGET = 9
 } JSGCParamKey;
 
 typedef enum JSGCMode {
@@ -3299,7 +3317,13 @@ typedef enum JSGCMode {
     JSGC_MODE_GLOBAL = 0,
 
     
-    JSGC_MODE_COMPARTMENT = 1
+    JSGC_MODE_COMPARTMENT = 1,
+
+    
+
+
+
+    JSGC_MODE_INCREMENTAL = 2
 } JSGCMode;
 
 extern JS_PUBLIC_API(void)
@@ -3394,7 +3418,9 @@ struct JSClass {
                                                    object in prototype chain
                                                    passed in via *objp in/out
                                                    parameter */
-#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  
+#define JSCLASS_IMPLEMENTS_BARRIERS     (1<<5)  
+
+#define JSCLASS_DOCUMENT_OBSERVER       (1<<6)  /* DOM document observer */
 
 
 

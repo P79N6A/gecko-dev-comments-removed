@@ -118,6 +118,10 @@ if (params.closeWhenDone) {
   TestRunner.onComplete = SpecialPowers.quit;
 }
 
+if (params.failureFile) {
+  TestRunner.setFailureFile(params.failureFile);
+}
+
 
 if (params.logFile) {
   var spl = new SpecialPowersLogger(params.logFile);

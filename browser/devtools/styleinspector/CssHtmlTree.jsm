@@ -273,6 +273,7 @@ CssHtmlTree.prototype = {
     this._matchedProperties = null;
 
     if (this.htmlComplete) {
+      this.refreshSourceFilter();
       this.refreshPanel();
     } else {
       if (this._refreshProcess) {
@@ -281,6 +282,9 @@ CssHtmlTree.prototype = {
 
       CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
+      
+      
+      this.refreshSourceFilter();
       this.numVisibleProperties = 0;
       let fragment = this.doc.createDocumentFragment();
       this._refreshProcess = new UpdateProcess(this.win, CssHtmlTree.propertyNames, {
@@ -366,17 +370,24 @@ CssHtmlTree.prototype = {
 
 
 
-
-
-
-
   onlyUserStylesChanged: function CssHtmltree_onlyUserStylesChanged(aEvent)
+  {
+    this.refreshSourceFilter();
+    this.refreshPanel();
+  },
+
+  
+
+
+
+
+
+  refreshSourceFilter: function CssHtmlTree_setSourceFilter()
   {
     this._matchedProperties = null;
     this.cssLogic.sourceFilter = this.showOnlyUserStyles ?
                                  CssLogic.FILTER.ALL :
                                  CssLogic.FILTER.UA;
-    this.refreshPanel();
   },
 
   
@@ -973,5 +984,25 @@ SelectorView.prototype = {
     }
 
     return result;
+  },
+
+  
+
+
+
+
+
+
+  openStyleEditor: function(aEvent)
+  {
+    if (this.selectorInfo.selector._cssRule._cssSheet) {
+      let styleSheet = this.selectorInfo.selector._cssRule._cssSheet.domSheet;
+      let line = this.selectorInfo.ruleLine;
+
+      this.tree.win.StyleEditor.openChrome(styleSheet, line);
+    } else {
+      let href = this.selectorInfo.sourceElement.ownerDocument.location.href;
+      this.tree.win.openUILinkIn("view-source:" + href, "window");
+    }
   },
 };

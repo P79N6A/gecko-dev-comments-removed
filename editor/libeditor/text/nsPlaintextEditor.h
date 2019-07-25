@@ -118,10 +118,6 @@ public:
   NS_IMETHOD PasteTransferable(nsITransferable *aTransferable);
   NS_IMETHOD CanPasteTransferable(nsITransferable *aTransferable, bool *aCanPaste);
 
-  NS_IMETHOD CanDrag(nsIDOMEvent *aDragEvent, bool *aCanDrag);
-  NS_IMETHOD DoDrag(nsIDOMEvent *aDragEvent);
-  NS_IMETHOD InsertFromDrop(nsIDOMEvent* aDropEvent);
-
   NS_IMETHOD OutputToString(const nsAString& aFormatType,
                             PRUint32 aFlags,
                             nsAString& aOutputString);
@@ -167,6 +163,15 @@ public:
                         PRInt32 aDestOffset,
                         bool aDoDeleteSelection);
 
+  virtual nsresult InsertFromDataTransfer(nsIDOMDataTransfer *aDataTransfer,
+                                          PRInt32 aIndex,
+                                          nsIDOMDocument *aSourceDoc,
+                                          nsIDOMNode *aDestinationNode,
+                                          PRInt32 aDestOffset,
+                                          bool aDoDeleteSelection);
+
+  virtual nsresult InsertFromDrop(nsIDOMEvent* aDropEvent);
+
   
 
 
@@ -205,18 +210,12 @@ protected:
                                         nsIDOMNode *aDestinationNode,
                                         PRInt32 aDestOffset,
                                         bool aDoDeleteSelection);
-  virtual nsresult SetupDocEncoder(nsIDocumentEncoder **aDocEncoder);
-  virtual nsresult PutDragDataInTransferable(nsITransferable **aTransferable);
 
   
   nsresult SharedOutputString(PRUint32 aFlags, bool* aIsCollapsed, nsAString& aResult);
 
   
   bool IsModifiable();
-
-  
-  bool     mIgnoreSpuriousDragEvent;
-  NS_IMETHOD IgnoreSpuriousDragEvent(bool aIgnoreSpuriousDragEvent) {mIgnoreSpuriousDragEvent = aIgnoreSpuriousDragEvent; return NS_OK;}
 
   bool CanCutOrCopy();
   bool FireClipboardEvent(PRInt32 aType);

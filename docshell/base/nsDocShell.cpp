@@ -4119,9 +4119,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
 
     
     NS_ENSURE_FALSE(messageStr.IsEmpty(), NS_ERROR_FAILURE);
-    
-    
-    if (mUseErrorPages && aURI) {
+    if (mUseErrorPages) {
         
         LoadErrorPage(aURI, aURL, errorPage.get(), error.get(),
                       messageStr.get(), cssClass.get(), aFailedChannel);
@@ -4190,6 +4188,10 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
     }
     else if (aURL)
     {
+        
+        nsresult rv = NS_NewURI(getter_AddRefs(mFailedURI), "about:blank");
+        NS_ENSURE_SUCCESS(rv, rv);
+
         CopyUTF16toUTF8(aURL, url);
     }
     else

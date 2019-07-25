@@ -266,7 +266,7 @@ nsSVGDisplayContainerFrame::GetBBoxContribution(
       nsIContent *content = kid->GetContent();
       if (content->IsSVG() && !content->IsNodeOfType(nsINode::eTEXT)) {
         transform = static_cast<nsSVGElement*>(content)->
-                      PrependLocalTransformTo(aToBBoxUserspace);
+                      PrependLocalTransformsTo(aToBBoxUserspace);
       }
       
       

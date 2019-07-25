@@ -61,8 +61,6 @@
 
 #include "nsIServiceManager.h"
 #include "nsIClipboard.h"
-#include "nsIDragService.h"
-#include "nsIDragSession.h"
 #include "nsIContent.h"
 #include "nsISupportsPrimitives.h"
 #include "nsIDOMRange.h"
@@ -158,11 +156,6 @@ nsEditorEventListener::InstallToEditor()
                                NS_LITERAL_STRING("keypress"),
                                NS_EVENT_FLAG_BUBBLE |
                                NS_EVENT_FLAG_SYSTEM_EVENT);
-  
-  elmP->AddEventListenerByType(this,
-                               NS_LITERAL_STRING("draggesture"),
-                               NS_EVENT_FLAG_BUBBLE |
-                               NS_EVENT_FLAG_SYSTEM_EVENT);
   elmP->AddEventListenerByType(this,
                                NS_LITERAL_STRING("dragenter"),
                                NS_EVENT_FLAG_BUBBLE |
@@ -256,10 +249,6 @@ nsEditorEventListener::UninstallFromEditor()
                                   NS_EVENT_FLAG_BUBBLE |
                                   NS_EVENT_FLAG_SYSTEM_EVENT);
   elmP->RemoveEventListenerByType(this,
-                                  NS_LITERAL_STRING("draggesture"),
-                                  NS_EVENT_FLAG_BUBBLE |
-                                  NS_EVENT_FLAG_SYSTEM_EVENT);
-  elmP->RemoveEventListenerByType(this,
                                   NS_LITERAL_STRING("dragenter"),
                                   NS_EVENT_FLAG_BUBBLE |
                                   NS_EVENT_FLAG_SYSTEM_EVENT);
@@ -332,8 +321,6 @@ nsEditorEventListener::HandleEvent(nsIDOMEvent* aEvent)
 
   nsCOMPtr<nsIDOMDragEvent> dragEvent = do_QueryInterface(aEvent);
   if (dragEvent) {
-    if (eventType.EqualsLiteral("draggesture"))
-      return DragGesture(dragEvent);
     if (eventType.EqualsLiteral("dragenter"))
       return DragEnter(dragEvent);
     if (eventType.EqualsLiteral("dragover"))
@@ -659,18 +646,6 @@ nsEditorEventListener::HandleText(nsIDOMEvent* aTextEvent)
 
 
 nsresult
-nsEditorEventListener::DragGesture(nsIDOMDragEvent* aDragEvent)
-{
-  
-  bool canDrag;
-  nsresult rv = mEditor->CanDrag(aDragEvent, &canDrag);
-  if ( NS_SUCCEEDED(rv) && canDrag )
-    rv = mEditor->DoDrag(aDragEvent);
-
-  return rv;
-}
-
-nsresult
 nsEditorEventListener::DragEnter(nsIDOMDragEvent* aDragEvent)
 {
   nsCOMPtr<nsIPresShell> presShell = GetPresShell();
@@ -723,6 +698,10 @@ nsEditorEventListener::DragOver(nsIDOMDragEvent* aDragEvent)
   }
   else
   {
+    
+    
+    aDragEvent->StopPropagation();
+
     if (mCaret)
     {
       mCaret->EraseCaret();
@@ -794,8 +773,6 @@ nsEditorEventListener::Drop(nsIDOMDragEvent* aMouseEvent)
 
   aMouseEvent->StopPropagation();
   aMouseEvent->PreventDefault();
-  
-  
   return mEditor->InsertFromDrop(aMouseEvent);
 }
 

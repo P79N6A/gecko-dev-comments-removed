@@ -868,7 +868,7 @@ struct JSObject : js::gc::Cell
         return type_;
     }
 
-    const js::HeapPtr<js::types::TypeObject> &typeFromGC() const {
+    js::HeapPtr<js::types::TypeObject> &typeFromGC() {
         
         return type_;
     }
@@ -954,6 +954,7 @@ struct JSObject : js::gc::Cell
     inline bool hasPrivate() const;
     inline void *getPrivate() const;
     inline void setPrivate(void *data);
+    inline void initPrivate(void *data);
 
     
     inline void *getPrivate(size_t nfixed) const;
@@ -1355,6 +1356,7 @@ struct JSObject : js::gc::Cell
 
     static inline void writeBarrierPre(JSObject *obj);
     static inline void writeBarrierPost(JSObject *obj, void *addr);
+    static inline void readBarrier(JSObject *obj);
     inline void privateWriteBarrierPre(void **oldval);
     inline void privateWriteBarrierPost(void **oldval);
 
@@ -2027,71 +2029,6 @@ NonNullObject(JSContext *cx, const Value &v);
 
 extern const char *
 InformalValueTypeName(const Value &v);
-
-
-
-
-
-
-
-
-
-
-extern void
-ReportIncompatibleMethod(JSContext *cx, CallReceiver call, Class *clasp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inline JSObject *
-NonGenericMethodGuard(JSContext *cx, CallArgs args, Native native, Class *clasp, bool *ok);
-
-
-
-
-
-
-
-
-extern bool
-HandleNonGenericMethodClassMismatch(JSContext *cx, CallArgs args, Native native, Class *clasp);
-
-
-
-
-
-
-
-
-template <typename T>
-inline bool
-BoxedPrimitiveMethodGuard(JSContext *cx, CallArgs args, Native native, T *v, bool *ok);
 
 }  
 

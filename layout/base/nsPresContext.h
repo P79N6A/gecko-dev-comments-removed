@@ -119,8 +119,7 @@ enum nsPresContext_CachedBoolPrefType {
 
 
 enum nsPresContext_CachedIntPrefType {
-  kPresContext_MinimumFontSize = 1,
-  kPresContext_ScrollbarSide,
+  kPresContext_ScrollbarSide = 1,
   kPresContext_BidiDirection
 };
 
@@ -320,7 +319,10 @@ public:
 
 
 
-  NS_HIDDEN_(const nsFont*) GetDefaultFont(PRUint8 aFontID) const;
+
+
+  NS_HIDDEN_(const nsFont*) GetDefaultFont(PRUint8 aFontID,
+                                           nsIAtom *aLanguage) const;
 
   
   
@@ -349,8 +351,6 @@ public:
     
     
     switch (aPrefType) {
-    case kPresContext_MinimumFontSize:
-      return mMinimumFontSizePref;
     case kPresContext_ScrollbarSide:
       return mPrefScrollbarSide;
     case kPresContext_BidiDirection:
@@ -535,8 +535,13 @@ public:
     }
   }
 
-  PRInt32 MinFontSize() const {
-    return NS_MAX(mMinFontSize, mMinimumFontSizePref);
+  
+
+
+
+  PRInt32 MinFontSize(nsIAtom *aLanguage) const {
+    const LangGroupFontPrefs *prefs = GetFontPrefsForLang(aLanguage);
+    return NS_MAX(mMinFontSize, prefs->mMinimumFontSize);
   }
 
   void SetMinFontSize(PRInt32 aMinFontSize) {
@@ -965,7 +970,14 @@ public:
 
   virtual NS_MUST_OVERRIDE size_t
         SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf) const {
-    return 0;
+    size_t n = 0;
+    LangGroupFontPrefs *langGroupfontPrefs = mLangGroupFontPrefs.mNext;
+    while (langGroupfontPrefs) {
+      
+      n += sizeof(LangGroupFontPrefs);
+      langGroupfontPrefs = langGroupfontPrefs->mNext;
+    }
+    return n;
 
     
     
@@ -994,7 +1006,62 @@ protected:
   static NS_HIDDEN_(void) PrefChangedUpdateTimerCallback(nsITimer *aTimer, void *aClosure);
 
   NS_HIDDEN_(void) GetUserPreferences();
-  NS_HIDDEN_(void) GetFontPreferences();
+
+  
+  
+  struct LangGroupFontPrefs;
+  friend class nsAutoPtr<LangGroupFontPrefs>;
+  struct LangGroupFontPrefs {
+    
+    LangGroupFontPrefs()
+      : mLangGroup(nsnull)
+      , mMinimumFontSize(0)
+      , mDefaultVariableFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
+                             NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0)
+      , mDefaultFixedFont("monospace", NS_FONT_STYLE_NORMAL,
+                          NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
+                          NS_FONT_STRETCH_NORMAL, 0, 0)
+      , mDefaultSerifFont("serif", NS_FONT_STYLE_NORMAL, NS_FONT_VARIANT_NORMAL,
+                        NS_FONT_WEIGHT_NORMAL, NS_FONT_STRETCH_NORMAL, 0, 0)
+      , mDefaultSansSerifFont("sans-serif", NS_FONT_STYLE_NORMAL,
+                              NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
+                              NS_FONT_STRETCH_NORMAL, 0, 0)
+      , mDefaultMonospaceFont("monospace", NS_FONT_STYLE_NORMAL,
+                              NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
+                              NS_FONT_STRETCH_NORMAL, 0, 0)
+      , mDefaultCursiveFont("cursive", NS_FONT_STYLE_NORMAL,
+                            NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
+                            NS_FONT_STRETCH_NORMAL, 0, 0)
+      , mDefaultFantasyFont("fantasy", NS_FONT_STYLE_NORMAL,
+                            NS_FONT_VARIANT_NORMAL, NS_FONT_WEIGHT_NORMAL,
+                            NS_FONT_STRETCH_NORMAL, 0, 0)
+    {}
+
+    nsCOMPtr<nsIAtom> mLangGroup;
+    nscoord mMinimumFontSize;
+    nsFont mDefaultVariableFont;
+    nsFont mDefaultFixedFont;
+    nsFont mDefaultSerifFont;
+    nsFont mDefaultSansSerifFont;
+    nsFont mDefaultMonospaceFont;
+    nsFont mDefaultCursiveFont;
+    nsFont mDefaultFantasyFont;
+    nsAutoPtr<LangGroupFontPrefs> mNext;
+  };
+
+  
+
+
+
+  const LangGroupFontPrefs* GetFontPrefsForLang(nsIAtom *aLanguage) const;
+
+  void ResetCachedFontPrefs() {
+    
+    mLangGroupFontPrefs.mNext = nsnull;
+
+    
+    mLangGroupFontPrefs.mLangGroup = nsnull;
+  }
 
   NS_HIDDEN_(void) UpdateCharSet(const nsCString& aCharSet);
 
@@ -1089,9 +1156,6 @@ protected:
   
   nsUserFontSet*        mUserFontSet;
   
-  PRInt32               mFontScaler;
-  nscoord               mMinimumFontSizePref;
-
   nsRect                mVisibleArea;
   nsSize                mPageSize;
   float                 mPageScale;
@@ -1115,13 +1179,7 @@ protected:
   PRUint16              mImageAnimationMode;
   PRUint16              mImageAnimationModePref;
 
-  nsFont                mDefaultVariableFont;
-  nsFont                mDefaultFixedFont;
-  nsFont                mDefaultSerifFont;
-  nsFont                mDefaultSansSerifFont;
-  nsFont                mDefaultMonospaceFont;
-  nsFont                mDefaultCursiveFont;
-  nsFont                mDefaultFantasyFont;
+  LangGroupFontPrefs    mLangGroupFontPrefs;
 
   nscoord               mBorderWidthTable[3];
 

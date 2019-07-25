@@ -308,23 +308,24 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
     volatile uint32_t   gcNumArenasFreeCommitted;
-    uint32_t            gcNumber;
-    js::GCMarker        *gcIncrementalTracer;
+    js::FullGCMarker    gcMarker;
     void                *gcVerifyData;
     bool                gcChunkAllocationSinceLastGC;
     int64_t             gcNextFullGCTime;
     int64_t             gcJitReleaseTime;
     JSGCMode            gcMode;
-    volatile uintptr_t  gcBarrierFailed;
     volatile uintptr_t  gcIsNeeded;
     js::WeakMapBase     *gcWeakMapList;
     js::gcstats::Statistics gcStats;
 
     
-    js::gcreason::Reason gcTriggerReason;
+    uint64_t            gcNumber;
 
     
-    uintptr_t           gcMarkStackArray[js::MARK_STACK_LENGTH];
+    uint64_t            gcStartNumber;
+
+    
+    js::gcreason::Reason gcTriggerReason;
 
     
 
@@ -345,14 +346,59 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
+    js::gc::State       gcIncrementalState;
 
+    
+    bool                gcCompartmentCreated;
 
-    bool                gcPoke;
-    bool                gcMarkAndSweep;
-    bool                gcRunning;
+    
+    bool                gcLastMarkSlice;
 
     
 
+
+
+
+    volatile uintptr_t  gcInterFrameGC;
+
+    
+    int64_t             gcSliceBudget;
+
+    
+
+
+
+    bool                gcIncrementalEnabled;
+
+    
+    JSCompartment       *gcIncrementalCompartment;
+
+    
+
+
+
+
+
+#ifdef DEBUG
+    struct SavedGCRoot {
+        void *thing;
+        JSGCTraceKind kind;
+
+        SavedGCRoot(void *thing, JSGCTraceKind kind) : thing(thing), kind(kind) {}
+    };
+    js::Vector<SavedGCRoot, 0, js::SystemAllocPolicy> gcSavedRoots;
+#endif
+
+
+
+
+
+
+
+    bool                gcPoke;
+    bool                gcRunning;
+
+    
 
 
 
@@ -382,7 +428,7 @@ struct JSRuntime : js::RuntimeFriendFields
 
     bool needZealousGC() {
         if (gcNextScheduled > 0 && --gcNextScheduled == 0) {
-            if (gcZeal() >= js::gc::ZealAllocThreshold && gcZeal() < js::gc::ZealVerifierThreshold)
+            if (gcZeal() == js::gc::ZealAllocValue)
                 gcNextScheduled = gcZealFrequency;
             return true;
         }
@@ -394,7 +440,7 @@ struct JSRuntime : js::RuntimeFriendFields
 #endif
 
     JSGCCallback        gcCallback;
-    JSGCFinishedCallback gcFinishedCallback;
+    js::GCSliceCallback gcSliceCallback;
 
   private:
     

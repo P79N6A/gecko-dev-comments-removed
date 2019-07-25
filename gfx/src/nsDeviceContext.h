@@ -51,29 +51,6 @@ class nsIAtom;
 class nsFontCache;
 class gfxUserFontSet;
 
-typedef enum {
-    eSystemFont_Caption,         
-    eSystemFont_Icon,
-    eSystemFont_Menu,
-    eSystemFont_MessageBox,
-    eSystemFont_SmallCaption,
-    eSystemFont_StatusBar,
-
-    eSystemFont_Window,          
-    eSystemFont_Document,
-    eSystemFont_Workspace,
-    eSystemFont_Desktop,
-    eSystemFont_Info,
-    eSystemFont_Dialog,
-    eSystemFont_Button,
-    eSystemFont_PullDownMenu,
-    eSystemFont_List,
-    eSystemFont_Field,
-
-    eSystemFont_Tooltips,        
-    eSystemFont_Widget
-} nsSystemFontID;
-
 class nsDeviceContext
 {
 public:
@@ -149,22 +126,6 @@ public:
 
     PRInt32 UnscaledAppUnitsPerDevPixel() const
     { return mAppUnitsPerDevNotScaledPixel; }
-
-    
-
-
-
-
-
-
-
-
-    nsresult GetSystemFont(nsSystemFontID aID, nsFont *aFont) const;
-
-    
-
-
-    static void ClearCachedSystemFonts();
 
     
 

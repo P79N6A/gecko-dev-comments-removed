@@ -908,6 +908,15 @@ nsSVGElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
   return NS_OK;
 }
 
+NS_IMETHODIMP_(bool)
+nsSVGElement::IsAttributeMapped(const nsIAtom* name) const
+{
+  if (name == nsGkAtoms::lang) {
+    return true;
+  }
+  return nsSVGElementBase::IsAttributeMapped(name);
+}
+
 
  const nsGenericElement::MappedAttributeEntry
 nsSVGElement::sFillStrokeMap[] = {
@@ -1155,9 +1164,24 @@ MappedAttrParser::ParseMappedAttrValue(nsIAtom* aMappedAttrName,
   
   nsCSSProperty propertyID =
     nsCSSProps::LookupProperty(nsDependentAtomString(aMappedAttrName));
-  bool changed; 
-  mParser.ParseProperty(propertyID, aMappedAttrValue, mDocURI, mBaseURI,
-                        mNodePrincipal, mDecl, &changed, false);
+  if (propertyID != eCSSProperty_UNKNOWN) {
+    bool changed; 
+    mParser.ParseProperty(propertyID, aMappedAttrValue, mDocURI, mBaseURI,
+                          mNodePrincipal, mDecl, &changed, false);
+    return;
+  }
+  NS_ABORT_IF_FALSE(aMappedAttrName == nsGkAtoms::lang,
+                    "Only 'lang' should be unrecognized!");
+  
+  if (aMappedAttrName == nsGkAtoms::lang) {
+    propertyID = eCSSProperty__x_lang;
+    nsCSSExpandedDataBlock block;
+    mDecl->ExpandTo(&block);
+    nsCSSValue cssValue(PromiseFlatString(aMappedAttrValue), eCSSUnit_Ident);
+    block.AddLonghandProperty(propertyID, cssValue);
+    mDecl->ValueAppended(propertyID);
+    mDecl->CompressFrom(&block);
+  }
 }
 
 already_AddRefed<css::StyleRule>
@@ -1202,6 +1226,16 @@ nsSVGElement::UpdateContentStyleRule()
     const nsAttrName* attrName = mAttrsAndChildren.AttrNameAt(i);
     if (!attrName->IsAtom() || !IsAttributeMapped(attrName->Atom()))
       continue;
+
+    if (attrName->NamespaceID() != kNameSpaceID_None &&
+        !attrName->Equals(nsGkAtoms::lang, kNameSpaceID_XML)) {
+      continue;
+    }
+
+    if (attrName->Equals(nsGkAtoms::lang, kNameSpaceID_None) &&
+        HasAttr(kNameSpaceID_XML, nsGkAtoms::lang)) {
+      continue; 
+    }
 
     if (Tag() == nsGkAtoms::svg) {
       
@@ -1486,7 +1520,8 @@ nsSVGElement::GetCtx() const
 }
 
  gfxMatrix
-nsSVGElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
+nsSVGElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+                                       TransformTypes aWhich) const
 {
   return aMatrix;
 }

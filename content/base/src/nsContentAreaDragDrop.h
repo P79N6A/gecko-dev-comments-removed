@@ -89,7 +89,7 @@ public:
                               bool aIsAltKeyPressed,
                               nsDOMDataTransfer* aDataTransfer,
                               bool* aCanDrag,
-                              bool* aDragSelection,
+                              nsISelection** aSelection,
                               nsIContent** aDragNode);
 };
 

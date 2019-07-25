@@ -186,8 +186,9 @@ public:
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
   
-  virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
-  
+  virtual gfxMatrix PrependLocalTransformsTo(const gfxMatrix &aMatrix,
+                      TransformTypes aWhich = eAllTransforms) const;
+ 
   
   float GetLength(PRUint8 mCtxType);
 

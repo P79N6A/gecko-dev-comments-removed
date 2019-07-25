@@ -169,6 +169,7 @@ class RegExpObject : public JSObject
     inline RegExpShared &shared() const;
     inline RegExpShared *maybeShared();
     inline RegExpShared *getShared(JSContext *cx);
+    inline void setShared(JSContext *cx, RegExpShared *shared);
 
   private:
     friend class RegExpObjectBuilder;
@@ -190,6 +191,9 @@ class RegExpObject : public JSObject
 
     RegExpObject() MOZ_DELETE;
     RegExpObject &operator=(const RegExpObject &reo) MOZ_DELETE;
+
+    
+    void setPrivate(void *priv) MOZ_DELETE;
 };
 
 class RegExpObjectBuilder
@@ -294,6 +298,25 @@ class RegExpCode
 }  
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class RegExpShared
 {
     friend class RegExpCompartment;
@@ -301,11 +324,12 @@ class RegExpShared
     detail::RegExpCode code;
     uintN              parenCount;
     RegExpFlag         flags;
-    size_t             activeUseCount;
+    size_t             activeUseCount;   
+    uint64_t           gcNumberWhenUsed; 
 
     bool compile(JSContext *cx, JSAtom *source);
 
-    RegExpShared(RegExpFlag flags);
+    RegExpShared(JSRuntime *rt, RegExpFlag flags);
     JS_DECLARE_ALLOCATION_FRIENDS_FOR_PRIVATE_CONSTRUCTOR;
 
   public:
@@ -337,6 +361,9 @@ class RegExpShared
         RegExpShared *operator->() { JS_ASSERT(initialized()); return re_; }
         RegExpShared &operator*() { JS_ASSERT(initialized()); return *re_; }
     };
+
+    
+    inline void prepareForUse(JSContext *cx);
 
     
 
@@ -388,7 +415,7 @@ class RegExpCompartment
     ~RegExpCompartment();
 
     bool init(JSContext *cx);
-    void purge();
+    void sweep(JSRuntime *rt);
 
     
     RegExpShared *get(JSContext *cx, JSAtom *source, RegExpFlag flags);

@@ -1,46 +1,47 @@
-/* -*- Mode: C++; tab-width: 20; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is mozilla.org code.
- *
- * The Initial Developer of the Original Code is
- *   Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Vladimir Vukicevic <vladimir@pobox.com>
- *   Alex Pakhotin <alexp@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "mozilla/dom/ContentChild.h"
 #include "nsStyleConsts.h"
 #include "nsXULAppAPI.h"
 #include "nsLookAndFeel.h"
+#include "gfxFont.h"
 
 using namespace mozilla;
 using mozilla::dom::ContentChild;
@@ -87,7 +88,7 @@ nsLookAndFeel::GetSystemColors()
 nsresult
 nsLookAndFeel::CallRemoteGetSystemColors()
 {
-    // An array has to be used to get data from remote process
+    
     InfallibleTArray<PRUint32> colors;
     PRUint32 colorsCount = sizeof(AndroidSystemColors) / sizeof(nscolor);
 
@@ -101,8 +102,8 @@ nsLookAndFeel::CallRemoteGetSystemColors()
     if (colors.Length() < colorsCount)
         colorsCount = colors.Length();
 
-    // Array elements correspond to the members of mSystemColors structure,
-    // so just copy the memory block
+    
+    
     memcpy(&mSystemColors, colors.Elements(), sizeof(nscolor) * colorsCount);
 
     mInitializedSystemColors = true;
@@ -123,13 +124,13 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    // XXX we'll want to use context.obtainStyledAttributes on the java side to
-    // get all of these; see TextView.java for a good exmaple.
+    
+    
 
     switch (aID) {
-        // These colors don't seem to be used for anything anymore in Mozilla
-        // (except here at least TextSelectBackground and TextSelectForeground)
-        // The CSS2 colors below are used.
+        
+        
+        
     case eColorID_WindowBackground:
         aColor = mSystemColors.colorBackground;
         break;
@@ -155,23 +156,23 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = DARK_GRAY_COLOR;
         break;
     case eColorID_TextBackground:
-        // not used?
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_TextForeground:
-        // not used?
+        
         aColor = mSystemColors.textColorPrimary;
         break;
     case eColorID_TextSelectBackground:
     case eColorID_IMESelectedRawTextBackground:
     case eColorID_IMESelectedConvertedTextBackground:
-        // still used
+        
         aColor = mSystemColors.textColorHighlight;
         break;
     case eColorID_TextSelectForeground:
     case eColorID_IMESelectedRawTextForeground:
     case eColorID_IMESelectedConvertedTextForeground:
-        // still used
+        
         aColor = mSystemColors.textColorPrimaryInverse;
         break;
     case eColorID_IMERawInputBackground:
@@ -194,104 +195,104 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
       aColor = RED_COLOR;
       break;
 
-        // css2  http://www.w3.org/TR/REC-CSS2/ui.html#system-colors
+        
     case eColorID_activeborder:
-        // active window border
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_activecaption:
-        // active window caption background
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_appworkspace:
-        // MDI background color
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_background:
-        // desktop background
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_captiontext:
-        // text in active window caption, size box, and scrollbar arrow box (!)
+        
         aColor = mSystemColors.colorForeground;
         break;
     case eColorID_graytext:
-        // disabled text in windows, menus, etc.
+        
         aColor = mSystemColors.textColorTertiary;
         break;
     case eColorID_highlight:
-        // background of selected item
+        
         aColor = mSystemColors.textColorHighlight;
         break;
     case eColorID_highlighttext:
-        // text of selected item
+        
         aColor = mSystemColors.textColorPrimaryInverse;
         break;
     case eColorID_inactiveborder:
-        // inactive window border
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_inactivecaption:
-        // inactive window caption
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_inactivecaptiontext:
-        // text in inactive window caption
+        
         aColor = mSystemColors.textColorTertiary;
         break;
     case eColorID_infobackground:
-        // tooltip background color
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_infotext:
-        // tooltip text color
+        
         aColor = mSystemColors.colorForeground;
         break;
     case eColorID_menu:
-        // menu background
+        
         aColor = mSystemColors.colorBackground;
         break;
     case eColorID_menutext:
-        // menu text
+        
         aColor = mSystemColors.colorForeground;
         break;
     case eColorID_scrollbar:
-        // scrollbar gray area
+        
         aColor = mSystemColors.colorBackground;
         break;
 
     case eColorID_threedface:
     case eColorID_buttonface:
-        // 3-D face color
+        
         aColor = mSystemColors.colorBackground;
         break;
 
     case eColorID_buttontext:
-        // text on push buttons
+        
         aColor = mSystemColors.colorForeground;
         break;
 
     case eColorID_buttonhighlight:
-        // 3-D highlighted edge color
+        
     case eColorID_threedhighlight:
-        // 3-D highlighted outer edge color
+        
         aColor = LIGHT_GRAY_COLOR;
         break;
 
     case eColorID_threedlightshadow:
-        // 3-D highlighted inner edge color
+        
         aColor = mSystemColors.colorBackground;
         break;
 
     case eColorID_buttonshadow:
-        // 3-D shadow edge color
+        
     case eColorID_threedshadow:
-        // 3-D shadow inner edge color
+        
         aColor = GRAY_COLOR;
         break;
 
     case eColorID_threeddarkshadow:
-        // 3-D shadow outer edge color
+        
         aColor = BLACK_COLOR;
         break;
 
@@ -321,7 +322,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = mSystemColors.textColorHighlight;
         break;
     case eColorID__moz_buttondefault:
-        // default button border color
+        
         aColor = BLACK_COLOR;
         break;
     case eColorID__moz_buttonhoverface:
@@ -363,7 +364,7 @@ nsLookAndFeel::NativeGetColor(ColorID aID, nscolor &aColor)
         aColor = FG_PRELIGHT_COLOR;
         break;
     default:
-        /* default color is BLACK */
+        
         aColor = 0;
         rv = NS_ERROR_FAILURE;
         break;
@@ -396,8 +397,8 @@ nsLookAndFeel::GetIntImpl(IntID aID, PRInt32 &aResult)
             break;
 
         case eIntID_SelectTextfieldsOnKeyFocus:
-            // Select textfield content when focused by kbd
-            // used by nsEventStateManager::sTextfieldSelectModel
+            
+            
             aResult = 1;
             break;
 
@@ -410,7 +411,7 @@ nsLookAndFeel::GetIntImpl(IntID aID, PRInt32 &aResult)
             break;
 
         case eIntID_MenusCanOverlapOSBar:
-            // we want XUL popups to be able to overlap the task bar.
+            
             aResult = 1;
             break;
 
@@ -471,7 +472,21 @@ nsLookAndFeel::GetFloatImpl(FloatID aID, float &aResult)
     return rv;
 }
 
-/*virtual*/
+
+bool
+nsLookAndFeel::GetFontImpl(FontID aID, nsString& aFontName,
+                           gfxFontStyle& aFontStyle)
+{
+    aFontName.AssignLiteral("\"Droid Sans\"");
+    aFontStyle.style = NS_FONT_STYLE_NORMAL;
+    aFontStyle.weight = NS_FONT_WEIGHT_NORMAL;
+    aFontStyle.stretch = NS_FONT_STRETCH_NORMAL;
+    aFontStyle.size = 9.0 * 96.0f / 72.0f;
+    aFontStyle.systemFont = true;
+    return true;
+}
+
+
 bool
 nsLookAndFeel::GetEchoPasswordImpl()
 {

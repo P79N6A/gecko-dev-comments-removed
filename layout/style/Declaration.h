@@ -119,6 +119,7 @@ public:
 
 
 
+
   void CompressFrom(nsCSSExpandedDataBlock *aExpandedData) {
     NS_ABORT_IF_FALSE(!mData, "oops");
     NS_ABORT_IF_FALSE(!mImportantData, "oops");

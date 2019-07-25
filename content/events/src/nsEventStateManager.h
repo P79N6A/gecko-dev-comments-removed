@@ -420,12 +420,10 @@ protected:
 
 
 
-
   void DetermineDragTarget(nsPresContext* aPresContext,
                            nsIContent* aSelectionTarget,
                            nsDOMDataTransfer* aDataTransfer,
-                           bool* aIsSelection,
-                           bool* aIsInEditor,
+                           nsISelection** aSelection,
                            nsIContent** aTargetNode);
 
   
@@ -442,7 +440,7 @@ protected:
                             nsDragEvent* aDragEvent,
                             nsDOMDataTransfer* aDataTransfer,
                             nsIContent* aDragTarget,
-                            bool aIsSelection);
+                            nsISelection* aSelection);
 
   bool IsTrackingDragGesture ( ) const { return mGestureDownContent != nsnull; }
   

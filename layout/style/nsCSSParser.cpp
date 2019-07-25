@@ -460,12 +460,12 @@ protected:
     nsCSSValueList* mAttachment;
     nsCSSValueList* mClip;
     nsCSSValueList* mOrigin;
-    nsCSSValuePairList* mPosition;
+    nsCSSValueList* mPosition;
     nsCSSValuePairList* mSize;
     BackgroundParseState(
         nsCSSValue& aColor, nsCSSValueList* aImage, nsCSSValueList* aRepeat,
         nsCSSValueList* aAttachment, nsCSSValueList* aClip,
-        nsCSSValueList* aOrigin, nsCSSValuePairList* aPosition,
+        nsCSSValueList* aOrigin, nsCSSValueList* aPosition,
         nsCSSValuePairList* aSize) :
         mColor(aColor), mImage(aImage), mRepeat(aRepeat),
         mAttachment(aAttachment), mClip(aClip), mOrigin(aOrigin),
@@ -476,8 +476,14 @@ protected:
 
   bool ParseValueList(nsCSSProperty aPropID); 
   bool ParseBackgroundPosition();
+
+  
+  
+  
   bool ParseBoxPositionValues(nsCSSValuePair& aOut, bool aAcceptsInherit,
-                              bool aAllowExplicitCenter = true);
+                              bool aAllowExplicitCenter = true); 
+  bool ParseBackgroundPositionValues(nsCSSValue& aOut, bool aAcceptsInherit);
+
   bool ParseBackgroundSize();
   bool ParseBackgroundSizeValues(nsCSSValuePair& aOut);
   bool ParseBorderColor();
@@ -4946,8 +4952,6 @@ CSSParserImpl::ParseColorStop(nsCSSValueGradient* aGradient)
 
 
 
-
-
 bool
 CSSParserImpl::ParseGradient(nsCSSValue& aValue, bool aIsRadial,
                              bool aIsRepeating)
@@ -5646,7 +5650,9 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
 #define BG_LEFT    NS_STYLE_BG_POSITION_LEFT
 #define BG_RIGHT   NS_STYLE_BG_POSITION_RIGHT
 #define BG_CTB    (BG_CENTER | BG_TOP | BG_BOTTOM)
+#define BG_TB     (BG_TOP | BG_BOTTOM)
 #define BG_CLR    (BG_CENTER | BG_LEFT | BG_RIGHT)
+#define BG_LR     (BG_LEFT | BG_RIGHT)
 
 bool
 CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
@@ -5858,7 +5864,7 @@ CSSParserImpl::ParseBackground()
   nsCSSValue image, repeat, attachment, clip, origin, position, size;
   BackgroundParseState state(color, image.SetListValue(), repeat.SetListValue(),
                              attachment.SetListValue(), clip.SetListValue(),
-                             origin.SetListValue(), position.SetPairListValue(),
+                             origin.SetListValue(), position.SetListValue(),
                              size.SetPairListValue());
 
   for (;;) {
@@ -5888,7 +5894,7 @@ CSSParserImpl::ParseBackground()
     state.mClip = state.mClip->mNext;
     state.mOrigin->mNext = new nsCSSValueList;
     state.mOrigin = state.mOrigin->mNext;
-    state.mPosition->mNext = new nsCSSValuePairList;
+    state.mPosition->mNext = new nsCSSValueList;
     state.mPosition = state.mPosition->mNext;
     state.mSize->mNext = new nsCSSValuePairList;
     state.mSize = state.mSize->mNext;
@@ -5926,8 +5932,10 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
                                    eCSSUnit_Enumerated);
   aState.mOrigin->mValue.SetIntValue(NS_STYLE_BG_ORIGIN_PADDING,
                                      eCSSUnit_Enumerated);
-  aState.mPosition->mXValue.SetPercentValue(0.0f);
-  aState.mPosition->mYValue.SetPercentValue(0.0f);
+  nsRefPtr<nsCSSValue::Array> positionArr = nsCSSValue::Array::Create(4);
+  aState.mPosition->mValue.SetArrayValue(positionArr, eCSSUnit_Array);
+  positionArr->Item(1).SetPercentValue(0.0f);
+  positionArr->Item(3).SetPercentValue(0.0f);
   aState.mSize->mXValue.SetAutoValue();
   aState.mSize->mYValue.SetAutoValue();
 
@@ -5988,12 +5996,9 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
         if (havePosition)
           return false;
         havePosition = true;
-        nsCSSValuePair scratch;
-        if (!ParseBoxPositionValues(scratch, false)) {
+        if (!ParseBackgroundPositionValues(aState.mPosition->mValue, false)) {
           return false;
         }
-        aState.mPosition->mXValue = scratch.mXValue;
-        aState.mPosition->mYValue = scratch.mYValue;
       } else if (nsCSSProps::FindKeyword(keyword,
                    nsCSSProps::kBackgroundOriginKTable, dummy)) {
         if (haveOrigin)
@@ -6043,12 +6048,9 @@ CSSParserImpl::ParseBackgroundItem(CSSParserImpl::BackgroundParseState& aState)
       if (havePosition)
         return false;
       havePosition = true;
-      nsCSSValuePair scratch;
-      if (!ParseBoxPositionValues(scratch, false)) {
+      if (!ParseBackgroundPositionValues(aState.mPosition->mValue, false)) {
         return false;
       }
-      aState.mPosition->mXValue = scratch.mXValue;
-      aState.mPosition->mYValue = scratch.mYValue;
     } else {
       if (haveColor)
         return false;
@@ -6109,30 +6111,35 @@ CSSParserImpl::ParseBackgroundPosition()
       return false;
     }
   } else {
-    nsCSSValuePair valuePair;
-    if (!ParseBoxPositionValues(valuePair, false)) {
+    nsCSSValue itemValue;
+    if (!ParseBackgroundPositionValues(itemValue, false)) {
       return false;
     }
-    nsCSSValuePairList* item = value.SetPairListValue();
+    nsCSSValueList* item = value.SetListValue();
     for (;;) {
-      item->mXValue = valuePair.mXValue;
-      item->mYValue = valuePair.mYValue;
+      item->mValue = itemValue;
       if (CheckEndProperty()) {
         break;
       }
       if (!ExpectSymbol(',', true)) {
         return false;
       }
-      if (!ParseBoxPositionValues(valuePair, false)) {
+      if (!ParseBackgroundPositionValues(itemValue, false)) {
         return false;
       }
-      item->mNext = new nsCSSValuePairList;
+      item->mNext = new nsCSSValueList;
       item = item->mNext;
     }
   }
   AppendValue(eCSSProperty_background_position, value);
   return true;
 }
+
+
+
+
+
+
 
 
 
@@ -6225,6 +6232,188 @@ bool CSSParserImpl::ParseBoxPositionValues(nsCSSValuePair &aOut,
   
   xValue = BoxPositionMaskToCSSValue(mask, true);
   yValue = BoxPositionMaskToCSSValue(mask, false);
+  return true;
+}
+
+bool CSSParserImpl::ParseBackgroundPositionValues(nsCSSValue& aOut,
+                                                  bool aAcceptsInherit)
+{
+  
+  
+  
+  
+  
+  
+  if (aAcceptsInherit && ParseVariant(aOut, VARIANT_INHERIT, nsnull)) {
+    return true;
+  }
+
+  nsRefPtr<nsCSSValue::Array> value = nsCSSValue::Array::Create(4);
+  aOut.SetArrayValue(value, eCSSUnit_Array);
+
+  
+  nsCSSValue &xEdge   = value->Item(0),
+             &xOffset = value->Item(1),
+             &yEdge   = value->Item(2),
+             &yOffset = value->Item(3);
+
+  
+  PRUint32 valueCount = 0;
+  for (PRInt32 i = 0; i < 4; i++) {
+    if (!ParseVariant(value->Item(i), VARIANT_LPCALC | VARIANT_KEYWORD,
+                      nsCSSProps::kBackgroundPositionKTable)) {
+      break;
+    }
+    ++valueCount;
+  }
+
+  switch (valueCount) {
+    case 4:
+      
+      
+      
+      if (eCSSUnit_Enumerated != xEdge.GetUnit() ||
+          BG_CENTER == xEdge.GetIntValue() ||
+          eCSSUnit_Enumerated == xOffset.GetUnit() ||
+          eCSSUnit_Enumerated != yEdge.GetUnit() ||
+          BG_CENTER == yEdge.GetIntValue() ||
+          eCSSUnit_Enumerated == yOffset.GetUnit()) {
+        return false;
+      }
+      break;
+    case 3:
+      
+      
+      
+      
+      if (eCSSUnit_Enumerated != value->Item(1).GetUnit()) {
+        
+        
+        
+        if (eCSSUnit_Enumerated != value->Item(0).GetUnit() ||
+            BG_CENTER == value->Item(0).GetIntValue()) {
+          return false;
+        }
+
+        
+        if (eCSSUnit_Enumerated != value->Item(2).GetUnit()) {
+          return false;
+        }
+
+        yOffset.Reset(); 
+      } else if (eCSSUnit_Enumerated != value->Item(2).GetUnit()) {
+        
+        
+        
+        if (BG_CENTER == value->Item(1).GetIntValue()) {
+          return false;
+        }
+
+        
+        if (eCSSUnit_Enumerated != value->Item(0).GetUnit()) {
+          return false;
+        }
+
+        
+        value->Item(3) = value->Item(2); 
+        value->Item(2) = value->Item(1); 
+        value->Item(1).Reset(); 
+      } else {
+        return false;
+      }
+      break;
+    case 2:
+      
+      
+      
+      if (eCSSUnit_Enumerated == value->Item(0).GetUnit()) {
+        if (eCSSUnit_Enumerated == value->Item(1).GetUnit()) {
+          
+          value->Item(2) = value->Item(1); 
+          xOffset.Reset();
+          yOffset.Reset();
+        } else {
+          
+          
+          if ((BG_TOP | BG_BOTTOM) & value->Item(0).GetIntValue()) {
+            return false;
+          }
+          value->Item(3) = value->Item(1); 
+          xOffset.Reset();
+          yEdge.Reset();
+        }
+      } else {
+        if (eCSSUnit_Enumerated == value->Item(1).GetUnit()) {
+          
+          
+          if ((BG_LEFT | BG_RIGHT) & value->Item(1).GetIntValue()) {
+            return false;
+          }
+          value->Item(2) = value->Item(1); 
+          value->Item(1) = value->Item(0); 
+          xEdge.Reset();
+          yOffset.Reset();
+        } else {
+          
+          value->Item(3) = value->Item(1); 
+          value->Item(1) = value->Item(0); 
+          xEdge.Reset();
+          yEdge.Reset();
+        }
+      }
+      break;
+    case 1:
+      
+      
+      if (eCSSUnit_Enumerated == value->Item(0).GetUnit()) {
+        xOffset.Reset();
+      } else {
+        value->Item(1) = value->Item(0); 
+        xEdge.Reset();
+      }
+      yEdge.SetIntValue(NS_STYLE_BG_POSITION_CENTER, eCSSUnit_Enumerated);
+      yOffset.Reset();
+      break;
+    default:
+      return false;
+  }
+
+  
+  
+  NS_ASSERTION((eCSSUnit_Enumerated == xEdge.GetUnit()  ||
+                eCSSUnit_Null       == xEdge.GetUnit()) &&
+               (eCSSUnit_Enumerated == yEdge.GetUnit()  ||
+                eCSSUnit_Null       == yEdge.GetUnit()) &&
+                eCSSUnit_Enumerated != xOffset.GetUnit()  &&
+                eCSSUnit_Enumerated != yOffset.GetUnit(),
+                "Unexpected units");
+
+  
+  
+  
+  PRInt32 xEdgeEnum =
+          xEdge.GetUnit() == eCSSUnit_Enumerated ? xEdge.GetIntValue() : 0;
+  PRInt32 yEdgeEnum =
+          yEdge.GetUnit() == eCSSUnit_Enumerated ? yEdge.GetIntValue() : 0;
+  if ((xEdgeEnum | yEdgeEnum) == (BG_LEFT | BG_RIGHT) ||
+      (xEdgeEnum | yEdgeEnum) == (BG_TOP | BG_BOTTOM) ||
+      (xEdgeEnum & yEdgeEnum & ~BG_CENTER)) {
+    return false;
+  }
+
+  
+  
+  
+  if (xEdgeEnum & (BG_TOP | BG_BOTTOM) ||
+      yEdgeEnum & (BG_LEFT | BG_RIGHT)) {
+    nsCSSValue swapEdge = xEdge;
+    nsCSSValue swapOffset = xOffset;
+    xEdge = yEdge;
+    xOffset = yOffset;
+    yEdge = swapEdge;
+    yOffset = swapOffset;
+  }
+
   return true;
 }
 

@@ -666,19 +666,12 @@ MakeJITScript(JSContext *cx, JSScript *script, bool construct)
     Vector<ChunkDescriptor> chunks(cx);
     Vector<CrossChunkEdge> edges(cx);
 
-    
-
-
-
-#ifndef JS_CPU_X64
     if (script->length < CHUNK_LIMIT || !cx->typeInferenceEnabled()) {
-#endif
         ChunkDescriptor desc;
         desc.begin = 0;
         desc.end = script->length;
         if (!chunks.append(desc))
             return NULL;
-#ifndef JS_CPU_X64
     } else {
         if (!script->ensureRanInference(cx))
             return NULL;
@@ -871,7 +864,6 @@ MakeJITScript(JSContext *cx, JSScript *script, bool construct)
                 return NULL;
         }
     }
-#endif 
 
     size_t dataSize = sizeof(JITScript)
         + (chunks.length() * sizeof(ChunkDescriptor))
@@ -1259,6 +1251,15 @@ mjit::Compiler::generateEpilogue()
 CompileStatus
 mjit::Compiler::finishThisUp()
 {
+#ifdef JS_CPU_X64
+    
+    for (unsigned i = 0; i < chunkEdges.length(); i++) {
+        chunkEdges[i].sourceTrampoline = stubcc.masm.label();
+        stubcc.masm.move(ImmPtr(NULL), Registers::ScratchReg);
+        stubcc.masm.jump(Registers::ScratchReg);
+    }
+#endif
+
     RETURN_IF_OOM(Compile_Error);
 
     
@@ -1789,8 +1790,6 @@ mjit::Compiler::finishThisUp()
 
     outerChunk.chunk = chunk;
 
-    Repatcher repatch(chunk);
-
     
     CrossChunkEdge *crossEdges = jit->edges();
     for (unsigned i = 0; i < jit->nedges; i++) {
@@ -1837,12 +1836,15 @@ mjit::Compiler::finishThisUp()
 
 
                     edge.sourceJump1 = fullCode.locationOf(oedge.fastJump).executableAddress();
-                    repatch.relink(CodeLocationJump(edge.sourceJump1), targetLabel);
                     if (oedge.slowJump.isSet()) {
                         edge.sourceJump2 =
                             stubCode.locationOf(oedge.slowJump.get()).executableAddress();
-                        repatch.relink(CodeLocationJump(edge.sourceJump2), targetLabel);
                     }
+#ifdef JS_CPU_X64
+                    edge.sourceTrampoline =
+                        stubCode.locationOf(oedge.sourceTrampoline).executableAddress();
+#endif
+                    jit->patchEdge(edge, label);
                     break;
                 }
             }
@@ -3927,7 +3929,7 @@ void
 mjit::Compiler::interruptCheckHelper()
 {
     Jump jump;
-    if (cx->runtime->gcZeal() >= js::gc::ZealVerifierThreshold) {
+    if (cx->runtime->gcZeal() == js::gc::ZealVerifierValue) {
         
         jump = masm.jump();
     } else {
@@ -6895,7 +6897,9 @@ mjit::Compiler::jsop_regexp()
         !cx->typeInferenceEnabled() ||
         analysis->localsAliasStack() ||
         types::TypeSet::HasObjectFlags(cx, globalObj->getType(cx),
-                                       types::OBJECT_FLAG_REGEXP_FLAGS_SET)) {
+                                       types::OBJECT_FLAG_REGEXP_FLAGS_SET) ||
+        cx->runtime->gcIncrementalState == gc::MARK)
+    {
         prepareStubCall(Uses(0));
         masm.move(ImmPtr(obj), Registers::ArgReg1);
         INLINE_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
@@ -6949,6 +6953,7 @@ mjit::Compiler::jsop_regexp()
     }
 
     
+
 
 
 

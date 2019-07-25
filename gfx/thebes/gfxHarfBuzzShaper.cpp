@@ -50,13 +50,13 @@
 #include "gfxHarfBuzzShaper.h"
 #include "gfxFontUtils.h"
 #include "gfxUnicodeProperties.h"
+#include "nsUnicodeNormalizer.h"
 
 #include "harfbuzz/hb-unicode.h"
 #include "harfbuzz/hb-ot.h"
 
 #include "cairo.h"
 
-#include "nsUnicodeRange.h"
 #include "nsCRT.h"
 
 #if defined(XP_WIN)
@@ -702,6 +702,140 @@ HBGetEastAsianWidth(hb_unicode_funcs_t *ufuncs, hb_codepoint_t aCh, void *user_d
 
 
 
+static const PRUnichar sDageshForms[0x05EA - 0x05D0 + 1] = {
+    0xFB30, 
+    0xFB31, 
+    0xFB32, 
+    0xFB33, 
+    0xFB34, 
+    0xFB35, 
+    0xFB36, 
+    0, 
+    0xFB38, 
+    0xFB39, 
+    0xFB3A, 
+    0xFB3B, 
+    0xFB3C, 
+    0, 
+    0xFB3E, 
+    0, 
+    0xFB40, 
+    0xFB41, 
+    0, 
+    0xFB43, 
+    0xFB44, 
+    0, 
+    0xFB46, 
+    0xFB47, 
+    0xFB48, 
+    0xFB49, 
+    0xFB4A 
+};
+
+static hb_bool_t
+HBUnicodeCompose(hb_unicode_funcs_t *ufuncs,
+                 hb_codepoint_t      a,
+                 hb_codepoint_t      b,
+                 hb_codepoint_t     *ab,
+                 void               *user_data)
+{
+    hb_bool_t found = nsUnicodeNormalizer::Compose(a, b, ab);
+
+    if (!found && (b & 0x1fff80) == 0x0580) {
+        
+        
+        switch (b) {
+        case 0x05B4: 
+            if (a == 0x05D9) { 
+                *ab = 0xFB1D;
+                found = true;
+            }
+            break;
+        case 0x05B7: 
+            if (a == 0x05F2) { 
+                *ab = 0xFB1F;
+                found = true;
+            } else if (a == 0x05D0) { 
+                *ab = 0xFB2E;
+                found = true;
+            }
+            break;
+        case 0x05B8: 
+            if (a == 0x05D0) { 
+                *ab = 0xFB2F;
+                found = true;
+            }
+            break;
+        case 0x05B9: 
+            if (a == 0x05D5) { 
+                *ab = 0xFB4B;
+                found = true;
+            }
+            break;
+        case 0x05BC: 
+            if (a >= 0x05D0 && a <= 0x05EA) {
+                *ab = sDageshForms[a - 0x05D0];
+                found = (*ab != 0);
+            } else if (a == 0xFB2A) { 
+                *ab = 0xFB2C;
+                found = true;
+            } else if (a == 0xFB2B) { 
+                *ab = 0xFB2D;
+                found = true;
+            }
+            break;
+        case 0x05BF: 
+            switch (a) {
+            case 0x05D1: 
+                *ab = 0xFB4C;
+                found = true;
+                break;
+            case 0x05DB: 
+                *ab = 0xFB4D;
+                found = true;
+                break;
+            case 0x05E4: 
+                *ab = 0xFB4E;
+                found = true;
+                break;
+            }
+            break;
+        case 0x05C1: 
+            if (a == 0x05E9) { 
+                *ab = 0xFB2A;
+                found = true;
+            } else if (a == 0xFB49) { 
+                *ab = 0xFB2C;
+                found = true;
+            }
+            break;
+        case 0x05C2: 
+            if (a == 0x05E9) { 
+                *ab = 0xFB2B;
+                found = true;
+            } else if (a == 0xFB49) { 
+                *ab = 0xFB2D;
+                found = true;
+            }
+            break;
+        }
+    }
+
+    return found;
+}
+
+static hb_bool_t
+HBUnicodeDecompose(hb_unicode_funcs_t *ufuncs,
+                   hb_codepoint_t      ab,
+                   hb_codepoint_t     *a,
+                   hb_codepoint_t     *b,
+                   void               *user_data)
+{
+    return nsUnicodeNormalizer::DecomposeNonRecursively(ab, a, b);
+}
+
+
+
 
 
 static hb_font_funcs_t * sHBFontFuncs = nsnull;
@@ -753,6 +887,12 @@ gfxHarfBuzzShaper::ShapeWord(gfxContext      *aContext,
             hb_unicode_funcs_set_eastasian_width_func(sHBUnicodeFuncs,
                                                       HBGetEastAsianWidth,
                                                       nsnull, nsnull);
+            hb_unicode_funcs_set_compose_func(sHBUnicodeFuncs,
+                                              HBUnicodeCompose,
+                                              nsnull, nsnull);
+            hb_unicode_funcs_set_decompose_func(sHBUnicodeFuncs,
+                                                HBUnicodeDecompose,
+                                                nsnull, nsnull);
         }
 
         mHBFace = hb_face_create_for_tables(HBGetTable, this, nsnull);

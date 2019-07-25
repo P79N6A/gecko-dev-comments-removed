@@ -92,10 +92,6 @@ static NS_DEFINE_CID(kCTransferableCID,        NS_TRANSFERABLE_CID);
 static NS_DEFINE_CID(kHTMLConverterCID,        NS_HTMLFORMATCONVERTER_CID);
 
 
-#define kHTMLContext   "text/_moz_htmlcontext"
-#define kHTMLInfo      "text/_moz_htmlinfo"
-
-
 static nsresult AppendString(nsITransferable *aTransferable,
                              const nsAString& aString,
                              const char* aFlavor);

@@ -119,6 +119,12 @@ JSObject::setPrivate(void *data)
     privateWriteBarrierPost(pprivate);
 }
 
+inline void
+JSObject::initPrivate(void *data)
+{
+    privateRef(numFixedSlots()) = data;
+}
+
 inline bool
 JSObject::enumerate(JSContext *cx, JSIterateOp iterop, js::Value *statep, jsid *idp)
 {
@@ -605,17 +611,29 @@ JSObject::moveDenseArrayElements(uintN dstStart, uintN srcStart, uintN count)
 
 
 
-    uintN markStart, markEnd;
-    if (dstStart > srcStart) {
-        markStart = js::Max(srcStart + count, dstStart);
-        markEnd = dstStart + count;
-    } else {
-        markStart = dstStart;
-        markEnd = js::Min(dstStart + count, srcStart);
-    }
-    prepareElementRangeForOverwrite(markStart, markEnd);
 
-    memmove(elements + dstStart, elements + srcStart, count * sizeof(js::Value));
+
+
+
+
+
+
+
+    if (compartment()->needsBarrier()) {
+        if (dstStart < srcStart) {
+            js::HeapValue *dst = elements + dstStart;
+            js::HeapValue *src = elements + srcStart;
+            for (unsigned i = 0; i < count; i++, dst++, src++)
+                *dst = *src;
+        } else {
+            js::HeapValue *dst = elements + dstStart + count - 1;
+            js::HeapValue *src = elements + srcStart + count - 1;
+            for (unsigned i = 0; i < count; i++, dst--, src--)
+                *dst = *src;
+        }
+    } else {
+        memmove(elements + dstStart, elements + srcStart, count * sizeof(js::Value));
+    }
 }
 
 inline void
@@ -1897,74 +1915,6 @@ PropDesc::checkSetter(JSContext *cx)
     return true;
 }
 
-namespace detail {
-
-template<typename T> class PrimitiveBehavior { };
-
-template<>
-class PrimitiveBehavior<JSString *> {
-  public:
-    static inline bool isType(const Value &v) { return v.isString(); }
-    static inline JSString *extract(const Value &v) { return v.toString(); }
-    static inline JSString *extract(JSObject &obj) { return obj.asString().unbox(); }
-    static inline Class *getClass() { return &StringClass; }
-};
-
-template<>
-class PrimitiveBehavior<bool> {
-  public:
-    static inline bool isType(const Value &v) { return v.isBoolean(); }
-    static inline bool extract(const Value &v) { return v.toBoolean(); }
-    static inline bool extract(JSObject &obj) { return obj.asBoolean().unbox(); }
-    static inline Class *getClass() { return &BooleanClass; }
-};
-
-template<>
-class PrimitiveBehavior<double> {
-  public:
-    static inline bool isType(const Value &v) { return v.isNumber(); }
-    static inline double extract(const Value &v) { return v.toNumber(); }
-    static inline double extract(JSObject &obj) { return obj.asNumber().unbox(); }
-    static inline Class *getClass() { return &NumberClass; }
-};
-
-} 
-
-inline JSObject *
-NonGenericMethodGuard(JSContext *cx, CallArgs args, Native native, Class *clasp, bool *ok)
-{
-    const Value &thisv = args.thisv();
-    if (thisv.isObject()) {
-        JSObject &obj = thisv.toObject();
-        if (obj.getClass() == clasp) {
-            *ok = true;  
-            return &obj;
-        }
-    }
-
-    *ok = HandleNonGenericMethodClassMismatch(cx, args, native, clasp);
-    return NULL;
-}
-
-template <typename T>
-inline bool
-BoxedPrimitiveMethodGuard(JSContext *cx, CallArgs args, Native native, T *v, bool *ok)
-{
-    typedef detail::PrimitiveBehavior<T> Behavior;
-
-    const Value &thisv = args.thisv();
-    if (Behavior::isType(thisv)) {
-        *v = Behavior::extract(thisv);
-        return true;
-    }
-
-    if (!NonGenericMethodGuard(cx, args, native, Behavior::getClass(), ok))
-        return false;
-
-    *v = Behavior::extract(thisv.toObject());
-    return true;
-}
-
 inline bool
 ObjectClassIs(JSObject &obj, ESClassValue classValue, JSContext *cx)
 {
@@ -2122,6 +2072,18 @@ JSObject::writeBarrierPre(JSObject *obj)
     if (comp->needsBarrier()) {
         JS_ASSERT(!comp->rt->gcRunning);
         MarkObjectUnbarriered(comp->barrierTracer(), obj, "write barrier");
+    }
+#endif
+}
+
+inline void
+JSObject::readBarrier(JSObject *obj)
+{
+#ifdef JSGC_INCREMENTAL
+    JSCompartment *comp = obj->compartment();
+    if (comp->needsBarrier()) {
+        JS_ASSERT(!comp->rt->gcRunning);
+        MarkObjectUnbarriered(comp->barrierTracer(), obj, "read barrier");
     }
 #endif
 }
