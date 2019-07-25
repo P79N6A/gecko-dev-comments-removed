@@ -334,269 +334,269 @@ Readability.prototype = {
 
 
   _grabArticle: function(page) {
-    let doc = this._doc;
-    let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
-    let isChecking = this._flagIsActive(this.FLAG_READABILITY_CHECK);
-    let isPaging = (page !== null ? true: false);
+    while (true) {
+      let doc = this._doc;
+      let stripUnlikelyCandidates = this._flagIsActive(this.FLAG_STRIP_UNLIKELYS);
+      let isChecking = this._flagIsActive(this.FLAG_READABILITY_CHECK);
+      let isPaging = (page !== null ? true: false);
 
-    page = page ? page : this._doc.body;
+      page = page ? page : this._doc.body;
 
-    let pageCacheHtml = page.innerHTML;
-    let allElements = page.getElementsByTagName('*');
+      let pageCacheHtml = page.innerHTML;
+      let allElements = page.getElementsByTagName('*');
 
-    
-    
-    
-    
-    
-    
-    let node = null;
-    let nodesToScore = [];
-
-    for (let nodeIndex = 0; (node = allElements[nodeIndex]); nodeIndex += 1) {
-      
-      if (stripUnlikelyCandidates) {
-        let unlikelyMatchString = node.className + node.id;
-        if (unlikelyMatchString.search(this.REGEXPS.unlikelyCandidates) !== -1 &&
-          unlikelyMatchString.search(this.REGEXPS.okMaybeItsACandidate) === -1 &&
-          node.tagName !== "BODY") {
-          dump("Removing unlikely candidate - " + unlikelyMatchString);
-          node.parentNode.removeChild(node);
-          nodeIndex -= 1;
-          continue;
-        }
-      }
-
-      if (node.tagName === "P" || node.tagName === "TD" || node.tagName === "PRE")
-        nodesToScore[nodesToScore.length] = node;
 
       
-      if (node.tagName === "DIV") {
-        if (node.innerHTML.search(this.REGEXPS.divToPElements) === -1) {
-          if (!isChecking) {
-            let newNode = doc.createElement('p');
-            newNode.innerHTML = node.innerHTML;
-            node.parentNode.replaceChild(newNode, node);
+      
+      
+      
+      
+      
+      let node = null;
+      let nodesToScore = [];
+
+      for (let nodeIndex = 0; (node = allElements[nodeIndex]); nodeIndex += 1) {
+        
+        if (stripUnlikelyCandidates) {
+          let unlikelyMatchString = node.className + node.id;
+          if (unlikelyMatchString.search(this.REGEXPS.unlikelyCandidates) !== -1 &&
+            unlikelyMatchString.search(this.REGEXPS.okMaybeItsACandidate) === -1 &&
+            node.tagName !== "BODY") {
+            dump("Removing unlikely candidate - " + unlikelyMatchString);
+            node.parentNode.removeChild(node);
             nodeIndex -= 1;
+            continue;
           }
+        }
 
+        if (node.tagName === "P" || node.tagName === "TD" || node.tagName === "PRE")
           nodesToScore[nodesToScore.length] = node;
-        } else if (!isChecking) {
-          
-          for (let i = 0, il = node.childNodes.length; i < il; i += 1) {
-            let childNode = node.childNodes[i];
-            if (!childNode)
-              continue;
 
-            if (childNode.nodeType === 3) { 
-              let p = doc.createElement('p');
-              p.innerHTML = childNode.nodeValue;
-              p.style.display = 'inline';
-              p.className = 'readability-styled';
+        
+        if (node.tagName === "DIV") {
+          if (node.innerHTML.search(this.REGEXPS.divToPElements) === -1) {
+            if (!isChecking) {
+              let newNode = doc.createElement('p');
+              newNode.innerHTML = node.innerHTML;
+              node.parentNode.replaceChild(newNode, node);
+              nodeIndex -= 1;
+            }
 
-              childNode.parentNode.replaceChild(p, childNode);
+            nodesToScore[nodesToScore.length] = node;
+          } else if (!isChecking) {
+            
+            for (let i = 0, il = node.childNodes.length; i < il; i += 1) {
+              let childNode = node.childNodes[i];
+              if (!childNode)
+                continue;
+
+              if (childNode.nodeType === 3) { 
+                let p = doc.createElement('p');
+                p.innerHTML = childNode.nodeValue;
+                p.style.display = 'inline';
+                p.className = 'readability-styled';
+
+                childNode.parentNode.replaceChild(p, childNode);
+              }
             }
           }
         }
       }
-    }
-
-    
-
-
-
-
-
-    let candidates = [];
-    for (let pt = 0; pt < nodesToScore.length; pt += 1) {
-      let parentNode = nodesToScore[pt].parentNode;
-      let grandParentNode = parentNode ? parentNode.parentNode : null;
-      let innerText = this._getInnerText(nodesToScore[pt]);
-
-      if (!parentNode || typeof(parentNode.tagName) === 'undefined')
-        continue;
 
       
-      if (innerText.length < 25)
-        continue;
 
-      
-      if (typeof parentNode.readability === 'undefined') {
-        this._initializeNode(parentNode);
-        candidates.push(parentNode);
+
+
+
+
+      let candidates = [];
+      for (let pt = 0; pt < nodesToScore.length; pt += 1) {
+        let parentNode = nodesToScore[pt].parentNode;
+        let grandParentNode = parentNode ? parentNode.parentNode : null;
+        let innerText = this._getInnerText(nodesToScore[pt]);
+
+        if (!parentNode || typeof(parentNode.tagName) === 'undefined')
+          continue;
+
+        
+        if (innerText.length < 25)
+          continue;
+
+        
+        if (typeof parentNode.readability === 'undefined') {
+          this._initializeNode(parentNode);
+          candidates.push(parentNode);
+        }
+
+        
+        if (grandParentNode &&
+          typeof(grandParentNode.readability) === 'undefined' &&
+          typeof(grandParentNode.tagName) !== 'undefined') {
+          this._initializeNode(grandParentNode);
+          candidates.push(grandParentNode);
+        }
+
+        let contentScore = 0;
+
+        
+        contentScore += 1;
+
+        
+        contentScore += innerText.split(',').length;
+
+        
+        contentScore += Math.min(Math.floor(innerText.length / 100), 3);
+
+        
+        parentNode.readability.contentScore += contentScore;
+
+        if (grandParentNode)
+          grandParentNode.readability.contentScore += contentScore / 2;
       }
 
       
-      if (grandParentNode &&
-        typeof(grandParentNode.readability) === 'undefined' &&
-        typeof(grandParentNode.tagName) !== 'undefined') {
-        this._initializeNode(grandParentNode);
-        candidates.push(grandParentNode);
-      }
-
-      let contentScore = 0;
-
       
-      contentScore += 1;
+      let topCandidate = null;
+      for (let c = 0, cl = candidates.length; c < cl; c += 1) {
+        
+        
+        
+        candidates[c].readability.contentScore =
+            candidates[c].readability.contentScore * (1 - this._getLinkDensity(candidates[c]));
 
-      
-      contentScore += innerText.split(',').length;
+        dump('Candidate: ' + candidates[c] + " (" + candidates[c].className + ":" +
+          candidates[c].id + ") with score " +
+          candidates[c].readability.contentScore);
 
-      
-      contentScore += Math.min(Math.floor(innerText.length / 100), 3);
-
-      
-      parentNode.readability.contentScore += contentScore;
-
-      if (grandParentNode)
-        grandParentNode.readability.contentScore += contentScore / 2;
-    }
-
-    
-    
-    let topCandidate = null;
-    for (let c = 0, cl = candidates.length; c < cl; c += 1) {
-      
-      
-      
-      candidates[c].readability.contentScore =
-          candidates[c].readability.contentScore * (1 - this._getLinkDensity(candidates[c]));
-
-      dump('Candidate: ' + candidates[c] + " (" + candidates[c].className + ":" +
-        candidates[c].id + ") with score " +
-        candidates[c].readability.contentScore);
-
-      if (!topCandidate ||
-        candidates[c].readability.contentScore > topCandidate.readability.contentScore) {
-        topCandidate = candidates[c];
-      }
-    }
-
-    
-    
-    if (topCandidate === null || topCandidate.tagName === "BODY") {
-      
-      
-      if (isChecking) {
-        dump('No top candidate found, failed readability check');
-        return null;
-      }
-
-      topCandidate = doc.createElement("DIV");
-      topCandidate.innerHTML = page.innerHTML;
-
-      page.innerHTML = "";
-      page.appendChild(topCandidate);
-
-      this._initializeNode(topCandidate);
-    } else if (isChecking) {
-      dump('Found a top candidate, passed readability check');
-
-      
-      
-      return {};
-    }
-
-    
-    
-    
-    let articleContent = doc.createElement("DIV");
-    if (isPaging)
-      articleContent.id = "readability-content";
-
-    let siblingScoreThreshold = Math.max(10, topCandidate.readability.contentScore * 0.2);
-    let siblingNodes = topCandidate.parentNode.childNodes;
-
-    for (let s = 0, sl = siblingNodes.length; s < sl; s += 1) {
-      let siblingNode = siblingNodes[s];
-      let append = false;
-
-      dump("Looking at sibling node: " + siblingNode + " (" + siblingNode.className + ":" + siblingNode.id + ")" + ((typeof siblingNode.readability !== 'undefined') ? (" with score " + siblingNode.readability.contentScore) : ''));
-      dump("Sibling has score " + (siblingNode.readability ? siblingNode.readability.contentScore : 'Unknown'));
-
-      if (siblingNode === topCandidate)
-        append = true;
-
-      let contentBonus = 0;
-
-      
-      if (siblingNode.className === topCandidate.className && topCandidate.className !== "")
-        contentBonus += topCandidate.readability.contentScore * 0.2;
-
-      if (typeof siblingNode.readability !== 'undefined' &&
-        (siblingNode.readability.contentScore+contentBonus) >= siblingScoreThreshold) {
-        append = true;
-      }
-
-      if (siblingNode.nodeName === "P") {
-        let linkDensity = this._getLinkDensity(siblingNode);
-        let nodeContent = this._getInnerText(siblingNode);
-        let nodeLength = nodeContent.length;
-
-        if (nodeLength > 80 && linkDensity < 0.25) {
-          append = true;
-        } else if (nodeLength < 80 && linkDensity === 0 && nodeContent.search(/\.( |$)/) !== -1) {
-          append = true;
+        if (!topCandidate ||
+          candidates[c].readability.contentScore > topCandidate.readability.contentScore) {
+          topCandidate = candidates[c];
         }
       }
 
-      if (append) {
-        dump("Appending node: " + siblingNode);
+      
+      
+      if (topCandidate === null || topCandidate.tagName === "BODY") {
+        
+        
+        if (isChecking) {
+          dump('No top candidate found, failed readability check');
+          return null;
+        }
 
-        let nodeToAppend = null;
-        if (siblingNode.nodeName !== "DIV" && siblingNode.nodeName !== "P") {
+        topCandidate = doc.createElement("DIV");
+        topCandidate.innerHTML = page.innerHTML;
+
+        page.innerHTML = "";
+        page.appendChild(topCandidate);
+
+        this._initializeNode(topCandidate);
+      } else if (isChecking) {
+        dump('Found a top candidate, passed readability check');
+
+        
+        
+        return {};
+      }
+
+      
+      
+      
+      let articleContent = doc.createElement("DIV");
+      if (isPaging)
+        articleContent.id = "readability-content";
+
+      let siblingScoreThreshold = Math.max(10, topCandidate.readability.contentScore * 0.2);
+      let siblingNodes = topCandidate.parentNode.childNodes;
+
+      for (let s = 0, sl = siblingNodes.length; s < sl; s += 1) {
+        let siblingNode = siblingNodes[s];
+        let append = false;
+
+        dump("Looking at sibling node: " + siblingNode + " (" + siblingNode.className + ":" + siblingNode.id + ")" + ((typeof siblingNode.readability !== 'undefined') ? (" with score " + siblingNode.readability.contentScore) : ''));
+        dump("Sibling has score " + (siblingNode.readability ? siblingNode.readability.contentScore : 'Unknown'));
+
+        if (siblingNode === topCandidate)
+          append = true;
+
+        let contentBonus = 0;
+
+        
+        if (siblingNode.className === topCandidate.className && topCandidate.className !== "")
+          contentBonus += topCandidate.readability.contentScore * 0.2;
+
+        if (typeof siblingNode.readability !== 'undefined' &&
+          (siblingNode.readability.contentScore+contentBonus) >= siblingScoreThreshold) {
+          append = true;
+        }
+
+        if (siblingNode.nodeName === "P") {
+          let linkDensity = this._getLinkDensity(siblingNode);
+          let nodeContent = this._getInnerText(siblingNode);
+          let nodeLength = nodeContent.length;
+
+          if (nodeLength > 80 && linkDensity < 0.25) {
+            append = true;
+          } else if (nodeLength < 80 && linkDensity === 0 && nodeContent.search(/\.( |$)/) !== -1) {
+            append = true;
+          }
+        }
+
+        if (append) {
+          dump("Appending node: " + siblingNode);
+
+          let nodeToAppend = null;
+          if (siblingNode.nodeName !== "DIV" && siblingNode.nodeName !== "P") {
+            
+            
+            dump("Altering siblingNode of " + siblingNode.nodeName + ' to div.');
+
+            nodeToAppend = doc.createElement("DIV");
+            nodeToAppend.id = siblingNode.id;
+            nodeToAppend.innerHTML = siblingNode.innerHTML;
+          } else {
+            nodeToAppend = siblingNode;
+            s -= 1;
+            sl -= 1;
+          }
+
           
           
-          dump("Altering siblingNode of " + siblingNode.nodeName + ' to div.');
+          nodeToAppend.className = "";
 
-          nodeToAppend = doc.createElement("DIV");
-          nodeToAppend.id = siblingNode.id;
-          nodeToAppend.innerHTML = siblingNode.innerHTML;
+          
+          
+          articleContent.appendChild(nodeToAppend);
+        }
+      }
+
+      
+      this._prepArticle(articleContent);
+
+      if (this._curPageNum === 1)
+        articleContent.innerHTML = '<div id="readability-page-1" class="page">' + articleContent.innerHTML + '</div>';
+
+      
+      
+      
+      
+      
+      if (this._getInnerText(articleContent, false).length < 250) {
+        page.innerHTML = pageCacheHtml;
+
+        if (this._flagIsActive(this.FLAG_STRIP_UNLIKELYS)) {
+          this._removeFlag(this.FLAG_STRIP_UNLIKELYS);
+        } else if (this._flagIsActive(this.FLAG_WEIGHT_CLASSES)) {
+          this._removeFlag(this.FLAG_WEIGHT_CLASSES);
+        } else if (this._flagIsActive(this.FLAG_CLEAN_CONDITIONALLY)) {
+          this._removeFlag(this.FLAG_CLEAN_CONDITIONALLY);
         } else {
-          nodeToAppend = siblingNode;
-          s -= 1;
-          sl -= 1;
+          return null;
         }
-
-        
-        
-        nodeToAppend.className = "";
-
-        
-        
-        articleContent.appendChild(nodeToAppend);
-      }
-    }
-
-    
-    this._prepArticle(articleContent);
-
-    if (this._curPageNum === 1)
-      articleContent.innerHTML = '<div id="readability-page-1" class="page">' + articleContent.innerHTML + '</div>';
-
-    
-    
-    
-    
-    
-    if (this._getInnerText(articleContent, false).length < 250) {
-      page.innerHTML = pageCacheHtml;
-
-      if (this._flagIsActive(this.FLAG_STRIP_UNLIKELYS)) {
-        this._removeFlag(this.FLAG_STRIP_UNLIKELYS);
-        return this._grabArticle(page);
-      } else if (this._flagIsActive(this.FLAG_WEIGHT_CLASSES)) {
-        this._removeFlag(this.FLAG_WEIGHT_CLASSES);
-        return this._grabArticle(page);
-      } else if (this._flagIsActive(this.FLAG_CLEAN_CONDITIONALLY)) {
-        this._removeFlag(this.FLAG_CLEAN_CONDITIONALLY);
-        return this._grabArticle(page);
       } else {
-        return null;
+        return articleContent;
       }
     }
-
-    return articleContent;
   },
 
   
