@@ -3094,8 +3094,12 @@ cairo_set_scaled_font (cairo_t                   *cr,
 
     _cairo_gstate_set_font_options (cr->gstate, &scaled_font->options);
 
-    if (was_previous)
-	cr->gstate->scaled_font = cairo_scaled_font_reference ((cairo_scaled_font_t *) scaled_font);
+    
+
+
+
+
+
 
     return;
 
