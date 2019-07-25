@@ -92,6 +92,8 @@ __defineSetter__("_maxUsedThemes", function(aVal) {
   return this._maxUsedThemes = aVal;
 });
 
+var _usedThemes = null;
+
 
 
 
@@ -100,12 +102,16 @@ var _themeIDBeingDisbled = null;
 
 var LightweightThemeManager = {
   get usedThemes () {
+    if (_usedThemes)
+      return _usedThemes;
+
     try {
-      return JSON.parse(_prefs.getComplexValue("usedThemes",
-                                               Ci.nsISupportsString).data);
+      _usedThemes = JSON.parse(_prefs.getComplexValue("usedThemes",
+                                                      Ci.nsISupportsString).data);
     } catch (e) {
-      return [];
+      _usedThemes = [];
     }
+    return _usedThemes;
   },
 
   get currentTheme () {
@@ -408,7 +414,8 @@ var LightweightThemeManager = {
       return;
     }
 
-    aCallback([new AddonWrapper(a) for each (a in this.usedThemes)]);
+    let themes = this.usedThemes;
+    aCallback([new AddonWrapper(a) for each (a in themes)]);
   },
 };
 
@@ -745,6 +752,10 @@ function _prefObserver(aSubject, aTopic, aData) {
       }
       
       _updateUsedThemes(LightweightThemeManager.usedThemes);
+      break;
+    case "usedThemes":
+      
+      _usedThemes = null;
       break;
   }
 }
