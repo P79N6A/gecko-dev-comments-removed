@@ -816,13 +816,29 @@ ContextHandler.init();
 
 
 var FormSubmitObserver = {
-  init: function init() {
-    Services.obs.addObserver(this, "formsubmit", false);
+  
+  init: function init(){
+    addMessageListener("Browser:TabOpen", this);
+    addMessageListener("Browser:TabClose", this);
+  },
+
+  receiveMessage: function findHandlerReceiveMessage(aMessage) {
+    let json = aMessage.json;
+    switch (aMessage.name) {
+      case "Browser:TabOpen":
+        Services.obs.addObserver(this, "formsubmit", false);
+        break;
+      case "Browser:TabClose":
+        Services.obs.removeObserver(this, "formsubmit", false);
+        break;
+    }
   },
 
   notify: function notify(aFormElement, aWindow, aActionURI, aCancelSubmit) {
     
-    sendAsyncMessage("Browser:FormSubmit", {});
+    if (aWindow == content)
+      
+      sendAsyncMessage("Browser:FormSubmit", {});
   },
 
   QueryInterface : function(aIID) {
