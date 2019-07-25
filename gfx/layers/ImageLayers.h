@@ -726,7 +726,16 @@ public:
 
 
 
-  void CopyData(const Data& aData);
+
+
+
+
+
+
+  void CopyData(const Data& aData,
+                PRInt32 aYOffset = 0, PRInt32 aYSkip = 0,
+                PRInt32 aCbOffset = 0, PRInt32 aCbSkip = 0,
+                PRInt32 aCrOffset = 0, PRInt32 aCrSkip = 0);
 
   
 
