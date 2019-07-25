@@ -53,9 +53,7 @@ using namespace js::ion;
 bool
 ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
 {
-    size_t preSplitEdges = graph.numBlocks();
-    for (size_t i = 0; i < preSplitEdges; i++) {
-        MBasicBlock *block = graph.getBlock(i);
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
         if (block->numSuccessors() < 2)
             continue;
         for (size_t i = 0; i < block->numSuccessors(); i++) {
@@ -64,16 +62,14 @@ ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
                 continue;
 
             
-            MBasicBlock *split = MBasicBlock::NewSplitEdge(gen, block);
-            if (!graph.addBlock(split))
-                return false;
+            MBasicBlock *split = MBasicBlock::NewSplitEdge(gen, *block);
+            graph.addBlock(split);
             split->end(MGoto::New(target));
 
             block->replaceSuccessor(i, split);
-            target->replacePredecessor(block, split);
+            target->replacePredecessor(*block, split);
         }
     }
-
     return true;
 }
 
@@ -123,9 +119,8 @@ TypeAnalyzer::buildWorklist()
 {
     
     
-    for (size_t i = 0; i < graph.numBlocks(); i++) {
-        MBasicBlock *block = graph.getBlock(i);
-        MDefinitionIterator iter(block);
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
+        MDefinitionIterator iter(*block);
         while (iter) {
             if (iter->isCopy()) {
                 
@@ -230,8 +225,7 @@ TypeAnalyzer::specializePhi(MPhi *phi)
 bool
 TypeAnalyzer::specializePhis()
 {
-    for (size_t i = 0; i < graph.numBlocks(); i++) {
-        MBasicBlock *block = graph.getBlock(i);
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd(); phi++) {
             if (!specializePhi(*phi))
                 return false;
@@ -358,8 +352,7 @@ TypeAnalyzer::insertConversions()
     
     
     
-    for (size_t i = 0; i < graph.numBlocks(); i++) {
-        MBasicBlock *block = graph.getBlock(i);
+    for (ReversePostorderIterator block(graph.rpoBegin()); block != graph.rpoEnd(); block++) {
         for (MPhiIterator phi(block->phisBegin()); phi != block->phisEnd(); phi++) {
             if (!adjustPhiInputs(*phi))
                 return false;
@@ -402,11 +395,11 @@ ion::ApplyTypeInformation(MIRGraph &graph)
 bool
 ion::ReorderBlocks(MIRGraph &graph)
 {
-    Vector<MBasicBlock *, 0, IonAllocPolicy> pending;
+    InlineList<MBasicBlock> pending;
     Vector<unsigned int, 0, IonAllocPolicy> successors;
-    Vector<MBasicBlock *, 0, IonAllocPolicy> done;
+    InlineList<MBasicBlock> done;
 
-    MBasicBlock *current = graph.getBlock(0);
+    MBasicBlock *current = *graph.begin();
     unsigned int nextSuccessor = 0;
 
     graph.clearBlockList();
@@ -417,8 +410,7 @@ ion::ReorderBlocks(MIRGraph &graph)
             current->mark();
 
             if (nextSuccessor < current->lastIns()->numSuccessors()) {
-                if (!pending.append(current))
-                    return false;
+                pending.pushFront(current);
                 if (!successors.append(nextSuccessor))
                     return false;
 
@@ -427,14 +419,13 @@ ion::ReorderBlocks(MIRGraph &graph)
                 continue;
             }
 
-            if (!done.append(current))
-                return false;
+            done.pushFront(current);
         }
 
         if (pending.empty())
             break;
 
-        current = pending.popCopy();
+        current = pending.popFront();
         current->unmark();
         nextSuccessor = successors.popCopy() + 1;
     }
@@ -442,11 +433,11 @@ ion::ReorderBlocks(MIRGraph &graph)
     JS_ASSERT(pending.empty());
     JS_ASSERT(successors.empty());
 
+    
     while (!done.empty()) {
-        current = done.popCopy();
+        current = done.popFront();
         current->unmark();
-        if (!graph.addBlock(current))
-            return false;
+        graph.addBlock(current);
     }
 
     return true;
@@ -475,11 +466,7 @@ IntersectDominators(MBasicBlock *block1, MBasicBlock *block2)
 static void
 ComputeImmediateDominators(MIRGraph &graph)
 {
-
-    if (graph.numBlocks() == 0)
-        return;
-
-    MBasicBlock *startBlock = graph.getBlock(0);
+    MBasicBlock *startBlock = *graph.begin();
     startBlock->setImmediateDominator(startBlock);
 
     bool changed = true;
@@ -487,9 +474,9 @@ ComputeImmediateDominators(MIRGraph &graph)
     while (changed) {
         changed = false;
         
-        for (size_t i = 1; i < graph.numBlocks(); i++) {
-            MBasicBlock *block = graph.getBlock(i);
-
+        MBasicBlockIterator block(graph.begin());
+        block++;
+        for (; block != graph.end(); block++) {
             if (block->numPredecessors() == 0)
                 continue;
 
@@ -512,9 +499,6 @@ ComputeImmediateDominators(MIRGraph &graph)
 bool
 ion::BuildDominatorTree(MIRGraph &graph)
 {
-    if (graph.numBlocks() == 0)
-        return true;
-
     ComputeImmediateDominators(graph);
 
     
@@ -522,8 +506,8 @@ ion::BuildDominatorTree(MIRGraph &graph)
     
     
     
-    for (size_t i = graph.numBlocks() - 1; i > 0; i--) { 
-        MBasicBlock *child = graph.getBlock(i);
+    for (PostorderIterator i(graph.poBegin()); *i != *graph.begin(); i++) {
+        MBasicBlock *child = *i;
         MBasicBlock *parent = child->immediateDominator();
 
         if (!parent->addImmediatelyDominatedBlock(child))
@@ -532,7 +516,7 @@ ion::BuildDominatorTree(MIRGraph &graph)
         
         parent->addNumDominated(child->numDominated() + 1);
     }
-    JS_ASSERT(graph.getBlock(0)->numDominated() == graph.numBlocks() - 1);
+    JS_ASSERT(graph.begin()->numDominated() == graph.numBlocks() - 1);
     return true;
 }
 
@@ -558,8 +542,7 @@ ion::BuildPhiReverseMapping(MIRGraph &graph)
     
     
     
-    for (size_t i = 0; i < graph.numBlocks(); i++) {
-        MBasicBlock *block = graph.getBlock(i);
+    for (MBasicBlockIterator block(graph.begin()); block != graph.end(); block++) {
         if (block->numPredecessors() < 2) {
             JS_ASSERT(block->phisEmpty());
             continue;
@@ -579,7 +562,7 @@ ion::BuildPhiReverseMapping(MIRGraph &graph)
             JS_ASSERT(numSuccessorsWithPhis <= 1);
 #endif
 
-            pred->setSuccessorWithPhis(block, j);
+            pred->setSuccessorWithPhis(*block, j);
         }
     }
 

@@ -60,8 +60,8 @@ LICM::analyze()
 {
     IonSpew(IonSpew_LICM, "Beginning LICM pass ...");
     
-    for (size_t i = 0; i < graph.numBlocks(); i ++) {
-        MBasicBlock *header = graph.getBlock(i);
+    for (ReversePostorderIterator i(graph.rpoBegin()); i != graph.rpoEnd(); i++) {
+        MBasicBlock *header = *i;
         
         
         if (header->isLoopHeader() && header->numPredecessors() > 1) {
