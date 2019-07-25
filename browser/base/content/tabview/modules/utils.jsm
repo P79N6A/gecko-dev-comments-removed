@@ -522,20 +522,6 @@ var Utils = {
   
   
   
-  get homeTab(){
-    for( var i=0; i<Tabs.length; i++){
-      if(Tabs[i].contentWindow.location.host == "tabcandy"){
-        return Tabs[i];
-      }
-    }
-    
-    return null;
-  },
-
-  
-  
-  
-  
   getCurrentWindow: function() {
     var wm = Cc["@mozilla.org/appshell/window-mediator;1"]
              .getService(Ci.nsIWindowMediator);
@@ -543,13 +529,9 @@ var Utils = {
     while (browserEnumerator.hasMoreElements()) {
       var browserWin = browserEnumerator.getNext();
       var tabbrowser = browserWin.gBrowser;
-  
-      
-      var numTabs = tabbrowser.browsers.length;
-      for (var index = 0; index < numTabs; index++) {
-        var currentBrowser = tabbrowser.getBrowserAtIndex(index);
-        if(currentBrowser.contentWindow == window)
-          return browserWin;
+      let tabCandyContainer = browserWin.document.getElementById("tab-candy");
+      if (tabCandyContainer && tabCandyContainer.contentWindow == window) {
+	return browserWin;
       }
     }
     
