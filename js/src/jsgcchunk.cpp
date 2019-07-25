@@ -396,7 +396,7 @@ AllocChunkSlow()
 
 
 
-    char *p = reinterpret_cast<char*>(MapPages(NULL, ChunkSize * 2));
+    char *p = static_cast<char*>(MapPages(NULL, ChunkSize * 2));
     if (p == NULL)
         return NULL;
 
@@ -434,7 +434,7 @@ AllocChunk()
 
 
     
-    char *p = reinterpret_cast<char*>(MapPages(NULL, ChunkSize));
+    char *p = static_cast<char*>(MapPages(NULL, ChunkSize));
     if (!p)
         return NULL;
 
