@@ -436,6 +436,105 @@ function test_theme() {
       runNextTest();
     });
   });
+},
+
+function test_renotify_blocked() {
+  var triggers = encodeURIComponent(JSON.stringify({
+    "XPI": "unsigned.xpi"
+  }));
+  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+
+  
+  wait_for_notification(function(aPanel) {
+    let notification = aPanel.childNodes[0];
+    is(notification.id, "addon-install-blocked", "Should have seen the install blocked");
+
+    aPanel.addEventListener("popuphidden", function () {
+      aPanel.removeEventListener("popuphidden", arguments.callee, false);
+      info("Timeouts after this probably mean bug 589954 regressed");
+      executeSoon(function () {
+        gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+
+        wait_for_notification(function(aPanel) {
+          let notification = aPanel.childNodes[0];
+          is(notification.id, "addon-install-blocked",
+             "Should have seen the install blocked - 2nd time");
+
+          AddonManager.getAllInstalls(function(aInstalls) {
+          is(aInstalls.length, 2, "Should be two pending installs");
+            aInstalls[0].cancel();
+            aInstalls[1].cancel();
+
+            info("Closing browser tab");
+            gBrowser.removeTab(gBrowser.selectedTab);
+            runNextTest();
+          });
+        });
+
+      });
+    }, false);
+
+    
+    aPanel.hidePopup();
+  });
+},
+
+function test_renotify_installed() {
+  var pm = Services.perms;
+  pm.add(makeURI("http://example.com/"), "install", pm.ALLOW_ACTION);
+
+  var triggers = encodeURIComponent(JSON.stringify({
+    "XPI": "unsigned.xpi"
+  }));
+  gBrowser.selectedTab = gBrowser.addTab();
+  gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+
+  
+  wait_for_install_dialog(function(aWindow) {
+    aWindow.document.documentElement.acceptDialog();
+
+    
+    wait_for_notification(function(aPanel) {
+      let notification = aPanel.childNodes[0];
+      is(notification.id, "addon-install-complete", "Should have seen the install complete");
+
+      
+      aPanel.addEventListener("popuphidden", function () {
+        aPanel.removeEventListener("popuphidden", arguments.callee, false);
+
+        
+        executeSoon(function () {
+          gBrowser.loadURI(TESTROOT + "installtrigger.html?" + triggers);
+
+          
+          wait_for_install_dialog(function(aWindow) {
+            aWindow.document.documentElement.acceptDialog();
+            info("Timeouts after this probably mean bug 589954 regressed");
+
+            
+            wait_for_notification(function(aPanel) {
+              let notification = aPanel.childNodes[0];
+              is(notification.id, "addon-install-complete", "Should have seen the second install complete");
+
+              AddonManager.getAllInstalls(function(aInstalls) {
+              is(aInstalls.length, 2, "Should be two pending installs");
+                aInstalls[0].cancel();
+                aInstalls[1].cancel();
+
+                gBrowser.removeTab(gBrowser.selectedTab);
+                runNextTest();
+              });
+            });
+          });
+
+        });
+      }, false);
+  
+      
+      aPanel.hidePopup();
+    });
+  });
 }
 ];
 
