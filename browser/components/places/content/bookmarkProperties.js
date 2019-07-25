@@ -264,8 +264,6 @@ var BookmarkPropertiesPanel = {
       NS_ASSERT("itemId" in dialogInfo);
       this._itemId = dialogInfo.itemId;
       this._title = PlacesUtils.bookmarks.getItemTitle(this._itemId);
-      
-      this._hiddenRows.push("folderPicker");
       this._readOnly = !!dialogInfo.readOnly;
 
       switch (dialogInfo.type) {

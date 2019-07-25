@@ -348,21 +348,28 @@ var PlacesUIUtils = {
 
 
   showBookmarkDialog:
-  function PUIU_showBookmarkDialog(aInfo, aParentWindow, aMinimalUI) {
+  function PUIU_showBookmarkDialog(aInfo, aParentWindow, aResizable) {
+    
+    
     if (!aParentWindow) {
       aParentWindow = this._getWindow(null);
     }
 
     
     
-    let minimalUI = "hiddenRows" in aInfo &&
-                    aInfo.hiddenRows.indexOf("folderPicker") != -1;
-    let dialogURL = aMinimalUI ?
+    
+    
+    let hasFolderPicker = !("hiddenRows" in aInfo) ||
+                          aInfo.hiddenRows.indexOf("folderPicker") == -1;
+    let resizable = aResizable !== undefined ? aResizable : hasFolderPicker;
+    
+    
+    let dialogURL = resizable ?
                     "chrome://browser/content/places/bookmarkProperties2.xul" :
                     "chrome://browser/content/places/bookmarkProperties.xul";
 
     let features =
-      "centerscreen,chrome,modal,resizable=" + (aMinimalUI ? "yes" : "no");
+      "centerscreen,chrome,modal,resizable=" + (resizable ? "yes" : "no");
 
     aParentWindow.openDialog(dialogURL, "",  features, aInfo);
     return ("performed" in aInfo && aInfo.performed);
