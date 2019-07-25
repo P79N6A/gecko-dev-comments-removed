@@ -249,6 +249,11 @@ class FrameState
     
 
 
+    inline void pushNumber(MaybeRegisterID payload);
+
+    
+
+
     inline void pop();
 
     
