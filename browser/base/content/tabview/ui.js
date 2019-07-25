@@ -471,6 +471,8 @@ let UI = {
     if (!this._isTabViewVisible())
       return;
 
+    
+    
     GroupItems.removeHiddenGroups();
     TabItems.pausePainting();
 
@@ -700,6 +702,7 @@ let UI = {
 
   
   
+  
   goToTab: function UI_goToTab(xulTab) {
     
     if (gBrowser.selectedTab == xulTab)
@@ -730,6 +733,11 @@ let UI = {
     
     if (this._isTabViewVisible())
       this.hideTabView();
+
+    
+    
+    if (this._currentTab != tab)
+      return;
 
     let oldItem = null;
     let newItem = null;
@@ -896,7 +904,7 @@ let UI = {
                  event.keyCode == KeyEvent.DOM_VK_ENTER) {
         let activeTab = self.getActiveTab();
         if (activeTab)
-            activeTab.zoomIn();
+          activeTab.zoomIn();
 
         event.stopPropagation();
         event.preventDefault();

@@ -466,12 +466,20 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
+  
   close: function TabItem_close() {
+    
+    
+    
     gBrowser.removeTab(this.tab);
-    this._sendToSubscribers("tabRemoved");
+    let tabNotClosed = 
+      Array.some(gBrowser.tabs, function(tab) { return tab == this.tab; }, this);
+    if (!tabNotClosed)
+      this._sendToSubscribers("tabRemoved");
 
     
     
+    return !tabNotClosed;
   },
 
   
@@ -549,9 +557,14 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       function onZoomDone() {
         UI.goToTab(tab);
 
-        if (isNewBlankTab)
-          gWindow.gURLBar.focus();
-
+        
+        
+        if (tab != gBrowser.selectedTab) {
+          UI.onTabSelect(gBrowser.selectedTab);
+        } else { 
+          if (isNewBlankTab)
+            gWindow.gURLBar.focus();
+        }
         if (childHitResult.callback)
           childHitResult.callback();
       }
@@ -586,8 +599,9 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
             onZoomDone();
           }
         });
-      } else
+      } else {
         setTimeout(onZoomDone, 0);
+      } 
     }
   },
 
