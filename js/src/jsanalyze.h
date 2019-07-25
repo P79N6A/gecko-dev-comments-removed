@@ -131,6 +131,7 @@ struct Bytecode
     types::TypeStack *pushedArray;
 
     
+    types::TypeObject *initArray;
     types::TypeObject *initObject;
 
     
@@ -321,8 +322,8 @@ class Script
 
 
 
-
-    types::VariableSet localTypes;
+    types::Variable **variableSet;
+    unsigned variableCount;
 
     
     types::TypeSet thisTypes;
@@ -357,7 +358,7 @@ class Script
         bool isForEach;
 
         
-        types::VariableSet *scopeVars;
+        Script *scope;
 
         
         bool hasDouble;
@@ -453,12 +454,18 @@ class Script
     inline jsid getArgumentId(unsigned index);
 
     
+    inline types::TypeSet *getVariable(JSContext *cx, jsid id);
+
+    
     inline types::TypeSet *getStackTypes(unsigned index, Bytecode *code);
 
     
     inline JSValueType knownArgumentTypeTag(JSContext *cx, JSScript *script, unsigned arg);
     inline JSValueType knownLocalTypeTag(JSContext *cx, JSScript *script, unsigned local);
 
+    
+
+    void addVariable(JSContext *cx, jsid id, types::Variable *&var);
     void trace(JSTracer *trc);
 
 #endif 
@@ -505,6 +512,8 @@ GetDefCount(JSScript *script, unsigned offset)
       case JSOP_AND:
       case JSOP_ANDX:
         return 1;
+      case JSOP_FILTER:
+        return 2;
       default:
         return js_CodeSpec[*pc].ndefs;
     }

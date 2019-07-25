@@ -158,6 +158,12 @@ static bool InferSpewActive(SpewChannel channel)
 #ifdef DEBUG
 
 const char *
+TypeObjectString(TypeObject *object)
+{
+    return TypeIdString(object->name);
+}
+
+const char *
 TypeString(jstype type)
 {
     switch (type) {
@@ -613,7 +619,7 @@ PropertyAccess(JSContext *cx, analyze::Bytecode *code, TypeObject *object,
     JS_ASSERT_IF(!target, assign);
 
     
-    if (object->unknownProperties()) {
+    if (object->unknownProperties) {
         if (!assign)
             target->addType(cx, TYPE_UNKNOWN);
         return;
@@ -638,18 +644,19 @@ PropertyAccess(JSContext *cx, analyze::Bytecode *code, TypeObject *object,
     if (assign && !JSID_IS_VOID(id))
         cx->markTypeArrayNotPacked(object, true, false);
 
-    TypeSet *types = object->properties(cx).getVariable(cx, id);
-
     
     if (target) {
+        TypeSet *types = object->getProperty(cx, id, assign);
         if (assign)
             target->addSubset(cx, code->pool(), types);
         else
-            types->addMonitorRead(cx, object->pool(), code, target);
+            types->addMonitorRead(cx, *object->pool, code, target);
     } else {
+        TypeSet *readTypes = object->getProperty(cx, id, false);
+        TypeSet *writeTypes = object->getProperty(cx, id, true);
         if (code->hasIncDecOverflow)
-            types->addType(cx, TYPE_DOUBLE);
-        types->addArith(cx, object->pool(), code, types);
+            writeTypes->addType(cx, TYPE_DOUBLE);
+        readTypes->addArith(cx, *object->pool, code, writeTypes);
     }
 }
 
@@ -702,6 +709,30 @@ TypeConstraintElem::newType(JSContext *cx, TypeSet *source, jstype type)
             cx->compartment->types.monitorBytecode(cx, code);
         else
             target->addType(cx, TYPE_UNKNOWN);
+    }
+};
+
+class TypeConstraintNewObject : public TypeConstraint
+{
+    TypeSet *target;
+
+  public:
+    TypeConstraintNewObject(TypeSet *target)
+        : TypeConstraint("newObject"), target(target)
+    {}
+
+    void newType(JSContext *cx, TypeSet *source, jstype type)
+    {
+        if (type == TYPE_UNKNOWN) {
+            target->addType(cx, TYPE_UNKNOWN);
+            return;
+        }
+
+        
+        if (TypeIsObject(type)) {
+            TypeObject *object = (TypeObject *) type;
+            target->addType(cx, (jstype) object->getNewObject(cx));
+        }
     }
 };
 
@@ -774,7 +805,9 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
             function != cx->getFixedTypeObject(TYPE_OBJECT_OBJECT) &&
             function != cx->getFixedTypeObject(TYPE_OBJECT_FUNCTION) &&
             function != cx->getFixedTypeObject(TYPE_OBJECT_ARRAY)) {
-            TypeObject *object = function->getNewObject(cx);
+            if (!function->prototypeObject)
+                function->getProperty(cx, id_prototype(cx), false);
+            TypeObject *object = function->prototypeObject->getNewObject(cx);
             if (callsite->returnTypes)
                 callsite->returnTypes->addType(cx, (jstype) object);
         }
@@ -790,7 +823,7 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
         jsid id = script->getArgumentId(i);
 
         if (!JSID_IS_VOID(id)) {
-            TypeSet *types = script->localTypes.getVariable(cx, id);
+            TypeSet *types = script->getVariable(cx, id);
             argTypes->addSubset(cx, pool, types);
         } else {
             
@@ -804,23 +837,28 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
     
     for (unsigned i = callsite->argumentCount; i < script->argCount(); i++) {
         jsid id = script->getArgumentId(i);
-        TypeSet *types = script->localTypes.getVariable(cx, id);
+        TypeSet *types = script->getVariable(cx, id);
         types->addType(cx, TYPE_UNDEFINED);
     }
 
     
     if (callsite->isNew) {
         
-        TypeObject *object = function->getNewObject(cx);
-        script->thisTypes.addType(cx, (jstype) object);
+        if (function->unknownProperties) {
+            script->thisTypes.addType(cx, TYPE_UNKNOWN);
+        } else {
+            TypeSet *prototypeTypes = function->getProperty(cx, id_prototype(cx), false);
+            prototypeTypes->add(cx,
+                ArenaNew<TypeConstraintNewObject>(*function->pool, &script->thisTypes));
+        }
 
         
 
 
 
         if (callsite->returnTypes) {
-            callsite->returnTypes->addType(cx, (jstype) object);
-            function->returnTypes.addFilterPrimitives(cx, function->pool(),
+            script->thisTypes.addSubset(cx, script->pool, callsite->returnTypes);
+            function->returnTypes.addFilterPrimitives(cx, *function->pool,
                                                       callsite->returnTypes, false);
         }
     } else {
@@ -834,7 +872,7 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
 
         
         if (callsite->returnTypes)
-            function->returnTypes.addSubset(cx, function->pool(), callsite->returnTypes);
+            function->returnTypes.addSubset(cx, *function->pool, callsite->returnTypes);
     }
 
     
@@ -937,7 +975,7 @@ TypeConstraintFilterPrimitive::newType(JSContext *cx, TypeSet *source, jstype ty
     if (onlyNullVoid) {
         if (type == TYPE_NULL || type == TYPE_UNDEFINED)
             return;
-    } else if (TypeIsPrimitive(type)) {
+    } else if (type != TYPE_UNKNOWN && TypeIsPrimitive(type)) {
         return;
     }
 
@@ -961,8 +999,10 @@ TypeConstraintGenerator::newType(JSContext *cx, TypeSet *source, jstype type)
     if (type == TYPE_UNKNOWN)
         target->addType(cx, TYPE_UNKNOWN);
 
-    if (type == (jstype) cx->getFixedTypeObject(TYPE_OBJECT_NEW_ITERATOR))
+    if (type == (jstype) cx->getFixedTypeObject(TYPE_OBJECT_NEW_ITERATOR) ||
+        type == (jstype) cx->getFixedTypeObject(TYPE_OBJECT_NEW_GENERATOR)) {
         target->addType(cx, TYPE_UNKNOWN);
+    }
 }
 
 
@@ -1172,9 +1212,9 @@ public:
 
 
 
-                TypeSet *elementTypes = object->indexTypes(cx);
+                TypeSet *elementTypes = object->getProperty(cx, JSID_VOID, false);
                 elementTypes->add(cx,
-                    ArenaNew<TypeConstraintFreezeArray>(object->pool(), &kind, script), false);
+                    ArenaNew<TypeConstraintFreezeArray>(*object->pool, &kind, script), false);
             }
 
             if (nkind == kind) {
@@ -1292,49 +1332,32 @@ const char * const fixedTypeObjectNames[] = {
     "#EmptyFunction",
     "Object:prototype",
     "Array:prototype",
-    "Boolean:new",
-    "Date:new",
-    "Error:new",
-    "Iterator:new",
-    "Number:new",
-    "String:new",
-    "Proxy:new",
-    "RegExp:new",
-    "ArrayBuffer:new",
-    "Int8Array:new",
-    "Uint8Array:new",
-    "Int16Array:new",
-    "Uint16Array:new",
-    "Int32Array:new",
-    "Uint32Array:new",
-    "Float32Array:new",
-    "Float64Array:new",
-    "Uint8ClampedArray:new",
-    "#Magic",
-    "#GetSet",
-    "XML:new",
-    "QName:new",
-    "Namespace:new",
+    "Boolean:prototype:new",
+    "Number:prototype:new",
+    "String:prototype:new",
+    "RegExp:prototype:new",
+    "Iterator:prototype:new",
+    "Generator:prototype:new",
+    "ArrayBuffer:prototype:new",
+    "#XML",
     "#Arguments",
     "#NoSuchMethod",
     "#NoSuchMethodArguments",
     "#PropertyDescriptor",
     "#KeyValuePair",
+    "#JSON",
+    "#Proxy",
     "#RegExpMatchArray",
     "#StringSplitArray",
     "#UnknownArray",
     "#CloneArray",
     "#PropertyArray",
-    "#XMLNamespaceArray",
-    "#JSONArray",
     "#ReflectArray",
     "#UnknownObject",
     "#CloneObject",
-    "#JSONStringify",
-    "#JSONRevive",
-    "#JSONObject",
     "#ReflectObject",
     "#XMLSettings",
+    "#GetSet",
     "#RegExpStatics",
     "#Call",
     "#DeclEnv",
@@ -1384,36 +1407,87 @@ TypeCompartment::growPendingArray()
 TypeObject *
 TypeCompartment::makeFixedTypeObject(JSContext *cx, FixedTypeObjectName which)
 {
-    JS_ASSERT(which < TYPE_OBJECT_FIXED_LIMIT);
-    JS_ASSERT(!fixedTypeObjects[which]);
+    const char *name = fixedTypeObjectNames[which];
+    switch (which) {
 
-    bool isArray = (which > TYPE_OBJECT_MONITOR_LAST && which <= TYPE_OBJECT_ARRAY_LAST);
-    bool isFunction = (which <= TYPE_OBJECT_FUNCTION_LAST);
+      case TYPE_OBJECT_OBJECT:
+      case TYPE_OBJECT_FUNCTION:
+      case TYPE_OBJECT_ARRAY:
+        return cx->getTypeFunction(name);
+      case TYPE_OBJECT_FUNCTION_PROTOTYPE: {
+        TypeObject *proto = cx->getFixedTypeObject(TYPE_OBJECT_OBJECT_PROTOTYPE);
+        return cx->getTypeFunctionHandler(name, JS_TypeHandlerVoid, proto);
+      }
+      case TYPE_OBJECT_EMPTY_FUNCTION:
+        return cx->getTypeFunction(name, NULL);
 
-    TypeObject *type = cx->getTypeObject(fixedTypeObjectNames[which], isArray, isFunction);
-    fixedTypeObjects[which] = type;
+      case TYPE_OBJECT_OBJECT_PROTOTYPE:
+        return getTypeObject(cx, NULL, name, false, NULL);
+      case TYPE_OBJECT_ARRAY_PROTOTYPE:
+        return cx->getTypeObject(name, NULL);
+      case TYPE_OBJECT_NEW_BOOLEAN:
+        return cx->getTypeObject(name, cx->getTypeObject("Boolean:prototype", NULL));
+      case TYPE_OBJECT_NEW_NUMBER:
+        return cx->getTypeObject(name, cx->getTypeObject("Number:prototype", NULL));
+      case TYPE_OBJECT_NEW_STRING:
+        return cx->getTypeObject(name, cx->getTypeObject("String:prototype", NULL));
+      case TYPE_OBJECT_NEW_REGEXP:
+        return cx->getTypeObject(name, cx->getTypeObject("RegExp:prototype", NULL));
+      case TYPE_OBJECT_NEW_ITERATOR:
+        return cx->getTypeObject(name, cx->getTypeObject("Iterator:prototype", NULL));
+      case TYPE_OBJECT_NEW_GENERATOR:
+        return cx->getTypeObject(name, cx->getTypeObject("Generator:prototype", NULL));
+      case TYPE_OBJECT_NEW_ARRAYBUFFER:
+        return cx->getTypeObject(name, cx->getTypeObject("ArrayBuffer:prototype", NULL));
 
-    if (which <= TYPE_OBJECT_BASE_LAST) {
-        if (which == TYPE_OBJECT_EMPTY_FUNCTION)
-            cx->addTypePrototype(type, cx->getFixedTypeObject(TYPE_OBJECT_FUNCTION_PROTOTYPE));
-        else if (which == TYPE_OBJECT_OBJECT_PROTOTYPE)
-            type->hasObjectPropagation = true;
-        else if (which == TYPE_OBJECT_ARRAY_PROTOTYPE)
-            type->hasArrayPropagation = true;
-    } else if (which <= TYPE_OBJECT_MONITOR_LAST) {
-        cx->markTypeObjectUnknownProperties(type);
-    } else if (which <= TYPE_OBJECT_ARRAY_LAST) {
-        cx->addTypePrototype(type, cx->getFixedTypeObject(TYPE_OBJECT_ARRAY_PROTOTYPE));
-    } else {
-        cx->addTypePrototype(type, cx->getFixedTypeObject(TYPE_OBJECT_OBJECT_PROTOTYPE));
+      case TYPE_OBJECT_XML:
+      case TYPE_OBJECT_ARGUMENTS:
+      case TYPE_OBJECT_NOSUCHMETHOD:
+      case TYPE_OBJECT_NOSUCHMETHOD_ARGUMENTS:
+      case TYPE_OBJECT_PROPERTY_DESCRIPTOR:
+      case TYPE_OBJECT_KEY_VALUE_PAIR:
+      case TYPE_OBJECT_JSON:
+      case TYPE_OBJECT_PROXY: {
+        TypeObject *object = getTypeObject(cx, NULL, name, false, NULL);
+        cx->markTypeObjectUnknownProperties(object);
+        return object;
+      }
+
+      case TYPE_OBJECT_REGEXP_MATCH_ARRAY:
+      case TYPE_OBJECT_STRING_SPLIT_ARRAY:
+      case TYPE_OBJECT_UNKNOWN_ARRAY:
+      case TYPE_OBJECT_CLONE_ARRAY:
+      case TYPE_OBJECT_PROPERTY_ARRAY:
+      case TYPE_OBJECT_REFLECT_ARRAY:
+        return cx->getTypeObject(name, cx->getFixedTypeObject(TYPE_OBJECT_ARRAY_PROTOTYPE));
+
+      case TYPE_OBJECT_UNKNOWN_OBJECT:
+      case TYPE_OBJECT_CLONE_OBJECT:
+      case TYPE_OBJECT_REFLECT_OBJECT:
+      case TYPE_OBJECT_XML_SETTINGS:
+        return cx->getTypeObject(name, NULL);
+
+      case TYPE_OBJECT_GETSET:
+      case TYPE_OBJECT_REGEXP_STATICS:
+      case TYPE_OBJECT_CALL:
+      case TYPE_OBJECT_DECLENV:
+      case TYPE_OBJECT_SHARP_ARRAY:
+      case TYPE_OBJECT_WITH:
+      case TYPE_OBJECT_BLOCK:
+      case TYPE_OBJECT_NULL_CLOSURE:
+      case TYPE_OBJECT_PROPERTY_ITERATOR:
+      case TYPE_OBJECT_SCRIPT:
+        return getTypeObject(cx, NULL, name, false, NULL);
+
+      default:
+        JS_NOT_REACHED("Unknown fixed object");
+        return NULL;
     }
-
-    return type;
 }
 
 TypeObject *
 TypeCompartment::getTypeObject(JSContext *cx, analyze::Script *script, const char *name,
-                               bool isArray, bool isFunction)
+                               bool isFunction, TypeObject *prototype)
 {
 #ifdef JS_TYPE_INFERENCE
     jsid id = ATOM_TO_JSID(js_Atomize(cx, name, strlen(name), 0));
@@ -1428,17 +1502,16 @@ TypeCompartment::getTypeObject(JSContext *cx, analyze::Script *script, const cha
     if (p) {
         js::types::TypeObject *object = p->value;
         JS_ASSERT(object->isFunction == isFunction);
-        JS_ASSERT(&object->pool() == &pool);
-        if (!isArray && object->isDenseArray)
-            cx->markTypeArrayNotPacked(object, true);
+        JS_ASSERT(object->prototype == prototype);
+        JS_ASSERT(object->pool == &pool);
         return object;
     }
 
     js::types::TypeObject *object;
     if (isFunction)
-        object = ArenaNew<TypeFunction>(pool, cx, &pool, id);
+        object = ArenaNew<TypeFunction>(pool, cx, &pool, id, prototype);
     else
-        object = ArenaNew<TypeObject>(pool, cx, &pool, id, isArray);
+        object = ArenaNew<TypeObject>(pool, cx, &pool, id, prototype);
 
     TypeObject *&objects = script ? script->objects : this->objects;
     object->next = objects;
@@ -1557,16 +1630,7 @@ TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Valu
     jstype rvtype = GetValueType(cx, rval);
     TypeObject *object = obj->getTypeObject();
 
-    
-
-
-
-
-
-    if (id == id_prototype(cx) && TypeIsObject(rvtype) && object->isFunction)
-        cx->addTypePrototype(object->asFunction()->getNewObject(cx), (TypeObject *) rvtype);
-
-    if (object->unknownProperties())
+    if (object->unknownProperties)
         return;
 
     TypeSet *assignTypes;
@@ -1583,7 +1647,7 @@ TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Valu
         analyze::Script *script = obj->getCallObjCalleeFunction()->script()->analysis;
         JS_ASSERT(!script->isEval());
 
-        assignTypes = script->localTypes.getVariable(cx, id);
+        assignTypes = script->getVariable(cx, id);
     } else {
         id = MakeTypeId(id);
 
@@ -1599,11 +1663,14 @@ TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Valu
             return;
         }
 
-        assignTypes = object->properties(cx).getVariable(cx, id);
+        assignTypes = object->getProperty(cx, id, true);
 
         
-        if (id == id___proto__(cx) && TypeIsObject(rvtype))
-            cx->addTypePrototype(object, (TypeObject *) rvtype);
+
+
+
+        if (id == id___proto__(cx))
+            cx->markTypeObjectUnknownProperties(object);
     }
 
     if (assignTypes->hasType(rvtype))
@@ -1752,98 +1819,169 @@ TypeStack::merge(JSContext *cx, TypeStack *one, TypeStack *two)
 
 
 
-bool
-VariableSet::addPropagate(JSContext *cx, VariableSet *target,
-                          bool excludePrototype)
+TypeObject::TypeObject(JSContext *cx, JSArenaPool *pool, jsid name, TypeObject *prototype)
+    : name(name), isFunction(false), propertySet(NULL), propertyCount(0),
+      prototype(prototype), instanceList(NULL), instanceNext(NULL), newObject(NULL),
+      pool(pool), next(NULL), unknownProperties(false),
+      isDenseArray(false), isPackedArray(false), possiblePackedArray(false)
 {
-    if (!HashSetInsert(cx, propagateSet, propagateCount, target))
-        return false;
+    InferSpew(ISpewOps, "newObject: %s", TypeIdString(name));
 
-    if (unknown) {
-        
-        if (!target->unknown)
-            target->markUnknown(cx);
-        return true;
+    if (prototype) {
+        if (prototype == cx->compartment->types.fixedTypeObjects[TYPE_OBJECT_ARRAY_PROTOTYPE])
+            isDenseArray = isPackedArray = true;
+        if (prototype->unknownProperties)
+            unknownProperties = true;
+        instanceNext = prototype->instanceList;
+        prototype->instanceList = this;
     }
-
-    
-    Variable *var = variables;
-    while (var) {
-        bool skip = (excludePrototype && var->id == id_prototype(cx));
-
-        
-
-
-
-        TypeObject *funcProto = cx->getFixedTypeObject(TYPE_OBJECT_FUNCTION_PROTOTYPE);
-        if (target == &funcProto->properties(cx)) {
-            if (var->id == id_toString(cx) || var->id == id_toSource(cx))
-                skip = true;
-        }
-
-        if (!skip) {
-            TypeSet *targetTypes = target->getVariable(cx, var->id);
-            var->types.addSubset(cx, *pool, targetTypes);
-        }
-
-        var = var->next;
-    }
-
-    return true;
 }
 
 void
-VariableSet::markUnknown(JSContext *cx)
+TypeObject::storeToInstances(JSContext *cx, Property *base)
 {
-    JS_ASSERT(!unknown);
-    unknown = true;
+    TypeObject *object = instanceList;
+    while (object) {
+        Property *p =
+            HashSetLookup<jsid,Property,Property>(object->propertySet, object->propertyCount, base->id);
+        if (p)
+            base->ownTypes.addSubset(cx, *pool, &p->types);
+        if (object->instanceList)
+            object->storeToInstances(cx, base);
+        object = object->instanceNext;
+    }
+}
+
+void
+TypeObject::addProperty(JSContext *cx, jsid id, Property *&base)
+{
+    JS_ASSERT(!base);
+    base = ArenaNew<Property>(*pool, pool, id);
+
+    InferSpew(ISpewOps, "addProperty: %s %s T%u own T%u",
+              TypeIdString(name), TypeIdString(id), base->types.id(), base->ownTypes.id());
+
+    base->ownTypes.addSubset(cx, *pool, &base->types);
+
+    if (unknownProperties) {
+        
+
+
+
+
+        base->ownTypes.addType(cx, TYPE_UNKNOWN);
+    }
 
     
+    if (instanceList)
+        storeToInstances(cx, base);
 
-
-
-
-
-
-
-
-    js::types::Variable *var = variables;
-    while (var) {
-        var->types.addType(cx, js::types::TYPE_UNKNOWN);
-        var = var->next;
+    
+    TypeObject *object = prototype;
+    while (object) {
+        Property *p =
+            HashSetLookup<jsid,Property,Property>(object->propertySet, object->propertyCount, id);
+        if (p)
+            p->ownTypes.addSubset(cx, *object->pool, &base->types);
+        object = object->prototype;
     }
 
     
 
-    if (propagateCount >= 2) {
-        unsigned capacity = HashSetCapacity(propagateCount);
+
+
+    if (!isFunction || asFunction()->isBuiltin || id != id_prototype(cx))
+        return;
+
+    TypeFunction *function = asFunction();
+    JS_ASSERT(!function->prototypeObject);
+
+    const char *baseName = js_GetStringBytes(JSID_TO_ATOM(name));
+    unsigned len = strlen(baseName) + 15;
+    char *prototypeName = (char *)alloca(len);
+    JS_snprintf(prototypeName, len, "%s:prototype", baseName);
+    function->prototypeObject = cx->getTypeObject(prototypeName, NULL);
+
+    base->ownTypes.addType(cx, (jstype) function->prototypeObject);
+}
+
+void
+TypeObject::markUnknown(JSContext *cx)
+{
+    JS_ASSERT(!unknownProperties);
+    unknownProperties = true;
+
+    cx->markTypeArrayNotPacked(this, true, false);
+
+    
+
+
+
+
+
+
+
+
+    if (propertyCount >= 2) {
+        unsigned capacity = HashSetCapacity(propertyCount);
         for (unsigned i = 0; i < capacity; i++) {
-            VariableSet *target = propagateSet[i];
-            if (target && !target->unknown)
-                target->markUnknown(cx);
+            Property *prop = propertySet[i];
+            if (prop)
+                prop->ownTypes.addType(cx, TYPE_UNKNOWN);
         }
-    } else if (propagateCount == 1) {
-        VariableSet *target = (VariableSet *) propagateSet;
-        if (!target->unknown)
-            target->markUnknown(cx);
+    } else if (propertyCount == 1) {
+        Property *prop = (Property *) propertySet;
+        prop->ownTypes.addType(cx, TYPE_UNKNOWN);
+    }
+
+    
+
+    TypeObject *instance = instanceList;
+    while (instance) {
+        if (!instance->unknownProperties)
+            instance->markUnknown(cx);
+        instance = instance->instanceNext;
     }
 }
 
-void
-VariableSet::print(JSContext *cx)
+TypeObject *
+TypeObject::getNewObject(JSContext *cx)
 {
-    if (variables == NULL) {
+    if (newObject)
+        return newObject;
+    const char *baseName = js_GetStringBytes(JSID_TO_ATOM(name));
+    unsigned len = strlen(baseName) + 10;
+    char *newName = (char *)alloca(len);
+    JS_snprintf(newName, len, "%s:new", baseName);
+    newObject = cx->getTypeObject(newName, this);
+    return newObject;
+}
+
+void
+TypeObject::print(JSContext *cx)
+{
+    printf("%s : %s", TypeIdString(name), prototype ? TypeIdString(prototype->name) : "(null)");
+
+    if (propertyCount == 0) {
         printf(" {}\n");
         return;
     }
 
     printf(" {");
 
-    Variable *var = variables;
-    while (var) {
-        printf("\n    %s:", TypeIdString(var->id));
-        var->types.print(cx);
-        var = var->next;
+    if (propertyCount >= 2) {
+        unsigned capacity = HashSetCapacity(propertyCount);
+        for (unsigned i = 0; i < capacity; i++) {
+            Property *prop = propertySet[i];
+            if (prop) {
+                printf("\n    %s:", TypeIdString(prop->id));
+                prop->ownTypes.print(cx);
+            }
+        }
+    } else if (propertyCount == 1) {
+        Property *prop = (Property *) propertySet;
+        printf("\n    %s:", TypeIdString(prop->id));
+        prop->ownTypes.print(cx);
     }
 
     printf("\n}\n");
@@ -1853,95 +1991,9 @@ VariableSet::print(JSContext *cx)
 
 
 
-TypeObject::TypeObject(JSContext *cx, JSArenaPool *pool, jsid name, bool isArray)
-    : name(name), isFunction(false),
-      propertySet(pool), propertiesFilled(false), next(NULL),
-      hasObjectPropagation(false), hasArrayPropagation(false), isInitObject(false),
-      isDenseArray(isArray), isPackedArray(isArray)
-{
-#ifdef DEBUG
-    propertySet.name_ = name;
-    InferSpew(ISpewOps, "newObject: %s", TypeIdString(name));
-#endif
-}
-
-bool
-TypeObject::addPropagate(JSContext *cx, TypeObject *target,
-                         bool excludePrototype)
-{
-    bool added = properties(cx).addPropagate(cx, &target->properties(cx), excludePrototype);
-
-    
-    if (hasObjectPropagation)
-        target->hasObjectPropagation = true;
-    if (hasArrayPropagation)
-        target->hasArrayPropagation = true;
-
-    return added;
-}
-
-void
-TypeFunction::fillProperties(JSContext *cx)
-{
-    
-
-
-
-    TypeSet *argumentTypes = propertySet.getVariable(cx, id_arguments(cx));
-    argumentTypes->addType(cx, TYPE_NULL);
-    argumentTypes->addType(cx, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_ARGUMENTS));
-    if (script) {
-        
-        TypeSet *types = script->analysis->localTypes.getVariable(cx, id_arguments(cx));
-        types->addSubset(cx, script->analysis->pool, argumentTypes);
-    }
-
-    
-    if (isBuiltin)
-        return;
-
-    JS_ASSERT(!prototypeObject);
-
-    
-
-
-
-    TypeObject *funcProto = cx->getFixedTypeObject(TYPE_OBJECT_FUNCTION_PROTOTYPE);
-    funcProto->addPropagate(cx, this);
-
-    const char *baseName = js_GetStringBytes(JSID_TO_ATOM(name));
-    unsigned len = strlen(baseName) + 15;
-    char *prototypeName = (char *)alloca(len);
-    JS_snprintf(prototypeName, len, "%s:prototype", baseName);
-    prototypeObject = cx->getTypeObject(prototypeName, false, false);
-
-    TypeSet *prototypeTypes = propertySet.getVariable(cx, id_prototype(cx));
-    prototypeTypes->addType(cx, (jstype) prototypeObject);
-
-    
-    TypeObject *objectProto = cx->getFixedTypeObject(TYPE_OBJECT_OBJECT_PROTOTYPE);
-    objectProto->addPropagate(cx, prototypeObject);
-}
-
-void
-TypeObject::print(JSContext *cx)
-{
-    printf("%s", TypeIdString(name));
-
-    if (isFunction && !propertiesFilled)
-        printf("\n");
-    else
-        properties(cx).print(cx);
-    printf("\n");
-}
-
-
-
-
-
-TypeFunction::TypeFunction(JSContext *cx, JSArenaPool *pool, jsid name)
-    : TypeObject(cx, pool, name, false), handler(NULL), script(NULL),
-      prototypeObject(NULL), newObject(NULL), returnTypes(pool),
+TypeFunction::TypeFunction(JSContext *cx, JSArenaPool *pool, jsid name, TypeObject *prototype)
+    : TypeObject(cx, pool, name, prototype), handler(NULL), script(NULL),
+      prototypeObject(NULL), returnTypes(pool),
       isBuiltin(false), isGeneric(false)
 {
     isFunction = true;
@@ -2029,33 +2081,57 @@ JSScript::typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value
     js::types::TypeStack *stack = code.inStack->group();
     for (int i = 0; i < useCount; i++) {
         const js::Value &val = sp[-1 - i];
-        js::types::jstype type = js::types::GetValueType(cx, val);
+        js::types::TypeSet *types = &stack->types;
+        bool ignore = val.isMagic(JS_ARRAY_HOLE) || stack->ignoreTypeTag || IgnorePopped(op, i);
 
-        if (js::types::TypeIsObject(type) && !val.isMagic(JS_ARRAY_HOLE)) {
-            
+        stack = stack->innerStack ? stack->innerStack->group() : NULL;
+
+        if (ignore)
+            continue;
+
+        js::types::jstype type = js::types::GetValueType(cx, val);
+        if (!types->hasType(type)) {
+            js::types::TypeFailure(cx, "Missing type at #%u:%05u popped %u: %s",
+                                   analysis->id, code.offset, i, js::types::TypeString(type));
+            return;
+        }
+
+        if (js::types::TypeIsObject(type)) {
             JS_ASSERT(val.isObject());
+            JSObject *obj = &val.toObject();
             js::types::TypeObject *object = (js::types::TypeObject *) type;
 
+            if (object->unknownProperties) {
+                JS_ASSERT(!object->isDenseArray);
+                continue;
+            }
+
+            
+
+
+
+            if (((object->prototype != NULL) != (obj->getProto() != NULL)) ||
+                (object->prototype && object->prototype != obj->getProto()->getTypeObject())) {
+                jsid protoName = object->prototype ? object->prototype->name : JSID_VOID;
+                jsid needName = obj->getProto() ? obj->getProto()->getTypeObject()->name : JSID_VOID;
+                js::types::TypeFailure(cx, "Wrong prototype %s for %s at #%u:%05u popped %u: need %s",
+                                       js::types::TypeIdString(protoName),
+                                       js::types::TypeIdString(object->name),
+                                       analysis->id, code.offset, i,
+                                       js::types::TypeIdString(needName));
+            }
+
+            
             JS_ASSERT_IF(object->isPackedArray, object->isDenseArray);
             if (object->isDenseArray) {
-                if (!val.toObject().isDenseArray() ||
-                    (object->isPackedArray && !val.toObject().isPackedDenseArray())) {
+                if (!obj->isDenseArray() ||
+                    (object->isPackedArray && !obj->isPackedDenseArray())) {
                     js::types::TypeFailure(cx, "Object not %s array at #%u:%05u popped %u: %s",
                         object->isPackedArray ? "packed" : "dense",
                         analysis->id, code.offset, i,
                         js::types::TypeIdString(object->name));
                 }
             }
-        }
-
-        bool matches = IgnorePopped(op, i) || stack->types.hasType(type);
-
-        stack = stack->innerStack ? stack->innerStack->group() : NULL;
-
-        if (!matches) {
-            js::types::TypeFailure(cx, "Missing type at #%u:%05u popped %u: %s",
-                                   analysis->id, code.offset, i, js::types::TypeString(type));
-            return;
         }
     }
 }
@@ -2064,6 +2140,16 @@ namespace js {
 namespace analyze {
 
 using namespace types;
+
+void
+Script::addVariable(JSContext *cx, jsid id, types::Variable *&var)
+{
+    JS_ASSERT(!var);
+    var = ArenaNew<types::Variable>(pool, &pool, id);
+
+    InferSpew(ISpewOps, "addVariable: #%lu %s T%u",
+              this->id, TypeIdString(id), var->types.id());
+}
 
 inline Bytecode*
 Script::parentCode()
@@ -2101,6 +2187,10 @@ Script::setFunction(JSContext *cx, JSFunction *fun)
 
     if (fun->hasLocalNames())
         localNames = fun->getLocalNameArray(cx, &pool);
+
+    
+    if (fun->atom)
+        getVariable(cx, ATOM_TO_JSID(fun->atom))->addType(cx, (jstype) fun->getTypeObject());
 }
 
 static inline ptrdiff_t
@@ -2140,18 +2230,13 @@ BytecodeNoFallThrough(JSOp op)
     }
 }
 
-static inline VariableSet *
-GetGlobalProperties(JSContext *cx)
-{
-    return &cx->getGlobalTypeObject()->properties(cx);
-}
 
 
 
 
 
-
-static VariableSet *
+static Script * const SCOPE_GLOBAL = (Script *) 0x1;
+static Script *
 SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id)
 {
     
@@ -2165,14 +2250,14 @@ SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id)
             }
             if (stack->letVariable == id) {
                 
-                goto found;
+                return script->evalParent();
             }
             stack = stack->innerStack;
         }
 
         if (script->isEval()) {
             
-            JS_ASSERT(!script->localTypes.variables);
+            JS_ASSERT(!script->variableCount);
             stack = script->parentCode()->inStack;
             script = script->parent->analysis;
             continue;
@@ -2183,41 +2268,35 @@ SearchScope(JSContext *cx, Script *script, TypeStack *stack, jsid id)
 
         
         if (id == id_arguments(cx) && script->fun) {
-            TypeSet *types = script->localTypes.getVariable(cx, id);
+            TypeSet *types = script->getVariable(cx, id);
             types->addType(cx, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_ARGUMENTS));
-            goto found;
+            return script;
         }
 
         
         if (script->fun && id == ATOM_TO_JSID(script->fun->atom)) {
-            TypeSet *types = script->localTypes.getVariable(cx, id);
+            TypeSet *types = script->getVariable(cx, id);
             types->addType(cx, (jstype) script->function());
-            goto found;
+            return script;
         }
 
         unsigned nargs = script->argCount();
         for (unsigned i = 0; i < nargs; i++) {
             if (id == script->getArgumentId(i))
-                goto found;
+                return script;
         }
 
         unsigned nfixed = script->getScript()->nfixed;
         for (unsigned i = 0; i < nfixed; i++) {
             if (id == script->getLocalId(i, NULL))
-                goto found;
+                return script;
         }
 
         stack = script->parentCode()->inStack;
         script = script->parent->analysis;
     }
 
-  found:
-    JS_ASSERT(script);
-    script = script->evalParent();
-
-    if (script->fun)
-        return &script->localTypes;
-    return GetGlobalProperties(cx);
+    return SCOPE_GLOBAL;
 }
 
 static inline jsid
@@ -2349,8 +2428,8 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
         for (unsigned i = state.stackDepth; i < code->stackDepth; i++) {
             JS_ASSERT(!state.stack[i].isForEach);
-            JS_ASSERT(!state.stack[i].scopeVars);
             JS_ASSERT(!state.stack[i].hasDouble);
+            JS_ASSERT(!state.stack[i].scope);
         }
 #endif
         unsigned ndefs = code->stackDepth - state.stackDepth;
@@ -2499,26 +2578,26 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_CALLNAME: {
         
         jsid id;
-        VariableSet *vars;
+        Script *scope;
 
         switch (op) {
           case JSOP_GETGLOBAL:
           case JSOP_CALLGLOBAL:
             id = GetGlobalId(cx, this, pc);
-            vars = GetGlobalProperties(cx);
+            scope = SCOPE_GLOBAL;
             break;
           case JSOP_GETGNAME:
           case JSOP_CALLGNAME:
             id = GetAtomId(cx, this, pc, 0);
-            vars = GetGlobalProperties(cx);
+            scope = SCOPE_GLOBAL;
             break;
           default:
             id = GetAtomId(cx, this, pc, 0);
-            vars = SearchScope(cx, this, code->inStack, id);
+            scope = SearchScope(cx, this, code->inStack, id);
             break;
         }
 
-        if (vars == GetGlobalProperties(cx)) {
+        if (scope == SCOPE_GLOBAL) {
             
 
 
@@ -2533,17 +2612,17 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
             
             PropertyAccess(cx, code, cx->getGlobalTypeObject(), false, code->pushed(0), id);
-        } else if (vars) {
+        } else if (scope) {
             
-            TypeSet *types = vars->getVariable(cx, id);
-            types->addSubset(cx, *vars->pool, code->pushed(0));
+            TypeSet *types = scope->getVariable(cx, id);
+            types->addSubset(cx, scope->pool, code->pushed(0));
         } else {
             
             code->setFixed(cx, 0, TYPE_UNKNOWN);
         }
 
         if (op == JSOP_CALLGLOBAL || op == JSOP_CALLGNAME || op == JSOP_CALLNAME)
-            code->setFixed(cx, 1, vars ? TYPE_UNDEFINED : TYPE_UNKNOWN);
+            code->setFixed(cx, 1, scope ? TYPE_UNDEFINED : TYPE_UNKNOWN);
         CheckNextTest(cx, code, pc);
         break;
       }
@@ -2558,10 +2637,10 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         jsid id = GetAtomId(cx, this, pc, 0);
 
         const AnalyzeStateStack &stack = state.popped(1);
-        if (stack.scopeVars && stack.scopeVars == GetGlobalProperties(cx)) {
+        if (stack.scope == SCOPE_GLOBAL) {
             PropertyAccess(cx, code, cx->getGlobalTypeObject(), true, code->popped(0), id);
-        } else if (stack.scopeVars) {
-            TypeSet *types = stack.scopeVars->getVariable(cx, id);
+        } else if (stack.scope) {
+            TypeSet *types = stack.scope->getVariable(cx, id);
             code->popped(0)->addSubset(cx, pool, types);
         } else {
             cx->compartment->types.monitorBytecode(cx, code);
@@ -2575,11 +2654,11 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         jsid id = GetAtomId(cx, this, pc, 0);
 
         const AnalyzeStateStack &stack = state.popped(0);
-        if (stack.scopeVars && stack.scopeVars == GetGlobalProperties(cx)) {
+        if (stack.scope == SCOPE_GLOBAL) {
             PropertyAccess(cx, code, cx->getGlobalTypeObject(), false, code->pushed(0), id);
-        } else if (stack.scopeVars) {
-            TypeSet *types = stack.scopeVars->getVariable(cx, id);
-            types->addSubset(cx, *stack.scopeVars->pool, code->pushed(0));
+        } else if (stack.scope) {
+            TypeSet *types = stack.scope->getVariable(cx, id);
+            types->addSubset(cx, stack.scope->pool, code->pushed(0));
         } else {
             code->setFixed(cx, 0, TYPE_UNKNOWN);
         }
@@ -2593,14 +2672,14 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_NAMEDEC: {
         jsid id = GetAtomId(cx, this, pc, 0);
 
-        VariableSet *vars = SearchScope(cx, this, code->inStack, id);
-        if (vars && vars == GetGlobalProperties(cx)) {
+        Script *scope = SearchScope(cx, this, code->inStack, id);
+        if (scope == SCOPE_GLOBAL) {
             PropertyAccess(cx, code, cx->getGlobalTypeObject(), true, NULL, id);
             PropertyAccess(cx, code, cx->getGlobalTypeObject(), false, code->pushed(0), id);
-        } else if (vars) {
-            TypeSet *types = vars->getVariable(cx, id);
-            types->addSubset(cx, *vars->pool, code->pushed(0));
-            types->addArith(cx, *vars->pool, code, types);
+        } else if (scope) {
+            TypeSet *types = scope->getVariable(cx, id);
+            types->addSubset(cx, scope->pool, code->pushed(0));
+            types->addArith(cx, scope->pool, code, types);
             if (code->hasIncDecOverflow)
                 types->addType(cx, TYPE_DOUBLE);
         } else {
@@ -2620,7 +2699,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
 
         jsid id = (op == JSOP_SETGLOBAL) ? GetGlobalId(cx, this, pc) : GetAtomId(cx, this, pc, 0);
-        TypeSet *types = GetGlobalProperties(cx)->getVariable(cx, id);
+        TypeSet *types = cx->getGlobalTypeObject()->getProperty(cx, id, true);
         code->popped(0)->addSubset(cx, pool, types);
         MergePushed(cx, pool, code, 0, code->popped(0));
         break;
@@ -2631,7 +2710,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_GLOBALINC:
       case JSOP_GLOBALDEC: {
         jsid id = GetGlobalId(cx, this, pc);
-        TypeSet *types = GetGlobalProperties(cx)->getVariable(cx, id);
+        TypeSet *types = cx->getGlobalTypeObject()->getProperty(cx, id, true);
         types->addArith(cx, cx->compartment->types.pool, code, types);
         MergePushed(cx, cx->compartment->types.pool, code, 0, types);
         if (code->hasIncDecOverflow)
@@ -2657,7 +2736,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
         jsid id = JSID_VOID;
         Script *newScript = GetUpvarVariable(cx, code, index, &id);
-        TypeSet *types = newScript->localTypes.getVariable(cx, id);
+        TypeSet *types = newScript->getVariable(cx, id);
 
         MergePushed(cx, newScript->pool, code, 0, types);
         if (op == JSOP_CALLUPVAR || op == JSOP_CALLFCSLOT)
@@ -2671,7 +2750,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         jsid id = getArgumentId(GET_ARGNO(pc));
 
         if (!JSID_IS_VOID(id)) {
-            TypeSet *types = localTypes.getVariable(cx, id);
+            TypeSet *types = getVariable(cx, id);
 
             MergePushed(cx, pool, code, 0, types);
             if (op == JSOP_SETARG)
@@ -2690,7 +2769,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_ARGINC:
       case JSOP_ARGDEC: {
         jsid id = getArgumentId(GET_ARGNO(pc));
-        TypeSet *types = localTypes.getVariable(cx, id);
+        TypeSet *types = getVariable(cx, id);
 
         types->addArith(cx, pool, code, types);
         MergePushed(cx, pool, code, 0, types);
@@ -2713,7 +2792,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         TypeSet *types;
         JSArenaPool *pool;
         if (!JSID_IS_VOID(id)) {
-            types = evalParent()->localTypes.getVariable(cx, id);
+            types = evalParent()->getVariable(cx, id);
             pool = &evalParent()->pool;
         } else {
             types = getStackTypes(GET_SLOTNO(pc), code);
@@ -2755,7 +2834,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
         state.clearLocal(local);
 
-        TypeSet *types = evalParent()->localTypes.getVariable(cx, id);
+        TypeSet *types = evalParent()->getVariable(cx, id);
         types->addArith(cx, evalParent()->pool, code, types);
         MergePushed(cx, evalParent()->pool, code, 0, types);
 
@@ -2770,7 +2849,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
 
         JS_ASSERT(fun);
-        TypeSet *types = localTypes.getVariable(cx, id_arguments(cx));
+        TypeSet *types = getVariable(cx, id_arguments(cx));
         types->addType(cx, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_ARGUMENTS));
         MergePushed(cx, pool, code, 0, types);
         break;
@@ -2778,7 +2857,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
       case JSOP_ARGCNT: {
         JS_ASSERT(fun);
-        TypeSet *types = localTypes.getVariable(cx, id_arguments(cx));
+        TypeSet *types = getVariable(cx, id_arguments(cx));
         types->addType(cx, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_ARGUMENTS));
 
         types->addGetProperty(cx, code, code->pushed(0), id_length(cx));
@@ -2829,7 +2908,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
       case JSOP_GETARGPROP: {
         jsid id = getArgumentId(GET_ARGNO(pc));
-        TypeSet *types = localTypes.getVariable(cx, id);
+        TypeSet *types = getVariable(cx, id);
 
         jsid propid = GetAtomId(cx, this, pc, SLOTNO_LEN);
         types->addGetProperty(cx, code, code->pushed(0), propid);
@@ -2840,7 +2919,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
       case JSOP_GETLOCALPROP: {
         jsid id = getLocalId(GET_SLOTNO(pc), code);
-        TypeSet *types = evalParent()->localTypes.getVariable(cx, id);
+        TypeSet *types = evalParent()->getVariable(cx, id);
 
         jsid propid = GetAtomId(cx, this, pc, SLOTNO_LEN);
         types->addGetProperty(cx, code, code->pushed(0), propid);
@@ -2950,7 +3029,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
             res = code->pushed(0);
         } else if (op == JSOP_DEFLOCALFUN || op == JSOP_DEFLOCALFUN_FC) {
             jsid id = getLocalId(GET_SLOTNO(pc), code);
-            res = evalParent()->localTypes.getVariable(cx, id);
+            res = evalParent()->getVariable(cx, id);
         } else {
             
             JSAtom *atom = obj->getFunctionPrivate()->atom;
@@ -2962,19 +3041,20 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
 
 
-                    res = localTypes.getVariable(cx, id);
+                    res = getVariable(cx, id);
                 } else {
                     
-                    VariableSet *vars = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
-                    if (vars) {
-                        res = vars->getVariable(cx, id);
-                        if (vars != GetGlobalProperties(cx))
-                            res->addType(cx, TYPE_UNKNOWN);
+                    Script *scope = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
+                    if (scope == SCOPE_GLOBAL) {
+                        res = cx->getGlobalTypeObject()->getProperty(cx, id, true);
+                    } else if (scope) {
+                        res = scope->getVariable(cx, id);
+                        res->addType(cx, TYPE_UNKNOWN);
                     }
                 }
             } else {
                 
-                res = GetGlobalProperties(cx)->getVariable(cx, id);
+                res = cx->getGlobalTypeObject()->getProperty(cx, id, true);
             }
         }
 
@@ -3009,13 +3089,14 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_NEWINIT:
       case JSOP_NEWARRAY:
       case JSOP_NEWOBJECT: {
-        TypeObject *object = code->initObject;
-        JS_ASSERT(object);
-
+        TypeObject *object;
         if (op == JSOP_NEWARRAY || (op == JSOP_NEWINIT && pc[1] == JSProto_Array)) {
+            object = code->initArray;
             jsbytecode *next = pc + GetBytecodeLength(pc);
             if (JSOp(*next) != JSOP_ENDINIT)
                 object->possiblePackedArray = true;
+        } else {
+            object = code->initObject;
         }
 
         code->pushed(0)->addType(cx, (jstype) object);
@@ -3037,9 +3118,9 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
             jsid id;
             if (!js_InternNonIntElementId(cx, NULL, val, &id))
                 JS_NOT_REACHED("Bad");
-            types = object->properties(cx).getVariable(cx, id);
+            types = object->getProperty(cx, id, true);
         } else {
-            types = object->indexTypes(cx);
+            types = object->getProperty(cx, JSID_VOID, true);
         }
 
         if (state.hasGetSet)
@@ -3070,7 +3151,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         code->pushed(0)->addType(cx, (jstype) object);
 
         jsid id = GetAtomId(cx, this, pc, 0);
-        TypeSet *types = object->properties(cx).getVariable(cx, id);
+        TypeSet *types = object->getProperty(cx, id, true);
 
         if (id == id___proto__(cx) || id == id_prototype(cx))
             cx->compartment->types.monitorBytecode(cx, code);
@@ -3123,10 +3204,12 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
       case JSOP_FORNAME: {
         jsid id = GetAtomId(cx, this, pc, 0);
-        VariableSet *vars = SearchScope(cx, this, code->inStack, id);
+        Script *scope = SearchScope(cx, this, code->inStack, id);
 
-        if (vars)
-            SetForTypes(cx, state, code, vars->getVariable(cx, id));
+        if (scope == SCOPE_GLOBAL)
+            SetForTypes(cx, state, code, cx->getGlobalTypeObject()->getProperty(cx, id, true));
+        else if (scope)
+            SetForTypes(cx, state, code, scope->getVariable(cx, id));
         else
             cx->compartment->types.monitorBytecode(cx, code);
         break;
@@ -3134,7 +3217,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
       case JSOP_FORGLOBAL: {
         jsid id = GetGlobalId(cx, this, pc);
-        SetForTypes(cx, state, code, GetGlobalProperties(cx)->getVariable(cx, id));
+        SetForTypes(cx, state, code, cx->getGlobalTypeObject()->getProperty(cx, id, true));
         break;
       }
 
@@ -3142,7 +3225,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         jsid id = getLocalId(GET_SLOTNO(pc), code);
         JS_ASSERT(!JSID_IS_VOID(id));
 
-        SetForTypes(cx, state, code, evalParent()->localTypes.getVariable(cx, id));
+        SetForTypes(cx, state, code, evalParent()->getVariable(cx, id));
         break;
       }
 
@@ -3150,7 +3233,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         jsid id = getArgumentId(GET_ARGNO(pc));
         JS_ASSERT(!JSID_IS_VOID(id));
 
-        SetForTypes(cx, state, code, localTypes.getVariable(cx, id));
+        SetForTypes(cx, state, code, getVariable(cx, id));
         break;
       }
 
@@ -3186,9 +3269,9 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
         if (parent && !fun) {
             jsid id = GetAtomId(cx, this, pc, 0);
-            VariableSet *vars = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
-            if (vars && vars != GetGlobalProperties(cx)) {
-                TypeSet *types = vars->getVariable(cx, id);
+            Script *scope = SearchScope(cx, parent->analysis, parentCode()->inStack, id);
+            if (scope && scope != SCOPE_GLOBAL) {
+                TypeSet *types = scope->getVariable(cx, id);
                 types->addType(cx, TYPE_UNKNOWN);
             }
         }
@@ -3215,7 +3298,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
 
       case JSOP_GENERATOR:
         if (fun) {
-            TypeObject *object = cx->getFixedTypeObject(TYPE_OBJECT_NEW_ITERATOR);
+            TypeObject *object = cx->getFixedTypeObject(TYPE_OBJECT_NEW_GENERATOR);
             function()->returnTypes.addType(cx, (jstype) object);
         }
         break;
@@ -3224,10 +3307,10 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         code->setFixed(cx, 0, TYPE_UNKNOWN);
         break;
 
-      case JSOP_XMLNAME:
+      case JSOP_CALLXMLNAME:
         code->setFixed(cx, 1, TYPE_UNKNOWN);
         
-      case JSOP_CALLXMLNAME:
+      case JSOP_XMLNAME:
         code->setFixed(cx, 0, TYPE_UNKNOWN);
         break;
 
@@ -3244,18 +3327,12 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
       case JSOP_XMLCDATA:
       case JSOP_XMLCOMMENT:
       case JSOP_DESCENDANTS:
-        code->setFixed(cx, 0, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_NEW_XML));
-        break;
-
       case JSOP_TOATTRNAME:
       case JSOP_QNAMECONST:
       case JSOP_QNAME:
-        code->setFixed(cx, 0, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_NEW_QNAME));
-        break;
-
       case JSOP_ANYNAME:
       case JSOP_GETFUNNS:
-        code->setFixed(cx, 0, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_NEW_NAMESPACE));
+        code->setFixed(cx, 0, (jstype) cx->getFixedTypeObject(TYPE_OBJECT_XML));
         break;
 
       case JSOP_FILTER:
@@ -3285,7 +3362,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         JSAtom *atom = js_Atomize(cx, name, strlen(name), ATOM_PINNED);
         jsid id = ATOM_TO_JSID(atom);
 
-        TypeSet *types = evalParent()->localTypes.getVariable(cx, id);
+        TypeSet *types = evalParent()->getVariable(cx, id);
         value->addSubset(cx, pool, types);
         break;
       }
@@ -3297,7 +3374,7 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
         JSAtom *atom = js_Atomize(cx, name, strlen(name), ATOM_PINNED);
         jsid id = ATOM_TO_JSID(atom);
 
-        TypeSet *types = evalParent()->localTypes.getVariable(cx, id);
+        TypeSet *types = evalParent()->getVariable(cx, id);
         MergePushed(cx, evalParent()->pool, code, 0, types);
         break;
       }
@@ -3332,14 +3409,14 @@ Script::analyzeTypes(JSContext *cx, Bytecode *code, AnalyzeState &state)
     switch (op) {
       case JSOP_BINDGNAME: {
         AnalyzeStateStack &stack = state.popped(0);
-        stack.scopeVars = GetGlobalProperties(cx);
+        stack.scope = SCOPE_GLOBAL;
         break;
       }
 
       case JSOP_BINDNAME: {
         jsid id = GetAtomId(cx, this, pc, 0);
         AnalyzeStateStack &stack = state.popped(0);
-        stack.scopeVars = SearchScope(cx, this, code->inStack, id);
+        stack.scope = SearchScope(cx, this, code->inStack, id);
         break;
       }
 
@@ -3585,7 +3662,22 @@ Script::finish(JSContext *cx)
     printf("\n");
 
     printf("locals:");
-    localTypes.print(cx);
+
+    if (variableCount >= 2) {
+        unsigned capacity = HashSetCapacity(variableCount);
+        for (unsigned i = 0; i < capacity; i++) {
+            Variable *var = variableSet[i];
+            if (var) {
+                printf("\n    %s:", TypeIdString(var->id));
+                var->types.print(cx);
+            }
+        }
+    } else if (variableCount == 1) {
+        Variable *var = (Variable *) variableSet;
+        printf("\n    %s:", TypeIdString(var->id));
+        var->types.print(cx);
+    }
+    printf("\n");
 
     int id_count = 0;
 
@@ -3674,30 +3766,25 @@ Script::finish(JSContext *cx)
 namespace js {
 
 static inline void
-TraceVariableSet(JSTracer *trc, const types::VariableSet &vars)
-{
-#ifdef DEBUG
-    
-    JSString *name = JSID_TO_STRING(vars.name_);
-    if (name)
-        gc::MarkString(trc, name, "type_vars_name");
-#endif
-
-    types::Variable *var = vars.variables;
-    while (var) {
-        if (!JSID_IS_VOID(var->id))
-            gc::MarkString(trc, JSID_TO_STRING(var->id), "type_property");
-        var = var->next;
-    }
-}
-
-static inline void
 TraceObjectList(JSTracer *trc, types::TypeObject *objects)
 {
     types::TypeObject *object = objects;
     while (object) {
         gc::MarkString(trc, JSID_TO_STRING(object->name), "type_object_name");
-        TraceVariableSet(trc, object->propertySet);
+
+        if (object->propertyCount >= 2) {
+            unsigned capacity = types::HashSetCapacity(object->propertyCount);
+            for (unsigned i = 0; i < capacity; i++) {
+                types::Property *prop = object->propertySet[i];
+                if (prop && !JSID_IS_VOID(prop->id))
+                    gc::MarkString(trc, JSID_TO_STRING(prop->id), "type_property");
+            }
+        } else if (object->propertyCount == 1) {
+            types::Property *prop = (types::Property *) object->propertySet;
+            if (!JSID_IS_VOID(prop->id))
+                gc::MarkString(trc, JSID_TO_STRING(prop->id), "type_property");
+        }
+
         object = object->next;
     }
 }
@@ -3711,7 +3798,18 @@ analyze::Script::trace(JSTracer *trc)
     }
 
     TraceObjectList(trc, objects);
-    TraceVariableSet(trc, localTypes);
+
+    if (variableCount >= 2) {
+        unsigned capacity = types::HashSetCapacity(variableCount);
+        for (unsigned i = 0; i < capacity; i++) {
+            types::Variable *var = variableSet[i];
+            if (var)
+                gc::MarkString(trc, JSID_TO_STRING(var->id), "type_property");
+        }
+    } else if (variableCount == 1) {
+        types::Variable *var = (types::Variable *) variableSet;
+        gc::MarkString(trc, JSID_TO_STRING(var->id), "type_property");
+    }
 
     unsigned nameCount = script->nfixed + argCount();
     for (unsigned i = 0; i < nameCount; i++) {

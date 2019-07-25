@@ -62,7 +62,6 @@ namespace types {
 
 
 struct TypeSet;
-struct VariableSet;
 struct TypeCallsite;
 struct TypeObject;
 struct TypeFunction;
@@ -368,13 +367,7 @@ struct TypeCallsite
 struct Variable
 {
     
-
-
-
     jsid id;
-
-    
-    Variable *next;
 
     
 
@@ -384,57 +377,31 @@ struct Variable
     TypeSet types;
 
     Variable(JSArenaPool *pool, jsid id)
-        : id(id), next(NULL), types(pool)
+        : id(id), types(pool)
     {}
+
+    static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
+    static jsid getKey(Variable *v) { return v->id; }
 };
 
 
-struct VariableSet
+struct Property
 {
-#ifdef DEBUG
-    jsid name_;
-
-    jsid name() const { return name_; }
-#else
-    jsid name() const { return JSID_VOID; }
-#endif
+    
+    jsid id;
 
     
-    Variable *variables;
+    TypeSet types;
 
     
+    TypeSet ownTypes;
 
+    Property(JSArenaPool *pool, jsid id)
+        : id(id), types(pool), ownTypes(pool)
+    {}
 
-
-    VariableSet **propagateSet;
-    unsigned propagateCount;
-
-    JSArenaPool *pool;
-
-    
-    bool unknown;
-
-    VariableSet(JSArenaPool *pool)
-        : variables(NULL), propagateSet(NULL), propagateCount(NULL), pool(pool), unknown(false)
-    {
-        JS_ASSERT(pool);
-    }
-
-    
-    inline TypeSet* getVariable(JSContext *cx, jsid id);
-
-    
-
-
-
-
-
-    bool addPropagate(JSContext *cx, VariableSet *target, bool excludePrototype);
-
-    
-    void markUnknown(JSContext *cx);
-
-    void print(JSContext *cx);
+    static uint32 keyBits(jsid id) { return (uint32) JSID_BITS(id); }
+    static jsid getKey(Property *p) { return p->id; }
 };
 
 
@@ -454,26 +421,33 @@ struct TypeObject
 
 
 
-
-    VariableSet propertySet;
-    bool propertiesFilled;
+    Property **propertySet;
+    unsigned propertyCount;
 
     
+
+
+
+    TypeObject *prototype;
+
+    
+    TypeObject *instanceList;
+
+    
+    TypeObject *instanceNext;
+
+    
+    TypeObject *newObject;
+
+    
+
+
+
+    JSArenaPool *pool;
     TypeObject *next;
 
     
-
-
-
-    bool hasObjectPropagation;
-    bool hasArrayPropagation;
-
-    
-
-
-
-
-    bool isInitObject;
+    bool unknownProperties;
 
     
     bool isDenseArray;
@@ -489,10 +463,7 @@ struct TypeObject
     bool possiblePackedArray;
 
     
-    TypeObject(JSContext *cx, JSArenaPool *pool, jsid id, bool isArray);
-
-    
-    bool addPropagate(JSContext *cx, TypeObject *target, bool excludePrototype = true);
+    TypeObject(JSContext *cx, JSArenaPool *pool, jsid id, TypeObject *prototype);
 
     
     TypeFunction* asFunction()
@@ -501,16 +472,24 @@ struct TypeObject
         return (TypeFunction *) this;
     }
 
-    JSArenaPool & pool() { return *propertySet.pool; }
+    
+
+
+
+
+
+    inline TypeSet *getProperty(JSContext *cx, jsid id, bool assign);
 
     
-    inline VariableSet& properties(JSContext *cx);
+    inline bool isArray(JSContext *cx);
 
     
-    bool unknownProperties() { return propertySet.unknown; }
 
-    
-    inline TypeSet* indexTypes(JSContext *cx);
+    void addPrototype(JSContext *cx, TypeObject *proto);
+    void addProperty(JSContext *cx, jsid id, Property *&prop);
+    void markUnknown(JSContext *cx);
+    void storeToInstances(JSContext *cx, Property *base);
+    TypeObject *getNewObject(JSContext *cx);
 
     void print(JSContext *cx);
 };
@@ -525,13 +504,7 @@ struct TypeFunction : public TypeObject
     JSScript *script;
 
     
-
-
-
     TypeObject *prototypeObject;
-
-    
-    TypeObject *newObject;
 
     
 
@@ -552,32 +525,8 @@ struct TypeFunction : public TypeObject
 
     bool isGeneric;
 
-    TypeFunction(JSContext *cx, JSArenaPool *pool, jsid id);
-
-    
-    inline TypeObject* getNewObject(JSContext *cx);
-
-    
-    TypeObject* prototype(JSContext *cx)
-    {
-        
-        properties(cx);
-        return prototypeObject;
-    }
-
-    void fillProperties(JSContext *cx);
+    TypeFunction(JSContext *cx, JSArenaPool *pool, jsid id, TypeObject *prototype);
 };
-
-inline VariableSet&
-TypeObject::properties(JSContext *cx)
-{
-    if (!propertiesFilled) {
-        propertiesFilled = true;
-        if (isFunction)
-            asFunction()->fillProperties(cx);
-    }
-    return propertySet;
-}
 
 
 
@@ -591,47 +540,28 @@ enum FixedTypeObjectName
     TYPE_OBJECT_FUNCTION,
     TYPE_OBJECT_ARRAY,
     TYPE_OBJECT_FUNCTION_PROTOTYPE,
-    TYPE_OBJECT_EMPTY_FUNCTION,  
-
-    TYPE_OBJECT_FUNCTION_LAST = TYPE_OBJECT_EMPTY_FUNCTION,
+    TYPE_OBJECT_EMPTY_FUNCTION,
 
     
     TYPE_OBJECT_OBJECT_PROTOTYPE,
     TYPE_OBJECT_ARRAY_PROTOTYPE,
     TYPE_OBJECT_NEW_BOOLEAN,
-    TYPE_OBJECT_NEW_DATE,
-    TYPE_OBJECT_NEW_ERROR,
-    TYPE_OBJECT_NEW_ITERATOR,
     TYPE_OBJECT_NEW_NUMBER,
     TYPE_OBJECT_NEW_STRING,
-    TYPE_OBJECT_NEW_PROXY,
     TYPE_OBJECT_NEW_REGEXP,
+    TYPE_OBJECT_NEW_ITERATOR,
+    TYPE_OBJECT_NEW_GENERATOR,
     TYPE_OBJECT_NEW_ARRAYBUFFER,
-    TYPE_OBJECT_NEW_INT8ARRAY,
-    TYPE_OBJECT_NEW_UINT8ARRAY,
-    TYPE_OBJECT_NEW_INT16ARRAY,
-    TYPE_OBJECT_NEW_UINT16ARRAY,
-    TYPE_OBJECT_NEW_INT32ARRAY,
-    TYPE_OBJECT_NEW_UINT32ARRAY,
-    TYPE_OBJECT_NEW_FLOAT32ARRAY,
-    TYPE_OBJECT_NEW_FLOAT64ARRAY,
-    TYPE_OBJECT_NEW_UINT8CLAMPEDARRAY,
-    TYPE_OBJECT_MAGIC,   
-    TYPE_OBJECT_GETSET,  
-
-    TYPE_OBJECT_BASE_LAST = TYPE_OBJECT_GETSET,
 
     
-    TYPE_OBJECT_NEW_XML,
-    TYPE_OBJECT_NEW_QNAME,
-    TYPE_OBJECT_NEW_NAMESPACE,
+    TYPE_OBJECT_XML,
     TYPE_OBJECT_ARGUMENTS,
     TYPE_OBJECT_NOSUCHMETHOD,
     TYPE_OBJECT_NOSUCHMETHOD_ARGUMENTS,
     TYPE_OBJECT_PROPERTY_DESCRIPTOR,
     TYPE_OBJECT_KEY_VALUE_PAIR,
-
-    TYPE_OBJECT_MONITOR_LAST = TYPE_OBJECT_KEY_VALUE_PAIR,
+    TYPE_OBJECT_JSON,
+    TYPE_OBJECT_PROXY,
 
     
     TYPE_OBJECT_REGEXP_MATCH_ARRAY,
@@ -639,22 +569,16 @@ enum FixedTypeObjectName
     TYPE_OBJECT_UNKNOWN_ARRAY,
     TYPE_OBJECT_CLONE_ARRAY,
     TYPE_OBJECT_PROPERTY_ARRAY,
-    TYPE_OBJECT_NAMESPACE_ARRAY,
-    TYPE_OBJECT_JSON_ARRAY,
     TYPE_OBJECT_REFLECT_ARRAY,
-
-    TYPE_OBJECT_ARRAY_LAST = TYPE_OBJECT_REFLECT_ARRAY,
 
     
     TYPE_OBJECT_UNKNOWN_OBJECT,
     TYPE_OBJECT_CLONE_OBJECT,
-    TYPE_OBJECT_JSON_STRINGIFY,
-    TYPE_OBJECT_JSON_REVIVE,
-    TYPE_OBJECT_JSON_OBJECT,
     TYPE_OBJECT_REFLECT_OBJECT,
     TYPE_OBJECT_XML_SETTINGS,
 
     
+    TYPE_OBJECT_GETSET,  
     TYPE_OBJECT_REGEXP_STATICS,
     TYPE_OBJECT_CALL,
     TYPE_OBJECT_DECLENV,
@@ -789,8 +713,8 @@ struct TypeCompartment
     void finish(JSContext *cx, JSCompartment *compartment);
 
     
-    TypeObject *getTypeObject(JSContext *cx, js::analyze::Script *script,
-                              const char *name, bool isArray, bool isFunction);
+    TypeObject *getTypeObject(JSContext *cx, analyze::Script *script,
+                              const char *name, bool isFunction, TypeObject *prototype);
 
     
 

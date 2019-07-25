@@ -2396,12 +2396,15 @@ public:
 
 
     
-    inline js::types::TypeObject *
-    getTypeObject(const char *name, bool isArray, bool isFunction);
+    inline js::types::TypeObject *getTypeFunction(const char *name,
+                                                  js::types::TypeObject *prototype = NULL);
+    inline js::types::TypeObject *getTypeObject(const char *name,
+                                                js::types::TypeObject *prototype);
 
     
     inline js::types::TypeFunction *
-    getTypeFunctionHandler(const char *name, JSTypeHandler handler);
+    getTypeFunctionHandler(const char *name, JSTypeHandler handler,
+                           js::types::TypeObject *prototype = NULL);
 
     
     inline void
@@ -2425,8 +2428,8 @@ public:
 
     inline void typeMonitorCall(JSScript *caller, const jsbytecode *callerpc,
                                 const js::CallArgs &args, bool constructing, bool force);
-    inline void typeMonitorEntry(JSScript *script, const js::Value &thisv,
-                                 bool constructing, bool force);
+    inline void typeMonitorEntry(JSScript *script);
+    inline void typeMonitorEntry(JSScript *script, const js::Value &thisv);
 
     
 
@@ -2435,15 +2438,8 @@ public:
     inline void markTypeBuiltinFunction(js::types::TypeObject *fun);
 
     
-
-
-
-
     inline void setTypeFunctionPrototype(js::types::TypeObject *fun,
-                                         js::types::TypeObject *proto, bool inherit);
-
-    
-    inline void addTypePrototype(js::types::TypeObject *obj, js::types::TypeObject *proto);
+                                         js::types::TypeObject *proto);
 
     
     inline void addTypeProperty(js::types::TypeObject *obj, const char *name, js::types::jstype type);

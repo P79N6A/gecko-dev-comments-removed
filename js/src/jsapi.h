@@ -2005,16 +2005,8 @@ JS_ConstructObjectWithArguments(JSContext *cx, JSClass *clasp, JSObject *proto,
 extern JS_PUBLIC_API(JSObject *)
 JS_New(JSContext *cx, JSObject *ctor, uintN argc, jsval *argv);
 
-
-
-
-
-
-
-
-
 extern JS_PUBLIC_API(JSTypeObject *)
-JS_MakeTypeObject(JSContext *cx, const char *name, JSBool monitorNeeded, JSBool isArray);
+JS_MakeTypeObject(JSContext *cx, const char *name, JSBool unknownProperties, JSTypeObject *proto);
 
 extern JS_PUBLIC_API(JSTypeObject *)
 JS_MakeTypeFunction(JSContext *cx, const char *name, JSTypeHandler handler);

@@ -720,10 +720,10 @@ struct JSObject : js::gc::Cell {
     }
 
     
-    inline js::types::TypeObject* getTypeFunctionPrototype(JSContext *cx);
+    inline js::types::TypeObject *getTypePrototypeNewObject(JSContext *cx);
 
     
-    inline js::types::TypeObject* getTypeFunctionNewObject(JSContext *cx);
+    inline js::types::TypeObject *getTypePrototype(JSContext *cx);
 
     
 

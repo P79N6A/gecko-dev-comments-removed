@@ -2316,22 +2316,22 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
     JSObject *obj = ComputeThisFromVp(cx, vp);
 
     
-    TypeObject *objType = obj ? obj->getTypeObject() : NULL;
+    TypeObject *type = obj ? obj->getTypeObject() : NULL;
 
 #ifdef JS_TYPE_INFERENCE
-    if (!objType || !objType->hasArrayPropagation) {
+    if (!type || !type->isArray(cx)) {
         
 
 
 
-        objType = cx->getTypeCallerInitObject(true);
-        cx->markTypeObjectUnknownProperties(objType);
-        cx->markTypeCallerUnexpected((jstype) objType);
+        type = cx->getTypeCallerInitObject(true);
+        cx->markTypeObjectUnknownProperties(type);
+        cx->markTypeCallerUnexpected((jstype) type);
     }
 #endif
 
     if (cx->isTypeCallerMonitored())
-        cx->markTypeObjectUnknownProperties(objType);
+        cx->markTypeObjectUnknownProperties(type);
 
     
 
@@ -2339,7 +2339,7 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    JSObject *obj2 = js_NewArrayObject(cx, 0, NULL, objType);
+    JSObject *obj2 = js_NewArrayObject(cx, 0, NULL, type);
     if (!obj2)
         return JS_FALSE;
     vp->setObject(*obj2);
@@ -2614,26 +2614,26 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
         begin = end;
 
     
-    TypeObject *objType = obj->getTypeObject();
+    TypeObject *type = obj->getTypeObject();
 
 #ifdef JS_TYPE_INFERENCE
-    if (!objType->hasArrayPropagation) {
+    if (!type->isArray(cx)) {
         
 
 
 
-        objType = cx->getTypeCallerInitObject(true);
-        cx->markTypeObjectUnknownProperties(objType);
-        cx->markTypeCallerUnexpected((jstype) objType);
+        type = cx->getTypeCallerInitObject(true);
+        cx->markTypeObjectUnknownProperties(type);
+        cx->markTypeCallerUnexpected((jstype) type);
     }
 #endif
 
     if (cx->isTypeCallerMonitored())
-        cx->markTypeObjectUnknownProperties(objType);
+        cx->markTypeObjectUnknownProperties(type);
 
     if (obj->isDenseArray() && end <= obj->getDenseArrayCapacity() &&
         !js_PrototypeHasIndexedProperties(cx, obj)) {
-        nobj = js_NewArrayObject(cx, end - begin, obj->getDenseArrayElements() + begin, objType);
+        nobj = js_NewArrayObject(cx, end - begin, obj->getDenseArrayElements() + begin, type);
         if (!nobj)
             return JS_FALSE;
         vp->setObject(*nobj);
@@ -2641,7 +2641,7 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
     }
 
     
-    nobj = js_NewArrayObject(cx, 0, NULL, objType);
+    nobj = js_NewArrayObject(cx, 0, NULL, type);
     if (!nobj)
         return JS_FALSE;
     vp->setObject(*nobj);
@@ -3072,7 +3072,6 @@ static void array_TypeConcat(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsit
     TypeCallsite *site = Valueify(jssite);
 
     
-    
     TypeObject *object = site->getInitObject(cx, true);
 
     site->forceThisTypes(cx);
@@ -3081,7 +3080,7 @@ static void array_TypeConcat(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsit
         site->returnTypes->addType(cx, (jstype) object);
 
     
-    TypeSet *indexTypes = object->indexTypes(cx);
+    TypeSet *indexTypes = object->getProperty(cx, JSID_VOID, false);
     site->thisTypes->addGetProperty(cx, site->code, indexTypes, JSID_VOID);
 
     
@@ -3154,7 +3153,7 @@ static void array_TypeExtra(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite
         
         
         TypeObject *object = site->getInitObject(cx, true);
-        extraSite->returnTypes = object->indexTypes(cx);
+        extraSite->returnTypes = object->getProperty(cx, JSID_VOID, true);
 
         site->returnTypes->addType(cx, (jstype) object);
         break;
@@ -3166,7 +3165,7 @@ static void array_TypeExtra(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite
         
         
         TypeObject *object = site->getInitObject(cx, true);
-        elemTypes->addSubset(cx, pool, object->indexTypes(cx));
+        elemTypes->addSubset(cx, pool, object->getProperty(cx, JSID_VOID, true));
 
         site->returnTypes->addType(cx, (jstype) object);
         break;
@@ -3373,7 +3372,7 @@ static void array_TypeNew(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *
     if (site->returnTypes)
         site->returnTypes->addType(cx, (jstype) object);
 
-    TypeSet *indexTypes = object->indexTypes(cx);
+    TypeSet *indexTypes = object->getProperty(cx, JSID_VOID, true);
 
     
     

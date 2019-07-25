@@ -707,9 +707,6 @@ Exception(JSContext *cx, uintN argc, Value *vp)
     JSStackFrame *fp;
 
     
-    TypeObject *objtype = cx->getFixedTypeObject(TYPE_OBJECT_NEW_ERROR);
-
-    
 
 
 
@@ -722,7 +719,8 @@ Exception(JSContext *cx, uintN argc, Value *vp)
         return JS_FALSE;
 
     JSObject *errProto = &protov.toObject();
-    JSObject *obj = NewNativeClassInstance(cx, &js_ErrorClass, errProto, errProto->getParent(), objtype);
+    TypeObject *type = errProto->getTypePrototypeNewObject(cx);
+    JSObject *obj = NewNativeClassInstance(cx, &js_ErrorClass, errProto, errProto->getParent(), type);
     if (!obj)
         return JS_FALSE;
 
@@ -990,21 +988,12 @@ GetExceptionProtoKey(intN exn)
     return (JSProtoKey) (JSProto_Error + exn);
 }
 
-static void error_TypeNew(JSContext *cx, JSTypeFunction *jsfun, JSTypeCallsite *jssite)
-{
-#ifdef JS_TYPE_INFERENCE
-    
-    
-    types::TypeObject *object = cx->getFixedTypeObject(TYPE_OBJECT_NEW_ERROR);
-    Valueify(jssite)->returnTypes->addType(cx, (types::jstype) object);
-#endif
-}
-
 JSObject *
 js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 {
     jsval roots[3];
     JSObject *obj_proto, *error_proto;
+    TypeObject *obj_type, *error_type;
 
     
 
@@ -1019,27 +1008,22 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
     if (!js_GetClassPrototype(cx, obj, JSProto_Object, &obj_proto))
         return NULL;
 
+    obj_type = cx->getTypeObject("Error:prototype:new", NULL);
+
     PodArrayZero(roots);
     AutoArrayRooter tvr(cx, JS_ARRAY_LENGTH(roots), Valueify(roots));
 
 #ifdef __GNUC__
     error_proto = NULL;   
+    error_type = NULL;
 #endif
-
-    
-
-
-
-    TypeObject *protoType = cx->getTypeObject("Error.prototype", false, false);
-    TypeObject *errorType = cx->getFixedTypeObject(TYPE_OBJECT_NEW_ERROR);
-    cx->addTypePrototype(protoType, obj_proto->getTypeObject());
-    cx->addTypePrototype(errorType, protoType);
 
     jsval empty = STRING_TO_JSVAL(cx->runtime->emptyString);
 
     
     for (intN i = JSEXN_ERR; i != JSEXN_LIMIT; i++) {
         
+        TypeObject *protoType = (i != JSEXN_ERR) ? error_type : obj_type;
         JSObject *proto =
             NewNonFunction<WithProto::Class>(cx, &js_ErrorClass,
                                              (i != JSEXN_ERR) ? error_proto : obj_proto,
@@ -1048,6 +1032,7 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
             return NULL;
         if (i == JSEXN_ERR) {
             error_proto = proto;
+            error_type = proto->getTypePrototypeNewObject(cx);
             roots[0] = OBJECT_TO_JSVAL(proto);
         } else {
             
@@ -1066,17 +1051,17 @@ js_InitExceptionClasses(JSContext *cx, JSObject *obj)
 
 
 
-        cx->markTypeBuiltinFunction(cx->getTypeObject(fullName, false, true));
+        cx->markTypeBuiltinFunction(cx->getTypeFunction(fullName));
         
         jsid id = ATOM_TO_JSID(cx->runtime->atomState.classAtoms[protoKey]);
         JSFunction *fun = js_DefineFunction(cx, obj, id, Exception, 3, JSFUN_CONSTRUCTOR,
-                                            error_TypeNew, fullName);
+                                            JS_TypeHandlerNew, fullName);
         if (!fun)
             return NULL;
         roots[2] = OBJECT_TO_JSVAL(FUN_OBJECT(fun));
 
         
-        cx->setTypeFunctionPrototype(fun->getTypeObject(), protoType, true);
+        cx->setTypeFunctionPrototype(fun->getTypeObject(), protoType);
 
         
         FUN_CLASP(fun) = &js_ErrorClass;
@@ -1152,7 +1137,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
     jsval tv[4];
     JSBool ok;
     JSObject *errProto, *errObject;
-    TypeObject *errType;
+    TypeObject *type;
     JSString *messageStr, *filenameStr;
 
     
@@ -1211,8 +1196,8 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
         goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);
 
-    errType = cx->getFixedTypeObject(TYPE_OBJECT_NEW_ERROR);
-    errObject = NewNativeClassInstance(cx, &js_ErrorClass, errProto, errProto->getParent(), errType);
+    type = errProto->getTypePrototypeNewObject(cx);
+    errObject = NewNativeClassInstance(cx, &js_ErrorClass, errProto, errProto->getParent(), type);
     if (!errObject) {
         ok = JS_FALSE;
         goto out;
