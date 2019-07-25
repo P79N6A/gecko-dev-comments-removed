@@ -1836,6 +1836,10 @@ for (uint32_t i = 0; i < length; ++i) {
                                 "arguments (like %s), because we don't know "
                                 "how to handle them being preffed off" %
                                 descriptor.interface.identifier.name)
+            if descriptor.interface.isConsequential():
+                raise TypeError("Consequential interface %s being used as an "
+                                "argument but flagged as castable" %
+                                descriptor.interface.identifier.name)
             if failureCode is not None:
                 templateBody += str(CastableObjectUnwrapper(
                         descriptor,
@@ -3068,6 +3072,13 @@ class CGSetterCall(CGGetterSetterCall):
         
         return ""
 
+class FakeCastableDescriptor():
+    def __init__(self, descriptor):
+        self.castable = True
+        self.workers = descriptor.workers
+        self.nativeType = descriptor.nativeType
+        self.name = descriptor.name
+
 class CGAbstractBindingMethod(CGAbstractStaticMethod):
     """
     Common class to generate the JSNatives for all our methods, getters, and
@@ -3080,9 +3091,14 @@ class CGAbstractBindingMethod(CGAbstractStaticMethod):
         CGAbstractStaticMethod.__init__(self, descriptor, name, "JSBool", args)
 
     def definition_body(self):
+        
+        
+        
+        
         unwrapThis = CGIndenter(CGGeneric(
-            str(FailureFatalCastableObjectUnwrapper(self.descriptor,
-                                                    "obj", "self"))))
+            str(FailureFatalCastableObjectUnwrapper(
+                        FakeCastableDescriptor(self.descriptor),
+                        "obj", "self"))))
         return CGList([ self.getThis(), unwrapThis,
                         self.generate_code() ], "\n").define()
 
