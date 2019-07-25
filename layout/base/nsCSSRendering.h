@@ -260,6 +260,17 @@ struct nsCSSRendering {
 
 
 
+
+  static nsRect GetBackgroundLayerRect(nsPresContext* aPresContext,
+                                       nsIFrame* aForFrame,
+                                       const nsRect& aBorderArea,
+                                       const nsStyleBackground& aBackground,
+                                       const nsStyleBackground::Layer& aLayer);
+
+  
+
+
+
   static void DidPaint();
 
   

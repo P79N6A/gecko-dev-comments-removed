@@ -1413,6 +1413,8 @@ public:
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx);
   NS_DISPLAY_DECL_NAME("Background", TYPE_BACKGROUND)
 protected:
+  nsRegion GetInsideClipRegion(PRUint8 aClip, const nsRect& aRect);
+
   
   PRPackedBool mIsThemed;
   nsITheme::Transparency mThemeTransparency;
