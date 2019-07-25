@@ -167,6 +167,15 @@
 
 
 
+#addons-page[warning="safemode"] .view-pane[type="plugin"] .global-warning-container,
+#addons-page[warning="safemode"] #detail-view[loading="true"] .global-warning-container {
+  background-color: inherit;
+  background-image: none;
+}
+
+
+
+
 .warning-icon {
   list-style-image: url("chrome://mozapps/skin/extensions/alerticon-warning.png");
   width: 16px;
