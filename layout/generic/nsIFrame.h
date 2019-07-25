@@ -2649,6 +2649,37 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
   virtual void PullOverflowsFromPrevInFlow() {}
 
+  
+
+
+  
+  void ClearPresShellsFromLastPaint() { 
+    PaintedPresShellList()->Clear(); 
+  }
+  
+  
+
+
+  
+  void AddPaintedPresShell(nsIPresShell* shell) { 
+    PaintedPresShellList()->AppendElement(do_GetWeakReference(shell)); 
+  }
+  
+  
+
+
+  
+  void UpdatePaintCountForPaintedPresShells() {
+    nsTArray<nsWeakPtr> * list = PaintedPresShellList();
+    for (int i = 0, l = list->Length(); i < l; i++) {
+      nsCOMPtr<nsIPresShell> shell = do_QueryReferent(list->ElementAt(i));
+      
+      if (shell) {
+        shell->IncrementPaintCount();
+      }
+    }
+  }  
+  
 protected:
   
   nsRect           mRect;
@@ -2658,6 +2689,31 @@ protected:
 private:
   nsIFrame*        mNextSibling;  
   nsIFrame*        mPrevSibling;  
+
+  static void DestroyPaintedPresShellList(void* propertyValue) {
+    nsTArray<nsWeakPtr>* list = static_cast<nsTArray<nsWeakPtr>*>(propertyValue);
+    list->Clear();
+    delete list;
+  }
+
+  
+  
+  
+  NS_DECLARE_FRAME_PROPERTY(PaintedPresShellsProperty, DestroyPaintedPresShellList)
+  
+  nsTArray<nsWeakPtr>* PaintedPresShellList() {
+    nsTArray<nsWeakPtr>* list = static_cast<nsTArray<nsWeakPtr>*>(
+      Properties().Get(PaintedPresShellsProperty())
+    );
+    
+    if (!list) {
+      list = new nsTArray<nsWeakPtr>();
+      Properties().Set(PaintedPresShellsProperty(), list);
+    }
+    
+    return list;
+  }
+
 protected:
   nsFrameState     mState;
 
