@@ -173,6 +173,11 @@ TabParent::AnswerCreateWindow(PBrowserParent** retval)
     }
 
     
+    if (GetApp() || IsBrowserElement()) {
+        return false;
+    }
+
+    
     
     nsCOMPtr<nsIFrameLoaderOwner> frameLoaderOwner;
     mBrowserDOMWindow->OpenURIInFrame(nullptr, nullptr,
