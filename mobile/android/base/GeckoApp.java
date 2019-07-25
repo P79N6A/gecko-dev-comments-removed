@@ -2541,6 +2541,10 @@ abstract public class GeckoApp
     
     public GeckoLayerClient getLayerClient() { return mLayerClient; }
 
+    public LayerView getLayerView() {
+        return mLayerView;
+    }
+
     public AbsoluteLayout getPluginContainer() { return mPluginContainer; }
 
     
