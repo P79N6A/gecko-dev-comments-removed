@@ -113,25 +113,6 @@ class RefTest(object):
                                                   profileDir,
                                                   "reftest@mozilla.org")
 
-
-  def registerExtension(self, browserEnv, options, profileDir, extraArgs = ['-silent']):
-    
-    
-    self.automation.log.info("REFTEST INFO | runreftest.py | Performing extension manager registration: start.\n")
-    
-    status = self.automation.runApp(None, browserEnv, options.app, profileDir,
-                                 extraArgs,
-                                 utilityPath = options.utilityPath,
-                                 xrePath=options.xrePath,
-                                 symbolsPath=options.symbolsPath)
-    
-    self.automation.log.info("\nREFTEST INFO | runreftest.py | Performing extension manager registration: end.")
-
-    
-    
-    if os.path.exists(self.leakLogFile):
-      os.remove(self.leakLogFile)
-
   def buildBrowserEnv(self, options, profileDir):
     browserEnv = self.automation.environment(xrePath = options.xrePath)
     browserEnv["XPCOM_DEBUG_BREAK"] = "stack"
@@ -162,9 +143,6 @@ class RefTest(object):
       
       browserEnv = self.buildBrowserEnv(options, profileDir)
 
-      self.registerExtension(browserEnv, options, profileDir)
-
-      
       self.automation.log.info("REFTEST INFO | runreftest.py | Running tests: start.\n")
       status = self.automation.runApp(None, browserEnv, options.app, profileDir,
                                  cmdlineArgs,
