@@ -346,18 +346,12 @@ ConsoleAPI.prototype = {
     if (aArguments.length < 2 || typeof aArguments[0] != "string") {
       return aArguments;
     }
-
     let args = Array.prototype.slice.call(aArguments);
     let format = args.shift();
-    let splitter = "%" + format.length + Date.now() + "%";
-    let objects = [];
-
     
     let processed = format.replace(ARGUMENT_PATTERN, function CA_PA_substitute(match, submatch) {
       switch (submatch) {
         case "o":
-          objects.push(args.shift());
-          return splitter;
         case "s":
           return String(args.shift());
         case "d":
@@ -369,19 +363,8 @@ ConsoleAPI.prototype = {
           return submatch;
       };
     });
-
-    let result = [];
-    let processedArray = processed.split(splitter);
-    processedArray.forEach(function(aValue, aIndex) {
-      if (aValue !== "") {
-        result.push(aValue);
-      }
-      if (objects[aIndex]) {
-        result.push(objects[aIndex]);
-      }
-    });
-
-    return result.concat(args);
+    args.unshift(processed);
+    return args;
   },
 
   

@@ -944,12 +944,7 @@ WebConsoleFrame.prototype = {
       case "warn":
       case "error":
       case "debug":
-        body = {
-          cacheId: aMessage.objectsCacheId,
-          remoteObjects: args,
-          argsToString: argsToString,
-        };
-        clipboardText = argsToString.join(" ");
+        body = argsToString.join(" ");
         sourceURL = aMessage.apiMessage.filename;
         sourceLine = aMessage.apiMessage.lineNumber;
         break;
@@ -1071,57 +1066,6 @@ WebConsoleFrame.prototype = {
     }
 
     return node;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _consoleLogClick:
-  function WCF__consoleLogClick(aMessage, aAnchor, aRemoteObject)
-  {
-    if (aAnchor._panelOpen) {
-      return;
-    }
-
-    let options = {
-      title: aAnchor.textContent,
-      anchor: aAnchor,
-
-      
-      data: {
-        
-        rootCacheId: aMessage._evalCacheId,
-        remoteObject: aRemoteObject,
-        
-        panelCacheId: "HUDPanel-" + gSequenceId(),
-        remoteObjectProvider: this.jsterm.remoteObjectProvider.bind(this.jsterm),
-      },
-    };
-
-    let propPanel = this.jsterm.openPropertyPanel(options);
-    propPanel.panel.setAttribute("hudId", this.hudId);
-
-    let onPopupHide = function JST__evalInspectPopupHide() {
-      propPanel.panel.removeEventListener("popuphiding", onPopupHide, false);
-
-      this.jsterm.clearObjectCache(options.data.panelCacheId);
-
-      if (!aMessage.parentNode && aMessage._evalCacheId) {
-        this.jsterm.clearObjectCache(aMessage._evalCacheId);
-      }
-    }.bind(this);
-
-    propPanel.panel.addEventListener("popuphiding", onPopupHide, false);
   },
 
   
@@ -1884,31 +1828,19 @@ WebConsoleFrame.prototype = {
     aClipboardText = aClipboardText ||
                      (aBody + (aSourceURL ? " @ " + aSourceURL : "") +
                               (aSourceLine ? ":" + aSourceLine : ""));
-
-    
-    let node = this.document.createElementNS(XUL_NS, "richlistitem");
-
-    if (aBody instanceof Ci.nsIDOMNode) {
-      bodyNode.appendChild(aBody);
+    if (!(aBody instanceof Ci.nsIDOMNode)) {
+      aBody = this.document.createTextNode(aLevel == "dir" ?
+                                           aBody.resultString : aBody);
     }
-    else {
-      let str = undefined;
-      if (aLevel == "dir") {
-        str = aBody.resultString;
-      }
-      else if (["log", "info", "warn", "error", "debug"].indexOf(aLevel) > -1 &&
-               typeof aBody == "object") {
-        this._makeConsoleLogMessageBody(node, bodyNode, aBody);
-      }
-      else {
-        str = aBody;
-      }
 
-      if (str !== undefined) {
-        aBody = this.document.createTextNode(str);
-        bodyNode.appendChild(aBody);
-      }
+    if (!aBody.nodeType) {
+      aBody = this.document.createTextNode(aBody.toString());
     }
+    if (typeof aBody == "string") {
+      aBody = this.document.createTextNode(aBody);
+    }
+
+    bodyNode.appendChild(aBody);
 
     let repeatContainer = this.document.createElementNS(XUL_NS, "hbox");
     repeatContainer.setAttribute("align", "start");
@@ -1931,6 +1863,8 @@ WebConsoleFrame.prototype = {
       locationNode = this.createLocationNode(aSourceURL, aSourceLine);
     }
 
+    
+    let node = this.document.createElementNS(XUL_NS, "richlistitem");
     node.clipboardText = aClipboardText;
     node.classList.add("hud-msg-node");
 
@@ -1988,58 +1922,6 @@ WebConsoleFrame.prototype = {
     node.setAttribute("id", "console-msg-" + gSequenceId());
 
     return node;
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  _makeConsoleLogMessageBody:
-  function WCF__makeConsoleLogMessageBody(aMessage, aContainer, aBody)
-  {
-    aMessage._evalCacheId = aBody.cacheId;
-
-    Object.defineProperty(aMessage, "_panelOpen", {
-      get: function() {
-        let nodes = aContainer.querySelectorAll(".hud-clickable");
-        return Array.prototype.some.call(nodes, function(aNode) {
-          return aNode._panelOpen;
-        });
-      },
-      enumerable: true,
-      configurable: false
-    });
-
-    aBody.remoteObjects.forEach(function(aItem, aIndex) {
-      if (aContainer.firstChild) {
-        aContainer.appendChild(this.document.createTextNode(" "));
-      }
-
-      let text = aBody.argsToString[aIndex];
-      if (!Array.isArray(aItem)) {
-        aContainer.appendChild(this.document.createTextNode(text));
-        return;
-      }
-
-      let elem = this.document.createElement("description");
-      elem.classList.add("hud-clickable");
-      elem.setAttribute("aria-haspopup", "true");
-      elem.appendChild(this.document.createTextNode(text));
-
-      this._addMessageLinkCallback(elem,
-        this._consoleLogClick.bind(this, aMessage, elem, aItem));
-
-      aContainer.appendChild(elem);
-    }, this);
   },
 
   
@@ -2149,20 +2031,6 @@ WebConsoleFrame.prototype = {
 
     linkNode.setAttribute("aria-haspopup", "true");
 
-    this._addMessageLinkCallback(aNode, aCallback);
-  },
-
-  
-
-
-
-
-
-
-
-
-  _addMessageLinkCallback: function WCF__addMessageLinkCallback(aNode, aCallback)
-  {
     aNode.addEventListener("mousedown", function(aEvent) {
       this._startX = aEvent.clientX;
       this._startY = aEvent.clientY;
