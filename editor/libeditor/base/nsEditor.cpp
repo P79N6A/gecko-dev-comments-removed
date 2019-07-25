@@ -158,6 +158,7 @@ nsEditor::nsEditor()
 ,  mIsIMEComposing(PR_FALSE)
 ,  mShouldTxnSetSelection(PR_TRUE)
 ,  mDidPreDestroy(PR_FALSE)
+,  mDidPostCreate(PR_FALSE)
 ,  mDocDirtyState(-1)
 ,  mDocWeak(nsnull)
 ,  mPhonetic(nsnull)
@@ -275,6 +276,8 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIContent *aRoot, nsISelectionController *
 
   
   mDidPreDestroy = PR_FALSE;
+  
+  mDidPostCreate = PR_FALSE;
 
   return NS_OK;
 }
@@ -292,25 +295,30 @@ nsEditor::PostCreate()
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  rv = CreateEventListeners();
-  if (NS_FAILED(rv))
-  {
-    RemoveEventListeners();
+  if (!mDidPostCreate) {
+    mDidPostCreate = PR_TRUE;
 
-    return rv;
+    
+    rv = CreateEventListeners();
+    if (NS_FAILED(rv))
+    {
+      RemoveEventListeners();
+
+      return rv;
+    }
+
+    rv = InstallEventListeners();
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    ResetModificationCount();
+
+    
+    NotifyDocumentListeners(eDocumentCreated);
+    NotifyDocumentListeners(eDocumentStateChanged);
   }
 
-  rv = InstallEventListeners();
-  NS_ENSURE_SUCCESS(rv, rv);
-
-  
-  
-  ResetModificationCount();
-  
-  
-  NotifyDocumentListeners(eDocumentCreated);
-  NotifyDocumentListeners(eDocumentStateChanged);
-  
   
   nsCOMPtr<nsIContent> focusedContent = GetFocusedContent();
   if (focusedContent) {

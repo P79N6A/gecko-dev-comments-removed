@@ -759,6 +759,7 @@ protected:
 
   PRPackedBool                  mShouldTxnSetSelection;  
   PRPackedBool                  mDidPreDestroy;    
+  PRPackedBool                  mDidPostCreate;    
    
   nsCOMArray<nsIEditActionListener> mActionListeners;  
   nsCOMArray<nsIEditorObserver> mEditorObservers;  
