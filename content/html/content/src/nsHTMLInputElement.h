@@ -42,7 +42,6 @@
 #include "nsGenericHTMLElement.h"
 #include "nsImageLoadingContent.h"
 #include "nsIDOMHTMLInputElement.h"
-#include "nsIDOMNSHTMLInputElement.h"
 #include "nsITextControlElement.h"
 #include "nsIPhonetic.h"
 #include "nsIDOMNSEditableElement.h"
@@ -78,7 +77,6 @@ class nsDOMFileList;
 class nsHTMLInputElement : public nsGenericHTMLFormElement,
                            public nsImageLoadingContent,
                            public nsIDOMHTMLInputElement,
-                           public nsIDOMNSHTMLInputElement,
                            public nsITextControlElement,
                            public nsIPhonetic,
                            public nsIDOMNSEditableElement,
@@ -103,9 +101,6 @@ public:
 
   
   NS_DECL_NSIDOMHTMLINPUTELEMENT
-
-  
-  NS_DECL_NSIDOMNSHTMLINPUTELEMENT
 
   
   NS_DECL_NSIPHONETIC
