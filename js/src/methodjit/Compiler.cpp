@@ -1159,6 +1159,20 @@ mjit::Compiler::generatePrologue()
             }
         }
 
+        if (script->mayNeedArgsObj()) {
+            
+
+
+
+
+            Jump hasArgs = masm.branchTest32(Assembler::NonZero, FrameFlagsAddress(),
+                                             Imm32(StackFrame::UNDERFLOW_ARGS |
+                                                   StackFrame::OVERFLOW_ARGS));
+            masm.storePtr(ImmPtr((void *)(size_t) script->function()->nargs),
+                          Address(JSFrameReg, StackFrame::offsetOfNumActual()));
+            hasArgs.linkTo(masm.label(), &masm);
+        }
+
         j.linkTo(masm.label(), &masm);
     }
 
