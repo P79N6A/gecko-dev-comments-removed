@@ -78,9 +78,11 @@ pref("browser.viewport.desktopWidth", 980);
 #ifndef MOZ_PLATFORM_MAEMO
 
 pref("layout.css.dpi", 160);
-#endif
-#endif
+#else
 
+pref("layout.css.dpi", 240);
+#endif
+#endif
 
 pref("ui.scrollbarsCanOverlapContent", 1);
 
