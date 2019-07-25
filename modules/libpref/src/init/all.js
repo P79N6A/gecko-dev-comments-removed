@@ -807,7 +807,7 @@ pref("network.websocket.timeout.ping.response", 10);
 
 
 
-pref("network.websocket.extensions.stream-deflate", true);
+pref("network.websocket.extensions.stream-deflate", false);
 
 
 
