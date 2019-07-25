@@ -12,6 +12,7 @@
 
 #include "mozilla/dom/XMLHttpRequestBinding.h"
 
+#include "mozilla/dom/BindingUtils.h"
 #include "mozilla/dom/TypedArray.h"
 
 BEGIN_WORKERS_NAMESPACE
@@ -70,8 +71,8 @@ public:
   _finalize(JSFreeOp* aFop) MOZ_OVERRIDE;
 
   static XMLHttpRequest*
-  Constructor(JSContext* aCx, JSObject* aGlobal, ErrorResult& aRv);
-
+  Constructor(JSContext* aCx, JSObject* aGlobal,
+              const Optional<jsval>& aParams, ErrorResult& aRv);
   void
   Unpin();
 
@@ -255,6 +256,16 @@ public:
   {
     mStateData.mResponseText.SetIsVoid(true);
     mStateData.mResponse = JSVAL_NULL;
+  }
+
+  bool GetMozAnon() {
+    
+    return false;
+  }
+
+  bool GetMozSystem() {
+    
+    return false;
   }
 
 private:
