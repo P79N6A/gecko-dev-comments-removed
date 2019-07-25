@@ -71,15 +71,24 @@ function onTabViewWindowLoaded() {
     };
     window.addEventListener("tabviewhidden", onTabViewHidden, false);
 
-    EventUtils.synthesizeKey("e", {accelKey : true}, contentWindow);
+    
+    
+    
+    executeSoon(function() { 
+      EventUtils.synthesizeKey("e", {accelKey : true}, contentWindow);
+    });
+  });
+
+  group1.addSubscriber(group1, "groupHidden", function() {
+    group1.removeSubscriber(group1, "groupHidden");
+
+    
+    let closeButton = group1.$undoContainer.find(".close");
+    EventUtils.sendMouseEvent(
+      { type: "click" }, closeButton[0], contentWindow);
   });
 
   
   group1.closeAll();
-  
-  
-  let closeButton = group1.$undoContainer.find(".close");
-  EventUtils.sendMouseEvent(
-    { type: "click" }, closeButton[0], contentWindow);
 }
 
