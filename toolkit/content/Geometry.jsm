@@ -125,23 +125,19 @@ let Util = {
   getViewportMetadata: function getViewportMetadata(browser) {
     let dpiScale = gPrefService.getIntPref("zoom.dpiScale") / 100;
 
-    
-    let deviceWidth  = window.innerWidth  / dpiScale;
-    let deviceHeight = window.innerHeight / dpiScale;
-
     let doctype = browser.contentDocument.doctype;
     if (doctype && /(WAP|WML|Mobile)/.test(doctype.publicId))
-      return { reason: "doctype", result: true, defaultZoom: dpiScale, width: deviceWidth };
+      return { defaultZoom: dpiScale, autoSize: true };
 
     let windowUtils = browser.contentWindow
                              .QueryInterface(Ci.nsIInterfaceRequestor)
                              .getInterface(Ci.nsIDOMWindowUtils);
     let handheldFriendly = windowUtils.getDocumentMetadata("HandheldFriendly");
     if (handheldFriendly == "true")
-      return { reason: "handheld", defaultZoom: dpiScale, width: deviceWidth };
+      return { defaultZoom: dpiScale, autoSize: true };
 
     if (browser.contentDocument instanceof XULDocument)
-      return { reason: "chrome", defaultZoom: 1.0, autoSize: true, allowZoom: false };
+      return { defaultZoom: 1.0, autoSize: true, allowZoom: false };
 
     
     
@@ -155,49 +151,38 @@ let Util = {
     let viewportWidthStr = windowUtils.getDocumentMetadata("viewport-width");
     let viewportHeightStr = windowUtils.getDocumentMetadata("viewport-height");
 
-    viewportScale    = Util.clamp(viewportScale,    kViewportMinScale, kViewportMaxScale);
+    viewportScale = Util.clamp(viewportScale, kViewportMinScale, kViewportMaxScale);
     viewportMinScale = Util.clamp(viewportMinScale, kViewportMinScale, kViewportMaxScale);
     viewportMaxScale = Util.clamp(viewportMaxScale, kViewportMinScale, kViewportMaxScale);
 
     
-    if (viewportScale == 1.0 && !viewportWidthStr)
-      viewportWidthStr = "device-width";
+    let autoSize = (viewportWidthStr == "device-width" ||
+                    viewportHeightStr == "device-height" ||
+                    (viewportScale == 1.0 && !viewportWidthStr));
 
-    let viewportWidth = viewportWidthStr == "device-width" ? deviceWidth
-      : Util.clamp(parseInt(viewportWidthStr), kViewportMinWidth, kViewportMaxWidth);
-    let viewportHeight = viewportHeightStr == "device-height" ? deviceHeight
-      : Util.clamp(parseInt(viewportHeightStr), kViewportMinHeight, kViewportMaxHeight);
-
-    
-    
-    
-    
-    
-    
-    
-    let defaultZoom = viewportScale    * dpiScale;
-    let minZoom     = viewportMinScale * dpiScale;
-    let maxZoom     = viewportMaxScale * dpiScale;
+    let viewportWidth = Util.clamp(parseInt(viewportWidthStr), kViewportMinWidth, kViewportMaxWidth);
+    let viewportHeight = Util.clamp(parseInt(viewportHeightStr), kViewportMinHeight, kViewportMaxHeight);
 
     
-    let maxInitialZoom = defaultZoom || maxZoom;
-    if (maxInitialZoom && viewportWidth)
-      viewportWidth = Math.max(viewportWidth, window.innerWidth / maxInitialZoom);
+    
+    
+    
+    
+    
+    
+    let defaultZoom = viewportScale * dpiScale;
+    let minZoom = viewportMinScale * dpiScale;
+    let maxZoom = viewportMaxScale * dpiScale;
 
-    if (viewportScale > 0 || viewportWidth > 0 || viewportHeight > 0 || viewportMinScale > 0 || viewportMaxScale > 0) {
-      return {
-        reason: "viewport",
-        defaultZoom: defaultZoom,
-        minZoom: minZoom,
-        maxZoom: maxZoom,
-        width: viewportWidth,
-        height: viewportHeight,
-        autoSize: viewportWidthStr == "device-width" || viewportHeightStr == "device-height",
-        allowZoom: windowUtils.getDocumentMetadata("viewport-user-scalable") != "no"
-      };
-    }
-
-    return { reason: null, allowZoom: true };
+    return {
+      defaultZoom: defaultZoom,
+      minZoom: minZoom,
+      maxZoom: maxZoom,
+      width: viewportWidth,
+      height: viewportHeight,
+      autoSize: autoSize,
+      allowZoom: windowUtils.getDocumentMetadata("viewport-user-scalable") != "no"
+    };
   },
 
   clamp: function(num, min, max) {
