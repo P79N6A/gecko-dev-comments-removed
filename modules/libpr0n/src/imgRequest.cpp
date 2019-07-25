@@ -1275,13 +1275,12 @@ imgRequest::OnRedirectVerifyCallback(nsresult result)
   mTimedChannel = do_QueryInterface(mChannel);
   mNewRedirectChannel = nsnull;
 
-  
-  
-  
+#if defined(PR_LOGGING)
   nsCAutoString oldspec;
   if (mKeyURI)
     mKeyURI->GetSpec(oldspec);
   LOG_MSG_WITH_PARAM(gImgLog, "imgRequest::OnChannelRedirect", "old", oldspec.get());
+#endif
 
   
   
@@ -1299,34 +1298,6 @@ imgRequest::OnRedirectVerifyCallback(nsresult result)
     mRedirectCallback->OnRedirectVerifyCallback(rv);
     mRedirectCallback = nsnull;
     return NS_OK;
-  }
-
-  nsCOMPtr<nsIURI> newURI;
-  mChannel->GetOriginalURI(getter_AddRefs(newURI));
-  nsCAutoString newspec;
-  if (newURI)
-    newURI->GetSpec(newspec);
-  LOG_MSG_WITH_PARAM(gImgLog, "imgRequest::OnChannelRedirect", "new", newspec.get());
-
-  if (oldspec != newspec) {
-    if (mIsInCache) {
-      
-      
-      
-      if (mCacheEntry)
-        imgLoader::RemoveFromCache(mCacheEntry);
-      else
-        imgLoader::RemoveFromCache(mKeyURI);
-    }
-
-    mKeyURI = newURI;
-
-    if (mIsInCache) {
-      
-      
-      if (mKeyURI && mCacheEntry)
-        imgLoader::PutIntoCache(mKeyURI, mCacheEntry);
-    }
   }
 
   mRedirectCallback->OnRedirectVerifyCallback(NS_OK);
