@@ -1386,7 +1386,8 @@ nsFrameLoader::MaybeCreateDocShell()
     return NS_ERROR_UNEXPECTED;
   }
 
-  if (doc->GetDisplayDocument()) {
+  if (doc->GetDisplayDocument() || !doc->IsActive()) {
+    
     
     return NS_ERROR_NOT_AVAILABLE;
   }
