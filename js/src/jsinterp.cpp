@@ -730,29 +730,6 @@ Invoke(JSContext *cx, const CallArgs &argsRef, uint32 flags)
         return false;
 
     
-
-
-
-
-
-
-    if (!(flags & JSINVOKE_CONSTRUCT)) {
-        Value &thisv = fp->functionThis();
-        if (thisv.isObject()) {
-            
-
-
-
-
-            JSObject *thisp = thisv.toObject().thisObject(cx);
-            if (!thisp)
-                 return false;
-            JS_ASSERT(IsSaneThisObject(*thisp));
-            thisv.setObject(*thisp);
-        }
-    }
-
-    
     JSBool ok;
     {
         AutoPreserveEnumerators preserve(cx);
@@ -804,15 +781,6 @@ InvokeSessionGuard::start(JSContext *cx, const Value &calleev, const Value &this
         JSStackFrame *fp = frame_.fp();
         fp->initCallFrame(cx, calleev.toObject(), fun, argc, flags);
         stack.pushInvokeFrame(cx, args_, &frame_);
-
-        
-        if (thisv.isObject()) {
-            JSObject *thisp = thisv.toObject().thisObject(cx);
-            if (!thisp)
-                return false;
-            JS_ASSERT(IsSaneThisObject(*thisp));
-            savedThis_.setObject(*thisp);
-        }
 
 #ifdef JS_METHODJIT
         
@@ -868,6 +836,19 @@ ExternalInvoke(JSContext *cx, const Value &thisv, const Value &fval,
     args.callee() = fval;
     args.thisv() = thisv;
     memcpy(args.argv(), argv, argc * sizeof(Value));
+
+    if (args.thisv().isObject()) {
+        
+
+
+
+
+        JSObject *thisp = args.thisv().toObject().thisObject(cx);
+        if (!thisp)
+             return false;
+        JS_ASSERT(IsSaneThisObject(*thisp));
+        args.thisv().setObject(*thisp);
+    }
 
     if (!Invoke(cx, args, 0))
         return false;
