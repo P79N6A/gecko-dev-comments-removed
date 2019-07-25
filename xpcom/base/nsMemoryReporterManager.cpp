@@ -575,10 +575,7 @@ public:
                         const nsACString &aDescription,
                         nsISupports *aWrappedMRs)
     {
-        if (aKind == nsIMemoryReporter::KIND_NONHEAP &&
-            PromiseFlatCString(aPath).Find("explicit") == 0 &&
-            aAmount != PRInt64(-1)) {
-
+        if (aKind == nsIMemoryReporter::KIND_NONHEAP && aAmount != PRInt64(-1)) {
             MemoryReportsWrapper *wrappedMRs =
                 static_cast<MemoryReportsWrapper *>(aWrappedMRs);
             MemoryReport mr(aPath, aAmount);
@@ -624,14 +621,10 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
         nsresult rv = r->GetKind(&kind);
         NS_ENSURE_SUCCESS(rv, rv);
 
-        nsCString path;
-        rv = r->GetPath(path);
-        NS_ENSURE_SUCCESS(rv, rv);
-
-        
-        
-        if (kind == nsIMemoryReporter::KIND_NONHEAP &&
-            path.Find("explicit") == 0) {
+        if (kind == nsIMemoryReporter::KIND_NONHEAP) {
+            nsCString path;
+            rv = r->GetPath(path);
+            NS_ENSURE_SUCCESS(rv, rv);
 
             PRInt64 amount;
             rv = r->GetAmount(&amount);
@@ -643,14 +636,20 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
                 MemoryReport mr(path, amount);
                 nonheap.AppendElement(mr);
             }
-        } else if (path.Equals("heap-allocated")) {
-            rv = r->GetAmount(&heapUsed);
+        } else {
+            nsCString path;
+            rv = r->GetPath(path);
             NS_ENSURE_SUCCESS(rv, rv);
-            
-            
-            if (heapUsed == PRInt64(-1)) {
-                *aExplicit = PRInt64(-1);
-                return NS_OK;
+
+            if (path.Equals("heap-allocated")) {
+                rv = r->GetAmount(&heapUsed);
+                NS_ENSURE_SUCCESS(rv, rv);
+                
+                
+                if (heapUsed == PRInt64(-1)) {
+                    *aExplicit = PRInt64(-1);
+                    return NS_OK;
+                }
             }
         }
     }
@@ -660,8 +659,6 @@ nsMemoryReporterManager::GetExplicit(PRInt64 *aExplicit)
     EnumerateMultiReporters(getter_AddRefs(e2));
     nsRefPtr<MemoryReportsWrapper> wrappedMRs =
         new MemoryReportsWrapper(&nonheap);
-
-    
     nsRefPtr<MemoryReportCallback> cb = new MemoryReportCallback();
 
     while (NS_SUCCEEDED(e2->HasMoreElements(&more)) && more) {

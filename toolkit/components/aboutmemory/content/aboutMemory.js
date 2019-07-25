@@ -58,55 +58,6 @@ const UNITS_PERCENTAGE = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
 const kUnknown = -1;    
 
-const kTreeDescriptions = {
-  'explicit' :
-    "This tree covers explicit memory allocations by the application, " +
-    "both at the operating system level (via calls to functions such as " +
-    "VirtualAlloc, vm_allocate, and mmap), and at the heap allocation level " +
-    "(via functions such as malloc, calloc, realloc, memalign, operator " +
-    "new, and operator new[]).  It excludes memory that is mapped implicitly " +
-    "such as code and data segments, and thread stacks.  It also excludes " +
-    "heap memory that has been freed by the application but is still being " +
-    "held onto by the heap allocator.  It is not guaranteed to cover every " +
-    "explicit allocation, but it does cover most (including the entire " +
-    "heap), and therefore it is the single best number to focus on when " +
-    "trying to reduce memory usage.",
-
-  'resident':
-    "This tree shows how much space in physical memory each of the " +
-    "process's mappings is currently using (the mapping's 'resident set size', " +
-    "or 'RSS'). This is a good measure of the 'cost' of the mapping, although " +
-    "it does not take into account the fact that shared libraries may be mapped " +
-    "by multiple processes but appear only once in physical memory. " +
-    "Note that the 'resident' value here might not equal the value for " +
-    "'resident' under 'Other Measurements' because the two measurements are not " +
-    "taken at exactly the same time.",
-
-  'vsize':
-    "This tree shows how much virtual addres space each of the process's " +
-    "mappings takes up (the mapping's 'vsize').  A mapping may have a large " +
-    "vsize but use only a small amount of physical memory; the resident set size " +
-    "of a mapping is a better measure of the mapping's 'cost'. Note that the " +
-    "'vsize' value here might not equal the value for 'vsize' under 'Other " +
-    "Measurements' because the two measurements are not taken at exactly the " +
-    "same time.",
-
-  'swap':
-    "This tree shows how much space in the swap file each of the process's " +
-    "mappings is currently using. Mappings which are not in the swap file " +
-    "(i.e., nodes which would have a value of 0 in this tree) are omitted."
-};
-
-const kTreeNames = {
-  'explicit': 'Explicit Allocations',
-  'resident': 'Resident Set Size (RSS) Breakdown',
-  'vsize':    'Virtual Size Breakdown',
-  'swap':     'Swap Usage Breakdown',
-  'other':    'Other Measurements'
-};
-
-const kMapTreePaths = ['map/resident', 'map/vsize', 'map/swap'];
-
 function onLoad()
 {
   var os = Cc["@mozilla.org/observer-service;1"].
@@ -182,17 +133,6 @@ function sendHeapMinNotifications()
 
   var j = 0;
   sendHeapMinNotificationsInner();
-}
-
-function toggleTreeVisibility(aEvent)
-{
-  var headerElem = aEvent.target;
-
-  
-  
-  var treeElem = $(headerElem.id.replace(/^header-/, 'pre-'));
-
-  treeElem.classList.toggle('collapsed');
 }
 
 function Reporter(aPath, aKind, aUnits, aAmount, aDescription)
@@ -321,8 +261,7 @@ function update()
 
   text += "<div>" +
           "<span class='legend'>Hover the pointer over the name of a memory " +
-          "reporter to see a detailed description of what it measures. Click a " +
-          "heading to expand or collapse its tree.</span>" +
+          "reporter to see a detailed description of what it measures.</span>"
           "</div>";
 
   var div = document.createElement("div");
@@ -375,39 +314,21 @@ TreeNode.compare = function(a, b) {
 
 
 
-
-
-function buildTree(aReporters, aTreeName)
+function buildTree(aReporters)
 {
-  
-  
-  
+  const treeName = "explicit";
 
   
   
-  var foundReporter = false;
-  for (var path in aReporters) {
-    if (aReporters[path].treeNameMatches(aTreeName)) {
-      foundReporter = true;
-      break;
-    }
-  }
-
-  if (!foundReporter) {
-    
-    
-    aReporters[aTreeName] =
-      new Reporter(aTreeName, KIND_NONHEAP, UNITS_BYTES, 0, '');
-  }
-
+  
   var t = new TreeNode("falseRoot");
   for (var path in aReporters) {
     
     var r = aReporters[path];
-    if (r.treeNameMatches(aTreeName)) {
+    if (r.treeNameMatches(treeName)) {
       assert(r._kind === KIND_HEAP || r._kind === KIND_NONHEAP,
              "reporters in the tree must have KIND_HEAP or KIND_NONHEAP");
-      assert(r._units === UNITS_BYTES, "r._units === UNITS_BYTES");
+      assert(r._units === UNITS_BYTES);
       var names = r._path.split('/');
       var u = t;
       for (var i = 0; i < names.length; i++) {
@@ -428,7 +349,6 @@ function buildTree(aReporters, aTreeName)
       }
     }
   }
-
   
   
   t = t._kids[0];
@@ -440,7 +360,7 @@ function buildTree(aReporters, aTreeName)
     var path = aPrepath ? aPrepath + '/' + aT._name : aT._name;
     if (aT._kids.length === 0) {
       
-      assert(aT._kind !== undefined, "aT._kind !== undefined");
+      assert(aT._kind !== undefined);
       aT._description = getDescription(aReporters, path);
       var amount = getBytes(aReporters, path);
       if (amount !== kUnknown) {
@@ -480,32 +400,11 @@ function buildTree(aReporters, aTreeName)
         aT._description = "The sum of all entries below '" + aT._name + "'.";
       }
     }
-    assert(aT._amount !== kUnknown, "aT._amount !== kUnknown");
+    assert(aT._amount !== kUnknown);
     return aT._amount;
   }
-
   fillInTree(t, "");
 
-  
-  
-  var slashCount = 0;
-  for (var i = 0; i < aTreeName.length; i++) {
-    if (aTreeName[i] == '/') {
-      assert(t._kids.length == 1, "Not expecting multiple kids here.");
-      t = t._kids[0];
-    }
-  }
-
-  
-  t._description = kTreeDescriptions[t._name];
-
-  return t;
-}
-
-
-
-
-function fixUpExplicitTree(aT, aReporters) {
   
   
   
@@ -530,7 +429,7 @@ function fixUpExplicitTree(aT, aReporters) {
   var unknownHeapUsedBytes = 0;
   var hasProblem = true;
   if (heapUsedBytes !== kUnknown) {
-    unknownHeapUsedBytes = heapUsedBytes - getKnownHeapUsedBytes(aT);
+    unknownHeapUsedBytes = heapUsedBytes - getKnownHeapUsedBytes(t);
     hasProblem = false;
   }
   var heapUnclassified = new TreeNode("heap-unclassified");
@@ -547,8 +446,10 @@ function fixUpExplicitTree(aT, aReporters) {
     heapUnclassified._hasProblem = true;
   }
 
-  aT._kids.push(heapUnclassified);
-  aT._amount += unknownHeapUsedBytes;
+  t._kids.push(heapUnclassified);
+  t._amount += unknownHeapUsedBytes;
+
+  return t;
 }
 
 
@@ -614,26 +515,16 @@ function filterTree(aTotalBytes, aT)
 
 function genProcessText(aProcess, aReporters)
 {
-  var explicitTree = buildTree(aReporters, 'explicit');
-  fixUpExplicitTree(explicitTree, aReporters);
-  filterTree(explicitTree._amount, explicitTree);
-  var explicitText = genTreeText(explicitTree, aProcess);
-
-  var mapTreeText = '';
-  kMapTreePaths.forEach(function(t) {
-    var tree = buildTree(aReporters, t);
-    filterTree(tree._amount, tree);
-    mapTreeText += genTreeText(tree, aProcess);
-  });
+  var tree = buildTree(aReporters);
+  filterTree(tree._amount, tree);
 
   
-  
-  var otherText = genOtherText(aReporters, aProcess);
-
-  
-  return "<h1>" + aProcess + " Process</h1>\n\n" +
-         explicitText + mapTreeText + otherText +
-         "<hr></hr>";
+  var text = "";
+  text += "<h1>" + aProcess + " Process</h1>\n\n";
+  text += genTreeText(tree);
+  text += genOtherText(aReporters);
+  text += "<hr></hr>";
+  return text;
 }
 
 
@@ -846,13 +737,10 @@ function genMrNameText(aKind, aDesc, aName, aHasProblem, aNMerged)
 
 
 
-
-
-function genTreeText(aT, aProcess)
+function genTreeText(aT)
 {
   var treeBytes = aT._amount;
   var rootStringLength = aT.toString().length;
-  var isExplicitTree = aT._name == 'explicit';
 
   
 
@@ -920,11 +808,8 @@ function genTreeText(aT, aProcess)
     }
     perc = "<span class='mrPerc'>(" + perc + "%)</span> ";
 
-    
-    
-    var kind = isExplicitTree ? aT._kind : undefined;
     var text = indent + genMrValueText(tString) + " " + perc +
-               genMrNameText(kind, aT._description, aT._name,
+               genMrNameText(aT._kind, aT._description, aT._name,
                              aT._hasProblem, aT._nMerged);
 
     for (var i = 0; i < aT._kids.length; i++) {
@@ -937,10 +822,22 @@ function genTreeText(aT, aProcess)
   }
 
   var text = genTreeText2(aT, [], rootStringLength);
-
   
-  
-  return genSectionMarkup(aProcess, aT._name, text, !isExplicitTree);
+  const desc =
+    "This tree covers explicit memory allocations by the application, " +
+    "both at the operating system level (via calls to functions such as " +
+    "VirtualAlloc, vm_allocate, and mmap), and at the heap allocation level " +
+    "(via functions such as malloc, calloc, realloc, memalign, operator " +
+    "new, and operator new[]).  It excludes memory that is mapped implicitly " +
+    "such as code and data segments, and thread stacks.  It also excludes " +
+    "heap memory that has been freed by the application but is still being " +
+    "held onto by the heap allocator.  It is not guaranteed to cover every " +
+    "explicit allocation, but it does cover most (including the entire " +
+    "heap), and therefore it is the single best number to focus on when " +
+    "trying to reduce memory usage.";
+               
+  return "<h2 class='hasDesc' title='" + escapeQuotes(desc) +
+         "'>Explicit Allocations</h2>\n" + "<pre>" + text + "</pre>\n";
 }
 
 function OtherReporter(aPath, aUnits, aAmount, aDescription, 
@@ -985,9 +882,7 @@ OtherReporter.compare = function(a, b) {
 
 
 
-
-
-function genOtherText(aReportersByProcess, aProcess)
+function genOtherText(aReportersByProcess)
 {
   
   
@@ -1023,22 +918,8 @@ function genOtherText(aReportersByProcess, aProcess)
   
   const desc = "This list contains other memory measurements that cross-cut " +
                "the requested memory measurements above."
-
-  return genSectionMarkup(aProcess, 'other', text, false);
-}
-
-function genSectionMarkup(aProcess, aName, aText, aCollapsed)
-{
-  var headerId = 'header-' + aProcess + '-' + aName;
-  var preId = 'pre-' + aProcess + '-' + aName;
-  var elemClass = (aCollapsed ? 'collapsed' : '') + ' tree';
-
-  
-  return '<h2 id="' + headerId + '" class="' + elemClass + '" ' +
-         'onclick="toggleTreeVisibility(event)">' +
-           kTreeNames[aName] +
-         '</h2>\n' +
-         '<pre id="' + preId + '" class="' + elemClass + '">' + aText + '</pre>\n';
+  return "<h2 class='hasDesc' title='" + desc + "'>Other Measurements</h2>\n" +
+         "<pre>" + text + "</pre>\n";
 }
 
 function assert(aCond, aMsg)
