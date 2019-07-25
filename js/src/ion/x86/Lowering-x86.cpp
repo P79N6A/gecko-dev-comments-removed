@@ -112,8 +112,15 @@ LIRGeneratorX86::visitBox(MBox *box)
     if (vreg >= MAX_VIRTUAL_REGISTERS)
         return false;
 
-    lir->setDef(0, LDefinition(vreg, LDefinition::TYPE));
-    lir->setDef(1, LDefinition(inner->virtualRegister(), LDefinition::PAYLOAD, LDefinition::REDEFINED));
+    
+    
+    
+    
+    
+    
+    lir->setDef(0, LDefinition(vreg, LDefinition::GENERAL));
+    lir->setDef(1, LDefinition(inner->virtualRegister(), LDefinition::TypeFrom(inner->type()),
+                               LDefinition::PASSTHROUGH));
     box->setVirtualRegister(vreg);
     return add(lir);
 }
@@ -138,20 +145,21 @@ LIRGeneratorX86::visitUnbox(MUnbox *unbox)
         return define(lir, unbox);
     }
 
-    LUnbox *lir = new LUnbox;
-    lir->setOperand(0, useType(inner, LUse::ANY));
-    lir->setOperand(1, usePayloadInRegister(inner));
-    lir->setMir(unbox);
-
     
-    LDefinition::Type type = LDefinition::TypeFrom(unbox->type());
-    lir->setDef(0, LDefinition(VirtualRegisterOfPayload(inner), type, LDefinition::REDEFINED));
-    unbox->setVirtualRegister(VirtualRegisterOfPayload(inner));
+    LUnbox *lir = new LUnbox;
+    lir->setOperand(0, usePayloadInRegister(inner));
+    lir->setOperand(1, useType(inner, LUse::ANY));
 
     if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
         return false;
 
-    return add(lir);
+    
+    
+    
+    
+    
+    
+    return defineReuseInput(lir, unbox);
 }
 
 bool

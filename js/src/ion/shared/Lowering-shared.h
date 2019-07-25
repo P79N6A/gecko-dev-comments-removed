@@ -112,6 +112,8 @@ class LIRGeneratorShared : public MInstructionVisitor
     
     inline LDefinition temp(LDefinition::Type type);
     inline LDefinition tempFloat();
+
+    
     inline LDefinition tempFixed(Register reg);
 
     template <size_t Ops, size_t Temps>

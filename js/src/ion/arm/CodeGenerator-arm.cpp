@@ -53,6 +53,8 @@
 #include "ion/MoveEmitter.h"
 #include "ion/IonCompartment.h"
 
+#include "jsscopeinlines.h"
+
 using namespace js;
 using namespace js::ion;
 
@@ -963,7 +965,6 @@ CodeGeneratorARM::visitBox(LBox *box)
     
     
     
-    
     masm.ma_mov(Imm32(MIRTypeToTag(box->type())), ToRegister(type));
     return true;
 }
@@ -983,6 +984,8 @@ CodeGeneratorARM::visitBoxDouble(LBoxDouble *box)
 bool
 CodeGeneratorARM::visitUnbox(LUnbox *unbox)
 {
+    
+    
     MUnbox *mir = unbox->mir();
     if (mir->fallible()) {
         LAllocation *type = unbox->getOperand(TYPE_INDEX);

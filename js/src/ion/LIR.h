@@ -436,16 +436,20 @@ class LDefinition
         
         
         
-        REDEFINED
+        
+        PASSTHROUGH
     };
 
     enum Type {
-        INTEGER,    
-        POINTER,    
+        GENERAL,    
         OBJECT,     
         DOUBLE,     
-        TYPE,       
-        PAYLOAD,    
+#ifdef JS_NUNBOX32
+        
+        
+        TYPE,
+        PAYLOAD,
+#endif
         BOX         
     };
 
@@ -479,7 +483,7 @@ class LDefinition
     { }
 
     static LDefinition BogusTemp() {
-        return LDefinition(INTEGER, LConstantIndex::Bogus());
+        return LDefinition(GENERAL, LConstantIndex::Bogus());
     }
 
     Policy policy() const {
@@ -520,7 +524,7 @@ class LDefinition
         switch (type) {
           case MIRType_Boolean:
           case MIRType_Int32:
-            return LDefinition::INTEGER;
+            return LDefinition::GENERAL;
           case MIRType_String:
           case MIRType_Object:
             return LDefinition::OBJECT;
@@ -534,12 +538,12 @@ class LDefinition
           case MIRType_Elements:
             
             
-            return LDefinition::POINTER;
+            return LDefinition::GENERAL;
           case MIRType_StackFrame:
-            return LDefinition::POINTER;
+            return LDefinition::GENERAL;
           default:
             JS_NOT_REACHED("unexpected type");
-            return LDefinition::BOX;
+            return LDefinition::GENERAL;
         }
     }
 };
@@ -816,7 +820,7 @@ class LVMCallInstructionHelper : public LCallInstructionHelper<Defs, Operands, T
           case LDefinition::BOX:
             JS_ASSERT(Defs == BOX_PIECES);
             return Registers::JSCallMask;
-          case LDefinition::INTEGER:
+          case LDefinition::GENERAL:
           case LDefinition::OBJECT:
             JS_ASSERT(Defs == 1);
             return Registers::CallMask;
