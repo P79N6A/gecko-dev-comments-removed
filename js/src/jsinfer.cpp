@@ -169,6 +169,14 @@ static bool InferSpewColorable()
 #ifdef DEBUG
 
 const char *
+types::InferSpewColorReset()
+{
+    if (!InferSpewColorable())
+        return "";
+    return "\x1b[0m";
+}
+
+const char *
 types::InferSpewColor(TypeConstraint *constraint)
 {
     
