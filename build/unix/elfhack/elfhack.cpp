@@ -416,6 +416,9 @@ int do_relocation_section(Elf *elf, unsigned int rel_type, unsigned int rel_type
     int entry_sz = (elf->getClass() == ELFCLASS32) ? 4 : 8;
     for (typename std::vector<Rel_Type>::iterator i = section->rels.begin();
          i != section->rels.end(); i++) {
+        
+        if (!ELF32_R_TYPE(i->r_info))
+            continue;
         ElfSection *section = elf->getSectionAt(i->r_offset);
         
         
