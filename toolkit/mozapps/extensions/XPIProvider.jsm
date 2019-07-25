@@ -1656,9 +1656,12 @@ var XPIProvider = {
             
             
             
+            
+            
             if (aOldAddon.id in aManifests[installLocation.name] ||
                 aOldAddon.updateDate != addonState.mtime ||
-                aOldAddon._descriptor != addonState.descriptor) {
+                aOldAddon._descriptor != addonState.descriptor ||
+                (aUpdateCompatibility && installLocation.name == KEY_APP_GLOBAL)) {
               changed = updateMetadata(installLocation, aOldAddon, addonState) ||
                         changed;
             }
