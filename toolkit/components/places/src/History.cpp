@@ -128,6 +128,7 @@ struct VisitData {
   bool typed;
   PRUint32 transitionType;
   PRTime visitTime;
+  nsString title;
 };
 
 
@@ -344,7 +345,7 @@ public:
     NS_PRECONDITION(!NS_IsMainThread(),
                     "This should not be called on the main thread");
 
-    bool known = FetchPageInfo(mPlace);
+    bool known = mHistory->FetchPageInfo(mPlace);
 
     
     
@@ -405,61 +406,6 @@ private:
     if (aReferrer) {
       (void)aReferrer->GetSpec(mReferrer.spec);
     }
-  }
-
-  
-
-
-
-
-
-
-  bool FetchPageInfo(VisitData& _place)
-  {
-    NS_PRECONDITION(!_place.spec.IsEmpty(), "must have a non-empty spec!");
-
-    nsCOMPtr<mozIStorageStatement> stmt =
-      mHistory->syncStatements.GetCachedStatement(
-        "SELECT id, typed, hidden "
-        "FROM moz_places "
-        "WHERE url = :page_url "
-      );
-    NS_ENSURE_TRUE(stmt, false);
-    mozStorageStatementScoper scoper(stmt);
-
-    nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"),
-                                  _place.spec);
-    NS_ENSURE_SUCCESS(rv, false);
-
-    PRBool hasResult;
-    rv = stmt->ExecuteStep(&hasResult);
-    NS_ENSURE_SUCCESS(rv, false);
-    if (!hasResult) {
-      return false;
-    }
-
-    rv = stmt->GetInt64(0, &_place.placeId);
-    NS_ENSURE_SUCCESS(rv, false);
-
-    if (!_place.typed) {
-      
-      
-      PRInt32 typed;
-      rv = stmt->GetInt32(1, &typed);
-      _place.typed = !!typed;
-      NS_ENSURE_SUCCESS(rv, true);
-    }
-    if (_place.hidden) {
-      
-      
-      
-      PRInt32 hidden;
-      rv = stmt->GetInt32(2, &hidden);
-      _place.hidden = !!hidden;
-      NS_ENSURE_SUCCESS(rv, true);
-    }
-
-    return true;
   }
 
   
@@ -748,48 +694,26 @@ public:
                     "This should not be called on the main thread");
 
     
-    nsCOMPtr<mozIStorageStatement> stmt =
-      mHistory->syncStatements.GetCachedStatement(
-        "SELECT id, title "
-        "FROM moz_places "
-        "WHERE url = :page_url "
-      );
-    NS_ENSURE_STATE(stmt);
-
-    PRInt64 placeId = 0;
-    nsAutoString title;
-    {
-      mozStorageStatementScoper scoper(stmt);
-      nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"),
-                                    mSpec);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      PRBool hasResult;
-      rv = stmt->ExecuteStep(&hasResult);
-      NS_ENSURE_SUCCESS(rv, rv);
-      if (!hasResult) {
-        
-        
-        return NS_OK;
-      }
-
-      rv = stmt->GetInt64(0, &placeId);
-      NS_ENSURE_SUCCESS(rv, rv);
-
-      rv = stmt->GetString(1, title);
-      NS_ENSURE_SUCCESS(rv, rv);
+    bool exists = mHistory->FetchPageInfo(mPlace);
+    if (!exists) {
+      
+      
+      return NS_OK;
     }
 
-    NS_ASSERTION(placeId > 0, "We somehow have an invalid place id here!");
+    NS_ASSERTION(mPlace.placeId > 0,
+                 "We somehow have an invalid place id here!");
 
     
     
-    if (mTitle.Equals(title) || (mTitle.IsVoid() && title.IsVoid())) {
+    if (mTitle.Equals(mPlace.title) ||
+        (mTitle.IsVoid() && mPlace.title.IsVoid())) {
       return NS_OK;
     }
 
     
-    stmt = mHistory->syncStatements.GetCachedStatement(
+    nsCOMPtr<mozIStorageStatement> stmt =
+      mHistory->syncStatements.GetCachedStatement(
         "UPDATE moz_places "
         "SET title = :page_title "
         "WHERE id = :page_id "
@@ -799,7 +723,7 @@ public:
     {
       mozStorageStatementScoper scoper(stmt);
       nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("page_id"),
-                                          placeId);
+                                          mPlace.placeId);
       NS_ENSURE_SUCCESS(rv, rv);
       if (mTitle.IsVoid()) {
         rv = stmt->BindNullByName(NS_LITERAL_CSTRING("page_title"));
@@ -813,7 +737,7 @@ public:
       NS_ENSURE_SUCCESS(rv, rv);
     }
 
-    nsCOMPtr<nsIRunnable> event = new NotifyTitleObservers(mSpec, mTitle);
+    nsCOMPtr<nsIRunnable> event = new NotifyTitleObservers(mPlace.spec, mTitle);
     nsresult rv = NS_DispatchToMainThread(event);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -823,13 +747,13 @@ public:
 private:
   SetPageTitle(const nsCString& aSpec,
                const nsString& aTitle)
-  : mSpec(aSpec)
-  , mTitle(aTitle)
+  : mTitle(aTitle)
   , mHistory(History::GetService())
   {
+    mPlace.spec = aSpec;
   }
 
-  const nsCString mSpec;
+  VisitData mPlace;
   const nsString mTitle;
 
   
@@ -994,6 +918,59 @@ History::UpdatePlace(const VisitData& aPlace)
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
+}
+
+bool
+History::FetchPageInfo(VisitData& _place)
+{
+  NS_PRECONDITION(!_place.spec.IsEmpty(), "must have a non-empty spec!");
+  NS_PRECONDITION(!NS_IsMainThread(), "must be called off of the main thread!");
+
+  nsCOMPtr<mozIStorageStatement> stmt = syncStatements.GetCachedStatement(
+      "SELECT id, typed, hidden, title "
+      "FROM moz_places "
+      "WHERE url = :page_url "
+    );
+  NS_ENSURE_TRUE(stmt, false);
+  mozStorageStatementScoper scoper(stmt);
+
+  nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"),
+                                _place.spec);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  PRBool hasResult;
+  rv = stmt->ExecuteStep(&hasResult);
+  NS_ENSURE_SUCCESS(rv, false);
+  if (!hasResult) {
+    return false;
+  }
+
+  rv = stmt->GetInt64(0, &_place.placeId);
+  NS_ENSURE_SUCCESS(rv, false);
+
+  if (!_place.typed) {
+    
+    
+    PRInt32 typed;
+    rv = stmt->GetInt32(1, &typed);
+    _place.typed = !!typed;
+    NS_ENSURE_SUCCESS(rv, true);
+  }
+
+  if (_place.hidden) {
+    
+    
+    
+    PRInt32 hidden;
+    rv = stmt->GetInt32(2, &hidden);
+    _place.hidden = !!hidden;
+    NS_ENSURE_SUCCESS(rv, true);
+  }
+
+  rv = stmt->GetString(3, _place.title);
+  NS_ENSURE_SUCCESS(rv, true);
+
+  return true;
 }
 
 

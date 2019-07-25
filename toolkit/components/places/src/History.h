@@ -101,6 +101,15 @@ public:
   
 
 
+
+
+
+
+  bool FetchPageInfo(VisitData& _place);
+
+  
+
+
   static History* GetService();
 
   
