@@ -312,7 +312,7 @@ var UIManager = {
 
 #ifdef XP_WIN
     
-    gTabViewFrame.style.marginTop = "22px";
+    gTabViewFrame.style.marginTop = 0;
 #endif
     gTabViewDeck.selectedIndex = 1;
     gTabViewFrame.contentWindow.focus();
@@ -440,6 +440,14 @@ var UIManager = {
               tab.tabItem.setZoomPrep(false);
             self.showTabView();
           }
+          
+          
+          
+          setTimeout(function() { 
+            if ((groupItem && groupItem._children.length > 0) ||
+              (groupItem == null && gBrowser.visibleTabs.length > 0))
+              self.hideTabView();
+          }, 1);
         }
       }
     });
