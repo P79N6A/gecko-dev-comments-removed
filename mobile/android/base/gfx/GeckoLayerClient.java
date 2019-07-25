@@ -160,8 +160,6 @@ public abstract class GeckoLayerClient implements GeckoEventListener,
         if (!mUpdateViewportOnEndDraw) {
             
             
-            
-            
             ViewportMetrics currentMetrics = mLayerController.getViewportMetrics();
             PointF currentBestOrigin = RectUtils.getOrigin(currentMetrics.getClampedViewport());
 
@@ -173,9 +171,11 @@ public abstract class GeckoLayerClient implements GeckoEventListener,
             bufferRect = RectUtils.round(new RectF(currentOrigin.x, currentOrigin.y,
                                                    currentOrigin.x + width, currentOrigin.y + height));
 
+            int area = width * height;
 
             
             if (!bufferRect.intersect(currentRect)) {
+                Log.w(LOGTAG, "Prediction would avoid useless paint of " + area + " pixels (100.0%)");
                 
                 
                 mTileLayer.beginTransaction();
@@ -186,6 +186,10 @@ public abstract class GeckoLayerClient implements GeckoEventListener,
                 }
                 return null;
             }
+
+            int wasted = area - (bufferRect.width() * bufferRect.height());
+            Log.w(LOGTAG, "Prediction would avoid useless paint of " + wasted + " pixels (" + ((float)wasted * 100.0f / area) + "%)");
+
             bufferRect.offset(Math.round(-currentOrigin.x), Math.round(-currentOrigin.y));
         }
 
