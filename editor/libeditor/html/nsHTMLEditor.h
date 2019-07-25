@@ -691,6 +691,10 @@ protected:
                                     nsIAtom *aProperty, 
                                     const nsAString *aAttribute,
                                     const nsAString *aValue);
+  nsresult SetInlinePropertyOnNode(nsIContent* aNode,
+                                   nsIAtom* aProperty,
+                                   const nsAString* aAttribute,
+                                   const nsAString* aValue);
 
   nsresult PromoteInlineRange(nsIDOMRange *inRange);
   nsresult PromoteRangeIfStartsOrEndsInNamedAnchor(nsIDOMRange *inRange);
@@ -974,10 +978,10 @@ friend class nsHTMLEditorEventListener;
 
 private:
   
-  nsresult SetInlinePropertyOnNodeImpl(nsIDOMNode *aNode,
-                                       nsIAtom *aProperty,
-                                       const nsAString *aAttribute,
-                                       const nsAString *aValue);
+  nsresult SetInlinePropertyOnNodeImpl(nsIContent* aNode,
+                                       nsIAtom* aProperty,
+                                       const nsAString* aAttribute,
+                                       const nsAString* aValue);
 
 };
 #endif
