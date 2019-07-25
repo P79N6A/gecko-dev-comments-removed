@@ -2,7 +2,7 @@
 
 
 
-var desc = Object.getOwnPropertyDescriptor(Debug.Frame.prototype, "live");
+var desc = Object.getOwnPropertyDescriptor(Debugger.Frame.prototype, "live");
 assertEq(typeof desc.get, "function");
 assertEq(desc.set, undefined);
 assertEq(desc.configurable, true);
@@ -15,7 +15,7 @@ g.debuggeeGlobal = this;
 g.eval("var hits = 0;");
 g.eval("(" + function () {
         var a = [];
-        var dbg = Debug(debuggeeGlobal);
+        var dbg = Debugger(debuggeeGlobal);
         dbg.hooks = {
             debuggerHandler: function (frame) {
                 var loc = debuggeeGlobal.loc;

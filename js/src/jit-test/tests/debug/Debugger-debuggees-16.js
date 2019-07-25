@@ -7,7 +7,7 @@ for (var i = 0; i < 4; i++) {
     
     var g1 = newGlobal('new-compartment');
     var g2 = g1.eval("newGlobal('same-compartment')");
-    var dbg = Debug(g1);
+    var dbg = Debugger(g1);
     dbg.hooks = {debuggerHandler: function () {}};
 
     

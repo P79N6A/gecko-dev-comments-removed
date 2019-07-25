@@ -521,7 +521,7 @@ JS_DefineProfilingFunctions(JSContext *cx, JSObject *obj);
 
 
 extern JS_PUBLIC_API(JSBool)
-JS_DefineDebugObject(JSContext *cx, JSObject *obj);
+JS_DefineDebuggerObject(JSContext *cx, JSObject *obj);
 
 #ifdef MOZ_CALLGRIND
 

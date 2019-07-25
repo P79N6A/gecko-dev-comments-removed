@@ -8,7 +8,7 @@ g.debuggeeGlobal = this;
 g.eval("var finalCheck;");
 g.eval("(" + function () {
         var a = [];
-        var dbg = Debug(debuggeeGlobal);
+        var dbg = Debugger(debuggeeGlobal);
         dbg.hooks = {
             debuggerHandler: function (frame) {
                 a.push(frame);

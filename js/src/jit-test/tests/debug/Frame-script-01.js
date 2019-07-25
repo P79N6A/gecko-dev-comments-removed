@@ -2,7 +2,7 @@
 
 
 var g = newGlobal('new-compartment');
-var dbg = new Debug(g);
+var dbg = new Debugger(g);
 
 
 
@@ -22,14 +22,14 @@ var savedScript;
 
 ApplyToFrameScript('debugger;', 0,
                    function (script) {
-                       assertEq(script instanceof Debug.Script, true);
+                       assertEq(script instanceof Debugger.Script, true);
                        assertEq(script.live, true);
                        savedScript = script;
                    });
 assertEq(savedScript.live, false);
 ApplyToFrameScript("(function () { eval('debugger;'); })();", 0,
                    function (script) {
-                       assertEq(script instanceof Debug.Script, true);
+                       assertEq(script instanceof Debugger.Script, true);
                        assertEq(script.live, true);
                        savedScript = script;
                    });

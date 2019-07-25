@@ -8,7 +8,7 @@ g.eval("(" + function () {
             return ("id" in f) ? f.id : (f.id = nextid++);
         }
 
-        var dbg = new Debug(debuggeeGlobal);
+        var dbg = new Debugger(debuggeeGlobal);
         dbg.hooks = {
             debuggerHandler: function (frame) {
                 var a = [];

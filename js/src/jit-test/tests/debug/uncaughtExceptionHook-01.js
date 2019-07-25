@@ -2,7 +2,7 @@
 
 
 var g = newGlobal('new-compartment');
-var dbg = new Debug(g);
+var dbg = new Debugger(g);
 var log;
 dbg.hooks = {
     debuggerHandler: function () {

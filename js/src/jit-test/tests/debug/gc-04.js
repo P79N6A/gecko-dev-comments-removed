@@ -3,7 +3,7 @@
 
 var g = newGlobal('new-compartment');
 var N = g.N = 10;
-var dbg = Debug(g);
+var dbg = Debugger(g);
 var cache = new WeakMap;
 
 var i = 0;

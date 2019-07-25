@@ -11,7 +11,7 @@ function test(which) {
     var scripts = [];
     var handlers = [];
     function addDebugger(g, i) {
-        var dbg = Debug(g);
+        var dbg = Debugger(g);
         dbg.hooks = {
             debuggerHandler: function (frame) {
                 var s = frame.eval("f").return.script;

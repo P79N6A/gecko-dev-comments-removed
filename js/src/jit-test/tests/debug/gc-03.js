@@ -3,7 +3,7 @@
 
 var g = newGlobal('new-compartment');
 var N = g.N = 3;
-var dbg = Debug(g);
+var dbg = Debugger(g);
 
 var i = 0;
 dbg.hooks = {

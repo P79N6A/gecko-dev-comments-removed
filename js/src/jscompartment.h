@@ -582,7 +582,7 @@ struct JS_FRIEND_API(JSCompartment) {
     js::BreakpointSite *getBreakpointSite(jsbytecode *pc);
     js::BreakpointSite *getOrCreateBreakpointSite(JSContext *cx, JSScript *script, jsbytecode *pc,
                                                   JSObject *scriptObject);
-    void clearBreakpointsIn(JSContext *cx, js::Debug *dbg, JSScript *script, JSObject *handler);
+    void clearBreakpointsIn(JSContext *cx, js::Debugger *dbg, JSScript *script, JSObject *handler);
     void clearTraps(JSContext *cx, JSScript *script);
     bool markBreakpointsIteratively(JSTracer *trc);
   private:

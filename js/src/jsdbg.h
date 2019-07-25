@@ -54,9 +54,9 @@
 
 namespace js {
 
-class Debug {
+class Debugger {
     friend class js::Breakpoint;
-    friend JSBool (::JS_DefineDebugObject)(JSContext *cx, JSObject *obj);
+    friend JSBool (::JS_DefineDebuggerObject)(JSContext *cx, JSObject *obj);
 
   private:
     JSCList link;                       
@@ -142,11 +142,11 @@ class Debug {
     static void slowPathLeaveStackFrame(JSContext *cx);
     static void slowPathOnDestroyScript(JSScript *script);
 
-    typedef bool (Debug::*DebugObservesMethod)() const;
-    typedef JSTrapStatus (Debug::*DebugHandleMethod)(JSContext *, Value *) const;
+    typedef bool (Debugger::*DebuggerObservesMethod)() const;
+    typedef JSTrapStatus (Debugger::*DebuggerHandleMethod)(JSContext *, Value *) const;
     static JSTrapStatus dispatchHook(JSContext *cx, js::Value *vp,
-                                     DebugObservesMethod observesEvent,
-                                     DebugHandleMethod handleEvent);
+                                     DebuggerObservesMethod observesEvent,
+                                     DebuggerHandleMethod handleEvent);
 
     bool observesDebuggerStatement() const;
     JSTrapStatus handleDebuggerStatement(JSContext *cx, Value *vp);
@@ -157,7 +157,7 @@ class Debug {
     
     
     
-    JSObject *newDebugScript(JSContext *cx, JSScript *script, JSObject *obj);
+    JSObject *newDebuggerScript(JSContext *cx, JSScript *script, JSObject *obj);
 
     
     JSObject *wrapHeldScript(JSContext *cx, JSScript *script, JSObject *obj);
@@ -165,17 +165,17 @@ class Debug {
     
     void destroyEvalScript(JSScript *script);
 
-    static inline Debug *fromLinks(JSCList *links);
+    static inline Debugger *fromLinks(JSCList *links);
     inline Breakpoint *firstBreakpoint() const;
 
   public:
-    Debug(JSObject *dbg, JSObject *hooks);
-    ~Debug();
+    Debugger(JSObject *dbg, JSObject *hooks);
+    ~Debugger();
 
     bool init(JSContext *cx);
     inline JSObject *toJSObject() const;
-    static inline Debug *fromJSObject(JSObject *obj);
-    static Debug *fromChildJSObject(JSObject *obj);
+    static inline Debugger *fromJSObject(JSObject *obj);
+    static Debugger *fromChildJSObject(JSObject *obj);
 
     
 
@@ -193,7 +193,7 @@ class Debug {
     
     
     
-    static void markCrossCompartmentDebugObjectReferents(JSTracer *tracer);
+    static void markCrossCompartmentDebuggerObjectReferents(JSTracer *tracer);
     static bool mark(GCMarker *trc, JSGCInvocationKind gckind);
     static void sweepAll(JSContext *cx);
     static void detachAllDebuggersFromGlobal(JSContext *cx, GlobalObject *global,
@@ -266,12 +266,12 @@ class Debug {
 
   private:
     
-    Debug(const Debug &);
-    Debug & operator=(const Debug &);
+    Debugger(const Debugger &);
+    Debugger & operator=(const Debugger &);
 };
 
 bool
-Debug::hasAnyLiveHooks() const
+Debugger::hasAnyLiveHooks() const
 {
     return enabled && (hasDebuggerHandler || hasThrowHandler || !JS_CLIST_IS_EMPTY(&breakpoints));
 }
@@ -279,7 +279,7 @@ Debug::hasAnyLiveHooks() const
 class BreakpointSite {
     friend class js::Breakpoint;
     friend class ::JSCompartment;
-    friend class js::Debug;
+    friend class js::Debugger;
 
   public:
     JSScript * const script;
@@ -314,10 +314,10 @@ class BreakpointSite {
 
 class Breakpoint {
     friend class ::JSCompartment;
-    friend class js::Debug;
+    friend class js::Debugger;
 
   public:
-    Debug * const debugger;
+    Debugger * const debugger;
     BreakpointSite * const site;
   private:
     JSObject *handler;
@@ -327,7 +327,7 @@ class Breakpoint {
   public:
     static Breakpoint *fromDebuggerLinks(JSCList *links);
     static Breakpoint *fromSiteLinks(JSCList *links);
-    Breakpoint(Debug *debugger, BreakpointSite *site, JSObject *handler);
+    Breakpoint(Debugger *debugger, BreakpointSite *site, JSObject *handler);
     void destroy(JSContext *cx, BreakpointSiteMap::Enum *e = NULL);
     Breakpoint *nextInDebugger();
     Breakpoint *nextInSite();
@@ -335,27 +335,27 @@ class Breakpoint {
 };
 
 bool
-Debug::observesScope(JSObject *obj) const
+Debugger::observesScope(JSObject *obj) const
 {
     return debuggees.has(obj->getGlobal());
 }
 
 bool
-Debug::observesFrame(StackFrame *fp) const
+Debugger::observesFrame(StackFrame *fp) const
 {
     return observesScope(&fp->scopeChain());
 }
 
-js::Debug *
-js::Debug::fromLinks(JSCList *links)
+js::Debugger *
+js::Debugger::fromLinks(JSCList *links)
 {
     unsigned char *p = reinterpret_cast<unsigned char *>(links);
-    return reinterpret_cast<Debug *>(p - offsetof(Debug, link));
+    return reinterpret_cast<Debugger *>(p - offsetof(Debugger, link));
 }
 
 
 Breakpoint *
-Debug::firstBreakpoint() const
+Debugger::firstBreakpoint() const
 {
     if (JS_CLIST_IS_EMPTY(&breakpoints))
         return NULL;
@@ -363,48 +363,48 @@ Debug::firstBreakpoint() const
 }
 
 JSObject *
-Debug::toJSObject() const
+Debugger::toJSObject() const
 {
     JS_ASSERT(object);
     return object;
 }
 
-Debug *
-Debug::fromJSObject(JSObject *obj)
+Debugger *
+Debugger::fromJSObject(JSObject *obj)
 {
     JS_ASSERT(obj->getClass() == &jsclass);
-    return (Debug *) obj->getPrivate();
+    return (Debugger *) obj->getPrivate();
 }
 
 void
-Debug::leaveStackFrame(JSContext *cx)
+Debugger::leaveStackFrame(JSContext *cx)
 {
     if (!cx->compartment->getDebuggees().empty() || !cx->compartment->breakpointSites.empty())
         slowPathLeaveStackFrame(cx);
 }
 
 JSTrapStatus
-Debug::onDebuggerStatement(JSContext *cx, js::Value *vp)
+Debugger::onDebuggerStatement(JSContext *cx, js::Value *vp)
 {
     return cx->compartment->getDebuggees().empty()
            ? JSTRAP_CONTINUE
            : dispatchHook(cx, vp,
-                          DebugObservesMethod(&Debug::observesDebuggerStatement),
-                          DebugHandleMethod(&Debug::handleDebuggerStatement));
+                          DebuggerObservesMethod(&Debugger::observesDebuggerStatement),
+                          DebuggerHandleMethod(&Debugger::handleDebuggerStatement));
 }
 
 JSTrapStatus
-Debug::onThrow(JSContext *cx, js::Value *vp)
+Debugger::onThrow(JSContext *cx, js::Value *vp)
 {
     return cx->compartment->getDebuggees().empty()
            ? JSTRAP_CONTINUE
            : dispatchHook(cx, vp,
-                          DebugObservesMethod(&Debug::observesThrow),
-                          DebugHandleMethod(&Debug::handleThrow));
+                          DebuggerObservesMethod(&Debugger::observesThrow),
+                          DebuggerHandleMethod(&Debugger::handleThrow));
 }
 
 void
-Debug::onDestroyScript(JSScript *script)
+Debugger::onDestroyScript(JSScript *script)
 {
     if (!script->compartment->getDebuggees().empty())
         slowPathOnDestroyScript(script);

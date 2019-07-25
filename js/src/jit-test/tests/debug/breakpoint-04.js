@@ -7,7 +7,7 @@ g.eval("var line0 = Error().lineNumber;\n" +
        "    debugger;\n" +  
        "    s += 'x';\n" +  
        "}\n")
-var dbg = Debug(g);
+var dbg = Debugger(g);
 var bp = [];
 dbg.hooks = {
     debuggerHandler: function (frame) {

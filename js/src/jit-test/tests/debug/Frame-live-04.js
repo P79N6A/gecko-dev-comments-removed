@@ -1,6 +1,6 @@
 
 var g = newGlobal('new-compartment');
-var dbg = Debug(g);
+var dbg = Debugger(g);
 var hits = 0;
 var snapshot;
 dbg.hooks = {

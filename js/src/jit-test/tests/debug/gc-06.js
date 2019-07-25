@@ -1,5 +1,5 @@
 
-var dbg = new Debug;
+var dbg = new Debugger;
 for (var i = 0; i < 10; i++)
     dbg.addDebuggee(newGlobal('new-compartment'));
 gc();

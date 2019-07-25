@@ -7,7 +7,7 @@ var N = 4, M = 4;
 for (var i = 0; i < N; i++) {
     var g1 = newGlobal('new-compartment');
     g1.M = M;
-    var dbg = new Debug(g1);
+    var dbg = new Debugger(g1);
     var g2 = g1.eval("newGlobal('same-compartment')");
     g1.x = g2.eval("x = {};");
 
@@ -31,7 +31,7 @@ assertEq(xarr.length, N);
 for (var i = 0; i < N; i++) {
     var obj = xarr[i];
     for (j = 0; j < M; j++) {
-        assertEq(obj instanceof Debug.Object, true);
+        assertEq(obj instanceof Debugger.Object, true);
         g2arr[i].eval("x = x.__proto__ = {};");
         obj = obj.proto;
         assertEq("seen" in obj, false);

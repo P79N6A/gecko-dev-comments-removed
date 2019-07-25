@@ -6,7 +6,7 @@ var log;
 
 var arr = [];
 for (var i = 0; i < 4; i++) {
-    arr[i] = new Debug(g);
+    arr[i] = new Debugger(g);
     arr[i].hooks = {
         num: i,
         debuggerHandler: function () {

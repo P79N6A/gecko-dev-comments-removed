@@ -7,7 +7,7 @@ g1.eval("function f() { debugger; g2.g(); }");
 g2.eval("function g() { debugger; }");
 
 var log;
-var dbg = new Debug;
+var dbg = new Debugger;
 dbg.hooks = {debuggerHandler: function (frame) { log += frame.callee.name; }};
 
 

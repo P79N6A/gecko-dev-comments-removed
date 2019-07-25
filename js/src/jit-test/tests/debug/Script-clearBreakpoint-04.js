@@ -11,7 +11,7 @@ var handler = {
 };
 
 function attach(i) {
-    var dbg = Debug(g);
+    var dbg = Debugger(g);
     dbg.hooks = {
         debuggerHandler: function (frame) {
             var s = frame.script;

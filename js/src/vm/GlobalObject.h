@@ -154,17 +154,17 @@ class GlobalObject : public ::JSObject {
 
     bool initStandardClasses(JSContext *cx);
 
-    typedef js::Vector<js::Debug *, 0, js::SystemAllocPolicy> DebugVector;
+    typedef js::Vector<js::Debugger *, 0, js::SystemAllocPolicy> DebuggerVector;
 
     
     
-    DebugVector *getDebuggers();
+    DebuggerVector *getDebuggers();
 
     
     
-    DebugVector *getOrCreateDebuggers(JSContext *cx);
+    DebuggerVector *getOrCreateDebuggers(JSContext *cx);
 
-    bool addDebug(JSContext *cx, Debug *dbg);
+    bool addDebugger(JSContext *cx, Debugger *dbg);
 };
 
 typedef HashSet<GlobalObject *, DefaultHasher<GlobalObject *>, SystemAllocPolicy> GlobalObjectSet;

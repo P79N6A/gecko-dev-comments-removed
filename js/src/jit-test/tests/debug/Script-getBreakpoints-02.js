@@ -5,7 +5,7 @@ var g = newGlobal('new-compartment');
 var debuggers = [];
 var hits = 0;
 function attach(g, i) {
-    var dbg = Debug(g);
+    var dbg = Debugger(g);
     dbg.hooks = {
         debuggerHandler: function (frame) {
             var s = frame.script;

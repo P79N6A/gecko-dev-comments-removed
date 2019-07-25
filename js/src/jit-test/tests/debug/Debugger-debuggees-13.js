@@ -1,7 +1,7 @@
 
 var g1 = newGlobal('new-compartment');
 var g2 = g1.eval("newGlobal('same-compartment')");
-var dbg = new Debug(g1, g2);
+var dbg = new Debugger(g1, g2);
 var hits = 0;
 dbg.hooks = {debuggerHandler: function (frame) { hits++; }};
 dbg.removeDebuggee(g1);

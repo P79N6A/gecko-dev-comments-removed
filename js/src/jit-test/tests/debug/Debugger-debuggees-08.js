@@ -1,10 +1,10 @@
 
 
 
-var dbg = new Debug;
+var dbg = new Debugger;
 var g = newGlobal('new-compartment');
 var w = dbg.addDebuggee(g);
-assertEq(w instanceof Debug.Object, true);
+assertEq(w instanceof Debugger.Object, true);
 
 function usual() {
     assertEq(dbg.hasDebuggee(g), true);
@@ -26,7 +26,7 @@ usual();
 
 
 g.g2 = newGlobal('new-compartment');
-g.eval("var w2 = new Debug().addDebuggee(g2)");
+g.eval("var w2 = new Debugger().addDebuggee(g2)");
 dbg.addDebuggee(g.w2);
 usual();
 assertEq(!dbg.hasDebuggee(g.g2), true);

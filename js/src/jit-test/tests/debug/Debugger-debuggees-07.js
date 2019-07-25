@@ -2,7 +2,7 @@
 
 var g = newGlobal('new-compartment');
 var obj = g.eval("Object.create(null)");
-var dbg = new Debug;
+var dbg = new Debugger;
 
 
 assertEq(dbg.hasDebuggee(obj), false);

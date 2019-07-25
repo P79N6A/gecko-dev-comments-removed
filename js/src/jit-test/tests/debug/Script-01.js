@@ -5,7 +5,7 @@ var global = newGlobal('new-compartment');
 global.eval('function f() { debugger; }');
 global.eval('function g() { debugger; }');
 
-var debug = new Debug(global);
+var debug = new Debugger(global);
 
 function evalAndNoteScripts(prog) {
     var scripts = {};

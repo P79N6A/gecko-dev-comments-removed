@@ -1,6 +1,6 @@
 
 var g = newGlobal('new-compartment');
-var dbg = new Debug;
+var dbg = new Debugger;
 var global = dbg.addDebuggee(g);
 var hits = 0;
 dbg.hooks = {

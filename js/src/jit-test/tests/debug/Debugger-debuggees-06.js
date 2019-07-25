@@ -2,7 +2,7 @@
 
 load(libdir + "asserts.js");
 
-var dbg = new Debug;
+var dbg = new Debugger;
 
 function check(val) {
     assertThrowsInstanceOf(function () { dbg.hasDebuggee(val); }, TypeError);
@@ -20,7 +20,7 @@ check("ok");
 
 
 var g = newGlobal('new-compartment');
-var dbg2 = new Debug;
+var dbg2 = new Debugger;
 var w = dbg2.addDebuggee(g);
-assertEq(w instanceof Debug.Object, true);
+assertEq(w instanceof Debugger.Object, true);
 check(w);

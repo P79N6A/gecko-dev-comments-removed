@@ -3,7 +3,7 @@
 
 var g = newGlobal('new-compartment');
 var hits, frame;
-var dbg = Debug(g);
+var dbg = Debugger(g);
 dbg.hooks = {
     debuggerHandler: function (f) {
         if (hits++ == 0)

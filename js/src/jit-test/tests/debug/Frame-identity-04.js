@@ -3,7 +3,7 @@
 
 var g = newGlobal('new-compartment');
 g.eval("function f(n) { if (n) f(n - 1); debugger; }");
-var dbg = new Debug(g);
+var dbg = new Debugger(g);
 var hits = 0;
 dbg.hooks = {
     debuggerHandler: function (frame) {

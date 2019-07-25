@@ -2,7 +2,7 @@
 
 var g = newGlobal('new-compartment');
 g.f = function (a, b) { return a + "/" + b; };
-var dbg = Debug(g);
+var dbg = Debugger(g);
 var hits = 0;
 dbg.hooks = {
     debuggerHandler: function (frame) {

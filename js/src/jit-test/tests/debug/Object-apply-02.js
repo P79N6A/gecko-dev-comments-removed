@@ -4,7 +4,7 @@ load(libdir + "asserts.js");
 
 var g = newGlobal("new-compartment");
 g.eval("function f() { debugger; }");
-var dbg = new Debug(g);
+var dbg = new Debugger(g);
 dbg.hooks = {debuggerHandler: function () {}};
 
 function test(usingApply) {
