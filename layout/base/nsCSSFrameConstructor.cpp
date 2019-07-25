@@ -8969,8 +8969,8 @@ nsCSSFrameConstructor::MaybeRecreateContainerForFrameRemoval(nsIFrame* aFrame,
   
   if (!inFlowFrame->GetPrevSibling() &&
       !inFlowFrame->GetNextSibling() &&
-      (parent->GetPrevContinuation() && !parent->GetPrevInFlow() ||
-       parent->GetNextContinuation() && !parent->GetNextInFlow())) {
+      ((parent->GetPrevContinuation() && !parent->GetPrevInFlow()) ||
+       (parent->GetNextContinuation() && !parent->GetNextInFlow()))) {
     *aResult = RecreateFramesForContent(parent->GetContent(), true);
     return true;
   }
