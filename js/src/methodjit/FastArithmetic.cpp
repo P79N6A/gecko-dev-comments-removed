@@ -368,15 +368,24 @@ mjit::Compiler::jsop_binary_double(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
         isDouble.linkTo(masm.label(), &masm);
     }
 
-    if (type == JSVAL_TYPE_INT32) {
+    
+
+
+
+
+
+
+    types::TypeSet *resultTypes = pushedTypeSet(0);
+    if (resultTypes && !resultTypes->hasType(types::TYPE_DOUBLE)) {
         
 
 
 
-
         stubcc.linkExit(masm.jump(), Uses(2));
-    } else if (type != JSVAL_TYPE_DOUBLE) {
-        masm.storeDouble(fpLeft, frame.addressOf(lhs));
+    } else {
+        JS_ASSERT(type != JSVAL_TYPE_INT32);
+        if (type != JSVAL_TYPE_DOUBLE)
+            masm.storeDouble(fpLeft, frame.addressOf(lhs));
     }
 
     if (done.isSet())
