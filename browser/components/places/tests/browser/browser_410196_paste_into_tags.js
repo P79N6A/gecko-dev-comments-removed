@@ -2,225 +2,185 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-var hs = Cc["@mozilla.org/browser/nav-history-service;1"].
-         getService(Ci.nsINavHistoryService);
-var gh = hs.QueryInterface(Ci.nsIGlobalHistory2);
-var bh = hs.QueryInterface(Ci.nsIBrowserHistory);
-var ts = Cc["@mozilla.org/browser/tagging-service;1"].
-         getService(Components.interfaces.nsITaggingService);
-var bs = Cc["@mozilla.org/browser/nav-bookmarks-service;1"].
-         getService(Ci.nsINavBookmarksService);
-
 function add_visit(aURI, aReferrer) {
-  var visitId = hs.addVisit(aURI,
-                            Date.now() * 1000,
-                            aReferrer,
-                            hs.TRANSITION_TYPED, 
-                            false, 
-                            0);
-  return visitId;
+  return PlacesUtils.history.addVisit(aURI, Date.now() * 1000, aReferrer,
+                                      PlacesUtils.history.TRANSITION_TYPED,
+                                      false, 0);
 }
 
 function add_bookmark(aURI) {
-  var bId = bs.insertBookmark(bs.unfiledBookmarksFolder, aURI,
-                              bs.DEFAULT_INDEX, "bookmark/" + aURI.spec);
-  return bId;
+  return PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                              aURI, PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                              "bookmark/" + aURI.spec);
 }
+
+Components.utils.import("resource://gre/modules/NetUtil.jsm");
 
 const TEST_URL = "http://example.com/";
 const MOZURISPEC = "http://mozilla.com/";
 
+let gLibrary;
+let PlacesOrganizer;
+
 function test() {
   waitForExplicitFinish();
-  var win = window.openDialog("chrome://browser/content/places/places.xul",
-                              "",
-                              "chrome,toolbar=yes,dialog=no,resizable");
+  gLibrary = window.openDialog("chrome://browser/content/places/places.xul",
+                               "", "chrome,toolbar=yes,dialog=no,resizable");
+  waitForFocus(onLibraryReady, gLibrary);
+}
 
-  win.addEventListener("load", function onload() {
-    win.removeEventListener("load", onload, false);
-    executeSoon(function () {
-      var PU = win.PlacesUtils;
-      var PO = win.PlacesOrganizer;
-      var PUIU = win.PlacesUIUtils;
+function onLibraryReady() {
+  ok(PlacesUtils, "PlacesUtils in scope");
+  ok(PlacesUIUtils, "PlacesUIUtils in scope");
 
+  PlacesOrganizer = gLibrary.PlacesOrganizer;
+  ok(PlacesOrganizer, "Places organizer in scope");
+
+  tests.makeHistVisit();
+  tests.makeTag();
+  tests.focusTag();
+  tests.copyHistNode();
+  tests.waitForClipboard();
+}
+
+function onClipboardReady() {
+  tests.pasteToTag();
+  tests.historyNode();
+  tests.checkForBookmarkInUI();
+
+  gLibrary.close();
+
+  
+  PlacesUtils.tagging.untagURI(NetUtil.newURI(MOZURISPEC), ["foo"]);
+  PlacesUtils.tagging.untagURI(NetUtil.newURI(TEST_URL), ["foo"]);
+  let tags = PlacesUtils.tagging.getTagsForURI(NetUtil.newURI(TEST_URL));
+  is(tags.length, 0, "tags are gone");
+  PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.unfiledBookmarksFolderId);
+  
+  waitForClearHistory(finish);
+}
+
+let tests = {
+
+  makeHistVisit: function() {
+    
+    let testURI1 = NetUtil.newURI(MOZURISPEC);
+    isnot(testURI1, null, "testURI is not null");
+    let visitId = add_visit(testURI1);
+    ok(visitId > 0, "A visit was added to the history");
+    ok(PlacesUtils.ghistory2.isVisited(testURI1), MOZURISPEC + " is a visited url.");
+  },
+
+  makeTag: function() {
+    
+    let bmId = add_bookmark(NetUtil.newURI(TEST_URL));
+    ok(bmId > 0, "A bookmark was added");
+    PlacesUtils.tagging.tagURI(NetUtil.newURI(TEST_URL), ["foo"]);
+    let tags = PlacesUtils.tagging.getTagsForURI(NetUtil.newURI(TEST_URL));
+    is(tags[0], 'foo', "tag is foo");
+  },
+
+  focusTag: function (paste){
+    
+    PlacesOrganizer.selectLeftPaneQuery("Tags");
+    let tags = PlacesOrganizer._places.selectedNode;
+    tags.containerOpen = true;
+    let fooTag = tags.getChild(0);
+    this.tagNode = fooTag;
+    PlacesOrganizer._places.selectNode(fooTag);
+    is(this.tagNode.title, 'foo', "tagNode title is foo");
+    let ip = PlacesOrganizer._places.insertionPoint;
+    ok(ip.isTag, "IP is a tag");
+    if (paste) {
+      ok(true, "About to paste");
+      PlacesOrganizer._places.controller.paste();
+    }
+  },
+
+  histNode: null,
+
+  copyHistNode: function (){
+    
+    PlacesOrganizer.selectLeftPaneQuery("History");
+    let histContainer = PlacesOrganizer._places.selectedNode;
+    PlacesUtils.asContainer(histContainer);
+    histContainer.containerOpen = true;
+    PlacesOrganizer._places.selectNode(histContainer.getChild(0));
+    this.histNode = PlacesOrganizer._content.view.nodeForTreeIndex(0);
+    PlacesOrganizer._content.selectNode(this.histNode);
+    is(this.histNode.uri, MOZURISPEC,
+       "historyNode exists: " + this.histNode.uri);
+    
+    PlacesOrganizer._content.controller.copy();
+  },
+
+  waitForClipboard: function (){
+    try {
+      let xferable = Cc["@mozilla.org/widget/transferable;1"].
+                     createInstance(Ci.nsITransferable);
+      xferable.addDataFlavor(PlacesUtils.TYPE_X_MOZ_PLACE);
+      let clipboard = Cc["@mozilla.org/widget/clipboard;1"].
+                      getService(Ci.nsIClipboard);
+      clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
+      let data = { }, type = { };
+      xferable.getAnyTransferData(type, data, { });
       
-      var tests = {
-
-        sanity: function(){
-          
-          ok(PU, "PlacesUtils in scope");
-          ok(PUIU, "PlacesUIUtils in scope");
-          ok(PO, "Places organizer in scope");
-        },
-
-        makeHistVisit: function() {
-          
-          var testURI1 = PU._uri(MOZURISPEC);
-          isnot(testURI1, null, "testURI is not null");
-          var visitId = add_visit(testURI1);
-          ok(visitId > 0, "A visit was added to the history");
-          ok(gh.isVisited(testURI1), MOZURISPEC + " is a visited url.");
-        },
-
-        makeTag: function() {
-          
-          var bmId = add_bookmark(PlacesUtils._uri(TEST_URL));
-          ok(bmId > 0, "A bookmark was added");
-          ts.tagURI(PlacesUtils._uri(TEST_URL), ["foo"]);
-          var tags = ts.getTagsForURI(PU._uri(TEST_URL));
-          is(tags[0], 'foo', "tag is foo");
-        },
-
-        focusTag: function (paste){
-          
-          PO.selectLeftPaneQuery("Tags");
-          var tags = PO._places.selectedNode;
-          tags.containerOpen = true;
-          var fooTag = tags.getChild(0);
-          this.tagNode = fooTag;
-          PO._places.selectNode(fooTag);
-          is(this.tagNode.title, 'foo', "tagNode title is foo");
-          var ip = PO._places.insertionPoint;
-          ok(ip.isTag, "IP is a tag");
-          if (paste) {
-            ok(true, "About to paste");
-            PO._places.controller.paste();
-          }
-        },
-
-        histNode: null,
-
-        copyHistNode: function (){
-          
-          PO.selectLeftPaneQuery("History");
-          var histContainer = PO._places.selectedNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
-          histContainer.containerOpen = true;
-          PO._places.selectNode(histContainer.getChild(0));
-          this.histNode = PO._content.view.nodeForTreeIndex(0);
-          PO._content.selectNode(this.histNode);
-          is(this.histNode.uri, MOZURISPEC,
-             "historyNode exists: " + this.histNode.uri);
-          
-          PO._content.controller.copy();
-        },
-
-        waitForPaste: function (){
-          try {
-            var xferable = Cc["@mozilla.org/widget/transferable;1"].
-                           createInstance(Ci.nsITransferable);
-            xferable.addDataFlavor(PU.TYPE_X_MOZ_PLACE);
-            var clipboard = Cc["@mozilla.org/widget/clipboard;1"].
-                            getService(Ci.nsIClipboard);
-            clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
-            var data = { }, type = { };
-            xferable.getAnyTransferData(type, data, { });
-            
-            continue_test();
-          } catch (ex) {
-            
-            setTimeout(tests.waitForPaste, 100);
-          }
-        },
-
-        pasteToTag: function (){
-          
-          this.focusTag(true);
-        },
-
-        historyNode: function (){
-          
-          PO.selectLeftPaneQuery("History");
-          var histContainer = PO._places.selectedNode.QueryInterface(Ci.nsINavHistoryContainerResultNode);
-          histContainer.containerOpen = true;
-          PO._places.selectNode(histContainer.getChild(0));
-          var histNode = PO._content.view.nodeForTreeIndex(0);
-          ok(histNode, "histNode exists: " + histNode.title);
-          
-          var tags = PU.tagging.getTagsForURI(PU._uri(MOZURISPEC));
-          ok(tags.length == 1, "history node is tagged: " + tags.length);
-          
-          var isBookmarked = PU.bookmarks.isBookmarked(PU._uri(MOZURISPEC));
-          is(isBookmarked, true, MOZURISPEC + " is bookmarked");
-          var bookmarkIds = PU.bookmarks.getBookmarkIdsForURI(
-                              PU._uri(histNode.uri));
-          ok(bookmarkIds.length > 0, "bookmark exists for the tagged history item: " + bookmarkIds);
-        },
-
-        checkForBookmarkInUI: function(){
-          
-          
-          PO.selectLeftPaneQuery("UnfiledBookmarks");
-          
-          var unsortedNode = PO._content.view.nodeForTreeIndex(1);
-          ok(unsortedNode, "unsortedNode is not null: " + unsortedNode.uri);
-          is(unsortedNode.uri, MOZURISPEC, "node uri's are the same");
-        },
-
-        tagNode: null,
-
-        cleanUp: function(){
-          ts.untagURI(PU._uri(MOZURISPEC), ["foo"]);
-          ts.untagURI(PU._uri(TEST_URL), ["foo"]);
-          hs.removeAllPages();
-          var tags = ts.getTagsForURI(PU._uri(TEST_URL));
-          is(tags.length, 0, "tags are gone");
-          bs.removeFolderChildren(bs.unfiledBookmarksFolder);
-        }
-      };
-
-      tests.sanity();
-      tests.makeHistVisit();
-      tests.makeTag();
-      tests.focusTag();
-      tests.copyHistNode();
-      tests.waitForPaste();
+      onClipboardReady();
+    } catch (ex) {
       
-      function continue_test() {
-        tests.pasteToTag();
-        tests.historyNode();
-        tests.checkForBookmarkInUI();
+      setTimeout(arguments.callee, 100);
+    }
+  },
 
-        
-        tests.cleanUp();
+  pasteToTag: function (){
+    
+    this.focusTag(true);
+  },
 
-        win.close();
-        finish();
-      }
+  historyNode: function (){
+    
+    PlacesOrganizer.selectLeftPaneQuery("History");
+    let histContainer = PlacesOrganizer._places.selectedNode;
+    PlacesUtils.asContainer(histContainer);
+    histContainer.containerOpen = true;
+    PlacesOrganizer._places.selectNode(histContainer.getChild(0));
+    let histNode = PlacesOrganizer._content.view.nodeForTreeIndex(0);
+    ok(histNode, "histNode exists: " + histNode.title);
+    
+    let tags = PlacesUtils.tagging.getTagsForURI(NetUtil.newURI(MOZURISPEC));
+    ok(tags.length == 1, "history node is tagged: " + tags.length);
+    
+    let isBookmarked = PlacesUtils.bookmarks.isBookmarked(NetUtil.newURI(MOZURISPEC));
+    is(isBookmarked, true, MOZURISPEC + " is bookmarked");
+    let bookmarkIds = PlacesUtils.bookmarks.getBookmarkIdsForURI(
+                        NetUtil.newURI(histNode.uri));
+    ok(bookmarkIds.length > 0, "bookmark exists for the tagged history item: " + bookmarkIds);
+  },
 
-    });
-  },false);
+  checkForBookmarkInUI: function(){
+    
+    
+    PlacesOrganizer.selectLeftPaneQuery("UnfiledBookmarks");
+    
+    let unsortedNode = PlacesOrganizer._content.view.nodeForTreeIndex(1);
+    ok(unsortedNode, "unsortedNode is not null: " + unsortedNode.uri);
+    is(unsortedNode.uri, MOZURISPEC, "node uri's are the same");
+  },
+
+  tagNode: null,
+};
+
+
+
+
+function waitForClearHistory(aCallback) {
+  const TOPIC_EXPIRATION_FINISHED = "places-expiration-finished";
+  let observer = {
+    observe: function(aSubject, aTopic, aData) {
+      Services.obs.removeObserver(this, TOPIC_EXPIRATION_FINISHED);
+      aCallback();
+    }
+  };
+  Services.obs.addObserver(observer, TOPIC_EXPIRATION_FINISHED, false);
+  PlacesUtils.bhistory.removeAllPages();
 }

@@ -83,10 +83,6 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
 });
 
 
-let gHasAnnotationsObserver = false;
-let gHasShutdownObserver = false;
-
-
 
 
 const MIN_TRANSACTIONS_FOR_BATCH = 5;
@@ -275,15 +271,11 @@ var PlacesUtils = {
 
   get _readOnly() {
     
-    if (!gHasAnnotationsObserver) {
-      this.annotations.addObserver(this, false);
-      gHasAnnotationsObserver = true;
-    }
-    
-    if (!gHasShutdownObserver) {
-      Services.obs.addObserver(this, this.TOPIC_SHUTDOWN, false);
-      gHasShutdownObserver = true;
-    }
+    this.annotations.addObserver(this, false);
+    this.registerShutdownFunction(function () {
+      this.annotations.removeObserver(this);
+    });
+
     var readOnly = this.annotations.getItemsWithAnnotation(this.READ_ONLY_ANNO);
     this.__defineGetter__("_readOnly", function() readOnly);
     return this._readOnly;
@@ -295,24 +287,25 @@ var PlacesUtils = {
   , Ci.nsITransactionListener
   ]),
 
-  
-  observe: function PU_observe(aSubject, aTopic, aData) {
-    if (aTopic == this.TOPIC_SHUTDOWN) {
-      if (gHasAnnotationsObserver)
-        this.annotations.removeObserver(this);
-
-      if (Object.getOwnPropertyDescriptor(this, "transactionManager").value !== undefined) {
-        
-        
-        this.transactionManager.RemoveListener(this);
-        this.transactionManager.clear();
-      }
-
-      Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
-      gHasShutdownObserver = false;
+  _shutdownFunctions: [],
+  registerShutdownFunction: function PU_registerShutdownFunction(aFunc)
+  {
+    
+    if (this._shutdownFunctions.length == 0) {
+      Services.obs.addObserver(this, this.TOPIC_SHUTDOWN, false);
     }
+    this._shutdownFunctions.push(aFunc);
   },
 
+  
+  
+  observe: function PU_observe(aSubject, aTopic, aData)
+  {
+    if (aTopic == this.TOPIC_SHUTDOWN) {
+      Services.obs.removeObserver(this, this.TOPIC_SHUTDOWN);
+      this._shutdownFunctions.forEach(function (aFunc) aFunc.apply(this), this);
+    }
+  },
 
   
   
@@ -2048,6 +2041,63 @@ var PlacesUtils = {
     }
 
   },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  asyncGetBookmarkIds: function PU_asyncGetBookmarkIds(aURI, aCallback, aScope)
+  {
+    if (!this._asyncGetBookmarksStmt) {
+      let db = this.history.QueryInterface(Ci.nsPIPlacesDatabase).DBConnection;
+      this._asyncGetBookmarksStmt = db.createAsyncStatement(
+        "SELECT b.id "
+      + "FROM moz_bookmarks b "
+      + "JOIN moz_places h on h.id = b.fk "
+      + "WHERE h.url = :url "
+      +   "AND NOT EXISTS( "
+      +     "SELECT 1 FROM moz_items_annos a "
+      +     "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
+      +     "WHERE a.item_id = b.parent AND n.name = :name "
+      +   ") "
+      );
+      this.registerShutdownFunction(function () {
+        this._asyncGetBookmarksStmt.finalize();
+      });
+    }
+
+    let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
+    this._asyncGetBookmarksStmt.params.url = url;
+    this._asyncGetBookmarksStmt.params.name = this.LMANNO_FEEDURI;
+    this._asyncGetBookmarksStmt.executeAsync({
+      _itemIds: [],
+      handleResult: function(aResultSet) {
+        let row, haveMatches = false;
+        for (let row; (row = aResultSet.getNextRow());) {
+          this._itemIds.push(row.getResultByIndex(0));
+        }
+      },
+      handleError: function(aError) {
+        Cu.reportError("Async statement execution returned (" + aError.result +
+                       "): " + aError.message);
+      },
+      handleCompletion: function(aReason)
+      {
+        if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
+          aCallback.apply(aScope, [this._itemIds]);
+        }
+      }
+    });
+  }
 };
 
 XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "history",
@@ -2091,18 +2141,15 @@ XPCOMUtils.defineLazyServiceGetter(PlacesUtils, "microsummaries",
                                    "nsIMicrosummaryService");
 
 XPCOMUtils.defineLazyGetter(PlacesUtils, "transactionManager", function() {
-  Services.obs.addObserver(PlacesUtils,
-                           PlacesUtils.TOPIC_SHUTDOWN,
-                           false);
-  
-  if (!gHasShutdownObserver) {
-    Services.obs.addObserver(PlacesUtils, PlacesUtils.TOPIC_SHUTDOWN, false);
-    gHasShutdownObserver = true;
-  }
-
   let tm = Cc["@mozilla.org/transactionmanager;1"].
            getService(Ci.nsITransactionManager);
   tm.AddListener(PlacesUtils);
+  this.registerShutdownFunction(function () {
+    
+    
+    this.transactionManager.RemoveListener(this);
+    this.transactionManager.clear();
+  });
   return tm;
 });
 

@@ -23,6 +23,7 @@
 #   Joe Hughes <joe@retrovirus.com>
 #   Asaf Romano <mano@mozilla.com>
 #   Ehsan Akhgari <ehsan.akhgari@gmail.com>
+#   Marco Bonardo <mak77@bonardo.net>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -229,7 +230,7 @@ var StarUI = {
     
     this.panel.popupBoxObject
         .setConsumeRollupEvent(Ci.nsIPopupBoxObject.ROLLUP_CONSUME);
-    this.panel.openPopup(aAnchorElement, aPosition);
+    this.panel.openPopup(aAnchorElement, aPosition, -1, -1);
 
     gEditItemOverlay.initPanel(this._itemId,
                                { hiddenRows: ["description", "location",
@@ -347,8 +348,7 @@ var PlacesCommandHook = {
       if (starIcon && isElementVisible(starIcon)) {
         
         
-        var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ?
-          'bottomcenter topleft' : 'bottomcenter topright';
+        var position = (getComputedStyle(gNavToolbox, "").direction == "rtl") ? 'after_start' : 'after_end';
         if (aShowEditUI)
           StarUI.showEditBookmarkPopup(itemId, starIcon, position);
         return;
@@ -849,7 +849,7 @@ var PlacesMenuDNDHandler = {
 
 
 
-  onDragExit: function PMDH_onDragExit(event) {
+  onDragLeave: function PMDH_onDragLeave(event) {
     
     if (!this._isStaticContainer(event.target))
       return;
@@ -921,7 +921,8 @@ var PlacesMenuDNDHandler = {
 
 
 var PlacesStarButton = {
-  init: function PSB_init() {
+  init: function PSB_init()
+  {
     try {
       PlacesUtils.bookmarks.addObserver(this, false);
     } catch(ex) {
@@ -929,74 +930,139 @@ var PlacesStarButton = {
     }
   },
 
-  uninit: function PSB_uninit() {
-    PlacesUtils.bookmarks.removeObserver(this);
+  uninit: function PSB_uninit()
+  {
+    try {
+      PlacesUtils.bookmarks.removeObserver(this);
+    } catch(ex) {}
   },
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsINavBookmarkObserver]),
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsINavBookmarkObserver
+  ]),
 
-  _starred: false,
-  _batching: false,
+  get _starredTooltip()
+  {
+    delete this._starredTooltip;
+    return this._starredTooltip =
+      gNavigatorBundle.getString("starButtonOn.tooltip");
+  },
+  get _unstarredTooltip()
+  {
+    delete this._unstarredTooltip;
+    return this._unstarredTooltip =
+      gNavigatorBundle.getString("starButtonOff.tooltip");
+  },
 
-  updateState: function PSB_updateState() {
-    var starIcon = document.getElementById("star-button");
-    if (!starIcon)
+  updateState: function PSB_updateState()
+  {
+    this._starIcon = document.getElementById("star-button");
+    if (!this._starIcon || gBrowser.currentURI.equals(this._uri)) {
       return;
-
-    var uri = gBrowser.currentURI;
-    this._starred = uri && (PlacesUtils.getMostRecentBookmarkForURI(uri) != -1 ||
-                            PlacesUtils.getMostRecentFolderForFeedURI(uri) != -1);
-    if (this._starred) {
-      starIcon.setAttribute("starred", "true");
-      starIcon.setAttribute("tooltiptext", gNavigatorBundle.getString("starButtonOn.tooltip"));
     }
-    else {
-      starIcon.removeAttribute("starred");
-      starIcon.setAttribute("tooltiptext", gNavigatorBundle.getString("starButtonOff.tooltip"));
+
+    
+    this._uri = gBrowser.currentURI;
+    this._itemIds = [];
+
+    
+    this._starIcon.hidden = true;
+
+    PlacesUtils.asyncGetBookmarkIds(this._uri, function (aItemIds) {
+      this._itemIds = aItemIds;
+      this._updateStateInternal();
+      
+      this._starIcon.hidden = false;
+    }, this);
+  },
+
+  _updateStateInternal: function PSB__updateStateInternal()
+  {
+    if (!this._starIcon) {
+      return;
+    }
+
+    let starred = this._starIcon.hasAttribute("starred");
+    if (this._itemIds.length > 0 && !starred) {
+      this._starIcon.setAttribute("starred", "true");
+      this._starIcon.setAttribute("tooltiptext", this._starredTooltip);
+    }
+    else if (this._itemIds.length == 0 && starred) {
+      this._starIcon.removeAttribute("starred");
+      this._starIcon.setAttribute("tooltiptext", this._unstarredTooltip);
     }
   },
 
-  onClick: function PSB_onClick(aEvent) {
-    if (aEvent.button == 0)
-      PlacesCommandHook.bookmarkCurrentPage(this._starred);
-
+  onClick: function PSB_onClick(aEvent)
+  {
+    if (aEvent.button == 0) {
+      PlacesCommandHook.bookmarkCurrentPage(this._itemIds.length > 0);
+    }
     
     aEvent.stopPropagation();
   },
 
   
-  onBeginUpdateBatch: function PSB_onBeginUpdateBatch() {
-    this._batching = true;
+  onItemAdded:
+  function PSB_onItemAdded(aItemId, aFolder, aIndex, aItemType, aURI)
+  {
+    if (!this._starIcon) {
+      return;
+    }
+
+    if (aURI.equals(this._uri)) {
+      
+      if (this._itemIds.indexOf(aItemId) == -1) {
+        this._itemIds.push(aItemId);
+        this._updateStateInternal();
+      }
+    }
   },
 
-  onEndUpdateBatch: function PSB_onEndUpdateBatch() {
-    this.updateState();
-    this._batching = false;
+  onItemRemoved:
+  function PSB_onItemRemoved(aItemId, aFolder, aIndex, aItemType)
+  {
+    if (!this._starIcon) {
+      return;
+    }
+
+    let index = this._itemIds.indexOf(aItemId);
+    
+    if (index != -1) {
+      this._itemIds.splice(index, 1);
+      this._updateStateInternal();
+    }
   },
 
-  onItemAdded: function PSB_onItemAdded(aItemId, aFolder, aIndex, aItemType,
-                                        aURI) {
-    if (!this._batching && !this._starred)
-      this.updateState();
+  onItemChanged:
+  function PSB_onItemChanged(aItemId, aProperty, aIsAnnotationProperty,
+                             aNewValue, aLastModified, aItemType)
+  {
+    if (!this._starIcon) {
+      return;
+    }
+
+    if (aProperty == "uri") {
+      let index = this._itemIds.indexOf(aItemId);
+      
+      
+      if (index != -1 && aNewValue != this._uri.spec) {
+        this._itemIds.splice(index, 1);
+        this._updateStateInternal();
+      }
+      
+      else if (index == -1 && aNewValue == this._uri.spec) {
+        this._itemIds.push(aItemId);
+        this._updateStateInternal();
+      }
+    }
   },
 
-  onBeforeItemRemoved: function() {},
-
-  onItemRemoved: function PSB_onItemRemoved(aItemId, aFolder, aIndex,
-                                            aItemType) {
-    if (!this._batching)
-      this.updateState();
-  },
-
-  onItemChanged: function PSB_onItemChanged(aItemId, aProperty,
-                                            aIsAnnotationProperty, aNewValue,
-                                            aLastModified, aItemType) {
-    if (!this._batching && aProperty == "uri")
-      this.updateState();
-  },
-
-  onItemVisited: function() {},
-  onItemMoved: function() {}
+  onBeginUpdateBatch: function () {},
+  onEndUpdateBatch: function () {},
+  onBeforeItemRemoved: function () {},
+  onItemVisited: function () {},
+  onItemMoved: function () {}
 };
 
 
