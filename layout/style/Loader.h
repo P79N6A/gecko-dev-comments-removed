@@ -19,6 +19,7 @@
 #include "nsTObserverArray.h"
 #include "nsURIHashKey.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/CORSMode.h"
 
 class nsIAtom;
 class nsICSSLoaderObserver;
@@ -174,11 +175,13 @@ public:
 
 
 
+
   nsresult LoadStyleLink(nsIContent* aElement,
                          nsIURI* aURL,
                          const nsAString& aTitle,
                          const nsAString& aMedia,
                          bool aHasAlternateRel,
+                         mozilla::CORSMode aCORSMode,
                          nsICSSLoaderObserver* aObserver,
                          bool* aIsAlternate);
 
