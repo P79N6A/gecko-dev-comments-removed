@@ -641,19 +641,8 @@ static JSGCArena *
 NewGCArena(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
-    if (!JS_THREAD_DATA(cx)->waiveGCQuota && rt->gcBytes >= rt->gcMaxBytes) {
-        
-
-
-
-
-        if (!JS_ON_TRACE(cx))
-            return NULL;
-        js_TriggerGC(cx, true);
-    }
 
     size_t nchunks = rt->gcChunks.length();
-
     JSGCChunkInfo *ci;
     for (;; ++rt->gcChunkCursor) {
         if (rt->gcChunkCursor == nchunks) {
@@ -664,6 +653,7 @@ NewGCArena(JSContext *cx)
         if (ci->numFreeArenas != 0)
             break;
     }
+
     if (!ci) {
         if (!rt->gcChunks.reserve(nchunks + 1))
             return NULL;
@@ -1723,41 +1713,6 @@ JSGCFreeLists::moveTo(JSGCFreeLists *another)
     JS_ASSERT(isEmpty());
 }
 
-static inline bool
-IsGCThresholdReached(JSRuntime *rt)
-{
-#ifdef JS_GC_ZEAL
-    if (rt->gcZeal >= 1)
-        return true;
-#endif
-
-    
-
-
-
-
-    return rt->isGCMallocLimitReached() || rt->gcBytes >= rt->gcTriggerBytes;
-}
-
-static void
-LastDitchGC(JSContext *cx)
-{
-    JS_ASSERT(!JS_ON_TRACE(cx));
-
-    
-    AutoPreserveWeakRoots save(cx);
-    AutoKeepAtoms keep(cx->runtime);
-
-    
-
-
-
-
-
-
-    js_GC(cx, GC_LOCK_HELD);
-}
-
 static JSGCThing *
 RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 {
@@ -1774,44 +1729,27 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
             return NULL;
         }
 
-        bool canGC = !JS_ON_TRACE(cx) && !JS_THREAD_DATA(cx)->waiveGCQuota;
-        bool doGC = canGC && IsGCThresholdReached(rt);
         arenaList = &rt->gcArenaList[thingKind];
-        for (;;) {
-            if (doGC) {
-                LastDitchGC(cx);
-                METER(cx->runtime->gcStats.arenaStats[thingKind].retry++);
-                canGC = false;
-
-                
-
-
-
-
-                JSGCThing *freeList = JS_THREAD_DATA(cx)->gcFreeLists.finalizables[thingKind];
-                if (freeList)
-                    return freeList;
+        while ((a = arenaList->cursor) != NULL) {
+            JSGCArenaInfo *ainfo = a->getInfo();
+            arenaList->cursor = ainfo->prev;
+            JSGCThing *freeList = ainfo->freeList;
+            if (freeList) {
+                ainfo->freeList = NULL;
+                return freeList;
             }
-
-            while ((a = arenaList->cursor) != NULL) {
-                JSGCArenaInfo *ainfo = a->getInfo();
-                arenaList->cursor = ainfo->prev;
-                JSGCThing *freeList = ainfo->freeList;
-                if (freeList) {
-                    ainfo->freeList = NULL;
-                    return freeList;
-                }
-            }
-
-            a = NewGCArena(cx);
-            if (a)
-                break;
-            if (!canGC) {
-                METER(cx->runtime->gcStats.arenaStats[thingKind].fail++);
-                return NULL;
-            }
-            doGC = true;
         }
+
+        
+
+
+
+        if (rt->gcQuotaReached())
+            cx->triggerGC();
+
+        a = NewGCArena(cx);
+        if (!a)
+            return NULL;
 
         
 
@@ -2525,26 +2463,6 @@ js_TraceRuntime(JSTracer *trc)
 
     if (rt->gcExtraRootsTraceOp)
         rt->gcExtraRootsTraceOp(trc, rt->gcExtraRootsData);
-}
-
-void
-js_TriggerGC(JSContext *cx, JSBool gcLocked)
-{
-    JSRuntime *rt = cx->runtime;
-
-#ifdef JS_THREADSAFE
-    JS_ASSERT(cx->requestDepth > 0);
-#endif
-    JS_ASSERT(!rt->gcRunning);
-    if (rt->gcIsNeeded)
-        return;
-
-    
-
-
-
-    rt->gcIsNeeded = JS_TRUE;
-    js_TriggerAllOperationCallbacks(rt, gcLocked);
 }
 
 void

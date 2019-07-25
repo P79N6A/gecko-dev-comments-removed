@@ -1849,7 +1849,7 @@ JS_free(JSContext *cx, void *p)
 JS_PUBLIC_API(void)
 JS_updateMallocCounter(JSContext *cx, size_t nbytes)
 {
-    return cx->updateMallocCounter(nbytes);
+    cx->runtime->updateMallocCounter(nbytes);
 }
 
 JS_PUBLIC_API(char *)
@@ -2445,65 +2445,16 @@ JS_MaybeGC(JSContext *cx)
 
     rt = cx->runtime;
 
-#ifdef JS_GC_ZEAL
-    if (rt->gcZeal > 0) {
-        JS_GC(cx);
-        return;
-    }
-#endif
-
     bytes = rt->gcBytes;
     lastBytes = rt->gcLastBytes;
 
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    if ((bytes > 8192 && bytes > lastBytes + lastBytes / 3) ||
-        rt->isGCMallocLimitReached()) {
+    if (rt->gcIsNeeded ||
+#ifdef JS_GC_ZEAL
+        rt->gcZeal > 0 ||
+#endif
+        (bytes > 8192 && bytes > lastBytes * 16) ||
+        bytes >= rt->gcTriggerBytes ||
+        rt->overQuota()) {
         JS_GC(cx);
     }
 }
@@ -2624,7 +2575,7 @@ JS_NewExternalString(JSContext *cx, jschar *chars, size_t length, intN type)
     if (!str)
         return NULL;
     str->initFlat(chars, length);
-    cx->updateMallocCounter((length + 1) * sizeof(jschar));
+    cx->runtime->updateMallocCounter((length + 1) * sizeof(jschar));
     return str;
 }
 
