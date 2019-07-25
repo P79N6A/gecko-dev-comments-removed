@@ -6985,8 +6985,9 @@ mjit::Compiler::jsop_regexp()
 
 
 
-    RegExpPrivate *rep = reobj->getOrCreatePrivate(cx);
-    if (!rep)
+
+
+    if (!reobj->makePrivateNow(cx))
         return false;
 
     RegisterID result = frame.allocReg();
@@ -6999,7 +7000,7 @@ mjit::Compiler::jsop_regexp()
     OOL_STUBCALL(stubs::RegExp, REJOIN_FALLTHROUGH);
 
     
-    size_t *refcount = rep->addressOfRefCount();
+    size_t *refcount = reobj->addressOfPrivateRefCount();
     masm.add32(Imm32(1), AbsoluteAddress(refcount));
 
     frame.pushTypedPayload(JSVAL_TYPE_OBJECT, result);

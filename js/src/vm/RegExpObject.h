@@ -65,6 +65,9 @@ enum RegExpRunStatus
 
 class RegExpObject : public ::JSObject
 {
+    typedef detail::RegExpPrivate RegExpPrivate;
+    typedef detail::RegExpPrivateCode RegExpPrivateCode;
+
     static const uintN LAST_INDEX_SLOT          = 0;
     static const uintN SOURCE_SLOT              = 1;
     static const uintN GLOBAL_FLAG_SLOT         = 2;
@@ -133,6 +136,10 @@ class RegExpObject : public ::JSObject
 
     
 
+    inline size_t *addressOfPrivateRefCount() const;
+
+    
+
     inline void setIgnoreCase(bool enabled);
     inline void setGlobal(bool enabled);
     inline void setMultiline(bool enabled);
@@ -147,17 +154,26 @@ class RegExpObject : public ::JSObject
     
     inline void purge(JSContext *x);
 
+    
+
+
+
+    bool makePrivateNow(JSContext *cx) {
+        return !!makePrivate(cx);
+    }
+
+  private:
+    friend class RegExpObjectBuilder;
+    friend class RegExpMatcher;
+
+    inline bool init(JSContext *cx, JSLinearString *source, RegExpFlag flags);
+
     RegExpPrivate *getOrCreatePrivate(JSContext *cx) {
         if (RegExpPrivate *rep = getPrivate())
             return rep;
 
         return makePrivate(cx);
     }
-
-  private:
-    friend class RegExpObjectBuilder;
-
-    inline bool init(JSContext *cx, JSLinearString *source, RegExpFlag flags);
 
     
     RegExpPrivate *getPrivate() const {
@@ -189,11 +205,15 @@ class RegExpObject : public ::JSObject
 
 class RegExpObjectBuilder
 {
+    typedef detail::RegExpPrivate RegExpPrivate;
+
     JSContext       *cx;
     RegExpObject    *reobj_;
 
     bool getOrCreate();
     bool getOrCreateClone(RegExpObject *proto);
+
+    RegExpObject *build(AlreadyIncRefed<RegExpPrivate> rep);
 
   public:
     RegExpObjectBuilder(JSContext *cx, RegExpObject *reobj = NULL)
@@ -202,15 +222,14 @@ class RegExpObjectBuilder
 
     RegExpObject *reobj() { return reobj_; }
 
-    
-    RegExpObject *build(AlreadyIncRefed<RegExpPrivate> rep);
-
     RegExpObject *build(JSLinearString *str, RegExpFlag flags);
     RegExpObject *build(RegExpObject *other);
 
     
     RegExpObject *clone(RegExpObject *other, RegExpObject *proto);
 };
+
+namespace detail {
 
 
 class RegExpPrivateCode
@@ -356,6 +375,55 @@ class RegExpPrivate
     bool sticky() const     { return flags & StickyFlag; }
 };
 
+} 
+
+
+
+
+
+
+
+
+
+class RegExpMatcher
+{
+    typedef detail::RegExpPrivate RegExpPrivate;
+
+    JSContext                   *cx;
+    AutoRefCount<RegExpPrivate> arc;
+
+  public:
+    explicit RegExpMatcher(JSContext *cx)
+      : cx(cx), arc(cx)
+    { }
+
+    bool null() const {
+        return arc.null();
+    }
+    bool global() const {
+        return arc.get()->global();
+    }
+    bool sticky() const {
+        return arc.get()->sticky();
+    }
+
+    bool reset(RegExpObject *reobj) {
+        RegExpPrivate *priv = reobj->getOrCreatePrivate(cx);
+        if (!priv)
+            return false;
+        arc.reset(NeedsIncRef<RegExpPrivate>(priv));
+        return true;
+    }
+
+    inline bool reset(JSLinearString *patstr, JSString *opt);
+
+    RegExpRunStatus execute(JSContext *cx, const jschar *chars, size_t length, size_t *lastIndex,
+                            LifoAllocScope &allocScope, MatchPairs **output) {
+        JS_ASSERT(!arc.null());
+        return arc.get()->execute(cx, chars, length, lastIndex, allocScope, output);
+    }
+};
+
 
 
 
@@ -370,6 +438,12 @@ ValueIsRegExp(const Value &v);
 
 inline bool
 IsRegExpMetaChar(jschar c);
+
+inline bool
+CheckRegExpSyntax(JSContext *cx, JSLinearString *str)
+{
+    return detail::RegExpPrivateCode::checkSyntax(cx, NULL, str);
+}
 
 } 
 
