@@ -71,6 +71,26 @@ using namespace mozilla::dom;
 
 
 
+
+#define NS_IMPL_STRING_ATTR_WITH_TEXTCONTENT(_class, _method, _atom) \
+  NS_IMETHODIMP                                                      \
+  _class::Get##_method(nsAString& aValue)                            \
+  {                                                                  \
+    if (!GetAttr(kNameSpaceID_None, nsGkAtoms::_atom, aValue)) {     \
+      GetText(aValue);                                               \
+    }                                                                \
+    return NS_OK;                                                    \
+  }                                                                  \
+  NS_IMETHODIMP                                                      \
+  _class::Set##_method(const nsAString& aValue)                      \
+  {                                                                  \
+    return SetAttrHelper(nsGkAtoms::_atom, aValue);                  \
+  }
+
+
+
+
+
 nsGenericHTMLElement*
 NS_NewHTMLOptionElement(already_AddRefed<nsINodeInfo> aNodeInfo,
                         FromParser aFromParser)
@@ -160,25 +180,6 @@ nsHTMLOptionElement::SetSelectedInternal(PRBool aValue, PRBool aNotify)
   }
 }
 
-NS_IMETHODIMP
-nsHTMLOptionElement::SetValue(const nsAString& aValue)
-{
-  SetAttr(kNameSpaceID_None, nsGkAtoms::value, aValue, PR_TRUE);
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLOptionElement::GetValue(nsAString& aValue)
-{
-  
-  
-  if (!GetAttr(kNameSpaceID_None, nsGkAtoms::value, aValue)) {
-    GetText(aValue);
-  }
-
-  return NS_OK;
-}
-
 NS_IMETHODIMP 
 nsHTMLOptionElement::GetSelected(PRBool* aValue)
 {
@@ -216,8 +217,8 @@ nsHTMLOptionElement::SetSelected(PRBool aValue)
 }
 
 NS_IMPL_BOOL_ATTR(nsHTMLOptionElement, DefaultSelected, selected)
-NS_IMPL_STRING_ATTR(nsHTMLOptionElement, Label, label)
-
+NS_IMPL_STRING_ATTR_WITH_TEXTCONTENT(nsHTMLOptionElement, Label, label)
+NS_IMPL_STRING_ATTR_WITH_TEXTCONTENT(nsHTMLOptionElement, Value, value)
 NS_IMPL_BOOL_ATTR(nsHTMLOptionElement, Disabled, disabled)
 
 NS_IMETHODIMP 
