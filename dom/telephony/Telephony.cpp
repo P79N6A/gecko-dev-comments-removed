@@ -57,7 +57,7 @@
 USING_TELEPHONY_NAMESPACE
 using mozilla::Preferences;
 
-#define DOM_TELEPHONY_WHITELIST "dom.telephony.whitelist"
+#define DOM_TELEPHONY_APP_PHONE_URL_PREF "dom.telephony.app.phone.url"
 
 namespace {
 
@@ -496,8 +496,12 @@ NS_NewTelephony(nsPIDOMWindow* aWindow, nsIDOMTelephony** aTelephony)
     NS_ENSURE_SUCCESS(rv, rv);
 
     
-    if (!nsContentUtils::URIIsChromeOrInPref(documentURI,
-                                             DOM_TELEPHONY_WHITELIST)) {
+    
+    nsCString phoneAppURL;
+    if (NS_FAILED(Preferences::GetCString(DOM_TELEPHONY_APP_PHONE_URL_PREF,
+                                          &phoneAppURL)) ||
+        !phoneAppURL.Equals(documentURL,
+                            nsCaseInsensitiveCStringComparator())) {
       *aTelephony = nsnull;
       return NS_OK;
     }
