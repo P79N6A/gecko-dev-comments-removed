@@ -1411,7 +1411,7 @@ void nsComboboxControlFrame::PaintFocus(nsRenderingContext& aRenderingContext,
 
   aRenderingContext.PushState();
   nsRect clipRect = mDisplayFrame->GetRect() + aPt;
-  aRenderingContext.SetClipRect(clipRect, nsClipCombine_kIntersect);
+  aRenderingContext.IntersectClip(clipRect);
 
   
   

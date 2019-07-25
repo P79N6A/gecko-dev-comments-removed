@@ -1087,7 +1087,7 @@ nsImageFrame::DisplayAltFeedback(nsRenderingContext& aRenderingContext,
 
   
   aRenderingContext.PushState();
-  aRenderingContext.SetClipRect(inner, nsClipCombine_kIntersect);
+  aRenderingContext.IntersectClip(inner);
 
   
   if (gIconLoad->mPrefShowPlaceholders) {
