@@ -66,34 +66,30 @@ nsIconDecoder::~nsIconDecoder()
 { }
 
 
-nsresult
+void
 nsIconDecoder::InitInternal()
 {
   
   if (!IsSizeDecode() && mObserver)
     mObserver->OnStartDecode(nsnull);
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsIconDecoder::FinishInternal()
 {
   
   
   if (!IsSizeDecode() && !mNotifiedDone)
     NotifyDone( PR_FALSE);
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   nsresult rv;
 
   if (IsError())
-    return NS_IMAGELIB_ERROR_FAILURE;
+    return;
 
   
   
@@ -137,7 +133,7 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
                                  &mImageData, &mPixBytesTotal);
         if (NS_FAILED(rv)) {
           PostDecoderError(rv);
-          return rv;
+          return;
         }
 
         
@@ -180,8 +176,6 @@ nsIconDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         break;
     }
   }
-
-  return NS_OK;
 }
 
 void

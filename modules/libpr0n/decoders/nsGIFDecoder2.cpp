@@ -128,7 +128,7 @@ nsGIFDecoder2::~nsGIFDecoder2()
   PR_FREEIF(mGIFStruct.local_colormap);
 }
 
-nsresult
+void
 nsGIFDecoder2::InitInternal()
 {
   
@@ -138,11 +138,9 @@ nsGIFDecoder2::InitInternal()
   
   mGIFStruct.state = gif_type;
   mGIFStruct.bytes_to_consume = 6;
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsGIFDecoder2::FinishInternal()
 {
   
@@ -151,58 +149,50 @@ nsGIFDecoder2::FinishInternal()
       EndImageFrame();
     EndGIF( PR_TRUE);
   }
-
-  return NS_OK;
 }
 
 
 
 
-nsresult
+void
 nsGIFDecoder2::FlushImageData(PRUint32 fromRow, PRUint32 rows)
 {
   nsIntRect r(mGIFStruct.x_offset, mGIFStruct.y_offset + fromRow, mGIFStruct.width, rows);
   PostInvalidation(r);
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsGIFDecoder2::FlushImageData()
 {
-  nsresult rv = NS_OK;
-
   switch (mCurrentPass - mLastFlushedPass) {
     case 0:  
       if (mCurrentRow - mLastFlushedRow)
-        rv = FlushImageData(mLastFlushedRow + 1, mCurrentRow - mLastFlushedRow);
+        FlushImageData(mLastFlushedRow + 1, mCurrentRow - mLastFlushedRow);
       break;
   
     case 1:  
-      rv = FlushImageData(0, mCurrentRow + 1);
-      rv |= FlushImageData(mLastFlushedRow + 1, mGIFStruct.height - (mLastFlushedRow + 1));
+      FlushImageData(0, mCurrentRow + 1);
+      FlushImageData(mLastFlushedRow + 1, mGIFStruct.height - (mLastFlushedRow + 1));
       break;
 
     default:   
-      rv = FlushImageData(0, mGIFStruct.height);
+      FlushImageData(0, mGIFStruct.height);
   }
-  return rv;
 }
 
-nsresult
+void
 nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   
   if (IsError())
-    return NS_ERROR_FAILURE;
+    return;
 
   
   nsresult rv = GifWrite((const unsigned char *)aBuffer, aCount);
 
   
   if (NS_SUCCEEDED(rv) && !mGIFStruct.images_decoded) {
-    rv = FlushImageData();
-    NS_ENSURE_SUCCESS(rv, rv);
+    FlushImageData();
     mLastFlushedRow = mCurrentRow;
     mLastFlushedPass = mCurrentPass;
   }
@@ -226,8 +216,6 @@ nsGIFDecoder2::WriteInternal(const char *aBuffer, PRUint32 aCount)
     else
       PostDataError();
   }
-
-  return IsError() ? NS_ERROR_FAILURE : NS_OK;
 }
 
 
@@ -328,7 +316,7 @@ void nsGIFDecoder2::EndImageFrame()
   
   if (!mGIFStruct.images_decoded) {
     
-    (void) FlushImageData();
+    FlushImageData();
 
     
     

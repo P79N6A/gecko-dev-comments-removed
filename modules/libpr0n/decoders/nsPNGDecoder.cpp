@@ -212,7 +212,7 @@ void nsPNGDecoder::EndImageFrame()
   PostFrameStop();
 }
 
-nsresult
+void
 nsPNGDecoder::InitInternal()
 {
 
@@ -244,9 +244,9 @@ nsPNGDecoder::InitInternal()
     mHeaderBuf = (PRUint8 *)nsMemory::Alloc(BYTES_NEEDED_FOR_DIMENSIONS);
     if (!mHeaderBuf) {
       PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
-      return NS_ERROR_OUT_OF_MEMORY;
+      return;
     }
-    return NS_OK;
+    return;
   }
 
   
@@ -259,14 +259,14 @@ nsPNGDecoder::InitInternal()
                                 nsPNGDecoder::warning_callback);
   if (!mPNG) {
     PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
-    return NS_ERROR_OUT_OF_MEMORY;
+    return;
   }
 
   mInfo = png_create_info_struct(mPNG);
   if (!mInfo) {
     PostDecoderError(NS_ERROR_OUT_OF_MEMORY);
     png_destroy_read_struct(&mPNG, NULL, NULL);
-    return NS_ERROR_OUT_OF_MEMORY;
+    return;
   }
 
 #ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
@@ -289,11 +289,9 @@ nsPNGDecoder::InitInternal()
                               nsPNGDecoder::row_callback,
                               nsPNGDecoder::end_callback);
 
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsPNGDecoder::FinishInternal()
 {
 
@@ -301,11 +299,9 @@ nsPNGDecoder::FinishInternal()
   
   if (!IsSizeDecode() && !mNotifiedDone)
     NotifyDone( PR_FALSE);
-
-  return NS_OK;
 }
 
-nsresult
+void
 nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 {
   
@@ -314,14 +310,14 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
 
   
   if (IsError())
-    goto error;
+    return;
 
   
   if (IsSizeDecode()) {
 
     
     if (mHeaderBytesRead == BYTES_NEEDED_FOR_DIMENSIONS)
-      return NS_OK;
+      return;
 
     
     PRUint32 bytesToRead = PR_MIN(aCount, BYTES_NEEDED_FOR_DIMENSIONS -
@@ -335,7 +331,7 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
       
       if (memcmp(mHeaderBuf, pngSignatureBytes, sizeof(pngSignatureBytes))) {
         PostDataError();
-        goto error;
+        return;
       }
 
       
@@ -345,7 +341,7 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
       
       if ((width > MOZ_PNG_MAX_DIMENSION) || (height > MOZ_PNG_MAX_DIMENSION)) {
         PostDataError();
-        goto error;
+        return;
       }
 
       
@@ -365,20 +361,13 @@ nsPNGDecoder::WriteInternal(const char *aBuffer, PRUint32 aCount)
         PostDataError();
 
       png_destroy_read_struct(&mPNG, &mInfo, NULL);
-      goto error;
+      return;
     }
 
     
     png_process_data(mPNG, mInfo, (unsigned char *)aBuffer, aCount);
 
   }
-
-  return NS_OK;
-
-  
-  error:
-  NS_ABORT_IF_FALSE(IsError(), "Should only get here if we flagged an error!");
-  return NS_ERROR_FAILURE;
 }
 
 void
