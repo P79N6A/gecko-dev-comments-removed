@@ -1017,7 +1017,7 @@ var Browser = {
     zoomLevel = Math.min(kBrowserViewZoomLevelMax, zoomLevel);
     let zoomRatio = zoomLevel / bv.getZoomLevel();
     let newVisW = vis.width / zoomRatio, newVisH = vis.height / zoomRatio;
-    let result = new Rect(x - newVisW / 2, y - newVisH / 2, newVisW, newVisH).expandToIntegers();
+    let result = new Rect(x - newVisW / 2, y - newVisH / 2, newVisW, newVisH);
 
     
     return result.translateInside(bv._browserViewportState.viewportRect);
@@ -1031,17 +1031,32 @@ var Browser = {
     let scrollX = rect.left * zoomRatio;
     let scrollY = rect.top * zoomRatio;
 
+    
+    
+
+    
     bv.beginOffscreenOperation();
 
+    
+    
+    bv.beginBatchOperation();
+
+    
     Browser.hideSidebars();
     Browser.hideTitlebar();
     bv.setZoomLevel(zoomLevel);
-    bv.forceViewportChange();  
+
+    
+    bv.forceContainerResize();
     Browser.forceChromeReflow();
     Browser.contentScrollboxScroller.scrollTo(scrollX, scrollY);
     bv.onAfterVisibleMove();
-    bv.renderNow();  
 
+    
+    
+    bv.forceViewportChange();
+
+    bv.commitBatchOperation();
     bv.commitOffscreenOperation();
   },
 
@@ -1052,12 +1067,16 @@ var Browser = {
     if (!element)
       return false;
 
+    let defaultZoomLevel = this._browserView.getZoomForPage();
+    let oldZoomLevel = this._browserView.getZoomLevel();
     let zoomLevel = this._getZoomLevelForElement(element);
+    let zoomRatio = oldZoomLevel / zoomLevel;
 
     
     
-    let zoomRatio = this._browserView.getZoomLevel() / zoomLevel;
-    if (zoomRatio >= .6666)
+    
+    let zoomTolerance = (oldZoomLevel == defaultZoomLevel) ? .9 : .6666;
+    if (zoomRatio >= zoomTolerance)
        return false;
 
     let elRect = Browser.getBoundingContentRect(element);
