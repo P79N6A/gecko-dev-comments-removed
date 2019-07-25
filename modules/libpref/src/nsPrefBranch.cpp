@@ -827,11 +827,16 @@ NS_IMETHODIMP nsPrefBranch::RemoveObserver(const char *aDomain, nsIObserver *aOb
 
 #ifdef MOZ_IPC
   if (XRE_GetProcessType() == GeckoProcessType_Content) {
-    nsresult rv;
+    nsresult rv = NS_OK;
     mozilla::dom::ContentProcessChild *cpc = 
       mozilla::dom::ContentProcessChild::GetSingleton();
-    NS_ASSERTION(cpc, "Content Protocol is NULL!");
-    rv = cpc->RemoveRemotePrefObserver(nsDependentCString(aDomain), mPrefRoot, aObserver);
+    
+    
+    
+    if (cpc)
+      rv = cpc->RemoveRemotePrefObserver(nsDependentCString(aDomain), 
+                                         mPrefRoot, 
+                                         aObserver);
     return rv;
   }
 #endif
