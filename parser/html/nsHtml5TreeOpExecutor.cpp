@@ -830,7 +830,18 @@ nsHtml5TreeOpExecutor::InitializeDocWriteParserState(nsAHtml5TreeBuilderState* a
 already_AddRefed<nsIURI>
 nsHtml5TreeOpExecutor::ConvertIfNotPreloadedYet(const nsAString& aURL)
 {
-  nsIURI* base = mDocument->GetDocBaseURI();
+  
+  nsIURI* documentURI = mDocument->GetDocumentURI();
+  
+  nsIURI* documentBaseURI = mDocument->GetDocBaseURI();
+
+  
+  
+  
+  nsIURI* base = (documentURI == documentBaseURI) ?
+                  (mSpeculationBaseURI ?
+                   mSpeculationBaseURI.get() : documentURI)
+                 : documentBaseURI;
   const nsCString& charset = mDocument->GetDocumentCharacterSet();
   nsCOMPtr<nsIURI> uri;
   nsresult rv = NS_NewURI(getter_AddRefs(uri), aURL, charset.get(), base);
@@ -880,6 +891,21 @@ nsHtml5TreeOpExecutor::PreloadImage(const nsAString& aURL)
     return;
   }
   mDocument->MaybePreLoadImage(uri);
+}
+
+void
+nsHtml5TreeOpExecutor::SetSpeculationBase(const nsAString& aURL)
+{
+  if (mSpeculationBaseURI) {
+    
+    return;
+  }
+  const nsCString& charset = mDocument->GetDocumentCharacterSet();
+  nsresult rv = NS_NewURI(getter_AddRefs(mSpeculationBaseURI), aURL,
+      charset.get(), mDocument->GetDocumentURI());
+  if (NS_FAILED(rv)) {
+    NS_WARNING("Failed to create a URI");
+  }
 }
 
 #ifdef DEBUG_NS_HTML5_TREE_OP_EXECUTOR_FLUSH

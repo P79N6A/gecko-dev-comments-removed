@@ -109,6 +109,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
 
     nsCStringHashSet mPreloadedURLs;
 
+    nsCOMPtr<nsIURI> mSpeculationBaseURI;
+
     
 
 
@@ -394,6 +396,8 @@ class nsHtml5TreeOpExecutor : public nsContentSink,
     void PreloadStyle(const nsAString& aURL, const nsAString& aCharset);
 
     void PreloadImage(const nsAString& aURL);
+
+    void SetSpeculationBase(const nsAString& aURL);
 
   private:
 
