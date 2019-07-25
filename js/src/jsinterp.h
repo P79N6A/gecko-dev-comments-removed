@@ -71,26 +71,25 @@ enum JSInterpMode
 enum JSFrameFlags
 {
     
-    JSFRAME_GLOBAL             =     0x1, 
-    JSFRAME_FUNCTION           =     0x2, 
-    JSFRAME_DUMMY              =     0x4, 
+    JSFRAME_GLOBAL             =      0x1, 
+    JSFRAME_FUNCTION           =      0x2, 
+    JSFRAME_DUMMY              =      0x4, 
 
     
-    JSFRAME_EVAL               =     0x8, 
-    JSFRAME_DEBUGGER           =    0x10, 
-    JSFRAME_GENERATOR          =    0x20, 
-    JSFRAME_FLOATING_GENERATOR =    0x40, 
-    JSFRAME_CONSTRUCTING       =    0x80, 
+    JSFRAME_EVAL               =      0x8, 
+    JSFRAME_DEBUGGER           =     0x10, 
+    JSFRAME_GENERATOR          =     0x20, 
+    JSFRAME_FLOATING_GENERATOR =     0x40, 
+    JSFRAME_CONSTRUCTING       =     0x80, 
 
     
-    JSFRAME_ASSIGNING          =   0x100, 
-    JSFRAME_YIELDING           =   0x200, 
-    JSFRAME_FINISHED_IN_INTERPRETER = 0x400, 
+    JSFRAME_YIELDING           =    0x200, 
+    JSFRAME_FINISHED_IN_INTERP =    0x400, 
 
     
-    JSFRAME_OVERRIDE_ARGS      =  0x1000, 
-    JSFRAME_OVERFLOW_ARGS      =  0x2000, 
-    JSFRAME_UNDERFLOW_ARGS     =  0x4000, 
+    JSFRAME_OVERRIDE_ARGS      =   0x1000, 
+    JSFRAME_OVERFLOW_ARGS      =   0x2000, 
+    JSFRAME_UNDERFLOW_ARGS     =   0x4000, 
 
     
     JSFRAME_HAS_IMACRO_PC      =   0x8000, 
@@ -725,18 +724,6 @@ struct JSStackFrame
         flags_ |= JSFRAME_OVERRIDE_ARGS;
     }
 
-    bool isAssigning() const {
-        return !!(flags_ & JSFRAME_ASSIGNING);
-    }
-
-    void setAssigning() {
-        flags_ |= JSFRAME_ASSIGNING;
-    }
-
-    void clearAssigning() {
-        flags_ &= ~JSFRAME_ASSIGNING;
-    }
-
     bool isYielding() {
         return !!(flags_ & JSFRAME_YIELDING);
     }
@@ -750,11 +737,11 @@ struct JSStackFrame
     }
 
     void setFinishedInInterpreter() {
-        flags_ |= JSFRAME_FINISHED_IN_INTERPRETER;
+        flags_ |= JSFRAME_FINISHED_IN_INTERP;
     }
 
     bool finishedInInterpreter() const {
-        return !!(flags_ & JSFRAME_FINISHED_IN_INTERPRETER);
+        return !!(flags_ & JSFRAME_FINISHED_IN_INTERP);
     }
 
     
