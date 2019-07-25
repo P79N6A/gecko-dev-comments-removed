@@ -217,7 +217,7 @@ nsRect& nsRect::ExtendForScaling(float aXMult, float aYMult)
   NS_ASSERTION((IsFloatInteger(aXMult) || IsFloatInteger(1/aXMult)) &&
                (IsFloatInteger(aYMult) || IsFloatInteger(1/aYMult)),
                "Multiplication factors must be integers or 1/integer");
-               
+
   
   
   if (aXMult < 1) {
@@ -341,4 +341,3 @@ nsIntRect& nsIntRect::ScaleRoundOut(float aXScale, float aYScale)
   height = (bottom - y);
   return *this;
 }
-
