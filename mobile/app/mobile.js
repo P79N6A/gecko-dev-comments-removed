@@ -110,6 +110,10 @@ pref("network.autodial-helper.enabled", true);
 #endif
 
 
+pref("network.buffer.cache.count", 24);
+pref("network.buffer.cache.size",  16384);
+
+
 pref("browser.display.history.maxresults", 100);
 
 
@@ -497,10 +501,6 @@ pref("font.default.x-unicode", "SwissA");
 pref("font.default.x-user-def", "SwissA");
 pref("font.default.x-western", "SwissA");
 #endif
-
-
-pref("network.buffer.cache.count", 24);
-pref("network.buffer.cache.size",  16384);
 
 
 pref("services.sync.client.type", "mobile");
