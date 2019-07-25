@@ -30,38 +30,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifndef _NP_RUNTIME_H_
 #define _NP_RUNTIME_H_
 
