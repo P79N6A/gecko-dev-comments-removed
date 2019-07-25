@@ -240,7 +240,13 @@ str_unescape(JSContext *cx, unsigned argc, Value *vp)
         return false;
 
     
-    size_t length = str->length();
+
+
+
+    JS_STATIC_ASSERT(JSString::MAX_LENGTH <= INT_MAX);
+
+    
+    int length = str->length();
     const jschar *chars = str->chars();
 
     
@@ -252,7 +258,7 @@ str_unescape(JSContext *cx, unsigned argc, Value *vp)
 
 
     
-    size_t k = 0;
+    int k = 0;
     bool building = false;
 
     while (true) {
