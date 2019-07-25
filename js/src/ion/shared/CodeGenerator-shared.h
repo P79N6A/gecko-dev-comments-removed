@@ -70,11 +70,6 @@ class CodeGeneratorShared : public LInstructionVisitor
     int32 frameDepth_;
 
     
-    
-    
-    int32 framePushed_;
-
-    
     int32 frameStaticSize_;
 
     
@@ -82,18 +77,19 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     inline int32 ArgToStackOffset(int32 slot) {
         JS_ASSERT(slot >= 0);
-        return framePushed_ + frameStaticSize_ + ION_FRAME_PREFIX_SIZE + slot;
+        return masm.framePushed() + ION_FRAME_PREFIX_SIZE + slot;
     }
 
     inline int32 SlotToStackOffset(int32 slot) {
         JS_ASSERT(slot >= 0 && slot <= int32(graph.localSlotCount()));
-        int32 offset = framePushed_ + frameStaticSize_ - slot * STACK_SLOT_SIZE;
+        int32 offset = masm.framePushed() + slot * STACK_SLOT_SIZE;
         JS_ASSERT(offset >= 0);
         return offset;
     }
 
   private:
     virtual bool generatePrologue() = 0;
+    virtual bool generateEpilogue() = 0;
     bool generateBody();
 
   public:

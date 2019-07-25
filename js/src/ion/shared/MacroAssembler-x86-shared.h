@@ -53,6 +53,27 @@ namespace ion {
 
 class MacroAssemblerX86Shared : public Assembler
 {
+  protected:
+    
+    
+    
+    
+    
+    uint32 framePushed_;
+
+  public:
+    MacroAssemblerX86Shared()
+      : framePushed_(0)
+    { }
+
+    void Push(const Register &reg) {
+        push(reg);
+        framePushed_ += STACK_SLOT_SIZE;
+    }
+
+    uint32 framePushed() const {
+        return framePushed_;
+    }
 };
 
 } 

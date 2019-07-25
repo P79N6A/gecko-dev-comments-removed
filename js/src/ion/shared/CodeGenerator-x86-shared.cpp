@@ -84,7 +84,23 @@ FrameSizeClass::frameSize() const
 bool
 CodeGeneratorX86Shared::generatePrologue()
 {
+    
     masm.reserveStack(frameStaticSize_);
+
+    
+    
+    returnLabel_ = gen->allocate<Label>();
+    new (returnLabel_) Label();
+
+    return true;
+}
+
+bool
+CodeGeneratorX86Shared::generateEpilogue()
+{
+    masm.bind(returnLabel_);
+    masm.freeStack(frameStaticSize_);
+    masm.ret();
     return true;
 }
 
