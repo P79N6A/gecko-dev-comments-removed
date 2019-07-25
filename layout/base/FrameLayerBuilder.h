@@ -268,21 +268,13 @@ public:
   
 
 
-
+  
   
 
 
   void AddLayerDisplayItem(Layer* aLayer,
                            nsDisplayItem* aItem,
                            LayerState aLayerState);
-
-  
-
-
-  void AddLayerDisplayItemForFrame(Layer* aLayer,
-                                   nsIFrame* aFrame,
-                                   PRUint32 aDisplayItemKey,
-                                   LayerState aLayerState);
 
   
 
@@ -304,14 +296,7 @@ public:
 
 
 
-  Layer* GetOldLayerForFrame(nsIFrame* aFrame, uint32_t aDisplayItemKey);
-
-  
-
-
-
-
-  Layer* GetOldLayerFor(nsDisplayItem* aItem);
+  Layer* GetOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
 
   static Layer* GetDebugOldLayerFor(nsIFrame* aFrame, uint32_t aDisplayItemKey);
   
