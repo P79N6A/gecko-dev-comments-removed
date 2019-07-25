@@ -1,47 +1,47 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * vim: set ts=4 sw=4 et tw=99 ft=cpp:
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Copyright (C) 2006-2008 Jason Evans <jasone@FreeBSD.org>.
+ * All rights reserved.
+ *
+ * Redistribution and use in source and binary forms, with or without
+ * modification, are permitted provided that the following conditions
+ * are met:
+ * 1. Redistributions of source code must retain the above copyright
+ *    notice(s), this list of conditions and the following disclaimer as
+ *    the first lines of this file unmodified other than the possible
+ *    addition of one or more copyright notices.
+ * 2. Redistributions in binary form must reproduce the above copyright
+ *    notice(s), this list of conditions and the following disclaimer in
+ *    the documentation and/or other materials provided with the
+ *    distribution.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDER(S) ``AS IS'' AND ANY
+ * EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ * PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) BE
+ * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+ * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+ * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+ * BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+ * OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+ * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include <stdlib.h>
 #include "jstypes.h"
 #include "jsstdint.h"
 #include "jsgcchunk.h"
+#ifdef JS_64BIT
+# include "jsstr.h"
+#endif
+
 
 #ifdef XP_WIN
 # include <windows.h>
-
-#ifdef _M_X64
-# include "jsstr.h"
-#endif
 
 # ifdef _MSC_VER
 #  pragma warning( disable: 4267 4996 4146 )
@@ -68,11 +68,11 @@
 
 #ifdef XP_WIN
 
-
-
-
-
-
+/*
+ * On Windows CE < 6 we must use separated MEM_RESERVE and MEM_COMMIT
+ * VirtualAlloc calls and we cannot use MEM_RESERVE to allocate at the given
+ * address. So we use a workaround based on oversized allocation.
+ */
 # if defined(WINCE) && !defined(MOZ_MEMORY_WINCE6)
 
 #  define JS_GC_HAS_MAP_ALIGN
@@ -101,7 +101,7 @@ MapAlignedPages(size_t size, size_t alignment)
     if (!offset)
         return p;
 
-    
+    /* Try to extend the initial allocation. */
     UnmapPagesAtBase(reserve);
     reserve = VirtualAlloc(NULL, size + alignment - offset, MEM_RESERVE,
                            PAGE_NOACCESS);
@@ -114,7 +114,7 @@ MapAlignedPages(size_t size, size_t alignment)
         return p;
     }
 
-    
+    /* over allocate to ensure we have an aligned region */
     UnmapPagesAtBase(reserve);
     reserve = VirtualAlloc(NULL, size + alignment, MEM_RESERVE, PAGE_NOACCESS);
     if (!reserve)
@@ -134,7 +134,7 @@ UnmapPages(void *p, size_t size)
     if (VirtualFree(p, 0, MEM_RELEASE))
         return;
 
-    
+    /* We could have used the over allocation. */
     JS_ASSERT(GetLastError() == ERROR_INVALID_PARAMETER);
     MEMORY_BASIC_INFORMATION info;
     VirtualQuery(p, &info, sizeof(info));
@@ -142,7 +142,7 @@ UnmapPages(void *p, size_t size)
     UnmapPagesAtBase(info.AllocationBase);
 }
 
-# else 
+# else /* WINCE */
 
 #  ifdef _M_X64
 
@@ -168,7 +168,7 @@ js::InitNtAllocAPIs()
         return false;
 }
 
-
+// Allocate pages with 32-bit addresses (i.e., top 16 bits are all 0).
 static void *
 MapPages(void *addr, size_t size)
 {
@@ -183,28 +183,7 @@ UnmapPages(void *addr, size_t size)
     NtFreeVirtualMemory(INVALID_HANDLE_VALUE, &addr, &size, MEM_RELEASE);
 }
 
-bool
-JSString::initStringTables()
-{
-    char *p = (char *) MapPages(NULL, unitStringTableSize + intStringTableSize);
-    if (!p)
-        return false;
-    unitStringTable = (JSString*) memcpy(p, staticUnitStringTable, unitStringTableSize);
-    intStringTable = (JSString*) memcpy(p + unitStringTableSize, 
-                                        staticIntStringTable, intStringTableSize);
-
-    return true;
-}
-
-void
-JSString::freeStringTables()
-{
-    UnmapPages(unitStringTable, unitStringTableSize + intStringTableSize);
-    unitStringTable = NULL;
-    intStringTable = NULL;
-}
-
-#  else 
+#  else /* _M_X64 */
 
 static void *
 MapPages(void *addr, size_t size)
@@ -220,9 +199,9 @@ UnmapPages(void *addr, size_t size)
     JS_ALWAYS_TRUE(VirtualFree(addr, 0, MEM_RELEASE));
 }
 
-#  endif 
+#  endif /* _M_X64 */
 
-# endif 
+# endif /* !WINCE */
 
 #elif defined(XP_MACOSX) || defined(DARWIN)
 
@@ -260,48 +239,97 @@ UnmapPages(void *addr, size_t size)
 
 #elif defined(XP_UNIX) || defined(XP_BEOS)
 
-
+/* Required on Solaris 10. Might improve performance elsewhere. */
 # if defined(SOLARIS) && defined(MAP_ALIGN)
 #  define JS_GC_HAS_MAP_ALIGN
 
 static void *
 MapAlignedPages(size_t size, size_t alignment)
 {
-    
-
-
-
-	
+    /*
+     * We don't use MAP_FIXED here, because it can cause the *replacement*
+     * of existing mappings, and we only want to create new mappings.
+     */
+	// TODO: this is totally a hack for now; need to replace
     void *p = mmap((caddr_t) alignment, size, PROT_READ | PROT_WRITE,
-                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON, -1, 0);
+                     MAP_PRIVATE | MAP_NOSYNC | MAP_ALIGN | MAP_ANON | MAP_32BIT, -1, 0);
     if (p == MAP_FAILED)
         return NULL;
     return p;
 }
 
-# else 
+# else /* JS_GC_HAS_MAP_ALIGN */
+
+# if defined(__MACH__) && defined(__APPLE__) && defined(__x86_64__)
+
+// Make sure the result is in the 32-bit address region.
+static void *
+MapPages(void *addr, size_t size)
+{
+    void * const start = (void *) 0x10000;
+    void * const end = (void *) 0x100000000;
+
+    // If an addr is given, try once there.
+    if (addr) {
+        JS_ASSERT(addr < end);
+        void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        if (p == MAP_FAILED)
+            return NULL;
+        if (p != addr) {
+            JS_ALWAYS_TRUE(munmap(p, size) == 0);
+            return NULL;
+        }
+        return p;
+    }
+
+    // FIXME: this depends on implementation details of OSX mmap, namely
+    //        that it searches for free memory starting from the hint,
+    //        so that it will find free memory addresses in 32-bit space
+    //        if it exists.
+    static void *base = start;
+    while (true) {
+        void *p = mmap(base, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON, -1, 0);
+        if (p == MAP_FAILED)
+            return NULL;
+        // Got a region in range, so return it.
+        if (start <= p && p < end) {
+            base = (void *) (uintptr_t(p) + size);
+            return p;
+        }
+        // Out of range. If we started past 'start', then we can try
+        // again from there.
+        munmap(p, size);
+        if (base != start)
+            return NULL;
+        base = start;
+    }
+}
+
+# else /* DARWIN && __x86_64__ */
 
 static void *
 MapPages(void *addr, size_t size)
 {
-    
-
-
-
-	
-    void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON,
+    /*
+     * We don't use MAP_FIXED here, because it can cause the *replacement*
+     * of existing mappings, and we only want to create new mappings.
+     */
+	// TODO: this is totally a hack for now; need to replace
+    void *p = mmap(addr, size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANON | MAP_32BIT,
                    -1, 0);
     if (p == MAP_FAILED)
         return NULL;
     if (addr && p != addr) {
-        
+        /* We succeeded in mapping memory, but not in the right place. */
         JS_ALWAYS_TRUE(munmap(p, size) == 0);
         return NULL;
     }
     return p;
 }
 
-# endif 
+# endif /* DARWIN && __x86_64__ */
+
+# endif /* !JS_GC_HAS_MAP_ALIGN */
 
 static void
 UnmapPages(void *addr, size_t size)
@@ -309,6 +337,29 @@ UnmapPages(void *addr, size_t size)
     JS_ALWAYS_TRUE(munmap((caddr_t) addr, size) == 0);
 }
 
+#endif
+
+#ifdef JS_64BIT
+bool
+JSString::initStringTables()
+{
+    char *p = (char *) MapPages(NULL, unitStringTableSize + intStringTableSize);
+    if (!p)
+        return false;
+    unitStringTable = (JSString*) memcpy(p, staticUnitStringTable, unitStringTableSize);
+    intStringTable = (JSString*) memcpy(p + unitStringTableSize, 
+                                        staticIntStringTable, intStringTableSize);
+
+    return true;
+}
+
+void
+JSString::freeStringTables()
+{
+    UnmapPages(unitStringTable, unitStringTableSize + intStringTableSize);
+    unitStringTable = NULL;
+    intStringTable = NULL;
+}
 #endif
 
 namespace js {
@@ -331,12 +382,12 @@ AllocGCChunk()
     if (!p)
         return NULL;
 #else
-    
-
-
-
-
-
+    /*
+     * Windows requires that there be a 1:1 mapping between VM allocation
+     * and deallocation operations.  Therefore, take care here to acquire the
+     * final result via one mapping operation.  This means unmapping any
+     * preliminary result that is not correctly aligned.
+     */
     p = MapPages(NULL, GC_CHUNK_SIZE);
     if (!p)
         return NULL;
@@ -345,24 +396,24 @@ AllocGCChunk()
         UnmapPages(p, GC_CHUNK_SIZE);
         p = MapPages(FindChunkStart(p), GC_CHUNK_SIZE);
         while (!p) {
-            
-
-
-
-
+            /*
+             * Over-allocate in order to map a memory region that is
+             * definitely large enough then deallocate and allocate again the
+             * correct size, within the over-sized mapping.
+             */
             p = MapPages(NULL, GC_CHUNK_SIZE * 2);
             if (!p)
                 return 0;
             UnmapPages(p, GC_CHUNK_SIZE * 2);
             p = MapPages(FindChunkStart(p), GC_CHUNK_SIZE);
 
-            
-
-
-
+            /*
+             * Failure here indicates a race with another thread, so
+             * try again.
+             */
         }
     }
-#endif 
+#endif /* !JS_GC_HAS_MAP_ALIGN */
 
     JS_ASSERT(!(reinterpret_cast<jsuword>(p) & GC_CHUNK_MASK));
     return p;
@@ -376,5 +427,5 @@ FreeGCChunk(void *p)
     UnmapPages(p, GC_CHUNK_SIZE);
 }
 
-} 
+} /* namespace js */
 
