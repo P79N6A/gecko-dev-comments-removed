@@ -54,8 +54,6 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
-import java.lang.Math;
-import java.util.Date;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -70,8 +68,6 @@ public class PanZoomController
     implements ScaleGestureDetector.OnScaleGestureListener, GeckoEventListener
 {
     private static final String LOGTAG = "GeckoPanZoomController";
-
-    private LayerController mController;
 
     
     private static final float FRICTION_SLOW = 0.85f;
@@ -122,19 +118,6 @@ public class PanZoomController
         0.99309f,   
     };
 
-    
-    private Timer mAnimationTimer;
-    
-    private AnimationRunnable mAnimationRunnable;
-    
-    private AxisX mX;
-    
-    private AxisY mY;
-    
-    private PointF mLastZoomFocus;
-    
-    private long mLastEventTime;
-
     private enum PanZoomState {
         NOTHING,        
         FLING,          
@@ -148,6 +131,19 @@ public class PanZoomController
         ANIMATED_ZOOM   
     }
 
+    private final LayerController mController;
+    private final Axis mX;
+    private final Axis mY;
+
+    
+    private Timer mAnimationTimer;
+    
+    private AnimationRunnable mAnimationRunnable;
+    
+    private PointF mLastZoomFocus;
+    
+    private long mLastEventTime;
+    
     private PanZoomState mState;
 
     private boolean mOverridePanning;
@@ -156,7 +152,8 @@ public class PanZoomController
 
     public PanZoomController(LayerController controller) {
         mController = controller;
-        mX = new AxisX(); mY = new AxisY();
+        mX = new AxisX();
+        mY = new AxisY();
         mState = PanZoomState.NOTHING;
 
         GeckoAppShell.registerGeckoEventListener("Browser:ZoomToRect", this);
@@ -183,38 +180,34 @@ public class PanZoomController
                     }
                 });
             } else if (event.equals("Browser:ZoomToRect")) {
-                if (mController != null) {
-                    float scale = mController.getZoomFactor();
-                    float x = (float)message.getDouble("x");
-                    float y = (float)message.getDouble("y");
-                    final RectF zoomRect = new RectF(x, y,
-                                         x + (float)message.getDouble("w"),
-                                         y + (float)message.getDouble("h"));
-                    mController.post(new Runnable() {
-                        public void run() {
-                            animatedZoomTo(zoomRect);
-                        }
-                    });
-                }
+                float scale = mController.getZoomFactor();
+                float x = (float)message.getDouble("x");
+                float y = (float)message.getDouble("y");
+                final RectF zoomRect = new RectF(x, y,
+                                     x + (float)message.getDouble("w"),
+                                     y + (float)message.getDouble("h"));
+                mController.post(new Runnable() {
+                    public void run() {
+                        animatedZoomTo(zoomRect);
+                    }
+                });
             } else if (event.equals("Browser:ZoomToPageWidth")) {
-                if (mController != null) {
-                    float scale = mController.getZoomFactor();
-                    FloatSize pageSize = mController.getPageSize();
+                float scale = mController.getZoomFactor();
+                FloatSize pageSize = mController.getPageSize();
 
-                    RectF viewableRect = mController.getViewport();
-                    float y = viewableRect.top;
-                    
-                    float dh = viewableRect.height()*(1 - pageSize.width/viewableRect.width()); 
-                    final RectF r = new RectF(0.0f,
-                                        y + dh/2,
-                                        pageSize.width,
-                                        (y + pageSize.width * viewableRect.height()/viewableRect.width()));
-                    mController.post(new Runnable() {
-                        public void run() {
-                            animatedZoomTo(r);
-                        }
-                    });
-                }
+                RectF viewableRect = mController.getViewport();
+                float y = viewableRect.top;
+                
+                float dh = viewableRect.height()*(1 - pageSize.width/viewableRect.width()); 
+                final RectF r = new RectF(0.0f,
+                                    y + dh/2,
+                                    pageSize.width,
+                                    (y + pageSize.width * viewableRect.height()/viewableRect.width()));
+                mController.post(new Runnable() {
+                    public void run() {
+                        animatedZoomTo(r);
+                    }
+                });
             }
         } catch (Exception e) {
             Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
@@ -474,9 +467,6 @@ public class PanZoomController
     }
 
     private void fling() {
-        if (mState != PanZoomState.FLING)
-            mX.velocity = mY.velocity = 0.0f;
-
         mX.disableSnap = mY.disableSnap = mOverridePanning;
 
         mX.displace(mOverridePanning); mY.displace(mOverridePanning);
@@ -721,10 +711,6 @@ public class PanZoomController
         mController.notifyLayerClientOfGeometryChange();
     }
 
-    private float computeElasticity(float excess, float viewportLength) {
-        return 1.0f - excess / (viewportLength * SNAP_LIMIT);
-    }
-
     
     private abstract static class Axis {
         public enum FlingStates {
@@ -929,6 +915,22 @@ public class PanZoomController
 
 
     @Override
+    public boolean onScaleBegin(ScaleGestureDetector detector) {
+        Log.d(LOGTAG, "onScaleBegin in " + mState);
+
+        if (mState == PanZoomState.ANIMATED_ZOOM)
+            return false;
+
+        mState = PanZoomState.PINCHING;
+        mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
+        GeckoApp.mAppContext.hidePluginViews();
+        GeckoApp.mAppContext.mAutoCompletePopup.hide();
+        cancelTouch();
+
+        return true;
+    }
+
+    @Override
     public boolean onScale(ScaleGestureDetector detector) {
         Log.d(LOGTAG, "onScale in state " + mState);
 
@@ -976,22 +978,6 @@ public class PanZoomController
     }
 
     @Override
-    public boolean onScaleBegin(ScaleGestureDetector detector) {
-        Log.d(LOGTAG, "onScaleBegin in " + mState);
-
-        if (mState == PanZoomState.ANIMATED_ZOOM)
-            return false;
-
-        mState = PanZoomState.PINCHING;
-        mLastZoomFocus = new PointF(detector.getFocusX(), detector.getFocusY());
-        GeckoApp.mAppContext.hidePluginViews();
-        GeckoApp.mAppContext.mAutoCompletePopup.hide();
-        cancelTouch();
-
-        return true;
-    }
-
-    @Override
     public void onScaleEnd(ScaleGestureDetector detector) {
         Log.d(LOGTAG, "onScaleEnd in " + mState);
 
@@ -1011,6 +997,10 @@ public class PanZoomController
         mX.velocity = mY.velocity = 0.0f;
         mX.locked = mY.locked = false;
         mLastEventTime = detector.getEventTime();
+    }
+
+    public boolean getRedrawHint() {
+        return (mState == PanZoomState.NOTHING || mState == PanZoomState.FLING);
     }
 
     private void sendPointToGecko(String event, MotionEvent motionEvent) {
@@ -1035,10 +1025,6 @@ public class PanZoomController
         sendPointToGecko("Gesture:LongPress", motionEvent);
     }
 
-    public boolean getRedrawHint() {
-        return (mState == PanZoomState.NOTHING || mState == PanZoomState.FLING);
-    }
-
     @Override
     public boolean onDown(MotionEvent motionEvent) {
         sendPointToGecko("Gesture:ShowPress", motionEvent);
@@ -1052,15 +1038,15 @@ public class PanZoomController
         return true;
     }
 
-    private void cancelTouch() {
-        GeckoEvent e = new GeckoEvent("Gesture:CancelTouch", "");
-        GeckoAppShell.sendEventToGecko(e);
-    }
-
     @Override
     public boolean onDoubleTap(MotionEvent motionEvent) {
         sendPointToGecko("Gesture:DoubleTap", motionEvent);
         return true;
+    }
+
+    private void cancelTouch() {
+        GeckoEvent e = new GeckoEvent("Gesture:CancelTouch", "");
+        GeckoAppShell.sendEventToGecko(e);
     }
 
     private boolean animatedZoomTo(RectF zoomToRect) {
