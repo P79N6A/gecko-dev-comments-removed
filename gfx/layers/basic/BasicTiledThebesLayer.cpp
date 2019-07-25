@@ -1,6 +1,6 @@
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this file,
- * You can obtain one at http://mozilla.org/MPL/2.0/. */
+
+
+
 
 #include "mozilla/layers/PLayersChild.h"
 #include "BasicTiledThebesLayer.h"
@@ -16,17 +16,17 @@ static void DrawDebugOverlay(gfxImageSurface* imgSurf, int x, int y)
 {
   gfxContext c(imgSurf);
 
-  // Draw border
+  
   c.NewPath();
   c.SetDeviceColor(gfxRGBA(0.0, 0.0, 0.0, 1.0));
   c.Rectangle(gfxRect(gfxPoint(0,0),imgSurf->GetSize()));
   c.Stroke();
 
-  // Build tile description
+  
   std::stringstream ss;
   ss << x << ", " << y;
 
-  // Draw text using cairo toy text API
+  
   cairo_t* cr = c.GetCairo();
   cairo_set_font_size(cr, 10);
   cairo_text_extents_t extents;
@@ -136,7 +136,7 @@ BasicTiledLayerBuffer::ValidateTileInternal(BasicTiledLayerTile aTile,
                                             const nsIntPoint& aTileOrigin,
                                             const nsIntRect& aDirtyRect)
 {
-  if (aTile == GetPlaceholderTile()) {
+  if (aTile == GetPlaceholderTile() || aTile.mSurface->Format() != GetFormat()) {
     gfxImageSurface* tmpTile = new gfxImageSurface(gfxIntSize(GetTileLength(), GetTileLength()),
                                                    GetFormat(), !mThebesLayer->CanUseOpaqueSurface());
     aTile = BasicTiledLayerTile(tmpTile);
@@ -145,13 +145,13 @@ BasicTiledLayerBuffer::ValidateTileInternal(BasicTiledLayerTile aTile,
   gfxRect drawRect(aDirtyRect.x - aTileOrigin.x, aDirtyRect.y - aTileOrigin.y,
                    aDirtyRect.width, aDirtyRect.height);
 
-  // Use the gfxReusableSurfaceWrapper, which will reuse the surface
-  // if the compositor no longer has a read lock, otherwise the surface
-  // will be copied into a new writable surface.
+  
+  
+  
   gfxImageSurface* writableSurface;
   aTile.mSurface = aTile.mSurface->GetWritable(&writableSurface);
 
-  // Bug 742100, this gfxContext really should live on the stack.
+  
   nsRefPtr<gfxContext> ctxt = new gfxContext(writableSurface);
   ctxt->SetOperator(gfxContext::OPERATOR_SOURCE);
   if (mSinglePaintBuffer) {
@@ -234,13 +234,13 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
     if (!rect)
       return;
 
-    // Currently we start painting from the first rect of the invalid
-    // region and convert that into a tile.
-    // TODO: Use a smart tile prioritization such as:
-    //         (1) Paint tiles that have no content first
-    //         (2) Then paint tiles that have stale content
-    //         (3) Order tiles using they position from relevant
-    //             user interaction events.
+    
+    
+    
+    
+    
+    
+    
     int paintTileStartX = mTiledBuffer.RoundDownToTileEdge(rect->x);
     int paintTileStartY = mTiledBuffer.RoundDownToTileEdge(rect->y);
 
@@ -249,15 +249,15 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
                 mTiledBuffer.GetTileLength(), mTiledBuffer.GetTileLength()));
 
     if (!maxPaint.Contains(regionToPaint)) {
-      // The region needed to paint is larger then our progressive chunk size
-      // therefore update what we want to paint and ask for a new paint transaction.
+      
+      
       regionToPaint.And(regionToPaint, maxPaint);
       BasicManager()->SetRepeatTransaction();
     }
 
-    // We want to continue to retain invalidated tiles that we're about to paint soon
-    // to prevent them from disapearing while doing progressive paint. However we only
-    // want to this if they were painted at the same resolution.
+    
+    
+    
     gfxSize resolution(1, 1);
     for (ContainerLayer* parent = GetParent(); parent; parent = parent->GetParent()) {
       const FrameMetrics& metrics = parent->GetFrameMetrics();
@@ -267,8 +267,8 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
 
     nsIntRegion regionToRetain(mTiledBuffer.GetValidRegion());
     if (false && mTiledBuffer.GetResolution() == resolution) {
-      // Retain stale tiles but keep them marked as invalid in mValidRegion
-      // so that they will be eventually repainted.
+      
+      
       regionToRetain.And(regionToRetain, mVisibleRegion);
       regionToRetain.Or(regionToRetain, regionToPaint);
     } else {
@@ -277,7 +277,7 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       mTiledBuffer.SetResolution(resolution);
     }
 
-    // Paint and keep track of what we refreshed
+    
     mTiledBuffer.PaintThebes(this, regionToRetain, regionToPaint, aCallback, aCallbackData);
     mValidRegion.Or(mValidRegion, regionToPaint);
   } else {
@@ -291,14 +291,14 @@ BasicTiledThebesLayer::PaintThebes(gfxContext* aContext,
       ->Paint(aContext, nullptr);
   }
 
-  // Create a heap copy owned and released by the compositor. This is needed
-  // since we're sending this over an async message and content needs to be
-  // be able to modify the tiled buffer in the next transaction.
-  // TODO: Remove me once Bug 747811 lands.
+  
+  
+  
+  
   BasicTiledLayerBuffer *heapCopy = new BasicTiledLayerBuffer(mTiledBuffer);
 
   BasicManager()->PaintedTiledLayerBuffer(BasicManager()->Hold(this), heapCopy);
 }
 
-} // mozilla
-} // layers
+} 
+} 
