@@ -79,6 +79,7 @@ static nsResProtocolHandler *gResHandler = nsnull;
 static PRLogModuleInfo *gResLog;
 #endif
 
+#define kAPP           NS_LITERAL_CSTRING("app")
 #define kGRE           NS_LITERAL_CSTRING("gre")
 
 
@@ -181,6 +182,12 @@ nsResProtocolHandler::Init()
     NS_ENSURE_SUCCESS(rv, rv);
 
     rv = SetSubstitution(EmptyCString(), uri);
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    
+    
+    
+    rv = SetSubstitution(kAPP, uri);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
