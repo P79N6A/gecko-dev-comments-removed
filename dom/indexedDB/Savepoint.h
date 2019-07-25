@@ -41,7 +41,7 @@
 #define mozilla_dom_indexeddb_savepoint_h__
 
 
-#include "IDBTransactionRequest.h"
+#include "IDBTransaction.h"
 
 BEGIN_INDEXEDDB_NAMESPACE
 
@@ -49,7 +49,7 @@ NS_STACK_CLASS
 class Savepoint
 {
 public:
-  Savepoint(IDBTransactionRequest* aTransaction)
+  Savepoint(IDBTransaction* aTransaction)
   : mTransaction(aTransaction)
   , mHasSavepoint(false)
   {
@@ -77,7 +77,7 @@ public:
   }
 
 private:
-  IDBTransactionRequest* mTransaction;
+  IDBTransaction* mTransaction;
   bool mHasSavepoint;
 };
 
