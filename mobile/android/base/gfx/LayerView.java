@@ -38,6 +38,7 @@
 
 package org.mozilla.gecko.gfx;
 
+import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.GeckoInputConnection;
 import org.mozilla.gecko.gfx.FloatSize;
 import org.mozilla.gecko.gfx.InputConnectionHandler;
@@ -77,6 +78,14 @@ public class LayerView extends FlexibleGLSurfaceView {
     private static String LOGTAG = "GeckoLayerView";
     
     private LinkedList<MotionEvent> mEventQueue = new LinkedList<MotionEvent>();
+    
+    private int mPaintState = PAINT_NONE;
+
+    
+
+    public static final int PAINT_NONE = 0;
+    public static final int PAINT_BEFORE_FIRST = 1;
+    public static final int PAINT_AFTER_FIRST = 2;
 
 
     public LayerView(Context context, LayerController controller) {
@@ -236,6 +245,18 @@ public class LayerView extends FlexibleGLSurfaceView {
 
     public LayerRenderer getLayerRenderer() {
         return mRenderer;
+    }
+    
+    
+
+    public void setPaintState(int paintState) {
+        if (paintState > mPaintState) {
+            mPaintState = paintState;
+        }
+    }
+
+    public int getPaintState() {
+        return mPaintState;
     }
 }
 
