@@ -1276,60 +1276,6 @@ var Browser = {
         this._handleErrorPage(aMessage);
         break;
     }
-  },
-
-  _grabbedSidebar: false, 
-  _sidebarOffset: 0, 
-  _slideMultiplier: 1, 
-
-  
-
-
-
-  grabSidebar: function grabSidebar() {
-    this._grabbedSidebar = true;
-    ViewableAreaObserver.update();
-
-    let ltr = (Util.localeDir == Util.LOCALE_DIR_LTR);
-
-    if (TabsPopup.visible) {
-      this._setSidebarOffset(ltr ? 0 : ViewableAreaObserver.sidebarWidth);
-      this._slideMultiplier = 3;
-    } else {
-      
-      TabsPopup.show();
-      this._setSidebarOffset(ltr ? ViewableAreaObserver.sidebarWidth : 0);
-      this._slideMultiplier = 6;
-    }
-  },
-
-  
-  slideSidebarBy: function slideSidebarBy(aX) {
-    this._setSidebarOffset(this._sidebarOffset + (aX * this._slideMultiplier));
-  },
-
-  
-  ungrabSidebar: function ungrabSidebar() {
-    if (!this._grabbedSidebar)
-      return;
-    this._grabbedSidebar = false;
-
-    let finalOffset = this._sidebarOffset;
-    this._setSidebarOffset(0);
-
-    let rtl = (Util.localeDir == Util.LOCALE_DIR_RTL);
-    if (finalOffset > (ViewableAreaObserver.sidebarWidth / 2) ^ rtl)
-      TabsPopup.hide();
-    else
-      
-      ViewableAreaObserver.update();
-  },
-
-  
-  _setSidebarOffset: function _setSidebarOffset(aOffset) {
-    this._sidebarOffset = aOffset;
-    let scrollX = Util.clamp(aOffset, 0, ViewableAreaObserver.sidebarWidth);
-    Browser.controlsScrollboxScroller.scrollTo(scrollX, 0);
   }
 };
 
@@ -1365,7 +1311,7 @@ Browser.MainDragger.prototype = {
     this._canGrabSidebar = false;
     
     if (isTablet && !Util.isPortrait()) {
-      let grabSidebarMargin = TabsPopup.visible ? 30 : 5;
+      let grabSidebarMargin = TabletSidebar.visible ? 30 : 5;
       
       this._canGrabSidebar = ((Util.localeDir == Util.LOCALE_DIR_LTR)
                            ? (clientX - bcr.left < 30)
@@ -1380,7 +1326,7 @@ Browser.MainDragger.prototype = {
 
   dragStop: function dragStop(dx, dy, scroller) {
     if (this._grabSidebar) {
-      Browser.ungrabSidebar();
+      TabletSidebar.ungrab();
       return;
     }
 
@@ -1394,10 +1340,10 @@ Browser.MainDragger.prototype = {
   dragMove: function dragMove(dx, dy, scroller, aIsKinetic) {
     if (this._canGrabSidebar && !this._grabSidebar && dx) {
       this._grabSidebar = true;
-      Browser.grabSidebar();
+      TabletSidebar.grab();
     }
     if (this._grabSidebar) {
-      Browser.slideSidebarBy(dx);
+      TabletSidebar.slideBy(dx);
       return;
     }
 
@@ -3236,7 +3182,7 @@ function rendererFactory(aBrowser, aCanvas) {
 var ViewableAreaObserver = {
   get width() {
     let width = this._width || window.innerWidth;
-    if (!Browser._grabbedSidebar && Util.isTablet())
+    if (!TabletSidebar._grabbed && Util.isTablet())
       width -= this.sidebarWidth;
     return width;
   },
