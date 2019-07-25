@@ -110,9 +110,12 @@ public:
 
 
 
+    static size_t MaybeSizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf);
+
+    
 
 
-    static void ComputeStorage(PRUint64 *aTotal);
+    static void ResetSizeOfAccountingFlags();
 
 protected:
     friend class gfxPlatform;

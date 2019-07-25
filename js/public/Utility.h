@@ -897,9 +897,7 @@ RoundUpPow2(size_t x)
 
 
 
-
-
-typedef size_t(*JSUsableSizeFun)(void *p);
+typedef size_t(*JSMallocSizeOfFun)(const void *p, size_t computedSize);
 
 
 #ifndef HAVE_STATIC_ANNOTATIONS

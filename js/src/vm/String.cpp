@@ -87,7 +87,7 @@ JSLinearString::mark(JSTracer *)
 }
 
 size_t
-JSString::charsHeapSize(JSUsableSizeFun usf)
+JSString::charsHeapSize(JSMallocSizeOfFun mallocSizeOf)
 {
     
     if (isRope())
@@ -104,8 +104,7 @@ JSString::charsHeapSize(JSUsableSizeFun usf)
     
     if (isExtensible()) {
         JSExtensibleString &extensible = asExtensible();
-        size_t usable = usf((void *)extensible.chars());
-        return usable ? usable : asExtensible().capacity() * sizeof(jschar);
+        return mallocSizeOf(extensible.chars(), asExtensible().capacity() * sizeof(jschar));
     }
 
     JS_ASSERT(isFixed());
@@ -120,8 +119,7 @@ JSString::charsHeapSize(JSUsableSizeFun usf)
 
     
     JSFixedString &fixed = asFixed();
-    size_t usable = usf((void *)fixed.chars());
-    return usable ? usable : length() * sizeof(jschar);
+    return mallocSizeOf(fixed.chars(), (length() + 1) * sizeof(jschar));
 }
 
 static JS_ALWAYS_INLINE bool

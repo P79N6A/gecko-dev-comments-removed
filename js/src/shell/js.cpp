@@ -3829,9 +3829,9 @@ MJitCodeStats(JSContext *cx, uintN argc, jsval *vp)
 #ifdef JS_METHODJIT
 
 static size_t
-zero_usable_size(void *p)
+computedSize(const void *p, size_t size)
 {
-    return 0;
+    return size;
 }
 
 static void
@@ -3845,7 +3845,7 @@ SumJitDataSizeCallback(JSContext *cx, void *data, void *thing,
 
 
 
-    *sump += script->jitDataSize(zero_usable_size);
+    *sump += script->jitDataSize(computedSize);
 }
 
 #endif

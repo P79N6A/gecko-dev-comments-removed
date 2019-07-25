@@ -111,9 +111,8 @@ class BumpChunk
     void setNext(BumpChunk *succ) { next_ = succ; }
 
     size_t used() const { return bump - bumpBase(); }
-    size_t sizeOf(JSUsableSizeFun usf) {
-        size_t usable = usf((void*)this);
-        return usable ? usable : limit - headerBase();
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) {
+        return mallocSizeOf(this, limit - headerBase());
     }
 
     void resetBump() {
@@ -295,19 +294,20 @@ class LifoAlloc
     }
 
     
-
-    size_t sizeOf(JSUsableSizeFun usf, bool countMe) const {
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
         size_t accum = 0;
-        if (countMe) {
-            size_t usable = usf((void*)this);
-            accum += usable ? usable : sizeof(LifoAlloc);
-        }
         BumpChunk *it = first;
         while (it) {
-            accum += it->sizeOf(usf);
+            accum += it->sizeOfIncludingThis(mallocSizeOf);
             it = it->next();
         }
         return accum;
+    }
+
+    
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return mallocSizeOf(this, sizeof(LifoAlloc)) +
+               sizeOfExcludingThis(mallocSizeOf);
     }
 
     

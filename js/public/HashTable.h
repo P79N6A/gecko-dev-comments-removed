@@ -653,14 +653,12 @@ class HashTable : private AllocPolicy
         return gen;
     }
 
-    
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return mallocSizeOf(table, capacity() * sizeof(Entry));
+    }
 
-
-
-    size_t sizeOf(JSUsableSizeFun usf, bool countMe) const {
-        size_t usable = usf(table) + (countMe ? usf((void*)this) : 0);
-        return usable ? usable
-                      : (capacity() * sizeof(Entry)) + (countMe ? sizeof(HashTable) : 0);
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return mallocSizeOf(this, sizeof(HashTable)) + sizeOfExcludingThis(mallocSizeOf);
     }
 
     Ptr lookup(const Lookup &l) const {
@@ -1097,7 +1095,16 @@ class HashMap
     Range all() const                                 { return impl.all(); }
     size_t count() const                              { return impl.count(); }
     size_t capacity() const                           { return impl.capacity(); }
-    size_t sizeOf(JSUsableSizeFun usf, bool cm) const { return impl.sizeOf(usf, cm); }
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return impl.sizeOfExcludingThis(mallocSizeOf);
+    }
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        
+
+
+
+        return mallocSizeOf(this, sizeof(*this)) + impl.sizeOfExcludingThis(mallocSizeOf);
+    }
 
     
 
@@ -1298,7 +1305,16 @@ class HashSet
     Range all() const                                 { return impl.all(); }
     size_t count() const                              { return impl.count(); }
     size_t capacity() const                           { return impl.capacity(); }
-    size_t sizeOf(JSUsableSizeFun usf, bool cm) const { return impl.sizeOf(usf, cm); }
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        return impl.sizeOfExcludingThis(mallocSizeOf);
+    }
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const {
+        
+
+
+
+        return mallocSizeOf(this, sizeof(*this)) + impl.sizeOfExcludingThis(mallocSizeOf);
+    }
 
     
 

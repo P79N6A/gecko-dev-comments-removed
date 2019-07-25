@@ -1447,8 +1447,9 @@ public:
 
 
 
-  static nsresult GetTextRunMemoryForFrames(nsIFrame* aFrame,
-                                            PRUint64* aTotal);
+  static size_t SizeOfTextRunsForFrames(nsIFrame* aFrame,
+                                        nsMallocSizeOfFun aMallocSizeOf,
+                                        bool clear);
 
   
 

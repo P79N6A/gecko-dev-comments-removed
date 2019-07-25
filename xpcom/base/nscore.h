@@ -62,6 +62,13 @@
 
 
 
+typedef size_t(*nsMallocSizeOfFun)(const void *p, size_t computedSize);
+
+
+
+
+
+
 #ifdef _WIN32
 #define NS_WIN32 1
 

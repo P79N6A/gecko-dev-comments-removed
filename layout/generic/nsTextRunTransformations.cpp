@@ -99,26 +99,26 @@ nsTransformedTextRun::SetPotentialLineBreaks(PRUint32 aStart, PRUint32 aLength,
   return changed;
 }
 
-PRUint64
-nsTransformedTextRun::ComputeSize()
+size_t
+nsTransformedTextRun::SizeOfExcludingThis(nsMallocSizeOfFun aMallocSizeOf)
 {
-  PRUint32 total = gfxTextRun::ComputeSize();
-  if (moz_malloc_usable_size(this) == 0) {
-    total += sizeof(nsTransformedTextRun) - sizeof(gfxTextRun);
-  }
+  size_t total = gfxTextRun::SizeOfExcludingThis(aMallocSizeOf);
   total += mStyles.SizeOf();
   total += mCapitalize.SizeOf();
   if (mOwnsFactory) {
-    PRUint32 factorySize = moz_malloc_usable_size(mFactory);
-    if (factorySize == 0) {
-      
-      
-      
-      factorySize = sizeof(nsTransformingTextRunFactory);
-    }
-    total += factorySize;
+    
+    
+    
+    total += aMallocSizeOf(mFactory, 0);
   }
   return total;
+}
+
+size_t
+nsTransformedTextRun::SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf)
+{
+  return aMallocSizeOf(this, sizeof(nsTransformedTextRun)) +
+         SizeOfExcludingThis(aMallocSizeOf);
 }
 
 nsTransformedTextRun*

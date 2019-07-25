@@ -115,7 +115,7 @@ public:
 
 
 
-  PRInt64 SizeOf();
+  PRInt64 SizeOfIncludingThis(nsMallocSizeOfFun aMallocSizeOf);
 
   
 

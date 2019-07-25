@@ -660,7 +660,7 @@ struct JSScript : public js::gc::Cell {
     }
 
     
-    JS_FRIEND_API(size_t) jitDataSize(JSUsableSizeFun usf);
+    JS_FRIEND_API(size_t) jitDataSize(JSMallocSizeOfFun mallocSizeOf);
 
 #endif
 
@@ -682,9 +682,9 @@ struct JSScript : public js::gc::Cell {
 
 
 
-    JS_FRIEND_API(size_t) dataSize();                       
-    JS_FRIEND_API(size_t) dataSize(JSUsableSizeFun usf);    
-    uint32 numNotes();                  
+    JS_FRIEND_API(size_t) dataSize();                               
+    JS_FRIEND_API(size_t) dataSize(JSMallocSizeOfFun mallocSizeOf); 
+    uint32 numNotes();  
 
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }

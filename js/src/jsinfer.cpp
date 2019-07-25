@@ -6184,32 +6184,26 @@ TypeObject::dynamicSize()
 }
 
 static void
-GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats, JSUsableSizeFun usf)
+GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats, JSMallocSizeOfFun mallocSizeOf)
 {
     TypeScript *typeScript = script->types;
     if (!typeScript)
         return;
 
-    size_t usable;
-
     
     if (!script->compartment()->types.inferenceEnabled) {
-        usable = usf(typeScript);
-        stats->scripts += usable ? usable : sizeof(TypeScript);
+        stats->scripts += mallocSizeOf(typeScript, sizeof(TypeScript));
         return;
     }
 
-    usable = usf(typeScript->nesting);
-    stats->scripts += usable ? usable : sizeof(TypeScriptNesting);
+    stats->scripts += mallocSizeOf(typeScript->nesting, sizeof(TypeScriptNesting));
 
     unsigned count = TypeScript::NumTypeSets(script);
-    usable = usf(typeScript);
-    stats->scripts += usable ? usable : sizeof(TypeScript) + count * sizeof(TypeSet);
+    stats->scripts += mallocSizeOf(typeScript, sizeof(TypeScript) + count * sizeof(TypeSet));
 
     TypeResult *result = typeScript->dynamicList;
     while (result) {
-        usable = usf(result);
-        stats->scripts += usable ? usable : sizeof(TypeResult);
+        stats->scripts += mallocSizeOf(result, sizeof(TypeResult));
         result = result->next;
     }
 
@@ -6227,35 +6221,35 @@ GetScriptMemoryStats(JSScript *script, TypeInferenceMemoryStats *stats, JSUsable
 
 JS_FRIEND_API(void)
 JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
-                               TypeInferenceMemoryStats *stats, JSUsableSizeFun usf)
+                               TypeInferenceMemoryStats *stats,
+                               JSMallocSizeOfFun mallocSizeOf)
 {
     
 
 
 
 
-    stats->temporary += compartment->typeLifoAlloc.sizeOf(usf, false);
+    stats->temporary += compartment->typeLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
 
     
-    size_t usable = usf(compartment->types.pendingArray);
     stats->temporary +=
-        usable ? usable
-               : sizeof(TypeCompartment::PendingWork) * compartment->types.pendingCapacity;
+        mallocSizeOf(compartment->types.pendingArray, 
+                     sizeof(TypeCompartment::PendingWork) * compartment->types.pendingCapacity);
 
     
     JS_ASSERT(!compartment->types.pendingRecompiles);
 
     for (gc::CellIter i(cx, compartment, gc::FINALIZE_SCRIPT); !i.done(); i.next())
-        GetScriptMemoryStats(i.get<JSScript>(), stats, usf);
+        GetScriptMemoryStats(i.get<JSScript>(), stats, mallocSizeOf);
 
     if (compartment->types.allocationSiteTable)
-        stats->tables += compartment->types.allocationSiteTable->sizeOf(usf, true);
+        stats->tables += compartment->types.allocationSiteTable->sizeOfIncludingThis(mallocSizeOf);
 
     if (compartment->types.arrayTypeTable)
-        stats->tables += compartment->types.arrayTypeTable->sizeOf(usf, true);
+        stats->tables += compartment->types.arrayTypeTable->sizeOfIncludingThis(mallocSizeOf);
 
     if (compartment->types.objectTypeTable) {
-        stats->tables += compartment->types.objectTypeTable->sizeOf(usf, true);
+        stats->tables += compartment->types.objectTypeTable->sizeOfIncludingThis(mallocSizeOf);
 
         for (ObjectTypeTable::Enum e(*compartment->types.objectTypeTable);
              !e.empty();
@@ -6265,14 +6259,14 @@ JS_GetTypeInferenceMemoryStats(JSContext *cx, JSCompartment *compartment,
             const ObjectTableEntry &value = e.front().value;
 
             
-            usable = usf(key.ids) + usf(value.types);
-            stats->tables += usable ? usable : key.nslots * (sizeof(jsid) + sizeof(Type));
+            stats->tables += mallocSizeOf(key.ids, key.nslots * sizeof(jsid)) +
+                             mallocSizeOf(value.types, key.nslots * sizeof(Type));
         }
     }
 }
 
 JS_FRIEND_API(void)
-JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats, JSUsableSizeFun usf)
+JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats, JSMallocSizeOfFun mallocSizeOf)
 {
     TypeObject *object = (TypeObject *) object_;
 
@@ -6288,23 +6282,19 @@ JS_GetTypeInferenceObjectStats(void *object_, TypeInferenceMemoryStats *stats, J
 
     if (object->newScript) {
         
-        size_t usable = usf(object->newScript);
-        if (usable) {
-            stats->objects += usable;
-        } else {
-            stats->objects += sizeof(TypeNewScript);
-            for (TypeNewScript::Initializer *init = object->newScript->initializerList; ; init++) {
-                stats->objects += sizeof(TypeNewScript::Initializer);
-                if (init->kind == TypeNewScript::Initializer::DONE)
-                    break;
-            }
+        size_t computedSize = sizeof(TypeNewScript);
+        for (TypeNewScript::Initializer *init = object->newScript->initializerList; ; init++) {
+            computedSize += sizeof(TypeNewScript::Initializer);
+            if (init->kind == TypeNewScript::Initializer::DONE)
+                break;
         }
+        stats->objects += mallocSizeOf(object->newScript, computedSize);
     }
 
     if (object->emptyShapes) {
-        size_t usable = usf(object->emptyShapes);
         stats->emptyShapes +=
-            usable ? usable : sizeof(EmptyShape*) * gc::FINALIZE_OBJECT_LIMIT;
+            mallocSizeOf(object->emptyShapes,
+                         sizeof(EmptyShape*) * gc::FINALIZE_OBJECT_LIMIT);
     }
 
     
