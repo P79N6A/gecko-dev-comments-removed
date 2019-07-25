@@ -56,7 +56,6 @@ public:
   public:
     PRBool mSecure;
     nsString mValue;
-    PRInt64 mInsertTime;
   };
 
   typedef nsClassHashtable<nsStringHashKey, nsInMemoryItem> nsStorageItemsTable;
@@ -159,14 +158,6 @@ public:
   nsresult
   RemoveOwners(const nsTArray<nsString>& aOwners,
                PRBool aIncludeSubDomains, PRBool aMatch);
-
-  
-
-
-
-
-  nsresult
-  RemoveTimeRange(PRInt64 aSince);
 
   
 
