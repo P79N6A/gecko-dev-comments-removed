@@ -805,15 +805,20 @@ nsObjectLoadingContent::OnStartRequest(nsIRequest *aRequest,
   
   
   
-  if (((channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
-        channelType.EqualsASCII(BINARY_OCTET_STREAM)) && 
-       !mContentType.IsEmpty() &&
-       GetTypeOfContent(mContentType) != eType_Document) ||
-      
-      
-      
-      (NS_SUCCEEDED(IsPluginEnabledForType(mContentType)) && 
-       GetTypeOfContent(mContentType) == eType_Plugin)) {
+  
+  
+  
+  bool isOctetStream = (channelType.EqualsASCII(APPLICATION_OCTET_STREAM) ||
+                        channelType.EqualsASCII(BINARY_OCTET_STREAM));
+  bool caseOne = (isOctetStream &&
+                  !mContentType.IsEmpty() &&
+                  GetTypeOfContent(mContentType) != eType_Document);
+  nsresult pluginState = IsPluginEnabledForType(mContentType);
+  bool pluginSupported = (NS_SUCCEEDED(pluginState) || 
+                          pluginState == NS_ERROR_PLUGIN_CLICKTOPLAY);
+  PRUint32 caps = GetCapabilities();
+  bool caseTwo = (pluginSupported && (caps & eSupportPlugins));
+  if (caseOne || caseTwo) {
     
     
     
