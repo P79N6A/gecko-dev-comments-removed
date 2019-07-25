@@ -538,6 +538,9 @@ class nsHashKey;
 #define NS_POINTERLOCKERROR          (NS_POINTERLOCK_START + 1)
 
 
+#define NS_MOZ_TIME_CHANGE_EVENT     5400
+
+
 
 
 
