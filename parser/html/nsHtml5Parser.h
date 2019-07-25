@@ -189,11 +189,6 @@ class nsHtml5Parser : public nsIParser,
     
 
 
-    NS_IMETHOD_(void *) GetRootContextKey();
-
-    
-
-
     NS_IMETHOD Terminate();
 
     

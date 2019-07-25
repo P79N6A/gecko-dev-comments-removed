@@ -55,8 +55,8 @@
 #include "nsIAtom.h"
 
 #define NS_IPARSER_IID \
-{ 0x0c8c3998, 0x9959, 0x496e, \
-  { 0xbd, 0xd9, 0x0b, 0x6f, 0xc4, 0x1c, 0x3b, 0x87 } }
+{ 0x30ffba62, 0x0928, 0x4503, \
+  { 0xa8, 0x95, 0xd1, 0x32, 0x76, 0x40, 0x2a, 0x2a } }
 
 
 #define NS_IDEBUG_DUMP_CONTENT_IID \
@@ -232,10 +232,6 @@ class nsIParser : public nsISupports {
                      bool aLastCall,
                      nsDTDMode aMode = eDTDMode_autodetect) = 0;
 
-    
-    
-    NS_IMETHOD_(void *) GetRootContextKey() = 0;
-    
     NS_IMETHOD Terminate(void) = 0;
 
     

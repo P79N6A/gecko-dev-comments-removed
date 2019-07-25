@@ -1075,21 +1075,6 @@ nsParser::SetUnusedInput(nsString& aBuffer)
   mUnusedInput = aBuffer;
 }
 
-NS_IMETHODIMP_(void *)
-nsParser::GetRootContextKey()
-{
-  CParserContext* pc = mParserContext;
-  if (!pc) {
-    return nsnull;
-  }
-
-  while (pc->mPrevContext) {
-    pc = pc->mPrevContext;
-  }
-
-  return pc->mKey;
-}
-
 
 
 

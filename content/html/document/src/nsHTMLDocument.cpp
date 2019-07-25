@@ -1628,7 +1628,7 @@ nsHTMLDocument::Close()
   }
 
   ++mWriteLevel;
-  nsresult rv = mParser->Parse(EmptyString(), mParser->GetRootContextKey(),
+  nsresult rv = mParser->Parse(EmptyString(), nsnull,
                                GetContentTypeInternal(), true);
   --mWriteLevel;
 
@@ -1731,7 +1731,7 @@ nsHTMLDocument::WriteCommon(JSContext *cx,
   static NS_NAMED_LITERAL_STRING(new_line, "\n");
 
   
-  if (mWyciwygChannel) {
+  if (mWyciwygChannel && !key) {
     if (!aText.IsEmpty()) {
       mWyciwygChannel->WriteToCacheEntry(aText);
     }
@@ -2256,7 +2256,7 @@ nsHTMLDocument::GenerateParserKey(void)
         
         
         
-        return mParser->GetRootContextKey();
+        return nsnull;
       }
     }
     return script;
