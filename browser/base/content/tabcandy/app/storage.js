@@ -1,4 +1,6 @@
 
+
+
 Storage = {
   
   init: function() {

@@ -1,4 +1,6 @@
 
+
+
 window.TabItem = function(container, tab) {
   this.defaultSize = new Point(TabItems.tabWidth, TabItems.tabHeight);
   this.locked = {};
@@ -63,6 +65,11 @@ window.TabItem.prototype = $.extend(new Item(), {
   
   
   setBounds: function(rect, immediately) {
+    if(!isRect(rect)) {
+      Utils.trace('TabItem.setBounds: rect is not a real rectangle!', rect);
+      return;
+    }
+
     var $container = $(this.container);
     var $title = $('.tab-title', $container);
     var $thumb = $('.thumb', $container);
@@ -100,6 +107,7 @@ window.TabItem.prototype = $.extend(new Item(), {
     
     
     
+    
     if(immediately || (!this._hasBeenDrawn) ) {
       $container.stop(true, true);
       $container.css(css);
@@ -131,6 +139,9 @@ window.TabItem.prototype = $.extend(new Item(), {
 
     this._updateDebugBounds();
     this._hasBeenDrawn = true;
+    
+    if(!isRect(this.bounds))
+      Utils.trace('TabItem.setBounds: this.bounds is not a real rectangle!', this.bounds);
   },
 
   
