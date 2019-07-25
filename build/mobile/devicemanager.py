@@ -501,7 +501,7 @@ class DeviceManager:
     timeslept = 0
     while (timeslept <= 30):
       process = self.processExist(appname)
-      if (self.process is not None):
+      if (process is not None):
         break
       time.sleep(3)
       timeslept += 3
@@ -746,11 +746,20 @@ class DeviceManager:
   
   
   
-  def getDirectory(self, remoteDir, localDir):
+  
+  
+  
+  def getDirectory(self, remoteDir, localDir, checkDir=True):
     if (self.debug >= 2): print "getting files in '" + remoteDir + "'"
+    if checkDir:
+      try:
+        is_dir = self.isDir(remoteDir)
+      except FileError:
+        return None
+      if not is_dir:
+        return None
+        
     filelist = self.listFiles(remoteDir)
-    if (filelist == []):
-      return None
     if (self.debug >= 3): print filelist
     if not os.path.exists(localDir):
       os.makedirs(localDir)
@@ -766,7 +775,7 @@ class DeviceManager:
         print 'isdir failed on file "%s"; continuing anyway...' % remotePath
         continue
       if is_dir:
-        if (self.getDirectory(remotePath, localPath) == None):
+        if (self.getDirectory(remotePath, localPath, False) == None):
           print 'failed to get directory "%s"' % remotePath
           return None
       else:
@@ -787,7 +796,10 @@ class DeviceManager:
     try:
       data = self.verifySendCMD(['isdir ' + remotePath])
     except(DMError):
-      data = None
+      
+      
+      
+      return False
 
     retVal = self.stripPrompt(data).strip()
     if not retVal:
@@ -971,17 +983,31 @@ class DeviceManager:
   
   
   
-  def reboot(self):
+  def reboot(self, wait = False):
     cmd = 'rebt'
-
-    if (self.debug > 3): print "INFO: sending rebt command"
+    if (self.debug >= 3): print "INFO: sending rebt command"
     
     try:
-      status = self.verifySendCMD([cmd])
+      status = self.sendCMD([cmd])
     except DMError:
       return None
 
-    if (self.debug > 3): print "INFO: rebt- got status back: " + str(status)
+    if (wait == True):
+      
+      count = 0
+      while (count < 10):
+        if (self.debug >= 4): print "DEBUG: sleeping 30 seconds while waiting for reboot"
+        time.sleep(30)
+        waitstatus = self.getDeviceRoot()
+        if (waitstatus is not None):
+          break
+        self.retries = 0
+        count += 1
+
+      if (count >= 10):
+        return None
+
+    if (self.debug >= 3): print "INFO: rebt- got status back: " + str(status)
     return status
 
   
