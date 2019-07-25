@@ -614,6 +614,32 @@ ValueFitsInInt32(const Value &v, int32_t *pi)
 }
 
 
+
+
+
+
+
+
+
+
+static JS_ALWAYS_INLINE bool
+IsDefinitelyIndex(const Value &v, uint32 *indexp)
+{
+    if (v.isInt32() && v.toInt32() >= 0) {
+        *indexp = v.toInt32();
+        return true;
+    }
+
+    int32 i;
+    if (v.isDouble() && JSDOUBLE_IS_INT32(v.toDouble(), &i) && i >= 0) {
+        *indexp = uint32(i);
+        return true;
+    }
+
+    return false;
+}
+
+
 static inline bool
 ToInteger(JSContext *cx, const js::Value &v, jsdouble *dp)
 {
