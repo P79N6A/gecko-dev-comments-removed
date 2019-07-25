@@ -324,7 +324,11 @@ class nsAccessibleWrap : public nsAccessible,
 
   void UpdateSystemCaret();
 
-  virtual void GetXPAccessibleFor(const VARIANT& aVarChild, nsIAccessible **aXPAccessible);
+  
+
+
+  virtual nsAccessible *GetXPAccessibleFor(const VARIANT& aVarChild);
+
   NS_IMETHOD GetNativeInterface(void **aOutAccessible);
 
   

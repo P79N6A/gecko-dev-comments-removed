@@ -61,8 +61,6 @@ public:
     STDMETHODIMP_(ULONG) Release();
     STDMETHODIMP      QueryInterface(REFIID, void**);
 
-    void GetXPAccessibleFor(const VARIANT& varChild, nsIAccessible **aXPAccessible);
-
     
     virtual  HRESULT STDMETHODCALLTYPE get_URL( 
          BSTR __RPC_FAR *url);
@@ -95,15 +93,16 @@ public:
          BSTR __RPC_FAR *pszValue);
 
   
+  virtual nsAccessible *GetXPAccessibleFor(const VARIANT& varChild);
+
+  
 
   
 
 
 
 
-
-  static void GetXPAccessibleForChildID(const VARIANT& aVarChild,
-                                        nsIAccessible **aAccessible);
+  static nsAccessible *GetXPAccessibleForChildID(const VARIANT& aVarChild);
 };
 
 #endif

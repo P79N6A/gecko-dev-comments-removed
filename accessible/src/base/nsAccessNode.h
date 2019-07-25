@@ -137,6 +137,11 @@ class nsAccessNode: public nsIAccessNode
   
 
 
+  nsIDOMNode *GetDOMNode() const { return mDOMNode; }
+
+  
+
+
   already_AddRefed<nsIPresShell> GetPresShell();
 
   
