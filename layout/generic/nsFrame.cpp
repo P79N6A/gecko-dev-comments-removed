@@ -1680,19 +1680,24 @@ nsIFrame::BuildDisplayListForStackingContext(nsDisplayListBuilder* aBuilder,
   bool inTransform = aBuilder->IsInTransform();
   if ((mState & NS_FRAME_MAY_BE_TRANSFORMED) &&
       disp->HasTransform()) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    if (Preserves3DChildren() || !nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
-      
+    if (nsDisplayTransform::ShouldPrerenderTransformedContent(aBuilder, this) ||
+        Preserves3DChildren()) {
       dirtyRect = GetVisualOverflowRectRelativeToSelf();
+    } else {
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      if (!nsDisplayTransform::UntransformRect(dirtyRect, this, nsPoint(0, 0), &dirtyRect)) {
+        
+        dirtyRect = GetVisualOverflowRectRelativeToSelf();
+      }
     }
     inTransform = true;
   }
