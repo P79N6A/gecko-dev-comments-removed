@@ -591,6 +591,22 @@ add_test(function() {
 
 
 add_test(function() {
+  Services.prefs.setBoolPref("extensions.checkCompatibility.nightly", false);
+  search("incompatible", false, function() {
+    var item = get_addon_item("remote5");
+    is_element_visible(item, "Incompatible addon should be visible");
+    is(item.getAttribute("notification"), "warning", "Compatibility warning should be shown");
+
+    var item = get_addon_item("remote6");
+    is(item, null, "Addon incompatible with the product should not be visible");
+
+    Services.prefs.clearUserPref("extensions.checkCompatibility.nightly");
+    run_next_test();
+  });
+});
+
+
+add_test(function() {
   restart_manager(gManagerWindow, null, function(aWindow) {
     gManagerWindow = aWindow;
     gCategoryUtilities = new CategoryUtilities(gManagerWindow);
