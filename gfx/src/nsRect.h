@@ -183,6 +183,13 @@ struct NS_GFX nsRect {
   nsRect& ScaleRoundOut(float aScale);
 
   
+  
+  
+  
+  inline nsRect ConvertAppUnitsRoundOut(PRInt32 aFromAPP, PRInt32 aToAPP) const;
+  inline nsRect ConvertAppUnitsRoundIn(PRInt32 aFromAPP, PRInt32 aToAPP) const;
+
+  
   nsPoint TopLeft() const { return nsPoint(x, y); }
   nsPoint TopRight() const { return nsPoint(XMost(), y); }
   nsPoint BottomLeft() const { return nsPoint(x, YMost()); }
@@ -332,6 +339,43 @@ struct NS_GFX nsIntRect {
 
 
 
+
+
+inline nsRect
+nsRect::ConvertAppUnitsRoundOut(PRInt32 aFromAPP, PRInt32 aToAPP) const
+{
+  if (aFromAPP == aToAPP) {
+    return *this;
+  }
+
+  nsRect rect;
+  nscoord right = NSToCoordCeil(NSCoordScale(XMost(), aFromAPP, aToAPP));
+  nscoord bottom = NSToCoordCeil(NSCoordScale(YMost(), aFromAPP, aToAPP));
+  rect.x = NSToCoordFloor(NSCoordScale(x, aFromAPP, aToAPP));
+  rect.y = NSToCoordFloor(NSCoordScale(y, aFromAPP, aToAPP));
+  rect.width = (right - rect.x);
+  rect.height = (bottom - rect.y);
+
+  return rect;
+}
+
+inline nsRect
+nsRect::ConvertAppUnitsRoundIn(PRInt32 aFromAPP, PRInt32 aToAPP) const
+{
+  if (aFromAPP == aToAPP) {
+    return *this;
+  }
+
+  nsRect rect;
+  nscoord right = NSToCoordFloor(NSCoordScale(XMost(), aFromAPP, aToAPP));
+  nscoord bottom = NSToCoordFloor(NSCoordScale(YMost(), aFromAPP, aToAPP));
+  rect.x = NSToCoordCeil(NSCoordScale(x, aFromAPP, aToAPP));
+  rect.y = NSToCoordCeil(NSCoordScale(y, aFromAPP, aToAPP));
+  rect.width = (right - rect.x);
+  rect.height = (bottom - rect.y);
+
+  return rect;
+}
 
 
 inline nsIntRect

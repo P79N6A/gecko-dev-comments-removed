@@ -3539,10 +3539,20 @@ nsPoint nsIFrame::GetOffsetTo(const nsIFrame* aOther) const
 {
   NS_PRECONDITION(aOther,
                   "Must have frame for destination coordinate system!");
+
+  
+  
+
+  
+  
+  
+  if (PresContext() != aOther->PresContext()) {
+    return GetOffsetToCrossDoc(aOther);
+  }
+
   nsPoint offset(0, 0);
   const nsIFrame* f;
-  for (f = this; f != aOther && f;
-       f = nsLayoutUtils::GetCrossDocParentFrame(f, &offset)) {
+  for (f = this; f != aOther && f; f = f->GetParent()) {
     offset += f->GetPosition();
   }
 
@@ -3550,12 +3560,66 @@ nsPoint nsIFrame::GetOffsetTo(const nsIFrame* aOther) const
     
     
     
-    nsPoint negativeOffset(0,0);
     while (aOther) {
       offset -= aOther->GetPosition();
-      aOther = nsLayoutUtils::GetCrossDocParentFrame(aOther, &negativeOffset);
+      aOther = aOther->GetParent();
     }
-    offset -= negativeOffset;
+  }
+
+  return offset;
+}
+
+nsPoint nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther) const
+{
+  return GetOffsetToCrossDoc(aOther, PresContext()->AppUnitsPerDevPixel());
+}
+
+nsPoint
+nsIFrame::GetOffsetToCrossDoc(const nsIFrame* aOther, const PRInt32 aAPD) const
+{
+  NS_PRECONDITION(aOther,
+                  "Must have frame for destination coordinate system!");
+  NS_ASSERTION(PresContext()->GetRootPresContext() ==
+                 aOther->PresContext()->GetRootPresContext(),
+               "trying to get the offset between frames in different document "
+               "hierarchies?");
+
+  const nsIFrame* root = nsnull;
+  
+  
+  
+  nsPoint offset(0, 0), docOffset(0, 0);
+  const nsIFrame* f = this;
+  PRInt32 currAPD = PresContext()->AppUnitsPerDevPixel();
+  while (f && f != aOther) {
+    docOffset += f->GetPosition();
+    nsIFrame* parent = f->GetParent();
+    if (parent) {
+      f = parent;
+    } else {
+      nsPoint newOffset(0, 0);
+      root = f;
+      f = nsLayoutUtils::GetCrossDocParentFrame(f, &newOffset);
+      PRInt32 newAPD = f ? f->PresContext()->AppUnitsPerDevPixel() : 0;
+      if (!f || newAPD != currAPD) {
+        
+        offset += docOffset.ConvertAppUnits(currAPD, aAPD);
+        docOffset.x = docOffset.y = 0;
+      }
+      currAPD = newAPD;
+      docOffset += newOffset;
+    }
+  }
+  if (f == aOther) {
+    offset += docOffset.ConvertAppUnits(currAPD, aAPD);
+  } else {
+    
+    
+    
+    
+    
+    nsPoint negOffset = aOther->GetOffsetToCrossDoc(root, aAPD);
+    offset -= negOffset;
   }
 
   return offset;

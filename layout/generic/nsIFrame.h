@@ -1662,8 +1662,31 @@ public:
 
 
 
+
   nsPoint GetOffsetTo(const nsIFrame* aOther) const;
   virtual nsPoint GetOffsetToExternal(const nsIFrame* aOther) const;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther) const;
 
   
 
@@ -2572,6 +2595,7 @@ protected:
 private:
   nsRect* GetOverflowAreaProperty(PRBool aCreateIfNecessary = PR_FALSE);
   void SetOverflowRect(const nsRect& aRect);
+  nsPoint GetOffsetToCrossDoc(const nsIFrame* aOther, const PRInt32 aAPD) const;
 
 #ifdef NS_DEBUG
 public:

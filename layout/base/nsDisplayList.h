@@ -208,8 +208,9 @@ public:
 
 
 
+
   nsPoint ToReferenceFrame(const nsIFrame* aFrame) {
-    return aFrame->GetOffsetTo(ReferenceFrame());
+    return aFrame->GetOffsetToCrossDoc(ReferenceFrame());
   }
   
 
