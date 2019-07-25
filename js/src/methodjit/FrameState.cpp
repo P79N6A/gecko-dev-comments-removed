@@ -536,6 +536,10 @@ FrameState::computeAllocation(jsbytecode *target)
 
 
 
+
+
+
+
     Registers regs = Registers::AvailAnyRegs;
     while (!regs.empty()) {
         AnyRegisterID reg = regs.takeAnyReg();
@@ -545,6 +549,22 @@ FrameState::computeAllocation(jsbytecode *target)
         if (fe < a->callee_ ||
             (fe > a->callee_ && fe < a->spBase && variableLive(fe, target)) ||
             (isTemporary(fe) && (a->parent || uint32(target - a->script->code) <= loop->backedgeOffset()))) {
+            if (!reg.isReg()) {
+                bool nonDoubleTarget = false;
+                const SlotValue *newv = a->analysis->newValues(target);
+                while (newv && newv->slot) {
+                    if (newv->value.kind() == SSAValue::PHI &&
+                        newv->value.phiOffset() == uint32(target - a->script->code) &&
+                        newv->slot == entrySlot(fe)) {
+                        types::TypeSet *types = a->analysis->getValueTypes(newv->value);
+                        if (types->getKnownTypeTag(cx) != JSVAL_TYPE_DOUBLE)
+                            nonDoubleTarget = true;
+                    }
+                    newv++;
+                }
+                if (nonDoubleTarget)
+                    continue;
+            }
             alloc->set(reg, fe - entries, fe->data.synced());
         }
     }
