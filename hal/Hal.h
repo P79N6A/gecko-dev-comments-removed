@@ -68,9 +68,9 @@ namespace MOZ_HAL_NAMESPACE {
 
 
 
-void Vibrate(const nsTArray<uint32>& pattern,
+void Vibrate(const nsTArray<uint32_t>& pattern,
              nsIDOMWindow* aWindow);
-void Vibrate(const nsTArray<uint32>& pattern,
+void Vibrate(const nsTArray<uint32_t>& pattern,
              const hal::WindowIdentifier &id);
 
 

@@ -66,12 +66,12 @@ public:
 
 
 
-  WindowIdentifier(const nsTArray<uint64>& id, nsIDOMWindow* window);
+  WindowIdentifier(const nsTArray<uint64_t>& id, nsIDOMWindow* window);
 
   
 
 
-  typedef InfallibleTArray<uint64> IDArrayType;
+  typedef InfallibleTArray<uint64_t> IDArrayType;
   const IDArrayType& AsArray() const;
 
   
@@ -96,9 +96,9 @@ private:
   
 
 
-  uint64 GetWindowID() const;
+  uint64_t GetWindowID() const;
 
-  AutoInfallibleTArray<uint64, 3> mID;
+  AutoInfallibleTArray<uint64_t, 3> mID;
   nsCOMPtr<nsIDOMWindow> mWindow;
   bool mIsEmpty;
 };

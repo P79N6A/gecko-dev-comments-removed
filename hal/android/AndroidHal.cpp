@@ -18,7 +18,7 @@ namespace mozilla {
 namespace hal_impl {
 
 void
-Vibrate(const nsTArray<uint32> &pattern, const WindowIdentifier &)
+Vibrate(const nsTArray<uint32_t> &pattern, const WindowIdentifier &)
 {
   
   
@@ -28,7 +28,7 @@ Vibrate(const nsTArray<uint32> &pattern, const WindowIdentifier &)
   
   
   bool allZero = true;
-  for (uint32 i = 0; i < pattern.Length(); i++) {
+  for (uint32_t i = 0; i < pattern.Length(); i++) {
     if (pattern[i] != 0) {
       allZero = false;
       break;
