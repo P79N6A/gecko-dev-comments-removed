@@ -1,0 +1,223 @@
+
+
+
+
+
+#ifndef MOZILLA_TIMEVARYING_H_
+#define MOZILLA_TIMEVARYING_H_
+
+#include "nsTArray.h"
+
+namespace mozilla {
+
+
+
+
+
+
+class TimeVaryingBase {
+protected:
+  TimeVaryingBase()
+  {
+    MOZ_COUNT_CTOR(TimeVaryingBase);
+  }
+  ~TimeVaryingBase()
+  {
+    MOZ_COUNT_DTOR(TimeVaryingBase);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template <typename Time, typename T>
+class TimeVarying : public TimeVaryingBase {
+public:
+  TimeVarying(const T& aInitial) : mCurrent(aInitial) {}
+  
+
+
+
+  TimeVarying() : mCurrent() {}
+
+  
+
+
+  void SetAtAndAfter(Time aTime, const T& aValue)
+  {
+    for (PRInt32 i = mChanges.Length() - 1; i >= 0; --i) {
+      NS_ASSERTION(i == PRInt32(mChanges.Length() - 1),
+                   "Always considering last element of array");
+      if (aTime > mChanges[i].mTime) {
+        if (mChanges[i].mValue != aValue) {
+          mChanges.AppendElement(Entry(aTime, aValue));
+        }
+        return;
+      }
+      if (aTime == mChanges[i].mTime) {
+        if ((i > 0 ? mChanges[i - 1].mValue : mCurrent) == aValue) {
+          mChanges.RemoveElementAt(i);
+          return;
+        }
+        mChanges[i].mValue = aValue;
+        return;
+      }
+      mChanges.RemoveElementAt(i);
+    }
+    mChanges.InsertElementAt(0, Entry(aTime, aValue));
+  }
+  
+
+
+
+
+  const T& GetLast(Time* aTime = nsnull) const
+  {
+    if (mChanges.IsEmpty()) {
+      if (aTime) {
+        *aTime = PR_INT64_MIN;
+      }
+      return mCurrent;
+    }
+    if (aTime) {
+      *aTime = mChanges[mChanges.Length() - 1].mTime;
+    }
+    return mChanges[mChanges.Length() - 1].mValue;
+  }
+  
+
+
+  const T& GetBefore(Time aTime) const
+  {
+    if (mChanges.IsEmpty() || aTime <= mChanges[0].mTime) {
+      return mCurrent;
+    }
+    PRInt32 changesLength = mChanges.Length();
+    if (mChanges[changesLength - 1].mTime < aTime) {
+      return mChanges[changesLength - 1].mValue;
+    }
+    for (PRUint32 i = 1; ; ++i) {
+      if (aTime <= mChanges[i].mTime) {
+        NS_ASSERTION(mChanges[i].mValue != mChanges[i - 1].mValue,
+                     "Only changed values appear in array");
+        return mChanges[i - 1].mValue;
+      }
+    }
+  }
+  
+
+
+
+
+
+
+
+
+
+
+  const T& GetAt(Time aTime, Time* aEnd = nsnull, Time* aStart = nsnull) const
+  {
+    if (mChanges.IsEmpty() || aTime < mChanges[0].mTime) {
+      if (aStart) {
+        *aStart = PR_INT64_MIN;
+      }
+      if (aEnd) {
+        *aEnd = mChanges.IsEmpty() ? PR_INT64_MAX : mChanges[0].mTime;
+      }
+      return mCurrent;
+    }
+    PRInt32 changesLength = mChanges.Length();
+    if (mChanges[changesLength - 1].mTime <= aTime) {
+      if (aEnd) {
+        *aEnd = PR_INT64_MAX;
+      }
+      if (aStart) {
+        *aStart = mChanges[changesLength - 1].mTime;
+      }
+      return mChanges[changesLength - 1].mValue;
+    }
+
+    for (PRUint32 i = 1; ; ++i) {
+      if (aTime < mChanges[i].mTime) {
+        if (aEnd) {
+          *aEnd = mChanges[i].mTime;
+        }
+        if (aStart) {
+          *aStart = mChanges[i - 1].mTime;
+        }
+        NS_ASSERTION(mChanges[i].mValue != mChanges[i - 1].mValue,
+                     "Only changed values appear in array");
+        return mChanges[i - 1].mValue;
+      }
+    }
+  }
+  
+
+
+  void AdvanceCurrentTime(Time aTime)
+  {
+    for (PRUint32 i = 0; i < mChanges.Length(); ++i) {
+      if (aTime < mChanges[i].mTime) {
+        mChanges.RemoveElementsAt(0, i);
+        return;
+      }
+      mCurrent = mChanges[i].mValue;
+    }
+    mChanges.Clear();
+  }
+  
+
+
+
+  void InsertTimeAtStart(Time aDelta)
+  {
+    for (PRUint32 i = 0; i < mChanges.Length(); ++i) {
+      mChanges[i].mTime += aDelta;
+    }
+  }
+
+  
+
+
+
+
+
+  void Append(const TimeVarying& aOther, Time aTimeOffset)
+  {
+    NS_ASSERTION(aOther.mChanges.IsEmpty() || aOther.mChanges[0].mTime >= 0,
+                 "Negative time not allowed here");
+    NS_ASSERTION(&aOther != this, "Can't self-append");
+    SetAtAndAfter(aTimeOffset, aOther.mCurrent);
+    for (PRUint32 i = 0; i < aOther.mChanges.Length(); ++i) {
+      const Entry& e = aOther.mChanges[i];
+      SetAtAndAfter(aTimeOffset + e.mTime, e.mValue);
+    }
+  }
+
+private:
+  struct Entry {
+    Entry(Time aTime, const T& aValue) : mTime(aTime), mValue(aValue) {}
+
+    
+    Time mTime;
+    T mValue;
+  };
+  nsTArray<Entry> mChanges;
+  T mCurrent;
+};
+
+}
+
+#endif 
