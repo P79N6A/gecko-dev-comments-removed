@@ -3498,19 +3498,38 @@ nsRuleNode::ComputeTextResetData(void* aStartStruct,
   
   const nsCSSValue* textOverflowValue =
     aRuleData->ValueForTextOverflow();
-  if (eCSSUnit_Enumerated == textOverflowValue->GetUnit() ||
-      eCSSUnit_Initial    == textOverflowValue->GetUnit()) {
-    SetDiscrete(*textOverflowValue, text->mTextOverflow.mType,
-                canStoreInRuleTree,
-                SETDSC_ENUMERATED, parentText->mTextOverflow.mType,
-                NS_STYLE_TEXT_OVERFLOW_CLIP, 0, 0, 0, 0);
-    text->mTextOverflow.mString.Truncate();
+  if (eCSSUnit_Initial == textOverflowValue->GetUnit()) {
+    text->mTextOverflow = nsStyleTextOverflow();
   } else if (eCSSUnit_Inherit == textOverflowValue->GetUnit()) {
     canStoreInRuleTree = PR_FALSE;
     text->mTextOverflow = parentText->mTextOverflow;
-  } else if (eCSSUnit_String == textOverflowValue->GetUnit()) {
-    textOverflowValue->GetStringValue(text->mTextOverflow.mString);
-    text->mTextOverflow.mType = NS_STYLE_TEXT_OVERFLOW_STRING;
+  } else if (eCSSUnit_Pair == textOverflowValue->GetUnit()) {
+    const nsCSSValuePair& textOverflowValue =
+      aRuleData->ValueForTextOverflow()->GetPairValue();
+
+    const nsCSSValue *textOverflowLeftValue = &textOverflowValue.mXValue;
+    if (eCSSUnit_Enumerated == textOverflowLeftValue->GetUnit()) {
+      SetDiscrete(*textOverflowLeftValue, text->mTextOverflow.mLeft.mType,
+                  canStoreInRuleTree,
+                  SETDSC_ENUMERATED, parentText->mTextOverflow.mLeft.mType,
+                  NS_STYLE_TEXT_OVERFLOW_CLIP, 0, 0, 0, 0);
+      text->mTextOverflow.mLeft.mString.Truncate();
+    } else if (eCSSUnit_String == textOverflowLeftValue->GetUnit()) {
+      textOverflowLeftValue->GetStringValue(text->mTextOverflow.mLeft.mString);
+      text->mTextOverflow.mLeft.mType = NS_STYLE_TEXT_OVERFLOW_STRING;
+    }
+
+    const nsCSSValue *textOverflowRightValue = &textOverflowValue.mYValue;
+    if (eCSSUnit_Enumerated == textOverflowRightValue->GetUnit()) {
+      SetDiscrete(*textOverflowRightValue, text->mTextOverflow.mRight.mType,
+                  canStoreInRuleTree,
+                  SETDSC_ENUMERATED, parentText->mTextOverflow.mRight.mType,
+                  NS_STYLE_TEXT_OVERFLOW_CLIP, 0, 0, 0, 0);
+      text->mTextOverflow.mRight.mString.Truncate();
+    } else if (eCSSUnit_String == textOverflowRightValue->GetUnit()) {
+      textOverflowRightValue->GetStringValue(text->mTextOverflow.mRight.mString);
+      text->mTextOverflow.mRight.mType = NS_STYLE_TEXT_OVERFLOW_STRING;
+    }
   }
 
   
