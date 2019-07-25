@@ -135,12 +135,12 @@ JSObject::finalize(JSContext *cx)
     if (isNewborn())
         return;
 
+    js::Probes::finalizeObject(this);
+
     
     js::Class *clasp = getClass();
     if (clasp->finalize)
         clasp->finalize(cx, this);
-
-    js::Probes::finalizeObject(this);
 
     finish(cx);
 }
