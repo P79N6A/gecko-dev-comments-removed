@@ -7,12 +7,15 @@ package org.mozilla.gecko.sync.stage;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.concurrent.atomic.AtomicInteger;
 
+import org.json.simple.JSONArray;
 import org.mozilla.gecko.sync.CryptoRecord;
 import org.mozilla.gecko.sync.GlobalSession;
 import org.mozilla.gecko.sync.HTTPFailureException;
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.NoCollectionKeysSetException;
+import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.crypto.CryptoException;
 import org.mozilla.gecko.sync.crypto.KeyBundle;
 import org.mozilla.gecko.sync.delegates.ClientsDataDelegate;
@@ -27,9 +30,13 @@ import org.mozilla.gecko.sync.repositories.android.RepoUtils;
 import org.mozilla.gecko.sync.repositories.domain.ClientRecord;
 import org.mozilla.gecko.sync.repositories.domain.ClientRecordFactory;
 
+import ch.boye.httpclientandroidlib.HttpStatus;
+
 public class SyncClientsEngineStage implements GlobalSyncStage {
-  protected static final String LOG_TAG = "SyncClientsEngineStage";
-  protected static final String COLLECTION_NAME = "clients";
+  public static final String LOG_TAG = "SyncClientsEngineStage";
+  public static final String COLLECTION_NAME = "clients";
+  public static final int CLIENTS_TTL_REFRESH = 604800000; 
+  public static final int MAX_UPLOAD_FAILURE_COUNT = 5;
 
   protected GlobalSession session;
   protected final ClientRecordFactory factory = new ClientRecordFactory();
@@ -37,8 +44,9 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
   protected ClientDownloadDelegate clientDownloadDelegate;
   protected ClientsDatabaseAccessor db;
 
-  
-  protected boolean shouldWipe;
+  protected volatile boolean shouldWipe;
+  protected volatile boolean commandsProcessedShouldUpload;
+  protected final AtomicInteger uploadAttemptsCount = new AtomicInteger();
 
   
 
@@ -52,6 +60,9 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
 
 
   public class ClientDownloadDelegate extends WBOCollectionRequestDelegate {
+
+    
+    final ClientsDataDelegate clientsDelegate = session.getClientsDelegate();
 
     @Override
     public String credentials() {
@@ -67,15 +78,22 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
     @Override
     public void handleRequestSuccess(SyncStorageResponse response) {
       BaseResource.consumeEntity(response); 
+      final int clientsCount;
       try {
-        clientUploadDelegate = new ClientUploadDelegate();
-        session.getClientsDelegate().setClientsCount(db.clientsCount());
-        checkAndUpload();
+        clientsCount = db.clientsCount();
       } finally {
         
         
         db.close();
       }
+
+      Logger.debug(LOG_TAG, "Database contains " + clientsCount + " clients.");
+      Logger.debug(LOG_TAG, "Server response asserts " + response.weaveRecords() + " records.");
+
+      
+      clientUploadDelegate = new ClientUploadDelegate();
+      clientsDelegate.setClientsCount(clientsCount);
+      checkAndUpload();
     }
 
     @Override
@@ -106,6 +124,15 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
       ClientRecord r;
       try {
         r = (ClientRecord) factory.createRecord(record.decrypt());
+        if (clientsDelegate.isLocalGUID(r.guid)) {
+          
+          
+          
+          session.config.persistServerClientRecordTimestamp(r.lastModified);
+
+          
+          processCommands(r.commands);
+        }
         RepoUtils.logClient(r);
       } catch (Exception e) {
         session.abort(e, "Exception handling client WBO.");
@@ -135,21 +162,47 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
 
     @Override
     public String ifUnmodifiedSince() {
+      Long timestampInMilliseconds = session.config.getPersistedServerClientRecordTimestamp();
+
       
-      return null;
+      if (timestampInMilliseconds == 0) {
+        return null;
+      }
+
+      return Utils.millisecondsToDecimalSecondsString(timestampInMilliseconds);
     }
 
     @Override
     public void handleRequestSuccess(SyncStorageResponse response) {
+      Logger.debug(LOG_TAG, "Upload succeeded.");
+      commandsProcessedShouldUpload = false;
+      uploadAttemptsCount.set(0);
+      session.config.persistServerClientRecordTimestamp(response.normalizedWeaveTimestamp());
+
       BaseResource.consumeEntity(response);
       session.advance();
     }
 
     @Override
     public void handleRequestFailure(SyncStorageResponse response) {
-      Logger.info(LOG_TAG, "Client upload failed. Aborting sync.");
-      BaseResource.consumeEntity(response); 
-      session.abort(new HTTPFailureException(response), "Client upload failed.");
+      int statusCode = response.getStatusCode();
+
+      
+      
+      if (!commandsProcessedShouldUpload ||
+          statusCode == HttpStatus.SC_PRECONDITION_FAILED ||
+          uploadAttemptsCount.incrementAndGet() > MAX_UPLOAD_FAILURE_COUNT) {
+        Logger.debug(LOG_TAG, "Client upload failed. Aborting sync.");
+        BaseResource.consumeEntity(response); 
+        session.abort(new HTTPFailureException(response), "Client upload failed.");
+        return;
+      }
+      Logger.trace(LOG_TAG, "Retrying uploadâ€¦");
+      
+      
+      
+      
+      checkAndUpload();
     }
 
     @Override
@@ -200,26 +253,49 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
     return true;
   }
 
-  
   protected boolean shouldUpload() {
-    return true;
+    if (commandsProcessedShouldUpload) {
+      return true;
+    }
+
+    long lastUpload = session.config.getPersistedServerClientRecordTimestamp();   
+    if (lastUpload == 0) {
+      return true;
+    }
+
+    
+    
+    
+    long now = System.currentTimeMillis();
+    long age = now - lastUpload;
+    return age >= CLIENTS_TTL_REFRESH;
+  }
+
+  protected void processCommands(JSONArray commands) {
+    if (commands == null ||
+        commands.size() == 0) {
+      return;
+    }
+
+    commandsProcessedShouldUpload = true;
+
+    
   }
 
   protected void checkAndUpload() {
     if (!shouldUpload()) {
-      Logger.trace(LOG_TAG, "Not uploading client record.");
+      Logger.debug(LOG_TAG, "Not uploading client record.");
       session.advance();
       return;
     }
 
     
-    String encryptionFailure = "Couldn't encrypt new client record.";
-    ClientRecord localClient  = newLocalClientRecord(session.getClientsDelegate());
-    CryptoRecord cryptoRecord = localClient.getEnvelope();
+    final String encryptionFailure = "Couldn't encrypt new client record.";
+    final ClientRecord localClient = newLocalClientRecord(session.getClientsDelegate());
     try {
+      CryptoRecord cryptoRecord = localClient.getEnvelope();
       cryptoRecord.keyBundle = clientUploadDelegate.keyBundle();
       cryptoRecord.encrypt();
-      this.wipeAndStore(localClient);
       this.uploadClientRecord(cryptoRecord);
     } catch (UnsupportedEncodingException e) {
       session.abort(e, encryptionFailure + " Unsupported encoding.");
@@ -246,6 +322,7 @@ public class SyncClientsEngineStage implements GlobalSyncStage {
   }
 
   protected void uploadClientRecord(CryptoRecord record) {
+    Logger.debug(LOG_TAG, "Uploading client record " + record.guid);
     try {
       URI putURI = session.config.wboURI(COLLECTION_NAME, record.guid);
 

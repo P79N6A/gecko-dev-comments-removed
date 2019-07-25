@@ -18,11 +18,6 @@ public class Constants {
   public static final String NUM_CLIENTS          = "account.numClients";
 
   
-  public static final String PROFILE_ID          = "default";     
-  public static final String CLIENT_TYPE         = "mobile";
-  public static final String DEFAULT_CLIENT_NAME = "Default Name";
-
-  
   public static final String INTENT_EXTRA_IS_SETUP = "isSetup";
   public static final String INTENT_EXTRA_IS_PAIR  = "isPair";
 
