@@ -338,18 +338,17 @@ class StackFrame
         UNDERFLOW_ARGS     =     0x1000,  
 
         
-        HAS_IMACRO_PC      =     0x2000,  
-        HAS_CALL_OBJ       =     0x4000,  
-        HAS_ARGS_OBJ       =     0x8000,  
-        HAS_HOOK_DATA      =    0x10000,  
-        HAS_ANNOTATION     =    0x20000,  
-        HAS_RVAL           =    0x40000,  
-        HAS_SCOPECHAIN     =    0x80000,  
-        HAS_PREVPC         =   0x100000,  
+        HAS_CALL_OBJ       =     0x2000,  
+        HAS_ARGS_OBJ       =     0x4000,  
+        HAS_HOOK_DATA      =     0x8000,  
+        HAS_ANNOTATION     =    0x10000,  
+        HAS_RVAL           =    0x20000,  
+        HAS_SCOPECHAIN     =    0x40000,  
+        HAS_PREVPC         =    0x80000,  
 
         
-        DOWN_FRAMES_EXPANDED = 0x200000,  
-        LOWERED_CALL_APPLY   = 0x400000   
+        DOWN_FRAMES_EXPANDED = 0x100000,  
+        LOWERED_CALL_APPLY   = 0x200000   
     };
 
   private:
@@ -371,7 +370,6 @@ class StackFrame
     Value               rval_;          
     jsbytecode          *prevpc_;       
     JSInlinedSite       *prevInline_;   
-    jsbytecode          *imacropc_;     
     void                *hookData_;     
     void                *annotation_;   
     JSRejoinState       rejoin_;        
@@ -894,38 +892,6 @@ class StackFrame
     JSCompartment *compartment() const {
         JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment());
         return scopeChain().compartment();
-    }
-
-    
-
-
-
-
-
-
-
-    bool hasImacropc() const {
-        return flags_ & HAS_IMACRO_PC;
-    }
-
-    jsbytecode *imacropc() const {
-        JS_ASSERT(hasImacropc());
-        return imacropc_;
-    }
-
-    jsbytecode *maybeImacropc() const {
-        return hasImacropc() ? imacropc() : NULL;
-    }
-
-    void clearImacropc() {
-        flags_ &= ~HAS_IMACRO_PC;
-    }
-
-    void setImacropc(jsbytecode *pc) {
-        JS_ASSERT(pc);
-        JS_ASSERT(!(flags_ & HAS_IMACRO_PC));
-        imacropc_ = pc;
-        flags_ |= HAS_IMACRO_PC;
     }
 
     
