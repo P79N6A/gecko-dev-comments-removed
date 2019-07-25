@@ -106,8 +106,7 @@ public:
 
   inline PRUint32 GetLinkCount()
   {
-    AccCollector* links = GetLinkCollector();
-    return links ? links->Count() : 0;
+    return GetEmbeddedChildCount();
   }
 
   
@@ -115,8 +114,7 @@ public:
 
   inline nsAccessible* GetLinkAt(PRUint32 aIndex)
   {
-    AccCollector* links = GetLinkCollector();
-    return links ? links->GetAccessibleAt(aIndex) : nsnull;
+    return GetEmbeddedChildAt(aIndex);
   }
 
   
@@ -124,8 +122,16 @@ public:
 
   inline PRInt32 GetLinkIndex(nsAccessible* aLink)
   {
-    AccCollector* links = GetLinkCollector();
-    return links ? links->GetIndexAt(aLink) : -1;
+    return GetIndexOfEmbeddedChild(aLink);
+  }
+
+  
+
+
+  inline PRInt32 GetLinkIndexAtOffset(PRUint32 aOffset)
+  {
+    nsAccessible* child = GetChildAtOffset(aOffset);
+    return GetLinkIndex(child);
   }
 
   
@@ -193,16 +199,39 @@ public:
 
 
 
+
   PRInt32 GetChildOffset(nsAccessible* aChild,
+                         PRBool aInvalidateAfter = PR_FALSE)
+  {
+    PRInt32 index = GetIndexOf(aChild);
+    return index == -1 ? -1 : GetChildOffset(index, aInvalidateAfter);
+  }
+
+  
+
+
+  PRInt32 GetChildOffset(PRUint32 aChildIndex,
                          PRBool aInvalidateAfter = PR_FALSE);
+
+  
+
+
+
+
+  PRInt32 GetChildIndexAtOffset(PRUint32 aOffset);
+
+  
+
+
+
+
+  nsAccessible* GetChildAtOffset(PRUint32 aOffset)
+  {
+    return GetChildAt(GetChildIndexAtOffset(aOffset));
+  }
 
 protected:
   
-
-  
-
-
-  AccCollector* GetLinkCollector();
 
   
 
@@ -298,18 +327,6 @@ protected:
 
 
   PRInt32 GetCaretLineNumber();
-
-  
-
-
-
-
-
-
-
-  nsAccessible *GetAccessibleAtOffset(PRInt32 aOffset, PRInt32 *aAccIdx,
-                                      PRInt32 *aStartOffset,
-                                      PRInt32 *aEndOffset);
 
   
   nsresult GetDOMPointByFrameOffset(nsIFrame *aFrame, PRInt32 aOffset,
