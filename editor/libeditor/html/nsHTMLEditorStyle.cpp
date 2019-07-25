@@ -1862,7 +1862,9 @@ nsHTMLEditor::RemoveElementIfNoStyleOrIdOrClass(nsIDOMNode* aElement)
   NS_ENSURE_TRUE(element, NS_ERROR_NULL_POINTER);
 
   
-  if (!element->IsHTML(nsGkAtoms::span) || HasStyleOrIdOrClass(element)) {
+  if ((!element->IsHTML(nsGkAtoms::span) &&
+       !element->IsHTML(nsGkAtoms::font)) ||
+      HasStyleOrIdOrClass(element)) {
     return NS_OK;
   }
 
