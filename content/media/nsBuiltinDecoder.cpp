@@ -307,6 +307,10 @@ void nsBuiltinDecoder::AudioAvailable(float* aFrameBuffer,
                                       PRUint32 aFrameBufferLength,
                                       PRUint64 aTime)
 {
+  
+  
+  
+  nsAutoArrayPtr<float> frameBuffer(aFrameBuffer);
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   if (mShuttingDown) {
     return;
@@ -316,7 +320,7 @@ void nsBuiltinDecoder::AudioAvailable(float* aFrameBuffer,
     return;
   }
 
-  mElement->NotifyAudioAvailable(aFrameBuffer, aFrameBufferLength, aTime);
+  mElement->NotifyAudioAvailable(frameBuffer.forget(), aFrameBufferLength, aTime);
 }
 
 void nsBuiltinDecoder::MetadataLoaded(PRUint32 aChannels,

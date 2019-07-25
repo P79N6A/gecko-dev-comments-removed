@@ -51,6 +51,7 @@ class nsAudioAvailableEventManager
 {
 public:
   nsAudioAvailableEventManager(nsBuiltinDecoder* aDecoder);
+  ~nsAudioAvailableEventManager();
 
   
   
