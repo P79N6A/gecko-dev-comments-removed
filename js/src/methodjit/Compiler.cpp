@@ -3492,7 +3492,7 @@ mjit::Compiler::iter(uintN flags)
 
     
     Address privSlot(ioreg, offsetof(JSObject, fslots) + sizeof(Value) * JSSLOT_PRIVATE);
-    masm.loadPayload(privSlot, nireg);
+    masm.loadPtr(privSlot, nireg);
 
     
     Address flagsAddr(nireg, offsetof(NativeIterator, flags));
@@ -3679,7 +3679,7 @@ mjit::Compiler::iterEnd()
 
     
     Address privSlot(reg, offsetof(JSObject, fslots) + sizeof(Value) * JSSLOT_PRIVATE);
-    masm.loadPayload(privSlot, T1);
+    masm.loadPtr(privSlot, T1);
 
     RegisterID T2 = frame.allocReg();
 
