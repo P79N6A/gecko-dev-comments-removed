@@ -447,26 +447,21 @@ WebGLContext::InitAndValidateGL()
         gl->fEnable(LOCAL_GL_VERTEX_PROGRAM_POINT_SIZE);
     }
 
-    static bool didTranslatorCheck = false;
-    if (!didTranslatorCheck) {
-        
-        nsCOMPtr<nsIPrefBranch> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
-        NS_ENSURE_TRUE(prefService != nsnull, NS_ERROR_FAILURE);
+    
+    nsCOMPtr<nsIPrefBranch> prefService = do_GetService(NS_PREFSERVICE_CONTRACTID);
+    NS_ENSURE_TRUE(prefService != nsnull, NS_ERROR_FAILURE);
 
-        prefService->GetBoolPref("webgl.shader_validator", &mShaderValidation);
+    prefService->GetBoolPref("webgl.shader_validator", &mShaderValidation);
 
 #if defined(USE_ANGLE)
-        
-        if (mShaderValidation) {
-            if (!ShInitialize()) {
-                LogMessage("GLSL translator initialization failed!");
-                return PR_FALSE;
-            }
+    
+    if (mShaderValidation) {
+        if (!ShInitialize()) {
+            LogMessage("GLSL translator initialization failed!");
+            return PR_FALSE;
         }
-#endif
-
-        didTranslatorCheck = true;
     }
+#endif
 
     return PR_TRUE;
 }
