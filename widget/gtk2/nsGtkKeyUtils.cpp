@@ -68,6 +68,9 @@ struct KeyPair {
     guint GDKKeyval;
 };
 
+#define IS_ASCII_ALPHABETICAL(key) \
+    ((('a' <= key) && (key <= 'z')) || (('A' <= key) && (key <= 'Z')))
+
 
 
 
@@ -879,9 +882,16 @@ KeymapWrapper::InitKeypressEvent(nsKeyEvent& aKeyEvent,
         aKeyEvent.alternativeCharCodes.AppendElement(altCharCodes);
     }
 
+    PRBool needLatinKeyCodes = !isLatin;
+    if (!needLatinKeyCodes) {
+        needLatinKeyCodes = 
+            (IS_ASCII_ALPHABETICAL(altCharCodes.mUnshiftedCharCode) !=
+             IS_ASCII_ALPHABETICAL(altCharCodes.mShiftedCharCode));
+    }
+
     
     
-    if (isLatin) {
+    if (!needLatinKeyCodes) {
         PR_LOG(gKeymapWrapperLog, PR_LOG_ALWAYS,
             ("KeymapWrapper(%p): InitKeypressEvent, keyCode=0x%02X, "
              "charCode=0x%08X, level=%d, altCharCodes={ "
