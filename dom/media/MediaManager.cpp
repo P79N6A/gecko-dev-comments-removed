@@ -189,7 +189,9 @@ public:
         mError, NS_LITERAL_STRING("NOT_SUPPORTED_ERR"), mWindowID
       ));
       return NS_OK;
-    } else {
+    }
+
+    if (mPicture) {
       SendPicture();
       return NS_OK;
     }
