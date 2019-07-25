@@ -851,6 +851,18 @@ function Update(update) {
   if (0 == this._patches.length)
     throw Cr.NS_ERROR_ILLEGAL_VALUE;
 
+  
+  
+  if (!update.hasAttribute("appVersion")) {
+    if (update.getAttribute("type") == "major") {
+      if (update.hasAttribute("detailsURL")) {
+        this.billboardURL = update.getAttribute("detailsURL");
+        this.showPrompt = true;
+        this.showNeverForVersion = true;
+      }
+    }
+  }
+
   for (var i = 0; i < update.attributes.length; ++i) {
     var attr = update.attributes.item(i);
     attr.QueryInterface(Ci.nsIDOMAttr);
@@ -1422,6 +1434,14 @@ UpdateService.prototype = {
     }
 
     
+
+
+
+
+
+
+
+
 
 
 
