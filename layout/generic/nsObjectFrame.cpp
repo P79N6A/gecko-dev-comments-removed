@@ -1982,39 +1982,36 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
         RECT dirty;
         nativeDraw.TransformToNativeRect(dirtyGfxRect, dirty);
 
+        window->window = hdc;
+        window->x = dest.left;
+        window->y = dest.top;
+        window->clipRect.left = 0;
+        window->clipRect.top = 0;
+        
+        window->clipRect.right = window->width;
+        window->clipRect.bottom = window->height;
+
         
         
-        if (reinterpret_cast<HDC>(window->window) != hdc ||
-            window->x != dest.left || window->y != dest.top) {
-          window->window = hdc;
-          window->x = dest.left;
-          window->y = dest.top;
-          window->clipRect.left = 0;
-          window->clipRect.top = 0;
-          
-          window->clipRect.right = window->width;
-          window->clipRect.bottom = window->height;
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
-          
+        nsIntPoint origin = GetWindowOriginInPixels(PR_TRUE);
+        nsIntRect winlessRect = nsIntRect(origin, nsIntSize(window->width, window->height));
 
-          nsIntPoint origin = GetWindowOriginInPixels(PR_TRUE);
-          nsIntRect winlessRect = nsIntRect(origin, nsIntSize(window->width, window->height));
-
+        if (mWindowlessRect != winlessRect) {
           mWindowlessRect = winlessRect;
 
           WINDOWPOS winpos;
@@ -2030,9 +2027,10 @@ nsObjectFrame::PaintPlugin(nsDisplayListBuilder* aBuilder,
           pluginEvent.wParam = 0;
           pluginEvent.lParam = (LPARAM)&winpos;
           inst->HandleEvent(&pluginEvent, nsnull);
-
-          inst->SetWindow(window);
         }
+
+        inst->SetWindow(window);
+
         mInstanceOwner->Paint(dirty, hdc);
         nativeDraw.EndNativeDrawing();
       } while (nativeDraw.ShouldRenderAgain());
