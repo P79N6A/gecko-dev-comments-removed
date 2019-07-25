@@ -391,6 +391,7 @@ BrowserView.prototype = {
 
     if (currentBrowser) {
       currentBrowser.removeEventListener("MozAfterPaint", this.handleMozAfterPaint, false);
+      currentBrowser.removeEventListener("scroll", this.handlePageScroll, false);
 
       
       
@@ -411,6 +412,7 @@ BrowserView.prototype = {
       this.beginBatchOperation();
 
       browser.addEventListener("MozAfterPaint", this.handleMozAfterPaint, false);
+      browser.addEventListener("scroll", this.handlePageScroll, false);
 
       
       
@@ -461,6 +463,16 @@ BrowserView.prototype = {
     }
 
     tm.dirtyRects(rects, this.isRendering());
+  },
+
+  handlePageScroll: function handlePageScroll(aEvent) {
+    if (aEvent.target != this._browser.contentDocument)
+      return;
+
+    let [scrollX, scrollY] = BrowserView.Util.getContentScrollValues(this._browser);
+    Browser.contentScrollboxScroller.scrollTo(this.browserToViewport(scrollX), 
+                                              this.browserToViewport(scrollY));
+    this.onAfterVisibleMove();
   },
 
   
