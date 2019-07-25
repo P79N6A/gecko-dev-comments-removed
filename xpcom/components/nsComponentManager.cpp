@@ -730,6 +730,7 @@ nsComponentManagerImpl::ManifestBinaryComponent(ManifestProcessingContext& cx, i
     }
 
     const mozilla::Module* m = mNativeModuleLoader.LoadModule(clfile);
+    
     if (!m)
         return;
 
