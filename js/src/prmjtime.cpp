@@ -407,6 +407,11 @@ PRMJ_Now(void)
 
 
 
+
+
+
+int CALIBRATION_DELAY_COUNT = 10;
+
 JSInt64
 PRMJ_Now(void)
 {
@@ -424,8 +429,7 @@ PRMJ_Now(void)
 
 
     int thiscall = JS_ATOMIC_INCREMENT(&nCalls);
-    
-    if (thiscall <= 10) {
+    if (thiscall <= CALIBRATION_DELAY_COUNT) {
         LowResTime(&ft);
         return (FILETIME2INT64(ft)-win2un)/10L;
     }

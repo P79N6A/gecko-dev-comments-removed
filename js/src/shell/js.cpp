@@ -5010,6 +5010,13 @@ main(int argc, char **argv, char **envp)
     argc--;
     argv++;
 
+#ifdef XP_WIN
+    
+    
+    extern int CALIBRATION_DELAY_COUNT;
+    CALIBRATION_DELAY_COUNT = 0;
+#endif
+
     rt = JS_NewRuntime(64L * 1024L * 1024L);
     if (!rt)
         return 1;
