@@ -264,24 +264,55 @@ void CommandLine::AppendSwitch(const std::wstring& switch_string) {
   switches_[WideToASCII(switch_string)] = L"";
 }
 
-void CommandLine::AppendSwitchWithValue(const std::wstring& switch_string,
-                                        const std::wstring& value_string) {
-  std::wstring value_string_edit;
 
+
+static std::wstring WindowsStyleQuote(const std::wstring& arg) {
   
   
-  if (!value_string.empty() &&
-      (value_string.find(L" ") != std::wstring::npos) &&
-      (value_string[0] != L'"') &&
-      (value_string[value_string.length() - 1] != L'"')) {
+  if (arg.find_first_of(L" \\\"\t") == std::wstring::npos) {
     
-    value_string_edit = StringPrintf(L"\"%ls\"", value_string.c_str());
-  } else {
-    value_string_edit = value_string;
+    return arg;
   }
 
+  std::wstring out;
+  out.push_back(L'"');
+  for (size_t i = 0; i < arg.size(); ++i) {
+    if (arg[i] == '\\') {
+      
+      size_t start = i, end = start + 1;
+      for (; end < arg.size() && arg[end] == '\\'; ++end)
+        ;
+      size_t backslash_count = end - start;
+
+      
+      
+      
+      if (end == arg.size() || arg[end] == '"') {
+        
+        backslash_count *= 2;
+      }
+      for (size_t j = 0; j < backslash_count; ++j)
+        out.push_back('\\');
+
+      
+      i = end - 1;
+    } else if (arg[i] == '"') {
+      out.push_back('\\');
+      out.push_back('"');
+    } else {
+      out.push_back(arg[i]);
+    }
+  }
+  out.push_back('"');
+
+  return out;
+}
+
+void CommandLine::AppendSwitchWithValue(const std::wstring& switch_string,
+                                        const std::wstring& value_string) {
+  std::wstring quoted_value_string = WindowsStyleQuote(value_string);
   std::wstring combined_switch_string =
-    PrefixedSwitchStringWithValue(switch_string, value_string_edit);
+    PrefixedSwitchStringWithValue(switch_string, quoted_value_string);
 
   command_line_string_.append(L" ");
   command_line_string_.append(combined_switch_string);
@@ -290,9 +321,8 @@ void CommandLine::AppendSwitchWithValue(const std::wstring& switch_string,
 }
 
 void CommandLine::AppendLooseValue(const std::wstring& value) {
-  
   command_line_string_.append(L" ");
-  command_line_string_.append(value);
+  command_line_string_.append(WindowsStyleQuote(value));
 }
 
 void CommandLine::AppendArguments(const CommandLine& other,
