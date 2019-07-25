@@ -489,14 +489,22 @@ JS_FrameIterator(JSContext *cx, JSStackFrame **iteratorp)
 }
 
 JS_PUBLIC_API(JSScript *)
-JS_GetFrameScript(JSContext *cx, JSStackFrame *fp)
+JS_GetFrameScript(JSContext *cx, JSStackFrame *fpArg)
 {
-    return Valueify(fp)->maybeScript();
+    StackFrame *fp = Valueify(fpArg);
+    if (fp->isDummyFrame())
+        return NULL;
+
+    return fp->maybeScript();
 }
 
 JS_PUBLIC_API(jsbytecode *)
-JS_GetFramePC(JSContext *cx, JSStackFrame *fp)
+JS_GetFramePC(JSContext *cx, JSStackFrame *fpArg)
 {
+    StackFrame *fp = Valueify(fpArg);
+    if (fp->isDummyFrame())
+        return NULL;
+
     
 
 
@@ -504,7 +512,7 @@ JS_GetFramePC(JSContext *cx, JSStackFrame *fp)
 
 
 
-    return Valueify(fp)->pcQuadratic(cx->stack, 100);
+    return fp->pcQuadratic(cx->stack, 100);
 }
 
 JS_PUBLIC_API(void *)
