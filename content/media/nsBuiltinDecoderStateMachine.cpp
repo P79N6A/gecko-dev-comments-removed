@@ -358,6 +358,8 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
   PRUint64 audioDuration = 0;
   PRInt64 audioStartTime = -1;
   PRUint32 channels, rate;
+  float volume = -1;
+  PRBool setVolume;
   {
     MonitorAutoEnter mon(mDecoder->GetMonitor());
     mAudioCompleted = PR_FALSE;
@@ -391,8 +393,21 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
       {
         break;
       }
+
+      
+      
+      
+      
+      setVolume = volume != mVolume;
+      volume = mVolume;
     }
 
+    if (setVolume) {
+      MonitorAutoEnter audioMon(mAudioMonitor);
+      if (mAudioStream) {
+        mAudioStream->SetVolume(volume);
+      }
+    }
     NS_ASSERTION(mReader->mAudioQueue.GetSize() > 0,
                  "Should have data to play");
     
@@ -674,16 +689,8 @@ nsHTMLMediaElement::NextFrameStatus nsBuiltinDecoderStateMachine::GetNextFrameSt
 void nsBuiltinDecoderStateMachine::SetVolume(float volume)
 {
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
-  {
-    MonitorAutoEnter audioMon(mAudioMonitor);
-    if (mAudioStream) {
-      mAudioStream->SetVolume(volume);
-    }
-  }
-  {
-    MonitorAutoEnter mon(mDecoder->GetMonitor());
-    mVolume = volume;
-  }
+  MonitorAutoEnter mon(mDecoder->GetMonitor());
+  mVolume = volume;
 }
 
 float nsBuiltinDecoderStateMachine::GetCurrentTime()
