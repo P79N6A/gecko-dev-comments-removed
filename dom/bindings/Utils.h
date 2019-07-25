@@ -272,10 +272,10 @@ WrapNewBindingObject(JSContext* cx, JSObject* scope, T* value, JS::Value* vp)
 
   
   
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, scope)) {
-    return false;
-  }
+  
+  
+  
+  MOZ_ASSERT(js::IsObjectInContextCompartment(scope, cx));
   *vp = JS::ObjectValue(*obj);
   return JS_WrapValue(cx, vp);
 }
