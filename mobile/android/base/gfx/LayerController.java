@@ -343,6 +343,10 @@ public class LayerController implements Tabs.OnTabsChangedListener {
 
 
     public PointF convertViewPointToLayerPoint(PointF viewPoint) {
+        if (mLayerClient == null) {
+            return null;
+        }
+
         ImmutableViewportMetrics viewportMetrics = mViewportMetrics;
         PointF origin = viewportMetrics.getOrigin();
         float zoom = viewportMetrics.zoomFactor;
