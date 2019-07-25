@@ -665,11 +665,9 @@ Engine.prototype = {
     let keys = this._json.decode(ret.responseText);
 
     
-    let hash = Utils.sha1(username);
     let serverURL = Utils.prefs.getCharPref("serverURL");
-
     try {
-      DAV.defaultPrefix = "user/" + hash + "/";  
+      DAV.defaultPrefix = "user/" + username + "/";  
       DAV.GET("public/pubkey", self.cb);
       ret = yield;
     }
@@ -687,7 +685,7 @@ Engine.prototype = {
     if (!enckey)
       throw "Could not encrypt symmetric encryption key";
 
-    keys.ring[hash] = enckey;
+    keys.ring[username] = enckey;
     DAV.PUT(this.keysFile, this._json.encode(keys), self.cb);
     ret = yield;
     Utils.ensureStatus(ret.status, "Could not upload keyring file.");
