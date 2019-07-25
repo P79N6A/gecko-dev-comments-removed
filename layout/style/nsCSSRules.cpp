@@ -583,9 +583,7 @@ GroupRule::AppendStyleRule(nsICSSRule* aRule)
   aRule->SetStyleSheet(mSheet);
   aRule->SetParentRule(this);
   if (mSheet) {
-    
-    
-    mSheet->SetModified(PR_TRUE);
+    mSheet->SetModifiedByChildRule();
   }
 }
 
