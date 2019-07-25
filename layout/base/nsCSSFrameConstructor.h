@@ -1328,7 +1328,6 @@ private:
                        nsStyleContext* aStyleContext);
 
 
-#ifdef MOZ_SVG
   static const FrameConstructionData* FindSVGData(Element* aElement,
                                                   nsIAtom* aTag,
                                                   PRInt32 aNameSpaceID,
@@ -1341,7 +1340,6 @@ private:
                                           const nsStyleDisplay* aStyleDisplay,
                                           nsFrameItems& aFrameItems,
                                           nsIFrame** aNewFrame);
-#endif
 
   
 

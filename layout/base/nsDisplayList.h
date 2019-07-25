@@ -2010,7 +2010,6 @@ private:
   PRInt32 mAPD, mParentAPD;
 };
 
-#ifdef MOZ_SVG
 
 
 
@@ -2044,7 +2043,6 @@ private:
   
   nsRect    mBounds;
 };
-#endif
 
 
 

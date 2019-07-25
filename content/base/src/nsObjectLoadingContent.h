@@ -195,9 +195,7 @@ class nsObjectLoadingContent : public nsImageLoadingContent
       eSupportDocuments = PR_BIT(2), 
                                      
                                      
-#ifdef MOZ_SVG
       eSupportSVG       = PR_BIT(3), 
-#endif
       eSupportClassID   = PR_BIT(4), 
       eOverrideServerType = PR_BIT(5) 
                                       
