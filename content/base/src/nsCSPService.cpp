@@ -53,6 +53,8 @@
 #include "nsIWritablePropertyBag2.h"
 #include "nsNetError.h"
 #include "nsChannelProperties.h"
+#include "nsIAsyncVerifyRedirectCallback.h"
+#include "nsAsyncRedirectVerifyHelper.h"
 
 
 PRBool CSPService::sCSPEnabled = PR_TRUE;
@@ -203,10 +205,13 @@ CSPService::ShouldProcess(PRUint32         aContentType,
 
 
 NS_IMETHODIMP
-CSPService::OnChannelRedirect(nsIChannel *oldChannel,
-                              nsIChannel *newChannel,
-                              PRUint32   flags)
+CSPService::AsyncOnChannelRedirect(nsIChannel *oldChannel,
+                                   nsIChannel *newChannel,
+                                   PRUint32 flags,
+                                   nsIAsyncVerifyRedirectCallback *callback)
 {
+  nsAsyncRedirectAutoCallback autoCallback(callback);
+
   
   nsCOMPtr<nsISupports> policyContainer;
   nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(oldChannel));
@@ -257,19 +262,22 @@ CSPService::OnChannelRedirect(nsIChannel *oldChannel,
     nsCAutoString newUriSpec("None");
     newUri->GetSpec(newUriSpec);
     PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-           ("CSPService::OnChannelRedirect called for %s", newUriSpec.get()));
+           ("CSPService::AsyncOnChannelRedirect called for %s",
+            newUriSpec.get()));
   }
   if (aDecision == 1)
     PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-           ("CSPService::OnChannelRedirect ALLOWING request."));
+           ("CSPService::AsyncOnChannelRedirect ALLOWING request."));
   else
     PR_LOG(gCspPRLog, PR_LOG_DEBUG,
-           ("CSPService::OnChannelRedirect CANCELLING request."));
+           ("CSPService::AsyncOnChannelRedirect CANCELLING request."));
 #endif
 
   
-  if (aDecision != 1)
+  if (aDecision != 1) {
+    autoCallback.DontCallback();
     return NS_BINDING_FAILED;
+  }
 
   
   

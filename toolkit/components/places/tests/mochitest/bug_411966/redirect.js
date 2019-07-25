@@ -111,11 +111,12 @@ StreamListener.prototype = {
   },
 
   
-  onChannelRedirect: function (aOldChannel, aNewChannel, aFlags) {
+  asyncOnChannelRedirect: function (aOldChannel, aNewChannel, aFlags, callback) {
     netscape.security.PrivilegeManager.enablePrivilege('UniversalXPConnect');
     ghist3.addDocumentRedirect(aOldChannel, aNewChannel, aFlags, true);
     
     this.mChannel = aNewChannel;
+    callback.onRedirectVerifyCallback(Components.results.NS_OK);
   },
 
   
