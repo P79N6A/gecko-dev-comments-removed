@@ -231,30 +231,50 @@ public:
 
     bool GetAccessibilityEnabled();
 
-    struct AutoLocalJNIFrame {
-        AutoLocalJNIFrame(int nEntries = 128) : mEntries(nEntries) {
-            
-            
-            
-            AndroidBridge::Bridge()->JNI()->PushLocalFrame(mEntries + 1);
+    class AutoLocalJNIFrame {
+    public:
+        AutoLocalJNIFrame(int nEntries = 128)
+            : mEntries(nEntries)
+            , mJNIEnv(JNI())
+        {
+            Push();
         }
+
+        AutoLocalJNIFrame(JNIEnv* aJNIEnv, int nEntries = 128)
+            : mEntries(nEntries)
+            , mJNIEnv(aJNIEnv ? aJNIEnv : JNI())
+        {
+            Push();
+        }
+
         
         
         
         void Purge() {
-            AndroidBridge::Bridge()->JNI()->PopLocalFrame(NULL);
-            AndroidBridge::Bridge()->JNI()->PushLocalFrame(mEntries);
+            mJNIEnv->PopLocalFrame(NULL);
+            Push();
         }
+
         ~AutoLocalJNIFrame() {
-            jthrowable exception =
-                AndroidBridge::Bridge()->JNI()->ExceptionOccurred();
+            jthrowable exception = mJNIEnv->ExceptionOccurred();
             if (exception) {
-                AndroidBridge::Bridge()->JNI()->ExceptionDescribe();
-                AndroidBridge::Bridge()->JNI()->ExceptionClear();
+                mJNIEnv->ExceptionDescribe();
+                mJNIEnv->ExceptionClear();
             }
-            AndroidBridge::Bridge()->JNI()->PopLocalFrame(NULL);
+
+            mJNIEnv->PopLocalFrame(NULL);
         }
+
+    private:
+        void Push() {
+            
+            
+            
+            mJNIEnv->PushLocalFrame(mEntries + 1);
+        }
+
         int mEntries;
+        JNIEnv* mJNIEnv;
     };
 
     
