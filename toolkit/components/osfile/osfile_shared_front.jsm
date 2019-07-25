@@ -81,19 +81,21 @@ AbstractFile.prototype = {
 
 
 
-  readTo: function readTo(buffer, bytes, options) {
+
+
+  readTo: function readTo(buffer, options) {
     options = options || noOptions;
 
-    let pointer = AbstractFile.normalizeToPointer(buffer, bytes,
+    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes,
       options.offset);
     let pos = 0;
     while (pos < bytes) {
-      let chunkSize = this._read(pointer, bytes - pos, options);
+      let chunkSize = this._read(ptr, bytes - pos, options);
       if (chunkSize == 0) {
         break;
       }
       pos += chunkSize;
-      pointer = exports.OS.Shared.offsetBy(pointer, chunkSize);
+      ptr = exports.OS.Shared.offsetBy(ptr, chunkSize);
     }
 
     return pos;
@@ -117,17 +119,19 @@ AbstractFile.prototype = {
 
 
 
-  write: function write(buffer, bytes, options) {
+
+
+  write: function write(buffer, options) {
     options = options || noOptions;
 
-    let pointer = AbstractFile.normalizeToPointer(buffer, bytes,
+    let {ptr, bytes} = AbstractFile.normalizeToPointer(buffer, options.bytes,
       options.offset);
 
     let pos = 0;
     while (pos < bytes) {
-      let chunkSize = this._write(pointer, bytes - pos, options);
+      let chunkSize = this._write(ptr, bytes - pos, options);
       pos += chunkSize;
-      pointer = exports.OS.Shared.offsetBy(pointer, chunkSize);
+      ptr = exports.OS.Shared.offsetBy(ptr, chunkSize);
     }
     return pos;
   }
@@ -162,8 +166,14 @@ AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes, 
       throw new TypeError("Expecting a non-null pointer");
     }
     ptr = exports.OS.Shared.Type.uint8_t.out_ptr.cast(candidate);
+    if (bytes == null) {
+      throw new TypeError("C pointer missing bytes indication.");
+    }
   } else if ("byteLength" in candidate) {
     ptr = exports.OS.Shared.Type.uint8_t.out_ptr.implementation(candidate);
+    if (bytes == null) {
+      bytes = candidate.byteLength - offset;
+    }
     if (candidate.byteLength < offset + bytes) {
       throw new TypeError("Buffer is too short. I need at least " +
                          (offset + bytes) +
@@ -177,7 +187,7 @@ AbstractFile.normalizeToPointer = function normalizeToPointer(candidate, bytes, 
   if (offset != 0) {
     ptr = exports.OS.Shared.offsetBy(ptr, offset);
   }
-  return ptr;
+  return {ptr: ptr, bytes: bytes};
 };
 
 
