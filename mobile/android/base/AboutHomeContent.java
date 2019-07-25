@@ -511,10 +511,28 @@ public class AboutHomeContent extends ScrollView {
     }
 
     private void readLastTabs(final Activity activity) {
-        
-        
-        
-        final String sessionFilename = "sessionstore." + (GeckoApp.mAppContext.sIsGeckoReady ? "bak" : "js");
+        final String sessionFilename;
+        if (!GeckoApp.sIsGeckoReady) {
+            File profileDir = GeckoApp.mAppContext.getProfileDir();
+            if (profileDir == null)
+                return;
+
+            if (new File(profileDir, "sessionstore.js").exists()) {
+                
+                sessionFilename = "sessionstore.js";
+            } else if (new File(profileDir, "sessionstore.bak").exists()) {
+                
+                sessionFilename = "sessionstore.bak";
+            } else {
+                
+                return;
+            }
+        } else {
+            
+            
+            sessionFilename = "sessionstore.bak";
+        }
+
         final JSONArray tabs;
         String jsonString = readJSONFile(activity, sessionFilename);
         if (jsonString == null)

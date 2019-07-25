@@ -94,20 +94,15 @@ SessionStore.prototype = {
     this._loadState = STATE_STOPPED;
 
     try {
-      if (this._sessionFileBackup.exists()) {
-        this._shouldRestore = true;
-        this._sessionFileBackup.remove(false);
-      }
-
       if (this._sessionFile.exists()) {
+        
         
         this._lastSessionTime = this._sessionFile.lastModifiedTime;
         let delta = Date.now() - this._lastSessionTime;
         let timeout = Services.prefs.getIntPref("browser.sessionstore.resume_from_crash_timeout");
-        if (delta > (timeout * 60000))
-          this._shouldRestore = false;
-
-        this._sessionFile.copyTo(null, this._sessionFileBackup.leafName);
+        
+        this._shouldRestore = (delta <= (timeout * 60000));
+        this._sessionFile.clone().moveTo(null, this._sessionFileBackup.leafName);
       }
 
       if (!this._sessionCache.exists() || !this._sessionCache.isDirectory())
@@ -241,8 +236,10 @@ SessionStore.prototype = {
         this._loadState = STATE_QUITTING;
 
         
-        if (this._sessionFileBackup.exists())
-          this._sessionFileBackup.remove(false);
+        
+        
+        if (this._sessionFile.exists())
+          this._sessionFile.moveTo(null, this._sessionFileBackup.leafName);
 
         observerService.removeObserver(this, "domwindowopened");
         observerService.removeObserver(this, "domwindowclosed");
