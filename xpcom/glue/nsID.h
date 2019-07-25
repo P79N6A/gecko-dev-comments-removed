@@ -55,8 +55,9 @@ struct nsID {
 
 
 
+
   
-  PRUint32 m0;
+  NS_DEFINE_ALIGNED(PRUint32, m0, 8);
   PRUint16 m1;
   PRUint16 m2;
   PRUint8 m3[8];
@@ -73,6 +74,8 @@ struct nsID {
 
 
   inline PRBool Equals(const nsID& other) const {
+    PR_STATIC_ASSERT(sizeof(nsID) == 64);
+
     
     return
       ((PRUint64*)(void*) &m0)[0] == ((PRUint64*)(void*) &other.m0)[0] &&
