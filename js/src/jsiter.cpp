@@ -404,8 +404,10 @@ GetCustomIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
         return false;
 
     
-    if (vp->isUndefined())
+    if (!vp->isObject()) {
+        vp->setUndefined();
         return true;
+    }
 
     
     LeaveTrace(cx);
