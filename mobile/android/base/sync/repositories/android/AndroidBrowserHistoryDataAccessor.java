@@ -2,53 +2,21 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.repositories.android;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.mozilla.gecko.db.BrowserContract;
+import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.domain.HistoryRecord;
 import org.mozilla.gecko.sync.repositories.domain.Record;
 
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
 
-public class AndroidBrowserHistoryDataAccessor extends AndroidBrowserRepositoryDataAccessor {
+public class AndroidBrowserHistoryDataAccessor extends
+    AndroidBrowserRepositoryDataAccessor {
 
   private AndroidBrowserHistoryDataExtender dataExtender;
 
@@ -56,7 +24,7 @@ public class AndroidBrowserHistoryDataAccessor extends AndroidBrowserRepositoryD
     super(context);
     dataExtender = new AndroidBrowserHistoryDataExtender(context);
   }
-  
+
   public AndroidBrowserHistoryDataExtender getHistoryDataExtender() {
     return dataExtender;
   }
@@ -70,15 +38,16 @@ public class AndroidBrowserHistoryDataAccessor extends AndroidBrowserRepositoryD
   protected ContentValues getContentValues(Record record) {
     ContentValues cv = new ContentValues();
     HistoryRecord rec = (HistoryRecord) record;
-    cv.put(BrowserContract.History.GUID,          rec.guid);
-    cv.put(BrowserContract.History.TITLE,         rec.title);
-    cv.put(BrowserContract.History.URL,           rec.histURI);
+    cv.put(BrowserContract.History.GUID, rec.guid);
+    cv.put(BrowserContract.History.TITLE, rec.title);
+    cv.put(BrowserContract.History.URL, rec.histURI);
     if (rec.visits != null) {
       JSONArray visits = rec.visits;
       long mostRecent = 0;
       for (int i = 0; i < visits.size(); i++) {
         JSONObject visit = (JSONObject) visits.get(i);
-        long visitDate = (Long) visit.get(AndroidBrowserHistoryRepositorySession.KEY_DATE);
+        long visitDate = (Long) visit
+            .get(AndroidBrowserHistoryRepositorySession.KEY_DATE);
         if (visitDate > mostRecent) {
           mostRecent = visitDate;
         }
@@ -94,13 +63,13 @@ public class AndroidBrowserHistoryDataAccessor extends AndroidBrowserRepositoryD
   protected String[] getAllColumns() {
     return BrowserContractHelpers.HistoryColumns;
   }
-  
+
   @Override
   public Uri insert(Record record) {
     HistoryRecord rec = (HistoryRecord) record;
-    Log.d(LOG_TAG, "Storing visits for " + record.guid);
+    Logger.debug(LOG_TAG, "Storing visits for " + record.guid);
     dataExtender.store(record.guid, rec.visits);
-    Log.d(LOG_TAG, "Storing record " + record.guid);
+    Logger.debug(LOG_TAG, "Storing record " + record.guid);
     return super.insert(record);
   }
 
@@ -108,17 +77,17 @@ public class AndroidBrowserHistoryDataAccessor extends AndroidBrowserRepositoryD
   public void update(String oldGUID, Record newRecord) {
     HistoryRecord rec = (HistoryRecord) newRecord;
     String newGUID = newRecord.guid;
-    Log.d(LOG_TAG, "Storing visits for " + newGUID + ", replacing " + oldGUID);
+    Logger.debug(LOG_TAG, "Storing visits for " + newGUID + ", replacing " + oldGUID);
     dataExtender.delete(oldGUID);
     dataExtender.store(newGUID, rec.visits);
     super.update(oldGUID, newRecord);
   }
 
   @Override
-  protected void delete(String guid) {
-    Log.d(LOG_TAG, "Deleting record " + guid);
-    super.delete(guid);
+  public int purgeGuid(String guid) {
+    Logger.debug(LOG_TAG, "Purging record with " + guid);
     dataExtender.delete(guid);
+    return super.purgeGuid(guid);
   }
 
   public void closeExtender() {

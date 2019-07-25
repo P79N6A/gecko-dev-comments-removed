@@ -61,8 +61,19 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
   }
 
   protected abstract String[] getAllColumns();
+
+  
+
+
+
+
+
   protected abstract ContentValues getContentValues(Record record);
+
   protected abstract Uri getUri();
+
+  
+
 
   public void dumpDB() {
     Cursor cur = null;
@@ -83,36 +94,34 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
 
   public void wipe() {
     Uri uri = getUri();
-    Logger.info(LOG_TAG, "wiping: " + uri);
+    Logger.debug(LOG_TAG, "Wiping: " + uri);
     context.getContentResolver().delete(uri, null, null);
   }
-  
+
   public void purgeDeleted() throws NullCursorException {
     String where = BrowserContract.SyncColumns.IS_DELETED + "= 1";
-    Cursor cur = queryHelper.safeQuery(".purgeDeleted", GUID_COLUMNS, where, null, null);
-
-    try {
-      if (!cur.moveToFirst()) {
-        return;
-      }
-      while (!cur.isAfterLast()) {
-        delete(RepoUtils.getStringFromCursor(cur, BrowserContract.SyncColumns.GUID));
-        cur.moveToNext();
-      }
-    } finally {
-      cur.close();
-    }
+    Uri uri = getUri();
+    Logger.info(LOG_TAG, "Purging deleted from: " + uri);
+    context.getContentResolver().delete(uri, where, null);
   }
+
   
-  protected void delete(String guid) {
+
+
+
+
+
+
+
+  public int purgeGuid(String guid) {
     String where  = BrowserContract.SyncColumns.GUID + " = ?";
     String[] args = new String[] { guid };
 
     int deleted = context.getContentResolver().delete(getUri(), where, args);
-    if (deleted == 1) {
-      return;
+    if (deleted != 1) {
+      Logger.warn(LOG_TAG, "Unexpectedly deleted " + deleted + " records for guid " + guid);
     }
-    Logger.warn(LOG_TAG, "Unexpectedly deleted " + deleted + " rows for guid " + guid);
+    return deleted;
   }
 
   public void update(String guid, Record newRecord) {
@@ -137,11 +146,13 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
 
 
 
+
   public Cursor fetchAll() throws NullCursorException {
     return queryHelper.safeQuery(".fetchAll", getAllColumns(), null, null, null);
   }
+
   
-  
+
 
 
 
@@ -164,6 +175,7 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
 
 
 
+
   public Cursor fetchSince(long timestamp) throws NullCursorException {
     return queryHelper.safeQuery(".fetchSince",
                                  getAllColumns(),
@@ -172,6 +184,7 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
   }
 
   
+
 
 
 
@@ -196,17 +209,6 @@ public abstract class AndroidBrowserRepositoryDataAccessor {
     }
     builder.append(")");
     return builder.toString();
-  }
-
-  public void delete(Record record) {
-    String where  = BrowserContract.SyncColumns.GUID + " = ?";
-    String[] args = new String[] { record.guid };
-
-    int deleted = context.getContentResolver().delete(getUri(), where, args);
-    if (deleted == 1) {
-      return;
-    }
-    Logger.warn(LOG_TAG, "Unexpectedly deleted " + deleted + " rows for guid " + record.guid);
   }
 
   public void updateByGuid(String guid, ContentValues cv) {

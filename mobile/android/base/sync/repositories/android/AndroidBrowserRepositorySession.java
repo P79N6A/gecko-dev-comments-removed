@@ -491,7 +491,7 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
   protected void storeRecordDeletion(final Record record) {
     
     
-    dbHelper.delete(record);      
+    dbHelper.purgeGuid(record.guid);
     delegate.onRecordStoreSucceeded(record);
   }
 
