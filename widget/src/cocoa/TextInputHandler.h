@@ -37,8 +37,8 @@
 
 
 
-#ifndef nsCocoaTextInputHandler_h_
-#define nsCocoaTextInputHandler_h_
+#ifndef TextInputHandler_h_
+#define TextInputHandler_h_
 
 #include "nsCocoaUtils.h"
 
@@ -56,6 +56,8 @@ struct PRLogModuleInfo;
 class nsChildView;
 struct nsTextRange;
 
+namespace mozilla {
+namespace widget {
 
 
 
@@ -64,36 +66,37 @@ struct nsTextRange;
 
 
 
-class nsTISInputSource
+
+class TISInputSourceWrapper
 {
 public:
-  static nsTISInputSource& CurrentKeyboardLayout();
+  static TISInputSourceWrapper& CurrentKeyboardLayout();
 
-  nsTISInputSource()
+  TISInputSourceWrapper()
   {
     mInputSourceList = nsnull;
     Clear();
   }
 
-  nsTISInputSource(const char* aID)
+  TISInputSourceWrapper(const char* aID)
   {
     mInputSourceList = nsnull;
     InitByInputSourceID(aID);
   }
 
-  nsTISInputSource(SInt32 aLayoutID)
+  TISInputSourceWrapper(SInt32 aLayoutID)
   {
     mInputSourceList = nsnull;
     InitByLayoutID(aLayoutID);
   }
 
-  nsTISInputSource(TISInputSourceRef aInputSource)
+  TISInputSourceWrapper(TISInputSourceRef aInputSource)
   {
     mInputSourceList = nsnull;
     InitByTISInputSourceRef(aInputSource);
   }
 
-  ~nsTISInputSource() { Clear(); }
+  ~TISInputSourceWrapper() { Clear(); }
 
   void InitByInputSourceID(const char* aID);
   void InitByInputSourceID(const nsAFlatString &aID);
@@ -212,27 +215,73 @@ protected:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-class nsCocoaIMEHandler
+class TextInputHandlerBase
 {
 public:
-  nsCocoaIMEHandler();
-  virtual ~nsCocoaIMEHandler();
+  
+
+
+
+
 
   virtual void Init(nsChildView* aOwner);
 
+  
+
+
+
+
+
+
+
+
+
+
+  virtual PRBool OnDestroyView(NSView<mozView> *aDestroyingView);
+
+protected:
+  
+  
+  nsChildView* mOwnerWidget;
+
+  
+  
+  NSView<mozView>* mView;
+
+  TextInputHandlerBase();
+  virtual ~TextInputHandlerBase();
+};
+
+
+
+
+
+class PluginTextInputHandler : public TextInputHandlerBase
+{
+protected:
+  PluginTextInputHandler();
+  ~PluginTextInputHandler();
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class IMEInputHandler : public PluginTextInputHandler
+{
+public:
+  virtual PRBool OnDestroyView(NSView<mozView> *aDestroyingView);
+
   virtual void OnFocusChangeInGecko(PRBool aFocus);
-  virtual void OnDestroyView(NSView<mozView> *aDestroyingView);
 
   
 
@@ -378,14 +427,6 @@ public:
 protected:
   
   
-  nsChildView* mOwnerWidget;
-
-  
-  
-  NSView<mozView>* mView;
-
-  
-  
   
   nsCOMPtr<nsITimer> mTimer;
   enum {
@@ -394,6 +435,9 @@ protected:
     kSyncASCIICapableOnly    = 4
   };
   PRUint32 mPendingMethods;
+
+  IMEInputHandler();
+  virtual ~IMEInputHandler();
 
   PRBool IsFocused();
   void ResetTimer();
@@ -504,20 +548,23 @@ private:
   
   
   
-  static nsCocoaIMEHandler* sFocusedIMEHandler;
+  static IMEInputHandler* sFocusedIMEHandler;
 };
 
 
 
 
-class nsCocoaTextInputHandler : public nsCocoaIMEHandler
+class TextInputHandler : public IMEInputHandler
 {
 public:
   static CFArrayRef CreateAllKeyboardLayoutList();
   static void DebugPrintAllKeyboardLayouts(PRLogModuleInfo* aLogModuleInfo);
 
-  nsCocoaTextInputHandler();
-  virtual ~nsCocoaTextInputHandler();
+  TextInputHandler();
+  virtual ~TextInputHandler();
 };
+
+} 
+} 
 
 #endif 
