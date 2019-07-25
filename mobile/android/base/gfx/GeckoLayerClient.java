@@ -301,13 +301,15 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
+    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom,
+            float pageLeft, float pageTop, float pageRight, float pageBottom,
+            float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (mLayerController) {
             final ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
             currentMetrics.setOrigin(new PointF(offsetX, offsetY));
             currentMetrics.setZoomFactor(zoom);
-            currentMetrics.setPageRect(new RectF(0.0f, 0.0f, pageWidth, pageHeight),
-                                       new RectF(0.0f, 0.0f, cssPageWidth, cssPageHeight));
+            currentMetrics.setPageRect(new RectF(pageLeft, pageTop, pageRight, pageBottom),
+                                       new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom));
             
             
             
@@ -346,13 +348,14 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
 
 
-    public void setPageSize(float zoom, float pageWidth, float pageHeight, float cssPageWidth, float cssPageHeight) {
+    public void setPageRect(float zoom, float pageLeft, float pageTop, float pageRight, float pageBottom,
+            float cssPageLeft, float cssPageTop, float cssPageRight, float cssPageBottom) {
         synchronized (mLayerController) {
             
             
             
-            RectF pageRect = new RectF(0.0f, 0.0f, pageWidth, pageHeight);
-            RectF cssPageRect = new RectF(0.0f, 0.0f, cssPageWidth, cssPageHeight);
+            RectF pageRect = new RectF(pageLeft, pageTop, pageRight, pageBottom);
+            RectF cssPageRect = new RectF(cssPageLeft, cssPageTop, cssPageRight, cssPageBottom);
             float ourZoom = mLayerController.getZoomFactor();
             mLayerController.setPageRect(RectUtils.scale(pageRect, ourZoom / zoom), cssPageRect);
             
