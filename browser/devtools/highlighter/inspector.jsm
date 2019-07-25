@@ -763,6 +763,9 @@ InspectorUI.prototype = {
       this.boundRuleViewChanged = this.ruleViewChanged.bind(this);
       this.ruleView.element.addEventListener("CssRuleViewChanged",
                                              this.boundRuleViewChanged);
+      this.cssRuleViewBoundCSSLinkClicked = this.ruleViewCSSLinkClicked.bind(this);
+      this.ruleView.element.addEventListener("CssRuleViewCSSLinkClicked",
+                                             this.cssRuleViewBoundCSSLinkClicked);
 
       doc.documentElement.appendChild(this.ruleView.element);
       this.ruleView.highlight(this.selection);
@@ -803,6 +806,30 @@ InspectorUI.prototype = {
   
 
 
+
+
+
+
+  ruleViewCSSLinkClicked: function(aEvent)
+  {
+    if (!this.chromeWin) {
+      return;
+    }
+
+    let rule = aEvent.detail.rule;
+    let styleSheet = rule.sheet;
+
+    if (styleSheet) {
+      this.chromeWin.StyleEditor.openChrome(styleSheet, rule.ruleLine);
+    } else {
+      let href = rule.elementStyle.element.ownerDocument.location.href;
+      this.chromeWin.openUILinkIn("view-source:" + href, "window");
+    }
+  },
+
+  
+
+
   destroyRuleView: function IUI_destroyRuleView()
   {
     let iframe = this.getToolIframe(this.ruleViewObject);
@@ -811,6 +838,8 @@ InspectorUI.prototype = {
     if (this.ruleView) {
       this.ruleView.element.removeEventListener("CssRuleViewChanged",
                                                 this.boundRuleViewChanged);
+      this.ruleView.element.removeEventListener("CssRuleViewCSSLinkClicked",
+                                                this.cssRuleViewBoundCSSLinkClicked);
       delete boundRuleViewChanged;
       this.ruleView.clear();
       delete this.ruleView;

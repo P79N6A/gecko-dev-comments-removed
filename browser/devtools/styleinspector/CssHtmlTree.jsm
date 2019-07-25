@@ -974,4 +974,24 @@ SelectorView.prototype = {
 
     return result;
   },
+
+  
+
+
+
+
+
+
+  openStyleEditor: function(aEvent)
+  {
+    if (this.selectorInfo.selector._cssRule._cssSheet) {
+      let styleSheet = this.selectorInfo.selector._cssRule._cssSheet.domSheet;
+      let line = this.selectorInfo.ruleLine;
+
+      this.tree.win.StyleEditor.openChrome(styleSheet, line);
+    } else {
+      let href = this.selectorInfo.sourceElement.ownerDocument.location.href;
+      this.tree.win.openUILinkIn("view-source:" + href, "window");
+    }
+  },
 };

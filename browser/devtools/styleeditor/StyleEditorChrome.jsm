@@ -271,8 +271,10 @@ StyleEditorChrome.prototype = {
     }
 
     
-    for (let i = 0; i < this._listeners.length; ++i) {
-      let listener = this._listeners[i];
+    let listeners = this._listeners.concat();
+    
+    for (let i = 0; i < listeners.length; i++) {
+      let listener = listeners[i];
       let handler = listener["on" + aName];
       if (handler) {
         handler.apply(listener, aArgs);
@@ -329,10 +331,10 @@ StyleEditorChrome.prototype = {
   {
     this._resetChrome();
 
-    this._document.title = _("chromeWindowTitle",
-          this.contentDocument.title || this.contentDocument.location.href);
-
     let document = this.contentDocument;
+    this._document.title = _("chromeWindowTitle",
+      document.title || document.location.href);
+
     for (let i = 0; i < document.styleSheets.length; ++i) {
       let styleSheet = document.styleSheets[i];
 
@@ -350,6 +352,79 @@ StyleEditorChrome.prototype = {
     this._editors.forEach(function (aEditor) {
       this._window.setTimeout(aEditor.load.bind(aEditor), 0);
     }, this);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  selectStyleSheet: function SEC_selectSheet(aSheet, aLine, aCol)
+  {
+    let select = function DEC_select(aEditor) {
+      let summary = aSheet ? this.getSummaryElementForEditor(aEditor)
+                           : this._view.getSummaryElementByOrdinal(0);
+      let setCaret = false;
+
+      if (aLine || aCol) {
+        aLine = aLine || 1;
+        aCol = aCol || 1;
+        setCaret = true;
+      }
+      if (!aEditor.sourceEditor) {
+        
+        if (setCaret) {
+          aEditor.addActionListener({
+            onAttach: function SEC_selectSheet_onAttach()
+            {
+              aEditor.removeActionListener(this);
+              aEditor.sourceEditor.setCaretPosition(aLine - 1, aCol - 1);
+            }
+          });
+        }
+        this._view.activeSummary = summary;
+      } else {
+        this._view.activeSummary = summary;
+
+        
+        if (setCaret) {
+          aEditor.sourceEditor.setCaretPosition(aLine - 1, aCol - 1);
+        }
+      }
+    }.bind(this);
+
+    if (!this.editors.length) {
+      
+      
+      
+      this.addChromeListener({
+        onEditorAdded: function SEC_selectSheet_onEditorAdded(aChrome, aEditor) {
+          if ((!aSheet && aEditor.styleSheetIndex == 0) ||
+              aEditor.styleSheet == aSheet) {
+            aChrome.removeChromeListener(this);
+            select(aEditor);
+          }
+        }
+      });
+    } else if (aSheet) {
+      
+      
+      
+      for each (let editor in this.editors) {
+        if (editor.styleSheet == aSheet) {
+          select(editor);
+          break;
+        }
+      }
+    }
   },
 
   
@@ -456,8 +531,7 @@ StyleEditorChrome.prototype = {
         }, false);
 
         
-        if (editor.styleSheetIndex == 0 ||
-            editor.hasFlag(StyleEditorFlags.NEW)) {
+        if (editor.hasFlag(StyleEditorFlags.NEW)) {
           this._view.activeSummary = aSummary;
         }
 
