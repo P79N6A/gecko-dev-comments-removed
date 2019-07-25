@@ -169,29 +169,35 @@ nsSVGPointList::SetValueString(const nsAString& aValue)
               nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
   nsCOMArray<nsIDOMSVGPoint> points;
 
+  PRBool parseError = PR_FALSE;
+
   while (tokenizer.hasMoreTokens()) {
     
     NS_ConvertUTF16toUTF8 utf8String1(tokenizer.nextToken());
     const char *token1 = utf8String1.get();
     if (!tokenizer.hasMoreTokens() ||  
         *token1 == '\0') {             
-      return NS_ERROR_DOM_SYNTAX_ERR;
+      parseError = PR_TRUE;
+      break;
     }
     NS_ConvertUTF16toUTF8 utf8String2(tokenizer.nextToken());
     const char *token2 = utf8String2.get();
     if (*token2 == '\0') {             
-      return NS_ERROR_DOM_SYNTAX_ERR;
+      parseError = PR_TRUE;
+      break;
     }
 
     
     char *end;
     float x = float(PR_strtod(token1, &end));
     if (*end != '\0' || !NS_FloatIsFinite(x)) {
-      return NS_ERROR_DOM_SYNTAX_ERR;
+      parseError = PR_TRUE;
+      break;
     }
     float y = float(PR_strtod(token2, &end));
     if (*end != '\0' || !NS_FloatIsFinite(y)) {
-      return NS_ERROR_DOM_SYNTAX_ERR;
+      parseError = PR_TRUE;
+      break;
     }
 
     
@@ -201,7 +207,11 @@ nsSVGPointList::SetValueString(const nsAString& aValue)
   }
 
   if (tokenizer.lastTokenEndedWithSeparator()) { 
-    return NS_ERROR_DOM_SYNTAX_ERR;
+    parseError = PR_TRUE;
+  }
+
+  if (parseError) {
+    
   }
 
   WillModify();
