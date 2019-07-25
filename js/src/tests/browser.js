@@ -224,7 +224,8 @@ function optionsInit() {
     xml:        true,
     relimit:    true,
     methodjit:  true,
-    methodjit_always: true
+    methodjit_always: true,
+    strict_mode: true
   };
 
   
