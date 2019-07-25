@@ -235,6 +235,11 @@ private:
 
   nsRefPtr<ID3D10Texture2D> mBackBuffer;
   nsRefPtr<ID3D10Texture2D> mRemoteFrontBuffer;
+  
+
+
+
+  nsRefPtr<DummyRoot> mRootForShadowTree;
 
   
 
