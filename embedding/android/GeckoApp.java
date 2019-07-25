@@ -223,25 +223,52 @@ abstract public class GeckoApp
             surfaceView.mSplashStatusMsg =
                 getResources().getString(R.string.splash_screen_label);
         mLibLoadThread.start();
-
-        
-        if (Runtime.getRuntime().totalMemory() <= 262144L && !new File(sGREDir, "application.ini").exists()) {
+        if (IsNewInstall() && IsUnsupportedDevice()) {
             new AlertDialog.Builder(this)
-            .setMessage(R.string.incompatable_device)
-            .setCancelable(false)
-            .setPositiveButton(R.string.continue_label, null)
-            .setNegativeButton(R.string.exit_label,
-                               new DialogInterface.OnClickListener() {
-                                   public void onClick(DialogInterface dialog,
-                                                       int id)
-                                   {
-                                       GeckoApp.this.finish();
-                                       System.exit(0);
-                                   }
-                               })
-             .show();
-        }
+                .setMessage(R.string.incompatable_device)
+                .setCancelable(false)
+                .setPositiveButton(R.string.continue_label, null)
+                .setNegativeButton(R.string.exit_label,
+                                   new DialogInterface.OnClickListener() {
+                                       public void onClick(DialogInterface dialog,
+                                                           int id)
+                                       {
+                                           GeckoApp.this.finish();
+                                           System.exit(0);
+                                       }
+                                   })
+                .show();
+        }        
+    }
+
+    boolean IsNewInstall() {
+        File appIni = new File(sGREDir, "application.ini");
+        return !appIni.exists();
+    }
+
+    boolean IsUnsupportedDevice() {
         
+        File meminfo = new File("/proc/meminfo");
+        try { 
+            BufferedReader br = new BufferedReader(new FileReader(meminfo));
+            String totalMem = "";
+            while(!totalMem.contains("MemTotal:") && totalMem != null)
+                totalMem = br.readLine();
+            StringTokenizer st = new StringTokenizer(totalMem, " ");
+            st.nextToken(); 
+            totalMem = st.nextToken();
+                
+            Log.i("GeckoMemory", "MemTotal: " + Integer.parseInt(totalMem));
+            return Integer.parseInt(totalMem) <= 262144L;
+        } catch (Exception ex) {
+            
+            
+            
+            
+            
+            Log.w("GeckoMemTest", "Exception when finding total memory", ex);
+        }
+        return false;
     }
 
     @Override
