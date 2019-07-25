@@ -55,7 +55,7 @@
 
 function iQ(selector, context) {
   
-  return new iQClass( selector, context );
+  return new iQClass(selector, context);
 };
 
 
@@ -76,12 +76,12 @@ let rsingleTag = /^<(\w+)\s*\/?>(?:<\/\1>)?$/;
 let iQClass = function(selector, context) {
 
   
-  if ( !selector ) {
+  if (!selector) {
     return this;
   }
 
   
-  if ( selector.nodeType ) {
+  if (selector.nodeType) {
     this.context = selector;
     this[0] = selector;
     this.length = 1;
@@ -89,7 +89,7 @@ let iQClass = function(selector, context) {
   }
 
   
-  if ( selector === "body" && !context ) {
+  if (selector === "body" && !context) {
     this.context = document;
     this[0] = document.body;
     this.selector = "body";
@@ -98,40 +98,40 @@ let iQClass = function(selector, context) {
   }
 
   
-  if ( typeof selector === "string" ) {
+  if (typeof selector === "string") {
     
 
-    let match = quickExpr.exec( selector );
+    let match = quickExpr.exec(selector);
 
     
-    if ( match && (match[1] || !context) ) {
+    if (match && (match[1] || !context)) {
 
       
-      if ( match[1] ) {
+      if (match[1]) {
         let doc = (context ? context.ownerDocument || context : document);
 
         
         
-        let ret = rsingleTag.exec( selector );
+        let ret = rsingleTag.exec(selector);
 
-        if ( ret ) {
-          if ( Utils.isPlainObject( context ) ) {
+        if (ret) {
+          if (Utils.isPlainObject(context)) {
             Utils.assert('does not support HTML creation with context', false);
           } else {
-            selector = [ doc.createElement( ret[1] ) ];
+            selector = [doc.createElement(ret[1])];
           }
 
         } else {
             Utils.assert('does not support complex HTML creation', false);
         }
 
-        return Utils.merge( this, selector );
+        return Utils.merge(this, selector);
 
       
       } else {
-        let elem = document.getElementById( match[2] );
+        let elem = document.getElementById(match[2]);
 
-        if ( elem ) {
+        if (elem) {
           this.length = 1;
           this[0] = elem;
         }
@@ -142,20 +142,20 @@ let iQClass = function(selector, context) {
       }
 
     
-    } else if ( !context && /^\w+$/.test( selector ) ) {
+    } else if (!context && /^\w+$/.test(selector)) {
       this.selector = selector;
       this.context = document;
-      selector = document.getElementsByTagName( selector );
-      return Utils.merge( this, selector );
+      selector = document.getElementsByTagName(selector);
+      return Utils.merge(this, selector);
 
     
-    } else if ( !context || context.iq ) {
-      return (context || iQ(document)).find( selector );
+    } else if (!context || context.iq) {
+      return (context || iQ(document)).find(selector);
 
     
     
     } else {
-      return iQ( context ).find( selector );
+      return iQ(context).find(selector);
     }
 
   
@@ -171,12 +171,12 @@ let iQClass = function(selector, context) {
   }
 
   let ret = this || [];
-  if ( selector != null ) {
+  if (selector != null) {
     
     if (selector.length == null || typeof selector == "string" || selector.setInterval) {
-      Array.push( ret, selector );
+      Array.push(ret, selector);
     } else {
-      Utils.merge( ret, selector );
+      Utils.merge(ret, selector);
     }
   }
   return ret;
@@ -196,9 +196,9 @@ iQClass.prototype = {
   
   
   
-  get: function( num ) {
+  get: function(num) {
     if (num == null) 
-      return Array.slice( this, 0 );
+      return Array.slice(this, 0);
 
     
     let index = num < 0 ? num + this.length : num;
@@ -208,12 +208,12 @@ iQClass.prototype = {
   
   
   
-  each: function( callback ) {
+  each: function(callback) {
     if (typeof callback != "function") {
       Utils.assert("each's argument must be a function", false);
       return null;
     }
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       callback(this[i]);
     }
     return this;
@@ -222,17 +222,17 @@ iQClass.prototype = {
   
   
   
-  addClass: function( value ) {
-    if ( typeof value != "string" || !value ) {
+  addClass: function(value) {
+    if (typeof value != "string" || !value) {
       Utils.assert('requires a valid string argument', false);
       return null;
     }
 
     let length = this.length;
-    for ( let i = 0; i < length; i++ ) {
+    for (let i = 0; i < length; i++) {
       let elem = this[i];
-      if ( elem.nodeType === 1 ) {
-        value.split( /\s+/ ).forEach(function(className) {
+      if (elem.nodeType === 1) {
+        value.split(/\s+/).forEach(function(className) {
           elem.classList.add(className);
         });
       }
@@ -244,17 +244,17 @@ iQClass.prototype = {
   
   
   
-  removeClass: function( value ) {
-    if ( typeof value != "string" || !value ) {
+  removeClass: function(value) {
+    if (typeof value != "string" || !value) {
       Utils.assert('does not support function argument', false);
       return null;
     }
 
     let length = this.length;
-    for ( let i = 0; i < length; i++ ) {
+    for (let i = 0; i < length; i++) {
       let elem = this[i];
-      if ( elem.nodeType === 1 && elem.className ) {
-        value.split( /\s+/ ).forEach(function(className) {
+      if (elem.nodeType === 1 && elem.className) {
+        value.split(/\s+/).forEach(function(className) {
           elem.classList.remove(className);
         });
       }
@@ -266,10 +266,10 @@ iQClass.prototype = {
   
   
   
-  hasClass: function( singleClassName ) {
+  hasClass: function(singleClassName) {
     let length = this.length;
-    for ( let i = 0; i < length; i++ ) {
-      if ( this[i].classList.contains( singleClassName ) ) {
+    for (let i = 0; i < length; i++) {
+      if (this[i].classList.contains(singleClassName)) {
         return true;
       }
     }
@@ -280,24 +280,24 @@ iQClass.prototype = {
   
   
   
-  find: function( selector ) {
+  find: function(selector) {
     let ret = [];
     let length = 0;
 
     let l = this.length;
-    for ( let i = 0; i < l; i++ ) {
+    for (let i = 0; i < l; i++) {
       length = ret.length;
       try {
-        Utils.merge(ret, this[i].querySelectorAll( selector ) );
+        Utils.merge(ret, this[i].querySelectorAll(selector));
       } catch(e) {
         Utils.log('iQ.find error (bad selector)', e);
       }
 
-      if ( i > 0 ) {
+      if (i > 0) {
         
-        for ( let n = length; n < ret.length; n++ ) {
-          for ( let r = 0; r < length; r++ ) {
-            if ( ret[r] === ret[n] ) {
+        for (let n = length; n < ret.length; n++) {
+          for (let r = 0; r < length; r++) {
+            if (ret[r] === ret[n]) {
               ret.splice(n--, 1);
               break;
             }
@@ -314,10 +314,10 @@ iQClass.prototype = {
   
   remove: function(unused) {
     Utils.assert('does not accept a selector', unused === undefined);
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
-      if ( elem.parentNode ) {
-        elem.parentNode.removeChild( elem );
+      if (elem.parentNode) {
+        elem.parentNode.removeChild(elem);
       }
     }
     return this;
@@ -327,10 +327,10 @@ iQClass.prototype = {
   
   
   empty: function() {
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
-      while ( elem.firstChild ) {
-        elem.removeChild( elem.firstChild );
+      while (elem.firstChild) {
+        elem.removeChild(elem.firstChild);
       }
     }
     return this;
@@ -387,7 +387,7 @@ iQClass.prototype = {
         return null;
     }
 
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
       data = elem.iQData;
 
@@ -423,7 +423,7 @@ iQClass.prototype = {
       return this[0].textContent;
     }
 
-    return this.empty().append( (this[0] && this[0].ownerDocument || document).createTextNode(value));
+    return this.empty().append((this[0] && this[0].ownerDocument || document).createTextNode(value));
   },
 
   
@@ -468,7 +468,7 @@ iQClass.prototype = {
         Utils.assert('retrieval does not support multi-objects (or null objects)', this.length == 1);
         return this[0].getAttribute(key);
       }
-      for ( let i = 0; this[i] != null; i++ ) {
+      for (let i = 0; this[i] != null; i++) {
         this[i].setAttribute(key, value);
       }
     } catch(e) {
@@ -517,7 +517,7 @@ iQClass.prototype = {
       'height': true
     };
 
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
       for (let key in properties) {
         let value = properties[key];
@@ -571,7 +571,7 @@ iQClass.prototype = {
       this.each(function(elem){
         let cStyle = window.getComputedStyle(elem, null);
         for (let prop in css){
-          prop = prop.replace( rupper, "-$1" ).toLowerCase();
+          prop = prop.replace(rupper, "-$1").toLowerCase();
           iQ(elem).css(prop, cStyle.getPropertyValue(prop));
         }
       });
@@ -680,7 +680,7 @@ iQClass.prototype = {
       }
     };
 
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
       if (!elem.iQEventData)
         elem.iQEventData = {};
@@ -720,7 +720,7 @@ iQClass.prototype = {
   unbind: function(type, func) {
     Utils.assert('Must provide a function', typeof func == "function");
 
-    for ( let i = 0; this[i] != null; i++ ) {
+    for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
       let handler = func;
       if (elem.iQEventData && elem.iQEventData[type]) {

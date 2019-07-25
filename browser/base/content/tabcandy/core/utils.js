@@ -145,12 +145,12 @@ window.Rect.prototype = {
   
   
   
-  get xRange() new Range(this.left,this.right),
+  get xRange() new Range(this.left, this.right),
 
   
   
   
-  get yRange() new Range(this.top,this.bottom),
+  get yRange() new Range(this.top, this.bottom),
 
   
   
@@ -184,10 +184,10 @@ window.Rect.prototype = {
   
   
   contains: function(rect){
-    return( rect.left > this.left
+    return(rect.left > this.left
          && rect.right < this.right
          && rect.top > this.top
-         && rect.bottom < this.bottom )
+         && rect.bottom < this.bottom)
   },
 
   
@@ -340,7 +340,7 @@ window.Range.prototype = {
     return Utils.isNumber(value) ?
       value >= this.min && value <= this.max :
       Utils.isRange(value) ?
-        ( value.min <= this.max && this.min <= value.max ) :
+        (value.min <= this.max && this.min <= value.max) :
         false;
   },
 
@@ -515,10 +515,10 @@ window.Utils = {
   trace: function() {
     var text = this.expandArgumentsForLog(arguments);
     
-    var stack = Error().stack.replace(/^.*?\n.*?\n/,'');
+    let stack = Error().stack.replace(/^.*?\n.*?\n/, "");
     
     if (this.trace.caller.name == 'Utils_assert')
-      stack = stack.replace(/^.*?\n/,'');
+      stack = stack.replace(/^.*?\n/, "");
     this.log('trace: ' + text + '\n' + stack);
   },
 
@@ -549,7 +549,7 @@ window.Utils = {
         text = 'tabcandy assert: ' + label;
 
       
-      text += Error().stack.replace(/^.*?\n.*?\n/,'');
+      text += Error().stack.replace(/^.*?\n.*?\n/, "");
 
       throw text;
     }
@@ -644,20 +644,20 @@ window.Utils = {
   
   
   
-  isPlainObject: function( obj ) {
+  isPlainObject: function(obj) {
     
     
-    if ( !obj || Object.prototype.toString.call(obj) !== "[object Object]" 
-        || obj.nodeType || obj.setInterval ) {
+    if (!obj || Object.prototype.toString.call(obj) !== "[object Object]" 
+        || obj.nodeType || obj.setInterval) {
       return false;
     }
 
     
     const hasOwnProperty = Object.prototype.hasOwnProperty;
 
-    if ( obj.constructor
+    if (obj.constructor
       && !hasOwnProperty.call(obj, "constructor")
-      && !hasOwnProperty.call(obj.constructor.prototype, "isPrototypeOf") ) {
+      && !hasOwnProperty.call(obj.constructor.prototype, "isPrototypeOf")) {
       return false;
     }
 
@@ -665,16 +665,16 @@ window.Utils = {
     
 
     var key;
-    for ( key in obj ) {}
+    for (key in obj) {}
 
-    return key === undefined || hasOwnProperty.call( obj, key );
+    return key === undefined || hasOwnProperty.call(obj, key);
   },
 
   
   
   
-  isEmptyObject: function( obj ) {
-    for ( var name in obj )
+  isEmptyObject: function(obj) {
+    for (let name in obj)
       return false;
     return true;
   },
@@ -695,16 +695,16 @@ window.Utils = {
   
   
   
-  merge: function( first, second ) {
+  merge: function(first, second) {
     var i = first.length, j = 0;
 
-    if ( typeof second.length === "number" ) {
-      for ( let l = second.length; j < l; j++ ) {
-        first[ i++ ] = second[ j ];
+    if (typeof second.length === "number") {
+      for (let l = second.length; j < l; j++) {
+        first[i++] = second[j];
       }
     } else {
-      while ( second[j] !== undefined ) {
-        first[ i++ ] = second[ j++ ];
+      while (second[j] !== undefined) {
+        first[i++] = second[j++];
       }
     }
 
@@ -721,16 +721,16 @@ window.Utils = {
     var target = arguments[0] || {}, i = 1, length = arguments.length, options, name, src, copy;
 
     
-    if ( typeof target === "boolean" ) {
+    if (typeof target === "boolean") {
       this.assert("The first argument of extend cannot be a boolean."
-                   +"Deep copy is not supported.",false);
+                   +"Deep copy is not supported.", false);
       return target;
     }
 
     
     
-    if ( length === 1 ) {
-      this.assert("Extending the iQ prototype using extend is not supported.",false);
+    if (length === 1) {
+      this.assert("Extending the iQ prototype using extend is not supported.", false);
       return target;
     }
 
@@ -739,20 +739,20 @@ window.Utils = {
       target = {};
     }
 
-    for ( ; i < length; i++ ) {
+    for (; i < length; i++) {
       
-      if ( (options = arguments[ i ]) != null ) {
+      if ((options = arguments[i]) != null) {
         
-        for ( name in options ) {
-          src = target[ name ];
-          copy = options[ name ];
+        for (name in options) {
+          src = target[name];
+          copy = options[name];
 
           
-          if ( target === copy )
+          if (target === copy)
             continue;
 
-          if ( copy !== undefined )
-            target[ name ] = copy;
+          if (copy !== undefined)
+            target[name] = copy;
         }
       }
     }
