@@ -1518,6 +1518,13 @@ public:
   
 
 
+
+  static bool CheckForSubFrameDrop(nsIDragSession* aDragSession,
+                                   nsDragEvent* aDropEvent);
+
+  
+
+
   static bool URIIsLocalFile(nsIURI *aURI);
 
   

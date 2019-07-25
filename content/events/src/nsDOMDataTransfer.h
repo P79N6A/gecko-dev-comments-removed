@@ -100,6 +100,7 @@ protected:
                     bool aCursorState,
                     bool aIsExternal,
                     bool aUserCancelled,
+                    bool aIsCrossDomainSubFrameDrop,
                     nsTArray<nsTArray<TransferItem> >& aItems,
                     nsIDOMElement* aDragImage,
                     PRUint32 aDragImageX,
@@ -192,6 +193,10 @@ protected:
 
   
   bool mUserCancelled;
+
+  
+  
+  bool mIsCrossDomainSubFrameDrop;
 
   
   nsTArray<nsTArray<TransferItem> > mItems;
