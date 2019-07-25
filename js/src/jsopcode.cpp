@@ -1493,7 +1493,11 @@ PopOffPrec(SprintStack *ss, uint8_t prec, jsbytecode **ppc = NULL)
 
     ss->top = --top;
     off = GetOff(ss, top);
-    topcs = &js_CodeSpec[ss->opcodes[top]];
+
+    int op = ss->opcodes[top];
+    if (op >= JSOP_LIMIT)
+        op = JSOP_NOP;
+    topcs = &js_CodeSpec[op];
 
     jsbytecode *pc = ss->bytecodes[top];
     if (ppc)
