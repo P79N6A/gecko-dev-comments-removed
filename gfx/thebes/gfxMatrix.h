@@ -66,6 +66,21 @@ public:
     }
 
     
+
+
+    bool operator==(const gfxMatrix& other) const
+    {
+      return FuzzyEqual(xx, other.xx) && FuzzyEqual(yx, other.yx) &&
+             FuzzyEqual(xy, other.xy) && FuzzyEqual(yy, other.yy) &&
+             FuzzyEqual(x0, other.x0) && FuzzyEqual(y0, other.y0);
+    }
+
+    bool operator!=(const gfxMatrix& other) const
+    {
+      return !(*this == other);
+    }
+
+    
     
 
 
