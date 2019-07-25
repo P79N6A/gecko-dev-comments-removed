@@ -228,6 +228,7 @@ static NS_DEFINE_IID(kRangeCID,     NS_RANGE_CID);
 
 #include "nsIMemoryReporter.h"
 
+using namespace mozilla;
 using namespace mozilla::layers;
 using namespace mozilla::dom;
 
@@ -4907,6 +4908,24 @@ PresShell::DocumentStatesChanged(nsIDocument* aDocument,
     mFrameConstructor->PostRestyleEvent(mDocument->GetRootElement(),
                                         eRestyle_Subtree, NS_STYLE_HINT_NONE);
     VERIFY_STYLE_TREE;
+  }
+
+  if (aStateMask & NS_DOCUMENT_STATE_WINDOW_INACTIVE) {
+    nsIFrame* root = FrameManager()->GetRootFrame();
+    if (root) {
+      
+      
+      
+      
+      
+      nsIWidget* widget = root->GetNearestWidget();
+      if (widget) {
+        LayerManager* layerManager = widget->GetLayerManager();
+        if (layerManager) {
+          FrameLayerBuilder::InvalidateAllThebesLayerContents(layerManager);
+        }
+      }
+    }
   }
 }
 
