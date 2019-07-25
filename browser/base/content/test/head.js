@@ -134,15 +134,6 @@ function runSocialTestWithProvider(manifest, callback) {
     Services.prefs.setBoolPref("social.enabled", true);
 
     registerCleanupFunction(function () {
-      
-      
-      
-      
-      try {
-        SocialService.removeProvider(provider.origin, finish);
-      } catch (ex) {
-        ;
-      }
       Social.provider = oldProvider;
       Services.prefs.clearUserPref("social.enabled");
     });

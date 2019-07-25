@@ -2,7 +2,7 @@
 
 
 
-let testPort, sidebarPort, apiPort;
+let testPort, sidebarPort;
 
 onconnect = function(e) {
   let port = e.ports[0];
@@ -46,7 +46,7 @@ onconnect = function(e) {
         testPort.postMessage({topic:"got-social-panel-visibility", result: event.data.result });
         break;
       case "test-chatbox-open":
-        sidebarPort.postMessage( event.data );
+        sidebarPort.postMessage({topic:"test-chatbox-open"});
         break;
       case "chatbox-message":
         testPort.postMessage({topic:"got-chatbox-message", result: event.data.result});
@@ -63,12 +63,8 @@ onconnect = function(e) {
       case "flyout-visibility":
         testPort.postMessage({topic:"got-flyout-visibility", result: event.data.result});
         break;
-      case "test-worker-chat":
-        apiPort.postMessage({topic: "social.request-chat", data: "https://example.com/browser/browser/base/content/test/social_chat.html" });
-        break;
       case "social.initialize":
         
-        apiPort = port;
         port.postMessage({topic: "social.initialize-response"});
         let profile = {
           portrait: "https://example.com/portrait.jpg",
@@ -90,25 +86,6 @@ onconnect = function(e) {
         break;
       case "test-isVisible-response":
         testPort.postMessage({topic: "got-isVisible-response", result: event.data.result});
-        break;
-      case "social.user-recommend-prompt":
-        port.postMessage({
-          topic: "social.user-recommend-prompt-response",
-          data: {
-            images: {
-              
-              share: "browser/browser/base/content/test/social_share_image.png",
-              
-              unshare: "https://example.com/browser/browser/base/content/test/social_share_image.png"
-            },
-            messages: {
-              shareTooltip: "Share this page",
-              unshareTooltip: "Unshare this page",
-              sharedLabel: "This page has been shared",
-              unsharedLabel: "This page is no longer shared",
-            }
-          }
-        });
         break;
     }
   }

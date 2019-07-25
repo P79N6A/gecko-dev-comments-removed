@@ -48,12 +48,11 @@ function testInitial(finishcb) {
 
   let okButton = document.getElementById("editSharePopupOkButton");
   let undoButton = document.getElementById("editSharePopupUndoButton");
-  let shareStatusLabel = document.getElementById("share-button-status");
 
   
   
-  waitForCondition(function() Social.provider.profile && SocialShareButton.promptImages != null, function() {
-    is(shareButton.hasAttribute("shared"), false, "Share button should not have 'shared' attribute before share button is clicked");
+  waitForCondition(function() Social.provider.profile, function() {
+    is(shareButton.hidden, false, "share button should be visible");
     
     let profile = Social.provider.profile;
     let portrait = document.getElementById("socialUserPortrait").getAttribute("src");
@@ -63,23 +62,13 @@ function testInitial(finishcb) {
     ok(!document.getElementById("editSharePopupHeader").hidden, "user profile is visible");
   
     
-    is(shareButton.getAttribute("tooltiptext"), "Share this page", "check tooltip text is correct");
-    is(shareStatusLabel.getAttribute("value"), "", "check status label text is blank");
-    
-    is(shareButton.style.backgroundImage, 'url("https://example.com/browser/browser/base/content/test/social_share_image.png")', "check image url is correct");
-
-    
     shareButton.addEventListener("click", function listener() {
       shareButton.removeEventListener("click", listener);
       is(shareButton.hasAttribute("shared"), true, "Share button should have 'shared' attribute after share button is clicked");
-      is(shareButton.getAttribute("tooltiptext"), "Unshare this page", "check tooltip text is correct");
-      is(shareStatusLabel.getAttribute("value"), "This page has been shared", "check status label text is correct");
-      
-      is(shareButton.style.backgroundImage, 'url("https://example.com/browser/browser/base/content/test/social_share_image.png")', "check image url is correct");
       executeSoon(testSecondClick.bind(window, testPopupOKButton));
     });
     EventUtils.synthesizeMouseAtCenter(shareButton, {});
-  }, "provider didn't provide user-recommend-prompt response");
+  }, "provider didn't provide a profile");
 }
 
 function testSecondClick(nextTest) {
