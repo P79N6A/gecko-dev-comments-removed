@@ -158,10 +158,6 @@ Collection.prototype = {
         record.id = record.data.id;
         onRecord(record);
       }
-
-      
-      
-      Cu.forceGC();
     };
   }
 };
