@@ -43,7 +43,6 @@
 
 #include "assembler/assembler/MacroAssembler.h"
 #include "assembler/assembler/CodeLocation.h"
-#include "assembler/moco/MocoStubs.h"
 #include "methodjit/MethodJIT.h"
 #include "CodeGenIncludes.h"
 
@@ -101,10 +100,9 @@ struct MICInfo {
         SET
     };
 
-    typedef JSC::MacroAssembler::RegisterID RegisterID;
-
-    JSC::CodeLocationLabel fastPathStart;
-    JSC::CodeLocationLabel slowPathStart;
+    
+    JSC::CodeLocationLabel entry;
+    JSC::CodeLocationLabel stubEntry;
 
     
 
@@ -120,20 +118,16 @@ struct MICInfo {
     JSC::CodeLocationCall stubCall;
 
     
-    Kind kind : 2;
-    bool usePropertyCache : 1;
-    int inlineShapeJump : 10;   
-    int extraShapeGuard : 6;    
-    bool objConst : 1;          
-    RegisterID objReg   : 5;    
-    RegisterID shapeReg : 5;    
-    JSC::JITCode extraStub;     
-
-    int fastRejoinOffset : 16;  
-    int extraStoreOffset : 16;  
-
-    
-    ValueRemat vr;              
+    Kind kind : 3;
+    union {
+        
+        struct {
+            bool touched : 1;
+            bool typeConst : 1;
+            bool dataConst : 1;
+            bool usePropertyCache : 1;
+        } name;
+    } u;
 };
 
 struct TraceICInfo {
