@@ -852,8 +852,7 @@ nsAccessible::ChildAtPoint(PRInt32 aX, PRInt32 aY,
 
   
   
-  nsAccessible* accessible =
-    GetAccService()->GetAccessibleOrContainer(content, accDocument);
+  nsAccessible* accessible = accDocument->GetAccessibleOrContainer(content);
   if (!accessible)
     return fallbackAnswer;
 

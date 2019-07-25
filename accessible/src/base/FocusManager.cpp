@@ -287,11 +287,12 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   
   nsAccessible* target = aEvent->GetAccessible();
   if (target != mActiveItem) {
+
     
     
-    nsAccessible* DOMFocus =
-      GetAccService()->GetAccessibleOrContainer(FocusedDOMNode(),
-	                                        aEvent->GetDocAccessible());
+    nsDocAccessible* document = aEvent->GetDocAccessible();
+    nsAccessible* DOMFocus = document->GetAccessibleOrContainer(FocusedDOMNode());
+
     if (target != DOMFocus)
       return;
 

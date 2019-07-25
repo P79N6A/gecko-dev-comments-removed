@@ -197,24 +197,6 @@ public:
 
   nsAccessible* GetAccessible(nsINode* aNode, nsIPresShell* aPresShell);
 
-  
-
-
-
-
-
-
-  nsAccessible* GetAccessibleOrContainer(nsINode* aNode, nsDocAccessible* aDoc);
-
-  
-
-
-  nsAccessible* GetContainerAccessible(nsINode* aNode, nsDocAccessible* aDoc)
-  {
-    return aNode ?
-      GetAccessibleOrContainer(aNode->GetNodeParent(), aDoc) : nsnull;
-  }
-
 private:
   
   
