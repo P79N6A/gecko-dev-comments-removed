@@ -88,15 +88,17 @@ struct JSStackFrame
     JSObject            *argsobj;       
     JSObject            *scopeChain;    
     JSObject            *blockChain;    
+    void                *annotation;    
+    void                *hookData;      
+    JSVersion           callerVersion;  
 
   public:
     jsbytecode          *imacpc;        
     JSScript            *script;        
-    js::Value           thisv;          
     JSFunction          *fun;           
     uintN               argc;           
     js::Value           *argv;          
-    void                *annotation;    
+    js::Value           thisv;          
     js::Value           rval;           
 
     
@@ -108,10 +110,6 @@ struct JSStackFrame
 #endif
 
     uint32          flags;          
-
-    
-    void            *hookData;      
-    JSVersion       callerVersion;  
 
     void            *padding;
 
@@ -261,6 +259,54 @@ struct JSStackFrame
 
     void setBlockChain(JSObject *obj) {
         blockChain = obj;
+    }
+
+    
+
+    bool hasAnnotation() const {
+        return annotation != NULL;
+    }
+
+    void* getAnnotation() const {
+        JS_ASSERT(hasAnnotation());
+        return annotation;
+    }
+
+    void* maybeAnnotation() const {
+        return annotation;
+    }
+
+    void setAnnotation(void *annot) {
+        annotation = annot;
+    }
+
+    
+
+    bool hasHookData() const {
+        return hookData != NULL;
+    }
+
+    void* getHookData() const {
+        JS_ASSERT(hasHookData());
+        return hookData;
+    }
+
+    void* maybeHookData() const {
+        return hookData;
+    }
+
+    void setHookData(void *data) {
+        hookData = data;
+    }
+
+    
+
+    JSVersion getCallerVersion() const {
+        return callerVersion;
+    }
+
+    void setCallerVersion(JSVersion version) {
+        callerVersion = version;
     }
 
     
