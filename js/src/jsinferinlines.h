@@ -289,7 +289,7 @@ GetTypeCallerInitObject(JSContext *cx, JSProtoKey key)
     if (cx->typeInferenceEnabled()) {
         jsbytecode *pc;
         JSScript *script = cx->stack.currentScript(&pc);
-        if (script && script->compartment == cx->compartment)
+        if (script)
             return TypeScript::InitObject(cx, script, pc, key);
     }
     return GetTypeNewObject(cx, key);
@@ -598,8 +598,10 @@ TypeScript::MonitorUnknown(JSContext *cx, JSScript *script, jsbytecode *pc)
 TypeScript::MonitorAssign(JSContext *cx, JSScript *script, jsbytecode *pc,
                           JSObject *obj, jsid id, const js::Value &rval)
 {
-    if (cx->typeInferenceEnabled() && !obj->hasLazyType()) {
+    if (cx->typeInferenceEnabled() && !obj->hasSingletonType()) {
         
+
+
 
 
 

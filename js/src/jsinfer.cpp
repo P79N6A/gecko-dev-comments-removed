@@ -578,6 +578,40 @@ TypeSet::addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid i
 
 
 
+
+class TypeConstraintSetElement : public TypeConstraint
+{
+public:
+    JSScript *script;
+    jsbytecode *pc;
+
+    TypeSet *objectTypes;
+    TypeSet *valueTypes;
+
+    TypeConstraintSetElement(JSScript *script, jsbytecode *pc,
+                             TypeSet *objectTypes, TypeSet *valueTypes)
+        : TypeConstraint("setelement"), script(script), pc(pc),
+          objectTypes(objectTypes), valueTypes(valueTypes)
+    {
+        JS_ASSERT(script && pc);
+    }
+
+    void newType(JSContext *cx, TypeSet *source, Type type);
+};
+
+void
+TypeSet::addSetElement(JSContext *cx, JSScript *script, jsbytecode *pc,
+                       TypeSet *objectTypes, TypeSet *valueTypes)
+{
+    add(cx, ArenaNew<TypeConstraintSetElement>(cx->compartment->pool, script, pc,
+                                               objectTypes, valueTypes));
+}
+
+
+
+
+
+
 class TypeConstraintCall : public TypeConstraint
 {
 public:
@@ -830,45 +864,6 @@ TypeSet::addLazyArguments(JSContext *cx, TypeSet *target)
 
 
 
-class TypeConstraintGenerator : public TypeConstraint
-{
-public:
-    TypeSet *target;
-
-    TypeConstraintGenerator(TypeSet *target)
-        : TypeConstraint("generator"), target(target)
-    {}
-
-    void newType(JSContext *cx, TypeSet *source, Type type)
-    {
-        if (type.isUnknown() || type.isAnyObject()) {
-            target->addType(cx, Type::UnknownType());
-            return;
-        }
-
-        if (type.isPrimitive())
-            return;
-
-        
-
-
-
-        JSObject *proto = type.isTypeObject()
-            ? type.typeObject()->proto
-            : type.singleObject()->getProto();
-
-        if (proto) {
-            Class *clasp = proto->getClass();
-            if (clasp == &js_IteratorClass || clasp == &js_GeneratorClass)
-                target->addType(cx, Type::UnknownType());
-        }
-    }
-};
-
-
-
-
-
 
 static inline TypeObject *
 GetPropertyObject(JSContext *cx, JSScript *script, Type type)
@@ -1035,6 +1030,16 @@ TypeConstraintCallProp::newType(JSContext *cx, TypeSet *source, Type type)
             types->add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool,
                                                                  script, callpc, type));
         }
+    }
+}
+
+void
+TypeConstraintSetElement::newType(JSContext *cx, TypeSet *source, Type type)
+{
+    if (type.isUnknown() ||
+        type.isPrimitive(JSVAL_TYPE_INT32) ||
+        type.isPrimitive(JSVAL_TYPE_DOUBLE)) {
+        objectTypes->addSetProperty(cx, script, pc, valueTypes, JSID_VOID);
     }
 }
 
@@ -3475,7 +3480,7 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
 
       case JSOP_SETELEM:
       case JSOP_SETHOLE:
-        poppedTypes(pc, 2)->addSetProperty(cx, script, pc, poppedTypes(pc, 0), JSID_VOID);
+        poppedTypes(pc, 1)->addSetElement(cx, script, pc, poppedTypes(pc, 2), poppedTypes(pc, 0));
         poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         break;
 
@@ -3697,34 +3702,19 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
           if (!state.forTypes)
               return false;
         }
-        poppedTypes(pc, 0)->addSubset(cx, state.forTypes);
 
         if (pc[1] & JSITER_FOREACH)
             state.forTypes->addType(cx, Type::UnknownType());
-
-        
-
-
-
-
-        pushed[0].addSubset(cx, state.forTypes);
-
+        else
+            state.forTypes->addType(cx, Type::StringType());
         break;
       }
 
       case JSOP_ITERNEXT:
-        
-
-
-
-
-        pushed[0].addType(cx, Type::StringType());
-        state.forTypes->add(cx,
-            ArenaNew<TypeConstraintGenerator>(cx->compartment->pool, &pushed[0]));
+        state.forTypes->addSubset(cx, &pushed[0]);
         break;
 
       case JSOP_MOREITER:
-        poppedTypes(pc, 0)->addSubset(cx, &pushed[0]);
         pushed[1].addType(cx, Type::BooleanType());
         break;
 
@@ -3920,7 +3910,12 @@ ScriptAnalysis::analyzeTypes(JSContext *cx)
 
     TypeResult *result = script->types->dynamicList;
     while (result) {
-        pushedTypes(result->offset)->addType(cx, result->type);
+        if (result->offset != uint32(-1)) {
+            pushedTypes(result->offset)->addType(cx, result->type);
+        } else {
+            
+            state.forTypes->addType(cx, Type::UnknownType());
+        }
         result = result->next;
     }
 
@@ -4574,17 +4569,57 @@ MarkIteratorUnknownSlow(JSContext *cx)
     if (!script || !pc)
         return;
 
+    UntrapOpcode untrap(cx, script, pc);
+
+    if (JSOp(*pc) != JSOP_ITER)
+        return;
+
+    AutoEnterTypeInference enter(cx);
+
     
 
 
 
-    if (script->compartment != cx->compartment)
+
+
+
+
+
+    TypeResult *result = script->types->dynamicList;
+    while (result) {
+        if (result->offset == uint32(-1)) {
+            
+            JS_ASSERT(result->type.isUnknown());
+            return;
+        }
+    }
+
+    InferSpew(ISpewOps, "externalType: customIterator #%u", script->id());
+
+    result = cx->new_<TypeResult>(uint32(-1), Type::UnknownType());
+    if (!result) {
+        cx->compartment->types.setPendingNukeTypes(cx);
+        return;
+    }
+    result->next = script->types->dynamicList;
+    script->types->dynamicList = result;
+
+    if (!script->hasAnalysis() || !script->analysis()->ranInference())
         return;
 
-    js::analyze::UntrapOpcode untrap(cx, script, pc);
+    ScriptAnalysis *analysis = script->analysis();
 
-    if (JSOp(*pc) == JSOP_ITER)
-        TypeDynamicResult(cx, script, pc, Type::UnknownType());
+    for (unsigned i = 0; i < script->length; i++) {
+        jsbytecode *pc = script->code + i;
+        if (!analysis->maybeCode(pc))
+            continue;
+        if (js_GetOpcode(cx, script, pc) == JSOP_ITERNEXT)
+            analysis->pushedTypes(pc, 0)->addType(cx, Type::UnknownType());
+    }
+
+    
+    if (script->hasFunction && !script->function()->hasLazyType())
+        ObjectStateChange(cx, script->function()->type(), false, true);
 }
 
 void

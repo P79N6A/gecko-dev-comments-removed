@@ -434,6 +434,8 @@ class TypeSet
     void addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
                         TypeSet *target, jsid id);
     void addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id);
+    void addSetElement(JSContext *cx, JSScript *script, jsbytecode *pc,
+                       TypeSet *objectTypes, TypeSet *valueTypes);
     void addCall(JSContext *cx, TypeCallsite *site);
     void addArith(JSContext *cx, TypeSet *target, TypeSet *other = NULL);
     void addTransformThis(JSContext *cx, JSScript *script, TypeSet *target);

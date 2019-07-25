@@ -355,15 +355,6 @@ GetCustomIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
     }
 
     
-
-
-
-
-
-    if (!(flags & JSITER_OWNONLY))
-        types::MarkIteratorUnknown(cx);
-
-    
     LeaveTrace(cx);
     Value arg = BooleanValue((flags & JSITER_FOREACH) == 0);
     if (!ExternalInvoke(cx, ObjectValue(*obj), *vp, 1, &arg, vp))
@@ -579,6 +570,7 @@ GetIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
             if (!iterobj)
                 return false;
             vp->setObject(*iterobj);
+            types::MarkIteratorUnknown(cx);
             return true;
         }
 
@@ -646,12 +638,16 @@ GetIterator(JSContext *cx, JSObject *obj, uintN flags, Value *vp)
         }
 
       miss:
-        if (obj->isProxy())
+        if (obj->isProxy()) {
+            types::MarkIteratorUnknown(cx);
             return JSProxy::iterate(cx, obj, flags, vp);
+        }
         if (!GetCustomIterator(cx, obj, flags, vp))
             return false;
-        if (!vp->isUndefined())
+        if (!vp->isUndefined()) {
+            types::MarkIteratorUnknown(cx);
             return true;
+        }
     }
 
     
