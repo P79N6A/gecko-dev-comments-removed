@@ -1007,7 +1007,7 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   if (GetStyleBorder()->mBoxShadow) {
     nsresult rv = aLists.BorderBackground()->AppendNewToTop(new (aBuilder)
-        nsDisplayBoxShadowOuter(this));
+        nsDisplayBoxShadowOuter(aBuilder, this));
     NS_ENSURE_SUCCESS(rv, rv);
   }
 
@@ -1031,14 +1031,12 @@ nsFileControlFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   
   
   
-  
-  
   if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) && 
       IsVisibleForPainting(aBuilder)) {
-    nsDisplayItem* item = new (aBuilder) nsDisplayEventReceiver(this);
-    if (!item)
-      return NS_ERROR_OUT_OF_MEMORY;
-    aLists.Content()->AppendToTop(item);
+    rv = aLists.Content()->AppendNewToTop(
+        new (aBuilder) nsDisplayEventReceiver(aBuilder, this));
+    if (NS_FAILED(rv))
+      return rv;
   }
 
   return DisplaySelectionOverlay(aBuilder, aLists);

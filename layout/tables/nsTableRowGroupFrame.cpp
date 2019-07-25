@@ -166,7 +166,9 @@ nsTableRowGroupFrame::InitRepeatedFrame(nsPresContext*        aPresContext,
 
 class nsDisplayTableRowGroupBackground : public nsDisplayTableItem {
 public:
-  nsDisplayTableRowGroupBackground(nsTableRowGroupFrame* aFrame) : nsDisplayTableItem(aFrame) {
+  nsDisplayTableRowGroupBackground(nsDisplayListBuilder* aBuilder,
+                                   nsTableRowGroupFrame* aFrame) :
+    nsDisplayTableItem(aBuilder, aFrame) {
     MOZ_COUNT_CTOR(nsDisplayTableRowGroupBackground);
   }
 #ifdef NS_BUILD_REFCNT_LOGGING
@@ -261,7 +263,7 @@ nsTableRowGroupFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     
     
     
-    item = new (aBuilder) nsDisplayTableRowGroupBackground(this);
+    item = new (aBuilder) nsDisplayTableRowGroupBackground(aBuilder, this);
     nsresult rv = aLists.BorderBackground()->AppendNewToTop(item);
     NS_ENSURE_SUCCESS(rv, rv);
   }
