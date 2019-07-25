@@ -3660,3 +3660,7 @@ pref("memory.low_memory_notification_interval_ms", 10000);
 pref("memory.ghost_window_timeout_seconds", 60);
 
 pref("social.enabled", false);
+
+
+
+pref("dom.idle-observers-api.fuzz_time.disabled", true);
