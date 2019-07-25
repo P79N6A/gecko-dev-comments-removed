@@ -22,7 +22,9 @@ struct OpenTypeCMAP {
       : subtable_3_0_4_data(NULL),
         subtable_3_0_4_length(0),
         subtable_3_1_4_data(NULL),
-        subtable_3_1_4_length(0) {
+        subtable_3_1_4_length(0),
+        subtable_0_5_14_data(NULL),
+        subtable_0_5_14_length(0) {
   }
 
   
@@ -31,6 +33,9 @@ struct OpenTypeCMAP {
   
   const uint8_t *subtable_3_1_4_data;
   size_t subtable_3_1_4_length;
+  
+  const uint8_t *subtable_0_5_14_data;
+  size_t subtable_0_5_14_length;
 
   
   std::vector<OpenTypeCMAPSubtableRange> subtable_3_10_12;

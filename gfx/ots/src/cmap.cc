@@ -389,6 +389,111 @@ bool Parse31013(ots::OpenTypeFile *file,
   return true;
 }
 
+
+bool Parse0514(ots::OpenTypeFile *file,
+               const uint8_t *data, size_t length, uint16_t num_glyphs) {
+  ots::Buffer subtable(data, length);
+
+  
+  
+
+  const off_t offset_var_selector_records = 10;
+  const size_t size_of_var_selector_record = 11;
+  const size_t size_of_def_uvs_table = 4;
+  const size_t size_of_non_def_uvs_table = 5;
+
+  if (!subtable.Skip(6)) { 
+    return OTS_FAILURE();
+  }
+  uint32_t num_var_selector_records = 0;
+  if (!subtable.ReadU32(&num_var_selector_records)) {
+    return OTS_FAILURE();
+  }
+  if ((length - offset_var_selector_records) / size_of_var_selector_record <
+      num_var_selector_records) {
+    return OTS_FAILURE();
+  }
+
+  uint32_t prev_var_selector = 0;
+  for (uint32_t i = 0; i < num_var_selector_records; i++) {
+    uint32_t var_selector, def_uvs_offset, non_def_uvs_offset;
+    if (!subtable.ReadU24(&var_selector) ||
+        !subtable.ReadU32(&def_uvs_offset) ||
+        !subtable.ReadU32(&non_def_uvs_offset)) {
+      return OTS_FAILURE();
+    }
+    if (var_selector <= prev_var_selector ||
+        var_selector > kUnicodeUpperLimit ||
+        def_uvs_offset > length - 4 ||
+        non_def_uvs_offset > length - 4) {
+      return OTS_FAILURE();
+    }
+    prev_var_selector = var_selector;
+
+    if (def_uvs_offset) {
+      uint32_t num_unicode_value_ranges;
+      memcpy(&num_unicode_value_ranges, data + def_uvs_offset, 4);
+      num_unicode_value_ranges = ntohl(num_unicode_value_ranges);
+      if ((length - def_uvs_offset) / size_of_def_uvs_table <
+           num_unicode_value_ranges) {
+        return OTS_FAILURE();
+      }
+
+      const uint8_t *tables = data + def_uvs_offset + 4;
+      uint32_t prev_end_unicode = 0;
+      for (uint32_t j = 0; j < num_unicode_value_ranges;
+           j++, tables += size_of_def_uvs_table) {
+        uint32_t start_unicode = 0, end_unicode;
+        memcpy(reinterpret_cast<uint8_t*>(&start_unicode) + 1, tables, 3);
+        start_unicode = ntohl(start_unicode);
+        end_unicode = start_unicode + *(tables + 3);
+        if ((j > 0 && start_unicode <= prev_end_unicode) ||
+            end_unicode > kUnicodeUpperLimit) {
+          return OTS_FAILURE();
+        }
+        prev_end_unicode = end_unicode;
+      }
+    }
+
+    if (non_def_uvs_offset) {
+      uint32_t num_uvs_mappings;
+      memcpy(&num_uvs_mappings, data + non_def_uvs_offset, 4);
+      num_uvs_mappings = ntohl(num_uvs_mappings);
+      if ((length - non_def_uvs_offset) / size_of_non_def_uvs_table <
+          num_uvs_mappings) {
+        return OTS_FAILURE();
+      }
+
+      const uint8_t *tables = data + non_def_uvs_offset + 4;
+      uint32_t prev_unicode = 0;
+      for (uint32_t j = 0; j < num_uvs_mappings;
+           j++, tables += size_of_non_def_uvs_table) {
+        uint32_t unicode_value = 0;
+        memcpy(reinterpret_cast<uint8_t*>(&unicode_value) + 1, tables, 3);
+        unicode_value = ntohl(unicode_value);
+        if ((j > 0 && unicode_value <= prev_unicode) ||
+            unicode_value > kUnicodeUpperLimit) {
+          return OTS_FAILURE();
+        }
+        uint16_t glyph;
+        memcpy(&glyph, tables + 3, 2);
+        glyph = ntohs(glyph);
+        if (glyph >= num_glyphs) {
+          return OTS_FAILURE();
+        }
+        prev_unicode = unicode_value;
+      }
+    }
+  }
+
+  
+  
+  file->cmap->subtable_0_5_14_data = data;
+  file->cmap->subtable_0_5_14_length = length;
+
+  return true;
+}
+
 bool Parse100(ots::OpenTypeFile *file, const uint8_t *data, size_t length) {
   
   ots::Buffer subtable(data, length);
@@ -503,6 +608,11 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
           return OTS_FAILURE();
         }
         break;
+      case 14:
+        if (!table.ReadU32(&subtable_headers[i].length)) {
+          return OTS_FAILURE();
+        }
+        break;
       default:
         subtable_headers[i].length = 0;
         break;
@@ -579,6 +689,7 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
   
   
   
+  
 
   for (unsigned i = 0; i < num_tables; ++i) {
     if (subtable_headers[i].platform == 0) {
@@ -606,6 +717,12 @@ bool ots_cmap_parse(OpenTypeFile *file, const uint8_t *data, size_t length) {
         
         if (!Parse31012(file, data + subtable_headers[i].offset,
                         subtable_headers[i].length, num_glyphs)) {
+          return OTS_FAILURE();
+        }
+      } else if ((subtable_headers[i].encoding == 5) &&
+                 (subtable_headers[i].format == 14)) {
+        if (!Parse0514(file, data + subtable_headers[i].offset,
+                       subtable_headers[i].length, num_glyphs)) {
           return OTS_FAILURE();
         }
       }
@@ -664,6 +781,7 @@ bool ots_cmap_should_serialise(OpenTypeFile *file) {
 }
 
 bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
+  const bool have_0514 = file->cmap->subtable_0_5_14_data;
   const bool have_100 = file->cmap->subtable_1_0_0.size();
   const bool have_304 = file->cmap->subtable_3_0_4_data;
   
@@ -671,7 +789,8 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   const bool have_314 = (!have_304) && file->cmap->subtable_3_1_4_data;
   const bool have_31012 = file->cmap->subtable_3_10_12.size();
   const bool have_31013 = file->cmap->subtable_3_10_13.size();
-  const unsigned num_subtables = static_cast<unsigned>(have_100) +
+  const unsigned num_subtables = static_cast<unsigned>(have_0514) +
+                                 static_cast<unsigned>(have_100) +
                                  static_cast<unsigned>(have_304) +
                                  static_cast<unsigned>(have_314) +
                                  static_cast<unsigned>(have_31012) +
@@ -766,6 +885,14 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
     }
   }
 
+  const off_t offset_0514 = out->Tell();
+  if (have_0514) {
+    if (!out->Write(file->cmap->subtable_0_5_14_data,
+                    file->cmap->subtable_0_5_14_length)) {
+      return OTS_FAILURE();
+    }
+  }
+
   const off_t table_end = out->Tell();
   
   
@@ -775,6 +902,14 @@ bool ots_cmap_serialise(OTSStream *out, OpenTypeFile *file) {
   
   if (!out->Seek(record_offset)) {
     return OTS_FAILURE();
+  }
+
+  if (have_0514) {
+    if (!out->WriteU16(0) ||
+        !out->WriteU16(5) ||
+        !out->WriteU32(offset_0514 - table_start)) {
+      return OTS_FAILURE();
+    }
   }
 
   if (have_100) {
