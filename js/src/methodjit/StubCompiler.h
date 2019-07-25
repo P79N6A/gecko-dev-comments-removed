@@ -118,12 +118,14 @@ class StubCompiler
     STUB_CALL_TYPE(JSObjStub);
     STUB_CALL_TYPE(VoidStub);
     STUB_CALL_TYPE(VoidStubUInt32);
+    STUB_CALL_TYPE(VoidPtrStubUInt32);
     STUB_CALL_TYPE(BoolStub);
 
 #undef STUB_CALL_TYPE
 
     
     void linkExit(Jump j);
+    void linkExitDirect(Jump j, Label L);
 
     void leave();
     void leaveWithDepth(uint32 depth);

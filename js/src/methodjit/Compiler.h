@@ -112,6 +112,7 @@ class Compiler
     js::Vector<BranchPatch, 64> branchPatches;
     js::Vector<MICGenInfo, 64> mics;
     StubCompiler stubcc;
+    Label invokeLabel;
 
   public:
     
