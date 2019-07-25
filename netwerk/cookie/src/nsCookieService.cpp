@@ -978,33 +978,9 @@ nsCookieService::SetCookieStringInternal(nsIURI     *aHostURI,
   }
 
   
-  
-  nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
-  if (mDBState->dbConn) {
-    mDBState->stmtInsert->NewBindingParamsArray(getter_AddRefs(paramsArray));
-  }
-
-  
   nsDependentCString cookieHeader(aCookieHeader);
   while (SetCookieInternal(aHostURI, aChannel, baseDomain, requireHostMatch,
-                           cookieHeader, serverTime, aFromHttp, paramsArray));
-
-  
-  if (paramsArray) {
-    
-    PRUint32 length;
-    paramsArray->GetLength(&length);
-    if (length == 0)
-      return NS_OK;
-
-    rv = mDBState->stmtInsert->BindParameters(paramsArray);
-    NS_ASSERT_SUCCESS(rv);
-    nsCOMPtr<mozIStoragePendingStatement> handle;
-    rv = mDBState->stmtInsert->ExecuteAsync(&sInsertCookieDBListener,
-                                            getter_AddRefs(handle));
-    NS_ASSERT_SUCCESS(rv);
-  }
-
+                           cookieHeader, serverTime, aFromHttp));
   return NS_OK;
 }
 
@@ -1352,7 +1328,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
   
   
   nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
-  if (mDBState->dbConn) {
+  if (originalCookieCount == 0 && mDBState->dbConn) {
     mDBState->stmtInsert->NewBindingParamsArray(getter_AddRefs(paramsArray));
   }
 
@@ -1430,8 +1406,7 @@ nsCookieService::ImportCookies(nsIFile *aCookieFile)
       AddCookieToList(baseDomain, newCookie, paramsArray);
     }
     else {
-      AddInternal(baseDomain, newCookie, currentTimeInUsec, NULL, NULL, PR_TRUE,
-                  paramsArray);
+      AddInternal(baseDomain, newCookie, currentTimeInUsec, NULL, NULL, PR_TRUE);
     }
   }
 
@@ -1614,6 +1589,7 @@ nsCookieService::GetCookieInternal(nsIURI      *aHostURI,
   
   if (stale) {
     
+    
     nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
     mozIStorageStatement* stmt = mDBState->stmtUpdate;
     if (mDBState->dbConn) {
@@ -1685,8 +1661,7 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
                                    PRBool                         aRequireHostMatch,
                                    nsDependentCString            &aCookieHeader,
                                    PRInt64                        aServerTime,
-                                   PRBool                         aFromHttp,
-                                   mozIStorageBindingParamsArray *aParamsArray)
+                                   PRBool                         aFromHttp)
 {
   
   
@@ -1771,7 +1746,7 @@ nsCookieService::SetCookieInternal(nsIURI                        *aHostURI,
   
   
   AddInternal(aBaseDomain, cookie, PR_Now(), aHostURI, savedCookieHeader.get(),
-              aFromHttp, aParamsArray);
+              aFromHttp);
   return newCookie;
 }
 
@@ -1786,8 +1761,7 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
                              PRInt64                        aCurrentTimeInUsec,
                              nsIURI                        *aHostURI,
                              const char                    *aCookieHeader,
-                             PRBool                         aFromHttp,
-                             mozIStorageBindingParamsArray *aParamsArray)
+                             PRBool                         aFromHttp)
 {
   PRInt64 currentTime = aCurrentTimeInUsec / PR_USEC_PER_SEC;
 
@@ -1857,7 +1831,8 @@ nsCookieService::AddInternal(const nsCString               &aBaseDomain,
   }
 
   
-  AddCookieToList(aBaseDomain, aCookie, aParamsArray);
+  
+  AddCookieToList(aBaseDomain, aCookie, NULL);
   NotifyChanged(aCookie, foundCookie ? NS_LITERAL_STRING("changed").get()
                                      : NS_LITERAL_STRING("added").get());
 
@@ -2583,6 +2558,8 @@ nsCookieService::PurgeCookies(PRInt64 aCurrentTimeInUsec)
   if (!removedList)
     return;
 
+  
+  
   mozIStorageStatement *stmt = mDBState->stmtDelete;
   nsCOMPtr<mozIStorageBindingParamsArray> paramsArray;
   if (mDBState->dbConn) {
