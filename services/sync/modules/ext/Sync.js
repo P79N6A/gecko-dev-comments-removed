@@ -118,7 +118,8 @@ function Sync(func, thisArg, callback) {
     
     let callbackData = instanceCallback._(SECRET);
     while (callbackData.state == CB_READY)
-      thread.processNextEvent(true);
+      
+      eval(), thread.processNextEvent(true);
 
     
     let state = callbackData.state;
