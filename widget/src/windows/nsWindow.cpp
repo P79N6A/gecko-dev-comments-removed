@@ -447,6 +447,8 @@ nsWindow::nsWindow() : nsBaseWidget()
 
     
     nsUXThemeData::InitTitlebarInfo();
+    
+    nsUXThemeData::UpdateNativeThemeInfo();
   } 
 
   mIdleService = nsnull;
@@ -4541,6 +4543,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
     {
       
       UpdateNonClientMargins();
+      nsUXThemeData::UpdateNativeThemeInfo();
 
       DispatchStandardEvent(NS_THEMECHANGED);
 

@@ -303,8 +303,26 @@ public:
     
 
 
-    eMetric_MenuBarDrag
+    eMetric_MenuBarDrag,
+    
+
+
+    eMetric_WindowsThemeIdentifier
   } nsMetricID;
+
+  
+
+
+  enum WindowsThemeIdentifier {
+    eWindowsTheme_Generic = 0, 
+    eWindowsTheme_Classic,
+    eWindowsTheme_Aero,
+    eWindowsTheme_LunaBlue,
+    eWindowsTheme_LunaOlive,
+    eWindowsTheme_LunaSilver,
+    eWindowsTheme_Royale,
+    eWindowsTheme_Zune
+  };
 
   enum {
     eMetric_ScrollArrowStartBackward = 0x1000,
