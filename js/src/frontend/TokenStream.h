@@ -484,7 +484,7 @@ class TokenStream
 
 
 
-    TokenStream(JSContext *);
+    TokenStream(JSContext *, JSPrincipals *principals, JSPrincipals *originPrincipals);
 
     
 
@@ -825,7 +825,6 @@ class TokenStream
     void updateLineInfoForEOL();
     void updateFlagsForEOL();
 
-    JSContext           * const cx;
     Token               tokens[ntokens];
     uintN               cursor;         
     uintN               lookahead;      
@@ -843,6 +842,8 @@ class TokenStream
     JSPackedBool        maybeStrSpecial[256];
     JSVersion           version;        
     bool                xml;            
+    JSContext           *const cx;
+    JSPrincipals        *const originPrincipals;
 };
 
 struct KeywordInfo {

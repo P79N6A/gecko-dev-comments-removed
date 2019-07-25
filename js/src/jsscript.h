@@ -503,6 +503,7 @@ struct JSScript : public js::gc::Cell {
     js::Bindings    bindings;   
 
     JSPrincipals    *principals;
+    JSPrincipals    *originPrincipals; 
     jschar          *sourceMap; 
 
     
@@ -557,6 +558,12 @@ struct JSScript : public js::gc::Cell {
 
     
     js::types::TypeScript *types;
+
+#if JS_BITS_PER_WORD == 32
+  private:
+    void *padding_;
+  public:
+#endif
 
     
     inline bool ensureHasTypes(JSContext *cx);
@@ -811,6 +818,7 @@ struct JSScript : public js::gc::Cell {
     static inline void writeBarrierPost(JSScript *script, void *addr);
 };
 
+
 JS_STATIC_ASSERT(sizeof(JSScript) % js::gc::Cell::CellSize == 0);
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
@@ -895,8 +903,8 @@ enum LineOption {
     NOT_CALLED_FROM_JSOP_EVAL
 };
 
-inline const char *
-CurrentScriptFileAndLine(JSContext *cx, uintN *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
+inline void
+CurrentScriptFileLineOrigin(JSContext *cx, uintN *linenop, LineOption = NOT_CALLED_FROM_JSOP_EVAL);
 
 }
 
