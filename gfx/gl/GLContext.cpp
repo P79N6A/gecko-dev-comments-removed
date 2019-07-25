@@ -1086,8 +1086,10 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
 
     const bool useDrawMSFBO = (samples > 0);
 
-    if (!useDrawMSFBO && !aUseReadFBO)
+    if (!useDrawMSFBO && !aUseReadFBO) {
+        
         return true;
+    }
 
     const bool firstTime = (mOffscreenDrawFBO == 0 && mOffscreenReadFBO == 0);
 
@@ -1402,18 +1404,9 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
 #endif
 
     
-    
-    
-    
-    fViewport(0, 0, aSize.width, aSize.height);
-
-    
     ForceDirtyFBOs();
 
     
-    fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, GetOffscreenFBO());
-    ClearSafely();
-
     
     BindDrawFBO(curBoundFramebufferDraw);
     BindReadFBO(curBoundFramebufferRead);
@@ -1422,7 +1415,9 @@ GLContext::ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, c
 
     
     
-    if (!firstTime)
+    if (firstTime)
+        fViewport(0, 0, aSize.width, aSize.height); 
+    else
         fViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 
     return true;

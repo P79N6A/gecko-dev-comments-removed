@@ -742,13 +742,13 @@ public:
           return false;
         }
 
-        if (!aOffscreen->mOffscreenDrawFBO && !aOffscreen->mOffscreenReadFBO) {
-            return false;
-        }
-
         if (!aOffscreen->mSharedContext ||
             aOffscreen->mSharedContext != mSharedContext)
         {
+            return false;
+        }
+
+        if (!aOffscreen->mOffscreenTexture) {
             return false;
         }
 
@@ -770,7 +770,8 @@ public:
     void SetFlushGuaranteesResolve(bool aFlushGuaranteesResolve) {
         mFlushGuaranteesResolve = aFlushGuaranteesResolve;
     }
-
+    
+    
     void GuaranteeResolve() {
         if (mFlushGuaranteesResolve) {
             BlitDirtyFBOs();
@@ -1053,7 +1054,6 @@ public:
         BindReadFBO(read);
     }
 
-    
     void fFinish() {
         BeforeGLReadCall();
         raw_fFinish();
@@ -1425,6 +1425,7 @@ protected:
 
     
     
+    
     bool ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO, const bool aDisableAA);
     bool ResizeOffscreenFBO(const gfxIntSize& aSize, const bool aUseReadFBO) {
         if (ResizeOffscreenFBO(aSize, aUseReadFBO, false))
@@ -1451,7 +1452,10 @@ protected:
     
     
     
+public:
     void ClearSafely();
+
+protected:
 
     nsDataHashtable<nsVoidPtrHashKey, void*> mUserData;
 
