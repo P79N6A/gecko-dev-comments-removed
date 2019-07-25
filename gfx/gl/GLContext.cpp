@@ -126,6 +126,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         return true;
     }
 
+    mWorkAroundDriverBugs = gfxPlatform::GetPlatform()->WorkAroundDriverBugs();
+
     SymLoadStruct symbols[] = {
         { (PRFuncPtr*) &mSymbols.fActiveTexture, { "ActiveTexture", "ActiveTextureARB", NULL } },
         { (PRFuncPtr*) &mSymbols.fAttachShader, { "AttachShader", "AttachShaderARB", NULL } },
@@ -501,7 +503,8 @@ GLContext::InitWithPrefix(const char *prefix, bool trygl)
         fGetIntegerv(LOCAL_GL_MAX_RENDERBUFFER_SIZE, &mMaxRenderbufferSize);
 
 #ifdef XP_MACOSX
-        if (mVendor == VendorIntel) {
+        if (mWorkAroundDriverBugs &&
+            mVendor == VendorIntel) {
             
             mMaxTextureSize        = NS_MIN(mMaxTextureSize,        4096);
             mMaxCubeMapTextureSize = NS_MIN(mMaxCubeMapTextureSize, 512);
@@ -634,6 +637,9 @@ CopyAndPadTextureData(const GLvoid* srcBuffer,
 bool
 GLContext::CanUploadSubTextures()
 {
+    if (!mWorkAroundDriverBugs)
+        return true;
+
     
     
     if (Renderer() == RendererAdreno200 || Renderer() == RendererAdreno205)
@@ -650,6 +656,9 @@ GLContext::CanUploadSubTextures()
 bool
 GLContext::CanUploadNonPowerOfTwo()
 {
+    if (!mWorkAroundDriverBugs)
+        return true;
+
     static bool sPowerOfTwoForced;
     static bool sPowerOfTwoPrefCached = false;
 
@@ -673,7 +682,8 @@ GLContext::WantsSmallTiles()
         return true;
 
     
-    if (Renderer() == RendererSGX540)
+    if (mWorkAroundDriverBugs &&
+        Renderer() == RendererSGX540)
         return false;
 
     
@@ -2065,7 +2075,9 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     
     
     int savedFb = 0;
-    if (mVendor == VendorQualcomm) {
+    if (mWorkAroundDriverBugs &&
+        mVendor == VendorQualcomm)
+    {
         fGetIntegerv(LOCAL_GL_FRAMEBUFFER_BINDING, &savedFb);
     }
 
@@ -2200,7 +2212,8 @@ GLContext::BlitTextureImage(TextureImage *aSrc, const nsIntRect& aSrcRect,
     
     
     
-    if (mVendor == VendorQualcomm) {
+    if (mWorkAroundDriverBugs &&
+        mVendor == VendorQualcomm) {
         fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, savedFb);
     }
 
