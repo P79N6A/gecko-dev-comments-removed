@@ -2800,8 +2800,10 @@ nsCanvasRenderingContext2D::DrawOrMeasureText(const nsAString& aRawText,
     gfxContextPathAutoSaveRestore pathSR(mThebes, PR_FALSE);
 
     
-    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE)
+    if (aOp == nsCanvasRenderingContext2D::TEXT_DRAW_OPERATION_STROKE) {
         pathSR.Save();
+        mThebes->NewPath();
+    }
     
     else {
         if (doUseIntermediateSurface) {
