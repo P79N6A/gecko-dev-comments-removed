@@ -74,7 +74,7 @@ public:
 
     
     
-    void ConditionallyStopReadTimeoutTick();
+    void ConditionallyStopTimeoutTick();
 
     
     nsresult AddTransaction(nsHttpTransaction *, PRInt32 priority);
@@ -588,8 +588,8 @@ private:
     
     
     
-    nsCOMPtr<nsITimer> mReadTimeoutTick;
-    bool mReadTimeoutTickArmed;
+    nsCOMPtr<nsITimer> mTimeoutTick;
+    bool mTimeoutTickArmed;
 
     
     
@@ -606,10 +606,10 @@ private:
                                                      void *closure);
     
     void ActivateTimeoutTick();
-    void ReadTimeoutTick();
-    static PLDHashOperator ReadTimeoutTickCB(const nsACString &key,
-                                             nsAutoPtr<nsConnectionEntry> &ent,
-                                             void *closure);
+    void TimeoutTick();
+    static PLDHashOperator TimeoutTickCB(const nsACString &key,
+                                         nsAutoPtr<nsConnectionEntry> &ent,
+                                         void *closure);
 
     
     void OnMsgPrintDiagnostics(PRInt32, void *);
