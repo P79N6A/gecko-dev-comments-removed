@@ -156,10 +156,11 @@ public:
   
 
 
-  static nsDocAccessible* GetDocAccessibleFor(const nsIPresShell* aPresShell)
+  static nsDocAccessible *GetDocAccessibleFor(nsIWeakReference *aWeakShell)
   {
-    return aPresShell ?
-      GetAccService()->GetDocAccessible(aPresShell->GetDocument()) : nsnull;
+    nsCOMPtr<nsIPresShell> presShell(do_QueryReferent(aWeakShell));
+    return presShell ?
+      GetAccService()->GetDocAccessible(presShell->GetDocument()) : nsnull;
   }
 
   

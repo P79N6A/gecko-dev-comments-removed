@@ -217,18 +217,17 @@ public:
 
 
 
-
-
-
-  nsAccessible* GetAccessibleOrContainer(nsINode* aNode, nsDocAccessible* aDoc);
+  nsAccessible* GetAccessibleOrContainer(nsINode* aNode,
+                                         nsIWeakReference* aWeakShell);
 
   
 
 
-  nsAccessible* GetContainerAccessible(nsINode* aNode, nsDocAccessible* aDoc)
+  inline nsAccessible* GetContainerAccessible(nsINode* aNode,
+                                              nsIWeakReference* aWeakShell)
   {
     return aNode ?
-      GetAccessibleOrContainer(aNode->GetNodeParent(), aDoc) : nsnull;
+      GetAccessibleOrContainer(aNode->GetNodeParent(), aWeakShell) : nsnull;
   }
 
 private:
@@ -254,28 +253,28 @@ private:
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleByType(nsIContent* aContent, nsDocAccessible* aDoc);
+    CreateAccessibleByType(nsIContent* aContent, nsIWeakReference* aWeakShell);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateHTMLAccessibleByMarkup(nsIFrame* aFrame, nsIContent* aContent,
-                                 nsDocAccessible* aDoc);
+                                 nsIWeakReference* aWeakShell);
 
   
 
 
   already_AddRefed<nsAccessible>
     CreateAccessibleForDeckChild(nsIFrame* aFrame, nsIContent* aContent,
-                                 nsDocAccessible* aDoc);
+                                 nsIWeakReference* aWeakShell);
 
 #ifdef MOZ_XUL
   
 
 
   already_AddRefed<nsAccessible>
-    CreateAccessibleForXULTree(nsIContent* aContent, nsDocAccessible* aDoc);
+    CreateAccessibleForXULTree(nsIContent* aContent, nsIWeakReference* aWeakShell);
 #endif
 
   

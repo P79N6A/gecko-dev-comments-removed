@@ -71,7 +71,7 @@ class nsAccessNode: public nsISupports
 {
 public:
 
-  nsAccessNode(nsIContent* aContent, nsDocAccessible* aDoc);
+  nsAccessNode(nsIContent *aContent, nsIWeakReference *aShell);
   virtual ~nsAccessNode();
 
     NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -88,7 +88,7 @@ public:
   
 
 
-  nsDocAccessible* Document() const { return mDoc; }
+  nsDocAccessible *GetDocAccessible() const;
 
   
 
@@ -150,6 +150,16 @@ public:
   
 
 
+  already_AddRefed<nsIPresShell> GetPresShell();
+
+  
+
+
+  nsIWeakReference* GetWeakShell() const { return mWeakShell; }
+
+  
+
+
   void* UniqueID() { return static_cast<void*>(this); }
 
   
@@ -179,7 +189,7 @@ protected:
     void LastRelease();
 
   nsCOMPtr<nsIContent> mContent;
-  nsDocAccessible* mDoc;
+  nsCOMPtr<nsIWeakReference> mWeakShell;
 
     
 

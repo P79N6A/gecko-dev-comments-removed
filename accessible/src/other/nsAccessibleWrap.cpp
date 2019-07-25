@@ -42,8 +42,8 @@
 
 
 nsAccessibleWrap::
-  nsAccessibleWrap(nsIContent* aContent, nsDocAccessible* aDoc) :
-  nsAccessible(aContent, aDoc)
+  nsAccessibleWrap(nsIContent *aContent, nsIWeakReference *aShell) :
+  nsAccessible(aContent, aShell)
 {
 }
 

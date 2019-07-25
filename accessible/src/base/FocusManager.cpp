@@ -63,11 +63,8 @@ FocusManager::FocusedAccessible() const
     return mActiveItem;
 
   nsINode* focusedNode = FocusedDOMNode();
-  if (focusedNode) {
-    nsDocAccessible* doc = 
-      GetAccService()->GetDocAccessible(focusedNode->OwnerDoc());
-    return doc ? doc->GetAccessibleOrContainer(focusedNode) : nsnull;
-  }
+  if (focusedNode)
+    return GetAccService()->GetAccessibleOrContainer(focusedNode, nsnull);
 
   return nsnull;
 }
@@ -87,10 +84,8 @@ FocusManager::IsFocused(const nsAccessible* aAccessible) const
     
     
     if (focusedNode->OwnerDoc() == aAccessible->GetNode()->OwnerDoc()) {
-      nsDocAccessible* doc = 
-        GetAccService()->GetDocAccessible(focusedNode->OwnerDoc());
       return aAccessible ==
-	(doc ? doc->GetAccessibleOrContainer(focusedNode) : nsnull);
+        GetAccService()->GetAccessibleOrContainer(focusedNode, nsnull);
     }
   }
   return false;
@@ -214,7 +209,7 @@ FocusManager::ActiveItemChanged(nsAccessible* aItem, bool aCheckIfActive)
   
   nsAccessible* target = FocusedAccessible();
   if (target)
-    DispatchFocusEvent(target->Document(), target);
+    DispatchFocusEvent(target->GetDocAccessible(), target);
 }
 
 void
@@ -256,11 +251,11 @@ FocusManager::ProcessDOMFocus(nsINode* aTarget)
     GetAccService()->GetDocAccessible(aTarget->OwnerDoc());
 
   nsAccessible* target = document->GetAccessibleOrContainer(aTarget);
-  if (target && document) {
+  if (target) {
     
     
     nsAccessible* DOMFocus =
-      document->GetAccessibleOrContainer(FocusedDOMNode());
+      GetAccService()->GetAccessibleOrContainer(FocusedDOMNode(), nsnull);
     if (target != DOMFocus)
       return;
 
@@ -290,8 +285,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
     
     
     nsAccessible* DOMFocus =
-      GetAccService()->GetAccessibleOrContainer(FocusedDOMNode(),
-	                                        aEvent->GetDocAccessible());
+      GetAccService()->GetAccessibleOrContainer(FocusedDOMNode(), nsnull);
     if (target != DOMFocus)
       return;
 
@@ -347,7 +341,7 @@ FocusManager::ProcessFocusEvent(AccEvent* aEvent)
   
   
   
-  nsDocAccessible* targetDocument = target->Document();
+  nsDocAccessible* targetDocument = target->GetDocAccessible();
   nsAccessible* anchorJump = targetDocument->AnchorJump();
   if (anchorJump) {
     if (target == targetDocument) {
