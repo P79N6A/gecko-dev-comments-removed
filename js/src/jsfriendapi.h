@@ -977,6 +977,16 @@ JS_IsTypedArrayObject(JSObject *obj, JSContext *cx);
 
 
 
+
+
+
+extern JS_FRIEND_API(JSBool)
+JS_IsArrayBufferViewObject(JSObject *obj, JSContext *cx);
+
+
+
+
+
 extern JS_FRIEND_API(JSBool)
 JS_IsInt8Array(JSObject *obj, JSContext *cx);
 extern JS_FRIEND_API(JSBool)
@@ -1123,5 +1133,47 @@ JS_GetFloat64ArrayData(JSObject *obj, JSContext *cx);
 
 extern JS_FRIEND_API(void *)
 JS_GetArrayBufferViewData(JSObject *obj, JSContext *cx);
+
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+JS_IsDataViewObject(JSContext *cx, JSObject *obj, JSBool *isDataView);
+
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(uint32_t)
+JS_GetDataViewByteOffset(JSObject *obj, JSContext *cx);
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(uint32_t)
+JS_GetDataViewByteLength(JSObject *obj, JSContext *cx);
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(void *)
+JS_GetDataViewData(JSObject *obj, JSContext *cx);
 
 #endif 
