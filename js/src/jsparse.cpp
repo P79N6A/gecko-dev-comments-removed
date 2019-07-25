@@ -1489,7 +1489,7 @@ CheckStrictParameters(JSContext *cx, JSTreeContext *tc)
 
     
     for (Shape::Range r = tc->bindings.lastVariable(); !r.empty(); r.popFront()) {
-        jsid id = r.front().id;
+        jsid id = r.front().propid;
         if (!JSID_IS_ATOM(id))
             continue;
 
@@ -3730,7 +3730,7 @@ PopStatement(JSTreeContext *tc)
         JS_ASSERT(!obj->isClonedBlock());
 
         for (Shape::Range r = obj->lastProperty()->all(); !r.empty(); r.popFront()) {
-            JSAtom *atom = JSID_TO_ATOM(r.front().id);
+            JSAtom *atom = JSID_TO_ATOM(r.front().propid);
 
             
             if (atom == tc->parser->context->runtime->atomState.emptyAtom)

@@ -211,7 +211,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
             
             vword.setShape(shape);
             if (adding &&
-                pobj->shape() == shape->shape) {
+                pobj->shape() == shape->shapeid) {
                 
 
 
@@ -242,7 +242,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
                 JS_ASSERT(shape == pobj->lastProperty());
                 JS_ASSERT(!pobj->nativeEmpty());
 
-                kshape = shape->previous()->shape;
+                kshape = shape->previous()->shapeid;
 
                 
 
