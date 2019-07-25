@@ -611,22 +611,24 @@ class GatherDecls(TcheckVisitor):
 
         
         
-        tu.using = self.builtinUsing + tu.using
+        tu.builtinUsing = self.builtinUsing
+
+        
+        
+        basefilename = os.path.basename(tu.filename)
+        expectedfilename = '%s.ipdl'% (tu.name)
+        if not tu.protocol:
+            
+            expectedfilename += 'h'
+        if basefilename != expectedfilename:
+            self.error(tu.loc,
+                       "expected file for translation unit `%s' to be named `%s'; instead it's named `%s'",
+                       tu.name, expectedfilename, basefilename)
 
         if tu.protocol:
             assert tu.name == tu.protocol.name
 
             p = tu.protocol
-
-            
-            
-            basefilename = os.path.basename(tu.filename)
-            expectedfilename = '%s.ipdl'% (p.name)
-
-            if basefilename != expectedfilename:
-                self.error(p.loc,
-                           "expected file defining protocol `%s' to be named `%s'; instead it's named `%s'",
-                           p.name, expectedfilename, basefilename)
 
             
             
@@ -654,6 +656,8 @@ class GatherDecls(TcheckVisitor):
             pinc.accept(self)
 
         
+        for using in tu.builtinUsing:
+            using.accept(self)
         for using in tu.using:
             using.accept(self)
 
@@ -665,6 +669,10 @@ class GatherDecls(TcheckVisitor):
         
         for su in tu.structsAndUnions:
             su.accept(self)
+        for inc in tu.includes:
+            if inc.tu.filetype == 'header':
+                for su in inc.tu.structsAndUnions:
+                    su.accept(self)
 
         if tu.protocol:
             
@@ -712,8 +720,19 @@ class GatherDecls(TcheckVisitor):
         inc.tu.accept(self)
         if inc.tu.protocol:
             self.symtab.declare(inc.tu.protocol.decl)
+        else:
+            
+            
+            for using in inc.tu.using:
+                using.accept(self)
+            for su in inc.tu.structsAndUnions:
+                self.declareStructOrUnion(su)
 
     def visitStructDecl(self, sd):
+        
+        if hasattr(sd, 'symtab'):
+            return
+
         stype = sd.decl.type
 
         self.symtab.enterScope(sd)
@@ -736,6 +755,10 @@ class GatherDecls(TcheckVisitor):
 
     def visitUnionDecl(self, ud):
         utype = ud.decl.type
+
+        
+        if len(utype.components):
+            return
         
         for c in ud.components:
             cdecl = self.symtab.lookup(str(c))
