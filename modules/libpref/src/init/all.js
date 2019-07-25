@@ -558,7 +558,7 @@ pref("javascript.options.strict",           false);
 #ifdef DEBUG
 pref("javascript.options.strict.debug",     true);
 #endif
-pref("javascript.options.relimit",          false);
+pref("javascript.options.relimit",          true);
 pref("javascript.options.jit.content",      true);
 pref("javascript.options.jit.chrome",       true);
 
@@ -695,6 +695,25 @@ pref("network.http.pipelining.maxrequests" , 4);
 
 
 pref("network.http.prompt-temp-redirect", true);
+
+
+
+
+
+
+
+
+
+pref("network.http.qos", 0);
+
+pref("network.gopher.qos", 0);
+
+
+
+
+
+pref("network.ftp.data.qos", 0);
+pref("network.ftp.control.qos", 0);
 
 
 
@@ -1608,6 +1627,14 @@ pref("font.size.fixed.zh-HK", 16);
 
 
 pref("font.mathfont-family", "STIXNonUnicode, STIXSize1, STIXGeneral, Symbol, DejaVu Sans, Cambria Math");
+
+
+
+
+pref("gfx.font_rendering.cleartype.use_for_downloadable_fonts", true);
+
+
+pref("gfx.font_rendering.cleartype.always_use_for_content", false);
 
 pref("ui.key.menuAccessKeyFocuses", true);
 

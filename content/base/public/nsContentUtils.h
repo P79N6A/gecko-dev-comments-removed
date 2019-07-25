@@ -1354,12 +1354,6 @@ public:
 
 
 
-  static nsIAtom* IsNamedItem(Element* aElement);
-
-  
-
-
-
 
 
 
@@ -1620,6 +1614,14 @@ public:
 
   static already_AddRefed<mozilla::layers::LayerManager>
   LayerManagerForDocument(nsIDocument *aDoc);
+
+  
+
+
+
+
+
+  static PRBool IsFocusedContent(nsIContent *aContent);
 
 private:
 

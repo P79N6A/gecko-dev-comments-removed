@@ -1926,8 +1926,6 @@ PluginModuleChild::ExitedCall()
 LRESULT CALLBACK
 PluginModuleChild::CallWindowProcHook(int nCode, WPARAM wParam, LPARAM lParam)
 {
-    gDelayFlashFocusReplyUntilEval = false;
-
     
     
     if (nCode >= 0 &&

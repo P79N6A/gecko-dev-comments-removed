@@ -34,6 +34,9 @@
 
 
 
+#ifndef nsGeoLocation_h
+#define nsGeoLocation_h
+
 #ifdef MOZ_IPC
 #include "mozilla/dom/PGeolocationRequestChild.h"
 
@@ -240,3 +243,4 @@ private:
   nsRefPtr<nsGeolocationService> mService;
 };
 
+#endif 

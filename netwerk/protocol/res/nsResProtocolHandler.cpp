@@ -38,6 +38,10 @@
 
 
 
+#ifdef MOZ_IPC
+#include "mozilla/chrome/RegistryMessageUtils.h"
+#endif
+
 #include "nsResProtocolHandler.h"
 #include "nsAutoLock.h"
 #include "nsIURL.h"
@@ -53,8 +57,6 @@
 #include "nsNetUtil.h"
 #include "nsURLHelper.h"
 #include "nsEscape.h"
-
-#include "mozilla/Omnijar.h"
 
 static NS_DEFINE_CID(kResURLCID, NS_RESURL_CID);
 
@@ -257,6 +259,34 @@ nsResProtocolHandler::Init(nsIFile *aOmniJar)
     
     SetSubstitution(kGRE_RESOURCES, uri);
     return NS_OK;
+}
+#endif
+
+#ifdef MOZ_IPC
+static PLDHashOperator
+EnumerateSubstitution(const nsACString& aKey,
+                      nsIURI* aURI,
+                      void* aArg)
+{
+    nsTArray<ResourceMapping>* resources =
+            static_cast<nsTArray<ResourceMapping>*>(aArg);
+    SerializedURI uri;
+    if (aURI) {
+        aURI->GetSpec(uri.spec);
+        aURI->GetOriginCharset(uri.charset);
+    }
+
+    ResourceMapping resource = {
+        nsDependentCString(aKey), uri
+    };
+    resources->AppendElement(resource);
+    return (PLDHashOperator)PL_DHASH_NEXT;
+}
+
+void
+nsResProtocolHandler::CollectSubstitutions(nsTArray<ResourceMapping>& aResources)
+{
+    mSubstitutions.EnumerateRead(&EnumerateSubstitution, &aResources);
 }
 #endif
 

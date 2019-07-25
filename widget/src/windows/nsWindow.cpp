@@ -169,7 +169,9 @@
 #include "gfxWindowsPlatform.h"
 #include "Layers.h"
 #ifndef WINCE
+#ifdef MOZ_ENABLE_D3D9_LAYER
 #include "LayerManagerD3D9.h"
+#endif
 #include "LayerManagerOGL.h"
 #endif
 
@@ -523,10 +525,12 @@ nsWindow::Create(nsIWidget *aParent,
              aAppShell, aToolkit, aInitData);
 
   HWND parent;
-  if (nsnull != aParent) { 
-    parent = ((aParent) ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : nsnull);
+  if (aParent) { 
+    parent = aParent ? (HWND)aParent->GetNativeData(NS_NATIVE_WINDOW) : NULL;
+    mParent = aParent;
   } else { 
     parent = (HWND)aNativeParent;
+    mParent = aNativeParent ? GetNSWindowPtr((HWND)aNativeParent) : nsnull;
   }
 
   if (nsnull != aInitData) {
@@ -983,6 +987,8 @@ BOOL nsWindow::SetNSWindowPtr(HWND aWnd, nsWindow * ptr)
 
 NS_IMETHODIMP nsWindow::SetParent(nsIWidget *aNewParent)
 {
+  mParent = aNewParent;
+
   if (aNewParent) {
     nsCOMPtr<nsIWidget> kungFuDeathGrip(this);
 
@@ -2712,6 +2718,8 @@ nsIntPoint nsWindow::WidgetToScreenOffset()
 #if !defined(WINCE) 
 NS_METHOD nsWindow::EnableDragDrop(PRBool aEnable)
 {
+  NS_ASSERTION(mWnd, "nsWindow::EnableDragDrop() called after Destroy()");
+
   nsresult rv = NS_ERROR_FAILURE;
   if (aEnable) {
     if (nsnull == mNativeDragTarget) {
@@ -2731,7 +2739,7 @@ NS_METHOD nsWindow::EnableDragDrop(PRBool aEnable)
       if (S_OK == ::CoLockObjectExternal((LPUNKNOWN)mNativeDragTarget, FALSE, TRUE)) {
         rv = NS_OK;
       }
-      mNativeDragTarget->mDragCancelled = PR_TRUE;
+      mNativeDragTarget->DragCancel();
       NS_RELEASE(mNativeDragTarget);
     }
   }
@@ -2938,16 +2946,18 @@ nsWindow::GetLayerManager()
       }
       
       if (allowAcceleration) {
-        if (preferOpenGL) {
-          nsRefPtr<mozilla::layers::LayerManagerOGL> layerManager =
-            new mozilla::layers::LayerManagerOGL(this);
+#ifdef MOZ_ENABLE_D3D9_LAYER
+        if (!preferOpenGL) {
+          nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
+            new mozilla::layers::LayerManagerD3D9(this);
           if (layerManager->Initialize()) {
             mLayerManager = layerManager;
           }
         }
+#endif
         if (!mLayerManager) {
-          nsRefPtr<mozilla::layers::LayerManagerD3D9> layerManager =
-            new mozilla::layers::LayerManagerD3D9(this);
+          nsRefPtr<mozilla::layers::LayerManagerOGL> layerManager =
+            new mozilla::layers::LayerManagerOGL(this);
           if (layerManager->Initialize()) {
             mLayerManager = layerManager;
           }
@@ -6226,6 +6236,7 @@ void nsWindow::OnDestroy()
   
   
   
+  mParent = nsnull;
 
   
   EnableDragDrop(PR_FALSE);
@@ -6283,6 +6294,11 @@ void nsWindow::OnDestroy()
 #if defined(WINCE_HAVE_SOFTKB)
   
   nsWindowCE::ResetSoftKB(mWnd);
+#endif
+
+#if !defined(WINCE)
+  
+  mGesture.PanFeedbackFinalize(mWnd, PR_TRUE);
 #endif
 
   
@@ -6906,6 +6922,8 @@ void nsWindow::SetWindowTranslucencyInner(nsTransparencyMode aMode)
   ::SetWindowLongPtrW(hWnd, GWL_STYLE, style);
   ::SetWindowLongPtrW(hWnd, GWL_EXSTYLE, exStyle);
 
+  if (mTransparencyMode == eTransparencyGlass)
+    memset(&mGlassMargins, 0, sizeof mGlassMargins);
   mTransparencyMode = aMode;
 
   SetupTranslucentWindowMemoryBitmap(aMode);

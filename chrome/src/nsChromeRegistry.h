@@ -37,6 +37,9 @@
 
 
 
+#ifndef nsChromeRegistry_h
+#define nsChromeRegistry_h
+
 #include "nsIChromeRegistry.h"
 #include "nsIToolkitChromeRegistry.h"
 #include "nsIObserver.h"
@@ -52,28 +55,15 @@
 #include "nsString.h"
 #include "nsTHashtable.h"
 #include "nsURIHashKey.h"
-#include "nsVoidArray.h"
-#include "nsTArray.h"
 #include "nsInterfaceHashtable.h"
-#include "ChromeTypes.h"
 
-struct PRFileDesc;
-class nsIAtom;
 class nsIDOMWindowInternal;
-class nsILocalFile;
-class nsIPrefBranch;
-class nsIRDFDataSource;
-class nsIRDFResource;
-class nsIRDFService;
-class nsISimpleEnumerator;
 class nsIURL;
 
-namespace mozilla {
-namespace dom {
-  class TabParent;
-  class ContentProcessParent;
-}
-}
+
+
+
+
 
 
 
@@ -91,96 +81,60 @@ public:
   NS_DECL_ISUPPORTS
 
   
-  NS_DECL_NSICHROMEREGISTRY
-  NS_DECL_NSIXULCHROMEREGISTRY
-  NS_DECL_NSITOOLKITCHROMEREGISTRY
-
-#ifdef MOZ_XUL
-  NS_DECL_NSIXULOVERLAYPROVIDER
-#endif
-
-  NS_DECL_NSIOBSERVER
+  NS_IMETHOD ReloadChrome();
+  NS_IMETHOD RefreshSkins();
+  NS_IMETHOD AllowScriptsForPackage(nsIURI* url,
+                                    PRBool* _retval NS_OUTPARAM);
+  NS_IMETHOD AllowContentToAccess(nsIURI* url,
+                                  PRBool* _retval NS_OUTPARAM);
 
   
-  nsChromeRegistry() : mInitialized(PR_FALSE), mProfileLoaded(PR_FALSE) {
-    mPackagesHash.ops = nsnull;
-  }
-  ~nsChromeRegistry();
+  NS_IMETHOD_(PRBool) WrappersEnabled(nsIURI *aURI);
+  NS_IMETHOD ConvertChromeURL(nsIURI* aChromeURI, nsIURI* *aResult);
 
-  nsresult Init();
+  
+  nsChromeRegistry() : mInitialized(PR_FALSE) { }
+  virtual ~nsChromeRegistry();
 
-  static nsChromeRegistry* GetService();
+  virtual nsresult Init();
+
+  static already_AddRefed<nsIChromeRegistry> GetService();
 
   static nsChromeRegistry* gChromeRegistry;
 
   static nsresult Canonify(nsIURL* aChromeURL);
 
-  void SendRegisteredChrome(mozilla::dom::ContentProcessParent* aChild);
-  void RegisterRemoteChrome(const nsTArray<ChromePackage>& aPackages,
-                            const nsTArray<ChromeResource>& aResources);
-
-  void SendRegisteredPackages(mozilla::dom::TabParent* aChild);
-  void RegisterPackage(const nsString& aPackage,
-                       const nsString& aBaseURI,
-                       const PRUint32& aFlags);
-  void RegisterResource(const nsString& aPackage,
-                        const nsString& aResolvedURI);
-  static PLDHashOperator SendAllToChildProcess(PLDHashTable *table,
-                                               PLDHashEntryHdr *entry,
-                                               PRUint32 number, void *arg);
-  static PLDHashOperator SendResourceToChildProcess(const nsACString& aKey,
-                                                    nsIURI* aURI, void* aArg);
-
 protected:
-  nsresult GetDynamicInfo(nsIURI *aChromeURL, PRBool aIsOverlay, nsISimpleEnumerator **aResult);
-
-  nsresult LoadInstallDataSource();
-  nsresult LoadProfileDataSource();
-
   void FlushSkinCaches();
   void FlushAllCaches();
 
-private:
-#ifdef MOZ_IPC
-  void RegisterPackage(const ChromePackage& aPackage);
-  void RegisterResource(const ChromeResource& aResource);
-  static PLDHashOperator CollectPackages(PLDHashTable *table,
-                                         PLDHashEntryHdr *entry,
-                                         PRUint32 number, void *arg);
-  static PLDHashOperator CollectResources(const nsACString& aKey,
-                                          nsIURI* aURI, void* aArg);
-#endif
-  
+  static void LogMessage(const char* aMsg, ...);
+  static void LogMessageWithContext(nsIURI* aURL, PRUint32 aLineNumber, PRUint32 flags,
+                                    const char* aMsg, ...);
 
-  nsresult SelectLocaleFromPref(nsIPrefBranch* prefs);
+  virtual nsresult GetBaseURIFromPackage(const nsCString& aPackage,
+                                         const nsCString& aProvider,
+                                         const nsCString& aPath,
+                                         nsIURI* *aResult) = 0;
+  virtual nsresult GetFlagsFromPackage(const nsCString& aPackage,
+                                       PRUint32* aFlags) = 0;
 
   static nsresult RefreshWindow(nsIDOMWindowInternal* aWindow);
   static nsresult GetProviderAndPath(nsIURL* aChromeURL,
                                      nsACString& aProvider, nsACString& aPath);
 
-#ifdef MOZ_XUL
-  NS_HIDDEN_(void) ProcessProvider(PRFileDesc *fd, nsIRDFService* aRDFs,
-                                   nsIRDFDataSource* ds, nsIRDFResource* aRoot,
-                                   PRBool aIsLocale, const nsACString& aBaseURL);
-  NS_HIDDEN_(void) ProcessOverlays(PRFileDesc *fd, nsIRDFDataSource* ds,
-                                   nsIRDFResource* aRoot,
-                                   const nsCSubstring& aType);
-#endif
+  
+  enum {
+    
+    
+    PLATFORM_PACKAGE = 1 << 0,
+    
+    
+    
+    XPCNATIVEWRAPPERS = 1 << 1,
 
-  NS_HIDDEN_(nsresult) ProcessManifest(nsILocalFile* aManifest, PRBool aSkinOnly);
-  NS_HIDDEN_(nsresult) ProcessManifestBuffer(char *aBuffer, PRInt32 aLength, nsILocalFile* aManifest, PRBool aSkinOnly);
-  NS_HIDDEN_(nsresult) ProcessNewChromeFile(nsILocalFile *aListFile, nsIURI* aManifest);
-  NS_HIDDEN_(nsresult) ProcessNewChromeBuffer(char *aBuffer, PRInt32 aLength, nsIURI* aManifest);
-
-public:
-  struct ProviderEntry
-  {
-    ProviderEntry(const nsACString& aProvider, nsIURI* aBase) :
-      provider(aProvider),
-      baseURI(aBase) { }
-
-    nsCString        provider;
-    nsCOMPtr<nsIURI> baseURI;
+    
+    CONTENT_ACCESSIBLE = 1 << 2
   };
 
   class nsProviderArray
@@ -223,12 +177,7 @@ public:
       PLATFORM_PACKAGE = 1 << 0,
 
       
-      
-      
-      XPCNATIVEWRAPPERS = 1 << 1,
-
-      
-      CONTENT_ACCESSIBLE = 1 << 2
+      CONTENT_ACCESSIBLE = 1 << 1
     };
 
     nsCString        package;
@@ -282,19 +231,9 @@ public:
 
 private:
   PRBool mInitialized;
-  PRBool mProfileLoaded;
-
-  
-  PLDHashTable mPackagesHash;
-
-  
-  
-  OverlayListHash mOverlayHash;
-  OverlayListHash mStyleHash;
 
   
   nsInterfaceHashtable<nsURIHashKey, nsIURI> mOverrideTable;
-
-  nsCString mSelectedLocale;
-  nsCString mSelectedSkin;
 };
+
+#endif 
