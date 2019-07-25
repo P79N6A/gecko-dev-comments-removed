@@ -58,6 +58,13 @@ struct StateRemat {
     bool inReg : 1;
 };
 
+struct Uses {
+    Uses(uint32 nuses)
+      : nuses(nuses)
+    { }
+    uint32 nuses;
+};
+
 
 
 
@@ -386,7 +393,7 @@ class FrameState
 
 
 
-    void syncAndKill(uint32 mask); 
+    void syncAndKill(Registers kill, Uses uses); 
 
     
 
@@ -396,7 +403,7 @@ class FrameState
     
 
 
-    void syncForCall(uint32 argc);
+    void resetRegState();
 
     
 
