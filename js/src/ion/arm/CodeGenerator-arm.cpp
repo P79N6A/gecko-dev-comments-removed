@@ -380,33 +380,57 @@ CodeGeneratorARM::visitMulI(LMulI *ins)
           case 2:
             masm.ma_add(ToRegister(lhs), ToRegister(lhs), ToRegister(dest), SetCond);
             break;
-          default:
-#if 0
-            if (!mul->canOverflow() && constant > 0) {
+          default: {
+            bool handled = false;
+            if (!mul->canOverflow()) {
                 
-                int32 shift;
+                Register src = ToRegister(lhs);
+                uint32 shift;
+                JS_FLOOR_LOG2(shift, constant);
+                uint32 rest = constant - (1 << shift);
+                
+                if ((1 << shift) == constant) {
+                    masm.ma_lsl(Imm32(shift), src, ToRegister(dest));
+                    handled = true;
+                } else {
+                    
+                    
+                    uint32 shift_rest;
+                    JS_FLOOR_LOG2(shift_rest, rest);
+                    if ((1 << shift_rest) == rest) {
+                        masm.as_add(ToRegister(dest), src, lsl(src, shift-shift_rest));
+                        if (shift_rest != 0)
+                            masm.ma_lsl(Imm32(shift_rest), ToRegister(dest), ToRegister(dest));
+                        handled = true;
+                    }
+                }
+            } else if (ToRegister(lhs) != ToRegister(dest)) {
+                
+                
+
+                uint32 shift;
                 JS_FLOOR_LOG2(shift, constant);
                 if ((1 << shift) == constant) {
+                    
                     masm.ma_lsl(Imm32(shift), ToRegister(lhs), ToRegister(dest));
-                    return true;
-                }
-            } else if (!mul->canOverflow()) {
-                int32 shift;
-                JS_FLOOR_LOG2(shift, -constant);
-                if ((1<<shift) == -constant) {
                     
                     
                     
+                    masm.as_cmp(ToRegister(lhs), asr(ToRegister(dest), shift));
+                    c = Assembler::NotEqual;
+                    handled = true;
                 }
             }
-#endif
-            if (mul->canOverflow()) {
-                c = masm.ma_check_mul(ToRegister(lhs), Imm32(ToInt32(rhs)), ToRegister(dest), c);
-            } else {
-                masm.ma_mul(ToRegister(lhs), Imm32(ToInt32(rhs)), ToRegister(dest));
+
+            if (!handled) {
+                if (mul->canOverflow()) {
+                    c = masm.ma_check_mul(ToRegister(lhs), Imm32(ToInt32(rhs)), ToRegister(dest), c);
+                } else {
+                    masm.ma_mul(ToRegister(lhs), Imm32(ToInt32(rhs)), ToRegister(dest));
+                }
             }
         }
-
+        }
         
         if (mul->canOverflow() && !bailoutIf(c, ins->snapshot()))
             return false;
