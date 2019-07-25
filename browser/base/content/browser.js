@@ -996,14 +996,6 @@ function BrowserStartup() {
   }
 
   if (window.opener && !window.opener.closed) {
-    let openerFindBar = window.opener.gFindBarInitialized ?
-                        window.opener.gFindBar : null;
-    if (openerFindBar &&
-        !openerFindBar.hidden &&
-        openerFindBar.findMode == openerFindBar.FIND_NORMAL) {
-      gFindBar.open();
-    }
-
     let openerSidebarBox = window.opener.document.getElementById("sidebar-box");
     
     
