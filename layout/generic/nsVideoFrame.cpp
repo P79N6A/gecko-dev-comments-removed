@@ -375,6 +375,14 @@ public:
   {
     return static_cast<nsVideoFrame*>(mFrame)->BuildLayer(aBuilder, aManager, this);
   }
+
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager)
+  {
+    
+    
+    return mozilla::LAYER_ACTIVE;
+  }
 };
 
 NS_IMETHODIMP

@@ -1594,14 +1594,10 @@ PRBool nsGfxScrollFrameInner::IsAlwaysActive() const
 {
   
   
-  if (!mIsRoot)
-    return PR_FALSE;
-  nsPresContext* presContext = mOuter->PresContext();
-  if (presContext->IsChrome())
-    return PR_FALSE;
-  nsIFrame* rootFrame = mOuter->PresContext()->PresShell()->GetRootFrame();
-  nsIFrame* rootParent = nsLayoutUtils::GetCrossDocParentFrame(rootFrame);
-  return !rootParent || rootParent->PresContext()->IsChrome(); 
+  
+  
+  return mIsRoot &&
+    !nsContentUtils::IsChildOfSameType(mOuter->GetContent()->GetCurrentDoc());
 }
 
 PRBool nsGfxScrollFrameInner::IsScrollingActive() const

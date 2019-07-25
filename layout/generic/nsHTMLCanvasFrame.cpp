@@ -94,6 +94,13 @@ public:
     return static_cast<nsHTMLCanvasFrame*>(mFrame)->
       BuildLayer(aBuilder, aManager, this);
   }
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager)
+  {
+    
+    
+    return mozilla::LAYER_ACTIVE;
+  }
 };
 
 

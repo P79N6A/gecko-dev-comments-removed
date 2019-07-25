@@ -461,6 +461,7 @@ class nsDisplayItem : public nsDisplayItemLink {
 public:
   typedef mozilla::layers::Layer Layer;
   typedef mozilla::layers::LayerManager LayerManager;
+  typedef mozilla::LayerState LayerState;
 
   
   
@@ -546,6 +547,30 @@ public:
 
   virtual PRBool IsVaryingRelativeToMovingFrame(nsDisplayListBuilder* aBuilder)
   { return PR_FALSE; }
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager)
+  { return mozilla::LAYER_NONE; }
   
 
 
@@ -553,8 +578,6 @@ public:
 
   virtual void Paint(nsDisplayListBuilder* aBuilder, nsIRenderingContext* aCtx) {}
   
-
-
 
 
 
@@ -1427,6 +1450,16 @@ public:
     return nsnull;
   }
 
+  
+
+
+
+
+  static PRBool ChildrenCanBeInactive(nsDisplayListBuilder* aBuilder,
+                                      LayerManager* aManager,
+                                      const nsDisplayList& aList,
+                                      nsIFrame* aActiveScrolledRoot);
+
 protected:
   nsDisplayWrapList() {}
   
@@ -1473,6 +1506,8 @@ public:
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager);
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager);
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    nsRegion* aVisibleRegionBeforeMove);  
@@ -1493,6 +1528,11 @@ public:
   
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager);
+  virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager)
+  {
+    return mozilla::LAYER_ACTIVE;
+  }
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem)
   {
     
