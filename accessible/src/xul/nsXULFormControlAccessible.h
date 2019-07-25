@@ -202,6 +202,7 @@ public:
 
   
   virtual nsresult GetRoleInternal(PRUint32 *aRole);
+  virtual nsresult GetNameInternal(nsAString& aName);
 };
 
 class nsXULToolbarSeparatorAccessible : public nsLeafAccessible
