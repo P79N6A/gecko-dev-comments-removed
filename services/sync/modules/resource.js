@@ -265,6 +265,23 @@ Resource.prototype = {
     
     Utils.lazy2(ret, "obj", function() JSON.parse(ret));
 
+    
+    if (status == 401) {
+      
+      let subject = {
+        newUri: "",
+        resource: this,
+        response: ret
+      }
+      Observers.notify("weave:resource:status:401", subject);
+
+      
+      if (subject.newUri != "") {
+        this.uri = subject.newUri;
+        return this._request.apply(this, arguments);
+      }
+    }
+
     return ret;
   },
 
