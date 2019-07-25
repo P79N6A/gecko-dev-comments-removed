@@ -386,6 +386,7 @@ window.TabsManager = iQ.extend(new Subscribable(), {
               break;
 
             case "TabMove":
+              Utils.log("tab move");
               tabsMixIns.bubble("onMove",
                                trackedTabs.get(chromeTab),
                                true);
@@ -448,20 +449,20 @@ window.TabsManager = iQ.extend(new Subscribable(), {
            event.tab = self;
            return event;
          }});
-  
-      mixIns.add(
-        {name: "onFocus",
-         observe: chromeTab,
-         eventName: "TabSelect",
-         useCapture: true,
-         bubbleTo: tabsMixIns,
-         filter: function(event) {
-           
-           
-           
-           return true;
-         }});
-  
+      
+
+
+
+
+
+
+
+
+
+
+
+
+
       this.__proto__ = {
         get isClosed() { return (browser == null); },
   
