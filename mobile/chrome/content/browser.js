@@ -422,6 +422,14 @@ var Browser = {
     }
     window.addEventListener("fullscreen", fullscreenHandler, false);
 
+    function notificationHandler() {
+      
+      bv.onAfterVisibleMove();
+    }
+    let notifications = document.getElementById("notifications");
+    notifications.addEventListener("AlertActive", notificationHandler, false);
+    notifications.addEventListener("AlertClose", notificationHandler, false);
+
     
     ih = new InputHandler(container);
 
