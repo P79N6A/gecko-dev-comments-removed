@@ -129,6 +129,46 @@ function test()
   testDefaultArgs();
 }
 
+var gWindowCatcher = {
+  windowsOpen: 0,
+  finishCalled: false,
+  start: function() {
+    Services.ww.registerNotification(this);
+  },
+
+  finish: function(aFunc) {
+    Services.ww.unregisterNotification(this);
+    this.finishFunc = aFunc;
+    if (this.windowsOpen > 0)
+      return;
+
+    this.finishFunc();
+  },
+
+  closeWindow: function (win) {
+    info("window catcher closing window: " + win.document.documentURI);
+    win.close();
+    this.windowsOpen--;
+    if (this.finishFunc) {
+      this.finish(this.finishFunc);
+    }
+  },
+
+  windowLoad: function (win) {
+    executeSoon(this.closeWindow.bind(this, win));
+  },
+
+  observe: function(subject, topic, data) {
+    if (topic != "domwindowopened")
+      return;
+
+    this.windowsOpen++;
+    let win = subject.QueryInterface(Ci.nsIDOMWindow);
+    info("window catcher caught window opening: " + win.document.documentURI);
+    win.addEventListener("load", this.windowLoad.bind(this, win), false);
+  }
+};
+
 function finish_test()
 {
   
@@ -259,6 +299,10 @@ function testShowNotification()
   let gTestBrowser = gBrowser.selectedBrowser;
   let notifyBox = gBrowser.getNotificationBox(gTestBrowser);
 
+  
+  
+  gWindowCatcher.start();
+
   for (let i = 0; i < BG_NOTIFY_TESTS.length; i++) {
     let test = BG_NOTIFY_TESTS[i];
     ok(true, "Test showNotification " + (i + 1) + ": " + test.description);
@@ -310,14 +354,18 @@ function testShowNotification()
         
         
         if (i == (BG_NOTIFY_TESTS.length - 1)) {
-          button.click();
-          gBrowser.selectedBrowser.addEventListener("load", testNotificationURL, true);
+          
+          gWindowCatcher.finish(function () {
+            button.click();
+            gBrowser.selectedBrowser.addEventListener("load", testNotificationURL, true);
+          });
+        } else {
+          notifyBox.removeAllNotifications(true);
         }
       } else if (i == (BG_NOTIFY_TESTS.length - 1)) {
         
         finish_test();
       }
-      notifyBox.removeAllNotifications(true);
     } else {
       ok(!updateBox, "Update notification box should not have been displayed");
     }
