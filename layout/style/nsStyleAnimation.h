@@ -229,6 +229,8 @@ public:
     eUnit_Percent,
     eUnit_Float,
     eUnit_Color,
+    eUnit_Calc, 
+                
     eUnit_CSSValuePair, 
     eUnit_CSSRect, 
     eUnit_Dasharray, 
@@ -246,6 +248,7 @@ public:
       nscoord mCoord;
       float mFloat;
       nscolor mColor;
+      nsCSSValue* mCSSValue;
       nsCSSValuePair* mCSSValuePair;
       nsCSSRect* mCSSRect;
       nsCSSValueList* mCSSValueList;
@@ -283,6 +286,10 @@ public:
     nscolor GetColorValue() const {
       NS_ASSERTION(mUnit == eUnit_Color, "unit mismatch");
       return mValue.mColor;
+    }
+    nsCSSValue* GetCSSValueValue() const {
+      NS_ASSERTION(IsCSSValueUnit(mUnit), "unit mismatch");
+      return mValue.mCSSValue;
     }
     nsCSSValuePair* GetCSSValuePairValue() const {
       NS_ASSERTION(IsCSSValuePairUnit(mUnit), "unit mismatch");
@@ -343,6 +350,7 @@ public:
 
     
     
+    void SetAndAdoptCSSValueValue(nsCSSValue *aValue, Unit aUnit);
     void SetAndAdoptCSSValuePairValue(nsCSSValuePair *aValue, Unit aUnit);
     void SetAndAdoptCSSRectValue(nsCSSRect *aValue, Unit aUnit);
     void SetAndAdoptCSSValueListValue(nsCSSValueList *aValue, Unit aUnit);
@@ -364,6 +372,9 @@ public:
     static PRBool IsIntUnit(Unit aUnit) {
       return aUnit == eUnit_Enumerated || aUnit == eUnit_Visibility ||
              aUnit == eUnit_Integer;
+    }
+    static PRBool IsCSSValueUnit(Unit aUnit) {
+      return aUnit == eUnit_Calc;
     }
     static PRBool IsCSSValuePairUnit(Unit aUnit) {
       return aUnit == eUnit_CSSValuePair;
