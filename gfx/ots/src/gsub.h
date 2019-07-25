@@ -10,10 +10,20 @@
 namespace ots {
 
 struct OpenTypeGSUB {
+  OpenTypeGSUB()
+      : num_lookups(0),
+        data(NULL),
+        length(0) {
+  }
+
+  
+  uint16_t num_lookups;
+
   const uint8_t *data;
-  uint32_t length;
+  size_t length;
 };
 
 }  
 
 #endif  
+

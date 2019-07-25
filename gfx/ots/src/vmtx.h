@@ -2,18 +2,19 @@
 
 
 
-#ifndef OTS_HMTX_H_
-#define OTS_HMTX_H_
+#ifndef OTS_VMTX_H_
+#define OTS_VMTX_H_
 
 #include "metrics.h"
 #include "ots.h"
 
 namespace ots {
 
-struct OpenTypeHMTX {
+struct OpenTypeVMTX {
   OpenTypeMetricsTable metrics;
 };
 
 }  
 
 #endif  
+

@@ -2,18 +2,19 @@
 
 
 
-#ifndef OTS_HHEA_H_
-#define OTS_HHEA_H_
+#ifndef OTS_VHEA_H_
+#define OTS_VHEA_H_
 
 #include "metrics.h"
 #include "ots.h"
 
 namespace ots {
 
-struct OpenTypeHHEA {
+struct OpenTypeVHEA {
   OpenTypeMetricsHeader header;
 };
 
 }  
 
 #endif  
+
