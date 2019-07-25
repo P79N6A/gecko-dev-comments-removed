@@ -302,15 +302,16 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
 
 
+
+
   @SuppressWarnings("unchecked")
-  private JSONArray getChildrenArray(long folderID, boolean persist) throws NullCursorException {
+  private boolean getChildrenArray(long folderID, boolean persist, JSONArray childArray) throws NullCursorException {
     trace("Calling getChildren for androidID " + folderID);
-    JSONArray childArray = new JSONArray();
     Cursor children = dataAccessor.getChildren(folderID);
     try {
       if (!children.moveToFirst()) {
         trace("No children: empty cursor.");
-        return childArray;
+        return true;
       }
       final int positionIndex = children.getColumnIndex(BrowserContract.Bookmarks.POSITION);
       final int count = children.getCount();
@@ -344,6 +345,9 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         if (atPos > 1 || pos != i) {
           changed = true;
         }
+
+        ++i;
+
         for (String guid : entry.getValue()) {
           if (!forbiddenGUID(guid)) {
             childArray.add(guid);
@@ -358,11 +362,12 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
 
       if (!changed) {
         Logger.debug(LOG_TAG, "Nothing moved! Database reflects child array.");
-        return childArray;
+        return true;
       }
 
       if (!persist) {
-        return childArray;
+        Logger.debug(LOG_TAG, "Returned array does not match database, and not persisting.");
+        return false;
       }
 
       Logger.debug(LOG_TAG, "Generating child array required moving records. Updating DB.");
@@ -371,11 +376,10 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         Logger.debug(LOG_TAG, "Bumping parent time to " + time + ".");
         dataAccessor.bumpModified(folderID, time);
       }
+      return true;
     } finally {
       children.close();
     }
-
-    return childArray;
   }
 
   protected static boolean isDeleted(Cursor cur) {
@@ -488,10 +492,8 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     }
 
     long androidID = parentGuidToIDMap.get(recordGUID);
-    JSONArray childArray = getChildrenArray(androidID, persist);
-    if (childArray == null) {
-      return null;
-    }
+    JSONArray childArray = new JSONArray();
+    getChildrenArray(androidID, persist, childArray);
 
     Logger.debug(LOG_TAG, "Fetched " + childArray.size() + " children for " + recordGUID);
     return childArray;
@@ -681,6 +683,12 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
     
     
     reconciled.children = ((BookmarkRecord) remoteRecord).children;
+
+    
+    
+    if (reconciled.isFolder()) {
+      trackRecord(reconciled);
+    }
     return reconciled;
   }
 
@@ -874,12 +882,14 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
         JSONArray onServer = entry.getValue();
         try {
           final long folderID = getIDForGUID(guid);
-          JSONArray inDB = getChildrenArray(folderID, false);
+          final JSONArray inDB = new JSONArray();
+          final boolean clean = getChildrenArray(folderID, false, inDB);
+          final boolean sameArrays = Utils.sameArrays(onServer, inDB);
 
           
           
           
-          if (!Utils.sameArrays(onServer, inDB)) {
+          if (!sameArrays) {
             int added = 0;
             for (Object o : inDB) {
               if (!onServer.contains(o)) {
@@ -888,18 +898,16 @@ public class AndroidBrowserBookmarksRepositorySession extends AndroidBrowserRepo
               }
             }
             Logger.debug(LOG_TAG, "Added " + added + " items locally.");
+            Logger.debug(LOG_TAG, "Untracking and bumping " + guid + "(" + folderID + ")");
             dataAccessor.bumpModified(folderID, now());
-            
-            Logger.debug(LOG_TAG, "Untracking " + guid);
-            final Record record = retrieveByGUIDDuringStore(guid);
-            if (record == null) {
-              return;
-            }
-            untrackRecord(record);
+            untrackGUID(guid);
           }
+
           
           
-          dataAccessor.updatePositions(new ArrayList<String>(onServer));
+          if (!sameArrays || !clean) {
+            dataAccessor.updatePositions(new ArrayList<String>(onServer));
+          }
         } catch (Exception e) {
           Logger.warn(LOG_TAG, "Error repositioning children for " + guid, e);
         }
