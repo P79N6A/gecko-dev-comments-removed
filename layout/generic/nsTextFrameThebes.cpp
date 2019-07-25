@@ -72,6 +72,7 @@
 #include "nsIDocument.h"
 #include "nsIDeviceContext.h"
 #include "nsCSSPseudoElements.h"
+#include "nsCSSFrameConstructor.h"
 #include "nsCompatibility.h"
 #include "nsCSSColorUtils.h"
 #include "nsLayoutUtils.h"
@@ -6317,6 +6318,29 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
 
   if (end < f->mContentOffset) {
     
+    if (aLineLayout &&
+        GetStyleText()->WhiteSpaceIsSignificant() &&
+        HasTerminalNewline() &&
+        GetParent()->GetType() != nsGkAtoms::letterFrame) {
+      
+      
+      
+      
+      
+      
+      
+      nsPresContext* presContext = PresContext();
+      nsIFrame* newFrame;
+      nsresult rv = presContext->PresShell()->FrameConstructor()->
+        CreateContinuingFrame(presContext, this, GetParent(), &newFrame);
+      if (NS_SUCCEEDED(rv)) {
+        nsTextFrame* next = static_cast<nsTextFrame*>(newFrame);
+        nsFrameList temp(next, next);
+        GetParent()->InsertFrames(nsGkAtoms::nextBidi, this, temp);
+        f = next;
+      }
+    }
+
     f->mContentOffset = end;
     if (f->GetTextRun() != mTextRun) {
       ClearTextRun(nsnull);
@@ -6335,7 +6359,24 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout)
       ClearTextRun(nsnull);
       f->ClearTextRun(nsnull);
     }
-    f = static_cast<nsTextFrame*>(f->GetNextInFlow());
+    nsTextFrame* next = static_cast<nsTextFrame*>(f->GetNextInFlow());
+    
+    
+    
+    
+    if (next && next->mContentOffset <= end && f->GetNextSibling() == next) {
+      
+      
+      
+      
+      
+      
+      
+      
+      nsSplittableFrame::RemoveFromFlow(f);
+      f->GetParent()->RemoveFrame(nsGkAtoms::nextBidi, f);
+    }
+    f = next;
   }
 
 #ifdef DEBUG
