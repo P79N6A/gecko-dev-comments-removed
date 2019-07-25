@@ -50,18 +50,16 @@
 
 class nsIDOMWindow;
 
-class nsAccelerometer : public nsIAccelerometer
+class nsAccelerometer : public nsIAccelerometerUpdate
 {
 public:
   NS_DECL_ISUPPORTS
   NS_DECL_NSIACCELEROMETER
+  NS_DECL_NSIACCELEROMETERUPDATE
 
   nsAccelerometer();
 
   virtual ~nsAccelerometer();
-
-  
-  void AccelerationChanged(double x, double y, double z);
 
   double mLastX;
   double mLastY;
