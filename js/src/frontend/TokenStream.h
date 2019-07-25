@@ -80,7 +80,6 @@ enum TokenKind {
     TOK_PLUS,                      
     TOK_MINUS,                     
     TOK_STAR, TOK_DIVOP,           
-    TOK_UNARYOP,                   
     TOK_INC, TOK_DEC,              
     TOK_DOT,                       
     TOK_LB, TOK_RB,                
@@ -162,6 +161,14 @@ enum TokenKind {
     TOK_NE,
     TOK_EQUALITY_LAST = TOK_NE,
 
+    
+    TOK_TYPEOF,
+    TOK_UNARYOP_START = TOK_TYPEOF,
+    TOK_VOID,
+    TOK_NOT,
+    TOK_BITNOT,
+    TOK_UNARYOP_LAST = TOK_BITNOT,
+
     TOK_LIMIT                      
 };
 
@@ -169,6 +176,12 @@ inline bool
 TokenKindIsEquality(TokenKind tt)
 {
     return TOK_EQUALITY_START <= tt && tt <= TOK_EQUALITY_LAST;
+}
+
+inline bool
+TokenKindIsUnaryOp(TokenKind tt)
+{
+    return TOK_UNARYOP_START <= tt && tt <= TOK_UNARYOP_LAST;
 }
 
 inline bool
@@ -475,6 +488,10 @@ class TokenStream
 
     bool isCurrentTokenEquality() const {
         return TokenKindIsEquality(currentToken().type);
+    }
+
+    bool isCurrentTokenUnaryOp() const {
+        return TokenKindIsUnaryOp(currentToken().type);
     }
 
     
