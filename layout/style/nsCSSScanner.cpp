@@ -1072,6 +1072,10 @@ nsCSSScanner::ParseAndAppendEscape(nsString& aOutput, PRBool aInString)
 
 
 
+
+
+
+
 PRBool
 nsCSSScanner::GatherIdent(PRInt32 aChar, nsString& aIdent)
 {
@@ -1117,19 +1121,24 @@ nsCSSScanner::GatherIdent(PRInt32 aChar, nsString& aIdent)
 PRBool
 nsCSSScanner::ParseRef(PRInt32 aChar, nsCSSToken& aToken)
 {
-  aToken.mIdent.SetLength(0);
-  aToken.mType = eCSSToken_Ref;
+  
+  aToken.mType = eCSSToken_Symbol;
+  aToken.mSymbol = aChar;
+
   PRInt32 ch = Read();
   if (ch < 0) {
-    return PR_FALSE;
+    return PR_TRUE;
   }
   if (IsIdent(ch) || ch == CSS_ESCAPE) {
     
     
-    if (StartsIdent(ch, Peek())) {
-      aToken.mType = eCSSToken_ID;
+    nsCSSTokenType type =
+      StartsIdent(ch, Peek()) ? eCSSToken_ID : eCSSToken_Ref;
+    aToken.mIdent.SetLength(0);
+    if (GatherIdent(ch, aToken.mIdent)) {
+      aToken.mType = type;
+      return PR_TRUE;
     }
-    return GatherIdent(ch, aToken.mIdent);
   }
 
   
@@ -1143,7 +1152,9 @@ nsCSSScanner::ParseIdent(PRInt32 aChar, nsCSSToken& aToken)
   nsString& ident = aToken.mIdent;
   ident.SetLength(0);
   if (!GatherIdent(aChar, ident)) {
-    return PR_FALSE;
+    aToken.mType = eCSSToken_Symbol;
+    aToken.mSymbol = aChar;
+    return PR_TRUE;
   }
 
   nsCSSTokenType tokenType = eCSSToken_Ident;
@@ -1167,7 +1178,11 @@ nsCSSScanner::ParseAtKeyword(PRInt32 aChar, nsCSSToken& aToken)
 {
   aToken.mIdent.SetLength(0);
   aToken.mType = eCSSToken_AtKeyword;
-  return GatherIdent(0, aToken.mIdent);
+  if (!GatherIdent(0, aToken.mIdent)) {
+    aToken.mType = eCSSToken_Symbol;
+    aToken.mSymbol = PRUnichar('@');
+  }
+  return PR_TRUE;
 }
 
 PRBool
@@ -1287,10 +1302,9 @@ nsCSSScanner::ParseNumber(PRInt32 c, nsCSSToken& aToken)
   
   if (c >= 0) {
     if (StartsIdent(c, Peek())) {
-      if (!GatherIdent(c, ident)) {
-        return PR_FALSE;
+      if (GatherIdent(c, ident)) {
+        type = eCSSToken_Dimension;
       }
-      type = eCSSToken_Dimension;
     } else if ('%' == c) {
       type = eCSSToken_Percentage;
       value = value / 100.0f;
