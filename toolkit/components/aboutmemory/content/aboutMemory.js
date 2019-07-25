@@ -371,6 +371,7 @@ function update()
 
 
 
+
 function TreeNode(aName)
 {
   
@@ -423,6 +424,7 @@ function buildTree(aReporters, aTreeName)
 
   
   
+  
   var foundReporter = false;
   for (var path in aReporters) {
     if (aReporters[path].treeNameMatches(aTreeName)) {
@@ -430,9 +432,8 @@ function buildTree(aReporters, aTreeName)
       break;
     }
   }
-
   if (!foundReporter) {
-    
+    assert(aTreeName !== 'explicit');
     return null;
   }
 
@@ -476,7 +477,7 @@ function buildTree(aReporters, aTreeName)
     var path = aPrepath ? aPrepath + '/' + aT._name : aT._name;
     if (aT._kids.length === 0) {
       
-      assert(aT._kind !== undefined, "aT._kind !== undefined");
+      assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
       aT._description = getDescription(aReporters, path);
       var amount = getBytes(aReporters, path);
       if (amount !== kUnknown) {
@@ -487,34 +488,14 @@ function buildTree(aReporters, aTreeName)
       }
     } else {
       
+      
+      assert(aT._kind === undefined, "aT._kind is defined for non-leaf node");
       var childrenBytes = 0;
       for (var i = 0; i < aT._kids.length; i++) {
-        
         childrenBytes += fillInTree(aT._kids[i], path);
       }
-      if (aT._kind !== undefined) {
-        aT._description = getDescription(aReporters, path);
-        var amount = getBytes(aReporters, path);
-        if (amount !== kUnknown) {
-          
-          
-          aT._amount = amount;
-          var other = new TreeNode("other");
-          other._description = "All unclassified " + aT._name + " memory.",
-          other._amount = aT._amount - childrenBytes,
-          aT._kids.push(other);
-        } else {
-          
-          
-          aT._amount = childrenBytes;
-          aT._hasProblem = true;
-        }
-      } else {
-        
-        
-        aT._amount = childrenBytes;
-        aT._description = "The sum of all entries below '" + aT._name + "'.";
-      }
+      aT._amount = childrenBytes;
+      aT._description = "The sum of all entries below '" + aT._name + "'.";
     }
     assert(aT._amount !== kUnknown, "aT._amount !== kUnknown");
     return aT._amount;
@@ -543,48 +524,45 @@ function buildTree(aReporters, aTreeName)
 
 function fixUpExplicitTree(aT, aReporters) {
   
-  
-  
   var s = "";
   function getKnownHeapUsedBytes(aT)
   {
-    if (aT._kind === KIND_HEAP) {
-      return aT._amount;
+    var n = 0;
+    if (aT._kids.length === 0) {
+      
+      assert(aT._kind !== undefined, "aT._kind is undefined for leaf node");
+      n = aT._kind === KIND_HEAP ? aT._amount : 0;
     } else {
-      var n = 0;
       for (var i = 0; i < aT._kids.length; i++) {
         n += getKnownHeapUsedBytes(aT._kids[i]);
       }
-      return n;
     }
+    return n;
   }
 
   
   
   
-  var heapUsedBytes = getBytes(aReporters, "heap-allocated", true);
-  var unknownHeapUsedBytes = 0;
-  var hasProblem = true;
-  if (heapUsedBytes !== kUnknown) {
-    unknownHeapUsedBytes = heapUsedBytes - getKnownHeapUsedBytes(aT);
-    hasProblem = false;
+  var heapAllocatedBytes = getBytes(aReporters, "heap-allocated", true);
+  var heapUnclassifiedT = new TreeNode("heap-unclassified");
+  if (heapAllocatedBytes !== kUnknown) {
+    heapUnclassifiedT._amount =
+      heapAllocatedBytes - getKnownHeapUsedBytes(aT);
+  } else {
+    heapUnclassifiedT._amount = 0;
+    heapUnclassifiedT._hasProblem = true;
   }
-  var heapUnclassified = new TreeNode("heap-unclassified");
   
   
   
-  heapUnclassified._description =
+  heapUnclassifiedT._description =
       kindToString(KIND_HEAP) +
       "Memory not classified by a more specific reporter. This includes " +
-      "waste due to internal fragmentation in the heap allocator (caused " +
-      "when the allocator rounds up request sizes).";
-  heapUnclassified._amount = unknownHeapUsedBytes;
-  if (hasProblem) {
-    heapUnclassified._hasProblem = true;
-  }
+      "slop bytes due to internal fragmentation in the heap allocator "
+      "(caused when the allocator rounds up request sizes).";
 
-  aT._kids.push(heapUnclassified);
-  aT._amount += unknownHeapUsedBytes;
+  aT._kids.push(heapUnclassifiedT);
+  aT._amount += heapUnclassifiedT._amount;
 }
 
 
