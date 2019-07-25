@@ -94,6 +94,7 @@
 #include "nsDOMWindowUtils.h"
 #include "nsIDOMGlobalPropertyInitializer.h"
 #include "mozilla/Preferences.h"
+#include "nsLocation.h"
 
 
 #include "nsIDocShell.h"
