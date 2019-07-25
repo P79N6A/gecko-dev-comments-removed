@@ -289,7 +289,8 @@ let Manager = {
       case "LocationChange":
         ConsoleProgressListener.startMonitor(ConsoleProgressListener
                                              .MONITOR_LOCATION_CHANGE);
-        ConsoleProgressListener.sendLocation();
+        ConsoleProgressListener.sendLocation(this.window.location.href,
+                                             this.window.document.title);
         break;
       default:
         Cu.reportError("Web Console content: unknown feature " + aFeature);
@@ -2225,7 +2226,7 @@ let NetworkMonitor = {
 
     
     
-    harTimings.dns = timings.STATUS_RESOLVING ?
+    harTimings.dns = timings.STATUS_RESOLVING && timings.STATUS_RESOLVED ?
                      timings.STATUS_RESOLVED.last -
                      timings.STATUS_RESOLVING.first : -1;
 
@@ -2471,17 +2472,24 @@ let ConsoleProgressListener = {
   _checkLocationChange:
   function CPL__checkLocationChange(aProgress, aRequest, aState, aStatus)
   {
+    let isStart = aState & Ci.nsIWebProgressListener.STATE_START;
     let isStop = aState & Ci.nsIWebProgressListener.STATE_STOP;
     let isNetwork = aState & Ci.nsIWebProgressListener.STATE_IS_NETWORK;
     let isWindow = aState & Ci.nsIWebProgressListener.STATE_IS_WINDOW;
 
     
-    if (!isStop || !isNetwork || !isWindow ||
+    if (!isNetwork || !isWindow ||
         aProgress.DOMWindow != Manager.window) {
       return;
     }
 
-    this.sendLocation();
+    if (isStart && aRequest instanceof Ci.nsIChannel) {
+      this.sendLocation(aRequest.URI.spec, "");
+    }
+    else if (isStop) {
+      this.sendLocation(Manager.window.location.href,
+                        Manager.window.document.title);
+    }
   },
 
   onLocationChange: function() {},
@@ -2494,11 +2502,16 @@ let ConsoleProgressListener = {
 
 
 
-  sendLocation: function CPL_sendLocation()
+
+
+
+
+
+  sendLocation: function CPL_sendLocation(aLocation, aTitle)
   {
     let message = {
-      "location": Manager.window.location.href,
-      "title": Manager.window.document.title,
+      "location": aLocation,
+      "title": aTitle,
     };
     Manager.sendMessage("WebConsole:LocationChange", message);
   },
