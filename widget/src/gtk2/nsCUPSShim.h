@@ -81,11 +81,9 @@ typedef int (PR_CALLBACK *CupsAddOptionType)(const char    *name,
 
 struct PRLibrary;
 
+
 class nsCUPSShim {
     public:
-        nsCUPSShim() : mCupsLib(nsnull) { }
-        ~nsCUPSShim();
-
         
 
 
