@@ -267,7 +267,7 @@ nsContextMenu.prototype = {
     
     var shell = getShellService();
     if (shell)
-      haveSetDesktopBackground = true;
+      haveSetDesktopBackground = shell.canSetDesktopBackground;
 #endif
     this.showItem("context-setDesktopBackground",
                   haveSetDesktopBackground && this.onLoadedImage);
