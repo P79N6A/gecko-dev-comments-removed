@@ -4814,7 +4814,7 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
 
   
   
-  nsCOMPtr<nsIDOMCharacterData> nodeAsText = do_QueryInterface(node);
+  nsCOMPtr<nsIDOMCharacterData> nodeAsCharData = do_QueryInterface(node);
 
   PRUint32 count = node->Length();
 
@@ -4834,13 +4834,14 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
 
     
     
-    nsCOMPtr<nsIDOMCharacterData> priorNodeAsText = do_QueryInterface(priorNode);
-    if (priorNodeAsText) {
+    nsCOMPtr<nsIDOMCharacterData> priorNodeAsCharData =
+      do_QueryInterface(priorNode);
+    if (priorNodeAsCharData) {
       PRUint32 length = priorNode->Length();
       
       NS_ENSURE_STATE(length);
       nsRefPtr<DeleteTextTxn> txn;
-      res = CreateTxnForDeleteCharacter(priorNodeAsText, length,
+      res = CreateTxnForDeleteCharacter(priorNodeAsCharData, length,
                                         ePrevious, getter_AddRefs(txn));
       NS_ENSURE_SUCCESS(res, res);
 
@@ -4870,13 +4871,14 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
 
     
     
-    nsCOMPtr<nsIDOMCharacterData> nextNodeAsText = do_QueryInterface(nextNode);
-    if (nextNodeAsText) {
+    nsCOMPtr<nsIDOMCharacterData> nextNodeAsCharData =
+      do_QueryInterface(nextNode);
+    if (nextNodeAsCharData) {
       PRUint32 length = nextNode->Length();
       
       NS_ENSURE_STATE(length);
       nsRefPtr<DeleteTextTxn> txn;
-      res = CreateTxnForDeleteCharacter(nextNodeAsText, 0, eNext,
+      res = CreateTxnForDeleteCharacter(nextNodeAsCharData, 0, eNext,
                                         getter_AddRefs(txn));
       NS_ENSURE_SUCCESS(res, res);
 
@@ -4897,10 +4899,10 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
     return NS_OK;
   }
 
-  if (nodeAsText) {
+  if (nodeAsCharData) {
     
     nsRefPtr<DeleteTextTxn> txn;
-    res = CreateTxnForDeleteCharacter(nodeAsText, offset, aAction,
+    res = CreateTxnForDeleteCharacter(nodeAsCharData, offset, aAction,
                                       getter_AddRefs(txn));
     NS_ENSURE_SUCCESS(res, res);
 
@@ -4929,16 +4931,16 @@ nsEditor::CreateTxnForDeleteInsertionPoint(nsRange*          aRange,
       }
     }
 
-    nsCOMPtr<nsIDOMCharacterData> selectedNodeAsText =
+    nsCOMPtr<nsIDOMCharacterData> selectedNodeAsCharData =
       do_QueryInterface(selectedNode);
-    if (selectedNodeAsText) {
+    if (selectedNodeAsCharData) {
       
       PRUint32 position = 0;
       if (aAction == ePrevious) {
         position = selectedNode->Length();
       }
       nsRefPtr<DeleteTextTxn> delTextTxn;
-      res = CreateTxnForDeleteCharacter(selectedNodeAsText, position,
+      res = CreateTxnForDeleteCharacter(selectedNodeAsCharData, position,
                                         aAction, getter_AddRefs(delTextTxn));
       NS_ENSURE_SUCCESS(res, res);
       NS_ENSURE_TRUE(delTextTxn, NS_ERROR_NULL_POINTER);
