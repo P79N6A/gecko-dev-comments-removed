@@ -137,9 +137,6 @@ struct JSStackFrame
     void                *hookData_;     
     void                *annotation_;   
 
-    
-    JSObject            *blockChain_;   
-
 #if JS_BITS_PER_WORD == 32
     void                *padding;
 #endif
@@ -514,25 +511,6 @@ struct JSStackFrame
 
     
 
-    bool hasBlockChain() const {
-        return blockChain_ != NULL;
-    }
-
-    JSObject* blockChain() const {
-        JS_ASSERT(hasBlockChain());
-        return blockChain_;
-    }
-
-    JSObject* maybeBlockChain() const {
-        return blockChain_;
-    }
-
-    void setBlockChain(JSObject *obj) {
-        blockChain_ = obj;
-    }
-
-    
-
 
 
 
@@ -776,10 +754,6 @@ struct JSStackFrame
         return offsetof(JSStackFrame, ncode_);
     }
 
-    static size_t offsetOfBlockChain() {
-        return offsetof(JSStackFrame, blockChain_);
-    }
-
     static ptrdiff_t offsetOfCallee(JSFunction *fun) {
         JS_ASSERT(fun != NULL);
         return -(fun->nargs + 2) * sizeof(js::Value);
@@ -822,6 +796,12 @@ static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value
 } 
 
 
+extern JSObject *
+js_GetBlockChain(JSContext *cx, JSStackFrame *fp);
+
+extern JSObject *
+js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
+
 
 
 
@@ -831,6 +811,9 @@ static const size_t VALUES_PER_STACK_FRAME = sizeof(JSStackFrame) / sizeof(Value
 
 extern JSObject *
 js_GetScopeChain(JSContext *cx, JSStackFrame *fp);
+
+extern JSObject *
+js_GetScopeChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen);
 
 
 

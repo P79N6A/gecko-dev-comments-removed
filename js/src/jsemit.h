@@ -130,7 +130,7 @@ struct JSStmtInfo {
     ptrdiff_t       continues;      
     union {
         JSAtom      *label;         
-        JSObject    *blockObj;      
+        JSObjectBox *blockBox;      
     };
     JSStmtInfo      *down;          
     JSStmtInfo      *downScope;     
@@ -276,7 +276,7 @@ struct JSTreeContext {
     uint32          blockidGen;     
     JSStmtInfo      *topStmt;       
     JSStmtInfo      *topScopeStmt;  
-    JSObject        *blockChain;    
+    JSObjectBox     *blockChainBox; 
 
 
     JSParseNode     *blockNode;     
@@ -308,7 +308,7 @@ struct JSTreeContext {
 
     JSTreeContext(js::Parser *prs)
       : flags(0), bodyid(0), blockidGen(0),
-        topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
+        topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
         parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
         funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
     {
@@ -333,6 +333,10 @@ struct JSTreeContext {
 
     uintN blockid() { return topStmt ? topStmt->blockid : bodyid; }
 
+    JSObject *blockChain() {
+        return blockChainBox ? blockChainBox->object : NULL;
+    }
+    
     bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
     
@@ -649,6 +653,13 @@ js_Emit3(JSContext *cx, JSCodeGenerator *cg, JSOp op, jsbytecode op1,
 
 
 extern ptrdiff_t
+js_Emit5(JSContext *cx, JSCodeGenerator *cg, JSOp op, uint16 op1,
+         uint16 op2);
+
+
+
+
+extern ptrdiff_t
 js_EmitN(JSContext *cx, JSCodeGenerator *cg, JSOp op, size_t extra);
 
 
@@ -688,7 +699,7 @@ js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
 
 
 extern void
-js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSObject *blockObj,
+js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSObjectBox *blockBox,
                   ptrdiff_t top);
 
 
