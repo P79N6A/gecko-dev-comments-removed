@@ -1,45 +1,45 @@
+/* -*- Mode: C; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/*
+ * PR assertion checker.
+ */
 
 #ifndef jsutil_h___
 #define jsutil_h___
@@ -49,10 +49,10 @@
 
 JS_BEGIN_EXTERN_C
 
-
-
-
-
+/*
+ * JS_Assert is present even in release builds, for the benefit of applications
+ * that build DEBUG and link against a non-DEBUG SpiderMonkey library.
+ */
 extern JS_PUBLIC_API(void)
 JS_Assert(const char *s, const char *file, JSIntn ln);
 
@@ -83,22 +83,22 @@ JS_Assert(const char *s, const char *file, JSIntn ln);
 #define JS_ALWAYS_TRUE(expr)    ((void) (expr))
 #define JS_THREADSAFE_ASSERT(expr) ((void) 0)
 
-#endif 
+#endif /* defined(DEBUG) */
 
-
-
-
-
-
+/*
+ * Compile-time assert. "cond" must be a constant expression.
+ * The macro can be used only in places where an "extern" declaration is
+ * allowed.
+ */
 
 #ifdef __SUNPRO_CC
-
-
-
-
-
-
-
+/*
+ * Sun Studio C++ compiler has a bug
+ * "sizeof expression not accepted as size of array parameter"
+ * It happens when js_static_assert() function is declared inside functions.
+ * The bug number is 6688515. It is not public yet.
+ * Therefore, for Sun Studio, declare js_static_assert as an array instead.
+ */
 #define JS_STATIC_ASSERT(cond) extern char js_static_assert[(cond) ? 1 : -1]
 #else
 #ifdef __COUNTER__
@@ -113,11 +113,11 @@ JS_Assert(const char *s, const char *file, JSIntn ln);
 
 #define JS_STATIC_ASSERT_IF(cond, expr) JS_STATIC_ASSERT(!(cond) || (expr))
 
-
-
-
-
-
+/*
+ * Abort the process in a non-graceful manner. This will cause a core file,
+ * call to the debugger or other moral equivalent as well as causing the
+ * entire process to stop.
+ */
 extern JS_PUBLIC_API(void) JS_Abort(void);
 
 #ifdef DEBUG
@@ -137,7 +137,7 @@ typedef struct JSBasicStats {
     uint32      max;
     double      sum;
     double      sqsum;
-    uint32      logscale;           
+    uint32      logscale;           /* logarithmic scale: 0 (linear), 2, 10 */
     uint32      hist[11];
 } JSBasicStats;
 
@@ -164,9 +164,9 @@ JS_DumpHistogram(JSBasicStats *bs, FILE *fp);
 
 #else
 
-#define JS_BASIC_STATS_ACCUM(bs,val)
+#define JS_BASIC_STATS_ACCUM(bs,val) /* nothing */
 
-#endif 
+#endif /* JS_BASIC_STATS */
 
 
 #if defined(DEBUG_notme) && defined(XP_UNIX)
@@ -212,46 +212,46 @@ static JS_INLINE void* js_realloc(void* p, size_t bytes) {
 static JS_INLINE void js_free(void* p) {
     free(p);
 }
-#endif
+#endif/* JS_USE_CUSTOM_ALLOCATOR */
 
 JS_END_EXTERN_C
 
 #ifdef __cplusplus
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/**
+ * The following classes are designed to cause assertions to detect
+ * inadvertent use of guard objects as temporaries.  In other words,
+ * when we have a guard object whose only purpose is its constructor and
+ * destructor (and is never otherwise referenced), the intended use
+ * might be:
+ *     JSAutoTempValueRooter tvr(cx, 1, &val);
+ * but is is easy to accidentally write:
+ *     JSAutoTempValueRooter(cx, 1, &val);
+ * which compiles just fine, but runs the destructor well before the
+ * intended time.
+ *
+ * They work by adding (#ifdef DEBUG) an additional parameter to the
+ * guard object's constructor, with a default value, so that users of
+ * the guard object's API do not need to do anything.  The default value
+ * of this parameter is a temporary object.  C++ (ISO/IEC 14882:1998),
+ * section 12.2 [class.temporary], clauses 4 and 5 seem to assume a
+ * guarantee that temporaries are destroyed in the reverse of their
+ * construction order, but I actually can't find a statement that that
+ * is true in the general case (beyond the two specific cases mentioned
+ * there).  However, it seems to be true.
+ *
+ * These classes are intended to be used only via the macros immediately
+ * below them:
+ *   JS_DECL_USE_GUARD_OBJECT_NOTIFIER declares (ifdef DEBUG) a member
+ *     variable, and should be put where a declaration of a private
+ *     member variable would be placed.
+ *   JS_GUARD_OBJECT_NOTIFIER_PARAM should be placed at the end of the
+ *     parameters to each constructor of the guard object; it declares
+ *     (ifdef DEBUG) an additional parameter.
+ *   JS_GUARD_OBJECT_NOTIFIER_INIT is a statement that belongs in each
+ *     constructor.  It uses the parameter declared by
+ *     JS_GUARD_OBJECT_NOTIFIER_PARAM.
+ */
 #ifdef DEBUG
 class JSGuardObjectNotifier
 {
@@ -277,20 +277,20 @@ public:
     JSGuardObjectNotificationReceiver() : mStatementDone(false) {}
 
     ~JSGuardObjectNotificationReceiver() {
-        
-
-
-
-
-
+        /*
+         * Assert that the guard object was not used as a temporary.
+         * (Note that this assert might also fire if Init is not called
+         * because the guard object's implementation is not using the
+         * above macros correctly.)
+         */
         JS_ASSERT(mStatementDone);
     }
 
     void Init(const JSGuardObjectNotifier &aNotifier) {
-        
-
-
-
+        /*
+         * aNotifier is passed as a const reference so that we can pass a
+         * temporary, but we really intend it as non-const
+         */
         const_cast<JSGuardObjectNotifier&>(aNotifier).
             setStatementDone(&mStatementDone);
     }
@@ -305,14 +305,14 @@ public:
 #define JS_GUARD_OBJECT_NOTIFIER_INIT \
     JS_BEGIN_MACRO _mCheckNotUsedAsTemporary.Init(_notifier); JS_END_MACRO
 
-#else 
+#else /* defined(DEBUG) */
 
 #define JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 #define JS_GUARD_OBJECT_NOTIFIER_PARAM
 #define JS_GUARD_OBJECT_NOTIFIER_PARAM0
 #define JS_GUARD_OBJECT_NOTIFIER_INIT JS_BEGIN_MACRO JS_END_MACRO
 
-#endif 
+#endif /* !defined(DEBUG) */
 
 namespace js {
 
@@ -330,15 +330,15 @@ PodZero(T *t, size_t nelem)
     memset(t, 0, nelem * sizeof(T));
 }
 
-
-
-
-
-
-
-
-template <class T, size_t N> static void PodZero(T (&)[N]);          
-template <class T, size_t N> static void PodZero(T (&)[N], size_t);  
+/*
+ * Arrays implicitly convert to pointers to their first element, which is
+ * dangerous when combined with the above PodZero definitions. Adding an
+ * overload for arrays is ambiguous, so we need another identifier. The
+ * ambiguous overload is left to catch mistaken uses of PodZero; if you get a
+ * compile error involving PodZero and array types, use PodArrayZero instead.
+ */
+template <class T, size_t N> static void PodZero(T (&)[N]);          /* undefined */
+template <class T, size_t N> static void PodZero(T (&)[N], size_t);  /* undefined */
 
 template <class T, size_t N>
 JS_ALWAYS_INLINE static void
@@ -359,8 +359,8 @@ PodCopy(T *dst, T *src, size_t nelem)
     }
 }
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* defined(__cplusplus) */
 
-#endif 
+#endif /* jsutil_h___ */

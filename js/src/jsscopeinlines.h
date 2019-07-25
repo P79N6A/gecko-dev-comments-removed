@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsscopeinlines_h___
 #define jsscopeinlines_h___
@@ -61,7 +61,7 @@ js::Shape::freeTable(JSContext *cx)
 
 inline js::EmptyShape *
 JSObject::getEmptyShape(JSContext *cx, js::Class *aclasp,
-                         unsigned kind)
+                        /* gc::FinalizeKind */ unsigned kind)
 {
     JS_ASSERT(kind >= js::gc::FINALIZE_OBJECT0 && kind <= js::gc::FINALIZE_OBJECT_LAST);
     int i = kind - js::gc::FINALIZE_OBJECT0;
@@ -72,10 +72,10 @@ JSObject::getEmptyShape(JSContext *cx, js::Class *aclasp,
         if (!emptyShapes)
             return NULL;
 
-        
-
-
-
+        /*
+         * Always fill in emptyShapes[0], so canProvideEmptyShape works.
+         * Other empty shapes are filled in lazily.
+         */
         emptyShapes[0] = js::EmptyShape::create(cx, aclasp);
         if (!emptyShapes[0]) {
             cx->free(emptyShapes);
@@ -141,10 +141,10 @@ JSObject::trace(JSTracer *trc)
     js::Shape *shape = lastProp;
 
     if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes) {
-        
-
-
-
+        /*
+         * Either this object has its own shape, which must be regenerated, or
+         * it must have the same shape as lastProp.
+         */
         if (!shape->hasRegenFlag()) {
             shape->shape = js_RegenerateShapeForGC(cx);
             shape->setRegenFlag();
@@ -158,7 +158,7 @@ JSObject::trace(JSTracer *trc)
         objShape = newShape;
     }
 
-    
+    /* Trace our property tree or dictionary ancestor line. */
     do {
         shape->trace(trc);
     } while ((shape = shape->parent) != NULL);
@@ -173,10 +173,6 @@ Shape::Shape(jsid id, js::PropertyOp getter, js::PropertyOp setter, uint32 slot,
     table(NULL), id(id), rawGetter(getter), rawSetter(setter), slot(slot), attrs(uint8(attrs)),
     flags(uint8(flags)), shortid(int16(shortid)), parent(NULL)
 {
-#define JS_CRASH(addr) *(int *) addr = 0
-    if (JSID_IS_ZERO(id))
-        JS_CRASH(0xa8);
-#undef JS_CRASH
     JS_ASSERT_IF(slotSpan != SHAPE_INVALID_SLOT, slotSpan < JSObject::NSLOTS_LIMIT);
     JS_ASSERT_IF(getter && (attrs & JSPROP_GETTER), getterObj->isCallable());
     JS_ASSERT_IF(setter && (attrs & JSPROP_SETTER), setterObj->isCallable());
@@ -197,7 +193,7 @@ Shape::hash() const
 {
     JSDHashNumber hash = 0;
 
-    
+    /* Accumulate from least to most random so the low bits are most random. */
     JS_ASSERT_IF(isMethod(), !rawSetter || rawSetter == js_watch_set);
     if (rawGetter)
         hash = JS_ROTATE_LEFT32(hash, 4) ^ jsuword(rawGetter);
@@ -251,10 +247,10 @@ Shape::get(JSContext* cx, JSObject *receiver, JSObject* obj, JSObject *pobj, js:
         return pobj->methodReadBarrier(cx, *this, vp);
     }
 
-    
-
-
-
+    /*
+     * |with (it) color;| ends up here, as do XML filter-expressions.
+     * Avoid exposing the With object to native getters.
+     */
     if (obj->getClass() == &js_WithClass)
         obj = js_UnwrapWithObject(cx, obj);
     return js::CallJSPropertyOp(cx, getterOp(), obj, SHAPE_USERID(this), vp);
@@ -273,7 +269,7 @@ Shape::set(JSContext* cx, JSObject* obj, js::Value* vp) const
     if (attrs & JSPROP_GETTER)
         return js_ReportGetterOnlyAssignment(cx);
 
-    
+    /* See the comment in js::Shape::get as to why we check for With. */
     if (obj->getClass() == &js_WithClass)
         obj = js_UnwrapWithObject(cx, obj);
     return js::CallJSPropertyOpSetter(cx, setterOp(), obj, SHAPE_USERID(this), vp);
@@ -289,6 +285,6 @@ EmptyShape::EmptyShape(JSContext *cx, js::Class *aclasp)
 #endif
 }
 
-} 
+} /* namespace js */
 
-#endif 
+#endif /* jsscopeinlines_h___ */
