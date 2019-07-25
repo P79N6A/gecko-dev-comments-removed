@@ -102,9 +102,6 @@
 #include "nsIURI.h"
 
 
-static NS_DEFINE_IID(kWidgetCID, NS_CHILD_CID);
-
-
 
 #define DEBUG_SPRING_SIZE 8
 #define DEBUG_BORDER_SIZE 2

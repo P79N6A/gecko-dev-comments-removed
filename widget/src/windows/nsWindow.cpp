@@ -1739,32 +1739,6 @@ NS_METHOD nsWindow::GetClientBounds(nsIntRect &aRect)
 }
 
 
-void nsWindow::GetNonClientBounds(nsIntRect &aRect)
-{
-  if (mWnd) {
-    RECT r;
-    VERIFY(::GetWindowRect(mWnd, &r));
-
-    
-    aRect.width = r.right - r.left;
-    aRect.height = r.bottom - r.top;
-
-    
-    HWND parent = ::GetParent(mWnd);
-    if (parent) {
-      RECT pr;
-      VERIFY(::GetWindowRect(parent, &pr));
-      r.left -= pr.left;
-      r.top -= pr.top;
-    }
-    aRect.x = r.left;
-    aRect.y = r.top;
-  } else {
-    aRect.SetRect(0,0,0,0);
-  }
-}
-
-
 NS_METHOD nsWindow::GetScreenBounds(nsIntRect &aRect)
 {
   if (mWnd) {
