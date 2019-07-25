@@ -75,8 +75,6 @@ const kDialog = "dialog";
 
 
 
-"use strict";
-
 var gButtons = { };
 
 function init() {

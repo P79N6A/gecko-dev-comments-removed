@@ -38,8 +38,6 @@
 
 
 
-"use strict";
-
 const PREF_UPDATE_EXTENSIONS_ENABLED            = "extensions.update.enabled";
 const PREF_XPINSTALL_ENABLED                    = "xpinstall.enabled";
 
