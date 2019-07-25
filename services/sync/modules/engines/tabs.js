@@ -41,6 +41,8 @@ const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
 
+const TAB_TIME_ATTR = "weave.tabEngine.lastUsed.timeStamp";
+
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://weave/util.js");
 Cu.import("resource://weave/async.js");
@@ -190,6 +192,13 @@ TabStore.prototype = {
     return this._sessionStore;
   },
 
+  get _windowMediator() {
+    let wm = Cc["@mozilla.org/appshell/window-mediator;1"]
+                 .getService(Ci.nsIWindowMediator);
+    this.__defineGetter__("_windowMediator", function() { return wm;});
+    return this._windowMediator;
+  },
+
   get _json() {
     let json = Cc["@mozilla.org/dom/json;1"].createInstance(Ci.nsIJSON);
     this.__defineGetter__("_json", function() {return json;});
@@ -211,38 +220,46 @@ TabStore.prototype = {
   },
 
   _addFirefoxTabsToRecord: function TabStore__addFirefoxTabs(record) {
-    let session = this._json.decode(this._sessionStore.getBrowserState());
-    for (let i = 0; i < session.windows.length; i++) {
-      let window = session.windows[i];
-      
-
-
-
-      let windowID = i + 1;
-
-      for (let j = 0; j < window.tabs.length; j++) {
-        let tab = window.tabs[j];
+    
+    let enumerator = this._windowMediator.getEnumerator("navigator:browser");
+    while (enumerator.hasMoreElements()) {
+      let window = enumerator.getNext();
+      let tabContainer = window.getBrowser().tabContainer;
+      for each (let tabChild in tabContainer.childNodes) {
+        if (!tabChild.QueryInterface)
+          continue;
+        let tab = tabChild.QueryInterface(Ci.nsIDOMNode);
+        if (!tab)
+          continue;
+        let tabState = this._json.decode(this._sessionStore.getTabState(tab));
 	
-	
-	if (tab.entries.length == 0)
+	if (tabState.entries.length == 0)
 	  continue;
-	let currentPage = tab.entries[tab.entries.length - 1];
+
+        
+        let lastUsedTimestamp = tab.getAttribute(TAB_TIME_ATTR);
+
+        
+	let currentPage = tabState.entries[tabState.entries.length - 1];
 	
 
 
 
-        this._log.debug("Wrapping a tab with title " + currentPage.title);
+        
         let urlHistory = [];
 	
-	for (let i = tab.entries.length -1; i >= 0; i--) {
-          let entry = tab.entries[i];
+	for (let i = tabState.entries.length -1; i >= 0; i--) {
+          let entry = tabState.entries[i];
 	  if (entry && entry.url)
 	    urlHistory.push(entry.url);
 	  if (urlHistory.length >= 10)
 	    break;
 	}
+
         
-        record.addTab(currentPage.title, urlHistory);
+        this._log.debug("Wrapping a tab with title " + currentPage.title);
+        this._log.debug("And timestamp " + lastUsedTimestamp);
+        record.addTab(currentPage.title, urlHistory, lastUsedTimestamp);
       }
     }
   },
@@ -340,9 +357,6 @@ TabStore.prototype = {
 };
 
 
-
-
-
 function TabTracker() {
   this._TabTracker_init();
 }
@@ -357,39 +371,94 @@ TabTracker.prototype = {
     this._init();
 
     
-    
-    
+
     
     var ww = Cc["@mozilla.org/embedcomp/window-watcher;1"]
 	       .getService(Ci.nsIWindowWatcher);
     ww.registerNotification(this);
+
+    
+
+    let wm = Components.classes["@mozilla.org/appshell/window-mediator;1"]
+                   .getService(Components.interfaces.nsIWindowMediator);
+    let enumerator = wm.getEnumerator("navigator:browser");
+    while (enumerator.hasMoreElements()) {
+      this._registerListenersForWindow(enumerator.getNext());
+    }
+  },
+
+  _registerListenersForWindow: function TabTracker__registerListen(window) {
+    if (! window.getBrowser) {
+      return;
+    }
+    let browser = window.getBrowser();
+    if (! browser.tabContainer) {
+      return;
+    }
+    
+    let container = browser.tabContainer;
+    container.addEventListener("TabOpen", this.onTabOpened, false);
+    container.addEventListener("TabClose", this.onTabClosed, false);
+    container.addEventListener("TabSelect", this.onTabSelected, false);
+  },
+
+  _unRegisterListenersForWindow: function TabTracker__unregister(window) {
+    if (! window.getBrowser) {
+      return;
+    }
+    let browser = window.getBrowser();
+    if (! browser.tabContainer) {
+      return;
+    }
+    let container = browser.tabContainer;
+    container.removeEventListener("TabOpen", this.onTabOpened, false);
+    container.removeEventListener("TabClose", this.onTabClosed, false);
+    container.removeEventListener("TabSelect", this.onTabSelected, false);
   },
 
   observe: function TabTracker_observe(aSubject, aTopic, aData) {
-    this._log.trace("Spotted window open/close");
+    
+
     let window = aSubject.QueryInterface(Ci.nsIDOMWindow);
     
-    
-    
-    if (! window.getBrowser)
-      return;
-    let browser = window.getBrowser();
-    if (! browser.tabContainer)
-      return;
-    let container = browser.tabContainer;
     if (aTopic == "domwindowopened") {
-      container.addEventListener("TabOpen", this.onTabChanged, false);
-      container.addEventListener("TabClose", this.onTabChanged, false);
+      this._registerListenersForWindow(window);
     } else if (aTopic == "domwindowclosed") {
-      container.removeEventListener("TabOpen", this.onTabChanged, false);
-      container.removeEventListener("TabClose", this.onTabChanged, false);
+      this._unRegisterListenersForWindow(window);
     }
-    
   },
 
-  onTabChanged: function TabTracker_onTabChanged(event) {
-    this._score += 10; 
+  onTabOpened: function TabTracker_onTabOpened(event) {
+    
+    
+    
+
+
+
+
+    event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
+    
+    this._score += 50;
   },
+
+  onTabClosed: function TabTracker_onTabSelected(event) {
+    
+    this._score += 10;
+  },
+
+  onTabSelected: function TabTracker_onTabSelected(event) {
+    
+    
+    
+
+
+
+
+    event.target.setAttribute(TAB_TIME_ATTR, event.timeStamp);
+    
+    this._score += 10;
+  },
+  
 
   get changedIDs() {
     
@@ -398,6 +467,9 @@ TabTracker.prototype = {
     return obj;
   },
 
+  
+  
+  
   
   
   get score() {
