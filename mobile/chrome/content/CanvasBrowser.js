@@ -42,32 +42,50 @@
 
 function CanvasBrowser(canvas) {
   this._canvas = canvas;
+  this._rgnPage = Cc["@mozilla.org/gfx/region;1"].createInstance(Ci.nsIScriptableRegion);
+  this._pageBounds = new wsRect(0,0,0,0);
+  this._visibleBounds = new wsRect(0,0,0,0);
 }
 
 CanvasBrowser.prototype = {
   _canvas: null,
   _zoomLevel: 1,
   _browser: null,
-  _pageBounds: new wsRect(0,0,0,0),
+  _pageBounds: null,
   _screenX: 0,
   _screenY: 0,
-  _visibleBounds:new wsRect(0,0,0,0),
+  _visibleBounds: null,
+
   
   _maybeZoomToPage: false,
-  _pageLoading: true,
+
   
-  _rgnPage: Cc["@mozilla.org/gfx/region;1"].createInstance(Ci.nsIScriptableRegion),
+  _pageLoading: true,
+
+  
+  _rgnPage: null,
+
   
   
   _isPanning: false,
+
   
+  
+  _drawTimeout: 0,
+
+  
+  
+  
+  _maxRight: 0,
+  _maxBottom: 0,
+
   get canvasDimensions() {
     if (!this._canvasRect) {
       let canvasRect = this._canvas.getBoundingClientRect();
       this._canvasRect = {
         width: canvasRect.width,
         height: canvasRect.height
-      }
+      };
     }
     return [this._canvasRect.width, this._canvasRect.height];
   },
@@ -84,7 +102,7 @@ CanvasBrowser.prototype = {
     }
     return this._contentDOMWindowUtils;
   },
-  
+
   setCurrentBrowser: function(browser, skipZoom) {
     let currentBrowser = this._browser;
     if (currentBrowser) {
@@ -101,7 +119,7 @@ CanvasBrowser.prototype = {
 
     
     var self = this;
-    this._paintHandler = function(ev) { self._handleMozAfterPaint(ev); }
+    this._paintHandler = function(ev) { self._handleMozAfterPaint(ev); };
 
     browser.addEventListener("MozAfterPaint", this._paintHandler, false);
 
@@ -110,37 +128,6 @@ CanvasBrowser.prototype = {
     
     if (!skipZoom) {
       self.zoomToPage();
-    }
-  },
-
-  
-
-
-  addToRegion: function addToRegion(rect) {
-    this._rgnPage.unionRect(rect.x, rect.y, rect.width, rect.height);
-
-    function resizeAndPaint(self) {
-      if (self._maybeZoomToPage) {
-        self.zoomToPage();
-        self._maybeZoomToPage = false;
-      }
-      
-      if (!self._isPanning)
-        self.flushRegion(true);
-    }
-    
-    let flushNow = !this._pageLoading && rect.intersects(this._visibleBounds);
-    
-    
-    if (this._pageLoading && !this._drawInterval) {
-      
-      flushNow = true;
-      this._maybeZoomToPage = true;
-      this._drawInterval = setInterval(resizeAndPaint, 2000, this);
-    }
-
-    if (flushNow) {
-      resizeAndPaint(this);
     }
   },
 
@@ -155,23 +142,58 @@ CanvasBrowser.prototype = {
     let drawls = [];
     let outX = {}; let outY = {}; let outW = {}; let outH = {};
     let numRects = rgn.numRects;
-    for (let i=0;i<numRects;i++) {
+    let updateBounds = null;
+    let pixelsInRegion = 0;
+    for (let i = 0; i < numRects; i++) {
       rgn.getRect(i, outX, outY, outW, outH);
       let rect = new wsRect(outX.value, outY.value,
                             outW.value, outH.value);
       if (viewingBoundsOnly) {
         
-        rect = rect.intersect(this._visibleBounds)
+        rect = rect.intersect(this._visibleBounds);
         if (!rect)
           continue;
       } else {
         clearRegion = true;
       }
-      drawls.push(rect)
+      drawls.push(rect);
+
+      if (updateBounds == null) {
+        updateBounds = rect.clone();
+      } else {
+        updateBounds = updateBounds.union(rect);
+      }
+
+      pixelsInRegion += rect.width * rect.height;
     }
 
+    
+    
+    
     if (clearRegion)
       this.clearRegion();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    if (drawls.length > 1 &&
+        pixelsInRegion > (updateBounds.width * updateBounds.height * 0.90))
+    {
+      drawls = [updateBounds];
+    }
 
     let oldX = 0;
     let oldY = 0;
@@ -180,15 +202,17 @@ CanvasBrowser.prototype = {
     ctx.scale(this._zoomLevel, this._zoomLevel);
 
     
-    for each(let rect in drawls) {
-      
+    for each (let rect in drawls) {
       if (!clearRegion)
-        rgn.subtractRect(rect.left, rect.top,
-                         rect.width, rect.height);
+        rgn.subtractRect(rect.left, rect.top, rect.width, rect.height);
+
       
       rect.round(this._zoomLevel);
-      let x = rect.x - this._pageBounds.x
-      let y = rect.y - this._pageBounds.y
+      let x = rect.x - this._pageBounds.x;
+      let y = rect.y - this._pageBounds.y;
+
+      
+      
       
       ctx.translate(x - oldX, y - oldY);
       oldX = x;
@@ -217,6 +241,10 @@ CanvasBrowser.prototype = {
     var ctx = this._canvas.getContext("2d");
     ctx.fillStyle = "rgb(255,255,255)";
     ctx.fillRect(0, 0, this._canvas.width, this._canvas.height);
+
+    this._maxRight = 0;
+    this._maxBottom = 0;
+
     this._pageLoading = true;
   },
 
@@ -227,10 +255,10 @@ CanvasBrowser.prototype = {
     
     
     this.flushRegion();
-    
-    if (this._drawInterval) {
-      clearInterval(this._drawInterval);
-      this._drawInterval = null;
+
+    if (this._drawTimeout) {
+      clearTimeout(this._drawTimeout);
+      this._drawTimeout = 0;
     }
   },
 
@@ -238,7 +266,7 @@ CanvasBrowser.prototype = {
   
   startPanning: function startPanning() {
     this.flushRegion();
-    
+
     
     this._isPanning = true;
   },
@@ -261,7 +289,7 @@ CanvasBrowser.prototype = {
     pageBounds.left = this._screenToPage(pageBounds.left);
     pageBounds.bottom = Math.ceil(this._screenToPage(pageBounds.bottom));
     pageBounds.right = Math.ceil(this._screenToPage(pageBounds.right));
-        
+
     visibleBounds.top = Math.max(0, this._screenToPage(visibleBounds.top));
     visibleBounds.left = Math.max(0, this._screenToPage(visibleBounds.left));
     visibleBounds.bottom = Math.ceil(this._screenToPage(visibleBounds.bottom));
@@ -277,7 +305,7 @@ CanvasBrowser.prototype = {
       this.contentDOMWindowUtils.clearMozAfterPaintEvents();
     } else
       this.flushRegion();
-    
+
     this._visibleBounds = visibleBounds;
     this._pageBounds = pageBounds;
 
@@ -287,7 +315,7 @@ CanvasBrowser.prototype = {
     this._screenY = bounds.y;
 
     if (boundsSizeChanged) {
-      this._redrawRect(pageBounds);
+      this._redrawRects([pageBounds]);
       return;
     }
 
@@ -302,7 +330,7 @@ CanvasBrowser.prototype = {
     var ctx = this._canvas.getContext("2d");
     let cWidth = this._canvas.width;
     let cHeight = this._canvas.height;
-    
+
     ctx.drawImage(this._canvas,
                   0, 0, cWidth, cHeight,
                   dx, dy, cWidth, cHeight);
@@ -317,48 +345,117 @@ CanvasBrowser.prototype = {
     }
     rgn.setToRect(0, 0, cWidth, cHeight);
     rgn.subtractRect(dx, dy, cWidth, cHeight);
-    
+
     let outX = {}; let outY = {}; let outW = {}; let outH = {};
-    let rectCount = rgn.numRects
-    for (let i = 0;i < rectCount;i++) {
+    let rectCount = rgn.numRects;
+    let rectsToDraw = [];
+    for (let i = 0; i < rectCount; i++) {
       rgn.getRect(i, outX, outY, outW, outH);
       if (outW.value > 0 && outH.value > 0) {
-        this._redrawRect(new wsRect(Math.floor(this._pageBounds.x +this._screenToPage(outX.value)),
-                                    Math.floor(this._pageBounds.y +this._screenToPage(outY.value)),
+        rectsToDraw.push(new wsRect(Math.floor(this._pageBounds.x + this._screenToPage(outX.value)),
+                                    Math.floor(this._pageBounds.y + this._screenToPage(outY.value)),
                                     Math.ceil(this._screenToPage(outW.value)),
                                     Math.ceil(this._screenToPage(outH.value))));
       }
     }
+
+    if (rectsToDraw.length > 0)
+      this._redrawRects(rectsToDraw);
   },
 
   _handleMozAfterPaint: function(aEvent) {
     let cwin = this._browser.contentWindow;
 
-    for (let i = 0; i < aEvent.clientRects.length; i++) {
-      let e = aEvent.clientRects.item(i);
-      let r = new wsRect(e.left + cwin.scrollX,
-                         e.top + cwin.scrollY,
+    let csx = cwin.scrollX;
+    let csy = cwin.scrollY;
+    let clientRects = aEvent.clientRects;
+
+    let rects = [];
+    
+    for (let i = clientRects.length - 1; i >= 0; --i) {
+      let e = clientRects.item(i);
+      let r = new wsRect(e.left + csx,
+                         e.top + csy,
                          e.width, e.height);
-      this._redrawRect(r);
+      rects.push(r);
     }
+
+    this._redrawRects(rects);
   },
 
-  _redrawRect: function(rect) {
+  _redrawRects: function(rects) {
     
     
-    if (this._pageLoading)  {
-      if (rect.bottom > 0 && rect.right > this._visibleBounds.right)
-        this._maybeZoomToPage = true;
-    } 
+    let realRectCount = 0;
+
+    let zeroPageBounds = this._pageBounds.clone();
+    zeroPageBounds.left = Math.max(zeroPageBounds.left, 0);
+    zeroPageBounds.top = Math.max(zeroPageBounds.top, 0);
+
     
-    let r2 = this._pageBounds.clone();
-    r2.left = Math.max(r2.left, 0);
-    r2.top = Math.max(r2.top, 0);
-    let dest = rect.intersect(r2);
     
-    if (dest) {
-      dest.round(1);
-      this.addToRegion(dest);
+    for each (var rect in rects) {
+      if (this._pageLoading)  {
+        
+        if (rect.bottom > this._maxBottom) {
+          this._maybeZoomToPage = true;
+          this._maxBottom = rect.bottom;
+        }
+
+        if (rect.right > this._maxRight) {
+          this._maybeZoomToPage = true;
+          this._maxRight = rect.right;
+        }
+      }
+
+      rect = rect.intersect(zeroPageBounds);
+
+      if (!rect)
+        continue;
+
+      rect.round(1);
+
+      this._rgnPage.unionRect(rect.x, rect.y, rect.width, rect.height);
+
+      realRectCount++;
+    }
+
+    
+    if (realRectCount == 0)
+      return;
+
+    
+    
+    function resizeAndPaint(self) {
+      if (self._maybeZoomToPage) {
+        self.zoomToPage();
+        self._maybeZoomToPage = false;
+      }
+      
+      if (!self._isPanning)
+        self.flushRegion(true);
+
+      if (self._pageLoading) {
+        
+        self._drawTimeout = setTimeout(resizeAndPaint, 2000, self);
+      } else {
+        self._drawTimeout = 0;
+      }
+    }
+
+    let flushNow = !this._pageLoading;
+
+    
+    
+    if (this._pageLoading && !this._drawTimeout) {
+      
+      flushNow = true;
+      this._maybeZoomToPage = true;
+      this._drawTimeout = setTimeout(resizeAndPaint, 2000, this);
+    }
+
+    if (flushNow) {
+      resizeAndPaint(this);
     }
   },
 
@@ -412,7 +509,11 @@ CanvasBrowser.prototype = {
     ws.beginUpdateBatch();
 
     this.zoomLevel = zoomLevel;
+
     
+    
+    
+
     
 
 
@@ -524,7 +625,7 @@ CanvasBrowser.prototype = {
   
   ensureElementIsVisible: function(aElement) {
     let elRect = this._getPagePosition(aElement);
-    let curRect = this._visibleBounds
+    let curRect = this._visibleBounds;
     let newx = curRect.x;
     let newy = curRect.y;
 
