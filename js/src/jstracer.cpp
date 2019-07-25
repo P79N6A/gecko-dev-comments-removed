@@ -294,13 +294,16 @@ ValueToTypeChar(const Value &v)
 
 
 
-#define HOTLOOP 2
+#define HOTLOOP 4
 
 
 #define BL_ATTEMPTS 2
 
 
 #define BL_BACKOFF 32
+
+
+#define MAX_LOOP_EXECS 300
 
 
 #define HOTEXIT 1
@@ -1548,6 +1551,7 @@ TreeFragment::initialize(JSContext* cx, SlotList *globalSlots, bool speculate)
                              sizeof(double);
     this->maxNativeStackSlots = nStackTypes;
     this->maxCallDepth = 0;
+    this->execs = 0;
 }
 
 UnstableExit*
@@ -6727,13 +6731,12 @@ ExecuteTree(JSContext* cx, TreeFragment* f, uintN& inlineCallCount,
                      f->typeMap.data(), global, stack);
 
     AUDIT(traceTriggered);
-    debug_only_printf(LC_TMTracer,
-                      "entering trace at %s:%u@%u, native stack slots: %u code: %p\n",
-                      cx->fp->script->filename,
-                      js_FramePCToLineNumber(cx, cx->fp),
-                      FramePCOffset(cx, cx->fp),
-                      f->maxNativeStackSlots,
-                      f->code());
+    debug_only_printf(LC_TMTracer, "entering trace at %s:%u@%u, execs: %u code: %p\n",
+           cx->fp->script->filename,
+           js_FramePCToLineNumber(cx, cx->fp),
+           FramePCOffset(cx, cx->fp),
+           f->execs,
+           f->code());
 
     debug_only_stmt(uint32 globalSlots = globalObj->numSlots();)
     debug_only_stmt(*(uint64*)&tm->storage->global()[globalSlots] = 0xdeadbeefdeadbeefLL;)
@@ -7112,6 +7115,19 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
     state.innermost = innermost;
 }
 
+static bool
+ApplyBlacklistHeuristics(JSContext *cx, TreeFragment *tree)
+{
+    if (tree->execs >= MAX_LOOP_EXECS) {
+        debug_only_printf(LC_TMTracer, "tree %p executed %d times, blacklisting\n",
+                          (void*)tree, tree->execs);
+        Blacklist((jsbytecode *)tree->ip);
+        return false;
+    }
+    tree->execs++;
+    return true;
+}
+
 JS_REQUIRES_STACK MonitorResult
 MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, RecordReason reason)
 {
@@ -7246,6 +7262,9 @@ MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, RecordReason reason)
 
     VMSideExit* lr = NULL;
     VMSideExit* innermostNestedGuard = NULL;
+
+    if (!ApplyBlacklistHeuristics(cx, match))
+        return MONITOR_NOT_RECORDING;
 
     if (!ExecuteTree(cx, match, inlineCallCount, &innermostNestedGuard, &lr))
         return MONITOR_ERROR;
@@ -16228,6 +16247,9 @@ MonitorTracePoint(JSContext* cx, uintN& inlineCallCount, bool& blacklist)
 
             VMSideExit* lr = NULL;
             VMSideExit* innermostNestedGuard = NULL;
+
+            if (!ApplyBlacklistHeuristics(cx, match))
+                return TPA_Nothing;
 
             
             if (!ExecuteTree(cx, match, inlineCallCount, &innermostNestedGuard, &lr))
