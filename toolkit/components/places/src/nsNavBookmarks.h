@@ -54,7 +54,28 @@ namespace places {
 
   enum BookmarkStatementId {
     DB_FIND_REDIRECTED_BOOKMARK = 0
+  , DB_GET_BOOKMARKS_FOR_URI
   };
+
+  struct ItemVisitData {
+    PRInt64 itemId;
+    nsCOMPtr<nsIURI> uri;
+    PRInt64 visitId;
+    PRTime time;
+  };
+
+  struct ItemChangeData {
+    PRInt64 itemId;
+    nsCOMPtr<nsIURI> uri;
+    nsCString property;
+    PRBool isAnnotation;
+    nsCString newValue;
+    PRTime lastModified;
+    PRUint16 itemType;
+  };
+
+  typedef void (nsNavBookmarks::*ItemVisitMethod)(ItemVisitData);
+  typedef void (nsNavBookmarks::*ItemChangeMethod)(ItemChangeData);
 
 } 
 } 
@@ -176,9 +197,31 @@ public:
     switch(aStatementId) {
       case DB_FIND_REDIRECTED_BOOKMARK:
         return GetStatement(mDBFindRedirectedBookmark);
+      case DB_GET_BOOKMARKS_FOR_URI:
+        return GetStatement(mDBFindURIBookmarks);
     }
     return nsnull;
   }
+
+  
+
+
+
+
+
+
+
+  void NotifyItemVisited(mozilla::places::ItemVisitData aData);
+
+  
+
+
+
+
+
+
+
+  void NotifyItemChanged(mozilla::places::ItemChangeData aData);
 
 private:
   static nsNavBookmarks* gBookmarksService;
