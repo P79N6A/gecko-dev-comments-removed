@@ -35,25 +35,16 @@
 
 
 
-const EXPORTED_SYMBOLS = ["WeaveLoginManager"];
+const EXPORTED_SYMBOLS = ["Authenticator"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cr = Components.results;
+const Cu = Components.utils;
 
-Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-let WeaveLoginManager = {
-
-    classDescription: "LoginManager",
-    contractID: "@mozilla.org/login-manager;1",
-    classID: Components.ID("{cb9e0de8-3598-4ed7-857b-827f011ad5d8}"),
-    QueryInterface : XPCOMUtils.generateQI([Ci.nsILoginManager,
-                                            Ci.nsISupportsWeakReference]),
-
-
-    
-
-
+let Authenticator = {
     __logService : null, 
     get _logService() {
         if (!this.__logService)
@@ -61,7 +52,6 @@ let WeaveLoginManager = {
                                 getService(Ci.nsIConsoleService);
         return this.__logService;
     },
-
 
     __ioService: null, 
     get _ioService() {
@@ -162,11 +152,7 @@ let WeaveLoginManager = {
 
 
     init : function () {
-
         
-        this._webProgressListener._domEventListener = this._domEventListener;
-        this._webProgressListener._pwmgr = this;
-        this._domEventListener._pwmgr    = this;
         this._observer._pwmgr            = this;
 
         
@@ -177,28 +163,12 @@ let WeaveLoginManager = {
 
         
         this._debug = this._prefBranch.getBoolPref("debug");
-
         this._remember = this._prefBranch.getBoolPref("rememberSignons");
-
 
         
         this._nsLoginInfo = new Components.Constructor(
             "@mozilla.org/login-manager/loginInfo;1", Ci.nsILoginInfo);
-
-
-        
-        this._observerService.addObserver(this._observer, "earlyformsubmit", false);
-        this._observerService.addObserver(this._observer, "xpcom-shutdown", false);
-
-        
-        var progress = Cc["@mozilla.org/docloaderservice;1"].
-                       getService(Ci.nsIWebProgress);
-        progress.addProgressListener(this._webProgressListener,
-                                     Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
-
-
     },
-
 
     
 
@@ -208,8 +178,8 @@ let WeaveLoginManager = {
     log : function (message) {
         if (!this._debug)
             return;
-        dump("Login Manager: " + message + "\n");
-        this._logService.logStringMessage("Login Manager: " + message);
+        dump("Authenticator: " + message + "\n");
+        this._logService.logStringMessage("Authenticator: " + message);
     },
 
 
@@ -226,25 +196,7 @@ let WeaveLoginManager = {
         _pwmgr : null,
 
         QueryInterface : XPCOMUtils.generateQI([Ci.nsIObserver, 
-                                                Ci.nsIFormSubmitObserver,
                                                 Ci.nsISupportsWeakReference]),
-
-
-        
-        notify : function (formElement, aWindow, actionURI) {
-            this._pwmgr.log("observer notified for form submission.");
-
-            
-            
-
-            try {
-                this._pwmgr._onFormSubmit(formElement);
-            } catch (e) {
-                this._pwmgr.log("Caught error in onFormSubmit: " + e);
-            }
-
-            return true; 
-        },
 
         
         observe : function (subject, topic, data) {
@@ -262,219 +214,13 @@ let WeaveLoginManager = {
                 } else {
                     this._pwmgr.log("Oops! Pref not handled, change ignored.");
                 }
-            } else if (topic == "xpcom-shutdown") {
-                for (let i in this._pwmgr) {
-                  try {
-                    this._pwmgr[i] = null;
-                  } catch(ex) {}
-                }
-                this._pwmgr = null;
             } else {
                 this._pwmgr.log("Oops! Unexpected notification: " + topic);
             }
         }
     },
 
-
     
-
-
-
-
-
-
-    _webProgressListener : {
-        _pwmgr : null,
-        _domEventListener : null,
-
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                                Ci.nsISupportsWeakReference]),
-
-
-        onStateChange : function (aWebProgress, aRequest,
-                                  aStateFlags,  aStatus) {
-
-            
-            if (!(aStateFlags & Ci.nsIWebProgressListener.STATE_TRANSFERRING))
-                return;
-
-            if (!this._pwmgr._remember)
-                return;
-
-            var domWin = aWebProgress.DOMWindow;
-            var domDoc = domWin.document;
-
-            
-            if (!(domDoc instanceof Ci.nsIDOMHTMLDocument))
-                return;
-
-            this._pwmgr.log("onStateChange accepted: req = " +
-                            (aRequest ?  aRequest.name : "(null)") +
-                            ", flags = 0x" + aStateFlags.toString(16));
-
-            
-            if (aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING) {
-                this._pwmgr.log("onStateChange: restoring document");
-                return this._pwmgr._fillDocument(domDoc);
-            }
-
-            
-            domDoc.addEventListener("DOMContentLoaded",
-                                    this._domEventListener, false);
-            return;
-        },
-
-        
-        onProgressChange : function() { throw "Unexpected onProgressChange"; },
-        onLocationChange : function() { throw "Unexpected onLocationChange"; },
-        onStatusChange   : function() { throw "Unexpected onStatusChange";   },
-        onSecurityChange : function() { throw "Unexpected onSecurityChange"; }
-    },
-
-
-    
-
-
-
-
-
-    _domEventListener : {
-        _pwmgr : null,
-
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIDOMEventListener,
-                                                Ci.nsISupportsWeakReference]),
-
-
-        handleEvent : function (event) {
-            this._pwmgr.log("domEventListener: got event " + event.type);
-
-            switch (event.type) {
-                case "DOMContentLoaded":
-                    this._pwmgr._fillDocument(event.target);
-                    return;
-
-                case "DOMAutoComplete":
-                case "blur":
-                    var acInputField = event.target;
-                    var acForm = acInputField.form;
-                    
-                    
-                    
-                    var [usernameField, passwordField, ignored] =
-                        this._pwmgr._getFormFields(acForm, false);
-                    if (usernameField == acInputField && passwordField) {
-                        
-                        passwordField.value = "";
-                        this._pwmgr._fillForm(acForm, true, true, null);
-                    } else {
-                        this._pwmgr.log("Oops, form changed before AC invoked");
-                    }
-                    return;
-
-                default:
-                    this._pwmgr.log("Oops! This event unexpected.");
-                    return;
-            }
-        }
-    },
-
-
-
-
-    
-
-
-
-
-    
-
-
-
-
-    addLogin : function (login) {
-        
-        if (login.hostname == null || login.hostname.length == 0)
-            throw "Can't add a login with a null or empty hostname.";
-
-        
-        if (login.username == null)
-            throw "Can't add a login with a null username.";
-
-        if (login.password == null || login.password.length == 0)
-            throw "Can't add a login with a null or empty password.";
-
-        if (login.formSubmitURL || login.formSubmitURL == "") {
-            
-            if (login.httpRealm != null)
-                throw "Can't add a login with both a httpRealm and formSubmitURL.";
-        } else if (login.httpRealm) {
-            
-            if (login.formSubmitURL != null)
-                throw "Can't add a login with both a httpRealm and formSubmitURL.";
-        } else {
-            
-            throw "Can't add a login without a httpRealm or formSubmitURL.";
-        }
-
-
-        
-        var logins = this.findLogins({}, login.hostname, login.formSubmitURL,
-                                     login.httpRealm);
-
-        if (logins.some(function(l) login.matches(l, true)))
-            throw "This login already exists.";
-
-        this.log("Adding login: " + login);
-        return this._storage.addLogin(login);
-    },
-
-
-    
-
-
-
-
-    removeLogin : function (login) {
-        this.log("Removing login: " + login);
-        return this._storage.removeLogin(login);
-    },
-
-
-    
-
-
-
-
-    modifyLogin : function (oldLogin, newLogin) {
-        this.log("Modifying oldLogin: " + oldLogin + " newLogin: " + newLogin);
-        return this._storage.modifyLogin(oldLogin, newLogin);
-    },
-
-
-    
-
-
-
-
-
-
-
-
-    getAllLogins : function (count) {
-        this.log("Getting a list of all logins");
-        return this._storage.getAllLogins(count);
-    },
-
-
-    
-
-
-
-
-    removeAllLogins : function () {
-        this.log("Removing all logins");
-        this._storage.removeAllLogins();
-    },
 
     
 
@@ -505,22 +251,6 @@ let WeaveLoginManager = {
                                         httpRealm);
     },
 
-
-    
-
-
-
-
-
-
-
-    searchLogins : function(count, matchData) {
-       this.log("Searching for logins");
-
-        return this._storage.searchLogins(count, matchData);
-    },
-
-
     
 
 
@@ -533,105 +263,6 @@ let WeaveLoginManager = {
 
         return this._storage.countLogins(hostname, formSubmitURL, httpRealm);
     },
-
-
-    
-
-
-
-
-    getLoginSavingEnabled : function (host) {
-        this.log("Checking if logins to " + host + " can be saved.");
-        if (!this._remember)
-            return false;
-
-        return this._storage.getLoginSavingEnabled(host);
-    },
-
-
-    
-
-
-
-
-    setLoginSavingEnabled : function (hostname, enabled) {
-        
-        if (hostname.indexOf("\0") != -1)
-            throw "Invalid hostname";
-
-        this.log("Saving logins for " + hostname + " enabled? " + enabled);
-        return this._storage.setLoginSavingEnabled(hostname, enabled);
-    },
-
-
-    
-
-
-
-
-
-
-
-
-
-    autoCompleteSearch : function (aSearchString, aPreviousResult, aElement) {
-        
-        
-
-        if (!this._remember)
-            return false;
-
-        this.log("AutoCompleteSearch invoked. Search is: " + aSearchString);
-
-        var result = null;
-
-        if (aPreviousResult) {
-            this.log("Using previous autocomplete result");
-            result = aPreviousResult;
-
-            
-            
-            
-            
-            for (var i = result.matchCount - 1; i >= 0; i--) {
-                var match = result.getValueAt(i);
-
-                
-                if (aSearchString.length > match.length ||
-                    aSearchString.toLowerCase() !=
-                        match.substr(0, aSearchString.length).toLowerCase())
-                {
-                    this.log("Removing autocomplete entry '" + match + "'");
-                    result.removeValueAt(i, false);
-                }
-            }
-        } else {
-            this.log("Creating new autocomplete search result.");
-
-            var doc = aElement.ownerDocument;
-            var origin = this._getPasswordOrigin(doc.documentURI);
-            var actionOrigin = this._getActionOrigin(aElement.form);
-
-            var logins = this.findLogins({}, origin, actionOrigin, null);
-            var matchingLogins = [];
-
-            for (i = 0; i < logins.length; i++) {
-                var username = logins[i].username.toLowerCase();
-                if (aSearchString.length <= username.length &&
-                    aSearchString.toLowerCase() ==
-                        username.substr(0, aSearchString.length))
-                {
-                    matchingLogins.push(logins[i]);
-                }
-            }
-            this.log(matchingLogins.length + " autocomplete logins avail.");
-            result = new UserAutoCompleteResult(aSearchString, matchingLogins);
-        }
-
-        return result;
-    },
-
-
 
 
     
@@ -783,155 +414,6 @@ let WeaveLoginManager = {
 
         return false;
     },
-
-    
-
-
-
-
-
-
-
-    _onFormSubmit : function (form) {
-
-        
-        function getPrompter(aWindow) {
-            var prompterSvc = Cc["@mozilla.org/login-manager/prompter;1"].
-                              createInstance(Ci.nsILoginManagerPrompter);
-            prompterSvc.init(aWindow);
-            return prompterSvc;
-        }
-
-        if (this._inPrivateBrowsing) {
-            
-            
-            this.log("(form submission ignored in private browsing mode)");
-            return;
-        }
-
-        var doc = form.ownerDocument;
-        var win = doc.defaultView;
-
-        
-        if (!this._remember)
-            return;
-
-        var hostname      = this._getPasswordOrigin(doc.documentURI);
-        var formSubmitURL = this._getActionOrigin(form)
-        if (!this.getLoginSavingEnabled(hostname)) {
-            this.log("(form submission ignored -- saving is " +
-                     "disabled for: " + hostname + ")");
-            return;
-        }
-
-
-        
-        var [usernameField, newPasswordField, oldPasswordField] =
-            this._getFormFields(form, true);
-
-        
-        if (newPasswordField == null)
-                return;
-
-        
-        
-        
-        if (this._isAutocompleteDisabled(form) ||
-            this._isAutocompleteDisabled(usernameField) ||
-            this._isAutocompleteDisabled(newPasswordField) ||
-            this._isAutocompleteDisabled(oldPasswordField)) {
-                this.log("(form submission ignored -- autocomplete=off found)");
-                return;
-        }
-
-
-        var formLogin = new this._nsLoginInfo();
-        formLogin.init(hostname, formSubmitURL, null,
-                    (usernameField ? usernameField.value : ""),
-                    newPasswordField.value,
-                    (usernameField ? usernameField.name  : ""),
-                    newPasswordField.name);
-
-        
-        
-        
-        if (!usernameField && oldPasswordField) {
-
-            var logins = this.findLogins({}, hostname, formSubmitURL, null);
-
-            if (logins.length == 0) {
-                
-                
-                this.log("(no logins for this host -- pwchange ignored)");
-                return;
-            }
-
-            var prompter = getPrompter(win);
-
-            if (logins.length == 1) {
-                var oldLogin = logins[0];
-                formLogin.username      = oldLogin.username;
-                formLogin.usernameField = oldLogin.usernameField;
-
-                prompter.promptToChangePassword(oldLogin, formLogin);
-            } else {
-                prompter.promptToChangePasswordWithUsernames(
-                                    logins, logins.length, formLogin);
-            }
-
-            return;
-        }
-
-
-        
-        var existingLogin = null;
-        var logins = this.findLogins({}, hostname, formSubmitURL, null);
-
-        for (var i = 0; i < logins.length; i++) {
-            var same, login = logins[i];
-
-            
-            
-            
-            
-            if (!login.username && formLogin.username) {
-                var restoreMe = formLogin.username;
-                formLogin.username = ""; 
-                same = formLogin.matches(login, false);
-                formLogin.username = restoreMe;
-            } else if (!formLogin.username && login.username) {
-                formLogin.username = login.username;
-                same = formLogin.matches(login, false);
-                formLogin.username = ""; 
-            } else {
-                same = formLogin.matches(login, true);
-            }
-
-            if (same) {
-                existingLogin = login;
-                break;
-            }
-        }
-
-        if (existingLogin) {
-            this.log("Found an existing login matching this form submission");
-
-            
-            if (existingLogin.password != formLogin.password) {
-                this.log("...passwords differ, prompting to change.");
-                prompter = getPrompter(win);
-                prompter.promptToChangePassword(existingLogin, formLogin);
-            }
-
-            return;
-        }
-
-
-        
-        prompter = getPrompter(win);
-        prompter.promptToSavePassword(formLogin);
-    },
-
 
     
 
@@ -1178,118 +660,8 @@ let WeaveLoginManager = {
                  passwordField: passwordField,
                  foundLogins:   foundLogins,
                  selectedLogin: selectedLogin };
-    },
-
-
-    
-
-
-
-
-    fillForm : function (form) {
-        this.log("fillForm processing form[id=" + form.id + "]");
-        return this._fillForm(form, true, true, null)[0];
-    },
-
-
-    
-
-
-
-
-
-
-    _attachToInput : function (element) {
-        this.log("attaching autocomplete stuff");
-        element.addEventListener("blur",
-                                this._domEventListener, false);
-        element.addEventListener("DOMAutoComplete",
-                                this._domEventListener, false);
-        this._formFillService.markAsLoginManagerField(element);
     }
+
 }; 
 
-
-
-
-
-function UserAutoCompleteResult (aSearchString, matchingLogins) {
-    function loginSort(a,b) {
-        var userA = a.username.toLowerCase();
-        var userB = b.username.toLowerCase();
-
-        if (userA < userB)
-            return -1;
-
-        if (userB > userA)
-            return  1;
-
-        return 0;
-    };
-
-    this.searchString = aSearchString;
-    this.logins = matchingLogins.sort(loginSort);
-    this.matchCount = matchingLogins.length;
-
-    if (this.matchCount > 0) {
-        this.searchResult = Ci.nsIAutoCompleteResult.RESULT_SUCCESS;
-        this.defaultIndex = 0;
-    }
-}
-
-UserAutoCompleteResult.prototype = {
-    QueryInterface : XPCOMUtils.generateQI([Ci.nsIAutoCompleteResult,
-                                            Ci.nsISupportsWeakReference]),
-
-    
-    logins : null,
-
-    
-    searchString : null,
-    searchResult : Ci.nsIAutoCompleteResult.RESULT_NOMATCH,
-    defaultIndex : -1,
-    errorDescription : "",
-    matchCount : 0,
-
-    getValueAt : function (index) {
-        if (index < 0 || index >= this.logins.length)
-            throw "Index out of range.";
-
-        return this.logins[index].username;
-    },
-
-    getCommentAt : function (index) {
-        return "";
-    },
-
-    getStyleAt : function (index) {
-        return "";
-    },
-
-    getImageAt : function (index) {
-        return "";
-    },
-
-    removeValueAt : function (index, removeFromDB) {
-        if (index < 0 || index >= this.logins.length)
-            throw "Index out of range.";
-
-        var [removedLogin] = this.logins.splice(index, 1);
-
-        this.matchCount--;
-        if (this.defaultIndex > this.logins.length)
-            this.defaultIndex--;
-
-        if (removeFromDB) {
-            var pwmgr = Cc["@mozilla.org/login-manager;1"].
-                        getService(Ci.nsILoginManager);
-            pwmgr.removeLogin(removedLogin);
-        }
-    }
-};
-
-
-
-
-
-WeaveLoginManager.init();
+Authenticator.init();
