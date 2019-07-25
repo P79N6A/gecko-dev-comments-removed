@@ -60,8 +60,10 @@ public:
   CompositorParent(nsIWidget* aWidget);
   virtual ~CompositorParent();
 
-  bool RecvInit();
   bool RecvStop();
+
+  
+  bool RecvFixMeDoNotCall();
 
   virtual void ShadowLayersUpdated();
   void Destroy();
