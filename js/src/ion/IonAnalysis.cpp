@@ -88,6 +88,8 @@ class TypeAnalyzer
     TypeAnalyzer(MIRGraph &graph);
 
     bool analyze();
+    bool populate();
+    bool propagate();
     bool inspectOperands(MInstruction *ins);
     bool propagateUsedTypes(MInstruction *ins);
 };
@@ -149,7 +151,7 @@ TypeAnalyzer::propagateUsedTypes(MInstruction *ins)
 }
 
 bool
-TypeAnalyzer::analyze()
+TypeAnalyzer::populate()
 {
     
     
@@ -174,7 +176,13 @@ TypeAnalyzer::analyze()
             i++;
         }
     }
+    
+    return true;
+}
 
+bool
+TypeAnalyzer::propagate()
+{
     
     while (!worklist.empty()) {
         MInstruction *ins = popFromWorklist();
@@ -202,6 +210,18 @@ TypeAnalyzer::analyze()
                 return false;
         }
     }
+
+    return true;
+}
+
+bool
+TypeAnalyzer::analyze()
+{
+    if (!populate())
+        return false;
+
+    if (!propagate())
+        return false;
 
     return true;
 }
