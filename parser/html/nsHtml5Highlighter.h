@@ -124,21 +124,53 @@ class nsHtml5Highlighter
 
 
 
+
+
     void AddErrorToCurrentNode(const char* aMsgId);
 
     
 
 
 
-    void AddErrorToCurrentMarkupDecl(const char* aMsgId);
+
+
+
+    void AddErrorToCurrentRun(const char* aMsgId);
 
     
+
+
+
+
+
+
+
+    void AddErrorToCurrentRun(const char* aMsgId, nsIAtom* aName);
+
+    
+
+
+
+
+
+
+
+
+    void AddErrorToCurrentRun(const char* aMsgId,
+                              nsIAtom* aName,
+                              nsIAtom* aOther);
+
+    
+
+
 
 
 
     void AddErrorToCurrentAmpersand(const char* aMsgId);
 
     
+
+
 
 
 
@@ -163,6 +195,16 @@ class nsHtml5Highlighter
 
 
     void EndInline();
+
+    
+
+
+    void StartCharacters();
+
+    
+
+
+    void EndCharacters();
 
     
 
@@ -272,7 +314,14 @@ class nsHtml5Highlighter
     
 
 
+
     PRInt32 mInlinesOpen;
+
+    
+
+
+
+    bool mInCharacters;
 
     
 
@@ -312,7 +361,7 @@ class nsHtml5Highlighter
     
 
 
-    nsIContent** mMarkupDecl;
+    nsIContent** mCurrentRun;
 
     
 
