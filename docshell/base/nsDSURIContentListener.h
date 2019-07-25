@@ -68,6 +68,10 @@ protected:
         mDocShell = nsnull;
     }
 
+    
+    
+    bool CheckFrameOptions(nsIRequest* request);
+
 protected:
     nsDocShell*                      mDocShell;
 
