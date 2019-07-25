@@ -87,26 +87,30 @@ ScopedXREEmbed::Start()
   NS_ENSURE_TRUE(localFile,);
 
 #ifdef OS_MACOSX
-  rv = localFile->GetParent(getter_AddRefs(parent));
-  if (NS_FAILED(rv))
-    return;
+  if (XRE_GetProcessType() == GeckoProcessType_Content) {
+    
+    
+    rv = localFile->GetParent(getter_AddRefs(parent));
+    if (NS_FAILED(rv))
+      return;
 
-  localFile = do_QueryInterface(parent);
-  NS_ENSURE_TRUE(localFile,);
+    localFile = do_QueryInterface(parent);
+    NS_ENSURE_TRUE(localFile,);
 
-  rv = localFile->GetParent(getter_AddRefs(parent));
-  if (NS_FAILED(rv))
-    return;
+    rv = localFile->GetParent(getter_AddRefs(parent));
+    if (NS_FAILED(rv))
+      return;
 
-  localFile = do_QueryInterface(parent);
-  NS_ENSURE_TRUE(localFile,);
+    localFile = do_QueryInterface(parent);
+    NS_ENSURE_TRUE(localFile,);
 
-  rv = localFile->GetParent(getter_AddRefs(parent));
-  if (NS_FAILED(rv))
-    return;
+    rv = localFile->GetParent(getter_AddRefs(parent));
+    if (NS_FAILED(rv))
+      return;
 
-  localFile = do_QueryInterface(parent);
-  NS_ENSURE_TRUE(localFile,);
+    localFile = do_QueryInterface(parent);
+    NS_ENSURE_TRUE(localFile,);
+  }
 #endif
 
   rv = XRE_InitEmbedding2(localFile, localFile, nsnull);
