@@ -291,7 +291,9 @@ MacroAssemblerARM::ma_mov(Imm32 imm, Register dest,
 void
 MacroAssemblerARM::ma_mov(const ImmGCPtr &ptr, Register dest)
 {
-    writeDataRelocation(nextOffset());
+    
+    
+    writeDataRelocation(ptr);
     ma_movPatchable(Imm32(ptr.value), dest, Always, L_MOVWT);
 }
 

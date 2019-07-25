@@ -1250,8 +1250,12 @@ class Assembler
     void writeRelocation(BufferOffset src) {
         tmpJumpRelocations_.append(src);
     }
-    void writeDataRelocation(BufferOffset offs) {
-        tmpDataRelocations_.append(offs);
+
+    
+    
+    void writeDataRelocation(const ImmGCPtr &ptr) {
+        if (ptr.value)
+            tmpDataRelocations_.append(nextOffset());
     }
 
     enum RelocBranchStyle {
