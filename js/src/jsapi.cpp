@@ -4672,7 +4672,6 @@ JS_NewScriptObject(JSContext *cx, JSScript *script)
 
 
     JS_ASSERT(script->u.object);
-    JS_ASSERT(script != JSScript::emptyScript());
     return script->u.object;
 }
 
@@ -4889,7 +4888,7 @@ JS_ExecuteScript(JSContext *cx, JSObject *obj, JSScript *script, jsval *rval)
     CHECK_REQUEST(cx);
     assertSameCompartment(cx, obj, script);
     
-    JS_ASSERT(script == JSScript::emptyScript() || script->u.object);
+    JS_ASSERT(script->u.object);
     ok = Execute(cx, obj, script, NULL, 0, Valueify(rval));
     LAST_FRAME_CHECKS(cx, ok);
     return ok;

@@ -199,12 +199,6 @@ struct JSScript {
 
 
 
-
-
-
-
-
-
     static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
                                uint32 nobjects, uint32 nupvars, uint32 nregexps,
                                uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
@@ -399,17 +393,7 @@ struct JSScript {
 
 
 
-
-
     inline bool isEmpty() const;
-
-    
-
-
-
-    static JSScript *emptyScript() {
-        return const_cast<JSScript *>(&emptyScriptConst);
-    }
 
     uint32 getClosedArg(uint32 index) {
         JS_ASSERT(index < nClosedArgs);
@@ -422,16 +406,6 @@ struct JSScript {
     }
 
     void copyClosedSlotsTo(JSScript *other);
-
-  private:
-    
-
-
-
-
-
-
-    static const JSScript emptyScriptConst;
 };
 
 #define SHARP_NSLOTS            2       /* [#array, #depth] slots if the script
@@ -579,14 +553,7 @@ js_CloneScript(JSContext *cx, JSScript *script);
 
 
 
-
-
-
-
-
-
 extern JSBool
-js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
-             JSBool *hasMagic);
+js_XDRScript(JSXDRState *xdr, JSScript **scriptp, JSBool *hasMagic);
 
 #endif 

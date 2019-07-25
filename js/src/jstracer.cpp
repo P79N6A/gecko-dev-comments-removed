@@ -11447,7 +11447,7 @@ TraceRecorder::functionCall(uintN argc, JSOp mode)
 
     if (Probes::callTrackingActive(cx)) {
         JSScript *script = FUN_SCRIPT(fun);
-        if (! script || ! script->isEmpty()) {
+        if (!script || !script->isEmpty()) {
             LIns* args[] = { w.immi(1), w.nameImmpNonGC(fun), cx_ins };
             LIns* call_ins = w.call(&functionProbe_ci, args);
             guard(false, w.eqi0(call_ins), MISMATCH_EXIT);
@@ -13202,9 +13202,7 @@ TraceRecorder::interpretedFunctionCall(Value& fval, JSFunction* fun, uintN argc,
 
 
 
-
-
-    if (fun->u.i.script->isEmpty()) {
+    if (fun->script()->isEmpty()) {
         LIns* rval_ins;
         if (constructing) {
             LIns* args[] = { get(&fval), w.nameImmpNonGC(&js_ObjectClass), cx_ins };
