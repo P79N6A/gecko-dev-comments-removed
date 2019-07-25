@@ -100,6 +100,16 @@ namespace nanojit
 
         
         uint32_t harden_nop_insertion:1;
+
+        inline bool
+        use_cmov()
+        {
+#ifdef AVMPLUS_IA32
+            return i386_use_cmov;
+#else
+            return true;
+#endif
+        }
     };
 }
 
