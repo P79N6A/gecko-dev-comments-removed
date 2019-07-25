@@ -291,4 +291,23 @@ LayoutHelpers = {
       LH_scrollIntoViewIfNeeded(win.frameElement, centered);
     }
   },
+
+  
+
+
+
+
+
+  isNodeConnected: function LH_isNodeConnected(aNode)
+  {
+    try {
+      let connected = (aNode.ownerDocument && aNode.ownerDocument.defaultView &&
+                      !(aNode.compareDocumentPosition(aNode.ownerDocument.documentElement) &
+                      aNode.DOCUMENT_POSITION_DISCONNECTED));
+      return connected;
+    } catch (e) {
+      
+      return false;
+    }
+  },
 };

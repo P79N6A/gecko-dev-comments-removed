@@ -286,7 +286,11 @@ LayoutView.prototype = {
 
   update: function LV_update() {
     let node = this.inspector.selection;
-    if (!node || !this.documentReady) return;
+    if (!node ||
+        !LayoutHelpers.isNodeConnected(node) ||
+        !this.documentReady) {
+      return;
+    }
 
     
     
