@@ -225,7 +225,7 @@ var FullZoom = {
       return;
 
     
-    if (isBlankPageURL(aURI.spec)) {
+    if (aURI.spec == "about:blank") {
       this._applyPrefToSetting(undefined, aBrowser);
       return;
     }
