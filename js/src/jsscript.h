@@ -319,6 +319,11 @@ typedef HashMap<JSScript *,
                 DefaultHasher<JSScript *>,
                 SystemAllocPolicy> ScriptCountsMap;
 
+typedef HashMap<JSScript *,
+                jschar *,
+                DefaultHasher<JSScript *>,
+                SystemAllocPolicy> SourceMapMap;
+
 class DebugScript
 {
     friend struct ::JSScript;
@@ -421,8 +426,6 @@ struct JSScript : public js::gc::Cell
     JSPrincipals    *principals;
     JSPrincipals    *originPrincipals; 
 
-    jschar          *sourceMap; 
-
     
 
 
@@ -469,13 +472,8 @@ struct JSScript : public js::gc::Cell
     
     
     uint32_t        id_;
- #if JS_BITS_PER_WORD == 64
   private:
-    uint32_t        idpad64;
- #endif
-#elif JS_BITS_PER_WORD == 32
-  private:
-    uint32_t        pad32;
+    uint32_t        idpad;
 #endif
 
     
@@ -543,6 +541,8 @@ struct JSScript : public js::gc::Cell
     bool            callDestroyHook:1;
     bool            isGenerator:1;    
     bool            hasScriptCounts:1;
+
+    bool            hasSourceMap:1;   
 
 
   private:
@@ -695,11 +695,15 @@ struct JSScript : public js::gc::Cell
 #endif
 
   public:
-    js::PCCounts getPCCounts(jsbytecode *pc);
-
     bool initScriptCounts(JSContext *cx);
+    js::PCCounts getPCCounts(jsbytecode *pc);
     js::ScriptCounts releaseScriptCounts();
     void destroyScriptCounts(js::FreeOp *fop);
+
+    bool setSourceMap(JSContext *cx, jschar *sourceMap);
+    jschar *getSourceMap();
+    jschar *releaseSourceMap();
+    void destroySourceMap(js::FreeOp *fop);
 
     jsbytecode *main() {
         return code + mainOffset;
