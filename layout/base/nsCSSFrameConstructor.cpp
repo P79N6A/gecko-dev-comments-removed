@@ -5161,6 +5161,30 @@ nsCSSFrameConstructor::AddFrameConstructionItemsInternal(nsFrameConstructorState
   }
 
   PRBool isText = aContent->IsNodeOfType(nsINode::eTEXT);
+
+  
+  
+  
+  nsIContent *parent = aContent->GetParent();
+  if (parent) {
+    
+    nsIAtom* parentTag = parent->Tag();
+    if ((parentTag == nsGkAtoms::select || parentTag == nsGkAtoms::optgroup) &&
+        parent->IsHTML() &&
+        
+        !aContent->IsHTML(nsGkAtoms::option) &&
+        
+        (!aContent->IsHTML(nsGkAtoms::optgroup) ||
+         parentTag != nsGkAtoms::select)) {
+      
+      if (!isText) {
+        SetAsUndisplayedContent(aState.mFrameManager, aContent, styleContext,
+                                isGeneratedContent);
+      }
+      return;
+    }
+  }
+
   PRBool isPopup = PR_FALSE;
   
   const FrameConstructionData* data;
