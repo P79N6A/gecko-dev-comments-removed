@@ -96,7 +96,8 @@ pref("offline-apps.quota.warn",        51200);
 
 
 
-pref("browser.cache.compression_level", 5);
+
+pref("browser.cache.compression_level", 0);
 
 
 pref("dom.indexedDB.enabled", true);
@@ -230,6 +231,10 @@ pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
 
 #ifdef XP_WIN
 pref("gfx.canvas.azure.enabled", true);
+#else
+#ifdef XP_MACOSX
+pref("gfx.canvas.azure.enabled", true);
+#endif
 #endif
 
 pref("accessibility.browsewithcaret", false);
@@ -3409,6 +3414,9 @@ pref("profiler.enabled", false);
 pref("profiler.interval", 10);
 pref("profiler.entries", 100000);
 
+
+pref("dom.network.enabled", true);
+pref("dom.network.metered", false);
 #ifdef XP_WIN
 
 
