@@ -2616,6 +2616,11 @@ Tab.prototype = {
     
     browser.stop();
 
+    const i = Ci.nsIFrameLoader_MOZILLA_2_0_BRANCH;
+    let fl = browser.QueryInterface(Ci.nsIFrameLoaderOwner).frameLoader;
+    let enabler = fl.QueryInterface(i);
+    enabler.renderMode = i.RENDER_MODE_ASYNC_SCROLL;
+
     browser.messageManager.addMessageListener("MozScrolledAreaChanged", (function() {
       
       setTimeout(this.scrolledAreaChanged.bind(this), 0);
