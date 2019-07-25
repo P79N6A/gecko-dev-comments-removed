@@ -1173,15 +1173,15 @@ js_NewGenerator(JSContext *cx)
 
     
     newfp->imacpc = NULL;
-    newfp->callobj = fp->callobj;
-    if (fp->callobj) {      
-        fp->callobj->setPrivate(newfp);
-        fp->callobj = NULL;
+    newfp->setCallObj(fp->maybeCallObj());
+    if (fp->hasCallObj()) {      
+        fp->getCallObj()->setPrivate(newfp);
+        fp->setCallObj(NULL);
     }
-    newfp->argsobj = fp->argsobj;
-    if (fp->argsobj) {      
-        fp->argsobj->setPrivate(newfp);
-        fp->argsobj = NULL;
+    newfp->setArgsObj(fp->maybeArgsObj());
+    if (fp->hasArgsObj()) {      
+        fp->getArgsObj()->setPrivate(newfp);
+        fp->setArgsObj(NULL);
     }
     newfp->script = fp->script;
     newfp->fun = fp->fun;
@@ -1296,8 +1296,8 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         JS_ASSERT(uintN(gen->savedRegs.sp - fp->slots()) <= fp->script->nslots);
 
 #ifdef DEBUG
-        JSObject *callobjBefore = fp->callobj;
-        JSObject *argsobjBefore = fp->argsobj;
+        JSObject *callobjBefore = fp->maybeCallObj();
+        JSObject *argsobjBefore = fp->maybeArgsObj();
 #endif
 
         
@@ -1306,10 +1306,10 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
 
 
 
-        if (genfp->callobj)
-            fp->callobj->setPrivate(fp);
-        if (genfp->argsobj)
-            fp->argsobj->setPrivate(fp);
+        if (genfp->hasCallObj())
+            fp->getCallObj()->setPrivate(fp);
+        if (genfp->hasArgsObj())
+            fp->getArgsObj()->setPrivate(fp);
         gen->liveFrame = fp;
         (void)cx->enterGenerator(gen); 
 
@@ -1329,13 +1329,13 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         
         cx->leaveGenerator(gen);
         gen->liveFrame = genfp;
-        if (fp->argsobj)
-            fp->argsobj->setPrivate(genfp);
-        if (fp->callobj)
-            fp->callobj->setPrivate(genfp);
+        if (fp->hasArgsObj())
+            fp->getArgsObj()->setPrivate(genfp);
+        if (fp->hasCallObj())
+            fp->getCallObj()->setPrivate(genfp);
 
-        JS_ASSERT_IF(argsobjBefore, argsobjBefore == fp->argsobj);
-        JS_ASSERT_IF(callobjBefore, callobjBefore == fp->callobj);
+        JS_ASSERT_IF(argsobjBefore, argsobjBefore == fp->maybeArgsObj());
+        JS_ASSERT_IF(callobjBefore, callobjBefore == fp->maybeCallObj());
 
         
         JS_ASSERT(uintN(gen->savedRegs.sp - fp->slots()) <= fp->script->nslots);

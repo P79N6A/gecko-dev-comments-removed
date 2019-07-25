@@ -1223,14 +1223,40 @@ JS_SetGlobalObject(JSContext *cx, JSObject *obj)
     cx->compartment = obj ? obj->getCompartment(cx) : cx->runtime->defaultCompartment;
 }
 
+class AutoResolvingEntry {
+public:
+    AutoResolvingEntry() : entry(NULL) {}
+
+    
+
+
+
+    bool start(JSContext *cx, JSObject *obj, jsid id, uint32 flag) {
+        JS_ASSERT(!entry);
+        this->cx = cx;
+        key.obj = obj;
+        key.id = id;
+        this->flag = flag;
+        bool ok = !!js_StartResolving(cx, &key, flag, &entry);
+        JS_ASSERT_IF(!ok, !entry);
+        return ok;
+    }
+
+    ~AutoResolvingEntry() {
+        if (entry)
+            js_StopResolving(cx, &key, flag, NULL, 0);
+    }
+
+private:
+    JSContext *cx;
+    JSResolvingKey key;
+    uint32 flag;
+    JSResolvingEntry *entry;
+};
+
 JSObject *
 js_InitFunctionAndObjectClasses(JSContext *cx, JSObject *obj)
 {
-    JSDHashTable *table;
-    JSBool resolving;
-    JSRuntime *rt;
-    JSResolvingKey key;
-    JSResolvingEntry *entry;
     JSObject *fun_proto, *obj_proto;
 
     
@@ -1238,91 +1264,43 @@ js_InitFunctionAndObjectClasses(JSContext *cx, JSObject *obj)
         JS_SetGlobalObject(cx, obj);
 
     
-    table = cx->resolvingTable;
-    resolving = (table && table->entryCount);
-    rt = cx->runtime;
-    key.obj = obj;
-    if (resolving) {
-        key.id = ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Function]);
-        entry = (JSResolvingEntry *)
-                JS_DHashTableOperate(table, &key, JS_DHASH_ADD);
-        if (entry && entry->key.obj && (entry->flags & JSRESFLAG_LOOKUP)) {
-            
-            JS_ASSERT(entry->key.obj == obj);
-            key.id = ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Object]);
-            entry = (JSResolvingEntry *)
-                    JS_DHashTableOperate(table, &key, JS_DHASH_ADD);
-        }
-        if (!entry) {
-            JS_ReportOutOfMemory(cx);
-            return NULL;
-        }
-        JS_ASSERT(!entry->key.obj && entry->flags == 0);
-        entry->key = key;
-        entry->flags = JSRESFLAG_LOOKUP;
-    } else {
-        key.id = ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Object]);
-        if (!js_StartResolving(cx, &key, JSRESFLAG_LOOKUP, &entry))
-            return NULL;
-
-        key.id = ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Function]);
-        if (!js_StartResolving(cx, &key, JSRESFLAG_LOOKUP, &entry)) {
-            key.id = ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Object]);
-            JS_DHashTableOperate(table, &key, JS_DHASH_REMOVE);
-            return NULL;
-        }
-
-        table = cx->resolvingTable;
+    AutoResolvingEntry e1, e2;
+    JSAtom **classAtoms = cx->runtime->atomState.classAtoms;
+    if (!e1.start(cx, obj, ATOM_TO_JSID(classAtoms[JSProto_Function]), JSRESFLAG_LOOKUP) ||
+        !e2.start(cx, obj, ATOM_TO_JSID(classAtoms[JSProto_Object]), JSRESFLAG_LOOKUP)) {
+        return NULL;
     }
 
     
-    if (!js_GetClassPrototype(cx, obj, JSProto_Function, &fun_proto)) {
-        fun_proto = NULL;
-        goto out;
-    }
+    if (!js_GetClassPrototype(cx, obj, JSProto_Function, &fun_proto))
+        return NULL;
     if (!fun_proto) {
         fun_proto = js_InitFunctionClass(cx, obj);
         if (!fun_proto)
-            goto out;
+            return NULL;
     } else {
         JSObject *ctor;
 
         ctor = JS_GetConstructor(cx, fun_proto);
-        if (!ctor) {
-            fun_proto = NULL;
-            goto out;
-        }
+        if (!ctor)
+            return NULL;
         obj->defineProperty(cx, ATOM_TO_JSID(CLASS_ATOM(cx, Function)),
                             ObjectValue(*ctor), 0, 0, 0);
     }
 
     
-    if (!js_GetClassPrototype(cx, obj, JSProto_Object, &obj_proto)) {
-        fun_proto = NULL;
-        goto out;
-    }
+    if (!js_GetClassPrototype(cx, obj, JSProto_Object, &obj_proto))
+        return NULL;
     if (!obj_proto)
         obj_proto = js_InitObjectClass(cx, obj);
-    if (!obj_proto) {
-        fun_proto = NULL;
-        goto out;
-    }
+    if (!obj_proto)
+        return NULL;
 
     
     fun_proto->setProto(obj_proto);
     if (!obj->getProto())
         obj->setProto(obj_proto);
 
-out:
-    
-    JS_DHashTableOperate(table, &key, JS_DHASH_REMOVE);
-    if (!resolving) {
-        
-        JS_ASSERT(key.id ==                                                   \
-                  ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Function]));
-        key.id = ATOM_TO_JSID(rt->atomState.classAtoms[JSProto_Object]);
-        JS_DHashTableOperate(table, &key, JS_DHASH_REMOVE);
-    }
     return fun_proto;
 }
 
@@ -3540,12 +3518,10 @@ GetPropertyDescriptorById(JSContext *cx, JSObject *obj, jsid id, uintN flags,
         }
         JS_UNLOCK_OBJ(cx, obj2);
     } else if (obj2->isProxy()) {
-        JS_ASSERT(obj == obj2);
-
         JSAutoResolveFlags rf(cx, flags);
         return own
-            ? JSProxy::getOwnPropertyDescriptor(cx, obj, id, desc)
-            : JSProxy::getPropertyDescriptor(cx, obj, id, desc);
+            ? JSProxy::getOwnPropertyDescriptor(cx, obj2, id, desc)
+            : JSProxy::getPropertyDescriptor(cx, obj2, id, desc);
     } else {
         if (!obj2->getAttributes(cx, id, &desc->attrs))
             return false;

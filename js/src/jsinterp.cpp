@@ -114,7 +114,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
         JS_ASSERT(!fp->fun ||
                   !(fp->fun->flags & JSFUN_HEAVYWEIGHT) ||
-                  fp->callobj);
+                  fp->hasCallObj());
         JS_ASSERT(fp->scopeChain);
         return fp->scopeChain;
     }
@@ -130,7 +130,7 @@ js_GetScopeChain(JSContext *cx, JSStackFrame *fp)
 
 
     JSObject *limitBlock, *limitClone;
-    if (fp->fun && !fp->callobj) {
+    if (fp->fun && !fp->hasCallObj()) {
         JS_ASSERT_IF(fp->scopeChain->getClass() == &js_BlockClass,
                      fp->scopeChain->getPrivate() != js_FloatingFrameIfGenerator(cx, fp));
         if (!js_GetCallObject(cx, fp))
@@ -536,8 +536,8 @@ InvokeCommon(JSContext *cx, JSFunction *fun, JSScript *script, T native,
 
     
     fp->thisv = args.thisv();
-    fp->callobj = NULL;
-    fp->argsobj = NULL;
+    fp->setCallObj(NULL);
+    fp->setArgsObj(NULL);
     fp->script = script;
     fp->fun = fun;
     fp->argc = args.argc();
@@ -877,8 +877,8 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
     JSObject *initialVarObj;
     if (down) {
         
-        fp->callobj = down->callobj;
-        fp->argsobj = NULL;
+        fp->setCallObj(down->maybeCallObj());
+        fp->setArgsObj(NULL);
         fp->fun = (script->staticLevel > 0) ? down->fun : NULL;
         fp->thisv = down->thisv;
         fp->flags = flags;
@@ -898,8 +898,8 @@ Execute(JSContext *cx, JSObject *chain, JSScript *script,
                         ? down->varobj(cx)
                         : down->varobj(cx->containingSegment(down));
     } else {
-        fp->callobj = NULL;
-        fp->argsobj = NULL;
+        fp->setCallObj(NULL);
+        fp->setArgsObj(NULL);
         fp->fun = NULL;
         
         fp->flags = flags;
@@ -4720,8 +4720,8 @@ BEGIN_CASE(JSOP_APPLY)
             }
 
             
-            newfp->callobj = NULL;
-            newfp->argsobj = NULL;
+            newfp->setCallObj(NULL);
+            newfp->setArgsObj(NULL);
             newfp->script = newscript;
             newfp->fun = fun;
             newfp->argc = argc;
@@ -5977,12 +5977,13 @@ BEGIN_CASE(JSOP_SETTER)
     }
 
     
+
+
+
     Value rtmp;
     uintN attrs;
-    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &rtmp, &attrs)) {
-        JS_NOT_REACHED("getter/setter access check failed");
+    if (!CheckAccess(cx, obj, id, JSACC_WATCH, &rtmp, &attrs))
         goto error;
-    }
 
     PropertyOp getter, setter;
     if (op == JSOP_GETTER) {
@@ -6825,7 +6826,7 @@ BEGIN_CASE(JSOP_GENERATOR)
     JSObject *obj = js_NewGenerator(cx);
     if (!obj)
         goto error;
-    JS_ASSERT(!fp->callobj && !fp->argsobj);
+    JS_ASSERT(!fp->hasCallObj() && !fp->hasArgsObj());
     fp->rval.setObject(*obj);
     interpReturnOK = true;
     if (entryFrame != fp)

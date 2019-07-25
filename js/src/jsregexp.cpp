@@ -182,6 +182,22 @@ RegExp::execute(JSContext *cx, JSString *input, size_t *lastIndex, bool test, Va
     const size_t pairCount = parenCount + 1;
     const size_t bufCount = pairCount * 3; 
     const size_t matchItemCount = pairCount * 2;
+
+    
+
+
+
+
+
+
+    if (!cx->regExpPool.first.next) {
+        int64 *timestamp;
+        JS_ARENA_ALLOCATE_CAST(timestamp, int64 *, &cx->regExpPool, sizeof *timestamp);
+        if (!timestamp)
+            return false;
+        *timestamp = JS_Now();
+    }
+
     AutoArenaAllocator aaa(&cx->regExpPool);
     int *buf = aaa.alloc<int>(bufCount);
     if (!buf)
