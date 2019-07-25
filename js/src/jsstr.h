@@ -676,11 +676,11 @@ js_GetStringBytes(JSContext *cx, JSString *str);
 
 
 extern JSBool
-js_str_escape(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
-              jsval *rval);
+js_str_escape(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv,
+              js::Value *rval);
 
 extern JSBool
-js_str_toString(JSContext *cx, uintN argc, jsval *vp);
+js_str_toString(JSContext *cx, uintN argc, js::Value *vp);
 
 
 
@@ -716,7 +716,7 @@ js_PutEscapedStringImpl(char *buffer, size_t bufferSize, FILE *fp,
                         JSString *str, uint32 quote);
 
 extern JSBool
-js_String(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval);
+js_String(JSContext *cx, JSObject *obj, uintN argc, js::Value *argv, js::Value *rval);
 
 namespace js {
 
