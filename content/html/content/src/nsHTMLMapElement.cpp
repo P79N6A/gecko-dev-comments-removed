@@ -116,7 +116,7 @@ nsHTMLMapElement::GetAreas(nsIDOMHTMLCollection** aAreas)
   if (!mAreas) {
     
     mAreas = new nsContentList(this,
-                               mNodeInfo->NamespaceID(),
+                               kNameSpaceID_XHTML,
                                nsGkAtoms::area,
                                nsGkAtoms::area,
                                false);

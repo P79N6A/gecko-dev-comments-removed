@@ -320,6 +320,10 @@ public:
 
   void UpdateValidityUIBits(bool aIsFocused);
 
+  bool DefaultChecked() const {
+    return HasAttr(kNameSpaceID_None, nsGkAtoms::checked);
+  }
+
 protected:
   
   
