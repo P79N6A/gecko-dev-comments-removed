@@ -198,44 +198,33 @@ nsXMLPrettyPrinter::MaybeUnhook(nsIContent* aContent)
 {
     
     
-    if (!aContent || !aContent->GetBindingParent()) {
+    if (!aContent || !aContent->GetBindingParent() && !mUnhookPending) {
+        
+        
+        
         mUnhookPending = PR_TRUE;
+        nsContentUtils::AddScriptRunner(
+          NS_NewRunnableMethod(this, &nsXMLPrettyPrinter::Unhook));
     }
 }
 
-
-
 void
-nsXMLPrettyPrinter::BeginUpdate(nsIDocument* aDocument,
-                                nsUpdateType aUpdateType)
+nsXMLPrettyPrinter::Unhook()
 {
-    mUpdateDepth++;
-}
+    mDocument->RemoveObserver(this);
+    nsCOMPtr<nsIDOMDocument> document = do_QueryInterface(mDocument);
+    nsCOMPtr<nsIDOMElement> rootElem;
+    document->GetDocumentElement(getter_AddRefs(rootElem));
 
-void
-nsXMLPrettyPrinter::EndUpdate(nsIDocument* aDocument, nsUpdateType aUpdateType)
-{
-    mUpdateDepth--;
-
-    
-    
-    
-    if (mUnhookPending && mUpdateDepth == 0) {
-        mDocument->RemoveObserver(this);
-        nsCOMPtr<nsIDOMDocument> document = do_QueryInterface(mDocument);
-        nsCOMPtr<nsIDOMElement> rootElem;
-        document->GetDocumentElement(getter_AddRefs(rootElem));
-
-        if (rootElem) {
-            nsCOMPtr<nsIDOMDocumentXBL> xblDoc = do_QueryInterface(mDocument);
-            xblDoc->RemoveBinding(rootElem,
-                                  NS_LITERAL_STRING("chrome://global/content/xml/XMLPrettyPrint.xml#prettyprint"));
-        }
-
-        mDocument = nsnull;
-
-        NS_RELEASE_THIS();
+    if (rootElem) {
+        nsCOMPtr<nsIDOMDocumentXBL> xblDoc = do_QueryInterface(mDocument);
+        xblDoc->RemoveBinding(rootElem,
+                              NS_LITERAL_STRING("chrome://global/content/xml/XMLPrettyPrint.xml#prettyprint"));
     }
+
+    mDocument = nsnull;
+
+    NS_RELEASE_THIS();
 }
 
 void
