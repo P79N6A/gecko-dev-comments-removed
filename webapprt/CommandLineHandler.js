@@ -58,6 +58,10 @@ try {
     Services.perms.add(uri, "offline-app",
                        Ci.nsIPermissionManager.ALLOW_ACTION);
 
+    Services.perms.add(uri, "indexedDB", Ci.nsIPermissionManager.ALLOW_ACTION);
+    Services.perms.add(uri, "indexedDB-unlimited",
+                       Ci.nsIPermissionManager.ALLOW_ACTION);
+
     
     
     Services.prefs.setBoolPref("webapprt.firstrun", true);
