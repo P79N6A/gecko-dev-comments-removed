@@ -56,15 +56,15 @@ class CallObject : public ::JSObject
 
 
 
-    static const uintN CALLEE_SLOT = 0;
-    static const uintN ARGUMENTS_SLOT = 1;
+    static const uint32 CALLEE_SLOT = 0;
+    static const uint32 ARGUMENTS_SLOT = 1;
 
-  public:
-    static const uintN RESERVED_SLOTS = 2;
-
+public:
     
     static CallObject *
     create(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObject *callee);
+
+    static const uint32 RESERVED_SLOTS = 3;
 
     
     inline bool isForEval() const;
@@ -78,32 +78,28 @@ class CallObject : public ::JSObject
 
 
     inline JSObject *getCallee() const;
-    inline JSFunction *getCalleeFunction() const;
+    inline JSFunction *getCalleeFunction() const; 
     inline void setCallee(JSObject *callee);
-    inline void initCallee(JSObject *callee);
 
     
     inline const js::Value &getArguments() const;
     inline void setArguments(const js::Value &v);
-    inline void initArguments(const js::Value &v);
 
     
     inline const js::Value &arg(uintN i) const;
     inline void setArg(uintN i, const js::Value &v);
-    inline void initArgUnchecked(uintN i, const js::Value &v);
 
     
     inline const js::Value &var(uintN i) const;
     inline void setVar(uintN i, const js::Value &v);
-    inline void initVarUnchecked(uintN i, const js::Value &v);
 
     
 
 
 
 
-    inline js::HeapValueArray argArray();
-    inline js::HeapValueArray varArray();
+    inline js::Value *argArray();
+    inline js::Value *varArray();
 
     inline void copyValues(uintN nargs, Value *argv, uintN nvars, Value *slots);
 };
