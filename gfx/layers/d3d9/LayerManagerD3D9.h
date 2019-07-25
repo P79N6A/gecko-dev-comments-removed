@@ -145,6 +145,10 @@ public:
       mDeviceManager = nsnull;
   }
 
+#ifdef MOZ_LAYERS_HAVE_LOG
+  virtual const char* Name() const { return "D3D9"; }
+#endif 
+
 private:
   
   static DeviceManagerD3D9 *mDeviceManager;
@@ -159,9 +163,6 @@ private:
 
 
   nsRefPtr<gfxContext> mTarget;
-
-  
-  LayerD3D9 *mRootLayer;
 
   
   CallbackInfo mCurrentCallbackInfo;

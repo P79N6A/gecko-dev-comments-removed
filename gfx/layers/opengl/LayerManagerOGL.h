@@ -293,6 +293,10 @@ public:
                     aFlipped);
   }
 
+#ifdef MOZ_LAYERS_HAVE_LOG
+   virtual const char* Name() const { return "OGL"; }
+#endif 
+
 private:
   
   nsIWidget *mWidget;
