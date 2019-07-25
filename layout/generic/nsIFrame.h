@@ -1654,7 +1654,14 @@ public:
   
 
 
+  enum {
+    
 
+
+    eShrinkWrap =        1 << 0
+  };
+
+  
 
 
 
@@ -1693,7 +1700,7 @@ public:
   virtual nsSize ComputeSize(nsRenderingContext *aRenderingContext,
                              nsSize aCBSize, nscoord aAvailableWidth,
                              nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                             bool aShrinkWrap) = 0;
+                             PRUint32 aFlags) = 0;
 
   
 

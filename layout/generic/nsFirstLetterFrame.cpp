@@ -180,7 +180,7 @@ nsFirstLetterFrame::GetPrefWidth(nsRenderingContext *aRenderingContext)
 nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
                                 nsSize aCBSize, nscoord aAvailableWidth,
                                 nsSize aMargin, nsSize aBorder, nsSize aPadding,
-                                bool aShrinkWrap)
+                                PRUint32 aFlags)
 {
   if (GetPrevInFlow()) {
     
@@ -188,7 +188,7 @@ nsFirstLetterFrame::ComputeSize(nsRenderingContext *aRenderingContext,
     return nsSize(NS_UNCONSTRAINEDSIZE, NS_UNCONSTRAINEDSIZE);
   }
   return nsContainerFrame::ComputeSize(aRenderingContext,
-      aCBSize, aAvailableWidth, aMargin, aBorder, aPadding, aShrinkWrap);
+      aCBSize, aAvailableWidth, aMargin, aBorder, aPadding, aFlags);
 }
 
 NS_IMETHODIMP
