@@ -986,6 +986,11 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       if (typeof item.setResizable == 'function')
         item.setResizable(true, options.immediately);
 
+      
+      
+      if (item.tab._tabViewTabIsRemovedAfterRestore)
+        options.dontClose = true;
+
       let closed = options.dontClose ? false : this.closeIfEmpty();
       if (closed)
         this._makeClosestTabActive();

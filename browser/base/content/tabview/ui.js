@@ -731,14 +731,21 @@ let UI = {
           let closingLastOfGroup = (groupItem && 
               groupItem._children.length == 1 && 
               groupItem._children[0].tab == tab);
-          
+
           
           
           
           let closingUnnamedGroup = (groupItem == null &&
               gBrowser.visibleTabs.length <= 1); 
-              
-          if (closingLastOfGroup || closingUnnamedGroup) {
+
+          
+          
+          
+          let closingBlankTabAfterRestore =
+            (tab && tab._tabViewTabIsRemovedAfterRestore);
+
+          if ((closingLastOfGroup || closingUnnamedGroup) &&
+              !closingBlankTabAfterRestore) {
             
             self._closedLastVisibleTab = true;
             self.showTabView();
