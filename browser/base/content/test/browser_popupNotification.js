@@ -355,7 +355,7 @@ var tests = [
       },
       
       function (popup) {}
-    ],
+    ]
   },
   
   { 
@@ -423,7 +423,7 @@ var tests = [
     },
     onHidden: function (popup) {
       ok(this.complete, "Should only have hidden the notification after 3 page loads");
-      this.notification.remove();
+      ok(this.notifyObj.removedCallbackTriggered, "removal callback triggered");
       gBrowser.removeTab(gBrowser.selectedTab);
       gBrowser.selectedTab = this.oldSelectedTab;
     }
