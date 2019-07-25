@@ -4140,6 +4140,8 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
             
             error.AssignLiteral("corruptedContentError");
             break;
+        default:
+            break;
         }
     }
 
