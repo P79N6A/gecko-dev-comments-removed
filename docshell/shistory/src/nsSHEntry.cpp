@@ -165,10 +165,10 @@ nsSHEntry::~nsSHEntry()
   mChildren.EnumerateForwards(ClearParentPtr, nsnull);
   mChildren.Clear();
 
-  nsCOMPtr<nsIContentViewer> viewer = mContentViewer;
-  DropPresentationState();
-  if (viewer) {
-    viewer->Destroy();
+  if (mContentViewer) {
+    
+    
+    nsSHEntry::RemoveFromBFCacheSync();
   }
 
   mEditorData = nsnull;
@@ -187,8 +187,8 @@ nsSHEntry::~nsSHEntry()
 
 
 
-NS_IMPL_ISUPPORTS4(nsSHEntry, nsISHContainer, nsISHEntry, nsIHistoryEntry,
-                   nsIMutationObserver)
+NS_IMPL_ISUPPORTS5(nsSHEntry, nsISHContainer, nsISHEntry, nsIHistoryEntry,
+                   nsIMutationObserver, nsISHEntryInternal)
 
 
 
@@ -254,7 +254,7 @@ nsSHEntry::SetContentViewer(nsIContentViewer *aViewer)
     
     mDocument = do_QueryInterface(domDoc);
     if (mDocument) {
-      mDocument->SetShellHidden(PR_TRUE);
+      mDocument->SetBFCacheEntry(this);
       mDocument->AddMutationObserver(this);
     }
   }
@@ -747,7 +747,7 @@ nsSHEntry::DropPresentationState()
   nsRefPtr<nsSHEntry> kungFuDeathGrip = this;
 
   if (mDocument) {
-    mDocument->SetShellHidden(PR_FALSE);
+    mDocument->SetBFCacheEntry(nsnull);
     mDocument->RemoveMutationObserver(this);
     mDocument = nsnull;
   }
@@ -810,7 +810,7 @@ nsSHEntry::CharacterDataChanged(nsIDocument* aDocument,
                                 nsIContent* aContent,
                                 CharacterDataChangeInfo* aInfo)
 {
-  DocumentMutated();
+  RemoveFromBFCacheAsync();
 }
 
 void
@@ -829,7 +829,7 @@ nsSHEntry::AttributeChanged(nsIDocument* aDocument,
                             nsIAtom* aAttribute,
                             PRInt32 aModType)
 {
-  DocumentMutated();
+  RemoveFromBFCacheAsync();
 }
 
 void
@@ -838,7 +838,7 @@ nsSHEntry::ContentAppended(nsIDocument* aDocument,
                            nsIContent* aFirstNewContent,
                            PRInt32 )
 {
-  DocumentMutated();
+  RemoveFromBFCacheAsync();
 }
 
 void
@@ -847,7 +847,7 @@ nsSHEntry::ContentInserted(nsIDocument* aDocument,
                            nsIContent* aChild,
                            PRInt32 )
 {
-  DocumentMutated();
+  RemoveFromBFCacheAsync();
 }
 
 void
@@ -857,7 +857,7 @@ nsSHEntry::ContentRemoved(nsIDocument* aDocument,
                           PRInt32 aIndexInContainer,
                           nsIContent* aPreviousSibling)
 {
-  DocumentMutated();
+  RemoveFromBFCacheAsync();
 }
 
 void
@@ -885,10 +885,27 @@ public:
 };
 
 void
-nsSHEntry::DocumentMutated()
+nsSHEntry::RemoveFromBFCacheSync()
 {
   NS_ASSERTION(mContentViewer && mDocument,
-               "we shouldn't still be observing the doc");
+               "we're not in the bfcache!");
+
+  nsCOMPtr<nsIContentViewer> viewer = mContentViewer;
+  DropPresentationState();
+
+  
+  
+
+  if (viewer) {
+    viewer->Destroy();
+  }
+}
+
+void
+nsSHEntry::RemoveFromBFCacheAsync()
+{
+  NS_ASSERTION(mContentViewer && mDocument,
+               "we're not in the bfcache!");
 
   
   
