@@ -340,12 +340,22 @@ nsMathMLmoFrame::ProcessOperatorData()
     mFlags |= form;
 
     
-    float lspace = 0.0f;
-    float rspace = 0.0f;
-    nsAutoString data;
-    mMathMLChar.GetData(data);
-    bool found = nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
-    if (found && (lspace || rspace)) {
+    
+    
+    float lspace = 5.0/18.0;
+    float rspace = 5.0/18.0;
+    if (NS_MATHML_OPERATOR_IS_INVISIBLE(mFlags)) {
+      
+      
+      
+      lspace = rspace = 0.0;
+    } else {
+      
+      nsAutoString data;
+      mMathMLChar.GetData(data);
+      nsMathMLOperators::LookupOperator(data, form, &mFlags, &lspace, &rspace);
+    }
+    if (lspace || rspace) {
       
       
       nscoord em;
