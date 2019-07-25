@@ -42,12 +42,6 @@
 
 #include "jstl.h"
 
-
-#ifdef _MSC_VER
-#pragma warning(push)
-#pragma warning(disable:4345)
-#endif
-
 namespace js {
 
 
@@ -388,7 +382,6 @@ class Vector : AllocPolicy
     bool appendN(const T &t, size_t n);
     template <class U> bool append(const U *begin, const U *end);
     template <class U> bool append(const U *begin, size_t length);
-    template <class U, size_t O, class BP> bool append(const Vector<U,O,BP> &other);
 
     void popBack();
 
@@ -408,18 +401,6 @@ class Vector : AllocPolicy
 
 
     void replaceRawBuffer(T *p, size_t length);
-
-    
-
-
-
-    bool insert(T *p, const T &val);
-
-    
-
-
-
-    void erase(T *t);
 };
 
 
@@ -430,7 +411,7 @@ class Vector : AllocPolicy
 
 
 template <class T, size_t N, class AP, size_t ArrayLength>
-JS_ALWAYS_INLINE bool
+bool
 js_AppendLiteral(Vector<T,N,AP> &v, const char (&array)[ArrayLength])
 {
     return v.append(array, array + ArrayLength - 1);
@@ -440,7 +421,7 @@ js_AppendLiteral(Vector<T,N,AP> &v, const char (&array)[ArrayLength])
 
 
 template <class T, size_t N, class AllocPolicy>
-JS_ALWAYS_INLINE
+inline
 Vector<T,N,AllocPolicy>::Vector(AllocPolicy ap)
   : AllocPolicy(ap), mLengthOrCapacity(0)
 #ifdef DEBUG
@@ -449,7 +430,7 @@ Vector<T,N,AllocPolicy>::Vector(AllocPolicy ap)
 {}
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE
+inline
 Vector<T,N,AP>::~Vector()
 {
     ReentrancyGuard g(*this);
@@ -501,7 +482,7 @@ Vector<T,N,AP>::calculateNewCapacity(size_t curLength, size_t lengthInc,
 
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::growHeapStorageBy(size_t lengthInc)
 {
     size_t newCap;
@@ -607,14 +588,14 @@ Vector<T,N,AP>::growByImpl(size_t incr)
 }
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::growBy(size_t incr)
 {
     return growByImpl<true>(incr);
 }
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::growByUninitialized(size_t incr)
 {
     return growByImpl<false>(incr);
@@ -647,7 +628,7 @@ Vector<T,N,AP>::clear()
 }
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::append(const T &t)
 {
     ReentrancyGuard g(*this);
@@ -672,7 +653,7 @@ Vector<T,N,AP>::append(const T &t)
 }
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::appendN(const T &t, size_t needed)
 {
     ReentrancyGuard g(*this);
@@ -700,41 +681,8 @@ Vector<T,N,AP>::appendN(const T &t, size_t needed)
 }
 
 template <class T, size_t N, class AP>
-inline bool
-Vector<T,N,AP>::insert(T *p, const T &val)
-{
-    JS_ASSERT(begin() <= p && p < end());
-    size_t pos = p - begin();
-    JS_ASSERT(pos <= length());
-    size_t oldLength = length();
-    if (pos == oldLength)
-        return append(val);
-    {
-        T oldBack = back();
-        if (!append(oldBack)) 
-            return false;
-    }
-    for (size_t i = oldLength; i > pos; --i)
-        (*this)[i] = (*this)[i - 1];
-    (*this)[pos] = val;
-    return true;
-}
-
-template<typename T, size_t N, class AP>
-inline void
-Vector<T,N,AP>::erase(T *it)
-{
-    JS_ASSERT(begin() <= it && it < end());
-    while (it + 1 != end()) {
-        *it = *(it + 1);
-        ++it;
-    }
-    popBack();
-}
-
-template <class T, size_t N, class AP>
 template <class U>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::append(const U *insBegin, const U *insEnd)
 {
     ReentrancyGuard g(*this);
@@ -763,23 +711,15 @@ Vector<T,N,AP>::append(const U *insBegin, const U *insEnd)
 }
 
 template <class T, size_t N, class AP>
-template <class U, size_t O, class BP>
-inline bool
-Vector<T,N,AP>::append(const Vector<U,O,BP> &other)
-{
-    return append(other.begin(), other.end());
-}
-
-template <class T, size_t N, class AP>
 template <class U>
-JS_ALWAYS_INLINE bool
+inline bool
 Vector<T,N,AP>::append(const U *insBegin, size_t length)
 {
     return this->append(insBegin, insBegin + length);
 }
 
 template <class T, size_t N, class AP>
-JS_ALWAYS_INLINE void
+inline void
 Vector<T,N,AP>::popBack()
 {
     ReentrancyGuard g(*this);
@@ -845,9 +785,5 @@ Vector<T,N,AP>::replaceRawBuffer(T *p, size_t length)
 }
 
 }  
-
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
 
 #endif
