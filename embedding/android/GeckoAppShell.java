@@ -114,7 +114,7 @@ public class GeckoAppShell
 
     public static native void processNextNativeEvent();
 
-    public static native void notifyBatteryChange(double aLevel, boolean aCharging);
+    public static native void notifyBatteryChange(double aLevel, boolean aCharging, double aRemainingTime);
 
     
     private static class LooperThread extends Thread {
