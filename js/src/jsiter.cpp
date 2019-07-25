@@ -785,14 +785,11 @@ CloseGenerator(JSContext *cx, JSObject *genobj);
 #endif
 
 JS_FRIEND_API(JSBool)
-js_CloseIterator(JSContext *cx, const Value &v)
+js_CloseIterator(JSContext *cx, JSObject *obj)
 {
     cx->iterValue.setMagic(JS_NO_ITER_VALUE);
 
-    JS_ASSERT(v.isObject());
-    JSObject *obj = &v.toObject();
     Class *clasp = obj->getClass();
-
     if (clasp == &js_IteratorClass.base) {
         
         NativeIterator *ni = obj->getNativeIterator();
@@ -1253,7 +1250,7 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
         JSObject *enumerators = cx->enumerators;
         cx->enumerators = gen->enumerators;
 
-        ok = RunScript(cx, fp->script, fp->fun, fp->scopeChain);
+        ok = Interpret(cx);
 
         
         gen->enumerators = cx->enumerators;
