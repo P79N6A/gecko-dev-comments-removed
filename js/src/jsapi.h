@@ -52,21 +52,43 @@
 JS_BEGIN_EXTERN_C
 
 
-#ifdef DEBUG
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+
+
 extern JS_PUBLIC_DATA(jsval) JSVAL_NULL;
 extern JS_PUBLIC_DATA(jsval) JSVAL_ZERO;
 extern JS_PUBLIC_DATA(jsval) JSVAL_ONE;
 extern JS_PUBLIC_DATA(jsval) JSVAL_FALSE;
 extern JS_PUBLIC_DATA(jsval) JSVAL_TRUE;
 extern JS_PUBLIC_DATA(jsval) JSVAL_VOID;
+
 #else
-# define JSVAL_NULL   BUILD_JSVAL(JSVAL_TAG_NULL,      0)
-# define JSVAL_ZERO   BUILD_JSVAL(JSVAL_TAG_INT32,     0)
-# define JSVAL_ONE    BUILD_JSVAL(JSVAL_TAG_INT32,     1)
-# define JSVAL_FALSE  BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_FALSE)
-# define JSVAL_TRUE   BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE)
-# define JSVAL_VOID   BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0)
+
+
+#define JSVAL_NULL   BUILD_JSVAL(JSVAL_TAG_NULL,      0)
+#define JSVAL_ZERO   BUILD_JSVAL(JSVAL_TAG_INT32,     0)
+#define JSVAL_ONE    BUILD_JSVAL(JSVAL_TAG_INT32,     1)
+#define JSVAL_FALSE  BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_FALSE)
+#define JSVAL_TRUE   BUILD_JSVAL(JSVAL_TAG_BOOLEAN,   JS_TRUE)
+#define JSVAL_VOID   BUILD_JSVAL(JSVAL_TAG_UNDEFINED, 0)
+
 #endif
+
+
 
 static JS_ALWAYS_INLINE JSBool
 JSVAL_IS_NULL(jsval v)
@@ -410,6 +432,8 @@ JSID_DEFAULT_XML_NAMESPACE()
     JSID_BITS(iden) = JSID_DEFAULT_XML_NAMESPACE_TYPE;
     return iden;
 }
+
+
 
 
 
@@ -926,8 +950,6 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
-#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
-
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -1034,6 +1056,7 @@ JS_InitCTypesClass(JSContext *cx, JSObject *global);
 
 #define JS_CALLEE(cx,vp)        ((vp)[0])
 #define JS_ARGV_CALLEE(argv)    ((argv)[-2])
+#define JS_THIS(cx,vp)          JS_ComputeThis(cx, vp)
 #define JS_THIS_OBJECT(cx,vp)   (JSVAL_TO_OBJECT(JS_THIS(cx,vp)))
 #define JS_ARGV(cx,vp)          ((vp) + 2)
 #define JS_RVAL(cx,vp)          (*(vp))
@@ -1041,14 +1064,6 @@ JS_InitCTypesClass(JSContext *cx, JSObject *global);
 
 extern JS_PUBLIC_API(jsval)
 JS_ComputeThis(JSContext *cx, jsval *vp);
-
-#ifdef __cplusplus
-static inline jsval
-JS_THIS(JSContext *cx, jsval *vp)
-{
-    return JSVAL_IS_PRIMITIVE(vp[1]) ? JS_ComputeThis(cx, vp) : vp[1];
-}
-#endif
 
 extern JS_PUBLIC_API(void *)
 JS_malloc(JSContext *cx, size_t nbytes);
@@ -2062,8 +2077,8 @@ struct JSPropertyDescriptor {
     uintN        attrs;
     JSPropertyOp getter;
     JSPropertyOp setter;
-    uintN        shortid;
     jsval        value;
+    uintN        shortid;
 };
 
 
@@ -3094,531 +3109,5 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal);
 #endif
 
 JS_END_EXTERN_C
-
-
-
-#ifdef __cplusplus
-
-
-
-
-
-namespace js {
-
-struct NullTag {
-    explicit NullTag() {}
-};
-
-struct UndefinedTag {
-    explicit UndefinedTag() {}
-};
-
-struct Int32Tag {
-    explicit Int32Tag(int32 i32) : i32(i32) {}
-    int32 i32;
-};
-
-struct DoubleTag {
-    explicit DoubleTag(double dbl) : dbl(dbl) {}
-    double dbl;
-};
-
-struct NumberTag {
-    explicit NumberTag(double dbl) : dbl(dbl) {}
-    double dbl;
-};
-
-struct StringTag {
-    explicit StringTag(JSString *str) : str(str) {}
-    JSString *str;
-};
-
-struct ObjectTag {
-    explicit ObjectTag(JSObject &obj) : obj(obj) {}
-    JSObject &obj;
-};
-
-struct ObjectOrNullTag {
-    explicit ObjectOrNullTag(JSObject *obj) : obj(obj) {}
-    JSObject *obj;
-};
-
-struct ObjectOrUndefinedTag {
-    
-    explicit ObjectOrUndefinedTag(JSObject *obj) : obj(obj) {}
-    JSObject *obj;
-};
-
-struct BooleanTag {
-    explicit BooleanTag(bool boo) : boo(boo) {}
-    bool boo;
-};
-
-struct PrivateTag {
-    explicit PrivateTag(void *ptr) : ptr(ptr) {}
-    void *ptr;
-};
-
-
-
-
-
-
-
-
-
-
-class Value
-{
-    void staticAssertions() {
-        JS_STATIC_ASSERT(sizeof(JSValueType) == 1);
-        JS_STATIC_ASSERT(sizeof(JSValueTag) == 4);
-        JS_STATIC_ASSERT(sizeof(JSBool) == 4);
-        JS_STATIC_ASSERT(sizeof(JSWhyMagic) <= 4);
-        JS_STATIC_ASSERT(sizeof(jsval) == 8);
-    }
-
-    jsval_layout data;
-
-  public:
-    
-
-    
-    Value() {}
-
-    
-
-    Value(NullTag)                  { setNull(); }
-    Value(UndefinedTag)             { setUndefined(); }
-    Value(Int32Tag arg)             { setInt32(arg.i32); }
-    Value(DoubleTag arg)            { setDouble(arg.dbl); }
-    Value(StringTag arg)            { setString(arg.str); }
-    Value(BooleanTag arg)           { setBoolean(arg.boo); }
-    Value(ObjectTag arg)            { setObject(arg.obj); }
-    Value(JSWhyMagic arg)           { setMagic(arg); }
-
-    
-
-    inline Value(NumberTag arg);
-    Value(ObjectOrNullTag arg)      { setObjectOrNull(arg.obj); }
-    Value(ObjectOrUndefinedTag arg) { setObjectOrUndefined(arg.obj); }
-
-    
-
-    void setNull() {
-        data.asBits = JSVAL_BITS(JSVAL_NULL);
-    }
-
-    void setUndefined() {
-        data.asBits = JSVAL_BITS(JSVAL_VOID);
-    }
-
-    void setInt32(int32 i) {
-        data = INT32_TO_JSVAL_IMPL(i);
-    }
-
-    int32 &asInt32Ref() {
-        JS_ASSERT(isInt32());
-        return data.s.payload.i32;
-    }
-
-    void setDouble(double d) {
-        data = DOUBLE_TO_JSVAL_IMPL(d);
-    }
-
-    double &asDoubleRef() {
-        JS_ASSERT(isDouble());
-        return data.asDouble;
-    }
-
-    void setString(JSString *str) {
-        data = STRING_TO_JSVAL_IMPL(str);
-    }
-
-    void setObject(JSObject &obj) {
-        data = OBJECT_TO_JSVAL_IMPL(&obj);
-    }
-
-    void setBoolean(bool b) {
-        data = BOOLEAN_TO_JSVAL_IMPL(b);
-    }
-
-    void setMagic(JSWhyMagic why) {
-        data = MAGIC_TO_JSVAL_IMPL(why);
-    }
-
-    
-
-    void setNumber(uint32 ui) {
-        if (ui > JSVAL_INT_MAX)
-            data = DOUBLE_TO_JSVAL_IMPL(ui);
-        else
-            data = INT32_TO_JSVAL_IMPL((int32)ui);
-    }
-
-    inline void setNumber(double d);
-
-    inline void setObjectOrNull(JSObject *arg) {
-        if (arg)
-            setObject(*arg);
-        else
-            setNull();
-    }
-
-    inline void setObjectOrUndefined(JSObject *arg) {
-        if (arg)
-            setObject(*arg);
-        else
-            setUndefined();
-    }
-
-    
-
-    bool isUndefined() const {
-        return JSVAL_IS_UNDEFINED_IMPL(data);
-    }
-
-    bool isNull() const {
-        return JSVAL_IS_NULL_IMPL(data);
-    }
-
-    bool isNullOrUndefined() const {
-        return isNull() || isUndefined();
-    }
-
-    bool isInt32() const {
-        return JSVAL_IS_INT32_IMPL(data);
-    }
-
-    bool isInt32(int32 i32) const {
-        return JSVAL_IS_SPECIFIC_INT32_IMPL(data, i32);
-    }
-
-    bool isDouble() const {
-        return JSVAL_IS_DOUBLE_IMPL(data);
-    }
-
-    bool isNumber() const {
-        return JSVAL_IS_NUMBER_IMPL(data);
-    }
-
-    bool isString() const {
-        return JSVAL_IS_STRING_IMPL(data);
-    }
-
-    bool isObject() const {
-        return JSVAL_IS_OBJECT_IMPL(data);
-    }
-
-    bool isPrimitive() const {
-        return JSVAL_IS_PRIMITIVE_IMPL(data);
-    }
-
-    bool isObjectOrNull() const {
-        return JSVAL_IS_OBJECT_OR_NULL_IMPL(data);
-    }
-
-    bool isGCThing() const {
-        return JSVAL_IS_GCTHING_IMPL(data);
-    }
-
-    bool isBoolean() const {
-        return JSVAL_IS_BOOLEAN_IMPL(data);
-    }
-
-    bool isTrue() const {
-        return JSVAL_IS_SPECIFIC_BOOLEAN(data, true);
-    }
-
-    bool isFalse() const {
-        return JSVAL_IS_SPECIFIC_BOOLEAN(data, false);
-    }
-
-    bool isMagic() const {
-        return JSVAL_IS_MAGIC_IMPL(data);
-    }
-
-    bool isMagic(JSWhyMagic why) const {
-        JS_ASSERT_IF(isMagic(), data.s.payload.why == why);
-        return JSVAL_IS_MAGIC_IMPL(data);
-    }
-
-    bool isMarkable() const {
-        return JSVAL_IS_TRACEABLE_IMPL(data);
-    }
-
-    int32 gcKind() const {
-        JS_ASSERT(isMarkable());
-        return JSVAL_TRACE_KIND_IMPL(data);
-    }
-
-#ifdef DEBUG
-    JSWhyMagic whyMagic() const {
-        JS_ASSERT(isMagic());
-        return data.s.payload.why;
-    }
-#endif
-
-    
-
-    bool operator==(const Value &rhs) const {
-        return data.asBits == rhs.data.asBits;
-    }
-
-    bool operator!=(const Value &rhs) const {
-        return data.asBits != rhs.data.asBits;
-    }
-
-    friend bool SameType(const Value &lhs, const Value &rhs) {
-        return JSVAL_SAME_TYPE_IMPL(lhs.data, rhs.data);
-    }
-
-    
-
-    int32 asInt32() const {
-        JS_ASSERT(isInt32());
-        return JSVAL_TO_INT32_IMPL(data);
-    }
-
-    double asDouble() const {
-        JS_ASSERT(isDouble());
-        return data.asDouble;
-    }
-
-    double asNumber() const {
-        JS_ASSERT(isNumber());
-        return isDouble() ? asDouble() : double(asInt32());
-    }
-
-    JSString *asString() const {
-        JS_ASSERT(isString());
-        return JSVAL_TO_STRING_IMPL(data);
-    }
-
-    JSObject &asObject() const {
-        JS_ASSERT(isObject());
-        JS_ASSERT(JSVAL_TO_OBJECT_IMPL(data));
-        return *JSVAL_TO_OBJECT_IMPL(data);
-    }
-
-    JSObject *asObjectOrNull() const {
-        JS_ASSERT(isObjectOrNull());
-        return JSVAL_TO_OBJECT_IMPL(data);
-    }
-
-    void *asGCThing() const {
-        JS_ASSERT(isGCThing());
-        return JSVAL_TO_GCTHING_IMPL(data);
-    }
-
-    bool asBoolean() const {
-        JS_ASSERT(isBoolean());
-        return JSVAL_TO_BOOLEAN_IMPL(data);
-    }
-
-    uint32 asRawUint32() const {
-        JS_ASSERT(!isDouble());
-        return data.s.payload.u32;
-    }
-
-    uint64 asRawBits() const {
-        return data.asBits;
-    }
-
-    JSValueType extractNonDoubleType() const {
-        return JSVAL_EXTRACT_TYPE_IMPL(data);
-    }
-
-    JSValueTag extractNonDoubleTag() const {
-        return JSVAL_EXTRACT_TAG_IMPL(data);
-    }
-
-    JSValueType extractNonDoubleObjectTraceType() const {
-        JS_ASSERT(!isObject());
-        return JSVAL_EXTRACT_TYPE_IMPL(data);
-    }
-
-    JSValueTag extractNonDoubleObjectTraceTag() const {
-        JS_ASSERT(!isObject());
-        return JSVAL_EXTRACT_TAG_IMPL(data);
-    }
-
-    void unboxNonDoubleTo(uint64 *out) const {
-        UNBOX_NON_DOUBLE_JSVAL(data, out);
-    }
-
-    void boxNonDoubleFrom(JSValueType type, uint64 *out) {
-        data = BOX_NON_DOUBLE_JSVAL(type, out);
-    }
-
-    
-
-    void swap(Value &rhs) {
-        jsval_layout tmp = data;
-        data = rhs.data;
-        rhs.data = tmp;
-    }
-
-    
-
-
-
-
-
-
-
-
-    Value(PrivateTag arg) {
-        setPrivate(arg.ptr);
-    }
-
-    bool isUnderlyingTypeOfPrivate() const {
-        return JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(data);
-    }
-
-    void setPrivate(void *ptr) {
-        data = PRIVATE_PTR_TO_JSVAL_IMPL(ptr);
-    }
-
-    void *asPrivate() const {
-        JS_ASSERT(JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(data));
-        return JSVAL_TO_PRIVATE_PTR_IMPL(data);
-    }
-
-    void setPrivateUint32(uint32 ui) {
-        data = PRIVATE_UINT32_TO_JSVAL_IMPL(ui);
-    }
-
-    uint32 asPrivateUint32() const {
-        JS_ASSERT(JSVAL_IS_UNDERLYING_TYPE_OF_PRIVATE_IMPL(data));
-        return JSVAL_TO_PRIVATE_UINT32_IMPL(data);
-    }
-
-    uint32 &asPrivateUint32Ref() {
-        JS_ASSERT(isDouble());
-        return data.s.payload.u32;
-    }
-
-} VALUE_ALIGNMENT;
-
-
-
-
-
-static inline jsval *        Jsvalify(Value *v)        { return (jsval *)v; }
-static inline const jsval *  Jsvalify(const Value *v)  { return (const jsval *)v; }
-static inline jsval &        Jsvalify(Value &v)        { return (jsval &)v; }
-static inline const jsval &  Jsvalify(const Value &v)  { return (const jsval &)v; }
-static inline Value *        Valueify(jsval *v)        { return (Value *)v; }
-static inline const Value *  Valueify(const jsval *v)  { return (const Value *)v; }
-static inline Value **       Valueify(jsval **v)       { return (Value **)v; }
-static inline Value &        Valueify(jsval &v)        { return (Value &)v; }
-static inline const Value &  Valueify(const jsval &v)  { return (const Value &)v; }
-
-
-static inline Value undefinedValue() { return UndefinedTag(); }
-static inline Value nullValue()      { return NullTag(); }
-
-
-
-
-
-struct Class {
-    const char          *name;
-    uint32              flags;
-
-    
-    PropertyOp          addProperty;
-    PropertyOp          delProperty;
-    PropertyOp          getProperty;
-    PropertyOp          setProperty;
-    JSEnumerateOp       enumerate;
-    JSResolveOp         resolve;
-    ConvertOp           convert;
-    JSFinalizeOp        finalize;
-
-    
-    GetObjectOps        getObjectOps;
-    CheckAccessOp       checkAccess;
-    Native              call;
-    Native              construct;
-    JSXDRObjectOp       xdrObject;
-    HasInstanceOp       hasInstance;
-    JSMarkOp            mark;
-    JSReserveSlotsOp    reserveSlots;
-};
-
-JS_STATIC_ASSERT(sizeof(JSClass) == sizeof(Class));
-
-
-
-
-
-struct ExtendedClass {
-    Class               base;
-    EqualityOp          equality;
-    JSObjectOp          outerObject;
-    JSObjectOp          innerObject;
-    JSIteratorOp        iteratorObject;
-    JSObjectOp          wrappedObject;          
-
-
-    void                (*reserved0)(void);
-    void                (*reserved1)(void);
-    void                (*reserved2)(void);
-};
-
-JS_STATIC_ASSERT(sizeof(JSExtendedClass) == sizeof(ExtendedClass));
-
-
-
-
-
-
-struct PropertyDescriptor {
-    JSObject     *obj;
-    uintN        attrs;
-    PropertyOp   getter;
-    PropertyOp   setter;
-    uintN        shortid;
-    Value        value;
-};
-
-JS_STATIC_ASSERT(sizeof(JSPropertyDescriptor) == sizeof(PropertyDescriptor));
-
-static JS_ALWAYS_INLINE JSClass *              Jsvalify(Class *c)                { return (JSClass *)c; }
-static JS_ALWAYS_INLINE Class *                Valueify(JSClass *c)              { return (Class *)c; }
-static JS_ALWAYS_INLINE JSExtendedClass *      Jsvalify(ExtendedClass *c)        { return (JSExtendedClass *)c; }
-static JS_ALWAYS_INLINE ExtendedClass *        Valueify(JSExtendedClass *c)      { return (ExtendedClass *)c; }
-static JS_ALWAYS_INLINE JSPropertyDescriptor * Jsvalify(PropertyDescriptor *p) { return (JSPropertyDescriptor *) p; }
-static JS_ALWAYS_INLINE PropertyDescriptor *   Valueify(JSPropertyDescriptor *p) { return (PropertyDescriptor *) p; }
-
-
-
-
-
-
-
-#if JS_BITS_PER_WORD == 32
-typedef const js::Value *ValueArgType;
-
-static JS_ALWAYS_INLINE const js::Value &
-ValueArgToConstRef(const js::Value *arg)
-{
-    return *arg;
-}
-
-#elif JS_BITS_PER_WORD == 64
-typedef js::Value        ValueArgType;
-
-static JS_ALWAYS_INLINE const Value &
-ValueArgToConstRef(const Value &v)
-{
-    return v;
-}
-#endif
-
-} 
-#endif  
 
 #endif 

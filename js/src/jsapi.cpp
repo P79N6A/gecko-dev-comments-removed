@@ -442,7 +442,7 @@ JS_ValueToNumber(JSContext *cx, jsval v, jsdouble *dp)
 JS_PUBLIC_API(JSBool)
 JS_DoubleIsInt32(jsdouble d, jsint *ip)
 {
-    return JSDOUBLE_IS_INT32(d, *(int32_t *)ip);
+    return JSDOUBLE_IS_INT32(d, ip);
 }
 
 JS_PUBLIC_API(JSBool)
@@ -1148,7 +1148,7 @@ JS_InitStandardClasses(JSContext *cx, JSObject *obj)
 
     
     atom = cx->runtime->atomState.typeAtoms[JSTYPE_VOID];
-    if (!obj->defineProperty(cx, ATOM_TO_JSID(atom), undefinedValue(),
+    if (!obj->defineProperty(cx, ATOM_TO_JSID(atom), UndefinedTag(),
                              PropertyStub, PropertyStub,
                              JSPROP_PERMANENT | JSPROP_READONLY)) {
         return JS_FALSE;
@@ -1355,7 +1355,7 @@ JS_ResolveStandardClass(JSContext *cx, JSObject *obj, jsid id, JSBool *resolved)
     atom = rt->atomState.typeAtoms[JSTYPE_VOID];
     if (idstr == ATOM_TO_STRING(atom)) {
         *resolved = JS_TRUE;
-        return obj->defineProperty(cx, ATOM_TO_JSID(atom), undefinedValue(),
+        return obj->defineProperty(cx, ATOM_TO_JSID(atom), UndefinedTag(),
                                    PropertyStub, PropertyStub,
                                    JSPROP_PERMANENT | JSPROP_READONLY);
     }
@@ -1446,7 +1446,7 @@ JS_EnumerateStandardClasses(JSContext *cx, JSObject *obj)
     
     atom = rt->atomState.typeAtoms[JSTYPE_VOID];
     if (!AlreadyHasOwnProperty(cx, obj, atom) &&
-        !obj->defineProperty(cx, ATOM_TO_JSID(atom), undefinedValue(),
+        !obj->defineProperty(cx, ATOM_TO_JSID(atom), UndefinedTag(),
                              PropertyStub, PropertyStub,
                              JSPROP_PERMANENT | JSPROP_READONLY)) {
         return JS_FALSE;
@@ -4642,8 +4642,7 @@ JS_TriggerOperationCallback(JSContext *cx)
 
 
 
-    JS_ATOMIC_SET_MASK(const_cast<jsword*>(&cx->interruptFlags),
-                       JSContext::INTERRUPT_OPERATION_CALLBACK);
+    JS_ATOMIC_SET(&cx->operationCallbackFlag, 1);
 }
 
 JS_PUBLIC_API(void)
@@ -5395,7 +5394,7 @@ JS_SetGCZeal(JSContext *cx, uint8 zeal)
 
 #if !defined(STATIC_JS_API) && defined(XP_WIN) && !defined (WINCE)
 
-#include "jswin.h"
+#include <windows.h>
 
 
 
