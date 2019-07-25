@@ -159,12 +159,6 @@ class ArgumentsObject : public JSObject
 
 
 
-    static ArgumentsObject *createPoison(JSContext *cx, uint32_t argc, JSObject &callee);
-
-    
-
-
-
     inline uint32_t initialLength() const;
 
     
