@@ -574,7 +574,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     Label exception;
     masm.ma_cmp(r0, Imm32(0));
-    masm.ma_b(&exception,Assembler::Zero);
+    masm.ma_b(&exception, Assembler::Zero);
 
     
     if (f.outParam == Type_Value) {
@@ -594,6 +594,8 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.handleException();
 
     masm.bind(&invalidated);
+    masm.ma_cmp(Imm32(0), Operand(sp, 0));
+    masm.ma_b(&exception, Assembler::Zero);
     masm.ret();
 
     Linker linker(masm);

@@ -523,6 +523,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     
     
+    
     masm.linkExitFrame();
 
     
@@ -588,6 +589,8 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.handleException();
 
     masm.bind(&invalidated);
+    masm.cmpl(Operand(esp, 0), Imm32(0));
+    masm.j(Assembler::Equal, &exception);
     masm.ret();
 
     Linker linker(masm);

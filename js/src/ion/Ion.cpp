@@ -922,14 +922,22 @@ ion::SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc)
     return EnterIon(cx, fp, target, osrcode, true);
 }
 
+
 static void
 FailInvalidation(JSContext *cx, uint8 *ionTop)
 {
-    JS_ASSERT(false); 
+    IonSpew(IonSpew_Invalidate, "failed invalidation!");
 
-    
-    
-    
+    js_ReportOutOfMemory(cx);
+
+    for (IonActivationIterator ait(cx); ait.more(); ++ait) {
+        IonFrameIterator it(ait.top());
+        JS_ASSERT(it.type() == IonFrame_Exit);
+        it.setReturnAddress(NULL);
+
+        IonSpew(IonSpew_Invalidate, "failed invalidation for activation %p", (void *) ionTop);
+        ait.activation()->setFailedInvalidation(true);
+    }
 }
 
 static bool
@@ -1005,8 +1013,8 @@ ion::Invalidate(JSContext *cx, const Vector<JSScript *> &invalid)
     if (!ionTop)
         return;
 
-    
-    
+    IonSpew(IonSpew_Invalidate, "Invalidating with set of %u scripts", unsigned(invalid.length()));
+
     
     HashSet<JSScript *> invalidHash(cx);
     if (!invalidHash.init(invalid.length())) {
