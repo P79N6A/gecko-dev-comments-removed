@@ -410,9 +410,7 @@ function buildTree(aReporters, aTreeName)
 
   if (!foundReporter) {
     
-    
-    aReporters[aTreeName] =
-      new Reporter(aTreeName, KIND_NONHEAP, UNITS_BYTES, 0, '');
+    return null;
   }
 
   var t = new TreeNode("falseRoot");
@@ -637,8 +635,12 @@ function genProcessText(aProcess, aReporters)
   var mapTreeText = '';
   kMapTreePaths.forEach(function(t) {
     var tree = buildTree(aReporters, t);
-    filterTree(tree._amount, tree);
-    mapTreeText += genTreeText(tree, aProcess);
+
+    
+    if (tree) {
+      filterTree(tree._amount, tree);
+      mapTreeText += genTreeText(tree, aProcess);
+    }
   });
 
   
