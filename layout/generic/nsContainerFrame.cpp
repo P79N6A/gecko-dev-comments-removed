@@ -440,20 +440,16 @@ ReparentFrameViewTo(nsIFrame*       aFrame,
     nsIView* insertBefore = nsLayoutUtils::FindSiblingViewFor(aNewParentView, aFrame);
     aViewManager->InsertChild(aNewParentView, view, insertBefore, insertBefore != nsnull);
   } else {
-    PRInt32 listIndex = 0;
-    nsIAtom* listName = nsnull;
-    
-    
-    do {
+    nsIFrame::ChildListIterator lists(aFrame);
+    for (; !lists.IsDone(); lists.Next()) {
       
       
-      nsIFrame* childFrame = aFrame->GetFirstChild(listName);
-      for (; childFrame; childFrame = childFrame->GetNextSibling()) {
-        ReparentFrameViewTo(childFrame, aViewManager,
+      nsFrameList::Enumerator childFrames(lists.CurrentList());
+      for (; !childFrames.AtEnd(); childFrames.Next()) {
+        ReparentFrameViewTo(childFrames.get(), aViewManager,
                             aNewParentView, aOldParentView);
       }
-      listName = aFrame->GetAdditionalChildListName(listIndex++);
-    } while (listName);
+    }
   }
 
   return NS_OK;
@@ -991,32 +987,27 @@ nsContainerFrame::PositionChildViews(nsIFrame* aFrame)
     return;
   }
 
-  nsIAtom*  childListName = nsnull;
-  PRInt32   childListIndex = 0;
-
-  do {
-    
-    nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
-    while (childFrame) {
+  
+  
+  
+  
+  ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    if (lists.CurrentID() == kPopupList) {
+      continue;
+    }
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
       
       
+      nsIFrame* childFrame = childFrames.get();
       if (childFrame->HasView()) {
         PositionFrameView(childFrame);
       } else {
         PositionChildViews(childFrame);
       }
-
-      
-      childFrame = childFrame->GetNextSibling();
     }
-
-    
-    
-    
-    do {
-      childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-    } while (childListName == nsGkAtoms::popupList);
-  } while (childListName);
+  }
 }
 
 
@@ -1791,35 +1782,27 @@ nsContainerFrame::List(FILE* out, PRInt32 aIndent) const
   }
 
   
-  nsIAtom* listName = nsnull;
-  PRInt32 listIndex = 0;
   PRBool outputOneList = PR_FALSE;
-  do {
-    nsIFrame* kid = GetFirstChild(listName);
-    if (nsnull != kid) {
-      if (outputOneList) {
-        IndentBy(out, aIndent);
-      }
-      outputOneList = PR_TRUE;
-      nsAutoString tmp;
-      if (nsnull != listName) {
-        listName->ToString(tmp);
-        fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
-      }
-      fputs("<\n", out);
-      while (nsnull != kid) {
-        
-        NS_ASSERTION(kid->GetParent() == (nsIFrame*)this, "bad parent frame pointer");
-
-        
-        kid->List(out, aIndent + 1);
-        kid = kid->GetNextSibling();
-      }
+  ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    if (outputOneList) {
       IndentBy(out, aIndent);
-      fputs(">\n", out);
     }
-    listName = GetAdditionalChildListName(listIndex++);
-  } while(nsnull != listName);
+    outputOneList = PR_TRUE;
+    fputs(mozilla::layout::ChildListName(lists.CurrentID()), out);
+    fputs("<\n", out);
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* kid = childFrames.get();
+      
+      NS_ASSERTION(kid->GetParent() == this, "bad parent frame pointer");
+
+      
+      kid->List(out, aIndent + 1);
+    }
+    IndentBy(out, aIndent);
+    fputs(">\n", out);
+  }
 
   if (!outputOneList) {
     fputs("<>\n", out);

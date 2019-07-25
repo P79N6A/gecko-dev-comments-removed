@@ -1604,24 +1604,18 @@ static void AdjustViews(nsIFrame* aFrame)
     return;
   }
 
-  nsIAtom* childListName = nsnull;
-  PRInt32  childListIndex = 0;
-  do {
-    
-    nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
-    while (childFrame) {
-      AdjustViews(childFrame);
-
-      
-      childFrame = childFrame->GetNextSibling();
+  
+  
+  nsIFrame::ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    if (lists.CurrentID() == nsIFrame::kPopupList) {
+      continue;
     }
-
-    
-    
-    do {
-      childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-    } while (childListName == nsGkAtoms::popupList);
-  } while (childListName);
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      AdjustViews(childFrames.get());
+    }
+  }
 }
 
 static PRBool

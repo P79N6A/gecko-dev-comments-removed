@@ -7595,13 +7595,11 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
     }
   }
 
-  
-  PRInt32 listIndex = 0;
-  nsIAtom* childList = nsnull;
-
-  do {
-    nsIFrame* child = aFrame->GetFirstChild(childList);
-    while (child) {
+  nsIFrame::ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
       if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
         
         if (nsGkAtoms::placeholderFrame == child->GetType()) {
@@ -7612,7 +7610,7 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
             DoApplyRenderingChangeToTree(outOfFlowFrame, aViewManager,
                                          aFrameManager, aChange);
           } while ((outOfFlowFrame = outOfFlowFrame->GetNextContinuation()));
-        } else if (childList == nsGkAtoms::popupList) {
+        } else if (lists.CurrentID() == nsIFrame::kPopupList) {
           DoApplyRenderingChangeToTree(child, aViewManager,
                                        aFrameManager, aChange);
         } else {  
@@ -7624,10 +7622,8 @@ UpdateViewsForTree(nsIFrame* aFrame, nsIViewManager* aViewManager,
           UpdateViewsForTree(child, aViewManager, aFrameManager, aChange);
         }
       }
-      child = child->GetNextSibling();
     }
-    childList = aFrame->GetAdditionalChildListName(listIndex++);
-  } while (childList);
+  }
 }
 
 static void

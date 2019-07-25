@@ -1067,6 +1067,7 @@ nsTableFrame::InsertRowGroups(const nsFrameList::Slice& aRowGroups)
 
 
 
+nsFrameList
 nsTableFrame::GetChildList(ChildListID aListID) const
 {
   if (aListID == kColGroupList) {

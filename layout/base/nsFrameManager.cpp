@@ -649,13 +649,11 @@ VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
   nsStyleContext*  context = aFrame->GetStyleContext();
   VerifyContextParent(aPresContext, aFrame, context, nsnull);
 
-  PRInt32 listIndex = 0;
-  nsIAtom* childList = nsnull;
-  nsIFrame* child;
-
-  do {
-    child = aFrame->GetFirstChild(childList);
-    while (child) {
+  nsIFrame::ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* child = childFrames.get();
       if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
           || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
         
@@ -676,11 +674,8 @@ VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
           VerifyStyleTree(aPresContext, child, nsnull);
         }
       }
-      child = child->GetNextSibling();
     }
-
-    childList = aFrame->GetAdditionalChildListName(listIndex++);
-  } while (childList);
+  }
   
   
   PRInt32 contextIndex = -1;
@@ -908,15 +903,13 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
         NS_ASSERTION(!(styleChange & nsChangeHint_ReconstructFrame),
                      "Our frame tree is likely to be bogus!");
         
-        PRInt32 listIndex = 0;
-        nsIAtom* childList = nsnull;
-        nsIFrame* child;
-          
         aFrame->SetStyleContext(newContext);
 
-        do {
-          child = aFrame->GetFirstChild(childList);
-          while (child) {
+        nsIFrame::ChildListIterator lists(aFrame);
+        for (; !lists.IsDone(); lists.Next()) {
+          nsFrameList::Enumerator childFrames(lists.CurrentList());
+          for (; !childFrames.AtEnd(); childFrames.Next()) {
+            nsIFrame* child = childFrames.get();
             
             if ((!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) ||
                  (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) &&
@@ -931,15 +924,10 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
                              "Out of flow provider?");
               }
 #endif
-
               ReparentStyleContext(child);
             }
-
-            child = child->GetNextSibling();
           }
-
-          childList = aFrame->GetAdditionalChildListName(listIndex++);
-        } while (childList);
+        }
 
         
         
@@ -1526,12 +1514,11 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
       
 
       
-      PRInt32 listIndex = 0;
-      nsIAtom* childList = nsnull;
-
-      do {
-        nsIFrame* child = aFrame->GetFirstChild(childList);
-        while (child) {
+      nsIFrame::ChildListIterator lists(aFrame);
+      for (; !lists.IsDone(); lists.Next()) {
+        nsFrameList::Enumerator childFrames(lists.CurrentList());
+        for (; !childFrames.AtEnd(); childFrames.Next()) {
+          nsIFrame* child = childFrames.get();
           if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
               || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
             
@@ -1592,11 +1579,8 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
               }
             }
           }
-          child = child->GetNextSibling();
         }
-
-        childList = aFrame->GetAdditionalChildListName(listIndex++);
-      } while (childList);
+      }
       
 
 #ifdef ACCESSIBILITY
@@ -1754,17 +1738,13 @@ nsFrameManager::CaptureFrameState(nsIFrame* aFrame,
   CaptureFrameStateFor(aFrame, aState);
 
   
-  nsIAtom*  childListName = nsnull;
-  PRInt32   childListIndex = 0;
-  do {    
-    nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
-    while (childFrame) {             
-      CaptureFrameState(childFrame, aState);
-      
-      childFrame = childFrame->GetNextSibling();
+  nsIFrame::ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      CaptureFrameState(childFrames.get(), aState);
     }
-    childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-  } while (childListName);
+  }
 }
 
 
@@ -1827,17 +1807,13 @@ nsFrameManager::RestoreFrameState(nsIFrame* aFrame,
   RestoreFrameStateFor(aFrame, aState);
 
   
-  nsIAtom*  childListName = nsnull;
-  PRInt32   childListIndex = 0;
-  do {    
-    nsIFrame* childFrame = aFrame->GetFirstChild(childListName);
-    while (childFrame) {
-      RestoreFrameState(childFrame, aState);
-      
-      childFrame = childFrame->GetNextSibling();
+  nsIFrame::ChildListIterator lists(aFrame);
+  for (; !lists.IsDone(); lists.Next()) {
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      RestoreFrameState(childFrames.get(), aState);
     }
-    childListName = aFrame->GetAdditionalChildListName(childListIndex++);
-  } while (childListName);
+  }
 }
 
 

@@ -231,35 +231,26 @@ nsPopupSetFrame::List(FILE* out, PRInt32 aIndent) const
   }
 
   
-  nsIAtom* listName = nsnull;
-  PRInt32 listIndex = 0;
   PRBool outputOneList = PR_FALSE;
-  do {
-    nsIFrame* kid = GetFirstChild(listName);
-    if (nsnull != kid) {
-      if (outputOneList) {
-        IndentBy(out, aIndent);
-      }
-      outputOneList = PR_TRUE;
-      nsAutoString tmp;
-      if (nsnull != listName) {
-        listName->ToString(tmp);
-        fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
-      }
-      fputs("<\n", out);
-      while (nsnull != kid) {
-        
-        NS_ASSERTION(kid->GetParent() == (nsIFrame*)this, "bad parent frame pointer");
-
-        
-        kid->List(out, aIndent + 1);
-        kid = kid->GetNextSibling();
-      }
+  ChildListIterator lists(this);
+  for (; !lists.IsDone(); lists.Next()) {
+    if (outputOneList) {
       IndentBy(out, aIndent);
-      fputs(">\n", out);
     }
-    listName = GetAdditionalChildListName(listIndex++);
-  } while(nsnull != listName);
+    outputOneList = PR_TRUE;
+    fprintf(out, "%s<\n", mozilla::layout::ChildListName(lists.CurrentID()));
+    nsFrameList::Enumerator childFrames(lists.CurrentList());
+    for (; !childFrames.AtEnd(); childFrames.Next()) {
+      nsIFrame* kid = childFrames.get();
+      
+      NS_ASSERTION(kid->GetParent() == this, "bad parent frame pointer");
+
+      
+      kid->List(out, aIndent + 1);
+    }
+    IndentBy(out, aIndent);
+    fputs(">\n", out);
+  }
 
   
   
@@ -268,9 +259,7 @@ nsPopupSetFrame::List(FILE* out, PRInt32 aIndent) const
     fputs("<\n", out);
     ++aIndent;
     IndentBy(out, aIndent);
-    nsAutoString tmp;
-    nsGkAtoms::popupList->ToString(tmp);
-    fputs(NS_LossyConvertUTF16toASCII(tmp).get(), out);
+    fputs(mozilla::layout::ChildListName(kPopupList), out);
     fputs(" for ", out);
     ListTag(out);
     fputs(" <\n", out);
