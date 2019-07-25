@@ -226,9 +226,9 @@ struct PropertyTable {
     uint32          removedCount;       
     js::Shape       **entries;          
 
-    PropertyTable(uint32 count)
+    PropertyTable(uint32 nentries)
       : hashShift(JS_DHASH_BITS - MIN_SIZE_LOG2),
-        entryCount(count),
+        entryCount(nentries),
         removedCount(0)
     {
         
@@ -241,16 +241,12 @@ struct PropertyTable {
     
     uint32 capacity() const { return JS_BIT(JS_DHASH_BITS - hashShift); }
 
-    void updateMemoryPressure(JSContext *cx) const {
-        cx->updateMallocCounter(capacity() * sizeof(Shape *));
-    }
-
     
 
 
 
-    bool            init(js::Shape *lastProp);
-    bool            change(int change);
+    bool            init(JSContext *cx, js::Shape *lastProp);
+    bool            change(JSContext *cx, int change);
     js::Shape       **search(jsid id, bool adding);
 };
 
@@ -356,18 +352,7 @@ struct Shape : public JSObjectMap
 
     js::Shape *getChild(JSContext *cx, const js::Shape &child, js::Shape **listp);
 
-    
-
-
-
-    bool maybeHash(int count) {
-        JS_ASSERT(!table);
-        if (count >= PropertyTable::HASH_THRESHOLD)
-            return reallyHash(count);
-        return false;
-    }
-
-    bool reallyHash(int count);
+    bool maybeHash(JSContext *cx);
 
     void setTable(js::PropertyTable *t) const { table = t; }
 
@@ -793,20 +778,15 @@ Shape::search(js::Shape **startp, jsid id, bool adding)
 
 
 
-        js::Shape **spp = startp;
-        int count = -1;
+        js::Shape **spp;
 
-        while (js::Shape *shape = *spp) {
+        for (spp = startp; js::Shape *shape = *spp; spp = &shape->parent) {
             if (shape->id == id) {
                 METER(hits);
                 return spp;
             }
-            spp = &shape->parent;
-            ++count;
         }
-
         METER(misses);
-        (*startp)->maybeHash(count);
         return spp;
     }
     return (*startp)->table->search(id, adding);

@@ -135,7 +135,7 @@ JS_FRIEND_DATA(JSScopeStats) js_scope_stats = {0};
 #endif
 
 bool
-PropertyTable::init(Shape *lastProp)
+PropertyTable::init(JSContext *cx, Shape *lastProp)
 {
     int sizeLog2;
 
@@ -158,6 +158,7 @@ PropertyTable::init(Shape *lastProp)
         METER(tableAllocFails);
         return false;
     }
+    cx->updateMallocCounter(JS_BIT(sizeLog2) * sizeof(Shape *));
 
     hashShift = JS_DHASH_BITS - sizeLog2;
     for (Shape::Range r = lastProp->all(); !r.empty(); r.popFront()) {
@@ -171,19 +172,15 @@ PropertyTable::init(Shape *lastProp)
 }
 
 bool
-Shape::reallyHash(int count)
+Shape::maybeHash(JSContext *cx)
 {
     JS_ASSERT(!table);
-    JS_ASSERT(count >= PropertyTable::HASH_THRESHOLD);
-
-    
-    void *mem = js_malloc(sizeof(PropertyTable));
-    if (mem) {
-        table = new (mem) PropertyTable(uint32(count));
-        if (table)
-            return table->init(this);
+    uint32 nentries = entryCount();
+    if (nentries >= PropertyTable::HASH_THRESHOLD) {
+        table = cx->create<PropertyTable>(nentries);
+        return table && table->init(cx, this);
     }
-    return false;
+    return true;
 }
 
 #ifdef DEBUG
@@ -378,7 +375,7 @@ PropertyTable::search(jsid id, bool adding)
 }
 
 bool
-PropertyTable::change(int change)
+PropertyTable::change(JSContext *cx, int change)
 {
     int oldlog2, newlog2;
     uint32 oldsize, newsize, nbytes;
@@ -392,7 +389,7 @@ PropertyTable::change(int change)
     oldsize = JS_BIT(oldlog2);
     newsize = JS_BIT(newlog2);
     nbytes = PROPERTY_TABLE_NBYTES(newsize);
-    newTable = (Shape **) js_calloc(nbytes);
+    newTable = (Shape **) cx->calloc(nbytes);
     if (!newTable) {
         METER(tableAllocFails);
         return false;
@@ -403,6 +400,9 @@ PropertyTable::change(int change)
     removedCount = 0;
     oldTable = entries;
     entries = newTable;
+
+    
+    cx->updateMallocCounter(nbytes);
 
     
     for (oldspp = oldTable; oldsize != 0; oldspp++) {
@@ -418,7 +418,7 @@ PropertyTable::change(int change)
     }
 
     
-    js_free(oldTable);
+    cx->free(oldTable);
     return true;
 }
 
@@ -545,7 +545,6 @@ Shape::newDictionaryList(JSContext *cx, Shape **listp)
     Shape **childp = listp;
     *childp = NULL;
 
-    int count = -1;
     while (shape) {
         JS_ASSERT(!shape->inDictionary());
 
@@ -559,15 +558,11 @@ Shape::newDictionaryList(JSContext *cx, Shape **listp)
         JS_ASSERT(!dprop->table);
         childp = &dprop->parent;
         shape = shape->parent;
-        ++count;
     }
 
     list = *listp;
     JS_ASSERT(list->inDictionary());
-
-    
-    if (list->maybeHash(count))
-        list->table->updateMemoryPressure(cx);
+    list->maybeHash(cx);
     return list;
 }
 
@@ -677,9 +672,8 @@ JSObject::addPropertyCommon(JSContext *cx, jsid id,
                 METER(compresses);
             else
                 METER(grows);
-            if (!table->change(change) && table->entryCount + table->removedCount == size - 1)
+            if (!table->change(cx, change) && table->entryCount + table->removedCount == size - 1)
                 return NULL;
-            table->updateMemoryPressure(cx);
             METER(searches);
             METER(changeSearches);
             spp = table->search(id, true);
@@ -711,6 +705,17 @@ JSObject::addPropertyCommon(JSContext *cx, jsid id,
         LIVE_SCOPE_METER(cx, ++cx->runtime->liveObjectProps);
         JS_RUNTIME_METER(cx->runtime, totalObjectProps);
 #endif
+
+        
+
+
+
+
+
+
+
+        if (!lastProp->table)
+            lastProp->maybeHash(cx);
 
         METER(adds);
         return shape;
@@ -811,6 +816,11 @@ JSObject::putProperty(JSContext *cx, jsid id,
             JS_ASSERT(oldLastProp->table == table);
             oldLastProp->setTable(NULL);
             shape->setTable(table);
+        }
+
+        if (!lastProp->table) {
+            
+            lastProp->maybeHash(cx);
         }
 
         METER(puts);
@@ -988,9 +998,7 @@ JSObject::removeProperty(JSContext *cx, jsid id)
         uint32 size = table->capacity();
         if (size > PropertyTable::MIN_SIZE && table->entryCount <= size >> 2) {
             METER(shrinks);
-            (void) table->change(-1);
-            if (inDictionaryMode())
-                table->updateMemoryPressure(cx);
+            (void) table->change(cx, -1);
         }
     }
 
