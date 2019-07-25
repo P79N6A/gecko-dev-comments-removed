@@ -323,16 +323,6 @@ nsHTMLEditUtils::IsPre(nsIDOMNode *node)
 
 
 bool 
-nsHTMLEditUtils::IsAddress(nsIDOMNode *node)
-{
-  return nsEditor::NodeIsType(node, nsEditProperty::address);
-}
-
-
-
-
-
-bool 
 nsHTMLEditUtils::IsImage(nsIDOMNode *node)
 {
   return nsEditor::NodeIsType(node, nsEditProperty::img);
