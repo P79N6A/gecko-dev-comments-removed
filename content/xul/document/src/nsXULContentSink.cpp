@@ -74,7 +74,6 @@
 #include "nsLayoutCID.h"
 #include "nsNetUtil.h"
 #include "nsRDFCID.h"
-#include "nsParserUtils.h"
 #include "nsXPIDLString.h"
 #include "nsReadableUtils.h"
 #include "nsXULElement.h"
@@ -1079,7 +1078,7 @@ XULContentSinkImpl::OpenScript(const PRUnichar** aAttributes,
           
           
           nsAutoString lang(aAttributes[1]);
-          if (nsParserUtils::IsJavaScriptLanguage(lang, &version)) {
+          if (nsContentUtils::IsJavaScriptLanguage(lang, &version)) {
               langID = nsIProgrammingLanguage::JAVASCRIPT;
 
               

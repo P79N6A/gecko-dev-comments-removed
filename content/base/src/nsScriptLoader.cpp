@@ -44,7 +44,6 @@
 #include "jsapi.h"
 #include "jsfriendapi.h"
 #include "nsScriptLoader.h"
-#include "nsParserUtils.h"
 #include "nsICharsetConverterManager.h"
 #include "nsIUnicodeDecoder.h"
 #include "nsIContent.h"
@@ -509,7 +508,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
     if (scriptContent->IsHTML()) {
       scriptContent->GetAttr(kNameSpaceID_None, nsGkAtoms::language, language);
       if (!language.IsEmpty()) {
-        if (nsParserUtils::IsJavaScriptLanguage(language, &version))
+        if (nsContentUtils::IsJavaScriptLanguage(language, &version))
           typeID = nsIProgrammingLanguage::JAVASCRIPT;
         else
           typeID = nsIProgrammingLanguage::UNKNOWN;

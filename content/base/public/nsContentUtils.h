@@ -1941,6 +1941,32 @@ public:
 
   static bool URIIsChromeOrInPref(nsIURI *aURI, const char *aPref);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static bool GetPseudoAttributeValue(const nsString& aSource, nsIAtom *aName,
+                                      nsAString& aValue);
+
+  
+
+
+
+  static bool IsJavaScriptLanguage(const nsString& aName, PRUint32 *aVerFlags);
+
+  static void SplitMimeType(const nsAString& aValue, nsString& aType,
+                            nsString& aParams);
+
 private:
   static bool InitializeEventTable();
 
