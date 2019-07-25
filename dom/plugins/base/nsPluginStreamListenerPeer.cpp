@@ -379,11 +379,6 @@ nsresult nsPluginStreamListenerPeer::Initialize(nsIURI *aURL,
   return NS_OK;
 }
 
-
-
-
-
-
 nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
                                                         nsNPAPIPluginInstance* aInstance,
                                                         nsObjectLoadingContent *aContent)
@@ -397,7 +392,12 @@ nsresult nsPluginStreamListenerPeer::InitializeEmbedded(nsIURI *aURL,
   
   PR_LogFlush();
 #endif
+
   
+  if (!aInstance && !aContent) {
+    return NS_ERROR_FAILURE;
+  }
+
   mURL = aURL;
   
   if (aInstance) {
