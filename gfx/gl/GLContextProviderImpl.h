@@ -45,7 +45,6 @@
 class THEBES_API GL_CONTEXT_PROVIDER_NAME
 {
 public:
-    typedef GLContext::ContextFlags ContextFlags;
     
 
 
@@ -91,8 +90,7 @@ public:
 
     static already_AddRefed<GLContext>
     CreateOffscreen(const gfxIntSize& aSize,
-                    const ContextFormat& aFormat = ContextFormat::BasicRGBA32Format,
-                    const ContextFlags aFlags = GLContext::ContextFlagsNone);
+                    const ContextFormat& aFormat = ContextFormat::BasicRGBA32Format);
 
     
 
