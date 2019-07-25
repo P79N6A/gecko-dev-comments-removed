@@ -413,7 +413,7 @@ var BrowserUI = {
     
     browsers.addEventListener("load", function() {
       
-      browsers.removeEventListener("load", arguments.callee, false);
+      browsers.removeEventListener("load", arguments.callee, true);
       
       
       Elements.panelUI.hidden = false;
@@ -423,7 +423,7 @@ var BrowserUI = {
       DownloadsView.init();
       PreferencesView.init();
       ConsoleView.init();
-    }, false);
+    }, true);
   },
 
   uninit : function() {
