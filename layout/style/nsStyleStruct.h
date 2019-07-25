@@ -1729,11 +1729,32 @@ struct nsStyleUIReset {
 };
 
 struct nsCursorImage {
-  nsCOMPtr<imgIRequest> mImage;
   PRBool mHaveHotspot;
   float mHotspotX, mHotspotY;
 
   nsCursorImage();
+  nsCursorImage(const nsCursorImage& aOther);
+  ~nsCursorImage();
+
+  nsCursorImage& operator=(const nsCursorImage& aOther);
+  
+
+
+
+
+  void SetImage(imgIRequest *aImage) {
+    if (mImage)
+      mImage->UnlockImage();
+    mImage = aImage;
+    if (mImage)
+      mImage->LockImage();
+  }
+  imgIRequest* GetImage() const {
+    return mImage;
+  }
+
+private:
+  nsCOMPtr<imgIRequest> mImage;
 };
 
 struct nsStyleUserInterface {
