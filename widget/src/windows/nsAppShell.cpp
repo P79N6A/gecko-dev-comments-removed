@@ -54,6 +54,9 @@
 const PRUnichar* kAppShellEventId = L"nsAppShell:EventID";
 const PRUnichar* kTaskbarButtonEventId = L"TaskbarButtonCreated";
 
+
+#define NATIVE_EVENT_STARVATION_LIMIT mozilla::TimeDuration::FromSeconds(1)
+
 static UINT sMsgId;
 
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
@@ -134,6 +137,8 @@ nsAppShell::Init()
 #ifdef MOZ_CRASHREPORTER
   LSPAnnotate();
 #endif
+
+  mLastNativeEventScheduled = TimeStamp::Now();
 
   if (!sMsgId)
     sMsgId = RegisterWindowMessageW(kAppShellEventId);
@@ -306,6 +311,9 @@ nsAppShell::ScheduleNativeEventCallback()
 {
   
   NS_ADDREF_THIS(); 
+  
+  
+  mLastNativeEventScheduled = TimeStamp::Now();
   ::PostMessage(mEventWnd, sMsgId, 0, reinterpret_cast<LPARAM>(this));
 }
 
@@ -348,5 +356,12 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
   if (mNativeCallbackPending && mEventloopNestingLevel == 1)
     DoProcessMoreGeckoEvents();
 
+  
+  
+  if ((TimeStamp::Now() - mLastNativeEventScheduled) >
+      NATIVE_EVENT_STARVATION_LIMIT) {
+    ScheduleNativeEventCallback();
+  }
+  
   return gotMessage;
 }
