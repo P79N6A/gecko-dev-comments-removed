@@ -6,18 +6,12 @@
 
 #include "gfxCrashReporterUtils.h"
 #include "mozilla/Preferences.h"
-
-#define EGL_LIB "libEGL.so"
-#define EGL_LIB1 "libEGL.so.1"
-
-#if defined(XP_WIN)
-
-#define EGL_LIB "libEGL.dll"
-
-#endif
+#include "nsDirectoryServiceDefs.h"
 
 namespace mozilla {
 namespace gl {
+
+#if defined(ANDROID)
 
 static PRLibrary* LoadApitraceLibrary()
 {
@@ -26,7 +20,6 @@ static PRLibrary* LoadApitraceLibrary()
     if (sApitraceLibrary)
         return sApitraceLibrary;
 
-#if defined(ANDROID)
     nsCString logFile = Preferences::GetCString("gfx.apitrace.logfile");
 
     if (logFile.IsEmpty()) {
@@ -46,14 +39,17 @@ static PRLibrary* LoadApitraceLibrary()
     printf_stderr("Attempting load of %s\n", APITRACE_LIB);
 
     sApitraceLibrary = PR_LoadLibrary(APITRACE_LIB);
-#endif
 
     return sApitraceLibrary;
 }
 
+#endif 
+
 bool
 GLLibraryEGL::EnsureInitialized()
 {
+    nsresult rv;
+
     if (mInitialized) {
         return true;
     }
@@ -61,56 +57,63 @@ GLLibraryEGL::EnsureInitialized()
     mozilla::ScopedGfxFeatureReporter reporter("EGL");
 
 #ifdef XP_WIN
-    
-    
-    do {
-        nsCOMPtr<nsILocalFile> eglFile, glesv2File;
-        nsresult rv = Preferences::GetComplex("gfx.angle.egl.path",
-                                              NS_GET_IID(nsILocalFile),
-                                              getter_AddRefs(eglFile));
-        if (NS_FAILED(rv) || !eglFile)
-            break;
-
-        nsCAutoString s;
-
+    if (!mEGLLibrary) {
         
         
-        nsCOMPtr<nsIFile> f;
-        eglFile->Clone(getter_AddRefs(f));
-        glesv2File = do_QueryInterface(f);
-        if (!glesv2File)
-            break;
+        
 
-        glesv2File->Append(NS_LITERAL_STRING("libGLESv2.dll"));
+        nsCOMPtr<nsIFile> libraryFile;
 
-        PRLibrary *glesv2lib = nsnull; 
-        glesv2File->Load(&glesv2lib);
-        if (!glesv2lib)
-            break;
+        nsCOMPtr<nsIProperties> dirService =
+            do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID);
+        if (!dirService)
+            return false;
 
-        eglFile->Append(NS_LITERAL_STRING("libEGL.dll"));
-        eglFile->Load(&mEGLLibrary);
-    } while (false);
+        rv = dirService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile),
+                             getter_AddRefs(libraryFile));
+        if (NS_FAILED(rv))
+            return false;
+
+        libraryFile->Append(NS_LITERAL_STRING("libGLESv2.dll"));
+        PRLibrary* glesv2lib = nsnull;
+
+        libraryFile->Load(&glesv2lib);
+
+        
+    
+        libraryFile->SetLeafName(NS_LITERAL_STRING("libEGL.dll"));
+        rv = libraryFile->Load(&mEGLLibrary);
+        if (NS_FAILED(rv)) {
+            NS_WARNING("Couldn't load libEGL.dll, canvas3d will be disabled.");
+            return false;
+        }
+    }
+#else 
+
+    
+    
+
+#if defined(ANDROID)
+    if (!mEGLLibrary)
+        mEGLLibrary = LoadApitraceLibrary();
 #endif
 
     if (!mEGLLibrary) {
-        mEGLLibrary = LoadApitraceLibrary();
-
-        if (!mEGLLibrary) {
-            printf_stderr("Attempting load of %s\n", EGL_LIB);
-            mEGLLibrary = PR_LoadLibrary(EGL_LIB);
-#if defined(XP_UNIX)
-            if (!mEGLLibrary) {
-                mEGLLibrary = PR_LoadLibrary(EGL_LIB1);
-            }
-#endif
-        }
+        printf_stderr("Attempting load of libEGL.so\n");
+        mEGLLibrary = PR_LoadLibrary("libEGL.so");
     }
+#if defined(XP_UNIX)
+    if (!mEGLLibrary) {
+        mEGLLibrary = PR_LoadLibrary("libEGL.so.1");
+    }
+#endif
 
     if (!mEGLLibrary) {
         NS_WARNING("Couldn't load EGL LIB.");
         return false;
     }
+
+#endif 
 
 #define SYMBOL(name) \
 { (PRFuncPtr*) &mSymbols.f##name, { "egl" #name, NULL } }
