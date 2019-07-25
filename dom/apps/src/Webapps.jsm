@@ -989,9 +989,23 @@ DOMApplicationManifest.prototype = {
   },
 
   fullLaunchPath: function(aStartPoint) {
-    let startPoint = aStartPoint || "";
-    let launchPath = this._localeProp("launch_path") || "";
-    return this._origin.resolve(launchPath + startPoint);
+    
+    
+    if ((aStartPoint || "") === "") {
+      return this._origin.resolve(this._localeProp("launch_path") || "");
+    }
+
+    
+    let entryPoints = this._localeProp("entry_points");
+    if (!entryPoints) {
+      return null;
+    }
+
+    if (entryPoints[aStartPoint]) {
+      return this._origin.resolve(entryPoints[aStartPoint].launch_path || "");
+    }
+
+    return null;
   },
 
   resolveFromOrigin: function(aURI) {
