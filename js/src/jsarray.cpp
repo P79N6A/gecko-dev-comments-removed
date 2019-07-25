@@ -2615,21 +2615,6 @@ array_unshift(JSContext *cx, uintN argc, Value *vp)
     return JS_TRUE;
 }
 
-static inline void
-TryReuseArrayType(JSObject *obj, JSObject *nobj)
-{
-    
-
-
-
-
-    JS_ASSERT(nobj->isDenseArray());
-    JS_ASSERT(nobj->type() == nobj->getProto()->newType);
-
-    if (obj->isArray() && !obj->hasSingletonType() && obj->getProto() == nobj->getProto())
-        nobj->setType(obj->type());
-}
-
 static JSBool
 array_splice(JSContext *cx, uintN argc, Value *vp)
 {
@@ -2641,10 +2626,23 @@ array_splice(JSContext *cx, uintN argc, Value *vp)
     JSBool hole;
 
     
+
+
+
+    TypeObject *type;
+    if (obj->isArray() && !obj->hasSingletonType()) {
+        type = obj->type();
+    } else {
+        type = GetTypeNewObject(cx, JSProto_Array);
+        if (!type)
+            return false;
+    }
+
+    
     JSObject *obj2 = NewDenseEmptyArray(cx);
     if (!obj2)
         return JS_FALSE;
-    TryReuseArrayType(obj, obj2);
+    obj2->setType(type);
     vp->setObject(*obj2);
 
     
@@ -2803,7 +2801,8 @@ array_concat(JSContext *cx, uintN argc, Value *vp)
         nobj = NewDenseCopiedArray(cx, initlen, vector);
         if (!nobj)
             return JS_FALSE;
-        TryReuseArrayType(aobj, nobj);
+        if (nobj->getProto() == aobj->getProto() && !aobj->hasSingletonType())
+            nobj->setType(aobj->type());
         nobj->setArrayLength(cx, length);
         if (!aobj->isPackedDenseArray())
             nobj->markDenseArrayNotPacked(cx);
@@ -2906,12 +2905,22 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
     if (begin > end)
         begin = end;
 
+    
+    TypeObject *type;
+    if (obj->isArray() && !obj->hasSingletonType()) {
+        type = obj->type();
+    } else {
+        type = GetTypeNewObject(cx, JSProto_Array);
+        if (!type)
+            return false;
+    }
+
     if (obj->isDenseArray() && end <= obj->getDenseArrayInitializedLength() &&
         !js_PrototypeHasIndexedProperties(cx, obj)) {
         nobj = NewDenseCopiedArray(cx, end - begin, obj->getDenseArrayElements() + begin);
         if (!nobj)
             return JS_FALSE;
-        TryReuseArrayType(obj, nobj);
+        nobj->setType(type);
         if (!obj->isPackedDenseArray())
             nobj->markDenseArrayNotPacked(cx);
         vp->setObject(*nobj);
@@ -2922,7 +2931,7 @@ array_slice(JSContext *cx, uintN argc, Value *vp)
     nobj = NewDenseAllocatedArray(cx, end - begin);
     if (!nobj)
         return JS_FALSE;
-    TryReuseArrayType(obj, nobj);
+    nobj->setType(type);
     vp->setObject(*nobj);
 
     AutoValueRooter tvr(cx);
