@@ -35,7 +35,10 @@
 
 
 
+
+#include "mozilla/dom/sms/SmsMessage.h"
 #include "SmsService.h"
+#include "jsapi.h"
 
 namespace mozilla {
 namespace dom {
@@ -63,6 +66,20 @@ SmsService::Send(const nsAString& aNumber, const nsAString& aMessage)
 {
   NS_ERROR("We should not be here!");
   return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsService::CreateSmsMessage(PRInt32 aId,
+                             const nsAString& aDelivery,
+                             const nsAString& aSender,
+                             const nsAString& aReceiver,
+                             const nsAString& aBody,
+                             const jsval& aTimestamp,
+                             JSContext* aCx,
+                             nsIDOMMozSmsMessage** aMessage)
+{
+  return SmsMessage::Create(
+    aId, aDelivery, aSender, aReceiver, aBody, aTimestamp, aCx, aMessage);
 }
 
 } 

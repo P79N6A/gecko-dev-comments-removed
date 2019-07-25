@@ -35,9 +35,11 @@
 
 
 
+
 #include "SmsMessage.h"
 #include "nsIDOMClassInfo.h"
 #include "jsapi.h" 
+#include "jsdate.h" 
 #include "Constants.h"
 
 DOMCI_DATA(MozSmsMessage, mozilla::dom::sms::SmsMessage)
@@ -58,6 +60,57 @@ NS_IMPL_RELEASE(SmsMessage)
 SmsMessage::SmsMessage(const SmsMessageData& aData)
   : mData(aData)
 {
+}
+
+ nsresult
+SmsMessage::Create(PRInt32 aId,
+                   const nsAString& aDelivery,
+                   const nsAString& aSender,
+                   const nsAString& aReceiver,
+                   const nsAString& aBody,
+                   const jsval& aTimestamp,
+                   JSContext* aCx,
+                   nsIDOMMozSmsMessage** aMessage)
+{
+  *aMessage = nsnull;
+
+  
+  
+  SmsMessageData data;
+  data.id() = aId;
+  data.sender() = nsString(aSender);
+  data.receiver() = nsString(aReceiver);
+  data.body() = nsString(aBody);
+
+  if (aDelivery.Equals(DELIVERY_RECEIVED)) {
+    data.delivery() = eDeliveryState_Received;
+  } else if (aDelivery.Equals(DELIVERY_SENT)) {
+    data.delivery() = eDeliveryState_Sent;
+  } else {
+    return NS_ERROR_INVALID_ARG;
+  }
+
+  
+  if (aTimestamp.isObject()) {
+    JSObject& obj = aTimestamp.toObject();
+    if (!JS_ObjectIsDate(aCx, &obj)) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    data.timestamp() = js_DateGetMsecSinceEpoch(aCx, &obj);
+  } else {
+    if (!aTimestamp.isNumber()) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    jsdouble number = aTimestamp.toNumber();
+    if (static_cast<PRUint64>(number) != number) {
+      return NS_ERROR_INVALID_ARG;
+    }
+    data.timestamp() = static_cast<PRUint64>(number);
+  }
+
+  nsCOMPtr<nsIDOMMozSmsMessage> message = new SmsMessage(data);
+  message.swap(*aMessage);
+  return NS_OK;
 }
 
 const SmsMessageData&
