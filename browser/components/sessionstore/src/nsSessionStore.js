@@ -1508,6 +1508,7 @@ SessionStoreService.prototype = {
     
     if (history && browser.__SS_data &&
         browser.__SS_data.entries[history.index] &&
+        browser.__SS_data.entries[history.index].url == browser.currentURI.spec &&
         history.index < this._sessionhistory_max_entries - 1 && !aFullData) {
       tabData = browser.__SS_data;
       tabData.index = history.index + 1;
