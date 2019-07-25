@@ -63,8 +63,8 @@ enum nsViewVisibility {
 
 
 #define NS_IVIEW_IID    \
-  { 0xe981334b, 0x756e, 0x417a, \
-    { 0xbf, 0x18, 0x47, 0x4a, 0x2d, 0xfe, 0xc3, 0x87 } }
+  { 0xdb512cfa, 0xe00c, 0x4eff, \
+    { 0xa2, 0x9c, 0x18, 0x74, 0x96, 0x63, 0x17, 0x69 } }
 
 
 #define NS_VIEW_FLAGS_PUBLIC              0x00FF
@@ -298,6 +298,26 @@ public:
 
 
 
+
+
+
+
+  nsresult AttachToTopLevelWidget(nsIWidget* aWidget);
+  nsresult DetachFromTopLevelWidget();
+
+  
+
+
+
+  PRBool IsAttachedToTopLevel() const { return mWidgetIsTopLevel; }
+
+  
+
+
+
+
+
+
   nsIWidget* GetWidget() const { return mWindow; }
 
   
@@ -373,6 +393,7 @@ protected:
   float             mOpacity;
   PRUint32          mVFlags;
   nsWeakView*       mDeletionObserver;
+  PRBool            mWidgetIsTopLevel;
 
   virtual ~nsIView() {}
 };

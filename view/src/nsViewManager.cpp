@@ -304,6 +304,20 @@ NS_IMETHODIMP nsViewManager::GetWindowDimensions(nscoord *aWidth, nscoord *aHeig
   return NS_OK;
 }
 
+void nsViewManager::DoSetWindowDimensions(nscoord aWidth, nscoord aHeight)
+{
+  nsRect oldDim;
+  nsRect newDim(0, 0, aWidth, aHeight);
+  mRootView->GetDimensions(oldDim);
+  
+  if (!oldDim.IsExactEqual(newDim)) {
+    
+    mRootView->SetDimensions(newDim, PR_TRUE, PR_FALSE);
+    if (mObserver)
+      mObserver->ResizeReflow(mRootView, aWidth, aHeight);
+  }
+}
+
 NS_IMETHODIMP nsViewManager::SetWindowDimensions(nscoord aWidth, nscoord aHeight)
 {
   if (mRootView) {
@@ -578,6 +592,13 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
                                 const nsRegion &aDamagedRegion,
                                 nsView* aIgnoreWidgetView)
 {
+#if 0
+  nsRect dbgBounds = aDamagedRegion.GetBounds();
+  printf("UpdateWidgetArea view:%X (%d) widget:%X region: %d, %d, %d, %d\n",
+    aWidgetView, aWidgetView->IsAttachedToTopLevel(),
+    aWidget, dbgBounds.x, dbgBounds.y, dbgBounds.width, dbgBounds.height);
+#endif
+
   if (!IsRefreshEnabled()) {
     
     
@@ -641,12 +662,17 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
         if (view->GetViewManager()->RootViewManager() == RootViewManager()) {
           
           nsRegion damage = intersection;
+
           nsPoint offset = view->GetOffsetTo(aWidgetView);
           damage.MoveBy(-offset);
+
+          
           UpdateWidgetArea(view, childWidget, damage, aIgnoreWidgetView);
 
+          
           nsIntRect bounds;
           childWidget->GetBounds(bounds);
+
           nsTArray<nsIntRect> clipRects;
           childWidget->GetWindowClipRegion(&clipRects);
           for (PRUint32 i = 0; i < clipRects.Length(); ++i) {
@@ -741,10 +767,9 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
       {
         if (aView)
           {
+            
             nscoord width = ((nsSizeEvent*)aEvent)->windowSize->width;
             nscoord height = ((nsSizeEvent*)aEvent)->windowSize->height;
-            width = ((nsSizeEvent*)aEvent)->mWinWidth;
-            height = ((nsSizeEvent*)aEvent)->mWinHeight;
 
             
             
@@ -1011,9 +1036,10 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 
 nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsGUIEvent* aEvent)
 {
-
-
-
+#if 0
+  printf(" %d %d %d %d (%d,%d) \n", this, event->widget, event->widgetSupports, 
+         event->message, event->point.x, event->point.y);
+#endif
   
   
   

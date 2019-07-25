@@ -209,19 +209,7 @@ private:
 
   nsIntRect ViewToWidget(nsView *aView, nsView* aWidgetView, const nsRect &aRect) const;
 
-  void DoSetWindowDimensions(nscoord aWidth, nscoord aHeight)
-  {
-    nsRect oldDim;
-    nsRect newDim(0, 0, aWidth, aHeight);
-    mRootView->GetDimensions(oldDim);
-    
-    if (!oldDim.IsExactEqual(newDim)) {
-      
-      mRootView->SetDimensions(newDim, PR_TRUE, PR_FALSE);
-      if (mObserver)
-        mObserver->ResizeReflow(mRootView, aWidth, aHeight);
-    }
-  }
+  void DoSetWindowDimensions(nscoord aWidth, nscoord aHeight);
 
   
   void IncrementUpdateCount() {
