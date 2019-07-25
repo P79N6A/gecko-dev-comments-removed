@@ -786,8 +786,6 @@ pref("browser.sessionstore.max_resumed_crashes", 1);
 
 pref("browser.sessionstore.max_concurrent_tabs", 3);
 
-pref("browser.sessionstore.restore_hidden_tabs", false);
-
 
 pref("accessibility.blockautorefresh", false);
 
@@ -1004,6 +1002,12 @@ pref("devtools.chrome.enabled", false);
 
 
 pref("devtools.hud.height", 0);
+
+
+
+
+
+pref("devtools.webconsole.position", "above");
 
 
 
