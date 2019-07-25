@@ -565,17 +565,12 @@ NS_IMETHODIMP imgRequest::OnStartContainer(imgIRequest *request, imgIContainer *
   NS_ASSERTION(image, "imgRequest::OnStartContainer called with a null image!");
   if (!image) return NS_ERROR_UNEXPECTED;
 
-  
-  
-  
-  
-  
+  mImage->GetStatusTracker().RecordStartContainer(image);
+
   nsTObserverArray<imgRequestProxy*>::ForwardIterator iter(mObservers);
   while (iter.HasMore()) {
     mImage->GetStatusTracker().SendStartContainer(iter.GetNext(), image);
   }
-
-  mImage->GetStatusTracker().RecordStartContainer(image);
 
   return NS_OK;
 }

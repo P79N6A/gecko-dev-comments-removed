@@ -212,6 +212,10 @@ private:
   
   
   PRPackedBool mDeferNotifications;
+
+  
+  
+  PRPackedBool mSentStartContainer;
 };
 
 #endif 

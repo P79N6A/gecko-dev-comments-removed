@@ -319,10 +319,7 @@ imgStatusTracker::RecordStartContainer(imgIContainer* aContainer)
 void
 imgStatusTracker::SendStartContainer(imgRequestProxy* aProxy, imgIContainer* aContainer)
 {
-  
-  
-  PRBool alreadySent = (mState & stateHasSize) != 0;
-  if (!alreadySent && !aProxy->NotificationsDeferred())
+  if (!aProxy->NotificationsDeferred())
     aProxy->OnStartContainer(aContainer);
 }
 
