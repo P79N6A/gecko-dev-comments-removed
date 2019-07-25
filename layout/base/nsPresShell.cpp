@@ -6304,21 +6304,30 @@ IsFullScreenAndRestrictedKeyEvent(nsIContent* aTarget, const nsEvent* aEvent)
 
   
   
-  
-  
-  
-  
-  int key = static_cast<const nsKeyEvent*>(aEvent)->keyCode;
-  if ((key >= NS_VK_CANCEL && key <= NS_VK_CAPS_LOCK) ||
-      (key >= NS_VK_SPACE && key <= NS_VK_DELETE) ||
-      (key >= NS_VK_SEMICOLON && key <= NS_VK_EQUALS) ||
-      (key >= NS_VK_MULTIPLY && key <= NS_VK_META)) {
-    return false;
+  const nsKeyEvent* keyEvent = static_cast<const nsKeyEvent*>(aEvent);
+  int key = keyEvent->keyCode ? keyEvent->keyCode : keyEvent->charCode;
+  switch (key) {
+    case NS_VK_TAB:
+    case NS_VK_SPACE:
+    case NS_VK_PAGE_UP:
+    case NS_VK_PAGE_DOWN:
+    case NS_VK_END:
+    case NS_VK_HOME:
+    case NS_VK_LEFT:
+    case NS_VK_UP:
+    case NS_VK_RIGHT:
+    case NS_VK_DOWN:
+    case NS_VK_SHIFT:
+    case NS_VK_CONTROL:
+    case NS_VK_ALT:
+    case NS_VK_META:
+      
+      return false;
+    default:
+      
+      
+      return true;
   }
-
-  
-  
-  return true;
 }
 
 nsresult
