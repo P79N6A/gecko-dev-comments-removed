@@ -91,23 +91,14 @@ enum JSFrameFlags
     JSFRAME_UNDERFLOW_ARGS     =  0x4000, 
 
     
-    JSFRAME_HAS_IMACRO_PC      =  0x8000, 
-    JSFRAME_HAS_CALL_OBJ       = 0x10000, 
-    JSFRAME_HAS_ARGS_OBJ       = 0x20000, 
-    JSFRAME_HAS_HOOK_DATA      = 0x40000, 
-    JSFRAME_HAS_ANNOTATION     = 0x80000, 
-
-    
-
-
-
-    JSFRAME_HAS_PREVPC         = 0x100000,
-
-    
-
-
-
-    JSFRAME_RVAL_ASSIGNED      = 0x200000
+    JSFRAME_HAS_IMACRO_PC      =   0x8000, 
+    JSFRAME_HAS_CALL_OBJ       =  0x10000, 
+    JSFRAME_HAS_ARGS_OBJ       =  0x20000, 
+    JSFRAME_HAS_HOOK_DATA      =  0x40000, 
+    JSFRAME_HAS_ANNOTATION     =  0x80000, 
+    JSFRAME_HAS_RVAL           = 0x100000, 
+    JSFRAME_HAS_SCOPECHAIN     = 0x200000, 
+    JSFRAME_HAS_PREVPC         = 0x400000  
 };
 
 
@@ -117,7 +108,7 @@ enum JSFrameFlags
 struct JSStackFrame
 {
   private:
-    uint32              flags_;         
+    mutable uint32      flags_;         
     union {                             
         JSScript        *script;        
         JSFunction      *fun;           
@@ -127,7 +118,7 @@ struct JSStackFrame
         JSObject        *obj;           
         JSScript        *script;        
     } args;
-    JSObject            *scopeChain_;   
+    mutable JSObject    *scopeChain_;   
     JSStackFrame        *prev_;         
     void                *ncode_;        
 
@@ -199,8 +190,7 @@ struct JSStackFrame
                               uint32 nactual, uint32 flags);
 
     
-    inline void initCallFrameCallerHalf(JSContext *cx, JSObject &scopeChain,
-                                        uint32 nactual, uint32 flags);
+    inline void initCallFrameCallerHalf(JSContext *cx, uint32 nactual, uint32 flags);
     inline void initCallFrameEarlyPrologue(JSFunction *fun, void *ncode);
     inline void initCallFrameLatePrologue();
 
@@ -497,6 +487,11 @@ struct JSStackFrame
 
 
     JSObject &scopeChain() const {
+        JS_ASSERT_IF(!(flags_ & JSFRAME_HAS_SCOPECHAIN), isFunctionFrame());
+        if (!(flags_ & JSFRAME_HAS_SCOPECHAIN)) {
+            scopeChain_ = callee().getParent();
+            flags_ |= JSFRAME_HAS_SCOPECHAIN;
+        }
         return *scopeChain_;
     }
 
@@ -576,24 +571,23 @@ struct JSStackFrame
     
 
     const js::Value& returnValue() {
+        if (!(flags_ & JSFRAME_HAS_RVAL))
+            rval_.setUndefined();
         return rval_;
+    }
+
+    void markReturnValue() {
+        flags_ |= JSFRAME_HAS_RVAL;
     }
 
     void setReturnValue(const js::Value &v) {
         rval_ = v;
+        markReturnValue();
     }
 
     void clearReturnValue() {
         rval_.setUndefined();
-    }
-
-    js::Value* addressReturnValue() {
-        return &rval_;
-    }
-
-    void setAssignedReturnValue(const js::Value &v) {
-        flags_ |= JSFRAME_RVAL_ASSIGNED;
-        setReturnValue(v);
+        markReturnValue();
     }
 
     
@@ -740,6 +734,7 @@ struct JSStackFrame
     }
 
     JSObject **addressOfScopeChain() {
+        JS_ASSERT(flags_ & JSFRAME_HAS_SCOPECHAIN);
         return &scopeChain_;
     }
 

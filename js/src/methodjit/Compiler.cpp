@@ -251,12 +251,6 @@ mjit::Compiler::generatePrologue()
         }
 
         
-        masm.storeValue(UndefinedValue(), Address(JSFrameReg, JSStackFrame::offsetOfReturnValue()));
-
-        
-        masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), Registers::ReturnReg);
-
-        
         for (uint32 i = 0; i < script->nfixed; i++) {
             Address local(JSFrameReg, sizeof(JSStackFrame) + i * sizeof(Value));
             masm.storeValue(UndefinedValue(), local);
@@ -269,6 +263,21 @@ mjit::Compiler::generatePrologue()
         }
 
         j.linkTo(masm.label(), &masm);
+
+        if (analysis.usesScopeChain() && !fun->isHeavyweight()) {
+            
+
+
+
+
+            RegisterID t0 = Registers::ReturnReg;
+            Jump hasScope = masm.branchTest32(Assembler::NonZero,
+                                              FrameFlagsAddress(), Imm32(JSFRAME_HAS_SCOPECHAIN));
+            masm.loadPayload(Address(JSFrameReg, JSStackFrame::offsetOfCallee(fun)), t0);
+            masm.loadPtr(Address(t0, offsetof(JSObject, parent)), t0);
+            masm.storePtr(t0, Address(JSFrameReg, JSStackFrame::offsetOfScopeChain()));
+            hasScope.linkTo(masm.label(), &masm);
+        }
     }
 
     return Compile_Okay;
@@ -647,7 +656,7 @@ mjit::Compiler::generateMethod()
           {
             RegisterID reg = frame.allocReg();
             masm.load32(FrameFlagsAddress(), reg);
-            masm.or32(Imm32(JSFRAME_RVAL_ASSIGNED), reg);
+            masm.or32(Imm32(JSFRAME_HAS_RVAL), reg);
             masm.store32(reg, FrameFlagsAddress());
             frame.freeReg(reg);
 
@@ -1782,8 +1791,7 @@ mjit::Compiler::loadReturnValue(Assembler &masm)
     masm.loadValueAsComponents(UndefinedValue(), JSReturnReg_Type, JSReturnReg_Data);
     if (analysis.usesReturnValue()) {
         Jump rvalClear = masm.branchTest32(Assembler::Zero,
-                                           FrameFlagsAddress(),
-                                           Imm32(JSFRAME_RVAL_ASSIGNED));
+                                           FrameFlagsAddress(), Imm32(JSFRAME_HAS_RVAL));
         Address rvalAddress(JSFrameReg, JSStackFrame::offsetOfReturnValue());
         masm.loadValueAsComponents(rvalAddress,
                                    JSReturnReg_Type, JSReturnReg_Data);

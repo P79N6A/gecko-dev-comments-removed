@@ -68,11 +68,14 @@ namespace js
         
         bool usesRval;
 
+        
+        bool usesScope;
+
       public:
         BytecodeAnalyzer(JSContext *cx, JSScript *script)
           : cx(cx), script(script), ops(NULL),
             doList(ContextAllocPolicy(cx)),
-            usesRval(false)
+            usesRval(false), usesScope(false)
         {
         }
         ~BytecodeAnalyzer();
@@ -83,6 +86,7 @@ namespace js
       public:
 
         bool usesReturnValue() const { return usesRval; }
+        bool usesScopeChain() const { return usesScope; }
 
         inline const OpcodeStatus & operator [](uint32 offs) const {
             JS_ASSERT(offs < script->length);

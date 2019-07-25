@@ -311,7 +311,6 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
 
 
     uint32 flags         = oldfp->isConstructingFlag();
-    JSObject &scopeChain = oldfp->scopeChain();
     JSFunction *fun      = oldfp->fun();
     void *ncode          = oldfp->nativeReturnAddress();
 
@@ -327,7 +326,7 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
         THROWV(NULL);
 
     
-    newfp->initCallFrameCallerHalf(cx, scopeChain, nactual, flags);
+    newfp->initCallFrameCallerHalf(cx, nactual, flags);
 
     
     newfp->initCallFrameEarlyPrologue(fun, ncode);
@@ -821,6 +820,16 @@ RunTracer(VMFrame &f)
     
     if (!cx->traceJitEnabled)
         return NULL;
+
+    
+
+
+
+
+
+
+    entryFrame->scopeChain();
+    entryFrame->returnValue();
 
     bool blacklist;
     uintN inlineCallCount = 0;
