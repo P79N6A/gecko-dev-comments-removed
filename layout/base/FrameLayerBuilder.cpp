@@ -501,7 +501,15 @@ public:
 
 
 
+
+  uint32_t mMaskClipCount;
+
+  
+
+
+
   nscolor mForcedBackgroundColor;
+
   
 
 
@@ -1674,6 +1682,10 @@ ContainerState::FindThebesLayerFor(nsDisplayItem* aItem,
     thebesLayerData = mThebesLayerDataStack[lowestUsableLayerWithScrolledRoot];
     layer = thebesLayerData->mLayer;
   }
+
+  
+  
+  thebesLayerData->UpdateCommonClipCount(aClip);
 
   thebesLayerData->Accumulate(this, aItem, aVisibleRect, aDrawRect, aClip);
 
@@ -3202,7 +3214,7 @@ FrameLayerBuilder::Clip::RemoveRoundedCorners()
 }
 
 gfxRect
-CalculateBounds(nsTArray<FrameLayerBuilder::Clip::RoundedRect> aRects, int32_t A2D)
+CalculateBounds(const nsTArray<FrameLayerBuilder::Clip::RoundedRect>& aRects, int32_t A2D)
 {
   nsRect bounds = aRects[0].mRect;
   for (uint32_t i = 1; i < aRects.Length(); ++i) {
@@ -3211,16 +3223,36 @@ CalculateBounds(nsTArray<FrameLayerBuilder::Clip::RoundedRect> aRects, int32_t A
  
   return nsLayoutUtils::RectToGfxRect(bounds, A2D);
 }
- 
+
+static void
+SetClipCount(ThebesDisplayItemLayerUserData* aThebesData,
+             uint32_t aClipCount)
+{
+  if (aThebesData) {
+    aThebesData->mMaskClipCount = aClipCount;
+  }
+}
+
 void
 ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aClip,
                                uint32_t aRoundedRectClipCount)
 {
   
+  
+  
+  ThebesDisplayItemLayerUserData* thebesData = GetThebesDisplayItemLayerUserData(aLayer);
+  if (thebesData &&
+      aRoundedRectClipCount < thebesData->mMaskClipCount) {
+    ThebesLayer* thebes = aLayer->AsThebesLayer();
+    thebes->InvalidateRegion(thebes->GetValidRegion().GetBounds());
+  }
+
+  
   nsIntRect layerBounds = aLayer->GetVisibleRegion().GetBounds();
   if (aClip.mRoundedClipRects.IsEmpty() ||
-      aRoundedRectClipCount <= 0 ||
+      aRoundedRectClipCount == 0 ||
       layerBounds.IsEmpty()) {
+    SetClipCount(thebesData, 0);
     return;
   }
 
@@ -3238,6 +3270,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
 
   if (*userData == newData) {
     aLayer->SetMaskLayer(maskLayer);
+    SetClipCount(thebesData, aRoundedRectClipCount);
     return;
   }
 
@@ -3292,6 +3325,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     
     if (!surface || surface->CairoStatus()) {
       NS_WARNING("Could not create surface for mask layer.");
+      SetClipCount(thebesData, 0);
       return;
     }
 
@@ -3327,6 +3361,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   userData->mImageKey = key;
 
   aLayer->SetMaskLayer(maskLayer);
+  SetClipCount(thebesData, aRoundedRectClipCount);
   return;
 }
 
