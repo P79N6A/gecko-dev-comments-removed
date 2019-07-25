@@ -458,32 +458,6 @@ let Utils = {
     return ex && ex.indexOf && (ex.indexOf(hmacFail) == 0);
   },
   
-  checkStatus: function Weave_checkStatus(code, msg, ranges) {
-    if (!ranges)
-      ranges = [[200,300]];
-
-    for (let i = 0; i < ranges.length; i++) {
-      var rng = ranges[i];
-      if (typeof(rng) == "object" && code >= rng[0] && code < rng[1])
-        return true;
-      else if (typeof(rng) == "number" && code == rng) {
-        return true;
-      }
-    }
-
-    if (msg) {
-      let log = Log4Moz.repository.getLogger("Service.Util");
-      log.error(msg + " Error code: " + code);
-    }
-
-    return false;
-  },
-
-  ensureStatus: function Weave_ensureStatus(args) {
-    if (!Utils.checkStatus.apply(Utils, arguments))
-      throw 'checkStatus failed';
-  },
-
   
 
 
@@ -928,30 +902,6 @@ let Utils = {
     return url;
   },
 
-  xpath: function Weave_xpath(xmlDoc, xpathString) {
-    let root = xmlDoc.ownerDocument == null ?
-      xmlDoc.documentElement : xmlDoc.ownerDocument.documentElement;
-    let nsResolver = xmlDoc.createNSResolver(root);
-
-    return xmlDoc.evaluate(xpathString, xmlDoc, nsResolver,
-                           Ci.nsIDOMXPathResult.ANY_TYPE, null);
-  },
-
-  getTmp: function Weave_getTmp(name) {
-    let tmp = Services.dirsvc.get("ProfD", Ci.nsIFile);
-    tmp.QueryInterface(Ci.nsILocalFile);
-
-    tmp.append("weave");
-    tmp.append("tmp");
-    if (!tmp.exists())
-      tmp.create(tmp.DIRECTORY_TYPE, PERMS_DIRECTORY);
-
-    if (name)
-      tmp.append(name);
-
-    return tmp;
-  },
-
   
 
 
@@ -1215,38 +1165,6 @@ let Utils = {
   
 
 
-
-  passphraseStrength: function passphraseStrength(value) {
-    let bits = 0;
-
-    
-    if (value.length)
-      bits = 4;
-
-    
-    if (value.length > 1)
-      bits += Math.min(value.length - 1, 7) * 2;
-
-    
-    
-    if (value.length > 8)
-      bits += Math.min(value.length - 8, 12) * 1.5;
-
-    
-    if (value.length > 20)
-      bits += value.length - 20;
-
-    
-    if ([char.charCodeAt() for each (char in value.toLowerCase())]
-        .some(function(chr) chr < 97 || chr > 122))
-      bits += 6;
-      
-    return bits;
-  },
-
-  
-
-
   arraySub: function arraySub(minuend, subtrahend) {
     return minuend.filter(function(i) subtrahend.indexOf(i) == -1);
   },
@@ -1292,17 +1210,6 @@ let Utils = {
     return false;
   },
   
-  __prefs: null,
-  get prefs() {
-    if (!this.__prefs) {
-      this.__prefs = Cc["@mozilla.org/preferences-service;1"]
-        .getService(Ci.nsIPrefService);
-      this.__prefs = this.__prefs.getBranch(PREFS_BRANCH);
-      this.__prefs.QueryInterface(Ci.nsIPrefBranch2);
-    }
-    return this.__prefs;
-  },
-
   
 
 
@@ -1375,68 +1282,6 @@ let Utils = {
   }
 };
 
-let FakeSvc = {
-  
-  "@mozilla.org/privatebrowsing;1": {
-    autoStarted: false,
-    privateBrowsingEnabled: false
-  },
-  
-  "@mozilla.org/browser/sessionstore;1": {
-    setTabValue: function(tab, key, value) {
-      if (!tab.__SS_extdata)
-        tab.__SS_extdata = {};
-      tab.__SS_extData[key] = value;
-    },
-    getBrowserState: function() {
-      
-      let state = { windows: [{ tabs: [] }] };
-      let window = Services.wm.getMostRecentWindow("navigator:browser");
-
-      
-      window.Browser._tabs.forEach(function(tab) {
-        let tabState = { entries: [{}] };
-        let browser = tab.browser;
-
-        
-        
-        if (!browser || !browser.currentURI || !browser.sessionHistory)
-          return;
-
-        let history = browser.sessionHistory;
-        if (history.count > 0) {
-          
-          let entry = history.getEntryAtIndex(history.index, false);
-          tabState.entries[0].url = entry.URI.spec;
-          
-          if (entry.title && entry.title != entry.url)
-            tabState.entries[0].title = entry.title;
-        }
-        
-        tabState.index = 1;
-
-        
-        
-        tabState.attributes = { image: browser.mIconURL };
-
-        
-        if (tab.__SS_extdata) {
-          tabState.extData = {};
-          for (let key in tab.__SS_extdata)
-            tabState.extData[key] = tab.__SS_extdata[key];
-        }
-
-        
-        state.windows[0].tabs.push(tabState);
-      });
-      return JSON.stringify(state);
-    }
-  },
-  
-  "@labs.mozilla.com/Fake/Thing;1": {
-    isFake: true
-  }
-};
 XPCOMUtils.defineLazyGetter(Utils, "_utf8Converter", function() {
   let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
                     .createInstance(Ci.nsIScriptableUnicodeConverter);

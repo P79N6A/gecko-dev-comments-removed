@@ -154,7 +154,7 @@ function run_test() {
     "/quota-error": server_quota_error
   });
 
-  Utils.prefs.setIntPref("network.numRetries", 1); 
+  Svc.Prefs.set("network.numRetries", 1); 
 
   _("Resource object members");
   let res = new Resource("http://localhost:8080/open");

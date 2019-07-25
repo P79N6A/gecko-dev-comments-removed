@@ -154,7 +154,7 @@ function run_test() {
     "/quota-error": server_quota_error
   });
 
-  Utils.prefs.setIntPref("network.numRetries", 1); 
+  Svc.Prefs.set("network.numRetries", 1); 
 
   let did401 = false;
   Observers.add("weave:resource:status:401", function() did401 = true);
