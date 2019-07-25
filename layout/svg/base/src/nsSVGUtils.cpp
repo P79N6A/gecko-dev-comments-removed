@@ -1166,15 +1166,6 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
     return;
   }
 
-  
-
-
-  nsSVGEffects::EffectProperties effectProperties =
-    nsSVGEffects::GetEffectProperties(aFrame);
-
-  bool isOK = true;
-  nsSVGFilterFrame *filterFrame = effectProperties.GetFilterFrame(&isOK);
-
   if (aDirtyRect &&
       !(aFrame->GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     
@@ -1227,15 +1218,23 @@ nsSVGUtils::PaintFrameWithEffects(nsRenderingContext *aContext,
   gfxContext *gfx = aContext->ThebesContext();
   bool complexEffects = false;
 
+  
+
+
+  nsSVGEffects::EffectProperties effectProperties =
+    nsSVGEffects::GetEffectProperties(aFrame);
+
+  bool isOK = true;
+  nsSVGFilterFrame *filterFrame = effectProperties.GetFilterFrame(&isOK);
   nsSVGClipPathFrame *clipPathFrame = effectProperties.GetClipPathFrame(&isOK);
   nsSVGMaskFrame *maskFrame = effectProperties.GetMaskFrame(&isOK);
-
-  bool isTrivialClip = clipPathFrame ? clipPathFrame->IsTrivial() : true;
 
   if (!isOK) {
     
     return;
   }
+
+  bool isTrivialClip = clipPathFrame ? clipPathFrame->IsTrivial() : true;
   
   gfxMatrix matrix;
   if (clipPathFrame || maskFrame)
