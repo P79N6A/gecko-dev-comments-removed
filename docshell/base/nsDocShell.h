@@ -803,6 +803,7 @@ protected:
     bool                       mIsActive;
     bool                       mIsAppTab;
     bool                       mUseGlobalHistory;
+    bool                       mInPrivateBrowsing;
 
     
     
