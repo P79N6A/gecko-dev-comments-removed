@@ -1131,10 +1131,12 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         StopTrackingDragGesture();
 #endif
         sNormalLMouseEventInProcess = PR_FALSE;
+        
       case nsMouseEvent::eRightButton:
 #ifdef XP_OS2
         StopTrackingDragGesture();
 #endif
+        
       case nsMouseEvent::eMiddleButton:
         SetClickCount(aPresContext, (nsMouseEvent*)aEvent, aStatus);
         break;
@@ -1205,6 +1207,7 @@ nsEventStateManager::PreHandleEvent(nsPresContext* aPresContext,
         HandleAccessKey(aPresContext, keyEvent, aStatus, nsnull,
                         eAccessKeyProcessingNormal, modifierMask);
     }
+    
   case NS_KEY_DOWN:
   case NS_KEY_UP:
     {
