@@ -649,7 +649,9 @@ var BrowserUI = {
     } catch(e) { }
   },
 
-  handleEscape: function () {
+  handleEscape: function (aEvent) {
+    aEvent.stopPropagation();
+
     
     let dialog = this.activeDialog;
     if (dialog) {
@@ -710,7 +712,7 @@ var BrowserUI = {
       
       case "keypress":
         if (aEvent.keyCode == aEvent.DOM_VK_ESCAPE)
-          this.handleEscape();
+          this.handleEscape(aEvent);
         break;
       case "AppCommand":
         aEvent.stopPropagation();
