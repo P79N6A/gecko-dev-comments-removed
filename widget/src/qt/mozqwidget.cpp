@@ -74,6 +74,11 @@ static bool gFailedOpenKeyboard = false;
 
 static bool gPendingVKBOpen = false;
 
+
+
+
+static QString gLastPreeditString;
+
 MozQWidget::MozQWidget(nsWindow* aReceiver, QGraphicsItem* aParent)
     : QGraphicsWidget(aParent),
       mReceiver(aReceiver)
@@ -153,6 +158,10 @@ void MozQWidget::focusInEvent(QFocusEvent* aEvent)
 void MozQWidget::focusOutEvent(QFocusEvent* aEvent)
 {
     mReceiver->OnFocusOutEvent(aEvent);
+    
+    if (aEvent->reason() == Qt::OtherFocusReason && gKeyboardOpen) {
+        hideVKB();
+    }
 }
 
 void MozQWidget::hoverEnterEvent(QGraphicsSceneHoverEvent* aEvent)
@@ -172,7 +181,15 @@ void MozQWidget::hoverMoveEvent(QGraphicsSceneHoverEvent* aEvent)
 
 void MozQWidget::keyPressEvent(QKeyEvent* aEvent)
 {
-#if (MOZ_PLATFORM_MAEMO==5)
+#if (MOZ_PLATFORM_MAEMO == 6)
+    if (!gKeyboardOpen ||
+       
+       aEvent->key() == Qt::Key_Space ||
+       aEvent->key() == Qt::Key_Return ||
+       aEvent->key() == Qt::Key_Backspace) {
+        mReceiver->OnKeyPressEvent(aEvent);
+    }
+#elif (MOZ_PLATFORM_MAEMO == 5)
     
     
     
@@ -183,11 +200,113 @@ void MozQWidget::keyPressEvent(QKeyEvent* aEvent)
 
 void MozQWidget::keyReleaseEvent(QKeyEvent* aEvent)
 {
-#if (MOZ_PLATFORM_MAEMO==5)
+#if (MOZ_PLATFORM_MAEMO == 6)
+    if (!gKeyboardOpen ||
+       
+       aEvent->key() == Qt::Key_Space ||
+       aEvent->key() == Qt::Key_Return ||
+       aEvent->key() == Qt::Key_Backspace) {
+        mReceiver->OnKeyReleaseEvent(aEvent);
+    }
+    return;
+#elif (MOZ_PLATFORM_MAEMO == 5)
     
     mReceiver->OnKeyPressEvent(aEvent);
 #endif
     mReceiver->OnKeyReleaseEvent(aEvent);
+}
+
+void MozQWidget::inputMethodEvent(QInputMethodEvent* aEvent)
+{
+    QString currentPreeditString = aEvent->preeditString();
+    QString currentCommitString = aEvent->commitString();
+
+    
+    if (currentCommitString == " ") {
+        sendPressReleaseKeyEvent(Qt::Key_Space, currentCommitString.unicode());
+    } else if (currentCommitString == "\n") {
+        sendPressReleaseKeyEvent(Qt::Key_Return, currentCommitString.unicode());
+    } else if (currentCommitString.isEmpty()) {
+        
+        
+        if (currentPreeditString.length() == 1 && gLastPreeditString.isEmpty()) {
+            
+            
+            
+            sendPressReleaseKeyEvent(0, currentPreeditString.unicode());
+        } else if (currentPreeditString.startsWith(gLastPreeditString)) {
+            
+            
+            
+            const QChar * text = currentPreeditString.unicode();
+            for (int i = gLastPreeditString.length(); i < currentPreeditString.length(); i++) {
+                sendPressReleaseKeyEvent(0, &text[i]);
+            }
+        } else {
+            
+            
+            
+            QString tempLastPre = gLastPreeditString;
+            tempLastPre.truncate(gLastPreeditString.length()-1);
+            if (currentPreeditString == tempLastPre) {
+                sendPressReleaseKeyEvent(Qt::Key_Backspace);
+            } else if (currentPreeditString != tempLastPre) {
+                
+                
+                for (int i = 0; i < gLastPreeditString.length(); i++) {
+                    sendPressReleaseKeyEvent(Qt::Key_Backspace);
+                }
+                
+                const QChar * text = currentPreeditString.unicode();
+                for (int i = 0; i < currentPreeditString.length(); i++) {
+                    sendPressReleaseKeyEvent(0, &text[i]);
+                }
+            }
+        }
+    } else if (gLastPreeditString != currentCommitString) {
+        
+        if (currentCommitString.length() == 1 && gLastPreeditString.isEmpty()) {
+            
+            
+            sendPressReleaseKeyEvent(0, currentCommitString.unicode());
+        } else {
+            
+            for (int i = 0; i < gLastPreeditString.length(); i++) {
+                sendPressReleaseKeyEvent(Qt::Key_Backspace);
+            }
+            
+            const QChar * text = currentCommitString.unicode();
+            for (int i = 0; i < currentCommitString.length(); i++) {
+                sendPressReleaseKeyEvent(0, &text[i]);
+            }
+        }
+    }
+
+    
+    gLastPreeditString = currentPreeditString;
+
+    
+    
+    
+    QGraphicsWidget::inputMethodEvent(aEvent);
+}
+
+void MozQWidget::sendPressReleaseKeyEvent(int key,
+                                          const QChar* letter,
+                                          bool autorep,
+                                          ushort count)
+{
+     Qt::KeyboardModifiers modifiers  = Qt::NoModifier;
+     if (letter && letter->isUpper()) {
+         modifiers = Qt::ShiftModifier;
+     }
+
+     QString text = letter ? QString(*letter) : QString();
+
+     QKeyEvent press(QEvent::KeyPress, key, modifiers, text, autorep, count);
+     mReceiver->OnKeyPressEvent(&press);
+     QKeyEvent release(QEvent::KeyRelease, key, modifiers, text, autorep, count);
+     mReceiver->OnKeyReleaseEvent(&release);
 }
 
 void MozQWidget::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* aEvent)
@@ -238,12 +357,15 @@ bool MozQWidget::event ( QEvent * event )
         mReceiver->OnGestureEvent(static_cast<QGestureEvent*>(event),handled);
         return handled;
     }
+#if (MOZ_PLATFORM_MAEMO != 6)
+    
     case QEvent::InputMethod:
     {
         PRBool handled = PR_FALSE;
         mReceiver->imComposeEvent(static_cast<QInputMethodEvent*>(event),handled);
         return handled;
     }
+#endif
 
     default:
         break;
@@ -355,7 +477,7 @@ QVariant MozQWidget::inputMethodQuery(Qt::InputMethodQuery aQuery) const
     
     if (static_cast<Qt::InputMethodQuery>( 10004 ) == aQuery)
     {
-        return QVariant( 1 );
+        return QVariant( 0 );
     }
 
     return QGraphicsWidget::inputMethodQuery(aQuery);
@@ -420,6 +542,10 @@ void MozQWidget::hideVKB()
     if (gPendingVKBOpen) {
         
         gPendingVKBOpen = false;
+    }
+
+    if (!gKeyboardOpen) {
+        return;
     }
 
 #if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
