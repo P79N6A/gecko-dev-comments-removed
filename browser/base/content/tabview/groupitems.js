@@ -1938,7 +1938,6 @@ let GroupItems = {
     let groupItemsData = Storage.readGroupItemsData(gWindow);
     let groupItemData = Storage.readGroupItemData(gWindow);
     this.reconstitute(groupItemsData, groupItemData);
-    this.killNewTabGroup(); 
     
     return (groupItemsData && !Utils.isEmptyObject(groupItemsData));
   },
@@ -2343,21 +2342,6 @@ let GroupItems = {
       tab._tabViewTabItem.setZoomPrep(false);
       UI.showTabView();
     }
-  },
-
-  
-  
-  
-  killNewTabGroup: function GroupItems_killNewTabGroup() {
-    
-    
-    let newTabGroupTitle = "New Tabs";
-    this.groupItems.forEach(function(groupItem) {
-      if (groupItem.getTitle() == newTabGroupTitle && groupItem.locked.title) {
-        groupItem.removeAll();
-        groupItem.close();
-      }
-    });
   },
 
   
