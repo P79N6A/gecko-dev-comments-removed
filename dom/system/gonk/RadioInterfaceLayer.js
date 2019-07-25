@@ -65,6 +65,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "ppmm",
                                    "@mozilla.org/parentprocessmessagemanager;1",
                                    "nsIFrameMessageManager");
 
+XPCOMUtils.defineLazyServiceGetter(this, "gSettingsService",
+                                   "@mozilla.org/settingsService;1",
+                                   "nsISettingsService");
+
 function convertRILCallState(state) {
   switch (state) {
     case RIL.CALL_STATE_ACTIVE:
@@ -155,6 +159,11 @@ function RadioInterfaceLayer() {
                      signalStrength: null,
                      relSignalStrength: null},
   };
+
+  
+  
+  gSettingsService.getLock().get("ril.radio.disabled", this);
+
   for each (let msgname in RIL_IPC_MSG_NAMES) {
     ppmm.addMessageListener(msgname, this);
   }
@@ -174,7 +183,8 @@ RadioInterfaceLayer.prototype = {
 
   QueryInterface: XPCOMUtils.generateQI([Ci.nsIWorkerHolder,
                                          Ci.nsIRadioInterfaceLayer,
-                                         Ci.nsIObserver]),
+                                         Ci.nsIObserver,
+                                         Ci.nsISettingsServiceCallback]),
 
   
 
@@ -281,7 +291,7 @@ RadioInterfaceLayer.prototype = {
         this.handleOperatorChange(message);
         break;
       case "radiostatechange":
-        this.radioState.radioState = message.radioState;
+        this.handleRadioStateChange(message);
         break;
       case "cardstatechange":
         this.radioState.cardState = message.cardState;
@@ -421,6 +431,24 @@ RadioInterfaceLayer.prototype = {
     if (operator != this.radioState.data.operator) {
       this.radioState.data.operator = operator;
       ppmm.sendAsyncMessage("RIL:DataInfoChanged", this.radioState.data);
+    }
+  },
+
+  handleRadioStateChange: function handleRadioStateChange(message) {
+    let newState = message.radioState;
+    if (this.radioState.radioState == newState) {
+      return;
+    }
+    this.radioState.radioState = newState;
+    
+
+    if (this.radioState.radioState == RIL.GECKO_RADIOSTATE_OFF &&
+        this._radioEnabled) {
+      this.setRadioEnabled(true);
+    }
+    if (this.radioState.radioState == RIL.GECKO_RADIOSTATE_READY &&
+        !this._radioEnabled) {
+      this.setRadioEnabled(false);
     }
   },
 
@@ -637,21 +665,26 @@ RadioInterfaceLayer.prototype = {
 
 
   handleMozSettingsChanged: function handleMozSettingsChanged(setting) {
-    
-    
-    
-    
-    
-    if (setting.key != "ril.data.enabled") {
-      return;
-    }
-    if (!setting.value && RILNetworkInterface.connected) {
-      debug("Data call settings: disconnect data call.");
-      RILNetworkInterface.disconnect();
-    }
-    if (setting.value && !RILNetworkInterface.connected) {
-      debug("Data call settings connect data call.");
-      RILNetworkInterface.connect();
+    switch (setting.key) {
+      case "ril.radio.disabled":
+        this._radioEnabled = !setting.value;
+        this.setRadioEnabled(this._radioEnabled);
+        break;
+      case "ril.data.enabled":
+        
+        
+        
+        
+        
+        if (!setting.value && RILNetworkInterface.connected) {
+          debug("Data call settings: disconnect data call.");
+          RILNetworkInterface.disconnect();
+        }
+        if (setting.value && !RILNetworkInterface.connected) {
+          debug("Data call settings connect data call.");
+          RILNetworkInterface.connect();
+        }
+        break;
     }
   },
 
@@ -688,9 +721,30 @@ RadioInterfaceLayer.prototype = {
 
   
 
+  
+  
+  _radioEnabled: null,
+
+  handle: function handle(aName, aResult) {
+    if (aName == "ril.radio.disabled") {
+      this._radioEnabled = !aResult;
+    }
+  },
+
+  handleError: function handleError(aErrorMessage) {
+    this._radioEnabled = true;
+  },
+
+  
+
   worker: null,
 
   
+
+  setRadioEnabled: function setRadioEnabled(value) {
+    debug("Setting radio power to " + value);
+    this.worker.postMessage({type: "setRadioPower", on: value});
+  },
 
   radioState: null,
 
