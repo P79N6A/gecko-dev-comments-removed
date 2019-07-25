@@ -15,10 +15,14 @@
 #include "nsCSSProperty.h"
 #include "nsCoord.h"
 #include "nsColor.h"
-#include "nsCSSValue.h"
 
 class nsPresContext;
 class nsStyleContext;
+class nsCSSValue;
+struct nsCSSValueList;
+struct nsCSSValuePair;
+struct nsCSSValueTriplet;
+struct nsCSSValuePairList;
 struct nsCSSRect;
 class gfx3DMatrix;
 
@@ -199,12 +203,8 @@ public:
 
 
    static gfx3DMatrix InterpolateTransformMatrix(const gfx3DMatrix &aMatrix1,
-                                                 const gfx3DMatrix &aMatrix2,
+                                                 const gfx3DMatrix &aMatrix2, 
                                                  double aProgress);
-
-   static already_AddRefed<nsCSSValue::Array>
-     AppendTransformFunction(nsCSSKeyword aTransformFunction,
-                             nsCSSValueList**& aListTail);
 
   
 
