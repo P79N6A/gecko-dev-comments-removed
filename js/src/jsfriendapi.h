@@ -1292,4 +1292,11 @@ JS_GetDataViewByteLength(JSObject *obj, JSContext *cx);
 JS_FRIEND_API(void *)
 JS_GetDataViewData(JSObject *obj, JSContext *cx);
 
+
+
+
+
+
+struct JSJitInfo;
+
 #endif 

@@ -49,7 +49,13 @@ struct JSFunction : public JSObject
 
     uint16_t        flags;        
     union U {
-        js::Native  native;       
+        class Native {
+            friend struct JSFunction;
+            js::Native          native;       
+            const JSJitInfo     *jitinfo;     
+
+
+        } n;
         struct Scripted {
             JSScript    *script_; 
 
@@ -120,16 +126,20 @@ struct JSFunction : public JSObject
 
     JSNative native() const {
         JS_ASSERT(isNative());
-        return u.native;
+        return u.n.native;
     }
 
     JSNative maybeNative() const {
         return isInterpreted() ? NULL : native();
     }
 
+    inline void initNative(js::Native native, const JSJitInfo *jitinfo);
+    inline const JSJitInfo *jitInfo() const;
+    inline void setJitInfo(const JSJitInfo *data);
+
     static unsigned offsetOfNativeOrScript() {
-        JS_STATIC_ASSERT(offsetof(U, native) == offsetof(U, i.script_));
-        JS_STATIC_ASSERT(offsetof(U, native) == offsetof(U, nativeOrScript));
+        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, i.script_));
+        JS_STATIC_ASSERT(offsetof(U, n.native) == offsetof(U, nativeOrScript));
         return offsetof(JSFunction, u.nativeOrScript);
     }
 

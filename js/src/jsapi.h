@@ -4335,17 +4335,42 @@ struct JSConstDoubleSpec {
     uint8_t         spare[3];
 };
 
+typedef struct JSJitInfo JSJitInfo;
+
+
+
+
+
+
+typedef struct JSStrictPropertyOpWrapper {
+    JSStrictPropertyOp  op;
+    const JSJitInfo     *info;
+} JSStrictPropertyOpWrapper;
+
+typedef struct JSPropertyOpWrapper {
+    JSPropertyOp        op;
+    const JSJitInfo     *info;
+} JSPropertyOpWrapper;
+
+
+
+
+
+
+#define JSOP_WRAPPER(op) {op, NULL}
+#define JSOP_NULLWRAPPER JSOP_WRAPPER(NULL)
+
 
 
 
 
 
 struct JSPropertySpec {
-    const char            *name;
-    int8_t                tinyid;
-    uint8_t               flags;
-    JSPropertyOp          getter;
-    JSStrictPropertyOp    setter;
+    const char                  *name;
+    int8_t                      tinyid;
+    uint8_t                     flags;
+    JSPropertyOpWrapper         getter;
+    JSStrictPropertyOpWrapper   setter;
 };
 
 struct JSFunctionSpec {

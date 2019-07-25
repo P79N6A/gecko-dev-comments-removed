@@ -148,10 +148,10 @@ JSPropertySpec ImageData::sProperties[] = {
   
   
   
-  { "width", SLOT_width, PROPERTY_FLAGS, GetProperty, NULL },
-  { "height", SLOT_height, PROPERTY_FLAGS, GetProperty, NULL },
-  { "data", SLOT_data, PROPERTY_FLAGS, GetProperty, NULL },
-  { 0, 0, 0, NULL, NULL }
+  { "width", SLOT_width, PROPERTY_FLAGS, JSOP_WRAPPER(GetProperty), JSOP_NULLWRAPPER },
+  { "height", SLOT_height, PROPERTY_FLAGS, JSOP_WRAPPER(GetProperty), JSOP_NULLWRAPPER },
+  { "data", SLOT_data, PROPERTY_FLAGS, JSOP_WRAPPER(GetProperty), JSOP_NULLWRAPPER },
+  { 0, 0, 0, JSOP_NULLWRAPPER, JSOP_NULLWRAPPER }
 };
 
 } 
