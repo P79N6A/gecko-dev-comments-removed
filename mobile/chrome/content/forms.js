@@ -48,6 +48,8 @@ let HTMLTextAreaElement = Ci.nsIDOMHTMLTextAreaElement;
 let HTMLInputElement = Ci.nsIDOMHTMLInputElement;
 let HTMLSelectElement = Ci.nsIDOMHTMLSelectElement;
 let HTMLIFrameElement = Ci.nsIDOMHTMLIFrameElement;
+let HTMLDocument = Ci.nsIDOMHTMLDocument;
+let HTMLHtmlElement = Ci.nsIDOMHTMLHtmlElement;
 let HTMLBodyElement = Ci.nsIDOMHTMLBodyElement;
 let HTMLLabelElement = Ci.nsIDOMHTMLLabelElement;
 let HTMLButtonElement = Ci.nsIDOMHTMLButtonElement;
@@ -97,7 +99,7 @@ FormAssistant.prototype = {
   },
 
   _open: false,
-  open: function(aElement) {
+  open: function formHelperOpen(aElement) {
     
     if (aElement instanceof HTMLOptionElement && aElement.parentNode instanceof HTMLSelectElement) {
       aElement = aElement.parentNode;
@@ -120,8 +122,7 @@ FormAssistant.prototype = {
     }
 
     
-    
-    if (aElement.isContentEditable)
+    if (this._isEditable(aElement))
       aElement = this._getTopLevelEditable(aElement);
 
     
@@ -245,21 +246,21 @@ FormAssistant.prototype = {
 
     switch (aEvent.type) {
       case "focus":
-        let focusedElement = gFocusManager.getFocusedElementForWindow(content, true, {});
+        let focusedElement = gFocusManager.getFocusedElementForWindow(content, true, {}) || aEvent.target;
 
         
         
         
-        if (focusedElement) {
+        if (focusedElement && this._isEditable(focusedElement)) {
           let editableElement = this._getTopLevelEditable(focusedElement);
-          if (editableElement.isContentEditable && this._isValidElement(editableElement)) {
+          if (this._isValidElement(editableElement)) {
             let self = this;
             let timer = new Util.Timeout(function() {
               self.open(editableElement);
             });
             timer.once(0);
-            return;
           }
+          return;
         }
 
         
@@ -333,7 +334,8 @@ FormAssistant.prototype = {
     for (let i = 0; i < aNodes.length; i++) {
       let node = aNodes[i];
 
-      if (node.isContentEditable || node instanceof HTMLIFrameElement) {
+      
+      if (this._isEditable(node)) {
         let editableElement = this._getTopLevelEditable(node);
         if (result.indexOf(editableElement) == -1)
           result.push(editableElement);
@@ -342,16 +344,40 @@ FormAssistant.prototype = {
         result.push(node);
       }
     }
-
     return result;
   },
   
-  _getTopLevelEditable: function formHelperGetTopLevelEditable(aElement) {
-    while (aElement && aElement.parentNode.isContentEditable)
-      aElement = aElement.parentNode;
+  _isEditable: function formHelperIsEditable(aElement) {
+    let canEdit = false;
 
-    if (aElement && aElement instanceof HTMLBodyElement && aElement.ownerDocument.defaultView != content.document.defaultView)
-      return aElement.ownerDocument.defaultView.frameElement;
+    if (aElement.isContentEditable || aElement.designMode == "on") {
+      canEdit = true;
+    } else if (aElement instanceof HTMLIFrameElement && (aElement.contentDocument.body.isContentEditable || aElement.contentDocument.designMode == "on")) {
+      canEdit = true;
+    } else {
+      canEdit = aElement.ownerDocument && aElement.ownerDocument.designMode == "on";
+    }
+
+    return canEdit;
+  },
+
+  _getTopLevelEditable: function formHelperGetTopLevelEditable(aElement) {
+    if (!(aElement instanceof HTMLIFrameElement)) {
+      let element = aElement;
+
+      
+      if (element instanceof HTMLHtmlElement)
+        element = element.ownerDocument.body;
+      else if (element instanceof HTMLDocument)
+        element = element.body;
+    
+      while (element && !this._isEditable(element))
+        element = element.parentNode;
+
+      
+      if (element && element instanceof HTMLBodyElement && element.ownerDocument.defaultView != content.document.defaultView)
+        return element.ownerDocument.defaultView.frameElement;
+    }
 
     return aElement;
   },
@@ -368,6 +394,9 @@ FormAssistant.prototype = {
   },
 
   _isValidElement: function formHelperIsValidElement(aElement) {
+    if (!aElement.getAttribute)
+      return false;
+
     let formExceptions = { button: true, checkbox: true, file: true, image: true, radio: true, reset: true, submit: true };
     if (aElement instanceof HTMLInputElement && formExceptions[aElement.type])
       return false;
@@ -392,10 +421,7 @@ FormAssistant.prototype = {
     if (aElement instanceof HTMLInputElement || aElement instanceof HTMLButtonElement)
       return !(aElement.type == "hidden");
 
-    if (aElement instanceof HTMLIFrameElement && aElement.contentDocument.body.isContentEditable)
-      return true;
-
-    return aElement.isContentEditable;
+    return this._isEditable(aElement);
   },
 
   _isVisibleElement: function formHelperIsVisibleElement(aElement) {
@@ -476,7 +502,7 @@ FormAssistant.prototype = {
 
     let elements = this._elements;
     for (let i = 0; i < documents.length; i++) {
-      let selector = "input, button, select, textarea, [role=button], iframe[tabindex], [contenteditable=true]";
+      let selector = "input, button, select, textarea, [role=button], iframe, [contenteditable=true]";
       let nodes = documents[i].querySelectorAll(selector);
       nodes = this._filterRadioButtons(nodes);
 
@@ -499,7 +525,7 @@ FormAssistant.prototype = {
 
       return a.tabIndex > b.tabIndex;
     }
-    this._elements = elements.sort(orderByTabIndex);
+    this._elements = this._elements.sort(orderByTabIndex);
 
     
     let currentIndex = this._getIndexForElement(aElement);
