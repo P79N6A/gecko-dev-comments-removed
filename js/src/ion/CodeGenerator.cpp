@@ -326,6 +326,7 @@ bool
 CodeGenerator::visitOsrEntry(LOsrEntry *lir)
 {
     
+    masm.flushBuffer();
     setOsrEntryOffset(masm.size());
 
     
@@ -919,7 +920,7 @@ CodeGenerator::generate()
     if (graph.numConstants())
         script->ion->copyConstants(graph.constantPool());
     if (frameInfoTable_.length())
-        script->ion->copyFrameInfoTable(&frameInfoTable_[0]);
+        script->ion->copyFrameInfoTable(&frameInfoTable_[0], masm);
     if (cacheList_.length())
         script->ion->copyCacheEntries(&cacheList_[0], masm);
     if (safepoints_.size())

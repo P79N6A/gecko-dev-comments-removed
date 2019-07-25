@@ -492,7 +492,6 @@ def main(argv):
     if OPTIONS.ion_tbpl:
         
         ion_flags = [ 
-                      ['--ion-eager', '--ion-gvn=off', '--ion-licm=off', '--ion-regalloc=greedy'],
                       ['--ion', '-n'],
                       ['--ion', '-n', '--ion-regalloc=greedy'],
                       ['--ion', '-n', '--ion-gvn=off', '--ion-licm=off' ],

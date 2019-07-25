@@ -809,10 +809,12 @@ CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &de
     
     masm.ma_vxfer(ScratchFloatReg, dest);
     masm.ma_vcvt_I32_F64(ScratchFloatReg, ScratchFloatReg);
-    masm.ma_vcmp(ScratchFloatReg, src);
+    masm.ma_vcmp(src, ScratchFloatReg);
     masm.as_vmrs(pc);
-    
     masm.ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
+    
+    masm.ma_cmp(dest, Imm32(0));
+    masm.ma_b(fail, Assembler::Equal);
     
     return true;
 }
@@ -1156,8 +1158,8 @@ CodeGeneratorARM::visitLoadElementT(LLoadElementT *load)
 bool
 CodeGeneratorARM::visitStoreElementV(LStoreElementV *store)
 {
-    Register type = ToRegister(store->getDef(TYPE_INDEX));
-    Register payload = ToRegister(store->getDef(PAYLOAD_INDEX));
+    Register type = ToRegister(store->getOperand(store->Value + TYPE_INDEX));
+    Register payload = ToRegister(store->getOperand(store->Value + PAYLOAD_INDEX));
     Register base = ToRegister(store->elements());
     if (store->index()->isConstant()) {
         masm.storeValue(ValueOperand(type, payload), Address(base, ToInt32(store->index()) * sizeof(Value)));
