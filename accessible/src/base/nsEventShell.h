@@ -160,6 +160,20 @@ private:
   
 
 
+  void CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
+                                   AccHideEvent* aThisEvent);
+
+  
+
+
+
+
+
+  void CreateTextChangeEventFor(AccHideEvent* aEvent);
+
+  
+
+
 
   PRBool mObservingRefresh;
 

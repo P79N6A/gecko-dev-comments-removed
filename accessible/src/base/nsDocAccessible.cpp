@@ -1344,17 +1344,15 @@ nsDocAccessible::FireTextChangeEventForText(nsIContent *aContent,
   if (NS_FAILED(rv))
     return;
 
-  
-  PRUint32 length = text.Length();
-  if (length == 0)
+  if (text.IsEmpty())
     return;
 
   
   
   
   nsRefPtr<nsAccEvent> event =
-      new nsAccTextChangeEvent(textAccessible, offset, length, text,
-                               aIsInserted, PR_FALSE);
+    new nsAccTextChangeEvent(textAccessible, offset, text, aIsInserted,
+                             PR_FALSE);
   FireDelayedAccessibleEvent(event);
 
   FireValueChangeForTextFields(textAccessible);
@@ -1425,13 +1423,12 @@ nsDocAccessible::CreateTextChangeEventForNode(nsAccessible *aContainerAccessible
     aAccessibleForChangeNode->AppendTextTo(text, 0, PR_UINT32_MAX);
   }
 
-  PRUint32 length = text.Length();
-  if (length == 0)
+  if (text.IsEmpty())
     return nsnull;
 
   nsAccEvent *event =
-      new nsAccTextChangeEvent(aContainerAccessible, offset, length, text,
-                               aIsInserting, aIsAsynch, aIsFromUserInput);
+    new nsAccTextChangeEvent(aContainerAccessible, offset, text,
+                             aIsInserting, aIsAsynch, aIsFromUserInput);
   NS_IF_ADDREF(event);
 
   return event;
@@ -1494,7 +1491,7 @@ nsDocAccessible::ProcessPendingEvent(nsAccEvent *aEvent)
         
         
         FireShowHideEvents(node, PR_TRUE, eventType, eNormalEvent,
-                           isAsync, isFromUserInput); 
+                           isAsync, isFromUserInput);
         return;
       }
       gLastFocusedFrameType = newFrameType;
@@ -1828,24 +1825,6 @@ nsDocAccessible::InvalidateCacheSubtree(nsIContent *aChild,
                                      eDelayedEvent, isAsynch);
     if (NS_FAILED(rv))
       return;
-
-    if (aChild) {
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      nsRefPtr<nsAccEvent> textChangeEvent =
-        CreateTextChangeEventForNode(containerAccessible, aChild, childAccessible,
-                                     PR_FALSE, isAsynch);
-      if (textChangeEvent) {
-        FireDelayedAccessibleEvent(textChangeEvent);
-      }
-    }
   }
 
   
@@ -1948,9 +1927,19 @@ nsDocAccessible::FireShowHideEvents(nsINode *aNode,
   if (accessible) {
     
     
-    nsRefPtr<nsAccEvent> event =
-      new nsAccEvent(aEventType, accessible, aIsAsyncChange, aIsFromUserInput,
-                     nsAccEvent::eCoalesceFromSameSubtree);
+    nsRefPtr<nsAccEvent> event;
+    if (aDelayedOrNormal == eDelayedEvent &&
+        aEventType == nsIAccessibleEvent::EVENT_HIDE) {
+      
+      
+      event = new AccHideEvent(accessible, accessible->GetNode(),
+                               aIsAsyncChange, aIsFromUserInput);
+
+    } else {
+      event = new nsAccEvent(aEventType, accessible, aIsAsyncChange,
+                             aIsFromUserInput,
+                             nsAccEvent::eCoalesceFromSameSubtree);
+    }
     NS_ENSURE_TRUE(event, NS_ERROR_OUT_OF_MEMORY);
 
     if (aDelayedOrNormal == eDelayedEvent)

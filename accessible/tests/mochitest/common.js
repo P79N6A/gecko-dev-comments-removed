@@ -96,6 +96,8 @@ const WIN = (navigator.platform.indexOf("Win") != -1)? true : false;
 
 
 
+const kEmbedChar = String.fromCharCode(0xfffc);
+
 
 
 

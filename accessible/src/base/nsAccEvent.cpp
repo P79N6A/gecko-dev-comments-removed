@@ -304,6 +304,7 @@ nsAccReorderEvent::HasAccessibleInReasonSubtree()
 
 
 
+
 NS_IMPL_ISUPPORTS_INHERITED1(nsAccStateChangeEvent, nsAccEvent,
                              nsIAccessibleStateChangeEvent)
 
@@ -387,14 +388,12 @@ NS_IMPL_ISUPPORTS_INHERITED1(nsAccTextChangeEvent, nsAccEvent,
 
 
 nsAccTextChangeEvent::
-  nsAccTextChangeEvent(nsAccessible *aAccessible,
-                       PRInt32 aStart, PRUint32 aLength,
+  nsAccTextChangeEvent(nsAccessible *aAccessible, PRInt32 aStart,
                        nsAString& aModifiedText, PRBool aIsInserted,
                        PRBool aIsAsynch, EIsFromUserInput aIsFromUserInput) :
   nsAccEvent(aIsInserted ? nsIAccessibleEvent::EVENT_TEXT_INSERTED : nsIAccessibleEvent::EVENT_TEXT_REMOVED,
              aAccessible, aIsAsynch, aIsFromUserInput, eAllowDupes),
-  mStart(aStart), mLength(aLength), mIsInserted(aIsInserted),
-  mModifiedText(aModifiedText)
+  mStart(aStart), mIsInserted(aIsInserted), mModifiedText(aModifiedText)
 {
 }
 
@@ -410,7 +409,7 @@ NS_IMETHODIMP
 nsAccTextChangeEvent::GetLength(PRUint32 *aLength)
 {
   NS_ENSURE_ARG_POINTER(aLength);
-  *aLength = mLength;
+  *aLength = GetLength();
   return NS_OK;
 }
 
@@ -428,6 +427,24 @@ nsAccTextChangeEvent::GetModifiedText(nsAString& aModifiedText)
   aModifiedText = mModifiedText;
   return NS_OK;
 }
+
+
+
+
+
+
+AccHideEvent::
+  AccHideEvent(nsAccessible* aTarget, nsINode* aTargetNode,
+               PRBool aIsAsynch, EIsFromUserInput aIsFromUserInput) :
+  nsAccEvent(nsIAccessibleEvent::EVENT_HIDE, aTarget, aIsAsynch,
+             aIsFromUserInput, eCoalesceFromSameSubtree)
+{
+  mNode = aTargetNode;
+  mParent = mAccessible->GetCachedParent();
+  mNextSibling = mAccessible->GetCachedNextSibling();
+  mPrevSibling = mAccessible->GetCachedPrevSibling();
+}
+
 
 
 

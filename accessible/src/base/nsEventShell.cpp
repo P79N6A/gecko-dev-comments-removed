@@ -146,10 +146,16 @@ void
 nsAccEventQueue::Push(nsAccEvent *aEvent)
 {
   mEvents.AppendElement(aEvent);
-  
+
   
   CoalesceEvents();
+
   
+  
+  AccHideEvent* hideEvent = downcast_accEvent(aEvent);
+  if (hideEvent && !hideEvent->mTextChangeEvent)
+    CreateTextChangeEventFor(hideEvent);
+
   
   PrepareFlush();
 }
@@ -205,8 +211,15 @@ nsAccEventQueue::WillRefresh(mozilla::TimeStamp aTime)
   for (PRUint32 index = 0; index < length; index ++) {
 
     nsAccEvent *accEvent = events[index];
-    if (accEvent->mEventRule != nsAccEvent::eDoNotEmit)
+    if (accEvent->mEventRule != nsAccEvent::eDoNotEmit) {
       mDocument->ProcessPendingEvent(accEvent);
+
+      AccHideEvent* hideEvent = downcast_accEvent(accEvent);
+      if (hideEvent) {
+        if (hideEvent->mTextChangeEvent)
+          mDocument->ProcessPendingEvent(hideEvent->mTextChangeEvent);
+      }
+    }
 
     
     if (!mDocument)
@@ -246,12 +259,38 @@ nsAccEventQueue::CoalesceEvents()
         
         
         
-        if (!thisEvent->mNode || !thisEvent->mNode->IsInDoc() ||
+        if (!thisEvent->mNode ||
             thisEvent->mNode->GetOwnerDoc() != tailEvent->mNode->GetOwnerDoc())
           continue;
 
         
         
+        
+
+        
+        
+        
+        
+
+        
+        if (tailEvent->mEventType == nsIAccessibleEvent::EVENT_HIDE) {
+          AccHideEvent* tailHideEvent = downcast_accEvent(tailEvent);
+          AccHideEvent* thisHideEvent = downcast_accEvent(thisEvent);
+          if (thisHideEvent->mParent == tailHideEvent->mParent) {
+            tailEvent->mEventRule = thisEvent->mEventRule;
+
+            
+            if (tailEvent->mEventRule != nsAccEvent::eDoNotEmit)
+              CoalesceTextChangeEventsFor(tailHideEvent, thisHideEvent);
+
+            return;
+          }
+        }
+
+        
+        if (!thisEvent->mNode->IsInDoc())
+          continue;
+
         
         if (thisEvent->mNode->GetNodeParent() ==
             tailEvent->mNode->GetNodeParent()) {
@@ -461,4 +500,68 @@ nsAccEventQueue::CoalesceReorderEventsFromSameTree(nsAccEvent *aAccEvent,
   nsAccReorderEvent *reorderEvent = downcast_accEvent(aAccEvent);
   if (reorderEvent->IsUnconditionalEvent())
     aDescendantAccEvent->mEventRule = nsAccEvent::eDoNotEmit;
+}
+
+void
+nsAccEventQueue::CoalesceTextChangeEventsFor(AccHideEvent* aTailEvent,
+                                             AccHideEvent* aThisEvent)
+{
+  
+  
+
+  nsAccTextChangeEvent* textEvent = aThisEvent->mTextChangeEvent;
+  if (!textEvent)
+    return;
+
+  if (aThisEvent->mNextSibling == aTailEvent->mAccessible) {
+    aTailEvent->mAccessible->AppendTextTo(textEvent->mModifiedText,
+                                          0, PR_UINT32_MAX);
+
+  } else if (aThisEvent->mPrevSibling == aTailEvent->mAccessible) {
+    PRUint32 oldLen = textEvent->GetLength();
+    aTailEvent->mAccessible->AppendTextTo(textEvent->mModifiedText,
+                                          0, PR_UINT32_MAX);
+    textEvent->mStart -= textEvent->GetLength() - oldLen;
+  }
+
+  aTailEvent->mTextChangeEvent.swap(aThisEvent->mTextChangeEvent);
+}
+
+void
+nsAccEventQueue::CreateTextChangeEventFor(AccHideEvent* aEvent)
+{
+  nsRefPtr<nsHyperTextAccessible> textAccessible = do_QueryObject(
+    GetAccService()->GetContainerAccessible(aEvent->mNode,
+                                            aEvent->mAccessible->GetWeakShell()));
+  if (!textAccessible)
+    return;
+
+  PRInt32 offset = 0;
+  nsAccessible *changeAcc =
+    textAccessible->DOMPointToHypertextOffset(aEvent->mNode, -1, &offset);
+  NS_ASSERTION(!changeAcc || changeAcc == aEvent->mAccessible,
+               "Hypertext is reporting a different accessible for this node");
+
+  
+  if (nsAccUtils::Role(aEvent->mAccessible) ==
+      nsIAccessibleRole::ROLE_WHITESPACE) {
+    nsCOMPtr<nsIEditor> editor;
+    textAccessible->GetAssociatedEditor(getter_AddRefs(editor));
+    if (editor) {
+      PRBool isEmpty = PR_FALSE;
+      editor->GetDocumentIsEmpty(&isEmpty);
+      if (isEmpty)
+        return;
+    }
+  }
+
+  nsAutoString text;
+  aEvent->mAccessible->AppendTextTo(text, 0, PR_UINT32_MAX);
+  if (text.IsEmpty())
+    return;
+
+  aEvent->mTextChangeEvent =
+    new nsAccTextChangeEvent(textAccessible, offset, text, PR_FALSE,
+                             aEvent->mIsAsync,
+                             aEvent->mIsFromUserInput ? eFromUserInput : eNoUserInput);
 }
