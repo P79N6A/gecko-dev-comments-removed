@@ -389,7 +389,7 @@ nsNativeAppSupportWin::CheckConsole() {
                 
 
                 
-                int hCrt = ::_open_osfhandle( (long)GetStdHandle( STD_OUTPUT_HANDLE ),
+                int hCrt = ::_open_osfhandle( (intptr_t)GetStdHandle( STD_OUTPUT_HANDLE ),
                                             _O_TEXT );
                 if ( hCrt != -1 ) {
                     FILE *hf = ::_fdopen( hCrt, "w" );
@@ -402,7 +402,7 @@ nsNativeAppSupportWin::CheckConsole() {
                 }
 
                 
-                hCrt = ::_open_osfhandle( (long)::GetStdHandle( STD_ERROR_HANDLE ),
+                hCrt = ::_open_osfhandle( (intptr_t)::GetStdHandle( STD_ERROR_HANDLE ),
                                           _O_TEXT );
                 if ( hCrt != -1 ) {
                     FILE *hf = ::_fdopen( hCrt, "w" );
@@ -646,7 +646,7 @@ struct MessageWindow {
             
             nsCOMPtr<nsIDOMWindowInternal> win;
             GetMostRecentWindow( 0, getter_AddRefs( win ) );
-            return win ? (long)hwndForDOMWindow( win ) : 0;
+            return win ? (LRESULT)hwndForDOMWindow( win ) : 0;
         }
         return DefWindowProc( msgWindow, msg, wp, lp );
     }
@@ -1160,8 +1160,6 @@ nsNativeAppSupportWin::HandleDDENotification( UINT uType,
 #if MOZ_DEBUG_DDE
             printf( "Handling dde request: [%s]...\n", (char*)request );
 #endif
-            
-            PRBool new_window = PR_FALSE;
 
             nsAutoString url;
             ParseDDEArg((const WCHAR*) request, 0, url);
@@ -1261,7 +1259,7 @@ void nsNativeAppSupportWin::ParseDDEArg( const WCHAR* args, int index, nsString&
 
 
 void nsNativeAppSupportWin::ParseDDEArg( HSZ args, int index, nsString& aString) {
-    DWORD argLen = DdeQueryStringW( mInstance, args, NULL, NULL, CP_WINUNICODE );
+    DWORD argLen = DdeQueryStringW( mInstance, args, NULL, 0, CP_WINUNICODE );
     
     if ( !argLen ) return;
     nsAutoString temp;
