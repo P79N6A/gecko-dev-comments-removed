@@ -952,10 +952,10 @@ extern JS_PUBLIC_API(void *)
 JS_GetCompartmentPrivate(JSContext *cx, JSCompartment *compartment);
 
 extern JS_PUBLIC_API(JSBool)
-JS_RewrapObject(JSContext *cx, JSObject **objp);
+JS_WrapObject(JSContext *cx, JSObject **objp);
 
 extern JS_PUBLIC_API(JSBool)
-JS_RewrapValue(JSContext *cx, jsval *p);
+JS_WrapValue(JSContext *cx, jsval *vp);
 
 extern JS_FRIEND_API(JSCompartment *)
 js_SwitchToCompartment(JSContext *cx, JSCompartment *compartment);
@@ -1072,34 +1072,6 @@ JS_GetGlobalForScopeChain(JSContext *cx);
 
 extern JS_PUBLIC_API(JSBool)
 JS_InitCTypesClass(JSContext *cx, JSObject *global);
-
-
-
-
-
-
-typedef char *
-(* JSCTypesUnicodeToNativeFun)(JSContext *cx, const jschar *source, size_t slen);
-
-
-
-
-
-
-struct JSCTypesCallbacks {
-    JSCTypesUnicodeToNativeFun unicodeToNative;
-};
-
-typedef struct JSCTypesCallbacks JSCTypesCallbacks;
-
-
-
-
-
-
-
-extern JS_PUBLIC_API(JSBool)
-JS_SetCTypesCallbacks(JSContext *cx, JSObject *ctypesObj, JSCTypesCallbacks *callbacks);
 #endif
 
 
