@@ -11152,6 +11152,7 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
 
 
 
+
                 if (pc[0] == JSOP_CALL) {
                     if ((pc[JSOP_CALL_LENGTH] == JSOP_POP) ||
                         (pc[JSOP_CALL_LENGTH] == JSOP_TRACE &&
@@ -11165,7 +11166,22 @@ TraceRecorder::callNative(uintN argc, JSOp mode)
                          pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH] == JSOP_NOT &&
                          pc[JSOP_CALL_LENGTH + JSOP_TRACE_LENGTH + JSOP_NOT_LENGTH] == JSOP_IFEQ))
                     {
-                        fun->u.n.native = js_regexp_test;
+                        
+
+
+
+                        JSObject* proto;
+                        Value test;
+                        jsid testId = ATOM_TO_JSID(cx->runtime->atomState.testAtom);
+                        if (js_GetClassPrototype(cx, funobj->getParent(), JSProto_RegExp, &proto) &&
+                            js_GetProperty(cx, proto, testId, &test))
+                        {
+                            vp[0] = test;
+                            
+                            funobj = &vp[0].toObject();
+                            fun = GET_FUNCTION_PRIVATE(cx, funobj);
+                            native = fun->u.n.native;
+                        }
                     }
                 }
             }
