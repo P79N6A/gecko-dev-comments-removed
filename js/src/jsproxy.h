@@ -13,7 +13,7 @@
 
 namespace js {
 
-class Wrapper;
+class JS_FRIEND_API(Wrapper);
 
 
 
