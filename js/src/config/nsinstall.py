@@ -17,7 +17,7 @@ import sys
 import shutil
 import stat
 
-def nsinstall(argv):
+def _nsinstall_internal(argv):
   usage = "usage: %prog [options] arg1 [arg2 ...] target-directory"
   p = OptionParser(usage=usage)
 
@@ -52,13 +52,6 @@ def nsinstall(argv):
                help="Set group (NOT SUPPORTED)", metavar="group")
 
   (options, args) = p.parse_args(argv)
-  
-  
-  
-  if sys.stdin.encoding is None:
-    args = [unicode(arg) for arg in args]
-  else:
-    args = [unicode(arg, sys.stdin.encoding) for arg in args]
 
   if options.m:
     
@@ -152,7 +145,14 @@ def nsinstall(argv):
   copy_all_entries(args, target)
   return 0
 
+
+def nsinstall(argv):
+  return _nsinstall_internal([unicode(arg, "utf-8") for arg in argv])
+
 if __name__ == '__main__':
+  
+  
+  
   
   
   if sys.platform == "win32":
@@ -171,6 +171,10 @@ if __name__ == '__main__':
     
     argv = argv_arr[1:argc.value]
   else:
-    argv = sys.argv
+    
+    if sys.stdin.encoding is not None:
+      argv = [unicode(arg, sys.stdin.encoding) for arg in sys.argv]
+    else:
+      argv = [unicode(arg) for arg in sys.argv]
 
-  sys.exit(nsinstall(argv[1:]))
+  sys.exit(_nsinstall_internal(argv[1:]))
