@@ -407,7 +407,7 @@ CodeGeneratorX86Shared::bailout(const T &binder, LSnapshot *snapshot)
     
     
     
-    OutOfLineBailout *ool = new OutOfLineBailout(snapshot, masm.framePushed());
+    OutOfLineBailout *ool = new OutOfLineBailout(snapshot);
     if (!addOutOfLineCode(ool))
         return false;
 
@@ -431,8 +431,6 @@ CodeGeneratorX86Shared::bailoutFrom(Label *label, LSnapshot *snapshot)
 bool
 CodeGeneratorX86Shared::visitOutOfLineBailout(OutOfLineBailout *ool)
 {
-    masm.bind(ool->entry());
-
     if (!deoptLabel_)
         deoptLabel_ = new HeapLabel();
 
