@@ -90,6 +90,13 @@ var Scratchpad = {
 
 
 
+
+  initialized: false,
+
+  
+
+
+
   get notificationBox() document.getElementById("scratchpad-notificationbox"),
 
   
@@ -784,7 +791,9 @@ var Scratchpad = {
                                  this.onContextMenu);
     this.editor.focus();
     this.editor.setCaretOffset(this.editor.getCharCount());
-    
+
+    this.initialized = true;
+
     if (this.filename && !this.saved) {
       this.onTextChanged();
     }
@@ -866,7 +875,7 @@ var Scratchpad = {
     if (aStatus && !Components.isSuccessCode(aStatus)) {
       return;
     }
-    if (!document) {
+    if (!document || !this.initialized) {
       return;  
     }
     document.title = document.title.replace(/^\*/, "");
@@ -904,6 +913,7 @@ var Scratchpad = {
                                     this.onContextMenu);
     this.editor.destroy();
     this.editor = null;
+    this.initialized = false;
   },
 
   
@@ -1033,6 +1043,6 @@ XPCOMUtils.defineLazyGetter(Scratchpad, "strings", function () {
   return Services.strings.createBundle(SCRATCHPAD_L10N);
 });
 
-addEventListener("DOMContentLoaded", Scratchpad.onLoad.bind(Scratchpad), false);
+addEventListener("load", Scratchpad.onLoad.bind(Scratchpad), false);
 addEventListener("unload", Scratchpad.onUnload.bind(Scratchpad), false);
 addEventListener("close", Scratchpad.onClose.bind(Scratchpad), false);

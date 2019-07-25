@@ -2,28 +2,21 @@
 
 
 
-
-let gScratchpadWindow;
-
 function test()
 {
   waitForExplicitFinish();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
-
-    gScratchpadWindow = Scratchpad.openScratchpad();
-    gScratchpadWindow.addEventListener("load", testFalsy, false);
+  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
+    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
+    openScratchpad(testFalsy);
   }, true);
 
   content.location = "data:text/html,<p>test falsy display() values in Scratchpad";
 }
 
-function testFalsy(sp)
+function testFalsy()
 {
-  gScratchpadWindow.removeEventListener("load", testFalsy, false);
-
   let sp = gScratchpadWindow.Scratchpad;
   verifyFalsies(sp);
   

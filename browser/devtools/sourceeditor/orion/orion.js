@@ -14,36 +14,312 @@
 
 
 
- 
-var orion = orion || {};
+
+
+
+
+
+
+
+
+
+
+
+if (!window.define) {
+	window.define = function(deps, callback, moduleName) {
+		var module = this;
+		var split = (moduleName || "").split("/"), i, j;
+		for (i = 0; i < split.length; i++) {
+			module = module[split[i]] = (module[split[i]] || {});
+		}
+		var depModules = [], depModule;
+		for (j = 0; j < deps.length; j++) {
+			depModule = this;
+			split = deps[j].split("/");
+			for (i = 0; i < split.length - 1; i++) {
+				depModule = depModule[split[i]] = (depModule[split[i]] || {});
+			}
+			depModules.push(depModule);
+		}
+		var newModule = callback.apply(this, depModules);
+		for (var p in newModule) {
+			if (newModule.hasOwnProperty(p)) {
+				module[p] = newModule[p];
+			}
+		}
+	};
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+if (!window.require) {
+	window.require = function(deps, callback) {
+		var depsArr = typeof deps === "string" ? [deps] : deps;
+		var depModules = [], depModule, split, i, j;
+		for (j = 0; j < depsArr.length; j++) {
+			depModule = this;
+			split = depsArr[j].split("/");
+			for (i = 0; i < split.length - 1; i++) {
+				depModule = depModule[split[i]] = (depModule[split[i]] || {});
+			}
+			depModules.push(depModule);
+		}
+		if (callback) {
+			callback.apply(this, depModules);
+		}
+		return typeof deps === "string" ? depModules[0] : undefined;
+	};
+}
+
+
+
+
+
+
+
+
 
 
  
-orion.textview = orion.textview || {};
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.KeyBinding = (function() {
-	var isMac = window.navigator.platform.indexOf("Mac") !== -1;
+define([], function() {
 	
+
+
+
+
+
+	function EventTarget() {
+	}
+	
+
+
+
+
+	EventTarget.addMixin = function(object) {
+		var proto = EventTarget.prototype;
+		for (var p in proto) {
+			if (proto.hasOwnProperty(p)) {
+				object[p] = proto[p];
+			}
+		}
+	};
+	EventTarget.prototype =  {
+		
+
+
+
+
+
+
+
+
+		addEventListener: function(type, listener, useCapture) {
+			if (!this._eventTypes) { this._eventTypes = {}; }
+			var state = this._eventTypes[type];
+			if (!state) {
+				state = this._eventTypes[type] = {level: 0, listeners: []};
+			}
+			var listeners = state.listeners;
+			listeners.push({listener: listener, useCapture: useCapture});
+		},
+		
+
+
+
+		dispatchEvent: function(evt) {
+			if (!this._eventTypes) { return; }
+			var type = evt.type;
+			var state = this._eventTypes[type];
+			if (state) {
+				var listeners = state.listeners;
+				try {
+					state.level++;
+					if (listeners) {
+						for (var i=0, len=listeners.length; i < len; i++) {
+							if (listeners[i]) {
+								var l = listeners[i].listener;
+								if (typeof l === "function") {
+									l.call(this, evt);
+								} else if (l.handleEvent && typeof l.handleEvent === "function") {
+									l.handleEvent(evt);
+								}
+							}
+						}
+					}
+				} finally {
+					state.level--;
+					if (state.compact && state.level === 0) {
+						for (var j=listeners.length - 1; j >= 0; j--) {
+							if (!listeners[j]) {
+								listeners.splice(j, 1);
+							}
+						}
+						if (listeners.length === 0) {
+							delete this._eventTypes[type];
+						}
+						state.compact = false;
+					}
+				}
+			}
+		},
+		
+
+
+
+
+
+
+
+		isListening: function(type) {
+			if (!this._eventTypes) { return false; }
+			return this._eventTypes[type] !== undefined;
+		},		
+		
+
+
+
+
+
+
+
+
+
+
+
+		removeEventListener: function(type, listener, useCapture){
+			if (!this._eventTypes) { return; }
+			var state = this._eventTypes[type];
+			if (state) {
+				var listeners = state.listeners;
+				for (var i=0, len=listeners.length; i < len; i++) {
+					var l = listeners[i];
+					if (l && l.listener === listener && l.useCapture === useCapture) {
+						if (state.level !== 0) {
+							listeners[i] = null;
+							state.compact = true;
+						} else {
+							listeners.splice(i, 1);
+						}
+						break;
+					}
+				}
+				if (listeners.length === 0) {
+					delete this._eventTypes[type];
+				}
+			}
+		}
+	};
+	return {EventTarget: EventTarget};
+}, "orion/textview");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define([], function() {
+	
+
+
+
+
+
+
+	function escape(str) {
+		return str.replace(/([\\$\^*\/+?\.\(\)|{}\[\]])/g, "\\$&");
+	}
+
+	
+
+
+
+
+
+
+
+
+
+
+	function parse(str) {
+		var regexp = /^\s*\/(.+)\/([gim]{0,3})\s*$/.exec(str);
+		if (regexp) {
+			return {
+				pattern : regexp[1],
+				flags : regexp[2]
+			};
+		}
+		return null;
+	}
+
+	return {
+		escape: escape,
+		parse: parse
+	};
+}, "orion/editor");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define([], function() {
+	var isMac = window.navigator.platform.indexOf("Mac") !== -1;
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function KeyBinding (keyCode, mod1, mod2, mod3, mod4) {
 		if (typeof(keyCode) === "string") {
 			this.keyCode = keyCode.toUpperCase().charCodeAt(0);
@@ -89,14 +365,8 @@ orion.textview.KeyBinding = (function() {
 			return true;
 		} 
 	};
-	return KeyBinding;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return orion.textview;
-	});
-}
+	return {KeyBinding: KeyBinding};
+}, "orion/textview");
 
 
 
@@ -110,47 +380,38 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
 
 
 
+define(['orion/textview/tooltip'], function(mTooltip) {
 
-
- 
-var orion = orion || {};
-
-
- 
-orion.textview = orion.textview || {};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.Ruler = (function() {
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function Ruler (annotationModel, rulerLocation, rulerOverview, rulerStyle) {
 		this._location = rulerLocation || "left";
 		this._overview = rulerOverview || "page";
@@ -158,8 +419,11 @@ orion.textview.Ruler = (function() {
 		this._types = [];
 		this._view = null;
 		var self = this;
-		this._annotationModelListener = {
-			onChanged: function(e) {
+		this._listener = {
+			onTextModelChanged: function(e) {
+				self._onTextModelChanged(e);
+			},
+			onAnnotationModelChanged: function(e) {
 				self._onAnnotationModelChanged(e);
 			}
 		};
@@ -210,7 +474,7 @@ orion.textview.Ruler = (function() {
 				var annotation = annotations.next();
 				if (!this.isAnnotationTypeVisible(annotation.type)) { continue; }
 				var annotationLineStart = baseModel.getLineAtOffset(annotation.start);
-				var annotationLineEnd = baseModel.getLineAtOffset(annotation.end - 1);
+				var annotationLineEnd = baseModel.getLineAtOffset(Math.max(annotation.start, annotation.end - 1));
 				for (var lineIndex = annotationLineStart; lineIndex<=annotationLineEnd; lineIndex++) {
 					var visualLineIndex = lineIndex;
 					if (model !== baseModel) {
@@ -332,11 +596,11 @@ orion.textview.Ruler = (function() {
 
 		setAnnotationModel: function (annotationModel) {
 			if (this._annotationModel) {
-				this._annotationModel.removeListener(this._annotationModelListener); 
+				this._annotationModel.removEventListener("Changed", this._listener.onAnnotationModelChanged); 
 			}
 			this._annotationModel = annotationModel;
 			if (this._annotationModel) {
-				this._annotationModel.addListener(this._annotationModelListener); 
+				this._annotationModel.addEventListener("Changed", this._listener.onAnnotationModelChanged); 
 			}
 		},
 		
@@ -374,11 +638,11 @@ orion.textview.Ruler = (function() {
 
 		setView: function (view) {
 			if (this._onTextModelChanged && this._view) {
-				this._view.removeEventListener("ModelChanged", this, this._onTextModelChanged); 
+				this._view.removeEventListener("ModelChanged", this._listener.onTextModelChanged); 
 			}
 			this._view = view;
 			if (this._onTextModelChanged && this._view) {
-				this._view.addEventListener("ModelChanged", this, this._onTextModelChanged);
+				this._view.addEventListener("ModelChanged", this._listener.onTextModelChanged);
 			}
 		},
 		
@@ -407,7 +671,7 @@ orion.textview.Ruler = (function() {
 
 
 		onMouseMove: function(lineIndex, e) {
-			var tooltip = orion.textview.Tooltip.getTooltip(this._view);
+			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
 			if (!tooltip) { return; }
 			if (tooltip.isVisible() && this._tooltipLineIndex === lineIndex) { return; }
 			this._tooltipLineIndex = lineIndex;
@@ -426,7 +690,9 @@ orion.textview.Ruler = (function() {
 
 
 
-		onMouseOver: this._onMouseMove,
+		onMouseOver: function(lineIndex, e) {
+			this.onMouseMove(lineIndex, e);
+		},
 		
 
 
@@ -435,7 +701,7 @@ orion.textview.Ruler = (function() {
 
 
 		onMouseOut: function(lineIndex, e) {
-			var tooltip = orion.textview.Tooltip.getTooltip(this._view);
+			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
 			if (!tooltip) { return; }
 			tooltip.setTarget(null);
 		},
@@ -566,37 +832,34 @@ orion.textview.Ruler = (function() {
 			return result;
 		}
 	};
-	return Ruler;
-}());
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.LineNumberRuler = (function() {
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function LineNumberRuler (annotationModel, rulerLocation, rulerStyle, oddStyle, evenStyle) {
-		orion.textview.Ruler.call(this, annotationModel, rulerLocation, "page", rulerStyle);
+		Ruler.call(this, annotationModel, rulerLocation, "page", rulerStyle);
 		this._oddStyle = oddStyle || {style: {backgroundColor: "white"}};
 		this._evenStyle = evenStyle || {style: {backgroundColor: "white"}};
 		this._numOfDigits = 0;
 	}
-	LineNumberRuler.prototype = new orion.textview.Ruler(); 
+	LineNumberRuler.prototype = new Ruler(); 
 	
 	LineNumberRuler.prototype.getAnnotations = function(startLine, endLine) {
-		var result = orion.textview.Ruler.prototype.getAnnotations.call(this, startLine, endLine);
+		var result = Ruler.prototype.getAnnotations.call(this, startLine, endLine);
 		var model = this._view.getModel();
 		for (var lineIndex = startLine; lineIndex < endLine; lineIndex++) {
 			var style = lineIndex & 1 ? this._oddStyle : this._evenStyle;
@@ -628,9 +891,8 @@ orion.textview.LineNumberRuler = (function() {
 			this._view.redrawLines(startLine,  model.getLineCount(), this);
 		}
 	};
-	return LineNumberRuler;
-}());
-
+	
+	
 
 
 
@@ -643,59 +905,53 @@ orion.textview.LineNumberRuler = (function() {
 
 
  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.AnnotationRuler = (function() {
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function AnnotationRuler (annotationModel, rulerLocation, rulerStyle) {
-		orion.textview.Ruler.call(this, annotationModel, rulerLocation, "page", rulerStyle);
+		Ruler.call(this, annotationModel, rulerLocation, "page", rulerStyle);
 	}
-	AnnotationRuler.prototype = new orion.textview.Ruler();
+	AnnotationRuler.prototype = new Ruler();
 	
-	return AnnotationRuler;
-}());
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.OverviewRuler = (function() {
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function OverviewRuler (annotationModel, rulerLocation, rulerStyle) {
-		orion.textview.Ruler.call(this, annotationModel, rulerLocation, "document", rulerStyle);
+		Ruler.call(this, annotationModel, rulerLocation, "document", rulerStyle);
 	}
-	OverviewRuler.prototype = new orion.textview.Ruler();
+	OverviewRuler.prototype = new Ruler();
 	
 	
 	OverviewRuler.prototype.getRulerStyle = function() {
@@ -719,7 +975,7 @@ orion.textview.OverviewRuler = (function() {
 			}
 			return "Line: " + (mapLine + 1);
 		}
-		return orion.textview.Ruler.prototype._getTooltipContents.call(this, lineIndex, annotations);
+		return Ruler.prototype._getTooltipContents.call(this, lineIndex, annotations);
 	};
 	
 	OverviewRuler.prototype._mergeAnnotation = function(previousAnnotation, annotation, annotationLineIndex, annotationLineCount) {
@@ -733,15 +989,27 @@ orion.textview.OverviewRuler = (function() {
 		}
 		return result;
 	};
-	return OverviewRuler;
-}());
 
-orion.textview.FoldingRuler = (function() {
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function FoldingRuler (annotationModel, rulerLocation, rulerStyle) {
-		orion.textview.AnnotationRuler.call(this, annotationModel, rulerLocation, rulerStyle);
+		AnnotationRuler.call(this, annotationModel, rulerLocation, rulerStyle);
 	}
-	FoldingRuler.prototype = new orion.textview.AnnotationRuler();
+	FoldingRuler.prototype = new AnnotationRuler();
 	
 	
 	FoldingRuler.prototype.onClick =  function(lineIndex, e) {
@@ -763,7 +1031,7 @@ orion.textview.FoldingRuler = (function() {
 			annotation = a;
 		}
 		if (annotation) {
-			var tooltip = orion.textview.Tooltip.getTooltip(this._view);
+			var tooltip = mTooltip.Tooltip.getTooltip(this._view);
 			if (tooltip) {
 				tooltip.setTarget(null);
 			}
@@ -782,12 +1050,12 @@ orion.textview.FoldingRuler = (function() {
 				return null;
 			}
 		}
-		return orion.textview.AnnotationRuler.prototype._getTooltipContents.call(this, lineIndex, annotations);
+		return AnnotationRuler.prototype._getTooltipContents.call(this, lineIndex, annotations);
 	};
 	
 	FoldingRuler.prototype._onAnnotationModelChanged = function(e) {
 		if (e.textModelChangedEvent) {
-			orion.textview.AnnotationRuler.prototype._onAnnotationModelChanged.call(this, e);
+			AnnotationRuler.prototype._onAnnotationModelChanged.call(this, e);
 			return;
 		}
 		var view = this._view;
@@ -815,34 +1083,14 @@ orion.textview.FoldingRuler = (function() {
 		}
 	};
 	
-	return FoldingRuler;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define(['orion/textview/tooltip'], function() {
-		return orion.textview;
-	});
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-var orion = orion || {};
-
-
- 
-orion.textview = orion.textview || {};
+	return {
+		Ruler: Ruler,
+		AnnotationRuler: AnnotationRuler,
+		LineNumberRuler: LineNumberRuler,
+		OverviewRuler: OverviewRuler,
+		FoldingRuler: FoldingRuler
+	};
+}, "orion/textview");
 
 
 
@@ -856,10 +1104,8 @@ orion.textview = orion.textview || {};
 
 
 
+define([], function() {
 
-
-
-orion.textview.UndoStack = (function() {
 	
 
 
@@ -867,99 +1113,115 @@ orion.textview.UndoStack = (function() {
 
 
 
-	var Change = (function() {
-		function Change(offset, text, previousText) {
-			this.offset = offset;
-			this.text = text;
-			this.previousText = previousText;
-		}
-		Change.prototype = {
+	function Change(offset, text, previousText) {
+		this.offset = offset;
+		this.text = text;
+		this.previousText = previousText;
+	}
+	Change.prototype = {
+		
+		undo: function (view, select) {
+			this._doUndoRedo(this.offset, this.previousText, this.text, view, select);
+		},
+		
+		redo: function (view, select) {
+			this._doUndoRedo(this.offset, this.text, this.previousText, view, select);
+		},
+		_doUndoRedo: function(offset, text, previousText, view, select) {
+			var model = view.getModel();
 			
-			undo: function (view, select) {
-				this._doUndoRedo(this.offset, this.previousText, this.text, view, select);
-			},
-			
-			redo: function (view, select) {
-				this._doUndoRedo(this.offset, this.text, this.previousText, view, select);
-			},
-			_doUndoRedo: function(offset, text, previousText, view, select) {
-				var model = view.getModel();
-				
 
 
 
 
-				if (model.mapOffset && view.annotationModel) {
-					var mapOffset = model.mapOffset(offset, true);
-					if (mapOffset < 0) {
-						var annotationModel = view.annotationModel;
-						var iter = annotationModel.getAnnotations(offset, offset + 1);
-						while (iter.hasNext()) {
-							var annotation = iter.next();
-							if (annotation.type === "orion.annotation.folding") {
-								annotation.expand();
-								mapOffset = model.mapOffset(offset, true);
-								break;
-							}
+			if (model.mapOffset && view.annotationModel) {
+				var mapOffset = model.mapOffset(offset, true);
+				if (mapOffset < 0) {
+					var annotationModel = view.annotationModel;
+					var iter = annotationModel.getAnnotations(offset, offset + 1);
+					while (iter.hasNext()) {
+						var annotation = iter.next();
+						if (annotation.type === "orion.annotation.folding") {
+							annotation.expand();
+							mapOffset = model.mapOffset(offset, true);
+							break;
 						}
 					}
-					if (mapOffset < 0) { return; }
-					offset = mapOffset;
 				}
-				view.setText(text, offset, offset + previousText.length);
-				if (select) {
-					view.setSelection(offset, offset + text.length);
-				}
+				if (mapOffset < 0) { return; }
+				offset = mapOffset;
 			}
-		};
-		return Change;
-	}());
-
-	
-
-
-
-
-
-
-	var CompoundChange = (function() {
-		function CompoundChange (selection, caret) {
-			this.selection = selection;
-			this.caret = caret;
-			this.changes = [];
+			view.setText(text, offset, offset + previousText.length);
+			if (select) {
+				view.setSelection(offset, offset + text.length);
+			}
 		}
-		CompoundChange.prototype = {
-			
-			add: function (change) {
-				this.changes.push(change);
-			},
-			
-			undo: function (view, select) {
-				for (var i=this.changes.length - 1; i >= 0; i--) {
-					this.changes[i].undo(view, false);
-				}
-				if (select) {
-					var start = this.selection.start;
-					var end = this.selection.end;
-					view.setSelection(this.caret ? start : end, this.caret ? end : start);
-				}
-			},
-			
-			redo: function (view, select) {
-				for (var i = 0; i < this.changes.length; i++) {
-					this.changes[i].redo(view, false);
-				}
-				if (select) {
-					var start = this.selection.start;
-					var end = this.selection.end;
-					view.setSelection(this.caret ? start : end, this.caret ? end : start);
-				}
-			}
-		};
-		return CompoundChange;
-	}());
+	};
 
 	
+
+
+
+
+
+
+	function CompoundChange () {
+		this.changes = [];
+	}
+	CompoundChange.prototype = {
+		
+		add: function (change) {
+			this.changes.push(change);
+		},
+		
+		end: function (view) {
+			this.endSelection = view.getSelection();
+			this.endCaret = view.getCaretOffset();
+		},
+		
+		undo: function (view, select) {
+			for (var i=this.changes.length - 1; i >= 0; i--) {
+				this.changes[i].undo(view, false);
+			}
+			if (select) {
+				var start = this.startSelection.start;
+				var end = this.startSelection.end;
+				view.setSelection(this.startCaret ? start : end, this.startCaret ? end : start);
+			}
+		},
+		
+		redo: function (view, select) {
+			for (var i = 0; i < this.changes.length; i++) {
+				this.changes[i].redo(view, false);
+			}
+			if (select) {
+				var start = this.endSelection.start;
+				var end = this.endSelection.end;
+				view.setSelection(this.endCaret ? start : end, this.endCaret ? end : start);
+			}
+		},
+		
+		start: function (view) {
+			this.startSelection = view.getSelection();
+			this.startCaret = view.getCaretOffset();
+		}
+	};
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function UndoStack (view, size) {
 		this.view = view;
 		this.size = size !== undefined ? size : 100;
@@ -970,14 +1232,16 @@ orion.textview.UndoStack = (function() {
 		}
 		this.model = model;
 		var self = this;
-		this._modelListener = {
+		this._listener = {
 			onChanging: function(e) {
-				self._onModelChanging(e);
+				self._onChanging(e);
+			},
+			onDestroy: function(e) {
+				self._onDestroy(e);
 			}
 		};
-		model.addListener(this._modelListener);
-		view._undoStack = this;
-		view.addEventListener("Destroy", this, this._onDestroy);
+		model.addEventListener("Changing", this._listener.onChanging);
+		view.addEventListener("Destroy", this._listener.onDestroy);
 	}
 	UndoStack.prototype =  {
 		
@@ -1064,6 +1328,9 @@ orion.textview.UndoStack = (function() {
 
 
 		endCompoundChange: function() {
+			if (this.compoundChange) {
+				this.compoundChange.end(this.view);
+			}
 			this.compoundChange = undefined;
 		},
 		
@@ -1144,9 +1411,10 @@ orion.textview.UndoStack = (function() {
 
 		startCompoundChange: function() {
 			this._commitUndo();
-			var change = new CompoundChange(this.view.getSelection(), this.view.getCaretOffset());
+			var change = new CompoundChange();
 			this.add(change);
 			this.compoundChange = change;
+			this.compoundChange.start(this.view);
 		},
 		_commitUndo: function () {
 			if (this._undoStart !== undefined) {
@@ -1159,12 +1427,11 @@ orion.textview.UndoStack = (function() {
 				this._undoText = "";
 			}
 		},
-		_onDestroy: function() {
-			this.model.removeListener(this._modelListener);
-			this.view.removeEventListener("Destroy", this, this._onDestroy);
-			this.view._undoStack = null;
+		_onDestroy: function(evt) {
+			this.model.removeEventListener("Changing", this._listener.onChanging);
+			this.view.removeEventListener("Destroy", this._listener.onDestroy);
 		},
-		_onModelChanging: function(e) {
+		_onChanging: function(e) {
 			var newText = e.text;
 			var start = e.start;
 			var removedCharCount = e.removedCharCount;
@@ -1199,14 +1466,12 @@ orion.textview.UndoStack = (function() {
 			this.add(new Change(start, newText, this.model.getText(start, start + removedCharCount)));
 		}
 	};
-	return UndoStack;
-}());
+	
+	return {
+		UndoStack: UndoStack
+	};
+}, "orion/textview");
 
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return orion.textview;
-	});
-}
 
 
 
@@ -1221,38 +1486,30 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
  
 
 
-
-
- 
-var orion = orion || {};
-
-
- 
-orion.textview = orion.textview || {};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.TextModel = (function() {
+define(['orion/textview/eventTarget'], function(mEventTarget) {
 	var isWindows = window.navigator.platform.indexOf("Win") !== -1;
 
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function TextModel(text, lineDelimiter) {
-		this._listeners = [];
 		this._lastLineIndex = -1;
 		this._text = [""];
 		this._lineOffsets = [0];
@@ -1261,33 +1518,6 @@ orion.textview.TextModel = (function() {
 	}
 
 	TextModel.prototype =  {
-		
-
-
-
-
-
-
-
-
-		addListener: function(listener) {
-			this._listeners.push(listener);
-		},
-		
-
-
-
-
-
-
-		removeListener: function(listener) {
-			for (var i = 0; i < this._listeners.length; i++) {
-				if (this._listeners[i] === listener) {
-					this._listeners.splice(i, 1);
-					return;
-				}
-			}
-		},
 		
 
 
@@ -1512,12 +1742,7 @@ orion.textview.TextModel = (function() {
 
 
 		onChanging: function(modelChangingEvent) {
-			for (var i = 0; i < this._listeners.length; i++) {
-				var l = this._listeners[i]; 
-				if (l && l.onChanging) { 
-					l.onChanging(modelChangingEvent);
-				}
-			}
+			return this.dispatchEvent(modelChangingEvent);
 		},
 		
 
@@ -1534,12 +1759,7 @@ orion.textview.TextModel = (function() {
 
 
 		onChanged: function(modelChangedEvent) {
-			for (var i = 0; i < this._listeners.length; i++) {
-				var l = this._listeners[i]; 
-				if (l && l.onChanged) { 
-					l.onChanged(modelChangedEvent);
-				}
-			}
+			return this.dispatchEvent(modelChangedEvent);
 		},
 		
 
@@ -1616,6 +1836,7 @@ orion.textview.TextModel = (function() {
 			}
 		
 			var modelChangingEvent = {
+				type: "Changing",
 				text: text,
 				start: eventStart,
 				removedCharCount: removedCharCount,
@@ -1679,6 +1900,7 @@ orion.textview.TextModel = (function() {
 			if (this._text.length === 0) { this._text = [""]; }
 			
 			var modelChangedEvent = {
+				type: "Changed",
 				start: eventStart,
 				removedCharCount: removedCharCount,
 				addedCharCount: addedCharCount,
@@ -1688,15 +1910,10 @@ orion.textview.TextModel = (function() {
 			this.onChanged(modelChangedEvent);
 		}
 	};
+	mEventTarget.EventTarget.addMixin(TextModel.prototype);
 	
-	return TextModel;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return orion.textview;
-	});
-}
+	return {TextModel: TextModel};
+}, "orion/textview");
 
 
 
@@ -1711,15 +1928,626 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
 
 
 
- 
-var orion = orion || {};
+define(['orion/textview/eventTarget'], function(mEventTarget) {
+	
 
 
- 
-orion.textview = orion.textview || {};
 
 
-orion.textview.Tooltip = (function() {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	function FoldingAnnotation (projectionModel, type, start, end, expandedHTML, expandedStyle, collapsedHTML, collapsedStyle) {
+		this.type = type;
+		this.start = start;
+		this.end = end;
+		this._projectionModel = projectionModel;
+		this._expandedHTML = this.html = expandedHTML;
+		this._expandedStyle = this.style = expandedStyle;
+		this._collapsedHTML = collapsedHTML;
+		this._collapsedStyle = collapsedStyle;
+		this.expanded = true;
+	}
+	
+	FoldingAnnotation.prototype =  {
+		
+
+
+		collapse: function () {
+			if (!this.expanded) { return; }
+			this.expanded = false;
+			this.html = this._collapsedHTML;
+			this.style = this._collapsedStyle;
+			var projectionModel = this._projectionModel;
+			var baseModel = projectionModel.getBaseModel();
+			this._projection = {
+				start: baseModel.getLineStart(baseModel.getLineAtOffset(this.start) + 1),
+				end: baseModel.getLineEnd(baseModel.getLineAtOffset(this.end), true)
+			};
+			projectionModel.addProjection(this._projection);
+		},
+		
+
+
+		expand: function () {
+			if (this.expanded) { return; }
+			this.expanded = true;
+			this.html = this._expandedHTML;
+			this.style = this._expandedStyle;
+			this._projectionModel.removeProjection(this._projection);
+		}
+	};
+	
+	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	function AnnotationModel(textModel) {
+		this._annotations = [];
+		var self = this;
+		this._listener = {
+			onChanged: function(modelChangedEvent) {
+				self._onChanged(modelChangedEvent);
+			}
+		};
+		this.setTextModel(textModel);
+	}
+
+	AnnotationModel.prototype =  {
+		
+
+
+
+
+
+
+
+		addAnnotation: function(annotation) {
+			if (!annotation) { return; }
+			var annotations = this._annotations;
+			var index = this._binarySearch(annotations, annotation.start);
+			annotations.splice(index, 0, annotation);
+			var e = {
+				type: "Changed",
+				added: [annotation],
+				removed: [],
+				changed: []
+			};
+			this.onChanged(e);
+		},
+		
+
+
+
+
+
+
+		getTextModel: function() {
+			return this._model;
+		},
+		
+
+
+
+
+
+
+
+
+
+		
+		
+
+
+
+
+
+
+		getAnnotations: function(start, end) {
+			var annotations = this._annotations, current;
+			
+			var i = 0;
+			var skip = function() {
+				while (i < annotations.length) {
+					var a =  annotations[i++];
+					if ((start === a.start) || (start > a.start ? start < a.end : a.start < end)) {
+						return a;
+					}
+					if (a.start >= end) {
+						break;
+					}
+				}
+				return null;
+			};
+			current = skip();
+			return {
+				next: function() {
+					var result = current;
+					if (result) { current = skip(); }
+					return result;					
+				},
+				hasNext: function() {
+					return current !== null;
+				}
+			};
+		},
+		
+
+
+
+
+
+
+
+		modifyAnnotation: function(annotation) {
+			if (!annotation) { return; }
+			var index = this._getAnnotationIndex(annotation);
+			if (index < 0) { return; }
+			var e = {
+				type: "Changed",
+				added: [],
+				removed: [],
+				changed: [annotation]
+			};
+			this.onChanged(e);
+		},
+		
+
+
+
+
+
+
+
+		onChanged: function(e) {
+			return this.dispatchEvent(e);
+		},
+		
+
+
+
+
+
+
+
+
+		removeAnnotations: function(type) {
+			var annotations = this._annotations;
+			var removed, i; 
+			if (type) {
+				removed = [];
+				for (i = annotations.length - 1; i >= 0; i--) {
+					var annotation = annotations[i];
+					if (annotation.type === type) {
+						annotations.splice(i, 1);
+					}
+					removed.splice(0, 0, annotation);
+				}
+			} else {
+				removed = annotations;
+				annotations = [];
+			}
+			var e = {
+				type: "Changed",
+				removed: removed,
+				added: [],
+				changed: []
+			};
+			this.onChanged(e);
+		},
+		
+
+
+
+
+
+
+
+		removeAnnotation: function(annotation) {
+			if (!annotation) { return; }
+			var index = this._getAnnotationIndex(annotation);
+			if (index < 0) { return; }
+			var e = {
+				type: "Changed",
+				removed: this._annotations.splice(index, 1),
+				added: [],
+				changed: []
+			};
+			this.onChanged(e);
+		},
+		
+
+
+
+
+
+
+
+
+
+		replaceAnnotations: function(remove, add) {
+			var annotations = this._annotations, i, index, annotation, removed = [];
+			if (remove) {
+				for (i = remove.length - 1; i >= 0; i--) {
+					annotation = remove[i];
+					index = this._getAnnotationIndex(annotation);
+					if (index < 0) { continue; }
+					annotations.splice(index, 1);
+					removed.splice(0, 0, annotation);
+				}
+			}
+			if (!add) { add = []; }
+			for (i = 0; i < add.length; i++) {
+				annotation = add[i];
+				index = this._binarySearch(annotations, annotation.start);
+				annotations.splice(index, 0, annotation);
+			}
+			var e = {
+				type: "Changed",
+				removed: removed,
+				added: add,
+				changed: []
+			};
+			this.onChanged(e);
+		},
+		
+
+
+
+
+
+
+
+
+		setTextModel: function(textModel) {
+			if (this._model) {
+				this._model.removeEventListener("Changed", this._listener.onChanged);
+			}
+			this._model = textModel;
+			if (this._model) {
+				this._model.addEventListener("Changed", this._listener.onChanged);
+			}
+		},
+		
+		_binarySearch: function (array, offset) {
+			var high = array.length, low = -1, index;
+			while (high - low > 1) {
+				index = Math.floor((high + low) / 2);
+				if (offset <= array[index].start) {
+					high = index;
+				} else {
+					low = index;
+				}
+			}
+			return high;
+		},
+		
+		_getAnnotationIndex: function(annotation) {
+			var annotations = this._annotations;
+			var index = this._binarySearch(annotations, annotation.start);
+			while (index < annotations.length && annotations[index].start === annotation.start) {
+				if (annotations[index] === annotation) {
+					return index;
+				}
+				index++;
+			}
+			return -1;
+		},
+		
+		_onChanged: function(modelChangedEvent) {
+			var start = modelChangedEvent.start;
+			var addedCharCount = modelChangedEvent.addedCharCount;
+			var removedCharCount = modelChangedEvent.removedCharCount;
+			var annotations = this._annotations, end = start + removedCharCount;
+			
+			var startIndex = 0;
+			if (!(0 <= startIndex && startIndex < annotations.length)) { return; }
+			var e = {
+				type: "Changed",
+				added: [],
+				removed: [],
+				changed: [],
+				textModelChangedEvent: modelChangedEvent
+			};
+			var changeCount = addedCharCount - removedCharCount, i;
+			for (i = startIndex; i < annotations.length; i++) {
+				var annotation = annotations[i];
+				if (annotation.start >= end) {
+					annotation.start += changeCount;
+					annotation.end += changeCount;
+					e.changed.push(annotation);
+				} else if (annotation.end <= start) {
+					
+				} else if (annotation.start < start && end < annotation.end) {
+					annotation.end += changeCount;
+					e.changed.push(annotation);
+				} else {
+					annotations.splice(i, 1);
+					e.removed.push(annotation);
+					i--;
+				}
+			}
+			if (e.added.length > 0 || e.removed.length > 0 || e.changed.length > 0) {
+				this.onChanged(e);
+			}
+		}
+	};
+	mEventTarget.EventTarget.addMixin(AnnotationModel.prototype);
+
+	
+
+
+
+
+
+
+
+
+	function AnnotationStyler (view, annotationModel) {
+		this._view = view;
+		this._annotationModel = annotationModel;
+		this._types = [];
+		var self = this;
+		this._listener = {
+			onDestroy: function(e) {
+				self._onDestroy(e);
+			},
+			onLineStyle: function(e) {
+				self._onLineStyle(e);
+			},
+			onChanged: function(e) {
+				self._onAnnotationModelChanged(e);
+			}
+		};
+		view.addEventListener("Destroy", this._listener.onDestroy);
+		view.addEventListener("LineStyle", this._listener.onLineStyle);
+		annotationModel.addEventListener("Changed", this._listener.onChanged);
+	}
+	AnnotationStyler.prototype =  {
+		
+
+
+
+
+
+
+
+
+
+
+
+		addAnnotationType: function(type) {
+			this._types.push(type);
+		},
+		
+
+
+
+
+
+		destroy: function() {
+			var view = this._view;
+			if (view) {
+				view.removeEventListener("Destroy", this._listener.onDestroy);
+				view.removeEventListener("LineStyle", this._listener.onLineStyle);
+				this.view = null;
+			}
+			var annotationModel = this._annotationModel;
+			if (annotationModel) {
+				annotationModel.removeEventListener("Changed", this._listener.onChanged);
+				annotationModel = null;
+			}
+		},
+		
+
+
+
+
+
+
+
+
+		isAnnotationTypeVisible: function(type) {
+			for (var i = 0; i < this._types.length; i++) {
+				if (this._types[i] === type) {
+					return true;
+				}
+			}
+			return false;
+		},
+		
+
+
+
+
+
+
+
+		removeAnnotationType: function(type) {
+			for (var i = 0; i < this._types.length; i++) {
+				if (this._types[i] === type) {
+					this._types.splice(i, 1);
+					break;
+				}
+			}
+		},
+		_mergeStyle: function(result, style) {
+			if (style) {
+				if (!result) { result = {}; }
+				if (result.styleClass && style.styleClass && result.styleClass !== style.styleClass) {
+					result.styleClass += " " + style.styleClass;
+				} else {
+					result.styleClass = style.styleClass;
+				}
+				var prop;
+				if (style.style) {
+					if (!result.style) { result.style  = {}; }
+					for (prop in style.style) {
+						if (!result.style[prop]) {
+							result.style[prop] = style.style[prop];
+						}
+					}
+				}
+				if (style.attributes) {
+					if (!result.attributes) { result.attributes  = {}; }
+					for (prop in style.attributes) {
+						if (!result.attributes[prop]) {
+							result.attributes[prop] = style.attributes[prop];
+						}
+					}
+				}
+			}
+			return result;
+		},
+		_mergeStyleRanges: function(ranges, styleRange) {
+			if (!ranges) { return; }
+			for (var i=0; i<ranges.length; i++) {
+				var range = ranges[i];
+				if (styleRange.end <= range.start) { break; }
+				if (styleRange.start >= range.end) { continue; }
+				var mergedStyle = this._mergeStyle({}, range.style);
+				mergedStyle = this._mergeStyle(mergedStyle, styleRange.style);
+				if (styleRange.start <= range.start && styleRange.end >= range.end) {
+					ranges[i] = {start: range.start, end: range.end, style: mergedStyle};
+				} else if (styleRange.start > range.start && styleRange.end < range.end) {
+					ranges.splice(i, 1,
+						{start: range.start, end: styleRange.start, style: range.style},
+						{start: styleRange.start, end: styleRange.end, style: mergedStyle},
+						{start: styleRange.end, end: range.end, style: range.style});
+					i += 2;
+				} else if (styleRange.start > range.start) {
+					ranges.splice(i, 1,
+						{start: range.start, end: styleRange.start, style: range.style},
+						{start: styleRange.start, end: range.end, style: mergedStyle});
+					i += 1;
+				} else if (styleRange.end < range.end) {
+					ranges.splice(i, 1,
+						{start: range.start, end: styleRange.end, style: mergedStyle},
+						{start: styleRange.end, end: range.end, style: range.style});
+					i += 1;
+				}
+			}
+		},
+		_onAnnotationModelChanged: function(e) {
+			if (e.textModelChangedEvent) {
+				return;
+			}
+			var view = this._view;
+			if (!view) { return; }
+			var self = this;
+			var model = view.getModel();
+			function redraw(changes) {
+				for (var i = 0; i < changes.length; i++) {
+					if (!self.isAnnotationTypeVisible(changes[i].type)) { continue; }
+					var start = changes[i].start;
+					var end = changes[i].end;
+					if (model.getBaseModel) {
+						start = model.mapOffset(start, true);
+						end = model.mapOffset(end, true);
+					}
+					if (start !== -1 && end !== -1) {
+						view.redrawRange(start, end);
+					}
+				}
+			}
+			redraw(e.added);
+			redraw(e.removed);
+			redraw(e.changed);
+		},
+		_onDestroy: function(e) {
+			this.destroy();
+		},
+		_onLineStyle: function (e) {
+			var annotationModel = this._annotationModel;
+			var viewModel = this._view.getModel();
+			var baseModel = annotationModel.getTextModel();
+			var start = e.lineStart;
+			var end = e.lineStart + e.lineText.length;
+			if (baseModel !== viewModel) {
+				start = viewModel.mapOffset(start);
+				end = viewModel.mapOffset(end);
+			}
+			var annotations = annotationModel.getAnnotations(start, end);
+			while (annotations.hasNext()) {
+				var annotation = annotations.next();
+				if (!this.isAnnotationTypeVisible(annotation.type)) { continue; }
+				if (annotation.rangeStyle) {
+					var annotationStart = annotation.start;
+					var annotationEnd = annotation.end;
+					if (baseModel !== viewModel) {
+						annotationStart = viewModel.mapOffset(annotationStart, true);
+						annotationEnd = viewModel.mapOffset(annotationEnd, true);
+					}
+					this._mergeStyleRanges(e.ranges, {start: annotationStart, end: annotationEnd, style: annotation.rangeStyle});
+				}
+				if (annotation.lineStyle) {
+					e.style = this._mergeStyle({}, e.style);
+					e.style = this._mergeStyle(e.style, annotation.lineStyle);
+				}
+			}
+		}
+	};
+	
+	return {
+		FoldingAnnotation: FoldingAnnotation,
+		AnnotationModel: AnnotationModel,
+		AnnotationStyler: AnnotationStyler
+	};
+}, "orion/textview");
+
+
+
+
+
+
+
+
+
+
+
+
+
+define(['orion/textview/textView', 'orion/textview/textModel', 'orion/textview/projectionTextModel'], function(mTextView, mTextModel, mProjectionTextModel) {
+
 	
 	function Tooltip (view) {
 		this._view = view;
@@ -1816,14 +2644,15 @@ orion.textview.Tooltip = (function() {
 				(contentsDiv = this._htmlParent).innerHTML = contents;
 			} else if (contents instanceof Node) {
 				(contentsDiv = this._htmlParent).appendChild(contents);
-			} else if (contents instanceof orion.textview.ProjectionTextModel) {
+			} else if (contents instanceof mProjectionTextModel.ProjectionTextModel) {
 				if (!this._contentsView) {
-					this._emptyModel = new orion.textview.TextModel("");
+					this._emptyModel = new mTextModel.TextModel("");
 					
-					var newView = this._contentsView = new orion.textview.TextView({
+					var newView = this._contentsView = new mTextView.TextView({
 						model: this._emptyModel,
 						parent: this._viewParent,
 						tabSize: 4,
+						sync: true,
 						stylesheet: ["/orion/textview/tooltip.css", "/orion/textview/rulers.css",
 							"/examples/textview/textstyler.css", "/css/default-theme.css"]
 					});
@@ -1831,7 +2660,12 @@ orion.textview.Tooltip = (function() {
 					newView._clientDiv.contentEditable = false;
 					
 					var view = this._view;
-					newView.addEventListener("LineStyle", view, view.onLineStyle);
+					var listener = {
+						onLineStyle: function(e) {
+							view.onLineStyle(e);
+						}
+					};
+					newView.addEventListener("LineStyle", listener.onLineStyle);
 				}
 				var contentsView = this._contentsView;
 				contentsView.setModel(contents);
@@ -1893,16 +2727,16 @@ orion.textview.Tooltip = (function() {
 				annotation = annotations[0];
 				if (annotation.title) {
 					title = annotation.title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-					return annotation.html + "&nbsp;" + title;
+					return "<div>" + annotation.html + "&nbsp;<span style='vertical-align:mddle;'>" + title + "</span><div>";
 				} else {
-					var newModel = new orion.textview.ProjectionTextModel(baseModel);
+					var newModel = new mProjectionTextModel.ProjectionTextModel(baseModel);
 					var lineStart = baseModel.getLineStart(baseModel.getLineAtOffset(annotation.start));
 					newModel.addProjection({start: annotation.end, end: newModel.getCharCount()});
 					newModel.addProjection({start: 0, end: lineStart});
 					return newModel;
 				}
 			} else {
-				var tooltipHTML = "<em>Multiple annotations:</em><br>";
+				var tooltipHTML = "<div><em>Multiple annotations:</em></div>";
 				for (var i = 0; i < annotations.length; i++) {
 					annotation = annotations[i];
 					title = annotation.title;
@@ -1910,7 +2744,7 @@ orion.textview.Tooltip = (function() {
 						title = getText(annotation.start, annotation.end);
 					}
 					title = title.replace(/</g, "&lt;").replace(/>/g, "&gt;");
-					tooltipHTML += annotation.html + "&nbsp;" + title + "<br>";
+					tooltipHTML += "<div>" + annotation.html + "&nbsp;<span style='vertical-align:mddle;'>" + title + "</span><div>";
 				}
 				return tooltipHTML;
 			}
@@ -1935,14 +2769,8 @@ orion.textview.Tooltip = (function() {
 			return value || defaultValue;
 		}
 	};
-	return Tooltip;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return orion.textview;
-	});
-}
+	return {Tooltip: Tooltip};
+}, "orion/textview");
 
 
 
@@ -1959,28 +2787,7 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
 
 
 
- 
-var orion = orion || {};
-
-
- 
-orion.textview = orion.textview || {};
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.textview.TextView = (function() {
+define(['orion/textview/textModel', 'orion/textview/keyBinding', 'orion/textview/eventTarget'], function(mTextModel, mKeyBinding, mEventTarget) {
 
 	
 	function addHandler(node, type, handler, capture) {
@@ -1998,19 +2805,22 @@ orion.textview.TextView = (function() {
 			node.detachEvent("on" + type, handler);
 		}
 	}
-	var isIE = document.selection && window.ActiveXObject && /MSIE/.test(navigator.userAgent) ? document.documentMode : undefined;
-	var isFirefox = parseFloat(navigator.userAgent.split("Firefox/")[1] || navigator.userAgent.split("Minefield/")[1]) || undefined;
-	var isOpera = navigator.userAgent.indexOf("Opera") !== -1;
-	var isChrome = navigator.userAgent.indexOf("Chrome") !== -1;
-	var isSafari = navigator.userAgent.indexOf("Safari") !== -1;
-	var isWebkit = navigator.userAgent.indexOf("WebKit") !== -1;
-	var isPad = navigator.userAgent.indexOf("iPad") !== -1;
+	var userAgent = navigator.userAgent;
+	var isIE;
+	if (document.selection && window.ActiveXObject && /MSIE/.test(userAgent)) {
+		isIE = document.documentMode ? document.documentMode : 7;
+	}
+	var isFirefox = parseFloat(userAgent.split("Firefox/")[1] || userAgent.split("Minefield/")[1]) || undefined;
+	var isOpera = userAgent.indexOf("Opera") !== -1;
+	var isChrome = userAgent.indexOf("Chrome") !== -1;
+	var isSafari = userAgent.indexOf("Safari") !== -1 && !isChrome;
+	var isWebkit = userAgent.indexOf("WebKit") !== -1;
+	var isPad = userAgent.indexOf("iPad") !== -1;
 	var isMac = navigator.platform.indexOf("Mac") !== -1;
 	var isWindows = navigator.platform.indexOf("Win") !== -1;
 	var isLinux = navigator.platform.indexOf("Linux") !== -1;
 	var isW3CEvents = typeof window.document.documentElement.addEventListener === "function";
 	var isRangeRects = (!isIE || isIE >= 9) && typeof window.document.createRange().getBoundingClientRect === "function";
-	var isDnD = isFirefox || isWebkit; 
 	var platformDelimiter = isWindows ? "\r\n" : "\n";
 	
 	
@@ -2019,185 +2829,108 @@ orion.textview.TextView = (function() {
 
 
 
-	var Selection = (function() {
+	function Selection (start, end, caret) {
 		
-		function Selection (start, end, caret) {
-			
 
 
 
 
-			this.start = start;
-			
+		this.start = start;
+		
 
 
 
 
-			this.end = end;
-			
-			this.caret = caret; 
-		}
-		Selection.prototype =  {
-			
-			clone: function() {
-				return new Selection(this.start, this.end, this.caret);
-			},
-			
-			collapse: function() {
-				if (this.caret) {
-					this.end = this.start;
-				} else {
-					this.start = this.end;
-				}
-			},
-			
-			extend: function (offset) {
-				if (this.caret) {
-					this.start = offset;
-				} else {
-					this.end = offset;
-				}
-				if (this.start > this.end) {
-					var tmp = this.start;
-					this.start = this.end;
-					this.end = tmp;
-					this.caret = !this.caret;
-				}
-			},
-			
-			setCaret: function(offset) {
+		this.end = end;
+		
+		this.caret = caret; 
+	}
+	Selection.prototype =  {
+		
+		clone: function() {
+			return new Selection(this.start, this.end, this.caret);
+		},
+		
+		collapse: function() {
+			if (this.caret) {
+				this.end = this.start;
+			} else {
+				this.start = this.end;
+			}
+		},
+		
+		extend: function (offset) {
+			if (this.caret) {
 				this.start = offset;
+			} else {
 				this.end = offset;
-				this.caret = false;
-			},
-			
-			getCaret: function() {
-				return this.caret ? this.start : this.end;
-			},
-			
-			toString: function() {
-				return "start=" + this.start + " end=" + this.end + (this.caret ? " caret is at start" : " caret is at end");
-			},
-			
-			isEmpty: function() {
-				return this.start === this.end;
-			},
-			
-			equals: function(object) {
-				return this.caret === object.caret && this.start === object.start && this.end === object.end;
 			}
-		};
-		return Selection;
-	}());
-
-	
-
-
-
-
-
-
-	var EventTable = (function() {
+			if (this.start > this.end) {
+				var tmp = this.start;
+				this.start = this.end;
+				this.end = tmp;
+				this.caret = !this.caret;
+			}
+		},
 		
-		function EventTable(){
-		    this._types = {};
+		setCaret: function(offset) {
+			this.start = offset;
+			this.end = offset;
+			this.caret = false;
+		},
+		
+		getCaret: function() {
+			return this.caret ? this.start : this.end;
+		},
+		
+		toString: function() {
+			return "start=" + this.start + " end=" + this.end + (this.caret ? " caret is at start" : " caret is at end");
+		},
+		
+		isEmpty: function() {
+			return this.start === this.end;
+		},
+		
+		equals: function(object) {
+			return this.caret === object.caret && this.start === object.start && this.end === object.end;
 		}
-		EventTable.prototype =  {
-			
-			addEventListener: function(type, context, func, data) {
-				var state = this._types[type];
-				if (!state) {
-					state = this._types[type] = {level: 0, listeners: []};
-				}
-				var listener = {
-					context: context,
-					func: func,
-					data: data
-				};
-				var listeners = state.listeners;
-				listeners.push(listener);
-			},
-			
-			sendEvent: function(type, event) {
-				var state = this._types[type];
-				if (state) {
-					var listeners = state.listeners;
-					try {
-						state.level++;
-						if (listeners) {
-							for (var i=0, len=listeners.length; i < len; i++) {
-								var l = listeners[i];
-								if (l && l.context && l.func) {
-									l.func.call(l.context, event, l.data);
-								}
-							}
-						}
-					} finally {
-						state.level--;
-						if (state.compact && state.level === 0) {
-							for (var j=listeners.length - 1; j >= 0; j--) {
-								if (!listeners[j]) {
-									listeners.splice(j, 1);
-								}
-							}
-							state.compact = false;
-						}
-					}
-				}
-			},
-			
-			removeEventListener: function(type, context, func, data){
-				var state = this._types[type];
-				if (state) {
-					var listeners = state.listeners;
-					for (var i=0, len=listeners.length; i < len; i++) {
-						var l = listeners[i];
-						if (l && l.context === context && l.func === func && l.data === data) {
-							if (state.level !== 0) {
-								listeners[i] = null;
-								state.compact = true;
-							} else {
-								listeners.splice(i, 1);
-							}
-							break;
-						}
-					}
-				}
-			}
-		};
-		return EventTable;
-	}());
+	};
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
+
+
+
+
+
+
+
+
+
+
 	function TextView (options) {
 		this._init(options);
 	}
 	
 	TextView.prototype =  {
-		
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-		addEventListener: function(type, context, func, data) {
-			this._eventTable.addEventListener(type, context, func, data);
-		},
 		
 
 
@@ -2212,6 +2945,7 @@ orion.textview.TextView = (function() {
 		computeSize: function() {
 			var w = 0, h = 0;
 			var model = this._model, clientDiv = this._clientDiv;
+			if (!clientDiv) { return {width: w, height: h}; }
 			var clientWidth = clientDiv.style.width;
 			
 
@@ -2228,7 +2962,7 @@ orion.textview.TextView = (function() {
 			var document = this._frameDocument;
 			for (var lineIndex=0; lineIndex<lineCount; lineIndex++) {
 				var child = this._getLineNode(lineIndex), dummy = null;
-				if (!child || child.lineChanged) {
+				if (!child || child.lineChanged || child.lineRemoved) {
 					child = dummy = this._createLine(clientDiv, null, document, lineIndex, model);
 				}
 				var rect = this._getLineBoundingClientRect(child);
@@ -2269,6 +3003,7 @@ orion.textview.TextView = (function() {
 
 
 		convert: function(rect, from, to) {
+			if (!this._clientDiv) { return; }
 			var scroll = this._getScroll();
 			var viewPad = this._getViewPadding();
 			var frame = this._frame.getBoundingClientRect();
@@ -2336,17 +3071,14 @@ orion.textview.TextView = (function() {
 
 			this._destroyFrame();
 
-			var e = {};
+			var e = {type: "Destroy"};
 			this.onDestroy(e);
 
-			this._dragStartSelection = null;
-			this._dropDestination = null;
 			this._parent = null;
 			this._parentDocument = null;
 			this._model = null;
 			this._selection = null;
 			this._doubleClickSelection = null;
-			this._eventTable = null;
 			this._keyBindings = null;
 			this._actions = null;
 		},
@@ -2374,6 +3106,14 @@ orion.textview.TextView = (function() {
 
 
 			this._updateDOMSelection();
+		},
+		
+
+
+
+
+		hasFocus: function() {
+			return this._hasFocus;
 		},
 		
 
@@ -2466,6 +3206,7 @@ orion.textview.TextView = (function() {
 
 
 		getBottomIndex: function(fullyVisible) {
+			if (!this._clientDiv) { return 0; }
 			return this._getBottomIndex(fullyVisible);
 		},
 		
@@ -2483,6 +3224,7 @@ orion.textview.TextView = (function() {
 
 
 		getBottomPixel: function() {
+			if (!this._clientDiv) { return 0; }
 			return this._getScroll().y + this._getClientHeight();
 		},
 		
@@ -2513,6 +3255,7 @@ orion.textview.TextView = (function() {
 
 
 		getClientArea: function() {
+			if (!this._clientDiv) { return {x: 0, y: 0, width: 0, height: 0}; }
 			var scroll = this._getScroll();
 			return {x: scroll.x, y: scroll.y, width: this._getClientWidth(), height: this._getClientHeight()};
 		},
@@ -2530,6 +3273,7 @@ orion.textview.TextView = (function() {
 
 
 		getHorizontalPixel: function() {
+			if (!this._clientDiv) { return 0; }
 			return this._getScroll().x;
 		},
 		
@@ -2561,6 +3305,7 @@ orion.textview.TextView = (function() {
 
 
 		getLineHeight: function(lineIndex) {
+			if (!this._clientDiv) { return 0; }
 			return this._getLineHeight();
 		},
 		
@@ -2577,6 +3322,7 @@ orion.textview.TextView = (function() {
 
 
 		getLinePixel: function(lineIndex) {
+			if (!this._clientDiv) { return 0; }
 			lineIndex = Math.min(Math.max(0, lineIndex), this._model.getLineCount());
 			var lineHeight = this._getLineHeight();
 			return lineHeight * lineIndex;
@@ -2596,6 +3342,7 @@ orion.textview.TextView = (function() {
 
 
 		getLocationAtOffset: function(offset) {
+			if (!this._clientDiv) { return {x: 0, y: 0}; }
 			var model = this._model;
 			offset = Math.min(Math.max(0, offset), model.getCharCount());
 			var lineIndex = model.getLineAtOffset(offset);
@@ -2605,6 +3352,44 @@ orion.textview.TextView = (function() {
 			var x = this._getOffsetToX(offset) + scroll.x - viewRect.left - viewPad.left;
 			var y = this.getLinePixel(lineIndex);
 			return {x: x, y: y};
+		},
+		
+
+
+
+
+
+
+
+
+
+
+
+
+		getOptions: function() {
+			var options;
+			if (arguments.length === 0) {
+				options = this._defaultOptions();
+			} else if (arguments.length === 1) {
+				var arg = arguments[0];
+				if (typeof arg === "string") {
+					return this._clone(this["_" + arg]);
+				}
+				options = arg;
+			} else {
+				options = {};
+				for (var index in arguments) {
+					if (arguments.hasOwnProperty(index)) {
+						options[arguments[index]] = undefined;
+					}
+				}
+			}
+			for (var option in options) {
+				if (options.hasOwnProperty(option)) {
+					options[option] = this._clone(this["_" + option]);
+				}
+			}
+			return options;
 		},
 		
 
@@ -2625,6 +3410,7 @@ orion.textview.TextView = (function() {
 
 
 		getOffsetAtLocation: function(x, y) {
+			if (!this._clientDiv) { return 0; }
 			var scroll = this._getScroll();
 			var viewRect = this._viewDiv.getBoundingClientRect();
 			var viewPad = this._getViewPadding();
@@ -2689,6 +3475,7 @@ orion.textview.TextView = (function() {
 
 
 		getTopIndex: function(fullyVisible) {
+			if (!this._clientDiv) { return 0; }
 			return this._getTopIndex(fullyVisible);
 		},
 		
@@ -2706,6 +3493,7 @@ orion.textview.TextView = (function() {
 
 
 		getTopPixel: function() {
+			if (!this._clientDiv) { return 0; }
 			return this._getScroll().y;
 		},
 		
@@ -2727,6 +3515,7 @@ orion.textview.TextView = (function() {
 
 
 		invokeAction: function (name, defaultAction) {
+			if (!this._clientDiv) { return; }
 			var actions = this._actions;
 			for (var i = 0; i < actions.length; i++) {
 				var a = actions[i];
@@ -2761,9 +3550,30 @@ orion.textview.TextView = (function() {
 
 
  
-		onContextMenu: function(contextMenuEvent) { 
-		  this._eventTable.sendEvent("ContextMenu", contextMenuEvent); 
+		onContextMenu: function(contextMenuEvent) {
+			return this.dispatchEvent(contextMenuEvent); 
 		}, 
+		onDragStart: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
+		onDrag: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
+		onDragEnd: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
+		onDragEnter: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
+		onDragOver: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
+		onDragLeave: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
+		onDrop: function(dragEvent) {
+			return this.dispatchEvent(dragEvent);
+		},
 		
 
 
@@ -2782,7 +3592,7 @@ orion.textview.TextView = (function() {
 
 
 		onDestroy: function(destroyEvent) {
-			this._eventTable.sendEvent("Destroy", destroyEvent);
+			return this.dispatchEvent(destroyEvent);
 		},
 		
 
@@ -2834,7 +3644,25 @@ orion.textview.TextView = (function() {
 
 
 		onLineStyle: function(lineStyleEvent) {
-			this._eventTable.sendEvent("LineStyle", lineStyleEvent);
+			return this.dispatchEvent(lineStyleEvent);
+		},
+		
+
+
+
+
+
+
+
+
+		
+
+
+
+
+
+		onLoad: function(loadEvent) {
+			return this.dispatchEvent(loadEvent);
 		},
 		
 
@@ -2859,7 +3687,7 @@ orion.textview.TextView = (function() {
 
 
 		onModelChanged: function(modelChangedEvent) {
-			this._eventTable.sendEvent("ModelChanged", modelChangedEvent);
+			return this.dispatchEvent(modelChangedEvent);
 		},
 		
 
@@ -2885,7 +3713,7 @@ orion.textview.TextView = (function() {
 
 
 		onModelChanging: function(modelChangingEvent) {
-			this._eventTable.sendEvent("ModelChanging", modelChangingEvent);
+			return this.dispatchEvent(modelChangingEvent);
 		},
 		
 
@@ -2907,7 +3735,22 @@ orion.textview.TextView = (function() {
 
 
 		onModify: function(modifyEvent) {
-			this._eventTable.sendEvent("Modify", modifyEvent);
+			return this.dispatchEvent(modifyEvent);
+		},
+		onMouseDown: function(mouseEvent) {
+			return this.dispatchEvent(mouseEvent);
+		},
+		onMouseUp: function(mouseEvent) {
+			return this.dispatchEvent(mouseEvent);
+		},
+		onMouseMove: function(mouseEvent) {
+			return this.dispatchEvent(mouseEvent);
+		},
+		onMouseOver: function(mouseEvent) {
+			return this.dispatchEvent(mouseEvent);
+		},
+		onMouseOut: function(mouseEvent) {
+			return this.dispatchEvent(mouseEvent);
 		},
 		
 
@@ -2928,7 +3771,7 @@ orion.textview.TextView = (function() {
 
 
 		onSelection: function(selectionEvent) {
-			this._eventTable.sendEvent("Selection", selectionEvent);
+			return this.dispatchEvent(selectionEvent);
 		},
 		
 
@@ -2949,7 +3792,7 @@ orion.textview.TextView = (function() {
 
 
 		onScroll: function(scrollEvent) {
-			this._eventTable.sendEvent("Scroll", scrollEvent);
+			return this.dispatchEvent(scrollEvent);
 		},
 		
 
@@ -2979,9 +3822,83 @@ orion.textview.TextView = (function() {
 
 
 		onVerify: function(verifyEvent) {
-			this._eventTable.sendEvent("Verify", verifyEvent);
+			return this.dispatchEvent(verifyEvent);
 		},
 		
+
+
+
+
+
+
+
+
+		
+
+
+
+
+
+		onUnload: function(unloadEvent) {
+			return this.dispatchEvent(unloadEvent);
+		},
+		
+
+
+
+
+
+
+
+
+		
+
+
+
+
+
+		onFocus: function(focusEvent) {
+			return this.dispatchEvent(focusEvent);
+		},
+		
+
+
+
+
+
+
+
+
+		
+
+
+
+
+
+		onBlur: function(blurEvent) {
+			return this.dispatchEvent(blurEvent);
+		},
+		
+
+
+
+
+
+
+		redraw: function() {
+			if (this._redrawCount > 0) { return; }
+			var lineCount = this._model.getLineCount();
+			var rulers = this.getRulers();
+			for (var i = 0; i < rulers.length; i++) {
+				this.redrawLines(0, lineCount, rulers[i]);
+			}
+			this.redrawLines(0, lineCount); 
+		},
+		
+
+
+
+
 
 
 
@@ -3039,30 +3956,18 @@ orion.textview.TextView = (function() {
 
 
 
+
+
+
+
 		redrawRange: function(start, end) {
+			if (this._redrawCount > 0) { return; }
 			var model = this._model;
 			if (start === undefined) { start = 0; }
 			if (end === undefined) { end = model.getCharCount(); }
-			if (start === end) { return; }
 			var startLine = model.getLineAtOffset(start);
-			var endLine = model.getLineAtOffset(Math.max(0, end - 1)) + 1;
+			var endLine = model.getLineAtOffset(Math.max(start, end - 1)) + 1;
 			this.redrawLines(startLine, endLine);
-		},
-		
-
-
-
-
-
-
-
-
-
-
-
-
-		removeEventListener: function(type, context, func, data) {
-			this._eventTable.removeEventListener(type, context, func, data);
 		},
 		
 
@@ -3187,19 +4092,28 @@ orion.textview.TextView = (function() {
 
 
 		setHorizontalPixel: function(pixel) {
+			if (!this._clientDiv) { return; }
 			pixel = Math.max(0, pixel);
 			this._scrollView(pixel - this._getScroll().x, 0);
 		},
+		
+
+
+
+
+
+
+
+
+
+
+
+
+
 		setRedraw: function(redraw) {
 			if (redraw) {
 				if (--this._redrawCount === 0) {
-					var lineCount = this._model.getLineCount();
-					var rulers = this.getRulers();
-					for (var i = 0; i < rulers.length; i++) {
-						this.redrawLines(0, lineCount, rulers[i]);
-					}
-					this.redrawLines(0, lineCount); 
-					this._queueUpdatePage();
+					this.redraw();
 				}
 			} else {
 				this._redrawCount++;
@@ -3213,13 +4127,15 @@ orion.textview.TextView = (function() {
 		setModel: function(model) {
 			if (!model) { return; }
 			if (model === this._model) { return; }
-			this._model.removeListener(this._modelListener);
+			this._model.removeEventListener("Changing", this._modelListener.onChanging);
+			this._model.removeEventListener("Changed", this._modelListener.onChanged);
 			var oldLineCount = this._model.getLineCount();
 			var oldCharCount = this._model.getCharCount();
 			var newLineCount = model.getLineCount();
 			var newCharCount = model.getCharCount();
 			var newText = model.getText();
 			var e = {
+				type: "ModelChanging",
 				text: newText,
 				start: 0,
 				removedCharCount: oldCharCount,
@@ -3230,6 +4146,7 @@ orion.textview.TextView = (function() {
 			this.onModelChanging(e);
 			this._model = model;
 			e = {
+				type: "ModelChanged",
 				start: 0,
 				removedCharCount: oldCharCount,
 				addedCharCount: newCharCount,
@@ -3237,9 +4154,54 @@ orion.textview.TextView = (function() {
 				addedLineCount: newLineCount
 			};
 			this.onModelChanged(e); 
-			this._model.addListener(this._modelListener);
+			this._model.addEventListener("Changing", this._modelListener.onChanging);
+			this._model.addEventListener("Changed", this._modelListener.onChanged);
 			this._reset();
 			this._updatePage();
+		},
+		
+
+
+
+
+
+
+		setOptions: function (options) {
+			var defaultOptions = this._defaultOptions();
+			var recreate = false, option, created = this._clientDiv;
+			if (created) {
+				for (option in options) {
+					if (options.hasOwnProperty(option)) {
+						if (defaultOptions[option].recreate) {
+							recreate = true;
+							break;
+						}
+					}
+				}
+			}
+			var changed = false;
+			for (option in options) {
+				if (options.hasOwnProperty(option)) {
+					var newValue = options[option], oldValue = this["_" + option];
+					if (this._compare(oldValue, newValue)) { continue; }
+					changed = true;
+					if (!recreate) {
+						var update = defaultOptions[option].update;
+						if (created && update) {
+							update.call(this, newValue);
+							continue;
+						}
+					}
+					this["_" + option] = this._clone(newValue);
+				}
+			}
+			if (changed) {
+				if (recreate) {
+					var oldParent = this._frame.parentNode;
+					oldParent.removeChild(this._frame);
+					this._parent.appendChild(this._frame);
+				}
+			}
 		},
 		
 
@@ -3307,14 +4269,7 @@ orion.textview.TextView = (function() {
 
 
 				if (isFirefox) {
-					var clientDiv = this._clientDiv;
-					if (clientDiv) {
-						var hasFocus = this._hasFocus;
-						if (hasFocus) { clientDiv.blur(); }
-						clientDiv.contentEditable = false;
-						clientDiv.contentEditable = true;
-						if (hasFocus) { clientDiv.focus(); }
-					}
+					this._fixCaret();
 				}
 			}
 		},
@@ -3331,6 +4286,7 @@ orion.textview.TextView = (function() {
 
 
 		setTopIndex: function(topIndex) {
+			if (!this._clientDiv) { return; }
 			var model = this._model;
 			if (model.getCharCount() === 0) {
 				return;
@@ -3361,6 +4317,7 @@ orion.textview.TextView = (function() {
 
 
 		setTopPixel: function(pixel) {
+			if (!this._clientDiv) { return; }
 			var lineHeight = this._getLineHeight();
 			var clientHeight = this._getClientHeight();
 			var lineCount = this._model.getLineCount();
@@ -3382,6 +4339,12 @@ orion.textview.TextView = (function() {
 		
 		_handleBodyMouseDown: function (e) {
 			if (!e) { e = window.event; }
+			if (isFirefox) {
+				this._clientDiv.contentEditable = false;
+				(this._overlayDiv || this._clientDiv).draggable = true;
+				this._ignoreBlur = true;
+			}
+			
 			
 
 
@@ -3389,7 +4352,7 @@ orion.textview.TextView = (function() {
 
 
 
-			var topNode = isOpera ? this._clientDiv : this._overlayDiv || this._viewDiv;
+			var topNode = isOpera || (isFirefox && !this._overlayDiv) ? this._clientDiv : this._overlayDiv || this._viewDiv;
 			
 			var temp = e.target ? e.target : e.srcElement;
 			while (temp) {
@@ -3409,8 +4372,26 @@ orion.textview.TextView = (function() {
 				setTimeout(function() { topNode.releaseCapture(); }, 0);
 			}
 		},
+		_handleBodyMouseUp: function (e) {
+			if (!e) { e = window.event; }
+			if (isFirefox) {
+				this._clientDiv.contentEditable = true;
+				(this._overlayDiv || this._clientDiv).draggable = false;
+				
+				
+
+
+
+
+
+
+				this._fixCaret();
+				this._ignoreBlur = false;
+			}
+		},
 		_handleBlur: function (e) {
 			if (!e) { e = window.event; }
+			if (this._ignoreBlur) { return; }
 			this._hasFocus = false;
 			
 
@@ -3434,15 +4415,27 @@ orion.textview.TextView = (function() {
 					this._selDiv3.style.background = color;
 				}
 			}
+			if (!this._ignoreFocus) {
+				this.onBlur({type: "Blur"});
+			}
 		},
 		_handleContextMenu: function (e) {
 			if (!e) { e = window.event; }
-			var scroll = this._getScroll(); 
-			var viewRect = this._viewDiv.getBoundingClientRect(); 
-			var viewPad = this._getViewPadding(); 
-			var x = e.clientX + scroll.x - viewRect.left - viewPad.left; 
-			var y = e.clientY + scroll.y - viewRect.top - viewPad.top; 
-			this.onContextMenu({x: x, y: y, screenX: e.screenX, screenY: e.screenY}); 
+			if (isFirefox && this._lastMouseButton === 3) {
+				
+				
+				
+				var timeDiff = e.timeStamp - this._lastMouseTime;
+				if (timeDiff <= this._clickTime) {
+					this._updateDOMSelection();
+				}
+			}
+			if (this.isListening("ContextMenu")) {
+				var evt = this._createMouseEvent("ContextMenu", e);
+				evt.screenX = e.screenX;
+				evt.screenY = e.screenY;
+				this.onContextMenu(evt);
+			}
 			if (e.preventDefault) { e.preventDefault(); }
 			return false;
 		},
@@ -3494,129 +4487,98 @@ orion.textview.TextView = (function() {
 		},
 		_handleDragStart: function (e) {
 			if (!e) { e = window.event; }
-			if (isDnD) {
-				var sel = this._getSelection();
-				var text = !sel.isEmpty() ? this._getBaseText(sel.start, sel.end) : "";
-				if (text) {
-					e.dataTransfer.effectAllowed = "copyMove";
-					e.dataTransfer.setData("text/plain", text);
-					
-					this._dragStartSelection = {start: sel.start, end: sel.end};
-					this.focus();
-					return;
-				}
+			if (isFirefox) {
+				var self = this;
+				setTimeout(function() {
+					self._clientDiv.contentEditable = true;
+					self._clientDiv.draggable = false;
+					self._ignoreBlur = false;
+				}, 0);
 			}
-			if (e.preventDefault) { e.preventDefault(); }
-			return false;
+			if (this.isListening("DragStart") && this._dragOffset !== -1) {
+				this._isMouseDown = false;
+				this.onDragStart(this._createMouseEvent("DragStart", e));
+				this._dragOffset = -1;
+			} else {
+				if (e.preventDefault) { e.preventDefault(); }
+				return false;
+			}
+		},
+		_handleDrag: function (e) {
+			if (!e) { e = window.event; }
+			if (this.isListening("Drag")) {
+				this.onDrag(this._createMouseEvent("Drag", e));
+			}
 		},
 		_handleDragEnd: function (e) {
 			if (!e) { e = window.event; }
-			if (e.preventDefault) { e.preventDefault(); }
-			var startSel = this._dragStartSelection;
-			var drop = this._dropDestination;
-			if (startSel && e.dataTransfer.dropEffect === "move") {
-				var offset = 0;
-				if (drop && drop.offset < Math.min(startSel.start, startSel.end)) {
-					offset = drop.length;
-				}
-				var change = {
-					text: "",
-					start: startSel.start + offset,
-					end: startSel.end + offset
-				};
-				this._modifyContent(change, false);
+			this._dropTarget = false;
+			this._dragOffset = -1;
+			if (this.isListening("DragEnd")) {
+				this.onDragEnd(this._createMouseEvent("DragEnd", e));
 			}
-			if (this._undoStack && drop) {
-				this._undoStack.endCompoundChange();
+			if (isFirefox) {
+				this._fixCaret();
 			}
-			this._dragNode.draggable = false;
-			this._dragStartSelection = null;
-			this._dropDestination = null;
-			return false;
 		},
 		_handleDragEnter: function (e) {
 			if (!e) { e = window.event; }
-			if (e.preventDefault) { e.preventDefault(); }
-			var types = e.dataTransfer.types;
-			var allowed = false;
-			var types = isDnD ? e.dataTransfer.types : null;
-			if (types) {
-				
-				allowed = types.contains ? types.contains("text/plain") : types.indexOf("text/plain");
+			var prevent = true;
+			this._dropTarget = true;
+			if (this.isListening("DragEnter")) {
+				prevent = false;
+				this.onDragEnter(this._createMouseEvent("DragEnter", e));
 			}
-			if (allowed) {
-				e.dataTransfer.dropEffect = "copyMove";
-				this.focus();
-				return true;
+			
+
+
+
+
+			if (isWebkit || prevent) {
+				if (e.preventDefault) { e.preventDefault(); }
+				return false;
 			}
-			e.dataTransfer.dropEffect = "none";
-			return false;
 		},
 		_handleDragOver: function (e) {
 			if (!e) { e = window.event; }
-			if (e.preventDefault) { e.preventDefault(); }
-			var allowed = false;
-			var types = isDnD ? e.dataTransfer.types : null;
-			if (types) {
-				allowed = types.contains ? types.contains("text/plain") : types.indexOf("text/plain");
+			var prevent = true;
+			if (this.isListening("DragOver")) {
+				prevent = false;
+				this.onDragOver(this._createMouseEvent("DragOver", e));
 			}
-			if (!allowed) {
-				e.dataTransfer.dropEffect = "none";
+			
+
+
+
+
+			if (isWebkit || prevent) {
+				if (prevent) { e.dataTransfer.dropEffect = "none"; }
+				if (e.preventDefault) { e.preventDefault(); }
 				return false;
 			}
-
-			var destLine = this._getYToLine(e.clientY);
-			var destOffset = this._getXToOffset(destLine, e.clientX);
-
-			var startSel = this._dragStartSelection;
-			if (startSel && startSel.start <= destOffset && destOffset <= startSel.end) {
-				e.dataTransfer.dropEffect = "none";
-				return false;
+		},
+		_handleDragLeave: function (e) {
+			if (!e) { e = window.event; }
+			this._dropTarget = false;
+			if (this.isListening("DragLeave")) {
+				this.onDragLeave(this._createMouseEvent("DragLeave", e));
 			}
-
-			if (!startSel) {
-				
-				
-				this.setSelection(destOffset, destOffset, true);
-			}
-
-			return true;
 		},
 		_handleDrop: function (e) {
 			if (!e) { e = window.event; }
+			this._dropTarget = false;
+			if (this.isListening("Drop")) {
+				this.onDrop(this._createMouseEvent("Drop", e));
+			}
+			
+
+
+
+
+
+
 			if (e.preventDefault) { e.preventDefault(); }
-			var allowed = false;
-			var types = isDnD ? e.dataTransfer.types : null;
-			if (types) {
-				allowed = types.contains ? types.contains("text/plain") : types.indexOf("text/plain");
-			}
-			if (!allowed) {
-				return false;
-			}
-
-			var destLine = this._getYToLine(e.clientY);
-			var destOffset = this._getXToOffset(destLine, e.clientX);
-			var startSel = this._dragStartSelection;
-
-			if (startSel && startSel.start <= destOffset && destOffset <= startSel.end) {
-				return false;
-			}
-
-			var text = e.dataTransfer.getData("text/plain");
-			this.setSelection(destOffset, destOffset, true);
-
-			if (startSel) {
-				this._dropDestination = {offset: destOffset, length: text.length};
-				if (this._undoStack) {
-					this._undoStack.startCompoundChange();
-				}
-			} else {
-				this._dragNode.draggable = false;
-			}
-
-			this._doContent(text);
-			this.focus();
-			return true;
+			return false;
 		},
 		_handleDocFocus: function (e) {
 			if (!e) { e = window.event; }
@@ -3642,6 +4604,9 @@ orion.textview.TextView = (function() {
 					this._selDiv3.style.background = color;
 				}
 			}
+			if (!this._ignoreFocus) {
+				this.onFocus({type: "Focus"});
+			}
 		},
 		_handleKeyDown: function (e) {
 			if (!e) { e = window.event; }
@@ -3662,7 +4627,7 @@ orion.textview.TextView = (function() {
 					this._setLinksVisible(false);
 			}
 			if (e.keyCode === 229) {
-				if (this.readonly) {
+				if (this._readonly) {
 					if (e.preventDefault) { e.preventDefault(); }
 					return false;
 				}
@@ -3775,21 +4740,26 @@ orion.textview.TextView = (function() {
 		_handleLoad: function (e) {
 			var state = this._getVisible();
 			if (state === "visible" || (state === "hidden" && isWebkit)) {
-				this._createView(!e);
+				this._createView();
 			}
 		},
 		_handleMouse: function (e) {
+			var result = true;
 			var target = this._frameWindow;
-			if (isIE) { target = this._clientDiv; }
+			if (isIE || (isFirefox && !this._overlayDiv)) { target = this._clientDiv; }
 			if (this._overlayDiv) {
+				if (this._hasFocus) {
+					this._ignoreFocus = true;
+				}
 				var self = this;
 				setTimeout(function () {
 					self.focus();
+					self._ignoreFocus = false;
 				}, 0);
 			}
 			if (this._clickCount === 1) {
-				this._setGrab(target);
-				this._setSelectionTo(e.clientX, e.clientY, e.shiftKey);
+				result = this._setSelectionTo(e.clientX, e.clientY, e.shiftKey, !isOpera && this.isListening("DragStart"));
+				if (result) { this._setGrab(target); }
 			} else {
 				
 
@@ -3810,9 +4780,13 @@ orion.textview.TextView = (function() {
 				this._setSelectionTo(e.clientX, e.clientY, e.shiftKey);
 				this._doubleClickSelection = this._getSelection();
 			}
+			return result;
 		},
 		_handleMouseDown: function (e) {
 			if (!e) { e = window.event; }
+			if (this.isListening("MouseDown")) {
+				this.onMouseDown(this._createMouseEvent("MouseDown", e));
+			}
 			if (this._linksVisible) {
 				var target = e.target || e.srcElement;
 				if (target.tagName !== "A") {
@@ -3821,59 +4795,82 @@ orion.textview.TextView = (function() {
 					return;
 				}
 			}
-			var left = e.which ? e.button === 0 : e.button === 1;
 			this._commitIME();
-			if (left) {
-				var deltaX = Math.abs(this._lastMouseX - e.clientX);
-				var deltaY = Math.abs(this._lastMouseY - e.clientY);
-				var time = e.timeStamp ? e.timeStamp : new Date().getTime();  
-				if ((time - this._lastMouseTime) <= this._clickTime && deltaX <= this._clickDist && deltaY <= this._clickDist) {
+
+			var button = e.which; 
+			if (!button) { 
+				
+				if (e.button === 4) { button = 2; }
+				if (e.button === 2) { button = 3; }
+				if (e.button === 1) { button = 1; }
+			}
+
+			
+			var time = button !== 2 && e.timeStamp ? e.timeStamp : new Date().getTime();
+			var timeDiff = time - this._lastMouseTime;
+			var deltaX = Math.abs(this._lastMouseX - e.clientX);
+			var deltaY = Math.abs(this._lastMouseY - e.clientY);
+			var sameButton = this._lastMouseButton === button;
+			this._lastMouseX = e.clientX;
+			this._lastMouseY = e.clientY;
+			this._lastMouseTime = time;
+			this._lastMouseButton = button;
+
+			if (button === 1) {
+				this._isMouseDown = true;
+				if (sameButton && timeDiff <= this._clickTime && deltaX <= this._clickDist && deltaY <= this._clickDist) {
 					this._clickCount++;
 				} else {
 					this._clickCount = 1;
 				}
-				this._lastMouseX = e.clientX;
-				this._lastMouseY = e.clientY;
-				this._lastMouseTime = time;
-
-				
-				if (isDnD && this._clickCount === 1) {
-					var inSelection = false;
-					var selection = this._getSelection();
-					if (!selection.isEmpty()) {
-						var clickLine = this._getYToLine(e.clientY);
-						var clickOffset = this._getXToOffset(clickLine, e.clientX);
-						inSelection = selection.start < clickOffset && clickOffset < selection.end;
-					}
-
-					
-					
-					this._dragNode.draggable = !isWebkit && inSelection;
-
-					if (inSelection) {
-						return; 
-					}
-				}
-				if (this._dragNode && this._dragNode.draggable) {
-					this._dragNode.draggable = false;
-				}
-
-				this._isMouseDown = true;
-				this._handleMouse(e);
-				if (isOpera || isChrome) {
+				if (this._handleMouse(e) && (isOpera || isChrome || (isFirefox && !this._overlayDiv))) {
 					if (!this._hasFocus) {
 						this.focus();
 					}
-				}
-				if (e.preventDefault) {
 					e.preventDefault();
 				}
 			}
 		},
+		_handleMouseOver: function (e) {
+			if (!e) { e = window.event; }
+			if (this.isListening("MouseOver")) {
+				this.onMouseOver(this._createMouseEvent("MouseOver", e));
+			}
+		},
+		_handleMouseOut: function (e) {
+			if (!e) { e = window.event; }
+			if (this.isListening("MouseOut")) {
+				this.onMouseOut(this._createMouseEvent("MouseOut", e));
+			}
+		},
 		_handleMouseMove: function (e) {
 			if (!e) { e = window.event; }
-			this._setLinksVisible(!this._isMouseDown && (isMac ? e.metaKey : e.ctrlKey));
-			if (!this._isMouseDown) {
+			if (this.isListening("MouseMove")) {
+				var topNode = this._overlayDiv || this._clientDiv;
+				var temp = e.target ? e.target : e.srcElement;
+				while (temp) {
+					if (topNode === temp) {
+						this.onMouseMove(this._createMouseEvent("MouseMove", e));
+						break;
+					}
+					temp = temp.parentNode;
+				}
+			}
+			if (this._dropTarget) {
+				return;
+			}
+			
+
+
+
+
+
+
+			var changed = this._linksVisible || this._lastMouseMoveX !== e.clientX || this._lastMouseMoveY !== e.clientY;
+			this._lastMouseMoveX = e.clientX;
+			this._lastMouseMoveY = e.clientY;
+			this._setLinksVisible(changed && !this._isMouseDown && (isMac ? e.metaKey : e.ctrlKey));
+			if (!this._isMouseDown || this._dragOffset !== -1) {
 				return;
 			}
 			
@@ -3946,21 +4943,36 @@ orion.textview.TextView = (function() {
 				}
 			}
 		},
+		_createMouseEvent: function(type, e) {
+			var scroll = this._getScroll();
+			var viewRect = this._viewDiv.getBoundingClientRect();
+			var viewPad = this._getViewPadding();
+			var x = e.clientX + scroll.x - viewRect.left - viewPad.left;
+			var y = e.clientY + scroll.y - viewRect.top;
+			return {
+				type: type,
+				event: e,
+				x: x,
+				y: y
+			};
+		},
 		_handleMouseUp: function (e) {
 			if (!e) { e = window.event; }
+			if (this.isListening("MouseUp")) {
+				this.onMouseUp(this._createMouseEvent("MouseUp", e));
+			}
 			if (this._linksVisible) {
 				return;
 			}
 			var left = e.which ? e.button === 0 : e.button === 1;
 			if (left) {
-				if (this._dragNode && this._dragNode.draggable) {
-					this._dragNode.draggable = false;
-          if (!this._dragStartSelection) {
-            this._setSelectionTo(e.clientX, e.clientY, false);
-          }
-					this.focus();
+				if (this._dragOffset !== -1) {
+					var selection = this._getSelection();
+					selection.extend(this._dragOffset);
+					selection.collapse();
+					this._setSelection(selection, true, true);
+					this._dragOffset = -1;
 				}
-
 				this._isMouseDown = false;
 				this._endAutoScroll();
 				
@@ -3978,6 +4990,17 @@ orion.textview.TextView = (function() {
 
 
 				if (isW3CEvents) { this._setGrab(null); }
+
+				
+
+
+
+
+
+
+				if (isFirefox) {
+					e.preventDefault();
+				}
 			}
 		},
 		_handleMouseWheel: function (e) {
@@ -4062,7 +5085,11 @@ orion.textview.TextView = (function() {
 
 
 					var self = this;
-					setTimeout(function() {self._updateDOMSelection();}, 0);
+					this._ignoreFocus = true;
+					setTimeout(function() {
+						self._updateDOMSelection();
+						this._ignoreFocus = false;
+					}, 0);
 				}
 				if (e.preventDefault) { e.preventDefault(); }
 				return false;
@@ -4130,8 +5157,9 @@ orion.textview.TextView = (function() {
 				this._hScroll = scroll.x;
 				this._vScroll = scroll.y;
 				this._commitIME();
-				this._updatePage();
+				this._updatePage(oldY === scroll.y);
 				var e = {
+					type: "Scroll",
 					oldValue: {x: oldX, y: oldY},
 					newValue: scroll
 				};
@@ -4360,12 +5388,22 @@ orion.textview.TextView = (function() {
 				var model = this._model;
 				var caret = selection.getCaret();
 				var lineIndex = model.getLineAtOffset(caret);
-				if (caret === model.getLineStart(lineIndex)) {
+				var lineStart = model.getLineStart(lineIndex);
+				if (caret === lineStart) {
 					if (lineIndex > 0) {
 						selection.extend(model.getLineEnd(lineIndex - 1));
 					}
 				} else {
-					selection.extend(this._getOffset(caret, args.unit, -1));
+					var removeTab = false;
+					if (this._expandTab && args.unit === "character" && (caret - lineStart) % this._tabSize === 0) {
+						var lineText = model.getText(lineStart, caret);
+						removeTab = !/[^ ]/.test(lineText); 
+					}
+					if (removeTab) {
+						selection.extend(caret - this._tabSize);
+					} else {
+						selection.extend(this._getOffset(caret, args.unit, -1));
+					}
 				}
 			}
 			this._modifyContent({text: "", start: selection.start, end: selection.end}, true);
@@ -4491,7 +5529,7 @@ orion.textview.TextView = (function() {
 			if (lineIndex + 1 < model.getLineCount()) {
 				var scrollX = this._getScroll().x;
 				var x = this._columnX;
-				if (x === -1 || args.select || args.wholeLine) {
+				if (x === -1 || args.wholeLine || (args.select && isIE)) {
 					var offset = args.wholeLine ? model.getLineEnd(lineIndex + 1) : caret;
 					x = this._getOffsetToX(offset) + scrollX;
 				}
@@ -4510,7 +5548,7 @@ orion.textview.TextView = (function() {
 			if (lineIndex > 0) {
 				var scrollX = this._getScroll().x;
 				var x = this._columnX;
-				if (x === -1 || args.select || args.wholeLine) {
+				if (x === -1 || args.wholeLine || (args.select && isIE)) {
 					var offset = args.wholeLine ? model.getLineStart(lineIndex - 1) : caret;
 					x = this._getOffsetToX(offset) + scrollX;
 				}
@@ -4535,7 +5573,7 @@ orion.textview.TextView = (function() {
 				var scrollLines = Math.min(lineCount - caretLine - 1, lines);
 				scrollLines = Math.max(1, scrollLines);
 				var x = this._columnX;
-				if (x === -1 || args.select) {
+				if (x === -1 || (args.select && isIE)) {
 					x = this._getOffsetToX(caret) + scroll.x;
 				}
 				selection.extend(this._getXToOffset(caretLine + scrollLines, x - scroll.x));
@@ -4562,7 +5600,7 @@ orion.textview.TextView = (function() {
 				var lines = Math.floor(clientHeight / lineHeight);
 				var scrollLines = Math.max(1, Math.min(caretLine, lines));
 				var x = this._columnX;
-				if (x === -1 || args.select) {
+				if (x === -1 || (args.select && isIE)) {
 					x = this._getOffsetToX(caret) + scroll.x;
 				}
 				selection.extend(this._getXToOffset(caretLine - scrollLines, x - scroll.x));
@@ -4574,11 +5612,19 @@ orion.textview.TextView = (function() {
 			return true;
 		},
 		_doPaste: function(e) {
-			var text = this._getClipboardText(e);
-			if (text) {
-				this._doContent(text);
-			}
-			return text !== null;
+			var self = this;
+			var result = this._getClipboardText(e, function(text) {
+				if (text) {
+					if (isLinux && self._lastMouseButton === 2) {
+						var timeDiff = new Date().getTime() - self._lastMouseTime;
+						if (timeDiff <= self._clickTime) {
+							self._setSelectionTo(self._lastMouseX, self._lastMouseY);
+						}
+					}
+					self._doContent(text);
+				}
+			});
+			return result !== null;
 		},
 		_doScroll: function (args) {
 			var type = args.type;
@@ -4616,12 +5662,27 @@ orion.textview.TextView = (function() {
 			return true;
 		},
 		_doTab: function (args) {
-			this._doContent("\t"); 
+			var text = "\t";
+			if (this._expandTab) {
+				var model = this._model;
+				var caret = this._getSelection().getCaret();
+				var lineIndex = model.getLineAtOffset(caret);
+				var lineStart = model.getLineStart(lineIndex);
+				var spaces = this._tabSize - ((caret - lineStart) % this._tabSize);
+				text = (new Array(spaces + 1)).join(" ");
+			}
+			this._doContent(text);
 			return true;
 		},
 		
 		
-		_applyStyle: function(style, node) {
+		_applyStyle: function(style, node, reset) {
+			if (reset) {
+				var attrs = node.attributes;
+				for (var i= attrs.length; i-->0;) {
+					node.removeAttributeNode(attrs[i]); 
+				}
+			}
 			if (!style) {
 				return;
 			}
@@ -4710,7 +5771,17 @@ orion.textview.TextView = (function() {
 			if (h4 > h3) {
 				fontStyle = 3;
 			}
-			this._largestFontStyle = fontStyle;
+			var style;
+			if (fontStyle !== 0) {
+				style = {style: {}};
+				if ((fontStyle & 1) !== 0) {
+					style.style.fontStyle = "italic";
+				}
+				if ((fontStyle & 2) !== 0) {
+					style.style.fontWeight = "bold";
+				}
+			}
+			this._largestFontStyle = style;
 			parent.removeChild(line);
 			return lineHeight;
 		},
@@ -4752,6 +5823,40 @@ orion.textview.TextView = (function() {
 				selection.end = selection.start;
 			}
 			this._setSelection(selection, true);
+			return true;
+		},
+		_clone: function (obj) {
+			
+			if (obj instanceof Array) {
+				return obj.slice(0);
+			}
+			return obj;
+		},
+		_compare: function (s1, s2) {
+			if (s1 === s2) { return true; }
+			if (s1 && !s2 || !s1 && s2) { return false; }
+			if ((s1 && s1.constructor === String) || (s2 && s2.constructor === String)) { return false; }
+			if (s1 instanceof Array || s2 instanceof Array) {
+				if (!(s1 instanceof Array && s2 instanceof Array)) { return false; }
+				if (s1.length !== s2.length) { return false; }
+				for (var i = 0; i < s1.length; i++) {
+					if (!this._compare(s1[i], s2[i])) {
+						return false;
+					}
+				}
+				return true;
+			}
+			if (!(s1 instanceof Object) || !(s2 instanceof Object)) { return false; }
+			var p;
+			for (p in s1) {
+				if (s1.hasOwnProperty(p)) {
+					if (!s2.hasOwnProperty(p)) { return false; }
+					if (!this._compare(s1[p], s2[p])) {return false; }
+				}
+			}
+			for (p in s2) {
+				if (!s1.hasOwnProperty(p)) { return false; }
+			}
 			return true;
 		},
 		_commitIME: function () {
@@ -4805,7 +5910,7 @@ orion.textview.TextView = (function() {
 				}
 		},
 		_createActions: function () {
-			var KeyBinding = orion.textview.KeyBinding;
+			var KeyBinding = mKeyBinding.KeyBinding;
 			
 			var bindings = this._keyBindings = [];
 
@@ -4827,19 +5932,26 @@ orion.textview.TextView = (function() {
 				bindings.push({name: "scrollTextEnd",		keyBinding: new KeyBinding(35), predefined: true});
 				bindings.push({name: "textStart",	keyBinding: new KeyBinding(38, true), predefined: true});
 				bindings.push({name: "textEnd",		keyBinding: new KeyBinding(40, true), predefined: true});
+				bindings.push({name: "scrollPageUp",	keyBinding: new KeyBinding(38, null, null, null, true), predefined: true});
+				bindings.push({name: "scrollPageDown",		keyBinding: new KeyBinding(40, null, null, null, true), predefined: true});
+				bindings.push({name: "lineStart",	keyBinding: new KeyBinding(37, null, null, null, true), predefined: true});
+				bindings.push({name: "lineEnd",		keyBinding: new KeyBinding(39, null, null, null, true), predefined: true});
+				
+				bindings.push({name: "lineStart",	keyBinding: new KeyBinding(38, null, null, true), predefined: true});
+				bindings.push({name: "lineEnd",		keyBinding: new KeyBinding(40, null, null, true), predefined: true});
 			} else {
 				bindings.push({name: "pageUp",		keyBinding: new KeyBinding(33), predefined: true});
 				bindings.push({name: "pageDown",	keyBinding: new KeyBinding(34), predefined: true});
 				bindings.push({name: "lineStart",	keyBinding: new KeyBinding(36), predefined: true});
 				bindings.push({name: "lineEnd",		keyBinding: new KeyBinding(35), predefined: true});
-				if (isLinux) {
-						bindings.push({name: "lineStartUp",    keyBinding: new KeyBinding(38, true), predefined: true});
-						bindings.push({name: "lineEndDown",    keyBinding: new KeyBinding(40, true), predefined: true});
-				}
 				bindings.push({name: "wordPrevious",	keyBinding: new KeyBinding(37, true), predefined: true});
 				bindings.push({name: "wordNext",	keyBinding: new KeyBinding(39, true), predefined: true});
 				bindings.push({name: "textStart",	keyBinding: new KeyBinding(36, true), predefined: true});
 				bindings.push({name: "textEnd",		keyBinding: new KeyBinding(35, true), predefined: true});
+			}
+			if (isFirefox && isLinux) {
+				bindings.push({name: "lineUp",		keyBinding: new KeyBinding(38, true), predefined: true});
+				bindings.push({name: "lineDown",	keyBinding: new KeyBinding(40, true), predefined: true});
 			}
 
 			
@@ -4858,6 +5970,11 @@ orion.textview.TextView = (function() {
 				bindings.push({name: "selectTextEnd",		keyBinding: new KeyBinding(35, null, true), predefined: true});
 				bindings.push({name: "selectTextStart",	keyBinding: new KeyBinding(38, true, true), predefined: true});
 				bindings.push({name: "selectTextEnd",		keyBinding: new KeyBinding(40, true, true), predefined: true});
+				bindings.push({name: "selectLineStart",	keyBinding: new KeyBinding(37, null, true, null, true), predefined: true});
+				bindings.push({name: "selectLineEnd",		keyBinding: new KeyBinding(39, null, true, null, true), predefined: true});
+				
+				bindings.push({name: "selectLineStart",	keyBinding: new KeyBinding(38, null, true, true), predefined: true});
+				bindings.push({name: "selectLineEnd",		keyBinding: new KeyBinding(40, null, true, true), predefined: true});
 			} else {
 				if (isLinux) {
 					bindings.push({name: "selectWholeLineUp",		keyBinding: new KeyBinding(38, true, true), predefined: true});
@@ -4936,8 +6053,6 @@ orion.textview.TextView = (function() {
 				{name: "lineDown",		defaultHandler: function() {return self._doLineDown({select: false});}},
 				{name: "lineStart",		defaultHandler: function() {return self._doHome({select: false, ctrl:false});}},
 				{name: "lineEnd",		defaultHandler: function() {return self._doEnd({select: false, ctrl:false});}},
-				{name: "lineStartUp",    defaultHandler: function() {return self._doLineUp({select: false, wholeLine:true});}},
-				{name: "lineEndDown",    defaultHandler: function() {return self._doLineDown({select: false, wholeLine:true});}},
 				{name: "charPrevious",		defaultHandler: function() {return self._doCursorPrevious({select: false, unit:"character"});}},
 				{name: "charNext",		defaultHandler: function() {return self._doCursorNext({select: false, unit:"character"});}},
 				{name: "pageUp",		defaultHandler: function() {return self._doPageUp({select: false});}},
@@ -4982,49 +6097,20 @@ orion.textview.TextView = (function() {
 				{name: "paste",			defaultHandler: function() {return self._doPaste();}}
 			];
 		},
-		_createLine: function(parent, sibling, document, lineIndex, model) {
+		_createLine: function(parent, div, document, lineIndex, model) {
 			var lineText = model.getLine(lineIndex);
 			var lineStart = model.getLineStart(lineIndex);
-			var e = {textView: this, lineIndex: lineIndex, lineText: lineText, lineStart: lineStart};
+			var e = {type:"LineStyle", textView: this, lineIndex: lineIndex, lineText: lineText, lineStart: lineStart};
 			this.onLineStyle(e);
-			var child = document.createElement("DIV");
-			child.lineIndex = lineIndex;
-			this._applyStyle(e.style, child);
-			if (lineText.length !== 0) {
-				var start = 0;
-				var tabSize = this._customTabSize;
-				if (tabSize && tabSize !== 8) {
-					var tabIndex = lineText.indexOf("\t"), ignoreChars = 0;
-					while (tabIndex !== -1) {
-						this._createRanges(child, document, e.ranges, start, tabIndex, lineText, lineStart);
-						var spacesCount = tabSize - ((tabIndex + ignoreChars) % tabSize);
-						var spaces = "\u00A0";
-						for (var i = 1; i < spacesCount; i++) {
-							spaces += " ";
-						}
-						var tabSpan = document.createElement("SPAN");
-						tabSpan.appendChild(document.createTextNode(spaces));
-						tabSpan.ignoreChars = spacesCount - 1;
-						ignoreChars += tabSpan.ignoreChars;
-						if (e.ranges) {
-							for (var j = 0; j < e.ranges.length; j++) {
-								var range = e.ranges[j];
-								var styleStart = range.start - lineStart;
-								var styleEnd = range.end - lineStart;
-								if (styleStart > tabIndex) { break; } 
-								if (styleStart <= tabIndex && tabIndex < styleEnd) {
-									this._applyStyle(range.style, tabSpan);
-									break;
-								}
-							}
-						} 
-						child.appendChild(tabSpan);
-						start = tabIndex + 1;
-						tabIndex = lineText.indexOf("\t", start);
-					}
-				}
-				this._createRanges(child, document, e.ranges, start, lineText.length, lineText, lineStart);
+			var lineDiv = div || document.createElement("DIV");
+			if (!div || !this._compare(div.viewStyle, e.style)) {
+				this._applyStyle(e.style, lineDiv, div);
+				lineDiv.viewStyle = e.style;
 			}
+			lineDiv.lineIndex = lineIndex;
+			var ranges = [];
+			var data = {tabOffset: 0, ranges: ranges};
+			this._createRanges(e.ranges, lineText, 0, lineText.length, lineStart, data);
 			
 			
 
@@ -5034,14 +6120,6 @@ orion.textview.TextView = (function() {
 
 
 
-			var span = document.createElement("SPAN");
-			span.ignoreChars = 1;
-			if ((this._largestFontStyle & 1) !== 0) {
-				span.style.fontStyle = "italic";
-			}
-			if ((this._largestFontStyle & 2) !== 0) {
-				span.style.fontWeight = "bold";
-			}
 			var c = " ";
 			if (!this._fullSelection && isIE < 9) {
 				
@@ -5061,13 +6139,76 @@ orion.textview.TextView = (function() {
 
 				c = "\u200C";
 			}
-			span.appendChild(document.createTextNode(c));
-			child.appendChild(span);
+			ranges.push({text: c, style: this._largestFontStyle, ignoreChars: 1});
 			
-			parent.insertBefore(child, sibling);
-			return child;
+			var range, span, style, oldSpan, oldStyle, text, oldText, end = 0, oldEnd = 0, next;
+			var changeCount, changeStart;
+			if (div) {
+				var modelChangedEvent = div.modelChangedEvent;
+				if (modelChangedEvent) {
+					if (modelChangedEvent.removedLineCount === 0 && modelChangedEvent.addedLineCount === 0) {
+						changeStart = modelChangedEvent.start - lineStart;
+						changeCount = modelChangedEvent.addedCharCount - modelChangedEvent.removedCharCount;
+					} else {
+						changeStart = -1;
+					}
+					delete div.modelChangedEvent;
+				}
+				oldSpan = div.firstChild;
+			}
+			for (var i = 0; i < ranges.length; i++) {
+				range = ranges[i];
+				text = range.text;
+				end += text.length;
+				style = range.style;
+				if (oldSpan) {
+					oldText = oldSpan.firstChild.data;
+					oldStyle = oldSpan.viewStyle;
+					if (oldText === text && this._compare(style, oldStyle)) {
+						oldEnd += oldText.length;
+						delete oldSpan._rectsCache;
+						span = oldSpan = oldSpan.nextSibling;
+						continue;
+					} else {
+						while (oldSpan) {
+							if (changeStart !== -1) {
+								var spanEnd = end;
+								if (spanEnd >= changeStart) {
+									spanEnd -= changeCount;
+								}
+								var length = oldSpan.firstChild.data.length;
+								if (oldEnd + length > spanEnd) { break; }
+								oldEnd += length;
+							}
+							next = oldSpan.nextSibling;
+							lineDiv.removeChild(oldSpan);
+							oldSpan = next;
+						}
+					}
+				}
+				span = this._createSpan(lineDiv, document, text, style, range.ignoreChars);
+				if (oldSpan) {
+					lineDiv.insertBefore(span, oldSpan);
+				} else {
+					lineDiv.appendChild(span);
+				}
+				if (div) {
+					div.lineWidth = undefined;
+				}
+			}
+			if (div) {
+				var tmp = span ? span.nextSibling : null;
+				while (tmp) {
+					next = tmp.nextSibling;
+					div.removeChild(tmp);
+					tmp = next;
+				}
+			} else {
+				parent.appendChild(lineDiv);
+			}
+			return lineDiv;
 		},
-		_createRanges: function(parent, document, ranges, start, end, text, lineStart) {
+		_createRanges: function(ranges, text, start, end, lineStart, data) {
 			if (start >= end) { return; }
 			if (ranges) {
 				for (var i = 0; i < ranges.length; i++) {
@@ -5080,18 +6221,55 @@ orion.textview.TextView = (function() {
 						styleStart = Math.max(start, styleStart);
 						styleEnd = Math.min(end, styleEnd);
 						if (start < styleStart) {
-							parent.appendChild(this._createRange(parent, document, text.substring(start, styleStart), null));
+							this._createRange(text, start, styleStart, null, data);
 						}
-						parent.appendChild(this._createRange(parent, document, text.substring(styleStart, styleEnd), range.style));
+						while (i + 1 < ranges.length && ranges[i + 1].start - lineStart === styleEnd && this._compare(range.style, ranges[i + 1].style)) {
+							range = ranges[i + 1];
+							styleEnd = Math.min(lineStart + end, range.end) - lineStart;
+							i++;
+						}
+						this._createRange(text, styleStart, styleEnd, range.style, data);
 						start = styleEnd;
 					}
 				}
 			}
 			if (start < end) {
-				parent.appendChild(this._createRange(parent, document, text.substring(start, end), null));
+				this._createRange(text, start, end, null, data);
 			}
 		},
-		_createRange: function(parent, document, text, style) {
+		_createRange: function(text, start, end, style, data) {
+			if (start >= end) { return; }
+			var tabSize = this._customTabSize, range;
+			if (tabSize && tabSize !== 8) {
+				var tabIndex = text.indexOf("\t", start);
+				while (tabIndex !== -1 && tabIndex < end) {
+					if (start < tabIndex) {
+						range = {text: text.substring(start, tabIndex), style: style};
+						data.ranges.push(range);
+						data.tabOffset += range.text.length;
+					}
+					var spacesCount = tabSize - (data.tabOffset % tabSize);
+					if (spacesCount > 0) {
+						
+						var spaces = "\u00A0";
+						for (var i = 1; i < spacesCount; i++) {
+							spaces += " ";
+						}
+						range = {text: spaces, style: style, ignoreChars: spacesCount - 1};
+						data.ranges.push(range);
+						data.tabOffset += range.text.length;
+					}
+					start = tabIndex + 1;
+					tabIndex = text.indexOf("\t", start);
+				}
+			}
+			if (start < end) {
+				range = {text: text.substring(start, end), style: style};
+				data.ranges.push(range);
+				data.tabOffset += range.text.length;
+			}
+		},
+		_createSpan: function(parent, document, text, style, ignoreChars) {
 			var isLink = style && style.tagName === "A";
 			if (isLink) { parent.hasLink = true; }
 			var tagName = isLink && this._linksVisible ? "A" : "SPAN";
@@ -5103,6 +6281,9 @@ orion.textview.TextView = (function() {
 				addHandler(child, "click", function(e) { return self._handleLinkClick(e); }, false);
 			}
 			child.viewStyle = style;
+			if (ignoreChars) {
+				child.ignoreChars = ignoreChars;
+			}
 			return child;
 		},
 		_createRuler: function(ruler) {
@@ -5172,7 +6353,10 @@ orion.textview.TextView = (function() {
 
 
 
-			addHandler(frame, "load", this._loadHandler = function(e) { self._handleLoad(e); });
+			this._loadHandler = function(e) {
+				self._handleLoad(e);
+			};
+			addHandler(frame, "load", this._loadHandler, !!isFirefox);
 			if (!isWebkit) {
 				
 
@@ -5188,9 +6372,11 @@ orion.textview.TextView = (function() {
 			}
 			parent.appendChild(frame);
 			
-			this._handleLoad();
+			if (this._sync) {
+				this._handleLoad();
+			}
 		},
-		_getFrameHTML: function(sync) {
+		_getFrameHTML: function() {
 			var html = [];
 			html.push("<!DOCTYPE html>");
 			html.push("<html>");
@@ -5206,9 +6392,8 @@ orion.textview.TextView = (function() {
 			if (this._stylesheet) {
 				var stylesheet = typeof(this._stylesheet) === "string" ? [this._stylesheet] : this._stylesheet;
 				for (var i = 0; i < stylesheet.length; i++) {
-					if (sync) {
+					if (this._sync) {
 						try {
-							
 							var objXml = new XMLHttpRequest();
 							if (objXml.overrideMimeType) {
 								objXml.overrideMimeType("text/css");
@@ -5226,29 +6411,64 @@ orion.textview.TextView = (function() {
 					html.push("'></link>");
 				}
 			}
+			
+
+
+
+			html.push("<script>");
+			html.push("var waitForStyleSheets = true;");
+			html.push("</script>");
 			html.push("</head>");
 			html.push("<body spellcheck='false'></body>");
 			html.push("</html>");
 			return html.join("");
 		},
-		_createView: function(sync) {
-			if (this._clientDiv) { return; }
-			if (this._ignoreCreate) { return; }
-			this._ignoreCreate = true;
+		_createView: function() {
+			if (this._frameDocument) { return; }
+			var frameWindow = this._frameWindow = this._frame.contentWindow;
+			var frameDocument = this._frameDocument = frameWindow.document;
+			var self = this;
+			function write() {
+				frameDocument.open();
+				frameDocument.write(self._getFrameHTML());
+				frameDocument.close();
+				self._windowLoadHandler = function(e) {
+					self._createContent();
+				};
+				addHandler(frameWindow, "load", self._windowLoadHandler);
+			}
+			
 
-			var frame = this._frame;
+
+
+			if (isFirefox && !this._sync) {
+				setTimeout(write, 0);
+			} else {
+				write();
+			}
+			if (this._sync) {
+				this._createContent();
+			}
+		},
+		_createContent: function() {
+			if (this._clientDiv) { return; }
 			var parent = this._parent;
 			var parentDocument = this._parentDocument;
-			var frameWindow = frame.contentWindow;
-			this._frameWindow = frameWindow;
-			var frameDocument = frameWindow.document;
-			this._frameDocument = frameDocument;
-			frameDocument.open();
-			frameDocument.write(this._getFrameHTML(true));
-			frameDocument.close();
+			var frameDocument = this._frameDocument;
 			
+
+
+
+
+			var self = this;
+			if (!this._sync && frameDocument.readyState !== "complete") {
+				setTimeout(function() {
+					self._createContent();
+				}, 10);
+				return;
+			}
 			var body = frameDocument.body;
-			body.className = "viewContainer";
+			this._setThemeClass(this._themeClass, true);
 			body.style.margin = "0px";
 			body.style.borderWidth = "0px";
 			body.style.padding = "0px";
@@ -5316,93 +6536,47 @@ orion.textview.TextView = (function() {
 			scrollDiv.style.borderWidth = "0px";
 			scrollDiv.style.padding = "0px";
 			viewDiv.appendChild(scrollDiv);
-
-			if (isPad || (this._fullSelection && !isWebkit)) {
-				this._hightlightRGB = "Highlight";
-				var selDiv1 = frameDocument.createElement("DIV");
-				this._selDiv1 = selDiv1;
-				selDiv1.id = "selDiv1";
-				selDiv1.style.position = "fixed";
-				selDiv1.style.borderWidth = "0px";
-				selDiv1.style.margin = "0px";
-				selDiv1.style.padding = "0px";
-				selDiv1.style.MozOutline = "none";
-				selDiv1.style.outline = "none";
-				selDiv1.style.background = this._hightlightRGB;
-				selDiv1.style.width="0px";
-				selDiv1.style.height="0px";
-				scrollDiv.appendChild(selDiv1);
-				var selDiv2 = frameDocument.createElement("DIV");
-				this._selDiv2 = selDiv2;
-				selDiv2.id = "selDiv2";
-				selDiv2.style.position = "fixed";
-				selDiv2.style.borderWidth = "0px";
-				selDiv2.style.margin = "0px";
-				selDiv2.style.padding = "0px";
-				selDiv2.style.MozOutline = "none";
-				selDiv2.style.outline = "none";
-				selDiv2.style.background = this._hightlightRGB;
-				selDiv2.style.width="0px";
-				selDiv2.style.height="0px";
-				scrollDiv.appendChild(selDiv2);
-				var selDiv3 = frameDocument.createElement("DIV");
-				this._selDiv3 = selDiv3;
-				selDiv3.id = "selDiv3";
-				selDiv3.style.position = "fixed";
-				selDiv3.style.borderWidth = "0px";
-				selDiv3.style.margin = "0px";
-				selDiv3.style.padding = "0px";
-				selDiv3.style.MozOutline = "none";
-				selDiv3.style.outline = "none";
-				selDiv3.style.background = this._hightlightRGB;
-				selDiv3.style.width="0px";
-				selDiv3.style.height="0px";
-				scrollDiv.appendChild(selDiv3);
+			
+			if (isFirefox) {
+				var clipDiv = frameDocument.createElement("DIV");
+				this._clipDiv = clipDiv;
+				clipDiv.id = "clipDiv";
+				clipDiv.style.position = "fixed";
+				clipDiv.style.overflow = "hidden";
+				clipDiv.style.margin = "0px";
+				clipDiv.style.borderWidth = "0px";
+				clipDiv.style.padding = "0px";
+				scrollDiv.appendChild(clipDiv);
 				
-				
-
-
-
-
-				if (isFirefox && isMac) {
-					var style = this._frameWindow.getComputedStyle(selDiv3, null);
-					var rgb = style.getPropertyValue("background-color");
-					switch (rgb) {
-						case "rgb(119, 141, 168)": rgb = "rgb(199, 208, 218)"; break;
-						case "rgb(127, 127, 127)": rgb = "rgb(198, 198, 198)"; break;
-						case "rgb(255, 193, 31)": rgb = "rgb(250, 236, 115)"; break;
-						case "rgb(243, 70, 72)": rgb = "rgb(255, 176, 139)"; break;
-						case "rgb(255, 138, 34)": rgb = "rgb(255, 209, 129)"; break;
-						case "rgb(102, 197, 71)": rgb = "rgb(194, 249, 144)"; break;
-						case "rgb(140, 78, 184)": rgb = "rgb(232, 184, 255)"; break;
-						default: rgb = "rgb(180, 213, 255)"; break;
-					}
-					this._hightlightRGB = rgb;
-					selDiv1.style.background = rgb;
-					selDiv2.style.background = rgb;
-					selDiv3.style.background = rgb;
-					var styleSheet = frameDocument.styleSheets[0];
-					styleSheet.insertRule("::-moz-selection {background: " + rgb + "; }", 0);
-				}
+				var clipScrollDiv = frameDocument.createElement("DIV");
+				this._clipScrollDiv = clipScrollDiv;
+				clipScrollDiv.id = "clipScrollDiv";
+				clipScrollDiv.style.position = "absolute";
+				clipScrollDiv.style.height = "1px";
+				clipScrollDiv.style.top = "-1000px";
+				clipDiv.appendChild(clipScrollDiv);
 			}
+			
+			this._setFullSelection(this._fullSelection, true);
 
 			var clientDiv = frameDocument.createElement("DIV");
 			clientDiv.className = "viewContent";
 			this._clientDiv = clientDiv;
 			clientDiv.id = "clientDiv";
 			clientDiv.style.whiteSpace = "pre";
-			clientDiv.style.position = "fixed";
+			clientDiv.style.position = this._clipDiv ? "absolute" : "fixed";
 			clientDiv.style.borderWidth = "0px";
 			clientDiv.style.margin = "0px";
 			clientDiv.style.padding = "0px";
 			clientDiv.style.MozOutline = "none";
 			clientDiv.style.outline = "none";
+			clientDiv.style.zIndex = "1";
 			if (isPad) {
 				clientDiv.style.WebkitTapHighlightColor = "transparent";
 			}
-			scrollDiv.appendChild(clientDiv);
+			(this._clipDiv || scrollDiv).appendChild(clientDiv);
 
-			if (isFirefox) {
+			if (isFirefox && !clientDiv.setCapture) {
 				var overlayDiv = frameDocument.createElement("DIV");
 				this._overlayDiv = overlayDiv;
 				overlayDiv.id = "overlayDiv";
@@ -5411,54 +6585,50 @@ orion.textview.TextView = (function() {
 				overlayDiv.style.margin = clientDiv.style.margin;
 				overlayDiv.style.padding = clientDiv.style.padding;
 				overlayDiv.style.cursor = "text";
-				overlayDiv.style.zIndex = "1";
-				scrollDiv.appendChild(overlayDiv);
+				overlayDiv.style.zIndex = "2";
+				(this._clipDiv || scrollDiv).appendChild(overlayDiv);
 			}
 			if (!isPad) {
 				clientDiv.contentEditable = "true";
-			}
-			if (isDnD) {
-				this._dragNode = this._overlayDiv || this._clientDiv;
 			}
 			this._lineHeight = this._calculateLineHeight();
 			this._viewPadding = this._calculatePadding();
 			if (isIE) {
 				body.style.lineHeight = this._lineHeight + "px";
 			}
-			if (this._tabSize) {
-				if (isOpera) {
-					clientDiv.style.OTabSize = this._tabSize+"";
-				} else if (isFirefox >= 4) {
-					clientDiv.style.MozTabSize = this._tabSize+"";
-				} else if (this._tabSize !== 8) {
-					this._customTabSize = this._tabSize;
-				}
-			}
+			this._setTabSize(this._tabSize, true);
 			this._hookEvents();
 			var rulers = this._rulers;
 			for (var i=0; i<rulers.length; i++) {
 				this._createRuler(rulers[i]);
 			}
-			if (sync) {
-				this._updatePage();
-			} else {
-				this._queueUpdatePage();
-				var h = this._hScroll, v = this._vScroll;
-				this._vScroll = this._hScroll = 0;
-				if (h > 0 || v > 0) {
-					var self = this;
-					setTimeout(function() {
-						self._scrollView(h, v);
-					}, 0);
-				}
+			this._updatePage();
+			var h = this._hScroll, v = this._vScroll;
+			this._vScroll = this._hScroll = 0;
+			if (h > 0 || v > 0) {
+				viewDiv.scrollLeft = h;
+				viewDiv.scrollTop = v;
 			}
-			this._ignoreCreate = false;
+			this.onLoad({type: "Load"});
+		},
+		_defaultOptions: function() {
+			return {
+				parent: {value: undefined, recreate: true, update: null},
+				model: {value: undefined, recreate: false, update: this.setModel},
+				readonly: {value: false, recreate: false, update: null},
+				fullSelection: {value: true, recreate: false, update: this._setFullSelection},
+				tabSize: {value: 8, recreate: false, update: this._setTabSize},
+				expandTab: {value: false, recreate: false, update: null},
+				stylesheet: {value: [], recreate: true, update: null},
+				themeClass: {value: undefined, recreate: false, update: this._setThemeClass},
+				sync: {value: false, recreate: false, update: null}
+			};
 		},
 		_destroyFrame: function() {
 			var frame = this._frame;
 			if (!frame) { return; }
 			if (this._loadHandler) {
-				removeHandler(frame, "load", this._loadHandler);
+				removeHandler(frame, "load", this._loadHandler, !!isFirefox);
 				this._loadHandler = null;
 			}
 			if (this._attrModifiedHandler) {
@@ -5467,8 +6637,6 @@ orion.textview.TextView = (function() {
 			}
 			frame.parentNode.removeChild(frame);
 			this._frame = null;
-			this._frameDocument = null;
-			this._frameWindow = null;
 		},
 		_destroyRuler: function(ruler) {
 			var side = ruler.getLocation();
@@ -5490,6 +6658,10 @@ orion.textview.TextView = (function() {
 			if (!clientDiv) { return; }
 			this._setGrab(null);
 			this._unhookEvents();
+			if (this._windowLoadHandler) {
+				removeHandler(this._frameWindow, "load", this._windowLoadHandler);
+				this._windowLoadHandler = null;
+			}
 
 			
 			if (this._autoScrollTimerID) {
@@ -5511,15 +6683,20 @@ orion.textview.TextView = (function() {
 			this._selDiv1 = null;
 			this._selDiv2 = null;
 			this._selDiv3 = null;
+			this._insertedSelRule = false;
 			this._textArea = null;
 			this._clipboardDiv = null;
 			this._scrollDiv = null;
 			this._viewDiv = null;
+			this._clipDiv = null;
+			this._clipScrollDiv = null;
 			this._clientDiv = null;
 			this._overlayDiv = null;
-			this._dragNode = null;
 			this._leftDiv = null;
 			this._rightDiv = null;
+			this._frameDocument = null;
+			this._frameWindow = null;
+			this.onUnload({type: "Unload"});
 		},
 		_doAutoScroll: function (direction, x, y) {
 			this._autoScrollDir = direction;
@@ -5533,6 +6710,18 @@ orion.textview.TextView = (function() {
 			if (this._autoScrollTimerID) { clearTimeout(this._autoScrollTimerID); }
 			this._autoScrollDir = undefined;
 			this._autoScrollTimerID = undefined;
+		},
+		_fixCaret: function() {
+			var clientDiv = this._clientDiv;
+			if (clientDiv) {
+				var hasFocus = this._hasFocus;
+				this._ignoreFocus = true;
+				if (hasFocus) { clientDiv.blur(); }
+				clientDiv.contentEditable = false;
+				clientDiv.contentEditable = true;
+				if (hasFocus) { clientDiv.focus(); }
+				this._ignoreFocus = false;
+			}
 		},
 		_getBaseText: function(start, end) {
 			var model = this._model;
@@ -5646,7 +6835,7 @@ orion.textview.TextView = (function() {
 			var viewPad = this._getViewPadding();
 			return Math.max(0, this._viewDiv.clientWidth - viewPad.left - viewPad.right);
 		},
-		_getClipboardText: function (event) {
+		_getClipboardText: function (event, handler) {
 			var delimiter = this._model.getLineDelimiter();
 			var clipboadText, text;
 			if (this._frameWindow.clipboardData) {
@@ -5654,51 +6843,65 @@ orion.textview.TextView = (function() {
 				clipboadText = [];
 				text = this._frameWindow.clipboardData.getData("Text");
 				this._convertDelimiter(text, function(t) {clipboadText.push(t);}, function() {clipboadText.push(delimiter);});
-				return clipboadText.join("");
+				text = clipboadText.join("");
+				if (handler) { handler(text); }
+				return text;
 			}
 			if (isFirefox) {
+				this._ignoreFocus = true;
 				var document = this._frameDocument;
 				var clipboardDiv = this._clipboardDiv;
 				clipboardDiv.innerHTML = "<pre contenteditable=''></pre>";
 				clipboardDiv.firstChild.focus();
 				var self = this;
 				var _getText = function() {
-					var text = self._getTextFromElement(clipboardDiv);
+					var noteText = self._getTextFromElement(clipboardDiv);
 					clipboardDiv.innerHTML = "";
 					clipboadText = [];
-					self._convertDelimiter(text, function(t) {clipboadText.push(t);}, function() {clipboadText.push(delimiter);});
+					self._convertDelimiter(noteText, function(t) {clipboadText.push(t);}, function() {clipboadText.push(delimiter);});
 					return clipboadText.join("");
 				};
 				
 				
 				var result = false;
 				this._ignorePaste = true;
-				try {
-					result = document.execCommand("paste", false, null);
-				} catch (ex) {
-					
-					result = clipboardDiv.childNodes.length > 1 || clipboardDiv.firstChild && clipboardDiv.firstChild.childNodes.length > 0;
+
+				
+				if (!isLinux || this._lastMouseButton !== 2) {
+					try {
+						result = document.execCommand("paste", false, null);
+					} catch (ex) {
+						
+						result = clipboardDiv.childNodes.length > 1 || clipboardDiv.firstChild && clipboardDiv.firstChild.childNodes.length > 0;
+					}
 				}
 				this._ignorePaste = false;
 				if (!result) {
 					
-
-
 					if (event) {
 						setTimeout(function() {
 							self.focus();
-							var text = _getText();
-							if (text) { self._doContent(text); }
+							text = _getText();
+							if (text && handler) {
+								handler(text);
+							}
+							self._ignoreFocus = false;
 						}, 0);
 						return null;
 					} else {
 						
 						this.focus();
+						this._ignoreFocus = false;
 						return "";
 					}
 				}
 				this.focus();
-				return _getText();
+				this._ignoreFocus = false;
+				text = _getText();
+				if (text && handler) {
+					handler(text);
+				}
+				return text;
 			}
 			
 			if (event && event.clipboardData) {
@@ -5709,7 +6912,11 @@ orion.textview.TextView = (function() {
 				clipboadText = [];
 				text = event.clipboardData.getData("text/plain");
 				this._convertDelimiter(text, function(t) {clipboadText.push(t);}, function() {clipboadText.push(delimiter);});
-				return clipboadText.join("");
+				text = clipboadText.join("");
+				if (text && handler) {
+					handler(text);
+				}
+				return text;
 			} else {
 				
 			}
@@ -5749,8 +6956,8 @@ orion.textview.TextView = (function() {
 			newRange.selectNode(element);
 
 			var selection = window.getSelection();
-			var oldRanges = [];
-			for (var i = 0; i < selection.rangeCount; i++) {
+			var oldRanges = [], i;
+			for (i = 0; i < selection.rangeCount; i++) {
 				oldRanges.push(selection.getRangeAt(i));
 			}
 
@@ -5761,7 +6968,7 @@ orion.textview.TextView = (function() {
 			var text = selection.toString();
 
 			selection.removeAllRanges();
-			for (var i = 0; i < oldRanges.length; i++) {
+			for (i = 0; i < oldRanges.length; i++) {
 				selection.addRange(oldRanges[i]);
 			}
 
@@ -6217,7 +7424,8 @@ orion.textview.TextView = (function() {
 					self._onModelChanged(modelChangedEvent);
 				}
 			};
-			this._model.addListener(this._modelListener);
+			this._model.addEventListener("Changing", this._modelListener.onChanging);
+			this._model.addEventListener("Changed", this._modelListener.onChanged);
 			
 			var clientDiv = this._clientDiv;
 			var viewDiv = this._viewDiv;
@@ -6242,7 +7450,6 @@ orion.textview.TextView = (function() {
 				handlers.push({target: touchDiv, type: "touchend", handler: function(e) { return self._handleTouchEnd(e); }});
 			} else {
 				var topNode = this._overlayDiv || this._clientDiv;
-				var dragNode = this._dragNode || topNode;
 				var grabNode = isIE ? clientDiv : this._frameWindow;
 				handlers.push({target: clientDiv, type: "keydown", handler: function(e) { return self._handleKeyDown(e);}});
 				handlers.push({target: clientDiv, type: "keypress", handler: function(e) { return self._handleKeyPress(e);}});
@@ -6253,16 +7460,19 @@ orion.textview.TextView = (function() {
 				handlers.push({target: clientDiv, type: "cut", handler: function(e) { return self._handleCut(e);}});
 				handlers.push({target: clientDiv, type: "paste", handler: function(e) { return self._handlePaste(e);}});
 				handlers.push({target: clientDiv, type: "mousedown", handler: function(e) { return self._handleMouseDown(e);}});
+				handlers.push({target: clientDiv, type: "mouseover", handler: function(e) { return self._handleMouseOver(e);}});
+				handlers.push({target: clientDiv, type: "mouseout", handler: function(e) { return self._handleMouseOut(e);}});
 				handlers.push({target: grabNode, type: "mouseup", handler: function(e) { return self._handleMouseUp(e);}});
 				handlers.push({target: grabNode, type: "mousemove", handler: function(e) { return self._handleMouseMove(e);}});
 				handlers.push({target: body, type: "mousedown", handler: function(e) { return self._handleBodyMouseDown(e);}});
-				handlers.push({target: dragNode, type: "dragstart", handler: function(e) { return self._handleDragStart(e);}});
-				if (isDnD) {
-					handlers.push({target: dragNode, type: "dragend", handler: function(e) { return self._handleDragEnd(e);}});
-					handlers.push({target: dragNode, type: "dragenter", handler: function(e) { return self._handleDragEnter(e);}});
-				}
-				handlers.push({target: dragNode, type: "dragover", handler: function(e) { return self._handleDragOver(e);}});
-				handlers.push({target: dragNode, type: "drop", handler: function(e) { return self._handleDrop(e);}});
+				handlers.push({target: body, type: "mouseup", handler: function(e) { return self._handleBodyMouseUp(e);}});
+				handlers.push({target: topNode, type: "dragstart", handler: function(e) { return self._handleDragStart(e);}});
+				handlers.push({target: topNode, type: "drag", handler: function(e) { return self._handleDrag(e);}});
+				handlers.push({target: topNode, type: "dragend", handler: function(e) { return self._handleDragEnd(e);}});
+				handlers.push({target: topNode, type: "dragenter", handler: function(e) { return self._handleDragEnter(e);}});
+				handlers.push({target: topNode, type: "dragover", handler: function(e) { return self._handleDragOver(e);}});
+				handlers.push({target: topNode, type: "dragleave", handler: function(e) { return self._handleDragLeave(e);}});
+				handlers.push({target: topNode, type: "drop", handler: function(e) { return self._handleDrop(e);}});
 				if (isChrome) {
 					handlers.push({target: this._parentDocument, type: "mousemove", handler: function(e) { return self._handleMouseMove(e);}});
 					handlers.push({target: this._parentDocument, type: "mouseup", handler: function(e) { return self._handleMouseUp(e);}});
@@ -6282,6 +7492,8 @@ orion.textview.TextView = (function() {
 				}
 				if (this._overlayDiv) {
 					handlers.push({target: this._overlayDiv, type: "mousedown", handler: function(e) { return self._handleMouseDown(e);}});
+					handlers.push({target: this._overlayDiv, type: "mouseover", handler: function(e) { return self._handleMouseOver(e);}});
+					handlers.push({target: this._overlayDiv, type: "mouseout", handler: function(e) { return self._handleMouseOut(e);}});
 					handlers.push({target: this._overlayDiv, type: "contextmenu", handler: function(e) { return self._handleContextMenu(e); }});
 				}
 				if (!isW3CEvents) {
@@ -6299,32 +7511,30 @@ orion.textview.TextView = (function() {
 				parent = window.document.getElementById(parent);
 			}
 			if (!parent) { throw "no parent"; }
-			this._parent = parent;
-			this._model = options.model ? options.model : new orion.textview.TextModel();
-			this.readonly = options.readonly === true;
-			this._fullSelection = options.fullSelection === undefined || options.fullSelection;
-			
-
-
-
-
-			if (isIE < 9) {
-				this._fullSelection = false;
+			options.parent = parent;
+			options.model = options.model || new mTextModel.TextModel();
+			var defaultOptions = this._defaultOptions();
+			for (var option in defaultOptions) {
+				if (defaultOptions.hasOwnProperty(option)) {
+					var value;
+					if (options[option] !== undefined) {
+						value = options[option];
+					} else {
+						value = defaultOptions[option].value;
+					}
+					this["_" + option] = value;
+				}
 			}
-			this._stylesheet = options.stylesheet;
-			this._tabSize = options.tabSize;
 			this._rulers = [];
 			this._selection = new Selection (0, 0, false);
 			this._linksVisible = false;
-			this._eventTable = new EventTable();
 			this._redrawCount = 0;
 			this._maxLineWidth = 0;
 			this._maxLineIndex = -1;
 			this._ignoreSelect = true;
+			this._ignoreFocus = false;
 			this._columnX = -1;
-			
-			this._dragStartSelection = null;
-			this._dropDestination = null;
+			this._dragOffset = -1;
 
 			
 			this._autoScrollX = null;
@@ -6357,10 +7567,10 @@ orion.textview.TextView = (function() {
 			this._createFrame();
 		},
 		_modifyContent: function(e, updateCaret) {
-			if (this.readonly && !e._code) {
+			if (this._readonly && !e._code) {
 				return;
 			}
-
+			e.type = "Verify";
 			this.onVerify(e);
 
 			if (e.text === null || e.text === undefined) { return; }
@@ -6378,10 +7588,12 @@ orion.textview.TextView = (function() {
 				selection.setCaret(e.start + e.text.length);
 				this._setSelection(selection, true);
 			}
-			this.onModify({});
+			this.onModify({type: "Modify"});
 		},
 		_onModelChanged: function(modelChangedEvent) {
+			modelChangedEvent.type = "ModelChanged";
 			this.onModelChanged(modelChangedEvent);
+			modelChangedEvent.type = "Changed";
 			var start = modelChangedEvent.start;
 			var addedCharCount = modelChangedEvent.addedCharCount;
 			var removedCharCount = modelChangedEvent.removedCharCount;
@@ -6406,7 +7618,14 @@ orion.textview.TextView = (function() {
 			while (child) {
 				var lineIndex = child.lineIndex;
 				if (startLine <= lineIndex && lineIndex <= startLine + removedLineCount) {
-					child.lineChanged = true;
+					if (startLine === lineIndex && !child.modelChangedEvent && !child.lineRemoved) {
+						child.modelChangedEvent = modelChangedEvent;
+						child.lineChanged = true;
+					} else {
+						child.lineRemoved = true;
+						child.lineChanged = false;
+						child.modelChangedEvent = null;
+					}
 				}
 				if (lineIndex > startLine + removedLineCount) {
 					child.lineIndex = lineIndex + addedLineCount - removedLineCount;
@@ -6421,7 +7640,9 @@ orion.textview.TextView = (function() {
 			this._updatePage();
 		},
 		_onModelChanging: function(modelChangingEvent) {
+			modelChangingEvent.type = "ModelChanging";
 			this.onModelChanging(modelChangingEvent);
+			modelChangingEvent.type = "Changing";
 		},
 		_queueUpdatePage: function() {
 			if (this._updateTimer) { return; }
@@ -6447,7 +7668,7 @@ orion.textview.TextView = (function() {
 			if (clientDiv) {
 				var child = clientDiv.firstChild;
 				while (child) {
-					child.lineChanged = true;
+					child.lineRemoved = true;
 					child = child.nextSibling;
 				}
 				
@@ -6456,11 +7677,13 @@ orion.textview.TextView = (function() {
 
 
 				if (isFirefox) {
+					this._ignoreFocus = false;
 					var hasFocus = this._hasFocus;
 					if (hasFocus) { clientDiv.blur(); }
 					clientDiv.contentEditable = false;
 					clientDiv.contentEditable = true;
 					if (hasFocus) { clientDiv.focus(); }
+					this._ignoreFocus = false;
 				}
 			}
 		},
@@ -6720,6 +7943,12 @@ orion.textview.TextView = (function() {
 					var right = clientRect.right;
 					var top = viewRect.top + viewPad.top;
 					var bottom = clientRect.bottom;
+					var hd = 0, vd = 0;
+					if (this._clipDiv) {
+						var clipRect = this._clipDiv.getBoundingClientRect();
+						hd = clipRect.left - this._clipDiv.scrollLeft;
+						vd = clipRect.top;
+					}
 					var r;
 					var endLineBounds = this._getLineBoundingClientRect(endNode);
 					if (endOffset === 0) {
@@ -6738,8 +7967,8 @@ orion.textview.TextView = (function() {
 					var sel1Top = Math.min(bottom, Math.max(top, startLineBounds.top));
 					var sel1Right = right;
 					var sel1Bottom = Math.min(bottom, Math.max(top, startLineBounds.bottom));
-					sel1Div.style.left = sel1Left + "px";
-					sel1Div.style.top = sel1Top + "px";
+					sel1Div.style.left = (sel1Left - hd) + "px";
+					sel1Div.style.top = (sel1Top - vd) + "px";
 					sel1Div.style.width = Math.max(0, sel1Right - sel1Left) + "px";
 					sel1Div.style.height = Math.max(0, sel1Bottom - sel1Top) + (isPad ? 1 : 0) + "px";
 					if (isPad) {
@@ -6758,8 +7987,8 @@ orion.textview.TextView = (function() {
 						var sel3Right = Math.min(right, Math.max(left, r));
 						var sel3Bottom = Math.min(bottom, Math.max(top, endLineBounds.bottom));
 						var sel3Div = this._selDiv3;
-						sel3Div.style.left = sel3Left + "px";
-						sel3Div.style.top = sel3Top + "px";
+						sel3Div.style.left = (sel3Left - hd) + "px";
+						sel3Div.style.top = (sel3Top - vd) + "px";
 						sel3Div.style.width = Math.max(0, sel3Right - sel3Left - handleWidth) + "px";
 						sel3Div.style.height = Math.max(0, sel3Bottom - sel3Top) + "px";
 						if (isPad) {
@@ -6767,8 +7996,8 @@ orion.textview.TextView = (function() {
 						}
 						if (sel3Top - sel1Bottom > 0) {
 							var sel2Div = this._selDiv2;
-							sel2Div.style.left = left + "px";
-							sel2Div.style.top = sel1Bottom + "px";
+							sel2Div.style.left = (left - hd)  + "px";
+							sel2Div.style.top = (sel1Bottom - vd) + "px";
 							sel2Div.style.width = Math.max(0, right - left) + "px";
 							sel2Div.style.height = Math.max(0, sel3Top - sel1Bottom) + (isPad ? 1 : 0) + "px";
 						}
@@ -6815,7 +8044,7 @@ orion.textview.TextView = (function() {
 						var next = lineChild.nextSibling;
 						var style = lineChild.viewStyle;
 						if (style && style.tagName === "A") {
-							line.replaceChild(this._createRange(line, document, lineChild.firstChild.data, style), lineChild);
+							line.replaceChild(this._createSpan(line, document, lineChild.firstChild.data, style), lineChild);
 						}
 						lineChild = next;
 					}
@@ -6831,6 +8060,7 @@ orion.textview.TextView = (function() {
 				if (!oldSelection.equals(selection)) {
 					this._selection = selection;
 					var e = {
+						type: "Selection",
 						oldValue: {start:oldSelection.start, end:oldSelection.end},
 						newValue: {start:selection.start, end:selection.end}
 					};
@@ -6853,12 +8083,18 @@ orion.textview.TextView = (function() {
 				if (update) { this._updateDOMSelection(); }
 			}
 		},
-		_setSelectionTo: function (x,y,extent) {
+		_setSelectionTo: function (x, y, extent, drag) {
 			var model = this._model, offset;
 			var selection = this._getSelection();
 			var lineIndex = this._getYToLine(y);
 			if (this._clickCount === 1) {
 				offset = this._getXToOffset(lineIndex, x);
+				if (drag && !extent) {
+					if (selection.start <= offset && offset < selection.end) {
+						this._dragOffset = offset;
+						return false;
+					}
+				}
 				selection.extend(offset);
 				if (!extent) { selection.collapse(); }
 			} else {
@@ -6897,6 +8133,155 @@ orion.textview.TextView = (function() {
 				selection.extend(end);
 			} 
 			this._setSelection(selection, true, true);
+			return true;
+		},
+		_setFullSelection: function(fullSelection, init) {
+			this._fullSelection = fullSelection;
+			
+			
+
+
+
+
+			if (isIE < 9) {
+				this._fullSelection = false;
+			}
+			if (isWebkit) {
+				this._fullSelection = true;
+			}
+			var parent = this._clipDiv || this._scrollDiv;
+			if (!parent) {
+				return;
+			}
+			if (!isPad && !this._fullSelection) {
+				if (this._selDiv1) {
+					parent.removeChild(this._selDiv1);
+					this._selDiv1 = null;
+				}
+				if (this._selDiv2) {
+					parent.removeChild(this._selDiv2);
+					this._selDiv2 = null;
+				}
+				if (this._selDiv3) {
+					parent.removeChild(this._selDiv3);
+					this._selDiv3 = null;
+				}
+				return;
+			}
+			
+			if (!this._selDiv1 && (isPad || (this._fullSelection && !isWebkit))) {
+				var frameDocument = this._frameDocument;
+				this._hightlightRGB = "Highlight";
+				var selDiv1 = frameDocument.createElement("DIV");
+				this._selDiv1 = selDiv1;
+				selDiv1.id = "selDiv1";
+				selDiv1.style.position = this._clipDiv ? "absolute" : "fixed";
+				selDiv1.style.borderWidth = "0px";
+				selDiv1.style.margin = "0px";
+				selDiv1.style.padding = "0px";
+				selDiv1.style.MozOutline = "none";
+				selDiv1.style.outline = "none";
+				selDiv1.style.background = this._hightlightRGB;
+				selDiv1.style.width = "0px";
+				selDiv1.style.height = "0px";
+				selDiv1.style.zIndex = "0";
+				parent.appendChild(selDiv1);
+				var selDiv2 = frameDocument.createElement("DIV");
+				this._selDiv2 = selDiv2;
+				selDiv2.id = "selDiv2";
+				selDiv2.style.position = this._clipDiv ? "absolute" : "fixed";
+				selDiv2.style.borderWidth = "0px";
+				selDiv2.style.margin = "0px";
+				selDiv2.style.padding = "0px";
+				selDiv2.style.MozOutline = "none";
+				selDiv2.style.outline = "none";
+				selDiv2.style.background = this._hightlightRGB;
+				selDiv2.style.width = "0px";
+				selDiv2.style.height = "0px";
+				selDiv2.style.zIndex = "0";
+				parent.appendChild(selDiv2);
+				var selDiv3 = frameDocument.createElement("DIV");
+				this._selDiv3 = selDiv3;
+				selDiv3.id = "selDiv3";
+				selDiv3.style.position = this._clipDiv ? "absolute" : "fixed";
+				selDiv3.style.borderWidth = "0px";
+				selDiv3.style.margin = "0px";
+				selDiv3.style.padding = "0px";
+				selDiv3.style.MozOutline = "none";
+				selDiv3.style.outline = "none";
+				selDiv3.style.background = this._hightlightRGB;
+				selDiv3.style.width = "0px";
+				selDiv3.style.height = "0px";
+				selDiv3.style.zIndex = "0";
+				parent.appendChild(selDiv3);
+				
+				
+
+
+
+
+				if (isFirefox && isMac) {
+					var style = this._frameWindow.getComputedStyle(selDiv3, null);
+					var rgb = style.getPropertyValue("background-color");
+					switch (rgb) {
+						case "rgb(119, 141, 168)": rgb = "rgb(199, 208, 218)"; break;
+						case "rgb(127, 127, 127)": rgb = "rgb(198, 198, 198)"; break;
+						case "rgb(255, 193, 31)": rgb = "rgb(250, 236, 115)"; break;
+						case "rgb(243, 70, 72)": rgb = "rgb(255, 176, 139)"; break;
+						case "rgb(255, 138, 34)": rgb = "rgb(255, 209, 129)"; break;
+						case "rgb(102, 197, 71)": rgb = "rgb(194, 249, 144)"; break;
+						case "rgb(140, 78, 184)": rgb = "rgb(232, 184, 255)"; break;
+						default: rgb = "rgb(180, 213, 255)"; break;
+					}
+					this._hightlightRGB = rgb;
+					selDiv1.style.background = rgb;
+					selDiv2.style.background = rgb;
+					selDiv3.style.background = rgb;
+					if (!this._insertedSelRule) {
+						var styleSheet = frameDocument.styleSheets[0];
+						styleSheet.insertRule("::-moz-selection {background: " + rgb + "; }", 0);
+						this._insertedSelRule = true;
+					}
+				}
+				if (!init) {
+					this._updateDOMSelection();
+				}
+			}
+		},
+		_setTabSize: function (tabSize, init) {
+			this._tabSize = tabSize;
+			this._customTabSize = undefined;
+			var clientDiv = this._clientDiv;
+			if (isOpera) {
+				if (clientDiv) { clientDiv.style.OTabSize = this._tabSize+""; }
+			} else if (isFirefox >= 4) {
+				if (clientDiv) {  clientDiv.style.MozTabSize = this._tabSize+""; }
+			} else if (this._tabSize !== 8) {
+				this._customTabSize = this._tabSize;
+				if (!init) {
+					this.redrawLines();
+				}
+			}
+		},
+		_setThemeClass: function (themeClass, init) {
+			this._themeClass = themeClass;
+			var document = this._frameDocument;
+			if (document) {
+				var viewContainerClass = "viewContainer";
+				if (this._themeClass) { viewContainerClass += " " + this._themeClass; }
+				document.body.className = viewContainerClass;
+				if (!init) {
+					if (isIE) {
+						document.body.style.lineHeight = "normal";
+					}
+					this._lineHeight = this._calculateLineHeight();
+					this._viewPadding = this._calculatePadding();
+					if (isIE) {
+						document.body.style.lineHeight = this._lineHeight + "px";
+					}
+					this.redraw();
+				}
+			}
 		},
 		_showCaret: function (allSelection, pageScroll) {
 			if (!this._clientDiv) { return; }
@@ -6997,7 +8382,8 @@ orion.textview.TextView = (function() {
 			this._imeOffset = selection.start;
 		},
 		_unhookEvents: function() {
-			this._model.removeListener(this._modelListener);
+			this._model.removeEventListener("Changing", this._modelListener.onChanging);
+			this._model.removeEventListener("Changed", this._modelListener.onChanged);
 			this._modelListener = null;
 			for (var i=0; i<this._handlers.length; i++) {
 				var h = this._handlers[i];
@@ -7044,72 +8430,83 @@ orion.textview.TextView = (function() {
 			}
 			this._setDOMSelection(topNode, topOffset, bottomNode, bottomOffset);
 		},
-		_updatePage: function() {
+		_updatePage: function(hScrollOnly) {
 			if (this._redrawCount > 0) { return; }
-			if (this._updateTimer) { 
+			if (this._updateTimer) {
 				clearTimeout(this._updateTimer);
 				this._updateTimer = null;
+				hScrollOnly = false;
 			}
-			var document = this._frameDocument;
-			var viewDiv = this._viewDiv;
 			var clientDiv = this._clientDiv;
 			if (!clientDiv) { return; }
-			var frameWidth = this._getFrameWidth();
-			var frameHeight = this._getFrameHeight();
-			document.body.style.width = frameWidth + "px";
-			document.body.style.height = frameHeight + "px";
-			var viewPad = this._getViewPadding();
-			
-			
-			viewDiv.style.height = Math.max(0, (frameHeight - viewPad.top - viewPad.bottom)) + "px";
-			
 			var model = this._model;
+			var scroll = this._getScroll();
+			var viewPad = this._getViewPadding();
+			var lineCount = model.getLineCount();
 			var lineHeight = this._getLineHeight();
-			var scrollY = this._getScroll().y;
-			var firstLine = Math.max(0, scrollY) / lineHeight;
+			var firstLine = Math.max(0, scroll.y) / lineHeight;
 			var topIndex = Math.floor(firstLine);
 			var lineStart = Math.max(0, topIndex - 1);
 			var top = Math.round((firstLine - lineStart) * lineHeight);
-			var lineCount = model.getLineCount();
-			var clientHeight = this._getClientHeight();
-			var partialY = Math.round((firstLine - topIndex) * lineHeight);
-			var linesPerPage = Math.floor((clientHeight + partialY) / lineHeight);
-			var bottomIndex = Math.min(topIndex + linesPerPage, lineCount - 1);
-			var lineEnd = Math.min(bottomIndex + 1, lineCount - 1);
-			this._partialY = partialY;
-			
-			var lineIndex, lineWidth;
-			var child = clientDiv.firstChild;
-			while (child) {
-				lineIndex = child.lineIndex;
-				var nextChild = child.nextSibling;
-				if (!(lineStart <= lineIndex && lineIndex <= lineEnd) || child.lineChanged || child.lineIndex === -1) {
-					if (this._mouseWheelLine === child) {
-						child.style.display = "none";
-						child.lineIndex = -1;
+			var partialY = this._partialY = Math.round((firstLine - topIndex) * lineHeight);
+			var scrollWidth, scrollHeight = lineCount * lineHeight;
+			var leftWidth, clientWidth, clientHeight;
+			if (hScrollOnly) {
+				clientWidth = this._getClientWidth();
+				clientHeight = this._getClientHeight();
+				leftWidth = this._leftDiv ? this._leftDiv.scrollWidth : 0;
+				scrollWidth = Math.max(this._maxLineWidth, clientWidth);
+			} else {
+				var document = this._frameDocument;
+				var frameWidth = this._getFrameWidth();
+				var frameHeight = this._getFrameHeight();
+				document.body.style.width = frameWidth + "px";
+				document.body.style.height = frameHeight + "px";
+
+				
+				var viewDiv = this._viewDiv;
+				viewDiv.style.height = Math.max(0, (frameHeight - viewPad.top - viewPad.bottom)) + "px";
+				clientHeight = this._getClientHeight();
+				var linesPerPage = Math.floor((clientHeight + partialY) / lineHeight);
+				var bottomIndex = Math.min(topIndex + linesPerPage, lineCount - 1);
+				var lineEnd = Math.min(bottomIndex + 1, lineCount - 1);
+				
+				var lineIndex, lineWidth;
+				var child = clientDiv.firstChild;
+				while (child) {
+					lineIndex = child.lineIndex;
+					var nextChild = child.nextSibling;
+					if (!(lineStart <= lineIndex && lineIndex <= lineEnd) || child.lineRemoved || child.lineIndex === -1) {
+						if (this._mouseWheelLine === child) {
+							child.style.display = "none";
+							child.lineIndex = -1;
+						} else {
+							clientDiv.removeChild(child);
+						}
+					}
+					child = nextChild;
+				}
+	
+				child = this._getLineNext();
+				var frag = document.createDocumentFragment();
+				for (lineIndex=lineStart; lineIndex<=lineEnd; lineIndex++) {
+					if (!child || child.lineIndex > lineIndex) {
+						this._createLine(frag, null, document, lineIndex, model);
 					} else {
-						clientDiv.removeChild(child);
+						if (frag.firstChild) {
+							clientDiv.insertBefore(frag, child);
+							frag = document.createDocumentFragment();
+						}
+						if (child && child.lineChanged) {
+							child = this._createLine(frag, child, document, lineIndex, model);
+							child.lineChanged = false;
+						}
+						child = this._getLineNext(child);
 					}
 				}
-				child = nextChild;
-			}
-
-			child = this._getLineNext();
-			var frag = document.createDocumentFragment();
-			for (lineIndex=lineStart; lineIndex<=lineEnd; lineIndex++) {
-				if (!child || child.lineIndex > lineIndex) {
-					this._createLine(frag, null, document, lineIndex, model);
-				} else {
-					if (frag.firstChild) {
-						clientDiv.insertBefore(frag, child);
-						frag = document.createDocumentFragment();
-					}
-					child = this._getLineNext(child);
-				}
-			}
-			if (frag.firstChild) { clientDiv.insertBefore(frag, child); }
-
-			
+				if (frag.firstChild) { clientDiv.insertBefore(frag, child); }
+	
+				
 
 
 
@@ -7117,114 +8514,145 @@ orion.textview.TextView = (function() {
 
 
  
-			if (isWebkit) {
-				clientDiv.style.width = (0x7FFFF).toString() + "px";
-			}
-
-			var rect;
-			child = this._getLineNext();
-			while (child) {
-				lineWidth = child.lineWidth;
-				if (lineWidth === undefined) {
-					rect = this._getLineBoundingClientRect(child);
-					lineWidth = child.lineWidth = rect.right - rect.left;
+				if (isWebkit) {
+					clientDiv.style.width = (0x7FFFF).toString() + "px";
 				}
-				if (lineWidth >= this._maxLineWidth) {
-					this._maxLineWidth = lineWidth;
-					this._maxLineIndex = child.lineIndex;
-				}
-				if (child.lineIndex === topIndex) { this._topChild = child; }
-				if (child.lineIndex === bottomIndex) { this._bottomChild = child; }
-				if (this._checkMaxLineIndex === child.lineIndex) { this._checkMaxLineIndex = -1; }
-				child = this._getLineNext(child);
-			}
-			if (this._checkMaxLineIndex !== -1) {
-				lineIndex = this._checkMaxLineIndex;
-				this._checkMaxLineIndex = -1;
-				if (0 <= lineIndex && lineIndex < lineCount) {
-					var dummy = this._createLine(clientDiv, null, document, lineIndex, model);
-					rect = this._getLineBoundingClientRect(dummy);
-					lineWidth = rect.right - rect.left;
+	
+				var rect;
+				child = this._getLineNext();
+				while (child) {
+					lineWidth = child.lineWidth;
+					if (lineWidth === undefined) {
+						rect = this._getLineBoundingClientRect(child);
+						lineWidth = child.lineWidth = rect.right - rect.left;
+					}
 					if (lineWidth >= this._maxLineWidth) {
 						this._maxLineWidth = lineWidth;
-						this._maxLineIndex = lineIndex;
+						this._maxLineIndex = child.lineIndex;
 					}
-					clientDiv.removeChild(dummy);
+					if (child.lineIndex === topIndex) { this._topChild = child; }
+					if (child.lineIndex === bottomIndex) { this._bottomChild = child; }
+					if (this._checkMaxLineIndex === child.lineIndex) { this._checkMaxLineIndex = -1; }
+					child = this._getLineNext(child);
 				}
-			}
+				if (this._checkMaxLineIndex !== -1) {
+					lineIndex = this._checkMaxLineIndex;
+					this._checkMaxLineIndex = -1;
+					if (0 <= lineIndex && lineIndex < lineCount) {
+						var dummy = this._createLine(clientDiv, null, document, lineIndex, model);
+						rect = this._getLineBoundingClientRect(dummy);
+						lineWidth = rect.right - rect.left;
+						if (lineWidth >= this._maxLineWidth) {
+							this._maxLineWidth = lineWidth;
+							this._maxLineIndex = lineIndex;
+						}
+						clientDiv.removeChild(dummy);
+					}
+				}
+	
+				
+				this._updateRuler(this._leftDiv, topIndex, bottomIndex);
+				this._updateRuler(this._rightDiv, topIndex, bottomIndex);
+				
+				leftWidth = this._leftDiv ? this._leftDiv.scrollWidth : 0;
+				var rightWidth = this._rightDiv ? this._rightDiv.scrollWidth : 0;
+				viewDiv.style.left = leftWidth + "px";
+				viewDiv.style.width = Math.max(0, frameWidth - leftWidth - rightWidth - viewPad.left - viewPad.right) + "px";
+				if (this._rightDiv) {
+					this._rightDiv.style.left = (frameWidth - rightWidth) + "px"; 
+				}
+				
+				var scrollDiv = this._scrollDiv;
+				scrollDiv.style.height = scrollHeight + "px";
+				
 
-			
-			this._updateRuler(this._leftDiv, topIndex, bottomIndex);
-			this._updateRuler(this._rightDiv, topIndex, bottomIndex);
-			
-			var leftWidth = this._leftDiv ? this._leftDiv.scrollWidth : 0;
-			var rightWidth = this._rightDiv ? this._rightDiv.scrollWidth : 0;
-			viewDiv.style.left = leftWidth + "px";
-			viewDiv.style.width = Math.max(0, frameWidth - leftWidth - rightWidth - viewPad.left - viewPad.right) + "px";
-			if (this._rightDiv) {
-				this._rightDiv.style.left = (frameWidth - rightWidth) + "px"; 
-			}
-			
-			var scrollDiv = this._scrollDiv;
-			
-			var scrollHeight = lineCount * lineHeight;
-			scrollDiv.style.height = scrollHeight + "px";
-			
-			
-			
-			var clientWidth = this._getClientWidth();
-			var width = Math.max(this._maxLineWidth, clientWidth);
-			
 
 
 
-			var scrollWidth = width;
-			if (!isIE || isIE >= 9) { width += viewPad.right; }
-			scrollDiv.style.width = width + "px";
+				clientWidth = this._getClientWidth();
+				var width = Math.max(this._maxLineWidth, clientWidth);
+				
 
-			
-			var scroll = this._getScroll();
-			var left = scroll.x;
-			var clipLeft = left;
-			var clipTop = top;
-			var clipRight = left + clientWidth;
-			var clipBottom = top + clientHeight;
-			if (clipLeft === 0) { clipLeft -= viewPad.left; }
-			if (clipTop === 0) { clipTop -= viewPad.top; }
-			if (clipRight === scrollWidth) { clipRight += viewPad.right; }
-			if (scroll.y + clientHeight === scrollHeight) { clipBottom += viewPad.bottom; }
-			clientDiv.style.clip = "rect(" + clipTop + "px," + clipRight + "px," + clipBottom + "px," + clipLeft + "px)";
-			clientDiv.style.left = (-left + leftWidth + viewPad.left) + "px";
-			clientDiv.style.top = (-top + viewPad.top) + "px";
-			clientDiv.style.width = (isWebkit ? scrollWidth : clientWidth + left) + "px";
-			clientDiv.style.height = (clientHeight + top) + "px";
-			var overlayDiv = this._overlayDiv;
-			if (overlayDiv) {
-				overlayDiv.style.clip = clientDiv.style.clip;
-				overlayDiv.style.left = clientDiv.style.left;
-				overlayDiv.style.top = clientDiv.style.top;
-				overlayDiv.style.width = clientDiv.style.width;
-				overlayDiv.style.height = clientDiv.style.height;
-			}
-			function _updateRulerSize(divRuler) {
-				if (!divRuler) { return; }
+
+
+				scrollWidth = width;
+				if (!isIE || isIE >= 9) { width += viewPad.right; }
+				scrollDiv.style.width = width + "px";
+				if (this._clipScrollDiv) {
+					this._clipScrollDiv.style.width = width + "px";
+				}
+				
+				scroll = this._getScroll();
 				var rulerHeight = clientHeight + viewPad.top + viewPad.bottom;
-				var cells = divRuler.firstChild.rows[0].cells;
-				for (var i = 0; i < cells.length; i++) {
-					var div = cells[i].firstChild;
-					var offset = lineHeight;
-					if (div._ruler.getOverview() === "page") { offset += partialY; }
-					div.style.top = -offset + "px";
-					div.style.height = (rulerHeight + offset) + "px";
-					div = div.nextSibling;
-				}
-				divRuler.style.height = rulerHeight + "px";
+				this._updateRulerSize(this._leftDiv, rulerHeight);
+				this._updateRulerSize(this._rightDiv, rulerHeight);
 			}
-			_updateRulerSize(this._leftDiv);
-			_updateRulerSize(this._rightDiv);
-			if (isPad) {
-				var self = this;
-				setTimeout(function() {self._resizeTouchDiv();}, 0);
+			var left = scroll.x;	
+			var clipDiv = this._clipDiv;
+			var overlayDiv = this._overlayDiv;
+			var clipLeft, clipTop;
+			if (clipDiv) {
+				clipDiv.scrollLeft = left;			
+				clipLeft = leftWidth + viewPad.left;
+				clipTop = viewPad.top;
+				var clipWidth = clientWidth;
+				var clipHeight = clientHeight;
+				var clientLeft = 0, clientTop = -top;
+				if (scroll.x === 0) {
+					clipLeft -= viewPad.left;
+					clipWidth += viewPad.left;
+					clientLeft = viewPad.left;
+				} 
+				if (scroll.x + clientWidth === scrollWidth) {
+					clipWidth += viewPad.right;
+				}
+				if (scroll.y === 0) {
+					clipTop -= viewPad.top;
+					clipHeight += viewPad.top;
+					clientTop += viewPad.top;
+				}
+				if (scroll.y + clientHeight === scrollHeight) { 
+					clipHeight += viewPad.bottom; 
+				}
+				clipDiv.style.left = clipLeft + "px";
+				clipDiv.style.top = clipTop + "px";
+				clipDiv.style.width = clipWidth + "px";
+				clipDiv.style.height = clipHeight + "px";
+				clientDiv.style.left = clientLeft + "px";
+				clientDiv.style.top = clientTop + "px";
+				clientDiv.style.width = scrollWidth + "px";
+				clientDiv.style.height = (clientHeight + top) + "px";
+				if (overlayDiv) {
+					overlayDiv.style.left = clientDiv.style.left;
+					overlayDiv.style.top = clientDiv.style.top;
+					overlayDiv.style.width = clientDiv.style.width;
+					overlayDiv.style.height = clientDiv.style.height;
+				}
+			} else {
+				clipLeft = left;
+				clipTop = top;
+				var clipRight = left + clientWidth;
+				var clipBottom = top + clientHeight;
+				if (clipLeft === 0) { clipLeft -= viewPad.left; }
+				if (clipTop === 0) { clipTop -= viewPad.top; }
+				if (clipRight === scrollWidth) { clipRight += viewPad.right; }
+				if (scroll.y + clientHeight === scrollHeight) { clipBottom += viewPad.bottom; }
+				clientDiv.style.clip = "rect(" + clipTop + "px," + clipRight + "px," + clipBottom + "px," + clipLeft + "px)";
+				clientDiv.style.left = (-left + leftWidth + viewPad.left) + "px";
+				clientDiv.style.width = (isWebkit ? scrollWidth : clientWidth + left) + "px";
+				if (!hScrollOnly) {
+					clientDiv.style.top = (-top + viewPad.top) + "px";
+					clientDiv.style.height = (clientHeight + top) + "px";
+				}
+				if (overlayDiv) {
+					overlayDiv.style.clip = clientDiv.style.clip;
+					overlayDiv.style.left = clientDiv.style.left;
+					overlayDiv.style.width = clientDiv.style.width;
+					if (!hScrollOnly) {
+						overlayDiv.style.top = clientDiv.style.top;
+						overlayDiv.style.height = clientDiv.style.height;
+					}
+				}
 			}
 			this._updateDOMSelection();
 
@@ -7243,6 +8671,25 @@ orion.textview.TextView = (function() {
 					this._showCaret();
 				}
 			}
+			if (isPad) {
+				var self = this;
+				setTimeout(function() {self._resizeTouchDiv();}, 0);
+			}
+		},
+		_updateRulerSize: function (divRuler, rulerHeight) {
+			if (!divRuler) { return; }
+			var partialY = this._partialY;
+			var lineHeight = this._getLineHeight();
+			var cells = divRuler.firstChild.rows[0].cells;
+			for (var i = 0; i < cells.length; i++) {
+				var div = cells[i].firstChild;
+				var offset = lineHeight;
+				if (div._ruler.getOverview() === "page") { offset += partialY; }
+				div.style.top = -offset + "px";
+				div.style.height = (rulerHeight + offset) + "px";
+				div = div.nextSibling;
+			}
+			divRuler.style.height = rulerHeight + "px";
 		},
 		_updateRuler: function (divRuler, topIndex, bottomIndex) {
 			if (!divRuler) { return; }
@@ -7371,15 +8818,10 @@ orion.textview.TextView = (function() {
 			}
 		}
 	};
+	mEventTarget.EventTarget.addMixin(TextView.prototype);
 	
-	return TextView;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define(['orion/textview/textModel', 'orion/textview/keyBinding'], function() {
-		return orion.textview;
-	});
-}
+	return {TextView: TextView};
+}, "orion/textview");
 
 
 
@@ -7393,101 +8835,133 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
 
 
 
-var orion = orion || {};
-
-orion.editor = orion.editor || {};
+ 
 
 
+define([], function() {
 
-
-
-orion.editor.HtmlGrammar = (function() {
-	return {
-		
-
-
-
-
-		type: "grammar",
-		
-		
-
-
-
-
-		fileTypes: [ "html", "htm" ],
-		
-		
-
-
-
-
-		grammar: {
-			"name": "HTML",
-			"scopeName": "source.html",
-			"uuid": "3B5C76FB-EBB5-D930-F40C-047D082CE99B",
-			"patterns": [
-				
-				{
-					"match": "<!(doctype|DOCTYPE)[^>]+>",
-					"name": "entity.name.tag.doctype.html"
-				},
-				{
-					"begin": "<!--",
-					"end": "-->",
-					"beginCaptures": {
-						"0": { "name": "punctuation.definition.comment.html" }
-					},
-					"endCaptures": {
-						"0": { "name": "punctuation.definition.comment.html" }
-					},
-					"patterns": [
-						{
-							"match": "--",
-							"name": "invalid.illegal.badcomment.html"
+	function TextDND(view, undoStack) {
+		this._view = view;
+		this._undoStack = undoStack;
+		this._dragSelection = null;
+		this._dropOffset = -1;
+		this._dropText = null;
+		var self = this;
+		this._listener = {
+			onDragStart: function (evt) {
+				self._onDragStart(evt);
+			},
+			onDragEnd: function (evt) {
+				self._onDragEnd(evt);
+			},
+			onDragEnter: function (evt) {
+				self._onDragEnter(evt);
+			},
+			onDragOver: function (evt) {
+				self._onDragOver(evt);
+			},
+			onDrop: function (evt) {
+				self._onDrop(evt);
+			},
+			onDestroy: function (evt) {
+				self._onDestroy(evt);
+			}
+		};
+		view.addEventListener("DragStart", this._listener.onDragStart);
+		view.addEventListener("DragEnd", this._listener.onDragEnd);
+		view.addEventListener("DragEnter", this._listener.onDragEnter);
+		view.addEventListener("DragOver", this._listener.onDragOver);
+		view.addEventListener("Drop", this._listener.onDrop);
+		view.addEventListener("Destroy", this._listener.onDestroy);
+	}
+	TextDND.prototype = {
+		destroy: function() {
+			var view = this._view;
+			if (!view) { return; }
+			view.removeEventListener("DragStart", this._listener.onDragStart);
+			view.removeEventListener("DragEnd", this._listener.onDragEnd);
+			view.removeEventListener("DragEnter", this._listener.onDragEnter);
+			view.removeEventListener("DragOver", this._listener.onDragOver);
+			view.removeEventListener("Drop", this._listener.onDrop);
+			view.removeEventListener("Destroy", this._listener.onDestroy);
+			this._view = null;
+		},
+		_onDestroy: function(e) {
+			this.destroy();
+		},
+		_onDragStart: function(e) {
+			var view = this._view;
+			var selection = view.getSelection();
+			var model = view.getModel();
+			if (model.getBaseModel) {
+				selection.start = model.mapOffset(selection.start);
+				selection.end = model.mapOffset(selection.end);
+				model = model.getBaseModel();
+			}
+			var text = model.getText(selection.start, selection.end);
+			if (text) {
+				this._dragSelection = selection;
+				e.event.dataTransfer.effectAllowed = "copyMove";
+				e.event.dataTransfer.setData("Text", text);
+			}
+		},
+		_onDragEnd: function(e) {
+			var view = this._view;
+			if (this._dragSelection) {
+				if (this._undoStack) { this._undoStack.startCompoundChange(); }
+				var move = e.event.dataTransfer.dropEffect === "move";
+				if (move) {
+					view.setText("", this._dragSelection.start, this._dragSelection.end);
+				}
+				if (this._dropText) {
+					var text = this._dropText;
+					var offset = this._dropOffset;
+					if (move) {
+						if (offset >= this._dragSelection.end) {
+							offset -= this._dragSelection.end - this._dragSelection.start;
+						} else if (offset >= this._dragSelection.start) {
+							offset = this._dragSelection.start;
 						}
-					],
-					"contentName": "comment.block.html"
-				},
-				{ 
-					"match": "<[A-Za-z0-9_\\-:]+(?= ?)",
-					"name": "entity.name.tag.html"
-				},
-				{ "include": "#attrName" },
-				{ "include": "#qString" },
-				{ "include": "#qqString" },
-				
-				{ 
-					"match": "</[A-Za-z0-9_\\-:]+>",
-					"name": "entity.name.tag.html"
-				},
-				{ 
-					"match": ">", 
-					"name": "entity.name.tag.html"
-				} ],
-			"repository": {
-				"attrName": { 
-					"match": "[A-Za-z\\-:]+(?=\\s*=\\s*['\"])",
-					"name": "entity.other.attribute.name.html"
-				},
-				"qqString": { 
-					"match": "(\")[^\"]+(\")",
-					"name": "string.quoted.double.html"
-				},
-				"qString": { 
-					"match": "(')[^']+(\')",
-					"name": "string.quoted.single.html"
+					}
+					view.setText(text, offset, offset);
+					view.setSelection(offset, offset + text.length);
+					this._dropText = null;
+					this._dropOffset = -1;
+				}
+				if (this._undoStack) { this._undoStack.endCompoundChange(); }
+			}
+			this._dragSelection = null;
+		},
+		_onDragEnter: function(e) {
+			this._onDragOver(e);
+		},
+		_onDragOver: function(e) {
+			var types = e.event.dataTransfer.types;
+			if (types) {
+				var allowed = types.contains ? types.contains("text/plain") : types.indexOf("text/plain") !== -1;
+				if (!allowed) {
+					e.event.dataTransfer.dropEffect = "none";
+				}
+			}
+		},
+		_onDrop: function(e) {
+			var view = this._view;
+			var text = e.event.dataTransfer.getData("Text");
+			if (text) {
+				var offset = view.getOffsetAtLocation(e.x, e.y);
+				if (this._dragSelection) {
+					this._dropOffset = offset;
+					this._dropText = text;
+				} else {
+					view.setText(text, offset, offset);
+					view.setSelection(offset, offset + text.length);
 				}
 			}
 		}
 	};
-}());
 
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return orion.editor;
-	});
-}
+	return {TextDND: TextDND};
+}, "orion/textview");
 
 
 
@@ -7501,83 +8975,113 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
 
 
 
-var orion = orion || {};
-orion.editor = orion.editor || {};
+define([], function() {
 
-
-
-
-
-
-
-orion.editor.AbstractStyler = (function() {
 	
-	function AbstractStyler() {
-	}
-	AbstractStyler.prototype =  {
-		
 
 
 
-
-		initialize: function(textView) {
-			this.textView = textView;
+	function HtmlGrammar() {
+		return {
 			
-			textView.addEventListener("Selection", this, this._onSelection);
-			textView.addEventListener("ModelChanged", this, this._onModelChanged);
-			textView.addEventListener("Destroy", this, this._onDestroy);
-			textView.addEventListener("LineStyle", this, this._onLineStyle);
-			textView.redrawLines();
-		},
-		
-		destroy: function() {
-			if (this.textView) {
-				this.textView.removeEventListener("Selection", this, this._onSelection);
-				this.textView.removeEventListener("ModelChanged", this, this._onModelChanged);
-				this.textView.removeEventListener("Destroy", this, this._onDestroy);
-				this.textView.removeEventListener("LineStyle", this, this._onLineStyle);
-				this.textView = null;
+
+
+
+
+			type: "grammar",
+			
+			
+
+
+
+
+			fileTypes: [ "html", "htm" ],
+			
+			
+
+
+
+
+			grammar: {
+				"name": "HTML",
+				"scopeName": "source.html",
+				"uuid": "3B5C76FB-EBB5-D930-F40C-047D082CE99B",
+				"patterns": [
+					
+					{
+						"match": "<!(doctype|DOCTYPE)[^>]+>",
+						"name": "entity.name.tag.doctype.html"
+					},
+					{
+						"begin": "<!--",
+						"end": "-->",
+						"beginCaptures": {
+							"0": { "name": "punctuation.definition.comment.html" }
+						},
+						"endCaptures": {
+							"0": { "name": "punctuation.definition.comment.html" }
+						},
+						"patterns": [
+							{
+								"match": "--",
+								"name": "invalid.illegal.badcomment.html"
+							}
+						],
+						"contentName": "comment.block.html"
+					},
+					{ 
+						"match": "<[A-Za-z0-9_\\-:]+(?= ?)",
+						"name": "entity.name.tag.html"
+					},
+					{ "include": "#attrName" },
+					{ "include": "#qString" },
+					{ "include": "#qqString" },
+					
+					{ 
+						"match": "</[A-Za-z0-9_\\-:]+>",
+						"name": "entity.name.tag.html"
+					},
+					{ 
+						"match": ">", 
+						"name": "entity.name.tag.html"
+					} ],
+				"repository": {
+					"attrName": { 
+						"match": "[A-Za-z\\-:]+(?=\\s*=\\s*['\"])",
+						"name": "entity.other.attribute.name.html"
+					},
+					"qqString": { 
+						"match": "(\")[^\"]+(\")",
+						"name": "string.quoted.double.html"
+					},
+					"qString": { 
+						"match": "(')[^']+(\')",
+						"name": "string.quoted.single.html"
+					}
+				}
 			}
-		},
-		
-
-
-		_onSelection: function( selectionEvent) {},
-		
-
-
-		_onModelChanged: function( modelChangedEvent) {},
-		
-
-
-		_onDestroy: function( destroyEvent) {},
-		
-
-
-		_onLineStyle: function( lineStyleEvent) {}
-	};
-	
-	return AbstractStyler;
-}());
-
-
-
-
-
-
-
-
-
-orion.editor.AbstractStyler.extend = function(subCtor, proto) {
-	if (typeof(subCtor) !== "function") { throw new Error("Function expected"); }
-	subCtor.prototype = new orion.editor.AbstractStyler();
-	subCtor.constructor = subCtor;
-	for (var p in proto) {
-		if (proto.hasOwnProperty(p)) { subCtor.prototype[p] = proto[p]; }
+		};
 	}
-};
 
-orion.editor.RegexUtil = {
+	return {HtmlGrammar: HtmlGrammar};
+}, "orion/editor");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define(['orion/editor/regex'], function(mRegex) {
+
+var RegexUtil = {
 	
 	unsupported: [
 		{regex: /\(\?[ims\-]:/, func: function(match) { return "option on/off for subexp"; }},
@@ -7639,12 +9143,12 @@ orion.editor.RegexUtil = {
 		var i;
 		
 		
-		str = orion.editor.RegexUtil.processGlobalFlag("x", str, function(subexp) {
+		str = RegexUtil.processGlobalFlag("x", str, function(subexp) {
 				return normalize(subexp);
 			});
 		
 		
-		str = orion.editor.RegexUtil.processGlobalFlag("i", str, function(subexp) {
+		str = RegexUtil.processGlobalFlag("i", str, function(subexp) {
 				flags += "i";
 				return subexp;
 			});
@@ -7716,17 +9220,12 @@ orion.editor.RegexUtil = {
 			var backrefMatch = /\\(\d+)/.exec(term);
 			if (backrefMatch) {
 				var text = sub[backrefMatch[1]] || "";
-				array.push(escape ? orion.editor.RegexUtil.escapeRegex(text) : text);
+				array.push(escape ? mRegex.escape(text) : text);
 			} else {
 				array.push(term);
 			}
 		}
 		return new RegExp(array.join(""));
-	},
-	
-	
-	escapeRegex: function( str) {
-		return str.replace(/([\\$\^*\/+?\.\(\)|{}\[\]])/g, "\\$&");
 	},
 	
 	
@@ -7904,73 +9403,71 @@ orion.editor.RegexUtil = {
 	}
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-orion.editor.TextMateStyler = (function() {
 	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	function TextMateStyler(textView, grammar, externalGrammars) {
 		this.initialize(textView);
 		
@@ -7982,7 +9479,41 @@ orion.editor.TextMateStyler = (function() {
 		this._allGrammars = {}; 
 		this.preprocess(this.grammar);
 	}
-	orion.editor.AbstractStyler.extend(TextMateStyler,  {
+	TextMateStyler.prototype =  {
+		initialize: function(textView) {
+			this.textView = textView;
+			var self = this;
+			this._listener = {
+				onModelChanged: function(e) {
+					self.onModelChanged(e);
+				},
+				onDestroy: function(e) {
+					self.onDestroy(e);
+				},
+				onLineStyle: function(e) {
+					self.onLineStyle(e);
+				}
+			};
+			textView.addEventListener("ModelChanged", this._listener.onModelChanged);
+			textView.addEventListener("Destroy", this._listener.onDestroy);
+			textView.addEventListener("LineStyle", this._listener.onLineStyle);
+			textView.redrawLines();
+		},
+		onDestroy: function( e) {
+			this.destroy();
+		},
+		destroy: function() {
+			if (this.textView) {
+				this.textView.removeEventListener("ModelChanged", this._listener.onModelChanged);
+				this.textView.removeEventListener("Destroy", this._listener.onDestroy);
+				this.textView.removeEventListener("LineStyle", this._listener.onLineStyle);
+				this.textView = null;
+			}
+			this.grammar = null;
+			this._styles = null;
+			this._tree = null;
+			this._listener = null;
+		},
 		
 		copy: function(obj) {
 			return JSON.parse(JSON.stringify(obj));
@@ -8066,23 +9597,23 @@ orion.editor.TextMateStyler = (function() {
 			function BeginEndRule( rule) {
 				this.rule = rule;
 				
-				this.beginRegex = orion.editor.RegexUtil.toRegExp(rule.begin);
-				this.endRegex = orion.editor.RegexUtil.toRegExp(rule.end);
+				this.beginRegex = RegexUtil.toRegExp(rule.begin);
+				this.endRegex = RegexUtil.toRegExp(rule.end);
 				this.subrules = rule.patterns || [];
 				
-				this.endRegexHasBackRef = orion.editor.RegexUtil.hasBackReference(this.endRegex);
+				this.endRegexHasBackRef = RegexUtil.hasBackReference(this.endRegex);
 				
 				
-				var complexCaptures = orion.editor.RegexUtil.complexCaptures(rule.captures);
-				var complexBeginEnd = orion.editor.RegexUtil.complexCaptures(rule.beginCaptures) || orion.editor.RegexUtil.complexCaptures(rule.endCaptures);
+				var complexCaptures = RegexUtil.complexCaptures(rule.captures);
+				var complexBeginEnd = RegexUtil.complexCaptures(rule.beginCaptures) || RegexUtil.complexCaptures(rule.endCaptures);
 				this.isComplex = complexCaptures || complexBeginEnd;
 				if (this.isComplex) {
-					var bg = orion.editor.RegexUtil.groupify(this.beginRegex);
+					var bg = RegexUtil.groupify(this.beginRegex);
 					this.beginRegex = bg[0];
 					this.beginOld2New = bg[1];
 					this.beginConsuming = bg[2];
 					
-					var eg = orion.editor.RegexUtil.groupify(this.endRegex, this.beginOld2New );
+					var eg = RegexUtil.groupify(this.endRegex, this.beginOld2New );
 					this.endRegex = eg[0];
 					this.endOld2New = eg[1];
 					this.endConsuming = eg[2];
@@ -8098,10 +9629,10 @@ orion.editor.TextMateStyler = (function() {
 		MatchRule: (function() {
 			function MatchRule( rule) {
 				this.rule = rule;
-				this.matchRegex = orion.editor.RegexUtil.toRegExp(rule.match);
-				this.isComplex = orion.editor.RegexUtil.complexCaptures(rule.captures);
+				this.matchRegex = RegexUtil.toRegExp(rule.match);
+				this.isComplex = RegexUtil.complexCaptures(rule.captures);
 				if (this.isComplex) {
-					var mg = orion.editor.RegexUtil.groupify(this.matchRegex);
+					var mg = RegexUtil.groupify(this.matchRegex);
 					this.matchRegex = mg[0];
 					this.matchOld2New = mg[1];
 					this.matchConsuming = mg[2];
@@ -8192,7 +9723,7 @@ orion.editor.TextMateStyler = (function() {
 				
 				
 				if (rule.endRegexHasBackRef) {
-					this.endRegexSubstituted = orion.editor.RegexUtil.getSubstitutedRegex(rule.endRegex, beginMatch);
+					this.endRegexSubstituted = RegexUtil.getSubstitutedRegex(rule.endRegex, beginMatch);
 				} else {
 					this.endRegexSubstituted = null;
 				}
@@ -8284,7 +9815,7 @@ orion.editor.TextMateStyler = (function() {
 			this._tree = root;
 			this.parse(this._tree, false, 0);
 		},
-		_onModelChanged: function( e) {
+		onModelChanged: function( e) {
 			var addedCharCount = e.addedCharCount,
 			    addedLineCount = e.addedLineCount,
 			    removedCharCount = e.removedCharCount,
@@ -8684,7 +10215,7 @@ orion.editor.TextMateStyler = (function() {
 				node.parent.children.length = node.getIndexInParent() + 1;
 			}
 		},
-		_onLineStyle: function( e) {
+		onLineStyle: function( e) {
 			function byStart(r1, r2) {
 				return r1.start - r2.start;
 			}
@@ -8702,7 +10233,7 @@ orion.editor.TextMateStyler = (function() {
 			
 			var scopes = this.getLineScope(model, node, lineStart, lineEnd);
 			e.ranges = this.toStyleRanges(scopes);
-
+			
 			e.ranges.sort(byStart);
 		},
 		
@@ -8866,13 +10397,6 @@ orion.editor.TextMateStyler = (function() {
 			}
 			return result.reverse();
 		},
-		_onSelection: function(e) {
-		},
-		_onDestroy: function( e) {
-			this.grammar = null;
-			this._styles = null;
-			this._tree = null;
-		},
 		
 
 
@@ -8890,15 +10414,13 @@ orion.editor.TextMateStyler = (function() {
 			}
 			return styleRanges;
 		}
-	});
-	return TextMateStyler;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return orion.editor;
-	});
-}
+	};
+	
+	return {
+		RegexUtil: RegexUtil,
+		TextMateStyler: TextMateStyler
+	};
+}, "orion/editor");
 
 
 
@@ -8912,10 +10434,7 @@ if (typeof window !== "undefined" && typeof window.define !== "undefined") {
 
 
 
-var examples = examples || {};
-examples.textview = examples.textview || {};
-
-examples.textview.TextStyler = (function() {
+define(['orion/textview/annotations'], function(mAnnotations) {
 
 	var JS_KEYWORDS =
 		["break",
@@ -8988,7 +10507,6 @@ examples.textview.TextStyler = (function() {
 	var TASK_TAG = 12;
 
 	
-	var isIE = document.selection && window.ActiveXObject && /MSIE/.test(navigator.userAgent) ? document.documentMode : undefined;
 	var singleCommentStyle = {styleClass: "token_singleline_comment"};
 	var multiCommentStyle = {styleClass: "token_multiline_comment"};
 	var docCommentStyle = {styleClass: "token_doc_comment"};
@@ -8999,88 +10517,87 @@ examples.textview.TextStyler = (function() {
 	var keywordStyle = {styleClass: "token_keyword"};
 	var spaceStyle = {styleClass: "token_space"};
 	var tabStyle = {styleClass: "token_tab"};
-	var bracketStyle = {styleClass: isIE < 9 ? "token_bracket" : "token_bracket_outline"};
 	var caretLineStyle = {styleClass: "line_caret"};
 	
-	var Scanner = (function() {
-		function Scanner (keywords, whitespacesVisible) {
-			this.keywords = keywords;
-			this.whitespacesVisible = whitespacesVisible;
-			this.setText("");
-		}
-		
-		Scanner.prototype = {
-			getOffset: function() {
-				return this.offset;
-			},
-			getStartOffset: function() {
-				return this.startOffset;
-			},
-			getData: function() {
-				return this.text.substring(this.startOffset, this.offset);
-			},
-			getDataLength: function() {
-				return this.offset - this.startOffset;
-			},
-			_default: function(c) {
-				var keywords = this.keywords;
-				switch (c) {
-					case 32: 
-					case 9: 
-						if (this.whitespacesVisible) {
-							return c === 32 ? WHITE_SPACE : WHITE_TAB;
-						}
+	function Scanner (keywords, whitespacesVisible) {
+		this.keywords = keywords;
+		this.whitespacesVisible = whitespacesVisible;
+		this.setText("");
+	}
+	
+	Scanner.prototype = {
+		getOffset: function() {
+			return this.offset;
+		},
+		getStartOffset: function() {
+			return this.startOffset;
+		},
+		getData: function() {
+			return this.text.substring(this.startOffset, this.offset);
+		},
+		getDataLength: function() {
+			return this.offset - this.startOffset;
+		},
+		_default: function(c) {
+			var keywords = this.keywords;
+			switch (c) {
+				case 32: 
+				case 9: 
+					if (this.whitespacesVisible) {
+						return c === 32 ? WHITE_SPACE : WHITE_TAB;
+					}
+					do {
+						c = this._read();
+					} while(c === 32 || c === 9);
+					this._unread(c);
+					return WHITE;
+				case 123: 
+				case 125: 
+				case 40: 
+				case 41: 
+				case 91: 
+				case 93: 
+				case 60: 
+				case 62: 
+					
+					return c;
+				default:
+					var isCSS = this.isCSS;
+					if ((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57) || (0x2d === c && isCSS)) { 
+						var off = this.offset - 1;
 						do {
 							c = this._read();
-						} while(c === 32 || c === 9);
+						} while((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57) || (0x2d === c && isCSS));  
 						this._unread(c);
-						return WHITE;
-					case 123: 
-					case 125: 
-					case 40: 
-					case 41: 
-					case 91: 
-					case 93: 
-					case 60: 
-					case 62: 
-						
-						return c;
-					default:
-						var isCSS = this.isCSS;
-						if ((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57) || (0x2d === c && isCSS)) { 
-							var off = this.offset - 1;
-							do {
-								c = this._read();
-							} while((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57) || (0x2d === c && isCSS));  
-							this._unread(c);
-							if (keywords.length > 0) {
-								var word = this.text.substring(off, this.offset);
-								
-								for (var i=0; i<keywords.length; i++) {
-									if (this.keywords[i] === word) { return KEYWORD; }
-								}
+						if (keywords.length > 0) {
+							var word = this.text.substring(off, this.offset);
+							
+							for (var i=0; i<keywords.length; i++) {
+								if (this.keywords[i] === word) { return KEYWORD; }
 							}
 						}
-						return UNKOWN;
-				}
-			},
-			_read: function() {
-				if (this.offset < this.text.length) {
-					return this.text.charCodeAt(this.offset++);
-				}
-				return -1;
-			},
-			_unread: function(c) {
-				if (c !== -1) { this.offset--; }
-			},
-			nextToken: function() {
-				this.startOffset = this.offset;
-				while (true) {
-					var c = this._read();
-					switch (c) {
-						case -1: return null;
-						case 47:	
-							c = this._read();
+					}
+					return UNKOWN;
+			}
+		},
+		_read: function() {
+			if (this.offset < this.text.length) {
+				return this.text.charCodeAt(this.offset++);
+			}
+			return -1;
+		},
+		_unread: function(c) {
+			if (c !== -1) { this.offset--; }
+		},
+		nextToken: function() {
+			this.startOffset = this.offset;
+			while (true) {
+				var c = this._read();
+				switch (c) {
+					case -1: return null;
+					case 47:	
+						c = this._read();
+						if (!this.isCSS) {
 							if (c === 47) { 
 								while (true) {
 									c = this._read();
@@ -9090,201 +10607,188 @@ examples.textview.TextStyler = (function() {
 									}
 								}
 							}
-							if (c === 42) { 
-								c = this._read();
-								var token = MULTILINE_COMMENT;
-								if (c === 42) {
-									token = DOC_COMMENT;
-								}
-								while (true) {
-									while (c === 42) {
-										c = this._read();
-										if (c === 47) {
-											return token;
-										}
-									}
-									if (c === -1) {
-										this._unread(c);
+						}
+						if (c === 42) { 
+							c = this._read();
+							var token = MULTILINE_COMMENT;
+							if (c === 42) {
+								token = DOC_COMMENT;
+							}
+							while (true) {
+								while (c === 42) {
+									c = this._read();
+									if (c === 47) {
 										return token;
 									}
+								}
+								if (c === -1) {
+									this._unread(c);
+									return token;
+								}
+								c = this._read();
+							}
+						}
+						this._unread(c);
+						return UNKOWN;
+					case 39:	
+						while(true) {
+							c = this._read();
+							switch (c) {
+								case 39:
+									return STRING;
+								case 13:
+								case 10:
+								case -1:
+									this._unread(c);
+									return STRING;
+								case 92: 
 									c = this._read();
-								}
+									break;
 							}
-							this._unread(c);
-							return UNKOWN;
-						case 39:	
-							while(true) {
-								c = this._read();
-								switch (c) {
-									case 39:
-										return STRING;
-									case 13:
-									case 10:
-									case -1:
-										this._unread(c);
-										return STRING;
-									case 92: 
-										c = this._read();
-										break;
-								}
+						}
+						break;
+					case 34:	
+						while(true) {
+							c = this._read();
+							switch (c) {
+								case 34: 
+									return STRING;
+								case 13:
+								case 10:
+								case -1:
+									this._unread(c);
+									return STRING;
+								case 92: 
+									c = this._read();
+									break;
 							}
-							break;
-						case 34:	
-							while(true) {
-								c = this._read();
-								switch (c) {
-									case 34: 
-										return STRING;
-									case 13:
-									case 10:
-									case -1:
-										this._unread(c);
-										return STRING;
-									case 92: 
-										c = this._read();
-										break;
-								}
-							}
-							break;
-						default:
-							return this._default(c);
-					}
-				}
-			},
-			setText: function(text) {
-				this.text = text;
-				this.offset = 0;
-				this.startOffset = 0;
-			}
-		};
-		return Scanner;
-	}());
-	
-	var WhitespaceScanner = (function() {
-		function WhitespaceScanner () {
-			Scanner.call(this, null, true);
-		}
-		WhitespaceScanner.prototype = new Scanner(null);
-		WhitespaceScanner.prototype.nextToken = function() {
-			this.startOffset = this.offset;
-			while (true) {
-				var c = this._read();
-				switch (c) {
-					case -1: return null;
-					case 32: 
-						return WHITE_SPACE;
-					case 9: 
-						return WHITE_TAB;
+						}
+						break;
 					default:
-						do {
-							c = this._read();
-						} while(!(c === 32 || c === 9 || c === -1));
-						this._unread(c);
-						return UNKOWN;
+						return this._default(c);
 				}
 			}
-		};
-		
-		return WhitespaceScanner;
-	}());
-	
-	var CommentScanner = (function() {
-		function CommentScanner (whitespacesVisible) {
-			Scanner.call(this, null, whitespacesVisible);
+		},
+		setText: function(text) {
+			this.text = text;
+			this.offset = 0;
+			this.startOffset = 0;
 		}
-		CommentScanner.prototype = new Scanner(null);
-		CommentScanner.prototype.setType = function(type) {
-			this._type = type;
-		};
-		CommentScanner.prototype.nextToken = function() {
-			this.startOffset = this.offset;
-			while (true) {
-				var c = this._read();
-				switch (c) {
-					case -1: return null;
-					case 32: 
-					case 9: 
-						if (this.whitespacesVisible) {
-							return c === 32 ? WHITE_SPACE : WHITE_TAB;
-						}
+	};
+	
+	function WhitespaceScanner () {
+		Scanner.call(this, null, true);
+	}
+	WhitespaceScanner.prototype = new Scanner(null);
+	WhitespaceScanner.prototype.nextToken = function() {
+		this.startOffset = this.offset;
+		while (true) {
+			var c = this._read();
+			switch (c) {
+				case -1: return null;
+				case 32: 
+					return WHITE_SPACE;
+				case 9: 
+					return WHITE_TAB;
+				default:
+					do {
+						c = this._read();
+					} while(!(c === 32 || c === 9 || c === -1));
+					this._unread(c);
+					return UNKOWN;
+			}
+		}
+	};
+	
+	function CommentScanner (whitespacesVisible) {
+		Scanner.call(this, null, whitespacesVisible);
+	}
+	CommentScanner.prototype = new Scanner(null);
+	CommentScanner.prototype.setType = function(type) {
+		this._type = type;
+	};
+	CommentScanner.prototype.nextToken = function() {
+		this.startOffset = this.offset;
+		while (true) {
+			var c = this._read();
+			switch (c) {
+				case -1: return null;
+				case 32: 
+				case 9: 
+					if (this.whitespacesVisible) {
+						return c === 32 ? WHITE_SPACE : WHITE_TAB;
+					}
+					do {
+						c = this._read();
+					} while(c === 32 || c === 9);
+					this._unread(c);
+					return WHITE;
+				case 60: 
+					if (this._type === DOC_COMMENT) {
 						do {
 							c = this._read();
-						} while(c === 32 || c === 9);
+						} while(!(c === 62 || c === -1)); 
+						if (c === 62) {
+							return HTML_MARKUP;
+						}
+					}
+					return UNKOWN;
+				case 64: 
+					if (this._type === DOC_COMMENT) {
+						do {
+							c = this._read();
+						} while((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57));  
 						this._unread(c);
-						return WHITE;
-					case 60: 
-						if (this._type === DOC_COMMENT) {
-							do {
+						return DOC_TAG;
+					}
+					return UNKOWN;
+				case 84: 
+					if ((c = this._read()) === 79) { 
+						if ((c = this._read()) === 68) { 
+							if ((c = this._read()) === 79) { 
 								c = this._read();
-							} while(!(c === 62 || c === -1)); 
-							if (c === 62) {
-								return HTML_MARKUP;
-							}
-						}
-						return UNKOWN;
-					case 64: 
-						if (this._type === DOC_COMMENT) {
-							do {
-								c = this._read();
-							} while((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57));  
-							this._unread(c);
-							return DOC_TAG;
-						}
-						return UNKOWN;
-					case 84: 
-						if ((c = this._read()) === 79) { 
-							if ((c = this._read()) === 68) { 
-								if ((c = this._read()) === 79) { 
-									c = this._read();
-									if (!((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57))) {
-										this._unread(c);
-										return TASK_TAG;
-									}
+								if (!((97 <= c && c <= 122) || (65 <= c && c <= 90) || c === 95 || (48 <= c && c <= 57))) {
 									this._unread(c);
-								} else {
-									this._unread(c);
+									return TASK_TAG;
 								}
+								this._unread(c);
 							} else {
 								this._unread(c);
 							}
 						} else {
 							this._unread(c);
 						}
-						
-					default:
-						do {
-							c = this._read();
-						} while(!(c === 32 || c === 9 || c === -1 || c === 60 || c === 64 || c === 84));
+					} else {
 						this._unread(c);
-						return UNKOWN;
-				}
+					}
+					
+				default:
+					do {
+						c = this._read();
+					} while(!(c === 32 || c === 9 || c === -1 || c === 60 || c === 64 || c === 84));
+					this._unread(c);
+					return UNKOWN;
 			}
-		};
-		
-		return CommentScanner;
-	}());
-	
-	var FirstScanner = (function() {
-		function FirstScanner () {
-			Scanner.call(this, null, false);
 		}
-		FirstScanner.prototype = new Scanner(null);
-		FirstScanner.prototype._default = function(c) {
-			while(true) {
-				c = this._read();
-				switch (c) {
-					case 47: 
-					case 34: 
-					case 39: 
-					case -1:
-						this._unread(c);
-						return UNKOWN;
-				}
+	};
+	
+	function FirstScanner () {
+		Scanner.call(this, null, false);
+	}
+	FirstScanner.prototype = new Scanner(null);
+	FirstScanner.prototype._default = function(c) {
+		while(true) {
+			c = this._read();
+			switch (c) {
+				case 47: 
+				case 34: 
+				case 39: 
+				case -1:
+					this._unread(c);
+					return UNKOWN;
 			}
-		};
-		
-		return FirstScanner;
-	}());
+		}
+	};
 	
 	function TextStyler (view, lang, annotationModel) {
 		this.commentStart = "/*";
@@ -9297,38 +10801,47 @@ examples.textview.TextStyler = (function() {
 		}
 		this.whitespacesVisible = false;
 		this.detectHyperlinks = true;
-		this.highlightCaretLine = true;
+		this.highlightCaretLine = false;
 		this.foldingEnabled = true;
 		this.detectTasks = true;
 		this._scanner = new Scanner(keywords, this.whitespacesVisible);
-		
-		if (lang === "css") {
-			this._scanner.isCSS = true;
-		}
 		this._firstScanner = new FirstScanner();
 		this._commentScanner = new CommentScanner(this.whitespacesVisible);
 		this._whitespaceScanner = new WhitespaceScanner();
+		
+		if (lang === "css") {
+			this._scanner.isCSS = true;
+			this._firstScanner.isCSS = true;
+		}
 		this.view = view;
 		this.annotationModel = annotationModel;
-		this._currentBracket = undefined; 
-		this._matchingBracket = undefined;
+		this._bracketAnnotations = undefined; 
 		
-		view.addEventListener("Selection", this, this._onSelection);
+		var self = this;
+		this._listener = {
+			onChanged: function(e) {
+				self._onModelChanged(e);
+			},
+			onDestroy: function(e) {
+				self._onDestroy(e);
+			},
+			onLineStyle: function(e) {
+				self._onLineStyle(e);
+			},
+			onSelection: function(e) {
+				self._onSelection(e);
+			}
+		};
 		var model = view.getModel();
 		if (model.getBaseModel) {
-			var self = this;
-			this._baseModelListener = {
-				onChanged: function(modelChangedEvent) {
-					self._onModelChanged(modelChangedEvent);
-				}
-			};
-			model.getBaseModel().addListener(this._baseModelListener);
+			model.getBaseModel().addEventListener("Changed", this._listener.onChanged);
 		} else {
 			
-			view.addEventListener("ModelChanged", this, this._onModelChanged);
+			view.addEventListener("ModelChanged", this._listener.onChanged);
 		}
-		view.addEventListener("Destroy", this, this._onDestroy);
-		view.addEventListener("LineStyle", this, this._onLineStyle);
+		view.addEventListener("Selection", this._listener.onSelection);
+		view.addEventListener("Destroy", this._listener.onDestroy);
+		view.addEventListener("LineStyle", this._listener.onLineStyle);
 		this._computeComments ();
 		this._computeFolding();
 		view.redrawLines();
@@ -9340,13 +10853,13 @@ examples.textview.TextStyler = (function() {
 			if (view) {
 				var model = view.getModel();
 				if (model.getBaseModel) {
-					model.getBaseModel().removeListener(this._baseModelListener);
+					model.getBaseModel().removeEventListener("Changed", this._listener.onChanged);
 				} else {
-					view.removeEventListener("ModelChanged", this, this._onModelChanged);
+					view.removeEventListener("ModelChanged", this._listener.onChanged);
 				}
-				view.removeEventListener("Selection", this, this._onSelection);
-				view.removeEventListener("Destroy", this, this._onDestroy);
-				view.removeEventListener("LineStyle", this, this._onLineStyle);
+				view.removeEventListener("Selection", this._listener.onSelection);
+				view.removeEventListener("Destroy", this._listener.onDestroy);
+				view.removeEventListener("LineStyle", this._listener.onLineStyle);
 				this.view = null;
 			}
 		},
@@ -9415,7 +10928,7 @@ examples.textview.TextStyler = (function() {
 			if (startLine === endLine) {
 				return null;
 			}
-			return new orion.textview.FoldingAnnotation(viewModel, "orion.annotation.folding", start, end,
+			return new mAnnotations.FoldingAnnotation(viewModel, "orion.annotation.folding", start, end,
 				"<div class='annotationHTML expanded'></div>", {styleClass: "annotation expanded"}, 
 				"<div class='annotationHTML collapsed'></div>", {styleClass: "annotation collapsed"});
 		},
@@ -9428,8 +10941,12 @@ examples.textview.TextStyler = (function() {
 			if (viewModel.getBaseModel) { baseModel = viewModel.getBaseModel(); }
 			var annotations = annotationModel.getAnnotations(commentStart, commentEnd);
 			var remove = [];
+			var annotationType = "orion.annotation.task";
 			while (annotations.hasNext()) {
-				remove.push(annotations.next());
+				var annotation = annotations.next();
+				if (annotation.type === annotationType) {
+					remove.push(annotation);
+				}
 			}
 			var add = [];
 			var scanner = this._commentScanner;
@@ -9445,11 +10962,12 @@ examples.textview.TextStyler = (function() {
 					add.push({
 						start: tokenStart,
 						end: end,
-						type: "orion.annotation.task",
+						type: annotationType,
 						title: baseModel.getText(tokenStart, end),
 						style: {styleClass: "annotation task"},
 						html: "<div class='annotationHTML task'></div>",
-						overviewStyle: {styleClass: "annotationOverview task"}
+						overviewStyle: {styleClass: "annotationOverview task"},
+						rangeStyle: {styleClass: "annotationRange task"}
 					});
 				}
 			}
@@ -9513,39 +11031,35 @@ examples.textview.TextStyler = (function() {
 			while ((token = scanner.nextToken())) {
 				var tokenStart = scanner.getStartOffset() + offset;
 				var style = null;
-				if (tokenStart === this._matchingBracket) {
-					style = bracketStyle;
-				} else {
-					switch (token) {
-						case KEYWORD: style = keywordStyle; break;
-						case STRING:
-							if (this.whitespacesVisible) {
-								this._parseString(scanner.getData(), tokenStart, styles, stringStyle);
-								continue;
-							} else {
-								style = stringStyle;
-							}
-							break;
-						case DOC_COMMENT: 
-							this._parseComment(scanner.getData(), tokenStart, styles, docCommentStyle, token);
+				switch (token) {
+					case KEYWORD: style = keywordStyle; break;
+					case STRING:
+						if (this.whitespacesVisible) {
+							this._parseString(scanner.getData(), tokenStart, styles, stringStyle);
 							continue;
-						case SINGLELINE_COMMENT:
-							this._parseComment(scanner.getData(), tokenStart, styles, singleCommentStyle, token);
-							continue;
-						case MULTILINE_COMMENT: 
-							this._parseComment(scanner.getData(), tokenStart, styles, multiCommentStyle, token);
-							continue;
-						case WHITE_TAB:
-							if (this.whitespacesVisible) {
-								style = tabStyle;
-							}
-							break;
-						case WHITE_SPACE:
-							if (this.whitespacesVisible) {
-								style = spaceStyle;
-							}
-							break;
-					}
+						} else {
+							style = stringStyle;
+						}
+						break;
+					case DOC_COMMENT: 
+						this._parseComment(scanner.getData(), tokenStart, styles, docCommentStyle, token);
+						continue;
+					case SINGLELINE_COMMENT:
+						this._parseComment(scanner.getData(), tokenStart, styles, singleCommentStyle, token);
+						continue;
+					case MULTILINE_COMMENT: 
+						this._parseComment(scanner.getData(), tokenStart, styles, multiCommentStyle, token);
+						continue;
+					case WHITE_TAB:
+						if (this.whitespacesVisible) {
+							style = tabStyle;
+						}
+						break;
+					case WHITE_SPACE:
+						if (this.whitespacesVisible) {
+							style = spaceStyle;
+						}
+						break;
 				}
 				styles.push({start: tokenStart, end: scanner.getOffset() + offset, style: style});
 			}
@@ -9684,7 +11198,6 @@ examples.textview.TextStyler = (function() {
 			return result;
 		}, 
 		_findMatchingBracket: function(model, offset) {
-			if (model.getBaseModel) { model = model.getBaseModel(); }
 			var brackets = "{}()[]<>";
 			var bracket = model.getText(offset, offset + 1);
 			var bracketIndex = brackets.indexOf(bracket, 0);
@@ -9809,13 +11322,6 @@ examples.textview.TextStyler = (function() {
 			var view = this.view;
 			var model = view.getModel();
 			var lineIndex;
-			var bracket = this._matchingBracket;
-			if (bracket !== undefined) {
-				if (model.getBaseModel) { bracket = model.mapOffset(bracket, true); }
-				lineIndex = model.getLineAtOffset(bracket);
-				view.redrawLines(lineIndex, lineIndex + 1);
-				this._matchingBracket = this._currentBracket = undefined;
-			}
 			if (this.highlightCaretLine) {
 				var oldLineIndex = model.getLineAtOffset(oldSelection.start);
 				lineIndex = model.getLineAtOffset(newSelection.start);
@@ -9830,31 +11336,44 @@ examples.textview.TextStyler = (function() {
 					}
 				}
 			}
-			if (newSelection.start !== newSelection.end || newSelection.start === 0) {
-				return;
+			if (!this.annotationModel) { return; }
+			var remove = this._bracketAnnotations, add, caret;
+			if (newSelection.start === newSelection.end && (caret = view.getCaretOffset()) > 0) {
+				var mapCaret = caret - 1;
+				if (model.getBaseModel) {
+					mapCaret = model.mapOffset(mapCaret);
+					model = model.getBaseModel();
+				}
+				var bracket = this._findMatchingBracket(model, mapCaret);
+				if (bracket !== -1) {
+					add = [{
+						start: bracket,
+						end: bracket + 1,
+						type: "orion.annotation.matchingBracket",
+						title: "Matching Bracket",
+						html: "<div class='annotationHTML matchingBracket'></div>",
+						overviewStyle: {styleClass: "annotationOverview matchingBracket"},
+						rangeStyle: {styleClass: "annotationRange matchingBracket"}
+					},
+					{
+						start: mapCaret,
+						end: mapCaret + 1,
+						type: "orion.annotation.currentBracket",
+						title: "Current Bracket",
+						html: "<div class='annotationHTML currentBracket'></div>",
+						overviewStyle: {styleClass: "annotationOverview currentBracket"},
+						rangeStyle: {styleClass: "annotationRange currentBracket"}
+					}];
+				}
 			}
-			var caret = view.getCaretOffset() - 1;
-			if (caret < 0) { return; }
-			var mapCaret = caret;
-			if (model.getBaseModel) {
-				mapCaret = model.mapOffset(caret);
-			}
-			bracket = this._findMatchingBracket(model, mapCaret);
-			if (bracket !== -1) {
-				this._currentBracket = mapCaret;
-				this._matchingBracket = bracket;
-				if (model.getBaseModel) { bracket = model.mapOffset(bracket, true); }
-				lineIndex = model.getLineAtOffset(bracket);
-				view.redrawLines(lineIndex, lineIndex + 1);
-			}
+			this._bracketAnnotations = add;
+			this.annotationModel.replaceAnnotations(remove, add);
 		},
 		_onModelChanged: function(e) {
 			var start = e.start;
 			var removedCharCount = e.removedCharCount;
 			var addedCharCount = e.addedCharCount;
 			var changeCount = addedCharCount - removedCharCount;
-			if (this._matchingBracket && start < this._matchingBracket) { this._matchingBracket += changeCount; }
-			if (this._currentBracket && start < this._currentBracket) { this._currentBracket += changeCount; }
 			var view = this.view;
 			var viewModel = view.getModel();
 			var baseModel = viewModel.getBaseModel ? viewModel.getBaseModel() : viewModel;
@@ -9870,7 +11389,11 @@ examples.textview.TextStyler = (function() {
 				ts = this.comments[commentStart].start;
 				if (ts > start) { ts += changeCount; }
 			} else {
-				ts = lineStart;
+				if (commentStart === commentCount && commentCount > 0 && charCount - changeCount === this.comments[commentCount - 1].end) {
+					ts = this.comments[commentCount - 1].start;
+				} else {
+					ts = lineStart;
+				}
 			}
 			var te;
 			if (commentEnd < commentCount) {
@@ -9971,11 +11494,6 @@ examples.textview.TextStyler = (function() {
 			}
 		}
 	};
-	return TextStyler;
-}());
-
-if (typeof window !== "undefined" && typeof window.define !== "undefined") {
-	define([], function() {
-		return examples.textview;
-	});
-}
+	
+	return {TextStyler: TextStyler};
+}, "examples/textview");

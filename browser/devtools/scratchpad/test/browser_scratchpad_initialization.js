@@ -2,21 +2,17 @@
 
 
 
-
-let gScratchpadWindow;
-
 function test()
 {
   waitForExplicitFinish();
 
   gBrowser.selectedTab = gBrowser.addTab();
-  gBrowser.selectedBrowser.addEventListener("load", function() {
-    gBrowser.selectedBrowser.removeEventListener("load", arguments.callee, true);
+  gBrowser.selectedBrowser.addEventListener("load", function onLoad() {
+    gBrowser.selectedBrowser.removeEventListener("load", onLoad, true);
 
-    ok(Scratchpad, "Scratchpad variable exists");
+    ok(window.Scratchpad, "Scratchpad variable exists");
 
-    gScratchpadWindow = Scratchpad.openScratchpad();
-    gScratchpadWindow.addEventListener("load", runTests, false);
+    openScratchpad(runTests);
   }, true);
 
   content.location = "data:text/html,initialization test for Scratchpad";
@@ -24,8 +20,6 @@ function test()
 
 function runTests()
 {
-  gScratchpadWindow.removeEventListener("load", arguments.callee, false);
-
   let sp = gScratchpadWindow.Scratchpad;
   ok(sp, "Scratchpad object exists in new window");
   is(typeof sp.run, "function", "Scratchpad.run() exists");

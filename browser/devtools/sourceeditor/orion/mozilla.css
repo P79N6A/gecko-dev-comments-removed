@@ -2,15 +2,124 @@
 
 
 .viewContainer {
-  font-size: inherit; 
+	background: -moz-Dialog;
+	font-family: monospace;
+	font-size: inherit; 
 }
 
+.view {
+	background: #fff;
+}
+
+.readonly > .view {
+	background: #f6f6f6;
+}
+
+
+.ruler {
+	background-color: white;
+}
+.ruler.lines {
+	border-right: 1px solid lightgray;
+	text-align: right;
+}
+
+
 .rulerLines {
-  background: -moz-Dialog;
-  color: -moz-DialogText;
-  min-width: 1.4em;
-  padding-left: 4px;
-  padding-right: 4px;
-  text-align: end;
+	background: -moz-Dialog;
+	color: -moz-DialogText;
+	min-width: 1.4em;
+	padding-left: 4px;
+	padding-right: 4px;
+	text-align: end;
+}
+
+.token_singleline_comment {
+	color: green;
+}
+
+.token_multiline_comment {
+	color: green;
+}
+
+.token_doc_comment {
+	color: #00008F;
+}
+
+.token_doc_html_markup {
+	color: #7F7F9F;
+}
+
+.token_doc_tag {
+	color: #7F9FBF;
+}
+
+.token_task_tag {
+	color: #7F9FBF;
+}
+
+.token_string {
+	color: blue;
+}
+
+.token_keyword {
+	color: darkred;
+	font-weight: bold;
+}
+
+.token_space {
+	
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAkAAAAJCAIAAABv85FHAAAABnRSTlMA/wAAAACkwsAdAAAAIUlEQVR4nGP4z8CAC+GUIEXuABhgkTuABEiRw2cmae4EAH05X7xDolNRAAAAAElFTkSuQmCC");
+	background-repeat: no-repeat;
+ 	background-position: center center;
+}
+
+.token_tab {
+	
+	background-image: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAJCAIAAACJ2loDAAAABnRSTlMA/wD/AP83WBt9AAAAMklEQVR4nGP4TwRgoK6i52c3bz5w6zMSA6tJn28d2Lx589nnCAYu63AaSLxJRLoJPwAAeNk0aG4opfMAAAAASUVORK5CYII=");
+	background-repeat: no-repeat;
+ 	background-position: left center;
+}
+
+.line_caret {
+	background: #EAF2FE;
+}
+
+.readonly .line_caret {
+	background: #fcfcfc;
+}
+
+
+.entity-name-tag {
+	color: #3f7f7f;
+}
+
+.entity-other-attribute-name {
+	color: #7f007f;
+}
+
+.punctuation-definition-comment {
+	color: #3f5fbf;
+}
+
+.comment {
+	color: #3f5fbf
+}
+
+.string-quoted {
+	color: #2a00ff;
+	font-style: italic;
+}
+
+.invalid {
+	color: red;
+	font-weight: bold;
+}
+
+.annotationRange.currentBracket {
+}
+
+.annotationRange.matchingBracket {
+	outline: 1px solid red;
 }
 
