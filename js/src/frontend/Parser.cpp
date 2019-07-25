@@ -2461,10 +2461,6 @@ BindDestructuringLHS(JSContext *cx, ParseNode *pn, Parser *parser)
 
 
 
-
-
-
-
 static bool
 CheckDestructuring(JSContext *cx, BindData *data, ParseNode *left, Parser *parser,
                    bool toplevel = true)
@@ -2564,45 +2560,6 @@ CheckDestructuring(JSContext *cx, BindData *data, ParseNode *left, Parser *parse
     }
 
     return true;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-static void
-UndominateInitializers(ParseNode *left, const TokenPtr &end, TreeContext *tc)
-{
-    if (left->isKind(PNK_RB)) {
-        for (ParseNode *pn = left->pn_head; pn; pn = pn->pn_next) {
-            
-            if (!pn->isKind(PNK_COMMA) || !pn->isArity(PN_NULLARY)) {
-                if (pn->isKind(PNK_RB) || pn->isKind(PNK_RC))
-                    UndominateInitializers(pn, end, tc);
-                else
-                    pn->pn_pos.end = end;
-            }
-        }
-    } else {
-        JS_ASSERT(left->isKind(PNK_RC));
-
-        for (ParseNode *pair = left->pn_head; pair; pair = pair->pn_next) {
-            JS_ASSERT(pair->isKind(PNK_COLON));
-            ParseNode *pn = pair->pn_right;
-            if (pn->isKind(PNK_RB) || pn->isKind(PNK_RC))
-                UndominateInitializers(pn, end, tc);
-            else
-                pn->pn_pos.end = end;
-        }
-    }
 }
 
 ParseNode *
@@ -4210,7 +4167,6 @@ Parser::variables(ParseNodeKind kind, StaticBlockObject *blockObj, VarContext va
             ParseNode *init = assignExpr();
             if (!init)
                 return NULL;
-            UndominateInitializers(pn2, init->pn_pos.end, tc);
 
             pn2 = ParseNode::newBinaryOrAppend(PNK_ASSIGN, JSOP_NOP, pn2, init, this);
             if (!pn2)
