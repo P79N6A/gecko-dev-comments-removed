@@ -13,6 +13,7 @@ let CrashTestUtils = {
   CRASH_PURE_VIRTUAL_CALL:     1,
   CRASH_RUNTIMEABORT:          2,
   CRASH_OOM:                   3,
+  CRASH_MOZ_CRASH:             4,
 
   
   
