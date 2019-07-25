@@ -57,6 +57,7 @@
 #include "nsDiskCacheDeviceSQL.h"
 #endif
 
+#include "nsIMemoryReporter.h"
 #include "nsIObserverService.h"
 #include "nsIPrefService.h"
 #include "nsIPrefBranch.h"
@@ -1002,6 +1003,15 @@ private:
 
 nsCacheService *   nsCacheService::gService = nsnull;
 
+static nsCOMPtr<nsIMemoryReporter> MemoryCacheReporter = nsnull;
+
+NS_THREADSAFE_MEMORY_REPORTER_IMPLEMENT(NetworkMemoryCache,
+    "explicit/network-memory-cache",
+    KIND_HEAP,
+    UNITS_BYTES,
+    nsCacheService::MemoryDeviceSize,
+    "Memory used by the network memory cache.")
+
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsCacheService, nsICacheService)
 
 nsCacheService::nsCacheService()
@@ -1102,6 +1112,11 @@ nsCacheService::Shutdown()
         
         (void) SyncWithCacheIOThread();
         
+        
+        
+        NS_UnregisterMemoryReporter(MemoryCacheReporter);
+        MemoryCacheReporter = nsnull;
+
         
         delete mMemoryDevice;
         mMemoryDevice = nsnull;
@@ -1443,6 +1458,11 @@ nsCacheService::CreateMemoryDevice()
         delete mMemoryDevice;
         mMemoryDevice = nsnull;
     }
+
+    MemoryCacheReporter =
+        new NS_MEMORY_REPORTER_NAME(NetworkMemoryCache);
+    NS_RegisterMemoryReporter(MemoryCacheReporter);
+
     return rv;
 }
 
@@ -1913,6 +1933,12 @@ nsCacheService::EnsureEntryHasDevice(nsCacheEntry * entry)
     return device;
 }
 
+PRInt64
+nsCacheService::MemoryDeviceSize()
+{
+    nsMemoryCacheDevice *memoryDevice = GlobalInstance()->mMemoryDevice;
+    return memoryDevice ? memoryDevice->TotalSize() : 0;
+}
 
 nsresult
 nsCacheService::DoomEntry(nsCacheEntry * entry)
