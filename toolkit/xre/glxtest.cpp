@@ -202,7 +202,7 @@ static void glxtest()
     fatal_error("No visual found for first FBConfig");
 
   
-  Pixmap pixmap = XCreatePixmap(dpy, RootWindow(dpy, vInfo->screen), 4, 4, 32);
+  Pixmap pixmap = XCreatePixmap(dpy, RootWindow(dpy, vInfo->screen), 4, 4, vInfo->depth);
   GLXPixmap glxpixmap = glXCreatePixmap(dpy, fbConfigs[0], pixmap, NULL);
 
   
