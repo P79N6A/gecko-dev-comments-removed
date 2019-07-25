@@ -550,6 +550,11 @@ protected:
 
   double GetValueAsDouble() const;
 
+  
+
+
+  void UpdateHasRange();
+
   nsCOMPtr<nsIControllers> mControllers;
 
   
@@ -613,6 +618,7 @@ protected:
   bool                     mInhibitRestoration  : 1;
   bool                     mCanShowValidUI      : 1;
   bool                     mCanShowInvalidUI    : 1;
+  bool                     mHasRange            : 1;
 
 private:
   struct nsFilePickerFilter {

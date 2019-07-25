@@ -525,6 +525,7 @@ nsHTMLInputElement::nsHTMLInputElement(already_AddRefed<nsINodeInfo> aNodeInfo,
   , mInhibitRestoration(aFromParser & FROM_PARSER_FRAGMENT)
   , mCanShowValidUI(true)
   , mCanShowInvalidUI(true)
+  , mHasRange(false)
 {
   mInputData.mState = new nsTextEditorState(this);
 
@@ -814,8 +815,10 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     } else if (aName == nsGkAtoms::multiple) {
       UpdateTypeMismatchValidityState();
     } else if (aName == nsGkAtoms::max) {
+      UpdateHasRange();
       UpdateRangeOverflowValidityState();
     } else if (aName == nsGkAtoms::min) {
+      UpdateHasRange();
       UpdateRangeUnderflowValidityState();
     }
 
@@ -2452,6 +2455,8 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
       mFocusedValue.Truncate();
     } 
   }
+
+  UpdateHasRange();
 
   
   UpdateAllValidityStates(false);
@@ -4499,3 +4504,33 @@ nsHTMLInputElement::UpdateValidityUIBits(bool aIsFocused)
   }
 }
 
+void
+nsHTMLInputElement::UpdateHasRange()
+{
+  mHasRange = false;
+
+  if (mType != NS_FORM_INPUT_NUMBER) {
+    return;
+  }
+
+  
+  nsAutoString tmpStr;
+
+  if (GetAttr(kNameSpaceID_None, nsGkAtoms::min, tmpStr)) {
+    PRInt32 ec;
+    tmpStr.ToDouble(&ec);
+    if (NS_SUCCEEDED(ec)) {
+      mHasRange = true;
+      return;
+    }
+  }
+
+  if (GetAttr(kNameSpaceID_None, nsGkAtoms::max, tmpStr)) {
+    PRInt32 ec;
+    tmpStr.ToDouble(&ec);
+    if (NS_SUCCEEDED(ec)) {
+      mHasRange = true;
+      return;
+    }
+  }
+}
