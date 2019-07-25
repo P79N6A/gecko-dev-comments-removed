@@ -257,6 +257,7 @@ pref("dom.indexedDB.warningQuota", 5);
 
 pref("media.preload.default", 1); 
 pref("media.preload.auto", 2);    
+pref("media.cache_size", 4096);    
 
 
 
