@@ -358,6 +358,8 @@ struct JITScript {
     size_t scriptDataSize();
 
     size_t mainCodeSize() { return code.m_size; } 
+
+    jsbytecode *nativeToPC(void *returnAddress) const;
 };
 
 
