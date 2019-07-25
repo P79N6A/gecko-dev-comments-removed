@@ -635,8 +635,10 @@ function openPrefsHelp() {
 }
 
 function trimURL(aURL) {
+  
+  
   return aURL 
              .replace(/^((?:http|https|ftp):\/\/[^/]+)\/$/, "$1")
               
-             .replace(/^http:\/\/((?!ftp\.)[^\/@]+(?:\/|$))/, "$1");
+             .replace(/^http:\/\/((?!ftp\d*\.)[^\/@]+(?:\/|$))/, "$1");
 }
