@@ -84,6 +84,7 @@ struct BidiParagraphData {
   nsIContent*         mPrevContent;
   nsAutoPtr<nsBidi>   mBidiEngine;
   nsIFrame*           mPrevFrame;
+  nsAutoPtr<BidiParagraphData> mSubParagraph;
 
   void Init(nsBlockFrame *aBlockFrame)
   {
@@ -118,6 +119,67 @@ struct BidiParagraphData {
           break;
         }
       }
+    }
+  }
+
+  BidiParagraphData* GetSubParagraph()
+  {
+    if (!mSubParagraph) {
+      mSubParagraph = new BidiParagraphData();
+      mSubParagraph->Init(this);
+    }
+
+    return mSubParagraph;
+  }
+
+  
+  void Init(BidiParagraphData *aBpd)
+  {
+    mContentToFrameIndex.Init();
+    mBidiEngine = new nsBidi();
+    mPrevContent = nsnull;
+    mIsVisual = aBpd->mIsVisual;
+    mParaLevel = aBpd->mParaLevel;
+  }
+
+  void Reset(nsIFrame* aFrame, BidiParagraphData *aBpd)
+  {
+    mLogicalFrames.Clear();
+    mLinePerFrame.Clear();
+    mContentToFrameIndex.Clear();
+    mBuffer.SetLength(0);
+    mPrevFrame = aBpd->mPrevFrame;
+    
+    
+    
+    for (PRUint32 i = 0; i < aBpd->mEmbeddingStack.Length(); ++i) {
+      switch(aBpd->mEmbeddingStack[i]) {
+        case kRLE:
+        case kRLO:
+          mParaLevel = NextOddLevel(mParaLevel);
+          break;
+
+        case kLRE:
+        case kLRO:
+          mParaLevel = NextEvenLevel(mParaLevel);
+          break;
+
+        default:
+          break;
+      }
+    }
+
+    nsIFrame* container = aFrame->GetParent();
+    bool isRTL = (NS_STYLE_DIRECTION_RTL ==
+                  container->GetStyleVisibility()->mDirection);
+    if ((isRTL & 1) != (mParaLevel & 1)) {
+      mParaLevel = isRTL ? NextOddLevel(mParaLevel) : NextEvenLevel(mParaLevel);
+    }
+
+    if (container->GetStyleTextReset()->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_OVERRIDE) {
+      PushBidiControl(isRTL ? kRLO : kLRO);
+    } else {
+      PushBidiControl(isRTL ? kRLE : kLRE);
     }
   }
 
@@ -235,6 +297,16 @@ struct BidiParagraphData {
     for (PRUint32 i = 0; i < mEmbeddingStack.Length(); ++i) {
       AppendUnicharFrame(NS_BIDI_CONTROL_FRAME, kPDF);
     }
+  }
+
+  nsBidiLevel NextOddLevel(nsBidiLevel aLevel)
+  {
+    return (aLevel + 1) | 1;
+  }
+
+  nsBidiLevel NextEvenLevel(nsBidiLevel aLevel)
+  {
+    return (aLevel + 2) & ~1;
   }
 
   static bool
@@ -588,8 +660,8 @@ nsBidiPresUtils::ResolveParagraph(nsBlockFrame* aBlockFrame,
   
 #ifdef DEBUG
 #ifdef NOISY_BIDI
-  printf("Before Resolve(), aBlockFrame=0x%p, mBuffer='%s', frameCount=%d\n",
-         (void*)aBlockFrame, NS_ConvertUTF16toUTF8(aBpd->mBuffer).get(), frameCount);
+  printf("Before Resolve(), aBlockFrame=0x%p, mBuffer='%s', frameCount=%d, runCount=%d\n",
+         (void*)aBlockFrame, NS_ConvertUTF16toUTF8(aBpd->mBuffer).get(), frameCount, runCount);
 #ifdef REALLY_NOISY_BIDI
   printf(" block frame tree=:\n");
   aBlockFrame->List(stdout, 0);
@@ -799,7 +871,8 @@ void
 nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
                                 nsBlockInFlowLineIterator* aLineIter,
                                 nsIFrame*                  aCurrentFrame,
-                                BidiParagraphData*         aBpd)
+                                BidiParagraphData*         aBpd,
+                                BidiParagraphData*         aContainingParagraph)
 {
   if (!aCurrentFrame)
     return;
@@ -816,6 +889,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
 
     nsIFrame* nextSibling = childFrame->GetNextSibling();
     bool isLastFrame = !childFrame->GetNextContinuation();
+    bool isFirstFrame = !childFrame->GetPrevContinuation();
 
     
     
@@ -827,6 +901,10 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
       if (realFrame->GetType() == nsGkAtoms::letterFrame) {
         frame = realFrame;
       }
+    }
+
+    if (aContainingParagraph && isFirstFrame) {
+      aBpd->Reset(aCurrentFrame, aContainingParagraph);
     }
 
     PRUnichar ch = 0;
@@ -851,7 +929,7 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
 
       
       
-      if (ch != 0 && !frame->GetPrevContinuation()) {
+      if (ch != 0 && isFirstFrame) {
         aBpd->PushBidiControl(ch);
       }
     }
@@ -995,14 +1073,34 @@ nsBidiPresUtils::TraverseFrames(nsBlockFrame*              aBlockFrame,
     else {
       
       nsIFrame* kid = frame->GetFirstPrincipalChild();
-      TraverseFrames(aBlockFrame, aLineIter, kid, aBpd);
+      if (kid) {
+        const nsStyleTextReset* text = frame->GetStyleTextReset();
+        if (text->mUnicodeBidi & NS_STYLE_UNICODE_BIDI_ISOLATE) {
+          
+          
+          TraverseFrames(aBlockFrame, aLineIter, kid,
+                         aBpd->GetSubParagraph(), aBpd);
+        } else {
+          TraverseFrames(aBlockFrame, aLineIter, kid, aBpd);
+        }
+      }
     }
 
     
-    if (ch != 0 && isLastFrame) {
-      
-      
-      aBpd->PopBidiControl();
+    if (isLastFrame) {
+      if (ch) {
+        
+        
+        aBpd->PopBidiControl();
+      }
+      if (aContainingParagraph) {
+        ResolveParagraph(aBlockFrame, aBpd);
+
+        
+        
+        aContainingParagraph->AppendUnicharFrame(NS_BIDI_CONTROL_FRAME,
+                                                kObjectSubstitute);
+      }
     }
     childFrame = nextSibling;
   } while (childFrame);
