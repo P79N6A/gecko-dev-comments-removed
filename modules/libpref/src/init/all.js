@@ -1351,7 +1351,7 @@ pref("mousewheel.horizscroll.withmetakey.sysnumlines",true);
 
 
 pref("general.smoothScroll.pixels.durationMinMS", 200);
-pref("general.smoothScroll.pixels.durationMaxMS", 800);
+pref("general.smoothScroll.pixels.durationMaxMS", 400);
 pref("general.smoothScroll.lines.durationMinMS", 150);
 pref("general.smoothScroll.lines.durationMaxMS", 150);
 pref("general.smoothScroll.pages.durationMinMS", 150);
