@@ -1096,7 +1096,7 @@ ic::SplatApplyArgs(VMFrame &f)
                     THROWV(false);
 
                 
-                n = Min(length, JS_ARGS_LENGTH_MAX);
+                n = Min(length, StackSpace::ARGS_LENGTH_MAX);
 
                 if (!BumpStack(f, n))
                     THROWV(false);
@@ -1151,7 +1151,7 @@ ic::SplatApplyArgs(VMFrame &f)
     JS_ASSERT(!JS_ON_TRACE(cx));
 
     
-    uintN n = uintN(JS_MIN(length, JS_ARGS_LENGTH_MAX));
+    uintN n = uintN(JS_MIN(length, StackSpace::ARGS_LENGTH_MAX));
 
     intN delta = n - 1;
     if (delta > 0 && !BumpStack(f, delta))

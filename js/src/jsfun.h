@@ -576,25 +576,6 @@ js_PutArgsObject(js::StackFrame *fp);
 inline bool
 js_IsNamedLambda(JSFunction *fun) { return (fun->flags & JSFUN_LAMBDA) && fun->atom; }
 
-
-
-
-
-
-
-
-
-
-
-const uint32 JS_ARGS_LENGTH_MAX = JS_BIT(19) - 1024;
-
-
-
-
-
-JS_STATIC_ASSERT(JS_ARGS_LENGTH_MAX <= JS_BIT(30));
-JS_STATIC_ASSERT(((JS_ARGS_LENGTH_MAX << 1) | 1) <= JSVAL_INT_MAX);
-
 extern JSBool
 js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp);
 

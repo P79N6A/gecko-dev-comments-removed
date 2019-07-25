@@ -670,6 +670,16 @@ PodEqual(T *one, T *two, size_t len)
     return !memcmp(one, two, len * sizeof(T));
 }
 
+
+
+
+
+
+
+
+
+enum MaybeReportError { REPORT_ERROR = true, DONT_REPORT_ERROR = false };
+
 } 
 
 #endif

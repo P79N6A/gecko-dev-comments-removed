@@ -55,7 +55,6 @@
 #include "jsatom.h"
 #include "jscntxt.h"
 #include "jsdbgapi.h"
-#include "jsfun.h"      
 #include "jslock.h"
 #include "jsnum.h"
 #include "jsobj.h"

@@ -2599,6 +2599,21 @@ JS_GetSecurityCallbacks(JSContext *cx);
 
 
 
+
+
+
+
+
+
+
+extern JS_PUBLIC_API(void)
+JS_SetTrustedPrincipals(JSRuntime *rt, JSPrincipals *prin);
+
+
+
+
+
+
 extern JS_PUBLIC_API(JSFunction *)
 JS_NewFunction(JSContext *cx, JSNative call, uintN nargs, uintN flags,
                JSObject *parent, const char *name);

@@ -202,9 +202,8 @@ void JS_FASTCALL
 stubs::HitStackQuota(VMFrame &f)
 {
     
-    uintN nvals = f.fp()->script()->nslots + VALUES_PER_STACK_FRAME;
-    JS_ASSERT(f.regs.sp == f.fp()->base());
-    if (f.cx->stack.space().tryBumpLimit(NULL, f.regs.sp, nvals, &f.stackLimit))
+    f.stackLimit = f.cx->stack.space().getStackLimit(f.cx, DONT_REPORT_ERROR);
+    if (f.stackLimit)
         return;
 
     f.cx->stack.popFrameAfterOverflow();
@@ -240,14 +239,15 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
 
     
     CallArgs args = CallArgsFromSp(nactual, f.regs.sp);
-    StackFrame *fp = cx->stack.getFixupFrame(cx, f.regs, args, fun, script, ncode,
-                                             construct, LimitCheck(&f.stackLimit));
+    StackFrame *fp = cx->stack.getFixupFrame(cx, DONT_REPORT_ERROR, args, fun,
+                                             script, ncode, construct, &f.stackLimit);
     if (!fp) {
         
 
 
 
         f.regs.pc = f.jit()->nativeToPC(ncode);
+        js_ReportOverRecursed(cx);
         THROWV(NULL);
     }
 
@@ -316,8 +316,7 @@ UncachedInlineCall(VMFrame &f, MaybeConstruct construct, void **pret, bool *unji
     JSScript *newscript = newfun->script();
 
     
-    LimitCheck check(&f.stackLimit);
-    if (!cx->stack.pushInlineFrame(cx, f.regs, args, callee, newfun, newscript, construct, check))
+    if (!cx->stack.pushInlineFrame(cx, f.regs, args, callee, newfun, newscript, construct, &f.stackLimit))
         return false;
 
     

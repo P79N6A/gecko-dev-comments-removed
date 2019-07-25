@@ -5739,8 +5739,7 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
     
     CallArgs args = CallArgsFromSp(fi.get_argc(), regs.sp);
     cx->stack.pushInlineFrame(cx, regs, args, *callee, newfun, newscript,
-                              MaybeConstructFromBool(fi.is_constructing()),
-                              NoCheck());
+                              MaybeConstructFromBool(fi.is_constructing()));
 
 #ifdef DEBUG
     
@@ -6635,7 +6634,8 @@ ExecuteTree(JSContext* cx, TraceMonitor* tm, TreeFragment* f,
 #endif
     JS_ASSERT(f->root == f && f->code());
 
-    if (!ScopeChainCheck(cx, f) || !cx->stack.space().ensureEnoughSpaceToEnterTrace()) {
+    if (!ScopeChainCheck(cx, f) ||
+        !cx->stack.space().ensureEnoughSpaceToEnterTrace(cx)) {
         *lrp = NULL;
         return true;
     }
