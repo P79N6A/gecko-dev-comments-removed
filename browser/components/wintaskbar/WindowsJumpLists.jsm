@@ -205,6 +205,10 @@ var WinTaskbarJumpList =
 
     
     this._initTimer();
+
+    
+    Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer)
+    .initWithCallback(this, 0, Ci.nsITimer.TYPE_ONE_SHOT);
   },
 
   update: function WTBJL_update() {
