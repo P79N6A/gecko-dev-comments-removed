@@ -757,6 +757,7 @@ public:
   virtual ReadyState GetReadyStateEnum() = 0;
 
   
+  
   virtual void ContentStateChanged(nsIContent* aContent,
                                    nsEventStates aStateMask) = 0;
 

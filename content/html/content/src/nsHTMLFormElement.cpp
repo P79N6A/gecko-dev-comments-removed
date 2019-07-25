@@ -384,8 +384,6 @@ nsHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     
     nsIDocument* doc = GetCurrentDoc();
     if (doc) {
-      MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
-
       for (PRUint32 i = 0, length = mControls->mElements.Length();
            i < length; ++i) {
         doc->ContentStateChanged(mControls->mElements[i],
@@ -509,7 +507,7 @@ CollectOrphans(nsINode* aRemovalRoot, nsTArray<nsGenericHTMLFormElement*> aArray
 {
   
   nsIDocument* doc = aArray.IsEmpty() ? nsnull : aArray[0]->GetCurrentDoc();
-  MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+  nsAutoScriptBlocker scriptBlocker;
 
   
   PRUint32 length = aArray.Length();
@@ -1234,7 +1232,7 @@ nsHTMLFormElement::AddElement(nsGenericHTMLFormElement* aChild,
         oldDefaultSubmit != mDefaultSubmitElement) {
       nsIDocument* document = GetCurrentDoc();
       if (document) {
-        MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
+        nsAutoScriptBlocker scriptBlocker;
         nsCOMPtr<nsIContent> oldElement(do_QueryInterface(oldDefaultSubmit));
         document->ContentStateChanged(oldElement, NS_EVENT_STATE_DEFAULT);
       }
@@ -1372,7 +1370,7 @@ nsHTMLFormElement::HandleDefaultSubmitRemoval()
   if (mDefaultSubmitElement) {
     nsIDocument* document = GetCurrentDoc();
     if (document) {
-      MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
+      nsAutoScriptBlocker scriptBlocker;
       document->ContentStateChanged(mDefaultSubmitElement,
                                     NS_EVENT_STATE_DEFAULT);
     }
@@ -1752,7 +1750,7 @@ nsHTMLFormElement::CheckValidFormSubmission()
 
 
 
-          MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+          nsAutoScriptBlocker scriptBlocker;
 
           for (PRUint32 i = 0, length = mControls->mElements.Length();
                i < length; ++i) {
@@ -1837,7 +1835,7 @@ nsHTMLFormElement::UpdateValidity(PRBool aElementValidity)
 
 
 
-  MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+  nsAutoScriptBlocker scriptBlocker;
 
   
   for (PRUint32 i = 0, length = mControls->mElements.Length();

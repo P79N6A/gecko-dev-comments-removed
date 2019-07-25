@@ -2643,7 +2643,7 @@ nsGenericHTMLFormElement::BeforeSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       
       
       if (doc && aNotify) {
-        MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+        nsAutoScriptBlocker scriptBlocker;
         doc->ContentStateChanged(this, NS_EVENT_STATE_DEFAULT);
       }
     }
@@ -2701,7 +2701,6 @@ nsGenericHTMLFormElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
       
       
       if (doc && aNotify) {
-        MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
         doc->ContentStateChanged(this, NS_EVENT_STATE_DEFAULT);
       }
     }
@@ -3018,7 +3017,7 @@ nsGenericHTMLFormElement::FieldSetDisabledChanged(nsEventStates aStates, PRBool 
 
   nsIDocument* doc = GetCurrentDoc();
   if (doc) {
-    MOZ_AUTO_DOC_UPDATE(doc, UPDATE_CONTENT_STATE, PR_TRUE);
+    nsAutoScriptBlocker scriptBlocker;
     doc->ContentStateChanged(this, aStates);
   }
 }
@@ -3586,6 +3585,6 @@ nsGenericHTMLElement::ChangeEditableState(PRInt32 aChange)
   
   
   
-  MOZ_AUTO_DOC_UPDATE(document, UPDATE_CONTENT_STATE, PR_TRUE);
+  nsAutoScriptBlocker scriptBlocker;
   MakeContentDescendantsEditable(this, document);
 }

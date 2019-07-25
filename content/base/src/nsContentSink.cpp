@@ -1480,18 +1480,7 @@ nsContentSink::BeginUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
   
   
 
-  
-  
-  
-  
-
-  
-  
-  
-  
-  NS_ASSERTION(aUpdateType && (aUpdateType & UPDATE_ALL) == aUpdateType,
-               "Weird update type bitmask");
-  if (aUpdateType != UPDATE_CONTENT_STATE && !mInNotification++) {
+  if (!mInNotification++) {
     FlushTags();
   }
 }
@@ -1504,12 +1493,7 @@ nsContentSink::EndUpdate(nsIDocument *aDocument, nsUpdateType aUpdateType)
   
   
   
-  
-  
-  
-  NS_ASSERTION(aUpdateType && (aUpdateType & UPDATE_ALL) == aUpdateType,
-               "Weird update type bitmask");
-  if (aUpdateType != UPDATE_CONTENT_STATE && !--mInNotification) {
+  if (!--mInNotification) {
     UpdateChildCounts();
   }
 }
