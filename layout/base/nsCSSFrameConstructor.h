@@ -82,6 +82,8 @@ class nsFrameConstructorSaveState;
 class nsCSSFrameConstructor : public nsARefreshObserver
 {
 public:
+  typedef mozilla::dom::Element Element;
+
   nsCSSFrameConstructor(nsIDocument *aDocument, nsIPresShell* aPresShell);
   ~nsCSSFrameConstructor(void) {
     NS_ASSERTION(mUpdateCount == 0, "Dying in the middle of our own update?");
@@ -305,7 +307,8 @@ private:
   
   
   
-  void ProcessOneRestyle(nsIContent* aContent, nsRestyleHint aRestyleHint,
+  void ProcessOneRestyle(Element* aElement,
+                         nsRestyleHint aRestyleHint,
                          nsChangeHint aChangeHint);
 
   void ProcessPendingRestyleTable(
@@ -315,20 +318,19 @@ public:
   
   
   
-  void RestyleForInsertOrChange(mozilla::dom::Element* aContainer,
-                                nsIContent* aChild);
+  void RestyleForInsertOrChange(Element* aContainer, nsIContent* aChild);
+
   
   
   
   
   
-  void RestyleForRemove(mozilla::dom::Element* aContainer,
+  void RestyleForRemove(Element* aContainer,
                         nsIContent* aOldChild,
                         nsIContent* aFollowingSibling);
   
   
-  void RestyleForAppend(mozilla::dom::Element* aContainer,
-                        nsIContent* aFirstNewContent);
+  void RestyleForAppend(Element* aContainer, nsIContent* aFirstNewContent);
 
   
   
@@ -345,7 +347,7 @@ public:
   void RebuildAllStyleData(nsChangeHint aExtraHint);
 
   
-  void PostRestyleEvent(mozilla::dom::Element* aElement,
+  void PostRestyleEvent(Element* aElement,
                         nsRestyleHint aRestyleHint,
                         nsChangeHint aMinChangeHint)
   {
@@ -357,7 +359,7 @@ public:
   }
 
   
-  void PostAnimationRestyleEvent(mozilla::dom::Element* aElement,
+  void PostAnimationRestyleEvent(Element* aElement,
                                  nsRestyleHint aRestyleHint,
                                  nsChangeHint aMinChangeHint)
   {
@@ -382,7 +384,7 @@ private:
 
 
 
-  void PostRestyleEventCommon(mozilla::dom::Element* aElement,
+  void PostRestyleEventCommon(Element* aElement,
                               nsRestyleHint aRestyleHint,
                               nsChangeHint aMinChangeHint,
                               PRBool aForAnimation);
@@ -450,16 +452,16 @@ private:
                               nsIFrame*&     aPageFrame,
                               nsIFrame*&     aCanvasFrame);
 
-  void DoContentStateChanged(mozilla::dom::Element* aElement,
+  void DoContentStateChanged(Element* aElement,
                              PRInt32 aStateMask);
 
   
   
-  void RestyleElement(nsIContent*     aContent,
+  void RestyleElement(Element* aElement,
                       nsIFrame*       aPrimaryFrame,
                       nsChangeHint    aMinHint);
 
-  void RestyleLaterSiblings(nsIContent*     aContent);
+  void RestyleLaterSiblings(Element* aElement);
 
   nsresult InitAndRestoreFrame (const nsFrameConstructorState& aState,
                                 nsIContent*                    aContent,
@@ -499,7 +501,7 @@ private:
   
   
   
-  nsresult ConstructDocElementFrame(mozilla::dom::Element*   aDocElement,
+  nsresult ConstructDocElementFrame(Element*                 aDocElement,
                                     nsILayoutHistoryState*   aFrameState,
                                     nsIFrame**               aNewFrame);
 
@@ -1499,7 +1501,7 @@ private:
                         PendingBinding*          aPendingBinding,
                         nsFrameItems&            aFrameItems);
 
-  nsresult MaybeRecreateFramesForContent(nsIContent* aContent);
+  nsresult MaybeRecreateFramesForElement(Element* aElement);
 
   
   
@@ -1839,7 +1841,7 @@ public:
   };
 
   struct RestyleEnumerateData : public RestyleData {
-    nsCOMPtr<nsIContent> mContent;
+    nsCOMPtr<Element> mElement;
   };
 
   friend class nsFrameConstructorState;
