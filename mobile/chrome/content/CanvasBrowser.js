@@ -445,11 +445,6 @@ CanvasBrowser.prototype = {
   get _contentAreaDimensions() {
     var cdoc = this._browser.contentDocument;
 
-    
-    
-    if (cdoc instanceof XULDocument)
-      return [cdoc.width, cdoc.height];
-
     if (cdoc instanceof SVGDocument) {
       let rect = cdoc.rootElement.getBoundingClientRect();
       return [rect.width, rect.height];
