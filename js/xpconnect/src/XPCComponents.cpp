@@ -30,6 +30,7 @@
 #include "mozilla/dom/BindingUtils.h"
 #include "mozilla/Preferences.h"
 #include "nsPrincipal.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 using namespace js;
@@ -3048,7 +3049,7 @@ WrapForSandbox(JSContext *cx, bool wantXrays, jsval *vp)
 
 
 
-class Identity : public nsISupports
+class Identity MOZ_FINAL : public nsISupports
 {
     NS_DECL_ISUPPORTS
 };
