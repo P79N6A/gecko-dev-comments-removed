@@ -154,7 +154,17 @@ public:
   
 
 
+  void ScheduleAnimationFrameListeners(nsIDocument* aDocument);
+
+  
+
+
   void RevokeBeforePaintEvent(nsIDocument* aDocument);
+
+  
+
+
+  void RevokeAnimationFrameListeners(nsIDocument* aDocument);
 
   
 
@@ -225,6 +235,8 @@ private:
   nsAutoTArray<nsIPresShell*, 16> mLayoutFlushObservers;
   
   nsTArray<nsIDocument*> mBeforePaintTargets;
+  
+  nsTArray<nsIDocument*> mAnimationFrameListenerDocs;
 };
 
 #endif 

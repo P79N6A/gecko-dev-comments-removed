@@ -64,6 +64,7 @@
 #endif 
 #include "nsIScriptGlobalObject.h"
 #include "nsIDocumentEncoder.h"
+#include "nsIAnimationFrameListener.h"
 
 class nsIContent;
 class nsPresContext;
@@ -1448,11 +1449,18 @@ public:
 
   virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
-  void ScheduleBeforePaintEvent();
+  void ScheduleBeforePaintEvent(nsIAnimationFrameListener* aListener);
   void BeforePaintEventFiring()
   {
     mHavePendingPaint = PR_FALSE;
   }
+
+  typedef nsTArray< nsCOMPtr<nsIAnimationFrameListener> > AnimationListenerList;
+  
+
+
+
+  void TakeAnimationFrameListeners(AnimationListenerList& aListeners);
 
   
   PRBool InUnlinkOrDeletion() { return mInUnlinkOrDeletion; }
@@ -1689,6 +1697,8 @@ protected:
   nsPIDOMWindow *mWindow;
 
   nsCOMPtr<nsIDocumentEncoder> mCachedEncoder;
+
+  AnimationListenerList mAnimationFrameListeners;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIDocument, NS_IDOCUMENT_IID)
