@@ -307,7 +307,7 @@ var BrowserApp = {
           observe: function(aSubject, aTopic, aData) {
             Services.obs.removeObserver(restoreCleanup, "sessionstore-windows-restored");
             if (aData == "fail")
-              BrowserApp.addTab("about:home", { showProgress: false });
+              BrowserApp.addTab("about:home");
           }
         };
         Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
@@ -316,7 +316,7 @@ var BrowserApp = {
       
       ss.restoreLastSession(restoreToFront);
     } else {
-      this.addTab(url, { showProgress: url != "about:home" });
+      this.addTab(url);
 
       
       this._showTelemetryPrompt();
