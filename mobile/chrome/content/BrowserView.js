@@ -517,25 +517,21 @@ BrowserView.prototype = {
       }
       
 
-      r.restrictTo(vs.viewportRect);
-      rects.push(r);
+      try {
+        r.restrictTo(vs.viewportRect);
+        rects.push(r);
+      } catch(ex) { dump("fail:(\n"); }
     }
-
-    
-    
-    if (hackSizeChanged)
-      this.simulateMozAfterSizeChange(browser, hack.maxW, hack.maxH);
-    
 
     tm.dirtyRects(rects, this.isRendering());
   },
 
   
-  simulateMozAfterSizeChange: function simulateMozAfterSizeChange(browser, width, height) {
-    
-    
-    
-    this.handleMozAfterSizeChange({screenX: width, screenY: height});
+  simulateMozAfterSizeChange: function simulateMozAfterSizeChange(width, height) {
+    let [w, h] = getBrowserDimensions(this._browser);
+    let ev = document.createEvent("MouseEvents");
+    ev.initMouseEvent("FakeMozAfterSizeChange", false, false, window, 0, w, h, 0, 0, false, false, false, false, 0, null);
+    this._browser.dispatchEvent(ev);
   },
   
 
@@ -547,8 +543,7 @@ BrowserView.prototype = {
     let w = ev.screenX;
     let h = ev.screenY;
     
-
-    this.setViewportDimensions(w, h);
+    this.setViewportDimensions(this.browserToViewport(w), this.browserToViewport(h));
   },
 
   zoomToPage: function zoomToPage() {
@@ -674,15 +669,15 @@ BrowserView.prototype = {
   _appendTile: function _appendTile(tile) {
     let canvas = tile.getContentImage();
 
+    canvas.style.position = "absolute";
+    canvas.style.left = tile.x + "px";
+    canvas.style.top  = tile.y + "px";
+
     
     
     
     
     
-    
-    
-    
-    canvas.setAttribute("style", "position: absolute; left: " + tile.boundRect.left + "px; " + "top: " + tile.boundRect.top + "px;");
 
     this._container.appendChild(canvas);
 
