@@ -35,6 +35,7 @@
 
 
 
+
 #include "ThebesLayerOGL.h"
 #include "ContainerLayerOGL.h"
 #include "gfxContext.h"
@@ -79,7 +80,7 @@ ThebesLayerOGL::ThebesLayerOGL(LayerManagerOGL *aManager)
 
 ThebesLayerOGL::~ThebesLayerOGL()
 {
-  static_cast<LayerManagerOGL*>(mManager)->MakeCurrent();
+  mOGLManager->MakeCurrent();
   if (mTexture) {
     gl()->fDeleteTextures(1, &mTexture);
   }
@@ -88,35 +89,35 @@ ThebesLayerOGL::~ThebesLayerOGL()
 void
 ThebesLayerOGL::SetVisibleRegion(const nsIntRegion &aRegion)
 {
-  if (aRegion.GetBounds() == mVisibleRect) {
+  if (aRegion.GetBounds() == mVisibleRect)
     return;
-  }
+
   mVisibleRect = aRegion.GetBounds();
-
-  static_cast<LayerManagerOGL*>(mManager)->MakeCurrent();
-
-  if (!mTexture) {
-    gl()->fGenTextures(1, &mTexture);
-  }
-
   mInvalidatedRect = mVisibleRect;
 
-  gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+  mOGLManager->MakeCurrent();
 
+  if (!mTexture)
+    gl()->fGenTextures(1, &mTexture);
+
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+  gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
   gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MIN_FILTER, LOCAL_GL_LINEAR);
   gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_MAG_FILTER, LOCAL_GL_LINEAR);
   gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_S, LOCAL_GL_CLAMP_TO_EDGE);
   gl()->fTexParameteri(LOCAL_GL_TEXTURE_2D, LOCAL_GL_TEXTURE_WRAP_T, LOCAL_GL_CLAMP_TO_EDGE);
 
   gl()->fTexImage2D(LOCAL_GL_TEXTURE_2D,
-                  0,
-                  LOCAL_GL_RGBA,
-                  mVisibleRect.width,
-                  mVisibleRect.height,
-                  0,
-                  LOCAL_GL_BGRA,
-                  LOCAL_GL_UNSIGNED_BYTE,
-                  NULL);
+                    0,
+                    LOCAL_GL_RGBA,
+                    mVisibleRect.width,
+                    mVisibleRect.height,
+                    0,
+                    LOCAL_GL_RGBA,
+                    LOCAL_GL_UNSIGNED_BYTE,
+                    NULL);
+
+  DEBUG_GL_ERROR_CHECK(gl());
 }
 
 void
@@ -142,12 +143,15 @@ ThebesLayerOGL::GetVisibleRect()
 
 void
 ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
-                            DrawThebesLayerCallback aCallback,
-                            void* aCallbackData)
+                            const nsIntPoint& aOffset)
 {
-  if (!mTexture) {
+  if (!mTexture)
     return;
-  }
+
+  mOGLManager->MakeCurrent();
+  gl()->fActiveTexture(LOCAL_GL_TEXTURE0);
+
+  bool needsTextureBind = true;
 
   if (!mInvalidatedRect.IsEmpty()) {
     gfxASurface::gfxImageFormat imageFormat;
@@ -166,9 +170,11 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
 
     nsRefPtr<gfxContext> ctx = new gfxContext(surface);
     ctx->Translate(gfxPoint(-mInvalidatedRect.x, -mInvalidatedRect.y));
-    aCallback(this, ctx, mInvalidatedRect, aCallbackData);
 
-    static_cast<LayerManagerOGL*>(mManager)->MakeCurrent();
+    
+    mOGLManager->CallThebesLayerDrawCallback(this, ctx, mInvalidatedRect);
+
+    
 
     nsRefPtr<gfxImageSurface> imageSurface;
 
@@ -207,36 +213,33 @@ ThebesLayerOGL::RenderLayer(int aPreviousFrameBuffer,
                          mInvalidatedRect.y - mVisibleRect.y,
                          mInvalidatedRect.width,
                          mInvalidatedRect.height,
-                         LOCAL_GL_BGRA,
+                         LOCAL_GL_RGBA,
                          LOCAL_GL_UNSIGNED_BYTE,
                          imageSurface->Data());
+
+    needsTextureBind = false;
   }
 
-  float quadTransform[4][4];
+  if (needsTextureBind)
+    gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+
   
-
-
-
-  memset(&quadTransform, 0, sizeof(quadTransform));
-  quadTransform[0][0] = (float)GetVisibleRect().width;
-  quadTransform[1][1] = (float)GetVisibleRect().height;
-  quadTransform[2][2] = 1.0f;
-  quadTransform[3][0] = (float)GetVisibleRect().x;
-  quadTransform[3][1] = (float)GetVisibleRect().y;
-  quadTransform[3][3] = 1.0f;
-
-  RGBLayerProgram *program = 
-    static_cast<LayerManagerOGL*>(mManager)->GetRGBLayerProgram();
+  
+  ColorTextureLayerProgram *program =
+    UseOpaqueSurface(this)
+    ? mOGLManager->GetBGRXLayerProgram()
+    : mOGLManager->GetBGRALayerProgram();
 
   program->Activate();
-  program->SetLayerQuadTransform(&quadTransform[0][0]);
+  program->SetLayerQuadRect(mVisibleRect);
   program->SetLayerOpacity(GetOpacity());
-  program->SetLayerTransform(&mTransform._11);
-  program->Apply();
+  program->SetLayerTransform(mTransform);
+  program->SetRenderOffset(aOffset);
+  program->SetTextureUnit(0);
 
-  gl()->fBindTexture(LOCAL_GL_TEXTURE_2D, mTexture);
+  mOGLManager->BindAndDrawQuad(program);
 
-  gl()->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+  DEBUG_GL_ERROR_CHECK(gl());
 }
 
 const nsIntRect&

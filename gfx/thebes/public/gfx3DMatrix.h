@@ -107,6 +107,11 @@ public:
   static inline gfx3DMatrix Scale(float aFactor);
 
   
+
+
+  static inline gfx3DMatrix Scale(float aX, float aY, float aZ);
+
+  
   float _11, _12, _13, _14;
   float _21, _22, _23, _24;
   float _31, _32, _33, _34;
@@ -187,6 +192,18 @@ gfx3DMatrix::Scale(float aFactor)
   gfx3DMatrix matrix;
 
   matrix._11 = matrix._22 = matrix._33 = aFactor;
+  return matrix;
+}
+
+inline gfx3DMatrix
+gfx3DMatrix::Scale(float aX, float aY, float aZ)
+{
+  gfx3DMatrix matrix;
+
+  matrix._11 = aX;
+  matrix._22 = aY;
+  matrix._33 = aZ;
+
   return matrix;
 }
 

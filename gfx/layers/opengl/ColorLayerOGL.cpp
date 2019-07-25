@@ -35,6 +35,7 @@
 
 
 
+
 #include "ColorLayerOGL.h"
 
 namespace mozilla {
@@ -53,41 +54,37 @@ ColorLayerOGL::GetLayer()
 }
 
 void
-ColorLayerOGL::RenderLayer(int, DrawThebesLayerCallback, void*)
+ColorLayerOGL::RenderLayer(int,
+                           const nsIntPoint& aOffset)
 {
-  static_cast<LayerManagerOGL*>(mManager)->MakeCurrent();
+  mOGLManager->MakeCurrent();
 
   
 
-  float quadTransform[4][4];
   nsIntRect visibleRect = mVisibleRegion.GetBounds();
   
-  memset(&quadTransform, 0, sizeof(quadTransform));
-  quadTransform[0][0] = (float)visibleRect.width;
-  quadTransform[1][1] = (float)visibleRect.height;
-  quadTransform[2][2] = 1.0f;
-  quadTransform[3][0] = (float)visibleRect.x;
-  quadTransform[3][1] = (float)visibleRect.y;
-  quadTransform[3][3] = 1.0f;
   
-  ColorLayerProgram *program =
-    static_cast<LayerManagerOGL*>(mManager)->GetColorLayerProgram();
 
+
+
+
+  float opacity = GetOpacity();
+  gfxRGBA color(mColor);
+  color.r *= opacity;
+  color.g *= opacity;
+  color.b *= opacity;
+  color.a *= opacity;
+
+  SolidColorLayerProgram *program = mOGLManager->GetColorLayerProgram();
   program->Activate();
+  program->SetLayerQuadRect(visibleRect);
+  program->SetLayerTransform(mTransform);
+  program->SetRenderOffset(aOffset);
+  program->SetRenderColor(color);
 
-  program->SetLayerQuadTransform(&quadTransform[0][0]);
+  mOGLManager->BindAndDrawQuad(program);
 
-  gfxRGBA color = mColor;
-  
-  color.r *= GetOpacity();
-  color.g *= GetOpacity();
-  color.b *= GetOpacity();
-  color.a *= GetOpacity();
-  program->SetLayerColor(color);
-  program->SetLayerTransform(&mTransform._11);
-  program->Apply();
-
-  gl()->fDrawArrays(LOCAL_GL_TRIANGLE_STRIP, 0, 4);
+  DEBUG_GL_ERROR_CHECK(gl());
 }
 
 } 

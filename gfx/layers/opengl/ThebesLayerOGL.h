@@ -64,8 +64,7 @@ public:
   Layer* GetLayer();
   virtual PRBool IsEmpty();
   virtual void RenderLayer(int aPreviousFrameBuffer,
-                           DrawThebesLayerCallback aCallback,
-                           void* aCallbackData);
+                           const nsIntPoint& aOffset);
 
   
   const nsIntRect &GetVisibleRect();
@@ -86,7 +85,6 @@ private:
 
 
   GLuint mTexture;
-
 };
 
 } 
