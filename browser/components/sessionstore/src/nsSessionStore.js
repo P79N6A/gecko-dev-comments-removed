@@ -2472,7 +2472,21 @@ SessionStoreService.prototype = {
       }
     }
 
-    if (aTabs.length > 0) {
+    if (!this._isWindowLoaded(aWindow)) {
+      
+      delete this._statesToRestore[aWindow.__SS_restoreID];
+      delete aWindow.__SS_restoreID;
+      delete this._windows[aWindow.__SSi]._restoring;
+    }
+
+    if (aTabs.length == 0) {
+      
+      
+      this._sendWindowStateEvent(aWindow, "Ready");
+      return;
+    }
+
+    if (aTabs.length > 1) {
       
       let unhiddenTabs = aTabs.length;
       for (let t = 0; t < unhiddenTabs; ) {
@@ -2505,13 +2519,13 @@ SessionStoreService.prototype = {
         aTabData = aTabData.splice(firstVisibleTab, maxVisibleTabs).concat(aTabData);
         aSelectTab -= firstVisibleTab;
       }
+    }
 
-      
-      if (aSelectTab-- && aTabs[aSelectTab]) {
-        aTabs.unshift(aTabs.splice(aSelectTab, 1)[0]);
-        aTabData.unshift(aTabData.splice(aSelectTab, 1)[0]);
-        tabbrowser.selectedTab = aTabs[0];
-      }
+    
+    if (aSelectTab-- && aTabs[aSelectTab]) {
+      aTabs.unshift(aTabs.splice(aSelectTab, 1)[0]);
+      aTabData.unshift(aTabData.splice(aSelectTab, 1)[0]);
+      tabbrowser.selectedTab = aTabs[0];
     }
 
     
@@ -2578,13 +2592,6 @@ SessionStoreService.prototype = {
       }
     }
 
-    if (!this._isWindowLoaded(aWindow)) {
-      
-      delete this._statesToRestore[aWindow.__SS_restoreID];
-      delete aWindow.__SS_restoreID;
-      delete this._windows[aWindow.__SSi]._restoring;
-    }
-    
     
     
     var idMap = { used: {} };
