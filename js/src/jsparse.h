@@ -994,6 +994,7 @@ struct Parser : private js::AutoGCRooter
     uint32              functionCount;  
     JSObjectBox         *traceListHead; 
     JSTreeContext       *tc;            
+    JSVersion           version;        
 
     
     js::AutoKeepAtoms   keepAtoms;

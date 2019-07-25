@@ -5707,12 +5707,6 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
     JS_ASSERT(!newfp->hasIMacroPC());
 
     
-
-
-
-    newfp->setCallerVersion((JSVersion) fp->getScript()->version);
-
-    
     stack.pushInlineFrame(cx, fp, fi.pc, newfp);
 
     

@@ -1979,6 +1979,78 @@ class RegExpStatics
     void getRightContext(JSSubString *out) const;
 };
 
+#define JS_HAS_OPTION(cx,option)        (((cx)->options & (option)) != 0)
+#define JS_HAS_STRICT_OPTION(cx)        JS_HAS_OPTION(cx, JSOPTION_STRICT)
+#define JS_HAS_WERROR_OPTION(cx)        JS_HAS_OPTION(cx, JSOPTION_WERROR)
+#define JS_HAS_COMPILE_N_GO_OPTION(cx)  JS_HAS_OPTION(cx, JSOPTION_COMPILE_N_GO)
+#define JS_HAS_ATLINE_OPTION(cx)        JS_HAS_OPTION(cx, JSOPTION_ATLINE)
+
+namespace VersionFlags {
+static const uint32 MASK =        0x0FFF; 
+static const uint32 HAS_XML =     0x1000; 
+static const uint32 ANONFUNFIX =  0x2000; 
+}
+
+static inline bool
+VersionHasXML(JSVersion version)
+{
+    return !!(version & VersionFlags::HAS_XML);
+}
+
+static inline bool
+VersionHasAnonFunFix(JSVersion version)
+{
+    return !!(version & VersionFlags::ANONFUNFIX);
+}
+
+static inline void
+VersionSetXML(JSVersion *version, bool enable)
+{
+    if (enable)
+        *version = JSVersion(uint32(*version) | VersionFlags::HAS_XML);
+    else
+        *version = JSVersion(uint32(*version) & ~VersionFlags::HAS_XML);
+}
+
+static inline void
+VersionSetAnonFunFix(JSVersion *version, bool enable)
+{
+    if (enable)
+        *version = JSVersion(uint32(*version) | VersionFlags::ANONFUNFIX);
+    else
+        *version = JSVersion(uint32(*version) & ~VersionFlags::ANONFUNFIX);
+}
+
+static inline JSVersion
+VersionExtractFlags(JSVersion version)
+{
+    return JSVersion(uint32(version) & ~VersionFlags::MASK);
+}
+
+static inline bool
+VersionHasFlags(JSVersion version)
+{
+    return !!VersionExtractFlags(version);
+}
+
+static inline JSVersion
+VersionNumber(JSVersion version)
+{
+    return JSVersion(uint32(version) & VersionFlags::MASK);
+}
+
+static inline bool
+VersionIsKnown(JSVersion version)
+{
+    return VersionNumber(version) != JSVERSION_UNKNOWN;
+}
+
+static inline void
+VersionCloneFlags(JSVersion src, JSVersion *dst)
+{
+    *dst = JSVersion(uint32(VersionNumber(*dst)) | uint32(VersionExtractFlags(src)));
+}
+
 } 
 
 struct JSContext
@@ -1988,9 +2060,13 @@ struct JSContext
     
     JSCList             link;
 
+  private:
     
-    uint16              version;
+    JSVersion           defaultVersion;      
+    JSVersion           versionOverride;     
+    bool                hasVersionOverride;
 
+  public:
     
     uint32              options;            
 
@@ -2150,10 +2226,8 @@ struct JSContext
     js::StackSegment *containingSegment(const JSStackFrame *target);
 
     
-
-
-    JSStackFrame *findFrameAtLevel(uintN targetLevel) {
-        JSStackFrame *fp = this->regs->fp;
+    JSStackFrame *findFrameAtLevel(uintN targetLevel) const {
+        JSStackFrame *fp = regs->fp;
         while (true) {
             JS_ASSERT(fp && fp->hasScript());
             if (fp->getScript()->staticLevel == targetLevel)
@@ -2161,6 +2235,58 @@ struct JSContext
             fp = fp->down;
         }
         return fp;
+    }
+
+    void clearVersionOverride() { hasVersionOverride = false; }
+
+  private:
+    
+    void setDefaultVersion(JSVersion version) { defaultVersion = version; }
+
+    
+
+
+
+    bool canSetDefaultVersion() const { return !regs && !hasVersionOverride; }
+
+    
+    void overrideVersion(JSVersion newVersion) {
+        JS_ASSERT(!canSetDefaultVersion());
+        versionOverride = newVersion;
+        hasVersionOverride = true;
+    }
+
+  public:
+    
+    void maybeOverrideVersion(JSVersion newVersion) {
+        if (canSetDefaultVersion())
+            setDefaultVersion(newVersion);
+        else
+            overrideVersion(newVersion);
+    }
+
+    
+
+
+
+
+
+
+
+    JSVersion findVersion() const {
+        if (hasVersionOverride)
+            return versionOverride;
+
+        if (regs) {
+            
+            JSStackFrame *fp = regs->fp;
+            while (fp && !fp->hasScript())
+                fp = fp->down;
+            if (fp)
+                return fp->getScript()->getVersion();
+        }
+
+        return defaultVersion;
     }
 
 #ifdef JS_THREADSAFE
@@ -2931,49 +3057,6 @@ class JSAutoResolveFlags
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#define JS_HAS_OPTION(cx,option)        (((cx)->options & (option)) != 0)
-#define JS_HAS_STRICT_OPTION(cx)        JS_HAS_OPTION(cx, JSOPTION_STRICT)
-#define JS_HAS_WERROR_OPTION(cx)        JS_HAS_OPTION(cx, JSOPTION_WERROR)
-#define JS_HAS_COMPILE_N_GO_OPTION(cx)  JS_HAS_OPTION(cx, JSOPTION_COMPILE_N_GO)
-#define JS_HAS_ATLINE_OPTION(cx)        JS_HAS_OPTION(cx, JSOPTION_ATLINE)
-
-#define JSVERSION_MASK                  0x0FFF  /* see JSVersion in jspubtd.h */
-#define JSVERSION_HAS_XML               0x1000  /* flag induced by XML option */
-#define JSVERSION_ANONFUNFIX            0x2000  /* see jsapi.h, the comments
-                                                   for JSOPTION_ANONFUNFIX */
-
-#define JSVERSION_NUMBER(cx)            ((JSVersion)((cx)->version &          \
-                                                     JSVERSION_MASK))
-#define JS_HAS_XML_OPTION(cx)           ((cx)->version & JSVERSION_HAS_XML || \
-                                         JSVERSION_NUMBER(cx) >= JSVERSION_1_6)
-
 extern JSThreadData *
 js_CurrentThreadData(JSRuntime *rt);
 
@@ -3027,29 +3110,14 @@ class ThreadDataIter
 
 #endif  
 
+
+
+
+
+extern void
+SyncOptionsToVersion(JSContext *cx);
+
 } 
-
-
-
-
-
-
-extern void
-js_SyncOptionsToVersion(JSContext *cx);
-
-
-
-
-
-extern void
-js_OnVersionChange(JSContext *cx);
-
-
-
-
-
-extern void
-js_SetVersion(JSContext *cx, JSVersion version);
 
 
 

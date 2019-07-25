@@ -274,10 +274,6 @@ mjit::Compiler::generatePrologue()
 #endif
 
         
-        masm.store32(Imm32(cx->version),
-                     Address(JSFrameReg, JSStackFrame::offsetCallerVersion()));
-
-        
         masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), Registers::ReturnReg);
 
         

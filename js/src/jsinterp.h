@@ -146,7 +146,6 @@ struct JSStackFrame
   private:
     
     void            *hookData;      
-    JSVersion       callerVersion;  
 
   public:
     
@@ -373,20 +372,6 @@ struct JSStackFrame
 
     static size_t offsetHookData() {
         return offsetof(JSStackFrame, hookData);
-    }
-
-    
-
-    JSVersion getCallerVersion() const {
-        return callerVersion;
-    }
-
-    void setCallerVersion(JSVersion version) {
-        callerVersion = version;
-    }
-
-    static size_t offsetCallerVersion() {
-        return offsetof(JSStackFrame, callerVersion);
     }
 
     

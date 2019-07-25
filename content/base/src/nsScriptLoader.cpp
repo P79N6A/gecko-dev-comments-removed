@@ -468,7 +468,7 @@ nsScriptLoader::ProcessScriptElement(nsIScriptElement *aElement)
           
           
           
-          version |= JSVERSION_HAS_XML;
+          version |= js::VersionFlags::HAS_XML;
       }
     }
   } else {
