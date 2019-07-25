@@ -79,7 +79,7 @@ JSString::isExternal() const
 }
 
 size_t
-JSString::charsHeapSize(JSMallocSizeOfFun mallocSizeOf)
+JSString::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf)
 {
     
     if (isRope())

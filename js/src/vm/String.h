@@ -407,7 +407,7 @@ class JSString : public js::gc::Cell
 
     
 
-    JS_FRIEND_API(size_t) charsHeapSize(JSMallocSizeOfFun mallocSizeOf);
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf);
 
     
 
