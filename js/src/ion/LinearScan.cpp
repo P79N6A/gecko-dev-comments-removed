@@ -1363,8 +1363,6 @@ LinearScanAllocator::setIntervalRequirement(LiveInterval *interval)
             
             interval->setRequirement(Requirement(Requirement::REGISTER));
         }
-
-        return;
     }
 
     
