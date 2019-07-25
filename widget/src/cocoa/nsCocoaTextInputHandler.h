@@ -271,6 +271,69 @@ public:
 
   void InsertTextAsCommittingComposition(NSAttributedString* aAttrString);
 
+  
+
+
+
+
+
+
+  NSInteger ConversationIdentifier();
+
+  
+
+
+
+
+
+
+
+
+
+  NSAttributedString* GetAttributedSubstringFromRange(NSRange& aRange);
+
+  
+
+
+
+
+
+
+  NSRange SelectedRange();
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  NSRect FirstRectForCharacterRange(NSRange& aRange);
+
+  
+
+
+
+
+
+
+
+
+  NSUInteger CharacterIndexForPoint(NSPoint& aPoint);
+
+  
+
+
+
+
+  NSArray* GetValidAttributesForMarkedText();
+
   PRBool HasMarkedText()
   {
     return (mMarkedRange.location != NSNotFound) && (mMarkedRange.length != 0);
