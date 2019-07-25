@@ -257,6 +257,9 @@ BookmarksStore.prototype = {
     
     if (anno == PARENT_ANNO)
       val = "T" + val;
+    
+    else if (anno == PREDECESSOR_ANNO)
+      val = "R" + val;
 
     return Svc.Annos.getItemsWithAnnotation(anno, {}).filter(function(id)
       Utils.anno(id, anno) == val);
@@ -328,15 +331,72 @@ BookmarksStore.prototype = {
     this._setGUID(newId, record.id);
 
     
+    let parented = [];
+    if (!record._orphan)
+      parented.push(newId);
+
+    
     if (record.type == "folder") {
       let orphans = this._findAnnoItems(PARENT_ANNO, record.id);
       this._log.debug("Reparenting orphans " + orphans + " to " + record.title);
       orphans.forEach(function(orphan) {
         
-        Svc.Bookmark.moveItem(orphan, newId, Svc.Bookmark.DEFAULT_INDEX);
+        let insertPos = Svc.Bookmark.DEFAULT_INDEX;
+        if (!Svc.Annos.itemHasAnnotation(orphan, PREDECESSOR_ANNO))
+          insertPos = 0;
+
+        
+        Svc.Bookmark.moveItem(orphan, newId, insertPos);
         Svc.Annos.removeItemAnnotation(orphan, PARENT_ANNO);
+        parented.push(orphan);
       });
     }
+
+    
+    parented.forEach(function(predId) {
+      let predGUID = GUIDForId(predId);
+      let followers = this._findAnnoItems(PREDECESSOR_ANNO, predGUID);
+      if (followers.length > 1)
+        this._log.warn(predId + " has more than one followers: " + followers);
+
+      
+      let parent = Svc.Bookmark.getFolderIdForItem(predId);
+      followers.forEach(function(follow) {
+        this._log.debug("Repositioning " + follow + " behind " + predId);
+        if (Svc.Bookmark.getFolderIdForItem(follow) != parent) {
+          this._log.warn("Follower doesn't have the same parent: " + parent);
+          return;
+        }
+
+        
+        Svc.Annos.removeItemAnnotation(follow, PREDECESSOR_ANNO);
+
+        
+        let insertAfter = predId;
+        do {
+          
+          let followPos = Svc.Bookmark.getItemIndex(follow);
+          let nextFollow = Svc.Bookmark.getIdForItemAt(parent, followPos + 1);
+
+          let insertPos = Svc.Bookmark.getItemIndex(insertAfter) + 1;
+          Svc.Bookmark.moveItem(follow, parent, insertPos);
+          this._log.trace(["Moved", follow, "to", insertPos, "after",
+            insertAfter, "with", nextFollow, "next"].join(" "));
+
+          
+          insertAfter = follow;
+          follow = nextFollow;
+
+          
+          if (follow == -1)
+            break;
+
+          
+          if (Svc.Annos.itemHasAnnotation(follow, PREDECESSOR_ANNO))
+            break;
+        } while (follow != predId);
+      }, this);
+    }, this);
   },
 
   remove: function BStore_remove(record) {
