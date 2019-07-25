@@ -183,6 +183,7 @@ WeaveCrypto.prototype = {
       switch (algorithm) {
       case "none":
         ret = data;
+        break;
       case "XXTEA":
       case "XXXTEA": 
         this._log.debug("Decrypting data");
