@@ -760,12 +760,17 @@ StackFramesView.prototype = {
 
 
 function PropertiesView() {
-  this._addScope = this._addScope.bind(this);
+  this.addScope = this._addScope.bind(this);
   this._addVar = this._addVar.bind(this);
   this._addProperties = this._addProperties.bind(this);
 }
 
 PropertiesView.prototype = {
+  
+
+
+
+  _idCount: 1,
 
   
 
@@ -787,7 +792,7 @@ PropertiesView.prototype = {
     }
 
     
-    aId = aId || (aName.toLowerCase().trim().replace(" ", "-") + "-scope");
+    aId = aId || aName.toLowerCase().trim().replace(" ", "-") + this._idCount++;
 
     
     let element = this._createPropertyElement(aName, aId, "scope", this._vars);
@@ -804,6 +809,32 @@ PropertiesView.prototype = {
 
     
     return element;
+  },
+
+  
+
+
+  empty: function DVP_empty() {
+    while (this._vars.firstChild) {
+      this._vars.removeChild(this._vars.firstChild);
+    }
+  },
+
+  
+
+
+
+  emptyText: function DVP_emptyText() {
+    
+    this.empty();
+
+    let item = document.createElement("label");
+
+    
+    item.className = "list-item empty";
+    item.setAttribute("value", L10N.getStr("emptyVariablesText"));
+
+    this._vars.appendChild(item);
   },
 
   
@@ -1688,99 +1719,7 @@ PropertiesView.prototype = {
   
 
 
-  get globalScope() {
-    return this._globalScope;
-  },
-
-  
-
-
-
-
-
-  set globalScope(aFlag) {
-    if (aFlag) {
-      this._globalScope.show();
-    } else {
-      this._globalScope.hide();
-    }
-  },
-
-  
-
-
-  get localScope() {
-    return this._localScope;
-  },
-
-  
-
-
-
-
-
-  set localScope(aFlag) {
-    if (aFlag) {
-      this._localScope.show();
-    } else {
-      this._localScope.hide();
-    }
-  },
-
-  
-
-
-  get withScope() {
-    return this._withScope;
-  },
-
-  
-
-
-
-
-
-  set withScope(aFlag) {
-    if (aFlag) {
-      this._withScope.show();
-    } else {
-      this._withScope.hide();
-    }
-  },
-
-  
-
-
-  get closureScope() {
-    return this._closureScope;
-  },
-
-  
-
-
-
-
-
-  set closureScope(aFlag) {
-    if (aFlag) {
-      this._closureScope.show();
-    } else {
-      this._closureScope.hide();
-    }
-  },
-
-  
-
-
   _vars: null,
-
-  
-
-
-  _globalScope: null,
-  _localScope: null,
-  _withScope: null,
-  _closureScope: null,
 
   
 
@@ -1789,10 +1728,6 @@ PropertiesView.prototype = {
     this.createHierarchyStore();
 
     this._vars = document.getElementById("variables");
-    this._localScope = this._addScope(L10N.getStr("localScope")).expand();
-    this._withScope = this._addScope(L10N.getStr("withScope")).hide();
-    this._closureScope = this._addScope(L10N.getStr("closureScope")).hide();
-    this._globalScope = this._addScope(L10N.getStr("globalScope"));
   },
 
   
@@ -1802,10 +1737,6 @@ PropertiesView.prototype = {
     this._currHierarchy = null;
     this._prevHierarchy = null;
     this._vars = null;
-    this._globalScope = null;
-    this._localScope = null;
-    this._withScope = null;
-    this._closureScope = null;
   }
 };
 

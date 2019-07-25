@@ -1078,6 +1078,10 @@ ObjectActor.prototype = {
                message: "cannot access the environment of this function." };
     }
 
+    
+    
+    
+    
     return { name: this.obj.name || null,
              scope: envActor.form(this.obj) };
   },
@@ -1197,14 +1201,7 @@ FrameActor.prototype = {
                  type: this.frame.type };
     if (this.frame.type === "call") {
       form.callee = this.threadActor.createValueGrip(this.frame.callee);
-      if (this.frame.callee.name) {
-        form.calleeName = this.frame.callee.name;
-      } else {
-        let desc = this.frame.callee.getOwnPropertyDescriptor("displayName");
-        if (desc && desc.value && typeof desc.value == "string") {
-          form.calleeName = desc.value;
-        }
-      }
+      form.calleeName = getFunctionName(this.frame.callee);
     }
 
     let envActor = this.threadActor
@@ -1353,24 +1350,29 @@ EnvironmentActor.prototype = {
     let parent;
     if (this.obj.parent) {
       let thread = this.threadActor;
-      parent = thread.createEnvironmentActor(this.obj.parent.environment,
+      parent = thread.createEnvironmentActor(this.obj.parent,
                                              this.registeredPool);
     }
+    
+    
+    let parentFrame = aObject;
+    if (this.obj.type == "declarative" && aObject.older) {
+      parentFrame = aObject.older;
+    }
     let form = { actor: this.actorID,
-                 parent: parent ? parent.form(this.obj.parent) : parent };
+                 parent: parent ? parent.form(parentFrame) : parent };
 
-    if (aObject.type == "object") {
-      if (this.obj.parent) {
-        form.type = "with";
-      } else {
-        form.type = "object";
-      }
-      form.object = this.threadActor.createValueGrip(aObject.object);
-    } else {
-      if (aObject.class == "Function") {
+    if (this.obj.type == "with") {
+      form.type = "with";
+      form.object = this.threadActor.createValueGrip(this.obj.object);
+    } else if (this.obj.type == "object") {
+      form.type = "object";
+      form.object = this.threadActor.createValueGrip(this.obj.object);
+    } else { 
+      if (aObject.callee) {
         form.type = "function";
-        form.function = this.threadActor.createValueGrip(aObject);
-        form.functionName = aObject.name;
+        form.function = this.threadActor.createValueGrip(aObject.callee);
+        form.functionName = getFunctionName(aObject.callee);
       } else {
         form.type = "block";
       }
@@ -1514,3 +1516,22 @@ EnvironmentActor.prototype.requestTypes = {
   "assign": EnvironmentActor.prototype.onAssign,
   "bindings": EnvironmentActor.prototype.onBindings
 };
+
+
+
+
+
+
+
+function getFunctionName(aFunction) {
+  let name;
+  if (aFunction.name) {
+    name = aFunction.name;
+  } else {
+    let desc = aFunction.getOwnPropertyDescriptor("displayName");
+    if (desc && desc.value && typeof desc.value == "string") {
+      name = desc.value;
+    }
+  }
+  return name;
+}
