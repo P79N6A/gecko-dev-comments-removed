@@ -1018,13 +1018,13 @@ LayerManagerOGL::CopyToTarget()
   mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER,
                                mGLContext->IsDoubleBuffered() ? 0 : mBackBufferFBO);
 
+#ifndef USE_GLES2
+  
+  
   if (mGLContext->IsDoubleBuffered()) {
     mGLContext->fReadBuffer(LOCAL_GL_BACK);
   }
-#ifndef USE_GLES2
   else {
-  
-  
     mGLContext->fReadBuffer(LOCAL_GL_COLOR_ATTACHMENT0);
   }
 #endif
