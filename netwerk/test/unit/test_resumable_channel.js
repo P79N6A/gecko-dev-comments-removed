@@ -68,10 +68,6 @@ Requestor.prototype = {
 };
 
 function run_test() {
-
-  _dump('FIXME/bug 586238: disabled to avoid perma-orange\n');
-}
-function never() {
   dump("*** run_test\n");
   httpserver = new nsHttpServer();
   httpserver.registerPathHandler("/auth", authHandler);
@@ -215,14 +211,20 @@ function never() {
     do_check_true(request.nsIHttpChannel.requestSucceeded);
     do_check_eq(data, rangeBody);
 
-    
 
     
     
     
-
-
-
+    try { 
+      let processType = Components.classes["@mozilla.org/xre/runtime;1"].
+                        getService(Components.interfaces.nsIXULRuntime).processType;
+      if (processType == Components.interfaces.nsIXULRuntime.PROCESS_TYPE_DEFAULT) {
+        var chan = make_channel("http://localhost:4444/range");
+        chan.nsIResumableChannel.resumeAt(1, entityID);
+        chan.nsIHttpChannel.setRequestHeader("X-Need-Auth", "true", false);
+        chan.asyncOpen(new ChannelListener(test_auth_nopw, null, CL_EXPECT_FAILURE), null);
+      }
+    } catch (e) { }
 
     
     var chan = make_channel("http://localhost:4444/range");
