@@ -69,6 +69,10 @@ class Debug {
         FrameMap;
     FrameMap frames;
 
+    typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, SystemAllocPolicy>
+        ObjectMap;
+    ObjectMap objects;
+
     JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
     JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
                                       bool callHook = true);
@@ -90,6 +94,26 @@ class Debug {
 
     bool getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp);
     static void slowPathLeaveStackFrame(JSContext *cx);
+
+    
+    
+    
+    
+    
+    
+    bool wrapDebuggeeValue(JSContext *cx, Value *vp);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool unwrapDebuggeeValue(JSContext *cx, Value *vp);
 
     inline bool observesDebuggerStatement() const;
     static JSTrapStatus dispatchDebuggerStatement(JSContext *cx, Value *vp);
