@@ -180,7 +180,6 @@ public:
 
     static nsTArray<const mozilla::Module*>* sStaticModules;
     static nsTArray<ComponentLocation>* sModuleLocations;
-    static nsTArray<ComponentLocation>* sJarModuleLocations;
 
     nsNativeModuleLoader mNativeModuleLoader;
 
@@ -246,9 +245,8 @@ public:
     
     
     nsTArray< nsAutoPtr<KnownModule> > mKnownStaticModules;
-    nsClassHashtable<nsHashableHashKey, KnownModule> mKnownFileModules;
     
-    nsClassHashtable<nsCStringHashKey, KnownModule> mKnownJARModules;
+    nsClassHashtable<nsCStringHashKey, KnownModule> mKnownModules;
 
     void RegisterModule(const mozilla::Module* aModule,
                         nsILocalFile* aFile);
