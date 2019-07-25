@@ -132,23 +132,12 @@ public:
 
   
   nsDOMFileFile(nsIFile *aFile, const nsAString& aContentType,
-                nsISupports *aCacheToken)
+                nsISupports *aCacheToken = nsnull)
     : nsDOMFileBase(aContentType, UINT64_MAX),
       mFile(aFile), mWholeFile(true), mStoredFile(false),
       mCacheToken(aCacheToken)
   {
     NS_ASSERTION(mFile, "must have file");
-  }
-
-  
-  nsDOMFileFile(nsIFile *aFile, const nsAString& aName)
-    : nsDOMFileBase(EmptyString(), EmptyString(), UINT64_MAX),
-      mFile(aFile), mWholeFile(true), mStoredFile(false)
-  {
-    NS_ASSERTION(mFile, "must have file");
-    
-    mContentType.SetIsVoid(true);
-    mName.Assign(aName);
   }
 
   
