@@ -4816,6 +4816,11 @@ nsTypedSelection::RemoveRange(nsIRange* aRange)
 
   nsINode* beginNode = aRange->GetStartParent();
   nsINode* endNode = aRange->GetEndParent();
+
+  if (!beginNode || !endNode) {
+    
+    return NS_OK;
+  }
   
   
   PRInt32 beginOffset, endOffset;
