@@ -37,7 +37,6 @@
 
 
 
-
 #include "nsCopySupport.h"
 #include "nsIDocumentEncoder.h"
 #include "nsISupports.h"
@@ -135,9 +134,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
   
   
   
-  PRUint32 flags = nsIDocumentEncoder::OutputPreformatted
-                   | nsIDocumentEncoder::OutputRaw
-                   | nsIDocumentEncoder::SkipInvisibleContent;
+  PRUint32 flags = nsIDocumentEncoder::OutputPreformatted | nsIDocumentEncoder::OutputRaw;
 
   nsCOMPtr<nsIDOMDocument> domDoc = do_QueryInterface(aDoc);
   NS_ASSERTION(domDoc, "Need a document");
@@ -178,7 +175,7 @@ SelectionCopyHelper(nsISelection *aSel, nsIDocument *aDoc,
 
     mimeType.AssignLiteral(kHTMLMime);
 
-    flags = nsIDocumentEncoder::SkipInvisibleContent;
+    flags = 0;
 
     rv = docEncoder->Init(domDoc, mimeType, flags);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -423,7 +420,7 @@ nsCopySupport::GetContents(const nsACString& aMimeType, PRUint32 aFlags, nsISele
   docEncoder = do_CreateInstance(encoderContractID.get());
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
-  PRUint32 flags = aFlags | nsIDocumentEncoder::SkipInvisibleContent;
+  PRUint32 flags = aFlags;
   
   if (aMimeType.Equals("text/plain"))
     flags |= nsIDocumentEncoder::OutputPreformatted;
