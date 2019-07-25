@@ -40,6 +40,7 @@
 #include "SVGPoint.h"
 #include "nsTArray.h"
 #include "nsSVGElement.h"
+#include "nsIWeakReferenceUtils.h"
 
 namespace mozilla {
 
@@ -184,15 +185,16 @@ class SVGPointListAndInfo : public SVGPointList
 public:
 
   SVGPointListAndInfo(nsSVGElement *aElement = nsnull)
-    : mElement(aElement)
+    : mElement(do_GetWeakReference(static_cast<nsINode*>(aElement)))
   {}
 
   void SetInfo(nsSVGElement *aElement) {
-    mElement = aElement;
+    mElement = do_GetWeakReference(static_cast<nsINode*>(aElement));
   }
 
   nsSVGElement* Element() const {
-    return mElement;
+    nsCOMPtr<nsIContent> e = do_QueryReferent(mElement);
+    return static_cast<nsSVGElement*>(e.get());
   }
 
   nsresult CopyFrom(const SVGPointListAndInfo& rhs) {
@@ -222,7 +224,8 @@ private:
   
   
   
-  nsRefPtr<nsSVGElement> mElement;
+  
+  nsWeakPtr mElement;
 };
 
 } 

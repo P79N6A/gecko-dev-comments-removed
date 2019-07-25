@@ -40,6 +40,7 @@
 #include "SVGPathSegUtils.h"
 #include "nsTArray.h"
 #include "nsSVGElement.h"
+#include "nsIWeakReferenceUtils.h"
 
 class gfxContext;
 struct gfxMatrix;
@@ -245,15 +246,16 @@ class SVGPathDataAndOwner : public SVGPathData
 {
 public:
   SVGPathDataAndOwner(nsSVGElement *aElement = nsnull)
-    : mElement(aElement)
+    : mElement(do_GetWeakReference(static_cast<nsINode*>(aElement)))
   {}
 
   void SetElement(nsSVGElement *aElement) {
-    mElement = aElement;
+    mElement = do_GetWeakReference(static_cast<nsINode*>(aElement));
   }
 
   nsSVGElement* Element() const {
-    return mElement;
+    nsCOMPtr<nsIContent> e = do_QueryReferent(mElement);
+    return static_cast<nsSVGElement*>(e.get());
   }
 
   nsresult CopyFrom(const SVGPathDataAndOwner& rhs) {
@@ -287,7 +289,8 @@ private:
   
   
   
-  nsRefPtr<nsSVGElement> mElement;
+  
+  nsWeakPtr mElement;
 };
 
 } 

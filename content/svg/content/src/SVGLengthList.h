@@ -40,6 +40,7 @@
 #include "SVGLength.h"
 #include "nsTArray.h"
 #include "nsSVGElement.h"
+#include "nsIWeakReferenceUtils.h"
 
 namespace mozilla {
 
@@ -206,19 +207,20 @@ public:
   {}
 
   SVGLengthListAndInfo(nsSVGElement *aElement, PRUint8 aAxis, PRBool aCanZeroPadList)
-    : mElement(aElement)
+    : mElement(do_GetWeakReference(static_cast<nsINode*>(aElement)))
     , mAxis(aAxis)
     , mCanZeroPadList(aCanZeroPadList)
   {}
 
   void SetInfo(nsSVGElement *aElement, PRUint8 aAxis, PRBool aCanZeroPadList) {
-    mElement = aElement;
+    mElement = do_GetWeakReference(static_cast<nsINode*>(aElement));
     mAxis = aAxis;
     mCanZeroPadList = aCanZeroPadList;
   }
 
   nsSVGElement* Element() const {
-    return mElement; 
+    nsCOMPtr<nsIContent> e = do_QueryReferent(mElement);
+    return static_cast<nsSVGElement*>(e.get());
   }
 
   PRUint8 Axis() const {
@@ -294,7 +296,8 @@ private:
   
   
   
-  nsRefPtr<nsSVGElement> mElement;
+  
+  nsWeakPtr mElement;
   PRUint8 mAxis;
   PRPackedBool mCanZeroPadList;
 };
