@@ -179,11 +179,11 @@ GetKeyFromVariant(nsIVariant* aKeyVariant,
 
   
   switch (type) {
-    case nsIDataType::VTYPE_EMPTY:
+    case nsIDataType::VTYPE_VOID:
       aKey = Key::UNSETKEY;
       break;
 
-    case nsIDataType::VTYPE_VOID:
+    case nsIDataType::VTYPE_EMPTY:
       aKey = Key::NULLKEY;
       break;
 
@@ -339,13 +339,20 @@ IDBObjectStoreRequest::GetJSONAndKeyForAdd(
 
   if (mKeyPath.IsEmpty()) {
     
-    rv = GetKeyFromVariant(aKeyVariant, aKey);
+    if (argc < 2) {
+      
+      aKey = Key::UNSETKEY;
+    }
+    else {
+      rv = GetKeyFromVariant(aKeyVariant, aKey);
+      NS_ENSURE_SUCCESS(rv, rv);
+    }
   }
   else {
     
     rv = GetKeyFromObject(cx, JSVAL_TO_OBJECT(clone.value()), mKeyPath, aKey);
+    NS_ENSURE_SUCCESS(rv, rv);
   }
-  NS_ENSURE_SUCCESS(rv, rv);
 
   if (aKey.IsUnset() && !mAutoIncrement) {
     return NS_ERROR_INVALID_ARG;
