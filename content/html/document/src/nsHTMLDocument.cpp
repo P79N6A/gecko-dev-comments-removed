@@ -1516,33 +1516,50 @@ nsHTMLDocument::SetCookie(const nsAString& aCookie)
   return NS_OK;
 }
 
-nsresult
-nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
-                           PRBool aReplace)
+NS_IMETHODIMP
+nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
+                     const nsAString& aReplaceOrName,
+                     const nsAString& aFeatures,
+                     JSContext* cx, PRUint8 aOptionalArgCount,
+                     nsISupports** aReturn)
 {
-  if (!IsHTML() || mDisableDocWrite) {
-    
-
-    return NS_ERROR_DOM_INVALID_STATE_ERR;
-  }
-
-  PRBool loadAsHtml5 = nsHtml5Module::sEnabled;
-
-  nsresult rv = NS_OK;
-
-  
-  if (mParser) {
-
-    return NS_OK;
-  }
-
   NS_ASSERTION(nsContentUtils::CanCallerAccess(static_cast<nsIDOMHTMLDocument*>(this)),
                "XOW should have caught this!");
 
-  if (!aContentType.EqualsLiteral("text/html") &&
-      !aContentType.EqualsLiteral("text/plain")) {
-    NS_WARNING("Unsupported type; fix the caller");
-    return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+  
+  if (aOptionalArgCount > 2) {
+    nsCOMPtr<nsIDOMWindowInternal> window = GetWindowInternal();
+    if (!window) {
+      return NS_OK;
+    }
+    nsCOMPtr<nsIDOMWindow> newWindow;
+    nsresult rv = window->Open(aContentTypeOrUrl, aReplaceOrName, aFeatures,
+                               getter_AddRefs(newWindow));
+    *aReturn = newWindow.forget().get();
+    return rv;
+  }
+
+  if (!IsHTML() || mDisableDocWrite) {
+    
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+
+  nsCAutoString contentType;
+  contentType.AssignLiteral("text/html");
+  if (aOptionalArgCount > 0) {
+    nsAutoString type;
+    ToLowerCase(aContentTypeOrUrl, type);
+    nsCAutoString actualType, dummy;
+    NS_ParseContentType(NS_ConvertUTF16toUTF8(type), actualType, dummy);
+    if (!actualType.EqualsLiteral("text/html") &&
+        !type.EqualsLiteral("replace")) {
+      contentType.AssignLiteral("text/plain");
+    }
+  }
+
+  
+  if (mParser) {
+    return NS_OK;
   }
 
   
@@ -1602,7 +1619,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
     if (thisURI) {
       thisURI->GetSpec(thisSpec);
     }
-    printf("nsHTMLDocument::OpenCommon callerDoc %s this %s\n", callerSpec.get(), thisSpec.get());
+    printf("nsHTMLDocument::Open callerDoc %s this %s\n", callerSpec.get(), thisSpec.get());
 #endif
 
     return NS_ERROR_DOM_SECURITY_ERR;
@@ -1615,9 +1632,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
 
     if (cv) {
       PRBool okToUnload;
-      rv = cv->PermitUnload(PR_FALSE, &okToUnload);
-
-      if (NS_SUCCEEDED(rv) && !okToUnload) {
+      if (NS_SUCCEEDED(cv->PermitUnload(PR_FALSE, &okToUnload)) && !okToUnload) {
         
         
         return NS_OK;
@@ -1639,7 +1654,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
   nsCOMPtr<nsIChannel> channel;
   nsCOMPtr<nsILoadGroup> group = do_QueryReferent(mDocumentLoadGroup);
 
-  rv = NS_NewChannel(getter_AddRefs(channel), uri, nsnull, group);
+  nsresult rv = NS_NewChannel(getter_AddRefs(channel), uri, nsnull, group);
 
   if (NS_FAILED(rv)) {
     return rv;
@@ -1700,6 +1715,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
   
   mSecurityInfo = securityInfo;
 
+  PRBool loadAsHtml5 = nsHtml5Module::sEnabled;
   if (loadAsHtml5) {
     mParser = nsHtml5Module::NewHtml5Parser();
     rv = NS_OK;
@@ -1708,7 +1724,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
   }
 
   
-  SetContentTypeInternal(NS_ConvertUTF16toUTF8(aContentType));
+  SetContentTypeInternal(contentType);
 
   mWriteState = eDocumentOpened;
 
@@ -1739,7 +1755,9 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
   
   
   
-  shell->SetLoadType(aReplace ? LOAD_NORMAL_REPLACE : LOAD_NORMAL);
+  shell->SetLoadType(
+    (aOptionalArgCount > 1 && aReplaceOrName.EqualsLiteral("replace"))
+    ? LOAD_NORMAL_REPLACE : LOAD_NORMAL);
 
   nsCOMPtr<nsIContentViewer> cv;
   shell->GetContentViewer(getter_AddRefs(cv));
@@ -1749,7 +1767,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
   }
 
   
-  NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::OpenCommon(): wyciwyg "
+  NS_ASSERTION(!mWyciwygChannel, "nsHTMLDocument::Open(): wyciwyg "
                "channel already exists!");
 
   
@@ -1762,46 +1780,7 @@ nsHTMLDocument::OpenCommon(JSContext* cx, const nsAString& aContentType,
 
   --mWriteLevel;
 
-  return rv;
-}
-
-NS_IMETHODIMP
-nsHTMLDocument::Open(const nsAString& aContentTypeOrUrl,
-                     const nsAString& aReplaceOrName,
-                     const nsAString& aFeatures,
-                     JSContext* cx, PRUint8 aOptionalArgCount,
-                     nsISupports** aReturn)
-{
-  
-  if (aOptionalArgCount > 2) {
-    nsCOMPtr<nsIDOMWindowInternal> window = GetWindowInternal();
-    if (!window) {
-      return NS_OK;
-    }
-    nsCOMPtr<nsIDOMWindow> newWindow;
-    nsresult rv = window->Open(aContentTypeOrUrl, aReplaceOrName, aFeatures,
-                               getter_AddRefs(newWindow));
-    *aReturn = newWindow.forget().get();
-    return rv;
-  }
-
-  nsAutoString contentType;
-  contentType.AssignLiteral("text/html");
-  if (aOptionalArgCount > 0) {
-    nsAutoString type;
-    ToLowerCase(aContentTypeOrUrl, type);
-    nsCAutoString actualType, dummy;
-    NS_ParseContentType(NS_ConvertUTF16toUTF8(type), actualType, dummy);
-    if (!actualType.EqualsLiteral("text/html") &&
-        !type.EqualsLiteral("replace")) {
-      contentType.AssignLiteral("text/plain");
-    }
-  }
-
-  nsresult rv = OpenCommon(cx, contentType,
-    aOptionalArgCount > 1 && aReplaceOrName.EqualsLiteral("replace"));
   NS_ENSURE_SUCCESS(rv, rv);
-
   return CallQueryInterface(this, aReturn);
 }
 
