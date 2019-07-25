@@ -1558,7 +1558,12 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
 
   
   
- 
+
+#ifdef MOZ_JPROF
+  
+  unsetenv("JPROF_SLAVE");
+#endif
+
   if (aBlankCommandLine) {
 #if defined(MOZ_WIDGET_QT)
     

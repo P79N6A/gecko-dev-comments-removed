@@ -399,6 +399,8 @@ void *ucontext)
 NS_EXPORT_(void) setupProfilingStuff(void)
 {
     static int gFirstTime = 1;
+    char filename[2048]; 
+
     if(gFirstTime && !(gFirstTime=0)) {
 	int  startTimer = 1;
 	int  doNotStart = 1;
@@ -407,6 +409,10 @@ NS_EXPORT_(void) setupProfilingStuff(void)
         char *tst  = getenv("JPROF_FLAGS");
 
 	
+
+
+
+
 
 
 
@@ -470,12 +476,29 @@ NS_EXPORT_(void) setupProfilingStuff(void)
                   
 #endif
             }
+            char *f = strstr(tst,"JP_FILENAME=");
+            if (f)
+                f = f + strlen("JP_FILENAME=");
+            else
+                f = M_LOGFILE;
+
+            char *is_slave = getenv("JPROF_SLAVE");
+            if (!is_slave)
+                setenv("JPROF_SLAVE","", 0);
+
+            int pid = syscall(SYS_gettid); 
+            if (is_slave)
+                snprintf(filename,sizeof(filename),"%s-%d",f,pid);
+            else
+                snprintf(filename,sizeof(filename),"%s",f);
+
+            
 	}
 
 	if(!doNotStart) {
 
 	    if(gLogFD<0) {
-		gLogFD = open(M_LOGFILE, O_CREAT | O_WRONLY | append, 0666);
+		gLogFD = open(filename, O_CREAT | O_WRONLY | append, 0666);
 		if(gLogFD<0) {
 		    fprintf(stderr, "Unable to create " M_LOGFILE);
 		    perror(":");
