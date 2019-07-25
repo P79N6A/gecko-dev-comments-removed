@@ -90,6 +90,13 @@ BookmarksSharingManager.prototype = {
     return this.__bms;
   },
 
+  __myUsername: null,
+  get _myUsername() {
+    if (!this.__myUsername)
+      this.__myUsername = ID.get('WeaveID').username;
+    return this.__myUsername;
+  },
+
   _init: function SharingManager__init(engine) {
     this._engine = engine;
     this._log = Log4Moz.Service.getLogger("Bookmark Share");
@@ -109,7 +116,7 @@ BookmarksSharingManager.prototype = {
 
     
 
-    let clientName = ID.get('WeaveID').username;
+    let clientName = this._myUsername;
     let clientPassword = ID.get('WeaveID').password;
 
     let transport = new HTTPPollingTransport( serverUrl, false, 15000 );
@@ -203,6 +210,19 @@ BookmarksSharingManager.prototype = {
     Notifications.add(notification);
   },
 
+  _sendXmppNotification: function BmkSharing__sendXmpp(recipient, cmd, path, name) {
+    
+    if ( this._xmppClient ) {
+      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
+	let msgText = "share " + path + " " + name;
+	this._log.debug( "Sending XMPP message: " + msgText );
+	this._xmppClient.sendMessage( recipient, msgText );
+      } else {
+	this._log.warn( "No XMPP connection for share notification." );
+      }
+    }
+  },
+
   _share: function BmkSharing__share( folderId, username ) {
     
     let ret = false;
@@ -229,19 +249,13 @@ BookmarksSharingManager.prototype = {
                                     0,
                                     this._annoSvc.EXPIRE_NEVER);
     
-    if ( this._xmppClient ) {
-      
-      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
-	let msgText = "share " + serverPath + " " + folderName;
-	this._log.debug( "Sending XMPP message: " + msgText );
-	this._xmppClient.sendMessage( username, msgText );
-      } else {
-	this._log.warn( "No XMPP connection for share notification." );
-      }
-    }
+
+
 
     
-
+    
+    let abspath = "/user/" + this._myUsername + "/" + serverPath;
+    this._sendXmppNotification( username, "share", abspath, folderName);
 
 
     this._log.info("Shared " + folderName +" with " + username);
@@ -272,15 +286,8 @@ BookmarksSharingManager.prototype = {
     yield;
 
     
-    if ( this._xmppClient ) {
-      if ( this._xmppClient._connectionStatus == this._xmppClient.CONNECTED ) {
-	let msgText = "stop " + serverPath + " " + folderName;
-	this._log.debug( "Sending XMPP message: " + msgText );
-	this._xmppClient.sendMessage( username, msgText );
-      } else {
-	this._log.warn( "No XMPP connection for share notification." );
-      }
-    }
+    let abspath = "/user/" + this._myUsername + "/" + serverPath;
+    this._sendXmppNotiication( username, "stop", abspath, folderName );
 
     this._log.info("Stopped sharing " + folderName + "with " + username);
     self.done( true );
@@ -409,7 +416,6 @@ BookmarksSharingManager.prototype = {
 
 
     let self = yield;
-    let myUserName = ID.get('WeaveID').username;
     this._log.debug("Turning folder " + folderName + " into outgoing share"
 		     + " with " + username);
 
@@ -438,7 +444,8 @@ BookmarksSharingManager.prototype = {
 
     let encryptionTurnedOn = true;
     if (encryptionTurnedOn) {
-      yield this._createKeyChain.async(this, self.cb, serverPath, myUserName, username);
+      yield this._createKeyChain.async(this, self.cb, serverPath,
+				       this._myUsername, username);
     }
 
     
@@ -457,7 +464,6 @@ BookmarksSharingManager.prototype = {
 
 
     let self = yield;
-    let myUserName = ID.get('WeaveID').username;
     
     
     let serverPath = this._annoSvc.getItemAnnotation(folderId,
@@ -478,7 +484,7 @@ BookmarksSharingManager.prototype = {
     
     let idRSA = ID.get('WeaveCryptoID');
     let bulkKey = yield Crypto.unwrapKey.async(Crypto, self.cb,
-                           keys.ring[myUserName], idRSA);
+                           keys.ring[this._myUsername], idRSA);
     let bulkIV = keys.bulkIV;
 
     
@@ -595,7 +601,6 @@ BookmarksSharingManager.prototype = {
 
     let self = yield;
     let user = mountData.userid;
-    let myUserName = ID.get('WeaveID').username;
     
     
     let serverPath = mountData.serverPath;
@@ -612,7 +617,7 @@ BookmarksSharingManager.prototype = {
     let cyphertext = yield;
     let tmpIdentity = {
                         realm   : "temp ID",
-                        bulkKey : keys.ring[myUserName],
+                        bulkKey : keys.ring[this._myUsername],
                         bulkIV  : keys.bulkIV
                       };
     Crypto.decryptData.async( Crypto, self.cb, cyphertext, tmpIdentity );
