@@ -129,7 +129,7 @@ public:
 
     static PRInt32 GetDPI();
 
-    static bool UseXRender() {
+    static bool UseClientSideRendering() {
 #if defined(MOZ_X11) && defined(MOZ_PLATFORM_MAEMO)
         
         
@@ -141,8 +141,6 @@ public:
         
         
         return true;
-#elif defined(MOZ_X11)
-        return sUseXRender;
 #else
         return false;
 #endif
@@ -155,9 +153,6 @@ protected:
 
 private:
     virtual qcms_profile *GetPlatformCMSOutputProfile();
-#ifdef MOZ_X11
-    static bool sUseXRender;
-#endif
 };
 
 #endif 

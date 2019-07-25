@@ -3431,10 +3431,6 @@ pref("layers.acceleration.draw-fps", false);
 
 pref("layers.offmainthreadcomposition.enabled", false);
 
-#ifdef MOZ_X11
-pref("gfx.xrender.enabled",true);
-#endif
-
 #ifdef XP_WIN
 
 #ifdef MOZ_E10S_COMPAT
