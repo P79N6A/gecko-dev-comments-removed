@@ -432,15 +432,15 @@ XPCOMUtils.defineLazyGetter(this, "gCanStageUpdates", function aus_gCanStageUpda
 #endif
 
   try {
-    var updateTestFile = getUpdateFile([FILE_PERMS_TEST]);
+    var updateTestFile = getInstallDirRoot();
+    updateTestFile.append(FILE_PERMS_TEST);
     LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
     testWriteAccess(updateTestFile, true);
 #ifndef XP_MACOSX
     
     
     
-    updateTestFile = getUpdateDirCreate([]);
-    updateTestFile = updateTestFile.parent;
+    updateTestFile = getInstallDirRoot().parent;
     updateTestFile.append(FILE_PERMS_TEST);
     LOG("gCanStageUpdates - testing write access " + updateTestFile.path);
     updateTestFile.createUnique(Ci.nsILocalFile.DIRECTORY_TYPE,
@@ -550,6 +550,22 @@ function getUpdateDirCreate(pathArray) {
   }
 #endif
   return FileUtils.getDir(KEY_APPDIR, pathArray, true);
+}
+
+
+
+
+
+
+
+
+function getInstallDirRoot() {
+  var dir = FileUtils.getDir(KEY_APPDIR, [], false);
+#ifdef XP_MACOSX
+  
+  dir = dir.parent.parent;
+#endif
+  return dir;
 }
 
 
