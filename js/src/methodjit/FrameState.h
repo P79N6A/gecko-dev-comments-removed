@@ -130,61 +130,61 @@ class FrameState
     
 
 
-    void pushSynced();
+    inline void pushSynced();
 
     
 
 
-    void pushSyncedType(uint32 tag);
+    inline void pushSyncedType(uint32 tag);
 
     
 
 
-    void push(const Value &v);
+    inline void push(const Value &v);
 
     
 
 
-    void push(Address address);
+    inline void push(Address address);
 
     
 
 
-    void pushTypedPayload(uint32 tag, RegisterID payload);
+    inline void pushTypedPayload(uint32 tag, RegisterID payload);
 
     
 
 
-    void pop();
-
-    
-
-
-
-    void popn(uint32 n);
-
-    
-
-
-    RegisterID tempRegForType(FrameEntry *fe);
+    inline void pop();
 
     
 
 
 
-    void freeReg(RegisterID reg);
+    inline void popn(uint32 n);
+
+    
+
+
+    inline RegisterID tempRegForType(FrameEntry *fe);
+
+    
+
+
+
+    inline void freeReg(RegisterID reg);
 
     
 
 
 
 
-    RegisterID allocReg();
+    inline RegisterID allocReg();
 
     
 
 
-    FrameEntry *peek(int32 depth);
+    inline FrameEntry *peek(int32 depth);
 
     
 
@@ -203,7 +203,7 @@ class FrameState
 
 
 
-    void forgetEverything(uint32 newStackDepth);
+    inline void forgetEverything(uint32 newStackDepth);
 
     
 
@@ -222,14 +222,14 @@ class FrameState
 #endif
 
   private:
-    RegisterID alloc();
-    RegisterID alloc(FrameEntry *fe, RematInfo::RematType type, bool weak);
-    void forgetReg(RegisterID reg);
+    inline RegisterID alloc();
+    inline RegisterID alloc(FrameEntry *fe, RematInfo::RematType type, bool weak);
+    inline void forgetReg(RegisterID reg);
     void evictSomething();
-    FrameEntry *rawPush();
-    FrameEntry *addToTracker(uint32 index);
-    void syncType(const FrameEntry *fe, Assembler &masm) const;
-    void syncData(const FrameEntry *fe, Assembler &masm) const;
+    inline FrameEntry *rawPush();
+    inline FrameEntry *addToTracker(uint32 index);
+    inline void syncType(const FrameEntry *fe, Assembler &masm) const;
+    inline void syncData(const FrameEntry *fe, Assembler &masm) const;
 
     Address addressOf(const FrameEntry *fe) const {
         uint32 index = (fe - entries);
