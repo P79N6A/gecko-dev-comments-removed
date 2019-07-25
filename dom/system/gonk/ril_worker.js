@@ -626,11 +626,6 @@ let RIL = {
   
 
 
-  cellLocation: {},
-
-  
-
-
   operator: null,
 
   
@@ -701,8 +696,10 @@ let RIL = {
 
 
 
-  parseInt: function RIL_parseInt(string, defaultValue) {
-    let number = parseInt(string, 10);
+
+
+  parseInt: function RIL_parseInt(string, defaultValue, radix) {
+    let number = parseInt(string, radix || 10);
     if (!isNaN(number)) {
       return number;
     }
@@ -2186,6 +2183,24 @@ let RIL = {
       }
     }
 
+    if (!curState.cell) {
+      curState.cell = {};
+    }
+
+    
+    
+    let lac = RIL.parseInt(newState[1], -1, 16);
+    if (curState.cell.gsmLocationAreaCode !== lac) {
+      curState.cell.gsmLocationAreaCode = lac;
+      changed = true;
+    }
+
+    let cid = RIL.parseInt(newState[2], -1, 16);
+    if (curState.cell.gsmCellId !== cid) {
+      curState.cell.gsmCellId = cid;
+      changed = true;
+    }
+
     let radioTech = RIL.parseInt(newState[3], NETWORK_CREG_TECH_UNKNOWN);
     if (curState.radioTech != radioTech) {
       changed = true;
@@ -2200,28 +2215,6 @@ let RIL = {
     let stateChanged = this._processCREG(rs, state);
     if (stateChanged && rs.connected) {
       RIL.getSMSCAddress();
-    }
-
-    let cell = this.cellLocation;
-    let cellChanged = false;
-
-    
-    
-    let lac = parseInt(state[1], 16);
-    if (cell.lac !== lac) {
-      cell.lac = lac;
-      cellChanged = true;
-    }
-
-    let cid = parseInt(state[2], 16);
-    if (cell.cid !== cid) {
-      cell.cid = cid;
-      cellChanged = true;
-    }
-
-    if (cellChanged) {
-      cell.rilMessageType = "celllocationchanged";
-      this.sendDOMMessage(cell);
     }
 
     
