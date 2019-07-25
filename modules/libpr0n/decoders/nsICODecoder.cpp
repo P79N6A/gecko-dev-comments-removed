@@ -475,7 +475,8 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
       
       
       
-      if (static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetBitsPerPixel() != 32) {
+      if (static_cast<nsBMPDecoder*>(mContainedDecoder.get())->GetBitsPerPixel() != 32 || 
+          !static_cast<nsBMPDecoder*>(mContainedDecoder.get())->HasAlphaData()) {
         PRUint32 rowSize = ((mDirEntry.mWidth + 31) / 32) * 4; 
         if (mPos == bmpDataEnd) {
           mPos++;

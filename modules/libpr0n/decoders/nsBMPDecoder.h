@@ -76,6 +76,9 @@ public:
     PRUint32* GetImageData();
     
     PRInt32 GetCompressedImageSize() const;
+    
+    
+    PRBool HasAlphaData() const;
 
     virtual void WriteInternal(const char* aBuffer, PRUint32 aCount);
     virtual void FinishInternal();
@@ -125,6 +128,8 @@ private:
     
     
     PRPackedBool mUseAlphaData;
+    
+    PRPackedBool mHaveAlphaData;
 };
 
 
