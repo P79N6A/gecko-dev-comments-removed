@@ -694,6 +694,7 @@ NS_IMPL_ISUPPORTS2(nsDirEnumerator, nsISimpleEnumerator, nsIDirectoryEnumerator)
 
 nsLocalFile::nsLocalFile()
   : mDirty(true)
+  , mResolveDirty(true)
   , mFollowSymlinks(false)
 {
 }
@@ -735,6 +736,7 @@ NS_IMPL_THREADSAFE_ISUPPORTS4(nsLocalFile,
 
 nsLocalFile::nsLocalFile(const nsLocalFile& other)
   : mDirty(true)
+  , mResolveDirty(true)
   , mFollowSymlinks(other.mFollowSymlinks)
   , mWorkingPath(other.mWorkingPath)
 {
@@ -797,6 +799,7 @@ nsLocalFile::ResolveAndStat()
         || !IsShortcutPath(mWorkingPath))
     {
         mDirty = false;
+        mResolveDirty = false;
         return NS_OK;
     }
 
@@ -810,6 +813,7 @@ nsLocalFile::ResolveAndStat()
         mResolvedPath.Assign(mWorkingPath);
         return rv;
     }
+    mResolveDirty = false;
 
     
     rv = GetFileInfo(mResolvedPath, &mFileInfo64);
@@ -820,6 +824,50 @@ nsLocalFile::ResolveAndStat()
     return NS_OK;
 }
 
+
+
+
+
+
+
+
+nsresult
+nsLocalFile::Resolve()
+{
+  
+  if (!mResolveDirty) {
+    return NS_OK;
+  }
+
+  
+  if (mWorkingPath.IsEmpty()) {
+    return NS_ERROR_FILE_INVALID_PATH;
+  }
+  
+  
+  mResolvedPath.Assign(mWorkingPath);
+
+  
+  
+  if (!mFollowSymlinks || 
+      !IsShortcutPath(mWorkingPath)) {
+    mResolveDirty = false;
+    return NS_OK;
+  }
+
+  
+  
+  
+  
+  nsresult rv = ResolveShortcut();
+  if (NS_FAILED(rv)) {
+    mResolvedPath.Assign(mWorkingPath);
+    return rv;
+  }
+
+  mResolveDirty = false;
+  return NS_OK;
+}
 
 
 
@@ -2491,27 +2539,31 @@ nsLocalFile::IsExecutable(bool *_retval)
 NS_IMETHODIMP
 nsLocalFile::IsDirectory(bool *_retval)
 {
-    NS_ENSURE_ARG(_retval);
+  nsresult rv = IsFile(_retval);
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
-    nsresult rv = ResolveAndStat();
-    if (NS_FAILED(rv))
-        return rv;
-
-    *_retval = (mFileInfo64.type == PR_FILE_DIRECTORY); 
-    return NS_OK;
+  *_retval = !*_retval;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
 nsLocalFile::IsFile(bool *_retval)
 {
-    NS_ENSURE_ARG(_retval);
+  NS_ENSURE_ARG(_retval);
+  nsresult rv = Resolve();
+  if (NS_FAILED(rv)) {
+    return rv;
+  }
 
-    nsresult rv = ResolveAndStat();
-    if (NS_FAILED(rv))
-        return rv;
+  DWORD attributes = GetFileAttributes(mResolvedPath.get());
+  if (INVALID_FILE_ATTRIBUTES == attributes) {
+    return NS_ERROR_FILE_NOT_FOUND;
+  }
 
-    *_retval = (mFileInfo64.type == PR_FILE_FILE); 
-    return NS_OK;
+  *_retval = !(attributes & FILE_ATTRIBUTE_DIRECTORY);
+  return NS_OK;
 }
 
 NS_IMETHODIMP
