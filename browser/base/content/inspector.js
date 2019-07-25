@@ -369,62 +369,11 @@ var InspectorUI = {
   
 
 
-  toggleStylePanel: function IUI_toggleStylePanel()
-  {
-    if (this.isStylePanelOpen) {
-      this.stylePanel.hidePopup();
-    } else {
-      this.openStylePanel();
-      if (this.selection) {
-        this.updateStylePanel(this.selection);
-      }
-    }
-  },
-
-  
-
-
-  toggleDOMPanel: function IUI_toggleDOMPanel()
-  {
-    if (this.isDOMPanelOpen) {
-      this.domPanel.hidePopup();
-    } else {
-      this.clearDOMPanel();
-      this.openDOMPanel();
-      if (this.selection) {
-        this.updateDOMPanel(this.selection);
-      }
-    }
-  },
-
-  
-
-
 
 
   get isTreePanelOpen()
   {
     return this.treePanel && this.treePanel.state == "open";
-  },
-
-  
-
-
-
-
-  get isStylePanelOpen()
-  {
-    return this.stylePanel && this.stylePanel.state == "open";
-  },
-
-  
-
-
-
-
-  get isDOMPanelOpen()
-  {
-    return this.domPanel && this.domPanel.state == "open";
   },
 
   
@@ -445,10 +394,17 @@ var InspectorUI = {
     this.ioBox = new InsideOutBox(this, this.treePanelDiv);
     this.ioBox.createObjectBox(this.win.document.documentElement);
     this.treeLoaded = true;
-    if (this.isTreePanelOpen && this.isStylePanelOpen &&
-        this.isDOMPanelOpen && this.treeLoaded) {
-      this.notifyReady();
-    }
+
+    
+    this.initializeHighlighter();
+
+    
+    this.initializeStore();
+
+    if (InspectorStore.getValue(this.winID, "inspecting"))
+      this.startInspecting();
+
+    this.notifyReady();
   },
 
   
@@ -471,26 +427,40 @@ var InspectorUI = {
       this.treeIFrame.setAttribute("onclick", "InspectorUI.onTreeClick(event)");
       this.treeIFrame = this.treePanel.insertBefore(this.treeIFrame, resizerBox);
     }
-    
+
+    this.treePanel.addEventListener("popupshown", function treePanelShown() {
+      InspectorUI.treePanel.removeEventListener("popupshown",
+        treePanelShown, false);
+
+        InspectorUI.treeIFrame.addEventListener("load",
+          function loadedInitializeTreePanel() {
+            InspectorUI.treeIFrame.removeEventListener("load",
+              loadedInitializeTreePanel, true);
+            InspectorUI.initializeTreePanel();
+          }, true);
+
+      let src = InspectorUI.treeIFrame.getAttribute("src");
+      if (src != "chrome://browser/content/inspector.html") {
+        InspectorUI.treeIFrame.setAttribute("src",
+          "chrome://browser/content/inspector.html");
+      } else {
+        InspectorUI.treeIFrame.contentWindow.location.reload();
+      }
+
+    }, false);
+
     const panelWidthRatio = 7 / 8;
     const panelHeightRatio = 1 / 5;
-    this.treePanel.openPopup(this.browser, "overlap", 80, this.win.innerHeight,
+
+    let width = parseInt(this.win.outerWidth * panelWidthRatio);
+    let height = parseInt(this.win.outerHeight * panelHeightRatio);
+    let y = Math.min(window.screen.availHeight - height, this.win.innerHeight);
+
+    this.treePanel.openPopup(this.browser, "overlap", 0, 0,
       false, false);
-    this.treePanel.sizeTo(this.win.outerWidth * panelWidthRatio,
-      this.win.outerHeight * panelHeightRatio);
 
-    let src = this.treeIFrame.getAttribute("src");
-    if (src != "chrome://browser/content/inspector.html") {
-      let self = this;
-      this.treeIFrame.addEventListener("DOMContentLoaded", function() {
-        self.treeIFrame.removeEventListener("DOMContentLoaded", arguments.callee, true);
-        self.initializeTreePanel();
-      }, true);
-
-      this.treeIFrame.setAttribute("src", "chrome://browser/content/inspector.html");
-    } else {
-      this.initializeTreePanel();
-    }
+    this.treePanel.moveTo(80, y);
+    this.treePanel.sizeTo(width, height);
   },
 
   createObjectBox: function IUI_createObjectBox(object, isRoot)
@@ -602,53 +572,6 @@ var InspectorUI = {
   
 
 
-  openStylePanel: function IUI_openStylePanel()
-  {
-    if (!this.stylePanel)
-      this.stylePanel = document.getElementById("inspector-style-panel");
-    if (!this.isStylePanelOpen) {
-      this.stylePanel.hidden = false;
-      
-      this.stylePanel.openPopup(this.browser, "end_before", 0, 20, false, false);
-      
-      this.stylePanel.sizeTo(200, this.win.outerHeight / 2 - 60);
-    }
-  },
-
-  
-
-
-  openDOMPanel: function IUI_openDOMPanel()
-  {
-    if (!this.isDOMPanelOpen) {
-      this.domPanel.hidden = false;
-      
-      this.domPanel.openPopup(this.browser, "end_before", 0,
-        this.win.outerHeight / 2 - 20, false, false);
-      
-      this.domPanel.sizeTo(200, this.win.outerHeight / 2 - 60);
-    }
-  },
-
-  
-
-
-
-
-
-
-  toggleDimForPanel: function IUI_toggleDimForPanel(aDim)
-  {
-    if (aDim.hasAttribute("dimmed")) {
-      aDim.removeAttribute("dimmed");
-    } else {
-      aDim.setAttribute("dimmed", "true");
-    }
-  },
-
-  
-
-
 
   openInspectorUI: function IUI_openInspectorUI()
   {
@@ -662,43 +585,11 @@ var InspectorUI = {
     }
 
     
-    let objectPanelTitle = this.strings.
-      GetStringFromName("object.objectPanelTitle");
-    let parent = document.getElementById("inspector-style-panel").parentNode;
-    this.propertyPanel = new (this.PropertyPanel)(parent, document,
-      objectPanelTitle, {});
-
-    
-    this.domPanel = this.propertyPanel.panel;
-    this.domPanel.setAttribute("id", "inspector-dom-panel");
-    this.domBox = this.propertyPanel.tree;
-    this.domTreeView = this.propertyPanel.treeView;
-
-    
     this.openTreePanel();
-
-    
-    this.styleBox = document.getElementById("inspector-style-listbox");
-    this.clearStylePanel();
-    this.openStylePanel();
-
-    
-    this.clearDOMPanel();
-    this.openDOMPanel();
-
-    
-    this.initializeHighlighter();
-
-    
-    this.initializeStore();
-
-    if (InspectorStore.getValue(this.winID, "inspecting"))
-      this.startInspecting();
 
     this.win.document.addEventListener("scroll", this, false);
     this.win.addEventListener("resize", this, false);
     this.inspectCmd.setAttribute("checked", true);
-    document.addEventListener("popupshown", this, false);
   },
 
   
@@ -774,8 +665,6 @@ var InspectorUI = {
       this.highlighter.unhighlight();
     }
 
-    if (this.isTreePanelOpen)
-      this.treePanel.hidePopup();
     if (this.treePanelDiv) {
       this.treePanelDiv.ownerPanel = null;
       let parent = this.treePanelDiv.parentNode;
@@ -795,21 +684,19 @@ var InspectorUI = {
       delete this.domplateUtils;
     }
 
-    if (this.isStylePanelOpen) {
-      this.stylePanel.hidePopup();
-    }
-    if (this.domPanel) {
-      this.domPanel.hidePopup();
-      this.domBox = null;
-      this.domTreeView = null;
-    }
     this.inspectCmd.setAttribute("checked", false);
     this.browser = this.win = null; 
     this.winID = null;
     this.selection = null;
     this.treeLoaded = false;
-    this.closing = false;
-    Services.obs.notifyObservers(null, "inspector-closed", null);
+
+    this.treePanel.addEventListener("popuphidden", function treePanelHidden() {
+      InspectorUI.closing = false;
+      Services.obs.notifyObservers(null, "inspector-closed", null);
+    }, false);
+
+    this.treePanel.hidePopup();
+    delete this.treePanel;
   },
 
   
@@ -820,8 +707,6 @@ var InspectorUI = {
   {
     this.attachPageListeners();
     this.inspecting = true;
-    this.toggleDimForPanel(this.stylePanel);
-    this.toggleDimForPanel(this.domPanel);
   },
 
   
@@ -834,8 +719,6 @@ var InspectorUI = {
       return;
     this.detachPageListeners();
     this.inspecting = false;
-    this.toggleDimForPanel(this.stylePanel);
-    this.toggleDimForPanel(this.domPanel);
     if (this.highlighter.node) {
       this.select(this.highlighter.node, true, true);
     }
@@ -860,8 +743,6 @@ var InspectorUI = {
       let box = this.ioBox.createObjectBox(this.selection);
       if (!this.inspecting) {
         this.highlighter.highlightNode(this.selection);
-        this.updateStylePanel(this.selection);
-        this.updateDOMPanel(this.selection);
       }
       this.ioBox.select(aNode, true, true, aScroll);
     }
@@ -870,138 +751,8 @@ var InspectorUI = {
   
   
 
-  
-
-
-
-
-
-
-
-
-
-  addStyleItem: function IUI_addStyleItem(aLabel, aType, aContent)
-  {
-    let itemLabelString = this.strings.GetStringFromName("style.styleItemLabel");
-    let item = document.createElement("listitem");
-
-    
-    let label = aLabel;
-    item.className = "style-" + aType;
-    if (aContent) {
-      label = itemLabelString.replace("#1", aLabel);
-      label = label.replace("#2", aContent);
-    }
-    item.setAttribute("label", label);
-
-    this.styleBox.appendChild(item);
-  },
-
-  
-
-
-
-
-
-  createStyleRuleItems: function IUI_createStyleRuleItems(aRules)
-  {
-    let selectorLabel = this.strings.GetStringFromName("style.selectorLabel");
-
-    aRules.forEach(function(rule) {
-      this.addStyleItem(selectorLabel, "selector", rule.id);
-      rule.properties.forEach(function(property) {
-        if (property.overridden)
-          return; 
-        
-        let important = "";
-        if (property.important)
-          important += " !important";
-        this.addStyleItem(property.name, "property", property.value + important);
-      }, this);
-    }, this);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-  createStyleItems: function IUI_createStyleItems(aRules, aSections)
-  {
-    this.createStyleRuleItems(aRules);
-    let inheritedString =
-      this.strings.GetStringFromName("style.inheritedFrom");
-    aSections.forEach(function(section) {
-      let sectionTitle = section.element.tagName;
-      if (section.element.id)
-        sectionTitle += "#" + section.element.id;
-      let replacedString = inheritedString.replace("#1", sectionTitle);
-      this.addStyleItem(replacedString, "section");
-      this.createStyleRuleItems(section.rules);
-    }, this);
-  },
-
-  
-
-
-  clearStylePanel: function IUI_clearStylePanel()
-  {
-    for (let i = this.styleBox.childElementCount; i >= 0; --i)
-      this.styleBox.removeItemAt(i);
-  },
-
-  
-
-
-  clearDOMPanel: function IUI_clearStylePanel()
-  {
-    this.domTreeView.data = {};
-  },
-
-  
-
-
-
-
-
-
-  updateStylePanel: function IUI_updateStylePanel(aNode)
-  {
-    if (this.inspecting || !this.isStylePanelOpen) {
-      return;
-    }
-
-    let rules = [], styleSections = [], usedProperties = {};
-    this.style.getInheritedRules(aNode, styleSections, usedProperties);
-    this.style.getElementRules(aNode, rules, usedProperties);
-    this.clearStylePanel();
-    this.createStyleItems(rules, styleSections);
-  },
-
-  
-
-
-
-  updateDOMPanel: function IUI_updateDOMPanel(aNode)
-  {
-    if (this.inspecting || !this.isDOMPanelOpen) {
-      return;
-    }
-
-    this.domTreeView.data = aNode;
-  },
-
-  
-  
-
   notifyReady: function IUI_notifyReady()
   {
-    document.removeEventListener("popupshowing", this, false);
     Services.obs.notifyObservers(null, "inspector-opened", null);
   },
 
@@ -1018,15 +769,6 @@ var InspectorUI = {
     let inspectorClosed = false;
 
     switch (event.type) {
-      case "popupshown":
-        if (event.target.id == "inspector-tree-panel" ||
-            event.target.id == "inspector-style-panel" ||
-            event.target.id == "inspector-dom-panel")
-          if (this.isTreePanelOpen && this.isStylePanelOpen &&
-              this.isDOMPanelOpen && this.treeLoaded) {
-            this.notifyReady();
-          }
-        break;
       case "TabSelect":
         winID = this.getWindowID(gBrowser.selectedBrowser.contentWindow);
         if (this.isTreePanelOpen && winID != this.winID) {
@@ -1036,13 +778,17 @@ var InspectorUI = {
 
         if (winID && InspectorStore.hasID(winID)) {
           if (inspectorClosed && this.closing) {
-            Services.obs.addObserver(function () {
+            Services.obs.addObserver(function reopenInspectorForTab() {
+              Services.obs.removeObserver(reopenInspectorForTab,
+                "inspector-closed", false);
               InspectorUI.openInspectorUI();
             }, "inspector-closed", false);
           } else {
             this.openInspectorUI();
           }
-        } else if (InspectorStore.isEmpty()) {
+        }
+
+        if (InspectorStore.isEmpty()) {
           gBrowser.tabContainer.removeEventListener("TabSelect", this, false);
         }
         break;
@@ -1151,8 +897,6 @@ var InspectorUI = {
     this.selectEventsSuppressed = true;
     this.select(aNode, true, true);
     this.selectEventsSuppressed = false;
-    this.updateStylePanel(aNode);
-    this.updateDOMPanel(aNode);
   },
 
   
@@ -1283,6 +1027,25 @@ var InspectorUI = {
   _log: function LOG(msg)
   {
     Services.console.logStringMessage(msg);
+  },
+
+  
+
+
+
+
+  _trace: function TRACE(msg)
+  {
+    this._log("TRACE: " + msg);
+    let frame = Components.stack.caller;
+    while (frame = frame.caller) {
+      if (frame.language == Ci.nsIProgrammingLanguage.JAVASCRIPT ||
+          frame.language == Ci.nsIProgrammingLanguage.JAVASCRIPT2) {
+        this._log("filename: " + frame.filename + " lineNumber: " + frame.lineNumber +
+          " functionName: " + frame.name);
+      }
+    }
+    this._log("END TRACE");
   },
 }
 
@@ -1418,28 +1181,5 @@ var InspectorStore = {
 
 XPCOMUtils.defineLazyGetter(InspectorUI, "inspectCmd", function () {
   return document.getElementById("Tools:Inspect");
-});
-
-XPCOMUtils.defineLazyGetter(InspectorUI, "strings", function () {
-  return Services.strings.createBundle("chrome://browser/locale/inspector.properties");
-});
-
-XPCOMUtils.defineLazyGetter(InspectorUI, "PropertyTreeView", function () {
-  var obj = {};
-  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
-  return obj.PropertyTreeView;
-});
-
-XPCOMUtils.defineLazyGetter(InspectorUI, "PropertyPanel", function () {
-  var obj = {};
-  Cu.import("resource:///modules/PropertyPanel.jsm", obj);
-  return obj.PropertyPanel;
-});
-
-XPCOMUtils.defineLazyGetter(InspectorUI, "style", function () {
-  var obj = {};
-  Cu.import("resource:///modules/stylePanel.jsm", obj);
-  obj.style.initialize();
-  return obj.style;
 });
 
