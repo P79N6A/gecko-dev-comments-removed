@@ -192,6 +192,28 @@ struct AbsoluteLabel : public LabelBase
 
 
 
+class CodeLabel : public TempObject
+{
+    
+    AbsoluteLabel dest_;
+    
+    
+    
+    Label src_;
+
+  public:
+    CodeLabel()
+    { }
+    AbsoluteLabel *dest() {
+        return &dest_;
+    }
+    Label *src() {
+        return &src_;
+    }
+};
+
+
+
 
 
 class DeferredData : public TempObject

@@ -289,6 +289,14 @@ class Assembler : public AssemblerX86Shared
     void mov(const Register &src, const Register &dest) {
         masm.movq_rr(src.code(), dest.code());
     }
+    void mov(AbsoluteLabel *label, const Register &dest) {
+        JS_ASSERT(!label->bound());
+        
+        
+        masm.movq_i64r(label->prev(), dest.code());
+        label->setPrev(masm.size());
+    }
+
     
     
     
