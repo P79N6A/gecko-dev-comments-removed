@@ -179,10 +179,6 @@ Enumerate(JSContext *cx, JSObject *obj, jsid id, bool enumerable, uintN flags,
             } else {
                 
 
-
-
-
-
                 if (!ValueToBoxedWord(cx, *tmpRoot, wp))
                     return false;
             }
@@ -657,10 +653,19 @@ js_IteratorNext(JSContext *cx, JSObject *iterobj, Value *rval)
 
         NativeIterator *ni = iterobj->getNativeIterator();
         JS_ASSERT(ni->props_cursor < ni->props_end);
-        *rval = BoxedWordToValue(*ni->props_cursor++);
 
-        if (rval->isString() || (ni->flags & JSITER_FOREACH))
+        
+        jsboxedword w = *ni->props_cursor++;
+        if (JSBOXEDWORD_IS_INT(w)) {
+            rval->setInt32(JSBOXEDWORD_TO_INT(w));
+        } else if (JSBOXEDWORD_IS_STRING(w)) {
+            rval->setString(JSBOXEDWORD_TO_STRING(w));
             return true;
+        } else {
+            *rval = BoxedWordToValue(w);
+            if (ni->flags & JSITER_FOREACH)
+                return true;
+        }
 
         JSString *str;
         jsint i;
