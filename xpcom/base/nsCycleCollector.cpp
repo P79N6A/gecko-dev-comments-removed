@@ -1045,8 +1045,8 @@ struct nsCycleCollector
                      nsICycleCollectorListener *aListener);
 
     
-    PRBool PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes,
-                                PRBool aForceGC);
+    PRBool PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes);
+    void GCIfNeeded(PRBool aForceGC);
     void CleanupAfterCollection();
 
     
@@ -2496,13 +2496,45 @@ nsCycleCollector::Freed(void *n)
 }
 #endif
 
-PRBool
-nsCycleCollector::PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes,
-                                       PRBool aForceGC)
+
+
+
+
+
+
+void
+nsCycleCollector::GCIfNeeded(PRBool aForceGC)
 {
     NS_ASSERTION(NS_IsMainThread(),
-                 "PrepareForCollection must be called on the main thread.");
+                 "nsCycleCollector::GCIfNeeded() must be called on the main thread.");
 
+    if (mParams.mDoNothing)
+        return;
+
+    if (!mRuntimes[nsIProgrammingLanguage::JAVASCRIPT])
+        return;
+
+    nsCycleCollectionJSRuntime* rt =
+        static_cast<nsCycleCollectionJSRuntime*>
+            (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
+    if (!rt->NeedCollect() && !aForceGC)
+        return;
+
+#ifdef COLLECT_TIME_DEBUG
+    PRTime start = PR_Now();
+#endif
+    
+    
+    
+    rt->Collect();
+#ifdef COLLECT_TIME_DEBUG
+    printf("cc: GC() took %lldms\n", (PR_Now() - start) / PR_USEC_PER_MSEC);
+#endif
+}
+
+PRBool
+nsCycleCollector::PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes)
+{
 #if defined(DEBUG_CC) && !defined(__MINGW32__)
     if (!mParams.mDoNothing && mParams.mHookMalloc)
         InitMemHook();
@@ -2530,29 +2562,6 @@ nsCycleCollector::PrepareForCollection(nsTPtrArray<PtrInfo> *aWhiteNodes,
     mCollectedObjects = 0;
 
     mWhiteNodes = aWhiteNodes;
-
-    
-    
-    
-    
-    
-    if (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]) {
-        nsCycleCollectionJSRuntime* rt =
-            static_cast<nsCycleCollectionJSRuntime*>
-                (mRuntimes[nsIProgrammingLanguage::JAVASCRIPT]);
-        if (rt->NeedCollect() || aForceGC) {
-#ifdef COLLECT_TIME_DEBUG
-            PRTime start = PR_Now();
-#endif
-            
-            
-            
-            rt->Collect();
-#ifdef COLLECT_TIME_DEBUG
-            printf("cc: GC() took %lldms\n", (PR_Now() - start) / PR_USEC_PER_MSEC);
-#endif
-        }
-    }
 
     return PR_TRUE;
 }
@@ -2587,12 +2596,13 @@ nsCycleCollector::Collect(PRUint32 aTryCollections,
 {
     nsAutoTPtrArray<PtrInfo, 4000> whiteNodes;
 
-    if (!PrepareForCollection(&whiteNodes, PR_TRUE))
+    if (!PrepareForCollection(&whiteNodes))
         return 0;
 
     PRUint32 totalCollections = 0;
     while (aTryCollections > totalCollections) {
         
+        GCIfNeeded(PR_TRUE);
         if (!(BeginCollection(aListener) && FinishCollection()))
             break;
 
@@ -3392,11 +3402,13 @@ public:
             return 0;
 
         nsAutoTPtrArray<PtrInfo, 4000> whiteNodes;
-        if (!mCollector->PrepareForCollection(&whiteNodes, PR_FALSE))
+        if (!mCollector->PrepareForCollection(&whiteNodes))
             return 0;
 
         NS_ASSERTION(!mListener, "Should have cleared this already!");
         mListener = aListener;
+
+        mCollector->GCIfNeeded(PR_FALSE);
 
         mRequest.Notify();
         mReply.Wait();
