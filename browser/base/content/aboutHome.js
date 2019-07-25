@@ -95,8 +95,11 @@ function setupSearchEngine() {
     gSearchEngine.searchUrl += "&" + gSearchEngine.params;
 
   
-  if (gSearchEngine.image)
-    document.getElementById("searchEngineLogo").src = gSearchEngine.image;
+  if (gSearchEngine.image) {
+    let logoElt = document.getElementById("searchEngineLogo");
+    logoElt.src = gSearchEngine.image;
+    logoElt.alt = gSearchEngine.name;
+  }
 
   if (gSearchEngine.links) {
     
