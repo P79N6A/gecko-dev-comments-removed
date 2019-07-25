@@ -40,6 +40,45 @@
 #ifndef jsmath_h___
 #define jsmath_h___
 
+namespace js {
+
+typedef double (*UnaryFunType)(double);
+
+class MathCache
+{
+    static const unsigned SizeLog2 = 12;
+    static const unsigned Size = 1 << SizeLog2;
+    struct Entry { double in; UnaryFunType f; double out; };
+    Entry table[Size];
+
+  public:
+    MathCache();
+
+    uintN hash(double x) {
+        union { double d; struct { uint32 one, two; } s; } u = { x };
+        uint32 hash32 = u.s.one ^ u.s.two;
+        uint16 hash16 = (uint16)(hash32 ^ (hash32 >> 16));
+        return (hash16 & (Size - 1)) ^ (hash16 >> (16 - SizeLog2));
+    }
+
+    
+
+
+
+    double lookup(UnaryFunType f, double x) {
+        uintN index = hash(x);
+        Entry &e = table[index];
+        if (e.in == x && e.f == f)
+            return e.out;
+        e.in = x;
+        e.f = f;
+        return (e.out = f(x));
+    }
+};
+
+} 
+
+
 
 
 
