@@ -299,6 +299,9 @@ struct PICInfo {
 #endif
 
     
+    jsbytecode *pc;
+    
+    
     JSAtom *atom;
 
     

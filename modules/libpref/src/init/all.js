@@ -592,6 +592,8 @@ pref("javascript.options.tracejit.content",  true);
 pref("javascript.options.tracejit.chrome",   true);
 pref("javascript.options.methodjit.content", true);
 pref("javascript.options.methodjit.chrome",  false);
+pref("javascript.options.jitprofiling.content", true);
+pref("javascript.options.jitprofiling.chrome",  false);
 
 
 
@@ -1318,12 +1320,6 @@ pref("dom.ipc.plugins.processLaunchTimeoutSecs", 45);
 
 pref("dom.ipc.plugins.timeoutSecs", 0);
 pref("dom.ipc.plugins.processLaunchTimeoutSecs", 0);
-#endif
-
-#ifdef XP_WIN
-
-
-pref("dom.ipc.plugins.java.enabled", false);
 #endif
 
 #ifndef ANDROID
@@ -3241,7 +3237,7 @@ pref("gfx.direct2d.disabled", false);
 pref("gfx.direct2d.force-enabled", false);
 
 pref("layers.prefer-opengl", false);
-pref("layers.prefer-d3d9", false);
+pref("layers.use-d3d10", false);
 #endif
 #endif
 

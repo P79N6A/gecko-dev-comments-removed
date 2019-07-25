@@ -243,7 +243,8 @@ enum LC_TMBits {
     LC_TMAbort    = 1<<19,
     LC_TMStats    = 1<<20,
     LC_TMRegexp   = 1<<21,
-    LC_TMTreeVis  = 1<<22
+    LC_TMTreeVis  = 1<<22,
+    LC_TMProfiler = 1<<23
 };
 
 #endif
@@ -633,7 +634,10 @@ struct TreeFragment : public LinkableFragment
     Queue<Value>            gcthings;
     Queue<const js::Shape*> shapes;
     unsigned                maxNativeStackSlots;
+    
     uintN                   execs;
+    
+    uintN                   iters;
 
     inline unsigned nGlobalTypes() {
         return typeMap.length() - nStackTypes;
@@ -655,6 +659,151 @@ VMFragment::toTreeFragment()
     JS_ASSERT(root == this);
     return static_cast<TreeFragment*>(this);
 }
+
+enum MonitorResult {
+    MONITOR_RECORDING,
+    MONITOR_NOT_RECORDING,
+    MONITOR_ERROR
+};
+
+const uintN PROFILE_MAX_INNER_LOOPS = 8;
+
+
+
+
+
+class LoopProfile
+{
+public:
+    
+    enum OpKind {
+        OP_FLOAT, 
+        OP_INT, 
+        OP_BIT, 
+        OP_EQ, 
+        OP_EVAL, 
+        OP_CALL, 
+        OP_FWDJUMP, 
+        OP_NEW, 
+        OP_RECURSIVE, 
+        OP_LIMIT
+    };
+
+    
+    JSScript *script;
+
+    
+    jsbytecode *top, *bottom;
+
+    
+    uintN hits;
+
+    
+    bool profiled;
+
+    
+    bool traceOK;
+
+    
+
+
+
+
+
+    bool execOK;
+
+    
+    uintN allOps[OP_LIMIT];
+    uintN numAllOps;
+
+    
+    uintN selfOps[OP_LIMIT];
+    uintN numSelfOps;
+
+    
+
+
+
+
+
+    double numSelfOpsMult;
+
+    
+
+
+
+
+
+    double branchMultiplier;
+
+    
+
+
+
+    uintN prevConst;
+    
+    
+    JSOp prevOp;
+
+    
+    bool shortLoop;
+
+    
+    bool maybeShortLoop;
+
+    
+
+
+
+    struct InnerLoop {
+        JSScript *script;
+        jsbytecode *top, *bottom;
+        uintN iters;
+
+        InnerLoop() {}
+        InnerLoop(JSScript *script, jsbytecode *top, jsbytecode *bottom)
+            : script(script), top(top), bottom(bottom), iters(0) {}
+    };
+
+    
+    InnerLoop innerLoops[PROFILE_MAX_INNER_LOOPS];
+    uintN numInnerLoops;
+
+    
+
+
+
+    InnerLoop loopStack[PROFILE_MAX_INNER_LOOPS];
+    uintN loopStackDepth;
+
+    LoopProfile(JSScript *script, jsbytecode *top, jsbytecode *bottom);
+
+    enum ProfileAction {
+        ProfContinue,
+        ProfComplete
+    };
+
+    
+    inline void increment(OpKind kind)
+    {
+        allOps[kind]++;
+        if (loopStackDepth == 0)
+            selfOps[kind]++;
+    }
+
+    inline uintN count(OpKind kind) { return allOps[kind]; }
+
+    
+    MonitorResult profileLoopEdge(JSContext* cx, uintN& inlineCallCount);
+    
+    
+    ProfileAction profileOperation(JSContext *cx, JSOp op);
+
+    
+    bool isCompilationExpensive(JSContext *cx, uintN depth);
+    bool isCompilationUnprofitable(JSContext *cx, uintN depth);
+    void decide(JSContext *cx);
+};
 
 
 
@@ -815,12 +964,6 @@ enum TypeConsensus
     TypeConsensus_Bad           
 };
 
-enum MonitorResult {
-    MONITOR_RECORDING,
-    MONITOR_NOT_RECORDING,
-    MONITOR_ERROR
-};
-
 enum TracePointAction {
     TPA_Nothing,
     TPA_RanStuff,
@@ -835,6 +978,9 @@ typedef HashMap<nanojit::LIns*, JSObject*> GuardedShapeTable;
 #else
 # define AbortRecording(cx, reason) AbortRecordingImpl(cx)
 #endif
+
+void
+AbortProfiling(JSContext *cx);
 
 class TraceRecorder
 {
@@ -1441,9 +1587,9 @@ class TraceRecorder
     friend class DetermineTypesVisitor;
     friend class RecursiveSlotMap;
     friend class UpRecursiveSlotMap;
-    friend MonitorResult MonitorLoopEdge(JSContext*, uintN&);
-    friend TracePointAction MonitorTracePoint(JSContext*, uintN &inlineCallCount,
-                                              bool &blacklist);
+    friend MonitorResult RecordLoopEdge(JSContext*, uintN&);
+    friend TracePointAction RecordTracePoint(JSContext*, uintN &inlineCallCount,
+                                             bool *blacklist);
     friend AbortResult AbortRecording(JSContext*, const char*);
     friend class BoxArg;
     friend void TraceMonitor::sweep();
@@ -1497,6 +1643,7 @@ class TraceRecorder
 #define TRACING_ENABLED(cx)       ((cx)->traceJitEnabled)
 #define REGEX_JIT_ENABLED(cx)     ((cx)->traceJitEnabled || (cx)->methodJitEnabled)
 #define TRACE_RECORDER(cx)        (JS_TRACE_MONITOR(cx).recorder)
+#define TRACE_PROFILER(cx)        (JS_TRACE_MONITOR(cx).profile)
 #define SET_TRACE_RECORDER(cx,tr) (JS_TRACE_MONITOR(cx).recorder = (tr))
 
 #define JSOP_IN_RANGE(op,lo,hi)   (uintN((op) - (lo)) <= uintN((hi) - (lo)))
@@ -1528,8 +1675,15 @@ class TraceRecorder
 extern JS_REQUIRES_STACK MonitorResult
 MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount);
 
+extern JS_REQUIRES_STACK MonitorResult
+ProfileLoopEdge(JSContext* cx, uintN& inlineCallCount);
+
 extern JS_REQUIRES_STACK TracePointAction
-MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool& blacklist);
+RecordTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist);
+
+extern JS_REQUIRES_STACK TracePointAction
+MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
+                  void** traceData, uintN *traceEpoch);
 
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
