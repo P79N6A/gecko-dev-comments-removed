@@ -461,7 +461,45 @@ var NetworkHelper =
     }
 
     return null;
-   }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  loadFromCache: function NH_loadFromCache(aUrl, aCharset, aCallback)
+  {
+    let channel = NetUtil.newChannel(aUrl);
+
+    
+    channel.loadFlags = Ci.nsIRequest.LOAD_FROM_CACHE |
+      Ci.nsICachingChannel.LOAD_ONLY_FROM_CACHE |
+      Ci.nsICachingChannel.LOAD_BYPASS_LOCAL_CACHE_IF_BUSY;
+
+    NetUtil.asyncFetch(channel, function (aInputStream, aStatusCode, aRequest) {
+      if (!Components.isSuccessCode(aStatusCode)) {
+        aCallback(null);
+        return;
+      }
+
+      
+      
+      let aChannel = aRequest.QueryInterface(Ci.nsIChannel);
+      let contentCharset = aChannel.contentCharset || aCharset;
+
+      
+      aCallback(NetworkHelper.readAndConvertFromStream(aInputStream,
+                                                       contentCharset));
+    });
+  }
 }
 
 
@@ -572,6 +610,12 @@ function NetworkPanel(aParent, aHttpActivity)
 
 NetworkPanel.prototype =
 {
+  
+
+
+
+  isDoneCallback: null,
+
   
 
 
@@ -883,18 +927,26 @@ NetworkPanel.prototype =
 
 
 
-  _displayResponseBody: function NP_displayResponseBody()
+
+
+
+  _displayResponseBody: function NP_displayResponseBody(aCachedContent)
   {
     let timing = this.httpActivity.timing;
     let response = this.httpActivity.response;
+    let cached =  "";
+    if (aCachedContent) {
+      cached = "Cached";
+    }
 
     let deltaDuration =
       Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
-    this._appendTextNode("responseBodyInfo",
+    this._appendTextNode("responseBody" + cached + "Info",
       this._format("durationMS", [deltaDuration]));
 
-    this._displayNode("responseBody");
-    this._appendTextNode("responseBodyContent", response.body);
+    this._displayNode("responseBody" + cached);
+    this._appendTextNode("responseBody" + cached + "Content",
+                            aCachedContent || response.body);
   },
 
   
@@ -912,6 +964,15 @@ NetworkPanel.prototype =
       Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
     this._appendTextNode("responseNoBodyInfo",
       this._format("durationMS", [deltaDuration]));
+  },
+
+  
+
+
+  _callIsDone: function() {
+    if (this.isDoneCallback) {
+      this.isDoneCallback();
+    }
   },
 
   
@@ -970,12 +1031,33 @@ NetworkPanel.prototype =
         if (timing.TRANSACTION_CLOSE && response.isDone) {
           if (this._responseIsImage) {
             this._displayResponseImage();
+            this._callIsDone();
           }
           else if (response.body) {
             this._displayResponseBody();
+            this._callIsDone();
+          }
+          else if (this._isResponseCached) {
+            let self = this;
+            NetworkHelper.loadFromCache(this.httpActivity.url,
+                                        this.httpActivity.charset,
+                                        function(aContent) {
+              
+              
+              if (aContent) {
+                self._displayResponseBody(aContent);
+                self._callIsDone();
+              }
+              
+              else {
+                self._displayNoResponseBody();
+                self._callIsDone();
+              }
+            });
           }
           else {
             this._displayNoResponseBody();
+            this._callIsDone();
           }
           this._state = this._TRANSITION_CLOSED;
         }
@@ -1966,6 +2048,7 @@ HUD_SERVICE.prototype =
               url: aChannel.URI.spec,
               method: aChannel.requestMethod,
               channel: aChannel,
+              charset: win.document.characterSet,
 
               panels: [],
               request: {
