@@ -117,7 +117,7 @@ nsDeckFrame::GetSelectedIndex()
   nsAutoString value;
   if (mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::selectedIndex, value))
   {
-    PRInt32 error;
+    nsresult error;
 
     
     index = value.ToInteger(&error);

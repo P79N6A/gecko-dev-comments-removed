@@ -17,7 +17,7 @@
 
 
 
-static JSBool Throw(unsigned errNum, JSContext* cx)
+static JSBool Throw(nsresult errNum, JSContext* cx)
 {
     XPCThrower::Throw(errNum, cx);
     return false;

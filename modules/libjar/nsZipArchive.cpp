@@ -375,7 +375,7 @@ nsresult nsZipArchive::ExtractFile(nsZipItem *item, const char *outname,
 
 
 
-PRInt32
+nsresult
 nsZipArchive::FindInit(const char * aPattern, nsZipFind **aFind)
 {
   if (!aFind)

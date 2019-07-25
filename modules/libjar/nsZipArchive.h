@@ -173,7 +173,7 @@ public:
 
 
 
-  PRInt32 FindInit(const char * aPattern, nsZipFind** aFind);
+  nsresult FindInit(const char * aPattern, nsZipFind** aFind);
 
   
 

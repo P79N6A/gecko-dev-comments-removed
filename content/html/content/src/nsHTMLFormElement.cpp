@@ -1794,7 +1794,7 @@ NS_IMETHODIMP
 nsHTMLFormElement::OnStateChange(nsIWebProgress* aWebProgress,
                                  nsIRequest* aRequest,
                                  PRUint32 aStateFlags,
-                                 PRUint32 aStatus)
+                                 nsresult aStatus)
 {
   
   

@@ -254,7 +254,7 @@ nsXHTMLContentSerializer::SerializeAttributes(nsIContent* aContent,
       PRInt32 startAttrVal = 0;
       aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::start, start);
       if (!start.IsEmpty()) {
-        PRInt32 rv = 0;
+        nsresult rv = NS_OK;
         startAttrVal = start.ToInteger(&rv);
         
         
@@ -920,7 +920,7 @@ nsXHTMLContentSerializer::SerializeLIValueAttribute(nsIContent* aElement,
           offset++;
         else {
           found = true;
-          PRInt32 rv = 0;
+          nsresult rv = NS_OK;
           startVal = valueStr.ToInteger(&rv);
         }
       }

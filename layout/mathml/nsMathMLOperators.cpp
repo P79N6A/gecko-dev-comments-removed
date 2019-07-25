@@ -114,7 +114,7 @@ SetProperty(OperatorData* aOperatorData,
     else return;  
 
     
-    PRInt32 error = 0;
+    nsresult error = NS_OK;
     float space = aValue.ToFloat(&error) / 18.0;
     if (error) return;
 

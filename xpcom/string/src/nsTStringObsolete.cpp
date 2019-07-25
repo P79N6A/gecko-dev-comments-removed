@@ -109,7 +109,7 @@ nsTString_CharT::RFindCharInSet( const CharT* aSet, PRInt32 aOffset ) const
   
   
 PRInt32
-nsTString_CharT::ToInteger( PRInt32* aErrorCode, PRUint32 aRadix ) const
+nsTString_CharT::ToInteger( nsresult* aErrorCode, PRUint32 aRadix ) const
 {
   CharT*  cp=mData;
   PRInt32 theRadix=10; 

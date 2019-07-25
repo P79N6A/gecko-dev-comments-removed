@@ -961,7 +961,7 @@ public:
       
       TabChild* child = GetTabChildFrom(mWindow->GetDocShell());
       if (!child)
-	return false;
+        return NS_OK;
 
       
       
@@ -1457,7 +1457,7 @@ nsDOMDeviceStorage::EnumerateInternal(const JS::Value & aName,
     
     TabChild* child = GetTabChildFrom(win->GetDocShell());
     if (!child)
-      return false;
+      return NS_OK;
 
     
     

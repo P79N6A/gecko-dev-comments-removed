@@ -230,7 +230,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      double ToDouble( PRInt32* aErrorCode ) const;
+      double ToDouble( nsresult* aErrorCode ) const;
 
         
 
@@ -238,7 +238,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      float ToFloat( PRInt32* aErrorCode ) const {
+      float ToFloat( nsresult* aErrorCode ) const {
         return (float)ToDouble(aErrorCode);
       }
 
@@ -249,10 +249,7 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      PRInt32 ToInteger( PRInt32* aErrorCode, PRUint32 aRadix=kRadix10 ) const;
-      PRInt32 ToInteger( nsresult* aErrorCode, PRUint32 aRadix=kRadix10 ) const {
-        return ToInteger(reinterpret_cast<PRInt32*>(aErrorCode), aRadix);
-      }
+      PRInt32 ToInteger( nsresult* aErrorCode, PRUint32 aRadix=kRadix10 ) const;
 
         
 

@@ -241,7 +241,7 @@ nsHTMLContentSerializer::AppendElementStart(Element* aElement,
 
     aElement->GetAttr(kNameSpaceID_None, nsGkAtoms::start, start);
     if (!start.IsEmpty()){
-      PRInt32 rv = 0;
+      nsresult rv = NS_OK;
       startAttrVal = start.ToInteger(&rv);
       
       

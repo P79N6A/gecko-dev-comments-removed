@@ -1889,7 +1889,7 @@ nsXULContentBuilder::InsertSortedNode(nsIContent* aContainer,
         if (!staticValue.IsEmpty())
         {
             
-            PRInt32 strErr = 0;
+            nsresult strErr = NS_OK;
             staticCount = staticValue.ToInteger(&strErr);
             if (strErr)
                 staticCount = 0;
