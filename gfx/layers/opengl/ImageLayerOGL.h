@@ -245,10 +245,9 @@ public:
   virtual ~ShadowImageLayerOGL();
 
   
-  virtual PRBool Init(gfxSharedImageSurface* aFront, const nsIntSize& aSize);
+  virtual PRBool Init(const SurfaceDescriptor& aFront, const nsIntSize& aSize);
 
-  virtual already_AddRefed<gfxSharedImageSurface>
-  Swap(gfxSharedImageSurface* aNewFront);
+  virtual void Swap(const SurfaceDescriptor& aFront, SurfaceDescriptor* aNewBack);
 
   virtual void DestroyFrontBuffer();
 
@@ -265,11 +264,7 @@ public:
 private:
   nsRefPtr<TextureImage> mTexImage;
 
-
-  
-  nsRefPtr<gfxSharedImageSurface> mDeadweight;
-
-
+  SurfaceDescriptor mDeadweight;
 };
 
 } 

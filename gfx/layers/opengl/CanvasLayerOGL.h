@@ -110,12 +110,14 @@ public:
 
   
   virtual void Initialize(const Data& aData);
+  virtual void Init(const SurfaceDescriptor& aNewFront, const nsIntSize& aSize);
+
   
   virtual void Updated(const nsIntRect&) {}
 
   
-  virtual already_AddRefed<gfxSharedImageSurface>
-  Swap(gfxSharedImageSurface* aNewFront);
+  virtual void Swap(const SurfaceDescriptor& aNewFront,
+                    SurfaceDescriptor* aNewBack);
 
   virtual void DestroyFrontBuffer();
 
@@ -130,11 +132,7 @@ public:
 private:
   nsRefPtr<TextureImage> mTexImage;
 
-
-  
-  nsRefPtr<gfxSharedImageSurface> mDeadweight;
-
-
+  SurfaceDescriptor mDeadweight;
 };
 
 } 
