@@ -10,8 +10,6 @@ Cu.import("resource:///modules/NewTabUtils.jsm", tmp);
 let NewTabUtils = tmp.NewTabUtils;
 
 registerCleanupFunction(function () {
-  reset();
-
   while (gBrowser.tabs.length > 1)
     gBrowser.removeTab(gBrowser.tabs[1]);
 
@@ -57,8 +55,29 @@ let TestRunner = {
     try {
       TestRunner._iter.next();
     } catch (e if e instanceof StopIteration) {
-      finish();
+      TestRunner.finish();
     }
+  },
+
+  
+
+
+  finish: function () {
+    function cleanupAndFinish() {
+      
+      NewTabUtils.links._provider = originalProvider;
+
+      whenPagesUpdated(finish);
+      NewTabUtils.restore();
+    }
+
+    let callbacks = NewTabUtils.links._populateCallbacks;
+    let numCallbacks = callbacks.length;
+
+    if (numCallbacks)
+      callbacks.splice(0, numCallbacks, cleanupAndFinish);
+    else
+      cleanupAndFinish();
   }
 };
 
@@ -108,11 +127,9 @@ function setPinnedLinks(aLinksPattern) {
 
 
 
-function reset() {
-  NewTabUtils.reset();
-
-  
-  NewTabUtils.links._provider = originalProvider;
+function restore() {
+  whenPagesUpdated();
+  NewTabUtils.restore();
 }
 
 
@@ -269,11 +286,11 @@ function simulateDrop(aDropTarget, aDragSource) {
 
 
 
-function whenPagesUpdated() {
+function whenPagesUpdated(aCallback) {
   let page = {
     update: function () {
       NewTabUtils.allPages.unregister(this);
-      executeSoon(TestRunner.next);
+      executeSoon(aCallback || TestRunner.next);
     }
   };
 

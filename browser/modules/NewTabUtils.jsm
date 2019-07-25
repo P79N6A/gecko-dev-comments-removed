@@ -550,7 +550,7 @@ let Links = {
 
 
   resetCache: function Links_resetCache() {
-    this._links = [];
+    this._links = null;
   },
 
   
@@ -586,11 +586,15 @@ let NewTabUtils = {
   
 
 
-  reset: function NewTabUtils_reset() {
+  restore: function NewTabUtils_restore() {
     Storage.clear();
     Links.resetCache();
     PinnedLinks.resetCache();
     BlockedLinks.resetCache();
+
+    Links.populateCache(function () {
+      AllPages.update();
+    }, true);
   },
 
   allPages: AllPages,

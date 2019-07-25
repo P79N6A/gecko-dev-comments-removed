@@ -25,7 +25,7 @@ function runTests() {
   checkGrid("0,1,2,3,7,8,9,,");
 
   
-  reset();
+  yield restore();
   setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks(",1");
 
@@ -37,7 +37,7 @@ function runTests() {
 
   
   
-  reset();
+  yield restore();
   setLinks("0,1,2,3,4,5,6,7,8,9");
   setPinnedLinks(",,,,,,,,8");
 
@@ -49,7 +49,7 @@ function runTests() {
 
   
   
-  reset();
+  yield restore();
   setLinks("0,1,2,3,4,5,6,7,8,9");
   setPinnedLinks(",,,,,,,,8");
 
