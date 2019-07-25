@@ -56,7 +56,7 @@ let tests = [test_cascade, test_select, test_multiWindowState,
              test_setWindowStateNoOverwrite, test_setWindowStateOverwrite,
              test_setBrowserStateInterrupted, test_reload,
               test_reloadCascadeSetup,
-             ];
+              test_apptabs_only];
 function runNextTest() {
   
   try {
@@ -717,6 +717,63 @@ function _test_reloadAfter(aTestName, aState, aCallback) {
 
   window.gBrowser.addTabsProgressListener(progressListener);
   BrowserReloadOrDuplicate(fakeEvent);
+}
+
+
+
+function test_apptabs_only() {
+  
+  
+  Services.prefs.setBoolPref("browser.sessionstore.restore_on_demand", true);
+
+  
+  let progressListener = {
+    onStateChange: function (aBrowser, aWebProgress, aRequest, aStateFlags, aStatus) {
+      if (aBrowser.__SS_restoreState == TAB_STATE_RESTORING &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK &&
+          aStateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)
+        test_apptabs_only_progressCallback(aBrowser);
+    }
+  }
+
+  let state = { windows: [{ tabs: [
+    { entries: [{ url: "http://example.org/#1" }], extData: { "uniq": r() }, pinned: true },
+    { entries: [{ url: "http://example.org/#2" }], extData: { "uniq": r() }, pinned: true },
+    { entries: [{ url: "http://example.org/#3" }], extData: { "uniq": r() }, pinned: true },
+    { entries: [{ url: "http://example.org/#4" }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#5" }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#6" }], extData: { "uniq": r() } },
+    { entries: [{ url: "http://example.org/#7" }], extData: { "uniq": r() } },
+  ], selected: 5 }] };
+
+  let loadCount = 0;
+  function test_apptabs_only_progressCallback(aBrowser) {
+    loadCount++;
+
+    
+    
+
+    
+    let tab;
+    for (let i = 0; i < window.gBrowser.tabs.length; i++) {
+      if (!tab && window.gBrowser.tabs[i].linkedBrowser == aBrowser)
+        tab = window.gBrowser.tabs[i];
+    }
+
+    ok(tab.pinned || gBrowser.selectedTab == tab,
+       "test_apptabs_only: load came from pinned or selected tab");
+
+    
+    if (loadCount < 4)
+      return;
+
+    window.gBrowser.removeTabsProgressListener(progressListener);
+    runNextTest();
+  }
+
+  window.gBrowser.addTabsProgressListener(progressListener);
+  ss.setBrowserState(JSON.stringify(state));
 }
 
 

@@ -230,7 +230,7 @@ SessionStoreService.prototype = {
   _restoreLastWindow: false,
 
   
-  _tabsToRestore: { visible: [], hidden: [] },
+  _tabsToRestore: { priority: [], visible: [], hidden: [] },
   _tabsRestoringCount: 0,
 
   
@@ -437,6 +437,7 @@ SessionStoreService.prototype = {
     this.saveState(true);
 
     
+    this._tabsToRestore.priority = null;
     this._tabsToRestore.visible = null;
     this._tabsToRestore.hidden = null;
 
@@ -2936,7 +2937,9 @@ SessionStoreService.prototype = {
     }
     else {
       
-      if (tabData.hidden)
+      if (tabData.pinned)
+        this._tabsToRestore.priority.push(tab);
+      else if (tabData.hidden)
         this._tabsToRestore.hidden.push(tab);
       else
         this._tabsToRestore.visible.push(tab);
@@ -3065,13 +3068,16 @@ SessionStoreService.prototype = {
       return;
 
     
-    if (this._restoreOnDemand ||
+    if ((!this._tabsToRestore.priority.length && this._restoreOnDemand) ||
         this._tabsRestoringCount >= MAX_CONCURRENT_TAB_RESTORES)
       return;
 
     
     let nextTabArray;
-    if (this._tabsToRestore.visible.length) {
+    if (this._tabsToRestore.priority.length) {
+      nextTabArray = this._tabsToRestore.priority
+    }
+    else if (this._tabsToRestore.visible.length) {
       nextTabArray = this._tabsToRestore.visible;
     }
     else if (this._restoreHiddenTabs && this._tabsToRestore.hidden.length) {
@@ -4129,7 +4135,7 @@ SessionStoreService.prototype = {
 
 
   _resetRestoringState: function sss__initRestoringState() {
-    this._tabsToRestore = { visible: [], hidden: [] };
+    this._tabsToRestore = { priority: [], visible: [], hidden: [] };
     this._tabsRestoringCount = 0;
   },
 
@@ -4179,8 +4185,14 @@ SessionStoreService.prototype = {
 
 
   _removeTabFromTabsToRestore: function sss__removeTabFromTabsToRestore(aTab) {
-    let arr = this._tabsToRestore[aTab.hidden ? "hidden" : "visible"];
+    
+    
+    let arr = this._tabsToRestore.priority;
     let index = arr.indexOf(aTab);
+    if (index == -1) {
+      arr = this._tabsToRestore[aTab.hidden ? "hidden" : "visible"];
+      index = arr.indexOf(aTab);
+    }
     if (index > -1)
       arr.splice(index, 1);
   },
