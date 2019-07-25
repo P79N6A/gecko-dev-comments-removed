@@ -622,10 +622,12 @@ protected:
                                         nsCOMPtr<nsIDOMNode> *outStartNode,
                                         nsCOMPtr<nsIDOMNode> *outEndNode,
                                         PRInt32 *outStartOffset,
-                                        PRInt32 *outEndOffset);
+                                        PRInt32 *outEndOffset,
+                                        PRBool aTrustedInput);
   nsresult   ParseFragment(const nsAString & aStr, nsTArray<nsString> &aTagStack,
                            nsIDocument* aTargetDoc,
-                           nsCOMPtr<nsIDOMNode> *outNode);
+                           nsCOMPtr<nsIDOMNode> *outNode,
+                           PRBool aTrustedInput);
   nsresult   CreateListOfNodesToPaste(nsIDOMNode  *aFragmentAsNode,
                                       nsCOMArray<nsIDOMNode>& outNodeList,
                                       nsIDOMNode *aStartNode,
@@ -750,6 +752,23 @@ protected:
 
   
   PRBool   OurWindowHasFocus();
+
+  
+  
+  
+  
+  
+  
+  
+  nsresult DoInsertHTMLWithContext(const nsAString& aInputString,
+                                   const nsAString& aContextStr,
+                                   const nsAString& aInfoStr,
+                                   const nsAString& aFlavor,
+                                   nsIDOMDocument* aSourceDoc,
+                                   nsIDOMNode* aDestNode,
+                                   PRInt32 aDestOffset,
+                                   PRBool aDeleteSelection,
+                                   PRBool aTrustedInput);
 
 
 protected:
