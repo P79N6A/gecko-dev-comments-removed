@@ -561,6 +561,7 @@ nsContentUtils::InitializeEventTable() {
     { nsGkAtoms::onreset,                       NS_FORM_RESET, EventNameType_HTMLXUL, NS_EVENT },
     { nsGkAtoms::onchange,                      NS_FORM_CHANGE, EventNameType_HTMLXUL, NS_EVENT },
     { nsGkAtoms::onselect,                      NS_FORM_SELECTED, EventNameType_HTMLXUL, NS_EVENT },
+    { nsGkAtoms::oninvalid,                     NS_FORM_INVALID, EventNameType_HTMLXUL, NS_EVENT },
     { nsGkAtoms::onload,                        NS_LOAD, EventNameType_All, NS_EVENT },
     { nsGkAtoms::onpopstate,                    NS_POPSTATE, EventNameType_HTMLXUL, NS_EVENT_NULL },
     { nsGkAtoms::onunload,                      NS_PAGE_UNLOAD,
@@ -1912,6 +1913,7 @@ nsContentUtils::TrimCharsInSet(const char* aSet,
 
 
 
+template<PRBool IsWhitespace(PRUnichar)>
 const nsDependentSubstring
 nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
 {
@@ -1921,7 +1923,7 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
   aStr.EndReading(end);
 
   
-  while (start != end && nsCRT::IsAsciiSpace(*start)) {
+  while (start != end && IsWhitespace(*start)) {
     ++start;
   }
 
@@ -1930,7 +1932,7 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
     while (end != start) {
       --end;
 
-      if (!nsCRT::IsAsciiSpace(*end)) {
+      if (!IsWhitespace(*end)) {
         
         ++end;
 
@@ -1944,6 +1946,16 @@ nsContentUtils::TrimWhitespace(const nsAString& aStr, PRBool aTrimTrailing)
 
   return Substring(start, end);
 }
+
+
+
+
+template
+const nsDependentSubstring
+nsContentUtils::TrimWhitespace<nsCRT::IsAsciiSpace>(const nsAString&, PRBool);
+template
+const nsDependentSubstring
+nsContentUtils::TrimWhitespace<nsContentUtils::IsHTMLWhitespace>(const nsAString&, PRBool);
 
 static inline void KeyAppendSep(nsACString& aKey)
 {
@@ -5393,7 +5405,7 @@ nsContentUtils::CanAccessNativeAnon()
     
     
     fp = nsnull;
-  } else if (!fp->script) {
+  } else if (!fp->hasScript()) {
     fp = nsnull;
   }
 
@@ -5408,8 +5420,8 @@ nsContentUtils::CanAccessNativeAnon()
   
   static const char prefix[] = "chrome://global/";
   const char *filename;
-  if (fp && fp->script &&
-      (filename = fp->script->filename) &&
+  if (fp && fp->hasScript() &&
+      (filename = fp->getScript()->filename) &&
       !strncmp(filename, prefix, NS_ARRAY_LENGTH(prefix) - 1)) {
     return PR_TRUE;
   }
