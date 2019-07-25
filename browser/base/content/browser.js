@@ -1563,49 +1563,6 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   gHomeButton.updateTooltip(homeButton);
   gHomeButton.updatePersonalToolbarStyle(homeButton);
 
-#ifdef HAVE_SHELL_SERVICE
-  
-  var shell = getShellService();
-  if (shell) {
-#ifdef DEBUG
-    var shouldCheck = false;
-#else
-    var shouldCheck = shell.shouldCheckDefaultBrowser;
-#endif
-    var willRecoverSession = false;
-    try {
-      var ss = Cc["@mozilla.org/browser/sessionstartup;1"].
-               getService(Ci.nsISessionStartup);
-      willRecoverSession =
-        (ss.sessionType == Ci.nsISessionStartup.RECOVER_SESSION);
-    }
-    catch (ex) {  }
-    if (shouldCheck && !shell.isDefaultBrowser(true) && !willRecoverSession) {
-      
-      
-      setTimeout(function () {
-        var brandBundle = document.getElementById("bundle_brand");
-        var shellBundle = document.getElementById("bundle_shell");
-
-        var brandShortName = brandBundle.getString("brandShortName");
-        var promptTitle = shellBundle.getString("setDefaultBrowserTitle");
-        var promptMessage = shellBundle.getFormattedString("setDefaultBrowserMessage",
-                                                           [brandShortName]);
-        var checkboxLabel = shellBundle.getFormattedString("setDefaultBrowserDontAsk",
-                                                           [brandShortName]);
-        var checkEveryTime = { value: shouldCheck };
-        var ps = Services.prompt;
-        var rv = ps.confirmEx(window, promptTitle, promptMessage,
-                              ps.STD_YES_NO_BUTTONS,
-                              null, null, null, checkboxLabel, checkEveryTime);
-        if (rv == 0)
-          shell.setDefaultBrowser(true, false);
-        shell.shouldCheckDefaultBrowser = checkEveryTime.value;
-      }, 0);
-    }
-  }
-#endif
-
   
   gBidiUI = isBidiEnabled();
   if (gBidiUI) {
@@ -3989,8 +3946,20 @@ var FullScreen = {
     }
   },
 
-  exitDomFullScreen : function(e) {
+  exitDomFullScreen : function() {
     document.mozCancelFullScreen();
+  },
+
+  handleEvent: function (event) {
+    switch (event.type) {
+      case "deactivate":
+        
+        
+        
+        
+        setTimeout(this.exitDomFullScreen.bind(this), 0);
+        break;
+    }
   },
 
   enterDomFullScreen : function(event) {
@@ -4039,7 +4008,7 @@ var FullScreen = {
 
     
     if (gPrefService.getBoolPref("full-screen-api.exit-on-deactivate")) {
-      window.addEventListener("deactivate", this.exitDomFullScreen, true);
+      window.addEventListener("deactivate", this);
     }
 
     
@@ -4074,7 +4043,7 @@ var FullScreen = {
       gBrowser.tabContainer.removeEventListener("TabOpen", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabClose", this.exitDomFullScreen);
       gBrowser.tabContainer.removeEventListener("TabSelect", this.exitDomFullScreen);
-      window.removeEventListener("deactivate", this.exitDomFullScreen, true);
+      window.removeEventListener("deactivate", this);
     }
   },
 
@@ -5362,6 +5331,7 @@ function setToolbarVisibility(toolbar, isVisible) {
 
 var TabsOnTop = {
   init: function TabsOnTop_init() {
+    this._initialized = true;
     this.syncUI();
     Services.prefs.addObserver(this._prefName, this, false);
   },
@@ -5375,6 +5345,9 @@ var TabsOnTop = {
   },
 
   syncUI: function () {
+    if (!this._initialized)
+      return;
+
     let userEnabled = Services.prefs.getBoolPref(this._prefName);
     let enabled = userEnabled && gBrowser.tabContainer.visible;
 
@@ -6122,101 +6095,112 @@ function charsetLoadListener(event) {
 }
 
 
-function getAllStyleSheets(frameset) {
-  var styleSheetsArray = Array.slice(frameset.document.styleSheets);
-  for (let i = 0; i < frameset.frames.length; i++) {
-    let frameSheets = getAllStyleSheets(frameset.frames[i]);
-    styleSheetsArray = styleSheetsArray.concat(frameSheets);
-  }
-  return styleSheetsArray;
-}
+var gPageStyleMenu = {
 
-function stylesheetFillPopup(menuPopup) {
-  var noStyle = menuPopup.firstChild;
-  var persistentOnly = noStyle.nextSibling;
-  var sep = persistentOnly.nextSibling;
-  while (sep.nextSibling)
-    menuPopup.removeChild(sep.nextSibling);
+  getAllStyleSheets: function (frameset) {
+    var styleSheetsArray = Array.slice(frameset.document.styleSheets);
+    for (let i = 0; i < frameset.frames.length; i++) {
+      let frameSheets = this.getAllStyleSheets(frameset.frames[i]);
+      styleSheetsArray = styleSheetsArray.concat(frameSheets);
+    }
+    return styleSheetsArray;
+  },
 
-  var styleSheets = getAllStyleSheets(window.content);
-  var currentStyleSheets = {};
-  var styleDisabled = getMarkupDocumentViewer().authorStyleDisabled;
-  var haveAltSheets = false;
-  var altStyleSelected = false;
+  stylesheetFillPopup: function (menuPopup) {
+    var noStyle = menuPopup.firstChild;
+    var persistentOnly = noStyle.nextSibling;
+    var sep = persistentOnly.nextSibling;
+    while (sep.nextSibling)
+      menuPopup.removeChild(sep.nextSibling);
 
-  for (let i = 0; i < styleSheets.length; ++i) {
-    let currentStyleSheet = styleSheets[i];
+    var styleSheets = this.getAllStyleSheets(window.content);
+    var currentStyleSheets = {};
+    var styleDisabled = getMarkupDocumentViewer().authorStyleDisabled;
+    var haveAltSheets = false;
+    var altStyleSelected = false;
 
-    if (!currentStyleSheet.title)
-      continue;
+    for (let i = 0; i < styleSheets.length; ++i) {
+      let currentStyleSheet = styleSheets[i];
 
-    
-    if (currentStyleSheet.media.length > 0) {
-      let mediaQueryList = currentStyleSheet.media.mediaText;
-      if (!window.content.matchMedia(mediaQueryList).matches)
+      if (!currentStyleSheet.title)
         continue;
+
+      
+      if (currentStyleSheet.media.length > 0) {
+        let mediaQueryList = currentStyleSheet.media.mediaText;
+        if (!window.content.matchMedia(mediaQueryList).matches)
+          continue;
+      }
+
+      if (!currentStyleSheet.disabled)
+        altStyleSelected = true;
+
+      haveAltSheets = true;
+
+      let lastWithSameTitle = null;
+      if (currentStyleSheet.title in currentStyleSheets)
+        lastWithSameTitle = currentStyleSheets[currentStyleSheet.title];
+
+      if (!lastWithSameTitle) {
+        let menuItem = document.createElement("menuitem");
+        menuItem.setAttribute("type", "radio");
+        menuItem.setAttribute("label", currentStyleSheet.title);
+        menuItem.setAttribute("data", currentStyleSheet.title);
+        menuItem.setAttribute("checked", !currentStyleSheet.disabled && !styleDisabled);
+        menuPopup.appendChild(menuItem);
+        currentStyleSheets[currentStyleSheet.title] = menuItem;
+      } else if (currentStyleSheet.disabled) {
+        lastWithSameTitle.removeAttribute("checked");
+      }
     }
 
-    if (!currentStyleSheet.disabled)
-      altStyleSelected = true;
+    noStyle.setAttribute("checked", styleDisabled);
+    persistentOnly.setAttribute("checked", !altStyleSelected && !styleDisabled);
+    persistentOnly.hidden = (window.content.document.preferredStyleSheetSet) ? haveAltSheets : false;
+    sep.hidden = (noStyle.hidden && persistentOnly.hidden) || !haveAltSheets;
+    return true;
+  },
 
-    haveAltSheets = true;
+  stylesheetInFrame: function (frame, title) {
+    return Array.some(frame.document.styleSheets,
+                      function (stylesheet) stylesheet.title == title);
+  },
 
-    let lastWithSameTitle = null;
-    if (currentStyleSheet.title in currentStyleSheets)
-      lastWithSameTitle = currentStyleSheets[currentStyleSheet.title];
+  stylesheetSwitchFrame: function (frame, title) {
+    var docStyleSheets = frame.document.styleSheets;
 
-    if (!lastWithSameTitle) {
-      let menuItem = document.createElement("menuitem");
-      menuItem.setAttribute("type", "radio");
-      menuItem.setAttribute("label", currentStyleSheet.title);
-      menuItem.setAttribute("data", currentStyleSheet.title);
-      menuItem.setAttribute("checked", !currentStyleSheet.disabled && !styleDisabled);
-      menuPopup.appendChild(menuItem);
-      currentStyleSheets[currentStyleSheet.title] = menuItem;
-    } else if (currentStyleSheet.disabled) {
-      lastWithSameTitle.removeAttribute("checked");
+    for (let i = 0; i < docStyleSheets.length; ++i) {
+      let docStyleSheet = docStyleSheets[i];
+
+      if (title == "_nostyle")
+        docStyleSheet.disabled = true;
+      else if (docStyleSheet.title)
+        docStyleSheet.disabled = (docStyleSheet.title != title);
+      else if (docStyleSheet.disabled)
+        docStyleSheet.disabled = false;
     }
-  }
+  },
 
-  noStyle.setAttribute("checked", styleDisabled);
-  persistentOnly.setAttribute("checked", !altStyleSelected && !styleDisabled);
-  persistentOnly.hidden = (window.content.document.preferredStyleSheetSet) ? haveAltSheets : false;
-  sep.hidden = (noStyle.hidden && persistentOnly.hidden) || !haveAltSheets;
-  return true;
-}
+  stylesheetSwitchAll: function (frameset, title) {
+    if (!title || title == "_nostyle" || this.stylesheetInFrame(frameset, title))
+      this.stylesheetSwitchFrame(frameset, title);
 
-function stylesheetInFrame(frame, title) {
-  return Array.some(frame.document.styleSheets,
-                    function (stylesheet) stylesheet.title == title);
-}
+    for (let i = 0; i < frameset.frames.length; i++)
+      this.stylesheetSwitchAll(frameset.frames[i], title);
+  },
 
-function stylesheetSwitchFrame(frame, title) {
-  var docStyleSheets = frame.document.styleSheets;
+  setStyleDisabled: function (disabled) {
+    getMarkupDocumentViewer().authorStyleDisabled = disabled;
+  },
+};
 
-  for (let i = 0; i < docStyleSheets.length; ++i) {
-    let docStyleSheet = docStyleSheets[i];
 
-    if (title == "_nostyle")
-      docStyleSheet.disabled = true;
-    else if (docStyleSheet.title)
-      docStyleSheet.disabled = (docStyleSheet.title != title);
-    else if (docStyleSheet.disabled)
-      docStyleSheet.disabled = false;
-  }
-}
-
-function stylesheetSwitchAll(frameset, title) {
-  if (!title || title == "_nostyle" || stylesheetInFrame(frameset, title))
-    stylesheetSwitchFrame(frameset, title);
-
-  for (let i = 0; i < frameset.frames.length; i++)
-    stylesheetSwitchAll(frameset.frames[i], title);
-}
-
-function setStyleDisabled(disabled) {
-  getMarkupDocumentViewer().authorStyleDisabled = disabled;
-}
+var getAllStyleSheets     = gPageStyleMenu.getAllStyleSheets;
+var stylesheetFillPopup   = gPageStyleMenu.stylesheetFillPopup;
+var stylesheetInFrame     = gPageStyleMenu.stylesheetInFrame;
+var stylesheetSwitchFrame = gPageStyleMenu.stylesheetSwitchFrame;
+var stylesheetSwitchAll   = gPageStyleMenu.stylesheetSwitchAll;
+var setStyleDisabled      = gPageStyleMenu.setStyleDisabled;
 
 
 var BrowserOffline = {
