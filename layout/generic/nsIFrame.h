@@ -111,6 +111,12 @@ struct nsSize;
 struct nsMargin;
 struct CharacterDataChangeInfo;
 
+namespace mozilla {
+namespace layers {
+class Layer;
+}
+}
+
 typedef class nsIFrame nsIBox;
 
 
@@ -518,6 +524,7 @@ class nsIFrame : public nsQueryFrame
 public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
   typedef mozilla::FrameProperties FrameProperties;
+  typedef mozilla::layers::Layer Layer;
 
   NS_DECL_QUERYFRAME_TARGET(nsIFrame)
 
@@ -2022,7 +2029,9 @@ public:
 
 
 
-  void InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey);
+
+
+  Layer* InvalidateLayer(const nsRect& aDamageRect, PRUint32 aDisplayItemKey);
 
   
 

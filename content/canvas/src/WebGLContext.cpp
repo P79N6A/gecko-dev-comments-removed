@@ -58,6 +58,7 @@
 #include "gfxUtils.h"
 
 #include "CanvasUtils.h"
+#include "nsDisplayList.h"
 
 #include "GLContextProvider.h"
 
@@ -247,6 +248,9 @@ WebGLContext::DestroyResourcesAndContext()
 void
 WebGLContext::Invalidate()
 {
+    if (mInvalidated)
+        return;
+
     if (!mCanvasElement)
         return;
 
@@ -254,11 +258,8 @@ WebGLContext::Invalidate()
     nsSVGEffects::InvalidateDirectRenderingObservers(HTMLCanvasElement());
 #endif
 
-    if (mInvalidated)
-        return;
-
     mInvalidated = PR_TRUE;
-    HTMLCanvasElement()->InvalidateFrame();
+    HTMLCanvasElement()->InvalidateCanvasContent(nsnull);
 }
 
 
@@ -352,6 +353,10 @@ NS_IMETHODIMP
 WebGLContext::SetDimensions(PRInt32 width, PRInt32 height)
 {
     ScopedGfxFeatureReporter reporter("WebGL");
+
+    if (mCanvasElement) {
+        HTMLCanvasElement()->InvalidateCanvas();
+    }
 
     if (mWidth == width && mHeight == height)
         return NS_OK;
@@ -619,18 +624,27 @@ WebGLContext::GetThebesSurface(gfxASurface **surface)
 
 static PRUint8 gWebGLLayerUserData;
 
+class WebGLContextUserData : public LayerUserData {
+public:
+    WebGLContextUserData(nsHTMLCanvasElement *aContent)
+    : mContent(aContent) {}
+  static void DidTransactionCallback(void* aData)
+  {
+    static_cast<WebGLContextUserData*>(aData)->mContent->MarkContextClean();
+  }
+
+private:
+  nsRefPtr<nsHTMLCanvasElement> mContent;
+};
+
 already_AddRefed<layers::CanvasLayer>
-WebGLContext::GetCanvasLayer(CanvasLayer *aOldLayer,
+WebGLContext::GetCanvasLayer(nsDisplayListBuilder* aBuilder,
+                             CanvasLayer *aOldLayer,
                              LayerManager *aManager)
 {
     if (!mResetLayer && aOldLayer &&
         aOldLayer->HasUserData(&gWebGLLayerUserData)) {
         NS_ADDREF(aOldLayer);
-        if (mInvalidated) {
-            aOldLayer->Updated();
-            mInvalidated = PR_FALSE;
-            HTMLCanvasElement()->GetPrimaryCanvasFrame()->MarkLayersActive();
-        }
         return aOldLayer;
     }
 
@@ -639,7 +653,25 @@ WebGLContext::GetCanvasLayer(CanvasLayer *aOldLayer,
         NS_WARNING("CreateCanvasLayer returned null!");
         return nsnull;
     }
-    canvasLayer->SetUserData(&gWebGLLayerUserData, nsnull);
+    WebGLContextUserData *userData = nsnull;
+    if (aBuilder->IsPaintingToWindow()) {
+      
+      
+      
+      
+      
+      
+
+      
+      
+      
+      
+      
+      userData = new WebGLContextUserData(HTMLCanvasElement());
+      canvasLayer->SetDidTransactionCallback(
+              WebGLContextUserData::DidTransactionCallback, userData);
+    }
+    canvasLayer->SetUserData(&gWebGLLayerUserData, userData);
 
     CanvasLayer::Data data;
 
@@ -663,7 +695,6 @@ WebGLContext::GetCanvasLayer(CanvasLayer *aOldLayer,
     canvasLayer->SetContentFlags(flags);
     canvasLayer->Updated();
 
-    mInvalidated = PR_FALSE;
     mResetLayer = PR_FALSE;
 
     return canvasLayer.forget().get();

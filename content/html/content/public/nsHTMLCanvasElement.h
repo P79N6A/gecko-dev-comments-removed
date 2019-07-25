@@ -113,7 +113,12 @@ public:
 
 
 
-  void InvalidateFrame(const gfxRect* damageRect = nsnull);
+  void InvalidateCanvasContent(const gfxRect* aDamageRect);
+  
+
+
+
+  void InvalidateCanvas();
 
   
 
@@ -157,9 +162,11 @@ public:
 
 
 
-  already_AddRefed<CanvasLayer> GetCanvasLayer(CanvasLayer *aOldLayer,
+  already_AddRefed<CanvasLayer> GetCanvasLayer(nsDisplayListBuilder* aBuilder,
+                                               CanvasLayer *aOldLayer,
                                                LayerManager *aManager);
 
+  
   
   
   
