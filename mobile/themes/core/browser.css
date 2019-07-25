@@ -404,7 +404,7 @@ toolbarbutton.choice-remotetabs {
   background-image: url(chrome://browser/content/checkerboard.png);
 }
 
-#content-stack > div:-moz-focusring {
+.input-overlay:-moz-focusring {
   outline: 0 !important;
 }
 
@@ -412,7 +412,7 @@ toolbarbutton.choice-remotetabs {
 
 
 
-#content-stack > deck > browser {
+#browsers > notificationbox > browser {
   -moz-user-focus: ignore;
 }
 
