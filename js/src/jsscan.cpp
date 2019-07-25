@@ -298,6 +298,9 @@ TokenStream::getChar()
 
 
 
+
+
+
 int32
 TokenStream::getCharIgnoreEOL()
 {
@@ -339,7 +342,6 @@ TokenStream::ungetCharIgnoreEOL(int32 c)
 {
     if (c == EOF)
         return;
-    JS_ASSERT(TokenBuf::isRawEOLChar(c));
     JS_ASSERT(!userbuf.atStart());
     userbuf.ungetRawChar();
 }
@@ -1111,30 +1113,30 @@ TokenStream::getTokenInternal()
       decimal:
         bool hasFracOrExp = false;
         while (JS7_ISDEC(c))
-            c = getChar();
+            c = getCharIgnoreEOL();
 
         if (c == '.') {
             hasFracOrExp = true;
             do {
-                c = getChar();
+                c = getCharIgnoreEOL();
             } while (JS7_ISDEC(c));
         }
         if (JS_TOLOWER(c) == 'e') {
             hasFracOrExp = true;
-            c = getChar();
+            c = getCharIgnoreEOL();
             if (c == '+' || c == '-')
-                c = getChar();
+                c = getCharIgnoreEOL();
             if (!JS7_ISDEC(c)) {
-                ungetChar(c);
+                ungetCharIgnoreEOL(c);
                 ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR,
                                          JSMSG_MISSING_EXPONENT);
                 goto error;
             }
             do {
-                c = getChar();
+                c = getCharIgnoreEOL();
             } while (JS7_ISDEC(c));
         }
-        ungetChar(c);
+        ungetCharIgnoreEOL(c);
 
         if (JS_ISIDSTART(c)) {
             ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_IDSTART_AFTER_NUMBER);
@@ -1166,18 +1168,18 @@ TokenStream::getTokenInternal()
 
     if (c == '0') {
         int radix;
-        c = getChar();
+        c = getCharIgnoreEOL();
         if (JS_TOLOWER(c) == 'x') {
             radix = 16;
-            c = getChar();
+            c = getCharIgnoreEOL();
             if (!JS7_ISHEX(c)) {
-                ungetChar(c);
+                ungetCharIgnoreEOL(c);
                 ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_MISSING_HEXDIGITS);
                 goto error;
             }
             numStart = userbuf.addressOfNextRawChar() - 1;
             while (JS7_ISHEX(c))
-                c = getChar();
+                c = getCharIgnoreEOL();
         } else if (JS7_ISDEC(c)) {
             radix = 8;
             numStart = userbuf.addressOfNextRawChar() - 1;
@@ -1199,7 +1201,7 @@ TokenStream::getTokenInternal()
                     }
                     goto decimal;   
                 }
-                c = getChar();
+                c = getCharIgnoreEOL();
             }
         } else {
             
@@ -1207,7 +1209,7 @@ TokenStream::getTokenInternal()
             numStart = userbuf.addressOfNextRawChar() - 1;
             goto decimal;
         }
-        ungetChar(c);
+        ungetCharIgnoreEOL(c);
 
         if (JS_ISIDSTART(c)) {
             ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_IDSTART_AFTER_NUMBER);
