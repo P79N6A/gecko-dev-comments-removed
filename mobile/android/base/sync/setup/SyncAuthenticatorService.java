@@ -9,8 +9,12 @@ import java.security.NoSuchAlgorithmException;
 
 import org.mozilla.gecko.sync.GlobalConstants;
 import org.mozilla.gecko.sync.Logger;
+import org.mozilla.gecko.sync.SyncConfiguration;
+import org.mozilla.gecko.sync.ThreadPool;
 import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.config.AccountPickler;
+import org.mozilla.gecko.sync.config.ClientRecordTerminator;
+import org.mozilla.gecko.sync.setup.SyncAccounts.SyncAccountParameters;
 import org.mozilla.gecko.sync.setup.activities.SetupSyncActivity;
 
 import android.accounts.AbstractAccountAuthenticator;
@@ -21,6 +25,7 @@ import android.accounts.NetworkErrorException;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.IBinder;
 
@@ -217,20 +222,97 @@ public class SyncAuthenticatorService extends Service {
 
 
     @Override
-    public Bundle getAccountRemovalAllowed(AccountAuthenticatorResponse response, Account account) throws NetworkErrorException {
+    public Bundle getAccountRemovalAllowed(final AccountAuthenticatorResponse response, final Account account)
+        throws NetworkErrorException {
       Bundle result = super.getAccountRemovalAllowed(response, account);
 
-      if (result != null &&
-          result.containsKey(AccountManager.KEY_BOOLEAN_RESULT) &&
-          !result.containsKey(AccountManager.KEY_INTENT)) {
-        final boolean removalAllowed = result.getBoolean(AccountManager.KEY_BOOLEAN_RESULT);
+      if (result == null ||
+          !result.containsKey(AccountManager.KEY_BOOLEAN_RESULT) ||
+          result.containsKey(AccountManager.KEY_INTENT)) {
+        return result;
+      }
 
-        if (removalAllowed) {
+      final boolean removalAllowed = result.getBoolean(AccountManager.KEY_BOOLEAN_RESULT);
+      if (!removalAllowed) {
+        return result;
+      }
+
+      
+      ThreadPool.run(new Runnable() {
+        @Override
+        public void run() {
           Logger.info(LOG_TAG, "Account named " + account.name + " being removed; " +
               "deleting saved pickle file '" + Constants.ACCOUNT_PICKLE_FILENAME + "'.");
-          AccountPickler.deletePickle(mContext, Constants.ACCOUNT_PICKLE_FILENAME);
+          try {
+            AccountPickler.deletePickle(mContext, Constants.ACCOUNT_PICKLE_FILENAME);
+          } catch (Exception e) {
+            
+            Logger.warn(LOG_TAG, "Got exception deleting saved pickle file; ignoring.", e);
+          }
         }
+      });
+
+      
+      
+      
+      
+      
+      SyncAccountParameters tempParams = null;
+      try {
+        tempParams = SyncAccounts.blockingFromAndroidAccountV0(mContext, AccountManager.get(mContext), account);
+      } catch (Exception e) {
+        
       }
+      final SyncAccountParameters params = tempParams;
+
+      ThreadPool.run(new Runnable() {
+        @Override
+        public void run() {
+          Logger.info(LOG_TAG, "Account named " + account.name + " being removed; " +
+              "deleting client record from server.");
+
+          if (params == null || params.username == null || params.password == null) {
+            Logger.warn(LOG_TAG, "Account parameters were null; not deleting client record from server.");
+            return;
+          }
+
+          
+          
+          
+          
+          
+          final String product = GlobalConstants.BROWSER_INTENT_PACKAGE;
+          final String profile = Constants.DEFAULT_PROFILE;
+          final long version = SyncConfiguration.CURRENT_PREFS_VERSION;
+
+          SharedPreferences prefs;
+          try {
+            prefs = Utils.getSharedPreferences(mContext, product, params.username, params.serverURL, profile, version);
+          } catch (Exception e) {
+            Logger.warn(LOG_TAG, "Caught exception fetching preferences; not deleting client record from server.", e);
+            return;
+          }
+
+          final String clientGuid = prefs.getString(SyncConfiguration.PREF_ACCOUNT_GUID, null);
+          final String clusterURL = prefs.getString(SyncConfiguration.PREF_CLUSTER_URL, null);
+
+          if (clientGuid == null) {
+            Logger.warn(LOG_TAG, "Client GUID was null; not deleting client record from server.");
+            return;
+          }
+
+          if (clusterURL == null) {
+            Logger.warn(LOG_TAG, "Cluster URL was null; not deleting client record from server.");
+            return;
+          }
+
+          try {
+            ClientRecordTerminator.deleteClientRecord(params.username, params.password, clusterURL, clientGuid);
+          } catch (Exception e) {
+            Logger.warn(LOG_TAG, "Got exception deleting client record from server; ignoring.", e);
+          }
+        }
+      });
 
       return result;
     }
