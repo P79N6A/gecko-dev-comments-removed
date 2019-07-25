@@ -182,6 +182,12 @@ public:
       "associated with connections to this database.");
   }
 
+  NS_IMETHOD GetName(nsACString &aName)
+  {
+      aName.AssignLiteral("storage-sqlite");
+      return NS_OK;
+  }
+
   
   
   

@@ -121,7 +121,8 @@ const kTreeNames = {
   'other':    'Other Measurements'
 };
 
-const kMapTreePaths = ['map/resident', 'map/pss', 'map/vsize', 'map/swap'];
+const kMapTreePaths =
+  ['smaps/resident', 'smaps/pss', 'smaps/vsize', 'smaps/swap'];
 
 function onLoad()
 {
@@ -283,6 +284,11 @@ function getReportersByProcess(aMgr)
   var e = aMgr.enumerateMultiReporters();
   while (e.hasMoreElements()) {
     var mrOrig = e.getNext().QueryInterface(Ci.nsIMemoryMultiReporter);
+    
+    if (!gVerbose && mrOrig.name === "smaps") {
+      continue;
+    }
+
     try {
       mrOrig.collectReports(addReporter, null);
     }
@@ -558,13 +564,11 @@ function buildTree(aReporters, aTreeName)
 
 
 
-
-
-function ignoreTree(aReporters, aTreeName)
+function ignoreSmapsTrees(aReporters)
 {
   for (var unsafePath in aReporters) {
     var r = aReporters[unsafePath];
-    if (r.treeNameMatches(aTreeName)) {
+    if (r.treeNameMatches("smaps")) {
       var dummy = getBytes(aReporters, unsafePath);
     }
   }
@@ -785,8 +789,8 @@ function appendProcessElements(aP, aProcess, aReporters,
   appendTreeElements(aP, explicitTree, aProcess);
 
   
-  kMapTreePaths.forEach(function(t) {
-    if (gVerbose) {
+  if (gVerbose) {
+    kMapTreePaths.forEach(function(t) {
       var tree = buildTree(aReporters, t);
 
       
@@ -796,10 +800,13 @@ function appendProcessElements(aP, aProcess, aReporters,
         tree._hideKids = true;   
         appendTreeElements(aP, tree, aProcess);
       }
-    } else {
-      ignoreTree(aReporters, t);
-    }
-  });
+    });
+  } else {
+    
+    
+    
+    ignoreSmapsTrees(aReporters);
+  }
 
   
   

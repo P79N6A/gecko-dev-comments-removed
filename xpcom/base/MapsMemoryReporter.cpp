@@ -124,6 +124,7 @@ void GetBasename(const nsCString &aPath, nsACString &aOut)
 
 
 
+
 struct CategoriesSeen {
   CategoriesSeen() :
     mSeenResident(false),
@@ -147,6 +148,12 @@ public:
   MapsReporter();
 
   NS_DECL_ISUPPORTS
+
+  NS_IMETHOD GetName(nsACString &aName)
+  {
+      aName.AssignLiteral("smaps");
+      return NS_OK;
+  }
 
   NS_IMETHOD
   CollectReports(nsIMemoryMultiReporterCallback *aCallback,
@@ -230,7 +237,7 @@ MapsReporter::CollectReports(nsIMemoryMultiReporterCallback *aCallback,
   NS_ASSERTION(categoriesSeen.mSeenVsize, "Didn't create a resident node?");
   if (!categoriesSeen.mSeenSwap) {
     aCallback->Callback(NS_LITERAL_CSTRING(""),
-                        NS_LITERAL_CSTRING("map/swap/total"),
+                        NS_LITERAL_CSTRING("smaps/swap/total"),
                         nsIMemoryReporter::KIND_NONHEAP,
                         nsIMemoryReporter::UNITS_BYTES,
                         0,
@@ -510,7 +517,7 @@ MapsReporter::ParseMapBody(
   }
 
   nsCAutoString path;
-  path.Append("map/");
+  path.Append("smaps/");
   path.Append(category);
   path.Append("/");
   path.Append(aName);
