@@ -423,6 +423,13 @@ nsXULPrototypeDocument::Write(nsIObjectOutputStream* aStream)
     rv |= aStream->WriteObject(mNodeInfoManager->DocumentPrincipal(),
                                PR_TRUE);
     
+#ifdef DEBUG
+    
+    if (!nsContentUtils::IsSystemPrincipal(mNodeInfoManager->DocumentPrincipal())) {
+        NS_WARNING("Serializing document without system principal");
+    }
+#endif
+
     
     nsCOMArray<nsINodeInfo> nodeInfos;
     if (mRoot)

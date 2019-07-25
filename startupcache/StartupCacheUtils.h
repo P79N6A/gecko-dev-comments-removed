@@ -51,9 +51,14 @@ NS_NewObjectInputStreamFromBuffer(char* buffer, PRUint32 len,
 
 
 
+
+
+
+
 NS_EXPORT nsresult
 NS_NewObjectOutputWrappedStorageStream(nsIObjectOutputStream **wrapperStream,
-                                       nsIStorageStream** stream);
+                                       nsIStorageStream** stream,
+                                       PRBool wantDebugStream);
 
 NS_EXPORT nsresult
 NS_NewBufferFromStorageStream(nsIStorageStream *storageStream, 

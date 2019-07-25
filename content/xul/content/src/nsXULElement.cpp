@@ -84,7 +84,6 @@
 #include "nsIEventListenerManager.h"
 #include "nsEventStateManager.h"
 #include "nsFocusManager.h"
-#include "nsIFastLoadService.h"
 #include "nsHTMLStyleSheet.h"
 #include "nsINameSpaceManager.h"
 #include "nsIObjectInputStream.h"
@@ -2967,24 +2966,23 @@ nsresult
 nsXULPrototypeScript::SerializeOutOfLine(nsIObjectOutputStream* aStream,
                                          nsIScriptGlobalObject* aGlobal)
 {
+    nsresult rv = NS_ERROR_NOT_IMPLEMENTED;
+
+    PRBool isChrome = PR_FALSE;
+    if (NS_FAILED(mSrcURI->SchemeIs("chrome", &isChrome)) || !isChrome)
+       
+       return rv;
+
     nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
     if (!cache)
         return NS_ERROR_OUT_OF_MEMORY;
 
     NS_ASSERTION(cache->IsEnabled(),
-                 "writing to the FastLoad file, but the XUL cache is off?");
-
-    nsIFastLoadService* fastLoadService = cache->GetFastLoadService();
-    if (!fastLoadService)
-        return NS_ERROR_NOT_AVAILABLE;
-
-    nsCAutoString urispec;
-    nsresult rv = mSrcURI->GetAsciiSpec(urispec);
-    if (NS_FAILED(rv))
-        return rv;
-
-    PRBool exists = PR_FALSE;
-    fastLoadService->HasMuxedDocument(urispec.get(), &exists);
+                 "writing to the cache file, but the XUL cache is off?");
+    PRBool exists;
+    cache->HasData(mSrcURI, &exists);
+    
+    
     
 
 
@@ -2993,34 +2991,15 @@ nsXULPrototypeScript::SerializeOutOfLine(nsIObjectOutputStream* aStream,
     if (exists)
         return NS_OK;
 
+    nsCOMPtr<nsIObjectOutputStream> oos;
+    rv = cache->GetOutputStream(mSrcURI, getter_AddRefs(oos));
+    NS_ENSURE_SUCCESS(rv, rv);
     
-    
-    
-    nsCOMPtr<nsIObjectOutputStream> objectOutput = aStream;
-    if (! objectOutput) {
-        fastLoadService->GetOutputStream(getter_AddRefs(objectOutput));
-        if (! objectOutput)
-            return NS_ERROR_NOT_AVAILABLE;
-    }
-
-    rv = fastLoadService->
-         StartMuxedDocument(mSrcURI, urispec.get(),
-                            nsIFastLoadService::NS_FASTLOAD_WRITE);
-    NS_ASSERTION(rv != NS_ERROR_NOT_AVAILABLE, "reading FastLoad?!");
-
-    nsCOMPtr<nsIURI> oldURI;
-    rv |= fastLoadService->SelectMuxedDocument(mSrcURI, getter_AddRefs(oldURI));
-    rv |= Serialize(objectOutput, aGlobal, nsnull);
-    rv |= fastLoadService->EndMuxedDocument(mSrcURI);
-
-    if (oldURI) {
-        nsCOMPtr<nsIURI> tempURI;
-        rv |= fastLoadService->
-              SelectMuxedDocument(oldURI, getter_AddRefs(tempURI));
-    }
+    rv |= Serialize(oos, aGlobal, nsnull);
+    rv |= cache->FinishOutputStream(mSrcURI);
 
     if (NS_FAILED(rv))
-        cache->AbortFastLoads();
+        cache->AbortCaching();
     return rv;
 }
 
@@ -3064,21 +3043,12 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
     
     
     nsresult rv = NS_OK;
-
     nsXULPrototypeCache* cache = nsXULPrototypeCache::GetInstance();
-    nsIFastLoadService* fastLoadService = cache->GetFastLoadService();
-
-    
-    
-    
+  
     nsCOMPtr<nsIObjectInputStream> objectInput = aInput;
-    if (! objectInput && fastLoadService)
-        fastLoadService->GetInputStream(getter_AddRefs(objectInput));
-
-    if (objectInput) {
+    if (cache) {
         PRBool useXULCache = PR_TRUE;
         if (mSrcURI) {
-            
             
             
             
@@ -3111,26 +3081,12 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
         }
 
         if (! mScriptObject.mObject) {
-            nsCOMPtr<nsIURI> oldURI;
-
             if (mSrcURI) {
-                nsCAutoString spec;
-                mSrcURI->GetAsciiSpec(spec);
-                rv = fastLoadService->StartMuxedDocument(mSrcURI, spec.get(),
-                                                         nsIFastLoadService::NS_FASTLOAD_READ);
-                if (NS_SUCCEEDED(rv))
-                    rv = fastLoadService->SelectMuxedDocument(mSrcURI, getter_AddRefs(oldURI));
-            } else {
-                
-                
-                
-                
-                PRInt32 direction;
-                fastLoadService->GetDirection(&direction);
-                if (direction != nsIFastLoadService::NS_FASTLOAD_READ)
-                    rv = NS_ERROR_NOT_AVAILABLE;
-            }
-
+                rv = cache->GetInputStream(mSrcURI, getter_AddRefs(objectInput));
+            } 
+            
+            
+ 
             
             
             
@@ -3139,18 +3095,6 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
             
             if (NS_SUCCEEDED(rv))
                 rv = Deserialize(objectInput, aGlobal, nsnull, nsnull);
-
-            if (NS_SUCCEEDED(rv) && mSrcURI) {
-                rv = fastLoadService->EndMuxedDocument(mSrcURI);
-
-                if (NS_SUCCEEDED(rv) && oldURI) {
-                    nsCOMPtr<nsIURI> tempURI;
-                    rv = fastLoadService->SelectMuxedDocument(oldURI, getter_AddRefs(tempURI));
-
-                    NS_ASSERTION(NS_SUCCEEDED(rv) && (!tempURI || tempURI == mSrcURI),
-                                 "not currently deserializing into the script we thought we were!");
-                }
-            }
 
             if (NS_SUCCEEDED(rv)) {
                 if (useXULCache && mSrcURI) {
@@ -3162,17 +3106,17 @@ nsXULPrototypeScript::DeserializeOutOfLine(nsIObjectInputStream* aInput,
                                          mScriptObject.mObject);
                     }
                 }
+                cache->FinishInputStream(mSrcURI);
             } else {
                 
                 
                 
                 
                 if (rv != NS_ERROR_NOT_AVAILABLE)
-                    cache->AbortFastLoads();
+                    cache->AbortCaching();
             }
         }
     }
-
     return rv;
 }
 

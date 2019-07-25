@@ -293,9 +293,8 @@ nsXULDocument::~nsXULDocument()
         
         
         
-        
         if (mDocumentURI)
-            nsXULPrototypeCache::GetInstance()->RemoveFromFastLoadSet(mDocumentURI);
+            nsXULPrototypeCache::GetInstance()->RemoveFromCacheSet(mDocumentURI);
     }
 }
 

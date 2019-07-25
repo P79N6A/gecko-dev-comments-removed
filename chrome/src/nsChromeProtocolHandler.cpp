@@ -245,45 +245,11 @@ nsChromeProtocolHandler::NewChannel(nsIURI* aURI,
         result->SetOwner(owner);
     }
 
-#ifdef MOZ_XUL
     
     
     
     
     
-    
-    
-    
-    
-    nsCOMPtr<nsIFastLoadService> fastLoadServ(do_GetFastLoadService());
-    if (fastLoadServ) {
-        nsCOMPtr<nsIObjectOutputStream> objectOutput;
-        fastLoadServ->GetOutputStream(getter_AddRefs(objectOutput));
-        if (objectOutput) {
-            nsCOMPtr<nsIFile> file;
-
-            nsCOMPtr<nsIURI> uri;
-            result->GetURI(getter_AddRefs(uri));
-            uri = NS_GetInnermostURI(uri);
-
-            
-            
-            nsCOMPtr<nsIFileURL> fileURL(do_QueryInterface(uri));
-            if (fileURL)
-                fileURL->GetFile(getter_AddRefs(file));
-
-            if (file) {
-                rv = fastLoadServ->AddDependency(file);
-                if (NS_FAILED(rv)) {
-                   nsCOMPtr<nsIXULPrototypeCache> cache
-                       (do_GetService(kXULPrototypeCacheCID));
-                   if (cache)
-                       cache->AbortFastLoads();
-                }
-            }
-        }
-    }
-#endif
 
     *aResult = result;
     NS_ADDREF(*aResult);
