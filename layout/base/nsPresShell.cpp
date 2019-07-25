@@ -8268,7 +8268,7 @@ PresShell::VerifyIncrementalReflow()
   nsIView* rootView;
   mViewManager->GetRootView(rootView);
   NS_ENSURE_TRUE(rootView->HasWidget(), PR_FALSE);
-  nsIWidget* parentWidget = rootView->GetWidget();
+  void* nativeParentWidget = rootView->GetWidget()->GetNativeData(NS_NATIVE_WIDGET);
 
   
   nsCOMPtr<nsIViewManager> vm = do_CreateInstance(kViewManagerCID);
@@ -8283,7 +8283,7 @@ PresShell::VerifyIncrementalReflow()
   NS_ENSURE_TRUE(view, PR_FALSE);
 
   
-  rv = view->CreateWidgetForParent(kWidgetCID, parentWidget, nsnull, PR_TRUE);
+  rv = view->CreateWidget(kWidgetCID, nsnull, nativeParentWidget, PR_TRUE);
   NS_ENSURE_SUCCESS(rv, PR_FALSE);
 
   
