@@ -4380,10 +4380,14 @@ nsCanvasRenderingContext2DAzure::PutImageData(JSContext* cx,
 }
 
 
+
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::PutImageData()
+nsCanvasRenderingContext2DAzure::PutImageData(const JS::Value&, double, double,
+                                              double, double, double, double,
+                                              JSContext*, PRUint8)
 {
   
+
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
@@ -4587,7 +4591,11 @@ nsCanvasRenderingContext2DAzure::CreateImageData(JSContext* cx,
 }
 
 NS_IMETHODIMP
-nsCanvasRenderingContext2DAzure::CreateImageData()
+nsCanvasRenderingContext2DAzure::CreateImageData(const JS::Value &arg1,
+                                                 const JS::Value &arg2,
+                                                 JSContext* cx,
+                                                 PRUint8 optional_argc,
+                                                 nsIDOMImageData** retval)
 {
   
   return NS_ERROR_NOT_IMPLEMENTED;

@@ -88,6 +88,9 @@
 #include "mozilla/ipc/PDocumentRendererParent.h"
 #include "mozilla/unused.h"
 
+#include "CustomQS_Canvas.h"
+#include "jsfriendapi.h"
+
 
 #undef DrawText
 
@@ -4037,11 +4040,61 @@ nsCanvasRenderingContext2D::EnsurePremultiplyTable() {
 }
 
 
+
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::PutImageData()
+nsCanvasRenderingContext2D::PutImageData(const JS::Value& dataArg,
+                                         double xd, double yd,
+                                         double dirtyXd, double dirtyYd,
+                                         double dirtyWidthd,
+                                         double dirtyHeightd,
+                                         JSContext* cx,
+                                         PRUint8 optional_argc)
 {
     
-    return NS_ERROR_NOT_IMPLEMENTED;
+    JS::Value dataVal(dataArg);
+
+    
+    uint32_t w, h;
+    JS::Anchor<JSObject*> darray;
+    if (!::GetImageData(cx, dataVal, &w, &h, &darray)) {
+        return NS_ERROR_UNEXPECTED;
+    }
+
+    if (!FloatValidate(xd, yd)) {
+        return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    }
+
+    int32_t x = JS_DoubleToInt32(xd);
+    int32_t y = JS_DoubleToInt32(yd);
+
+    
+    bool hasDirtyRect = false;
+    int32_t dirtyX = 0, dirtyY = 0, dirtyWidth = w, dirtyHeight = h;
+
+    if (optional_argc != 0 && optional_argc != 4) {
+        
+        return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+    }
+
+    if (optional_argc == 4) {
+        if (!FloatValidate(dirtyXd, dirtyYd, dirtyWidthd, dirtyHeightd)) {
+            return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+        }
+
+        dirtyX = JS_DoubleToInt32(dirtyXd);
+        dirtyY = JS_DoubleToInt32(dirtyYd);
+        dirtyWidth = JS_DoubleToInt32(dirtyWidthd);
+        dirtyHeight = JS_DoubleToInt32(dirtyHeightd);
+
+        hasDirtyRect = true;
+    }
+
+    PRUint8* data =
+        reinterpret_cast<PRUint8*>(JS_GetArrayBufferViewData(darray.get(), cx));
+    uint32_t byteLength = JS_GetTypedArrayByteLength(darray.get(), cx);
+
+    return PutImageData_explicit(x, y, w, h, data, byteLength, hasDirtyRect,
+                                 dirtyX, dirtyY, dirtyWidth, dirtyHeight);
 }
 
 NS_IMETHODIMP
@@ -4167,11 +4220,76 @@ nsCanvasRenderingContext2D::GetThebesSurface(gfxASurface **surface)
     return NS_OK;
 }
 
+static nsresult
+CreateImageData(JSContext* cx, uint32_t w, uint32_t h,
+                nsIDOMImageData** retval)
+{
+    using mozilla::CheckedInt;
+
+    if (w == 0)
+        w = 1;
+    if (h == 0)
+        h = 1;
+
+    CheckedInt<uint32_t> len = CheckedInt<uint32_t>(w) * h * 4;
+    if (!len.isValid()) {
+        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+    }
+
+    
+    JSObject* darray = JS_NewUint8ClampedArray(cx, len.value());
+    JS::AutoObjectRooter rd(cx, darray);
+    if (!darray) {
+        return NS_ERROR_OUT_OF_MEMORY;
+    }
+
+    nsRefPtr<mozilla::dom::ImageData> imageData =
+        new mozilla::dom::ImageData(w, h, *darray);
+    imageData.forget(retval);
+    return NS_OK;
+}
+
+
 NS_IMETHODIMP
-nsCanvasRenderingContext2D::CreateImageData()
+nsCanvasRenderingContext2D::CreateImageData(const JS::Value &a1,
+                                            const JS::Value &a2,
+                                            JSContext* cx,
+                                            PRUint8 optional_argc,
+                                            nsIDOMImageData** retval)
 {
     
-    return NS_ERROR_NOT_IMPLEMENTED;
+    JS::Value arg1(a1);
+    JS::Value arg2(a2);
+
+    
+    
+    if (optional_argc == 0) {
+        uint32_t data_width, data_height;
+        JS::Anchor<JSObject*> darray;
+        if (!::GetImageData(cx, arg1, &data_width, &data_height, &darray)) {
+            return NS_ERROR_FAILURE;
+        }
+        return ::CreateImageData(cx, data_width, data_height, retval);
+    }
+
+    
+    double width, height;
+    if (!JS_ValueToNumber(cx, arg1, &width) ||
+        !JS_ValueToNumber(cx, arg2, &height))
+        return NS_ERROR_FAILURE;
+
+    if (!FloatValidate(width, height))
+        return NS_ERROR_DOM_NOT_SUPPORTED_ERR;
+
+    if (!width || !height)
+        return NS_ERROR_DOM_INDEX_SIZE_ERR;
+
+    int32_t wi = JS_DoubleToInt32(width);
+    int32_t hi = JS_DoubleToInt32(height);
+
+    uint32_t w = NS_ABS(wi);
+    uint32_t h = NS_ABS(hi);
+    return ::CreateImageData(cx, w, h, retval);
 }
 
 NS_IMETHODIMP
