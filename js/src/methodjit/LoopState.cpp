@@ -335,7 +335,11 @@ LoopState::checkRedundantEntry(const InvariantEntry &entry)
 
 
     JS_ASSERT(entry.isCheck());
-    for (unsigned i = 0; i < invariantEntries.length(); i++) {
+
+    
+    unsigned length = invariantEntries.length();
+
+    for (unsigned i = 0; i < length; i++) {
         InvariantEntry &baseEntry = invariantEntries[i];
         if (!baseEntry.isCheck())
             continue;
@@ -344,8 +348,10 @@ LoopState::checkRedundantEntry(const InvariantEntry &entry)
         if (entryRedundant(baseEntry, entry)) {
             invariantEntries[i--] = invariantEntries.back();
             invariantEntries.popBack();
+            length--;
         }
     }
+
     return false;
 }
 
