@@ -74,6 +74,12 @@
 #  endif
 
   
+
+#  if defined(__ARM_NEON__)
+#    define MOZILLA_PRESUME_NEON 1
+#  endif
+
+  
 #  if defined(__linux__) || defined(ANDROID)
 #    define MOZILLA_ARM_HAVE_CPUID_DETECTION 1
 #  endif
@@ -82,8 +88,7 @@
 
 #  define MOZILLA_ARM_HAVE_CPUID_DETECTION 1
   
-  
-#  define MOZILLA_ARM_ARCH 3
+#  define MOZILLA_ARM_ARCH _M_ARM
 
   
   
