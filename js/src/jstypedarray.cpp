@@ -736,6 +736,16 @@ class TypedArrayTemplate
         if (!obj)
             return NULL;
 
+        
+
+
+
+        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(slowClass());
+        types::TypeObject *type = types::GetTypeCallerInitObject(cx, key);
+        if (!type)
+            return NULL;
+        obj->setType(type);
+
         ThisTypeArray *tarray = cx->new_<ThisTypeArray>(bufobj, byteOffset, len);
         if (!tarray)
             return NULL;

@@ -274,16 +274,19 @@ enum {
     OBJECT_FLAG_NON_PACKED_ARRAY = 1 << 1,
 
     
-    OBJECT_FLAG_CREATED_ARGUMENTS = 1 << 2,
+    OBJECT_FLAG_NON_TYPED_ARRAY = 1 << 2,
 
     
-    OBJECT_FLAG_UNINLINEABLE = 1 << 3,
+    OBJECT_FLAG_CREATED_ARGUMENTS = 1 << 3,
 
     
-    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 4,
+    OBJECT_FLAG_UNINLINEABLE = 1 << 4,
 
     
-    OBJECT_FLAG_ITERATED = 1 << 5
+    OBJECT_FLAG_SPECIAL_EQUALITY = 1 << 5,
+
+    
+    OBJECT_FLAG_ITERATED = 1 << 6
 };
 typedef uint32 TypeObjectFlags;
 
@@ -645,8 +648,7 @@ struct TypeObject
 
 
 
-    bool initializerObject;
-    bool initializerArray;
+    JSProtoKey initializerKey;
     uint32 initializerOffset;
 
     
@@ -743,6 +745,9 @@ struct TypeObject
     inline Property *getProperty(unsigned i);
 
     
+    inline void setFlagsFromKey(JSContext *cx, JSProtoKey key);
+
+    
 
     bool addProperty(JSContext *cx, jsid id, Property **pprop);
     bool addDefiniteProperties(JSContext *cx, JSObject *obj);
@@ -801,9 +806,6 @@ struct TypeCallsite
 
     inline TypeCallsite(JSContext *cx, JSScript *script, jsbytecode *pc,
                         bool isNew, unsigned argumentCount);
-
-    
-    inline TypeObject* getInitObject(JSContext *cx, bool isArray);
 };
 
 
@@ -851,7 +853,7 @@ struct TypeScript
     inline TypeObject *standardType(JSContext *cx, JSProtoKey key);
 
     
-    inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, bool isArray);
+    inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, JSProtoKey key);
 
     
 
@@ -999,13 +1001,18 @@ struct TypeCompartment
     void print(JSContext *cx, JSCompartment *compartment);
 
     
+
+
+
+
+
     TypeObject *newTypeObject(JSContext *cx, JSScript *script,
                               const char *base, const char *postfix,
-                              bool isFunction, bool isArray, JSObject *proto);
+                              JSProtoKey key, JSObject *proto);
 
     
     TypeObject *newInitializerTypeObject(JSContext *cx, JSScript *script,
-                                         uint32 offset, bool isArray);
+                                         uint32 offset, JSProtoKey key);
 
     void nukeTypes(JSContext *cx);
     void processPendingRecompiles(JSContext *cx);
