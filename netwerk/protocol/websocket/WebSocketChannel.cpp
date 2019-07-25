@@ -66,6 +66,7 @@
 #include "nsStringStream.h"
 #include "nsAlgorithm.h"
 #include "nsProxyRelease.h"
+#include "nsNetUtil.h"
 
 #include "plbase64.h"
 #include "prmem.h"
@@ -92,11 +93,11 @@ NS_IMPL_THREADSAFE_ISUPPORTS11(WebSocketChannel,
                                nsIChannelEventSink)
 
 
-
-#define kFinMessage (reinterpret_cast<nsCString *>(0x01))
-
-
 #define SEC_WEBSOCKET_VERSION "8"
+
+
+
+
 
 
 
@@ -125,7 +126,7 @@ public:
       mData(aData),
       mLen(aLen) {}
 
-  NS_SCRIPTABLE NS_IMETHOD Run()
+  NS_IMETHOD Run()
   {
     if (mLen < 0)
       mChannel->mListener->OnMessageAvailable(mChannel->mContext, mData);
@@ -143,6 +144,10 @@ private:
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(CallOnMessageAvailable, nsIRunnable)
 
+
+
+
+
 class CallOnStop : public nsIRunnable
 {
 public:
@@ -153,7 +158,7 @@ public:
     : mChannel(aChannel),
       mData(aData) {}
 
-  NS_SCRIPTABLE NS_IMETHOD Run()
+  NS_IMETHOD Run()
   {
     mChannel->mListener->OnStop(mChannel->mContext, mData);
     return NS_OK;
@@ -167,6 +172,10 @@ private:
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(CallOnStop, nsIRunnable)
 
+
+
+
+
 class CallOnServerClose : public nsIRunnable
 {
 public:
@@ -179,7 +188,7 @@ public:
       mCode(aCode),
       mReason(aReason) {}
 
-  NS_SCRIPTABLE NS_IMETHOD Run()
+  NS_IMETHOD Run()
   {
     mChannel->mListener->OnServerClose(mChannel->mContext, mCode, mReason);
     return NS_OK;
@@ -194,6 +203,10 @@ private:
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(CallOnServerClose, nsIRunnable)
 
+
+
+
+
 class CallAcknowledge : public nsIRunnable
 {
 public:
@@ -204,7 +217,7 @@ public:
     : mChannel(aChannel),
       mSize(aSize) {}
 
-  NS_SCRIPTABLE NS_IMETHOD Run()
+  NS_IMETHOD Run()
   {
     LOG(("WebSocketChannel::CallAcknowledge: Size %u\n", mSize));
     mChannel->mListener->OnAcknowledge(mChannel->mContext, mSize);
@@ -219,33 +232,144 @@ private:
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(CallAcknowledge, nsIRunnable)
 
-class nsPostMessage : public nsIRunnable
+
+
+
+
+enum WsMsgType {
+  kMsgTypeString = 0,
+  kMsgTypeBinaryString,
+  kMsgTypeStream,
+  kMsgTypePing,
+  kMsgTypePong,
+  kMsgTypeFin
+};
+
+static const char* msgNames[] = {
+  "text",
+  "binaryString",
+  "binaryStream",
+  "ping",
+  "pong",
+  "close"
+};
+
+class OutboundMessage
 {
 public:
-  NS_DECL_ISUPPORTS
-
-  nsPostMessage(WebSocketChannel *aChannel,
-                nsCString        *aData,
-                PRInt32           aDataLen)
-    : mChannel(aChannel),
-      mData(aData),
-      mDataLen(aDataLen) {}
-
-  NS_SCRIPTABLE NS_IMETHOD Run()
+  OutboundMessage(WsMsgType type, nsCString *str)
+    : mMsgType(type)
   {
-    if (mData)
-      mChannel->SendMsgInternal(mData, mDataLen);
+    MOZ_COUNT_CTOR(OutboundMessage);
+    mMsg.pString = str;
+    mLength = str ? str->Length() : 0;
+  }
+
+  OutboundMessage(nsIInputStream *stream, PRUint32 length)
+    : mMsgType(kMsgTypeStream), mLength(length)
+  {
+    MOZ_COUNT_CTOR(OutboundMessage);
+    mMsg.pStream = stream;
+    mMsg.pStream->AddRef();
+  }
+
+ ~OutboundMessage() {
+    MOZ_COUNT_DTOR(OutboundMessage);
+    switch (mMsgType) {
+      case kMsgTypeString:
+      case kMsgTypeBinaryString:
+      case kMsgTypePing:
+      case kMsgTypePong:
+        delete mMsg.pString;
+        break;
+      case kMsgTypeStream:
+        
+        if (mMsg.pStream) {
+          mMsg.pStream->Close();
+          mMsg.pStream->Release();
+        }
+        break;
+      case kMsgTypeFin:
+        break;    
+    }
+  }
+
+  WsMsgType GetMsgType() const { return mMsgType; }
+  PRInt32 Length() const { return mLength; }
+
+  PRUint8* BeginWriting() {
+    NS_ABORT_IF_FALSE(mMsgType != kMsgTypeStream,
+                      "Stream should have been converted to string by now");
+    return (PRUint8 *)(mMsg.pString ? mMsg.pString->BeginWriting() : nsnull);
+  }
+
+  PRUint8* BeginReading() {
+    NS_ABORT_IF_FALSE(mMsgType != kMsgTypeStream,
+                      "Stream should have been converted to string by now");
+    return (PRUint8 *)(mMsg.pString ? mMsg.pString->BeginReading() : nsnull);
+  }
+
+  nsresult ConvertStreamToString()
+  {
+    NS_ABORT_IF_FALSE(mMsgType == kMsgTypeStream, "Not a stream!");
+
+#ifdef DEBUG
+    
+    PRUint32 bytes;
+    mMsg.pStream->Available(&bytes);
+    NS_ASSERTION(bytes == mLength, "Stream length != blob length!");
+#endif
+
+    nsAutoPtr<nsCString> temp(new nsCString());
+    nsresult rv = NS_ReadInputStreamToString(mMsg.pStream, *temp, mLength);
+
+    NS_ENSURE_SUCCESS(rv, rv);
+
+    mMsg.pStream->Close();
+    mMsg.pStream->Release();
+    mMsg.pString = temp.forget();
+    mMsgType = kMsgTypeBinaryString;
+
     return NS_OK;
   }
 
 private:
-  ~nsPostMessage() {}
-
-  nsRefPtr<WebSocketChannel>    mChannel;
-  nsCString                    *mData;
-  PRInt32                       mDataLen;
+  union {
+    nsCString      *pString;
+    nsIInputStream *pStream;
+  }                           mMsg;
+  WsMsgType                   mMsgType;
+  PRUint32                    mLength;
 };
-NS_IMPL_THREADSAFE_ISUPPORTS1(nsPostMessage, nsIRunnable)
+
+
+
+
+
+class OutboundEnqueuer : public nsIRunnable
+{
+public:
+  NS_DECL_ISUPPORTS
+
+  OutboundEnqueuer(WebSocketChannel *aChannel, OutboundMessage *aMsg)
+    : mChannel(aChannel), mMessage(aMsg) {}
+
+  NS_IMETHOD Run()
+  {
+    mChannel->EnqueueOutgoingMessage(mChannel->mOutgoingMessages, mMessage);
+    return NS_OK;
+  }
+
+private:
+  ~OutboundEnqueuer() {}
+
+  nsRefPtr<WebSocketChannel>  mChannel;
+  OutboundMessage            *mMessage;
+};
+NS_IMPL_THREADSAFE_ISUPPORTS1(OutboundEnqueuer, nsIRunnable)
+
+
+
 
 
 
@@ -414,6 +538,10 @@ private:
 
 
 
+
+
+
+
 class nsWSCompression
 {
 public:
@@ -533,6 +661,8 @@ private:
 };
 
 static nsWSAdmissionManager *sWebSocketAdmissions = nsnull;
+
+
 
 
 
@@ -1053,6 +1183,9 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
 void
 WebSocketChannel::ApplyMask(PRUint32 mask, PRUint8 *data, PRUint64 len)
 {
+  if (!data || len == 0)
+    return;
+
   
   
   
@@ -1089,19 +1222,15 @@ WebSocketChannel::ApplyMask(PRUint32 mask, PRUint8 *data, PRUint64 len)
 void
 WebSocketChannel::GeneratePing()
 {
-  LOG(("WebSocketChannel::GeneratePing() %p\n", this));
-
   nsCString *buf = new nsCString();
   buf->Assign("PING");
-  mOutgoingPingMessages.Push(new OutboundMessage(buf));
-  OnOutputStreamReady(mSocketOut);
+  EnqueueOutgoingMessage(mOutgoingPingMessages,
+                         new OutboundMessage(kMsgTypePing, buf));
 }
 
 void
 WebSocketChannel::GeneratePong(PRUint8 *payload, PRUint32 len)
 {
-  LOG(("WebSocketChannel::GeneratePong() %p [%p %u]\n", this, payload, len));
-
   nsCString *buf = new nsCString();
   buf->SetLength(len);
   if (buf->Length() < len) {
@@ -1111,26 +1240,24 @@ WebSocketChannel::GeneratePong(PRUint8 *payload, PRUint32 len)
   }
 
   memcpy(buf->BeginWriting(), payload, len);
-  mOutgoingPongMessages.Push(new OutboundMessage(buf));
-  OnOutputStreamReady(mSocketOut);
+  EnqueueOutgoingMessage(mOutgoingPongMessages,
+                         new OutboundMessage(kMsgTypePong, buf));
 }
 
 void
-WebSocketChannel::SendMsgInternal(nsCString *aMsg,
-                                    PRInt32 aDataLen)
+WebSocketChannel::EnqueueOutgoingMessage(nsDeque &aQueue,
+                                         OutboundMessage *aMsg)
 {
-  LOG(("WebSocketChannel::SendMsgInternal %p [%p len=%d]\n", this, aMsg,
-       aDataLen));
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "not socket thread");
-  if (aMsg == kFinMessage) {
-    mOutgoingMessages.Push(new OutboundMessage());
-  } else if (aDataLen < 0) {
-    mOutgoingMessages.Push(new OutboundMessage(aMsg));
-  } else {
-    mOutgoingMessages.Push(new OutboundMessage(aMsg, aDataLen));
-  }
+
+  LOG(("WebSocketChannel::EnqueueOutgoingMessage %p "
+       "queueing msg %p [type=%s len=%d]\n",
+       this, aMsg, msgNames[aMsg->GetMsgType()], aMsg->Length()));
+
+  aQueue.Push(aMsg);
   OnOutputStreamReady(mSocketOut);
 }
+
 
 PRUint16
 WebSocketChannel::ResultToCloseCode(nsresult resultCode)
@@ -1155,34 +1282,42 @@ WebSocketChannel::PrimeNewOutgoingMessage()
   NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "not socket thread");
   NS_ABORT_IF_FALSE(!mCurrentOut, "Current message in progress");
 
-  bool isPong = false;
-  bool isPing = false;
+  nsresult rv = NS_OK;
 
   mCurrentOut = (OutboundMessage *)mOutgoingPongMessages.PopFront();
   if (mCurrentOut) {
-    isPong = true;
+    NS_ABORT_IF_FALSE(mCurrentOut->GetMsgType() == kMsgTypePong,
+                     "Not pong message!");
   } else {
     mCurrentOut = (OutboundMessage *)mOutgoingPingMessages.PopFront();
     if (mCurrentOut)
-      isPing = true;
+      NS_ABORT_IF_FALSE(mCurrentOut->GetMsgType() == kMsgTypePing,
+                        "Not ping message!");
     else
       mCurrentOut = (OutboundMessage *)mOutgoingMessages.PopFront();
   }
 
   if (!mCurrentOut)
     return;
+
+  WsMsgType msgType = mCurrentOut->GetMsgType();
+
+  LOG(("WebSocketChannel::PrimeNewOutgoingMessage "
+       "%p found queued msg %p [type=%s len=%d]\n",
+       this, mCurrentOut, msgNames[msgType], mCurrentOut->Length()));
+
   mCurrentOutSent = 0;
   mHdrOut = mOutHeader;
 
   PRUint8 *payload = nsnull;
-  if (mCurrentOut->IsControl() && !isPing && !isPong) {
+
+  if (msgType == kMsgTypeFin) {
     
     if (mClientClosed) {
       PrimeNewOutgoingMessage();
       return;
     }
 
-    LOG(("WebSocketChannel:: PrimeNewOutgoingMessage() found close request\n"));
     mClientClosed = 1;
     mOutHeader[0] = kFinalFragBit | kClose;
     mOutHeader[1] = 0x02; 
@@ -1220,7 +1355,6 @@ WebSocketChannel::PrimeNewOutgoingMessage()
       StopSession(mStopOnClose);
     } else {
       
-      nsresult rv;
       mCloseTimer = do_CreateInstance("@mozilla.org/timer;1", &rv);
       if (NS_SUCCEEDED(rv)) {
         mCloseTimer->InitWithCallback(this, mCloseTimeout,
@@ -1230,20 +1364,36 @@ WebSocketChannel::PrimeNewOutgoingMessage()
       }
     }
   } else {
-    if (isPong) {
-      LOG(("WebSocketChannel::PrimeNewOutgoingMessage() found pong request\n"));
+    switch (msgType) {
+    case kMsgTypePong:
       mOutHeader[0] = kFinalFragBit | kPong;
-    } else if (isPing) {
-      LOG(("WebSocketChannel::PrimeNewOutgoingMessage() found ping request\n"));
+      break;
+    case kMsgTypePing:
       mOutHeader[0] = kFinalFragBit | kPing;
-    } else if (mCurrentOut->BinaryLen() < 0) {
-      LOG(("WebSocketChannel::PrimeNewOutgoingMessage() "
-           "found queued text message len %d\n", mCurrentOut->Length()));
+      break;
+    case kMsgTypeString:
       mOutHeader[0] = kFinalFragBit | kText;
-    } else {
-      LOG(("WebSocketChannel::PrimeNewOutgoingMessage() "
-           "found queued binary message len %d\n", mCurrentOut->Length()));
+      break;
+    case kMsgTypeStream:
+      
+      
+      
+      rv = mCurrentOut->ConvertStreamToString();
+      if (NS_FAILED(rv)) {
+        AbortSession(rv);
+        return;
+      }
+      
+      msgType = kMsgTypeBinaryString;
+
+      
+
+    case kMsgTypeBinaryString:
       mOutHeader[0] = kFinalFragBit | kBinary;
+      break;
+    case kMsgTypeFin:
+      NS_ABORT_IF_FALSE(false, "unreachable");  
+      break;
     }
 
     if (mCurrentOut->Length() < 126) {
@@ -1508,8 +1658,9 @@ WebSocketChannel::AbortSession(nsresult reason)
   if (mTransport && reason != NS_BASE_STREAM_CLOSED &&
       !mRequestedClose && !mClientClosed && !mServerClosed) {
     mRequestedClose = 1;
-    mSocketThread->Dispatch(new nsPostMessage(this, kFinMessage, -1),
-                            nsIEventTarget::DISPATCH_NORMAL);
+    mSocketThread->Dispatch(
+      new OutboundEnqueuer(this, new OutboundMessage(kMsgTypeFin, nsnull)),
+                           nsIEventTarget::DISPATCH_NORMAL);
     mStopOnClose = reason;
   } else {
     StopSession(reason);
@@ -2120,57 +2271,64 @@ WebSocketChannel::Close(PRUint16 code, const nsACString & reason)
   mRequestedClose = 1;
   mScriptCloseReason = reason;
   mScriptCloseCode = code;
-    
-  return mSocketThread->Dispatch(new nsPostMessage(this, kFinMessage, -1),
-                                 nsIEventTarget::DISPATCH_NORMAL);
+
+  return mSocketThread->Dispatch(
+      new OutboundEnqueuer(this, new OutboundMessage(kMsgTypeFin, nsnull)),
+                           nsIEventTarget::DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
 WebSocketChannel::SendMsg(const nsACString &aMsg)
 {
   LOG(("WebSocketChannel::SendMsg() %p\n", this));
-  NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
 
-  if (mRequestedClose) {
-    LOG(("WebSocketChannel:: SendMsg when closed error\n"));
-    return NS_ERROR_UNEXPECTED;
-  }
-
-  if (mStopped) {
-    LOG(("WebSocketChannel:: SendMsg when stopped error\n"));
-    return NS_ERROR_NOT_CONNECTED;
-  }
-
-  return mSocketThread->Dispatch(
-                          new nsPostMessage(this, new nsCString(aMsg), -1),
-                          nsIEventTarget::DISPATCH_NORMAL);
+  return SendMsgCommon(&aMsg, false, aMsg.Length());
 }
 
 NS_IMETHODIMP
 WebSocketChannel::SendBinaryMsg(const nsACString &aMsg)
 {
   LOG(("WebSocketChannel::SendBinaryMsg() %p len=%d\n", this, aMsg.Length()));
+  return SendMsgCommon(&aMsg, true, aMsg.Length());
+}
+
+NS_IMETHODIMP
+WebSocketChannel::SendBinaryStream(nsIInputStream *aStream, PRUint32 aLength)
+{
+  LOG(("WebSocketChannel::SendBinaryStream() %p\n", this));
+
+  return SendMsgCommon(nsnull, true, aLength, aStream);
+}
+
+nsresult
+WebSocketChannel::SendMsgCommon(const nsACString *aMsg, bool aIsBinary,
+                                PRUint32 aLength, nsIInputStream *aStream)
+{
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
 
   if (mRequestedClose) {
-    LOG(("WebSocketChannel:: SendBinaryMsg when closed error\n"));
+    LOG(("WebSocketChannel:: Error: send when closed\n"));
     return NS_ERROR_UNEXPECTED;
   }
 
   if (mStopped) {
-    LOG(("WebSocketChannel:: SendBinaryMsg when stopped error\n"));
+    LOG(("WebSocketChannel:: Error: send when stopped\n"));
     return NS_ERROR_NOT_CONNECTED;
   }
 
-  return mSocketThread->Dispatch(new nsPostMessage(this, new nsCString(aMsg), 
-                                                   aMsg.Length()),
-                                 nsIEventTarget::DISPATCH_NORMAL);
+  return mSocketThread->Dispatch(
+    aStream ? new OutboundEnqueuer(this, new OutboundMessage(aStream, aLength))
+            : new OutboundEnqueuer(this,
+                     new OutboundMessage(aIsBinary ? kMsgTypeBinaryString
+                                                   : kMsgTypeString,
+                                         new nsCString(*aMsg))),
+    nsIEventTarget::DISPATCH_NORMAL);
 }
 
 NS_IMETHODIMP
 WebSocketChannel::OnTransportAvailable(nsISocketTransport *aTransport,
-                                         nsIAsyncInputStream *aSocketIn,
-                                         nsIAsyncOutputStream *aSocketOut)
+                                       nsIAsyncInputStream *aSocketIn,
+                                       nsIAsyncOutputStream *aSocketOut)
 {
   LOG(("WebSocketChannel::OnTransportAvailable %p [%p %p %p] rcvdonstart=%d\n",
        this, aTransport, aSocketIn, aSocketOut, mRecvdHttpOnStartRequest));
@@ -2201,7 +2359,7 @@ WebSocketChannel::OnTransportAvailable(nsISocketTransport *aTransport,
 
 NS_IMETHODIMP
 WebSocketChannel::OnStartRequest(nsIRequest *aRequest,
-                                   nsISupports *aContext)
+                                 nsISupports *aContext)
 {
   LOG(("WebSocketChannel::OnStartRequest(): %p [%p %p] recvdhttpupgrade=%d\n",
        this, aRequest, aContext, mRecvdHttpUpgradeTransport));
