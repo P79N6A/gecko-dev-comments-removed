@@ -1719,21 +1719,15 @@ nsObjectLoadingContent::LoadObject(bool aNotify,
         mType = eType_Null;
         break;
       }
+      
+      mFrameLoader = nsFrameLoader::Create(thisContent->AsElement(),
+                                           mNetworkCreated);
       if (!mFrameLoader) {
-        
-        NotifyStateChanged(oldType, oldState, true, aNotify);
-        oldType = mType;
-        oldState = ObjectState();
-
-        mFrameLoader = nsFrameLoader::Create(thisContent->AsElement(),
-                                             mNetworkCreated);
-        if (!mFrameLoader) {
-          NS_NOTREACHED("nsFrameLoader::Create failed");
-          mType = eType_Null;
-          break;
-        }
+        NS_NOTREACHED("nsFrameLoader::Create failed");
+        mType = eType_Null;
+        break;
       }
-
+      
       rv = mFrameLoader->CheckForRecursiveLoad(mURI);
       if (NS_FAILED(rv)) {
         mType = eType_Null;
