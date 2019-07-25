@@ -236,13 +236,6 @@ class StatisticsSerializer
     }
 };
 
-
-
-
-
-
-JS_STATIC_ASSERT(gcreason::NUM_TELEMETRY_REASONS >= gcreason::NUM_REASONS);
-
 static const char *
 ExplainReason(gcreason::Reason reason)
 {

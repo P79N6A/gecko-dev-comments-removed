@@ -603,15 +603,7 @@ enum Reason {
     GCREASONS(MAKE_REASON)
 #undef MAKE_REASON
     NO_REASON,
-    NUM_REASONS,
-
-    
-
-
-
-
-
-    NUM_TELEMETRY_REASONS = 100
+    NUM_REASONS
 };
 
 } 
