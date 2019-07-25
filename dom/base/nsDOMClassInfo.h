@@ -194,12 +194,14 @@ protected:
   nsresult ResolveConstructor(JSContext *cx, JSObject *obj,
                               JSObject **objp);
 
+public:
   
   
   
   static PRInt32 GetArrayIndexFromId(JSContext *cx, jsid id,
                                      bool *aIsNumber = nsnull);
 
+protected:
   static inline bool IsReadonlyReplaceable(jsid id)
   {
     return (id == sParent_id       ||
