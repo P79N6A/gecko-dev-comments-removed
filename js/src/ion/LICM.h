@@ -99,16 +99,17 @@ class Loop
 
     
     
-    bool shouldHoist(MInstruction *ins);
-
-    
-    
     bool checkHotness(MBasicBlock *block);
 
     
     InstructionQueue worklist_;
     bool insertInWorklist(MInstruction *ins);
     MInstruction* popFromWorklist();
+
+    inline bool isHoistable(const MDefinition *ins) const {
+        return ins->isIdempotent() && !ins->isNeverHoisted();
+    }
+
 };
 
 } 

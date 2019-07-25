@@ -84,7 +84,9 @@ MIRType MIRTypeFromValue(const js::Value &vp)
 #define MIR_FLAG_LIST(_)                                                    \
     _(InWorklist)                                                           \
     _(EmittedAtUses)                                                        \
-    _(LoopInvariant)
+    _(LoopInvariant)                                                        \
+    _(Idempotent) /* The instruction has no side-effects. */                \
+    _(NeverHoisted) /* Don't hoist, even if loop invariant */
 
 class MDefinition;
 class MInstruction;
@@ -342,22 +344,6 @@ class MDefinition : public MNode
         return usedTypes_;
     }
 
-    
-    
-    
-    enum HoistWin {
-        NO_WIN,
-        POTENTIAL_WIN,
-        BIG_WIN
-    };
-    virtual HoistWin estimateHoistWin() {
-        return NO_WIN;
-    }
-
-    bool hasHoistWin() {
-        return estimateHoistWin() != NO_WIN;
-    }
-
   public:
     
 #   define OPCODE_CASTS(opcode)                                             \
@@ -500,9 +486,7 @@ class MConstant : public MAryInstruction<0>
     const js::Value *vp() const {
         return &value_;
     }
-    HoistWin estimateHoistWin() {
-        return POTENTIAL_WIN;
-    }
+
     void printOpcode(FILE *fp);
 
     HashNumber valueHash() const;
@@ -734,6 +718,7 @@ class MToDouble : public MUnaryInstruction
       : MUnaryInstruction(def)
     {
         setResultType(MIRType_Double);
+        setIdempotent();
     }
 
   public:
@@ -753,6 +738,7 @@ class MToInt32 : public MUnaryInstruction
       : MUnaryInstruction(def)
     {
         setResultType(MIRType_Int32);
+        setIdempotent();
     }
 
   public:
@@ -771,6 +757,7 @@ class MTruncateToInt32 : public MUnaryInstruction
       : MUnaryInstruction(def)
     {
         setResultType(MIRType_Int32);
+        setIdempotent();
     }
 
   public:
@@ -796,9 +783,7 @@ class MBinaryBitwiseInstruction
     TypePolicy *typePolicy() {
         return this;
     }
-    HoistWin estimateHoistWin() {
-        return BIG_WIN;
-    }
+
     void infer(const TypeOracle::Binary &b);
 };
 
@@ -862,9 +847,6 @@ class MAdd : public MBinaryArithInstruction
     INSTRUCTION_HEADER(Add);
     static MAdd *New(MDefinition *left, MDefinition *right) {
         return new MAdd(left, right);
-    }
-    HoistWin estimateHoistWin() {
-        return BIG_WIN;
     }
 };
 

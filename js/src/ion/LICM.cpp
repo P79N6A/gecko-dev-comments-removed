@@ -131,7 +131,7 @@ Loop::iterateLoopBlocks(MBasicBlock *current)
     for (MInstructionIterator i = current->begin(); i != current->end(); i ++) {
         MInstruction *ins = *i;
 
-        if (ins->hasHoistWin()) {
+        if (ins->isIdempotent()) {
             if (!insertInWorklist(ins))
                 return false;
         }
@@ -172,7 +172,7 @@ Loop::optimize()
 
                 
                 
-                if (isInLoop(consumer) && consumer->hasHoistWin()) {
+                if (isInLoop(consumer) && isHoistable(consumer)) {
                     if (insertInWorklist(consumer->toInstruction()))
                         return false;
                 }
@@ -194,7 +194,7 @@ Loop::hoistInstructions(InstructionQueue &toHoist)
     
     while (!toHoist.empty()) {
         MInstruction *ins = toHoist.popCopy();
-        if (shouldHoist(ins) && checkHotness(ins->block())) {
+        if (checkHotness(ins->block())) {
             ins->block()->remove(ins);
             preLoop_->insertBefore(preLoop_->lastIns(), ins);
             ins->setNotLoopInvariant();
@@ -227,26 +227,6 @@ Loop::isLoopInvariant(MInstruction *ins)
         }
     }
     return true;
-}
-
-bool
-Loop::shouldHoist(MInstruction *ins)
-{
-    JS_ASSERT(ins->hasHoistWin());
-
-    if (ins->estimateHoistWin() == MDefinition::BIG_WIN)
-        return true;
-
-    
-    
-    
-    
-    
-    for (MUseDefIterator use(ins->toDefinition()); use; use++) {
-        if (use.def()->isLoopInvariant() && use.def()->hasHoistWin())
-            return true;
-    }
-    return false;
 }
 
 bool
