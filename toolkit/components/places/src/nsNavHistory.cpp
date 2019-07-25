@@ -132,6 +132,13 @@ using namespace mozilla::places;
 
 
 
+#define DATABASE_CACHE_TO_CHECKPOINT_PERCENTAGE 10
+
+
+#define DATABASE_MAX_CHECKPOINT_PAGES 1000
+
+
+
 #define DATABASE_SCHEMA_VERSION 11
 
 
@@ -787,6 +794,19 @@ nsNavHistory::InitDB()
     
     (void)SetJournalMode(JOURNAL_TRUNCATE);
   }
+
+  
+  
+  
+  
+  PRInt32 checkpointPages = NS_MIN(
+    static_cast<PRInt32>(cachePages * DATABASE_CACHE_TO_CHECKPOINT_PERCENTAGE / 100),
+    DATABASE_MAX_CHECKPOINT_PAGES
+  );
+  nsCAutoString checkpointPragma("PRAGMA wal_autocheckpoint = ");
+  checkpointPragma.AppendInt(checkpointPages);
+  rv = mDBConn->ExecuteSimpleSQL(checkpointPragma);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
