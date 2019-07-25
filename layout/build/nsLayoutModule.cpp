@@ -52,6 +52,7 @@
 #include "ThirdPartyUtil.h"
 #include "mozilla/Services.h"
 #include "nsStructuredCloneContainer.h"
+#include "mozilla/Attributes.h"
 
 #include "nsIEventListenerService.h"
 #include "nsIFrameMessageManager.h"
@@ -281,7 +282,7 @@ NS_GENERIC_FACTORY_CONSTRUCTOR(SmsRequestManager)
 
 
 
-class LayoutShutdownObserver : public nsIObserver
+class LayoutShutdownObserver MOZ_FINAL : public nsIObserver
 {
 public:
   NS_DECL_ISUPPORTS

@@ -48,6 +48,7 @@
 #include "nsDisplayList.h"
 #include "nsContentUtils.h"
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/Attributes.h"
 
 using namespace mozilla;
 
@@ -74,7 +75,7 @@ DOMTimeStamp nsListControlFrame::gLastKeyTime = 0;
 
 
 
-class nsListEventListener : public nsIDOMEventListener
+class nsListEventListener MOZ_FINAL : public nsIDOMEventListener
 {
 public:
   nsListEventListener(nsListControlFrame *aFrame)
