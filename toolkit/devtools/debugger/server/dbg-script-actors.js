@@ -936,6 +936,10 @@ ThreadActor.prototype = {
       return;
     }
     
+    if (aScript.url.indexOf("about:") == 0) {
+      return;
+    }
+    
     
     if (!this._scripts[aScript.url]) {
       this._scripts[aScript.url] = [];
