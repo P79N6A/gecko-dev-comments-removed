@@ -60,10 +60,22 @@ let CommonUtils = {
   
 
 
-  encodeBase64URL: function encodeBase64URL(bytes) {
-    return btoa(bytes).replace("+", "-", "g").replace("/", "_", "g");
+
+
+
+
+
+
+  encodeBase64URL: function encodeBase64URL(bytes, pad=true) {
+    let s = btoa(bytes).replace("+", "-", "g").replace("/", "_", "g");
+
+    if (!pad) {
+      s = s.replace("=", "");
+    }
+
+    return s;
   },
-  
+
   
 
 
