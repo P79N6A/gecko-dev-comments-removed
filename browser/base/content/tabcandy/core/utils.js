@@ -193,7 +193,6 @@ window.Rect.prototype = {
     return new Point(this.left + (this.width / 2), this.top + (this.height / 2));
   },
   
-  
   size: function() {
     return new Point(this.width, this.height);
   },
@@ -202,6 +201,12 @@ window.Rect.prototype = {
   position: function() {
     return new Point(this.left, this.top);
   },
+  
+  
+  
+  
+  
+  
   
   
   inset: function(a, b) {
@@ -215,6 +220,11 @@ window.Rect.prototype = {
     this.top += b;
     this.height -= b * 2;
   },
+  
+  
+  
+  
+  
   
   
   offset: function(a, b) {
