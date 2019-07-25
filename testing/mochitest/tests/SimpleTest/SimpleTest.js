@@ -16,7 +16,11 @@
 
 var SimpleTest = { };
 var parentRunner = null;
-var isPrimaryTestWindow = !!parent.TestRunner;
+
+
+
+
+var isPrimaryTestWindow = !!parent.TestRunner || (parent == window && !opener);
 
 
 
