@@ -210,11 +210,11 @@ struct TokenPos {
     TokenPtr          begin;          
     TokenPtr          end;            
 
-    TokenPos() {}
-
-    TokenPos(const TokenPtr &begin, const TokenPtr &end) : begin(begin), end(end) {
+    static TokenPos make(const TokenPtr &begin, const TokenPtr &end) {
         
         
+        TokenPos pos = {begin, end};
+        return pos;
     }
 
     
@@ -223,7 +223,8 @@ struct TokenPos {
         
         
         
-        return TokenPos(left.begin, right.end);
+        TokenPos pos = {left.begin, right.end};
+        return pos;
     }
 
     bool operator==(const TokenPos& bpos) const {
