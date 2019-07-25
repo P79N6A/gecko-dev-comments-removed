@@ -68,7 +68,7 @@ pref("browser.cache.disk.smart_size.enabled", true);
 pref("browser.cache.disk.capacity",         256000);
 
 
-pref("browser.cache.disk.max_entry_size",    5120);
+pref("browser.cache.disk.max_entry_size",    51200);  
 pref("browser.cache.memory.enable",         true);
 
 
@@ -1110,6 +1110,7 @@ pref("font.language.group",                 "chrome://global/locale/intl.propert
 pref("intl.uidirection.ar", "rtl");
 pref("intl.uidirection.he", "rtl");
 pref("intl.uidirection.fa", "rtl");
+pref("intl.uidirection.ur", "rtl");
 
 
 pref("intl.hyphenation-alias.en", "en-us");
