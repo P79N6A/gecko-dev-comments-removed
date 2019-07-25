@@ -1419,6 +1419,11 @@ EmitTraceOp(JSContext *cx, JSCodeGenerator *cg)
     return js_Emit3(cx, cg, JSOP_TRACE, UINT16_HI(index), UINT16_LO(index));
 }
 
+
+
+
+
+
 static inline bool
 MaybeEmitTypeSet(JSContext *cx, JSCodeGenerator *cg, JSOp op)
 {

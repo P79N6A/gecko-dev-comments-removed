@@ -493,6 +493,50 @@ class TypeIntermediate
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 struct TypeBarrier
 {
     
@@ -835,11 +879,20 @@ struct TypeScript
     inline TypeObject *initObject(JSContext *cx, const jsbytecode *pc, bool isArray);
 
     
+
+
+
     inline void monitorOverflow(JSContext *cx, jsbytecode *pc);
     inline void monitorString(JSContext *cx, jsbytecode *pc);
     inline void monitorUnknown(JSContext *cx, jsbytecode *pc);
 
     
+
+
+
+
+
+
     inline void monitor(JSContext *cx, jsbytecode *pc, const js::Value &val);
 
     
