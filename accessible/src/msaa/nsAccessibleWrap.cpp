@@ -67,6 +67,8 @@
 #include "nsEventMap.h"
 #include "nsArrayUtils.h"
 
+using namespace mozilla::a11y;
+
 
 
 
