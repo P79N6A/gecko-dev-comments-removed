@@ -87,6 +87,7 @@ WeaveCrypto.prototype = {
 
             this.initNSS();
             this.initAlgorithmSettings();   
+            this.initIVSECItem();
         } catch (e) {
             this.log("init failed: " + e);
             throw e;
@@ -395,8 +396,12 @@ WeaveCrypto.prototype = {
         
         
         
-        let input = new ctypes.ArrayType(ctypes.unsigned_char, inputUCS2.length)();
-        this.byteCompress(inputUCS2, input);
+        
+        
+        let len   = inputUCS2.length;
+        let input = new ctypes.ArrayType(ctypes.unsigned_char, len)();
+        let ints  = ctypes.cast(input, ctypes.uint8_t.array(len));
+        this.byteCompressInts(inputUCS2, ints, len);
 
         let outputBuffer = new ctypes.ArrayType(ctypes.unsigned_char, input.length)();
 
@@ -411,13 +416,20 @@ WeaveCrypto.prototype = {
 
     _commonCrypt : function (input, output, symmetricKey, iv, operation) {
         this.log("_commonCrypt() called");
-        
-        let keyItem = this.makeSECItem(symmetricKey, true);
-        let ivItem  = this.makeSECItem(iv, true);
+        iv = atob(iv);
 
+        
+        
+        if (iv.length > this.blockSize)
+            iv = iv.slice(0, this.blockSize);
+        
+        
+        this.byteCompressInts(iv, this._ivSECItemContents, iv.length);
+
+        let keyItem = this.makeSECItem(symmetricKey, true);
         let ctx, symKey, slot, ivParam;
         try {
-            ivParam = this.nss.PK11_ParamFromIV(this.padMechanism, ivItem);
+            ivParam = this.nss.PK11_ParamFromIV(this.padMechanism, this._ivSECItem);
             if (ivParam.isNull())
                 throw Components.Exception("can't convert IV to param", Cr.NS_ERROR_FAILURE);
 
@@ -466,7 +478,8 @@ WeaveCrypto.prototype = {
             if (ivParam && !ivParam.isNull())
                 this.nss.SECITEM_FreeItem(ivParam, true);
             this.freeSECItem(keyItem);
-            this.freeSECItem(ivItem);
+            
+            
         }
     },
 
@@ -522,13 +535,22 @@ WeaveCrypto.prototype = {
     
     
 
+    
 
-    
-    
-    byteCompress : function (jsString, charArray) {
-        let intArray = ctypes.cast(charArray, ctypes.uint8_t.array(charArray.length));
-        for (let i = 0; i < jsString.length; i++)
+
+
+
+
+    byteCompressInts : function byteCompressInts (jsString, intArray, count) {
+        let len = jsString.length;
+        let end = Math.min(len, count);
+
+        for (let i = 0; i < end; i++)
             intArray[i] = jsString.charCodeAt(i) % 256; 
+
+        
+        for (let i = len; i < count; i++)
+            intArray[i] = 0;
     },
 
     
@@ -567,16 +589,42 @@ WeaveCrypto.prototype = {
         let len = input.length;
         let item = this.nss.SECITEM_AllocItem(null, null, len);
         if (item.isNull())
-          throw "SECITEM_AllocItem failed.";
+            throw "SECITEM_AllocItem failed.";
         
-        let dest = ctypes.cast(item.contents.data, ctypes.unsigned_char.array(len).ptr);
-        this.byteCompress(input, dest.contents);
+        let ptr  = ctypes.cast(item.contents.data,
+                               ctypes.unsigned_char.array(len).ptr);
+        let dest = ctypes.cast(ptr.contents, ctypes.uint8_t.array(len));
+        this.byteCompressInts(input, dest, len);
         return item;
     },
     
     freeSECItem : function(zap) {
         if (zap && !zap.isNull())
             this.nss.SECITEM_ZfreeItem(zap, true);
+    },
+
+    
+    
+    
+    _ivSECItem: null,
+    _ivSECItemContents: null,
+    
+    initIVSECItem: function initIVSECItem() {
+        if (this._ivSECItem) {
+            this._ivSECItemContents = null;
+            this.freeSECItem(this._ivSECItem);
+        }
+
+        let item = this.nss.SECITEM_AllocItem(null, null, this.blockSize);
+        if (item.isNull())
+            throw "SECITEM_AllocItem failed.";
+
+        let ptr = ctypes.cast(item.contents.data,
+                              ctypes.unsigned_char.array(this.blockSize).ptr);
+        let contents = ctypes.cast(ptr.contents,
+                                   ctypes.uint8_t.array(this.blockSize));
+        this._ivSECItem = item;
+        this._ivSECItemContents = contents;
     },
 
     
