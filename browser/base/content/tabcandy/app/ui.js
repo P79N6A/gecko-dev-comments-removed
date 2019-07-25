@@ -656,46 +656,50 @@ UIClass.prototype = {
 
   
   delayInit : function() {
-    
-    let currentWindow = Utils.getCurrentWindow();
-    let data = Storage.readUIData(currentWindow);
-    this.storageSanity(data);
-
-    let groupsData = Storage.readGroupsData(currentWindow);
-    let firstTime = !groupsData || iQ.isEmptyObject(groupsData);
-    let groupData = Storage.readGroupData(currentWindow);
-    Groups.reconstitute(groupsData, groupData);
-
-    TabItems.init();
-
-    if(firstTime) {
-      let items = TabItems.getItems();
-      iQ.each(items, function(index, item) {
-        if(item.parent)
-          item.parent.remove(item);
+    try {
+      
+      let currentWindow = Utils.getCurrentWindow();
+      let data = Storage.readUIData(currentWindow);
+      this.storageSanity(data);
+  
+      let groupsData = Storage.readGroupsData(currentWindow);
+      let firstTime = !groupsData || iQ.isEmptyObject(groupsData);
+      let groupData = Storage.readGroupData(currentWindow);
+      Groups.reconstitute(groupsData, groupData);
+  
+      TabItems.init();
+  
+      if(firstTime) {
+        let items = TabItems.getItems();
+        iQ.each(items, function(index, item) {
+          if(item.parent)
+            item.parent.remove(item);
+        });
+  
+        let box = Items.getPageBounds();
+        box.inset(10, 10);
+        let options = {padding: 10};
+        Items.arrange(items, box, options);
+      } 
+          
+      
+      if(data.pageBounds) {
+        this.pageBounds = data.pageBounds;
+        this.resize(true);
+      } else
+        this.pageBounds = Items.getPageBounds();
+  
+      var self = this;
+      iQ(window).resize(function() {
+        self.resize();
       });
-
-      let box = Items.getPageBounds();
-      box.inset(10, 10);
-      let options = {padding: 10};
-      Items.arrange(items, box, options);
-    } 
-        
-    
-    if(data.pageBounds) {
-      this.pageBounds = data.pageBounds;
-      this.resize(true);
-    } else
-      this.pageBounds = Items.getPageBounds();
-
-    var self = this;
-    iQ(window).resize(function() {
-      self.resize();
-    });
-
-    
-    this.initialized = true;
-    this.save(); 
+  
+      
+      this.initialized = true;
+      this.save(); 
+    } catch(e) {
+      Utils.log(e);
+    }
   },
   
   
@@ -851,6 +855,7 @@ UIClass.prototype = {
     
     
     var itemBounds = new Rect(this.pageBounds); 
+                                                
     itemBounds.width = 1;
     itemBounds.height = 1;
     iQ.each(items, function(index, item) {
@@ -922,7 +927,7 @@ UIClass.prototype = {
       var $select = iQ('<select>')
         .css({
           position: 'absolute',
-          bottom: 5,
+          top: 5,
           right: 5,
           opacity: .2
         })
