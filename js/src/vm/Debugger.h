@@ -338,12 +338,29 @@ class Debugger {
 
 
 
+    static void resultToCompletion(JSContext *cx, bool ok, const Value &rv,
+                                   JSTrapStatus *status, Value *value);
+
+    
+
+
+
+
+    bool newCompletionValue(JSContext *cx, JSTrapStatus status, Value value, Value *result);
+
+    
 
 
 
 
 
-    bool newCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
+
+
+
+
+
+
+    bool receiveCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
 
     
 
