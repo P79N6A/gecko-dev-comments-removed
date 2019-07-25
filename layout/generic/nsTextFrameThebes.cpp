@@ -406,8 +406,9 @@ ClearAllTextRunReferences(nsTextFrame* aFrame, gfxTextRun* aTextRun,
   bool found = aStartContinuation == aFrame;
   while (aFrame) {
     NS_ASSERTION(aFrame->GetType() == nsGkAtoms::textFrame, "Bad frame");
-    if (!aFrame->RemoveTextRun(aTextRun))
+    if (!aFrame->RemoveTextRun(aTextRun)) {
       break;
+    }
     aFrame = static_cast<nsTextFrame*>(aFrame->GetNextContinuation());
   }
   NS_POSTCONDITION(!found || aStartContinuation, "how did we find null?");
@@ -4211,13 +4212,16 @@ void
 nsTextFrame::ClearTextRun(nsTextFrame* aStartContinuation,
                           TextRunType aWhichTextRun)
 {
-  
   gfxTextRun* textRun = GetTextRun(aWhichTextRun);
-
-  if (!textRun)
+  if (!textRun) {
     return;
+  }
 
+  DebugOnly<bool> checkmTextrun = textRun == mTextRun;
   UnhookTextRunFromFrames(textRun, aStartContinuation);
+  MOZ_ASSERT(checkmTextrun ? !mTextRun
+                           : !Properties().Get(UninflatedTextRunProperty()));
+
   
 
 
@@ -6919,7 +6923,7 @@ HasSoftHyphenBefore(const nsTextFragment* aFrag, gfxTextRun* aTextRun,
 }
 
 static void
-RemoveInFlows(nsIFrame* aFrame, nsIFrame* aFirstToNotRemove)
+RemoveInFlows(nsTextFrame* aFrame, nsTextFrame* aFirstToNotRemove)
 {
   NS_PRECONDITION(aFrame != aFirstToNotRemove, "This will go very badly");
   
@@ -6944,6 +6948,21 @@ RemoveInFlows(nsIFrame* aFrame, nsIFrame* aFirstToNotRemove)
   
   nsIFrame* prevContinuation = aFrame->GetPrevContinuation();
   nsIFrame* lastRemoved = aFirstToNotRemove->GetPrevContinuation();
+  nsIFrame* parent = aFrame->GetParent();
+  nsBlockFrame* parentBlock = nsLayoutUtils::GetAsBlock(parent);
+  if (!parentBlock) {
+    
+    
+    
+    
+    
+    
+    aFrame->ClearTextRuns();
+    if (aFrame != lastRemoved) {
+      
+      static_cast<nsTextFrame*>(lastRemoved)->ClearTextRuns();
+    }
+  }
 
   prevContinuation->SetNextInFlow(aFirstToNotRemove);
   aFirstToNotRemove->SetPrevInFlow(prevContinuation);
@@ -6951,8 +6970,6 @@ RemoveInFlows(nsIFrame* aFrame, nsIFrame* aFirstToNotRemove)
   aFrame->SetPrevInFlow(nsnull);
   lastRemoved->SetNextInFlow(nsnull);
 
-  nsIFrame *parent = aFrame->GetParent();
-  nsBlockFrame *parentBlock = nsLayoutUtils::GetAsBlock(parent);
   if (parentBlock) {
     
     
@@ -7031,7 +7048,7 @@ nsTextFrame::SetLength(PRInt32 aLength, nsLineLayout* aLineLayout,
 
   
   
-  nsIFrame *framesToRemove = nsnull;
+  nsTextFrame* framesToRemove = nsnull;
   while (f && f->mContentOffset < end) {
     f->mContentOffset = end;
     if (f->GetTextRun(nsTextFrame::eInflated) != mTextRun) {
