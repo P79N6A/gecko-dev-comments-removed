@@ -776,7 +776,7 @@ nsDiskCacheDevice::OnDataSizeChange(nsCacheEntry * entry, PRInt32 deltaSize)
 
     
     
-    if ((newSize > kMaxDataFileSize) || (newSizeK > mCacheCapacity/2)) {
+    if ((newSize > kMaxDataFileSize) || (newSizeK > mCacheCapacity/8)) {
 #ifdef DEBUG
         nsresult rv =
 #endif
