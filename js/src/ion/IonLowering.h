@@ -77,6 +77,9 @@ class LIRGenerator : public MInstructionVisitor
     { }
 
     bool generate();
+    MIRGenerator *mir() {
+        return gen;
+    }
 
   protected:
     

@@ -52,7 +52,7 @@ namespace ion {
 
 class BitSet : private TempObject
 {
-private:
+  private:
     BitSet(unsigned int max) :
         max_(max),
         bits_(NULL) {};
@@ -75,7 +75,9 @@ private:
 
     bool init();
 
-public:
+  public:
+    class Iterator;
+
     static BitSet *New(unsigned int max);
 
     unsigned int getMax() const {
@@ -107,6 +109,46 @@ public:
     
     void complement();
 
+    
+    Iterator begin();
+
+    
+    Iterator end();
+
+};
+
+class BitSet::Iterator
+{
+  private:
+    BitSet &set_;
+    unsigned index_;
+
+  public:
+    Iterator(BitSet &set, unsigned int index) :
+      set_(set),
+      index_(index)
+    {
+        if (index_ <= set_.max_ && !set_.contains(index_))
+            (*this)++;
+    }
+
+    bool operator!=(const Iterator &other) const {
+        return index_ != other.index_;
+    }
+
+    
+    Iterator& operator++(int dummy) {
+        JS_ASSERT(index_ <= set_.max_);
+        do {
+            index_++;
+        } while (index_ <= set_.max_ && !set_.contains(index_));
+        return *this;
+    }
+
+    unsigned int operator *() {
+        JS_ASSERT(index_ <= set_.max_);
+        return index_;
+    }
 };
 
 }

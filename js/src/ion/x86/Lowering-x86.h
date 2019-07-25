@@ -57,9 +57,9 @@ class LIRGeneratorX86 : public LIRGenerator
   protected:
     
     
-    LUse useType(MInstruction *mir);
+    LUse useType(MInstruction *mir, LUse::Policy policy);
     LUse useTypeOrConstant(MInstruction *mir);
-    LUse usePayload(MInstruction *mir, LUse::Policy);
+    LUse usePayload(MInstruction *mir, LUse::Policy policy);
     LUse usePayloadInRegister(MInstruction *mir);
 
     

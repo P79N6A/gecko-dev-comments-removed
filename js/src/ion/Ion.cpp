@@ -47,6 +47,7 @@
 #include "GreedyAllocator.h"
 #include "LICM.h"
 #include "ValueNumbering.h"
+#include "LinearScan.h"
 
 #if defined(JS_CPU_X86)
 # include "x86/Lowering-x86.h"
@@ -163,10 +164,18 @@ TestCompiler(IonBuilder &builder, MIRGraph &graph)
         return false;
     spew.spewPass("Generate LIR");
 
+    
+#ifndef ION_LSRA
     GreedyAllocator greedy(&builder, lir);
     if (!greedy.allocate())
         return false;
     spew.spewPass("Allocate registers");
+#else
+    RegisterAllocator regalloc(&lirgen, lir);
+    if (!regalloc.go())
+        return false;
+    spew.spewPass("Allocate Registers", &regalloc);
+#endif
 
     spew.finish();
 
