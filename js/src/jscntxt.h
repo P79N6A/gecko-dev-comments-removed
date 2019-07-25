@@ -291,7 +291,7 @@ struct JSThread {
 #define JS_THREAD_DATA(cx)      (&(cx)->thread()->data)
 
 extern JSThread *
-js_CurrentThread(JSRuntime *rt);
+js_CurrentThreadAndLockGC(JSRuntime *rt);
 
 
 
@@ -299,7 +299,7 @@ js_CurrentThread(JSRuntime *rt);
 
 
 extern JSBool
-js_InitContextThread(JSContext *cx);
+js_InitContextThreadAndLockGC(JSContext *cx);
 
 
 
@@ -427,6 +427,7 @@ struct JSRuntime {
 
     
     void                *gcMarkStackObjs[js::OBJECT_MARK_STACK_SIZE / sizeof(void *)];
+    void                *gcMarkStackRopes[js::ROPES_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackXMLs[js::XML_MARK_STACK_SIZE / sizeof(void *)];
     void                *gcMarkStackLarges[js::LARGE_MARK_STACK_SIZE / sizeof(void *)];
 
@@ -450,8 +451,43 @@ struct JSRuntime {
     bool                gcRunning;
     bool                gcRegenShapes;
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef JS_GC_ZEAL
-    jsrefcount          gcZeal;
+    int                 gcZeal_;
+    int                 gcZealFrequency;
+    int                 gcNextScheduled;
+    bool                gcDebugCompartmentGC;
+
+    int gcZeal() { return gcZeal_; }
+
+    bool needZealousGC() {
+        if (gcNextScheduled > 0 && --gcNextScheduled == 0) {
+            if (gcZeal() >= 2)
+                gcNextScheduled = gcZealFrequency;
+            return true;
+        }
+        return false;
+    }
+#else
+    int gcZeal() { return 0; }
+    bool needZealousGC() { return false; }
 #endif
 
     JSGCCallback        gcCallback;
@@ -1052,9 +1088,6 @@ struct JSContext
     jsuword             stackLimit;
 
     
-    size_t              scriptStackQuota;
-
-    
     JSRuntime *const    runtime;
 
     
@@ -1428,13 +1461,6 @@ class AutoCheckRequestDepth {
 # define CHECK_REQUEST(cx)          ((void) 0)
 # define CHECK_REQUEST_THREAD(cx)   ((void) 0)
 #endif
-
-static inline uintN
-FramePCOffset(JSContext *cx, js::StackFrame* fp)
-{
-    jsbytecode *pc = fp->hasImacropc() ? fp->imacropc() : fp->pc(cx);
-    return uintN(pc - fp->script()->code);
-}
 
 static inline JSAtom **
 FrameAtomBase(JSContext *cx, js::StackFrame *fp)
@@ -2307,12 +2333,6 @@ js_ExpandErrorArguments(JSContext *cx, JSErrorCallback callback,
 
 extern void
 js_ReportOutOfMemory(JSContext *cx);
-
-
-
-
-void
-js_ReportOutOfScriptQuota(JSContext *maybecx);
 
 
 JS_FRIEND_API(void)

@@ -103,7 +103,6 @@ struct TracerState
     void*          rpAtLastTreeCall;    
     VMSideExit*    outermostTreeExitGuard; 
     TreeFragment*  outermostTree;       
-    uintN*         inlineCallCountp;    
     VMSideExit**   innermostNestedGuardp;
     VMSideExit*    innermost;
     uint64         startTime;
@@ -122,7 +121,7 @@ struct TracerState
     js::Value*     nativeVp;
 
     TracerState(JSContext *cx, TraceMonitor *tm, TreeFragment *ti,
-                uintN &inlineCallCountp, VMSideExit** innermostNestedGuardp);
+                VMSideExit** innermostNestedGuardp);
     ~TracerState();
 };
 
