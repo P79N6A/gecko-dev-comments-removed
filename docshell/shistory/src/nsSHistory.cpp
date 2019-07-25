@@ -1309,6 +1309,8 @@ PRBool
 nsSHistory::RemoveDuplicate(PRInt32 aIndex, PRBool aKeepNext)
 {
   NS_ASSERTION(aIndex >= 0, "aIndex must be >= 0!");
+  NS_ASSERTION(aIndex != 0 || aKeepNext,
+               "If we're removing index 0 we must be keeping the next");
   NS_ASSERTION(aIndex != mIndex, "Shouldn't remove mIndex!");
   PRInt32 compareIndex = aKeepNext ? aIndex + 1 : aIndex - 1;
   nsCOMPtr<nsIHistoryEntry> rootHE1, rootHE2;
@@ -1345,10 +1347,25 @@ nsSHistory::RemoveDuplicate(PRInt32 aIndex, PRBool aKeepNext)
     if (mRootDocShell) {
       static_cast<nsDocShell*>(mRootDocShell)->HistoryTransactionRemoved(aIndex);
     }
+
+    
     if (mIndex > aIndex) {
       mIndex = mIndex - 1;
     }
-    if (mRequestedIndex > aIndex) {
+
+    
+    
+    
+    
+    
+    
+    
+
+    
+    
+    
+    
+    if (mRequestedIndex > aIndex || (mRequestedIndex == aIndex && !aKeepNext)) {
       mRequestedIndex = mRequestedIndex - 1;
     }
     --mLength;
