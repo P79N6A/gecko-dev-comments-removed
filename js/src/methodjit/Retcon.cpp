@@ -437,7 +437,7 @@ Recompiler::recompile(bool resetUses)
 
     
     
-    for (VMFrame *f = script->compartment->jaegerCompartment()->activeFrame();
+    for (VMFrame *f = script->compartment()->jaegerCompartment()->activeFrame();
          f != NULL;
          f = f->previous) {
 

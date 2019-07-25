@@ -162,11 +162,6 @@ struct DefaultHasher<jsid>
 extern const char *
 js_AtomToPrintableString(JSContext *cx, JSAtom *atom, JSAutoByteString *bytes);
 
-struct JSAtomMap {
-    JSAtom **vector;    
-    uint32 length;      
-};
-
 namespace js {
 
 typedef TaggedPointerEntry<JSAtom> AtomStateEntry;
@@ -542,6 +537,6 @@ js_InternNonIntElementId(JSContext *cx, JSObject *obj, const js::Value &idval,
 
 
 extern void
-js_InitAtomMap(JSContext *cx, JSAtomMap *map, js::AtomIndexMap *indices);
+js_InitAtomMap(JSContext *cx, js::AtomIndexMap *indices, JSAtom **atoms);
 
 #endif 

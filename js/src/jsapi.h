@@ -1604,13 +1604,22 @@ JS_SetExtraGCRoots(JSRuntime *rt, JSTraceDataOp traceOp, void *data);
 
 
 
+typedef enum {
+    JSTRACE_OBJECT,
+    JSTRACE_STRING,
+    JSTRACE_SCRIPT,
+
+    
 
 
-
-
-#define JSTRACE_OBJECT  0
-#define JSTRACE_STRING  1
-#define JSTRACE_SHAPE   2
+ 
+#if JS_HAS_XML_SUPPORT
+    JSTRACE_XML,
+#endif
+    JSTRACE_SHAPE,
+    JSTRACE_TYPE_OBJECT,
+    JSTRACE_LAST = JSTRACE_TYPE_OBJECT
+} JSGCTraceKind;
 
 
 

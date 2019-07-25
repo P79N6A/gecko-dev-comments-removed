@@ -142,7 +142,7 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
 
     
     if (!debugMode() && cx->typeInferenceEnabled() && globalObj &&
-        (outerScript->useCount() >= USES_BEFORE_INLINING ||
+        (outerScript->getUseCount() >= USES_BEFORE_INLINING ||
          cx->hasRunOption(JSOPTION_METHODJIT_ALWAYS))) {
         inlining_ = true;
     }
@@ -183,11 +183,6 @@ mjit::Compiler::compile()
 CompileStatus
 mjit::Compiler::checkAnalysis(JSScript *script)
 {
-    if (script->hasClearedGlobal()) {
-        JaegerSpew(JSpew_Abort, "script has a cleared global\n");
-        return Compile_Abort;
-    }
-
     if (!script->ensureRanBytecode(cx))
         return Compile_Error;
     if (cx->typeInferenceEnabled() && !script->ensureRanInference(cx))
@@ -865,7 +860,7 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
                       jumpTableOffsets.length() * sizeof(void *);
 
     JSC::ExecutablePool *execPool;
-    uint8 *result = (uint8 *)script->compartment->jaegerCompartment()->execAlloc()->
+    uint8 *result = (uint8 *)script->compartment()->jaegerCompartment()->execAlloc()->
                     alloc(codeSize, &execPool, JSC::METHOD_CODE);
     if (!result) {
         js_ReportOutOfMemory(cx);
@@ -2822,7 +2817,7 @@ mjit::Compiler::fullAtomIndex(jsbytecode *pc)
 
     
 #if 0
-    return GET_SLOTNO(pc) + (atoms - script->atomMap.vector);
+    return GET_SLOTNO(pc) + (atoms - script->atoms);
 #endif
 }
 
@@ -5502,7 +5497,7 @@ mjit::Compiler::iter(uintN flags)
     frame.unpinReg(reg);
 
     
-    masm.loadPtr(&script->compartment->nativeIterCache.last, ioreg);
+    masm.loadPtr(&script->compartment()->nativeIterCache.last, ioreg);
 
     
     Jump nullIterator = masm.branchTest32(Assembler::Zero, ioreg, ioreg);

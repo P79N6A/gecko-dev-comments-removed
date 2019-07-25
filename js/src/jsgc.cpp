@@ -106,21 +106,6 @@
 using namespace js;
 using namespace js::gc;
 
-
-
-
-JS_STATIC_ASSERT(JSTRACE_OBJECT      == 0);
-JS_STATIC_ASSERT(JSTRACE_STRING      == 1);
-JS_STATIC_ASSERT(JSTRACE_SHAPE       == 2);
-JS_STATIC_ASSERT(JSTRACE_TYPE_OBJECT == 3);
-JS_STATIC_ASSERT(JSTRACE_XML         == 4);
-
-
-
-
-
-JS_STATIC_ASSERT(JSTRACE_TYPE_OBJECT + 1 == JSTRACE_XML);
-
 namespace js {
 namespace gc {
 
@@ -149,6 +134,7 @@ const uint8 GCThingSizeMap[] = {
     sizeof(JSObject_Slots16),   
     sizeof(JSObject_Slots16),   
     sizeof(JSFunction),         
+    sizeof(JSScript),           
     sizeof(Shape),              
     sizeof(types::TypeObject),  
 #if JS_HAS_XML_SUPPORT
@@ -198,6 +184,10 @@ template<typename T>
 inline bool
 Arena::finalize(JSContext *cx)
 {
+    
+    JS_STATIC_ASSERT(sizeof(T) % Cell::CellSize == 0);
+    JS_STATIC_ASSERT(sizeof(T) <= 255);
+
     JS_ASSERT(aheader.allocated());
     JS_ASSERT(!aheader.getMarkingDelay()->link);
 
@@ -787,6 +777,9 @@ MarkIfGCThingWord(JSTracer *trc, jsuword w)
       case FINALIZE_FUNCTION:
         test = MarkArenaPtrConservatively<JSFunction>(trc, aheader, addr);
         break;
+      case FINALIZE_SCRIPT:
+        test = MarkArenaPtrConservatively<JSScript>(trc, aheader, addr);
+        break;
       case FINALIZE_SHAPE:
         test = MarkArenaPtrConservatively<Shape>(trc, aheader, addr);
         break;
@@ -1253,6 +1246,7 @@ ArenaList::finalizeLater(JSContext *cx)
                  head->getThingKind() == FINALIZE_OBJECT8_BACKGROUND  ||
                  head->getThingKind() == FINALIZE_OBJECT12_BACKGROUND ||
                  head->getThingKind() == FINALIZE_OBJECT16_BACKGROUND ||
+                 head->getThingKind() == FINALIZE_FUNCTION            ||
                  head->getThingKind() == FINALIZE_SHORT_STRING        ||
                  head->getThingKind() == FINALIZE_STRING);
     JS_ASSERT(!cx->runtime->gcHelperThread.sweeping);
@@ -1264,7 +1258,13 @@ ArenaList::finalizeLater(JSContext *cx)
     JS_ASSERT(backgroundFinalizeState == BFS_DONE ||
               backgroundFinalizeState == BFS_JUST_FINISHED);
 
-    if (head && cx->gcBackgroundFree && cx->gcBackgroundFree->finalizeVector.append(head)) {
+    if (head && cx->gcBackgroundFree) {
+        
+
+
+
+
+        cx->gcBackgroundFree->finalizeVector.infallibleAppend(head);
         head = NULL;
         cursor = &head;
         backgroundFinalizeState = BFS_RUN;
@@ -1304,6 +1304,9 @@ ArenaList::backgroundFinalize(JSContext *cx, ArenaHeader *listHead)
         break;
       case FINALIZE_OBJECT16_BACKGROUND:
         FinalizeArenas<JSObject_Slots16>(cx, &listHead);
+        break;
+      case FINALIZE_FUNCTION:
+        FinalizeArenas<JSFunction>(cx, &listHead);
         break;
       case FINALIZE_STRING:
         FinalizeArenas<JSString>(cx, &listHead);
@@ -1463,6 +1466,8 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
         return RefillTypedFreeList<JSShortString>(cx, thingKind);
       case FINALIZE_FUNCTION:
         return RefillTypedFreeList<JSFunction>(cx, thingKind);
+      case FINALIZE_SCRIPT:
+        return RefillTypedFreeList<JSScript>(cx, thingKind);
       case FINALIZE_SHAPE:
         return RefillTypedFreeList<Shape>(cx, thingKind);
       case FINALIZE_TYPE_OBJECT:
@@ -1480,7 +1485,7 @@ RefillFinalizableFreeList(JSContext *cx, unsigned thingKind)
 } 
 } 
 
-uint32
+JSGCTraceKind
 js_GetGCThingTraceKind(void *thing)
 {
     return GetGCThingTraceKind(thing);
@@ -1578,7 +1583,7 @@ GCMarker::delayMarkingChildren(const void *thing)
 static void
 MarkDelayedChildren(JSTracer *trc, ArenaHeader *aheader)
 {
-    unsigned traceKind = GetFinalizableTraceKind(aheader->getThingKind());
+    JSGCTraceKind traceKind = GetFinalizableTraceKind(aheader->getThingKind());
     size_t thingSize = aheader->getThingSize();
     Arena *a = aheader->getArena();
     uintptr_t end = a->thingsEnd();
@@ -1675,8 +1680,8 @@ js_TraceStackFrame(JSTracer *trc, StackFrame *fp)
         return;
     if (fp->hasArgsObj())
         MarkObject(trc, fp->argsObj(), "arguments");
-    js_TraceScript(trc, fp->script(), NULL);
-    fp->script()->compartment->active = true;
+    MarkScript(trc, fp->script(), "script");
+    fp->script()->compartment()->active = true;
     MarkValue(trc, fp->returnValue(), "rval");
 }
 
@@ -1701,17 +1706,8 @@ AutoGCRooter::trace(JSTracer *trc)
         MarkValue(trc, static_cast<AutoValueRooter *>(this)->val, "js::AutoValueRooter.val");
         return;
 
-      case SHAPE:
-        MarkShape(trc, static_cast<AutoShapeRooter *>(this)->shape, "js::AutoShapeRooter.val");
-        return;
-
       case PARSER:
         static_cast<Parser *>(this)->trace(trc);
-        return;
-
-      case SCRIPT:
-        if (JSScript *script = static_cast<AutoScriptRooter *>(this)->script)
-            js_TraceScript(trc, script, NULL);
         return;
 
       case ENUMERATOR:
@@ -1793,20 +1789,9 @@ AutoGCRooter::trace(JSTracer *trc)
         return;
       }
 
-      case BINDINGS: {
-        static_cast<js::AutoBindingsRooter *>(this)->bindings.trace(trc);
-        return;
-      }
-
       case OBJVECTOR: {
         AutoObjectVector::VectorImpl &vector = static_cast<AutoObjectVector *>(this)->vector;
         MarkObjectRange(trc, vector.length(), vector.begin(), "js::AutoObjectVector.vector");
-        return;
-      }
-
-      case TYPE: {
-        types::TypeObject *type = static_cast<types::AutoTypeRooter *>(this)->type;
-        MarkTypeObject(trc, type, "js::AutoTypeRooter");
         return;
       }
 
@@ -1989,21 +1974,6 @@ MaybeGC(JSContext *cx)
 } 
 
 void
-js_DestroyScriptsToGC(JSContext *cx, JSCompartment *comp)
-{
-    JSScript **listp, *script;
-
-    for (size_t i = 0; i != JS_ARRAY_LENGTH(comp->scriptsToGC); ++i) {
-        listp = &comp->scriptsToGC[i];
-        while ((script = *listp) != NULL) {
-            *listp = script->u.nextToGC;
-            script->u.nextToGC = NULL;
-            js_DestroyCachedScript(cx, script);
-        }
-    }
-}
-
-void
 JSCompartment::finalizeObjectArenaLists(JSContext *cx)
 {
     arenas[FINALIZE_OBJECT0]. finalizeNow<JSObject>(cx);
@@ -2012,7 +1982,6 @@ JSCompartment::finalizeObjectArenaLists(JSContext *cx)
     arenas[FINALIZE_OBJECT8]. finalizeNow<JSObject_Slots8>(cx);
     arenas[FINALIZE_OBJECT12].finalizeNow<JSObject_Slots12>(cx);
     arenas[FINALIZE_OBJECT16].finalizeNow<JSObject_Slots16>(cx);
-    arenas[FINALIZE_FUNCTION].finalizeNow<JSFunction>(cx);
 
 #ifdef JS_THREADSAFE
     arenas[FINALIZE_OBJECT0_BACKGROUND]. finalizeLater<JSObject>(cx);
@@ -2021,6 +1990,17 @@ JSCompartment::finalizeObjectArenaLists(JSContext *cx)
     arenas[FINALIZE_OBJECT8_BACKGROUND]. finalizeLater<JSObject_Slots8>(cx);
     arenas[FINALIZE_OBJECT12_BACKGROUND].finalizeLater<JSObject_Slots12>(cx);
     arenas[FINALIZE_OBJECT16_BACKGROUND].finalizeLater<JSObject_Slots16>(cx);
+#endif
+
+    
+
+
+
+
+#ifdef JS_THREADSAFE
+    arenas[FINALIZE_FUNCTION].finalizeLater<JSFunction>(cx);
+#else
+    arenas[FINALIZE_FUNCTION].finalizeNow<JSFunction>(cx);
 #endif
 
 #if JS_HAS_XML_SUPPORT
@@ -2046,6 +2026,12 @@ JSCompartment::finalizeShapeArenaLists(JSContext *cx)
 {
     arenas[FINALIZE_TYPE_OBJECT].finalizeNow<types::TypeObject>(cx);
     arenas[FINALIZE_SHAPE].finalizeNow<Shape>(cx);
+}
+
+void
+JSCompartment::finalizeScriptArenaLists(JSContext *cx)
+{
+    arenas[FINALIZE_SCRIPT].finalizeNow<JSScript>(cx);
 }
 
 #ifdef JS_THREADSAFE
@@ -2117,6 +2103,15 @@ GCHelperThread::threadLoop(JSRuntime *rt)
     }
 }
 
+bool
+GCHelperThread::prepareForBackgroundSweep(JSContext *context) {
+    size_t maxArenaLists = MAX_BACKGROUND_FINALIZE_KINDS * context->runtime->compartments.length();
+    if (!finalizeVector.reserve(maxArenaLists))
+        return false;
+    cx = context;
+    return true;
+}
+
 void
 GCHelperThread::startBackgroundSweep(JSRuntime *rt, JSGCInvocationKind gckind)
 {
@@ -2160,6 +2155,11 @@ void
 GCHelperThread::doSweep()
 {
     JS_ASSERT(cx);
+
+    
+
+
+
     for (ArenaHeader **i = finalizeVector.begin(); i != finalizeVector.end(); ++i)
         ArenaList::backgroundFinalize(cx, *i);
     finalizeVector.resize(0);
@@ -2376,6 +2376,8 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
         GCTIMESTAMP(sweepObjectEnd);
         comp->finalizeStringArenaLists(cx);
         GCTIMESTAMP(sweepStringEnd);
+        comp->finalizeScriptArenaLists(cx);
+        GCTIMESTAMP(sweepScriptEnd);
         comp->finalizeShapeArenaLists(cx);
         GCTIMESTAMP(sweepShapeEnd);
         Probes::GCEndSweepPhase(comp);
@@ -2400,6 +2402,12 @@ MarkAndSweep(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind GCTIM
             (*c)->finalizeStringArenaLists(cx);
 
         GCTIMESTAMP(sweepStringEnd);
+
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
+            (*c)->finalizeScriptArenaLists(cx);
+        }
+
+        GCTIMESTAMP(sweepScriptEnd);
 
         for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
             (*c)->finalizeShapeArenaLists(cx);
@@ -2553,6 +2561,7 @@ class AutoGCSession {
 AutoGCSession::AutoGCSession(JSContext *cx)
   : context(cx)
 {
+    JS_ASSERT(!JS_THREAD_DATA(cx)->noGCOrAllocationCheck);
     JSRuntime *rt = cx->runtime;
 
 #ifdef JS_THREADSAFE
@@ -2679,8 +2688,8 @@ GCCycle(JSContext *cx, JSCompartment *comp, JSGCInvocationKind gckind  GCTIMER_P
         JS_ASSERT(!cx->gcBackgroundFree);
         rt->gcHelperThread.waitBackgroundSweepEnd(rt);
         if (gckind != GC_LAST_CONTEXT && rt->state != JSRTS_LANDING) {
-            cx->gcBackgroundFree = &rt->gcHelperThread;
-            cx->gcBackgroundFree->setContext(cx);
+            if (rt->gcHelperThread.prepareForBackgroundSweep(cx))
+                cx->gcBackgroundFree = &rt->gcHelperThread;
         }
 #endif
         MarkAndSweep(cx, comp, gckind  GCTIMER_ARG);
@@ -2848,10 +2857,10 @@ struct IterateArenaCallbackOp
     JSContext *cx;
     void *data;
     IterateArenaCallback callback;
-    size_t traceKind;
+    JSGCTraceKind traceKind;
     size_t thingSize;
     IterateArenaCallbackOp(JSContext *cx, void *data, IterateArenaCallback callback,
-                           size_t traceKind, size_t thingSize)
+                           JSGCTraceKind traceKind, size_t thingSize)
         : cx(cx), data(data), callback(callback), traceKind(traceKind), thingSize(thingSize)
     {}
     void operator()(Arena *arena) { (*callback)(cx, data, arena, traceKind, thingSize); }
@@ -2862,10 +2871,10 @@ struct IterateCellCallbackOp
     JSContext *cx;
     void *data;
     IterateCellCallback callback;
-    size_t traceKind;
+    JSGCTraceKind traceKind;
     size_t thingSize;
     IterateCellCallbackOp(JSContext *cx, void *data, IterateCellCallback callback,
-                          size_t traceKind, size_t thingSize)
+                          JSGCTraceKind traceKind, size_t thingSize)
         : cx(cx), data(data), callback(callback), traceKind(traceKind), thingSize(thingSize)
     {}
     void operator()(Cell *cell) { (*callback)(cx, data, cell, traceKind, thingSize); }
@@ -2896,7 +2905,7 @@ IterateCompartmentsArenasCells(JSContext *cx, void *data,
         (*compartmentCallback)(cx, data, compartment);
 
         for (unsigned thingKind = 0; thingKind < FINALIZE_LIMIT; thingKind++) {
-            size_t traceKind = GetFinalizableTraceKind(thingKind);
+            JSGCTraceKind traceKind = GetFinalizableTraceKind(thingKind);
             size_t thingSize = GCThingSizeMap[thingKind];
             IterateArenaCallbackOp arenaOp(cx, data, arenaCallback, traceKind, thingSize);
             IterateCellCallbackOp cellOp(cx, data, cellCallback, traceKind, thingSize);
@@ -2927,11 +2936,18 @@ IterateCells(JSContext *cx, JSCompartment *compartment, FinalizeKind thingKind,
 
     AutoCopyFreeListToArenas copy(rt);
 
-    size_t traceKind = GetFinalizableTraceKind(thingKind);
+    JSGCTraceKind traceKind = GetFinalizableTraceKind(thingKind);
     size_t thingSize = GCThingSizeMap[thingKind];
-    IterateCellCallbackOp cellOp(cx, data, cellCallback, traceKind, thingSize);
 
-    ForEachArenaAndCell(compartment, thingKind, EmptyArenaOp, cellOp);
+    if (compartment) {
+        for (CellIterUnderGC i(compartment, thingKind); !i.done(); i.next())
+            cellCallback(cx, data, i.getCell(), traceKind, thingSize);
+    } else {
+        for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); ++c) {
+            for (CellIterUnderGC i(*c, thingKind); !i.done(); i.next())
+                cellCallback(cx, data, i.getCell(), traceKind, thingSize);
+        }
+    }
 }
 
 namespace gc {
