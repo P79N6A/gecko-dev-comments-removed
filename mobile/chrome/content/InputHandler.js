@@ -319,13 +319,12 @@ InputHandler.prototype = {
 
       for (let len = mods.length; i < len; ++i) {
         mods[i].handleEvent(evInfo);  
-        if (this._grabbed)            
+        if (this._grabber)            
           break;
       }
     }
   }
 };
-
 
 
 
@@ -340,7 +339,6 @@ InputHandler.EventInfo.prototype = {
     return '[EventInfo] { event=' + this.event + 'time=' + this.time + ' }';
   }
 };
-
 
 
 
@@ -421,8 +419,13 @@ MouseModule.prototype = {
   handleEvent: function handleEvent(evInfo) {
     
     
-    if (evInfo.event.type == "contextmenu")
-      this._cleanClickBuffer();
+    if (evInfo.event.type == "contextmenu") {
+      if (this._clicker)
+        this._clicker.panBegin();
+      if (this._dragger)
+        this._dragger.dragStop(0, 0, this._targetScrollInterface);
+      this.cancelPending();
+    }
 
     if (evInfo.event.button !== 0) 
       return;
@@ -495,14 +498,11 @@ MouseModule.prototype = {
                                             : null;
     this._clicker = (targetClicker) ? targetClicker.customClicker : null;
 
-    this._owner.grab(this);
-
     if (this._clicker)
       this._clicker.mouseDown(evInfo.event.clientX, evInfo.event.clientY);
 
-    if (targetScrollInterface && this._dragger.isDraggable(targetScrollbox, targetScrollInterface)) {
+    if (targetScrollInterface && this._dragger.isDraggable(targetScrollbox, targetScrollInterface))
       this._doDragStart(evInfo.event);
-    }
 
     if (this._targetIsContent(evInfo.event)) {
       this._recordEvent(evInfo);
@@ -545,7 +545,7 @@ MouseModule.prototype = {
     if (this._targetIsContent(evInfo.event)) {
       
       this._recordEvent(evInfo);
-      let commitToClicker = this._clicker && dragData.isClick();
+      let commitToClicker = this._clicker && dragData.isClick() && (this._downUpEvents.length > 1);
       if (commitToClicker)
         
         this._commitAnotherClick();
@@ -587,6 +587,7 @@ MouseModule.prototype = {
       evInfo.event.stopPropagation();
       evInfo.event.preventDefault();
       if (dragData.isPan()) {
+        this._owner.grab(this);
         
         let [sX, sY] = dragData.panPosition();
         this._doDragMove(sX, sY);
