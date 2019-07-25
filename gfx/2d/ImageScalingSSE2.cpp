@@ -39,6 +39,7 @@
 #include "mozilla/Attributes.h"
 
 #include <xmmintrin.h>
+#include <emmintrin.h>
 
 
 
