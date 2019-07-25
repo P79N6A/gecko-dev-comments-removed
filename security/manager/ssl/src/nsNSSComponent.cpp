@@ -1365,8 +1365,6 @@ nsresult nsNSSComponent::getParamsForNextCrlToDownload(nsAutoString *url, PRTime
 NS_IMETHODIMP
 nsNSSComponent::Notify(nsITimer *timer)
 {
-  nsresult rv;
-
   
   {
     MutexAutoLock lock(mCrlTimerLock);
@@ -1374,7 +1372,7 @@ nsNSSComponent::Notify(nsITimer *timer)
   }
 
   
-  rv = DownloadCrlSilently();
+  DownloadCrlSilently();
 
   
   
@@ -2280,11 +2278,9 @@ nsNSSComponent::Observe(nsISupports *aSubject, const char *aTopic,
     
 
     if (mPSMContentListener) {
-      nsresult rv = NS_ERROR_FAILURE;
-
       nsCOMPtr<nsIURILoader> dispatcher(do_GetService(NS_URI_LOADER_CONTRACTID));
       if (dispatcher) {
-        rv = dispatcher->UnRegisterContentListener(mPSMContentListener);
+        dispatcher->UnRegisterContentListener(mPSMContentListener);
       }
       mPSMContentListener = nsnull;
     }
