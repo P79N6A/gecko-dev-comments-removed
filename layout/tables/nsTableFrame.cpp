@@ -31,7 +31,7 @@
 #include "nsIDOMHTMLElement.h"
 #include "nsIDOMHTMLBodyElement.h"
 #include "nsFrameManager.h"
-#include "nsError.h"
+#include "nsLayoutErrors.h"
 #include "nsAutoPtr.h"
 #include "nsCSSFrameConstructor.h"
 #include "nsStyleSet.h"
@@ -2023,6 +2023,8 @@ nsTableFrame::GetCollapsedWidth(nsMargin aBorderPadding)
  void
 nsTableFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  nsContainerFrame::DidSetStyleContext(aOldStyleContext);
+
   if (!aOldStyleContext) 
     return;
 

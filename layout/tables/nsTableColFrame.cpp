@@ -54,6 +54,8 @@ nsTableColFrame::SetColType(nsTableColType aType)
  void
 nsTableColFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  nsSplittableFrame::DidSetStyleContext(aOldStyleContext);
+
   if (!aOldStyleContext) 
     return;
      

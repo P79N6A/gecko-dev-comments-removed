@@ -213,6 +213,8 @@ nsTableCellFrame::AttributeChanged(PRInt32         aNameSpaceID,
  void
 nsTableCellFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  nsContainerFrame::DidSetStyleContext(aOldStyleContext);
+
   if (!aOldStyleContext) 
     return;
 
