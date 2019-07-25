@@ -376,10 +376,11 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
         ("GtkIMModule(%p): OnKeyEvent, aCaller=%p, aKeyDownEventWasSent=%s",
          this, aCaller, aKeyDownEventWasSent ? "TRUE" : "FALSE"));
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("    aEvent: type=%s, keyval=0x%X, unicode=0x%X",
+        ("    aEvent: type=%s, keyval=%s, unicode=0x%X",
          aEvent->type == GDK_KEY_PRESS ? "GDK_KEY_PRESS" :
          aEvent->type == GDK_KEY_RELEASE ? "GDK_KEY_RELEASE" : "Unknown",
-         aEvent->keyval, gdk_keyval_to_unicode(aEvent->keyval)));
+         gdk_keyval_name(aEvent->keyval),
+         gdk_keyval_to_unicode(aEvent->keyval)));
 
     if (aCaller != mLastFocusedWindow) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
@@ -406,9 +407,32 @@ nsGtkIMModule::OnKeyEvent(nsWindow* aCaller, GdkEventKey* aEvent,
     
     
     
-    
-    PRBool filterThisEvent =
-        mIsComposing ? PR_TRUE : isFiltered && mFilterKeyEvent;
+    PRBool filterThisEvent = isFiltered && mFilterKeyEvent;
+
+    if (mIsComposing && !isFiltered) {
+        if (aEvent->type == GDK_KEY_PRESS) {
+            if (!mCompositionString.IsEmpty()) {
+                
+                
+                filterThisEvent = PR_TRUE;
+            } else {
+                
+                
+                
+                
+                
+                
+                
+                CommitCompositionBy(EmptyString());
+                filterThisEvent = PR_FALSE;
+            }
+        } else {
+            
+            
+            filterThisEvent = PR_TRUE;
+        }
+    }
+
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
         ("    filterThisEvent=%s (isFiltered=%s, mFilterKeyEvent=%s)",
          filterThisEvent ? "TRUE" : "FALSE", isFiltered ? "YES" : "NO",
@@ -930,15 +954,27 @@ void
 nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
                                          const gchar *aUTF8Char)
 {
+    const gchar emptyStr = 0;
+    const gchar *commitString = aUTF8Char ? aUTF8Char : &emptyStr;
+
     PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
-        ("GtkIMModule(%p): OnCommitCompositionNative, aContext=%p, current context=%p",
-         this, aContext, GetContext()));
+        ("GtkIMModule(%p): OnCommitCompositionNative, aContext=%p, current context=%p, commitString=\"%s\"",
+         this, aContext, GetContext(), commitString));
 
     
     if (GetContext() != aContext) {
         PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
             ("    FAILED, given context doesn't match, GetContext()=%p",
              GetContext()));
+        return;
+    }
+
+    
+    
+    
+    
+    
+    if (!mIsComposing && !commitString[0]) {
         return;
     }
 
@@ -958,7 +994,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
         keyval_utf8_len = g_unichar_to_utf8(keyval_unicode, keyval_utf8);
         keyval_utf8[keyval_utf8_len] = '\0';
 
-        if (!strcmp(aUTF8Char, keyval_utf8)) {
+        if (!strcmp(commitString, keyval_utf8)) {
             PR_LOG(gGtkIMLog, PR_LOG_ALWAYS,
                 ("GtkIMModule(%p): OnCommitCompositionNative, we'll send normal key event",
                  this));
@@ -967,7 +1003,7 @@ nsGtkIMModule::OnCommitCompositionNative(GtkIMContext *aContext,
         }
     }
 
-    NS_ConvertUTF8toUTF16 str(aUTF8Char);
+    NS_ConvertUTF8toUTF16 str(commitString);
     CommitCompositionBy(str); 
 }
 
