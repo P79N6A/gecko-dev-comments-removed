@@ -153,19 +153,10 @@ public class PanZoomController
     private boolean mOverrideScrollAck;
     private boolean mOverrideScrollPending;
 
-    
-    private int mBounceFrame;
-    
-
-
-
-    private ViewportMetrics mBounceStartMetrics, mBounceEndMetrics;
-
     public PanZoomController(LayerController controller) {
         mController = controller;
         mX = new AxisX(); mY = new AxisY();
         mState = PanZoomState.NOTHING;
-        mBounceFrame = -1;
 
         GeckoAppShell.registerGeckoEventListener("Browser:ZoomToRect", this);
         GeckoAppShell.registerGeckoEventListener("Browser:ZoomToPageWidth", this);
@@ -518,19 +509,17 @@ public class PanZoomController
     private void bounce(ViewportMetrics metrics) {
         stopAnimationTimer();
 
-        mBounceStartMetrics = new ViewportMetrics(mController.getViewportMetrics());
-        if (mBounceStartMetrics.fuzzyEquals(metrics)) {
+        ViewportMetrics bounceStartMetrics = new ViewportMetrics(mController.getViewportMetrics());
+        if (bounceStartMetrics.fuzzyEquals(metrics)) {
             mState = PanZoomState.NOTHING;
             return;
         }
 
-        mBounceFrame = 0;
         mState = PanZoomState.FLING;
         mX.setFlingState(Axis.FlingStates.SNAPPING); mY.setFlingState(Axis.FlingStates.SNAPPING);
-        mBounceEndMetrics = metrics;
-        Log.d(LOGTAG, "end bounce at " + mBounceEndMetrics);
+        Log.d(LOGTAG, "end bounce at " + metrics);
 
-        startAnimationTimer(new BounceRunnable());
+        startAnimationTimer(new BounceRunnable(bounceStartMetrics, metrics));
     }
 
     
@@ -597,6 +586,20 @@ public class PanZoomController
 
     
     private class BounceRunnable implements Runnable {
+        
+        private int mBounceFrame;
+        
+
+
+
+        private ViewportMetrics mBounceStartMetrics;
+        private ViewportMetrics mBounceEndMetrics;
+
+        BounceRunnable(ViewportMetrics startMetrics, ViewportMetrics endMetrics) {
+            mBounceStartMetrics = startMetrics;
+            mBounceEndMetrics = endMetrics;
+        }
+
         public void run() {
             
 
