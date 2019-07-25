@@ -3,8 +3,8 @@
 
 
 
-#ifndef DeleteElementTxn_h__
-#define DeleteElementTxn_h__
+#ifndef DeleteNodeTxn_h__
+#define DeleteNodeTxn_h__
 
 #include "EditTxn.h"
 
@@ -17,7 +17,7 @@ class nsEditor;
 
 
 
-class DeleteElementTxn : public EditTxn
+class DeleteNodeTxn : public EditTxn
 {
 public:
   
@@ -26,10 +26,10 @@ public:
   nsresult Init(nsEditor* aEditor, nsINode* aNode,
                 nsRangeUpdater* aRangeUpdater);
 
-  DeleteElementTxn();
+  DeleteNodeTxn();
 
   NS_DECL_ISUPPORTS_INHERITED
-  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DeleteElementTxn, EditTxn)
+  NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(DeleteNodeTxn, EditTxn)
 
   NS_DECL_EDITTXN
 
