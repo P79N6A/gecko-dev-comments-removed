@@ -731,6 +731,7 @@ public:
     bool CanUploadSubTextures();
     bool CanUploadNonPowerOfTwo();
     bool WantsSmallTiles();
+    virtual bool HasLockSurface() { return false; }
 
     
 
