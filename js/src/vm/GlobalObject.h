@@ -162,6 +162,14 @@ class GlobalObject : public ::JSObject {
     bool initStandardClasses(JSContext *cx);
 };
 
+
+
+
+
+
+extern bool
+LinkConstructorAndPrototype(JSContext *cx, JSObject *ctor, JSObject *proto);
+
 } 
 
 js::GlobalObject *

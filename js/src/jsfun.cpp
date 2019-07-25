@@ -1452,10 +1452,15 @@ ResolveInterpretedFunctionPrototype(JSContext *cx, JSObject *obj)
 
 
 
+    if (!obj->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.classPrototypeAtom),
+                             ObjectValue(*proto), PropertyStub, StrictPropertyStub,
+                             JSPROP_PERMANENT) ||
+        !proto->defineProperty(cx, ATOM_TO_JSID(cx->runtime->atomState.constructorAtom),
+                               ObjectValue(*obj), PropertyStub, StrictPropertyStub, 0))
+    {
+       return NULL;
+    }
 
-
-    if (!js_SetClassPrototype(cx, obj, proto, JSPROP_PERMANENT))
-        return NULL;
     return proto;
 }
 
@@ -1470,7 +1475,6 @@ fun_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
     if (JSID_IS_ATOM(id, cx->runtime->atomState.classPrototypeAtom)) {
         
-
 
 
 
