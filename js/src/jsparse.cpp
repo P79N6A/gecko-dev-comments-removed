@@ -1505,7 +1505,7 @@ MakeDefIntoUse(JSDefinition *dn, JSParseNode *pn, JSAtom *atom, JSTreeContext *t
 
 
 
-    if (dn->isArgOrBindingForm()) {
+    if (dn->isBindingForm()) {
         JSParseNode *rhs = dn->expr();
         if (rhs) {
             JSParseNode *lhs = MakeAssignment(dn, rhs, tc);
@@ -2456,10 +2456,10 @@ JSDefinition::kindString(Kind kind)
 {
     static const char *table[] = {
         js_var_str, js_const_str, js_let_str,
-        js_argument_str, js_function_str, js_unknown_str
+        js_function_str, js_argument_str, js_unknown_str
     };
 
-    JS_ASSERT(unsigned(kind) <= unsigned(FUNCTION));
+    JS_ASSERT(unsigned(kind) <= unsigned(ARG));
     return table[kind];
 }
 
