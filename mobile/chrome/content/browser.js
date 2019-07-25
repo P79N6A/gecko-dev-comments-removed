@@ -407,12 +407,11 @@ var Browser = {
       
       BrowserUI.sizeControls(w, h);
       
-      let bvs = Browser.selectedTab.browserViewportState;
-      if (bvs.zoomLevel == bvs.defaultZoomLevel) {
-        bv.zoomToPage();
+      bv.updateDefaultZoom();
+      if (bv.isDefaultZoom())
+        
         Browser.hideSidebars();
-        bv.onAfterVisibleMove();
-      }
+      bv.onAfterVisibleMove();
 
       bv.commitBatchOperation();
     }
@@ -744,7 +743,7 @@ var Browser = {
 
     bv.beginBatchOperation();
 
-    bv.setBrowser(tab.browser, tab.browserViewportState, false);
+    bv.setBrowser(tab.browser, tab.browserViewportState);
     bv.forceContainerResize();
 
     document.getElementById("tabs").selectedTab = tab.chromeTab;
@@ -1088,15 +1087,15 @@ var Browser = {
     if (!element)
       return false;
 
-    let defaultZoomLevel = this._browserView.getZoomForPage();
-    let oldZoomLevel = this._browserView.getZoomLevel();
+    let bv = this._browserView;
+    let oldZoomLevel = bv.getZoomLevel();
     let zoomLevel = this._getZoomLevelForElement(element);
     let zoomRatio = oldZoomLevel / zoomLevel;
 
     
     
     
-    let zoomTolerance = (oldZoomLevel == defaultZoomLevel) ? .9 : .6666;
+    let zoomTolerance = (bv.isDefaultZoom()) ? .9 : .6666;
     if (zoomRatio >= zoomTolerance)
        return false;
 
@@ -1111,7 +1110,7 @@ var Browser = {
     let bv = this._browserView;
     
     let zoomLevel = bv.getZoomForPage();
-    if (bv.getZoomLevel() != zoomLevel) {
+    if (!bv.isDefaultZoom()) {
       let [elementX, elementY] = this.transformClientToBrowser(cX, cY);
       let zoomRect = this._getZoomRectForPoint(elementX, elementY, zoomLevel);
       this.setVisibleRect(zoomRect);
@@ -2504,19 +2503,7 @@ Tab.prototype = {
 
   _resizeAndPaint: function() {
     let bv = Browser._browserView;
-
-    if (this == Browser.selectedTab) {
-      let restoringPage = (this._state != null);
-
-      if (this._browserViewportState.zoomLevel == this._browserViewportState.defaultZoomLevel && !restoringPage) {
-        
-        
-        bv.zoomToPage();
-      }
-
-    }
     bv.commitBatchOperation();
-
     if (this._loading) {
       
       bv.beginBatchOperation();
@@ -2533,7 +2520,8 @@ Tab.prototype = {
 
   startLoading: function() {
     this._loading = true;
-    this._browserViewportState.defaultZoomLevel = this._browserViewportState.zoomLevel;
+    let bvs = this._browserViewportState;
+    bvs.defaultZoomLevel = bvs.zoomLevel; 
 
     if (!this._loadingTimeout) {
       Browser._browserView.beginBatchOperation();
