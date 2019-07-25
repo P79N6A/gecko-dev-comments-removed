@@ -46,7 +46,14 @@ class nsISVGSVGFrame
 public:
   NS_DECL_QUERYFRAME_TARGET(nsISVGSVGFrame)
 
-  virtual void NotifyViewportChange()=0; 
+  
+
+
+
+
+
+
+  virtual void NotifyViewportOrTransformChanged(PRUint32 aFlags)=0; 
 };
 
 #endif 

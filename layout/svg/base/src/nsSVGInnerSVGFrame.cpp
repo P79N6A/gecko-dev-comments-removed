@@ -236,9 +236,14 @@ nsSVGInnerSVGFrame::GetFrameForPoint(const nsPoint &aPoint)
 
 
 void
-nsSVGInnerSVGFrame::NotifyViewportChange()
+nsSVGInnerSVGFrame::NotifyViewportOrTransformChanged(PRUint32 aFlags)
 {
-  NS_ERROR("Inner SVG frames should not get Viewport changes.");
+  
+  
+  
+  
+  
+  NS_ERROR("Not called for nsSVGInnerSVGFrame");
 }
 
 

@@ -415,12 +415,18 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
 
   nsSVGSVGElement *svgElem = static_cast<nsSVGSVGElement*>(mContent);
 
-  if (newViewportSize != svgElem->GetViewportSize() ||
-      mFullZoom != PresContext()->GetFullZoom()) {
+  PRUint32 changeBits = 0;
+  if (newViewportSize != svgElem->GetViewportSize()) {
+    changeBits |= COORD_CONTEXT_CHANGED;
     svgElem->SetViewportSize(newViewportSize);
-    mViewportInitialized = true;
+  }
+  if (mFullZoom != PresContext()->GetFullZoom()) {
+    changeBits |= TRANSFORM_CHANGED;
     mFullZoom = PresContext()->GetFullZoom();
-    NotifyViewportChange();
+  }
+  mViewportInitialized = true;
+  if (changeBits) {
+    NotifyViewportOrTransformChanged(changeBits);
   }
 
   NS_FRAME_TRACE(NS_FRAME_TRACE_CALLS,
@@ -705,30 +711,41 @@ nsSVGOuterSVGFrame::GetType() const
 
 
 void
-nsSVGOuterSVGFrame::NotifyViewportChange()
+nsSVGOuterSVGFrame::NotifyViewportOrTransformChanged(PRUint32 aFlags)
 {
+  NS_ABORT_IF_FALSE(aFlags &&
+                    !(aFlags & ~(COORD_CONTEXT_CHANGED | TRANSFORM_CHANGED)),
+                    "Unexpected aFlags value");
+
   
   if (!mViewportInitialized) {
     return;
   }
 
-  PRUint32 flags = COORD_CONTEXT_CHANGED;
+  nsSVGSVGElement *content = static_cast<nsSVGSVGElement*>(mContent);
 
-  
-#if 1
-  {
-#else
-
-  if (mContent->HasAttr(kNameSpaceID_None, nsGkAtoms::viewBox)) {
-#endif
-
-    mCanvasTM = nsnull;
-
-    flags |= TRANSFORM_CHANGED;
+  if (aFlags & COORD_CONTEXT_CHANGED) {
+    if (content->HasViewBox() || content->ShouldSynthesizeViewBox()) {
+      
+      
+      
+      aFlags = TRANSFORM_CHANGED;
+    }
+    else if (mCanvasTM && mCanvasTM->IsSingular()) {
+      
+      
+      
+      
+      aFlags |= TRANSFORM_CHANGED;
+    }
   }
 
-  
-  nsSVGUtils::NotifyChildrenOfSVGChange(this, flags);
+  if (aFlags & TRANSFORM_CHANGED) {
+    
+    mCanvasTM = nsnull;
+  }
+
+  nsSVGUtils::NotifyChildrenOfSVGChange(this, aFlags);
 }
 
 

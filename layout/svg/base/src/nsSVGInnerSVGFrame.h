@@ -91,7 +91,7 @@ public:
   virtual gfxMatrix GetCanvasTM();
 
   
-  virtual void NotifyViewportChange();
+  virtual void NotifyViewportOrTransformChanged(PRUint32 aFlags);
 
 protected:
 

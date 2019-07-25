@@ -114,7 +114,7 @@ public:
                                PRInt32         aModType);
 
   
-  virtual void NotifyViewportChange();
+  virtual void NotifyViewportOrTransformChanged(PRUint32 aFlags);
 
   
   virtual gfxMatrix GetCanvasTM();
