@@ -2542,6 +2542,8 @@ ProgressController.prototype = {
     if (aWebProgress.DOMWindow != this._tab.browser.contentWindow)
       return;
 
+    
+    
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
       if (aStateFlags & Ci.nsIWebProgressListener.STATE_START)
         this._networkStart();
