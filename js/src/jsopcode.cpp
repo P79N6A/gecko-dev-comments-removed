@@ -214,8 +214,6 @@ js_GetVariableStackUses(JSOp op, jsbytecode *pc)
     switch (op) {
       case JSOP_POPN:
         return GET_UINT16(pc);
-      case JSOP_CONCATN:
-        return GET_UINT16(pc);
       case JSOP_LEAVEBLOCK:
         return GET_UINT16(pc);
       case JSOP_LEAVEBLOCKEXPR:
@@ -3558,51 +3556,6 @@ Decompile(SprintStack *ss, jsbytecode *pc, intN nb, JSOp nextop)
                     todo = -2;
                 }
                 break;
-
-              case JSOP_CONCATN:
-              {
-                argc = GET_UINT16(pc);
-                JS_ASSERT(argc > 0);
-
-                js::Vector<char *> argv(cx);
-                if (!argv.resize(argc))
-                    return NULL;
-
-                MUST_FLOW_THROUGH("out");
-                ok = JS_FALSE;
-
-                for (i = argc - 1; i >= 0; i--) {
-                    argv[i] = JS_strdup(cx, POP_STR_PREC(cs->prec + 1));
-                    if (!argv[i])
-                        goto out;
-                }
-
-                todo = Sprint(&ss->sprinter, "%s", argv[0]);
-                if (todo < 0)
-                    goto out;
-                for (i = 1; i < argc; i++) {
-                    if (Sprint(&ss->sprinter, " + %s", argv[i]) < 0)
-                        goto out;
-                }
-
-                
-
-
-
-
-
-                if (pc[len] == JSOP_ADD)
-                    saveop = JSOP_NOP;
-
-                ok = JS_TRUE;
-
-              out:
-                for (i = 0; i < argc; i++)
-                    JS_free(cx, argv[i]);
-                if (!ok)
-                    return NULL;
-                break;
-              }
 
               case JSOP_NEW:
               case JSOP_CALL:
