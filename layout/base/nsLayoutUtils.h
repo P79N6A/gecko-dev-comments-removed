@@ -52,6 +52,7 @@ class nsDisplayListBuilder;
 class nsDisplayItem;
 class nsFontMetrics;
 class nsClientRectList;
+class nsFontFaceList;
 
 #include "prtypes.h"
 #include "nsStyleContext.h"
@@ -1343,6 +1344,25 @@ public:
       (aPresContext->Type() == nsPresContext::eContext_PrintPreview ||
        aPresContext->Type() == nsPresContext::eContext_PageLayout);
   }
+
+  
+
+
+
+  static nsresult GetFontFacesForFrames(nsIFrame* aFrame,
+                                        nsFontFaceList* aFontFaceList);
+
+  
+
+
+
+
+
+  static nsresult GetFontFacesForText(nsIFrame* aFrame,
+                                      PRInt32 aStartOffset,
+                                      PRInt32 aEndOffset,
+                                      PRBool aFollowContinuations,
+                                      nsFontFaceList* aFontFaceList);
 
   static void Shutdown();
 
