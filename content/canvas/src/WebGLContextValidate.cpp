@@ -518,6 +518,20 @@ WebGLContext::InitAndValidateGL()
         return false;
     }
 
+#ifdef ANDROID
+    
+    
+    
+    
+    
+    
+    if (gl->Renderer() == gl::GLContext::RendererAdreno200 ||
+        gl->Renderer() == gl::GLContext::RendererAdreno205)
+    {
+        return false;
+    }
+#endif
+
     mMinCapability = Preferences::GetBool("webgl.min_capability_mode", false);
     mDisableExtensions = Preferences::GetBool("webgl.disable-extensions", false);
 
