@@ -432,6 +432,9 @@ var BrowserUI = {
     window.addEventListener("AppCommand", this, true);
 
     
+    TabsPopup.init();
+
+    
     
     messageManager.addMessageListener("pageshow", function() {
       if (getBrowser().currentURI.spec == "about:blank")
