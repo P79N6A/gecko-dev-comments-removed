@@ -2623,10 +2623,9 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             MethodDefn(MethodDecl(
                 _destroyMethod().name,
                 params=[ Decl(_DestroyReason.Type(), 'why') ],
-                virtual=1))
+                virtual=1)),
+            Whitespace.NL
         ])
-
-        self.cls.addstmt(Whitespace.NL)
 
         self.cls.addstmts((
             [ Label.PRIVATE ]
@@ -2878,6 +2877,22 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
             ])
             self.cls.addstmts([ otherpid, Whitespace.NL,
                                 getdump, Whitespace.NL ])
+
+        if (p.decl.type.isToplevel() and self.side is 'parent'
+            and p.decl.type.talksRpc()):
+            
+            
+            blockchild = MethodDefn(MethodDecl(
+                'BlockChild', ret=Type.BOOL))
+            blockchild.addstmt(StmtReturn(ExprCall(
+                ExprSelect(p.channelVar(), '.', 'BlockChild'))))
+
+            unblockchild = MethodDefn(MethodDecl(
+                'UnblockChild', ret=Type.BOOL))
+            unblockchild.addstmt(StmtReturn(ExprCall(
+                ExprSelect(p.channelVar(), '.', 'UnblockChild'))))
+
+            self.cls.addstmts([ blockchild, unblockchild, Whitespace.NL ])
 
         
         self.cls.addstmt(Label.PRIVATE)

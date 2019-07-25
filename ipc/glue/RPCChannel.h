@@ -83,8 +83,36 @@ public:
 
     
     
-    NS_OVERRIDE virtual void OnMessageReceived(const Message& msg);
-    NS_OVERRIDE virtual void OnChannelError();
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    bool BlockChild();
+
+    
+    
+    
+    
+    
+    
+    
+    bool UnblockChild();
+
+    NS_OVERRIDE
+    virtual bool OnSpecialMessage(uint16 id, const Message& msg);
+
+    
+    
+    NS_OVERRIDE
+    virtual void OnMessageReceived(const Message& msg);
+    NS_OVERRIDE
+    virtual void OnChannelError();
 
 private:
     
@@ -95,6 +123,9 @@ private:
     void OnMaybeDequeueOne();
     void Incall(const Message& call, size_t stackDepth);
     void DispatchIncall(const Message& call);
+
+    void BlockOnParent();
+    void UnblockFromParent();
 
     
     size_t StackDepth() {
@@ -197,6 +228,9 @@ private:
     
     size_t mRemoteStackDepthGuess;
     RacyRPCPolicy mRacePolicy;
+
+    
+    bool mBlockedOnParent;
 };
 
 
