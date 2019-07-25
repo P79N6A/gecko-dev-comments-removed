@@ -7,7 +7,17 @@ Services.prefs.setBoolPref(PREF_NEWTAB_ENABLED, true);
 
 let tmp = {};
 Cu.import("resource:///modules/NewTabUtils.jsm", tmp);
-let NewTabUtils = tmp.NewTabUtils;
+Cc["@mozilla.org/moz/jssubscript-loader;1"]
+  .getService(Ci.mozIJSSubScriptLoader)
+  .loadSubScript("chrome://browser/content/sanitize.js", tmp);
+
+let {NewTabUtils, Sanitizer} = tmp;
+
+let uri = Services.io.newURI("about:newtab", null, null);
+let principal = Services.scriptSecurityManager.getCodebasePrincipal(uri);
+
+let sm = Services.domStorageManager;
+let storage = sm.getLocalStorageForPrincipal(principal, "");
 
 registerCleanupFunction(function () {
   while (gBrowser.tabs.length > 1)
@@ -15,11 +25,6 @@ registerCleanupFunction(function () {
 
   Services.prefs.clearUserPref(PREF_NEWTAB_ENABLED);
 });
-
-
-
-
-let originalProvider = NewTabUtils.links._provider;
 
 
 
@@ -58,9 +63,7 @@ let TestRunner = {
 
   finish: function () {
     function cleanupAndFinish() {
-      
-      NewTabUtils.links._provider = originalProvider;
-
+      clearHistory();
       whenPagesUpdated(finish);
       NewTabUtils.restore();
     }
@@ -117,13 +120,48 @@ function getCell(aIndex) {
 
 
 
-function setLinks(aLinksPattern) {
-  let links = aLinksPattern.split(/\s*,\s*/).map(function (id) {
-    return {url: "about:blank#" + id, title: "site#" + id};
-  });
+function setLinks(aLinks) {
+  let links = aLinks;
 
-  NewTabUtils.links._provider = {getLinks: function (c) c(links)};
-  NewTabUtils.links._links = links;
+  if (typeof links == "string") {
+    links = aLinks.split(/\s*,\s*/).map(function (id) {
+      return {url: "http://example.com/#" + id, title: "site#" + id};
+    });
+  }
+
+  clearHistory();
+  fillHistory(links, function () {
+    NewTabUtils.links.populateCache(function () {
+      NewTabUtils.allPages.update();
+      TestRunner.next();
+    }, true);
+  });
+}
+
+function clearHistory() {
+  PlacesUtils.history.removeAllPages();
+}
+
+function fillHistory(aLinks, aCallback) {
+  let numLinks = aLinks.length;
+  let transitionLink = Ci.nsINavHistoryService.TRANSITION_LINK;
+
+  for (let link of aLinks.reverse()) {
+    let place = {
+      uri: makeURI(link.url),
+      title: link.title,
+      visits: [{visitDate: Date.now() * 1000, transitionType: transitionLink}]
+    };
+
+    PlacesUtils.asyncHistory.updatePlaces(place, {
+      handleError: function () ok(false, "couldn't add visit to history"),
+      handleResult: function () {},
+      handleCompletion: function () {
+        if (--numLinks == 0)
+          aCallback();
+      }
+    });
+  }
 }
 
 
@@ -135,20 +173,19 @@ function setLinks(aLinksPattern) {
 
 
 
-function setPinnedLinks(aLinksPattern) {
-  let pinnedLinks = [];
+function setPinnedLinks(aLinks) {
+  let links = aLinks;
 
-  aLinksPattern.split(/\s*,\s*/).forEach(function (id, index) {
-    let link;
+  if (typeof links == "string") {
+    links = aLinks.split(/\s*,\s*/).map(function (id) {
+      if (id)
+        return {url: "http://example.com/#" + id, title: "site#" + id};
+    });
+  }
 
-    if (id)
-      link = {url: "about:blank#" + id, title: "site#" + id};
-
-    pinnedLinks[index] = link;
-  });
-
-  
-  NewTabUtils.pinnedLinks._links = pinnedLinks;
+  storage.setItem("pinnedLinks", JSON.stringify(links));
+  NewTabUtils.pinnedLinks.resetCache();
+  NewTabUtils.allPages.update();
 }
 
 
@@ -205,7 +242,7 @@ function checkGrid(aSitesPattern, aSites) {
     if (pinned != hasPinnedAttr)
       ok(false, "invalid state (site.isPinned() != site[pinned])");
 
-    return aSite.url.replace(/^about:blank#(\d+)$/, "$1") + (pinned ? "p" : "");
+    return aSite.url.replace(/^http:\/\/example\.com\/#(\d+)$/, "$1") + (pinned ? "p" : "");
   });
 
   is(current, aSitesPattern, "grid status = " + aSitesPattern);
@@ -246,7 +283,7 @@ function unpinCell(aIndex) {
 function simulateDrop(aDropIndex, aDragIndex) {
   let draggedSite;
   let {gDrag: drag, gDrop: drop} = getContentWindow();
-  let event = createDragEvent("drop", "about:blank#99\nblank");
+  let event = createDragEvent("drop", "http://example.com/#99\nblank");
 
   if (typeof aDragIndex != "undefined")
     draggedSite = getCell(aDragIndex).site;

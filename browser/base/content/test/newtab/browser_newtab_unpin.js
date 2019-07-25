@@ -8,7 +8,7 @@
 function runTests() {
   
   
-  setLinks("0,1,2,3,4,5,6,7,8");
+  yield setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks(",1");
 
   yield addNewTabPageTab();
@@ -20,7 +20,7 @@ function runTests() {
   
   
   
-  setLinks("0,1,2,3,4,5,6,7,8");
+  yield setLinks("0,1,2,3,4,5,6,7,8");
   setPinnedLinks(",99");
 
   yield addNewTabPageTab();
@@ -31,7 +31,7 @@ function runTests() {
 
   
   
-  setLinks("0,1,2,3,4,5,6,7");
+  yield setLinks("0,1,2,3,4,5,6,7");
   setPinnedLinks(",1,,,,,,,0");
 
   yield addNewTabPageTab();
@@ -45,7 +45,7 @@ function runTests() {
 
   
   
-  setLinks("0,1,2,3,4,5,6,7,8,9");
+  yield setLinks("0,1,2,3,4,5,6,7,8,9");
   setPinnedLinks("9");
 
   yield addNewTabPageTab();
