@@ -222,7 +222,14 @@ class FontSizePreference extends DialogPreference {
 
 
     private void updatePreviewFontSize(String twip) {
-        mPreviewFontView.setTextSize(PREVIEW_FONT_SIZE_UNIT, convertTwipStrToPT(twip));
+        float pt = convertTwipStrToPT(twip);
+        
+        
+        if (pt == 0) {
+            mPreviewFontView.setTextSize(PREVIEW_FONT_SIZE_UNIT, 1);
+        } else {
+            mPreviewFontView.setTextSize(PREVIEW_FONT_SIZE_UNIT, pt);
+        }
         mPreviewFontView.scrollTo(0, 0);
     }
 
