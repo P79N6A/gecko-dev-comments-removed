@@ -82,14 +82,14 @@ CrashInJS()
 
 
 
-    *((int *) NULL) = 123;
+    *((volatile int *) NULL) = 123;
     exit(3);
 #elif defined(__APPLE__)
     
 
 
 
-    *((int *) NULL) = 123;  
+    *((volatile int *) NULL) = 123;  
     raise(SIGABRT);  
 #else
     raise(SIGABRT);  

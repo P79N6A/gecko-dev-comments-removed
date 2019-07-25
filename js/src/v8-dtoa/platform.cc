@@ -66,14 +66,14 @@ void OS::Abort() {
 
 
 
-    *((int *) NULL) = 0;
+    *((volatile int *) NULL) = 0;
     exit(3);
 #elif defined(__APPLE__)
     
 
 
 
-    *((int *) NULL) = 0;  
+    *((volatile int *) NULL) = 0;  
     raise(SIGABRT);  
 #else
     raise(SIGABRT);  

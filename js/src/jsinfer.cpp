@@ -347,7 +347,7 @@ types::TypeFailure(JSContext *cx, const char *fmt, ...)
     
     JS_Assert(msgbuf, __FILE__, __LINE__);
     
-    *((int*)NULL) = 0;  
+    *((volatile int *)NULL) = 0;  
 }
 
 
