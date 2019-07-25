@@ -1503,6 +1503,11 @@ nsCookieService::SetCookieStringInternal(nsIURI          *aHostURI,
 {
   NS_ASSERTION(aHostURI, "null host!");
 
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return;
+  }
+
   
   
   
@@ -1626,6 +1631,11 @@ nsCookieService::PrefChanged(nsIPrefBranch *aPrefBranch)
 NS_IMETHODIMP
 nsCookieService::RemoveAll()
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   RemoveAllFromMemory();
 
   
@@ -1675,6 +1685,11 @@ COMArrayCallback(nsCookieEntry *aEntry,
 NS_IMETHODIMP
 nsCookieService::GetEnumerator(nsISimpleEnumerator **aEnumerator)
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   EnsureReadComplete();
 
   nsCOMArray<nsICookie> cookieList(mDBState->cookieCount);
@@ -1693,6 +1708,11 @@ nsCookieService::Add(const nsACString &aHost,
                      PRBool            aIsSession,
                      PRInt64           aExpiry)
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   nsCAutoString host(aHost);
   nsresult rv = NormalizeHost(host);
@@ -1728,6 +1748,11 @@ nsCookieService::Remove(const nsACString &aHost,
                         const nsACString &aPath,
                         PRBool           aBlocked)
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   nsCAutoString host(aHost);
   nsresult rv = NormalizeHost(host);
@@ -2102,6 +2127,11 @@ nsCookieService::EnsureReadComplete()
 NS_IMETHODIMP
 nsCookieService::ImportCookies(nsIFile *aCookieFile)
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   
   if (mDBState != mDefaultDBState) {
@@ -2304,6 +2334,11 @@ nsCookieService::GetCookieStringInternal(nsIURI *aHostURI,
                                          nsCString &aCookieString)
 {
   NS_ASSERTION(aHostURI, "null host!");
+
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return;
+  }
 
   
   
@@ -3487,6 +3522,11 @@ nsCookieService::CookieExists(nsICookie2 *aCookie,
 {
   NS_ENSURE_ARG_POINTER(aCookie);
 
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   nsCAutoString host, name, path;
   nsresult rv = aCookie->GetHost(host);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -3540,6 +3580,11 @@ NS_IMETHODIMP
 nsCookieService::CountCookiesFromHost(const nsACString &aHost,
                                       PRUint32         *aCountFromHost)
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   nsCAutoString host(aHost);
   nsresult rv = NormalizeHost(host);
@@ -3563,6 +3608,11 @@ NS_IMETHODIMP
 nsCookieService::GetCookiesFromHost(const nsACString     &aHost,
                                     nsISimpleEnumerator **aEnumerator)
 {
+  if (!mDBState) {
+    NS_WARNING("No DBState! Profile already closed?");
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
   
   nsCAutoString host(aHost);
   nsresult rv = NormalizeHost(host);
