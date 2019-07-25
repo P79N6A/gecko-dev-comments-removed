@@ -800,6 +800,11 @@ const gXPInstallObserver = {
       messageString = messageString.replace("#2", installInfo.installs.length);
       messageString = messageString.replace("#3", brandShortName);
 
+      
+      
+      
+      options.removeOnDismissal = true;
+
       PopupNotifications.show(browser, notificationID, messageString, anchorID,
                               action, null, options);
       break;
