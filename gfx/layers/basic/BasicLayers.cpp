@@ -2397,8 +2397,15 @@ BasicShadowImageLayer::Paint(gfxContext* aContext,
 
   nsRefPtr<gfxPattern> pat = new gfxPattern(mFrontSurface);
   pat->SetFilter(mFilter);
-  BasicImageLayer::PaintContext(
-    pat, GetEffectiveVisibleRegion(), GetTileSourceRect(), GetEffectiveOpacity(), aContext);
+
+  
+  
+  
+  const nsIntRect* tileSrcRect = GetTileSourceRect();
+  BasicImageLayer::PaintContext(pat,
+                                tileSrcRect ? GetEffectiveVisibleRegion() : nsIntRegion(nsIntRect(0, 0, mSize.width, mSize.height)),
+                                tileSrcRect,
+                                GetEffectiveOpacity(), aContext);
 }
 
 class BasicShadowColorLayer : public ShadowColorLayer,
