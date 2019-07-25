@@ -560,9 +560,6 @@ WeaveSvc.prototype = {
   _verifyLogin: function WeaveSvc__verifyLogin(username, password) {
     let self = yield;
 
-    this.username = username;
-    this.password = password;
-
     DAV.baseURL = Utils.prefs.getCharPref("serverURL");
     DAV.defaultPrefix = "user/" + username;
 
@@ -761,10 +758,13 @@ WeaveSvc.prototype = {
   },
 
   shareData: function WeaveSvc_shareData(dataType,
-                                          onComplete,
-                                          guid,
-                                          username) {
+					 isShareEnabled,
+                                         onComplete,
+                                         guid,
+                                         username) {
     
+
+
 
 
 
@@ -778,54 +778,62 @@ WeaveSvc.prototype = {
 
 
 
-    this._notify(messageName, this._lock(this._shareData,
-                                         dataType,
-                                         guid,
-                                         username)).async(this, onComplete);
+
+    let self = this;
+    let saved_dataType = dataType;
+    let saved_onComplete = onComplete;
+    let saved_guid = guid;
+    let saved_username = username;
+    let saved_isShareEnabled = isShareEnabled;
+    let successMsg = "weave:service:global:success";
+    let errorMsg = "weave:service:global:error";
+    let os = Cc["@mozilla.org/observer-service;1"].
+                      getService(Ci.nsIObserverService);
+
+    let observer = {
+      observe: function(subject, topic, data) {
+	if (!Weave.DAV.locked) {
+           self._notify(messageName, self._lock(self._shareData,
+					saved_dataType,
+					saved_isShareEnabled,
+                                        saved_guid,
+                                    saved_username)).async(self,
+							   saved_onComplete);
+	  os.removeObserver(observer, successMsg);
+	  os.removeObserver(observer, errorMsg);
+	}
+      },
+      QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]);
+    };
+
+    if (Weave.DAV.locked) {
+      
+      os.addObserver( observer, successMsg, true );
+      os.addObserver( observer, errorMsg, true );
+    } else {
+      
+      observer.observe();
+    }
   },
 
   _shareData: function WeaveSvc__shareData(dataType,
-					    guid,
-					    username) {
+					   isShareEnabled,
+                                           guid,
+                                           username) {
     let self = yield;
     let ret;
     if (Engines.get(dataType).enabled) {
-      Engines.get(dataType).share(self.cb, guid, username);
+      if (isShareEnabled) {
+        Engines.get(dataType).share(self.cb, guid, username);
+      } else {
+        Engines.get(dataType).stopSharing(self.cb, guid, username);
+      }
       ret = yield;
     } else {
       this._log.warn( "Can't share disabled data type: " + dataType );
       ret = false;
     }
     self.done(ret);
-  },
-
-  
-
-
-  stopSharingData: function WeaveSvc_stopSharingData(dataType,
-                                                      onComplete,
-                                                      guid,
-                                                      username) {
-    let messageName = "stop-sharing-" + dataType;
-    this._lock(this._notify(messageName,
-			    this._stopSharingData,
-			    dataType,
-			    guid,
-			    username)).async(this, onComplete);
-  },
-
-  _stopSharingData: function WeaveSvc__stopSharingData(dataType,
-                                                        onComplete,
-                                                        guid,
-                                                        username) {
-    let self = yield;
-    let ret;
-    if (Engines.get(dataType).enabled) {
-      Engines.get(dataType).stopSharing(self.cb, guid, username);
-      ret = yield;
-    } else {
-      ret = false;
-    }
-    self.done(ret);
   }
+
 };

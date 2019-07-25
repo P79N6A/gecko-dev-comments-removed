@@ -243,9 +243,20 @@ BookmarksSharingManager.prototype = {
 
   _stopSharing: function BmkSharing__stopSharing( selectedFolder, username ) {
     let self = yield;
-    
+    dump( "selectedFolder is of type: " + typeof selectedFolder + "\n");
+    dump( "Value is " + selectedFolder  + "\n");
     let folderName = selectedFolder.getAttribute( "label" );
     let folderNode = selectedFolder.node;
+    
+    
+    if ( folderNode.itemId == undefined ) {
+      dump( "FolderNode.itemId is undefined!!\n" );
+    } else {
+      dump( "folderNode.itemId is " + folderNode.itemId +"\n");
+    }
+    if (!this._annoSvc.itemHasAnnotation(folderNode.itemId, SERVER_PATH_ANNO)){
+      dump( "Expected annotation not found!!\n" );
+    }
     let serverPath = this._annoSvc.getItemAnnotation(folderNode.itemId,
                                                      SERVER_PATH_ANNO);
 
@@ -335,7 +346,7 @@ BookmarksSharingManager.prototype = {
     let folderGuid = Utils.makeGUID();
 
     
-    let serverPath = "/0.2/user/" + myUserName + "/share/" + folderGuid;
+    let serverPath = "/user/" + myUserName + "/share/" + folderGuid;
     DAV.MKCOL(serverPath, self.cb);
     let ret = yield;
     if (!ret) {
@@ -368,7 +379,7 @@ BookmarksSharingManager.prototype = {
     
 
     let idRSA = ID.get('WeaveCryptoID'); 
-    let userPubKeyFile = new Resource("/0.2/user/" + username + "/public/pubkey");
+    let userPubKeyFile = new Resource("/user/" + username + "/public/pubkey");
     userPubKeyFile.get(self.cb);
     let userPubKey = yield;
 
@@ -683,6 +694,7 @@ BookmarksEngine.prototype = {
 
   _stopSharing: function BmkEngine__stopSharing(guid, username) {
     let self = yield;
+    dump( "BookmarkEnginge._stopSharing: guid=" + guid + ", username = " + username + "\n");
     this._sharing._stopSharing.async( this._sharing, self.cb, guid, username);
     yield;
     self.done();
