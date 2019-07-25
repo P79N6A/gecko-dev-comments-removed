@@ -570,6 +570,9 @@ public:
     void FindFontForChar(GlobalFontMatch *aMatchData);
 
     
+    void SearchAllFontsForChar(GlobalFontMatch *aMatchData);
+
+    
     virtual void ReadOtherFamilyNames(gfxPlatformFontList *aPlatformFontList);
 
     
@@ -590,7 +593,7 @@ public:
     gfxFontEntry* FindFont(const nsAString& aPostscriptName);
 
     
-    void ReadCMAP() {
+    void ReadAllCMAPs() {
         PRUint32 i, numFonts = mAvailableFonts.Length();
         for (i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
@@ -606,7 +609,7 @@ public:
 
     bool TestCharacterMap(PRUint32 aCh) {
         if (!mCharacterMapInitialized) {
-            ReadCMAP();
+            ReadAllCMAPs();
         }
         return mCharacterMap.test(aCh);
     }

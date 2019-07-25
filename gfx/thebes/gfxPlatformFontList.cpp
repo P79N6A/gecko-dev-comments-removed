@@ -686,7 +686,7 @@ gfxPlatformFontList::RunLoader()
         }
 
         
-        familyEntry->ReadCMAP();
+        familyEntry->ReadAllCMAPs();
 
         
         familyEntry->ReadFaceNames(this, mNeedFullnamePostscriptNames);
