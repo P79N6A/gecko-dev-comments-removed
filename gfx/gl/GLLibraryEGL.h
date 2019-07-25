@@ -5,6 +5,10 @@
 #ifndef GLLIBRARYEGL_H_
 #define GLLIBRARYEGL_H_
 
+#if defined(MOZ_X11)
+#include "mozilla/X11Util.h"
+#endif
+
 #include "GLContext.h"
 #include "GLLibraryLoader.h"
 
@@ -22,24 +26,7 @@ typedef void *EGLCastToRelevantPtr;
 typedef void *EGLImageKHR;
 typedef void *GLeglImageOES;
 
-#ifdef ANDROID
-
-typedef void *EGLNativeDisplayType;
-typedef void *EGLNativePixmapType;
-typedef void *EGLNativeWindowType;
-
-
-
-
-
-
-
-
-
-
-#define APITRACE_LIB "/data/local/egltrace.so"
-
-#elif defined(XP_WIN)
+#if defined(XP_WIN)
 
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN 1
@@ -53,10 +40,26 @@ typedef HWND EGLNativeWindowType;
 
 #define GET_NATIVE_WINDOW(aWidget) ((EGLNativeWindowType)aWidget->GetNativeData(NS_NATIVE_WINDOW))
 
+#else
+typedef void *EGLNativeDisplayType;
+typedef void *EGLNativePixmapType;
+typedef void *EGLNativeWindowType;
+
+#ifdef ANDROID
+
+
+
+
+
+
+
+
+#define APITRACE_LIB "/data/local/egltrace.so"
+#endif 
 #endif
 
-#ifdef MOZ_WIDGET_QT
-#define EGL_DEFAULT_DISPLAY  ((EGLNativeDisplayType)QX11Info::display())
+#if defined(MOZ_X11)
+#define EGL_DEFAULT_DISPLAY  ((EGLNativeDisplayType)mozilla::DefaultXDisplay())
 #else
 #define EGL_DEFAULT_DISPLAY  ((EGLNativeDisplayType)0)
 #endif
