@@ -434,7 +434,7 @@ public:
 
   
   
-  virtual PRInt64 FindEndTime(PRInt64 aEndOffset) = 0;
+  virtual PRInt64 FindEndTime(PRInt64 aEndOffset);
 
   
   

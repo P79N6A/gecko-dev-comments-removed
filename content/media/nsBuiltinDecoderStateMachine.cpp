@@ -76,7 +76,7 @@ extern PRLogModuleInfo* gBuiltinDecoderLog;
 
 
 
-static const PRUint32 LOW_AUDIO_MS = 100;
+static const PRUint32 LOW_AUDIO_MS = 300;
 
 
 
@@ -172,7 +172,7 @@ void nsBuiltinDecoderStateMachine::DecodeLoop()
   
   
   
-  const unsigned audioPumpThresholdMs = 250;
+  const unsigned audioPumpThresholdMs = LOW_AUDIO_MS * 2;
 
   
   while (videoPlaying || audioPlaying) {
@@ -580,7 +580,8 @@ PRInt64 nsBuiltinDecoderStateMachine::GetDuration()
 
 void nsBuiltinDecoderStateMachine::SetDuration(PRInt64 aDuration)
 {
-  NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
+  NS_ASSERTION(NS_IsMainThread() || mDecoder->OnStateMachineThread(),
+    "Should be on main or state machine thread.");
   mDecoder->GetMonitor().AssertCurrentThreadIn();
 
   if (mStartTime != -1) {
@@ -1244,8 +1245,6 @@ void nsBuiltinDecoderStateMachine::LoadMetadata()
   mDecoder->GetMonitor().AssertCurrentThreadIn();
 
   LOG(PR_LOG_DEBUG, ("Loading Media Headers"));
-
-  nsMediaStream* stream = mDecoder->mStream;
 
   {
     MonitorAutoExit exitMon(mDecoder->GetMonitor());

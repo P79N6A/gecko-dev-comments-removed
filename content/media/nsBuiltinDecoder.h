@@ -256,6 +256,7 @@ public:
   
   
   
+  
   virtual void SetDuration(PRInt64 aDuration) = 0;
 
   
