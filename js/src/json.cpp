@@ -988,37 +988,30 @@ HandleData(JSContext *cx, JSONParser *jp, JSONDataType type)
 }
 
 JSBool
-js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len)
+js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len,
+                   DecodingMode decodingMode)
 {
-    uint32 i;
+    CHECK_REQUEST(cx);
 
     if (*jp->statep == JSON_PARSE_STATE_INIT) {
         PushState(cx, jp, JSON_PARSE_STATE_VALUE);
     }
 
-    for (i = 0; i < len; i++) {
+    for (uint32 i = 0; i < len; i++) {
         jschar c = data[i];
         switch (*jp->statep) {
-          case JSON_PARSE_STATE_VALUE:
+          case JSON_PARSE_STATE_ARRAY_INITIAL_VALUE:
             if (c == ']') {
-                
                 if (!PopState(cx, jp))
                     return JS_FALSE;
-
-                if (*jp->statep != JSON_PARSE_STATE_ARRAY)
-                    return JSONParseError(jp, cx);
-
+                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT);
                 if (!CloseArray(cx, jp) || !PopState(cx, jp))
                     return JS_FALSE;
-
                 break;
             }
+            
 
-            if (c == '}') {
-                
-                return JSONParseError(jp, cx);
-            }
-
+          case JSON_PARSE_STATE_VALUE:
             if (c == '"') {
                 *jp->statep = JSON_PARSE_STATE_STRING;
                 break;
@@ -1038,44 +1031,61 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                 break;
             }
 
-          
-          case JSON_PARSE_STATE_OBJECT_VALUE:
             if (c == '{') {
-                *jp->statep = JSON_PARSE_STATE_OBJECT;
-                if (!OpenObject(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_OBJECT_PAIR))
+                *jp->statep = JSON_PARSE_STATE_OBJECT_AFTER_PAIR;
+                if (!OpenObject(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_OBJECT_INITIAL_PAIR))
                     return JS_FALSE;
             } else if (c == '[') {
-                *jp->statep = JSON_PARSE_STATE_ARRAY;
-                if (!OpenArray(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_VALUE))
+                *jp->statep = JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT;
+                if (!OpenArray(cx, jp) || !PushState(cx, jp, JSON_PARSE_STATE_ARRAY_INITIAL_VALUE))
                     return JS_FALSE;
-            } else if (!JS_ISXMLSPACE(c)) {
-                return JSONParseError(jp, cx);
-            }
-            break;
-
-          case JSON_PARSE_STATE_OBJECT:
-            if (c == '}') {
-                if (!CloseObject(cx, jp) || !PopState(cx, jp))
+            } else if (JS_ISXMLSPACE(c)) {
+                
+            } else if (decodingMode == LEGACY && c == ']') {
+                if (!PopState(cx, jp))
                     return JS_FALSE;
-            } else if (c == ',') {
-                if (!PushState(cx, jp, JSON_PARSE_STATE_OBJECT_PAIR))
-                    return JS_FALSE;
-            } else if (c == ']' || !JS_ISXMLSPACE(c)) {
-                return JSONParseError(jp, cx);
-            }
-            break;
-
-          case JSON_PARSE_STATE_ARRAY:
-            if (c == ']') {
+                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT);
                 if (!CloseArray(cx, jp) || !PopState(cx, jp))
                     return JS_FALSE;
-            } else if (c == ',') {
+            } else {
+                return JSONParseError(jp, cx);
+            }
+            break;
+
+          case JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT:
+            if (c == ',') {
                 if (!PushState(cx, jp, JSON_PARSE_STATE_VALUE))
+                    return JS_FALSE;
+            } else if (c == ']') {
+                if (!CloseArray(cx, jp) || !PopState(cx, jp))
                     return JS_FALSE;
             } else if (!JS_ISXMLSPACE(c)) {
                 return JSONParseError(jp, cx);
             }
             break;
+
+          case JSON_PARSE_STATE_OBJECT_AFTER_PAIR:
+            if (c == ',') {
+                if (!PushState(cx, jp, JSON_PARSE_STATE_OBJECT_PAIR))
+                    return JS_FALSE;
+            } else if (c == '}') {
+                if (!CloseObject(cx, jp) || !PopState(cx, jp))
+                    return JS_FALSE;
+            } else if (!JS_ISXMLSPACE(c)) {
+                return JSONParseError(jp, cx);
+            }
+            break;
+
+          case JSON_PARSE_STATE_OBJECT_INITIAL_PAIR:
+            if (c == '}') {
+                if (!PopState(cx, jp))
+                    return JS_FALSE;
+                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_OBJECT_AFTER_PAIR);
+                if (!CloseObject(cx, jp) || !PopState(cx, jp))
+                    return JS_FALSE;
+                break;
+            }
+            
 
           case JSON_PARSE_STATE_OBJECT_PAIR:
             if (c == '"') {
@@ -1083,11 +1093,15 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                 *jp->statep = JSON_PARSE_STATE_OBJECT_IN_PAIR;
                 if (!PushState(cx, jp, JSON_PARSE_STATE_STRING))
                     return JS_FALSE;
-            } else if (c == '}') {
+            } else if (JS_ISXMLSPACE(c)) {
                 
-                if (!CloseObject(cx, jp) || !PopState(cx, jp) || !PopState(cx, jp))
+            } else if (decodingMode == LEGACY && c == '}') {
+                if (!PopState(cx, jp))
                     return JS_FALSE;
-            } else if (c == ']' || !JS_ISXMLSPACE(c)) {
+                JS_ASSERT(*jp->statep == JSON_PARSE_STATE_OBJECT_AFTER_PAIR);
+                if (!CloseObject(cx, jp) || !PopState(cx, jp))
+                    return JS_FALSE;
+            } else {
                 return JSONParseError(jp, cx);
             }
             break;
@@ -1114,7 +1128,7 @@ js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len
                     return JS_FALSE;
             } else if (c == '\\') {
                 *jp->statep = JSON_PARSE_STATE_STRING_ESCAPE;
-            } else if (c < 31) {
+            } else if (c <= 0x1F) {
                 
                 
                 return JSONParseError(jp, cx);

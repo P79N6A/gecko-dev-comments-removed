@@ -50,6 +50,7 @@
 pref("keyword.URL", "http://www.google.com/search?ie=UTF-8&oe=utf-8&q=");
 pref("keyword.enabled", false);
 pref("general.useragent.locale", "chrome://global/locale/intl.properties");
+pref("general.useragent.compatMode.firefox", false);
 
 pref("general.config.obscure_value", 13); 
 
@@ -177,6 +178,8 @@ pref("media.autoplay.enabled", true);
 pref("gfx.color_management.mode", 2);
 pref("gfx.color_management.display_profile", "");
 pref("gfx.color_management.rendering_intent", 0);
+
+pref("gfx.3d_video.enabled", false);
 
 pref("gfx.downloadable_fonts.enabled", true);
 
@@ -999,6 +1002,7 @@ pref("security.xpconnect.plugin.unrestricted", true);
 pref("security.dialog_enable_delay", 2000);
 
 pref("security.csp.enable", true);
+pref("security.csp.debug", false);
 
 
 
@@ -3153,9 +3157,19 @@ pref("image.mem.decodeondraw", false);
 pref("image.mem.min_discard_timeout_ms", 10000);
 
 
+pref("image.mem.decode_bytes_at_a_time", 200000);
+
+
+pref("image.mem.max_ms_before_yield", 400);
+
+
+pref("image.mem.max_bytes_for_sync_decode", 150000);
+
+
 pref("webgl.enabled_for_all_sites", false);
 pref("webgl.shader_validator", true);
-pref("webgl.software_render", false);
+pref("webgl.force_osmesa", false);
+pref("webgl.mochitest_native_gl", false);
 pref("webgl.osmesalib", "");
 
 #ifdef XP_WIN
@@ -3174,11 +3188,17 @@ pref("gfx.color_management.mode", 0);
 pref("mozilla.widget.render-mode", -1);
 
 
-pref("mozilla.widget.accelerated-layers", true);
+pref("layers.accelerate-all", false);
+
+
+pref("layers.accelerate-none", false);
 
 #ifdef XP_WIN
 #ifndef WINCE
-pref("mozilla.layers.prefer-opengl", false);
+
+pref("gfx.direct2d.disabled", false);
+
+pref("layers.prefer-opengl", false);
 #endif
 #endif
 

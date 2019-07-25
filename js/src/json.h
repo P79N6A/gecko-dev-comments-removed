@@ -40,7 +40,10 @@
 
 
 
-#include "jsscan.h"
+#include "jsprvtd.h"
+#include "jspubtd.h"
+#include "jsvalue.h"
+#include "jsvector.h"
 
 #define JSON_MAX_DEPTH  2048
 #define JSON_PARSER_BUFSIZE 1024
@@ -65,13 +68,10 @@ enum JSONParserState {
     JSON_PARSE_STATE_FINISHED,
 
     
-    JSON_PARSE_STATE_OBJECT_VALUE,
-
-    
     JSON_PARSE_STATE_VALUE,
 
     
-    JSON_PARSE_STATE_OBJECT,
+    JSON_PARSE_STATE_OBJECT_INITIAL_PAIR,
 
     
     JSON_PARSE_STATE_OBJECT_PAIR,
@@ -80,7 +80,13 @@ enum JSONParserState {
     JSON_PARSE_STATE_OBJECT_IN_PAIR,
 
     
-    JSON_PARSE_STATE_ARRAY,
+    JSON_PARSE_STATE_OBJECT_AFTER_PAIR,
+
+    
+    JSON_PARSE_STATE_ARRAY_INITIAL_VALUE,
+
+    
+    JSON_PARSE_STATE_ARRAY_AFTER_ELEMENT,
 
 
     
@@ -113,8 +119,26 @@ struct JSONParser;
 extern JSONParser *
 js_BeginJSONParse(JSContext *cx, js::Value *rootVal, bool suppressErrors = false);
 
-extern JSBool
-js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len);
+
+#ifdef STRICT
+#undef STRICT
+#endif
+#ifdef LEGACY
+#undef LEGACY
+#endif
+
+
+
+
+
+
+
+
+enum DecodingMode { STRICT, LEGACY };
+
+extern JS_FRIEND_API(JSBool)
+js_ConsumeJSONText(JSContext *cx, JSONParser *jp, const jschar *data, uint32 len,
+                   DecodingMode decodingMode = STRICT);
 
 extern bool
 js_FinishJSONParse(JSContext *cx, JSONParser *jp, const js::Value &reviver);
