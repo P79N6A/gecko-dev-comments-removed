@@ -272,9 +272,13 @@ namespace JSC {
     class ExecutablePool;
 }
 
-#define JS_UNJITTABLE_SCRIPT (reinterpret_cast<void*>(1))
+namespace js {
+namespace mjit {
+    struct JITScript;
+    class CallCompiler;
+}
+}
 
-namespace js { namespace mjit { struct JITScript; } }
 #endif
 
 namespace js {
@@ -343,18 +347,61 @@ struct JSScript : public js::gc::Cell
     static const uint32_t stepFlagMask = 0x80000000U;
     static const uint32_t stepCountMask = 0x7fffffffU;
 
-  
+  public:
+    
+    
+    
+    
+    class JITScriptHandle
+    {
+        
+        
+        friend class js::mjit::CallCompiler;
 
+        
+        
+        
+        
+        
+        
+        
+        static const js::mjit::JITScript *UNJITTABLE;   
+        js::mjit::JITScript *value;
 
+      public:
+        JITScriptHandle()       { value = NULL; }
 
+        bool isEmpty()          { return value == NULL; }
+        bool isUnjittable()     { return value == UNJITTABLE; }
+        bool isValid()          { return value  > UNJITTABLE; }
 
-  
+        js::mjit::JITScript *getValid() {
+            JS_ASSERT(isValid());
+            return value;
+        }
+
+        void setEmpty()         { value = NULL; }
+        void setUnjittable()    { value = const_cast<js::mjit::JITScript *>(UNJITTABLE); }
+        void setValid(js::mjit::JITScript *jit) {
+            value = jit;
+            JS_ASSERT(isValid());
+        }
+
+        static void staticAsserts();
+    };
+
+    
+    
+    
+    
+
+    
 
   public:
     js::Bindings    bindings;   
 
 
-  
+    
 
   public:
     jsbytecode      *code;      
@@ -388,16 +435,10 @@ struct JSScript : public js::gc::Cell
     
     js::types::TypeScript *types;
 
+  public:
 #ifdef JS_METHODJIT
-    
-    
-    
-    
-    void *jitArityCheckNormal;
-    void *jitArityCheckCtor;
-
-    js::mjit::JITScript *jitNormal;   
-    js::mjit::JITScript *jitCtor;     
+    JITScriptHandle jitHandleNormal; 
+    JITScriptHandle jitHandleCtor;   
 #endif
 
   private:
@@ -425,9 +466,7 @@ struct JSScript : public js::gc::Cell
 
 #ifdef DEBUG
     
-
-
-
+    
     uint32_t        id_;
   private:
     uint32_t        idpad;
@@ -451,11 +490,9 @@ struct JSScript : public js::gc::Cell
 
     
 
-    
-
-
-
   public:
+    
+    
     uint8_t         constsOffset;   
     uint8_t         objectsOffset;  
 
@@ -514,6 +551,8 @@ struct JSScript : public js::gc::Cell
     bool            analyzedArgsUsage_:1;
     bool            needsArgsObj_:1;
 
+    
+    
     
 
     
@@ -601,20 +640,35 @@ struct JSScript : public js::gc::Cell
   private:
     bool makeTypes(JSContext *cx);
     bool makeAnalysis(JSContext *cx);
-  public:
 
 #ifdef JS_METHODJIT
-    bool hasJITCode() {
-        return jitNormal || jitCtor;
+  private:
+    
+    
+    friend class js::mjit::CallCompiler;
+
+    static size_t jitHandleOffset(bool constructing) {
+        return constructing ? offsetof(JSScript, jitHandleCtor)
+                            : offsetof(JSScript, jitHandleNormal);
     }
+
+  public:
+    bool hasJITCode()   { return jitHandleNormal.isValid() || jitHandleCtor.isValid(); }
+
+    JITScriptHandle *jitHandle(bool constructing) {
+        return constructing ? &jitHandleCtor : &jitHandleNormal;
+    }
+
+    js::mjit::JITScript *getJIT(bool constructing) {
+        JITScriptHandle *jith = jitHandle(constructing);
+        return jith->isValid() ? jith->getValid() : NULL;
+    }
+
+    static void ReleaseCode(js::FreeOp *fop, JITScriptHandle *jith);
 
     
     inline void **nativeMap(bool constructing);
     inline void *nativeCodeForPC(bool constructing, jsbytecode *pc);
-
-    js::mjit::JITScript *getJIT(bool constructing) {
-        return constructing ? jitCtor : jitNormal;
-    }
 
     size_t getUseCount() const  { return useCount; }
     size_t incUseCount() { return ++useCount; }
@@ -629,6 +683,7 @@ struct JSScript : public js::gc::Cell
     size_t sizeOfJitScripts(JSMallocSizeOfFun mallocSizeOf);
 #endif
 
+  public:
     js::PCCounts getPCCounts(jsbytecode *pc) {
         JS_ASSERT(size_t(pc - code) < length);
         return scriptCounts.pcCountsVector[pc - code];

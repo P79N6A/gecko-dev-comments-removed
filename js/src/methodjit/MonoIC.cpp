@@ -555,6 +555,9 @@ mjit::NativeStubEpilogue(VMFrame &f, Assembler &masm, NativeStubLinker::FinalJum
 
 
 
+namespace js {
+namespace mjit {
+
 class CallCompiler : public BaseCompiler
 {
     VMFrame &f;
@@ -608,15 +611,19 @@ class CallCompiler : public BaseCompiler
         masm.loadPtr(scriptAddr, t0);
 
         
-
-
-
-
-        size_t offset = callingNew
-                        ? offsetof(JSScript, jitArityCheckCtor)
-                        : offsetof(JSScript, jitArityCheckNormal);
+        
+        
+        
+        size_t offset = JSScript::jitHandleOffset(callingNew);
         masm.loadPtr(Address(t0, offset), t0);
-        Jump hasCode = masm.branchPtr(Assembler::Above, t0, ImmPtr(JS_UNJITTABLE_SCRIPT));
+        Jump hasNoJitCode = masm.branchPtr(Assembler::BelowOrEqual, t0,
+                                           ImmPtr(JSScript::JITScriptHandle::UNJITTABLE));
+
+        masm.loadPtr(Address(t0, offsetof(JITScript, arityCheckEntry)), t0);
+
+        Jump hasCode = masm.branchPtr(Assembler::NotEqual, t0, ImmPtr(0));
+
+        hasNoJitCode.linkTo(masm.label(), &masm);
 
         
 
@@ -1009,6 +1016,9 @@ class CallCompiler : public BaseCompiler
         return ucr.codeAddr;
     }
 };
+
+} 
+} 
 
 void * JS_FASTCALL
 ic::Call(VMFrame &f, CallICInfo *ic)
