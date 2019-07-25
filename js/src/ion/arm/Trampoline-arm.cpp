@@ -609,7 +609,6 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     masm.passABIArg(cxreg);
 
     size_t argDisp = 0;
-    size_t argc = 1;
 
     
     if (f.explicitArgs) {
@@ -642,7 +641,6 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
     
     if (outReg != InvalidReg)
         masm.passABIArg(outReg);
-    JS_ASSERT(f.argc() == argc);
 
     masm.callWithABI(f.wrapped);
 
