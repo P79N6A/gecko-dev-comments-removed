@@ -369,7 +369,7 @@ private:
   
 
 
-  static bool InitStaticMembers(bool aForService = false);
+  static bool InitStaticMembers();
 };
 
 } 

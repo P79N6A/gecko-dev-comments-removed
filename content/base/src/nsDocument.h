@@ -865,11 +865,9 @@ public:
 
   nsTArray<nsCString> mFileDataUris;
 
-#ifdef MOZ_SMIL
   
   
   nsSMILAnimationController* GetAnimationController();
-#endif 
 
   void SetImagesNeedAnimating(bool aAnimating);
 
@@ -952,9 +950,15 @@ public:
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName);
 
   virtual Element* GetFullScreenElement();
-  virtual void RequestFullScreen(Element* aElement);
+  virtual void AsyncRequestFullScreen(Element* aElement);
   virtual void CancelFullScreen();
   virtual bool IsFullScreenDoc();
+
+  
+  
+  
+  
+  void RequestFullScreen(Element* aElement, bool aWasCallerChrome);
 
   
   
@@ -968,6 +972,13 @@ public:
 
 protected:
   friend class nsNodeUtils;
+
+  
+  
+  
+  
+  
+  bool IsFullScreenEnabled(bool aIsCallerChrome);
 
   
 

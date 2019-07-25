@@ -139,13 +139,11 @@ IsSVGWhitespace(PRUnichar aChar)
          aChar == PRUnichar('\xD')  || aChar == PRUnichar('\xA');
 }
 
-#ifdef MOZ_SMIL
 
 
 
 
 bool NS_SMILEnabled();
-#endif 
 
 
 #undef CLIP_MASK

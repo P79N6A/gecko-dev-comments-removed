@@ -151,6 +151,7 @@ CssLogic.prototype = {
   
   _matchId: 0,
 
+  _matchedRules: null,
   _matchedSelectors: null,
   _unmatchedSelectors: null,
 
@@ -166,6 +167,7 @@ CssLogic.prototype = {
     this._sheetIndex = 0;
     this._sheets = {};
     this._sheetsCached = false;
+    this._matchedRules = null;
     this._matchedSelectors = null;
     this._unmatchedSelectors = null;
   },
@@ -200,6 +202,7 @@ CssLogic.prototype = {
       this._propertyInfos = {};
     }
 
+    this._matchedRules = null;
     this._matchedSelectors = null;
     this._unmatchedSelectors = null;
     let win = this.viewedDocument.defaultView;
@@ -242,6 +245,7 @@ CssLogic.prototype = {
         aValue == CssLogic.FILTER.UA);
 
     if (needFullUpdate) {
+      this._matchedRules = null;
       this._matchedSelectors = null;
       this._unmatchedSelectors = null;
       this._propertyInfos = {};
@@ -289,7 +293,7 @@ CssLogic.prototype = {
     
     Array.prototype.forEach.call(this.viewedDocument.styleSheets,
         this._cacheSheet, this);
-    
+
     this._sheetsCached = true;
   },
 
@@ -309,19 +313,19 @@ CssLogic.prototype = {
     }
 
     
-    if (!CssLogic.sheetMediaAllowed(aDomSheet)) {
+    if (!this.mediaMatches(aDomSheet)) {
       return;
     }
 
     
-    let cssSheet = this.getSheet(aDomSheet, false, this._sheetIndex++);
+    let cssSheet = this.getSheet(aDomSheet, this._sheetIndex++);
     if (cssSheet._passId != this._passId) {
       cssSheet._passId = this._passId;
 
       
       Array.prototype.forEach.call(aDomSheet.cssRules, function(aDomRule) {
         if (aDomRule.type == Ci.nsIDOMCSSRule.IMPORT_RULE && aDomRule.styleSheet &&
-            CssLogic.sheetMediaAllowed(aDomRule)) {
+            this.mediaMatches(aDomRule)) {
           this._cacheSheet(aDomRule.styleSheet);
         }
       }, this);
@@ -359,16 +363,14 @@ CssLogic.prototype = {
 
 
 
-
-
-  getSheet: function CL_getSheet(aDomSheet, aSystemSheet, aIndex)
+  getSheet: function CL_getSheet(aDomSheet, aIndex)
   {
-    let cacheId = aSystemSheet ? "1" : "0";
+    let cacheId = "";
 
     if (aDomSheet.href) {
-      cacheId += aDomSheet.href;
+      cacheId = aDomSheet.href;
     } else if (aDomSheet.ownerNode && aDomSheet.ownerNode.ownerDocument) {
-      cacheId += aDomSheet.ownerNode.ownerDocument.location;
+      cacheId = aDomSheet.ownerNode.ownerDocument.location;
     }
 
     let sheet = null;
@@ -377,8 +379,10 @@ CssLogic.prototype = {
     if (cacheId in this._sheets) {
       for (let i = 0, numSheets = this._sheets[cacheId].length; i < numSheets; i++) {
         sheet = this._sheets[cacheId][i];
-        if (sheet.domSheet == aDomSheet) {
-          sheet.index = aIndex;
+        if (sheet.domSheet === aDomSheet) {
+          if (aIndex != -1) {
+            sheet.index = aIndex;
+          }
           sheetFound = true;
           break;
         }
@@ -390,8 +394,8 @@ CssLogic.prototype = {
         this._sheets[cacheId] = [];
       }
 
-      sheet = new CssSheet(this, aDomSheet, aSystemSheet, aIndex);
-      if (sheet.sheetAllowed && !aSystemSheet) {
+      sheet = new CssSheet(this, aDomSheet, aIndex);
+      if (sheet.sheetAllowed && !sheet.systemSheet) {
         this._ruleCount += sheet.ruleCount;
       }
 
@@ -486,77 +490,54 @@ CssLogic.prototype = {
       return;
     }
 
+    if (!this._matchedRules) {
+      this._buildMatchedRules();
+    }
+
     this._matchedSelectors = [];
     this._unmatchedSelectors = null;
     this._passId++;
-    this._matchId++;
 
-    let element = this.viewedElement;
-    let filter = this.sourceFilter;
-    let sheetIndex = 0;
-    let domRules = null;
-    do {
-      try {
-        domRules = this.domUtils.getCSSStyleRules(element);
-      } catch (ex) {
-        Services.console.
-            logStringMessage("CssLogic_processMatchedSelectors error: " + ex);
-        continue;
-      }
+    for (let i = 0; i < this._matchedRules.length; i++) {
+      let rule = this._matchedRules[i][0];
+      let status = this._matchedRules[i][1];
 
-      let status = (this.viewedElement == element) ?
-          CssLogic.STATUS.MATCHED : CssLogic.STATUS.PARENT_MATCH;
-
-      for (let i = 0, numRules = domRules.Count(); i < numRules; i++) {
-        let domRule = domRules.GetElementAt(i);
-        if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
-          continue;
-        }
-
-        let domSheet = domRule.parentStyleSheet;
-        let systemSheet = CssLogic.isSystemStyleSheet(domSheet);
-        if (filter !== CssLogic.FILTER.UA && systemSheet) {
-          continue;
-        }
-
-        let sheet = this.getSheet(domSheet, systemSheet, sheetIndex);
-        let rule = sheet.getRule(domRule);
-
-        rule.selectors.forEach(function (aSelector) {
-          if (aSelector._matchId !== this._matchId &&
-              element.mozMatchesSelector(aSelector)) {
-            aSelector._matchId = this._matchId;
-            this._matchedSelectors.push([ aSelector, status ]);
-            if (aCallback) {
-              aCallback.call(aScope, aSelector, status);
-            }
+      rule.selectors.forEach(function (aSelector) {
+        if (aSelector._matchId !== this._matchId &&
+            (aSelector.elementStyle ||
+             this._selectorMatchesElement(aSelector))) {
+          aSelector._matchId = this._matchId;
+          this._matchedSelectors.push([ aSelector, status ]);
+          if (aCallback) {
+            aCallback.call(aScope, aSelector, status);
           }
-        }, this);
-
-        if (sheet._passId !== this._passId) {
-          sheetIndex++;
-          sheet._passId = this._passId;
         }
+      }, this);
 
-        if (rule._passId !== this._passId) {
-          rule._passId = this._passId;
-        }
-      }
+      rule._passId = this._passId;
+    }
+  },
 
-      
-      if (element.style.length > 0) {
-        let rule = new CssRule(null, { style: element.style }, element);
-        let selector = rule.selectors[0];
-        selector._matchId = this._matchId;
+  
 
-        this._matchedSelectors.push([ selector, status ]);
-        if (aCallback) {
-          aCallback.call(aScope, selector, status);
-        }
-        rule._passId = this._passId;
+
+
+
+
+
+
+
+  _selectorMatchesElement: function CL__selectorMatchesElement(aSelector)
+  {
+    let element = this.viewedElement;
+    do {
+      if (element.mozMatchesSelector(aSelector)) {
+        return true;
       }
     } while ((element = element.parentNode) &&
-        element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
+             element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
+
+    return false;
   },
 
   
@@ -573,9 +554,6 @@ CssLogic.prototype = {
 
   processUnmatchedSelectors: function CL_processUnmatchedSelectors(aCallback, aScope)
   {
-    if (!this._matchedSelectors) {
-      this.processMatchedSelectors();
-    }
     if (this._unmatchedSelectors) {
       if (aCallback) {
         this._unmatchedSelectors.forEach(aCallback, aScope);
@@ -583,17 +561,21 @@ CssLogic.prototype = {
       return;
     }
 
+    if (!this._matchedSelectors) {
+      this.processMatchedSelectors();
+    }
+
     this._unmatchedSelectors = [];
 
     this.forEachSheet(function (aSheet) {
       
-      if (aSheet.systemSheet) {
+      if (aSheet.systemSheet || aSheet.disabled || !aSheet.mediaMatches) {
         return;
       }
 
       aSheet.forEachRule(function (aRule) {
         aRule.selectors.forEach(function (aSelector) {
-          if (aSelector._matchId != this._matchId) {
+          if (aSelector._matchId !== this._matchId) {
             this._unmatchedSelectors.push(aSelector);
             if (aCallback) {
               aCallback.call(aScope, aSelector);
@@ -612,44 +594,96 @@ CssLogic.prototype = {
 
 
 
+  hasMatchedSelectors: function CL_hasMatchedSelectors(aProperties)
+  {
+    if (!this._matchedRules) {
+      this._buildMatchedRules();
+    }
+
+    let result = {};
+
+    this._matchedRules.some(function(aValue) {
+      let rule = aValue[0];
+      aProperties = aProperties.filter(function(aProperty) {
+        if (rule.getPropertyValue(aProperty)) {
+          
+          
+          result[aProperty] = true;
+          return false;
+        }
+        return true; 
+      });
+      return aProperties.length == 0;
+    }, this);
+
+    return result;
+  },
+
+  
 
 
 
-  hasMatchedSelectors: function CL_hasMatchedSelectors(aCallback)
+
+
+  _buildMatchedRules: function CL__buildMatchedRules()
   {
     let domRules;
     let element = this.viewedElement;
-    let matched = false;
+    let filter = this.sourceFilter;
+    let sheetIndex = 0;
+
+    this._matchId++;
+    this._passId++;
+    this._matchedRules = [];
 
     do {
+      let status = this.viewedElement === element ?
+                   CssLogic.STATUS.MATCHED : CssLogic.STATUS.PARENT_MATCH;
+
       try {
         domRules = this.domUtils.getCSSStyleRules(element);
       } catch (ex) {
         Services.console.
-            logStringMessage("CssLogic_hasMatchedSelectors error: " + ex);
+          logStringMessage("CL__buildMatchedRules error: " + ex);
         continue;
       }
 
-      
-      
-      if (domRules.Count() && (!aCallback || aCallback(domRules))) {
-        matched = true;
+      for (let i = 0, n = domRules.Count(); i < n; i++) {
+        let domRule = domRules.GetElementAt(i);
+        if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
+          continue;
+        }
+
+        let sheet = this.getSheet(domRule.parentStyleSheet, -1);
+        if (sheet._passId !== this._passId) {
+          sheet.index = sheetIndex++;
+          sheet._passId = this._passId;
+        }
+
+        if (filter !== CssLogic.FILTER.UA && sheet.systemSheet) {
+          continue;
+        }
+
+        let rule = sheet.getRule(domRule);
+        if (rule._passId === this._passId) {
+          continue;
+        }
+
+        rule._matchId = this._matchId;
+        rule._passId = this._passId;
+        this._matchedRules.push([rule, status]);
       }
 
-      
-      
-      if (element.style.length > 0 &&
-          (!aCallback || aCallback({style: element.style}))) {
-        matched = true;
-      }
 
-      if (matched) {
-        break;
+      
+      if (element.style.length > 0) {
+        let rule = new CssRule(null, { style: element.style }, element);
+        rule._matchId = this._matchId;
+        rule._passId = this._passId;
+        this._matchedRules.push([rule, status]);
       }
     } while ((element = element.parentNode) &&
-        element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
-
-    return matched;
+              element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
   },
 
   
@@ -659,36 +693,101 @@ CssLogic.prototype = {
 
 
 
-  hasUnmatchedSelectors: function CL_hasUnmatchedSelectors(aProperty)
+
+
+
+
+  hasUnmatchedSelectors: function CL_hasUnmatchedSelectors(aProperties)
   {
-    return this.forSomeSheets(function (aSheet) {
-      
-      if (aSheet.systemSheet) {
+    if (!this._matchedRules) {
+      this._buildMatchedRules();
+    }
+
+    let result = {};
+
+    this.forSomeSheets(function (aSheet) {
+      if (aSheet.systemSheet || aSheet.disabled || !aSheet.mediaMatches) {
         return false;
       }
 
       return aSheet.forSomeRules(function (aRule) {
-        if (aRule.getPropertyValue(aProperty)) {
-          let element = this.viewedElement;
-          let selectorText = aRule._domRule.selectorText;
-          let matches = false;
+        let unmatched = aRule._matchId !== this._matchId ||
+                        this._ruleHasUnmatchedSelector(aRule);
+        if (!unmatched) {
+          return false;
+        }
 
-          do {
-            if (element.mozMatchesSelector(selectorText)) {
-              matches = true;
-              break;
-            }
-          } while ((element = element.parentNode) &&
-                   element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
-
-          if (!matches) {
+        aProperties = aProperties.filter(function(aProperty) {
+          if (!aRule.getPropertyValue(aProperty)) {
+            
             
             return true;
           }
-        }
+
+          result[aProperty] = true;
+
+          
+          
+          
+          return false;
+        });
+
+        return aProperties.length == 0;
       }, this);
     }, this);
+
+    aProperties.forEach(function(aProperty) { result[aProperty] = false; });
+
+    return result;
   },
+
+  
+
+
+
+
+
+
+
+
+
+  _ruleHasUnmatchedSelector: function CL__ruleHasUnmatchedSelector(aRule)
+  {
+    if (!aRule._cssSheet && aRule.sourceElement) {
+      
+      return false;
+    }
+
+    let element = this.viewedElement;
+    let selectors = aRule.selectors;
+
+    do {
+      selectors = selectors.filter(function(aSelector) {
+        return !element.mozMatchesSelector(aSelector);
+      });
+
+      if (selectors.length == 0) {
+        break;
+      }
+    } while ((element = element.parentNode) &&
+             element.nodeType === Ci.nsIDOMNode.ELEMENT_NODE);
+
+    return selectors.length > 0;
+  },
+
+  
+
+
+
+
+
+
+  mediaMatches: function CL_mediaMatches(aDomObject)
+  {
+    let mediaText = aDomObject.media.mediaText;
+    return !mediaText || this.viewedDocument.defaultView.
+                         matchMedia(mediaText).matches;
+   },
 };
 
 
@@ -794,60 +893,35 @@ CssLogic.isSystemStyleSheet = function CssLogic_isSystemStyleSheet(aSheet)
 
 
 
-
-
-
-
-CssLogic.sheetMediaAllowed = function CssLogic_sheetMediaAllowed(aDomObject)
-{
-  let result = false;
-  let media = aDomObject.media;
-
-  if (media.length > 0) {
-    let mediaItem = null;
-    for (let m = 0, mediaLen = media.length; m < mediaLen; m++) {
-      mediaItem = media.item(m).toLowerCase();
-      if (mediaItem === CssLogic.MEDIA.SCREEN ||
-          mediaItem === CssLogic.MEDIA.ALL) {
-        result = true;
-        break;
-      }
-    }
-  } else {
-    result = true;
-  }
-
-  return result;
-};
-
-
-
-
-
-
 CssLogic.shortSource = function CssLogic_shortSource(aSheet)
 {
-    
-    if (!aSheet || !aSheet.href) {
-      return CssLogic.l10n("rule.sourceInline");
-    }
+  
+  if (!aSheet || !aSheet.href) {
+    return CssLogic.l10n("rule.sourceInline");
+  }
 
-    
-    let url = Services.io.newURI(aSheet.href, null, null);
+  
+  let url = {};
+  try {
+    url = Services.io.newURI(aSheet.href, null, null);
     url = url.QueryInterface(Ci.nsIURL);
-    if (url.fileName) {
-      return url.fileName;
-    }
+  } catch (ex) {
+    
+  }
 
-    if (url.filePath) {
-      return url.filePath;
-    }
+  if (url.fileName) {
+    return url.fileName;
+  }
 
-    if (url.query) {
-      return url.query;
-    }
+  if (url.filePath) {
+    return url.filePath;
+  }
 
-    return this.domSheet.href;
+  if (url.query) {
+    return url.query;
+  }
+
+  return aSheet.href;
 }
 
 
@@ -860,12 +934,10 @@ CssLogic.shortSource = function CssLogic_shortSource(aSheet)
 
 
 
-
-function CssSheet(aCssLogic, aDomSheet, aSystemSheet, aIndex)
+function CssSheet(aCssLogic, aDomSheet, aIndex)
 {
   this._cssLogic = aCssLogic;
   this.domSheet = aDomSheet;
-  this.systemSheet = aSystemSheet;
   this.index = this.systemSheet ? -100 * aIndex : aIndex;
 
   
@@ -884,6 +956,44 @@ function CssSheet(aCssLogic, aDomSheet, aSystemSheet, aIndex)
 
 CssSheet.prototype = {
   _passId: null,
+  _systemSheet: null,
+  _mediaMatches: null,
+
+  
+
+
+
+
+
+  get systemSheet()
+  {
+    if (this._systemSheet === null) {
+      this._systemSheet = CssLogic.isSystemStyleSheet(this.domSheet);
+    }
+    return this._systemSheet;
+  },
+
+  
+
+
+
+  get disabled()
+  {
+    return this.domSheet.disabled;
+  },
+
+  
+
+
+
+
+  get mediaMatches()
+  {
+    if (this._mediaMatches === null) {
+      this._mediaMatches = this._cssLogic.mediaMatches(this.domSheet);
+    }
+    return this._mediaMatches;
+  },
 
   
 
@@ -976,7 +1086,7 @@ CssSheet.prototype = {
     if (cacheId in this._rules) {
       for (let i = 0, rulesLen = this._rules[cacheId].length; i < rulesLen; i++) {
         rule = this._rules[cacheId][i];
-        if (rule._domRule == aDomRule) {
+        if (rule._domRule === aDomRule) {
           ruleFound = true;
           break;
         }
@@ -1018,7 +1128,7 @@ CssSheet.prototype = {
         aCallback.call(aScope, this.getRule(aDomRule));
         ruleCount++;
       } else if (aDomRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE &&
-          aDomRule.cssRules && CssLogic.sheetMediaAllowed(aDomRule)) {
+          aDomRule.cssRules && this._cssLogic.mediaMatches(aDomRule)) {
         Array.prototype.forEach.call(aDomRule.cssRules, _iterator, this);
       }
     }
@@ -1051,7 +1161,7 @@ CssSheet.prototype = {
       if (aDomRule.type == Ci.nsIDOMCSSRule.STYLE_RULE) {
         return aCallback.call(aScope, this.getRule(aDomRule));
       } else if (aDomRule.type == Ci.nsIDOMCSSRule.MEDIA_RULE &&
-          aDomRule.cssRules && CssLogic.sheetMediaAllowed(aDomRule)) {
+          aDomRule.cssRules && this._cssLogic.mediaMatches(aDomRule)) {
         return Array.prototype.some.call(aDomRule.cssRules, _iterator, this);
       }
     }
@@ -1409,8 +1519,6 @@ function CssPropertyInfo(aCssLogic, aProperty)
   
   this._matchedSelectors = null;
   this._unmatchedSelectors = null;
-  this._hasMatchedSelectors = null;
-  this._hasUnmatchedSelectors = null;
 }
 
 CssPropertyInfo.prototype = {
@@ -1506,60 +1614,6 @@ CssPropertyInfo.prototype = {
     }
 
     return this._unmatchedSelectors;
-  },
-
-  
-
-
-
-
-
-  hasMatchedSelectors: function CssPropertyInfo_hasMatchedSelectors()
-  {
-    if (this._hasMatchedSelectors === null) {
-      this._hasMatchedSelectors = this._cssLogic.hasMatchedSelectors(function(aDomRules) {
-        if (!aDomRules.Count) {
-          
-          return !!aDomRules.style.getPropertyValue(this.property);
-        }
-
-        for (let i = 0; i < aDomRules.Count(); i++) {
-          let domRule = aDomRules.GetElementAt(i);
-
-          if (domRule.type !== Ci.nsIDOMCSSRule.STYLE_RULE) {
-            continue;
-          }
-
-          let domSheet = domRule.parentStyleSheet;
-          let systemSheet = CssLogic.isSystemStyleSheet(domSheet);
-          let filter = this._cssLogic.sourceFilter;
-          if (filter !== CssLogic.FILTER.UA && systemSheet) {
-            continue;
-          }
-
-          if (domRule.style.getPropertyValue(this.property)) {
-            return true;
-          }
-        }
-        return false;
-      }.bind(this));
-    }
-
-    return this._hasMatchedSelectors;
-  },
-
-  
-
-
-
-
-
-  hasUnmatchedSelectors: function CssPropertyInfo_hasUnmatchedSelectors()
-  {
-    if (this._hasUnmatchedSelectors === null) {
-      this._hasUnmatchedSelectors = this._cssLogic.hasUnmatchedSelectors(this.property);
-    }
-    return this._hasUnmatchedSelectors;
   },
 
   

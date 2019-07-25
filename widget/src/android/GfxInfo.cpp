@@ -318,5 +318,7 @@ GfxInfo::GetFeatureStatusImpl(PRInt32 aFeature,
   if (aOS)
     *aOS = os;
 
-  return GfxInfoBase::GetFeatureStatusImpl(aFeature, aStatus, aSuggestedDriverVersion, aDriverInfo, &os);
+  
+  
+  return NS_OK;
 }

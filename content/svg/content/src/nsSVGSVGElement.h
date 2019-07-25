@@ -53,9 +53,7 @@
 #include "SVGAnimatedPreserveAspectRatio.h"
 #include "mozilla/dom/FromParser.h"
 
-#ifdef MOZ_SMIL
 class nsSMILTimeContainer;
-#endif 
 
 typedef nsSVGStylableElement nsSVGSVGElementBase;
 
@@ -141,9 +139,7 @@ public:
 
   
   NS_DECL_ISUPPORTS_INHERITED
-#ifdef MOZ_SMIL
   NS_DECL_CYCLE_COLLECTION_CLASS_INHERITED(nsSVGSVGElement, nsSVGSVGElementBase)
-#endif 
   NS_DECL_NSIDOMSVGSVGELEMENT
   NS_DECL_NSIDOMSVGFITTOVIEWBOX
   NS_DECL_NSIDOMSVGLOCATABLE
@@ -181,15 +177,11 @@ public:
   const nsSVGTranslatePoint& GetPreviousTranslate() { return mPreviousTranslate; }
   float GetPreviousScale() { return mPreviousScale; }
 
-#ifdef MOZ_SMIL
   nsSMILTimeContainer* GetTimedDocumentRoot();
-#endif 
 
   
   NS_IMETHOD_(bool) IsAttributeMapped(const nsIAtom* aAttribute) const;
-#ifdef MOZ_SMIL
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
-#endif 
 
   
   virtual gfxMatrix PrependLocalTransformTo(const gfxMatrix &aMatrix) const;
@@ -237,12 +229,10 @@ protected:
   
   bool IsEventName(nsIAtom* aName);
 
-#ifdef MOZ_SMIL
   virtual nsresult BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                               nsIContent* aBindingParent,
                               bool aCompileEventHandlers);
   virtual void UnbindFromTree(bool aDeep, bool aNullParent);
-#endif 
 
   
 
@@ -263,7 +253,6 @@ protected:
            parent->Tag() != nsGkAtoms::foreignObject;
   }
 
-#ifdef MOZ_SMIL
   
 
 
@@ -275,7 +264,6 @@ protected:
 
   bool WillBeOutermostSVG(nsIContent* aParent,
                             nsIContent* aBindingParent) const;
-#endif 
 
   
   void InvalidateTransformNotifyFrame();
@@ -316,11 +304,9 @@ protected:
   
   float mViewportWidth, mViewportHeight;
 
-#ifdef MOZ_SMIL
   
   
   nsAutoPtr<nsSMILTimeContainer> mTimedDocumentRoot;
-#endif 
 
   
   
@@ -331,13 +317,11 @@ protected:
   float                             mPreviousScale;
   PRInt32                           mRedrawSuspendCount;
 
-#ifdef MOZ_SMIL
   
   
   
   
   bool                              mStartAnimationOnBindToTree;
-#endif 
   bool                              mImageNeedsTransformInvalidation;
   bool                              mIsPaintingSVGImageElement;
 };

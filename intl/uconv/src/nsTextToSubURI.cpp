@@ -248,12 +248,24 @@ NS_IMETHODIMP  nsTextToSubURI::UnEscapeURIForUI(const nsACString & aCharset,
 }
 
 NS_IMETHODIMP  nsTextToSubURI::UnEscapeNonAsciiURI(const nsACString & aCharset, 
-                                                   const nsACString &aURIFragment, 
+                                                   const nsACString & aURIFragment, 
                                                    nsAString &_retval)
 {
   nsCAutoString unescapedSpec;
   NS_UnescapeURL(PromiseFlatCString(aURIFragment),
                  esc_AlwaysCopy | esc_OnlyNonASCII, unescapedSpec);
+  
+  
+  
+  if (!IsUTF8(unescapedSpec) && 
+      (aCharset.LowerCaseEqualsLiteral("utf-16") ||
+       aCharset.LowerCaseEqualsLiteral("utf-16be") ||
+       aCharset.LowerCaseEqualsLiteral("utf-16le") ||
+       aCharset.LowerCaseEqualsLiteral("utf-7") ||
+       aCharset.LowerCaseEqualsLiteral("x-imap4-modified-utf7"))){
+    CopyASCIItoUTF16(aURIFragment, _retval);
+    return NS_OK;
+  }
 
   return convertURItoUnicode(PromiseFlatCString(aCharset), unescapedSpec, true, _retval);
 }

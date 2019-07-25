@@ -82,6 +82,9 @@ function CssHtmlTree(aStyleInspector)
   this.panel = aStyleInspector.panel;
 
   
+  this.noResults = this.styleDocument.getElementById("noResults");
+
+  
   this.viewedElement = null;
   this.createStyleViews();
 }
@@ -133,19 +136,29 @@ XPCOMUtils.defineLazyGetter(CssHtmlTree, "_strings", function() Services.strings
         .createBundle("chrome:
 
 CssHtmlTree.prototype = {
+  
+  _matchedProperties: null,
+  _unmatchedProperties: null,
+
   htmlComplete: false,
 
   
-  filterChangedTimeout: null,
+  _filterChangedTimeout: null,
 
   
   searchField: null,
-  
+
   
   onlyUserStylesCheckbox: null,
 
   
   _panelRefreshTimeout: null,
+
+  
+  _darkStripe: true,
+
+  
+  numVisibleProperties: 0,
 
   get showOnlyUserStyles()
   {
@@ -159,17 +172,19 @@ CssHtmlTree.prototype = {
 
   highlight: function CssHtmlTree_highlight(aElement)
   {
-    if (this.viewedElement == aElement) {
-      return;
-    }
-
     this.viewedElement = aElement;
+    this._unmatchedProperties = null;
+    this._matchedProperties = null;
 
     CssHtmlTree.processTemplate(this.templatePath, this.path, this);
 
     if (this.htmlComplete) {
       this.refreshPanel();
     } else {
+      if (this._panelRefreshTimeout) {
+        this.win.clearTimeout(this._panelRefreshTimeout);
+      }
+
       CssHtmlTree.processTemplate(this.templateRoot, this.root, this);
 
       
@@ -185,21 +200,27 @@ CssHtmlTree.prototype = {
             let propView = new PropertyView(this, name);
             CssHtmlTree.processTemplate(this.templateProperty,
               this.propertyContainer, propView, true);
-            propView.refreshMatchedSelectors();
-            propView.refreshUnmatchedSelectors();
+            if (propView.visible) {
+              this.numVisibleProperties++;
+            }
+            propView.refreshAllSelectors();
             this.propertyViews.push(propView);
           }
           if (i < max) {
             
             
-            this.win.setTimeout(displayProperties.bind(this), 50);
+            this._panelRefreshTimeout =
+              this.win.setTimeout(displayProperties.bind(this), 15);
           } else {
             this.htmlComplete = true;
+            this._panelRefreshTimeout = null;
+            this.noResults.hidden = this.numVisibleProperties > 0;
             Services.obs.notifyObservers(null, "StyleInspector-populated", null);
           }
         }
       }
-      this.win.setTimeout(displayProperties.bind(this), 50);
+      this._panelRefreshTimeout =
+        this.win.setTimeout(displayProperties.bind(this), 15);
     }
   },
 
@@ -208,7 +229,17 @@ CssHtmlTree.prototype = {
 
   refreshPanel: function CssHtmlTree_refreshPanel()
   {
-    this.win.clearTimeout(this._panelRefreshTimeout);
+    if (this._panelRefreshTimeout) {
+      this.win.clearTimeout(this._panelRefreshTimeout);
+    }
+
+    this.noResults.hidden = true;
+
+    
+    this.numVisibleProperties = 0;
+
+    
+    this._darkStripe = true;
 
     
     
@@ -223,12 +254,14 @@ CssHtmlTree.prototype = {
       if (i < max) {
         
         
-        this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 0);
+        this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 15);
       } else {
+        this._panelRefreshTimeout = null;
+        this.noResults.hidden = this.numVisibleProperties > 0;
         Services.obs.notifyObservers(null, "StyleInspector-populated", null);
       }
     }
-    this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 0);
+    this._panelRefreshTimeout = this.win.setTimeout(refreshView.bind(this), 15);
   },
 
   
@@ -254,13 +287,13 @@ CssHtmlTree.prototype = {
   {
     let win = this.styleWin.contentWindow;
 
-    if (this.filterChangedTimeout) {
-      win.clearTimeout(this.filterChangedTimeout);
-      this.filterChangeTimeout = null;
+    if (this._filterChangedTimeout) {
+      win.clearTimeout(this._filterChangedTimeout);
     }
 
-    this.filterChangedTimeout = win.setTimeout(function() {
+    this._filterChangedTimeout = win.setTimeout(function() {
       this.refreshPanel();
+      this._filterChangeTimeout = null;
     }.bind(this), FILTER_CHANGED_TIMEOUT);
   },
 
@@ -275,6 +308,7 @@ CssHtmlTree.prototype = {
 
   onlyUserStylesChanged: function CssHtmltree_onlyUserStylesChanged(aEvent)
   {
+    this._matchedProperties = null;
     this.cssLogic.sourceFilter = this.showOnlyUserStyles ?
                                  CssLogic.FILTER.ALL :
                                  CssLogic.FILTER.UA;
@@ -306,7 +340,7 @@ CssHtmlTree.prototype = {
 
     
     
-    let styles = this.styleWin.contentWindow.getComputedStyle(this.styleDocument.body);
+    let styles = this.styleWin.contentWindow.getComputedStyle(this.styleDocument.documentElement);
     let mozProps = [];
     for (let i = 0, numStyles = styles.length; i < numStyles; i++) {
       let prop = styles.item(i);
@@ -325,14 +359,68 @@ CssHtmlTree.prototype = {
   
 
 
+
+
+
+  get matchedProperties()
+  {
+    if (!this._matchedProperties) {
+      this._matchedProperties =
+        this.cssLogic.hasMatchedSelectors(CssHtmlTree.propertyNames);
+    }
+    return this._matchedProperties;
+  },
+
+  
+
+
+
+
+
+
+  hasUnmatchedSelectors: function CssHtmlTree_hasUnmatchedSelectors(aProperty)
+  {
+    
+    
+    if (!this._unmatchedProperties) {
+      let properties = [];
+      CssHtmlTree.propertyNames.forEach(function(aName) {
+        if (!this.matchedProperties[aName]) {
+          properties.push(aName);
+        }
+      }, this);
+
+      if (properties.indexOf(aProperty) == -1) {
+        properties.push(aProperty);
+      }
+
+      this._unmatchedProperties = this.cssLogic.hasUnmatchedSelectors(properties);
+    }
+
+    
+    if (!(aProperty in this._unmatchedProperties)) {
+      let result = this.cssLogic.hasUnmatchedSelectors([aProperty]);
+      this._unmatchedProperties[aProperty] = result[aProperty];
+    }
+
+    return this._unmatchedProperties[aProperty];
+  },
+
+  
+
+
   destroy: function CssHtmlTree_destroy()
   {
     delete this.viewedElement;
 
     
+    this.onlyUserStylesCheckbox.removeEventListener("command",
+      this.onlyUserStylesChanged);
+    this.searchField.removeEventListener("command", this.filterChanged);
+
+    
     delete this.root;
     delete this.path;
-    delete this.templateRoot;
     delete this.templatePath;
     delete this.propertyContainer;
     delete this.templateProperty;
@@ -368,12 +456,14 @@ function PropertyView(aTree, aName)
   this.link = "https://developer.mozilla.org/en/CSS/" + aName;
 
   this.templateMatchedSelectors = aTree.styleDocument.getElementById("templateMatchedSelectors");
-  this.templateUnmatchedSelectors = aTree.styleDocument.getElementById("templateUnmatchedSelectors");
 }
 
 PropertyView.prototype = {
   
   element: null,
+
+  
+  propertyHeader: null,
 
   
   valueNode: null,
@@ -385,10 +475,10 @@ PropertyView.prototype = {
   unmatchedExpanded: false,
 
   
-  matchedSelectorsContainer: null,
+  unmatchedSelectorTable: null,
 
   
-  unmatchedSelectorsContainer: null,
+  matchedSelectorsContainer: null,
 
   
   matchedExpander: null,
@@ -397,16 +487,10 @@ PropertyView.prototype = {
   unmatchedExpander: null,
 
   
-  matchedSelectorsTitleNode: null,
+  unmatchedSelectorsContainer: null,
 
   
-  unmatchedSelectorsTitleNode: null,
-
-  
-  matchedSelectorTable: null,
-
-  
-  unmatchedSelectorTable: null,
+  unmatchedTitleBlock: null,
 
   
   _matchedSelectorViews: null,
@@ -441,7 +525,7 @@ PropertyView.prototype = {
 
   get hasMatchedSelectors()
   {
-    return this.propertyInfo.hasMatchedSelectors();
+    return this.name in this.tree.matchedProperties;
   },
 
   
@@ -449,7 +533,7 @@ PropertyView.prototype = {
 
   get hasUnmatchedSelectors()
   {
-    return this.propertyInfo.hasUnmatchedSelectors();
+    return this.name in this.tree.hasUnmatchedSelectors;
   },
 
   
@@ -473,9 +557,17 @@ PropertyView.prototype = {
   
 
 
+
+
   get className()
   {
-    return this.visible ? "property-view" : "property-view-hidden";
+    if (this.visible) {
+      this.tree._darkStripe = !this.tree._darkStripe;
+      let darkValue = this.tree._darkStripe ?
+                      "property-view darkrow" : "property-view";
+      return darkValue;
+    }
+    return "property-view-hidden";
   },
 
   
@@ -494,18 +586,14 @@ PropertyView.prototype = {
     if (!this.tree.viewedElement || !this.visible) {
       this.valueNode.innerHTML = "";
       this.matchedSelectorsContainer.hidden = true;
-      this.unmatchedSelectorsContainer.hidden = true;
-      this.matchedSelectorTable.innerHTML = "";
-      this.unmatchedSelectorTable.innerHTML = "";
+      this.matchedSelectorsContainer.innerHTML = "";
       this.matchedExpander.removeAttribute("open");
-      this.unmatchedExpander.removeAttribute("open");
       return;
     }
 
+    this.tree.numVisibleProperties++;
     this.valueNode.innerHTML = this.propertyInfo.value;
-    
-    this.refreshMatchedSelectors();
-    this.refreshUnmatchedSelectors();
+    this.refreshAllSelectors();
   },
 
   
@@ -516,12 +604,18 @@ PropertyView.prototype = {
     let hasMatchedSelectors = this.hasMatchedSelectors;
     this.matchedSelectorsContainer.hidden = !hasMatchedSelectors;
 
+    if (hasMatchedSelectors) {
+      this.propertyHeader.classList.add("expandable");
+    } else {
+      this.propertyHeader.classList.remove("expandable");
+    }
+
     if (this.matchedExpanded && hasMatchedSelectors) {
       CssHtmlTree.processTemplate(this.templateMatchedSelectors,
-        this.matchedSelectorTable, this);
+        this.matchedSelectorsContainer, this);
       this.matchedExpander.setAttribute("open", "");
     } else {
-      this.matchedSelectorTable.innerHTML = "";
+      this.matchedSelectorsContainer.innerHTML = "";
       this.matchedExpander.removeAttribute("open");
     }
   },
@@ -531,17 +625,44 @@ PropertyView.prototype = {
 
   refreshUnmatchedSelectors: function PropertyView_refreshUnmatchedSelectors()
   {
-    let hasUnmatchedSelectors = this.hasUnmatchedSelectors;
-    this.unmatchedSelectorsContainer.hidden = !hasUnmatchedSelectors;
+    let hasMatchedSelectors = this.hasMatchedSelectors;
 
-    if (this.unmatchedExpanded && hasUnmatchedSelectors) {
-      CssHtmlTree.processTemplate(this.templateUnmatchedSelectors,
-          this.unmatchedSelectorTable, this);
-      this.unmatchedExpander.setAttribute("open", "");
+    this.unmatchedSelectorTable.hidden = !this.unmatchedExpanded;
+
+    if (hasMatchedSelectors) {
+      this.unmatchedSelectorsContainer.hidden = !this.matchedExpanded ||
+        !this.hasUnmatchedSelectors;
+      this.unmatchedTitleBlock.hidden = false;
     } else {
-      this.unmatchedSelectorTable.innerHTML = "";
-      this.unmatchedExpander.removeAttribute("open");
+      this.unmatchedSelectorsContainer.hidden = !this.unmatchedExpanded;
+      this.unmatchedTitleBlock.hidden = true;
     }
+
+    if (this.unmatchedExpanded && this.hasUnmatchedSelectors) {
+      CssHtmlTree.processTemplate(this.templateUnmatchedSelectors,
+        this.unmatchedSelectorTable, this);
+      if (!hasMatchedSelectors) {
+        this.matchedExpander.setAttribute("open", "");
+        this.unmatchedSelectorTable.classList.add("only-unmatched");
+      } else {
+        this.unmatchedExpander.setAttribute("open", "");
+        this.unmatchedSelectorTable.classList.remove("only-unmatched");
+      }
+    } else {
+      if (!hasMatchedSelectors) {
+        this.matchedExpander.removeAttribute("open");
+      }
+      this.unmatchedExpander.removeAttribute("open");
+      this.unmatchedSelectorTable.innerHTML = "";
+    }
+  },
+
+  
+
+
+  refreshAllSelectors: function PropertyView_refreshAllSelectors()
+  {
+    this.refreshMatchedSelectors();
   },
 
   
@@ -581,11 +702,17 @@ PropertyView.prototype = {
   
 
 
-  matchedSelectorsClick: function PropertyView_matchedSelectorsClick(aEvent)
+
+
+
+
+  propertyHeaderClick: function PropertyView_propertyHeaderClick(aEvent)
   {
-    this.matchedExpanded = !this.matchedExpanded;
-    this.refreshMatchedSelectors();
-    aEvent.preventDefault();
+    if (aEvent.target.className != "helplink") {
+      this.matchedExpanded = !this.matchedExpanded;
+      this.refreshAllSelectors();
+      aEvent.preventDefault();
+    }
   },
 
   
@@ -595,6 +722,15 @@ PropertyView.prototype = {
   {
     this.unmatchedExpanded = !this.unmatchedExpanded;
     this.refreshUnmatchedSelectors();
+    aEvent.preventDefault();
+  },
+
+  
+
+
+  mdnLinkClick: function PropertyView_mdnLinkClick(aEvent)
+  {
+    this.tree.win.openUILinkIn(this.link, "tab");
     aEvent.preventDefault();
   },
 };

@@ -1009,6 +1009,9 @@ pref("devtools.inspector.enabled", true);
 pref("devtools.styleinspector.enabled", true);
 
 
+pref("devtools.ruleview.enabled", true);
+
+
 pref("devtools.scratchpad.enabled", true);
 
 

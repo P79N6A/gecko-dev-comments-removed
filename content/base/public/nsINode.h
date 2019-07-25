@@ -284,9 +284,7 @@ private:
 
 #define DOM_USER_DATA         1
 #define DOM_USER_DATA_HANDLER 2
-#ifdef MOZ_SMIL
 #define SMIL_MAPPED_ATTR_ANIMVAL 3
-#endif 
 
 
 #define NS_INODE_IID \

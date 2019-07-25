@@ -55,8 +55,6 @@
 #include "nsIServiceManager.h"
 #include "nsIPercentHeightObserver.h"
 #include "nsLayoutUtils.h"
-#include "nsPlaceholderFrame.h"
-#include "nsFrameManager.h"
 #include "mozilla/Preferences.h"
 #ifdef IBMBIDI
 #include "nsBidiUtils.h"
@@ -851,7 +849,7 @@ static bool AreAllEarlierInFlowFramesEmpty(nsIFrame* aFrame,
 
 void
 nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
-                                            nsPlaceholderFrame* aPlaceholderFrame,
+                                            nsIFrame*         aPlaceholderFrame,
                                             nsIFrame*         aContainingBlock,
                                             nscoord           aBlockLeftContentEdge,
                                             nscoord           aBlockContentWidth,
@@ -934,12 +932,17 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
     nsLayoutUtils::GetAsBlock(aContainingBlock->GetContentInsertionFrame());
   if (blockFrame) {
     nscoord blockYOffset = blockFrame->GetOffsetTo(aContainingBlock).y;
-    const nsLineBox* lineBox = aPlaceholderFrame->GetCachedLineBox();
-    if (!lineBox) {
+    bool isValid;
+    nsBlockInFlowLineIterator iter(blockFrame, aPlaceholderFrame, &isValid);
+    if (!isValid) {
       
       
       aHypotheticalBox.mTop = placeholderOffset.y;
     } else {
+      NS_ASSERTION(iter.GetContainer() == blockFrame,
+                   "Found placeholder in wrong block!");
+      nsBlockFrame::line_iterator lineBox = iter.GetLine();
+
       
       
       if (mStyleDisplay->IsOriginalDisplayInlineOutside()) {
@@ -953,10 +956,10 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
         
         
         
-        bool allEmpty = true;
-        if (!lineBox->IsValidCachedIsEmpty() || !lineBox->CachedIsEmpty()) {
+        if (lineBox != iter.End()) {
           nsIFrame * firstFrame = lineBox->mFirstChild;
           bool found = false;
+          bool allEmpty = true;
           while (firstFrame) { 
             allEmpty = AreAllEarlierInFlowFramesEmpty(firstFrame,
               aPlaceholderFrame, &found);
@@ -965,17 +968,20 @@ nsHTMLReflowState::CalculateHypotheticalBox(nsPresContext*    aPresContext,
             firstFrame = firstFrame->GetNextSibling();
           }
           NS_ASSERTION(firstFrame, "Couldn't find placeholder!");
-        }
 
-        if (allEmpty) {
-          
-          
-          
-          aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
+          if (allEmpty) {
+            
+            
+            
+            aHypotheticalBox.mTop = lineBox->mBounds.y + blockYOffset;
+          } else {
+            
+            
+            aHypotheticalBox.mTop = lineBox->mBounds.YMost() + blockYOffset;
+          }
         } else {
           
-          
-          aHypotheticalBox.mTop = lineBox->mBounds.YMost() + blockYOffset;
+          aHypotheticalBox.mTop = placeholderOffset.y;
         }
       }
     }
@@ -1101,10 +1107,9 @@ nsHTMLReflowState::InitAbsoluteConstraints(nsPresContext* aPresContext,
                "Why are we here?");
 
   
-  nsPlaceholderFrame*     placeholderFrame;
+  nsIFrame*     placeholderFrame;
 
-  placeholderFrame =
-    aPresContext->PresShell()->FrameManager()->GetPlaceholderFrameFor(frame);
+  placeholderFrame = aPresContext->PresShell()->GetPlaceholderFrameFor(frame);
   NS_ASSERTION(nsnull != placeholderFrame, "no placeholder frame");
 
   

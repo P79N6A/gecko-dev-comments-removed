@@ -6122,7 +6122,6 @@ DisplayLine(nsDisplayListBuilder* aBuilder, const nsRect& aLineArea,
 
   nsDisplayListCollection collection;
   nsresult rv;
-  nsDisplayList aboveTextDecorations;
 
   
   
@@ -6137,8 +6136,6 @@ DisplayLine(nsDisplayListBuilder* aBuilder, const nsRect& aLineArea,
     kid = kid->GetNextSibling();
   }
   
-  collection.Content()->AppendToTop(&aboveTextDecorations);
-
   if (lineMayHaveTextOverflow) {
     aTextOverflow->ProcessLine(collection, aLine.get());
   }

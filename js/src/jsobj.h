@@ -1374,6 +1374,10 @@ struct JSObject : js::gc::Cell {
     inline JSBool getProperty(JSContext *cx, JSObject *receiver, js::PropertyName *name,
                               js::Value *vp);
     inline JSBool getElement(JSContext *cx, JSObject *receiver, uint32 index, js::Value *vp);
+    
+
+    inline JSBool getElementIfPresent(JSContext *cx, JSObject *receiver, uint32 index,
+                                      js::Value *vp, bool *present);
     inline JSBool getSpecial(JSContext *cx, JSObject *receiver, js::SpecialId sid, js::Value *vp);
 
     inline JSBool getGeneric(JSContext *cx, jsid id, js::Value *vp);

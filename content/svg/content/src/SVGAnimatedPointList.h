@@ -41,9 +41,7 @@
 
 class nsSVGElement;
 
-#ifdef MOZ_SMIL
 #include "nsISMILAttr.h"
-#endif 
 
 namespace mozilla {
 
@@ -112,10 +110,8 @@ public:
     return !!mAnimVal;
   }
 
-#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aElement);
-#endif 
 
 private:
 
@@ -127,7 +123,6 @@ private:
   SVGPointList mBaseVal;
   nsAutoPtr<SVGPointList> mAnimVal;
 
-#ifdef MOZ_SMIL
   struct SMILAnimatedPointList : public nsISMILAttr
   {
   public:
@@ -152,7 +147,6 @@ private:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
-#endif 
 };
 
 } 

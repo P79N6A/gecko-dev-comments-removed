@@ -149,9 +149,7 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLMediaElement.h"
 #endif
-#ifdef MOZ_SMIL
 #include "nsSMILAnimationController.h"
-#endif
 
 #include "nsRefreshDriver.h"
 
@@ -1124,12 +1122,10 @@ PresShell::Init(nsIDocument* aDocument,
     }
 #endif
 
-#ifdef MOZ_SMIL
   if (mDocument->HasAnimationController()) {
     nsSMILAnimationController* animCtrl = mDocument->GetAnimationController();
     animCtrl->NotifyRefreshDriverCreated(GetPresContext()->RefreshDriver());
   }
-#endif 
 
   
   QueryIsActive();
@@ -1254,11 +1250,9 @@ PresShell::Destroy()
     NS_ASSERTION(mDocument->GetShell() == this, "Wrong shell?");
     mDocument->DeleteShell();
 
-#ifdef MOZ_SMIL
     if (mDocument->HasAnimationController()) {
       mDocument->GetAnimationController()->NotifyRefreshDriverDestroying(rd);
     }
-#endif 
   }
 
   
@@ -4044,12 +4038,10 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
       
       mPresContext->FlushUserFontSet();
 
-#ifdef MOZ_SMIL
       
       if (mDocument->HasAnimationController()) {
         mDocument->GetAnimationController()->FlushResampleRequests();
       }
-#endif 
 
       nsAutoScriptBlocker scriptBlocker;
       mFrameConstructor->CreateNeededFrames();

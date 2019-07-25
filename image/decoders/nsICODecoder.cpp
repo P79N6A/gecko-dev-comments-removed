@@ -386,8 +386,7 @@ nsICODecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
 
     
     
-    if (static_cast<nsPNGDecoder*>(mContainedDecoder.get())->HasValidInfo() && 
-        static_cast<nsPNGDecoder*>(mContainedDecoder.get())->GetPixelDepth() != 32) {
+    if (!static_cast<nsPNGDecoder*>(mContainedDecoder.get())->IsValidICO()) {
       PostDataError();
     }
     return;

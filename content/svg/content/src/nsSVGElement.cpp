@@ -86,10 +86,8 @@
 #include "nsIFrame.h"
 #include "prdtoa.h"
 #include <stdarg.h>
-#ifdef MOZ_SMIL
 #include "nsSMILMappedAttribute.h"
 #include "SVGMotionSMILAttr.h"
-#endif 
 
 using namespace mozilla;
 
@@ -787,7 +785,6 @@ nsSVGElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
     aRuleWalker->Forward(mContentStyleRule);
   }
 
-#ifdef MOZ_SMIL
   
   
   
@@ -816,7 +813,6 @@ nsSVGElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
       aRuleWalker->Forward(animContentStyleRule);
     }
   }
-#endif 
 
   return NS_OK;
 }
@@ -1123,7 +1119,6 @@ nsSVGElement::UpdateContentStyleRule()
   mContentStyleRule = mappedAttrParser.CreateStyleRule();
 }
 
-#ifdef MOZ_SMIL
 static void
 ParseMappedAttrAnimValueCallback(void*    aObject,
                                  nsIAtom* aPropertyName,
@@ -1202,7 +1197,6 @@ nsSVGElement::GetAnimatedContentStyleRule()
                                              SMIL_MAPPED_ATTR_STYLERULE_ATOM,
                                              nsnull));
 }
-#endif 
 
 
 nsIAtom* nsSVGElement::GetEventNameForAttr(nsIAtom* aAttr)
@@ -1221,14 +1215,12 @@ nsIAtom* nsSVGElement::GetEventNameForAttr(nsIAtom* aAttr)
     return nsGkAtoms::onSVGScroll;
   if (aAttr == nsGkAtoms::onzoom)
     return nsGkAtoms::onSVGZoom;
-#ifdef MOZ_SMIL
   if (aAttr == nsGkAtoms::onbegin)
     return nsGkAtoms::onbeginEvent;
   if (aAttr == nsGkAtoms::onrepeat)
     return nsGkAtoms::onrepeatEvent;
   if (aAttr == nsGkAtoms::onend)
     return nsGkAtoms::onendEvent;
-#endif 
 
   return aAttr;
 }
@@ -2130,7 +2122,6 @@ nsSVGElement::RecompileScriptEventListeners()
   }
 }
 
-#ifdef MOZ_SMIL
 nsISMILAttr*
 nsSVGElement::GetAnimatedAttr(PRInt32 aNamespaceID, nsIAtom* aName)
 {
@@ -2327,4 +2318,3 @@ nsSVGElement::FlushAnimations()
     doc->GetAnimationController()->FlushResampleRequests();
   }
 }
-#endif 

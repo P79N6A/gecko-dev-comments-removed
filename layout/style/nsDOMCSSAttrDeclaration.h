@@ -62,11 +62,7 @@ class nsDOMCSSAttributeDeclaration : public nsDOMCSSDeclaration,
 {
 public:
   typedef mozilla::dom::Element Element;
-  nsDOMCSSAttributeDeclaration(Element* aContent
-#ifdef MOZ_SMIL
-                               , bool aIsSMILOverride
-#endif 
-                               );
+  nsDOMCSSAttributeDeclaration(Element* aContent, bool aIsSMILOverride);
   ~nsDOMCSSAttributeDeclaration();
 
   NS_DECL_CYCLE_COLLECTING_ISUPPORTS
@@ -87,13 +83,11 @@ protected:
 
   nsRefPtr<Element> mElement;
 
-#ifdef MOZ_SMIL
   
 
 
 
   const bool mIsSMILOverride;
-#endif 
 };
 
 #endif 

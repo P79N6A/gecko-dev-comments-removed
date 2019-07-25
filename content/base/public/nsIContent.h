@@ -57,10 +57,8 @@ class nsAttrName;
 class nsTextFragment;
 class nsIDocShell;
 class nsIFrame;
-#ifdef MOZ_SMIL
 class nsISMILAttr;
 class nsIDOMCSSStyleDeclaration;
-#endif 
 
 namespace mozilla {
 namespace css {
@@ -891,7 +889,6 @@ public:
     mPrimaryFrame = aFrame;
   }
 
-#ifdef MOZ_SMIL
   
 
 
@@ -924,7 +921,6 @@ public:
 
   virtual nsresult SetSMILOverrideStyleRule(mozilla::css::StyleRule* aStyleRule,
                                             bool aNotify) = 0;
-#endif 
 
   nsresult LookupNamespaceURI(const nsAString& aNamespacePrefix,
                               nsAString& aNamespaceURI) const;

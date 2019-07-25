@@ -234,14 +234,12 @@ DOMCI_CLASS(SVGDocument)
 
 DOMCI_CLASS(SVGAElement)
 DOMCI_CLASS(SVGAltGlyphElement)
-#ifdef MOZ_SMIL
 DOMCI_CLASS(SVGAnimateElement)
 DOMCI_CLASS(SVGAnimateTransformElement)
 DOMCI_CLASS(SVGAnimateMotionElement)
 DOMCI_CLASS(SVGMpathElement)
 DOMCI_CLASS(SVGSetElement)
 DOMCI_CLASS(TimeEvent)
-#endif 
 DOMCI_CLASS(SVGCircleElement)
 DOMCI_CLASS(SVGClipPathElement)
 DOMCI_CLASS(SVGDefsElement)

@@ -3404,11 +3404,9 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
   
   
   
-  nsIDocument* doc = OwnerDoc();
-  if (!nsContentUtils::IsRequestFullScreenAllowed() ||
-      !IsInDoc()) {
+  if (!nsContentUtils::IsRequestFullScreenAllowed()) {
     nsRefPtr<nsPLDOMEvent> e =
-      new nsPLDOMEvent(this,
+      new nsPLDOMEvent(OwnerDoc(),
                        NS_LITERAL_STRING("mozfullscreenerror"),
                        true,
                        false);
@@ -3416,27 +3414,8 @@ nsresult nsGenericHTMLElement::MozRequestFullScreen()
     return NS_OK;
   }
 
-  nsCOMPtr<nsIDOMDocument> domDocument(do_QueryInterface(doc));
-  NS_ENSURE_STATE(domDocument);
-  bool fullScreenEnabled;
-  domDocument->GetMozFullScreenEnabled(&fullScreenEnabled);
-  if (!fullScreenEnabled) {
-    nsRefPtr<nsPLDOMEvent> e =
-      new nsPLDOMEvent(this,
-                       NS_LITERAL_STRING("mozfullscreenerror"),
-                       true,
-                       false);
-    e->PostDOMEvent();
-    return NS_OK;
-  }
+  OwnerDoc()->AsyncRequestFullScreen(this);
 
-  doc->RequestFullScreen(this);
-#ifdef DEBUG
-  bool fullscreen;
-  domDocument->GetMozFullScreen(&fullscreen);
-  NS_ASSERTION(fullscreen, "Document should report fullscreen");
-  NS_ASSERTION(doc->IsFullScreenDoc(), "Should be in full screen state!");
-#endif
   return NS_OK;
 }
 

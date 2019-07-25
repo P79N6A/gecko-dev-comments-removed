@@ -80,10 +80,8 @@ public:
   static nsresult ToDOMSVGAngle(nsIDOMSVGAngle **aResult);
   nsresult ToDOMAnimatedAngle(nsIDOMSVGAnimatedAngle **aResult,
                               nsSVGElement* aSVGElement);
-#ifdef MOZ_SMIL
   
   nsISMILAttr* ToSMILAttr(nsSVGElement* aSVGElement);
-#endif 
 
   static float GetDegreesPerUnit(PRUint8 aUnit);
 
@@ -198,7 +196,6 @@ public:
       { return mVal->ToDOMAnimVal(aAnimVal, mSVGElement); }
   };
 
-#ifdef MOZ_SMIL
   
   
   
@@ -231,7 +228,6 @@ public:
     virtual void ClearAnimValue();
     virtual nsresult SetAnimValue(const nsSMILValue& aValue);
   };
-#endif 
 };
 
 nsresult

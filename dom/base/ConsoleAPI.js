@@ -39,9 +39,12 @@
 
 
 
+
 let Cu = Components.utils;
 let Ci = Components.interfaces;
 let Cc = Components.classes;
+
+const MAX_PAGE_TIMERS = 10000;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
@@ -56,6 +59,9 @@ ConsoleAPI.prototype = {
 
   
   init: function CA_init(aWindow) {
+    Services.obs.addObserver(this, "xpcom-shutdown", false);
+    Services.obs.addObserver(this, "inner-window-destroyed", false);
+
     let outerID;
     let innerID;
     try {
@@ -103,6 +109,12 @@ ConsoleAPI.prototype = {
       groupEnd: function CA_groupEnd() {
         self.notifyObservers(outerID, innerID, "groupEnd", arguments);
       },
+      time: function CA_time() {
+        self.notifyObservers(outerID, innerID, "time", self.startTimer(innerID, arguments[0]));
+      },
+      timeEnd: function CA_timeEnd() {
+        self.notifyObservers(outerID, innerID, "timeEnd", self.stopTimer(innerID, arguments[0]));
+      },
       __exposedProps__: {
         log: "r",
         info: "r",
@@ -113,7 +125,9 @@ ConsoleAPI.prototype = {
         dir: "r",
         group: "r",
         groupCollapsed: "r",
-        groupEnd: "r"
+        groupEnd: "r",
+        time: "r",
+        timeEnd: "r"
       }
     };
 
@@ -135,6 +149,8 @@ ConsoleAPI.prototype = {
       group: genPropDesc('group'),
       groupCollapsed: genPropDesc('groupCollapsed'),
       groupEnd: genPropDesc('groupEnd'),
+      time: genPropDesc('time'),
+      timeEnd: genPropDesc('timeEnd'),
       __noSuchMethod__: { enumerable: true, configurable: true, writable: true,
                           value: function() {} },
       __mozillaConsole__: { value: true }
@@ -144,6 +160,18 @@ ConsoleAPI.prototype = {
     Cu.makeObjectPropsNormal(contentObj);
 
     return contentObj;
+  },
+
+  observe: function CA_observe(aSubject, aTopic, aData)
+  {
+    if (aTopic == "xpcom-shutdown") {
+      Services.obs.removeObserver(this, "xpcom-shutdown");
+      Services.obs.removeObserver(this, "inner-window-destroyed");
+    }
+    else if (aTopic == "inner-window-destroyed") {
+      let innerWindowID = aSubject.QueryInterface(Ci.nsISupportsPRUint64).data;
+      delete this.timerRegistry[innerWindowID + ""];
+    }
   },
 
   
@@ -254,6 +282,76 @@ ConsoleAPI.prototype = {
 
   beginGroup: function CA_beginGroup() {
     return Array.prototype.join.call(arguments[0], " ");
+  },
+
+  
+
+
+
+
+
+
+  timerRegistry: {},
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  startTimer: function CA_startTimer(aWindowId, aName) {
+    if (!aName) {
+        return;
+    }
+    let innerID = aWindowId + "";
+    if (!this.timerRegistry[innerID]) {
+        this.timerRegistry[innerID] = {};
+    }
+    let pageTimers = this.timerRegistry[innerID];
+    if (Object.keys(pageTimers).length > MAX_PAGE_TIMERS - 1) {
+        return { error: "maxTimersExceeded" };
+    }
+    let key = aWindowId + "-" + aName.toString();
+    if (!pageTimers[key]) {
+        pageTimers[key] = Date.now();
+    }
+    return { name: aName, started: pageTimers[key] };
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+  stopTimer: function CA_stopTimer(aWindowId, aName) {
+    if (!aName) {
+        return;
+    }
+    let innerID = aWindowId + "";
+    let pageTimers = this.timerRegistry[innerID];
+    if (!pageTimers) {
+        return;
+    }
+    let key = aWindowId + "-" + aName.toString();
+    if (!pageTimers[key]) {
+        return;
+    }
+    let duration = Date.now() - pageTimers[key];
+    delete pageTimers[key];
+    return { name: aName, duration: duration };
   }
 };
 
