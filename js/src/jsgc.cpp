@@ -2162,6 +2162,13 @@ GCMarker::GrayCallback(JSTracer *trc, void **thingp, JSGCTraceKind kind)
     gcmarker->appendGrayRoot(*thingp, kind);
 }
 
+size_t
+GCMarker::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const
+{
+    return stack.sizeOfExcludingThis(mallocSizeOf) +
+           grayRoots.sizeOfExcludingThis(mallocSizeOf);
+}
+
 void
 SetMarkStackLimit(JSRuntime *rt, size_t limit)
 {
@@ -3148,6 +3155,11 @@ ValidateIncrementalMarking(JSContext *cx)
     }
 
     
+    WeakMapVector weakmaps;
+    if (!WeakMapBase::saveWeakMapList(rt, weakmaps))
+        return;
+
+    
 
 
 
@@ -3155,6 +3167,9 @@ ValidateIncrementalMarking(JSContext *cx)
     
     js::gc::State state = rt->gcIncrementalState;
     rt->gcIncrementalState = NO_INCREMENTAL;
+
+    
+    WeakMapBase::resetWeakMapList(rt);
 
     JS_ASSERT(gcmarker->isDrained());
     gcmarker->reset();
@@ -3202,6 +3217,10 @@ ValidateIncrementalMarking(JSContext *cx)
 
         memcpy(bitmap->bitmap, incBitmap.bitmap, sizeof(incBitmap.bitmap));
     }
+
+    
+    WeakMapBase::resetWeakMapList(rt);
+    WeakMapBase::restoreWeakMapList(rt, weakmaps);
 
     rt->gcIncrementalState = state;
 }

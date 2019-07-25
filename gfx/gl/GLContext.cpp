@@ -60,8 +60,7 @@ namespace mozilla {
 namespace gl {
 
 #ifdef DEBUG
-
-GLContext* GLContext::sCurrentGLContext = nsnull;
+PRUintn GLContext::sCurrentGLContextTLS = -1;
 #endif
 
 PRUint32 GLContext::sDebugMode = 0;

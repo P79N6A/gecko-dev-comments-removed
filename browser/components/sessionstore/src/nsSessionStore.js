@@ -1682,10 +1682,15 @@ SessionStoreService.prototype = {
     
     
     
-    let homePages = aWindow.gHomeButton.getHomePage().split("|");
+    
+    let homePages = ["about:blank"];
     let removableTabs = [];
     let tabbrowser = aWindow.gBrowser;
     let normalTabsLen = tabbrowser.tabs.length - tabbrowser._numPinnedTabs;
+    let startupPref = this._prefBranch.getIntPref("startup.page");
+    if (startupPref == 1)
+      homePages = homePages.concat(aWindow.gHomeButton.getHomePage().split("|"));
+
     for (let i = tabbrowser._numPinnedTabs; i < tabbrowser.tabs.length; i++) {
       let tab = tabbrowser.tabs[i];
       if (homePages.indexOf(tab.linkedBrowser.currentURI.spec) != -1) {

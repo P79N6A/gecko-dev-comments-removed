@@ -362,30 +362,6 @@ js_PutCallObject(js::StackFrame *fp);
 
 namespace js {
 
-CallObject *
-CreateFunCallObject(JSContext *cx, StackFrame *fp);
-
-CallObject *
-CreateEvalCallObject(JSContext *cx, StackFrame *fp);
-
-extern JSBool
-GetCallArg(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
-extern JSBool
-GetCallVar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
-extern JSBool
-GetCallUpvar(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
-
-extern JSBool
-SetCallArg(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
-
-extern JSBool
-SetCallVar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
-
-extern JSBool
-SetCallUpvar(JSContext *cx, JSObject *obj, jsid id, JSBool strict, js::Value *vp);
-
 
 
 
@@ -415,8 +391,6 @@ JSFunction::toExtended() const
     return static_cast<const js::FunctionExtended *>(this);
 }
 
-extern JSBool
-js_GetArgsValue(JSContext *cx, js::StackFrame *fp, js::Value *vp);
 
 
 
@@ -427,8 +401,7 @@ js_GetArgsValue(JSContext *cx, js::StackFrame *fp, js::Value *vp);
 
 
 
-
-extern JSObject *
+extern js::ArgumentsObject *
 js_GetArgsObject(JSContext *cx, js::StackFrame *fp);
 
 extern void

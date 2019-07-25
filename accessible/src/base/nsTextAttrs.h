@@ -311,6 +311,25 @@ private:
 
 
 
+class ColorTextAttr : public nsTextAttr<nscolor>
+{
+public:
+  ColorTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame);
+
+  
+  virtual nsIAtom* GetName() const { return nsGkAtoms::color; }
+
+protected:
+  
+  virtual bool GetValueFor(nsIContent* aContent, nscolor* aValue);
+  virtual void Format(const nscolor& aValue, nsAString& aFormattedValue);
+};
+
+
+
+
+
+
 class nsFontSizeTextAttr : public nsTextAttr<nscoord>
 {
 public:

@@ -171,9 +171,9 @@ LayerManagerOGL::CreateContext()
 }
 
 bool
-LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext)
+LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext, bool force)
 {
-  ScopedGfxFeatureReporter reporter("GL Layers");
+  ScopedGfxFeatureReporter reporter("GL Layers", force);
 
   
   NS_ABORT_IF_FALSE(mGLContext == nsnull, "Don't reiniailize layer managers");

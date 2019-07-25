@@ -291,6 +291,7 @@ typedef enum JSWhyMagic
     JS_ARG_POISON,               
     JS_SERIALIZE_NO_NODE,        
     JS_LAZY_ARGUMENTS,           
+    JS_UNASSIGNED_ARGUMENTS,     
     JS_IS_CONSTRUCTING,          
     JS_ION_ERROR,                
     JS_GENERIC_MAGIC             

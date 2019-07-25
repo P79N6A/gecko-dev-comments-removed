@@ -103,7 +103,7 @@ public:
 
 
 
-  bool Initialize();
+  bool Initialize(bool force = false);
 
   
 

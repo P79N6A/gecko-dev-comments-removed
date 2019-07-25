@@ -38,8 +38,6 @@
 
 
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
-
 #include <windows.h>
 #include <strsafe.h>
 
@@ -177,6 +175,4 @@ TaskbarPreviewButton::Update() {
 
 } 
 } 
-
-#endif 
 

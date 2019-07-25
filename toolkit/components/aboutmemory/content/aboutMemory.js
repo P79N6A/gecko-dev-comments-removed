@@ -58,8 +58,13 @@ const UNITS_PERCENTAGE       = Ci.nsIMemoryReporter.UNITS_PERCENTAGE;
 
 
 
-const gVerbose = location.href === "about:memory?verbose" ||
-                 location.href === "about:compartments?verbose";
+
+let gVerbose;
+{
+  let split = document.location.href.split('?');
+  document.title = split[0].toLowerCase();
+  gVerbose = split.length == 2 && split[1].toLowerCase() == 'verbose';
+}
 
 let gChildMemoryListener = undefined;
 
@@ -114,11 +119,9 @@ function addChildObserversAndUpdate(aUpdateFn)
 
 function onLoad()
 {
-  if (location.href.startsWith("about:memory")) {
-    document.title = "about:memory";
+  if (document.title === "about:memory") {
     onLoadAboutMemory();
-  } else if (location.href.startsWith("about:compartments")) {
-    document.title = "about:compartments";
+  } else if (document.title === "about:compartments") {
     onLoadAboutCompartments();
   } else {
     assert(false, "Unknown location");
@@ -1470,6 +1473,10 @@ function onLoadAboutCompartments()
 {
   
   
+  
+  
+  
+  updateAboutCompartments();
   minimizeMemoryUsage3x(
     function() { addChildObserversAndUpdate(updateAboutCompartments); });
 }
@@ -1510,12 +1517,6 @@ function updateAboutCompartments()
     let a = appendElementWithText(div1, "a", "option", "More verbose");
     a.href = "about:compartments?verbose";
   }
-
-  
-  
-  let e = document.createEvent("Event");
-  e.initEvent("bodygenerated", false, false);
-  document.dispatchEvent(e);
 }
 
 

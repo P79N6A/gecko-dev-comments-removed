@@ -122,16 +122,24 @@ MarkValueRootRange(JSTracer *trc, Value *begin, Value *end, const char *name)
 
 
 
+void
+MarkSlot(JSTracer *trc, HeapSlot *s, const char *name);
+
+void
+MarkSlotRange(JSTracer *trc, size_t len, HeapSlot *vec, const char *name);
+
+
+
+
+
+void
+MarkCrossCompartmentSlot(JSTracer *trc, HeapSlot *s, const char *name);
+
+
+
 
 void
 MarkValueUnbarriered(JSTracer *trc, Value *v, const char *name);
-
-
-
-
-
-void
-MarkCrossCompartmentValue(JSTracer *trc, HeapValue *v, const char *name);
 
 
 

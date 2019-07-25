@@ -151,14 +151,11 @@ top:
 
 
 
-                  Value v = cx->getPendingException();
                   JS_ASSERT(JSOp(*pc) == JSOP_ENDITER);
-                  cx->clearPendingException();
-                  bool ok = !!js_CloseIterator(cx, &cx->regs().sp[-1].toObject());
+                  bool ok = UnwindIteratorForException(cx, &cx->regs().sp[-1].toObject());
                   cx->regs().sp -= 1;
                   if (!ok)
                       goto top;
-                  cx->setPendingException(v);
                 }
             }
         }
@@ -534,13 +531,13 @@ js_InternalThrow(VMFrame &f)
     for (;;) {
         if (cx->isExceptionPending()) {
             
-            JSThrowHook handler = cx->debugHooks->throwHook;
+            JSThrowHook handler = cx->runtime->debugHooks.throwHook;
             if (handler || !cx->compartment->getDebuggees().empty()) {
                 Value rval;
                 JSTrapStatus st = Debugger::onExceptionUnwind(cx, &rval);
                 if (st == JSTRAP_CONTINUE && handler) {
                     st = handler(cx, cx->fp()->script(), cx->regs().pc, &rval,
-                                 cx->debugHooks->throwHookData);
+                                 cx->runtime->debugHooks.throwHookData);
                 }
 
                 switch (st) {

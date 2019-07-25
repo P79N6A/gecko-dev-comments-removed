@@ -479,7 +479,7 @@ struct JSRuntime : js::RuntimeFriendFields
     }
 
     
-    JSDebugHooks        globalDebugHooks;
+    JSDebugHooks        debugHooks;
 
     
     bool                debugMode;
@@ -731,7 +731,7 @@ struct JSRuntime : js::RuntimeFriendFields
     }
 
     void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
-                             size_t *regexpCode, size_t *stackCommitted);
+                             size_t *regexpCode, size_t *stackCommitted, size_t *gcMarker);
 
     void purge(JSContext *cx);
 };
@@ -755,8 +755,6 @@ struct JSArgumentFormatMap {
     JSArgumentFormatMap *next;
 };
 #endif
-
-extern const JSDebugHooks js_NullDebugHooks;  
 
 namespace js {
 
@@ -1056,9 +1054,6 @@ struct JSContext : js::ContextFriendFields
 #endif
 
 #endif 
-
-    
-    const JSDebugHooks  *debugHooks;
 
     
     JSSecurityCallbacks *securityCallbacks;

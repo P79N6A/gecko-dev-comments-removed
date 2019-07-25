@@ -794,6 +794,10 @@ protected:
     return this;
   }
 
+  nsresult GetAttributeNodeNSInternal(const nsAString& aNamespaceURI,
+                                      const nsAString& aLocalName,
+                                      nsIDOMAttr** aReturn);
+
 public:
   
   

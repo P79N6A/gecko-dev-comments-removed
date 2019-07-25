@@ -37,8 +37,6 @@
 
 
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_WIN7
-
 #include "JumpListBuilder.h"
 
 #include "nsError.h"
@@ -769,4 +767,3 @@ AsyncDeleteAllFaviconsFromDisk::~AsyncDeleteAllFaviconsFromDisk()
 } 
 } 
 
-#endif 

@@ -370,7 +370,7 @@ StackFrame::functionPrologue(JSContext *cx)
     JSFunction *fun = this->fun();
 
     if (fun->isHeavyweight()) {
-        if (!CreateFunCallObject(cx, this))
+        if (!CallObject::createForFunction(cx, this))
             return false;
     } else {
         
