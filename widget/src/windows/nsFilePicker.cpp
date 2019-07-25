@@ -98,10 +98,50 @@ int CALLBACK BrowseCallbackProc(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpDa
   return 0;
 }
 
+static void EnsureWindowVisible(HWND hwnd) 
+{
+  
+  
+  HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONULL);
+  if (!monitor) {
+    
+    HWND parentHwnd = GetParent(hwnd);
+    RECT parentRect;
+    GetWindowRect(parentHwnd, &parentRect);
+    BOOL b = SetWindowPos(hwnd, NULL, 
+                          parentRect.left, 
+                          parentRect.top, 0, 0, 
+                          SWP_NOACTIVATE | SWP_NOSIZE | SWP_NOZORDER);
+  }
+}
 
 
 static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
-                                        WPARAM wParam, LPARAM lParam)
+                                        WPARAM wParam, LPARAM lParam) 
+{
+  if (msg == WM_NOTIFY) {
+    LPOFNOTIFYW lpofn = (LPOFNOTIFYW) lParam;
+    if (!lpofn || !lpofn->lpOFN) {
+      return 0;
+    }
+    
+    if (CDN_INITDONE == lpofn->hdr.code) {
+      
+      
+      
+      PostMessage(hwnd, MOZ_WM_ENSUREVISIBLE, 0, 0);
+    }
+  } else if (msg == MOZ_WM_ENSUREVISIBLE) {
+    EnsureWindowVisible(GetParent(hwnd));
+  }
+  return 0;
+}
+
+
+
+
+static UINT_PTR CALLBACK MultiFilePickerHook(HWND hwnd, UINT msg,
+                                             WPARAM wParam, LPARAM lParam)
 {
   switch (msg) {
     case WM_INITDIALOG:
@@ -118,6 +158,9 @@ static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
     case WM_NOTIFY:
       {
         LPOFNOTIFYW lpofn = (LPOFNOTIFYW) lParam;
+        if (!lpofn || !lpofn->lpOFN) {
+          return 0;
+        }
         
         
         if (lpofn->hdr.code == CDN_SELCHANGE) {
@@ -163,7 +206,8 @@ static UINT_PTR CALLBACK FilePickerHook(HWND hwnd, UINT msg,
       }
       break;
   }
-  return 0;
+
+  return FilePickerHook(hwnd, msg, wParam, lParam);
 }
 
 NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
@@ -246,7 +290,9 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
     ofn.lpstrFile    = fileBuffer;
     ofn.nMaxFile     = FILE_BUFFER_SIZE;
     ofn.Flags = OFN_SHAREAWARE | OFN_LONGNAMES | OFN_OVERWRITEPROMPT |
-                OFN_HIDEREADONLY | OFN_PATHMUSTEXIST;
+                OFN_HIDEREADONLY | OFN_PATHMUSTEXIST | OFN_ENABLESIZING | 
+                OFN_EXPLORER | OFN_ENABLEHOOK;
+    ofn.lpfnHook = FilePickerHook;
 
     
     nsCOMPtr<nsIPrivateBrowsingService> pbs =
@@ -305,8 +351,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         result = ::GetOpenFileNameW(&ofn);
       }
       else if (mMode == modeOpenMultiple) {
-        ofn.Flags |= OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT | 
-                     OFN_EXPLORER | OFN_ENABLEHOOK;
+        ofn.Flags |= OFN_FILEMUSTEXIST | OFN_ALLOWMULTISELECT;
 
         
         
@@ -314,7 +359,7 @@ NS_IMETHODIMP nsFilePicker::ShowW(PRInt16 *aReturnVal)
         
         
         
-        ofn.lpfnHook = FilePickerHook;
+        ofn.lpfnHook = MultiFilePickerHook;
         fileBuffer.forget();
         result = ::GetOpenFileNameW(&ofn);
         fileBuffer = ofn.lpstrFile;

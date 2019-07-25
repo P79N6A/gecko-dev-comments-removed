@@ -66,6 +66,9 @@
 #define MOZ_WM_HSCROLL                    (WM_APP+0x0313)
 
 
+#define MOZ_WM_ENSUREVISIBLE              (WM_APP + 14159)
+
+
 #define WIN2K_VERSION                     0x500
 #define WINXP_VERSION                     0x501
 #define WIN2K3_VERSION                    0x502
