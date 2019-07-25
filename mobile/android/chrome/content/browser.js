@@ -2913,7 +2913,13 @@ var FormAssistant = {
     switch (aEvent.type) {
       case "focus":
         let currentElement = aEvent.target;
-        this._showValidationMessage(currentElement);
+
+        
+        
+        
+        if (this._showValidationMessage(currentElement))
+          break;
+        this._showAutoCompleteSuggestions(currentElement)
         break;
 
       case "input":
