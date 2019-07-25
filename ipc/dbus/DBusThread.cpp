@@ -276,6 +276,14 @@ static void HandleWatchRemove(DBusThread* aDbt) {
   p.fd = removeFD;
   p.events = events;
   int index = aDbt->mPollData.IndexOf(p, 0, PollFdComparator());
+  
+  
+  
+  
+  if(index < 0) {
+    LOG("DBus requested watch removal of non-existant socket, ignoring...");
+    return;
+  }
   aDbt->mPollData.RemoveElementAt(index);
 
   
