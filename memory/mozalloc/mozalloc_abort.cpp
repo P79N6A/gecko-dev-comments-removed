@@ -61,8 +61,9 @@ static void
 TouchBadMemory()
 {
     
-    gDummyCounter += *((int *) 0);   
-                                     
+    volatile int *p = 0;
+    gDummyCounter += *p;   
+                           
 }
 
 void
