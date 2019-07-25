@@ -85,9 +85,11 @@ registerCleanupFunction(function tearDown() {
 
 
 
-define('gclitest/index', ['require', 'exports', 'module' , 'gclitest/suite'], function(require, exports, module) {
+define('gclitest/index', ['require', 'exports', 'module' , 'gclitest/suite', 'gcli/settings', 'gcli/ui/display'], function(require, exports, module) {
 
   var examiner = require('gclitest/suite').examiner;
+  var settings = require('gcli/settings');
+  var Display = require('gcli/ui/display').Display;
 
   
   var fakeWindow = {
@@ -118,7 +120,11 @@ define('gclitest/index', ['require', 'exports', 'module' , 'gclitest/suite'], fu
 
 
   exports.run = function(options) {
-    examiner.run(options || {});
+    options = options || {};
+    examiner.mergeDefaultOptions(options);
+
+    examiner.reset();
+    examiner.run(options);
 
     
     
@@ -126,6 +132,48 @@ define('gclitest/index', ['require', 'exports', 'module' , 'gclitest/suite'], fu
       window: options.window,
       display: options.display,
       hideExec: options.hideExec
+    };
+  };
+
+  
+
+
+
+
+
+
+
+
+  exports.createDisplay = function(options) {
+    options = options || {};
+    if (options.settings != null) {
+      settings.setDefaults(options.settings);
+    }
+
+    window.display = new Display(options);
+    var requisition = window.display.requisition;
+
+    exports.run({
+      window: window,
+      display: window.display,
+      hideExec: true
+    });
+
+    window.testCommands = function() {
+      require([ 'gclitest/mockCommands' ], function(mockCommands) {
+        mockCommands.setup();
+      });
+    };
+    window.testCommands();
+
+    return {
+      
+
+
+
+      exec: requisition.exec.bind(requisition),
+      update: requisition.update.bind(requisition),
+      destroy: window.display.destroy.bind(window.display)
     };
   };
 
@@ -146,7 +194,7 @@ define('gclitest/index', ['require', 'exports', 'module' , 'gclitest/suite'], fu
 
 
 
-define('gclitest/suite', ['require', 'exports', 'module' , 'gcli/index', 'test/examiner', 'gclitest/testCanon', 'gclitest/testCli', 'gclitest/testCompletion', 'gclitest/testExec', 'gclitest/testHelp', 'gclitest/testHistory', 'gclitest/testInputter', 'gclitest/testIntro', 'gclitest/testJs', 'gclitest/testKeyboard', 'gclitest/testPref', 'gclitest/testRequire', 'gclitest/testResource', 'gclitest/testScratchpad', 'gclitest/testSettings', 'gclitest/testSpell', 'gclitest/testSplit', 'gclitest/testTokenize', 'gclitest/testTooltip', 'gclitest/testTypes', 'gclitest/testUtil'], function(require, exports, module) {
+define('gclitest/suite', ['require', 'exports', 'module' , 'gcli/index', 'test/examiner', 'gclitest/testCanon', 'gclitest/testCli', 'gclitest/testCompletion', 'gclitest/testExec', 'gclitest/testHelp', 'gclitest/testHistory', 'gclitest/testInputter', 'gclitest/testIncomplete', 'gclitest/testIntro', 'gclitest/testJs', 'gclitest/testKeyboard', 'gclitest/testPref', 'gclitest/testRequire', 'gclitest/testResource', 'gclitest/testScratchpad', 'gclitest/testSettings', 'gclitest/testSpell', 'gclitest/testSplit', 'gclitest/testTokenize', 'gclitest/testTooltip', 'gclitest/testTypes', 'gclitest/testUtil'], function(require, exports, module) {
 
   
   require('gcli/index');
@@ -163,6 +211,7 @@ define('gclitest/suite', ['require', 'exports', 'module' , 'gcli/index', 'test/e
   examiner.addSuite('gclitest/testHelp', require('gclitest/testHelp'));
   examiner.addSuite('gclitest/testHistory', require('gclitest/testHistory'));
   examiner.addSuite('gclitest/testInputter', require('gclitest/testInputter'));
+  examiner.addSuite('gclitest/testIncomplete', require('gclitest/testIncomplete'));
   examiner.addSuite('gclitest/testIntro', require('gclitest/testIntro'));
   examiner.addSuite('gclitest/testJs', require('gclitest/testJs'));
   examiner.addSuite('gclitest/testKeyboard', require('gclitest/testKeyboard'));
@@ -231,20 +280,18 @@ examiner.defaultOptions = {};
 
 
 
-function mergeDefaultOptions(options) {
+examiner.mergeDefaultOptions = function(options) {
   Object.keys(examiner.defaultOptions).forEach(function(name) {
     if (options[name] == null) {
       options[name] = examiner.defaultOptions[name];
     }
   });
-}
+};
 
 
 
 
 examiner.run = function(options) {
-  mergeDefaultOptions(options);
-
   Object.keys(examiner.suites).forEach(function(suiteName) {
     var suite = examiner.suites[suiteName];
     suite.run(options);
@@ -264,7 +311,6 @@ examiner.run = function(options) {
 
 
 examiner.runAsync = function(options, callback) {
-  mergeDefaultOptions(options);
   this._runAsyncInternal(0, options, callback);
 };
 
@@ -300,6 +346,15 @@ examiner.toRemote = function() {
       status: this.status
     }
   };
+};
+
+
+
+
+examiner.reset = function() {
+  Object.keys(examiner.suites).forEach(function(suiteName) {
+    examiner.suites[suiteName].reset();
+  }, this);
 };
 
 
@@ -378,15 +433,23 @@ function Suite(suiteName, suite) {
 
 
 
+Suite.prototype.reset = function() {
+  Object.keys(this.tests).forEach(function(testName) {
+    this.tests[testName].reset();
+  }, this);
+};
+
+
+
+
 Suite.prototype.run = function(options) {
   if (!this._setup(options)) {
     return;
   }
 
   Object.keys(this.tests).forEach(function(testName) {
-    var test = this.tests[testName];
-    test.run(options);
-  }.bind(this));
+    this.tests[testName].run(options);
+  }, this);
 
   this._shutdown(options);
 };
@@ -543,6 +606,15 @@ function Test(suite, name, func) {
 
 
 
+Test.prototype.reset = function() {
+  this.failures = [];
+  this.status = stati.notrun;
+  this.checks = 0;
+};
+
+
+
+
 Test.prototype.run = function(options) {
   assert.currentTest = this;
   this.status = stati.executing;
@@ -554,7 +626,7 @@ Test.prototype.run = function(options) {
   }
   catch (ex) {
     assert.ok(false, '' + ex);
-    console.error(ex);
+    console.error(ex.stack);
     if ((options.isNode || options.isFirefox) && ex.stack) {
       console.error(ex.stack);
     }
@@ -770,10 +842,22 @@ define('gclitest/testCanon', ['require', 'exports', 'module' , 'gclitest/helpers
 
 
 
-define('gclitest/helpers', ['require', 'exports', 'module' , 'test/assert'], function(require, exports, module) {
+define('gclitest/helpers', ['require', 'exports', 'module' , 'test/assert', 'gcli/util'], function(require, exports, module) {
 
 
 var test = require('test/assert');
+var util = require('gcli/util');
+
+
+var cachedOptions = undefined;
+
+exports.setup = function(opts) {
+  cachedOptions = opts;
+};
+
+exports.shutdown = function(opts) {
+  cachedOptions = undefined;
+};
 
 
 
@@ -792,58 +876,233 @@ var test = require('test/assert');
 
 
 
-exports.status = function(options, tests) {
+exports.status = function(options, checks) {
   var requisition = options.display.requisition;
   var inputter = options.display.inputter;
   var completer = options.display.completer;
 
-  if (tests.typed) {
-    inputter.setInput(tests.typed);
+  if (checks.typed) {
+    inputter.setInput(checks.typed);
   }
   else {
-    test.ok(false, "Missing typed for " + JSON.stringify(tests));
+    test.ok(false, "Missing typed for " + JSON.stringify(checks));
     return;
   }
 
-  if (tests.cursor) {
-    inputter.setCursor(tests.cursor);
+  if (checks.cursor) {
+    inputter.setCursor(checks.cursor);
   }
 
-  if (tests.status) {
-    test.is(requisition.getStatus().toString(), tests.status,
-            "status for " + tests.typed);
+  if (checks.status) {
+    test.is(requisition.getStatus().toString(),
+            checks.status,
+            "status for " + checks.typed);
   }
 
-  if (tests.emptyParameters != null) {
-    var realParams = completer.emptyParameters;
-    test.is(realParams.length, tests.emptyParameters.length,
-            'emptyParameters.length for \'' + tests.typed + '\'');
+  var data = completer._getCompleterTemplateData();
+  if (checks.emptyParameters != null) {
+    var realParams = data.emptyParameters;
+    test.is(realParams.length,
+            checks.emptyParameters.length,
+            'emptyParameters.length for \'' + checks.typed + '\'');
 
-    if (realParams.length === tests.emptyParameters.length) {
+    if (realParams.length === checks.emptyParameters.length) {
       for (var i = 0; i < realParams.length; i++) {
-        test.is(realParams[i].replace(/\u00a0/g, ' '), tests.emptyParameters[i],
-                'emptyParameters[' + i + '] for \'' + tests.typed + '\'');
+        test.is(realParams[i].replace(/\u00a0/g, ' '),
+                checks.emptyParameters[i],
+                'emptyParameters[' + i + '] for \'' + checks.typed + '\'');
       }
     }
   }
 
-  if (tests.markup) {
-    var cursor = tests.cursor ? tests.cursor.start : tests.typed.length;
+  if (checks.markup) {
+    var cursor = checks.cursor ? checks.cursor.start : checks.typed.length;
     var statusMarkup = requisition.getInputStatusMarkup(cursor);
     var actualMarkup = statusMarkup.map(function(s) {
       return Array(s.string.length + 1).join(s.status.toString()[0]);
     }).join('');
-    test.is(tests.markup, actualMarkup, 'markup for ' + tests.typed);
+
+    test.is(checks.markup,
+            actualMarkup,
+            'markup for ' + checks.typed);
   }
 
-  if (tests.directTabText) {
-    test.is(completer.directTabText, tests.directTabText,
-            'directTabText for \'' + tests.typed + '\'');
+  if (checks.directTabText) {
+    test.is(data.directTabText,
+            checks.directTabText,
+            'directTabText for \'' + checks.typed + '\'');
   }
 
-  if (tests.arrowTabText) {
-    test.is(completer.arrowTabText, ' \u00a0\u21E5 ' + tests.arrowTabText,
-            'arrowTabText for \'' + tests.typed + '\'');
+  if (checks.arrowTabText) {
+    test.is(' \u00a0\u21E5 ' + checks.arrowTabText,
+            data.arrowTabText,
+            'arrowTabText for \'' + checks.typed + '\'');
+  }
+};
+
+
+
+
+
+exports.setInput = function(typed, cursor) {
+  cachedOptions.display.inputter.setInput(typed);
+
+  if (cursor) {
+    cachedOptions.display.inputter.setCursor({ start: cursor, end: cursor });
+  }
+};
+
+
+
+
+exports.pressTab = function() {
+  
+
+  var fakeEvent = {
+    keyCode: util.KeyEvent.DOM_VK_TAB,
+    preventDefault: function() { },
+    timeStamp: new Date().getTime()
+  };
+  cachedOptions.display.inputter.onKeyDown(fakeEvent);
+  cachedOptions.display.inputter.onKeyUp(fakeEvent);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+exports.check = function(checks) {
+  var requisition = cachedOptions.display.requisition;
+  var completer = cachedOptions.display.completer;
+  var actual = completer._getCompleterTemplateData();
+
+  if (checks.input) {
+    test.is(cachedOptions.display.inputter.element.value,
+            checks.input,
+            'input');
+  }
+
+  if (checks.cursor) {
+    test.is(cachedOptions.display.inputter.element.selectionStart,
+            checks.cursor,
+            'cursor');
+  }
+
+  if (checks.status) {
+    test.is(requisition.getStatus().toString(),
+            checks.status,
+            'status');
+  }
+
+  if (checks.markup) {
+    var cursor = cachedOptions.display.inputter.element.selectionStart;
+    var statusMarkup = requisition.getInputStatusMarkup(cursor);
+    var actualMarkup = statusMarkup.map(function(s) {
+      return Array(s.string.length + 1).join(s.status.toString()[0]);
+    }).join('');
+
+    test.is(checks.markup,
+            actualMarkup,
+            'markup');
+  }
+
+  if (checks.emptyParameters) {
+    var actualParams = actual.emptyParameters;
+    test.is(actualParams.length,
+            checks.emptyParameters.length,
+            'emptyParameters.length');
+
+    if (actualParams.length === checks.emptyParameters.length) {
+      for (var i = 0; i < actualParams.length; i++) {
+        test.is(actualParams[i].replace(/\u00a0/g, ' '),
+                checks.emptyParameters[i],
+                'emptyParameters[' + i + ']');
+      }
+    }
+  }
+
+  if (checks.directTabText) {
+    test.is(actual.directTabText,
+            checks.directTabText,
+            'directTabText');
+  }
+
+  if (checks.arrowTabText) {
+    test.is(actual.arrowTabText,
+            ' \u00a0\u21E5 ' + checks.arrowTabText,
+            'arrowTabText');
+  }
+
+  if (checks.args) {
+    Object.keys(checks.args).forEach(function(paramName) {
+      var check = checks.args[paramName];
+
+      var assignment;
+      if (paramName === 'command') {
+        assignment = requisition.commandAssignment;
+      }
+      else {
+        assignment = requisition.getAssignment(paramName);
+      }
+
+      if (assignment == null) {
+        test.ok(false, 'Unknown parameter: ' + paramName);
+        return;
+      }
+
+      if (check.value) {
+        test.is(assignment.value,
+                check.value,
+                'checkStatus value for ' + paramName);
+      }
+
+      if (check.name) {
+        test.is(assignment.value.name,
+                check.name,
+                'checkStatus name for ' + paramName);
+      }
+
+      if (check.type) {
+        test.is(assignment.arg.type,
+                check.type,
+                'checkStatus type for ' + paramName);
+      }
+
+      if (check.arg) {
+        test.is(assignment.arg.toString(),
+                check.arg,
+                'checkStatus arg for ' + paramName);
+      }
+
+      if (check.status) {
+        test.is(assignment.getStatus().toString(),
+                check.status,
+                'checkStatus status for ' + paramName);
+      }
+
+      if (check.message) {
+        test.is(assignment.getMessage(),
+                check.message,
+                'checkStatus message for ' + paramName);
+      }
+    });
   }
 };
 
@@ -1168,19 +1427,20 @@ exports.testInvalid = function() {
   update({ typed: 'zxjq', cursor: { start: 4, end: 4 } });
   test.is(        'EEEE', statuses);
   test.is('zxjq', requ.commandAssignment.arg.text);
-  test.is('', requ._unassigned.arg.text);
+  test.is(0, requ._unassigned.length);
   test.is(-1, assignC.paramIndex);
 
   update({ typed: 'zxjq ', cursor: { start: 5, end: 5 } });
   test.is(        'EEEEV', statuses);
   test.is('zxjq', requ.commandAssignment.arg.text);
-  test.is('', requ._unassigned.arg.text);
+  test.is(0, requ._unassigned.length);
   test.is(-1, assignC.paramIndex);
 
   update({ typed: 'zxjq one', cursor: { start: 8, end: 8 } });
   test.is(        'EEEEVEEE', statuses);
   test.is('zxjq', requ.commandAssignment.arg.text);
-  test.is('one', requ._unassigned.arg.text);
+  test.is(1, requ._unassigned.length);
+  test.is('one', requ._unassigned[0].arg.text);
 };
 
 exports.testSingleString = function() {
@@ -1188,7 +1448,7 @@ exports.testSingleString = function() {
   test.is(        'VVV', statuses);
   test.is(Status.ERROR, status);
   test.is('tsr', requ.commandAssignment.value.name);
-  test.ok(assign1.arg.isBlank());
+  test.ok(assign1.arg.type === 'BlankArgument');
   test.is(undefined, assign1.value);
   test.is(undefined, assign2);
 
@@ -1196,7 +1456,7 @@ exports.testSingleString = function() {
   test.is(        'VVVV', statuses);
   test.is(Status.ERROR, status);
   test.is('tsr', requ.commandAssignment.value.name);
-  test.ok(assign1.arg.isBlank());
+  test.ok(assign1.arg.type === 'BlankArgument');
   test.is(undefined, assign1.value);
   test.is(undefined, assign2);
 
@@ -1257,7 +1517,7 @@ exports.testElement = function(options) {
   test.is(        'VVV', statuses);
   test.is(Status.ERROR, status);
   test.is('tse', requ.commandAssignment.value.name);
-  test.ok(assign1.arg.isBlank());
+  test.ok(assign1.arg.type === 'BlankArgument');
   test.is(undefined, assign1.value);
 
   if (!options.isNode) {
@@ -1603,7 +1863,8 @@ exports.tsn = {
 
 exports.tsnDif = {
   name: 'tsn dif',
-  params: [ { name: 'text', type: 'string' } ],
+  description: 'tsn dif',
+  params: [ { name: 'text', type: 'string', description: 'tsn dif text' } ],
   exec: createExec('tsnDif')
 };
 
@@ -1672,19 +1933,42 @@ exports.tsg = {
   name: 'tsg',
   description: 'a param group test',
   params: [
-    { name: 'solo', type: { name: 'selection', data: [ 'aaa', 'bbb', 'ccc' ] } },
+    {
+      name: 'solo',
+      type: { name: 'selection', data: [ 'aaa', 'bbb', 'ccc' ] },
+      description: 'solo param'
+    },
     {
       group: 'First',
       params: [
-        { name: 'txt1', type: 'string', defaultValue: null },
-        { name: 'bool', type: 'boolean' }
+        {
+          name: 'txt1',
+          type: 'string',
+          defaultValue: null,
+          description: 'txt1 param'
+        },
+        {
+          name: 'bool',
+          type: 'boolean',
+          description: 'bool param'
+        }
       ]
     },
     {
       group: 'Second',
       params: [
-        { name: 'txt2', type: 'string', defaultValue: 'd' },
-        { name: 'num', type: { name: 'number', min: 40 }, defaultValue: 42 }
+        {
+          name: 'txt2',
+          type: 'string',
+          defaultValue: 'd',
+          description: 'txt2 param'
+        },
+        {
+          name: 'num',
+          type: { name: 'number', min: 40 },
+          defaultValue: 42,
+          description: 'num param'
+        }
       ]
     }
   ],
@@ -1709,66 +1993,23 @@ exports.tsg = {
 
 
 
-define('gclitest/testCompletion', ['require', 'exports', 'module' , 'test/assert', 'gclitest/mockCommands'], function(require, exports, module) {
+define('gclitest/testCompletion', ['require', 'exports', 'module' , 'test/assert', 'gclitest/helpers', 'gclitest/mockCommands'], function(require, exports, module) {
 
 
 var test = require('test/assert');
+var helpers = require('gclitest/helpers');
 var mockCommands = require('gclitest/mockCommands');
 
 
-exports.setup = function() {
+exports.setup = function(options) {
   mockCommands.setup();
+  helpers.setup(options);
 };
 
-exports.shutdown = function() {
+exports.shutdown = function(options) {
   mockCommands.shutdown();
+  helpers.shutdown(options);
 };
-
-
-function type(typed, tests, options) {
-  var inputter = options.display.inputter;
-  var completer = options.display.completer;
-
-  inputter.setInput(typed);
-
-  if (tests.cursor) {
-    inputter.setCursor({ start: tests.cursor, end: tests.cursor });
-  }
-
-  if (tests.emptyParameters == null) {
-    tests.emptyParameters = [];
-  }
-
-  var realParams = completer.emptyParameters;
-  test.is(tests.emptyParameters.length, realParams.length,
-          'emptyParameters.length for \'' + typed + '\'');
-
-  if (realParams.length === tests.emptyParameters.length) {
-    for (var i = 0; i < realParams.length; i++) {
-      test.is(tests.emptyParameters[i], realParams[i].replace(/\u00a0/g, ' '),
-              'emptyParameters[' + i + '] for \'' + typed + '\'');
-    }
-  }
-
-  if (tests.directTabText) {
-    test.is(tests.directTabText, completer.directTabText,
-            'directTabText for \'' + typed + '\'');
-  }
-  else {
-    test.is('', completer.directTabText,
-            'directTabText for \'' + typed + '\'');
-  }
-
-  if (tests.arrowTabText) {
-    test.is(' \u00a0\u21E5 ' + tests.arrowTabText,
-            completer.arrowTabText,
-            'arrowTabText for \'' + typed + '\'');
-  }
-  else {
-    test.is('', completer.arrowTabText,
-            'arrowTabText for \'' + typed + '\'');
-  }
-}
 
 exports.testActivate = function(options) {
   if (!options.display) {
@@ -1776,134 +2017,278 @@ exports.testActivate = function(options) {
     return;
   }
 
-  type('', { }, options);
+  helpers.setInput('');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type(' ', { }, options);
+  helpers.setInput(' ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsr', {
+  helpers.setInput('tsr');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <text>' ]
-  }, options);
+  });
 
-  type('tsr ', {
+  helpers.setInput('tsr ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ '<text>' ]
-  }, options);
+  });
 
-  type('tsr b', { }, options);
+  helpers.setInput('tsr b');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsb', {
+  helpers.setInput('tsb');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' [toggle]' ]
-  }, options);
+  });
 
-  type('tsm', {
+  helpers.setInput('tsm');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <abc>', ' <txt>', ' <num>' ]
-  }, options);
+  });
 
-  type('tsm ', {
+  helpers.setInput('tsm ');
+  helpers.check({
     emptyParameters: [ ' <txt>', ' <num>' ],
+    arrowTabText: '',
     directTabText: 'a'
-  }, options);
+  });
 
-  type('tsm a', {
+  helpers.setInput('tsm a');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <txt>', ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a ', {
+  helpers.setInput('tsm a ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ '<txt>', ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a  ', {
+  helpers.setInput('tsm a  ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ '<txt>', ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a  d', {
+  helpers.setInput('tsm a  d');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a "d d"', {
+  helpers.setInput('tsm a "d d"');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a "d ', {
+  helpers.setInput('tsm a "d ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a "d d" ', {
+  helpers.setInput('tsm a "d d" ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ '<num>' ]
-  }, options);
+  });
 
-  type('tsm a "d d ', {
+  helpers.setInput('tsm a "d d ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <num>' ]
-  }, options);
+  });
 
-  type('tsm d r', {
+  helpers.setInput('tsm d r');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <num>' ]
-  }, options);
+  });
 
-  type('tsm a d ', {
+  helpers.setInput('tsm a d ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ '<num>' ]
-  }, options);
+  });
 
-  type('tsm a d 4', { }, options);
+  helpers.setInput('tsm a d 4');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg', {
+  helpers.setInput('tsg');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
     emptyParameters: [ ' <solo>' ]
-  }, options);
+  });
 
-  type('tsg ', {
+  helpers.setInput('tsg ');
+  helpers.check({
+    emptyParameters: [],
+    arrowTabText: '',
     directTabText: 'aaa'
-  }, options);
+  });
 
-  type('tsg a', {
+  helpers.setInput('tsg a');
+  helpers.check({
+    emptyParameters: [],
+    arrowTabText: '',
     directTabText: 'aa'
-  }, options);
+  });
 
-  type('tsg b', {
+  helpers.setInput('tsg b');
+  helpers.check({
+    emptyParameters: [],
+    arrowTabText: '',
     directTabText: 'bb'
-  }, options);
+  });
 
-  type('tsg d', { }, options);
+  helpers.setInput('tsg d');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aa', {
+  helpers.setInput('tsg aa');
+  helpers.check({
+    emptyParameters: [],
+    arrowTabText: '',
     directTabText: 'a'
-  }, options);
+  });
 
-  type('tsg aaa', { }, options);
+  helpers.setInput('tsg aaa');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa ', { }, options);
+  helpers.setInput('tsg aaa ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa d', { }, options);
+  helpers.setInput('tsg aaa d');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa dddddd', { }, options);
+  helpers.setInput('tsg aaa dddddd');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa dddddd ', { }, options);
+  helpers.setInput('tsg aaa dddddd ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa "d', { }, options);
+  helpers.setInput('tsg aaa "d');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa "d d', { }, options);
+  helpers.setInput('tsg aaa "d d');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsg aaa "d d"', { }, options);
+  helpers.setInput('tsg aaa "d d"');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tsn ex ', { }, options);
+  helpers.setInput('tsn ex ');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('selarr', {
+  helpers.setInput('selarr');
+  helpers.check({
+    directTabText: '',
+    emptyParameters: [],
     arrowTabText: 'tselarr'
-  }, options);
+  });
 
-  type('tselar 1', { }, options);
+  helpers.setInput('tselar 1');
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tselar 1', {
-    cursor: 7
-  }, options);
+  helpers.setInput('tselar 1', 7);
+  helpers.check({
+    directTabText: '',
+    arrowTabText: '',
+    emptyParameters: []
+  });
 
-  type('tselar 1', {
-    cursor: 6,
+  helpers.setInput('tselar 1', 6);
+  helpers.check({
+    directTabText: '',
+    emptyParameters: [],
     arrowTabText: 'tselarr'
-  }, options);
+  });
 
-  type('tselar 1', {
-    cursor: 5,
+  helpers.setInput('tselar 1', 5);
+  helpers.check({
+    directTabText: '',
+    emptyParameters: [],
     arrowTabText: 'tselarr'
-  }, options);
+  });
 };
 
 
@@ -2342,6 +2727,194 @@ exports.testOutput = function(options) {
   test.ok(!focusManager._helpRequested, 'ESCAPE = anti help');
 
   latestOutput.onClose();
+};
+
+
+});
+
+
+
+
+
+
+define('gclitest/testIncomplete', ['require', 'exports', 'module' , 'test/assert', 'gclitest/helpers', 'gclitest/mockCommands'], function(require, exports, module) {
+
+
+var test = require('test/assert');
+var helpers = require('gclitest/helpers');
+var mockCommands = require('gclitest/mockCommands');
+
+
+exports.setup = function(options) {
+  mockCommands.setup();
+  helpers.setup(options);
+};
+
+exports.shutdown = function(options) {
+  mockCommands.shutdown();
+  helpers.shutdown(options);
+};
+
+exports.testBasic = function(options) {
+  var requisition = options.display.requisition;
+
+  helpers.setInput('tsu 2 extra');
+  helpers.check({
+    args: {
+      num: { value: 2, type: 'Argument' }
+    }
+  });
+  test.is(requisition._unassigned.length, 1, 'single unassigned: tsu 2 extra');
+  test.is(requisition._unassigned[0].param.type.isIncompleteName, false,
+          'unassigned.isIncompleteName: tsu 2 extra');
+
+  helpers.setInput('tsu');
+  helpers.check({
+    args: {
+      num: { value: undefined, type: 'BlankArgument' }
+    }
+  });
+
+  helpers.setInput('tsg');
+  helpers.check({
+    args: {
+      solo: { type: 'BlankArgument' },
+      txt1: { type: 'BlankArgument' },
+      bool: { type: 'BlankArgument' },
+      txt2: { type: 'BlankArgument' },
+      num: { type: 'BlankArgument' }
+    }
+  });
+};
+
+exports.testCompleted = function(options) {
+  helpers.setInput('tsela');
+  helpers.pressTab();
+  helpers.check({
+    args: {
+      command: { name: 'tselarr', type: 'Argument' },
+      num: { type: 'Argument' },
+      arr: { type: 'ArrayArgument' },
+    }
+  });
+
+  helpers.setInput('tsn dif ');
+  helpers.check({
+    input:  'tsn dif ',
+    markup: 'VVVVVVVV',
+    cursor: 8,
+    directTabText: '',
+    arrowTabText: '',
+    status: 'ERROR',
+    emptyParameters: [ '<text>' ],
+    args: {
+      command: { name: 'tsn dif', type: 'MergedArgument' },
+      text: { type: 'BlankArgument', status: 'INCOMPLETE' }
+    }
+  });
+
+  helpers.setInput('tsn di');
+  helpers.pressTab();
+  helpers.check({
+    input:  'tsn dif ',
+    markup: 'VVVVVVVV',
+    cursor: 8,
+    directTabText: '',
+    arrowTabText: '',
+    status: 'ERROR',
+    emptyParameters: [ '<text>' ],
+    args: {
+      command: { name: 'tsn dif', type: 'Argument' },
+      text: { type: 'Argument', status: 'INCOMPLETE' }
+    }
+  });
+
+  
+  
+
+  helpers.setInput('tsg -');
+  helpers.check({
+    input:  'tsg -',
+    markup: 'VVVVI',
+    cursor: 5,
+    directTabText: '-txt1',
+    arrowTabText: '',
+    status: 'ERROR',
+    emptyParameters: [ ],
+    args: {
+      solo: { value: undefined, status: 'INCOMPLETE' },
+      txt1: { value: undefined, status: 'VALID' },
+      bool: { value: undefined, status: 'VALID' },
+      txt2: { value: undefined, status: 'VALID' },
+      num: { value: undefined, status: 'VALID' }
+    }
+  });
+
+  helpers.pressTab();
+  helpers.check({
+    input:  'tsg --txt1 ',
+    markup: 'VVVVIIIIIIV',
+    cursor: 11,
+    directTabText: '',
+    arrowTabText: '',
+    status: 'ERROR',
+    emptyParameters: [ ], 
+    args: {
+      solo: { value: undefined, status: 'INCOMPLETE' },
+      txt1: { value: undefined, status: 'INCOMPLETE' },
+      bool: { value: undefined, status: 'VALID' },
+      txt2: { value: undefined, status: 'VALID' },
+      num: { value: undefined, status: 'VALID' }
+    }
+  });
+
+  helpers.setInput('tsg --txt1 fred');
+  helpers.check({
+    input:  'tsg --txt1 fred',
+    markup: 'VVVVVVVVVVVVVVV',
+    directTabText: '',
+    arrowTabText: '',
+    status: 'ERROR',
+    emptyParameters: [ ], 
+    args: {
+      solo: { value: undefined, status: 'INCOMPLETE' },
+      txt1: { value: 'fred', status: 'VALID' },
+      bool: { value: undefined, status: 'VALID' },
+      txt2: { value: undefined, status: 'VALID' },
+      num: { value: undefined, status: 'VALID' }
+    }
+  });
+
+  
+};
+
+exports.testIncomplete = function(options) {
+  var requisition = options.display.requisition;
+
+  helpers.setInput('tsm a a -');
+  helpers.check({
+    args: {
+      abc: { value: 'a', type: 'Argument' },
+      txt: { value: 'a', type: 'Argument' },
+      num: { value: undefined, arg: ' -', type: 'Argument', status: 'INCOMPLETE' }
+    }
+  });
+
+  helpers.setInput('tsg -');
+  helpers.check({
+    args: {
+      solo: { type: 'BlankArgument' },
+      txt1: { type: 'BlankArgument' },
+      bool: { type: 'BlankArgument' },
+      txt2: { type: 'BlankArgument' },
+      num: { type: 'BlankArgument' }
+    }
+  });
+  test.is(requisition._unassigned[0], requisition.getAssignmentAt(5),
+          'unassigned -');
+  test.is(requisition._unassigned.length, 1, 'single unassigned - tsg -');
+  test.is(requisition._unassigned[0].param.type.isIncompleteName, true,
+          'unassigned.isIncompleteName: tsg -');
 };
 
 
@@ -3691,13 +4264,11 @@ exports.testJavascript = function() {
 
 
 
-define('gclitest/testTokenize', ['require', 'exports', 'module' , 'test/assert', 'gcli/cli', 'gcli/argument'], function(require, exports, module) {
+define('gclitest/testTokenize', ['require', 'exports', 'module' , 'test/assert', 'gcli/cli'], function(require, exports, module) {
 
 
 var test = require('test/assert');
 var Requisition = require('gcli/cli').Requisition;
-var Argument = require('gcli/argument').Argument;
-var ScriptArgument = require('gcli/argument').ScriptArgument;
 
 exports.testBlanks = function() {
   var args;
@@ -3725,18 +4296,18 @@ exports.testTokSimple = function() {
   test.is('s', args[0].text);
   test.is('', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
 
   args = requ._tokenize('s s');
   test.is(2, args.length);
   test.is('s', args[0].text);
   test.is('', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
   test.is('s', args[1].text);
   test.is(' ', args[1].prefix);
   test.is('', args[1].suffix);
-  test.ok(args[1] instanceof Argument);
+  test.is('Argument', args[1].type);
 };
 
 exports.testJavascript = function() {
@@ -3748,57 +4319,57 @@ exports.testJavascript = function() {
   test.is('x', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{ x }');
   test.is(1, args.length);
   test.is('x', args[0].text);
   test.is('{ ', args[0].prefix);
   test.is(' }', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{x} {y}');
   test.is(2, args.length);
   test.is('x', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
   test.is('y', args[1].text);
   test.is(' {', args[1].prefix);
   test.is('}', args[1].suffix);
-  test.ok(args[1] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[1].type);
 
   args = requ._tokenize('{x}{y}');
   test.is(2, args.length);
   test.is('x', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
   test.is('y', args[1].text);
   test.is('{', args[1].prefix);
   test.is('}', args[1].suffix);
-  test.ok(args[1] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[1].type);
 
   args = requ._tokenize('{');
   test.is(1, args.length);
   test.is('', args[0].text);
   test.is('{', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{ ');
   test.is(1, args.length);
   test.is('', args[0].text);
   test.is('{ ', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{x');
   test.is(1, args.length);
   test.is('x', args[0].text);
   test.is('{', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 };
 
 exports.testRegularNesting = function() {
@@ -3810,28 +4381,28 @@ exports.testRegularNesting = function() {
   test.is('"x"', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{\'x\'}');
   test.is(1, args.length);
   test.is('\'x\'', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('"{x}"');
   test.is(1, args.length);
   test.is('{x}', args[0].text);
   test.is('"', args[0].prefix);
   test.is('"', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
 
   args = requ._tokenize('\'{x}\'');
   test.is(1, args.length);
   test.is('{x}', args[0].text);
   test.is('\'', args[0].prefix);
   test.is('\'', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
 };
 
 exports.testDeepNesting = function() {
@@ -3843,14 +4414,14 @@ exports.testDeepNesting = function() {
   test.is('{}', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{{x} {y}}');
   test.is(1, args.length);
   test.is('{x} {y}', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   args = requ._tokenize('{{w} {{{x}}}} {y} {{{z}}}');
 
@@ -3859,17 +4430,17 @@ exports.testDeepNesting = function() {
   test.is('{w} {{{x}}}', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   test.is('y', args[1].text);
   test.is(' {', args[1].prefix);
   test.is('}', args[1].suffix);
-  test.ok(args[1] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[1].type);
 
   test.is('{{z}}', args[2].text);
   test.is(' {', args[2].prefix);
   test.is('}', args[2].suffix);
-  test.ok(args[2] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[2].type);
 
   args = requ._tokenize('{{w} {{{x}}} {y} {{{z}}}');
 
@@ -3878,7 +4449,7 @@ exports.testDeepNesting = function() {
   test.is('{w} {{{x}}} {y} {{{z}}}', args[0].text);
   test.is('{', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 };
 
 exports.testStrangeNesting = function() {
@@ -3893,12 +4464,12 @@ exports.testStrangeNesting = function() {
   test.is('"x', args[0].text);
   test.is('{', args[0].prefix);
   test.is('}', args[0].suffix);
-  test.ok(args[0] instanceof ScriptArgument);
+  test.is('ScriptArgument', args[0].type);
 
   test.is('}', args[1].text);
   test.is('"', args[1].prefix);
   test.is('', args[1].suffix);
-  test.ok(args[1] instanceof Argument);
+  test.is('Argument', args[1].type);
 };
 
 exports.testComplex = function() {
@@ -3912,12 +4483,12 @@ exports.testComplex = function() {
   test.is('1234', args[0].text);
   test.is(' ', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
 
   test.is('12 34', args[1].text);
   test.is('  \'', args[1].prefix);
   test.is('\'', args[1].suffix);
-  test.ok(args[1] instanceof Argument);
+  test.is('Argument', args[1].type);
 
   args = requ._tokenize('12\'34 "12 34" \\'); 
 
@@ -3926,17 +4497,17 @@ exports.testComplex = function() {
   test.is('12\'34', args[0].text);
   test.is('', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
 
   test.is('12 34', args[1].text);
   test.is(' "', args[1].prefix);
   test.is('"', args[1].suffix);
-  test.ok(args[1] instanceof Argument);
+  test.is('Argument', args[1].type);
 
   test.is('\\', args[2].text);
   test.is(' ', args[2].prefix);
   test.is('', args[2].suffix);
-  test.ok(args[2] instanceof Argument);
+  test.is('Argument', args[2].type);
 };
 
 exports.testPathological = function() {
@@ -3950,22 +4521,22 @@ exports.testPathological = function() {
   test.is('a b', args[0].text);
   test.is('', args[0].prefix);
   test.is('', args[0].suffix);
-  test.ok(args[0] instanceof Argument);
+  test.is('Argument', args[0].type);
 
   test.is('\t\n\r', args[1].text);
   test.is(' ', args[1].prefix);
   test.is('', args[1].suffix);
-  test.ok(args[1] instanceof Argument);
+  test.is('Argument', args[1].type);
 
   test.is('\'x"', args[2].text);
   test.is(' ', args[2].prefix);
   test.is('', args[2].suffix);
-  test.ok(args[2] instanceof Argument);
+  test.is('Argument', args[2].type);
 
   test.is('d', args[3].text);
   test.is(' \'', args[3].prefix);
   test.is('', args[3].suffix);
-  test.ok(args[3] instanceof Argument);
+  test.is('Argument', args[3].type);
 };
 
 
@@ -4195,6 +4766,694 @@ exports.testFindCssSelector = function(options) {
 
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/ui/display', ['require', 'exports', 'module' , 'gcli/util', 'gcli/settings', 'gcli/ui/intro', 'gcli/ui/domtemplate', 'gcli/ui/tooltip', 'gcli/ui/output_terminal', 'gcli/ui/inputter', 'gcli/ui/completer', 'gcli/ui/focus', 'gcli/ui/prompt', 'gcli/cli', 'text!gcli/ui/display.css', 'text!gcli/ui/display.html'], function(require, exports, module) {
+
+
+var util = require('gcli/util');
+var settings = require('gcli/settings');
+var intro = require('gcli/ui/intro');
+var domtemplate = require('gcli/ui/domtemplate');
+
+var Tooltip = require('gcli/ui/tooltip').Tooltip;
+var OutputTerminal = require('gcli/ui/output_terminal').OutputTerminal;
+var Inputter = require('gcli/ui/inputter').Inputter;
+var Completer = require('gcli/ui/completer').Completer;
+var FocusManager = require('gcli/ui/focus').FocusManager;
+var Prompt = require('gcli/ui/prompt').Prompt;
+
+var Requisition = require('gcli/cli').Requisition;
+
+var displayCss = require('text!gcli/ui/display.css');
+var displayHtml = require('text!gcli/ui/display.html');
+
+
+
+
+
+
+
+
+exports.createDisplay = function(options) {
+  if (options.settings != null) {
+    settings.setDefaults(options.settings);
+  }
+  var display = new Display(options);
+  var requisition = display.requisition;
+  return {
+    
+
+
+
+    exec: requisition.exec.bind(requisition),
+    update: requisition.update.bind(requisition),
+    destroy: display.destroy.bind(display)
+  };
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Display(options) {
+  var doc = options.document || document;
+
+  this.displayStyle = undefined;
+  if (displayCss != null) {
+    this.displayStyle = util.importCss(displayCss, doc, 'gcli-css-display');
+  }
+
+  
+  
+  
+  
+  
+  
+  
+  this.requisition = new Requisition(options.enviroment || {}, doc);
+
+  this.focusManager = new FocusManager(options, {
+    document: doc
+  });
+
+  this.inputElement = find(doc, options.inputElement || null, 'gcli-input');
+  this.inputter = new Inputter(options, {
+    requisition: this.requisition,
+    focusManager: this.focusManager,
+    element: this.inputElement
+  });
+
+  
+  
+  
+  this.completeElement = insert(this.inputElement,
+                         options.completeElement || null, 'gcli-row-complete');
+  this.completer = new Completer(options, {
+    requisition: this.requisition,
+    inputter: this.inputter,
+    autoResize: this.completeElement.gcliCreated,
+    element: this.completeElement
+  });
+
+  this.prompt = new Prompt(options, {
+    inputter: this.inputter,
+    element: insert(this.inputElement,
+                    options.promptElement || null, 'gcli-prompt')
+  });
+
+  this.element = find(doc, options.displayElement || null, 'gcli-display');
+  this.element.classList.add('gcli-display');
+
+  this.template = util.toDom(doc, displayHtml);
+  this.elements = {};
+  domtemplate.template(this.template, this.elements, { stack: 'display.html' });
+  this.element.appendChild(this.template);
+
+  this.tooltip = new Tooltip(options, {
+    requisition: this.requisition,
+    inputter: this.inputter,
+    focusManager: this.focusManager,
+    element: this.elements.tooltip,
+    panelElement: this.elements.panel
+  });
+
+  this.inputter.tooltip = this.tooltip;
+
+  this.outputElement = util.createElement(doc, 'div');
+  this.outputElement.classList.add('gcli-output');
+  this.outputList = new OutputTerminal(options, {
+    requisition: this.requisition,
+    element: this.outputElement
+  });
+
+  this.element.appendChild(this.outputElement);
+
+  intro.maybeShowIntro(this.outputList.commandOutputManager, this.requisition);
+}
+
+
+
+
+Display.prototype.destroy = function() {
+  delete this.element;
+  delete this.template;
+
+  this.outputList.destroy();
+  delete this.outputList;
+  delete this.outputElement;
+
+  this.tooltip.destroy();
+  delete this.tooltip;
+
+  this.prompt.destroy();
+  delete this.prompt;
+
+  this.completer.destroy();
+  delete this.completer;
+  delete this.completeElement;
+
+  this.inputter.destroy();
+  delete this.inputter;
+  delete this.inputElement;
+
+  this.focusManager.destroy();
+  delete this.focusManager;
+
+  this.requisition.destroy();
+  delete this.requisition;
+
+  if (this.displayStyle) {
+    this.displayStyle.parentNode.removeChild(this.displayStyle);
+  }
+  delete this.displayStyle;
+};
+
+exports.Display = Display;
+
+
+
+
+function find(doc, element, id) {
+  if (!element) {
+    element = doc.getElementById(id);
+    if (!element) {
+      throw new Error('Missing element, id=' + id);
+    }
+  }
+  return element;
+}
+
+
+
+
+function insert(sibling, element, id) {
+  var doc = sibling.ownerDocument;
+  if (!element) {
+    element = doc.getElementById('gcli-row-complete');
+    if (!element) {
+      element = util.createElement(doc, 'div');
+      sibling.parentNode.insertBefore(element, sibling.nextSibling);
+      element.gcliCreated = true;
+    }
+  }
+  return element;
+}
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/ui/output_terminal', ['require', 'exports', 'module' , 'gcli/util', 'gcli/canon', 'gcli/ui/domtemplate', 'text!gcli/ui/output_view.css', 'text!gcli/ui/output_terminal.html'], function(require, exports, module) {
+
+var util = require('gcli/util');
+
+var canon = require('gcli/canon');
+var domtemplate = require('gcli/ui/domtemplate');
+
+var outputViewCss = require('text!gcli/ui/output_view.css');
+var outputViewHtml = require('text!gcli/ui/output_terminal.html');
+
+
+
+
+
+
+
+
+
+
+
+
+
+function OutputTerminal(options, components) {
+  this.element = components.element;
+  this.requisition = components.requisition;
+
+  this.commandOutputManager = options.commandOutputManager ||
+          canon.commandOutputManager;
+  this.commandOutputManager.onOutput.add(this.outputted, this);
+
+  var document = components.element.ownerDocument;
+  if (outputViewCss != null) {
+    this.style = util.importCss(outputViewCss, document, 'gcli-output-view');
+  }
+
+  this.template = util.toDom(document, outputViewHtml);
+  this.templateOptions = { allowEval: true, stack: 'output_terminal.html' };
+}
+
+
+
+
+OutputTerminal.prototype.destroy = function() {
+  if (this.style) {
+    this.style.parentNode.removeChild(this.style);
+    delete this.style;
+  }
+
+  this.commandOutputManager.onOutput.remove(this.outputted, this);
+
+  delete this.commandOutputManager;
+  delete this.requisition;
+  delete this.element;
+  delete this.template;
+};
+
+
+
+
+OutputTerminal.prototype.outputted = function(ev) {
+  if (ev.output.hidden) {
+    return;
+  }
+
+  ev.output.view = new OutputView(ev.output, this);
+};
+
+
+
+
+OutputTerminal.prototype.setHeight = function(height) {
+  this.element.style.height = height + 'px';
+};
+
+exports.OutputTerminal = OutputTerminal;
+
+
+
+
+
+function OutputView(outputData, outputTerminal) {
+  this.outputData = outputData;
+  this.outputTerminal = outputTerminal;
+
+  this.url = util.createUrlLookup(module);
+
+  
+  this.elems = {
+    rowin: null,
+    rowout: null,
+    hide: null,
+    show: null,
+    duration: null,
+    throb: null,
+    prompt: null
+  };
+
+  var template = this.outputTerminal.template.cloneNode(true);
+  domtemplate.template(template, this, this.outputTerminal.templateOptions);
+
+  this.outputTerminal.element.appendChild(this.elems.rowin);
+  this.outputTerminal.element.appendChild(this.elems.rowout);
+
+  this.outputData.onClose.add(this.closed, this);
+  this.outputData.onChange.add(this.changed, this);
+}
+
+OutputView.prototype.destroy = function() {
+  this.outputData.onChange.remove(this.changed, this);
+  this.outputData.onClose.remove(this.closed, this);
+
+  this.outputTerminal.element.removeChild(this.elems.rowin);
+  this.outputTerminal.element.removeChild(this.elems.rowout);
+
+  delete this.outputData;
+  delete this.outputTerminal;
+  delete this.url;
+  delete this.elems;
+};
+
+
+
+
+Object.defineProperty(OutputView.prototype, 'prompt', {
+  get: function() {
+    return this.outputData.canonical ? '\u00bb' : '';
+  },
+  enumerable: true
+});
+
+
+
+
+
+OutputView.prototype.copyToInput = function() {
+  if (this.outputTerminal.requisition) {
+    this.outputTerminal.requisition.update(this.outputData.typed);
+  }
+};
+
+
+
+
+OutputView.prototype.execute = function(ev) {
+  if (this.outputTerminal.requisition) {
+    this.outputTerminal.requisition.exec({ typed: this.outputData.typed });
+  }
+};
+
+OutputView.prototype.hideOutput = function(ev) {
+  this.elems.rowout.style.display = 'none';
+  this.elems.hide.classList.add('cmd_hidden');
+  this.elems.show.classList.remove('cmd_hidden');
+
+  ev.stopPropagation();
+};
+
+OutputView.prototype.showOutput = function(ev) {
+  this.elems.rowout.style.display = 'block';
+  this.elems.hide.classList.remove('cmd_hidden');
+  this.elems.show.classList.add('cmd_hidden');
+
+  ev.stopPropagation();
+};
+
+OutputView.prototype.closed = function(ev) {
+  this.destroy();
+};
+
+OutputView.prototype.changed = function(ev) {
+  var document = this.elems.rowout.ownerDocument;
+  var duration = this.outputData.duration != null ?
+          'completed in ' + (this.outputData.duration / 1000) + ' sec ' :
+          '';
+  duration = document.createTextNode(duration);
+  this.elems.duration.appendChild(duration);
+
+  if (this.outputData.completed) {
+    this.elems.prompt.classList.add('gcli-row-complete');
+  }
+  if (this.outputData.error) {
+    this.elems.prompt.classList.add('gcli-row-error');
+  }
+
+  this.outputData.toDom(this.elems.rowout);
+
+  
+  
+  
+  var scrollHeight = Math.max(this.outputTerminal.element.scrollHeight,
+      this.outputTerminal.element.clientHeight);
+  this.outputTerminal.element.scrollTop =
+      scrollHeight - this.outputTerminal.element.clientHeight;
+
+  this.elems.throb.style.display = this.outputData.completed ? 'none' : 'block';
+};
+
+exports.OutputView = OutputView;
+
+
+});
+define("text!gcli/ui/output_view.css", [], "\n" +
+  ".gcli-row-in {\n" +
+  "  padding: 0 4px;\n" +
+  "  box-shadow: 0 -6px 10px -6px #ddd;\n" +
+  "  border-top: 1px solid #bbb;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-in > img {\n" +
+  "  cursor: pointer;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-hover {\n" +
+  "  display: none;\n" +
+  "  float: right;\n" +
+  "  padding: 2px 2px 0;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-in:hover > .gcli-row-hover {\n" +
+  "  display: inline;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-in:hover > .gcli-row-hover.gcli-row-hidden {\n" +
+  "  display: none;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-duration {\n" +
+  "  color: #666;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-prompt {\n" +
+  "  color: #00F;\n" +
+  "  font-weight: bold;\n" +
+  "  font-size: 120%;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-prompt.gcli-row-complete {\n" +
+  "  color: #060;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-prompt.gcli-row-error {\n" +
+  "  color: #F00;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-duration {\n" +
+  "  font-size: 80%;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out {\n" +
+  "  margin: 0 10px 15px;\n" +
+  "  padding: 0 10px;\n" +
+  "  line-height: 1.2em;\n" +
+  "  font-size: 95%;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out strong,\n" +
+  ".gcli-row-out b,\n" +
+  ".gcli-row-out th,\n" +
+  ".gcli-row-out h1,\n" +
+  ".gcli-row-out h2,\n" +
+  ".gcli-row-out h3 {\n" +
+  "  color: #000;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out p {\n" +
+  "  margin: 5px 0;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out a {\n" +
+  "  color: hsl(200,40%,40%);\n" +
+  "  text-decoration: none;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out a:hover {\n" +
+  "  cursor: pointer;\n" +
+  "  border-bottom: 1px dotted hsl(200,40%,60%);\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out input[type=password],\n" +
+  ".gcli-row-out input[type=text],\n" +
+  ".gcli-row-out textarea {\n" +
+  "  font-size: 120%;\n" +
+  "  background: transparent;\n" +
+  "  padding: 3px;\n" +
+  "  border-radius: 3px;\n" +
+  "  border: 1px solid #bbb;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-out table,\n" +
+  ".gcli-row-out td,\n" +
+  ".gcli-row-out th {\n" +
+  "  border: 0;\n" +
+  "  padding: 0 2px;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-terminal,\n" +
+  ".gcli-row-subterminal {\n" +
+  "  border-radius: 3px;\n" +
+  "  border: 1px solid #ddd;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-terminal {\n" +
+  "  height: 200px;\n" +
+  "  width: 620px;\n" +
+  "  font-size: 80%;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-row-subterminal {\n" +
+  "  height: 150px;\n" +
+  "  width: 300px;\n" +
+  "  font-size: 75%;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-out-shortcut {\n" +
+  "  font-weight: normal;\n" +
+  "  border: 1px solid #999;\n" +
+  "  border-radius: 3px;\n" +
+  "  color: #666;\n" +
+  "  cursor: pointer;\n" +
+  "  padding: 0 3px 1px;\n" +
+  "  margin: 1px 4px;\n" +
+  "  display: inline-block;\n" +
+  "}\n" +
+  "\n" +
+  ".gcli-out-shortcut:before {\n" +
+  "  content: '\\bb';\n" +
+  "  padding-right: 2px;\n" +
+  "  color: hsl(25,78%,50%);\n" +
+  "  font-weight: bold;\n" +
+  "  font-size: 110%;\n" +
+  "}\n" +
+  "");
+
+define("text!gcli/ui/output_terminal.html", [], "\n" +
+  "<div class=\"gcli-row\">\n" +
+  "  <!-- The div for the input (i.e. what was typed) -->\n" +
+  "  <div class=\"gcli-row-in\" save=\"${elems.rowin}\" aria-live=\"assertive\"\n" +
+  "      onclick=\"${copyToInput}\" ondblclick=\"${execute}\">\n" +
+  "\n" +
+  "    <!-- What the user actually typed -->\n" +
+  "    <span save=\"${elems.prompt}\" class=\"gcli-row-prompt ${elems.error ? 'gcli-row-error' : ''} ${elems.completed ? 'gcli-row-complete' : ''}\">${prompt}</span>\n" +
+  "    <span class=\"gcli-row-in-typed\">${outputData.canonical}</span>\n" +
+  "\n" +
+  "    <!-- The extra details that appear on hover -->\n" +
+  "    <span class=\"gcli-row-duration gcli-row-hover\" save=\"${elems.duration}\"></span>\n" +
+  "    <!--\n" +
+  "    <img class=\"gcli-row-hover\" onclick=\"${hideOutput}\" save=\"${elems.hide}\"\n" +
+  "        alt=\"Hide command output\" _src=\"${url('images/minus.png')}\"/>\n" +
+  "    <img class=\"gcli-row-hover gcli-row-hidden\" onclick=\"${showOutput}\" save=\"${elems.show}\"\n" +
+  "        alt=\"Show command output\" _src=\"${url('images/plus.png')}\"/>\n" +
+  "    <img class=\"gcli-row-hover\" onclick=\"${remove}\"\n" +
+  "        alt=\"Remove this command from the history\"\n" +
+  "        _src=\"${url('images/closer.png')}\"/>\n" +
+  "    -->\n" +
+  "    <img style=\"float:right;\" _src=\"${url('images/throbber.gif')}\" save=\"${elems.throb}\"/>\n" +
+  "  </div>\n" +
+  "\n" +
+  "  <!-- The div for the command output -->\n" +
+  "  <div class=\"gcli-row-out\" aria-live=\"assertive\" save=\"${elems.rowout}\">\n" +
+  "  </div>\n" +
+  "</div>\n" +
+  "");
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+define('gcli/ui/prompt', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Prompt(options, components) {
+  this.element = components.element;
+  this.element.classList.add('gcli-prompt');
+
+  var prompt = options.promptChar || '\u00bb';
+  var text = this.element.ownerDocument.createTextNode(prompt);
+  this.element.appendChild(text);
+
+  this.inputter = components.inputter;
+  if (this.inputter) {
+    this.inputter.onResize.add(this.resized, this);
+
+    var dimensions = this.inputter.getDimensions();
+    if (dimensions) {
+      this.resized(dimensions);
+    }
+  }
+}
+
+
+
+
+Prompt.prototype.destroy = function() {
+  if (this.inputter) {
+    this.inputter.onResize.remove(this.resized, this);
+  }
+
+  delete this.element;
+};
+
+
+
+
+Prompt.prototype.resized = function(ev) {
+  this.element.style.top = ev.top + 'px';
+  this.element.style.height = ev.height + 'px';
+  this.element.style.left = ev.left + 'px';
+  this.element.style.width = ev.width + 'px';
+};
+
+exports.Prompt = Prompt;
+
+
+});
+define("text!gcli/ui/display.css", [], "\n" +
+  ".gcli-output {\n" +
+  "  height: 100%;\n" +
+  "  overflow-x: hidden;\n" +
+  "  overflow-y: auto;\n" +
+  "  font-family: Segoe UI, Helvetica Neue, Verdana, Arial, sans-serif;\n" +
+  "}\n" +
+  "");
+
+define("text!gcli/ui/display.html", [], "\n" +
+  "<div class=\"gcli-panel\" save=\"${panel}\">\n" +
+  "  <div save=\"${tooltip}\"></div>\n" +
+  "  <div class=\"gcli-panel-connector\"></div>\n" +
+  "</div>\n" +
+  "");
+
+
 let testModuleNames = [
   'gclitest/index',
   'gclitest/suite',
@@ -4210,6 +5469,7 @@ let testModuleNames = [
   'gclitest/testHelp',
   'gclitest/testHistory',
   'gclitest/testInputter',
+  'gclitest/testIncomplete',
   'gclitest/testIntro',
   'gclitest/testJs',
   'gclitest/testKeyboard',
@@ -4226,6 +5486,13 @@ let testModuleNames = [
   'gclitest/testTooltip',
   'gclitest/testTypes',
   'gclitest/testUtil',
+  'gcli/ui/display',
+  'gcli/ui/output_terminal',
+  'text!gcli/ui/output_view.css',
+  'text!gcli/ui/output_terminal.html',
+  'gcli/ui/prompt',
+  'text!gcli/ui/display.css',
+  'text!gcli/ui/display.html',
 ];
 
 

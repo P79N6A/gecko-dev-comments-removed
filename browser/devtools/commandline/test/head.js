@@ -46,33 +46,90 @@ registerCleanupFunction(function tearDown() {
 
 
 
-let DeveloperToolbarTest = {
+let DeveloperToolbarTest = { };
+
+
+
+
+DeveloperToolbarTest.show = function DTT_show(aCallback) {
+  if (DeveloperToolbar.visible) {
+    ok(false, "DeveloperToolbar.visible at start of openDeveloperToolbar");
+  }
+  else {
+    DeveloperToolbar.show(true, aCallback);
+  }
+};
+
+
+
+
+DeveloperToolbarTest.hide = function DTT_hide() {
+  if (!DeveloperToolbar.visible) {
+    ok(false, "!DeveloperToolbar.visible at start of closeDeveloperToolbar");
+  }
+  else {
+    DeveloperToolbar.display.inputter.setInput("");
+    DeveloperToolbar.hide();
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DeveloperToolbarTest.checkInputStatus = function DTT_checkInputStatus(checks) {
+  if (!checks.emptyParameters) {
+    checks.emptyParameters = [];
+  }
+  if (!checks.directTabText) {
+    checks.directTabText = '';
+  }
+  if (!checks.arrowTabText) {
+    checks.arrowTabText = '';
+  }
+
+  var display = DeveloperToolbar.display;
+
+  if (checks.typed) {
+    display.inputter.setInput(checks.typed);
+  }
+  else {
+    ok(false, "Missing typed for " + JSON.stringify(checks));
+    return;
+  }
+
+  if (checks.cursor) {
+    display.inputter.setCursor(checks.cursor)
+  }
+
+  var cursor = checks.cursor ? checks.cursor.start : checks.typed.length;
+
+  var requisition = display.requisition;
+  var completer = display.completer;
+  var actual = completer._getCompleterTemplateData();
+
   
 
 
-  show: function DTT_show(aCallback) {
-    if (DeveloperToolbar.visible) {
-      ok(false, "DeveloperToolbar.visible at start of openDeveloperToolbar");
-    }
-    else {
-      DeveloperToolbar.show(true, aCallback);
-    }
-  },
-
-  
-
-
-  hide: function DTT_hide() {
-    if (!DeveloperToolbar.visible) {
-      ok(false, "!DeveloperToolbar.visible at start of closeDeveloperToolbar");
-    }
-    else {
-      DeveloperToolbar.display.inputter.setInput("");
-      DeveloperToolbar.hide();
-    }
-  },
-
-  
 
 
 
@@ -84,232 +141,263 @@ let DeveloperToolbarTest = {
 
 
 
+  if (checks.status) {
+    is(requisition.getStatus().toString(),
+            checks.status,
+            'status');
+  }
 
+  if (checks.markup) {
+    var statusMarkup = requisition.getInputStatusMarkup(cursor);
+    var actualMarkup = statusMarkup.map(function(s) {
+      return Array(s.string.length + 1).join(s.status.toString()[0]);
+    }).join('');
 
+    is(checks.markup,
+            actualMarkup,
+            'markup');
+  }
 
+  if (checks.emptyParameters) {
+    var actualParams = actual.emptyParameters;
+    is(actualParams.length,
+            checks.emptyParameters.length,
+            'emptyParameters.length');
 
-
-  checkInputStatus: function DTT_checkInputStatus(tests) {
-    let display = DeveloperToolbar.display;
-
-    if (tests.typed) {
-      display.inputter.setInput(tests.typed);
-    }
-    else {
-      ok(false, "Missing typed for " + JSON.stringify(tests));
-      return;
-    }
-
-    if (tests.cursor) {
-      display.inputter.setCursor(tests.cursor)
-    }
-
-    if (tests.status) {
-      is(display.requisition.getStatus().toString(),
-              tests.status, "status for " + tests.typed);
-    }
-
-    if (tests.emptyParameters == null) {
-      tests.emptyParameters = [];
-    }
-
-    let realParams = display.completer.emptyParameters;
-    is(realParams.length, tests.emptyParameters.length,
-            'emptyParameters.length for \'' + tests.typed + '\'');
-
-    if (realParams.length === tests.emptyParameters.length) {
-      for (let i = 0; i < realParams.length; i++) {
-        is(realParams[i].replace(/\u00a0/g, ' '), tests.emptyParameters[i],
-                'emptyParameters[' + i + '] for \'' + tests.typed + '\'');
+    if (actualParams.length === checks.emptyParameters.length) {
+      for (var i = 0; i < actualParams.length; i++) {
+        is(actualParams[i].replace(/\u00a0/g, ' '),
+                checks.emptyParameters[i],
+                'emptyParameters[' + i + ']');
       }
     }
+  }
 
-    if (tests.directTabText) {
-      is(display.completer.directTabText, tests.directTabText,
-              'directTabText for \'' + tests.typed + '\'');
-    }
-    else {
-      is(display.completer.directTabText, '',
-              'directTabText for \'' + tests.typed + '\'');
-    }
+  if (checks.directTabText) {
+    is(actual.directTabText,
+            checks.directTabText,
+            'directTabText');
+  }
 
-    if (tests.arrowTabText) {
-      is(display.completer.arrowTabText, ' \u00a0\u21E5 ' + tests.arrowTabText,
-              'arrowTabText for \'' + tests.typed + '\'');
-    }
-    else {
-      is(display.completer.arrowTabText, '',
-              'arrowTabText for \'' + tests.typed + '\'');
-    }
+  if (checks.arrowTabText) {
+    is(actual.arrowTabText,
+            ' \u00a0\u21E5 ' + checks.arrowTabText,
+            'arrowTabText');
+  }
 
-    if (tests.markup) {
-      let cursor = tests.cursor ? tests.cursor.start : tests.typed.length;
-      let statusMarkup = display.requisition.getInputStatusMarkup(cursor);
-      let actualMarkup = statusMarkup.map(function(s) {
-        return Array(s.string.length + 1).join(s.status.toString()[0]);
-      }).join('');
-      is(tests.markup, actualMarkup, 'markup for ' + tests.typed);
-    }
-  },
+  if (checks.args) {
+    Object.keys(checks.args).forEach(function(paramName) {
+      var check = checks.args[paramName];
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-  exec: function DTT_exec(tests) {
-    tests = tests || {};
-
-    if (tests.typed) {
-      DeveloperToolbar.display.inputter.setInput(tests.typed);
-    }
-
-    let typed = DeveloperToolbar.display.inputter.getInputState().typed;
-    let output = DeveloperToolbar.display.requisition.exec();
-
-    is(typed, output.typed, 'output.command for: ' + typed);
-
-    if (tests.completed !== false) {
-      ok(output.completed, 'output.completed false for: ' + typed);
-    }
-    else {
-      
-      
-      
-    }
-
-    if (tests.args != null) {
-      is(Object.keys(tests.args).length, Object.keys(output.args).length,
-         'arg count for ' + typed);
-
-      Object.keys(output.args).forEach(function(arg) {
-        let expectedArg = tests.args[arg];
-        let actualArg = output.args[arg];
-
-        if (typeof expectedArg === 'function') {
-          ok(expectedArg(actualArg), 'failed test func. ' + typed + '/' + arg);
-        }
-        else {
-          if (Array.isArray(expectedArg)) {
-            if (!Array.isArray(actualArg)) {
-              ok(false, 'actual is not an array. ' + typed + '/' + arg);
-              return;
-            }
-
-            is(expectedArg.length, actualArg.length,
-                    'array length: ' + typed + '/' + arg);
-            for (let i = 0; i < expectedArg.length; i++) {
-              is(expectedArg[i], actualArg[i],
-                      'member: "' + typed + '/' + arg + '/' + i);
-            }
-          }
-          else {
-            is(expectedArg, actualArg, 'typed: "' + typed + '" arg: ' + arg);
-          }
-        }
-      });
-    }
-
-    let displayed = DeveloperToolbar.outputPanel._div.textContent;
-
-    if (tests.outputMatch) {
-      function doTest(match, against) {
-        if (!match.test(against)) {
-          ok(false, "html output for " + typed + " against " + match.source +
-                  " (textContent sent to info)");
-          info("Actual textContent");
-          info(against);
-        }
-      }
-      if (Array.isArray(tests.outputMatch)) {
-        tests.outputMatch.forEach(function(match) {
-          doTest(match, displayed);
-        });
+      var assignment;
+      if (paramName === 'command') {
+        assignment = requisition.commandAssignment;
       }
       else {
-        doTest(tests.outputMatch, displayed);
-      }
-    }
-
-    if (tests.blankOutput != null) {
-      if (!/^$/.test(displayed)) {
-        ok(false, "html output for " + typed + " (textContent sent to info)");
-        info("Actual textContent");
-        info(displayed);
-      }
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  test: function DTT_test(uri, testFunc) {
-    let menuItem = document.getElementById("menu_devToolbar");
-    let command = document.getElementById("Tools:DevToolbar");
-    let appMenuItem = document.getElementById("appmenu_devToolbar");
-
-    registerCleanupFunction(function() {
-      DeveloperToolbarTest.hide();
-
-      
-      if (menuItem) {
-        menuItem.hidden = true;
-      }
-      if (command) {
-        command.setAttribute("disabled", "true");
-      }
-      if (appMenuItem) {
-        appMenuItem.hidden = true;
+        assignment = requisition.getAssignment(paramName);
       }
 
-      
+      if (assignment == null) {
+        ok(false, 'Unknown parameter: ' + paramName);
+        return;
+      }
+
+      if (check.value) {
+        is(assignment.value,
+                check.value,
+                'checkStatus value for ' + paramName);
+      }
+
+      if (check.name) {
+        is(assignment.value.name,
+                check.name,
+                'checkStatus name for ' + paramName);
+      }
+
+      if (check.type) {
+        is(assignment.arg.type,
+                check.type,
+                'checkStatus type for ' + paramName);
+      }
+
+      if (check.arg) {
+        is(assignment.arg.toString(),
+                check.arg,
+                'checkStatus arg for ' + paramName);
+      }
+
+      if (check.status) {
+        is(assignment.getStatus().toString(),
+                check.status,
+                'checkStatus status for ' + paramName);
+      }
+
+      if (check.message) {
+        is(assignment.getMessage(),
+                check.message,
+                'checkStatus message for ' + paramName);
+      }
     });
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DeveloperToolbarTest.exec = function DTT_exec(tests) {
+  tests = tests || {};
+
+  if (tests.typed) {
+    DeveloperToolbar.display.inputter.setInput(tests.typed);
+  }
+
+  let typed = DeveloperToolbar.display.inputter.getInputState().typed;
+  let output = DeveloperToolbar.display.requisition.exec();
+
+  is(typed, output.typed, 'output.command for: ' + typed);
+
+  if (tests.completed !== false) {
+    ok(output.completed, 'output.completed false for: ' + typed);
+  }
+  else {
+    
+    
+    
+  }
+
+  if (tests.args != null) {
+    is(Object.keys(tests.args).length, Object.keys(output.args).length,
+       'arg count for ' + typed);
+
+    Object.keys(output.args).forEach(function(arg) {
+      let expectedArg = tests.args[arg];
+      let actualArg = output.args[arg];
+
+      if (typeof expectedArg === 'function') {
+        ok(expectedArg(actualArg), 'failed test func. ' + typed + '/' + arg);
+      }
+      else {
+        if (Array.isArray(expectedArg)) {
+          if (!Array.isArray(actualArg)) {
+            ok(false, 'actual is not an array. ' + typed + '/' + arg);
+            return;
+          }
+
+          is(expectedArg.length, actualArg.length,
+                  'array length: ' + typed + '/' + arg);
+          for (let i = 0; i < expectedArg.length; i++) {
+            is(expectedArg[i], actualArg[i],
+                    'member: "' + typed + '/' + arg + '/' + i);
+          }
+        }
+        else {
+          is(expectedArg, actualArg, 'typed: "' + typed + '" arg: ' + arg);
+        }
+      }
+    });
+  }
+
+  let displayed = DeveloperToolbar.outputPanel._div.textContent;
+
+  if (tests.outputMatch) {
+    function doTest(match, against) {
+      if (!match.test(against)) {
+        ok(false, "html output for " + typed + " against " + match.source +
+                " (textContent sent to info)");
+        info("Actual textContent");
+        info(against);
+      }
+    }
+    if (Array.isArray(tests.outputMatch)) {
+      tests.outputMatch.forEach(function(match) {
+        doTest(match, displayed);
+      });
+    }
+    else {
+      doTest(tests.outputMatch, displayed);
+    }
+  }
+
+  if (tests.blankOutput != null) {
+    if (!/^$/.test(displayed)) {
+      ok(false, "html output for " + typed + " (textContent sent to info)");
+      info("Actual textContent");
+      info(displayed);
+    }
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+DeveloperToolbarTest.test = function DTT_test(uri, testFunc) {
+  let menuItem = document.getElementById("menu_devToolbar");
+  let command = document.getElementById("Tools:DevToolbar");
+  let appMenuItem = document.getElementById("appmenu_devToolbar");
+
+  registerCleanupFunction(function() {
+    DeveloperToolbarTest.hide();
 
     
     if (menuItem) {
-      menuItem.hidden = false;
+      menuItem.hidden = true;
     }
     if (command) {
-      command.removeAttribute("disabled");
+      command.setAttribute("disabled", "true");
     }
     if (appMenuItem) {
-      appMenuItem.hidden = false;
+      appMenuItem.hidden = true;
     }
 
-    addTab(uri, function(browser, tab) {
-      DeveloperToolbarTest.show(function() {
+    
+  });
 
-        try {
-          testFunc(browser, tab);
-        }
-        catch (ex) {
-          ok(false, "" + ex);
-          console.error(ex);
-          finish();
-          throw ex;
-        }
-      });
+  
+  if (menuItem) {
+    menuItem.hidden = false;
+  }
+  if (command) {
+    command.removeAttribute("disabled");
+  }
+  if (appMenuItem) {
+    appMenuItem.hidden = false;
+  }
+
+  addTab(uri, function(browser, tab) {
+    DeveloperToolbarTest.show(function() {
+
+      try {
+        testFunc(browser, tab);
+      }
+      catch (ex) {
+        ok(false, "" + ex);
+        console.error(ex);
+        finish();
+        throw ex;
+      }
     });
-  },
+  });
 };
 
 

@@ -148,7 +148,7 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
 
 
 
-define('gcli/types/basic', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/spell', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
+define('gcli/types/basic', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/selection', 'gcli/argument'], function(require, exports, module) {
 
 
 var l10n = require('gcli/l10n');
@@ -157,12 +157,9 @@ var Type = require('gcli/types').Type;
 var Status = require('gcli/types').Status;
 var Conversion = require('gcli/types').Conversion;
 var ArrayConversion = require('gcli/types').ArrayConversion;
-var Speller = require('gcli/types/spell').Speller;
 var SelectionType = require('gcli/types/selection').SelectionType;
 
-var Argument = require('gcli/argument').Argument;
-var TrueNamedArgument = require('gcli/argument').TrueNamedArgument;
-var FalseNamedArgument = require('gcli/argument').FalseNamedArgument;
+var BlankArgument = require('gcli/argument').BlankArgument;
 var ArrayArgument = require('gcli/argument').ArrayArgument;
 
 
@@ -263,7 +260,7 @@ NumberType.prototype.getMax = function() {
 };
 
 NumberType.prototype.parse = function(arg) {
-  if (arg.text.replace(/\s/g, '').length === 0) {
+  if (arg.text.replace(/^\s*-?/, '').length === 0) {
     return new Conversion(undefined, arg, Status.INCOMPLETE, '');
   }
 
@@ -348,10 +345,10 @@ BooleanType.prototype.lookup = [
 ];
 
 BooleanType.prototype.parse = function(arg) {
-  if (arg instanceof TrueNamedArgument) {
+  if (arg.type === 'TrueNamedArgument') {
     return new Conversion(true, arg);
   }
-  if (arg instanceof FalseNamedArgument) {
+  if (arg.type === 'FalseNamedArgument') {
     return new Conversion(false, arg);
   }
   return SelectionType.prototype.parse.call(this, arg);
@@ -365,7 +362,7 @@ BooleanType.prototype.stringify = function(value) {
 };
 
 BooleanType.prototype.getBlank = function() {
-  return new Conversion(false, new Argument(), Status.VALID, '', this.lookup);
+  return new Conversion(false, new BlankArgument(), Status.VALID, '', this.lookup);
 };
 
 BooleanType.prototype.name = 'boolean';
@@ -475,7 +472,7 @@ ArrayType.prototype.stringify = function(values) {
 };
 
 ArrayType.prototype.parse = function(arg) {
-  if (arg instanceof ArrayArgument) {
+  if (arg.type === 'ArrayArgument') {
     var conversions = arg.getArguments().map(function(subArg) {
       var conversion = this.subtype.parse(subArg);
       
@@ -613,6 +610,7 @@ var types = exports;
 
 
 var Argument = require('gcli/argument').Argument;
+var BlankArgument = require('gcli/argument').BlankArgument;
 
 
 
@@ -736,7 +734,7 @@ Conversion.prototype.assign = function(assignment) {
 
 
 Conversion.prototype.isDataProvided = function() {
-  return !this.arg.isBlank();
+  return this.arg.type !== 'BlankArgument';
 };
 
 
@@ -1003,7 +1001,7 @@ Type.prototype.decrement = function(value) {
 
 
 Type.prototype.getBlank = function() {
-  return this.parse(new Argument());
+  return this.parse(new BlankArgument());
 };
 
 
@@ -1136,6 +1134,17 @@ var argument = exports;
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 function Argument(text, prefix, suffix) {
   if (text === undefined) {
     this.text = '';
@@ -1148,6 +1157,8 @@ function Argument(text, prefix, suffix) {
     this.suffix = suffix !== undefined ? suffix : '';
   }
 }
+
+Argument.prototype.type = 'Argument';
 
 
 
@@ -1180,15 +1191,6 @@ Argument.prototype.beget = function(replText, options) {
   }
 
   return new Argument(replText, prefix, suffix);
-};
-
-
-
-
-Argument.prototype.isBlank = function() {
-  return this.text === '' &&
-      this.prefix.trim() === '' &&
-      this.suffix.trim() === '';
 };
 
 
@@ -1256,7 +1258,40 @@ Argument.merge = function(argArray, start, end) {
   return joined;
 };
 
+
+
+
+
+
+Object.defineProperty(Argument.prototype, '_summaryJson', {
+  get: function() {
+    var assignStatus = this.assignment == null ?
+            'null' :
+            this.assignment.param.name;
+    return '<' + this.prefix + ':' + this.text + ':' + this.suffix + '>' +
+        ' (a=' + assignStatus + ',' + ' t=' + this.type + ')';
+  },
+  enumerable: true
+});
+
 argument.Argument = Argument;
+
+
+
+
+
+
+function BlankArgument() {
+  this.text = '';
+  this.prefix = '';
+  this.suffix = '';
+}
+
+BlankArgument.prototype = Object.create(Argument.prototype);
+
+BlankArgument.prototype.type = 'BlankArgument';
+
+argument.BlankArgument = BlankArgument;
 
 
 
@@ -1284,6 +1319,8 @@ function ScriptArgument(text, prefix, suffix) {
 
 ScriptArgument.prototype = Object.create(Argument.prototype);
 
+ScriptArgument.prototype.type = 'ScriptArgument';
+
 
 
 
@@ -1299,15 +1336,6 @@ ScriptArgument.prototype.beget = function(replText, options) {
   }
 
   return new ScriptArgument(replText, prefix, suffix);
-};
-
-
-
-
-
-
-ScriptArgument.prototype.isBlank = function() {
-  return false;
 };
 
 argument.ScriptArgument = ScriptArgument;
@@ -1337,6 +1365,8 @@ function MergedArgument(args, start, end) {
 }
 
 MergedArgument.prototype = Object.create(Argument.prototype);
+
+MergedArgument.prototype.type = 'MergedArgument';
 
 
 
@@ -1384,6 +1414,8 @@ function TrueNamedArgument(name, arg) {
 
 TrueNamedArgument.prototype = Object.create(Argument.prototype);
 
+TrueNamedArgument.prototype.type = 'TrueNamedArgument';
+
 TrueNamedArgument.prototype.assign = function(assignment) {
   if (this.arg) {
     this.arg.assign(assignment);
@@ -1427,6 +1459,8 @@ function FalseNamedArgument() {
 
 FalseNamedArgument.prototype = Object.create(Argument.prototype);
 
+FalseNamedArgument.prototype.type = 'FalseNamedArgument';
+
 FalseNamedArgument.prototype.getArgs = function() {
   return [ ];
 };
@@ -1455,26 +1489,31 @@ argument.FalseNamedArgument = FalseNamedArgument;
 
 
 
-
-
-
-
-
-
 function NamedArgument(nameArg, valueArg) {
   this.nameArg = nameArg;
   this.valueArg = valueArg;
 
-  this.text = valueArg.text;
-  this.prefix = nameArg.toString() + valueArg.prefix;
-  this.suffix = valueArg.suffix;
+  if (valueArg == null) {
+    this.text = '';
+    this.prefix = nameArg.toString();
+    this.suffix = '';
+  }
+  else {
+    this.text = valueArg.text;
+    this.prefix = nameArg.toString() + valueArg.prefix;
+    this.suffix = valueArg.suffix;
+  }
 }
 
 NamedArgument.prototype = Object.create(Argument.prototype);
 
+NamedArgument.prototype.type = 'NamedArgument';
+
 NamedArgument.prototype.assign = function(assignment) {
   this.nameArg.assign(assignment);
-  this.valueArg.assign(assignment);
+  if (this.valueArg != null) {
+    this.valueArg.assign(assignment);
+  }
   this.assignment = assignment;
 };
 
@@ -1513,6 +1552,8 @@ function ArrayArgument() {
 
 ArrayArgument.prototype = Object.create(Argument.prototype);
 
+ArrayArgument.prototype.type = 'ArrayArgument';
+
 ArrayArgument.prototype.addArgument = function(arg) {
   this.args.push(arg);
 };
@@ -1545,7 +1586,7 @@ ArrayArgument.prototype.equals = function(that) {
     return false;
   }
 
-  if (!(that instanceof ArrayArgument)) {
+  if (!(that.type === 'ArrayArgument')) {
     return false;
   }
 
@@ -1572,157 +1613,6 @@ ArrayArgument.prototype.toString = function() {
 };
 
 argument.ArrayArgument = ArrayArgument;
-
-
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-define('gcli/types/spell', ['require', 'exports', 'module' ], function(require, exports, module) {
-
-
-
-
-
-
-
-
-
-
-
-
-
-function Speller() {
-  
-  this._nWords = {};
-}
-
-Speller.letters = "abcdefghijklmnopqrstuvwxyz".split("");
-
-
-
-
-
-
-Speller.prototype.train = function(words) {
-  words.forEach(function(word) {
-    word = word.toLowerCase();
-    this._nWords[word] = this._nWords.hasOwnProperty(word) ?
-            this._nWords[word] + 1 :
-            1;
-  }, this);
-};
-
-
-
-
-Speller.prototype.correct = function(word) {
-  if (this._nWords.hasOwnProperty(word)) {
-    return word;
-  }
-
-  var candidates = {};
-  var list = this._edits(word);
-  list.forEach(function(edit) {
-    if (this._nWords.hasOwnProperty(edit)) {
-      candidates[this._nWords[edit]] = edit;
-    }
-  }, this);
-
-  if (this._countKeys(candidates) > 0) {
-    return candidates[this._max(candidates)];
-  }
-
-  list.forEach(function(edit) {
-    this._edits(edit).forEach(function(w) {
-      if (this._nWords.hasOwnProperty(w)) {
-        candidates[this._nWords[w]] = w;
-      }
-    }, this);
-  }, this);
-
-  return this._countKeys(candidates) > 0 ?
-      candidates[this._max(candidates)] :
-      null;
-};
-
-
-
-
-Speller.prototype._countKeys = function(object) {
-  
-  var count = 0;
-  for (var attr in object) {
-    if (object.hasOwnProperty(attr)) {
-      count++;
-    }
-  }
-  return count;
-};
-
-
-
-
-
-
-Speller.prototype._max = function(candidates) {
-  var arr = [];
-  for (var candidate in candidates) {
-    if (candidates.hasOwnProperty(candidate)) {
-      arr.push(candidate);
-    }
-  }
-  return Math.max.apply(null, arr);
-};
-
-
-
-
-
-Speller.prototype._edits = function(word) {
-  var results = [];
-
-  
-  for (var i = 0; i < word.length; i++) {
-    results.push(word.slice(0, i) + word.slice(i + 1));
-  }
-
-  
-  for (i = 0; i < word.length - 1; i++) {
-    results.push(word.slice(0, i) + word.slice(i + 1, i + 2)
-            + word.slice(i, i + 1) + word.slice(i + 2));
-  }
-
-  
-  for (i = 0; i < word.length; i++) {
-    Speller.letters.forEach(function(l) {
-      results.push(word.slice(0, i) + l + word.slice(i + 1));
-    }, this);
-  }
-
-  
-  for (i = 0; i <= word.length; i++) {
-    Speller.letters.forEach(function(l) {
-      results.push(word.slice(0, i) + l + word.slice(i));
-    }, this);
-  }
-
-  return results;
-};
-
-exports.Speller = Speller;
 
 
 });
@@ -2044,6 +1934,157 @@ exports.SelectionType = SelectionType;
 
 
 
+define('gcli/types/spell', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+
+
+
+
+
+
+
+
+
+
+
+
+function Speller() {
+  
+  this._nWords = {};
+}
+
+Speller.letters = "abcdefghijklmnopqrstuvwxyz".split("");
+
+
+
+
+
+
+Speller.prototype.train = function(words) {
+  words.forEach(function(word) {
+    word = word.toLowerCase();
+    this._nWords[word] = this._nWords.hasOwnProperty(word) ?
+            this._nWords[word] + 1 :
+            1;
+  }, this);
+};
+
+
+
+
+Speller.prototype.correct = function(word) {
+  if (this._nWords.hasOwnProperty(word)) {
+    return word;
+  }
+
+  var candidates = {};
+  var list = this._edits(word);
+  list.forEach(function(edit) {
+    if (this._nWords.hasOwnProperty(edit)) {
+      candidates[this._nWords[edit]] = edit;
+    }
+  }, this);
+
+  if (this._countKeys(candidates) > 0) {
+    return candidates[this._max(candidates)];
+  }
+
+  list.forEach(function(edit) {
+    this._edits(edit).forEach(function(w) {
+      if (this._nWords.hasOwnProperty(w)) {
+        candidates[this._nWords[w]] = w;
+      }
+    }, this);
+  }, this);
+
+  return this._countKeys(candidates) > 0 ?
+      candidates[this._max(candidates)] :
+      null;
+};
+
+
+
+
+Speller.prototype._countKeys = function(object) {
+  
+  var count = 0;
+  for (var attr in object) {
+    if (object.hasOwnProperty(attr)) {
+      count++;
+    }
+  }
+  return count;
+};
+
+
+
+
+
+
+Speller.prototype._max = function(candidates) {
+  var arr = [];
+  for (var candidate in candidates) {
+    if (candidates.hasOwnProperty(candidate)) {
+      arr.push(candidate);
+    }
+  }
+  return Math.max.apply(null, arr);
+};
+
+
+
+
+
+Speller.prototype._edits = function(word) {
+  var results = [];
+
+  
+  for (var i = 0; i < word.length; i++) {
+    results.push(word.slice(0, i) + word.slice(i + 1));
+  }
+
+  
+  for (i = 0; i < word.length - 1; i++) {
+    results.push(word.slice(0, i) + word.slice(i + 1, i + 2)
+            + word.slice(i, i + 1) + word.slice(i + 2));
+  }
+
+  
+  for (i = 0; i < word.length; i++) {
+    Speller.letters.forEach(function(l) {
+      results.push(word.slice(0, i) + l + word.slice(i + 1));
+    }, this);
+  }
+
+  
+  for (i = 0; i <= word.length; i++) {
+    Speller.letters.forEach(function(l) {
+      results.push(word.slice(0, i) + l + word.slice(i));
+    }, this);
+  }
+
+  return results;
+};
+
+exports.Speller = Speller;
+
+
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 define('gcli/types/command', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/l10n', 'gcli/types', 'gcli/types/selection'], function(require, exports, module) {
 
@@ -2061,10 +2102,48 @@ var Conversion = require('gcli/types').Conversion;
 
 exports.startup = function() {
   types.registerType(CommandType);
+  types.registerType(ParamType);
 };
 
 exports.shutdown = function() {
   types.unregisterType(CommandType);
+  types.unregisterType(ParamType);
+};
+
+
+
+
+
+
+
+
+
+function ParamType(typeSpec) {
+  this.requisition = typeSpec.requisition;
+  this.isIncompleteName = typeSpec.isIncompleteName;
+  this.stringifyProperty = 'name';
+}
+
+ParamType.prototype = Object.create(SelectionType.prototype);
+
+ParamType.prototype.name = 'param';
+
+ParamType.prototype.lookup = function() {
+  var displayedParams = [];
+  var command = this.requisition.commandAssignment.value;
+  command.params.forEach(function(param) {
+    var arg = this.requisition.getAssignment(param.name).arg;
+    if (!param.isPositionalAllowed && arg.type === "BlankArgument") {
+      displayedParams.push({ name: '--' + param.name, value: param });
+    }
+  }, this);
+  return displayedParams;
+};
+
+ParamType.prototype.parse = function(arg) {
+  return this.isIncompleteName ?
+      SelectionType.prototype.parse.call(this, arg) :
+      new Conversion(undefined, arg, Status.ERROR, l10n.lookup('cliUnusedArg'));
 };
 
 
@@ -2160,7 +2239,7 @@ CommandType.prototype.parse = function(arg) {
 
 
 
-define('gcli/canon', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/types/basic'], function(require, exports, module) {
+define('gcli/canon', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/types', 'gcli/types/basic', 'gcli/types/selection'], function(require, exports, module) {
 var canon = exports;
 
 
@@ -2170,6 +2249,7 @@ var l10n = require('gcli/l10n');
 var types = require('gcli/types');
 var Status = require('gcli/types').Status;
 var BooleanType = require('gcli/types/basic').BooleanType;
+var SelectionType = require('gcli/types/selection').SelectionType;
 
 
 
@@ -2214,6 +2294,7 @@ function lookup(data, onUndefined) {
 
   return l10n.lookup(onUndefined);
 }
+
 
 
 
@@ -2345,6 +2426,13 @@ function Parameter(paramSpec, command, groupName) {
   
   if (this.defaultValue === undefined) {
     this.defaultValue = this.type.getBlank().value;
+  }
+
+  
+  
+  if (!this.isPositionalAllowed && this.defaultValue === undefined) {
+    console.error('In ' + this.command.name + '/' + this.name +
+            ': Missing defaultValue for optional parameter.');
   }
 }
 
@@ -4858,11 +4946,12 @@ define('gcli/ui/domtemplate', ['require', 'exports', 'module' ], function(requir
 
 
 
-define('gcli/cli', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/view', 'gcli/canon', 'gcli/promise', 'gcli/types', 'gcli/types/basic', 'gcli/argument'], function(require, exports, module) {
+define('gcli/cli', ['require', 'exports', 'module' , 'gcli/util', 'gcli/ui/view', 'gcli/l10n', 'gcli/canon', 'gcli/promise', 'gcli/types', 'gcli/types/basic', 'gcli/argument'], function(require, exports, module) {
 
 
 var util = require('gcli/util');
 var view = require('gcli/ui/view');
+var l10n = require('gcli/l10n');
 
 var canon = require('gcli/canon');
 var Promise = require('gcli/promise').Promise;
@@ -4872,6 +4961,7 @@ var Conversion = require('gcli/types').Conversion;
 var ArrayType = require('gcli/types/basic').ArrayType;
 var StringType = require('gcli/types/basic').StringType;
 var BooleanType = require('gcli/types/basic').BooleanType;
+var NumberType = require('gcli/types/basic').NumberType;
 
 var Argument = require('gcli/argument').Argument;
 var ArrayArgument = require('gcli/argument').ArrayArgument;
@@ -4916,27 +5006,20 @@ exports.shutdown = function() {
 
 
 function Assignment(param, paramIndex) {
+  
   this.param = param;
+
+  this.conversion = undefined;
+
+  
+  
+  
   this.paramIndex = paramIndex;
+
   this.onAssignmentChange = util.createEvent('Assignment.onAssignmentChange');
 
   this.setBlank();
 }
-
-
-
-
-
-Assignment.prototype.param = undefined;
-
-Assignment.prototype.conversion = undefined;
-
-
-
-
-
-
-Assignment.prototype.paramIndex = undefined;
 
 
 
@@ -5021,7 +5104,7 @@ Assignment.prototype.ensureVisibleArgument = function() {
   
   
   
-  if (!this.conversion.arg.isBlank()) {
+  if (this.conversion.arg.type !== 'BlankArgument') {
     return false;
   }
 
@@ -5043,13 +5126,13 @@ Assignment.prototype.ensureVisibleArgument = function() {
 
 Assignment.prototype.getStatus = function(arg) {
   if (this.param.isDataRequired && !this.conversion.isDataProvided()) {
-    return Status.ERROR;
+    return Status.INCOMPLETE;
   }
 
   
   
   
-  if (!this.param.isDataRequired && this.arg.isBlank()) {
+  if (!this.param.isDataRequired && this.arg.type === 'BlankArgument') {
     return Status.VALID;
   }
 
@@ -5088,6 +5171,26 @@ Assignment.prototype.increment = function() {
 Assignment.prototype.toString = function() {
   return this.conversion.toString();
 };
+
+
+
+
+
+
+Object.defineProperty(Assignment.prototype, '_summaryJson', {
+  get: function() {
+    return {
+      param: this.param.name + '/' + this.param.type.name,
+      defaultValue: this.param.defaultValue,
+      arg: this.conversion.arg._summaryJson,
+      value: this.value,
+      message: this.getMessage(),
+      status: this.getStatus().toString(),
+      predictionCount: this.getPredictions().length
+    };
+  },
+  enumerable: true
+});
 
 exports.Assignment = Assignment;
 
@@ -5182,31 +5285,27 @@ exports.CommandAssignment = CommandAssignment;
 
 
 
-function UnassignedAssignment() {
+function UnassignedAssignment(requisition, arg, isIncompleteName) {
   this.param = new canon.Parameter({
     name: '__unassigned',
-    type: 'string'
+    description: l10n.lookup('cliOptions'),
+    type: {
+      name: 'param',
+      requisition: requisition,
+      isIncompleteName: isIncompleteName
+    },
   });
   this.paramIndex = -1;
   this.onAssignmentChange = util.createEvent('UnassignedAssignment.onAssignmentChange');
 
-  this.setBlank();
+  this.conversion = this.param.type.parse(arg);
+  this.conversion.assign(this);
 }
 
 UnassignedAssignment.prototype = Object.create(Assignment.prototype);
 
 UnassignedAssignment.prototype.getStatus = function(arg) {
-  return Status.ERROR;
-};
-
-UnassignedAssignment.prototype.setUnassigned = function(args) {
-  if (!args || args.length === 0) {
-    this.setBlank();
-  }
-  else {
-    var conversion = this.param.type.parse(new MergedArgument(args));
-    this.setConversion(conversion);
-  }
+  return this.conversion.getStatus();
 };
 
 
@@ -5268,7 +5367,7 @@ function Requisition(environment, doc) {
   this._args = [];
 
   
-  this._unassigned = new UnassignedAssignment();
+  this._unassigned = [];
 
   
   
@@ -5431,7 +5530,7 @@ Requisition.prototype.cloneAssignments = function() {
 
 Requisition.prototype.getStatus = function() {
   var status = Status.VALID;
-  if (!this._unassigned.arg.isBlank()) {
+  if (this._unassigned.length !== 0) {
     return Status.ERROR;
   }
   this.getAssignments(true).forEach(function(assignment) {
@@ -5480,6 +5579,28 @@ Requisition.prototype.getAssignments = function(includeCommand) {
 
 
 
+
+
+Requisition.prototype.setAssignment = function(assignment, arg) {
+  var originalArg = assignment.arg;
+  var conversion = assignment.param.type.parse(arg);
+  assignment.setConversion(conversion);
+
+  
+  
+  
+  if (originalArg.type === 'BlankArgument') {
+    this._args.push(arg);
+  }
+  else {
+    var index = this._args.indexOf(originalArg);
+    this._args[index] = conversion.arg;
+  }
+};
+
+
+
+
 Requisition.prototype.setBlankArguments = function() {
   this.getAssignments().forEach(function(assignment) {
     assignment.setBlank();
@@ -5510,15 +5631,7 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
 
     
     var arg = assignment.arg.beget(prediction.name);
-    var conversion = assignment.param.type.parse(arg);
-    assignment.setConversion(conversion);
-
-    
-    
-    
-    if (this._args.indexOf(arg) === -1) {
-      this._args.push(arg);
-    }
+    this.setAssignment(assignment, arg);
 
     if (prediction.incomplete) {
       
@@ -5542,34 +5655,28 @@ Requisition.prototype.complete = function(cursor, predictionChoice) {
       
       var nextArg = nextAssignment.conversion.arg;
       if (nextArg.prefix.charAt(0) !== ' ') {
-        nextArg.prefix = ' ' + nextArg.prefix;
-        var nextConversion = nextAssignment.param.type.parse(nextArg);
-        nextAssignment.setConversion(nextConversion);
-
-        
-        
-        
-        if (this._args.indexOf(nextArg) === -1) {
-          this._args.push(nextArg);
-        }
+        nextArg = new Argument(nextArg.text, ' ' + nextArg.prefix, nextArg.suffix);
+        this.setAssignment(nextAssignment, nextArg);
       }
     }
     else {
       
       
-      var conversion = assignment.conversion;
-      var arg = conversion.arg;
+      arg = assignment.conversion.arg;
       if (arg.suffix.charAt(arg.suffix.length - 1) !== ' ') {
-        arg.suffix = arg.suffix + ' ';
-
         
         
         
         
         
         
-        assignment.setConversion(conversion);
+        arg = new Argument(arg.text, arg.prefix, arg.suffix + ' ');
+        this.setAssignment(assignment, arg);
       }
+    }
+
+    if (assignment instanceof UnassignedAssignment) {
+      this.update(this.toString());
     }
 
     this.onTextChange();
@@ -5677,9 +5784,16 @@ Requisition.prototype.toString = function() {
 
 
 
-Requisition.prototype.typedEndsWithWhitespace = function() {
+Requisition.prototype.typedEndsWithSeparator = function() {
+  
+  
   if (this._args) {
-    return this._args.slice(-1)[0].suffix.slice(-1) === ' ';
+    var lastArg = this._args.slice(-1)[0];
+    if (lastArg.suffix.slice(-1) === ' ') {
+      return true;
+    }
+    return lastArg.text === '' && lastArg.suffix === ''
+        && lastArg.prefix.slice(-1) === ' ';
   }
 
   return this.toCanonicalString().slice(-1) === ' ';
@@ -5711,7 +5825,15 @@ Requisition.prototype.getInputStatusMarkup = function(cursor) {
       
       if (status === Status.INCOMPLETE) {
         
-        if (arg !== cTrace.arg || cTrace.part !== 'text') {
+        
+        
+        
+        
+        
+        var isNamed = (cTrace.arg.assignment.arg.type === 'NamedArgument');
+        var isInside = cTrace.part === 'text' ||
+                        (isNamed && cTrace.part === 'suffix');
+        if (arg.assignment !== cTrace.arg.assignment || !isInside) {
           
           if (!(arg.assignment instanceof CommandAssignment)) {
             status = Status.ERROR;
@@ -5770,12 +5892,15 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
     }
 
     
-    if (this._args.length > i + 1) {
+    
+    if (arg.assignment.arg.type === 'NamedArgument') {
+      
+    }
+    else if (this._args.length > i + 1) {
       
       assignment = this._args[i + 1].assignment;
     }
-    else if (assignment &&
-        assignment.paramIndex + 1 < this.assignmentCount) {
+    else if (assignment && assignment.paramIndex + 1 < this.assignmentCount) {
       
       assignment = this.getAssignment(assignment.paramIndex + 1);
     }
@@ -5792,7 +5917,7 @@ Requisition.prototype.getAssignmentAt = function(cursor) {
 
   if (!reply) {
     throw new Error('Missing assignment.' +
-      ' cursor=' + cursor + ' text.length=' + this.toString().length);
+        ' cursor=' + cursor + ' text=' + this.toString());
   }
 
   return reply;
@@ -5899,12 +6024,6 @@ Requisition.prototype.exec = function(input) {
 
 
 
-
-
-
-
-
-
 Requisition.prototype.update = function(typed) {
   this._structuralChangeInProgress = true;
 
@@ -5916,6 +6035,32 @@ Requisition.prototype.update = function(typed) {
   this._structuralChangeInProgress = false;
   this.onTextChange();
 };
+
+
+
+
+
+
+Object.defineProperty(Requisition.prototype, '_summaryJson', {
+  get: function() {
+    var summary = {
+      $args: this._args.map(function(arg) {
+        return arg._summaryJson;
+      }),
+      _command: this.commandAssignment._summaryJson,
+      _unassigned: this._unassigned.forEach(function(assignment) {
+        return assignment._summaryJson;
+      })
+    };
+
+    Object.keys(this._assignments).forEach(function(name) {
+      summary[name] = this.getAssignment(name)._summaryJson;
+    }.bind(this));
+
+    return summary;
+  },
+  enumerable: true
+});
 
 
 
@@ -6161,7 +6306,7 @@ Requisition.prototype._split = function(args) {
   
   
   var conversion;
-  if (args[0] instanceof ScriptArgument) {
+  if (args[0].type === 'ScriptArgument') {
     
     
     conversion = new Conversion(evalCommand, new ScriptArgument());
@@ -6204,22 +6349,32 @@ Requisition.prototype._split = function(args) {
 
 
 
+Requisition.prototype._addUnassignedArgs = function(args) {
+  args.forEach(function(arg) {
+    this._unassigned.push(new UnassignedAssignment(this, arg, false));
+  }.bind(this));
+};
+
+
+
+
 Requisition.prototype._assign = function(args) {
+  this._unassigned = [];
+
   if (!this.commandAssignment.value) {
-    this._unassigned.setUnassigned(args);
+    this._addUnassignedArgs(args);
     return;
   }
 
   if (args.length === 0) {
     this.setBlankArguments();
-    this._unassigned.setBlank();
     return;
   }
 
   
   
   if (this.assignmentCount === 0) {
-    this._unassigned.setUnassigned(args);
+    this._addUnassignedArgs(args);
     return;
   }
 
@@ -6233,7 +6388,6 @@ Requisition.prototype._assign = function(args) {
         new MergedArgument(args);
       var conversion = assignment.param.type.parse(arg);
       assignment.setConversion(conversion);
-      this._unassigned.setBlank();
       return;
     }
   }
@@ -6263,7 +6417,7 @@ Requisition.prototype._assign = function(args) {
         }
         else {
           var valueArg = null;
-          if (i + 1 >= args.length) {
+          if (i + 1 <= args.length) {
             valueArg = args.splice(i, 1)[0];
           }
           arg = new NamedArgument(arg, valueArg);
@@ -6312,12 +6466,25 @@ Requisition.prototype._assign = function(args) {
       args = [];
     }
     else {
-      var arg = (args.length > 0) ?
-          args.splice(0, 1)[0] :
-          new Argument();
+      if (args.length === 0) {
+        assignment.setBlank();
+      }
+      else {
+        var arg = args.splice(0, 1)[0];
+        
+        
+        var isIncompleteName = assignment.param.type instanceof NumberType ?
+            /-[-a-zA-Z_]/.test(arg.text) :
+            arg.text.charAt(0) === '-';
 
-      var conversion = assignment.param.type.parse(arg);
-      assignment.setConversion(conversion);
+        if (isIncompleteName) {
+          this._unassigned.push(new UnassignedAssignment(this, arg, true));
+        }
+        else {
+          var conversion = assignment.param.type.parse(arg);
+          assignment.setConversion(conversion);
+        }
+      }
     }
   }, this);
 
@@ -6328,7 +6495,8 @@ Requisition.prototype._assign = function(args) {
     assignment.setConversion(conversion);
   }, this);
 
-  this._unassigned.setUnassigned(args);
+  
+  this._addUnassignedArgs(args);
 };
 
 exports.Requisition = Requisition;
@@ -6868,10 +7036,6 @@ FocusManager.prototype._checkShow = function() {
 
 
 FocusManager.prototype._shouldShowTooltip = function() {
-  if (!this._hasFocus) {
-    return { visible: false, reason: '!hasFocus' };
-  }
-
   if (eagerHelper.value === Eagerness.NEVER) {
     return { visible: false, reason: 'eagerHelper !== NEVER' };
   }
@@ -6900,10 +7064,6 @@ FocusManager.prototype._shouldShowTooltip = function() {
 
 
 FocusManager.prototype._shouldShowOutput = function() {
-  if (!this._hasFocus) {
-    return { visible: false, reason: '!hasFocus' };
-  }
-
   if (this._recentOutput) {
     return { visible: true, reason: 'recentOutput' };
   }
@@ -9517,28 +9677,14 @@ Completer.prototype.resized = function(ev) {
 
 
 
-
-
-function isStrictCompletion(inputValue, completion) {
-  
-  
-  inputValue = inputValue.replace(/^\s*/, '');
-  
-  
-  return completion.indexOf(inputValue) === 0;
-}
-
-
-
-
 Completer.prototype.update = function(ev) {
   if (ev && ev.choice != null) {
     this.choice = ev.choice;
   }
-  this._preTemplateUpdate();
 
+  var data = this._getCompleterTemplateData();
   var template = this.template.cloneNode(true);
-  domtemplate.template(template, this, { stack: 'completer.html' });
+  domtemplate.template(template, data, { stack: 'completer.html' });
 
   util.clearElement(this.element);
   while (template.hasChildNodes()) {
@@ -9549,141 +9695,117 @@ Completer.prototype.update = function(ev) {
 
 
 
-
-
-Completer.prototype._preTemplateUpdate = function() {
-  this.input = this.inputter.getInputState();
-
-  this.directTabText = '';
-  this.arrowTabText = '';
+Completer.prototype._getCompleterTemplateData = function() {
+  var input = this.inputter.getInputState();
 
   
   
-  
-  if (this.input.typed.trim().length === 0) {
-    return;
-  }
-
+  var directTabText = '';
+  var arrowTabText = '';
   var current = this.inputter.assignment;
-  var prediction = current.conversion.getPredictionAt(this.choice);
-  if (!prediction) {
-    return;
-  }
 
-  var tabText = prediction.name;
-  var existing = current.arg.text;
+  if (input.typed.trim().length !== 0) {
+    var prediction = current.conversion.getPredictionAt(this.choice);
+    if (prediction) {
+      var tabText = prediction.name;
+      var existing = current.arg.text;
 
-  if (existing === tabText) {
-    return;
-  }
+      if (existing !== tabText) {
+        
+        
+        
+        var inputValue = existing.replace(/^\s*/, '');
+        var isStrictCompletion = tabText.indexOf(inputValue) === 0;
+        if (isStrictCompletion && input.cursor.start === input.typed.length) {
+          
+          var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
 
-  if (isStrictCompletion(existing, tabText) &&
-          this.input.cursor.start === this.input.typed.length) {
-    
-    var numLeadingSpaces = existing.match(/^(\s*)/)[0].length;
-
-    this.directTabText = tabText.slice(existing.length - numLeadingSpaces);
-  }
-  else {
-    
-    
-    this.arrowTabText = ' \u00a0\u21E5 ' + tabText;
-  }
-};
-
-
-
-
-
-
-Object.defineProperty(Completer.prototype, 'statusMarkup', {
-  get: function() {
-    var markup = this.requisition.getInputStatusMarkup(this.input.cursor.start);
-    markup.forEach(function(member) {
-      member.string = member.string.replace(/ /g, '\u00a0'); 
-      member.className = 'gcli-in-' + member.status.toString().toLowerCase();
-    }, this);
-    return markup;
-  },
-  enumerable: true
-});
-
-
-
-
-Object.defineProperty(Completer.prototype, 'scratchLink', {
-  get: function() {
-    if (!this.scratchpad) {
-      return null;
-    }
-    var command = this.requisition.commandAssignment.value;
-    return command && command.name === '{' ? this.scratchpad.linkText : null;
-  },
-  enumerable: true
-});
-
-
-
-
-
-Object.defineProperty(Completer.prototype, 'unclosedJs', {
-  get: function() {
-    var command = this.requisition.commandAssignment.value;
-    var jsCommand = command && command.name === '{';
-    var unclosedJs = jsCommand &&
-        this.requisition.getAssignment(0).arg.suffix.indexOf('}') === -1;
-    return unclosedJs;
-  },
-  enumerable: true
-});
-
-
-
-
-Object.defineProperty(Completer.prototype, 'emptyParameters', {
-  get: function() {
-    var typedEndSpace = this.requisition.typedEndsWithWhitespace();
-    
-    var directTabText = this.directTabText;
-    
-    
-    
-    var firstBlankParam = true;
-    var params = [];
-    this.requisition.getAssignments().forEach(function(assignment) {
-      if (!assignment.param.isPositionalAllowed) {
-        return;
-      }
-
-      if (!assignment.arg.isBlank()) {
-        if (directTabText !== '') {
-          firstBlankParam = false;
+          directTabText = tabText.slice(existing.length - numLeadingSpaces);
         }
-        return;
+        else {
+          
+          
+          arrowTabText = ' \u00a0\u21E5 ' + tabText;
+        }
       }
+    }
+  }
 
-      if (directTabText !== '' && firstBlankParam) {
+  
+  
+  
+  var statusMarkup = this.requisition.getInputStatusMarkup(input.cursor.start);
+  statusMarkup.forEach(function(member) {
+    member.string = member.string.replace(/ /g, '\u00a0'); 
+    member.className = 'gcli-in-' + member.status.toString().toLowerCase();
+  }, this);
+
+  
+  var trailingSeparator = this.requisition.typedEndsWithSeparator();
+  
+  
+  
+  
+  
+  
+  
+
+  var firstBlankParam = true;
+  var emptyParameters = [];
+  this.requisition.getAssignments().forEach(function(assignment) {
+    if (!assignment.param.isPositionalAllowed) {
+      return;
+    }
+    if (current.arg.type === 'NamedArgument') {
+      return;
+    }
+
+    if (assignment.arg.toString().trim() !== '') {
+      if (directTabText !== '') {
         firstBlankParam = false;
-        return;
       }
+      return;
+    }
 
-      var text = (assignment.param.isDataRequired) ?
-          '<' + assignment.param.name + '>' :
-          '[' + assignment.param.name + ']';
-
-      
-      
-      if (!typedEndSpace || !firstBlankParam) {
-        text = '\u00a0' + text; 
-      }
-
+    if (directTabText !== '' && firstBlankParam) {
       firstBlankParam = false;
-      params.push(text);
-    }.bind(this));
-    return params;
-  },
-  enumerable: true
-});
+      return;
+    }
+
+    var text = (assignment.param.isDataRequired) ?
+        '<' + assignment.param.name + '>' :
+        '[' + assignment.param.name + ']';
+
+    
+    
+    if (!trailingSeparator || !firstBlankParam) {
+      text = '\u00a0' + text; 
+    }
+
+    firstBlankParam = false;
+    emptyParameters.push(text);
+  }.bind(this));
+
+  var command = this.requisition.commandAssignment.value;
+  var jsCommand = command && command.name === '{';
+
+  
+  
+  var unclosedJs = jsCommand &&
+      this.requisition.getAssignment(0).arg.suffix.indexOf('}') === -1;
+
+  
+  var link = this.scratchpad && jsCommand ? this.scratchpad.linkText : '';
+
+  return {
+    statusMarkup: statusMarkup,
+    directTabText: directTabText,
+    emptyParameters: emptyParameters,
+    arrowTabText: arrowTabText,
+    unclosedJs: unclosedJs,
+    scratchLink: link
+  };
+};
 
 exports.Completer = Completer;
 
