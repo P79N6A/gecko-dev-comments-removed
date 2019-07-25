@@ -884,6 +884,7 @@ nsXULPopupManager::HidePopupCallback(nsIContent* aPopup,
   nsMouseEvent event(true, NS_XUL_POPUP_HIDDEN, nullptr, nsMouseEvent::eReal);
   nsEventDispatcher::Dispatch(aPopup, aPopupFrame->PresContext(),
                               &event, nullptr, &status);
+  ENSURE_TRUE(weakFrame.IsAlive());
 
   
   if (aNextPopup && aPopup != aLastPopup) {
