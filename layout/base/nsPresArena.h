@@ -76,6 +76,15 @@ public:
 
   PRUint32 Size();
 
+  
+
+
+
+
+
+
+  static PRUword GetPoisonValue();
+
 private:
   struct State;
   State* mState;

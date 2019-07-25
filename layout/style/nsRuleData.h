@@ -56,13 +56,13 @@ typedef void (*nsPostResolveFunc)(void* aStyleStruct, nsRuleData* aData);
 
 struct nsRuleData
 {
-  PRUint32 mSIDs;
+  const PRUint32 mSIDs;
   PRPackedBool mCanStoreInRuleTree;
   PRPackedBool mIsImportantRule;
   PRUint8 mLevel; 
-  nsPresContext* mPresContext;
-  nsStyleContext* mStyleContext;
-  nsPostResolveFunc mPostResolveCallback;
+  nsPresContext* const mPresContext;
+  nsStyleContext* const mStyleContext;
+  const nsPostResolveFunc mPostResolveCallback;
 
   
   
@@ -75,25 +75,17 @@ struct nsRuleData
   
   
   
-  nsCSSValue* mValueStorage; 
+  nsCSSValue* const mValueStorage; 
   size_t mValueOffsets[nsStyleStructID_Length];
 
-  nsRuleData(PRUint32 aSIDs,
-             nsPresContext* aContext,
-             nsStyleContext* aStyleContext)
-    : mSIDs(aSIDs),
-      mCanStoreInRuleTree(PR_TRUE),
-      mPresContext(aContext),
-      mStyleContext(aStyleContext),
-      mPostResolveCallback(nsnull)
-  {
-    
-  }
-  ~nsRuleData() {
-  #ifdef DEBUG
-    
-  #endif
-  }
+  nsRuleData(PRUint32 aSIDs, nsCSSValue* aValueStorage,
+             nsPresContext* aContext, nsStyleContext* aStyleContext);
+
+#ifdef DEBUG
+  ~nsRuleData();
+#else
+  ~nsRuleData() {}
+#endif
 
   
 
@@ -160,6 +152,9 @@ struct nsRuleData
   #undef CSS_PROP
   #undef CSS_PROP_DOMPROP_PREFIXED
   #undef CSS_PROP_BACKENDONLY
+
+private:
+  inline size_t GetPoisonOffset();
 
 };
 

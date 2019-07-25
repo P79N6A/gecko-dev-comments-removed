@@ -464,3 +464,9 @@ nsPresArena::FreeByCode(nsQueryFrame::FrameIID aCode, void* aPtr)
 {
   mState->Free(aCode, aPtr);
 }
+
+ PRUword
+nsPresArena::GetPoisonValue()
+{
+  return ARENA_POISON;
+}
