@@ -128,6 +128,9 @@ mjit::Compiler::Compiler(JSContext *cx, JSStackFrame *fp)
     oomInVector(false),
     applyTricks(NoApplyTricks)
 {
+    
+    if (cx->typeInferenceEnabled())
+        addTraceHints = false;
 }
 
 CompileStatus
