@@ -726,7 +726,7 @@ DOMStorageImpl::DOMStorageImpl(nsDOMStorage* aStorage, DOMStorageImpl& aThat)
 void
 DOMStorageImpl::Init(nsDOMStorage* aStorage)
 {
-  mItemsCachedVersion = 0;
+  mItemsCached = PR_FALSE;
   mItems.Init(8);
   mOwner = aStorage;
   if (nsDOMStorageManager::gStorageManager)
@@ -892,6 +892,8 @@ DOMStorageImpl::SetDBValue(const nsAString& aKey,
                          &usage);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  
+
   if (warnQuota >= 0 && usage > warnQuota) {
     
     nsCOMPtr<nsIDOMWindow> window;
@@ -945,7 +947,7 @@ void
 DOMStorageImpl::ClearAll()
 {
   mItems.EnumerateEntries(ClearStorageItem, nsnull);
-  mItemsCachedVersion = 0;
+  mItemsCached = PR_FALSE;
 }
 
 struct CopyArgs {
@@ -995,7 +997,7 @@ DOMStorageImpl::CacheKeysFromDB()
   
   
   
-  if (gStorageDB->IsScopeDirty(this)) {
+  if (!mItemsCached) {
     nsresult rv = InitDB();
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -1004,7 +1006,7 @@ DOMStorageImpl::CacheKeysFromDB()
     rv = gStorageDB->GetAllKeys(this, &mItems);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    gStorageDB->MarkScopeCached(this);
+    mItemsCached = PR_TRUE;
   }
 
   return NS_OK;
@@ -1133,6 +1135,7 @@ DOMStorageImpl::GetKey(bool aCallerSecure, PRUint32 aIndex, nsAString& aKey)
   
 
   if (UseDB()) {
+    mItemsCached = PR_FALSE;
     CacheKeysFromDB();
   }
 
@@ -1252,6 +1255,8 @@ DOMStorageImpl::RemoveValue(bool aCallerSecure, const nsAString& aKey,
     rv = gStorageDB->RemoveKey(this, aKey, !IsOfflineAllowed(mDomain),
                                aKey.Length() + value.Length());
     NS_ENSURE_SUCCESS(rv, rv);
+
+    
   }
   else if (entry) {
     
