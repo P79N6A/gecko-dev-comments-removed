@@ -1591,7 +1591,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
 
 
 
-    if (js_CodeSpec[op].format & JOF_TYPESET) {
+    if (f.regs.pc == nextpc && (js_CodeSpec[op].format & JOF_TYPESET)) {
         int which = (js_CodeSpec[op].format & JOF_CALLOP) ? -2 : -1;  
         types::TypeScript::Monitor(cx, script, pc, f.regs.sp[which]);
     }
