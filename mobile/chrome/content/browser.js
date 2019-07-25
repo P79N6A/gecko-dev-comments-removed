@@ -1799,13 +1799,18 @@ const gPopupBlockerObserver = {
         else {
           var buttons = [
             {
-              label: bundle_browser.getString("popupButtonAlwaysAllow"),
-              accessKey: bundle_browser.getString("popupButtonAlwaysAllow.accesskey"),
+              label: bundle_browser.getString("popupButtonAllowOnce"),
+              accessKey: null,
+              callback: function() { gPopupBlockerObserver.showPopupsForSite(); }
+            },
+            {
+              label: bundle_browser.getString("popupButtonAlwaysAllow2"),
+              accessKey: null,
               callback: function() { gPopupBlockerObserver.toggleAllowPopupsForSite(); }
             },
             {
-              label: bundle_browser.getString("popupButtonNeverWarn"),
-              accessKey: bundle_browser.getString("popupButtonNeverWarn.accesskey"),
+              label: bundle_browser.getString("popupButtonNeverWarn2"),
+              accessKey: null,
               callback: function() { gPopupBlockerObserver.dontShowMessage(); }
             }
           ];
@@ -1836,6 +1841,30 @@ const gPopupBlockerObserver = {
     var showMessage = gPrefService.getBoolPref("privacy.popups.showBrowserMessage");
     gPrefService.setBoolPref("privacy.popups.showBrowserMessage", !showMessage);
     Browser.getNotificationBox().removeCurrentNotification();
+  },
+  
+  showPopupsForSite: function showPopupsForSite() {
+    let uri = Browser.selectedBrowser.currentURI;
+    let pageReport = Browser.selectedBrowser.pageReport;
+    if (pageReport) {
+      for (let i = 0; i < pageReport.length; ++i) {
+        var popupURIspec = pageReport[i].popupWindowURI.spec;
+
+        
+        
+        
+        
+        
+        if (popupURIspec == "" || popupURIspec == "about:blank" ||
+            popupURIspec == uri.spec)
+          continue;
+        
+        let popupFeatures = pageReport[i].popupWindowFeatures;
+        let popupName = pageReport[i].popupWindowName;
+        
+        Browser.addTab(popupURIspec, false);
+      }
+    }
   }
 };
 
