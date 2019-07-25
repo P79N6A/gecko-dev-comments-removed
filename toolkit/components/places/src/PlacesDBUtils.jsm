@@ -303,7 +303,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteUnusedAnnoAttributes = DBConn.createAsyncStatement(
+    let deleteUnusedAnnoAttributes = DBConn.createStatement(
       "DELETE FROM moz_anno_attributes WHERE id IN ( " +
         "SELECT id FROM moz_anno_attributes n " +
         "WHERE NOT EXISTS " +
@@ -315,7 +315,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteInvalidAttributeAnnos = DBConn.createAsyncStatement(
+    let deleteInvalidAttributeAnnos = DBConn.createStatement(
       "DELETE FROM moz_annos WHERE id IN ( " +
         "SELECT id FROM moz_annos a " +
         "WHERE NOT EXISTS " +
@@ -325,7 +325,7 @@ let PlacesDBUtils = {
     cleanupStatements.push(deleteInvalidAttributeAnnos);
 
     
-    let deleteOrphanAnnos = DBConn.createAsyncStatement(
+    let deleteOrphanAnnos = DBConn.createStatement(
       "DELETE FROM moz_annos WHERE id IN ( " +
         "SELECT id FROM moz_annos a " +
         "WHERE NOT EXISTS " +
@@ -342,7 +342,7 @@ let PlacesDBUtils = {
     selectPlacesRoot.params["places_root"] = PlacesUtils.placesRootId;
     if (!selectPlacesRoot.executeStep()) {
       
-      let createPlacesRoot = DBConn.createAsyncStatement(
+      let createPlacesRoot = DBConn.createStatement(
         "INSERT INTO moz_bookmarks (id, type, fk, parent, position, title, "
       +                            "guid) "
       + "VALUES (:places_root, 2, NULL, 0, 0, :title, GENERATE_GUID())");
@@ -351,7 +351,7 @@ let PlacesDBUtils = {
       cleanupStatements.push(createPlacesRoot);
 
       
-      let fixPlacesRootChildren = DBConn.createAsyncStatement(
+      let fixPlacesRootChildren = DBConn.createStatement(
         "UPDATE moz_bookmarks SET parent = :places_root WHERE id IN " +
           "(SELECT folder_id FROM moz_bookmarks_roots " +
             "WHERE folder_id <> :places_root)");
@@ -366,30 +366,30 @@ let PlacesDBUtils = {
     let updateRootTitleSql = "UPDATE moz_bookmarks SET title = :title " +
                              "WHERE id = :root_id AND title <> :title";
     
-    let fixPlacesRootTitle = DBConn.createAsyncStatement(updateRootTitleSql);
+    let fixPlacesRootTitle = DBConn.createStatement(updateRootTitleSql);
     fixPlacesRootTitle.params["root_id"] = PlacesUtils.placesRootId;
     fixPlacesRootTitle.params["title"] = "";
     cleanupStatements.push(fixPlacesRootTitle);
     
-    let fixBookmarksMenuTitle = DBConn.createAsyncStatement(updateRootTitleSql);
+    let fixBookmarksMenuTitle = DBConn.createStatement(updateRootTitleSql);
     fixBookmarksMenuTitle.params["root_id"] = PlacesUtils.bookmarksMenuFolderId;
     fixBookmarksMenuTitle.params["title"] =
       PlacesUtils.getString("BookmarksMenuFolderTitle");
     cleanupStatements.push(fixBookmarksMenuTitle);
     
-    let fixBookmarksToolbarTitle = DBConn.createAsyncStatement(updateRootTitleSql);
+    let fixBookmarksToolbarTitle = DBConn.createStatement(updateRootTitleSql);
     fixBookmarksToolbarTitle.params["root_id"] = PlacesUtils.toolbarFolderId;
     fixBookmarksToolbarTitle.params["title"] =
       PlacesUtils.getString("BookmarksToolbarFolderTitle");
     cleanupStatements.push(fixBookmarksToolbarTitle);
     
-    let fixUnsortedBookmarksTitle = DBConn.createAsyncStatement(updateRootTitleSql);
+    let fixUnsortedBookmarksTitle = DBConn.createStatement(updateRootTitleSql);
     fixUnsortedBookmarksTitle.params["root_id"] = PlacesUtils.unfiledBookmarksFolderId;
     fixUnsortedBookmarksTitle.params["title"] =
       PlacesUtils.getString("UnsortedBookmarksFolderTitle");
     cleanupStatements.push(fixUnsortedBookmarksTitle);
     
-    let fixTagsRootTitle = DBConn.createAsyncStatement(updateRootTitleSql);
+    let fixTagsRootTitle = DBConn.createStatement(updateRootTitleSql);
     fixTagsRootTitle.params["root_id"] = PlacesUtils.tagsFolderId;
     fixTagsRootTitle.params["title"] =
       PlacesUtils.getString("TagsFolderTitle");
@@ -398,7 +398,7 @@ let PlacesDBUtils = {
     
     
     
-    let deleteNoPlaceItems = DBConn.createAsyncStatement(
+    let deleteNoPlaceItems = DBConn.createStatement(
       "DELETE FROM moz_bookmarks WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN (" +
@@ -410,7 +410,7 @@ let PlacesDBUtils = {
     cleanupStatements.push(deleteNoPlaceItems);
 
     
-    let deleteBogusTagChildren = DBConn.createAsyncStatement(
+    let deleteBogusTagChildren = DBConn.createStatement(
       "DELETE FROM moz_bookmarks WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN (" +
@@ -424,7 +424,7 @@ let PlacesDBUtils = {
     cleanupStatements.push(deleteBogusTagChildren);
 
     
-    let deleteEmptyTags = DBConn.createAsyncStatement(
+    let deleteEmptyTags = DBConn.createStatement(
       "DELETE FROM moz_bookmarks WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN (" +
@@ -438,7 +438,7 @@ let PlacesDBUtils = {
     cleanupStatements.push(deleteEmptyTags);
 
     
-    let fixOrphanItems = DBConn.createAsyncStatement(
+    let fixOrphanItems = DBConn.createStatement(
       "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " +  
       ") AND id IN (" +
@@ -451,7 +451,7 @@ let PlacesDBUtils = {
     cleanupStatements.push(fixOrphanItems);
 
     
-    let fixInvalidKeywords = DBConn.createAsyncStatement(
+    let fixInvalidKeywords = DBConn.createStatement(
       "UPDATE moz_bookmarks SET keyword_id = NULL WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN ( " +
@@ -466,7 +466,7 @@ let PlacesDBUtils = {
     
     
     
-    let fixBookmarksAsFolders = DBConn.createAsyncStatement(
+    let fixBookmarksAsFolders = DBConn.createStatement(
       "UPDATE moz_bookmarks SET type = :bookmark_type WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN ( " +
@@ -483,7 +483,7 @@ let PlacesDBUtils = {
     
     
     
-    let fixFoldersAsBookmarks = DBConn.createAsyncStatement(
+    let fixFoldersAsBookmarks = DBConn.createStatement(
       "UPDATE moz_bookmarks SET type = :folder_type WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN ( " +
@@ -498,7 +498,7 @@ let PlacesDBUtils = {
     
     
     
-    let fixFoldersAsDynamic = DBConn.createAsyncStatement(
+    let fixFoldersAsDynamic = DBConn.createStatement(
       "UPDATE moz_bookmarks SET type = :folder_type WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " + 
       ") AND id IN ( " +
@@ -513,7 +513,7 @@ let PlacesDBUtils = {
     
     
     
-    let fixInvalidParents = DBConn.createAsyncStatement(
+    let fixInvalidParents = DBConn.createStatement(
       "UPDATE moz_bookmarks SET parent = :unsorted_folder WHERE id NOT IN ( " +
         "SELECT folder_id FROM moz_bookmarks_roots " +  
       ") AND id IN ( " +
@@ -529,53 +529,40 @@ let PlacesDBUtils = {
     fixInvalidParents.params["dynamic_type"] = PlacesUtils.bookmarks.TYPE_DYNAMIC_CONTAINER;
     cleanupStatements.push(fixInvalidParents);
 
-    
-    
-    
-    
-    
-    
-    cleanupStatements.push(DBConn.createAsyncStatement(
-      "CREATE TEMP TABLE moz_bookmarks_reposition_temp ( " +
-        "  id INTEGER PRIMARY_KEY " +
-        ", position INTEGER " +
-      ") "
-    ));
-    cleanupStatements.push(DBConn.createAsyncStatement(
-      "INSERT INTO moz_bookmarks_reposition_temp " +
-        "SELECT id, (" +
-            "(SELECT count(*) FROM moz_bookmarks " +
-             "WHERE parent = b.parent " +
-               "AND position < b.position) + " +
-            "(SELECT count(*) FROM moz_bookmarks  " +
-             "WHERE parent = b.parent " +
-               "AND position == b.position " +
-               "AND ROWID < b.ROWID) " +
-          ") AS reposition " +
-        "FROM moz_bookmarks b " +
-        "WHERE parent IN (" +
-          "SELECT parent FROM " +
-            "(SELECT parent, " +
-                    "(SUM(DISTINCT position + 1) - (count(*) * (count(*) + 1) / 2)) AS diff " +
-            "FROM moz_bookmarks " +
-            "GROUP BY parent) " +
-          "WHERE diff <> 0" +
-        ") "
-    ));
-    cleanupStatements.push(DBConn.createAsyncStatement(
-      "UPDATE moz_bookmarks SET position = " +
-        "(SELECT position FROM moz_bookmarks_reposition_temp " +
-         "WHERE id = moz_bookmarks.id) " +
-      "WHERE id IN (SELECT id FROM moz_bookmarks_reposition_temp) "
-    ));
-    cleanupStatements.push(DBConn.createAsyncStatement(
-      "DROP TABLE moz_bookmarks_reposition_temp"
-    ));
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     
     
     
-    let removeLivemarkStaticItems = DBConn.createAsyncStatement(
+    let removeLivemarkStaticItems = DBConn.createStatement(
       "DELETE FROM moz_bookmarks WHERE type = :bookmark_type AND fk IN ( " +
         "SELECT id FROM moz_places WHERE url = :lmloading OR url = :lmfailed " +
       ")");
@@ -587,7 +574,7 @@ let PlacesDBUtils = {
     
     
     
-    let fixEmptyNamedTags = DBConn.createAsyncStatement(
+    let fixEmptyNamedTags = DBConn.createStatement(
       "UPDATE moz_bookmarks SET title = :empty_title " +
       "WHERE length(title) = 0 AND type = :folder_type " +
         "AND parent = :tags_folder"
@@ -599,7 +586,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteOrphanIcons = DBConn.createAsyncStatement(
+    let deleteOrphanIcons = DBConn.createStatement(
       "DELETE FROM moz_favicons WHERE id IN (" +
         "SELECT id FROM moz_favicons f " +
         "WHERE NOT EXISTS " +
@@ -609,7 +596,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteOrphanVisits = DBConn.createAsyncStatement(
+    let deleteOrphanVisits = DBConn.createStatement(
       "DELETE FROM moz_historyvisits WHERE id IN (" +
         "SELECT id FROM moz_historyvisits v " +
         "WHERE NOT EXISTS " +
@@ -619,7 +606,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteOrphanInputHistory = DBConn.createAsyncStatement(
+    let deleteOrphanInputHistory = DBConn.createStatement(
       "DELETE FROM moz_inputhistory WHERE place_id IN (" +
         "SELECT place_id FROM moz_inputhistory i " +
         "WHERE NOT EXISTS " +
@@ -629,7 +616,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteInvalidAttributeItemsAnnos = DBConn.createAsyncStatement(
+    let deleteInvalidAttributeItemsAnnos = DBConn.createStatement(
       "DELETE FROM moz_items_annos WHERE id IN ( " +
         "SELECT id FROM moz_items_annos t " +
         "WHERE NOT EXISTS " +
@@ -639,7 +626,7 @@ let PlacesDBUtils = {
     cleanupStatements.push(deleteInvalidAttributeItemsAnnos);
 
     
-    let deleteOrphanItemsAnnos = DBConn.createAsyncStatement(
+    let deleteOrphanItemsAnnos = DBConn.createStatement(
       "DELETE FROM moz_items_annos WHERE id IN ( " +
         "SELECT id FROM moz_items_annos t " +
         "WHERE NOT EXISTS " +
@@ -649,7 +636,7 @@ let PlacesDBUtils = {
 
     
     
-    let deleteUnusedKeywords = DBConn.createAsyncStatement(
+    let deleteUnusedKeywords = DBConn.createStatement(
       "DELETE FROM moz_keywords WHERE id IN ( " +
         "SELECT id FROM moz_keywords k " +
         "WHERE NOT EXISTS " +
@@ -659,7 +646,7 @@ let PlacesDBUtils = {
 
     
     
-    let fixInvalidFaviconIds = DBConn.createAsyncStatement(
+    let fixInvalidFaviconIds = DBConn.createStatement(
       "UPDATE moz_places SET favicon_id = NULL WHERE id IN ( " +
         "SELECT id FROM moz_places h " +
         "WHERE favicon_id NOT NULL " +
