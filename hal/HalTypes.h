@@ -36,8 +36,24 @@ enum FlashMode {
     eHalLightFlash_Timed = 1,     
     eHalLightFlash_Hardware = 2   
 };
+
 } 
 } 
+
+namespace mozilla {
+namespace hal {
+
+
+
+
+enum WakeLockControl {
+  WAKE_LOCK_REMOVE_ONE = -1,
+  WAKE_LOCK_NO_CHANGE  = 0,
+  WAKE_LOCK_ADD_ONE    = 1,
+};
+
+}
+}
 
 namespace IPC {
 
@@ -69,6 +85,16 @@ struct ParamTraits<mozilla::hal::FlashMode>
   : public EnumSerializer<mozilla::hal::FlashMode,
                           mozilla::hal::eHalLightFlash_None,
                           mozilla::hal::eHalLightFlash_Hardware>
+{};
+
+
+
+
+template <>
+struct ParamTraits<mozilla::hal::WakeLockControl>
+  : public EnumSerializer<mozilla::hal::WakeLockControl,
+                          mozilla::hal::WAKE_LOCK_REMOVE_ONE,
+                          mozilla::hal::WAKE_LOCK_ADD_ONE>
 {};
 
 } 

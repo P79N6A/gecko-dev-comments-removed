@@ -14,6 +14,7 @@
 #include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
 #include "mozilla/dom/network/Types.h"
+#include "mozilla/dom/power/Types.h"
 #include "mozilla/hal_sandbox/PHal.h"
 
 
@@ -239,6 +240,55 @@ void Reboot();
 
 
 void PowerOff();
+
+
+
+
+
+
+void EnableWakeLockNotifications();
+
+
+
+
+
+
+void DisableWakeLockNotifications();
+
+
+
+
+
+void RegisterWakeLockObserver(WakeLockObserver* aObserver);
+
+
+
+
+
+void UnregisterWakeLockObserver(WakeLockObserver* aObserver);
+
+
+
+
+
+
+
+void ModifyWakeLock(const nsAString &aTopic,
+                    hal::WakeLockControl aLockAdjust,
+                    hal::WakeLockControl aHiddenAdjust);
+
+
+
+
+
+
+void GetWakeLockInfo(const nsAString &aTopic, hal::WakeLockInformation *aWakeLockInfo);
+
+
+
+
+
+void NotifyWakeLockChange(const hal::WakeLockInformation& aWakeLockInfo);
 
 } 
 } 
