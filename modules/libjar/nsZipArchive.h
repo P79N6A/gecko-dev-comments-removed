@@ -221,8 +221,6 @@ public:
 
   const PRUint8* GetData(nsZipItem* aItem);
 
-  PRBool CheckCRC(nsZipItem* aItem, const PRUint8* aData);
-
 private:
   
 
@@ -352,6 +350,25 @@ public:
 
   operator const T*() const {
     return Buffer();
+  }
+
+  
+
+
+
+
+  T* Forget() {
+    if (!mReturnBuf)
+      return NULL;
+    
+    if (mAutoBuf.get() == mReturnBuf) {
+      mReturnBuf = NULL;
+      return (T*) mAutoBuf.forget();
+    }
+    T *ret = (T*) malloc(Length());
+    memcpy(ret, mReturnBuf, Length());
+    mReturnBuf = NULL;
+    return ret;
   }
 };
 
