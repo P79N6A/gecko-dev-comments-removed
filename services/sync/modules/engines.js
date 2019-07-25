@@ -1057,6 +1057,11 @@ SyncEngine.prototype = {
     this._resetClient();
   },
 
+  removeClientData: function removeClientData() {
+    
+    
+  },
+
   
 
 

@@ -1015,6 +1015,16 @@ WeaveSvc.prototype = {
 
   startOver: function() {
     
+    for each (let engine in [Clients].concat(Engines.getAll())) {
+      try {
+        engine.removeClientData();
+      } catch(ex) {
+        this._log.warn("Deleting client data for " + engine.name + " failed:"
+                       + Utils.exceptionStr(ex));
+      }
+    }
+
+    
     Status.login = LOGIN_FAILED_NO_USERNAME;
     this.logout();
     
