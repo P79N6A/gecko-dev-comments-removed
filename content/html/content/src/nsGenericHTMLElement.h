@@ -617,19 +617,6 @@ protected:
 
 
 
-
-  NS_HIDDEN_(nsresult) GetStringAttrWithDefault(nsIAtom* aAttr,
-                                                const char* aDefault,
-                                                nsAString& aResult);
-
-  
-
-
-
-
-
-
-
   NS_HIDDEN_(nsresult) GetBoolAttr(nsIAtom* aAttr, PRBool* aValue) const;
 
   
@@ -1082,23 +1069,6 @@ protected:
   _class::Set##_method(const nsAString& aValue)                      \
   {                                                                  \
     return SetAttrHelper(nsGkAtoms::_atom, aValue);                  \
-  }
-
-
-
-
-
-
-#define NS_IMPL_STRING_ATTR_DEFAULT_VALUE(_class, _method, _atom, _default) \
-  NS_IMETHODIMP                                                      \
-  _class::Get##_method(nsAString& aValue)                            \
-  {                                                                  \
-    return GetStringAttrWithDefault(nsGkAtoms::_atom, _default, aValue);\
-  }                                                                  \
-  NS_IMETHODIMP                                                      \
-  _class::Set##_method(const nsAString& aValue)                      \
-  {                                                                  \
-    return SetAttrHelper(nsGkAtoms::_atom, aValue);                \
   }
 
 

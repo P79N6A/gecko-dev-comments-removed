@@ -965,16 +965,9 @@ nsHTMLTableElement::ParseAttribute(PRInt32 aNamespaceID,
         aAttribute == nsGkAtoms::cellpadding) {
       return aResult.ParseSpecialIntValue(aValue);
     }
-    if (aAttribute == nsGkAtoms::cols) {
+    if (aAttribute == nsGkAtoms::cols ||
+        aAttribute == nsGkAtoms::border) {
       return aResult.ParseIntWithBounds(aValue, 0);
-    }
-    if (aAttribute == nsGkAtoms::border) {
-      if (!aResult.ParseIntWithBounds(aValue, 0)) {
-        
-        aResult.SetTo(1);
-      }
-
-      return PR_TRUE;
     }
     if (aAttribute == nsGkAtoms::height) {
       return aResult.ParseSpecialIntValue(aValue);
@@ -983,14 +976,12 @@ nsHTMLTableElement::ParseAttribute(PRInt32 aNamespaceID,
       if (aResult.ParseSpecialIntValue(aValue)) {
         
         nsAttrValue::ValueType type = aResult.Type();
-        if ((type == nsAttrValue::eInteger &&
-             aResult.GetIntegerValue() == 0) ||
-            (type == nsAttrValue::ePercent &&
-             aResult.GetPercentValue() == 0.0f)) {
-          return PR_FALSE;
-        }
+        return !((type == nsAttrValue::eInteger &&
+                  aResult.GetIntegerValue() == 0) ||
+                 (type == nsAttrValue::ePercent &&
+                  aResult.GetPercentValue() == 0.0f));
       }
-      return PR_TRUE;
+      return PR_FALSE;
     }
     
     if (aAttribute == nsGkAtoms::align) {
