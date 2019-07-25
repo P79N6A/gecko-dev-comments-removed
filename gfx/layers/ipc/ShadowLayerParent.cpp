@@ -67,11 +67,26 @@ ShadowLayerParent::AsContainer() const
   return static_cast<ContainerLayer*>(AsLayer());
 }
 
-bool
-ShadowLayerParent::Recv__delete__()
+void
+ShadowLayerParent::ActorDestroy(ActorDestroyReason why)
 {
+  switch (why) {
+  case AncestorDeletion:
+    NS_RUNTIMEABORT("shadow layer deleted out of order!");
+    return;                     
+
+  case Deletion:
+    mLayer->Disconnect();
+    break;
+
+  case AbnormalShutdown:
+  case NormalShutdown:
+    
+    
+    break;
+  }
+
   mLayer = NULL;
-  return true;
 }
 
 } 
