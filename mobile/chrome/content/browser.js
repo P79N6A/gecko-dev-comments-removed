@@ -1236,9 +1236,10 @@ const BrowserSearch = {
     
     let engine = items[0];
     aNode.setAttribute("description", engine.title);
-    aNode.onclick = function() {
+    aNode.onclick = function(aEvent) {
       BrowserSearch.addPermanentSearchEngine(engine);
       PageActions.hideItem(aNode);
+      aEvent.stopPropagation(); 
     };
     return true;
   },
