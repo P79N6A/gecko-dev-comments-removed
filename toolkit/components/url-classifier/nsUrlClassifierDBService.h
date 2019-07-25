@@ -45,11 +45,13 @@
 #include "nsID.h"
 #include "nsInterfaceHashtable.h"
 #include "nsIObserver.h"
-#include "nsIUrlClassifierPrefixSet.h"
+#include "nsUrlClassifierPrefixSet.h"
 #include "nsIUrlClassifierHashCompleter.h"
 #include "nsIUrlClassifierDBService.h"
 #include "nsIURIClassifier.h"
 #include "nsToolkitCompsCID.h"
+#include "nsICryptoHash.h"
+#include "nsICryptoHMAC.h"
 
 
 #define DOMAIN_LENGTH 4
@@ -102,7 +104,11 @@ private:
 
   
   nsresult Shutdown();
+
   
+  nsresult CheckCleanHost(const nsACString &lookupKey,
+                          PRBool *clean);
+
   nsCOMPtr<nsUrlClassifierDBServiceWorker> mWorker;
   nsCOMPtr<nsIUrlClassifierDBServiceWorker> mWorkerProxy;
 
@@ -126,7 +132,8 @@ private:
   nsTArray<nsCString> mGethashWhitelist;
 
   
-  nsCOMPtr<nsIUrlClassifierPrefixSet> mPrefixSet;
+  nsRefPtr<nsUrlClassifierPrefixSet> mPrefixSet;
+  nsCOMPtr<nsICryptoHash> mHash;
 
   
   static nsIThread* gDbBackgroundThread;

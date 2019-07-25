@@ -27,6 +27,25 @@ function doTest(updates, assertions, expectError, clientKey)
   }
 }
 
+function testFillDb() {
+  var add1Urls = [ "zaz.com/a", "yxz.com/c" ];
+
+  var update = "n:1000\n";
+  update += "i:test-phish-simple\n";
+
+  var update1 = buildBareUpdate(
+    [{ "chunkNum" : 1,
+       "urls" : add1Urls }]);
+  update += "u:data:," + encodeURIComponent(update1) + "\n";
+
+  var assertions = {
+    "tableData" : "test-phish-simple;a:1",
+    "urlsExist" : add1Urls
+  };
+
+  doTest([update], assertions, false);
+}
+
 function testSimpleForward() {
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
@@ -61,6 +80,8 @@ function testSimpleForward() {
 
 
 function testNestedForward() {
+  testFillDb(); 
+
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
 
@@ -182,6 +203,8 @@ function testValidMAC() {
 
 
 function testInvalidMAC() {
+  testFillDb(); 
+
   var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
   var update = buildPhishingUpdate(
         [
@@ -201,6 +224,8 @@ function testInvalidMAC() {
 
 
 function testNoMAC() {
+  testFillDb(); 
+
   var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
   var update = buildPhishingUpdate(
         [
@@ -257,6 +282,8 @@ function testValidForwardMAC() {
 
 
 function testInvalidForwardMAC() {
+  testFillDb(); 
+
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
   var add3Urls = [ "bar.com/d" ];
@@ -296,6 +323,8 @@ function testInvalidForwardMAC() {
 
 
 function testNoForwardMAC() {
+  testFillDb(); 
+
   var add1Urls = [ "foo.com/a", "bar.com/c" ];
   var add2Urls = [ "foo.com/b" ];
   var add3Urls = [ "bar.com/d" ];
@@ -362,6 +391,8 @@ gAssertions.gotRekey = function(data, cb)
 
 
 function testRekey() {
+  testFillDb();
+
   var addUrls = [ "foo.com/a", "foo.com/b", "bar.com/c" ];
   var update = buildPhishingUpdate(
         [
