@@ -269,6 +269,11 @@ public:
   
   
   
+  double GetFrameDelay();
+
+  
+  
+  
   
   virtual Statistics GetStatistics() = 0;
   
@@ -363,9 +368,11 @@ public:
 
   
   
+  
   void SetVideoData(const gfxIntSize& aSize,
                     float aPixelAspectRatio,
-                    Image* aImage);
+                    Image* aImage,
+                    TimeStamp aTarget);
 
   
   
@@ -407,6 +414,15 @@ protected:
 
   
   FrameStatistics mFrameStats;
+
+  
+  
+  TimeStamp mPaintTarget;
+
+  
+  
+  
+  TimeDuration mPaintDelay;
 
   nsRefPtr<ImageContainer> mImageContainer;
 

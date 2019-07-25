@@ -308,7 +308,8 @@ protected:
 
   
   
-  void RenderVideoFrame(VideoData* aData);
+  void RenderVideoFrame(VideoData* aData,
+                        TimeStamp aTarget);
 
   
   
