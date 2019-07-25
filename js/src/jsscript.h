@@ -305,19 +305,22 @@ class ScriptCounts
     PCCounts *pcCountsVector;
 
  public:
-    ScriptCounts() : pcCountsVector(NULL) { }
+
+    ScriptCounts() : pcCountsVector(NULL) {
+    }
 
     inline void destroy(FreeOp *fop);
 
-    void set(js::ScriptCounts counts) {
-        pcCountsVector = counts.pcCountsVector;
+    void steal(ScriptCounts &other) {
+        *this = other;
+        js::PodZero(&other);
+    }
+
+    
+    operator void*() const {
+        return pcCountsVector;
     }
 };
-
-typedef HashMap<JSScript *,
-                ScriptCounts,
-                DefaultHasher<JSScript *>,
-                SystemAllocPolicy> ScriptCountsMap;
 
 class DebugScript
 {
@@ -437,6 +440,9 @@ struct JSScript : public js::gc::Cell
     js::HeapPtr<js::GlobalObject, JSScript*> globalObject;
 
     
+    js::ScriptCounts scriptCounts;
+
+    
     js::types::TypeScript *types;
 
   public:
@@ -450,7 +456,6 @@ struct JSScript : public js::gc::Cell
     js::HeapPtrFunction function_;
 
     size_t          useCount;   
-
 
 
     
@@ -469,10 +474,9 @@ struct JSScript : public js::gc::Cell
     
     
     uint32_t        id_;
- #if JS_BITS_PER_WORD == 64
   private:
-    uint32_t        idpad64;
- #endif
+    uint32_t        idpad;
+  public:
 #endif
 
     
@@ -539,8 +543,6 @@ struct JSScript : public js::gc::Cell
 #endif
     bool            callDestroyHook:1;
     bool            isGenerator:1;    
-    bool            hasScriptCounts:1;
-
 
   private:
     
@@ -692,10 +694,12 @@ struct JSScript : public js::gc::Cell
 #endif
 
   public:
-    js::PCCounts getPCCounts(jsbytecode *pc);
+    js::PCCounts getPCCounts(jsbytecode *pc) {
+        JS_ASSERT(size_t(pc - code) < length);
+        return scriptCounts.pcCountsVector[pc - code];
+    }
 
     bool initScriptCounts(JSContext *cx);
-    js::ScriptCounts releaseScriptCounts();
     void destroyScriptCounts(js::FreeOp *fop);
 
     jsbytecode *main() {
@@ -992,4 +996,4 @@ XDRScript(XDRState<mode> *xdr, JSScript **scriptp, JSScript *parentScript);
 
 } 
 
-#endif
+#endif 
