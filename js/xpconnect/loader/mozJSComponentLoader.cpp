@@ -657,9 +657,6 @@ mozJSComponentLoader::GlobalForLocation(nsILocalFile *aComponentFile,
 
     JS_AbortIfWrongThread(JS_GetRuntime(cx));
 
-    
-    js::AutoPreserveCompartment pc(cx);
-
     nsCOMPtr<nsIXPCScriptable> backstagePass;
     rv = mRuntimeService->GetBackstagePass(getter_AddRefs(backstagePass));
     NS_ENSURE_SUCCESS(rv, rv);
