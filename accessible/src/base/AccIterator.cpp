@@ -41,6 +41,9 @@
 #include "nsAccessible.h"
 
 #include "mozilla/dom/Element.h"
+#include "nsBindingManager.h"
+
+using namespace mozilla;
 
 
 
@@ -129,17 +132,21 @@ RelatedAccIterator::Next()
 
     
     
-    if (provider->mRelAttr == mRelAttr &&
-        (!mBindingParent ||
-         mBindingParent == provider->mContent->GetBindingParent())) {
-      nsAccessible* related = mDocument->GetAccessible(provider->mContent);
-      if (related)
-        return related;
+    if (provider->mRelAttr == mRelAttr) {
+      nsIContent* bindingParent = provider->mContent->GetBindingParent();
+      bool inScope = mBindingParent == bindingParent ||
+        mBindingParent == provider->mContent;
 
-      
-      
-      if (provider->mContent == mDocument->GetContent())
-        return mDocument;
+      if (inScope) {
+        nsAccessible* related = mDocument->GetAccessible(provider->mContent);
+        if (related)
+          return related;
+
+        
+        
+        if (provider->mContent == mDocument->GetContent())
+          return mDocument;
+      }
     }
   }
 
@@ -271,18 +278,10 @@ XULDescriptionIterator::Next()
 
 
 IDRefsIterator::IDRefsIterator(nsIContent* aContent, nsIAtom* aIDRefsAttr) :
-  mCurrIdx(0)
+  mCurrIdx(0), mContent(aContent)
 {
-  if (!aContent->IsInDoc() ||
-      !aContent->GetAttr(kNameSpaceID_None, aIDRefsAttr, mIDs))
-    return;
-
-  if (aContent->IsInAnonymousSubtree()) {
-    mXBLDocument = do_QueryInterface(aContent->OwnerDoc());
-    mBindingParent = do_QueryInterface(aContent->GetBindingParent());
-  } else {
-    mDocument = aContent->OwnerDoc();
-  }
+  if (mContent->IsInDoc())
+    mContent->GetAttr(kNameSpaceID_None, aIDRefsAttr, mIDs);
 }
 
 const nsDependentSubstring
@@ -324,20 +323,45 @@ IDRefsIterator::NextElem()
 nsIContent*
 IDRefsIterator::GetElem(const nsDependentSubstring& aID)
 {
-  if (mXBLDocument) {
-    
-    
-
-    nsCOMPtr<nsIDOMElement> refElm;
-    mXBLDocument->GetAnonymousElementByAttribute(mBindingParent,
-                                                 NS_LITERAL_STRING("anonid"),
-                                                 aID,
-                                                 getter_AddRefs(refElm));
-    nsCOMPtr<nsIContent> refContent = do_QueryInterface(refElm);
-    return refContent;
+  
+  
+  if (!mContent->IsInAnonymousSubtree()) {
+    dom::Element* refElm = mContent->OwnerDoc()->GetElementById(aID);
+    if (refElm || !mContent->OwnerDoc()->BindingManager()->GetBinding(mContent))
+      return refElm;
   }
 
-  return mDocument->GetElementById(aID);
+  
+  
+  nsCOMPtr<nsIDOMElement> refDOMElm;
+  nsCOMPtr<nsIDOMDocumentXBL> xblDocument =
+    do_QueryInterface(mContent->OwnerDoc());
+
+  
+  nsIContent* bindingParent = mContent->GetBindingParent();
+  if (bindingParent) {
+    nsCOMPtr<nsIDOMElement> bindingParentElm = do_QueryInterface(bindingParent);
+    xblDocument->GetAnonymousElementByAttribute(bindingParentElm,
+                                                NS_LITERAL_STRING("anonid"),
+                                                aID,
+                                                getter_AddRefs(refDOMElm));
+    nsCOMPtr<dom::Element> refElm = do_QueryInterface(refDOMElm);
+    if (refElm)
+      return refElm;
+  }
+
+  
+  if (mContent->OwnerDoc()->BindingManager()->GetBinding(mContent)) {
+    nsCOMPtr<nsIDOMElement> elm = do_QueryInterface(mContent);
+    xblDocument->GetAnonymousElementByAttribute(elm,
+                                                NS_LITERAL_STRING("anonid"),
+                                                aID,
+                                                getter_AddRefs(refDOMElm));
+    nsCOMPtr<dom::Element> refElm = do_QueryInterface(refDOMElm);
+    return refElm;
+  }
+
+  return nsnull;
 }
 
 nsAccessible*
