@@ -49,8 +49,8 @@ using namespace js;
 JS_STATIC_ASSERT(sizeof(PCVal) == sizeof(jsuword));
 
 JS_REQUIRES_STACK PropertyCacheEntry *
-PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoIndex,
-                    JSObject *pobj, const Shape *shape, JSBool adding)
+PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, JSObject *pobj,
+                    const Shape *shape, JSBool adding)
 {
     jsbytecode *pc;
     jsuword kshape, vshape;
@@ -96,34 +96,26 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
 
+    JS_ASSERT_IF(obj == pobj, scopeIndex == 0);
 
+    JSObject *tmp = obj;
+    for (uintN i = 0; i != scopeIndex; i++)
+        tmp = tmp->getParent();
 
-    JS_ASSERT_IF(scopeIndex == 0 && protoIndex == 0, obj == pobj);
+    uintN protoIndex = 0;
+    while (tmp != pobj) {
+        tmp = tmp->getProto();
 
-    if (protoIndex != 0) {
-        JSObject *tmp = obj;
-
-        for (uintN i = 0; i != scopeIndex; i++)
-            tmp = tmp->getParent();
-        JS_ASSERT(tmp != pobj);
-
-        protoIndex = 1;
-        for (;;) {
-            tmp = tmp->getProto();
-
-            
+        
 
 
 
 
-            if (!tmp || !tmp->isNative()) {
-                PCMETER(noprotos++);
-                return JS_NO_PROP_CACHE_FILL;
-            }
-            if (tmp == pobj)
-                break;
-            ++protoIndex;
+        if (!tmp || !tmp->isNative()) {
+            PCMETER(noprotos++);
+            return JS_NO_PROP_CACHE_FILL;
         }
+        ++protoIndex;
     }
 
     if (scopeIndex > PCVCAP_SCOPEMASK || protoIndex > PCVCAP_PROTOMASK) {

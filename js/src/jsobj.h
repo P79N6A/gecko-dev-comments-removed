@@ -212,7 +212,6 @@ enum {
 
 
 
-
 extern JS_FRIEND_API(JSBool)
 js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                   JSProperty **propp);
@@ -1655,59 +1654,53 @@ extern JSBool
 js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
                      const js::Value &descriptor, JSBool *bp);
 
+extern JS_FRIEND_DATA(js::Class) js_CallClass;
+extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
 
-
-
-const uintN JSDNP_CACHE_RESULT = 1; 
-const uintN JSDNP_DONT_PURGE   = 2; 
-const uintN JSDNP_SET_METHOD   = 4; 
-
-
-const uintN JSDNP_UNQUALIFIED  = 8; 
+namespace js {
 
 
 
 
+const uintN DNP_CACHE_RESULT = 1;   
+const uintN DNP_DONT_PURGE   = 2;   
+const uintN DNP_SET_METHOD   = 4;   
+
+
+const uintN DNP_UNQUALIFIED  = 8;   
 
 
 
 
-extern JSBool
-js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
-                        js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
-                        uintN flags, intN shortid, JSProperty **propp,
-                        uintN defineHow = 0);
 
-static inline JSBool
-js_DefineNativePropertyWithType(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
-                                js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
-                                uintN flags, intN shortid, JSProperty **propp,
-                                uintN defineHow = 0)
+
+extern const Shape *
+DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
+                     PropertyOp getter, StrictPropertyOp setter, uintN attrs,
+                     uintN flags, intN shortid, uintN defineHow = 0);
+
+static inline const Shape *
+DefineNativePropertyWithType(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
+                             js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
+                             uintN flags, intN shortid, uintN defineHow = 0)
 {
     JS_AddTypePropertyById(cx, obj, id, Jsvalify(value));
-    return js_DefineNativeProperty(cx, obj, id, value, getter, setter,
-                                   attrs, flags, shortid, propp, defineHow);
+    return DefineNativeProperty(cx, obj, id, value, getter, setter,
+                                attrs, flags, shortid, defineHow);
 }
 
 
 
 
-
-
-extern int
-js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
-                           JSObject **objp, JSProperty **propp);
+extern bool
+LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                        JSObject **objp, JSProperty **propp);
 
 
 
 
 
-static const uintN JSRESOLVE_INFER = 0xffff;
-
-extern JS_FRIEND_DATA(js::Class) js_CallClass;
-extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
-
-namespace js {
+static const uintN RESOLVE_INFER = 0xffff;
 
 
 

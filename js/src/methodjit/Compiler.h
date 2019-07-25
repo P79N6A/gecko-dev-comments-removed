@@ -466,6 +466,9 @@ class Compiler : public BaseCompiler
     bool hasGlobalReallocation;
     bool oomInVector;       
     enum { NoApplyTricks, LazyArgsObj } applyTricks;
+#ifdef DEBUG
+    int *pcProfile;
+#endif
 
     Compiler *thisFromCtor() { return this; }
 
