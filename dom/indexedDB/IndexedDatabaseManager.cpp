@@ -37,11 +37,14 @@
 
 
 
+#include "base/basictypes.h"
+
 #include "IndexedDatabaseManager.h"
 #include "DatabaseInfo.h"
 
 #include "nsIDOMScriptObjectFactory.h"
 #include "nsIFile.h"
+#include "nsILocalFile.h"
 #include "nsIObserverService.h"
 #include "nsIScriptObjectPrincipal.h"
 #include "nsIScriptSecurityManager.h"
@@ -53,7 +56,10 @@
 #include "mozilla/Preferences.h"
 #include "mozilla/Services.h"
 #include "mozilla/storage.h"
+#include "mozilla/dom/ContentChild.h"
+#include "nsAppDirectoryServiceDefs.h"
 #include "nsContentUtils.h"
+#include "nsDirectoryServiceUtils.h"
 #include "nsThreadUtils.h"
 #include "nsXPCOM.h"
 #include "nsXPCOMPrivate.h"
@@ -239,6 +245,18 @@ IndexedDatabaseManager::GetOrCreate()
       return nsnull;
     }
 
+    nsCOMPtr<nsIFile> dbBaseDirectory;
+    nsresult rv =
+      NS_GetSpecialDirectory(NS_APP_USER_PROFILE_50_DIR,
+                             getter_AddRefs(dbBaseDirectory));
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    rv = dbBaseDirectory->Append(NS_LITERAL_STRING("indexedDB"));
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
+    rv = dbBaseDirectory->GetPath(instance->mDatabaseBasePath);
+    NS_ENSURE_SUCCESS(rv, nsnull);
+
     
     
     instance->mShutdownTimer = do_CreateInstance(NS_TIMER_CONTRACTID);
@@ -248,8 +266,7 @@ IndexedDatabaseManager::GetOrCreate()
     NS_ENSURE_TRUE(obs, nsnull);
 
     
-    nsresult rv = obs->AddObserver(instance, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                   false);
+    rv = obs->AddObserver(instance, NS_XPCOM_SHUTDOWN_OBSERVER_ID, false);
     NS_ENSURE_SUCCESS(rv, nsnull);
 
     
@@ -282,6 +299,32 @@ IndexedDatabaseManager::FactoryCreate()
   
   
   return GetOrCreate().get();
+}
+
+nsresult
+IndexedDatabaseManager::GetDirectoryForOrigin(const nsACString& aASCIIOrigin,
+                                              nsIFile** aDirectory) const
+{
+  nsresult rv;
+  nsCOMPtr<nsILocalFile> directory =
+    do_CreateInstance(NS_LOCAL_FILE_CONTRACTID, &rv);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  const nsString& path = XRE_GetProcessType() == GeckoProcessType_Default ?
+                         GetBaseDirectory() :
+                         ContentChild::GetSingleton()->GetIndexedDBPath();
+
+  rv = directory->InitWithPath(path);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  NS_ConvertASCIItoUTF16 originSanitized(aASCIIOrigin);
+  originSanitized.ReplaceChar(":/", '+');
+
+  rv = directory->Append(originSanitized);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  directory.forget(reinterpret_cast<nsILocalFile**>(aDirectory));
+  return NS_OK;
 }
 
 bool
@@ -631,8 +674,7 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
 #endif
 
   nsCOMPtr<nsIFile> directory;
-  nsresult rv = IDBFactory::GetDirectoryForOrigin(aOrigin,
-                                                  getter_AddRefs(directory));
+  nsresult rv = GetDirectoryForOrigin(aOrigin, getter_AddRefs(directory));
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool exists;
@@ -1282,6 +1324,9 @@ NS_IMPL_THREADSAFE_ISUPPORTS1(IndexedDatabaseManager::OriginClearRunnable,
 NS_IMETHODIMP
 IndexedDatabaseManager::OriginClearRunnable::Run()
 {
+  IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
+  NS_ASSERTION(mgr, "This should never fail!");
+
   if (NS_IsMainThread()) {
     
     if (mFirstCallback) {
@@ -1303,9 +1348,6 @@ IndexedDatabaseManager::OriginClearRunnable::Run()
 
     NS_ASSERTION(!mThread, "Should have been cleared already!");
 
-    IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
-    NS_ASSERTION(mgr, "This should never fail!");
-
     mgr->InvalidateFileManagersForOrigin(mOrigin);
 
     
@@ -1318,8 +1360,7 @@ IndexedDatabaseManager::OriginClearRunnable::Run()
 
   
   nsCOMPtr<nsIFile> directory;
-  nsresult rv = IDBFactory::GetDirectoryForOrigin(mOrigin,
-                                                  getter_AddRefs(directory));
+  nsresult rv = mgr->GetDirectoryForOrigin(mOrigin, getter_AddRefs(directory));
   if (NS_SUCCEEDED(rv)) {
     bool exists;
     rv = directory->Exists(&exists);
@@ -1377,6 +1418,9 @@ IncrementUsage(PRUint64* aUsage, PRUint64 aDelta)
 nsresult
 IndexedDatabaseManager::AsyncUsageRunnable::RunInternal()
 {
+  IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
+  NS_ASSERTION(mgr, "This should never fail!");
+
   if (NS_IsMainThread()) {
     
     if (!mCanceled) {
@@ -1390,10 +1434,7 @@ IndexedDatabaseManager::AsyncUsageRunnable::RunInternal()
     mCallback = nsnull;
 
     
-    IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
-    if (mgr) {
-      mgr->OnUsageCheckComplete(this);
-    }
+    mgr->OnUsageCheckComplete(this);
 
     return NS_OK;
   }
@@ -1404,8 +1445,7 @@ IndexedDatabaseManager::AsyncUsageRunnable::RunInternal()
 
   
   nsCOMPtr<nsIFile> directory;
-  nsresult rv = IDBFactory::GetDirectoryForOrigin(mOrigin,
-                                                  getter_AddRefs(directory));
+  nsresult rv = mgr->GetDirectoryForOrigin(mOrigin, getter_AddRefs(directory));
   NS_ENSURE_SUCCESS(rv, rv);
 
   bool exists;

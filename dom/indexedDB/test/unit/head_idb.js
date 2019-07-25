@@ -3,17 +3,7 @@
 
 
 
-const Ci = Components.interfaces;
-const nsIIndexedDatabaseManager =
-  Ci.nsIIndexedDatabaseManager;
-var idbManager = Components.classes["@mozilla.org/dom/indexeddb/manager;1"]
-                   .getService(nsIIndexedDatabaseManager);
-idbManager.initWindowless(this);
-
-do_get_profile();
-
-var dirSvc = Components.classes["@mozilla.org/file/directory_service;1"].getService(Components.interfaces.nsIProperties);
-var file = dirSvc.get("ProfD", Ci.nsIFile);
+const { 'classes': Cc, 'interfaces': Ci } = Components;
 
 const DOMException = Ci.nsIDOMDOMException;
 const IDBCursor = Ci.nsIIDBCursor;
@@ -27,6 +17,11 @@ const IDBObjectStore = Ci.nsIIDBObjectStore
 const IDBRequest = Ci.nsIIDBRequest
 
 
+do_get_profile();
+
+var idbManager = Cc["@mozilla.org/dom/indexeddb/manager;1"].
+                 getService(Ci.nsIIndexedDatabaseManager);
+idbManager.initWindowless(this);
 
 function is(a, b, msg) {
   if(a != b)
