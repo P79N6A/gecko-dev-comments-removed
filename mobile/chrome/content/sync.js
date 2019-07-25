@@ -36,12 +36,13 @@
 
 let WeaveGlue = {
   init: function init() {
-    Components.utils.import("resource://services-sync/service.js");
+    Components.utils.import("resource://services-sync/main.js");
 
     this._addListeners();
 
     
-    Weave.Service.keyGenEnabled = false;
+    if (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED)
+      Weave.Service.keyGenEnabled = false;
 
     
     this.loadInputs();
