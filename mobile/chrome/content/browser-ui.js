@@ -810,7 +810,7 @@ var BrowserUI = {
       
       case "click":
         this.show(UIMODE_URLEDIT);
-        this.updateAutoComplete(true);
+        setTimeout(function () {BrowserUI.updateAutoComplete(true)}, 0);
         break;
       case "input":
         this.updateAutoComplete(false);
