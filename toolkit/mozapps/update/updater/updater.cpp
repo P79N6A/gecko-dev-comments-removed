@@ -1406,7 +1406,7 @@ LaunchCallbackApp(const NS_tchar *workingDir, int argc, NS_tchar **argv)
 #elif defined(XP_WIN)
   
   
-  WCHAR *usingService = _wgetenv(L"MOZ_USING_SERVICE");
+  LPCWSTR usingService = _wgetenv(L"MOZ_USING_SERVICE");
   if (!usingService) {
     WinLaunchChild(argv[0], argc, argv, NULL);
   }
@@ -1603,6 +1603,7 @@ int NS_main(int argc, NS_tchar **argv)
 
   bool useService = false;
   bool testOnlyFallbackKeyExists = false;
+  LPCWSTR runningAsTest = _wgetenv(L"MOZ_NO_SERVICE_FALLBACK");
 
   
   
@@ -1677,7 +1678,14 @@ int NS_main(int argc, NS_tchar **argv)
   const int callbackIndex = 5;
 
 #if defined(XP_WIN)
-  WCHAR *usingService = _wgetenv(L"MOZ_USING_SERVICE");
+  LPCWSTR usingService = _wgetenv(L"MOZ_USING_SERVICE");
+  
+  
+  
+  
+  
+  int lastFallbackError = FALLBACKKEY_UNKNOWN_ERROR;
+
   
   
   HANDLE updateLockFileHandle;
@@ -1710,7 +1718,7 @@ int NS_main(int argc, NS_tchar **argv)
                  NS_T("%s/update_elevated.lock"), argv[1]);
 
     if (updateLockFileHandle == INVALID_HANDLE_VALUE || 
-        (useService && testOnlyFallbackKeyExists)) {
+        (useService && testOnlyFallbackKeyExists && runningAsTest)) {
       if (!_waccess(elevatedLockFilePath, F_OK) &&
           NS_tremove(elevatedLockFilePath) != 0) {
         fprintf(stderr, "Update already elevated! Exiting\n");
@@ -1750,9 +1758,13 @@ int NS_main(int argc, NS_tchar **argv)
             RegCloseKey(baseKey);
           } else {
             useService = testOnlyFallbackKeyExists;
+            if (!useService) {
+              lastFallbackError = FALLBACKKEY_NOKEY_ERROR;
+            }
           }
         } else {
-          useService = FALSE;
+          useService = false;
+          lastFallbackError = FALLBACKKEY_REGPATH_ERROR;
         }
       }
 
@@ -1768,6 +1780,7 @@ int NS_main(int argc, NS_tchar **argv)
         
         if (!serviceInUseEvent) {
           useService = false;
+          lastFallbackError = FALLBACKKEY_EVENT_ERROR;
         }
       }
 
@@ -1788,6 +1801,8 @@ int NS_main(int argc, NS_tchar **argv)
         
         if (useService) {
           WaitForSingleObject(serviceInUseEvent, INFINITE);
+        } else {
+          lastFallbackError = FALLBACKKEY_LAUNCH_ERROR;
         }
         CloseHandle(serviceInUseEvent);
       }
@@ -1811,7 +1826,10 @@ int NS_main(int argc, NS_tchar **argv)
       
       
       
-      if (!useService) {
+      
+      
+      
+      if (!useService && updateLockFileHandle == INVALID_HANDLE_VALUE) {
         SHELLEXECUTEINFO sinfo;
         memset(&sinfo, 0, sizeof(SHELLEXECUTEINFO));
         sinfo.cbSize       = sizeof(SHELLEXECUTEINFO);
@@ -1840,7 +1858,29 @@ int NS_main(int argc, NS_tchar **argv)
       }
 
       CloseHandle(elevatedFileHandle);
-      return 0;
+
+      if (!useService && INVALID_HANDLE_VALUE == updateLockFileHandle) {
+        
+        
+        
+        return 0;
+      } else if(useService) {
+        
+        
+        if (updateLockFileHandle != INVALID_HANDLE_VALUE) {
+          CloseHandle(updateLockFileHandle);
+        }
+        return 0;
+      } else {
+        
+        
+        
+        
+        
+        CloseHandle(updateLockFileHandle);
+        WriteStatusFile(lastFallbackError);
+        return 0;
+      }
     }
   }
 #endif
