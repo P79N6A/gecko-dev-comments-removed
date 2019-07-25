@@ -100,6 +100,16 @@ public:
   void UpdateViewportSize(int aWidth, int aHeight);
 
   
+
+
+
+
+
+
+
+  void NotifyDOMTouchListenerAdded();
+
+  
   
   
 
@@ -393,6 +403,10 @@ private:
   
   
   ContentPainterStatus mContentPainterStatus;
+
+  
+  
+  bool mMayHaveTouchListeners;
 
   friend class Axis;
 };
