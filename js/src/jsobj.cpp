@@ -1094,6 +1094,7 @@ class EvalScriptGuard
     void setNewScript(JSScript *script) {
         
         JS_ASSERT(!script_ && script);
+        script->setOwnerObject(JS_CACHED_SCRIPT);
         script_ = script;
     }
 

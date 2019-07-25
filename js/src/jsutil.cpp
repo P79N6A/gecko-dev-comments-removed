@@ -67,10 +67,9 @@ JS_PUBLIC_DATA(JSUint32) OOM_counter = 0;
 
 JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
 
-JS_PUBLIC_API(void) JS_Assert(const char *s, const char *file, JSIntn ln)
+static JS_NEVER_INLINE void
+CrashInJS()
 {
-    fprintf(stderr, "Assertion failure: %s, at %s:%d\n", s, file, ln);
-    fflush(stderr);
 #if defined(WIN32)
     
 
@@ -88,6 +87,13 @@ JS_PUBLIC_API(void) JS_Assert(const char *s, const char *file, JSIntn ln)
 #else
     raise(SIGABRT);  
 #endif
+}
+
+JS_PUBLIC_API(void) JS_Assert(const char *s, const char *file, JSIntn ln)
+{
+    fprintf(stderr, "Assertion failure: %s, at %s:%d\n", s, file, ln);
+    fflush(stderr);
+    CrashInJS();
 }
 
 #ifdef JS_BASIC_STATS
