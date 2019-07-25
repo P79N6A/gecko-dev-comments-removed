@@ -702,10 +702,10 @@ extern JS_PUBLIC_API(const char *)
 JS_GetTypeName(JSContext *cx, JSType type);
 
 extern JS_PUBLIC_API(JSBool)
-JS_StrictlyEqual(JSContext *cx, jsval v1, jsval v2);
+JS_StrictlyEqual(JSContext *cx, jsval v1, jsval v2, JSBool *equal);
 
 extern JS_PUBLIC_API(JSBool)
-JS_SameValue(JSContext *cx, jsval v1, jsval v2);
+JS_SameValue(JSContext *cx, jsval v1, jsval v2, JSBool *same);
 
 
 
@@ -979,6 +979,9 @@ JS_SetWrapObjectCallbacks(JSRuntime *rt,
 extern JS_PUBLIC_API(JSCrossCompartmentCall *)
 JS_EnterCrossCompartmentCall(JSContext *cx, JSObject *target);
 
+extern JS_PUBLIC_API(JSCrossCompartmentCall *)
+JS_EnterCrossCompartmentCallScript(JSContext *cx, JSScript *target);
+
 extern JS_PUBLIC_API(void)
 JS_LeaveCrossCompartmentCall(JSCrossCompartmentCall *call);
 
@@ -1008,6 +1011,8 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
     JSAutoEnterCompartment() : call(NULL) {}
 
     bool enter(JSContext *cx, JSObject *target);
+
+    bool enter(JSContext *cx, JSScript *target);
 
     void enterAndIgnoreErrors(JSContext *cx, JSObject *target);
 
@@ -1268,6 +1273,167 @@ js_AddGCThingRootRT(JSRuntime *rt, void **rp, const char *name);
 
 extern JS_FRIEND_API(JSBool)
 js_RemoveRoot(JSRuntime *rt, void *rp);
+
+#ifdef __cplusplus
+JS_END_EXTERN_C
+
+namespace js {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename T> class AnchorPermitted;
+template<> class AnchorPermitted<JSObject *> { };
+template<> class AnchorPermitted<const JSObject *> { };
+template<> class AnchorPermitted<JSFunction *> { };
+template<> class AnchorPermitted<const JSFunction *> { };
+template<> class AnchorPermitted<JSString *> { };
+template<> class AnchorPermitted<const JSString *> { };
+template<> class AnchorPermitted<jsval> { };
+
+template<typename T>
+class Anchor: AnchorPermitted<T> {
+  public:
+    Anchor() { }
+    explicit Anchor(T t) { hold = t; }
+    inline ~Anchor();
+    T &get() { return hold; }
+    void set(const T &t) { hold = t; }
+    void clear() { hold = 0; }
+  private:
+    T hold;
+    
+    Anchor(const Anchor &);
+    const Anchor &operator=(const Anchor &);
+};
+
+#ifdef __GNUC__
+template<typename T>
+inline Anchor<T>::~Anchor() {
+    
+
+
+
+
+
+
+
+
+
+
+    asm volatile("":: "g" (hold) : "memory");
+}
+#else
+template<typename T>
+inline Anchor<T>::~Anchor() {
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    volatile T sink;
+    sink = hold;
+}
+
+#ifdef JS_USE_JSVAL_JSID_STRUCT_TYPES
+
+
+
+
+
+
+
+
+
+
+
+template<>
+inline Anchor<jsval>::~Anchor() {
+    volatile jsval sink;
+    sink.asBits = hold.asBits;
+}
+#endif
+#endif
+
+}  
+
+JS_BEGIN_EXTERN_C
+#endif
 
 
 
@@ -2898,13 +3064,13 @@ JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp);
 
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewString(JSContext *cx, char *bytes, size_t length);
-
-extern JS_PUBLIC_API(JSString *)
 JS_NewStringCopyN(JSContext *cx, const char *s, size_t n);
 
 extern JS_PUBLIC_API(JSString *)
 JS_NewStringCopyZ(JSContext *cx, const char *s);
+
+extern JS_PUBLIC_API(JSString *)
+JS_InternJSString(JSContext *cx, JSString *str);
 
 extern JS_PUBLIC_API(JSString *)
 JS_InternString(JSContext *cx, const char *s);
@@ -2924,36 +3090,106 @@ JS_InternUCStringN(JSContext *cx, const jschar *s, size_t length);
 extern JS_PUBLIC_API(JSString *)
 JS_InternUCString(JSContext *cx, const jschar *s);
 
+extern JS_PUBLIC_API(JSBool)
+JS_CompareStrings(JSContext *cx, JSString *str1, JSString *str2, int32 *result);
+
+extern JS_PUBLIC_API(JSBool)
+JS_StringEqualsAscii(JSContext *cx, JSString *str, const char *asciiBytes, JSBool *match);
+
+extern JS_PUBLIC_API(size_t)
+JS_PutEscapedString(JSContext *cx, char *buffer, size_t size, JSString *str, char quote);
+
+extern JS_PUBLIC_API(JSBool)
+JS_FileEscapedString(FILE *fp, JSString *str, char quote);
 
 
 
-extern JS_PUBLIC_API(jschar *)
-JS_GetStringChars(JSString *str);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 extern JS_PUBLIC_API(size_t)
 JS_GetStringLength(JSString *str);
 
-
-
-
+extern JS_PUBLIC_API(const jschar *)
+JS_GetStringCharsAndLength(JSContext *cx, JSString *str, size_t *length);
 
 extern JS_PUBLIC_API(const jschar *)
-JS_GetStringCharsAndLength(JSString *str, size_t *lengthp);
+JS_GetInternedStringChars(JSString *str);
+
+extern JS_PUBLIC_API(const jschar *)
+JS_GetInternedStringCharsAndLength(JSString *str, size_t *length);
 
 extern JS_PUBLIC_API(const jschar *)
 JS_GetStringCharsZ(JSContext *cx, JSString *str);
 
-extern JS_PUBLIC_API(intN)
-JS_CompareStrings(JSString *str1, JSString *str2);
+extern JS_PUBLIC_API(const jschar *)
+JS_GetStringCharsZAndLength(JSContext *cx, JSString *str, size_t *length);
+
+extern JS_PUBLIC_API(JSFlatString *)
+JS_FlattenString(JSContext *cx, JSString *str);
+
+extern JS_PUBLIC_API(const jschar *)
+JS_GetFlatStringChars(JSFlatString *str);
+
+static JS_ALWAYS_INLINE JSFlatString *
+JSID_TO_FLAT_STRING(jsid id)
+{
+    JS_ASSERT(JSID_IS_STRING(id));
+    return (JSFlatString *)(JSID_BITS(id));
+}
+
+static JS_ALWAYS_INLINE JSFlatString *
+JS_ASSERT_STRING_IS_FLAT(JSString *str)
+{
+    JS_ASSERT(JS_GetFlatStringChars((JSFlatString *)str));
+    return (JSFlatString *)str;
+}
+
+static JS_ALWAYS_INLINE JSString *
+JS_FORGET_STRING_FLATNESS(JSFlatString *fstr)
+{
+    return (JSString *)fstr;
+}
+
+
+
+
 
 extern JS_PUBLIC_API(JSBool)
-JS_MatchStringAndAscii(JSString *str, const char *asciiBytes);
+JS_FlatStringEqualsAscii(JSFlatString *str, const char *asciiBytes);
 
 extern JS_PUBLIC_API(size_t)
-JS_PutEscapedString(char *buffer, size_t size, JSString *str, char quote);
-
-extern JS_PUBLIC_API(JSBool)
-JS_FileEscapedString(FILE *fp, JSString *str, char quote);
+JS_PutEscapedFlatString(char *buffer, size_t size, JSFlatString *str, char quote);
 
 
 
@@ -3105,6 +3341,12 @@ class JSAutoByteString {
 
     ~JSAutoByteString() {
         js_free(mBytes);
+    }
+
+    
+    void initBytes(char *bytes) {
+        JS_ASSERT(!mBytes);
+        mBytes = bytes;
     }
 
     char *encode(JSContext *cx, JSString *str) {

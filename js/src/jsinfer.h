@@ -251,7 +251,7 @@ struct TypeSet
     void addCall(JSContext *cx, TypeCallsite *site);
     void addArith(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code,
                   TypeSet *target, TypeSet *other = NULL);
-    void addTransformThis(JSContext *cx, JSArenaPool &pool, TypeSet *target);
+    void addTransformThis(JSContext *cx, analyze::Bytecode *code, TypeSet *target);
     void addFilterPrimitives(JSContext *cx, JSArenaPool &pool, TypeSet *target, bool onlyNullVoid);
     void addMonitorRead(JSContext *cx, JSArenaPool &pool, analyze::Bytecode *code, TypeSet *target);
 
@@ -363,6 +363,8 @@ struct TypeCallsite
 
     
     inline JSArenaPool & pool();
+
+    inline bool compileAndGo();
 };
 
 
@@ -509,6 +511,10 @@ struct TypeObject
     void print(JSContext *cx);
     void trace(JSTracer *trc);
 };
+
+
+
+
 
 
 struct TypeFunction : public TypeObject

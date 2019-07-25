@@ -292,13 +292,51 @@ namespace mjit {
 
 struct CallSite;
 
+struct NativeMapEntry {
+    size_t          bcOff;  
+    void            *ncode; 
+};
+
 struct JITScript {
     typedef JSC::MacroAssemblerCodeRef CodeRef;
     CodeRef         code;       
-    void            **nmap;     
 
+    NativeMapEntry  *nmap;      
+
+    size_t          nNmapPairs; 
+
+    void            *invokeEntry;       
+    void            *fastEntry;         
+    void            *arityCheckEntry;   
+
+    
     js::mjit::CallSite *callSites;
-    uint32          nCallSites;
+
+#ifdef JS_MONOIC
+    ic::MICInfo     *mics;      
+    ic::CallICInfo  *callICs;   
+    ic::EqualityICInfo *equalityICs;
+    ic::TraceICInfo *traceICs;
+#endif
+#ifdef JS_POLYIC
+    ic::PICInfo     *pics;      
+    ic::GetElementIC *getElems;
+    ic::SetElementIC *setElems;
+#endif
+
+    uint32          nCallSites:31;
+    bool            singleStepMode:1;   
+#ifdef JS_MONOIC
+    uint32          nMICs;      
+    uint32          nCallICs;   
+    uint32          nEqualityICs;
+    uint32          nTraceICs;
+#endif
+#ifdef JS_POLYIC
+    uint32          nPICs;      
+    uint32          nGetElems;
+    uint32          nSetElems;
+#endif
 
     
 
@@ -306,33 +344,14 @@ struct JITScript {
 
     uint32          recompilations;
 
+    
+    JSCList          callers;
+
 #ifdef JS_MONOIC
-    ic::MICInfo     *mics;      
-    uint32          nMICs;      
-    ic::CallICInfo  *callICs;   
-    uint32          nCallICs;   
-    ic::EqualityICInfo *equalityICs;
-    uint32          nEqualityICs;
-    ic::TraceICInfo *traceICs;
-    uint32          nTraceICs;
-
-    JSCList          callers;  
-
     
     typedef Vector<JSC::ExecutablePool *, 0, SystemAllocPolicy> ExecPoolVector;
     ExecPoolVector execPools;
 #endif
-#ifdef JS_POLYIC
-    ic::PICInfo     *pics;      
-    uint32          nPICs;      
-    ic::GetElementIC *getElems;
-    uint32           nGetElems;
-    ic::SetElementIC *setElems;
-    uint32           nSetElems;
-#endif
-    void            *invokeEntry;       
-    void            *fastEntry;         
-    void            *arityCheckEntry;   
 
     ~JITScript();
 
@@ -343,7 +362,7 @@ struct JITScript {
     }
 
     void nukeScriptDependentICs();
-    void sweepCallICs();
+    void sweepCallICs(bool purgeAll);
     void purgeMICs();
     void purgePICs();
 };
@@ -426,6 +445,27 @@ EnableTraceHint(JSScript *script, jsbytecode *pc, uint16_t index);
 uintN
 GetCallTargetCount(JSScript *script, jsbytecode *pc);
 
+inline void * bsearch_nmap(NativeMapEntry *nmap, size_t nPairs, size_t bcOff)
+{
+    size_t lo = 1, hi = nPairs;
+    while (1) {
+        
+        if (lo > hi)
+            return NULL; 
+        size_t mid       = (lo + hi) / 2;
+        size_t bcOff_mid = nmap[mid-1].bcOff;
+        if (bcOff < bcOff_mid) {
+            hi = mid-1;
+            continue;
+        } 
+        if (bcOff > bcOff_mid) {
+            lo = mid+1;
+            continue;
+        }
+        return nmap[mid-1].ncode;
+    }
+}
+
 } 
 
 } 
@@ -437,22 +477,17 @@ JSScript::maybeNativeCodeForPC(bool constructing, jsbytecode *pc)
     if (!jit)
         return NULL;
     JS_ASSERT(pc >= code && pc < code + length);
-    return jit->nmap[pc - code];
-}
-
-inline void **
-JSScript::nativeMap(bool constructing)
-{
-    return getJIT(constructing)->nmap;
+    return bsearch_nmap(jit->nmap, jit->nNmapPairs, (size_t)(pc - code));
 }
 
 inline void *
 JSScript::nativeCodeForPC(bool constructing, jsbytecode *pc)
 {
-    void **nmap = nativeMap(constructing);
+    js::mjit::JITScript *jit = getJIT(constructing);
     JS_ASSERT(pc >= code && pc < code + length);
-    JS_ASSERT(nmap[pc - code]);
-    return nmap[pc - code];
+    void* native = bsearch_nmap(jit->nmap, jit->nNmapPairs, (size_t)(pc - code));
+    JS_ASSERT(native);
+    return native;
 }
 
 #ifdef _MSC_VER

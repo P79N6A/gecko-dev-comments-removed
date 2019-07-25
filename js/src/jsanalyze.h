@@ -83,6 +83,9 @@ struct Bytecode
     bool inTryBlock : 1;
 
     
+    bool safePoint : 1;
+
+    
 
 
 

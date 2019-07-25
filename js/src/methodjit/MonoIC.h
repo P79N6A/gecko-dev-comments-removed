@@ -231,6 +231,9 @@ struct CallICInfo {
     uint32 oolJumpOffset   : 16;
 
     
+    uint32 icCallOffset    : 16;
+
+    
     uint32 hotPathOffset   : 16;
 
     
@@ -278,7 +281,7 @@ void JS_FASTCALL NativeCall(VMFrame &f, ic::CallICInfo *ic);
 JSBool JS_FASTCALL SplatApplyArgs(VMFrame &f);
 
 void PurgeMICs(JSContext *cx, JSScript *script);
-void SweepCallICs(JSScript *script);
+void SweepCallICs(JSScript *script, bool purgeAll);
 
 } 
 } 

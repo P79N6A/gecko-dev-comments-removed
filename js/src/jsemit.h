@@ -364,8 +364,16 @@ struct JSTreeContext {
     JSObject *blockChain() {
         return blockChainBox ? blockChainBox->object : NULL;
     }
+
     
-    bool atTopLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
+
+
+
+
+
+
+
+    bool atBodyLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
     
     bool inStatement(JSStmtType type);
@@ -392,7 +400,9 @@ struct JSTreeContext {
 
     bool compileAndGo() const { return flags & TCF_COMPILE_N_GO; }
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
+
     bool compiling() const { return flags & TCF_COMPILING; }
+    inline JSCodeGenerator *asCodeGenerator();
 
     bool usesArguments() const {
         return flags & TCF_FUN_USES_ARGUMENTS;
@@ -594,7 +604,7 @@ struct JSCodeGenerator : public JSTreeContext
     SlotVector      closedVars;
 
     uint16          traceIndex;     
-    
+
     
 
 
@@ -667,6 +677,13 @@ struct JSCodeGenerator : public JSTreeContext
 
 #define CG_SWITCH_TO_MAIN(cg)   ((cg)->current = &(cg)->main)
 #define CG_SWITCH_TO_PROLOG(cg) ((cg)->current = &(cg)->prolog)
+
+inline JSCodeGenerator *
+JSTreeContext::asCodeGenerator()
+{
+    JS_ASSERT(compiling());
+    return static_cast<JSCodeGenerator *>(this);
+}
 
 
 
