@@ -2136,10 +2136,6 @@ abstract public class GeckoApp
             refreshActionBar();
         }
 
-        
-        if (checkLaunchState(LaunchState.Launching))
-            onNewIntent(getIntent());
-
         registerReceiver(mConnectivityReceiver, mConnectivityFilter);
         GeckoNetworkManager.getInstance().start();
 
