@@ -14,6 +14,7 @@ var EXPORTED_SYMBOLS = ["InspectorUI"];
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 Cu.import("resource:///modules/TreePanel.jsm");
+Cu.import("resource:///modules/devtools/MarkupView.jsm");
 Cu.import("resource:///modules/highlighter.jsm");
 Cu.import("resource:///modules/devtools/LayoutView.jsm");
 Cu.import("resource:///modules/devtools/LayoutHelpers.jsm");
@@ -69,6 +70,15 @@ function Inspector(aIUI)
   this._listeners = {};
 
   this._browser.addEventListener("resize", this, true);
+
+  this._markupButton = this._IUI.chromeDoc.getElementById("inspector-treepanel-toolbutton");
+
+  if (Services.prefs.getBoolPref("devtools.inspector.htmlPanelOpen")) {
+    this.openMarkup();
+  } else {
+    this.closeMarkup();
+  }
+
 }
 
 Inspector.prototype = {
@@ -134,6 +144,7 @@ Inspector.prototype = {
   _destroy: function Inspector__destroy()
   {
     this._cancelLayoutChange();
+    this._destroyMarkup();
     this._browser.removeEventListener("resize", this, true);
     delete this._IUI;
     delete this._listeners;
@@ -178,12 +189,140 @@ Inspector.prototype = {
     }
   },
 
+  toggleMarkup: function Inspector_toggleMarkup()
+  {
+    if (this._markupFrame) {
+      this.closeMarkup();
+      Services.prefs.setBoolPref("devtools.inspector.htmlPanelOpen", false);
+    } else {
+      this.openMarkup(true);
+      Services.prefs.setBoolPref("devtools.inspector.htmlPanelOpen", true);
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  get markupOpen() {
+    return this._markupOpen;
+  },
+
+  openMarkup: function Inspector_openMarkup(aFocus)
+  {
+    this._markupButton.setAttribute("checked", "true");
+    this._markupOpen = true;
+    if (!this._markupFrame) {
+      this._initMarkup(aFocus);
+    }
+  },
+
+  closeMarkup: function Inspector_closeMarkup()
+  {
+    this._markupButton.removeAttribute("checked");
+    this._markupOpen = false;
+    this._destroyMarkup();
+  },
+
+  _initMarkup: function Inspector_initMarkupPane(aFocus)
+  {
+    let doc = this._IUI.chromeDoc;
+
+    this._markupBox = doc.createElement("vbox");
+    try {
+      this._markupBox.height =
+        Services.prefs.getIntPref("devtools.inspector.htmlHeight");
+    } catch(e) {
+      this._markupBox.height = 112;
+    }
+    this._markupBox.minHeight = 64;
+
+    this._markupSplitter = doc.createElement("splitter");
+    this._markupSplitter.className = "devtools-horizontal-splitter";
+
+    let container = doc.getElementById("appcontent");
+    container.appendChild(this._markupSplitter);
+    container.appendChild(this._markupBox);
+
+    
+    this._markupFrame = doc.createElement("iframe");
+    this._markupFrame.setAttribute("flex", "1");
+    this._markupFrame.setAttribute("tooltip", "aHTMLTooltip");
+
+    
+    this._boundMarkupFrameLoad = function Inspector_initMarkupPanel_onload() {
+      if (aFocus) {
+        this._markupFrame.contentWindow.focus();
+      }
+      this._onMarkupFrameLoad();
+    }.bind(this);
+    this._markupFrame.addEventListener("load", this._boundMarkupFrameLoad, true);
+
+    this._markupSplitter.setAttribute("hidden", true);
+    this._markupBox.setAttribute("hidden", true);
+    this._markupBox.appendChild(this._markupFrame);
+    this._markupFrame.setAttribute("src", "chrome://browser/content/devtools/markup-view.xhtml");
+  },
+
+  _onMarkupFrameLoad: function Inspector__onMarkupFrameLoad()
+  {
+    this._markupFrame.removeEventListener("load", this._boundMarkupFrameLoad, true);
+    delete this._boundMarkupFrameLoad;
+
+    this._markupSplitter.removeAttribute("hidden");
+    this._markupBox.removeAttribute("hidden");
+
+    this.markup = new MarkupView(this, this._markupFrame);
+    this._emit("markuploaded");
+  },
+
+  _destroyMarkup: function Inspector__destroyMarkup()
+  {
+    if (this._boundMarkupFrameLoad) {
+      this._markupFrame.removeEventListener("load", this._boundMarkupFrameLoad, true);
+      delete this._boundMarkupFrameLoad;
+    }
+
+    if (this.markup) {
+      this.markup.destroy();
+      delete this.markup;
+    }
+
+    if (this._markupFrame) {
+      delete this._markupFrame;
+    }
+
+    if (this._markupBox) {
+      Services.prefs.setIntPref("devtools.inspector.htmlHeight", this._markupBox.height);
+      this._markupBox.parentNode.removeChild(this._markupBox);
+      delete this._markupBox;
+    }
+
+    if (this._markupSplitter) {
+      this._markupSplitter.parentNode.removeChild(this._markupSplitter);
+    }
+  },
+
   
 
 
 
   _freeze: function Inspector__freeze()
   {
+    if (this._markupBox) {
+      this._markupSplitter.setAttribute("hidden", true);
+      this._markupBox.setAttribute("hidden", true);
+    }
     this._cancelLayoutChange();
     this._browser.removeEventListener("resize", this, true);
     this._frozen = true;
@@ -199,6 +338,10 @@ Inspector.prototype = {
       return;
     }
 
+    if (this._markupOpen && !this._boundMarkupFrameLoad) {
+      this._markupSplitter.removeAttribute("hidden");
+      this._markupBox.removeAttribute("hidden");
+    }
     this._browser.addEventListener("resize", this, true);
     delete this._frozen;
   },
@@ -442,15 +585,7 @@ InspectorUI.prototype = {
 
   toggleHTMLPanel: function IUI_toggleHTMLPanel()
   {
-    if (this.treePanel.isOpen()) {
-      this.treePanel.close();
-      Services.prefs.setBoolPref("devtools.inspector.htmlPanelOpen", false);
-      this.currentInspector._htmlPanelOpen = false;
-    } else {
-      this.treePanel.open();
-      Services.prefs.setBoolPref("devtools.inspector.htmlPanelOpen", true);
-      this.currentInspector._htmlPanelOpen = true;
-    }
+    this.currentInspector.toggleMarkup();
   },
 
   
@@ -554,7 +689,6 @@ InspectorUI.prototype = {
 
     this.chromeWin.Tilt.setup();
 
-    this.treePanel = new TreePanel(this.chromeWin, this);
     this.toolbar.hidden = false;
 
     
@@ -680,13 +814,6 @@ InspectorUI.prototype = {
 
   closeInspectorUI: function IUI_closeInspectorUI(aKeepInspector)
   {
-    
-    
-    if (this.treePanel && this.treePanel.editingContext)
-      this.treePanel.closeEditor();
-
-    this.treePanel.destroy();
-
     if (this.closing || !this.win || !this.browser) {
       return;
     }
@@ -752,7 +879,6 @@ InspectorUI.prototype = {
     this.closing = false;
     this.isDirty = false;
 
-    delete this.treePanel;
     delete this.stylePanel;
     delete this.inspectorUICommand;
     delete this.inspectCommand;
@@ -770,11 +896,6 @@ InspectorUI.prototype = {
 
   startInspecting: function IUI_startInspecting()
   {
-    
-    
-    if (this.treePanel && this.treePanel.editingContext)
-      this.treePanel.closeEditor();
-
     this.inspectCommand.setAttribute("checked", "true");
 
     this.inspecting = true;
@@ -828,11 +949,6 @@ InspectorUI.prototype = {
 
   select: function IUI_select(aNode, forceUpdate, aScroll, aFrom)
   {
-    
-    
-    if (this.treePanel && this.treePanel.editingContext)
-      this.treePanel.closeEditor();
-
     if (!aNode)
       aNode = this.defaultSelection;
 
@@ -849,7 +965,6 @@ InspectorUI.prototype = {
 
     this.breadcrumbs.update();
     this.chromeWin.Tilt.update(aNode);
-    this.treePanel.select(aNode, aScroll, aFrom);
 
     this._notifySelected(aFrom);
   },
@@ -938,10 +1053,6 @@ InspectorUI.prototype = {
     Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.STATE_RESTORED, null);
 
     this.highlighter.highlight();
-
-    if (this.currentInspector._htmlPanelOpen) {
-      this.treePanel.open();
-    }
 
     if (this.currentInspector._sidebarOpen) {
       this._sidebar.show();
@@ -1124,10 +1235,6 @@ InspectorUI.prototype = {
     }
 
     let parent = selection.parentNode;
-
-    
-    if (this.treePanel.isOpen())
-      this.treePanel.deleteChildBox(selection);
 
     
     parent.removeChild(selection);

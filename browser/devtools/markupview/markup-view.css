@@ -1,0 +1,21 @@
+
+
+
+
+ul {
+  list-style: none;
+}
+
+ul.children:not([expanded]) {
+  display: none;
+}
+
+.codebox {
+  display: inline-block;
+}
+
+.newattr {
+  display: inline-block;
+  width: 1em;
+  height: 1ex;
+}
