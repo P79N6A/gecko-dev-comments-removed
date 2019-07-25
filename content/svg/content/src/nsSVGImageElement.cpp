@@ -174,6 +174,9 @@ nsSVGImageElement::AfterSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
   if (aNamespaceID == kNameSpaceID_XLink && aName == nsGkAtoms::href) {
 
     
+    
+    
+    
     if (!GetPrimaryFrame()) {
 
       
