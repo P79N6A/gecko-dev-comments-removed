@@ -439,7 +439,9 @@ nsHTMLEditor::HideResizers(void)
 
   
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
+  
+  
+  
 
   nsresult res;
   nsCOMPtr<nsIDOMNode> parentNode;

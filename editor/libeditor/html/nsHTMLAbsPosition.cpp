@@ -313,7 +313,9 @@ nsHTMLEditor::HideGrabber()
 
   
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
+  
+  
+  
 
   nsCOMPtr<nsIDOMNode> parentNode;
   res = mGrabber->GetParentNode(getter_AddRefs(parentNode));

@@ -125,7 +125,9 @@ nsHTMLEditor::HideInlineTableEditingUI()
 
   
   nsCOMPtr<nsIPresShell> ps = do_QueryReferent(mPresShellWeak);
-  if (!ps) return NS_ERROR_NOT_INITIALIZED;
+  
+  
+  
 
   
 
