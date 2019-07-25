@@ -9149,6 +9149,13 @@ nsIDocument::DocSizeOfExcludingThis(nsWindowSizes* aWindowSizes) const
   aWindowSizes->mDOM +=
     nsINode::SizeOfExcludingThis(aWindowSizes->mMallocSizeOf);
 
+  if (mPresShell) {
+    mPresShell->SizeOfIncludingThis(aWindowSizes->mMallocSizeOf,
+                                    &aWindowSizes->mLayoutArenas,
+                                    &aWindowSizes->mLayoutStyleSets,
+                                    &aWindowSizes->mLayoutTextRuns);
+  }
+
   
   
   
