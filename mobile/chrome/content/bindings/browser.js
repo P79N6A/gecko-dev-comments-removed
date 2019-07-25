@@ -246,7 +246,8 @@ let DOMEvents =  {
         
         
         
-        if (!WebProgressListener.hashChanged) {
+        let contentWindowID = content.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils).currentInnerWindowID;
+        if (!WebProgressListener.hashChanged && contentWindowID == util.currentInnerWindowID) {
           let focusManager = Cc["@mozilla.org/focus-manager;1"].getService(Ci.nsIFocusManager);
           focusManager.clearFocus(content);
         }
