@@ -582,6 +582,8 @@ nsWindowWatcher::OpenWindowJSInternal(nsIDOMWindow *aParent,
   nsCOMPtr<nsIScriptSecurityManager>
     sm(do_GetService(NS_SCRIPTSECURITYMANAGER_CONTRACTID));
 
+  NS_ENSURE_TRUE(sm, NS_ERROR_FAILURE);
+
   
   
   
