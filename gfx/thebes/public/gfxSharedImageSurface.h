@@ -35,119 +35,65 @@
 
 
 
+
 #ifndef GFX_SHARED_IMAGESURFACE_H
 #define GFX_SHARED_IMAGESURFACE_H
 
-#ifdef MOZ_X11
-#ifdef HAVE_XSHM
-
 #include "gfxASurface.h"
 #include "gfxImageSurface.h"
-#include "gfxPoint.h"
 
-#include <stdlib.h>
-#include <string.h>
+#include "mozilla/ipc/SharedMemory.h"
+#include "mozilla/ipc/Shmem.h"
 
-#ifdef MOZ_WIDGET_QT
-#include <QX11Info>
-#endif
-
-#ifdef MOZ_WIDGET_GTK2
-#include <gtk/gtk.h>
-#include <gdk/gdk.h>
-#include <gdk/gdkx.h>
-#endif
-
-#ifdef MOZ_X11
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/extensions/XShm.h>
-#endif
-
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-class THEBES_API gfxSharedImageSurface : public gfxASurface {
+class THEBES_API gfxSharedImageSurface : public gfxImageSurface {
 public:
-  gfxSharedImageSurface();
-  ~gfxSharedImageSurface();
+    
 
-  
-  gfxImageFormat Format() const { return mFormat; }
 
-  const gfxIntSize& GetSize() const { return mSize; }
-  int Width() const { return mSize.width; }
-  int Height() const { return mSize.height; }
+    gfxSharedImageSurface();
 
-  
+    
 
 
 
-  int Stride() const { return mStride; }
+    gfxSharedImageSurface(const mozilla::ipc::Shmem &aShmem);
 
-  
+    ~gfxSharedImageSurface();
 
-
-
-  unsigned char* Data() const { return mData; } 
-
-  
-
-
-  int GetDataSize() const { return mStride*mSize.height; }
-
-  
-
-
-  XImage *image() const { return mXShmImage; }
-
-  
-
-
-  already_AddRefed<gfxASurface> getASurface(void);
-
-  
+    
 
 
 
 
 
 
+    template<class ShmemAllocator>
+    bool Init(ShmemAllocator *aAllocator,
+              const gfxIntSize& aSize,
+              gfxImageFormat aFormat,
+              mozilla::ipc::SharedMemory::SharedMemoryType aShmType = mozilla::ipc::SharedMemory::TYPE_BASIC)
+    {
+        mSize = aSize;
+        mFormat = aFormat;
+        mStride = ComputeStride();
+        if (!aAllocator->AllocShmem(GetAlignedSize(),
+                                    aShmType, &mShmem))
+            return false;
 
+        return InitSurface(PR_TRUE);
+    }
 
+    
+    mozilla::ipc::Shmem& GetShmem() { return mShmem; }
 
-
-  bool Init(const gfxIntSize& aSize,
-            gfxImageFormat aFormat = ImageFormatUnknown,
-            int aDepth = 0,
-            int aShmId = -1);
-
-  
-
-
-  int Depth() const { return mDepth; }
+    
+    static cairo_user_data_key_t SHM_KEY;
 
 private:
-  bool CreateInternal(int aShmid);
-  long ComputeStride() const;
-  inline bool ComputeDepth();
-  inline bool ComputeFormat();
+    size_t GetAlignedSize();
+    bool InitSurface(PRBool aUpdateShmemInfo);
 
-  unsigned int     mDepth;
-  int              mShmId;
-
-  gfxIntSize mSize;
-  bool mOwnsData;
-
-  unsigned char   *mData;
-  gfxImageFormat   mFormat;
-  long mStride;
-
-  Display *mDisp;
-  XShmSegmentInfo  mShmInfo;
-  XImage          *mXShmImage;
+    mozilla::ipc::Shmem mShmem;
 };
 
-#endif 
-#endif 
 #endif 
