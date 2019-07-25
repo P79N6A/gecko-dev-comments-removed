@@ -136,39 +136,10 @@ NS_IMPL_CYCLE_COLLECTION_UNROOT_NATIVE(AccEvent, Release)
 
 
 
-nsAccessible *
+nsAccessible*
 AccEvent::GetAccessibleForNode() const
 {
-  if (!mNode)
-    return nsnull;
-
-  nsAccessible *accessible = GetAccService()->GetAccessible(mNode);
-
-#ifdef MOZ_XUL
-  
-  
-  
-  
-  nsCOMPtr<nsIContent> content(do_QueryInterface(mNode));
-  if (content && content->NodeInfo()->Equals(nsAccessibilityAtoms::tree,
-                                             kNameSpaceID_XUL)) {
-
-    nsCOMPtr<nsIDOMXULMultiSelectControlElement> multiSelect =
-      do_QueryInterface(mNode);
-
-    if (multiSelect) {
-      PRInt32 treeIndex = -1;
-      multiSelect->GetCurrentIndex(&treeIndex);
-      if (treeIndex >= 0) {
-        nsRefPtr<nsXULTreeAccessible> treeAcc = do_QueryObject(accessible);
-        if (treeAcc)
-          return treeAcc->GetTreeItemAccessible(treeIndex);
-      }
-    }
-  }
-#endif
-
-  return accessible;
+  return mNode ? GetAccService()->GetAccessible(mNode) : nsnull;
 }
 
 void

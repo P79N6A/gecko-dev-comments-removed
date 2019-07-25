@@ -393,10 +393,10 @@ nsRootAccessible::FireAccessibleFocusEvent(nsAccessible* aFocusAccessible,
 
   
   
-  focusDocument->FireDelayedAccessibleEvent(nsIAccessibleEvent::EVENT_FOCUS,
-                                            focusNode,
-                                            AccEvent::eCoalesceFromSameDocument,
-                                            aIsFromUserInput);
+  nsRefPtr<AccEvent> focusEvent =
+    new AccEvent(nsIAccessibleEvent::EVENT_FOCUS, focusAccessible,
+                 aIsFromUserInput, AccEvent::eCoalesceFromSameDocument);
+  focusDocument->FireDelayedAccessibleEvent(focusEvent);
 }
 
 void
