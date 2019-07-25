@@ -544,6 +544,46 @@ TypeSet::addSetProperty(JSContext *cx, JSScript *script, jsbytecode *pc,
 }
 
 
+
+
+
+
+
+
+class TypeConstraintCallProp : public TypeConstraint
+{
+public:
+    jsbytecode *callpc;
+
+    
+    jsid id;
+
+    TypeConstraintCallProp(JSScript *script, jsbytecode *callpc, jsid id)
+        : TypeConstraint("callprop", script), callpc(callpc), id(id)
+    {
+        JS_ASSERT(script && callpc);
+    }
+
+    void newType(JSContext *cx, TypeSet *source, jstype type);
+};
+
+void
+TypeSet::addCallProperty(JSContext *cx, JSScript *script, jsbytecode *pc, jsid id)
+{
+    
+
+
+
+
+    jsbytecode *callpc = script->analysis(cx)->getCallPC(pc);
+    UntrapOpcode untrap(cx, script, callpc);
+    if (JSOp(*callpc) == JSOP_NEW)
+        return;
+
+    add(cx, ArenaNew<TypeConstraintCallProp>(cx->compartment->pool, script, callpc, id));
+}
+
+
 class TypeConstraintNewObject : public TypeConstraint
 {
     TypeFunction *fun;
@@ -638,10 +678,11 @@ TypeSet::addTransformThis(JSContext *cx, JSScript *script, TypeSet *target)
 class TypeConstraintPropagateThis : public TypeConstraint
 {
 public:
+    jsbytecode *callpc;
     jstype type;
 
-    TypeConstraintPropagateThis(JSScript *script, jstype type)
-        : TypeConstraint("propagatethis", script), type(type)
+    TypeConstraintPropagateThis(JSScript *script, jsbytecode *callpc, jstype type)
+        : TypeConstraint("propagatethis", script), callpc(callpc), type(type)
     {}
 
     void newType(JSContext *cx, TypeSet *source, jstype type);
@@ -651,21 +692,12 @@ void
 TypeSet::addPropagateThis(JSContext *cx, JSScript *script, jsbytecode *pc, jstype type)
 {
     
+    jsbytecode *callpc = script->analysis(cx)->getCallPC(pc);
+    UntrapOpcode untrap(cx, script, callpc);
+    if (JSOp(*callpc) == JSOP_NEW)
+        return;
 
-
-
-
-    SSAValue calleev = SSAValue::PushedValue(pc - script->code, 0);
-    SSAUseChain *uses = script->analysis(cx)->useChain(calleev);
-
-    if (uses && !uses->next && uses->popped) {
-        jsbytecode *callpc = script->code + uses->offset;
-        UntrapOpcode untrap(cx, script, callpc);
-        if (JSOp(*callpc) == JSOP_NEW)
-            return;
-    }
-
-    add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool, script, type));
+    add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool, script, callpc, type));
 }
 
 
@@ -986,16 +1018,38 @@ TypeConstraintProp::newType(JSContext *cx, TypeSet *source, jstype type)
     }
 
     TypeObject *object = GetPropertyObject(cx, script, type);
-    if (object) {
+    if (object)
         PropertyAccess(cx, script, pc, object, assign, target, id);
+}
 
-        if (!object->unknownProperties() &&
-            (JSOp(*pc) == JSOP_CALLPROP || JSOp(*pc) == JSOP_CALLELEM)) {
-            JS_ASSERT(!assign);
+void
+TypeConstraintCallProp::newType(JSContext *cx, TypeSet *source, jstype type)
+{
+    UntrapOpcode untrap(cx, script, callpc);
+
+    
+
+
+
+
+
+
+    if (type == TYPE_UNKNOWN || (!TypeIsObject(type) && !script->global)) {
+        cx->compartment->types.monitorBytecode(cx, script, callpc - script->code);
+        return;
+    }
+
+    TypeObject *object = GetPropertyObject(cx, script, type);
+    if (object) {
+        if (object->unknownProperties()) {
+            cx->compartment->types.monitorBytecode(cx, script, callpc - script->code);
+        } else {
             TypeSet *types = object->getProperty(cx, id, false);
             if (!types)
                 return;
-            types->addPropagateThis(cx, script, pc, type);
+            
+            types->add(cx, ArenaNew<TypeConstraintPropagateThis>(cx->compartment->pool,
+                                                                 script, callpc, type));
         }
     }
 }
@@ -1175,13 +1229,22 @@ TypeConstraintCall::newType(JSContext *cx, TypeSet *source, jstype type)
 void
 TypeConstraintPropagateThis::newType(JSContext *cx, TypeSet *source, jstype type)
 {
+    if (type == TYPE_UNKNOWN) {
+        
+
+
+
+
+
+        cx->compartment->types.monitorBytecode(cx, script, callpc - script->code);
+        return;
+    }
+
     
-
-
-
-    if (type == TYPE_UNKNOWN || !TypeIsObject(type))
+    if (!TypeIsObject(type))
         return;
 
+    
     TypeObject *object = (TypeObject*) type;
     if (object->unknownProperties() || !object->isFunction)
         return;
@@ -2279,41 +2342,14 @@ TypeCompartment::addPendingRecompile(JSContext *cx, JSScript *script)
     }
 }
 
-void
-TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset)
+static inline bool
+MonitorResultUnknown(JSOp op)
 {
-    if (script->analysis(cx)->getCode(offset).monitoredTypes)
-        return;
-
-    jsbytecode *pc = script->code + offset;
-    UntrapOpcode untrap(cx, script, pc);
-
     
 
 
 
-
-    JSOp op = JSOp(*pc);
     switch (op) {
-      case JSOP_SETNAME:
-      case JSOP_SETGNAME:
-      case JSOP_SETXMLNAME:
-      case JSOP_SETCONST:
-      case JSOP_SETELEM:
-      case JSOP_SETHOLE:
-      case JSOP_SETPROP:
-      case JSOP_SETMETHOD:
-      case JSOP_INITPROP:
-      case JSOP_INITMETHOD:
-      case JSOP_FORPROP:
-      case JSOP_FORNAME:
-      case JSOP_FORGNAME:
-      case JSOP_ENUMELEM:
-      case JSOP_ENUMCONSTELEM:
-      case JSOP_DEFFUN:
-      case JSOP_DEFFUN_FC:
-      case JSOP_ARRAYPUSH:
-        break;
       case JSOP_INCNAME:
       case JSOP_DECNAME:
       case JSOP_NAMEINC:
@@ -2335,11 +2371,30 @@ TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset)
       case JSOP_FUNCALL:
       case JSOP_FUNAPPLY:
       case JSOP_NEW:
-        script->analysis(cx)->addPushedType(cx, offset, 0, TYPE_UNKNOWN);
-        break;
+        return true;
       default:
-        TypeFailure(cx, "Monitoring unknown bytecode at #%u:%05u", script->id(), offset);
+        return false;
     }
+}
+
+void
+TypeCompartment::monitorBytecode(JSContext *cx, JSScript *script, uint32 offset)
+{
+    ScriptAnalysis *analysis = script->analysis(cx);
+
+    if (analysis->getCode(offset).monitoredTypes)
+        return;
+
+    jsbytecode *pc = script->code + offset;
+    UntrapOpcode untrap(cx, script, pc);
+
+    
+
+
+
+
+    if (MonitorResultUnknown(JSOp(*pc)) && analysis->hasPushedTypes(pc))
+        analysis->addPushedType(cx, offset, 0, TYPE_UNKNOWN);
 
     InferSpew(ISpewOps, "addMonitorNeeded: #%u:%05u", script->id(), offset);
 
@@ -3196,6 +3251,10 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
     }
 
     
+    if (code.monitoredTypes && MonitorResultUnknown(op))
+        pushed[0].addType(cx, TYPE_UNKNOWN);
+
+    
     switch (op) {
 
         
@@ -3563,12 +3622,9 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         jsid id = GetAtomId(cx, script, pc, 0);
         TypeSet *seen = script->bytecodeTypes(pc);
 
-        
-
-
-
-
         poppedTypes(pc, 0)->addGetProperty(cx, script, pc, seen, id);
+        if (op == JSOP_CALLPROP)
+            poppedTypes(pc, 0)->addCallProperty(cx, script, pc, id);
 
         seen->addSubset(cx, script, &pushed[0]);
         if (op == JSOP_CALLPROP)
@@ -3596,8 +3652,9 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_CALLELEM: {
         TypeSet *seen = script->bytecodeTypes(pc);
 
-        
         poppedTypes(pc, 1)->addGetProperty(cx, script, pc, seen, JSID_VOID);
+        if (op == JSOP_CALLELEM)
+            poppedTypes(pc, 1)->addCallProperty(cx, script, pc, JSID_VOID);
 
         seen->addSubset(cx, script, &pushed[0]);
         if (op == JSOP_CALLELEM)
