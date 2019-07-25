@@ -705,24 +705,21 @@ let PlacesDBUtils = {
       ")");
     cleanupStatements.push(fixInvalidFaviconIds);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    
+    let fixVisitStats = DBConn.createAsyncStatement(
+      "UPDATE moz_places " +
+      "SET visit_count = (SELECT count(*) FROM moz_historyvisits " +
+                         "WHERE place_id = moz_places.id AND visit_type NOT IN (0,4,7,8)), " +
+          "last_visit_date = (SELECT MAX(visit_date) FROM moz_historyvisits " +
+                             "WHERE place_id = moz_places.id) " +
+      "WHERE id IN ( " +
+        "SELECT h.id FROM moz_places h " +
+        "WHERE visit_count <> (SELECT count(*) FROM moz_historyvisits v " +
+                              "WHERE v.place_id = h.id AND visit_type NOT IN (0,4,7,8)) " +
+           "OR last_visit_date <> (SELECT MAX(visit_date) FROM moz_historyvisits v " +
+                                  "WHERE v.place_id = h.id) " +
+      ")");
+    cleanupStatements.push(fixVisitStats);
 
     
 
