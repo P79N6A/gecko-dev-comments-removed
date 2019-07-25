@@ -77,9 +77,11 @@ XPCStringConvert::ShutdownDOMStringFinalizer()
 
 jsval
 XPCStringConvert::ReadableToJSVal(JSContext *cx,
-                                  const nsAString &readable)
+                                  const nsAString &readable,
+                                  nsStringBuffer** sharedBuffer)
 {
     JSString *str;
+    *sharedBuffer = nsnull;
 
     PRUint32 length = readable.Length();
 
@@ -107,7 +109,9 @@ XPCStringConvert::ReadableToJSVal(JSContext *cx,
                                    length, sDOMStringFinalizerIndex);
 
         if (str)
-            buf->AddRef();
+        {
+            *sharedBuffer = buf;
+        }
     }
     else
     {
@@ -140,6 +144,10 @@ XPCStringConvert::ReadableToJSVal(JSContext *cx,
 XPCReadableJSStringWrapper *
 XPCStringConvert::JSStringToReadable(XPCCallContext& ccx, JSString *str)
 {
-    return ccx.NewStringWrapper(reinterpret_cast<PRUnichar *>(JS_GetStringChars(str)),
-                                JS_GetStringLength(str));
+    const PRUnichar *chars =
+        reinterpret_cast<const PRUnichar *>(JS_GetStringCharsZ(ccx, str));
+    if(!chars)
+        return nsnull;
+
+    return ccx.NewStringWrapper(chars, JS_GetStringLength(str));
 }
