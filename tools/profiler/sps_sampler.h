@@ -50,8 +50,8 @@ using mozilla::TimeDuration;
 struct ProfileStack;
 class TableTicker;
 
-extern mozilla::ThreadLocal<ProfileStack> pkey_stack;
-extern mozilla::ThreadLocal<TableTicker> pkey_ticker;
+extern mozilla::ThreadLocal<ProfileStack> tlsStack;
+extern mozilla::ThreadLocal<TableTicker> tlsTicker;
 extern bool stack_key_initialized;
 
 #ifndef SAMPLE_FUNCTION_NAME
@@ -283,7 +283,7 @@ inline void* mozilla_sampler_call_enter(const char *aInfo)
   if (!stack_key_initialized)
     return NULL;
 
-  ProfileStack *stack = pkey_stack.get();
+  ProfileStack *stack = tlsStack.get();
   
   
   
@@ -312,7 +312,7 @@ inline void mozilla_sampler_call_exit(void *aHandle)
 
 inline void mozilla_sampler_add_marker(const char *aMarker)
 {
-  ProfileStack *stack = pkey_stack.get();
+  ProfileStack *stack = tlsStack.get();
   if (!stack) {
     return;
   }
