@@ -6,9 +6,6 @@ div.progress-element {
   vertical-align: -0.2em;
 
   
-  overflow: hidden;
-
-  
   border: 2px solid;
   -moz-border-top-colors: ThreeDShadow -moz-Dialog;
   -moz-border-right-colors: ThreeDHighlight -moz-Dialog;
@@ -23,4 +20,8 @@ div.progress-bar {
 
   
   background-color: ThreeDShadow;
+}
+
+progress, progress::-moz-progress-bar, div.progress-element, div.progress-bar {
+  -moz-appearance: none;
 }
