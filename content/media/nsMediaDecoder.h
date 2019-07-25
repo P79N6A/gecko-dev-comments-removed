@@ -113,6 +113,19 @@ public:
   virtual double GetDuration() = 0;
 
   
+  
+  
+  
+  
+  
+  
+  
+  virtual void SetInfinite(PRBool aInfinite) = 0;
+
+  
+  virtual PRBool IsInfinite() = 0;
+
+  
   virtual void Pause() = 0;
 
   

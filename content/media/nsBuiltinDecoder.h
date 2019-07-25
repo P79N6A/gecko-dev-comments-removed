@@ -395,6 +395,9 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual void SetVolume(double aVolume);
   virtual double GetDuration();
 
+  virtual void SetInfinite(PRBool aInfinite);
+  virtual PRBool IsInfinite();
+
   virtual nsMediaStream* GetCurrentStream();
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
@@ -688,6 +691,9 @@ public:
   
   
   PRPackedBool mIgnoreProgressData;
+
+  
+  PRPackedBool mInfiniteStream;
 };
 
 #endif
