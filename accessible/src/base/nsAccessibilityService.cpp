@@ -643,6 +643,9 @@ nsAccessibilityService::GetAccessibleFor(nsIDOMNode *aNode,
     return NS_OK;
 
   nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
+  if (!node)
+    return NS_ERROR_INVALID_ARG;
+
   NS_IF_ADDREF(*aAccessible = GetAccessible(node));
   return NS_OK;
 }
@@ -812,6 +815,13 @@ nsAccessibilityService::GetAccessibleFromCache(nsIDOMNode* aNode,
                                                nsIAccessible** aAccessible)
 {
   NS_ENSURE_ARG_POINTER(aAccessible);
+  *aAccessible = nsnull;
+  if (!aNode)
+    return NS_OK;
+
+  nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
+  if (!node)
+    return NS_ERROR_INVALID_ARG;
 
   
   
@@ -819,7 +829,6 @@ nsAccessibilityService::GetAccessibleFromCache(nsIDOMNode* aNode,
   
   
   
-  nsCOMPtr<nsINode> node(do_QueryInterface(aNode));
   nsAccessible* accessible = FindAccessibleInCache(node);
   if (!accessible) {
     nsCOMPtr<nsIDocument> document(do_QueryInterface(node));
