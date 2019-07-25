@@ -94,7 +94,12 @@ public:
   
   
   void Resample() { DoSample(PR_FALSE); }
-  void SetResampleNeeded() { mResampleNeeded = PR_TRUE; }
+  void SetResampleNeeded()
+  {
+    if (!mRunningSample) {
+      mResampleNeeded = PR_TRUE;
+    }
+  }
   void FlushResampleRequests()
   {
     if (!mResampleNeeded)
@@ -203,9 +208,7 @@ protected:
   
   
   PRPackedBool               mDeferredStartSampling;
-#ifdef DEBUG
   PRPackedBool               mRunningSample;
-#endif
 
   
   

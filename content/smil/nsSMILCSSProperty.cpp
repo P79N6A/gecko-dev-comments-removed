@@ -103,7 +103,12 @@ nsSMILCSSProperty::GetBaseValue() const
   nsSMILValue baseValue;
 
   
-  if (nsCSSProps::IsShorthand(mPropID)) {
+  
+  if (nsCSSProps::IsShorthand(mPropID) || mPropID == eCSSProperty_display) {
+    
+    
+    
+    
     
     
     
