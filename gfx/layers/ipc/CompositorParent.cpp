@@ -231,23 +231,6 @@ CompositorParent::Composite()
 #endif
 }
 
-
-
-static void
-SetShadowProperties(Layer* aLayer)
-{
-  
-  ShadowLayer* shadow = aLayer->AsShadowLayer();
-  shadow->SetShadowTransform(aLayer->GetTransform());
-  shadow->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
-  shadow->SetShadowClipRect(aLayer->GetClipRect());
-
-  for (Layer* child = aLayer->GetFirstChild();
-      child; child = child->GetNextSibling()) {
-    SetShadowProperties(child);
-  }
-}
-
 #ifdef MOZ_WIDGET_ANDROID
 
 
@@ -255,21 +238,6 @@ Layer*
 CompositorParent::GetPrimaryScrollableLayer()
 {
   Layer* root = mLayerManager->GetRoot();
-
-  
-  
-  
-  
-  
-  Layer* discardLayer = root->GetFirstChild();
-
-  while (discardLayer) {
-    if (!discardLayer->AsContainerLayer()) {
-      discardLayer->IntersectClipRect(nsIntRect());
-      SetShadowProperties(discardLayer);
-    }
-    discardLayer = discardLayer->GetNextSibling();
-  }
 
   nsTArray<Layer*> queue;
   queue.AppendElement(root);
@@ -295,6 +263,23 @@ CompositorParent::GetPrimaryScrollableLayer()
   return root;
 }
 #endif
+
+
+
+static void
+SetShadowProperties(Layer* aLayer)
+{
+  
+  ShadowLayer* shadow = aLayer->AsShadowLayer();
+  shadow->SetShadowTransform(aLayer->GetTransform());
+  shadow->SetShadowVisibleRegion(aLayer->GetVisibleRegion());
+  shadow->SetShadowClipRect(aLayer->GetClipRect());
+
+  for (Layer* child = aLayer->GetFirstChild();
+      child; child = child->GetNextSibling()) {
+    SetShadowProperties(child);
+  }
+}
 
 void
 CompositorParent::TransformShadowTree()
