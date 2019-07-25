@@ -460,7 +460,10 @@ var FindHelperUI = {
   set status(val) {
     if (val != this._status) {
       this._status = val;
-      this._textbox.setAttribute("status", val);
+      if (!val)
+        this._textbox.removeAttribute("status");
+      else
+        this._textbox.setAttribute("status", val);
       this.updateCommands(this._textbox.value);
     }
   },
@@ -475,6 +478,11 @@ var FindHelperUI = {
     
     messageManager.addMessageListener("FindAssist:Show", this);
     messageManager.addMessageListener("FindAssist:Hide", this);
+
+    
+    
+    
+    this._textbox.addEventListener("text", this, false);
 
     
     document.getElementById("tabs").addEventListener("TabSelect", this, true);
@@ -506,6 +514,15 @@ var FindHelperUI = {
       case "URLChanged":
         if (aEvent.detail && aEvent.target == getBrowser())
           this.hide();
+        break;
+
+      case "text":
+        if (!this._open)
+          return;
+
+        let evt = document.createEvent("Event");
+        evt.initEvent("input", true, false);
+        this._textbox.dispatchEvent(evt);
         break;
     }
   },
