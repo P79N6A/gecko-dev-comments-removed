@@ -952,6 +952,24 @@ ShadowThebesLayerOGL::ShadowThebesLayerOGL(LayerManagerOGL *aManager)
 ShadowThebesLayerOGL::~ShadowThebesLayerOGL()
 {}
 
+bool
+ShadowThebesLayerOGL::ShouldDoubleBuffer()
+{
+#ifdef ANDROID
+  
+
+
+
+
+
+
+
+  return true;
+#else
+  return false;
+#endif
+}
+
 void
 ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            const nsIntRegion& aUpdatedRegion,
@@ -960,6 +978,62 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
                            OptionalThebesBuffer* aReadOnlyFront,
                            nsIntRegion* aFrontUpdatedRegion)
 {
+  
+  if (ShouldDoubleBuffer()) {
+    nsRefPtr<gfxASurface> newFrontBuffer =
+      ShadowLayerForwarder::OpenDescriptor(aNewFront.buffer());
+
+    if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
+      nsRefPtr<gfxASurface> currentFront =
+        ShadowLayerForwarder::OpenDescriptor(mFrontBufferDescriptor);
+      if (currentFront->GetSize() != newFrontBuffer->GetSize()) {
+        
+        DestroyFrontBuffer();
+      }
+    }
+
+    
+    if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
+      *aNewBack = ThebesBuffer();
+      aNewBack->get_ThebesBuffer().buffer() = mFrontBufferDescriptor;
+    } else {
+      *aNewBack = null_t();
+    }
+
+    
+    
+    aNewBackValidRegion->Sub(mOldValidRegion, aUpdatedRegion);
+
+    nsRefPtr<gfxASurface> unused;
+    nsIntRect backRect;
+    nsIntPoint backRotation;
+    mFrontBuffer.Swap(
+      newFrontBuffer, aNewFront.rect(), aNewFront.rotation(),
+      getter_AddRefs(unused), &backRect, &backRotation);
+
+    if (aNewBack->type() != OptionalThebesBuffer::Tnull_t) {
+      aNewBack->get_ThebesBuffer().rect() = backRect;
+      aNewBack->get_ThebesBuffer().rotation() = backRotation;
+    }
+
+    mFrontBufferDescriptor = aNewFront.buffer();
+
+    
+    if (!mDestroyed) {
+      if (!mBuffer) {
+        mBuffer = new ShadowBufferOGL(this);
+      }
+      nsRefPtr<gfxASurface> surf = ShadowLayerForwarder::OpenDescriptor(mFrontBufferDescriptor);
+      mBuffer->Upload(surf, aUpdatedRegion, aNewFront.rect(), aNewFront.rotation());
+    }
+
+    *aReadOnlyFront = aNewFront;
+    *aFrontUpdatedRegion = aUpdatedRegion;
+
+    return;
+  }
+
+  
   if (!mDestroyed) {
     if (!mBuffer) {
       mBuffer = new ShadowBufferOGL(this);
@@ -977,6 +1051,15 @@ ShadowThebesLayerOGL::Swap(const ThebesBuffer& aNewFront,
 void
 ShadowThebesLayerOGL::DestroyFrontBuffer()
 {
+  if (ShouldDoubleBuffer()) {
+    mFrontBuffer.Clear();
+    mOldValidRegion.SetEmpty();
+
+    if (IsSurfaceDescriptorValid(mFrontBufferDescriptor)) {
+      mAllocator->DestroySharedSurface(&mFrontBufferDescriptor);
+    }
+  }
+
   mBuffer = nsnull;
 }
 
