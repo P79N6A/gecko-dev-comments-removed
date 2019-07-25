@@ -740,7 +740,8 @@ pref("network.http.qos", 0);
 
 
 
-pref("network.http.connection-retry-timeout", 250);
+
+pref("network.http.connection-retry-timeout", 0);
 
 
 
