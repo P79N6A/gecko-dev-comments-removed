@@ -129,6 +129,8 @@ var PlacesUtils = {
   TYPE_HTML: "text/html",
   
   TYPE_UNICODE: "text/unicode",
+  
+  TYPE_X_MOZ_PLACE_ACTION: "text/x-moz-place-action",
 
   EXCLUDE_FROM_BACKUP_ANNO: "places/excludeFromBackup",
   GUID_ANNO: "placesInternal/GUID",
@@ -163,6 +165,19 @@ var PlacesUtils = {
 
   _uri: function PU__uri(aSpec) {
     return NetUtil.newURI(aSpec);
+  },
+
+  
+
+
+
+
+
+  toISupportsString: function PU_toISupportsString(aString) {
+    let s = Cc["@mozilla.org/supports-string;1"].
+            createInstance(Ci.nsISupportsString);
+    s.data = aString;
+    return s;
   },
 
   getFormattedString: function PU_getFormattedString(key, params) {

@@ -75,19 +75,6 @@ var PlacesUIUtils = {
     return URIFixup.createFixupURI(aSpec, Ci.nsIURIFixup.FIXUP_FLAG_NONE);
   },
 
-  
-
-
-
-
-
-  _wrapString: function PUIU__wrapString(aString) {
-    var s = Cc["@mozilla.org/supports-string;1"].
-            createInstance(Ci.nsISupportsString);
-    s.data = aString;
-    return s;
-  },
-
   getFormattedString: function PUIU_getFormattedString(key, params) {
     return bundle.formatStringFromName(key, params, params.length);
   },
@@ -814,9 +801,7 @@ var PlacesUIUtils = {
                 browserWindow.whereToOpenLink(aEvent, false, true) : "window";
     if (where == "window") {
       
-      var uriList = Cc["@mozilla.org/supports-string;1"].
-                  createInstance(Ci.nsISupportsString);
-      uriList.data = urls.join("|");
+      var uriList = PlacesUtils.toISupportsString(urls.join("|"));
       var args = Cc["@mozilla.org/supports-array;1"].
                   createInstance(Ci.nsISupportsArray);
       args.AppendElement(uriList);      

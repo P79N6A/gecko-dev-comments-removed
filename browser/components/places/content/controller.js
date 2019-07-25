@@ -117,6 +117,9 @@ function PlacesController(aView) {
   XPCOMUtils.defineLazyServiceGetter(this, "clipboard",
                                      "@mozilla.org/widget/clipboard;1",
                                      "nsIClipboard");
+  XPCOMUtils.defineLazyGetter(this, "profileName", function () {
+    return Services.dirsvc.get("ProfD", Ci.nsIFile).leafName;
+  });
 }
 
 PlacesController.prototype = {
@@ -124,6 +127,20 @@ PlacesController.prototype = {
 
 
   _view: null,
+
+  QueryInterface: XPCOMUtils.generateQI([
+    Ci.nsIClipboardOwner
+  ]),
+
+  
+  LosingOwnership: function PC_LosingOwnership (aXferable) {
+    this.cutNodes = [];
+  },
+
+  terminate: function PC_terminate() {
+    if (this._cutNodes.length > 0)
+      this._clearClipboard();
+  },
 
   supportsCommand: function PC_supportsCommand(aCommand) {
     
@@ -1086,74 +1103,127 @@ PlacesController.prototype = {
     }
   },
 
+  get clipboardAction () {
+    let action = {};
+    let actionOwner;
+    try {
+      let xferable = Cc["@mozilla.org/widget/transferable;1"].
+                     createInstance(Ci.nsITransferable);
+      xferable.addDataFlavor(PlacesUtils.TYPE_X_MOZ_PLACE_ACTION)
+      this.clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
+      xferable.getTransferData(PlacesUtils.TYPE_X_MOZ_PLACE_ACTION, action, {});
+      [action, actionOwner] =
+        action.value.QueryInterface(Ci.nsISupportsString).data.split(",");
+    } catch(ex) {
+      
+      
+      return "copy";
+    }
+    
+    
+    
+    if (action == "cut" && actionOwner != this.profileName)
+      action = "copy";
+
+    return action;
+  },
+
+  _clearClipboard: function PC__clearClipboard() {
+    this.clipboard.emptyClipboard(Ci.nsIClipboard.kGlobalClipboard);
+    
+    
+    let xferable = Cc["@mozilla.org/widget/transferable;1"].
+                   createInstance(Ci.nsITransferable);
+    
+    xferable.addDataFlavor("text/x-moz-place-empty");
+    this.clipboard.setData(xferable, null, Ci.nsIClipboard.kGlobalClipboard);
+  },
+
+  _populateClipboard: function PC__populateClipboard(aNodes, aAction) {
+    
+    
+    let contents = [
+      { type: PlacesUtils.TYPE_X_MOZ_PLACE, entries: [] },
+      { type: PlacesUtils.TYPE_X_MOZ_URL, entries: [] },
+      { type: PlacesUtils.TYPE_HTML, entries: [] },
+      { type: PlacesUtils.TYPE_UNICODE, entries: [] },
+    ];
+
+    
+    
+    let copiedFolders = [];
+    aNodes.forEach(function (node) {
+      if (this._shouldSkipNode(node, copiedFolders))
+        return;
+      if (PlacesUtils.nodeIsFolder(node))
+        copiedFolders.push(node);
+
+      let overrideURI = PlacesUtils.nodeIsLivemarkContainer(node) ?
+        PlacesUtils.livemarks.getFeedURI(node.itemId).spec : null;
+      let resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
+
+      contents.forEach(function (content) {
+        content.entries.push(
+          PlacesUtils.wrapNode(node, content.type, overrideURI, resolveShortcuts)
+        );
+      });
+    }, this);
+
+    function addData(type, data) {
+      xferable.addDataFlavor(type);
+      xferable.setTransferData(type, PlacesUtils.toISupportsString(data),
+                               data.length * 2);
+    }
+
+    let xferable = Cc["@mozilla.org/widget/transferable;1"].
+                   createInstance(Ci.nsITransferable);
+    let hasData = false;
+    
+    
+    contents.forEach(function (content) {
+      if (content.entries.length > 0) {
+        hasData = true;
+        let glue =
+          content.type == PlacesUtils.TYPE_X_MOZ_PLACE ? "," : PlacesUtils.endl;
+        addData(content.type, content.entries.join(glue));
+      }
+    });
+
+    
+    
+    
+    
+    addData(PlacesUtils.TYPE_X_MOZ_PLACE_ACTION, aAction + "," + this.profileName);
+
+    if (hasData)
+      this.clipboard.setData(xferable, this, Ci.nsIClipboard.kGlobalClipboard);
+  },
+
+  _cutNodes: [],
+  set cutNodes(aNodes) {
+    let self = this;
+    function updateCutNodes(aValue) {
+      self._cutNodes.forEach(function (aNode) {
+        self._view.toggleCutNode(aNode, aValue);
+      });
+    }
+
+    updateCutNodes(false);
+    this._cutNodes = aNodes;
+    updateCutNodes(true);
+    return aNodes;
+  },
+
   
 
 
   copy: function PC_copy() {
     let result = this._view.result;
-
     let didSuppressNotifications = result.suppressNotifications;
     if (!didSuppressNotifications)
       result.suppressNotifications = true;
-
     try {
-      let nodes = this._view.selectedNodes;
-
-      let xferable = Cc["@mozilla.org/widget/transferable;1"].
-                     createInstance(Ci.nsITransferable);
-      let foundFolder = false, foundLink = false;
-      let copiedFolders = [];
-      let placeString, mozURLString, htmlString, unicodeString;
-      placeString = mozURLString = htmlString = unicodeString = "";
-
-      for (let i = 0; i < nodes.length; ++i) {
-        let node = nodes[i];
-        if (this._shouldSkipNode(node, copiedFolders))
-          continue;
-        if (PlacesUtils.nodeIsFolder(node))
-          copiedFolders.push(node);
-
-        function generateChunk(type, overrideURI) {
-          let suffix = i < (nodes.length - 1) ? PlacesUtils.endl : "";
-          let uri = overrideURI;
-
-          if (PlacesUtils.nodeIsLivemarkContainer(node))
-            uri = PlacesUtils.livemarks.getFeedURI(node.itemId).spec
-
-          mozURLString += (PlacesUtils.wrapNode(node, PlacesUtils.TYPE_X_MOZ_URL,
-                                                 uri) + suffix);
-          unicodeString += (PlacesUtils.wrapNode(node, PlacesUtils.TYPE_UNICODE,
-                                                 uri) + suffix);
-          htmlString += (PlacesUtils.wrapNode(node, PlacesUtils.TYPE_HTML,
-                                                 uri) + suffix);
-
-          let placeSuffix = i < (nodes.length - 1) ? "," : "";
-          let resolveShortcuts = !PlacesControllerDragHelper.canMoveNode(node);
-          return PlacesUtils.wrapNode(node, type, overrideURI, resolveShortcuts) + placeSuffix;
-        }
-
-        
-        placeString += generateChunk(PlacesUtils.TYPE_X_MOZ_PLACE);
-      }
-
-      function addData(type, data) {
-        xferable.addDataFlavor(type);
-        xferable.setTransferData(type, PlacesUIUtils._wrapString(data), data.length * 2);
-      }
-      
-      
-      if (placeString)
-        addData(PlacesUtils.TYPE_X_MOZ_PLACE, placeString);
-      if (mozURLString)
-        addData(PlacesUtils.TYPE_X_MOZ_URL, mozURLString);
-      if (unicodeString)
-        addData(PlacesUtils.TYPE_UNICODE, unicodeString);
-      if (htmlString)
-        addData(PlacesUtils.TYPE_HTML, htmlString);
-
-      if (placeString || unicodeString || htmlString || mozURLString) {
-        this.clipboard.setData(xferable, null, Ci.nsIClipboard.kGlobalClipboard);
-      }
+      this._populateClipboard(this._view.selectedNodes, "copy");
     }
     finally {
       if (!didSuppressNotifications)
@@ -1165,8 +1235,18 @@ PlacesController.prototype = {
 
 
   cut: function PC_cut() {
-    this.copy();
-    this.remove("Cut Selection");
+    let result = this._view.result;
+    let didSuppressNotifications = result.suppressNotifications;
+    if (!didSuppressNotifications)
+      result.suppressNotifications = true;
+    try {
+      this._populateClipboard(this._view.selectedNodes, "cut");
+      this.cutNodes = this._view.selectedNodes;
+    }
+    finally {
+      if (!didSuppressNotifications)
+        result.suppressNotifications = false;
+    }
   },
 
   
@@ -1174,92 +1254,75 @@ PlacesController.prototype = {
 
   paste: function PC_paste() {
     
-    
-    
-    
-    
-    
-
-    
-
-
-
-
-
-
-    function makeXferable(types) {
-      var xferable = Cc["@mozilla.org/widget/transferable;1"].
-                     createInstance(Ci.nsITransferable);
-      for (var i = 0; i < types.length; ++i)
-        xferable.addDataFlavor(types[i]);
-      return xferable;
-    }
-
-    var clipboard = this.clipboard;
-
-    var ip = this._view.insertionPoint;
+    let ip = this._view.insertionPoint;
     if (!ip)
       throw Cr.NS_ERROR_NOT_AVAILABLE;
 
+    let action = this.clipboardAction;
+
+    let xferable = Cc["@mozilla.org/widget/transferable;1"].
+                   createInstance(Ci.nsITransferable);
     
+    
+    [ PlacesUtils.TYPE_X_MOZ_PLACE,
+      PlacesUtils.TYPE_X_MOZ_URL,
+      PlacesUtils.TYPE_UNICODE,
+    ].forEach(function (type) xferable.addDataFlavor(type));
 
+    this.clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
 
+    
+    let data = {}, type = {}, items = [];
+    try {
+      xferable.getAnyTransferData(type, data, {});
+      data = data.value.QueryInterface(Ci.nsISupportsString).data;
+      type = type.value;
+      items = PlacesUtils.unwrapNodes(data, type);
+    } catch(ex) {
+      
+      return;
+    }
 
-
-
-    function getTransactions(types) {
-      var xferable = makeXferable(types);
-      clipboard.getData(xferable, Ci.nsIClipboard.kGlobalClipboard);
-
-      var data = { }, type = { };
-      try {
-        xferable.getAnyTransferData(type, data, { });
-        data = data.value.QueryInterface(Ci.nsISupportsString).data;
-        var items = PlacesUtils.unwrapNodes(data, type.value);
-        var transactions = [];
-        var index = ip.index;
-        for (var i = 0; i < items.length; ++i) {
-          var txn;
-          if (ip.isTag) {
-            var uri = PlacesUtils._uri(items[i].uri);
-            txn = PlacesUIUtils.ptm.tagURI(uri, [ip.itemId]);
-          }
-          else {
-            
-            
-            
-            if (ip.index > -1)
-              index = ip.index + i;
-            txn = PlacesUIUtils.makeTransaction(items[i], type.value,
-                                                ip.itemId, index, true);
-          }
-          transactions.push(txn);
-        }
-        return transactions;
+    let transactions = [];
+    let insertionIndex = ip.index;
+    for (let i = 0; i < items.length; ++i) {
+      if (ip.isTag) {
+        
+        
+        transactions.push(
+          new PlacesTagURITransaction(PlacesUtils._uri(items[i].uri),
+                                      [ip.itemId])
+        );
+        continue;
       }
-      catch (e) {
-        
-        
-        
-        
-        
-      }
-      return [];
+
+      
+      
+      if (ip.index != PlacesUtils.bookmarks.DEFAULT_INDEX)
+        insertionIndex = ip.index + i;
+
+      transactions.push(
+        PlacesUIUtils.makeTransaction(items[i], type, ip.itemId,
+                                      insertionIndex, action == "copy")
+      );
+    }
+ 
+    PlacesUtils.transactionManager.doTransaction(
+      new PlacesAggregatedTransaction("Paste", transactions)
+    );
+
+    
+    if (action == "cut") {
+      this._clearClipboard();
     }
 
     
-    
-    var transactions = getTransactions([PlacesUtils.TYPE_X_MOZ_PLACE,
-                                        PlacesUtils.TYPE_X_MOZ_URL,
-                                        PlacesUtils.TYPE_UNICODE]);
-    var txn = PlacesUIUtils.ptm.aggregateTransactions("Paste", transactions);
-    PlacesUIUtils.ptm.doTransaction(txn);
-
-    
-    var insertedNodeIds = [];
-    for (var i = 0; i < transactions.length; ++i)
-      insertedNodeIds.push(PlacesUtils.bookmarks
-                                      .getIdForItemAt(ip.itemId, ip.index + i));
+    let insertedNodeIds = [];
+    for (let i = 0; i < transactions.length; ++i) {
+      insertedNodeIds.push(
+        PlacesUtils.bookmarks.getIdForItemAt(ip.itemId, ip.index + i)
+      );
+    }
     if (insertedNodeIds.length > 0)
       this._view.selectItems(insertedNodeIds, false);
   }
