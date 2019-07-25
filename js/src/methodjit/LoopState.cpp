@@ -1555,8 +1555,9 @@ LoopState::analyzeLoopBody(unsigned frame)
 
 
 
-    temporariesStart = Max((unsigned long) temporariesStart,
-                           ssa->getFrame(frame).depth + VALUES_PER_STACK_FRAME * 2 + script->nslots);
+    temporariesStart =
+        Max<uint32>(temporariesStart,
+                    ssa->getFrame(frame).depth + VALUES_PER_STACK_FRAME * 2 + script->nslots);
 
     if (script->failedBoundsCheck)
         skipAnalysis = true;

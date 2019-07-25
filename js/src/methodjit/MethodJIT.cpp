@@ -718,7 +718,7 @@ extern "C" {
         }
     }
 
-    __declspec(naked) void *JaegerInterpoline() {
+    __declspec(naked) void JaegerInterpoline() {
         __asm {
             
             push esp;
@@ -747,10 +747,12 @@ extern "C" {
         }
     }
 
-    __declspec(naked) void *JaegerInterpolineScripted() {
-        mov [ebp + 0x10], ebp;  
-        mov ebp, [esp + 0x1C];  
-        jmp JaegerInterpoline;
+    __declspec(naked) void JaegerInterpolineScripted() {
+        __asm {
+            mov [ebp + 0x10], ebp;  
+            mov ebp, [esp + 0x1C];  
+            jmp JaegerInterpoline;
+        }
     }
 }
 

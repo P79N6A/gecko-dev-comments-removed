@@ -84,7 +84,7 @@ namespace analyze {
 
 
 class SSAValue;
-class SSAUseChain;
+struct SSAUseChain;
 struct LoopAnalysis;
 struct SlotValue;
 
@@ -816,7 +816,7 @@ struct SlotValue
 
 class ScriptAnalysis
 {
-    friend struct Bytecode;
+    friend class Bytecode;
 
     JSScript *script;
 
