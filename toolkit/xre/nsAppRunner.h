@@ -194,6 +194,6 @@ extern GeckoProcessType sChildProcessType;
 
 
 
-void SetupErrorHandling(const char* progname);
+void SetupErrorHandling();
 
 #endif 
