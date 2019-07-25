@@ -2431,6 +2431,7 @@ public:
 
 
 
+
   virtual nsIFrame* GetParentStyleContextFrame() const = 0;
 
   
