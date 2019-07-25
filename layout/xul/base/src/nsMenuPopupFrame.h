@@ -326,6 +326,9 @@ public:
   PRBool IsAnchored() const { return mScreenXPos == -1 && mScreenYPos == -1; }
 
   
+  nsIContent* GetAnchor() const { return mAnchorContent; }
+
+  
   nsIntPoint ScreenPosition() const { return nsIntPoint(mScreenXPos, mScreenYPos); }
 
 protected:
