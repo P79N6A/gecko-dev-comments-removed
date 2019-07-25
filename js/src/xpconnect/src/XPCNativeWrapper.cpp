@@ -273,67 +273,6 @@ RewrapValue(JSContext *cx, JSObject *obj, jsval v, jsval *rval)
 
 using namespace XPCNativeWrapper;
 
-
-
-
-
-
-
-
-
-
-#define XPC_NW_CALL_HOOK(obj, hook, args)                                 \
-  return obj->getClass()->hook args;
-
-#define XPC_NW_CAST_HOOK(obj, type, hook, args)                           \
-  return ((type) obj->getClass()->hook) args;
-
-static JSBool
-ShouldBypassNativeWrapper(JSContext *cx, JSObject *obj)
-{
-  NS_ASSERTION(XPCNativeWrapper::IsNativeWrapper(obj),
-               "Unexpected object");
-  jsval flags;
-
-  ::JS_GetReservedSlot(cx, obj, 0, &flags);
-  if (HAS_FLAGS(flags, FLAG_EXPLICIT))
-    return JS_FALSE;
-
-  
-  JSStackFrame *fp = JS_GetScriptedCaller(cx, NULL);
-  JSScript *script = fp ? fp->script : NULL;
-
-  
-  
-  return !script || !(::JS_GetScriptFilenameFlags(script) & JSFILENAME_SYSTEM);
-}
-
-#define XPC_NW_BYPASS_BASE(cx, obj, code)                                     \
-  JS_BEGIN_MACRO                                                              \
-    if (ShouldBypassNativeWrapper(cx, obj)) {                                 \
-      /* Use SafeGetWrappedNative since obj can't be an explicit native       \
-         wrapper. */                                                          \
-      XPCWrappedNative *wn_ = XPCNativeWrapper::SafeGetWrappedNative(obj);    \
-      if (!wn_) {                                                             \
-        return JS_TRUE;                                                       \
-      }                                                                       \
-      obj = wn_->GetFlatJSObject();                                           \
-      code                                                                    \
-    }                                                                         \
-  JS_END_MACRO
-
-#define XPC_NW_BYPASS(cx, obj, hook, args)                                    \
-  XPC_NW_BYPASS_BASE(cx, obj, XPC_NW_CALL_HOOK(obj, hook, args))
-
-#define XPC_NW_BYPASS_CAST(cx, obj, type, hook, args)                         \
-  XPC_NW_BYPASS_BASE(cx, obj, XPC_NW_CAST_HOOK(obj, type, hook, args))
-
-#define XPC_NW_BYPASS_TEST(cx, obj, hook, args)                               \
-  XPC_NW_BYPASS_BASE(cx, obj,                                                 \
-    JSClass *clasp_ = obj->getClass();                                        \
-    return !clasp_->hook || clasp_->hook args;                                \
-  )
-
 static JSBool
 XPC_NW_toString(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                 jsval *rval);
@@ -479,26 +418,7 @@ XPC_NW_AddProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 static JSBool
 XPC_NW_DelProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp)
 {
-  if (!EnsureLegalActivity(cx, obj)) {
-    return JS_FALSE;
-  }
-
-  XPC_NW_BYPASS_BASE(cx, obj,
-    
-    
-    
-    {
-      jsid interned_id;
-
-      if (!JS_ValueToId(cx, id, &interned_id)) {
-        return JS_FALSE;
-      }
-
-      return JS_DeletePropertyById(cx, obj, interned_id);
-    }
-  );
-
-  return JS_TRUE;
+  return EnsureLegalActivity(cx, obj);
 }
 
 static JSBool
@@ -606,23 +526,6 @@ XPC_NW_GetOrSetProperty(JSContext *cx, JSObject *obj, jsval id, jsval *vp,
 
   JSObject *nativeObj = wrappedNative->GetFlatJSObject();
 
-  
-  
-  
-  
-
-  if (ShouldBypassNativeWrapper(cx, obj)) {
-    jsid interned_id;
-
-    if (!::JS_ValueToId(cx, id, &interned_id)) {
-      return JS_FALSE;
-    }
-
-    return aIsSet
-           ? JS_SetPropertyById(cx, nativeObj, interned_id, vp)
-           : JS_GetPropertyById(cx, nativeObj, interned_id, vp);
-  }
-
   if (!aIsSet &&
       id == GetRTStringByIndex(cx, XPCJSRuntime::IDX_WRAPPED_JSOBJECT)) {
     return GetwrappedJSObject(cx, nativeObj, vp);
@@ -702,41 +605,6 @@ XPC_NW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
     return JS_FALSE;
   }
 
-  
-  
-  
-  
-  
-
-  if (ShouldBypassNativeWrapper(cx, obj)) {
-    
-    XPCWrappedNative *wn = XPCNativeWrapper::SafeGetWrappedNative(obj);
-    if (!wn) {
-      return JS_TRUE;
-    }
-
-    JSAutoRequest ar(cx);
-
-    jsid interned_id;
-    JSObject *pobj;
-    jsval val;
-    if (!JS_ValueToId(cx, id, &interned_id) ||
-        !JS_LookupPropertyWithFlagsById(cx, wn->GetFlatJSObject(), interned_id,
-                                        JSRESOLVE_QUALIFIED, &pobj, &val)) {
-      return JS_FALSE;
-    }
-
-    if (pobj) {
-      if (!JS_DefinePropertyById(cx, obj, interned_id, JSVAL_VOID, nsnull,
-                                 nsnull, 0)) {
-        return JS_FALSE;
-      }
-
-      *objp = obj;
-    }
-    return JS_TRUE;
-  }
-
   while (!XPCNativeWrapper::IsNativeWrapper(obj)) {
     obj = obj->getProto();
     if (!obj) {
@@ -760,12 +628,7 @@ XPC_NW_NewResolve(JSContext *cx, JSObject *obj, jsval id, uintN flags,
 static JSBool
 XPC_NW_Convert(JSContext *cx, JSObject *obj, JSType type, jsval *vp)
 {
-  if (!EnsureLegalActivity(cx, obj)) {
-    return JS_FALSE;
-  }
-
-  XPC_NW_BYPASS(cx, obj, convert, (cx, obj, type, vp));
-  return JS_TRUE;
+  return EnsureLegalActivity(cx, obj);
 }
 
 static void
@@ -814,21 +677,12 @@ XPC_NW_CheckAccess(JSContext *cx, JSObject *obj, jsval id,
 static JSBool
 XPC_NW_Call(JSContext *cx, JSObject *obj, uintN argc, jsval *argv, jsval *rval)
 {
-  if (!XPCNativeWrapper::IsNativeWrapper(obj)) {
-    
-    
-    
-
 #ifdef DEBUG
-    if (!JS_ObjectIsFunction(cx, obj)) {
-      NS_WARNING("Ignoring a call for a weird object");
-    }
-#endif
-    return JS_TRUE;
+  if (!XPCNativeWrapper::IsNativeWrapper(obj) &&
+      !JS_ObjectIsFunction(cx, obj)) {
+    NS_WARNING("Ignoring a call for a weird object");
   }
-
-  XPC_NW_BYPASS_TEST(cx, obj, call, (cx, obj, argc, argv, rval));
-
+#endif
   return JS_TRUE;
 }
 
@@ -841,8 +695,6 @@ XPC_NW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
   
   
   obj = JSVAL_TO_OBJECT(argv[-2]);
-
-  XPC_NW_BYPASS_TEST(cx, obj, construct, (cx, obj, argc, argv, rval));
 
   if (!EnsureLegalActivity(cx, obj)) {
     return JS_FALSE;
@@ -881,8 +733,6 @@ XPC_NW_Construct(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
 static JSBool
 XPC_NW_HasInstance(JSContext *cx, JSObject *obj, jsval v, JSBool *bp)
 {
-  XPC_NW_BYPASS_TEST(cx, obj, hasInstance, (cx, obj, v, bp));
-
   return JS_TRUE;
 }
 
