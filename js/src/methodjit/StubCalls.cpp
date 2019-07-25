@@ -525,7 +525,7 @@ stubs::GetElem(VMFrame &f)
         int32_t i = rref.toInt32();
         if (obj->isDenseArray()) {
             jsuint idx = jsuint(i);
-            
+
             if (idx < obj->getArrayLength() &&
                 idx < obj->getDenseArrayCapacity()) {
                 copyFrom = obj->addressOfDenseArrayElement(idx);
@@ -617,7 +617,7 @@ stubs::SetElem(VMFrame &f)
     Value &objval = regs.sp[-3];
     Value &idval  = regs.sp[-2];
     Value retval  = regs.sp[-1];
-    
+
     JSObject *obj;
     jsid id;
 
@@ -942,23 +942,32 @@ stubs::DefFun(VMFrame &f, JSFunction *fun)
 
     doSet = false;
     if (prop) {
+        JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE | JSPROP_PERMANENT)));
         JS_ASSERT((attrs == JSPROP_ENUMERATE) == fp->isEvalFrame());
-        if (attrs == JSPROP_ENUMERATE ||
-            (parent == pobj &&
-             parent->isCall() &&
-             (old = ((Shape *) prop)->attributes(),
-              !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
-              (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs))) {
+
+        if (attrs == JSPROP_ENUMERATE) {
+            
+            doSet = true;
+        } else if (parent->isCall()) {
+            JS_ASSERT(parent == pobj);
+
+            uintN oldAttrs = ((Shape *) prop)->attributes();
+            JS_ASSERT(!(oldAttrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER)));
+
             
 
 
 
-            JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE|JSPROP_PERMANENT)));
-            JS_ASSERT_IF(attrs != JSPROP_ENUMERATE, !(old & JSPROP_READONLY));
-            doSet = true;
+
+
+
+            JS_ASSERT(oldAttrs & attrs & JSPROP_ENUMERATE);
+            if (oldAttrs & JSPROP_PERMANENT)
+                doSet = true;
         }
         pobj->dropProperty(cx, prop);
     }
+
     Value rval = ObjectValue(*obj);
     ok = doSet
          ? parent->setProperty(cx, id, &rval, strict)
@@ -1124,7 +1133,7 @@ StubEqualityOp(VMFrame &f)
                     !ValueToNumber(cx, rval, &r)) {
                     return false;
                 }
-                
+
                 if (EQ)
                     cond = JSDOUBLE_COMPARE(l, ==, r, false);
                 else
@@ -1447,7 +1456,7 @@ stubs::NewInitObject(VMFrame &f)
 {
     JSContext *cx = f.cx;
 
-    JSObject *obj = NewBuiltinClassInstance(cx, &js_ObjectClass); 
+    JSObject *obj = NewBuiltinClassInstance(cx, &js_ObjectClass);
     if (!obj)
         THROWV(NULL);
 
@@ -2222,7 +2231,7 @@ stubs::Iter(VMFrame &f, uint32 flags)
     JS_ASSERT(!f.regs.sp[-1].isPrimitive());
 }
 
-static void 
+static void
 InitPropOrMethod(VMFrame &f, JSAtom *atom, JSOp op)
 {
     JSContext *cx = f.cx;
@@ -2539,7 +2548,7 @@ stubs::LookupSwitch(VMFrame &f, jsbytecode *pc)
     }
 
     JS_ASSERT(pc[0] == JSOP_LOOKUPSWITCH);
-    
+
     pc += JUMP_OFFSET_LEN;
     uint32 npairs = GET_UINT16(pc);
     pc += UINT16_LEN;

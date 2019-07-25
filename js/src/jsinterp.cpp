@@ -179,7 +179,7 @@ js_GetBlockChain(JSContext *cx, JSStackFrame *fp)
     jsbytecode *start = script->code;
     
     jsbytecode *pc = fp->hasImacropc() ? fp->imacropc() : fp->pc(cx);
-    
+
     JS_ASSERT(pc >= start && pc < script->code + script->length);
 
     JSObject *blockChain = NULL;
@@ -195,7 +195,7 @@ js_GetBlockChain(JSContext *cx, JSStackFrame *fp)
             oplen = cs->length;
             if (oplen < 0)
                 oplen = js_GetVariableBytecodeLength(p);
-            
+
             if (op == JSOP_ENTERBLOCK)
                 blockChain = script->getObject(GET_INDEX(p));
             else if (op == JSOP_LEAVEBLOCK || op == JSOP_LEAVEBLOCKEXPR)
@@ -232,7 +232,7 @@ js_GetBlockChainFast(JSContext *cx, JSStackFrame *fp, JSOp op, size_t oplen)
     JSScript *script = fp->script();
 
     JS_ASSERT(js_GetOpcode(cx, script, pc) == op);
-    
+
     JSObject *blockChain;
     JSOp opNext = js_GetOpcode(cx, script, pc + oplen);
     if (opNext == JSOP_BLOCKCHAIN) {
@@ -5378,24 +5378,32 @@ BEGIN_CASE(JSOP_DEFFUN)
 
     bool doSet = false;
     if (prop) {
+        JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE | JSPROP_PERMANENT)));
         JS_ASSERT((attrs == JSPROP_ENUMERATE) == regs.fp->isEvalFrame());
-        uint32 old;
-        if (attrs == JSPROP_ENUMERATE ||
-            (parent == pobj &&
-             parent->isCall() &&
-             (old = ((Shape *) prop)->attributes(),
-              !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
-              (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs))) {
+
+        if (attrs == JSPROP_ENUMERATE) {
+            
+            doSet = true;
+        } else if (parent->isCall()) {
+            JS_ASSERT(parent == pobj);
+
+            uintN oldAttrs = ((Shape *) prop)->attributes();
+            JS_ASSERT(!(oldAttrs & (JSPROP_READONLY | JSPROP_GETTER | JSPROP_SETTER)));
+
             
 
 
 
-            JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE|JSPROP_PERMANENT)));
-            JS_ASSERT_IF(attrs != JSPROP_ENUMERATE, !(old & JSPROP_READONLY));
-            doSet = true;
+
+
+
+            JS_ASSERT(oldAttrs & attrs & JSPROP_ENUMERATE);
+            if (oldAttrs & JSPROP_PERMANENT)
+                doSet = true;
         }
         pobj->dropProperty(cx, prop);
     }
+
     Value rval = ObjectValue(*obj);
     ok = doSet
          ? parent->setProperty(cx, id, &rval, script->strictModeCode)
@@ -5543,7 +5551,7 @@ BEGIN_CASE(JSOP_LAMBDA)
                     JSObject *obj2 = &lref.toObject();
                     JS_ASSERT(obj2->getClass() == &js_ObjectClass);
 #endif
-                    
+
                     fun->setMethodAtom(script->getAtom(GET_FULL_INDEX(pc2 - regs.pc)));
                     JS_FUNCTION_METER(cx, joinedinitmethod);
                     break;

@@ -1378,10 +1378,14 @@ call_resolve(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 
 
 
+
+
+
+
     if (JSID_IS_ATOM(id, cx->runtime->atomState.argumentsAtom)) {
         if (!js_DefineNativeProperty(cx, obj, id, UndefinedValue(),
                                      GetCallArguments, SetCallArguments,
-                                     JSPROP_PERMANENT | JSPROP_SHARED,
+                                     JSPROP_PERMANENT | JSPROP_SHARED | JSPROP_ENUMERATE,
                                      0, 0, NULL, JSDNP_DONT_PURGE)) {
             return JS_FALSE;
         }
