@@ -198,6 +198,8 @@ gfxWindowsPlatform::gfxWindowsPlatform()
     mUseClearTypeForDownloadableFonts = UNINITIALIZED_VALUE;
     mUseClearTypeAlways = UNINITIALIZED_VALUE;
 
+    mScreenDC = GetDC(NULL);
+
 #ifdef MOZ_FT2_FONTS
     FT_Init_FreeType(&gPlatformFTLibrary);
 #endif
@@ -346,6 +348,7 @@ gfxWindowsPlatform::gfxWindowsPlatform()
 
 gfxWindowsPlatform::~gfxWindowsPlatform()
 {
+    ::ReleaseDC(NULL, mScreenDC);
     
     
 #ifdef CAIRO_HAS_D2D_SURFACE
