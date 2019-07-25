@@ -4622,11 +4622,6 @@ class SlotMap : public SlotVisitorBase
     }
 
     JS_REQUIRES_STACK virtual void
-    adjustTail(TypeConsensus consensus)
-    {
-    }
-
-    JS_REQUIRES_STACK virtual void
     adjustTypes()
     {
         for (unsigned i = 0; i < length(); i++)
@@ -4741,6 +4736,7 @@ TraceRecorder::selfTypeStability(SlotMap& slotMap)
     
 
 
+
     if (consensus == TypeConsensus_Undemotes)
         slotMap.markUndemotes();
 
@@ -4750,16 +4746,11 @@ TraceRecorder::selfTypeStability(SlotMap& slotMap)
 JS_REQUIRES_STACK TypeConsensus
 TraceRecorder::peerTypeStability(SlotMap& slotMap, const void* ip, TreeFragment** pPeer)
 {
-    
-    JS_ASSERT(fragment->root == tree);
-    TreeFragment* peer = LookupLoop(traceMonitor, ip, tree->globalObj, tree->globalShape, tree->argc);
+    JS_ASSERT(tree->first == LookupLoop(traceMonitor, ip, tree->globalObj, tree->globalShape, tree->argc));
 
     
-    JS_ASSERT_IF(!peer, tree->ip != ip);
-    if (!peer)
-        return TypeConsensus_Bad;
     bool onlyUndemotes = false;
-    for (; peer != NULL; peer = peer->peer) {
+    for (TreeFragment *peer = tree->first; peer != NULL; peer = peer->peer) {
         if (!peer->code() || peer == fragment)
             continue;
         debug_only_printf(LC_TMTracer, "Checking type stability against peer=%p\n", (void*)peer);
@@ -4767,6 +4758,7 @@ TraceRecorder::peerTypeStability(SlotMap& slotMap, const void* ip, TreeFragment*
         if (consensus == TypeConsensus_Okay) {
             *pPeer = peer;
             
+
 
 
             return TypeConsensus_Okay;
@@ -4778,35 +4770,26 @@ TraceRecorder::peerTypeStability(SlotMap& slotMap, const void* ip, TreeFragment*
     return onlyUndemotes ? TypeConsensus_Undemotes : TypeConsensus_Bad;
 }
 
+
+
+
+
+
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::closeLoop()
 {
-    return closeLoop(snapshot(UNSTABLE_LOOP_EXIT));
-}
+    VMSideExit *exit = snapshot(UNSTABLE_LOOP_EXIT);
 
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::closeLoop(VMSideExit* exit)
-{
     DefaultSlotMap slotMap(*this);
     VisitSlots(slotMap, cx, 0, *tree->globalSlots);
-    return closeLoop(slotMap, exit);
-}
 
-
-
-
-
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::closeLoop(SlotMap& slotMap, VMSideExit* exit)
-{
     
 
 
 
 
-    JS_ASSERT((*cx->regs->pc == JSOP_TRACE || *cx->regs->pc == JSOP_NOTRACE) &&
-              !cx->fp()->hasImacropc());
+    JS_ASSERT(*cx->regs->pc == JSOP_TRACE || *cx->regs->pc == JSOP_NOTRACE);
+    JS_ASSERT(!cx->fp()->hasImacropc());
 
     if (callDepth != 0) {
         debug_only_print0(LC_TMTracer,
@@ -4816,17 +4799,13 @@ TraceRecorder::closeLoop(SlotMap& slotMap, VMSideExit* exit)
         return ARECORD_STOP;
     }
 
-    JS_ASSERT_IF(exit->exitType == UNSTABLE_LOOP_EXIT,
-                 exit->numStackSlots == tree->nStackTypes);
-
+    JS_ASSERT(exit->numStackSlots == tree->nStackTypes);
     JS_ASSERT(fragment->root == tree);
+    JS_ASSERT(!trashSelf);
 
     TreeFragment* peer = NULL;
 
-    TypeConsensus consensus = TypeConsensus_Bad;
-
-    if (exit->exitType == UNSTABLE_LOOP_EXIT)
-        consensus = selfTypeStability(slotMap);
+    TypeConsensus consensus = selfTypeStability(slotMap);
     if (consensus != TypeConsensus_Okay) {
         TypeConsensus peerConsensus = peerTypeStability(slotMap, tree->ip, &peer);
         
@@ -4839,17 +4818,12 @@ TraceRecorder::closeLoop(SlotMap& slotMap, VMSideExit* exit)
         AUDIT(unstableLoopVariable);
 #endif
 
-    JS_ASSERT(!trashSelf);
-
     
 
 
 
     if (consensus == TypeConsensus_Okay)
         slotMap.adjustTypes();
-
-    
-    slotMap.adjustTail(consensus);
 
     if (consensus != TypeConsensus_Okay || peer) {
         fragment->lastIns = w.x(createGuardRecord(exit));
