@@ -95,6 +95,10 @@
 
 #define PLACES_BUNDLE "chrome://places/locale/places.properties"
 
+
+#define LMANNO_FEEDURI "livemark/feedURI"
+#define LMANNO_SITEURI "livemark/siteURI"
+
 using namespace mozilla;
 
 namespace mozilla {
@@ -746,6 +750,11 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       if (currentSchemaVersion < 18) {
         rv = MigrateV18Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      if (currentSchemaVersion < 19) {
+        rv = MigrateV19Up();
         NS_ENSURE_SUCCESS(rv, rv);
       }
 
@@ -1745,6 +1754,85 @@ Database::MigrateV18Up()
 
   nsCOMPtr<mozIStoragePendingStatement> ps;
   rv = updateTypedStmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV19Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+
+  
+  nsCOMPtr<mozIStorageStatement> deleteLivemarksChildrenStmt;
+  nsresult rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_bookmarks WHERE parent IN("
+      "SELECT b.id FROM moz_bookmarks b "
+      "JOIN moz_items_annos a ON a.item_id = b.id "
+      "JOIN moz_anno_attributes n ON n.id = a.anno_attribute_id "
+      "WHERE b.type = :item_type AND n.name = :anno_name "
+    ")"
+  ), getter_AddRefs(deleteLivemarksChildrenStmt));
+  rv = deleteLivemarksChildrenStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_name"), NS_LITERAL_CSTRING(LMANNO_FEEDURI)
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksChildrenStmt->BindInt32ByName(
+    NS_LITERAL_CSTRING("item_type"), nsINavBookmarksService::TYPE_FOLDER
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksChildrenStmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  (void)Preferences::ClearUser("browser.bookmarks.livemark_refresh_seconds");
+  (void)Preferences::ClearUser("browser.bookmarks.livemark_refresh_limit_count");
+  (void)Preferences::ClearUser("browser.bookmarks.livemark_refresh_delay_time");
+
+  
+  nsCOMPtr<mozIStorageStatement> deleteLivemarksAnnosStmt;
+  rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_items_annos WHERE anno_attribute_id IN("
+      "SELECT id FROM moz_anno_attributes "
+      "WHERE name IN (:anno_loading, :anno_loadfailed, :anno_expiration) "
+    ")"
+  ), getter_AddRefs(deleteLivemarksAnnosStmt));
+  rv = deleteLivemarksAnnosStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_loading"), NS_LITERAL_CSTRING("livemark/loading")
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksAnnosStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_loadfailed"), NS_LITERAL_CSTRING("livemark/loadfailed")
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksAnnosStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_expiration"), NS_LITERAL_CSTRING("livemark/expiration")
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksAnnosStmt->Execute();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+    "DELETE FROM moz_anno_attributes "
+      "WHERE name IN (:anno_loading, :anno_loadfailed, :anno_expiration) "
+  ), getter_AddRefs(deleteLivemarksAnnosStmt));
+  rv = deleteLivemarksAnnosStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_loading"), NS_LITERAL_CSTRING("livemark/loading")
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksAnnosStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_loadfailed"), NS_LITERAL_CSTRING("livemark/loadfailed")
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksAnnosStmt->BindUTF8StringByName(
+    NS_LITERAL_CSTRING("anno_expiration"), NS_LITERAL_CSTRING("livemark/expiration")
+  );
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = deleteLivemarksAnnosStmt->Execute();
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

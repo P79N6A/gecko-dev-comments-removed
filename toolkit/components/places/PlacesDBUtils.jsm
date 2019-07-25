@@ -614,18 +614,6 @@ let PlacesDBUtils = {
     
     
     
-    let removeLivemarkStaticItems = DBConn.createAsyncStatement(
-      "DELETE FROM moz_bookmarks WHERE type = :bookmark_type AND fk IN ( " +
-        "SELECT id FROM moz_places WHERE url = :lmloading OR url = :lmfailed " +
-      ")");
-    removeLivemarkStaticItems.params["bookmark_type"] = PlacesUtils.bookmarks.TYPE_BOOKMARK;
-    removeLivemarkStaticItems.params["lmloading"] = "about:livemark-loading";
-    removeLivemarkStaticItems.params["lmfailed"] = "about:livemark-failed";
-    cleanupStatements.push(removeLivemarkStaticItems);
-
-    
-    
-    
     let fixEmptyNamedTags = DBConn.createAsyncStatement(
       "UPDATE moz_bookmarks SET title = :empty_title " +
       "WHERE length(title) = 0 AND type = :folder_type " +
