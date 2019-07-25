@@ -686,9 +686,7 @@ ContentParent::RecvReadPermissions(InfallibleTArray<IPC::Permission>* aPermissio
 }
 
 bool
-ContentParent::RecvSetClipboardText(const nsString& text,
-                                       const bool& isPrivateData,
-                                       const PRInt32& whichClipboard)
+ContentParent::RecvSetClipboardText(const nsString& text, const PRInt32& whichClipboard)
 {
     nsresult rv;
     nsCOMPtr<nsIClipboard> clipboard(do_GetService(kCClipboardCID, &rv));
@@ -707,7 +705,6 @@ ContentParent::RecvSetClipboardText(const nsString& text,
     
     
     trans->AddDataFlavor(kUnicodeMime);
-    trans->SetIsPrivateData(isPrivateData);
     
     nsCOMPtr<nsISupports> nsisupportsDataWrapper =
         do_QueryInterface(dataWrapper);
