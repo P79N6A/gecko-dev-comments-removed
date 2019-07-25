@@ -306,7 +306,6 @@ public:
 
 
 
-
   static size_t PropertyCountInStruct(nsStyleStructID aSID) {
     NS_ABORT_IF_FALSE(0 <= aSID && aSID < nsStyleStructID_Length,
                       "out of range");

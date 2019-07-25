@@ -2074,10 +2074,6 @@ nsCSSProps::kSubpropertyTable[eCSSProperty_COUNT - eCSSProperty_COUNT_no_shortha
 };
 
 
-
-
-#define CSS_PROP_INCLUDE_NOT_CSS
-
 #define ENUM_DATA_FOR_PROPERTY(name_, id_, method_, flags_, datastruct_,     \
                                 member_, parsevariant_, kwtable_,             \
                                 stylestructoffset_, animtype_)                \
@@ -2246,7 +2242,6 @@ enum ColumnCheckCounter {
   ePropertyCount_for_Column
 };
 
-#undef CSS_PROP_INCLUDE_NOT_CSS
 #undef ENUM_DATA_FOR_PROPERTY
 
  const size_t
