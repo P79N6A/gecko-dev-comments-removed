@@ -1642,7 +1642,7 @@ nsObjectFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   #endif
     }
 
-    ImageContainer* container = GetImageContainer();
+    nsRefPtr<ImageContainer> container = GetImageContainer();
     nsRefPtr<Image> currentImage = container ? container->GetCurrentImage() : nsnull;
     if (!currentImage || !isVisible ||
         container->GetCurrentSize() != gfxIntSize(window->width, window->height)) {
@@ -1884,31 +1884,43 @@ nsObjectFrame::PrintPlugin(nsIRenderingContext& aRenderingContext,
                    nsnull, status);  
 }
 
-ImageContainer*
+already_AddRefed<ImageContainer>
 nsObjectFrame::GetImageContainer(LayerManager* aManager)
 {
   nsRefPtr<LayerManager> manager = aManager;
+  bool retain = false;
 
   if (!manager) {
-    manager = nsContentUtils::LayerManagerForDocument(mContent->GetOwnerDoc());
+    manager = nsContentUtils::LayerManagerForDocument(mContent->GetOwnerDoc(), &retain);
   }
   if (!manager) {
     return nsnull;
   }
+  
+  nsRefPtr<ImageContainer> container;
 
   
   
   if (mImageContainer) {
     if ((!mImageContainer->Manager() || mImageContainer->Manager() == manager) &&
-        mImageContainer->GetBackendType() == manager->GetBackendType())
-      return mImageContainer;
-    
-    
-    mImageContainer->SetCurrentImage(nsnull);
+        mImageContainer->GetBackendType() == manager->GetBackendType()) {
+      container = mImageContainer;
+      return container.forget();
+    }
   }
 
-  mImageContainer = manager->CreateImageContainer();
-  return mImageContainer;
+  container = manager->CreateImageContainer();
+
+  if (retain) {
+    
+    
+    if (mImageContainer) {
+      mImageContainer->SetCurrentImage(nsnull);
+    }
+    mImageContainer = container;
+  }
+
+  return container.forget();
 }
 
 nsRect

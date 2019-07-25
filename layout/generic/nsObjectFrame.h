@@ -191,7 +191,7 @@ public:
   virtual LayerState GetLayerState(nsDisplayListBuilder* aBuilder,
                                    LayerManager* aManager);
 
-  ImageContainer* GetImageContainer(LayerManager* aManager = nsnull);
+  already_AddRefed<ImageContainer> GetImageContainer(LayerManager* aManager = nsnull);
   
 
 
