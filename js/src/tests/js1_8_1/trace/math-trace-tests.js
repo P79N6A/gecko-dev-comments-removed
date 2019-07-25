@@ -60,11 +60,7 @@ jit(true);
 
 
 const haveTracemonkey = !!(this.tracemonkey)
-  const HOTLOOP = haveTracemonkey ? tracemonkey.HOTLOOP : 2;
-
-const RECORDLOOP = HOTLOOP;
-
-const RUNLOOP = HOTLOOP + 1;
+const HOTLOOP = haveTracemonkey ? tracemonkey.HOTLOOP : 2;
 
 var testName = null;
 if ("arguments" in this && arguments.length > 0)
