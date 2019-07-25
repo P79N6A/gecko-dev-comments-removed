@@ -117,7 +117,8 @@ mjit::Compiler::Compiler(JSContext *cx, JSScript *outerScript, bool isConstructi
     callPatches(CompilerAllocPolicy(cx, *thisFromCtor())),
     callSites(CompilerAllocPolicy(cx, *thisFromCtor())),
     doubleList(CompilerAllocPolicy(cx, *thisFromCtor())),
-    fixedDoubleEntries(CompilerAllocPolicy(cx, *thisFromCtor())),
+    fixedIntToDoubleEntries(CompilerAllocPolicy(cx, *thisFromCtor())),
+    fixedDoubleToAnyEntries(CompilerAllocPolicy(cx, *thisFromCtor())),
     jumpTables(CompilerAllocPolicy(cx, *thisFromCtor())),
     jumpTableOffsets(CompilerAllocPolicy(cx, *thisFromCtor())),
     loopEntries(CompilerAllocPolicy(cx, *thisFromCtor())),
@@ -1466,18 +1467,23 @@ mjit::Compiler::generateMethod()
 
 
 
-
-            for (unsigned i = 0; i < fixedDoubleEntries.length(); i++) {
-                FrameEntry *fe = frame.getSlotEntry(fixedDoubleEntries[i]);
+            for (unsigned i = 0; i < fixedIntToDoubleEntries.length(); i++) {
+                FrameEntry *fe = frame.getSlotEntry(fixedIntToDoubleEntries[i]);
                 frame.ensureInteger(fe);
             }
+            for (unsigned i = 0; i < fixedDoubleToAnyEntries.length(); i++) {
+                FrameEntry *fe = frame.getSlotEntry(fixedDoubleToAnyEntries[i]);
+                frame.syncAndForgetFe(fe);
+            }
         }
-        fixedDoubleEntries.clear();
+        fixedIntToDoubleEntries.clear();
+        fixedDoubleToAnyEntries.clear();
 
         if (opinfo->jumpTarget || trap) {
             if (fallthrough) {
                 fixDoubleTypes(PC);
-                fixedDoubleEntries.clear();
+                fixedIntToDoubleEntries.clear();
+                fixedDoubleToAnyEntries.clear();
 
                 
 
@@ -6899,36 +6905,42 @@ mjit::Compiler::fixDoubleTypes(jsbytecode *target)
 
 
 
-    JS_ASSERT(fixedDoubleEntries.empty());
+
+
+
+    JS_ASSERT(fixedIntToDoubleEntries.empty());
+    JS_ASSERT(fixedDoubleToAnyEntries.empty());
     const SlotValue *newv = analysis->newValues(target);
     if (newv) {
         while (newv->slot) {
             if (newv->value.kind() != SSAValue::PHI ||
-                newv->value.phiOffset() != uint32(target - script->code)) {
+                newv->value.phiOffset() != uint32(target - script->code) ||
+                !analysis->trackSlot(newv->slot)) {
                 newv++;
                 continue;
             }
-            if (newv->slot < TotalSlots(script)) {
-                types::TypeSet *targetTypes = analysis->getValueTypes(newv->value);
-                VarType &vt = a->varTypes[newv->slot];
-                if (targetTypes->getKnownTypeTag(cx) == JSVAL_TYPE_DOUBLE &&
-                    analysis->trackSlot(newv->slot)) {
-                    FrameEntry *fe = frame.getSlotEntry(newv->slot);
-                    if (vt.type == JSVAL_TYPE_INT32) {
-                        fixedDoubleEntries.append(newv->slot);
-                        frame.ensureDouble(fe);
-                    } else if (vt.type == JSVAL_TYPE_UNKNOWN) {
-                        
+            JS_ASSERT(newv->slot < TotalSlots(script));
+            types::TypeSet *targetTypes = analysis->getValueTypes(newv->value);
+            FrameEntry *fe = frame.getSlotEntry(newv->slot);
+            VarType &vt = a->varTypes[newv->slot];
+            if (targetTypes->getKnownTypeTag(cx) == JSVAL_TYPE_DOUBLE) {
+                if (vt.type == JSVAL_TYPE_INT32) {
+                    fixedIntToDoubleEntries.append(newv->slot);
+                    frame.ensureDouble(fe);
+                } else if (vt.type == JSVAL_TYPE_UNKNOWN) {
+                    
 
 
 
 
 
-                        frame.ensureDouble(fe);
-                    } else {
-                        JS_ASSERT(vt.type == JSVAL_TYPE_DOUBLE);
-                    }
+                    frame.ensureDouble(fe);
+                } else {
+                    JS_ASSERT(vt.type == JSVAL_TYPE_DOUBLE);
                 }
+            } else if (fe->isType(JSVAL_TYPE_DOUBLE)) {
+                fixedDoubleToAnyEntries.append(newv->slot);
+                frame.syncAndForgetFe(fe);
             }
             newv++;
         }
