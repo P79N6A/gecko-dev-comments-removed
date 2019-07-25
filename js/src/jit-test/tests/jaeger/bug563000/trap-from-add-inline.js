@@ -3,7 +3,7 @@ setDebug(true);
 x = "notset";
 function main() {
   
-  a = { valueOf: function () { trap(main, 34, "success()"); } };
+  a = { valueOf: function () { trap(main, 39, "success()"); } };
   a + "";
   x = "failure";
 }
