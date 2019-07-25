@@ -19,13 +19,7 @@ function test() {
 }
 
 function end_test() {
-  
-  AddonManager.getAllInstalls(function(aInstalls) {
-    is(aInstalls.length, 1, "Should be one available install");
-    aInstalls[0].cancel();
-
-    close_manager(gManagerWindow, finish);
-  });
+  close_manager(gManagerWindow, finish);
 }
 
 function get_list_item_count() {
