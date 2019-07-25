@@ -95,6 +95,7 @@ window.onload = function () {
   
   populatePreferencesSection();
   populateExtensionsSection();
+  populateGraphicsSection();
 }
 
 function populateExtensionsSection() {
@@ -138,6 +139,18 @@ function populatePreferencesSection() {
 
   appendChildren(document.getElementById("prefs-tbody"), trPrefs);
 }
+
+function populateGraphicsSection() {
+  try {
+    
+    var d2d = Cc["@mozilla.org/gfx/info;1"].getService(Ci.nsIGfxInfo).D2DEnabled;
+  } catch (e) {
+    d2d = false;
+  }
+
+  document.getElementById("direct2d").textContent = d2d;
+}
+
 
 function formatPrefValue(prefValue) {
   
