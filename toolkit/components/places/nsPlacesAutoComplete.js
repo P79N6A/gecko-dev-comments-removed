@@ -285,7 +285,10 @@ function nsPlacesAutoComplete()
   });
 
   XPCOMUtils.defineLazyGetter(this, "_historyQuery", function() {
-    let replacementText = "AND h.visit_count > 0";
+    
+    
+    
+    let replacementText = "AND +h.visit_count > 0";
     return this._db.createAsyncStatement(
       SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
     );
