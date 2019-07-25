@@ -385,7 +385,13 @@ FrameState::merge(Assembler &masm, uint32 iVD) const
             continue;
 
         FrameEntry *fe = entryFor(index);
-        JS_ASSERT(!fe->isCopy());
+
+        
+        if (fe->isCopy()) {
+            JS_ASSERT(!fe->data.inRegister());
+            JS_ASSERT(!fe->type.inRegister());
+            continue;
+        }
 
         if (fe->data.inRegister())
             masm.loadData32(addressOf(fe), fe->data.reg());
