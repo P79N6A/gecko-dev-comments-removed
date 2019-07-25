@@ -359,8 +359,6 @@ FormHistory.prototype = {
     },
 
     get dbConnection() {
-        let connection;
-
         
         delete FormHistory.prototype.dbConnection;
 
