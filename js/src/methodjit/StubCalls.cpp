@@ -901,3 +901,165 @@ stubs::Call(VMFrame &f, uint32 argc)
     return NULL;
 }
 
+void JS_FASTCALL
+stubs::DefFun(VMFrame &f, uint32 index)
+{
+    bool doSet;
+    JSObject *pobj, *obj2;
+    JSProperty *prop;
+    uint32 old;
+
+    JSContext *cx = f.cx;
+    JSStackFrame *fp = f.fp;
+    JSScript *script = fp->script;
+
+    
+
+
+
+
+
+    JSFunction *fun = script->getFunction(index);
+    JSObject *obj = FUN_OBJECT(fun);
+
+    if (FUN_NULL_CLOSURE(fun)) {
+        
+
+
+
+
+        obj2 = fp->scopeChain;
+    } else {
+        JS_ASSERT(!FUN_FLAT_CLOSURE(fun));
+
+        
+
+
+
+        if (!fp->blockChain) {
+            obj2 = fp->scopeChain;
+        } else {
+            obj2 = js_GetScopeChain(cx, fp);
+            if (!obj2)
+                THROW();
+        }
+    }
+
+    
+
+
+
+
+
+
+
+
+    if (obj->getParent() != obj2) {
+        obj = CloneFunctionObject(cx, fun, obj2);
+        if (!obj)
+            THROW();
+    }
+
+    
+
+
+
+
+    MUST_FLOW_THROUGH("restore_scope");
+    fp->scopeChain = obj;
+
+    Value rval;
+    rval.setFunObj(*obj);
+
+    
+
+
+
+    uintN attrs;
+    attrs = (fp->flags & JSFRAME_EVAL)
+            ? JSPROP_ENUMERATE
+            : JSPROP_ENUMERATE | JSPROP_PERMANENT;
+
+    
+
+
+
+
+    PropertyOp getter, setter;
+    uintN flags;
+    
+    getter = setter = PropertyStub;
+    flags = JSFUN_GSFLAG2ATTR(fun->flags);
+    if (flags) {
+        
+        JS_ASSERT(flags == JSPROP_GETTER || flags == JSPROP_SETTER);
+        attrs |= flags | JSPROP_SHARED;
+        rval.setUndefined();
+        if (flags == JSPROP_GETTER)
+            getter = CastAsPropertyOp(obj);
+        else
+            setter = CastAsPropertyOp(obj);
+    }
+
+    jsid id;
+    JSBool ok;
+    JSObject *parent;
+
+    
+
+
+
+
+    parent = fp->varobj(cx);
+    JS_ASSERT(parent);
+
+    
+
+
+
+
+    id = ATOM_TO_JSID(fun->atom);
+    prop = NULL;
+    ok = CheckRedeclaration(cx, parent, id, attrs, &pobj, &prop);
+    if (!ok)
+        goto restore_scope;
+
+    
+
+
+
+
+
+
+
+
+
+
+    doSet = (attrs == JSPROP_ENUMERATE);
+    JS_ASSERT_IF(doSet, fp->flags & JSFRAME_EVAL);
+    if (prop) {
+        if (parent == pobj &&
+            parent->getClass() == &js_CallClass &&
+            (old = ((JSScopeProperty *) prop)->attributes(),
+             !(old & (JSPROP_GETTER|JSPROP_SETTER)) &&
+             (old & (JSPROP_ENUMERATE|JSPROP_PERMANENT)) == attrs)) {
+            
+
+
+
+            JS_ASSERT(!(attrs & ~(JSPROP_ENUMERATE|JSPROP_PERMANENT)));
+            JS_ASSERT(!(old & JSPROP_READONLY));
+            doSet = JS_TRUE;
+        }
+        pobj->dropProperty(cx, prop);
+    }
+    ok = doSet
+         ? parent->setProperty(cx, id, &rval)
+         : parent->defineProperty(cx, id, rval, getter, setter, attrs);
+
+  restore_scope:
+    
+    fp->scopeChain = obj2;
+    if (!ok)
+        THROW();
+}
