@@ -1853,7 +1853,7 @@ PluginModuleChild::AnswerNP_Initialize(const uint32_t& aFlags, NPError* _retval)
     
     
     int xSocketFd = ConnectionNumber(DefaultXDisplay());
-    SendBackUpXResources(FileDescriptor(xSocketFd, false));
+    SendBackUpXResources(FileDescriptor(xSocketFd));
 #endif
 
 #if defined(OS_LINUX)

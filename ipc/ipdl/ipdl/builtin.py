@@ -48,6 +48,7 @@ Types = (
     'nsString',
     'nsCString',
     'mozilla::ipc::Shmem',
+    'mozilla::ipc::FileDescriptor',
 
     
     'int8',

@@ -45,7 +45,7 @@ private:
 
 class nsNestedAboutURI : public nsSimpleNestedURI {
 public:
-    NS_DECL_NSIIPCSERIALIZABLE
+    NS_DECL_NSIIPCSERIALIZABLEOBSOLETE
 
     nsNestedAboutURI(nsIURI* aInnerURI, nsIURI* aBaseURI)
         : nsSimpleNestedURI(aInnerURI)
