@@ -107,7 +107,23 @@ BuildKeyNameFromFontName(nsAString &aName)
 
 
 
-static HMODULE fontlib;
+typedef LONG
+(WINAPI *TTLoadEmbeddedFontProc)(HANDLE* phFontReference, ULONG ulFlags,
+                                 ULONG* pulPrivStatus, ULONG ulPrivs,
+                                 ULONG* pulStatus,
+                                 READEMBEDPROC lpfnReadFromStream,
+                                 LPVOID lpvReadStream,
+                                 LPWSTR szWinFamilyName, 
+                                 LPSTR szMacFamilyName,
+                                 TTLOADINFO* pTTLoadInfo);
+
+typedef LONG
+(WINAPI *TTDeleteEmbeddedFontProc)(HANDLE hFontReference, ULONG ulFlags,
+                                   ULONG* pulStatus);
+
+
+static TTLoadEmbeddedFontProc TTLoadEmbeddedFontPtr = nsnull;
+static TTDeleteEmbeddedFontProc TTDeleteEmbeddedFontPtr = nsnull;
 
 class WinUserFontData : public gfxUserFontData {
 public:
@@ -120,7 +136,7 @@ public:
         if (mIsEmbedded) {
             ULONG pulStatus;
             LONG err;
-            err = TTDeleteEmbeddedFont(mFontRef, 0, &pulStatus);
+            err = TTDeleteEmbeddedFontPtr(mFontRef, 0, &pulStatus);
 #if DEBUG
             if (err != E_NONE) {
                 char buf[256];
@@ -576,11 +592,7 @@ gfxGDIFontList::gfxGDIFontList()
 {
     mFontSubstitutes.Init(50);
 
-    
-    
-    if (!fontlib) {
-        fontlib = LoadLibraryW(L"t2embed.dll");
-    }
+    InitializeFontEmbeddingProcs();
 }
 
 static void
@@ -767,6 +779,17 @@ gfxGDIFontList::LookupLocalFont(const gfxProxyFontEntry *aProxyEntry,
     return fe;
 }
 
+void gfxGDIFontList::InitializeFontEmbeddingProcs()
+{
+    static HMODULE fontlib = LoadLibraryW(L"t2embed.dll");
+    if (!fontlib)
+        return;
+    TTLoadEmbeddedFontPtr = (TTLoadEmbeddedFontProc)
+        GetProcAddress(fontlib, "TTLoadEmbeddedFont");
+    TTDeleteEmbeddedFontPtr = (TTDeleteEmbeddedFontProc)
+        GetProcAddress(fontlib, "TTDeleteEmbeddedFont");
+}
+
 
 
 class EOTFontStreamReader {
@@ -870,10 +893,6 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
     };
     FontDataDeleter autoDelete(aFontData);
 
-    
-    if (!fontlib)
-        return nsnull;
-
     bool hasVertical;
     bool isCFF = gfxFontUtils::IsCffFont(aFontData, hasVertical);
 
@@ -887,7 +906,7 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
         return nsnull;
 
     
-    if (!isCFF) {
+    if (!isCFF && TTLoadEmbeddedFontPtr && TTDeleteEmbeddedFontPtr) {
         
         AutoFallibleTArray<PRUint8,2048> eotHeader;
         PRUint8 *buffer;
@@ -912,11 +931,11 @@ gfxGDIFontList::MakePlatformFont(const gfxProxyFontEntry *aProxyEntry,
             EOTFontStreamReader eotReader(aFontData, aLength, buffer, eotlen,
                                           &overlayNameData);
 
-            ret = TTLoadEmbeddedFont(&fontRef, TTLOAD_PRIVATE, &privStatus,
-                                     LICENSE_PREVIEWPRINT, &pulStatus,
-                                     EOTFontStreamReader::ReadEOTStream,
-                                     &eotReader,
-                                     (PRUnichar*)(fontName.get()), 0, 0);
+            ret = TTLoadEmbeddedFontPtr(&fontRef, TTLOAD_PRIVATE, &privStatus,
+                                        LICENSE_PREVIEWPRINT, &pulStatus,
+                                        EOTFontStreamReader::ReadEOTStream,
+                                        &eotReader,
+                                        (PRUnichar*)(fontName.get()), 0, 0);
             if (ret != E_NONE) {
                 fontRef = nsnull;
                 char buf[256];
