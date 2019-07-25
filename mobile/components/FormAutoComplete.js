@@ -79,19 +79,19 @@ FormAutoComplete.prototype = {
 
   checkQueryType: function checkQueryType(aName, aField) {
     
-    if (aField != null) {
-      let type = aField.getAttribute("type");
+    if (aField && "type" in aField) {
+      let type = aField.type;
       if (this.contactTypes[type] != null)
         return type;
     }
 
     
     let props = [aName];
-    if (aField != null) {
-      let attributes = ["class", "id", "rel"];
-      attributes.forEach(function(attr) {
-        if (aField.hasAttribute(attr))
-          props.push(aField.getAttribute(attr));
+    if (aField) {
+      let specialProps = ["className", "id", "rel"];
+      specialProps.forEach(function(attr) {
+        if (attr in aField)
+          props.push(aField[attr]);
       });
     }
 
