@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/dom/sms/SmsMessage.h"
 #include "SmsService.h"
 #include "AndroidBridge.h"
@@ -86,11 +53,12 @@ SmsService::CreateSmsMessage(PRInt32 aId,
                              const nsAString& aReceiver,
                              const nsAString& aBody,
                              const jsval& aTimestamp,
+                             const bool aRead,
                              JSContext* aCx,
                              nsIDOMMozSmsMessage** aMessage)
 {
-  return SmsMessage::Create(
-    aId, aDelivery, aSender, aReceiver, aBody, aTimestamp, aCx, aMessage);
+  return SmsMessage::Create(aId, aDelivery, aSender, aReceiver, aBody,
+                            aTimestamp, aRead, aCx, aMessage);
 }
 
 } 

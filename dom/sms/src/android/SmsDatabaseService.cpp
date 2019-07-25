@@ -3,38 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "SmsFilter.h"
 #include "SmsDatabaseService.h"
 #include "AndroidBridge.h"
@@ -129,6 +97,14 @@ SmsDatabaseService::ClearMessageList(PRInt32 aListId)
   }
 
   AndroidBridge::Bridge()->ClearMessageList(aListId);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+SmsDatabaseService::MarkMessageRead(PRInt32 aMessageId, bool aValue,
+                                    PRInt32 aRequestId, PRUint64 aProcessId)
+{
+  
   return NS_OK;
 }
 
