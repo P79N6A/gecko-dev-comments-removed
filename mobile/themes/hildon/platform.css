@@ -50,6 +50,13 @@ menuitem {
   margin: 0px !important;
 }
 
+description,
+label {
+  
+  -moz-margin-start: 6px;
+  -moz-margin-end: 5px;
+}
+
 
 .panel-dark {
   color: white;
