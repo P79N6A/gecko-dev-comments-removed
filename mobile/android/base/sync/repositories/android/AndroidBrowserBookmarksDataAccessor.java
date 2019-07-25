@@ -187,9 +187,16 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
 
   @Override
   protected ContentValues getContentValues(Record record) {
-    ContentValues cv = new ContentValues();
     BookmarkRecord rec = (BookmarkRecord) record;
+
+    final int recordType = BrowserContractHelpers.typeCodeForString(rec.type);
+    if (recordType == -1) {
+      throw new IllegalStateException("Unexpected record type " + rec.type);
+    }
+
+    ContentValues cv = new ContentValues();
     cv.put(BrowserContract.SyncColumns.GUID,      rec.guid);
+    cv.put(BrowserContract.Bookmarks.TYPE,        recordType);
     cv.put(BrowserContract.Bookmarks.TITLE,       rec.title);
     cv.put(BrowserContract.Bookmarks.URL,         rec.bookmarkURI);
     cv.put(BrowserContract.Bookmarks.DESCRIPTION, rec.description);
@@ -200,12 +207,6 @@ public class AndroidBrowserBookmarksDataAccessor extends AndroidBrowserRepositor
     cv.put(BrowserContract.Bookmarks.KEYWORD,     rec.keyword);
     cv.put(BrowserContract.Bookmarks.PARENT,      rec.androidParentID);
     cv.put(BrowserContract.Bookmarks.POSITION,    rec.androidPosition);
-
-    
-    
-    cv.put(BrowserContract.Bookmarks.TYPE, rec.type.equalsIgnoreCase(TYPE_FOLDER) ?
-                                           BrowserContract.Bookmarks.TYPE_FOLDER :
-                                           BrowserContract.Bookmarks.TYPE_BOOKMARK);
 
     
     
