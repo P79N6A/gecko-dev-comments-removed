@@ -22,6 +22,7 @@
 # Contributor(s):
 #   Ben Goodger <ben@mozilla.org>
 #   Jeff Walden <jwalden+code@mit.edu>
+#   Steffen Wilberg <steffen.wilberg@web.de>
 #
 # Alternatively, the contents of this file may be used under the terms of
 # either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -61,9 +62,7 @@ var gAdvancedPane = {
     }
 
 #ifdef MOZ_UPDATER
-    this.updateAppUpdateItems();
-    this.updateAutoItems();
-    this.updateModeItems();
+    this.updateReadPrefs();
 #endif
     this.updateOfflineApps();
 #ifdef MOZ_CRASHREPORTER
@@ -459,82 +458,90 @@ var gAdvancedPane = {
 
 
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #ifdef MOZ_UPDATER
-  updateAppUpdateItems: function () 
-  {
-    var aus = 
-        Components.classes["@mozilla.org/updates/update-service;1"].
-        getService(Components.interfaces.nsIApplicationUpdateService);
-
-    var enabledPref = document.getElementById("app.update.enabled");
-    var enableAppUpdate = document.getElementById("enableAppUpdate");
-
-    enableAppUpdate.disabled = !aus.canCheckForUpdates || enabledPref.locked;
-  },
-
   
 
 
 
-  updateAutoItems: function () 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  updateReadPrefs: function ()
   {
     var enabledPref = document.getElementById("app.update.enabled");
     var autoPref = document.getElementById("app.update.auto");
+    var radiogroup = document.getElementById("updateRadioGroup");
+
+    if (!enabledPref.value)   
+      radiogroup.value="manual"     
+    else if (autoPref.value)  
+      radiogroup.value="auto";      
+    else                      
+      radiogroup.value="checkOnly"; 
+
+    var canCheck = Components.classes["@mozilla.org/updates/update-service;1"].
+                     getService(Components.interfaces.nsIApplicationUpdateService).
+                     canCheckForUpdates;
     
-    var updateModeLabel = document.getElementById("updateModeLabel");
-    var updateMode = document.getElementById("updateMode");
     
-    var disable = enabledPref.locked || !enabledPref.value ||
-                  autoPref.locked;
-    updateModeLabel.disabled = updateMode.disabled = disable;
-  },
+    
+    radiogroup.disabled = !canCheck || enabledPref.locked || autoPref.locked;
 
-  
-
-
-
-  updateModeItems: function () 
-  {
-    var enabledPref = document.getElementById("app.update.enabled");
-    var autoPref = document.getElementById("app.update.auto");
     var modePref = document.getElementById("app.update.mode");
-    
     var warnIncompatible = document.getElementById("warnIncompatible");
     
-    var disable = enabledPref.locked || !enabledPref.value || autoPref.locked ||
-                  !autoPref.value || modePref.locked;
-    warnIncompatible.disabled = disable;
+    warnIncompatible.disabled = radiogroup.disabled || modePref.locked ||
+                                !enabledPref.value || !autoPref.value;
+  },
+
+  
+
+
+
+  updateWritePrefs: function ()
+  {
+    var enabledPref = document.getElementById("app.update.enabled");
+    var autoPref = document.getElementById("app.update.auto");
+    var radiogroup = document.getElementById("updateRadioGroup");
+    switch (radiogroup.value) {
+      case "auto":      
+        enabledPref.value = true;
+        autoPref.value = true;
+        break;
+      case "checkOnly": 
+        enabledPref.value = true;
+        autoPref.value = false;
+        break;
+      case "manual":    
+        enabledPref.value = false;
+        autoPref.value = false;
+    }
+
+    var warnIncompatible = document.getElementById("warnIncompatible");
+    var modePref = document.getElementById("app.update.mode");
+    warnIncompatible.disabled = enabledPref.locked || !enabledPref.value ||
+                                autoPref.locked || !autoPref.value ||
+                                modePref.locked;
   },
 
   
@@ -562,9 +569,9 @@ var gAdvancedPane = {
   readAddonWarn: function ()
   {
     var preference = document.getElementById("app.update.mode");
-    var doNotWarn = preference.value != 0;
-    gAdvancedPane._modePreference = doNotWarn ? preference.value : 1;
-    return doNotWarn;
+    var warn = preference.value != 0;
+    gAdvancedPane._modePreference = warn ? preference.value : 1;
+    return warn;
   },
 
   
@@ -599,8 +606,8 @@ var gAdvancedPane = {
     var enableAddonUpdate = document.getElementById("enableAddonUpdate");
 
     enableAddonUpdate.disabled = enabledPref.locked;
-  },  
-  
+  },
+
   
 
   
