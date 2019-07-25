@@ -186,7 +186,8 @@ ContentParent::PreallocateAppProcess()
     }
 
     sPreallocatedAppProcess =
-        new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL);
+        new ContentParent(MAGIC_PREALLOCATED_APP_MANIFEST_URL,
+                          false);
     sPreallocatedAppProcess->Init();
 }
 
@@ -248,7 +249,7 @@ ContentParent::ShutDown()
 }
 
  ContentParent*
-ContentParent::GetNewOrUsed()
+ContentParent::GetNewOrUsed(bool aForBrowserElement)
 {
     if (!gNonAppContentParents)
         gNonAppContentParents = new nsTArray<ContentParent*>();
@@ -265,7 +266,8 @@ ContentParent::GetNewOrUsed()
     }
 
     nsRefPtr<ContentParent> p =
-        new ContentParent( EmptyString());
+        new ContentParent( EmptyString(),
+                          aForBrowserElement);
     p->Init();
     gNonAppContentParents->AppendElement(p);
     return p;
@@ -274,8 +276,14 @@ ContentParent::GetNewOrUsed()
  TabParent*
 ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
 {
+    
+    
+    
+    
+    MOZ_ASSERT(!aApp || !aIsBrowserElement);
+
     if (!aApp) {
-        if (ContentParent* cp = GetNewOrUsed()) {
+        if (ContentParent* cp = GetNewOrUsed(aIsBrowserElement)) {
             nsRefPtr<TabParent> tp(new TabParent(aApp, aIsBrowserElement));
             return static_cast<TabParent*>(
                 cp->SendPBrowserConstructor(
@@ -321,7 +329,7 @@ ContentParent::CreateBrowser(mozIApplication* aApp, bool aIsBrowserElement)
             p->SetManifestFromPreallocated(manifestURL);
         } else {
             NS_WARNING("Unable to use pre-allocated app process");
-            p = new ContentParent(manifestURL);
+            p = new ContentParent(manifestURL, aIsBrowserElement);
             p->Init();
         }
         gAppContentParents->Put(manifestURL, p);
@@ -647,7 +655,8 @@ ContentParent::GetTestShellSingleton()
     return static_cast<TestShellParent*>(ManagedPTestShellParent()[0]);
 }
 
-ContentParent::ContentParent(const nsAString& aAppManifestURL)
+ContentParent::ContentParent(const nsAString& aAppManifestURL,
+                             bool aIsForBrowser)
     : mGeolocationWatchID(-1)
     , mRunToCompletionDepth(0)
     , mShouldCallUnblockChild(false)
@@ -671,7 +680,8 @@ ContentParent::ContentParent(const nsAString& aAppManifestURL)
         mSubprocess->AsyncLaunch();
     }
     Open(mSubprocess->GetChannel(), mSubprocess->GetChildProcessHandle());
-    unused << SendSetID(gContentChildID++);
+    unused << SendSetProcessAttributes(gContentChildID++,
+                                       IsForApp(), aIsForBrowser);
 
     
     

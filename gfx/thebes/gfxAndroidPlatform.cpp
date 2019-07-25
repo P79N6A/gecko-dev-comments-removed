@@ -3,11 +3,14 @@
 
 
 
+#include "base/basictypes.h"
+
 #include "gfxAndroidPlatform.h"
 #include "mozilla/gfx/2D.h"
 
 #include "gfxFT2FontList.h"
 #include "gfxImageSurface.h"
+#include "mozilla/dom/ContentChild.h"
 #include "nsXULAppAPI.h"
 #include "nsIScreen.h"
 #include "nsIScreenManager.h"
@@ -17,6 +20,7 @@
 #include "ft2build.h"
 #include FT_FREETYPE_H
 using namespace mozilla;
+using namespace mozilla::dom;
 using namespace mozilla::gfx;
 
 static FT_Library gPlatformFTLibrary = NULL;
@@ -192,13 +196,9 @@ gfxAndroidPlatform::FontHintingEnabled()
 #else
     
     
-    
-    
-    
-    
-    
-    
-    return (XRE_GetProcessType() != GeckoProcessType_Content);
+    return (XRE_GetProcessType() != GeckoProcessType_Content ||
+            (ContentChild::GetSingleton()->IsForApp() &&
+             !ContentChild::GetSingleton()->IsForBrowser()));
 #endif 
 }
 
