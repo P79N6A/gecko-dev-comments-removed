@@ -293,6 +293,7 @@ typedef enum JSWhyMagic
     JS_UNASSIGNED_ARGUMENTS,     
     JS_OPTIMIZED_ARGUMENTS,      
     JS_IS_CONSTRUCTING,          
+    JS_OVERWRITTEN_CALLEE,       
     JS_ION_ERROR,                
     JS_GENERIC_MAGIC             
 } JSWhyMagic;
