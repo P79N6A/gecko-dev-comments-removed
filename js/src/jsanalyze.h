@@ -143,6 +143,12 @@ class Bytecode
     bool accessGetter: 1;    
 
     
+
+
+
+    bool switchSharesPending : 1;
+
+    
     uint32_t stackDepth;
 
   private:
@@ -1191,24 +1197,35 @@ class ScriptAnalysis
     inline void ensureVariable(LifetimeVariable &var, unsigned until);
 
     
+    struct SSAValueInfo
+    {
+        SSAValue v;
+
+        
+
+
+
+
+        int32_t branchSize;
+    };
+
+    
     bool makePhi(JSContext *cx, uint32_t slot, uint32_t offset, SSAValue *pv);
     void insertPhi(JSContext *cx, SSAValue &phi, const SSAValue &v);
     void mergeValue(JSContext *cx, uint32_t offset, const SSAValue &v, SlotValue *pv);
     void checkPendingValue(JSContext *cx, const SSAValue &v, uint32_t slot,
                            Vector<SlotValue> *pending);
     void checkBranchTarget(JSContext *cx, uint32_t targetOffset, Vector<uint32_t> &branchTargets,
-                           SSAValue *values, uint32_t stackDepth);
+                           SSAValueInfo *values, uint32_t stackDepth,
+                           Vector<SlotValue> **ppending = NULL, uint32_t *ppendingOffset = NULL);
     void checkExceptionTarget(JSContext *cx, uint32_t catchOffset,
                               Vector<uint32_t> &exceptionTargets);
-    void mergeBranchTarget(JSContext *cx, const SSAValue &value, uint32_t slot,
-                           const Vector<uint32_t> &branchTargets);
+    void mergeBranchTarget(JSContext *cx, SSAValueInfo &value, uint32_t slot,
+                           const Vector<uint32_t> &branchTargets, uint32_t currentOffset);
     void mergeExceptionTarget(JSContext *cx, const SSAValue &value, uint32_t slot,
                               const Vector<uint32_t> &exceptionTargets);
-    void mergeAllExceptionTargets(JSContext *cx, SSAValue *values,
+    void mergeAllExceptionTargets(JSContext *cx, SSAValueInfo *values,
                                   const Vector<uint32_t> &exceptionTargets);
-    bool removeBranchTarget(Vector<uint32_t> &branchTargets,
-                            Vector<uint32_t> &exceptionTargets,
-                            uint32_t offset);
     void freezeNewValues(JSContext *cx, uint32_t offset);
 
     struct TypeInferenceState {
