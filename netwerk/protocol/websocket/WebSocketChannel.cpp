@@ -179,13 +179,17 @@ public:
   NS_DECL_ISUPPORTS
 
   CallOnServerClose(nsIWebSocketListener *aListener,
-                    nsISupports          *aContext)
+                    nsISupports          *aContext,
+                    PRUint16              aCode,
+                    nsCString            &aReason)
     : mListener(aListener),
-      mContext(aContext) {}
+      mContext(aContext),
+      mCode(aCode),
+      mReason(aReason) {}
 
   NS_SCRIPTABLE NS_IMETHOD Run()
   {
-    mListener->OnServerClose(mContext);
+    mListener->OnServerClose(mContext, mCode, mReason);
     return NS_OK;
   }
 
@@ -194,6 +198,8 @@ private:
 
   nsCOMPtr<nsIWebSocketListener>    mListener;
   nsCOMPtr<nsISupports>             mContext;
+  PRUint16                          mCode;
+  nsCString                         mReason;
 };
 NS_IMPL_THREADSAFE_ISUPPORTS1(CallOnServerClose, nsIRunnable)
 
@@ -502,7 +508,8 @@ WebSocketChannel::WebSocketChannel() :
   mTCPClosed(0),
   mMaxMessageSize(16000000),
   mStopOnClose(NS_OK),
-  mCloseCode(kCloseAbnormal),
+  mServerCloseCode(CLOSE_ABNORMAL),
+  mScriptCloseCode(0),
   mFragmentOpcode(0),
   mFragmentAccumulator(0),
   mBuffered(0),
@@ -869,26 +876,29 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
         LOG(("WebSocketChannel:: close received\n"));
         mServerClosed = 1;
 
-        mCloseCode = kCloseNoStatus;
+        mServerCloseCode = CLOSE_NO_STATUS;
         if (payloadLength >= 2) {
-          memcpy(&mCloseCode, payload, 2);
-          mCloseCode = PR_ntohs(mCloseCode);
-          LOG(("WebSocketChannel:: close recvd code %u\n", mCloseCode));
+          memcpy(&mServerCloseCode, payload, 2);
+          mServerCloseCode = PR_ntohs(mServerCloseCode);
+          LOG(("WebSocketChannel:: close recvd code %u\n", mServerCloseCode));
           PRUint16 msglen = payloadLength - 2;
           if (msglen > 0) {
-            nsCString utf8Data((const char *)payload + 2, msglen);
+            mServerCloseReason.SetLength(msglen);
+            memcpy(mServerCloseReason.BeginWriting(),
+                   (const char *)payload + 2, msglen);
 
             
             
             
             
-            if (!IsUTF8(utf8Data)) {
+            if (!IsUTF8(mServerCloseReason)) {
               LOG(("WebSocketChannel:: close frame invalid utf-8\n"));
               AbortSession(NS_ERROR_ILLEGAL_VALUE);
               return NS_ERROR_ILLEGAL_VALUE;
             }
 
-            LOG(("WebSocketChannel:: close msg %s\n", utf8Data.get()));
+            LOG(("WebSocketChannel:: close msg %s\n",
+                 mServerCloseReason.get()));
           }
         }
 
@@ -897,7 +907,9 @@ WebSocketChannel::ProcessInput(PRUint8 *buffer, PRUint32 count)
           mCloseTimer = nsnull;
         }
         if (mListener)
-          NS_DispatchToMainThread(new CallOnServerClose(mListener, mContext));
+          NS_DispatchToMainThread(
+            new CallOnServerClose(mListener, mContext,
+                                  mServerCloseCode, mServerCloseReason));
 
         if (mClientClosed)
           ReleaseSession();
@@ -1058,16 +1070,16 @@ PRUint16
 WebSocketChannel::ResultToCloseCode(nsresult resultCode)
 {
   if (NS_SUCCEEDED(resultCode))
-    return kCloseNormal;
+    return CLOSE_NORMAL;
   if (resultCode == NS_ERROR_FILE_TOO_BIG)
-    return kCloseTooLarge;
+    return CLOSE_TOO_LARGE;
   if (resultCode == NS_BASE_STREAM_CLOSED ||
       resultCode == NS_ERROR_NET_TIMEOUT ||
       resultCode == NS_ERROR_CONNECTION_REFUSED) {
-    return kCloseAbnormal;
+    return CLOSE_ABNORMAL;
   }
 
-  return kCloseProtocolError;
+  return CLOSE_PROTOCOL_ERROR;
 }
 
 void
@@ -1114,9 +1126,27 @@ WebSocketChannel::PrimeNewOutgoingMessage()
     payload = mOutHeader + 6;
 
     
-    *((PRUint16 *)payload) = PR_htons(ResultToCloseCode(mStopOnClose));
-
     mHdrOutToSend = 8;
+
+    
+    
+    
+    if (NS_SUCCEEDED(mStopOnClose) && mScriptCloseCode) {
+      *((PRUint16 *)payload) = PR_htons(mScriptCloseCode);
+      if (!mScriptCloseReason.IsEmpty()) {
+        NS_ABORT_IF_FALSE(mScriptCloseReason.Length() <= 123,
+                          "Close Reason Too Long");
+        mOutHeader[1] += mScriptCloseReason.Length();
+        mHdrOutToSend += mScriptCloseReason.Length();
+        memcpy (payload + 2,
+                mScriptCloseReason.BeginReading(),
+                mScriptCloseReason.Length());
+      }
+    }
+    else {
+      *((PRUint16 *)payload) = PR_htons(ResultToCloseCode(mStopOnClose));
+    }
+
     if (mServerClosed) {
       
       mReleaseOnTransmit = 1;
@@ -1984,7 +2014,7 @@ WebSocketChannel::AsyncOpen(nsIURI *aURI,
 }
 
 NS_IMETHODIMP
-WebSocketChannel::Close()
+WebSocketChannel::Close(PRUint16 code, const nsACString & reason)
 {
   LOG(("WebSocketChannel::Close() %p\n", this));
   NS_ABORT_IF_FALSE(NS_IsMainThread(), "not main thread");
@@ -2000,8 +2030,14 @@ WebSocketChannel::Close()
     return NS_ERROR_UNEXPECTED;
   }
 
-  mRequestedClose = 1;
+  
+  if (reason.Length() > 123)
+    return NS_ERROR_ILLEGAL_VALUE;
 
+  mRequestedClose = 1;
+  mScriptCloseReason = reason;
+  mScriptCloseCode = code;
+    
   return mSocketThread->Dispatch(new nsPostMessage(this, kFinMessage, -1),
                                  nsIEventTarget::DISPATCH_NORMAL);
 }
