@@ -57,6 +57,7 @@ public:
   
   
   bool IsSafePath();
+  bool IsType(nsAString& aType);
 
   nsresult Remove();
   nsresult Write(nsIInputStream* aInputStream);
@@ -105,6 +106,8 @@ public:
 
   virtual bool Recv__delete__(const bool& allow);
   virtual void IPDLRelease();
+
+  void GetStorageType(nsAString & aType);
 
 private:
   ~nsDOMDeviceStorageCursor();
