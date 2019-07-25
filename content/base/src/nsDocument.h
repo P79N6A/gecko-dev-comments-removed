@@ -88,7 +88,7 @@
 #include "nsAttrAndChildArray.h"
 #include "nsDOMAttributeMap.h"
 #include "nsThreadUtils.h"
-#include "nsIDocumentViewer.h"
+#include "nsIContentViewer.h"
 #include "nsIDOMXPathNSResolver.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsILoadContext.h"
@@ -404,7 +404,7 @@ protected:
 
 
 
-    nsresult SetupViewer(nsIRequest* aRequest, nsIDocumentViewer** aViewer,
+    nsresult SetupViewer(nsIRequest* aRequest, nsIContentViewer** aViewer,
                          nsILoadGroup** aLoadGroup);
 
   private:
@@ -467,7 +467,7 @@ protected:
 
 
 
-  nsresult AddExternalResource(nsIURI* aURI, nsIDocumentViewer* aViewer,
+  nsresult AddExternalResource(nsIURI* aURI, nsIContentViewer* aViewer,
                                nsILoadGroup* aLoadGroup,
                                nsIDocument* aDisplayDocument);
   
