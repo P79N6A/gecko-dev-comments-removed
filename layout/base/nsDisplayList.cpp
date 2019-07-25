@@ -2482,13 +2482,6 @@ gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
       *coords[index] = NSAppUnitsToFloatPixels(coord.GetCoordValue(), aFactor);
     }
   }
-  
-  
-
-
-
-  result.x -= NSAppUnitsToFloatPixels(boundingRect.width, aFactor)/2;
-  result.y -= NSAppUnitsToFloatPixels(boundingRect.height, aFactor)/2;
 
   return result;
 }
@@ -2551,7 +2544,10 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
     perspective._34 =
       -1.0 / NSAppUnitsToFloatPixels(parentDisp->mChildPerspective.GetCoordValue(),
                                      aFactor);
-    result = result * nsLayoutUtils::ChangeMatrixBasis(toPerspectiveOrigin, perspective);
+    
+
+
+    result = result * nsLayoutUtils::ChangeMatrixBasis(toPerspectiveOrigin - toMozOrigin, perspective);
   }
 
   if (aFrame->Preserves3D() && nsLayoutUtils::Are3DTransformsEnabled()) {
