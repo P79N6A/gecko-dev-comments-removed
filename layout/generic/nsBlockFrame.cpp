@@ -2474,6 +2474,18 @@ nsBlockFrame::DeleteLine(nsBlockReflowState& aState,
   }
 }
 
+static void
+InvalidateThebesLayersInLineBox(nsIFrame* aBlock, nsLineBox* aLine)
+{
+  if (aBlock->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT) {
+    PRInt32 childCount = aLine->GetChildCount();
+    for (nsIFrame* f = aLine->mFirstChild; childCount;
+         --childCount, f = f->GetNextSibling()) {
+      FrameLayerBuilder::InvalidateThebesLayersInSubtree(f);
+    }
+  }
+}
+
 
 
 
@@ -2567,13 +2579,7 @@ nsBlockFrame::ReflowLine(nsBlockReflowState& aState,
       printf("  dirty line is %p\n", static_cast<void*>(aLine.get()));
 #endif
     Invalidate(dirtyRect);
-    if (GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER_DESCENDANT) {
-      PRInt32 childCount = aLine->GetChildCount();
-      for (nsIFrame* f = aLine->mFirstChild; childCount;
-           --childCount, f = f->GetNextSibling()) {
-        FrameLayerBuilder::InvalidateThebesLayersInSubtree(f);
-      }
-    }
+    InvalidateThebesLayersInLineBox(this, aLine);
   }
 
   return rv;
@@ -2732,6 +2738,7 @@ nsBlockFrame::SlideLine(nsBlockReflowState& aState,
   
   aLine->SlideBy(aDY);
   Invalidate(aLine->GetVisualOverflowArea());
+  InvalidateThebesLayersInLineBox(this, aLine);
 
   
   nsIFrame* kid = aLine->mFirstChild;
