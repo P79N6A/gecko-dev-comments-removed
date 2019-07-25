@@ -103,6 +103,13 @@
 }
 
 
+#addons-page .global-info-container {
+  background-color: #e3e6eb;
+  border-top-right-radius: 5px;
+  border-top-left-radius: 5px;
+}
+
+
 
 #addons-page[warning="safemode"] .view-pane[type="plugin"] .global-warning-container,
 #addons-page[warning="safemode"] #detail-view[loading="true"] .global-warning-container {
