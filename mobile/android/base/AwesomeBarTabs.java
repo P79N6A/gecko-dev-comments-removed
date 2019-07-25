@@ -247,6 +247,18 @@ public class AwesomeBarTabs extends TabHost {
         }
     }
 
+    
+    
+    public void refreshBookmarks() {
+        Cursor groupCursor = mBookmarksAdapter.getCursor();
+        groupCursor.moveToPosition(-1);
+        while (groupCursor.moveToNext()) {
+            String guid = groupCursor.getString(groupCursor.getColumnIndexOrThrow(Bookmarks.GUID));
+            
+            new RefreshChildrenCursorTask(groupCursor.getPosition()).execute(guid);
+        }
+    }
+
     private class BookmarksQueryTask extends AsyncTask<Void, Void, Cursor> {
         protected Cursor doInBackground(Void... arg0) {
             
@@ -836,18 +848,5 @@ public class AwesomeBarTabs extends TabHost {
                 mAllPagesCursorAdapter.notifyDataSetChanged();
             }
         });
-    }
-
-    public void refreshBookmarks() {
-        new AsyncTask<Void, Void, Cursor>() {
-            protected Cursor doInBackground(Void... arg0) {
-                ContentResolver resolver = mContext.getContentResolver();
-                return BrowserDB.getAllBookmarks(resolver);
-            }
-
-            protected void onPostExecute(Cursor cursor) {
-                mBookmarksAdapter.changeCursor(cursor);
-            }
-        }.execute();
     }
 }
