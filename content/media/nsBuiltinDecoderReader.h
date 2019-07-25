@@ -389,7 +389,7 @@ public:
   typedef mozilla::VideoFrameContainer VideoFrameContainer;
 
   nsBuiltinDecoderReader(nsBuiltinDecoder* aDecoder);
-  ~nsBuiltinDecoderReader();
+  virtual ~nsBuiltinDecoderReader();
 
   
   
