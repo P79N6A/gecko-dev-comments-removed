@@ -148,14 +148,31 @@ protected:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
   void GetTextDecorations(nsPresContext* aPresContext, 
                           PRBool aIsBlock,
                           PRUint8& aDecorations, 
                           nscolor& aUnderColor, 
                           nscolor& aOverColor, 
-                          nscolor& aStrikeColor);
+                          nscolor& aStrikeColor,
+                          PRUint8& aUnderStyle,
+                          PRUint8& aOverStyle,
+                          PRUint8& aStrikeStyle);
 
   
+
+
 
 
 
@@ -177,6 +194,7 @@ protected:
                                        const nsPoint& aPt,
                                        nsLineBox* aLine,
                                        nscolor aColor,
+                                       PRUint8 aStyle,
                                        gfxFloat aOffset,
                                        gfxFloat aAscent,
                                        gfxFloat aSize,

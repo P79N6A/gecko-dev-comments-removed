@@ -239,6 +239,8 @@ input > .anonymous-div {
   
 
   text-decoration: inherit;
+  -moz-text-decoration-color: inherit;
+  -moz-text-decoration-style: inherit;
 }
 
 input:disabled,
