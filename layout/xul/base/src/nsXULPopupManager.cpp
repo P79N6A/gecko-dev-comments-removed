@@ -1671,10 +1671,9 @@ nsXULPopupManager::UpdateMenuItems(nsIContent* aPopup)
   
  
   nsCOMPtr<nsIDOMDocument> domDoc(do_QueryInterface(aPopup->GetDocument()));
-  PRUint32 count = aPopup->GetChildCount();
-  for (PRUint32 i = 0; i < count; i++) {
-    nsCOMPtr<nsIContent> grandChild = aPopup->GetChildAt(i);
-
+  for (nsCOMPtr<nsIContent> grandChild = aPopup->GetFirstChild();
+       grandChild;
+       grandChild = grandChild->GetNextSibling()) {
     if (grandChild->NodeInfo()->Equals(nsGkAtoms::menuitem, kNameSpaceID_XUL)) {
       
       nsAutoString command;

@@ -381,6 +381,11 @@ public:
   
 
 
+  bool HasChildren() const { return !!mFirstChild; }
+
+  
+
+
 
   virtual PRUint32 GetChildCount() const = 0;
 
