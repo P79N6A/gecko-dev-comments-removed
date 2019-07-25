@@ -17,39 +17,31 @@
 class nsIObjectInputStream;
 class nsIObjectOutputStream;
 
-class nsPrincipal : public nsJSPrincipals
+class nsBasePrincipal : public nsJSPrincipals
 {
 public:
-  nsPrincipal();
+  nsBasePrincipal();
 
 protected:
-  virtual ~nsPrincipal();
+  virtual ~nsBasePrincipal();
 
 public:
-  
-  
-  NS_DECL_ISUPPORTS_INHERITED
+  NS_IMETHOD_(nsrefcnt) AddRef(void);
+  NS_IMETHOD_(nsrefcnt) Release(void);
+  NS_SCRIPTABLE NS_IMETHOD GetPreferences(char** prefBranch NS_OUTPARAM, char** id NS_OUTPARAM, char** subjectName NS_OUTPARAM, char** grantedList NS_OUTPARAM, char** deniedList NS_OUTPARAM, bool* isTrusted NS_OUTPARAM);
+  NS_IMETHOD GetSecurityPolicy(void** aSecurityPolicy);
+  NS_IMETHOD SetSecurityPolicy(void* aSecurityPolicy);
+  NS_IMETHOD CanEnableCapability(const char* capability, PRInt16* _retval NS_OUTPARAM);
+  NS_IMETHOD IsCapabilityEnabled(const char* capability, void* annotation, bool* _retval NS_OUTPARAM);
+  NS_IMETHOD EnableCapability(const char* capability, void** annotation NS_INOUTPARAM);
+  NS_IMETHOD GetHasCertificate(bool* aHasCertificate);
+  NS_IMETHOD GetFingerprint(nsACString& aFingerprint);
+  NS_IMETHOD GetPrettyName(nsACString& aPrettyName);
+  NS_IMETHOD GetSubjectName(nsACString& aSubjectName);
+  NS_IMETHOD GetCertificate(nsISupports** aCertificate);
+  NS_IMETHOD GetCsp(nsIContentSecurityPolicy** aCsp);
+  NS_IMETHOD SetCsp(nsIContentSecurityPolicy* aCsp);
 public:
-
-  NS_DECL_NSIPRINCIPAL
-  NS_DECL_NSISERIALIZABLE
-
-  
-  
-  nsresult Init(const nsACString& aCertFingerprint,
-                const nsACString& aSubjectName,
-                const nsACString& aPrettyName,
-                nsISupports* aCert,
-                nsIURI *aCodebase);
-  nsresult InitFromPersistent(const char* aPrefName,
-                              const nsCString& aFingerprint,
-                              const nsCString& aSubjectName,
-                              const nsACString& aPrettyName,
-                              const char* aGrantedList,
-                              const char* aDeniedList,
-                              nsISupports* aCert,
-                              bool aIsCert,
-                              bool aTrusted);
 
   
   
@@ -60,21 +52,14 @@ public:
 
   enum AnnotationValue { AnnotationEnabled=1, AnnotationDisabled };
 
-  void SetURI(nsIURI *aURI);
-  nsresult SetCapability(const char *capability, void **annotation, 
+  nsresult SetCapability(const char* capability, void** annotation, 
                          AnnotationValue value);
 
   static const char sInvalid[];
 
-  virtual void GetScriptLocation(nsACString &aStr) MOZ_OVERRIDE;
-
-#ifdef DEBUG
-  virtual void dumpImpl() MOZ_OVERRIDE;
-#endif 
-
 protected:
   
-  nsresult SetCanEnableCapability(const char *capability, PRInt16 canEnable);
+  nsresult SetCanEnableCapability(const char* capability, PRInt16 canEnable);
 
   nsTArray< nsAutoPtr<nsHashtable> > mAnnotations;
   nsHashtable* mCapabilities;
@@ -108,6 +93,10 @@ protected:
   
   bool CertificateEquals(nsIPrincipal *aOther);
 
+#ifdef DEBUG
+  virtual void dumpImpl() = 0;
+#endif
+
   
   
   
@@ -116,13 +105,59 @@ protected:
   DomainPolicy* mSecurityPolicy;
 
   nsCOMPtr<nsIContentSecurityPolicy> mCSP;
-  nsCOMPtr<nsIURI> mCodebase;
-  nsCOMPtr<nsIURI> mDomain;
   bool mTrusted;
-  bool mInitialized;
+};
+
+class nsPrincipal : public nsBasePrincipal
+{
+public:
+  nsPrincipal();
+
+protected:
+  virtual ~nsPrincipal();
+
+public:
+  NS_DECL_ISUPPORTS_INHERITED
+  NS_DECL_NSISERIALIZABLE
+  NS_IMETHOD Equals(nsIPrincipal* other, bool* _retval NS_OUTPARAM);
+  NS_IMETHOD EqualsIgnoringDomain(nsIPrincipal* other, bool* _retval NS_OUTPARAM);
+  NS_IMETHOD GetHashValue(PRUint32* aHashValue);
+  NS_IMETHOD GetURI(nsIURI** aURI);
+  NS_IMETHOD GetDomain(nsIURI** aDomain);
+  NS_IMETHOD SetDomain(nsIURI* aDomain);
+  NS_IMETHOD GetOrigin(char** aOrigin);
+  NS_IMETHOD Subsumes(nsIPrincipal* other, bool* _retval NS_OUTPARAM);
+  NS_IMETHOD SubsumesIgnoringDomain(nsIPrincipal* other, bool* _retval NS_OUTPARAM);
+  NS_IMETHOD CheckMayLoad(nsIURI* uri, bool report);
+#ifdef DEBUG
+  virtual void dumpImpl();
+#endif
+  
+  
+  nsresult Init(const nsACString& aCertFingerprint,
+                const nsACString& aSubjectName,
+                const nsACString& aPrettyName,
+                nsISupports* aCert,
+                nsIURI* aCodebase);
+  nsresult InitFromPersistent(const char* aPrefName,
+                              const nsCString& aFingerprint,
+                              const nsCString& aSubjectName,
+                              const nsACString& aPrettyName,
+                              const char* aGrantedList,
+                              const char* aDeniedList,
+                              nsISupports* aCert,
+                              bool aIsCert,
+                              bool aTrusted);
+
+  virtual void GetScriptLocation(nsACString& aStr) MOZ_OVERRIDE;
+  void SetURI(nsIURI* aURI);
+
+  nsCOMPtr<nsIURI> mDomain;
+  nsCOMPtr<nsIURI> mCodebase;
   
   bool mCodebaseImmutable;
   bool mDomainImmutable;
+  bool mInitialized;
 };
 
 
