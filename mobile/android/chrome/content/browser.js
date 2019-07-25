@@ -1152,21 +1152,26 @@ Tab.prototype = {
     this._viewport.y = this.browser.contentWindow.scrollY +
                        this.viewportExcess.y;
 
+    
+    this._viewport.x = Math.round(this._viewport.x * this._viewport.zoom);
+    this._viewport.y = Math.round(this._viewport.y * this._viewport.zoom);
+
+    
+
+
+
     let doc = this.browser.contentDocument;
-    let pageWidth = this._viewport.width;
-    let pageHeight = this._viewport.height;
-    if (doc != null) {
+    if (doc != null && doc.readyState === 'complete') {
+      let pageWidth = this._viewport.width, pageHeight = this._viewport.height;
       let body = doc.body || { scrollWidth: pageWidth, scrollHeight: pageHeight };
       let html = doc.documentElement || { scrollWidth: pageWidth, scrollHeight: pageHeight };
       pageWidth = Math.max(body.scrollWidth, html.scrollWidth);
       pageHeight = Math.max(body.scrollHeight, html.scrollHeight);
-    }
 
-    
-    this._viewport.x = Math.round(this._viewport.x * this._viewport.zoom);
-    this._viewport.y = Math.round(this._viewport.y * this._viewport.zoom);
-    this._viewport.pageWidth = Math.round(pageWidth * this._viewport.zoom);
-    this._viewport.pageHeight = Math.round(pageHeight * this._viewport.zoom);
+      
+      this._viewport.pageWidth = Math.round(pageWidth * this._viewport.zoom);
+      this._viewport.pageHeight = Math.round(pageHeight * this._viewport.zoom);
+    }
 
     return this._viewport;
   },
