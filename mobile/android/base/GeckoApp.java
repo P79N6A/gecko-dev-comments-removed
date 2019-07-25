@@ -566,36 +566,43 @@ abstract public class GeckoApp
             return; 
         if (outState == null)
             outState = new Bundle();
-        rememberLastScreen();
+        mRememberLastScreenRunnable.run();
         outState.putString(SAVED_STATE_URI, mLastUri);
         outState.putString(SAVED_STATE_TITLE, mLastTitle);
         outState.putString(SAVED_STATE_VIEWPORT, mLastViewport);
         outState.putByteArray(SAVED_STATE_SCREEN, mLastScreen);
     }
 
+    Runnable mRememberLastScreenRunnable = new Runnable() {; 
+        public void run() {
+            synchronized (this) {
+                if (mUserDefinedProfile)
+                    return;
 
-    private void rememberLastScreen() {
-        if (mUserDefinedProfile)
-            return;
+                Tab tab = Tabs.getInstance().getSelectedTab();
+                if (tab == null)
+                    return;
 
-        Tab tab = Tabs.getInstance().getSelectedTab();
-        if (tab == null)
-            return;
+                HistoryEntry lastHistoryEntry = tab.getLastHistoryEntry();
+                if (lastHistoryEntry == null)
+                    return;
 
-        HistoryEntry lastHistoryEntry = tab.getLastHistoryEntry();
-        if (lastHistoryEntry == null)
-            return;
+                if (getLayerController().getLayerClient() != mSoftwareLayerClient)
+                    return;
 
-        if (getLayerController().getLayerClient() != mSoftwareLayerClient)
-            return;
-
-        mLastViewport = mSoftwareLayerClient.getGeckoViewportMetrics().toJSON();
-        mLastUri = lastHistoryEntry.mUri;
-        mLastTitle = lastHistoryEntry.mTitle;
-        Bitmap bitmap = mSoftwareLayerClient.getBitmap();
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        bitmap.compress(Bitmap.CompressFormat.PNG, 0, bos);
-        mLastScreen = bos.toByteArray();
+                if (mLastUri == lastHistoryEntry.mUri &&
+                    mLastTitle == lastHistoryEntry.mTitle)
+                    return;
+   
+                mLastViewport = mSoftwareLayerClient.getGeckoViewportMetrics().toJSON();
+                mLastUri = lastHistoryEntry.mUri;
+                mLastTitle = lastHistoryEntry.mTitle;
+                Bitmap bitmap = mSoftwareLayerClient.getBitmap();
+                ByteArrayOutputStream bos = new ByteArrayOutputStream();
+                bitmap.compress(Bitmap.CompressFormat.PNG, 0, bos);
+                mLastScreen = bos.toByteArray();
+            }
+        }
     }
 
     private void maybeCancelFaviconLoad(Tab tab) {
@@ -1114,6 +1121,7 @@ abstract public class GeckoApp
                 onTabsChanged(tab);
             }
         });
+        GeckoAppShell.getHandler().postDelayed(mRememberLastScreenRunnable, 500);
     }
 
     void handleTitleChanged(int tabId, String title) {
@@ -1241,6 +1249,11 @@ abstract public class GeckoApp
                                      WindowManager.LayoutParams.FLAG_FULLSCREEN);
             }
         });
+    }
+
+    public GeckoApp() {
+        super();
+        mRememberLastScreenRunnable = new RememberLastScreenRunnable();
     }
 
     
@@ -1487,14 +1500,7 @@ abstract public class GeckoApp
     {
         Log.i(LOGTAG, "pause");
 
-        
-        
-        
-        
-        
-        
-        
-        
+        GeckoAppShell.getHandler().post(mRememberLastScreenRunnable);
 
         GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.ACTIVITY_PAUSING));
         
