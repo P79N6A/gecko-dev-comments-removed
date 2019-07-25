@@ -135,22 +135,15 @@ StartUpdateProcess(int argc,
   WCHAR envVarString[32];
   wsprintf(envVarString, L"MOZ_USING_SERVICE=1"); 
   _wputenv(envVarString);
-  LPVOID environmentBlock = NULL;
-  if (!CreateEnvironmentBlock(&environmentBlock, NULL, TRUE)) {
-    LOG(("Could not create an environment block, setting it to NULL.\n"));
-    environmentBlock = NULL;
-  }
+
   
-  _wputenv(L"MOZ_USING_SERVICE=");
   processStarted = CreateProcessW(argv[0], cmdLine, 
                                   NULL, NULL, FALSE, 
-                                  CREATE_DEFAULT_ERROR_MODE | 
-                                  CREATE_UNICODE_ENVIRONMENT, 
-                                  environmentBlock, 
+                                  CREATE_DEFAULT_ERROR_MODE, 
+                                  NULL, 
                                   NULL, &si, &pi);
-  if (environmentBlock) {
-    DestroyEnvironmentBlock(environmentBlock);
-  }
+  _wputenv(L"MOZ_USING_SERVICE=");
+  
   BOOL updateWasSuccessful = FALSE;
   if (processStarted) {
     
