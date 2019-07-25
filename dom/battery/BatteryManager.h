@@ -95,11 +95,16 @@ private:
 
   double mLevel;
   bool   mCharging;
-  double mDischargingTime;
+  
+
+
+
+  double mRemainingTime;
 
   nsRefPtr<nsDOMEventListenerWrapper> mOnLevelChangeListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnChargingChangeListener;
   nsRefPtr<nsDOMEventListenerWrapper> mOnDischargingTimeChangeListener;
+  nsRefPtr<nsDOMEventListenerWrapper> mOnChargingTimeChangeListener;
 };
 
 } 
