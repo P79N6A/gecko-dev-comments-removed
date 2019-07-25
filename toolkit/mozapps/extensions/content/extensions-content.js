@@ -250,7 +250,7 @@ function InstallTriggerManager() {
 
 InstallTriggerManager.prototype = {
   handleEvent: function handleEvent(aEvent) {
-    var window = aEvent.target.defaultView;
+    var window = aEvent.originalTarget.defaultView.content;
 
     
     
