@@ -360,7 +360,7 @@ window.TabMirror = {
   
   
   pausePainting: function() {
-
+    this._private.paintingPaused++;
   },
   
   
@@ -368,7 +368,7 @@ window.TabMirror = {
   
   
   resumePainting: function() {
-
+    this._private.paintingPaused--;
   },
 
   
