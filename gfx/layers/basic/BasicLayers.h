@@ -103,7 +103,6 @@ private:
                   DrawThebesLayerCallback aCallback,
                   void* aCallbackData);
 
-  nsRefPtr<Layer> mRoot;
   
   nsRefPtr<gfxContext> mDefaultTarget;
   

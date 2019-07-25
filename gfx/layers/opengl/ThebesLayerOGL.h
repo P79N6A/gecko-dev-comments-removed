@@ -67,15 +67,10 @@ public:
                            const nsIntPoint& aOffset);
 
   
-  const nsIntRect &GetVisibleRect();
+  nsIntRect GetVisibleRect() { return mVisibleRegion.GetBounds(); }
   const nsIntRect &GetInvalidatedRect();
 
 private:
-  
-
-
-
-  nsIntRect mVisibleRect;
   
 
 

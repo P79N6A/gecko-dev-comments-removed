@@ -86,8 +86,6 @@ public:
     MOZ_COUNT_DTOR(BasicImplData);
   }
 
-  const nsIntRegion& GetVisibleRegion() { return mVisibleRegion; }
-
   
 
 
@@ -97,9 +95,6 @@ public:
   virtual void Paint(gfxContext* aContext,
                      LayerManager::DrawThebesLayerCallback aCallback,
                      void* aCallbackData) {}
-
-protected:
-  nsIntRegion mVisibleRegion;
 };
 
 static BasicImplData*
@@ -121,7 +116,7 @@ public:
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
-    mVisibleRegion = aRegion;
+    ContainerLayer::SetVisibleRegion(aRegion);
   }
   virtual void InsertAfter(Layer* aChild, Layer* aAfter);
   virtual void RemoveChild(Layer* aChild);
@@ -234,7 +229,7 @@ public:
   {
     NS_ASSERTION(BasicManager()->InConstruction(),
                  "Can only set properties in construction phase");
-    mVisibleRegion = aRegion;
+    ThebesLayer::SetVisibleRegion(aRegion);
   }
   virtual void InvalidateRegion(const nsIntRegion& aRegion)
   {
@@ -654,7 +649,7 @@ BasicLayerManager::PaintLayer(Layer* aLayer,
     if (needsGroup) {
       
       
-      nsIntRect bbox = ToData(aLayer)->GetVisibleRegion().GetBounds();
+      nsIntRect bbox = aLayer->GetVisibleRegion().GetBounds();
       gfxRect deviceRect =
         mTarget->UserToDevice(gfxRect(bbox.x, bbox.y, bbox.width, bbox.height));
       deviceRect.RoundOut();
