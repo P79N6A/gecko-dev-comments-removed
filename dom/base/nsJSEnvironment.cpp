@@ -123,11 +123,9 @@ static PRLogModuleInfo* gJSDiagnostics;
 #endif
 
 
-#ifndef WINCE
 #ifdef CompareString
 #undef CompareString
 #endif
-#endif 
 
 
 
