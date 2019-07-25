@@ -331,6 +331,9 @@ public:
   nsresult BookmarkIdToResultNode(PRInt64 aBookmarkId,
                                   nsNavHistoryQueryOptions* aOptions,
                                   nsNavHistoryResultNode** aResult);
+  nsresult URIToResultNode(nsIURI* aURI,
+                           nsNavHistoryQueryOptions* aOptions,
+                           nsNavHistoryResultNode** aResult);
 
   
   
@@ -641,6 +644,7 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
+  nsCOMPtr<mozIStorageStatement> mDBUrlToUrlResult; 
   nsCOMPtr<mozIStorageStatement> mDBUpdateFrecency;
   nsCOMPtr<mozIStorageStatement> mDBUpdateHiddenOnFrecency;
   nsCOMPtr<mozIStorageStatement> mDBGetPlaceVisitStats;

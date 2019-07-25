@@ -187,6 +187,10 @@ function check_history_query() {
   do_check_eq(resultObserver.invalidatedContainer, result.root);
 
   
+  bhist.removeAllPages();
+  do_check_eq(root.uri, resultObserver.invalidatedContainer.uri);
+
+  
   do_check_false(resultObserver.inBatchMode);
   histsvc.runInBatchMode({
     runBatched: function (aUserData) {
