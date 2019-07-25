@@ -108,7 +108,13 @@ public:
   }
 
   
-  int RoundDownToTileEdge(int aX) const { return aX - aX % GetTileLength(); }
+  int GetTileStart(int i) const {
+    return (i >= 0) ? (i % GetTileLength())
+                    : ((GetTileLength() - (-i % GetTileLength())) % GetTileLength());
+  }
+
+  
+  int RoundDownToTileEdge(int aX) const { return aX - GetTileStart(aX); }
 
 protected:
   
@@ -154,16 +160,34 @@ public:
   virtual void PaintedTiledLayerBuffer(const BasicTiledLayerBuffer* aTiledBuffer) = 0;
 };
 
+
+
+static int floor_div(int a, int b)
+{
+  int rem = a % b;
+  int div = a/b;
+  if (rem == 0) {
+    return div;
+  } else {
+    
+    int sub;
+    sub = a ^ b;
+    
+    sub >>= 8*sizeof(int)-1;
+    return div+sub;
+  }
+}
+
 template<typename Derived, typename Tile> Tile
 TiledLayerBuffer<Derived, Tile>::GetTile(const nsIntPoint& aTileOrigin) const
 {
   
   
   
-  int firstTileX = mValidRegion.GetBounds().x / GetTileLength();
-  int firstTileY = mValidRegion.GetBounds().y / GetTileLength();
-  return GetTile(aTileOrigin.x / GetTileLength() - firstTileX,
-                 aTileOrigin.y / GetTileLength() - firstTileY);
+  int firstTileX = floor_div(mValidRegion.GetBounds().x, GetTileLength());
+  int firstTileY = floor_div(mValidRegion.GetBounds().y, GetTileLength());
+  return GetTile(floor_div(aTileOrigin.x, GetTileLength()) - firstTileX,
+                 floor_div(aTileOrigin.y, GetTileLength()) - firstTileY);
 }
 
 template<typename Derived, typename Tile> Tile
@@ -177,10 +201,10 @@ template<typename Derived, typename Tile> bool
 TiledLayerBuffer<Derived, Tile>::RemoveTile(const nsIntPoint& aTileOrigin,
                                             Tile& aRemovedTile)
 {
-  int firstTileX = mValidRegion.GetBounds().x / GetTileLength();
-  int firstTileY = mValidRegion.GetBounds().y / GetTileLength();
-  return RemoveTile(aTileOrigin.x / GetTileLength() - firstTileX,
-                    aTileOrigin.y / GetTileLength() - firstTileY,
+  int firstTileX = floor_div(mValidRegion.GetBounds().x, GetTileLength());
+  int firstTileY = floor_div(mValidRegion.GetBounds().y, GetTileLength());
+  return RemoveTile(floor_div(aTileOrigin.x, GetTileLength()) - firstTileX,
+                    floor_div(aTileOrigin.y, GetTileLength()) - firstTileY,
                     aRemovedTile);
 }
 
@@ -221,17 +245,17 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   int tileX = 0;
   int tileY;
   
-  for (int x = newBound.x; x < newBound.XMost(); tileX++) {
+  for (int32_t x = newBound.x; x < newBound.XMost(); tileX++) {
     
     
-    int width = GetTileLength() - x % GetTileLength();
+    int width = GetTileLength() - GetTileStart(x);
     if (x + width > newBound.XMost()) {
       width = newBound.x + newBound.width - x;
     }
 
     tileY = 0;
-    for (int y = newBound.y; y < newBound.YMost(); tileY++) {
-      int height = GetTileLength() - y % GetTileLength();
+    for (int32_t y = newBound.y; y < newBound.YMost(); tileY++) {
+      int height = GetTileLength() - GetTileStart(y);
       if (y + height > newBound.y + newBound.height) {
         height = newBound.y + newBound.height - y;
       }
@@ -241,8 +265,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         
         
         
-        int tileX = (x - oldBufferOrigin.x) / GetTileLength();
-        int tileY = (y - oldBufferOrigin.y) / GetTileLength();
+        int tileX = floor_div(x - oldBufferOrigin.x, GetTileLength());
+        int tileY = floor_div(y - oldBufferOrigin.y, GetTileLength());
         int index = tileX * oldRetainedHeight + tileY;
 
         
@@ -294,18 +318,21 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
   
   
   tileX = 0;
+#ifdef GFX_TILEDLAYER_PREF_WARNINGS
+  printf_stderr("Update %i, %i, %i, %i\n", newBound.x, newBound.y, newBound.width, newBound.height);
+#endif
   for (int x = newBound.x; x < newBound.x + newBound.width; tileX++) {
     
     
     int tileStartX = RoundDownToTileEdge(x);
-    int width = GetTileLength() - x % GetTileLength();
+    int width = GetTileLength() - GetTileStart(x);
     if (x + width > newBound.XMost())
       width = newBound.XMost() - x;
 
     tileY = 0;
     for (int y = newBound.y; y < newBound.y + newBound.height; tileY++) {
       int tileStartY = RoundDownToTileEdge(y);
-      int height = GetTileLength() - y % GetTileLength();
+      int height = GetTileLength() - GetTileStart(y);
       if (y + height > newBound.YMost()) {
         height = newBound.YMost() - y;
       }
@@ -320,8 +347,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         
         
 #ifdef DEBUG
-        int currTileX = (x - newBufferOrigin.x) / GetTileLength();
-        int currTileY = (y - newBufferOrigin.y) / GetTileLength();
+        int currTileX = floor_div(x - newBufferOrigin.x, GetTileLength());
+        int currTileY = floor_div(y - newBufferOrigin.y, GetTileLength());
         int index = currTileX * mRetainedHeight + currTileY;
         NS_ABORT_IF_FALSE(!newValidRegion.Intersects(tileRect) ||
                           !IsPlaceholder(newRetainedTiles.
@@ -332,8 +359,8 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
         continue;
       }
 
-      int tileX = (x - newBufferOrigin.x) / GetTileLength();
-      int tileY = (y - newBufferOrigin.y) / GetTileLength();
+      int tileX = floor_div(x - newBufferOrigin.x, GetTileLength());
+      int tileY = floor_div(y - newBufferOrigin.y, GetTileLength());
       int index = tileX * mRetainedHeight + tileY;
       NS_ABORT_IF_FALSE(index >= 0 && index < newRetainedTiles.Length(), "index out of range");
       Tile newTile = newRetainedTiles[index];
@@ -349,6 +376,9 @@ TiledLayerBuffer<Derived, Tile>::Update(const nsIntRegion& aNewValidRegion,
       newTile = AsDerived().ValidateTile(newTile, nsIntPoint(tileStartX, tileStartY),
                                          tileDrawRegion);
       NS_ABORT_IF_FALSE(!IsPlaceholder(newTile), "index out of range");
+#ifdef GFX_TILEDLAYER_PREF_WARNINGS
+      printf_stderr("Store Validate tile %i, %i -> %i\n", tileStartX, tileStartY, index);
+#endif
       newRetainedTiles[index] = newTile;
 
       y += height;
