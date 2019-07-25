@@ -679,10 +679,10 @@ SessionStoreService.prototype = {
         this.onTabSelect(win);
         break;
       case "TabShow":
-        this.onTabShow(aEvent.originalTarget);
+        this.onTabShow(win, aEvent.originalTarget);
         break;
       case "TabHide":
-        this.onTabHide(aEvent.originalTarget);
+        this.onTabHide(win, aEvent.originalTarget);
         break;
       case "TabPinned":
       case "TabUnpinned":
@@ -1064,7 +1064,7 @@ SessionStoreService.prototype = {
     }
   },
 
-  onTabShow: function sss_onTabShow(aTab) {
+  onTabShow: function sss_onTabShow(aWindow, aTab) {
     
     if (aTab.linkedBrowser.__SS_restoreState &&
         aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
@@ -1072,9 +1072,13 @@ SessionStoreService.prototype = {
       
       this._tabsToRestore.visible.push(aTab);
     }
+
+    
+    
+    this.saveStateDelayed(aWindow);
   },
 
-  onTabHide: function sss_onTabHide(aTab) {
+  onTabHide: function sss_onTabHide(aWindow, aTab) {
     
     if (aTab.linkedBrowser.__SS_restoreState &&
         aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
@@ -1082,6 +1086,10 @@ SessionStoreService.prototype = {
       
       this._tabsToRestore.hidden.push(aTab);
     }
+
+    
+    
+    this.saveStateDelayed(aWindow);
   },
 
 
