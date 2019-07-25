@@ -58,7 +58,7 @@ tabbrowser {
 }
 
 .tabbrowser-tabs:not([pinnedonly]) > .tabbrowser-tab[pinned] {
-  position: fixed;
+  position: fixed !important;
   display: block; 
 }
 
