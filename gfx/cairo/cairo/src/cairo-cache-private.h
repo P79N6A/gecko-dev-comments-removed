@@ -84,7 +84,7 @@
 
 
 typedef struct _cairo_cache_entry {
-    unsigned long hash;
+    uintptr_t hash;
     unsigned long size;
 } cairo_cache_entry_t;
 
