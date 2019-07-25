@@ -502,6 +502,7 @@ nsIconChannel::Init(nsIURI* aURI)
 
   
   
+  
   if (!icon)
     return NS_ERROR_NOT_AVAILABLE;
   
