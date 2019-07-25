@@ -5839,6 +5839,8 @@ nsHTMLEditor::ShouldReplaceRootElement()
 void
 nsHTMLEditor::ResetRootElementAndEventTarget()
 {
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
   
   
   

@@ -1027,6 +1027,9 @@ nsTreeContentView::ContentInserted(nsIDocument *aDocument,
       return; 
   }
 
+  
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
   if (childTag == nsGkAtoms::treechildren) {
     PRInt32 index = FindContent(aContainer);
     if (index >= 0) {

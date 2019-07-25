@@ -857,6 +857,8 @@ inDOMView::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
   if (NS_FAILED(rv = RowToNode(parentRow, &parentNode)))
     return;
 
+  nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+  
   if (!parentNode->isOpen) {
     
     

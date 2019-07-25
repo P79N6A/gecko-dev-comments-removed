@@ -211,6 +211,12 @@ public:
 
 
 
+
+
+
+
+
+
   virtual void ContentAppended(nsIDocument *aDocument,
                                nsIContent* aContainer,
                                nsIContent* aFirstNewContent,

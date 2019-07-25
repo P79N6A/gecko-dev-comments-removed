@@ -1103,6 +1103,9 @@ nsXULDocument::ContentAppended(nsIDocument* aDocument,
     NS_ASSERTION(aDocument == this, "unexpected doc");
     
     
+    nsCOMPtr<nsIMutationObserver> kungFuDeathGrip(this);
+
+    
     nsresult rv = NS_OK;
     for (nsIContent* cur = aFirstNewContent; cur && NS_SUCCEEDED(rv);
          cur = cur->GetNextSibling()) {
