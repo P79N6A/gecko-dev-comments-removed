@@ -873,6 +873,9 @@ function rssArrayElement(s) {
 
 function dateParse(aDateString) {
   let dateString = aDateString.trim();
+  
+  
+  dateString = dateString.replace(/z$/i, "-00:00");
   let date = new Date(dateString);
   if (!isNaN(date)) {
     return date.toUTCString();
