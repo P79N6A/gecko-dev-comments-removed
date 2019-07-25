@@ -50,6 +50,7 @@
 #endif
 
 #include "prprf.h"
+#include "prenv.h"
 
 #if defined(OS_LINUX)
 #  define XP_LINUX 1
@@ -344,8 +345,54 @@ GeckoChildProcessHost::InitializeChannel()
   mon.Notify();
 }
 
+PRInt32 GeckoChildProcessHost::mChildCounter = 0;
+
+
+
+
 bool
 GeckoChildProcessHost::PerformAsyncLaunch(std::vector<std::string> aExtraOpts, base::ProcessArchitecture arch)
+{
+  
+  const char* origLogName = PR_GetEnv("NSPR_LOG_FILE");
+  const char* separateLogs = PR_GetEnv("GECKO_SEPARATE_NSPR_LOGS");
+  if (!origLogName || !separateLogs || !*separateLogs ||
+      *separateLogs == '0' || *separateLogs == 'N' || *separateLogs == 'n') {
+    return PerformAsyncLaunchInternal(aExtraOpts, arch);
+  }
+
+  
+  
+  
+  
+  nsCAutoString setChildLogName("NSPR_LOG_FILE=");
+  setChildLogName.Append(origLogName);
+
+  
+  
+  
+  
+  static char* restoreOrigLogName = 0;
+  if (!restoreOrigLogName)
+    restoreOrigLogName = strdup(PromiseFlatCString(setChildLogName).get());
+
+  
+  setChildLogName.AppendLiteral(".child-");
+  setChildLogName.AppendInt(++mChildCounter);
+
+  
+  
+  PR_SetEnv(PromiseFlatCString(setChildLogName).get());
+  bool retval = PerformAsyncLaunchInternal(aExtraOpts, arch);
+
+  
+  PR_SetEnv(restoreOrigLogName);
+
+  return retval;
+}
+
+bool
+GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExtraOpts, base::ProcessArchitecture arch)
 {
   
 
