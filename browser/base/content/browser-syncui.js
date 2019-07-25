@@ -109,17 +109,10 @@ let gSyncUI = {
     document.getElementById("sync-menu").hidden = needsSetup;
 
     if (gBrowser) {
-      let showLabel = !this._isLoggedIn() && !needsSetup;
-      let button = document.getElementById("sync-status-button");
-      button.setAttribute("class", showLabel ? "statusbarpanel-iconic-text"
-                                             : "statusbarpanel-iconic");
-      button.image = "chrome://browser/skin/sync-16.png";
-
-      if (!this._isLoggedIn()) {
-        
-        
-        button.removeAttribute("tooltiptext");
-      }
+      document.getElementById("sync-button").removeAttribute("status");
+    }
+    if (needsSetup) {
+      document.getElementById("sync-button").removeAttribute("tooltiptext");
     }
   },
 
@@ -155,8 +148,7 @@ let gSyncUI = {
   onActivityStart: function SUI_onActivityStart() {
     
     if (gBrowser)
-      document.getElementById("sync-status-button").image =
-        "chrome://browser/skin/sync-16-throbber.png";
+      document.getElementById("sync-button").setAttribute("status", "active");
   },
 
   onSyncFinish: function SUI_onSyncFinish() {
@@ -304,7 +296,7 @@ let gSyncUI = {
     Weave.Service.sync();
   },
 
-  handleStatusbarButton: function SUI_handleStatusbarButton() {
+  handleToolbarButton: function SUI_handleStatusbarButton() {
     if (Weave.Service.isLoggedIn)
       Weave.Service.sync();
     else if (this._needsSetup())
@@ -361,8 +353,8 @@ let gSyncUI = {
     document.getElementById("sync-lastsyncsep").hidden = false;
 
     if (gBrowser)
-      document.getElementById("sync-status-button").
-               setAttribute("tooltiptext", lastSyncLabel);
+      document.getElementById("sync-button")
+              .setAttribute("tooltiptext", lastSyncLabel);
   },
 
   _onSyncEnd: function SUI__onSyncEnd(success) {
