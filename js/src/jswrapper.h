@@ -105,10 +105,17 @@ class JSWrapper : public js::JSProxyHandler {
     static inline JSObject *wrappedObject(JSObject *wrapper) {
         return wrapper->getProxyPrivate().toObjectOrNull();
     }
+
+    static JS_FRIEND_API(void *) getWrapperFamily();
 };
 
 
 class JS_FRIEND_API(JSCrossCompartmentWrapper) : public JSWrapper {
+  protected:
+    
+    
+    JSCrossCompartmentWrapper(void *family);
+
   public:
     JSCrossCompartmentWrapper(uintN flags);
 
