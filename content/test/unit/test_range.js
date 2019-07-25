@@ -369,33 +369,6 @@ function run_extract_test() {
 
     
     walker = null;
-
-    
-
-
-
-    dump("Detached range test\n");
-    var compareFrag = getFragment(baseSource);
-    baseFrag = getFragment(baseSource);
-    baseRange = getRange(baseSource, baseFrag);
-    baseRange.detach();
-    try {
-      var cutFragment = baseRange.extractContents();
-      do_throw("Should have thrown INVALID_STATE_ERR!");
-    } catch (e if (e instanceof C_i.nsIException &&
-                   e.result == INVALID_STATE_ERR)) {
-      
-    }
-    do_check_true(compareFrag.isEqualNode(baseFrag));
-
-    try {
-      baseRange.deleteContents();
-      do_throw("Should have thrown INVALID_STATE_ERR!");
-    } catch (e if (e instanceof C_i.nsIException &&
-                   e.result == INVALID_STATE_ERR)) {
-      
-    }
-    do_check_true(compareFrag.isEqualNode(baseFrag));
   }
 }
 
