@@ -225,6 +225,10 @@ ValueIsLength(JSContext *cx, jsval* vp)
     length = (jsuint) d;
     if (d != (jsdouble) length)
         goto error;
+    if (!js_NewNumberInRootedValue(cx, d, vp)) {
+        *vp = JSVAL_NULL;
+        return 0;
+    }
     return length;
 
   error:
@@ -337,7 +341,7 @@ JSObject::resizeDenseArrayElements(JSContext *cx, uint32 oldcap, uint32 newcap,
         return JS_TRUE;
     }
 
-    if (newcap > MAX_DSLOTS_LENGTH32) {
+    if (newcap > MAX_DSLOTS_LENGTH) {
         js_ReportAllocationOverflow(cx);
         return JS_FALSE;
     }
