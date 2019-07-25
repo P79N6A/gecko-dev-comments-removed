@@ -140,14 +140,27 @@ public:
   virtual nsEventStates IntrinsicState() const;
 
   virtual nsXPCClassInfo* GetClassInfo();
+  
+  virtual void OnDNSPrefetchDeferred();
+  virtual void OnDNSPrefetchRequested();
+  virtual bool HasDeferredDNSPrefetchRequest();
 };
 
+
+#define HTML_ANCHOR_DNS_PREFETCH_REQUESTED \
+  (1 << ELEMENT_TYPE_SPECIFIC_BITS_OFFSET)
+
+#define HTML_ANCHOR_DNS_PREFETCH_DEFERRED \
+  (1 << ELEMENT_TYPE_SPECIFIC_BITS_OFFSET+1)
+
+
+PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET+1 < 32);
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Anchor)
 
 nsHTMLAnchorElement::nsHTMLAnchorElement(already_AddRefed<nsINodeInfo> aNodeInfo)
-  : nsGenericHTMLElement(aNodeInfo),
-    Link(this)
+  : nsGenericHTMLElement(aNodeInfo)
+  , Link(this)
 {
 }
 
@@ -202,6 +215,26 @@ nsHTMLAnchorElement::GetDraggable(bool* aDraggable)
   return nsGenericHTMLElement::GetDraggable(aDraggable);
 }
 
+void
+nsHTMLAnchorElement::OnDNSPrefetchRequested()
+{
+  UnsetFlags(HTML_ANCHOR_DNS_PREFETCH_DEFERRED);
+  SetFlags(HTML_ANCHOR_DNS_PREFETCH_REQUESTED);
+}
+
+void
+nsHTMLAnchorElement::OnDNSPrefetchDeferred()
+{
+  UnsetFlags(HTML_ANCHOR_DNS_PREFETCH_REQUESTED);
+  SetFlags(HTML_ANCHOR_DNS_PREFETCH_DEFERRED);
+}
+
+bool
+nsHTMLAnchorElement::HasDeferredDNSPrefetchRequest()
+{
+  return HasFlag(HTML_ANCHOR_DNS_PREFETCH_DEFERRED);
+}
+
 nsresult
 nsHTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                 nsIContent* aBindingParent,
@@ -228,6 +261,21 @@ nsHTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 void
 nsHTMLAnchorElement::UnbindFromTree(bool aDeep, bool aNullParent)
 {
+  
+  
+  
+
+  
+  if (HasFlag(HTML_ANCHOR_DNS_PREFETCH_DEFERRED))
+    UnsetFlags(HTML_ANCHOR_DNS_PREFETCH_DEFERRED);
+  
+  else if (HasFlag(HTML_ANCHOR_DNS_PREFETCH_REQUESTED)) {
+    UnsetFlags(HTML_ANCHOR_DNS_PREFETCH_REQUESTED);
+    
+    
+    nsHTMLDNSPrefetch::CancelPrefetchLow(this, NS_ERROR_ABORT);
+  }
+  
   
   
   Link::ResetLinkState(false);
