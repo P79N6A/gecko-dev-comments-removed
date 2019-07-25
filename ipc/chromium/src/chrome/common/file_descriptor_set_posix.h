@@ -30,7 +30,7 @@ class FileDescriptorSet : public base::RefCountedThreadSafe<FileDescriptorSet> {
   
   
   enum {
-    MAX_DESCRIPTORS_PER_MESSAGE = 4,
+    MAX_DESCRIPTORS_PER_MESSAGE = 4
   };
 
   

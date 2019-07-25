@@ -133,7 +133,7 @@ class WorkQueue : public PlatformThread::Delegate {
   bool allow_help_requests_;  
   bool shutdown_;  
 
-  DFAKE_MUTEX(locked_methods_);
+  DFAKE_MUTEX(locked_methods_)
 };
 
 

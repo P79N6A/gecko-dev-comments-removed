@@ -91,7 +91,7 @@ class Channel::ChannelImpl : public MessageLoopForIO::Watcher {
     
     
     MAX_READ_FDS = (Channel::kReadBufferSize / sizeof(IPC::Message::Header)) *
-                   FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE,
+                   FileDescriptorSet::MAX_DESCRIPTORS_PER_MESSAGE
   };
 
   

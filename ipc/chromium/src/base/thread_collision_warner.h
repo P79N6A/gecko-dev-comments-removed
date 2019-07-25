@@ -101,7 +101,7 @@
 
 
 #define DFAKE_MUTEX(obj) \
-     mutable base::ThreadCollisionWarner obj
+     mutable base::ThreadCollisionWarner obj;
 
 
 #define DFAKE_SCOPED_LOCK(obj) \
