@@ -1,10 +1,14 @@
+const Cu = Components.utils;
+
+Cu.import("resource://weave/util.js");
+Cu.import("resource://weave/async.js");
+
 function run_test() {
-  var async = loadInSandbox("resource://weave/async.js");
   var callbackQueue = [];
 
-  Function.prototype.async = async.Async.sugar;
+  Function.prototype.async = Async.sugar;
 
-  async.makeTimer = function fake_makeTimer(cb) {
+  Utils.makeTimerForCall = function fake_makeTimerForCall(cb) {
     
     
     callbackQueue.push(cb);

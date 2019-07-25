@@ -243,6 +243,15 @@ let Utils = {
     return tmp;
   },
 
+  
+  
+  makeTimerForCall: function makeTimerForCall(cb) {
+    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
+    timer.initWithCallback(new Utils.EventListener(cb),
+                           0, timer.TYPE_ONE_SHOT);
+    return timer;
+  },
+
   open: function open(pathOrFile, mode, perms) {
     let stream, file;
 

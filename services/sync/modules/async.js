@@ -48,15 +48,6 @@ Cu.import("resource://weave/util.js");
 
 
 
-
-
-function makeTimer(cb) {
-    let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
-    timer.initWithCallback(new Utils.EventListener(cb),
-                           0, timer.TYPE_ONE_SHOT);
-    return timer;
-}
-
 function AsyncException(initFrame, message) {
   this.message = message;
   this._trace = initFrame;
@@ -208,7 +199,7 @@ Generator.prototype = {
       return;
     let self = this;
     let cb = function() { self._done(retval); };
-    this._timer = makeTimer(cb);
+    this._timer = Utils.makeTimerForCall(cb);
   },
 
   _done: function AsyncGen__done(retval) {
