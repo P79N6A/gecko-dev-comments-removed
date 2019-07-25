@@ -1512,7 +1512,8 @@ public:
   WindowStateHolder(nsGlobalWindow *aWindow,
                     nsIXPConnectJSObjectHolder *aHolder,
                     nsNavigator *aNavigator,
-                    nsIXPConnectJSObjectHolder *aOuterProto);
+                    nsIXPConnectJSObjectHolder *aOuterProto,
+                    nsIXPConnectJSObjectHolder *aOuterRealProto);
 
   nsGlobalWindow* GetInnerWindow() { return mInnerWindow; }
   nsIXPConnectJSObjectHolder *GetInnerWindowHolder()
@@ -1520,6 +1521,7 @@ public:
 
   nsNavigator* GetNavigator() { return mNavigator; }
   nsIXPConnectJSObjectHolder* GetOuterProto() { return mOuterProto; }
+  nsIXPConnectJSObjectHolder* GetOuterRealProto() { return mOuterRealProto; }
 
   void DidRestoreWindow()
   {
@@ -1528,6 +1530,7 @@ public:
     mInnerWindowHolder = nsnull;
     mNavigator = nsnull;
     mOuterProto = nsnull;
+    mOuterRealProto = nsnull;
   }
 
 protected:
@@ -1539,6 +1542,7 @@ protected:
   nsCOMPtr<nsIXPConnectJSObjectHolder> mInnerWindowHolder;
   nsRefPtr<nsNavigator> mNavigator;
   nsCOMPtr<nsIXPConnectJSObjectHolder> mOuterProto;
+  nsCOMPtr<nsIXPConnectJSObjectHolder> mOuterRealProto;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(WindowStateHolder, WINDOWSTATEHOLDER_IID)
@@ -1546,10 +1550,12 @@ NS_DEFINE_STATIC_IID_ACCESSOR(WindowStateHolder, WINDOWSTATEHOLDER_IID)
 WindowStateHolder::WindowStateHolder(nsGlobalWindow *aWindow,
                                      nsIXPConnectJSObjectHolder *aHolder,
                                      nsNavigator *aNavigator,
-                                     nsIXPConnectJSObjectHolder *aOuterProto)
+                                     nsIXPConnectJSObjectHolder *aOuterProto,
+                                     nsIXPConnectJSObjectHolder *aOuterRealProto)
   : mInnerWindow(aWindow),
     mNavigator(aNavigator),
-    mOuterProto(aOuterProto)
+    mOuterProto(aOuterProto),
+    mOuterRealProto(aOuterRealProto)
 {
   NS_PRECONDITION(aWindow, "null window");
   NS_PRECONDITION(aWindow->IsInnerWindow(), "Saving an outer window");
@@ -1722,12 +1728,20 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
 
   JSAutoRequest ar(cx);
 
+  nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
+  NS_ASSERTION(!aState || wsh, "What kind of weird state are you giving me here?");
+
   
   
   
   
   mContext->ClearScope(mJSObject, PR_FALSE);
 
+  
+  
+  
+  nsIXPConnect *xpc = nsContentUtils::XPConnect();
+  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
   if (reUseInnerWindow) {
     
     NS_ASSERTION(!currentInner->IsFrozen(),
@@ -1739,9 +1753,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     }
   } else {
     if (aState) {
-      nsCOMPtr<WindowStateHolder> wsh = do_QueryInterface(aState);
-      NS_ASSERTION(wsh, "What kind of weird state are you giving me here?");
-
       newInnerWindow = wsh->GetInnerWindow();
       mInnerWindowHolder = wsh->GetInnerWindowHolder();
 
@@ -1875,12 +1886,37 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       mJSObject = (JSObject *)mContext->GetNativeGlobal();
     } else {
       
-      nsIXPConnect *xpc = nsContentUtils::XPConnect();
+      rv = xpc->GetWrappedNativeOfJSObject(cx, mJSObject,
+                                           getter_AddRefs(wrapper));
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      JSObject *proto;
+      wrapper->GetJSObjectPrototype(&proto);
+      if (!JS_SetPrototype(cx, mJSObject, proto)) {
+        NS_ERROR("Can't set prototype");
+        return NS_ERROR_UNEXPECTED;
+      }
+
       nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
       xpc->ReparentWrappedNativeIfFound(cx, currentInner->mJSObject,
                                         newInnerWindow->mJSObject,
                                         ToSupports(this),
                                         getter_AddRefs(holder));
+
+      if (aState) {
+        if (nsIXPConnectJSObjectHolder *holder = wsh->GetOuterRealProto()) {
+          holder->GetJSObject(&proto);
+        } else {
+          proto = nsnull;
+        }
+
+        if (!JS_SetPrototype(cx, mJSObject, proto)) {
+          NS_ERROR("can't set prototype");
+          return NS_ERROR_FAILURE;
+        }
+      }
     }
   }
 
@@ -1933,11 +1969,6 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     nsCommonWindowSH::InstallGlobalScopePolluter(cx, newInnerWindow->mJSObject,
                                                  html_doc);
   }
-
-  
-  
-  
-  nsIXPConnect *xpc = nsContentUtils::XPConnect();
 
   if (aDocument) {
     aDocument->SetScriptGlobalObject(newInnerWindow);
@@ -2004,10 +2035,11 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
   mContext->GC();
   mContext->DidInitializeContext();
 
-  nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
-  rv = xpc->GetWrappedNativeOfJSObject(cx, mJSObject,
-                                       getter_AddRefs(wrapper));
-  NS_ENSURE_SUCCESS(rv, rv);
+  if (!wrapper) {
+    rv = xpc->GetWrappedNativeOfJSObject(cx, mJSObject,
+                                         getter_AddRefs(wrapper));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   rv = xpc->UpdateXOWs((JSContext *)GetContextInternal()->GetNativeContext(),
                        wrapper, nsIXPConnect::XPC_XOW_NAVIGATED);
@@ -9052,19 +9084,37 @@ nsGlobalWindow::SaveWindowState(nsISupports **aState)
   inner->Freeze();
 
   
+  JSContext *cx = (JSContext *)mContext->GetNativeContext();
+  JSAutoRequest req(cx);
+
+  nsIXPConnect *xpc = nsContentUtils::XPConnect();
+
   nsCOMPtr<nsIClassInfo> ci =
     do_QueryInterface((nsIScriptGlobalObject *)this);
   nsCOMPtr<nsIXPConnectJSObjectHolder> proto;
-  nsresult rv = nsContentUtils::XPConnect()->
-    GetWrappedNativePrototype((JSContext *)mContext->GetNativeContext(),
-                              mJSObject, ci, getter_AddRefs(proto));
+  nsresult rv = xpc->GetWrappedNativePrototype(cx, mJSObject, ci,
+                                               getter_AddRefs(proto));
   NS_ENSURE_SUCCESS(rv, rv);
+
+  JSObject *realProto = JS_GetPrototype(cx, mJSObject);
+  nsCOMPtr<nsIXPConnectJSObjectHolder> realProtoHolder;
+  if (realProto) {
+    rv = xpc->HoldObject(cx, realProto, getter_AddRefs(realProtoHolder));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
 
   nsCOMPtr<nsISupports> state = new WindowStateHolder(inner,
                                                       mInnerWindowHolder,
                                                       mNavigator,
-                                                      proto);
+                                                      proto,
+                                                      realProtoHolder);
   NS_ENSURE_TRUE(state, NS_ERROR_OUT_OF_MEMORY);
+
+  JSObject *wnProto;
+  proto->GetJSObject(&wnProto);
+  if (!JS_SetPrototype(cx, mJSObject, wnProto)) {
+    return NS_ERROR_FAILURE;
+  }
 
 #ifdef DEBUG_PAGE_CACHE
   printf("saving window state, state = %p\n", (void*)state);
