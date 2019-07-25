@@ -51,15 +51,6 @@ const FINDSTATE_FIND_PREVIOUS = 2;
 
 Cu.import("resource://gre/modules/SpatialNavigation.js");
 
-
-
-__defineGetter__("gPrefService", function () {
-  delete gPrefService;
-  var gPrefService;
-  return gPrefService = Components.classes["@mozilla.org/preferences-service;1"]
-                                  .getService(Components.interfaces.nsIPrefBranch2);
-});
-
 function getBrowser() {
   return Browser.selectedBrowser;
 }
@@ -241,14 +232,12 @@ var Browser = {
         this.addTab(whereURI, true);
     }
 
-    var disablePlugins = true;
-    try { disablePlugins = gPrefService.getBoolPref("temporary.disablePlugins"); } catch (ex) { }
-    if (disablePlugins)
-    {
-      document.getElementById("plugins.enabled").pref.value = false;
-      this.setPluginState(false);
+    
+    
+    if (gPrefService.prefHasUserValue("temporary.disablePlugins")) {
+      gPrefService.clearUserPref("temporary.disablePlugins");
+      this.setPluginState(true);
     }
-    gPrefService.setBoolPref("temporary.disablePlugins", false);
   },
 
   updateViewportSize: function() {
