@@ -6,9 +6,11 @@
 
 
 #include "nsGenericHTMLElement.h"
-#include "nsIDOMHTMLFrameElement.h"
+#include "nsIFrameLoader.h"
 #include "nsIMozBrowserFrame.h"
 #include "nsIDOMEventListener.h"
+
+#include "nsFrameLoader.h"
 
 
 
