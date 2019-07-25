@@ -101,12 +101,12 @@ typedef enum {
 
 
 
-int ShInitialize();
+ANGLE_API int ShInitialize();
 
 
 
 
-int ShFinalize();
+ANGLE_API int ShFinalize();
 
 
 
