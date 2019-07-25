@@ -117,7 +117,7 @@ function run_test() {
   
   setMaxPages(0);
 
-  let now = getExpirablePRTime();
+  let now = Date.now() * 1000;
   
   for (let i = 0; i < 5; i++) {
     let pageURI = uri("http://item_anno." + i + ".mozilla.org/");
@@ -144,27 +144,6 @@ function run_test() {
     add_old_anno(id, "persist_lm_months", "test", as.EXPIRE_MONTHS, 181, 179);
     
     add_old_anno(id, "expire_months", "test", as.EXPIRE_MONTHS, 181);
-
-    
-    add_old_anno(pageURI, "persist_days", "test", as.EXPIRE_DAYS, 6);
-    
-    add_old_anno(pageURI, "persist_lm_days", "test", as.EXPIRE_DAYS, 8, 6);
-    
-    add_old_anno(pageURI, "expire_days", "test", as.EXPIRE_DAYS, 8);
-
-    
-    add_old_anno(pageURI, "persist_weeks", "test", as.EXPIRE_WEEKS, 29);
-    
-    add_old_anno(pageURI, "persist_lm_weeks", "test", as.EXPIRE_WEEKS, 31, 29);
-    
-    add_old_anno(pageURI, "expire_weeks", "test", as.EXPIRE_WEEKS, 31);
-
-    
-    add_old_anno(pageURI, "persist_months", "test", as.EXPIRE_MONTHS, 179);
-    
-    add_old_anno(pageURI, "persist_lm_months", "test", as.EXPIRE_MONTHS, 181, 179);
-    
-    add_old_anno(pageURI, "expire_months", "test", as.EXPIRE_MONTHS, 181);
   }
 
   
@@ -211,7 +190,7 @@ function run_test() {
       ["persist_days", "persist_lm_days", "persist_weeks", "persist_lm_weeks",
        "persist_months", "persist_lm_months"].forEach(function(aAnno) {
         let pages = as.getPagesWithAnnotation(aAnno);
-        do_check_eq(pages.length, 10);
+        do_check_eq(pages.length, 5);
       });
 
       ["persist_days", "persist_lm_days", "persist_weeks", "persist_lm_weeks",
