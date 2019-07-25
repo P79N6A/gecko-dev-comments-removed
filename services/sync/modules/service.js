@@ -1071,7 +1071,7 @@ WeaveSvc.prototype = {
       
       this._log.debug("Clearing cached meta record. metaModified is " +
           JSON.stringify(this.metaModified) + ", setting to " +
-          JSON.stringify(info.obj.meta));
+          JSON.stringify(infoResponse.obj.meta));
       Records.del(this.metaURL);
       
       
@@ -1081,7 +1081,7 @@ WeaveSvc.prototype = {
       
       
       meta              = newMeta;
-      this.metaModified = info.obj.meta;
+      this.metaModified = infoResponse.obj.meta;
     }
 
     let remoteVersion = (meta && meta.payload.storageVersion)?
