@@ -45,19 +45,23 @@
 nsManifestZIPLoader::nsManifestZIPLoader() 
     : mZipReader(new nsJAR())
 {
-    nsresult rv = reader->Open(mozilla::OmnijarPath());
+    nsresult rv = mZipReader->Open(mozilla::OmnijarPath());
     if (NS_FAILED(rv))
         mZipReader = NULL;
+}
+
+nsManifestZIPLoader::~nsManifestZIPLoader()
+{
 }
 
 already_AddRefed<nsIInputStream>
 nsManifestZIPLoader::LoadEntry(const char* aName)
 {
     if (!mZipReader)
-        return NS_ERROR_NOT_INITIALIZED;
+        return NULL;
 
     nsCOMPtr<nsIInputStream> is;
-    nsresult rv = zip->GetInputStream(aName, getter_AddRefs(is));
+    nsresult rv = mZipReader->GetInputStream(aName, getter_AddRefs(is));
     if (NS_FAILED(rv))
         return NULL;
 

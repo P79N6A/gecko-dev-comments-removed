@@ -37,10 +37,10 @@
 
 
 
-#include "nsISupports.h"
-#include "nsIManifestLoader.h"
+#include "nsCOMPtr.h"
 
 #include "nsIZipReader.h"
+#include "nsIInputStream.h"
 
 class nsManifestZIPLoader
 {
