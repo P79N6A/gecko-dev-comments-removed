@@ -1001,7 +1001,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   DrainOverflowLines(state);
 
   
-  nsRect ocBounds;
+  nsOverflowAreas ocBounds;
   nsReflowStatus ocStatus = NS_FRAME_COMPLETE;
   if (GetPrevInFlow()) {
     ReflowOverflowContainerChildren(aPresContext, aReflowState, ocBounds, 0,
@@ -1103,7 +1103,7 @@ nsBlockFrame::Reflow(nsPresContext*           aPresContext,
   ComputeFinalSize(aReflowState, state, aMetrics, &bottomEdgeOfChildren);
   ComputeCombinedArea(aReflowState, aMetrics, bottomEdgeOfChildren);
   
-  aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, ocBounds);
+  aMetrics.mOverflowAreas.UnionWith(ocBounds);
   
   aMetrics.mOverflowArea.UnionRect(aMetrics.mOverflowArea, fcBounds);
 
