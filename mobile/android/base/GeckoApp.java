@@ -2089,7 +2089,7 @@ abstract public class GeckoApp
                         
                     }
                 }
-            }).start();
+            }, "DNSPrefetcher Thread").start();
     }
 }
 
