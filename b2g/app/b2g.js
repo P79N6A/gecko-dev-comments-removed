@@ -440,6 +440,7 @@ pref("b2g.keys.search.enabled", false);
 
 
 pref("power.screen.timeout", 60);
+pref("dom.power.whitelist", "http://localhost:7777");
 
 pref("full-screen-api.enabled", true);
 
