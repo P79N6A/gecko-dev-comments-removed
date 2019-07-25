@@ -10,6 +10,7 @@
 
 #include "mozilla/Util.h"
 #include "mozilla/unused.h"
+#include "v8-support.h"
 #include <vector>
 #define ASSERT(a) MOZ_ASSERT(a)
 #ifdef ANDROID
@@ -86,6 +87,122 @@ struct MapInfo getmaps(pid_t pid);
 
 
 
+class Mutex {
+ public:
+  virtual ~Mutex() {}
+
+  
+  
+  
+  
+  virtual int Lock() = 0;
+
+  
+  
+  virtual int Unlock() = 0;
+
+  
+  
+  virtual bool TryLock() = 0;
+};
+
+
+
+
+
+
+class ScopedLock {
+ public:
+  explicit ScopedLock(Mutex* mutex): mutex_(mutex) {
+    ASSERT(mutex_ != NULL);
+    mutex_->Lock();
+  }
+  ~ScopedLock() {
+    mutex_->Unlock();
+  }
+
+ private:
+  Mutex* mutex_;
+  DISALLOW_COPY_AND_ASSIGN(ScopedLock);
+};
+
+
+
+
+
+
+
+
+
+
+class OS {
+ public:
+
+  
+  static void Sleep(const int milliseconds);
+
+  
+  
+  static Mutex* CreateMutex();
+
+ private:
+  static const int msPerSecond = 1000;
+
+};
+
+
+
+
+
+
+
+
+
+
+
+
+class Thread {
+ public:
+
+  
+  explicit Thread(const char* name);
+  virtual ~Thread();
+
+  
+  void Start();
+
+  inline const char* name() const {
+    return name_;
+  }
+
+  
+  virtual void Run() = 0;
+
+  
+  
+  static const int kMaxThreadNameLength = 16;
+
+  class PlatformData;
+  PlatformData* data() { return data_; }
+
+ private:
+  void set_name(const char *name);
+
+  PlatformData* data_;
+
+  char name_[kMaxThreadNameLength];
+  int stack_size_;
+
+  DISALLOW_COPY_AND_ASSIGN(Thread);
+};
+
+
+
+
+
+
+
+
 
 
 
@@ -113,6 +230,8 @@ class Sampler {
   explicit Sampler(int interval, bool profiling);
   virtual ~Sampler();
 
+  int interval() const { return interval_; }
+
   
   virtual void SampleStack(TickSample* sample) = 0;
 
@@ -133,21 +252,19 @@ class Sampler {
   bool IsProfiling() const { return profiling_; }
 
   
-  
-  
-  
-  bool IsSynchronous() const { return synchronous_; }
-
-  
   bool IsActive() const { return active_; }
 
   class PlatformData;
 
+  PlatformData* platform_data() { return data_; }
+
  private:
+  void SetActive(bool value) { NoBarrier_Store(&active_, value); }
+
   const int interval_;
   const bool profiling_;
   const bool synchronous_;
-  bool active_;
+  Atomic32 active_;
   PlatformData* data_;  
 };
 

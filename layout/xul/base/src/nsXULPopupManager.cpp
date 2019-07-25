@@ -283,8 +283,7 @@ nsXULPopupManager::GetSubmenuWidgetChain(nsTArray<nsIWidget*> *aWidgetChain)
   NS_ASSERTION(aWidgetChain, "null parameter");
   nsMenuChainItem* item = GetTopVisibleMenu();
   while (item) {
-    nsCOMPtr<nsIWidget> widget;
-    item->Frame()->GetWidget(getter_AddRefs(widget));
+    nsCOMPtr<nsIWidget> widget = item->Frame()->GetWidget();
     NS_ASSERTION(widget, "open popup has no widget");
     aWidgetChain->AppendElement(widget.get());
     
@@ -359,7 +358,9 @@ nsXULPopupManager::PopupMoved(nsIFrame* aFrame, nsIntPoint aPnt)
   
   
   nsIntPoint currentPnt = menuPopupFrame->ScreenPosition();
-  if (aPnt.x != currentPnt.x || aPnt.y != currentPnt.y) {
+  nsIWidget* widget = menuPopupFrame->GetWidget();
+  if ((aPnt.x != currentPnt.x || aPnt.y != currentPnt.y) || (widget &&
+      widget->GetClientOffset() != menuPopupFrame->GetLastClientOffset())) {
     
     
     
@@ -1464,8 +1465,7 @@ nsXULPopupManager::MayShowPopup(nsMenuPopupFrame* aPopup)
   }
 
   
-  nsCOMPtr<nsIWidget> widget;
-  aPopup->GetWidget(getter_AddRefs(widget));
+  nsCOMPtr<nsIWidget> widget = aPopup->GetWidget();
   if (widget && widget->GetLastRollup() == aPopup->GetContent())
       return false;
 
@@ -1618,8 +1618,7 @@ nsXULPopupManager::SetCaptureState(nsIContent* aOldPopup)
 
   if (item) {
     nsMenuPopupFrame* popup = item->Frame();
-    nsCOMPtr<nsIWidget> widget;
-    popup->GetWidget(getter_AddRefs(widget));
+    nsCOMPtr<nsIWidget> widget = popup->GetWidget();
     if (widget) {
       widget->CaptureRollupEvents(this, true, popup->ConsumeOutsideClicks());
       mWidget = widget;
