@@ -206,6 +206,21 @@ function run_test() {
   gManagerEventsListener.shutdown();
 
   
+  let hotfixID = "hotfix@tests.mozilla.org";
+  Services.prefs.setCharPref("extensions.hotfix.id", hotfixID);
+  do_check_eq(AddonManager.hotfixID, hotfixID);
+  
+  hotfixID = "hotfix2@tests.mozilla.org";
+  Services.prefs.setCharPref("extensions.hotfix.id", hotfixID);
+  do_check_eq(AddonManager.hotfixID, hotfixID);
+  
+  hotfixID = 99;
+  Services.prefs.deleteBranch("extensions.hotfix.id");
+  Services.prefs.setIntPref("extensions.hotfix.id", hotfixID);
+  do_check_eq(AddonManager.hotfixID, null);
+  Services.prefs.clearUserPref("extensions.hotfix.id");
+
+  
   gManagerEventsListener.expect([]);
   AddonManager.updateEnabled = false;
   gManagerEventsListener.checkExpected();
