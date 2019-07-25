@@ -970,7 +970,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 unsigned
 nsXPConnect::GetOutstandingRequests(JSContext* cx)
 {
-    unsigned n = cx->outstandingRequests;
+    unsigned n = js::GetContextOutstandingRequests(cx);
     XPCCallContext* context = mCycleCollectionContext;
     
     
