@@ -2395,10 +2395,45 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
     httpChannel->GetRequestMethod(method); 
 
     if (!nsContentUtils::IsSystemPrincipal(mPrincipal)) {
-      nsCOMPtr<nsIURI> codebase;
-      mPrincipal->GetURI(getter_AddRefs(codebase));
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
 
-      httpChannel->SetReferrer(codebase);
+      nsCOMPtr<nsIURI> principalURI;
+      mPrincipal->GetURI(getter_AddRefs(principalURI));
+
+      nsCOMPtr<nsIDocument> doc =
+        nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
+
+      nsCOMPtr<nsIURI> docCurURI;
+      nsCOMPtr<nsIURI> docOrigURI;
+      if (doc) {
+        docCurURI = doc->GetDocumentURI();
+        docOrigURI = doc->GetOriginalURI();
+      }
+
+      nsCOMPtr<nsIURI> referrerURI;
+
+      if (principalURI && docCurURI && docOrigURI) {
+        PRBool equal = PR_FALSE;
+        principalURI->Equals(docOrigURI, &equal);
+        if (equal) {
+          referrerURI = docCurURI;
+        }
+      }
+
+      if (!referrerURI)
+        referrerURI = principalURI;
+
+      httpChannel->SetReferrer(referrerURI);
     }
 
     
