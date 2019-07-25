@@ -906,7 +906,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     bool inDirectivePrologue;
 
     JS_ASSERT(!(tcflags & ~(TCF_COMPILE_N_GO | TCF_NO_SCRIPT_RVAL | TCF_NEED_MUTABLE_SCRIPT |
-                            TCF_COMPILE_FOR_EVAL)));
+                            TCF_COMPILE_FOR_EVAL | TCF_NEED_SCRIPT_OBJECT)));
 
     
 
@@ -958,13 +958,10 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
         tokenStream.setStrictMode();
     }
 
-    
-
-
-
-    JSObjectBox *funbox;
-    funbox = NULL;
-
+#ifdef DEBUG
+    bool savedCallerFun;
+    savedCallerFun = false;
+#endif
     if (tcflags & TCF_COMPILE_N_GO) {
         if (source) {
             
@@ -983,12 +980,15 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
 
 
-            funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
+            JSObjectBox *funbox = parser.newObjectBox(FUN_OBJECT(callerFrame->fun()));
             if (!funbox)
                 goto out;
             funbox->emitLink = cg.objectList.lastbox;
             cg.objectList.lastbox = funbox;
             cg.objectList.length++;
+#ifdef DEBUG
+            savedCallerFun = true;
+#endif
         }
     }
 
@@ -1111,8 +1111,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     if (!script)
         goto out;
 
-    if (funbox)
-        script->savedCallerFun = true;
+    JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
     {
         AutoShapeRooter shapeRoot(cx, script->bindings.lastShape());
@@ -1130,10 +1129,9 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
     
 
   late_error:
-    if (script) {
+    if (script && !script->u.object)
         js_DestroyScript(cx, script);
-        script = NULL;
-    }
+    script = NULL;
     goto out;
 }
 

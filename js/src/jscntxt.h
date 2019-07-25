@@ -503,7 +503,7 @@ struct JSRuntime {
     
 
 
-    JSBool              debugMode;
+    bool                debugMode;
 
 #ifdef JS_TRACER
     
@@ -514,8 +514,13 @@ struct JSRuntime {
 #endif
 
     
-    JSCList             trapList;
     JSCList             watchPointList;
+
+    
+
+
+
+    JSCList             debuggerList;
 
     
     void                *data;
