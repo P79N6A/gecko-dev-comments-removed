@@ -2391,7 +2391,7 @@ Assembler::asm_branch(bool branchOnFalse, LInsp cond, NIns* targ)
     return at;
 }
 
-void Assembler::asm_branch_xov(LOpcode op, NIns* target)
+NIns* Assembler::asm_branch_ov(LOpcode op, NIns* target)
 {
     
     
@@ -2400,6 +2400,7 @@ void Assembler::asm_branch_xov(LOpcode op, NIns* target)
 
     
     B_cond(cc, target);
+    return _nIns;
 }
 
 void
