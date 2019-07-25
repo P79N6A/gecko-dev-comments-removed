@@ -366,6 +366,8 @@ pref("plugin.disable", true);
 pref("plugin.default_plugin_disabled", true);
 
 
+
+pref("breakpad.reportURL", "http://crash-stats.mozilla.com/report/index/");
 pref("app.releaseNotesURL", "http://www.mozilla.com/%LOCALE%/mobile/%VERSION%/releasenotes/");
 
 pref("app.support.baseURL", "http://mobile.support.mozilla.com/");
