@@ -613,6 +613,11 @@ protected:
   }
 
   
+
+
+  nsresult Add(nsIDOMHTMLElement* aElement, nsIDOMHTMLElement* aBefore = nsnull);
+
+  
   nsRefPtr<nsHTMLOptionCollection> mOptions;
   
   PRPackedBool    mIsDoneAddingChildren;

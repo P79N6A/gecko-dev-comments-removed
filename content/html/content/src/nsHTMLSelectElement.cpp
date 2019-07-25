@@ -643,7 +643,7 @@ nsHTMLSelectElement::GetSelectFrame()
   return select_frame;
 }
 
-NS_IMETHODIMP
+nsresult
 nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
                          nsIDOMHTMLElement* aBefore)
 {
@@ -677,6 +677,44 @@ nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
   
   
   return parent->InsertBefore(aElement, aBefore, getter_AddRefs(added));
+}
+
+NS_IMETHODIMP
+nsHTMLSelectElement::Add(nsIDOMHTMLElement* aElement,
+                         nsIVariant* aBefore)
+{
+  PRUint16 dataType;
+  nsresult rv = aBefore->GetDataType(&dataType);
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  if (dataType == nsIDataType::VTYPE_EMPTY) {
+    return Add(aElement);
+  }
+
+  nsCOMPtr<nsISupports> supports;
+  nsCOMPtr<nsIDOMHTMLElement> beforeElement;
+
+  
+  if (NS_SUCCEEDED(aBefore->GetAsISupports(getter_AddRefs(supports)))) {
+    beforeElement = do_QueryInterface(supports);
+
+    NS_ENSURE_TRUE(beforeElement, NS_ERROR_DOM_SYNTAX_ERR);
+    return Add(aElement, beforeElement);
+  }
+
+  
+  PRInt32 index;
+  NS_ENSURE_SUCCESS(aBefore->GetAsInt32(&index), NS_ERROR_DOM_SYNTAX_ERR);
+
+  
+  
+  nsCOMPtr<nsIDOMNode> beforeNode;
+  if NS_SUCCEEDED(Item(index, getter_AddRefs(beforeNode))) {
+    beforeElement = do_QueryInterface(beforeNode);
+  }
+
+  return Add(aElement, beforeElement);
 }
 
 NS_IMETHODIMP
@@ -2194,35 +2232,17 @@ nsHTMLOptionCollection::GetSelect(nsIDOMHTMLSelectElement **aReturn)
 
 NS_IMETHODIMP
 nsHTMLOptionCollection::Add(nsIDOMHTMLOptionElement *aOption,
-                            PRInt32 aIndex, PRUint8 optional_argc)
+                            nsIVariant *aBefore)
 {
   if (!aOption) {
     return NS_ERROR_INVALID_ARG;
-  }
-
-  if (aIndex < -1) {
-    return NS_ERROR_DOM_INDEX_SIZE_ERR;
   }
 
   if (!mSelect) {
     return NS_ERROR_NOT_INITIALIZED;
   }
 
-  PRUint32 length;
-  GetLength(&length);
-
-  if (optional_argc == 0 || aIndex == -1 || aIndex > (PRInt32)length) {
-    
-    aIndex = length;
-  }
-
-  nsCOMPtr<nsIDOMNode> beforeNode;
-  Item(aIndex, getter_AddRefs(beforeNode));
-
-  nsCOMPtr<nsIDOMHTMLOptionElement> beforeElement =
-    do_QueryInterface(beforeNode);
-
-  return mSelect->Add(aOption, beforeElement);
+  return mSelect->Add(aOption, aBefore);
 }
 
 NS_IMETHODIMP
