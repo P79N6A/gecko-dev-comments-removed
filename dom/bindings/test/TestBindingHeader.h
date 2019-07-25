@@ -233,6 +233,9 @@ public:
   void PassOptionalObjectSequence(const Optional<Sequence<OwningNonNull<TestInterface> > >&,
                                   ErrorResult&);
 
+  void ReceiveStringSequence(nsTArray<nsString>&, ErrorResult&);
+  void PassStringSequence(const Sequence<nsString>&, ErrorResult&);
+
   
   void PassArrayBuffer(ArrayBuffer&, ErrorResult&);
   void PassNullableArrayBuffer(ArrayBuffer*, ErrorResult&);
