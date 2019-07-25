@@ -210,6 +210,11 @@ public:
   
 
 
+  void MarginsChanged(PRUint32 aMarginWidth, PRUint32 aMarginHeight);
+
+  
+
+
 
 
   void Hide();

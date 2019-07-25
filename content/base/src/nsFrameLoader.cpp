@@ -862,6 +862,31 @@ nsFrameLoader::Show(PRInt32 marginWidth, PRInt32 marginHeight,
   return PR_TRUE;
 }
 
+void
+nsFrameLoader::MarginsChanged(PRUint32 aMarginWidth,
+                              PRUint32 aMarginHeight)
+{
+  
+  if (mRemoteFrame)
+    return;
+
+  
+  
+  
+  if (!mDocShell)
+    return;
+
+  
+  mDocShell->SetMarginWidth(aMarginWidth);
+  mDocShell->SetMarginHeight(aMarginHeight);
+
+  
+  nsRefPtr<nsPresContext> presContext;
+  mDocShell->GetPresContext(getter_AddRefs(presContext));
+  if (presContext)
+    presContext->RebuildAllStyleData(nsChangeHint(0));
+}
+
 bool
 nsFrameLoader::ShowRemoteFrame(const nsIntSize& size)
 {
