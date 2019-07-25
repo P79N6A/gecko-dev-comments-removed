@@ -744,6 +744,13 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
       
 
+      if (currentSchemaVersion < 18) {
+        rv = MigrateV18Up();
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
+
+      
+
       
 
       rv = UpdateBookmarkRootTitles();
@@ -789,8 +796,6 @@ Database::InitSchema(bool* aDatabaseMigrated)
 
     
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_HOSTS);
-    NS_ENSURE_SUCCESS(rv, rv);
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HOSTS_FRECENCYHOST);
     NS_ENSURE_SUCCESS(rv, rv);
 
     
@@ -961,7 +966,9 @@ Database::InitTempTriggers()
   NS_ENSURE_SUCCESS(rv, rv);
   rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERDELETE_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
-  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERUPDATE_TRIGGER);
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERUPDATE_FRECENCY_TRIGGER);
+  NS_ENSURE_SUCCESS(rv, rv);
+  rv = mMainConn->ExecuteSimpleSQL(CREATE_PLACES_AFTERUPDATE_TYPED_TRIGGER);
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;
@@ -1675,8 +1682,6 @@ Database::MigrateV17Up()
     
     rv = mMainConn->ExecuteSimpleSQL(CREATE_MOZ_HOSTS);
     NS_ENSURE_SUCCESS(rv, rv);
-    rv = mMainConn->ExecuteSimpleSQL(CREATE_IDX_MOZ_HOSTS_FRECENCYHOST);
-    NS_ENSURE_SUCCESS(rv, rv);
   }
 
   
@@ -1695,6 +1700,50 @@ Database::MigrateV17Up()
 
   nsCOMPtr<mozIStoragePendingStatement> ps;
   rv = fillHostsStmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  return NS_OK;
+}
+
+nsresult
+Database::MigrateV18Up()
+{
+  MOZ_ASSERT(NS_IsMainThread());
+
+  
+
+  
+  nsCOMPtr<mozIStorageStatement> stmt;
+  nsresult rv = mMainConn->CreateStatement(NS_LITERAL_CSTRING(
+    "SELECT typed FROM moz_hosts"
+  ), getter_AddRefs(stmt));
+  if (NS_FAILED(rv)) {
+    rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+      "ALTER TABLE moz_hosts ADD COLUMN typed NOT NULL DEFAULT 0"
+    ));
+    NS_ENSURE_SUCCESS(rv, rv);
+  }
+
+  
+  
+  
+  rv = mMainConn->ExecuteSimpleSQL(NS_LITERAL_CSTRING(
+    "DROP INDEX IF EXISTS moz_hosts_frecencyhostindex"
+  ));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  nsCOMPtr<mozIStorageAsyncStatement> updateTypedStmt;
+  rv = mMainConn->CreateAsyncStatement(NS_LITERAL_CSTRING(
+    "UPDATE moz_hosts SET typed = 1 WHERE host IN ( "
+      "SELECT fixup_url(get_unreversed_host(rev_host)) "
+      "FROM moz_places WHERE typed = 1 "
+    ") "
+  ), getter_AddRefs(updateTypedStmt));
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsCOMPtr<mozIStoragePendingStatement> ps;
+  rv = updateTypedStmt->ExecuteAsync(nsnull, getter_AddRefs(ps));
   NS_ENSURE_SUCCESS(rv, rv);
 
   return NS_OK;

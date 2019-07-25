@@ -282,6 +282,7 @@ pref("browser.urlbar.doubleClickSelectsAll", true);
 pref("browser.urlbar.doubleClickSelectsAll", false);
 #endif
 pref("browser.urlbar.autoFill", false);
+pref("browser.urlbar.autoFill.typed", true);
 
 
 
