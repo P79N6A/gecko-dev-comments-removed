@@ -1,11 +1,10 @@
 <!DOCTYPE HTML>
 <html>
-
-
-
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=409604
+-->
 <head>
   <title>Test for Bug 409604</title>
-  <script type="text/javascript" src="/MochiKit/packed.js"></script>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>        
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
@@ -256,14 +255,14 @@
       <tr>
         <td>a</td><td><a href="#" onclick="handleClick(event.target); return false;" accesskey="a" onfocus="handleFocus(event.target);">test link"</a></td>
       </tr>
-
-
-
-
-
-
-
-
+<!-- the "map" test is causing trouble, see bug 433089
+      <tr>
+        <td>area</td><td><img src="about:logo" width="300" height="236" usemap="#map">
+          <map id="map" name="map"><area shape="rect" coords="0,0,82,126" href="#"
+            onclick="handleClick(event.target); return false;" accesskey="b"></map>
+        </td>
+      </tr>
+-->
       <tr>
         <td>button</td><td><button onclick="handleClick(event.target);" accesskey="c" onfocus="handleFocus(event.target);">test button"</button></td>
       </tr>

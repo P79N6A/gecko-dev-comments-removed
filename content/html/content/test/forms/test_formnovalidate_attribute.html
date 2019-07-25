@@ -1,11 +1,10 @@
 <!DOCTYPE HTML>
 <html>
-
-
-
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=589696
+-->
 <head>
   <title>Test for Bug 589696</title>
-  <script type="application/javascript" src="/MochiKit/packed.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
@@ -15,8 +14,8 @@
 <p id="display"></p>
 <iframe style='width:50px; height: 50px;' name='t'></iframe>
 <div id="content">
-  
-
+  <!-- Next forms should not submit because formnovalidate isn't set on the
+       element used for the submission. -->
   <form target='t' action='data:text/html,'>
     <input id='av' required>
     <input type='submit' formnovalidate>
@@ -27,12 +26,12 @@
     <button type='submit' formnovalidate></button>
     <button id='b' type='submit'></button>
   </form>
-  
-
+  <!-- Next form should not submit because formnovalidate only applies for
+       submit controls. -->
   <form target='t' action='data:text/html,'>
     <input id='c' required formnovalidate>
   </form>
-  
+  <!--- Next forms should submit without any validation check. -->
   <form target='t' action='data:text/html,'>
     <input id='dv' required>
     <input id='d' type='submit' formnovalidate>

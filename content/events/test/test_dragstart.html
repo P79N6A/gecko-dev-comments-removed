@@ -2,13 +2,12 @@
 <head>
   <title>Tests for the dragstart event</title>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css">
-  <script type="application/javascript" src="/MochiKit/packed.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>      
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>      
 
-
-
-
+<!--
+ This test checks the dragstart event and the DataTransfer object
+  -->
  
 <script>
 
@@ -570,7 +569,7 @@ function expectError(fn, eid, testid)
   </div>
 </div>
 
-
+<!--iframe src="http://www.mozilla.org" width="400" height="400"></iframe-->
 
 <div id="synthetic" ondragstart="doDragStartSynthetic(event)">Synthetic Event Dispatch</div>
 <div id="synthetic2" ondragover="doDragOverSynthetic(event)">Synthetic Event Dispatch</div>

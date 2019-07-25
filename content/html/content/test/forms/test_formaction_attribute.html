@@ -1,11 +1,10 @@
 <!DOCTYPE HTML>
 <html>
-
-
-
+<!--
+https://bugzilla.mozilla.org/show_bug.cgi?id=566160
+-->
 <head>
   <title>Test for Bug 566160</title>
-  <script type="application/javascript" src="/MochiKit/packed.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
   <script type="application/javascript" src="/tests/SimpleTest/EventUtils.js"></script>
   <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css"/>
@@ -25,7 +24,7 @@
 <iframe name='frame6' id='frame6'></iframe>
 <iframe name='frame7' id='frame7'></iframe>
 <div id="content">
-  
+  <!-- submit controls with formaction that are validated with a CLICK -->
   <form target="frame1" action="data:text/html,FAIL" method="GET">
     <input name='foo' value='foo'>
     <input type='submit' id='is' formaction="data:text/html,">
@@ -43,7 +42,7 @@
     <button type='submit' id='bsbis' formaction="data:text/html,">submit</button>
   </form>
 
-  
+  <!-- submit controls with formaction that are validated with ENTER -->
   <form target="frame4" action="data:text/html,FAIL" method="GET">
     <input name='footulip' value='footulip'>
     <input type='submit' id='is2' formaction="data:text/html,">
@@ -57,8 +56,8 @@
     <button type='submit' id='bs2' formaction="data:text/html,">submit</button>
   </form>
 
-  
-
+  <!-- check that when submitting a from from an element
+       which is not a submit control, @formaction isn't used -->
   <form target='frame7' action="data:text/html," method="GET">
     <input id='enter' name='input' value='enter' formaction="data:text/html,FAIL">
   </form>
