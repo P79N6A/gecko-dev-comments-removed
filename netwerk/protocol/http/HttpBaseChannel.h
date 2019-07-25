@@ -60,6 +60,7 @@
 #include "nsIApplicationCache.h"
 #include "nsIResumableChannel.h"
 #include "mozilla/net/NeckoCommon.h"
+#include "nsThreadUtils.h"
 
 namespace mozilla {
 namespace net {
@@ -204,7 +205,14 @@ public:
     const PRNetAddr& GetSelfAddr() { return mSelfAddr; }
     const PRNetAddr& GetPeerAddr() { return mPeerAddr; }
 
+public: 
+
 protected:
+
+  
+  void     DoNotifyListener();
+  virtual void DoNotifyListenerCleanup() = 0;
+
   nsresult ApplyContentConversions();
 
   void AddCookiesToRequest();
@@ -269,8 +277,93 @@ protected:
   PRUint32                          mLoadedFromApplicationCache : 1;
   PRUint32                          mChannelIsForDownload       : 1;
 
+  
+  PRUint32                          mSuspendCount;
+
   nsTArray<nsCString>              *mRedirectedCachekeys;
 };
+
+
+
+
+
+
+
+
+
+template <class T>
+class HttpAsyncAborter
+{
+public:
+  HttpAsyncAborter(T *derived) : mThis(derived), mCallOnResume(0) {}
+
+  
+  
+  nsresult AsyncAbort(nsresult status);
+
+  
+  void HandleAsyncAbort();
+
+  
+  
+  
+  nsresult AsyncCall(void (T::*funcPtr)(),
+                     nsRunnableMethod<T> **retval = nsnull);
+private:
+  T *mThis;
+
+protected:
+  
+  void (T::* mCallOnResume)(void);
+};
+
+template <class T>
+nsresult HttpAsyncAborter<T>::AsyncAbort(nsresult status)
+{
+  LOG(("HttpAsyncAborter::AsyncAbort [this=%p status=%x]\n", mThis, status));
+
+  mThis->mStatus = status;
+  mThis->mIsPending = PR_FALSE;
+
+  
+  return AsyncCall(&T::HandleAsyncAbort);
+}
+
+
+
+template <class T>
+inline void HttpAsyncAborter<T>::HandleAsyncAbort()
+{
+  NS_PRECONDITION(!mCallOnResume, "How did that happen?");
+
+  if (mThis->mSuspendCount) {
+    LOG(("Waiting until resume to do async notification [this=%p]\n",
+         mThis));
+    mCallOnResume = &T::HandleAsyncAbort;
+    return;
+  }
+
+  mThis->DoNotifyListener();
+
+  
+  if (mThis->mLoadGroup)
+    mThis->mLoadGroup->RemoveRequest(mThis, nsnull, mThis->mStatus);
+}
+
+template <class T>
+nsresult HttpAsyncAborter<T>::AsyncCall(void (T::*funcPtr)(),
+                                   nsRunnableMethod<T> **retval)
+{
+  nsresult rv;
+
+  nsRefPtr<nsRunnableMethod<T> > event = NS_NewRunnableMethod(mThis, funcPtr);
+  rv = NS_DispatchToCurrentThread(event);
+  if (NS_SUCCEEDED(rv) && retval) {
+    *retval = event;
+  }
+
+  return rv;
+}
 
 
 } 
