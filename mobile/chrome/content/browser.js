@@ -391,6 +391,11 @@ var Browser = {
       Browser.pageScrollboxScroller.scrollTo(0, 0);
   },
 
+  quit: function quit() {
+    window.QueryInterface(Ci.nsIDOMChromeWindow).minimize();
+    window.close();
+  },
+
   _waitingToClose: false,
   closing: function closing() {
     
