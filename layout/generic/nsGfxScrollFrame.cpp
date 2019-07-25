@@ -3259,7 +3259,8 @@ nsGfxScrollFrameInner::ReflowFinished()
     nsPoint scrollPos = GetScrollPosition();
     
     if (vScroll) {
-      const double kScrollMultiplier = 3;
+      const double kScrollMultiplier = Preferences::GetInt("toolkit.scrollbox.verticalScrollDistance",
+                                                           NS_DEFAULT_VERTICAL_SCROLL_DISTANCE);
       nscoord fontHeight = GetLineScrollAmount().height * kScrollMultiplier;
       
       
