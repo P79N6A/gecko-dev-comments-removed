@@ -143,7 +143,18 @@ AsyncResource.prototype = {
   _logName: "Net.Resource",
 
   
-  _userAgent: "FxSync/" + WEAVE_VERSION + "." + Svc.AppInfo.appBuildID + ".",
+  
+  
+  
+  
+  
+  
+  
+  
+  _userAgent:
+    Svc.AppInfo.name + "/" + Svc.AppInfo.version +     
+    " FxSync/" + WEAVE_VERSION + "." +                 
+    Svc.AppInfo.appBuildID + ".",                      
 
   
   ABORT_TIMEOUT: 300000,
