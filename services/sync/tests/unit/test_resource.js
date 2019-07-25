@@ -134,37 +134,6 @@ function server_headers(metadata, response) {
   response.bodyOutputStream.write(body, body.length);
 }
 
-
-
-
-
-
-
-
-
-
-let FAKE_ZERO_COUNTER = 0;
-function fake_status_failure() {
-  _("Switching in status-0 _onComplete handler.");
-  let c = AsyncResource.prototype._onComplete;
-  AsyncResource.prototype._onComplete = function(error, data) {
-    if (FAKE_ZERO_COUNTER > 0) {
-      _("Faking status 0 return...");
-      FAKE_ZERO_COUNTER--;
-      let ret = new String(data);
-      ret.headers = {};
-      ret.status = 0;
-      ret.success = false;
-      Utils.lazy2(ret, "obj", function() JSON.parse(ret));
-
-      this._callback(null, ret);
-    }
-    else {
-      c.apply(this, arguments);
-    }
-  };
-}
-
 function run_test() {
   do_test_pending();
 
@@ -455,36 +424,6 @@ function run_test() {
   do_check_true(did401);
   do_check_eq(content, "This path exists and is protected - failed");
   do_check_eq(content.status, 401);
-  do_check_false(content.success);
-
-  
-  fake_status_failure();
-
-  
-  FAKE_ZERO_COUNTER = 1;
-  let res14 = new Resource("http://localhost:8080/open");
-  content = res14.post("hello");
-  do_check_eq(content.status, 0);
-  do_check_false(content.success);
-
-  
-  let res15 = new Resource("http://localhost:8080/open");
-  content = res15.post("hello");
-  do_check_eq(content.status, 405);
-  do_check_false(content.success);
-
-  
-  FAKE_ZERO_COUNTER = 1;
-  let res16 = new Resource("http://localhost:8080/open");
-  content = res16.get();
-  do_check_eq(content.status, 200);
-  do_check_true(content.success);
-
-  
-  FAKE_ZERO_COUNTER = 2;
-  let res17 = new Resource("http://localhost:8080/open");
-  content = res17.get();
-  do_check_eq(content.status, 0);
   do_check_false(content.success);
 
   _("Checking handling of errors in onProgress.");

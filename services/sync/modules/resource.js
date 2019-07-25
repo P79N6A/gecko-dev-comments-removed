@@ -483,13 +483,7 @@ Resource.prototype = {
   
   
   get: function Res_get() {
-    let response = this._request("GET");
-    if (response.status == 0) {
-      
-      this._log.debug("Status 0 in Resource.get: retrying once.");
-      response = this._request("GET");
-    }
-    return response;
+    return this._request("GET");
   },
 
   
