@@ -178,6 +178,17 @@ class ExceptionHandler {
                    const wchar_t* pipe_name,
                    const CustomClientInfo* custom_info);
 
+  
+  
+  ExceptionHandler(const wstring& dump_path,
+                   FilterCallback filter,
+                   MinidumpCallback callback,
+                   void* callback_context,
+                   int handler_types,
+                   MINIDUMP_TYPE dump_type,
+                   HANDLE pipe_handle,
+                   const CustomClientInfo* custom_info);
+
   ~ExceptionHandler();
 
   
@@ -253,6 +264,7 @@ class ExceptionHandler {
                   int handler_types,
                   MINIDUMP_TYPE dump_type,
                   const wchar_t* pipe_name,
+                  HANDLE pipe_handle,
                   const CustomClientInfo* custom_info);
 
   

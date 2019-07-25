@@ -66,6 +66,10 @@ class CrashGenerationClient {
                         MINIDUMP_TYPE dump_type,
                         const CustomClientInfo* custom_info);
 
+  CrashGenerationClient(HANDLE pipe_handle,
+                        MINIDUMP_TYPE dump_type,
+                        const CustomClientInfo* custom_info);
+
   ~CrashGenerationClient();
 
   
@@ -91,6 +95,14 @@ class CrashGenerationClient {
   
   
   bool RequestDump(MDRawAssertionInfo* assert_info);
+
+  
+  
+  
+  
+  
+  static HANDLE DuplicatePipeToClientProcess(const wchar_t* pipe_name,
+                                             HANDLE hProcess);
 
  private:
   
@@ -122,6 +134,10 @@ class CrashGenerationClient {
 
   
   std::wstring pipe_name_;
+
+  
+  
+  HANDLE pipe_handle_;
 
   
   CustomClientInfo custom_info_;
