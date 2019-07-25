@@ -782,10 +782,16 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
                     "Already have an image for non-multipart request");
 
   
-  if (mIsMultiPartChannel && mImage &&
-      mImage->GetType() == imgIContainer::TYPE_RASTER) {
-    
-    static_cast<RasterImage*>(mImage.get())->NewSourceData();
+  if (mIsMultiPartChannel && mImage) {
+    if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
+      
+      static_cast<RasterImage*>(mImage.get())->NewSourceData();
+    } else {  
+      nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
+      NS_ABORT_IF_FALSE(imageAsStream,
+                        "SVG-typed Image failed QI to nsIStreamListener");
+      imageAsStream->OnStartRequest(aRequest, ctxt);
+    }
   }
 
   
@@ -921,10 +927,17 @@ NS_IMETHODIMP imgRequest::OnStopRequest(nsIRequest *aRequest, nsISupports *ctxt,
   
   
   
-  if (mImage && mImage->GetType() == imgIContainer::TYPE_RASTER) {
-
-    
-    nsresult rv = static_cast<RasterImage*>(mImage.get())->SourceDataComplete();
+  if (mImage) {
+    nsresult rv;
+    if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
+      
+      rv = static_cast<RasterImage*>(mImage.get())->SourceDataComplete();
+    } else { 
+      nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
+      NS_ABORT_IF_FALSE(imageAsStream,
+                        "SVG-typed Image failed QI to nsIStreamListener");
+      rv = imageAsStream->OnStopRequest(aRequest, ctxt, status);
+    }
 
     
     
@@ -1121,17 +1134,32 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
       }
     }
 
-    
-    if (mDecodeRequested) {
-      mImage->RequestDecode();
+    if (imageType == imgIContainer::TYPE_RASTER) {
+      
+      if (mDecodeRequested) {
+        mImage->RequestDecode();
+      }
+    } else { 
+      nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
+      NS_ABORT_IF_FALSE(imageAsStream,
+                        "SVG-typed Image failed QI to nsIStreamListener");
+      imageAsStream->OnStartRequest(aRequest, nsnull);
     }
   }
 
-  
-  PRUint32 bytesRead;
-  rv = inStr->ReadSegments(RasterImage::WriteToRasterImage,
-                           static_cast<void*>(mImage),
-                           count, &bytesRead);
+  if (imageType == imgIContainer::TYPE_RASTER) {
+    
+    PRUint32 bytesRead;
+    rv = inStr->ReadSegments(RasterImage::WriteToRasterImage,
+                             static_cast<void*>(mImage),
+                             count, &bytesRead);
+    NS_ABORT_IF_FALSE(bytesRead == count,
+                      "WriteToRasterImage should consume everything!");
+  } else { 
+    nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
+    rv = imageAsStream->OnDataAvailable(aRequest, ctxt, inStr,
+                                        sourceOffset, count);
+  }
   if (NS_FAILED(rv)) {
     PR_LOG(gImgLog, PR_LOG_WARNING,
            ("[this=%p] imgRequest::OnDataAvailable -- "
@@ -1139,7 +1167,6 @@ NS_IMETHODIMP imgRequest::OnDataAvailable(nsIRequest *aRequest, nsISupports *ctx
     this->Cancel(NS_IMAGELIB_ERROR_FAILURE);
     return NS_BINDING_ABORTED;
   }
-  NS_ABORT_IF_FALSE(bytesRead == count, "WriteToRasterImage should consume everything!");
 
   return NS_OK;
 }
