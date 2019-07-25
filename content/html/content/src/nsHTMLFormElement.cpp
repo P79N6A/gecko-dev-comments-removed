@@ -775,7 +775,7 @@ nsHTMLFormElement::SubmitSubmission(nsFormSubmission* aFormSubmission)
   
   
   nsCOMPtr<nsIURI> actionURI;
-  rv = GetActionURL(getter_AddRefs(actionURI));
+  rv = GetActionURL(getter_AddRefs(actionURI), originatingElement);
   NS_ENSURE_SUBMIT_SUCCESS(rv);
 
   if (!actionURI) {
@@ -1299,7 +1299,7 @@ nsHTMLFormElement::DoResolveName(const nsAString& aName,
 }
 
 void
-nsHTMLFormElement::OnSubmitClickBegin()
+nsHTMLFormElement::OnSubmitClickBegin(nsIContent* aOriginatingElement)
 {
   mDeferSubmission = PR_TRUE;
 
@@ -1309,7 +1309,7 @@ nsHTMLFormElement::OnSubmitClickBegin()
   nsCOMPtr<nsIURI> actionURI;
   nsresult rv;
 
-  rv = GetActionURL(getter_AddRefs(actionURI));
+  rv = GetActionURL(getter_AddRefs(actionURI), aOriginatingElement);
   if (NS_FAILED(rv) || !actionURI)
     return;
 
@@ -1343,7 +1343,8 @@ nsHTMLFormElement::FlushPendingSubmission()
 }
 
 nsresult
-nsHTMLFormElement::GetActionURL(nsIURI** aActionURL)
+nsHTMLFormElement::GetActionURL(nsIURI** aActionURL,
+                                nsIContent* aOriginatingElement)
 {
   nsresult rv = NS_OK;
 
@@ -1352,8 +1353,23 @@ nsHTMLFormElement::GetActionURL(nsIURI** aActionURL)
   
   
   
+  
+  
+  
+  
   nsAutoString action;
-  GetMozActionUri(action);
+  nsCOMPtr<nsIFormControl> formControl = do_QueryInterface(aOriginatingElement);
+  if (formControl && formControl->IsSubmitControl() &&
+      aOriginatingElement->GetAttr(kNameSpaceID_None, nsGkAtoms::formaction,
+                                   action)) {
+    
+    if (!action.IsEmpty()) {
+      static_cast<nsGenericHTMLElement*>(aOriginatingElement)->
+        GetURIAttr(nsGkAtoms::formaction, nsnull, action);
+    }
+  } else {
+    GetMozActionUri(action);
+  }
 
   
   

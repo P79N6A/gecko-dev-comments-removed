@@ -494,6 +494,19 @@ public:
   NS_HIDDEN_(nsresult) GetEditor(nsIEditor** aEditor);
   NS_HIDDEN_(nsresult) GetEditorInternal(nsIEditor** aEditor);
 
+  
+
+
+
+
+
+
+
+
+
+
+  NS_HIDDEN_(nsresult) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult);
+
 protected:
   
 
@@ -653,19 +666,6 @@ protected:
 
 
   NS_HIDDEN_(nsresult) SetFloatAttr(nsIAtom* aAttr, float aValue);
-
-  
-
-
-
-
-
-
-
-
-
-
-  NS_HIDDEN_(nsresult) GetURIAttr(nsIAtom* aAttr, nsIAtom* aBaseAttr, nsAString& aResult);
 
   
 

@@ -241,7 +241,7 @@ public:
 
 
 
-  void OnSubmitClickBegin();
+  void OnSubmitClickBegin(nsIContent* aOriginatingElement);
   void OnSubmitClickEnd();
 
   virtual nsXPCClassInfo* GetClassInfo();
@@ -327,7 +327,8 @@ protected:
 
 
 
-  nsresult GetActionURL(nsIURI** aActionURL);
+
+  nsresult GetActionURL(nsIURI** aActionURL, nsIContent* aOriginatingElement);
 
 public:
   
