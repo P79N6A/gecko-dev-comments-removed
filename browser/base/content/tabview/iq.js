@@ -201,7 +201,20 @@ iQ.fn = iQ.prototype = {
       this.context = selector.context;
     }
 
-    return iQ.makeArray( selector, this );
+    
+    var ret = this || [];
+    if ( selector != null ) {
+      
+      
+      
+      if ( selector.length == null || typeof selector === "string" || iQ.isFunction(selector) || (typeof selector !== "function" && selector.setInterval) ) {
+        push.call( ret, selector );
+      } else {
+        iQ.merge( ret, selector );
+      }
+    }
+    return ret;
+    
   },
   
   
@@ -960,26 +973,6 @@ iQ.extend({
   
   trim: function( text ) {
     return (text || "").replace( rtrim, "" );
-  },
-
-  
-  
-  
-  makeArray: function( array, results ) {
-    var ret = results || [];
-
-    if ( array != null ) {
-      
-      
-      
-      if ( array.length == null || typeof array === "string" || iQ.isFunction(array) || (typeof array !== "function" && array.setInterval) ) {
-        push.call( ret, array );
-      } else {
-        iQ.merge( ret, array );
-      }
-    }
-
-    return ret;
   },
 
   
