@@ -2935,10 +2935,22 @@ nsCSSFrameConstructor::CreatePlaceholderFrameFor(nsIPresShell*    aPresShell,
   }
 }
 
-static void
-ClearLazyBitsInChildren(nsIContent* aContent,
-                        PRUint32 aStartIndex = 1,
-                        PRUint32 aEndIndex = 0);
+
+
+
+
+
+
+static inline void
+ClearLazyBits(nsIContent* aStartContent, nsIContent* aEndContent)
+{
+  NS_PRECONDITION(aStartContent || !aEndContent,
+                  "Must have start child if we have an end child");
+  for (nsIContent* cur = aStartContent; cur != aEndContent;
+       cur = cur->GetNextSibling()) {
+    cur->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
+  }
+}
 
 nsresult
 nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
@@ -3038,7 +3050,7 @@ nsCSSFrameConstructor::ConstructButtonFrame(nsFrameConstructorState& aState,
   SetInitialSingleChild(buttonFrame, blockFrame);
 
   if (isLeaf) {
-    ClearLazyBitsInChildren(content);
+    ClearLazyBits(content->GetFirstChild(), nsnull);
 
     nsFrameItems  anonymousChildItems;
     
@@ -6325,26 +6337,6 @@ nsCSSFrameConstructor::MaybeConstructLazily(Operation aOperation,
   return PR_TRUE;
 }
 
-
-
-
-
-
-
-static void
-ClearLazyBitsInChildren(nsIContent* aContent,
-                        PRUint32 aStartIndex ,
-                        PRUint32 aEndIndex )
-{
-  PRBool allChildren = aEndIndex < aStartIndex;
-  PRUint32 startIndex = allChildren ? 0 : aStartIndex;
-  PRUint32 endIndex = allChildren ? aContent->GetChildCount() : aEndIndex;
-  for (PRUint32 i = startIndex; i < endIndex; i++) {
-    aContent->GetChildAt(i)->
-      UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
-  }
-}
-
 void
 nsCSSFrameConstructor::CreateNeededFrames(nsIContent* aContent)
 {
@@ -6612,8 +6604,7 @@ nsCSSFrameConstructor::ContentAppended(nsIContent*     aContainer,
   if (parentFrame->IsLeaf()) {
     
     
-    ClearLazyBitsInChildren(aContainer, aNewIndexInContainer,
-                            aContainer->GetChildCount());
+    ClearLazyBits(aFirstNewContent, nsnull);
     return NS_OK;
   }
   
@@ -7075,12 +7066,7 @@ nsCSSFrameConstructor::ContentRangeInserted(nsIContent*            aContainer,
   
   if (parentFrame->IsLeaf()) {
     
-    if (isSingleInsert) {
-      aStartChild->UnsetFlags(NODE_DESCENDANTS_NEED_FRAMES | NODE_NEEDS_FRAME);
-    } else {
-      ClearLazyBitsInChildren(aContainer, aIndexInContainer,
-                              aEndIndexInContainer);
-    }
+    ClearLazyBits(aStartChild, aEndChild);
     return NS_OK;
   }
 
@@ -9665,7 +9651,7 @@ nsCSSFrameConstructor::ProcessChildren(nsFrameConstructorState& aState,
                                  itemsToConstruct);
     }
   } else {
-    ClearLazyBitsInChildren(aContent);
+    ClearLazyBits(aContent->GetFirstChild(), nsnull);
   }
 
   rv = ConstructFramesFromItemList(aState, itemsToConstruct, aFrame,
