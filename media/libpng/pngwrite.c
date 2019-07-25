@@ -11,11 +11,9 @@
 
 
 
-
-#define PNG_NO_PEDANTIC_WARNINGS
-#include "png.h"
-#ifdef PNG_WRITE_SUPPORTED
 #include "pngpriv.h"
+
+#ifdef PNG_WRITE_SUPPORTED
 
 
 
@@ -33,54 +31,50 @@ png_write_info_before_PLTE(png_structp png_ptr, png_infop info_ptr)
 
    if (png_ptr == NULL || info_ptr == NULL)
       return;
+
    if (!(png_ptr->mode & PNG_WROTE_INFO_BEFORE_PLTE))
    {
    
    png_write_sig(png_ptr);
+
 #ifdef PNG_MNG_FEATURES_SUPPORTED
    if ((png_ptr->mode&PNG_HAVE_PNG_SIGNATURE) && \
-      (png_ptr->mng_features_permitted))
+       (png_ptr->mng_features_permitted))
    {
       png_warning(png_ptr, "MNG features are not allowed in a PNG datastream");
       png_ptr->mng_features_permitted = 0;
    }
 #endif
+
    
    png_write_IHDR(png_ptr, info_ptr->width, info_ptr->height,
-      info_ptr->bit_depth, info_ptr->color_type, info_ptr->compression_type,
-      info_ptr->filter_type,
+       info_ptr->bit_depth, info_ptr->color_type, info_ptr->compression_type,
+       info_ptr->filter_type,
 #ifdef PNG_WRITE_INTERLACING_SUPPORTED
-      info_ptr->interlace_type);
+       info_ptr->interlace_type);
 #else
-      0);
+       0);
 #endif
 
 
 
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+#ifdef PNG_WRITE_APNG_SUPPORTED
    if (info_ptr->valid & PNG_INFO_acTL)
       png_write_acTL(png_ptr, info_ptr->num_frames, info_ptr->num_plays);
 #endif
 #ifdef PNG_WRITE_gAMA_SUPPORTED
    if (info_ptr->valid & PNG_INFO_gAMA)
-   {
-#  ifdef PNG_FLOATING_POINT_SUPPORTED
-      png_write_gAMA(png_ptr, info_ptr->gamma);
-#else
-#ifdef PNG_FIXED_POINT_SUPPORTED
-      png_write_gAMA_fixed(png_ptr, info_ptr->int_gamma);
-#  endif
-#endif
-   }
+      png_write_gAMA_fixed(png_ptr, info_ptr->gamma);
 #endif
 #ifdef PNG_WRITE_sRGB_SUPPORTED
    if (info_ptr->valid & PNG_INFO_sRGB)
       png_write_sRGB(png_ptr, (int)info_ptr->srgb_intent);
 #endif
+
 #ifdef PNG_WRITE_iCCP_SUPPORTED
    if (info_ptr->valid & PNG_INFO_iCCP)
       png_write_iCCP(png_ptr, info_ptr->iccp_name, PNG_COMPRESSION_TYPE_BASE,
-                     info_ptr->iccp_profile, (int)info_ptr->iccp_proflen);
+          (png_charp)info_ptr->iccp_profile, (int)info_ptr->iccp_proflen);
 #endif
 #ifdef PNG_WRITE_sBIT_SUPPORTED
    if (info_ptr->valid & PNG_INFO_sBIT)
@@ -88,24 +82,13 @@ png_write_info_before_PLTE(png_structp png_ptr, png_infop info_ptr)
 #endif
 #ifdef PNG_WRITE_cHRM_SUPPORTED
    if (info_ptr->valid & PNG_INFO_cHRM)
-   {
-#ifdef PNG_FLOATING_POINT_SUPPORTED
-      png_write_cHRM(png_ptr,
-         info_ptr->x_white, info_ptr->y_white,
-         info_ptr->x_red, info_ptr->y_red,
-         info_ptr->x_green, info_ptr->y_green,
-         info_ptr->x_blue, info_ptr->y_blue);
-#else
-#  ifdef PNG_FIXED_POINT_SUPPORTED
       png_write_cHRM_fixed(png_ptr,
-         info_ptr->int_x_white, info_ptr->int_y_white,
-         info_ptr->int_x_red, info_ptr->int_y_red,
-         info_ptr->int_x_green, info_ptr->int_y_green,
-         info_ptr->int_x_blue, info_ptr->int_y_blue);
-#  endif
+          info_ptr->x_white, info_ptr->y_white,
+          info_ptr->x_red, info_ptr->y_red,
+          info_ptr->x_green, info_ptr->y_green,
+          info_ptr->x_blue, info_ptr->y_blue);
 #endif
-   }
-#endif
+
 #ifdef PNG_WRITE_UNKNOWN_CHUNKS_SUPPORTED
    if (info_ptr->unknown_chunks_num)
    {
@@ -118,14 +101,18 @@ png_write_info_before_PLTE(png_structp png_ptr, png_infop info_ptr)
            up++)
       {
          int keep = png_handle_as_unknown(png_ptr, up->name);
+
          if (keep != PNG_HANDLE_CHUNK_NEVER &&
-            up->location && !(up->location & PNG_HAVE_PLTE) &&
-            !(up->location & PNG_HAVE_IDAT) &&
-            ((up->name[3] & 0x20) || keep == PNG_HANDLE_CHUNK_ALWAYS ||
-            (png_ptr->flags & PNG_FLAG_KEEP_UNSAFE_CHUNKS)))
+             up->location &&
+             !(up->location & PNG_HAVE_PLTE) &&
+             !(up->location & PNG_HAVE_IDAT) &&
+             !(up->location & PNG_AFTER_IDAT) &&
+             ((up->name[3] & 0x20) || keep == PNG_HANDLE_CHUNK_ALWAYS ||
+             (png_ptr->flags & PNG_FLAG_KEEP_UNSAFE_CHUNKS)))
          {
             if (up->size == 0)
                png_warning(png_ptr, "Writing zero-length unknown chunk");
+
             png_write_chunk(png_ptr, up->name, up->data, up->size);
          }
       }
@@ -151,7 +138,8 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
 
    if (info_ptr->valid & PNG_INFO_PLTE)
       png_write_PLTE(png_ptr, info_ptr->palette,
-         (png_uint_32)info_ptr->num_palette);
+          (png_uint_32)info_ptr->num_palette);
+
    else if (info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
       png_error(png_ptr, "Valid palette required for paletted images");
 
@@ -161,59 +149,51 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
 #ifdef PNG_WRITE_INVERT_ALPHA_SUPPORTED
       
       if ((png_ptr->transformations & PNG_INVERT_ALPHA) &&
-         info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
+          info_ptr->color_type == PNG_COLOR_TYPE_PALETTE)
       {
          int j;
          for (j = 0; j<(int)info_ptr->num_trans; j++)
-            info_ptr->trans_alpha[j] = (png_byte)(255 - info_ptr->trans_alpha[j]);
+            info_ptr->trans_alpha[j] =
+               (png_byte)(255 - info_ptr->trans_alpha[j]);
       }
 #endif
       png_write_tRNS(png_ptr, info_ptr->trans_alpha, &(info_ptr->trans_color),
-         info_ptr->num_trans, info_ptr->color_type);
+          info_ptr->num_trans, info_ptr->color_type);
    }
 #endif
 #ifdef PNG_WRITE_bKGD_SUPPORTED
    if (info_ptr->valid & PNG_INFO_bKGD)
       png_write_bKGD(png_ptr, &(info_ptr->background), info_ptr->color_type);
 #endif
+
 #ifdef PNG_WRITE_hIST_SUPPORTED
    if (info_ptr->valid & PNG_INFO_hIST)
       png_write_hIST(png_ptr, info_ptr->hist, info_ptr->num_palette);
 #endif
+
 #ifdef PNG_WRITE_oFFs_SUPPORTED
    if (info_ptr->valid & PNG_INFO_oFFs)
       png_write_oFFs(png_ptr, info_ptr->x_offset, info_ptr->y_offset,
-         info_ptr->offset_unit_type);
+          info_ptr->offset_unit_type);
 #endif
+
 #ifdef PNG_WRITE_pCAL_SUPPORTED
    if (info_ptr->valid & PNG_INFO_pCAL)
       png_write_pCAL(png_ptr, info_ptr->pcal_purpose, info_ptr->pcal_X0,
-         info_ptr->pcal_X1, info_ptr->pcal_type, info_ptr->pcal_nparams,
-         info_ptr->pcal_units, info_ptr->pcal_params);
+          info_ptr->pcal_X1, info_ptr->pcal_type, info_ptr->pcal_nparams,
+          info_ptr->pcal_units, info_ptr->pcal_params);
 #endif
 
-#ifdef PNG_sCAL_SUPPORTED
-   if (info_ptr->valid & PNG_INFO_sCAL)
 #ifdef PNG_WRITE_sCAL_SUPPORTED
-#if defined(PNG_FLOATING_POINT_SUPPORTED) && defined(PNG_STDIO_SUPPORTED)
-      png_write_sCAL(png_ptr, (int)info_ptr->scal_unit,
-          info_ptr->scal_pixel_width, info_ptr->scal_pixel_height);
-#else 
-#ifdef PNG_FIXED_POINT_SUPPORTED
+   if (info_ptr->valid & PNG_INFO_sCAL)
       png_write_sCAL_s(png_ptr, (int)info_ptr->scal_unit,
           info_ptr->scal_s_width, info_ptr->scal_s_height);
-#endif 
-#endif 
-#else  
-      png_warning(png_ptr,
-          "png_write_sCAL not supported; sCAL chunk not written");
-#endif 
 #endif 
 
 #ifdef PNG_WRITE_pHYs_SUPPORTED
    if (info_ptr->valid & PNG_INFO_pHYs)
       png_write_pHYs(png_ptr, info_ptr->x_pixels_per_unit,
-         info_ptr->y_pixels_per_unit, info_ptr->phys_unit_type);
+          info_ptr->y_pixels_per_unit, info_ptr->phys_unit_type);
 #endif 
 
 #ifdef PNG_WRITE_tIME_SUPPORTED
@@ -226,8 +206,8 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
 
 #ifdef PNG_WRITE_sPLT_SUPPORTED
    if (info_ptr->valid & PNG_INFO_sPLT)
-     for (i = 0; i < (int)info_ptr->splt_palettes_num; i++)
-       png_write_sPLT(png_ptr, info_ptr->splt_palettes + i);
+      for (i = 0; i < (int)info_ptr->splt_palettes_num; i++)
+         png_write_sPLT(png_ptr, info_ptr->splt_palettes + i);
 #endif 
 
 #ifdef PNG_WRITE_TEXT_SUPPORTED
@@ -235,45 +215,47 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
    for (i = 0; i < info_ptr->num_text; i++)
    {
       png_debug2(2, "Writing header text chunk %d, type %d", i,
-         info_ptr->text[i].compression);
+          info_ptr->text[i].compression);
       
       if (info_ptr->text[i].compression > 0)
       {
 #ifdef PNG_WRITE_iTXt_SUPPORTED
-          
-          png_write_iTXt(png_ptr,
-                         info_ptr->text[i].compression,
-                         info_ptr->text[i].key,
-                         info_ptr->text[i].lang,
-                         info_ptr->text[i].lang_key,
-                         info_ptr->text[i].text);
+         
+         png_write_iTXt(png_ptr,
+             info_ptr->text[i].compression,
+             info_ptr->text[i].key,
+             info_ptr->text[i].lang,
+             info_ptr->text[i].lang_key,
+             info_ptr->text[i].text);
 #else
           png_warning(png_ptr, "Unable to write international text");
 #endif
           
           info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
       }
+
       
       else if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_zTXt)
       {
 #ifdef PNG_WRITE_zTXt_SUPPORTED
          
          png_write_zTXt(png_ptr, info_ptr->text[i].key,
-            info_ptr->text[i].text, 0,
-            info_ptr->text[i].compression);
+             info_ptr->text[i].text, 0,
+             info_ptr->text[i].compression);
 #else
          png_warning(png_ptr, "Unable to write compressed text");
 #endif
          
          info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
       }
+
       else if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_NONE)
       {
 #ifdef PNG_WRITE_tEXt_SUPPORTED
          
          png_write_tEXt(png_ptr, info_ptr->text[i].key,
-                         info_ptr->text[i].text,
-                         0);
+             info_ptr->text[i].text,
+             0);
          
          info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
 #else
@@ -297,11 +279,12 @@ png_write_info(png_structp png_ptr, png_infop info_ptr)
       {
          int keep = png_handle_as_unknown(png_ptr, up->name);
          if (keep != PNG_HANDLE_CHUNK_NEVER &&
-            up->location && (up->location & PNG_HAVE_PLTE) &&
-            !(up->location & PNG_HAVE_IDAT) &&
-            !(up->location & PNG_AFTER_IDAT) &&
-            ((up->name[3] & 0x20) || keep == PNG_HANDLE_CHUNK_ALWAYS ||
-            (png_ptr->flags & PNG_FLAG_KEEP_UNSAFE_CHUNKS)))
+             up->location &&
+             (up->location & PNG_HAVE_PLTE) &&
+             !(up->location & PNG_HAVE_IDAT) &&
+             !(up->location & PNG_AFTER_IDAT) &&
+             ((up->name[3] & 0x20) || keep == PNG_HANDLE_CHUNK_ALWAYS ||
+             (png_ptr->flags & PNG_FLAG_KEEP_UNSAFE_CHUNKS)))
          {
             png_write_chunk(png_ptr, up->name, up->data, up->size);
          }
@@ -322,9 +305,11 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
 
    if (png_ptr == NULL)
       return;
+
    if (!(png_ptr->mode & PNG_HAVE_IDAT))
       png_error(png_ptr, "No IDATs written into file");
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+
+#ifdef PNG_WRITE_APNG_SUPPORTED
    if (png_ptr->num_frames_written != png_ptr->num_frames_to_write)
       png_error(png_ptr, "Not enough frames written");
 #endif
@@ -338,8 +323,9 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
 #ifdef PNG_WRITE_tIME_SUPPORTED
       
       if ((info_ptr->valid & PNG_INFO_tIME) &&
-         !(png_ptr->mode & PNG_WROTE_tIME))
+          !(png_ptr->mode & PNG_WROTE_tIME))
          png_write_tIME(png_ptr, &(info_ptr->mod_time));
+
 #endif
 #ifdef PNG_WRITE_TEXT_SUPPORTED
       
@@ -353,36 +339,38 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
 #ifdef PNG_WRITE_iTXt_SUPPORTED
             
             png_write_iTXt(png_ptr,
-                        info_ptr->text[i].compression,
-                        info_ptr->text[i].key,
-                        info_ptr->text[i].lang,
-                        info_ptr->text[i].lang_key,
-                        info_ptr->text[i].text);
+                info_ptr->text[i].compression,
+                info_ptr->text[i].key,
+                info_ptr->text[i].lang,
+                info_ptr->text[i].lang_key,
+                info_ptr->text[i].text);
 #else
             png_warning(png_ptr, "Unable to write international text");
 #endif
             
             info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_NONE_WR;
          }
+
          else if (info_ptr->text[i].compression >= PNG_TEXT_COMPRESSION_zTXt)
          {
 #ifdef PNG_WRITE_zTXt_SUPPORTED
             
             png_write_zTXt(png_ptr, info_ptr->text[i].key,
-               info_ptr->text[i].text, 0,
-               info_ptr->text[i].compression);
+                info_ptr->text[i].text, 0,
+                info_ptr->text[i].compression);
 #else
             png_warning(png_ptr, "Unable to write compressed text");
 #endif
             
             info_ptr->text[i].compression = PNG_TEXT_COMPRESSION_zTXt_WR;
          }
+
          else if (info_ptr->text[i].compression == PNG_TEXT_COMPRESSION_NONE)
          {
 #ifdef PNG_WRITE_tEXt_SUPPORTED
             
             png_write_tEXt(png_ptr, info_ptr->text[i].key,
-               info_ptr->text[i].text, 0);
+                info_ptr->text[i].text, 0);
 #else
             png_warning(png_ptr, "Unable to write uncompressed text");
 #endif
@@ -405,9 +393,10 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
       {
          int keep = png_handle_as_unknown(png_ptr, up->name);
          if (keep != PNG_HANDLE_CHUNK_NEVER &&
-            up->location && (up->location & PNG_AFTER_IDAT) &&
-            ((up->name[3] & 0x20) || keep == PNG_HANDLE_CHUNK_ALWAYS ||
-            (png_ptr->flags & PNG_FLAG_KEEP_UNSAFE_CHUNKS)))
+             up->location &&
+             (up->location & PNG_AFTER_IDAT) &&
+             ((up->name[3] & 0x20) || keep == PNG_HANDLE_CHUNK_ALWAYS ||
+             (png_ptr->flags & PNG_FLAG_KEEP_UNSAFE_CHUNKS)))
          {
             png_write_chunk(png_ptr, up->name, up->data, up->size);
          }
@@ -437,7 +426,7 @@ png_write_end(png_structp png_ptr, png_infop info_ptr)
 #ifdef PNG_CONVERT_tIME_SUPPORTED
 
 void PNGAPI
-png_convert_from_struct_tm(png_timep ptime, struct tm FAR * ttime)
+png_convert_from_struct_tm(png_timep ptime, PNG_CONST struct tm FAR * ttime)
 {
    png_debug(1, "in png_convert_from_struct_tm");
 
@@ -462,20 +451,22 @@ png_convert_from_time_t(png_timep ptime, time_t ttime)
 #endif
 
 
-png_structp PNGAPI
-png_create_write_struct(png_const_charp user_png_ver, png_voidp error_ptr,
-   png_error_ptr error_fn, png_error_ptr warn_fn)
+PNG_FUNCTION(png_structp,PNGAPI
+png_create_write_struct,(png_const_charp user_png_ver, png_voidp error_ptr,
+    png_error_ptr error_fn, png_error_ptr warn_fn),PNG_ALLOCATED)
 {
 #ifdef PNG_USER_MEM_SUPPORTED
    return (png_create_write_struct_2(user_png_ver, error_ptr, error_fn,
-      warn_fn, NULL, NULL, NULL));
+       warn_fn, NULL, NULL, NULL));
 }
 
 
-png_structp PNGAPI
-png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
-   png_error_ptr error_fn, png_error_ptr warn_fn, png_voidp mem_ptr,
-   png_malloc_ptr malloc_fn, png_free_ptr free_fn)
+static void png_reset_filter_heuristics(png_structp png_ptr); 
+
+PNG_FUNCTION(png_structp,PNGAPI
+png_create_write_struct_2,(png_const_charp user_png_ver, png_voidp error_ptr,
+    png_error_ptr error_fn, png_error_ptr warn_fn, png_voidp mem_ptr,
+    png_malloc_ptr malloc_fn, png_free_ptr free_fn),PNG_ALLOCATED)
 {
 #endif
    volatile int png_cleanup_needed = 0;
@@ -485,16 +476,15 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
    png_structp png_ptr;
 #ifdef PNG_SETJMP_SUPPORTED
 #ifdef USE_FAR_KEYWORD
-   jmp_buf jmpbuf;
+   jmp_buf tmp_jmpbuf;
 #endif
 #endif
-   int i;
 
    png_debug(1, "in png_create_write_struct");
 
 #ifdef PNG_USER_MEM_SUPPORTED
    png_ptr = (png_structp)png_create_struct_2(PNG_STRUCT_PNG,
-      (png_malloc_ptr)malloc_fn, (png_voidp)mem_ptr);
+       (png_malloc_ptr)malloc_fn, (png_voidp)mem_ptr);
 #else
    png_ptr = (png_structp)png_create_struct(PNG_STRUCT_PNG);
 #endif 
@@ -511,13 +501,14 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
 
 
 
+
 #ifdef USE_FAR_KEYWORD
-   if (setjmp(jmpbuf))
+   if (setjmp(tmp_jmpbuf))
 #else
    if (setjmp(png_jmpbuf(png_ptr))) 
 #endif
 #ifdef USE_FAR_KEYWORD
-   png_memcpy(png_jmpbuf(png_ptr), jmpbuf, png_sizeof(jmp_buf));
+   png_memcpy(png_jmpbuf(png_ptr), tmp_jmpbuf, png_sizeof(jmp_buf));
 #endif
       PNG_ABORT();
 #endif
@@ -527,59 +518,20 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
 #endif 
    png_set_error_fn(png_ptr, error_ptr, error_fn, warn_fn);
 
-   if (user_png_ver)
-   {
-      i = 0;
-      do
-      {
-         if (user_png_ver[i] != png_libpng_ver[i])
-            png_ptr->flags |= PNG_FLAG_LIBRARY_MISMATCH;
-      } while (png_libpng_ver[i++]);
-   }
-
-   if (png_ptr->flags & PNG_FLAG_LIBRARY_MISMATCH)
-   {
-     
-
-
-
-
-     if (user_png_ver == NULL || user_png_ver[0] != png_libpng_ver[0] ||
-         (user_png_ver[0] == '1' && user_png_ver[2] != png_libpng_ver[2]) ||
-         (user_png_ver[0] == '0' && user_png_ver[2] < '9'))
-     {
-#ifdef PNG_STDIO_SUPPORTED
-        char msg[80];
-        if (user_png_ver)
-        {
-           png_snprintf(msg, 80,
-              "Application was compiled with png.h from libpng-%.20s",
-              user_png_ver);
-           png_warning(png_ptr, msg);
-        }
-        png_snprintf(msg, 80,
-           "Application  is  running with png.c from libpng-%.20s",
-           png_libpng_ver);
-        png_warning(png_ptr, msg);
-#endif
-#ifdef PNG_ERROR_NUMBERS_SUPPORTED
-        png_ptr->flags = 0;
-#endif
-        png_warning(png_ptr,
-           "Incompatible libpng version in application and library");
-        png_cleanup_needed = 1;
-     }
-   }
+   if (!png_user_version_check(png_ptr, user_png_ver))
+      png_cleanup_needed = 1;
 
    
    png_ptr->zbuf_size = PNG_ZBUF_SIZE;
+
    if (!png_cleanup_needed)
    {
       png_ptr->zbuf = (png_bytep)png_malloc_warn(png_ptr,
-         png_ptr->zbuf_size);
+          png_ptr->zbuf_size);
       if (png_ptr->zbuf == NULL)
          png_cleanup_needed = 1;
    }
+
    if (png_cleanup_needed)
    {
        
@@ -587,7 +539,7 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
        png_ptr->zbuf = NULL;
 #ifdef PNG_USER_MEM_SUPPORTED
        png_destroy_struct_2((png_voidp)png_ptr,
-          (png_free_ptr)free_fn, (png_voidp)mem_ptr);
+           (png_free_ptr)free_fn, (png_voidp)mem_ptr);
 #else
        png_destroy_struct((png_voidp)png_ptr);
 #endif
@@ -597,8 +549,7 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
    png_set_write_fn(png_ptr, NULL, NULL, NULL);
 
 #ifdef PNG_WRITE_WEIGHTED_FILTER_SUPPORTED
-   png_set_filter_heuristics(png_ptr, PNG_FILTER_HEURISTIC_DEFAULT,
-      1, NULL, NULL);
+   png_reset_filter_heuristics(png_ptr);
 #endif
 
    return (png_ptr);
@@ -612,7 +563,7 @@ png_create_write_struct_2(png_const_charp user_png_ver, png_voidp error_ptr,
 
 void PNGAPI
 png_write_rows(png_structp png_ptr, png_bytepp row,
-   png_uint_32 num_rows)
+    png_uint_32 num_rows)
 {
    png_uint_32 i; 
    png_bytepp rp; 
@@ -665,13 +616,16 @@ png_write_image(png_structp png_ptr, png_bytepp image)
 
 
 void PNGAPI
-png_write_row(png_structp png_ptr, png_bytep row)
+png_write_row(png_structp png_ptr, png_const_bytep row)
 {
+   
+   png_row_info row_info;
+
    if (png_ptr == NULL)
       return;
 
-   png_debug2(1, "in png_write_row (row %lu, pass %d)",
-      (unsigned long)png_ptr->row_number, png_ptr->pass);
+   png_debug2(1, "in png_write_row (row %u, pass %d)",
+      png_ptr->row_number, png_ptr->pass);
 
    
    if (png_ptr->row_number == 0 && png_ptr->pass == 0)
@@ -679,13 +633,14 @@ png_write_row(png_structp png_ptr, png_bytep row)
       
       if (!(png_ptr->mode & PNG_WROTE_INFO_BEFORE_PLTE))
          png_error(png_ptr,
-            "png_write_info was never called before png_write_row");
+             "png_write_info was never called before png_write_row");
 
       
 #if !defined(PNG_WRITE_INVERT_SUPPORTED) && defined(PNG_READ_INVERT_SUPPORTED)
       if (png_ptr->transformations & PNG_INVERT_MONO)
          png_warning(png_ptr, "PNG_WRITE_INVERT_SUPPORTED is not defined");
 #endif
+
 #if !defined(PNG_WRITE_FILLER_SUPPORTED) && defined(PNG_READ_FILLER_SUPPORTED)
       if (png_ptr->transformations & PNG_FILLER)
          png_warning(png_ptr, "PNG_WRITE_FILLER_SUPPORTED is not defined");
@@ -696,18 +651,22 @@ png_write_row(png_structp png_ptr, png_bytep row)
          png_warning(png_ptr,
              "PNG_WRITE_PACKSWAP_SUPPORTED is not defined");
 #endif
+
 #if !defined(PNG_WRITE_PACK_SUPPORTED) && defined(PNG_READ_PACK_SUPPORTED)
       if (png_ptr->transformations & PNG_PACK)
          png_warning(png_ptr, "PNG_WRITE_PACK_SUPPORTED is not defined");
 #endif
+
 #if !defined(PNG_WRITE_SHIFT_SUPPORTED) && defined(PNG_READ_SHIFT_SUPPORTED)
       if (png_ptr->transformations & PNG_SHIFT)
          png_warning(png_ptr, "PNG_WRITE_SHIFT_SUPPORTED is not defined");
 #endif
+
 #if !defined(PNG_WRITE_BGR_SUPPORTED) && defined(PNG_READ_BGR_SUPPORTED)
       if (png_ptr->transformations & PNG_BGR)
          png_warning(png_ptr, "PNG_WRITE_BGR_SUPPORTED is not defined");
 #endif
+
 #if !defined(PNG_WRITE_SWAP_SUPPORTED) && defined(PNG_READ_SWAP_SUPPORTED)
       if (png_ptr->transformations & PNG_SWAP_BYTES)
          png_warning(png_ptr, "PNG_WRITE_SWAP_SUPPORTED is not defined");
@@ -729,6 +688,7 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
          case 1:
             if ((png_ptr->row_number & 0x07) || png_ptr->width < 5)
             {
@@ -736,6 +696,7 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
          case 2:
             if ((png_ptr->row_number & 0x07) != 4)
             {
@@ -743,6 +704,7 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
          case 3:
             if ((png_ptr->row_number & 0x03) || png_ptr->width < 3)
             {
@@ -750,6 +712,7 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
          case 4:
             if ((png_ptr->row_number & 0x03) != 2)
             {
@@ -757,6 +720,7 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
          case 5:
             if ((png_ptr->row_number & 0x01) || png_ptr->width < 2)
             {
@@ -764,6 +728,7 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
          case 6:
             if (!(png_ptr->row_number & 0x01))
             {
@@ -771,41 +736,39 @@ png_write_row(png_structp png_ptr, png_bytep row)
                return;
             }
             break;
+
+         default: 
+            break;
       }
    }
 #endif
 
    
-   png_ptr->row_info.color_type = png_ptr->color_type;
-   png_ptr->row_info.width = png_ptr->usr_width;
-   png_ptr->row_info.channels = png_ptr->usr_channels;
-   png_ptr->row_info.bit_depth = png_ptr->usr_bit_depth;
-   png_ptr->row_info.pixel_depth = (png_byte)(png_ptr->row_info.bit_depth *
-      png_ptr->row_info.channels);
+   row_info.color_type = png_ptr->color_type;
+   row_info.width = png_ptr->usr_width;
+   row_info.channels = png_ptr->usr_channels;
+   row_info.bit_depth = png_ptr->usr_bit_depth;
+   row_info.pixel_depth = (png_byte)(row_info.bit_depth * row_info.channels);
+   row_info.rowbytes = PNG_ROWBYTES(row_info.pixel_depth, row_info.width);
 
-   png_ptr->row_info.rowbytes = PNG_ROWBYTES(png_ptr->row_info.pixel_depth,
-      png_ptr->row_info.width);
-
-   png_debug1(3, "row_info->color_type = %d", png_ptr->row_info.color_type);
-   png_debug1(3, "row_info->width = %lu",
-      (unsigned long)png_ptr->row_info.width);
-   png_debug1(3, "row_info->channels = %d", png_ptr->row_info.channels);
-   png_debug1(3, "row_info->bit_depth = %d", png_ptr->row_info.bit_depth);
-   png_debug1(3, "row_info->pixel_depth = %d", png_ptr->row_info.pixel_depth);
-   png_debug1(3, "row_info->rowbytes = %lu", png_ptr->row_info.rowbytes);
+   png_debug1(3, "row_info->color_type = %d", row_info.color_type);
+   png_debug1(3, "row_info->width = %u", row_info.width);
+   png_debug1(3, "row_info->channels = %d", row_info.channels);
+   png_debug1(3, "row_info->bit_depth = %d", row_info.bit_depth);
+   png_debug1(3, "row_info->pixel_depth = %d", row_info.pixel_depth);
+   png_debug1(3, "row_info->rowbytes = %lu", (unsigned long)row_info.rowbytes);
 
    
-   png_memcpy(png_ptr->row_buf + 1, row, png_ptr->row_info.rowbytes);
+   png_memcpy(png_ptr->row_buf + 1, row, row_info.rowbytes);
 
 #ifdef PNG_WRITE_INTERLACING_SUPPORTED
    
    if (png_ptr->interlaced && png_ptr->pass < 6 &&
-      (png_ptr->transformations & PNG_INTERLACE))
+       (png_ptr->transformations & PNG_INTERLACE))
    {
-      png_do_write_interlace(&(png_ptr->row_info),
-         png_ptr->row_buf + 1, png_ptr->pass);
+      png_do_write_interlace(&row_info, png_ptr->row_buf + 1, png_ptr->pass);
       
-      if (!(png_ptr->row_info.width))
+      if (!(row_info.width))
       {
          png_write_finish_row(png_ptr);
          return;
@@ -813,9 +776,18 @@ png_write_row(png_structp png_ptr, png_bytep row)
    }
 #endif
 
+#ifdef PNG_WRITE_TRANSFORMS_SUPPORTED
    
    if (png_ptr->transformations)
-      png_do_write_transformations(png_ptr);
+      png_do_write_transformations(png_ptr, &row_info);
+#endif
+
+   
+
+
+   if (row_info.pixel_depth != png_ptr->pixel_depth ||
+      row_info.pixel_depth != png_ptr->transformed_pixel_depth)
+      png_error(png_ptr, "internal write transform logic error");
 
 #ifdef PNG_MNG_FEATURES_SUPPORTED
    
@@ -828,15 +800,15 @@ png_write_row(png_structp png_ptr, png_bytep row)
 
 
    if ((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
-      (png_ptr->filter_type == PNG_INTRAPIXEL_DIFFERENCING))
+       (png_ptr->filter_type == PNG_INTRAPIXEL_DIFFERENCING))
    {
       
-      png_do_write_intrapixel(&(png_ptr->row_info), png_ptr->row_buf + 1);
+      png_do_write_intrapixel(&row_info, png_ptr->row_buf + 1);
    }
 #endif
 
    
-   png_write_find_filter(png_ptr, &(png_ptr->row_info));
+   png_write_find_filter(png_ptr, &row_info);
 
    if (png_ptr->write_row_fn != NULL)
       (*(png_ptr->write_row_fn))(png_ptr, png_ptr->row_number, png_ptr->pass);
@@ -851,6 +823,7 @@ png_set_flush(png_structp png_ptr, int nrows)
 
    if (png_ptr == NULL)
       return;
+
    png_ptr->flush_dist = (nrows < 0 ? 0 : nrows);
 }
 
@@ -864,6 +837,7 @@ png_write_flush(png_structp png_ptr)
 
    if (png_ptr == NULL)
       return;
+
    
    if (png_ptr->row_number >= png_ptr->num_rows)
       return;
@@ -881,6 +855,7 @@ png_write_flush(png_structp png_ptr)
       {
          if (png_ptr->zstream.msg != NULL)
             png_error(png_ptr, png_ptr->zstream.msg);
+
          else
             png_error(png_ptr, "zlib error");
       }
@@ -888,22 +863,17 @@ png_write_flush(png_structp png_ptr)
       if (!(png_ptr->zstream.avail_out))
       {
          
-         png_write_IDAT(png_ptr, png_ptr->zbuf,
-                        png_ptr->zbuf_size);
-         png_ptr->zstream.next_out = png_ptr->zbuf;
-         png_ptr->zstream.avail_out = (uInt)png_ptr->zbuf_size;
+         png_write_IDAT(png_ptr, png_ptr->zbuf, png_ptr->zbuf_size);
          wrote_IDAT = 1;
       }
-   } while(wrote_IDAT == 1);
+   } while (wrote_IDAT == 1);
 
    
    if (png_ptr->zbuf_size != png_ptr->zstream.avail_out)
    {
       
       png_write_IDAT(png_ptr, png_ptr->zbuf,
-                     png_ptr->zbuf_size - png_ptr->zstream.avail_out);
-      png_ptr->zstream.next_out = png_ptr->zbuf;
-      png_ptr->zstream.avail_out = (uInt)png_ptr->zbuf_size;
+          png_ptr->zbuf_size - png_ptr->zstream.avail_out);
    }
    png_ptr->flush_rows = 0;
    png_flush(png_ptr);
@@ -924,13 +894,7 @@ png_destroy_write_struct(png_structpp png_ptr_ptr, png_infopp info_ptr_ptr)
    png_debug(1, "in png_destroy_write_struct");
 
    if (png_ptr_ptr != NULL)
-   {
       png_ptr = *png_ptr_ptr;
-#ifdef PNG_USER_MEM_SUPPORTED
-      free_fn = png_ptr->free_fn;
-      mem_ptr = png_ptr->mem_ptr;
-#endif
-   }
 
 #ifdef PNG_USER_MEM_SUPPORTED
    if (png_ptr != NULL)
@@ -947,20 +911,20 @@ png_destroy_write_struct(png_structpp png_ptr_ptr, png_infopp info_ptr_ptr)
    {
       if (png_ptr != NULL)
       {
-        png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
+         png_free_data(png_ptr, info_ptr, PNG_FREE_ALL, -1);
 
 #ifdef PNG_HANDLE_AS_UNKNOWN_SUPPORTED
-        if (png_ptr->num_chunk_list)
-        {
-           png_free(png_ptr, png_ptr->chunk_list);
-           png_ptr->num_chunk_list = 0;
-        }
+         if (png_ptr->num_chunk_list)
+         {
+            png_free(png_ptr, png_ptr->chunk_list);
+            png_ptr->num_chunk_list = 0;
+         }
 #endif
       }
 
 #ifdef PNG_USER_MEM_SUPPORTED
       png_destroy_struct_2((png_voidp)info_ptr, (png_free_ptr)free_fn,
-         (png_voidp)mem_ptr);
+          (png_voidp)mem_ptr);
 #else
       png_destroy_struct((png_voidp)info_ptr);
 #endif
@@ -972,7 +936,7 @@ png_destroy_write_struct(png_structpp png_ptr_ptr, png_infopp info_ptr_ptr)
       png_write_destroy(png_ptr);
 #ifdef PNG_USER_MEM_SUPPORTED
       png_destroy_struct_2((png_voidp)png_ptr, (png_free_ptr)free_fn,
-         (png_voidp)mem_ptr);
+          (png_voidp)mem_ptr);
 #else
       png_destroy_struct((png_voidp)png_ptr);
 #endif
@@ -989,7 +953,9 @@ png_write_destroy(png_structp png_ptr)
    jmp_buf tmp_jmp; 
 #endif
    png_error_ptr error_fn;
+#ifdef PNG_WARNINGS_SUPPORTED
    png_error_ptr warning_fn;
+#endif
    png_voidp error_ptr;
 #ifdef PNG_USER_MEM_SUPPORTED
    png_free_ptr free_fn;
@@ -998,7 +964,8 @@ png_write_destroy(png_structp png_ptr)
    png_debug(1, "in png_write_destroy");
 
    
-   deflateEnd(&png_ptr->zstream);
+   if (png_ptr->zlib_state != PNG_ZLIB_UNINITIALIZED)
+      deflateEnd(&png_ptr->zstream);
 
    
    png_free(png_ptr, png_ptr->zbuf);
@@ -1011,25 +978,22 @@ png_write_destroy(png_structp png_ptr)
    png_free(png_ptr, png_ptr->paeth_row);
 #endif
 
-#ifdef PNG_TIME_RFC1123_SUPPORTED
-   png_free(png_ptr, png_ptr->time_buffer);
-#endif
-
 #ifdef PNG_WRITE_WEIGHTED_FILTER_SUPPORTED
-   png_free(png_ptr, png_ptr->prev_filters);
-   png_free(png_ptr, png_ptr->filter_weights);
-   png_free(png_ptr, png_ptr->inv_filter_weights);
+   
+   png_reset_filter_heuristics(png_ptr);
    png_free(png_ptr, png_ptr->filter_costs);
    png_free(png_ptr, png_ptr->inv_filter_costs);
 #endif
 
 #ifdef PNG_SETJMP_SUPPORTED
    
-   png_memcpy(tmp_jmp, png_ptr->jmpbuf, png_sizeof(jmp_buf));
+   png_memcpy(tmp_jmp, png_ptr->longjmp_buffer, png_sizeof(jmp_buf));
 #endif
 
    error_fn = png_ptr->error_fn;
+#ifdef PNG_WARNINGS_SUPPORTED
    warning_fn = png_ptr->warning_fn;
+#endif
    error_ptr = png_ptr->error_ptr;
 #ifdef PNG_USER_MEM_SUPPORTED
    free_fn = png_ptr->free_fn;
@@ -1038,14 +1002,16 @@ png_write_destroy(png_structp png_ptr)
    png_memset(png_ptr, 0, png_sizeof(png_struct));
 
    png_ptr->error_fn = error_fn;
+#ifdef PNG_WARNINGS_SUPPORTED
    png_ptr->warning_fn = warning_fn;
+#endif
    png_ptr->error_ptr = error_ptr;
 #ifdef PNG_USER_MEM_SUPPORTED
    png_ptr->free_fn = free_fn;
 #endif
 
 #ifdef PNG_SETJMP_SUPPORTED
-   png_memcpy(png_ptr->jmpbuf, tmp_jmp, png_sizeof(jmp_buf));
+   png_memcpy(png_ptr->longjmp_buffer, tmp_jmp, png_sizeof(jmp_buf));
 #endif
 }
 
@@ -1057,10 +1023,12 @@ png_set_filter(png_structp png_ptr, int method, int filters)
 
    if (png_ptr == NULL)
       return;
+
 #ifdef PNG_MNG_FEATURES_SUPPORTED
    if ((png_ptr->mng_features_permitted & PNG_FLAG_MNG_FILTER_64) &&
-      (method == PNG_INTRAPIXEL_DIFFERENCING))
-         method = PNG_FILTER_TYPE_BASE;
+       (method == PNG_INTRAPIXEL_DIFFERENCING))
+      method = PNG_FILTER_TYPE_BASE;
+
 #endif
    if (method == PNG_FILTER_TYPE_BASE)
    {
@@ -1072,19 +1040,26 @@ png_set_filter(png_structp png_ptr, int method, int filters)
          case 7: png_warning(png_ptr, "Unknown row filter for method 0");
 #endif 
          case PNG_FILTER_VALUE_NONE:
-              png_ptr->do_filter = PNG_FILTER_NONE; break;
+            png_ptr->do_filter = PNG_FILTER_NONE; break;
+
 #ifdef PNG_WRITE_FILTER_SUPPORTED
          case PNG_FILTER_VALUE_SUB:
-              png_ptr->do_filter = PNG_FILTER_SUB; break;
+            png_ptr->do_filter = PNG_FILTER_SUB; break;
+
          case PNG_FILTER_VALUE_UP:
-              png_ptr->do_filter = PNG_FILTER_UP; break;
+            png_ptr->do_filter = PNG_FILTER_UP; break;
+
          case PNG_FILTER_VALUE_AVG:
-              png_ptr->do_filter = PNG_FILTER_AVG; break;
+            png_ptr->do_filter = PNG_FILTER_AVG; break;
+
          case PNG_FILTER_VALUE_PAETH:
-              png_ptr->do_filter = PNG_FILTER_PAETH; break;
-         default: png_ptr->do_filter = (png_byte)filters; break;
+            png_ptr->do_filter = PNG_FILTER_PAETH; break;
+
+         default:
+            png_ptr->do_filter = (png_byte)filters; break;
 #else
-         default: png_warning(png_ptr, "Unknown row filter for method 0");
+         default:
+            png_warning(png_ptr, "Unknown row filter for method 0");
 #endif 
       }
 
@@ -1103,7 +1078,7 @@ png_set_filter(png_structp png_ptr, int method, int filters)
          if ((png_ptr->do_filter & PNG_FILTER_SUB) && png_ptr->sub_row == NULL)
          {
             png_ptr->sub_row = (png_bytep)png_malloc(png_ptr,
-              (png_ptr->rowbytes + 1));
+                (png_ptr->rowbytes + 1));
             png_ptr->sub_row[0] = PNG_FILTER_VALUE_SUB;
          }
 
@@ -1112,12 +1087,14 @@ png_set_filter(png_structp png_ptr, int method, int filters)
             if (png_ptr->prev_row == NULL)
             {
                png_warning(png_ptr, "Can't add Up filter after starting");
-               png_ptr->do_filter &= ~PNG_FILTER_UP;
+               png_ptr->do_filter = (png_byte)(png_ptr->do_filter &
+                   ~PNG_FILTER_UP);
             }
+
             else
             {
                png_ptr->up_row = (png_bytep)png_malloc(png_ptr,
-                  (png_ptr->rowbytes + 1));
+                   (png_ptr->rowbytes + 1));
                png_ptr->up_row[0] = PNG_FILTER_VALUE_UP;
             }
          }
@@ -1127,12 +1104,14 @@ png_set_filter(png_structp png_ptr, int method, int filters)
             if (png_ptr->prev_row == NULL)
             {
                png_warning(png_ptr, "Can't add Average filter after starting");
-               png_ptr->do_filter &= ~PNG_FILTER_AVG;
+               png_ptr->do_filter = (png_byte)(png_ptr->do_filter &
+                   ~PNG_FILTER_AVG);
             }
+
             else
             {
                png_ptr->avg_row = (png_bytep)png_malloc(png_ptr,
-                  (png_ptr->rowbytes + 1));
+                   (png_ptr->rowbytes + 1));
                png_ptr->avg_row[0] = PNG_FILTER_VALUE_AVG;
             }
          }
@@ -1145,10 +1124,11 @@ png_set_filter(png_structp png_ptr, int method, int filters)
                png_warning(png_ptr, "Can't add Paeth filter after starting");
                png_ptr->do_filter &= (png_byte)(~PNG_FILTER_PAETH);
             }
+
             else
             {
                png_ptr->paeth_row = (png_bytep)png_malloc(png_ptr,
-                  (png_ptr->rowbytes + 1));
+                   (png_ptr->rowbytes + 1));
                png_ptr->paeth_row[0] = PNG_FILTER_VALUE_PAETH;
             }
          }
@@ -1170,123 +1150,242 @@ png_set_filter(png_structp png_ptr, int method, int filters)
 
 
 #ifdef PNG_WRITE_WEIGHTED_FILTER_SUPPORTED      
-void PNGAPI
-png_set_filter_heuristics(png_structp png_ptr, int heuristic_method,
-   int num_weights, png_doublep filter_weights,
-   png_doublep filter_costs)
+
+static void
+png_reset_filter_heuristics(png_structp png_ptr)
 {
-   int i;
+   
 
-   png_debug(1, "in png_set_filter_heuristics");
 
+
+
+   png_ptr->num_prev_filters = 0;
+   png_ptr->heuristic_method = PNG_FILTER_HEURISTIC_UNWEIGHTED;
+   if (png_ptr->prev_filters != NULL)
+   {
+      png_bytep old = png_ptr->prev_filters;
+      png_ptr->prev_filters = NULL;
+      png_free(png_ptr, old);
+   }
+   if (png_ptr->filter_weights != NULL)
+   {
+      png_uint_16p old = png_ptr->filter_weights;
+      png_ptr->filter_weights = NULL;
+      png_free(png_ptr, old);
+   }
+
+   if (png_ptr->inv_filter_weights != NULL)
+   {
+      png_uint_16p old = png_ptr->inv_filter_weights;
+      png_ptr->inv_filter_weights = NULL;
+      png_free(png_ptr, old);
+   }
+
+   
+}
+
+static int
+png_init_filter_heuristics(png_structp png_ptr, int heuristic_method,
+   int num_weights)
+{
    if (png_ptr == NULL)
-      return;
-   if (heuristic_method >= PNG_FILTER_HEURISTIC_LAST)
-   {
-      png_warning(png_ptr, "Unknown filter heuristic method");
-      return;
-   }
+      return 0;
 
-   if (heuristic_method == PNG_FILTER_HEURISTIC_DEFAULT)
-   {
-      heuristic_method = PNG_FILTER_HEURISTIC_UNWEIGHTED;
-   }
+   
+   png_reset_filter_heuristics(png_ptr);
 
-   if (num_weights < 0 || filter_weights == NULL ||
-      heuristic_method == PNG_FILTER_HEURISTIC_UNWEIGHTED)
-   {
-      num_weights = 0;
-   }
+   
 
-   png_ptr->num_prev_filters = (png_byte)num_weights;
-   png_ptr->heuristic_method = (png_byte)heuristic_method;
 
-   if (num_weights > 0)
+
+   if (heuristic_method == PNG_FILTER_HEURISTIC_WEIGHTED)
    {
-      if (png_ptr->prev_filters == NULL)
+      int i;
+
+      if (num_weights > 0)
       {
          png_ptr->prev_filters = (png_bytep)png_malloc(png_ptr,
-            (png_uint_32)(png_sizeof(png_byte) * num_weights));
+             (png_uint_32)(png_sizeof(png_byte) * num_weights));
 
          
          for (i = 0; i < num_weights; i++)
          {
             png_ptr->prev_filters[i] = 255;
          }
-      }
 
-      if (png_ptr->filter_weights == NULL)
-      {
          png_ptr->filter_weights = (png_uint_16p)png_malloc(png_ptr,
-            (png_uint_32)(png_sizeof(png_uint_16) * num_weights));
+             (png_uint_32)(png_sizeof(png_uint_16) * num_weights));
 
          png_ptr->inv_filter_weights = (png_uint_16p)png_malloc(png_ptr,
-            (png_uint_32)(png_sizeof(png_uint_16) * num_weights));
+             (png_uint_32)(png_sizeof(png_uint_16) * num_weights));
+
          for (i = 0; i < num_weights; i++)
          {
             png_ptr->inv_filter_weights[i] =
             png_ptr->filter_weights[i] = PNG_WEIGHT_FACTOR;
          }
+
+         
+         png_ptr->num_prev_filters = (png_byte)num_weights;
       }
 
-      for (i = 0; i < num_weights; i++)
+      
+
+
+      if (png_ptr->filter_costs == NULL)
       {
-         if (filter_weights[i] < 0.0)
-         {
-            png_ptr->inv_filter_weights[i] =
-            png_ptr->filter_weights[i] = PNG_WEIGHT_FACTOR;
-         }
-         else
-         {
-            png_ptr->inv_filter_weights[i] =
-               (png_uint_16)((double)PNG_WEIGHT_FACTOR*filter_weights[i]+0.5);
-            png_ptr->filter_weights[i] =
-               (png_uint_16)((double)PNG_WEIGHT_FACTOR/filter_weights[i]+0.5);
-         }
+         png_ptr->filter_costs = (png_uint_16p)png_malloc(png_ptr,
+             (png_uint_32)(png_sizeof(png_uint_16) * PNG_FILTER_VALUE_LAST));
+
+         png_ptr->inv_filter_costs = (png_uint_16p)png_malloc(png_ptr,
+             (png_uint_32)(png_sizeof(png_uint_16) * PNG_FILTER_VALUE_LAST));
       }
-   }
-
-   
-
-
-   if (png_ptr->filter_costs == NULL)
-   {
-      png_ptr->filter_costs = (png_uint_16p)png_malloc(png_ptr,
-         (png_uint_32)(png_sizeof(png_uint_16) * PNG_FILTER_VALUE_LAST));
-
-      png_ptr->inv_filter_costs = (png_uint_16p)png_malloc(png_ptr,
-         (png_uint_32)(png_sizeof(png_uint_16) * PNG_FILTER_VALUE_LAST));
 
       for (i = 0; i < PNG_FILTER_VALUE_LAST; i++)
       {
          png_ptr->inv_filter_costs[i] =
          png_ptr->filter_costs[i] = PNG_COST_FACTOR;
       }
+
+      
+      png_ptr->heuristic_method = PNG_FILTER_HEURISTIC_WEIGHTED;
+
+      
+      return 1;
    }
+   else if (heuristic_method == PNG_FILTER_HEURISTIC_DEFAULT ||
+      heuristic_method == PNG_FILTER_HEURISTIC_UNWEIGHTED)
+   {
+      return 1;
+   }
+   else
+   {
+      png_warning(png_ptr, "Unknown filter heuristic method");
+      return 0;
+   }
+}
+
+
+#ifdef PNG_FLOATING_POINT_SUPPORTED
+void PNGAPI
+png_set_filter_heuristics(png_structp png_ptr, int heuristic_method,
+    int num_weights, png_const_doublep filter_weights,
+    png_const_doublep filter_costs)
+{
+   png_debug(1, "in png_set_filter_heuristics");
 
    
 
 
+   if (!png_init_filter_heuristics(png_ptr, heuristic_method, num_weights))
+      return;
 
-
-
-
-   for (i = 0; i < PNG_FILTER_VALUE_LAST; i++)
+   
+   if (heuristic_method == PNG_FILTER_HEURISTIC_WEIGHTED)
    {
-      if (filter_costs == NULL || filter_costs[i] < 0.0)
+      int i;
+      for (i = 0; i < num_weights; i++)
       {
-         png_ptr->inv_filter_costs[i] =
-         png_ptr->filter_costs[i] = PNG_COST_FACTOR;
+         if (filter_weights[i] <= 0.0)
+         {
+            png_ptr->inv_filter_weights[i] =
+            png_ptr->filter_weights[i] = PNG_WEIGHT_FACTOR;
+         }
+
+         else
+         {
+            png_ptr->inv_filter_weights[i] =
+                (png_uint_16)(PNG_WEIGHT_FACTOR*filter_weights[i]+.5);
+
+            png_ptr->filter_weights[i] =
+                (png_uint_16)(PNG_WEIGHT_FACTOR/filter_weights[i]+.5);
+         }
       }
-      else if (filter_costs[i] >= 1.0)
+
+      
+
+
+
+
+
+
+      for (i = 0; i < PNG_FILTER_VALUE_LAST; i++) if (filter_costs[i] >= 1.0)
       {
          png_ptr->inv_filter_costs[i] =
-            (png_uint_16)((double)PNG_COST_FACTOR / filter_costs[i] + 0.5);
+             (png_uint_16)(PNG_COST_FACTOR / filter_costs[i] + .5);
+
          png_ptr->filter_costs[i] =
-            (png_uint_16)((double)PNG_COST_FACTOR * filter_costs[i] + 0.5);
+             (png_uint_16)(PNG_COST_FACTOR * filter_costs[i] + .5);
       }
    }
 }
+#endif 
+
+#ifdef PNG_FIXED_POINT_SUPPORTED
+void PNGAPI
+png_set_filter_heuristics_fixed(png_structp png_ptr, int heuristic_method,
+    int num_weights, png_const_fixed_point_p filter_weights,
+    png_const_fixed_point_p filter_costs)
+{
+   png_debug(1, "in png_set_filter_heuristics_fixed");
+
+   
+
+
+   if (!png_init_filter_heuristics(png_ptr, heuristic_method, num_weights))
+      return;
+
+   
+   if (heuristic_method == PNG_FILTER_HEURISTIC_WEIGHTED)
+   {
+      int i;
+      for (i = 0; i < num_weights; i++)
+      {
+         if (filter_weights[i] <= 0)
+         {
+            png_ptr->inv_filter_weights[i] =
+            png_ptr->filter_weights[i] = PNG_WEIGHT_FACTOR;
+         }
+
+         else
+         {
+            png_ptr->inv_filter_weights[i] = (png_uint_16)
+               ((PNG_WEIGHT_FACTOR*filter_weights[i]+PNG_FP_HALF)/PNG_FP_1);
+
+            png_ptr->filter_weights[i] = (png_uint_16)((PNG_WEIGHT_FACTOR*
+               PNG_FP_1+(filter_weights[i]/2))/filter_weights[i]);
+         }
+      }
+
+      
+
+
+
+
+
+
+      for (i = 0; i < PNG_FILTER_VALUE_LAST; i++)
+         if (filter_costs[i] >= PNG_FP_1)
+      {
+         png_uint_32 tmp;
+
+         
+
+
+
+         tmp = PNG_COST_FACTOR*PNG_FP_1 + (filter_costs[i]/2);
+         tmp /= filter_costs[i];
+
+         png_ptr->inv_filter_costs[i] = (png_uint_16)tmp;
+
+         tmp = PNG_COST_FACTOR * filter_costs[i] + PNG_FP_HALF;
+         tmp /= PNG_FP_1;
+
+         png_ptr->filter_costs[i] = (png_uint_16)tmp;
+      }
+   }
+}
+#endif 
 #endif 
 
 void PNGAPI
@@ -1296,6 +1395,7 @@ png_set_compression_level(png_structp png_ptr, int level)
 
    if (png_ptr == NULL)
       return;
+
    png_ptr->flags |= PNG_FLAG_ZLIB_CUSTOM_LEVEL;
    png_ptr->zlib_level = level;
 }
@@ -1307,6 +1407,7 @@ png_set_compression_mem_level(png_structp png_ptr, int mem_level)
 
    if (png_ptr == NULL)
       return;
+
    png_ptr->flags |= PNG_FLAG_ZLIB_CUSTOM_MEM_LEVEL;
    png_ptr->zlib_mem_level = mem_level;
 }
@@ -1318,26 +1419,34 @@ png_set_compression_strategy(png_structp png_ptr, int strategy)
 
    if (png_ptr == NULL)
       return;
+
    png_ptr->flags |= PNG_FLAG_ZLIB_CUSTOM_STRATEGY;
    png_ptr->zlib_strategy = strategy;
 }
+
+
+
 
 void PNGAPI
 png_set_compression_window_bits(png_structp png_ptr, int window_bits)
 {
    if (png_ptr == NULL)
       return;
+
    if (window_bits > 15)
       png_warning(png_ptr, "Only compression windows <= 32k supported by PNG");
+
    else if (window_bits < 8)
       png_warning(png_ptr, "Only compression windows >= 256 supported by PNG");
+
 #ifndef WBITS_8_OK
    
    if (window_bits == 8)
-     {
-       png_warning(png_ptr, "Compression window is being reset to 512");
-       window_bits = 9;
-     }
+      {
+        png_warning(png_ptr, "Compression window is being reset to 512");
+        window_bits = 9;
+      }
+
 #endif
    png_ptr->flags |= PNG_FLAG_ZLIB_CUSTOM_WINDOW_BITS;
    png_ptr->zlib_window_bits = window_bits;
@@ -1350,29 +1459,116 @@ png_set_compression_method(png_structp png_ptr, int method)
 
    if (png_ptr == NULL)
       return;
+
    if (method != 8)
       png_warning(png_ptr, "Only compression method 8 is supported by PNG");
+
    png_ptr->flags |= PNG_FLAG_ZLIB_CUSTOM_METHOD;
    png_ptr->zlib_method = method;
 }
+
+
+#ifdef PNG_WRITE_CUSTOMIZE_ZTXT_COMPRESSION_SUPPORTED
+void PNGAPI
+png_set_text_compression_level(png_structp png_ptr, int level)
+{
+   png_debug(1, "in png_set_text_compression_level");
+
+   if (png_ptr == NULL)
+      return;
+
+   png_ptr->flags |= PNG_FLAG_ZTXT_CUSTOM_LEVEL;
+   png_ptr->zlib_text_level = level;
+}
+
+void PNGAPI
+png_set_text_compression_mem_level(png_structp png_ptr, int mem_level)
+{
+   png_debug(1, "in png_set_text_compression_mem_level");
+
+   if (png_ptr == NULL)
+      return;
+
+   png_ptr->flags |= PNG_FLAG_ZTXT_CUSTOM_MEM_LEVEL;
+   png_ptr->zlib_text_mem_level = mem_level;
+}
+
+void PNGAPI
+png_set_text_compression_strategy(png_structp png_ptr, int strategy)
+{
+   png_debug(1, "in png_set_text_compression_strategy");
+
+   if (png_ptr == NULL)
+      return;
+
+   png_ptr->flags |= PNG_FLAG_ZTXT_CUSTOM_STRATEGY;
+   png_ptr->zlib_text_strategy = strategy;
+}
+
+
+
+
+void PNGAPI
+png_set_text_compression_window_bits(png_structp png_ptr, int window_bits)
+{
+   if (png_ptr == NULL)
+      return;
+
+   if (window_bits > 15)
+      png_warning(png_ptr, "Only compression windows <= 32k supported by PNG");
+
+   else if (window_bits < 8)
+      png_warning(png_ptr, "Only compression windows >= 256 supported by PNG");
+
+#ifndef WBITS_8_OK
+   
+   if (window_bits == 8)
+      {
+        png_warning(png_ptr, "Text compression window is being reset to 512");
+        window_bits = 9;
+      }
+
+#endif
+   png_ptr->flags |= PNG_FLAG_ZTXT_CUSTOM_WINDOW_BITS;
+   png_ptr->zlib_text_window_bits = window_bits;
+}
+
+void PNGAPI
+png_set_text_compression_method(png_structp png_ptr, int method)
+{
+   png_debug(1, "in png_set_text_compression_method");
+
+   if (png_ptr == NULL)
+      return;
+
+   if (method != 8)
+      png_warning(png_ptr, "Only compression method 8 is supported by PNG");
+
+   png_ptr->flags |= PNG_FLAG_ZTXT_CUSTOM_METHOD;
+   png_ptr->zlib_text_method = method;
+}
+#endif 
+
 
 void PNGAPI
 png_set_write_status_fn(png_structp png_ptr, png_write_status_ptr write_row_fn)
 {
    if (png_ptr == NULL)
       return;
+
    png_ptr->write_row_fn = write_row_fn;
 }
 
 #ifdef PNG_WRITE_USER_TRANSFORM_SUPPORTED
 void PNGAPI
 png_set_write_user_transform_fn(png_structp png_ptr, png_user_transform_ptr
-   write_user_transform_fn)
+    write_user_transform_fn)
 {
    png_debug(1, "in png_set_write_user_transform_fn");
 
    if (png_ptr == NULL)
       return;
+
    png_ptr->transformations |= PNG_USER_TRANSFORM;
    png_ptr->write_user_transform_fn = write_user_transform_fn;
 }
@@ -1382,7 +1578,7 @@ png_set_write_user_transform_fn(png_structp png_ptr, png_user_transform_ptr
 #ifdef PNG_INFO_IMAGE_SUPPORTED
 void PNGAPI
 png_write_png(png_structp png_ptr, png_infop info_ptr,
-              int transforms, voidp params)
+    int transforms, voidp params)
 {
    if (png_ptr == NULL || info_ptr == NULL)
       return;
@@ -1403,7 +1599,7 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
 
 
    if ((transforms & PNG_TRANSFORM_SHIFT)
-               && (info_ptr->valid & PNG_INFO_sBIT))
+       && (info_ptr->valid & PNG_INFO_sBIT))
       png_set_shift(png_ptr, &info_ptr->sig_bit);
 #endif
 
@@ -1423,6 +1619,7 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
    
    if (transforms & PNG_TRANSFORM_STRIP_FILLER_AFTER)
       png_set_filler(png_ptr, 0, PNG_FILLER_AFTER);
+
    else if (transforms & PNG_TRANSFORM_STRIP_FILLER_BEFORE)
       png_set_filler(png_ptr, 0, PNG_FILLER_BEFORE);
 #endif
@@ -1465,7 +1662,7 @@ png_write_png(png_structp png_ptr, png_infop info_ptr,
 }
 #endif
 
-#if defined(PNG_WRITE_APNG_SUPPORTED)
+#ifdef PNG_WRITE_APNG_SUPPORTED
 void PNGAPI
 png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
     png_bytepp row_pointers, png_uint_32 width, png_uint_32 height,
@@ -1488,14 +1685,18 @@ png_write_frame_head(png_structp png_ptr, png_infop info_ptr,
            (png_ptr->apng_flags & PNG_FIRST_FRAME_HIDDEN) ) )
         png_write_fcTL(png_ptr, width, height, x_offset, y_offset,
                        delay_num, delay_den, dispose_op, blend_op);
+
+    PNG_UNUSED(row_pointers)
 }
 
 void PNGAPI
-png_write_frame_tail(png_structp png_ptr, png_infop png_info)
+png_write_frame_tail(png_structp png_ptr, png_infop info_ptr)
 {
     png_debug(1, "in png_write_frame_tail");
 
     png_ptr->num_frames_written++;
+
+    PNG_UNUSED(info_ptr)
 }
 #endif 
 #endif 
