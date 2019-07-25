@@ -543,7 +543,7 @@ MouseModule.prototype = {
     if (this._targetIsContent(evInfo.event)) {
       
       this._recordEvent(evInfo);
-      let commitToClicker = this._clicker && !dragData.checkPan(sX, sY);
+      let commitToClicker = this._clicker && dragData.checkClick(sX, sY);
       if (commitToClicker)
         
         this._commitAnotherClick();
@@ -894,6 +894,11 @@ DragData.prototype = {
 
     let distanceSquared = (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2));
     return (this._isPan = (distanceSquared > Math.pow(this._dragRadius, 2)));
+  },
+
+  
+  checkClick: function(sX, sY) {
+    return Date.now() - this._dragStartTime >= kMsUntilLock && !this.checkPan(sX, sY);
   },
 
   lockAxis: function lockAxis(sX, sY) {
