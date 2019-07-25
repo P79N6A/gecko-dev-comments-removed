@@ -1786,8 +1786,9 @@ public:
         
 
 
+
         CompressedGlyph& SetMissing(PRUint32 aGlyphCount) {
-            mValue = (mValue & FLAG_CAN_BREAK_BEFORE) |
+            mValue = (mValue & (FLAG_CAN_BREAK_BEFORE | FLAG_NOT_CLUSTER_START)) |
                 (aGlyphCount << GLYPH_COUNT_SHIFT);
             return *this;
         }
