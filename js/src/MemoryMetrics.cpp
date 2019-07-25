@@ -282,14 +282,6 @@ CollectRuntimeStats(JSRuntime *rt, RuntimeStats *rtStats)
                                rtStats->gcHeapChunkCleanDecommitted -
                                rtStats->gcHeapChunkDirtyDecommitted;
 
-    
-    
-    
-    rtStats->gcHeapFragmentationPercentage = (rtStats->gcHeapChunkCleanUnused +
-                                              rtStats->gcHeapChunkDirtyUnused +
-                                              rtStats->gcHeapArenaUnused) * 10000 /
-                                              rtStats->gcHeapCommitted;
-
     return true;
 }
 
