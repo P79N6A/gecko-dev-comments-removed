@@ -155,11 +155,6 @@ public:
   friend nsIFrame* NS_NewBlockFrame(nsIPresShell* aPresShell, nsStyleContext* aContext, PRUint32 aFlags);
 
   
-  
-  NS_DECLARE_FRAME_PROPERTY(PushedFloatProperty,
-                            nsContainerFrame::DestroyFrameList)
-
-  
   NS_DECL_QUERYFRAME
 
   
@@ -739,6 +734,13 @@ protected:
 
   nsFrameList* GetOverflowOutOfFlows() const;
   void SetOverflowOutOfFlows(const nsFrameList& aList, nsFrameList* aPropValue);
+
+  
+
+
+  bool HasPushedFloats() const {
+    return 0 != (GetStateBits() & NS_BLOCK_HAS_PUSHED_FLOATS);
+  }
 
   
   nsFrameList* GetPushedFloats() const;
