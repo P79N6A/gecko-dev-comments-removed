@@ -69,16 +69,7 @@ pref("browser.cache.memory.enable", true);
 pref("browser.cache.memory.capacity", 1024); 
 
 
-
-
-
-#ifdef WINCE
-pref("tile.cache.size", 15); 
-#elifdef MOZ_PLATFORM_MAEMO
-pref("tile.cache.size", -1); 
-#else
-pref("tile.cache.size", 30); 
-#endif
+pref("tile.cache.size", 10); 
 
 
 pref("image.cache.size", 1048576); 

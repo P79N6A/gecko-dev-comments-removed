@@ -46,7 +46,6 @@ const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
 const kBrowserViewPrefetchBeginIdleWait = 1;    
 const kBrowserViewPrefetchBeginIdleWaitLoading = 10;    
-const kBrowserViewCacheSize = 6;
 
 
 
@@ -203,29 +202,7 @@ BrowserView.prototype = {
     this._renderMode = 0;
     this._offscreenDepth = 0;
 
-    let cacheSize = kBrowserViewCacheSize;
-    try {
-      cacheSize = Services.prefs.getIntPref("tile.cache.size");
-    } catch(e) {}
-
-    if (cacheSize == -1) {
-      let sysInfo = Cc["@mozilla.org/system-info;1"].getService(Ci.nsIPropertyBag2);
-      let device = sysInfo.get("device");
-      switch (device) {
-#ifdef MOZ_PLATFORM_MAEMO
-        case "Nokia N900":
-          cacheSize = 26;
-          break;
-        case "Nokia N8xx":
-          
-          cacheSize = 10;
-          break;
-#endif
-        default:
-          
-          cacheSize = 6;
-      }
-    }
+    let cacheSize = Services.prefs.getIntPref("tile.cache.size");
 
     this._tileManager = new TileManager(this._appendTile, this._removeTile, this, cacheSize, container);
     this._visibleRectFactory = visibleRectFactory;
