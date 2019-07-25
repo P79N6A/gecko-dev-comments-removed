@@ -2939,9 +2939,6 @@ JS_RestoreFrameChain(JSContext *cx, JSStackFrame *fp);
 
 
 extern JS_PUBLIC_API(JSString *)
-JS_NewString(JSContext *cx, char *bytes, size_t length);
-
-extern JS_PUBLIC_API(JSString *)
 JS_NewStringCopyN(JSContext *cx, const char *s, size_t n);
 
 extern JS_PUBLIC_API(JSString *)
