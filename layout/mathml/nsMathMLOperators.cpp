@@ -66,17 +66,6 @@ struct OperatorData {
   float           mRightSpace;  
 };
 
-
-
-
-
-
-
-
-
-
-static OperatorData*   gOperatorFound[4];
-
 static PRInt32         gTableRefCount = 0;
 static PRInt32         gOperatorCount = 0;
 static OperatorData*   gOperatorArray = nsnull;
@@ -415,6 +404,15 @@ nsMathMLOperators::ReleaseTable(void)
   }
 }
 
+static OperatorData*
+GetOperatorData(const nsString& aOperator, nsOperatorFlags aForm)
+{
+  nsAutoString key(aOperator);
+  key.AppendInt(aForm);
+  nsStringKey hkey(key);
+  return (OperatorData*)gOperatorTable->Get(&hkey);
+}
+
 PRBool
 nsMathMLOperators::LookupOperator(const nsString&       aOperator,
                                   const nsOperatorFlags aForm,
@@ -427,44 +425,24 @@ nsMathMLOperators::LookupOperator(const nsString&       aOperator,
   }
   if (gOperatorTable) {
     NS_ASSERTION(aFlags && aLeftSpace && aRightSpace, "bad usage");
-    NS_ASSERTION(aForm>=0 && aForm<4, "*** invalid call ***");
+    NS_ASSERTION(aForm > 0 && aForm < 4, "*** invalid call ***");
+
+    
+    
+    
+    
 
     OperatorData* found;
     PRInt32 form = NS_MATHML_OPERATOR_GET_FORM(aForm);
-    gOperatorFound[NS_MATHML_OPERATOR_FORM_INFIX] = nsnull;
-    gOperatorFound[NS_MATHML_OPERATOR_FORM_POSTFIX] = nsnull;
-    gOperatorFound[NS_MATHML_OPERATOR_FORM_PREFIX] = nsnull;
-
-    nsAutoString key(aOperator);
-    key.AppendInt(form, 10);
-    nsStringKey hkey(key);
-    gOperatorFound[form] = found = (OperatorData*)gOperatorTable->Get(&hkey);
-
-    
-    
-    if (!found) {
-      if (form != NS_MATHML_OPERATOR_FORM_INFIX) {
-        form = NS_MATHML_OPERATOR_FORM_INFIX;
-        key.Assign(aOperator);
-        key.AppendInt(form, 10);
-        nsStringKey hashkey(key);
-        gOperatorFound[form] = found = (OperatorData*)gOperatorTable->Get(&hashkey);
-      }
-      if (!found) {
-        if (form != NS_MATHML_OPERATOR_FORM_POSTFIX) {
-          form = NS_MATHML_OPERATOR_FORM_POSTFIX;
-          key.Assign(aOperator);
-          key.AppendInt(form, 10);
-          nsStringKey hashkey(key);
-          gOperatorFound[form] = found = (OperatorData*)gOperatorTable->Get(&hashkey);
-        }
-        if (!found) {
+    if (!(found = GetOperatorData(aOperator, form))) {
+      if (form == NS_MATHML_OPERATOR_FORM_INFIX ||
+          !(found =
+            GetOperatorData(aOperator, NS_MATHML_OPERATOR_FORM_INFIX))) {
+        if (form == NS_MATHML_OPERATOR_FORM_POSTFIX ||
+            !(found =
+              GetOperatorData(aOperator, NS_MATHML_OPERATOR_FORM_POSTFIX))) {
           if (form != NS_MATHML_OPERATOR_FORM_PREFIX) {
-            form = NS_MATHML_OPERATOR_FORM_PREFIX;
-            key.Assign(aOperator);
-            key.AppendInt(form, 10);
-            nsStringKey hashkey(key);
-            gOperatorFound[form] = found = (OperatorData*)gOperatorTable->Get(&hashkey);
+            found = GetOperatorData(aOperator, NS_MATHML_OPERATOR_FORM_PREFIX);
           }
         }
       }
@@ -504,25 +482,20 @@ nsMathMLOperators::LookupOperators(const nsString&       aOperator,
   aRightSpace[NS_MATHML_OPERATOR_FORM_PREFIX] = 0.0f;
 
   if (gOperatorTable) {
-    
-    float dummy;
-    nsOperatorFlags flags = 0;
-    LookupOperator(aOperator, 0, &flags, &dummy, &dummy);
-    
     OperatorData* found;
-    found = gOperatorFound[NS_MATHML_OPERATOR_FORM_INFIX];
+    found = GetOperatorData(aOperator, NS_MATHML_OPERATOR_FORM_INFIX);
     if (found) {
       aFlags[NS_MATHML_OPERATOR_FORM_INFIX] = found->mFlags;
       aLeftSpace[NS_MATHML_OPERATOR_FORM_INFIX] = found->mLeftSpace;
       aRightSpace[NS_MATHML_OPERATOR_FORM_INFIX] = found->mRightSpace;
     }
-    found = gOperatorFound[NS_MATHML_OPERATOR_FORM_POSTFIX];
+    found = GetOperatorData(aOperator, NS_MATHML_OPERATOR_FORM_POSTFIX);
     if (found) {
       aFlags[NS_MATHML_OPERATOR_FORM_POSTFIX] = found->mFlags;
       aLeftSpace[NS_MATHML_OPERATOR_FORM_POSTFIX] = found->mLeftSpace;
       aRightSpace[NS_MATHML_OPERATOR_FORM_POSTFIX] = found->mRightSpace;
     }
-    found = gOperatorFound[NS_MATHML_OPERATOR_FORM_PREFIX];
+    found = GetOperatorData(aOperator, NS_MATHML_OPERATOR_FORM_PREFIX);
     if (found) {
       aFlags[NS_MATHML_OPERATOR_FORM_PREFIX] = found->mFlags;
       aLeftSpace[NS_MATHML_OPERATOR_FORM_PREFIX] = found->mLeftSpace;
