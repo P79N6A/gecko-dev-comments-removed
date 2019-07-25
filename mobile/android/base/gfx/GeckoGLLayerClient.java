@@ -239,5 +239,15 @@ public class GeckoGLLayerClient extends GeckoLayerClient
         Layer.RenderContext screenContext = mLayerRenderer.createScreenContext();
         return mLayerRenderer.createFrame(false, pageContext, screenContext);
     }
+
+    
+    public void activateProgram() {
+        mLayerRenderer.activateProgram();
+    }
+
+    
+    public void deactivateProgram() {
+        mLayerRenderer.deactivateProgram();
+    }
 }
 
