@@ -179,7 +179,7 @@ TabStore.prototype = {
     record.clientName = Clients.localName;
 
     
-    if (Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
+    if (Svc.Private && Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
       record.tabs = [];
       return record;
     }
@@ -216,7 +216,7 @@ TabStore.prototype = {
   getAllIDs: function TabStore_getAllIds() {
     
     let ids = {};
-    if (Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart"))
+    if (Svc.Private && Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart"))
       return ids;
 
     ids[Clients.localID] = true;
@@ -333,7 +333,7 @@ TabTracker.prototype = {
   },
 
   onTab: function onTab(event) {
-    if (Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
+    if (Svc.Private && Svc.Private.privateBrowsingEnabled && !PBPrefs.get("autostart")) {
       this._log.trace("Ignoring tab event from private browsing.");
       return;
     }
