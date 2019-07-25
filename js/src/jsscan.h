@@ -496,8 +496,6 @@ class TokenStream
     JSSourceHandler     listener;       
     void                *listenerData;  
     void                *listenerTSData;
-    jschar              *saveEOL;       
-
     JSCharBuffer        tokenbuf;       
 };
 

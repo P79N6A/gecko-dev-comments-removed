@@ -177,7 +177,7 @@ js_IsIdentifier(JSString *str)
 
 TokenStream::TokenStream(JSContext *cx)
   : cx(cx), tokens(), cursor(), lookahead(), ungetpos(), ungetbuf(), flags(),
-    linelen(), linepos(), file(), listenerTSData(), saveEOL(), tokenbuf(cx)
+    linelen(), linepos(), file(), listenerTSData(), tokenbuf(cx)
 {}
 
 #ifdef _MSC_VER
@@ -319,7 +319,7 @@ int32
 TokenStream::getChar()
 {
     int32 c;
-    ptrdiff_t llen, ulen;
+    ptrdiff_t ulen;
 
     if (ungetpos != 0) {
         c = ungetbuf[--ungetpos];
@@ -345,84 +345,59 @@ TokenStream::getChar()
             if (listener)
                 listener(filename, lineno, userbuf.ptr, ulen, &listenerTSData, listenerData);
 
-            jschar *nl = saveEOL;
-            if (!nl) {
+            
+
+
+
+
+
+
+
+
+            jschar *from = userbuf.ptr;
+            jschar *to = linebuf.base;
+
+            int llenAdjust = 0;
+            int limit = JS_MIN(size_t(ulen), LINE_LIMIT);
+            int i = 0;
+            while (i < limit) {
+                
+                jschar d = to[i] = from[i];
+                i++;
+
                 
 
 
 
 
-                for (nl = userbuf.ptr; nl < userbuf.limit; nl++) {
-                    
+                if ((d & 0xDFD0) == 0) {
+                    if (d == '\n') {
+                        break;
+                    }
 
-
-
-                    if ((*nl & 0xDFD0) == 0) {
-                        if (*nl == '\n')
-                            break;
-                        if (*nl == '\r') {
-                            if (nl + 1 < userbuf.limit && nl[1] == '\n')
-                                nl++;
-                            break;
+                    if (d == '\r') {
+                        to[i - 1] = '\n';       
+                        if (i < ulen && from[i] == '\n') {
+                            i++;                
+                            llenAdjust = -1;
                         }
-                        if (*nl == LINE_SEPARATOR || *nl == PARA_SEPARATOR)
-                            break;
+                        break;
+                    }
+
+                    if (d == LINE_SEPARATOR || d == PARA_SEPARATOR) {
+                        to[i - 1] = '\n';       
+                        break;
                     }
                 }
-            } else {
-                JS_ASSERT(!file);   
             }
-
             
-
-
-
-            if (nl < userbuf.limit)
-                ulen = (nl - userbuf.ptr) + 1;
-
-            if (ulen >= (ptrdiff_t) LINE_LIMIT) {
-                JS_ASSERT(!file);
-                ulen = LINE_LIMIT - 1;
-                saveEOL = nl;       
-            } else {
-                saveEOL = NULL;
-            }
-            js_strncpy(linebuf.base, userbuf.ptr, ulen);
+            
+            ulen = i;
             userbuf.ptr += ulen;
-            llen = ulen;    
 
             
-
-
-
-            if (nl < userbuf.limit) {
-                if (*nl == '\r') {
-                    
-                    
-                    
-                    JS_ASSERT(linebuf.base[llen-1] == '\r');
-                    linebuf.base[llen-1] = '\n';
-                } else if (*nl == '\n') {
-                    if (nl > userbuf.base && nl[-1] == '\r') {
-                        
-                        
-                        
-                        
-                        JS_ASSERT(linebuf.base[llen-2] == '\r' &&
-                                  linebuf.base[llen-1] == '\n');
-                        linebuf.base[llen-2] = '\n';
-                        llen--;
-                    }
-                } else if (*nl == LINE_SEPARATOR || *nl == PARA_SEPARATOR) {
-                    JS_ASSERT(linebuf.base[llen-1] == LINE_SEPARATOR ||
-                              linebuf.base[llen-1] == PARA_SEPARATOR);
-                    linebuf.base[llen-1] = '\n';
-                }
-            }
-
-            
-            linebuf.limit = linebuf.base + llen;
             linebuf.ptr = linebuf.base;
+            linebuf.limit = linebuf.base + ulen + llenAdjust;
 
             
             if (!(flags & TSF_NLFLAG))
@@ -496,7 +471,7 @@ TokenStream::reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN erro
     uintN index, i;
     JSErrorReporter onError;
 
-    JS_ASSERT(linebuf.limit < linebuf.base + LINE_LIMIT);
+    JS_ASSERT(linebuf.limit <= linebuf.base + LINE_LIMIT);
 
     if (JSREPORT_IS_STRICT(flags) && !JS_HAS_STRICT_OPTION(cx))
         return JS_TRUE;
