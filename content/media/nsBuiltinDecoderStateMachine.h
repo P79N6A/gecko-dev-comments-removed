@@ -302,6 +302,12 @@ protected:
 
   
   
+  
+  
+  void UpdatePlaybackPositionInternal(PRInt64 aTime);
+
+  
+  
   void RenderVideoFrame(VideoData* aData);
 
   

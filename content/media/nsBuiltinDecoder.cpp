@@ -265,6 +265,7 @@ nsresult nsBuiltinDecoder::Seek(double aTime)
     return NS_ERROR_FAILURE;
 
   mRequestedSeekTime = aTime;
+  mCurrentTime = aTime;
 
   
   
@@ -646,6 +647,7 @@ void nsBuiltinDecoder::SeekingStopped()
   if (mShuttingDown)
     return;
 
+  PRBool seekWasAborted = PR_FALSE;
   {
     MonitorAutoEnter mon(mMonitor);
 
@@ -653,6 +655,7 @@ void nsBuiltinDecoder::SeekingStopped()
     
     if (mRequestedSeekTime >= 0.0) {
       ChangeState(PLAY_STATE_SEEKING);
+      seekWasAborted = PR_TRUE;
     } else {
       UnpinForSeek();
       ChangeState(mNextState);
@@ -661,7 +664,9 @@ void nsBuiltinDecoder::SeekingStopped()
 
   if (mElement) {
     UpdateReadyStateForData();
-    mElement->SeekCompleted();
+    if (!seekWasAborted) {
+      mElement->SeekCompleted();
+    }
   }
 }
 
@@ -675,6 +680,7 @@ void nsBuiltinDecoder::SeekingStoppedAtEnd()
     return;
 
   PRBool fireEnded = PR_FALSE;
+  PRBool seekWasAborted = PR_FALSE;
   {
     MonitorAutoEnter mon(mMonitor);
 
@@ -682,6 +688,7 @@ void nsBuiltinDecoder::SeekingStoppedAtEnd()
     
     if (mRequestedSeekTime >= 0.0) {
       ChangeState(PLAY_STATE_SEEKING);
+      seekWasAborted = PR_TRUE;
     } else {
       UnpinForSeek();
       fireEnded = mNextState != PLAY_STATE_PLAYING;
@@ -691,9 +698,11 @@ void nsBuiltinDecoder::SeekingStoppedAtEnd()
 
   if (mElement) {
     UpdateReadyStateForData();
-    mElement->SeekCompleted();
-    if (fireEnded) {
-      mElement->PlaybackEnded();
+    if (!seekWasAborted) {
+      mElement->SeekCompleted();
+      if (fireEnded) {
+        mElement->PlaybackEnded();
+      }
     }
   }
 }

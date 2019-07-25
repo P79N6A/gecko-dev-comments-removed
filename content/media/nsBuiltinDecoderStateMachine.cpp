@@ -700,7 +700,7 @@ void nsBuiltinDecoderStateMachine::StartPlayback()
   mDecoder->GetMonitor().NotifyAll();
 }
 
-void nsBuiltinDecoderStateMachine::UpdatePlaybackPosition(PRInt64 aTime)
+void nsBuiltinDecoderStateMachine::UpdatePlaybackPositionInternal(PRInt64 aTime)
 {
   NS_ASSERTION(IsCurrentThread(mDecoder->mStateMachineThread),
                "Should be on state machine thread.");
@@ -717,6 +717,12 @@ void nsBuiltinDecoderStateMachine::UpdatePlaybackPosition(PRInt64 aTime)
       NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::DurationChanged);
     NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
   }
+}
+
+void nsBuiltinDecoderStateMachine::UpdatePlaybackPosition(PRInt64 aTime)
+{
+  UpdatePlaybackPositionInternal(aTime);
+
   if (!mPositionChangeQueued) {
     mPositionChangeQueued = PR_TRUE;
     nsCOMPtr<nsIRunnable> event =
@@ -1058,10 +1064,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         PRInt64 mediaTime = GetMediaTime();
         if (mediaTime != seekTime) {
           currentTimeChanged = true;
-          
-          
-          
-          UpdatePlaybackPosition(seekTime);
+          UpdatePlaybackPositionInternal(seekTime);
         }
 
         
@@ -1073,6 +1076,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
             NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::SeekingStarted);
           NS_DispatchToMainThread(startEvent, NS_DISPATCH_SYNC);
         }
+
         if (currentTimeChanged) {
           
           
@@ -1105,7 +1109,9 @@ nsresult nsBuiltinDecoderStateMachine::Run()
                              "Seek target should lie inside the first frame after seek");
                 RenderVideoFrame(video);
                 mReader->mVideoQueue.PopFront();
-                UpdatePlaybackPosition(seekTime);
+                nsCOMPtr<nsIRunnable> event =
+                  NS_NewRunnableMethod(mDecoder, &nsBuiltinDecoder::Invalidate);
+                NS_DispatchToMainThread(event, NS_DISPATCH_NORMAL);
               }
             }
           }
