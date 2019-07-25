@@ -1788,12 +1788,17 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   rv = mOuter->BuildDisplayListForChild(aBuilder, mScrolledFrame, dirtyRect, set);
   NS_ENSURE_SUCCESS(rv, rv);
   nsRect clip = mScrollPort + aBuilder->ToReferenceFrame(mOuter);
+  nscoord radii[8];
+  
+  
+  mOuter->GetPaddingBoxBorderRadii(radii);
   
   
   
   
   
-  rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, PR_TRUE, mIsRoot);
+  rv = mOuter->OverflowClip(aBuilder, set, aLists, clip, radii,
+                            PR_TRUE, mIsRoot);
   NS_ENSURE_SUCCESS(rv, rv);
 
   
