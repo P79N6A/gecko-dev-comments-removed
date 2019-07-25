@@ -35,6 +35,7 @@
 
 
 
+
 var EXPORTED_SYMBOLS = ["PopupNotifications"];
 
 var Cc = Components.classes, Ci = Components.interfaces;
@@ -417,6 +418,13 @@ PopupNotifications.prototype = {
     
     
     this._hidePanel();
+
+    
+    
+    
+    let bo = anchorElement.boxObject;
+    if (bo.height == 0 && bo.width == 0)
+      anchorElement = this.tabbrowser.selectedTab;
 
     this._currentAnchorElement = anchorElement;
 
