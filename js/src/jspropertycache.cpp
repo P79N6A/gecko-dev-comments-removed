@@ -39,8 +39,10 @@
 
 
 #include "jspropertycache.h"
-#include "jspropertycacheinlines.h"
 #include "jscntxt.h"
+#include "jsnum.h"
+#include "jsobjinlines.h"
+#include "jspropertycacheinlines.h"
 
 using namespace js;
 
@@ -48,10 +50,9 @@ JS_STATIC_ASSERT(sizeof(PCVal) == sizeof(jsuword));
 
 JS_REQUIRES_STACK PropertyCacheEntry *
 PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoIndex,
-                    JSObject *pobj, JSScopeProperty *sprop, JSBool adding)
+                    JSObject *pobj, const Shape *shape, JSBool adding)
 {
     jsbytecode *pc;
-    JSScope *scope;
     jsuword kshape, vshape;
     JSOp op;
     const JSCodeSpec *cs;
@@ -70,8 +71,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
 
-    scope = pobj->scope();
-    if (!scope->hasProperty(sprop)) {
+    if (!pobj->nativeContains(*shape)) {
         PCMETER(oddfills++);
         return JS_NO_PROP_CACHE_FILL;
     }
@@ -138,23 +138,24 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
         if (cs->format & JOF_CALLOP) {
-            if (sprop->isMethod()) {
+            if (shape->isMethod()) {
                 
 
 
 
-                JS_ASSERT(scope->hasMethodBarrier());
-                JSObject &funobj = sprop->methodObject();
-                JS_ASSERT(&funobj == &pobj->lockedGetSlot(sprop->slot).toObject());
+                JS_ASSERT(pobj->hasMethodBarrier());
+                JSObject &funobj = shape->methodObject();
+                JS_ASSERT(&funobj == &pobj->lockedGetSlot(shape->slot).toObject());
                 vword.setFunObj(funobj);
                 break;
             }
 
-            if (!scope->generic() &&
-                sprop->hasDefaultGetter() &&
-                SPROP_HAS_VALID_SLOT(sprop, scope)) {
-                const Value &v = pobj->lockedGetSlot(sprop->slot);
+            if (!pobj->generic() &&
+                shape->hasDefaultGetter() &&
+                pobj->containsSlot(shape->slot)) {
+                const Value &v = pobj->lockedGetSlot(shape->slot);
                 JSObject *funobj;
+
                 if (IsFunctionObject(v, &funobj)) {
                     
 
@@ -168,7 +169,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
 
-                    if (!scope->branded()) {
+                    if (!pobj->branded()) {
                         PCMETER(brandfills++);
 #ifdef DEBUG_notme
                         fprintf(stderr,
@@ -178,7 +179,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
                                 JS_GetFunctionName(GET_FUNCTION_PRIVATE(cx, JSVAL_TO_OBJECT(v))),
                                 obj->shape());
 #endif
-                        if (!scope->brand(cx, sprop->slot, v))
+                        if (!pobj->brand(cx, shape->slot, v))
                             return JS_NO_PROP_CACHE_FILL;
                     }
                     vword.setFunObj(*funobj);
@@ -192,17 +193,16 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
         if (!(cs->format & (JOF_SET | JOF_FOR)) &&
-            (!(cs->format & JOF_INCDEC) || sprop->hasDefaultSetter()) &&
-            sprop->hasDefaultGetter() &&
-            SPROP_HAS_VALID_SLOT(sprop, scope)) {
+            (!(cs->format & JOF_INCDEC) || shape->hasDefaultSetter()) &&
+            shape->hasDefaultGetter() &&
+            pobj->containsSlot(shape->slot)) {
             
-            vword.setSlot(sprop->slot);
+            vword.setSlot(shape->slot);
         } else {
             
-            vword.setSprop(sprop);
+            vword.setShape(shape);
             if (adding &&
-                sprop == scope->lastProperty() &&
-                scope->shape == sprop->shape) {
+                pobj->shape() == shape->shape) {
                 
 
 
@@ -230,26 +230,10 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
 
 
-                JS_ASSERT(!scope->isSharedEmpty());
-                if (sprop->parent) {
-                    kshape = sprop->parent->shape;
-                } else {
-                    
+                JS_ASSERT(shape == pobj->lastProperty());
+                JS_ASSERT(!pobj->nativeEmpty());
 
-
-
-
-
-                    JSObject *proto = obj->getProto();
-                    if (!proto || !proto->isNative())
-                        return JS_NO_PROP_CACHE_FILL;
-                    JSScope *protoscope = proto->scope();
-                    if (!protoscope->emptyScope ||
-                        protoscope->emptyScope->clasp != obj->getClass()) {
-                        return JS_NO_PROP_CACHE_FILL;
-                    }
-                    kshape = protoscope->emptyScope->shape;
-                }
+                kshape = shape->previous()->shape;
 
                 
 
@@ -262,7 +246,7 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
     if (kshape == 0) {
         kshape = obj->shape();
-        vshape = scope->shape;
+        vshape = pobj->shape();
     }
     JS_ASSERT(kshape < SHAPE_OVERFLOW_BIT);
 
@@ -278,7 +262,6 @@ PropertyCache::fill(JSContext *cx, JSObject *obj, uintN scopeIndex, uintN protoI
 
         if (scopeIndex != 0 || protoIndex != 1) {
             
-
 
 
 
@@ -363,7 +346,7 @@ PropertyCache::fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp, JSObject
         return atom;
     }
 
-    if (entry->kshape != obj->map->shape) {
+    if (entry->kshape != obj->shape()) {
         PCMETER(kshapemisses++);
         return GetAtomFromBytecode(cx, pc, op, cs);
     }
@@ -401,8 +384,7 @@ PropertyCache::fullTest(JSContext *cx, jsbytecode *pc, JSObject **objp, JSObject
         jsid id = ATOM_TO_JSID(atom);
 
         id = js_CheckForStringIndex(id);
-        JS_ASSERT(pobj->scope()->lookup(id));
-        JS_ASSERT_IF(pobj->scope()->object, pobj->scope()->object == pobj);
+        JS_ASSERT(pobj->nativeContains(id));
 #endif
         *pobjp = pobj;
         return NULL;

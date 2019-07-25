@@ -482,7 +482,6 @@ class TypedArrayTemplate
   : public TypedArray
 {
   public:
-    typedef NativeType ThisType;
     typedef TypedArrayTemplate<NativeType> ThisTypeArray;
     static const int ArrayTypeID() { return TypeIDOfType<NativeType>(); }
     static const bool ArrayTypeIsUnsigned() { return TypeIsUnsigned<NativeType>(); }
@@ -518,7 +517,7 @@ class TypedArrayTemplate
         } else {
             JSObject *obj2;
             JSProperty *prop;
-            JSScopeProperty *sprop;
+            const Shape *shape;
 
             JSObject *proto = obj->getProto();
             if (!proto) {
@@ -532,8 +531,8 @@ class TypedArrayTemplate
 
             if (prop) {
                 if (obj2->isNative()) {
-                    sprop = (JSScopeProperty *) prop;
-                    if (!js_NativeGet(cx, obj, obj2, sprop, JSGET_METHOD_BARRIER, vp))
+                    shape = (Shape *) prop;
+                    if (!js_NativeGet(cx, obj, obj2, shape, JSGET_METHOD_BARRIER, vp))
                         return false;
                     JS_UNLOCK_OBJ(cx, obj2);
                 }
@@ -986,9 +985,9 @@ class TypedArrayTemplate
     makeFastWithPrivate(JSContext *cx, JSObject *obj, ThisTypeArray *tarray)
     {
         JS_ASSERT(obj->getClass() == slowClass());
-        obj->setPrivate(tarray);
+        obj->setSharedNonNativeMap();
         obj->clasp = fastClass();
-        obj->map = const_cast<JSObjectMap *>(&JSObjectMap::sharedNonNative);
+        obj->setPrivate(tarray);
     }
 
   public:
@@ -1549,19 +1548,6 @@ do {                                                                           \
                          NULL, NULL);                                          \
     if (!proto)                                                                \
         return NULL;                                                           \
-    JSObject *ctor = JS_GetConstructor(cx, proto);                             \
-    if (!ctor ||                                                               \
-        !JS_DefineProperty(cx, ctor, "BYTES_PER_ELEMENT",                      \
-                           INT_TO_JSVAL(sizeof(_typedArray::ThisType)),        \
-                           JS_PropertyStub, JS_PropertyStub,                   \
-                           JSPROP_PERMANENT | JSPROP_READONLY) ||              \
-        !JS_DefineProperty(cx, proto, "BYTES_PER_ELEMENT",                     \
-                           INT_TO_JSVAL(sizeof(_typedArray::ThisType)),        \
-                           JS_PropertyStub, JS_PropertyStub,                   \
-                           JSPROP_PERMANENT | JSPROP_READONLY))                \
-    {                                                                          \
-        return NULL;                                                           \
-    }                                                                          \
     proto->setPrivate(0);                                                      \
 } while (0)
 

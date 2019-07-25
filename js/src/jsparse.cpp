@@ -1209,8 +1209,8 @@ CheckStrictFormals(JSContext *cx, JSTreeContext *tc, JSFunction *fun,
 
     if (tc->flags & (TCF_FUN_PARAM_ARGUMENTS | TCF_FUN_PARAM_EVAL)) {
         JSAtomState *atoms = &cx->runtime->atomState;
-        atom = (tc->flags & TCF_FUN_PARAM_ARGUMENTS
-                ? atoms->argumentsAtom : atoms->evalAtom);
+        atom = (tc->flags & TCF_FUN_PARAM_ARGUMENTS) ? atoms->argumentsAtom : atoms->evalAtom;
+
         
         JSDefinition *dn = ALE_DEFN(tc->decls.lookup(atom));
         JS_ASSERT(dn->pn_atom == atom);
@@ -1546,7 +1546,11 @@ Compiler::compileFunctionBody(JSContext *cx, JSFunction *fun, JSPrincipals *prin
 
         uintN nargs = fun->nargs;
         if (nargs) {
-            jsuword *names = js_GetLocalNameArray(cx, fun, &cx->tempPool);
+            
+
+
+
+            jsuword *names = fun->getLocalNameArray(cx, &cx->tempPool);
             if (!names) {
                 fn = NULL;
             } else {
@@ -1643,7 +1647,7 @@ BindLocalVariable(JSContext *cx, JSFunction *fun, JSAtom *atom,
     if (atom == cx->runtime->atomState.argumentsAtom && !isArg)
         return JS_TRUE;
 
-    return js_AddLocal(cx, fun, atom, localKind);
+    return fun->addLocal(cx, atom, localKind);
 }
 
 #if JS_HAS_DESTRUCTURING
@@ -1661,7 +1665,7 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom,
 
     JS_ASSERT(tc->inFunction());
 
-    JSLocalKind localKind = js_LookupLocal(cx, tc->fun, atom, NULL);
+    JSLocalKind localKind = tc->fun->lookupLocal(cx, atom, NULL);
     if (localKind != JSLOCAL_NONE) {
         ReportCompileErrorNumber(cx, TS(tc->parser), NULL, JSREPORT_ERROR,
                                  JSMSG_DESTRUCT_DUP_ARG);
@@ -2569,6 +2573,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
         bool destructuringArg = false;
         JSParseNode *list = NULL;
 #endif
+
         do {
             switch (TokenKind tt = tokenStream.getToken()) {
 #if JS_HAS_DESTRUCTURING
@@ -2599,7 +2604,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
 
 
                 jsint slot = fun->nargs;
-                if (!js_AddLocal(context, fun, NULL, JSLOCAL_ARG))
+                if (!fun->addLocal(context, NULL, JSLOCAL_ARG))
                     return false;
 
                 
@@ -2615,7 +2620,8 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
                 rhs->pn_cookie.set(funtc.staticLevel, uint16(slot));
                 rhs->pn_dflags |= PND_BOUND;
 
-                JSParseNode *item = JSParseNode::newBinaryOrAppend(TOK_ASSIGN, JSOP_NOP, lhs, rhs, &funtc);
+                JSParseNode *item =
+                    JSParseNode::newBinaryOrAppend(TOK_ASSIGN, JSOP_NOP, lhs, rhs, &funtc);
                 if (!item)
                     return false;
                 if (!list) {
@@ -2647,13 +2653,13 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
 
 
 
-                if (js_LookupLocal(context, fun, atom, NULL) != JSLOCAL_NONE) {
+                if (fun->lookupLocal(context, atom, NULL) != JSLOCAL_NONE) {
                     duplicatedArg = atom;
                     if (destructuringArg)
                         goto report_dup_and_destructuring;
                 }
 #endif
-                if (!js_AddLocal(context, fun, atom, JSLOCAL_ARG))
+                if (!fun->addLocal(context, atom, JSLOCAL_ARG))
                     return false;
                 break;
               }
@@ -2788,12 +2794,12 @@ Parser::functionDef(JSAtom *funAtom, FunctionType type, uintN lambda)
 
 
 
-                localKind = js_LookupLocal(context, tc->fun, funAtom, &index);
+                localKind = tc->fun->lookupLocal(context, funAtom, &index);
                 switch (localKind) {
                   case JSLOCAL_NONE:
                   case JSLOCAL_ARG:
                     index = tc->fun->u.i.nvars;
-                    if (!js_AddLocal(context, tc->fun, funAtom, JSLOCAL_VAR))
+                    if (!tc->fun->addLocal(context, funAtom, JSLOCAL_VAR))
                         return NULL;
                     
 
@@ -3243,7 +3249,7 @@ BindLet(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
     uintN slot = JSSLOT_FREE(&js_BlockClass) + n;
     if (slot >= blockObj->numSlots() && !blockObj->growSlots(cx, slot + 1))
         return false;
-    blockObj->scope()->freeslot = slot + 1;
+    blockObj->freeslot = slot + 1;
     blockObj->setSlot(slot, PrivateValue(pn));
     return true;
 }
@@ -3255,11 +3261,10 @@ PopStatement(JSTreeContext *tc)
 
     if (stmt->flags & SIF_SCOPE) {
         JSObject *obj = stmt->blockObj;
-        JSScope *scope = obj->scope();
         JS_ASSERT(!OBJ_IS_CLONED_BLOCK(obj));
 
-        for (JSScopeProperty *sprop = scope->lastProperty(); sprop; sprop = sprop->parent) {
-            JSAtom *atom = JSID_TO_ATOM(sprop->id);
+        for (Shape::Range r = obj->lastProperty()->all(); !r.empty(); r.popFront()) {
+            JSAtom *atom = JSID_TO_ATOM(r.front().id);
 
             
             if (atom == tc->parser->context->runtime->atomState.emptyAtom)
@@ -3489,7 +3494,7 @@ BindVarOrConst(JSContext *cx, BindData *data, JSAtom *atom, JSTreeContext *tc)
         return JS_TRUE;
     }
 
-    JSLocalKind localKind = js_LookupLocal(cx, tc->fun, atom, NULL);
+    JSLocalKind localKind = tc->fun->lookupLocal(cx, atom, NULL);
     if (localKind == JSLOCAL_NONE) {
         
 
@@ -3965,7 +3970,7 @@ CheckDestructuring(JSContext *cx, BindData *data,
                                        JSPROP_ENUMERATE |
                                        JSPROP_PERMANENT |
                                        JSPROP_SHARED,
-                                       JSScopeProperty::HAS_SHORTID, 0, NULL);
+                                       Shape::HAS_SHORTID, 0, NULL);
         if (!ok)
             goto out;
     }
@@ -6039,9 +6044,8 @@ JSParseNode *
 Parser::bitXorExpr()
 {
     JSParseNode *pn = bitAndExpr();
-    while (pn && tokenStream.matchToken(TOK_BITXOR)) {
+    while (pn && tokenStream.matchToken(TOK_BITXOR))
         pn = JSParseNode::newBinaryOrAppend(TOK_BITXOR, JSOP_BITXOR, pn, bitAndExpr(), tc);
-    }
     return pn;
 }
 

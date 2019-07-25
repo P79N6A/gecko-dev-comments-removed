@@ -48,21 +48,6 @@
 #include "jsatom.h"
 #include "jsstr.h"
 
-typedef struct JSLocalNameMap JSLocalNameMap;
-
-
-
-
-
-
-
-
-typedef union JSLocalNames {
-    jsuword         taggedAtom;
-    jsuword         *array;
-    JSLocalNameMap  *map;
-} JSLocalNames;
-
 
 
 
@@ -143,6 +128,29 @@ typedef union JSLocalNames {
                               JS_ASSERT((fun)->flags & JSFUN_TRCINFO),        \
                               fun->u.n.trcinfo)
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+enum JSLocalKind {
+    JSLOCAL_NONE,
+    JSLOCAL_ARG,
+    JSLOCAL_VAR,
+    JSLOCAL_CONST,
+    JSLOCAL_UPVAR
+};
+
 struct JSFunction : public JSObject
 {
     uint16          nargs;        
@@ -171,7 +179,7 @@ struct JSFunction : public JSObject
 
 
             JSScript    *script;  
-            JSLocalNames names;   
+            js::Shape   *names;   
         } i;
     } u;
     JSAtom          *atom;        
@@ -186,7 +194,7 @@ struct JSFunction : public JSObject
 
     inline bool inStrictMode() const;
 
-    inline bool isBound() const;
+    bool isBound() const;
 
     uintN countVars() const {
         JS_ASSERT(FUN_INTERPRETED(this));
@@ -213,13 +221,51 @@ struct JSFunction : public JSObject
 
     int sharpSlotBase(JSContext *cx);
 
+    uint32 countUpvarSlots() const;
+
+    const js::Shape *lastArg() const;
+    const js::Shape *lastVar() const;
+    const js::Shape *lastUpvar() const { return u.i.names; }
+
+    bool addLocal(JSContext *cx, JSAtom *atom, JSLocalKind kind);
+
+    
+
+
+
+
+
+    JSLocalKind lookupLocal(JSContext *cx, JSAtom *atom, uintN *indexp);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    jsuword *getLocalNameArray(JSContext *cx, struct JSArenaPool *pool);
+
+    void freezeLocalNames(JSContext *cx);
+
     
 
 
 
     JSAtom *findDuplicateFormal() const;
 
-    uint32 countInterpretedReservedSlots() const;
+#define JS_LOCAL_NAME_TO_ATOM(nameWord)  ((JSAtom *) ((nameWord) & ~(jsuword) 1))
+#define JS_LOCAL_NAME_IS_CONST(nameWord) ((((nameWord) & (jsuword) 1)) != 0)
 
     bool mightEscape() const {
         return FUN_INTERPRETED(this) && (FUN_FLAT_CLOSURE(this) || u.i.nupvars == 0);
@@ -262,6 +308,10 @@ struct JSFunction : public JSObject
         JS_ASSERT(joinable());
         fslots[METHOD_ATOM_SLOT].setString(ATOM_TO_STRING(atom));
     }
+
+    
+    static const uint32 CLASS_RESERVED_SLOTS = JSObject::FUN_CLASS_RESERVED_SLOTS;
+    static const uint32 FIRST_FREE_SLOT = JSSLOT_PRIVATE + CLASS_RESERVED_SLOTS + 1;
 };
 
 JS_STATIC_ASSERT(sizeof(JSFunction) % JS_GCTHING_ALIGN == 0);
@@ -296,8 +346,16 @@ JS_STATIC_ASSERT(sizeof(JSFunction) % JS_GCTHING_ALIGN == 0);
 
 
 extern js::Class js_ArgumentsClass;
+
 namespace js {
+
 extern Class StrictArgumentsClass;
+
+struct ArgumentsData {
+    js::Value   callee;
+    js::Value   slots[1];
+};
+
 }
 
 inline bool
@@ -318,29 +376,23 @@ JSObject::isArguments() const
     return isNormalArguments() || isStrictArguments();
 }
 
-#define JS_ARGUMENT_OBJECT_ON_TRACE ((void *)0xa126)
+#define JS_ARGUMENTS_OBJECT_ON_TRACE ((void *)0xa126)
 
 extern JS_PUBLIC_DATA(js::Class) js_CallClass;
 extern JS_PUBLIC_DATA(js::Class) js_FunctionClass;
 extern js::Class js_DeclEnvClass;
-extern const uint32 CALL_CLASS_FIXED_RESERVED_SLOTS;
+extern const uint32 CALL_CLASS_RESERVED_SLOTS;
+
+inline bool
+JSObject::isCall() const
+{
+    return getClass() == &js_CallClass;
+}
 
 inline bool
 JSObject::isFunction() const
 {
     return getClass() == &js_FunctionClass;
-}
-
-inline bool
-JSObject::isCallable()
-{
-    return isFunction() || getClass()->call;
-}
-
-static inline bool
-js_IsCallable(const js::Value &v)
-{
-    return v.isObject() && v.toObject().isCallable();
 }
 
 
@@ -418,6 +470,9 @@ CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent)
         return NULL;
     return js_CloneFunctionObject(cx, fun, parent, proto);
 }
+
+extern JSObject * JS_FASTCALL
+js_AllocFlatClosure(JSContext *cx, JSFunction *fun, JSObject *scopeChain);
 
 extern JS_REQUIRES_STACK JSObject *
 js_NewFlatClosure(JSContext *cx, JSFunction *fun);
@@ -530,56 +585,6 @@ JS_STATIC_ASSERT(((JS_ARGS_LENGTH_MAX << 1) | 1) <= JSVAL_INT_MAX);
 
 extern JSBool
 js_XDRFunctionObject(JSXDRState *xdr, JSObject **objp);
-
-typedef enum JSLocalKind {
-    JSLOCAL_NONE,
-    JSLOCAL_ARG,
-    JSLOCAL_VAR,
-    JSLOCAL_CONST,
-    JSLOCAL_UPVAR
-} JSLocalKind;
-
-extern JSBool
-js_AddLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, JSLocalKind kind);
-
-
-
-
-
-
-
-extern JSLocalKind
-js_LookupLocal(JSContext *cx, JSFunction *fun, JSAtom *atom, uintN *indexp);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-extern jsuword *
-js_GetLocalNameArray(JSContext *cx, JSFunction *fun, struct JSArenaPool *pool);
-
-#define JS_LOCAL_NAME_TO_ATOM(nameWord)                                       \
-    ((JSAtom *) ((nameWord) & ~(jsuword) 1))
-
-#define JS_LOCAL_NAME_IS_CONST(nameWord)                                      \
-    ((((nameWord) & (jsuword) 1)) != 0)
-
-extern void
-js_FreezeLocalNames(JSContext *cx, JSFunction *fun);
 
 extern JSBool
 js_fun_apply(JSContext *cx, uintN argc, js::Value *vp);

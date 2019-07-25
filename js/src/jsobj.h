@@ -52,6 +52,7 @@
 #include "jshash.h" 
 #include "jspubtd.h"
 #include "jsprvtd.h"
+#include "jslock.h"
 #include "jsvalue.h"
 #include "jsvector.h"
 
@@ -175,11 +176,11 @@ typedef Vector<PropDesc, 1> PropDescArray;
 struct JSObjectMap {
     static JS_FRIEND_DATA(const JSObjectMap) sharedNonNative;
 
-    uint32                      shape;  
+    uint32 shape;       
 
     explicit JSObjectMap(uint32 shape) : shape(shape) {}
 
-    enum { SHAPELESS = 0xffffffff };
+    enum { INVALID_SHAPE = 0x8fffffff, SHAPELESS = 0xffffffff };
 
     bool isNative() const { return this != &sharedNonNative; }
 
@@ -268,6 +269,9 @@ struct JSFunction;
 
 
 
+
+
+
 struct JSObject {
     
 
@@ -275,25 +279,83 @@ struct JSObject {
 
     friend class js::TraceRecorder;
 
-    JSObjectMap *map;                       
-    js::Class   *clasp;                     
-    jsuword     flags;                      
+    
+
+
+
+
+
+
+
+
+
+
+    union {
+        js::Shape       *lastProp;
+        JSObjectMap     *map;
+    };
+
+    js::Class           *clasp;
+
+  private:
+    inline void setLastProperty(const js::Shape *shape);
+    inline void removeLastProperty();
+
+  public:
+    inline const js::Shape *lastProperty() const;
+
+    inline js::Shape **nativeSearch(jsid id, bool adding = false);
+    inline const js::Shape *nativeLookup(jsid id);
+
+    inline bool nativeContains(jsid id);
+    inline bool nativeContains(const js::Shape &shape);
+
+    enum {
+        DELEGATE        = 0x01,
+        SYSTEM          = 0x02,
+        SEALED          = 0x04,
+        BRANDED         = 0x08,
+        GENERIC         = 0x10,
+        METHOD_BARRIER  = 0x20,
+        INDEXED         = 0x40,
+        OWN_SHAPE       = 0x80
+    };
+
+    enum {
+        JS_NSLOTS_BITS  = 24,
+        JS_NSLOTS_LIMIT = JS_BIT(JS_NSLOTS_BITS)
+    };
+
+    uint32      flags: 32-JS_NSLOTS_BITS,   
+                freeslot: JS_NSLOTS_BITS;   
+    uint32      objShape;                   
+
     JSObject    *proto;                     
     JSObject    *parent;                    
     js::Value   *dslots;                    
+
+    
+    js::EmptyShape *emptyShape;
+
     js::Value   fslots[JS_INITIAL_NSLOTS];  
+#ifdef JS_THREADSAFE
+    JSTitle     title;
+#endif
 
-    bool isNative() const {
-        return map->isNative();
-    }
+    
 
-    js::Class *getClass() const {
-        return clasp;
-    }
 
-    JSClass *getJSClass() const {
-        return Jsvalify(clasp);
-    }
+
+
+
+
+    inline bool canProvideEmptyShape(js::Class *clasp);
+    inline js::EmptyShape *getEmptyShape(JSContext *cx, js::Class *aclasp);
+
+    bool isNative() const       { return map->isNative(); }
+
+    js::Class *getClass() const { return clasp; }
+    JSClass *getJSClass() const { return Jsvalify(clasp); }
 
     bool hasClass(const js::Class *c) const {
         return c == clasp;
@@ -303,32 +365,157 @@ struct JSObject {
         return &getClass()->ops;
     }
 
-    inline JSScope *scope() const;
-    inline uint32 shape() const;
+    inline void trace(JSTracer *trc);
 
-    bool isDelegate() const {
-        return (flags & jsuword(1)) != jsuword(0);
+    uint32 shape() const {
+        JS_ASSERT(objShape != JSObjectMap::INVALID_SHAPE);
+        return objShape;
     }
 
-    void setDelegate() {
-        flags |= jsuword(1);
-    }
+    bool isDelegate() const     { return !!(flags & DELEGATE); }
+    void setDelegate()          { flags |= DELEGATE; }
 
     static void setDelegateNullSafe(JSObject *obj) {
         if (obj)
             obj->setDelegate();
     }
 
-    bool isSystem() const {
-        return (flags & jsuword(2)) != jsuword(0);
+    bool isSystem() const       { return !!(flags & SYSTEM); }
+    void setSystem()            { flags |= SYSTEM; }
+
+    
+
+
+
+
+    bool sealed()               { return !!(flags & SEALED); }
+    void seal(JSContext *cx);
+
+    
+
+
+
+
+    bool branded()              { return !!(flags & BRANDED); }
+
+    bool brand(JSContext *cx, uint32 slot, js::Value v);
+    bool unbrand(JSContext *cx);
+
+    bool generic()              { return !!(flags & GENERIC); }
+    void setGeneric()           { flags |= GENERIC; }
+
+  private:
+    void generateOwnShape(JSContext *cx);
+
+    void setOwnShape(uint32 s)  { flags |= OWN_SHAPE; objShape = s; }
+    void clearOwnShape()        { flags &= ~OWN_SHAPE; objShape = map->shape; }
+
+  public:
+    inline bool nativeEmpty() const;
+
+    bool hasOwnShape() const    { return !!(flags & OWN_SHAPE); }
+
+    void setMap(JSObjectMap *amap) {
+        JS_ASSERT(!hasOwnShape());
+        map = amap;
+        objShape = map->shape;
     }
 
-    void setSystem() {
-        flags |= jsuword(2);
+    void setSharedNonNativeMap() {
+        setMap(const_cast<JSObjectMap *>(&JSObjectMap::sharedNonNative));
     }
+
+    void deletingShapeChange(JSContext *cx, const js::Shape &shape);
+    bool methodShapeChange(JSContext *cx, const js::Shape &shape);
+    bool methodShapeChange(JSContext *cx, uint32 slot);
+    void protoShapeChange(JSContext *cx);
+    void shadowingShapeChange(JSContext *cx, const js::Shape &shape);
+    bool globalObjectOwnShapeChange(JSContext *cx);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool hasMethodBarrier()     { return !!(flags & METHOD_BARRIER); }
+    void setMethodBarrier()     { flags |= METHOD_BARRIER; }
+
+    
+
+
+
+
+
+    bool brandedOrHasMethodBarrier() { return !!(flags & (BRANDED | METHOD_BARRIER)); }
+
+    
+
+
+
+
+    bool methodReadBarrier(JSContext *cx, const js::Shape &shape, js::Value *vp);
+
+    
+
+
+
+
+
+
+    bool methodWriteBarrier(JSContext *cx, const js::Shape &shape, const js::Value &v);
+    bool methodWriteBarrier(JSContext *cx, uint32 slot, const js::Value &v);
+
+    bool isIndexed() const          { return !!(flags & INDEXED); }
+    void setIndexed()               { flags |= INDEXED; }
+
+    
+
+
+
+
+    inline bool inDictionaryMode() const;
+
+    inline uint32 propertyCount() const;
+
+    inline bool hasPropertyTable() const;
 
     uint32 numSlots(void) const {
-        return dslots ? dslots[-1].toPrivateUint32() : (uint32)JS_INITIAL_NSLOTS;
+        return dslots ? dslots[-1].toPrivateUint32() : uint32(JS_INITIAL_NSLOTS);
     }
 
   private:
@@ -346,6 +533,35 @@ struct JSObject {
     bool allocSlots(JSContext *cx, size_t nslots);
     bool growSlots(JSContext *cx, size_t nslots);
     void shrinkSlots(JSContext *cx, size_t nslots);
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool ensureInstanceReservedSlots(JSContext *cx, size_t nreserved);
+
+    
+
+
+
+
+    bool ensureClassReservedSlotsForEmptyObject(JSContext *cx);
+
+    inline bool ensureClassReservedSlots(JSContext *cx);
+
+    bool containsSlot(uint32 slot) const { return slot < freeslot; }
 
     js::Value& getSlotRef(uintN slot) {
         return (slot < JS_INITIAL_NSLOTS)
@@ -384,13 +600,15 @@ struct JSObject {
 
     inline js::Value getReservedSlot(uintN index) const;
 
-    JSObject *getProto() const {
-        return proto;
-    }
+    
+    inline void updateShape(JSContext *cx);
+    inline void updateFlags(const js::Shape *shape, bool isDefinitelyAtom = false);
 
-    void clearProto() {
-        proto = NULL;
-    }
+    
+    inline void extend(JSContext *cx, const js::Shape *shape, bool isDefinitelyAtom = false);
+
+    JSObject *getProto() const  { return proto; }
+    void clearProto()           { proto = NULL; }
 
     void setProto(JSObject *newProto) {
 #ifdef DEBUG
@@ -469,7 +687,7 @@ struct JSObject {
     inline void staticAssertArrayLengthIsInPrivateSlot();
 
   public:
-    static const uint32 DENSE_ARRAY_FIXED_RESERVED_SLOTS = 3;
+    static const uint32 DENSE_ARRAY_CLASS_RESERVED_SLOTS = 3;
 
     inline uint32 getArrayLength() const;
     inline void setArrayLength(uint32 length);
@@ -512,12 +730,18 @@ struct JSObject {
 
 
 
+
+
+
+
+
     static const uint32 JSSLOT_ARGS_LENGTH = JSSLOT_PRIVATE + 1;
-    static const uint32 JSSLOT_ARGS_CALLEE = JSSLOT_PRIVATE + 2;
+    static const uint32 JSSLOT_ARGS_DATA   = JSSLOT_PRIVATE + 2;
 
   public:
     
-    static const uint32 ARGS_FIXED_RESERVED_SLOTS = 2;
+    static const uint32 ARGS_CLASS_RESERVED_SLOTS = 2;
+    static const uint32 ARGS_FIRST_FREE_SLOT = JSSLOT_PRIVATE + ARGS_CLASS_RESERVED_SLOTS + 1;
 
     
     static const uint32 ARGS_LENGTH_OVERRIDDEN_BIT = 0x1;
@@ -537,6 +761,9 @@ struct JSObject {
     inline void setArgsLengthOverridden();
     inline bool isArgsLengthOverridden() const;
 
+    inline js::ArgumentsData *getArgsData() const;
+    inline void setArgsData(js::ArgumentsData *data);
+
     inline const js::Value &getArgsCallee() const;
     inline void setArgsCallee(const js::Value &callee);
 
@@ -548,7 +775,6 @@ struct JSObject {
 
 
 
-  public:
     static const uint32 JSSLOT_DATE_UTC_TIME = JSSLOT_PRIVATE;
 
     
@@ -579,6 +805,16 @@ struct JSObject {
   private:
     friend struct JSFunction;
 
+    
+
+
+
+    static const uint32 JSSLOT_FLAT_CLOSURE_UPVARS = JSSLOT_PRIVATE + 1;
+
+    
+
+
+
     static const uint32 JSSLOT_FUN_METHOD_ATOM = JSSLOT_PRIVATE + 1;
     static const uint32 JSSLOT_FUN_METHOD_OBJ  = JSSLOT_PRIVATE + 2;
 
@@ -586,16 +822,19 @@ struct JSObject {
     static const uint32 JSSLOT_BOUND_FUNCTION_ARGS_COUNT = JSSLOT_PRIVATE + 2;
 
   public:
-    static const uint32 FUN_FIXED_RESERVED_SLOTS = 2;
+    static const uint32 FUN_CLASS_RESERVED_SLOTS = 2;
+
+    inline JSFunction *getFunctionPrivate() const;
+
+    inline js::Value *getFlatClosureUpvars() const;
+    inline js::Value getFlatClosureUpvar(uint32 i) const;
+    inline void setFlatClosureUpvars(js::Value *upvars);
 
     inline bool hasMethodObj(const JSObject& obj) const;
     inline void setMethodObj(JSObject& obj);
 
-    inline JSFunction *getFunctionPrivate() const;
-
-    inline bool
-    initBoundFunction(JSContext *cx, const js::Value &thisArg,
-                      const js::Value *args, uintN argslen);
+    inline bool initBoundFunction(JSContext *cx, const js::Value &thisArg,
+                                  const js::Value *args, uintN argslen);
 
     inline JSObject *getBoundFunctionTarget() const;
     inline const js::Value &getBoundFunctionThis() const;
@@ -609,7 +848,7 @@ struct JSObject {
     static const uint32 JSSLOT_REGEXP_LAST_INDEX = JSSLOT_PRIVATE + 1;
 
   public:
-    static const uint32 REGEXP_FIXED_RESERVED_SLOTS = 1;
+    static const uint32 REGEXP_CLASS_RESERVED_SLOTS = 1;
 
     inline const js::Value &getRegExpLastIndex() const;
     inline void setRegExpLastIndex(const js::Value &v);
@@ -643,8 +882,8 @@ struct JSObject {
     static const uint32 JSSLOT_QNAME_LOCAL_NAME     = JSSLOT_PRIVATE + 2;
 
   public:
-    static const uint32 NAMESPACE_FIXED_RESERVED_SLOTS = 3;
-    static const uint32 QNAME_FIXED_RESERVED_SLOTS     = 3;
+    static const uint32 NAMESPACE_CLASS_RESERVED_SLOTS = 3;
+    static const uint32 QNAME_CLASS_RESERVED_SLOTS     = 3;
 
     inline jsval getNamePrefix() const;
     inline void setNamePrefix(jsval prefix);
@@ -675,40 +914,75 @@ struct JSObject {
     
 
 
-
     inline bool isCallable();
 
     
-    void init(js::Class *aclasp, JSObject *proto, JSObject *parent,
-              const js::Value &privateSlotValue) {
-        JS_STATIC_ASSERT(JSSLOT_PRIVATE + 3 == JS_INITIAL_NSLOTS);
+    inline void init(js::Class *aclasp, JSObject *proto, JSObject *parent,
+                     const js::Value &privateSlotValue, JSContext *cx);
 
-        clasp = aclasp;
-        flags = 0;
-        JS_ASSERT(!isDelegate());
-        JS_ASSERT(!isSystem());
-
-        setProto(proto);
-        setParent(parent);
-        fslots[JSSLOT_PRIVATE] = privateSlotValue;
-        fslots[JSSLOT_PRIVATE + 1].setUndefined();
-        fslots[JSSLOT_PRIVATE + 2].setUndefined();
-        dslots = NULL;
-    }
+    inline void finish(JSContext *cx);
 
     
 
 
 
-    inline void initSharingEmptyScope(js::Class *clasp,
+    inline void initSharingEmptyShape(js::Class *clasp,
                                       JSObject *proto,
                                       JSObject *parent,
-                                      const js::Value &privateSlotValue);
+                                      const js::Value &privateSlotValue,
+                                      JSContext *cx);
 
     inline bool hasSlotsArray() const { return !!dslots; }
 
     
     inline void freeSlotsArray(JSContext *cx);
+
+    inline bool hasProperty(JSContext *cx, jsid id, bool *foundp, uintN flags = 0);
+
+    bool allocSlot(JSContext *cx, uint32 *slotp);
+    void freeSlot(JSContext *cx, uint32 slot);
+
+  private:
+    void reportReadOnlyScope(JSContext *cx);
+
+    js::Shape *getChildProperty(JSContext *cx, js::Shape *parent, js::Shape &child);
+
+    const js::Shape *addPropertyCommon(JSContext *cx, jsid id,
+                                       js::PropertyOp getter, js::PropertyOp setter,
+                                       uint32 slot, uintN attrs,
+                                       uintN flags, intN shortid,
+                                       js::Shape **spp);
+
+    bool toDictionaryMode(JSContext *cx);
+
+  public:
+    
+    const js::Shape *addProperty(JSContext *cx, jsid id,
+                                 js::PropertyOp getter, js::PropertyOp setter,
+                                 uint32 slot, uintN attrs,
+                                 uintN flags, intN shortid);
+
+    
+    const js::Shape *addDataProperty(JSContext *cx, jsid id, uint32 slot, uintN attrs) {
+        JS_ASSERT(!(attrs & (JSPROP_GETTER | JSPROP_SETTER)));
+        return addProperty(cx, id, NULL, NULL, slot, attrs, 0, 0);
+    }
+
+    
+    const js::Shape *putProperty(JSContext *cx, jsid id,
+                                 js::PropertyOp getter, js::PropertyOp setter,
+                                 uint32 slot, uintN attrs,
+                                 uintN flags, intN shortid);
+
+    
+    const js::Shape *changeProperty(JSContext *cx, const js::Shape *shape, uintN attrs, uintN mask,
+                                    js::PropertyOp getter, js::PropertyOp setter);
+
+    
+    bool removeProperty(JSContext *cx, jsid id);
+
+    
+    void clear(JSContext *cx);
 
     JSBool lookupProperty(JSContext *cx, jsid id, JSObject **objp, JSProperty **propp) {
         JSLookupPropOp op = getOps()->lookupProperty;
@@ -793,6 +1067,7 @@ struct JSObject {
     inline bool isObject() const;
     inline bool isWith() const;
     inline bool isBlock() const;
+    inline bool isCall() const;
     inline bool isRegExp() const;
     inline bool isXML() const;
     inline bool isXMLId() const;
@@ -805,8 +1080,6 @@ struct JSObject {
 
     JS_FRIEND_API(bool) isWrapper() const;
     JS_FRIEND_API(JSObject *) unwrap(uintN *flagsp = NULL);
-
-    inline bool unbrand(JSContext *cx);
 
     inline void initArrayClass();
 };
@@ -829,8 +1102,7 @@ JS_STATIC_ASSERT(sizeof(JSObject) % JS_GCTHING_ALIGN == 0);
 #define MAX_DSLOTS_LENGTH   (~size_t(0) / sizeof(js::Value) - 1)
 #define MAX_DSLOTS_LENGTH32 (~uint32(0) / sizeof(js::Value) - 1)
 
-#define OBJ_CHECK_SLOT(obj,slot)                                              \
-    (JS_ASSERT((obj)->isNative()), JS_ASSERT(slot < (obj)->scope()->freeslot))
+#define OBJ_CHECK_SLOT(obj,slot) (JS_ASSERT(slot < (obj)->freeslot))
 
 #ifdef JS_THREADSAFE
 
@@ -914,7 +1186,7 @@ extern JSBool
 js_DefineBlockVariable(JSContext *cx, JSObject *obj, jsid id, intN index);
 
 #define OBJ_BLOCK_COUNT(cx,obj)                                               \
-    ((OBJ_IS_CLONED_BLOCK(obj) ? obj->getProto() : obj)->scope()->entryCount)
+    ((OBJ_IS_CLONED_BLOCK(obj) ? obj->getProto() : obj)->propertyCount())
 #define OBJ_BLOCK_DEPTH(cx,obj)                                               \
     obj->getSlot(JSSLOT_BLOCK_DEPTH).toInt32()
 #define OBJ_SET_BLOCK_DEPTH(cx,obj,depth)                                     \
@@ -1073,21 +1345,6 @@ extern JSObject *
 js_ConstructObject(JSContext *cx, js::Class *clasp, JSObject *proto,
                    JSObject *parent, uintN argc, js::Value *argv);
 
-extern JSBool
-js_AllocSlot(JSContext *cx, JSObject *obj, uint32 *slotp);
-
-extern void
-js_FreeSlot(JSContext *cx, JSObject *obj, uint32 slot);
-
-
-
-
-
-
-
-bool
-js_EnsureReservedSlots(JSContext *cx, JSObject *obj, size_t nreserved);
-
 extern jsid
 js_CheckForStringIndex(jsid id);
 
@@ -1111,7 +1368,7 @@ js_PurgeScopeChain(JSContext *cx, JSObject *obj, jsid id)
 
 
 
-extern JSScopeProperty *
+extern const js::Shape *
 js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
                      js::PropertyOp getter, js::PropertyOp setter, uint32 slot,
                      uintN attrs, uintN flags, intN shortid);
@@ -1121,9 +1378,9 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
 
 
 
-extern JSScopeProperty *
+extern const js::Shape *
 js_ChangeNativePropertyAttrs(JSContext *cx, JSObject *obj,
-                             JSScopeProperty *sprop, uintN attrs, uintN mask,
+                             const js::Shape *shape, uintN attrs, uintN mask,
                              js::PropertyOp getter, js::PropertyOp setter);
 
 extern JSBool
@@ -1231,11 +1488,11 @@ const uintN JSGET_NO_METHOD_BARRIER = 2;
 
 
 extern JSBool
-js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj,
-             JSScopeProperty *sprop, uintN getHow, js::Value *vp);
+js_NativeGet(JSContext *cx, JSObject *obj, JSObject *pobj, const js::Shape *shape, uintN getHow,
+             js::Value *vp);
 
 extern JSBool
-js_NativeSet(JSContext *cx, JSObject *obj, JSScopeProperty *sprop, bool added,
+js_NativeSet(JSContext *cx, JSObject *obj, const js::Shape *shape, bool added,
              js::Value *vp);
 
 extern JSBool
@@ -1266,7 +1523,7 @@ js_SetPropertyHelper(JSContext *cx, JSObject *obj, jsid id, uintN defineHow,
 
 
 extern JSBool
-js_SetNativeAttributes(JSContext *cx, JSObject *obj, JSScopeProperty *sprop,
+js_SetNativeAttributes(JSContext *cx, JSObject *obj, js::Shape *shape,
                        uintN attrs);
 
 namespace js {
