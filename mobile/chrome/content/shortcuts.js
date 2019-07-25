@@ -42,6 +42,7 @@
 
 
 
+
 Components.utils.import("resource://gre/modules/JSON.jsm");
 
 const XUL_NS = "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul";
@@ -141,6 +142,13 @@ function ShortcutEditor()
                 key: modifiers.getAttribute("key"),
                 keycode: modifiers.getAttribute("keycode")
             };
+        if (modifiers instanceof Components.interfaces.nsIDOMKeyEvent)
+            return {
+                exists: true,
+                modifiers: getEventModifiers(modifiers),
+                key: getEventKey(modifiers),
+                keycode: getEventKeyCode(modifiers)
+            };
         return {
             exists: !!(modifiers || key || keycode),
             modifiers: getFlagsForModifiers(modifiers),
@@ -175,7 +183,7 @@ function ShortcutEditor()
     function getEventKey(event)
     {
         if (event.charCode)
-            return String.fromCharCode(event.charCode);
+            return String.fromCharCode(event.charCode).toUpperCase();
     }
 
     function getEventKeyCode(event)
@@ -184,7 +192,7 @@ function ShortcutEditor()
         var nsIDOMKeyEvent = Components.interfaces.nsIDOMKeyEvent;
         keyCodeMap[nsIDOMKeyEvent.DOM_VK_CANCEL] = "VK_CANCEL";
         keyCodeMap[nsIDOMKeyEvent.DOM_VK_HELP] = "VK_HELP";
-        keyCodeMap[nsIDOMKeyEvent.DOM_VK_BACK_SPACE] = "VK_BACK_SPACE";
+        keyCodeMap[nsIDOMKeyEvent.DOM_VK_BACK_SPACE] = "VK_BACK";
         keyCodeMap[nsIDOMKeyEvent.DOM_VK_TAB] = "VK_TAB";
         keyCodeMap[nsIDOMKeyEvent.DOM_VK_CLEAR] = "VK_CLEAR";
         keyCodeMap[nsIDOMKeyEvent.DOM_VK_RETURN] = "VK_RETURN";
