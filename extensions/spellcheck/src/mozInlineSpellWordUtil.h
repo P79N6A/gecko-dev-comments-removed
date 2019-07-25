@@ -44,7 +44,7 @@
 
 
 
-class nsIRange;
+class nsRange;
 class nsINode;
 
 
@@ -101,13 +101,13 @@ public:
   
   
   nsresult GetRangeForWord(nsIDOMNode* aWordNode, PRInt32 aWordOffset,
-                           nsIRange** aRange);
+                           nsRange** aRange);
 
   
   
   
   
-  nsresult GetNextWord(nsAString& aText, nsIRange** aRange,
+  nsresult GetNextWord(nsAString& aText, nsRange** aRange,
                        bool* aSkipChecking);
 
   
@@ -191,6 +191,6 @@ private:
   void SplitDOMWord(PRInt32 aStart, PRInt32 aEnd);
 
   
-  nsresult MakeRange(NodeOffset aBegin, NodeOffset aEnd, nsIRange** aRange);
-  nsresult MakeRangeForWord(const RealWord& aWord, nsIRange** aRange);
+  nsresult MakeRange(NodeOffset aBegin, NodeOffset aEnd, nsRange** aRange);
+  nsresult MakeRangeForWord(const RealWord& aWord, nsRange** aRange);
 };

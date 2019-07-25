@@ -2664,7 +2664,7 @@ nsIContent* nsHTMLMediaElement::GetNextSource()
   nsresult rv = NS_OK;
   if (!mSourcePointer) {
     
-    mSourcePointer = do_CreateInstance("@mozilla.org/content/range;1");
+    mSourcePointer = new nsRange();
 
     rv = mSourcePointer->SelectNodeContents(thisDomNode);
     if (NS_FAILED(rv)) return nsnull;

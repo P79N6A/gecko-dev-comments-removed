@@ -360,7 +360,7 @@ protected:
   
 
 
-  void GetSelectionDOMRanges(PRInt16 aType, nsCOMArray<nsIDOMRange>* aRanges);
+  void GetSelectionDOMRanges(PRInt16 aType, nsTArray<nsRange*>* aRanges);
 
   nsresult SetSelectionRange(PRInt32 aStartPos, PRInt32 aEndPos);
 
@@ -390,10 +390,10 @@ protected:
 
 
 
-  nsresult DOMRangeBoundToHypertextOffset(nsIDOMRange *aRange,
-                                          bool aIsStartBound,
-                                          bool aIsStartOffset,
-                                          PRInt32 *aHTOffset);
+  nsresult RangeBoundToHypertextOffset(nsRange *aRange,
+                                       bool aIsStartBound,
+                                       bool aIsStartOffset,
+                                       PRInt32 *aHTOffset);
 
   
 

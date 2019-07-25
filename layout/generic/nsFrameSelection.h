@@ -47,7 +47,7 @@
 #include "nsITableCellLayout.h"
 #include "nsIDOMElement.h"
 #include "nsGUIEvent.h"
-#include "nsIRange.h"
+#include "nsRange.h"
 
 
 
@@ -684,12 +684,12 @@ private:
   
   
   
-  nsIRange* GetFirstCellRange();
+  nsRange* GetFirstCellRange();
   
   
   
-  nsIRange* GetNextCellRange();
-  nsIContent* GetFirstCellNodeInRange(nsIRange *aRange) const;
+  nsRange* GetNextCellRange();
+  nsIContent* GetFirstCellNodeInRange(nsRange *aRange) const;
   
   nsIContent* IsInSameTable(nsIContent *aContent1, nsIContent *aContent2) const;
   
@@ -706,7 +706,7 @@ private:
   PRInt32  mSelectedCellIndex;
 
   
-  nsCOMPtr<nsIRange> mMaintainRange;
+  nsRefPtr<nsRange> mMaintainRange;
   nsSelectionAmount mMaintainedAmount;
 
   
