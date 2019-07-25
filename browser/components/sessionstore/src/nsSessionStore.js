@@ -148,6 +148,8 @@ function SessionStoreService() {
 }
 
 SessionStoreService.prototype = {
+  classDescription: "Browser Session Store Service",
+  contractID: "@mozilla.org/browser/sessionstore;1",
   classID: Components.ID("{5280606b-2510-4fe0-97ef-9b5a22eafe6b}"),
   QueryInterface: XPCOMUtils.generateQI([Ci.nsISessionStore,
                                          Ci.nsIDOMEventListener,
@@ -1015,12 +1017,12 @@ SessionStoreService.prototype = {
     
     let browser = aWindow.gBrowser;
     let tab = browser.addTab();
-
-    
-    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
       
     
     browser.moveTabTo(tab, closedTab.pos);
+
+    
+    this.restoreHistoryPrecursor(aWindow, [tab], [closedTabState], 1, 0, 0);
 
     
     let content = browser.getBrowserForTab(tab).contentWindow;
@@ -1209,10 +1211,6 @@ SessionStoreService.prototype = {
       tabData.userTypedValue = browser.userTypedValue;
       tabData.userTypedClear = browser.userTypedClear;
     }
-
-    if (aTab.pinned)
-      tabData.pinned = true;
-    tabData.hidden = aTab.hidden;
 
     var disallow = [];
     for (var i = 0; i < CAPABILITIES.length; i++)
@@ -1940,15 +1938,14 @@ SessionStoreService.prototype = {
                 tabbrowser.tabs[t] :
                 tabbrowser.addTab("about:blank", {skipAnimation: true}));
       
+      
+      if (!tabs[t].selected) {
+        tabs[t].setAttribute("collapsed", "true");
+      }
+      
       if (!aOverwriteTabs && root._firstTabs) {
         tabbrowser.moveTabTo(tabs[t], t);
       }
-
-      if (winData.tabs[t].pinned)
-        tabbrowser.pinTab(tabs[t]);
-      else
-        tabbrowser.unpinTab(tabs[t]);
-      tabs[t].hidden = winData.tabs[t].hidden;
     }
 
     
@@ -2025,18 +2022,11 @@ SessionStoreService.prototype = {
     
     
     for (t = 0; t < aTabs.length; t++) {
-      let tab = aTabs[t];
-      let browser = tabbrowser.getBrowserForTab(tab);
-      let tabData = aTabData[t];
-
-      if (tabData.pinned)
-        tabbrowser.pinTab(tab);
-      else
-        tabbrowser.unpinTab(tab);
-      tab.hidden = tabData.hidden;
-
-      tabData._tabStillLoading = true;
-      if (!tabData.entries || tabData.entries.length == 0) {
+      var tab = aTabs[t];
+      var browser = tabbrowser.getBrowserForTab(tab);
+      
+      aTabData[t]._tabStillLoading = true;
+      if (!aTabData[t].entries || aTabData[t].entries.length == 0) {
         
         
         browser.contentDocument.location = "about:blank";
@@ -2051,19 +2041,19 @@ SessionStoreService.prototype = {
       
       
       
-      let activeIndex = (tabData.index || tabData.entries.length) - 1;
-      let activePageData = tabData.entries[activeIndex] || null;
+      let activeIndex = (aTabData[t].index || aTabData[t].entries.length) - 1;
+      let activePageData = aTabData[t].entries[activeIndex] || null;
       browser.userTypedValue = activePageData ? activePageData.url || null : null;
       
       
       
-      browser.__SS_data = tabData;
+      browser.__SS_data = aTabData[t];
     }
     
     if (aTabs.length > 0) {
       
       let maxVisibleTabs = Math.ceil(tabbrowser.tabContainer.mTabstrip.scrollClientSize /
-                                     aTabs[aTabs.length - 1].clientWidth);
+                                     aTabs[0].clientWidth);
 
       
       if (maxVisibleTabs < aTabs.length && aSelectTab > 1) {
@@ -3104,4 +3094,5 @@ String.prototype.hasRootDomain = function hasRootDomain(aDomain)
          (prevChar == "." || prevChar == "/");
 }
 
-var NSGetFactory = XPCOMUtils.generateNSGetFactory([SessionStoreService]);
+function NSGetModule(aComMgr, aFileSpec)
+  XPCOMUtils.generateModule([SessionStoreService]);
