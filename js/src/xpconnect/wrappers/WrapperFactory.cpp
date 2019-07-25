@@ -109,6 +109,11 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     XPCWrappedNative *wn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
 
     
+    
+    if (!wn->GetClassInfo())
+        return DoubleWrap(cx, obj, flags);
+
+    
     if (wn->HasProto() && wn->GetProto()->ClassIsDOMObject())
         return DoubleWrap(cx, obj, flags);
 
