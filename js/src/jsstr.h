@@ -275,16 +275,17 @@ DeflateStringToUTF8Buffer(JSContext *cx, const jschar *chars,
                           size_t charsLength, char *bytes, size_t *length,
                           FlationCoding fc = NormalEncoding);
 
-} 
 
 
 
 
-
-namespace js {
 extern JSBool
 str_replace(JSContext *cx, uintN argc, js::Value *vp);
-}
+
+extern JSBool
+str_fromCharCode(JSContext *cx, uintN argc, Value *vp);
+
+} 
 
 extern JSBool
 js_str_toString(JSContext *cx, uintN argc, js::Value *vp);
