@@ -109,8 +109,7 @@ nsMathMLmspaceFrame::ProcessAttributes(nsPresContext* aPresContext)
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::height,
                value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mHeight,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
+    ParseNumericValue(value, &mHeight, 0,
                       aPresContext, mStyleContext);
   }
 
@@ -128,8 +127,7 @@ nsMathMLmspaceFrame::ProcessAttributes(nsPresContext* aPresContext)
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::depth_,
                value);
   if (!value.IsEmpty()) {
-    ParseNumericValue(value, &mDepth,
-                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
+    ParseNumericValue(value, &mDepth, 0,
                       aPresContext, mStyleContext);
   }
 }
@@ -141,16 +139,18 @@ nsMathMLmspaceFrame::Reflow(nsPresContext*          aPresContext,
                             nsReflowStatus&          aStatus)
 {
   ProcessAttributes(aPresContext);
+  
+  
 
   mBoundingMetrics = nsBoundingMetrics();
-  mBoundingMetrics.width = mWidth;
+  mBoundingMetrics.width = NS_MAX(0, mWidth);
   mBoundingMetrics.ascent = mHeight;
   mBoundingMetrics.descent = mDepth;
   mBoundingMetrics.leftBearing = 0;
-  mBoundingMetrics.rightBearing = mWidth;
+  mBoundingMetrics.rightBearing = mBoundingMetrics.width;
 
   aDesiredSize.ascent = mHeight;
-  aDesiredSize.width = mWidth;
+  aDesiredSize.width = mBoundingMetrics.width;
   aDesiredSize.height = aDesiredSize.ascent + mDepth;
   
   aDesiredSize.mBoundingMetrics = mBoundingMetrics;
