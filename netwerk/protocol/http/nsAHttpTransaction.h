@@ -123,6 +123,12 @@ public:
     
     
     virtual PRUint16 PipelineDepthAvailable() = 0;
+
+    
+    
+    
+    virtual nsresult SetPipelinePosition(PRInt32) = 0;
+    virtual PRInt32  PipelinePosition() = 0;
 };
 
 #define NS_DECL_NSAHTTPTRANSACTION \
@@ -144,7 +150,9 @@ public:
     PRUint32 Http1xTransactionCount();                                  \
     nsresult TakeSubTransactions(nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions); \
     nsresult AddTransaction(nsAHttpTransaction *);                      \
-    PRUint16 PipelineDepthAvailable();
+    PRUint16 PipelineDepthAvailable();                                  \
+    nsresult SetPipelinePosition(PRInt32);                              \
+    PRInt32  PipelinePosition();
 
 
 

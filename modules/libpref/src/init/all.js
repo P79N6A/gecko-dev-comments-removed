@@ -813,6 +813,10 @@ pref("network.http.prompt-temp-redirect", true);
 
 
 
+pref("network.http.assoc-req.enforce", false);
+
+
+
 
 
 

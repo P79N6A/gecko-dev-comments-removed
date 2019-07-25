@@ -2159,6 +2159,24 @@ SpdySession::PipelineDepthAvailable()
   return 0;
 }
 
+nsresult
+SpdySession::SetPipelinePosition(PRInt32 position)
+{
+  
+  
+
+  NS_ABORT_IF_FALSE(false,
+                    "SpdySession::SetPipelinePosition() should not be called");
+
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+
+PRInt32
+SpdySession::PipelinePosition()
+{
+    return 0;
+}
+
 
 
 

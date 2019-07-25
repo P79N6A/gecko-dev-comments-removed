@@ -199,6 +199,7 @@ private:
 
     PRUint16                        mRestartCount;        
     PRUint8                         mCaps;
+    PRInt32                         mPipelinePosition;
 
     
     
