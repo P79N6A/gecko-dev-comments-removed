@@ -128,7 +128,7 @@ let WeaveGlue = {
     sync.collapsed = !loggedIn;
 
     
-    setTimeout(Weave.Utils.bind2(this, function() {
+    setTimeout(function() {
       
       if (Weave.Service.locked) {
         connect.firstChild.disabled = true;
@@ -140,7 +140,7 @@ let WeaveGlue = {
         sync.firstChild.disabled = false;
         connect.setAttribute("title", syncStr.get("disconnected.label"));
       }
-    }), 0);
+    }, 0);
 
     
     let parent = connect.parentNode;
