@@ -1083,10 +1083,7 @@ nsColumnSetFrame::Reflow(nsPresContext*           aPresContext,
   
   CheckInvalidateSizeChange(aDesiredSize);
 
-  
-  
-  
-    FinishAndStoreOverflow(&aDesiredSize);
+  FinishReflowWithAbsoluteFrames(aPresContext, aDesiredSize, aReflowState, aStatus);
   aDesiredSize.mCarriedOutBottomMargin = carriedOutBottomMargin;
 
   NS_FRAME_SET_TRUNCATION(aStatus, aReflowState, aDesiredSize);
