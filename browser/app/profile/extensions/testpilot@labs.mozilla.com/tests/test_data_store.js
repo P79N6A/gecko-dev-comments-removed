@@ -403,6 +403,21 @@ StubHandlers.prototype = {
   }
 };
 
+function clearAllPrefsForStudy(studyId) {
+  dump("Looking for prefs to delete...\n");
+  let prefService = Cc["@mozilla.org/preferences-service;1"]
+                     .getService(Ci.nsIPrefService)
+                     .QueryInterface(Ci.nsIPrefBranch2);
+  let prefStem = "extensions.testpilot";
+  let prefNames = prefService.getChildList(prefStem);
+  for each (let prefName in prefNames) {
+    if (prefName.indexOf(studyId) != -1) {
+      dump("Clearing pref " + prefName + "\n");
+      prefService.clearUserPref(prefName);
+    }
+  }
+
+}
 
 function testRecurringStudyStateChange() {
 
@@ -422,18 +437,7 @@ function testRecurringStudyStateChange() {
     versionNumber: 1
   };
 
-  dump("Looking for prefs to delete...\n");
-  let prefService = Cc["@mozilla.org/preferences-service;1"]
-                     .getService(Ci.nsIPrefService)
-                     .QueryInterface(Ci.nsIPrefBranch2);
-  let prefStem = "extensions.testpilot";
-  let prefNames = prefService.getChildList(prefStem);
-  for each (let prefName in prefNames) {
-    if (prefName.indexOf("unit_test_recur_study") != -1) {
-      dump("Clearing pref " + prefName + "\n");
-      prefService.clearUserPref(prefName);
-    }
-  }
+  clearAllPrefsForStudy("unit_test_recur_study");
 
   const START_DATE = 1292629441000;
   let stubDate = START_DATE;
@@ -559,7 +563,8 @@ function runAllTests() {
   
   
   
-  testKillSwitch();
+  
+  testSameGUIDs();
   dump("TESTING COMPLETE.  " + testsPassed + " out of " + testsRun +
        " tests passed.");
 }
@@ -692,3 +697,89 @@ function testKillSwitch() {
     });
   });
 }
+
+
+
+
+
+function testSameGUIDs() {
+
+  
+
+  
+  
+  Cu.import("resource://testpilot/modules/tasks.js");
+
+  let expInfo = {
+    startDate: null,
+    duration: 7,
+    testName: "Study w Survey n Guid",
+    testId: "unit_test_guid_study",
+    testInfoUrl: "https://testpilot.mozillalabs.com/",
+    summary: "Be sure to wipe all prefs and the store in the setup/teardown",
+    thumbnail: "",
+    optInRequired: false,
+    recursAutomatically: false,
+    recurrenceInterval: 0,
+    versionNumber: 1
+  };
+
+  let surveyInfo = { surveyId: "unit_test_guid_survey",
+      surveyName: "Survey with associated study",
+      surveyUrl: "",
+      summary: "",
+      thumbnail: "",
+      uploadWithExperiment: expInfo.testId,
+      versionNumber: 1,
+      surveyQuestions: {},
+      surveyExplanation: ""
+  };
+
+  clearAllPrefsForStudy("unit_test_guid_study");
+  clearAllPrefsForStudy("unit_test_guid_survey");
+
+  let dataStore = new StubDataStore();
+  let handlers = new StubHandlers();
+  let webContent = new StubWebContent();
+  let experiment = new TestPilotExperiment(expInfo, dataStore, handlers, webContent);
+  let survey = new TestPilotBuiltinSurvey(surveyInfo);
+
+  
+  experiment.changeStatus(TaskConstants.STATUS_STARTING, true);
+  experiment.checkDate();
+
+  
+  experiment._prependMetadataToJSON(function(jsonString) {
+    let expGuid = JSON.parse(jsonString).metadata.task_guid;
+    survey._prependMetadataToJSON(function(jsonString) {
+      let surveyGuid = JSON.parse(jsonString).metadata.task_guid;
+      dump("expGuid is " + expGuid + ", surveyGuid is " + surveyGuid + "\n");
+      cheapAssertEqual(expGuid, surveyGuid, "guids should match");
+      cheapAssertEqual((expGuid != ""), true, "guid should be non-empty");
+
+      
+      clearAllPrefsForStudy("unit_test_guid_study");
+      clearAllPrefsForStudy("unit_test_guid_survey");
+
+      let experiment2 = new TestPilotExperiment(expInfo, dataStore, handlers, webContent);
+      let survey2 = new TestPilotBuiltinSurvey(surveyInfo);
+
+      
+      survey2._prependMetadataToJSON(function(jsonString) {
+        let survey2Guid = JSON.parse(jsonString).metadata.task_guid;
+        
+        experiment2.changeStatus(TaskConstants.STATUS_STARTING, true);
+        experiment2.checkDate();
+        
+        experiment2._prependMetadataToJSON(function(jsonString) {
+          let exp2Guid = JSON.parse(jsonString).metadata.task_guid;
+          dump("exp2Guid is " + exp2Guid + ", survey2Guid is " + survey2Guid + "\n");
+          cheapAssertEqual(exp2Guid, survey2Guid, "guids should match");
+          cheapAssertEqual((exp2Guid != ""), true, "guid should be non-empty");
+        });
+      });
+    });
+  });
+}
+
+

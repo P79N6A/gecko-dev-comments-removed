@@ -249,6 +249,23 @@ var TestPilotTask = {
     }
 
     this.onDetailPageOpened();
+  },
+
+  getGuid: function TPS_getGuid(id) {
+    
+    
+    let guid = Application.prefs.getValue(GUID_PREF_PREFIX + id, "");
+    if (guid == "") {
+      let uuidGenerator =
+        Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
+      guid = uuidGenerator.generateUUID().toString();
+      
+      if (guid.indexOf("{") == 0) {
+        guid = guid.substring(1, (guid.length - 1));
+      }
+      Application.prefs.setValue(GUID_PREF_PREFIX + id, guid);
+    }
+    return guid;
   }
 };
 
@@ -635,14 +652,6 @@ TestPilotExperiment.prototype = {
         currentDate >= this._startDate &&
         currentDate <= this._endDate) {
       this._logger.info("Study now starting.");
-      let uuidGenerator =
-        Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator);
-      let uuid = uuidGenerator.generateUUID().toString();
-      
-      if (uuid.indexOf("{") == 0) {
-        uuid = uuid.substring(1, (uuid.length - 1));
-      }
-      Application.prefs.setValue(GUID_PREF_PREFIX + this._id, uuid);
       
       let self = this;
       this._dataStore.wipeAllData(function() {
@@ -742,8 +751,7 @@ TestPilotExperiment.prototype = {
     let self = this;
     MetadataCollector.getMetadata(function(md) {
       json.metadata = md;
-      let guid = Application.prefs.getValue(GUID_PREF_PREFIX + self._id, "");
-      json.metadata.task_guid = guid;
+      json.metadata.task_guid = self.getGuid(self._id);
       json.metadata.event_headers = self._dataStore.getPropertyNames();
       self._dataStore.getJSONRows(function(rows) {
                                     json.events = rows;
@@ -962,13 +970,11 @@ TestPilotBuiltinSurvey.prototype = {
     let self = this;
     MetadataCollector.getMetadata(function(md) {
       json.metadata = md;
-      
-      
-      let guid = Application.prefs.getValue(GUID_PREF_PREFIX + self._studyId, "");
-      
-
-
-      json.metadata.task_guid = guid;
+      if (self._studyId) {
+        
+        
+        json.metadata.task_guid = self.getGuid(self._studyId);
+      }
       let pref = SURVEY_ANSWER_PREFIX + self._id;
       let surveyAnswers = JSON.parse(Application.prefs.getValue(pref, "{}"));
       json.survey_data = sanitizeJSONStrings(surveyAnswers);
