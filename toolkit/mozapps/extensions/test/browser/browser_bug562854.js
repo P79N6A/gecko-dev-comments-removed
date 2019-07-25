@@ -6,7 +6,6 @@
 
 
 
-
 function test() {
   requestLongerTimeout(2);
 
@@ -49,7 +48,8 @@ add_test(function() {
 
     var addon = get_addon_element(aManager, "test1@tests.mozilla.org");
     addon.parentNode.ensureElementIsVisible(addon);
-    EventUtils.synthesizeMouseAtCenter(addon, { }, aManager);
+    EventUtils.synthesizeMouseAtCenter(addon, { clickCount: 1 }, aManager);
+    EventUtils.synthesizeMouseAtCenter(addon, { clickCount: 2 }, aManager);
 
     wait_for_view_load(aManager, function(aManager) {
       info("Part 2");
@@ -110,6 +110,7 @@ add_test(function() {
       var rect = target.getBoundingClientRect();
       var addonRect = addon.getBoundingClientRect();
 
+      EventUtils.synthesizeMouse(target, rect.width / 2, rect.height / 2, { clickCount: 1 }, aManager);
       EventUtils.synthesizeMouse(addon,
         rect.left - addonRect.left + rect.width / 2,
         rect.top - addonRect.top + rect.height / 2,
