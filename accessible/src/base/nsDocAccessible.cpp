@@ -1923,6 +1923,26 @@ nsDocAccessible::UpdateTreeInternal(nsAccessible* aContainer,
 
     updateFlags |= eAccessible;
 
+    if (!aIsInsert) {
+      
+
+      
+      
+      
+      
+      
+      
+      
+      const nsRoleMapEntry* roleMapEntry = accessible->GetRoleMapEntry();
+      if (roleMapEntry && roleMapEntry->role == nsIAccessibleRole::ROLE_MENUPOPUP) {
+        nsRefPtr<AccEvent> event =
+          new AccEvent(nsIAccessibleEvent::EVENT_MENUPOPUP_END, accessible);
+
+        if (event)
+          FireDelayedAccessibleEvent(event);
+      }
+    }
+
     
     if (aFireAllEvents) {
       nsRefPtr<AccEvent> event;
