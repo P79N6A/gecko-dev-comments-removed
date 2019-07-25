@@ -617,6 +617,7 @@ public class PanZoomController
             
             finishBounce();
             finishAnimation();
+            mState = PanZoomState.NOTHING;
         }
 
         
@@ -684,16 +685,17 @@ public class PanZoomController
 
             boolean overscrolledX = mX.getOverscroll() != Axis.Overscroll.NONE;
             boolean overscrolledY = mY.getOverscroll() != Axis.Overscroll.NONE;
-            if (!mOverridePanning && (overscrolledX || overscrolledY))
+            if (!mOverridePanning && (overscrolledX || overscrolledY)) {
                 bounce();
-            else
+            } else {
                 finishAnimation();
+                mState = PanZoomState.NOTHING;
+            }
         }
     }
 
     private void finishAnimation() {
         Log.d(LOGTAG, "Finishing animation at " + mController.getViewportMetrics());
-        mState = PanZoomState.NOTHING;
         stopAnimationTimer();
 
         
