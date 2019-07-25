@@ -1743,18 +1743,6 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
   GetLoadGroup(getter_AddRefs(loadGroup));
 
   
-  
-  
-  
-  nsLoadFlags loadFlags;
-  if (HasListenersFor(NS_LITERAL_STRING(PROGRESS_STR)) ||
-      HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR)) ||
-      (mUpload && mUpload->HasListenersFor(NS_LITERAL_STRING(PROGRESS_STR)))) {
-    loadFlags = nsIRequest::LOAD_NORMAL;
-  } else {
-    loadFlags = nsIRequest::LOAD_BACKGROUND;
-  }
-  
   nsCOMPtr<nsIChannelPolicy> channelPolicy;
   nsCOMPtr<nsIContentSecurityPolicy> csp;
   rv = mPrincipal->GetCsp(getter_AddRefs(csp));
@@ -1769,7 +1757,7 @@ nsXMLHttpRequest::OpenRequest(const nsACString& method,
                      nsnull,                    
                      loadGroup,
                      nsnull,                    
-                     loadFlags,
+                     nsIRequest::LOAD_BACKGROUND,
                      channelPolicy);
   if (NS_FAILED(rv)) return rv;
 
@@ -2367,6 +2355,21 @@ nsXMLHttpRequest::Send(nsIVariant *aBody)
   
   if (!mChannel || !(XML_HTTP_REQUEST_OPENED & mState)) {
     return NS_ERROR_NOT_INITIALIZED;
+  }
+
+
+  
+  
+  
+  
+  if (HasListenersFor(NS_LITERAL_STRING(PROGRESS_STR)) ||
+      HasListenersFor(NS_LITERAL_STRING(UPLOADPROGRESS_STR)) ||
+      (mUpload && mUpload->HasListenersFor(NS_LITERAL_STRING(PROGRESS_STR)))) {
+    nsLoadFlags loadFlags;
+    mChannel->GetLoadFlags(&loadFlags);
+    loadFlags &= ~nsIRequest::LOAD_BACKGROUND;
+    loadFlags |= nsIRequest::LOAD_NORMAL;
+    mChannel->SetLoadFlags(loadFlags);
   }
 
   
