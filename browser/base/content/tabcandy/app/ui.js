@@ -772,8 +772,7 @@ UIClass.prototype = {
       });
 
       
-      var visibilityData = Storage.readVisibilityData(gWindow);
-      if (visibilityData && visibilityData.visible) {
+      if (data.tabCandyVisible) {
         var currentTab = UI.currentTab;
         var item;
 
@@ -796,10 +795,8 @@ UIClass.prototype = {
           if (topic == "quit-application-requested") {
             if (Page.isTabCandyVisible()) {
               TabItems.saveAll(true);
-              self._saveVisibility(true);
-            } else {
-              self._saveVisibility(false);
             }
+            self._save();
           }
         }
       };
@@ -1154,21 +1151,12 @@ UIClass.prototype = {
   
   
   
-  
-  _saveAll: function() {
-    this._save();
-    Groups.saveAll();
-    TabItems.saveAll();
-  },
-
-  
-  
-  
   _save: function() {
     if (!this._initialized)
       return;
 
     var data = {
+      tabCandyVisible: Page.isTabCandyVisible(),
       pageBounds: this.pageBounds
     };
 
@@ -1195,8 +1183,11 @@ UIClass.prototype = {
   
   
   
-  _saveVisibility: function(isVisible) {
-    Storage.saveVisibilityData(gWindow, { visible: isVisible });
+  
+  _saveAll: function() {
+    this._save();
+    Groups.saveAll();
+    TabItems.saveAll();
   },
 
   

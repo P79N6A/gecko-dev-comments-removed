@@ -110,7 +110,6 @@ Storage = {
       
       this.saveGroupsData(gWindow, {});
       this.saveUIData(gWindow, {});
-      this.saveVisibilityData(gWindow, {});
 
       this._sessionStore.setWindowValue(gWindow, this.GROUP_DATA_IDENTIFIER,
         JSON.stringify({}));
@@ -220,20 +219,6 @@ Storage = {
   
   
   
-  saveVisibilityData: function(win, data) {
-    this.saveData(win, this.VISIBILITY_DATA_IDENTIFIER, data);
-  },
-
-  
-  
-  
-  readVisibilityData: function(win) {
-    return this.readData(win, this.VISIBILITY_DATA_IDENTIFIER);
-  },
-
-  
-  
-  
   saveData: function(win, id, data) {
     try {
       this._sessionStore.setWindowValue(win, id, JSON.stringify(data));
@@ -264,4 +249,3 @@ Storage = {
 
 
 Storage.init();
-
