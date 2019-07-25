@@ -43,6 +43,7 @@
 
 
 #define PANGO_ENABLE_BACKEND
+#define PANGO_ENABLE_ENGINE
 
 #include "prtypes.h"
 #include "prlink.h"
@@ -62,6 +63,7 @@
 #include "gfxFT2FontBase.h"
 #include "gfxFT2Utils.h"
 #include "harfbuzz/hb-unicode.h"
+#include "harfbuzz/hb-ot-tag.h"
 #include "gfxUnicodeProperties.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxUserFontSet.h"
@@ -74,6 +76,7 @@
 
 #include <fontconfig/fcfreetype.h>
 #include <pango/pango.h>
+#include <pango/pango-modules.h>
 #include <pango/pangofc-fontmap.h>
 
 #ifdef MOZ_WIDGET_GTK2
@@ -535,6 +538,11 @@ public:
     nsresult InitGlyphRunFast(gfxTextRun *aTextRun,
                               const PRUnichar *aString, PRUint32 aLength);
 #endif
+    PRBool InitGlyphRunWithPango(gfxTextRun *aTextRun,
+                                 const PRUnichar *aString,
+                                 PRUint32 aRunStart, PRUint32 aRunLength,
+                                 PangoScript aScript);
+
     
     PangoFont *GetPangoFont() {
         if (!mPangoFont) {
@@ -3199,11 +3207,11 @@ SetMissingGlyphs(gfxTextRun *aTextRun, const gchar *aUTF8,
 }
 
 static void
-InitGlyphRunWithPango(gfxTextRun *aTextRun,
-                      const gchar *aUTF8, PRUint32 aUTF8Length,
-                      PRUint32 *aUTF16Offset,
-                      PangoAnalysis *aAnalysis,
-                      PangoGlyphUnit aOverrideSpaceWidth)
+InitGlyphRunWithPangoAnalysis(gfxTextRun *aTextRun,
+                              const gchar *aUTF8, PRUint32 aUTF8Length,
+                              PRUint32 *aUTF16Offset,
+                              PangoAnalysis *aAnalysis,
+                              PangoGlyphUnit aOverrideSpaceWidth)
 {
     PRUint32 utf16Offset = *aUTF16Offset;
     PangoGlyphString *glyphString = pango_glyph_string_new();
@@ -3234,6 +3242,165 @@ InitGlyphRunWithPango(gfxTextRun *aTextRun,
 
     pango_glyph_string_free(glyphString);
     *aUTF16Offset = utf16Offset;
+}
+
+
+
+
+typedef union {
+    PangoAnalysis pango;
+    
+    
+    struct {
+        PangoEngineShape *shape_engine;
+        PangoEngineLang  *lang_engine;
+        PangoFont *font;
+        guint8 level;
+        guint8 gravity; 
+        guint8 flags;
+        guint8 script; 
+        PangoLanguage *language;
+        GSList *extra_attrs;
+    } local;
+} PangoAnalysisUnion;
+
+PRBool
+gfxFcFont::InitGlyphRunWithPango(gfxTextRun *aTextRun,
+                                 const PRUnichar *aString,
+                                 PRUint32 aRunStart, PRUint32 aRunLength,
+                                 PangoScript aScript)
+{
+    NS_ConvertUTF16toUTF8 utf8(aString + aRunStart, aRunLength);
+
+    PangoFont *font = GetPangoFont();
+    gfxPangoFontGroup *fontGroup =
+        static_cast<gfxPangoFontGroup*>(aTextRun->GetFontGroup());
+
+    hb_language_t languageOverride = NULL;
+    if (fontGroup->GetStyle()->languageOverride) {
+        languageOverride =
+            hb_ot_tag_to_language(fontGroup->GetStyle()->languageOverride);
+    } else if (GetFontEntry()->mLanguageOverride) {
+        languageOverride =
+            hb_ot_tag_to_language(GetFontEntry()->mLanguageOverride);
+    }
+
+    PangoLanguage *language;
+    if (languageOverride) {
+        language =
+            pango_language_from_string(hb_language_to_string(languageOverride));
+    } else {
+        language = fontGroup->GetPangoLanguage();
+        
+        
+        
+        
+        
+        
+        const PangoScript script = static_cast<PangoScript>(aScript);
+        PangoLanguage *scriptLang;
+        if ((!language ||
+             !pango_language_includes_script(language, script)) &&
+            (scriptLang = pango_script_get_sample_language(script))) {
+            language = scriptLang;
+        }
+    }
+
+    static GQuark engineLangId =
+        g_quark_from_static_string(PANGO_ENGINE_TYPE_LANG);
+    static GQuark renderNoneId =
+        g_quark_from_static_string(PANGO_RENDER_TYPE_NONE);
+    PangoMap *langMap = pango_find_map(language, engineLangId, renderNoneId);
+
+    static GQuark engineShapeId =
+        g_quark_from_static_string(PANGO_ENGINE_TYPE_SHAPE);
+    static GQuark renderFcId =
+        g_quark_from_static_string(PANGO_RENDER_TYPE_FC);
+    PangoMap *shapeMap = pango_find_map(language, engineShapeId, renderFcId);
+    if (!shapeMap) {
+        return PR_FALSE;
+    }
+
+    
+    PangoEngineShape *shapeEngine =
+        PANGO_ENGINE_SHAPE(pango_map_get_engine(shapeMap, aScript));
+    if (!shapeEngine) {
+        return PR_FALSE;
+    }
+
+    PangoEngineShapeClass *shapeClass = static_cast<PangoEngineShapeClass*>
+        (g_type_class_peek(PANGO_TYPE_ENGINE_SHAPE));
+
+    
+    
+    
+    
+    
+    
+    
+    
+    if (!shapeClass ||
+        PANGO_ENGINE_SHAPE_GET_CLASS(shapeEngine)->covers != shapeClass->covers)
+    {
+        GSList *exact_engines;
+        GSList *fallback_engines;
+        pango_map_get_engines(shapeMap, aScript,
+                              &exact_engines, &fallback_engines);
+
+        GSList *engines = g_slist_concat(exact_engines, fallback_engines);
+        for (GSList *link = engines; link; link = link->next) {
+            PangoEngineShape *engine = PANGO_ENGINE_SHAPE(link->data);
+            PangoCoverageLevel (*covers)(PangoEngineShape*, PangoFont*,
+                                         PangoLanguage*, gunichar) =
+                PANGO_ENGINE_SHAPE_GET_CLASS(shapeEngine)->covers;
+
+            if ((shapeClass && covers == shapeClass->covers) ||
+                covers(engine, font, language, ' ') != PANGO_COVERAGE_NONE)
+            {
+                shapeEngine = engine;
+                break;
+            }
+        }
+        g_slist_free(engines); 
+    }
+
+    PangoAnalysisUnion analysis;
+    memset(&analysis, 0, sizeof(analysis));
+
+    
+    analysis.local.shape_engine = shapeEngine;
+    
+    analysis.local.lang_engine =
+        PANGO_ENGINE_LANG(pango_map_get_engine(langMap, aScript));
+
+    analysis.local.font = font;
+    analysis.local.level = aTextRun->IsRightToLeft() ? 1 : 0;
+    
+    
+    
+    
+    
+    
+    
+    
+#if 0
+    analysis.local.gravity = PANGO_GRAVITY_SOUTH;
+    analysis.local.flags = 0;
+#endif
+    
+    analysis.local.script = aScript;
+
+    analysis.local.language = language;
+    
+    analysis.local.extra_attrs = NULL;
+
+    PangoGlyphUnit spaceWidth =
+        moz_pango_units_from_double(GetMetrics().spaceWidth);
+
+    PRUint32 utf16Offset = aRunStart;
+    InitGlyphRunWithPangoAnalysis(aTextRun, utf8.get(), utf8.Length(),
+                                  &utf16Offset, &analysis.pango, spaceWidth);
+    return PR_TRUE;
 }
 
 #if defined(ENABLE_FAST_PATH_8BIT)
@@ -3368,8 +3535,9 @@ gfxPangoFontGroup::CreateGlyphRunsItemizing(gfxTextRun *aTextRun,
         PRUint32 spaceWidth =
             moz_pango_units_from_double(font->GetMetrics().spaceWidth);
 
-        InitGlyphRunWithPango(aTextRun, utf8.get() + offset, length,
-                              &utf16Offset, &item->analysis, spaceWidth);
+        InitGlyphRunWithPangoAnalysis(aTextRun, utf8.get() + offset, length,
+                                      &utf16Offset, &item->analysis,
+                                      spaceWidth);
     }
 
 out:
