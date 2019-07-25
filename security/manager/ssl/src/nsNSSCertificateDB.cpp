@@ -1497,27 +1497,65 @@ NS_IMETHODIMP
 nsNSSCertificateDB::FindCertByEmailAddress(nsISupports *aToken, const char *aEmailAddress, nsIX509Cert **_retval)
 {
   nsNSSShutDownPreventionLock locker;
-  CERTCertificate *any_cert = CERT_FindCertByNicknameOrEmailAddr(CERT_GetDefaultCertDB(), (char*)aEmailAddress);
-  if (!any_cert)
-    return NS_ERROR_FAILURE;
-
-  CERTCertificateCleaner certCleaner(any_cert);
-    
   
-  CERTCertList *certlist = CERT_CreateSubjectCertList(
-    nsnull, CERT_GetDefaultCertDB(), &any_cert->derSubject, PR_Now(), PR_TRUE);
+  nsCOMPtr<nsINSSComponent> inss;
+  nsRefPtr<nsCERTValInParamWrapper> survivingParams;
+  nsresult nsrv;
+  
+  if (nsNSSComponent::globalConstFlagUsePKIXVerification) {
+    inss = do_GetService(kNSSComponentCID, &nsrv);
+    if (!inss)
+      return nsrv;
+    nsrv = inss->GetDefaultCERTValInParam(survivingParams);
+    if (NS_FAILED(nsrv))
+      return nsrv;
+  }
+
+  CERTCertList *certlist = PK11_FindCertsFromEmailAddress(aEmailAddress, nsnull);
   if (!certlist)
     return NS_ERROR_FAILURE;  
 
+  
+  
+
   CERTCertListCleaner listCleaner(certlist);
 
-  if (SECSuccess != CERT_FilterCertListByUsage(certlist, certUsageEmailRecipient, PR_FALSE))
-    return NS_ERROR_FAILURE;
-  
   if (CERT_LIST_END(CERT_LIST_HEAD(certlist), certlist))
-    return NS_ERROR_FAILURE;
+    return NS_ERROR_FAILURE; 
+
+  CERTCertListNode *node;
   
-  nsNSSCertificate *nssCert = nsNSSCertificate::Create(CERT_LIST_HEAD(certlist)->cert);
+  for (node = CERT_LIST_HEAD(certlist);
+       !CERT_LIST_END(node, certlist);
+       node = CERT_LIST_NEXT(node)) {
+
+    if (!nsNSSComponent::globalConstFlagUsePKIXVerification) {
+      if (CERT_VerifyCert(CERT_GetDefaultCertDB(), node->cert,
+          PR_TRUE, certUsageEmailRecipient, PR_Now(), nsnull, nsnull) == SECSuccess) {
+        
+        break;
+      }
+    }
+    else {
+      CERTValOutParam cvout[1];
+      cvout[0].type = cert_po_end;
+      if (CERT_PKIXVerifyCert(node->cert, certificateUsageEmailRecipient,
+                              survivingParams->GetRawPointerForNSS(),
+                              cvout, nsnull)
+          == SECSuccess) {
+        
+        break;
+      }
+    }
+  }
+
+  if (CERT_LIST_END(node, certlist)) {
+    
+    return NS_ERROR_FAILURE;
+  }
+
+  
+  nsNSSCertificate *nssCert = nsNSSCertificate::Create(node->cert);
   if (!nssCert)
     return NS_ERROR_OUT_OF_MEMORY;
 
