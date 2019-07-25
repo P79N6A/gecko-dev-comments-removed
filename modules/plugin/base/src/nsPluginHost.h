@@ -139,9 +139,6 @@ public:
   AddHeadersToChannel(const char *aHeadersData, PRUint32 aHeadersDataLen, 
                       nsIChannel *aGenericChannel);
 
-  nsresult
-  AddUnusedLibrary(PRLibrary * aLibrary);
-
   static nsresult GetPluginTempDir(nsIFile **aDir);
 
   
@@ -247,9 +244,6 @@ private:
 
   nsresult EnsurePrivateDirServiceProvider();
 
-  
-  void UnloadUnusedLibraries();
-
   void OnPluginInstanceDestroyed(nsPluginTag* aPluginTag);
 
   nsRefPtr<nsPluginTag> mPlugins;
@@ -267,8 +261,6 @@ private:
   
   
   nsTArray< nsRefPtr<nsNPAPIPluginInstance> > mInstances;
-
-  nsTArray<PRLibrary*> mUnusedLibraries;
 
   nsCOMPtr<nsIFile> mPluginRegFile;
   nsCOMPtr<nsIPrefBranch> mPrefService;
