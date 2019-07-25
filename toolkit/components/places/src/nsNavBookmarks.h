@@ -161,6 +161,9 @@ public:
 
   PRBool IsRealBookmark(PRInt64 aPlaceId);
 
+  nsresult BeginUpdateBatch();
+  nsresult EndUpdateBatch();
+
   PRBool ItemExists(PRInt64 aItemId);
 
   
@@ -185,13 +188,38 @@ private:
 
   ~nsNavBookmarks();
 
-  nsresult InitRoots();
-  nsresult InitDefaults();
-  nsresult CreateRoot(mozIStorageStatement* aGetRootStatement,
-                      const nsCString& name,
-                      PRInt64* aID,
-                      PRInt64 aParentID,
-                      PRBool* aWasCreated);
+  
+
+
+
+
+
+
+
+
+
+  nsresult InitRoots(bool aForceCreate);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  nsresult CreateRoot(const nsCString& name,
+                      PRInt64* _itemId,
+                      PRInt64 aParentId,
+                      nsIStringBundle* aBundle,
+                      const PRUnichar* aTitleStringId);
 
   nsresult AdjustIndices(PRInt64 aFolder,
                          PRInt32 aStartIndex,
@@ -223,13 +251,17 @@ private:
   PRInt32 mItemCount;
 
   nsMaybeWeakPtrArray<nsINavBookmarkObserver> mObservers;
+
   PRInt64 mRoot;
-  PRInt64 mBookmarksRoot;
-  PRInt64 mTagRoot;
+  PRInt64 mMenuRoot;
+  PRInt64 mTagsRoot;
   PRInt64 mUnfiledRoot;
+  PRInt64 mToolbarRoot;
 
   
-  PRInt64 mToolbarFolder;
+  PRInt32 mBatchLevel;
+  
+  mozStorageTransaction* mBatchDBTransaction;
 
   nsresult GetParentAndIndexOfFolder(PRInt64 aFolder,
                                      PRInt64* aParent,
@@ -456,5 +488,22 @@ private:
 
   nsresult UpdateKeywordsHashForRemovedBookmark(PRInt64 aItemId);
 };
+
+struct nsBookmarksUpdateBatcher
+{
+  nsBookmarksUpdateBatcher()
+  {
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    if (bookmarks)
+      bookmarks->BeginUpdateBatch();
+  }
+  ~nsBookmarksUpdateBatcher()
+  {
+    nsNavBookmarks* bookmarks = nsNavBookmarks::GetBookmarksService();
+    if (bookmarks)
+      bookmarks->EndUpdateBatch();
+  }
+};
+
 
 #endif 
