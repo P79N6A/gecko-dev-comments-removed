@@ -84,6 +84,7 @@ public:
   NS_IMETHOD OnDataAvailable(imgIRequest *aRequest,
                              bool aCurrentFrame,
                              const nsIntRect *aRect);
+  NS_IMETHOD OnStartDecode(imgIRequest *aRequest);
   NS_IMETHOD OnStopDecode(imgIRequest *aRequest,
                           nsresult aStatus,
                           const PRUnichar *aStatusArg);
@@ -121,6 +122,12 @@ protected:
   nsSize mComputedSize;
   PRInt32 mOrdinal;
   bool mTextIsRTL;
+
+private:
+
+  
+  
+  bool mRequestRegistered;
 };
 
 #endif 
