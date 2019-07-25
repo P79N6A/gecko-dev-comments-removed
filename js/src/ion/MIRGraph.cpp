@@ -157,8 +157,8 @@ MBasicBlock::inherit(MBasicBlock *pred)
         copySlots(pred);
 
     
-    entrySnapshot_ = new MSnapshot(this, pc());
-    if (!entrySnapshot_->init(this))
+    entryResumePoint_ = new MResumePoint(this, pc());
+    if (!entryResumePoint_->init(this))
         return false;
 
     if (pred) {
@@ -166,7 +166,7 @@ MBasicBlock::inherit(MBasicBlock *pred)
             return false;
 
         for (size_t i = 0; i < stackDepth(); i++)
-            entrySnapshot()->initOperand(i, getSlot(i));
+            entryResumePoint()->initOperand(i, getSlot(i));
     }
 
     return true;
@@ -183,7 +183,7 @@ void
 MBasicBlock::initSlot(uint32 slot, MDefinition *ins)
 {
     slots_[slot].set(ins);
-    entrySnapshot()->initOperand(slot, ins);
+    entryResumePoint()->initOperand(slot, ins);
 }
 
 void
@@ -509,7 +509,7 @@ MBasicBlock::addPredecessor(MBasicBlock *pred)
                 }
 
                 setSlot(i, phi);
-                entrySnapshot()->replaceOperand(i, phi);
+                entryResumePoint()->replaceOperand(i, phi);
             }
 
             if (!phi->addInput(other))
@@ -552,7 +552,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     JS_ASSERT(lastIns_);
     JS_ASSERT(pred->lastIns_);
     JS_ASSERT(pred->stackPosition_ == stackPosition_);
-    JS_ASSERT(entrySnapshot()->stackDepth() == stackPosition_);
+    JS_ASSERT(entryResumePoint()->stackDepth() == stackPosition_);
 
     
     JS_ASSERT(kind_ == PENDING_LOOP_HEADER);
@@ -565,7 +565,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred)
     
     
     for (uint32 i = 0; i < stackPosition_; i++) {
-        MDefinition *entryDef = entrySnapshot()->getOperand(i);
+        MDefinition *entryDef = entryResumePoint()->getOperand(i);
         MDefinition *exitDef = pred->slots_[i].def;
 
         

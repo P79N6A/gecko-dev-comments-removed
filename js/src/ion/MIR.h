@@ -97,7 +97,7 @@ class MBasicBlock;
 class MNode;
 class MUse;
 class MIRGraph;
-class MSnapshot;
+class MResumePoint;
 
 
 class MUse : public TempObject, public InlineForwardListNode<MUse>
@@ -144,7 +144,7 @@ class MNode : public TempObject
   public:
     enum Kind {
         Definition,
-        Snapshot
+        ResumePoint
     };
 
     MNode() : block_(NULL)
@@ -161,8 +161,8 @@ class MNode : public TempObject
     bool isDefinition() const {
         return kind() == Definition;
     }
-    bool isSnapshot() const {
-        return kind() == Snapshot;
+    bool isResumePoint() const {
+        return kind() == ResumePoint;
     }
     MBasicBlock *block() const {
         return block_;
@@ -180,7 +180,7 @@ class MNode : public TempObject
     void replaceOperand(size_t index, MDefinition *ins);
 
     inline MDefinition *toDefinition();
-    inline MSnapshot *toSnapshot();
+    inline MResumePoint *toResumePoint();
 
   protected:
     
@@ -443,20 +443,20 @@ class MInstruction
   : public MDefinition,
     public InlineListNode<MInstruction>
 {
-    MSnapshot *snapshot_;
+    MResumePoint *resumePoint_;
 
   public:
-    MInstruction() : snapshot_(NULL)
+    MInstruction() : resumePoint_(NULL)
     { }
 
     virtual bool accept(MInstructionVisitor *visitor) = 0;
 
-    void setSnapshot(MSnapshot *snapshot) {
-        JS_ASSERT(!snapshot_);
-        snapshot_ = snapshot;
+    void setResumePoint(MResumePoint *resumePoint) {
+        JS_ASSERT(!resumePoint_);
+        resumePoint_ = resumePoint;
     }
-    MSnapshot *snapshot() const {
-        return snapshot_;
+    MResumePoint *resumePoint() const {
+        return resumePoint_;
     }
 };
 
@@ -1331,7 +1331,7 @@ class MPhi : public MDefinition, public InlineForwardListNode<MPhi>
 
 
 
-class MSnapshot : public MNode
+class MResumePoint : public MNode
 {
     friend class MBasicBlock;
 
@@ -1339,7 +1339,7 @@ class MSnapshot : public MNode
     uint32 stackDepth_;
     jsbytecode *pc_;
 
-    MSnapshot(MBasicBlock *block, jsbytecode *pc);
+    MResumePoint(MBasicBlock *block, jsbytecode *pc);
     bool init(MBasicBlock *state);
     void inherit(MBasicBlock *state);
 
@@ -1350,10 +1350,10 @@ class MSnapshot : public MNode
     }
 
   public:
-    static MSnapshot *New(MBasicBlock *block, jsbytecode *pc);
+    static MResumePoint *New(MBasicBlock *block, jsbytecode *pc);
 
     MNode::Kind kind() const {
-        return MNode::Snapshot;
+        return MNode::ResumePoint;
     }
     size_t numOperands() const {
         return stackDepth_;
@@ -1388,10 +1388,10 @@ MDefinition *MNode::toDefinition()
     return (MDefinition *)this;
 }
 
-MSnapshot *MNode::toSnapshot()
+MResumePoint *MNode::toResumePoint()
 {
-    JS_ASSERT(isSnapshot());
-    return (MSnapshot *)this;
+    JS_ASSERT(isResumePoint());
+    return (MResumePoint *)this;
 }
 
 MInstruction *MDefinition::toInstruction()

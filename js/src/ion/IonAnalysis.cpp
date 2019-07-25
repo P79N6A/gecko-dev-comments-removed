@@ -372,18 +372,18 @@ ShouldSpecializeInput(MDefinition *box, MNode *use, MUnbox *unbox)
 {
     
     
-    if (use->isSnapshot()) {
-        MSnapshot *snapshot = use->toSnapshot();
+    if (use->isResumePoint()) {
+        MResumePoint *resumePoint = use->toResumePoint();
             
         
         
         
-        MSnapshot *defSnapshot;
+        MResumePoint *defResumePoint;
         if (box->isInstruction())
-            defSnapshot = box->toInstruction()->snapshot();
+            defResumePoint = box->toInstruction()->resumePoint();
         else if (box->isPhi())
-            defSnapshot = box->block()->entrySnapshot();
-        return (defSnapshot != snapshot);
+            defResumePoint = box->block()->entryResumePoint();
+        return (defResumePoint != resumePoint);
     }
 
     MDefinition *def = use->toDefinition();

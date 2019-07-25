@@ -183,7 +183,7 @@ IonBuilder::build()
     
     for (uint32 i = 0; i < CountArgSlots(fun()); i++) {
         MParameter *param = current->getEntrySlot(i)->toInstruction()->toParameter();
-        param->setSnapshot(current->entrySnapshot());
+        param->setResumePoint(current->entryResumePoint());
     }
 
     if (!traverseBytecode())
@@ -267,8 +267,6 @@ IonBuilder::traverseBytecode()
         }
 
         
-        
-
         JSOp op = JSOp(*pc);
         if (!inspectOpcode(op))
             return false;
@@ -1730,18 +1728,18 @@ IonBuilder::newPendingLoopHeader(MBasicBlock *predecessor, jsbytecode *pc)
 
 
 bool
-IonBuilder::snapshotAfter(MInstruction *ins)
+IonBuilder::resumeAfter(MInstruction *ins)
 {
-    return snapshotAt(ins, GetNextPc(pc));
+    return resumeAt(ins, GetNextPc(pc));
 }
 
 bool
-IonBuilder::snapshotAt(MInstruction *ins, jsbytecode *pc)
+IonBuilder::resumeAt(MInstruction *ins, jsbytecode *pc)
 {
-    MSnapshot *snapshot = MSnapshot::New(current, pc);
-    if (!snapshot)
+    MResumePoint *resumePoint = MResumePoint::New(current, pc);
+    if (!resumePoint)
         return false;
-    ins->setSnapshot(snapshot);
+    ins->setResumePoint(resumePoint);
     return true;
 }
 

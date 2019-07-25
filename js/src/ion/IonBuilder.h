@@ -237,8 +237,8 @@ class IonBuilder : public MIRGenerator
 
     
     
-    bool snapshotAt(MInstruction *ins, jsbytecode *pc);
-    bool snapshotAfter(MInstruction *ins);
+    bool resumeAt(MInstruction *ins, jsbytecode *pc);
+    bool resumeAfter(MInstruction *ins);
 
     bool pushConstant(const Value &v);
     bool jsop_bitnot();
