@@ -158,6 +158,7 @@ public:
   PRUint8 mSize;   
                    
   bool mRepeating;
+  bool mToCorner;
 
   nsStyleCoord mBgPosX; 
   nsStyleCoord mBgPosY; 

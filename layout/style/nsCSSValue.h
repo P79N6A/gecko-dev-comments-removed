@@ -1032,6 +1032,7 @@ struct nsCSSValueGradient {
   
   bool mIsRadial;
   bool mIsRepeating;
+  bool mIsToCorner;
   
   nsCSSValuePair mBgPos;
   nsCSSValue mAngle;
@@ -1046,6 +1047,7 @@ struct nsCSSValueGradient {
   {
     if (mIsRadial != aOther.mIsRadial ||
         mIsRepeating != aOther.mIsRepeating ||
+        mIsToCorner != aOther.mIsToCorner ||
         mBgPos != aOther.mBgPos ||
         mAngle != aOther.mAngle ||
         mRadialShape != aOther.mRadialShape ||
