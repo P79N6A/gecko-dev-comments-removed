@@ -91,6 +91,11 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
+  SetSize(nsSize(aReflowState.availableWidth, aReflowState.availableHeight));
+ 
+  
+  
+  
   if (mFrames.NotEmpty()) {
     nsIFrame* frame = mFrames.FirstChild();
     nsSize  maxSize(aReflowState.availableWidth, aReflowState.availableHeight);

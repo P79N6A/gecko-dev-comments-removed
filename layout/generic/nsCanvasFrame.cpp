@@ -449,6 +449,11 @@ nsCanvasFrame::Reflow(nsPresContext*           aPresContext,
   
   
   
+  SetSize(nsSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight())); 
+
+  
+  
+  
   
   
   

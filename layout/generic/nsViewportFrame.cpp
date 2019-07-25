@@ -257,7 +257,12 @@ ViewportFrame::Reflow(nsPresContext*           aPresContext,
   
   
   AddStateBits(NS_FRAME_CONTAINS_RELATIVE_HEIGHT);
+
   
+  
+  
+  SetSize(nsSize(aReflowState.ComputedWidth(), aReflowState.ComputedHeight()));
+ 
   
   
   

@@ -1743,12 +1743,26 @@ GetPercentHeight(const nsStyleCoord& aStyle,
     NS_ASSERTION(pos->mHeight.GetUnit() == eStyleUnit_Auto ||
                  pos->mHeight.GetUnit() == eStyleUnit_Percent,
                  "unknown height unit");
+    nsIAtom* fType = f->GetType();
+    if (fType != nsGkAtoms::viewportFrame && fType != nsGkAtoms::canvasFrame &&
+        fType != nsGkAtoms::pageContentFrame) {
+      
+      
+      
+      
+      
+      return PR_FALSE;
+    }
+
+    NS_ASSERTION(pos->mHeight.GetUnit() == eStyleUnit_Auto,
+                 "Unexpected height unit for viewport or canvas or page-content");
     
     
-    
-    
-    
-    return PR_FALSE;
+    h = f->GetSize().height;
+    if (h == NS_UNCONSTRAINEDSIZE) {
+      
+      return PR_FALSE;
+    }
   }
 
   nscoord maxh;
