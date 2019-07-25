@@ -28,7 +28,15 @@ function test() {
 
 function end_test() {
   Services.prefs.clearUserPref(PREF_GETADDONS_GETSEARCHRESULTS);
-  close_manager(gManagerWindow, finish);
+
+  
+  AddonManager.getAllInstalls(function(aInstalls) {
+    aInstalls.forEach(function(aInstall) {
+      aInstall.cancel();
+    });
+
+    close_manager(gManagerWindow, finish);
+  });
 }
 
 function search(aRemoteSearch, aCallback) {

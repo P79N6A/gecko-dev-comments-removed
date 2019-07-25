@@ -19,8 +19,12 @@ function test() {
 }
 
 function end_test() {
-  close_manager(gManagerWindow, function() {
-    finish();
+  
+  AddonManager.getAllInstalls(function(aInstalls) {
+    is(aInstalls.length, 1, "Should be one available install");
+    aInstalls[0].cancel();
+
+    close_manager(gManagerWindow, finish);
   });
 }
 
