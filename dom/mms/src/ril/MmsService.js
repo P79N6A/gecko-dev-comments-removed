@@ -154,21 +154,31 @@ MmsService.prototype = {
 
 
 
-  parseStreamAndDispatch: function parseStreamAndDispatch(data) {
+
+
+
+
+
+  parseStreamAndDispatch: function parseStreamAndDispatch(data, options) {
     let msg = MMS.PduHelper.parse(data, null);
     if (!msg) {
-      return;
+      return false;
     }
     debug("parseStreamAndDispatch: msg = " + JSON.stringify(msg));
 
     switch (msg.type) {
       case MMS.MMS_PDU_TYPE_NOTIFICATION_IND:
-        this.handleNotificationIndication(msg);
+        this.handleNotificationIndication(msg, options);
+        break;
+      case MMS.MMS_PDU_TYPE_RETRIEVE_CONF:
+        this.handleRetrieveConfirmation(msg, options);
         break;
       default:
         debug("Unsupported X-MMS-Message-Type: " + msg.type);
-        break;
+        return false;
     }
+
+    return true;
   },
 
   
@@ -178,12 +188,48 @@ MmsService.prototype = {
 
 
   handleNotificationIndication: function handleNotificationIndication(msg) {
+    function callback(status, retr) {
+      
+    }
+
+    function retrCallback(error, retr) {
+      callback(MMS.translatePduErrorToStatus(error), retr);
+    }
+
     let url = msg.headers["x-mms-content-location"].uri;
     this.sendMmsRequest("GET", url, (function (status, data) {
-      if (data) {
-        this.parseStreamAndDispatch(data);
+      if (!data) {
+        callback.call(null, MMS.MMS_PDU_STATUS_DEFERRED, null);
+      } else if (!this.parseStreamAndDispatch(data, retrCallback)) {
+        callback.call(null, MMS.MMS_PDU_STATUS_UNRECOGNISED, null);
       }
     }).bind(this));
+  },
+
+  
+
+
+
+
+
+
+
+  handleRetrieveConfirmation: function handleRetrieveConfirmation(msg, callback) {
+    function callbackIfValid(status, msg) {
+      if (callback) {
+        callback(status, msg)
+      }
+    }
+
+    let status = msg.headers["x-mms-retrieve-status"];
+    if ((status != null) && (status != MMS.MMS_PDU_ERROR_OK)) {
+      callbackIfValid(status, msg);
+      return;
+    }
+
+    
+
+    callbackIfValid(MMS.MMS_PDU_ERROR_OK, msg);
   },
 
   
