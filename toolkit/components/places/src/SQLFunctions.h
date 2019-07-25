@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef mozilla_places_SQLFunctions_h_
 #define mozilla_places_SQLFunctions_h_
 
@@ -118,10 +119,10 @@ private:
   
 
 
-  typedef bool (*searchFunctionPtr)(const nsDependentSubstring &aToken,
-                                    const nsAString &aSourceString);
+  typedef bool (*searchFunctionPtr)(const nsDependentCSubstring &aToken,
+                                    const nsACString &aSourceString);
 
-  typedef nsAString::const_char_iterator const_wchar_iterator;
+  typedef nsACString::const_char_iterator const_char_iterator;
 
   
 
@@ -142,58 +143,8 @@ private:
 
 
 
-
-  static bool findAnywhere(const nsDependentSubstring &aToken,
-                           const nsAString &aSourceString);
-
-  
-
-
-
-
-
-
-
-
-  static bool findBeginning(const nsDependentSubstring &aToken,
-                            const nsAString &aSourceString);
-
-  
-
-
-
-
-
-
-
-
-  static bool findOnBoundary(const nsDependentSubstring &aToken,
-                             const nsAString &aSourceString);
-
-  
-
-
-
-
-
-
-
-
-  static const_wchar_iterator nextWordBoundary(const_wchar_iterator aStart,
-                                               const_wchar_iterator aEnd);
-  
-
-
-
-
-
-
-
-
-
-
-
-  static inline bool isWordBoundary(const PRUnichar &aChar);
+  static bool findBeginning(const nsDependentCSubstring &aToken,
+                            const nsACString &aSourceString);
 
   
 
@@ -205,7 +156,33 @@ private:
 
 
 
-  static void fixupURISpec(const nsCString &aURISpec, nsString &_fixedSpec);
+  static bool findAnywhere(const nsDependentCSubstring &aToken,
+                           const nsACString &aSourceString);
+
+  
+
+
+
+
+
+
+
+
+  static bool findOnBoundary(const nsDependentCSubstring &aToken,
+                             const nsACString &aSourceString);
+
+
+  
+
+
+
+
+
+
+
+
+
+  static void fixupURISpec(const nsCString &aURISpec, nsCString &_fixedSpec);
 };
 
 } 

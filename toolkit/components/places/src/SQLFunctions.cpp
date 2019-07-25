@@ -43,8 +43,160 @@
 #include "nsEscape.h"
 #include "mozIPlacesAutoComplete.h"
 #include "SQLFunctions.h"
+#include "nsUTF8Utils.h"
 
 using namespace mozilla::storage;
+
+
+
+
+namespace {
+
+  typedef nsACString::const_char_iterator const_char_iterator;
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static
+  NS_ALWAYS_INLINE const_char_iterator
+  nextWordBoundary(const_char_iterator const aStart,
+                   const_char_iterator const aNext,
+                   const_char_iterator const aEnd) {
+
+    const_char_iterator cur = aStart;
+    if (('a' <= *cur && *cur <= 'z') ||
+        ('A' <= *cur && *cur <= 'Z')) {
+
+      
+      
+      
+      do {
+        cur++;
+      } while (cur < aEnd && 'a' <= *cur && *cur <= 'z');
+    }
+    else {
+      cur = aNext;
+    }
+
+    return cur;
+  }
+
+  enum FindInStringBehavior {
+    eFindOnBoundary,
+    eFindAnywhere
+  };
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static
+  NS_ALWAYS_INLINE bool
+  findInString(const nsDependentCSubstring &aToken,
+               const nsACString &aSourceString,
+               FindInStringBehavior aBehavior)
+  {
+    
+    
+    NS_PRECONDITION(!aToken.IsEmpty(), "Don't search for an empty token!");
+
+    
+    if (aSourceString.IsEmpty()) {
+      return false;
+    }
+
+    const_char_iterator tokenStart(aToken.BeginReading()),
+                        tokenEnd(aToken.EndReading()),
+                        sourceStart(aSourceString.BeginReading()),
+                        sourceEnd(aSourceString.EndReading());
+
+    do {
+      
+      
+
+      
+      
+      
+      const_char_iterator sourceNext, tokenCur;
+      PRBool error;
+      if (CaseInsensitiveUTF8CharsEqual(sourceStart, tokenStart,
+                                        sourceEnd, tokenEnd,
+                                        &sourceNext, &tokenCur, &error)) {
+
+        
+        
+        
+
+        const_char_iterator sourceCur = sourceNext;
+        while (true) {
+          if (tokenCur >= tokenEnd) {
+            
+            return true;
+          }
+
+          if (sourceCur >= sourceEnd) {
+            
+            
+            return false;
+          }
+
+          if (!CaseInsensitiveUTF8CharsEqual(sourceCur, tokenCur,
+                                             sourceEnd, tokenEnd,
+                                             &sourceCur, &tokenCur, &error)) {
+            
+            
+            break;
+          }
+        }
+      }
+
+      
+      if (NS_UNLIKELY(error)) {
+        return false;
+      }
+
+      
+      
+      
+
+      if (aBehavior == eFindOnBoundary) {
+        sourceStart = nextWordBoundary(sourceStart, sourceNext, sourceEnd);
+      }
+      else {
+        sourceStart = sourceNext;
+      }
+
+    } while (sourceStart < sourceEnd);
+
+    return false;
+  }
+
+} 
 
 namespace mozilla {
 namespace places {
@@ -73,7 +225,7 @@ namespace places {
   
   void
   MatchAutoCompleteFunction::fixupURISpec(const nsCString &aURISpec,
-                                          nsString &_fixedSpec)
+                                          nsCString &_fixedSpec)
   {
     nsCString unescapedSpec;
     (void)NS_UnescapeURL(aURISpec, esc_SkipControl | esc_AlwaysCopy,
@@ -84,104 +236,74 @@ namespace places {
     NS_ASSERTION(_fixedSpec.IsEmpty(),
                  "Passing a non-empty string as an out parameter!");
     if (IsUTF8(unescapedSpec))
-      CopyUTF8toUTF16(unescapedSpec, _fixedSpec);
+      _fixedSpec.Assign(unescapedSpec);
     else
-      CopyUTF8toUTF16(aURISpec, _fixedSpec);
+      _fixedSpec.Assign(aURISpec);
 
-    if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("http://")))
+    if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("http://")))
       _fixedSpec.Cut(0, 7);
-    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("https://")))
+    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("https://")))
       _fixedSpec.Cut(0, 8);
-    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("ftp://")))
+    else if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("ftp://")))
       _fixedSpec.Cut(0, 6);
 
-    if (StringBeginsWith(_fixedSpec, NS_LITERAL_STRING("www.")))
+    if (StringBeginsWith(_fixedSpec, NS_LITERAL_CSTRING("www.")))
       _fixedSpec.Cut(0, 4);
   }
 
   
   bool
-  MatchAutoCompleteFunction::findAnywhere(const nsDependentSubstring &aToken,
-                                          const nsAString &aSourceString)
+  MatchAutoCompleteFunction::findAnywhere(const nsDependentCSubstring &aToken,
+                                          const nsACString &aSourceString)
   {
-    return !!CaseInsensitiveFindInReadable(aToken, aSourceString);
+    
+
+    return findInString(aToken, aSourceString, eFindAnywhere);
   }
 
   
   bool
-  MatchAutoCompleteFunction::findBeginning(const nsDependentSubstring &aToken,
-                                           const nsAString &aSourceString)
+  MatchAutoCompleteFunction::findOnBoundary(const nsDependentCSubstring &aToken,
+                                            const nsACString &aSourceString)
   {
-    return !!StringBeginsWith(aSourceString, aToken,
-                              nsCaseInsensitiveStringComparator());
+    return findInString(aToken, aSourceString, eFindOnBoundary);
   }
 
   
   bool
-  MatchAutoCompleteFunction::findOnBoundary(const nsDependentSubstring &aToken,
-                                            const nsAString &aSourceString)
+  MatchAutoCompleteFunction::findBeginning(const nsDependentCSubstring &aToken,
+                                           const nsACString &aSourceString)
   {
-    
-    if (aSourceString.IsEmpty())
-      return false;
+    NS_PRECONDITION(!aToken.IsEmpty(), "Don't search for an empty token!");
 
     
-    const nsCaseInsensitiveStringComparator caseInsensitiveCompare;
-
-    const_wchar_iterator tokenStart(aToken.BeginReading()),
-                         tokenEnd(aToken.EndReading()),
-                         sourceStart(aSourceString.BeginReading()),
-                         sourceEnd(aSourceString.EndReading());
-
     
-    do {
+    
+    
+    
+
+    const_char_iterator tokenStart(aToken.BeginReading()),
+                        tokenEnd(aToken.EndReading()),
+                        sourceStart(aSourceString.BeginReading()),
+                        sourceEnd(aSourceString.EndReading());
+
+    PRBool dummy;
+    while (sourceStart < sourceEnd &&
+           CaseInsensitiveUTF8CharsEqual(sourceStart, tokenStart,
+                                         sourceEnd, tokenEnd,
+                                         &sourceStart, &tokenStart, &dummy)) {
+
       
-      const_wchar_iterator testTokenItr(tokenStart),
-                           testSourceItr(sourceStart);
-
-      
-      while (!caseInsensitiveCompare(testTokenItr, testSourceItr, 1, 1)) {
-        
-        testTokenItr++;
-        testSourceItr++;
-
-        
-        if (testTokenItr == tokenEnd)
-          return true;
-
-        
-        
-        if (testSourceItr == sourceEnd)
-          return false;
+      if (tokenStart >= tokenEnd) {
+        return true;
       }
+    }
 
-      
-      
-      if (!isWordBoundary(ToLowerCase(*sourceStart++)))
-        sourceStart = nextWordBoundary(sourceStart, sourceEnd);
-    } while (sourceStart != sourceEnd);
+    
+    
+    
 
     return false;
-  }
-
-  
-  MatchAutoCompleteFunction::const_wchar_iterator
-  MatchAutoCompleteFunction::nextWordBoundary(const_wchar_iterator aStart,
-                                              const_wchar_iterator aEnd)
-  {
-    while (aStart != aEnd && !isWordBoundary(*aStart))
-      aStart++;
-    return aStart;
-  }
-
-  
-  bool
-  MatchAutoCompleteFunction::isWordBoundary(const PRUnichar &aChar)
-  {
-    
-    
-    
-    return !(PRUnichar('a') <= aChar && aChar <= PRUnichar('z'));
   }
 
   
@@ -217,15 +339,15 @@ namespace places {
     #define HAS_BEHAVIOR(aBitName) \
       (searchBehavior & mozIPlacesAutoComplete::BEHAVIOR_##aBitName)
 
-    nsAutoString searchString;
-    (void)aArguments->GetString(kArgSearchString, searchString);
+    nsCAutoString searchString;
+    (void)aArguments->GetUTF8String(kArgSearchString, searchString);
     nsCString url;
     (void)aArguments->GetUTF8String(kArgIndexURL, url);
 
     
     
     if (!HAS_BEHAVIOR(JAVASCRIPT) &&
-        !StringBeginsWith(searchString, NS_LITERAL_STRING("javascript:")) &&
+        !StringBeginsWith(searchString, NS_LITERAL_CSTRING("javascript:")) &&
         StringBeginsWith(url, NS_LITERAL_CSTRING("javascript:"))) {
       NS_IF_ADDREF(*_result = new IntegerVariant(0));
       NS_ENSURE_TRUE(*_result, NS_ERROR_OUT_OF_MEMORY);
@@ -235,8 +357,8 @@ namespace places {
     PRInt32 visitCount = aArguments->AsInt32(kArgIndexVisitCount);
     bool typed = aArguments->AsInt32(kArgIndexTyped) ? true : false;
     bool bookmark = aArguments->AsInt32(kArgIndexBookmark) ? true : false;
-    nsAutoString tags;
-    (void)aArguments->GetString(kArgIndexTags, tags);
+    nsCAutoString tags;
+    (void)aArguments->GetUTF8String(kArgIndexTags, tags);
     PRInt32 openPageCount = aArguments->AsInt32(kArgIndexOpenPageCount);
 
     
@@ -255,21 +377,21 @@ namespace places {
     }
 
     
-    nsString fixedURI;
+    nsCString fixedURI;
     fixupURISpec(url, fixedURI);
 
     
     PRInt32 matchBehavior = aArguments->AsInt32(kArgIndexMatchBehavior);
     searchFunctionPtr searchFunction = getSearchFunction(matchBehavior);
 
-    nsAutoString title;
-    (void)aArguments->GetString(kArgIndexTitle, title);
+    nsCAutoString title;
+    (void)aArguments->GetUTF8String(kArgIndexTitle, title);
 
     
     
-    nsWhitespaceTokenizer tokenizer(searchString);
+    nsCWhitespaceTokenizer tokenizer(searchString);
     while (matches && tokenizer.hasMoreTokens()) {
-      const nsDependentSubstring &token = tokenizer.nextToken();
+      const nsDependentCSubstring &token = tokenizer.nextToken();
 
       bool matchTags = searchFunction(token, tags);
       bool matchTitle = searchFunction(token, title);
