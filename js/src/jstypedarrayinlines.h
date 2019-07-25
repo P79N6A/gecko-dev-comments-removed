@@ -105,24 +105,20 @@ DataViewObject::create(JSContext *cx, uint32_t byteOffset, uint32_t byteLength,
     if (!obj)
         return NULL;
 
+    types::TypeObject *type;
     if (proto) {
-        types::TypeObject *type = proto->getNewType(cx);
+        type = proto->getNewType(cx);
+    } else {
+        
+
+
+
+        JSProtoKey key = JSCLASS_CACHED_PROTO_KEY(&DataViewClass);
+        type = types::GetTypeCallerInitObject(cx, key);
         if (!type)
             return NULL;
-        obj->setType(type);
-    } else if (cx->typeInferenceEnabled()) {
-        if (byteLength >= TypedArray::SINGLETON_TYPE_BYTE_LENGTH) {
-            if (!obj->setSingletonType(cx))
-                return NULL;
-        } else {
-            jsbytecode *pc;
-            JSScript *script = cx->stack.currentScript(&pc);
-            if (script) {
-                if (!types::SetInitializerObjectType(cx, script, pc, obj))
-                    return NULL;
-            }
-        }
     }
+    obj->setType(type);
 
     JS_ASSERT(arrayBuffer->isArrayBuffer());
 
