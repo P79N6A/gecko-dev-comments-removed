@@ -243,46 +243,6 @@ nsNPAPIPlugin::PluginCrashed(const nsAString& pluginDumpID,
   host->PluginCrashed(this, pluginDumpID, browserDumpID);
 }
 
-#if defined(XP_MACOSX) && defined(__i386__)
-static int32_t OSXVersion()
-{
-  static int32_t gOSXVersion = 0x0;
-  if (gOSXVersion == 0x0) {
-    OSErr err = ::Gestalt(gestaltSystemVersion, (SInt32*)&gOSXVersion);
-    if (err != noErr) {
-      
-      NS_ERROR("Couldn't determine OS X version, assuming 10.5");
-      gOSXVersion = 0x00001050;
-    }
-  }
-  return gOSXVersion;
-}
-
-
-
-#define CGLRendererIDMatchingMask 0x00FE7F00
-#define CGLRendererIntel900ID 0x00024000
-static bool GMA9XXGraphics()
-{
-  bool hasIntelGMA9XX = false;
-  CGLRendererInfoObj renderer = 0;
-  GLint rendererCount = 0;
-  if (::CGLQueryRendererInfo(0xffffffff, &renderer, &rendererCount) == kCGLNoError) {
-    for (GLint c = 0; c < rendererCount; c++) {
-      GLint rendProp = 0;
-      if (::CGLDescribeRenderer(renderer, c, kCGLRPRendererID, &rendProp) == kCGLNoError) {
-        if ((rendProp & CGLRendererIDMatchingMask) == CGLRendererIntel900ID) {
-          hasIntelGMA9XX = true;
-          break;
-        }
-      }
-    }
-    ::CGLDestroyRendererInfo(renderer);
-  }
-  return hasIntelGMA9XX;
-}
-#endif
-
 bool
 nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
 {
@@ -299,34 +259,6 @@ nsNPAPIPlugin::RunPluginOOP(const nsPluginTag *aPluginTag)
   
   if (aPluginTag->mIsFlashPlugin && IsVistaOrLater()) {
     return true;
-  }
-#endif
-
-#if defined(XP_MACOSX) && defined(__i386__)
-  
-  if (OSXVersion() < 0x00001060) {
-    return false;
-  }
-  
-  
-  
-  
-  if (aPluginTag->mFileName.EqualsIgnoreCase("flash player.plugin")) {
-    
-    
-    if (aPluginTag->mVersion.FindChar('.') < 2) {
-      return false;
-    }
-    if (aPluginTag->mVersion.Length() >= 4) {
-      nsCString versionPrefix;
-      aPluginTag->mVersion.Left(versionPrefix, 4);
-      if (versionPrefix.EqualsASCII("10.0")) {
-        return false;
-      }
-      if (versionPrefix.EqualsASCII("10.1") && GMA9XXGraphics()) {
-        return false;
-      }
-    }
   }
 #endif
 
@@ -2145,7 +2077,7 @@ _getvalue(NPP npp, NPNVariable variable, void *result)
 
 #ifndef NP_NO_QUICKDRAW
   case NPNVsupportsQuickDrawBool: {
-    *(NPBool*)result = true;
+    *(NPBool*)result = false;
     
     return NPERR_NO_ERROR;
   }

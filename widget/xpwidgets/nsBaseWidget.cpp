@@ -751,35 +751,9 @@ nsBaseWidget::AutoUseBasicLayerManager::~AutoUseBasicLayerManager()
 bool
 nsBaseWidget::GetShouldAccelerate()
 {
-#if defined(XP_WIN) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5) || defined(MOZ_GL_PROVIDER)
+#if defined(XP_WIN) || defined(ANDROID) || (MOZ_PLATFORM_MAEMO > 5) || \
+    defined(MOZ_GL_PROVIDER) || defined(XP_MACOSX)
   bool accelerateByDefault = true;
-#elif defined(XP_MACOSX)
-
-
-# if defined(NP_NO_QUICKDRAW)
-  bool accelerateByDefault = true;
-
-  
-  
-  
-  
-  
-  SInt32 major, minor, bugfix;
-  OSErr err1 = ::Gestalt(gestaltSystemVersionMajor, &major);
-  OSErr err2 = ::Gestalt(gestaltSystemVersionMinor, &minor);
-  OSErr err3 = ::Gestalt(gestaltSystemVersionBugFix, &bugfix);
-  if (err1 == noErr && err2 == noErr && err3 == noErr) {
-    if (major == 10 && minor == 6) {
-      if (bugfix <= 2) {
-        accelerateByDefault = false;
-      }
-    }
-  }
-
-# else
-  bool accelerateByDefault = false;
-# endif
-
 #else
   bool accelerateByDefault = false;
 #endif

@@ -309,9 +309,6 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mWidgetCreationComplete = false;
 #ifdef XP_MACOSX
   memset(&mCGPluginPortCopy, 0, sizeof(NP_CGContext));
-#ifndef NP_NO_QUICKDRAW
-  memset(&mQDPluginPortCopy, 0, sizeof(NP_Port));
-#endif
   mInCGPaintLevel = 0;
   mSentInitialTopLevelWindowEvent = false;
   mColorProfile = nullptr;
@@ -327,7 +324,7 @@ nsPluginInstanceOwner::nsPluginInstanceOwner()
   mCachedAttrParamValues = nullptr;
 
 #ifdef XP_MACOSX
-#ifndef NP_NO_QUICKDRAW
+#ifndef NP_NO_CARBON
   mEventModel = NPEventModelCarbon;
 #else
   mEventModel = NPEventModelCocoa;
@@ -1377,6 +1374,8 @@ static void InitializeNPCocoaEvent(NPCocoaEvent* event)
 NPDrawingModel nsPluginInstanceOwner::GetDrawingModel()
 {
 #ifndef NP_NO_QUICKDRAW
+  
+  
   NPDrawingModel drawingModel = NPDrawingModelQuickDraw;
 #else
   NPDrawingModel drawingModel = NPDrawingModelCoreGraphics;
@@ -1558,10 +1557,6 @@ void nsPluginInstanceOwner::RenderCoreAnimation(CGContextRef aCGContext,
 
 void* nsPluginInstanceOwner::GetPluginPortCopy()
 {
-#ifndef NP_NO_QUICKDRAW
-  if (GetDrawingModel() == NPDrawingModelQuickDraw)
-    return &mQDPluginPortCopy;
-#endif
   if (GetDrawingModel() == NPDrawingModelCoreGraphics || 
       GetDrawingModel() == NPDrawingModelCoreAnimation ||
       GetDrawingModel() == NPDrawingModelInvalidatingCoreAnimation)
@@ -1590,31 +1585,18 @@ void* nsPluginInstanceOwner::SetPluginPortAndDetectChange()
     return nullptr;
   mPluginWindow->window = pluginPort;
 
-#ifndef NP_NO_QUICKDRAW
-  NPDrawingModel drawingModel = GetDrawingModel();
-  if (drawingModel == NPDrawingModelQuickDraw) {
-    NP_Port* windowQDPort = static_cast<NP_Port*>(mPluginWindow->window);
-    if (windowQDPort->port != mQDPluginPortCopy.port) {
-      mQDPluginPortCopy.port = windowQDPort->port;
+#ifndef NP_NO_CARBON
+  if (GetEventModel() == NPEventModelCarbon &&
+      GetDrawingModel() == NPDrawingModelCoreGraphics) {
+    NP_CGContext* windowCGPort = static_cast<NP_CGContext*>(mPluginWindow->window);
+    if ((windowCGPort->context != mCGPluginPortCopy.context) ||
+        (windowCGPort->window != mCGPluginPortCopy.window)) {
+      mCGPluginPortCopy.context = windowCGPort->context;
+      mCGPluginPortCopy.window = windowCGPort->window;
       mPluginPortChanged = true;
     }
-  } else if (drawingModel == NPDrawingModelCoreGraphics || 
-             drawingModel == NPDrawingModelCoreAnimation ||
-             drawingModel == NPDrawingModelInvalidatingCoreAnimation)
-#endif
-  {
-#ifndef NP_NO_CARBON
-    if (GetEventModel() == NPEventModelCarbon) {
-      NP_CGContext* windowCGPort = static_cast<NP_CGContext*>(mPluginWindow->window);
-      if ((windowCGPort->context != mCGPluginPortCopy.context) ||
-          (windowCGPort->window != mCGPluginPortCopy.window)) {
-        mCGPluginPortCopy.context = windowCGPort->context;
-        mCGPluginPortCopy.window = windowCGPort->window;
-        mPluginPortChanged = true;
-      }
-    }
-#endif
   }
+#endif
 
   return mPluginWindow->window;
 }
@@ -3479,38 +3461,25 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
 
   
 
-#ifndef NP_NO_QUICKDRAW
   
-  NPDrawingModel drawingModel = GetDrawingModel();
-  if (drawingModel == NPDrawingModelQuickDraw) {
-    mPluginWindow->x = -static_cast<NP_Port*>(pluginPort)->portx;
-    mPluginWindow->y = -static_cast<NP_Port*>(pluginPort)->porty;
-  }
-  else if (drawingModel == NPDrawingModelCoreGraphics || 
-           drawingModel == NPDrawingModelCoreAnimation ||
-           drawingModel == NPDrawingModelInvalidatingCoreAnimation)
+  
+  
+  
+  
+  nsIntPoint geckoScreenCoords = mWidget->WidgetToScreenOffset();
+
+  nsRect windowRect;
+#ifndef NP_NO_CARBON
+  if (eventModel == NPEventModelCarbon) {
+    NS_NPAPI_CarbonWindowFrame(static_cast<WindowRef>(static_cast<NP_CGContext*>(pluginPort)->window), windowRect);
+  } else
 #endif
   {
-    
-    
-    
-    
-    
-    nsIntPoint geckoScreenCoords = mWidget->WidgetToScreenOffset();
-
-    nsRect windowRect;
-#ifndef NP_NO_CARBON
-    if (eventModel == NPEventModelCarbon)
-      NS_NPAPI_CarbonWindowFrame(static_cast<WindowRef>(static_cast<NP_CGContext*>(pluginPort)->window), windowRect);
-    else
-#endif
-    {
-      NS_NPAPI_CocoaWindowFrame(cocoaTopLevelWindow, windowRect);
-    }
-
-    mPluginWindow->x = geckoScreenCoords.x - windowRect.x;
-    mPluginWindow->y = geckoScreenCoords.y - windowRect.y;
+    NS_NPAPI_CocoaWindowFrame(cocoaTopLevelWindow, windowRect);
   }
+
+  mPluginWindow->x = geckoScreenCoords.x - windowRect.x;
+  mPluginWindow->y = geckoScreenCoords.y - windowRect.y;
 
   NPRect oldClipRect = mPluginWindow->clipRect;
   
@@ -3578,13 +3547,8 @@ void* nsPluginInstanceOwner::FixUpPluginWindow(int32_t inPaintState)
     ProcessEvent(pluginEvent);
   }
 
-#ifndef NP_NO_QUICKDRAW
-  if (drawingModel == NPDrawingModelQuickDraw)
-    return ::GetWindowFromPort(static_cast<NP_Port*>(pluginPort)->port);
-#endif
-
 #ifdef MAC_CARBON_PLUGINS
-  if (drawingModel == NPDrawingModelCoreGraphics && eventModel == NPEventModelCarbon)
+  if (GetDrawingModel() == NPDrawingModelCoreGraphics && eventModel == NPEventModelCarbon)
     return static_cast<NP_CGContext*>(pluginPort)->window;
 #endif
 
@@ -3735,14 +3699,16 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
     }
 
     
-#if defined(XP_MACOSX) && !defined(NP_NO_QUICKDRAW)
+#if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
     
     
     
-    for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
-      nsIScrollableFrame* sf = do_QueryFrame(f);
-      if (sf) {
-        sf->RemoveScrollPositionListener(this);
+    if (GetEventModel() == NPEventModelCarbon) {
+      for (nsIFrame* f = mObjectFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
+        nsIScrollableFrame* sf = do_QueryFrame(f);
+        if (sf) {
+          sf->RemoveScrollPositionListener(this);
+        }
       }
     }
 #endif
@@ -3766,7 +3732,7 @@ void nsPluginInstanceOwner::SetFrame(nsObjectFrame *aFrame)
     mObjectFrame->Invalidate(mObjectFrame->GetContentRectRelativeToSelf());
 
     
-#if defined(XP_MACOSX) && !defined(NP_NO_QUICKDRAW)
+#if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
     
     if (GetEventModel() == NPEventModelCarbon) {
       for (nsIFrame* f = aFrame; f; f = nsLayoutUtils::GetCrossDocParentFrame(f)) {
