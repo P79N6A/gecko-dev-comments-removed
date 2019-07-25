@@ -704,12 +704,24 @@ ChannelMediaResource::RecreateChannel()
   nsCOMPtr<nsILoadGroup> loadGroup = element->GetDocumentLoadGroup();
   NS_ENSURE_TRUE(loadGroup, NS_ERROR_NULL_POINTER);
 
-  return NS_NewChannel(getter_AddRefs(mChannel),
-                       mURI,
-                       nullptr,
-                       loadGroup,
-                       nullptr,
-                       loadFlags);
+  nsresult rv = NS_NewChannel(getter_AddRefs(mChannel),
+                              mURI,
+                              nsnull,
+                              loadGroup,
+                              nsnull,
+                              loadFlags);
+
+  
+  
+  
+  
+  nsCAutoString contentType;
+  element->GetMimeType(contentType);
+  NS_ASSERTION(!contentType.IsEmpty(),
+      "When recreating a channel, we should know the Content-Type.");
+  mChannel->SetContentType(contentType);
+
+  return rv;
 }
 
 void
