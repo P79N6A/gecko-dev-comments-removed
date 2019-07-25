@@ -106,11 +106,11 @@ public:
 
 
 
-  bool Initialize() {
-    return Initialize(CreateContext());
+  bool Initialize(bool force = false) {
+    return Initialize(CreateContext(), force);
   }
 
-  bool Initialize(nsRefPtr<GLContext> aContext);
+  bool Initialize(nsRefPtr<GLContext> aContext, bool force = false);
 
   
 
