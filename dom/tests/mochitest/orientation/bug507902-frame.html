@@ -1,21 +1,14 @@
 <!DOCTYPE HTML>
 <html>
-
-
-
 <head>
-  <title>Test for devicemotion</title>
+  <title>Frame for watchPosition </title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>
-  <link rel="stylesheet" type="text/css" href="/tests/SimpleTest/test.css" />
 </head>
 <body>
-<a target="_blank" href="https://bugzilla.mozilla.org/show_bug.cgi?id=507902">Mozilla Bug 507902</a>
-<p id="display"></p>
-<div id="content">
-<iframe id="frame" src="bug507902-frame.html"></iframe>
-</div>
-<pre id="test">
-<script class="testbody" type="text/javascript">
+<script type="text/javascript">
+
+var ok = window.parent.ok;
+var SimpleTest = window.parent.SimpleTest;
 
 function boom()
 {
@@ -29,8 +22,9 @@ function boom()
 
 SimpleTest.waitForExplicitFinish();
 
+window.addEventListener("load", function() { setTimeout(boom, 0); }, false);
+
 </script>
-</pre>
 </body>
 </html>
 
