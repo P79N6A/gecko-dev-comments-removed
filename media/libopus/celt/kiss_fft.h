@@ -26,6 +26,11 @@
 
 
 
+
+
+
+
+
 #ifndef KISS_FFT_H
 #define KISS_FFT_H
 
@@ -36,19 +41,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 #ifdef USE_SIMD
 # include <xmmintrin.h>

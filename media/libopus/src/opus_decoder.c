@@ -25,6 +25,11 @@
 
 
 
+
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -574,7 +579,7 @@ static int opus_packet_parse_impl(const unsigned char *data, int len,
       last_size = len-size[0];
       break;
    
-   case 3:
+   default: 
       if (len<1)
          return OPUS_INVALID_PACKET;
       

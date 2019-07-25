@@ -26,6 +26,11 @@
 
 
 
+
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -70,13 +75,6 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K, int 
    opus_val16 gain, theta;
    int stride2=0;
    int factor;
-   
-
-
-
-
-
-
 
    if (2*K>=len || spread==SPREAD_NONE)
       return;
@@ -92,7 +90,6 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K, int 
    {
       stride2 = 1;
       
-
 
       while ((stride2*stride2+stride2)*stride + (stride>>2) < len)
          stride2++;
@@ -113,13 +110,6 @@ static void exp_rotation(celt_norm *X, int len, int dir, int stride, int K, int 
             exp_rotation1(X+i*len, len, stride2, s, -c);
       }
    }
-   
-
-
-
-
-
-
 }
 
 
@@ -233,7 +223,6 @@ unsigned alg_quant(celt_norm *X, int N, int K, int spread, int B, ec_enc *enc
          while (++j<N);
          sum = QCONST16(1.f,14);
       }
-      
       rcp = EXTRACT16(MULT16_32_Q16(K-1, celt_rcp(sum)));
       j=0; do {
 #ifdef FIXED_POINT

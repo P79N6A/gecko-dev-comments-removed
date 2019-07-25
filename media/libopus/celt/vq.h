@@ -30,6 +30,11 @@
 
 
 
+
+
+
+
+
 #ifndef VQ_H
 #define VQ_H
 

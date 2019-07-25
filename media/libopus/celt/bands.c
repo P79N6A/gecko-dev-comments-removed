@@ -27,6 +27,11 @@
 
 
 
+
+
+
+
+
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -100,7 +105,6 @@ void compute_band_energies(const CELTMode *m, const celt_sig *X, celt_ener *band
                                    EXTRACT16(VSHR32(X[j+c*N],shift)));
             } while (++j<M*eBands[i+1]);
             
-
             bandE[i+c*m->nbEBands] = EPSILON+VSHR32(EXTEND32(celt_sqrt(sum)),-shift);
          } else {
             bandE[i+c*m->nbEBands] = EPSILON;
@@ -201,7 +205,7 @@ void denormalise_bands(const CELTMode *m, const celt_norm * restrict X, celt_sig
 }
 
 
-void anti_collapse(const CELTMode *m, celt_norm *X_, unsigned char *collapse_masks, int LM, int C, int CC, int size,
+void anti_collapse(const CELTMode *m, celt_norm *X_, unsigned char *collapse_masks, int LM, int C, int size,
       int start, int end, opus_val16 *logE, opus_val16 *prev1logE,
       opus_val16 *prev2logE, int *pulses, opus_uint32 seed)
 {
