@@ -39,6 +39,7 @@
 
 
 
+#include "nsXULAppAPI.h"
 #include "application.ini.h"
 
 #include <android/log.h>
