@@ -333,7 +333,7 @@ public class MultiTileLayer extends Layer {
                 }
 
                 
-                boolean reusedTile = true;
+                boolean reusedTile;
                 Point tileOrigin = new Point(x, y);
                 SubTile tile = mPositionHash.get(longFromPoint(tileOrigin));
 
@@ -343,6 +343,10 @@ public class MultiTileLayer extends Layer {
                     reusedTile = false;
                 } else {
                     mTiles.remove(tile);
+
+                    
+                    
+                    reusedTile = FloatUtils.fuzzyEquals(tile.getResolution(), getResolution());
                 }
 
                 
@@ -397,9 +401,35 @@ public class MultiTileLayer extends Layer {
     public void draw(RenderContext context) {
         for (SubTile layer : mTiles) {
             
+            if (layer.key == null) {
+                continue;
+            }
+
+            
             RectF layerBounds = layer.getBounds(context, new FloatSize(layer.getSize()));
-            if (RectF.intersects(layerBounds, context.viewport))
+            if (RectF.intersects(layerBounds, context.viewport)) {
                 layer.draw(context);
+            }
+        }
+    }
+
+    @Override
+    public void setOrigin(Point origin) {
+        Point oldOrigin = getOrigin();
+
+        if (!origin.equals(oldOrigin)) {
+            super.setOrigin(origin);
+            invalidateBuffer();
+        }
+    }
+
+    @Override
+    public void setResolution(float resolution) {
+        float oldResolution = getResolution();
+
+        if (!FloatUtils.fuzzyEquals(resolution, oldResolution)) {
+            super.setResolution(resolution);
+            invalidateBuffer();
         }
     }
 
