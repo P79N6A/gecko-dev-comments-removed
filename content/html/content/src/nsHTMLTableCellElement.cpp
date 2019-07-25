@@ -36,6 +36,7 @@
 
 #include "nsIDOMHTMLTableCellElement.h"
 #include "nsIDOMHTMLTableRowElement.h"
+#include "nsHTMLTableElement.h"
 #include "nsIDOMHTMLCollection.h"
 #include "nsIDOMEventTarget.h"
 #include "nsMappedAttributes.h"
@@ -44,6 +45,7 @@
 #include "nsStyleConsts.h"
 #include "nsPresContext.h"
 #include "nsRuleData.h"
+#include "nsRuleWalker.h"
 #include "nsIDocument.h"
 #include "celldata.h"
 
@@ -203,19 +205,15 @@ nsHTMLTableCellElement::WalkContentStyleRules(nsRuleWalker* aRuleWalker)
   nsresult rv = nsGenericHTMLElement::WalkContentStyleRules(aRuleWalker);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  
-  
-  
-  
-  
-  
-  
-  nsIContent* table = GetTable();
-  if (table) {
-    rv = table->WalkContentStyleRules(aRuleWalker);
+  nsIContent* node = GetTable();
+  if (node && node->IsHTML() && node->NodeInfo()->Equals(nsGkAtoms::table)) {
+    nsHTMLTableElement* table = static_cast<nsHTMLTableElement*>(node);
+    nsMappedAttributes* tableInheritedAttributes =
+      table->GetAttributesMappedForCell();
+    if (tableInheritedAttributes)
+      aRuleWalker->Forward(tableInheritedAttributes);
   }
-
-  return rv;
+  return NS_OK;
 }
 
 
