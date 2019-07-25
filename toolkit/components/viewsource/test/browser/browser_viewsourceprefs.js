@@ -2,7 +2,7 @@
 
 
 
-let source = "about:robots";
+const source = "about:mozilla";
 let mWindow, wrapMenuItem, syntaxMenuItem;
 
 
