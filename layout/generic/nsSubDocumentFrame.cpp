@@ -391,9 +391,9 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
       
       
       
-      PRUint32 flags = nsIPresShell_MOZILLA_2_0_BRANCH::FORCE_DRAW;
+      PRUint32 flags = nsIPresShell::FORCE_DRAW;
       if (presContext->IsRootContentDocument()) {
-        flags |= nsIPresShell_MOZILLA_2_0_BRANCH::ROOT_CONTENT_DOC_BG;
+        flags |= nsIPresShell::ROOT_CONTENT_DOC_BG;
       }
       rv = presShell->AddCanvasBackgroundColorItem(
              *aBuilder, childItems, subdocRootFrame ? subdocRootFrame : this,

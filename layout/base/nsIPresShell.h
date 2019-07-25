@@ -139,16 +139,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
- { 0xd1978bee, 0x43b9, 0x40de, \
-    { 0x95, 0x47, 0x85, 0x06, 0x5e, 0x02, 0xec, 0xb4 } }
-
-#define NS_IPRESSHELL_MOZILLA_2_0_BRANCH_IID     \
- { 0x4abb9970, 0xd7ce, 0x4c02, \
-    { 0x8a, 0xdb, 0x42, 0xc6, 0xbd, 0xa8, 0x95, 0xb7 } }
-
-#define NS_IPRESSHELL_MOZILLA_2_0_BRANCH2_IID     \
- { 0x5ff6fd00, 0x1ba9, 0x11e0, \
-    { 0xac, 0x64, 0x08, 0x00, 0x20, 0x0c, 0x9a, 0x66 } }
+ { 0x3a8030b5, 0x8d2c, 0x4cb3, \
+    { 0xb5, 0xae, 0xb2, 0x43, 0xa9, 0x28, 0x02, 0x82 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -177,49 +169,6 @@ enum nsRectVisibility {
   nsRectVisibility_kLeftOfViewport, 
   nsRectVisibility_kRightOfViewport
 };
-
-class nsIPresShell_MOZILLA_2_0_BRANCH : public nsISupports {
-public:  
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPRESSHELL_MOZILLA_2_0_BRANCH_IID)
-
-  virtual PRBool GetIsViewportOverridden() = 0;
-
-  
-
-
-
-
-
-
-
-  enum {
-    FORCE_DRAW = 0x01,
-    ROOT_CONTENT_DOC_BG = 0x02
-  };
-  virtual nsresult AddCanvasBackgroundColorItem2(nsDisplayListBuilder& aBuilder,
-                                                nsDisplayList& aList,
-                                                nsIFrame* aFrame,
-                                                const nsRect& aBounds,
-                                                nscolor aBackstopColor = NS_RGBA(0,0,0,0),
-                                                PRUint32 aFlags = 0) = 0;
-
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIPresShell_MOZILLA_2_0_BRANCH,
-                              NS_IPRESSHELL_MOZILLA_2_0_BRANCH_IID)
-
-class nsIPresShell_MOZILLA_2_0_BRANCH2 : public nsISupports {
-public:
-  NS_DECLARE_STATIC_IID_ACCESSOR(NS_IPRESSHELL_MOZILLA_2_0_BRANCH2_IID)
-
-  
-
-
-  virtual PRBool IsLayoutFlushObserver() = 0;
-};
-
-NS_DEFINE_STATIC_IID_ACCESSOR(nsIPresShell_MOZILLA_2_0_BRANCH2,
-                              NS_IPRESSHELL_MOZILLA_2_0_BRANCH2_IID)
 
 
 
@@ -407,6 +356,16 @@ public:
 
 
   virtual NS_HIDDEN_(nsresult) ResizeReflowOverride(nscoord aWidth, nscoord aHeight) = 0;
+
+  
+
+
+  virtual PRBool GetIsViewportOverridden() = 0;
+
+  
+
+
+  virtual PRBool IsLayoutFlushObserver() = 0;
 
   
 
@@ -1035,12 +994,18 @@ public:
 
 
 
+
+  enum {
+    FORCE_DRAW = 0x01,
+    ROOT_CONTENT_DOC_BG = 0x02
+  };
   virtual nsresult AddCanvasBackgroundColorItem(nsDisplayListBuilder& aBuilder,
                                                 nsDisplayList& aList,
                                                 nsIFrame* aFrame,
                                                 const nsRect& aBounds,
                                                 nscolor aBackstopColor = NS_RGBA(0,0,0,0),
-                                                PRBool aForceDraw = PR_FALSE) = 0;
+                                                PRUint32 aFlags = 0) = 0;
+
 
   
 
@@ -1149,27 +1114,6 @@ public:
   virtual void SetIgnoreViewportScrolling(PRBool aIgnore) = 0;
   PRBool IgnoringViewportScrolling() const
   { return mRenderFlags & STATE_IGNORING_VIEWPORT_SCROLLING; }
-
-  
-
-
-
-
-
-  virtual void SetDisplayPort(const nsRect& aDisplayPort) = 0;
-  PRBool UsingDisplayPort() const
-  { NS_ABORT_IF_FALSE(false, "UsingDisplayPort is deprecated"); return false; }
-
-  
-
-
-
-
-  nsRect GetDisplayPort()
-  {
-    NS_ABORT_IF_FALSE(false, "GetDisplayPort is deprecated");
-    return nsRect();
-  }
 
    
 
@@ -1286,10 +1230,6 @@ protected:
   
   
   PRUint32                  mRenderFlags;
-  
-  
-  
-  nsRect                    mDisplayPort;
 
   
   
