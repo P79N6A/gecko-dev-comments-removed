@@ -18,9 +18,7 @@
 #include "base/ref_counted.h"
 #endif
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
 #define IPC_MESSAGE_ENABLE_RPC
-#endif
 
 namespace base {
 class FileDescriptor;
@@ -38,11 +36,7 @@ struct LogData;
 
 class Message : public Pickle {
  public:
-#if defined(CHROMIUM_MOZILLA_BUILD)
   typedef uint32 msgid_t;
-#else
-  typedef uint16 msgid_t;
-#endif
 
   
   class Sender {
@@ -68,12 +62,8 @@ class Message : public Pickle {
 
   
   
-#if !defined(CHROMIUM_MOZILLA_BUILD)
-  Message(int32 routing_id, msgid_t type, PriorityValue priority);
-#else
   Message(int32 routing_id, msgid_t type, PriorityValue priority,
           const char* const name="???");
-#endif
 
   
   
@@ -151,7 +141,6 @@ class Message : public Pickle {
     header()->routing = new_id;
   }
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
   uint32 rpc_remote_stack_depth_guess() const {
     return header()->rpc_remote_stack_depth_guess;
   }
@@ -185,7 +174,6 @@ class Message : public Pickle {
   void set_name(const char* const name) {
     name_ = name;
   }
-#endif
 
   template<class T>
   static bool Dispatch(const Message* msg, T* obj, void (T::*func)()) {
@@ -254,9 +242,6 @@ class Message : public Pickle {
   bool dont_log() const { return dont_log_; }
 #endif
 
-#if !defined(CHROMIUM_MOZILLA_BUILD)
- protected:
-#endif
   friend class Channel;
   friend class MessageReplyDeserializer;
   friend class SyncMessage;
@@ -271,7 +256,7 @@ class Message : public Pickle {
   }
 #endif
 
-#if defined(CHROMIUM_MOZILLA_BUILD) && !defined(OS_MACOSX)
+#if !defined(OS_MACOSX)
  protected:
 #endif
 
@@ -293,22 +278,16 @@ class Message : public Pickle {
   struct Header : Pickle::Header {
     int32 routing;  
     msgid_t type;   
-#if defined(CHROMIUM_MOZILLA_BUILD)
     uint32 flags;   
-#else
-    uint16 flags;   
-#endif
 #if defined(OS_POSIX)
     uint32 num_fds; 
 #endif
-#if defined(CHROMIUM_MOZILLA_BUILD)
     
     uint32 rpc_remote_stack_depth_guess;
     
     uint32 rpc_local_stack_depth;
     
     int32 seqno;
-#endif
   };
 #pragma pack(pop)
 
@@ -319,11 +298,7 @@ class Message : public Pickle {
     return headerT<Header>();
   }
 
-#if !defined(CHROMIUM_MOZILLA_BUILD)
-  void InitLoggingVariables();
-#else
   void InitLoggingVariables(const char* const name="???");
-#endif
 
 #if defined(OS_POSIX)
   
@@ -341,9 +316,7 @@ class Message : public Pickle {
   }
 #endif
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
   const char* name_;
-#endif
 
 #ifdef IPC_MESSAGE_LOG_ENABLED
   

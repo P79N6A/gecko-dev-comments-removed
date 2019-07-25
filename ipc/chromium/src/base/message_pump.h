@@ -111,7 +111,6 @@ class MessagePump : public RefCountedThreadSafe<MessagePump> {
   
   virtual void ScheduleWork() = 0;
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
   
   
   
@@ -119,7 +118,6 @@ class MessagePump : public RefCountedThreadSafe<MessagePump> {
   
   
   virtual void ScheduleWorkForNestedLoop() { ScheduleWork(); };
-#endif  
 
   
   

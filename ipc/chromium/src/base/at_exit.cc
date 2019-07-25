@@ -64,11 +64,9 @@ void AtExitManager::ProcessCallbacksNow() {
   }
 }
 
-#ifdef CHROMIUM_MOZILLA_BUILD
 
 bool AtExitManager::AlreadyRegistered() {
   return !!g_top_manager;
 }
-#endif
 
 }  

@@ -85,7 +85,6 @@ class MessagePumpLibevent : public MessagePump {
                            Watcher *delegate);
 
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
   
   
   
@@ -129,7 +128,6 @@ class MessagePumpLibevent : public MessagePump {
   bool CatchSignal(int sig,
                    SignalEvent* sigevent,
                    SignalWatcher* delegate);
-#endif  
 
 
   
@@ -160,11 +158,9 @@ class MessagePumpLibevent : public MessagePump {
   static void OnLibeventNotification(int fd, short flags,
                                      void* context);
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
   
   static void OnLibeventSignalNotification(int sig, short flags,
                                            void* context);
-#endif
 
   
   

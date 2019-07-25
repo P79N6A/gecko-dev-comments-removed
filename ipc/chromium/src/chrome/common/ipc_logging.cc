@@ -23,21 +23,6 @@
 #include "chrome/common/ipc_sync_message.h"
 #include "chrome/common/ipc_message_utils.h"
 
-#ifndef CHROMIUM_MOZILLA_BUILD
-
-
-#include "chrome/common/render_messages.h"
-#include "chrome/test/automation/automation_messages.h"
-
-#if defined(OS_WIN)
-
-
-
-#include "chrome/common/plugin_messages.h"
-#endif
-
-#endif
-
 #if defined(OS_POSIX)
 #include "base/string_util.h"
 #include <unistd.h>
@@ -101,10 +86,6 @@ Logging::Logging()
       CreateEvent(NULL, TRUE, FALSE, event_name.c_str())));
 
   RegisterWaitForEvent(true);
-#elif (!defined(CHROMIUM_MOZILLA_BUILD) && defined(OS_POSIX))
-  if (getenv("CHROME_IPC_LOGGING"))
-    enabled_ = true;
-  SetLoggerFunctions(g_log_function_mapping);
 #endif
 
   MessageLoop::current()->AddDestructionObserver(this);

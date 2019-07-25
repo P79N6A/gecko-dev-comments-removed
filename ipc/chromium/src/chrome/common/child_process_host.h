@@ -12,11 +12,7 @@
 #include "base/basictypes.h"
 #include "base/scoped_ptr.h"
 #include "base/waitable_event_watcher.h"
-#ifdef CHROMIUM_MOZILLA_BUILD
 class ResourceDispatcherHost;
-#else
-#include "chrome/browser/renderer_host/resource_dispatcher_host.h"
-#endif
 #include "chrome/common/child_process_info.h"
 #include "chrome/common/ipc_channel.h"
 
@@ -25,12 +21,8 @@ class NotificationType;
 
 
 class ChildProcessHost :
-#ifdef CHROMIUM_MOZILLA_BUILD
                          public IPC::Message::Sender,
                          public ChildProcessInfo,
-#else
-                         public ResourceDispatcherHost::Receiver,
-#endif
                          public base::WaitableEventWatcher::Delegate,
                          public IPC::Channel::Listener {
  public:
@@ -84,28 +76,20 @@ class ChildProcessHost :
   bool opening_channel() { return opening_channel_; }
   const std::wstring& channel_id() { return channel_id_; }
 
-#ifdef CHROMIUM_MOZILLA_BUILD
   base::WaitableEvent* GetProcessEvent() { return process_event_.get(); }
-#endif
 
   const IPC::Channel& channel() const { return *channel_; }
-#ifdef CHROMIUM_MOZILLA_BUILD
   IPC::Channel* channelp() const { return channel_.get(); }
-#endif
 
  private:
   
   void Notify(NotificationType type);
 
-#ifdef CHROMIUM_MOZILLA_BUILD
  protected:
-#endif
   
   virtual void OnWaitableEventSignaled(base::WaitableEvent *event);
-#ifdef CHROMIUM_MOZILLA_BUILD
- private:
-#endif
 
+ private:
   
   
   

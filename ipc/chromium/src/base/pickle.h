@@ -170,11 +170,9 @@ class Pickle {
   
   void TrimWriteData(int length);
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
   void EndRead(void* iter) const {
     DCHECK(iter == end_of_payload());
   }
-#endif
 
   
   struct Header {
@@ -207,11 +205,7 @@ class Pickle {
   }
 
  protected:
-#ifdef CHROMIUM_MOZILLA_BUILD
   uint32 payload_size() const { return header_->payload_size; }
-#else
-  size_t payload_size() const { return header_->payload_size; }
-#endif
 
   char* payload() {
     return reinterpret_cast<char*>(header_) + header_size_;
@@ -229,11 +223,7 @@ class Pickle {
     return payload() + payload_size();
   }
 
-#ifdef CHROMIUM_MOZILLA_BUILD
   uint32 capacity() const {
-#else
-  size_t capacity() const {
-#endif
     return capacity_;
   }
 
@@ -241,11 +231,7 @@ class Pickle {
   
   
   
-#ifdef CHROMIUM_MOZILLA_BUILD
   char* BeginWrite(uint32 length);
-#else
-  char* BeginWrite(size_t length);
-#endif
 
   
   
@@ -256,18 +242,10 @@ class Pickle {
   
   
   
-#ifdef CHROMIUM_MOZILLA_BUILD
   bool Resize(uint32 new_capacity);
-#else
-  bool Resize(size_t new_capacity);
-#endif
 
   
-#ifdef CHROMIUM_MOZILLA_BUILD
   static uint32 AlignInt(uint32 i, int alignment) {
-#else
-  static size_t AlignInt(size_t i, int alignment) {
-#endif
     return i + (alignment - (i % alignment)) % alignment;
   }
 
@@ -280,11 +258,7 @@ class Pickle {
 
   
   
-#ifdef CHROMIUM_MOZILLA_BUILD
   static const char* FindNext(uint32 header_size,
-#else
-  static const char* FindNext(size_t header_size,
-#endif
                               const char* range_start,
                               const char* range_end);
 
@@ -293,17 +267,9 @@ class Pickle {
 
  private:
   Header* header_;
-#ifdef CHROMIUM_MOZILLA_BUILD
   uint32 header_size_;
   uint32 capacity_;
   uint32 variable_buffer_offset_;
-#else
-  size_t header_size_;  
-  
-  size_t capacity_;
-  size_t variable_buffer_offset_;  
-#endif
-
   FRIEND_TEST(PickleTest, Resize);
   FRIEND_TEST(PickleTest, FindNext);
   FRIEND_TEST(PickleTest, IteratorHasRoom);

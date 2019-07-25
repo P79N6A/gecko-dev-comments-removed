@@ -3,9 +3,6 @@
 
 
 #include "chrome/common/message_router.h"
-#ifndef CHROMIUM_MOZILLA_BUILD
-#include "chrome/common/render_messages.h"
-#endif
 
 void MessageRouter::OnControlMessageReceived(const IPC::Message& msg) {
   NOTREACHED() <<

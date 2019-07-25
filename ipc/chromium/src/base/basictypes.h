@@ -5,8 +5,6 @@
 #ifndef BASE_BASICTYPES_H_
 #define BASE_BASICTYPES_H_
 
-#ifdef CHROMIUM_MOZILLA_BUILD
-
 
 
 
@@ -41,8 +39,6 @@
 #define _WIN32
 #endif
 
-#endif 
-
 #include <limits.h>         
 #include <stddef.h>         
 #include <string.h>         
@@ -63,7 +59,7 @@ typedef short               int16;
 #define _INT32
 typedef int                 int32;
 #endif
-#if !(defined(CHROMIUM_MOZILLA_BUILD) && defined(PROTYPES_H))
+#ifndef PROTYPES_H
 typedef long long           int64;
 #endif
 
@@ -81,7 +77,7 @@ typedef unsigned short     uint16;
 #define _UINT32
 typedef unsigned int       uint32;
 #endif
-#if !(defined(CHROMIUM_MOZILLA_BUILD) && defined(PROTYPES_H))
+#ifndef PROTYPES_H
 typedef unsigned long long uint64;
 #endif
 
@@ -104,7 +100,6 @@ const  int32 kint32max  = (( int32) 0x7FFFFFFF);
 const  int64 kint64min  = (( int64) GG_LONGLONG(0x8000000000000000));
 const  int64 kint64max  = (( int64) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
 
 #  if defined(OS_POSIX)
 #    define __STDC_FORMAT_MACROS 1
@@ -120,7 +115,6 @@ const  int64 kint64max  = (( int64) GG_LONGLONG(0x7FFFFFFFFFFFFFFF));
 #    define PRIu64L L"I64u"
 #    define PRIx64L L"I64x"
 #  endif
-#endif  
 
 
 

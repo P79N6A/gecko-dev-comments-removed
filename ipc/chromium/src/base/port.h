@@ -40,16 +40,7 @@ namespace base {
 
 
 
-#if !defined(CHROMIUM_MOZILLA_BUILD)
-inline void va_copy(va_list& a, va_list& b) {
-#if defined(COMPILER_GCC)
-  ::va_copy(a, b);
-#elif defined(COMPILER_MSVC)
-  a = b;
-#endif
-}
 
-#else
 
 
 #  if defined(COMPILER_GCC)
@@ -59,8 +50,6 @@ inline void va_copy(va_list& a, va_list& b) {
 #  else
 #    error No va_copy for your compiler
 #  endif
-
-#endif
 
 }  
 

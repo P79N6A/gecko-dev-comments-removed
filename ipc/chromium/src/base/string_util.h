@@ -108,9 +108,7 @@ bool IsWprintfFormatPortable(const wchar_t* format);
 #error Define string operations appropriately for your platform
 #endif
 
-#ifdef CHROMIUM_MOZILLA_BUILD
 namespace base {
-#endif
 
 
 
@@ -118,9 +116,7 @@ namespace base {
 const std::string& EmptyString();
 const std::wstring& EmptyWString();
 const string16& EmptyString16();
-#ifdef CHROMIUM_MOZILLA_BUILD
 }
-#endif
 
 extern const wchar_t kWhitespaceWide[];
 extern const char kWhitespaceASCII[];
@@ -509,11 +505,7 @@ inline typename string_type::value_type* WriteInto(string_type* str,
 
 
 
-#if defined(CHROMIUM_MOZILLA_BUILD)
 template<typename Char> struct chromium_CaseInsensitiveCompare {
-#else
-template<typename Char> struct CaseInsensitiveCompare {
-#endif
  public:
   bool operator()(Char x, Char y) const {
     return tolower(x) == tolower(y);
