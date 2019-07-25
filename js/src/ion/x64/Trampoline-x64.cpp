@@ -46,6 +46,7 @@
 #include "ion/IonFrames.h"
 #include "ion/Bailouts.h"
 #include "ion/VMFunctions.h"
+#include "ion/IonSpewer.h"
 
 using namespace js;
 using namespace js::ion;
@@ -213,6 +214,100 @@ IonCompartment::generateReturnError(JSContext *cx)
     return linker.newCode(cx);
 }
 
+static void
+GenerateBailoutTail(MacroAssembler &masm)
+{
+    masm.linkExitFrame();
+
+    Label interpret;
+    Label exception;
+
+    
+    
+    
+    
+    
+
+    masm.cmpl(rax, Imm32(BAILOUT_RETURN_FATAL_ERROR));
+    masm.j(Assembler::LessThan, &interpret);
+    masm.j(Assembler::Equal, &exception);
+
+    
+    masm.setupUnalignedABICall(1, rdx);
+    masm.setABIArg(0, rax);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
+
+    masm.testl(rax, rax);
+    masm.j(Assembler::Zero, &exception);
+
+    masm.bind(&interpret);
+    
+    masm.subq(Imm32(sizeof(Value)), rsp);
+    masm.movq(rsp, rcx);
+
+    
+    masm.setupUnalignedABICall(1, rdx);
+    masm.setABIArg(0, rcx);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+
+    
+    masm.popValue(JSReturnOperand);
+
+    
+    masm.testl(rax, rax);
+    masm.j(Assembler::Zero, &exception);
+
+    
+    masm.ret();
+
+    masm.bind(&exception);
+    masm.handleException();
+}
+
+IonCode *
+IonCompartment::generateInvalidator(JSContext *cx)
+{
+    AutoIonContextAlloc aica(cx);
+    MacroAssembler masm(cx);
+
+    
+
+    
+    masm.reserveStack(Registers::Total * sizeof(void *));
+    for (uint32 i = 0; i < Registers::Total; i++)
+        masm.movq(Register::FromCode(i), Operand(rsp, i * sizeof(void *)));
+
+    
+    masm.reserveStack(FloatRegisters::Total * sizeof(double));
+    for (uint32 i = 0; i < FloatRegisters::Total; i++)
+        masm.movsd(FloatRegister::FromCode(i), Operand(rsp, i * sizeof(double)));
+
+    masm.movq(rsp, rbx); 
+
+    
+    masm.reserveStack(sizeof(size_t));
+    masm.movq(rsp, rcx);
+
+    masm.setupUnalignedABICall(3, rdx);
+    masm.setABIArg(0, rbx);
+    masm.setABIArg(1, rcx);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, InvalidationBailout));
+
+    masm.pop(rbx); 
+
+    
+    const uint32 BailoutDataSize = sizeof(double) * FloatRegisters::Total +
+                                   sizeof(void *) * Registers::Total;
+    masm.lea(Operand(rsp, rbx, TimesOne, BailoutDataSize), rsp);
+
+    GenerateBailoutTail(masm);
+
+    Linker linker(masm);
+    IonCode *code = linker.newCode(cx);
+    IonSpew(IonSpew_Invalidate, "   invalidation thunk created at %p", (void *) code->raw());
+    return code;
+}
+
 IonCode *
 IonCompartment::generateArgumentsRectifier(JSContext *cx)
 {
@@ -356,51 +451,7 @@ GenerateBailoutThunk(JSContext *cx, MacroAssembler &masm, uint32 frameClass)
     }
     masm.bind(&frameFixupDone);
 
-    masm.linkExitFrame();
-
-    Label interpret;
-    Label exception;
-
-    
-    
-    
-    
-    
-
-    masm.cmpl(rax, Imm32(BAILOUT_RETURN_FATAL_ERROR));
-    masm.j(Assembler::LessThan, &interpret);
-    masm.j(Assembler::Equal, &exception);
-
-    
-    masm.setupUnalignedABICall(1, rdx);
-    masm.setABIArg(0, rax);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ReflowTypeInfo));
-
-    masm.testl(rax, rax);
-    masm.j(Assembler::Zero, &exception);
-
-    masm.bind(&interpret);
-    
-    masm.subq(Imm32(sizeof(Value)), rsp);
-    masm.movq(rsp, rcx);
-
-    
-    masm.setupUnalignedABICall(1, rdx);
-    masm.setABIArg(0, rcx);
-    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
-
-    
-    masm.popValue(JSReturnOperand);
-
-    
-    masm.testl(rax, rax);
-    masm.j(Assembler::Zero, &exception);
-
-    
-    masm.ret();
-
-    masm.bind(&exception);
-    masm.handleException();
+    GenerateBailoutTail(masm);
 }
 
 IonCode *

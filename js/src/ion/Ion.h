@@ -151,6 +151,9 @@ MethodStatus Compile(JSContext *cx, JSScript *script,
 bool Cannon(JSContext *cx, StackFrame *fp);
 bool SideCannon(JSContext *cx, StackFrame *fp, jsbytecode *pc);
 
+
+void Invalidate(JSContext *cx, const Vector<JSScript *> &invalid);
+
 static inline bool IsEnabled()
 {
     return js_IonOptions.enabled;

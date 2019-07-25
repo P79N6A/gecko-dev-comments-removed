@@ -177,13 +177,20 @@ class IonCompartment;
 
 
 class BailoutStack;
+class InvalidationBailoutStack;
 
 
 FrameRecovery
 FrameRecoveryFromBailout(IonCompartment *ion, BailoutStack *sp);
 
+FrameRecovery
+FrameRecoveryFromInvalidation(IonCompartment *ion, InvalidationBailoutStack *sp);
+
 
 uint32 Bailout(BailoutStack *sp);
+
+
+uint32 InvalidationBailout(InvalidationBailoutStack *sp, size_t *frameSizeOut);
 
 
 

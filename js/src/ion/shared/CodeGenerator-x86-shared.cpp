@@ -800,7 +800,7 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     Register nargsreg = ToRegister(nargs);
 
     uint32 callargslot  = call->argslot();
-    uint32 unused_stack = StackOffsetOfPassedArg(callargslot);
+    uint32 unusedStack = StackOffsetOfPassedArg(callargslot);
 
     
     masm.loadObjClass(objreg, tokreg);
@@ -838,8 +838,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         static const VMFunction InvokeFunctionInfo = FunctionInfo<pf>(InvokeFunction);
 
         
-        if (unused_stack)
-            masm.addPtr(Imm32(unused_stack), StackPointer);
+        if (unusedStack)
+            masm.addPtr(Imm32(unusedStack), StackPointer);
 
         pushArg(StackPointer);          
         pushArg(Imm32(call->nargs()));  
@@ -849,8 +849,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
             return false;
 
         
-        if (unused_stack)
-            masm.subPtr(Imm32(unused_stack), StackPointer);
+        if (unusedStack)
+            masm.subPtr(Imm32(unusedStack), StackPointer);
 
         
         masm.jump(&end);
@@ -858,16 +858,16 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     masm.bind(&compiled);
 
     
-    uint32 stack_size = masm.framePushed() - unused_stack;
-    uint32 size_descriptor = (stack_size << FRAMETYPE_BITS) | IonFrame_JS;
+    uint32 stackSize = masm.framePushed() - unusedStack;
+    uint32 sizeDescriptor = (stackSize << FRAMETYPE_BITS) | IonFrame_JS;
 
     
-    if (unused_stack)
-        masm.addPtr(Imm32(unused_stack), StackPointer);
+    if (unusedStack)
+        masm.addPtr(Imm32(unusedStack), StackPointer);
 
     
     masm.push(tokreg);
-    masm.push(Imm32(size_descriptor));
+    masm.push(Imm32(sizeDescriptor));
 
     
     {
@@ -903,13 +903,13 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
     }
 
     
-    int prefix_garbage = 2 * sizeof(void *);
-    int restore_diff = prefix_garbage - unused_stack;
+    int prefixGarbage = 2 * sizeof(void *);
+    int restoreDiff = prefixGarbage - unusedStack;
     
-    if (restore_diff > 0)
-        masm.addPtr(Imm32(restore_diff), StackPointer);
-    else if (restore_diff < 0)
-        masm.subPtr(Imm32(-restore_diff), StackPointer);
+    if (restoreDiff > 0)
+        masm.addPtr(Imm32(restoreDiff), StackPointer);
+    else if (restoreDiff < 0)
+        masm.subPtr(Imm32(-restoreDiff), StackPointer);
 
     masm.bind(&end);
 
