@@ -11,6 +11,7 @@ import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.net.Uri;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -91,7 +92,7 @@ abstract public class AwesomeBarTab {
     protected String getReaderForUrl(String url) {
         
         
-        return "about:reader?url=" + url;
+        return "about:reader?url=" + Uri.encode(url);
     }
 
     protected void updateFavicon(ImageView faviconView, Cursor cursor) {

@@ -7,6 +7,7 @@ package org.mozilla.gecko;
 
 import android.content.Context;
 import android.graphics.drawable.Drawable;
+import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -193,7 +194,7 @@ public class AwesomeBarTabs extends TabHost {
     private String getReaderForUrl(String url) {
         
         
-        return "about:reader?url=" + url;
+        return "about:reader?url=" + Uri.encode(url);
     }
 
     public void setOnUrlOpenListener(OnUrlOpenListener listener) {
