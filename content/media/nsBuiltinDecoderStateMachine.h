@@ -244,17 +244,6 @@ protected:
 
   
   
-  
-  PRInt64 AudioDecodedMs() const;
-
-  
-  PRBool HasLowDecodedData() const;
-
-  
-  PRBool HasAmpleDecodedData() const;
-
-  
-  
   PRBool HasFutureAudio() const;
 
   

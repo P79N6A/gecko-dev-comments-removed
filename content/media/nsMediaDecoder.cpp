@@ -68,14 +68,6 @@
 
 #define STALL_MS 3000
 
-
-
-
-
-
-
-#define CAN_PLAY_THROUGH_MARGIN 20
-
 nsMediaDecoder::nsMediaDecoder() :
   mElement(0),
   mRGBWidth(-1),
@@ -297,21 +289,5 @@ PRBool nsMediaDecoder::CanPlayThrough()
   double timeToDownload =
     (bytesToDownload + gDownloadSizeSafetyMargin)/stats.mDownloadRate;
   double timeToPlay = bytesToPlayback/stats.mPlaybackRate;
-
-  if (timeToDownload > timeToPlay) {
-    
-    
-    return PR_FALSE;
-  }
-
-  
-  
-  
-  
-  
-  
-  
-  PRInt64 readAheadMargin = stats.mPlaybackRate * CAN_PLAY_THROUGH_MARGIN;
-  return stats.mTotalBytes == stats.mDownloadPosition ||
-         stats.mDownloadPosition > stats.mPlaybackPosition + readAheadMargin;
+  return timeToDownload <= timeToPlay;
 }
