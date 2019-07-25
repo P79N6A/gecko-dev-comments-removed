@@ -224,14 +224,19 @@ var tests = [
    "attachment", ""],    
   
   
-
+  
+  
+  
+  
   
   ["attachment; filename*=utf-8''%41", 
    "attachment", "A"],
 
   
   ["attachment; filename*=" + DQUOTE + "utf-8''%41" + DQUOTE, 
-   "attachment", Cr.NS_ERROR_INVALID_ARG],
+   "attachment", "A"],
+  
+  
 
   
   
