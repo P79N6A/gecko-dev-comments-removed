@@ -34,8 +34,7 @@
 
 
 
-const EXPORTED_SYMBOLS = ["Notifications", "Notification", "NotificationButton",
-                          "TabsNotification"];
+const EXPORTED_SYMBOLS = ["Notifications", "Notification", "NotificationButton"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
@@ -157,15 +156,3 @@ function NotificationButton(label, accessKey, callback) {
   this.accessKey = accessKey;
   this.callback = callbackWrapper;
 }
-
-function TabsNotification() {
-  
-  
-  Notification.call(this, "", "", null, Notifications.PRIORITY_INFO, null);
-}
-
-
-
-
-
-TabsNotification.prototype.__proto__ = Notification.prototype;
