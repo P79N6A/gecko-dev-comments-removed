@@ -149,10 +149,8 @@ public:
   NS_IMETHODIMP BeginningOfDocument();
   virtual nsresult HandleKeyPressEvent(nsIDOMKeyEvent* aKeyEvent);
   virtual PRBool HasFocus();
-  virtual PRBool IsActiveInDOMWindow();
   virtual already_AddRefed<nsPIDOMEventTarget> GetPIDOMEventTarget();
   virtual already_AddRefed<nsIContent> FindSelectionRoot(nsINode *aNode);
-  virtual PRBool IsAcceptableInputEvent(nsIDOMEvent* aEvent);
 
   
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
@@ -453,9 +451,6 @@ protected:
   PRBool ShouldReplaceRootElement();
   void ResetRootElementAndEventTarget();
   nsresult GetBodyElement(nsIDOMHTMLElement** aBody);
-  
-  
-  
   already_AddRefed<nsINode> GetFocusedNode();
 
   
@@ -750,6 +745,9 @@ protected:
 
   
   PRBool   OurWindowHasFocus();
+  
+  
+  PRBool IsIndependentSelectionContent(nsIContent* aContent);
 
 
 protected:

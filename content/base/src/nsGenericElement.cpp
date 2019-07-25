@@ -366,7 +366,8 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
     return nsnull;
   }
 
-  if (static_cast<nsIContent*>(this)->HasIndependentSelection()) {
+  nsIFrame* frame = static_cast<nsIContent*>(this)->GetPrimaryFrame();
+  if (frame && frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION) {
     
     nsIContent* content = GetTextEditorRootContent();
     if (content)
@@ -389,7 +390,13 @@ nsINode::GetSelectionRootContent(nsIPresShell* aPresShell)
       }
       
       
-      return static_cast<nsIContent*>(this)->GetEditingHost();
+      
+      nsIContent* content = static_cast<nsIContent*>(this);
+      for (nsIContent* parent = GetParent();
+           parent && parent->HasFlag(NODE_IS_EDITABLE);
+           parent = content->GetParent())
+        content = parent;
+      return content;
     }
   }
 
@@ -823,13 +830,14 @@ nsIContent::GetDesiredIMEState()
   if (!IsEditableInternal()) {
     return IME_STATUS_DISABLE;
   }
+  nsIContent *editableAncestor = nsnull;
+  for (nsIContent* parent = GetParent();
+       parent && parent->HasFlag(NODE_IS_EDITABLE);
+       parent = parent->GetParent()) {
+    editableAncestor = parent;
+  }
   
-  
-  
-  nsIContent *editableAncestor = GetEditingHost();
-
-  
-  if (editableAncestor && editableAncestor != this) {
+  if (editableAncestor) {
     return editableAncestor->GetDesiredIMEState();
   }
   nsIDocument* doc = GetCurrentDoc();
@@ -855,35 +863,6 @@ nsIContent::GetDesiredIMEState()
   nsresult rv = imeEditor->GetPreferredIMEState(&state);
   NS_ENSURE_SUCCESS(rv, IME_STATUS_ENABLE);
   return state;
-}
-
-PRBool
-nsIContent::HasIndependentSelection()
-{
-  nsIFrame* frame = GetPrimaryFrame();
-  return (frame && frame->GetStateBits() & NS_FRAME_INDEPENDENT_SELECTION);
-}
-
-nsIContent*
-nsIContent::GetEditingHost()
-{
-  
-  NS_ENSURE_TRUE(HasFlag(NODE_IS_EDITABLE), nsnull);
-
-  nsIDocument* doc = GetCurrentDoc();
-  NS_ENSURE_TRUE(doc, nsnull);
-  
-  if (doc->HasFlag(NODE_IS_EDITABLE)) {
-    return doc->GetBodyElement();
-  }
-
-  nsIContent* content = this;
-  for (nsIContent* parent = GetParent();
-       parent && parent->HasFlag(NODE_IS_EDITABLE);
-       parent = content->GetParent()) {
-    content = parent;
-  }
-  return content;
 }
 
 nsresult

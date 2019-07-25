@@ -665,17 +665,6 @@ public:
   
   
   
-  virtual PRBool IsActiveInDOMWindow();
-
-  
-  
-  
-  
-  virtual PRBool IsAcceptableInputEvent(nsIDOMEvent* aEvent);
-
-  
-  
-  
   
   
   virtual already_AddRefed<nsIContent> FindSelectionRoot(nsINode* aNode);
