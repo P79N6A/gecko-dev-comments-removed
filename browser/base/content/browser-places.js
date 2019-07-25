@@ -1110,9 +1110,12 @@ let PlacesToolbarHelper = {
 
     
     
+    
+    
     let toolbar = viewElt.parentNode.parentNode;
     if (toolbar.collapsed ||
-        getComputedStyle(toolbar, "").display == "none")
+        getComputedStyle(toolbar, "").display == "none" ||
+        this._isCustomizing)
       return;
 
     new PlacesToolbar(this._place);
@@ -1122,9 +1125,12 @@ let PlacesToolbarHelper = {
     let viewElt = this._viewElt;
     if (viewElt && viewElt._placesView)
       viewElt._placesView.uninit();
+
+    this._isCustomizing = true;
   },
 
   customizeDone: function PTH_customizeDone() {
+    this._isCustomizing = false;
     this.init();
   }
 };
