@@ -123,221 +123,71 @@ struct PendingProxyOperation {
     JSObject                *object;
 };
 
-struct ThreadData {
-    JSRuntime           *rt;
+typedef Vector<ScriptOpcodeCountsPair, 0, SystemAllocPolicy> ScriptOpcodeCountsVector;
 
-    
-
-
-
-
-    volatile int32_t    interruptFlags;
-
-#ifdef JS_THREADSAFE
-    
-    unsigned            requestDepth;
-#endif
-
-    
-    StackSpace          stackSpace;
-
-    
-    static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
-    LifoAlloc           tempLifoAlloc;
-
-  private:
-    
-
-
-
-    JSC::ExecutableAllocator    *execAlloc;
-    WTF::BumpPointerAllocator   *bumpAlloc;
-    js::RegExpPrivateCache      *repCache;
-
-    JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
-    WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
-    js::RegExpPrivateCache *createRegExpPrivateCache(JSContext *cx);
-
-  public:
-    JSC::ExecutableAllocator *getOrCreateExecutableAllocator(JSContext *cx) {
-        if (execAlloc)
-            return execAlloc;
-
-        return createExecutableAllocator(cx);
-    }
-
-    WTF::BumpPointerAllocator *getOrCreateBumpPointerAllocator(JSContext *cx) {
-        if (bumpAlloc)
-            return bumpAlloc;
-
-        return createBumpPointerAllocator(cx);
-    }
-
-    js::RegExpPrivateCache *getRegExpPrivateCache() {
-        return repCache;
-    }
-    js::RegExpPrivateCache *getOrCreateRegExpPrivateCache(JSContext *cx) {
-        if (repCache)
-            return repCache;
-
-        return createRegExpPrivateCache(cx);
-    }
-
-    
-    void purgeRegExpPrivateCache();
-
-    
-
-
-
-    GSNCache            gsnCache;
-
-    
-    PropertyCache       propertyCache;
-
-    
-    DtoaState           *dtoaState;
-
+struct ConservativeGCData
+{
     
     uintptr_t           *nativeStackBase;
 
     
-    PendingProxyOperation *pendingProxyOperation;
 
-    ConservativeGCThreadData conservativeGC;
 
-#ifdef DEBUG
-    size_t              noGCOrAllocationCheck;
-#endif
 
-    ThreadData(JSRuntime *rt);
-    ~ThreadData();
+    uintptr_t           *nativeStackTop;
 
-    bool init();
+    union {
+        jmp_buf         jmpbuf;
+        uintptr_t       words[JS_HOWMANY(sizeof(jmp_buf), sizeof(uintptr_t))];
+    } registerSnapshot;
 
-    void mark(JSTracer *trc) {
-        stackSpace.mark(trc);
-    }
+    
 
-    void purge(JSContext *cx) {
-        tempLifoAlloc.freeUnused();
-        gsnCache.purge();
 
+
+
+    unsigned requestThreshold;
+
+    ConservativeGCData()
+      : nativeStackBase(NULL), nativeStackTop(NULL), requestThreshold(0)
+    {}
+
+    ~ConservativeGCData() {
+#ifdef JS_THREADSAFE
         
-        propertyCache.purge(cx);
+
+
+
+        JS_ASSERT(!hasStackToScan());
+#endif
     }
+
+    JS_NEVER_INLINE void recordStackTop();
 
 #ifdef JS_THREADSAFE
-    void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
-                             size_t *regexpCode, size_t *stackCommitted);
+    void updateForRequestEnd(unsigned suspendCount) {
+        if (suspendCount)
+            recordStackTop();
+        else
+            nativeStackTop = NULL;
+    }
 #endif
 
-    
-    void triggerOperationCallback(JSRuntime *rt);
-
-    
-
-
-
-    InterpreterFrames *interpreterFrames;
+    bool hasStackToScan() const {
+        return !!nativeStackTop;
+    }
 };
 
 } 
 
-#ifdef JS_THREADSAFE
-
-
-
-
-
-struct JSThread {
-    typedef js::HashMap<void *,
-                        JSThread *,
-                        js::DefaultHasher<void *>,
-                        js::SystemAllocPolicy> Map;
-
-    
-    JSCList             contextList;
-
-    
-    void                *id;
-
-    
-    unsigned            suspendCount;
-
-# ifdef DEBUG
-    unsigned            checkRequestDepth;
-# endif
-
-    
-    js::ThreadData      data;
-
-    JSThread(JSRuntime *rt, void *id)
-      : id(id),
-        suspendCount(0),
-# ifdef DEBUG
-        checkRequestDepth(0),
-# endif
-        data(rt)
-    {
-        JS_INIT_CLIST(&contextList);
-    }
-
-    ~JSThread() {
-        
-        JS_ASSERT(JS_CLIST_IS_EMPTY(&contextList));
-    }
-
-    bool init() {
-        return data.init();
-    }
-
-    JS_FRIEND_API(void) sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal,
-                                            size_t *temporary, size_t *regexpCode,
-                                            size_t *stackCommitted);
-};
-
-#define JS_THREAD_DATA(cx)      (&(cx)->thread()->data)
-
-extern JSThread *
-js_CurrentThreadAndLockGC(JSRuntime *rt);
-
-
-
-
-
-
-extern JSBool
-js_InitContextThreadAndLockGC(JSContext *cx);
-
-
-
-
-extern void
-js_ClearContextThread(JSContext *cx);
-
-#endif 
-
-typedef enum JSDestroyContextMode {
-    JSDCM_NO_GC,
-    JSDCM_MAYBE_GC,
-    JSDCM_FORCE_GC,
-    JSDCM_NEW_FAILED
-} JSDestroyContextMode;
-
-typedef struct JSPropertyTreeEntry {
-    JSDHashEntryHdr     hdr;
-    js::Shape           *child;
-} JSPropertyTreeEntry;
-
-namespace js {
-
-typedef Vector<ScriptOpcodeCountsPair, 0, SystemAllocPolicy> ScriptOpcodeCountsVector;
-
-}
-
 struct JSRuntime
 {
+    
+
+
+
+    volatile int32_t    interrupt;
+
     
     JSCompartment       *atomsCompartment;
 
@@ -347,6 +197,7 @@ struct JSRuntime
     
 #ifdef JS_THREADSAFE
   public:
+    void *ownerThread() const { return ownerThread_; }
     void clearOwnerThread();
     void setOwnerThread();
     JS_FRIEND_API(bool) onOwnerThread() const;
@@ -359,6 +210,46 @@ struct JSRuntime
 #endif
 
     
+    js::StackSpace stackSpace;
+
+    
+    static const size_t TEMP_LIFO_ALLOC_PRIMARY_CHUNK_SIZE = 1 << 12;
+    js::LifoAlloc tempLifoAlloc;
+
+  private:
+    
+
+
+
+    JSC::ExecutableAllocator *execAlloc_;
+    WTF::BumpPointerAllocator *bumpAlloc_;
+    js::RegExpPrivateCache *repCache_;
+
+    JSC::ExecutableAllocator *createExecutableAllocator(JSContext *cx);
+    WTF::BumpPointerAllocator *createBumpPointerAllocator(JSContext *cx);
+    js::RegExpPrivateCache *createRegExpPrivateCache(JSContext *cx);
+
+  public:
+    JSC::ExecutableAllocator *getExecutableAllocator(JSContext *cx) {
+        return execAlloc_ ? execAlloc_ : createExecutableAllocator(cx);
+    }
+    WTF::BumpPointerAllocator *getBumpPointerAllocator(JSContext *cx) {
+        return bumpAlloc_ ? bumpAlloc_ : createBumpPointerAllocator(cx);
+    }
+    js::RegExpPrivateCache *maybeRegExpPrivateCache() {
+        return repCache_;
+    }
+    js::RegExpPrivateCache *getRegExpPrivateCache(JSContext *cx) {
+        return repCache_ ? repCache_ : createRegExpPrivateCache(cx);
+    }
+
+    
+
+
+
+    js::InterpreterFrames *interpreterFrames;
+
+    
     JSContextCallback   cxCallback;
 
     
@@ -366,6 +257,18 @@ struct JSRuntime
 
     js::ActivityCallback  activityCallback;
     void                 *activityCallbackArg;
+
+#ifdef JS_THREADSAFE
+    
+    unsigned            suspendCount;
+
+    
+    unsigned            requestDepth;
+
+# ifdef DEBUG
+    unsigned            checkRequestDepth;
+# endif
+#endif
 
     
 
@@ -550,20 +453,9 @@ struct JSRuntime
 #ifdef JS_THREADSAFE
     
     PRLock              *gcLock;
-    PRCondVar           *gcDone;
-    PRCondVar           *requestDone;
     uint32_t            requestCount;
-    JSThread            *gcThread;
 
     js::GCHelperThread  gcHelperThread;
-
-    
-
-
-
-
-
-    JSThread::Map       threads;
 #endif 
 
     uint32_t            debuggerMutations;
@@ -588,12 +480,6 @@ struct JSRuntime
     int32_t             propertyRemovals;
 
     
-    struct JSHashTable  *scriptFilenameTable;
-#ifdef JS_THREADSAFE
-    PRLock              *scriptFilenameTableLock;
-#endif
-
-    
     const char          *thousandsSeparator;
     const char          *decimalSeparator;
     const char          *numGrouping;
@@ -608,14 +494,28 @@ struct JSRuntime
     JSObject            *anynameObject;
     JSObject            *functionNamespaceObject;
 
-#ifdef JS_THREADSAFE
     
-    volatile int32_t    interruptCounter;
-#else
-    js::ThreadData      threadData;
 
-#define JS_THREAD_DATA(cx)      (&(cx)->runtime->threadData)
-#endif
+
+
+    bool                waiveGCQuota;
+
+    
+
+
+
+    js::GSNCache        gsnCache;
+
+    
+    js::PropertyCache   propertyCache;
+
+    
+    DtoaState           *dtoaState;
+
+    
+    js::PendingProxyOperation *pendingProxyOperation;
+
+    js::ConservativeGCData conservativeGC;
 
   private:
     JSPrincipals        *trustedPrincipals_;
@@ -632,6 +532,10 @@ struct JSRuntime
     JSWrapObjectCallback wrapObjectCallback;
     JSPreWrapCallback    preWrapObjectCallback;
     js::PreserveWrapperCallback preserveWrapperCallback;
+
+#ifdef DEBUG
+    size_t              noGCOrAllocationCheck;
+#endif
 
     
 
@@ -739,13 +643,20 @@ struct JSRuntime
 
 
     JS_FRIEND_API(void *) onOutOfMemory(void *p, size_t nbytes, JSContext *cx);
+
+    JS_FRIEND_API(void) triggerOperationCallback();
+
+    void sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
+                             size_t *regexpCode, size_t *stackCommitted);
+
+    void purge(JSContext *cx);
 };
 
 
-#define JS_PROPERTY_CACHE(cx)   (JS_THREAD_DATA(cx)->propertyCache)
+#define JS_PROPERTY_CACHE(cx)   (cx->runtime->propertyCache)
 
-#define JS_KEEP_ATOMS(rt)   JS_ATOMIC_INCREMENT(&(rt)->gcKeepAtoms);
-#define JS_UNKEEP_ATOMS(rt) JS_ATOMIC_DECREMENT(&(rt)->gcKeepAtoms);
+#define JS_KEEP_ATOMS(rt)   (rt)->gcKeepAtoms++;
+#define JS_UNKEEP_ATOMS(rt) (rt)->gcKeepAtoms--;
 
 #ifdef JS_ARGUMENT_FORMATTER_DEFINED
 
@@ -907,16 +818,6 @@ struct JSContext
 
     inline void setCompartment(JSCompartment *compartment);
 
-#ifdef JS_THREADSAFE
-  private:
-    JSThread            *thread_;
-  public:
-    JSThread *thread() const { return thread_; }
-
-    void setThread(JSThread *thread);
-    static const size_t threadOffset() { return offsetof(JSContext, thread_); }
-#endif
-
     
     js::ContextStack    stack;
 
@@ -1044,17 +945,10 @@ struct JSContext
     bool hasAtLineOption() const { return hasRunOption(JSOPTION_ATLINE); }
     bool hasJITHardeningOption() const { return !hasRunOption(JSOPTION_SOFTEN); }
 
-    js::LifoAlloc &tempLifoAlloc() { return JS_THREAD_DATA(this)->tempLifoAlloc; }
+    js::LifoAlloc &tempLifoAlloc() { return runtime->tempLifoAlloc; }
     inline js::LifoAlloc &typeLifoAlloc();
 
 #ifdef JS_THREADSAFE
-    
-
-
-
-
-    bool                atomsCompartmentIsLocked;
-
     unsigned            outstandingRequests;
 
 
@@ -1165,8 +1059,6 @@ struct JSContext
     js::GCHelperThread *gcBackgroundFree;
 #endif
 
-    js::ThreadData *threadData() { return JS_THREAD_DATA(this); }
-
     inline void* malloc_(size_t bytes) {
         return runtime->malloc_(bytes, this);
     }
@@ -1251,13 +1143,6 @@ struct JSContext
         return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, link));
     }
 
-#ifdef JS_THREADSAFE
-    static inline JSContext *fromThreadLinks(JSCList *link) {
-        JS_ASSERT(link);
-        return reinterpret_cast<JSContext *>(uintptr_t(link) - offsetof(JSContext, threadLinks));
-    }
-#endif
-
   private:
     
 
@@ -1325,6 +1210,14 @@ class AutoXMLRooter : private AutoGCRooter {
 };
 #endif
 
+#ifdef JS_THREADSAFE
+# define JS_LOCK_GC(rt)    PR_Lock((rt)->gcLock)
+# define JS_UNLOCK_GC(rt)  PR_Unlock((rt)->gcLock)
+#else
+# define JS_LOCK_GC(rt)
+# define JS_UNLOCK_GC(rt)
+#endif
+
 class AutoUnlockGC {
   private:
     JSRuntime *rt;
@@ -1339,63 +1232,6 @@ class AutoUnlockGC {
         JS_UNLOCK_GC(rt);
     }
     ~AutoUnlockGC() { JS_LOCK_GC(rt); }
-};
-
-class AutoLockAtomsCompartment {
-  private:
-    JSContext *cx;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-  public:
-    AutoLockAtomsCompartment(JSContext *cx
-                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : cx(cx)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-#ifdef JS_THREADSAFE
-        JS_ASSERT(!cx->atomsCompartmentIsLocked);
-        JS_LOCK(cx, &cx->runtime->atomState.lock);
-        cx->atomsCompartmentIsLocked = true;
-#endif
-    }
-
-    ~AutoLockAtomsCompartment() {
-#ifdef JS_THREADSAFE
-        JS_ASSERT(cx->atomsCompartmentIsLocked);
-        cx->atomsCompartmentIsLocked = false;
-        JS_UNLOCK(cx, &cx->runtime->atomState.lock);
-#endif
-    }
-};
-
-class AutoUnlockAtomsCompartmentWhenLocked {
-    JSContext *cx;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-
-  public:
-    AutoUnlockAtomsCompartmentWhenLocked(JSContext *cx
-                                         JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : cx(NULL)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
- #ifdef JS_THREADSAFE
-        if (cx->atomsCompartmentIsLocked) {
-            this->cx = cx;
-            cx->atomsCompartmentIsLocked = false;
-            JS_UNLOCK(cx, &cx->runtime->atomState.lock);
-        }
-#endif
-    }
-
-    ~AutoUnlockAtomsCompartmentWhenLocked() {
-#ifdef JS_THREADSAFE
-        if (cx) {
-            JS_ASSERT(!cx->atomsCompartmentIsLocked);
-            JS_LOCK(cx, &cx->runtime->atomState.lock);
-            cx->atomsCompartmentIsLocked = true;
-        }
-#endif
-    }
 };
 
 class AutoKeepAtoms {
@@ -1478,61 +1314,7 @@ class JSAutoResolveFlags
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
-extern js::ThreadData *
-js_CurrentThreadData(JSRuntime *rt);
-
-extern JSBool
-js_InitThreads(JSRuntime *rt);
-
-extern void
-js_FinishThreads(JSRuntime *rt);
-
-extern void
-js_PurgeThreads(JSContext *cx);
-
-extern void
-js_PurgeThreads_PostGlobalSweep(JSContext *cx);
-
 namespace js {
-
-#ifdef JS_THREADSAFE
-
-
-class ThreadDataIter : public JSThread::Map::Range
-{
-  public:
-    ThreadDataIter(JSRuntime *rt) : JSThread::Map::Range(rt->threads.all()) {}
-
-    ThreadData *threadData() const {
-        return &front().value->data;
-    }
-};
-
-#else 
-
-class ThreadDataIter
-{
-    JSRuntime *runtime;
-    bool done;
-  public:
-    ThreadDataIter(JSRuntime *rt) : runtime(rt), done(false) {}
-
-    bool empty() const {
-        return done;
-    }
-
-    void popFront() {
-        JS_ASSERT(!done);
-        done = true;
-    }
-
-    ThreadData *threadData() const {
-        JS_ASSERT(!done);
-        return &runtime->threadData;
-    }
-};
-
-#endif  
 
 
 
@@ -1544,11 +1326,7 @@ class ThreadContextRange {
 
 public:
     explicit ThreadContextRange(JSContext *cx) {
-#ifdef JS_THREADSAFE
-        end = &cx->thread()->contextList;
-#else
         end = &cx->runtime->contextList;
-#endif
         begin = end->next;
     }
 
@@ -1556,11 +1334,7 @@ public:
     void popFront() { JS_ASSERT(!empty()); begin = begin->next; }
 
     JSContext *front() const {
-#ifdef JS_THREADSAFE
-        return JSContext::fromThreadLinks(begin);
-#else
         return JSContext::fromLinkField(begin);
-#endif
     }
 };
 
@@ -1572,6 +1346,13 @@ public:
 
 extern JSContext *
 js_NewContext(JSRuntime *rt, size_t stackChunkSize);
+
+typedef enum JSDestroyContextMode {
+    JSDCM_NO_GC,
+    JSDCM_MAYBE_GC,
+    JSDCM_FORCE_GC,
+    JSDCM_NEW_FAILED
+} JSDestroyContextMode;
 
 extern void
 js_DestroyContext(JSContext *cx, JSDestroyContextMode mode);
@@ -1658,8 +1439,7 @@ js_ReportValueErrorFlags(JSContext *cx, uintN flags, const uintN errorNumber,
 extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 #ifdef JS_THREADSAFE
-# define JS_ASSERT_REQUEST_DEPTH(cx)  (JS_ASSERT((cx)->thread()),             \
-                                       JS_ASSERT((cx)->thread()->data.requestDepth >= 1))
+# define JS_ASSERT_REQUEST_DEPTH(cx)  JS_ASSERT((cx)->runtime->requestDepth >= 1)
 #else
 # define JS_ASSERT_REQUEST_DEPTH(cx)  ((void) 0)
 #endif
@@ -1671,7 +1451,7 @@ extern JSErrorFormatString js_ErrorFormatString[JSErr_Limit];
 
 #define JS_CHECK_OPERATION_LIMIT(cx)                                          \
     (JS_ASSERT_REQUEST_DEPTH(cx),                                             \
-     (!JS_THREAD_DATA(cx)->interruptFlags || js_InvokeOperationCallback(cx)))
+     (!cx->runtime->interrupt || js_InvokeOperationCallback(cx)))
 
 
 
@@ -1682,18 +1462,6 @@ js_InvokeOperationCallback(JSContext *cx);
 
 extern JSBool
 js_HandleExecutionInterrupt(JSContext *cx);
-
-namespace js {
-
-
-
-void
-TriggerOperationCallback(JSContext *cx);
-
-void
-TriggerAllOperationCallbacks(JSRuntime *rt);
-
-} 
 
 
 

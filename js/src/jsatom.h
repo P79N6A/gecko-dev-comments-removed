@@ -240,10 +240,6 @@ struct JSAtomState
 {
     js::AtomSet         atoms;
 
-#ifdef JS_THREADSAFE
-    JSThinLock          lock;
-#endif
-
     
 
 

@@ -92,7 +92,10 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
     
 
 
-    virtual void NotifyLeaveMainThread() = 0;
+
+
+
+    virtual bool NotifyLeaveMainThread() = 0;
     virtual void NotifyEnterCycleCollectionThread() = 0;
     virtual void NotifyLeaveCycleCollectionThread() = 0;
     virtual void NotifyEnterMainThread() = 0;
