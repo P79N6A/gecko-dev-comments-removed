@@ -542,7 +542,13 @@ public class AwesomeBarTabs extends TabHost {
 
     public void filter(String searchTerm) {
         
+        setDescendantFocusability(ViewGroup.FOCUS_BLOCK_DESCENDANTS);
+
+        
         setCurrentTabByTag(ALL_PAGES_TAB);
+
+        
+        setDescendantFocusability(ViewGroup.FOCUS_AFTER_DESCENDANTS);
 
         
         int tabsVisibility = (searchTerm.length() == 0 ? View.VISIBLE : View.GONE);
