@@ -69,7 +69,7 @@ Notification.prototype = {
   get anchorElement() {
     let anchorElement = null;
     if (this.anchorID)
-      anchorElement = this.owner.iconBox.querySelector("#"+this.anchorID);
+      anchorElement = this.owner.window.document.getElementById(this.anchorID);
 
     if (!anchorElement)
       anchorElement = this.owner.iconBox;
@@ -93,28 +93,13 @@ Notification.prototype = {
 
 
 
-
-
 function PopupNotifications(tabbrowser, panel, iconBox) {
-  if (!(tabbrowser instanceof Ci.nsIDOMXULElement))
-    throw "Invalid tabbrowser";
-  if (!(iconBox instanceof Ci.nsIDOMXULElement))
-    throw "Invalid iconBox";
-  if (!(panel instanceof Ci.nsIDOMXULElement))
-    throw "Invalid panel";
-
   this.window = tabbrowser.ownerDocument.defaultView;
   this.panel = panel;
   this.iconBox = iconBox;
   this.tabbrowser = tabbrowser;
 
   let self = this;
-  this.iconBox.addEventListener("click", function (event) {
-    self._onIconBoxCommand(event);
-  }, false);
-  this.iconBox.addEventListener("keypress", function (event) {
-    self._onIconBoxCommand(event);
-  }, false);
   this.panel.addEventListener("popuphidden", function (event) {
     self._onPopupHidden(event);
   }, true);
@@ -188,9 +173,6 @@ PopupNotifications.prototype = {
 
 
 
-
-
-
   show: function PopupNotifications_show(browser, id, message, anchorID,
                                          mainAction, secondaryActions, options) {
     function isInvalidAction(a) {
@@ -211,8 +193,6 @@ PopupNotifications.prototype = {
     let notification = new Notification(id, message, anchorID, mainAction,
                                         secondaryActions, browser, this, options);
 
-    if (options && options.dismissed)
-      notification.dismissed = true;
 
     let existingNotification = this.getNotification(id, browser);
     if (existingNotification)
@@ -386,19 +366,19 @@ PopupNotifications.prototype = {
 
   _update: function PopupNotifications_update(anchor) {
     let anchorElement, notificationsToShow = [];
-    let haveNotifications = this._currentNotifications.length > 0;
-    if (haveNotifications) {
+    if (this._currentNotifications.length > 0) {
       
       
       
       anchorElement = anchor || this._currentNotifications[0].anchorElement;
 
-      this.iconBox.hidden = false;
-      this.iconBox.setAttribute("anchorid", anchorElement.id);
+      if (this.iconBox) {
+        this.iconBox.hidden = false;
+        this.iconBox.setAttribute("anchorid", anchorElement.id);
+      }
 
-      
       notificationsToShow = this._currentNotifications.filter(function (n) {
-        return !n.dismissed && n.anchorElement == anchorElement;
+        return n.anchorElement == anchorElement;
       });
     }
 
@@ -410,9 +390,7 @@ PopupNotifications.prototype = {
 
       this._hidePanel();
 
-      
-      
-      if (this.iconBox && !haveNotifications)
+      if (this.iconBox)
         this.iconBox.hidden = true;
     }
   },
@@ -424,32 +402,6 @@ PopupNotifications.prototype = {
     return browser.popupNotifications = [];
   },
 
-  _onIconBoxCommand: function PopupNotifications_onIconBoxCommand(event) {
-    
-    let type = event.type;
-    if (type == "click" && event.button != 0)
-      return;
-
-    if (type == "keypress" &&
-        !(event.charCode == Ci.nsIDOMKeyEvent.DOM_VK_SPACE ||
-          event.keyCode == Ci.nsIDOMKeyEvent.DOM_VK_RETURN))
-      return;
-
-    if (this._currentNotifications.length == 0)
-      return;
-
-    let anchor = event.originalTarget;
-
-    
-    this._currentNotifications.forEach(function (n) {
-      if (n.anchorElement == anchor)
-        n.dismissed = false;
-    });
-
-    
-    this._update(anchor);
-  },
-
   _onPopupHidden: function PopupNotifications_onPopupHidden(event) {
     if (event.target != this.panel || this._ignoreDismissal)
       return;
@@ -457,7 +409,7 @@ PopupNotifications.prototype = {
     
     Array.forEach(this.panel.childNodes, function (nEl) {
       let notificationObj = nEl.notification;
-      notificationObj.dismissed = true;
+      this._remove(notificationObj);
     }, this);
 
     this._update();
