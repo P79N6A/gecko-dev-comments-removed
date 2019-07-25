@@ -92,6 +92,8 @@ class FrameState
     typedef JSC::MacroAssembler::Jump Jump;
     typedef JSC::MacroAssembler::Imm32 Imm32;
 
+    static const uint32 InvalidIndex = 0xFFFFFFFF;
+
     struct Tracker {
         Tracker()
           : entries(NULL), nentries(0)
@@ -274,7 +276,7 @@ class FrameState
     
 
 
-    void storeLocal(FrameEntry *fe, uint32 n);
+    void storeLocal(uint32 n);
 
     
 
@@ -358,6 +360,15 @@ class FrameState
     inline void syncType(const FrameEntry *fe, Address to, Assembler &masm) const;
     inline void syncData(const FrameEntry *fe, Address to, Assembler &masm) const;
     inline FrameEntry *getLocal(uint32 slot);
+    inline void forgetRegs(FrameEntry *fe);
+
+    
+
+
+
+
+
+    void uncopy(FrameEntry *original);
 
     uint32 localIndex(uint32 n) {
         return nargs + n;
@@ -378,6 +389,10 @@ class FrameState
 
     uint32 indexOf(int32 depth) {
         return uint32((sp + depth) - base);
+    }
+
+    uint32 indexOfFe(FrameEntry *fe) {
+        return uint32(fe - entries);
     }
 
   private:
