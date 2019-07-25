@@ -41,17 +41,16 @@
 #ifndef __nsWindow_h__
 #define __nsWindow_h__
 
-#include <QKeyEvent>
-#include <qgraphicswidget.h>
-
 #include "nsAutoPtr.h"
 
 #include "nsBaseWidget.h"
 #include "nsGUIEvent.h"
+#include <QKeyEvent>
 
 #include "nsWeakReference.h"
 
 #include "nsWidgetAtoms.h"
+#include <qgraphicswidget.h>
 
 #ifdef MOZ_LOGGING
 
@@ -97,11 +96,9 @@ extern PRLogModuleInfo *gWidgetDrawLog;
 #endif 
 
 class QEvent;
-class QGraphicsView;
 
 class MozQWidget;
-
-class nsIdleService;
+class QGraphicsScene;
 
 class nsWindow : public nsBaseWidget,
                  public nsSupportsWeakReference
@@ -190,10 +187,6 @@ public:
     NS_IMETHOD         GetAttention(PRInt32 aCycleCount);
     NS_IMETHOD         BeginResizeDrag   (nsGUIEvent* aEvent, PRInt32 aHorizontal, PRInt32 aVertical);
 
-    NS_IMETHODIMP      SetIMEEnabled(PRUint32 aState);
-    NS_IMETHODIMP      GetIMEEnabled(PRUint32* aState);
-    NS_IMETHOD         SetAcceleratedRendering(PRBool aEnabled);
-
     
     
     
@@ -258,7 +251,7 @@ protected:
     virtual nsEventStatus OnMotionNotifyEvent(QGraphicsSceneMouseEvent *);
     virtual nsEventStatus OnButtonPressEvent(QGraphicsSceneMouseEvent *);
     virtual nsEventStatus OnButtonReleaseEvent(QGraphicsSceneMouseEvent *);
-    virtual nsEventStatus OnMouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
+    virtual nsEventStatus mouseDoubleClickEvent(QGraphicsSceneMouseEvent *);
     virtual nsEventStatus OnFocusInEvent(QEvent *);
     virtual nsEventStatus OnFocusOutEvent(QEvent *);
     virtual nsEventStatus OnKeyPressEvent(QKeyEvent *);
@@ -275,13 +268,6 @@ protected:
     virtual nsEventStatus OnDragDropEvent (QGraphicsSceneDragDropEvent *);
     virtual nsEventStatus showEvent(QShowEvent *);
     virtual nsEventStatus hideEvent(QHideEvent *);
-
-
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-    virtual nsEventStatus OnTouchEvent(QTouchEvent *event, PRBool &handled);
-    virtual nsEventStatus OnGestureEvent(QGestureEvent *event, PRBool &handled);
-    double DistanceBetweenPoints(const QPointF &aFirstPoint, const QPointF &aSecondPoint);
-#endif
 
     void               NativeResize(PRInt32 aWidth,
                                     PRInt32 aHeight,
@@ -305,12 +291,10 @@ protected:
 
     void               ThemeChanged(void);
 
-    virtual LayerManager* GetLayerManager();
     gfxASurface*       GetThebesSurface();
 
 private:
     void               GetToplevelWidget(MozQWidget **aWidget);
-    nsWindow*          GetTopLevelNsWindow();
     void*              SetupPluginPort(void);
     nsresult           SetWindowIconList(const nsTArray<nsCString> &aIconList);
     void               SetDefaultIcon(void);
@@ -319,7 +303,6 @@ private:
     MozQWidget*        createQWidget(MozQWidget *parent, nsWidgetInitData *aInitData);
 
     QWidget*           GetViewWidget();
-    PRBool             IsAcceleratedQView(QGraphicsView* aView);
 
     MozQWidget*        mWidget;
 
@@ -329,7 +312,6 @@ private:
     PluginType         mPluginType;
 
     nsRefPtr<gfxASurface> mThebesSurface;
-    nsCOMPtr<nsIdleService> mIdleService;
 
     PRBool       mIsTransparent;
  
@@ -372,22 +354,7 @@ private:
     PRInt32 mQCursor;
 
     
-    
-    void UserActivity();
-
-    
     QRegion mDirtyScrollArea;
-
-#if (QT_VERSION >= QT_VERSION_CHECK(4, 6, 0))
-    double mTouchPointDistance;
-    double mLastPinchDistance;
-    PRBool mMouseEventsDisabled;
-#endif
-
-    PRPackedBool mNeedsResize;
-    PRPackedBool mNeedsMove;
-    PRPackedBool mListenForResizes;
-    PRPackedBool mNeedsShow;
 };
 
 class nsChildWindow : public nsWindow
