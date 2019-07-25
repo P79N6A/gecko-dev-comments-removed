@@ -253,7 +253,6 @@ function UpdateBackForwardCommands(aWebNavigation) {
   }
 }
 
-#ifdef XP_MACOSX
 
 
 
@@ -310,8 +309,8 @@ function SetClickAndHoldHandlers() {
   
   var unifiedButton = document.getElementById("unified-back-forward-button");
   if (unifiedButton && !unifiedButton._clickHandlersAttached) {
-    var popup = document.getElementById("back-forward-dropmarker")
-                        .firstChild.cloneNode(true);
+    var popup = document.getElementById("backForwardMenu").cloneNode(true);
+    popup.removeAttribute("id");
     var backButton = document.getElementById("back-button");
     backButton.setAttribute("type", "menu");
     backButton.appendChild(popup);
@@ -324,7 +323,6 @@ function SetClickAndHoldHandlers() {
     unifiedButton._clickHandlersAttached = true;
   }
 }
-#endif
 
 const gSessionHistoryObserver = {
   observe: function(subject, topic, data)
@@ -789,7 +787,6 @@ const gFormSubmitObserver = {
   init: function()
   {
     this.panel = document.getElementById('invalid-form-popup');
-    this.panel.appendChild(document.createTextNode(""));
   },
 
   panelIsOpen: function()
@@ -822,7 +819,7 @@ const gFormSubmitObserver = {
       return;
     }
 
-    this.panel.firstChild.nodeValue = element.validationMessage;
+    this.panel.firstChild.textContent = element.validationMessage;
 
     element.focus();
 
@@ -1461,12 +1458,10 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
     document.getElementById("textfieldDirection-swap").hidden = false;
   }
 
-#ifdef XP_MACOSX
   
   
   if (!getBoolPref("ui.click_hold_context_menus", false))
     SetClickAndHoldHandlers();
-#endif
 
   
   
@@ -1479,7 +1474,7 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   }
 
   let NP = {};
-  Cu.import("resource:
+  Cu.import("resource:///modules/NetworkPrioritizer.jsm", NP);
   NP.trackBrowserWindow(window);
 
   
@@ -1529,16 +1524,11 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
 
     if (Win7Features) {
       let tempScope = {};
-      Cu.import("resource:
+      Cu.import("resource://gre/modules/DownloadTaskbarProgress.jsm",
                 tempScope);
       tempScope.DownloadTaskbarProgress.onBrowserWindowLoad(window);
     }
   }, 10000);
-
-  
-  
-  
-  setTimeout(function() PlacesUtils.startPlacesDBUtils(), 15000);
 
 #ifndef XP_MACOSX
   updateEditUIVisibility();
@@ -2799,11 +2789,11 @@ function FillInHTMLTooltip(tipElement)
 {
   var retVal = false;
   
-  if (tipElement.namespaceURI == "http:
+  if (tipElement.namespaceURI == "http://www.mozilla.org/keymaster/gatekeeper/there.is.only.xul" ||
       !tipElement.ownerDocument)
     return retVal;
 
-  const XLinkNS = "http:
+  const XLinkNS = "http://www.w3.org/1999/xlink";
 
 
   var titleText = null;
@@ -3491,12 +3481,6 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
     gIdentityHandler._cacheElements();
     window.XULBrowserWindow.init();
 
-    var backForwardDropmarker = document.getElementById("back-forward-dropmarker");
-    if (backForwardDropmarker)
-      backForwardDropmarker.disabled =
-        document.getElementById('Browser:Back').hasAttribute('disabled') &&
-        document.getElementById('Browser:Forward').hasAttribute('disabled');
-
 #ifndef XP_MACOSX
     updateEditUIVisibility();
 #endif
@@ -3523,15 +3507,11 @@ function BrowserToolboxCustomizeDone(aToolboxChanged) {
   var cmd = document.getElementById("cmd_CustomizeToolbars");
   cmd.removeAttribute("disabled");
 
-#ifdef XP_MACOSX
   
   if (!getBoolPref("ui.click_hold_context_menus", false))
     SetClickAndHoldHandlers();
-#endif
 
-  
-  if (!gCustomizeSheet)
-    window.focus();
+  window.content.focus();
 }
 
 function BrowserToolboxCustomizeChange() {
@@ -3652,7 +3632,7 @@ var FullScreen = {
       
       clearInterval(this._animationInterval);
       clearTimeout(this._animationTimeout);
-      gNavToolbox.style.marginTop = "0px";
+      gNavToolbox.style.marginTop = "";
       if (this._isChromeCollapsed)
         this.mouseoverToggle(true);
       this._isAnimating = false;
@@ -3785,7 +3765,7 @@ var FullScreen = {
       if (animateFrameAmount >= gNavToolbox.boxObject.height) {
         
         clearInterval(FullScreen._animationInterval);
-        gNavToolbox.style.marginTop = "0px";
+        gNavToolbox.style.marginTop = "";
         FullScreen._isAnimating = false;
         FullScreen._shouldAnimate = false; 
         FullScreen.mouseoverToggle(false);
@@ -4246,14 +4226,12 @@ var XULBrowserWindow = {
 
   
   _state: null,
-  _tooltipText: null,
   _hostChanged: false, 
 
   onSecurityChange: function (aWebProgress, aRequest, aState) {
     
     
     if (this._state == aState &&
-        this._tooltipText == gBrowser.securityUI.tooltipText &&
         !this._hostChanged) {
 #ifdef DEBUG
       try {
@@ -4279,7 +4257,6 @@ var XULBrowserWindow = {
 #endif
 
     this._hostChanged = false;
-    this._tooltipText = gBrowser.securityUI.tooltipText
 
     
     
@@ -4439,19 +4416,26 @@ var CombinedStopReload = {
     if (!this._initialized)
       return;
 
+    this.reload.removeAttribute("displaystop");
+
     if (!aDelay || this._stopClicked) {
       this._stopClicked = false;
       this._cancelTransition();
-      this.reload.removeAttribute("displaystop");
+      this.reload.disabled = XULBrowserWindow.reloadCommand
+                                             .getAttribute("disabled") == "true";
       return;
     }
 
     if (this._timer)
       return;
 
+    
+    
+    this.reload.disabled = true;
     this._timer = setTimeout(function (self) {
       self._timer = 0;
-      self.reload.removeAttribute("displaystop");
+      self.reload.disabled = XULBrowserWindow.reloadCommand
+                                             .getAttribute("disabled") == "true";
     }, 650, this);
   },
 
@@ -4482,7 +4466,7 @@ var TabsProgressListener = {
     
 
     if (aStateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-        /^about:/.test(aBrowser.contentWindow.document.documentURI)) {
+        /^about:/.test(aWebProgress.DOMWindow.document.documentURI)) {
       aBrowser.addEventListener("click", BrowserOnClick, false);
       aBrowser.addEventListener("pagehide", function () {
         aBrowser.removeEventListener("click", BrowserOnClick, false);
@@ -4634,10 +4618,8 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
   if (popup != aEvent.currentTarget)
     return;
 
-  var i;
-
   
-  for (i = popup.childNodes.length-1; i >= 0; --i) {
+  for (var i = popup.childNodes.length-1; i >= 0; --i) {
     var deadItem = popup.childNodes[i];
     if (deadItem.hasAttribute("toolbarId"))
       popup.removeChild(deadItem);
@@ -4645,9 +4627,9 @@ function onViewToolbarsPopupShowing(aEvent, aInsertPoint) {
 
   var firstMenuItem = aInsertPoint || popup.firstChild;
 
-  let toolbarNodes = [document.getElementById("addon-bar")];
-  for (i = 0; i < gNavToolbox.childNodes.length; ++i)
-    toolbarNodes.push(gNavToolbox.childNodes[i]);
+  let toolbarNodes = Array.slice(gNavToolbox.childNodes);
+  toolbarNodes.push(document.getElementById("addon-bar"));
+
   toolbarNodes.forEach(function(toolbar) {
     var toolbarName = toolbar.getAttribute("toolbarname");
     if (toolbarName) {
@@ -5108,54 +5090,28 @@ function asyncOpenWebPanel(event)
    return true;
  }
 
-function handleLinkClick(event, href, linkNode)
-{
+function handleLinkClick(event, href, linkNode) {
+  if (event.button == 2) 
+    return false;
+
+  var where = whereToOpenLink(event);
+  if (where == "current")
+    return false;
+
   var doc = event.target.ownerDocument;
 
-  switch (event.button) {
-    case 0:    
-#ifdef XP_MACOSX
-      if (event.metaKey) { 
-#else
-      if (event.ctrlKey) {
-#endif
-        openNewTabWith(href, doc, null, event, false);
-        event.stopPropagation();
-        return true;
-      }
-
-      if (event.shiftKey && event.altKey) {
-        var feedService =
-            Cc["@mozilla.org/browser/feeds/result-service;1"].
-            getService(Ci.nsIFeedResultService);
-        feedService.forcePreviewPage = true;
-        loadURI(href, null, null, false);
-        return false;
-      }
-
-      if (event.shiftKey) {
-        openNewWindowWith(href, doc, null, false);
-        event.stopPropagation();
-        return true;
-      }
-
-      if (event.altKey) {
-        saveURL(href, linkNode ? gatherTextUnder(linkNode) : "", null, true,
-                true, doc.documentURIObject);
-        return true;
-      }
-
-      return false;
-    case 1:    
-      var tab = gPrefService.getBoolPref("browser.tabs.opentabfor.middleclick");
-      if (tab)
-        openNewTabWith(href, doc, null, event, false);
-      else
-        openNewWindowWith(href, doc, null, false);
-      event.stopPropagation();
-      return true;
+  if (where == "save") {
+    saveURL(href, linkNode ? gatherTextUnder(linkNode) : "", null, true,
+            true, doc.documentURIObject);
+    return true;
   }
-  return false;
+
+  urlSecurityCheck(href, doc.nodePrincipal);
+  openLinkIn(href, where, { fromContent: true,
+                            referrerURI: doc.documentURIObject,
+                            charset: doc.characterSet });
+  event.stopPropagation();
+  return true;
 }
 
 function middleMousePaste(event) {
@@ -5870,6 +5826,11 @@ var IndexedDBPromptHelper = {
 
 function WindowIsClosing()
 {
+  if (TabView.isVisible()) {
+    TabView.hide();
+    return false;
+  }
+
   var reallyClose = closeWindow(false, warnAboutClosingWindow);
   if (!reallyClose)
     return false;
@@ -6578,6 +6539,21 @@ var FeedHandler = {
 
 
 
+  onFeedButtonClick: function(event) {
+    event.stopPropagation();
+
+    if (event.target.hasAttribute("feed") &&
+        event.eventPhase == Event.AT_TARGET &&
+        (event.button == 0 || event.button == 1)) {
+        this.subscribeToFeed(null, event);
+    }
+  },
+
+ 
+
+
+
+
 
 
 
@@ -6597,6 +6573,13 @@ var FeedHandler = {
 
     while (menuPopup.firstChild)
       menuPopup.removeChild(menuPopup.firstChild);
+
+    if (feeds.length == 1) {
+      var feedButton = document.getElementById("feed-button");
+      if (feedButton)
+        feedButton.setAttribute("feed", feeds[0].href);
+      return false;
+    }
 
     
     for (var i = 0; i < feeds.length; ++i) {
@@ -6669,16 +6652,30 @@ var FeedHandler = {
 
 
   updateFeeds: function() {
+    var feedButton = document.getElementById("feed-button");
+
     var feeds = gBrowser.selectedBrowser.feeds;
     if (!feeds || feeds.length == 0) {
+      if (feedButton) {
+        feedButton.disabled = true;
+        feedButton.removeAttribute("feed");
+      }
       this._feedMenuitem.setAttribute("disabled", "true");
       this._feedMenupopup.setAttribute("hidden", "true");
       this._feedMenuitem.removeAttribute("hidden");
     } else {
+      if (feedButton)
+        feedButton.disabled = false;
+
       if (feeds.length > 1) {
         this._feedMenuitem.setAttribute("hidden", "true");
         this._feedMenupopup.removeAttribute("hidden");
+        if (feedButton)
+          feedButton.removeAttribute("feed");
       } else {
+        if (feedButton)
+          feedButton.setAttribute("feed", feeds[0].href);
+
         this._feedMenuitem.setAttribute("feed", feeds[0].href);
         this._feedMenuitem.removeAttribute("disabled");
         this._feedMenuitem.removeAttribute("hidden");
@@ -6699,6 +6696,12 @@ var FeedHandler = {
       browserForLink.feeds = [];
 
     browserForLink.feeds.push({ href: link.href, title: link.title });
+
+    if (browserForLink == gBrowser.selectedBrowser) {
+      var feedButton = document.getElementById("feed-button");
+      if (feedButton)
+        feedButton.collapsed = false;
+    }
   }
 };
 
@@ -7483,6 +7486,7 @@ let gPrivateBrowsingUI = {
     
     document.getElementById("Tools:Sanitize").setAttribute("disabled", "true");
 
+    let docElement = document.documentElement;
     if (this._privateBrowsingService.autoStarted) {
       
       document.getElementById("privateBrowsingItem")
@@ -7493,15 +7497,16 @@ let gPrivateBrowsingUI = {
 #endif
       document.getElementById("Tools:PrivateBrowsing")
               .setAttribute("disabled", "true");
+      if (window.location.href == getBrowserURL())
+        docElement.setAttribute("privatebrowsingmode", "permanent");
     }
     else if (window.location.href == getBrowserURL()) {
       
-      let docElement = document.documentElement;
       docElement.setAttribute("title",
         docElement.getAttribute("title_privatebrowsing"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_privatebrowsing"));
-      docElement.setAttribute("browsingmode", "private");
+      docElement.setAttribute("privatebrowsingmode", "temporary");
       gBrowser.updateTitlebar();
     }
 
@@ -7548,7 +7553,7 @@ let gPrivateBrowsingUI = {
         docElement.getAttribute("title_normal"));
       docElement.setAttribute("titlemodifier",
         docElement.getAttribute("titlemodifier_normal"));
-      docElement.setAttribute("browsingmode", "normal");
+      docElement.removeAttribute("privatebrowsingmode");
     }
 
     
@@ -7902,6 +7907,9 @@ var TabContextMenu = {
     let unpinnedTabs = gBrowser.visibleTabs.length - gBrowser._numPinnedTabs;
     document.getElementById("context_closeOtherTabs").disabled = unpinnedTabs <= 1;
     document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
+
+    
+    document.getElementById("context_tabViewMenu").disabled = this.contextTab.pinned;
   }
 };
 

@@ -45,20 +45,20 @@ function test() {
            getService(Ci.nsIPrivateBrowsingService);
   let docRoot = document.documentElement;
 
-  is(docRoot.getAttribute("browsingmode"), "normal",
-    "browsingmode should be \"normal\" initially");
+  ok(!docRoot.hasAttribute("privatebrowsingmode"),
+    "privatebrowsingmode should not be present in normal mode");
 
   
   pb.privateBrowsingEnabled = true;
 
-  is(docRoot.getAttribute("browsingmode"), "private",
-    "browsingmode should be \"private\" inside the private browsing mode");
+  is(docRoot.getAttribute("privatebrowsingmode"), "temporary",
+    "privatebrowsingmode should be \"temporary\" inside the private browsing mode");
 
   
   pb.privateBrowsingEnabled = false;
 
-  is(docRoot.getAttribute("browsingmode"), "normal",
-    "browsingmode should be \"normal\" outside the private browsing mode");
+  ok(!docRoot.hasAttribute("privatebrowsingmode"),
+    "privatebrowsingmode should not be present in normal mode");
 
   
   gPrefService.clearUserPref("browser.privatebrowsing.keep_current_session");
