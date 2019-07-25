@@ -41,7 +41,7 @@ function SpecialPowers() {}
 
 var SpecialPowers = {
   sanityCheck: function() { return "foo"; },
-  
+
   
   getBoolPref: function(aPrefName) {
     return (this._getPref(aPrefName, 'BOOL'));
@@ -89,17 +89,55 @@ var SpecialPowers = {
       msg = {'op':'set', 'prefName': aPrefName, 'prefType': aPrefType, 'prefValue': aValue};
     }
     return(sendSyncMessage('SPPrefService', msg)[0]);
+  },
+
+  _getTopChromeWindow: function(window) {
+    var Ci = Components.interfaces;
+    return window.QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIWebNavigation)
+                 .QueryInterface(Ci.nsIDocShellTreeItem)
+                 .rootTreeItem
+                 .QueryInterface(Ci.nsIInterfaceRequestor)
+                 .getInterface(Ci.nsIDOMWindow)
+                 .QueryInterface(Ci.nsIDOMChromeWindow);
+  },
+  _getAutoCompletePopup: function(window) {
+    return this._getTopChromeWindow(window).document
+                                           .getElementById("PopupAutoComplete");
+  },
+  addAutoCompletePopupEventListener: function(window, listener) {
+    this._getAutoCompletePopup(window).addEventListener("popupshowing",
+                                                        listener,
+                                                        false);
+  },
+  removeAutoCompletePopupEventListener: function(window, listener) {
+    this._getAutoCompletePopup(window).removeEventListener("popupshowing",
+                                                           listener,
+                                                           false);
+  },
+  isBackButtonEnabled: function(window) {
+    return !this._getTopChromeWindow(window).document
+                                      .getElementById("Browser:Back")
+                                      .hasAttribute("disabled");
   }
+};
+
+
+
+SpecialPowers.__exposedProps__ = {};
+for each (i in Object.keys(SpecialPowers).filter(function(v) {return v.charAt(0) != "_";})) {
+  SpecialPowers.__exposedProps__[i] = "r";
 }
 
 
-function attachSpecialPwrToWindow(aSubject) {
+
+function attachSpecialPowersToWindow(aWindow) {
   try {
-    if ((aSubject !== null) && 
-        (aSubject !== undefined) &&
-        (aSubject.wrappedJSObject) &&
-        !(aSubject.wrappedJSObject.SpecialPowers)) {
-      aSubject.wrappedJSObject.SpecialPowers = SpecialPowers;
+    if ((aWindow !== null) &&
+        (aWindow !== undefined) &&
+        (aWindow.wrappedJSObject) &&
+        !(aWindow.wrappedJSObject.SpecialPowers)) {
+      aWindow.wrappedJSObject.SpecialPowers = SpecialPowers;
     }
   } catch(ex) {
     dump("TEST-INFO | specialpowers.js |  Failed to attach specialpowers to window exception: " + ex + "\n");
@@ -111,34 +149,25 @@ function attachSpecialPwrToWindow(aSubject) {
 
 
 
-
-
-
-
-
-function frameScriptObserver() {
-  
-  this.register();
+function SpecialPowersManager() {
+  addEventListener("DOMWindowCreated", this, false);
 }
 
-frameScriptObserver.prototype = {
-  observe: function(aSubject, aTopic, aData) {
-    if (aTopic == "content-document-global-created") {
-      attachSpecialPwrToWindow(aSubject);
-    } 
-  },
-  register: function() {
-    var obsSvc = Components.classes["@mozilla.org/observer-service;1"]
-                 .getService(Components.interfaces.nsIObserverService);
-    obsSvc.addObserver(this, "content-document-global-created", false);
-  },
-  unregister: function() {
-    var obsSvc = Components.classes["@mozilla.org/observer-service;1"]
-                 .getService(Components.interfaces.nsIObserverService);
-    obsSvc.removeObserver(this, "content-document-global-created");
+SpecialPowersManager.prototype = {
+  handleEvent: function handleEvent(aEvent) {
+    var window = aEvent.target.defaultView;
+
+    
+    
+    
+    
+    var uri = window.document.documentURIObject;
+    if (uri.scheme === "chrome" || uri.spec.split(":")[0] == "about") {
+      return;
+    }
+
+    attachSpecialPowersToWindow(window);
   }
 };
 
-
-if (content && !content.wrappedJSObject.SpecialPowers)
-  var frameScriptObsv = new frameScriptObserver();
+var specialpowersmanager = new SpecialPowersManager();
