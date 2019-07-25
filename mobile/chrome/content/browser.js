@@ -1176,6 +1176,9 @@ Browser.MainDragger.prototype = {
     this._contentView = null;
     this.dragMove(Browser.snapSidebars(), 0, scroller);
     Browser.tryUnfloatToolbar();
+
+    
+    getBrowser()._updateCSSViewport();
   },
 
   dragMove: function dragMove(dx, dy, scroller) {
