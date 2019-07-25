@@ -27,8 +27,6 @@ function test() {
 }
 
 function end_test() {
-  Services.prefs.clearUserPref(PREF_GETADDONS_GETSEARCHRESULTS);
-
   
   AddonManager.getAllInstalls(function(aInstalls) {
     aInstalls.forEach(function(aInstall) {

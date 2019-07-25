@@ -5,7 +5,6 @@
 
 
 
-const PREF_GETADDONS_CACHE_ENABLED    = "extensions.getAddons.cache.enabled";
 const PREF_GETADDONS_BYIDS            = "extensions.getAddons.get.url";
 const PREF_MIN_PLATFORM_COMPAT        = "extensions.minCompatiblePlatformVersion";
 
@@ -45,8 +44,6 @@ registerCleanupFunction(function() {
   if (gTestAddon)
     gTestAddon.uninstall();
 
-  Services.prefs.clearUserPref(PREF_GETADDONS_CACHE_ENABLED);
-  Services.prefs.clearUserPref(PREF_GETADDONS_BYIDS);
   Services.prefs.clearUserPref(PREF_MIN_PLATFORM_COMPAT);
 });
 
