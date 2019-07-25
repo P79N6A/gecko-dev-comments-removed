@@ -5081,7 +5081,7 @@ nsTypedSelection::Extend(nsINode* aParentNode, PRInt32 aOffset)
 
   
   if (!mAnchorFocusRange)
-    return NS_ERROR_NOT_INITIALIZED;
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
 
   if (!mFrameSelection)
     return NS_ERROR_NOT_INITIALIZED; 
