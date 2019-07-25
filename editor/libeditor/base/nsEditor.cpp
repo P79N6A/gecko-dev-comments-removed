@@ -368,7 +368,7 @@ nsEditor::GetDesiredSpellCheckState()
     return PR_FALSE;                    
   }
 
-  if (CanEnableSpellCheck()) {
+  if (!CanEnableSpellCheck()) {
     return PR_FALSE;
   }
 
