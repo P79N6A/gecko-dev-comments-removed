@@ -662,7 +662,6 @@ IndexedDatabaseManager::GetIndexedDBQuotaMB()
 
 nsresult
 IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
-                                                  FactoryPrivilege mPrivilege,
                                                   nsIFile** aDirectory)
 {
 #ifdef DEBUG
@@ -712,15 +711,13 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
 
   
   nsCOMPtr<mozIStorageServiceQuotaManagement> ss =
-      do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
+    do_GetService(MOZ_STORAGE_SERVICE_CONTRACTID);
   NS_ENSURE_TRUE(ss, NS_ERROR_FAILURE);
 
-  if (mPrivilege != Chrome) {
-    rv = ss->SetQuotaForFilenamePattern(pattern,
-                                        GetIndexedDBQuotaMB() * 1024 * 1024,
-                                        mQuotaCallbackSingleton, nsnull);
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
+  rv = ss->SetQuotaForFilenamePattern(pattern,
+                                      GetIndexedDBQuotaMB() * 1024 * 1024,
+                                      mQuotaCallbackSingleton, nsnull);
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   
@@ -808,10 +805,8 @@ IndexedDatabaseManager::EnsureOriginIsInitialized(const nsACString& aOrigin,
 
     fileManagers->AppendElement(fileManager);
 
-    if (mPrivilege != Chrome) {
-      rv = ss->UpdateQuotaInformationForFile(file);
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
+    rv = ss->UpdateQuotaInformationForFile(file);
+    NS_ENSURE_SUCCESS(rv, rv);
 
     if (!validSubdirs.PutEntry(dbBaseFilename)) {
       NS_WARNING("Out of memory?");
