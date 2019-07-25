@@ -1371,11 +1371,16 @@ MarkGenerator(JSTracer *trc, JSGenerator *gen)
 
     JS_ASSERT(size_t(gen->regs.sp - fp->slots()) <= fp->numSlots());
 
-    MarkValueRange(trc, (HeapValue *)fp->formalArgsEnd() - gen->floatingStack,
-                   gen->floatingStack, "Generator Floating Args");
+    
+
+
+
+
+
+
+    MarkStackRangeConservatively(trc, gen->floatingStack, fp->formalArgsEnd());
     js_TraceStackFrame(trc, fp);
-    MarkValueRange(trc, gen->regs.sp - fp->slots(),
-                   (HeapValue *)fp->slots(), "Generator Floating Stack");
+    MarkStackRangeConservatively(trc, fp->slots(), gen->regs.sp);
 }
 
 static void
@@ -1464,18 +1469,14 @@ js_NewGenerator(JSContext *cx)
                    (-1 + 
                     vplen +
                     VALUES_PER_STACK_FRAME +
-                    stackfp->numSlots()) * sizeof(HeapValue);
-
-    JS_ASSERT(nbytes % sizeof(Value) == 0);
-    JS_STATIC_ASSERT(sizeof(StackFrame) % sizeof(HeapValue) == 0);
+                    stackfp->numSlots()) * sizeof(Value);
 
     JSGenerator *gen = (JSGenerator *) cx->malloc_(nbytes);
     if (!gen)
         return NULL;
-    SetValueRangeToUndefined((Value *)gen, nbytes / sizeof(Value));
 
     
-    HeapValue *genvp = gen->floatingStack;
+    Value *genvp = gen->floatingStack;
     StackFrame *genfp = reinterpret_cast<StackFrame *>(genvp + vplen);
 
     
@@ -1486,8 +1487,7 @@ js_NewGenerator(JSContext *cx)
 
     
     gen->regs.rebaseFromTo(stackRegs, *genfp);
-    genfp->stealFrameAndSlots<HeapValue, Value, StackFrame::DoPostBarrier>(
-                              genfp, genvp, stackfp, stackvp, stackRegs.sp);
+    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, stackRegs.sp);
     genfp->initFloatingGenerator();
 
     obj->setPrivate(gen);
