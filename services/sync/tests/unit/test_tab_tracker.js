@@ -3,7 +3,7 @@ Cu.import("resource://services-sync/engines/clients.js");
 Cu.import("resource://services-sync/util.js");
 
 function fakeSvcWinMediator() {
-  // actions on windows are captured in logs
+  
   let logs = [];
   delete Services.wm;
   Services.wm = {
@@ -30,7 +30,7 @@ function fakeSvcWinMediator() {
 }
 
 function fakeSvcSession() {
-  // actions on Session are captured in logs
+  
   let logs = [];
   delete Svc.Session;
   Svc.Session = {
@@ -84,11 +84,11 @@ function run_test() {
   logs = fakeSvcSession();
   let idx = 0;
   for each (let evttype in ["TabOpen", "TabClose", "TabSelect"]) {
-    // Pretend we just synced.
+    
     tracker.clearChangedIDs();
     do_check_false(tracker.modified);
 
-    // Send a fake tab event
+    
     tracker.onTab({type: evttype , originalTarget: evttype});
     do_check_true(tracker.modified);
     do_check_true(Utils.deepEquals(Object.keys(engine.getChangedIDs()),
@@ -100,12 +100,15 @@ function run_test() {
     idx++;
   }
 
-  // Pretend we just synced.
+  
   tracker.clearChangedIDs();
   do_check_false(tracker.modified);
 
   tracker.onTab({type: "pageshow", originalTarget: "pageshow"});
   do_check_true(Utils.deepEquals(Object.keys(engine.getChangedIDs()),
                                  [Clients.localID]));
-  do_check_eq(logs.length, idx); // test that setTabValue isn't called
+  do_check_eq(logs.length, idx); 
+  if (tracker._lazySave) {
+    tracker._lazySave.clear();
+  }
 }
