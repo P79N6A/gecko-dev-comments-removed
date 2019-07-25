@@ -411,13 +411,6 @@ WeaveSvc.prototype = {
 
     
     
-    let delay = Svc.Prefs.get("autoconnectDelay");
-    if (delay) {
-      this.delayedAutoConnect(delay);
-    }
-
-    
-    
     
     Utils.nextTick(function() {
       Status.ready = true;
@@ -1041,31 +1034,6 @@ WeaveSvc.prototype = {
     Services.logins.findLogins({}, PWDMGR_HOST, "", "").map(function(login) {
       Services.logins.removeLogin(login);
     });
-  },
-
- 
-
-
-
-
-
-
-
-  delayedAutoConnect: function delayedAutoConnect(delay) {
-    if (this._checkSetup() == STATUS_OK) {
-      Utils.namedTimer(this._autoConnect, delay * 1000, this, "_autoTimer");
-    }
-  },
-
-  _autoConnect: function _autoConnect() {
-    if (this._checkSetup() == STATUS_OK && !this._checkSync()) {
-      Utils.nextTick(this.sync, this);
-    }
-
-    
-    if (this._autoTimer) {
-      this._autoTimer.clear();
-    }
   },
 
   persistLogin: function persistLogin() {

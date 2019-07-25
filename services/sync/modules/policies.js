@@ -92,6 +92,7 @@ let SyncScheduler = {
     Svc.Obs.add("weave:service:logout:finish", this);
     Svc.Obs.add("weave:service:sync:error", this);
     Svc.Obs.add("weave:service:backoff:interval", this);
+    Svc.Obs.add("weave:service:ready", this);
     Svc.Obs.add("weave:engine:sync:applied", this);
     Svc.Idle.addIdleObserver(this, Svc.Prefs.get("scheduler.idleTime"));
   },
@@ -160,6 +161,14 @@ let SyncScheduler = {
         let interval = (data + Math.random() * data * 0.25) * 1000; 
         Status.backoffInterval = interval;
         Status.minimumNextSync = Date.now() + data;
+        break;
+      case "weave:service:ready":
+        
+        
+        let delay = Svc.Prefs.get("autoconnectDelay");
+        if (delay) {
+          this.delayedAutoConnect(delay);
+        }
         break;
       case "weave:engine:sync:applied":
         let numItems = subject.applied;
@@ -328,6 +337,31 @@ let SyncScheduler = {
     this._log.config("Starting backoff, next sync at:" + d.toString());
 
     this.scheduleNextSync(interval);
+  },
+
+ 
+
+
+
+
+
+
+
+  delayedAutoConnect: function delayedAutoConnect(delay) {
+    if (Weave.Service._checkSetup() == STATUS_OK) {
+      Utils.namedTimer(this.autoConnect, delay * 1000, this, "_autoTimer");
+    }
+  },
+
+  autoConnect: function autoConnect() {
+    if (Weave.Service._checkSetup() == STATUS_OK && !Weave.Service._checkSync()) {
+      Utils.nextTick(Weave.Service.sync, Weave.Service);
+    }
+
+    
+    if (this._autoTimer) {
+      this._autoTimer.clear();
+    }
   },
 
   _syncErrors: 0,
