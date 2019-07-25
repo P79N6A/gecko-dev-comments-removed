@@ -48,6 +48,7 @@
 #include "nsIPrefLocalizedString.h"
 #include "nsIPlatformCharset.h"
 #include "nsILocalFile.h"
+#include "nsIBrowserSearchService.h"
 
 #include "nsIURIFixup.h"
 #include "nsDefaultURIFixup.h"
@@ -389,15 +390,42 @@ NS_IMETHODIMP nsDefaultURIFixup::KeywordToURI(const nsACString& aKeyword,
     }
 
     
-    if (url.IsEmpty())
-        return NS_ERROR_NOT_AVAILABLE;
+    if (!url.IsEmpty()) {
+        nsCAutoString spec;
+        nsresult rv = MangleKeywordIntoURI(PromiseFlatCString(aKeyword).get(),
+                                           url.get(), spec);
+        if (NS_FAILED(rv)) return rv;
 
-    nsCAutoString spec;
-    nsresult rv = MangleKeywordIntoURI(PromiseFlatCString(aKeyword).get(),
-                                       url.get(), spec);
-    if (NS_FAILED(rv)) return rv;
+        return NS_NewURI(aURI, spec);
+    }
 
-    return NS_NewURI(aURI, spec);
+    
+    nsCOMPtr<nsIBrowserSearchService> searchSvc = do_GetService("@mozilla.org/browser/search-service;1");
+    if (searchSvc) {
+        nsCOMPtr<nsISearchEngine> defaultEngine;
+        searchSvc->GetDefaultEngine(getter_AddRefs(defaultEngine));
+        if (defaultEngine) {
+            nsCOMPtr<nsISearchSubmission> submission;
+            defaultEngine->GetSubmission(NS_ConvertUTF8toUTF16(aKeyword),
+                                         EmptyString(),
+                                         getter_AddRefs(submission));
+            if (submission) {
+                
+                
+                
+                nsCOMPtr<nsIInputStream> postData;
+                submission->GetPostData(getter_AddRefs(postData));
+                if (postData) {
+                    return NS_ERROR_NOT_AVAILABLE;
+                }
+
+                return submission->GetUri(aURI);
+            }
+        }
+    }
+
+    
+    return NS_ERROR_NOT_AVAILABLE;
 }
 
 PRBool nsDefaultURIFixup::MakeAlternateURI(nsIURI *aURI)
