@@ -382,11 +382,6 @@ public:
   
   PRBool CanPlayThrough();
 
-  
-  
-  
-  virtual void NotifyDataExhausted() = 0;
-
 protected:
 
   

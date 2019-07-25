@@ -303,8 +303,6 @@ public:
   
   
   virtual void StartBuffering() = 0;
-
-  virtual void NotifyDataExhausted() = 0;
 };
 
 class nsBuiltinDecoder : public nsMediaDecoder
@@ -368,10 +366,6 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   void NotifyBytesConsumed(PRInt64 aBytes);
-
-  void NotifyDataExhausted() {
-    mDecoderStateMachine->NotifyDataExhausted();
-  }
 
   
   

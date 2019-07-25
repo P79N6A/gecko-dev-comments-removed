@@ -117,6 +117,17 @@ static const double NORMAL_BUFFER_MARGIN = 100.0;
 
 static const int LIVE_BUFFER_MARGIN = 100000;
 
+
+static const PRUint32 EXHAUSTED_DATA_MARGIN_MS = 60;
+
+static TimeDuration MsToDuration(PRInt64 aMs) {
+  return TimeDuration::FromMilliseconds(static_cast<double>(aMs));
+}
+
+static PRInt64 DurationToMs(TimeDuration aDuration) {
+  return static_cast<PRInt64>(aDuration.ToSeconds() * 1000);
+}
+
 class nsAudioMetadataEventRunner : public nsRunnable
 {
 private:
@@ -941,19 +952,21 @@ PRBool nsBuiltinDecoderStateMachine::IsDecodeCloseToDownload()
   return (downloadPos - decodePos) < threshold;
 }
 
-void nsBuiltinDecoderStateMachine::NotifyDataExhausted()
+PRBool nsBuiltinDecoderStateMachine::HasLowDecodedData(PRInt64 aAudioMs) const
 {
-  MonitorAutoEnter mon(mDecoder->GetMonitor());
-  nsMediaStream* stream = mDecoder->GetCurrentStream();
-  if (mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING &&
-      mState == DECODER_STATE_DECODING &&
-      !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
-      !stream->IsSuspended())
-  {
-    
-    
-    StartBuffering();
-  }
+  mDecoder->GetMonitor().AssertCurrentThreadIn();
+  
+  
+  
+  
+  return ((HasAudio() &&
+           !mReader->mAudioQueue.IsFinished() &&
+           AudioDecodedMs() < aAudioMs)
+          ||
+         (!HasAudio() &&
+          HasVideo() &&
+          !mReader->mVideoQueue.IsFinished() &&
+          static_cast<PRUint32>(mReader->mVideoQueue.GetSize()) < LOW_VIDEO_FRAMES));
 }
 
 nsresult nsBuiltinDecoderStateMachine::Run()
@@ -1101,7 +1114,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
                          "Seek target should lie inside the first audio block after seek");
             PRInt64 startTime = (audio && audio->mTime < seekTime) ? audio->mTime : seekTime;
             mAudioStartTime = startTime;
-            mPlayDuration = TimeDuration::FromMilliseconds(startTime - mStartTime);
+            mPlayDuration = MsToDuration(startTime - mStartTime);
             if (HasVideo()) {
               nsAutoPtr<VideoData> video(mReader->mVideoQueue.PeekFront());
               if (video) {
@@ -1179,7 +1192,7 @@ nsresult nsBuiltinDecoderStateMachine::Run()
         PRBool isLiveStream = mDecoder->GetCurrentStream()->GetLength() == -1;
         if ((isLiveStream || !mDecoder->CanPlayThrough()) &&
              elapsed < TimeDuration::FromSeconds(BUFFERING_WAIT) &&
-             stream->GetCachedDataEnd(mDecoder->mDecoderPosition) < mBufferingEndOffset &&
+             HasLowDecodedData(1000) &&
              !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
              !stream->IsSuspended())
         {
@@ -1306,11 +1319,6 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
 
   
   if (mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING) {
-    if (!IsPlaying()) {
-      StartPlayback();
-      mDecoder->GetMonitor().NotifyAll();
-    }
-
     if (HasAudio() && mAudioStartTime == -1 && !mAudioCompleted) {
       
       
@@ -1325,24 +1333,28 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
     
     
     PRInt64 clock_time = -1;
-    PRInt64 audio_time = GetAudioClock();
-    if (HasAudio() && !mAudioCompleted && audio_time != -1) {
-      clock_time = audio_time;
-      
-      
-      mPlayDuration = TimeDuration::FromMilliseconds(clock_time - mStartTime);
-      mPlayStartTime = TimeStamp::Now();
+    if (!IsPlaying()) {
+      clock_time = DurationToMs(mPlayDuration) + mStartTime;
     } else {
-      
-      TimeDuration t = TimeStamp::Now() - mPlayStartTime + mPlayDuration;
-      clock_time = (PRInt64)(1000 * t.ToSeconds());
-      
-      NS_ASSERTION(mCurrentFrameTime <= clock_time, "Clock should go forwards");
-      clock_time = NS_MAX(mCurrentFrameTime, clock_time) + mStartTime;
+      PRInt64 audio_time = GetAudioClock();
+      if (HasAudio() && !mAudioCompleted && audio_time != -1) {
+        clock_time = audio_time;
+        
+        
+        mPlayDuration = MsToDuration(clock_time - mStartTime);
+        mPlayStartTime = TimeStamp::Now();
+      } else {
+        
+        clock_time = DurationToMs(TimeStamp::Now() - mPlayStartTime + mPlayDuration);
+        
+        NS_ASSERTION(mCurrentFrameTime <= clock_time, "Clock should go forwards");
+        clock_time = NS_MAX(mCurrentFrameTime, clock_time) + mStartTime;
+      }
     }
 
+    
+    
     PRInt64 remainingTime = AUDIO_DURATION_MS;
-
     NS_ASSERTION(clock_time >= mStartTime, "Should have positive clock time.");
     nsAutoPtr<VideoData> currentFrame;
     if (mReader->mVideoQueue.GetSize() > 0) {
@@ -1359,9 +1371,34 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
       
       
       if (frame && !currentFrame) {
-        PRInt64 now = (TimeStamp::Now() - mPlayStartTime + mPlayDuration).ToMilliseconds();
+        PRInt64 now = IsPlaying()
+          ? DurationToMs(TimeStamp::Now() - mPlayStartTime + mPlayDuration)
+          : DurationToMs(mPlayDuration);
         remainingTime = frame->mTime - mStartTime - now;
       }
+    }
+
+    
+    
+    nsMediaStream* stream = mDecoder->GetCurrentStream();
+    if (mState == DECODER_STATE_DECODING &&
+        mDecoder->GetState() == nsBuiltinDecoder::PLAY_STATE_PLAYING &&
+        HasLowDecodedData(remainingTime + EXHAUSTED_DATA_MARGIN_MS) &&
+        !stream->IsDataCachedToEndOfStream(mDecoder->mDecoderPosition) &&
+        !stream->IsSuspended())
+    {
+      if (currentFrame) {
+        mReader->mVideoQueue.PushFront(currentFrame.forget());
+      }
+      mState = DECODER_STATE_BUFFERING;
+      return;
+    }
+
+    
+    
+    if (!IsPlaying()) {
+      StartPlayback();
+      mDecoder->GetMonitor().NotifyAll();
     }
 
     if (currentFrame) {
@@ -1376,7 +1413,7 @@ void nsBuiltinDecoderStateMachine::AdvanceFrame()
         RenderVideoFrame(currentFrame, presTime);
       }
       mDecoder->GetFrameStatistics().NotifyPresentedFrame();
-      PRInt64 now = (TimeStamp::Now() - mPlayStartTime + mPlayDuration).ToMilliseconds();
+      PRInt64 now = DurationToMs(TimeStamp::Now() - mPlayStartTime + mPlayDuration);
       remainingTime = currentFrame->mEndTime - mStartTime - now;
       currentFrame = nsnull;
     }

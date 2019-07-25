@@ -250,9 +250,11 @@ public:
     return mEndTime;
   }
 
-  void NotifyDataExhausted();
-
 protected:
+
+  
+  
+  PRBool HasLowDecodedData(PRInt64 aAudioMs) const;
 
   
   
