@@ -959,6 +959,8 @@ class CallCompiler : public BaseCompiler
         bool lowered = ic.frameSize.lowered(f.pc());
         JS_ASSERT_IF(lowered, !callingNew);
 
+        StackFrame *initialFp = f.fp();
+
         stubs::UncachedCallResult ucr;
         if (callingNew)
             stubs::UncachedNewHelper(f, ic.frameSize.staticArgc(), &ucr);
@@ -968,7 +970,8 @@ class CallCompiler : public BaseCompiler
         
         
         
-        if (monitor.recompiled())
+        
+        if (monitor.recompiled() || f.fp() != initialFp)
             return ucr.codeAddr;
 
         
