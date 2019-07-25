@@ -84,6 +84,8 @@
 
 #include "mozilla/FunctionTimer.h"
 
+#include "nsIGfxInfo.h"
+
 gfxPlatform *gPlatform = nsnull;
 
 
@@ -219,6 +221,17 @@ gfxPlatform::Init()
     NS_ASSERTION(!gPlatform, "Already started???");
 
     gfxAtoms::RegisterAtoms();
+
+    
+
+
+
+
+
+
+    nsCOMPtr<nsIGfxInfo> gfxInfo;
+    
+    gfxInfo = do_GetService("@mozilla.org/gfx/info;1");
 
 #if defined(XP_WIN)
     gPlatform = new gfxWindowsPlatform;
