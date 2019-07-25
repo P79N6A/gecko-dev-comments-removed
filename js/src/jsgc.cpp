@@ -1582,8 +1582,12 @@ MarkContext(JSTracer *trc, JSContext *acx)
     
     if (acx->globalObject && !JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
         MarkObject(trc, *acx->globalObject, "global object");
-    if (acx->isExceptionPending())
-        MarkValue(trc, acx->getPendingException(), "exception");
+    if (acx->throwing) {
+        MarkValue(trc, acx->exception, "exception");
+    } else {
+        
+        acx->exception.setNull();
+    }
 
     for (js::AutoGCRooter *gcr = acx->autoGCRooters; gcr; gcr = gcr->down)
         gcr->trace(trc);

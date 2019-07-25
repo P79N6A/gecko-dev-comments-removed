@@ -888,7 +888,7 @@ private:
 
 
 #ifdef JS_TRACER
-# define JS_ON_TRACE(cx)            (cx->compartment && JS_TRACE_MONITOR(cx).ontrace())
+# define JS_ON_TRACE(cx)            (JS_TRACE_MONITOR(cx).ontrace())
 #else
 # define JS_ON_TRACE(cx)            false
 #endif
@@ -1700,10 +1700,6 @@ struct JSContext
     JSVersion           versionOverride;     
     bool                hasVersionOverride;
 
-    
-    JSBool              throwing;           
-    js::Value           exception;          
-
   public:
     
     uint32              options;            
@@ -1724,6 +1720,10 @@ struct JSContext
 
 
     JSPackedBool        generatingError;
+
+    
+    JSBool              throwing;           
+    js::Value           exception;          
 
     
     jsuword             stackLimit;
@@ -2167,22 +2167,6 @@ struct JSContext
 #else
     void assertValidStackDepth(uintN ) {}
 #endif
-
-    bool isExceptionPending() {
-        return throwing;
-    }
-
-    js::Value getPendingException() {
-        JS_ASSERT(throwing);
-        return exception;
-    }
-
-    void setPendingException(js::Value v);
-
-    void clearPendingException() {
-        this->throwing = false;
-        this->exception.setUndefined();
-    }
 
   private:
     
@@ -3162,6 +3146,9 @@ extern bool
 js_CurrentPCIsInImacro(JSContext *cx);
 
 namespace js {
+
+extern void
+SetPendingException(JSContext *cx, const Value &v);
 
 class RegExpStatics;
 
