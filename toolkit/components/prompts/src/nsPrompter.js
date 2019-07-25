@@ -341,6 +341,35 @@ let PromptUtils = {
         for (let propName in obj)
             obj[propName] = propBag.getProperty(propName);
     },
+
+    getTabModalPrompt : function (domWin) {
+        var promptBox = null;
+
+        
+        function getChromeWindow(aWindow) {
+            var chromeWin = aWindow.QueryInterface(Ci.nsIInterfaceRequestor)
+                                   .getInterface(Ci.nsIWebNavigation)
+                                   .QueryInterface(Ci.nsIDocShell)
+                                   .chromeEventHandler.ownerDocument.defaultView;
+            return chromeWin;
+        }
+
+        try {
+            
+            var promptWin = domWin.top;
+
+            
+            
+            var chromeWin = getChromeWindow(promptWin).wrappedJSObject;
+
+            if (chromeWin.getTabModalPromptBox)
+                promptBox = chromeWin.getTabModalPromptBox(promptWin);
+        } catch (e) {
+            
+        }
+
+        return promptBox;
+    },
 };
 
 XPCOMUtils.defineLazyGetter(PromptUtils, "strBundle", function () {
@@ -364,6 +393,7 @@ XPCOMUtils.defineLazyGetter(PromptUtils, "ellipsis", function () {
 
 function openModalWindow(domWin, uri, args) {
     
+    
     if (!domWin)
         domWin = Services.ww.activeWindow;
 
@@ -376,11 +406,58 @@ function openModalWindow(domWin, uri, args) {
     Services.ww.openWindow(domWin, uri, "_blank", "centerscreen,chrome,modal,titlebar", args);
 }
 
+function openTabPrompt(domWin, tabPrompt, args) {
+    let winUtils = domWin.QueryInterface(Ci.nsIInterfaceRequestor)
+                         .getInterface(Ci.nsIDOMWindowUtils);
+    winUtils.enterModalState();
+
+    
+    
+    
+    
+    let callbackInvoked = false;
+    function onPromptClose(forceCleanup) {
+        if (!newPrompt && !forceCleanup)
+            return;
+        callbackInvoked = true;
+        if (newPrompt)
+            tabPrompt.removePrompt(newPrompt);
+        winUtils.leaveModalState();
+    }
+
+    let newPrompt;
+    try {
+        
+        
+        args.domWindow = domWin;
+        args.promptActive = true;
+
+        newPrompt = tabPrompt.appendPrompt(args, onPromptClose);
+
+        
+        
+        
+
+        let thread = Services.tm.currentThread;
+        while (args.promptActive)
+            thread.processNextEvent(true);
+        delete args.promptActive;
+
+        if (args.promptAborted)
+            throw Components.Exception("prompt aborted by user", Cr.NS_ERROR_NOT_AVAILABLE);
+    } finally {
+        
+        if (!callbackInvoked)
+            onPromptClose(true);
+    }
+}
+
 function ModalPrompter(domWin) {
     this.domWin = domWin;
 }
 ModalPrompter.prototype = {
     domWin : null,
+    allowTabModal : true,
 
     QueryInterface : XPCOMUtils.generateQI([Ci.nsIPrompt, Ci.nsIAuthPrompt, Ci.nsIAuthPrompt2]),
 
@@ -389,6 +466,17 @@ ModalPrompter.prototype = {
 
 
     openPrompt : function (args) {
+        let allowTabModal = this.allowTabModal;
+
+        if (allowTabModal && this.domWin) {
+            let tabPrompt = PromptUtils.getTabModalPrompt(this.domWin);
+            if (tabPrompt) {
+                openTabPrompt(this.domWin, tabPrompt, args);
+                return;
+            }
+        }
+
+        
         const COMMON_DIALOG = "chrome://global/content/commonDialog.xul";
         const SELECT_DIALOG = "chrome://global/content/selectDialog.xul";
 

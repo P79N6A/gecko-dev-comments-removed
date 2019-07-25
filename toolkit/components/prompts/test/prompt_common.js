@@ -72,7 +72,7 @@ function getTabModalPromptBox(domWin) {
 
     try {
         
-        var promptWin = domWin.top
+        var promptWin = domWin.top;
 
         
         
