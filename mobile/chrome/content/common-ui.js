@@ -646,7 +646,6 @@ var FormHelperUI = {
 
   init: function formHelperInit() {
     this._container = document.getElementById("content-navigator");
-    this._suggestionsContainer = document.getElementById("form-helper-suggestions-container");
     this._cmdPrevious = document.getElementById(this.commands.previous);
     this._cmdNext = document.getElementById(this.commands.next);
 
@@ -676,10 +675,6 @@ var FormHelperUI = {
     
     Elements.browsers.addEventListener("PanBegin", this, false);
     Elements.browsers.addEventListener("PanFinished", this, false);
-    window.addEventListener("AnimatedZoomBegin", this, false);
-    window.addEventListener("AnimatedZoomEnd", this, false);
-    window.addEventListener("MozBeforeResize", this, true);
-    window.addEventListener("resize", this, false);
   },
 
   _currentBrowser: null,
@@ -697,7 +692,6 @@ var FormHelperUI = {
     else
       this._container.removeAttribute("disabled");
 
-    this._hasSuggestions = false;
     this._open = true;
 
     let lastElement = this._currentElement || null;
@@ -715,7 +709,6 @@ var FormHelperUI = {
 
     this._updateContainerForSelect(lastElement, this._currentElement);
     this._zoom(Rect.fromRect(aElement.rect), Rect.fromRect(aElement.caretRect));
-    this._updateSuggestionsFor(this._currentElement);
 
     
     this._currentBrowser.scrollSync = false;
@@ -733,7 +726,6 @@ var FormHelperUI = {
     this._currentCaretRect = null;
 
     this._updateContainerForSelect(this._currentElement, null);
-    this._resetSuggestions();
 
     this._currentBrowser.messageManager.sendAsyncMessage("FormAssist:Closed", { });
     this._open = false;
@@ -758,28 +750,11 @@ var FormHelperUI = {
         
         
         this._container.style.visibility = "hidden";
-
-      case "AnimatedZoomBegin":
-        
-        
-        if (this._hasSuggestions) {
-          
-          
-          
-          
-          this._suggestionsContainer.left = 0;
-          this._suggestionsContainer.style.visibility = "hidden";
-        }
         break;
+
 
       case "PanFinished":
         this._container.style.visibility = "visible";
-
-      case "AnimatedZoomEnd":
-        if (this._hasSuggestions) {
-          this._suggestionsContainer.style.visibility = "visible";
-          this._ensureSuggestionsVisible();
-        }
         break;
 
       case "URLChanged":
@@ -812,16 +787,6 @@ var FormHelperUI = {
           SelectHelperUI.sizeToContent();
           self._zoom(self._currentElementRect, self._currentCaretRect);
         }, 0, this);
-        break;
-
-      case "MozBeforeResize":
-        if (this._hasSuggestions)
-          this._suggestionsContainer.left = 0;
-        break;
-
-      case "resize":
-        if (this._hasSuggestions)
-          this._ensureSuggestionsVisible();
         break;
     }
   },
@@ -903,6 +868,7 @@ var FormHelperUI = {
       this._currentElement = null;
       this._container.hide(this);
 
+      ContentPopupHelper.popup = null;
       this._container.removeAttribute("disabled");
 
       
@@ -915,35 +881,25 @@ var FormHelperUI = {
     this._container.dispatchEvent(evt);
   },
 
-  _hasSuggestions: false,
   _updateSuggestionsFor: function _formHelperUpdateAutocompleteFor(aElement) {
     let suggestions = this._getAutocompleteSuggestions(aElement);
     if (!suggestions.length) {
-      this._resetSuggestions();
+      ContentPopupHelper.popup = null;
       return;
     }
-    
-    
-    let suggestionsContainer = this._suggestionsContainer;
-    suggestionsContainer.style.visibility = "hidden";
-    suggestionsContainer.hidden = false;
-    suggestionsContainer.left = 0;
 
     
     
     if (AnimatedZoom.isZooming()) {
       let self = this;
-      window.addEventListener("AnimatedZoomEnd", function() {
-        window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
-          
-          if (self._currentElement != aElement)
-            return;
-
-          self._updateSuggestionsFor(aElement);
-      }, true);
+      this._waitForZoom(function() {
+        self._updateSuggestionsFor(aElement);
+      });
       return;
     }
 
+    
+    let suggestionsContainer = document.getElementById("form-helper-suggestions-container");
     let container = suggestionsContainer.firstChild;
     while (container.hasChildNodes())
       container.removeChild(container.lastChild);
@@ -959,8 +915,8 @@ var FormHelperUI = {
     }
     container.appendChild(fragment);
 
-    this._hasSuggestions = true;
-    this._ensureSuggestionsVisible();
+    ContentPopupHelper.popup = suggestionsContainer;
+    ContentPopupHelper.anchorTo(this._currentElementRect);
   },
 
   
@@ -991,114 +947,6 @@ var FormHelperUI = {
       suggestions.push(options[i]);
 
     return suggestions;
-  },
-
-  _resetSuggestions: function _formHelperResetAutocomplete() {
-    this._suggestionsContainer.hidden = true;
-    this._hasSuggestions = false;
-  },
-
-  
-
-
-
-
-
-  _ensureSuggestionsVisible: function _formHelperEnsureSuggestionsVisible() {
-    let container = this._suggestionsContainer;
-
-    
-    
-    let [leftVis, rightVis, leftW, rightW] = Browser.computeSidebarVisibility();
-    let leftOffset = leftVis * leftW;
-    let rightOffset = rightVis * rightW;
-    let visibleAreaWidth = window.innerWidth - leftOffset - rightOffset;
-    container.firstChild.style.maxWidth = (visibleAreaWidth * 0.75) + "px";
-
-    let browser = getBrowser();
-    let rect = this._currentElementRect.clone().scale(browser.scale, browser.scale);
-    let scroll = browser.getRootView().getPosition();
-
-    
-    
-    let topOffset = (BrowserUI.toolbarH - Browser.getScrollboxPosition(Browser.pageScrollboxScroller).y);
-
-    
-    let notification = Browser.getNotificationBox().currentNotification;
-    if (notification)
-      topOffset += notification.getBoundingClientRect().height;
-
-    let virtualContentRect = {
-      width: rect.width,
-      height: rect.height,
-      left: Math.ceil(rect.left - scroll.x + leftOffset - rightOffset),
-      right: Math.floor(rect.left + rect.width - scroll.x + leftOffset - rightOffset),
-      top: Math.ceil(rect.top - scroll.y + topOffset),
-      bottom: Math.floor(rect.top + rect.height - scroll.y + topOffset)
-    };
-
-    
-    
-    if (virtualContentRect.left + virtualContentRect.width > visibleAreaWidth) {
-      let offsetX = visibleAreaWidth - (virtualContentRect.left + virtualContentRect.width);
-      virtualContentRect.width += offsetX;
-      virtualContentRect.right -= offsetX;
-    }
-
-    if (virtualContentRect.left < leftOffset) {
-      let offsetX = (virtualContentRect.right - virtualContentRect.width);
-      virtualContentRect.width += offsetX;
-      virtualContentRect.left -= offsetX;
-    }
-
-    
-    let browserRect = Rect.fromRect(browser.getBoundingClientRect());
-    if (BrowserUI.isToolbarLocked()) {
-      
-      
-      let toolbarH = BrowserUI.toolbarH;
-      browserRect = new Rect(leftOffset - rightOffset, Math.max(0, browserRect.top - toolbarH) + toolbarH,
-                             browserRect.width + leftOffset - rightOffset, browserRect.height - toolbarH);
-    }
-
-    if (browserRect.intersect(Rect.fromRect(virtualContentRect)).isEmpty()) {
-      container.style.visibility = "hidden";
-      return;
-    }
-
-    
-    let left = rect.left - scroll.x + leftOffset - rightOffset;
-    let top = rect.top - scroll.y + topOffset + (rect.height);
-
-    
-    let arrowboxRect = Rect.fromRect(container.getBoundingClientRect());
-    if (left + arrowboxRect.width > window.innerWidth)
-      left -= (left + arrowboxRect.width - window.innerWidth);
-    else if (left < leftOffset)
-      left += (leftOffset - left);
-    container.left = left;
-
-    
-    let buttonsHeight = this._container.getBoundingClientRect().height;
-    if (top + arrowboxRect.height >= window.innerHeight - buttonsHeight)
-      top -= (rect.height + arrowboxRect.height);
-    container.top = top;
-
-    
-    let virtualContentElement = {
-      getBoundingClientRect: function() {
-        return virtualContentRect;
-      }
-    };
-    container.anchorTo(virtualContentElement);
-    container.style.visibility = "visible";
-  },
-
-  
-  _updateContainer: function _formHelperUpdateContainer(aLastElement, aCurrentElement) {
-    this._updateContainerForSelect(aLastElement, aCurrentElement);
-
-    this._container.contentHasChanged();
   },
 
   
@@ -1146,16 +994,10 @@ var FormHelperUI = {
     
     
     if (AnimatedZoom.isZooming()) {
-      let currentElement = this._currentElement;
       let self = this;
-      window.addEventListener("AnimatedZoomEnd", function() {
-        window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
-          
-          if (self._currentElement != currentElement)
-            return;
-
-          self._ensureCaretVisible(aCaretRect);
-      }, true);
+      this._waitForZoom(function() {
+        self._ensureCaretVisible(aCaretRect);
+      });
       return;
     }
 
@@ -1198,6 +1040,19 @@ var FormHelperUI = {
     getBrowser().scale = restore.scale;
     Browser.contentScrollboxScroller.scrollTo(restore.contentScrollOffset.x, restore.contentScrollOffset.y);
     Browser.pageScrollboxScroller.scrollTo(restore.pageScrollOffset.x, restore.pageScrollOffset.y);
+  },
+
+  _waitForZoom: function _formHelperWaitForZoom(aCallback) {
+    let currentElement = this._currentElement;
+    let self = this;
+    window.addEventListener("AnimatedZoomEnd", function() {
+      window.removeEventListener("AnimatedZoomEnd", arguments.callee, true);
+      
+      if (self._currentElement != currentElement)
+        return;
+
+      aCallback();
+    }, true);
   },
 
   _getZoomLevelForRect: function _getZoomLevelForRect(aRect) {
