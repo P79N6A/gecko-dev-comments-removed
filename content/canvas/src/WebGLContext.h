@@ -125,6 +125,145 @@ inline bool is_pot_assuming_nonnegative(WebGLsizei x)
     return (x & (x-1)) == 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+template<typename Derived>
+class WebGLRefCountedObject
+{
+public:
+    enum DeletionStatus { Default, DeleteRequested, Deleted };
+
+    WebGLRefCountedObject()
+      : mDeletionStatus(Default)
+    { }
+
+    ~WebGLRefCountedObject() {
+        NS_ABORT_IF_FALSE(mWebGLRefCnt == 0, "destroying WebGL object still referenced by other WebGL objects");
+        NS_ABORT_IF_FALSE(mDeletionStatus == Deleted, "Derived class destructor must call DeleteOnce()");
+    }
+
+    
+    void WebGLAddRef() {
+        ++mWebGLRefCnt;
+    }
+
+    
+    void WebGLRelease() {
+        NS_ABORT_IF_FALSE(mWebGLRefCnt > 0, "releasing WebGL object with WebGL refcnt already zero");
+        --mWebGLRefCnt;
+        MaybeDelete();
+    }
+
+    
+    void RequestDelete() {
+        if (mDeletionStatus == Default)
+            mDeletionStatus = DeleteRequested;
+        MaybeDelete();
+    }
+
+    bool IsDeleted() const {
+        return mDeletionStatus == Deleted;
+    }
+
+    bool IsDeleteRequested() const {
+        return mDeletionStatus != Default;
+    }
+
+    void DeleteOnce() {
+        if (mDeletionStatus != Deleted) {
+            static_cast<Derived*>(this)->Delete();
+            mDeletionStatus = Deleted;
+        }
+    }
+
+private:
+    void MaybeDelete() {
+        if (mWebGLRefCnt == 0 &&
+            mDeletionStatus == DeleteRequested)
+        {
+            DeleteOnce();
+        }
+    }
+
+protected:
+    nsAutoRefCnt mWebGLRefCnt;
+    DeletionStatus mDeletionStatus;
+};
+
 class WebGLObjectBaseRefPtr
 {
 protected:
