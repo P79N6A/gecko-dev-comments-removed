@@ -37,8 +37,12 @@ function bindDOMWindowUtils(aWindow) {
   
   
   
+  
+  
+  
+  
   var proto = Object.getPrototypeOf(util);
-  var target = {};
+  var target = { __exposedProps__: {} };
   function rebind(desc, prop) {
     if (prop in desc && typeof(desc[prop]) == "function") {
       var oldval = desc[prop];
@@ -57,6 +61,7 @@ function bindDOMWindowUtils(aWindow) {
     rebind(desc, "set");
     rebind(desc, "value");
     Object.defineProperty(target, i, desc);
+    target.__exposedProps__[i] = 'rw';
   }
   return target;
 }
