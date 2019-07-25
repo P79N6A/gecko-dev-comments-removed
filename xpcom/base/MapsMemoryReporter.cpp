@@ -13,6 +13,7 @@
 #include "nsTHashtable.h"
 #include "nsHashKeys.h"
 #include "mozilla/Attributes.h"
+#include "mozilla/unused.h"
 #include <stdio.h>
 
 namespace mozilla {
@@ -313,7 +314,7 @@ MapsReporter::ParseMapping(
                        devMinor, &inode, path);
 
   
-  fscanf(aFile, " ");
+  unused << fscanf(aFile, " ");
 
   
   
