@@ -613,17 +613,6 @@ nsHTMLReflowState::ComputeRelativeOffsets(const nsHTMLReflowState* cbrs,
 
   
   
-  if (NS_UNCONSTRAINEDSIZE == aContainingBlockWidth) {
-    if (mStylePosition->OffsetHasPercent(NS_SIDE_LEFT)) {
-      leftIsAuto = PR_TRUE;
-    }
-    if (mStylePosition->OffsetHasPercent(NS_SIDE_RIGHT)) {
-      rightIsAuto = PR_TRUE;
-    }
-  }
-
-  
-  
   if (!leftIsAuto && !rightIsAuto) {
     if (mCBReflowState &&
         NS_STYLE_DIRECTION_RTL == mCBReflowState->mStyleVisibility->mDirection) {
@@ -2163,25 +2152,12 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
   const nsStyleMargin *styleMargin = frame->GetStyleMargin();
   if (!styleMargin->GetMargin(mComputedMargin)) {
     
-    if (NS_UNCONSTRAINEDSIZE == aContainingBlockWidth) {
-      mComputedMargin.left = 0;
-      mComputedMargin.right = 0;
-
-      if (eStyleUnit_Coord == styleMargin->mMargin.GetLeftUnit()) {
-        mComputedMargin.left = styleMargin->mMargin.GetLeft().GetCoordValue();
-      }
-      if (eStyleUnit_Coord == styleMargin->mMargin.GetRightUnit()) {
-        mComputedMargin.right = styleMargin->mMargin.GetRight().GetCoordValue();
-      }
-
-    } else {
-      mComputedMargin.left = nsLayoutUtils::
-        ComputeWidthDependentValue(aContainingBlockWidth,
-                                   styleMargin->mMargin.GetLeft());
-      mComputedMargin.right = nsLayoutUtils::
-        ComputeWidthDependentValue(aContainingBlockWidth,
-                                   styleMargin->mMargin.GetRight());
-    }
+    mComputedMargin.left = nsLayoutUtils::
+      ComputeWidthDependentValue(aContainingBlockWidth,
+                                 styleMargin->mMargin.GetLeft());
+    mComputedMargin.right = nsLayoutUtils::
+      ComputeWidthDependentValue(aContainingBlockWidth,
+                                 styleMargin->mMargin.GetRight());
 
     
     
