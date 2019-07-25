@@ -2088,7 +2088,7 @@ nsPresContext::FireDOMPaintEvent()
       
       
       
-      dispatchTarget = do_QueryInterface(ourWindow->GetChromeEventHandler());
+      dispatchTarget = do_QueryInterface(ourWindow->GetParentTarget());
       if (!dispatchTarget) {
         return;
       }
