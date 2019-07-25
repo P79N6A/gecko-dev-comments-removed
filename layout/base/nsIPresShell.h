@@ -1105,6 +1105,13 @@ public:
   
 
 
+
+
+  virtual void SynthesizeMouseMove(PRBool aFromScroll) = 0;
+
+  
+
+
 protected:
   virtual PRBool AddRefreshObserverExternal(nsARefreshObserver* aObserver,
                                             mozFlushType aFlushType);
