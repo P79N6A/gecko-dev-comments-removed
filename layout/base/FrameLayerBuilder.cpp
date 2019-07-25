@@ -3296,28 +3296,24 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   gfxMatrix imageTransform = maskTransform;
   imageTransform.Scale(mParameters.mXScale, mParameters.mYScale);
 
+  nsAutoPtr<MaskLayerImageCache::MaskLayerImageKey> newKey(
+    new MaskLayerImageCache::MaskLayerImageKey(aLayer->Manager()->GetBackendType()));
+
   
-  nsTArray<MaskLayerImageCache::PixelRoundedRect> roundedRects;
   for (uint32_t i = 0; i < newData.mRoundedClipRects.Length(); ++i) {
-    roundedRects.AppendElement(
+    newKey->mRoundedClipRects.AppendElement(
       MaskLayerImageCache::PixelRoundedRect(newData.mRoundedClipRects[i],
                                             mContainerFrame->PresContext()));
-    roundedRects[i].ScaleAndTranslate(imageTransform);
+    newKey->mRoundedClipRects[i].ScaleAndTranslate(imageTransform);
   }
  
-  
-  const MaskLayerImageCache::MaskLayerImageKey* key =
-    new MaskLayerImageCache::MaskLayerImageKey(roundedRects, aLayer->Manager()->GetBackendType());
-  const MaskLayerImageCache::MaskLayerImageKey* lookupKey = key;
+  const MaskLayerImageCache::MaskLayerImageKey* lookupKey = newKey;
 
+  
   nsRefPtr<ImageContainer> container =
     GetMaskLayerImageCache()->FindImageFor(&lookupKey);
 
-  if (container) {
-    
-    delete key;
-    key = lookupKey;
-  } else {
+  if (!container) {
     
     nsRefPtr<gfxASurface> surface =
       aLayer->Manager()->CreateOptimalMaskSurface(surfaceSize);
@@ -3348,7 +3344,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     static_cast<CairoImage*>(image.get())->SetData(data);
     container->SetCurrentImageInTransaction(image);
 
-    GetMaskLayerImageCache()->PutImage(key, container);
+    GetMaskLayerImageCache()->PutImage(newKey.forget(), container);
   }
 
   maskLayer->SetContainer(container);
@@ -3358,7 +3354,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
   userData->mScaleX = newData.mScaleX;
   userData->mScaleY = newData.mScaleY;
   userData->mRoundedClipRects.SwapElements(newData.mRoundedClipRects);
-  userData->mImageKey = key;
+  userData->mImageKey = lookupKey;
 
   aLayer->SetMaskLayer(maskLayer);
   SetClipCount(thebesData, aRoundedRectClipCount);
