@@ -177,18 +177,9 @@ nsSVGScriptElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 
 
 
-NS_IMETHODIMP
-nsSVGScriptElement::GetType(nsAString & aType)
-{
-  GetAttr(kNameSpaceID_None, nsGkAtoms::type, aType);
+NS_IMPL_STRING_ATTR(nsSVGScriptElement, Type, type)
 
-  return NS_OK;
-}
-NS_IMETHODIMP
-nsSVGScriptElement::SetType(const nsAString & aType)
-{
-  return SetAttr(kNameSpaceID_None, nsGkAtoms::type, aType, true); 
-}
+NS_IMPL_STRING_ATTR(nsSVGScriptElement, CrossOrigin, crossorigin)
 
 
 

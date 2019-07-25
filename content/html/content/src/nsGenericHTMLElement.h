@@ -616,18 +616,6 @@ protected:
 
 
 
-
-  NS_HIDDEN_(nsresult) GetAttrHelper(nsIAtom* aAttr, nsAString& aValue);
-
-  
-
-
-
-
-
-
-
-
   NS_HIDDEN_(nsresult) SetAttrHelper(nsIAtom* aAttr, const nsAString& aValue);
 
   
@@ -1005,23 +993,6 @@ protected:
 PR_STATIC_ASSERT(ELEMENT_TYPE_SPECIFIC_BITS_OFFSET + 1 < 32);
 
 
-
-
-
-
-
-
-#define NS_IMPL_STRING_ATTR(_class, _method, _atom)                  \
-  NS_IMETHODIMP                                                      \
-  _class::Get##_method(nsAString& aValue)                            \
-  {                                                                  \
-    return GetAttrHelper(nsGkAtoms::_atom, aValue);                  \
-  }                                                                  \
-  NS_IMETHODIMP                                                      \
-  _class::Set##_method(const nsAString& aValue)                      \
-  {                                                                  \
-    return SetAttrHelper(nsGkAtoms::_atom, aValue);                  \
-  }
 
 
 

@@ -1050,6 +1050,25 @@ _elementName::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const        \
 
 
 
+
+
+
+
+#define NS_IMPL_STRING_ATTR(_class, _method, _atom)                     \
+  NS_IMETHODIMP                                                         \
+  _class::Get##_method(nsAString& aValue)                               \
+  {                                                                     \
+    return GetAttr(kNameSpaceID_None, nsGkAtoms::_atom, aValue);        \
+  }                                                                     \
+  NS_IMETHODIMP                                                         \
+  _class::Set##_method(const nsAString& aValue)                         \
+  {                                                                     \
+    return SetAttr(kNameSpaceID_None, nsGkAtoms::_atom, nsnull, aValue, true); \
+  }
+
+
+
+
 class nsTouchEventReceiverTearoff : public nsITouchEventReceiver
 {
 public:
