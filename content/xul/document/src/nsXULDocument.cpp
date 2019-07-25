@@ -1357,11 +1357,9 @@ nsXULDocument::Persist(const nsAString& aID,
     }
     else {
         
-        nsIParserService *parserService = nsContentUtils::GetParserService();
-        NS_ASSERTION(parserService, "Running scripts during shutdown?");
-
         const PRUnichar *colon;
-        rv = parserService->CheckQName(PromiseFlatString(aAttr), true, &colon);
+        rv = nsContentUtils::CheckQName(PromiseFlatString(aAttr), true, &colon);
+
         if (NS_FAILED(rv)) {
             
             return NS_ERROR_INVALID_ARG;
