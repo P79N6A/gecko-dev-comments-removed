@@ -4459,31 +4459,28 @@ nsRuleNode::ComputeDisplayData(void* aStartStruct,
 
 
     
-    if (head->mValue.GetUnit() == eCSSUnit_None)
-      display->mTransformPresent = PR_FALSE;
-
+    if (head->mValue.GetUnit() == eCSSUnit_None) {
+      display->mSpecifiedTransform = nsnull;
+    }
     
     else if (head->mValue.GetUnit() == eCSSUnit_Inherit)  {
-      display->mTransformPresent = parentDisplay->mTransformPresent;
-      if (parentDisplay->mTransformPresent)
+      display->mSpecifiedTransform = parentDisplay->mSpecifiedTransform;
+      if (parentDisplay->mSpecifiedTransform)
         display->mTransform = parentDisplay->mTransform;
       canStoreInRuleTree = PR_FALSE;
     }
     
-    else if (head->mValue.GetUnit() == eCSSUnit_Initial)
-      display->mTransformPresent = PR_FALSE;
-
+    else if (head->mValue.GetUnit() == eCSSUnit_Initial) {
+      display->mSpecifiedTransform = nsnull;
+    }
     
 
 
 
     else {
-
+      display->mSpecifiedTransform = head; 
       display->mTransform =
         ReadTransforms(head, aContext, mPresContext, canStoreInRuleTree);
-
-      
-      display->mTransformPresent = PR_TRUE;
     }
   }
 

@@ -1808,7 +1808,7 @@ nsStyleDisplay::nsStyleDisplay()
   mClipFlags = NS_STYLE_CLIP_AUTO;
   mClip.SetRect(0,0,0,0);
   mOpacity = 1.0f;
-  mTransformPresent = PR_FALSE; 
+  mSpecifiedTransform = nsnull;
   mTransformOrigin[0].SetPercentValue(0.5f); 
   mTransformOrigin[1].SetPercentValue(0.5f); 
   mTransitions.AppendElement();
@@ -1846,8 +1846,8 @@ nsStyleDisplay::nsStyleDisplay(const nsStyleDisplay& aSource)
   mOpacity = aSource.mOpacity;
 
   
-  mTransformPresent = aSource.mTransformPresent;
-  if (mTransformPresent)
+  mSpecifiedTransform = aSource.mSpecifiedTransform;
+  if (mSpecifiedTransform)
     mTransform = aSource.mTransform;
   
   
@@ -1894,10 +1894,10 @@ nsChangeHint nsStyleDisplay::CalcDifference(const nsStyleDisplay& aOther) const
   
 
 
-  if (mTransformPresent != aOther.mTransformPresent) {
+  if (HasTransform() != aOther.HasTransform()) {
     NS_UpdateHint(hint, nsChangeHint_ReconstructFrame);
   }
-  else if (mTransformPresent) {
+  else if (HasTransform()) {
     
 
 

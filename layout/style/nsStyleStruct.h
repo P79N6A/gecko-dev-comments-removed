@@ -71,6 +71,7 @@
 class nsIFrame;
 class imgIRequest;
 class imgIContainer;
+struct nsCSSValueList;
 
 
 #include "nsStyleStructFwd.h"
@@ -1288,9 +1289,15 @@ struct nsStyleDisplay {
   PRUint8 mOverflowY;           
   PRUint8 mResize;              
   PRUint8   mClipFlags;         
-  PRPackedBool mTransformPresent;  
+
+  
+  
+  
+  
+  const nsCSSValueList *mSpecifiedTransform; 
   nsStyleTransformMatrix mTransform; 
   nsStyleCoord mTransformOrigin[2]; 
+
   nsAutoTArray<nsTransition, 1> mTransitions; 
   
   
@@ -1333,7 +1340,7 @@ struct nsStyleDisplay {
   
   PRBool IsPositioned() const {
     return IsAbsolutelyPositioned() ||
-      NS_STYLE_POSITION_RELATIVE == mPosition || mTransformPresent;
+      NS_STYLE_POSITION_RELATIVE == mPosition || HasTransform();
   }
 
   PRBool IsScrollableOverflow() const {
@@ -1353,7 +1360,7 @@ struct nsStyleDisplay {
 
   
   PRBool HasTransform() const {
-    return mTransformPresent;
+    return mSpecifiedTransform != nsnull;
   }
 };
 

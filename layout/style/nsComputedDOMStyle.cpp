@@ -1021,7 +1021,7 @@ nsresult nsComputedDOMStyle::GetMozTransform(nsIDOMCSSValue **aValue)
   
 
 
-  if (!display->mTransformPresent) {
+  if (!display->HasTransform()) {
     nsROCSSPrimitiveValue* val = GetROCSSPrimitiveValue();
     if (!val)
       return NS_ERROR_OUT_OF_MEMORY;
