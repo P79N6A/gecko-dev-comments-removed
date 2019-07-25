@@ -264,6 +264,14 @@ public:
     return GetChildAt(GetChildIndexAtOffset(aOffset));
   }
 
+  
+  
+
+  
+
+
+  virtual already_AddRefed<nsIEditor> GetEditor() const;
+
 protected:
   
 

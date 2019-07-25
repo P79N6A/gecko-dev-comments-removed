@@ -139,7 +139,7 @@ public:
   NS_IMETHOD DoAction(PRUint8 index);
 
   
-  NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
+  virtual already_AddRefed<nsIEditor> GetEditor() const;
 
   
   virtual void ApplyARIAState(PRUint64* aState);
