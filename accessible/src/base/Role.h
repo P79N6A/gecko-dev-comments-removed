@@ -40,6 +40,10 @@
 #ifndef _role_h_
 #define _role_h_
 
+
+
+
+
 namespace mozilla {
 namespace a11y {
 namespace roles {
