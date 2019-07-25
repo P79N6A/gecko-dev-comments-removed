@@ -115,6 +115,52 @@ Dict.prototype = Object.freeze({
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setAsLazyGetter: function Dict_setAsLazyGetter(aKey, aThunk) {
+    let prop = convert(aKey);
+    let items = this._state.items;
+    if (!items.hasOwnProperty(prop))
+      this._state.count++;
+
+    Object.defineProperty(items, prop, {
+      get: function() {
+        delete items[prop];
+        return items[prop] = aThunk();
+      },
+      configurable: true,
+      enumerable: true     
+    });
+  },
+
+  
+
+
+
+
+
+
+  isLazyGetter: function Dict_isLazyGetter(aKey) {
+    let descriptor = Object.getOwnPropertyDescriptor(this._state.items,
+                                                     convert(aKey));
+    return (descriptor && descriptor.get != null);
+  },
+
+  
+
+
+
   has: function Dict_has(aKey) {
     return (this._state.items.hasOwnProperty(convert(aKey)));
   },
