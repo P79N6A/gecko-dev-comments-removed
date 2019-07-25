@@ -633,7 +633,6 @@ gfxUniscribeShaper::InitTextRun(gfxContext *aContext,
         }
 
         if (FAILED(rv)) {
-            aTextRun->ResetGlyphRuns();
             
             
             
