@@ -94,7 +94,6 @@ public:
     void AddFontEntry(gfxFontEntry *aFontEntry) {
         nsRefPtr<gfxFontEntry> fe = aFontEntry;
         mAvailableFonts.AppendElement(fe);
-        aFontEntry->SetFamily(this);
     }
 
     void ReplaceFontEntry(gfxFontEntry *aOldFontEntry, gfxFontEntry *aNewFontEntry) 
@@ -104,8 +103,6 @@ public:
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aOldFontEntry) {
                 mAvailableFonts[i] = aNewFontEntry;
-                aOldFontEntry->SetFamily(nsnull);
-                aNewFontEntry->SetFamily(this);
                 return;
             }
         }
@@ -117,7 +114,6 @@ public:
         for (PRUint32 i = 0; i < numFonts; i++) {
             gfxFontEntry *fe = mAvailableFonts[i];
             if (fe == aFontEntry) {
-                aFontEntry->SetFamily(nsnull);
                 mAvailableFonts.RemoveElementAt(i);
                 return;
             }
@@ -176,17 +172,14 @@ public:
     
     
     
-    gfxFontEntry *AddFontFace(const nsAString& aFamilyName,
-                              const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
-                              PRUint32 aWeight,
-                              PRUint32 aStretch,
-                              PRUint32 aItalicStyle,
-                              const nsString& aFeatureSettings,
-                              const nsString& aLanguageOverride,
-                              gfxSparseBitSet *aUnicodeRanges = nsnull);
-
-    
-    void AddFontFace(const nsAString& aFamilyName, gfxFontEntry* aFontEntry);
+    void AddFontFace(const nsAString& aFamilyName,
+                     const nsTArray<gfxFontFaceSrc>& aFontFaceSrcList,
+                     PRUint32 aWeight,
+                     PRUint32 aStretch,
+                     PRUint32 aItalicStyle,
+                     const nsString& aFeatureSettings,
+                     const nsString& aLanguageOverride,
+                     gfxSparseBitSet *aUnicodeRanges = nsnull);
 
     
     PRBool HasFamily(const nsAString& aFamilyName) const
@@ -215,12 +208,6 @@ public:
     PRBool OnLoadComplete(gfxFontEntry *aFontToLoad,
                           const PRUint8 *aFontData, PRUint32 aLength,
                           nsresult aDownloadStatus);
-
-    
-    
-    
-    virtual void ReplaceFontEntry(gfxProxyFontEntry *aProxy,
-                                  gfxFontEntry *aFontEntry) = 0;
 
     
     
