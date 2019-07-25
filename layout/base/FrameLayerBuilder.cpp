@@ -815,6 +815,14 @@ FrameLayerBuilder::RemoveDisplayItemDataForFrame(DisplayItemDataEntry* aEntry,
   return PL_DHASH_REMOVE;
 }
 
+LayerManagerLayerBuilder::~LayerManagerLayerBuilder()
+{
+  MOZ_COUNT_DTOR(LayerManagerLayerBuilder);
+  if (mDelete) {
+    delete mLayerBuilder;
+  }
+}
+
  PLDHashOperator
 FrameLayerBuilder::StoreNewDisplayItemData(DisplayItemDataEntry* aEntry,
                                            void* aUserArg)
@@ -2036,7 +2044,7 @@ FrameLayerBuilder::AddThebesDisplayItem(ThebesLayer* aLayer,
       layerBuilder->Init(mDisplayListBuilder);
       layerBuilder->mMaxContainerLayerGeneration = mMaxContainerLayerGeneration;
       
-      tempManager->SetUserData(&gLayerManagerLayerBuilder, layerBuilder);
+      tempManager->SetUserData(&gLayerManagerLayerBuilder, new LayerManagerLayerBuilder(layerBuilder, true));
 
       tempManager->BeginTransaction();
       if (mRetainingManager) {
