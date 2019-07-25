@@ -167,9 +167,6 @@ WeaveCrypto.prototype = {
         this.nss_t.PK11AttrFlags = ctypes.unsigned_int;
         
         
-        this.nss_t.SECOidTag = ctypes.int;
-        
-        
         this.nss_t.SECItem = ctypes.StructType(
             "SECItem", [{ type: this.nss_t.SECItemType },
                         { data: ctypes.unsigned_char.ptr },
