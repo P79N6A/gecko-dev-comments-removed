@@ -64,6 +64,7 @@
 #include "nsIDOMDocument.h"
 #include "nsIDOMNodeList.h"
 #include "nsIDOMNode.h"
+#include "nsIDOM3Node.h"
 #include "nsIIOService.h"
 #include "nsNetCID.h"
 #include "nsNetUtil.h"
@@ -2088,7 +2089,6 @@ nsresult
 nsContentUtils::GetNodeInfoFromQName(const nsAString& aNamespaceURI,
                                      const nsAString& aQualifiedName,
                                      nsNodeInfoManager* aNodeInfoManager,
-                                     PRUint16 aNodeType,
                                      nsINodeInfo** aNodeInfo)
 {
   nsIParserService* parserService = GetParserService();
@@ -2108,11 +2108,11 @@ nsContentUtils::GetNodeInfoFromQName(const nsAString& aNamespaceURI,
     nsCOMPtr<nsIAtom> prefix = do_GetAtom(Substring(qName.get(), colon));
 
     rv = aNodeInfoManager->GetNodeInfo(Substring(colon + 1, end), prefix,
-                                       nsID, aNodeType, aNodeInfo);
+                                       nsID, aNodeInfo);
   }
   else {
     rv = aNodeInfoManager->GetNodeInfo(aQualifiedName, nsnull, nsID,
-                                       aNodeType, aNodeInfo);
+                                       aNodeInfo);
   }
   NS_ENSURE_SUCCESS(rv, rv);
 
@@ -5538,17 +5538,17 @@ CloneSimpleValues(JSContext* cx,
 
   
   if (js_IsArrayBuffer(obj)) {
-    js::ArrayBuffer* src = js::ArrayBuffer::fromJSObject(obj);
+    JSObject* src = js::ArrayBuffer::getArrayBuffer(src);
     if (!src) {
       return NS_ERROR_FAILURE;
     }
 
-    JSObject* newBuffer = js_CreateArrayBuffer(cx, src->byteLength);
+    JSObject* newBuffer = js_CreateArrayBuffer(cx, js::ArrayBuffer::getByteLength(src));
     if (!newBuffer) {
       return NS_ERROR_FAILURE;
     }
-    memcpy(js::ArrayBuffer::fromJSObject(newBuffer)->data, src->data,
-           src->byteLength);
+    memcpy(js::ArrayBuffer::getDataOffset(newBuffer), js::ArrayBuffer::getDataOffset(src),
+           js::ArrayBuffer::getByteLength(src));
     return SetPropertyOnValueOrObject(cx, OBJECT_TO_JSVAL(newBuffer), rval,
                                       robj, rid);
   }

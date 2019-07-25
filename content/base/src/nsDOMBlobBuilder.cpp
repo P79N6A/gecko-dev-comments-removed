@@ -35,6 +35,7 @@
 
 
 
+#include "jsobj.h"
 #include "jstypedarray.h"
 #include "nsAutoPtr.h"
 #include "nsDOMClassInfo.h"
@@ -234,7 +235,7 @@ protected:
   nsresult AppendVoidPtr(void* aData, PRUint32 aLength);
   nsresult AppendString(JSString* aString, JSContext* aCx);
   nsresult AppendBlob(nsIDOMBlob* aBlob);
-  nsresult AppendArrayBuffer(js::ArrayBuffer* aBuffer);
+  nsresult AppendArrayBuffer(JSObject* aBuffer);
 
   bool ExpandBufferSize(PRUint64 aSize)
   {
@@ -332,9 +333,9 @@ nsDOMBlobBuilder::AppendBlob(nsIDOMBlob* aBlob)
 }
 
 nsresult
-nsDOMBlobBuilder::AppendArrayBuffer(js::ArrayBuffer* aBuffer)
+nsDOMBlobBuilder::AppendArrayBuffer(JSObject* aBuffer)
 {
-  return AppendVoidPtr(aBuffer->data, aBuffer->byteLength);
+  return AppendVoidPtr(js::ArrayBuffer::getDataOffset(aBuffer), js::ArrayBuffer::getByteLength(aBuffer));
 }
 
 
@@ -379,7 +380,7 @@ nsDOMBlobBuilder::Append(const jsval& aData, JSContext* aCx)
 
     
     if (js_IsArrayBuffer(obj)) {
-      js::ArrayBuffer* buffer = js::ArrayBuffer::fromJSObject(obj);
+      JSObject* buffer = js::ArrayBuffer::getArrayBuffer(obj);
       if (buffer)
         return AppendArrayBuffer(buffer);
     }
