@@ -663,14 +663,6 @@ function do_get_cwd() {
   return do_get_file("");
 }
 
-
-
-
-
-function do_load_httpd_js() {
-  load(_HTTPD_JS_PATH);
-}
-
 function do_load_manifest(path) {
   var lf = do_get_file(path);
   const nsIComponentRegistrar = Components.interfaces.nsIComponentRegistrar;
