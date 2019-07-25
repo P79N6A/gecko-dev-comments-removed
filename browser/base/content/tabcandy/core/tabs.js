@@ -328,16 +328,8 @@ window.TabsManager = $.extend(new Subscribable(), {
   
   init: function() {
     var self = this;
-
-
-
-
-
-    var chromeWindow = Utils.activeWindow;
-    if(!chromeWindow.getBrowser || !chromeWindow.getBrowser())
-      chromeWindow = null;
-    
-    if(!chromeWindow) {
+    var chromeWindow = Utils.getCurrentWindow();
+    if(!chromeWindow || !chromeWindow.getBrowser || !chromeWindow.getBrowser()) {
       setTimeout(function() {
         self.init();
       }, 100);
