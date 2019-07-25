@@ -103,6 +103,11 @@
 #define CSS_PROPERTY_PARSE_VALUE                  (3<<9)
 
 
+#define CSS_PROPERTY_VALUE_PARSER_FUNCTION        (1<<12)
+PR_STATIC_ASSERT((CSS_PROPERTY_PARSE_PROPERTY_MASK &
+                  CSS_PROPERTY_VALUE_PARSER_FUNCTION) == 0);
+
+
 
 
 enum nsStyleAnimType {
