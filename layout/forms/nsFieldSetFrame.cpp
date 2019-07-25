@@ -126,6 +126,8 @@ protected:
   virtual PRIntn GetSkipSides() const;
   void ReparentFrameList(const nsFrameList& aFrameList);
 
+  
+  
   nsIFrame* mLegendFrame;
   nsIFrame* mContentFrame;
   nsRect    mLegendRect;
@@ -560,7 +562,8 @@ nsFieldSetFrame::Reflow(nsPresContext*           aPresContext,
   if (mLegendFrame) {
     
     if (contentRect.width > mLegendRect.width) {
-      PRInt32 align = static_cast<nsLegendFrame*>(mLegendFrame)->GetAlign();
+      PRInt32 align = static_cast<nsLegendFrame*>
+        (mLegendFrame->GetContentInsertionFrame())->GetAlign();
 
       switch(align) {
         case NS_STYLE_TEXT_ALIGN_RIGHT:
