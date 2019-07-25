@@ -99,9 +99,14 @@ function test2()
 
 
 
-  var expectedLine = 109;
+  var expectedLine = 114;
   var expectedFileName = 'js1_5/extensions/regress-50447-1.js';
-  if (typeof document != "undefined") {
+  if (typeof document == "undefined")
+  {
+    expectedFileName = './' + expectedFileName;
+  }
+  else
+  {
     expectedFileName = document.location.href.
       replace(/[^\/]*(\?.*)$/, '') +
       expectedFileName;
@@ -132,7 +137,12 @@ function test3()
   enterFunc ("test3");
 
   var expectedFileName = 'js1_5/extensions/regress-50447-1.js';
-  if (typeof document != "undefined") {
+  if (typeof document == "undefined")
+  {
+    expectedFileName = './' + expectedFileName;
+  }
+  else
+  {
     expectedFileName = document.location.href.
       replace(/[^\/]*(\?.*)$/, '') +
       expectedFileName;
@@ -158,7 +168,7 @@ function test4()
   
   enterFunc ("test4");
 
-  var expectedLine = 163;
+  var expectedLine = 173;
 
   var e = new InternalError ("msg", "file");
   reportCompare ("(new InternalError(\"msg\", \"file\", " + expectedLine + "))",
