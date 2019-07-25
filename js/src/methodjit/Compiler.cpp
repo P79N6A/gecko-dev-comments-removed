@@ -2696,75 +2696,80 @@ mjit::Compiler::jsop_propinc(JSOp op, VoidStubAtom stub, uint32 index)
 {
     JSAtom *atom = script->getAtom(index);
 #if defined JS_POLYIC
-    jsbytecode *next = &PC[JSOP_PROPINC_LENGTH];
-    bool pop = (JSOp(*next) == JSOP_POP) && !analysis[next].nincoming;
-    int amt = (op == JSOP_PROPINC || op == JSOP_INCPROP) ? -1 : 1;
+    FrameEntry *objFe = frame.peek(-1);
+    if (!objFe->isTypeKnown() || objFe->getKnownType() == JSVAL_TYPE_OBJECT) {
+        jsbytecode *next = &PC[JSOP_PROPINC_LENGTH];
+        bool pop = (JSOp(*next) == JSOP_POP) && !analysis[next].nincoming;
+        int amt = (op == JSOP_PROPINC || op == JSOP_INCPROP) ? -1 : 1;
 
-    if (pop || (op == JSOP_INCPROP || op == JSOP_DECPROP)) {
-        
+        if (pop || (op == JSOP_INCPROP || op == JSOP_DECPROP)) {
+            
 
-        frame.dup();
-        
+            frame.dup();
+            
 
-        jsop_getprop(atom);
-        
+            jsop_getprop(atom);
+            
 
-        frame.push(Int32Value(amt));
-        
+            frame.push(Int32Value(amt));
+            
 
-        
-        jsop_binary(JSOP_SUB, stubs::Sub);
-        
+            
+            jsop_binary(JSOP_SUB, stubs::Sub);
+            
 
-        jsop_setprop(atom);
-        
+            jsop_setprop(atom);
+            
 
+            if (pop)
+                frame.pop();
+        } else {
+            
+
+            frame.dup();
+            
+
+            jsop_getprop(atom);
+            
+
+            jsop_pos();
+            
+
+            frame.dup();
+            
+
+            frame.push(Int32Value(-amt));
+            
+
+            jsop_binary(JSOP_ADD, stubs::Add);
+            
+
+            frame.dupAt(-3);
+            
+
+            frame.dupAt(-2);
+            
+
+            jsop_setprop(atom);
+            
+
+            frame.popn(2);
+            
+
+            frame.shimmy(1);
+            
+        }
         if (pop)
-            frame.pop();
-    } else {
-        
-
-        frame.dup();
-        
-
-        jsop_getprop(atom);
-        
-
-        jsop_pos();
-        
-
-        frame.dup();
-        
-
-        frame.push(Int32Value(-amt));
-        
-
-        jsop_binary(JSOP_ADD, stubs::Add);
-        
-
-        frame.dupAt(-3);
-        
-
-        frame.dupAt(-2);
-        
-
-        jsop_setprop(atom);
-        
-
-        frame.popn(2);
-        
-
-        frame.shimmy(1);
-        
-    }
-    if (pop)
-        PC += JSOP_POP_LENGTH;
+            PC += JSOP_POP_LENGTH;
+    } else
 #else
-    prepareStubCall(Uses(1));
-    masm.move(ImmPtr(atom), Registers::ArgReg1);
-    stubCall(stub);
-    frame.pop();
-    frame.pushSynced();
+    {
+        prepareStubCall(Uses(1));
+        masm.move(ImmPtr(atom), Registers::ArgReg1);
+        stubCall(stub);
+        frame.pop();
+        frame.pushSynced();
+    }
 #endif
 
     PC += JSOP_PROPINC_LENGTH;
