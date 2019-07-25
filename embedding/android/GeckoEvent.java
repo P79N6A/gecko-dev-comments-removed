@@ -335,4 +335,9 @@ public class GeckoEvent {
         mBandwidth = bandwidth;
         mCanBeMetered = canBeMetered;
     }
+
+    public void doCallback(String json) {
+        
+        
+    }
 }
