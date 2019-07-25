@@ -74,11 +74,11 @@
 
 
 
-#define SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
+#define DEFAULT_SUCCESSIVE_DIALOG_TIME_LIMIT 3 // 3 sec
 
 
 
-#define MAX_DIALOG_COUNT 10
+#define MAX_SUCCESSIVE_DIALOG_COUNT 5
 
 
 #define MAX_IDLE_FUZZ_TIME_MS 90000
@@ -440,17 +440,17 @@ public:
 
   
   
-  
-  bool DialogOpenAttempted();
-
-  
-  
-  bool AreDialogsBlocked();
+  bool DialogsAreBlocked(bool *aBeingAbused);
 
   
   
   
-  bool ConfirmDialogAllowed();
+  bool DialogsAreBeingAbused();
+
+  
+  
+  
+  bool ConfirmDialogIfNeeded();
 
   
   void PreventFurtherDialogs();
@@ -1044,15 +1044,20 @@ protected:
 
   
   
+  
+  
   PRUint32                      mDialogAbuseCount;
 
   
   
   
   
-  
   TimeStamp                     mLastDialogQuitTime;
-  bool                          mDialogDisabled;
+
+  
+  
+  
+  bool                          mStopAbuseDialogs;
 
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
