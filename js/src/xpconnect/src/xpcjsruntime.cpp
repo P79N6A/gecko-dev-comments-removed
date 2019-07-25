@@ -498,15 +498,6 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
                 {
                     return JS_FALSE;
                 }
-
-                
-                
-                JSContext *iter = nsnull, *acx;
-
-                while((acx = JS_ContextIterator(GetJSRuntime(), &iter))) {
-                    if (!JS_HAS_OPTION(acx, JSOPTION_UNROOTED_GLOBAL))
-                        JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
-                }
                 break;
             }
             case JSGC_MARK_END:
