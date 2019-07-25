@@ -232,15 +232,6 @@ public:
 
 
 
-  bool IsRealBookmark(PRInt64 aPlaceId);
-
-  
-
-
-
-
-
-
 
   nsresult FetchItemInfo(PRInt64 aItemId,
                          BookmarkData& _bookmark);
