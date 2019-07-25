@@ -43,6 +43,7 @@ enum TBasicType
     EbtSampler2D,
     EbtSamplerCube,
     EbtSamplerExternalOES,  
+    EbtSampler2DRect,       
     EbtGuardSamplerEnd,    
     EbtStruct,
     EbtAddress,            
@@ -59,6 +60,7 @@ inline const char* getBasicString(TBasicType t)
     case EbtSampler2D:         return "sampler2D";         break;
     case EbtSamplerCube:       return "samplerCube";       break;
     case EbtSamplerExternalOES: return "samplerExternalOES"; break;
+    case EbtSampler2DRect:     return "sampler2DRect";     break;
     case EbtStruct:            return "structure";         break;
     default:                   return "unknown type";
     }

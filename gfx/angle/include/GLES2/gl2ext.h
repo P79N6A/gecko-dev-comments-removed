@@ -208,6 +208,11 @@ typedef void* GLeglImageOES;
 #endif
 
 
+#ifndef GL_ANGLE_pack_reverse_row_order
+#define GL_PACK_REVERSE_ROW_ORDER_ANGLE                         0x93A4
+#endif
+
+
 #ifndef GL_ANGLE_texture_compression_dxt3
 #define GL_COMPRESSED_RGBA_S3TC_DXT3_ANGLE                      0x83F2
 #endif
@@ -845,6 +850,11 @@ typedef void (GL_APIENTRYP PFNGLBLITFRAMEBUFFERANGLEPROC) (GLint srcX0, GLint sr
 GL_APICALL void GL_APIENTRY glRenderbufferStorageMultisampleANGLE (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
 #endif
 typedef void (GL_APIENTRYP PFNGLRENDERBUFFERSTORAGEMULTISAMPLEANGLEPROC) (GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height);
+#endif
+
+
+#ifndef GL_ANGLE_pack_reverse_row_order
+#define GL_ANGLE_pack_reverse_row_order 1
 #endif
 
 
