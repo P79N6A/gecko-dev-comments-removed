@@ -825,7 +825,7 @@ PropertiesView.prototype = {
 
     
     let element = this._createPropertyElement(aName, aId, "variable",
-                                              aScope.querySelector(".details"));
+                                              aScope.getElementsByClassName("details")[0]);
 
     
     if (!element) {
@@ -845,19 +845,25 @@ PropertiesView.prototype = {
     
     element.refresh(function() {
       let separator = document.createElement("span");
-      let info = document.createElement("span");
-      let title = element.querySelector(".title");
-      let arrow = element.querySelector(".arrow");
+      let value = document.createElement("span");
+      let title = element.getElementsByClassName("title")[0];
 
       
       separator.className = "unselectable";
       separator.appendChild(document.createTextNode(": "));
 
       
-      info.className = "info";
+      value.className = "value";
+
+      
+      value.addEventListener("click", this._activateElementInputMode.bind({
+        scope: this,
+        element: element,
+        value: value
+      }));
 
       title.appendChild(separator);
-      title.appendChild(info);
+      title.appendChild(value);
 
     }.bind(this));
 
@@ -898,17 +904,35 @@ PropertiesView.prototype = {
       aGrip = { type: "null" };
     }
 
-    let info = aVar.querySelector(".info") || aVar.target.info;
+    let value = aVar.getElementsByClassName("value")[0];
 
     
-    if (!info) {
+    if (!value) {
       return null;
     }
 
-    info.textContent = this._propertyString(aGrip);
-    info.classList.add(this._propertyColor(aGrip));
-
+    this._applyGrip(value, aGrip);
     return aVar;
+  },
+
+  
+
+
+
+
+
+
+
+
+  _applyGrip: function DVP__applyGrip(aValueNode, aGrip) {
+    let prevGrip = aValueNode.currentGrip;
+    if (prevGrip) {
+      aValueNode.classList.remove(this._propertyColor(prevGrip));
+    }
+
+    aValueNode.textContent = this._propertyString(aGrip);
+    aValueNode.classList.add(this._propertyColor(aGrip));
+    aValueNode.currentGrip = aGrip;
   },
 
   
@@ -1000,7 +1024,7 @@ PropertiesView.prototype = {
 
     
     let element = this._createPropertyElement(aName, aId, "property",
-                                              aVar.querySelector(".details"));
+                                              aVar.getElementsByClassName("details")[0]);
 
     
     if (!element) {
@@ -1021,15 +1045,14 @@ PropertiesView.prototype = {
     element.refresh(function(pKey, pGrip) {
       let propertyString = this._propertyString(pGrip);
       let propertyColor = this._propertyColor(pGrip);
-      let key = document.createElement("div");
-      let value = document.createElement("div");
+      let title = element.getElementsByClassName("title")[0];
+      let name = title.getElementsByClassName("name")[0];
       let separator = document.createElement("span");
-      let title = element.querySelector(".title");
-      let arrow = element.querySelector(".arrow");
+      let value = document.createElement("span");
 
       
-      key.className = "key";
-      key.appendChild(document.createTextNode(pKey));
+      name.className = "key";
+      name.appendChild(document.createTextNode(pKey));
 
       
       value.className = "value";
@@ -1041,7 +1064,7 @@ PropertiesView.prototype = {
       separator.appendChild(document.createTextNode(": "));
 
       if ("undefined" !== typeof pKey) {
-        title.appendChild(key);
+        title.appendChild(name);
       }
       if ("undefined" !== typeof pGrip) {
         title.appendChild(separator);
@@ -1049,10 +1072,11 @@ PropertiesView.prototype = {
       }
 
       
-      
-      element.target = {
-        info: value
-      };
+      value.addEventListener("click", this._activateElementInputMode.bind({
+        scope: this,
+        element: element,
+        value: value
+      }));
 
       
       Object.defineProperty(aVar, pKey, { value: element,
@@ -1063,6 +1087,143 @@ PropertiesView.prototype = {
 
     
     return element;
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  _activateElementInputMode: function DVP__activateElementInputMode(aEvent) {
+    if (aEvent) {
+      aEvent.stopPropagation();
+    }
+
+    let self = this.scope;
+    let element = this.element;
+    let value = this.value;
+    let title = this.value.parentNode;
+    let initialTextContent = value.textContent;
+
+    
+    
+    element._previouslyExpanded = element.expanded;
+    element._preventExpand = true;
+    element.collapse();
+    element.forceHideArrow();
+
+    
+    
+    let textbox = document.createElement("textbox");
+    textbox.setAttribute("value", value.textContent);
+    textbox.className = "element-input";
+    textbox.width = value.clientWidth + 1;
+
+    
+    function DVP_element_textbox_blur(aTextboxEvent) {
+      DVP_element_textbox_save();
+    }
+
+    function DVP_element_textbox_keydown(aTextboxEvent) {
+      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RETURN ||
+          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ENTER) {
+        DVP_element_textbox_save();
+        return;
+      }
+      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_ESCAPE) {
+        value.textContent = initialTextContent;
+        DVP_element_textbox_clear();
+        return;
+      }
+      value.textContent = textbox.value;
+    }
+
+    function DVP_element_textbox_keypress(aTextboxEvent) {
+      if (aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_LEFT ||
+          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_RIGHT ||
+          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_UP ||
+          aTextboxEvent.keyCode === aTextboxEvent.DOM_VK_DOWN) {
+        return;
+      }
+      if (value.clientWidth > textbox.width - 1) {
+        textbox.width = value.clientWidth + 30;
+      }
+    }
+
+    
+    function DVP_element_textbox_save() {
+      if (textbox.value !== value.textContent) {
+        
+        
+        let result = eval(textbox.value);
+        let grip;
+
+        
+        switch (typeof result) {
+          case "number":
+          case "boolean":
+          case "string":
+            grip = result;
+            break;
+          case "object":
+            if (result === null) {
+              grip = {
+                "type": "null"
+              };
+            } else {
+              grip = {
+                "type": "object",
+                "class": result.constructor.name || "Object"
+              };
+            }
+            break;
+          case "undefined":
+            grip = { type: "undefined" };
+        }
+
+        self._applyGrip(value, grip);
+      }
+      DVP_element_textbox_clear();
+    }
+
+    
+    function DVP_element_textbox_clear() {
+      element._preventExpand = false;
+      if (element._previouslyExpanded) {
+        element._previouslyExpanded = false;
+        element.expand();
+      }
+      element.showArrow();
+
+      textbox.removeEventListener("blur", DVP_element_textbox_blur, false);
+      textbox.removeEventListener("keydown", DVP_element_textbox_keydown, false);
+      textbox.removeEventListener("keypress", DVP_element_textbox_keypress, false);
+      title.removeChild(textbox);
+      value.removeAttribute("offscreen");
+    }
+
+    textbox.addEventListener("blur", DVP_element_textbox_blur, false);
+    textbox.addEventListener("keydown", DVP_element_textbox_keydown, false);
+    textbox.addEventListener("keypress", DVP_element_textbox_keypress, false);
+    title.appendChild(textbox);
+    value.setAttribute("offscreen", "");
+
+    textbox.select();
+
+    
+    
+    
+    if (value.textContent.match(/^"[^"]*"$/)) {
+      textbox.selectionEnd--;
+      textbox.selectionStart++;
+    }
   },
 
   
@@ -1170,10 +1331,17 @@ PropertiesView.prototype = {
 
     
     title.className = "title";
-    title.addEventListener("click", function() { element.toggle(); }, true);
 
     
     details.className = "details";
+
+    
+    if (aClass === "scope") {
+      title.addEventListener("click", function() { element.toggle(); }, false);
+    } else {
+      arrow.addEventListener("click", function() { element.toggle(); }, false);
+      name.addEventListener("click", function() { element.toggle(); }, false);
+    }
 
     title.appendChild(arrow);
     title.appendChild(name);
@@ -1217,6 +1385,9 @@ PropertiesView.prototype = {
 
 
     element.expand = function DVP_element_expand() {
+      if (element._preventExpand) {
+        return;
+      }
       arrow.setAttribute("open", "");
       details.setAttribute("open", "");
 
@@ -1232,6 +1403,9 @@ PropertiesView.prototype = {
 
 
     element.collapse = function DVP_element_collapse() {
+      if (element._preventCollapse) {
+        return;
+      }
       arrow.removeAttribute("open");
       details.removeAttribute("open");
 
@@ -1261,7 +1435,7 @@ PropertiesView.prototype = {
 
 
     element.showArrow = function DVP_element_showArrow() {
-      if (details.childNodes.length) {
+      if (element._forceShowArrow || details.childNodes.length) {
         arrow.style.visibility = "visible";
       }
       return element;
@@ -1272,12 +1446,22 @@ PropertiesView.prototype = {
 
 
 
+    element.hideArrow = function DVP_element_hideArrow() {
+      if (!element._forceShowArrow) {
+        arrow.style.visibility = "hidden";
+      }
+      return element;
+    };
+
+    
 
 
 
 
-    element.forceShowArrow = function DVP_element_forceShowArrow(aPreventHideFlag) {
-      element._preventHide = aPreventHideFlag;
+
+
+    element.forceShowArrow = function DVP_element_forceShowArrow() {
+      element._forceShowArrow = true;
       arrow.style.visibility = "visible";
       return element;
     };
@@ -1287,10 +1471,10 @@ PropertiesView.prototype = {
 
 
 
-    element.hideArrow = function DVP_element_hideArrow() {
-      if (!element._preventHide) {
-        arrow.style.visibility = "hidden";
-      }
+
+
+    element.forceHideArrow = function DVP_element_forceHideArrow() {
+      arrow.style.visibility = "hidden";
       return element;
     };
 
@@ -1367,6 +1551,24 @@ PropertiesView.prototype = {
 
 
 
+    Object.defineProperty(element, "arrowVisible", {
+      get: function DVP_element_getArrowVisible() {
+        return arrow.style.visibility !== "hidden";
+      },
+      set: function DVP_element_setExpanded(value) {
+        if (value) {
+          element.showArrow();
+        } else {
+          element.hideArrow();
+        }
+      }
+    });
+
+    
+
+
+
+
 
 
 
@@ -1377,8 +1579,8 @@ PropertiesView.prototype = {
       }
 
       let node = aParent.parentNode;
-      let arrow = node.querySelector(".arrow");
-      let children = node.querySelector(".details").childNodes.length;
+      let arrow = node.getElementsByClassName("arrow")[0];
+      let children = node.getElementsByClassName("details")[0].childNodes.length;
 
       
       
