@@ -1966,8 +1966,6 @@ nsGfxScrollFrameInner::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
 
   nsDisplayListCollection set;
 
-  nsPresContext* presContext = mOuter->PresContext();
-
   
   
   

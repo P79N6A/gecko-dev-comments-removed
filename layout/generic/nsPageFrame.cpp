@@ -510,7 +510,7 @@ nsPageFrame::PaintHeaderFooter(nsRenderingContext& aRenderingContext,
 
   
   nsRefPtr<nsFontMetrics> fontMet;
-  pc->DeviceContext()->GetMetricsFor(*mPD->mHeadFootFont,
+  pc->DeviceContext()->GetMetricsFor(*mPD->mHeadFootFont, nsnull,
                                      pc->GetUserFontSet(),
                                      *getter_AddRefs(fontMet));
 

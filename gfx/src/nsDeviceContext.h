@@ -41,14 +41,13 @@
 #define _NS_DEVICECONTEXT_H_
 
 #include "nsCOMPtr.h"
-#include "nsIAtom.h"
 #include "nsIDeviceContextSpec.h"
 #include "nsIScreenManager.h"
 #include "nsIWidget.h"
 #include "nsCoord.h"
 #include "gfxContext.h"
 
-class nsIView;
+class nsIAtom;
 class nsFontCache;
 class gfxUserFontSet;
 
@@ -103,15 +102,6 @@ public:
 
 
 
-    nsresult CreateRenderingContext(nsIView *aView,
-                                    nsRenderingContext *&aContext);
-
-    
-
-
-
-
-
     nsresult CreateRenderingContext(nsIWidget *aWidget,
                                     nsRenderingContext *&aContext);
 
@@ -133,21 +123,7 @@ public:
 
 
 
-
-
-    nsresult PrepareNativeWidget(nsIWidget *aWidget, void **aOut);
-
-    
-
-
-
     static PRInt32 AppUnitsPerCSSPixel() { return 60; }
-
-    
-
-
-    static gfxFloat AppUnitsToGfxCSSPixels(nscoord aAppUnits)
-    { return gfxFloat(aAppUnits) / AppUnitsPerCSSPixel(); }
 
     
 
@@ -222,18 +198,6 @@ public:
 
 
 
-
-
-
-
-    nsresult GetMetricsFor(const nsFont& aFont,
-                           gfxUserFontSet* aUserFontSet,
-                           nsFontMetrics*& aMetrics);
-
-    
-
-
-
     nsresult FontMetricsDeleted(const nsFontMetrics* aFontMetrics);
 
     
@@ -242,17 +206,6 @@ public:
 
 
     nsresult FlushFontCache();
-
-    
-
-
-
-
-    nsresult CheckFontExistence(const nsString& aFaceName);
-    nsresult FirstExistingFont(const nsFont& aFont, nsString& aFaceName);
-    nsresult GetLocalFontName(const nsString& aFaceName, nsString& aLocalName,
-                              PRBool& aAliased);
-
 
     
 
@@ -291,17 +244,6 @@ public:
 
 
     nsresult GetClientRect(nsRect& aRect);
-
-    
-
-
-
-
-
-
-
-    nsresult PrepareDocument(PRUnichar *aTitle,
-                             PRUnichar *aPrintToFileName);
 
     
 
@@ -371,17 +313,9 @@ public:
     
 
 
-
-    float GetPixelScale() const { return mPixelScale; }
-
-    
-
-
     PRBool IsPrinterSurface();
 
 protected:
-    void CreateFontCache();
-    void GetLocaleLanguage();
     void SetDPI();
     void ComputeClientRectUsingScreen(nsRect *outRect);
     void ComputeFullAreaUsingScreen(nsRect *outRect);
@@ -399,7 +333,6 @@ protected:
     float    mPrintingScale;
 
     nsFontCache*                   mFontCache;
-    nsCOMPtr<nsIAtom>              mLocaleLanguage;
     nsCOMPtr<nsIWidget>            mWidget;
     nsCOMPtr<nsIScreenManager>     mScreenManager;
     nsCOMPtr<nsIDeviceContextSpec> mDeviceContextSpec;
