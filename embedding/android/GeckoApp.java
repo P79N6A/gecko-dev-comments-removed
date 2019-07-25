@@ -618,9 +618,6 @@ abstract public class GeckoApp
             
             Log.w(LOG_FILE_NAME, "error removing files", ex);
         }
-        try {
-            unpackFile(zip, buf, null, "update.locale");
-        } catch (Exception e) {}
 
         
         Enumeration<? extends ZipEntry> zipEntries = zip.entries();
