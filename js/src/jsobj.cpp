@@ -1249,8 +1249,22 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
 
     JSScript *script = NULL;
     JSScript **bucket = EvalCacheHash(cx, linearStr);
-    if (evalType == DIRECT_EVAL && caller->isFunctionFrame() && !caller->isEvalFrame())
+    if (evalType == DIRECT_EVAL && caller->isFunctionFrame() && !caller->isEvalFrame()) {
         script = EvalCacheLookup(cx, linearStr, caller, staticLevel, principals, scopeobj, bucket);
+
+        
+
+
+
+
+
+
+
+        if (script) {
+            js_CallNewScriptHook(cx, script, NULL);
+            MUST_FLOW_THROUGH("destroy");
+        }
+    }
 
     
 
@@ -1279,6 +1293,9 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
     JSBool ok = js_CheckPrincipalsAccess(cx, scopeobj, principals,
                                          cx->runtime->atomState.evalAtom) &&
                 Execute(cx, scopeobj, script, callerFrame, JSFRAME_EVAL, vp);
+
+destroy:
+    js_CallDestroyScriptHook(cx, script);
 
     script->u.nextToGC = *bucket;
     *bucket = script;
