@@ -390,6 +390,14 @@ function _load_files(aFiles) {
 
 
 
+function do_print(msg) {
+  var caller_stack = Components.stack.caller;
+  _dump("TEST-INFO | " + caller_stack.filename + " | " + msg + "\n");
+}
+
+
+
+
 
 
 
