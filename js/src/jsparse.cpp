@@ -983,7 +983,7 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, JSStackFrame *calle
 #ifdef JS_ARENAMETER
     JS_DumpArenaStats(stdout);
 #endif
-    script = js_NewScriptFromCG(cx, &cg);
+    script = JSScript::NewScriptFromCG(cx, &cg);
     if (script && funbox && script != script->emptyScript())
         script->savedCallerFun = true;
 
@@ -2610,7 +2610,7 @@ LeaveFunction(JSParseNode *fn, JSTreeContext *funtc, JSAtom *funAtom = NULL,
 
 
 
-            if ((funtc->flags & TCF_FUN_CALLS_EVAL) ||
+            if (funtc->callsEval() ||
                 (outer_ale && tc->innermostWith &&
                  ALE_DEFN(outer_ale)->pn_pos < tc->innermostWith->pn_pos)) {
                 DeoptimizeUsesWithin(dn, fn->pn_pos);
@@ -2785,7 +2785,7 @@ Parser::functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSFunctio
                     list = ListNode::create(&funtc);
                     if (!list)
                         return false;
-                    list->pn_type = TOK_COMMA;
+                    list->pn_type = TOK_VAR;
                     list->makeEmpty();
                     *listp = list;
                 }

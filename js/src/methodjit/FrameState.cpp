@@ -70,9 +70,9 @@ FrameState::init(uint32 nargs)
 
     eval = script->usesEval || cx->compartment->debugMode;
 
-    size_t totalBytes = sizeof(FrameEntry) * nslots +         
-                        sizeof(FrameEntry *) * nslots +       
-                        (eval ? 0 : sizeof(uint32) * nslots); 
+    size_t totalBytes = sizeof(FrameEntry) * nslots +               
+                        sizeof(FrameEntry *) * nslots +             
+                        (eval ? 0 : sizeof(JSPackedBool) * nslots); 
 
     uint8 *cursor = (uint8 *)cx->calloc(totalBytes);
     if (!cursor)
@@ -93,8 +93,8 @@ FrameState::init(uint32 nargs)
     cursor += sizeof(FrameEntry *) * nslots;
 
     if (!eval && nslots) {
-        escaping = (uint32 *)cursor;
-        cursor += sizeof(uint32) * nslots;
+        closedVars = (JSPackedBool *)cursor;
+        cursor += sizeof(JSPackedBool) * nslots;
     }
 
     JS_ASSERT(reinterpret_cast<uint8 *>(entries) + totalBytes == cursor);
@@ -1096,7 +1096,7 @@ FrameState::storeLocal(uint32 n, bool popGuaranteed, bool typeChange)
 
     storeTop(local, popGuaranteed, typeChange);
 
-    bool closed = eval || escaping[n];
+    bool closed = eval || isClosedVar(n);
     if (closed || inTryBlock) {
         
         if (local->isCopy()) {
