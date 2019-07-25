@@ -42,8 +42,11 @@ NPError NP_Initialize(NPNetscapeFuncs* browserFuncs)
 
 NPError NP_GetEntryPoints(NPPluginFuncs* pluginFuncs)
 {
-  pluginFuncs->version = 11;
-  pluginFuncs->size = sizeof(pluginFuncs);
+  
+  
+  if (pluginFuncs->size < (offsetof(NPPluginFuncs, setvalue) + sizeof(void*)))
+    return NPERR_INVALID_FUNCTABLE_ERROR;
+
   pluginFuncs->newp = NPP_New;
   pluginFuncs->destroy = NPP_Destroy;
   pluginFuncs->setwindow = NPP_SetWindow;
