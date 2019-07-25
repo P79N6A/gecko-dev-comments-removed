@@ -224,6 +224,10 @@ PRTimeToSeconds(PRTime t_usec)
 #define NowInSeconds() PRTimeToSeconds(PR_Now())
 
 
+#undef  CLAMP
+#define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+
+
 #define QVAL_TO_UINT(q) ((unsigned int) ((q + 0.05) * 10.0))
 
 #define HTTP_LWS " \t"
