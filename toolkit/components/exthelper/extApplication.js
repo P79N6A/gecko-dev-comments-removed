@@ -557,12 +557,6 @@ extApplication.prototype = {
   },
 
   
-  _xpcom_categories: [
-    
-    { category: "JavaScript-global-privileged-property" }
-  ],
-
-  
   flags : Ci.nsIClassInfo.SINGLETON,
   implementationLanguage : Ci.nsIProgrammingLanguage.JAVASCRIPT,
 
