@@ -118,8 +118,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 #endif
 
 #define NS_IWIDGET_IID \
-  { 0xb5bb55c7, 0x9a50, 0x4fa8, \
-    { 0xa7, 0x6e, 0xbd, 0x31, 0x6f, 0x3e, 0x9c, 0x13 } }
+  { 0x7c7ff2ff, 0x61f9, 0x4240, \
+    { 0xaa, 0x58, 0x74, 0xb0, 0xcd, 0xa9, 0xe3, 0x05 } }
 
 
 
@@ -1594,6 +1594,13 @@ class nsIWidget : public nsISupports {
 
 
     virtual bool HasGLContext() { return false; }
+
+    
+
+
+
+
+    virtual bool WidgetPaintsBackground() { return false; }
 
 protected:
 
