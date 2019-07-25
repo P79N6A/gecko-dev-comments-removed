@@ -889,6 +889,8 @@ class VFPImm {
     }
 };
 
+
+
 class BOffImm
 {
     uint32 data;
@@ -1215,11 +1217,27 @@ class Assembler
     void writeDataRelocation(BufferOffset offs) {
         tmpDataRelocations_.append(offs);
     }
+
+    enum RelocBranchStyle {
+        B_MOVWT,
+        B_LDR_BX,
+        B_LDR,
+        B_MOVW_ADD
+    };
+
+    enum RelocStyle {
+        L_MOVWT,
+        L_LDR
+    };
+
+  public:
+    
+    
     
     static uint32 * getCF32Target(Instruction *jump);
-    
-    
-    static uint32 * getPtr32Target(Instruction *load, Register *dest = NULL);
+
+    static uintptr_t getPointer(uint8 *);
+    static uint32 * getPtr32Target(Instruction *load, Register *dest = NULL, RelocStyle *rs = NULL);
 
     bool oom() const;
   private:
@@ -1304,8 +1322,8 @@ class Assembler
     
     
     
-    void as_movw(Register dest, Imm16 imm, Condition c = Always);
-    void as_movt(Register dest, Imm16 imm, Condition c = Always);
+    void as_movw(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
+    void as_movt(Register dest, Imm16 imm, Condition c = Always, Instruction *pos = NULL);
 
     void as_genmul(Register d1, Register d2, Register rm, Register rn,
                    MULOp op, SetCond_ sc, Condition c = Always);
@@ -1374,10 +1392,12 @@ class Assembler
 
     
   private:
+
     enum vfp_size {
         isDouble = 1 << 8,
         isSingle = 0 << 8
     };
+
     void writeVFPInst(vfp_size sz, uint32 blob, uint32 *dest=NULL);
     
     
@@ -1600,31 +1620,13 @@ class Assembler
     static void writePoolFooter(uint8 *start, Pool *p);
     static void writePoolGuard(BufferOffset branch, Instruction *inst, BufferOffset dest);
 
-    
-    
-    
-    static uint32 patchWrite_NearCallSize() {
-        return 2 * sizeof(uint32);
-    }
+
+    static uint32 patchWrite_NearCallSize();
+    static uint32 nopSize() { return 4; }
+    static void patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall);
     static void patchDataWithValueCheck(CodeLocationLabel label, ImmWord newValue,
-                                        ImmWord expectedValue) {
-        uint32 *ptr = (uint32 *) label.raw();
-        JS_ASSERT(*ptr == expectedValue.value);
-        *ptr = newValue.value;
-        JSC::ExecutableAllocator::cacheFlush(ptr, sizeof(uintptr_t));
-    }
-    static void patchWrite_Imm32(CodeLocationLabel label, Imm32 imm) {
-        *label.raw() = imm.value;
-        JSC::ExecutableAllocator::cacheFlush(label.raw(), sizeof(uintptr_t));
-    }
-    static void patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall) {
-        uint32 *inst = (uint32 *) start.raw();
-        
-        
-        inst[0] = 0xe51ffffc;
-        inst[1] = uintptr_t(toCall.raw());
-        JSC::ExecutableAllocator::cacheFlush(inst, 2 * sizeof(uintptr_t));
-    }
+                                        ImmWord expectedValue);
+    static void patchWrite_Imm32(CodeLocationLabel label, Imm32 imm);
 }; 
 
 

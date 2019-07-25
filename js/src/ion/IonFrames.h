@@ -158,6 +158,7 @@ class SafepointIndex
     inline bool hasSnapshotOffset() const;
 };
 
+class MacroAssembler;
 
 
 
@@ -179,6 +180,7 @@ class OsiIndex
     uint32 snapshotOffset() const {
         return snapshotOffset_;
     }
+    void fixUpOffset(MacroAssembler &masm);
 };
 
 

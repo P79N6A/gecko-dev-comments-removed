@@ -40,6 +40,7 @@
 
 
 #include "Assembler-arm.h"
+#include "MacroAssembler-arm.h"
 #include "jsgcmark.h"
 
 #include "assembler/jit/ExecutableAllocator.h"
@@ -493,8 +494,16 @@ Assembler::getCF32Target(Instruction *jump)
     return NULL;
 }
 
+uintptr_t
+Assembler::getPointer(uint8 *instPtr)
+{
+    Instruction *ptr = reinterpret_cast<Instruction*>(instPtr);
+    uintptr_t ret = (uintptr_t)getPtr32Target(ptr, NULL, NULL);
+    return ret;
+}
+
 uint32 *
-Assembler::getPtr32Target(Instruction *load, Register *dest)
+Assembler::getPtr32Target(Instruction *load, Register *dest, RelocStyle *style)
 {
     if (load->is<InstMovW>() &&
         load->next()->is<InstMovT>()) {
@@ -516,8 +525,10 @@ Assembler::getPtr32Target(Instruction *load, Register *dest)
         
         JS_ASSERT(top->checkDest(temp));
         uint32 *value = (uint32*) (targ_bot.decode() | (targ_top.decode() << 16));
-        if (dest != NULL)
+        if (dest)
             *dest = temp;
+        if (style)
+            *style = L_MOVWT;
         return value;
     }
     JS_NOT_REACHED("unsupported relocation");
@@ -1147,16 +1158,16 @@ Assembler::as_tst(Register src1, Operand2 op2,
 
 
 void
-Assembler::as_movw(Register dest, Imm16 imm, Condition c)
+Assembler::as_movw(Register dest, Imm16 imm, Condition c, Instruction *pos)
 {
     JS_ASSERT(hasMOVWT());
-    writeInst(0x03000000 | c | imm.encode() | RD(dest));
+    writeInst(0x03000000 | c | imm.encode() | RD(dest), (uint32*)pos);
 }
 void
-Assembler::as_movt(Register dest, Imm16 imm, Condition c)
+Assembler::as_movt(Register dest, Imm16 imm, Condition c, Instruction *pos)
 {
     JS_ASSERT(hasMOVWT());
-    writeInst(0x03400000 | c | imm.encode() | RD(dest));
+    writeInst(0x03400000 | c | imm.encode() | RD(dest), (uint32*)pos);
 }
 
 const int mull_tag = 0x90;
@@ -1944,5 +1955,49 @@ Assembler::writePoolFooter(uint8 *start, Pool *p)
     return;
 }
 
+
+
+uint32
+Assembler::patchWrite_NearCallSize()
+{
+    return sizeof(uint32);
+}
+void
+Assembler::patchWrite_NearCall(CodeLocationLabel start, CodeLocationLabel toCall)
+{
+    Instruction *inst = (Instruction *) start.raw();
+    
+    
+    
+    uint8 *dest = toCall.raw();
+    new (inst) InstBLImm(BOffImm(dest - (uint8*)inst) , Always);
+    
+    JSC::ExecutableAllocator::cacheFlush(inst, sizeof(uint32));
+}
+void
+Assembler::patchDataWithValueCheck(CodeLocationLabel label, ImmWord newValue, ImmWord expectedValue)
+{
+    Instruction *ptr = (Instruction *) label.raw();
+    Register dest;
+    Assembler::RelocStyle rs;
+    uint32 *val = getPtr32Target(ptr, &dest, &rs);
+    JS_ASSERT((uint32)val == expectedValue.value);
+    reinterpret_cast<MacroAssemblerARM*>(dummy)->ma_movPatchable(Imm32(newValue.value), dest, Always, rs, ptr);
+    JSC::ExecutableAllocator::cacheFlush(ptr, sizeof(uintptr_t)*2);
+}
+
+
+
+
+
+
+void
+Assembler::patchWrite_Imm32(CodeLocationLabel label, Imm32 imm) {
+    
+    uint32 *raw = (uint32*)label.raw();
+    
+    
+    *(raw-1) = imm.value;
+}
 
 Assembler *Assembler::dummy = NULL;

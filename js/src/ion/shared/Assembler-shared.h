@@ -333,6 +333,8 @@ class CodeOffsetLabel
     size_t offset() const {
         return offset_;
     }
+    void fixup(MacroAssembler *masm);
+
 };
 
 

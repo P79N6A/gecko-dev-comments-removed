@@ -39,6 +39,7 @@
 
 
 
+
 #include "CodeGenerator-arm.h"
 #include "ion/shared/CodeGenerator-shared-inl.h"
 #include "ion/MIR.h"
@@ -1333,5 +1334,30 @@ CodeGeneratorARM::visitRecompileCheck(LRecompileCheck *lir)
     masm.ma_cmp(tmp, Imm32(js_IonOptions.usesBeforeInlining));
     if (!bailoutIf(Assembler::AboveOrEqual, lir->snapshot()))
         return false;
+    return true;
+}
+
+bool
+CodeGeneratorARM::generateInvalidateEpilogue()
+{
+    
+    
+    
+    for (size_t i = 0; i < sizeof(void *); i+= Assembler::nopSize())
+        masm.nop();
+
+    masm.bind(&invalidate_);
+
+    
+    masm.Push(lr);
+
+    
+    invalidateEpilogueData_ = masm.pushWithPatch(ImmWord(uintptr_t(-1)));
+    IonCode *thunk = gen->cx->compartment->ionCompartment()->getOrCreateInvalidationThunk(gen->cx);
+    masm.branch(thunk);
+
+    
+    
+    masm.breakpoint();
     return true;
 }

@@ -181,6 +181,11 @@ CodeLocationLabel
 SafepointReader::InvalidationPatchPoint(IonScript *script, const SafepointIndex *si)
 {
     SafepointReader reader(script, si);
+
+    
+    
+    
+    
     uint32 osiPointOffset = reader.getOsiReturnPointOffset() - Assembler::patchWrite_NearCallSize();
     return CodeLocationLabel(script->method(), osiPointOffset);
 }

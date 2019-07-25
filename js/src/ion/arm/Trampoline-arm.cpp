@@ -334,7 +334,7 @@ IonCompartment::generateInvalidator(JSContext *cx)
     
     
     
-    masm.ma_add(sp, Imm32(BailoutDataSize + 16 + 8), sp);
+    masm.ma_add(sp, Imm32(BailoutDataSize + sizeof(size_t) * 2), sp);
     masm.ma_add(sp, r1, sp);
     generateBailoutTail(masm);
     Linker linker(masm);
