@@ -76,7 +76,7 @@ nsHttpConnection::nsHttpConnection()
     , mKeepAliveMask(PR_TRUE)
     , mSupportsPipelining(PR_FALSE) 
     , mIsReused(PR_FALSE)
-    , mCompletedSSLConnect(PR_FALSE)
+    , mCompletedProxyConnect(PR_FALSE)
     , mLastTransactionExpectedNoContent(PR_FALSE)
 {
     LOG(("Creating nsHttpConnection @%x\n", this));
@@ -169,8 +169,10 @@ nsHttpConnection::Activate(nsAHttpTransaction *trans, PRUint8 caps)
     mKeepAliveMask = mKeepAlive = (caps & NS_HTTP_ALLOW_KEEPALIVE);
 
     
-    if (mConnInfo->UsingSSL() && mConnInfo->UsingHttpProxy() && !mCompletedSSLConnect) {
-        rv = SetupSSLProxyConnect();
+    
+    if (((mConnInfo->UsingSSL() && mConnInfo->UsingHttpProxy()) ||
+         mConnInfo->ShouldForceConnectMethod()) && !mCompletedProxyConnect) {
+        rv = SetupProxyConnect();
         if (NS_FAILED(rv))
             goto failed_activation;
     }
@@ -390,7 +392,7 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
             
             
             
-            if (!mSSLProxyConnectStream)
+            if (!mProxyConnectStream)
               mSupportsPipelining = SupportsPipelining(responseHead);
         }
     }
@@ -419,21 +421,26 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
     
     
     
-    if (mSSLProxyConnectStream) {
-        mSSLProxyConnectStream = 0;
+    if (mProxyConnectStream) {
+        mProxyConnectStream = 0;
         if (responseHead->Status() == 200) {
-            LOG(("SSL proxy CONNECT succeeded!\n"));
+            LOG(("proxy CONNECT succeeded! ssl=%s\n",
+                 mConnInfo->UsingSSL() ? "true" :"false"));
             *reset = PR_TRUE;
-            nsresult rv = ProxyStartSSL();
-            if (NS_FAILED(rv)) 
-                LOG(("ProxyStartSSL failed [rv=%x]\n", rv));
-            mCompletedSSLConnect = PR_TRUE;
+            nsresult rv;
+            if (mConnInfo->UsingSSL()) {
+                rv = ProxyStartSSL();
+                if (NS_FAILED(rv)) 
+                    LOG(("ProxyStartSSL failed [rv=%x]\n", rv));
+            }
+            mCompletedProxyConnect = PR_TRUE;
             rv = mSocketOut->AsyncWait(this, 0, 0, nsnull);
             
             NS_ASSERTION(NS_SUCCEEDED(rv), "mSocketOut->AsyncWait failed");
         }
         else {
-            LOG(("SSL proxy CONNECT failed!\n"));
+            LOG(("proxy CONNECT failed! ssl=%s\n",
+                 mConnInfo->UsingSSL() ? "true" :"false"));
             mTransaction->SetSSLConnectFailed();
         }
     }
@@ -586,9 +593,9 @@ nsHttpConnection::OnSocketWritable()
         
         
         
-        if (mSSLProxyConnectStream) {
+        if (mProxyConnectStream) {
             LOG(("  writing CONNECT request stream\n"));
-            rv = mSSLProxyConnectStream->ReadSegments(ReadFromStream, this,
+            rv = mProxyConnectStream->ReadSegments(ReadFromStream, this,
                                                       nsIOService::gDefaultSegmentSize,
                                                       &n);
         }
@@ -711,13 +718,13 @@ nsHttpConnection::OnSocketReadable()
 }
 
 nsresult
-nsHttpConnection::SetupSSLProxyConnect()
+nsHttpConnection::SetupProxyConnect()
 {
     const char *val;
 
-    LOG(("nsHttpConnection::SetupSSLProxyConnect [this=%x]\n", this));
+    LOG(("nsHttpConnection::SetupProxyConnect [this=%x]\n", this));
 
-    NS_ENSURE_TRUE(!mSSLProxyConnectStream, NS_ERROR_ALREADY_INITIALIZED);
+    NS_ENSURE_TRUE(!mProxyConnectStream, NS_ERROR_ALREADY_INITIALIZED);
 
     nsCAutoString buf;
     nsresult rv = nsHttpHandler::GenerateHostPort(
@@ -753,7 +760,7 @@ nsHttpConnection::SetupSSLProxyConnect()
     request.Flatten(buf, PR_FALSE);
     buf.AppendLiteral("\r\n");
 
-    return NS_NewCStringInputStream(getter_AddRefs(mSSLProxyConnectStream), buf);
+    return NS_NewCStringInputStream(getter_AddRefs(mProxyConnectStream), buf);
 }
 
 
