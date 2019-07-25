@@ -2193,8 +2193,7 @@ nsDOMClassInfo::WrapNativeParent(JSContext *cx, JSObject *scope,
     DOM_CLASSINFO_MAP_ENTRY(nsIDOM3Document)                                  \
     DOM_CLASSINFO_MAP_ENTRY(nsIDOM3Node)                                      \
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMXPathEvaluator)                             \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNodeSelector)                               \
-    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNSDocument_MOZILLA_2_0_BRANCH)
+    DOM_CLASSINFO_MAP_ENTRY(nsIDOMNodeSelector)
 
 
 #define DOM_CLASSINFO_GENERIC_HTML_MAP_ENTRIES                                \
@@ -2497,7 +2496,7 @@ nsDOMClassInfo::Init()
     DOM_CLASSINFO_UI_EVENT_MAP_ENTRIES
   DOM_CLASSINFO_MAP_END
 
-  DOM_CLASSINFO_MAP_BEGIN(PopStateEvent, nsIDOMPopStateEvent)
+  DOM_CLASSINFO_MAP_BEGIN(PopStateEvent, nsIDOMPopStateEvent_MOZILLA_2_BRANCH)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMPopStateEvent)
     DOM_CLASSINFO_MAP_ENTRY(nsIDOMPopStateEvent_MOZILLA_2_BRANCH)
     DOM_CLASSINFO_EVENT_MAP_ENTRIES
@@ -8131,36 +8130,7 @@ nsNamedArraySH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
 {
   if ((!(JSRESOLVE_ASSIGNING & flags)) && JSID_IS_STRING(id) &&
       !ObjectIsNativeWrapper(cx, obj)) {
-
-    {
-      JSObject *realObj;
-
-      if (wrapper) {
-        wrapper->GetJSObject(&realObj);
-      } else {
-        realObj = obj;
-      }
-
-      JSAutoEnterCompartment ac;
-
-      if (!ac.enter(cx, realObj)) {
-        *_retval = PR_FALSE;
-        return NS_ERROR_FAILURE;
-      }
-
-      JSObject *proto = ::JS_GetPrototype(cx, realObj);
-      JSBool hasProp;
-
-      if (proto && ::JS_HasPropertyById(cx, proto, id, &hasProp) && hasProp) {
-        
-        
-        return NS_OK;
-      }
-    }
-
-    
-    
-    nsresult rv = NS_OK;
+    nsresult rv;
     nsWrapperCache *cache;
 
     nsISupports* item = GetNamedItem(GetNative(wrapper, obj),
@@ -8168,6 +8138,7 @@ nsNamedArraySH::NewResolve(nsIXPConnectWrappedNative *wrapper, JSContext *cx,
     NS_ENSURE_SUCCESS(rv, rv);
 
     if (item) {
+      JSAutoRequest ar(cx);
       *_retval = ::JS_DefinePropertyById(cx, obj, id, JSVAL_VOID, nsnull,
                                          nsnull, JSPROP_ENUMERATE | JSPROP_SHARED);
 
