@@ -235,7 +235,7 @@ nsDiskCacheBlockFile::WriteBlocks( void *   buffer,
     
     
     PRInt32 bytesWritten = PR_Write(mFD, buffer, size);
-    NS_ENSURE_STATE(bytesWritten == size);
+    NS_ENSURE_STATE(bytesWritten >= 0 && PRUint32(bytesWritten) == size);
     
     
     
