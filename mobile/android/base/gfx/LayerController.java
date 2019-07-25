@@ -179,30 +179,12 @@ public class LayerController {
     }
 
     
-    public void scrollTo(PointF point) {
-        mViewportMetrics.setOrigin(point);
-        Log.d(LOGTAG, "scrollTo: " + mViewportMetrics);
-        notifyLayerClientOfGeometryChange();
-        GeckoApp.mAppContext.repositionPluginViews(false);
-        mView.requestRender();
-    }
-
-    
     public void scrollBy(PointF point) {
         PointF origin = mViewportMetrics.getOrigin();
         origin.offset(point.x, point.y);
         mViewportMetrics.setOrigin(origin);
         Log.d(LOGTAG, "scrollBy: " + mViewportMetrics);
 
-        notifyLayerClientOfGeometryChange();
-        GeckoApp.mAppContext.repositionPluginViews(false);
-        mView.requestRender();
-    }
-
-    
-    public void setViewport(RectF viewport) {
-        mViewportMetrics.setViewport(viewport);
-        Log.d(LOGTAG, "setViewport: " + mViewportMetrics);
         notifyLayerClientOfGeometryChange();
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
@@ -235,11 +217,6 @@ public class LayerController {
     }
 
     
-    public void scaleTo(float zoomFactor) {
-        scaleWithFocus(zoomFactor, new PointF(0,0));
-    }
-
-    
 
 
 
@@ -252,16 +229,6 @@ public class LayerController {
         notifyLayerClientOfGeometryChange();
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
-    }
-
-    
-
-
-
-    public void scaleWithOrigin(float zoomFactor, PointF origin) {
-        mViewportMetrics.setOrigin(origin);
-        Log.d(LOGTAG, "scaleWithOrigin: " + mViewportMetrics + "; zf=" + zoomFactor);
-        scaleTo(zoomFactor);
     }
 
     public boolean post(Runnable action) { return mView.post(action); }
