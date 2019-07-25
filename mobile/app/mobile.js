@@ -428,7 +428,7 @@ pref("dom.ipc.plugins.enabled", true);
 
 
 
-#if MOZ_PLATFORM_MAEMO
+#if MOZ_PLATFORM_MAEMO == 5
 pref("dom.ipc.content.nice", 10);
 #else
 pref("dom.ipc.content.nice", 1);
