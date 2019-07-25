@@ -194,8 +194,12 @@ IsNunbox(LDefinition::Type type)
 }
 
 uint32
-GreedyAllocator::allocateSlotFor(const VirtualRegister *vr)
+GreedyAllocator::allocateSlotFor(VirtualRegister *vr)
 {
+    
+    liveSlots_.pushBack(vr);
+    vr->setOwnsStackSlot();
+
     if (IsNunbox(vr->type()) || vr->isDouble())
         return stackSlotAllocator.allocateDoubleSlot();
     return stackSlotAllocator.allocateSlot();
@@ -297,22 +301,9 @@ void
 GreedyAllocator::killStack(VirtualRegister *vr)
 {
 #if JS_NUNBOX32
-    if (IsNunbox(vr->type())) {
-        VirtualRegister *other = otherHalfOfNunbox(vr);
-        if (other->killed()) {
-            
-            
-            if (!vr->hasStackSlot() && !other->hasStackSlot())
-                return;
-
-            
-            
-            JS_ASSERT_IF(vr->hasStackSlot(), other->hasStackSlot() || !other->hasBackingStack());
-            JS_ASSERT_IF(other->hasStackSlot(), vr->hasStackSlot() || !vr->hasBackingStack());
-            VirtualRegister *candidate = vr->hasStackSlot() ? vr : other;
-            uint32 stackSlot = BaseOfNunboxSlot(candidate->type(), candidate->stackSlot());
-            stackSlotAllocator.freeDoubleSlot(stackSlot);
-        }
+    if (IsNunbox(vr->type()) && vr->ownsStackSlot()) {
+        uint32 stackSlot = BaseOfNunboxSlot(vr->type(), vr->stackSlot());
+        stackSlotAllocator.freeDoubleSlot(stackSlot);
     } else
 #endif
     if (vr->hasStackSlot()) {
@@ -320,7 +311,10 @@ GreedyAllocator::killStack(VirtualRegister *vr)
                 vr->def->virtualRegister(), vr->stackSlot_);
         freeStack(vr);
     }
-    vr->setKilled();
+
+    
+    if (vr->ownsStackSlot())
+        liveSlots_.remove(vr);
 }
 
 bool
@@ -647,6 +641,37 @@ GreedyAllocator::informSnapshot(LInstruction *ins)
     }
 }
 
+bool
+GreedyAllocator::informSafepoint(LSafepoint *safepoint)
+{
+    for (InlineListIterator<VirtualRegister> iter = liveSlots_.begin();
+         iter != liveSlots_.end();
+         iter++)
+    {
+        VirtualRegister *vr = *iter;
+        if (vr->type() == LDefinition::OBJECT || vr->type() == LDefinition::BOX) {
+            if (!safepoint->addGcSlot(vr->stackSlot()))
+                return false;
+            continue;
+        }
+
+#ifdef JS_NUNBOX32
+        if (!IsNunbox(vr->type()))
+            continue;
+
+        VirtualRegister *other = otherHalfOfNunbox(vr);
+
+        
+        if (vr->hasStackSlot() && other->hasStackSlot()) {
+            uint32 slot = BaseOfNunboxSlot(vr->type(), vr->stackSlot());
+            if (!safepoint->addValueSlot(slot))
+                return false;
+        }
+#endif
+    }
+    return true;
+}
+
 void
 GreedyAllocator::assertValidRegisterState()
 {
@@ -708,6 +733,13 @@ GreedyAllocator::allocateInstruction(LBlock *block, LInstruction *ins)
         if (def->policy() == LDefinition::PASSTHROUGH)
             continue;
         killStack(getVirtualRegister(def));
+    }
+
+    
+    
+    if (ins->safepoint()) {
+        if (!informSafepoint(ins->safepoint()))
+            return false;
     }
 
     return true;
