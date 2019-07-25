@@ -38,6 +38,7 @@
 
 
 
+#include "mozilla/ipc/RPCChannel.h"
 #include "nsAppShell.h"
 #include "nsToolkit.h"
 #include "nsThreadUtils.h"
@@ -306,6 +307,9 @@ nsAppShell::ProcessNextNativeEvent(PRBool mayWait)
     CollectNewLoadedModules();
   }
 #endif
+
+  
+  mozilla::ipc::RPCChannel::NotifyGeckoEventDispatch();
 
   PRBool gotMessage = PR_FALSE;
 

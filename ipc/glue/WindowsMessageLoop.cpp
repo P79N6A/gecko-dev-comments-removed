@@ -584,6 +584,7 @@ TimeoutHasExpired(const TimeoutData& aData)
 RPCChannel::SyncStackFrame::SyncStackFrame(SyncChannel* channel, bool rpc)
   : mRPC(rpc)
   , mSpinNestedEvents(false)
+  , mListenerNotified(false)
   , mChannel(channel)
   , mPrev(mChannel->mTopFrame)
   , mStaticPrev(sStaticTopFrame)
@@ -617,11 +618,29 @@ RPCChannel::SyncStackFrame::~SyncStackFrame()
 
 SyncChannel::SyncStackFrame* SyncChannel::sStaticTopFrame;
 
+
+
+
+
+void 
+RPCChannel::NotifyGeckoEventDispatch()
+{
+  
+  if (!sStaticTopFrame || sStaticTopFrame->mListenerNotified)
+    return;
+
+  sStaticTopFrame->mListenerNotified = true;
+  RPCChannel* channel = static_cast<RPCChannel*>(sStaticTopFrame->mChannel);
+  channel->Listener()->ProcessRemoteNativeEventsInRPCCall();
+}
+
+
+
 void
 RPCChannel::ProcessNativeEventsInRPCCall()
 {
   if (!mTopFrame) {
-    NS_ERROR("Child logic error: no RPC frame");
+    NS_ERROR("Spin logic error: no RPC frame");
     return;
   }
 

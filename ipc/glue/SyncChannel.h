@@ -105,6 +105,7 @@ public:
 
         bool mRPC;
         bool mSpinNestedEvents;
+        bool mListenerNotified;
         SyncChannel* mChannel;
 
         

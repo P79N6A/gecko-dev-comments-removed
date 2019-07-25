@@ -2836,8 +2836,7 @@ class _GenerateProtocolActorCode(ipdl.ast.Visitor):
         
         self.cls.addstmts(self.makeShmemIface())
 
-        if (ptype.isToplevel() and self.side is 'parent'
-            and ptype.talksRpc()):
+        if (ptype.isToplevel() and ptype.talksRpc()):
 
             processnative = MethodDefn(
                 MethodDecl('ProcessNativeEventsInRPCCall', ret=Type.VOID))

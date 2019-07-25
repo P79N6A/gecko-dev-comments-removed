@@ -1741,7 +1741,7 @@ PluginInstanceParent::AnswerPluginFocusChange(const bool& gotFocus)
     
     
 #if defined(OS_WIN)
-    AutoRestore<bool> ar(mInAnswerFocusChange)
+    AutoRestore<bool> ar(mInAnswerFocusChange);
     mInAnswerFocusChange = true;
     ::SendMessage(mPluginHWND, gOOPPPluginFocusEvent, gotFocus ? 1 : 0, 0);
     return true;
