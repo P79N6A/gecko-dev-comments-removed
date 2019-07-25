@@ -117,6 +117,8 @@ class GeckoAppShell
 
         
         System.loadLibrary("nssckbi");
+        System.loadLibrary("freebl3");
+        System.loadLibrary("softokn3");
     }
 
     public static void runGecko(String apkPath, String args, String url) {
