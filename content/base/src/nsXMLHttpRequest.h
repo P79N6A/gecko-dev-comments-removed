@@ -216,7 +216,6 @@ protected:
                 PRUint32 count,
                 PRUint32 *writeCount);
   nsresult CreateResponseParsedJSON(JSContext* aCx);
-  nsresult CreateResponseArrayBuffer(JSContext* aCx);
   bool CreateResponseBlob(nsIRequest *request);
   
   
