@@ -105,6 +105,11 @@ nsXPConnect::~nsXPConnect()
     }
 
     XPCPerThreadData::CleanupAllThreads();
+
+    
+    
+    mRuntime->DestroyJSContextStack();
+
     mShuttingDown = true;
     if (cx) {
         
