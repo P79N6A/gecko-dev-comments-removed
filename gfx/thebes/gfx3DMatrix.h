@@ -68,7 +68,7 @@ public:
   
 
 
-  inline gfx3DMatrix operator*(const gfx3DMatrix &aMatrix);
+  inline gfx3DMatrix operator*(const gfx3DMatrix &aMatrix) const;
 
   
 
@@ -134,7 +134,7 @@ gfx3DMatrix::gfx3DMatrix(void)
 }
 
 inline gfx3DMatrix
-gfx3DMatrix::operator*(const gfx3DMatrix &aMatrix)
+gfx3DMatrix::operator*(const gfx3DMatrix &aMatrix) const
 {
   gfx3DMatrix matrix;
 
