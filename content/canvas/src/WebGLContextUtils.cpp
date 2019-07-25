@@ -117,6 +117,24 @@ WebGLContext::LogMessageIfVerbose(const char *fmt, va_list ap)
     firstTime = PR_FALSE;
 }
 
+CheckedUint32
+WebGLContext::GetImageSize(WebGLsizei height, 
+                           WebGLsizei width, 
+                           PRUint32 pixelSize,
+                           PRUint32 packOrUnpackAlignment)
+{
+    CheckedUint32 checked_plainRowSize = CheckedUint32(width) * pixelSize;
+
+    
+    CheckedUint32 checked_alignedRowSize = RoundedToNextMultipleOf(checked_plainRowSize, packOrUnpackAlignment);
+
+    
+    CheckedUint32 checked_neededByteLength
+        = height <= 0 ? 0 : (height-1) * checked_alignedRowSize + checked_plainRowSize;
+
+    return checked_neededByteLength;
+}
+
 nsresult
 WebGLContext::SynthesizeGLError(WebGLenum err)
 {
