@@ -642,34 +642,25 @@ ElfSection *ElfDynamic_Section::getSectionForType(unsigned int tag)
     return value ? value->getSection() : NULL;
 }
 
-void ElfDynamic_Section::setValueForType(unsigned int tag, ElfValue *val)
+bool ElfDynamic_Section::setValueForType(unsigned int tag, ElfValue *val)
 {
     unsigned int i;
-    for (i = 0; (i < shdr.sh_size / shdr.sh_entsize) && (dyns[i].tag != DT_NULL); i++)
+    unsigned int shnum = shdr.sh_size / shdr.sh_entsize;
+    for (i = 0; (i < shnum) && (dyns[i].tag != DT_NULL); i++)
         if (dyns[i].tag == tag) {
             delete dyns[i].value;
             dyns[i].value = val;
-            return;
+            return true;
         }
     
-    assert(i < shdr.sh_size / shdr.sh_entsize);
     
+    
+    if (i >= shnum - 1)
+        return false;
+
     dyns[i].tag = tag;
-    dyns[i++].value = val;
-
-    
-    
-    if (i < shdr.sh_size / shdr.sh_entsize)
-        return;
-
-    Elf_DynValue value;
-    value.tag = DT_NULL;
-    value.value = NULL;
-    dyns.push_back(value);
-    
-    shdr.sh_size += shdr.sh_entsize;
-    if (getNext() != NULL)
-        getNext()->markDirty();
+    dyns[i].value = val;
+    return true;
 }
 
 ElfDynamic_Section::ElfDynamic_Section(Elf_Shdr &s, std::ifstream *file, Elf *parent)
