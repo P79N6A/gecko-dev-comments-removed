@@ -502,11 +502,40 @@ nsDiskCacheStreamIO::Flush()
     
     nsDiskCacheMap *cacheMap = mDevice->CacheMap();  
     nsresult rv;
-    
-    if ((mStreamEnd > kMaxBufferSize) ||
-        (mBinding->mCacheEntry->StoragePolicy() == nsICache::STORE_ON_DISK_AS_FILE)) {
+
+    PRBool written = PR_FALSE;
+
+    if ((mStreamEnd <= kMaxBufferSize) &&
+        (mBinding->mCacheEntry->StoragePolicy() != nsICache::STORE_ON_DISK_AS_FILE)) {
         
-        rv = FlushBufferToFile();       
+
+        mBufDirty = PR_FALSE;
+
+        
+        nsDiskCacheRecord * record = &mBinding->mRecord;
+        if (record->DataLocationInitialized()) {
+            rv = cacheMap->DeleteStorage(record, nsDiskCache::kData);
+            if (NS_FAILED(rv)) {
+                NS_WARNING("cacheMap->DeleteStorage() failed.");
+                cacheMap->DeleteRecord(record);
+                return rv;
+            }
+        }
+
+        
+        written = PR_TRUE;
+        if (mStreamEnd > 0) {
+            rv = cacheMap->WriteDataCacheBlocks(mBinding, mBuffer, mBufEnd);
+            if (NS_FAILED(rv)) {
+                NS_WARNING("WriteDataCacheBlocks() failed.");
+                written = PR_FALSE;
+            }
+        }
+    }
+
+    if (!written) {
+        
+        rv = FlushBufferToFile(); 
 
         if (mFD) {
           
@@ -529,32 +558,6 @@ nsDiskCacheStreamIO::Flush()
         
         
         DeleteBuffer();
-
-    } else {
-        
-
-        mBufDirty = PR_FALSE;
-
-        
-        nsDiskCacheRecord * record = &mBinding->mRecord;
-        if (record->DataLocationInitialized()) {
-            rv = cacheMap->DeleteStorage(record, nsDiskCache::kData);
-            if (NS_FAILED(rv)) {
-                NS_WARNING("cacheMap->DeleteStorage() failed.");
-                cacheMap->DeleteRecord(record);
-                return  rv;
-            }
-        }
-    
-        
-        if (mStreamEnd > 0) {
-            rv = cacheMap->WriteDataCacheBlocks(mBinding, mBuffer, mBufEnd);
-            if (NS_FAILED(rv)) {
-                NS_WARNING("WriteDataCacheBlocks() failed.");
-                nsCacheService::DoomEntry(mBinding->mCacheEntry);
-                return rv;
-            }
-        }
     }
     
     
