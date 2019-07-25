@@ -832,10 +832,10 @@ public class GeckoSmsManager
                                           mRequestId, mProcessId);
         } catch (UnexpectedDeliveryStateException e) {
           Log.e("GeckoSmsManager", "Unexcepted delivery state type: " + e);
-          
+          GeckoAppShell.notifyReadingMessageListFailed(kUnknownError, mRequestId, mProcessId);
         } catch (Exception e) {
           Log.e("GeckoSmsManager", "Error while trying to create a message list cursor: " + e);
-          
+          GeckoAppShell.notifyReadingMessageListFailed(kUnknownError, mRequestId, mProcessId);
         } finally {
           
           
@@ -849,7 +849,7 @@ public class GeckoSmsManager
 
     if (!SmsIOThread.getInstance().execute(new CreateMessageListRunnable(aStartDate, aEndDate, aNumbers, aNumbersCount, aDeliveryState, aReverse, aRequestId, aProcessId))) {
       Log.e("GeckoSmsManager", "Failed to add CreateMessageListRunnable to the SmsIOThread");
-      
+      GeckoAppShell.notifyReadingMessageListFailed(kUnknownError, aRequestId, aProcessId);
     }
   }
 
@@ -898,17 +898,17 @@ public class GeckoSmsManager
                                              mRequestId, mProcessId);
         } catch (UnexpectedDeliveryStateException e) {
           Log.e("GeckoSmsManager", "Unexcepted delivery state type: " + e);
-          
+          GeckoAppShell.notifyReadingMessageListFailed(kUnknownError, mRequestId, mProcessId);
         } catch (Exception e) {
           Log.e("GeckoSmsManager", "Error while trying to get the next message of a list: " + e);
-          
+          GeckoAppShell.notifyReadingMessageListFailed(kUnknownError, mRequestId, mProcessId);
         }
       }
     }
 
     if (!SmsIOThread.getInstance().execute(new GetNextMessageInListRunnable(aListId, aRequestId, aProcessId))) {
       Log.e("GeckoSmsManager", "Failed to add GetNextMessageInListRunnable to the SmsIOThread");
-      
+      GeckoAppShell.notifyReadingMessageListFailed(kUnknownError, aRequestId, aProcessId);
     }
   }
 
