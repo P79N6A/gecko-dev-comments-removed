@@ -7133,7 +7133,13 @@ CSSParserImpl::ParseCalcTerm(nsCSSValue& aValue, PRInt32& aVariantMask)
   }
   
   UngetToken();
-  if (!ParseVariant(aValue, aVariantMask, nsnull)) {
+  
+  
+  if (!ParseVariant(aValue, aVariantMask | VARIANT_NUMBER, nsnull)) {
+    return PR_FALSE;
+  }
+  
+  if (!(aVariantMask & VARIANT_NUMBER) && aValue.GetUnit() == eCSSUnit_Number) {
     return PR_FALSE;
   }
   

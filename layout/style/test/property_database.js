@@ -529,6 +529,22 @@ var gCSSProperties = {
 			"-moz-calc(2em / (4 / 3))",
 			"-moz-calc(4 * (2em / 3))",
 
+			
+			
+			"-moz-calc(0 * 2em)",
+			"-moz-calc(2em * 0)",
+			"-moz-calc(3em + 0 * 2em)",
+			"-moz-calc(3em + 2em * 0)",
+			"-moz-calc((0 + 2) * 2em)",
+			"-moz-calc((2 + 0) * 2em)",
+			
+			"-moz-calc(2 * 0px)",
+			"-moz-calc(0 * 0px)",
+			"-moz-calc(2 * 0em)",
+			"-moz-calc(0 * 0em)",
+			"-moz-calc(0px * 0)",
+			"-moz-calc(0px * 2)",
+
 		],
 		invalid_values: [ "20", "-1px", "red", "50%",
 			
@@ -560,6 +576,20 @@ var gCSSProperties = {
 			"-moz-calc((4 * 3) / 2em)",
 			"-moz-calc(4 * (3 / 2em))",
 			"-moz-calc(4 / (3 * 2em))",
+
+			
+			
+			"-moz-calc(0)",
+			"-moz-calc(0 + 2em)",
+			"-moz-calc(2em + 0)",
+			"-moz-calc(0 * 2)",
+			"-moz-calc(2 * 0)",
+			"-moz-calc(1 * (2em + 0))",
+			"-moz-calc((2em + 0))",
+			"-moz-calc((2em + 0) * 1)",
+			"-moz-calc(1 * (0 + 2em))",
+			"-moz-calc((0 + 2em))",
+			"-moz-calc((0 + 2em) * 1)",
 		]
 	},
 	"-moz-column-rule-style": {
