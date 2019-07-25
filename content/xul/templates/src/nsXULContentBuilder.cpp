@@ -1324,7 +1324,7 @@ nsXULContentBuilder::RemoveGeneratedContent(nsIContent* aElement)
     while (0 != (count = ungenerated.Length())) {
         
         PRUint32 last = count - 1;
-        nsIContent* element = ungenerated[last];
+        nsCOMPtr<nsIContent> element = ungenerated[last];
         ungenerated.RemoveElementAt(last);
 
         PRUint32 i = element->GetChildCount();
