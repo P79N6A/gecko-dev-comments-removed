@@ -356,7 +356,7 @@ struct JSObject {
 
 
 
-    inline const js::Value &getSlotMT(JSContext *cx, uintN slot);
+    inline js::Value getSlotMT(JSContext *cx, uintN slot);
     inline void setSlotMT(JSContext *cx, uintN slot, const js::Value &value);
 
     JSObject *getProto() const {
