@@ -40,7 +40,6 @@
 #include "nsIDocument.h"
 #include "nsString.h"
 #include "nsTArray.h"
-#include "nsIUGenCategory.h"
 
 
 
@@ -117,14 +116,12 @@ public:
   nsIDOMDocument* GetDOMDocument() const { return mDOMDocument; }
   nsIDocument* GetDocument() const { return mDocument; }
   nsINode* GetRootNode() { return mRootNode; }
-  nsIUGenCategory* GetCategories() { return mCategories; }
   
 private:
 
   
   nsCOMPtr<nsIDOMDocument> mDOMDocument;
   nsCOMPtr<nsIDocument>         mDocument;
-  nsCOMPtr<nsIUGenCategory>     mCategories;
 
   
   nsINode*    mRootNode;
