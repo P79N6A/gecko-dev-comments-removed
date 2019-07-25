@@ -76,19 +76,9 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     private ViewportMetrics mGeckoViewport;
 
-    
-    private ViewportMetrics mNewGeckoViewport;
-
     private boolean mViewportSizeChanged;
     private boolean mIgnorePaintsPendingViewportSizeChange;
     private boolean mFirstPaint = true;
-
-    
-    
-    
-    
-    
-    private boolean mUpdateViewportOnEndDraw;
 
     private String mLastCheckerboardColor;
 
@@ -147,7 +137,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
 
         try {
             JSONObject viewportObject = new JSONObject(metadata);
-            mNewGeckoViewport = new ViewportMetrics(viewportObject);
+            mGeckoViewport = new ViewportMetrics(viewportObject);
         } catch (JSONException e) {
             Log.e(LOGTAG, "Aborting draw, bad viewport description: " + metadata);
             return false;
@@ -163,28 +153,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     public void endDrawing() {
         synchronized (mLayerController) {
-            
-            
-            
-            
-            FloatSize viewportSize = mLayerController.getViewportSize();
-            mGeckoViewport = mNewGeckoViewport;
-            mGeckoViewport.setSize(viewportSize);
-
             RectF position = mGeckoViewport.getViewport();
             mRootLayer.setPositionAndResolution(RectUtils.round(position), mGeckoViewport.getZoomFactor());
-
-            if (mUpdateViewportOnEndDraw) {
-                mLayerController.setViewportMetrics(mGeckoViewport);
-                mLayerController.abortPanZoomAnimation();
-                mUpdateViewportOnEndDraw = false;
-            } else {
-                
-                
-                if (FloatUtils.fuzzyEquals(mLayerController.getZoomFactor(),
-                        mGeckoViewport.getZoomFactor()))
-                    mLayerController.setPageSize(mGeckoViewport.getPageSize());
-            }
         }
 
         Log.i(LOGTAG, "zerdatime " + SystemClock.uptimeMillis() + " - endDrawing");
@@ -278,8 +248,20 @@ public class GeckoLayerClient implements GeckoEventResponder,
     
     public void handleMessage(String event, JSONObject message) {
         if ("Viewport:Update".equals(event)) {
-            mUpdateViewportOnEndDraw = true;
             mIgnorePaintsPendingViewportSizeChange = false;
+
+            try {
+                ViewportMetrics newMetrics = new ViewportMetrics(message);
+                synchronized (mLayerController) {
+                    
+                    ImmutableViewportMetrics oldMetrics = mLayerController.getViewportMetrics();
+                    newMetrics.setSize(oldMetrics.getSize());
+                    mLayerController.setViewportMetrics(newMetrics);
+                    mLayerController.abortPanZoomAnimation();
+                }
+            } catch (JSONException e) {
+                Log.e(LOGTAG, "Unable to create viewport metrics in " + event + " handler", e);
+            }
         }
     }
 
