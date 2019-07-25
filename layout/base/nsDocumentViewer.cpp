@@ -326,6 +326,8 @@ public:
   
   NS_IMETHOD GetPresShell(nsIPresShell** aResult);
   NS_IMETHOD GetPresContext(nsPresContext** aResult);
+  NS_IMETHOD SetDocumentInternal(nsIDocument* aDocument,
+                                 PRBool aForceReuseInnerWindow);
   
 
 
@@ -952,7 +954,7 @@ DocumentViewerImpl::InitInternal(nsIWidget* aParentWidget,
       nsCOMPtr<nsIDocument> curDoc =
         do_QueryInterface(window->GetExtantDocument());
       if (!mIsPageMode || curDoc != mDocument) {
-        window->SetNewDocument(mDocument, aState);
+        window->SetNewDocument(mDocument, aState, PR_FALSE);
         nsJSContext::LoadStart();
       }
     }
@@ -1682,31 +1684,38 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
   
   
 
-  nsresult rv;
   if (!aDocument)
     return NS_ERROR_NULL_POINTER;
 
-  nsCOMPtr<nsIDocument> newDoc = do_QueryInterface(aDocument, &rv);
-  if (NS_FAILED(rv)) return rv;
+  nsCOMPtr<nsIDocument> newDoc = do_QueryInterface(aDocument);
+  NS_ENSURE_TRUE(newDoc, NS_ERROR_UNEXPECTED);
+
+  return SetDocumentInternal(newDoc, PR_FALSE);
+}
+
+NS_IMETHODIMP
+DocumentViewerImpl::SetDocumentInternal(nsIDocument* aDocument,
+                                        PRBool aForceReuseInnerWindow)
+{
 
   
   nsCOMPtr<nsISupports> container = do_QueryReferent(mContainer);
-  newDoc->SetContainer(container);
+  aDocument->SetContainer(container);
 
-  if (mDocument != newDoc) {
+  if (mDocument != aDocument) {
     
     
-    mDocument = newDoc;
+    mDocument = aDocument;
 
     
     nsCOMPtr<nsPIDOMWindow> window = do_GetInterface(container);
     if (window) {
-      window->SetNewDocument(newDoc, nsnull);
+      window->SetNewDocument(aDocument, nsnull, aForceReuseInnerWindow);
     }
 
     
     
-    if (!newDoc->IsStaticDocument()) {
+    if (!aDocument->IsStaticDocument()) {
       nsCOMPtr<nsIDocShellTreeNode> node = do_QueryInterface(container);
       if (node) {
         PRInt32 count;
@@ -1720,7 +1729,7 @@ DocumentViewerImpl::SetDOMDocument(nsIDOMDocument *aDocument)
     }
   }
 
-  rv = SyncParentSubDocMap();
+  nsresult rv = SyncParentSubDocMap();
   NS_ENSURE_SUCCESS(rv, rv);
 
   
