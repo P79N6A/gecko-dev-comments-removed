@@ -441,6 +441,20 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
     }
   }
 
+  
+  
+  
+  if (mState & NS_FRAME_IS_SPECIAL) {
+    nsIFrame* nextSib = static_cast<nsIFrame*>
+      (Properties().Get(nsIFrame::IBSplitSpecialSibling()));
+    if (nextSib) {
+      NS_WARN_IF_FALSE(this ==
+         nextSib->Properties().Get(nsIFrame::IBSplitSpecialPrevSibling()),
+         "Next-sibling / prev-sibling chain is inconsistent");
+      nextSib->Properties().Delete(nsIFrame::IBSplitSpecialPrevSibling());
+    }
+  }
+
   shell->NotifyDestroyingFrame(this);
 
   if ((mState & NS_FRAME_EXTERNAL_REFERENCE) ||
