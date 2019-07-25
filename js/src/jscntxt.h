@@ -1598,62 +1598,6 @@ typedef RootedVar<jsid>               RootedVarId;
 typedef RootedVar<Value>              RootedVarValue;
 
 
-class AutoValueRooter : private AutoGCRooter
-{
-  public:
-    explicit AutoValueRooter(JSContext *cx
-                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(js::NullValue())
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    AutoValueRooter(JSContext *cx, const Value &v
-                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
-      : AutoGCRooter(cx, JSVAL), val(v)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-    }
-
-    
-
-
-
-
-
-    void set(Value v) {
-        JS_ASSERT(tag == JSVAL);
-        val = v;
-    }
-
-    const Value &value() const {
-        JS_ASSERT(tag == JSVAL);
-        return val;
-    }
-
-    Value *addr() {
-        JS_ASSERT(tag == JSVAL);
-        return &val;
-    }
-
-    const jsval &jsval_value() const {
-        JS_ASSERT(tag == JSVAL);
-        return val;
-    }
-
-    jsval *jsval_addr() {
-        JS_ASSERT(tag == JSVAL);
-        return &val;
-    }
-
-    friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
-
-  private:
-    Value val;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
-
 class AutoObjectRooter : private AutoGCRooter {
   public:
     AutoObjectRooter(JSContext *cx, JSObject *obj = NULL
@@ -1758,7 +1702,7 @@ class AutoIdRooter : private AutoGCRooter
     }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
+    friend void JS::MarkRuntime(JSTracer *trc);
 
   private:
     jsid id_;
@@ -1848,7 +1792,7 @@ class AutoXMLRooter : private AutoGCRooter {
     }
 
     friend void AutoGCRooter::trace(JSTracer *trc);
-    friend void MarkRuntime(JSTracer *trc);
+    friend void JS::MarkRuntime(JSTracer *trc);
 
   private:
     JSXML * const xml;

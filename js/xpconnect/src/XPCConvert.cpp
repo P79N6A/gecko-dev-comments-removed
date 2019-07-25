@@ -58,6 +58,7 @@
 #include "dombindings.h"
 #include "nsWrapperCacheInlines.h"
 
+#include "jsapi.h"
 #include "jstypedarray.h"
 
 #include "jscntxt.h" 
@@ -1342,7 +1343,7 @@ public:
 
 private:
     JSContext * const mContext;
-    js::AutoValueRooter tvr;
+    JS::AutoValueRooter tvr;
 };
 
 

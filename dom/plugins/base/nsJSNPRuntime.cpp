@@ -38,6 +38,7 @@
 
 #include "base/basictypes.h"
 
+#include "jsapi.h"
 
 #include "jscntxt.h"
 #include "jsfriendapi.h"
@@ -869,7 +870,7 @@ nsJSObjWrapper::NP_SetProperty(NPObject *npobj, NPIdentifier id,
     return false;
 
   jsval v = NPVariantToJSVal(npp, cx, value);
-  js::AutoValueRooter tvr(cx, v);
+  JS::AutoValueRooter tvr(cx, v);
 
   NS_ASSERTION(NPIdentifierIsInt(id) || NPIdentifierIsString(id),
                "id must be either string or int!\n");

@@ -810,6 +810,10 @@ class JS_PUBLIC_API(AutoCheckRequestDepth)
 
 #endif
 
+extern void
+MarkRuntime(JSTracer *trc);
+
+
 class JS_PUBLIC_API(AutoGCRooter) {
   public:
     AutoGCRooter(JSContext *cx, ptrdiff_t tag);
@@ -858,6 +862,62 @@ class JS_PUBLIC_API(AutoGCRooter) {
     void operator=(AutoGCRooter &ida) MOZ_DELETE;
 };
 
+class AutoValueRooter : private AutoGCRooter
+{
+  public:
+    explicit AutoValueRooter(JSContext *cx
+                             JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, JSVAL), val(NullValue())
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    AutoValueRooter(JSContext *cx, const Value &v
+                    JS_GUARD_OBJECT_NOTIFIER_PARAM)
+      : AutoGCRooter(cx, JSVAL), val(v)
+    {
+        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    }
+
+    
+
+
+
+
+
+    void set(Value v) {
+        JS_ASSERT(tag == JSVAL);
+        val = v;
+    }
+
+    const Value &value() const {
+        JS_ASSERT(tag == JSVAL);
+        return val;
+    }
+
+    Value *addr() {
+        JS_ASSERT(tag == JSVAL);
+        return &val;
+    }
+
+    const Value &jsval_value() const {
+        JS_ASSERT(tag == JSVAL);
+        return val;
+    }
+
+    Value *jsval_addr() {
+        JS_ASSERT(tag == JSVAL);
+        return &val;
+    }
+
+    friend void AutoGCRooter::trace(JSTracer *trc);
+    friend void MarkRuntime(JSTracer *trc);
+
+  private:
+    Value val;
+    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
+};
+
 }  
 
 
@@ -883,7 +943,7 @@ IMPL_TO_JSVAL(jsval_layout l)
     return v;
 }
 
-#else  
+#else
 
 
 
@@ -905,7 +965,7 @@ IMPL_TO_JSVAL(jsval_layout l)
     return l;
 }
 
-#endif  
+#endif
 
 JS_STATIC_ASSERT(sizeof(jsval_layout) == sizeof(jsval));
 
