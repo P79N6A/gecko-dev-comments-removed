@@ -282,7 +282,7 @@ TypeAnalyzer::specializePhi(MPhi *phi)
     
     MIRType usedAs = phi->usedAsType();
     if (usedAs == MIRType_Value)
-        return true;
+        return false;
 
     
     for (size_t i = 0; i < phi->numOperands(); i++) {
@@ -293,13 +293,8 @@ TypeAnalyzer::specializePhi(MPhi *phi)
         
         
         if (ins->type() != MIRType_Value)
-            return true;
+            return false;
     }
-
-    MBasicBlock *block = phi->block();
-    MUnbox *unbox = MUnbox::New(phi, usedAs);
-    block->insertAfter(*block->begin(), unbox);
-    rewriteUses(phi, unbox);
 
     return true;
 }
@@ -367,8 +362,9 @@ TypeAnalyzer::insertConversions()
     for (size_t i = 0; i < graph.numBlocks(); i++) {
         MBasicBlock *block = graph.getBlock(i);
         for (size_t i = 0; i < block->numPhis(); i++) {
+            
             if (!specializePhi(block->getPhi(i)))
-                return false;
+                continue;
             if (!fixup(block->getPhi(i)))
                 return false;
         }
