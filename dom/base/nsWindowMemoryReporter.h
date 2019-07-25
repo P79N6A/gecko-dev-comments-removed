@@ -145,13 +145,30 @@ private:
 
 
 
-  class nsGhostWindowMemoryReporter: public nsIMemoryMultiReporter
+
+  class GhostURLsReporter: public nsIMemoryMultiReporter
   {
   public:
-    nsGhostWindowMemoryReporter(nsWindowMemoryReporter* aWindowReporter);
+    GhostURLsReporter(nsWindowMemoryReporter* aWindowReporter);
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIMEMORYMULTIREPORTER
+
+  private:
+    nsRefPtr<nsWindowMemoryReporter> mWindowReporter;
+  };
+
+  
+
+
+
+  class NumGhostsReporter: public nsIMemoryReporter
+  {
+  public:
+    NumGhostsReporter(nsWindowMemoryReporter* aWindowReporter);
+
+    NS_DECL_ISUPPORTS
+    NS_DECL_NSIMEMORYREPORTER
 
   private:
     nsRefPtr<nsWindowMemoryReporter> mWindowReporter;
