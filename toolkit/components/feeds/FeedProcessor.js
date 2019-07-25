@@ -82,7 +82,6 @@ var gIoService = null;
 
 const XMLNS = "http://www.w3.org/XML/1998/namespace";
 const RSS090NS = "http://my.netscape.com/rdf/simple/0.9/";
-const WAIROLE_NS = "http://www.w3.org/2005/01/wai-rdf/GUIRoleTaxonomy#";
 
 
 function strToURI(link, base) {
@@ -224,8 +223,6 @@ var gNamespaces = {
 
 var gAllowedXHTMLNamespaces = {
   "http://www.w3.org/XML/1998/namespace":"xml",
-  "http://www.w3.org/TR/xhtml2":"xhtml2",
-  "http://www.w3.org/2005/07/aaa":"aaa",
   
   
   "http://www.w3.org/1999/xhtml":"xhtml"
@@ -886,14 +883,13 @@ function dateParse(aDateString) {
 const XHTML_NS = "http://www.w3.org/1999/xhtml";
 
 
-function XHTMLHandler(processor, isAtom, waiPrefixes) {
+function XHTMLHandler(processor, isAtom) {
   this._buf = "";
   this._processor = processor;
   this._depth = 0;
   this._isAtom = isAtom;
   
   this._inScopeNS = [];
-  this._waiPrefixes = waiPrefixes;
 }
 
 
@@ -944,39 +940,6 @@ XHTMLHandler.prototype = {
             var attributeValue = xmlEscape(attributes.getValue(i));
 
             
-            var rolePrefix = "";
-            if (attributes.getLocalName(i) == "role") {
-              for (var aPrefix in this._waiPrefixes) {
-                if (attributeValue.indexOf(aPrefix + ":") == 0) {     
-                  
-                  
-                  
-                  
-                  var isCollision = false;
-                  for (var uriKey in gAllowedXHTMLNamespaces) {
-                    if (gAllowedXHTMLNamespaces[uriKey] == aPrefix)
-                      isCollision = true;
-                  }
-                  
-                  if (isCollision) {
-                    rolePrefix = aPrefix + i;
-                    attributeValue = 
-                      rolePrefix + ":" + 
-                      attributeValue.substring(aPrefix.length + 1);
-                  } else {
-                    rolePrefix = aPrefix;
-                  }
-
-                  break;
-                }
-              }
-
-              if (rolePrefix)
-                this._buf += (" xmlns:" + rolePrefix + 
-                              "='" + WAIROLE_NS + "'");
-            }
-
-            
             
             this._buf += (" " + prefix + ":" + 
                           attributes.getLocalName(i) + 
@@ -1016,12 +979,8 @@ XHTMLHandler.prototype = {
     this._buf += xmlEscape(data);
   },
   startPrefixMapping: function XH_startPrefixMapping(prefix, uri) {
-    if (prefix && uri == WAIROLE_NS) 
-      this._waiPrefixes[prefix] = WAIROLE_NS;
   },
   endPrefixMapping: function FP_endPrefixMapping(prefix) {
-    if (prefix)
-      delete this._waiPrefixes[prefix];
   },
   processingInstruction: function XH_processingInstruction() {
   }, 
@@ -1135,9 +1094,6 @@ function FeedProcessor() {
   this._xhtmlHandler = null;
   this._haveSentResult = false;
   
-  
-  this._waiPrefixes = {};
-
   
   this.listener = null;
 
@@ -1487,8 +1443,7 @@ FeedProcessor.prototype = {
       var type = attributes.getValueFromName("","type");
       if (type != null && type.indexOf("xhtml") >= 0) {
         this._xhtmlHandler = 
-          new XHTMLHandler(this, (this._result.version == "atom"), 
-                           this._waiPrefixes);
+          new XHTMLHandler(this, (this._result.version == "atom"));
         this._reader.contentHandler = this._xhtmlHandler;
         return;
       }
@@ -1564,16 +1519,9 @@ FeedProcessor.prototype = {
   
   
   startPrefixMapping: function FP_startPrefixMapping(prefix, uri) {
-    
-    
-    
-    if (prefix && uri == WAIROLE_NS) 
-      this._waiPrefixes[prefix] = WAIROLE_NS;
   },
   
   endPrefixMapping: function FP_endPrefixMapping(prefix) {
-    if (prefix)
-      delete this._waiPrefixes[prefix];
   },
   
   processingInstruction: function FP_processingInstruction(target, data) {
