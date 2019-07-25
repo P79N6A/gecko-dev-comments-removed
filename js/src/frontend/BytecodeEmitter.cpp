@@ -4729,10 +4729,15 @@ EmitFunc(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
         GlobalObject *globalObject = fun->getParent() ? &fun->getParent()->global() : NULL;
         Rooted<JSScript*> script(cx);
         Rooted<JSScript*> parent(cx, bce->script);
-        script = JSScript::Create(cx, parent->savedCallerFun, parent->principals,
-                                  parent->originPrincipals, parent->compileAndGo,
-                                   false, globalObject,
-                                  parent->getVersion(), parent->staticLevel + 1);
+        script = JSScript::Create(cx,
+                                   false,
+                                  parent->principals,
+                                  parent->originPrincipals,
+                                  parent->compileAndGo,
+                                   false,
+                                  globalObject,
+                                  parent->getVersion(),
+                                  parent->staticLevel + 1);
         if (!script)
             return false;
 
