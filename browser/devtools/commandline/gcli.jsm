@@ -9429,11 +9429,14 @@ Inputter.prototype.onKeyUp = function(ev) {
   if (ev.keyCode === KeyEvent.DOM_VK_TAB && !ev.shiftKey) {
     
     
+    var hasContents = (this.element.value.length > 0);
     
     
     
     
-    if (this.lastTabDownAt + 1000 > ev.timeStamp) {
+    
+    
+    if (hasContents && this.lastTabDownAt + 1000 > ev.timeStamp) {
       
       
       
