@@ -472,6 +472,7 @@ private:
   LoadDataArray     mPostedEvents;
 
   
+  
   nsTObserverArray<nsCOMPtr<nsICSSLoaderObserver> > mObservers;
 
   

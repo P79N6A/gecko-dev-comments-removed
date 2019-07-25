@@ -2178,14 +2178,18 @@ Loader::HandleLoadEvent(SheetLoadData* aEvent)
   
   
   NS_ASSERTION(aEvent->mSheet, "Must have sheet");
+
+  
+  
+  
+  mPostedEvents.RemoveElement(aEvent);
+
   if (!aEvent->mIsCancelled) {
     
     
     NS_ADDREF(aEvent);
     SheetComplete(aEvent, NS_OK);
   }
-
-  mPostedEvents.RemoveElement(aEvent);
 
   if (mDocument) {
     mDocument->UnblockOnload(PR_TRUE);
