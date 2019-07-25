@@ -47,8 +47,6 @@ let Storage = {
   GROUPS_DATA_IDENTIFIER: "tabview-groups",
   TAB_DATA_IDENTIFIER: "tabview-tab",
   UI_DATA_IDENTIFIER: "tabview-ui",
-  CACHE_CLIENT_IDENTIFIER: "tabview-cache",
-  CACHE_PREFIX: "moz-panorama:",
 
   
   
@@ -64,28 +62,12 @@ let Storage = {
     this._sessionStore =
       Cc["@mozilla.org/browser/sessionstore;1"].
         getService(Ci.nsISessionStore);
-    
-    
-    let cacheService = 
-      Cc["@mozilla.org/network/cache-service;1"].
-        getService(Ci.nsICacheService);
-    this._cacheSession = cacheService.createSession(
-      this.CACHE_CLIENT_IDENTIFIER, Ci.nsICache.STORE_ON_DISK, true);
-    this.StringInputStream = Components.Constructor(
-      "@mozilla.org/io/string-input-stream;1", "nsIStringInputStream",
-      "setData");
-    this.StorageStream = Components.Constructor(
-      "@mozilla.org/storagestream;1", "nsIStorageStream", 
-      "init");
   },
 
   
   
   uninit: function Storage_uninit () {
     this._sessionStore = null;
-    this._cacheSession = null;
-    this.StringInputStream = null;
-    this.StorageStream = null;
   },
 
   
@@ -117,137 +99,6 @@ let Storage = {
   
   
   
-  
-  
-  _openCacheEntry: function Storage__openCacheEntry(url, access, successCallback, errorCallback) {
-    let onCacheEntryAvailable = function (entry, accessGranted, status) {
-      if (entry && access == accessGranted && Components.isSuccessCode(status)) {
-        successCallback(entry);
-      } else {
-        entry && entry.close();
-        errorCallback();
-      }
-    }
-
-    let key = this.CACHE_PREFIX + url;
-
-    
-    if (UI.isDOMWindowClosing) {
-      let entry = this._cacheSession.openCacheEntry(key, access, true);
-      let status = Components.results.NS_OK;
-      onCacheEntryAvailable(entry, entry.accessGranted, status);
-    } else {
-      let listener = new CacheListener(onCacheEntryAvailable);
-      this._cacheSession.asyncOpenCacheEntry(key, access, listener);
-    }
-  },
-
-  
-  
-  
-  
-  
-  saveThumbnail: function Storage_saveThumbnail(url, imageData, callback) {
-    Utils.assert(url, "url");
-    Utils.assert(imageData, "imageData");
-    Utils.assert(typeof callback == "function", "callback arg must be a function");
-
-    let self = this;
-    let StringInputStream = this.StringInputStream;
-
-    let onCacheEntryAvailable = function (entry) {
-      let outputStream = entry.openOutputStream(0);
-
-      let cleanup = function () {
-        outputStream.close();
-        entry.close();
-      }
-
-      
-      if (UI.isDOMWindowClosing) {
-        outputStream.write(imageData, imageData.length);
-        cleanup();
-        callback(true);
-        return;
-      }
-
-      
-      let inputStream = new StringInputStream(imageData, imageData.length);
-      gNetUtil.asyncCopy(inputStream, outputStream, function (result) {
-        cleanup();
-        inputStream.close();
-        callback(Components.isSuccessCode(result));
-      });
-    }
-
-    let onCacheEntryUnavailable = function () {
-      callback(false);
-    }
-
-    this._openCacheEntry(url, Ci.nsICache.ACCESS_WRITE,
-        onCacheEntryAvailable, onCacheEntryUnavailable);
-  },
-
-  
-  
-  
-  
-  
-  loadThumbnail: function Storage_loadThumbnail(url, callback) {
-    Utils.assert(url, "url");
-    Utils.assert(typeof callback == "function", "callback arg must be a function");
-
-    let self = this;
-
-    let onCacheEntryAvailable = function (entry) {
-      let imageChunks = [];
-      let nativeInputStream = entry.openInputStream(0);
-
-      const CHUNK_SIZE = 0x10000; 
-      const PR_UINT32_MAX = 0xFFFFFFFF;
-      let storageStream = new self.StorageStream(CHUNK_SIZE, PR_UINT32_MAX, null);
-      let storageOutStream = storageStream.getOutputStream(0);
-
-      let cleanup = function () {
-        nativeInputStream.close();
-        storageStream.close();
-        storageOutStream.close();
-        entry.close();
-      }
-
-      gNetUtil.asyncCopy(nativeInputStream, storageOutStream, function (result) {
-        
-        if (typeof UI == "undefined") {
-          cleanup();
-          return;
-        }
-
-        let imageData = null;
-        let isSuccess = Components.isSuccessCode(result);
-
-        if (isSuccess) {
-          let storageInStream = storageStream.newInputStream(0);
-          imageData = gNetUtil.readInputStreamToString(storageInStream,
-            storageInStream.available());
-          storageInStream.close();
-        }
-
-        cleanup();
-        callback(isSuccess, imageData);
-      });
-    }
-
-    let onCacheEntryUnavailable = function () {
-      callback(false);
-    }
-
-    this._openCacheEntry(url, Ci.nsICache.ACCESS_READ,
-        onCacheEntryAvailable, onCacheEntryUnavailable);
-  },
-
-  
-  
-  
   saveTab: function Storage_saveTab(tab, data) {
     Utils.assert(tab, "tab");
 
@@ -255,16 +106,9 @@ let Storage = {
       let imageData = data.imageData;
       
       delete data.imageData;
-      if (imageData != null) {
-        this.saveThumbnail(data.url, imageData, function (status) {
-          if (status) {
-            
-            tab._tabViewTabItem._sendToSubscribers("savedCachedImageData");
-          } else {
-            Utils.log("Error while saving thumbnail: " + e);
-          }
-        });
-      }
+
+      if (imageData != null)
+        ThumbnailStorage.saveThumbnail(tab, imageData);
     }
 
     this._sessionStore.setTabValue(tab, this.TAB_DATA_IDENTIFIER,
@@ -292,18 +136,13 @@ let Storage = {
     }
 
     if (existingData) {
-      this.loadThumbnail(existingData.url, function (status, imageData) {
-        if (status) {
+      ThumbnailStorage.loadThumbnail(
+        tab, existingData.url,
+        function(status, imageData) { 
           callback(imageData);
-
-          
-          tab._tabViewTabItem._sendToSubscribers("loadedCachedImageData");
-        } else {
-          Utils.log("Error while loading thumbnail");
         }
-      });
+      );
     }
-
     return existingData;
   },
 
@@ -409,26 +248,3 @@ let Storage = {
   }
 };
 
-
-
-
-
-
-function CacheListener(callback) {
-  Utils.assert(typeof callback == "function", "callback arg must be a function");
-  this.callback = callback;
-};
-
-CacheListener.prototype = {
-  
-  
-  
-  toString: function CacheListener_toString() {
-    return "[CacheListener]";
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsICacheListener]),
-  onCacheEntryAvailable: function (entry, access, status) {
-    this.callback(entry, access, status);
-  }
-};

@@ -158,6 +158,9 @@ let UI = {
       this._initPageDirection();
 
       
+      ThumbnailStorage.init();
+
+      
       Storage.init();
       let data = Storage.readUIData(gWindow);
       this._storageSanity(data);
@@ -278,7 +281,7 @@ let UI = {
       
       let event = document.createEvent("Events");
       event.initEvent("tabviewframeinitialized", true, false);
-      dispatchEvent(event);      
+      dispatchEvent(event);
     } catch(e) {
       Utils.log(e);
     } finally {
@@ -286,6 +289,8 @@ let UI = {
     }
   },
 
+  
+  
   uninit: function UI_uninit() {
     
     this._cleanupFunctions.forEach(function(func) {
@@ -297,6 +302,7 @@ let UI = {
     TabItems.uninit();
     GroupItems.uninit();
     Storage.uninit();
+    ThumbnailStorage.uninit();
 
     this._removeTabActionHandlers();
     this._currentTab = null;
@@ -680,22 +686,22 @@ let UI = {
     
     
     
-    function pbObserver(aSubject, aTopic, aData) {
-      if (aTopic == "private-browsing") {
+    function pbObserver(subject, topic, data) {
+      if (topic == "private-browsing") {
         
         
-        if (aData == "enter") {
+        if (data == "enter") {
           
           self._privateBrowsing.wasInTabView = self.isTabViewVisible();
           if (self.isTabViewVisible())
             self.goToTab(gBrowser.selectedTab);
         }
-      } else if (aTopic == "private-browsing-change-granted") {
-        if (aData == "enter" || aData == "exit") {
-          self._privateBrowsing.transitionMode = aData;
+      } else if (topic == "private-browsing-change-granted") {
+        if (data == "enter" || data == "exit") {
+          self._privateBrowsing.transitionMode = data;
           self.storageBusy();
         }
-      } else if (aTopic == "private-browsing-transition-complete") {
+      } else if (topic == "private-browsing-transition-complete") {
         
         if (self._privateBrowsing.transitionMode == "exit" &&
             self._privateBrowsing.wasInTabView)
