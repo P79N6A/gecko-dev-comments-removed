@@ -441,10 +441,10 @@ static void BuildLayers(nsDisplayListBuilder* aBuilder,
 } 
 
 already_AddRefed<Layer>
-FrameLayerBuilder::MakeContainerLayerFor(nsDisplayListBuilder* aBuilder,
-                                         LayerManager* aManager,
-                                         nsDisplayItem* aContainer,
-                                         const nsDisplayList& aChildren)
+FrameLayerBuilder::GetContainerLayerFor(nsDisplayListBuilder* aBuilder,
+                                        LayerManager* aManager,
+                                        nsDisplayItem* aContainer,
+                                        const nsDisplayList& aChildren)
 {
   
   
@@ -469,6 +469,22 @@ FrameLayerBuilder::MakeContainerLayerFor(nsDisplayListBuilder* aBuilder,
   container->SetIsOpaqueContent(aChildren.IsOpaque());
   nsRefPtr<Layer> layer = container.forget();
   return layer.forget();
+}
+
+Layer*
+FrameLayerBuilder::GetLeafLayerFor(nsDisplayListBuilder* aBuilder,
+                                   LayerManager* aManager,
+                                   nsDisplayItem* aItem)
+{
+  
+  return nsnull;
+}
+
+ void
+FrameLayerBuilder::InvalidateThebesLayerContents(nsIFrame* aFrame,
+                                                 const nsRect& aRect)
+{
+  
 }
 
  void

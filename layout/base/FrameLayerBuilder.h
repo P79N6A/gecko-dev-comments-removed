@@ -43,6 +43,10 @@
 class nsDisplayListBuilder;
 class nsDisplayList;
 class nsDisplayItem;
+class nsIFrame;
+class nsRect;
+class nsIntRegion;
+class gfxContext;
 
 namespace mozilla {
 
@@ -57,10 +61,28 @@ public:
 
 
 
-  already_AddRefed<Layer> MakeContainerLayerFor(nsDisplayListBuilder* aBuilder,
-                                                LayerManager* aManager,
-                                                nsDisplayItem* aContainer,
-                                                const nsDisplayList& aChildren);
+  already_AddRefed<Layer> GetContainerLayerFor(nsDisplayListBuilder* aBuilder,
+                                               LayerManager* aManager,
+                                               nsDisplayItem* aContainer,
+                                               const nsDisplayList& aChildren);
+
+  
+
+
+
+
+  Layer* GetLeafLayerFor(nsDisplayListBuilder* aBuilder,
+                         LayerManager* aManager,
+                         nsDisplayItem* aItem);
+
+  
+
+
+
+
+
+  static void InvalidateThebesLayerContents(nsIFrame* aFrame,
+                                            const nsRect& aRect);
 
   
 

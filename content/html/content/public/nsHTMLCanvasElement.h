@@ -155,7 +155,8 @@ public:
 
 
 
-  already_AddRefed<CanvasLayer> GetCanvasLayer(LayerManager *aManager);
+  already_AddRefed<CanvasLayer> GetCanvasLayer(CanvasLayer *aOldLayer,
+                                               LayerManager *aManager);
 
   
   

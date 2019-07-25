@@ -163,12 +163,7 @@ typedef PRUint64 nsFrameState;
 
 
 
-
-
-
-
-
-
+#define NS_FRAME_HAS_CONTAINER_LAYER                NS_FRAME_STATE_BIT(3)
 
 
 
@@ -1843,13 +1838,17 @@ public:
 
 
 
+
+
+
   enum {
   	INVALIDATE_IMMEDIATE = 0x01,
   	INVALIDATE_CROSS_DOC = 0x02,
   	INVALIDATE_REASON_SCROLL_BLIT = 0x04,
   	INVALIDATE_REASON_SCROLL_REPAINT = 0x08,
     INVALIDATE_REASON_MASK = INVALIDATE_REASON_SCROLL_BLIT |
-                             INVALIDATE_REASON_SCROLL_REPAINT
+                             INVALIDATE_REASON_SCROLL_REPAINT,
+    INVALIDATE_NO_THEBES_LAYERS = 0x10
   };
   virtual void InvalidateInternal(const nsRect& aDamageRect,
                                   nscoord aOffsetX, nscoord aOffsetY,
