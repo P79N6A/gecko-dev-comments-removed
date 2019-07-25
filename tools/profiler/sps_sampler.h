@@ -89,6 +89,20 @@ extern bool stack_key_initialized;
 #warning Please add support for your architecture in chromium_types.h
 #endif
 
+#define PROFILE_DEFAULT_ENTRY 100000
+#ifdef ANDROID
+
+
+
+
+
+
+#define PROFILE_DEFAULT_INTERVAL 25
+#else
+#define PROFILE_DEFAULT_INTERVAL 10
+#endif
+#define PROFILE_DEFAULT_FEATURES NULL
+#define PROFILE_DEFAULT_FEATURE_COUNT 0
 
 
 

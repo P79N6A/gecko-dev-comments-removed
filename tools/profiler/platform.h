@@ -16,7 +16,7 @@
 #include <vector>
 #define ASSERT(a) MOZ_ASSERT(a)
 #ifdef ANDROID
-#ifdef defined(__arm__) || defined(__thumb__)
+#if defined(__arm__) || defined(__thumb__)
 #define ENABLE_SPS_LEAF_DATA
 #endif
 #define LOG(text) __android_log_print(ANDROID_LOG_ERROR, "profiler", "%s", text);
@@ -90,6 +90,10 @@ class OS {
   
   static Mutex* CreateMutex();
 
+  
+  
+  static void RegisterStartStopHandlers();
+
  private:
   static const int msPerSecond = 1000;
 
@@ -160,11 +164,13 @@ class TickSample {
         sp(NULL),
         fp(NULL),
         function(NULL),
+        context(NULL),
         frames_count(0) {}
   Address pc;  
   Address sp;  
   Address fp;  
   Address function;  
+  void*   context;   
   static const int kMaxFramesCount = 64;
   Address stack[kMaxFramesCount];  
   int frames_count;  
