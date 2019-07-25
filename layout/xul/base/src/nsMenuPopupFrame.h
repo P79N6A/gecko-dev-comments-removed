@@ -94,6 +94,15 @@ enum nsPopupState {
 
 
 
+
+enum FlipStyle {
+  FlipStyle_None = 0,
+  FlipStyle_Outside = 1,
+  FlipStyle_Inside = 2
+};
+
+
+
 #define POPUPALIGNMENT_NONE 0
 #define POPUPALIGNMENT_TOPLEFT 1
 #define POPUPALIGNMENT_TOPRIGHT -1
@@ -345,8 +354,8 @@ protected:
   
   
   
-  nsPoint AdjustPositionForAnchorAlign(const nsRect& anchorRect, PRBool& aHFlip, PRBool& aVFlip);
-
+  nsPoint AdjustPositionForAnchorAlign(const nsRect& anchorRect,
+                                       FlipStyle& aHFlip, FlipStyle& aVFlip);
 
   
   
@@ -367,7 +376,7 @@ protected:
                        nscoord aScreenBegin, nscoord aScreenEnd,
                        nscoord aAnchorBegin, nscoord aAnchorEnd,
                        nscoord aMarginBegin, nscoord aMarginEnd,
-                       nscoord aOffsetForContextMenu, PRBool aFlip,
+                       nscoord aOffsetForContextMenu, FlipStyle aFlip,
                        PRPackedBool* aFlipSide);
 
   
@@ -404,6 +413,7 @@ protected:
   
   PRInt8 mPopupAlignment;
   PRInt8 mPopupAnchor;
+  PRPackedBool mFlipBoth; 
 
   PRPackedBool mIsOpenChanged; 
   PRPackedBool mIsContextMenu; 

@@ -40,8 +40,7 @@
   
 
   #identity-popup,
-  #editBookmarkPanel,
-  #notification-popup {
+  #editBookmarkPanel {
     -moz-appearance: tooltip;
     color: InfoText;
   }

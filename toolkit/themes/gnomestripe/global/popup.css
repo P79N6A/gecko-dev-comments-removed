@@ -47,6 +47,15 @@ panel {
   color: MenuText;
 }
 
+panel[type="arrow"] {
+  -moz-transition: opacity 300ms;
+}
+
+.panel-arrowbox {
+  
+  display: none;
+}
+
 
 
 tooltip {

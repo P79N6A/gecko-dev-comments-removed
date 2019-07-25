@@ -113,6 +113,7 @@ nsMenuPopupFrame::nsMenuPopupFrame(nsIPresShell* aShell, nsStyleContext* aContex
   mPopupState(ePopupClosed),
   mPopupAlignment(POPUPALIGNMENT_NONE),
   mPopupAnchor(POPUPALIGNMENT_NONE),
+  mFlipBoth(PR_FALSE),
   mIsOpenChanged(PR_FALSE),
   mIsContextMenu(PR_FALSE),
   mAdjustOffsetForContextMenu(PR_FALSE),
@@ -575,10 +576,11 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
   
   
   if (aAnchorContent) {
-    nsAutoString anchor, align, position;
+    nsAutoString anchor, align, position, flip;
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::popupanchor, anchor);
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::popupalign, align);
     mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::position, position);
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::flip, flip);
 
     if (aAttributesOverride) {
       
@@ -591,6 +593,8 @@ nsMenuPopupFrame::InitializePopup(nsIContent* aAnchorContent,
     else if (!aPosition.IsEmpty()) {
       position.Assign(aPosition);
     }
+
+    mFlipBoth = flip.EqualsLiteral("both");
 
     if (position.EqualsLiteral("before_start")) {
       mPopupAnchor = POPUPALIGNMENT_TOPLEFT;
@@ -676,6 +680,7 @@ nsMenuPopupFrame::InitializePopupAtScreen(nsIContent* aTriggerContent,
   mTriggerContent = aTriggerContent;
   mScreenXPos = aXPos;
   mScreenYPos = aYPos;
+  mFlipBoth = PR_FALSE;
   mPopupAnchor = POPUPALIGNMENT_NONE;
   mPopupAlignment = POPUPALIGNMENT_NONE;
   mIsContextMenu = aIsContextMenu;
@@ -692,6 +697,7 @@ nsMenuPopupFrame::InitializePopupWithAnchorAlign(nsIContent* aAnchorContent,
 
   mPopupState = ePopupShowing;
   mAdjustOffsetForContextMenu = PR_FALSE;
+  mFlipBoth = PR_FALSE;
 
   
   
@@ -776,6 +782,7 @@ nsMenuPopupFrame::HidePopup(PRBool aDeselectMenu, nsPopupState aNewState)
       }
     }
     mTriggerContent = nsnull;
+    mAnchorContent = nsnull;
   }
 
   
@@ -873,7 +880,7 @@ nsMenuPopupFrame::GetRootViewForPopup(nsIFrame* aStartFrame)
 
 nsPoint
 nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
-                                               PRBool& aHFlip, PRBool& aVFlip)
+                                               FlipStyle& aHFlip, FlipStyle& aVFlip)
 {
   
   PRInt8 popupAnchor(mPopupAnchor);
@@ -930,9 +937,20 @@ nsMenuPopupFrame::AdjustPositionForAnchorAlign(const nsRect& anchorRect,
   
   
   
-  aHFlip = (popupAnchor == -popupAlign);
-  aVFlip = ((popupAnchor > 0) == (popupAlign > 0)) ||
-            (popupAnchor == POPUPALIGNMENT_TOPLEFT && popupAlign == POPUPALIGNMENT_TOPLEFT);
+  
+  
+  
+  
+  
+  
+  
+  FlipStyle anchorEdge = mFlipBoth ? FlipStyle_Inside: FlipStyle_None;
+  aHFlip = (popupAnchor == -popupAlign) ? FlipStyle_Outside : anchorEdge;
+  if (((popupAnchor > 0) == (popupAlign > 0)) ||
+      (popupAnchor == POPUPALIGNMENT_TOPLEFT && popupAlign == POPUPALIGNMENT_TOPLEFT))
+    aVFlip = FlipStyle_Outside;
+  else
+    aVFlip = anchorEdge;
 
   return pnt;
 }
@@ -942,7 +960,7 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
                                nscoord aScreenBegin, nscoord aScreenEnd,
                                nscoord aAnchorBegin, nscoord aAnchorEnd,
                                nscoord aMarginBegin, nscoord aMarginEnd,
-                               nscoord aOffsetForContextMenu, PRBool aFlip,
+                               nscoord aOffsetForContextMenu, FlipStyle aFlip,
                                PRPackedBool* aFlipSide)
 {
   
@@ -952,16 +970,20 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
     
     if (aFlip) {
       
+      nscoord startpos = aFlip == FlipStyle_Outside ? aAnchorBegin : aAnchorEnd;
+      nscoord endpos = aFlip == FlipStyle_Outside ? aAnchorEnd : aAnchorBegin;
+
       
-      if (aAnchorBegin - aScreenBegin >= aScreenEnd - aAnchorEnd) {
+      
+      if (startpos - aScreenBegin >= aScreenEnd - endpos) {
         aScreenPoint = aScreenBegin;
-        popupSize = aAnchorBegin - aScreenPoint - aMarginEnd;
+        popupSize = startpos - aScreenPoint - aMarginEnd;
       }
       else {
         
         
         *aFlipSide = PR_TRUE;
-        aScreenPoint = aAnchorEnd + aMarginEnd;
+        aScreenPoint = endpos + aMarginEnd;
         
         
         if (aScreenPoint + aSize > aScreenEnd) {
@@ -978,8 +1000,12 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
     
     if (aFlip) {
       
+      nscoord startpos = aFlip == FlipStyle_Outside ? aAnchorBegin : aAnchorEnd;
+      nscoord endpos = aFlip == FlipStyle_Outside ? aAnchorEnd : aAnchorBegin;
+
       
-      if (aScreenEnd - aAnchorEnd >= aAnchorBegin - aScreenBegin) {
+      
+      if (aScreenEnd - endpos >= startpos - aScreenBegin) {
         if (mIsContextMenu) {
           aScreenPoint = aScreenEnd - aSize;
         }
@@ -991,13 +1017,14 @@ nsMenuPopupFrame::FlipOrResize(nscoord& aScreenPoint, nscoord aSize,
         
         
         *aFlipSide = PR_TRUE;
-        aScreenPoint = aAnchorBegin - aSize - aMarginBegin - aOffsetForContextMenu;
+        aScreenPoint = startpos - aSize - aMarginBegin - aOffsetForContextMenu;
+
         
         
         if (aScreenPoint < aScreenBegin) {
           aScreenPoint = aScreenBegin;
           if (!mIsContextMenu) {
-            popupSize = aAnchorBegin - aScreenPoint - aMarginBegin;
+            popupSize = startpos - aScreenPoint - aMarginBegin;
           }
         }
       }
@@ -1070,8 +1097,8 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
   nsRect anchorRect = parentRect;
 
   
-  PRBool hFlip = PR_FALSE, vFlip = PR_FALSE;
-  
+  FlipStyle hFlip = FlipStyle_None, vFlip = FlipStyle_None;
+
   nsMargin margin(0, 0, 0, 0);
   GetStyleMargin()->GetMargin(margin);
 
@@ -1151,13 +1178,13 @@ nsMenuPopupFrame::SetPopupPosition(nsIFrame* aAnchorFrame, PRBool aIsMove)
                        margin.top + offsetForContextMenu);
 
     
-    vFlip = PR_TRUE;
+    vFlip = FlipStyle_Outside;
   }
 
   
   
   if (aIsMove && mPopupType == ePopupTypePanel && !mInContentShell) {
-    hFlip = vFlip = PR_FALSE;
+    hFlip = vFlip = FlipStyle_None;
   }
 
   nsRect screenRect = GetConstraintRect(anchorRect, rootScreenRect);
