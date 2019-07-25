@@ -109,12 +109,6 @@ PRBool nsScriptSecurityManager::sStrictFileOriginPolicy = PR_TRUE;
 
 
 
-static JSEqualityOp sXPCWrappedNativeEqualityOps;
-
-
-
-
-
 
 static inline const PRUnichar *
 IDToString(JSContext *cx, jsid id)
@@ -2414,11 +2408,8 @@ nsScriptSecurityManager::doGetObjectPrincipal(JSObject *aObj
     do {
         
         
-
         
-        
-        
-        if (jsClass->ext.equality == js::Valueify(sXPCWrappedNativeEqualityOps)) {
+        if (IS_WRAPPER_CLASS(jsClass)) {
             result = sXPConnect->GetPrincipal(aObj,
 #ifdef DEBUG
                                               aAllowShortCircuit
@@ -3423,7 +3414,6 @@ nsresult nsScriptSecurityManager::Init()
     JS_SetRuntimeSecurityCallbacks(sRuntime, &securityCallbacks);
     NS_ASSERTION(!oldcallbacks, "Someone else set security callbacks!");
 
-    sXPConnect->GetXPCWrappedNativeJSClassInfo(&sXPCWrappedNativeEqualityOps);
     return NS_OK;
 }
 
