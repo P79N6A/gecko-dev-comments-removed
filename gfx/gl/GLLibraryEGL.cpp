@@ -92,6 +92,7 @@ GLLibraryEGL::EnsureInitialized()
     mozilla::ScopedGfxFeatureReporter reporter("EGL");
 
 #ifdef XP_WIN
+#ifdef MOZ_WEBGL
     if (!mEGLLibrary) {
         
         
@@ -119,6 +120,7 @@ GLLibraryEGL::EnsureInitialized()
         if (!mEGLLibrary)
             return false;
     }
+#endif 
 #else 
 
     
