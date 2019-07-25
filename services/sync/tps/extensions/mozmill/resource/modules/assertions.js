@@ -161,7 +161,7 @@ Expect.prototype = {
   ok: function Expect_ok(aValue, aMessage) {
     let condition = !!aValue;
     let diagnosis = "got '" + aValue + "'";
-  
+
     return this._test(condition, aMessage, diagnosis);
   },
 
@@ -179,7 +179,7 @@ Expect.prototype = {
   equal: function Expect_equal(aValue, aExpected, aMessage) {
     let condition = (aValue === aExpected);
     let diagnosis = "got '" + aValue + "', expected '" + aExpected + "'";
-  
+
     return this._test(condition, aMessage, diagnosis);
   },
 
@@ -264,8 +264,8 @@ Expect.prototype = {
 
     return this._test(condition, aMessage, diagnosis);
   },
-  
-  
+
+
   
 
 
@@ -295,7 +295,7 @@ Expect.prototype = {
   doesNotThrow : function Expect_doesNotThrow(block, error, message) {
     return this._throws.apply(this, [false].concat(Array.prototype.slice.call(arguments)));
   },
-  
+
   
 
 
@@ -333,7 +333,7 @@ Expect.prototype = {
     }
     return this._test(true, message);
   },
-  
+
   _expectedException : function Expect__expectedException(actual, expected) {
     if (!actual || !expected) {
       return false;

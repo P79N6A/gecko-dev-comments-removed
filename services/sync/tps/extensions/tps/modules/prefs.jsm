@@ -57,9 +57,9 @@ CU.import("resource://tps/logger.jsm");
 
 
 function Preference (props) {
-  Logger.AssertTrue("name" in props && "value" in props, 
+  Logger.AssertTrue("name" in props && "value" in props,
     "Preference must have both name and value");
-  
+
   this.name = props.name;
   this.value = props.value;
 }
@@ -87,7 +87,7 @@ Preference.prototype = {
     catch(e) {
       Logger.AssertTrue(false, "Weave doesn't sync pref " + this.name);
     }
-    
+
     
     
     let prefType = prefs.getPrefType(this.name);
@@ -139,7 +139,7 @@ Preference.prototype = {
     catch (e) {
       Logger.AssertTrue(false, "Error accessing pref " + this.name);
     }
-    
+
     
     
     Logger.AssertEqual(typeof(value), typeof(this.value),

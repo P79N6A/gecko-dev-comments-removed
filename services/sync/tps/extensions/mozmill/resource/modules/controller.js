@@ -67,12 +67,12 @@ waitForEvents.prototype = {
   init : function waitForEvents_init(node, events) {
     if (node.getNode != undefined)
       node = node.getNode();
-  
+
     this.events = events;
     this.node = node;
     node.firedEvents = {};
     this.registry = {};
-  
+
     for each(e in events) {
       var listener = function(event) {
         this.firedEvents[event.type] = true;
@@ -92,7 +92,7 @@ waitForEvents.prototype = {
       utils.waitFor(function() {
         return this.node.firedEvents[e] == true;
       }, "Timeout happened before event '" + ex +"' was fired.", timeout, interval);
-  
+
       this.node.removeEventListener(e, this.registry[e], true);
     }
   }
@@ -315,7 +315,7 @@ MozMillController.prototype.screenShot = function _screenShot(node, name, save, 
   if (!node) {
     throw new Error("node is undefined");
   }
-  
+
   
   if ("getNode" in node) node = node.getNode();
   if (highlights) {
@@ -325,7 +325,7 @@ MozMillController.prototype.screenShot = function _screenShot(node, name, save, 
       }
     }
   }
-  
+
   
   
   var filepath, dataURL;
@@ -430,7 +430,7 @@ MozMillController.prototype.startUserShutdown = function (timeout, restart, next
   this.window.setTimeout(this.fireEvent, timeout, 'userShutdown', 0);
 }
 
-MozMillController.prototype.restartApplication = function (next, resetProfile) 
+MozMillController.prototype.restartApplication = function (next, resetProfile)
 {
   
   
@@ -442,7 +442,7 @@ MozMillController.prototype.restartApplication = function (next, resetProfile)
   utils.getMethodInWindows('goQuitApplication')();
 }
 
-MozMillController.prototype.stopApplication = function (resetProfile) 
+MozMillController.prototype.stopApplication = function (resetProfile)
 {
   
   
@@ -498,7 +498,7 @@ MozMillController.prototype.assertText = function (el, text) {
 
 MozMillController.prototype.assertNode = function (el) {
   logDeprecatedAssert("assertNode");
-  
+
   
   var element = el.getNode();
   if (!element){
@@ -512,7 +512,7 @@ MozMillController.prototype.assertNode = function (el) {
 
 MozMillController.prototype.assertNodeNotExist = function (el) {
   logDeprecatedAssert("assertNodeNotExist");
-  
+
   
   try {
     var element = el.getNode();
@@ -533,7 +533,7 @@ MozMillController.prototype.assertNodeNotExist = function (el) {
 
 MozMillController.prototype.assertValue = function (el, value) {
   logDeprecatedAssert("assertValue");
-  
+
   
   var n = el.getNode();
 
@@ -560,7 +560,7 @@ MozMillController.prototype.assert = function(callback, message, thisObject)
 
 MozMillController.prototype.assertSelected = function (el, value) {
   logDeprecatedAssert("assertSelected");
-  
+
   
   var n = el.getNode();
   var validator = value;
@@ -576,7 +576,7 @@ MozMillController.prototype.assertSelected = function (el, value) {
 
 MozMillController.prototype.assertChecked = function (el) {
   logDeprecatedAssert("assertChecked");
-  
+
   
   var element = el.getNode();
 
@@ -591,7 +591,7 @@ MozMillController.prototype.assertChecked = function (el) {
 
 MozMillController.prototype.assertNotChecked = function (el) {
   logDeprecatedAssert("assertNotChecked");
-  
+
   var element = el.getNode();
 
   if (!element) {
@@ -614,7 +614,7 @@ MozMillController.prototype.assertNotChecked = function (el) {
 
 MozMillController.prototype.assertJSProperty = function(el, attrib, val) {
   logDeprecatedAssert("assertJSProperty");
-  
+
   var element = el.getNode();
   if (!element){
     throw new Error("could not find element " + el.getInfo());
@@ -625,7 +625,7 @@ MozMillController.prototype.assertJSProperty = function(el, attrib, val) {
   if (res) {
     frame.events.pass({'function':'Controller.assertJSProperty("' + el.getInfo() + '") : ' + val});
   } else {
-    throw new Error("Controller.assertJSProperty(" + el.getInfo() + ") : " + 
+    throw new Error("Controller.assertJSProperty(" + el.getInfo() + ") : " +
                      (val === undefined ? "property '" + attrib + "' doesn't exist" : val + " == " + value));
   }
   return res;
@@ -639,7 +639,7 @@ MozMillController.prototype.assertJSProperty = function(el, attrib, val) {
 
 MozMillController.prototype.assertNotJSProperty = function(el, attrib, val) {
   logDeprecatedAssert("assertNotJSProperty");
-  
+
   var element = el.getNode();
   if (!element){
     throw new Error("could not find element " + el.getInfo());
@@ -664,7 +664,7 @@ MozMillController.prototype.assertNotJSProperty = function(el, attrib, val) {
 
 MozMillController.prototype.assertDOMProperty = function(el, attrib, val) {
   logDeprecatedAssert("assertDOMProperty");
-  
+
   var element = el.getNode();
   if (!element){
     throw new Error("could not find element " + el.getInfo());
@@ -674,12 +674,12 @@ MozMillController.prototype.assertDOMProperty = function(el, attrib, val) {
   if (res && val !== undefined) {
     value = element.getAttribute(attrib);
     res = (String(value) == String(val));
-  }   
- 
+  }
+
   if (res) {
     frame.events.pass({'function':'Controller.assertDOMProperty("' + el.getInfo() + '") : ' + val});
   } else {
-    throw new Error("Controller.assertDOMProperty(" + el.getInfo() + ") : " + 
+    throw new Error("Controller.assertDOMProperty(" + el.getInfo() + ") : " +
                      (val === undefined ? "property '" + attrib + "' doesn't exist" : val + " == " + value));
   }
   return res;
@@ -693,7 +693,7 @@ MozMillController.prototype.assertDOMProperty = function(el, attrib, val) {
 
 MozMillController.prototype.assertNotDOMProperty = function(el, attrib, val) {
   logDeprecatedAssert("assertNotDOMProperty");
-  
+
   var element = el.getNode();
   if (!element){
     throw new Error("could not find element " + el.getInfo());
@@ -703,11 +703,11 @@ MozMillController.prototype.assertNotDOMProperty = function(el, attrib, val) {
   if (res && val !== undefined) {
     value = element.getAttribute(attrib);
     res = (String(value) == String(val));
-  }   
+  }
   if (!res) {
     frame.events.pass({'function':'Controller.assertNotDOMProperty("' + el.getInfo() + '") : ' + val});
   } else {
-    throw new Error("Controller.assertNotDOMProperty(" + el.getInfo() + ") : " + 
+    throw new Error("Controller.assertNotDOMProperty(" + el.getInfo() + ") : " +
                      (val == undefined ? "property '" + attrib + "' exists" : val + " == " + value));
   }
   return !res;
@@ -730,7 +730,7 @@ MozMillController.prototype.assertPropertyNotExist = function(el, attrib) {
 
 MozMillController.prototype.assertImageLoaded = function (el) {
   logDeprecatedAssert("assertImageLoaded");
-  
+
   
   var img = el.getNode();
   if (!img || img.tagName != 'IMG') {
@@ -969,7 +969,7 @@ controllerAdditions = {
 
 
 MozMillController.prototype.select = function (elem, index, option, value) {
-  return elem.select(index, option, value); 
+  return elem.select(index, option, value);
 };
 
 MozMillController.prototype.keypress = function(aTarget, aKey, aModifiers, aExpectedEvent) {

@@ -37,9 +37,9 @@
 
 
 
-var EXPORTED_SYMBOLS = ["openFile", "saveFile", "saveAsFile", "genBoiler", 
+var EXPORTED_SYMBOLS = ["openFile", "saveFile", "saveAsFile", "genBoiler",
                         "getFile", "Copy", "getChromeWindow", "getWindows", "runEditor",
-                        "runFile", "getWindowByTitle", "getWindowByType", "tempfile", 
+                        "runFile", "getWindowByTitle", "getWindowByType", "tempfile",
                         "getMethodInWindows", "getPreference", "setPreference",
                         "sleep", "assert", "unwrapNode", "TimeoutError", "waitFor",
                         "takeScreenshot",
@@ -129,11 +129,11 @@ var checkChrome = function() {
        loc = window.top.document.location.href;
    } catch (e) {}
 
-   if (/^chrome:\/\//.test(loc)) { return true; } 
+   if (/^chrome:\/\//.test(loc)) { return true; }
    else { return false; }
 }
 
- 
+
  var runFile = function(w){
    
    var nsIFilePicker = Components.interfaces.nsIFilePicker;
@@ -152,28 +152,28 @@ var checkChrome = function() {
      paramObj.files.push(thefile.path);
    }
  };
- 
+
  var saveFile = function(w, content, filename){
    
    var file = Components.classes["@mozilla.org/file/local;1"]
                         .createInstance(Components.interfaces.nsILocalFile);
    
    file.initWithPath(filename);
-   
+
    
    var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
                             .createInstance(Components.interfaces.nsIFileOutputStream);
 
    
-   foStream.init(file, 0x02 | 0x08 | 0x20, 0666, 0); 
+   foStream.init(file, 0x02 | 0x08 | 0x20, 0666, 0);
    
    
    
-   
+
    foStream.write(content, content.length);
    foStream.close();
  };
- 
+
   var saveAsFile = function(w, content){
      
      var nsIFilePicker = Components.interfaces.nsIFilePicker;
@@ -186,7 +186,7 @@ var checkChrome = function() {
      
      if ((res == nsIFilePicker.returnOK) || (res == nsIFilePicker.returnReplace)){
        var thefile = fp.file;
-              
+
        
        if (thefile.path.indexOf(".js") == -1){
          
@@ -196,13 +196,13 @@ var checkChrome = function() {
          file.initWithPath(thefile.path+".js");
          var thefile = file;
        }
-       
+
        
        var foStream = Components.classes["@mozilla.org/network/file-output-stream;1"]
                                .createInstance(Components.interfaces.nsIFileOutputStream);
 
        
-       foStream.init(thefile, 0x02 | 0x08 | 0x20, 0666, 0); 
+       foStream.init(thefile, 0x02 | 0x08 | 0x20, 0666, 0);
        
        
        
@@ -211,7 +211,7 @@ var checkChrome = function() {
        return thefile.path;
      }
   };
-  
+
  var openFile = function(w){
     
     var nsIFilePicker = Components.interfaces.nsIFilePicker;
@@ -230,7 +230,7 @@ var checkChrome = function() {
       return {path:thefile.path, data:data};
     }
   };
-  
+
  var getFile = function(path){
    
    var file = Components.classes["@mozilla.org/file/local;1"]
@@ -244,7 +244,7 @@ var checkChrome = function() {
    var sstream = Components.classes["@mozilla.org/scriptableinputstream;1"]
                            .createInstance(Components.interfaces.nsIScriptableInputStream);
    fstream.init(file, -1, 0, 0);
-   sstream.init(fstream); 
+   sstream.init(fstream);
 
    
    var str = sstream.read(4096);
@@ -259,7 +259,7 @@ var checkChrome = function() {
    
    return data;
  };
- 
+
 
 
 
@@ -356,7 +356,7 @@ function assert(callback, message, thisObject) {
 
   return true;
 }
-	   
+	
 
 
 
@@ -367,7 +367,7 @@ function unwrapNode(aNode) {
   var node = aNode;
   if (node) {
     
-    if ("unwrap" in XPCNativeWrapper) {	   
+    if ("unwrap" in XPCNativeWrapper) {	
       node = XPCNativeWrapper.unwrap(node);
     }
     else if (node.wrappedJSObject != null) {
@@ -437,7 +437,7 @@ function getChromeOffset(elem) {
   var win = elem.ownerDocument.defaultView;
   
   var chromeWidth = 0;
-  if (win["name"] != "sidebar") { 
+  if (win["name"] != "sidebar") {
     chromeWidth = win.outerWidth - win.innerWidth;
   }
 
@@ -447,7 +447,7 @@ function getChromeOffset(elem) {
   if (chromeHeight > 0) {
     
     var addonbar = win.document.getElementById("addon-bar");
-    if (addonbar) { 
+    if (addonbar) {
       chromeHeight -= addonbar.scrollHeight;
     }
     var findbar = win.document.getElementById("FindToolbar");
@@ -456,7 +456,7 @@ function getChromeOffset(elem) {
     }
   }
 
-  return {'x':chromeWidth, 'y':chromeHeight}; 
+  return {'x':chromeWidth, 'y':chromeHeight};
 }
 
 
@@ -491,7 +491,7 @@ function takeScreenshot(node, name, highlights) {
   var ctx = canvas.getContext("2d");
   
   ctx.drawWindow(win, left, top, width, height, "rgb(255,255,255)");
-  
+
   
   if (highlights) {
     ctx.lineWidth = "2";
@@ -521,7 +521,7 @@ function takeScreenshot(node, name, highlights) {
   
   if (name) {
     return saveCanvas(canvas, name);
-  } 
+  }
   return canvas.toDataURL("image/png","");
 }
 
@@ -542,14 +542,14 @@ function saveCanvas(canvas, name) {
                               .getService(Components.interfaces.nsIIOService);
   var source = io.newURI(canvas.toDataURL("image/png", ""), "UTF8", null);
   var target = io.newFileURI(file)
- 
+
   
   var persist = Components.classes["@mozilla.org/embedding/browser/nsWebBrowserPersist;1"]
                                    .createInstance(Components.interfaces.nsIWebBrowserPersist);
 
   persist.persistFlags = Components.interfaces.nsIWebBrowserPersist.PERSIST_FLAGS_REPLACE_EXISTING_FILES;
   persist.persistFlags |= Components.interfaces.nsIWebBrowserPersist.PERSIST_FLAGS_AUTODETECT_APPLY_CONVERSION;
- 
+
   
   persist.saveURI(source, null, null, null, null, file);
 

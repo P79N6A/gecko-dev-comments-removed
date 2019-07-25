@@ -302,7 +302,7 @@ function toDateString(date)
   {
     var hrs = date.getUTCHours();
     var rv  = (hrs < 10) ? "0" + hrs : hrs;
-    
+
     var mins = date.getUTCMinutes();
     rv += ":";
     rv += (mins < 10) ? "0" + mins : mins;
@@ -1037,7 +1037,7 @@ ServerIdentity.prototype =
       
       this.remove("http", "127.0.0.1", this._defaultPort);
     }
-    
+
     
     
     if (this._primaryScheme == "http" &&
@@ -1469,7 +1469,7 @@ RequestReader.prototype =
         this._handleResponse();
         return true;
       }
-      
+
       return false;
     }
     catch (e)
@@ -2114,7 +2114,7 @@ function maybeAddHeaders(file, metadata, response)
         code = status.substring(0, space);
         description = status.substring(space + 1, status.length);
       }
-    
+
       response.setStatusLine(metadata.httpVersion, parseInt(code, 10), description);
 
       line.value = "";
@@ -2184,7 +2184,7 @@ function ServerHandler(server)
 
 
   this._overridePaths = {};
-  
+
   
 
 
@@ -2998,7 +2998,7 @@ ServerHandler.prototype =
     dumpn("*** error in request: " + errorCode);
 
     this._handleError(errorCode, new Request(connection.port), response);
-  }, 
+  },
 
   
 
@@ -3247,7 +3247,7 @@ ServerHandler.prototype =
 
       if (metadata.queryString)
         body +=  "?" + metadata.queryString;
-        
+
       body += " HTTP/" + metadata.httpVersion + "\r\n";
 
       var headEnum = metadata.headers;
@@ -4799,11 +4799,11 @@ nsHttpHeaders.prototype =
     {
       if (name === "www-authenticate" ||
           name === "proxy-authenticate" ||
-          name === "set-cookie") 
+          name === "set-cookie")
       {
         this._headers[name].push(value);
       }
-      else 
+      else
       {
         this._headers[name][0] += "," + value;
         NS_ASSERT(this._headers[name].length === 1,
@@ -5089,7 +5089,7 @@ Request.prototype =
   
   
   
-  getProperty: function(name) 
+  getProperty: function(name)
   {
     this._ensurePropertyBag();
     return this._bag.getProperty(name);
@@ -5111,7 +5111,7 @@ Request.prototype =
 
 
   
-  
+
   
   _ensurePropertyBag: function()
   {

@@ -57,7 +57,7 @@ function getFileForPath (path) {
   return file;
 }
 
-function abspath (rel, file) {  
+function abspath (rel, file) {
   var relSplit = rel.split('/');
   if (relSplit[0] == '..' && !file.isDirectory()) {
     file = file.parent;

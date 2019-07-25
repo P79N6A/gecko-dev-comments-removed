@@ -35,7 +35,7 @@
 
 
 
-var EXPORTED_SYMBOLS = ['loadFile','Collector','Runner','events', 
+var EXPORTED_SYMBOLS = ['loadFile','Collector','Runner','events',
                         'jsbridge', 'runTestFile', 'log', 'getThread',
                         'timers', 'persisted'];
 
@@ -96,7 +96,7 @@ var loadFile = function(path, collector) {
 
   loadTestResources();
   var assertions = moduleLoader.require("./assertions");
-  var module = {  
+  var module = {
     collector:  collector,
     mozmill: mozmill,
     elementslib: mozelement,
@@ -158,7 +158,7 @@ function stateChangeBase (possibilties, restrictions, target, cmeta, v) {
     if (!arrays.inArray(possibilties, v)) {
       
       return;
-    } 
+    }
   }
   if (restrictions) {
     for (var i in restrictions) {
@@ -185,8 +185,8 @@ var events = {
   'listeners'    : {},
 }
 events.setState = function (v) {
-   return stateChangeBase(['dependencies', 'setupModule', 'teardownModule', 
-                           'setupTest', 'teardownTest', 'test', 'collection'], 
+   return stateChangeBase(['dependencies', 'setupModule', 'teardownModule',
+                           'setupTest', 'teardownTest', 'test', 'collection'],
                            null, 'currentState', 'setState', v);
 }
 events.toggleUserShutdown = function (obj){
@@ -212,16 +212,16 @@ events.setTest = function (test, invokedFromIDE) {
 events.endTest = function (test) {
   
   test.status = 'done';
-  events.currentTest = null; 
+  events.currentTest = null;
   test.__end__ = Date.now();
-  var obj = {'filename':events.currentModule.__file__, 
+  var obj = {'filename':events.currentModule.__file__,
          'passed':test.__passes__.length,
          'failed':test.__fails__.length,
          'passes':test.__passes__,
          'fails' :test.__fails__,
          'name'  :test.__name__,
          'time_start':test.__start__,
-         'time_end':test.__end__    
+         'time_end':test.__end__
          }
   if (test.skipped) {
     obj['skipped'] = true;
@@ -230,25 +230,25 @@ events.endTest = function (test) {
   if (test.meta) {
     obj.meta = test.meta;
   }
-  
+
   
   
   var shouldSkipReporting = false;
-  if (test.__passes__ && 
+  if (test.__passes__ &&
       (test.__name__ == 'setupModule' ||
        test.__name__ == 'setupTest' ||
        test.__name__ == 'teardownTest' ||
        test.__name__ == 'teardownModule')) {
     shouldSkipReporting = true;
   }
-  
+
   if (!shouldSkipReporting) {
     events.fireEvent('endTest', obj);
   }
 }
 
 events.setModule = function (v) {
-  return stateChangeBase( null, [function (v) {return (v.__file__ != undefined)}], 
+  return stateChangeBase( null, [function (v) {return (v.__file__ != undefined)}],
                           'currentModule', 'setModule', v);
 }
 
@@ -371,7 +371,7 @@ Collector.prototype.startHttpd = function () {
     } catch(e) { 
       this.http_port++;
       this.http_server = httpd.getServer(this.http_port);
-    }; 
+    };
   }
 }
 Collector.prototype.stopHttpd = function () {
@@ -422,7 +422,7 @@ Collector.prototype.initTestModule = function (filename, name) {
       }
     }
   }
-  
+
   test_module.collector = this;
   test_module.status = 'loaded';
   this.test_modules_by_filename[filename] = test_module;
@@ -503,8 +503,8 @@ Runner.prototype.wrapper = function (func, arg) {
     if (events.isUserShutdown()) {
       utils.sleep(500);  
       if (events.userShutdown['user'] && !events.appQuit) {
-          events.fail({'function':'Runner.wrapper', 
-                       'message':'Shutdown expected but none detected before end of test', 
+          events.fail({'function':'Runner.wrapper',
+                       'message':'Shutdown expected but none detected before end of test',
                        'userShutdown': events.userShutdown});
       }
     }
@@ -520,10 +520,10 @@ Runner.prototype.wrapper = function (func, arg) {
 Runner.prototype.runTestModule = function (module) {
   events.setModule(module);
   module.__status__ = 'running';
-  if (module.__setupModule__) { 
+  if (module.__setupModule__) {
     events.setState('setupModule');
     events.setTest(module.__setupModule__);
-    this.wrapper(module.__setupModule__, module); 
+    this.wrapper(module.__setupModule__, module);
     var setupModulePassed = (events.currentTest.__fails__.length == 0 && !events.currentTest.skipped);
     events.endTest(module.__setupModule__);
   } else {
@@ -534,20 +534,20 @@ Runner.prototype.runTestModule = function (module) {
     for (var i in module.__tests__) {
       events.appQuit = false;
       var test = module.__tests__[i];
-      
+
       
       
 
-      if (module.__setupTest__) { 
+      if (module.__setupTest__) {
         events.setState('setupTest');
         events.setTest(module.__setupTest__);
-        this.wrapper(module.__setupTest__, test); 
+        this.wrapper(module.__setupTest__, test);
         var setupTestPassed = (events.currentTest.__fails__.length == 0 && !events.currentTest.skipped);
         events.endTest(module.__setupTest__);
       } else {
         var setupTestPassed = true;
-      }  
-      events.setState('test'); 
+      }
+      events.setState('test');
       events.setTest(test, this.invokedFromIDE);
       if (setupTestPassed) {
         this.wrapper(test);
@@ -559,9 +559,9 @@ Runner.prototype.runTestModule = function (module) {
         events.skip("setupTest failed.");
       }
       if (module.__teardownTest__) {
-        events.setState('teardownTest'); 
+        events.setState('teardownTest');
         events.setTest(module.__teardownTest__);
-        this.wrapper(module.__teardownTest__, test); 
+        this.wrapper(module.__teardownTest__, test);
         events.endTest(module.__teardownTest__);
       }
       events.endTest(test)

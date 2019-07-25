@@ -51,7 +51,7 @@ function getSet (array) {
   for (i in array) {
     if ( !inArray(narray, array[i]) ) {
       narray.push(array[i]);
-    } 
+    }
   }
   return narray;
 }

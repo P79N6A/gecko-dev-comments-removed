@@ -76,20 +76,20 @@ ConsoleListener.prototype = {
 var consoleListener = new ConsoleListener();
 
 var EXPORTED_SYMBOLS = ["mozmill"];
-  
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cu = Components.utils;
-  
+
 var mozmill = Cu.import('resource://mozmill/modules/mozmill.js');
-  
+
 
 var windowObserver = {
   observe: function(subject, topic, data) {
     attachEventListeners(subject);
   }
 };
-  
+
 
 
 
@@ -121,12 +121,12 @@ function attachEventListeners(window) {
       var tab = window.gBrowser.getBrowserForDocument(event.target);
       if (tab)
         tab.mozmillDocumentLoaded = true;
-    
+
       
       window.gBrowser.addEventListener("beforeunload", beforeUnloadHandler, true);
     }
   };
-  
+
   
   
   function beforeUnloadHandler(event) {
@@ -163,7 +163,7 @@ function attachEventListeners(window) {
     }
 
   };
-  
+
   
   window.addEventListener("load", function(event) {
     window.mozmillDocumentLoaded = true;
@@ -172,19 +172,19 @@ function attachEventListeners(window) {
     if (window.gBrowser) {
       
       window.gBrowser.addEventListener("pageshow", pageShowHandler, true);
- 
+
       
       
       
       
       window.gBrowser.addEventListener("DOMContentLoaded", DOMContentLoadedHandler, true);
-      
+
       
       window.gBrowser.addEventListener("pagehide", pageHideHandler, true);
     }
   }, false);
 }
-  
+
 
 
 

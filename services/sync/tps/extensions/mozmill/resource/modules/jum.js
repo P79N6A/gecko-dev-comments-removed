@@ -68,17 +68,17 @@ var assert = function (booleanValue, comment) {
 var assertTrue = function (booleanValue, comment) {
   if (typeof(booleanValue) != 'boolean') {
     frame.events.fail({'function':'jum.assertTrue', 'value':ifJSONable(booleanValue),
-                       'message':'Bad argument, value type '+typeof(booleanValue)+' !=  "boolean"', 
+                       'message':'Bad argument, value type '+typeof(booleanValue)+' !=  "boolean"',
                        'comment':comment});
     return false;
   }
-  
+
   if (booleanValue) {
-    frame.events.pass({'function':'jum.assertTrue', 'value':ifJSONable(booleanValue), 
+    frame.events.pass({'function':'jum.assertTrue', 'value':ifJSONable(booleanValue),
                        'comment':comment});
     return true;
   } else {
-    frame.events.fail({'function':'jum.assertTrue', 'value':ifJSONable(booleanValue), 
+    frame.events.fail({'function':'jum.assertTrue', 'value':ifJSONable(booleanValue),
                        'comment':comment});
     return false;
   }
@@ -87,17 +87,17 @@ var assertTrue = function (booleanValue, comment) {
 var assertFalse = function (booleanValue, comment) {
   if (typeof(booleanValue) != 'boolean') {
     frame.events.fail({'function':'jum.assertFalse', 'value':ifJSONable(booleanValue),
-                       'message':'Bad argument, value type '+typeof(booleanValue)+' !=  "boolean"', 
+                       'message':'Bad argument, value type '+typeof(booleanValue)+' !=  "boolean"',
                        'comment':comment});
     return false;
   }
-  
+
   if (!booleanValue) {
-    frame.events.pass({'function':'jum.assertFalse', 'value':ifJSONable(booleanValue), 
+    frame.events.pass({'function':'jum.assertFalse', 'value':ifJSONable(booleanValue),
                        'comment':comment});
     return true;
   } else {
-    frame.events.fail({'function':'jum.assertFalse', 'value':ifJSONable(booleanValue), 
+    frame.events.fail({'function':'jum.assertFalse', 'value':ifJSONable(booleanValue),
                        'comment':comment});
     return false;
   }

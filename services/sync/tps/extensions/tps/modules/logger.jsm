@@ -113,7 +113,7 @@ var Logger =
 
   AssertEqual: function(val1, val2, msg) {
     if (val1 != val2)
-      throw("ASSERTION FAILED! " + msg + "; expected " + 
+      throw("ASSERTION FAILED! " + msg + "; expected " +
             JSON.stringify(val2) + ", got " + JSON.stringify(val1));
   },
 
@@ -124,12 +124,12 @@ var Logger =
     }
     else {
       var now = new Date()
-      this.write(now.getFullYear() + "-" + (now.getMonth() < 9 ? '0' : '') + 
-          (now.getMonth() + 1) + "-" + 
+      this.write(now.getFullYear() + "-" + (now.getMonth() < 9 ? '0' : '') +
+          (now.getMonth() + 1) + "-" +
           (now.getDate() < 9 ? '0' : '') + (now.getDate() + 1) + " " +
           (now.getHours() < 10 ? '0' : '') + now.getHours() + ":" +
           (now.getMinutes() < 10 ? '0' : '') + now.getMinutes() + ":" +
-          (now.getSeconds() < 10 ? '0' : '') + now.getSeconds() + " " + 
+          (now.getSeconds() < 10 ? '0' : '') + now.getSeconds() + " " +
           msg + "\n");
     }
   },

@@ -35,7 +35,7 @@ function startsWith(str, prefix, start, end) {
     if (arguments.length < 2) {
         throw new TypeError('startsWith() requires at least 2 arguments');
     }
-        
+
     
     if ((start == null) || (isNaN(new Number(start)))) {
         start = 0;
@@ -43,7 +43,7 @@ function startsWith(str, prefix, start, end) {
     if ((end == null) || (isNaN(new Number(end)))) {
         end = Number.MAX_VALUE;
     }
-    
+
     
     if (typeof prefix == "object") {
         for (var i = 0, j = prefix.length; i < j; i++) {
@@ -54,7 +54,7 @@ function startsWith(str, prefix, start, end) {
         }
         return false;
     }
-    
+
     return _stringTailMatch(str, prefix, start, end, true);
 }
 
@@ -70,7 +70,7 @@ function endsWith(str, suffix, start, end) {
     if (arguments.length < 2) {
         throw new TypeError('endsWith() requires at least 2 arguments');
     }
-    
+
     
     if ((start == null) || (isNaN(new Number(start)))) {
         start = 0;
@@ -78,7 +78,7 @@ function endsWith(str, suffix, start, end) {
     if ((end == null) || (isNaN(new Number(end)))) {
         end = Number.MAX_VALUE;
     }
-    
+
     
     if (typeof suffix == "object") {
         for (var i = 0, j = suffix.length; i < j; i++) {
@@ -89,7 +89,7 @@ function endsWith(str, suffix, start, end) {
         }
         return false;
     }
-    
+
     return _stringTailMatch(str, suffix, start, end, false);
 }
 
@@ -101,10 +101,10 @@ function endsWith(str, suffix, start, end) {
 function _stringTailMatch(str, substr, start, end, fromStart) {
     var len = str.length;
     var slen = substr.length;
-    
+
     var indices = _adjustIndices(start, end, len);
     start = indices[0]; end = indices[1]; len = indices[2];
-    
+
     if (fromStart) {
         if (start + slen > len) {
             return false;
@@ -117,7 +117,7 @@ function _stringTailMatch(str, substr, start, end, fromStart) {
             start = end - slen;
         }
     }
-    
+
     if (end - start >= slen) {
         return str.substr(start, slen) == substr;
     }
@@ -131,12 +131,12 @@ function _adjustIndices(start, end, len)
 	} else if (end < 0) {
 	    end += len;
 	}
-    
+
     if (end < 0) {
         end = 0;
     }
 	if (start < 0) {
-	    start += len;   
+	    start += len;
 	}
 	if (start < 0) {
 		start = 0;

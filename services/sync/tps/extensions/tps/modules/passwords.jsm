@@ -50,9 +50,9 @@ CU.import("resource://gre/modules/Services.jsm");
 CU.import("resource://tps/logger.jsm");
 
 let nsLoginInfo = new Components.Constructor(
-                      "@mozilla.org/login-manager/loginInfo;1",  
-                      CI.nsILoginInfo,  
-                      "init");  
+                      "@mozilla.org/login-manager/loginInfo;1",
+                      CI.nsILoginInfo,
+                      "init");
 
 var DumpPasswords = function TPS__Passwords__DumpPasswords() {
   let logins = Services.logins.getAllLogins();
@@ -116,12 +116,12 @@ Password.prototype = {
   Create: function() {
     let login = new nsLoginInfo(this.props.hostname, this.props.submitURL,
                                 this.props.realm, this.props.username,
-                                this.props.password, 
+                                this.props.password,
                                 this.props.usernameField,
                                 this.props.passwordField);
     Services.logins.addLogin(login);
     login.QueryInterface(CI.nsILoginMetaInfo);
-    return login.guid;               
+    return login.guid;
   },
 
   
@@ -158,20 +158,20 @@ Password.prototype = {
 
 
 
- 
+
   Update: function() {
-    let oldlogin = new nsLoginInfo(this.props.hostname, 
+    let oldlogin = new nsLoginInfo(this.props.hostname,
                                    this.props.submitURL,
-                                   this.props.realm, 
+                                   this.props.realm,
                                    this.props.username,
-                                   this.props.password, 
+                                   this.props.password,
                                    this.props.usernameField,
                                    this.props.passwordField);
-    let newlogin = new nsLoginInfo(this.updateProps.hostname, 
+    let newlogin = new nsLoginInfo(this.updateProps.hostname,
                                    this.updateProps.submitURL,
-                                   this.updateProps.realm, 
+                                   this.updateProps.realm,
                                    this.updateProps.username,
-                                   this.updateProps.password, 
+                                   this.updateProps.password,
                                    this.updateProps.usernameField,
                                    this.updateProps.passwordField);
     Services.logins.modifyLogin(oldlogin, newlogin);
@@ -186,11 +186,11 @@ Password.prototype = {
 
 
   Remove: function() {
-    let login = new nsLoginInfo(this.props.hostname, 
+    let login = new nsLoginInfo(this.props.hostname,
                                 this.props.submitURL,
-                                this.props.realm, 
+                                this.props.realm,
                                 this.props.username,
-                                this.props.password, 
+                                this.props.password,
                                 this.props.usernameField,
                                 this.props.passwordField);
     Services.logins.removeLogin(login);

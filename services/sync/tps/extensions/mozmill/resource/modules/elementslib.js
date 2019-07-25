@@ -74,7 +74,7 @@ var smartSplit = function (str) {
   if (countQuotes(str) % 2 != 0) {
     throw new Error ("Invalid Lookup Expression");
   }
-  
+
   
 
 
@@ -127,7 +127,7 @@ function nodeSearch(doc, func, string) {
 
     
     element = func.call(win, string);
-    
+
     if (!element || (element.length == 0)) {
       var frames = win.frames;
       for (var i=0; i < frames.length; i++) {
@@ -136,7 +136,7 @@ function nodeSearch(doc, func, string) {
     }
     else { e = element; }
   };
-  
+
   for (var i = 0; i < documents.length; ++i) {
     var win = documents[i].defaultView;
     search(win, func, string);
@@ -186,7 +186,7 @@ function Link(_document, linkName) {
   if (linkName == undefined) {
     throw new Error('Link constructor did not recieve enough arguments.');
   }
-  
+
   this.getNodeForDocument = function (linkName) {
     var getText = function(el){
       var text = "";
@@ -209,9 +209,9 @@ function Link(_document, linkName) {
       }
       return text;
     };
-  
+
     
-    try { 
+    try {
       var links = this.document.getElementsByTagName('a'); }
     catch(err){ 
     }
@@ -224,7 +224,7 @@ function Link(_document, linkName) {
     }
     return null;
   };
-  
+
   return nodeSearch(_document, this.getNodeForDocument, linkName);
 };
 
@@ -237,7 +237,7 @@ function XPath(_document, expr) {
   if (expr == undefined) {
     throw new Error('XPath constructor did not recieve enough arguments.');
   }
-  
+
   this.getNodeForDocument = function (s) {
     var aNode = this.document;
     var aExpr = s;
@@ -343,14 +343,14 @@ var _byAttrib = function (parent, attributes) {
 }
 var _byAnonAttrib = function (_document, parent, attributes) {
   var results = [];
-  
+
   if (objects.getLength(attributes) == 1) {
     for (var i in attributes) {var k = i; var v = attributes[i]; }
     var result = _document.getAnonymousElementByAttribute(parent, k, v)
     if (result) {
       return result;
-      
-    } 
+
+    }
   }
   var nodes = [n for each (n in _document.getAnonymousNodes(parent)) if (n.getAttribute)];
   function resultsForNodes (nodes) {
@@ -368,8 +368,8 @@ var _byAnonAttrib = function (_document, parent, attributes) {
         results.push(n);
       }
     }
-  }  
-  resultsForNodes(nodes)  
+  }
+  resultsForNodes(nodes)
   if (results.length == 0) {
     resultsForNodes([n for each (n in parent.childNodes) if (n != undefined && n.getAttribute)])
   }
@@ -405,12 +405,12 @@ function Lookup (_document, expression) {
   expSplit.unshift(_document)
   var nCases = {'id':_byID, 'name':_byName, 'attrib':_byAttrib, 'index':_byIndex};
   var aCases = {'name':_anonByName, 'attrib':_anonByAttrib, 'index':_anonByIndex};
-  
- 
+
+
   var reduceLookup = function (parent, exp) {
     
     var cases = nCases;
-    
+
     
     if (withs.endsWith(exp, ']')) {
       var expIndex = json2.JSON.parse(strings.vslice(exp, '[', ']'));
@@ -432,7 +432,7 @@ function Lookup (_document, expression) {
       }
       return r;
     }
-    
+
     for (var c in cases) {
       if (withs.startsWith(exp, c)) {
         try {
@@ -443,7 +443,7 @@ function Lookup (_document, expression) {
         var result = cases[c](_document, parent, obj);
       }
     }
-    
+
     if (!result) {
       if ( withs.startsWith(exp, '{') ) {
         try {
@@ -451,7 +451,7 @@ function Lookup (_document, expression) {
         } catch(err) {
           throw new Error(err+'. String to be parsed was || '+exp+' ||');
         }
-        
+
         if (cases == aCases) {
           var result = _anonByAttrib(_document, parent, obj)
         } else {
@@ -462,7 +462,7 @@ function Lookup (_document, expression) {
         throw new Error('Expression "'+exp+'" returned null. Anonymous == '+(cases == aCases));
       }
     }
-    
+
     
     if (expIndex) {
       
