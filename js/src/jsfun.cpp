@@ -2440,11 +2440,18 @@ fun_bind(JSContext *cx, uintN argc, Value *vp)
     
     JSAtom *name = target->isFunction() ? target->getFunctionPrivate()->atom : NULL;
 
+    char *printName = NULL;
+#ifdef DEBUG
+    static int boundCount = 0;
+    printName = (char *) alloca(20);
+    JS_snprintf(printName, 20, "BoundFunction:%d", ++boundCount);
+#endif
+
     
     JSObject *funobj =
         js_NewFunction(cx, NULL, CallOrConstructBoundFunction, length,
                        JSFUN_CONSTRUCTOR, target, name,
-                       JS_TypeHandlerDynamic, "BoundFunction");
+                       JS_TypeHandlerDynamic, printName);
     if (!funobj)
         return false;
 

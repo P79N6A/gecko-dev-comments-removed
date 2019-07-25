@@ -3584,6 +3584,14 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
         for (unsigned i = 0; i < argCount; i++)
             callsite->argumentTypes[i] = poppedTypes(pc, argCount - 1 - i);
 
+        
+
+
+
+
+        if (op == JSOP_FUNCALL || op == JSOP_FUNAPPLY)
+            cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
+
         poppedTypes(pc, argCount + 1)->addCall(cx, callsite);
         break;
       }
