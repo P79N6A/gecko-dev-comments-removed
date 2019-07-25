@@ -61,7 +61,7 @@ pref("network.http.max-persistent-connections-per-proxy", 1);
 
 
 pref("browser.sessionhistory.max_total_viewers", 0);
-pref("browser.sessionhistory.max_entries", 3);
+pref("browser.sessionhistory.max_entries", 50);
 
 
 pref("browser.dom.window.dump.enabled", true);
