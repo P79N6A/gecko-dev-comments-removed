@@ -1324,6 +1324,14 @@ nsXMLHttpRequest::GetAllResponseHeaders(char **_retval)
   NS_ENSURE_ARG_POINTER(_retval);
   *_retval = nsnull;
 
+  
+  
+  if (mState & (XML_HTTP_REQUEST_UNSENT |
+                XML_HTTP_REQUEST_OPENED | XML_HTTP_REQUEST_SENT)) {
+    *_retval = ToNewCString(EmptyString());
+    return NS_OK;
+  }
+
   if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
     *_retval = ToNewCString(EmptyString());
     return NS_OK;
@@ -1336,8 +1344,23 @@ nsXMLHttpRequest::GetAllResponseHeaders(char **_retval)
     nsresult rv = httpChannel->VisitResponseHeaders(visitor);
     if (NS_SUCCEEDED(rv))
       *_retval = ToNewCString(visitor->Headers());
+  } else if (mChannel) {
+    
+    nsCString value;
+    if (NS_SUCCEEDED(mChannel->GetContentType(value))) {
+      nsCString headers;
+      headers.Append("Content-Type: ");
+      headers.Append(value);
+      if (NS_SUCCEEDED(mChannel->GetContentCharset(value)) &&
+          !value.IsEmpty()) {
+        headers.Append(";charset=");
+        headers.Append(value);
+      }
+      headers.Append('\n');
+      *_retval = ToNewCString(headers);
+    }
   }
- 
+
   if (!*_retval) {
     *_retval = ToNewCString(EmptyString());
   }
@@ -1356,6 +1379,37 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
   nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
 
   if (!httpChannel) {
+    
+    
+    if (mState & (XML_HTTP_REQUEST_UNSENT |
+                  XML_HTTP_REQUEST_OPENED | XML_HTTP_REQUEST_SENT)) {
+      return NS_OK;
+    }
+
+    
+    
+    
+    nsresult status;
+    if (!mChannel ||
+        NS_FAILED(mChannel->GetStatus(&status)) ||
+        NS_FAILED(status) ||
+        !header.LowerCaseEqualsASCII("content-type")) {
+      return NS_OK;
+    }
+
+    if (NS_FAILED(mChannel->GetContentType(_retval))) {
+      
+      _retval.SetIsVoid(true);
+      return NS_OK;
+    }
+
+    nsCString value;
+    if (NS_SUCCEEDED(mChannel->GetContentCharset(value)) &&
+        !value.IsEmpty()) {
+      _retval.Append(";charset=");
+      _retval.Append(value);
+    }
+
     return NS_OK;
   }
 
