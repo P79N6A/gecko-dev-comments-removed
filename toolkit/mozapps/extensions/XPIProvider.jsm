@@ -4334,7 +4334,8 @@ AddonInstall.prototype = {
   cancel: function AI_cancel() {
     switch (this.state) {
     case AddonManager.STATE_DOWNLOADING:
-      this.channel.cancel(Cr.NS_BINDING_ABORTED);
+      if (this.channel)
+        this.channel.cancel(Cr.NS_BINDING_ABORTED);
     case AddonManager.STATE_AVAILABLE:
     case AddonManager.STATE_DOWNLOADED:
       LOG("Cancelling download of " + this.sourceURI.spec);
@@ -4636,6 +4637,10 @@ AddonInstall.prototype = {
       return;
     }
 
+    
+    if (this.state != AddonManager.STATE_DOWNLOADING)
+      return;
+
     try {
       this.file = getTemporaryFile();
       this.ownsTempFile = true;
@@ -4872,6 +4877,10 @@ AddonInstall.prototype = {
       if (AddonManagerPrivate.callInstallListeners("onDownloadEnded",
                                                    self.listeners,
                                                    self.wrapper)) {
+        
+        if (self.state != AddonManager.STATE_DOWNLOADED)
+          return;
+
         self.install();
 
         if (self.linkedInstalls) {
