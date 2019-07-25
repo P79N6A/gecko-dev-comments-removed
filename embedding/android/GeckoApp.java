@@ -138,9 +138,8 @@ abstract public class GeckoApp
                     int version = Integer.parseInt(versionStr);
 
                     if (version < getMinCPUVersion()) {
-                        showErrorDialog("This device does not meet the " +
-                                        "minimum system requirements for " +
-                                        getAppName() + ".");
+                        showErrorDialog(
+                            getString(R.string.incompatable_cpu_error));
                         return;
                     }
                     else {
@@ -155,8 +154,9 @@ abstract public class GeckoApp
 
             if (!useLaunchButton)
                 mProgressDialog = 
-                    ProgressDialog.show(GeckoApp.this, "", getAppName() + 
-                                        " is loading", true);
+                    ProgressDialog.show(GeckoApp.this, "",
+                                        getString(R.string.splash_screen_label),
+                                        true);
             
             
             
@@ -164,7 +164,7 @@ abstract public class GeckoApp
 
             if (useLaunchButton) {
                 final Button b = new Button(this);
-                b.setText("Launch");
+                b.setText("Launch"); 
                 b.setOnClickListener(new Button.OnClickListener() {
                         public void onClick (View v) {
                             
