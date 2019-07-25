@@ -40,7 +40,6 @@
 
 
 
-
 #include "nsXULWindow.h"
 
 
@@ -84,8 +83,6 @@
 #include "nsIScriptSecurityManager.h"
 #include "nsIWindowWatcher.h"
 #include "nsIURI.h"
-#include "nsIDOMDocumentView.h"
-#include "nsIDOMViewCSS.h"
 #include "nsIDOMCSSStyleDeclaration.h"
 #include "nsITimelineService.h"
 #include "nsAppShellCID.h"

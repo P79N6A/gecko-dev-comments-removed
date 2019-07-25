@@ -38,7 +38,6 @@
 #include "nsCOMPtr.h"
 #include "nsIDOMDocument.h"
 #include "nsIDOMDocumentRange.h"
-#include "nsIDOMViewCSS.h"
 #include "nsIDocument.h"
 #include "nsString.h"
 #include "nsTArray.h"
@@ -126,7 +125,7 @@ private:
   
   nsCOMPtr<nsIDOMDocumentRange> mDOMDocumentRange;
   nsCOMPtr<nsIDocument>         mDocument;
-  nsCOMPtr<nsIDOMViewCSS>       mCSSView;
+  nsCOMPtr<nsIDOMWindow>        mCSSView;
   nsCOMPtr<nsIUGenCategory>     mCategories;
 
   
