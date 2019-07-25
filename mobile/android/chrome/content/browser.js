@@ -3637,10 +3637,16 @@ var PermissionsHelper = {
         
         this._currentPermissions = permissions; 
 
+        let host;
+        try {
+          host = uri.host;
+        } catch(e) {
+          host = uri.spec;
+        }
         sendMessageToJava({
           gecko: {
             type: "Permissions:Data",
-            host: uri.host,
+            host: host,
             permissions: permissions
           }
         });
