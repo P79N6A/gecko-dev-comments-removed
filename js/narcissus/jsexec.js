@@ -307,6 +307,22 @@ Narcissus.interpreter = (function() {
                  : new TypeError(message);
     }
 
+    function valuatePhis(n, v) {
+        var ps = n.phiUses;
+        if (!ps)
+            return;
+
+        for (var i = 0, j = ps.length; i < j; i++) {
+            
+            
+            
+            if (ps[i].v === v)
+                break;
+            ps[i].v = v;
+            valuatePhis(ps[i], v);
+        }
+    }
+
     function execute(n, x) {
         var a, f, i, j, r, s, t, u, v;
 
@@ -818,11 +834,22 @@ Narcissus.interpreter = (function() {
             break;
 
           case IDENTIFIER:
-            for (s = x.scope; s; s = s.parent) {
-                if (n.value in s.object)
-                    break;
+            
+            
+            var resolved = n.resolve();
+
+            if (n.forward && !resolved.intervened &&
+                !(resolved.type == FUNCTION &&
+                  resolved.functionForm == parser.DECLARED_FORM)) {
+                v = resolved.v;
+                break;
+            } else {
+                for (s = x.scope; s; s = s.parent) {
+                    if (n.value in s.object)
+                        break;
+                }
+                v = new Reference(s && s.object, n.value, n);
             }
-            v = new Reference(s && s.object, n.value, n);
             break;
 
           case NUMBER:
@@ -838,6 +865,11 @@ Narcissus.interpreter = (function() {
           default:
             throw "PANIC: unknown operation " + n.type + ": " + uneval(n);
         }
+
+        if (n.backwards) {
+            n.v = v;
+        }
+        valuatePhis(n, v);
 
         return v;
     }
@@ -862,6 +894,21 @@ Narcissus.interpreter = (function() {
         var proto = {};
         definitions.defineProperty(this, "prototype", proto, true);
         definitions.defineProperty(proto, "constructor", this, false, false, true);
+    }
+
+    function getPropertyDescriptor(obj, name) {
+        while (obj) {
+            if (({}).hasOwnProperty.call(obj, name))
+                return Object.getOwnPropertyDescriptor(obj, name);
+            obj = Object.getPrototypeOf(obj);
+        }
+    }
+
+    function getOwnProperties(obj) {
+        var map = {};
+        for (var name in Object.getOwnPropertyNames(obj))
+            map[name] = Object.getOwnPropertyDescriptor(obj, name);
+        return map;
     }
 
     
@@ -1098,4 +1145,3 @@ Narcissus.interpreter = (function() {
     };
 
 }());
-

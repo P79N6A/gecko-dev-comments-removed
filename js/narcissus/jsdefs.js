@@ -113,6 +113,9 @@ Narcissus.definitions = (function() {
         "IDENTIFIER", "NUMBER", "STRING", "REGEXP",
 
         
+        "PHI", "INTERVENED",
+
+        
         "break",
         "case", "catch", "const", "continue",
         "debugger", "default", "delete", "do",
