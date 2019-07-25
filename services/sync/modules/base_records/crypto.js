@@ -34,62 +34,89 @@
 
 
 
-const EXPORTED_SYMBOLS = ['CryptoWrapper', 'CryptoMeta', 'CryptoMetas'];
+
+const EXPORTED_SYMBOLS = ["CryptoWrapper", "CollectionKeys", "BulkKeyBundle", "SyncKeyBundle"];
 
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
 const Cu = Components.utils;
 
-Cu.import("resource://services-sync/base_records/keys.js");
+Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/base_records/wbo.js");
 Cu.import("resource://services-sync/identity.js");
 Cu.import("resource://services-sync/util.js");
+Cu.import("resource://services-sync/log4moz.js");
 
-function CryptoWrapper(uri) {
+function CryptoWrapper(collection, id) {
   this.cleartext = {};
-  WBORecord.call(this, uri);
+  WBORecord.call(this, collection, id);
   this.ciphertext = null;
+  this.id = id;
 }
 CryptoWrapper.prototype = {
   __proto__: WBORecord.prototype,
   _logName: "Record.CryptoWrapper",
 
-  get encryption() {
-    return this.uri.resolve(this.payload.encryption);
-  },
-  set encryption(value) {
-    this.payload.encryption = this.uri.getRelativeSpec(Utils.makeURI(value));
+  ciphertextHMAC: function ciphertextHMAC(keyBundle) {
+    let hmacKey = keyBundle.hmacKeyObject;
+    if (!hmacKey)
+      throw "Cannot compute HMAC with null key.";
+    
+    return Utils.sha256HMAC(this.ciphertext, hmacKey);
   },
 
-  encrypt: function CryptoWrapper_encrypt(passphrase) {
-    let pubkey = PubKeys.getDefaultKey();
-    let privkey = PrivKeys.get(pubkey.privateKeyUri);
+  
 
-    let meta = CryptoMetas.get(this.encryption);
-    let symkey = meta.getKey(privkey, passphrase);
+
+
+
+
+
+
+
+  encrypt: function encrypt(keyBundle) {
+
+    keyBundle = keyBundle || CollectionKeys.keyForCollection(this.collection);
+    if (!keyBundle)
+      throw new Error("Key bundle is null for " + this.uri.spec);
 
     this.IV = Svc.Crypto.generateRandomIV();
     this.ciphertext = Svc.Crypto.encrypt(JSON.stringify(this.cleartext),
-                                         symkey, this.IV);
-    this.hmac = Utils.sha256HMAC(this.ciphertext, symkey.hmacKey);
+                                         keyBundle.encryptionKey, this.IV);
+    this.hmac = this.ciphertextHMAC(keyBundle);
     this.cleartext = null;
   },
 
-  decrypt: function CryptoWrapper_decrypt(passphrase, keyUri) {
-    let pubkey = PubKeys.getDefaultKey();
-    let privkey = PrivKeys.get(pubkey.privateKeyUri);
+  
+  decrypt: function decrypt(keyBundle) {
+    
+    if (!this.ciphertext) {
+      throw "No ciphertext: nothing to decrypt?";
+    }
 
-    let meta = CryptoMetas.get(keyUri);
-    let symkey = meta.getKey(privkey, passphrase);
+    keyBundle = keyBundle || CollectionKeys.keyForCollection(this.collection);
+    if (!keyBundle)
+      throw new Error("Key bundle is null for " + this.collection + "/" + this.id);
 
     
-    if (Utils.sha256HMAC(this.ciphertext, symkey.hmacKey) != this.hmac)
-      throw "Record SHA256 HMAC mismatch: " + this.hmac;
+    let computedHMAC = this.ciphertextHMAC(keyBundle);
 
-    this.cleartext = JSON.parse(Svc.Crypto.decrypt(this.ciphertext, symkey,
-                                                   this.IV));
+    if (computedHMAC != this.hmac) {
+      throw "Record SHA256 HMAC mismatch: " + this.hmac + ", not " + computedHMAC;
+    }
+
+    
+    let json_result = JSON.parse(Svc.Crypto.decrypt(this.ciphertext,
+                                                    keyBundle.encryptionKey, this.IV));
+    
+    if (json_result && (json_result instanceof Object)) {
+      this.cleartext = json_result;
     this.ciphertext = null;
+    }
+    else {
+      throw "Decryption failed: result is <" + json_result + ">, not an object.";
+    }
 
     
     if (this.cleartext.id != this.id)
@@ -102,7 +129,8 @@ CryptoWrapper.prototype = {
       "id: " + this.id,
       "index: " + this.sortindex,
       "modified: " + this.modified,
-      "payload: " + (this.deleted ? "DELETED" : JSON.stringify(this.cleartext))
+      "payload: " + (this.deleted ? "DELETED" : JSON.stringify(this.cleartext)),
+      "collection: " + (this.collection || "undefined")
     ].join("\n  ") + " }",
 
   
@@ -118,92 +146,321 @@ CryptoWrapper.prototype = {
 Utils.deferGetSet(CryptoWrapper, "payload", ["ciphertext", "IV", "hmac"]);
 Utils.deferGetSet(CryptoWrapper, "cleartext", "deleted");
 
-function CryptoMeta(uri) {
-  WBORecord.call(this, uri);
-  this.keyring = {};
+Utils.lazy(this, "CollectionKeys", CollectionKeyManager);
+
+
+
+
+
+
+
+
+
+function CollectionKeyManager() {
+  this._lastModified = 0;
+  this._collections = {};
+  this._default = null;
+  
+  this._log = Log4Moz.repository.getLogger("CollectionKeys");
 }
-CryptoMeta.prototype = {
-  __proto__: WBORecord.prototype,
-  _logName: "Record.CryptoMeta",
 
-  getWrappedKey: function _getWrappedKey(privkey) {
-    
-    let pubkeyUri = privkey.publicKeyUri.spec;
 
+
+CollectionKeyManager.prototype = {
+  
+  keyForCollection: function(collection) {
+                      
     
-    for (let relUri in this.keyring) {
-      if (pubkeyUri == this.baseUri.resolve(relUri))
-        return this.keyring[relUri];
+    this._log.trace("keyForCollection: " + collection + ". Default is " + (this._default ? "not null." : "null."));
+    
+    if (collection && this._collections[collection])
+      return this._collections[collection];
+    
+    return this._default;
+  },
+
+  
+
+
+
+  generateNewKeys: function(collections) {
+    let newDefaultKey = new BulkKeyBundle(null, DEFAULT_KEYBUNDLE_NAME);
+    newDefaultKey.generateRandom();
+    
+    let newColls = {};
+    if (collections) {
+      collections.forEach(function (c) {
+        let b = new BulkKeyBundle(null, c);
+        b.generateRandom();
+        newColls[c] = b;
+      });
     }
-    return null;
+    this._default = newDefaultKey;
+    this._collections = newColls;
+    this._lastModified = (Math.round(Date.now()/10)/100);
   },
 
-  getKey: function CryptoMeta_getKey(privkey, passphrase) {
-    let wrapped_key = this.getWrappedKey(privkey);
-    if (!wrapped_key)
-      throw "keyring doesn't contain a key for " + privkey.publicKeyUri.spec;
-
-    
-    let localHMAC = Utils.sha256HMAC(wrapped_key.wrapped, this.hmacKey);
-    if (localHMAC != wrapped_key.hmac)
-      throw "Key SHA256 HMAC mismatch: " + wrapped_key.hmac;
-
-    
-    let unwrappedKey = new String(
-      Svc.Crypto.unwrapSymmetricKey(
-        wrapped_key.wrapped,
-        privkey.keyData,
-        passphrase.passwordUTF8,
-        privkey.salt,
-        privkey.iv
-      )
-    );
-
-    unwrappedKey.hmacKey = Utils.makeHMACKey(unwrappedKey);
-
-    
-    return (this.getKey = function() unwrappedKey)();
-  },
-
-  addKey: function CryptoMeta_addKey(new_pubkey, privkey, passphrase) {
-    let symkey = this.getKey(privkey, passphrase);
-    this.addUnwrappedKey(new_pubkey, symkey);
-  },
-
-  addUnwrappedKey: function CryptoMeta_addUnwrappedKey(new_pubkey, symkey) {
-    
-    if (typeof new_pubkey == "string")
-      new_pubkey = PubKeys.get(new_pubkey);
-
-    
-    
-    for (let relUri in this.keyring) {
-      if (new_pubkey.uri.spec == this.uri.resolve(relUri))
-        delete this.keyring[relUri];
+  asWBO: function(collection, id) {
+    let wbo = new CryptoWrapper(collection || "crypto", id || "keys");
+    let c = {};
+    for (let k in this._collections) {
+      c[k] = this._collections[k].keyPair;
     }
-
-    
-    let wrapped = Svc.Crypto.wrapSymmetricKey(symkey, new_pubkey.keyData);
-    this.keyring[this.uri.getRelativeSpec(new_pubkey.uri)] = {
-      wrapped: wrapped,
-      hmac: Utils.sha256HMAC(wrapped, this.hmacKey)
+    wbo.cleartext = {
+      "default": this._default ? this._default.keyPair : null,
+      "collections": c,
+      "id": id,
+      "collection": collection
     };
+    wbo.modified = this._lastModified;
+    return wbo;
+  },
+
+  
+  
+  updateNeeded: function(info_collections) {
+
+    this._log.info("Testing for updateNeeded. Last modified: " + this._lastModified);
+
+    
+    if (!this._lastModified)
+      return true;
+
+    
+    
+    if (!("crypto" in info_collections))
+      return true;
+
+    
+    return (info_collections["crypto"] > this._lastModified);
+  },
+
+  setContents: function setContents(payload, modified) {
+    if ("collections" in payload) {
+      let out_coll = {};
+      let colls = payload["collections"];
+      for (let k in colls) {
+        let v = colls[k];
+        if (v) {
+          let keyObj = new BulkKeyBundle(null, k);
+          keyObj.keyPair = v;
+          if (keyObj) {
+            out_coll[k] = keyObj;
+          }
+        }
+      }
+      this._collections = out_coll;
+    }
+    if ("default" in payload) {
+      if (payload.default) {
+        let b = new BulkKeyBundle(null, DEFAULT_KEYBUNDLE_NAME);
+        b.keyPair = payload.default;
+        this._default = b;
+      }
+      else {
+        this._default = null;
+      }
+    }
+    
+    
+    
+    
+    
+    
+    this._lastModified = modified || (Math.round(Date.now()/10)/100);
+    return payload;
+  },
+
+  updateContents: function updateContents(syncKeyBundle, storage_keys) {
+    let log = this._log;
+    log.info("Updating collection keys...");
+    
+    
+    
+    
+    
+    let payload;
+    try {
+      payload = storage_keys.decrypt(syncKeyBundle);
+    } catch (ex) {
+      log.warn("Got exception \"" + ex + "\" decrypting storage keys with sync key.");
+      log.info("Aborting updateContents. Rethrowing.");
+      throw ex;
+    }
+
+    let r = this.setContents(payload, storage_keys.modified);
+    log.info("Collection keys updated.");
+    return r;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function KeyBundle(realm, collectionName, keyStr) {
+  let realm = realm || PWDMGR_KEYBUNDLE_REALM;
+  
+  if (keyStr && !keyStr.charAt)
+    
+    throw "KeyBundle given non-string key.";
+  
+  Identity.call(this, realm, collectionName, keyStr);
+  this._hmac    = null;
+  this._encrypt = null;
+}
+
+KeyBundle.prototype = {
+  __proto__: Identity.prototype,
+  
+  
+
+
+  get encryptionKey() {
+    return this._encrypt;
+  },
+  
+  set encryptionKey(value) {
+    this._encrypt = value;
   },
 
   get hmacKey() {
-    let passphrase = ID.get("WeaveCryptoID").passwordUTF8;
-    return Utils.makeHMACKey(passphrase);
+    return this._hmac;
+  },
+  
+  set hmacKey(value) {
+    this._hmac = value;
+  },
+  
+  get hmacKeyObject() {
+    if (this.hmacKey)
+      return Utils.makeHMACKey(this.hmacKey);
+  },
+}
+
+function BulkKeyBundle(realm, collectionName) {
+  let log = Log4Moz.repository.getLogger("BulkKeyBundle");
+  log.info("BulkKeyBundle being created for " + collectionName);
+  KeyBundle.call(this, realm, collectionName);
+}
+
+BulkKeyBundle.prototype = {
+  __proto__: KeyBundle.prototype,
+   
+  generateRandom: function generateRandom() {
+    let generatedHMAC = Svc.Crypto.generateRandomKey();
+    let generatedEncr = Svc.Crypto.generateRandomKey();
+    this.keyPair = [generatedEncr, generatedHMAC];
+  },
+  
+  get keyPair() {
+    return [this._encrypt, btoa(this._hmac)];
+  },
+  
+  
+
+
+
+  set keyPair(value) {
+    if (value.length && (value.length == 2)) {
+      let json = JSON.stringify(value);
+      let en = value[0];
+      let hm = value[1];
+      
+      this.password = json;
+      this._hmac    = Utils.safeAtoB(hm);
+      this._encrypt = en;          
+    }
+    else {
+      throw "Invalid keypair";
   }
+  },
 };
 
-Utils.deferGetSet(CryptoMeta, "payload", "keyring");
+function SyncKeyBundle(realm, collectionName, syncKey) {
+  let log = Log4Moz.repository.getLogger("SyncKeyBundle");
+  log.info("SyncKeyBundle being created for " + collectionName);
+  KeyBundle.call(this, realm, collectionName, syncKey);
+  if (syncKey)
+    this.keyStr = syncKey;      
+} 
 
-Utils.lazy(this, 'CryptoMetas', CryptoRecordManager);
+SyncKeyBundle.prototype = {
+  __proto__: KeyBundle.prototype,
 
-function CryptoRecordManager() {
-  RecordManager.call(this);
-}
-CryptoRecordManager.prototype = {
-  __proto__: RecordManager.prototype,
-  _recordType: CryptoMeta
+  
+
+
+
+  get keyStr() {
+    return this.password;
+  },
+
+  set keyStr(value) {
+    this.password = value;
+    this._hmac = null;
+    this._encrypt = null;
+    this.generateEntry();
+  },
+  
+  
+
+
+
+
+
+
+  get encryptionKey() {
+    if (!this._encrypt)
+      this.generateEntry();
+    return this._encrypt;
+  },
+  
+  get hmacKey() {
+    if (!this._hmac)
+      this.generateEntry();
+    return this._hmac;
+  },
+  
+  
+
+
+  generateEntry: function generateEntry() {
+    let m = this.keyStr;
+    if (m) {
+      
+      m = Utils.decodeKeyBase32(m);
+      
+      
+      let h = Utils.makeHMACHasher();
+      
+      
+      let u = this.username; 
+      let k1 = Utils.makeHMACKey("" + HMAC_INPUT + u + "\x01");
+      let enc = Utils.sha256HMACBytes(m, k1, h);
+      
+      
+      let k2 = Utils.makeHMACKey(enc + HMAC_INPUT + u + "\x02");
+      let hmac = Utils.sha256HMACBytes(m, k2, h);
+      
+      
+      this._encrypt = btoa(enc);
+      this._hmac    = hmac;
+    }
+  }
 };

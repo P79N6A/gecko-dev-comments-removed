@@ -139,12 +139,6 @@ Collection.prototype = {
     let coll = this;
 
     
-    
-    let dummyUri = this.uri.clone().QueryInterface(Ci.nsIURL);
-    dummyUri.filePath += "/replaceme";
-    dummyUri.query = "";
-
-    
     coll.setHeader("Accept", "application/newlines");
 
     this._onProgress = function() {
@@ -155,7 +149,7 @@ Collection.prototype = {
         this._data = this._data.slice(newline + 1);
 
         
-        let record = new coll._recordObj(dummyUri);
+        let record = new coll._recordObj();
         record.deserialize(json);
         onRecord(record);
       }

@@ -108,11 +108,12 @@ let Utils = {
 
 
 
-  lock: function Utils_lock(func) {
+  lock: function lock(label, func) {
     let thisArg = this;
     return function WrappedLock() {
-      if (!thisArg.lock())
-        throw "Could not acquire lock";
+      if (!thisArg.lock()) {
+        throw "Could not acquire lock. Label: \"" + label + "\".";
+      }
 
       try {
         return func.call(thisArg);
@@ -331,8 +332,21 @@ let Utils = {
     let prot = obj.prototype;
 
     
-    if (!prot.__lookupGetter__(prop))
-      prot.__defineGetter__(prop, function() deref(this)[prop]);
+    if (!prot.__lookupGetter__(prop)) {
+      
+      
+      
+      
+      
+      let f = function() {
+        let d = deref(this);
+        if (!d)
+          return undefined;
+        let out = d[prop];
+        return out;
+      }
+      prot.__defineGetter__(prop, f);
+    }
 
     
     if (!prot.__lookupSetter__(prop))
@@ -550,6 +564,21 @@ let Utils = {
             for each (byte in bytes)].join("");
   },
 
+  _sha256: function _sha256(message) {
+    let hasher = Cc["@mozilla.org/security/hash;1"].
+      createInstance(Ci.nsICryptoHash);
+    hasher.init(hasher.SHA256);
+    return Utils.digest(message, hasher);
+  },
+
+  sha256: function sha256(message) {
+    return Utils.bytesAsHex(Utils._sha256(message));
+  },
+
+  sha256Base64: function (message) {
+    return btoa(Utils._sha256(message));
+  },
+
   _sha1: function _sha1(message) {
     let hasher = Cc["@mozilla.org/security/hash;1"].
       createInstance(Ci.nsICryptoHash);
@@ -580,6 +609,10 @@ let Utils = {
              .createInstance(Ci.nsICryptoHMAC);
   },
 
+  sha1Base64: function (message) {
+    return btoa(Utils._sha1(message));
+  },
+
   
 
 
@@ -599,12 +632,36 @@ let Utils = {
   
 
 
-  sha256HMAC: function sha256HMAC(message, key) {
-    let hasher = this.makeHMACHasher();
-    hasher.init(hasher.SHA256, key);
-    return Utils.bytesAsHex(Utils.digest(message, hasher));
+
+
+
+
+  sha256HMAC: function sha256HMAC(message, key, hasher) {
+    let h = hasher || this.makeHMACHasher();
+    h.init(h.SHA256, key);
+    return Utils.bytesAsHex(Utils.digest(message, h));
   },
   
+  
+  
+
+
+
+
+
+  sha256HMACBytes: function sha256HMACBytes(message, key, hasher) {
+    let h = hasher || this.makeHMACHasher();
+    h.init(h.SHA256, key);
+
+    
+    let bytes = [b.charCodeAt() for each (b in message)];
+    h.update(bytes, bytes.length);
+    return h.finish(false);
+  },
+
+  byteArrayToString: function byteArrayToString(bytes) {
+    return [String.fromCharCode(byte) for each (byte in bytes)].join("");
+  },
   
   
 
@@ -622,6 +679,12 @@ let Utils = {
 
 
   pbkdf2Generate : function pbkdf2Generate(P, S, c, dkLen) {
+    
+    
+    
+    if (!dkLen)
+      dkLen = SYNC_KEY_DECODED_LENGTH;
+    
     
     const HLEN = 20;
     
@@ -644,14 +707,6 @@ let Utils = {
         return val;
       }
     
-      function arrayToString(arr) {
-        let ret = '';
-        for (let i = 0; i < arr.length; i++) {
-          ret += String.fromCharCode(arr[i]);
-        }
-        return ret;
-      }
-      
       let ret;
       let U = [];
 
@@ -669,7 +724,7 @@ let Utils = {
 
       ret = U[0];
       for (j = 1; j < c; j++) {
-        ret = arrayToString(XOR(ret, U[j]));
+        ret = Utils.byteArrayToString(XOR(ret, U[j]));
       }
 
       return ret;
@@ -696,6 +751,92 @@ let Utils = {
     return ret;
   },
 
+
+  
+
+
+  decodeBase32: function decodeBase32(str) {
+    const key = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+
+    let padChar = str.indexOf("=");
+    let chars = (padChar == -1) ? str.length : padChar;
+    let bytes = Math.floor(chars * 5 / 8);
+    let blocks = Math.ceil(chars / 8);
+
+    
+    
+    
+    function processBlock(ret, cOffset, rOffset) {
+      let c, val;
+
+      
+      
+      function accumulate(val) {
+        ret[rOffset] |= val;
+      }
+
+      function advance() {
+        c  = str[cOffset++];
+        if (!c || c == "" || c == "=") 
+          throw "Done";                
+        val = key.indexOf(c);
+        if (val == -1)
+          throw "Unknown character in base32: " + c;
+      }
+
+      
+      function left(octet, shift)
+        (octet << shift) & 0xff;
+
+      advance();
+      accumulate(left(val, 3));
+      advance();
+      accumulate(val >> 2);
+      ++rOffset;
+      accumulate(left(val, 6));
+      advance();
+      accumulate(left(val, 1));
+      advance();
+      accumulate(val >> 4);
+      ++rOffset;
+      accumulate(left(val, 4));
+      advance();
+      accumulate(val >> 1);
+      ++rOffset;
+      accumulate(left(val, 7));
+      advance();
+      accumulate(left(val, 2));
+      advance();
+      accumulate(val >> 3);
+      ++rOffset;
+      accumulate(left(val, 5));
+      advance();
+      accumulate(val);
+      ++rOffset;
+    }
+
+    
+    let ret  = new Array(bytes);
+    let i    = 0;
+    let cOff = 0;
+    let rOff = 0;
+
+    for (; i < blocks; ++i) {
+      try {
+        processBlock(ret, cOff, rOff);
+      } catch (ex) {
+        
+        if (ex == "Done")
+          break;
+        throw ex;
+      }
+      cOff += 8;
+      rOff += 5;
+    }
+
+    
+    return Utils.byteArrayToString(ret.slice(0, bytes));
+  },
 
   
 
@@ -739,6 +880,85 @@ let Utils = {
       default:
         return ret;
     }
+  },
+
+  
+
+
+
+
+
+  base32ToFriendly: function base32ToFriendly(input) {
+    return input.toLowerCase()
+                .replace("l", '8', "g")
+                .replace("o", '9', "g");
+  },
+
+  base32FromFriendly: function base32FromFriendly(input) {
+    return input.toUpperCase()
+                .replace("8", 'L', "g")
+                .replace("9", 'O', "g");
+  },
+
+
+  
+
+
+
+  
+  encodeKeyBase32: function encodeKeyBase32(keyData) {
+    return Utils.base32ToFriendly(
+             Utils.encodeBase32(keyData))
+           .slice(0, SYNC_KEY_ENCODED_LENGTH);
+  },
+
+  decodeKeyBase32: function decodeKeyBase32(encoded) {
+    return Utils.decodeBase32(
+             Utils.base32FromFriendly(
+               Utils.normalizePassphrase(encoded)))
+           .slice(0, SYNC_KEY_DECODED_LENGTH);
+  },
+
+  base64Key: function base64Key(keyData) {
+    return btoa(keyData);
+  },
+
+  deriveKeyFromPassphrase: function deriveKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
+    if (Svc.Crypto.deriveKeyFromPassphrase && !forceJS) {
+      return Svc.Crypto.deriveKeyFromPassphrase(passphrase, salt, keyLength);
+    }
+    else {
+      
+      
+      return Utils.pbkdf2Generate(passphrase, atob(salt), 4096, keyLength);
+    }
+  },
+
+  
+
+
+
+  derivePresentableKeyFromPassphrase : function derivePresentableKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
+    let k = Utils.deriveKeyFromPassphrase(passphrase, salt, keyLength, forceJS);
+    return Utils.encodeKeyBase32(k);
+  },
+
+  
+
+
+
+  deriveEncodedKeyFromPassphrase : function deriveEncodedKeyFromPassphrase(passphrase, salt, keyLength, forceJS) {
+    let k = Utils.deriveKeyFromPassphrase(passphrase, salt, keyLength, forceJS);
+    return Utils.base64Key(k);
+  },
+
+  
+
+
+
+
+  presentEncodedKeyAsSyncKey : function presentEncodedKeyAsSyncKey(encodedKey) {
+    return Utils.encodeKeyBase32(atob(encodedKey));
   },
 
   makeURI: function Weave_makeURI(URIString) {
@@ -986,32 +1206,91 @@ let Utils = {
   
 
 
-  generatePassphrase: function() {
+  generatePassphrase: function generatePassphrase() {
+    
+    
+    
     let rng = Cc["@mozilla.org/security/random-generator;1"]
                 .createInstance(Ci.nsIRandomGenerator);
-    let bytes = rng.generateRandomBytes(20);
-    return [String.fromCharCode(97 + Math.floor(byte * 26 / 256))
-            for each (byte in bytes)].join("");
+    let bytes = rng.generateRandomBytes(16);
+    return Utils.encodeKeyBase32(Utils.byteArrayToString(bytes));
   },
 
   
 
 
-  hyphenatePassphrase: function(passphrase) {
-    return passphrase.slice(0, 5) + '-'
-         + passphrase.slice(5, 10) + '-'
-         + passphrase.slice(10, 15) + '-'
-         + passphrase.slice(15, 20);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  isPassphrase: function(s) {
+    if (s) {
+      return /^[abcdefghijkmnpqrstuvwxyz23456789]{26}$/.test(Utils.normalizePassphrase(s));
+    }
+    return false;
   },
 
   
 
 
-  normalizePassphrase: function(pp) {
-    if (pp.length == 23 && pp[5] == '-' && pp[11] == '-' && pp[17] == '-')
-      return pp.slice(0, 5) + pp.slice(6, 11)
-           + pp.slice(12, 17) + pp.slice(18, 23);
+
+
+
+  hyphenatePassphrase: function hyphenatePassphrase(passphrase) {
+    
+    return Utils.hyphenatePartialPassphrase(passphrase, true);
+  },
+
+  hyphenatePartialPassphrase: function hyphenatePartialPassphrase(passphrase, omitTrailingDash) {
+    if (!passphrase)
+      return null;
+
+    
+    let data = passphrase.toLowerCase().replace(/[^abcdefghijkmnpqrstuvwxyz23456789]/g, "");
+
+    
+    if ((data.length == 1) && !omitTrailingDash)
+      return data + "-";
+
+    
+    let y = data.substr(0,1);
+    let z = data.substr(1).replace(/(.{1,5})/g, "-$1");
+
+    
+    if ((z.length == 30) || omitTrailingDash)
+      return y + z;
+
+    
+    return (y + z.replace(/([^-]{5})$/, "$1-")).substr(0, SYNC_KEY_HYPHENATED_LENGTH);
+  },
+
+  normalizePassphrase: function normalizePassphrase(pp) {
+    
+    pp = pp.toLowerCase();
+    if (pp.length == 31 && [1, 7, 13, 19, 25].every(function(i) pp[i] == '-'))
+      return pp.slice(0, 1) + pp.slice(2, 7)
+             + pp.slice(8, 13) + pp.slice(14, 19)
+             + pp.slice(20, 25) + pp.slice(26, 31);
     return pp;
+  },
+
+  
+  
+  
+  safeAtoB: function safeAtoB(b64) {
+    let len = b64.length;
+    let over = len % 4;
+    return over ? atob(b64.substr(0, len - over)) : atob(b64);
   },
 
   

@@ -34,6 +34,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ["WeaveCrypto"];
 
 const Cc = Components.classes;
@@ -235,6 +236,7 @@ WeaveCrypto.prototype = {
         this.nss.PK11_ATTR_SENSITIVE = 0x40;
 
         
+        this.nss.SEC_OID_PKCS5_PBKDF2         = 291;
         this.nss.SEC_OID_HMAC_SHA1            = 294;
         this.nss.SEC_OID_PKCS1_RSA_ENCRYPTION = 16;
 
@@ -452,8 +454,6 @@ WeaveCrypto.prototype = {
 
     algorithm : Ci.IWeaveCrypto.AES_256_CBC,
 
-    keypairBits : 2048,
-
     encrypt : function(clearTextUCS2, symmetricKey, iv) {
         this.log("encrypt() called");
 
@@ -567,62 +567,6 @@ WeaveCrypto.prototype = {
     },
 
 
-    generateKeypair : function(passphrase, salt, iv, out_encodedPublicKey, out_wrappedPrivateKey) {
-        this.log("generateKeypair() called.");
-
-        let pubKey, privKey, slot;
-        try {
-            
-            
-            
-            let attrFlags = (this.nss.PK11_ATTR_SESSION | this.nss.PK11_ATTR_PUBLIC | this.nss.PK11_ATTR_SENSITIVE);
-
-            pubKey  = new this.nss_t.SECKEYPublicKey.ptr();
-
-            let rsaParams = new this.nss_t.PK11RSAGenParams();
-            rsaParams.keySizeInBits = this.keypairBits; 
-            rsaParams.pe = 65537;                       
-
-            slot = this.nss.PK11_GetInternalSlot();
-            if (slot.isNull())
-                throw Components.Exception("couldn't get internal slot", Cr.NS_ERROR_FAILURE);
-
-            
-            privKey = this.nss.PK11_GenerateKeyPairWithFlags(slot,
-                                                             this.nss.CKM_RSA_PKCS_KEY_PAIR_GEN,
-                                                             rsaParams.address(),
-                                                             pubKey.address(),
-                                                             attrFlags, null);
-            if (privKey.isNull())
-                throw Components.Exception("keypair generation failed", Cr.NS_ERROR_FAILURE);
-            
-            let s = this.nss.PK11_SetPrivateKeyNickname(privKey, "Weave User PrivKey");
-            if (s)
-                throw Components.Exception("key nickname failed", Cr.NS_ERROR_FAILURE);
-
-            let wrappedPrivateKey = this._wrapPrivateKey(privKey, passphrase, salt, iv);
-            out_wrappedPrivateKey.value = wrappedPrivateKey; 
-
-            let derKey = this.nss.SECKEY_EncodeDERSubjectPublicKeyInfo(pubKey);
-            if (derKey.isNull())
-              throw Components.Exception("SECKEY_EncodeDERSubjectPublicKeyInfo failed", Cr.NS_ERROR_FAILURE);
-
-            let encodedPublicKey = this.encodeBase64(derKey.contents.data, derKey.contents.len);
-            out_encodedPublicKey.value = encodedPublicKey; 
-        } catch (e) {
-            this.log("generateKeypair: failed: " + e);
-            throw e;
-        } finally {
-            if (pubKey && !pubKey.isNull())
-                this.nss.SECKEY_DestroyPublicKey(pubKey);
-            if (privKey && !privKey.isNull())
-                this.nss.SECKEY_DestroyPrivateKey(privKey);
-            if (slot && !slot.isNull())
-                this.nss.PK11_FreeSlot(slot);
-        }
-    },
-
-
     generateRandomKey : function() {
         this.log("generateRandomKey() called");
         let encodedKey, keygenMech, keySize;
@@ -702,280 +646,6 @@ WeaveCrypto.prototype = {
     },
 
 
-    wrapSymmetricKey : function(symmetricKey, encodedPublicKey) {
-        this.log("wrapSymmetricKey() called");
-
-        
-
-        let pubKeyData = this.makeSECItem(encodedPublicKey, true);
-        let symKeyData = this.makeSECItem(symmetricKey, true);
-
-        
-        let keyData = new ctypes.ArrayType(ctypes.unsigned_char, 4096)();
-        let wrappedKey = new this.nss_t.SECItem(this.nss.SIBUFFER, keyData, keyData.length);
-
-        
-        let slot, symKey, pubKeyInfo, pubKey;
-        try {
-            slot = this.nss.PK11_GetInternalSlot();
-            if (slot.isNull())
-                throw Components.Exception("couldn't get internal slot", Cr.NS_ERROR_FAILURE);
-
-            
-            let keyMech = this.nss.PK11_AlgtagToMechanism(this.algorithm);
-
-            
-            
-            symKey = this.nss.PK11_ImportSymKey(slot, keyMech, this.nss.PK11_OriginUnwrap, this.nss.CKA_ENCRYPT, symKeyData.address(), null);
-            if (symKey.isNull())
-                throw Components.Exception("symkey import failed", Cr.NS_ERROR_FAILURE);
-
-            
-
-            
-            
-            pubKeyInfo = this.nss.SECKEY_DecodeDERSubjectPublicKeyInfo(pubKeyData.address());
-            if (pubKeyInfo.isNull())
-                throw Components.Exception("SECKEY_DecodeDERSubjectPublicKeyInfo failed", Cr.NS_ERROR_FAILURE);
-
-            pubKey = this.nss.SECKEY_ExtractPublicKey(pubKeyInfo);
-            if (pubKey.isNull())
-                throw Components.Exception("SECKEY_ExtractPublicKey failed", Cr.NS_ERROR_FAILURE);
-
-            
-
-            let wrapMech = this.nss.PK11_AlgtagToMechanism(this.nss.SEC_OID_PKCS1_RSA_ENCRYPTION);
-
-            let s = this.nss.PK11_PubWrapSymKey(wrapMech, pubKey, symKey, wrappedKey.address());
-            if (s)
-                throw Components.Exception("PK11_PubWrapSymKey failed", Cr.NS_ERROR_FAILURE);
-
-            
-            return this.encodeBase64(wrappedKey.data, wrappedKey.len);
-        } catch (e) {
-            this.log("wrapSymmetricKey: failed: " + e);
-            throw e;
-        } finally {
-            if (pubKey && !pubKey.isNull())
-                this.nss.SECKEY_DestroyPublicKey(pubKey);
-            if (pubKeyInfo && !pubKeyInfo.isNull())
-                this.nss.SECKEY_DestroySubjectPublicKeyInfo(pubKeyInfo);
-            if (symKey && !symKey.isNull())
-                this.nss.PK11_FreeSymKey(symKey);
-            if (slot && !slot.isNull())
-                this.nss.PK11_FreeSlot(slot);
-        }
-    },
-
-
-    unwrapSymmetricKey : function(wrappedSymmetricKey, wrappedPrivateKey, passphrase, salt, iv) {
-        this.log("unwrapSymmetricKey() called");
-        let privKeyUsageLength = 1;
-        let privKeyUsage = new ctypes.ArrayType(this.nss_t.CK_ATTRIBUTE_TYPE, privKeyUsageLength)();
-        privKeyUsage[0] = this.nss.CKA_UNWRAP;
-
-        
-        let wrappedPrivKey = this.makeSECItem(wrappedPrivateKey, true);
-        let wrappedSymKey  = this.makeSECItem(wrappedSymmetricKey, true);
-
-        let ivParam, slot, pbeKey, symKey, privKey, symKeyData;
-        try {
-            
-            pbeKey = this._deriveKeyFromPassphrase(passphrase, salt);
-            let ivItem = this.makeSECItem(iv, true);
-
-            
-            let wrapMech = this.nss.PK11_AlgtagToMechanism(this.algorithm);
-            wrapMech = this.nss.PK11_GetPadMechanism(wrapMech);
-            if (wrapMech == this.nss.CKM_INVALID_MECHANISM)
-                throw Components.Exception("unwrapSymKey: unknown key mech", Cr.NS_ERROR_FAILURE);
-
-            ivParam = this.nss.PK11_ParamFromIV(wrapMech, ivItem.address());
-            if (ivParam.isNull())
-                throw Components.Exception("unwrapSymKey: PK11_ParamFromIV failed", Cr.NS_ERROR_FAILURE);
-
-            
-            slot = this.nss.PK11_GetInternalSlot();
-            if (slot.isNull())
-                throw Components.Exception("couldn't get internal slot", Cr.NS_ERROR_FAILURE);
-
-            
-            
-            
-            
-            
-            
-            
-            let keyID = ivItem.address();
-
-            privKey = this.nss.PK11_UnwrapPrivKey(slot,
-                                                  pbeKey, wrapMech, ivParam, wrappedPrivKey.address(),
-                                                  null,   
-                                                  keyID,
-                                                  false, 
-                                                  true,  
-                                                  this.nss.CKK_RSA,
-                                                  privKeyUsage.addressOfElement(0), privKeyUsageLength,
-                                                  null);  
-            if (privKey.isNull())
-                throw Components.Exception("PK11_UnwrapPrivKey failed", Cr.NS_ERROR_FAILURE);
-
-            
-
-            
-            
-            symKey = this.nss.PK11_PubUnwrapSymKey(privKey, wrappedSymKey.address(), wrapMech,
-                                                   this.nss.CKA_DECRYPT, 0);
-            if (symKey.isNull())
-                throw Components.Exception("PK11_PubUnwrapSymKey failed", Cr.NS_ERROR_FAILURE);
-
-            
-            if (this.nss.PK11_ExtractKeyValue(symKey))
-                throw Components.Exception("PK11_ExtractKeyValue failed.", Cr.NS_ERROR_FAILURE);
-
-            symKeyData = this.nss.PK11_GetKeyData(symKey);
-            if (symKeyData.isNull())
-                throw Components.Exception("PK11_GetKeyData failed.", Cr.NS_ERROR_FAILURE);
-
-            return this.encodeBase64(symKeyData.contents.data, symKeyData.contents.len);
-        } catch (e) {
-            this.log("unwrapSymmetricKey: failed: " + e);
-            throw e;
-        } finally {
-            if (privKey && !privKey.isNull())
-                this.nss.SECKEY_DestroyPrivateKey(privKey);
-            if (symKey && !symKey.isNull())
-                this.nss.PK11_FreeSymKey(symKey);
-            if (pbeKey && !pbeKey.isNull())
-                this.nss.PK11_FreeSymKey(pbeKey);
-            if (slot && !slot.isNull())
-                this.nss.PK11_FreeSlot(slot);
-            if (ivParam && !ivParam.isNull())
-                this.nss.SECITEM_FreeItem(ivParam, true);
-        }
-    },
-
-
-    rewrapPrivateKey : function(wrappedPrivateKey, oldPassphrase, salt, iv, newPassphrase) {
-        this.log("rewrapPrivateKey() called");
-        let privKeyUsageLength = 1;
-        let privKeyUsage = new ctypes.ArrayType(this.nss_t.CK_ATTRIBUTE_TYPE, privKeyUsageLength)();
-        privKeyUsage[0] = this.nss.CKA_UNWRAP;
-
-        
-        let wrappedPrivKey = this.makeSECItem(wrappedPrivateKey, true);
-
-        let pbeKey, ivParam, slot, privKey;
-        try {
-            
-            let pbeKey = this._deriveKeyFromPassphrase(oldPassphrase, salt);
-            let ivItem = this.makeSECItem(iv, true);
-
-            
-            let wrapMech = this.nss.PK11_AlgtagToMechanism(this.algorithm);
-            wrapMech = this.nss.PK11_GetPadMechanism(wrapMech);
-            if (wrapMech == this.nss.CKM_INVALID_MECHANISM)
-                throw Components.Exception("rewrapSymKey: unknown key mech", Cr.NS_ERROR_FAILURE);
-
-            ivParam = this.nss.PK11_ParamFromIV(wrapMech, ivItem.address());
-            if (ivParam.isNull())
-                throw Components.Exception("rewrapSymKey: PK11_ParamFromIV failed", Cr.NS_ERROR_FAILURE);
-
-            
-            slot = this.nss.PK11_GetInternalSlot();
-            if (slot.isNull())
-                throw Components.Exception("couldn't get internal slot", Cr.NS_ERROR_FAILURE);
-
-            let keyID = ivItem.address();
-
-            privKey = this.nss.PK11_UnwrapPrivKey(slot,
-                                                  pbeKey, wrapMech, ivParam, wrappedPrivKey.address(),
-                                                  null,   
-                                                  keyID,
-                                                  false, 
-                                                  true,  
-                                                  this.nss.CKK_RSA,
-                                                  privKeyUsage.addressOfElement(0), privKeyUsageLength,
-                                                  null);  
-            if (privKey.isNull())
-                throw Components.Exception("PK11_UnwrapPrivKey failed", Cr.NS_ERROR_FAILURE);
-
-            
-            return this._wrapPrivateKey(privKey, newPassphrase, salt, iv);
-        } catch (e) {
-            this.log("rewrapPrivateKey: failed: " + e);
-            throw e;
-        } finally {
-            if (privKey && !privKey.isNull())
-                this.nss.SECKEY_DestroyPrivateKey(privKey);
-            if (slot && !slot.isNull())
-                this.nss.PK11_FreeSlot(slot);
-            if (ivParam && !ivParam.isNull())
-                this.nss.SECITEM_FreeItem(ivParam, true);
-            if (pbeKey && !pbeKey.isNull())
-                this.nss.PK11_FreeSymKey(pbeKey);
-        }
-    },
-
-
-    verifyPassphrase : function(wrappedPrivateKey, passphrase, salt, iv) {
-        this.log("verifyPassphrase() called");
-        let privKeyUsageLength = 1;
-        let privKeyUsage = new ctypes.ArrayType(this.nss_t.CK_ATTRIBUTE_TYPE, privKeyUsageLength)();
-        privKeyUsage[0] = this.nss.CKA_UNWRAP;
-
-        
-        let wrappedPrivKey = this.makeSECItem(wrappedPrivateKey, true);
-
-        let pbeKey, ivParam, slot, privKey;
-        try {
-            
-            pbeKey = this._deriveKeyFromPassphrase(passphrase, salt);
-            let ivItem = this.makeSECItem(iv, true);
-
-            
-            let wrapMech = this.nss.PK11_AlgtagToMechanism(this.algorithm);
-            wrapMech = this.nss.PK11_GetPadMechanism(wrapMech);
-            if (wrapMech == this.nss.CKM_INVALID_MECHANISM)
-                throw Components.Exception("rewrapSymKey: unknown key mech", Cr.NS_ERROR_FAILURE);
-
-            ivParam = this.nss.PK11_ParamFromIV(wrapMech, ivItem.address());
-            if (ivParam.isNull())
-                throw Components.Exception("rewrapSymKey: PK11_ParamFromIV failed", Cr.NS_ERROR_FAILURE);
-
-            
-            slot = this.nss.PK11_GetInternalSlot();
-            if (slot.isNull())
-                throw Components.Exception("couldn't get internal slot", Cr.NS_ERROR_FAILURE);
-
-            let keyID = ivItem.address();
-
-            privKey = this.nss.PK11_UnwrapPrivKey(slot,
-                                                  pbeKey, wrapMech, ivParam, wrappedPrivKey.address(),
-                                                  null,   
-                                                  keyID,
-                                                  false, 
-                                                  true,  
-                                                  this.nss.CKK_RSA,
-                                                  privKeyUsage.addressOfElement(0), privKeyUsageLength,
-                                                  null);  
-            return (!privKey.isNull());
-        } catch (e) {
-            this.log("verifyPassphrase: failed: " + e);
-            throw e;
-        } finally {
-            if (privKey && !privKey.isNull())
-                this.nss.SECKEY_DestroyPrivateKey(privKey);
-            if (slot && !slot.isNull())
-                this.nss.PK11_FreeSlot(slot);
-            if (ivParam && !ivParam.isNull())
-                this.nss.SECITEM_FreeItem(ivParam, true);
-            if (pbeKey && !pbeKey.isNull())
-                this.nss.PK11_FreeSymKey(pbeKey);
-        }
-    },
-
-
     
     
     
@@ -1000,16 +670,19 @@ WeaveCrypto.prototype = {
         return expanded;
     },
 
-    encodeBase64 : function (data, len) {
+    expandData : function expandData(data, len) {
         
         
         let expanded = "";
         let intData = ctypes.cast(data, ctypes.uint8_t.array(len).ptr).contents;
         for (let i = 0; i < len; i++)
             expanded += String.fromCharCode(intData[i]);
-        return btoa(expanded);
+      return expanded;
     },
 
+    encodeBase64 : function (data, len) {
+        return btoa(this.expandData(data, len));
+    },
 
     makeSECItem : function(input, isEncoded) {
         if (isEncoded)
@@ -1020,22 +693,23 @@ WeaveCrypto.prototype = {
         return new this.nss_t.SECItem(this.nss.SIBUFFER, outputData, outputData.length);
     },
 
-    _deriveKeyFromPassphrase : function (passphrase, salt) {
-        this.log("_deriveKeyFromPassphrase() called.");
+
+    
+
+
+    deriveKeyFromPassphrase : function deriveKeyFromPassphrase(passphrase, salt, keyLength) {
+        this.log("deriveKeyFromPassphrase() called.");
         let passItem = this.makeSECItem(passphrase, false);
         let saltItem = this.makeSECItem(salt, true);
 
-        
-
-        
         let pbeAlg = this.algorithm;
         let cipherAlg = this.algorithm; 
         let prfAlg = this.nss.SEC_OID_HMAC_SHA1; 
 
-        let keyLength  = 0;    
+        let keyLength  = keyLength || 0;    
         let iterations = 4096; 
 
-        let algid, slot, symKey;
+        let algid, slot, symKey, keyData;
         try {
             algid = this.nss.PK11_CreatePBEV2AlgorithmID(pbeAlg, cipherAlg, prfAlg,
                                                         keyLength, iterations, saltItem.address());
@@ -1049,60 +723,31 @@ WeaveCrypto.prototype = {
             symKey = this.nss.PK11_PBEKeyGen(slot, algid, passItem.address(), false, null);
             if (symKey.isNull())
                 throw Components.Exception("PK11_PBEKeyGen failed", Cr.NS_ERROR_FAILURE);
+
+            
+            if (this.nss.PK11_ExtractKeyValue(symKey)) {
+                throw this.makeException("PK11_ExtractKeyValue failed.", Cr.NS_ERROR_FAILURE);
+            }
+
+            keyData = this.nss.PK11_GetKeyData(symKey);
+
+            if (keyData.isNull())
+                throw Components.Exception("PK11_GetKeyData failed", Cr.NS_ERROR_FAILURE);
+
+            
+            
+            return this.expandData(keyData.contents.data, keyData.contents.len);
+
         } catch (e) {
-            this.log("_deriveKeyFromPassphrase: failed: " + e);
+            this.log("deriveKeyFromPassphrase: failed: " + e);
             throw e;
         } finally {
             if (algid && !algid.isNull())
                 this.nss.SECOID_DestroyAlgorithmID(algid, true);
             if (slot && !slot.isNull())
                 this.nss.PK11_FreeSlot(slot);
-        }
-
-        return symKey;
-    },
-
-
-    _wrapPrivateKey : function(privKey, passphrase, salt, iv) {
-        this.log("_wrapPrivateKey() called.");
-        let ivParam, pbeKey, wrappedKey;
-        try {
-            
-            pbeKey = this._deriveKeyFromPassphrase(passphrase, salt);
-
-            let ivItem = this.makeSECItem(iv, true);
-
-            
-            let wrapMech = this.nss.PK11_AlgtagToMechanism(this.algorithm);
-            wrapMech = this.nss.PK11_GetPadMechanism(wrapMech);
-            if (wrapMech == this.nss.CKM_INVALID_MECHANISM)
-                throw Components.Exception("wrapPrivKey: unknown key mech", Cr.NS_ERROR_FAILURE);
-
-            let ivParam = this.nss.PK11_ParamFromIV(wrapMech, ivItem.address());
-            if (ivParam.isNull())
-                throw Components.Exception("wrapPrivKey: PK11_ParamFromIV failed", Cr.NS_ERROR_FAILURE);
-
-            
-            
-            let keyData = new ctypes.ArrayType(ctypes.unsigned_char, 4096)();
-            wrappedKey = new this.nss_t.SECItem(this.nss.SIBUFFER, keyData, keyData.length);
-
-            let s = this.nss.PK11_WrapPrivKey(privKey.contents.pkcs11Slot,
-                                              pbeKey, privKey,
-                                              wrapMech, ivParam,
-                                              wrappedKey.address(), null);
-            if (s)
-                throw Components.Exception("wrapPrivKey: PK11_WrapPrivKey failed", Cr.NS_ERROR_FAILURE);
-
-            return this.encodeBase64(wrappedKey.data, wrappedKey.len);
-        } catch (e) {
-            this.log("_wrapPrivateKey: failed: " + e);
-            throw e;
-        } finally {
-            if (ivParam && !ivParam.isNull())
-                this.nss.SECITEM_FreeItem(ivParam, true);
-            if (pbeKey && !pbeKey.isNull())
-                this.nss.PK11_FreeSymKey(pbeKey);
-        }
+            if (symKey && !symKey.isNull())
+                this.nss.PK11_FreeSymKey(symKey);
     }
+    },
 };

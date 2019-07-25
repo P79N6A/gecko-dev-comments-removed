@@ -36,6 +36,7 @@
 
 
 
+
 const EXPORTED_SYMBOLS = ['Engines', 'Engine', 'SyncEngine'];
 
 const Cc = Components.classes;
@@ -45,7 +46,6 @@ const Cu = Components.utils;
 
 Cu.import("resource://services-sync/base_records/collection.js");
 Cu.import("resource://services-sync/base_records/crypto.js");
-Cu.import("resource://services-sync/base_records/keys.js");
 Cu.import("resource://services-sync/base_records/wbo.js");
 Cu.import("resource://services-sync/constants.js");
 Cu.import("resource://services-sync/ext/Observers.js");
@@ -81,8 +81,11 @@ EngineManagerSvc.prototype = {
     }
 
     let engine = this._engines[name];
-    if (!engine)
+    if (!engine) {
       this._log.debug("Could not get engine: " + name);
+      if (Object.keys)
+        this._log.debug("Engines are: " + JSON.stringify(Object.keys(this._engines)));
+    }
     return engine;
   },
   getAll: function EngMgr_getAll() {
@@ -294,7 +297,7 @@ SyncEngine.prototype = {
 
   get engineURL() this.storageURL + this.name,
 
-  get cryptoMetaURL() this.storageURL + "crypto/" + this.name,
+  get cryptoKeysURL() this.storageURL + "crypto/keys",
 
   get metaURL() this.storageURL + "meta/global",
 
@@ -348,49 +351,28 @@ SyncEngine.prototype = {
 
   
   _createRecord: function SyncEngine__createRecord(id) {
-    let record = this._store.createRecord(id, this.engineURL + "/" + id);
+    let record = this._store.createRecord(id, this.name);
     record.id = id;
-    record.encryption = this.cryptoMetaURL;
+    record.collection = this.name;
     return record;
   },
 
   
-  
   _syncStartup: function SyncEngine__syncStartup() {
-    this._log.trace("Ensuring server crypto records are there");
-
-    
-    let meta = CryptoMetas.get(this.cryptoMetaURL);
-    if (meta) {
-      try {
-        let pubkey = PubKeys.getDefaultKey();
-        let privkey = PrivKeys.get(pubkey.privateKeyUri);
-        meta.getKey(privkey, ID.get("WeaveCryptoID"));
-      }
-      catch(ex) {
-        
-        this._log.debug("Purging bad data after failed unwrap crypto: " + ex);
-        meta = null;
-      }
-    }
-    
-    else if (CryptoMetas.response.status != 404) {
-      let resp = CryptoMetas.response;
-      resp.failureCode = ENGINE_METARECORD_DOWNLOAD_FAIL;
-      throw resp;
-    }
 
     
     let metaGlobal = Records.get(this.metaURL);
     let engines = metaGlobal.payload.engines || {};
     let engineData = engines[this.name] || {};
 
+    let needsWipe = false;
+
     
     if ((engineData.version || 0) < this.version) {
       this._log.debug("Old engine data: " + [engineData.version, this.version]);
 
       
-      meta = null;
+      needsWipe = true;
       this.syncID = "";
 
       
@@ -416,24 +398,9 @@ SyncEngine.prototype = {
     };
 
     
-    if (meta == null) {
+    
+    if (needsWipe) {
       this.wipeServer(true);
-
-      
-      let symkey = Svc.Crypto.generateRandomKey();
-      let pubkey = PubKeys.getDefaultKey();
-      meta = new CryptoMeta(this.cryptoMetaURL);
-      meta.addUnwrappedKey(pubkey, symkey);
-      let res = new Resource(meta.uri);
-      let resp = res.put(meta);
-      if (!resp.success) {
-        this._log.debug("Metarecord upload fail:" + resp);
-        resp.failureCode = ENGINE_METARECORD_UPLOAD_FAIL;
-        throw resp;
-      }
-
-      
-      CryptoMetas.set(meta.uri, meta);
     }
 
     
@@ -488,16 +455,13 @@ SyncEngine.prototype = {
         this.lastModified = item.modified;
 
       
+      item.collection = this.name;
+      
+      
       handled.push(item.id);
 
       try {
-        
-        
-        try {
-          item.decrypt(ID.get("WeaveCryptoID"), this.cryptoMetaURL);
-        } catch (ex) {
-          item.decrypt(ID.get("WeaveCryptoID"), item.encryption);
-        }
+        item.decrypt();
         if (this._reconcile(item)) {
           count.applied++;
           this._tracker.ignoreAll = true;
@@ -706,7 +670,7 @@ SyncEngine.prototype = {
           if (this._log.level <= Log4Moz.Level.Trace)
             this._log.trace("Outgoing: " + out);
 
-          out.encrypt(ID.get("WeaveCryptoID"));
+          out.encrypt();
           up.pushData(out);
         }
         catch(ex) {
@@ -789,9 +753,8 @@ SyncEngine.prototype = {
     test.limit = 1;
     test.sort = "newest";
     test.full = true;
-    let self = this;
     test.recordHandler = function(record) {
-      record.decrypt(ID.get("WeaveCryptoID"), self.cryptoMetaURL);
+      record.decrypt();
       canDecrypt = true;
     };
 
@@ -811,10 +774,8 @@ SyncEngine.prototype = {
     this.resetLastSync();
   },
 
-  wipeServer: function wipeServer(ignoreCrypto) {
+  wipeServer: function wipeServer() {
     new Resource(this.engineURL).delete();
-    if (!ignoreCrypto)
-      new Resource(this.cryptoMetaURL).delete();
     this._resetClient();
   }
 };

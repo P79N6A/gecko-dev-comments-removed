@@ -35,6 +35,7 @@
 
 
 
+
 let EXPORTED_SYMBOLS = [((this[key] = val), key) for ([key, val] in Iterator({
 
 WEAVE_CHANNEL:                         "@xpi_type@",
@@ -44,7 +45,7 @@ WEAVE_ID:                              "@weave_id@",
 
 
 
-STORAGE_VERSION:                       3,
+STORAGE_VERSION:                       4,
 
 UPDATED_DEV_URL:                       "https://services.mozilla.com/sync/updated/?version=@weave_version@&channel=@xpi_type@",
 UPDATED_REL_URL:                       "http://www.mozilla.com/firefox/sync/updated.html",
@@ -55,6 +56,19 @@ PREFS_BRANCH:                          "services.sync.",
 PWDMGR_HOST:                           "chrome://weave",
 PWDMGR_PASSWORD_REALM:                 "Mozilla Services Password",
 PWDMGR_PASSPHRASE_REALM:               "Mozilla Services Encryption Passphrase",
+PWDMGR_KEYBUNDLE_REALM:                "Mozilla Services Key Bundles",
+
+
+DEFAULT_KEYBUNDLE_NAME:                "[default]",
+
+
+
+HMAC_INPUT:                            "Sync-AES_256_CBC-HMAC256",
+
+
+SYNC_KEY_ENCODED_LENGTH:               26,
+SYNC_KEY_DECODED_LENGTH:               16,
+SYNC_KEY_HYPHENATED_LENGTH:            31,    
 
 
 SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
@@ -114,9 +128,6 @@ LOGIN_FAILED_LOGIN_REJECTED:           "error.login.reason.account",
 METARECORD_DOWNLOAD_FAIL:              "error.sync.reason.metarecord_download_fail",
 VERSION_OUT_OF_DATE:                   "error.sync.reason.version_out_of_date",
 DESKTOP_VERSION_OUT_OF_DATE:           "error.sync.reason.desktop_version_out_of_date",
-KEYS_DOWNLOAD_FAIL:                    "error.sync.reason.keys_download_fail",
-NO_KEYS_NO_KEYGEN:                     "error.sync.reason.no_keys_no_keygen",
-KEYS_UPLOAD_FAIL:                      "error.sync.reason.keys_upload_fail",
 SETUP_FAILED_NO_PASSPHRASE:            "error.sync.reason.setup_failed_no_passphrase",
 CREDENTIALS_CHANGED:                   "error.sync.reason.credentials_changed",
 ABORT_SYNC_COMMAND:                    "aborting sync, process commands said so",
