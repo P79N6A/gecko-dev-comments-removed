@@ -87,7 +87,7 @@ static PRLogModuleInfo *gCompressedImageAccountingLog = PR_NewLogModule ("Compre
 #define LOG_CONTAINER_ERROR                      \
   PR_BEGIN_MACRO                                 \
   PR_LOG (gImgLog, PR_LOG_ERROR,                 \
-          ("ImgContainer: [this=%p] Error "      \
+          ("RasterImage: [this=%p] Error "      \
            "detected at line %u for image of "   \
            "type %s\n", this, __LINE__,          \
            mSourceDataMimeType.get()));          \
@@ -135,11 +135,14 @@ DiscardingEnabled()
   return enabled;
 }
 
-NS_IMPL_ISUPPORTS4(imgContainer, imgIContainer, nsITimerCallback, nsIProperties,
+namespace mozilla {
+namespace imagelib {
+
+NS_IMPL_ISUPPORTS4(RasterImage, imgIContainer, nsITimerCallback, nsIProperties,
                    nsISupportsWeakReference)
 
 
-imgContainer::imgContainer() :
+RasterImage::RasterImage() :
   mSize(0,0),
   mAnim(nsnull),
   mAnimationMode(kNormalAnimMode),
@@ -170,7 +173,7 @@ imgContainer::imgContainer() :
 }
 
 
-imgContainer::~imgContainer()
+RasterImage::~RasterImage()
 {
   if (mAnim)
     delete mAnim;
@@ -184,7 +187,7 @@ imgContainer::~imgContainer()
     discardable_source_bytes -= mSourceData.Length();
 
     PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-            ("CompressedImageAccounting: destroying imgContainer %p.  "
+            ("CompressedImageAccounting: destroying RasterImage %p.  "
              "Total Containers: %d, Discardable containers: %d, "
              "Total source bytes: %lld, Source bytes for discardable containers %lld",
              this,
@@ -211,7 +214,7 @@ imgContainer::~imgContainer()
 
 
 
-NS_IMETHODIMP imgContainer::Init(imgIDecoderObserver *aObserver,
+NS_IMETHODIMP RasterImage::Init(imgIDecoderObserver *aObserver,
                                  const char* aMimeType,
                                  PRUint32 aFlags)
 {
@@ -275,7 +278,7 @@ NS_IMETHODIMP imgContainer::Init(imgIDecoderObserver *aObserver,
 
 
 
-NS_IMETHODIMP imgContainer::ExtractFrame(PRUint32 aWhichFrame,
+NS_IMETHODIMP RasterImage::ExtractFrame(PRUint32 aWhichFrame,
                                          const nsIntRect &aRegion,
                                          PRUint32 aFlags,
                                          imgIContainer **_retval)
@@ -295,7 +298,7 @@ NS_IMETHODIMP imgContainer::ExtractFrame(PRUint32 aWhichFrame,
     return NS_ERROR_FAILURE;
 
   
-  nsRefPtr<imgContainer> img(new imgContainer());
+  nsRefPtr<RasterImage> img(new RasterImage());
   NS_ENSURE_TRUE(img, NS_ERROR_OUT_OF_MEMORY);
 
   
@@ -348,7 +351,7 @@ NS_IMETHODIMP imgContainer::ExtractFrame(PRUint32 aWhichFrame,
 
 
 
-NS_IMETHODIMP imgContainer::GetWidth(PRInt32 *aWidth)
+NS_IMETHODIMP RasterImage::GetWidth(PRInt32 *aWidth)
 {
   NS_ENSURE_ARG_POINTER(aWidth);
 
@@ -361,7 +364,7 @@ NS_IMETHODIMP imgContainer::GetWidth(PRInt32 *aWidth)
 
 
 
-NS_IMETHODIMP imgContainer::GetHeight(PRInt32 *aHeight)
+NS_IMETHODIMP RasterImage::GetHeight(PRInt32 *aHeight)
 {
   NS_ENSURE_ARG_POINTER(aHeight);
 
@@ -372,7 +375,7 @@ NS_IMETHODIMP imgContainer::GetHeight(PRInt32 *aHeight)
   return NS_OK;
 }
 
-imgFrame *imgContainer::GetImgFrame(PRUint32 framenum)
+imgFrame *RasterImage::GetImgFrame(PRUint32 framenum)
 {
   nsresult rv = WantDecodedFrames();
   CONTAINER_ENSURE_TRUE(NS_SUCCEEDED(rv), nsnull);
@@ -386,7 +389,7 @@ imgFrame *imgContainer::GetImgFrame(PRUint32 framenum)
   return mFrames.SafeElementAt(framenum, nsnull);
 }
 
-imgFrame *imgContainer::GetDrawableImgFrame(PRUint32 framenum)
+imgFrame *RasterImage::GetDrawableImgFrame(PRUint32 framenum)
 {
   imgFrame *frame = GetImgFrame(framenum);
 
@@ -397,7 +400,7 @@ imgFrame *imgContainer::GetDrawableImgFrame(PRUint32 framenum)
   return frame;
 }
 
-PRUint32 imgContainer::GetCurrentImgFrameIndex() const
+PRUint32 RasterImage::GetCurrentImgFrameIndex() const
 {
   if (mAnim)
     return mAnim->currentAnimationFrameIndex;
@@ -405,19 +408,19 @@ PRUint32 imgContainer::GetCurrentImgFrameIndex() const
   return 0;
 }
 
-imgFrame *imgContainer::GetCurrentImgFrame()
+imgFrame *RasterImage::GetCurrentImgFrame()
 {
   return GetImgFrame(GetCurrentImgFrameIndex());
 }
 
-imgFrame *imgContainer::GetCurrentDrawableImgFrame()
+imgFrame *RasterImage::GetCurrentDrawableImgFrame()
 {
   return GetDrawableImgFrame(GetCurrentImgFrameIndex());
 }
 
 
 
-NS_IMETHODIMP imgContainer::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
+NS_IMETHODIMP RasterImage::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
 {
   NS_ENSURE_ARG_POINTER(aIsOpaque);
 
@@ -446,7 +449,7 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameIsOpaque(PRBool *aIsOpaque)
 
 
 
-NS_IMETHODIMP imgContainer::GetCurrentFrameRect(nsIntRect &aRect)
+NS_IMETHODIMP RasterImage::GetCurrentFrameRect(nsIntRect &aRect)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -473,7 +476,7 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameRect(nsIntRect &aRect)
 
 
 
-NS_IMETHODIMP imgContainer::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
+NS_IMETHODIMP RasterImage::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -487,7 +490,7 @@ NS_IMETHODIMP imgContainer::GetCurrentFrameIndex(PRUint32 *aCurrentFrameIdx)
 
 
 
-NS_IMETHODIMP imgContainer::GetNumFrames(PRUint32 *aNumFrames)
+NS_IMETHODIMP RasterImage::GetNumFrames(PRUint32 *aNumFrames)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -501,7 +504,7 @@ NS_IMETHODIMP imgContainer::GetNumFrames(PRUint32 *aNumFrames)
 
 
 
-NS_IMETHODIMP imgContainer::GetAnimated(PRBool *aAnimated)
+NS_IMETHODIMP RasterImage::GetAnimated(PRBool *aAnimated)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -529,7 +532,7 @@ NS_IMETHODIMP imgContainer::GetAnimated(PRBool *aAnimated)
 
 
 
-NS_IMETHODIMP imgContainer::CopyFrame(PRUint32 aWhichFrame,
+NS_IMETHODIMP RasterImage::CopyFrame(PRUint32 aWhichFrame,
                                       PRUint32 aFlags,
                                       gfxImageSurface **_retval)
 {
@@ -586,7 +589,7 @@ NS_IMETHODIMP imgContainer::CopyFrame(PRUint32 aWhichFrame,
 
 
 
-NS_IMETHODIMP imgContainer::GetFrame(PRUint32 aWhichFrame,
+NS_IMETHODIMP RasterImage::GetFrame(PRUint32 aWhichFrame,
                                      PRUint32 aFlags,
                                      gfxASurface **_retval)
 {
@@ -644,7 +647,7 @@ NS_IMETHODIMP imgContainer::GetFrame(PRUint32 aWhichFrame,
 
 
 
-NS_IMETHODIMP imgContainer::GetDataSize(PRUint32 *_retval)
+NS_IMETHODIMP RasterImage::GetDataSize(PRUint32 *_retval)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -664,7 +667,7 @@ NS_IMETHODIMP imgContainer::GetDataSize(PRUint32 *_retval)
   return NS_OK;
 }
 
-PRUint32 imgContainer::GetDecodedDataSize()
+PRUint32 RasterImage::GetDecodedDataSize()
 {
   PRUint32 val = 0;
   for (PRUint32 i = 0; i < mFrames.Length(); ++i) {
@@ -676,12 +679,12 @@ PRUint32 imgContainer::GetDecodedDataSize()
   return val;
 }
 
-PRUint32 imgContainer::GetSourceDataSize()
+PRUint32 RasterImage::GetSourceDataSize()
 {
   return mSourceData.Length();
 }
 
-void imgContainer::DeleteImgFrame(PRUint32 framenum)
+void RasterImage::DeleteImgFrame(PRUint32 framenum)
 {
   NS_ABORT_IF_FALSE(framenum < mFrames.Length(), "Deleting invalid frame!");
 
@@ -689,7 +692,7 @@ void imgContainer::DeleteImgFrame(PRUint32 framenum)
   mFrames[framenum] = nsnull;
 }
 
-nsresult imgContainer::InternalAddFrameHelper(PRUint32 framenum, imgFrame *aFrame,
+nsresult RasterImage::InternalAddFrameHelper(PRUint32 framenum, imgFrame *aFrame,
                                               PRUint8 **imageData, PRUint32 *imageLength,
                                               PRUint32 **paletteData, PRUint32 *paletteLength)
 {
@@ -713,7 +716,7 @@ nsresult imgContainer::InternalAddFrameHelper(PRUint32 framenum, imgFrame *aFram
   return NS_OK;
 }
                                   
-nsresult imgContainer::InternalAddFrame(PRUint32 framenum,
+nsresult RasterImage::InternalAddFrame(PRUint32 framenum,
                                         PRInt32 aX, PRInt32 aY,
                                         PRInt32 aWidth, PRInt32 aHeight,
                                         gfxASurface::gfxImageFormat aFormat,
@@ -784,7 +787,7 @@ nsresult imgContainer::InternalAddFrame(PRUint32 framenum,
 }
 
 
-NS_IMETHODIMP imgContainer::AppendFrame(PRInt32 aX, PRInt32 aY, PRInt32 aWidth,
+NS_IMETHODIMP RasterImage::AppendFrame(PRInt32 aX, PRInt32 aY, PRInt32 aWidth,
                                         PRInt32 aHeight, 
                                         gfxASurface::gfxImageFormat aFormat,
                                         PRUint8 **imageData,
@@ -803,7 +806,7 @@ NS_IMETHODIMP imgContainer::AppendFrame(PRInt32 aX, PRInt32 aY, PRInt32 aWidth,
 }
 
 
-NS_IMETHODIMP imgContainer::AppendPalettedFrame(PRInt32 aX, PRInt32 aY,
+NS_IMETHODIMP RasterImage::AppendPalettedFrame(PRInt32 aX, PRInt32 aY,
                                                 PRInt32 aWidth, PRInt32 aHeight,
                                                 gfxASurface::gfxImageFormat aFormat,
                                                 PRUint8 aPaletteDepth,
@@ -826,7 +829,7 @@ NS_IMETHODIMP imgContainer::AppendPalettedFrame(PRInt32 aX, PRInt32 aY,
 }
 
 
-NS_IMETHODIMP imgContainer::SetSize(PRInt32 aWidth, PRInt32 aHeight)
+NS_IMETHODIMP RasterImage::SetSize(PRInt32 aWidth, PRInt32 aHeight)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -863,7 +866,7 @@ NS_IMETHODIMP imgContainer::SetSize(PRInt32 aWidth, PRInt32 aHeight)
 
 
 
-NS_IMETHODIMP imgContainer::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRInt32 aY,
+NS_IMETHODIMP RasterImage::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRInt32 aY,
                                              PRInt32 aWidth, PRInt32 aHeight, 
                                              gfxASurface::gfxImageFormat aFormat,
                                              PRUint8 **imageData, PRUint32 *imageLength)
@@ -911,7 +914,7 @@ NS_IMETHODIMP imgContainer::EnsureCleanFrame(PRUint32 aFrameNum, PRInt32 aX, PRI
 
 
 
-NS_IMETHODIMP imgContainer::FrameUpdated(PRUint32 aFrameNum, nsIntRect &aUpdatedRect)
+NS_IMETHODIMP RasterImage::FrameUpdated(PRUint32 aFrameNum, nsIntRect &aUpdatedRect)
 {
   NS_ASSERTION(aFrameNum < mFrames.Length(), "Invalid frame index!");
   if (aFrameNum >= mFrames.Length())
@@ -928,7 +931,7 @@ NS_IMETHODIMP imgContainer::FrameUpdated(PRUint32 aFrameNum, nsIntRect &aUpdated
 
 
 
-NS_IMETHODIMP imgContainer::SetFrameDisposalMethod(PRUint32 aFrameNum, PRInt32 aDisposalMethod)
+NS_IMETHODIMP RasterImage::SetFrameDisposalMethod(PRUint32 aFrameNum, PRInt32 aDisposalMethod)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -949,7 +952,7 @@ NS_IMETHODIMP imgContainer::SetFrameDisposalMethod(PRUint32 aFrameNum, PRInt32 a
 
 
 
-NS_IMETHODIMP imgContainer::SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout)
+NS_IMETHODIMP RasterImage::SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -969,7 +972,7 @@ NS_IMETHODIMP imgContainer::SetFrameTimeout(PRUint32 aFrameNum, PRInt32 aTimeout
 
 
 
-NS_IMETHODIMP imgContainer::SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBlendMethod)
+NS_IMETHODIMP RasterImage::SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBlendMethod)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -990,7 +993,7 @@ NS_IMETHODIMP imgContainer::SetFrameBlendMethod(PRUint32 aFrameNum, PRInt32 aBle
 
 
 
-NS_IMETHODIMP imgContainer::SetFrameHasNoAlpha(PRUint32 aFrameNum)
+NS_IMETHODIMP RasterImage::SetFrameHasNoAlpha(PRUint32 aFrameNum)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1010,7 +1013,7 @@ NS_IMETHODIMP imgContainer::SetFrameHasNoAlpha(PRUint32 aFrameNum)
 
 
 
-NS_IMETHODIMP imgContainer::EndFrameDecode(PRUint32 aFrameNum)
+NS_IMETHODIMP RasterImage::EndFrameDecode(PRUint32 aFrameNum)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1025,7 +1028,7 @@ NS_IMETHODIMP imgContainer::EndFrameDecode(PRUint32 aFrameNum)
 
 
 
-NS_IMETHODIMP imgContainer::DecodingComplete(void)
+NS_IMETHODIMP RasterImage::DecodingComplete()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1063,7 +1066,7 @@ NS_IMETHODIMP imgContainer::DecodingComplete(void)
 
 
 
-NS_IMETHODIMP imgContainer::GetAnimationMode(PRUint16 *aAnimationMode)
+NS_IMETHODIMP RasterImage::GetAnimationMode(PRUint16 *aAnimationMode)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1076,7 +1079,7 @@ NS_IMETHODIMP imgContainer::GetAnimationMode(PRUint16 *aAnimationMode)
 
 
 
-NS_IMETHODIMP imgContainer::SetAnimationMode(PRUint16 aAnimationMode)
+NS_IMETHODIMP RasterImage::SetAnimationMode(PRUint16 aAnimationMode)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1106,7 +1109,7 @@ NS_IMETHODIMP imgContainer::SetAnimationMode(PRUint16 aAnimationMode)
 
 
 
-NS_IMETHODIMP imgContainer::StartAnimation()
+NS_IMETHODIMP RasterImage::StartAnimation()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1143,7 +1146,7 @@ NS_IMETHODIMP imgContainer::StartAnimation()
 
 
 
-NS_IMETHODIMP imgContainer::StopAnimation()
+NS_IMETHODIMP RasterImage::StopAnimation()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1163,7 +1166,7 @@ NS_IMETHODIMP imgContainer::StopAnimation()
 
 
 
-NS_IMETHODIMP imgContainer::ResetAnimation()
+NS_IMETHODIMP RasterImage::ResetAnimation()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1197,7 +1200,7 @@ NS_IMETHODIMP imgContainer::ResetAnimation()
 
 
 
-NS_IMETHODIMP imgContainer::GetLoopCount(PRInt32 *aLoopCount)
+NS_IMETHODIMP RasterImage::GetLoopCount(PRInt32 *aLoopCount)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1211,7 +1214,7 @@ NS_IMETHODIMP imgContainer::GetLoopCount(PRInt32 *aLoopCount)
 
 
 
-NS_IMETHODIMP imgContainer::SetLoopCount(PRInt32 aLoopCount)
+NS_IMETHODIMP RasterImage::SetLoopCount(PRInt32 aLoopCount)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1227,7 +1230,7 @@ NS_IMETHODIMP imgContainer::SetLoopCount(PRInt32 aLoopCount)
 
 
 
-NS_IMETHODIMP imgContainer::AddSourceData(const char *aBuffer, PRUint32 aCount)
+NS_IMETHODIMP RasterImage::AddSourceData(const char *aBuffer, PRUint32 aCount)
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1237,7 +1240,7 @@ NS_IMETHODIMP imgContainer::AddSourceData(const char *aBuffer, PRUint32 aCount)
 
   
   NS_ABORT_IF_FALSE(mInitialized, "Calling AddSourceData() on uninitialized "
-                                  "imgContainer!");
+                                  "RasterImage!");
 
   
   NS_ABORT_IF_FALSE(!mHasSourceData, "Calling AddSourceData() after calling "
@@ -1274,7 +1277,7 @@ NS_IMETHODIMP imgContainer::AddSourceData(const char *aBuffer, PRUint32 aCount)
   if (mDiscardable)
     discardable_source_bytes += aCount;
   PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-          ("CompressedImageAccounting: Added compressed data to imgContainer %p (%s). "
+          ("CompressedImageAccounting: Added compressed data to RasterImage %p (%s). "
            "Total Containers: %d, Discardable containers: %d, "
            "Total source bytes: %lld, Source bytes for discardable containers %lld",
            this,
@@ -1308,7 +1311,7 @@ get_header_str (char *buf, char *data, PRSize data_len)
 
 
 
-NS_IMETHODIMP imgContainer::SourceDataComplete()
+NS_IMETHODIMP RasterImage::SourceDataComplete()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -1350,7 +1353,7 @@ NS_IMETHODIMP imgContainer::SourceDataComplete()
     char buf[9];
     get_header_str(buf, mSourceData.Elements(), mSourceData.Length());
     PR_LOG (gCompressedImageAccountingLog, PR_LOG_DEBUG,
-            ("CompressedImageAccounting: imgContainer::SourceDataComplete() - data "
+            ("CompressedImageAccounting: RasterImage::SourceDataComplete() - data "
              "is done for container %p (%s) - header %p is 0x%s (length %d)",
              this,
              mSourceDataMimeType.get(),
@@ -1369,7 +1372,7 @@ NS_IMETHODIMP imgContainer::SourceDataComplete()
 
 
 
-NS_IMETHODIMP imgContainer::NewSourceData()
+NS_IMETHODIMP RasterImage::NewSourceData()
 {
   nsresult rv;
 
@@ -1414,7 +1417,7 @@ NS_IMETHODIMP imgContainer::NewSourceData()
 
 
 
-NS_IMETHODIMP imgContainer::SetSourceSizeHint(PRUint32 sizeHint)
+NS_IMETHODIMP RasterImage::SetSourceSizeHint(PRUint32 sizeHint)
 {
   if (sizeHint && StoringSourceData())
     mSourceData.SetCapacity(sizeHint);
@@ -1423,13 +1426,13 @@ NS_IMETHODIMP imgContainer::SetSourceSizeHint(PRUint32 sizeHint)
 
 
 
-NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
+NS_IMETHODIMP RasterImage::Notify(nsITimer *timer)
 {
   
   
   NS_ENSURE_TRUE(mAnim, NS_ERROR_UNEXPECTED);
   NS_ASSERTION(mAnim->timer == timer,
-               "imgContainer::Notify() called with incorrect timer");
+               "RasterImage::Notify() called with incorrect timer");
 
   if (!mAnim->animating || !mAnim->timer)
     return NS_OK;
@@ -1490,7 +1493,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
   } else { 
     
     
-    NS_WARNING("imgContainer::Notify()  Frame is passed decoded frame");
+    NS_WARNING("RasterImage::Notify()  Frame is passed decoded frame");
     nextFrameIndex = mAnim->currentDecodingFrameIndex;
     if (!(nextFrame = mFrames[nextFrameIndex])) {
       
@@ -1521,7 +1524,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
     if (NS_FAILED(DoComposite(&frameToUse, &dirtyRect, prevFrame,
                               nextFrame, nextFrameIndex))) {
       
-      NS_WARNING("imgContainer::Notify(): Composing Frame Failed\n");
+      NS_WARNING("RasterImage::Notify(): Composing Frame Failed\n");
       nextFrame->SetCompositingFailed(PR_TRUE);
       mAnim->currentAnimationFrameIndex = nextFrameIndex;
       return NS_OK;
@@ -1540,7 +1543,7 @@ NS_IMETHODIMP imgContainer::Notify(nsITimer *timer)
 
 
 
-nsresult imgContainer::DoComposite(imgFrame** aFrameToUse,
+nsresult RasterImage::DoComposite(imgFrame** aFrameToUse,
                                    nsIntRect* aDirtyRect,
                                    imgFrame* aPrevFrame,
                                    imgFrame* aNextFrame,
@@ -1799,7 +1802,7 @@ nsresult imgContainer::DoComposite(imgFrame** aFrameToUse,
 
 
 
-void imgContainer::ClearFrame(imgFrame *aFrame)
+void RasterImage::ClearFrame(imgFrame *aFrame)
 {
   if (!aFrame)
     return;
@@ -1820,7 +1823,7 @@ void imgContainer::ClearFrame(imgFrame *aFrame)
 }
 
 
-void imgContainer::ClearFrame(imgFrame *aFrame, nsIntRect &aRect)
+void RasterImage::ClearFrame(imgFrame *aFrame, nsIntRect &aRect)
 {
   if (!aFrame || aRect.width <= 0 || aRect.height <= 0)
     return;
@@ -1845,7 +1848,7 @@ void imgContainer::ClearFrame(imgFrame *aFrame, nsIntRect &aRect)
 
 
 
-PRBool imgContainer::CopyFrameImage(imgFrame *aSrcFrame,
+PRBool RasterImage::CopyFrameImage(imgFrame *aSrcFrame,
                                     imgFrame *aDstFrame)
 {
   PRUint8* aDataSrc;
@@ -1879,7 +1882,7 @@ PRBool imgContainer::CopyFrameImage(imgFrame *aSrcFrame,
 
 
 
-nsresult imgContainer::DrawFrameTo(imgFrame *aSrc,
+nsresult RasterImage::DrawFrameTo(imgFrame *aSrc,
                                    imgFrame *aDst, 
                                    nsIntRect& aSrcRect)
 {
@@ -1890,7 +1893,7 @@ nsresult imgContainer::DrawFrameTo(imgFrame *aSrc,
 
   
   if (aSrcRect.x < 0 || aSrcRect.y < 0) {
-    NS_WARNING("imgContainer::DrawFrameTo: negative offsets not allowed");
+    NS_WARNING("RasterImage::DrawFrameTo: negative offsets not allowed");
     return NS_ERROR_FAILURE;
   }
   
@@ -1907,11 +1910,11 @@ nsresult imgContainer::DrawFrameTo(imgFrame *aSrc,
     NS_ASSERTION((aSrcRect.x >= 0) && (aSrcRect.y >= 0) &&
                  (aSrcRect.x + width <= dstRect.width) &&
                  (aSrcRect.y + height <= dstRect.height),
-                "imgContainer::DrawFrameTo: Invalid aSrcRect");
+                "RasterImage::DrawFrameTo: Invalid aSrcRect");
 
     
     NS_ASSERTION((width <= aSrcRect.width) && (height <= aSrcRect.height),
-                 "imgContainer::DrawFrameTo: source must be smaller than dest");
+                 "RasterImage::DrawFrameTo: source must be smaller than dest");
 
     if (NS_FAILED(aDst->LockImageData()))
       return NS_ERROR_FAILURE;
@@ -1987,14 +1990,14 @@ nsresult imgContainer::DrawFrameTo(imgFrame *aSrc,
 
 
 
-NS_IMETHODIMP imgContainer::Get(const char *prop, const nsIID & iid, void * *result)
+NS_IMETHODIMP RasterImage::Get(const char *prop, const nsIID & iid, void * *result)
 {
   if (!mProperties)
     return NS_ERROR_FAILURE;
   return mProperties->Get(prop, iid, result);
 }
 
-NS_IMETHODIMP imgContainer::Set(const char *prop, nsISupports *value)
+NS_IMETHODIMP RasterImage::Set(const char *prop, nsISupports *value)
 {
   if (!mProperties)
     mProperties = do_CreateInstance("@mozilla.org/properties;1");
@@ -2003,7 +2006,7 @@ NS_IMETHODIMP imgContainer::Set(const char *prop, nsISupports *value)
   return mProperties->Set(prop, value);
 }
 
-NS_IMETHODIMP imgContainer::Has(const char *prop, PRBool *_retval)
+NS_IMETHODIMP RasterImage::Has(const char *prop, PRBool *_retval)
 {
   NS_ENSURE_ARG_POINTER(_retval);
   if (!mProperties) {
@@ -2013,14 +2016,14 @@ NS_IMETHODIMP imgContainer::Has(const char *prop, PRBool *_retval)
   return mProperties->Has(prop, _retval);
 }
 
-NS_IMETHODIMP imgContainer::Undefine(const char *prop)
+NS_IMETHODIMP RasterImage::Undefine(const char *prop)
 {
   if (!mProperties)
     return NS_ERROR_FAILURE;
   return mProperties->Undefine(prop);
 }
 
-NS_IMETHODIMP imgContainer::GetKeys(PRUint32 *count, char ***keys)
+NS_IMETHODIMP RasterImage::GetKeys(PRUint32 *count, char ***keys)
 {
   if (!mProperties) {
     *count = 0;
@@ -2031,7 +2034,7 @@ NS_IMETHODIMP imgContainer::GetKeys(PRUint32 *count, char ***keys)
 }
 
 void
-imgContainer::Discard()
+RasterImage::Discard()
 {
   
   NS_ABORT_IF_FALSE(CanDiscard(), "Asked to discard but can't!");
@@ -2062,7 +2065,7 @@ imgContainer::Discard()
   
   PR_LOG(gCompressedImageAccountingLog, PR_LOG_DEBUG,
          ("CompressedImageAccounting: discarded uncompressed image "
-          "data from imgContainer %p (%s) - %d frames (cached count: %d); "
+          "data from RasterImage %p (%s) - %d frames (cached count: %d); "
           "Total Containers: %d, Discardable containers: %d, "
           "Total source bytes: %lld, Source bytes for discardable containers %lld",
           this,
@@ -2077,7 +2080,7 @@ imgContainer::Discard()
 
 
 PRBool
-imgContainer::CanDiscard() {
+RasterImage::CanDiscard() {
   return (DiscardingEnabled() && 
           mDiscardable &&        
           (mLockCount == 0) &&   
@@ -2088,14 +2091,14 @@ imgContainer::CanDiscard() {
 
 
 PRBool
-imgContainer::DiscardingActive() {
+RasterImage::DiscardingActive() {
   return !!(mDiscardTrackerNode.prev || mDiscardTrackerNode.next);
 }
 
 
 
 PRBool
-imgContainer::StoringSourceData() {
+RasterImage::StoringSourceData() {
   return (mDecodeOnDraw || mDiscardable);
 }
 
@@ -2103,7 +2106,7 @@ imgContainer::StoringSourceData() {
 
 
 nsresult
-imgContainer::InitDecoder (PRUint32 dFlags)
+RasterImage::InitDecoder (PRUint32 dFlags)
 {
   
   NS_ABORT_IF_FALSE(!mDecoder, "Calling InitDecoder() while already decoding!");
@@ -2144,7 +2147,7 @@ imgContainer::InitDecoder (PRUint32 dFlags)
 
 
 nsresult
-imgContainer::ShutdownDecoder(eShutdownIntent aIntent)
+RasterImage::ShutdownDecoder(eShutdownIntent aIntent)
 {
   
   NS_ABORT_IF_FALSE((aIntent >= 0) || (aIntent < eShutdownIntent_AllCount),
@@ -2212,7 +2215,7 @@ imgContainer::ShutdownDecoder(eShutdownIntent aIntent)
 
 
 nsresult
-imgContainer::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
+RasterImage::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
 {
   
   NS_ABORT_IF_FALSE(mDecoder, "Trying to write to null decoder!");
@@ -2255,7 +2258,7 @@ imgContainer::WriteToDecoder(const char *aBuffer, PRUint32 aCount)
 
 
 nsresult
-imgContainer::WantDecodedFrames()
+RasterImage::WantDecodedFrames()
 {
   nsresult rv;
 
@@ -2274,7 +2277,7 @@ imgContainer::WantDecodedFrames()
 
 
 NS_IMETHODIMP
-imgContainer::RequestDecode()
+RasterImage::RequestDecode()
 {
   nsresult rv;
 
@@ -2336,7 +2339,7 @@ imgContainer::RequestDecode()
 
 
 nsresult
-imgContainer::SyncDecode()
+RasterImage::SyncDecode()
 {
   nsresult rv;
 
@@ -2389,7 +2392,7 @@ imgContainer::SyncDecode()
 
 
 
-NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext,
+NS_IMETHODIMP RasterImage::Draw(gfxContext *aContext,
                                  gfxPattern::GraphicsFilter aFilter,
                                  const gfxMatrix &aUserSpaceToImageSpace,
                                  const gfxRect &aFill,
@@ -2429,7 +2432,7 @@ NS_IMETHODIMP imgContainer::Draw(gfxContext *aContext,
 
 
 NS_IMETHODIMP
-imgContainer::LockImage()
+RasterImage::LockImage()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -2446,7 +2449,7 @@ imgContainer::LockImage()
 
 
 NS_IMETHODIMP
-imgContainer::UnlockImage()
+RasterImage::UnlockImage()
 {
   if (mError)
     return NS_ERROR_FAILURE;
@@ -2474,7 +2477,7 @@ imgContainer::UnlockImage()
 
 
 nsresult
-imgContainer::DecodeSomeData (PRUint32 aMaxBytes)
+RasterImage::DecodeSomeData (PRUint32 aMaxBytes)
 {
   
   NS_ABORT_IF_FALSE(mDecoder, "trying to decode without decoder!");
@@ -2495,7 +2498,7 @@ imgContainer::DecodeSomeData (PRUint32 aMaxBytes)
 
 
 
-PRBool imgContainer::IsDecodeFinished()
+PRBool RasterImage::IsDecodeFinished()
 {
   
   PRBool decodeFinished = PR_FALSE;
@@ -2528,7 +2531,7 @@ PRBool imgContainer::IsDecodeFinished()
 
 
 
-void imgContainer::DoError()
+void RasterImage::DoError()
 {
   
   if (mError)
@@ -2573,7 +2576,7 @@ NS_IMETHODIMP imgDecodeWorker::Run()
   nsCOMPtr<imgIContainer> iContainer(do_QueryReferent(mContainer));
   if (!iContainer)
     return NS_OK;
-  imgContainer* container = static_cast<imgContainer*>(iContainer.get());
+  RasterImage* container = static_cast<RasterImage*>(iContainer.get());
 
   NS_ABORT_IF_FALSE(container->mInitialized,
                     "Worker active for uninitialized container!");
@@ -2624,7 +2627,7 @@ NS_IMETHODIMP imgDecodeWorker::Run()
 
   
   if (container->IsDecodeFinished()) {
-    rv = container->ShutdownDecoder(imgContainer::eShutdownIntent_Done);
+    rv = container->ShutdownDecoder(RasterImage::eShutdownIntent_Done);
     if (NS_FAILED(rv)) {
       container->DoError();
       return rv;
@@ -2648,7 +2651,7 @@ NS_METHOD imgDecodeWorker::Dispatch()
   nsCOMPtr<imgIContainer> iContainer(do_QueryReferent(mContainer));
   if (!iContainer)
     return NS_OK;
-  imgContainer* container = static_cast<imgContainer*>(iContainer.get());
+  RasterImage* container = static_cast<RasterImage*>(iContainer.get());
 
   
   NS_ABORT_IF_FALSE(!container->mWorkerPending,
@@ -2665,12 +2668,12 @@ NS_METHOD imgDecodeWorker::Dispatch()
 
 
 NS_METHOD
-imgContainer::WriteToContainer(nsIInputStream* in, void* closure,
+RasterImage::WriteToContainer(nsIInputStream* in, void* closure,
                                const char* fromRawSegment, PRUint32 toOffset,
                                PRUint32 count, PRUint32 *writeCount)
 {
   
-  imgIContainer *container = static_cast<imgIContainer*>(closure);
+  RasterImage* container = static_cast<RasterImage*>(closure);
 
   
   
@@ -2682,3 +2685,6 @@ imgContainer::WriteToContainer(nsIInputStream* in, void* closure,
 
   return NS_OK;
 }
+
+} 
+} 

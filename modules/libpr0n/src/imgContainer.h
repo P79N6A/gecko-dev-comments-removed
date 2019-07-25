@@ -50,8 +50,8 @@
 
 
 
-#ifndef __imgContainer_h__
-#define __imgContainer_h__
+#ifndef mozilla_imagelib_RasterImage_h_
+#define mozilla_imagelib_RasterImage_h_
 
 #include "Image.h"
 #include "nsCOMArray.h"
@@ -68,7 +68,7 @@
 class imgIDecoder;
 class nsIInputStream;
 
-#define NS_IMGCONTAINER_CID \
+#define NS_RASTERIMAGE_CID \
 { /* 376ff2c1-9bf6-418a-b143-3340c00112f7 */         \
      0x376ff2c1,                                     \
      0x9bf6,                                         \
@@ -138,8 +138,13 @@ class nsIInputStream;
 
 
 
+
+namespace mozilla {
+namespace imagelib {
+
 class imgDecodeWorker;
-class imgContainer : public mozilla::imagelib::Image,
+
+class RasterImage : public mozilla::imagelib::Image,
                      public nsITimerCallback,
                      public nsIProperties,
                      public nsSupportsWeakReference
@@ -150,8 +155,8 @@ public:
   NS_DECL_NSITIMERCALLBACK
   NS_DECL_NSIPROPERTIES
 
-  imgContainer();
-  virtual ~imgContainer();
+  RasterImage();
+  virtual ~RasterImage();
 
   static NS_METHOD WriteToContainer(nsIInputStream* in, void* closure,
                                     const char* fromRawSegment,
@@ -315,7 +320,7 @@ private:
   
   
   
-  imgContainer::Anim*        mAnim;
+  RasterImage::Anim*        mAnim;
   
   
   PRUint16                   mAnimationMode;
@@ -328,14 +333,14 @@ private:
 
   
   PRUint32                   mLockCount;
-  mozilla::imagelib::DiscardTrackerNode    mDiscardTrackerNode;
+  DiscardTrackerNode         mDiscardTrackerNode;
 
   
   nsTArray<char>             mSourceData;
   nsCString                  mSourceDataMimeType;
 
   friend class imgDecodeWorker;
-  friend class mozilla::imagelib::DiscardTracker;
+  friend class DiscardTracker;
 
   
   nsCOMPtr<imgIDecoder>          mDecoder;
@@ -392,6 +397,8 @@ private:
 
 
 
+
+
 class imgDecodeWorker : public nsRunnable
 {
   public:
@@ -428,6 +435,7 @@ class imgDecodeRequestor : public nsRunnable
     nsWeakPtr mContainer;
 };
 
-
+} 
+} 
 
 #endif 

@@ -40,11 +40,11 @@
 
 #define DISCARD_TIMEOUT_PREF "image.mem.min_discard_timeout_ms"
 
-class imgContainer;
 class nsITimer;
 
 namespace mozilla {
 namespace imagelib {
+class RasterImage;
 
 
 
@@ -54,7 +54,7 @@ namespace imagelib {
 struct DiscardTrackerNode
 {
   
-  imgContainer *curr;
+  RasterImage *curr;
 
   
   DiscardTrackerNode *prev, *next;
