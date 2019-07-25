@@ -1028,8 +1028,12 @@ CodeGeneratorARM::visitReturn(LReturn *ret)
 void
 CodeGeneratorARM::linkAbsoluteLabels()
 {
-    JS_NOT_REACHED("Absolute Labels NYI");
+    
+    
+    
+    
 # if 0
+    JS_NOT_REACHED("Absolute Labels NYI");
     JSScript *script = gen->info().script();
     IonCode *method = script->ion->method();
 
@@ -1189,7 +1193,6 @@ CodeGeneratorARM::visitCallGeneric(LCallGeneric *call)
     {
         Label thunk, rejoin;
 
-
         
         IonCompartment *ion = gen->ionCompartment();
 
@@ -1315,6 +1318,45 @@ CodeGeneratorARM::visitLoadSlotT(LLoadSlotT *load)
     return true;
 #endif
     return false;
+}
+bool
+CodeGeneratorARM::visitStoreSlotV(LStoreSlotV *store)
+{
+    Register base = ToRegister(store->slots());
+    int32 offset = store->mir()->slot() * sizeof(js::Value);
+
+    const ValueOperand value = ToValue(store, LStoreSlotV::Value);
+
+    masm.storeValue(value, Operand(base, offset));
+    return true;
+}
+
+bool
+CodeGeneratorARM::visitStoreSlotT(LStoreSlotT *store)
+{
+
+    Register base = ToRegister(store->slots());
+    int32 offset = store->mir()->slot() * sizeof(js::Value);
+
+    const LAllocation *value = store->value();
+    MIRType valueType = store->mir()->value()->type();
+
+    if (valueType == MIRType_Double) {
+        masm.ma_vstr(ToFloatRegister(value), Operand(base, offset));
+        return true;
+    }
+
+    
+    if (valueType != store->mir()->slotType())
+        masm.storeTypeTag(ImmTag(MIRTypeToTag(valueType)), Operand(base, offset));
+
+    
+    if (value->isConstant())
+        masm.storePayload(*value->toConstant(), Operand(base, offset));
+    else
+        masm.storePayload(ToRegister(value), Operand(base, offset));
+
+    return true;
 }
 
 bool
