@@ -570,17 +570,11 @@ public:
     static nsresult Base64Encode(const nsAString &aString,
                                  nsAString &aBinaryData);
 
-    
-    static JSBool Base64Encode(JSContext *cx, jsval val, jsval *out);
-
     static nsresult Base64Decode(const nsACString &aBinaryData,
                                  nsACString &aString);
 
     static nsresult Base64Decode(const nsAString &aBinaryData,
                                  nsAString &aString);
-
-    
-    static JSBool Base64Decode(JSContext *cx, jsval val, jsval *out);
 
     
     NS_IMETHOD RootAndUnlinkJSObjects(void *p);
