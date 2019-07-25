@@ -62,7 +62,7 @@ const PRUint32 FPR_COUNT            = 8;
 
 
 
-extern "C" nsresult
+extern "C" nsresult ATTRIBUTE_USED
 PrepareAndDispatch(nsXPTCStubBase * self, PRUint32 methodIndex,
                    PRUint64 * args, PRUint64 * gpregs, double *fpregs)
 {
