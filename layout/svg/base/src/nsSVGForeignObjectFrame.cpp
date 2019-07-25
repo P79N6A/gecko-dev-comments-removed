@@ -140,7 +140,12 @@ nsSVGForeignObjectFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
   nsSVGForeignObjectFrameBase::DidSetStyleContext(aOldStyleContext);
 
-  UpdateGraphic();
+  
+  
+  
+  if (!(GetStateBits() & NS_FRAME_FIRST_REFLOW)) {
+    UpdateGraphic();
+  }
 }
 
 NS_IMETHODIMP
