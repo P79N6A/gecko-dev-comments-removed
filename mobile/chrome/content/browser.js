@@ -531,6 +531,80 @@ var Browser = {
   
 
 
+
+
+
+  getShortcutOrURI: function getShortcutOrURI(aURL, aPostDataRef) {
+    let shortcutURL = null;
+    let keyword = aURL;
+    let param = "";
+
+    let offset = aURL.indexOf(" ");
+    if (offset > 0) {
+      keyword = aURL.substr(0, offset);
+      param = aURL.substr(offset + 1);
+    }
+  
+    if (!aPostDataRef)
+      aPostDataRef = {};
+  
+    let engine = Services.search.getEngineByAlias(keyword);
+    if (engine) {
+      let submission = engine.getSubmission(param);
+      aPostDataRef.value = submission.postData;
+      return submission.uri.spec;
+    }
+
+    try {
+      [shortcutURL, aPostDataRef.value] = PlacesUtils.getURLAndPostDataForKeyword(keyword);
+    } catch (e) {}
+
+    if (!shortcutURL)
+      return aURL;
+
+    let postData = "";
+    if (aPostDataRef.value)
+      postData = unescape(aPostDataRef.value);
+
+    if (/%s/i.test(shortcutURL) || /%s/i.test(postData)) {
+      let charset = "";
+      const re = /^(.*)\&mozcharset=([a-zA-Z][_\-a-zA-Z0-9]+)\s*$/;
+      let matches = shortcutURL.match(re);
+      if (matches)
+        [, shortcutURL, charset] = matches;
+      else {
+        
+        try {
+          
+          
+          charset = PlacesUtils.history.getCharsetForURI(Util.makeURI(shortcutURL));
+        } catch (e) { dump("--- error " + e + "\n"); }
+      }
+
+      let encodedParam = "";
+      if (charset)
+        encodedParam = escape(convertFromUnicode(charset, param));
+      else 
+        encodedParam = encodeURIComponent(param);
+
+      shortcutURL = shortcutURL.replace(/%s/g, encodedParam).replace(/%S/g, param);
+
+      if (/%s/i.test(postData)) 
+        aPostDataRef.value = getPostDataStream(postData, param, encodedParam, "application/x-www-form-urlencoded");
+    } else if (param) {
+      
+      
+      aPostDataRef.value = null;
+
+      return aURL;
+    }
+
+    return shortcutURL;
+  },
+
+  
+
+
   get selectedBrowser() {
     return this._selectedTab.browser;
   },

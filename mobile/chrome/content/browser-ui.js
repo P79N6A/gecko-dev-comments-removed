@@ -589,7 +589,9 @@ var BrowserUI = {
 
     this._edit.value = aURI;
 
-    Browser.loadURI(aURI, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP });
+    let postData = {};
+    aURI = Browser.getShortcutOrURI(aURI, postData);
+    Browser.loadURI(aURI, { flags: Ci.nsIWebNavigation.LOAD_FLAGS_ALLOW_THIRD_PARTY_FIXUP, postData: postData });
 
     
     
