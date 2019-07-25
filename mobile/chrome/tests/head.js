@@ -83,6 +83,6 @@ let AsyncTests = {
 let chromeRoot = getRootDirectory(gTestPath);
 
 
-let baseURI = "http://mochi.test:8888/browser/mobile/chrome/";
+let baseURI = "http://mochi.test:8888/browser/mobile/chrome/tests/";
 messageManager.loadFrameScript(baseURI + "remote_head.js", true);
 messageManager.loadFrameScript("chrome://mochikit/content/tests/SimpleTest/EventUtils.js", true);
