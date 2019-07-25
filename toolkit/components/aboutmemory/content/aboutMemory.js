@@ -64,6 +64,10 @@ const gVerbose = location.href === "about:memory?verbose" ||
 let gChildMemoryListener = undefined;
 
 
+String.prototype.startsWith =
+  function(s) { return this.lastIndexOf(s, 0) === 0; }
+
+
 
 
 
@@ -101,10 +105,10 @@ function addChildObserversAndUpdate(aUpdateFn)
 
 function onLoad()
 {
-  if (location.href.indexOf("about:memory") === 0) {
+  if (location.href.startsWith("about:memory")) {
     document.title = "about:memory";
     onLoadAboutMemory();
-  } else if (location.href.indexOf("about:compartment") === 0) {
+  } else if (location.href.startsWith("about:compartment")) {
     document.title = "about:compartments";
     onLoadAboutCompartments();
   } else {
@@ -452,7 +456,7 @@ Report.prototype = {
   treeNameMatches: function(aTreeName) {
     
     
-    return this._unsafePath.indexOf(aTreeName) === 0 &&
+    return this._unsafePath.startsWith(aTreeName) &&
            this._unsafePath.charAt(aTreeName.length) === '/';
   }
 };
@@ -466,8 +470,8 @@ function getReportsByProcess(aMgr)
 
   function ignoreSingle(aPath) 
   {
-    return (aPath.indexOf("smaps/") === 0 && !gVerbose) ||
-           (aPath.indexOf("compartments/") === 0)
+    return (aPath.startsWith("smaps/") && !gVerbose) ||
+           (aPath.startsWith("compartments/"))
   }
 
   function ignoreMulti(aName)
@@ -1525,7 +1529,7 @@ function getCompartmentsByProcess(aMgr)
 
   function ignoreSingle(aPath) 
   {
-    return aPath.indexOf("compartments/") !== 0;
+    return !aPath.startsWith("compartments/");
   }
 
   function ignoreMulti(aName)
@@ -1560,7 +1564,7 @@ function getCompartmentsByProcess(aMgr)
       
       
       
-      if (unsafeNames[2].indexOf("moz-nullprincipal:{") === 0) {
+      if (unsafeNames[2].startsWith("moz-nullprincipal:{")) {
         isSystemCompartment = true;
       }
 
