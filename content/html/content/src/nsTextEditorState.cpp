@@ -1610,15 +1610,6 @@ nsTextEditorState::GetValue(nsAString& aValue, PRBool aIgnoreWrap) const
     } else {
       aValue = NS_ConvertUTF8toUTF16(*mValue);
     }
-
-    if (IsSingleLineTextControl()) {
-      
-      
-      
-      nsString value(aValue);
-      nsTextEditRules::HandleNewLines(value, -1);
-      aValue.Assign(value);
-    }
   }
 }
 

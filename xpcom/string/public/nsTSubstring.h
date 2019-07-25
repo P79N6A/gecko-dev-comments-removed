@@ -532,6 +532,16 @@ class nsTSubstring_CharT
 
 
 
+
+
+
+
+      NS_COM void StripChars( const char_type* aChars, PRUint32 aOffset=0 );
+
+        
+
+
+
       void ForgetSharedBuffer()
       {
         if (mFlags & nsSubstring::F_SHARED)

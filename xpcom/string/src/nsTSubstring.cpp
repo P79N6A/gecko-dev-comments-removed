@@ -731,6 +731,36 @@ nsTSubstring_CharT::StripChar( char_type aChar, PRInt32 aOffset )
     mLength = to - mData;
   }
 
+void
+nsTSubstring_CharT::StripChars( const char_type* aChars, PRUint32 aOffset )
+  {
+    if (aOffset >= PRUint32(mLength))
+      return;
+
+    EnsureMutable(); 
+
+    
+
+    char_type* to   = mData + aOffset;
+    char_type* from = mData + aOffset;
+    char_type* end  = mData + mLength;
+
+    while (from < end)
+      {
+        char_type theChar = *from++;
+        const char_type* test = aChars;
+
+        for (; *test && *test != theChar; ++test);
+
+        if (!*test) {
+          
+          *to++ = theChar;
+        }
+      }
+    *to = char_type(0); 
+    mLength = to - mData;
+  }
+
 void nsTSubstring_CharT::AppendPrintf( const char* format, ...)
   {
     char buf[32];

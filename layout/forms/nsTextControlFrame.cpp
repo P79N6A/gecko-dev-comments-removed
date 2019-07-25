@@ -1305,7 +1305,6 @@ nsTextControlFrame::GetText(nsString& aText)
   if (IsSingleLineTextControl()) {
     
     txtCtrl->GetTextEditorValue(aText, PR_TRUE);
-    nsContentUtils::RemoveNewlines(aText);
   } else {
     nsCOMPtr<nsIDOMHTMLTextAreaElement> textArea = do_QueryInterface(mContent);
     if (textArea) {
@@ -1486,7 +1485,6 @@ nsTextControlFrame::UpdateValueDisplay(PRBool aNotify,
     return NS_OK;
   }
 
-  nsTextEditRules::HandleNewLines(value, -1);
   if (!value.IsEmpty() && IsPasswordTextControl()) {
     nsTextEditRules::FillBufWithPWChars(&value, value.Length());
   }

@@ -330,6 +330,12 @@ protected:
 
   void HandleTypeChange(PRUint8 aNewType);
 
+  
+
+
+
+  void SanitizeValue(nsAString& aValue);
+
   nsCOMPtr<nsIControllers> mControllers;
 
   

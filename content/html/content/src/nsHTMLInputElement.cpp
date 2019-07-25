@@ -127,8 +127,6 @@ static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
   NS_OUTER_ACTIVATE_EVENT | NS_ORIGINAL_CHECKED_VALUE | NS_NO_CONTENT_DISPATCH | \
   NS_ORIGINAL_INDETERMINATE_VALUE))
 
-static const char kWhitespace[] = "\n\r\t\b";
-
 
 
 static PRInt32 gSelectTextFieldOnFocus;
@@ -415,19 +413,11 @@ nsHTMLInputElement::AfterSetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     
     
     
-    
-    
-    
-    
     if (aName == nsGkAtoms::value &&
-        !GET_BOOLBIT(mBitField, BF_VALUE_CHANGED) &&
-        (mType == NS_FORM_INPUT_TEXT ||
-         mType == NS_FORM_INPUT_SEARCH ||
-         mType == NS_FORM_INPUT_PASSWORD ||
-         mType == NS_FORM_INPUT_TEL ||
-         mType == NS_FORM_INPUT_FILE)) {
+        !GET_BOOLBIT(mBitField, BF_VALUE_CHANGED)) {
       Reset();
     }
+
     
     
     
@@ -536,7 +526,7 @@ nsHTMLInputElement::GetForm(nsIDOMHTMLFormElement** aForm)
   return nsGenericHTMLFormElement::GetForm(aForm);
 }
 
-
+NS_IMPL_STRING_ATTR(nsHTMLInputElement, DefaultValue, value)
 NS_IMPL_BOOL_ATTR(nsHTMLInputElement, DefaultChecked, checked)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, Accept, accept)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, AccessKey, accesskey)
@@ -557,25 +547,6 @@ NS_IMPL_STRING_ATTR(nsHTMLInputElement, UseMap, usemap)
 NS_IMPL_STRING_ATTR(nsHTMLInputElement, Placeholder, placeholder)
 NS_IMPL_ENUM_ATTR_DEFAULT_VALUE(nsHTMLInputElement, Type, type,
                                 kInputDefaultType->tag)
-
-NS_IMETHODIMP
-nsHTMLInputElement::GetDefaultValue(nsAString& aValue)
-{
-  GetAttrHelper(nsGkAtoms::value, aValue);
-
-  if (mType != NS_FORM_INPUT_HIDDEN) {
-    
-    aValue = nsContentUtils::TrimCharsInSet(kWhitespace, aValue);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsHTMLInputElement::SetDefaultValue(const nsAString& aValue)
-{
-  return SetAttrHelper(nsGkAtoms::value, aValue);
-}
 
 NS_IMETHODIMP
 nsHTMLInputElement::GetIndeterminate(PRBool* aValue)
@@ -670,10 +641,6 @@ nsHTMLInputElement::GetValue(nsAString& aValue)
       (mType == NS_FORM_INPUT_RADIO || mType == NS_FORM_INPUT_CHECKBOX)) {
     
     aValue.AssignLiteral("on");
-  }
-
-  if (mType != NS_FORM_INPUT_HIDDEN) {
-    aValue = nsContentUtils::TrimCharsInSet(kWhitespace, aValue);
   }
 
   return NS_OK;
@@ -967,18 +934,21 @@ nsHTMLInputElement::SetValueInternal(const nsAString& aValue,
   NS_PRECONDITION(mType != NS_FORM_INPUT_FILE,
                   "Don't call SetValueInternal for file inputs");
 
+  if (mType == NS_FORM_INPUT_FILE) {
+    return NS_ERROR_UNEXPECTED;
+  }
+
   if (IsSingleLineTextControl(PR_FALSE)) {
     
     
     
+    nsAutoString value(aValue);
+    SanitizeValue(value);
+
     SetValueChanged(PR_TRUE);
-    mInputData.mState->SetValue(aValue, aUserInput);
+    mInputData.mState->SetValue(value, aUserInput);
 
     return NS_OK;
-  }
-
-  if (mType == NS_FORM_INPUT_FILE) {
-    return NS_ERROR_UNEXPECTED;
   }
 
   
@@ -2053,6 +2023,35 @@ nsHTMLInputElement::HandleTypeChange(PRUint8 aNewType)
   }
 
   mType = aNewType;
+
+  
+  
+  
+  
+  if (IsSingleLineTextControlInternal(PR_FALSE, mType)) {
+    nsAutoString value;
+    PRBool valueChanged = ValueChanged();
+    GetValue(value);
+    
+    SetValueInternal(value, PR_FALSE);
+    SetValueChanged(valueChanged);
+  }
+}
+
+void
+nsHTMLInputElement::SanitizeValue(nsAString& aValue)
+{
+  switch (mType) {
+    case NS_FORM_INPUT_TEXT:
+    case NS_FORM_INPUT_SEARCH:
+    case NS_FORM_INPUT_TEL:
+    case NS_FORM_INPUT_PASSWORD:
+      {
+        PRUnichar crlf[] = { PRUnichar('\r'), PRUnichar('\n'), 0 };
+        aValue.StripChars(crlf);
+      }
+      break;
+  }
 }
 
 PRBool
@@ -2373,12 +2372,10 @@ FireEventForAccessibility(nsIDOMHTMLInputElement* aTarget,
 }
 #endif
 
-nsresult
+NS_IMETHODIMP
 nsHTMLInputElement::Reset()
 {
   nsresult rv = NS_OK;
-
-  nsIFormControlFrame* formControlFrame = GetFormControlFrame(PR_FALSE);
 
   switch (mType) {
     case NS_FORM_INPUT_CHECKBOX:
@@ -2395,13 +2392,10 @@ nsHTMLInputElement::Reset()
     case NS_FORM_INPUT_TEXT:
     case NS_FORM_INPUT_TEL:
     {
+      nsAutoString resetVal;
+      GetDefaultValue(resetVal);
       
-      
-      if (formControlFrame) {
-        nsAutoString resetVal;
-        GetDefaultValue(resetVal);
-        rv = SetValue(resetVal);
-      }
+      rv = SetValueInternal(resetVal, PR_FALSE);
       SetValueChanged(PR_FALSE);
       break;
     }
@@ -3151,6 +3145,9 @@ nsHTMLInputElement::GetDefaultValueFromContent(nsAString& aValue)
   nsTextEditorState *state = GetEditorState();
   if (state) {
     GetDefaultValue(aValue);
+    
+    
+    SanitizeValue(aValue);
   }
 }
 
