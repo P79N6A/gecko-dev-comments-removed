@@ -80,33 +80,6 @@ size_t	malloc_usable_size(const void *ptr);
 
 void	jemalloc_stats(jemalloc_stats_t *stats);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void    jemalloc_purge_freed_pages();
-
 #ifdef __cplusplus
 } 
 #endif
