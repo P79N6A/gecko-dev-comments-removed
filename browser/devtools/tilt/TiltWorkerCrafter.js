@@ -38,9 +38,6 @@
 
 "use strict";
 
-const SIXTEEN_OVER_255 = 16 / 255;
-const ONE_OVER_255 = 1 / 255;
-
 
 
 
