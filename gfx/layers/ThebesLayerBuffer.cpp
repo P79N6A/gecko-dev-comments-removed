@@ -40,6 +40,7 @@
 #include "gfxContext.h"
 #include "gfxPlatform.h"
 #include "gfxUtils.h"
+#include "nsIDeviceContext.h"
 
 namespace mozilla {
 namespace layers {
@@ -168,6 +169,43 @@ ThebesLayerBuffer::GetContextForQuadrantUpdate(const nsIntRect& aBounds,
   return ctx.forget();
 }
 
+
+
+
+static void
+MovePixels(gfxASurface* aBuffer,
+           const nsIntRect& aSourceRect, const nsIntPoint& aDest,
+           float aXResolution, float aYResolution)
+{
+  gfxRect src(aSourceRect.x, aSourceRect.y, aSourceRect.width, aSourceRect.height);
+  gfxRect dest(aDest.x, aDest.y,  aSourceRect.width, aSourceRect.height);
+  src.Scale(aXResolution, aYResolution);
+  dest.Scale(aXResolution, aYResolution);
+
+#ifdef DEBUG
+  
+  
+  
+  
+  
+  static const gfxFloat kPrecision =
+    1.0 / gfxFloat(nsIDeviceContext::AppUnitsPerCSSPixel());
+  
+  
+  NS_WARN_IF_FALSE(
+    src.WithinEpsilonOfIntegerPixels(2.0 * kPrecision * aXResolution) &&
+    dest.WithinEpsilonOfIntegerPixels(2.0 * kPrecision * aXResolution),
+    "Rects don't round to device pixels within precision; glitches likely to follow");
+#endif
+
+  src.Round();
+  dest.Round();
+
+  aBuffer->MovePixels(nsIntRect(src.pos.x, src.pos.y,
+                                src.size.width, src.size.height),
+                      nsIntPoint(dest.pos.x, dest.pos.y));
+}
+
 static void
 WrapRotationAxis(PRInt32* aRotationPoint, PRInt32 aSize)
 {
@@ -293,8 +331,14 @@ ThebesLayerBuffer::BeginPaint(ThebesLayer* aLayer, ContentType aContentType,
           (newRotation != nsIntPoint(0,0) && !canHaveRotation)) {
         
         
-        if (mBuffer->SupportsSelfCopy() && mBufferRotation == nsIntPoint(0,0)) {
-          destBuffer = mBuffer;
+        
+        if (mBufferRotation == nsIntPoint(0,0)) {
+          nsIntRect srcRect(nsIntPoint(0, 0), mBufferRect.Size());
+          nsIntPoint dest = mBufferRect.TopLeft() - destBufferRect.TopLeft();
+          MovePixels(mBuffer, srcRect, dest, curXRes, curYRes);
+          
+          
+          mBufferRect = destBufferRect;
         } else {
           
           
