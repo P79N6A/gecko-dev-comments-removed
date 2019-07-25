@@ -37,20 +37,20 @@ function test() {
     function doTest() {
         let doc = pwmgrdlg.document;
         let selection = doc.getElementById("signonsTree").view.selection;
-        let menuitem = doc.getElementById("context-copypassword");
+        let menuitem = doc.getElementById("context-copyusername");
 
-        function copyPassword() {
+        function copyField() {
             selection.selectAll();
-            is(isMenuitemEnabled(), false, "Copy Password should be disabled");
+            is(isMenuitemEnabled(), false, "Copy should be disabled");
 
             selection.select(0);
-            is(isMenuitemEnabled(), true, "Copy Password should be enabled");
+            is(isMenuitemEnabled(), true, "Copy should be enabled");
 
             selection.clearSelection();
-            is(isMenuitemEnabled(), false, "Copy Password should be disabled");
+            is(isMenuitemEnabled(), false, "Copy should be disabled");
 
             selection.select(2);
-            is(isMenuitemEnabled(), true, "Copy Password should be enabled");
+            is(isMenuitemEnabled(), true, "Copy should be enabled");
             menuitem.doCommand();
         }
 
@@ -67,7 +67,14 @@ function test() {
             });
             pwmgrdlg.close();
         }
-
-        waitForClipboard("coded", copyPassword, cleanUp, cleanUp);
+        
+        function testPassword() {
+            menuitem = doc.getElementById("context-copypassword");
+            info("Testing Copy Password");
+            waitForClipboard("coded", copyField, cleanUp, cleanUp);
+        }
+        
+        info("Testing Copy Username");
+        waitForClipboard("ehsan", copyField, testPassword, testPassword);
     }
 }
