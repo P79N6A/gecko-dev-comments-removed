@@ -108,9 +108,10 @@ abstract public class GeckoApp
 
         if (!GeckoAppShell.sGeckoRunning) {
             
-            mProgressDialog = 
-                ProgressDialog.show(GeckoApp.this, "", getAppName() + 
-                                    " is loading", true);
+            if (!useLaunchButton)
+                mProgressDialog = 
+                    ProgressDialog.show(GeckoApp.this, "", getAppName() + 
+                                        " is loading", true);
             
             
             
