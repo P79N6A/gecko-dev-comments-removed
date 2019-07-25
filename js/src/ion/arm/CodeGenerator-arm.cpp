@@ -763,7 +763,7 @@ CodeGeneratorARM::visitTableSwitch(LTableSwitch *ins)
 
         
         
-        emitDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp), defaultcase);
+        emitDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp), defaultcase, false);
     } else {
         temp = ins->index();
     }
@@ -902,8 +902,8 @@ CodeGeneratorARM::visitRound(LRound *lir)
 
 
 
-bool
-CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail)
+void
+CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
 {
     
     
@@ -916,10 +916,11 @@ CodeGeneratorARM::emitDoubleToInt32(const FloatRegister &src, const Register &de
     masm.as_vmrs(pc);
     masm.ma_b(fail, Assembler::VFP_NotEqualOrUnordered);
     
-    masm.ma_cmp(dest, Imm32(0));
-    masm.ma_b(fail, Assembler::Equal);
-    
-    return true;
+    if (negativeZeroCheck) {
+        masm.ma_cmp(dest, Imm32(0));
+        masm.ma_b(fail, Assembler::Equal);
+        
+    }
 }
 
 void

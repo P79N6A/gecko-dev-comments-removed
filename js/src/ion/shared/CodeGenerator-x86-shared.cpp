@@ -803,7 +803,7 @@ CodeGeneratorX86Shared::visitTableSwitch(LTableSwitch *ins)
 
         
         
-        emitDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp), defaultcase);
+        emitDoubleToInt32(ToFloatRegister(ins->index()), ToRegister(temp), defaultcase, false);
     } else {
         temp = ins->index();
     }
@@ -941,7 +941,7 @@ CodeGeneratorX86Shared::visitGuardClass(LGuardClass *guard)
 
 
 void
-CodeGeneratorX86Shared::emitDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail)
+CodeGeneratorX86Shared::emitDoubleToInt32(const FloatRegister &src, const Register &dest, Label *fail, bool negativeZeroCheck)
 {
     
     
@@ -953,22 +953,24 @@ CodeGeneratorX86Shared::emitDoubleToInt32(const FloatRegister &src, const Regist
     masm.j(Assembler::NotEqual, fail);
 
     
-    Label notZero;
-    masm.testl(dest, dest);
-    masm.j(Assembler::NonZero, &notZero);
+    if (negativeZeroCheck) {
+        Label notZero;
+        masm.testl(dest, dest);
+        masm.j(Assembler::NonZero, &notZero);
 
-    if (Assembler::HasSSE41()) {
-        masm.ptest(src, src);
-        masm.j(Assembler::NonZero, fail);
-    } else {
-        
-        
-        masm.movmskpd(src, dest);
-        masm.andl(Imm32(1), dest);
-        masm.j(Assembler::NonZero, fail);
+        if (Assembler::HasSSE41()) {
+            masm.ptest(src, src);
+            masm.j(Assembler::NonZero, fail);
+        } else {
+            
+            
+            masm.movmskpd(src, dest);
+            masm.andl(Imm32(1), dest);
+            masm.j(Assembler::NonZero, fail);
+        }
+
+        masm.bind(&notZero);
     }
-    
-    masm.bind(&notZero);
 }
 
 class OutOfLineTruncate : public OutOfLineCodeBase<CodeGeneratorX86Shared>

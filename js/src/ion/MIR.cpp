@@ -563,22 +563,48 @@ NeedNegativeZeroCheck(MDefinition *def)
                 MDiv *div = operand->toDiv();
                 if (!div->canBeNegativeZero())
                     return true;
+            } else if (operand->isToInt32()) {
+                MToInt32 *int32 = operand->toToInt32();
+                if (!int32->canBeNegativeZero())
+                    return true;
             } else if (operand->isPhi()) {
                 return true;
             }
             break;
           }
+          case MDefinition::Op_StoreElement:
+          case MDefinition::Op_StoreElementHole:
+          case MDefinition::Op_LoadElement:
+          case MDefinition::Op_LoadElementHole:
+          case MDefinition::Op_LoadTypedArrayElement:
+          case MDefinition::Op_LoadTypedArrayElementHole:
+          case MDefinition::Op_CharCodeAt:
           case MDefinition::Op_Mod:
           case MDefinition::Op_Sub:
             
             if (use_def->getOperand(0) == def)
                 return true;
+            if (use_def->numOperands() > 2) {
+                for (size_t i = 2; i < use_def->numOperands(); i++) {
+                    if (use_def->getOperand(i) == def)
+                        return true;
+                }
+            }
             break;
+          case MDefinition::Op_BoundsCheck:
+            
+            if (use_def->getOperand(1) == def)
+                return true;
+            break;
+          case MDefinition::Op_ToString:
+          case MDefinition::Op_FromCharCode:
+          case MDefinition::Op_TableSwitch:
           case MDefinition::Op_Compare:
           case MDefinition::Op_BitAnd:
           case MDefinition::Op_BitOr:
           case MDefinition::Op_BitXor:
           case MDefinition::Op_Abs:
+            
             break;
           default:
             return true;
@@ -989,6 +1015,12 @@ MToInt32::foldsTo(bool useValueNumbers)
     if (input->type() == MIRType_Int32)
         return input;
     return this;
+}
+
+void
+MToInt32::analyzeRange()
+{
+    canBeNegativeZero_ = NeedNegativeZeroCheck(this);
 }
 
 MDefinition *
