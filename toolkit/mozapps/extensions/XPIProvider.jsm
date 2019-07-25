@@ -1956,7 +1956,8 @@ var XPIProvider = {
     
     
     if (aAddon.type == "theme")
-      return aAddon.internalName != this.currentSkin;
+      return aAddon.internalName != this.currentSkin &&
+             !Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
 
     return !aAddon.bootstrap;
   },
@@ -1974,7 +1975,8 @@ var XPIProvider = {
     
     
     if (aAddon.type == "theme")
-      return this.selectedSkin != this.currentSkin;
+      return this.selectedSkin != this.currentSkin &&
+             !Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
 
     return !aAddon.bootstrap;
   },
@@ -1989,7 +1991,8 @@ var XPIProvider = {
   installRequiresRestart: function XPI_installRequiresRestart(aAddon) {
     
     if (aAddon.type == "theme")
-      return aAddon.internalName == this.currentSkin;
+      return aAddon.internalName == this.currentSkin ||
+             Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
 
     return !aAddon.bootstrap;
   },
@@ -2004,7 +2007,8 @@ var XPIProvider = {
   uninstallRequiresRestart: function XPI_uninstallRequiresRestart(aAddon) {
     
     if (aAddon.type == "theme")
-      return aAddon.internalName == this.currentSkin;
+      return aAddon.internalName == this.currentSkin ||
+             Prefs.getBoolPref(PREF_EM_DSS_ENABLED);
 
     return !aAddon.bootstrap;
   },
@@ -2466,6 +2470,7 @@ var XPIDatabase = {
                      "type<>'theme' AND bootstrap=0",
     getActiveTheme: "SELECT " + FIELDS_ADDON + " FROM addon WHERE " +
                     "internalName=:internalName AND type='theme'",
+    getThemes: "SELECT " + FIELDS_ADDON + " FROM addon WHERE type='theme'",
 
     getAddonInLocation: "SELECT " + FIELDS_ADDON + " FROM addon WHERE id=:id " +
                         "AND location=:location",
@@ -3445,7 +3450,7 @@ var XPIDatabase = {
   updateAddonActive: function XPIDB_updateAddonActive(aAddon) {
     LOG("Updating add-on state");
 
-    stmt = this.getStatement("updateAddonActive");
+    let stmt = this.getStatement("updateAddonActive");
     stmt.params.internal_id = aAddon._internal_id;
     stmt.params.active = aAddon.active ? 1 : 0;
     executeStatement(stmt);
@@ -3490,8 +3495,13 @@ var XPIDatabase = {
     
     
     text += "\r\n[ThemeDirs]\r\n";
-    stmt = this.getStatement("getActiveTheme");
-    stmt.params.internalName = XPIProvider.selectedSkin;
+    if (Prefs.getBoolPref(PREF_EM_DSS_ENABLED)) {
+      stmt = this.getStatement("getThemes");
+    }
+    else {
+      stmt = this.getStatement("getActiveTheme");
+      stmt.params.internalName = XPIProvider.selectedSkin;
+    }
     count = 0;
     for (let row in resultRows(stmt)) {
       
