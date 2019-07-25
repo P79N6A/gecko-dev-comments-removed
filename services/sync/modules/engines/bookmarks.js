@@ -101,45 +101,61 @@ BookmarksEngine.prototype = {
     SyncEngine.prototype._syncStartup.call(this);
 
     
-    let lazyMap = function() {
-      delete this._folderTitles;
-      delete this._separatorPos;
+    this.__defineGetter__("_lazyMap", function() {
+      delete this._lazyMap;
 
-      let folderTitles = {};
-      let separatorPos = {};
+      let lazyMap = {};
       for (let guid in this._store.getAllIDs()) {
+        
+        let key;
         let id = idForGUID(guid);
         switch (Svc.Bookmark.getItemType(id)) {
           case Svc.Bookmark.TYPE_FOLDER:
-            
-            folderTitles[Svc.Bookmark.getItemTitle(id)] = guid;
+            key = "f" + Svc.Bookmark.getItemTitle(id);
             break;
           case Svc.Bookmark.TYPE_SEPARATOR:
-            
-            let parent = Svc.Bookmark.getFolderIdForItem(id);
-            let pos = [id, parent].map(Svc.Bookmark.getItemIndex);
-            separatorPos[pos] = guid;
+            key = "s" + Svc.Bookmark.getItemIndex(id);
             break;
+          default:
+            continue;
         }
+
+        
+        let parent = Svc.Bookmark.getFolderIdForItem(id);
+        let parentName = Svc.Bookmark.getItemTitle(parent);
+        if (lazyMap[parentName] == null)
+          lazyMap[parentName] = {};
+
+        
+        lazyMap[parentName][key] = guid;
       }
 
-      this._folderTitles = folderTitles;
-      this._separatorPos = separatorPos;
-    };
+      
+      return this._lazyMap = function(item) {
+        
+        let key;
+        switch (item.type) {
+          case "folder":
+          case "livemark":
+            key = "f" + item.title;
+            break;
+          case "separator":
+            key = "s" + item.pos;
+            break;
+          default:
+            return;
+        }
 
-    
-    ["_folderTitles", "_separatorPos"].forEach(function(lazy) {
-      this.__defineGetter__(lazy, function() {
-        lazyMap.call(this);
-        return this[lazy];
-      });
-    }, this);
+        
+        let parent = lazyMap[item.parentName];
+        return parent && parent[key];
+      };
+    });
   },
 
   _syncFinish: function _syncFinish() {
     SyncEngine.prototype._syncFinish.call(this);
-    delete this._folderTitles;
-    delete this._separatorPos;
+    delete this._lazyMap;
   },
 
   _findDupe: function _findDupe(item) {
@@ -155,9 +171,8 @@ BookmarksEngine.prototype = {
         return GUIDForId(localId);
       case "folder":
       case "livemark":
-        return this._folderTitles[item.title];
       case "separator":
-        return this._separatorPos[item.pos];
+        return this._lazyMap(item);
     }
   },
 
@@ -684,6 +699,7 @@ BookmarksStore.prototype = {
       return record;
     }
 
+    let parent = Svc.Bookmark.getFolderIdForItem(placeId);
     switch (this._bms.getItemType(placeId)) {
     case this._bms.TYPE_BOOKMARK:
       let bmkUri = this._bms.getBookmarkURI(placeId).spec;
@@ -734,14 +750,15 @@ BookmarksStore.prototype = {
         record = new BookmarkFolder();
       }
 
+      record.parentName = Svc.Bookmark.getItemTitle(parent);
       record.title = this._bms.getItemTitle(placeId);
       break;
 
     case this._bms.TYPE_SEPARATOR:
       record = new BookmarkSeparator();
       
-      let parent = Svc.Bookmark.getFolderIdForItem(placeId);
-      record.pos = [placeId, parent].map(Svc.Bookmark.getItemIndex);
+      record.parentName = Svc.Bookmark.getItemTitle(parent);
+      record.pos = Svc.Bookmark.getItemIndex(placeId);
       break;
 
     case this._bms.TYPE_DYNAMIC_CONTAINER:
