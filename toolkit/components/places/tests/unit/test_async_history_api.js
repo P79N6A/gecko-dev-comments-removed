@@ -408,7 +408,7 @@ function test_non_addable_uri_errors()
       };
       places.push(place);
     }
-    catch (e if e.result === Cr.NS_ERROR_MALFORMED_URI) {
+    catch (e if e.result === Cr.NS_ERROR_FAILURE) {
       
       
       
