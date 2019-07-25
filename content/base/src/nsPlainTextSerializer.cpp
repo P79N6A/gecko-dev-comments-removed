@@ -62,7 +62,6 @@
 #define PREF_HEADER_STRATEGY "converter.html2txt.header_strategy"
 
 static const  PRInt32 kTabSize=4;
-static const  PRInt32 kOLNumberWidth = 3;
 static const  PRInt32 kIndentSizeHeaders = 2;  
 
 
@@ -71,7 +70,7 @@ static const  PRInt32 kIndentSizeHeaders = 2;
 static const  PRInt32 kIndentIncrementHeaders = 2;  
 
 
-static const  PRInt32 kIndentSizeList = (kTabSize > kOLNumberWidth+3) ? kTabSize: kOLNumberWidth+3;
+static const  PRInt32 kIndentSizeList = kTabSize;
                                
 static const  PRInt32 kIndentSizeDD = kTabSize;  
 static const  PRUnichar  kNBSP = 160;
@@ -129,8 +128,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
   mTagStackIndex = 0;
   mIgnoreAboveIndex = (PRUint32)kNotFound;
 
-  
-  mOLStack = new PRInt32[OLStackSize];
   mOLStackIndex = 0;
 
   mULCount = 0;
@@ -139,7 +136,6 @@ nsPlainTextSerializer::nsPlainTextSerializer()
 nsPlainTextSerializer::~nsPlainTextSerializer()
 {
   delete[] mTagStack;
-  delete[] mOLStack;
   NS_WARN_IF_FALSE(mHeadLevel == 0, "Wrong head level!");
 }
 
@@ -697,48 +693,8 @@ nsPlainTextSerializer::DoOpenContainer(const nsIParserNode* aNode, PRInt32 aTag)
   }
   else if (type == eHTMLTag_ol) {
     EnsureVerticalSpace(mULCount + mOLStackIndex == 0 ? 1 : 0);
-    
-    if (mOLStackIndex < OLStackSize) {
-      nsAutoString startAttr;
-      PRInt32 startVal = 1;
-      if(NS_SUCCEEDED(GetAttributeValue(aNode, nsGkAtoms::start, startAttr))){
-        PRInt32 rv = 0;
-        startVal = startAttr.ToInteger(&rv);
-        if (NS_FAILED(rv))
-          startVal = 1;
-      }
-      mOLStack[mOLStackIndex++] = startVal;
-    }
+    mOLStackIndex++;
     mIndent += kIndentSizeList;  
-  }
-  else if (type == eHTMLTag_li) {
-    if (mTagStackIndex > 1 && IsInOL()) {
-      if (mOLStackIndex > 0) {
-        nsAutoString valueAttr;
-        if(NS_SUCCEEDED(GetAttributeValue(aNode, nsGkAtoms::value, valueAttr))){
-          PRInt32 rv = 0;
-          PRInt32 valueAttrVal = valueAttr.ToInteger(&rv);
-          if (NS_SUCCEEDED(rv))
-            mOLStack[mOLStackIndex-1] = valueAttrVal;
-        }
-        
-        mInIndentString.AppendInt(mOLStack[mOLStackIndex-1]++, 10);
-      }
-      else {
-        mInIndentString.Append(PRUnichar('#'));
-      }
-
-      mInIndentString.Append(PRUnichar('.'));
-
-    }
-    else {
-      static char bulletCharArray[] = "*o+#";
-      PRUint32 index = mULCount > 0 ? (mULCount - 1) : 3;
-      char bulletChar = bulletCharArray[index % 4];
-      mInIndentString.Append(PRUnichar(bulletChar));
-    }
-    
-    mInIndentString.Append(PRUnichar(' '));
   }
   else if (type == eHTMLTag_dl) {
     EnsureVerticalSpace(1);
@@ -905,13 +861,6 @@ nsPlainTextSerializer::DoCloseContainer(PRInt32 aTag)
 
   if (type == eHTMLTag_tr) {
     PopBool(mHasWrittenCellsForRow);
-    
-    if (mFloatingLines < 0)
-      mFloatingLines = 0;
-    mLineBreakDue = PR_TRUE;
-  } 
-  else if ((type == eHTMLTag_li) ||
-           (type == eHTMLTag_dt)) {
     
     if (mFloatingLines < 0)
       mFloatingLines = 0;
