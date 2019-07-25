@@ -214,6 +214,25 @@ nsFontFaceLoader::OnStreamComplete(nsIStreamLoader* aLoader,
     return aStatus;
   }
 
+  if (NS_SUCCEEDED(aStatus)) {
+    
+    
+    
+    
+    
+    nsCOMPtr<nsIHttpChannel> httpChannel = do_QueryInterface(mChannel);
+    if (httpChannel) {
+      PRBool succeeded;
+      nsresult rv = httpChannel->GetRequestSucceeded(&succeeded);
+      if (NS_SUCCEEDED(rv) && !succeeded) {
+        aStatus = NS_ERROR_NOT_AVAILABLE;
+      }
+    }
+  }
+
+  
+  
+  
   
   
   
