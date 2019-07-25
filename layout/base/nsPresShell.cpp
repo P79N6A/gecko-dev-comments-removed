@@ -3650,6 +3650,7 @@ PresShell::CreateRenderingContext(nsIFrame *aFrame,
   if (mPresContext->IsScreen()) {
     
     
+    
     nsPoint viewOffset;
     nsIView* view = aFrame->GetClosestView(&viewOffset);
     nsPoint widgetOffset;
@@ -5390,16 +5391,11 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
             itemToInsert = new (aBuilder)nsDisplayClip(frame, frame, i, textRect);
           }
         }
-        
-        
-        
-        else if (content->GetCurrentDoc() ==
-                   aRange->GetStartParent()->GetCurrentDoc()) {
+        else {
           
           PRBool before, after;
-          nsresult rv =
-            nsRange::CompareNodeToRange(content, aRange, &before, &after);
-          if (NS_SUCCEEDED(rv) && !before && !after) {
+          nsRange::CompareNodeToRange(content, aRange, &before, &after);
+          if (!before && !after) {
             itemToInsert = i;
             surfaceRect.UnionRect(surfaceRect, i->GetBounds(aBuilder));
           }
@@ -5428,12 +5424,6 @@ PresShell::ClipListToRange(nsDisplayListBuilder *aBuilder,
 
   return surfaceRect;
 }
-
-#ifdef DEBUG
-#include <stdio.h>
-
-static PRBool gDumpRangePaintList = PR_FALSE;
-#endif
 
 RangePaintInfo*
 PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
@@ -5492,21 +5482,7 @@ PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
                                                     ancestorRect, &info->mList);
   info->mBuilder.LeavePresShell(ancestorFrame, ancestorRect);
 
-#ifdef DEBUG
-  if (gDumpRangePaintList) {
-    fprintf(stderr, "CreateRangePaintInfo --- before ClipListToRange:\n");
-    nsFrame::PrintDisplayList(&(info->mBuilder), info->mList);
-  }
-#endif
-
   nsRect rangeRect = ClipListToRange(&info->mBuilder, &info->mList, range);
-
-#ifdef DEBUG
-  if (gDumpRangePaintList) {
-    fprintf(stderr, "CreateRangePaintInfo --- after ClipListToRange:\n");
-    nsFrame::PrintDisplayList(&(info->mBuilder), info->mList);
-  }
-#endif
 
   
   
@@ -5682,8 +5658,8 @@ PresShell::RenderNode(nsIDOMNode* aNode,
       return nsnull;
 
     
-    aRegion->MoveBy(-pc->AppUnitsToDevPixels(area.x),
-                    -pc->AppUnitsToDevPixels(area.y));
+    aRegion->MoveBy(-rrectPixels.x + (rrectPixels.x - pc->AppUnitsToDevPixels(area.x)),
+                    -rrectPixels.y + (rrectPixels.y - pc->AppUnitsToDevPixels(area.y)));
   }
 
   return PaintRangePaintInfo(&rangeItems, nsnull, aRegion, area, aPoint,
