@@ -38,6 +38,7 @@
 
 
 
+#define XPCONNECT_MODULE
 #include "xpcprivate.h"
 
 nsresult
