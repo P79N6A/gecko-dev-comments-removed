@@ -182,7 +182,9 @@ class jsdScript : public jsdIScript
     PRUint32    mBaseLineNumber, mLineExtent;
     PCMapEntry *mPPLineMap;
     PRUint32    mPCMapSize;
-    jsuword     mFirstPC;
+    jsuword     mFirstPC;        
+    jsuword     mFirstValidPC;   
+    jsuword     mEndPC;          
 };
 
 PRUint32 jsdScript::LastTag = 0;
