@@ -724,3 +724,12 @@ pref("network.manage-offline-status", true);
 
 
 pref("dom.min_background_timeout_value", 900000);
+
+
+pref("reader.font_size", 4);
+
+
+pref("reader.margin_size", 5);
+
+
+pref("reader.color_scheme", "light");
