@@ -61,25 +61,28 @@ template<typename T> struct integer_type_manually_recorded_info
 {
     enum { is_supported = 0 };
     typedef unsupported_type twice_bigger_type;
+    typedef unsupported_type unsigned_type;
 };
 
 
-#define CHECKEDINT_REGISTER_SUPPORTED_TYPE(T,_twice_bigger_type)  \
+#define CHECKEDINT_REGISTER_SUPPORTED_TYPE(T,_twice_bigger_type,_unsigned_type)  \
 template<> struct integer_type_manually_recorded_info<T>       \
 {                                                              \
     enum { is_supported = 1 };                                 \
     typedef _twice_bigger_type twice_bigger_type;              \
-    static void TYPE_NOT_SUPPORTED_BY_CheckedInt() {}             \
+    typedef _unsigned_type unsigned_type;                      \
+    static void TYPE_NOT_SUPPORTED_BY_CheckedInt() {}          \
 };
 
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt8,   PRInt16)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint8,  PRUint16)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt16,  PRInt32)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint16, PRUint32)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt32,  PRInt64)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint32, PRUint64)
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt64,  unsupported_type) 
-CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint64, unsupported_type)
+
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt8,   PRInt16,              PRUint8)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint8,  PRUint16,             PRUint8)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt16,  PRInt32,              PRUint16)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint16, PRUint32,             PRUint16)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt32,  PRInt64,              PRUint32)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint32, PRUint64,             PRUint32)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRInt64,  unsupported_type,     PRUint64)
+CHECKEDINT_REGISTER_SUPPORTED_TYPE(PRUint64, unsupported_type,     PRUint64)
 
 
 
@@ -97,6 +100,7 @@ template<> struct is_unsupported_type<unsupported_type> { enum { answer = 1 }; }
 template<typename T> struct integer_traits
 {
     typedef typename integer_type_manually_recorded_info<T>::twice_bigger_type twice_bigger_type;
+    typedef typename integer_type_manually_recorded_info<T>::unsigned_type unsigned_type;
 
     enum {
         is_supported = integer_type_manually_recorded_info<T>::is_supported,
@@ -112,7 +116,11 @@ template<typename T> struct integer_traits
     static T min_value()
     {
         
-        return is_signed ? T(T(1) << position_of_sign_bit) : T(0);
+        
+        
+        
+        
+        return is_signed ? T(unsigned_type(1) << position_of_sign_bit) : T(0);
     }
 
     static T max_value()
@@ -129,7 +137,12 @@ template<typename T> struct integer_traits
 
 template<typename T> inline T has_sign_bit(T x)
 {
-    return x >> integer_traits<T>::position_of_sign_bit;
+    
+    
+    
+    
+    typedef typename integer_traits<T>::unsigned_type unsigned_T;
+    return T(unsigned_T(x) >> integer_traits<T>::position_of_sign_bit);
 }
 
 template<typename T> inline T binary_complement(T x)
@@ -377,7 +390,10 @@ public:
     
 
 
-    PRBool valid() const { return mIsValid; }
+    PRBool valid() const
+    {
+        return mIsValid;
+    }
 
     
     template<typename U> friend CheckedInt<U> operator +(const CheckedInt<U>& lhs, const CheckedInt<U>& rhs);
