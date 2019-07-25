@@ -1025,9 +1025,11 @@ WebGLContext::ForceClearFramebufferWithDefaultValues(PRUint32 mask, const nsIntR
     bool initializeStencilBuffer = 0 != (mask & LOCAL_GL_STENCIL_BUFFER_BIT);
 
     
+    
+
+    
     gl->fDisable(LOCAL_GL_SCISSOR_TEST);
     gl->fDisable(LOCAL_GL_DITHER);
-    gl->PushViewportRect(viewportRect);
 
     if (initializeColorBuffer) {
         gl->fColorMask(1, 1, 1, 1);
@@ -1069,8 +1071,6 @@ WebGLContext::ForceClearFramebufferWithDefaultValues(PRUint32 mask, const nsIntR
         gl->fStencilMaskSeparate(LOCAL_GL_BACK, mStencilWriteMaskBack);
         gl->fClearStencil(mStencilClearValue);
     }
-
-    gl->PopViewportRect();
 
     if (mDitherEnabled)
         gl->fEnable(LOCAL_GL_DITHER);
