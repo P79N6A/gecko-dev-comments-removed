@@ -3192,7 +3192,7 @@ PluginObserver.prototype = {
     this._contentShowing.addEventListener("broadcast", this, false);
     let browsers = document.getElementById("browsers");
     browsers.addEventListener("RenderStateChanged", this, false);
-    gObserverService.addObserver(this, "plugin-changed-event", false);
+    gObserverService.addObserver(this, "plugin-reflow-event", false);
     Elements.stack.addEventListener("PopupChanged", this, false);
 
     let browser = Browser.selectedBrowser;
@@ -3212,7 +3212,7 @@ PluginObserver.prototype = {
     this._contentShowing.removeEventListener("broadcast", this, false);
     let browsers = document.getElementById("browsers");
     browsers.removeEventListener("RenderStateChanged", this, false);
-    gObserverService.removeObserver(this, "plugin-changed-event");
+    gObserverService.removeObserver(this, "plugin-reflow-event");
     Elements.stack.removeEventListener("PopupChanged", this, false);
 
     let browser = Browser.selectedBrowser;
@@ -3224,8 +3224,7 @@ PluginObserver.prototype = {
 
   
   observe: function observe(subject, topic, data) {
-    if (data == "reflow")
-      this.updateCurrentBrowser();
+    this.updateCurrentBrowser();
   },
 
   
@@ -3258,19 +3257,19 @@ PluginObserver.prototype = {
     if (rect == this._emptyRect && !this._isRendering)
       return;
 
-    let plugins = doc.querySelectorAll("embed,object");
-
     if (this._isRendering) {
       
       if (rect == this._emptyRect)
         this._isRendering = false;
-      this.updateEmbedRegions(plugins, rect);
+        let plugins = doc.querySelectorAll("embed,object");
+        this.updateEmbedRegions(plugins, rect);
     } else {
       
       let self = this;
       setTimeout(function() {
         self._isRendering = true;
         
+        let plugins = doc.querySelectorAll("embed,object");
         self.updateEmbedRegions(plugins, self.getCriticalRect());
       }, 0);
     }
