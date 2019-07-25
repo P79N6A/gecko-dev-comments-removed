@@ -576,10 +576,13 @@ LayerManagerOGL::FPSState::DrawFPS(GLContext* context, CopyProgram* copyprog)
     };
 
     
+    
     unsigned int* buf = (unsigned int*)malloc(64 * 8 * 4);
     for (int i = 0; i < 7; i++) {
       for (int j = 0; j < 41; j++) {
-        buf[i * 64 + j] = (text[i * 41 + j] == 0) ? 0xfff000ff : 0xffffffff;
+        unsigned int purple = 0xfff000ff;
+        unsigned int white  = 0xffffffff;
+        buf[i * 64 + j] = (text[i * 41 + j] == 0) ? purple : white;
       }
     }
     context->fTexImage2D(LOCAL_GL_TEXTURE_2D, 0, LOCAL_GL_RGBA, 64, 8, 0, LOCAL_GL_RGBA, LOCAL_GL_UNSIGNED_BYTE, buf);
