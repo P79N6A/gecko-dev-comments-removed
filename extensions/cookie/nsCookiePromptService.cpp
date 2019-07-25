@@ -72,12 +72,10 @@ nsCookiePromptService::CookieDialog(nsIDOMWindow *aParent,
   nsCOMPtr<nsIDialogParamBlock> block = do_CreateInstance(NS_DIALOGPARAMBLOCK_CONTRACTID,&rv);
   if (NS_FAILED(rv)) return rv;
 
-  
-  
   block->SetInt(nsICookieAcceptDialog::ACCEPT_COOKIE, 1);
   block->SetString(nsICookieAcceptDialog::HOSTNAME, NS_ConvertUTF8toUTF16(aHostname).get());
   block->SetInt(nsICookieAcceptDialog::COOKIESFROMHOST, aCookiesFromHost);
-  block->SetInt(nsICookieAcceptDialog::CHANGINGCOOKIE, aChangingCookie != PR_FALSE);
+  block->SetInt(nsICookieAcceptDialog::CHANGINGCOOKIE, aChangingCookie ? 1 : 0);
   
   nsCOMPtr<nsIMutableArray> objects =
     do_CreateInstance(NS_ARRAY_CONTRACTID, &rv);
