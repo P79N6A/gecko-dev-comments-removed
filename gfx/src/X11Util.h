@@ -162,17 +162,9 @@ public:
 
 
 
-
-
     bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nsnull);
-
-    
-
-
-
-
-    bool GetError(XErrorEvent *ev = nsnull);
 };
+
 
 } 
 
