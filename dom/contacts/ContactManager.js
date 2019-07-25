@@ -226,8 +226,9 @@ ContactManager.prototype = {
         newContact.properties[field] = aContact[field];
 
       if (aContact.id == "undefined") {
-        debug("Create id!");
-        aContact.id = this._getRandomId();
+        
+        
+        aContact.id = this._getRandomId().replace('-', '').replace('{', '').replace('}', '');
       }
 
       this._setMetaData(newContact, aContact);
