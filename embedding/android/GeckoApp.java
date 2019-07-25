@@ -34,6 +34,7 @@
 
 
 
+
 package org.mozilla.gecko;
 
 import java.io.*;
@@ -59,6 +60,7 @@ abstract public class GeckoApp
     public static FrameLayout mainLayout;
     public static GeckoSurfaceView surfaceView;
     public static GeckoApp mAppContext;
+    ProgressDialog mProgressDialog;
 
     void launch()
     {
@@ -102,6 +104,10 @@ abstract public class GeckoApp
                                                   ViewGroup.LayoutParams.FILL_PARENT));
 
         if (!GeckoAppShell.sGeckoRunning) {
+            
+            mProgressDialog = 
+                ProgressDialog.show(GeckoApp.this, "", getAppName() + 
+                                    " is loading", true);
             
             
             
