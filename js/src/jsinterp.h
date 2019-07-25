@@ -416,7 +416,6 @@ struct JSStackFrame
     }
 
     inline void setArgsObj(JSObject &obj);
-    inline void clearArgsObj();
 
     
 
@@ -530,7 +529,8 @@ struct JSStackFrame
     inline JSObject &callObj() const;
     inline void setScopeChainNoCallObj(JSObject &obj);
     inline void setScopeChainWithOwnCallObj(JSObject &obj);
-    inline void clearCallObj();
+
+    inline void markActivationObjectsAsPut();
 
     
 
@@ -874,10 +874,14 @@ template <typename T>
 bool GetPrimitiveThis(JSContext *cx, Value *vp, T *v);
 
 inline void
-PutActivationObjects(JSContext *cx, JSStackFrame *fp);
-
-inline void
-PutOwnedActivationObjects(JSContext *cx, JSStackFrame *fp);
+PutActivationObjects(JSContext *cx, JSStackFrame *fp)
+{
+    
+    if (fp->hasCallObj())
+        js_PutCallObject(cx, fp);
+    else if (fp->hasArgsObj())
+        js_PutArgsObject(cx, fp);
+}
 
 
 

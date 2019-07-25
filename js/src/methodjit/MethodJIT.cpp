@@ -108,11 +108,6 @@ JSStackFrame::methodjitStaticAsserts()
 
 
 
-
-
-
-
-
 #ifdef JS_METHODJIT_PROFILE_STUBS
 static const size_t STUB_CALLS_FOR_OP_COUNT = 255;
 static uint32 StubCallsForOp[STUB_CALLS_FOR_OP_COUNT];
@@ -279,24 +274,6 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "ret"                                   "\n"
 );
 
-JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x38);
-
-asm volatile (
-".text\n"
-".globl " SYMBOL_STRING(InjectJaegerReturn)   "\n"
-SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
-    "movq 0x30(%rbx), %rcx"                 "\n" 
-    "movq 0x28(%rbx), %rax"                 "\n" 
-
-    
-    "movq %r14, %rdx"                       "\n" 
-    "andq %rcx, %rdx"                       "\n"
-    "xorq %rdx, %rcx"                       "\n"
-
-    "movq 0x38(%rsp), %rbx"                 "\n" 
-    "jmp *%rax"                             "\n" 
-);
-
 # elif defined(JS_CPU_X86)
 
 
@@ -386,19 +363,6 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "ret"                                "\n"
 );
 
-JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x1C);
-
-asm volatile (
-".text\n"
-".globl " SYMBOL_STRING(InjectJaegerReturn)   "\n"
-SYMBOL_STRING(InjectJaegerReturn) ":"         "\n"
-    "movl 0x18(%ebx), %edx"                 "\n" 
-    "movl 0x1C(%ebx), %ecx"                 "\n" 
-    "movl 0x14(%ebx), %eax"                 "\n" 
-    "movl 0x1C(%esp), %ebx"                 "\n" 
-    "jmp *%eax"                             "\n"
-);
-
 # elif defined(JS_CPU_ARM)
 
 JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
@@ -422,19 +386,6 @@ JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r2);
 #else
 #define FUNCTION_HEADER_EXTRA
 #endif
-
-asm volatile (
-".text\n"
-FUNCTION_HEADER_EXTRA
-".globl " SYMBOL_STRING(InjectJaegerReturn) "\n"
-SYMBOL_STRING(InjectJaegerReturn) ":"       "\n"
-    
-    "ldr lr, [r11, #20]"                    "\n" 
-    "ldr r1, [r11, #24]"                    "\n" 
-    "ldr r2, [r11, #28]"                    "\n" 
-    "ldr r11, [sp, #28]"                    "\n" 
-    "bx  lr"                                "\n"
-);
 
 asm volatile (
 ".text\n"
@@ -571,17 +522,6 @@ JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
 JS_STATIC_ASSERT(offsetof(VMFrame, regs.fp) == 0x1C);
 
 extern "C" {
-
-    __declspec(naked) void InjectJaegerReturn()
-    {
-        __asm {
-            mov edx, [ebx + 0x18];
-            mov ecx, [ebx + 0x1C];
-            mov eax, [ebx + 0x14];
-            mov ebx, [esp + 0x1C];
-            jmp eax;
-        }
-    }
 
     __declspec(naked) JSBool JaegerTrampoline(JSContext *cx, JSStackFrame *fp, void *code,
                                               Value *stackLimit)
@@ -749,6 +689,9 @@ mjit::EnterMethodJIT(JSContext *cx, JSStackFrame *fp, void *code, Value *stackLi
     
     fp->markReturnValue();
 
+    
+    fp->markActivationObjectsAsPut();
+
 #ifdef JS_METHODJIT_SPEW
     prof.stop();
     JaegerSpew(JSpew_Prof, "script run took %d ms\n", prof.time_ms());
@@ -760,22 +703,13 @@ mjit::EnterMethodJIT(JSContext *cx, JSStackFrame *fp, void *code, Value *stackLi
 static inline JSBool
 CheckStackAndEnterMethodJIT(JSContext *cx, JSStackFrame *fp, void *code)
 {
-    bool ok;
-    Value *stackLimit;
+    JS_CHECK_RECURSION(cx, return false);
 
-    JS_CHECK_RECURSION(cx, goto error;);
-
-    stackLimit = cx->stack().getStackLimit(cx);
+    Value *stackLimit = cx->stack().getStackLimit(cx);
     if (!stackLimit)
-        goto error;
+        return false;
 
-    ok = EnterMethodJIT(cx, fp, code, stackLimit);
-    JS_ASSERT_IF(!fp->isYielding(), !fp->hasCallObj() && !fp->hasArgsObj());
-    return ok;
-
-  error:
-    js::PutOwnedActivationObjects(cx, fp);
-    return false;
+    return EnterMethodJIT(cx, fp, code, stackLimit);
 }
 
 JSBool

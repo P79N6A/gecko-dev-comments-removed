@@ -2242,6 +2242,7 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
 
 
 
+
     if (fun) {
         if (fun->isHeavyweight()) {
             
@@ -2270,6 +2271,13 @@ mjit::Compiler::emitReturn(FrameEntry *fe)
 
     emitReturnValue(&masm, fe);
     emitFinalReturn(masm);
+
+    
+
+
+
+
+
     frame.discardFrame();
 }
 

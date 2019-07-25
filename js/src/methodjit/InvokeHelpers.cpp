@@ -798,8 +798,6 @@ HandleFinishedFrame(VMFrame &f, JSStackFrame *entryFrame)
         returnOK = ScriptEpilogue(cx, cx->fp(), true);
     }
 
-    JS_ASSERT_IF(cx->fp()->isNonEvalFunctionFrame(), !cx->fp()->hasCallObj());
-
     if (cx->fp() != entryFrame) {
         InlineReturn(f);
         AdvanceReturnPC(cx);
@@ -1031,6 +1029,8 @@ RunTracer(VMFrame &f)
 
 
 
+
+
   restart:
     
     if (!FinishExcessFrames(f, entryFrame))
@@ -1045,7 +1045,8 @@ RunTracer(VMFrame &f)
         if (!HandleFinishedFrame(f, entryFrame))
             THROWV(NULL);
 
-        void *retPtr = JS_FUNC_TO_DATA_PTR(void *, InjectJaegerReturn);
+        void *retPtr = JS_FUNC_TO_DATA_PTR(void *,
+                       cx->jaegerCompartment()->forceReturnTrampoline());
         *f.returnAddressLocation() = retPtr;
         return NULL;
     }
