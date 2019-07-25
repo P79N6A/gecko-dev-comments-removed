@@ -67,9 +67,9 @@ static PRBool sPrecisePref;
  void
 nsRefreshDriver::InitializeStatics()
 {
-  nsContentUtils::AddBoolPrefVarCache("layout.frame_rate.precise",
-                                      &sPrecisePref,
-                                      PR_FALSE);
+  Preferences::AddBoolVarCache(&sPrecisePref,
+                               "layout.frame_rate.precise",
+                               PR_FALSE);
 }
 
 
