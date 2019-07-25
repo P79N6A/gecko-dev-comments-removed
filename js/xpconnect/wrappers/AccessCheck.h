@@ -151,12 +151,18 @@ struct LocationPolicy : public Policy {
         
         MOZ_ASSERT(WrapperFactory::IsLocationObject(js::UnwrapObject(wrapper)));
 
+        
+        perm = DenyAccess;
+
+        
+        if (act == js::Wrapper::PUNCTURE)
+            return false;
+
         if (AccessCheck::isCrossOriginAccessPermitted(cx, wrapper, id, act) ||
             AccessCheck::isLocationObjectSameOrigin(cx, wrapper)) {
             perm = PermitPropertyAccess;
             return true;
         }
-        perm = DenyAccess;
         JSAutoEnterCompartment ac;
         if (!ac.enter(cx, wrapper))
             return false;
