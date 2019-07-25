@@ -54,6 +54,27 @@ using mozilla::SVGAnimatedTransformList;
 
 
 
+class nsSVGGradientFrame::AutoGradientReferencer
+{
+public:
+  AutoGradientReferencer(nsSVGGradientFrame *aFrame)
+    : mFrame(aFrame)
+  {
+    
+    
+    NS_ABORT_IF_FALSE(!mFrame->mLoopFlag, "Undetected reference loop!");
+    mFrame->mLoopFlag = true;
+  }
+  ~AutoGradientReferencer() {
+    mFrame->mLoopFlag = false;
+  }
+private:
+  nsSVGGradientFrame *mFrame;
+};
+
+
+
+
 nsSVGGradientFrame::nsSVGGradientFrame(nsStyleContext* aContext) :
   nsSVGGradientFrameBase(aContext),
   mLoopFlag(false),
@@ -134,6 +155,40 @@ nsSVGGradientFrame::GetStopInformation(PRInt32 aIndex,
   *aStopOpacity = stopFrame->GetStyleSVGReset()->mStopOpacity;
 }
 
+PRUint16
+nsSVGGradientFrame::GetEnumValue(PRUint32 aIndex, nsIContent *aDefault)
+{
+  const nsSVGEnum& thisEnum =
+    static_cast<nsSVGGradientElement *>(mContent)->mEnumAttributes[aIndex];
+
+  if (thisEnum.IsExplicitlySet())
+    return thisEnum.GetAnimValue();
+
+  AutoGradientReferencer gradientRef(this);
+
+  nsSVGGradientFrame *next = GetReferencedGradientIfNotInUse();
+  return next ? next->GetEnumValue(aIndex, aDefault) :
+    static_cast<nsSVGGradientElement *>(aDefault)->
+      mEnumAttributes[aIndex].GetAnimValue();
+}
+
+const SVGAnimatedTransformList*
+nsSVGGradientFrame::GetGradientTransformList(nsIContent* aDefault)
+{
+  SVGAnimatedTransformList *thisTransformList =
+    static_cast<nsSVGGradientElement *>(mContent)->GetAnimatedTransformList();
+
+  if (thisTransformList->IsExplicitlySet())
+    return thisTransformList;
+
+  AutoGradientReferencer gradientRef(this);
+
+  nsSVGGradientFrame *next = GetReferencedGradientIfNotInUse();
+  return next ? next->GetGradientTransformList(aDefault) :
+    static_cast<const nsSVGGradientElement *>(aDefault)
+      ->mGradientTransform.get();
+}
+
 gfxMatrix
 nsSVGGradientFrame::GetGradientTransform(nsIFrame *aSource,
                                          const gfxRect *aOverrideBounds)
@@ -150,19 +205,19 @@ nsSVGGradientFrame::GetGradientTransform(nsIFrame *aSource,
     else
       mSource = aSource;
   } else {
-    NS_ASSERTION(gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
-                 "Unknown gradientUnits type");
+    NS_ASSERTION(
+      gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+      "Unknown gradientUnits type");
     
 
-    gfxRect bbox = aOverrideBounds ? *aOverrideBounds : nsSVGUtils::GetBBox(aSource);
-    bboxMatrix = gfxMatrix(bbox.Width(), 0, 0, bbox.Height(), bbox.X(), bbox.Y());
+    gfxRect bbox =
+      aOverrideBounds ? *aOverrideBounds : nsSVGUtils::GetBBox(aSource);
+    bboxMatrix =
+      gfxMatrix(bbox.Width(), 0, 0, bbox.Height(), bbox.X(), bbox.Y());
   }
 
-  nsSVGGradientElement *element =
-    GetGradientWithAttr(nsGkAtoms::gradientTransform, mContent);
-
-  SVGAnimatedTransformList* animTransformList =
-    element->GetAnimatedTransformList();
+  const SVGAnimatedTransformList* animTransformList =
+    GetGradientTransformList(mContent);
   if (!animTransformList)
     return bboxMatrix;
 
@@ -171,13 +226,32 @@ nsSVGGradientFrame::GetGradientTransform(nsIFrame *aSource,
   return bboxMatrix.PreMultiply(gradientTransform);
 }
 
-PRUint16
-nsSVGGradientFrame::GetSpreadMethod()
+nsSVGLinearGradientElement *
+nsSVGGradientFrame::GetLinearGradientWithLength(PRUint32 aIndex,
+  nsSVGLinearGradientElement* aDefault)
 {
-  nsSVGGradientElement *element =
-    GetGradientWithAttr(nsGkAtoms::spreadMethod, mContent);
+  
+  
+  
 
-  return element->mEnumAttributes[nsSVGGradientElement::SPREADMETHOD].GetAnimValue();
+  AutoGradientReferencer gradientRef(this);
+
+  nsSVGGradientFrame *next = GetReferencedGradientIfNotInUse();
+  return next ? next->GetLinearGradientWithLength(aIndex, aDefault) : aDefault;
+}
+
+nsSVGRadialGradientElement *
+nsSVGGradientFrame::GetRadialGradientWithLength(PRUint32 aIndex,
+  nsSVGRadialGradientElement* aDefault)
+{
+  
+  
+  
+
+  AutoGradientReferencer gradientRef(this);
+
+  nsSVGGradientFrame *next = GetReferencedGradientIfNotInUse();
+  return next ? next->GetRadialGradientWithLength(aIndex, aDefault) : aDefault;
 }
 
 
@@ -289,53 +363,20 @@ nsSVGGradientFrame::GetReferencedGradient()
   return static_cast<nsSVGGradientFrame*>(result);
 }
 
-nsSVGGradientElement *
-nsSVGGradientFrame::GetGradientWithAttr(nsIAtom *aAttrName, nsIContent *aDefault)
+nsSVGGradientFrame *
+nsSVGGradientFrame::GetReferencedGradientIfNotInUse()
 {
-  if (mContent->HasAttr(kNameSpaceID_None, aAttrName))
-    return static_cast<nsSVGGradientElement *>(mContent);
+  nsSVGGradientFrame *referenced = GetReferencedGradient();
+  if (!referenced)
+    return nsnull;
 
-  nsSVGGradientElement *grad = static_cast<nsSVGGradientElement *>(aDefault);
+  if (referenced->mLoopFlag) {
+    
+    NS_WARNING("gradient reference loop detected while inheriting attribute!");
+    return nsnull;
+  }
 
-  nsSVGGradientFrame *next = GetReferencedGradient();
-  if (!next)
-    return grad;
-
-  
-  mLoopFlag = true;
-  
-  NS_WARN_IF_FALSE(!next->mLoopFlag, "gradient reference loop detected "
-                                     "while inheriting attribute!");
-  if (!next->mLoopFlag)
-    grad = next->GetGradientWithAttr(aAttrName, aDefault);
-  mLoopFlag = false;
-
-  return grad;
-}
-
-nsSVGGradientElement *
-nsSVGGradientFrame::GetGradientWithAttr(nsIAtom *aAttrName, nsIAtom *aGradType,
-                                        nsIContent *aDefault)
-{
-  if (GetType() == aGradType && mContent->HasAttr(kNameSpaceID_None, aAttrName))
-    return static_cast<nsSVGGradientElement *>(mContent);
-
-  nsSVGGradientElement *grad = static_cast<nsSVGGradientElement *>(aDefault);
-
-  nsSVGGradientFrame *next = GetReferencedGradient();
-  if (!next)
-    return grad;
-
-  
-  mLoopFlag = true;
-  
-  NS_WARN_IF_FALSE(!next->mLoopFlag, "gradient reference loop detected "
-                                     "while inheriting attribute!");
-  if (!next->mLoopFlag)
-    grad = next->GetGradientWithAttr(aAttrName, aGradType, aDefault);
-  mLoopFlag = false;
-
-  return grad;
+  return referenced;
 }
 
 PRInt32
@@ -359,33 +400,12 @@ nsSVGGradientFrame::GetStopFrame(PRInt32 aIndex, nsIFrame * *aStopFrame)
 
   
 
-  nsSVGGradientFrame *next = GetReferencedGradient();
-  if (!next) {
-    if (aStopFrame)
-      *aStopFrame = nsnull;
-    return 0;
-  }
+  AutoGradientReferencer gradientRef(this);
+  nsSVGGradientFrame* next = GetReferencedGradientIfNotInUse();
+  if (!next)
+    return nsnull;
 
-  
-  mLoopFlag = true;
-  
-  NS_WARN_IF_FALSE(!next->mLoopFlag, "gradient reference loop detected "
-                                     "while inheriting stop!");
-  if (!next->mLoopFlag)
-    stopCount = next->GetStopFrame(aIndex, aStopFrame);
-  mLoopFlag = false;
-
-  return stopCount;
-}
-
-PRUint16
-nsSVGGradientFrame::GetGradientUnits()
-{
-  
-
-  nsSVGGradientElement *element =
-    GetGradientWithAttr(nsGkAtoms::gradientUnits, mContent);
-  return element->mEnumAttributes[nsSVGGradientElement::GRADIENTUNITS].GetAnimValue();
+  return next->GetStopFrame(aIndex, aStopFrame);
 }
 
 
@@ -431,11 +451,16 @@ nsSVGLinearGradientFrame::AttributeChanged(PRInt32         aNameSpaceID,
 
 
 float
-nsSVGLinearGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
-                                                  PRUint16 aEnumName)
+nsSVGLinearGradientFrame::GetLengthValue(PRUint32 aIndex)
 {
-  nsSVGLinearGradientElement *element =
-    GetLinearGradientWithAttr(aAtomName, mContent);
+  nsSVGLinearGradientElement* lengthElement =
+    GetLinearGradientWithLength(aIndex,
+      static_cast<nsSVGLinearGradientElement *>(mContent));
+  
+  
+  NS_ABORT_IF_FALSE(lengthElement,
+    "Got unexpected null element from GetLinearGradientWithLength");
+  const nsSVGLength2 &length = lengthElement->mLengthAttributes[aIndex];
 
   
   
@@ -443,15 +468,30 @@ nsSVGLinearGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
 
   PRUint16 gradientUnits = GetGradientUnits();
   if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
-    return nsSVGUtils::UserSpace(mSource,
-                                 &element->mLengthAttributes[aEnumName]);
+    return nsSVGUtils::UserSpace(mSource, &length);
   }
 
-  NS_ASSERTION(gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
-               "Unknown gradientUnits type");
+  NS_ASSERTION(
+    gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+    "Unknown gradientUnits type");
 
-  return element->mLengthAttributes[aEnumName].
-    GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
+  return length.GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
+}
+
+nsSVGLinearGradientElement *
+nsSVGLinearGradientFrame::GetLinearGradientWithLength(PRUint32 aIndex,
+  nsSVGLinearGradientElement* aDefault)
+{
+  nsSVGLinearGradientElement* thisElement =
+    static_cast<nsSVGLinearGradientElement *>(mContent);
+  const nsSVGLength2 &length = thisElement->mLengthAttributes[aIndex];
+
+  if (length.IsExplicitlySet()) {
+    return thisElement;
+  }
+
+  return nsSVGLinearGradientFrameBase::GetLinearGradientWithLength(aIndex,
+                                                                   aDefault);
 }
 
 already_AddRefed<gfxPattern>
@@ -459,10 +499,10 @@ nsSVGLinearGradientFrame::CreateGradient()
 {
   float x1, y1, x2, y2;
 
-  x1 = GradientLookupAttribute(nsGkAtoms::x1, nsSVGLinearGradientElement::X1);
-  y1 = GradientLookupAttribute(nsGkAtoms::y1, nsSVGLinearGradientElement::Y1);
-  x2 = GradientLookupAttribute(nsGkAtoms::x2, nsSVGLinearGradientElement::X2);
-  y2 = GradientLookupAttribute(nsGkAtoms::y2, nsSVGLinearGradientElement::Y2);
+  x1 = GetLengthValue(nsSVGLinearGradientElement::X1);
+  y1 = GetLengthValue(nsSVGLinearGradientElement::Y1);
+  x2 = GetLengthValue(nsSVGLinearGradientElement::X2);
+  y2 = GetLengthValue(nsSVGLinearGradientElement::Y2);
 
   gfxPattern *pattern = new gfxPattern(x1, y1, x2, y2);
   NS_IF_ADDREF(pattern);
@@ -513,17 +553,33 @@ nsSVGRadialGradientFrame::AttributeChanged(PRInt32         aNameSpaceID,
 
 
 float
-nsSVGRadialGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
-                                                  PRUint16 aEnumName,
-                                                  nsSVGRadialGradientElement *aElement)
+nsSVGRadialGradientFrame::GetLengthValue(PRUint32 aIndex)
 {
-  nsSVGRadialGradientElement *element;
+  nsSVGRadialGradientElement* lengthElement =
+    GetRadialGradientWithLength(aIndex,
+      static_cast<nsSVGRadialGradientElement *>(mContent));
+  
+  
+  NS_ABORT_IF_FALSE(lengthElement,
+    "Got unexpected null element from GetRadialGradientWithLength");
+  return GetLengthValueFromElement(aIndex, *lengthElement);
+}
 
-  if (aElement) {
-    element = aElement;
-  } else {
-    element = GetRadialGradientWithAttr(aAtomName, mContent);
-  }
+float
+nsSVGRadialGradientFrame::GetLengthValue(PRUint32 aIndex, float aDefaultValue)
+{
+  nsSVGRadialGradientElement* lengthElement =
+    GetRadialGradientWithLength(aIndex, nsnull);
+
+  return lengthElement ? GetLengthValueFromElement(aIndex, *lengthElement)
+                       : aDefaultValue;
+}
+
+float
+nsSVGRadialGradientFrame::GetLengthValueFromElement(PRUint32 aIndex,
+  nsSVGRadialGradientElement& aElement)
+{
+  const nsSVGLength2 &length = aElement.mLengthAttributes[aIndex];
 
   
   
@@ -531,15 +587,30 @@ nsSVGRadialGradientFrame::GradientLookupAttribute(nsIAtom *aAtomName,
 
   PRUint16 gradientUnits = GetGradientUnits();
   if (gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_USERSPACEONUSE) {
-    return nsSVGUtils::UserSpace(mSource,
-                                 &element->mLengthAttributes[aEnumName]);
+    return nsSVGUtils::UserSpace(mSource, &length);
   }
 
-  NS_ASSERTION(gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
-               "Unknown gradientUnits type");
+  NS_ASSERTION(
+    gradientUnits == nsIDOMSVGUnitTypes::SVG_UNIT_TYPE_OBJECTBOUNDINGBOX,
+    "Unknown gradientUnits type");
 
-  return element->mLengthAttributes[aEnumName].
-    GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
+  return length.GetAnimValue(static_cast<nsSVGSVGElement*>(nsnull));
+}
+
+nsSVGRadialGradientElement *
+nsSVGRadialGradientFrame::GetRadialGradientWithLength(PRUint32 aIndex,
+  nsSVGRadialGradientElement* aDefault)
+{
+  nsSVGRadialGradientElement* thisElement =
+    static_cast<nsSVGRadialGradientElement *>(mContent);
+  const nsSVGLength2 &length = thisElement->mLengthAttributes[aIndex];
+
+  if (length.IsExplicitlySet()) {
+    return thisElement;
+  }
+
+  return nsSVGRadialGradientFrameBase::GetRadialGradientWithLength(aIndex,
+                                                                   aDefault);
 }
 
 already_AddRefed<gfxPattern>
@@ -547,21 +618,12 @@ nsSVGRadialGradientFrame::CreateGradient()
 {
   float cx, cy, r, fx, fy;
 
-  cx = GradientLookupAttribute(nsGkAtoms::cx, nsSVGRadialGradientElement::CX);
-  cy = GradientLookupAttribute(nsGkAtoms::cy, nsSVGRadialGradientElement::CY);
-  r  = GradientLookupAttribute(nsGkAtoms::r,  nsSVGRadialGradientElement::R);
-
-  nsSVGRadialGradientElement *gradient;
-
-  if (!(gradient = GetRadialGradientWithAttr(nsGkAtoms::fx, nsnull)))
-    fx = cx;  
-  else
-    fx = GradientLookupAttribute(nsGkAtoms::fx, nsSVGRadialGradientElement::FX, gradient);
-
-  if (!(gradient = GetRadialGradientWithAttr(nsGkAtoms::fy, nsnull)))
-    fy = cy;  
-  else
-    fy = GradientLookupAttribute(nsGkAtoms::fy, nsSVGRadialGradientElement::FY, gradient);
+  cx = GetLengthValue(nsSVGRadialGradientElement::CX);
+  cy = GetLengthValue(nsSVGRadialGradientElement::CY);
+  r  = GetLengthValue(nsSVGRadialGradientElement::R);
+  
+  fx = GetLengthValue(nsSVGRadialGradientElement::FX, cx);
+  fy = GetLengthValue(nsSVGRadialGradientElement::FY, cy);
 
   if (fx != cx || fy != cy) {
     
