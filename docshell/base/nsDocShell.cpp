@@ -112,8 +112,6 @@
 #include "nsIOfflineCacheUpdate.h"
 #include "nsCPrefetchService.h"
 #include "nsJSON.h"
-#include "IHistory.h"
-#include "mozilla/Services.h"
 
 
 
@@ -4704,15 +4702,10 @@ nsDocShell::SetTitle(const PRUnichar * aTitle)
             treeOwnerAsWin->SetTitle(aTitle);
     }
 
-    if (mCurrentURI && mLoadType != LOAD_ERROR_PAGE) {
-        nsCOMPtr<IHistory> history = services::GetHistoryService();
-        if (history) {
-            history->SetURITitle(mCurrentURI, mTitle);
-        }
-        else if (mGlobalHistory) {
-            mGlobalHistory->SetPageTitle(mCurrentURI, nsString(mTitle));
-        }
+    if (mGlobalHistory && mCurrentURI && mLoadType != LOAD_ERROR_PAGE) {
+        mGlobalHistory->SetPageTitle(mCurrentURI, nsString(mTitle));
     }
+
 
     
     if (mOSHE && mLoadType != LOAD_BYPASS_HISTORY &&
@@ -5679,53 +5672,32 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     if (!(aStateFlags & STATE_IS_DOCUMENT))
         return; 
 
-    nsCOMPtr<nsIURI> oldURI, newURI;
-    aOldChannel->GetURI(getter_AddRefs(oldURI));
-    aNewChannel->GetURI(getter_AddRefs(newURI));
-    if (!oldURI || !newURI) {
-        return;
+    nsCOMPtr<nsIGlobalHistory3> history3(do_QueryInterface(mGlobalHistory));
+    nsresult result = NS_ERROR_NOT_IMPLEMENTED;
+    if (history3) {
+        
+        result = history3->AddDocumentRedirect(aOldChannel, aNewChannel,
+                                               aRedirectFlags, !IsFrame());
     }
 
-    
-    
-    
-    
-    
-    
-
-    
-    nsCOMPtr<nsIURI> previousURI;
-    PRUint32 previousFlags = 0;
-    ExtractLastVisit(aOldChannel, getter_AddRefs(previousURI), &previousFlags);
-
-    if (aRedirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL ||
-        ChannelIsPost(aOldChannel)) {
+    if (result == NS_ERROR_NOT_IMPLEMENTED) {
         
         
         
         
-        
-        
-        SaveLastVisit(aNewChannel, previousURI, previousFlags);
-    }
-    else {
-        nsCOMPtr<nsIURI> referrer;
-        
-        (void)NS_GetReferrerFromChannel(aOldChannel,
-                                        getter_AddRefs(referrer));
-
-        
-        AddURIVisit(oldURI, referrer, previousURI, previousFlags);
-
-        
-        
-        SaveLastVisit(aNewChannel, oldURI, aRedirectFlags);
+        nsCOMPtr<nsIURI> oldURI;
+        aOldChannel->GetURI(getter_AddRefs(oldURI));
+        if (! oldURI)
+            return; 
+        AddToGlobalHistory(oldURI, PR_TRUE, aOldChannel);
     }
 
     
     nsCOMPtr<nsIApplicationCacheChannel> appCacheChannel =
         do_QueryInterface(aNewChannel);
     if (appCacheChannel) {
+        nsCOMPtr<nsIURI> newURI;
+        aNewChannel->GetURI(getter_AddRefs(newURI));
         appCacheChannel->SetChooseApplicationCache(ShouldCheckAppCache(newURI));
     }
 
@@ -8965,7 +8937,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
     nsCOMPtr<nsIInputStream> inputStream;
     if (aChannel) {
         nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
-
+        
         
         if (!httpChannel)  {
             GetHttpChannel(aChannel, getter_AddRefs(httpChannel));
@@ -9056,7 +9028,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         nsCOMPtr<nsICachingChannel> cacheChannel(do_QueryInterface(aChannel));
         nsCOMPtr<nsISupports>  cacheKey;
         
-        if (cacheChannel)
+        if (cacheChannel) 
             cacheChannel->GetCacheKey(getter_AddRefs(cacheKey));
         
         
@@ -9078,22 +9050,10 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
                                        getter_AddRefs(mLSHE));
         }
 
+        
         if (aAddToGlobalHistory) {
             
-            
-            if (!ChannelIsPost(aChannel)) {
-                nsCOMPtr<nsIURI> previousURI;
-                PRUint32 previousFlags = 0;
-                ExtractLastVisit(aChannel, getter_AddRefs(previousURI),
-                                 &previousFlags);
-
-                nsCOMPtr<nsIURI> referrer;
-                
-                (void)NS_GetReferrerFromChannel(aChannel,
-                                                getter_AddRefs(referrer));
-
-                AddURIVisit(aURI, referrer, previousURI, previousFlags);
-            }
+            AddToGlobalHistory(aURI, PR_FALSE, aChannel);
         }
     }
 
@@ -9412,7 +9372,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
         SetCurrentURI(newURI, nsnull, PR_TRUE);
         document->SetDocumentURI(newURI);
 
-        AddURIVisit(newURI, oldURI, oldURI, 0);
+        AddToGlobalHistory(newURI, PR_FALSE, oldURI);
     }
     else {
         FireOnLocationChange(this, nsnull, mCurrentURI);
@@ -10108,109 +10068,53 @@ NS_IMETHODIMP nsDocShell::MakeEditable(PRBool inWaitForUriLoad)
   return mEditorData->MakeEditable(inWaitForUriLoad);
 }
 
-bool
-nsDocShell::ChannelIsPost(nsIChannel* aChannel)
+nsresult
+nsDocShell::AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
+                               nsIChannel * aChannel)
 {
-    nsCOMPtr<nsIHttpChannel> httpChannel(do_QueryInterface(aChannel));
-    if (!httpChannel) {
-        return false;
-    }
-
-    nsCAutoString method;
-    httpChannel->GetRequestMethod(method);
-    return method.Equals("POST");
-}
-
-void
-nsDocShell::ExtractLastVisit(nsIChannel* aChannel,
-                             nsIURI** aURI,
-                             PRUint32* aChannelRedirectFlags)
-{
-    nsCOMPtr<nsIPropertyBag2> props(do_QueryInterface(aChannel));
-    if (!props) {
-        return;
-    }
-
-    nsresult rv = props->GetPropertyAsInterface(
-        NS_LITERAL_STRING("docshell.previousURI"),
-        NS_GET_IID(nsIURI),
-        reinterpret_cast<void**>(aURI)
-    );
-
-    if (NS_FAILED(rv)) {
-        
-        
-        
-        (void)NS_GetReferrerFromChannel(aChannel, aURI);
-    }
-    else {
-      rv = props->GetPropertyAsUint32(
-          NS_LITERAL_STRING("docshell.previousFlags"),
-          aChannelRedirectFlags
-      );
-
-      NS_WARN_IF_FALSE(
-          NS_FAILED(rv),
-          "Could not fetch previous flags, URI will be treated like referrer"
-      );
-    }
-}
-
-void
-nsDocShell::SaveLastVisit(nsIChannel* aChannel,
-                          nsIURI* aURI,
-                          PRUint32 aChannelRedirectFlags)
-{
-    nsCOMPtr<nsIWritablePropertyBag2> props(do_QueryInterface(aChannel));
-    if (!props || !aURI) {
-        return;
-    }
-
-    props->SetPropertyAsInterface(NS_LITERAL_STRING("docshell.previousURI"),
-                                  aURI);
-    props->SetPropertyAsUint32(NS_LITERAL_STRING("docshell.previousFlags"),
-                               aChannelRedirectFlags);
-}
-
-void
-nsDocShell::AddURIVisit(nsIURI* aURI,
-                        nsIURI* aReferrerURI,
-                        nsIURI* aPreviousURI,
-                        PRUint32 aChannelRedirectFlags)
-{
-    NS_ASSERTION(aURI, "Visited URI is null!");
-
     
-    if (mItemType != typeContent) {
-        return;
+    
+    nsCOMPtr<nsIHttpChannel> hchan(do_QueryInterface(aChannel));
+    if (hchan) {
+        nsCAutoString type;
+        nsresult rv = hchan->GetRequestMethod(type);
+        if (NS_SUCCEEDED(rv) && type.EqualsLiteral("POST"))
+            return NS_OK;
     }
 
-    nsCOMPtr<IHistory> history = services::GetHistoryService();
+    nsCOMPtr<nsIURI> referrer;
+    if (aChannel)
+        NS_GetReferrerFromChannel(aChannel, getter_AddRefs(referrer));
 
-    if (history) {
-        PRUint32 visitURIFlags = 0;
+    return AddToGlobalHistory(aURI, aRedirect, referrer);
+}
 
-        if (!IsFrame()) {
-            visitURIFlags |= IHistory::TOP_LEVEL;
+nsresult
+nsDocShell::AddToGlobalHistory(nsIURI * aURI, PRBool aRedirect,
+                               nsIURI * aReferrer)
+{
+    if (mItemType != typeContent || !mGlobalHistory)
+        return NS_OK;
+
+    PRBool visited;
+    nsresult rv = mGlobalHistory->IsVisited(aURI, &visited);
+    if (NS_FAILED(rv))
+        return rv;
+
+    rv = mGlobalHistory->AddURI(aURI, aRedirect, !IsFrame(), aReferrer);
+    if (NS_FAILED(rv))
+        return rv;
+
+    if (!visited) {
+        nsCOMPtr<nsIObserverService> obsService =
+            mozilla::services::GetObserverService();
+        if (obsService) {
+            obsService->NotifyObservers(aURI, NS_LINK_VISITED_EVENT_TOPIC, nsnull);
         }
-
-        if (aChannelRedirectFlags & nsIChannelEventSink::REDIRECT_TEMPORARY) {
-            visitURIFlags |= IHistory::REDIRECT_TEMPORARY;
-        }
-        else if (aChannelRedirectFlags &
-                 nsIChannelEventSink::REDIRECT_PERMANENT) {
-            visitURIFlags |= IHistory::REDIRECT_PERMANENT;
-        }
-
-        (void)history->VisitURI(aURI, aPreviousURI, visitURIFlags);
     }
-    else if (mGlobalHistory) {
-        
-        (void)mGlobalHistory->AddURI(aURI,
-                                     !!aChannelRedirectFlags,
-                                     !IsFrame(),
-                                     aReferrerURI);
-    }
+
+    return NS_OK;
+
 }
 
 
