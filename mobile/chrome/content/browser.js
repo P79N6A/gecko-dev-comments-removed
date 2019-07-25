@@ -781,11 +781,19 @@ var Browser = {
     if (this._selectedTab) {
       this._selectedTab.contentScrollOffset = this.getScrollboxPosition(this.contentScrollboxScroller);
       this._selectedTab.pageScrollOffset = this.getScrollboxPosition(this.pageScrollboxScroller);
+
+      
+      if (this._selectedTab.isLoading())
+        BrowserUI.unlockToolbar();
     }
 
     let isFirstTab = this._selectedTab == null;
     let lastTab = this._selectedTab;
     this._selectedTab = tab;
+
+    
+    if (this._selectedTab.isLoading())
+      BrowserUI.lockToolbar();
 
     tab.ensureBrowserExists();
 
