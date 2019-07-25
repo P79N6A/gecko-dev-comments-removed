@@ -84,6 +84,12 @@ using mozilla::ipc::GeckoChildProcessHost;
 static const int kMagicAndroidSystemPropFd = 5;
 #endif
 
+static bool
+ShouldHaveDirectoryService()
+{
+  return GeckoProcessType_Default == XRE_GetProcessType();
+}
+
 template<>
 struct RunnableMethodTraits<GeckoChildProcessHost>
 {
@@ -139,15 +145,20 @@ void GetPathToBinary(FilePath& exePath)
   exePath = exePath.DirName();
   exePath = exePath.AppendASCII(MOZ_CHILD_PROCESS_NAME);
 #elif defined(OS_POSIX)
-  nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
-  nsCOMPtr<nsIFile> greDir;
-  nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
-  if (NS_SUCCEEDED(rv)) {
-    nsCString path;
-    greDir->GetNativePath(path);
-    exePath = FilePath(path.get());
+  if (ShouldHaveDirectoryService()) {
+    nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
+    NS_ASSERTION(directoryService, "Expected XPCOM to be available");
+    if (directoryService) {
+      nsCOMPtr<nsIFile> greDir;
+      nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
+      if (NS_SUCCEEDED(rv)) {
+        nsCString path;
+        greDir->GetNativePath(path);
+        exePath = FilePath(path.get());
+      }
+    }
   }
-  else {
+  if (exePath.empty()) {
     exePath = FilePath(CommandLine::ForCurrentProcess()->argv()[0]);
     exePath = exePath.DirName();
   }
@@ -421,41 +432,50 @@ GeckoChildProcessHost::PerformAsyncLaunchInternal(std::vector<std::string>& aExt
 
 #if defined(OS_LINUX) || defined(OS_MACOSX)
   base::environment_map newEnvVars;
-  nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
-  nsCOMPtr<nsIFile> greDir;
-  nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
-  if (NS_SUCCEEDED(rv)) {
-    nsCString path;
-    greDir->GetNativePath(path);
-#ifdef OS_LINUX
-#ifdef ANDROID
-    path += "/lib";
-#endif
-    newEnvVars["LD_LIBRARY_PATH"] = path.get();
-#elif OS_MACOSX
-    newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
-    nsCString interpose;
-    if (prevInterpose) {
-      interpose.Assign(prevInterpose);
-      interpose.AppendLiteral(":");
+  
+  
+  
+  
+  if (ShouldHaveDirectoryService()) {
+    nsCOMPtr<nsIProperties> directoryService(do_GetService(NS_DIRECTORY_SERVICE_CONTRACTID));
+    NS_ASSERTION(directoryService, "Expected XPCOM to be available");
+    if (directoryService) {
+      nsCOMPtr<nsIFile> greDir;
+      nsresult rv = directoryService->Get(NS_GRE_DIR, NS_GET_IID(nsIFile), getter_AddRefs(greDir));
+      if (NS_SUCCEEDED(rv)) {
+        nsCString path;
+        greDir->GetNativePath(path);
+# ifdef OS_LINUX
+#  ifdef ANDROID
+        path += "/lib";
+#  endif  
+        newEnvVars["LD_LIBRARY_PATH"] = path.get();
+# elif OS_MACOSX
+        newEnvVars["DYLD_LIBRARY_PATH"] = path.get();
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        const char* prevInterpose = PR_GetEnv("DYLD_INSERT_LIBRARIES");
+        nsCString interpose;
+        if (prevInterpose) {
+          interpose.Assign(prevInterpose);
+          interpose.AppendLiteral(":");
+        }
+        interpose.Append(path.get());
+        interpose.AppendLiteral("/libplugin_child_interpose.dylib");
+        newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
+# endif  
+      }
     }
-    interpose.Append(path.get());
-    interpose.AppendLiteral("/libplugin_child_interpose.dylib");
-    newEnvVars["DYLD_INSERT_LIBRARIES"] = interpose.get();
-#endif
   }
-#endif
+#endif  
 
   FilePath exePath;
   GetPathToBinary(exePath);
