@@ -5483,8 +5483,7 @@ nsGenericElement::GetLinkTarget(nsAString& aTarget)
 static nsresult
 ParseSelectorList(nsINode* aNode,
                   const nsAString& aSelectorString,
-                  nsCSSSelectorList** aSelectorList,
-                  nsPresContext** aPresContext)
+                  nsCSSSelectorList** aSelectorList)
 {
   NS_ENSURE_ARG(aNode);
 
@@ -5515,14 +5514,6 @@ ParseSelectorList(nsINode* aNode,
   } while (*slot);
   *aSelectorList = selectorList;
 
-  
-  
-  *aPresContext = nsnull;
-  nsIPresShell* shell = doc->GetShell();
-  if (shell) {
-    *aPresContext = shell->GetPresContext();
-  }
-
   return NS_OK;
 }
 
@@ -5536,84 +5527,33 @@ typedef PRBool
 
 static PRBool
 TryMatchingElementsInSubtree(nsINode* aRoot,
-                             RuleProcessorData* aParentData,
-                             nsPresContext* aPresContext,
+                             TreeMatchContext& aTreeMatchContext,
                              nsCSSSelectorList* aSelectorList,
                              ElementMatchedCallback aCallback,
                              void* aClosure)
 {
-  
-
-
-
-
-  union { char c[2 * sizeof(RuleProcessorData)]; void *p; } databuf;
-  RuleProcessorData* prevSibling = nsnull;
-  RuleProcessorData* data = reinterpret_cast<RuleProcessorData*>(databuf.c);
-
   PRBool continueIteration = PR_TRUE;
   for (nsINode::ChildIterator iter(aRoot); !iter.IsDone(); iter.Next()) {
     nsIContent* kid = iter;
     if (!kid->IsElement()) {
       continue;
     }
-    
-    new (data) RuleProcessorData(aPresContext, kid->AsElement(), nsnull,
-                                 PR_FALSE);
-    NS_ASSERTION(!data->mParentData, "Shouldn't happen");
-    NS_ASSERTION(!data->mPreviousSiblingData, "Shouldn't happen");
-    data->mParentData = aParentData;
-    data->mPreviousSiblingData = prevSibling;
-    data->mVisitedHandling = nsRuleWalker::eRelevantLinkUnvisited;
 
-    if (nsCSSRuleProcessor::SelectorListMatches(kid->AsElement(), *data,
+    if (nsCSSRuleProcessor::SelectorListMatches(kid->AsElement(),
+                                                aTreeMatchContext,
                                                 aSelectorList)) {
       continueIteration = (*aCallback)(kid, aClosure);
     }
 
     if (continueIteration) {
       continueIteration =
-        TryMatchingElementsInSubtree(kid, data, aPresContext, aSelectorList,
+        TryMatchingElementsInSubtree(kid, aTreeMatchContext, aSelectorList,
                                      aCallback, aClosure);
     }
     
-    
-
-
-
-
-
-
-    NS_ASSERTION(!aParentData || data->mParentData == aParentData,
-                 "Unexpected parent");
-    NS_ASSERTION(data->mPreviousSiblingData == prevSibling,
-                 "Unexpected prev sibling");
-    data->mPreviousSiblingData = nsnull;
-    if (prevSibling) {
-      if (aParentData) {
-        prevSibling->mParentData = nsnull;
-      }
-      prevSibling->~RuleProcessorData();
-    } else {
-      
-
-      prevSibling = data + 1;
-    }
-
-    
-    RuleProcessorData* temp = prevSibling;
-    prevSibling = data;
-    data = temp;
     if (!continueIteration) {
       break;
     }
-  }
-  if (prevSibling) {
-    if (aParentData) {
-      prevSibling->mParentData = nsnull;
-    }
-    
-    prevSibling->~RuleProcessorData();
   }
 
   return continueIteration;
@@ -5637,14 +5577,15 @@ nsGenericElement::doQuerySelector(nsINode* aRoot, const nsAString& aSelector,
   NS_PRECONDITION(aResult, "Null out param?");
 
   nsAutoPtr<nsCSSSelectorList> selectorList;
-  nsPresContext* presContext;
   *aResult = ParseSelectorList(aRoot, aSelector,
-                               getter_Transfers(selectorList),
-                               &presContext);
+                               getter_Transfers(selectorList));
   NS_ENSURE_SUCCESS(*aResult, nsnull);
 
   nsIContent* foundElement = nsnull;
-  TryMatchingElementsInSubtree(aRoot, nsnull, presContext, selectorList,
+  TreeMatchContext matchingContext(PR_FALSE,
+                                   nsRuleWalker::eRelevantLinkUnvisited,
+                                   aRoot->GetOwnerDoc());
+  TryMatchingElementsInSubtree(aRoot, matchingContext, selectorList,
                                FindFirstMatchingElement, &foundElement);
 
   return foundElement;
@@ -5672,13 +5613,14 @@ nsGenericElement::doQuerySelectorAll(nsINode* aRoot,
   NS_ADDREF(*aReturn = contentList);
   
   nsAutoPtr<nsCSSSelectorList> selectorList;
-  nsPresContext* presContext;
   nsresult rv = ParseSelectorList(aRoot, aSelector,
-                                  getter_Transfers(selectorList),
-                                  &presContext);
+                                  getter_Transfers(selectorList));
   NS_ENSURE_SUCCESS(rv, rv);
 
-  TryMatchingElementsInSubtree(aRoot, nsnull, presContext, selectorList,
+  TreeMatchContext matchingContext(PR_FALSE,
+                                   nsRuleWalker::eRelevantLinkUnvisited,
+                                   aRoot->GetOwnerDoc());
+  TryMatchingElementsInSubtree(aRoot, matchingContext, selectorList,
                                AppendAllMatchingElements, contentList);
   return NS_OK;
 }
@@ -5688,16 +5630,16 @@ PRBool
 nsGenericElement::MozMatchesSelector(const nsAString& aSelector, nsresult* aResult)
 {
   nsAutoPtr<nsCSSSelectorList> selectorList;
-  nsPresContext* presContext;
   PRBool matches = PR_FALSE;
 
-  *aResult = ParseSelectorList(this, aSelector, getter_Transfers(selectorList),
-                               &presContext);
+  *aResult = ParseSelectorList(this, aSelector, getter_Transfers(selectorList));
 
   if (NS_SUCCEEDED(*aResult)) {
-    RuleProcessorData data(presContext, this, nsnull, PR_FALSE);
-    data.mVisitedHandling = nsRuleWalker::eRelevantLinkUnvisited;
-    matches = nsCSSRuleProcessor::SelectorListMatches(this, data, selectorList);
+    TreeMatchContext matchingContext(PR_FALSE,
+                                     nsRuleWalker::eRelevantLinkUnvisited,
+                                     GetOwnerDoc());
+    matches = nsCSSRuleProcessor::SelectorListMatches(this, matchingContext,
+                                                      selectorList);
   }
 
   return matches;

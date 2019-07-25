@@ -55,6 +55,7 @@
 struct RuleCascadeData;
 struct nsCSSSelectorList;
 struct CascadeEnumData;
+struct TreeMatchContext;
 
 
 
@@ -92,7 +93,7 @@ public:
 
 
   static PRBool SelectorListMatches(mozilla::dom::Element* aElement,
-                                    RuleProcessorData& aData,
+                                    TreeMatchContext& aTreeMatchContext,
                                     nsCSSSelectorList* aSelectorList);
 
   
