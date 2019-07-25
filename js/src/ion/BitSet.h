@@ -88,6 +88,9 @@ class BitSet : private TempObject
     bool contains(unsigned int value) const;
 
     
+    bool empty() const;
+
+    
     void insert(unsigned int value);
 
     
