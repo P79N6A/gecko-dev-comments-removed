@@ -3373,15 +3373,9 @@ JS_GetExternalStringClosure(JSContext *cx, JSString *str);
 
 
 
-extern JS_PUBLIC_API(void)
-JS_SetThreadStackLimit(JSContext *cx, uintptr_t limitAddr);
-
-
-
-
 
 extern JS_PUBLIC_API(void)
-JS_SetNativeStackQuota(JSContext *cx, size_t stackSize);
+JS_SetNativeStackQuota(JSRuntime *cx, size_t stackSize);
 
 
 

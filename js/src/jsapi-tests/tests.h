@@ -338,7 +338,25 @@ class JSAPITest
     }
 
     virtual JSRuntime * createRuntime() {
-        return JS_NewRuntime(8L * 1024 * 1024);
+        JSRuntime *rt = JS_NewRuntime(8L * 1024 * 1024);
+        if (!rt)
+            return NULL;
+
+        const size_t MAX_STACK_SIZE =
+
+#if (defined(DEBUG) && defined(__SUNPRO_CC))  || defined(JS_CPU_SPARC)
+            
+
+
+
+            5000000
+#else
+            500000
+#endif
+        ;
+
+        JS_SetNativeStackQuota(rt, MAX_STACK_SIZE);
+        return rt;
     }
 
     virtual void destroyRuntime() {
@@ -358,22 +376,6 @@ class JSAPITest
         JSContext *cx = JS_NewContext(rt, 8192);
         if (!cx)
             return NULL;
-
-        const size_t MAX_STACK_SIZE =
-
-#if (defined(DEBUG) && defined(__SUNPRO_CC))  || defined(JS_CPU_SPARC)
-            
-
-
-
-            5000000
-#else
-            500000
-#endif
-        ;
-
-        JS_SetNativeStackQuota(cx, MAX_STACK_SIZE);
-
         JS_SetOptions(cx, JSOPTION_VAROBJFIX);
         JS_SetVersion(cx, JSVERSION_LATEST);
         JS_SetErrorReporter(cx, &reportError);
@@ -463,7 +465,7 @@ class TempFile {
             fprintf(stderr, "error opening temporary file '%s': %s\n",
                     fileName, strerror(errno));
             exit(1);
-        }            
+        }
         name = fileName;
         return stream;
     }
