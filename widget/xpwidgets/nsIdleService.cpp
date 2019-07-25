@@ -47,6 +47,7 @@
 #include "nsDebug.h"
 #include "nsCOMArray.h"
 #include "prinrval.h"
+#include "prlog.h"
 #include "mozilla/Services.h"
 #include "mozilla/Preferences.h"
 #include "mozilla/Telemetry.h"
@@ -66,6 +67,10 @@ using namespace mozilla;
 #define PREF_LAST_DAILY "idle.lastDailyNotification"
 
 #define SECONDS_PER_DAY 86400
+
+#ifdef PR_LOGGING
+static PRLogModuleInfo *sLog = NULL;
+#endif
 
 
 class IdleListenerComparator
@@ -274,8 +279,12 @@ nsIdleServiceDaily::DailyCallback(nsITimer* aTimer, void* aClosure)
 nsIdleService::nsIdleService() : mCurrentlySetToTimeoutAtInPR(0),
                                  mAnyObserverIdle(false),
                                  mDeltaToNextIdleSwitchInS(PR_UINT32_MAX),
-                                 mLastUserInteractionInPR(0)
+                                 mLastUserInteractionInPR(PR_Now())
 {
+#ifdef PR_LOGGING
+  if (sLog == NULL)
+    sLog = PR_NewLogModule("idleService");
+#endif
   mDailyIdle = new nsIdleServiceDaily(this);
   mDailyIdle->Init();
 }
@@ -290,6 +299,10 @@ nsIdleService::~nsIdleService()
 NS_IMETHODIMP
 nsIdleService::AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTimeInS)
 {
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: Register idle observer %x for %d seconds",
+          aObserver, aIdleTimeInS));
+
   NS_ENSURE_ARG_POINTER(aObserver);
   
   
@@ -314,6 +327,9 @@ nsIdleService::AddIdleObserver(nsIObserver* aObserver, PRUint32 aIdleTimeInS)
   if (mDeltaToNextIdleSwitchInS > aIdleTimeInS) {
     
     
+    PR_LOG(sLog, PR_LOG_DEBUG,
+          ("idleService: Register: adjusting next switch from %d to %d seconds",
+           mDeltaToNextIdleSwitchInS, aIdleTimeInS));
     mDeltaToNextIdleSwitchInS = aIdleTimeInS;
   }
 
@@ -336,21 +352,33 @@ nsIdleService::RemoveIdleObserver(nsIObserver* aObserver, PRUint32 aTimeInS)
   
   IdleListenerComparator c;
   if (mArrayListeners.RemoveElement(listener, c)) {
+    PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: Remove idle observer %x (%d seconds)",
+            aObserver, aTimeInS));
     return NS_OK;
   }
 
   
+  PR_LOG(sLog, PR_LOG_WARNING, 
+         ("idleService: Failed to remove idle observer %x (%d seconds)",
+          aObserver, aTimeInS));
   return NS_ERROR_FAILURE;
 }
 
 void
 nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
 {
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: Reset idle timeout (last interaction %u msec)",
+          idleDeltaInMS));
+
   
   mLastUserInteractionInPR = PR_Now() - (idleDeltaInMS * PR_USEC_PER_MSEC);
 
   
   if (!mAnyObserverIdle) {
+    PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: Reset idle timeout: no idle observers"));
     return;
   }
 
@@ -399,6 +427,9 @@ nsIdleService::ResetIdleTimeOut(PRUint32 idleDeltaInMS)
 
   
   while (numberOfPendingNotifications--) {
+    PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: Reset idle timeout: tell observer %x user is back",
+            notifyList[numberOfPendingNotifications]));
     notifyList[numberOfPendingNotifications]->Observe(this,
                                                       OBSERVER_TOPIC_BACK,
                                                       timeStr.get());
@@ -419,21 +450,17 @@ nsIdleService::GetIdleTime(PRUint32* idleTime)
 
   bool polledIdleTimeIsValid = PollIdleTime(&polledIdleTimeMS);
 
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: Get idle time: polled %u msec, valid = %d",
+          polledIdleTimeMS, polledIdleTimeIsValid));
   
-  if (!polledIdleTimeIsValid && 0 == mLastUserInteractionInPR) {
-    *idleTime = 0;
-    return NS_OK;
-  }
-
-  
-  if (0 == mLastUserInteractionInPR) {
-    *idleTime = polledIdleTimeMS;
-    return NS_OK;
-  }
-
   
   PRUint32 timeSinceResetInMS = (PR_Now() - mLastUserInteractionInPR) /
                                 PR_USEC_PER_MSEC;
+
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: Get idle time: time since reset %u msec",
+          timeSinceResetInMS));
 
   
   if (!polledIdleTimeIsValid) {
@@ -479,8 +506,14 @@ nsIdleService::IdleTimerCallback(void)
   PRUint32 currentIdleTimeInMS;
 
   if (NS_FAILED(GetIdleTime(&currentIdleTimeInMS))) {
+    PR_LOG(sLog, PR_LOG_ALWAYS,
+           ("idleService: Idle timer callback: failed to get idle time"));
     return;
   }
+
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: Idle timer callback: current idle time %u msec",
+          currentIdleTimeInMS));
 
   
   
@@ -557,6 +590,9 @@ nsIdleService::IdleTimerCallback(void)
 
   
   while (numberOfPendingNotifications--) {
+    PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: Idle timer callback: tell observer %x user is idle",
+            notifyList[numberOfPendingNotifications]));
     notifyList[numberOfPendingNotifications]->Observe(this,
                                                       OBSERVER_TOPIC_IDLE,
                                                       timeStr.get());
@@ -566,6 +602,10 @@ nsIdleService::IdleTimerCallback(void)
 void
 nsIdleService::SetTimerExpiryIfBefore(PRTime aNextTimeoutInPR)
 {
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: SetTimerExpiryIfBefore: next timeout %lld usec",
+          aNextTimeoutInPR));
+
   
   if (!mTimer) {
     return;
@@ -575,6 +615,10 @@ nsIdleService::SetTimerExpiryIfBefore(PRTime aNextTimeoutInPR)
   
   if (mCurrentlySetToTimeoutAtInPR > aNextTimeoutInPR ||
       !mCurrentlySetToTimeoutAtInPR) {
+
+#ifdef PR_LOGGING
+    PRTime oldTimeout = mCurrentlySetToTimeoutAtInPR;
+#endif
 
     mCurrentlySetToTimeoutAtInPR = aNextTimeoutInPR ;
 
@@ -589,6 +633,10 @@ nsIdleService::SetTimerExpiryIfBefore(PRTime aNextTimeoutInPR)
 
     
     mCurrentlySetToTimeoutAtInPR += 10 * PR_USEC_PER_MSEC;
+
+    PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: reset timer expiry from %lld usec to %lld usec",
+            oldTimeout, mCurrentlySetToTimeoutAtInPR));
 
     
     mTimer->InitWithFuncCallback(StaticIdleTimerCallback,
@@ -608,6 +656,8 @@ nsIdleService::ReconfigureTimer(void)
   if (!mAnyObserverIdle && PR_UINT32_MAX == mDeltaToNextIdleSwitchInS) {
     
     
+    PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: ReconfigureTimer: no idle or waiting observers"));
     return;
   }
 
@@ -621,12 +671,19 @@ nsIdleService::ReconfigureTimer(void)
                              (((PRTime)mDeltaToNextIdleSwitchInS) *
                               PR_USEC_PER_SEC);
 
+  PR_LOG(sLog, PR_LOG_DEBUG,
+         ("idleService: next timeout %lld usec (%u msec from now)",
+          nextTimeoutAtInPR,
+          (PRUint32)((nextTimeoutAtInPR - curTimeInPR) / PR_USEC_PER_MSEC)));
   
   if (mAnyObserverIdle && UsePollMode()) {
     PRTime pollTimeout = curTimeInPR +
-                         MIN_IDLE_POLL_INTERVAL_MSEC * PR_USEC_PER_SEC;
+                         MIN_IDLE_POLL_INTERVAL_MSEC * PR_USEC_PER_MSEC;
 
     if (nextTimeoutAtInPR > pollTimeout) {
+      PR_LOG(sLog, PR_LOG_DEBUG,
+           ("idleService: idle observers, reducing timeout to %u msec from now",
+            MIN_IDLE_POLL_INTERVAL_MSEC));
       nextTimeoutAtInPR = pollTimeout;
     }
   }
