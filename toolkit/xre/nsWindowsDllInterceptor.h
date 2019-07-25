@@ -185,12 +185,12 @@ protected:
       }
     }
 #elif defined(_M_X64)
-    int pJmp32 = 0;
+    int pJmp32 = -1;
 
     while (nBytes < 13) {
 
       
-      if (pJmp32) {
+      if (pJmp32 >= 0) {
         if (origBytes[nBytes++] != 0x90)
           return 0;
 
@@ -311,7 +311,7 @@ protected:
     *((intptr_t*)(tramp+nBytes+1)) = (intptr_t)trampDest - (intptr_t)(tramp+nBytes+5); 
 #elif defined(_M_X64)
     
-    if (pJmp32) {
+    if (pJmp32 >= 0) {
       
       byteptr_t directJmpAddr = origBytes + pJmp32 + 5 + (*((LONG*)(origBytes+pJmp32+1)));
       
