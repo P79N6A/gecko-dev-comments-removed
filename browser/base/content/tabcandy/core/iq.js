@@ -183,9 +183,7 @@ iQ.fn = iQ.prototype = {
     var ret = this || [];
     if ( selector != null ) {
       
-      
-      
-      if (selector.length == null || typeof selector == "string" || typeof selector == "function" || (typeof selector != "function" && selector.setInterval)) {
+      if (selector.length == null || typeof selector == "string" || typeof selector == "function" || selector.setInterval) {
         Array.prototype.push.call( ret, selector );
       } else {
         Utils.merge( ret, selector );

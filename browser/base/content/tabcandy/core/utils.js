@@ -515,12 +515,11 @@ window.Utils = {
       this.consoleService = Cc["@mozilla.org/consoleservice;1"]
           .getService(Components.interfaces.nsIConsoleService);
     }
-    
+
     var text = this.expandArgumentsForLog(arguments);
     this.consoleService.logStringMessage(text);
   },
 
-  
   
   
   
@@ -550,7 +549,7 @@ window.Utils = {
   
   assert: function Utils_assert(label, condition) {
     if (!condition) {
-      var text;
+      let text;
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
@@ -565,7 +564,7 @@ window.Utils = {
   
   assertThrow: function(label, condition) {
     if (!condition) {
-      var text;
+      let text;
       if (typeof(label) == 'undefined')
         text = 'badly formed assert';
       else
@@ -582,46 +581,36 @@ window.Utils = {
   
   
   expandObject: function(obj) {
-      var s = obj + ' = {';
-      for (prop in obj) {
-        var value;
-        try {
-          value = obj[prop];
-        } catch(e) {
-          value = '[!!error retrieving property]';
-        }
-
-        s += prop + ': ';
-        if (typeof(value) == 'string')
-          s += '\'' + value + '\'';
-        else if (typeof(value) == 'function')
-          s += 'function';
-        else
-          s += value;
-
-        s += ", ";
+    var s = obj + ' = {';
+    for (let prop in obj) {
+      let value;
+      try {
+        value = obj[prop];
+      } catch(e) {
+        value = '[!!error retrieving property]';
       }
-      return s + '}';
-    },
+
+      s += prop + ': ';
+      if (typeof(value) == 'string')
+        s += '\'' + value + '\'';
+      else if (typeof(value) == 'function')
+        s += 'function';
+      else
+        s += value;
+
+      s += ', ';
+    }
+    return s + '}';
+  },
 
   
   
   
   expandArgumentsForLog: function(args) {
-    var s = '';
-    var count = args.length;
-    var a;
-    for (a = 0; a < count; a++) {
-      var arg = args[a];
-      if (typeof(arg) == 'object')
-        arg = this.expandObject(arg);
-
-      s += arg;
-      if (a < count - 1)
-        s += '; ';
-    }
-
-    return s;
+    var that = this;
+    return Array.map(args, function(arg) {
+      return typeof(arg) == 'object' ? that.expandObject(arg) : arg;
+    }).join('; ');
   },
 
   
@@ -630,11 +619,7 @@ window.Utils = {
   
   
   isRightClick: function(event) {
-    if (event.which)
-      return (event.which == 3);
-    if (event.button)
-      return (event.button == 2);
-    return false;
+    return event.button == 2;
   },
 
   
@@ -684,7 +669,6 @@ window.Utils = {
   isPlainObject: function( obj ) {
     
     
-    
     if ( !obj || Object.prototype.toString.call(obj) !== "[object Object]" 
         || obj.nodeType || obj.setInterval ) {
       return false;
@@ -692,7 +676,7 @@ window.Utils = {
 
     
     const hasOwnProperty = Object.prototype.hasOwnProperty;
-    
+
     if ( obj.constructor
       && !hasOwnProperty.call(obj, "constructor")
       && !hasOwnProperty.call(obj.constructor.prototype, "isPrototypeOf") ) {
@@ -707,7 +691,7 @@ window.Utils = {
 
     return key === undefined || hasOwnProperty.call( obj, key );
   },
-  
+
   
   
   
@@ -729,7 +713,7 @@ window.Utils = {
     }
     return value;
   },
-  
+
   
   
   
@@ -737,7 +721,7 @@ window.Utils = {
     var i = first.length, j = 0;
 
     if ( typeof second.length === "number" ) {
-      for ( var l = second.length; j < l; j++ ) {
+      for ( let l = second.length; j < l; j++ ) {
         first[ i++ ] = second[ j ];
       }
     } else {
@@ -750,14 +734,14 @@ window.Utils = {
 
     return first;
   },
-  
+
   
   
   
   extend: function() {
     
     var target = arguments[0] || {}, i = 1, length = arguments.length, options, name, src, copy;
-  
+
     
     if ( typeof target === "boolean" ) {
       this.assert("The first argument of extend cannot be a boolean."
@@ -776,7 +760,7 @@ window.Utils = {
     if (typeof target != "object" && typeof target != "function") {
       target = {};
     }
-  
+
     for ( ; i < length; i++ ) {
       
       if ( (options = arguments[ i ]) != null ) {
@@ -784,21 +768,21 @@ window.Utils = {
         for ( name in options ) {
           src = target[ name ];
           copy = options[ name ];
-  
+
           
           if ( target === copy )
             continue;
-  
+
           if ( copy !== undefined )
             target[ name ] = copy;
         }
       }
     }
-  
+
     
     return target;
   },
-  
+
   
   
   
