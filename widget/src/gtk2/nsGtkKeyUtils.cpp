@@ -178,14 +178,11 @@ struct nsKeyConverter nsKeycodes[] = {
     { NS_VK_EQUALS, GDK_plus }
 };
 
-#ifdef SOLARIS
 
 struct nsKeyConverter nsSunKeycodes[] = {
-    {NS_VK_F1, GDK_Help }, 
     {NS_VK_F11, 0x1005ff10 }, 
     {NS_VK_F12, 0x1005ff11 }  
 };
-#endif
 
 int
 GdkKeyCodeToDOMKeyCode(int aKeysym)
@@ -211,13 +208,11 @@ GdkKeyCodeToDOMKeyCode(int aKeysym)
     if (aKeysym >= GDK_KP_0 && aKeysym <= GDK_KP_9)
         return aKeysym - GDK_KP_0 + NS_VK_NUMPAD0;
 
-#ifdef SOLARIS
     
     for (i = 0; i < NS_ARRAY_LENGTH(nsSunKeycodes); i++) {
         if (nsSunKeycodes[i].keysym == aKeysym)
             return(nsSunKeycodes[i].vkCode);
     }
-#endif 
 
     
     for (i = 0; i < NS_ARRAY_LENGTH(nsKeycodes); i++) {

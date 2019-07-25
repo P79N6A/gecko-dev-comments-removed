@@ -75,6 +75,7 @@ static struct nsKeyConverter nsKeycodes[] =
     { NS_VK_PRINTSCREEN,   Qt::Key_Print },
     { NS_VK_INSERT,        Qt::Key_Insert },
     { NS_VK_DELETE,        Qt::Key_Delete },
+    { NS_VK_HELP,          Qt::Key_Help },
 
     { NS_VK_0,             Qt::Key_0 },
     { NS_VK_1,             Qt::Key_1 },
@@ -172,15 +173,6 @@ static struct nsKeyConverter nsKeycodes[] =
     { NS_VK_META,          Qt::Key_Meta }
 };
 
-
-#ifdef SOLARIS
-struct nsKeyConverter nsSunKeycodes[] = {
-    {NS_VK_F1, Qt::Key_Help }, 
-    {NS_VK_F11, 0x1005ff10 }, 
-    {NS_VK_F12, 0x1005ff11 }  
-};
-#endif
-
 int
 QtKeyCodeToDOMKeyCode(int aKeysym)
 {
@@ -202,14 +194,6 @@ QtKeyCodeToDOMKeyCode(int aKeysym)
     
 
 
-
-#ifdef SOLARIS
-    
-    for (i = 0; i < NS_ARRAY_LENGTH(nsSunKeycodes); i++) {
-        if (nsSunKeycodes[i].keysym == aKeysym)
-            return(nsSunKeycodes[i].vkCode);
-    }
-#endif
 
     
     for (i = 0; i < NS_ARRAY_LENGTH(nsKeycodes); i++) {
