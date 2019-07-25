@@ -123,8 +123,6 @@ class GeckoSurfaceView
                 GeckoAppShell.scheduleRedraw();
                 mSurfaceNeedsRedraw = false;
             }
-
-            mSurfaceChanged = true;
         } finally {
             mSurfaceLock.unlock();
         }
@@ -192,8 +190,6 @@ class GeckoSurfaceView
                 Log.e("GeckoAppJava", "endDrawing with false mSurfaceValid");
                 return;
             }
-        } catch (java.lang.IllegalArgumentException ex) {
-            mSurfaceChanged = true;
         } finally {
             mInDrawing = false;
 
@@ -287,10 +283,6 @@ class GeckoSurfaceView
 
     
     boolean mSurfaceNeedsRedraw;
-
-    
-    
-    boolean mSurfaceChanged;
 
     
     boolean mInDrawing;
