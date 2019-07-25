@@ -235,7 +235,8 @@ var BrowserUI = {
     popup.width = window.innerWidth;
 
     document.getElementById("notifications").width = window.innerWidth;
-    
+    document.getElementById("browser-controls").height = window.innerHeight - toolbarH;
+
     
 
 
