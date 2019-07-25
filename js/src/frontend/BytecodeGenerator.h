@@ -56,7 +56,7 @@
 
 #include "jsatominlines.h"
 
-JS_BEGIN_EXTERN_C
+namespace js {
 
 
 
@@ -66,7 +66,7 @@ JS_BEGIN_EXTERN_C
 
 
 
-typedef enum JSStmtType {
+enum StmtType {
     STMT_LABEL,                 
     STMT_IF,                    
     STMT_ELSE,                  
@@ -83,7 +83,7 @@ typedef enum JSStmtType {
     STMT_FOR_IN_LOOP,           
     STMT_WHILE_LOOP,            
     STMT_LIMIT
-} JSStmtType;
+};
 
 #define STMT_TYPE_IN_RANGE(t,b,e) ((uint)((t) - (b)) <= (uintN)((e) - (b)))
 
@@ -124,9 +124,7 @@ typedef enum JSStmtType {
 #define STMT_IS_TRYING(stmt)    STMT_TYPE_IS_TRYING((stmt)->type)
 #define STMT_IS_LOOP(stmt)      STMT_TYPE_IS_LOOP((stmt)->type)
 
-typedef struct JSStmtInfo JSStmtInfo;
-
-struct JSStmtInfo {
+struct StmtInfo {
     uint16          type;           
     uint16          flags;          
     uint32          blockid;        
@@ -135,10 +133,10 @@ struct JSStmtInfo {
     ptrdiff_t       continues;      
     union {
         JSAtom      *label;         
-        JSObjectBox *blockBox;      
+        ObjectBox   *blockBox;      
     };
-    JSStmtInfo      *down;          
-    JSStmtInfo      *downScope;     
+    StmtInfo        *down;          
+    StmtInfo        *downScope;     
 };
 
 #define SIF_SCOPE        0x0001     /* statement has its own lexical scope */
@@ -160,7 +158,7 @@ struct JSStmtInfo {
 #define SET_STATEMENT_TOP(stmt, top)                                          \
     ((stmt)->update = (top), (stmt)->breaks = (stmt)->continues = (-1))
 
-#define TCF_COMPILING           0x01 /* JSTreeContext is JSCodeGenerator */
+#define TCF_COMPILING           0x01 /* TreeContext is CodeGenerator */
 #define TCF_IN_FUNCTION         0x02 /* parsing inside function body */
 #define TCF_RETURN_EXPR         0x04 /* function has 'return expr;' */
 #define TCF_RETURN_VOID         0x08 /* function has 'return;' */
@@ -299,7 +297,9 @@ struct JSStmtInfo {
                                  TCF_STRICT_MODE_CODE    |                    \
                                  TCF_FUN_EXTENSIBLE_SCOPE)
 
-struct JSTreeContext {              
+struct CodeGenerator;
+
+struct TreeContext {                
     uint32          flags;          
     uint32          bodyid;         
     uint32          blockidGen;     
@@ -309,19 +309,19 @@ struct JSTreeContext {
 
     uint32          argumentsCount; 
 
-    JSStmtInfo      *topStmt;       
-    JSStmtInfo      *topScopeStmt;  
-    JSObjectBox     *blockChainBox; 
+    StmtInfo        *topStmt;       
+    StmtInfo        *topScopeStmt;  
+    ObjectBox       *blockChainBox; 
 
 
-    JSParseNode     *blockNode;     
+    ParseNode       *blockNode;     
 
-    js::AtomDecls   decls;          
-    js::Parser      *parser;        
-    JSParseNode     *yieldNode;     
+    AtomDecls       decls;          
+    Parser          *parser;        
+    ParseNode       *yieldNode;     
 
 
-    JSParseNode     *argumentsNode; 
+    ParseNode       *argumentsNode; 
 
 
 
@@ -350,23 +350,23 @@ struct JSTreeContext {
         scopeChain_ = scopeChain;
     }
 
-    js::OwnedAtomDefnMapPtr lexdeps;
-    JSTreeContext   *parent;        
+    OwnedAtomDefnMapPtr lexdeps;    
+    TreeContext     *parent;        
     uintN           staticLevel;    
 
-    JSFunctionBox   *funbox;        
+    FunctionBox     *funbox;        
 
 
-    JSFunctionBox   *functionList;
+    FunctionBox     *functionList;
 
-    JSParseNode     *innermostWith; 
+    ParseNode       *innermostWith; 
 
-    js::Bindings    bindings;       
+    Bindings        bindings;       
 
 
     void trace(JSTracer *trc);
 
-    JSTreeContext(js::Parser *prs)
+    TreeContext(Parser *prs)
       : flags(0), bodyid(0), blockidGen(0), parenDepth(0), yieldCount(0), argumentsCount(0),
         topStmt(NULL), topScopeStmt(NULL), blockChainBox(NULL), blockNode(NULL),
         decls(prs->context), parser(prs), yieldNode(NULL), argumentsNode(NULL), scopeChain_(NULL),
@@ -381,7 +381,7 @@ struct JSTreeContext {
 
 
 
-    ~JSTreeContext() {
+    ~TreeContext() {
         parser->tc = this->parent;
     }
 
@@ -419,7 +419,7 @@ struct JSTreeContext {
     bool atBodyLevel() { return !topStmt || (topStmt->flags & SIF_BODY_BLOCK); }
 
     
-    bool inStatement(JSStmtType type);
+    bool inStatement(StmtType type);
 
     bool inStrictMode() const {
         return flags & TCF_STRICT_MODE_CODE;
@@ -434,7 +434,7 @@ struct JSTreeContext {
     int sharpSlotBase;
     bool ensureSharpSlots();
 
-    js::Compiler *compiler() { return (js::Compiler *)parser; }
+    Compiler *compiler() { return (js::Compiler *)parser; }
 
     
     
@@ -445,7 +445,7 @@ struct JSTreeContext {
     bool inFunction() const { return flags & TCF_IN_FUNCTION; }
 
     bool compiling() const { return flags & TCF_COMPILING; }
-    inline JSCodeGenerator *asCodeGenerator();
+    inline CodeGenerator *asCodeGenerator();
 
     bool usesArguments() const {
         return flags & TCF_FUN_USES_ARGUMENTS;
@@ -477,7 +477,7 @@ struct JSTreeContext {
         return flags & TCF_FUN_MUTATES_PARAMETER;
     }
 
-    void noteArgumentsUse(JSParseNode *pn) {
+    void noteArgumentsUse(ParseNode *pn) {
         JS_ASSERT(inFunction());
         countArgumentsUse(pn);
         flags |= TCF_FUN_USES_ARGUMENTS;
@@ -485,7 +485,7 @@ struct JSTreeContext {
             funbox->node->pn_dflags |= PND_FUNARG;
     }
 
-    void countArgumentsUse(JSParseNode *pn) {
+    void countArgumentsUse(ParseNode *pn) {
         JS_ASSERT(pn->pn_atom == parser->context->runtime->atomState.argumentsAtom);
         argumentsCount++;
         argumentsNode = pn;
@@ -508,32 +508,27 @@ struct JSTreeContext {
 
 
 
-inline bool JSTreeContext::needStrictChecks() {
+inline bool TreeContext::needStrictChecks() {
     return parser->context->hasStrictOption() || inStrictMode();
 }
 
-namespace js {
+bool
+SetStaticLevel(TreeContext *tc, uintN staticLevel);
 
 bool
-SetStaticLevel(JSTreeContext *tc, uintN staticLevel);
+GenerateBlockId(TreeContext *tc, uint32& blockid);
 
-bool
-GenerateBlockId(JSTreeContext *tc, uint32& blockid);
-
-} 
+struct JumpTarget;
 
 
 
 
 
-typedef struct JSSpanDep    JSSpanDep;
-typedef struct JSJumpTarget JSJumpTarget;
-
-struct JSSpanDep {
+struct SpanDep {
     ptrdiff_t       top;        
     ptrdiff_t       offset;     
     ptrdiff_t       before;     
-    JSJumpTarget    *target;    
+    JumpTarget      *target;    
 };
 
 
@@ -542,10 +537,10 @@ struct JSSpanDep {
 
 
 
-struct JSJumpTarget {
+struct JumpTarget {
     ptrdiff_t       offset;     
     int             balance;    
-    JSJumpTarget    *kids[2];   
+    JumpTarget      *kids[2];   
 };
 
 #define JT_LEFT                 0
@@ -561,14 +556,14 @@ struct JSJumpTarget {
 
 #define JT_TAG_BIT              ((jsword) 1)
 #define JT_UNTAG_SHIFT          1
-#define JT_SET_TAG(jt)          ((JSJumpTarget *)((jsword)(jt) | JT_TAG_BIT))
-#define JT_CLR_TAG(jt)          ((JSJumpTarget *)((jsword)(jt) & ~JT_TAG_BIT))
+#define JT_SET_TAG(jt)          ((JumpTarget *)((jsword)(jt) | JT_TAG_BIT))
+#define JT_CLR_TAG(jt)          ((JumpTarget *)((jsword)(jt) & ~JT_TAG_BIT))
 #define JT_HAS_TAG(jt)          ((jsword)(jt) & JT_TAG_BIT)
 
 #define BITS_PER_PTRDIFF        (sizeof(ptrdiff_t) * JS_BITS_PER_BYTE)
 #define BITS_PER_BPDELTA        (BITS_PER_PTRDIFF - 1 - JT_UNTAG_SHIFT)
 #define BPDELTA_MAX             (((ptrdiff_t)1 << BITS_PER_BPDELTA) - 1)
-#define BPDELTA_TO_JT(bp)       ((JSJumpTarget *)((bp) << JT_UNTAG_SHIFT))
+#define BPDELTA_TO_JT(bp)       ((JumpTarget *)((bp) << JT_UNTAG_SHIFT))
 #define JT_TO_BPDELTA(jt)       ((ptrdiff_t)((jsword)(jt) >> JT_UNTAG_SHIFT))
 
 #define SD_SET_TARGET(sd,jt)    ((sd)->target = JT_SET_TAG(jt))
@@ -583,34 +578,31 @@ struct JSJumpTarget {
                                  ? JT_CLR_TAG((sd)->target)->offset - (pivot) \
                                  : 0)
 
-typedef struct JSTryNode JSTryNode;
-
-struct JSTryNode {
+struct TryNode {
     JSTryNote       note;
-    JSTryNode       *prev;
+    TryNode       *prev;
 };
 
-struct JSCGObjectList {
+struct CGObjectList {
     uint32              length;     
-    JSObjectBox         *lastbox;   
+    ObjectBox           *lastbox;   
 
-    JSCGObjectList() : length(0), lastbox(NULL) {}
+    CGObjectList() : length(0), lastbox(NULL) {}
 
-    uintN index(JSObjectBox *objbox);
+    uintN index(ObjectBox *objbox);
     void finish(JSObjectArray *array);
 };
 
-class JSGCConstList {
-    js::Vector<js::Value> list;
+class GCConstList {
+    Vector<Value> list;
   public:
-    JSGCConstList(JSContext *cx) : list(cx) {}
-    bool append(js::Value v) { return list.append(v); }
+    GCConstList(JSContext *cx) : list(cx) {}
+    bool append(Value v) { return list.append(v); }
     size_t length() const { return list.length(); }
     void finish(JSConstArray *array);
-
 };
 
-struct JSCodeGenerator : public JSTreeContext
+struct CodeGenerator : public TreeContext
 {
     struct {
         jsbytecode  *base;          
@@ -623,19 +615,19 @@ struct JSCodeGenerator : public JSTreeContext
         uintN       currentLine;    
     } prolog, main, *current;
 
-    js::OwnedAtomIndexMapPtr atomIndices; 
-    js::AtomDefnMapPtr roLexdeps;
+    OwnedAtomIndexMapPtr atomIndices; 
+    AtomDefnMapPtr  roLexdeps;
     uintN           firstLine;      
 
     intN            stackDepth;     
     uintN           maxStackDepth;  
 
     uintN           ntrynotes;      
-    JSTryNode       *lastTryNode;   
+    TryNode         *lastTryNode;   
 
-    JSSpanDep       *spanDeps;      
-    JSJumpTarget    *jumpTargets;   
-    JSJumpTarget    *jtFreeList;    
+    SpanDep         *spanDeps;      
+    JumpTarget      *jumpTargets;   
+    JumpTarget      *jtFreeList;    
     uintN           numSpanDeps;    
     uintN           numJumpTargets; 
     ptrdiff_t       spanDepTodo;    
@@ -645,34 +637,34 @@ struct JSCodeGenerator : public JSTreeContext
 
     uintN           emitLevel;      
 
-    typedef js::HashMap<JSAtom *, js::Value> ConstMap;
+    typedef HashMap<JSAtom *, Value> ConstMap;
     ConstMap        constMap;       
 
-    JSGCConstList   constList;      
+    GCConstList     constList;      
 
-    JSCGObjectList  objectList;     
-    JSCGObjectList  regexpList;     
+    CGObjectList    objectList;     
+    CGObjectList    regexpList;     
 
 
-    js::OwnedAtomIndexMapPtr upvarIndices; 
+    OwnedAtomIndexMapPtr upvarIndices; 
 
-    js::UpvarCookies upvarMap;      
+    UpvarCookies    upvarMap;       
 
-    typedef js::Vector<js::GlobalSlotArray::Entry, 16> GlobalUseVector;
+    typedef Vector<GlobalSlotArray::Entry, 16> GlobalUseVector;
 
     GlobalUseVector globalUses;     
-    js::OwnedAtomIndexMapPtr globalMap; 
+    OwnedAtomIndexMapPtr globalMap; 
 
     
-    typedef js::Vector<uint32, 8> SlotVector;
+    typedef Vector<uint32, 8> SlotVector;
     SlotVector      closedArgs;
     SlotVector      closedVars;
 
     uint16          traceIndex;     
     uint16          typesetCount;   
 
-    JSCodeGenerator(js::Parser *parser, uintN lineno);
-    bool init(JSContext *cx, JSTreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
+    CodeGenerator(Parser *parser, uintN lineno);
+    bool init(JSContext *cx, TreeContext::InitBehavior ib = USED_AS_CODE_GENERATOR);
 
     JSContext *context() {
         return parser->context;
@@ -683,7 +675,7 @@ struct JSCodeGenerator : public JSTreeContext
 
 
 
-    ~JSCodeGenerator();
+    ~CodeGenerator();
 
     
 
@@ -699,7 +691,7 @@ struct JSCodeGenerator : public JSTreeContext
 
 
 
-    bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie *cookie);
+    bool addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie *cookie);
 
     bool hasUpvarIndices() const {
         return upvarIndices.hasMap() && !upvarIndices->empty();
@@ -718,11 +710,11 @@ struct JSCodeGenerator : public JSTreeContext
     bool compilingForEval() const { return !!(flags & TCF_COMPILE_FOR_EVAL); }
     JSVersion version() const { return parser->versionWithFlags(); }
 
-    bool shouldNoteClosedName(JSParseNode *pn);
+    bool shouldNoteClosedName(ParseNode *pn);
 
     JS_ALWAYS_INLINE
     bool makeAtomIndex(JSAtom *atom, jsatomid *indexp) {
-        js::AtomIndexAddPtr p = atomIndices->lookupForAdd(atom);
+        AtomIndexAddPtr p = atomIndices->lookupForAdd(atom);
         if (p) {
             *indexp = p.value();
             return true;
@@ -739,7 +731,7 @@ struct JSCodeGenerator : public JSTreeContext
     bool checkSingletonContext() {
         if (!compileAndGo() || inFunction())
             return false;
-        for (JSStmtInfo *stmt = topStmt; stmt; stmt = stmt->down) {
+        for (StmtInfo *stmt = topStmt; stmt; stmt = stmt->down) {
             if (STMT_IS_LOOP(stmt))
                 return false;
         }
@@ -771,44 +763,46 @@ struct JSCodeGenerator : public JSTreeContext
 #define CG_SWITCH_TO_MAIN(cg)   ((cg)->current = &(cg)->main)
 #define CG_SWITCH_TO_PROLOG(cg) ((cg)->current = &(cg)->prolog)
 
-inline JSCodeGenerator *
-JSTreeContext::asCodeGenerator()
+inline CodeGenerator *
+TreeContext::asCodeGenerator()
 {
     JS_ASSERT(compiling());
-    return static_cast<JSCodeGenerator *>(this);
+    return static_cast<CodeGenerator *>(this);
 }
 
-
-
-
-extern ptrdiff_t
-js_Emit1(JSContext *cx, JSCodeGenerator *cg, JSOp op);
+} 
 
 
 
 
-extern ptrdiff_t
-js_Emit2(JSContext *cx, JSCodeGenerator *cg, JSOp op, jsbytecode op1);
+ptrdiff_t
+js_Emit1(JSContext *cx, js::CodeGenerator *cg, JSOp op);
 
 
 
 
-extern ptrdiff_t
-js_Emit3(JSContext *cx, JSCodeGenerator *cg, JSOp op, jsbytecode op1,
+ptrdiff_t
+js_Emit2(JSContext *cx, js::CodeGenerator *cg, JSOp op, jsbytecode op1);
+
+
+
+
+ptrdiff_t
+js_Emit3(JSContext *cx, js::CodeGenerator *cg, JSOp op, jsbytecode op1,
          jsbytecode op2);
 
 
 
 
-extern ptrdiff_t
-js_Emit5(JSContext *cx, JSCodeGenerator *cg, JSOp op, uint16 op1,
+ptrdiff_t
+js_Emit5(JSContext *cx, js::CodeGenerator *cg, JSOp op, uint16 op1,
          uint16 op2);
 
 
 
 
-extern ptrdiff_t
-js_EmitN(JSContext *cx, JSCodeGenerator *cg, JSOp op, size_t extra);
+ptrdiff_t
+js_EmitN(JSContext *cx, js::CodeGenerator *cg, JSOp op, size_t extra);
 
 
 
@@ -830,40 +824,37 @@ js_EmitN(JSContext *cx, JSCodeGenerator *cg, JSOp op, size_t extra);
 #define CHECK_AND_SET_JUMP_OFFSET_AT(cx,cg,off)                               \
     CHECK_AND_SET_JUMP_OFFSET_AT_CUSTOM(cx, cg, off, return JS_FALSE)
 
-extern JSBool
-js_SetJumpOffset(JSContext *cx, JSCodeGenerator *cg, jsbytecode *pc,
-                 ptrdiff_t off);
+JSBool
+js_SetJumpOffset(JSContext *cx, js::CodeGenerator *cg, jsbytecode *pc, ptrdiff_t off);
 
 
 
 
-extern void
-js_PushStatement(JSTreeContext *tc, JSStmtInfo *stmt, JSStmtType type,
-                 ptrdiff_t top);
+void
+js_PushStatement(js::TreeContext *tc, js::StmtInfo *stmt, js::StmtType type, ptrdiff_t top);
 
 
 
 
 
 
-extern void
-js_PushBlockScope(JSTreeContext *tc, JSStmtInfo *stmt, JSObjectBox *blockBox,
-                  ptrdiff_t top);
+void
+js_PushBlockScope(js::TreeContext *tc, js::StmtInfo *stmt, js::ObjectBox *blockBox, ptrdiff_t top);
 
 
 
 
 
-extern void
-js_PopStatement(JSTreeContext *tc);
+void
+js_PopStatement(js::TreeContext *tc);
 
 
 
 
 
 
-extern JSBool
-js_PopStatementCG(JSContext *cx, JSCodeGenerator *cg);
+JSBool
+js_PopStatementCG(JSContext *cx, js::CodeGenerator *cg);
 
 
 
@@ -877,9 +868,9 @@ js_PopStatementCG(JSContext *cx, JSCodeGenerator *cg);
 
 
 
-extern JSBool
-js_DefineCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
-                             JSParseNode *pn);
+JSBool
+js_DefineCompileTimeConstant(JSContext *cx, js::CodeGenerator *cg, JSAtom *atom,
+                             js::ParseNode *pn);
 
 
 
@@ -895,22 +886,22 @@ js_DefineCompileTimeConstant(JSContext *cx, JSCodeGenerator *cg, JSAtom *atom,
 
 
 
-extern JSStmtInfo *
-js_LexicalLookup(JSTreeContext *tc, JSAtom *atom, jsint *slotp,
-                 JSStmtInfo *stmt = NULL);
+js::StmtInfo *
+js_LexicalLookup(js::TreeContext *tc, JSAtom *atom, jsint *slotp, js::StmtInfo *stmt = NULL);
 
 
 
 
-extern JSBool
-js_EmitTree(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn);
+JSBool
+js_EmitTree(JSContext *cx, js::CodeGenerator *cg, js::ParseNode *pn);
 
 
 
 
-extern JSBool
-js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body);
+JSBool
+js_EmitFunctionScript(JSContext *cx, js::CodeGenerator *cg, js::ParseNode *body);
 
+namespace js {
 
 
 
@@ -941,7 +932,8 @@ js_EmitFunctionScript(JSContext *cx, JSCodeGenerator *cg, JSParseNode *body);
 
 
 
-typedef enum JSSrcNoteType {
+
+enum SrcNoteType {
     SRC_NULL        = 0,        
     SRC_IF          = 1,        
     SRC_BREAK       = 1,        
@@ -990,7 +982,9 @@ typedef enum JSSrcNoteType {
     SRC_NEWLINE     = 22,       
     SRC_SETLINE     = 23,       
     SRC_XDELTA      = 24        
-} JSSrcNoteType;
+};
+
+} 
 
 
 
@@ -1022,9 +1016,9 @@ typedef enum JSSrcNoteType {
                                            | ((d) & SN_XDELTA_MASK)))
 
 #define SN_IS_XDELTA(sn)        ((*(sn) >> SN_DELTA_BITS) >= SRC_XDELTA)
-#define SN_TYPE(sn)             ((JSSrcNoteType)(SN_IS_XDELTA(sn)             \
-                                                 ? SRC_XDELTA                 \
-                                                 : *(sn) >> SN_DELTA_BITS))
+#define SN_TYPE(sn)             ((js::SrcNoteType)(SN_IS_XDELTA(sn)           \
+                                                   ? SRC_XDELTA               \
+                                                   : *(sn) >> SN_DELTA_BITS))
 #define SN_SET_TYPE(sn,type)    SN_MAKE_NOTE(sn, type, SN_DELTA(sn))
 #define SN_IS_GETTABLE(sn)      (SN_TYPE(sn) < SRC_NEWLINE)
 
@@ -1071,23 +1065,21 @@ extern JS_FRIEND_API(uintN)          js_SrcNoteLength(jssrcnote *sn);
 
 
 
-extern intN
-js_NewSrcNote(JSContext *cx, JSCodeGenerator *cg, JSSrcNoteType type);
+intN
+js_NewSrcNote(JSContext *cx, js::CodeGenerator *cg, js::SrcNoteType type);
 
-extern intN
-js_NewSrcNote2(JSContext *cx, JSCodeGenerator *cg, JSSrcNoteType type,
-               ptrdiff_t offset);
+intN
+js_NewSrcNote2(JSContext *cx, js::CodeGenerator *cg, js::SrcNoteType type, ptrdiff_t offset);
 
-extern intN
-js_NewSrcNote3(JSContext *cx, JSCodeGenerator *cg, JSSrcNoteType type,
-               ptrdiff_t offset1, ptrdiff_t offset2);
-
+intN
+js_NewSrcNote3(JSContext *cx, js::CodeGenerator *cg, js::SrcNoteType type, ptrdiff_t offset1,
+               ptrdiff_t offset2);
 
 
 
-extern jssrcnote *
-js_AddToSrcNoteDelta(JSContext *cx, JSCodeGenerator *cg, jssrcnote *sn,
-                     ptrdiff_t delta);
+
+jssrcnote *
+js_AddToSrcNoteDelta(JSContext *cx, js::CodeGenerator *cg, jssrcnote *sn, ptrdiff_t delta);
 
 
 
@@ -1095,9 +1087,9 @@ js_AddToSrcNoteDelta(JSContext *cx, JSCodeGenerator *cg, jssrcnote *sn,
 extern JS_FRIEND_API(ptrdiff_t)
 js_GetSrcNoteOffset(jssrcnote *sn, uintN which);
 
-extern JSBool
-js_SetSrcNoteOffset(JSContext *cx, JSCodeGenerator *cg, uintN index,
-                    uintN which, ptrdiff_t offset);
+JSBool
+js_SetSrcNoteOffset(JSContext *cx, js::CodeGenerator *cg, uintN index, uintN which,
+                    ptrdiff_t offset);
 
 
 
@@ -1130,12 +1122,10 @@ js_SetSrcNoteOffset(JSContext *cx, JSCodeGenerator *cg, uintN index,
         }                                                                     \
     JS_END_MACRO
 
-extern JSBool
-js_FinishTakingSrcNotes(JSContext *cx, JSCodeGenerator *cg, jssrcnote *notes);
+JSBool
+js_FinishTakingSrcNotes(JSContext *cx, js::CodeGenerator *cg, jssrcnote *notes);
 
-extern void
-js_FinishTakingTryNotes(JSCodeGenerator *cg, JSTryNoteArray *array);
-
-JS_END_EXTERN_C
+void
+js_FinishTakingTryNotes(js::CodeGenerator *cg, JSTryNoteArray *array);
 
 #endif 

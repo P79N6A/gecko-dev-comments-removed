@@ -417,7 +417,7 @@ class TokenStream
     bool hasOctalCharacterEscape() const { return flags & TSF_OCTAL_CHAR; }
 
     
-    bool reportCompileErrorNumberVA(JSParseNode *pn, uintN flags, uintN errorNumber, va_list ap);
+    bool reportCompileErrorNumberVA(ParseNode *pn, uintN flags, uintN errorNumber, va_list ap);
     void mungeCurrentToken(TokenKind newKind) { tokens[cursor].type = newKind; }
     void mungeCurrentToken(JSOp newOp) { tokens[cursor].t_op = newOp; }
     void mungeCurrentToken(TokenKind newKind, JSOp newOp) {
@@ -757,7 +757,7 @@ namespace js {
 
 
 bool
-ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, JSParseNode *pn, uintN flags,
+ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, ParseNode *pn, uintN flags,
                          uintN errorNumber, ...);
 
 
@@ -778,7 +778,7 @@ ReportCompileErrorNumber(JSContext *cx, TokenStream *ts, JSParseNode *pn, uintN 
 
 
 bool
-ReportStrictModeError(JSContext *cx, TokenStream *ts, JSTreeContext *tc, JSParseNode *pn,
+ReportStrictModeError(JSContext *cx, TokenStream *ts, TreeContext *tc, ParseNode *pn,
                       uintN errorNumber, ...);
 
 } 
