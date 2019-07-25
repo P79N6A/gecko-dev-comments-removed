@@ -287,9 +287,9 @@ ImageLayerD3D10::RenderLayer()
     }
 
     if (yuvImage->mDevice != device()) {
-	
-	
-	return;
+        
+        
+        return;
     }
 
     
