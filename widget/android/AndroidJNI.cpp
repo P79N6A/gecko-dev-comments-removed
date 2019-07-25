@@ -1013,6 +1013,8 @@ Java_org_mozilla_gecko_GeckoAppShell_getNextMessageFromQueue(JNIEnv* jenv, jclas
         jMessagesField = jenv->GetFieldID(jMessageQueueCls, "mMessages", "Landroid/os/Message;");
         jNextMethod = jenv->GetMethodID(jMessageQueueCls, "next", "()Landroid/os/Message;");
     }
+    if (!jMessageQueueCls || !jMessagesField || !jNextMethod)
+        return NULL;
     jobject msg = jenv->GetObjectField(queue, jMessagesField);
     
     if (!msg)
