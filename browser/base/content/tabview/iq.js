@@ -54,7 +54,6 @@
 
 
 
-
 function iQ(selector, context) {
   
   return new iQClass(selector, context);
@@ -124,7 +123,7 @@ let iQClass = function(selector, context) {
           }
 
         } else {
-            Utils.assert(false, 'does not support complex HTML creation');
+          Utils.assert(false, 'does not support complex HTML creation');
         }
 
         return Utils.merge(this, selector);
@@ -210,10 +209,8 @@ iQClass.prototype = {
   
   
   addClass: function(value) {
-    if (typeof value != "string" || !value) {
-      Utils.assert(false, 'requires a valid string argument');
-      return null;
-    }
+    Utils.assertThrow(typeof value == "string" && value,
+                      'requires a valid string argument');
 
     let length = this.length;
     for (let i = 0; i < length; i++) {
@@ -528,57 +525,53 @@ iQClass.prototype = {
   
   
   animate: function(css, options) {
-    try {
-      Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
+    Utils.assert(this.length == 1, 'does not yet support multi-objects (or null objects)');
 
-      if (!options)
-        options = {};
+    if (!options)
+      options = {};
 
-      let easings = {
-        tabviewBounce: "cubic-bezier(0.0, 0.63, .6, 1.0)", 
-        
-        
-        easeInQuad: 'ease-in', 
-        fast: 'cubic-bezier(0.7,0,1,1)'
-      };
-
-      let duration = (options.duration || 400);
-      let easing = (easings[options.easing] || 'ease');
-
+    let easings = {
+      tabviewBounce: "cubic-bezier(0.0, 0.63, .6, 1.0)", 
       
       
-      
-      let rupper = /([A-Z])/g;
-      this.each(function(elem) {
-        let cStyle = window.getComputedStyle(elem, null);
-        for (let prop in css) {
-          prop = prop.replace(rupper, "-$1").toLowerCase();
-          iQ(elem).css(prop, cStyle.getPropertyValue(prop));
-        }
+      easeInQuad: 'ease-in', 
+      fast: 'cubic-bezier(0.7,0,1,1)'
+    };
+
+    let duration = (options.duration || 400);
+    let easing = (easings[options.easing] || 'ease');
+
+    
+    
+    
+    let rupper = /([A-Z])/g;
+    this.each(function(elem) {
+      let cStyle = window.getComputedStyle(elem, null);
+      for (let prop in css) {
+        prop = prop.replace(rupper, "-$1").toLowerCase();
+        iQ(elem).css(prop, cStyle.getPropertyValue(prop));
+      }
+    });
+
+    this.css({
+      '-moz-transition-property': 'all', 
+      '-moz-transition-duration': (duration / 1000) + 's',
+      '-moz-transition-timing-function': easing
+    });
+
+    this.css(css);
+
+    let self = this;
+    setTimeout(function() {
+      self.css({
+        '-moz-transition-property': 'none',
+        '-moz-transition-duration': '',
+        '-moz-transition-timing-function': ''
       });
 
-      this.css({
-        '-moz-transition-property': 'all', 
-        '-moz-transition-duration': (duration / 1000) + 's',
-        '-moz-transition-timing-function': easing
-      });
-
-      this.css(css);
-
-      let self = this;
-      setTimeout(function() {
-        self.css({
-          '-moz-transition-property': 'none',
-          '-moz-transition-duration': '',
-          '-moz-transition-timing-function': ''
-        });
-
-        if (typeof options.complete == "function")
-          options.complete.apply(self);
-      }, duration);
-    } catch(e) {
-      Utils.log(e);
-    }
+      if (typeof options.complete == "function")
+        options.complete.apply(self);
+    }, duration);
 
     return this;
   },
@@ -639,15 +632,7 @@ iQClass.prototype = {
   
   
   bind: function(type, func) {
-    Utils.assert(typeof func == "function", 'does not support eventData argument');
-
-    let handler = function(event) {
-      try {
-        return func.apply(this, [event]);
-      } catch(e) {
-        Utils.log(e);
-      }
-    };
+    let handler = function(event) func.apply(this, [event]);
 
     for (let i = 0; this[i] != null; i++) {
       let elem = this[i];
