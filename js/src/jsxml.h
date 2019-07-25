@@ -1,40 +1,40 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is SpiderMonkey E4X code, released August, 2004.
- *
- * The Initial Developer of the Original Code is
- * Netscape Communications Corporation.
- * Portions created by the Initial Developer are Copyright (C) 1998
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef jsxml_h___
 #define jsxml_h___
@@ -130,10 +130,10 @@ void js_XMLArrayCursorTrace(JSTracer *trc, JSXMLArrayCursor<JSObject> *cursor);
 #define JSXML_CAPACITY_MASK     JS_BITMASK(31)
 #define JSXML_CAPACITY(array)   ((array)->capacity & JSXML_CAPACITY_MASK)
 
-/*
- * NB: don't reorder this enum without changing all array initializers that
- * depend on it in jsxml.c.
- */
+
+
+
+
 typedef enum JSXMLClass {
     JSXML_CLASS_LIST,
     JSXML_CLASS_ELEMENT,
@@ -155,18 +155,18 @@ typedef enum JSXMLClass {
 #endif
 
 typedef struct JSXMLListVar {
-    JSXMLArray<JSXML>   kids;           /* NB: must come first */
+    JSXMLArray<JSXML>   kids;           
     js::HeapPtrXML      target;
     js::HeapPtrObject   targetprop;
 } JSXMLListVar;
 
 typedef struct JSXMLElemVar {
-    JSXMLArray<JSXML>    kids;          /* NB: must come first */
+    JSXMLArray<JSXML>    kids;          
     JSXMLArray<JSObject> namespaces;
     JSXMLArray<JSXML>    attrs;
 } JSXMLElemVar;
 
-/* union member shorthands */
+
 #define xml_kids        list.kids
 #define xml_target      list.target
 #define xml_targetprop  list.targetprop
@@ -174,7 +174,7 @@ typedef struct JSXMLElemVar {
 #define xml_attrs       elem.attrs
 #define xml_value       value
 
-/* xml_class-testing macros */
+
 #define JSXML_HAS_KIDS(xml)     JSXML_CLASS_HAS_KIDS((xml)->xml_class)
 #define JSXML_HAS_VALUE(xml)    JSXML_CLASS_HAS_VALUE((xml)->xml_class)
 #define JSXML_HAS_NAME(xml)     JSXML_CLASS_HAS_NAME((xml)->xml_class)
@@ -188,18 +188,18 @@ struct JSXML : js::gc::Cell {
     uint32_t            serial;
 #endif
     js::HeapPtrObject   object;
-    void                *domnode;       /* DOM node if mapped info item */
+    void                *domnode;       
     js::HeapPtrXML      parent;
     js::HeapPtrObject   name;
-    uint32_t            xml_class;      /* discriminates u, below */
-    uint32_t            xml_flags;      /* flags, see below */
+    uint32_t            xml_class;      
+    uint32_t            xml_flags;      
 
     JSXMLListVar        list;
     JSXMLElemVar        elem;
     js::HeapPtrString   value;
 
 #if JS_BITS_PER_WORD == 32
-    /* The size of every GC thing must be divisible by the FreeCell size. */
+    
     void *pad;
 #endif
 
@@ -209,7 +209,7 @@ struct JSXML : js::gc::Cell {
     static void writeBarrierPost(JSXML *xml, void *addr);
 };
 
-/* xml_flags values */
+
 #define XMLF_WHITESPACE_TEXT    0x1
 
 extern JSXML *
@@ -236,10 +236,10 @@ js_InitXMLClass(JSContext *cx, JSObject *obj);
 extern JSObject *
 js_InitXMLClasses(JSContext *cx, JSObject *obj);
 
-/*
- * If obj is a QName corresponding to function::name, set *funidp to name's id
- * and return true, else return false.
- */
+
+
+
+
 extern bool
 js_GetLocalNameFromFunctionQName(JSObject *obj, jsid *funidp, JSContext *cx);
 
@@ -249,11 +249,11 @@ js_GetDefaultXMLNamespace(JSContext *cx, jsval *vp);
 extern JSBool
 js_SetDefaultXMLNamespace(JSContext *cx, const js::Value &v);
 
-/*
- * Return true if v is a XML QName object, or if it converts to a string that
- * contains a valid XML qualified name (one containing no :), false otherwise.
- * NB: This function is an infallible predicate, it hides exceptions.
- */
+
+
+
+
+
 extern JSBool
 js_IsXMLName(JSContext *cx, jsval v);
 
@@ -280,14 +280,14 @@ js_ConstructXMLQNameObject(JSContext *cx, const js::Value & nsval,
 extern JSBool
 js_GetAnyName(JSContext *cx, jsid *idp);
 
-/*
- * Note: nameval must be either QName, AttributeName, or AnyName.
- */
+
+
+
 extern JSBool
 js_FindXMLProperty(JSContext *cx, const js::Value &nameval, JSObject **objp, jsid *idp);
 
 extern JSBool
-js_GetXMLMethod(JSContext *cx, JSObject *obj, jsid id, js::Value *vp);
+js_GetXMLMethod(JSContext *cx, js::HandleObject obj, jsid id, js::Value *vp);
 
 extern JSBool
 js_GetXMLDescendants(JSContext *cx, JSObject *obj, jsval id, jsval *vp);
@@ -317,7 +317,7 @@ js_MakeXMLCommentString(JSContext *cx, JSString *str);
 extern JSString *
 js_MakeXMLPIString(JSContext *cx, JSString *name, JSString *str);
 
-/* The caller must ensure that either v1 or v2 is an object. */
+
 extern JSBool
 js_TestXMLEquality(JSContext *cx, const js::Value &v1, const js::Value &v2,
                    JSBool *bp);
@@ -330,6 +330,6 @@ namespace js {
 extern bool
 GetLocalNameFromFunctionQName(JSObject *qn, JSAtom **namep, JSContext *cx);
 
-} /* namespace js */
+} 
 
-#endif /* jsxml_h___ */
+#endif 

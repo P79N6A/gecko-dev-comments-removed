@@ -745,9 +745,6 @@ struct JSArgumentFormatMap {
 
 namespace js {
 
-template <typename T> class Root;
-class CheckRoot;
-
 struct AutoResolving;
 
 static inline bool
@@ -1023,29 +1020,6 @@ struct JSContext : js::ContextFriendFields
 
 
 #endif
-
-
-#ifdef JSGC_ROOT_ANALYSIS
-
-    
-
-
-
-    js::Root<js::gc::Cell*> *thingGCRooters[js::THING_ROOT_COUNT];
-
-#ifdef DEBUG
-    
-
-
-
-
-
-
-
-    js::CheckRoot *checkGCRooters;
-#endif
-
-#endif 
 
     
     unsigned               resolveFlags;

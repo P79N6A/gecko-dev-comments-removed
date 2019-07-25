@@ -73,28 +73,6 @@ js_IdIsIndex(jsid id, uint32_t *indexp)
     return js::StringIsArrayIndex(JSID_TO_ATOM(id), indexp);
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-inline JSObject *
-js_GetProtoIfDenseArray(JSObject *obj);
-
 extern JSObject *
 js_InitArrayClass(JSContext *cx, JSObject *obj);
 

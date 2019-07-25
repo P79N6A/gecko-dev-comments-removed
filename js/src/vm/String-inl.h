@@ -1,42 +1,42 @@
-/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- * vim: set ts=4 sw=4 et tw=79 ft=cpp:
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is SpiderMonkey JavaScript engine.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2009
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Luke Wagner <luke@mozilla.com>
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef String_inl_h__
 #define String_inl_h__
@@ -117,7 +117,7 @@ JSRope::init(JSString *left, JSString *right, size_t length)
 }
 
 JS_ALWAYS_INLINE JSRope *
-JSRope::new_(JSContext *cx, JSString *left, JSString *right, size_t length)
+JSRope::new_(JSContext *cx, js::HandleString left, js::HandleString right, size_t length)
 {
     if (!validateLength(cx, length))
         return NULL;
@@ -138,6 +138,7 @@ JSRope::markChildren(JSTracer *trc)
 JS_ALWAYS_INLINE void
 JSDependentString::init(JSLinearString *base, const jschar *chars, size_t length)
 {
+    JS_ASSERT(!js::IsPoisonedPtr(base));
     d.lengthAndFlags = buildLengthAndFlags(length, DEPENDENT_BIT);
     d.u1.chars = chars;
     d.s.u2.base = base;
@@ -147,13 +148,22 @@ JSDependentString::init(JSLinearString *base, const jschar *chars, size_t length
 JS_ALWAYS_INLINE JSDependentString *
 JSDependentString::new_(JSContext *cx, JSLinearString *base, const jschar *chars, size_t length)
 {
-    /* Try to avoid long chains of dependent strings. */
+    
     while (base->isDependent())
         base = base->asDependent().base();
 
     JS_ASSERT(base->isFlat());
     JS_ASSERT(chars >= base->chars() && chars < base->chars() + base->length());
     JS_ASSERT(length <= base->length() - (chars - base->chars()));
+
+    JS::Root<JSLinearString*> baseRoot(cx, &base);
+
+    
+
+
+
+
+    JS::SkipRoot charsRoot(cx, &chars);
 
     JSDependentString *str = (JSDependentString *)js_NewGCString(cx);
     if (!str)
@@ -350,7 +360,7 @@ js::StaticStrings::getLength2(uint32_t i)
     return getLength2('0' + i / 10, '0' + i % 10);
 }
 
-/* Get a static atomized string for chars if possible. */
+
 inline JSAtom *
 js::StaticStrings::lookup(const jschar *chars, size_t length)
 {
@@ -364,12 +374,12 @@ js::StaticStrings::lookup(const jschar *chars, size_t length)
             return getLength2(chars[0], chars[1]);
         return NULL;
       case 3:
-        /*
-         * Here we know that JSString::intStringTable covers only 256 (or at least
-         * not 1000 or more) chars. We rely on order here to resolve the unit vs.
-         * int string/length-2 string atom identity issue by giving priority to unit
-         * strings for "0" through "9" and length-2 strings for "10" through "99".
-         */
+        
+
+
+
+
+
         JS_STATIC_ASSERT(INT_STATIC_LIMIT <= 999);
         if ('1' <= chars[0] && chars[0] <= '9' &&
             '0' <= chars[1] && chars[1] <= '9' &&
@@ -390,7 +400,7 @@ js::StaticStrings::lookup(const jschar *chars, size_t length)
 JS_ALWAYS_INLINE void
 JSString::finalize(js::FreeOp *fop)
 {
-    /* Shorts are in a different arena. */
+    
     JS_ASSERT(!isShort());
 
     if (isFlat())
@@ -404,10 +414,10 @@ JSFlatString::finalize(js::FreeOp *fop)
 {
     JS_ASSERT(!isShort());
 
-    /*
-     * This check depends on the fact that 'chars' is only initialized to the
-     * beginning of inlineStorage. E.g., this is not the case for short strings.
-     */
+    
+
+
+
     if (chars() != d.inlineStorage)
         fop->free_(const_cast<jschar *>(chars()));
 }
@@ -440,10 +450,10 @@ namespace js {
 static JS_ALWAYS_INLINE JSFixedString *
 NewShortString(JSContext *cx, const jschar *chars, size_t length)
 {
-    /*
-     * Don't bother trying to find a static atom; measurement shows that not
-     * many get here (for one, Atomize is catching them).
-     */
+    
+
+
+
     JS_ASSERT(JSShortString::lengthFits(length));
     JSInlineString *str = JSInlineString::lengthFits(length)
                           ? JSInlineString::new_(cx)
@@ -458,6 +468,6 @@ NewShortString(JSContext *cx, const jschar *chars, size_t length)
     return str;
 }
 
-} /* namespace js */
+} 
 
 #endif

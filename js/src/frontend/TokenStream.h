@@ -336,12 +336,14 @@ struct Token {
 
     void setName(JSOp op, PropertyName *name) {
         JS_ASSERT(op == JSOP_NAME);
+        JS_ASSERT(!IsPoisonedPtr(name));
         u.s.op = op;
         u.s.n.name = name;
     }
 
     void setAtom(JSOp op, JSAtom *atom) {
         JS_ASSERT(op == JSOP_STRING || op == JSOP_XMLCOMMENT || JSOP_XMLCDATA);
+        JS_ASSERT(!IsPoisonedPtr(atom));
         u.s.op = op;
         u.s.n.atom = atom;
     }
@@ -350,6 +352,8 @@ struct Token {
         JS_ASSERT(target);
         JS_ASSERT(data);
         JS_ASSERT(!target->empty());
+        JS_ASSERT(!IsPoisonedPtr(target));
+        JS_ASSERT(!IsPoisonedPtr(data));
         u.xmlpi.target = target;
         u.xmlpi.data = data;
     }
@@ -808,13 +812,15 @@ class TokenStream
     void updateFlagsForEOL();
 
     Token               tokens[ntokens];
-    unsigned               cursor;         
-    unsigned               lookahead;      
-    unsigned               lineno;         
-    unsigned               flags;          
+    JS::SkipRoot        tokensRoot;     
+    unsigned            cursor;         
+    unsigned            lookahead;      
+    unsigned            lineno;         
+    unsigned            flags;          
     const jschar        *linebase;      
     const jschar        *prevLinebase;  
     TokenBuf            userbuf;        
+    JS::SkipRoot        userbufRoot;    
     const char          *filename;      
     jschar              *sourceMap;     
     void                *listenerTSData;
