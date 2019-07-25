@@ -4679,9 +4679,7 @@ huge_malloc(size_t size, bool zero)
 {
 	void *ret;
 	size_t csize;
-#ifdef MALLOC_DECOMMIT
 	size_t psize;
-#endif
 	extent_node_t *node;
 
 	
@@ -4705,22 +4703,33 @@ huge_malloc(size_t size, bool zero)
 
 	
 	node->addr = ret;
-#ifdef MALLOC_DECOMMIT
 	psize = PAGE_CEILING(size);
 	node->size = psize;
-#else
-	node->size = csize;
-#endif
 
 	malloc_mutex_lock(&huge_mtx);
 	extent_tree_ad_insert(&huge, node);
 #ifdef MALLOC_STATS
 	huge_nmalloc++;
-#  ifdef MALLOC_DECOMMIT
+
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	huge_allocated += psize;
-#  else
-	huge_allocated += csize;
-#  endif
 #endif
 	malloc_mutex_unlock(&huge_mtx);
 
@@ -4761,9 +4770,7 @@ huge_palloc(size_t alignment, size_t size)
 {
 	void *ret;
 	size_t alloc_size, chunk_size, offset;
-#ifdef MALLOC_DECOMMIT
 	size_t psize;
-#endif
 	extent_node_t *node;
 	int pfd;
 
@@ -4832,22 +4839,16 @@ huge_palloc(size_t alignment, size_t size)
 #endif
 	
 	node->addr = ret;
-#ifdef MALLOC_DECOMMIT
 	psize = PAGE_CEILING(size);
 	node->size = psize;
-#else
-	node->size = chunk_size;
-#endif
 
 	malloc_mutex_lock(&huge_mtx);
 	extent_tree_ad_insert(&huge, node);
 #ifdef MALLOC_STATS
 	huge_nmalloc++;
-#  ifdef MALLOC_DECOMMIT
+        
+
 	huge_allocated += psize;
-#  else
-	huge_allocated += chunk_size;
-#  endif
 #endif
 	malloc_mutex_unlock(&huge_mtx);
 
@@ -4897,9 +4898,7 @@ huge_ralloc(void *ptr, size_t size, size_t oldsize)
 
 	if (oldsize > arena_maxclass &&
 	    CHUNK_CEILING(size) == CHUNK_CEILING(oldsize)) {
-#ifdef MALLOC_DECOMMIT
 		size_t psize = PAGE_CEILING(size);
-#endif
 #ifdef MALLOC_FILL
 		if (opt_junk && size < oldsize) {
 			memset((void *)((uintptr_t)ptr + size), 0x5a, oldsize
@@ -4925,24 +4924,32 @@ huge_ralloc(void *ptr, size_t size, size_t oldsize)
 			node->size = psize;
 			malloc_mutex_unlock(&huge_mtx);
 		} else if (psize > oldsize) {
-			extent_node_t *node, key;
-
 			pages_commit((void *)((uintptr_t)ptr + oldsize),
 			    psize - oldsize);
-
-			
-			malloc_mutex_lock(&huge_mtx);
-			key.addr = __DECONST(void *, ptr);
-			node = extent_tree_ad_search(&huge, &key);
-			assert(node != NULL);
-			assert(node->size == oldsize);
-#  ifdef MALLOC_STATS
-			huge_allocated += psize - oldsize;
-#  endif
-			node->size = psize;
-			malloc_mutex_unlock(&huge_mtx);
-		}
+                }
 #endif
+
+                
+
+
+
+
+
+                if (psize > oldsize) {
+                        
+                        extent_node_t *node, key;
+                        malloc_mutex_lock(&huge_mtx);
+                        key.addr = __DECONST(void *, ptr);
+                        node = extent_tree_ad_search(&huge, &key);
+                        assert(node != NULL);
+                        assert(node->size == oldsize);
+#  ifdef MALLOC_STATS
+                        huge_allocated += psize - oldsize;
+#  endif
+                        node->size = psize;
+                        malloc_mutex_unlock(&huge_mtx);
+                }
+
 #ifdef MALLOC_FILL
 		if (opt_zero && size > oldsize) {
 			memset((void *)((uintptr_t)ptr + oldsize), 0, size
@@ -4998,11 +5005,7 @@ huge_dalloc(void *ptr)
 	if (opt_junk)
 		memset(node->addr, 0x5a, node->size);
 #endif
-#ifdef MALLOC_DECOMMIT
 	chunk_dealloc(node->addr, CHUNK_CEILING(node->size));
-#else
-	chunk_dealloc(node->addr, node->size);
-#endif
 	VALGRIND_FREELIKE_BLOCK(node->addr, 0);
 
 	base_node_dealloc(node);
