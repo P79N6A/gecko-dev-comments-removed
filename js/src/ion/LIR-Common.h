@@ -761,20 +761,40 @@ class LBitNotV : public LCallInstructionHelper<1, BOX_PIECES, 0>
 
 
 
-class LBitOp : public LInstructionHelper<1, 2, 0>
+class LBitOpI : public LInstructionHelper<1, 2, 0>
 {
     JSOp op_;
 
   public:
-    LIR_HEADER(BitOp);
+    LIR_HEADER(BitOpI);
 
-    LBitOp(JSOp op)
+    LBitOpI(JSOp op)
       : op_(op)
     { }
 
     JSOp bitop() {
         return op_;
     }
+};
+
+
+class LBitOpV : public LCallInstructionHelper<1, 2 * BOX_PIECES, 0>
+{
+    JSOp jsop_;
+
+  public:
+    LIR_HEADER(BitOpV);
+
+    LBitOpV(JSOp jsop)
+      : jsop_(jsop)
+    { }
+
+    JSOp jsop() const {
+        return jsop_;
+    }
+
+    static const size_t LhsInput = 0;
+    static const size_t RhsInput = BOX_PIECES;
 };
 
 

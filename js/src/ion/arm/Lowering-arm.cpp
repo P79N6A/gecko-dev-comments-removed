@@ -254,7 +254,7 @@ LIRGeneratorARM::lowerForShift(LInstructionHelper<1, 2, 0> *ins, MDefinition *mi
         
         
         
-        LBitOp *LAnd = new LBitOp(JSOP_BITAND);
+        LBitOpI *LAnd = new LBitOpI(JSOP_BITAND);
         LAnd->setOperand(0, useRegister(rhs));
         LAnd->setOperand(1, LConstantIndex::FromIndex(0x1f));
         LAnd->setDef(0, LDefinition(LDefinition::TypeFrom(mir->type()), LDefinition::DEFAULT));
