@@ -123,7 +123,7 @@ typedef enum JSShellExitCode {
 size_t gStackChunkSize = 8192;
 
 
-#if defined(DEBUG) && defined(__SUNPRO_CC)
+#if (defined(DEBUG) && defined(__SUNPRO_CC))  || defined(JS_CPU_SPARC)
 
 
 #define DEFAULT_MAX_STACK_SIZE 5000000
