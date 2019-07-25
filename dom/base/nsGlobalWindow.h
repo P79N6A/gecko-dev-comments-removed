@@ -453,7 +453,7 @@ public:
   bool ConfirmDialogIfNeeded();
 
   
-  void PreventFurtherDialogs();
+  void PreventFurtherDialogs(bool aPermanent);
 
   virtual void SetHasAudioAvailableEventListeners();
 
@@ -1058,6 +1058,11 @@ protected:
   
   
   bool                          mStopAbuseDialogs;
+
+  
+  
+  
+  bool                          mDialogsPermanentlyDisabled;
 
   nsRefPtr<nsDOMMozURLProperty> mURLProperty;
 
