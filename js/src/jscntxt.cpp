@@ -138,6 +138,33 @@ ThreadData::init()
 }
 
 void
+ThreadData::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
+                                size_t *regexpCode, size_t *stackCommitted)
+{
+    
+
+
+
+
+
+    
+
+
+
+    *normal = mallocSizeOf(dtoaState, 0);
+
+    *temporary = tempLifoAlloc.sizeOfExcludingThis(mallocSizeOf);
+
+    size_t method = 0, regexp = 0, unused = 0;
+    if (execAlloc)
+        execAlloc->sizeOfCode(&method, &regexp, &unused);
+    JS_ASSERT(method == 0);     
+    *regexpCode = regexp + unused;
+
+    *stackCommitted = stackSpace.sizeOfCommitted();
+}
+
+void
 ThreadData::triggerOperationCallback(JSRuntime *rt)
 {
     JS_ASSERT(rt == this->rt);
@@ -218,6 +245,14 @@ js_GetCurrentScript(JSContext *cx)
 
 
 #ifdef JS_THREADSAFE
+
+void
+JSThread::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf, size_t *normal, size_t *temporary,
+                              size_t *regexpCode, size_t *stackCommitted)
+{
+    data.sizeOfExcludingThis(mallocSizeOf, normal, temporary, regexpCode, stackCommitted);
+    *normal += mallocSizeOf(this, sizeof(JSThread));
+}
 
 JSThread *
 js_CurrentThreadAndLockGC(JSRuntime *rt)
@@ -1664,6 +1699,18 @@ JSContext::updateJITEnabled()
 # endif
                         ;
 #endif
+}
+
+size_t
+JSContext::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
+{
+    
+
+
+
+
+    return mallocSizeOf(this, sizeof(JSContext)) +
+           busyArrays.sizeOfExcludingThis(mallocSizeOf);
 }
 
 namespace js {

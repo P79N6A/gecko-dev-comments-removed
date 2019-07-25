@@ -181,7 +181,7 @@ class StackSpace
     void mark(JSTracer *trc);
 
     
-    JS_FRIEND_API(size_t) committedSize();
+    JS_FRIEND_API(size_t) sizeOfCommitted();
 };
 
 
