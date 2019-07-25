@@ -1142,6 +1142,15 @@ pref("intl.hyphenation-alias.de-*", "de-1996");
 pref("intl.hyphenation-alias.de-DE-1901", "de-1901");
 pref("intl.hyphenation-alias.de-CH-*", "de-CH");
 
+
+
+
+pref("intl.hyphenation-alias.sr", "sh");
+pref("intl.hyphenation-alias.bs", "sh");
+pref("intl.hyphenation-alias.sh-*", "sh");
+pref("intl.hyphenation-alias.sr-*", "sh");
+pref("intl.hyphenation-alias.bs-*", "sh");
+
 pref("font.mathfont-family", "STIXNonUnicode, STIXSizeOneSym, STIXSize1, STIXGeneral, Asana Math, Standard Symbols L, DejaVu Sans, Cambria Math");
 
 
