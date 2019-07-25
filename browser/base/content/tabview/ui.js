@@ -67,6 +67,10 @@ let UI = {
 
   
   
+  restoredClosedTab : false,
+
+  
+  
   
   _reorderTabItemsOnShow : [],
 
@@ -718,14 +722,25 @@ let UI = {
 
     
     if (this.isTabViewVisible() &&
-        (this._closedLastVisibleTab || this._closedSelectedTabInTabView)) {
+        (this._closedLastVisibleTab || this._closedSelectedTabInTabView ||
+         this.restoredClosedTab)) {
+      if (this.restoredClosedTab) {
+        
+        
+        tab.linkedBrowser.addEventListener("load", function (event) {
+          tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+          TabItems._update(tab);
+        }, true);
+      }
       this._closedLastVisibleTab = false;
       this._closedSelectedTabInTabView = false;
+      this.restoredClosedTab = false;
       return;
     }
     
     this._closedLastVisibleTab = false;
     this._closedSelectedTabInTabView = false;
+    this.restoredClosedTab = false;
 
     
     
