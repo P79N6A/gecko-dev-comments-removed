@@ -230,6 +230,8 @@ private:
 
     nsresult GetFontSubstitutes();
 
+    void GetDirectWriteSubstitutes();
+
     
 
 

@@ -895,6 +895,13 @@ gfxDWriteFontList::DelayedInitFontList()
     
     
     
+    
+    GetDirectWriteSubstitutes();
+
+    
+    
+    
+    
 
     nsAutoString nameGillSans(L"Gill Sans");
     nsAutoString nameGillSansMT(L"Gill Sans MT");
@@ -1033,6 +1040,43 @@ gfxDWriteFontList::GetFontSubstitutes()
         }
     }
     return NS_OK;
+}
+
+struct FontSubstitution {
+    const WCHAR* aliasName;
+    const WCHAR* actualName;
+};
+
+static const FontSubstitution sDirectWriteSubs[] = {
+    { L"MS Sans Serif", L"Microsoft Sans Serif" },
+    { L"MS Serif", L"Times New Roman" },
+    { L"Courier", L"Courier New" },
+    { L"Small Fonts", L"Arial" },
+    { L"Roman", L"Times New Roman" },
+    { L"Script", L"Mistral" }
+};
+
+void
+gfxDWriteFontList::GetDirectWriteSubstitutes()
+{
+    for (PRUint32 i = 0; i < NS_ARRAY_LENGTH(sDirectWriteSubs); ++i) {
+        const FontSubstitution& sub(sDirectWriteSubs[i]);
+        nsAutoString substituteName((PRUnichar*)sub.aliasName);
+        BuildKeyNameFromFontName(substituteName);
+        if (nsnull != mFontFamilies.GetWeak(substituteName)) {
+            
+            
+            continue;
+        }
+        nsAutoString actualFontName((PRUnichar*)sub.actualName);
+        BuildKeyNameFromFontName(actualFontName);
+        gfxFontFamily *ff;
+        if (nsnull != (ff = mFontFamilies.GetWeak(actualFontName))) {
+            mFontSubstitutes.Put(substituteName, ff);
+        } else {
+            mNonExistingFonts.AppendElement(substituteName);
+        }
+    }
 }
 
 PRBool
