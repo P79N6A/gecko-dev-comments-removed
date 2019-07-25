@@ -564,19 +564,22 @@ ContentParent::Observe(nsISupports* aSubject,
         }
 
         if (prefNeedUpdate) {
-            
-            
-            PrefTuple pref;
-            nsresult rv = prefService->MirrorPreference(strData, &pref);
-            NS_ASSERTION(NS_SUCCEEDED(rv), "Pref has value but can't mirror?");
-            if (!SendPreferenceUpdate(pref)) {
-                return NS_ERROR_NOT_AVAILABLE;
-            }
+          
+          
+          PrefTuple pref;
+#ifdef DEBUG
+          nsresult rv =
+#endif
+          prefService->MirrorPreference(strData, &pref);
+          NS_ASSERTION(NS_SUCCEEDED(rv), "Pref has value but can't mirror?");
+          if (!SendPreferenceUpdate(pref)) {
+              return NS_ERROR_NOT_AVAILABLE;
+          }
         } else {
-            
-            if (!SendClearUserPreference(strData)) {
-                return NS_ERROR_NOT_AVAILABLE;
-            }
+          
+          if (!SendClearUserPreference(strData)) {
+              return NS_ERROR_NOT_AVAILABLE;
+          }
         }
     }
     else if (!strcmp(aTopic, NS_IPC_IOSERVICE_SET_OFFLINE_TOPIC)) {
