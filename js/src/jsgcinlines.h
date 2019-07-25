@@ -345,7 +345,12 @@ TypedMarker(JSTracer *trc, JSFunction *thing)
 static JS_ALWAYS_INLINE void
 TypedMarker(JSTracer *trc, JSShortString *thing)
 {
-    thing->asCell()->markIfUnmarked();
+    
+
+
+
+
+    (void) thing->asCell()->markIfUnmarked();
 }
 
 }  
