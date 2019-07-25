@@ -4247,14 +4247,12 @@ var XULBrowserWindow = {
 
   
   _state: null,
-  _tooltipText: null,
   _hostChanged: false, 
 
   onSecurityChange: function (aWebProgress, aRequest, aState) {
     
     
     if (this._state == aState &&
-        this._tooltipText == gBrowser.securityUI.tooltipText &&
         !this._hostChanged) {
 #ifdef DEBUG
       try {
@@ -4280,7 +4278,6 @@ var XULBrowserWindow = {
 #endif
 
     this._hostChanged = false;
-    this._tooltipText = gBrowser.securityUI.tooltipText
 
     
     
@@ -4440,19 +4437,26 @@ var CombinedStopReload = {
     if (!this._initialized)
       return;
 
+    this.reload.removeAttribute("displaystop");
+
     if (!aDelay || this._stopClicked) {
       this._stopClicked = false;
       this._cancelTransition();
-      this.reload.removeAttribute("displaystop");
+      this.reload.disabled = XULBrowserWindow.reloadCommand
+                                             .getAttribute("disabled") == "true";
       return;
     }
 
     if (this._timer)
       return;
 
+    
+    
+    this.reload.disabled = true;
     this._timer = setTimeout(function (self) {
       self._timer = 0;
-      self.reload.removeAttribute("displaystop");
+      self.reload.disabled = XULBrowserWindow.reloadCommand
+                                             .getAttribute("disabled") == "true";
     }, 650, this);
   },
 
@@ -5871,6 +5875,11 @@ var IndexedDBPromptHelper = {
 
 function WindowIsClosing()
 {
+  if (TabView.isVisible()) {
+    TabView.hide();
+    return false;
+  }
+
   var reallyClose = closeWindow(false, warnAboutClosingWindow);
   if (!reallyClose)
     return false;
@@ -7903,6 +7912,9 @@ var TabContextMenu = {
     let unpinnedTabs = gBrowser.visibleTabs.length - gBrowser._numPinnedTabs;
     document.getElementById("context_closeOtherTabs").disabled = unpinnedTabs <= 1;
     document.getElementById("context_closeOtherTabs").hidden = this.contextTab.pinned;
+
+    
+    document.getElementById("context_tabViewMenu").disabled = this.contextTab.pinned;
   }
 };
 
