@@ -2891,7 +2891,24 @@ nsWindow::OnContainerFocusOutEvent(GtkWidget *aWidget, GdkEventFocus *aEvent)
     LOGFOCUS(("OnContainerFocusOutEvent [%p]\n", (void *)this));
 
     if (mWindowType == eWindowType_toplevel || mWindowType == eWindowType_dialog) {
-        check_for_rollup(aEvent->window, 0, 0, PR_FALSE, PR_TRUE);
+        nsCOMPtr<nsIDragService> dragService = do_GetService(kCDragServiceCID);
+        nsCOMPtr<nsIDragSession> dragSession;
+        dragService->GetCurrentSession(getter_AddRefs(dragSession));
+
+        
+        
+        
+        PRBool shouldRollup = !dragSession;
+        if (!shouldRollup) {
+            
+            nsCOMPtr<nsIDOMNode> sourceNode;
+            dragSession->GetSourceNode(getter_AddRefs(sourceNode));
+            shouldRollup = (sourceNode == nsnull);
+        }
+
+        if (shouldRollup) {
+            check_for_rollup(aEvent->window, 0, 0, PR_FALSE, PR_TRUE);
+        }
     }
 
 #ifdef MOZ_X11
