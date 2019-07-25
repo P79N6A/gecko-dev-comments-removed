@@ -531,6 +531,15 @@ private:
     else {
       rv = mHistory->InsertPlace(aPlace);
       NS_ENSURE_SUCCESS(rv, rv);
+
+      
+      
+      if (mCallback) {
+        bool exists = mHistory->FetchPageInfo(aPlace);
+        if (!exists) {
+          NS_NOTREACHED("should have an entry in moz_places");
+        }
+      }
     }
 
     rv = AddVisit(aPlace, aReferrer);
@@ -560,14 +569,34 @@ private:
   {
     NS_PRECONDITION(!_place.spec.IsEmpty(), "must have a non-empty spec!");
 
-    nsCOMPtr<mozIStorageStatement> stmt =
-      mHistory->syncStatements.GetCachedStatement(
+    nsCOMPtr<mozIStorageStatement> stmt;
+    
+    if (_place.visitTime) {
+      stmt = mHistory->syncStatements.GetCachedStatement(
+        "SELECT id, session, visit_date "
+        "FROM moz_historyvisits "
+        "WHERE place_id = (SELECT id FROM moz_places WHERE url = :page_url) "
+        "AND visit_date = :visit_date "
+      );
+      NS_ENSURE_TRUE(stmt, false);
+
+      mozStorageStatementScoper scoper(stmt);
+      nsresult rv = stmt->BindInt64ByName(NS_LITERAL_CSTRING("visit_date"),
+                                          _place.visitTime);
+      NS_ENSURE_SUCCESS(rv, rv);
+
+      scoper.Abandon();
+    }
+    
+    else {
+      stmt = mHistory->syncStatements.GetCachedStatement(
         "SELECT id, session, visit_date "
         "FROM moz_historyvisits "
         "WHERE place_id = (SELECT id FROM moz_places WHERE url = :page_url) "
         "ORDER BY visit_date DESC "
       );
-    NS_ENSURE_TRUE(stmt, false);
+      NS_ENSURE_TRUE(stmt, false);
+    }
     mozStorageStatementScoper scoper(stmt);
 
     nsresult rv = URIBinder::Bind(stmt, NS_LITERAL_CSTRING("page_url"),
@@ -689,10 +718,7 @@ private:
 
     
     
-    bool visited = FetchVisitInfo(_place);
-    if (visited) {
-      NS_NOTREACHED("Not visited after adding a visit!");
-    }
+    (void)FetchVisitInfo(_place);
 
     return NS_OK;
   }
