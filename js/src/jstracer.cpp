@@ -300,7 +300,6 @@ TypeToChar(JSValueType type)
       case JSVAL_TYPE_BOXED: return '#';
       case JSVAL_TYPE_STRORNULL: return 's';
       case JSVAL_TYPE_OBJORNULL: return 'o';
-      case JSVAL_TYPE_UNINITIALIZED: return '*';
     }
     return '?';
 }
@@ -3660,7 +3659,6 @@ TraceRecorder::importGlobalSlot(unsigned slot)
         JS_ASSERT(tree->nGlobalTypes() == tree->globalSlots->length());
     } else {
         type = importTypeMap[importStackSlots + index];
-        JS_ASSERT(type != JSVAL_TYPE_UNINITIALIZED);
     }
     import(EosAddress(eos_ins, slot * sizeof(double)), vp, type, "global", index, NULL);
 }
@@ -3809,7 +3807,6 @@ TraceRecorder::getImpl(const void *p)
     } else {
         unsigned slot = nativeStackSlotImpl(p);
         JSValueType type = importTypeMap[slot];
-        JS_ASSERT(type != JSVAL_TYPE_UNINITIALIZED);
         importImpl(StackAddress(lirbuf->sp, -tree->nativeStackBase + slot * sizeof(jsdouble)),
                    p, type, "stack", slot, cx->fp());
     }
@@ -4033,7 +4030,6 @@ TraceRecorder::determineSlotType(Value* vp)
         } else {
             t = importTypeMap[nativeStackSlot(vp)];
         }
-        JS_ASSERT(t != JSVAL_TYPE_UNINITIALIZED);
         JS_ASSERT_IF(t == JSVAL_TYPE_INT32, hasInt32Repr(*vp));
         return t;
     }
@@ -5194,6 +5190,28 @@ TraceRecorder::prepareTreeCall(TreeFragment* inner)
     w.xbarrier(createGuardRecord(exit));
 }
 
+class ClearSlotsVisitor : public SlotVisitorBase
+{
+    Tracker &tracker;
+  public:
+    ClearSlotsVisitor(Tracker &tracker)
+      : tracker(tracker)
+    {}
+
+    JS_ALWAYS_INLINE bool
+    visitStackSlots(Value *vp, size_t count, JSStackFrame *) {
+        for (Value *vpend = vp + count; vp != vpend; ++vp)
+            tracker.set(vp, NULL);
+        return true;
+    }
+
+    JS_ALWAYS_INLINE bool
+    visitFrameObjPtr(void *p, JSStackFrame *) {
+        tracker.set(p, NULL);
+        return true;
+    }
+};
+
 static unsigned
 BuildGlobalTypeMapFromInnerTree(Queue<JSValueType>& typeMap, VMSideExit* inner)
 {
@@ -5276,31 +5294,8 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit)
 #endif
 
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    clearCurrentFrameSlotsFromTracker(tracker);
+    ClearSlotsVisitor visitor(tracker);
+    VisitStackSlots(visitor, cx, callDepth);
     SlotList& gslots = *tree->globalSlots;
     for (unsigned i = 0; i < gslots.length(); i++) {
         unsigned slot = gslots[i];
@@ -5310,10 +5305,6 @@ TraceRecorder::emitTreeCall(TreeFragment* inner, VMSideExit* exit)
 
     
     importTypeMap.setLength(NativeStackSlots(cx, callDepth));
-#ifdef DEBUG
-    for (unsigned i = importStackSlots; i < importTypeMap.length(); i++)
-        importTypeMap[i] = JSVAL_TYPE_UNINITIALIZED;
-#endif
     unsigned startOfInnerFrame = importTypeMap.length() - exit->numStackSlots;
     for (unsigned i = 0; i < exit->numStackSlots; i++)
         importTypeMap[startOfInnerFrame + i] = exit->stackTypeMap()[i];
@@ -10171,45 +10162,21 @@ TraceRecorder::guardNativeConversion(Value& v)
     return RECORD_CONTINUE;
 }
 
-
-
-
-
-
-
 JS_REQUIRES_STACK void
-TraceRecorder::clearCurrentFrameSlotsFromTracker(Tracker& which)
+TraceRecorder::clearReturningFrameFromNativeveTracker()
 {
-    JSStackFrame *const fp = cx->fp();
-
     
 
 
 
 
-    if (fp->isGlobalFrame()) {
-        Value *vp = fp->slots() + fp->globalScript()->nfixed;
-        Value *vpend = fp->slots() + fp->globalScript()->nslots;
-        for (; vp < vpend; ++vp)
-            which.set(vp, (LIns*)0);
-        return;
-    }
 
-    if (!fp->isEvalFrame()) {
-        
-        Value *vp = fp->actualArgs() - 2 ;
-        Value *vpend = fp->formalArgsEnd();
-        for (; vp < vpend; ++vp)
-            which.set(vp, (LIns*)0);
-    }
-
-    which.set(fp->addressOfArgs(), (LIns*)0);
-    which.set(fp->addressOfScopeChain(), (LIns*)0);
-
-    Value *vp = fp->slots();
-    Value *vpend = fp->slots() + fp->functionScript()->nslots;
+    ClearSlotsVisitor visitor(nativeFrameTracker);
+    VisitStackSlots(visitor, cx, 0);
+    Value *vp = cx->regs->sp;
+    Value *vpend = cx->fp()->slots() + cx->fp()->script()->nslots;
     for (; vp < vpend; ++vp)
-        which.set(vp, (LIns*)0);
+        nativeFrameTracker.set(vp, NULL);
 }
 
 class BoxArg
@@ -10502,7 +10469,7 @@ TraceRecorder::record_JSOP_RETURN()
                       fp->fun()->atom ?
                         js_AtomToPrintableString(cx, fp->fun()->atom, &funBytes) :
                         "<anonymous>");
-    clearCurrentFrameSlotsFromTracker(nativeFrameTracker);
+    clearReturningFrameFromNativeveTracker();
 
     return ARECORD_CONTINUE;
 }
@@ -15885,7 +15852,7 @@ TraceRecorder::record_JSOP_STOP()
     } else {
         rval_ins = w.immiUndefined();
     }
-    clearCurrentFrameSlotsFromTracker(nativeFrameTracker);
+    clearReturningFrameFromNativeveTracker();
     return ARECORD_CONTINUE;
 }
 
