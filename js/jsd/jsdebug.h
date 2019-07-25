@@ -145,6 +145,16 @@ JSD_DebuggerOnForUser(JSRuntime*         jsrt,
 
 
 
+
+extern JSD_PUBLIC_API(JSDContext*)
+JSD_DebuggerOnForUserWithCompartment(JSRuntime*         jsrt,
+                                     JSD_UserCallbacks* callbacks,
+                                     void*              user,
+                                     JSObject*          scopeobj);
+
+
+
+
 extern JSD_PUBLIC_API(void)
 JSD_DebuggerOff(JSDContext* jsdc);
 
