@@ -2115,8 +2115,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
   if (!GetPresContext()->SupressingResizeReflow())
   {
-    nsIViewManager::UpdateViewBatch batch(mViewManager);
-
     
     
     mDocument->FlushPendingNotifications(Flush_ContentAndNotify);
@@ -2139,6 +2137,7 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
         
         AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
+        nsIViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
         mDirtyRoots.RemoveElement(rootFrame);
         DoReflow(rootFrame, true);
@@ -2146,8 +2145,6 @@ PresShell::ResizeReflowIgnoreOverride(nscoord aWidth, nscoord aHeight)
 
       DidDoReflow(true);
     }
-
-    batch.EndUpdateViewBatch();
   }
 
   rootFrame = FrameManager()->GetRootFrame();
@@ -2960,7 +2957,6 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   
 
   NS_ASSERTION(mViewManager, "Should have view manager");
-  nsIViewManager::UpdateViewBatch batch(mViewManager);
 
   
   
@@ -2976,7 +2972,6 @@ PresShell::RecreateFramesFor(nsIContent* aContent)
   nsresult rv = mFrameConstructor->ProcessRestyledFrames(changeList);
   --mChangeNestCount;
   
-  batch.EndUpdateViewBatch();
   return rv;
 }
 
@@ -4010,11 +4005,6 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
     
     
     
-    nsIViewManager::UpdateViewBatch batch(mViewManager);
-
-    
-    
-    
     
     
     
@@ -4105,8 +4095,6 @@ PresShell::FlushPendingNotifications(mozFlushType aType)
         rootPresContext->UpdatePluginGeometry();
       }
     }
-
-    batch.EndUpdateViewBatch();
   }
 }
 
@@ -7429,6 +7417,7 @@ PresShell::ProcessReflowCommands(bool aInterruptible)
       nsAutoScriptBlocker scriptBlocker;
       WillDoReflow();
       AUTO_LAYOUT_PHASE_ENTRY_POINT(GetPresContext(), Reflow);
+      nsIViewManager::AutoDisableRefresh refreshBlocker(mViewManager);
 
       do {
         
@@ -7577,7 +7566,6 @@ PresShell::Observe(nsISupports* aSubject,
     
     if (rootFrame) {
       NS_ASSERTION(mViewManager, "View manager must exist");
-      nsIViewManager::UpdateViewBatch batch(mViewManager);
 
       nsWeakFrame weakRoot(rootFrame);
       
@@ -7602,7 +7590,6 @@ PresShell::Observe(nsISupports* aSubject,
           --mChangeNestCount;
         }
       }
-      batch.EndUpdateViewBatch();
     }
     return NS_OK;
   }

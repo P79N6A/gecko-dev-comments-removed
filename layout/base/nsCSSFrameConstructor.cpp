@@ -7774,8 +7774,6 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
 
   
 
-  nsIViewManager::UpdateViewBatch batch(viewManager);
-
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = true;
 #endif
@@ -7784,8 +7782,6 @@ ApplyRenderingChangeToTree(nsPresContext* aPresContext,
 #ifdef DEBUG
   gInApplyRenderingChangeToTree = false;
 #endif
-  
-  batch.EndUpdateViewBatch();
 }
 
 
@@ -7826,13 +7822,8 @@ InvalidateCanvasIfNeeded(nsIPresShell* presShell, nsIContent* node)
   
   
 
-  
-  
-
-  nsIViewManager::UpdateViewBatch batch(presShell->GetViewManager());
   nsIFrame* rootFrame = presShell->GetRootFrame();
   rootFrame->InvalidateFrameSubtree();
-  batch.EndUpdateViewBatch();
 }
 
 nsresult
@@ -11599,7 +11590,7 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
     return;
 
   
-  nsIViewManager::UpdateViewBatch batch(mPresShell->GetViewManager());
+  nsCOMPtr<nsIViewManager> vm = mPresShell->GetViewManager();
 
   
   
@@ -11615,7 +11606,6 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   nsresult rv = mPresShell->StyleSet()->BeginReconstruct();
   if (NS_FAILED(rv)) {
-    batch.EndUpdateViewBatch();
     return;
   }
 
@@ -11650,7 +11640,6 @@ nsCSSFrameConstructor::RebuildAllStyleData(nsChangeHint aExtraHint)
   
   
   mPresShell->StyleSet()->EndReconstruct();
-  batch.EndUpdateViewBatch();
 }
 
 void
