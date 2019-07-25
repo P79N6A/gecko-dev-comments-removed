@@ -76,6 +76,7 @@ const UINT32_SIZE = 4;
 const PARCEL_SIZE_SIZE = UINT32_SIZE;
 
 let RILQUIRKS_CALLSTATE_EXTRA_UINT32 = false;
+let RILQUIRKS_DATACALLSTATE_DOWN_IS_UP = false;
 
 
 
@@ -557,13 +558,22 @@ let RIL = {
 
   rilQuirksInitialized: false,
   initRILQuirks: function initRILQuirks() {
+    if (this.rilQuirksInitialized) {
+      return;
+    }
+
     
     
     let model_id = libcutils.property_get("ril.model_id");
     if (DEBUG) debug("Detected RIL model " + model_id);
     if (model_id == "I9100") {
-      if (DEBUG) debug("Enabling RILQUIRKS_CALLSTATE_EXTRA_UINT32 for I9100.");
+      if (DEBUG) {
+        debug("Detected I9100, enabling " +
+              "RILQUIRKS_CALLSTATE_EXTRA_UINT32, " +
+              "RILQUIRKS_DATACALLSTATE_DOWN_IS_UP.");
+      }
       RILQUIRKS_CALLSTATE_EXTRA_UINT32 = true;
+      RILQUIRKS_DATACALLSTATE_DOWN_IS_UP = true;
     }
 
     this.rilQuirksInitialized = true;
@@ -1045,9 +1055,7 @@ RIL[REQUEST_CHANGE_SIM_PIN] = function REQUEST_CHANGE_SIM_PIN() {
 RIL[REQUEST_CHANGE_SIM_PIN2] = null;
 RIL[REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = null;
 RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length) {
-  if (!this.rilQuirksInitialized) {
-    this.initRILQuirks();
-  }
+  this.initRILQuirks();
 
   let calls_length = 0;
   
@@ -1221,6 +1229,8 @@ RIL[REQUEST_GET_MUTE] = null;
 RIL[REQUEST_QUERY_CLIP] = null;
 RIL[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
 RIL[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length) {
+  this.initRILQuirks();
+
   let num = 0;
   if (length) {
     num = Buf.readUint32();
@@ -2036,6 +2046,9 @@ let Phone = {
             break;
           case DATACALL_ACTIVE_DOWN:
             newDataCall.state = GECKO_NETWORK_STATE_SUSPENDED;
+            if (RILQUIRKS_DATACALLSTATE_DOWN_IS_UP) {
+              newDataCall.state = GECKO_NETWORK_STATE_CONNECTED;
+            }
             break;
           case DATACALL_ACTIVE_UP:
             newDataCall.state = GECKO_NETWORK_STATE_CONNECTED;
