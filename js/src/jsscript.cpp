@@ -66,7 +66,6 @@
 #if JS_HAS_XDR
 #include "jsxdrapi.h"
 #endif
-#include "methodjit/MethodJIT.h"
 
 #include "jsobjinlines.h"
 #include "jsscriptinlines.h"
@@ -77,12 +76,9 @@ static const jsbytecode emptyScriptCode[] = {JSOP_STOP, SRC_NULL};
 
  const JSScript JSScript::emptyScriptConst = {
     const_cast<jsbytecode*>(emptyScriptCode),
-    1, JSVERSION_DEFAULT, 0, 0, 0, 0, 0, 0, 0, true, false, false, false, false,
-    false, const_cast<jsbytecode*>(emptyScriptCode),
-    {0, NULL}, NULL, 0, 0, 0, NULL, {NULL},
-#ifdef CHECK_SCRIPT_OWNER
-    reinterpret_cast<JSThread*>(1)
-#endif
+    1, JSVERSION_DEFAULT, 0, 0, 0, 0, 0, 0, true, false, false, false,
+    const_cast<jsbytecode*>(emptyScriptCode),
+    {0, NULL}, NULL, 0, 0, 0, NULL
 };
 
 #if JS_HAS_XDR
@@ -109,9 +105,6 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
     nsrcnotes = ntrynotes = natoms = nobjects = nupvars = nregexps = nconsts = 0;
     filenameWasSaved = JS_FALSE;
     notes = NULL;
-
-    
-    JS_ASSERT_IF(script, !script->globalsOffset);
 
     if (xdr->mode == JSXDR_ENCODE)
         magic = JSXDR_MAGIC_SCRIPT_CURRENT;
@@ -154,7 +147,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
 
 
 
-            script = js_NewScript(cx, 1, 1, 0, 0, 0, 0, 0, 0, 0);
+            script = js_NewScript(cx, 1, 1, 0, 0, 0, 0, 0, 0);
             if (!script)
                 return JS_FALSE;
 
@@ -226,7 +219,7 @@ js_XDRScript(JSXDRState *xdr, JSScript **scriptp, bool needMutableScript,
 
     if (xdr->mode == JSXDR_DECODE) {
         script = js_NewScript(cx, length, nsrcnotes, natoms, nobjects, nupvars,
-                              nregexps, ntrynotes, nconsts, 0);
+                              nregexps, ntrynotes, nconsts);
         if (!script)
             return JS_FALSE;
 
@@ -823,7 +816,7 @@ JS_STATIC_ASSERT(sizeof(JSScript) + 2 * sizeof(JSObjectArray) +
 JSScript *
 js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
              uint32 nobjects, uint32 nupvars, uint32 nregexps,
-             uint32 ntrynotes, uint32 nconsts, uint32 nglobals)
+             uint32 ntrynotes, uint32 nconsts)
 {
     size_t size, vectorSize;
     JSScript *script;
@@ -841,8 +834,6 @@ js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
         size += sizeof(JSObjectArray) + nregexps * sizeof(JSObject *);
     if (ntrynotes != 0)
         size += sizeof(JSTryNoteArray) + ntrynotes * sizeof(JSTryNote);
-    if (nglobals != 0)
-        size += sizeof(GlobalSlotArray) + nglobals * sizeof(GlobalSlotArray::Entry);
 
     if (nconsts != 0) {
         size += sizeof(JSConstArray);
@@ -880,11 +871,6 @@ js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
     if (ntrynotes != 0) {
         script->trynotesOffset = (uint8)(cursor - (uint8 *)script);
         cursor += sizeof(JSTryNoteArray);
-    }
-    if (nglobals != 0) {
-        JS_ASSERT((cursor - (uint8*)script) <= 0xFF);
-        script->globalsOffset = (uint8)(cursor - (uint8 *)script);
-        cursor += sizeof(GlobalSlotArray);
     }
     if (nconsts != 0) {
         script->constOffset = (uint8)(cursor - (uint8 *)script);
@@ -927,13 +913,6 @@ js_NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
 #ifdef DEBUG
         memset(cursor, 0, vectorSize);
 #endif
-        cursor += vectorSize;
-    }
-
-    if (nglobals != 0) {
-        script->globals()->length = nglobals;
-        script->globals()->vector = (GlobalSlotArray::Entry *)cursor;
-        vectorSize = nglobals * sizeof(script->globals()->vector[0]);
         cursor += vectorSize;
     }
 
@@ -1047,8 +1026,7 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
     script = js_NewScript(cx, prologLength + mainLength, nsrcnotes,
                           cg->atomList.count, cg->objectList.length,
                           cg->upvarList.count, cg->regexpList.length,
-                          cg->ntrynotes, cg->constList.length(),
-                          cg->globalUses.length());
+                          cg->ntrynotes, cg->constList.length());
     if (!script)
         return NULL;
 
@@ -1096,10 +1074,6 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         script->hasSharps = true;
     if (cg->flags & TCF_STRICT_MODE_CODE)
         script->strictModeCode = true;
-    if (cg->flags & TCF_COMPILE_N_GO)
-        script->compileAndGo = true;
-    if (cg->flags & TCF_FUN_USES_EVAL)
-        script->usesEval = true;
 
     if (cg->upvarList.count != 0) {
         JS_ASSERT(cg->upvarList.count <= cg->upvarMap.length);
@@ -1108,11 +1082,6 @@ js_NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg)
         cg->upvarList.clear();
         cx->free(cg->upvarMap.vector);
         cg->upvarMap.vector = NULL;
-    }
-
-    if (cg->globalUses.length()) {
-        memcpy(script->globals()->vector, &cg->globalUses[0],
-               cg->globalUses.length() * sizeof(GlobalSlotArray::Entry));
     }
 
     
@@ -1236,10 +1205,6 @@ js_DestroyScript(JSContext *cx, JSScript *script)
     PurgeScriptFragments(cx, script);
 #endif
 
-#if defined(JS_METHODJIT)
-    mjit::ReleaseScriptCode(cx, script);
-#endif
-
     cx->free(script);
 
     JS_RUNTIME_UNMETER(cx->runtime, liveScripts);
@@ -1258,7 +1223,7 @@ js_TraceScript(JSTracer *trc, JSScript *script)
             --i;
             if (objarray->vector[i]) {
                 JS_SET_TRACING_INDEX(trc, "objects", i);
-                MarkRaw(trc, objarray->vector[i], JSTRACE_OBJECT);
+                Mark(trc, objarray->vector[i], JSTRACE_OBJECT);
             }
         } while (i != 0);
     }
@@ -1270,7 +1235,7 @@ js_TraceScript(JSTracer *trc, JSScript *script)
             --i;
             if (objarray->vector[i]) {
                 JS_SET_TRACING_INDEX(trc, "regexps", i);
-                MarkRaw(trc, objarray->vector[i], JSTRACE_OBJECT);
+                Mark(trc, objarray->vector[i], JSTRACE_OBJECT);
             }
         } while (i != 0);
     }
@@ -1282,7 +1247,7 @@ js_TraceScript(JSTracer *trc, JSScript *script)
 
     if (script->u.object) {
         JS_SET_TRACING_NAME(trc, "object");
-        MarkRaw(trc, script->u.object, JSTRACE_OBJECT);
+        Mark(trc, script->u.object, JSTRACE_OBJECT);
     }
 
     if (IS_GC_MARKING_TRACER(trc) && script->filename)
