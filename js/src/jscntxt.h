@@ -1143,8 +1143,6 @@ typedef struct JSPropertyTreeEntry {
 
 namespace js {
 
-typedef Vector<JSGCChunkInfo *, 32, SystemAllocPolicy> GCChunks;
-
 struct GCPtrHasher
 {
     typedef void *Lookup;
@@ -1193,50 +1191,6 @@ typedef HashMap<Value, Value, WrapperHasher, SystemAllocPolicy> WrapperMap;
 
 class AutoValueVector;
 class AutoIdVector;
-
-struct GCMarker : public JSTracer {
-  private:
-    
-    uint32 color;
-
-    
-    JSGCArena           *unmarkedArenaStackTop;
-#ifdef DEBUG
-    size_t              markLaterCount;
-#endif
-
-  public:
-    js::Vector<JSObject *, 0, js::SystemAllocPolicy> arraysToSlowify;
-
-  public:
-    explicit GCMarker(JSContext *cx)
-      : color(0), unmarkedArenaStackTop(NULL)
-    {
-        JS_TRACER_INIT(this, cx, NULL);
-#ifdef DEBUG
-        markLaterCount = 0;
-#endif
-    }
-
-    uint32 getMarkColor() const {
-        return color;
-    }
-
-    void setMarkColor(uint32 newColor) {
-        
-
-
-
-        markDelayedChildren();
-        color = newColor;
-    }
-
-    void delayMarkingChildren(void *thing);
-
-    JS_FRIEND_API(void) markDelayedChildren();
-
-    void slowifyArrays();
-};
 
 } 
 
@@ -1295,8 +1249,10 @@ struct JSRuntime {
     uint32              protoHazardShape;
 
     
-    js::GCChunks        gcChunks;
-    size_t              gcChunkCursor;
+    js::GCChunkSet      gcChunkSet;
+
+    
+    js::GCChunkInfoVector gcFreeArenaChunks;
 #ifdef DEBUG
     JSGCArena           *gcEmptyArenaList;
 #endif
