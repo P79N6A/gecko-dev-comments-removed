@@ -378,6 +378,11 @@ typedef unsigned long long PRUint64;
 #define PR_INT64(x)  x ## LL
 #define PR_UINT64(x) x ## ULL
 #endif 
+
+
+#define PR_INT64_MAX PR_INT64(0x7fffffffffffffff)
+#define PR_INT64_MIN (-PR_INT64_MAX - 1)
+#define PR_UINT64_MAX PR_UINT64(-1)
 #else  
 typedef struct {
 #ifdef IS_LITTLE_ENDIAN
@@ -387,6 +392,11 @@ typedef struct {
 #endif
 } PRInt64;
 typedef PRInt64 PRUint64;
+
+#define PR_INT64_MAX (PRInt64){0x7fffffff, 0xffffffff}
+#define PR_INT64_MIN (PRInt64){0xffffffff, 0xffffffff}
+#define PR_UINT64_MAX (PRUint64){0xffffffff, 0xffffffff}
+
 #endif 
 
 
