@@ -119,8 +119,8 @@ typedef nsEventStatus (* EVENT_CALLBACK)(nsGUIEvent *event);
 
 
 #define NS_IWIDGET_IID \
-  { 0x36762512, 0xd533, 0x4884, \
-    { 0x9a, 0xc3, 0x4a, 0xda, 0x85, 0x94, 0x14, 0x6c } }
+  { 0x8bd36c8c, 0x8218, 0x4859, \
+    { 0xbf, 0xbc, 0xca, 0x5d, 0x78, 0xb5, 0x2f, 0x7d } }
 
 
 
@@ -186,6 +186,38 @@ enum nsTopLevelWidgetZPlacement {
   eZPlacementBottom = 0,  
   eZPlacementBelow,       
   eZPlacementTop          
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct nsIMEUpdatePreference {
+
+  nsIMEUpdatePreference()
+    : mWantUpdates(PR_FALSE), mWantHints(PR_FALSE)
+  {
+  }
+  nsIMEUpdatePreference(PRBool aWantUpdates, PRBool aWantHints)
+    : mWantUpdates(aWantUpdates), mWantHints(aWantHints)
+  {
+  }
+  PRPackedBool mWantUpdates;
+  PRPackedBool mWantHints;
 };
 
 
@@ -1219,6 +1251,11 @@ class nsIWidget : public nsISupports {
 
 
     NS_IMETHOD OnIMESelectionChange(void) = 0;
+
+    
+
+
+    virtual nsIMEUpdatePreference GetIMEUpdatePreference() = 0;
 
     
 
