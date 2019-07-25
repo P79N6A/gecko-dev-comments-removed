@@ -2281,6 +2281,12 @@ ProgressController.prototype = {
       this.browser.docShell.isOffScreenBrowser = true;
     }
 
+    
+    if (Browser._browserView._idleServiceObserver.isIdle()) {
+	
+	Browser._browserView._tileManager.restartPrefetchCrawl();
+    }
+
     this._tab.updateThumbnail();
   },
 
