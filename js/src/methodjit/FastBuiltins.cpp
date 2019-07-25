@@ -320,8 +320,8 @@ mjit::Compiler::compileGetChar(FrameEntry *thisValue, FrameEntry *arg, GetCharMo
     masm.move(reg1, reg2);
 
     
-    masm.andPtr(ImmPtr((void *)JSString::ROPE_BIT), reg1);
-    Jump isRope = masm.branchTestPtr(Assembler::NonZero, reg1);
+    masm.andPtr(ImmPtr((void *)JSString::FLAGS_MASK), reg1);
+    Jump isRope = masm.branchTestPtr(Assembler::Zero, reg1);
     stubcc.linkExit(isRope, Uses(3));
 
     

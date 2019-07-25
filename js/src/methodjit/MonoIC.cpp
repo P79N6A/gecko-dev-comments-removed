@@ -246,15 +246,15 @@ class EqualityCompiler : public BaseCompiler
         RegisterID tmp = ic.tempReg;
 
         
-        Imm32 atomMask(JSString::ATOM_MASK);
+        Imm32 atomBit(JSString::ATOM_BIT);
 
         masm.load32(Address(lvr.dataReg(), JSString::offsetOfLengthAndFlags()), tmp);
-        Jump lhsNotAtomized = masm.branchTest32(Assembler::NonZero, tmp, atomMask);
+        Jump lhsNotAtomized = masm.branchTest32(Assembler::Zero, tmp, atomBit);
         linkToStub(lhsNotAtomized);
 
         if (!rvr.isConstant()) {
             masm.load32(Address(rvr.dataReg(), JSString::offsetOfLengthAndFlags()), tmp);
-            Jump rhsNotAtomized = masm.branchTest32(Assembler::NonZero, tmp, atomMask);
+            Jump rhsNotAtomized = masm.branchTest32(Assembler::Zero, tmp, atomBit);
             linkToStub(rhsNotAtomized);
         }
 
