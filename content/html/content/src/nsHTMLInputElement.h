@@ -482,6 +482,11 @@ protected:
   
 
 
+  bool DoStepDownStepUpApply() const { return DoesStepApply(); }
+
+  
+
+
   bool MaxLengthApplies() const { return IsSingleLineTextControl(false, mType); }
 
   void FreeData();
@@ -560,6 +565,13 @@ protected:
   
 
 
+
+
+  void SetValue(double aValue);
+
+  
+
+
   void UpdateHasRange();
 
   
@@ -569,6 +581,22 @@ protected:
 
 
   double GetStep() const;
+
+  
+
+
+
+
+
+  double GetStepBase() const;
+
+  
+
+
+
+
+
+  nsresult ApplyStep(PRInt32 aStep);
 
   nsCOMPtr<nsIControllers> mControllers;
 

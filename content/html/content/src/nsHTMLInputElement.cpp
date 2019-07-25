@@ -1060,6 +1060,129 @@ nsHTMLInputElement::GetList(nsIDOMHTMLElement** aValue)
   return NS_OK;
 }
 
+void
+nsHTMLInputElement::SetValue(double aValue)
+{
+  nsAutoString value;
+  value.AppendFloat(aValue);
+  SetValue(value);
+}
+
+double
+nsHTMLInputElement::GetStepBase() const
+{
+  if (!HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
+    return kDefaultStepBase;
+  }
+
+  nsAutoString minStr;
+  GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
+
+  PRInt32 ec;
+  double stepBase = minStr.ToDouble(&ec);
+
+  return NS_FAILED(ec) ? kDefaultStepBase : stepBase;
+}
+
+nsresult
+nsHTMLInputElement::ApplyStep(PRInt32 aStep)
+{
+  if (!DoStepDownStepUpApply()) {
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+
+  double step = GetStep();
+  if (step == kStepAny) {
+    return NS_ERROR_DOM_INVALID_STATE_ERR;
+  }
+
+  double value = GetValueAsDouble();
+  if (value != value) { 
+    return NS_OK;
+  }
+
+  
+  double min = std::numeric_limits<double>::quiet_NaN();
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
+    nsAutoString minStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
+    PRInt32 ec;
+    double minTmp = minStr.ToDouble(&ec);
+    if (!NS_FAILED(ec)) {
+      min = minTmp;
+    }
+  }
+
+  
+  double max = std::numeric_limits<double>::quiet_NaN();
+  if (HasAttr(kNameSpaceID_None, nsGkAtoms::max)) {
+    nsAutoString maxStr;
+    GetAttr(kNameSpaceID_None, nsGkAtoms::max, maxStr);
+    PRInt32 ec;
+    double maxTmp = maxStr.ToDouble(&ec);
+    if (!NS_FAILED(ec)) {
+      
+      max = maxTmp - NS_floorModulo(maxTmp - GetStepBase(), step);
+    }
+  }
+
+  
+  
+  
+  
+  if ((value <= min && aStep < 0) ||
+      (value >= max && aStep > 0)) {
+    return NS_OK;
+  }
+
+  if (GetValidityState(VALIDITY_STATE_STEP_MISMATCH) &&
+      value != min && value != max) {
+    if (aStep > 0) {
+      value -= NS_floorModulo(value - GetStepBase(), step);
+    } else if (aStep < 0) {
+      value -= NS_floorModulo(value - GetStepBase(), step);
+      value += step;
+    }
+  }
+
+  value += aStep * step;
+
+  
+  
+  if (GetValidityState(VALIDITY_STATE_RANGE_UNDERFLOW) && aStep > 0 &&
+      value <= min) {
+    MOZ_ASSERT(min == min); 
+    value = min;
+  
+  } else if (GetValidityState(VALIDITY_STATE_RANGE_OVERFLOW) && aStep < 0 &&
+             value >= max) {
+    MOZ_ASSERT(max == max); 
+    value = max;
+  
+  } else if (aStep < 0 && min == min) {
+    value = NS_MAX(value, min);
+  
+  } else if (aStep > 0 && max == max) {
+    value = NS_MIN(value, max);
+  }
+
+  SetValue(value);
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsHTMLInputElement::StepDown(PRInt32 n, PRUint8 optional_argc)
+{
+  return ApplyStep(optional_argc ? -n : -1);
+}
+
+NS_IMETHODIMP
+nsHTMLInputElement::StepUp(PRInt32 n, PRUint8 optional_argc)
+{
+  return ApplyStep(optional_argc ? n : 1);
+}
+
 NS_IMETHODIMP 
 nsHTMLInputElement::MozGetFileNameArray(PRUint32 *aLength, PRUnichar ***aFileNames)
 {
@@ -3897,21 +4020,8 @@ nsHTMLInputElement::HasStepMismatch() const
     return false;
   }
 
-  double stepBase = kDefaultStepBase;
-
-  if (HasAttr(kNameSpaceID_None, nsGkAtoms::min)) {
-    nsAutoString minStr;
-    GetAttr(kNameSpaceID_None, nsGkAtoms::min, minStr);
-
-    PRInt32 ec;
-    stepBase = minStr.ToDouble(&ec);
-    if (NS_FAILED(ec)) {
-      stepBase = kDefaultStepBase;
-    }
-  }
-
   
-  return fmod(value - stepBase, step) != 0;
+  return fmod(value - GetStepBase(), step) != 0;
 }
 
 void
