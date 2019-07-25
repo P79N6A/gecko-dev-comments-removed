@@ -142,6 +142,14 @@ public:
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 
   
+  inline nsAccessible* Caption() const
+  {
+    nsAccessible* child = mChildren.SafeElementAt(0, nsnull);
+    return child && child->Role() == nsIAccessibleRole::ROLE_CAPTION ?
+      child : nsnull;
+  }
+
+  
 
   
 

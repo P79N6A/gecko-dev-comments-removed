@@ -519,7 +519,7 @@ PRUint32 nsTextEquivUtils::gRoleToNameRulesMap[] =
   eNoRule,           
   eNoRule,           
   eFromValue,        
-  eNoRule,           
+  eFromSubtreeIfRec, 
   eNoRule,           
   eFromSubtreeIfRec, 
   eNoRule,           
