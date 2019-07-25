@@ -90,6 +90,21 @@ Sanitizer.prototype = {
   },
   
   items: {
+    
+    
+    
+    syncAccount: {
+      clear: function ()
+      {
+        WeaveGlue.disconnect();
+      },
+
+      get canClear()
+      {
+        return (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED);
+      }
+    },
+
     cache: {
       clear: function ()
       {
@@ -279,18 +294,6 @@ Sanitizer.prototype = {
       get canClear()
       {
         return true;
-      }
-    },
-
-    syncAccount: {
-      clear: function ()
-      {
-        WeaveGlue.disconnect();
-      },
-
-      get canClear()
-      {
-        return (Weave.Status.checkSetup() != Weave.CLIENT_NOT_CONFIGURED);
       }
     }
   }
