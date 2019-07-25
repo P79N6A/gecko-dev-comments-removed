@@ -168,7 +168,7 @@ imgFrame::~imgFrame()
 }
 
 nsresult imgFrame::Init(PRInt32 aX, PRInt32 aY, PRInt32 aWidth, PRInt32 aHeight, 
-                        gfxASurface::gfxImageFormat aFormat, PRInt8 aPaletteDepth )
+                        gfxASurface::gfxImageFormat aFormat, PRUint8 aPaletteDepth )
 {
   
   if (!AllowedImageSize(aWidth, aHeight))
