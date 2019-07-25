@@ -58,7 +58,7 @@ ShapeTable::init(JSRuntime *rt, Shape *lastProp)
 
     hashShift = HASH_BITS - sizeLog2;
     for (Shape::Range r = lastProp->all(); !r.empty(); r.popFront()) {
-        const Shape &shape = r.front();
+        Shape &shape = r.front();
         Shape **spp = search(shape.propid(), true);
 
         
@@ -589,7 +589,7 @@ JSObject::addPropertyInternal(JSContext *cx, jsid id_,
 
 
 inline bool
-CheckCanChangeAttrs(JSContext *cx, JSObject *obj, const Shape *shape, unsigned *attrsp)
+CheckCanChangeAttrs(JSContext *cx, JSObject *obj, Shape *shape, unsigned *attrsp)
 {
     if (shape->configurable())
         return true;
@@ -880,7 +880,7 @@ JSObject::removeProperty(JSContext *cx, jsid id_)
 
 
 
-            const Shape *aprop = self->lastProperty();
+            Shape *aprop = self->lastProperty();
             for (int n = 50; --n >= 0 && aprop->parent; aprop = aprop->parent)
                 JS_ASSERT_IF(aprop != shape, self->nativeContains(cx, *aprop));
 #endif
@@ -1352,7 +1352,7 @@ EmptyShape::insertInitialShape(JSContext *cx, Shape *shape, JSObject *proto)
 
     
 #ifdef DEBUG
-    const Shape *nshape = shape;
+    Shape *nshape = shape;
     while (!nshape->isEmptyShape())
         nshape = nshape->previous();
     JS_ASSERT(nshape == entry.shape);

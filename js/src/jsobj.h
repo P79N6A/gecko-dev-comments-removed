@@ -274,10 +274,10 @@ struct JSObject : public js::ObjectImpl
 
 
 
-    bool setLastProperty(JSContext *cx, const js::Shape *shape);
+    bool setLastProperty(JSContext *cx, js::Shape *shape);
 
     
-    inline void setLastPropertyInfallible(const js::Shape *shape);
+    inline void setLastPropertyInfallible(js::Shape *shape);
 
     
     static inline JSObject *create(JSContext *cx,
@@ -417,7 +417,7 @@ struct JSObject : public js::ObjectImpl
     void rollbackProperties(JSContext *cx, uint32_t slotSpan);
 
     inline void nativeSetSlot(unsigned slot, const js::Value &value);
-    inline void nativeSetSlotWithType(JSContext *cx, const js::Shape *shape, const js::Value &value);
+    inline void nativeSetSlotWithType(JSContext *cx, js::Shape *shape, const js::Value &value);
 
     inline const js::Value &getReservedSlot(unsigned index) const;
     inline js::HeapSlot &getReservedSlotRef(unsigned index);
@@ -1145,12 +1145,12 @@ const unsigned DNP_SKIP_TYPE    = 8;
 
 
 
-extern const Shape *
+extern Shape *
 DefineNativeProperty(JSContext *cx, HandleObject obj, HandleId id, const Value &value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
                      unsigned flags, int shortid, unsigned defineHow = 0);
 
-inline const Shape *
+inline Shape *
 DefineNativeProperty(JSContext *cx, HandleObject obj, PropertyName *name, const Value &value,
                      PropertyOp getter, StrictPropertyOp setter, unsigned attrs,
                      unsigned flags, int shortid, unsigned defineHow = 0)
@@ -1237,11 +1237,11 @@ const unsigned JSGET_CACHE_RESULT = 1;
 
 extern JSBool
 js_NativeGet(JSContext *cx, js::Handle<JSObject*> obj, js::Handle<JSObject*> pobj,
-             const js::Shape *shape, unsigned getHow, js::Value *vp);
+             js::Shape *shape, unsigned getHow, js::Value *vp);
 
 extern JSBool
 js_NativeSet(JSContext *cx, js::Handle<JSObject*> obj, js::Handle<JSObject*> receiver,
-             const js::Shape *shape, bool added, bool strict, js::Value *vp);
+             js::Shape *shape, bool added, bool strict, js::Value *vp);
 
 namespace js {
 

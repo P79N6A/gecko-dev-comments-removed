@@ -154,13 +154,13 @@ Bindings::callObjectShape(JSContext *cx) const
 
 
 
-    Vector<const Shape *> shapes(cx);
+    Vector<Shape *> shapes(cx);
     HashSet<jsid> seen(cx);
     if (!seen.init())
         return NULL;
 
     for (Shape::Range r = lastShape()->all(); !r.empty(); r.popFront()) {
-        const Shape &s = r.front();
+        Shape &s = r.front();
         HashSet<jsid>::AddPtr p = seen.lookupForAdd(s.propid());
         if (!p) {
             if (!seen.add(p, s.propid()))
@@ -205,7 +205,7 @@ Bindings::getLocalNameArray(JSContext *cx, BindingNames *namesp)
 #endif
 
     for (Shape::Range r = lastBinding->all(); !r.empty(); r.popFront()) {
-        const Shape &shape = r.front();
+        Shape &shape = r.front();
         unsigned index = uint16_t(shape.shortid());
 
         if (shape.setter() == CallObject::setArgOp) {
@@ -234,7 +234,7 @@ Bindings::getLocalNameArray(JSContext *cx, BindingNames *namesp)
     return true;
 }
 
-const Shape *
+Shape *
 Bindings::lastVariable() const
 {
     JS_ASSERT(lastBinding);

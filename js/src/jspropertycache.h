@@ -25,18 +25,18 @@ class PropertyCache;
 
 struct PropertyCacheEntry
 {
-    jsbytecode          *kpc;           
-    const Shape         *kshape;        
-    const Shape         *pshape;        
-    const Shape         *prop;          
+    jsbytecode    *kpc;           
+    Shape         *kshape;        
+    Shape         *pshape;        
+    Shape         *prop;          
 
     friend class PropertyCache;
 
   private:
     
-    uint8_t             scopeIndex;
+    uint8_t       scopeIndex;
     
-    uint8_t             protoIndex;
+    uint8_t       protoIndex;
 
   public:
     static const size_t MaxScopeIndex = 15;
@@ -62,8 +62,8 @@ struct PropertyCacheEntry
 
     bool isPrototypePropertyHit() const { return scopeIndex == 0 && protoIndex == 1; }
 
-    void assign(jsbytecode *kpc, const Shape *kshape, const Shape *pshape,
-                const Shape *prop, unsigned scopeIndex, unsigned protoIndex) {
+    void assign(jsbytecode *kpc, Shape *kshape, Shape *pshape,
+                Shape *prop, unsigned scopeIndex, unsigned protoIndex) {
         JS_ASSERT(scopeIndex <= MaxScopeIndex);
         JS_ASSERT(protoIndex <= MaxProtoIndex);
 
@@ -184,7 +184,7 @@ class PropertyCache
 
 
     PropertyCacheEntry *fill(JSContext *cx, JSObject *obj, unsigned scopeIndex,
-                             JSObject *pobj, const js::Shape *shape);
+                             JSObject *pobj, js::Shape *shape);
 
     void purge(JSRuntime *rt);
 

@@ -209,7 +209,7 @@ class Bindings
 
 
 
-    const js::Shape *lastVariable() const;
+    js::Shape *lastVariable() const;
 
     void trace(JSTracer *trc);
 

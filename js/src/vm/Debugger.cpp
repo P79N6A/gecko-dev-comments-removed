@@ -841,7 +841,7 @@ Debugger::parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Va
     
     JSContext *cx = ac.context;
     Rooted<JSObject*> obj(cx);
-    const Shape *shape;
+    Shape *shape;
     jsid returnId = NameToId(cx->runtime->atomState.returnAtom);
     jsid throwId = NameToId(cx->runtime->atomState.throwAtom);
     bool okResumption = rv.isObject();
