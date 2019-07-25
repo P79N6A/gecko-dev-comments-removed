@@ -2935,6 +2935,7 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
             if (par)
               activeContent = par;
           }
+          SetGlobalActiveContent(this, activeContent);
         }
       }
       else {
@@ -2942,7 +2943,6 @@ nsEventStateManager::PostHandleEvent(nsPresContext* aPresContext,
         
         StopTrackingDragGesture();
       }
-      SetGlobalActiveContent(this, activeContent);
     }
     break;
   case NS_MOUSE_BUTTON_UP:
