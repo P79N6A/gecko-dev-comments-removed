@@ -8301,7 +8301,9 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             GetCurScrollPos(ScrollOrientation_Y, &cy);
 
             
-            if (doHashchange) {
+            
+            
+            if (!aSHEntry) {
                 
                 
                 nsDependentCSubstring curHashName(curHash, 1);
