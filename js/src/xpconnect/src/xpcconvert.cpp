@@ -1079,46 +1079,32 @@ CreateHolderIfNeeded(XPCCallContext& ccx, JSObject* obj, jsval* d,
     return JS_TRUE;
 }
 
-static void
-ComputeWrapperInfo(const XPCCallContext &ccx,
-                   JSObject **callee,
-                   JSScript **script)
+static PRBool
+ComputeWrapperInfo(const XPCCallContext &ccx, XPCWrappedNativeScope *scope,
+                   JSObject **callee)
 {
-    *callee = nsnull;
-    *script = nsnull;
-
     if(ccx.GetXPCContext()->CallerTypeIsJavaScript())
     {
         
         
         
-        JSStackFrame* fp = JS_GetScriptedCaller(ccx, NULL);
-        if(fp)
-        {
-            *script = fp->maybeScript();
-            *callee = fp->isFunctionFrame()
-                      ? &fp->callee()
-                      : &fp->scopeChain();
-        }
+        *callee = nsnull;
+        return PR_TRUE;
     }
-    else if(ccx.GetXPCContext()->CallerTypeIsNative())
+
+    if(ccx.GetXPCContext()->CallerTypeIsNative())
     {
+        
+        
         *callee = ccx.GetCallee();
-        if(*callee && JS_ObjectIsFunction(ccx, *callee))
+        if(!*callee || !JS_ObjectIsFunction(ccx, *callee))
         {
-            
-            
-            JSFunction* fun = (JSFunction*) xpc_GetJSPrivate(*callee);
-            NS_ASSERTION(fun, "Must have JSFunction for a Function object");
-            *script = JS_GetFunctionScript(ccx, fun);
-        }
-        else
-        {
-            
-            
-            *callee = nsnull;
+            *callee = scope->GetGlobalJSObject();
+            OBJ_TO_INNER_OBJECT(ccx, *callee);
         }
     }
+
+    return PR_FALSE;
 }
 
 
@@ -1171,7 +1157,6 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
     nsWrapperCache *cache = aHelper.GetWrapperCache();
 
     JSObject *callee;
-    JSScript *script;
 
     PRBool tryConstructSlimWrapper = PR_FALSE;
     JSObject *flat;
@@ -1187,17 +1172,14 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
             if(!flat)
                 flat = ConstructProxyObject(ccx, aHelper, xpcscope);
 
-            ComputeWrapperInfo(ccx, &callee, &script);
-            if(!callee)
+            JSAutoEnterCompartment ac;
+            if(!ComputeWrapperInfo(ccx, xpcscope, &callee) &&
+               !ac.enter(ccx, callee))
             {
-                callee = xpcscope->GetGlobalJSObject();
-                OBJ_TO_INNER_OBJECT(ccx, callee);
-                if(!callee)
-                    return JS_FALSE;
+                return JS_FALSE;
             }
 
-            JSAutoEnterCompartment ac;
-            if(!ac.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
+            if(!JS_WrapObject(ccx, &flat))
                 return JS_FALSE;
 
             return CreateHolderIfNeeded(ccx, flat, d, dest);
@@ -1353,31 +1335,29 @@ XPCConvert::NativeInterface2JSObject(XPCLazyCallContext& lccx,
     if(!ccx.IsValid())
         return JS_FALSE;
 
-    ComputeWrapperInfo(ccx, &callee, &script);
-    if(!callee)
+    JSAutoEnterCompartment ac;
+    if(!ComputeWrapperInfo(ccx, xpcscope, &callee) &&
+       !ac.enter(ccx, callee))
     {
-        callee = xpcscope->GetGlobalJSObject();
-        OBJ_TO_INNER_OBJECT(cx, callee);
-        if(!callee)
-            return JS_FALSE;
+        return JS_FALSE;
     }
 
-    JSAutoEnterCompartment ac;
-    if(!ac.enter(ccx, callee) || !JS_WrapObject(ccx, &flat))
+    JSObject *original = flat;
+    if(!JS_WrapObject(ccx, &flat))
         return JS_FALSE;
-
     *d = OBJECT_TO_JSVAL(flat);
+
     if(dest)
     {
         
-        if(OBJECT_TO_JSVAL(flat) == *d)
+        if(flat == original)
         {
             *dest = strongWrapper.forget().get();
         }
         else
         {
             nsRefPtr<XPCJSObjectHolder> objHolder =
-                XPCJSObjectHolder::newHolder(ccx, JSVAL_TO_OBJECT(*d));
+                XPCJSObjectHolder::newHolder(ccx, flat);
             if(!objHolder)
                 return JS_FALSE;
 
