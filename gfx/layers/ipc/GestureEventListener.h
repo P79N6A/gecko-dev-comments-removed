@@ -1,7 +1,4 @@
-
-
-
-
+  
 
 
 #ifndef mozilla_layers_GestureEventListener_h
@@ -170,6 +167,13 @@ protected:
 
 
   CancelableTask *mDoubleTapTimeoutTask;
+
+  
+
+
+
+
+  nsIntPoint mTouchStartPosition;
 };
 
 }
