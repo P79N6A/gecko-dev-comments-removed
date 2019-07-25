@@ -1416,7 +1416,13 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
                                     nsACString& _retval)
 {
   nsresult rv = NS_OK;
-  _retval.Truncate();
+  _retval.SetIsVoid(PR_TRUE);
+
+  nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
+
+  if (!httpChannel) {
+    return NS_OK;
+  }
 
   
   PRBool chrome = PR_FALSE; 
@@ -1425,13 +1431,11 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
        (header.LowerCaseEqualsASCII("set-cookie") ||
         header.LowerCaseEqualsASCII("set-cookie2"))) {
     NS_WARNING("blocked access to response header");
-    _retval.SetIsVoid(PR_TRUE);
     return NS_OK;
   }
 
   
   if (mState & XML_HTTP_REQUEST_USE_XSITE_AC) {
-    
     
     
     if (mChannel) {
@@ -1456,16 +1460,33 @@ nsXMLHttpRequest::GetResponseHeader(const nsACString& header,
     }
 
     if (!safeHeader) {
+      nsCAutoString headerVal;
+      
+      
+      httpChannel->
+        GetResponseHeader(NS_LITERAL_CSTRING("Access-Control-Expose-Headers"),
+                          headerVal);
+      nsCCharSeparatedTokenizer exposeTokens(headerVal, ',');
+      while(exposeTokens.hasMoreTokens()) {
+        const nsDependentCSubstring& token = exposeTokens.nextToken();
+        if (token.IsEmpty()) {
+          continue;
+        }
+        if (!IsValidHTTPToken(token)) {
+          return NS_OK;
+        }
+        if (header.Equals(token, nsCaseInsensitiveCStringComparator())) {
+          safeHeader = PR_TRUE;
+        }
+      }
+    }
+
+    if (!safeHeader) {
       return NS_OK;
     }
   }
 
-  nsCOMPtr<nsIHttpChannel> httpChannel = GetCurrentHttpChannel();
-
-  if (httpChannel) {
-    rv = httpChannel->GetResponseHeader(header, _retval);
-  }
-
+  rv = httpChannel->GetResponseHeader(header, _retval);
   if (rv == NS_ERROR_NOT_AVAILABLE) {
     
     _retval.SetIsVoid(PR_TRUE);
