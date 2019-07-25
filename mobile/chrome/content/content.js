@@ -217,26 +217,6 @@ function getContentClientRects(aElement) {
 };
 
 
-function Coalescer() {
-}
-
-Coalescer.prototype = {
-  handleEvent: function handleEvent(aEvent) {
-    switch (aEvent.type) {
-      case "MozApplicationManifest": {
-        let doc = aEvent.originalTarget;
-        sendAsyncMessage("Browser:MozApplicationManifest", {
-          location: doc.documentURIObject.spec,
-          manifest: doc.documentElement.getAttribute("manifest"),
-          charset: doc.characterSet
-        });
-        break;
-      }
-    }
-  }
-};
-
-
 
 
 
@@ -329,8 +309,10 @@ function Content() {
   addMessageListener("Browser:SaveAs", this);
   addMessageListener("Browser:ZoomToPoint", this);
 
-  this._coalescer = new Coalescer();
-  addEventListener("MozApplicationManifest", this._coalescer, false);
+  if (Util.isParentProcess())
+    addEventListener("DOMActivate", this, true);
+
+  addEventListener("MozApplicationManifest", this, false);
 
   this._progressController = new ProgressController(this);
   this._progressController.start();
@@ -341,6 +323,30 @@ function Content() {
 }
 
 Content.prototype = {
+  handleEvent: function handleEvent(aEvent) {
+    switch (aEvent.type) {
+      case "DOMActivate": {
+        
+        let href = Util.getHrefForElement(aEvent.originalTarget);
+        if (!Util.isLocalScheme(href)) {
+          aEvent.preventDefault();
+          sendAsyncMessage("Browser:OpenURI", { uri: href, bringFront: true });
+        }
+        break;
+      }
+
+      case "MozApplicationManifest": {
+        let doc = aEvent.originalTarget;
+        sendAsyncMessage("Browser:MozApplicationManifest", {
+          location: doc.documentURIObject.spec,
+          manifest: doc.documentElement.getAttribute("manifest"),
+          charset: doc.characterSet
+        });
+        break;
+      }
+    }
+  },
+
   receiveMessage: function receiveMessage(aMessage) {
     let json = aMessage.json;
     let x = json.x;
@@ -629,7 +635,7 @@ var ContextHandler = {
   _types: [],
 
   _getLinkURL: function ch_getLinkURL(aLink) {
-    let href = aLink.href;  
+    let href = aLink.href;
     if (href)
       return href;
 
@@ -712,7 +718,7 @@ var ContextHandler = {
     for (let i = 0; i < this._types.length; i++)
       if (this._types[i].handler(state, popupNode))
         state.types.push(this._types[i].name);
-    
+
     sendAsyncMessage("Browser:ContextMenu", state);
   },
 
