@@ -219,3 +219,13 @@
 
 
 #define OLD_GETTER_SETTER_METHODS       1
+
+
+
+
+
+
+
+
+
+#define USE_OLD_AND_BUSTED_JSON_PARSER 0
