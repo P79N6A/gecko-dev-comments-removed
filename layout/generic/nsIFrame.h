@@ -1247,8 +1247,12 @@ public:
 
   bool Preserves3D() const;
 
+  bool HasPerspective() const;
+
   
   void ComputePreserve3DChildrenOverflow(nsOverflowAreas& aOverflowAreas, const nsRect& aBounds);
+
+  void RecomputePerspectiveChildrenOverflow(const nsIFrame* aStartFrame, const nsRect* aBounds);
 
   
 

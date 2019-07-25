@@ -2449,6 +2449,8 @@ gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
   NS_PRECONDITION(aFrame, "Can't get delta for a null frame!");
   NS_PRECONDITION(aFrame->GetStyleDisplay()->HasTransform(),
                   "Can't get a delta for an untransformed frame!");
+  NS_PRECONDITION(aFrame->GetParentStyleContextFrame(), 
+                  "Can't get delta without a style parent!");
 
   
 
@@ -2457,9 +2459,10 @@ gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
 
   
   
+  nsIFrame* parent = aFrame->GetParentStyleContextFrame();
   const nsStyleDisplay* display = aFrame->GetParent()->GetStyleDisplay();
   nsRect boundingRect = (aBoundsOverride ? *aBoundsOverride :
-                         nsDisplayTransform::GetFrameBoundsForTransform(aFrame));
+                         nsDisplayTransform::GetFrameBoundsForTransform(parent));
 
   
   gfxPoint3D result;
@@ -2487,7 +2490,12 @@ gfxPoint3D GetDeltaToMozPerspectiveOrigin(const nsIFrame* aFrame,
     }
   }
 
-  return result;
+  nsPoint parentOffset = aFrame->GetOffsetTo(parent);
+  gfxPoint3D gfxOffset(NSAppUnitsToFloatPixels(parentOffset.x, aFactor),
+                     NSAppUnitsToFloatPixels(parentOffset.y, aFactor),
+                     0);
+
+  return result - gfxOffset;
 }
 
 
@@ -2511,7 +2519,6 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
 
 
   gfxPoint3D toMozOrigin = GetDeltaToMozTransformOrigin(aFrame, aFactor, aBoundsOverride);
-  gfxPoint3D toPerspectiveOrigin = GetDeltaToMozPerspectiveOrigin(aFrame, aFactor, aBoundsOverride);
   gfxPoint3D newOrigin = gfxPoint3D(NSAppUnitsToFloatPixels(aOrigin.x, aFactor),
                                     NSAppUnitsToFloatPixels(aOrigin.y, aFactor),
                                     0.0f);
@@ -2552,6 +2559,7 @@ nsDisplayTransform::GetResultingTransformMatrix(const nsIFrame* aFrame,
     
 
 
+    gfxPoint3D toPerspectiveOrigin = GetDeltaToMozPerspectiveOrigin(aFrame, aFactor, aBoundsOverride);
     result = result * nsLayoutUtils::ChangeMatrixBasis(toPerspectiveOrigin - toMozOrigin, perspective);
   }
 
