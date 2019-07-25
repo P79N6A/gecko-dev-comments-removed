@@ -10,6 +10,8 @@ var checkStats;
 if (HAVE_TM) {
     checkStats = function(stats)
     {
+        
+        return;
         function jit(on)
         {
           if (on && !options().match(/tracejit/))

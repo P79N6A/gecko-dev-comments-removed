@@ -26,4 +26,4 @@ function testNestedExitStackOuter() {
   }
   return counter;
 }
-assertEq(testNestedExitStackOuter(), 81);
+
