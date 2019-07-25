@@ -3689,3 +3689,7 @@ pref("social.enabled", false);
 
 
 pref("dom.idle-observers-api.fuzz_time.disabled", true);
+
+
+
+pref("dom.mozApps.dev_mode", false);
