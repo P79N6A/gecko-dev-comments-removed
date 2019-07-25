@@ -53,9 +53,6 @@ AutoCompleteInput.prototype = {
     this._selEnd = aEnd;
   },
 
-  onTextEntered: function() false,
-  onTextReverted: function() false,
-
   get searchCount() {
     return this.searches.length;
   },
@@ -69,7 +66,7 @@ AutoCompleteInput.prototype = {
   popupOpen: false,
 
   popup: {
-    selectedIndex: -1,
+    selectedIndex: 0,
     invalidate: function () {},
 
     QueryInterface: XPCOMUtils.generateQI([Ci.nsIAutoCompletePopup])
@@ -84,23 +81,7 @@ AutoCompleteInput.prototype = {
 
 
 
-
-
-
-
-
-
-
 function ensure_results(aSearchString, aExpectedValue) {
-  let autoFilledValue, completedValue;
-  if (typeof(aExpectedValue) == "string") {
-    autoFilledValue = aExpectedValue;
-  }
-  else {
-    autoFilledValue = aExpectedValue.autoFilled;
-    completedValue = aExpectedValue.completed;
-  }
-
   
   let input = new AutoCompleteInput(["urlinline"]);
   input.textValue = aSearchString;
@@ -126,15 +107,7 @@ function ensure_results(aSearchString, aExpectedValue) {
     do_check_eq(numSearchesStarted, 1);
 
     
-    do_check_eq(input.textValue, autoFilledValue);
-
-    if (completedValue) {
-      
-      
-      
-      controller.handleEnter(false);
-      do_check_eq(input.textValue, completedValue);
-    }
+    do_check_eq(input.textValue, aExpectedValue);
 
     waitForCleanup(run_next_test);
   };
