@@ -74,8 +74,8 @@ NS_DEFINE_STATIC_IID_ACCESSOR(nsIScriptContextPrincipal,
                               NS_ISCRIPTCONTEXTPRINCIPAL_IID)
 
 #define NS_ISCRIPTCONTEXT_IID \
-{ 0xddc9b75f, 0xa230, 0x4966, \
-  { 0xa6, 0xe0, 0x67, 0x5a, 0xba, 0xc9, 0x08, 0x8c } }
+{ 0x530d739f, 0x6d79, 0x4919, \
+  { 0x82, 0xb0, 0xef, 0xeb, 0x75, 0xf8, 0xa6, 0x3f } }
 
 
 
@@ -251,7 +251,7 @@ public:
 
 
   virtual nsresult BindCompiledEventHandler(nsISupports* aTarget,
-                                            void *aScope,
+                                            JSObject* aScope,
                                             void* aHandler,
                                             nsScriptObjectHolder& aBoundHandler) = 0;
 
