@@ -943,6 +943,9 @@ js_IteratorMore(JSContext *cx, JSObject *iterobj, Value *rval)
     }
 
     
+    JS_CHECK_RECURSION(cx, return false);
+
+    
     if (!ni) {
         jsid id = ATOM_TO_JSID(cx->runtime->atomState.nextAtom);
         if (!js_GetMethod(cx, iterobj, id, JSGET_METHOD_BARRIER, rval))
