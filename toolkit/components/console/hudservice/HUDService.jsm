@@ -4037,8 +4037,6 @@ function findCompletionBeginning(aStr)
 function JSPropertyProvider(aScope, aInputValue)
 {
   let obj = unwrap(aScope);
-  
-  let win = obj;
 
   
   
@@ -4077,7 +4075,7 @@ function JSPropertyProvider(aScope, aInputValue)
 
       
       
-      if (isNonNativeGetter(win, obj, prop)) {
+      if (isNonNativeGetter(obj, prop)) {
         return null;
       }
       try {

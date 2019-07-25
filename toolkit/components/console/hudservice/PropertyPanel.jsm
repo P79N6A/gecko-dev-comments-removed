@@ -172,17 +172,14 @@ function isNativeFunction(aFunction)
 
 
 
-
-
-
-function isNonNativeGetter(aScope, aObject, aProp) {
+function isNonNativeGetter(aObject, aProp) {
   if (typeof aObject != "object") {
     return false;
   }
   let desc;
   while (aObject) {
     try {
-      if (desc = aScope.Object.getOwnPropertyDescriptor(aObject, aProp)) {
+      if (desc = Object.getOwnPropertyDescriptor(aObject, aProp)) {
         break;
       }
     }
@@ -224,10 +221,7 @@ function namesAndValuesOf(aObject)
     }
 
     
-    
-    let chromeWindow = Services.wm.getMostRecentWindow("navigator:browser");
-    let contentWindow = chromeWindow.gBrowser.selectedBrowser.contentWindow;
-    if (isNonNativeGetter(contentWindow.wrappedJSObject, aObject, propName)) {
+    if (isNonNativeGetter(aObject, propName)) {
       value = ""; 
       presentable = {type: TYPE_OTHER, display: "Getter"};
     }
