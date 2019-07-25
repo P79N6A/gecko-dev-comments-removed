@@ -1808,7 +1808,7 @@ js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
 
 
 extern JSBool
-js_CheckContentSecurityPolicy(JSContext *cx);
+js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeObj);
 
 
 extern const char *

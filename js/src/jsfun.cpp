@@ -2424,7 +2424,7 @@ Function(JSContext *cx, uintN argc, Value *vp)
 
 
 
-    if (!js_CheckContentSecurityPolicy(cx)) {
+    if (!js_CheckContentSecurityPolicy(cx, parent)) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_CSP_BLOCKED_FUNCTION);
         return JS_FALSE;
     }

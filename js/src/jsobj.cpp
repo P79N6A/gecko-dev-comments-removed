@@ -902,16 +902,24 @@ obj_valueOf(JSContext *cx, uintN argc, Value *vp)
 
 
 JSBool
-js_CheckContentSecurityPolicy(JSContext *cx)
+js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeobj)
 {
-    JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
-
     
     
-    if (callbacks && callbacks->contentSecurityPolicyAllows)
-        return callbacks->contentSecurityPolicyAllows(cx);
+    JSObject *global = scopeobj->getGlobal();
+    Value v = global->getReservedSlot(JSRESERVED_GLOBAL_EVAL_ALLOWED);
+    if (v.isUndefined()) {
+        JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
 
-    return JS_TRUE;
+        
+        
+        v.setBoolean((!callbacks || !callbacks->contentSecurityPolicyAllows) ||
+                     callbacks->contentSecurityPolicyAllows(cx));
+
+        
+        js_SetReservedSlot(cx, global, JSRESERVED_GLOBAL_EVAL_ALLOWED, v);
+    }
+    return !v.isFalse();
 }
 
 
@@ -1155,7 +1163,7 @@ EvalKernel(JSContext *cx, uintN argc, Value *vp, EvalType evalType, JSStackFrame
 
 
 
-    if (!js_CheckContentSecurityPolicy(cx)) {
+    if (!js_CheckContentSecurityPolicy(cx, scopeobj)) {
         JS_ReportError(cx, "call to eval() blocked by CSP");
         return false;
     }
