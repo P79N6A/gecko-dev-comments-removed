@@ -63,6 +63,7 @@ ion::SplitCriticalEdges(MIRGenerator *gen, MIRGraph &graph)
 
             
             MBasicBlock *split = MBasicBlock::NewSplitEdge(graph, gen->info(), *block);
+            split->setLoopDepth(block->loopDepth());
             graph.addBlock(split);
             split->end(MGoto::New(target));
 
