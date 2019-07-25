@@ -216,7 +216,6 @@ public:
     , mNotifiedFinished(false)
     , mAudioPlaybackStartTime(0)
     , mBlockedAudioTime(0)
-    , mMessageAffectedTime(0)
     , mWrapper(aWrapper)
     , mMainThreadCurrentTime(0)
     , mMainThreadFinished(false)
@@ -376,10 +375,6 @@ protected:
   
   
   TrackID mFirstActiveTracks[MediaSegment::TYPE_COUNT];
-
-  
-  
-  GraphTime mMessageAffectedTime;
 
   
   nsDOMMediaStream* mWrapper;
