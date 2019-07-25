@@ -610,7 +610,16 @@ BasicBufferOGL::BeginPaint(ContentType aContentType,
   
   
   result.mRegionToDraw.MoveBy(-offset);
+
   
+  
+  
+  
+  
+  
+  
+  gfxUtils::ClipToRegion(result.mContext, result.mRegionToDraw);
+
   return result;
 }
 
