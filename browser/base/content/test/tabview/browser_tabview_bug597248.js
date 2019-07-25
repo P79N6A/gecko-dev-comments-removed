@@ -3,8 +3,9 @@
 
 let newTabOne;
 let newTabTwo;
-let restoredNewTabOneLoaded = false;
+let newTabThree;
 let restoredNewTabTwoLoaded = false;
+let restoredNewTabThreeLoaded = false;
 let frameInitialized = false;
 
 function test() {
@@ -20,6 +21,8 @@ function setupOne(win) {
 
   afterAllTabsLoaded(function () setupTwo(win), win);
 }
+
+let restoreWin;
 
 function setupTwo(win) {
   let contentWindow = win.TabView.getContentWindow();
@@ -46,138 +49,105 @@ function setupTwo(win) {
     
     
     executeSoon(function() {
-      let restoredWin = undoCloseWindow();
+      restoredWin = undoCloseWindow();
       restoredWin.addEventListener("load", function onLoad(event) {
         restoredWin.removeEventListener("load", onLoad, false);
 
+        registerCleanupFunction(function() restoredWin.close());
+
         
         is(numTabsToSave, 0, "All tabs were saved when window was closed.");
+        is(restoredWin.gBrowser.tabs.length, 3, "The total number of tabs is 3");
+
+        
+        newTabOne = restoredWin.gBrowser.tabs[0];
+        newTabTwo = restoredWin.gBrowser.tabs[1];
+        newTabThree = restoredWin.gBrowser.tabs[2];
+        restoredWin.gBrowser.addTabsProgressListener(gTabsProgressListener);
 
         
         let onTabViewFrameInitialized = function() {
           restoredWin.removeEventListener(
             "tabviewframeinitialized", onTabViewFrameInitialized, false);
 
+          let restoredContentWindow =
+            restoredWin.document.getElementById("tab-view").contentWindow;
           
+          restoredContentWindow.TabItems._pauseUpdateForTest = true;
 
+          let nextStep = function() {
+            
+            
+            if (restoredNewTabTwoLoaded && restoredNewTabThreeLoaded)
+              updateAndCheck();
+            else
+              frameInitialized = true;
+          }
 
+          let tabItems = restoredContentWindow.TabItems.getItems();
+          let count = tabItems.length;
 
-
-
-
-          restoredWin.close();
-          finish();
+          tabItems.forEach(function(tabItem) {
+            tabItem.addSubscriber(tabItem, "loadedCachedImageData", function() {
+              tabItem.removeSubscriber(tabItem, "loadedCachedImageData");
+              ok(tabItem.isShowingCachedData(),
+                "Tab item is showing cached data and is just connected. " +
+                tabItem.tab.linkedBrowser.currentURI.spec);
+              if (--count == 0)
+                nextStep();
+            });
+          });
         }
+
         restoredWin.addEventListener(
           "tabviewframeinitialized", onTabViewFrameInitialized, false);
-
-        is(restoredWin.gBrowser.tabs.length, 3, "The total number of tabs is 3");
-
-        
-
-
-
-
-
-
-
-
       }, false);
     });
   };
-
-  Services.obs.addObserver(
-    xulWindowDestory, "xul-window-destroyed", false);
+  Services.obs.addObserver(xulWindowDestory, "xul-window-destroyed", false);
 
   win.close();
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+let gTabsProgressListener = {
+  onStateChange: function(browser, webProgress, request, stateFlags, status) {
+    
+    if ((stateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
+        (stateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) &&
+         browser.currentURI.spec != "about:blank") {
+      if (newTabTwo.linkedBrowser == browser)
+        restoredNewTabTwoLoaded = true;
+      else if (newTabThree.linkedBrowser == browser)
+        restoredNewTabThreeLoaded = true;
+
+      
+      
+      if (restoredNewTabTwoLoaded && restoredNewTabThreeLoaded) {
+        restoredWin.gBrowser.removeTabsProgressListener(gTabsProgressListener);
+
+        if (frameInitialized)
+          updateAndCheck();
+      }
+    }
+  }
+};
+
+function updateAndCheck() {
+  
+  let contentWindow = 
+    restoredWin.document.getElementById("tab-view").contentWindow;
+
+  contentWindow.TabItems._pauseUpdateForTest = false;
+
+  let tabItems = contentWindow.TabItems.getItems();
+  tabItems.forEach(function(tabItem) {
+    contentWindow.TabItems._update(tabItem.tab);
+    ok(!tabItem.isShowingCachedData(),
+      "Tab item is not showing cached data anymore. " +
+      tabItem.tab.linkedBrowser.currentURI.spec);
+  });
+
+  
+  restoredWin.close();
+  finish();
+}
