@@ -1349,15 +1349,11 @@ TabCanvas.prototype = {
   
   _calculateClippingRect: function TabCanvas__calculateClippingRect(origWidth, origHeight) {
     let win = this.tab.linkedBrowser.contentWindow;
-    let body = win.document.body;
 
+    
+    
     let maxWidth = win.innerWidth - 25;
     let maxHeight = win.innerHeight;
-
-    if (body) {
-      maxWidth = Math.max(maxWidth, body.scrollWidth - win.scrollX);
-      maxHeight = Math.max(maxHeight, body.scrollHeight - win.scrollY);
-    }
 
     let height = Math.min(maxHeight, Math.floor(origHeight * maxWidth / origWidth));
     let width = Math.floor(origWidth * height / origHeight);
