@@ -302,6 +302,11 @@ NS_IMETHODIMP nsHTMLMediaElement::MediaLoadListener::OnStartRequest(nsIRequest* 
 {
   nsContentUtils::UnregisterShutdownObserver(this);
 
+  if (!mElement) {
+    
+    return NS_BINDING_ABORTED;
+  }
+
   
   
   nsRefPtr<nsHTMLMediaElement> element;
