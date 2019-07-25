@@ -230,9 +230,7 @@ nsMIMEInfoAndroid::SetPreferredAction(nsHandlerInfoAction aPrefAction)
 NS_IMETHODIMP
 nsMIMEInfoAndroid::GetAlwaysAskBeforeHandling(PRBool* aAlwaysAsk)
 {
-  
-  
-  *aAlwaysAsk = PR_FALSE;
+  *aAlwaysAsk = mAlwaysAsk;
   return NS_OK;
 }
 
