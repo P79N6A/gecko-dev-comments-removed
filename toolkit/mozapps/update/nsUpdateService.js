@@ -687,10 +687,6 @@ function cleanupActiveUpdate() {
 
 
 function getLocale() {
-
-  
-  return "en-US";
-
   if (gLocale)
     return gLocale;
 
