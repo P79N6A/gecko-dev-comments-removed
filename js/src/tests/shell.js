@@ -1,46 +1,46 @@
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Rob Ginda rginda@netscape.com
+ *   Bob Clary bob@bclary.com
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+// Explicitly set the default version.
+// See https://bugzilla.mozilla.org/show_bug.cgi?id=522760#c11
 if (typeof version != 'undefined')
 {
   version(0);
@@ -67,9 +67,9 @@ var SECTION = "";
 var VERSION = "";
 var BUGNUMBER = "";
 
-
-
-
+/*
+ * constant strings
+ */
 var GLOBAL = this + '';
 var PASSED = " PASSED! ";
 var FAILED = " FAILED! ";
@@ -79,21 +79,21 @@ var DEBUG = false;
 var DESCRIPTION;
 var EXPECTED;
 
-
-
-
-
+/*
+ * wrapper for test case constructor that doesn't require the SECTION
+ * argument.
+ */
 
 function AddTestCase( description, expect, actual ) {
   new TestCase( SECTION, description, expect, actual );
 }
 
-
-
-
-
+/*
+ * Set up test environment.
+ *
+ */
 function startTest() {
-  
+  // print out bugnumber
 
   if ( BUGNUMBER ) {
     print ("BUGNUMBER: " + BUGNUMBER );
@@ -116,8 +116,8 @@ function TestCase(n, d, e, a)
 gFailureExpected = false;
 
 TestCase.prototype.dump = function () {
-  
-  
+  // let reftest handle error reporting, otherwise
+  // output a summary line.
   if (typeof document != "object" ||
       !document.location.href.match(/jsreftest.html/))
   {
@@ -126,8 +126,8 @@ TestCase.prototype.dump = function () {
          'result: '      + (this.passed ? 'PASSED':'FAILED') + ' ' +
          'type: '        + this.type + ' ' +
          'description: ' + toPrinted(this.description) + ' ' +
-
-
+//       'expected: '    + toPrinted(this.expect) + ' ' +
+//       'actual: '      + toPrinted(this.actual) + ' ' +
          'reason: '      + toPrinted(this.reason) + '\n');
   }
 };
@@ -141,26 +141,26 @@ function getTestCases()
   return gTestcases;
 }
 
-
-
-
-
+/*
+ * The test driver searches for such a phrase in the test output.
+ * If such phrase exists, it will set n as the expected exit code.
+ */
 function expectExitCode(n)
 {
   print('--- NOTE: IN THIS TESTCASE, WE EXPECT EXIT CODE ' + n + ' ---');
 }
 
-
-
-
+/*
+ * Statuses current section of a test
+ */
 function inSection(x)
 {
   return SECT_PREFIX + x + SECT_SUFFIX;
 }
 
-
-
-
+/*
+ * Report a failure in the 'accepted' manner
+ */
 function reportFailure (msg)
 {
   var lines = msg.split ("\n");
@@ -172,15 +172,15 @@ function reportFailure (msg)
     print (FAILED + prefix + lines[i]);
 }
 
-
-
-
+/*
+ * Print a non-failure message.
+ */
 function printStatus (msg)
 {
-
-
-
-
+/* js1_6 had...
+   msg = String(msg);
+   msg = msg.toString();
+*/
   msg = msg.toString();
   var lines = msg.split ("\n");
   var l;
@@ -189,9 +189,9 @@ function printStatus (msg)
     print (STATUS + lines[i]);
 }
 
-
-
-
+/*
+ * Print a bugnumber message.
+ */
 function printBugNumber (num)
 {
   BUGNUMBER = num;
@@ -249,15 +249,15 @@ function escapeString (str)
   return result;
 }
 
-
-
-
-
-
-
-
-
-
+/*
+ * assertEq(actual, expected [, message])
+ *   Throw if the two arguments are not the same.  The sameness of two values
+ *   is determined as follows.  If both values are zero, they are the same iff
+ *   their signs are the same.  Otherwise, if both values are NaN, they are the
+ *   same.  Otherwise, they are the same if they compare equal using ===.
+ * see https://bugzilla.mozilla.org/show_bug.cgi?id=480199 and
+ *     https://bugzilla.mozilla.org/show_bug.cgi?id=515285
+ */
 if (typeof assertEq == 'undefined')
 {
   var assertEq =
@@ -279,11 +279,11 @@ if (typeof assertEq == 'undefined')
     };
 }
 
-
-
-
-
-
+/*
+ * Compare expected result to actual result, if they differ (in value and/or
+ * type) report a failure.  If description is provided, include it in the
+ * failure report.
+ */
 function reportCompare (expected, actual, description) {
   var expected_t = typeof expected;
   var actual_t = typeof actual;
@@ -323,7 +323,7 @@ function reportCompare (expected, actual, description) {
   var testcase = new TestCase("unknown-test-name", description, expected, actual);
   testcase.reason = output;
 
-  
+  // if running under reftest, let it handle result reporting.
   if (typeof document != "object" ||
       !document.location.href.match(/jsreftest.html/)) {
     if (testcase.passed)
@@ -338,12 +338,12 @@ function reportCompare (expected, actual, description) {
   return testcase.passed;
 }
 
-
-
-
-
-
-
+/*
+ * Attempt to match a regular expression describing the result to
+ * the actual result, if they differ (in value and/or
+ * type) report a failure.  If description is provided, include it in the
+ * failure report.
+ */
 function reportMatch (expectedRegExp, actual, description) {
   var expected_t = "string";
   var actual_t = typeof actual;
@@ -384,7 +384,7 @@ function reportMatch (expectedRegExp, actual, description) {
   var testcase = new TestCase("unknown-test-name", description, true, matches);
   testcase.reason = output;
 
-  
+  // if running under reftest, let it handle result reporting.
   if (typeof document != "object" ||
       !document.location.href.match(/jsreftest.html/)) {
     if (testcase.passed)
@@ -399,10 +399,10 @@ function reportMatch (expectedRegExp, actual, description) {
   return testcase.passed;
 }
 
-
-
-
-
+/*
+ * Puts funcName at the top of the call stack.  This stack is used to show
+ * a function-reported-from field when reporting failures.
+ */
 function enterFunc (funcName)
 {
   if (!funcName.match(/\(\)$/))
@@ -411,10 +411,10 @@ function enterFunc (funcName)
   callStack.push(funcName);
 }
 
-
-
-
-
+/*
+ * Pops the top funcName off the call stack.  funcName is optional, and can be
+ * used to check push-pop balance.
+ */
 function exitFunc (funcName)
 {
   var lastFunc = callStack.pop();
@@ -429,19 +429,19 @@ function exitFunc (funcName)
   }
 }
 
-
-
-
+/*
+ * Peeks at the top of the call stack.
+ */
 function currentFunc()
 {
   return callStack[callStack.length - 1];
 }
 
-
-
-
-
-
+/*
+  Calculate the "order" of a set of data points {X: [], Y: []}
+  by computing successive "derivatives" of the data until
+  the data is exhausted or the derivative is linear.
+*/
 function BigO(data)
 {
   var order = 0;
@@ -452,16 +452,16 @@ function BigO(data)
     var lr = new LinearRegression(data);
     if (lr.b > 1e-6)
     {
-      
-      
+      // only increase the order if the slope
+      // is "great" enough
       order++;
     }
 
     if (lr.r > 0.98 || lr.Syx < 1 || lr.b < 1e-6)
     {
-      
-      
-      
+      // terminate if close to a line lr.r
+      // small error lr.Syx
+      // small slope lr.b
       break;
     }
     data = dataDeriv(data);
@@ -475,13 +475,13 @@ function BigO(data)
 
   function LinearRegression(data)
   {
-    
+    /*
+      y = a + bx
+      for data points (Xi, Yi); 0 <= i < n
 
-
-
-
-
-
+      b = (n*SUM(XiYi) - SUM(Xi)*SUM(Yi))/(n*SUM(Xi*Xi) - SUM(Xi)*SUM(Xi))
+      a = (SUM(Yi) - b*SUM(Xi))/n
+    */
     var i;
 
     if (data.X.length != data.Y.length)
@@ -573,7 +573,7 @@ function BigO(data)
 
 function compareSource(expect, actual, summary)
 {
-  
+  // compare source
   var expectP = expect.
     replace(/([(){},.:\[\]])/mg, ' $1 ').
     replace(/(\w+)/mg, ' $1 ').
@@ -593,7 +593,7 @@ function compareSource(expect, actual, summary)
 
   reportCompare(expectP, actualP, summary);
 
-  
+  // actual must be compilable if expect is?
   try
   {
     var expectCompile = 'No Error';
@@ -619,12 +619,12 @@ function compareSource(expect, actual, summary)
 
 function optionsInit() {
 
-  
-  
+  // record initial values to support resetting
+  // options to their initial values
   options.initvalues  = {};
 
-  
-  
+  // record values in a stack to support pushing
+  // and popping options
   options.stackvalues = [];
 
   var optionNames = options().split(',');
@@ -641,13 +641,13 @@ function optionsInit() {
 
 function optionsClear() {
        
-  
-  
+  // turn off current settings
+  // except jit.
   var optionNames = options().split(',');
   for (var i = 0; i < optionNames.length; i++)
   {
     var optionName = optionNames[i];
-    if (optionName && optionName != "methodjit" && optionName != "tracejit" && optionName != "profiling")
+    if (optionName && optionName != "methodjit" && optionName != "tracejit")
     {
       options(optionName);
     }
@@ -693,7 +693,7 @@ function optionsReset() {
   {
     optionsClear();
 
-    
+    // turn on initial settings
     for (optionName in options.initvalues)
     {
       options(optionName);
@@ -717,26 +717,26 @@ function getTestCaseResult(expected, actual)
   if (typeof expected != typeof actual)
     return false;
   if (typeof expected != 'number')
-    
+    // Note that many tests depend on the use of '==' here, not '==='.
     return actual == expected;
 
-  
-  
+  // Distinguish NaN from other values.  Using x != x comparisons here
+  // works even if tests redefine isNaN.
   if (actual != actual)
     return expected != expected;
   if (expected != expected)
     return false;
 
-  
+  // Tolerate a certain degree of error.
   if (actual != expected)
     return Math.abs(actual - expected) <= 1E-10;
 
-  
-  
-  
-  
-  
-  
+  // Here would be a good place to distinguish 0 and -0, if we wanted
+  // to.  However, doing so would introduce a number of failures in
+  // areas where they don't seem important.  For example, the WeekDay
+  // function in ECMA-262 returns -0 for Sundays before the epoch, but
+  // the Date functions in SpiderMonkey specified in terms of WeekDay
+  // often don't.  This seems unimportant.
   return true;
 }
 
@@ -755,7 +755,7 @@ if (typeof dump == 'undefined')
 
 function test() {
   for ( gTc=0; gTc < gTestcases.length; gTc++ ) {
-    
+    // temporary hack to work around some unknown issue in 1.7
     try
     {
       gTestcases[gTc].passed = writeTestCaseResult(
@@ -773,16 +773,16 @@ function test() {
   return ( gTestcases );
 }
 
-
-
-
-
-
-
+/*
+ * Begin printing functions.  These functions use the shell's
+ * print function.  When running tests in the browser, these
+ * functions, override these functions with functions that use
+ * document.write.
+ */
 
 function writeTestCaseResult( expect, actual, string ) {
   var passed = getTestCaseResult( expect, actual );
-  
+  // if running under reftest, let it handle result reporting.
   if (typeof document != "object" ||
       !document.location.href.match(/jsreftest.html/)) {
     writeFormattedResult( expect, actual, string, passed );
@@ -798,13 +798,13 @@ function writeFormattedResult( expect, actual, string, passed ) {
 function writeHeaderToLog( string ) {
   print( string );
 }
+/* end of print functions */
 
 
-
-
-
-
-
+/*
+ * When running in the shell, run the garbage collector after the
+ * test has completed.
+ */
 
 function stopTest() {
   var gc;
@@ -813,11 +813,11 @@ function stopTest() {
   }
 }
 
-
-
-
-
-
+/*
+ * Convenience function for displaying failed test cases.  Useful
+ * when running tests manually.
+ *
+ */
 function getFailedCases() {
   for ( var i = 0; i < gTestcases.length; i++ ) {
     if ( ! gTestcases[i].passed ) {
@@ -841,13 +841,13 @@ var JSTest = {
 
 function jsTestDriverEnd()
 {
-  
-  
-  
-  
-  
-  
-  
+  // gDelayTestDriverEnd is used to
+  // delay collection of the test result and
+  // signal to Spider so that tests can continue
+  // to run after page load has fired. They are
+  // responsible for setting gDelayTestDriverEnd = true
+  // then when completed, setting gDelayTestDriverEnd = false
+  // then calling jsTestDriverEnd()
 
   if (gDelayTestDriverEnd)
   {
@@ -882,15 +882,15 @@ function jit(on)
   }
 }
 
-
-
-
+/*
+ * Some tests need to know if we are in Rhino as opposed to SpiderMonkey
+ */
 function inRhino()
 {
   return (typeof defineClass == "function");
 }
 
-
+/* these functions are useful for running tests manually in Rhino */
 
 function GetContext() {
   return Packages.com.netscape.javascript.Context.getCurrentContext();
@@ -900,6 +900,6 @@ function OptLevel( i ) {
   var cx = GetContext();
   cx.setOptimizationLevel(i);
 }
-
+/* end of Rhino functions */
 
 
