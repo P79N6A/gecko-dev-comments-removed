@@ -104,6 +104,7 @@ class RecordsChannel implements
   
 
 
+
   public void abort() {
     if (source.isActive()) {
       source.abort();
@@ -111,6 +112,12 @@ class RecordsChannel implements
     if (sink.isActive()) {
       sink.abort();
     }
+
+    toProcess.clear();
+    if (consumer == null) {
+      return;
+    }
+    consumer.halt();
   }
 
   

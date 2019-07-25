@@ -10,7 +10,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.json.simple.JSONArray;
@@ -89,6 +91,20 @@ public class Server11RepositorySession extends RepositorySession {
   
 
 
+  private Set<SyncStorageCollectionRequest> pending = Collections.synchronizedSet(new HashSet<SyncStorageCollectionRequest>());
+
+  @Override
+  public void abort() {
+    super.abort();
+    for (SyncStorageCollectionRequest request : pending) {
+      request.abort();
+    }
+    pending.clear();
+  }
+
+  
+
+
 
 
 
@@ -96,6 +112,20 @@ public class Server11RepositorySession extends RepositorySession {
   public class RequestFetchDelegateAdapter extends WBOCollectionRequestDelegate {
     RepositorySessionFetchRecordsDelegate delegate;
     private DelayedWorkTracker workTracker = new DelayedWorkTracker();
+
+    
+    private SyncStorageCollectionRequest request;
+
+    public void setRequest(SyncStorageCollectionRequest request) {
+      this.request = request;
+    }
+    private void removeRequestFromPending() {
+      if (this.request == null) {
+        return;
+      }
+      pending.remove(this.request);
+      this.request = null;
+    }
 
     public RequestFetchDelegateAdapter(RepositorySessionFetchRecordsDelegate delegate) {
       this.delegate = delegate;
@@ -114,6 +144,7 @@ public class Server11RepositorySession extends RepositorySession {
     @Override
     public void handleRequestSuccess(SyncStorageResponse response) {
       Logger.debug(LOG_TAG, "Fetch done.");
+      removeRequestFromPending();
 
       final long normalizedTimestamp = getNormalizedTimestamp(response);
       Logger.debug(LOG_TAG, "Fetch completed. Timestamp is " + normalizedTimestamp);
@@ -137,6 +168,7 @@ public class Server11RepositorySession extends RepositorySession {
 
     @Override
     public void handleRequestError(final Exception ex) {
+      removeRequestFromPending();
       Logger.warn(LOG_TAG, "Got request error.", ex);
       
       workTracker.delayWorkItem(new Runnable() {
@@ -217,12 +249,16 @@ public class Server11RepositorySession extends RepositorySession {
                                      boolean full,
                                      String sort,
                                      String ids,
-                                     SyncStorageRequestDelegate delegate)
+                                     RequestFetchDelegateAdapter delegate)
                                          throws URISyntaxException {
 
     URI collectionURI = serverRepository.collectionURI(full, newer, limit, sort, ids);
     SyncStorageCollectionRequest request = new SyncStorageCollectionRequest(collectionURI);
     request.delegate = delegate;
+
+    
+    delegate.setRequest(request);
+    pending.add(request);
     request.get();
   }
 

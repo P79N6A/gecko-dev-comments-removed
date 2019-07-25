@@ -99,14 +99,28 @@ implements RecordsChannelDelegate,
   }
 
   
-  public void abort() {
+  
+  protected RecordsChannel channelAToB;
+  protected RecordsChannel channelBToA;
+
+  public synchronized void abort() {
+    
+    if (channelAToB != null) {
+      channelAToB.abort();
+    }
+
+    
+    
+    if (channelBToA != null) {
+      channelBToA.abort();
+    }
     this.delegate.onSynchronizeAborted(this);
   }
 
   
 
 
-  public void synchronize() {
+  public synchronized void synchronize() {
     
     if (!sessionA.dataAvailable() &&
         !sessionB.dataAvailable()) {
@@ -123,7 +137,7 @@ implements RecordsChannelDelegate,
 
     
     
-    final RecordsChannel channelBToA = new RecordsChannel(this.sessionB, this.sessionA, this);
+    channelBToA = new RecordsChannel(this.sessionB, this.sessionA, this);
 
     
     RecordsChannelDelegate channelAToBDelegate = new RecordsChannelDelegate() {
@@ -164,7 +178,7 @@ implements RecordsChannelDelegate,
     };
 
     
-    final RecordsChannel channelAToB = new RecordsChannel(this.sessionA, this.sessionB, channelAToBDelegate);
+    channelAToB = new RecordsChannel(this.sessionA, this.sessionB, channelAToBDelegate);
 
     Logger.info(LOG_TAG, "Starting A to B flow. Channel is " + channelAToB);
     try {

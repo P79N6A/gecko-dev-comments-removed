@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.synchronizer;
 
 public abstract class RecordConsumer implements Runnable {
@@ -56,5 +23,4 @@ public abstract class RecordConsumer implements Runnable {
   public RecordConsumer() {
     super();
   }
-
 }
