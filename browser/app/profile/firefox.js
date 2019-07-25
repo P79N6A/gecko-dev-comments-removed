@@ -358,6 +358,9 @@ pref("browser.search.order.3",                "chrome://browser-region/locale/re
 pref("browser.search.openintab", false);
 
 
+pref("browser.search.context.loadInBackground", false);
+
+
 pref("browser.search.update", true);
 
 
