@@ -49,7 +49,6 @@
 #include "jsatom.h"
 #include "jsobj.h"
 #include "jsfun.h"
-#include "jsgc.h"
 #include "jsscript.h"
 #include "nsThreadUtilsInternal.h"
 #include "dom_quickstubs.h"
@@ -168,19 +167,22 @@ nsXPConnect::GetXPConnect()
         if(!gSelf)
             return nsnull;
 
-        if (!gSelf->mRuntime) {
-            NS_RUNTIMEABORT("Couldn't create XPCJSRuntime.");
-        }
-        if (!gSelf->mInterfaceInfoManager) {
-            NS_RUNTIMEABORT("Couldn't get global interface info manager.");
-        }
-
-        
-        
-        NS_ADDREF(gSelf);
-        if (NS_FAILED(NS_SetGlobalThreadObserver(gSelf))) {
-            NS_RELEASE(gSelf);
+        if(!gSelf->mRuntime ||
+           !gSelf->mInterfaceInfoManager)
+        {
             
+            delete gSelf;
+            gSelf = nsnull;
+        }
+        else
+        {
+            
+            
+            NS_ADDREF(gSelf);
+            if (NS_FAILED(NS_SetGlobalThreadObserver(gSelf))) {
+                NS_RELEASE(gSelf);
+                
+            }
         }
     }
     return gSelf;
@@ -556,43 +558,6 @@ nsXPConnect::Unroot(void *p)
     return NS_OK;
 }
 
-static void
-UnmarkGrayChildren(JSTracer *trc, void *thing, uint32 kind)
-{
-    
-    if(!ADD_TO_CC(kind) || !xpc_IsGrayGCThing(thing))
-        return;
-
-    
-    static_cast<js::gc::Cell *>(thing)->unmark(XPC_GC_COLOR_GRAY);
-
-    
-    JS_TraceChildren(trc, thing, kind);
-}
-
-void
-xpc_UnmarkGrayObjectRecursive(JSObject *obj)
-{
-    NS_ASSERTION(obj, "Don't pass me null!");
-
-    
-    obj->unmark(XPC_GC_COLOR_GRAY);
-
-    
-    JSContext *cx;
-    nsXPConnect* xpc = nsXPConnect::GetXPConnect();
-    if(!xpc || NS_FAILED(xpc->GetSafeJSContext(&cx)) || !cx)
-    {
-        NS_ERROR("Failed to get safe JSContext!");
-        return;
-    }
-
-    
-    JSTracer trc;
-    JS_TRACER_INIT(&trc, cx, UnmarkGrayChildren);
-    JS_TraceChildren(&trc, obj, JSTRACE_OBJECT);
-}
-
 struct TraversalTracer : public JSTracer
 {
     TraversalTracer(nsCycleCollectionTraversalCallback &aCb) : cb(aCb)
@@ -607,12 +572,6 @@ NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
     if(ADD_TO_CC(kind))
     {
         TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
-
-        
-        
-        if(!xpc_IsGrayGCThing(thing) && !tracer->cb.WantAllTraces())
-            return;
-
 #if defined(DEBUG)
         if (NS_UNLIKELY(tracer->cb.WantDebugInfo())) {
             
@@ -652,6 +611,12 @@ WrapperIsNotMainThreadOnly(XPCWrappedNative *wrapper)
     
     nsXPCOMCycleCollectionParticipant* participant;
     return NS_FAILED(CallQueryInterface(wrapper->Native(), &participant));
+}
+
+JSBool
+nsXPConnect::IsGray(void *thing)
+{
+    return js_GCThingIsMarked(thing, XPC_GC_COLOR_GRAY);
 }
 
 NS_IMETHODIMP
@@ -715,7 +680,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #endif
     {
         
-        type = !markJSObject && xpc_IsGrayGCThing(p) ? GCUnmarked : GCMarked;
+        type = !markJSObject && IsGray(p) ? GCUnmarked : GCMarked;
     }
 
     if (cb.WantDebugInfo()) {
@@ -810,7 +775,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 
     if(traceKind != JSTRACE_OBJECT || dontTraverse)
         return NS_OK;
-
+    
     if(clazz == &XPC_WN_Tearoff_JSClass)
     {
         
@@ -1629,7 +1594,7 @@ MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
 
         NS_ENSURE_SUCCESS(rv, rv);
 
-        newParent = parentWrapper->GetFlatJSObject();
+        newParent = parentWrapper->GetFlatJSObjectNoMark();
     }
     else
         NS_ASSERTION(betterScope == newScope, "Weird scope returned");
@@ -2379,7 +2344,7 @@ nsXPConnect::AfterProcessNextEvent(nsIThreadInternal *aThread,
 {
     
     if (NS_IsMainThread()) {
-        nsJSContext::MaybePokeCC();
+        nsJSContext::MaybeCCIfUserInactive();
     }
 
     return Pop(nsnull);
@@ -2533,16 +2498,22 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt) {
     nsresult rv;
     const char jsdServiceCtrID[] = "@mozilla.org/js/jsd/debugger-service;1";
     nsCOMPtr<jsdIDebuggerService> jsds = do_GetService(jsdServiceCtrID, &rv);
-    if (!NS_SUCCEEDED(rv)) {
+    if (NS_FAILED(rv)) {
         goto fail;
     }
 
     if (!(cx = JS_NewContext(rt, 256))) {
         goto fail;
     }
-    JS_BeginRequest(cx);
 
     {
+        struct AutoDestroyContext {
+            JSContext *cx;
+            AutoDestroyContext(JSContext *cx) : cx(cx) {}
+            ~AutoDestroyContext() { JS_DestroyContext(cx); }
+        } adc(cx);
+        JSAutoRequest ar(cx);
+
         js::WrapperVector &vector = rt->compartments;
         for (JSCompartment **p = vector.begin(); p != vector.end(); ++p) {
             JSCompartment *comp = *p;
@@ -2553,16 +2524,21 @@ nsXPConnect::CheckForDebugMode(JSRuntime *rt) {
 
             
             if (xpc::CompartmentParticipatesInCycleCollection(cx, comp)) {
-                rv = jsds->RecompileForDebugMode(cx, comp, gDesiredDebugMode);
-                if (!NS_SUCCEEDED(rv)) {
-                    goto fail;
+                if (gDesiredDebugMode) {
+                    if (!JS_SetDebugModeForCompartment(cx, comp, JS_TRUE))
+                        goto fail;
+                } else {
+                    
+
+
+
+
+
+                    comp->debugMode = JS_FALSE;
                 }
             }
         }
     }
-
-    JS_EndRequest(cx);
-    JS_DestroyContext(cx);
 
     if (gDesiredDebugMode) {
         rv = jsds->ActivateDebugger(rt);
@@ -2576,8 +2552,13 @@ fail:
         jsds->DeactivateDebugger();
 
     
-    gDesiredDebugMode = gDebugMode;
-    JS_SetRuntimeDebugMode(rt, gDebugMode);
+
+
+
+
+    if (gDesiredDebugMode)
+        JS_SetRuntimeDebugMode(rt, JS_FALSE);
+    gDesiredDebugMode = gDebugMode = JS_FALSE;
 }
 
 
@@ -2607,18 +2588,21 @@ nsXPConnect::Push(JSContext * cx)
 
      if (gDebugMode != gDesiredDebugMode && NS_IsMainThread()) {
          const nsTArray<XPCJSContextInfo>* stack = data->GetJSContextStack()->GetStack();
-         bool runningJS = false;
-         for (PRUint32 i = 0; i < stack->Length(); ++i) {
-             JSContext *cx = (*stack)[i].cx;
+         if (!gDesiredDebugMode) {
              
-             if (cx && cx->regs && xpc::ParticipatesInCycleCollection(cx, cx->globalObject)) {
-                 runningJS = true;
-                 break;
-             }
-         }
-         
-         if (!runningJS || !gDesiredDebugMode)
              CheckForDebugMode(mRuntime->GetJSRuntime());
+         } else {
+             bool runningJS = false;
+             for (PRUint32 i = 0; i < stack->Length(); ++i) {
+                 JSContext *cx = (*stack)[i].cx;
+                 if (cx && cx->getCurrentSegment()) {
+                     runningJS = true;
+                     break;
+                 }
+             }
+             if (!runningJS)
+                 CheckForDebugMode(mRuntime->GetJSRuntime());
+         }
      }
  
      return data->GetJSContextStack()->Push(cx);

@@ -2518,7 +2518,8 @@ jsdService::AsyncOn (jsdIActivationCallback *activationCallback)
 NS_IMETHODIMP
 jsdService::RecompileForDebugMode (JSContext *cx, JSCompartment *comp, JSBool mode) {
   NS_ASSERTION(NS_IsMainThread(), "wrong thread");
-  return JS_SetDebugModeForCompartment(cx, comp, mode) ? NS_OK : NS_ERROR_FAILURE;
+  
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_IMETHODIMP
