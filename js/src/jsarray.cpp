@@ -2436,7 +2436,6 @@ mjit::stubs::ArrayShift(VMFrame &f)
 {
     JSObject *obj = &f.regs.sp[-1].toObject();
     JS_ASSERT(obj->isDenseArray());
-    JS_ASSERT(!js_PrototypeHasIndexedProperties(f.cx, obj));
 
     
 
