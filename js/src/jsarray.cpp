@@ -1335,6 +1335,19 @@ JSObject::makeDenseArraySlow(JSContext *cx, HandleObject obj)
     }
 
     
+    HeapSlot *elems = obj->elements;
+
+    
+    AutoValueArray autoArray(cx, (Value *) elems, arrayInitialized);
+
+    
+
+
+
+    if (obj->compartment()->needsBarrier())
+        obj->prepareElementRangeForOverwrite(0, arrayInitialized);
+
+    
 
 
 
@@ -1350,11 +1363,7 @@ JSObject::makeDenseArraySlow(JSContext *cx, HandleObject obj)
     obj->shape_ = shape;
 
     
-    HeapSlot *elems = obj->elements;
     obj->elements = emptyObjectElements;
-
-    
-    AutoValueArray autoArray(cx, (Value *) elems, arrayInitialized);
 
     
 
