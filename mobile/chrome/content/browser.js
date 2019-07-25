@@ -2781,6 +2781,7 @@ Tab.prototype = {
       this._browser = null;
 
       if (this._loading) {
+        this._loading = false;
         Browser._browserView.commitBatchOperation();
         clearTimeout(this._loadingTimeout);
         delete this._loadingTimeout;
@@ -2961,9 +2962,13 @@ function PluginObserver(bv) {
   this._contentShowing = document.getElementById("observe_contentShowing");
   this._bv = bv;
   this._started = false;
+  this._isRendering = false;
 }
 
 PluginObserver.prototype = {
+  
+  POPUP_PADDING: 4,
+
   
   start: function() {
     if (this._started)
@@ -2975,6 +2980,7 @@ PluginObserver.prototype = {
     let browsers = document.getElementById("browsers");
     browsers.addEventListener("RenderStateChanged", this, false);
     gObserverService.addObserver(this, "plugin-changed-event", false);
+    Elements.stack.addEventListener("PopupChanged", this, false);
 
     let browser = Browser.selectedBrowser;
     if (browser) {
@@ -2994,6 +3000,7 @@ PluginObserver.prototype = {
     let browsers = document.getElementById("browsers");
     browsers.removeEventListener("RenderStateChanged", this, false);
     gObserverService.removeObserver(this, "plugin-changed-event");
+    Elements.stack.removeEventListener("PopupChanged", this, false);
 
     let browser = Browser.selectedBrowser;
     if (browser) {
@@ -3047,13 +3054,16 @@ PluginObserver.prototype = {
       return;
 
     let rect = this.getCriticalRect();
-    if (rect == this._emptyRect) {
+    if (this._isRendering) {
       
+      if (rect == this._emptyRect)
+        this._isRendering = false;
       this.updateEmbedRegions(doc.pluginCache, rect);
     } else {
       
       let self = this;
       setTimeout(function() {
+        self._isRendering = true;
         
         self.updateEmbedRegions(doc.pluginCache, self.getCriticalRect());
       }, 0);
@@ -3079,8 +3089,32 @@ PluginObserver.prototype = {
       
       
       
-      crit.top = Math.max(urlbarRect.height, crit.top);
+      crit.top = Math.max(Math.round(urlbarRect.height) + 1, crit.top);
+      
+      
     }
+
+    let popup = BrowserUI._popup;
+    if (popup) {
+      let p = this.POPUP_PADDING;
+      let elements = BrowserUI._popup.elements;
+      for (let i = elements.length - 1; i >= 0; i--) {
+        let popupRect = Rect.fromRect(elements[i].getBoundingClientRect()).expandToIntegers();
+        
+        
+        
+        popupRect.setBounds(popupRect.left - p, popupRect.top - p, popupRect.right + p, popupRect.bottom + p);
+        let areaRects = crit.subtract(popupRect);
+        if (areaRects.length == 1) {
+          
+          crit = areaRects[0];
+        } else if (areaRects.length > 1) {
+          
+          return this._emptyRect;
+        }
+      }
+    }
+
     return crit;
   },
 
