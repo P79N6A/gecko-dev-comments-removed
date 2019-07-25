@@ -37,11 +37,11 @@
 extern "C" {
 #endif
 
-#define ZLIB_VERSION "1.2.6"
-#define ZLIB_VERNUM 0x1260
+#define ZLIB_VERSION "1.2.7"
+#define ZLIB_VERNUM 0x1270
 #define ZLIB_VER_MAJOR 1
 #define ZLIB_VER_MINOR 2
-#define ZLIB_VER_REVISION 6
+#define ZLIB_VER_REVISION 7
 #define ZLIB_VER_SUBREVISION 0
 
 
@@ -390,6 +390,9 @@ ZEXTERN int ZEXPORT deflateEnd OF((z_streamp strm));
 
 
 ZEXTERN int ZEXPORT inflate OF((z_streamp strm, int flush));
+
+
+
 
 
 
@@ -1238,6 +1241,9 @@ typedef struct gzFile_s *gzFile;
 
 
 
+
+
+
 ZEXTERN gzFile ZEXPORT gzdopen OF((int fd, const char *mode));
 
 
@@ -1365,7 +1371,7 @@ ZEXTERN int ZEXPORT gzputc OF((gzFile file, int c));
 
 
 
-
+ZEXTERN int ZEXPORT gzgetc OF((gzFile file));
 
 
 
@@ -1602,7 +1608,6 @@ ZEXTERN uLong ZEXPORT crc32   OF((uLong crc, const Bytef *buf, uInt len));
 
 
 
-
                         
 
 
@@ -1650,9 +1655,16 @@ struct gzFile_s {
     unsigned char *next;
     z_off64_t pos;
 };
-ZEXTERN int ZEXPORT gzgetc_ OF((gzFile file));
-#define gzgetc(g) \
-    ((g)->have ? ((g)->have--, (g)->pos++, *((g)->next)++) : gzgetc_(g))
+ZEXTERN int ZEXPORT gzgetc_ OF((gzFile file));  
+#ifdef Z_PREFIX_SET
+#  undef z_gzgetc
+#  define z_gzgetc(g) \
+          ((g)->have ? ((g)->have--, (g)->pos++, *((g)->next)++) : gzgetc(g))
+#else
+#  undef gzgetc
+#  define gzgetc(g) \
+          ((g)->have ? ((g)->have--, (g)->pos++, *((g)->next)++) : gzgetc(g))
+#endif
 
 
 
@@ -1660,7 +1672,7 @@ ZEXTERN int ZEXPORT gzgetc_ OF((gzFile file));
 
 
 
-#if defined(_LARGEFILE64_SOURCE) && _LFS64_LARGEFILE-0
+#ifdef Z_LARGE64
    ZEXTERN gzFile ZEXPORT gzopen64 OF((const char *, const char *));
    ZEXTERN z_off64_t ZEXPORT gzseek64 OF((gzFile, z_off64_t, int));
    ZEXTERN z_off64_t ZEXPORT gztell64 OF((gzFile));
@@ -1669,7 +1681,7 @@ ZEXTERN int ZEXPORT gzgetc_ OF((gzFile file));
    ZEXTERN uLong ZEXPORT crc32_combine64 OF((uLong, uLong, z_off64_t));
 #endif
 
-#if !defined(ZLIB_INTERNAL) && _FILE_OFFSET_BITS-0 == 64 && _LFS64_LARGEFILE-0
+#if !defined(ZLIB_INTERNAL) && defined(Z_WANT64)
 #  ifdef Z_PREFIX_SET
 #    define z_gzopen z_gzopen64
 #    define z_gzseek z_gzseek64
@@ -1685,7 +1697,7 @@ ZEXTERN int ZEXPORT gzgetc_ OF((gzFile file));
 #    define adler32_combine adler32_combine64
 #    define crc32_combine crc32_combine64
 #  endif
-#  ifndef _LARGEFILE64_SOURCE
+#  ifndef Z_LARGE64
      ZEXTERN gzFile ZEXPORT gzopen64 OF((const char *, const char *));
      ZEXTERN z_off_t ZEXPORT gzseek64 OF((gzFile, z_off_t, int));
      ZEXTERN z_off_t ZEXPORT gztell64 OF((gzFile));
@@ -1717,12 +1729,13 @@ ZEXTERN int ZEXPORT gzgetc_ OF((gzFile file));
 
 ZEXTERN const char   * ZEXPORT zError           OF((int));
 ZEXTERN int            ZEXPORT inflateSyncPoint OF((z_streamp));
-ZEXTERN const uLongf * ZEXPORT get_crc_table    OF((void));
+ZEXTERN const z_crc_t FAR * ZEXPORT get_crc_table    OF((void));
 ZEXTERN int            ZEXPORT inflateUndermine OF((z_streamp, int));
 ZEXTERN int            ZEXPORT inflateResetKeep OF((z_streamp));
 ZEXTERN int            ZEXPORT deflateResetKeep OF((z_streamp));
-#ifndef Z_SOLO
-  ZEXTERN unsigned long  ZEXPORT gzflags          OF((void));
+#if defined(_WIN32) && !defined(Z_SOLO)
+ZEXTERN gzFile         ZEXPORT gzopen_w OF((const wchar_t *path,
+                                            const char *mode));
 #endif
 
 #ifdef __cplusplus

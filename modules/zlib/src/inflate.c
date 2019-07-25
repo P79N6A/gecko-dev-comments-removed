@@ -520,11 +520,6 @@ unsigned out;
     } while (0)
 
 
-#define REVERSE(q) \
-    ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \
-     (((q) & 0xff00) << 8) + (((q) & 0xff) << 24))
-
-
 
 
 
@@ -817,7 +812,7 @@ int flush;
 #endif
         case DICTID:
             NEEDBITS(32);
-            strm->adler = state->check = REVERSE(hold);
+            strm->adler = state->check = ZSWAP32(hold);
             INITBITS();
             state->mode = DICT;
         case DICT:
@@ -1189,7 +1184,7 @@ int flush;
 #ifdef GUNZIP
                      state->flags ? hold :
 #endif
-                     REVERSE(hold)) != state->check) {
+                     ZSWAP32(hold)) != state->check) {
                     strm->msg = (char *)"incorrect data check";
                     state->mode = BAD;
                     break;
@@ -1275,7 +1270,7 @@ const Bytef *dictionary;
 uInt dictLength;
 {
     struct inflate_state FAR *state;
-    unsigned long id;
+    unsigned long dictid;
     unsigned char *next;
     unsigned avail;
     int ret;
@@ -1288,9 +1283,9 @@ uInt dictLength;
 
     
     if (state->mode == DICT) {
-        id = adler32(0L, Z_NULL, 0);
-        id = adler32(id, dictionary, dictLength);
-        if (id != state->check)
+        dictid = adler32(0L, Z_NULL, 0);
+        dictid = adler32(dictid, dictionary, dictLength);
+        if (dictid != state->check)
             return Z_DATA_ERROR;
     }
 

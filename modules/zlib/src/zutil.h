@@ -13,7 +13,7 @@
 #ifndef ZUTIL_H
 #define ZUTIL_H
 
-#if ((__GNUC__-0) * 10 + __GNUC_MINOR__-0 >= 33) && !defined(NO_VIZ)
+#ifdef HAVE_HIDDEN
 #  define ZLIB_INTERNAL __attribute__((visibility ("hidden")))
 #else
 #  define ZLIB_INTERNAL
@@ -214,11 +214,11 @@ extern const char * const z_errmsg[10];
    void ZLIB_INTERNAL zmemzero OF((Bytef* dest, uInt len));
 #endif
 
-   
+
 #ifndef ZLIB_DEBUG
 #undef DEBUG
 #endif
-   
+
 
 #ifdef DEBUG
 #  include <stdio.h>
@@ -249,5 +249,9 @@ extern const char * const z_errmsg[10];
            (*((strm)->zalloc))((strm)->opaque, (items), (size))
 #define ZFREE(strm, addr)  (*((strm)->zfree))((strm)->opaque, (voidpf)(addr))
 #define TRY_FREE(s, p) {if (p) ZFREE(s, p);}
+
+
+#define ZSWAP32(q) ((((q) >> 24) & 0xff) + (((q) >> 8) & 0xff00) + \
+                    (((q) & 0xff00) << 8) + (((q) & 0xff) << 24))
 
 #endif 

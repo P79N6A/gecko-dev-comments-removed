@@ -57,8 +57,13 @@ local int gz_avail(state)
     if (state->err != Z_OK && state->err != Z_BUF_ERROR)
         return -1;
     if (state->eof == 0) {
-        if (strm->avail_in)
-            memmove(state->in, strm->next_in, strm->avail_in);
+        if (strm->avail_in) {       
+            unsigned char *p = state->in, *q = strm->next_in;
+            unsigned n = strm->avail_in;
+            do {
+                *p++ = *q++;
+            } while (--n);
+        }
         if (gz_load(state, state->in + strm->avail_in,
                     state->size - strm->avail_in, &got) == -1)
             return -1;
@@ -373,7 +378,8 @@ int ZEXPORT gzread(file, buf, len)
 }
 
 
-int ZEXPORT gzgetc_(file)
+#undef gzgetc
+int ZEXPORT gzgetc(file)
     gzFile file;
 {
     int ret;
@@ -402,12 +408,11 @@ int ZEXPORT gzgetc_(file)
     return ret < 1 ? -1 : buf[0];
 }
 
-#undef gzgetc
-int ZEXPORT gzgetc(file)
+int ZEXPORT gzgetc_(file)
 gzFile file;
 {
-    return gzgetc_(file);
-}    
+    return gzgetc(file);
+}
 
 
 int ZEXPORT gzungetc(c, file)

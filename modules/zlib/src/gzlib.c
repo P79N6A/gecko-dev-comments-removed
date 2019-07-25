@@ -17,7 +17,7 @@
 
 
 local void gz_reset OF((gz_statep));
-local gzFile gz_open OF((const char *, int, const char *));
+local gzFile gz_open OF((const void *, int, const char *));
 
 #if defined UNDER_CE
 
@@ -89,11 +89,19 @@ local void gz_reset(state)
 
 
 local gzFile gz_open(path, fd, mode)
-    const char *path;
+    const void *path;
     int fd;
     const char *mode;
 {
     gz_statep state;
+    size_t len;
+    int oflag;
+#ifdef O_CLOEXEC
+    int cloexec = 0;
+#endif
+#ifdef O_EXCL
+    int exclusive = 0;
+#endif
 
     
     if (path == NULL)
@@ -133,6 +141,16 @@ local gzFile gz_open(path, fd, mode)
                 return NULL;
             case 'b':       
                 break;
+#ifdef O_CLOEXEC
+            case 'e':
+                cloexec = 1;
+                break;
+#endif
+#ifdef O_EXCL
+            case 'x':
+                exclusive = 1;
+                break;
+#endif
             case 'f':
                 state->strategy = Z_FILTERED;
                 break;
@@ -168,29 +186,57 @@ local gzFile gz_open(path, fd, mode)
     }
 
     
-    state->path = malloc(strlen(path) + 1);
+#ifdef _WIN32
+    if (fd == -2) {
+        len = wcstombs(NULL, path, 0);
+        if (len == (size_t)-1)
+            len = 0;
+    }
+    else
+#endif
+        len = strlen(path);
+    state->path = malloc(len + 1);
     if (state->path == NULL) {
         free(state);
         return NULL;
     }
-    strcpy(state->path, path);
+#ifdef _WIN32
+    if (fd == -2)
+        if (len)
+            wcstombs(state->path, path, len + 1);
+        else
+            *(state->path) = 0;
+    else
+#endif
+        strcpy(state->path, path);
 
     
-    state->fd = fd != -1 ? fd :
-        open(path,
+    oflag =
 #ifdef O_LARGEFILE
-            O_LARGEFILE |
+        O_LARGEFILE |
 #endif
 #ifdef O_BINARY
-            O_BINARY |
+        O_BINARY |
 #endif
-            (state->mode == GZ_READ ?
-                O_RDONLY :
-                (O_WRONLY | O_CREAT | (
-                    state->mode == GZ_WRITE ?
-                        O_TRUNC :
-                        O_APPEND))),
-            0666);
+#ifdef O_CLOEXEC
+        (cloexec ? O_CLOEXEC : 0) |
+#endif
+        (state->mode == GZ_READ ?
+         O_RDONLY :
+         (O_WRONLY | O_CREAT |
+#ifdef O_EXCL
+          (exclusive ? O_EXCL : 0) |
+#endif
+          (state->mode == GZ_WRITE ?
+           O_TRUNC :
+           O_APPEND)));
+
+    
+    state->fd = fd > -1 ? fd : (
+#ifdef _WIN32
+        fd == -2 ? _wopen(path, oflag, 0666) :
+#endif
+        open(path, oflag, 0666));
     if (state->fd == -1) {
         free(state->path);
         free(state);
@@ -243,6 +289,16 @@ gzFile ZEXPORT gzdopen(fd, mode)
     free(path);
     return gz;
 }
+
+
+#ifdef _WIN32
+gzFile ZEXPORT gzopen_w(path, mode)
+    const wchar_t *path;
+    const char *mode;
+{
+    return gz_open(path, -2, mode);
+}
+#endif
 
 
 int ZEXPORT gzbuffer(file, size)
