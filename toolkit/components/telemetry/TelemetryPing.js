@@ -33,8 +33,6 @@
 
 
 
-
-
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 const Cr = Components.results;
@@ -50,7 +48,7 @@ const PAYLOAD_VERSION = 1;
 const PREF_SERVER = "toolkit.telemetry.server";
 const PREF_ENABLED = "toolkit.telemetry.enabled";
 
-const TELEMETRY_INTERVAL = 60;
+const TELEMETRY_INTERVAL = 60000;
 
 const TELEMETRY_DELAY = 60000;
 
@@ -65,6 +63,8 @@ const MEM_HISTOGRAMS = {
   "heap-allocated": "MEMORY_HEAP_ALLOCATED",
   "page-faults-hard": "PAGE_FAULTS_HARD"
 };
+
+var gLastMemoryPoll = null;
 
 function getLocale() {
   return Cc["@mozilla.org/chrome/chrome-registry;1"].
@@ -379,19 +379,15 @@ TelemetryPing.prototype = {
   attachObservers: function attachObservers() {
     if (!this._initialized)
       return;
-    let idleService = Cc["@mozilla.org/widget/idleservice;1"].
-                      getService(Ci.nsIIdleService);
-    idleService.addIdleObserver(this, TELEMETRY_INTERVAL);
+    Services.obs.addObserver(this, "cycle-collector-begin", false);
     Services.obs.addObserver(this, "idle-daily", false);
   },
 
   detachObservers: function detachObservers() {
     if (!this._initialized)
       return;
-    let idleService = Cc["@mozilla.org/widget/idleservice;1"].
-                      getService(Ci.nsIIdleService);
-    idleService.removeIdleObserver(this, TELEMETRY_INTERVAL);
     Services.obs.removeObserver(this, "idle-daily");
+    Services.obs.removeObserver(this, "cycle-collector-begin");
   },
 
   
@@ -454,8 +450,13 @@ TelemetryPing.prototype = {
     case "profile-before-change":
       this.uninstall();
       break;
-    case "idle":
-      this.gatherMemory();
+    case "cycle-collector-begin":
+      let now = new Date();
+      if (!gLastMemoryPoll
+          || (TELEMETRY_INTERVAL <= now - gLastMemoryPoll)) {
+        gLastMemoryPoll = now;
+        this.gatherMemory();
+      }
       break;
     case "private-browsing":
       Telemetry.canRecord = aData == "exit";
