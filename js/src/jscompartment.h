@@ -235,7 +235,7 @@ struct JS_FRIEND_API(JSCompartment) {
 
     bool ensureJaegerCompartmentExists(JSContext *cx);
 
-    void sizeOfCode(size_t *method, size_t *regexp, size_t *unused) const;
+    size_t sizeOfMjitCode() const;
 #endif
 
     
