@@ -387,7 +387,7 @@ mjit::Compiler::jsop_binary_full_simple(FrameEntry *fe, JSOp op, VoidStub stub)
     overflowDone.get().linkTo(stubcc.masm.label(), &stubcc.masm);
 
     
-    stubcc.syncExit(Uses(2));
+    frame.sync(stubcc.masm, Uses(2));
     stubcc.leave();
     stubcc.call(stub);
 
@@ -637,7 +637,7 @@ mjit::Compiler::jsop_binary_full(FrameEntry *lhs, FrameEntry *rhs, JSOp op, Void
         rhsNotNumber2.get().linkTo(stubcc.masm.label(), &stubcc.masm);
 
     
-    stubcc.syncExit(Uses(2));
+    frame.sync(stubcc.masm, Uses(2));
     stubcc.leave();
     stubcc.call(stub);
 
@@ -705,7 +705,7 @@ mjit::Compiler::jsop_neg()
         masm.loadDouble(&DoubleNegMask, FPRegisters::Second);
         masm.xorDouble(FPRegisters::Second, fpreg);
 #elif defined JS_CPU_ARM
-        masm.negDouble(fpreg, fpreg);
+        masm.negDouble(fpreg);
 #endif
 
         
