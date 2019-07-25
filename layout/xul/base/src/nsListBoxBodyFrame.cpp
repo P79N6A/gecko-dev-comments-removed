@@ -290,6 +290,24 @@ nsListBoxBodyFrame::DoLayout(nsBoxLayoutState& aBoxLayoutState)
 
   nsresult rv = nsBoxFrame::DoLayout(aBoxLayoutState);
 
+  
+  
+  nsSize size = GetSize();
+  nsRect overflowRect = nsRect(nsPoint(0, 0), size);
+  if (mLayoutManager) {
+    nsIFrame* childFrame = mFrames.FirstChild();
+    while (childFrame) {
+      ConsiderChildOverflow(overflowRect, childFrame);
+      childFrame = childFrame->GetNextSibling();
+    }
+
+    nsSize prefSize = mLayoutManager->GetPrefSize(this, aBoxLayoutState);
+    if (prefSize.height > overflowRect.height) {
+      overflowRect.height = prefSize.height;
+    }
+  }
+  FinishAndStoreOverflow(&overflowRect, GetSize());
+
   if (mScrolling)
     aBoxLayoutState.SetPaintingDisabled(PR_FALSE);
 
