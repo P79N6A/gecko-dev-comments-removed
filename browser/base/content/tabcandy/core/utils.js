@@ -652,13 +652,6 @@ var Utils = {
   
   
   
-  isArray: function( obj ) {
-    return toString.call(obj) === "[object Array]";
-  },
-
-  
-  
-  
   isRect: function(r) {
     return (r
         && this.isNumber(r.left)
@@ -725,7 +718,7 @@ var Utils = {
   
   copy: function(value) {
     if (value && typeof(value) == 'object') {
-      if (this.isArray(value))
+      if (Array.isArray(value))
         return this.extend([], value);
       return this.extend({}, value);
     }
