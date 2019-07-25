@@ -52,6 +52,15 @@
 #include "nsServiceManagerUtils.h"
 
 #include "imgContainer.h"
+
+
+
+
+
+
+
+#undef LoadImage
+
 #include "imgLoader.h"
 #include "imgRequest.h"
 #include "imgRequestProxy.h"
@@ -87,7 +96,6 @@
 
 #include "nsJPEGEncoder.h"
 #endif
-
 
 
 

@@ -40,6 +40,14 @@
 
 #include "imgRequest.h"
 
+
+
+
+
+
+
+#undef LoadImage
+
 #include "imgLoader.h"
 #include "imgRequestProxy.h"
 #include "imgContainer.h"

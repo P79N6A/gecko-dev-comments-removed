@@ -42,11 +42,6 @@
 #include "imgContainer.h"
 
 
-
-
-
-#undef LoadImage
-
 #include "nsCOMPtr.h"
 
 #include "nsNetUtil.h"

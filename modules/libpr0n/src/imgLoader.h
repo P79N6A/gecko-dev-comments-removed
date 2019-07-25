@@ -54,6 +54,14 @@
 #include "prlock.h"
 #endif
 
+
+
+
+
+
+
+#undef LoadImage
+
 class imgRequest;
 class imgRequestProxy;
 class imgIRequest;
