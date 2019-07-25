@@ -997,7 +997,8 @@ nsHTMLParanoidFragmentSink::AddAttributes(const nsIParserNode& aNode,
     
     if ((!sAllowedAttributes || !sAllowedAttributes->GetEntry(keyAtom)) &&
         (!mProcessStyle || keyAtom != nsGkAtoms::style) &&
-        !StringBeginsWith(k, NS_LITERAL_STRING("data-"))) {
+        !(StringBeginsWith(k, NS_LITERAL_STRING("data-")) ||
+          StringBeginsWith(k, NS_LITERAL_STRING("_")))) {
       continue;
     }
 
