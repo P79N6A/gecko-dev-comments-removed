@@ -201,6 +201,11 @@ int ARMAssembler::genInt(int reg, ARMWord imm, bool positive)
     return 1;
 }
 
+#ifdef __GNUC__
+
+
+__attribute__((warn_unused_result))
+#endif
 ARMWord ARMAssembler::getImm(ARMWord imm, int tmpReg, bool invert)
 {
     ARMWord tmp;

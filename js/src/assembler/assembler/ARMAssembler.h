@@ -922,11 +922,6 @@ namespace JSC {
             m_buffer.ensureSpace(insnSpace, constSpace);
         }
 
-        void ensureSpace(int space)
-        {
-            m_buffer.ensureSpace(space);
-        }
-
         int sizeOfConstantPool()
         {
             return m_buffer.sizeOfConstantPool();
@@ -934,7 +929,9 @@ namespace JSC {
 
         JmpDst label()
         {
-            return JmpDst(m_buffer.size());
+            JmpDst label(m_buffer.size());
+            js::JaegerSpew(js::JSpew_Insns, IPFX "#label     ((%d))\n", MAYBE_PAD, label.m_offset);
+            return label;
         }
 
         JmpDst align(int alignment)
@@ -1055,10 +1052,11 @@ namespace JSC {
 	    
             ARMWord* insn = reinterpret_cast<ARMWord*>(from);
 	    if ((*insn & 0x0ff00f00) == 0x05900000)
-		return;
-            ASSERT((*insn & 0xf00ff0ff) == 0x02800000);
+		return; 
+            ASSERT((*insn & 0x0ff00000) == 0x02800000); 
+            ASSERT((*insn & 0x00000f00) == 0x00000000); 
 
-            *insn = (*insn &  0x0ff00f00) | 0x05900000;
+            *insn = (*insn &  0xf00ff0ff) | 0x05900000;
             ExecutableAllocator::cacheFlush(insn, sizeof(ARMWord));
         }
 
@@ -1092,7 +1090,7 @@ namespace JSC {
                            ISPFX "##relinkJump      ((%p)) jumps to ((%p))\n",
                            from, to);
 
-            patchPointerInternal(reinterpret_cast<intptr_t>(from) - sizeof(ARMWord), to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(from), to);
         }
 
         static bool canRelinkJump(void* from, void* to)
@@ -1115,14 +1113,14 @@ namespace JSC {
                            ISPFX "##relinkCall      ((%p)) jumps to ((%p))\n",
                            from, to);
 
-            patchPointerInternal(reinterpret_cast<intptr_t>(from) - sizeof(ARMWord), to);
+            patchPointerInternal(reinterpret_cast<intptr_t>(from), to);
         }
 
         
 
         static void* getRelocatedAddress(void* code, JmpSrc jump)
         {
-            return reinterpret_cast<void*>(reinterpret_cast<ARMWord*>(code) + jump.m_offset / sizeof(ARMWord) + 1);
+            return reinterpret_cast<void*>(reinterpret_cast<ARMWord*>(code) + jump.m_offset / sizeof(ARMWord));
         }
 
         static void* getRelocatedAddress(void* code, JmpDst label)
@@ -1134,7 +1132,7 @@ namespace JSC {
 
         static int getDifferenceBetweenLabels(JmpDst from, JmpSrc to)
         {
-            return (to.m_offset + sizeof(ARMWord)) - from.m_offset;
+            return to.m_offset - from.m_offset;
         }
 
         static int getDifferenceBetweenLabels(JmpDst from, JmpDst to)
