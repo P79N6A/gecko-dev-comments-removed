@@ -320,6 +320,12 @@ LayerManagerOGL::Initialize(nsRefPtr<GLContext> aContext)
   }
 
   
+  if (mGLContext->IsDoubleBuffered()) {
+    mGLContext->fDeleteFramebuffers(1, &mBackBufferFBO);
+    mBackBufferFBO = 0;
+  }
+
+  
   mGLContext->fBindFramebuffer(LOCAL_GL_FRAMEBUFFER, 0);
 
   
