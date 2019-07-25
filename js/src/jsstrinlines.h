@@ -209,11 +209,9 @@ StringBuffer::appendInflated(const char *cstr, size_t cstrlen)
     size_t lengthBefore = length();
     if (!cb.growByUninitialized(cstrlen))
         return false;
-#if DEBUG
-    size_t oldcstrlen = cstrlen;
-    bool ok = 
-#endif
-    InflateStringToBuffer(context(), cstr, cstrlen, begin() + lengthBefore, &cstrlen);
+    DebugOnly<size_t> oldcstrlen = cstrlen;
+    DebugOnly<bool> ok = InflateStringToBuffer(context(), cstr, cstrlen,
+                                               begin() + lengthBefore, &cstrlen);
     JS_ASSERT(ok && oldcstrlen == cstrlen);
     return true;
 }
@@ -350,4 +348,4 @@ CompareChars(const jschar *s1, size_t l1, const jschar *s2, size_t l2, int32_t *
 
 }  
 
-#endif
+#endif 
