@@ -1851,24 +1851,6 @@ nsWindow::GetHasTransparentBackground(PRBool& aTransparent)
     return NS_OK;
 }
 
-void
-nsWindow::GetToplevelWidget(MozQWidget **aWidget)
-{
-    MozQGraphicsView *view = static_cast<MozQGraphicsView*>(GetViewWidget());
-    if (view)
-        *aWidget = view->GetTopLevelWidget();
-}
-
-nsWindow *
-nsWindow::GetTopLevelNsWindow()
-{
-    MozQWidget *widget = nsnull;
-    GetToplevelWidget(&widget);
-    if (widget)
-        return widget->getReceiver();
-    return nsnull;
-}
-
 void *
 nsWindow::SetupPluginPort(void)
 {
@@ -1946,9 +1928,6 @@ nsWindow::HideWindowChrome(PRBool aShouldHide)
 {
     if (!mWidget) {
         
-        MozQWidget *topWidget = nsnull;
-        GetToplevelWidget(&topWidget);
-
         return NS_ERROR_FAILURE;
     }
 
@@ -2167,7 +2146,7 @@ nsWindow::SetAcceleratedRendering(PRBool aEnabled)
 mozilla::layers::LayerManager*
 nsWindow::GetLayerManager()
 {
-    nsWindow *topWindow = GetTopLevelNsWindow();
+    nsWindow *topWindow = static_cast<nsWindow*>(GetTopLevelWidget());
     if (!topWindow)
         return nsBaseWidget::GetLayerManager();
 
