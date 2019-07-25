@@ -357,77 +357,12 @@ let Utils = {
     return Utils.encodeKeyBase32(atob(encodedKey));
   },
 
-  
-
-
-
-
-
-
-
-
-
-  jsonLoad: function Utils_jsonLoad(filePath, that, callback) {
-    filePath = "weave/" + filePath + ".json";
-    if (that._log)
-      that._log.trace("Loading json from disk: " + filePath);
-
-    let file = FileUtils.getFile("ProfD", filePath.split("/"), true);
-    if (!file.exists()) {
-      callback.call(that);
-      return;
-    }
-
-    let channel = NetUtil.newChannel(file);
-    channel.contentType = "application/json";
-
-    NetUtil.asyncFetch(channel, function (is, result) {
-      if (!Components.isSuccessCode(result)) {
-        callback.call(that);
-        return;
-      }
-      let string = NetUtil.readInputStreamToString(is, is.available());
-      is.close();
-      let json;
-      try {
-        json = JSON.parse(string);
-      } catch (ex) {
-        if (that._log)
-          that._log.debug("Failed to load json: " + Utils.exceptionStr(ex));
-      }
-      callback.call(that, json);
-    });
+  jsonLoad: function jsonLoad(path, that, callback) {
+    CommonUtils.jsonLoad("weave/" + path, that, callback);
   },
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  jsonSave: function Utils_jsonSave(filePath, that, obj, callback) {
-    filePath = "weave/" + filePath + ".json";
-    if (that._log)
-      that._log.trace("Saving json to disk: " + filePath);
-
-    let file = FileUtils.getFile("ProfD", filePath.split("/"), true);
-    let json = typeof obj == "function" ? obj.call(that) : obj;
-    let out = JSON.stringify(json);
-
-    let fos = FileUtils.openSafeFileOutputStream(file);
-    let is = this._utf8Converter.convertToInputStream(out);
-    NetUtil.asyncCopy(is, fos, function (result) {
-      if (typeof callback == "function") {
-        callback.call(that);        
-      }
-    });
+  jsonSave: function jsonSave(path, that, obj, callback) {
+    CommonUtils.jsonSave("weave/" + path, that, obj, callback);
   },
 
   getIcon: function(iconUri, defaultIcon) {

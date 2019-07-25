@@ -251,20 +251,6 @@ function SyncTestingInfrastructure(username, password, syncKey) {
   this.fakeCryptoService = new FakeCryptoService();
 }
 
-
-
-
-function ensureThrows(func) {
-  return function() {
-    try {
-      func.apply(this, arguments);
-    } catch (ex) {
-      do_throw(ex);
-    }
-  };
-}
-
-
 _("Setting the identity for passphrase");
 Cu.import("resource://services-sync/identity.js");
 
