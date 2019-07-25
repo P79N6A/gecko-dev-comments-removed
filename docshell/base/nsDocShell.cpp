@@ -6477,6 +6477,10 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
     
     
     
+    Stop();
+
+    
+    
     
     
     
