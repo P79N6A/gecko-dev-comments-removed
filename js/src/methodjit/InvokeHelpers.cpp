@@ -73,9 +73,6 @@ using namespace js;
 using namespace js::mjit;
 using namespace JSC;
 
-static bool
-InlineReturn(VMFrame &f, JSBool ok, JSBool popFrame = JS_TRUE);
-
 static jsbytecode *
 FindExceptionHandler(JSContext *cx)
 {
@@ -177,8 +174,8 @@ top:
 
 
 
-static bool
-InlineReturn(VMFrame &f, JSBool ok, JSBool popFrame)
+static void
+InlineReturn(VMFrame &f)
 {
     JSContext *cx = f.cx;
     JSStackFrame *fp = f.regs.fp;
@@ -187,36 +184,9 @@ InlineReturn(VMFrame &f, JSBool ok, JSBool popFrame)
 
     JS_ASSERT(!js_IsActiveWithOrBlock(cx, &fp->scopeChain(), 0));
 
-    
-    if (JS_UNLIKELY(fp->hasHookData())) {
-        JSInterpreterHook hook;
-        JSBool status;
-
-        hook = cx->debugHooks->callHook;
-        if (hook) {
-            
-
-
-
-            status = ok;
-            hook(cx, fp, JS_FALSE, &status, fp->hookData());
-            ok = (status == JS_TRUE);
-            
-        }
-    }
-
-    PutActivationObjects(cx, fp);
-
-    if (fp->isConstructing() && fp->returnValue().isPrimitive())
-        fp->setReturnValue(fp->thisValue());
-
-    if (popFrame) {
-        Value *newsp = fp->actualArgs() - 1;
-        newsp[-1] = fp->returnValue();
-        cx->stack().popInlineFrame(cx, fp->prev(), newsp);
-    }
-
-    return ok;
+    Value *newsp = fp->actualArgs() - 1;
+    newsp[-1] = fp->returnValue();
+    cx->stack().popInlineFrame(cx, fp->prev(), newsp);
 }
 
 void JS_FASTCALL
@@ -372,7 +342,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
     
     JSBool ok = Interpret(cx, fp);
-    InlineReturn(f, ok);
+    InlineReturn(f);
 
     if (!ok)
         THROWV(NULL);
@@ -384,7 +354,6 @@ static inline bool
 UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
 {
     JSContext *cx = f.cx;
-    JSStackFrame *fp = f.fp();
     Value *vp = f.regs.sp - (argc + 2);
     JSObject &callee = vp->toObject();
     JSFunction *newfun = callee.getFunctionPrivate();
@@ -413,16 +382,10 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
         return false;
 
     
-    if (JSInterpreterHook hook = cx->debugHooks->callHook) {
-        newfp->setHookData(hook(cx, fp, JS_TRUE, 0,
-                                cx->debugHooks->callHookData));
-    }
-
-    
     if (newscript->getJITStatus(newfp->isConstructing()) == JITScript_None) {
         if (mjit::TryCompile(cx, newfp) == Compile_Error) {
             
-            InlineReturn(f, JS_FALSE);
+            InlineReturn(f);
             return false;
         }
     }
@@ -435,7 +398,7 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, uint32 argc)
 
     
     bool ok = !!Interpret(cx, cx->fp());
-    InlineReturn(f, JS_TRUE);
+    InlineReturn(f);
 
     *pret = NULL;
     return ok;
@@ -574,11 +537,18 @@ js_InternalThrow(VMFrame &f)
         
         bool lastFrame = (f.entryFp == f.fp());
         js_UnwindScope(cx, 0, cx->throwing);
+
+        
+        
+        
+        
+        ScriptEpilogue(f.cx, f.fp(), false);
+
         if (lastFrame)
             break;
 
         JS_ASSERT(f.regs.sp == cx->regs->sp);
-        InlineReturn(f, JS_FALSE);
+        InlineReturn(f);
     }
 
     JS_ASSERT(f.regs.sp == cx->regs->sp);
@@ -611,21 +581,43 @@ stubs::CreateThis(VMFrame &f, JSObject *proto)
     fp->formalArgs()[-1].setObject(*obj);
 }
 
-static inline void
-AdvanceReturnPC(JSContext *cx)
+void JS_FASTCALL
+stubs::EnterScript(VMFrame &f)
 {
-    
-    JS_ASSERT(*cx->regs->pc == JSOP_CALL ||
-              *cx->regs->pc == JSOP_NEW ||
-              *cx->regs->pc == JSOP_EVAL ||
-              *cx->regs->pc == JSOP_APPLY);
-    cx->regs->pc += JSOP_CALL_LENGTH;
+    JSStackFrame *fp = f.fp();
+    JSContext *cx = f.cx;
+    JSInterpreterHook hook = cx->debugHooks->callHook;
+    if (JS_UNLIKELY(hook != NULL))
+        fp->setHookData(hook(cx, fp, JS_TRUE, 0, cx->debugHooks->callHookData));
+
+    Probes::enterJSFun(cx, fp->maybeFun());
+}
+
+void JS_FASTCALL
+stubs::LeaveScript(VMFrame &f)
+{
+    JSStackFrame *fp = f.fp();
+    JSContext *cx = f.cx;
+    Probes::exitJSFun(cx, fp->maybeFun());
+    JSInterpreterHook hook = cx->debugHooks->callHook;
+
+    if (hook && fp->hasHookData()) {
+        JSBool ok = JS_TRUE;
+        hook(cx, fp, JS_FALSE, &ok, fp->hookData());
+        if (!ok)
+            THROW();
+    }
 }
 
 #ifdef JS_TRACER
 
+
+
+
+
+
 static inline bool
-HandleErrorInExcessFrames(VMFrame &f, JSStackFrame *stopFp)
+HandleErrorInExcessFrame(VMFrame &f, JSStackFrame *stopFp, bool searchedTopmostFrame = true)
 {
     JSContext *cx = f.cx;
 
@@ -634,13 +626,18 @@ HandleErrorInExcessFrames(VMFrame &f, JSStackFrame *stopFp)
 
 
 
-    JSStackFrame *fp = cx->fp();
-    if (fp == stopFp)
-        return false;
 
-    bool returnOK = InlineReturn(f, false);
+
+    JSStackFrame *fp = cx->fp();
+    if (searchedTopmostFrame) {
+        if (fp == stopFp)
+            return false;
+
+        InlineReturn(f);
+    }
 
     
+    bool returnOK = false;
     for (;;) {
         fp = cx->fp();
 
@@ -667,7 +664,8 @@ HandleErrorInExcessFrames(VMFrame &f, JSStackFrame *stopFp)
 
         
         returnOK &= bool(js_UnwindScope(cx, 0, returnOK || cx->throwing));
-        returnOK = InlineReturn(f, returnOK);
+        returnOK = ScriptEpilogue(cx, fp, returnOK);
+        InlineReturn(f);
     }
 
     JS_ASSERT(&f.regs == cx->regs);
@@ -675,6 +673,7 @@ HandleErrorInExcessFrames(VMFrame &f, JSStackFrame *stopFp)
 
     return returnOK;
 }
+
 
 static inline void *
 AtSafePoint(JSContext *cx)
@@ -687,6 +686,10 @@ AtSafePoint(JSContext *cx)
     return script->maybeNativeCodeForPC(fp->isConstructing(), cx->regs->pc);
 }
 
+
+
+
+
 static inline JSBool
 PartialInterpret(VMFrame &f)
 {
@@ -695,6 +698,7 @@ PartialInterpret(VMFrame &f)
 
 #ifdef DEBUG
     JSScript *script = fp->script();
+    JS_ASSERT(!fp->finishedInInterpreter());
     JS_ASSERT(fp->hasImacropc() ||
               !script->maybeNativeCodeForPC(fp->isConstructing(), cx->regs->pc));
 #endif
@@ -707,6 +711,7 @@ PartialInterpret(VMFrame &f)
 
 JS_STATIC_ASSERT(JSOP_NOP == 0);
 
+
 static inline JSOp
 FrameIsFinished(JSContext *cx)
 {
@@ -718,39 +723,134 @@ FrameIsFinished(JSContext *cx)
         : JSOP_NOP;
 }
 
+
+
+static inline void
+AdvanceReturnPC(JSContext *cx)
+{
+    JS_ASSERT(*cx->regs->pc == JSOP_CALL ||
+              *cx->regs->pc == JSOP_NEW ||
+              *cx->regs->pc == JSOP_EVAL ||
+              *cx->regs->pc == JSOP_APPLY);
+    cx->regs->pc += JSOP_CALL_LENGTH;
+}
+
+
+
+
+
+
+
+
+
+static bool
+HandleFinishedFrame(VMFrame &f, JSStackFrame *entryFrame)
+{
+    JSContext *cx = f.cx;
+
+    JS_ASSERT(FrameIsFinished(cx));
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool returnOK = true;
+    if (!cx->fp()->finishedInInterpreter()) {
+        if (JSOp(*cx->regs->pc) == JSOP_RETURN)
+            cx->fp()->setReturnValue(f.regs.sp[-1]);
+
+        returnOK = ScriptEpilogue(cx, cx->fp(), true);
+    }
+
+    JS_ASSERT_IF(cx->fp()->isFunctionFrame() &&
+                 !cx->fp()->isEvalFrame(),
+                 !cx->fp()->hasCallObj());
+
+    if (cx->fp() != entryFrame) {
+        InlineReturn(f);
+        AdvanceReturnPC(cx);
+    }
+
+    return returnOK;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static bool
+EvaluateExcessFrame(VMFrame &f, JSStackFrame *entryFrame)
+{
+    JSContext *cx = f.cx;
+    JSStackFrame *fp = cx->fp();
+
+    
+
+
+
+
+
+    if (!fp->hasImacropc() && FrameIsFinished(cx))
+        return HandleFinishedFrame(f, entryFrame);
+
+    if (void *ncode = AtSafePoint(cx)) {
+        if (!JaegerShotAtSafePoint(cx, ncode))
+            return false;
+        InlineReturn(f);
+        AdvanceReturnPC(cx);
+        return true;
+    }
+
+    return PartialInterpret(f);
+}
+
+
+
+
+
 static bool
 FinishExcessFrames(VMFrame &f, JSStackFrame *entryFrame)
 {
     JSContext *cx = f.cx;
+
     while (cx->fp() != entryFrame || entryFrame->hasImacropc()) {
-        if (void *ncode = AtSafePoint(cx)) {
-            if (!JaegerShotAtSafePoint(cx, ncode)) {
-                if (!HandleErrorInExcessFrames(f, entryFrame))
-                    return false;
-
-                
-                continue;
-            }
-            InlineReturn(f, JS_TRUE);
-            AdvanceReturnPC(cx);
-        } else {
-            if (!PartialInterpret(f)) {
-                if (!HandleErrorInExcessFrames(f, entryFrame))
-                    return false;
-            } else if (cx->fp() != entryFrame) {
-                
-
-
-
-                JS_ASSERT(!cx->fp()->hasImacropc());
-                if (FrameIsFinished(cx)) {
-                    JSOp op = JSOp(*cx->regs->pc);
-                    if (op == JSOP_RETURN && !cx->fp()->isBailedAtReturn())
-                        cx->fp()->setReturnValue(f.regs.sp[-1]);
-                    InlineReturn(f, JS_TRUE);
-                    AdvanceReturnPC(cx);
-                }
-            }
+        if (!EvaluateExcessFrame(f, entryFrame)) {
+            if (!HandleErrorInExcessFrame(f, entryFrame))
+                return false;
         }
     }
 
@@ -825,18 +925,18 @@ RunTracer(VMFrame &f)
         DisableTraceHint(f, mic);
 #endif
 
-    if ((tpa == TPA_RanStuff || tpa == TPA_Recorded) && cx->throwing)
-        tpa = TPA_Error;
+    
+    
+    JS_ASSERT_IF(cx->throwing, tpa == TPA_Error);
 
-	
 	f.fp() = cx->fp();
-
+    JS_ASSERT(f.fp() == cx->fp());
     switch (tpa) {
       case TPA_Nothing:
         return NULL;
 
       case TPA_Error:
-        if (!HandleErrorInExcessFrames(f, entryFrame))
+        if (!HandleErrorInExcessFrame(f, entryFrame, f.fp()->finishedInInterpreter()))
             THROWV(NULL);
         JS_ASSERT(!cx->fp()->hasImacropc());
         break;
@@ -874,23 +974,13 @@ RunTracer(VMFrame &f)
         THROWV(NULL);
 
     
+    JS_ASSERT(f.fp() == entryFrame);
     JS_ASSERT(!entryFrame->hasImacropc());
 
     
-    if (void *ncode = AtSafePoint(cx))
-        return ncode;
-
-    
-    if (JSOp op = FrameIsFinished(cx)) {
-        
-        if (op == JSOP_RETURN && !entryFrame->isBailedAtReturn())
-            entryFrame->setReturnValue(f.regs.sp[-1]);
-
-        
-        if (f.fp() != f.entryFp) {
-            if (!InlineReturn(f, JS_TRUE, JS_FALSE))
-                THROWV(NULL);
-        }
+    if (FrameIsFinished(cx)) {
+        if (!HandleFinishedFrame(f, entryFrame))
+            THROWV(NULL);
 
         void *retPtr = JS_FUNC_TO_DATA_PTR(void *, InjectJaegerReturn);
         *f.returnAddressLocation() = retPtr;
@@ -898,8 +988,12 @@ RunTracer(VMFrame &f)
     }
 
     
+    if (void *ncode = AtSafePoint(cx))
+        return ncode;
+
+    
     if (!PartialInterpret(f)) {
-        if (!HandleErrorInExcessFrames(f, entryFrame))
+        if (!HandleErrorInExcessFrame(f, entryFrame))
             THROWV(NULL);
     }
 

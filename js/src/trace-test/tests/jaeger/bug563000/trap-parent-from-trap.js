@@ -11,7 +11,7 @@ function parent() {
   x = "failure2";
 }
 
-trap(parent, 1, "child()");
+trap(parent, 0, "child()");
 
 function success() {
   x = "success";
