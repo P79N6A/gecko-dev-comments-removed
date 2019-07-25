@@ -2080,8 +2080,19 @@ var SessionHistoryObserver = {
 };
 
 var ContentCrashObserver = {
+  get CrashSubmit() {
+    delete this.CrashSubmit;
+    Cu.import("resource://gre/modules/CrashSubmit.jsm", this);
+    return this.CrashSubmit;
+  },
+
   observe: function cco_observe(aSubject, aTopic, aData) {
-    if (aTopic != "ipc:content-shutdown" && aData != "abnormal")
+    if (aTopic != "ipc:content-shutdown") {
+      Cu.reportError("ContentCrashObserver unexpected topic: " + aTopic);
+      return;
+    }
+
+    if (!aSubject.QueryInterface(Ci.nsIPropertyBag2).hasKey("abnormal"))
       return;
 
     
@@ -2102,8 +2113,12 @@ var ContentCrashObserver = {
                   (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_0) +
                   (Ci.nsIPrompt.BUTTON_TITLE_IS_STRING * Ci.nsIPrompt.BUTTON_POS_1);
 
-    this._waitingToClose = true;
-    let reload = Services.prompt.confirmEx(window, title, message, buttons, closeText, reloadText, null, submitText, { value: true });
+    
+    if (!aSubject.hasKey("dumpID"))
+      submitText = null;
+
+    let submit = { value: true };
+    let reload = Services.prompt.confirmEx(window, title, message, buttons, closeText, reloadText, null, submitText, submit);
     if (reload) {
       
       let event = document.createEvent("Events");
@@ -2119,6 +2134,12 @@ var ContentCrashObserver = {
       
       
       Browser.closeTab(Browser.selectedTab);
+    }
+
+    
+    if (submit.value && aSubject.hasKey("dumpID")) {
+      let dumpID = aSubject.getProperty("dumpID");
+      this.CrashSubmit.submit(dumpID, Elements.stack, null, null);
     }
   }
 };
