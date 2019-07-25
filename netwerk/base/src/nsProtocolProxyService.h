@@ -105,7 +105,11 @@ protected:
 
 
 
+
+
+
     NS_HIDDEN_(const char *) ExtractProxyInfo(const char *proxy,
+                                              PRUint32 aResolveFlags,
                                               nsProxyInfo **result);
 
     
@@ -125,7 +129,11 @@ protected:
 
 
 
+
+
+
     NS_HIDDEN_(void) ProcessPACString(const nsCString &pacString,
+                                      PRUint32 aResolveFlags,
                                       nsIProxyInfo **result);
 
     
@@ -202,12 +210,15 @@ protected:
 
 
 
+
+
     NS_HIDDEN_(nsresult) NewProxyInfo_Internal(const char *type,
                                                const nsACString &host,
                                                PRInt32 port,
                                                PRUint32 flags,
                                                PRUint32 timeout,
                                                nsIProxyInfo *next,
+                                               PRUint32 aResolveFlags,
                                                nsIProxyInfo **result);
 
     

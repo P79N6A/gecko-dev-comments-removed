@@ -553,7 +553,9 @@ nsHttpChannel::SetupTransaction()
     
     nsCAutoString buf, path;
     nsCString* requestURI;
-    if (mConnectionInfo->UsingSSL() || !mConnectionInfo->UsingHttpProxy()) {
+    if (mConnectionInfo->UsingSSL() ||
+        mConnectionInfo->ShouldForceConnectMethod() ||
+        !mConnectionInfo->UsingHttpProxy()) {
         rv = mURI->GetPath(path);
         if (NS_FAILED(rv)) return rv;
         
@@ -1554,7 +1556,11 @@ nsHttpChannel::ResolveProxy()
     if (NS_FAILED(rv))
         return rv;
 
-    return pps->AsyncResolve(mURI, 0, this, getter_AddRefs(mProxyRequest));
+    PRUint32 resolveFlags = 0;
+    if (mConnectionInfo->ProxyInfo())
+        mConnectionInfo->ProxyInfo()->GetResolveFlags(&resolveFlags);
+
+    return pps->AsyncResolve(mURI, resolveFlags, this, getter_AddRefs(mProxyRequest));
 }
 
 PRBool
@@ -3784,7 +3790,8 @@ NS_IMETHODIMP
 nsHttpChannel::GetProxyMethodIsConnect(PRBool *aProxyMethodIsConnect)
 {
     *aProxyMethodIsConnect =
-        (mConnectionInfo->UsingHttpProxy() && mConnectionInfo->UsingSSL());
+        (mConnectionInfo->UsingHttpProxy() && mConnectionInfo->UsingSSL()) ||
+        mConnectionInfo->ShouldForceConnectMethod();
     return NS_OK;
 }
 
