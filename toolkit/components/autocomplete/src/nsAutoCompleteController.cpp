@@ -692,6 +692,13 @@ nsAutoCompleteController::GetSearchString(nsAString &aSearchString)
 
 
 NS_IMETHODIMP
+nsAutoCompleteController::OnUpdateSearchResult(nsIAutoCompleteSearch *aSearch, nsIAutoCompleteResult* aResult)
+{
+  ClearResults();
+  return OnSearchResult(aSearch, aResult);
+}
+
+NS_IMETHODIMP
 nsAutoCompleteController::OnSearchResult(nsIAutoCompleteSearch *aSearch, nsIAutoCompleteResult* aResult)
 {
   
