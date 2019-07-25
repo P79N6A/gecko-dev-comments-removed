@@ -307,10 +307,8 @@ AsyncClickHandler::Run()
   if (!filePicker)
     return NS_ERROR_FAILURE;
 
-  nsFileControlFrame* frame = static_cast<nsFileControlFrame*>(mInput->GetPrimaryFrame());
-  nsTextControlFrame* textFrame = nsnull;
-  if (frame)
-    textFrame = static_cast<nsTextControlFrame*>(frame->GetTextFrame());
+  nsFileControlFrame* frame =
+    static_cast<nsFileControlFrame*>(mInput->GetPrimaryFrame());
 
   PRBool multi;
   rv = mInput->GetMultiple(&multi);
@@ -385,16 +383,13 @@ AsyncClickHandler::Run()
   }
 
   
-  if (textFrame)
-    textFrame->InitFocusedValue();
-
-  
   PRInt16 mode;
   rv = filePicker->Show(&mode);
   NS_ENSURE_SUCCESS(rv, rv);
-  if (mode == nsIFilePicker::returnCancel)
+  if (mode == nsIFilePicker::returnCancel) {
     return NS_OK;
-  
+  }
+
   
   nsCOMArray<nsIDOMFile> newFiles;
   if (multi) {
@@ -404,7 +399,9 @@ AsyncClickHandler::Run()
 
     nsCOMPtr<nsISupports> tmp;
     PRBool prefSaved = PR_FALSE;
-    while (NS_SUCCEEDED(iter->GetNext(getter_AddRefs(tmp)))) {
+    PRBool loop = PR_TRUE;
+    while (NS_SUCCEEDED(iter->HasMoreElements(&loop)) && loop) {
+      iter->GetNext(getter_AddRefs(tmp));
       nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(tmp);
       if (localFile) {
         nsString unicodePath;
@@ -447,18 +444,11 @@ AsyncClickHandler::Run()
     
     
     
-    PRBool oldState;
-    if (textFrame) {
-      oldState = textFrame->GetFireChangeEventState();
-      textFrame->SetFireChangeEventState(PR_TRUE);
-    }
-
     mInput->SetFiles(newFiles);
-    if (textFrame) {
-      textFrame->SetFireChangeEventState(oldState);
-      
-      textFrame->CheckFireOnChange();
-    }
+    nsContentUtils::DispatchTrustedEvent(mInput->GetOwnerDoc(),
+                                         static_cast<nsIDOMHTMLInputElement*>(mInput.get()),
+                                         NS_LITERAL_STRING("change"), PR_FALSE,
+                                         PR_FALSE);
   }
 
   return NS_OK;
