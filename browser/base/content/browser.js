@@ -175,6 +175,10 @@ let gInitialPages = [
 #include browser-places.js
 #include browser-tabPreviews.js
 
+#ifdef MOZ_SERVICES_SYNC
+#include browser-syncui.js
+#endif
+
 XPCOMUtils.defineLazyGetter(this, "Win7Features", function () {
 #ifdef XP_WIN
 #ifndef WINCE
@@ -1511,6 +1515,11 @@ function delayedStartup(isLoadingBlank, mustLoadSidebar) {
   if (Win7Features)
     Win7Features.onOpenWindow();
 
+#ifdef MOZ_SERVICES_SYNC
+  
+  gSyncUI.init();
+#endif
+
   Services.obs.notifyObservers(window, "browser-delayed-startup-finished", "");
 }
 
@@ -1651,6 +1660,11 @@ function nonBrowserWindowDelayedStartup()
 
   
   gPrivateBrowsingUI.init();
+
+#ifdef MOZ_SERVICES_SYNC
+  
+  gSyncUI.init();
+#endif
 }
 
 function nonBrowserWindowShutdown()
