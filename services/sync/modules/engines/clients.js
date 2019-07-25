@@ -108,7 +108,30 @@ ClientEngine.prototype = {
     Svc.Prefs.reset("client.syncID");
   },
 
-  get clientName() { return Svc.Prefs.get("client.name", Svc.AppInfo.name); },
+  get clientName() {
+    if (Svc.Prefs.isSet("client.name"))
+      return Svc.Prefs.get("client.name");
+
+    
+    let user = Svc.Env.get("USER") || Svc.Env.get("USERNAME");
+    let app = Svc.AppInfo.name;
+    let host = Svc.SysInfo.get("host");
+
+    
+    let prof = Svc.Directory.get("ProfD", Components.interfaces.nsIFile).path;
+    let profiles = Svc.Profiles.profiles;
+    while (profiles.hasMoreElements()) {
+      let profile = profiles.getNext().QueryInterface(Ci.nsIToolkitProfile);
+      if (prof == profile.rootDir.path) {
+        
+        if (profile.name != "default")
+          host = profile.name + "-" + host;
+        break;
+      }
+    }
+
+    return this.clientName = Str.sync.get("client.name", [user, app, host]);
+  },
   set clientName(value) { Svc.Prefs.set("client.name", value); },
 
   get clientType() { return Svc.Prefs.get("client.type", "desktop"); },
