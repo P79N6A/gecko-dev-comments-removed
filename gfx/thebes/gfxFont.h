@@ -1193,8 +1193,12 @@ public:
     
     virtual PRBool SetupCairoFont(gfxContext *aContext) = 0;
 
-    PRBool IsSyntheticBold() { return mSyntheticBoldOffset != 0; }
-    PRUint32 GetSyntheticBoldOffset() { return mSyntheticBoldOffset; }
+    PRBool IsSyntheticBold() { return mApplySyntheticBold; }
+
+    
+    gfxFloat GetSyntheticBoldOffset() {
+        return GetAdjustedSize() * (1.0 / 16.0);
+    }
 
     gfxFontEntry *GetFontEntry() { return mFontEntry.get(); }
     PRBool HasCharacter(PRUint32 ch) {
@@ -1224,6 +1228,11 @@ protected:
     nsRefPtr<gfxFontEntry> mFontEntry;
 
     PRPackedBool               mIsValid;
+
+    
+    
+    PRPackedBool               mApplySyntheticBold;
+
     nsExpirationState          mExpirationState;
     gfxFontStyle               mStyle;
     nsAutoTArray<gfxGlyphExtents*,1> mGlyphExtentsArray;
@@ -1231,9 +1240,6 @@ protected:
     gfxFloat                   mAdjustedSize;
 
     float                      mFUnitsConvFactor; 
-
-    
-    PRUint32                   mSyntheticBoldOffset;  
 
     
     AntialiasOption            mAntialiasOption;
@@ -2043,7 +2049,9 @@ public:
 #endif
 
     
-    void AdjustAdvancesForSyntheticBold(PRUint32 aStart, PRUint32 aLength);
+    void AdjustAdvancesForSyntheticBold(gfxContext *aContext,
+                                        PRUint32 aStart,
+                                        PRUint32 aLength);
 
 protected:
     

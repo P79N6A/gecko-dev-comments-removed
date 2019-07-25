@@ -1035,10 +1035,10 @@ gfxFont::RunMetrics::CombineWith(const RunMetrics& aOther, PRBool aOtherIsOnLeft
 gfxFont::gfxFont(gfxFontEntry *aFontEntry, const gfxFontStyle *aFontStyle,
                  AntialiasOption anAAOption) :
     mFontEntry(aFontEntry), mIsValid(PR_TRUE),
+    mApplySyntheticBold(PR_FALSE),
     mStyle(*aFontStyle),
     mAdjustedSize(0.0),
     mFUnitsConvFactor(0.0f),
-    mSyntheticBoldOffset(0),
     mAntialiasOption(anAAOption),
     mPlatformShaper(nsnull),
     mHarfBuzzShaper(nsnull)
@@ -1115,6 +1115,33 @@ struct GlyphBuffer {
 #undef GLYPH_BUFFER_SIZE
 };
 
+
+
+
+
+
+
+static double
+CalcXScale(gfxContext *aContext)
+{
+    
+    gfxSize t = aContext->UserToDevice(gfxSize(1.0, 0.0));
+    if (t.width == 1.0 && t.height == 0.0) {
+        
+        return 1.0;
+    }
+
+    double m = sqrt(t.width * t.width + t.height * t.height);
+
+    NS_ASSERTION(m != 0.0, "degenerate transform while synthetic bolding");
+    if (m == 0.0) {
+        return 0.0; 
+    }
+
+    
+    return 1.0 / m;
+}
+
 void
 gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
               gfxContext *aContext, PRBool aDrawToPath, gfxPoint *aPt,
@@ -1128,9 +1155,18 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
     const double devUnitsPerAppUnit = 1.0/double(appUnitsPerDevUnit);
     PRBool isRTL = aTextRun->IsRightToLeft();
     double direction = aTextRun->GetDirection();
+
     
-    double synBoldDevUnitOffsetAppUnits =
-      direction * (double) mSyntheticBoldOffset * appUnitsPerDevUnit;
+    
+    double synBoldOnePixelOffset;
+    PRInt32 strikes;
+    if (IsSyntheticBold()) {
+        double xscale = CalcXScale(aContext);
+        synBoldOnePixelOffset = direction * xscale;
+        
+        strikes = NS_lroundf(GetSyntheticBoldOffset() / xscale);
+    }
+
     PRUint32 i;
     
     double x = aPt->x;
@@ -1170,14 +1206,20 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
             glyph->y = ToDeviceUnits(y, devUnitsPerAppUnit);
             
             
-            if (mSyntheticBoldOffset) {
-                cairo_glyph_t *doubleglyph;
-                doubleglyph = glyphs.AppendGlyph();
-                doubleglyph->index = glyph->index;
-                doubleglyph->x =
-                  ToDeviceUnits(glyphX + synBoldDevUnitOffsetAppUnits,
-                                devUnitsPerAppUnit);
-                doubleglyph->y = glyph->y;
+            
+            if (IsSyntheticBold()) {
+                double strikeOffset = synBoldOnePixelOffset;
+                PRInt32 strikeCount = strikes;
+                do {
+                    cairo_glyph_t *doubleglyph;
+                    doubleglyph = glyphs.AppendGlyph();
+                    doubleglyph->index = glyph->index;
+                    doubleglyph->x =
+                        ToDeviceUnits(glyphX + strikeOffset * appUnitsPerDevUnit,
+                                      devUnitsPerAppUnit);
+                    doubleglyph->y = glyph->y;
+                    strikeOffset += synBoldOnePixelOffset;
+                } while (--strikeCount > 0);
             }
             
             glyphs.Flush(cr, aDrawToPath, isRTL);
@@ -1216,15 +1258,20 @@ gfxFont::Draw(gfxTextRun *aTextRun, PRUint32 aStart, PRUint32 aEnd,
                         glyph->x = ToDeviceUnits(glyphX, devUnitsPerAppUnit);
                         glyph->y = ToDeviceUnits(y + details->mYOffset, devUnitsPerAppUnit);
 
-                        
-                        if (mSyntheticBoldOffset) {
-                            cairo_glyph_t *doubleglyph;
-                            doubleglyph = glyphs.AppendGlyph();
-                            doubleglyph->index = glyph->index;
-                            doubleglyph->x =
-                                ToDeviceUnits(glyphX + synBoldDevUnitOffsetAppUnits,
-                                              devUnitsPerAppUnit);
-                            doubleglyph->y = glyph->y;
+                        if (IsSyntheticBold()) {
+                            double strikeOffset = synBoldOnePixelOffset;
+                            PRInt32 strikeCount = strikes;
+                            do {
+                                cairo_glyph_t *doubleglyph;
+                                doubleglyph = glyphs.AppendGlyph();
+                                doubleglyph->index = glyph->index;
+                                doubleglyph->x =
+                                    ToDeviceUnits(glyphX + strikeOffset *
+                                                      appUnitsPerDevUnit,
+                                                  devUnitsPerAppUnit);
+                                doubleglyph->y = glyph->y;
+                                strikeOffset += synBoldOnePixelOffset;
+                            } while (--strikeCount > 0);
                         }
 
                         glyphs.Flush(cr, aDrawToPath, isRTL);
@@ -3492,7 +3539,9 @@ struct BufferAlphaColor {
 };
 
 void
-gfxTextRun::AdjustAdvancesForSyntheticBold(PRUint32 aStart, PRUint32 aLength)
+gfxTextRun::AdjustAdvancesForSyntheticBold(gfxContext *aContext,
+                                           PRUint32 aStart,
+                                           PRUint32 aLength)
 {
     const PRUint32 appUnitsPerDevUnit = GetAppUnitsPerDevUnit();
     PRBool isRTL = IsRightToLeft();
@@ -3501,7 +3550,9 @@ gfxTextRun::AdjustAdvancesForSyntheticBold(PRUint32 aStart, PRUint32 aLength)
     while (iter.NextRun()) {
         gfxFont *font = iter.GetGlyphRun()->mFont;
         if (font->IsSyntheticBold()) {
-            PRUint32 synAppUnitOffset = font->GetSyntheticBoldOffset() * appUnitsPerDevUnit;
+            PRUint32 synAppUnitOffset =
+                font->GetSyntheticBoldOffset() *
+                    appUnitsPerDevUnit * CalcXScale(aContext);
             PRUint32 start = iter.GetStringStart();
             PRUint32 end = iter.GetStringEnd();
             PRUint32 i;
