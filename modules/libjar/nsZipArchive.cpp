@@ -59,8 +59,9 @@
 #include "stdlib.h"
 #include "nsWildCard.h"
 #include "nsZipArchive.h"
-
+#include "nsString.h"
 #include "mozilla/FunctionTimer.h"
+#include "prenv.h"
 
 
 
@@ -100,6 +101,8 @@ nsRecyclingAllocator *gZlibAllocator = NULL;
 #  endif
 #endif  
 
+
+using namespace mozilla;
 
 static const PRUint32 kMaxNameLength = PATH_MAX; 
 
@@ -222,7 +225,6 @@ nsZipHandle::~nsZipHandle()
 
 
 
-
 nsresult nsZipArchive::OpenArchive(nsIFile *aZipFile)
 {
   nsresult rv;
@@ -242,7 +244,28 @@ nsresult nsZipArchive::OpenArchive(nsIFile *aZipFile)
   PL_INIT_ARENA_POOL(&mArena, "ZipArena", ZIP_ARENABLOCKSIZE);
 
   
-  return BuildFileList();
+  rv = BuildFileList();
+  char *env = PR_GetEnv("MOZ_JAR_LOG_DIR");
+  if (env && NS_SUCCEEDED(rv)) {
+    nsCOMPtr<nsILocalFile> logFile;
+    nsresult rv2 = NS_NewLocalFile(NS_ConvertUTF8toUTF16(env), PR_FALSE, getter_AddRefs(logFile));
+    
+    if (!NS_SUCCEEDED(rv2))
+      return rv;
+
+    
+    logFile->Create(nsIFile::DIRECTORY_TYPE, 0700);
+
+    nsAutoString name;
+    localFile->GetLeafName(name);
+    name.Append(NS_LITERAL_STRING(".log"));
+    logFile->Append(name);
+
+    rv2 = logFile->OpenNSPRFileDesc(PR_WRONLY|PR_CREATE_FILE|PR_APPEND, 0644, &fd);
+    if (NS_SUCCEEDED(rv2))
+      mLog = fd;
+  }
+  return rv;
 }
 
 
@@ -319,8 +342,17 @@ nsZipItem*  nsZipArchive::GetItem(const char * aEntryName)
     nsZipItem* item = mFiles[ HashName(aEntryName, len) ];
     while (item) {
       if ((len == item->nameLength) && 
-         (!memcmp(aEntryName, item->Name(), len)))
+          (!memcmp(aEntryName, item->Name(), len))) {
+        
+        if (mLog) {
+          
+          char *tmp = PL_strdup(aEntryName);
+          tmp[len]='\n';
+          PR_Write(mLog, tmp, len+1);
+          PL_strfree(tmp);
+        }
         return item; 
+      }
       item = item->next;
     }
   }
@@ -533,14 +565,18 @@ nsresult nsZipArchive::BuildFileList()
   PRUint8* buf;
   PRUint8* startp = mFd->mFileData;
   PRUint8* endp = startp + mFd->mLen;
-
-  PRUint32 centralOffset = 0;
-  for (buf = endp - ZIPEND_SIZE; buf > startp; buf--)
-  {
-    if (xtolong(buf) == ENDSIG) {
-      centralOffset = xtolong(((ZipEnd *)buf)->offset_central_dir);
-      break;
-    }
+  
+  PRUint32 centralOffset = 1;
+  if (mFd->mLen > ZIPCENTRAL_SIZE && *(PRUint32*)(startp + centralOffset) == CENTRALSIG) {
+    
+  } else {
+    for (buf = endp - ZIPEND_SIZE; buf > startp; buf--)
+      {
+        if (xtolong(buf) == ENDSIG) {
+          centralOffset = xtolong(((ZipEnd *)buf)->offset_central_dir);
+          break;
+        }
+      }
   }
 
   if (!centralOffset)
@@ -673,7 +709,6 @@ nsZipHandle* nsZipArchive::GetFD()
 PRUint8* nsZipArchive::GetData(nsZipItem* aItem)
 {
   PR_ASSERT (aItem);
-
   
   
   PRUint32 len = mFd->mLen;

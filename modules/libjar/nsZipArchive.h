@@ -53,6 +53,7 @@
 #include "zipstruct.h"
 #include "nsAutoPtr.h"
 #include "nsILocalFile.h"
+#include "mozilla/FileUtils.h"
 
 class nsZipFind;
 
@@ -206,6 +207,10 @@ private:
 
   
   nsRefPtr<nsZipHandle> mFd;
+
+  
+  mozilla::AutoFDClose mLog;
+
   
   
   nsZipArchive& operator=(const nsZipArchive& rhs); 
