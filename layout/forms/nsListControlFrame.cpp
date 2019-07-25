@@ -389,7 +389,7 @@ nsListControlFrame::InvalidateFocus()
     
     
     
-    nsRect invalidateArea = containerFrame->GetOverflowRect();
+    nsRect invalidateArea = containerFrame->GetVisualOverflowRect();
     nsRect emptyFallbackArea(0, 0, GetScrollPortRect().width, CalcFallbackRowHeight());
     invalidateArea.UnionRect(invalidateArea, emptyFallbackArea);
     containerFrame->Invalidate(invalidateArea);

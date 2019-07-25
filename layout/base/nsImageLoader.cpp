@@ -237,7 +237,7 @@ nsImageLoader::DoRedraw(const nsRect* aDamageRect)
 
   if (mFrame->GetType() == nsGkAtoms::canvasFrame) {
     
-    bounds = mFrame->GetOverflowRect();
+    bounds = mFrame->GetVisualOverflowRect();
   }
 
   

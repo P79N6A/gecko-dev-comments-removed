@@ -666,7 +666,10 @@ GetOutlineInnerRect(nsIFrame* aFrame)
     (aFrame->Properties().Get(nsIFrame::OutlineInnerRectProperty()));
   if (savedOutlineInnerRect)
     return *savedOutlineInnerRect;
-  return aFrame->GetOverflowRect();
+  
+  
+  
+  return aFrame->GetVisualOverflowRect();
 }
 
 void
@@ -1115,7 +1118,7 @@ nsCSSRendering::PaintBoxShadowOuter(nsPresContext* aPresContext,
   }
 
   nsRect frameRect =
-    nativeTheme ? aForFrame->GetOverflowRectRelativeToSelf() + aFrameArea.TopLeft() : aFrameArea;
+    nativeTheme ? aForFrame->GetVisualOverflowRectRelativeToSelf() + aFrameArea.TopLeft() : aFrameArea;
   gfxRect frameGfxRect(nsLayoutUtils::RectToGfxRect(frameRect, twipsPerPixel));
   frameGfxRect.Round();
 

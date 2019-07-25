@@ -2492,7 +2492,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
   
   
   virtual void SetBounds(nsBoxLayoutState& aBoxLayoutState, const nsRect& aRect,
-                         PRBool aRemoveOverflowArea = PR_FALSE)=0;
+                         PRBool aRemoveOverflowAreas = PR_FALSE) = 0;
   NS_HIDDEN_(nsresult) Layout(nsBoxLayoutState& aBoxLayoutState);
   nsIBox* GetChildBox() const
   {
@@ -2573,7 +2573,7 @@ NS_PTR_TO_INT32(frame->Properties().Get(nsIFrame::EmbeddingLevelProperty()))
 
 
   void CheckInvalidateSizeChange(const nsRect& aOldRect,
-                                 const nsRect& aOldOverflowRect,
+                                 const nsRect& aOldVisualOverflowRect,
                                  const nsSize& aNewDesiredSize);
 
   

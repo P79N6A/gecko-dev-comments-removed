@@ -118,12 +118,16 @@ nsPageContentFrame::Reflow(nsPresContext*           aPresContext,
     kidReflowState.mStylePadding->GetPadding(padding);
 
     
-    if (frame->HasOverflowRect()) {
+    
+    
+    
+    if (frame->HasOverflowAreas()) {
       
       
-      if (aDesiredSize.mOverflowArea.XMost() > aDesiredSize.width) {
+      nscoord xmost = aDesiredSize.ScrollableOverflow().XMost();
+      if (xmost > aDesiredSize.width) {
         mPD->mPageContentXMost =
-          aDesiredSize.mOverflowArea.XMost() +
+          xmost +
           kidReflowState.mStyleBorder->GetActualBorderWidth(NS_SIDE_RIGHT) +
           padding.right;
       }

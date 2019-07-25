@@ -178,7 +178,8 @@ public:
     
     
     nsListControlFrame* listFrame = GetEnclosingListFrame(GetUnderlyingFrame());
-    return listFrame->GetOverflowRect() + aBuilder->ToReferenceFrame(listFrame);
+    return listFrame->GetVisualOverflowRect() +
+           aBuilder->ToReferenceFrame(listFrame);
   }
   virtual void Paint(nsDisplayListBuilder* aBuilder,
                      nsIRenderingContext* aCtx) {

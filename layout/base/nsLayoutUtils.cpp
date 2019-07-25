@@ -849,7 +849,7 @@ nsLayoutUtils::GetPopupFrameForEventCoordinates(nsPresContext* aPresContext,
   for (i = 0; i < popups.Length(); i++) {
     nsIFrame* popup = popups[i];
     if (popup->PresContext()->GetRootPresContext() == aPresContext &&
-        popup->GetOverflowRect().Contains(
+        popup->GetScrollableOverflowRect().Contains(
           GetEventCoordinatesRelativeTo(aEvent, popup))) {
       return popup;
     }
@@ -1242,7 +1242,7 @@ nsLayoutUtils::PaintFrame(nsIRenderingContext* aRenderingContext, nsIFrame* aFra
     
     
     if (!presShell->UsingDisplayPort()) {
-      visibleRegion = aFrame->GetOverflowRectRelativeToSelf();
+      visibleRegion = aFrame->GetVisualOverflowRectRelativeToSelf();
     } else {
       visibleRegion = presShell->GetDisplayPort();
     }
@@ -2787,7 +2787,9 @@ nsLayoutUtils::CalculateContentBottom(nsIFrame* aFrame)
 
   nscoord contentBottom = aFrame->GetRect().height;
 
-  if (aFrame->GetOverflowRect().height > contentBottom) {
+  
+  
+  if (aFrame->GetScrollableOverflowRect().height > contentBottom) {
     nsBlockFrame* blockFrame = GetAsBlock(aFrame);
     nsIAtom* childList = nsnull;
     PRIntn nextListID = 0;

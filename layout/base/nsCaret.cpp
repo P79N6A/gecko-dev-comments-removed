@@ -399,7 +399,7 @@ nsCaret::GetGeometryForFrame(nsIFrame* aFrame,
     
     
     nscoord overflow = caretInScroll.XMost() -
-      scrolled->GetOverflowRectRelativeToSelf().width;
+      scrolled->GetVisualOverflowRectRelativeToSelf().width;
     if (overflow > 0)
       aRect->x -= overflow;
   }
@@ -524,7 +524,7 @@ void nsCaret::InvalidateOutsideCaret()
   nsIFrame *frame = GetCaretFrame();
 
   
-  if (frame && !frame->GetOverflowRect().Contains(GetCaretRect()))
+  if (frame && !frame->GetVisualOverflowRect().Contains(GetCaretRect()))
     InvalidateRects(mCaretRect, GetHookRect(), frame);
 }
 

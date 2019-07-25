@@ -5576,7 +5576,7 @@ PresShell::CreateRangePaintInfo(nsIDOMRange* aRange,
   if (!info)
     return nsnull;
 
-  nsRect ancestorRect = ancestorFrame->GetOverflowRect();
+  nsRect ancestorRect = ancestorFrame->GetVisualOverflowRect();
 
   
   if (aForPrimarySelection) {

@@ -208,7 +208,7 @@ nsCanvasFrame::RemoveFrame(nsIAtom*        aListName,
   
   
   
-  Invalidate(aOldFrame->GetOverflowRect() + aOldFrame->GetPosition());
+  Invalidate(aOldFrame->GetVisualOverflowRect() + aOldFrame->GetPosition());
 
   
   mFrames.DestroyFrame(aOldFrame);
@@ -239,7 +239,9 @@ nsCanvasFrame::GetChildList(nsIAtom* aListName) const
 
 nsRect nsCanvasFrame::CanvasArea() const
 {
-  nsRect result(GetOverflowRect());
+  
+  
+  nsRect result(GetVisualOverflowRect());
 
   nsIScrollableFrame *scrollableFrame = do_QueryFrame(GetParent());
   if (scrollableFrame) {

@@ -533,7 +533,7 @@ nsHTMLScrollFrame::ReflowScrolledFrame(ScrollReflowState* aState,
   
   aMetrics->UnionOverflowAreasWithDesiredBounds();
 
-  aState->mContentsOverflowArea = aMetrics->mOverflowArea;
+  aState->mContentsOverflowArea = aMetrics->ScrollableOverflow();
   aState->mReflowedContentsWithHScrollbar = aAssumeHScroll;
   aState->mReflowedContentsWithVScrollbar = aAssumeVScroll;
   
@@ -631,7 +631,8 @@ nsHTMLScrollFrame::ReflowContents(ScrollReflowState* aState,
       ComputeInsideBorderSize(aState,
                               nsSize(kidDesiredSize.width, kidDesiredSize.height));
     nsRect scrolledRect =
-      mInner.GetScrolledRectInternal(kidDesiredSize.mOverflowArea, insideBorderSize);
+      mInner.GetScrolledRectInternal(kidDesiredSize.ScrollableOverflow(),
+                                     insideBorderSize);
     if (nsRect(nsPoint(0, 0), insideBorderSize).Contains(scrolledRect)) {
       
       rv = ReflowScrolledFrame(aState, PR_FALSE, PR_FALSE,
@@ -799,7 +800,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
 
   nsRect oldScrollAreaBounds = mInner.mScrollPort;
   nsRect oldScrolledAreaBounds =
-    mInner.mScrolledFrame->GetOverflowRectRelativeToParent();
+    mInner.mScrolledFrame->GetScrollableOverflowRectRelativeToParent();
   
   
   
@@ -829,7 +830,7 @@ nsHTMLScrollFrame::Reflow(nsPresContext*           aPresContext,
   mInner.mHasVerticalScrollbar = state.mShowVScrollbar;
   nsRect newScrollAreaBounds = mInner.mScrollPort;
   nsRect newScrolledAreaBounds =
-    mInner.mScrolledFrame->GetOverflowRectRelativeToParent();
+    mInner.mScrolledFrame->GetScrollableOverflowRectRelativeToParent();
   if (mInner.mSkippedScrollbarLayout ||
       reflowHScrollbar || reflowVScrollbar || reflowScrollCorner ||
       (GetStateBits() & NS_FRAME_IS_DIRTY) ||
@@ -2515,7 +2516,7 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState,
   PRInt32 flags = NS_FRAME_NO_MOVE_VIEW;
 
   nsRect originalRect = mInner.mScrolledFrame->GetRect();
-  nsRect originalOverflow = mInner.mScrolledFrame->GetOverflowRect();
+  nsRect originalVisOverflow = mInner.mScrolledFrame->GetVisualOverflowRect();
 
   nsSize minSize = mInner.mScrolledFrame->GetMinSize(aState);
   
@@ -2539,30 +2540,30 @@ nsXULScrollFrame::LayoutScrollArea(nsBoxLayoutState& aState,
 
     
     
-    mInner.mScrolledFrame->SetBounds(aState, childRect);
-    mInner.mScrolledFrame->ClearOverflowRect();
+    
+    mInner.mScrolledFrame->SetBounds(aState, childRect, PR_TRUE);
   }
 
   nsRect finalRect = mInner.mScrolledFrame->GetRect();
-  nsRect finalOverflow = mInner.mScrolledFrame->GetOverflowRect();
+  nsRect finalVisOverflow = mInner.mScrolledFrame->GetVisualOverflowRect();
   
   
   
   if (originalRect.TopLeft() != finalRect.TopLeft() ||
-      originalOverflow.TopLeft() != finalOverflow.TopLeft())
+      originalVisOverflow.TopLeft() != finalVisOverflow.TopLeft())
   {
     
     
     mInner.mScrolledFrame->Invalidate(
-      originalOverflow + originalRect.TopLeft() - finalRect.TopLeft());
-    mInner.mScrolledFrame->Invalidate(finalOverflow);
-  } else if (!originalOverflow.IsExactEqual(finalOverflow)) {
+      originalVisOverflow + originalRect.TopLeft() - finalRect.TopLeft());
+    mInner.mScrolledFrame->Invalidate(finalVisOverflow);
+  } else if (!originalVisOverflow.IsExactEqual(finalVisOverflow)) {
     
     
     mInner.mScrolledFrame->CheckInvalidateSizeChange(
-      originalRect, originalOverflow, finalRect.Size());
+      originalRect, originalVisOverflow, finalRect.Size());
     mInner.mScrolledFrame->InvalidateRectDifference(
-      originalOverflow, finalOverflow);
+      originalVisOverflow, finalVisOverflow);
   }
 
   aState.SetLayoutFlags(oldflags);
@@ -2970,7 +2971,8 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
   PRBool rectChanged = aBox->GetRect() != aRect;
   if (rectChanged) {
     if (aScrollbarIsBeingHidden) {
-      aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+      aBox->GetParent()->Invalidate(aBox->GetVisualOverflowRect() +
+                                    aBox->GetPosition());
     } else {
       aBox->InvalidateFrameSubtree();
     }
@@ -2978,7 +2980,8 @@ static void LayoutAndInvalidate(nsBoxLayoutState& aState,
   nsBoxFrame::LayoutChildAt(aState, aBox, aRect);
   if (rectChanged) {
     if (aScrollbarIsBeingHidden) {
-      aBox->GetParent()->Invalidate(aBox->GetOverflowRect() + aBox->GetPosition());
+      aBox->GetParent()->Invalidate(aBox->GetVisualOverflowRect() +
+                                    aBox->GetPosition());
     } else {
       aBox->InvalidateFrameSubtree();
     }
@@ -3212,7 +3215,7 @@ nsRect
 nsGfxScrollFrameInner::GetScrolledRect() const
 {
   nsRect result =
-    GetScrolledRectInternal(mScrolledFrame->GetOverflowRect(),
+    GetScrolledRectInternal(mScrolledFrame->GetScrollableOverflowRect(),
                             mScrollPort.Size());
 
   NS_ASSERTION(result.width >= mScrollPort.width,
@@ -3369,7 +3372,7 @@ nsGfxScrollFrameInner::FireScrolledAreaEvent()
   nsPresContext *prescontext = mOuter->PresContext();
   nsIContent* content = mOuter->GetContent();
 
-  event.mArea = mScrolledFrame->GetOverflowRectRelativeToParent();
+  event.mArea = mScrolledFrame->GetScrollableOverflowRectRelativeToParent();
 
   nsIDocument *doc = content->GetCurrentDoc();
   if (doc) {

@@ -443,7 +443,7 @@ static void MoveChildTo(nsIFrame* aParent, nsIFrame* aChild, nsPoint aOrigin) {
     return;
   }
   
-  nsRect r = aChild->GetOverflowRect();
+  nsRect r = aChild->GetVisualOverflowRect();
   r += aChild->GetPosition();
   aParent->Invalidate(r);
   r -= aChild->GetPosition();
@@ -603,8 +603,10 @@ nsColumnSetFrame::ReflowChildren(nsHTMLReflowMetrics&     aDesiredSize,
     
     
     
+    
+    
     PRBool skipResizeHeightShrink = shrinkingHeightOnly
-      && child->GetOverflowRect().YMost() <= aConfig.mColMaxHeight;
+      && child->GetScrollableOverflowRect().YMost() <= aConfig.mColMaxHeight;
 
     nscoord childContentBottom = 0;
     if (!reflowNext && (skipIncremental || skipResizeHeightShrink)) {

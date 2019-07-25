@@ -399,7 +399,7 @@ nsAbsoluteContainingBlock::ReflowAbsoluteFrame(nsIFrame*                aDelegat
 
   
   
-  nsRect oldOverflowRect(aKidFrame->GetOverflowRect() +
+  nsRect oldOverflowRect(aKidFrame->GetVisualOverflowRect() +
                          aKidFrame->GetPosition());
   nsRect oldRect = aKidFrame->GetRect();
 
