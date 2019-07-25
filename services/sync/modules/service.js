@@ -253,8 +253,6 @@ WeaveSvc.prototype = {
         while (enum.hasMoreElements())
           wait += enum.getNext().gBrowser.mTabs.length;
         break;
-      case FENNEC_ID:
-        wait = 10;
     }
 
     
@@ -1523,3 +1521,6 @@ WeaveSvc.prototype = {
     }
   },
 };
+
+
+Weave.Service.onStartup();
