@@ -1104,7 +1104,7 @@ NewObject(JSContext *cx, js::Class *clasp, JSObject *proto, JSObject *parent,
 {
     
     if (withProto == WithProto::Class && !proto) {
-        if (!FindProto (cx, clasp, parent, &proto))
+        if (!FindProto(cx, clasp, parent, &proto))
           return NULL;
     }
 
