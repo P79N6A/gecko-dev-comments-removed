@@ -1886,7 +1886,7 @@ SetRemoteExceptionHandler(const nsACString& crashPipe)
 
   gExceptionHandler = new google_breakpad::
     ExceptionHandler(L"",
-                     NULL,    
+                     FPEFilter,
                      NULL,    
                      NULL,    
                      google_breakpad::ExceptionHandler::HANDLER_ALL,
