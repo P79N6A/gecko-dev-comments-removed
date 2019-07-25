@@ -330,6 +330,7 @@ static const CSSPropertyAlias gAliases[] = {
   { "-moz-border-radius-bottomright", eCSSProperty_border_bottom_right_radius },
   { "-moz-border-radius-topleft", eCSSProperty_border_top_left_radius },
   { "-moz-border-radius-topright", eCSSProperty_border_top_right_radius },
+  { "-moz-box-shadow", eCSSProperty_box_shadow },
   
   
 };
