@@ -1582,7 +1582,7 @@ let GroupItems = {
   getNextID: function GroupItems_getNextID() {
     var result = this.nextID;
     this.nextID++;
-    this.save();
+    this._save();
     return result;
   },
 
@@ -1602,7 +1602,7 @@ let GroupItems = {
   
   
   saveAll: function GroupItems_saveAll() {
-    this.save();
+    this._save();
     this.groupItems.forEach(function(groupItem) {
       groupItem.save();
     });
@@ -1611,11 +1611,13 @@ let GroupItems = {
   
   
   
-  save: function GroupItems_save() {
+  _save: function GroupItems__save() {
     if (!this._inited) 
       return;
 
-    Storage.saveGroupItemsData(gWindow, {nextID:this.nextID});
+    let activeGroupId = this._activeGroupItem ? this._activeGroupItem.id : null;
+    Storage.saveGroupItemsData(
+      gWindow, { nextID: this.nextID, activeGroupId: activeGroupId });
   },
 
   
@@ -1637,8 +1639,14 @@ let GroupItems = {
   
   reconstitute: function GroupItems_reconstitute(groupItemsData, groupItemData) {
     try {
-      if (groupItemsData && groupItemsData.nextID)
-        this.nextID = groupItemsData.nextID;
+      let activeGroupId;
+
+      if (groupItemsData) {
+        if (groupItemsData.nextID)
+          this.nextID = groupItemsData.nextID;
+        if (groupItemsData.activeGroupId)
+          activeGroupId = groupItemsData.activeGroupId;
+      }
 
       if (groupItemData) {
         for (var id in groupItemData) {
@@ -1652,9 +1660,15 @@ let GroupItems = {
           }
         }
       }
+      
+      if (activeGroupId) {
+        let activeGroupItem = this.groupItem(activeGroupId);
+        if (activeGroupItem)
+          this.setActiveGroupItem(activeGroupItem);
+      }
 
       this._inited = true;
-      this.save(); 
+      this._save(); 
     } catch(e) {
       Utils.log("error in recons: "+e);
     }
@@ -1763,38 +1777,83 @@ let GroupItems = {
   
   newTab: function GroupItems_newTab(tabItem) {
     let activeGroupItem = this.getActiveGroupItem();
-    let orphanTab = this.getActiveOrphanTab();
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     if (activeGroupItem) {
       activeGroupItem.add(tabItem);
-    } else if (orphanTab) {
-      let newGroupItemBounds = orphanTab.getBoundsWithTitle();
-      newGroupItemBounds.inset(-40,-40);
-      let newGroupItem = new GroupItem([orphanTab, tabItem], {bounds: newGroupItemBounds});
-      newGroupItem.snap();
-      this.setActiveGroupItem(newGroupItem);
-    } else {
-      this.positionNewTabAtBottom(tabItem);
+      return;
     }
-  },
 
-  
-  
-  
-  
-  
-  
-  positionNewTabAtBottom: function GroupItems_positionNewTabAtBottom(tabItem) {
-    let windowBounds = Items.getSafeWindowBounds();
+    let orphanTabItem = this.getActiveOrphanTab();
+    if (!orphanTabItem) {
+      let otherTab;
+      
+      gBrowser.visibleTabs.some(function(tab) {
+        if (!tab.pinned && tab != tabItem.tab) {
+          otherTab = tab;
+          return true;
+        }
+        return false;
+      });
 
-    let itemBounds = new Rect(
-      windowBounds.right - TabItems.tabWidth,
-      windowBounds.bottom - TabItems.tabHeight,
-      TabItems.tabWidth,
-      TabItems.tabHeight
-    );
+      if (otherTab) {
+        
+        
+        if (otherTab.tabItem.parent) {
+          let groupItem = otherTab.tabItem.parent;
+          groupItem.add(tabItem);
+          this.setActiveGroupItem(groupItem);
+          return;
+        }
+        
+        
+        orphanTabItem = otherTab.tabItem;
+      }
 
-    tabItem.setBounds(itemBounds);
+      if (!orphanTabItem) {
+        
+        if (this.groupItems.length > 0) {
+          let groupItem = this.groupItems[0];
+          groupItem.add(tabItem);
+          this.setActiveGroupItem(groupItem);
+          return;
+        }
+        
+        
+        let orphanedTabs = this.getOrphanedTabs();
+        if (orphanedTabs.length > 0)
+          orphanTabItem = orphanedTabs[0];
+      }
+    }
+
+    
+    let tabItems;
+    let newGroupItemBounds; 
+    
+    
+    if (orphanTabItem && orphanTabItem.tab != tabItem.tab) {
+      newGroupItemBounds = orphanTabItem.getBoundsWithTitle();
+      tabItems = [orphanTabItem, tabItem];
+    } else {
+      tabItem.setPosition(60, 60, true);
+      newGroupItemBounds = tabItem.getBounds();
+      tabItems = [tabItem];
+    }
+
+    newGroupItemBounds.inset(-40,-40);
+    let newGroupItem = 
+      new GroupItem(tabItems, { bounds: newGroupItemBounds });
+    newGroupItem.snap();
+    this.setActiveGroupItem(newGroupItem);
   },
 
   
@@ -1825,6 +1884,7 @@ let GroupItems = {
     }
 
     this._activeGroupItem = groupItem;
+    this._save();
   },
 
   

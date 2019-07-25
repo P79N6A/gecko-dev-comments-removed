@@ -1030,8 +1030,12 @@ let TabItems = {
 
         item.reconnected = true;
         found = true;
-      } else
-        item.reconnected = item.tab.linkedBrowser.currentURI.spec != 'about:blank';
+      } else {
+        
+        
+        item.reconnected = 
+          (item.tab.linkedBrowser.currentURI.spec != 'about:blank' || item.parent);
+      }
 
       item.save();
     } catch(e) {
