@@ -275,7 +275,9 @@ PRBool          nsWindow::sDefaultTrackPointHack  = PR_FALSE;
 
 const char*     nsWindow::sDefaultMainWindowClass = kClassNameGeneral;
 
-PRBool          nsWindow::sUseElantechGestureHacks = PR_FALSE;
+PRBool          nsWindow::sUseElantechSwipeHack  = PR_FALSE;
+
+PRBool          nsWindow::sUseElantechPinchHack  = PR_FALSE;
 
 
 bool            nsWindow::sAllowD3D9              = false;
@@ -6651,7 +6653,7 @@ LRESULT nsWindow::OnKeyDown(const MSG &aMsg,
     aMsg.wParam != VK_PROCESSKEY ? aMsg.wParam : ::ImmGetVirtualKey(mWnd);
   gKbdLayout.OnKeyDown(virtualKeyCode);
 
-  if (sUseElantechGestureHacks) {
+  if (sUseElantechSwipeHack) {
     PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
   }
 
@@ -6994,9 +6996,11 @@ LRESULT nsWindow::OnKeyUp(const MSG &aMsg,
 {
   UINT virtualKeyCode = aMsg.wParam;
 
-  if (sUseElantechGestureHacks) {
+  if (sUseElantechSwipeHack) {
     PerformElantechSwipeGestureHack(virtualKeyCode, aModKeyState);
+  }
 
+  if (sUseElantechPinchHack) {
     
     
     
@@ -7609,7 +7613,7 @@ PRBool nsWindow::HandleScrollingPlugins(UINT aMsg, WPARAM aWParam,
   
   
 
-  if (sUseElantechGestureHacks && IsElantechHelperWindow(destWnd)) {
+  if (sUseElantechPinchHack && IsElantechHelperWindow(destWnd)) {
     
     
     
@@ -8883,8 +8887,8 @@ IsObsoleteSynapticsDriver()
   return majorVersion < 15;
 }
 
-static PRBool
-IsObsoleteElantechDriver()
+static PRInt32
+GetElantechDriverMajorVersion()
 {
   PRUnichar buf[40];
   
@@ -8907,18 +8911,17 @@ IsObsoleteElantechDriver()
   
   for (PRUnichar* p = buf; *p; p++) {
     if (*p >= L'0' && *p <= L'9' && (p == buf || *(p - 1) == L' ')) {
-      int majorVersion = wcstol(p, NULL, 10);
-      
-      if (majorVersion == 7 || majorVersion == 8)
-        return PR_TRUE;
+      return wcstol(p, NULL, 10);
     }
   }
 
-  return PR_FALSE;
+  return 0;
 }
 
 void nsWindow::InitInputWorkaroundPrefDefaults()
 {
+  PRUint32 elantechDriverVersion = GetElantechDriverMajorVersion();
+
   if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\TrackPoint")) {
     sDefaultTrackPointHack = PR_TRUE;
   } else if (HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Lenovo\\UltraNav")) {
@@ -8927,13 +8930,15 @@ void nsWindow::InitInputWorkaroundPrefDefaults()
     sDefaultTrackPointHack = PR_TRUE;
   } else if ((HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavUSB") ||
               HasRegistryKey(HKEY_CURRENT_USER, L"Software\\Synaptics\\SynTPEnh\\UltraNavPS2")) &&
-              IsObsoleteSynapticsDriver()) {
+              elantechDriverVersion != 0 && elantechDriverVersion <= 8) {
     sDefaultTrackPointHack = PR_TRUE;
   }
 
-  sUseElantechGestureHacks =
+  PRBool useElantechGestureHacks =
     GetInputWorkaroundPref("ui.elantech_gesture_hacks.enabled",
-                           IsObsoleteElantechDriver());
+                           elantechDriverVersion != 0);
+  sUseElantechSwipeHack = useElantechGestureHacks && elantechDriverVersion <= 7;
+  sUseElantechPinchHack = useElantechGestureHacks && elantechDriverVersion <= 8;
 }
 
 LPARAM nsWindow::lParamToScreen(LPARAM lParam)
