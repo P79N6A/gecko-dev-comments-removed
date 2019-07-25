@@ -5452,8 +5452,15 @@ nsWindow::ClientMarginHitTestPoint(PRInt32 mx, PRInt32 my)
       testResult = HTRIGHT;
   }
 
+  
+  if (mSizeMode == nsSizeMode_Maximized && testResult == HTTOP)
+    testResult = HTCAPTION;
+
   if (!mIsInMouseCapture && 
-      (testResult == HTCLIENT || testResult == HTTOP || testResult == HTTOPLEFT)) {
+      (testResult == HTCLIENT ||
+       testResult == HTTOP ||
+       testResult == HTTOPLEFT ||
+       testResult == HTCAPTION)) {
     LPARAM lParam = MAKELPARAM(mx, my);
     LPARAM lParamClient = lParamToClient(lParam);
     PRBool result = DispatchMouseEvent(NS_MOUSE_MOZHITTEST, 0, lParamClient,
