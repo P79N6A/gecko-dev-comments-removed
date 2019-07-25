@@ -198,9 +198,6 @@ struct PropDesc {
 
 typedef Vector<PropDesc, 1> PropDescArray;
 
-void
-MeterEntryCount(uintN count);
-
 } 
 
 enum {
@@ -1431,7 +1428,7 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp);
 
 struct JSSharpObjectMap {
     jsrefcount  depth;
-    jsatomid    sharpgen;
+    uint32      sharpgen;
     JSHashTable *table;
 };
 

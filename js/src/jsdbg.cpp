@@ -768,22 +768,17 @@ Debug::onTrap(JSContext *cx, Value *vp)
 
 
 void
-Debug::markCrossCompartmentDebugObjectReferents(JSTracer *tracer)
+Debug::markKeysInCompartment(JSTracer *tracer, ObjectWeakMap &map)
 {
     JSCompartment *comp = tracer->context->runtime->gcCurrentCompartment;
+    JS_ASSERT(comp);
 
-    
-    
-    const GlobalObjectSet &debuggees = comp->getDebuggees();
-    for (GlobalObjectSet::Range r = debuggees.all(); !r.empty(); r.popFront()) {
-        const GlobalObject::DebugVector *debuggers = r.front()->getDebuggers();
-        for (Debug **p = debuggers->begin(); p != debuggers->end(); p++) {
-            Debug *dbg = *p;
-            if (dbg->object->compartment() != comp) {
-                dbg->objects.markKeysInCompartment(tracer);
-                dbg->heldScripts.markKeysInCompartment(tracer);
-            }
-        }
+    typedef HashMap<JSObject *, JSObject *, DefaultHasher<JSObject *>, RuntimeAllocPolicy> Map;
+    Map &storage = map;
+    for (Map::Range r = storage.all(); !r.empty(); r.popFront()) {
+        JSObject *key = r.front().key;
+        if (key->compartment() == comp && IsAboutToBeFinalized(tracer->context, key))
+            js::gc::MarkObject(tracer, *key, "cross-compartment WeakMap key");
     }
 }
 
@@ -799,14 +794,51 @@ Debug::markCrossCompartmentDebugObjectReferents(JSTracer *tracer)
 
 
 
+
+
+
+
+
+
+
+
+
+
+void 
+Debug::markCrossCompartmentDebugObjectReferents(JSTracer *tracer)
+{
+    JSRuntime *rt = tracer->context->runtime;
+    JSCompartment *comp = rt->gcCurrentCompartment;
+
+    
+    
+    for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
+        Debug *dbg = Debug::fromLinks(p);
+        if (dbg->object->compartment() != comp) {
+            markKeysInCompartment(tracer, dbg->objects);
+            markKeysInCompartment(tracer, dbg->heldScripts);
+        }
+    }         
+}
+
+
+
+
+
+
+
+
+
+
 bool
-Debug::mark(GCMarker *trc, JSCompartment *comp, JSGCInvocationKind gckind)
+Debug::mark(GCMarker *trc, JSGCInvocationKind gckind)
 {
     bool markedAny = false;
 
     
     
     JSRuntime *rt = trc->context->runtime;
+    JSCompartment *comp = rt->gcCurrentCompartment;
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
         JSCompartment *dc = *c;
 
@@ -893,7 +925,7 @@ Debug::sweepAll(JSContext *cx)
 {
     JSRuntime *rt = cx->runtime;
     for (JSCList *p = &rt->debuggerList; (p = JS_NEXT_LINK(p)) != &rt->debuggerList;) {
-        Debug *dbg = (Debug *) ((unsigned char *) p - offsetof(Debug, link));
+        Debug *dbg = Debug::fromLinks(p);
 
         if (!dbg->object->isMarked()) {
             
@@ -1799,7 +1831,7 @@ DebugScript_getAllOffsets(JSContext *cx, uintN argc, Value *vp)
             }
 
             
-            if (!js_ArrayCompPush(cx, offsets, NumberValue(offset)))
+            if (!js_NewbornArrayPush(cx, offsets, NumberValue(offset)))
                 return false;
         }
     }
@@ -1845,7 +1877,7 @@ DebugScript_getLineOffsets(JSContext *cx, uintN argc, Value *vp)
             flowData[offset] != NoEdges &&
             flowData[offset] != lineno)
         {
-            if (!js_ArrayCompPush(cx, result, NumberValue(offset)))
+            if (!js_NewbornArrayPush(cx, result, NumberValue(offset)))
                 return false;
         }
     }
@@ -1917,7 +1949,7 @@ DebugScript_getBreakpoints(JSContext *cx, uintN argc, Value *vp)
         if (site->script == script && (!pc || site->pc == pc)) {
             for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
                 if (bp->debugger == dbg &&
-                    !js_ArrayCompPush(cx, arr, ObjectValue(*bp->getHandler())))
+                    !js_NewbornArrayPush(cx, arr, ObjectValue(*bp->getHandler())))
                 {
                     return false;
                 }
@@ -2546,12 +2578,12 @@ DebugObject_getParameterNames(JSContext *cx, uintN argc, Value *vp)
         JS_ASSERT(fun->nargs == fun->script()->bindings.countArgs());
 
         if (fun->nargs > 0) {
-            const AutoLocalNameArray names(cx, fun);
-            if (!names)
+            Vector<JSAtom *> names(cx);
+            if (!fun->script()->bindings.getLocalNameArray(cx, &names))
                 return false;
 
             for (size_t i = 0; i < fun->nargs; i++) {
-                JSAtom *name = JS_LOCAL_NAME_TO_ATOM(names[i]);
+                JSAtom *name = names[i];
                 Value *elt = result->addressOfDenseArrayElement(i);
                 if (name)
                     elt->setString(name);

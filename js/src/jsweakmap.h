@@ -98,6 +98,37 @@ namespace js {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 template <class Key, class Value> class DefaultMarkPolicy;
 
 
@@ -165,10 +196,8 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
   private:
     void nonMarkingTrace(JSTracer *tracer) {
         MarkPolicy t(tracer);
-        for (Range r = Base::all(); !r.empty(); r.popFront()) {
-            t.markKey(r.front().key, "WeakMap entry key");
-            t.markValue(r.front().value, "WeakMap entry value");
-        }
+        for (Range r = Base::all(); !r.empty(); r.popFront())
+            t.markEntry(r.front().key, r.front().value);
     }
 
     bool markIteratively(JSTracer *tracer) {
@@ -176,40 +205,34 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
         bool markedAny = false;
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
             
-            if (!t.valueMarked(r.front().value) && t.keyMarked(r.front().key)) {
-                t.markValue(r.front().value, "WeakMap entry with live key");
+            if (t.markEntryIfLive(r.front().key, r.front().value)) {
                 
                 markedAny = true;
             }
+            JS_ASSERT_IF(t.keyMarked(r.front().key), t.valueMarked(r.front().value));
         }
         return markedAny;
     }
 
     void sweep(JSTracer *tracer) {
         MarkPolicy t(tracer);
+
+        
         for (Enum e(*this); !e.empty(); e.popFront()) {
             if (!t.keyMarked(e.front().key))
                 e.removeFront();
         }
+
 #if DEBUG
         
+
+
+
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
             JS_ASSERT(t.keyMarked(r.front().key));
             JS_ASSERT(t.valueMarked(r.front().value));
         }
 #endif
-    }
-
-  public:
-    
-    void markKeysInCompartment(JSTracer *tracer) {
-        JSCompartment *comp = tracer->context->runtime->gcCurrentCompartment;
-        JS_ASSERT(comp);
-        MarkPolicy t(tracer);
-        for (Range r = Base::all(); !r.empty(); r.popFront()) {
-            if (!t.keyMarked(r.front().key))
-                t.markKey(r.front().key, "cross-compartment WeakMap key");
-        }
     }
 };
 
@@ -225,54 +248,72 @@ class DefaultMarkPolicy<JSObject *, Value> {
             return !IsAboutToBeFinalized(tracer->context, v.toGCThing());
         return true;
     }
-    void markKey(JSObject *k, const char *description) {
-        js::gc::MarkObject(tracer, *k, description);
+    bool markEntryIfLive(JSObject *k, const Value &v) {
+        if (keyMarked(k) && !valueMarked(v)) {
+            js::gc::MarkValue(tracer, v, "WeakMap entry value");
+            return true;
+        }
+        return false;
     }
-    void markValue(const Value &v, const char *description) {
-        js::gc::MarkValue(tracer, v, description);
+    void markEntry(JSObject *k, const Value &v) {
+        js::gc::MarkObject(tracer, *k, "WeakMap entry key");
+        js::gc::MarkValue(tracer, v, "WeakMap entry value");
     }
 };
 
 template <>
 class DefaultMarkPolicy<JSObject *, JSObject *> {
+  protected:
+    JSTracer *tracer;
   public:
     DefaultMarkPolicy(JSTracer *t) : tracer(t) { }
     bool keyMarked(JSObject *k)   { return !IsAboutToBeFinalized(tracer->context, k); }
     bool valueMarked(JSObject *v) { return !IsAboutToBeFinalized(tracer->context, v); }
-    void markKey(JSObject *k, const char *description) {
-        js::gc::MarkObject(tracer, *k, description);
+    bool markEntryIfLive(JSObject *k, JSObject *v) {
+        if (keyMarked(k) && !valueMarked(v)) {
+            js::gc::MarkObject(tracer, *v, "WeakMap entry value");
+            return true;
+        }
+        return false;
     }
-    void markValue(JSObject *v, const char *description) {
-        js::gc::MarkObject(tracer, *v, description);
+    void markEntry(JSObject *k, JSObject *v) {
+        js::gc::MarkObject(tracer, *k, "WeakMap entry key");
+        js::gc::MarkObject(tracer, *v, "WeakMap entry value");
     }
-  protected:
-    JSTracer *tracer;
 };
 
 
 
 class CrossCompartmentMarkPolicy {
-  public:
-    CrossCompartmentMarkPolicy(JSTracer *t)
-        : tracer(t), comp(t->context->runtime->gcCurrentCompartment) {}
-    bool keyMarked(JSObject *k) { return isMarked(k); }
-    bool valueMarked(JSObject *v) { return isMarked(v); }
-    void markKey(JSObject *k, const char *description) {
-        js::gc::MarkObject(tracer, *k, description);
-    }
-    void markValue(JSObject *v, const char *description) {
-        js::gc::MarkObject(tracer, *v, description);
-    }
-
   private:
+    JSTracer *tracer;
+    JSCompartment *comp;
+
     
     
     bool isMarked(JSObject *obj) {
         return (comp && obj->compartment() != comp) || !IsAboutToBeFinalized(tracer->context, obj);
     }
 
-    JSTracer *tracer;
-    JSCompartment *comp;
+  public:
+    CrossCompartmentMarkPolicy(JSTracer *t)
+        : tracer(t), comp(t->context->runtime->gcCurrentCompartment) {}
+    bool keyMarked(JSObject *k) { return isMarked(k); }
+    bool valueMarked(JSObject *v) { return isMarked(v); }
+
+    bool markEntryIfLive(JSObject *k, JSObject *v) {
+        if (keyMarked(k) && !valueMarked(v)) {
+            js::gc::MarkObject(tracer, *v, "WeakMap entry value");
+            return true;
+        }
+        return false;
+    }
+    void markEntry(JSObject *k, JSObject *v) {
+        if (!comp || k->compartment() == comp)
+            js::gc::MarkObject(tracer, *k, "WeakMap entry key");
+        if (!comp || v->compartment() == comp)
+            js::gc::MarkObject(tracer, *v, "WeakMap entry value");
+    }
 };
 
 
