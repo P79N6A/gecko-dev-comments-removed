@@ -1,0 +1,96 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+box,
+.splitview-nav {
+  -moz-box-flex: 1;
+  -moz-box-orient: vertical;
+}
+
+.splitview-main {
+  -moz-box-flex: 0;
+}
+
+.splitview-controller {
+  min-height: 8em;
+  max-height: 14em;
+}
+
+.splitview-nav {
+  display: -moz-box;
+}
+
+
+.splitview-side-details > * {
+  display: none;
+}
+.splitview-side-details > .splitview-active {
+  display: -moz-box;
+}
+
+
+@media (min-aspect-ratio: 5/3) {
+  .splitview-root {
+    -moz-box-orient: horizontal;
+  }
+  .splitview-controller {
+    -moz-box-flex: 0;
+    max-height: none;
+  }
+  .splitview-details {
+    display: none;
+  }
+  .splitview-details.splitview-active {
+    display: -moz-box;
+  }
+}
+
+
+ol.splitview-nav > li.splitview-filtered {
+  display: none;
+}
+
+
+.splitview-nav:empty,
+.splitview-nav.splitview-all-filtered,
+.splitview-nav + .splitview-nav.placeholder {
+  display: none;
+}
+.splitview-nav.splitview-all-filtered ~ .splitview-nav.placeholder.all-filtered,
+.splitview-nav:empty ~ .splitview-nav.placeholder.empty {
+  display: -moz-box;
+}

@@ -1019,6 +1019,9 @@ pref("devtools.ruleview.enabled", true);
 pref("devtools.scratchpad.enabled", true);
 
 
+pref("devtools.styleeditor.enabled", true);
+
+
 pref("devtools.chrome.enabled", false);
 
 
