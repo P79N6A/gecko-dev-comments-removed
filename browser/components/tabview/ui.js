@@ -893,14 +893,6 @@ let UI = {
       if (this._closedLastVisibleTab ||
           (this._closedSelectedTabInTabView && !this.closedLastTabInTabView) ||
           this.restoredClosedTab) {
-        if (this.restoredClosedTab) {
-          
-          
-          tab.linkedBrowser.addEventListener("load", function onLoad(event) {
-            tab.linkedBrowser.removeEventListener("load", onLoad, true);
-            TabItems._update(tab);
-          }, true);
-        }
         this._closedLastVisibleTab = false;
         this._closedSelectedTabInTabView = false;
         this.closedLastTabInTabView = false;

@@ -110,8 +110,6 @@ function TabItem(tab, options) {
   
   this.bounds = new Rect(0,0,1,1);
 
-  this._lastTabUpdateTime = Date.now();
-
   
   this._init(div);
 
@@ -491,7 +489,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     }
 
     if (css.width) {
-      TabItems.update(this.tab);
+      TabItems.addToThumbnailUpdateQueue(this.tab);
 
       let widthRange, proportion;
 
@@ -630,7 +628,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     Search.hide();
 
     UI.setActive(this);
-    TabItems._update(this.tab, {force: true});
+    TabItems.addToThumbnailUpdateQueue(this.tab, {dontDelay: true});
 
     
     let tab = this.tab;
@@ -701,7 +699,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
     };
 
     UI.setActive(this);
-    TabItems._update(this.tab, {force: true});
+    TabItems.addToThumbnailUpdateQueue(this.tab, {dontDelay: true});
 
     $tab.addClass("front");
 
@@ -784,17 +782,13 @@ let TabItems = {
   _fragment: null,
   items: [],
   paintingPaused: 0,
-  _tabsWaitingForUpdate: null,
-  _heartbeat: null, 
-  _heartbeatTiming: 200, 
-  _maxTimeForUpdating: 200, 
-  _lastUpdateTime: Date.now(),
   _eventListeners: [],
-  _pauseUpdateForTest: false,
   tempCanvas: null,
   _reconnectingPaused: false,
   tabItemPadding: {},
   _mozAfterPaintHandler: null,
+  _delayedTabQueue: null,
+  _delayedTabQueueThumbnails: null,
 
   
   
@@ -809,9 +803,12 @@ let TabItems = {
   init: function TabItems_init() {
     Utils.assert(window.AllTabs, "AllTabs must be initialized first");
     let self = this;
+
     
-    
-    this._tabsWaitingForUpdate = new TabPriorityQueue();
+    this._delayedTabQueue = new DelayedTabQueue(this._update.bind(this));
+    this._delayedTabQueueThumbnails =
+      new DelayedTabQueue(this._updateThumbnail.bind(this));
+
     this.minTabHeight = this.minTabWidth * this.tabHeight / this.tabWidth;
     this.tabAspect = this.tabHeight / this.tabWidth;
     this.invTabAspect = 1 / this.tabAspect;
@@ -843,7 +840,7 @@ let TabItems = {
       let tab = event.target;
 
       if (!tab.pinned)
-        self.update(tab);
+        self.addToUpdateQueue(tab);
     }
     
     this._eventListeners.close = function (event) {
@@ -872,7 +869,7 @@ let TabItems = {
       if (!tab.hidden && activeGroupItemId)
          options.groupItemId = activeGroupItemId;
       self.link(tab, options);
-      self.update(tab);
+      self.addToUpdateQueue(tab);
     });
   },
 
@@ -894,8 +891,11 @@ let TabItems = {
 
     this.items = null;
     this._eventListeners = null;
-    this._lastUpdateTime = null;
-    this._tabsWaitingForUpdate.clear();
+
+    this._delayedTabQueue.clear();
+    this._delayedTabQueue = null;
+    this._delayedTabQueueThumbnails.clear();
+    this._delayedTabQueueThumbnails = null;
   },
 
   
@@ -946,32 +946,7 @@ let TabItems = {
 
     let tab = gBrowser.tabs[index];
     if (!tab.pinned)
-      this.update(tab);
-  },
-
-  
-  
-  
-  update: function TabItems_update(tab) {
-    try {
-      Utils.assertThrow(tab, "tab");
-      Utils.assertThrow(!tab.pinned, "shouldn't be an app tab");
-      Utils.assertThrow(tab._tabViewTabItem, "should already be linked");
-
-      let shouldDefer = (
-        this.isPaintingPaused() ||
-        this._tabsWaitingForUpdate.hasItems() ||
-        Date.now() - this._lastUpdateTime < this._heartbeatTiming
-      );
-
-      if (shouldDefer) {
-        this._tabsWaitingForUpdate.push(tab);
-        this.startHeartbeat();
-      } else
-        this._update(tab);
-    } catch(e) {
-      Utils.log(e);
-    }
+      this.addToThumbnailUpdateQueue(tab);
   },
 
   
@@ -980,94 +955,121 @@ let TabItems = {
   
   
   
+  _isTabToBeRestored: function TabItems__isTabToBeRestored(tab) {
+    let browser = tab.linkedBrowser;
+    return ("__SS_restoreState" in browser && browser.__SS_restoreState == 1);
+  },
+
+  
+  
+  
+  addToUpdateQueue: function TabItems_addToUpdateQueue(tab) {
+    Utils.assertThrow(tab, "tab");
+    Utils.assertThrow(!tab.pinned, "shouldn't be an app tab");
+    Utils.assertThrow(tab._tabViewTabItem, "should already be linked");
+
+    
+    if (!this._isTabToBeRestored(tab))
+      this._delayedTabQueue.push(tab);
+  },
+
   
   
   
   
-  _update: function TabItems__update(tab, options) {
-    try {
-      if (this._pauseUpdateForTest)
-        return;
+  
+  
+  _update: function TabItems__update(tab) {
+    let tabItem = tab._tabViewTabItem;
 
-      Utils.assertThrow(tab, "tab");
+    
 
-      
-      Utils.assertThrow(tab._tabViewTabItem, "must already be linked");
-      let tabItem = tab._tabViewTabItem;
+    
+    if (UI.shouldLoadFavIcon(tab.linkedBrowser)) {
+      let iconUrl = UI.getFavIconUrlForTab(tab);
 
-      
+      if (tabItem.$favImage[0].src != iconUrl)
+        tabItem.$favImage[0].src = iconUrl;
 
-      
-      if (UI.shouldLoadFavIcon(tab.linkedBrowser)) {
-        let iconUrl = UI.getFavIconUrlForTab(tab);
-
-        if (tabItem.$favImage[0].src != iconUrl)
-          tabItem.$favImage[0].src = iconUrl;
-
-        iQ(tabItem.$fav[0]).show();
-      } else {
-        if (tabItem.$favImage[0].hasAttribute("src"))
-          tabItem.$favImage[0].removeAttribute("src");
-        iQ(tabItem.$fav[0]).hide();
-      }
-
-      
-      let label = tab.label;
-      let $name = tabItem.$tabTitle;
-      if ($name.text() != label)
-        $name.text(label);
-
-      
-      
-      this._tabsWaitingForUpdate.remove(tab);
-
-      
-      let tabUrl = tab.linkedBrowser.currentURI.spec;
-      if (tabUrl != tabItem.url) {
-        let oldURL = tabItem.url;
-        tabItem.url = tabUrl;
-        tabItem.save();
-      }
-
-      
-      let self = this;
-      let updateCanvas = function TabItems__update_updateCanvas(tabItem) {
-        
-        let $canvas = tabItem.$canvas;
-        if (!tabItem.canvasSizeForced) {
-          let w = $canvas.width();
-          let h = $canvas.height();
-          if (w != tabItem.$canvas[0].width || h != tabItem.$canvas[0].height) {
-            tabItem.$canvas[0].width = w;
-            tabItem.$canvas[0].height = h;
-          }
-        }
-
-        self._lastUpdateTime = Date.now();
-        tabItem._lastTabUpdateTime = self._lastUpdateTime;
-
-        tabItem.tabCanvas.paint();
-        tabItem.saveThumbnail();
-
-        
-        if (tabItem.isShowingCachedData())
-          tabItem.hideCachedData();
-
-        
-        tabItem._sendToSubscribers("updated");
-      };
-      if (options && options.force)
-        updateCanvas(tabItem);
-      else
-        this._isComplete(tab, function TabItems__update_isComplete(isComplete) {
-          if (isComplete)
-            updateCanvas(tabItem);
-          else
-            self._tabsWaitingForUpdate.push(tab);
-        });
-    } catch(e) {
-      Utils.log(e);
+      iQ(tabItem.$fav[0]).show();
+    } else {
+      if (tabItem.$favImage[0].hasAttribute("src"))
+        tabItem.$favImage[0].removeAttribute("src");
+      iQ(tabItem.$fav[0]).hide();
     }
+
+    
+    let label = tab.label;
+    let $name = tabItem.$tabTitle;
+    if ($name.text() != label)
+      $name.text(label);
+
+    
+    let tabUrl = tab.linkedBrowser.currentURI.spec;
+    if (tabUrl != tabItem.url) {
+      let oldURL = tabItem.url;
+      tabItem.url = tabUrl;
+      tabItem.save();
+    }
+
+    
+    tabItem._sendToSubscribers("updated");
+  },
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  addToThumbnailUpdateQueue: function TabItems_addToThumbnailUpdateQueue(tab, options) {
+    Utils.assertThrow(tab, "tab");
+    Utils.assertThrow(!tab.pinned, "shouldn't be an app tab");
+    Utils.assertThrow(tab._tabViewTabItem, "should already be linked");
+
+    
+    if (this._isTabToBeRestored(tab))
+      return;
+
+    if (options && options.dontDelay)
+      this._updateThumbnail(tab);
+    else
+      this._delayedTabQueueThumbnails.push(tab);
+  },
+
+  
+  
+  
+  
+  
+  
+  _updateThumbnail: function TabItems__updateThumbnail(tab) {
+    let tabItem = tab._tabViewTabItem;
+    let $canvas = tabItem.$canvas;
+
+    if (!tabItem.canvasSizeForced) {
+      let w = $canvas.width();
+      let h = $canvas.height();
+
+      if (w != tabItem.$canvas[0].width || h != tabItem.$canvas[0].height) {
+        tabItem.$canvas[0].width = w;
+        tabItem.$canvas[0].height = h;
+       }
+    }
+
+    tabItem.tabCanvas.paint();
+    tabItem.saveThumbnail();
+
+    
+    if (tabItem.isShowingCachedData())
+      tabItem.hideCachedData();
+
+    
+    tabItem._sendToSubscribers("thumbnailUpdated");
   },
 
   
@@ -1105,7 +1107,8 @@ let TabItems = {
       tab._tabViewTabItem = null;
       Storage.saveTab(tab, null);
 
-      this._tabsWaitingForUpdate.remove(tab);
+      this._delayedTabQueue.remove(tab);
+      this._delayedTabQueueThumbnails.remove(tab);
     } catch(e) {
       Utils.log(e);
     }
@@ -1121,60 +1124,7 @@ let TabItems = {
   
   handleTabUnpin: function TabItems_handleTabUnpin(xulTab) {
     this.link(xulTab);
-    this.update(xulTab);
-  },
-
-  
-  
-  
-  
-  
-  
-  
-  startHeartbeat: function TabItems_startHeartbeat() {
-    if (!this._heartbeat) {
-      let self = this;
-      this._heartbeat = setTimeout(function() {
-        self._checkHeartbeat();
-      }, this._heartbeatTiming);
-    }
-  },
-
-  
-  
-  
-  
-  
-  _checkHeartbeat: function TabItems__checkHeartbeat() {
-    this._heartbeat = null;
-
-    if (this.isPaintingPaused())
-      return;
-
-    
-    if (!UI.isIdle()) {
-      this.startHeartbeat();
-      return;
-    }
-
-    let accumTime = 0;
-    let items = this._tabsWaitingForUpdate.getItems();
-    
-    
-    while (accumTime < this._maxTimeForUpdating && items.length) {
-      let updateBegin = Date.now();
-      this._update(items.pop());
-      let updateEnd = Date.now();
-
-      
-      
-      
-      let deltaTime = updateEnd - updateBegin;
-      accumTime += deltaTime;
-    }
-
-    if (this._tabsWaitingForUpdate.hasItems())
-      this.startHeartbeat();
+    this.addToUpdateQueue(xulTab);
   },
 
   
@@ -1184,11 +1134,8 @@ let TabItems = {
   
   
   pausePainting: function TabItems_pausePainting() {
-    this.paintingPaused++;
-    if (this._heartbeat) {
-      clearTimeout(this._heartbeat);
-      this._heartbeat = null;
-    }
+    if (0 == this.paintingPaused++)
+      this._delayedTabQueueThumbnails.pause();
   },
 
   
@@ -1197,10 +1144,10 @@ let TabItems = {
   
   
   resumePainting: function TabItems_resumePainting() {
-    this.paintingPaused--;
-    Utils.assert(this.paintingPaused > -1, "paintingPaused should not go below zero");
+    Utils.assert(--this.paintingPaused > -1, "paintingPaused should not go below zero");
+
     if (!this.isPaintingPaused())
-      this.startHeartbeat();
+      this._delayedTabQueueThumbnails.resume();
   },
 
   
@@ -1349,118 +1296,6 @@ let TabItems = {
       retSize.y += titleSize;
 
     return retSize;
-  }
-};
-
-
-
-
-
-
-
-
-function TabPriorityQueue() {
-};
-
-TabPriorityQueue.prototype = {
-  _low: [], 
-  _high: [], 
-
-  
-  
-  
-  toString: function TabPriorityQueue_toString() {
-    return "[TabPriorityQueue count=" + (this._low.length + this._high.length) + "]";
-  },
-
-  
-  
-  
-  clear: function TabPriorityQueue_clear() {
-    this._low = [];
-    this._high = [];
-  },
-
-  
-  
-  
-  hasItems: function TabPriorityQueue_hasItems() {
-    return (this._low.length > 0) || (this._high.length > 0);
-  },
-
-  
-  
-  
-  getItems: function TabPriorityQueue_getItems() {
-    return this._low.concat(this._high);
-  },
-
-  
-  
-  
-  push: function TabPriorityQueue_push(tab) {
-    
-    
-    
-    
-    
-    
-    let item = tab._tabViewTabItem;
-    if (item.parent && (item.parent.isStacked() &&
-      !item.parent.isTopOfStack(item) &&
-      !item.parent.expanded)) {
-      let idx = this._high.indexOf(tab);
-      if (idx != -1) {
-        this._high.splice(idx, 1);
-        this._low.unshift(tab);
-      } else if (this._low.indexOf(tab) == -1)
-        this._low.unshift(tab);
-    } else {
-      let idx = this._low.indexOf(tab);
-      if (idx != -1) {
-        this._low.splice(idx, 1);
-        this._high.unshift(tab);
-      } else if (this._high.indexOf(tab) == -1)
-        this._high.unshift(tab);
-    }
-  },
-
-  
-  
-  
-  pop: function TabPriorityQueue_pop() {
-    let ret = null;
-    if (this._high.length)
-      ret = this._high.pop();
-    else if (this._low.length)
-      ret = this._low.pop();
-    return ret;
-  },
-
-  
-  
-  
-  peek: function TabPriorityQueue_peek() {
-    let ret = null;
-    if (this._high.length)
-      ret = this._high[this._high.length-1];
-    else if (this._low.length)
-      ret = this._low[this._low.length-1];
-    return ret;
-  },
-
-  
-  
-  
-  remove: function TabPriorityQueue_remove(tab) {
-    let index = this._high.indexOf(tab);
-    if (index != -1)
-      this._high.splice(index, 1);
-    else {
-      index = this._low.indexOf(tab);
-      if (index != -1)
-        this._low.splice(index, 1);
-    }
   }
 };
 
