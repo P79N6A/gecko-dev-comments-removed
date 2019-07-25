@@ -102,7 +102,5 @@ function test_component(contractid) {
   doTestWorkaround("testAString", "Frosty the ☃ ;-)");
   doTestWorkaround("testAUTF8String", "We deliver 〠!");
   doTestWorkaround("testACString", "Just a regular C string.");
-
-  
-  
+  doTest("testJsval", {aprop: 12, bprop: "str"}, 4.22);
 }

@@ -2840,21 +2840,28 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
     if (!GetOutParamSource(i, &src))
         return JS_FALSE;
 
+    
+    
+    if(type_tag == nsXPTType::T_JSVAL)
+    {
+        
+        dp->SetPtrIsData();
+        dp->ptr = &dp->val;
+
+        
+        JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(dp->val));
+        jsval *rootp = (jsval *)&dp->val;
+        dp->ptr = rootp;
+        *rootp = JSVAL_VOID;
+        if(!JS_AddValueRoot(mCallContext, rootp))
+            return JS_FALSE;
+        dp->SetValIsJSRoot();
+    }
+
     if(paramInfo.IsOut())
     {
         dp->SetPtrIsData();
         dp->ptr = &dp->val;
-
-        if (type_tag == nsXPTType::T_JSVAL)
-        {
-            JS_STATIC_ASSERT(sizeof(jsval) <= sizeof(uint64));
-            jsval *rootp = (jsval *)&dp->val.u64;
-            dp->ptr = rootp;
-            *rootp = JSVAL_VOID;
-            if (!JS_AddValueRoot(mCallContext, rootp))
-                return JS_FALSE;
-            dp->SetValIsJSRoot();
-        }
 
         if(type.IsPointer() &&
            type_tag != nsXPTType::T_INTERFACE &&
@@ -2899,12 +2906,6 @@ CallMethodHelper::ConvertIndependentParam(uint8 i)
                 dp->SetValIsCString();
                 useAllocator = JS_TRUE;
                 break;
-            }
-        }
-        else {
-            if(type_tag == nsXPTType::T_JSVAL) {
-                dp->SetValIsAllocated();
-                useAllocator = JS_TRUE;
             }
         }
 
