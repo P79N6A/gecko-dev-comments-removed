@@ -35,6 +35,7 @@
 
 
 
+
 const Cc = Components.classes;
 const Ci = Components.interfaces;
 
@@ -48,13 +49,19 @@ let modules = {
   },
 
   
-  get fennec() this[""],
-  get firefox() this[""],
+  
+  fennec: {
+    uri: "chrome://browser/content/about.xhtml",
+    privileged: true,
+    hide: true
+  },
+  get firefox() this[fennec],
 
   
   empty: {
     uri: "about:blank",
-    privileged: false
+    privileged: false,
+    hide: true
   },
 
   rights: {
@@ -67,11 +74,13 @@ let modules = {
   },
   blocked: {
     uri: "chrome://browser/content/blockedSite.xhtml",
-    privileged: true
+    privileged: true,
+    hide: true
   },
   certerror: {
     uri: "chrome://browser/content/aboutCertError.xhtml",
-    privileged: true
+    privileged: true,
+    hide: true
   },
   home: {
     uri: "chrome://browser/content/aboutHome.xhtml",
@@ -91,7 +100,12 @@ AboutRedirector.prototype = {
 
   
   getURIFlags: function(aURI) {
-    return Ci.nsIAboutModule.ALLOW_SCRIPT;
+    let flags;
+    let moduleInfo = this._getModuleInfo(aURI);
+    if (moduleInfo.hide)
+      flags = Ci.nsIAboutModule.HIDE_FROM_ABOUTABOUT;
+
+    return flags | Ci.nsIAboutModule.ALLOW_SCRIPT;
   },
 
   newChannel: function(aURI) {
@@ -103,6 +117,7 @@ AboutRedirector.prototype = {
     var channel = ios.newChannel(moduleInfo.uri, null, null);
     
     if (!moduleInfo.privileged) {
+      
       let secMan = Cc["@mozilla.org/scriptsecuritymanager;1"].
                    getService(Ci.nsIScriptSecurityManager);
       let principal = secMan.getCodebasePrincipal(aURI);
