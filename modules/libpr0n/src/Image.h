@@ -158,7 +158,7 @@ protected:
 
 
 
-  virtual PRBool ShouldAnimate() {
+  virtual bool ShouldAnimate() {
     return mAnimationConsumers > 0 && mAnimationMode != kDontAnimMode;
   }
 };

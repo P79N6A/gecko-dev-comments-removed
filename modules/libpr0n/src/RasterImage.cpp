@@ -2116,7 +2116,7 @@ RasterImage::Discard(bool force)
 }
 
 
-PRBool
+bool
 RasterImage::CanDiscard() {
   return (DiscardingEnabled() && 
           mDiscardable &&        
@@ -2125,7 +2125,7 @@ RasterImage::CanDiscard() {
           mDecoded);             
 }
 
-PRBool
+bool
 RasterImage::CanForciblyDiscard() {
   return mDiscardable &&         
          mHasSourceData;         
@@ -2133,14 +2133,14 @@ RasterImage::CanForciblyDiscard() {
 
 
 
-PRBool
+bool
 RasterImage::DiscardingActive() {
   return !!(mDiscardTrackerNode.prev || mDiscardTrackerNode.next);
 }
 
 
 
-PRBool
+bool
 RasterImage::StoringSourceData() {
   return (mDecodeOnDraw || mDiscardable);
 }
@@ -2817,7 +2817,7 @@ RasterImage::WriteToRasterImage(nsIInputStream* ,
   return NS_OK;
 }
 
-PRBool
+bool
 RasterImage::ShouldAnimate()
 {
   return Image::ShouldAnimate() && mFrames.Length() >= 2 &&
