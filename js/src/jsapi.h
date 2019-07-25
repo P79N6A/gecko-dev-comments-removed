@@ -725,7 +725,7 @@ extern JS_PUBLIC_API(JSRuntime *)
 JS_NewRuntime(uint32 maxbytes);
 
 
-#define JS_CommenceRuntimeShutDown(rt) ((void) 0) 
+#define JS_CommenceRuntimeShutDown(rt) ((void) 0)
 
 extern JS_PUBLIC_API(void)
 JS_DestroyRuntime(JSRuntime *rt);
@@ -832,7 +832,7 @@ class JSAutoCheckRequest {
 #endif
         JS_GUARD_OBJECT_NOTIFIER_INIT;
     }
-    
+
     ~JSAutoCheckRequest() {
 #if defined JS_THREADSAFE && defined DEBUG
         JS_ASSERT(JS_IsInRequest(mContext));
