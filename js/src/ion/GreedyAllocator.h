@@ -248,7 +248,8 @@ class GreedyAllocator
     bool findLoopCarriedUses(LBlock *block);
 
     
-    bool kill(VirtualRegister *vr);
+    void killReg(VirtualRegister *vr);
+    void killStack(VirtualRegister *vr);
 
     
     
