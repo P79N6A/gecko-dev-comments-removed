@@ -673,8 +673,7 @@ VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
     nsFrameList::Enumerator childFrames(lists.CurrentList());
     for (; !childFrames.AtEnd(); childFrames.Next()) {
       nsIFrame* child = childFrames.get();
-      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
-          || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+      if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
         
         if (nsGkAtoms::placeholderFrame == child->GetType()) { 
           
@@ -683,7 +682,9 @@ VerifyStyleTree(nsPresContext* aPresContext, nsIFrame* aFrame,
             nsPlaceholderFrame::GetRealFrameForPlaceholder(child);
 
           
-          VerifyStyleTree(aPresContext, outOfFlowFrame, nsnull);
+          do {
+            VerifyStyleTree(aPresContext, outOfFlowFrame, nsnull);
+          } while ((outOfFlowFrame = outOfFlowFrame->GetNextContinuation()));
 
           
           
@@ -928,8 +929,7 @@ nsFrameManager::ReparentStyleContext(nsIFrame* aFrame)
           for (; !childFrames.AtEnd(); childFrames.Next()) {
             nsIFrame* child = childFrames.get();
             
-            if ((!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) ||
-                 (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) &&
+            if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW) &&
                 child != providerChild) {
 #ifdef DEBUG
               if (nsGkAtoms::placeholderFrame == child->GetType()) {
@@ -1556,8 +1556,7 @@ nsFrameManager::ReResolveStyleContext(nsPresContext     *aPresContext,
         nsFrameList::Enumerator childFrames(lists.CurrentList());
         for (; !childFrames.AtEnd(); childFrames.Next()) {
           nsIFrame* child = childFrames.get();
-          if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)
-              || (child->GetStateBits() & NS_FRAME_IS_OVERFLOW_CONTAINER)) {
+          if (!(child->GetStateBits() & NS_FRAME_OUT_OF_FLOW)) {
             
             if (nsGkAtoms::placeholderFrame == child->GetType()) { 
               
