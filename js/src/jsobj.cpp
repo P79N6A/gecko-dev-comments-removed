@@ -1902,7 +1902,7 @@ obj_keys(JSContext *cx, uintN argc, Value *vp)
             jsid id;
             if (!js_ValueToStringId(cx, idval, &id))
                 return JS_FALSE;
-            aobj->setDenseArrayElement(i, JSID_TO_STRING(id));
+            aobj->setDenseArrayElement(i, StringTag(JSID_TO_STRING(id)));
         } else {
             
 
@@ -3024,7 +3024,7 @@ js_CloneBlockObject(JSContext *cx, JSObject *proto, JSStackFrame *fp)
     Value privateValue = PrivateVoidPtrTag(js_FloatingFrameIfGenerator(cx, fp));
 
     
-    clone->init(&js_BlockClass, NonFunObjTag(*proto), NULL, privateValue);
+    clone->init(&js_BlockClass, NonFunObjTag(*proto), NullTag(), privateValue);
     clone->fslots[JSSLOT_BLOCK_DEPTH] = proto->fslots[JSSLOT_BLOCK_DEPTH];
 
     JS_ASSERT(cx->runtime->emptyBlockScope->freeslot == JSSLOT_BLOCK_DEPTH + 1);

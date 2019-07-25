@@ -2332,7 +2332,7 @@ BEGIN_CASE(JSOP_APPLY)
             newfp->imacpc = NULL;
 
             
-            Value *newsp = fp->base();
+            Value *newsp = newfp->base();
             SetValueRangeToUndefined(newfp->slots(), newsp);
 
             
@@ -4045,7 +4045,7 @@ BEGIN_CASE(JSOP_QNAMECONST)
 {
     JSAtom *atom;
     LOAD_ATOM(0, atom);
-    Value rval(ATOM_TO_STRING(ATOM_KEY(atom)));
+    Value rval = StringTag(ATOM_TO_STRING(atom));
     Value lval;
     lval = regs.sp[-1];
     JSObject *obj = js_ConstructXMLQNameObject(cx, lval, rval);
