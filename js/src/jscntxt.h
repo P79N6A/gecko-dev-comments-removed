@@ -570,16 +570,6 @@ struct JSRuntime : js::RuntimeFriendFields
 
 
 
-
-
-
-    JSObject            *anynameObject;
-    JSObject            *functionNamespaceObject;
-
-    
-
-
-
     bool                waiveGCQuota;
 
     
