@@ -482,13 +482,6 @@ public:
     return sIOService;
   }
 
-  static imgILoader* GetImgLoader()
-  {
-    if (!sImgLoaderInitialized)
-      InitImgLoader();
-    return sImgLoader;
-  }
-
 #ifdef MOZ_XTF
   static nsIXTFService* GetXTFService();
 #endif
@@ -666,7 +659,14 @@ public:
   
 
 
-  static bool IsImageInCache(nsIURI* aURI);
+
+  static imgILoader* GetImgLoaderForDocument(nsIDocument* aDoc);
+  static imgILoader* GetImgLoaderForChannel(nsIChannel* aChannel);
+
+  
+
+
+  static bool IsImageInCache(nsIURI* aURI, nsIDocument* aDocument);
 
   
 
@@ -2162,7 +2162,9 @@ private:
 
   
   static imgILoader* sImgLoader;
+  static imgILoader* sPrivateImgLoader;
   static imgICache* sImgCache;
+  static imgICache* sPrivateImgCache;
 
   static nsIConsoleService* sConsoleService;
 
