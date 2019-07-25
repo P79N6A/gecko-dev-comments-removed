@@ -60,10 +60,10 @@ nsTelephonyWorker.prototype = {
   classInfo: XPCOMUtils.generateCI({classID: TELEPHONYWORKER_CID,
                                     contractID: TELEPHONYWORKER_CONTRACTID,
                                     classDescription: "TelephonyWorker",
-                                    interfaces: [Ci.nsITelephonyWorker,
+                                    interfaces: [Ci.nsIRadioWorker,
                                                  Ci.nsITelephone]}),
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsITelephonyWorker,
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIRadioWorker,
                                          Ci.nsITelephone]),
 
   onerror: function onerror(event) {
