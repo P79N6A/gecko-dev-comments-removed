@@ -2134,13 +2134,13 @@ IdentityHandler.prototype = {
     this._identityPopupContentSupp.textContent = supplemental;
     this._identityPopupContentVerif.textContent = verifier;
 
-    PageActions.updatePageSaveAs();
-
     
     BrowserSearch.updatePageSearchEngines();
 
     
     PageActions.updatePagePermissions();
+
+    PageActions.updatePageSaveAs();
   },
 
   show: function ih_show() {
