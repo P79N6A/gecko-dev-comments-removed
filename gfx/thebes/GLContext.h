@@ -863,19 +863,6 @@ public:
                                              bool aPixelBuffer = PR_FALSE);
 
     
-    void TexImage2D(GLenum target, GLint level, GLint internalformat, 
-                    GLsizei width, GLsizei height, GLsizei stride,
-                    GLint pixelsize, GLint border, GLenum format, 
-                    GLenum type, const GLvoid *pixels);
-
-
-    void TexSubImage2D(GLenum target, GLint level, 
-                       GLint xoffset, GLint yoffset, 
-                       GLsizei width, GLsizei height, GLsizei stride,
-                       GLint pixelsize, GLenum format, 
-                       GLenum type, const GLvoid* pixels);
-
-    
 
     struct RectTriangles {
         RectTriangles() { }

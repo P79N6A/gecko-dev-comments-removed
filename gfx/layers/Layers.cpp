@@ -494,6 +494,7 @@ PlanarYCbCrImage::CopyData(Data& aDest, gfxIntSize& aDestSize,
 {
   aDest = aData;
 
+  
   aDest.mYStride = aDest.mYSize.width;
   aDest.mCbCrStride = aDest.mCbCrSize.width;
 
