@@ -289,7 +289,6 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
       
       
       
-      aIID.Equals(NS_GET_IID(nsIAuthPromptProvider)) || 
       aIID.Equals(NS_GET_IID(nsIAuthPrompt2)) ||
       aIID.Equals(NS_GET_IID(nsIAuthPrompt))  ||
       
@@ -309,6 +308,12 @@ HttpChannelParent::GetInterface(const nsIID& aIID, void **result)
   {
     return QueryInterface(aIID, result);
   } 
+
+  if (aIID.Equals(NS_GET_IID(nsIAuthPromptProvider))) {
+    if (!mTabParent)
+      return NS_NOINTERFACE;
+    return mTabParent->QueryInterface(aIID, result);
+  }
 
   
   
