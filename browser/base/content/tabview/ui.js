@@ -86,25 +86,9 @@ var UIManager = {
 
   
   
-  get frameInitalized() this._frameInitalized,
-
-  
-  
   
   init: function() {
-    var self = this;
-    Profile.checkpoint();
-    Storage.onReady(function() {
-      self._delayInit();
-    });
-  },
-
-  
-  
-  
-  _delayInit : function() {
     try {
-      Profile.checkpoint("delay until _delayInit");
       let self = this;
 
       
@@ -114,37 +98,11 @@ var UIManager = {
       this._pageBounds = data.pageBounds;
 
       
-      this._setBrowserKeyHandlers();
-
       gWindow.addEventListener("tabviewshow", function() {
         self.showTabView(true);
       }, false);
-
       
-      if (data.tabViewVisible) {
-        this._stopZoomPreparation = true;
-        this.showTabView();
-
-        
-        
-        
-        GroupItems.groupItems.forEach(function(groupItem) {
-          self._reorderTabsOnHide.push(groupItem);
-        });
-      }
-    } catch(e) {
-      Utils.log(e);
-    }
-  },
-
-  
-  
-  
-  initFrame: function() {
-    try {
-      Utils.assert("must not be already initialized", !this._frameInitalized);
-
-      let self = this;
+      
       this._currentTab = gBrowser.selectedTab;
 
       
@@ -319,9 +277,6 @@ var UIManager = {
   showTabView: function(zoomOut) {
     if (this._isTabViewVisible())
       return;
-
-    if (!this._frameInitalized)
-      this.initFrame();
 
     var self = this;
     var currentTab = this._currentTab;
@@ -588,49 +543,6 @@ var UIManager = {
       if (index == -1)
         this._reorderTabItemsOnShow.push(groupItem);
     }
-  },
-
-  
-  
-  
-  
-  _setBrowserKeyHandlers : function() {
-    var self = this;
-
-    gWindow.addEventListener("keypress", function(event) {
-      if (self._isTabViewVisible())
-        return;
-
-      var charCode = event.charCode;
-#ifdef XP_MACOSX
-      
-      
-      if (!event.ctrlKey && !event.metaKey && !event.shiftKey &&
-          charCode == 160) { 
-#else
-      if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
-          !event.altKey && charCode == 32) { 
-#endif
-        event.stopPropagation();
-        event.preventDefault();
-        self.showTabView(true);
-        return;
-      }
-
-      
-      if (event.ctrlKey && !event.metaKey && !event.altKey &&
-          (charCode == 96 || charCode == 126)) {
-        event.stopPropagation();
-        event.preventDefault();
-
-        if (!self._frameInitalized)
-          self.initFrame();
-
-        var tabItem = GroupItems.getNextGroupItemTab(event.shiftKey);
-        if (tabItem)
-          gBrowser.selectedTab = tabItem.tab;
-      }
-    }, true);
   },
 
   
@@ -1063,7 +975,6 @@ var UIManager = {
       return;
 
     var data = {
-      tabViewVisible: this._isTabViewVisible(),
       pageBounds: this._pageBounds
     };
 

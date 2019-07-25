@@ -51,40 +51,6 @@ Storage = {
   
   
   
-  
-  onReady: function(callback) {
-    try {
-      
-      
-      
-      var alreadyReady = gWindow.__SSi;
-      if (alreadyReady) {
-        callback();
-      } else {
-        var observer = {
-          observe: function(subject, topic, data) {
-            try {
-              if (topic == "browser-delayed-startup-finished") {
-                if (subject == gWindow) {
-                  callback();
-                }
-              }
-            } catch(e) {
-              Utils.log(e);
-            }
-          }
-        };
-        Services.obs.addObserver(
-          observer, "browser-delayed-startup-finished", false);
-      }
-    } catch(e) {
-      Utils.log(e);
-    }
-  },
-
-  
-  
-  
   init: function() {
     this._sessionStore =
       Components.classes["@mozilla.org/browser/sessionstore;1"]

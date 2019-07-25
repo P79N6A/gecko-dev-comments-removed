@@ -34,50 +34,111 @@
 #
 # ***** END LICENSE BLOCK *****
 
-
 let TabView = {
-  init: function TabView_init() {
+  _window: null,
+  _sessionstore: null,
+  _visibilityID: "tabview-visibility",
+  
+  
+  init: function TabView_init() {    
+    
+    this._setBrowserKeyHandlers();
+
+    
+    this._sessionstore =
+      Components.classes["@mozilla.org/browser/sessionstore;1"]
+        .getService(Components.interfaces.nsISessionStore);
+
+    let data = this._sessionstore.getWindowValue(window, this._visibilityID);
+    if (data) {
+      data = JSON.parse(data);
+      if (data && data.visible)
+        this.toggle();
+    }
+  },
+
+  
+  _initFrame: function TabView__initFrame() {
+    if (this._window)
+      return;
+      
+    
     var iframe = document.createElement("iframe");
     iframe.id = "tab-view";
     iframe.setAttribute("transparent", "true");
     iframe.flex = 1;
     iframe.setAttribute("src", "chrome://browser/content/tabview.html");
     document.getElementById("tab-view-deck").appendChild(iframe);
+    this._window = iframe.contentWindow;
+    
+    
+    let self = this;
+    var observer = {
+      observe : function(subject, topic, data) {
+        if (topic == "quit-application-requested") {
+          let data = {
+            visible: self.isVisible()
+          };
+          
+          self._sessionstore.setWindowValue(window, self._visibilityID, JSON.stringify(data));
+        }
+      }
+    };
+    
+    Services.obs.addObserver(observer, "quit-application-requested", false);
   },
 
+  
   isVisible: function() {
     return (window.document.getElementById("tab-view-deck").selectedIndex == 1);
   },
 
+  
   toggle: function() {
+    let firstTime = false;
     let event = document.createEvent("Events");
 
     if (this.isVisible()) {
       event.initEvent("tabviewhide", false, false);
     } else {
+      if (!this._window) {
+        firstTime = true;
+        this._initFrame(); 
+      }        
+        
       event.initEvent("tabviewshow", false, false);
     }
-    dispatchEvent(event);
+    
+    if (firstTime) {
+      
+      
+      setTimeout(function() {
+        dispatchEvent(event);
+      }, 100);
+    } else {
+      dispatchEvent(event);
+    }
   },
 
+  
   getWindowTitle: function() {
     let brandBundle = document.getElementById("bundle_brand");
     let brandShortName = brandBundle.getString("brandShortName");
     return gNavigatorBundle.getFormattedString("tabView.title", [brandShortName]);
   },
 
+  
   updateContextMenu: function(tab, popup) {
-    let tabViewWindow = document.getElementById("tab-view").contentWindow;
     let isEmpty = true;
 
     while(popup.lastChild && popup.lastChild.id != "context_namedGroups")
       popup.removeChild(popup.lastChild);
 
-	  if (!tabViewWindow.UI.frameInitalized)
-	    tabViewWindow.UI.initFrame();
+	  if (!this._window)
+	    this._initFrame(); 
 
     let activeGroup = tab.tabItem.parent;
-    let groupItems = tabViewWindow.GroupItems.groupItems;
+    let groupItems = this._window.GroupItems.groupItems;
     let self = this;
 
     groupItems.forEach(function(groupItem) { 
@@ -91,6 +152,7 @@ let TabView = {
     document.getElementById("context_namedGroups").hidden = isEmpty;
   },
 
+  
   _createGroupMenuItem : function(groupItem) {
     let menuItem = document.createElement("menuitem")
     menuItem.setAttribute("class", "group");
@@ -102,8 +164,51 @@ let TabView = {
     return menuItem;
   },
 
+  
   moveTabTo: function(tab, groupItemId) {
-    let tabViewWindow = document.getElementById("tab-view").contentWindow;
-    tabViewWindow.GroupItems.moveTabToGroupItem(tab, groupItemId);
+    if (this._window)
+      this._window.GroupItems.moveTabToGroupItem(tab, groupItemId);
+  },
+
+  
+  
+  
+  _setBrowserKeyHandlers : function() {
+    var self = this;
+
+    window.addEventListener("keypress", function(event) {
+      if (self.isVisible())
+        return;
+
+      var charCode = event.charCode;
+#ifdef XP_MACOSX
+      
+      
+      if (!event.ctrlKey && !event.metaKey && !event.shiftKey &&
+          charCode == 160) { 
+#else
+      if (event.ctrlKey && !event.metaKey && !event.shiftKey &&
+          !event.altKey && charCode == 32) { 
+#endif
+        event.stopPropagation();
+        event.preventDefault();
+        self.toggle();
+        return;
+      }
+
+      
+      if (event.ctrlKey && !event.metaKey && !event.altKey &&
+          (charCode == 96 || charCode == 126)) {
+        event.stopPropagation();
+        event.preventDefault();
+
+        if (!self._window)
+          self._initFrame(); 
+
+        var tabItem = self._window.GroupItems.getNextGroupItemTab(event.shiftKey);
+        if (tabItem)
+          window.gBrowser.selectedTab = tabItem.tab;
+      }
+    }, true);
   }
 };
