@@ -6576,12 +6576,15 @@ nsDocShell::ReattachEditorToWindow(nsISHEntry *aSHEntry)
                  "Reattaching when there's not a detached editor.");
 
     if (mEditorData || !aSHEntry)
-      return;
+        return;
 
     mEditorData = aSHEntry->ForgetEditorData();
     if (mEditorData) {
-        nsresult res = mEditorData->ReattachToWindow(this);
-        NS_ASSERTION(NS_SUCCEEDED(res), "Failed to reattach editing session");
+#ifdef DEBUG
+        nsresult rv =
+#endif
+        mEditorData->ReattachToWindow(this);
+        NS_ASSERTION(NS_SUCCEEDED(rv), "Failed to reattach editing session");
     }
 }
 
