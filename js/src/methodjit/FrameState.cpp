@@ -657,19 +657,25 @@ FrameState::syncForAllocation(RegisterAllocation *alloc, bool inlineReturn, Uses
 
 
 
-    FrameEntry *topEntry;
+    FrameEntry *topEntry = NULL;
     if (inlineReturn)
         topEntry = a->parent->sp - (GET_ARGC(a->parent->PC) + 2);
-    else
-        topEntry = a->sp - uses.nuses;
 
     for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
         FrameEntry *fe = tracker[i];
 
-        if (deadEntry(fe))
+        if (deadEntry(fe, uses.nuses))
             continue;
-        if (!isTemporary(fe) && fe >= topEntry) {
+        if (topEntry && fe >= topEntry && !isTemporary(fe)) {
             
+
+
+
+
+
+
+            forgetAllRegs(fe);
+            fe->resetSynced();
             continue;
         }
 
