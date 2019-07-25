@@ -2671,16 +2671,14 @@ nsBlockFrame::PullFrameFrom(nsBlockReflowState&  aState,
   }
   
   
-  aLine->SetChildCount(aLine->GetChildCount() + 1);
+  aLine->NoteFrameAdded(frame);
+
+  if (fromLine->GetChildCount() > 1) {
     
-  PRInt32 fromLineChildCount = fromLine->GetChildCount();
-  if (0 != --fromLineChildCount) {
-    
-    fromLine->SetChildCount(fromLineChildCount);
+    fromLine->NoteFrameRemoved(frame);
     fromLine->MarkDirty();
     fromLine->mFirstChild = newFirstChild;
-  }
-  else {
+  } else {
     
     
     
@@ -3305,7 +3303,7 @@ nsBlockFrame::ReflowBlockFrame(nsBlockReflowState& aState,
 
             
             if (madeContinuation) {
-              nsLineBox* line = NewLineBox(nextFrame, 1, true);
+              nsLineBox* line = NewLineBox(nextFrame, true);
               NS_ENSURE_TRUE(line, NS_ERROR_OUT_OF_MEMORY);
               mLines.after_insert(aLine, line);
             }
@@ -3976,7 +3974,7 @@ nsBlockFrame::CreateContinuationFor(nsBlockReflowState& aState,
     mFrames.InsertFrame(nsnull, aFrame, newFrame);
 
     if (aLine) { 
-      aLine->SetChildCount(aLine->GetChildCount() + 1);
+      aLine->NoteFrameAdded(newFrame);
     }
 
     aMadeNewFrame = true;
@@ -4099,12 +4097,11 @@ nsBlockFrame::SplitLine(nsBlockReflowState& aState,
 #endif
 
     
-    nsLineBox* newLine = NewLineBox(aFrame, pushCount, false);
+    nsLineBox* newLine = NewLineBox(aLine, aFrame, pushCount);
     if (!newLine) {
       return NS_ERROR_OUT_OF_MEMORY;
     }
     mLines.after_insert(aLine, newLine);
-    aLine->SetChildCount(aLine->GetChildCount() - pushCount);
 #ifdef DEBUG
     if (gReallyNoisyReflow) {
       newLine->List(stdout, gNoiseIndent+1);
@@ -4920,12 +4917,11 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
     PRInt32 rem = prevSibLine->GetChildCount() - prevSiblingIndex - 1;
     if (rem) {
       
-      nsLineBox* line = NewLineBox(aPrevSibling->GetNextSibling(), rem, false);
+      nsLineBox* line = NewLineBox(prevSibLine, aPrevSibling->GetNextSibling(), rem);
       if (!line) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
       lineList->after_insert(prevSibLine, line);
-      prevSibLine->SetChildCount(prevSibLine->GetChildCount() - rem);
       
       
       
@@ -4966,7 +4962,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
         (aPrevSibling && ShouldPutNextSiblingOnNewLine(aPrevSibling))) {
       
       
-      nsLineBox* line = NewLineBox(newFrame, 1, isBlock);
+      nsLineBox* line = NewLineBox(newFrame, isBlock);
       if (!line) {
         return NS_ERROR_OUT_OF_MEMORY;
       }
@@ -4982,7 +4978,7 @@ nsBlockFrame::AddFrames(nsFrameList& aFrameList, nsIFrame* aPrevSibling)
       }
     }
     else {
-      prevSibLine->SetChildCount(prevSibLine->GetChildCount() + 1);
+      prevSibLine->NoteFrameAdded(newFrame);
       
       
       
@@ -5504,9 +5500,7 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
     }
 
     
-    PRInt32 lineChildCount = line->GetChildCount();
-    lineChildCount--;
-    line->SetChildCount(lineChildCount);
+    line->NoteFrameRemoved(aDeletedFrame);
 
     
     
@@ -5533,7 +5527,7 @@ nsBlockFrame::DoRemoveFrame(nsIFrame* aDeletedFrame, PRUint32 aFlags)
 
     bool haveAdvancedToNextLine = false;
     
-    if (0 == lineChildCount) {
+    if (0 == line->GetChildCount()) {
 #ifdef NOISY_REMOVE_FRAME
         printf("DoRemoveFrame: %s line=%p became empty so it will be removed\n",
                searchingOverflowList?"overflow":"normal", line.get());
@@ -5686,12 +5680,10 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
         }
 
         
-        PRInt32 count = line->GetChildCount();
-        line->SetChildCount(--count);
-        if (count > 0) {
+        line->NoteFrameRemoved(frame);
+        if (line->GetChildCount() > 0) {
            line->MarkDirty();
-        }
-        else {
+        } else {
           
           nsLineBox* lineBox = line;
           if (searchingOverflowList) {
@@ -5710,8 +5702,7 @@ nsBlockFrame::StealFrame(nsPresContext* aPresContext,
               line_end = mLines.end();
               line = line_end;
             }
-          }
-          else {
+          } else {
             line = mLines.erase(line);
           }
           lineBox->Destroy(aPresContext->PresShell());

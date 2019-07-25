@@ -183,8 +183,20 @@ need to rearrange the mBits bitfield;
 #endif
 
 
+
+
+
+
+
+
 nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsIFrame* aFrame,
-                         PRInt32 aCount, bool aIsBlock);
+                         bool aIsBlock);
+
+
+
+
+nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsLineBox* aFromLine,
+                         nsIFrame* aFrame, PRInt32 aCount);
 
 class nsLineList;
 
@@ -232,13 +244,14 @@ private:
   
   
   void* operator new(size_t sz, nsIPresShell* aPresShell) CPP_THROW_NEW;
-  void operator delete(void* aPtr, size_t sz);
+  void operator delete(void* aPtr, size_t sz) MOZ_DELETE;
 
 public:
   
   friend nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsIFrame* aFrame,
-                                  PRInt32 aCount, bool aIsBlock);
-
+                                  bool aIsBlock);
+  friend nsLineBox* NS_NewLineBox(nsIPresShell* aPresShell, nsLineBox* aFromLine,
+                                  nsIFrame* aFrame, PRInt32 aCount);
   void Destroy(nsIPresShell* aPresShell);
 
   
@@ -284,7 +297,6 @@ public:
 
   
   void SetLineIsImpactedByFloat(bool aValue) {
-    NS_ASSERTION((false==aValue || true==aValue), "somebody is playing fast and loose with bools and bits!");
     mFlags.mImpactedByFloat = aValue;
   }
   bool IsImpactedByFloat() const {
@@ -293,7 +305,6 @@ public:
 
   
   void SetLineWrapped(bool aOn) {
-    NS_ASSERTION((false==aOn || true==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mLineWrapped = aOn;
   }
   bool IsLineWrapped() const {
@@ -302,7 +313,6 @@ public:
 
   
   void SetInvalidateTextRuns(bool aOn) {
-    NS_ASSERTION((false==aOn || true==aOn), "somebody is playing fast and loose with bools and bits!");
     mFlags.mInvalidateTextRuns = aOn;
   }
   bool GetInvalidateTextRuns() const {
@@ -344,20 +354,76 @@ public:
     return mFlags.mHadFloatPushed;
   }
 
+private:
+  
+  static const PRUint32 kMinChildCountForHashtable = 200;
 
   
-  PRInt32 GetChildCount() const {
-    return (PRInt32) mFlags.mChildCount;
+
+
+
+
+
+  void StealHashTableFrom(nsLineBox* aFromLine, PRUint32 aFromLineNewCount);
+
+  
+
+
+
+  void NoteFramesMovedFrom(nsLineBox* aFromLine);
+
+  void SwitchToHashtable()
+  {
+    MOZ_ASSERT(!mFlags.mHasHashedFrames);
+    PRUint32 count = GetChildCount();
+    mFrames = new nsTHashtable< nsPtrHashKey<nsIFrame> >();
+    mFlags.mHasHashedFrames = 1;
+    PRUint32 minSize =
+      NS_MAX(kMinChildCountForHashtable, PRUint32(PL_DHASH_MIN_SIZE));
+    mFrames->Init(NS_MAX(count, minSize));
+    for (nsIFrame* f = mFirstChild; count-- > 0; f = f->GetNextSibling()) {
+      mFrames->PutEntry(f);
+    }
   }
-  void SetChildCount(PRInt32 aNewCount) {
-    if (aNewCount < 0) {
-      NS_WARNING("negative child count");
-      aNewCount = 0;
+  void SwitchToCounter() {
+    MOZ_ASSERT(mFlags.mHasHashedFrames);
+    PRUint32 count = GetChildCount();
+    delete mFrames;
+    mFlags.mHasHashedFrames = 0;
+    mChildCount = count;
+  }
+
+public:
+  PRInt32 GetChildCount() const {
+    return NS_UNLIKELY(mFlags.mHasHashedFrames) ? mFrames->Count() : mChildCount;
+  }
+
+  
+
+
+  void NoteFrameAdded(nsIFrame* aFrame) {
+    if (NS_UNLIKELY(mFlags.mHasHashedFrames)) {
+      mFrames->PutEntry(aFrame);
+    } else {
+      if (++mChildCount >= kMinChildCountForHashtable) {
+        SwitchToHashtable();
+      }
     }
-    if (aNewCount > LINE_MAX_CHILD_COUNT) {
-      aNewCount = LINE_MAX_CHILD_COUNT;
+  }
+
+  
+
+
+  void NoteFrameRemoved(nsIFrame* aFrame) {
+    MOZ_ASSERT(GetChildCount() > 0);
+    if (NS_UNLIKELY(mFlags.mHasHashedFrames)) {
+      mFrames->RemoveEntry(aFrame);
+      if (mFrames->Count() < kMinChildCountForHashtable) {
+        SwitchToCounter();
+      }
+    } else {
+      --mChildCount;
     }
-    mFlags.mChildCount = aNewCount;
   }
 
   
@@ -473,10 +539,13 @@ public:
   nsIFrame* LastChild() const;
 #endif
 
+private:
   PRInt32 IndexOf(nsIFrame* aFrame) const;
+public:
 
   bool Contains(nsIFrame* aFrame) const {
-    return IndexOf(aFrame) >= 0;
+    return NS_UNLIKELY(mFlags.mHasHashedFrames) ? mFrames->Contains(aFrame)
+                                                : IndexOf(aFrame) >= 0;
   }
 
   
@@ -504,6 +573,12 @@ public:
 
   nsRect mBounds;
 
+  
+  union {
+    nsTHashtable< nsPtrHashKey<nsIFrame> >* mFrames;
+    PRUint32 mChildCount;
+  };
+
   struct FlagBits {
     PRUint32 mDirty : 1;
     PRUint32 mPreviousMarginDirty : 1;
@@ -521,10 +596,8 @@ public:
     
     
     PRUint32 mHadFloatPushed : 1;
+    PRUint32 mHasHashedFrames: 1;
     PRUint32 mBreakType : 4;
-
-    
-    PRUint32 mChildCount;
   };
 
   struct ExtraData {
