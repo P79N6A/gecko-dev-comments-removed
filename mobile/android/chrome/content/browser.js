@@ -2846,6 +2846,8 @@ var FormAssistant = {
     Services.obs.addObserver(this, "FormAssist:Hidden", false);
     Services.obs.addObserver(this, "invalidformsubmit", false);
 
+    
+    BrowserApp.deck.addEventListener("focus", this, true);
     BrowserApp.deck.addEventListener("input", this, false);
     BrowserApp.deck.addEventListener("pageshow", this, false);
   },
@@ -2855,6 +2857,7 @@ var FormAssistant = {
     Services.obs.removeObserver(this, "FormAssist:Hidden");
     Services.obs.removeObserver(this, "invalidformsubmit");
 
+    BrowserApp.deck.removeEventListener("focus", this);
     BrowserApp.deck.removeEventListener("input", this);
     BrowserApp.deck.removeEventListener("pageshow", this);
   },
@@ -2887,15 +2890,20 @@ var FormAssistant = {
 
     this._invalidSubmit = true;
 
+    
     let currentElement = aInvalidElements.queryElementAt(0, Ci.nsISupports);
-    if (this._showValidationMessage(currentElement))
-      currentElement.focus();
+    currentElement.focus();
   },
 
   handleEvent: function(aEvent) {
     switch (aEvent.type) {
-      case "input":
+      case "focus":
         let currentElement = aEvent.target;
+        this._showValidationMessage(currentElement);
+        break;
+
+      case "input":
+        currentElement = aEvent.target;
 
         
         
