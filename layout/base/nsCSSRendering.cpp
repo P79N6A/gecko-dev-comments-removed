@@ -1638,6 +1638,53 @@ SetupBackgroundClip(BackgroundClipState& aClipState, gfxContext *aCtx,
   }
 }
 
+static void
+DrawBackgroundColor(BackgroundClipState& aClipState, gfxContext *aCtx,
+                    PRBool aHaveRoundedCorners, nscoord aAppUnitsPerPixel)
+{
+  if (aClipState.mDirtyRectGfx.IsEmpty()) {
+    
+    
+    return;
+  }
+
+  
+  
+  if (!aHaveRoundedCorners || aClipState.mCustomClip) {
+    aCtx->NewPath();
+    aCtx->Rectangle(aClipState.mDirtyRectGfx, PR_TRUE);
+    aCtx->Fill();
+    return;
+  }
+
+  gfxRect bgAreaGfx =
+    nsLayoutUtils::RectToGfxRect(aClipState.mBGClipArea, aAppUnitsPerPixel);
+  bgAreaGfx.Round();
+  bgAreaGfx.Condition();
+
+  if (bgAreaGfx.IsEmpty()) {
+    
+    
+    NS_WARNING("converted background area should not be empty");
+    
+    aClipState.mDirtyRectGfx.size.SizeTo(0.0, 0.0);
+    return;
+  }
+
+  aCtx->Save();
+  gfxRect dirty = bgAreaGfx.Intersect(aClipState.mDirtyRectGfx);
+
+  aCtx->NewPath();
+  aCtx->Rectangle(dirty, PR_TRUE);
+  aCtx->Clip();
+
+  aCtx->NewPath();
+  aCtx->RoundedRectangle(bgAreaGfx, aClipState.mClippedRadii,
+                         aClipState.mRadiiAreOuter);
+  aCtx->Fill();
+  aCtx->Restore();
+}
+
 static nscolor
 DetermineBackgroundColorInternal(nsPresContext* aPresContext,
                                  nsStyleContext* aStyleContext,
@@ -2328,12 +2375,8 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   if (!drawBackgroundImage) {
-    if (!clipState.mDirtyRectGfx.IsEmpty() && !isCanvasFrame) {
-      SetupBackgroundClip(clipState, ctx, haveRoundedCorners, appUnitsPerPixel,
-                          &autoSR);
-      ctx->NewPath();
-      ctx->Rectangle(clipState.mDirtyRectGfx, PR_TRUE);
-      ctx->Fill();
+    if (!isCanvasFrame) {
+      DrawBackgroundColor(clipState, ctx, haveRoundedCorners, appUnitsPerPixel);
     }
     return;
   }
@@ -2352,29 +2395,30 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   if (drawBackgroundColor && !isCanvasFrame) {
-    if (!clipState.mDirtyRectGfx.IsEmpty()) {
-      SetupBackgroundClip(clipState, ctx, haveRoundedCorners, appUnitsPerPixel,
-                          &autoSR);
-      ctx->NewPath();
-      ctx->Rectangle(clipState.mDirtyRectGfx, PR_TRUE);
-      ctx->Fill();
-    }
+    DrawBackgroundColor(clipState, ctx, haveRoundedCorners, appUnitsPerPixel);
   }
 
   if (drawBackgroundImage) {
+    bool clipSet = false;
     NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
       const nsStyleBackground::Layer &layer = bg->mLayers[i];
       if (!aBGClipRect) {
         PRUint8 newBackgroundClip = layer.mClip;
         if (isSolidBorder && newBackgroundClip == NS_STYLE_BG_CLIP_BORDER)
           newBackgroundClip = NS_STYLE_BG_CLIP_PADDING;
-        if (currentBackgroundClip != newBackgroundClip) {
+        if (currentBackgroundClip != newBackgroundClip || !clipSet) {
           currentBackgroundClip = newBackgroundClip;
-          GetBackgroundClip(ctx, currentBackgroundClip, aForFrame, aBorderArea,
-                            aDirtyRect, haveRoundedCorners, bgRadii,
-                            appUnitsPerPixel, &clipState);
+          
+          
+          
+          if (clipSet) {
+            GetBackgroundClip(ctx, currentBackgroundClip, aForFrame,
+                              aBorderArea, aDirtyRect, haveRoundedCorners,
+                              bgRadii, appUnitsPerPixel, &clipState);
+          }
           SetupBackgroundClip(clipState, ctx, haveRoundedCorners,
                               appUnitsPerPixel, &autoSR);
+          clipSet = true;
         }
       }
       if (!clipState.mDirtyRectGfx.IsEmpty()) {
