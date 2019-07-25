@@ -577,8 +577,8 @@ typedef JSBool
 
 
 
-typedef JSBool (*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
-                                        uint32 tag, uint32 data, jsval *vp);
+typedef JSObject *(*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *r,
+                                           uint32 tag, uint32 data);
 
 
 
@@ -590,8 +590,7 @@ typedef JSBool (*ReadStructuredCloneOp)(JSContext *cx, JSStructuredCloneReader *
 
 
 
-
-typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w, jsval v);
+typedef JSBool (*WriteStructuredCloneOp)(JSContext *cx, JSStructuredCloneWriter *w, JSObject *obj);
 
 
 
