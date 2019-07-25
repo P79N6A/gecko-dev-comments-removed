@@ -4108,7 +4108,11 @@ var XULBrowserWindow = {
         let nBox = gBrowser.getNotificationBox(selectedBrowser);
         nBox.removeTransientNotifications();
 
-        PopupNotifications.locationChange();
+        
+        
+        
+        if (!__lookupGetter__("PopupNotifications"))
+          PopupNotifications.locationChange();
       }
     }
 
