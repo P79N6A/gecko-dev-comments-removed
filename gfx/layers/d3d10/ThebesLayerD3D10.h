@@ -86,7 +86,7 @@ private:
   nsRefPtr<gfxASurface> mD2DSurfaceOnWhite;
 
   
-  void DrawRegion(const nsIntRegion &aRegion, SurfaceMode aMode);
+  void DrawRegion(nsIntRegion &aRegion, SurfaceMode aMode);
 
   
   void CreateNewTextures(const gfxIntSize &aSize, SurfaceMode aMode);
@@ -94,7 +94,18 @@ private:
   
   void CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcOffset,
                   ID3D10Texture2D* aDest, const nsIntPoint &aDestOffset,
-                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion);
+                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion,
+                  float aXRes, float aYRes);
+
+  
+
+
+
+
+  void GetDesiredResolutions(float& aXRes, float& aYRes);
+
+  
+  bool ResolutionChanged(float aXRes, float aYRes);
 };
 
 } 
