@@ -2583,7 +2583,8 @@ RasterImage::Draw(gfxContext *aContext,
     mFrameDecodeFlags = DECODE_FLAGS_DEFAULT;
   }
 
-  if (!mDecoded) {
+  
+  if (!mDecoded && mHasSourceData) {
       mDrawStartTime = TimeStamp::Now();
   }
 
