@@ -421,13 +421,8 @@ CompositorParent::TransformShadowTree()
 
   
   
-  gfxPoint scaleDiff(tempScaleDiffX, tempScaleDiffY);
-  gfxPoint offset(clamped(mScrollOffset.x / tempScaleDiffX, mContentRect.x / tempScaleDiffX,
-                          (mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX)) -
-                  metricsScrollOffset.x,
-                  clamped(mScrollOffset.y / tempScaleDiffY, mContentRect.y / tempScaleDiffY,
-                          (mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY)) -
-                  metricsScrollOffset.y);
+  gfxPoint offset;
+  gfxPoint scaleDiff;
 
   
   
@@ -435,11 +430,21 @@ CompositorParent::TransformShadowTree()
   if (mContentRect.width * tempScaleDiffX < mWidgetSize.width) {
     offset.x = -metricsScrollOffset.x;
     scaleDiff.x = NS_MIN(1.0f, mWidgetSize.width / (float)mContentRect.width);
+  } else {
+    offset.x = clamped(mScrollOffset.x / tempScaleDiffX, (float)mContentRect.x,
+                       mContentRect.XMost() - mWidgetSize.width / tempScaleDiffX) -
+               metricsScrollOffset.x;
+    scaleDiff.x = tempScaleDiffX;
   }
 
   if (mContentRect.height * tempScaleDiffY < mWidgetSize.height) {
     offset.y = -metricsScrollOffset.y;
     scaleDiff.y = NS_MIN(1.0f, mWidgetSize.height / (float)mContentRect.height);
+  } else {
+    offset.y = clamped(mScrollOffset.y / tempScaleDiffY, (float)mContentRect.y,
+                       mContentRect.YMost() - mWidgetSize.height / tempScaleDiffY) -
+               metricsScrollOffset.y;
+    scaleDiff.y = tempScaleDiffY;
   }
 
   TransformFixedLayers(layer, offset, scaleDiff);
