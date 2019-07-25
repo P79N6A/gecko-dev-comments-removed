@@ -2185,11 +2185,10 @@ DocumentViewerImpl::CreateStyleSet(nsIDocument* aDocument,
   
   
   nsCOMPtr<nsICSSStyleSheet> quirkClone;
+  nsICSSStyleSheet* quirkSheet;
   if (!nsLayoutStylesheetCache::UASheet() ||
-      !nsLayoutStylesheetCache::QuirkSheet() ||
-      NS_FAILED(nsLayoutStylesheetCache::QuirkSheet()->
-                Clone(nsnull, nsnull, nsnull, nsnull,
-                      getter_AddRefs(quirkClone))) ||
+      !(quirkSheet = nsLayoutStylesheetCache::QuirkSheet()) ||
+      !(quirkClone = quirkSheet->Clone(nsnull, nsnull, nsnull, nsnull)) ||
       !sheet) {
     delete styleSet;
     return NS_ERROR_OUT_OF_MEMORY;
