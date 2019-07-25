@@ -146,7 +146,7 @@ LIRGeneratorARM::visitUnbox(MUnbox *unbox)
     
     LUnbox *lir = new LUnbox;
     lir->setOperand(0, usePayloadInRegister(inner));
-    lir->setOperand(1, useType(inner, LUse::ANY));
+    lir->setOperand(1, useType(inner, LUse::REGISTER));
 
     if (unbox->fallible() && !assignSnapshot(lir, unbox->bailoutKind()))
         return false;
