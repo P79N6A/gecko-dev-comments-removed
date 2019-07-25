@@ -133,9 +133,16 @@ struct VisitData {
 
 
 
-  bool IsSamePlaceAs(const VisitData& aOther) const
+
+  bool IsSamePlaceAs(VisitData& aOther)
   {
-    return spec.Equals(aOther.spec);
+    if (!spec.Equals(aOther.spec)) {
+      return false;
+    }
+
+    aOther.placeId = placeId;
+    aOther.guid = guid;
+    return true;
   }
 
   PRInt64 placeId;
@@ -359,7 +366,7 @@ public:
     mozStorageTransaction transaction(mDBConn, PR_FALSE,
                                       mozIStorageConnection::TRANSACTION_IMMEDIATE);
 
-    const VisitData* lastPlace;
+    VisitData* lastPlace;
     nsresult rv;
     for (nsTArray<VisitData>::size_type i = 0; i < mPlaces.Length(); i++) {
       VisitData& place = mPlaces.ElementAt(i);
