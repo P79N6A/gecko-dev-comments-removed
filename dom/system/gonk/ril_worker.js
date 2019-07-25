@@ -641,11 +641,6 @@ let RIL = {
   
 
 
-  currentCallsLength: null,
-
-  
-
-
   currentDataCalls: {},
 
   
@@ -2380,13 +2375,6 @@ let RIL = {
     
     
     
-    let lastCallsLength = this.currentCallsLength;
-    if (newCalls) {
-      this.currentCallsLength = newCalls.length;
-    } else {
-      this.currentCallsLength = 0;
-    }
-
     for each (let currentCall in this.currentCalls) {
       let newCall;
       if (newCalls) {
@@ -2396,9 +2384,7 @@ let RIL = {
 
       if (newCall) {
         
-        if (newCall.state != currentCall.state ||
-            this.currentCallsLength != lastCallsLength) {
-          
+        if (newCall.state != currentCall.state) {
           
           currentCall.state = newCall.state;
           currentCall.isActive = this._isActiveCall(currentCall.state);
@@ -2447,19 +2433,14 @@ let RIL = {
 
   _isActiveCall: function _isActiveCall(callState) {
     switch (callState) {
-      case CALL_STATE_INCOMING:
+      case CALL_STATE_ACTIVE:
       case CALL_STATE_DIALING:
       case CALL_STATE_ALERTING:
-      case CALL_STATE_ACTIVE:
         return true;
       case CALL_STATE_HOLDING:
-        return false;
+      case CALL_STATE_INCOMING:
       case CALL_STATE_WAITING:
-        if (this.currentCallsLength == 1) {
-          return true;
-        } else {
-          return false;
-        }
+        return false;
     }
   },
 
@@ -2977,7 +2958,6 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length, opti
 
     calls[call.callIndex] = call;
   }
-  calls.length = calls_length;
   this._processCalls(calls);
 };
 RIL[REQUEST_DIAL] = function REQUEST_DIAL(length, options) {
