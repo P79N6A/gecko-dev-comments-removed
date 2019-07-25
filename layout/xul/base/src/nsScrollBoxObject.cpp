@@ -35,6 +35,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsIScrollBoxObject.h"
 #include "nsBoxObject.h"
@@ -254,56 +255,18 @@ NS_IMETHODIMP nsScrollBoxObject::ScrollToLine(PRInt32 line)
 NS_IMETHODIMP nsScrollBoxObject::ScrollToElement(nsIDOMElement *child)
 {
     NS_ENSURE_ARG_POINTER(child);
-    nsIScrollableFrame* sf = GetScrollFrame();
-    if (!sf)
-       return NS_ERROR_FAILURE;
 
     nsCOMPtr<nsIPresShell> shell = GetPresShell(PR_FALSE);
     if (!shell) {
       return NS_ERROR_UNEXPECTED;
     }
 
-    nsIFrame* scrolledBox = GetScrolledBox(this);
-    if (!scrolledBox)
-       return NS_ERROR_FAILURE;
-
-    nsRect rect, crect;
-    nsCOMPtr<nsIDOMDocument> doc;
-    child->GetOwnerDocument(getter_AddRefs(doc));
-    nsCOMPtr<nsIDocument> nsDoc(do_QueryInterface(doc));
-    if(!nsDoc)
-      return NS_ERROR_UNEXPECTED;
-
-    nsCOMPtr<nsIBoxObject> childBoxObject;
-    nsDoc->GetBoxObjectFor(child, getter_AddRefs(childBoxObject));
-    if(!childBoxObject)
-      return NS_ERROR_UNEXPECTED;
-
-    PRInt32 x,y;
-    childBoxObject->GetX(&x);
-    childBoxObject->GetY(&y);
-    
-    rect.x = nsPresContext::CSSPixelsToAppUnits(x);
-    rect.y = nsPresContext::CSSPixelsToAppUnits(y);
-
-    
-
-    
-    nsPoint cp = sf->GetScrollPosition();
-    nsIntRect prect;
-    GetOffsetRect(prect);
-    crect = prect.ToAppUnits(nsPresContext::AppUnitsPerCSSPixel());
-    nscoord newx=cp.x, newy=cp.y;
-
-    
-    
-    if (scrolledBox->IsHorizontal()) {
-        newx = rect.x - crect.x;
-    } else {
-        newy = rect.y - crect.y;
-    }
-    
-    sf->ScrollTo(nsPoint(newx, newy), nsIScrollableFrame::INSTANT);
+    nsCOMPtr<nsIContent> content = do_QueryInterface(child);
+    shell->ScrollContentIntoView(content,
+                                 NS_PRESSHELL_SCROLL_TOP,
+                                 NS_PRESSHELL_SCROLL_LEFT,
+                                 nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY |
+                                 nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
     return NS_OK;
 }
 
@@ -347,68 +310,17 @@ NS_IMETHODIMP nsScrollBoxObject::EnsureElementIsVisible(nsIDOMElement *child)
 {
     NS_ENSURE_ARG_POINTER(child);
 
-    
-    
-    nsCOMPtr<nsIDOMDocument> doc;
-    
-    child->GetOwnerDocument(getter_AddRefs(doc));
-    nsCOMPtr<nsIDocument> nsDoc(do_QueryInterface(doc));
-    if(!nsDoc)
-        return NS_ERROR_UNEXPECTED;
-
-    nsCOMPtr<nsIBoxObject> childBoxObject;
-    nsDoc->GetBoxObjectFor(child, getter_AddRefs(childBoxObject));
-    if(!childBoxObject)
+    nsCOMPtr<nsIPresShell> shell = GetPresShell(PR_FALSE);
+    if (!shell) {
       return NS_ERROR_UNEXPECTED;
-
-    PRInt32 x, y, width, height;
-    childBoxObject->GetX(&x);
-    childBoxObject->GetY(&y);
-    childBoxObject->GetWidth(&width);
-    childBoxObject->GetHeight(&height);
-
-    nsIScrollableFrame* sf = GetScrollFrame();
-    if (!sf)
-       return NS_ERROR_FAILURE;
-
-    nsIFrame* scrolledBox = GetScrolledBox(this);
-    if (!scrolledBox)
-       return NS_ERROR_FAILURE;
-
-    nsRect rect, crect;
-    
-    rect.x = nsPresContext::CSSPixelsToAppUnits(x);
-    rect.y = nsPresContext::CSSPixelsToAppUnits(y);
-    rect.width = nsPresContext::CSSPixelsToAppUnits(width);
-    rect.height = nsPresContext::CSSPixelsToAppUnits(height);
-
-    
-
-    
-    nsPoint cp = sf->GetScrollPosition();
-    nsIntRect prect;
-    GetOffsetRect(prect);
-    crect = prect.ToAppUnits(nsPresContext::AppUnitsPerCSSPixel());
-
-    nscoord newx=cp.x, newy=cp.y;
-
-    
-    if (scrolledBox->IsHorizontal()) {
-        if ((rect.x - crect.x) + rect.width > cp.x + crect.width) {
-            newx = cp.x + (((rect.x - crect.x) + rect.width)-(cp.x + crect.width));
-        } else if (rect.x - crect.x < cp.x) {
-            newx = rect.x - crect.x;
-        }
-    } else {
-        if ((rect.y - crect.y) + rect.height > cp.y + crect.height) {
-            newy = cp.y + (((rect.y - crect.y) + rect.height)-(cp.y + crect.height));
-        } else if (rect.y - crect.y < cp.y) {
-            newy = rect.y - crect.y;
-        }
     }
-    
-    
-    sf->ScrollTo(nsPoint(newx, newy), nsIScrollableFrame::INSTANT);
+
+    nsCOMPtr<nsIContent> content = do_QueryInterface(child);
+    shell->ScrollContentIntoView(content,
+                                 NS_PRESSHELL_SCROLL_ANYWHERE,
+                                 NS_PRESSHELL_SCROLL_ANYWHERE,
+                                 nsIPresShell::SCROLL_FIRST_ANCESTOR_ONLY |
+                                 nsIPresShell::SCROLL_OVERFLOW_HIDDEN);
     return NS_OK;
 }
 

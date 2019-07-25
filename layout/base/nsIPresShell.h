@@ -51,6 +51,7 @@
 
 
 
+
 #ifndef nsIPresShell_h___
 #define nsIPresShell_h___
 
@@ -139,8 +140,8 @@ typedef struct CapturingContentInfo {
 } CapturingContentInfo;
 
 #define NS_IPRESSHELL_IID     \
- { 0xb79574cd, 0x2555, 0x4b57, \
-    { 0xb3, 0xf8, 0x27, 0x57, 0x3e, 0x60, 0x74, 0x01 } }
+ { 0xd1978bee, 0x43b9, 0x40de, \
+    { 0x95, 0x47, 0x85, 0x06, 0x5e, 0x02, 0xec, 0xb4 } }
 
 
 #define NS_PRESSHELL_SCROLL_TOP      0
@@ -545,9 +546,17 @@ public:
 
 
 
+
+
+
+
+
+
+
   virtual NS_HIDDEN_(nsresult) ScrollContentIntoView(nsIContent* aContent,
                                                      PRIntn      aVPercent,
-                                                     PRIntn      aHPercent) = 0;
+                                                     PRIntn      aHPercent,
+                                                     PRUint32    aFlags) = 0;
 
   enum {
     SCROLL_FIRST_ANCESTOR_ONLY = 0x01,
