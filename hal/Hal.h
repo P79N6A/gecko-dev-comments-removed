@@ -46,6 +46,7 @@
 #include "nsTArray.h"
 #include "prlog.h"
 #include "mozilla/dom/battery/Types.h"
+#include "mozilla/hal_sandbox/PHal.h"
 
 
 
@@ -167,6 +168,45 @@ double GetScreenBrightness();
 
 
 void SetScreenBrightness(double brightness);
+
+
+
+
+
+
+
+
+void RegisterSensorObserver(hal::SensorType aSensor,
+                            hal::ISensorObserver *aObserver);
+
+
+
+
+void UnregisterSensorObserver(hal::SensorType aSensor,
+                              hal::ISensorObserver *aObserver);
+
+
+
+
+
+
+void NotifySensorChange(const hal::SensorData &aSensorData);
+
+
+
+
+
+
+
+void EnableSensorNotifications(hal::SensorType aSensor);
+
+
+
+
+
+
+
+void DisableSensorNotifications(hal::SensorType aSensor);
 
 } 
 } 
