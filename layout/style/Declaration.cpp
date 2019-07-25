@@ -771,6 +771,10 @@ Declaration::AppendPropertyAndValueToString(nsCSSProperty aProperty,
 void
 Declaration::ToString(nsAString& aString) const
 {
+  
+  
+  SetImmutable();
+
   nsCSSCompressedDataBlock *systemFontData =
     GetValueIsImportant(eCSSProperty__x_system_font) ? mImportantData : mData;
   const nsCSSValue *systemFont = 

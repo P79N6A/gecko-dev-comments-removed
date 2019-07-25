@@ -215,7 +215,8 @@ public:
   
 
 
-  void SetImmutable() { mImmutable = PR_TRUE; }
+
+  void SetImmutable() const { mImmutable = PR_TRUE; }
 
   
 
@@ -259,7 +260,8 @@ private:
   nsAutoPtr<nsCSSCompressedDataBlock> mImportantData;
 
   
-  PRPackedBool mImmutable;
+  
+  mutable PRPackedBool mImmutable;
 };
 
 } 
