@@ -811,6 +811,10 @@ SendCredentialsController.prototype = {
   onComplete: function onComplete() {
     this._log.debug("Exchange was completed successfully!");
     this.unload();
+
+    
+    
+    SyncScheduler.scheduleNextSync(SyncScheduler.activeInterval);
   },
 
   onAbort: function onAbort(error) {

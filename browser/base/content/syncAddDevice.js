@@ -122,6 +122,10 @@ let gSyncAddDevice = {
       onComplete: function onComplete() {
         delete self._jpakeclient;
         self.wizard.pageIndex = DEVICE_CONNECTED_PAGE;
+
+        
+        
+        Weave.SyncScheduler.scheduleNextSync(Weave.SyncScheduler.activeInterval);
       },
       onAbort: function onAbort(error) {
         delete self._jpakeclient;
