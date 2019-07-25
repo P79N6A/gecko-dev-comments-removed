@@ -43,6 +43,7 @@
 #include "mozStorageService.h"
 #include "mozStorageConnection.h"
 #include "prinit.h"
+#include "pratom.h"
 #include "nsAutoPtr.h"
 #include "nsCollationCID.h"
 #include "nsEmbedCID.h"
@@ -53,6 +54,8 @@
 #include "nsIXPConnect.h"
 #include "nsIObserverService.h"
 #include "mozilla/Services.h"
+#include "nsIPrefService.h"
+#include "nsIPrefBranch.h"
 
 #include "sqlite3.h"
 #include "test_quota.c"
@@ -117,6 +120,12 @@ private:
 
 } 
 
+
+
+
+#define PREF_TS_SYNCHRONOUS "toolkit.storage.synchronous"
+#define PREF_TS_SYNCHRONOUS_DEFAULT 1
+
 namespace mozilla {
 namespace storage {
 
@@ -160,9 +169,11 @@ class ServiceMainThreadInitializer : public nsRunnable
 {
 public:
   ServiceMainThreadInitializer(nsIObserver *aObserver,
-                               nsIXPConnect **aXPConnectPtr)
+                               nsIXPConnect **aXPConnectPtr,
+                               PRInt32 *aSynchronousPrefValPtr)
   : mObserver(aObserver)
   , mXPConnectPtr(aXPConnectPtr)
+  , mSynchronousPrefValPtr(aSynchronousPrefValPtr)
   {
   }
 
@@ -190,6 +201,15 @@ public:
 
     
     
+    
+    nsCOMPtr<nsIPrefBranch> pref(do_GetService(NS_PREFSERVICE_CONTRACTID));
+    PRInt32 synchronous = PREF_TS_SYNCHRONOUS_DEFAULT;
+    if (pref)
+      (void)pref->GetIntPref(PREF_TS_SYNCHRONOUS, &synchronous);
+    ::PR_AtomicSet(mSynchronousPrefValPtr, synchronous);
+
+    
+    
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLitePageCacheMemoryUsed));
     NS_RegisterMemoryReporter(new NS_MEMORY_REPORTER_NAME(StorageSQLiteOtherMemoryUsed));
 
@@ -199,6 +219,7 @@ public:
 private:
   nsIObserver *mObserver;
   nsIXPConnect **mXPConnectPtr;
+  PRInt32 *mSynchronousPrefValPtr;
 };
 
 
@@ -249,6 +270,7 @@ Service::getSingleton()
 
 nsIXPConnect *Service::sXPConnect = nsnull;
 
+
 already_AddRefed<nsIXPConnect>
 Service::getXPConnect()
 {
@@ -264,6 +286,15 @@ Service::getXPConnect()
     xpc = do_GetService(nsIXPConnect::GetCID());
   NS_ASSERTION(xpc, "Could not get XPConnect!");
   return xpc.forget();
+}
+
+PRInt32 Service::sSynchronousPref;
+
+
+PRInt32
+Service::getSynchronousPref()
+{
+  return sSynchronousPref;
 }
 
 Service::Service()
@@ -314,8 +345,12 @@ Service::initialize()
     return convertResultCode(rc);
 
   
+  
+  sSynchronousPref = PREF_TS_SYNCHRONOUS_DEFAULT;
+
+  
   nsCOMPtr<nsIRunnable> event =
-    new ServiceMainThreadInitializer(this, &sXPConnect);
+    new ServiceMainThreadInitializer(this, &sXPConnect, &sSynchronousPref);
   if (event && ::NS_IsMainThread()) {
     (void)event->Run();
   }
