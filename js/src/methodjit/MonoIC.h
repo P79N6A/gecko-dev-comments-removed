@@ -121,9 +121,7 @@ struct CallICInfo {
 
     JSC::ExecutablePool *pools[Total_Pools];
 
-    
-    JSObject *fastGuardedObject;
-    JSObject *fastGuardedNative;
+    JSObject *guardedObject;
     Value constantThis;
 
     uint32 argc : 16;
@@ -137,6 +135,7 @@ struct CallICInfo {
 
     
     JSC::CodeLocationJump funJump;
+    JSC::CodeLocationJump lastFunJump;
 
     
     uint32 hotCallOffset   : 8;
@@ -159,10 +158,19 @@ struct CallICInfo {
     bool isConstantThis : 1;
     bool hit : 1;
     bool hasJsFunCheck : 1;
+    bool guardedNative : 1;
+
+    inline void partialReset() {
+        guardedObject = NULL;
+        guardedNative = false;
+        hasJsFunCheck = false;
+        releasePool(Pool_ClosureStub);
+        releasePool(Pool_NativeStub);
+    }
 
     inline void reset() {
-        fastGuardedObject = NULL;
-        fastGuardedNative = NULL;
+        guardedObject = NULL;
+        guardedNative = false;
         hit = false;
         hasJsFunCheck = false;
         pools[0] = pools[1] = pools[2] = NULL;
@@ -174,10 +182,11 @@ struct CallICInfo {
         releasePool(Pool_NativeStub);
     }
 
-  private:
     inline void releasePool(PoolIndex index) {
-        if (pools[index])
+        if (pools[index]) {
             pools[index]->release();
+            pools[index] = NULL;
+        }
     }
 };
 
@@ -187,6 +196,7 @@ void JS_FASTCALL NativeNew(VMFrame &f, uint32 index);
 void JS_FASTCALL NativeCall(VMFrame &f, uint32 index);
 
 void PurgeMICs(JSContext *cx, JSScript *script);
+void PurgeCallICs(JSContext *cx, JSScript *script);
 
 } 
 } 
