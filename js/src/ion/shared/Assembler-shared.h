@@ -399,6 +399,9 @@ class CodeLocationLabel
         raw_ = (uint8 *) base.offset();
         markAbsolute(false);
     }
+    ptrdiff_t operator - (const CodeLocationLabel &other) {
+        return raw_ - other.raw_;
+    }
 
     void repoint(IonCode *code, MacroAssembler *masm = NULL);
 

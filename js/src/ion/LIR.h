@@ -578,7 +578,6 @@ class LDefinition
 
 class LSnapshot;
 class LSafepoint;
-class LCaptureAllocations;
 class LInstructionVisitor;
 
 class LInstruction
@@ -593,12 +592,6 @@ class LInstruction
 
     
     
-    
-    
-    LSnapshot *postSnapshot_;
-
-    
-    
     LSafepoint *safepoint_;
 
   protected:
@@ -607,7 +600,6 @@ class LInstruction
     LInstruction()
       : id_(0),
         snapshot_(NULL),
-        postSnapshot_(NULL),
         safepoint_(NULL),
         mir_(NULL)
     { }
@@ -666,9 +658,6 @@ class LInstruction
     LSnapshot *snapshot() const {
         return snapshot_;
     }
-    LSnapshot *postSnapshot() const {
-        return postSnapshot_;
-    }
     LSafepoint *safepoint() const {
         return safepoint_;
     }
@@ -680,7 +669,6 @@ class LInstruction
         return mir_;
     }
     void assignSnapshot(LSnapshot *snapshot);
-    void assignPostSnapshot(LSnapshot *snapshot);
     void initSafepoint();
 
     virtual void print(FILE *fp);
@@ -956,6 +944,9 @@ class LSafepoint : public TempObject
     uint32 safepointOffset_;
 
     
+    uint32 osiReturnPointOffset_;
+
+    
     SlotList gcSlots_;
 
 #ifdef JS_NUNBOX32
@@ -965,7 +956,8 @@ class LSafepoint : public TempObject
 
   public:
     LSafepoint()
-      : safepointOffset_(INVALID_SAFEPOINT_OFFSET)
+      : safepointOffset_(INVALID_SAFEPOINT_OFFSET),
+        osiReturnPointOffset_(0)
     { }
     void addLiveRegister(AnyRegister reg) {
         liveRegs_.add(reg);
@@ -1023,6 +1015,13 @@ class LSafepoint : public TempObject
     }
     void setOffset(uint32 offset) {
         safepointOffset_ = offset;
+    }
+    uint32 osiReturnPointOffset() const {
+        return osiReturnPointOffset_;
+    }
+    void setOsiReturnPointOffset(uint32 osiReturnPointOffset) {
+        JS_ASSERT(!osiReturnPointOffset_);
+        osiReturnPointOffset_ = osiReturnPointOffset;
     }
 };
 

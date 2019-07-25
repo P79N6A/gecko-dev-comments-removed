@@ -283,35 +283,8 @@ IonCompartment::generateInvalidator(JSContext *cx)
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+
+    masm.addl(Imm32(sizeof(uintptr_t)), esp);
 
     masm.reserveStack(Registers::Total * sizeof(void *));
     for (uint32 i = 0; i < Registers::Total; i++)
@@ -335,9 +308,7 @@ IonCompartment::generateInvalidator(JSContext *cx)
     masm.pop(ebx); 
 
     
-    const uint32 BailoutDataSize = sizeof(double) * FloatRegisters::Total +
-                                   sizeof(void *) * Registers::Total;
-    masm.lea(Operand(esp, ebx, TimesOne, BailoutDataSize), esp);
+    masm.lea(Operand(esp, ebx, TimesOne, sizeof(InvalidationBailoutStack)), esp);
 
     GenerateBailoutTail(masm);
 

@@ -71,15 +71,27 @@ class LNop : public LInstructionHelper<0, 0, 0>
 
 
 
-class LCaptureAllocations : public LInstructionHelper<0, 0, 0>
+
+
+
+
+class LOsiPoint : public LInstructionHelper<0, 0, 0>
 {
+    LSafepoint *safepoint_;
+
   public:
-    LCaptureAllocations(LSnapshot *snapshot)
+    LOsiPoint(LSafepoint *safepoint, LSnapshot *snapshot)
+      : safepoint_(safepoint)
     {
+        JS_ASSERT(safepoint && snapshot);
         assignSnapshot(snapshot);
     }
 
-    LIR_HEADER(CaptureAllocations);
+    LSafepoint *associatedSafepoint() {
+        return safepoint_;
+    }
+
+    LIR_HEADER(OsiPoint);
 };
 
 class LMove

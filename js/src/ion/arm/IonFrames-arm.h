@@ -73,9 +73,6 @@ class IonCommonFrameLayout
     uint8 *returnAddress() const {
         return returnAddress_;
     }
-    uint8 **returnAddressPtr() {
-        return &returnAddress_;
-    }
 };
 
 
@@ -90,12 +87,6 @@ class IonJSFrameLayout : public IonEntryFrameLayout
   public:
     void *calleeToken() const {
         return calleeToken_;
-    }
-    void replaceCalleeToken(void *value) {
-        calleeToken_ = value;
-    }
-    void setInvalidationRecord(InvalidationRecord *record) {
-        replaceCalleeToken(InvalidationRecordToToken(record));
     }
 
     static size_t offsetOfCalleeToken() {

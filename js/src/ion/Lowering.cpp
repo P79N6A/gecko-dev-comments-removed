@@ -1126,16 +1126,12 @@ LIRGenerator::visitInstruction(MInstruction *ins)
 #endif
 
     
-    if (!postSnapshot_)
-        return true;
+    if (LOsiPoint *osiPoint = popOsiPoint()) {
+        if (!add(osiPoint))
+            return false;
+    }
 
-    
-    
-    
-    LSnapshot *post = postSnapshot_;
-    postSnapshot_ = NULL;
-
-    return add(new LCaptureAllocations(post));
+    return true;
 }
 
 bool

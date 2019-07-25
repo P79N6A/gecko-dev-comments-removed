@@ -72,14 +72,16 @@ class CodeGeneratorShared : public LInstructionVisitor
 #ifdef DEBUG
     uint32 pushedArgs_;
 #endif
+    uint32 lastOsiPointOffset_;
     SafepointWriter safepoints_;
+    Label invalidate_;
+    CodeOffsetLabel invalidateEpilogueData_;
+
+    js::Vector<SafepointIndex, 0, SystemAllocPolicy> safepointIndices_;
+    js::Vector<OsiIndex, 0, SystemAllocPolicy> osiIndices_;
 
     
     js::Vector<SnapshotOffset, 0, SystemAllocPolicy> bailouts_;
-
-    
-    
-    js::Vector<IonFrameInfo, 0, SystemAllocPolicy> frameInfoTable_;
 
     
     js::Vector<IonCache, 0, SystemAllocPolicy> cacheList_;
@@ -107,6 +109,8 @@ class CodeGeneratorShared : public LInstructionVisitor
     inline size_t getOsrEntryOffset() const {
         return osrEntryOffset_;
     }
+
+    typedef js::Vector<SafepointIndex, 8, SystemAllocPolicy> SafepointIndices;
 
   protected:
     
@@ -186,15 +190,17 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     
     
-    
-    bool assignFrameInfo(LSafepoint *safepoint, LSnapshot *snapshot);
+    void encodeSafepoints();
 
     
     
-    bool createSafepoint(LInstruction *ins) {
-        JS_ASSERT(ins->safepoint());
-        return assignFrameInfo(ins->safepoint(), ins->postSnapshot());
-    }
+    bool markSafepoint(LInstruction *ins);
+
+    
+    
+    
+    
+    bool markOsiPoint(LOsiPoint *ins, uint32 *returnPointOffset);
 
     inline bool isNextBlock(LBlock *block) {
         return (current->mir()->id() + 1 == block->mir()->id());
@@ -224,6 +230,9 @@ class CodeGeneratorShared : public LInstructionVisitor
 
     void linkAbsoluteLabels() {
     }
+
+  private:
+    void generateInvalidateEpilogue();
 
   public:
     CodeGeneratorShared(MIRGenerator *gen, LIRGraph &graph);
