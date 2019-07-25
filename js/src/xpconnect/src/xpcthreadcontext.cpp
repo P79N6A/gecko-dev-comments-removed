@@ -259,16 +259,16 @@ XPCJSContextStack::GetSafeJSContext(JSContext * *aSafeJSContext)
             mSafeJSContext = JS_NewContext(rt, 8192);
             if(mSafeJSContext)
             {
-                nsCString origin;
-                principal->GetOrigin(getter_Copies(origin));
-
                 
                 JSAutoRequest req(mSafeJSContext);
 
+                
+                
                 JSCompartment *compartment;
-                nsresult rv = xpc_CreateGlobalObject(mSafeJSContext, &global_class,
-                                                     origin, principal, false, &glob,
-                                                     &compartment);
+                nsresult rv = xpc_CreateMTGlobalObject(mSafeJSContext,
+                                                       &global_class,
+                                                       principal, &glob,
+                                                       &compartment);
                 if(NS_FAILED(rv))
                     glob = nsnull;
 

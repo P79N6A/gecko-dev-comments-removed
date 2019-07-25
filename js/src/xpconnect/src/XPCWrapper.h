@@ -60,8 +60,6 @@ AttachNewConstructorObject(XPCCallContext &ccx, JSObject *aGlobalObject);
 
 } 
 
-extern nsIScriptSecurityManager *gScriptSecurityManager;
-
 
 
 
@@ -75,7 +73,7 @@ namespace XPCWrapper {
 inline nsIScriptSecurityManager *
 GetSecurityManager()
 {
-  return ::gScriptSecurityManager;
+  return nsXPConnect::gScriptSecurityManager;
 }
 
 inline JSBool

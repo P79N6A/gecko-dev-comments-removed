@@ -117,6 +117,9 @@
 #include "nsWrapperCache.h"
 #include "nsStringBuffer.h"
 
+#include "nsIScriptSecurityManager.h"
+#include "nsNetUtil.h"
+
 #include "nsIXPCScriptNotify.h"  
 
 #ifndef XPCONNECT_STANDALONE
@@ -242,7 +245,75 @@ extern const char XPC_SCRIPT_ERROR_CONTRACTID[];
 extern const char XPC_ID_CONTRACTID[];
 extern const char XPC_XPCONNECT_CONTRACTID[];
 
-typedef nsDataHashtableMT<nsCStringHashKey, JSCompartment *> XPCCompartmentMap;
+namespace xpc {
+
+class PtrAndPrincipalHashKey : public PLDHashEntryHdr
+{
+  public:
+    typedef PtrAndPrincipalHashKey *KeyType;
+    typedef const PtrAndPrincipalHashKey *KeyTypePointer;
+
+    PtrAndPrincipalHashKey(const PtrAndPrincipalHashKey *aKey)
+      : mPtr(aKey->mPtr), mURI(aKey->mURI), mSavedHash(aKey->mSavedHash)
+    {
+        MOZ_COUNT_CTOR(PtrAndPrincipalHashKey);
+    }
+
+    PtrAndPrincipalHashKey(nsISupports *aPtr, nsIURI *aURI)
+      : mPtr(aPtr), mURI(aURI)
+    {
+        MOZ_COUNT_CTOR(PtrAndPrincipalHashKey);
+        mSavedHash = mURI
+                     ? NS_SecurityHashURI(mURI)
+                     : (NS_PTR_TO_UINT32(mPtr.get()) >> 2);
+    }
+
+    ~PtrAndPrincipalHashKey()
+    {
+        MOZ_COUNT_DTOR(PtrAndPrincipalHashKey);
+    }
+
+    PtrAndPrincipalHashKey* GetKey() const
+    {
+        return const_cast<PtrAndPrincipalHashKey*>(this);
+    }
+    const PtrAndPrincipalHashKey* GetKeyPointer() const { return this; }
+
+    inline PRBool KeyEquals(const PtrAndPrincipalHashKey* aKey) const;
+
+    static const PtrAndPrincipalHashKey*
+    KeyToPointer(PtrAndPrincipalHashKey* aKey) { return aKey; }
+    static PLDHashNumber HashKey(const PtrAndPrincipalHashKey* aKey)
+    {
+        return aKey->mSavedHash;
+    }
+
+    enum { ALLOW_MEMMOVE = PR_TRUE };
+
+  protected:
+    nsCOMPtr<nsISupports> mPtr;
+    nsCOMPtr<nsIURI> mURI;
+
+    
+    
+    
+    
+    
+    PLDHashNumber mSavedHash;
+};
+
+}
+
+
+
+
+
+
+
+typedef nsDataHashtableMT<nsISupportsHashKey, JSCompartment *> XPCMTCompartmentMap;
+
+
+typedef nsDataHashtable<xpc::PtrAndPrincipalHashKey, JSCompartment *> XPCCompartmentMap;
 
 
 
@@ -555,6 +626,9 @@ private:
     nsCOMPtr<nsIXPCScriptable> mBackstagePass;
 
     static PRUint32 gReportAllJSExceptions;
+
+public:
+    static nsIScriptSecurityManager *gScriptSecurityManager;
 };
 
 
@@ -631,6 +705,8 @@ public:
 
     XPCCompartmentMap& GetCompartmentMap()
         {return mCompartmentMap;}
+    XPCMTCompartmentMap& GetMTCompartmentMap()
+        {return mMTCompartmentMap;}
 
     XPCLock* GetMapLock() const {return mMapLock;}
 
@@ -754,6 +830,7 @@ private:
     XPCWrappedNativeProtoMap* mDetachedWrappedNativeProtoMap;
     XPCNativeWrapperMap*     mExplicitNativeWrapperMap;
     XPCCompartmentMap        mCompartmentMap;
+    XPCMTCompartmentMap      mMTCompartmentMap;
     XPCLock* mMapLock;
     PRThread* mThreadRunningGC;
     nsTArray<nsXPCWrappedJS*> mWrappedJSToReleaseArray;
@@ -4431,12 +4508,22 @@ namespace xpc {
 
 struct CompartmentPrivate
 {
-  CompartmentPrivate(char *origin, bool wantXrays)
-    : origin(origin),
+  CompartmentPrivate(PtrAndPrincipalHashKey *key, bool wantXrays)
+    : key(key),
+      ptr(nsnull),
       wantXrays(wantXrays)
   {
   }
-  char *origin;
+  CompartmentPrivate(nsISupports *ptr, bool wantXrays)
+    : key(nsnull),
+      ptr(ptr),
+      wantXrays(wantXrays)
+  {
+  }
+
+  
+  nsAutoPtr<PtrAndPrincipalHashKey> key;
+  nsCOMPtr<nsISupports> ptr;
   bool wantXrays;
 };
 

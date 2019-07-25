@@ -3174,6 +3174,15 @@ WrapForSandbox(JSContext *cx, bool wantXrays, jsval *vp)
            : xpc::WrapperFactory::WaiveXrayAndWrap(cx, vp);
 }
 
+
+
+class Identity : public nsISupports
+{
+    NS_DECL_ISUPPORTS
+};
+
+NS_IMPL_ISUPPORTS0(Identity)
+
 nsresult
 xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop, JSObject *proto,
                         bool wantXrays)
@@ -3209,25 +3218,12 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop, JSOb
     }
 
     nsIPrincipal *principal = sop->GetPrincipal();
-    nsAdoptingCString principalorigin;
-    principal->GetOrigin(getter_Copies(principalorigin));
-
-    nsCAutoString origin("sandbox:");
-    origin.Append(principalorigin);
-
-    nsRefPtr<nsNullPrincipal> nullPrincipal = new nsNullPrincipal();
-    rv = nullPrincipal->Init();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    rv = nullPrincipal->GetOrigin(getter_Copies(principalorigin));
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    origin.Append(principalorigin);
 
     JSCompartment *compartment;
     JSObject *sandbox;
 
-    rv = xpc_CreateGlobalObject(cx, &SandboxClass, origin, principal,
+    nsRefPtr<Identity> identity = new Identity();
+    rv = xpc_CreateGlobalObject(cx, &SandboxClass, principal, identity,
                                 wantXrays, &sandbox, &compartment);
     NS_ENSURE_SUCCESS(rv, rv);
 
@@ -3279,7 +3275,7 @@ xpc_CreateSandboxObject(JSContext * cx, jsval * vp, nsISupports *prinOrSop, JSOb
 
     return NS_OK;
 }
-#endif 
+#endif
 
 
 
