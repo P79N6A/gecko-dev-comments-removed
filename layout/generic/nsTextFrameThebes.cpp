@@ -1765,7 +1765,8 @@ BuildTextRunsScanner::BuildTextRunForFrames(void* aTextBuffer)
   PRUint32 nextBreakIndex = 0;
   nsTextFrame* nextBreakBeforeFrame = GetNextBreakBeforeFrame(&nextBreakIndex);
   bool enabledJustification = mLineContainer &&
-    mLineContainer->GetStyleText()->mTextAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY;
+    (mLineContainer->GetStyleText()->mTextAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY ||
+     mLineContainer->GetStyleText()->mTextAlignLast == NS_STYLE_TEXT_ALIGN_JUSTIFY);
 
   PRUint32 i;
   const nsStyleText* textStyle = nsnull;
@@ -7674,7 +7675,8 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
 
   
   if (!textStyle->WhiteSpaceIsSignificant() &&
-      lineContainer->GetStyleText()->mTextAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY) {
+      (lineContainer->GetStyleText()->mTextAlign == NS_STYLE_TEXT_ALIGN_JUSTIFY ||
+       lineContainer->GetStyleText()->mTextAlignLast == NS_STYLE_TEXT_ALIGN_JUSTIFY)) {
     AddStateBits(TEXT_JUSTIFICATION_ENABLED);    
     
     PRInt32 numJustifiableCharacters =
