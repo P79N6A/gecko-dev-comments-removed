@@ -415,7 +415,7 @@ NoSuchMethod(JSContext *cx, uintN argc, jsval *vp, uint32 flags)
         return JS_FALSE;
     invokevp[3] = OBJECT_TO_JSVAL(argsobj);
     JSBool ok = (flags & JSINVOKE_CONSTRUCT)
-                ? js_InvokeConstructor(cx, args, JS_TRUE)
+                ? js_InvokeConstructor(cx, args)
                 : js_Invoke(cx, args, flags);
     *vp = *invokevp;
     return ok;
@@ -1085,7 +1085,7 @@ js_SameValue(jsval v1, jsval v2, JSContext *cx)
 }
 
 JS_REQUIRES_STACK JSBool
-js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn)
+js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args)
 {
     JSFunction *fun = NULL;
     JSObject *obj2 = NULL;
@@ -1133,13 +1133,16 @@ js_InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampRet
         return JS_FALSE;
 
     
+    AutoObjectRooter tvr(cx, obj);
+
+    
     vp[1] = OBJECT_TO_JSVAL(obj);
     if (!js_Invoke(cx, args, JSINVOKE_CONSTRUCT))
         return JS_FALSE;
 
     
     jsval rval = *vp;
-    if (clampReturn && JSVAL_IS_PRIMITIVE(rval)) {
+    if (JSVAL_IS_PRIMITIVE(rval)) {
         if (!fun) {
             
             JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
