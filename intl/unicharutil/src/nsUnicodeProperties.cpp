@@ -292,10 +292,13 @@ ClusterIterator::Next()
 
     PRUint32 ch = *mPos++;
 
-    
-    if ((ch & ~0xff) == 0x1100 ||
+    if (NS_IS_HIGH_SURROGATE(ch) && mPos < mLimit &&
+        NS_IS_LOW_SURROGATE(*mPos)) {
+        ch = SURROGATE_TO_UCS4(ch, *mPos++);
+    } else if ((ch & ~0xff) == 0x1100 ||
         (ch >= 0xa960 && ch <= 0xa97f) ||
         (ch >= 0xac00 && ch <= 0xd7ff)) {
+        
         HSType hangulState = GetHangulSyllableType(ch);
         while (mPos < mLimit) {
             ch = *mPos;
@@ -337,16 +340,19 @@ ClusterIterator::Next()
         
         
         
-        if (NS_IS_LOW_SURROGATE(ch) &&
-            NS_IS_HIGH_SURROGATE(*(mPos - 1))) {
-            ch = SURROGATE_TO_UCS4(*(mPos - 1), *mPos);
-            mPos++;
+        if (NS_IS_HIGH_SURROGATE(ch) && mPos < mLimit - 1 &&
+            NS_IS_LOW_SURROGATE(*(mPos + 1))) {
+            ch = SURROGATE_TO_UCS4(ch, *(mPos + 1));
         }
 
         if (!IsClusterExtender(ch)) {
             break;
         }
+
         mPos++;
+        if (!IS_IN_BMP(ch)) {
+            mPos++;
+        }
     }
 }
 
