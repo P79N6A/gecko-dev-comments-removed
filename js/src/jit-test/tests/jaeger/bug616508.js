@@ -1,13 +1,8 @@
 
 
-
-
-
-
-
 try {
     (function () {
-        __proto__ = Array()
+        __proto__ = Uint32Array()
     }())
 } catch (e) {}(function () {
     length, ([eval()] ? x : 7)
