@@ -88,7 +88,7 @@ top:
         JSTryNoteArray *tnarray = script->trynotes();
         for (unsigned i = 0; i < tnarray->length; ++i) {
             JSTryNote *tn = &tnarray->vector[i];
-            JS_ASSERT(offset < script->length);
+
             
             
             
