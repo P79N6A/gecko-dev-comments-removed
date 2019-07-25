@@ -604,7 +604,7 @@ DocAccessible::GetAccessible(nsINode* aNode) const
 
 
 
-bool
+void
 DocAccessible::Init()
 {
 #ifdef DEBUG
@@ -614,8 +614,6 @@ DocAccessible::Init()
 
   
   mNotificationController = new NotificationController(this, mPresShell);
-  if (!mNotificationController)
-    return false;
 
   
   
@@ -624,7 +622,6 @@ DocAccessible::Init()
     mLoadState |= eDOMLoaded;
 
   AddEventListeners();
-  return true;
 }
 
 void
@@ -1397,12 +1394,7 @@ DocAccessible::BindToDocument(Accessible* aAccessible,
   mAccessibleCache.Put(aAccessible->UniqueID(), aAccessible);
 
   
-  if (!aAccessible->Init()) {
-    NS_ERROR("Failed to initialize an accessible!");
-
-    UnbindFromDocument(aAccessible);
-    return false;
-  }
+  aAccessible->Init();
 
   aAccessible->SetRoleMapEntry(aRoleMapEntry);
   if (aAccessible->IsElement())

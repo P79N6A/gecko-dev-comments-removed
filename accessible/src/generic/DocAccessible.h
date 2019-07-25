@@ -71,7 +71,7 @@ public:
   NS_DECL_NSIDOCUMENTOBSERVER
 
   
-  virtual bool Init();
+  virtual void Init();
   virtual void Shutdown();
   virtual nsIFrame* GetFrame() const;
   virtual nsINode* GetNode() const { return mDocument; }

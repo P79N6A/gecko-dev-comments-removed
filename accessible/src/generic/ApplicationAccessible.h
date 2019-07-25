@@ -61,7 +61,7 @@ public:
   NS_DECL_NSIACCESSIBLEAPPLICATION
 
   
-  virtual bool Init();
+  virtual void Init();
   virtual void Shutdown();
   virtual bool IsPrimaryForNode() const;
 

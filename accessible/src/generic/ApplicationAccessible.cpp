@@ -268,11 +268,10 @@ ApplicationAccessible::GetPlatformVersion(nsAString& aVersion)
 
 
 
-bool
+void
 ApplicationAccessible::Init()
 {
   mAppInfo = do_GetService("@mozilla.org/xre/app-info;1");
-  return true;
 }
 
 void
