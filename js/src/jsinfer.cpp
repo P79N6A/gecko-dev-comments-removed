@@ -840,13 +840,6 @@ PropertyAccess(JSContext *cx, JSScript *script, const jsbytecode *pc, TypeObject
     JS_ASSERT_IF(!target, assign);
 
     
-    if (object->unknownProperties) {
-        if (!assign)
-            target->addType(cx, TYPE_UNKNOWN);
-        return;
-    }
-
-    
     if (assign && id == id_prototype(cx)) {
         cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
         return;
@@ -857,6 +850,13 @@ PropertyAccess(JSContext *cx, JSScript *script, const jsbytecode *pc, TypeObject
         if (assign)
             cx->compartment->types.monitorBytecode(cx, script, pc - script->code);
         else
+            target->addType(cx, TYPE_UNKNOWN);
+        return;
+    }
+
+    
+    if (object->unknownProperties) {
+        if (!assign)
             target->addType(cx, TYPE_UNKNOWN);
         return;
     }
