@@ -231,8 +231,7 @@ SessionStore.prototype = {
 
         if (this._loadState == STATE_RUNNING) {
           
-          this._lastSaveTime -= this._interval;
-          this.saveStateDelayed();
+          this.saveStateNow();
         }
         break;
       case "timer-callback":
@@ -335,6 +334,7 @@ SessionStore.prototype = {
   },
 
   onTabAdd: function ss_onTabAdd(aWindow, aBrowser, aNoNotification) {
+    aBrowser.messageManager.addMessageListener("DOMContentLoaded", this);
     aBrowser.messageManager.addMessageListener("pageshow", this);
 
     if (!aNoNotification)
@@ -343,6 +343,7 @@ SessionStore.prototype = {
   },
 
   onTabRemove: function ss_onTabRemove(aWindow, aBrowser, aNoNotification) {
+    aBrowser.messageManager.removeMessageListener("DOMContentLoaded", this);
     aBrowser.messageManager.removeMessageListener("pageshow", this);
 
     
@@ -380,7 +381,9 @@ SessionStore.prototype = {
     delete aBrowser.__SS_data;
     this._collectTabData(aBrowser);
 
-    this.saveStateDelayed();
+    
+    if (aMessage.name == "pageshow")
+      this.saveStateNow();
     this._updateCrashReportURL(aWindow);
   },
 
@@ -419,6 +422,15 @@ SessionStore.prototype = {
         this.saveState();
       }
     }
+  },
+
+  saveStateNow: function ss_saveStateNow() {
+    
+    if (this._saveTimer) {
+      this._saveTimer.cancel();
+      this._saveTimer = null;
+    }
+    this.saveState();
   },
 
   saveState: function ss_saveState() {
@@ -510,27 +522,6 @@ SessionStore.prototype = {
         Services.obs.notifyObservers(null, "sessionstore-state-write-complete", "");
       }
     });
-  },
-
-  _readFile: function ss_readFile(aFile) {
-    try {
-      let stream = Cc["@mozilla.org/network/file-input-stream;1"].createInstance(Ci.nsIFileInputStream);
-      stream.init(aFile, 0x01, 0, 0);
-      let cvstream = Cc["@mozilla.org/intl/converter-input-stream;1"].createInstance(Ci.nsIConverterInputStream);
-
-      let fileSize = stream.available();
-      cvstream.init(stream, "UTF-8", fileSize, Ci.nsIConverterInputStream.DEFAULT_REPLACEMENT_CHARACTER);
-
-      let data = {};
-      cvstream.readString(fileSize, data);
-      let content = data.value;
-      cvstream.close();
-
-      return content.replace(/\r\n?/g, "\n");
-    } catch (ex) {
-      Cu.reportError(ex);
-    }
-    return null;
   },
 
   _updateCrashReportURL: function ss_updateCrashReportURL(aWindow) {
@@ -648,49 +639,81 @@ SessionStore.prototype = {
     if (!session.exists())
       return;
 
-    let data = JSON.parse(this._readFile(session));
-    if (!data || data.windows.length == 0) {
+    function notifyObservers() {
       Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
-      return;
     }
 
-    let window = Services.wm.getMostRecentWindow("navigator:browser");
+    try {
+      let channel = NetUtil.newChannel(session);
+      channel.contentType = "application/json";
+      NetUtil.asyncFetch(channel, function(aStream, aResult) {
+        if (!Components.isSuccessCode(aResult)) {
+          Cu.reportError("SessionStore: Could not read from sessionstore.bak file");
+          notifyObservers();
+          return;
+        }
 
-    let selected = data.windows[0].selected;
-    let tabs = data.windows[0].tabs;
-    for (let i=0; i<tabs.length; i++) {
-      let tabData = tabs[i];
+        
+        let state = Cc["@mozilla.org/supports-string;1"].createInstance(Ci.nsISupportsString);
+        state.data = NetUtil.readInputStreamToString(aStream, aStream.available()) || "";
+        aStream.close();
 
-      
-      let params = { getAttention: false, delayLoad: true };
-      if (i + 1 == selected)
-        params.delayLoad = false;
+        Services.obs.notifyObservers(state, "sessionstore-state-read", "");
 
-      
-      
-      
-      let bringToFront = (i + 1 <= selected);
-      let tab = window.Browser.addTab(tabData.entries[0].url, bringToFront, null, params);
+        let data = null;
+        try {
+          data = JSON.parse(state.data);
+        } catch (ex) {
+          Cu.reportError("SessionStore: Could not parse JSON: " + ex);
+        }
 
-      
-      if (tabData.extData && params.delayLoad) {
-          let canvas = tab.chromeTab.thumbnail;
-          canvas.setAttribute("restored", "true");
+        if (!data || data.windows.length == 0) {
+          notifyObservers();
+          return;
+        }
 
-          let image = new window.Image();
-          image.onload = function() {
-            if (canvas)
-              canvas.getContext("2d").drawImage(image, 0, 0);
-          };
-          image.src = tabData.extData.thumbnail;
-      }
-
-      tab.browser.__SS_data = tabData;
-      tab.browser.__SS_extdata = tabData.extData;
-      tab.browser.__SS_restore = params.delayLoad;
+        let window = Services.wm.getMostRecentWindow("navigator:browser");
+    
+        let selected = data.windows[0].selected;
+        let tabs = data.windows[0].tabs;
+        for (let i=0; i<tabs.length; i++) {
+          let tabData = tabs[i];
+    
+          
+          let params = { getAttention: false, delayLoad: true };
+          if (i + 1 == selected)
+            params.delayLoad = false;
+    
+          
+          
+          
+          let bringToFront = (i + 1 <= selected);
+          let tab = window.Browser.addTab(tabData.entries[0].url, bringToFront, null, params);
+    
+          
+          if (tabData.extData && params.delayLoad) {
+              let canvas = tab.chromeTab.thumbnail;
+              canvas.setAttribute("restored", "true");
+    
+              let image = new window.Image();
+              image.onload = function() {
+                if (canvas)
+                  canvas.getContext("2d").drawImage(image, 0, 0);
+              };
+              image.src = tabData.extData.thumbnail;
+          }
+    
+          tab.browser.__SS_data = tabData;
+          tab.browser.__SS_extdata = tabData.extData;
+          tab.browser.__SS_restore = params.delayLoad;
+        }
+    
+        notifyObservers();
+      });
+    } catch (ex) {
+      Cu.reportError("SessionStore: Could not read from sessionstore.bak file: " + ex);
+      notifyObservers();
     }
-
-    Services.obs.notifyObservers(null, "sessionstore-windows-restored", "");
   }
 };
 
