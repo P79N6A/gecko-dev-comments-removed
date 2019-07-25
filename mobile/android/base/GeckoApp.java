@@ -544,6 +544,9 @@ abstract public class GeckoApp
                 intent = new Intent(this, GeckoPreferences.class);
                 startActivity(intent);
                 return true;
+            case R.id.site_settings:
+                GeckoAppShell.sendEventToGecko(new GeckoEvent("Permissions:Get", null));
+                return true;
             case R.id.addons:
                 GeckoAppShell.sendEventToGecko(new GeckoEvent("about:addons"));
                 return true;
@@ -976,6 +979,10 @@ abstract public class GeckoApp
                 tab.setAgentMode(agentMode);
                 if (tab == Tabs.getInstance().getSelectedTab())
                     updateAgentModeMenuItem(tab, agentMode);
+            } else if (event.equals("Permissions:Data")) {
+                String host = message.getString("host");
+                JSONArray permissions = message.getJSONArray("permissions");
+                showSiteSettingsDialog(host, permissions);
             }
         } catch (Exception e) {
             Log.e(LOGTAG, "Exception handling message \"" + event + "\":", e);
@@ -1000,8 +1007,8 @@ abstract public class GeckoApp
 
         public void run() {
             mAutoCompletePopup.hide();
-            if (mAboutHomeContent == null) {
-                mAboutHomeContent = (AboutHomeContent) findViewById(R.id.abouthome_content);
+            if (mAboutHomeContent == null && mShow) {
+                mAboutHomeContent = new AboutHomeContent(GeckoApp.mAppContext, null);
                 mAboutHomeContent.init(GeckoApp.mAppContext);
                 mAboutHomeContent.setUriLoadCallback(new AboutHomeContent.UriLoadCallback() {
                     public void callback(String url) {
@@ -1009,8 +1016,10 @@ abstract public class GeckoApp
                         loadUrl(url, AwesomeBar.Type.EDIT);
                     }
                 });
+                mGeckoLayout.addView(mAboutHomeContent);
             }
-            mAboutHomeContent.setVisibility(mShow ? View.VISIBLE : View.GONE);
+            if (mAboutHomeContent != null)
+                mAboutHomeContent.setVisibility(mShow ? View.VISIBLE : View.GONE);
         }
     }
 
@@ -1024,6 +1033,73 @@ abstract public class GeckoApp
                     int strId = agentMode == Tab.AgentMode.MOBILE ? R.string.agent_request_desktop : R.string.agent_request_mobile;
                     sMenu.findItem(R.id.agent_mode).setTitle(getString(strId));
                 }
+            }
+        });
+    }
+
+    
+
+
+
+
+    private void showSiteSettingsDialog(String aHost, JSONArray aPermissions) {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+        View customTitleView = getLayoutInflater().inflate(R.layout.site_setting_title, null);
+        ((TextView) customTitleView.findViewById(R.id.title)).setText(R.string.site_settings_title);
+        ((TextView) customTitleView.findViewById(R.id.host)).setText(aHost);        
+        builder.setCustomTitle(customTitleView);
+
+        
+        
+        if (aPermissions.length() == 0) {
+            builder.setMessage(R.string.site_settings_no_settings);
+        } else {
+            
+            
+            CharSequence[] items = new CharSequence[aPermissions.length()];
+            boolean[] states = new boolean[aPermissions.length()];
+            for (int i = 0; i < aPermissions.length(); i++) {
+                try {
+                    items[i] = aPermissions.getJSONObject(i).
+                               getString("setting");
+                    
+                    states[i] = true;
+                } catch (JSONException e) {
+                    Log.i(LOGTAG, "JSONException: " + e);
+                }
+            }
+            builder.setMultiChoiceItems(items, states, new DialogInterface.OnMultiChoiceClickListener(){
+                public void onClick(DialogInterface dialog, int item, boolean state) {
+                    
+                }
+            });
+            builder.setPositiveButton(R.string.site_settings_clear, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int id) {
+                    ListView listView = ((AlertDialog) dialog).getListView();
+                    SparseBooleanArray checkedItemPositions = listView.getCheckedItemPositions();
+
+                    
+                    JSONArray permissionsToClear = new JSONArray();
+                    for (int i = 0; i < checkedItemPositions.size(); i++) {
+                        boolean checked = checkedItemPositions.get(i);
+                        if (checked)
+                            permissionsToClear.put(i);
+                    }
+                    GeckoAppShell.sendEventToGecko(new GeckoEvent("Permissions:Clear", permissionsToClear.toString()));
+                }
+            });
+        }
+
+        builder.setNegativeButton(R.string.site_settings_cancel, new DialogInterface.OnClickListener(){
+            public void onClick(DialogInterface dialog, int id) {
+                dialog.cancel();
+            }            
+        });
+
+        mMainHandler.post(new Runnable() {
+            public void run() {
+                builder.create().show();
             }
         });
     }
@@ -1461,6 +1537,7 @@ abstract public class GeckoApp
         GeckoAppShell.registerGeckoEventListener("ToggleChrome:Show", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("AgentMode:Changed", GeckoApp.mAppContext);
         GeckoAppShell.registerGeckoEventListener("FormAssist:AutoComplete", GeckoApp.mAppContext);
+        GeckoAppShell.registerGeckoEventListener("Permissions:Data", GeckoApp.mAppContext);
 
         mConnectivityFilter = new IntentFilter();
         mConnectivityFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
@@ -1691,6 +1768,7 @@ abstract public class GeckoApp
         GeckoAppShell.unregisterGeckoEventListener("ToggleChrome:Show", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("AgentMode:Changed", GeckoApp.mAppContext);
         GeckoAppShell.unregisterGeckoEventListener("FormAssist:AutoComplete", GeckoApp.mAppContext);
+        GeckoAppShell.unregisterGeckoEventListener("Permissions:Data", GeckoApp.mAppContext);
 
         mFavicons.close();
 

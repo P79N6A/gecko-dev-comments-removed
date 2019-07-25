@@ -207,6 +207,7 @@ var BrowserApp = {
     XPInstallObserver.init();
     ConsoleAPI.init();
     ClipboardHelper.init();
+    PermissionsHelper.init();
 
     
     Cc["@mozilla.org/login-manager;1"].getService(Ci.nsILoginManager);
@@ -976,33 +977,62 @@ function nsBrowserAccess() {
 }
 
 nsBrowserAccess.prototype = {
-  openURI: function browser_openURI(aURI, aOpener, aWhere, aContext) {
-    let isExternal = (aContext == Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
+  QueryInterface: XPCOMUtils.generateQI([Ci.nsIBrowserDOMWindow]),
 
-    dump("nsBrowserAccess::openURI");
-    let browser = BrowserApp.selectedBrowser;
-    if (!browser || isExternal) {
-      let tab = BrowserApp.addTab("about:blank");
-      BrowserApp.selectTab(tab);
-      browser = tab.browser;
+  _getBrowser: function _getBrowser(aURI, aOpener, aWhere, aContext) {
+    let isExternal = (aContext == Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL);
+    if (isExternal && aURI && aURI.schemeIs("chrome"))
+      return null;
+
+    let loadflags = isExternal ?
+                      Ci.nsIWebNavigation.LOAD_FLAGS_FROM_EXTERNAL :
+                      Ci.nsIWebNavigation.LOAD_FLAGS_NONE;
+    if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_DEFAULTWINDOW) {
+      switch (aContext) {
+        case Ci.nsIBrowserDOMWindow.OPEN_EXTERNAL:
+          aWhere = Services.prefs.getIntPref("browser.link.open_external");
+          break;
+        default: 
+          aWhere = Services.prefs.getIntPref("browser.link.open_newwindow");
+      }
     }
 
-    
+    let browser;
+    if (aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWWINDOW || aWhere == Ci.nsIBrowserDOMWindow.OPEN_NEWTAB) {
+      let tab = BrowserApp.addTab("about:blank", { selected: true });
+      browser = tab.browser;
+    } else { 
+      browser = BrowserApp.selectedBrowser;
+    }
+
     Services.io.offline = false;
-    BrowserApp.loadURI(aURI.spec, browser);
-    return null;
+    try {
+      let referrer;
+      if (aURI && browser) {
+        if (aOpener) {
+          let location = aOpener.location;
+          referrer = Services.io.newURI(location, null, null);
+        }
+        browser.loadURIWithFlags(aURI.spec, loadflags, referrer, null, null);
+      }
+    } catch(e) { }
+
+    return browser;
+  },
+
+  openURI: function browser_openURI(aURI, aOpener, aWhere, aContext) {
+    let browser = this._getBrowser(aURI, aOpener, aWhere, aContext);
+    return browser ? browser.QueryInterface(Ci.nsIFrameLoaderOwner) : null;
   },
 
   openURIInFrame: function browser_openURIInFrame(aURI, aOpener, aWhere, aContext) {
-    dump("nsBrowserAccess::openURIInFrame");
-    return null;
+    let browser = this._getBrowser(aURI, aOpener, aWhere, aContext);
+    return browser ? browser.QueryInterface(Ci.nsIFrameLoaderOwner) : null;
   },
 
   isTabContentWindow: function(aWindow) {
     return BrowserApp.getBrowserForWindow(aWindow) != null;
-  },
-
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIBrowserDOMWindow])
+  }
 };
 
 
@@ -1024,7 +1054,7 @@ function Tab(aURL, aParams) {
   this.create(aURL, aParams);
   this._metadata = null;
   this._viewport = { x: 0, y: 0, width: gScreenWidth, height: gScreenHeight, offsetX: 0, offsetY: 0,
-                     pageWidth: 1, pageHeight: 1, zoom: 1.0 };
+                     pageWidth: gScreenWidth, pageHeight: gScreenHeight, zoom: 1.0 };
   this.viewportExcess = { x: 0, y: 0 };
   this.userScrollPos = { x: 0, y: 0 };
   this._pluginsToPlay = [];
@@ -1262,7 +1292,7 @@ Tab.prototype = {
     this.viewport = { x: xpos, y: ypos,
                       offsetX: 0, offsetY: 0,
                       width: this._viewport.width, height: this._viewport.height,
-                      pageWidth: 1, pageHeight: 1,
+                      pageWidth: gScreenWidth, pageHeight: gScreenHeight,
                       zoom: zoom };
     this.sendViewportUpdate();
   },
@@ -3230,3 +3260,159 @@ var PluginHelper = {
     return overflows;
   }
 };
+
+var PermissionsHelper = {
+
+  _permissonTypes: ["password", "geo", "popup", "indexedDB",
+                    "offline-app", "desktop-notification"],
+  _permissionStrings: {
+    "password": {
+      label: "password.rememberPassword",
+      allowed: "password.remember",
+      denied: "password.never"
+    },
+    "geo": {
+      label: "geolocation.shareLocation",
+      allowed: "geolocation.alwaysShare",
+      denied: "geolocation.neverShare"
+    },
+    "popup": {
+      label: "blockPopups.label",
+      allowed: "popupButtonAlwaysAllow2",
+      denied: "popupButtonNeverWarn2"
+    },
+    "indexedDB": {
+      label: "offlineApps.storeOfflineData",
+      allowed: "offlineApps.allow",
+      denied: "offlineApps.never"
+    },
+    "offline-app": {
+      label: "offlineApps.storeOfflineData",
+      allowed: "offlineApps.allow",
+      denied: "offlineApps.never"
+    },
+    "desktop-notification": {
+      label: "desktopNotification.useNotifications",
+      allowed: "desktopNotification.allow",
+      denied: "desktopNotification.dontAllow"
+    }
+  },
+
+  init: function init() {
+    Services.obs.addObserver(this, "Permissions:Get", false);
+    Services.obs.addObserver(this, "Permissions:Clear", false);
+  },
+
+  observe: function observe(aSubject, aTopic, aData) {
+    let uri = BrowserApp.selectedBrowser.currentURI;
+
+    switch (aTopic) {
+      case "Permissions:Get":
+        let permissions = [];
+        for (let i = 0; i < this._permissonTypes.length; i++) {
+          let type = this._permissonTypes[i];
+          let value = this.getPermission(uri, type);
+
+          
+          if (value == Services.perms.UNKNOWN_ACTION)
+            continue;
+
+          
+          let typeStrings = this._permissionStrings[type];
+          let label = Strings.browser.GetStringFromName(typeStrings["label"]);
+
+          
+          let valueKey = value == Services.perms.ALLOW_ACTION ?
+                         "allowed" : "denied";
+          let valueString = Strings.browser.GetStringFromName(typeStrings[valueKey]);
+
+          
+          
+          let setting = Strings.browser.formatStringFromName("siteSettings.labelToValue",
+                                                             [ label, valueString ], 2)
+          permissions.push({
+            type: type,
+            setting: setting
+          });
+        }
+
+        
+        this._currentPermissions = permissions; 
+
+        sendMessageToJava({
+          gecko: {
+            type: "Permissions:Data",
+            host: uri.host,
+            permissions: permissions
+          }
+        });
+        break;
+ 
+      case "Permissions:Clear":
+        
+        let permissionsToClear = JSON.parse(aData);
+
+        for (let i = 0; i < permissionsToClear.length; i++) {
+          let indexToClear = permissionsToClear[i];
+          let permissionType = this._currentPermissions[indexToClear]["type"];
+          this.clearPermission(uri, permissionType);
+        }
+        break;
+    }
+  },
+
+  
+
+
+
+
+
+
+
+
+  getPermission: function getPermission(aURI, aType) {
+    
+    
+    if (aType == "password") {
+      
+      
+      if (!Services.logins.getLoginSavingEnabled(aURI.prePath))
+        return Services.perms.DENY_ACTION;
+
+      
+      if (Services.logins.countLogins(aURI.prePath, "", ""))
+        return Services.perms.ALLOW_ACTION;
+
+      return Services.perms.UNKNOWN_ACTION;
+    }
+
+    
+    if (aType == "geo")
+      return Services.perms.testExactPermission(aURI, aType);
+
+    return Services.perms.testPermission(aURI, aType);
+  },
+
+  
+
+
+
+
+
+
+  clearPermission: function clearPermission(aURI, aType) {
+    
+    
+    if (aType == "password") {
+      
+      let logins = Services.logins.findLogins({}, aURI.prePath, "", "");
+      for (let i = 0; i < logins.length; i++) {
+        Services.logins.removeLogin(logins[i]);
+      }
+      
+      Services.logins.setLoginSavingEnabled(aURI.prePath, true);
+    } else {
+      Services.perms.remove(aURI.host, aType);
+    }
+  }
+}
