@@ -76,6 +76,13 @@ pref("browser.cache.memory.enable", true);
 pref("browser.cache.memory.capacity", 1024); 
 
 
+#ifdef WINCE
+pref("tile.cache.size", 15); 
+#else
+pref("tile.cache.size", 30); 
+#endif
+
+
 pref("image.cache.size", 1048576); 
 
 
