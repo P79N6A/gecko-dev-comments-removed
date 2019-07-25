@@ -2307,7 +2307,7 @@ TraceRecorder::TraceRecorder(JSContext* cx, VMSideExit* anchor, VMFragment* frag
         
         
         LIns* x =
-            lir->insLoad(LIR_ld, cx_ins, offsetof(JSContext, operationCallbackFlag), ACC_LOAD_ANY);
+            lir->insLoad(LIR_ld, cx_ins, offsetof(JSContext, interruptFlags), ACC_LOAD_ANY);
         guard(true, lir->insEqI_0(x), snapshot(TIMEOUT_EXIT));
     }
 
