@@ -913,7 +913,6 @@ protected:
 
   
   nsCOMPtr<nsIPrincipal> mDocumentPrincipal;
-  nsCOMPtr<nsIDocument> mDoc;  
   JSObject* mJSObject;
 
   typedef nsCOMArray<nsIDOMStorageEvent> nsDOMStorageEventArray;

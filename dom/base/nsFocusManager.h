@@ -65,6 +65,11 @@ public:
   
 
 
+  nsPIDOMWindow* GetFocusedWindow() const { return mFocusedWindow; }
+
+  
+
+
   nsresult ContentRemoved(nsIDocument* aDocument, nsIContent* aContent);
 
   
