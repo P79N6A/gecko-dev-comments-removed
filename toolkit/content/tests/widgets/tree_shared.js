@@ -1020,7 +1020,7 @@ function testtag_tree_TreeView_rows_sort(tree, testid, rowInfo)
 
   
   mouseClickOnColumnHeader(columns, columnIndex, 0, 2);
-  if (navigator.platform == "Win32") {
+  if (navigator.platform.indexOf("Win") == 0) {
     
     is(columnElement.getAttribute("sortDirection"), "descending",
        "double click cycleHeader column sortDirection descending");
