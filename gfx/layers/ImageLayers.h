@@ -195,6 +195,13 @@ public:
 
   virtual void SetScaleHint(const gfxIntSize& ) { }
 
+  
+
+
+
+
+  virtual LayerManager::LayersBackend GetBackendType() = 0;
+
 protected:
   LayerManager* mManager;
 
