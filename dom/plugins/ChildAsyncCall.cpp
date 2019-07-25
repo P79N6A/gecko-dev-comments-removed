@@ -60,22 +60,14 @@ ChildAsyncCall::Cancel()
   mData = NULL;
 }
 
-void
-ChildAsyncCall::RemoveFromAsyncList()
-{
-  if (mInstance) {
-    MutexAutoLock lock(mInstance->mAsyncCallMutex);
-    mInstance->mPendingAsyncCalls.RemoveElement(this);
-  }
-}
-
-void
+NS_IMETHODIMP
 ChildAsyncCall::Run()
 {
-  RemoveFromAsyncList();
-
-  if (mFunc)
+  if (mFunc) {
     mFunc(mData);
+    mInstance->mPendingAsyncCalls.RemoveElement(this);
+  }
+  return NS_OK;
 }
 
 } 
