@@ -50,7 +50,8 @@ enum eHtml5SpeculativeLoad {
   eSpeculativeLoadImage,
   eSpeculativeLoadScript,
   eSpeculativeLoadStyle,
-  eSpeculativeLoadManifest  
+  eSpeculativeLoadManifest,
+  eSpeculativeLoadSetDocumentCharset,
 };
 
 class nsHtml5SpeculativeLoad {
@@ -82,7 +83,7 @@ class nsHtml5SpeculativeLoad {
       mOpCode = eSpeculativeLoadScript;
       mUrl.Assign(aUrl);
       mCharsetOrCrossOrigin.Assign(aCharset);
-      mType.Assign(aType);
+      mTypeOrCharsetSource.Assign(aType);
     }
     
     inline void InitStyle(const nsAString& aUrl, const nsAString& aCharset) {
@@ -111,17 +112,46 @@ class nsHtml5SpeculativeLoad {
       mUrl.Assign(aUrl);
     }
 
+    
+
+
+
+
+
+
+
+
+
+    inline void InitSetDocumentCharset(nsACString& aCharset,
+                                       PRInt32 aCharsetSource) {
+      NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
+                      "Trying to reinitialize a speculative load!");
+      mOpCode = eSpeculativeLoadSetDocumentCharset;
+      CopyUTF8toUTF16(aCharset, mCharsetOrCrossOrigin);
+      mTypeOrCharsetSource.Assign((PRUnichar)aCharsetSource);
+    }
+
     void Perform(nsHtml5TreeOpExecutor* aExecutor);
     
   private:
     eHtml5SpeculativeLoad mOpCode;
     nsString mUrl;
     
-    
-    
-    
+
+
+
+
+
+
+
     nsString mCharsetOrCrossOrigin;
-    nsString mType;
+    
+
+
+
+
+
+    nsString mTypeOrCharsetSource;
 };
 
 #endif 
