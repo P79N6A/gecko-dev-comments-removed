@@ -129,9 +129,9 @@ SpdySession3::ShutdownEnumerator(nsAHttpTransaction *key,
   
   
   if (self->mCleanShutdown && (stream->StreamID() > self->mGoAwayID))
-    stream->Close(NS_ERROR_NET_RESET); 
+    self->CloseStream(stream, NS_ERROR_NET_RESET); 
   else
-    stream->Close(NS_ERROR_ABORT);
+    self->CloseStream(stream, NS_ERROR_ABORT);
 
   return PL_DHASH_NEXT;
 }
@@ -766,6 +766,28 @@ SpdySession3::CleanupStream(SpdyStream3 *aStream, nsresult aResult,
     ProcessPending();
   }
   
+  CloseStream(aStream, aResult);
+
+  
+  
+  mStreamIDHash.Remove(aStream->StreamID());
+
+  
+  
+  
+  mStreamTransactionHash.Remove(aStream->Transaction());
+
+  if (mShouldGoAway && !mStreamTransactionHash.Count())
+    Close(NS_OK);
+}
+
+void
+SpdySession3::CloseStream(SpdyStream3 *aStream, nsresult aResult)
+{
+  NS_ABORT_IF_FALSE(PR_GetCurrentThread() == gSocketThread, "wrong thread");
+  LOG3(("SpdySession3::CloseStream %p %p 0x%x %X\n",
+        this, aStream, aStream->StreamID(), aResult));
+
   
   if (aStream == mInputFrameDataStream) {
     LOG3(("Stream had active partial read frame on close"));
@@ -792,19 +814,7 @@ SpdySession3::CleanupStream(SpdyStream3 *aStream, nsresult aResult,
   }
 
   
-  
-  mStreamIDHash.Remove(aStream->StreamID());
-
-  
   aStream->Close(aResult);
-
-  
-  
-  
-  mStreamTransactionHash.Remove(aStream->Transaction());
-
-  if (mShouldGoAway && !mStreamTransactionHash.Count())
-    Close(NS_OK);
 }
 
 nsresult
@@ -1882,7 +1892,14 @@ SpdySession3::Close(nsresult aReason)
   LOG3(("SpdySession3::Close %p %X", this, aReason));
 
   mClosed = true;
+
+  NS_ABORT_IF_FALSE(mStreamTransactionHash.Count() ==
+                    mStreamIDHash.Count(),
+                    "index corruption");
   mStreamTransactionHash.Enumerate(ShutdownEnumerator, this);
+  mStreamIDHash.Clear();
+  mStreamTransactionHash.Clear();
+
   if (NS_SUCCEEDED(aReason))
     GenerateGoAway();
   mConnection = nsnull;
