@@ -61,6 +61,8 @@
 #include "jscell.h"
 
 #include "gc/Barrier.h"
+
+#include "vm/ObjectImpl.h"
 #include "vm/String.h"
 
 namespace js {
@@ -391,64 +393,6 @@ class StringObject;
 class RegExpObject;
 class WithObject;
 
-
-
-
-
-
-
-class ObjectElements
-{
-    friend struct ::JSObject;
-
-    
-    uint32_t capacity;
-
-    
-
-
-
-
-
-    uint32_t initializedLength;
-
-    
-    uint32_t length;
-
-    
-    uint32_t unused;
-
-    void staticAsserts() {
-        JS_STATIC_ASSERT(sizeof(ObjectElements) == VALUES_PER_HEADER * sizeof(Value));
-    }
-
-  public:
-
-    ObjectElements(uint32_t capacity, uint32_t length)
-        : capacity(capacity), initializedLength(0), length(length)
-    {}
-
-    HeapValue * elements() { return (HeapValue *)(uintptr_t(this) + sizeof(ObjectElements)); }
-    static ObjectElements * fromElements(HeapValue *elems) {
-        return (ObjectElements *)(uintptr_t(elems) - sizeof(ObjectElements));
-    }
-
-    static int offsetOfCapacity() {
-        return (int)offsetof(ObjectElements, capacity) - (int)sizeof(ObjectElements);
-    }
-    static int offsetOfInitializedLength() {
-        return (int)offsetof(ObjectElements, initializedLength) - (int)sizeof(ObjectElements);
-    }
-    static int offsetOfLength() {
-        return (int)offsetof(ObjectElements, length) - (int)sizeof(ObjectElements);
-    }
-
-    static const size_t VALUES_PER_HEADER = 2;
-};
-
-
-extern HeapValue *emptyObjectElements;
-
 }  
 
 
@@ -461,62 +405,16 @@ extern HeapValue *emptyObjectElements;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-struct JSObject : js::gc::Cell
+struct JSObject : public js::ObjectImpl
 {
   private:
     friend struct js::Shape;
     friend struct js::GCMarker;
     friend class  js::NewObjectCache;
 
-    
-
-
-
-    js::HeapPtrShape shape_;
-
 #ifdef DEBUG
     void checkShapeConsistency();
 #endif
-
-    
-
-
-
-
-    js::HeapPtrTypeObject type_;
 
     
     void makeLazyType(JSContext *cx);
@@ -575,12 +473,7 @@ struct JSObject : js::gc::Cell
     
     static const uint32_t NELEMENTS_LIMIT = JS_BIT(28);
 
-  private:
-    js::HeapValue   *slots;     
-    js::HeapValue   *elements;  
-
   public:
-
     inline bool isNative() const;
 
     inline js::Class *getClass() const;
