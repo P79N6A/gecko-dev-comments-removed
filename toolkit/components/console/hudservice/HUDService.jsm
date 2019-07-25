@@ -63,6 +63,10 @@ XPCOMUtils.defineLazyServiceGetter(this, "sss",
                                    "@mozilla.org/content/style-sheet-service;1",
                                    "nsIStyleSheetService");
 
+XPCOMUtils.defineLazyServiceGetter(this, "mimeService",
+                                   "@mozilla.org/mime;1",
+                                   "nsIMIMEService");
+
 XPCOMUtils.defineLazyGetter(this, "NetUtil", function () {
   var obj = {};
   Cu.import("resource://gre/modules/NetUtil.jsm", obj);
@@ -504,6 +508,76 @@ var NetworkHelper =
       aCallback(NetworkHelper.readAndConvertFromStream(aInputStream,
                                                        contentCharset));
     });
+  },
+
+  
+  
+  mimeCategoryMap: {
+    "text/plain": "txt",
+    "text/html": "html",
+    "text/xml": "xml",
+    "text/xsl": "txt",
+    "text/xul": "txt",
+    "text/css": "css",
+    "text/sgml": "txt",
+    "text/rtf": "txt",
+    "text/x-setext": "txt",
+    "text/richtext": "txt",
+    "text/javascript": "js",
+    "text/jscript": "txt",
+    "text/tab-separated-values": "txt",
+    "text/rdf": "txt",
+    "text/xif": "txt",
+    "text/ecmascript": "js",
+    "text/vnd.curl": "txt",
+    "text/x-json": "json",
+    "text/x-js": "txt",
+    "text/js": "txt",
+    "text/vbscript": "txt",
+    "view-source": "txt",
+    "view-fragment": "txt",
+    "application/xml": "xml",
+    "application/xhtml+xml": "xml",
+    "application/atom+xml": "xml",
+    "application/rss+xml": "xml",
+    "application/vnd.mozilla.maybe.feed": "xml",
+    "application/vnd.mozilla.xul+xml": "xml",
+    "application/javascript": "js",
+    "application/x-javascript": "js",
+    "application/x-httpd-php": "txt",
+    "application/rdf+xml": "xml",
+    "application/ecmascript": "js",
+    "application/http-index-format": "txt",
+    "application/json": "json",
+    "application/x-js": "txt",
+    "multipart/mixed": "txt",
+    "multipart/x-mixed-replace": "txt",
+    "image/svg+xml": "svg",
+    "application/octet-stream": "bin",
+    "image/jpeg": "image",
+    "image/jpg": "image",
+    "image/gif": "image",
+    "image/png": "image",
+    "image/bmp": "image",
+    "application/x-shockwave-flash": "flash",
+    "video/x-flv": "flash",
+    "audio/mpeg3": "media",
+    "audio/x-mpeg-3": "media",
+    "video/mpeg": "media",
+    "video/x-mpeg": "media",
+    "audio/ogg": "media",
+    "application/ogg": "media",
+    "application/x-ogg": "media",
+    "application/x-midi": "media",
+    "audio/midi": "media",
+    "audio/x-mid": "media",
+    "audio/x-midi": "media",
+    "music/crescendo": "media",
+    "audio/wav": "media",
+    "audio/x-wav": "media",
+    "text/json": "json",
+    "application/x-json": "json",
+    "application/json-rpc": "json"
   }
 }
 
@@ -659,20 +733,69 @@ NetworkPanel.prototype =
 
 
 
-  get _responseIsImage()
+
+
+
+  get _contentType()
   {
     let response = this.httpActivity.response;
-    if (!response || !response.header || !response.header["Content-Type"]) {
-      let request = this.httpActivity.request;
-      if (request.header["Accept"] &&
-          request.header["Accept"].indexOf("image/") != -1) {
-        return true;
-      }
-      else {
-        return false;
+    let contentTypeValue = null;
+
+    if (response.header && response.header["Content-Type"]) {
+      let types = response.header["Content-Type"].split(/,|;/);
+      for (let i = 0; i < types.length; i++) {
+        let type = NetworkHelper.mimeCategoryMap[types[i]];
+        if (type) {
+          return types[i];
+        }
       }
     }
-    return response.header["Content-Type"].indexOf("image/") != -1;
+
+    
+    let uri = NetUtil.newURI(this.httpActivity.url, null, null);
+    if (uri instanceof Ci.nsIURL) {
+      if (uri.fileExtension) {
+        return mimeService.getTypeFromExtension(uri.fileExtension);
+      }
+    }
+    return null;
+  },
+
+  
+
+
+
+
+  get _responseIsImage()
+  {
+    return NetworkHelper.mimeCategoryMap[this._contentType] == "image";
+  },
+
+  
+
+
+
+
+  get _isResponseBodyTextData()
+  {
+    let contentType = this._contentType;
+    if (contentType.indexOf("text/") == 0) {
+      return true;
+    }
+
+    switch (NetworkHelper.mimeCategoryMap[contentType]) {
+      case "txt":
+      case "js":
+      case "json":
+      case "css":
+      case "html":
+      case "svg":
+      case "xml":
+        return true;
+
+      default:
+        return false;
+    }
   },
 
   
@@ -960,6 +1083,26 @@ NetworkPanel.prototype =
 
 
 
+  _displayResponseBodyUnknownType: function NP_displayResponseBodyUnknownType()
+  {
+    let timing = this.httpActivity.timing;
+
+    this._displayNode("responseBodyUnknownType");
+    let deltaDuration =
+      Math.round((timing.RESPONSE_COMPLETE - timing.RESPONSE_HEADER) / 1000);
+    this._appendTextNode("responseBodyUnknownTypeInfo",
+      this._format("durationMS", [deltaDuration]));
+
+    this._appendTextNode("responseBodyUnknownTypeContent",
+      this._format("responseBodyUnableToDisplay.content", [this._contentType]));
+  },
+
+  
+
+
+
+
+
   _displayNoResponseBody: function NP_displayNoResponseBody()
   {
     let timing = this.httpActivity.timing;
@@ -1036,6 +1179,10 @@ NetworkPanel.prototype =
         if (timing.TRANSACTION_CLOSE && response.isDone) {
           if (this._responseIsImage) {
             this._displayResponseImage();
+            this._callIsDone();
+          }
+          else if (!this._isResponseBodyTextData) {
+            this._displayResponseBodyUnknownType();
             this._callIsDone();
           }
           else if (response.body) {
