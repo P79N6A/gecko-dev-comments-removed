@@ -161,6 +161,7 @@ PluginInstanceChild::PluginInstanceChild(const NPPluginFuncs* aPluginIface)
 #endif 
 #if defined(OS_WIN)
     InitPopupMenuHook();
+    HookSystemParametersInfo();
 #endif 
 #ifdef MOZ_X11
     
@@ -1208,6 +1209,47 @@ PluginInstanceChild::PluginWindowProc(HWND hWnd,
         RemoveProp(hWnd, kPluginInstanceChildProperty);
 
     return res;
+}
+
+
+
+typedef BOOL (WINAPI *User32SystemParametersInfoW)(UINT uiAction,
+                                                   UINT uiParam,
+                                                   PVOID pvParam,
+                                                   UINT fWinIni);
+
+static User32SystemParametersInfoW sUser32SystemParametersInfoWStub = NULL;
+
+static BOOL WINAPI User32SystemParametersInfoHook(UINT uiAction,
+                                                  UINT uiParam,
+                                                  PVOID pvParam,
+                                                  UINT fWinIni)
+{
+  if (!sUser32SystemParametersInfoWStub) {
+      NS_NOTREACHED("sUser32SystemParametersInfoWStub not set??");
+      return FALSE;
+  }
+
+  
+  
+  if (uiAction == SPI_GETFONTSMOOTHINGTYPE && pvParam) {
+      *((UINT*)(pvParam)) = FE_FONTSMOOTHINGSTANDARD;
+      return TRUE;
+  }
+
+  return sUser32SystemParametersInfoWStub(uiAction, uiParam, pvParam, fWinIni);
+}
+
+void
+PluginInstanceChild::HookSystemParametersInfo()
+{
+    if (!(GetQuirks() & PluginModuleChild::QUIRK_FLASH_MASK_CLEARTYPE_SETTINGS))
+        return;
+    if (sUser32SystemParametersInfoWStub)
+        return;
+    sUser32Intercept.Init("gdi32.dll");
+    sUser32Intercept.AddHook("SystemParametersInfoW", User32SystemParametersInfoHook,
+                             (void**) &sUser32SystemParametersInfoWStub);
 }
 
 

@@ -234,7 +234,10 @@ public:
         
         
         
-        QUIRK_FLASH_HOOK_GETWINDOINFO                   = 1 << 5,
+        QUIRK_FLASH_HOOK_GETWINDOWINFO                  = 1 << 5,
+        
+        
+        QUIRK_FLASH_MASK_CLEARTYPE_SETTINGS             = 1 << 6,
     };
 
     int GetQuirks() { return mQuirks; }
