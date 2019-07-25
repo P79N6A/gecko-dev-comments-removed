@@ -69,7 +69,6 @@
 #include "nsIVariant.h"
 #include "xpcprivate.h"
 #include "nsIParser.h"
-#include "nsLoadListenerProxy.h"
 #include "nsStringStream.h"
 #include "nsIStreamConverterService.h"
 #include "nsICachingChannel.h"
@@ -613,8 +612,6 @@ DOMCI_DATA(XMLHttpRequest, nsXMLHttpRequest)
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION_INHERITED(nsXMLHttpRequest)
   NS_INTERFACE_MAP_ENTRY(nsIXMLHttpRequest)
   NS_INTERFACE_MAP_ENTRY(nsIJSXMLHttpRequest)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMLoadListener)
-  NS_INTERFACE_MAP_ENTRY(nsIDOMEventListener)
   NS_INTERFACE_MAP_ENTRY(nsIRequestObserver)
   NS_INTERFACE_MAP_ENTRY(nsIStreamListener)
   NS_INTERFACE_MAP_ENTRY(nsIChannelEventSink)
@@ -1789,23 +1786,6 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
       }
     }
 
-    
-    nsCOMPtr<nsPIDOMEventTarget> target(do_QueryInterface(mResponseXML));
-    if (target) {
-      nsWeakPtr requestWeak =
-        do_GetWeakReference(static_cast<nsIXMLHttpRequest*>(this));
-      nsCOMPtr<nsIDOMEventListener> proxy = new nsLoadListenerProxy(requestWeak);
-      if (!proxy) return NS_ERROR_OUT_OF_MEMORY;
-
-      
-      rv = target->AddEventListenerByIID(static_cast<nsIDOMEventListener*>
-                                                    (proxy),
-                                         NS_GET_IID(nsIDOMLoadListener));
-      NS_ENSURE_SUCCESS(rv, rv);
-    }
-
-
-
     nsCOMPtr<nsIStreamListener> listener;
     nsCOMPtr<nsILoadGroup> loadGroup;
     channel->GetLoadGroup(getter_AddRefs(loadGroup));
@@ -1880,7 +1860,7 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
   if (mState & XML_HTTP_REQUEST_PARSEBODY && mXMLParserStreamListener) {
     parser = do_QueryInterface(mXMLParserStreamListener);
     NS_ABORT_IF_FALSE(parser, "stream listener was expected to be a parser");
-    rv = mXMLParserStreamListener->OnStopRequest(request, ctxt, status);
+    mXMLParserStreamListener->OnStopRequest(request, ctxt, status);
   }
 
   mXMLParserStreamListener = nsnull;
@@ -1920,43 +1900,18 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
   mChannelEventSink = nsnull;
   mProgressEventSink = nsnull;
 
+  mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
+
   if (NS_FAILED(status)) {
     
     
-    Error(nsnull);
 
-    
-    
-    
-    
-    mChannel = nsnull;
-  } else if (!parser || parser->IsParserEnabled()) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    RequestCompleted();
-  } else {
-    ChangeState(XML_HTTP_REQUEST_STOPPED, PR_FALSE);
+    mErrorLoad = PR_TRUE;
+    mResponseXML = nsnull;
   }
 
-  mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
-
-  return rv;
-}
-
-nsresult
-nsXMLHttpRequest::RequestCompleted()
-{
-  nsresult rv = NS_OK;
-
-  mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
+  NS_ASSERTION(!parser || parser->IsParserEnabled(),
+               "Parser blocked somehow?");
 
   
   
@@ -1993,12 +1948,19 @@ nsXMLHttpRequest::RequestCompleted()
                           mUploadTransferred, mUploadTotal);
   }
 
-  if (!(mState & XML_HTTP_REQUEST_GOT_FINAL_STOP)) {
+  if (mErrorLoad) {
+    
+    
+    
+    
+    mChannel = nsnull;
+  }
+  else if (!(mState & XML_HTTP_REQUEST_GOT_FINAL_STOP)) {
     
     ChangeState(XML_HTTP_REQUEST_OPENED);
   }
 
-  return rv;
+  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -2715,77 +2677,6 @@ nsXMLHttpRequest::SetWithCredentials(PRBool aWithCredentials)
   return NS_OK;
 }
 
-
-
-nsresult
-nsXMLHttpRequest::HandleEvent(nsIDOMEvent* aEvent)
-{
-  return NS_OK;
-}
-
-
-
-nsresult
-nsXMLHttpRequest::Load(nsIDOMEvent* aEvent)
-{
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  if (mState & XML_HTTP_REQUEST_STOPPED) {
-    RequestCompleted();
-  }
-  return NS_OK;
-}
-
-nsresult
-nsXMLHttpRequest::Unload(nsIDOMEvent* aEvent)
-{
-  return NS_OK;
-}
-
-nsresult
-nsXMLHttpRequest::BeforeUnload(nsIDOMEvent* aEvent)
-{
-  return NS_OK;
-}
-
-nsresult
-nsXMLHttpRequest::Abort(nsIDOMEvent* aEvent)
-{
-  Abort();
-
-  return NS_OK;
-}
-
-nsresult
-nsXMLHttpRequest::Error(nsIDOMEvent* aEvent)
-{
-  mResponseXML = nsnull;
-  ChangeState(XML_HTTP_REQUEST_DONE);
-
-  mState &= ~XML_HTTP_REQUEST_SYNCLOOPING;
-
-  DispatchProgressEvent(this, NS_LITERAL_STRING(ERROR_STR), PR_FALSE,
-                        mResponseBody.Length(), 0);
-  if (mUpload && !mUploadComplete) {
-    mUploadComplete = PR_TRUE;
-    DispatchProgressEvent(mUpload, NS_LITERAL_STRING(ERROR_STR), PR_TRUE,
-                          mUploadTransferred, mUploadTotal);
-  }
-
-  return NS_OK;
-}
-
 nsresult
 nsXMLHttpRequest::ChangeState(PRUint32 aState, PRBool aBroadcast)
 {
@@ -2848,7 +2739,7 @@ private:
 NS_IMPL_CYCLE_COLLECTION_CLASS(AsyncVerifyRedirectCallbackForwarder)
 
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(AsyncVerifyRedirectCallbackForwarder)
-NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mXHR, nsIDOMEventListener)
+NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSCOMPTR_AMBIGUOUS(mXHR, nsIXMLHttpRequest)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(AsyncVerifyRedirectCallbackForwarder)
