@@ -154,6 +154,7 @@
   -moz-column-count: inherit;
   -moz-column-width: inherit;
   -moz-column-gap: inherit;
+  -moz-column-rule: inherit;
   
 
   position: static !important;
