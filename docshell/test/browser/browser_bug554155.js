@@ -16,13 +16,15 @@ function test() {
       }
     };
 
-    gBrowser.addTabsProgressListener(listener, Components.interfaces.nsIWebProgress.NOTIFY_ALL);
+    gBrowser.addTabsProgressListener(listener);
 
     
     
     tab.linkedBrowser.contentWindow.history.pushState(null, null, "foo");
 
     executeSoon(function() {
+      gBrowser.removeTab(tab);
+      gBrowser.removeTabsProgressListener(listener);
       is(numLocationChanges, 1,
          "pushState should cause exactly one LocationChange event.");
       finish();
