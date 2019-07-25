@@ -369,8 +369,8 @@ TypeToChar(JSValueType type)
       case JSVAL_TYPE_BOXED: return '#';
       case JSVAL_TYPE_STRORNULL: return 's';
       case JSVAL_TYPE_OBJORNULL: return 'o';
+      default: return '?';
     }
-    return '?';
 }
 
 static char
@@ -569,7 +569,8 @@ JSClass jitstats_class = {
 void
 InitJITStatsClass(JSContext *cx, JSObject *glob)
 {
-    JS_InitClass(cx, glob, NULL, &jitstats_class, NULL, 0, jitstats_props, NULL, NULL, NULL);
+    JS_InitClass(cx, glob, NULL, &jitstats_class, NULL, 0,
+                 jitstats_props, NULL, NULL, NULL);
 }
 
 #define AUDIT(x) (jitstats.x++)
@@ -2642,7 +2643,7 @@ ptrdiff_t
 TraceRecorder::nativeGlobalSlot(const Value* p) const
 {
     JS_ASSERT(isGlobal(p));
-    return ptrdiff_t(p - globalObj->slots);
+    return ptrdiff_t(p - globalObj->slots + globalObj->numFixedSlots());
 }
 
 
@@ -2656,7 +2657,7 @@ TraceRecorder::nativeGlobalOffset(const Value* p) const
 bool
 TraceRecorder::isGlobal(const Value* p) const
 {
-    return (size_t(p - globalObj->slots) < globalObj->numSlots());
+    return (size_t(p - globalObj->slots) < globalObj->numSlots() - globalObj->numFixedSlots());
 }
 
 bool
@@ -4073,16 +4074,19 @@ TraceRecorder::checkForGlobalObjectReallocationHelper()
 {
     debug_only_print0(LC_TMTracer, "globalObj->slots relocated, updating tracker\n");
     const Value* src = global_slots;
-    const Value* dst = globalObj->getSlots();
+    const Value* dst = globalObj->getRawSlots();
     jsuint length = globalObj->capacity;
     LIns** map = (LIns**)alloca(sizeof(LIns*) * length);
     for (jsuint n = 0; n < length; ++n) {
-        map[n] = tracker.get(src);
-        tracker.set(src++, NULL);
+        const Value *slot = globalObj->getRawSlot(n, src);
+        map[n] = tracker.get(slot);
+        tracker.set(slot, NULL);
     }
-    for (jsuint n = 0; n < length; ++n)
-        tracker.set(dst++, map[n]);
-    global_slots = globalObj->getSlots();
+    for (jsuint n = 0; n < length; ++n) {
+        const Value *slot = globalObj->getRawSlot(n, dst);
+        tracker.set(slot, map[n]);
+    }
+    global_slots = globalObj->getRawSlots();
 }
 
 
@@ -5756,7 +5760,7 @@ SynthesizeFrame(JSContext* cx, const FrameInfo& fi, JSObject* callee)
     
     CallArgs args = CallArgsFromSp(fi.get_argc(), regs.sp);
     cx->stack.pushInlineFrame(cx, regs, args, *callee, newfun, newscript,
-                              MaybeConstructFromBool(fi.is_constructing()));
+                              InitialFrameFlagsFromConstructing(fi.is_constructing()));
 
 #ifdef DEBUG
     
@@ -6851,7 +6855,8 @@ LeaveTree(TraceMonitor *tm, TracerState& state, VMSideExit* lr)
 
 
 
-            if (op == JSOP_SETELEM && JSOp(regs->pc[JSOP_SETELEM_LENGTH]) == JSOP_POP) {
+            if ((op == JSOP_SETELEM || op == JSOP_SETHOLE) &&
+                JSOp(regs->pc[JSOP_SETELEM_LENGTH]) == JSOP_POP) {
                 regs->sp -= js_CodeSpec[JSOP_SETELEM].nuses;
                 regs->sp += js_CodeSpec[JSOP_SETELEM].ndefs;
                 regs->pc += JSOP_SETELEM_LENGTH;
@@ -7394,10 +7399,10 @@ TraceRecorder::monitorRecording(JSOp op)
         JSScript *script = cx->fp()->script();
         if (script->pcCounters) {
             int offset = cx->regs().pc - script->code;
-            LIns *pcCounter_addr_ins = w.nameImmpNonGC(&script->pcCounters.get(JSRUNMODE_TRACEJIT, offset));
+            LIns *pcCounter_addr_ins = w.nameImmpNonGC(&script->pcCounters.get(JSPCCounters::TRACEJIT, offset));
             AnyAddress pcCounter_addr(pcCounter_addr_ins);
-            LIns *ins = w.ldi(pcCounter_addr);
-            ins = w.addi(ins, w.name(w.immi(1), "pctick"));
+            LIns *ins = w.ldd(pcCounter_addr);
+            ins = w.ins2(LIR_addd, ins, w.name(w.immd(1.0), "pctick"));
             w.st(ins, pcCounter_addr);
         }
     }
@@ -8158,11 +8163,13 @@ TraceRecorder::scopeChainProp(JSObject* chainHead, const Value*& vp, LIns*& ins,
 
     TraceMonitor &localtm = *traceMonitor;
 
-    JSAtom* atom = atoms[GET_INDEX(cx->regs().pc)];
+    jsbytecode *pc = cx->regs().pc;
+    JSAtom* atom = atoms[GET_INDEX(pc)];
+    bool global = (js_CodeSpec[*pc].format & JOF_GNAME);
     JSObject* obj2;
     JSProperty* prop;
     JSObject *obj = chainHead;
-    if (!js_FindProperty(cx, ATOM_TO_JSID(atom), &obj, &obj2, &prop))
+    if (!js_FindProperty(cx, ATOM_TO_JSID(atom), global, &obj, &obj2, &prop))
         RETURN_ERROR_A("error in js_FindProperty");
 
     
@@ -9587,7 +9594,8 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
             JS_ASSERT(aobj == obj);
 
             TraceMonitor &localtm = *traceMonitor;
-            entry = js_FindPropertyHelper(cx, id, true, &obj, &obj2, &prop);
+            bool global = (js_CodeSpec[*pc].format & JOF_GNAME);
+            entry = js_FindPropertyHelper(cx, id, true, global, &obj, &obj2, &prop);
             if (!entry)
                 RETURN_ERROR_A("error in js_FindPropertyHelper");
 
@@ -9726,11 +9734,11 @@ TraceRecorder::stobj_set_slot(JSObject *obj, LIns* obj_ins, unsigned slot, LIns*
 
 
 
-    if (!obj->hasSlotsArray()) {
+    if (obj->isFixedSlot(slot)) {
         JS_ASSERT(slot < obj->numSlots());
         stobj_set_fslot(obj_ins, slot, v, v_ins);
     } else {
-        stobj_set_dslot(obj_ins, slot, slots_ins, v, v_ins);
+        stobj_set_dslot(obj_ins, obj->dynamicSlotIndex(slot), slots_ins, v, v_ins);
     }
 }
 
@@ -9738,9 +9746,9 @@ LIns*
 TraceRecorder::unbox_slot(JSObject *obj, LIns *obj_ins, uint32 slot, VMSideExit *exit)
 {
     
-    Address addr = (!obj->hasSlotsArray())
+    Address addr = obj->isFixedSlot(slot)
                  ? (Address)FSlotsAddress(obj_ins, slot)
-                 : (Address)DSlotsAddress(w.ldpObjSlots(obj_ins), slot);
+                 : (Address)DSlotsAddress(w.ldpObjSlots(obj_ins), obj->dynamicSlotIndex(slot));
 
     return unbox_value(obj->getSlot(slot), addr, exit);
 }
@@ -11026,7 +11034,8 @@ TraceRecorder::getClassPrototype(JSObject* ctor, LIns*& proto_ins)
     
     JS_ASSERT(!pval.isPrimitive());
     JSObject *proto = &pval.toObject();
-    JS_ASSERT_IF(clasp != &js_ArrayClass, proto->emptyShapes[0]->getClass() == clasp);
+    JS_ASSERT(!proto->isDenseArray());
+    JS_ASSERT_IF(clasp != &js_ArrayClass, proto->getNewType(cx)->emptyShapes[0]->getClass() == clasp);
 
     proto_ins = w.immpObjGC(proto);
     return RECORD_CONTINUE;
@@ -11050,8 +11059,8 @@ TraceRecorder::getClassPrototype(JSProtoKey key, LIns*& proto_ins)
     
     if (key != JSProto_Array) {
         JS_ASSERT(proto->isNative());
-        JS_ASSERT(proto->emptyShapes);
-        EmptyShape *empty = proto->emptyShapes[0];
+        JS_ASSERT(proto->getNewType(cx)->emptyShapes);
+        EmptyShape *empty = proto->getNewType(cx)->emptyShapes[0];
         JS_ASSERT(empty);
         JS_ASSERT(JSCLASS_CACHED_PROTO_KEY(empty->getClass()) == key);
     }
@@ -11107,7 +11116,7 @@ TraceRecorder::newArray(JSObject* ctor, uint32 argc, Value* argv, Value* rval)
 
     } else {
         LIns *args[] = { proto_ins, w.nameImmi(argc), cx_ins };
-        arr_ins = w.call(&js::NewDenseAllocatedArray_ci, args);
+        arr_ins = w.call(&js::NewDenseAllocatedEmptyArray_ci, args);
         guard(false, w.eqp0(arr_ins), OOM_EXIT);
 
         
@@ -12293,7 +12302,7 @@ TraceRecorder::setCallProp(JSObject *callobj, LIns *callobj_ins, const Shape *sh
         JS_ASSERT(shape->hasShortID());
 
         LIns* slots_ins = NULL;
-        stobj_set_dslot(callobj_ins, slot, slots_ins, v, v_ins);
+        stobj_set_slot(callobj, callobj_ins, slot, slots_ins, v, v_ins);
         return RECORD_CONTINUE;
     }
 
@@ -12786,16 +12795,6 @@ TraceRecorder::getPropertyWithScriptGetter(JSObject *obj, LIns* obj_ins, const S
         set(&sp[-1], get(&sp[-3]));
         return callImacroInfallibly(callprop_imacros.scriptgetter);
 
-      case JSOP_GETTHISPROP:
-      case JSOP_GETARGPROP:
-      case JSOP_GETLOCALPROP:
-        sp += 2;
-        sp[-2] = getter;
-        set(&sp[-2], w.immpObjGC(&getter.toObject()));
-        sp[-1] = ObjectValue(*obj);
-        set(&sp[-1], obj_ins);
-        return callImacroInfallibly(getthisprop_imacros.scriptgetter);
-
       default:
         RETURN_STOP("cannot trace script getter for this opcode");
     }
@@ -13204,21 +13203,14 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         
         CHECK_STATUS_A(makeNumberInt32(idx_ins, &idx_ins));
 
-        LIns* slots_ins = w.ldpObjFixedSlots(obj_ins);
         
         CHECK_STATUS_A(guard(true,
-                             w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(slots_ins)),
+                             w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(obj_ins)),
                                     "inRange"),
                              OVERFLOW_EXIT, true));
 
         
-        LIns* data_base_ins = w.ldpConstTypedArrayData(slots_ins);
-        LIns* offset_ins = w.ldiConstTypedArrayByteOffset(slots_ins);
-#ifdef NANOJIT_64BIT
-        LIns* data_ins = w.addp(data_base_ins, w.ui2uq(offset_ins));
-#else
-        LIns* data_ins = w.addp(data_base_ins, offset_ins);
-#endif
+        LIns* data_ins = w.ldpConstTypedArrayData(obj_ins);
 
         LIns* pidx_ins = w.ui2p(idx_ins);
         LIns* typed_v_ins = v_ins;
@@ -13317,19 +13309,24 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
         
         CHECK_STATUS_A(makeNumberInt32(idx_ins, &idx_ins));
 
+        
         if (!js_EnsureDenseArrayCapacity(cx, obj, idx.toInt32()))
             RETURN_STOP_A("couldn't ensure dense array capacity for setelem");
 
         
-        
-        LIns* capacity_ins = w.ldiDenseArrayCapacity(obj_ins);
+
+
+
+
+        LIns* initlen_ins = w.ldiDenseArrayInitializedLength(obj_ins);
+
         
 
 
 
 
         w.pauseAddingCSEValues();
-        if (MaybeBranch mbr = w.jt(w.name(w.ltui(idx_ins, capacity_ins), "inRange"))) {
+        if (MaybeBranch mbr = w.jt(w.name(w.ltui(idx_ins, initlen_ins), "inRange"))) {
             LIns* args[] = { idx_ins, obj_ins, cx_ins };
             LIns* res_ins = w.call(&js_EnsureDenseArrayCapacity_ci, args);
             guard(false, w.eqi0(res_ins), mismatchExit);
@@ -13371,7 +13368,7 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
     }
 
     jsbytecode* pc = cx->regs().pc;
-    if (*pc == JSOP_SETELEM && pc[JSOP_SETELEM_LENGTH] != JSOP_POP)
+    if ((*pc == JSOP_SETELEM || *pc == JSOP_SETHOLE) && pc[JSOP_SETELEM_LENGTH] != JSOP_POP)
         set(&lval, v_ins);
 
     return ARECORD_CONTINUE;
@@ -13379,6 +13376,12 @@ TraceRecorder::setElem(int lval_spindex, int idx_spindex, int v_spindex)
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_SETELEM()
+{
+    return setElem(-3, -2, -1);
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_SETHOLE()
 {
     return setElem(-3, -2, -1);
 }
@@ -14228,18 +14231,12 @@ TraceRecorder::denseArrayElement(Value& oval, Value& ival, const Value*& vp, LIn
     CHECK_STATUS(makeNumberInt32(get(&ival), &idx_ins));
 
     
-
-
-
-
-
-
-    LIns* capacity_ins = w.ldiDenseArrayCapacity(obj_ins);
-    jsuint capacity = obj->getDenseArrayCapacity();
-    bool within = (jsuint(idx) < capacity);
+    LIns* initlen_ins = w.ldiDenseArrayInitializedLength(obj_ins);
+    jsuint initlen = obj->getDenseArrayInitializedLength();
+    bool within = (jsuint(idx) < initlen);
     if (!within) {
         
-        guard(true, w.geui(idx_ins, capacity_ins), branchExit);
+        guard(true, w.geui(idx_ins, initlen_ins), branchExit);
 
         CHECK_STATUS(guardPrototypeHasNoIndexedProperties(obj, obj_ins, snapshot(MISMATCH_EXIT)));
 
@@ -14249,10 +14246,10 @@ TraceRecorder::denseArrayElement(Value& oval, Value& ival, const Value*& vp, LIn
     }
 
     
-    guard(true, w.name(w.ltui(idx_ins, capacity_ins), "inRange"), branchExit);
+    guard(true, w.name(w.ltui(idx_ins, initlen_ins), "inRange"), branchExit);
 
     
-    vp = &obj->getSlot(jsuint(idx));
+    vp = &obj->getDenseArrayElement(jsuint(idx));
     JS_ASSERT(sizeof(Value) == 8); 
     addr_ins = w.name(w.getDslotAddress(obj_ins, idx_ins), "elemp");
     v_ins = unbox_value(*vp, DSlotsAddress(addr_ins), branchExit);
@@ -14290,8 +14287,6 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
     JSObject* tarray = js::TypedArray::getTypedArray(obj);
     JS_ASSERT(tarray);
 
-    LIns *slots_ins = w.ldpObjFixedSlots(obj_ins);
-
     
     if ((jsuint) idx >= js::TypedArray::getLength(tarray))
         RETURN_STOP_A("out-of-range index on typed array");
@@ -14306,18 +14301,12 @@ TraceRecorder::typedArrayElement(Value& oval, Value& ival, Value*& vp, LIns*& v_
 
 
     guard(true,
-          w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(slots_ins)), "inRange"),
+          w.name(w.ltui(idx_ins, w.ldiConstTypedArrayLength(obj_ins)), "inRange"),
           BRANCH_EXIT);
 
     
 
-    LIns* data_base_ins = w.ldpConstTypedArrayData(slots_ins);
-    LIns* offset_ins = w.ldiConstTypedArrayByteOffset(slots_ins);
-#ifdef NANOJIT_64BIT
-    LIns* data_ins = w.addp(data_base_ins, w.ui2uq(offset_ins));
-#else
-    LIns* data_ins = w.addp(data_base_ins, offset_ins);
-#endif
+    LIns* data_ins = w.ldpConstTypedArrayData(obj_ins);
 
     switch (js::TypedArray::getType(tarray)) {
       case js::TypedArray::TYPE_INT8:
@@ -14578,7 +14567,7 @@ TraceRecorder::record_JSOP_NEWARRAY()
 
     unsigned count = GET_UINT24(cx->regs().pc);
     LIns *args[] = { proto_ins, w.immi(count), cx_ins };
-    LIns *v_ins = w.call(&NewDenseAllocatedArray_ci, args);
+    LIns *v_ins = w.call(&NewDenseAllocatedEmptyArray_ci, args);
 
     guard(false, w.eqp0(v_ins), OOM_EXIT);
     stack(0, v_ins);
@@ -15189,10 +15178,9 @@ TraceRecorder::record_JSOP_IN()
             LIns* idx_ins;
             CHECK_STATUS_A(makeNumberInt32(get(&lval), &idx_ins));
             idx_ins = w.name(idx_ins, "index");
-            LIns* capacity_ins = w.ldiDenseArrayCapacity(obj_ins);
-            LIns* inRange = w.ltui(idx_ins, capacity_ins);
-
-            if (jsuint(lval.toInt32()) < obj->getDenseArrayCapacity()) {
+            LIns* initlen_ins = w.ldiDenseArrayInitializedLength(obj_ins);
+            LIns* inRange = w.ltui(idx_ins, initlen_ins);
+            if (jsuint(lval.toInt32()) < obj->getDenseArrayInitializedLength()) {
                 guard(true, inRange, branchExit);
 
                 LIns *elem_ins = w.getDslotAddress(obj_ins, idx_ins);
@@ -15358,6 +15346,12 @@ TraceRecorder::record_JSOP_DEFAULT()
 
 JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_EVAL()
+{
+    return ARECORD_STOP;
+}
+
+JS_REQUIRES_STACK AbortableRecordingStatus
+TraceRecorder::record_JSOP_TOID()
 {
     return ARECORD_STOP;
 }
@@ -16207,37 +16201,6 @@ TraceRecorder::record_JSOP_LEAVEBLOCKEXPR()
 }
 
 JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_GETTHISPROP()
-{
-    LIns* this_ins;
-
-    CHECK_STATUS_A(getThis(this_ins));
-
-    
-
-
-
-    const Value &thisv = cx->fp()->thisValue();
-    if (!thisv.isObject())
-        RETURN_STOP_A("primitive this for GETTHISPROP");
-
-    CHECK_STATUS_A(getProp(&thisv.toObject(), this_ins));
-    return ARECORD_CONTINUE;
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_GETARGPROP()
-{
-    return getProp(argval(GET_ARGNO(cx->regs().pc)));
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
-TraceRecorder::record_JSOP_GETLOCALPROP()
-{
-    return getProp(varval(GET_SLOTNO(cx->regs().pc)));
-}
-
-JS_REQUIRES_STACK AbortableRecordingStatus
 TraceRecorder::record_JSOP_INDEXBASE1()
 {
     atoms += 1 << 16;
@@ -16348,7 +16311,7 @@ TraceRecorder::record_JSOP_LENGTH()
     } else if (OkToTraceTypedArrays && js_IsTypedArray(obj)) {
         
         guardClass(obj_ins, obj->getClass(), snapshot(BRANCH_EXIT), LOAD_NORMAL);
-        v_ins = w.i2d(w.ldiConstTypedArrayLength(w.ldpObjFixedSlots(obj_ins)));
+        v_ins = w.i2d(w.ldiConstTypedArrayLength(obj_ins));
     } else {
         if (!obj->isNative())
             RETURN_STOP_A("can't trace length property access on non-array, non-native object");
@@ -17046,7 +17009,7 @@ LoopProfile::profileOperation(JSContext* cx, JSOp op)
     if (op == JSOP_NEW)
         increment(OP_NEW);
 
-    if (op == JSOP_GETELEM || op == JSOP_SETELEM) {
+    if (op == JSOP_GETELEM || op == JSOP_SETELEM || op == JSOP_SETHOLE) {
         Value& lval = cx->regs().sp[op == JSOP_GETELEM ? -2 : -3];
         if (lval.isObject() && js_IsTypedArray(&lval.toObject()))
             increment(OP_TYPED_ARRAY);
@@ -17054,24 +17017,9 @@ LoopProfile::profileOperation(JSContext* cx, JSOp op)
             increment(OP_ARRAY_READ);
     }
 
-    if (op == JSOP_GETPROP || op == JSOP_CALLPROP ||
-        op == JSOP_GETARGPROP || op == JSOP_GETLOCALPROP)
-    {
+    if (op == JSOP_GETPROP || op == JSOP_CALLPROP) {
         
-        Value v = UndefinedValue();
-        if (op == JSOP_GETPROP || op == JSOP_CALLPROP) {
-            v = cx->regs().sp[-1];
-        } else if (op == JSOP_GETARGPROP) {
-            uint32 slot = GET_ARGNO(pc);
-            JS_ASSERT(slot < fp->numFormalArgs());
-            v = fp->formalArg(slot);
-        } else if (op == JSOP_GETLOCALPROP) {
-            uint32 slot = GET_SLOTNO(pc);
-            JS_ASSERT(slot < script->nslots);
-            v = fp->slots()[slot];
-        } else {
-            JS_NOT_REACHED("no else");
-        }
+        Value v = cx->regs().sp[-1];
 
         if (v.isObject()) {
             JSObject *aobj = js_GetProtoIfDenseArray(&v.toObject());

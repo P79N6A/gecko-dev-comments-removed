@@ -39,6 +39,7 @@
 #include "MethodJIT.h"
 #include "Logging.h"
 #include "assembler/jit/ExecutableAllocator.h"
+#include "assembler/assembler/RepatchBuffer.h"
 #include "jstracer.h"
 #include "jsgcmark.h"
 #include "BaseAssembler.h"
@@ -49,6 +50,7 @@
 #include "jscntxtinlines.h"
 #include "jscompartment.h"
 #include "jsscope.h"
+#include "jsgcmark.h"
 
 #include "jsgcinlines.h"
 #include "jsinterpinlines.h"
@@ -109,18 +111,30 @@ StackFrame::methodjitStaticAsserts()
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifdef JS_METHODJIT_PROFILE_STUBS
 static const size_t STUB_CALLS_FOR_OP_COUNT = 255;
 static uint32 StubCallsForOp[STUB_CALLS_FOR_OP_COUNT];
 #endif
 
-extern "C" void JaegerTrampolineReturn();
-
 extern "C" void JS_FASTCALL
 PushActiveVMFrame(VMFrame &f)
 {
     f.entryfp->script()->compartment->jaegerCompartment()->pushActiveFrame(&f);
-    f.regs.fp()->setNativeReturnAddress(JS_FUNC_TO_DATA_PTR(void*, JaegerTrampolineReturn));
+    f.entryfp->setNativeReturnAddress(JS_FUNC_TO_DATA_PTR(void*, JaegerTrampolineReturn));
+    f.regs.clearInlined();
 }
 
 extern "C" void JS_FASTCALL
@@ -132,6 +146,8 @@ PopActiveVMFrame(VMFrame &f)
 extern "C" void JS_FASTCALL
 SetVMFrameRegs(VMFrame &f)
 {
+    f.oldregs = &f.cx->stack.regs();
+
     
     f.cx->stack.repointRegs(&f.regs);
 }
@@ -180,7 +196,8 @@ JS_STATIC_ASSERT(sizeof(VMFrame) % 16 == 0);
 
 
 
-JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x58);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x68);
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) == 0x18);
 JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x38);
 
 JS_STATIC_ASSERT(JSVAL_TAG_MASK == 0xFFFF800000000000LL);
@@ -210,6 +227,8 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
 
 
+    "pushq $0x0"                         "\n" 
+    "pushq %rsi"                         "\n" 
     "pushq %rsi"                         "\n" 
     "pushq %rcx"                         "\n" 
     "pushq %rdi"                         "\n" 
@@ -237,12 +256,12 @@ asm (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":"       "\n"
-    "or   %rdx, %rcx"                    "\n"
-    "movq %rcx, 0x30(%rbx)"              "\n"
+    "or   %rdi, %rsi"                    "\n"
+    "movq %rsi, 0x30(%rbx)"              "\n"
     "movq %rsp, %rdi"                    "\n"
     "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
-    "addq $0x58, %rsp"                   "\n"
+    "addq $0x68, %rsp"                   "\n"
     "popq %rbx"                          "\n"
     "popq %r15"                          "\n"
     "popq %r14"                          "\n"
@@ -265,7 +284,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
   "throwpoline_exit:"                       "\n"
     "movq %rsp, %rdi"                       "\n"
     "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
-    "addq $0x58, %rsp"                      "\n"
+    "addq $0x68, %rsp"                      "\n"
     "popq %rbx"                             "\n"
     "popq %r15"                             "\n"
     "popq %r14"                             "\n"
@@ -274,6 +293,45 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "popq %rbp"                             "\n"
     "xorq %rax,%rax"                        "\n"
     "ret"                                   "\n"
+);
+
+asm (
+".text\n"
+".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
+SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
+    "movq %rsp, %rcx"                       "\n"
+    "movq %rax, %rdx"                       "\n"
+    "call " SYMBOL_STRING_RELOC(js_InternalInterpret) "\n"
+    "movq 0x38(%rsp), %rbx"                 "\n" 
+    "movq 0x30(%rbx), %rsi"                 "\n" 
+    "and %r14, %rsi"                        "\n" 
+    "movq 0x30(%rbx), %rdi"                 "\n" 
+    "and %r13, %rdi"                        "\n" 
+    "movq 0x18(%rsp), %rcx"                 "\n" 
+    "testq %rax, %rax"                      "\n"
+    "je   interpoline_exit"                 "\n"
+    "jmp  *%rax"                            "\n"
+  "interpoline_exit:"                       "\n"
+    "movq %rsp, %rdi"                       "\n"
+    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+    "addq $0x68, %rsp"                      "\n"
+    "popq %rbx"                             "\n"
+    "popq %r15"                             "\n"
+    "popq %r14"                             "\n"
+    "popq %r13"                             "\n"
+    "popq %r12"                             "\n"
+    "popq %rbp"                             "\n"
+    "xorq %rax,%rax"                        "\n"
+    "ret"                                   "\n"
+);
+
+asm (
+".text\n"
+".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
+SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
+    "movq 0x20(%rbx), %rbx"                         "\n" 
+    "movq %rbx, 0x38(%rsp)"                         "\n"
+    "jmp " SYMBOL_STRING_RELOC(JaegerInterpoline)   "\n"
 );
 
 # elif defined(JS_CPU_X86)
@@ -285,8 +343,9 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 
 
 
-JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
-JS_STATIC_ASSERT((VMFrame::offsetOfFp) == 0x1C);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x3C);
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) == 0xC);
+JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x1C);
 
 asm (
 ".text\n"
@@ -304,6 +363,10 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
 
     "movl  12(%ebp), %ebx"               "\n"   
     "pushl %ebx"                         "\n"   
+    "pushl %ebx"                         "\n"   
+    "pushl $0x0"                         "\n"   
+    "pushl %ebx"                         "\n"   
+    "pushl %ebx"                         "\n"   
     "pushl 20(%ebp)"                     "\n"   
     "pushl 8(%ebp)"                      "\n"   
     "pushl %ebx"                         "\n"   
@@ -315,19 +378,22 @@ SYMBOL_STRING(JaegerTrampoline) ":"       "\n"
     "movl  %esp, %ecx"                   "\n"
     "call " SYMBOL_STRING_VMFRAME(PushActiveVMFrame) "\n"
 
-    "jmp *16(%ebp)"                      "\n"
+    "movl 28(%esp), %ebp"                "\n"   
+    "jmp *88(%esp)"                      "\n"
 );
 
 asm (
 ".text\n"
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn) "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":" "\n"
-    "movl  %edx, 0x18(%ebx)"             "\n"
-    "movl  %ecx, 0x1C(%ebx)"             "\n"
+    "movl  %esi, 0x18(%ebp)"             "\n"
+    "movl  %edi, 0x1C(%ebp)"             "\n"
+    "movl  %esp, %ebp"                   "\n"
+    "addl  $0x48, %ebp"                  "\n" 
     "movl  %esp, %ecx"                   "\n"
     "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
-    "addl $0x2C, %esp"                   "\n"
+    "addl $0x3C, %esp"                   "\n"
     "popl %ebx"                          "\n"
     "popl %edi"                          "\n"
     "popl %esi"                          "\n"
@@ -356,7 +422,7 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
   "throwpoline_exit:"                    "\n"
     "movl %esp, %ecx"                    "\n"
     "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
-    "addl $0x2c, %esp"                   "\n"
+    "addl $0x3c, %esp"                   "\n"
     "popl %ebx"                          "\n"
     "popl %edi"                          "\n"
     "popl %esi"                          "\n"
@@ -365,20 +431,60 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
     "ret"                                "\n"
 );
 
+asm (
+".text\n"
+".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
+SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
+    
+    "pushl %esp"                         "\n"
+    "pushl %eax"                         "\n"
+    "pushl %edi"                         "\n"
+    "pushl %esi"                         "\n"
+    "call " SYMBOL_STRING_RELOC(js_InternalInterpret) "\n"
+    "addl $0x10, %esp"                   "\n"
+    "movl 0x1C(%esp), %ebp"              "\n" 
+    "movl 0x18(%ebp), %esi"              "\n" 
+    "movl 0x1C(%ebp), %edi"              "\n" 
+    "movl 0xC(%esp), %ecx"               "\n" 
+    "testl %eax, %eax"                   "\n"
+    "je   interpoline_exit"              "\n"
+    "jmp  *%eax"                         "\n"
+  "interpoline_exit:"                    "\n"
+    "movl %esp, %ecx"                    "\n"
+    "call " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+    "addl $0x3c, %esp"                   "\n"
+    "popl %ebx"                          "\n"
+    "popl %edi"                          "\n"
+    "popl %esi"                          "\n"
+    "popl %ebp"                          "\n"
+    "xorl %eax, %eax"                    "\n"
+    "ret"                                "\n"
+);
+
+asm (
+".text\n"
+".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
+SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
+    "movl 0x10(%ebp), %ebp"                         "\n" 
+    "movl  %ebp, 0x1C(%esp)"                        "\n"
+    "jmp " SYMBOL_STRING_RELOC(JaegerInterpoline)   "\n"
+);
+
 # elif defined(JS_CPU_ARM)
 
-JS_STATIC_ASSERT(sizeof(VMFrame) == 80);
-JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*19));
+JS_STATIC_ASSERT(sizeof(VMFrame) == 88);
+JS_STATIC_ASSERT(sizeof(VMFrame)%8 == 0);   
+JS_STATIC_ASSERT(offsetof(VMFrame, savedLR) ==          (4*21));
 JS_STATIC_ASSERT(offsetof(VMFrame, entryfp) ==          (4*10));
 JS_STATIC_ASSERT(offsetof(VMFrame, stackLimit) ==       (4*9));
 JS_STATIC_ASSERT(offsetof(VMFrame, cx) ==               (4*8));
 JS_STATIC_ASSERT(VMFrame::offsetOfFp ==                 (4*7));
-JS_STATIC_ASSERT(offsetof(VMFrame, unused) ==           (4*4));
-JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*3));
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) ==          (4*3));
+JS_STATIC_ASSERT(offsetof(VMFrame, previous) ==         (4*2));
 
 JS_STATIC_ASSERT(JSFrameReg == JSC::ARMRegisters::r11);
-JS_STATIC_ASSERT(JSReturnReg_Data == JSC::ARMRegisters::r1);
-JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r2);
+JS_STATIC_ASSERT(JSReturnReg_Type == JSC::ARMRegisters::r5);
+JS_STATIC_ASSERT(JSReturnReg_Data == JSC::ARMRegisters::r4);
 
 #ifdef MOZ_THUMB2
 #define FUNCTION_HEADER_EXTRA \
@@ -423,10 +529,15 @@ SYMBOL_STRING(JaegerTrampoline) ":"         "\n"
 
 
 
+
+
     
     
 "   push    {r4-r11,lr}"                        "\n"
     
+"   mov     ip, #0"                             "\n"    
+"   push    {ip}"                               "\n"    
+"   push    {r1}"                               "\n"    
 "   push    {r1}"                               "\n"    
 "   push    {r3}"                               "\n"    
 "   push    {r0}"                               "\n"    
@@ -453,15 +564,14 @@ asm (
 FUNCTION_HEADER_EXTRA
 ".globl " SYMBOL_STRING(JaegerTrampolineReturn)   "\n"
 SYMBOL_STRING(JaegerTrampolineReturn) ":"         "\n"
-"   str r1, [r11, #24]"                    "\n" 
-"   str r2, [r11, #28]"                    "\n" 
+"   strd    r4, r5, [r11, #24]"             "\n" 
 
     
-"   mov     r0, sp"                             "\n"
+"   mov     r0, sp"                         "\n"
 "   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
 
     
-"   add     sp, sp, #(4*7 + 4*4)"               "\n"
+"   add     sp, sp, #(4*7 + 4*6)"           "\n"
 
     
 "   mov     r0, #1"                         "\n"
@@ -486,9 +596,42 @@ SYMBOL_STRING(JaegerThrowpoline) ":"        "\n"
 "   bxne    r0"                             "\n"
 
     
-"   mov     r0, sp"                             "\n"
+"   mov     r0, sp"                         "\n"
 "   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
-"   add     sp, sp, #(4*7 + 4*4)"               "\n"
+"   add     sp, sp, #(4*7 + 4*6)"           "\n"
+"   mov     r0, #0"                         "\n"
+"   pop     {r4-r11,pc}"                    "\n"
+);
+
+asm (
+".text\n"
+FUNCTION_HEADER_EXTRA
+".globl " SYMBOL_STRING(JaegerInterpolineScripted)  "\n"
+SYMBOL_STRING(JaegerInterpolineScripted) ":"        "\n"
+    
+
+"   ldr     r11, [r11, #(4*4)]"             "\n"    
+"   str     r11, [sp, #(4*7)]"              "\n"    
+    
+
+FUNCTION_HEADER_EXTRA
+".globl " SYMBOL_STRING(JaegerInterpoline)  "\n"
+SYMBOL_STRING(JaegerInterpoline) ":"        "\n"
+"   mov     r3, sp"                         "\n"    
+"   mov     r2, r0"                         "\n"    
+"   mov     r1, r5"                         "\n"    
+"   mov     r0, r4"                         "\n"    
+"   blx  " SYMBOL_STRING_RELOC(js_InternalInterpret) "\n"
+"   cmp     r0, #0"                         "\n"
+"   ldr     ip, [sp, #(4*7)]"               "\n"    
+"   ldrd    r4, r5, [ip, #(4*6)]"           "\n"    
+"   ldr     r1, [sp, #(4*3)]"               "\n"    
+"   it      ne"                             "\n"
+"   bxne    r0"                             "\n"
+    
+"   mov     r0, sp"                         "\n"
+"   blx  " SYMBOL_STRING_VMFRAME(PopActiveVMFrame) "\n"
+"   add     sp, sp, #(4*7 + 4*6)"           "\n"
 "   mov     r0, #0"                         "\n"
 "   pop     {r4-r11,pc}"                    "\n"
 );
@@ -521,7 +664,8 @@ SYMBOL_STRING(JaegerStubVeneer) ":"         "\n"
 
 
 
-JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x2c);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedEBX) == 0x3C);
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) == 0xC);
 JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x1C);
 
 extern "C" {
@@ -542,6 +686,10 @@ extern "C" {
 
             mov  ebx, [ebp + 12];
             push ebx;
+            push ebx;
+            push 0x0;
+            push ebx;
+            push ebx;
             push [ebp + 20];
             push [ebp + 8];
             push ebx;
@@ -553,19 +701,22 @@ extern "C" {
             mov  ecx, esp;
             call PushActiveVMFrame;
 
-            jmp dword ptr [ebp + 16];
+            mov ebp, [esp + 28];  
+            jmp dword ptr [esp + 88];
         }
     }
 
     __declspec(naked) void JaegerTrampolineReturn()
     {
         __asm {
-            mov [ebx + 0x18], edx;
-            mov [ebx + 0x1C], ecx;
+            mov [ebp + 0x18], esi;
+            mov [ebp + 0x1C], edi;
+            mov  ebp, esp;
+            add  ebp, 0x48; 
             mov  ecx, esp;
             call PopActiveVMFrame;
 
-            add esp, 0x2C;
+            add esp, 0x3C;
 
             pop ebx;
             pop edi;
@@ -596,13 +747,53 @@ extern "C" {
         throwpoline_exit:
             mov ecx, esp;
             call PopActiveVMFrame;
-            add esp, 0x2c;
+            add esp, 0x3c;
             pop ebx;
             pop edi;
             pop esi;
             pop ebp;
             xor eax, eax
             ret;
+        }
+    }
+
+    extern "C" void *
+    js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VMFrame &f);
+
+    __declspec(naked) void JaegerInterpoline() {
+        __asm {
+            
+            push esp;
+            push eax;
+            push edi;
+            push esi;
+            call js_InternalInterpret;
+            add esp, 0x10;
+            mov ebp, [esp + 0x1C];  
+            mov esi, [ebp + 0x18];  
+            mov edi, [ebp + 0x1C];  
+            mov ecx, [esp + 0xC];   
+            test eax, eax;
+            je interpoline_exit;
+            jmp eax;
+        interpoline_exit:
+            mov ecx, esp;
+            call PopActiveVMFrame;
+            add esp, 0x3c;
+            pop ebx;
+            pop edi;
+            pop esi;
+            pop ebp;
+            xor eax, eax
+            ret;
+        }
+    }
+
+    __declspec(naked) void JaegerInterpolineScripted() {
+        __asm {
+            mov ebp, [ebp + 0x10];  
+            mov [esp + 0x1C], ebp;  
+            jmp JaegerInterpoline;
         }
     }
 }
@@ -616,12 +807,17 @@ extern "C" {
 
 
 
-JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x58);
+JS_STATIC_ASSERT(offsetof(VMFrame, savedRBX) == 0x68);
+JS_STATIC_ASSERT(offsetof(VMFrame, scratch) == 0x18);
 JS_STATIC_ASSERT(VMFrame::offsetOfFp == 0x38);
 JS_STATIC_ASSERT(JSVAL_TAG_MASK == 0xFFFF800000000000LL);
 JS_STATIC_ASSERT(JSVAL_PAYLOAD_MASK == 0x00007FFFFFFFFFFFLL);
 
 #endif                   
+
+JaegerCompartment::JaegerCompartment()
+    : orphanedNativeFrames(SystemAllocPolicy()), orphanedNativePools(SystemAllocPolicy())
+{}
 
 bool
 JaegerCompartment::Initialize()
@@ -643,6 +839,7 @@ JaegerCompartment::Initialize()
 #endif
 
     activeFrame_ = NULL;
+    lastUnfinished_ = (JaegerStatus) 0;
 
     return true;
 }
@@ -665,8 +862,8 @@ JaegerCompartment::Finish()
 extern "C" JSBool
 JaegerTrampoline(JSContext *cx, StackFrame *fp, void *code, Value *stackLimit);
 
-JSBool
-mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimit)
+JaegerStatus
+mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimit, bool partial)
 {
 #ifdef JS_METHODJIT_SPEW
     Profiler prof;
@@ -687,38 +884,68 @@ mjit::EnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, Value *stackLimi
         ok = JaegerTrampoline(cx, fp, code, stackLimit);
     }
 
-    
-    cx->stack.repointRegs(&oldRegs);
-    JS_ASSERT(fp == cx->fp());
-
-    
-    fp->markReturnValue();
-
-    
-    fp->markActivationObjectsAsPut();
-
 #ifdef JS_METHODJIT_SPEW
     prof.stop();
     JaegerSpew(JSpew_Prof, "script run took %d ms\n", prof.time_ms());
 #endif
 
-    return ok;
+    
+    cx->stack.repointRegs(&oldRegs);
+
+    JaegerStatus status = cx->compartment->jaegerCompartment()->lastUnfinished();
+    if (status) {
+        if (partial) {
+            
+
+
+
+            return status;
+        }
+
+        
+
+
+
+
+
+        InterpMode mode = (status == Jaeger_UnfinishedAtTrap)
+            ? JSINTERP_SKIP_TRAP
+            : JSINTERP_REJOIN;
+        ok = Interpret(cx, fp, mode);
+
+        return ok ? Jaeger_Returned : Jaeger_Throwing;
+    }
+
+    
+    JS_ASSERT(fp == cx->fp());
+
+    if (ok) {
+        
+        fp->markReturnValue();
+    }
+
+    
+    fp->markActivationObjectsAsPut();
+
+    return ok ? Jaeger_Returned : Jaeger_Throwing;
 }
 
-static inline JSBool
-CheckStackAndEnterMethodJIT(JSContext *cx, StackFrame *fp, void *code)
+static inline JaegerStatus
+CheckStackAndEnterMethodJIT(JSContext *cx, StackFrame *fp, void *code, bool partial)
 {
-    JS_CHECK_RECURSION(cx, return false);
+    JS_CHECK_RECURSION(cx, return Jaeger_Throwing);
+
+    JS_ASSERT(!cx->compartment->activeAnalysis);
 
     Value *stackLimit = cx->stack.space().getStackLimit(cx, REPORT_ERROR);
     if (!stackLimit)
-        return false;
+        return Jaeger_Throwing;
 
-    return EnterMethodJIT(cx, fp, code, stackLimit);
+    return EnterMethodJIT(cx, fp, code, stackLimit, partial);
 }
 
-JSBool
-mjit::JaegerShot(JSContext *cx)
+JaegerStatus
+mjit::JaegerShot(JSContext *cx, bool partial)
 {
     StackFrame *fp = cx->fp();
     JSScript *script = fp->script();
@@ -731,17 +958,17 @@ mjit::JaegerShot(JSContext *cx)
 
     JS_ASSERT(cx->regs().pc == script->code);
 
-    return CheckStackAndEnterMethodJIT(cx, cx->fp(), jit->invokeEntry);
+    return CheckStackAndEnterMethodJIT(cx, cx->fp(), jit->invokeEntry, partial);
 }
 
-JSBool
-js::mjit::JaegerShotAtSafePoint(JSContext *cx, void *safePoint)
+JaegerStatus
+js::mjit::JaegerShotAtSafePoint(JSContext *cx, void *safePoint, bool partial)
 {
 #ifdef JS_TRACER
     JS_ASSERT(!TRACE_RECORDER(cx));
 #endif
 
-    return CheckStackAndEnterMethodJIT(cx, cx->fp(), safePoint);
+    return CheckStackAndEnterMethodJIT(cx, cx->fp(), safePoint, partial);
 }
 
 NativeMapEntry *
@@ -750,23 +977,41 @@ JITScript::nmap() const
     return (NativeMapEntry *)((char*)this + sizeof(JITScript));
 }
 
-char *
-JITScript::nmapSectionLimit() const
+js::mjit::InlineFrame *
+JITScript::inlineFrames() const
 {
-    return (char *)&nmap()[nNmapPairs];
+    return (js::mjit::InlineFrame *)((char *)nmap() + sizeof(NativeMapEntry) * nNmapPairs);
+}
+
+js::mjit::CallSite *
+JITScript::callSites() const
+{
+    return (js::mjit::CallSite *)&inlineFrames()[nInlineFrames];
+}
+
+JSObject **
+JITScript::rootedObjects() const
+{
+    return (JSObject **)&callSites()[nCallSites];
+}
+
+char *
+JITScript::commonSectionLimit() const
+{
+    return (char *)&rootedObjects()[nRootedObjects];
 }
 
 #ifdef JS_MONOIC
 ic::GetGlobalNameIC *
 JITScript::getGlobalNames() const
 {
-    return (ic::GetGlobalNameIC *)nmapSectionLimit();
+    return (ic::GetGlobalNameIC *) commonSectionLimit();
 }
 
 ic::SetGlobalNameIC *
 JITScript::setGlobalNames() const
 {
-    return (ic::SetGlobalNameIC *)((char *)nmapSectionLimit() +
+    return (ic::SetGlobalNameIC *)((char *)getGlobalNames() +
             sizeof(ic::GetGlobalNameIC) * nGetGlobalNames);
 }
 
@@ -797,7 +1042,7 @@ JITScript::monoICSectionsLimit() const
 char *
 JITScript::monoICSectionsLimit() const
 {
-    return nmapSectionLimit();
+    return commonSectionLimit();
 }
 #endif  
 
@@ -833,18 +1078,6 @@ JITScript::polyICSectionsLimit() const
 }
 #endif  
 
-js::mjit::CallSite *
-JITScript::callSites() const
-{
-    return (js::mjit::CallSite *)polyICSectionsLimit();
-}
-
-JSObject **
-JITScript::rootedObjects() const
-{
-    return (JSObject **)&callSites()[nCallSites];
-}
-
 template <typename T>
 static inline void Destroy(T &t)
 {
@@ -854,6 +1087,9 @@ static inline void Destroy(T &t)
 mjit::JITScript::~JITScript()
 {
     code.release();
+
+    if (pcLengths)
+        Foreground::free_(pcLengths);
 
 #if defined JS_POLYIC
     ic::GetElementIC *getElems_ = getElems();
@@ -868,24 +1104,36 @@ mjit::JITScript::~JITScript()
 #endif
 
 #if defined JS_MONOIC
+    if (argsCheckPool)
+        argsCheckPool->release();
+
     for (JSC::ExecutablePool **pExecPool = execPools.begin();
          pExecPool != execPools.end();
          ++pExecPool)
     {
         (*pExecPool)->release();
     }
-    
-    ic::CallICInfo *callICs_ = callICs();
-    for (uint32 i = 0; i < nCallICs; i++)
-        callICs_[i].releasePools();
-#endif
-}
 
-void
-mjit::JITScript::trace(JSTracer *trc)
-{
-    for (uint32 i = 0; i < nRootedObjects; ++i)
-        MarkObject(trc, *rootedObjects()[i], "mjit rooted object");
+    ic::CallICInfo *callICs_ = callICs();
+    for (uint32 i = 0; i < nCallICs; i++) {
+        callICs_[i].releasePools();
+        if (callICs_[i].fastGuardedObject)
+            callICs_[i].purgeGuardedObject();
+    }
+
+    
+    while (!JS_CLIST_IS_EMPTY(&callers)) {
+        JS_STATIC_ASSERT(offsetof(ic::CallICInfo, links) == 0);
+        ic::CallICInfo *ic = (ic::CallICInfo *) callers.next;
+
+        uint8 *start = (uint8 *)ic->funGuard.executableAddress();
+        JSC::RepatchBuffer repatch(JSC::JITCode(start - 32, 64));
+
+        repatch.repatch(ic->funGuard, NULL);
+        repatch.relink(ic->funJump, ic->slowPathStart);
+        ic->purgeGuardedObject();
+    }
+#endif
 }
 
 size_t
@@ -921,36 +1169,21 @@ mjit::JITScript::scriptDataSize()
 }
 
 void
-mjit::ReleaseScriptCode(JSContext *cx, JSScript *script)
+mjit::ReleaseScriptCode(JSContext *cx, JSScript *script, bool normal)
 {
     
     
     
-    JITScript *jscr;
 
-    if ((jscr = script->jitNormal)) {
-        jscr->~JITScript();
-        cx->free_(jscr);
-        script->jitNormal = NULL;
-        script->jitArityCheckNormal = NULL;
+    JITScript **pjit = normal ? &script->jitNormal : &script->jitCtor;
+    void **parity = normal ? &script->jitArityCheckNormal : &script->jitArityCheckCtor;
+
+    if (*pjit) {
+        (*pjit)->~JITScript();
+        cx->free_(*pjit);
+        *pjit = NULL;
+        *parity = NULL;
     }
-
-    if ((jscr = script->jitCtor)) {
-        jscr->~JITScript();
-        cx->free_(jscr);
-        script->jitCtor = NULL;
-        script->jitArityCheckCtor = NULL;
-    }
-}
-
-void
-mjit::TraceScript(JSTracer *trc, JSScript *script)
-{
-    if (JITScript *jit = script->jitNormal)
-        jit->trace(trc);
-
-    if (JITScript *jit = script->jitCtor)
-        jit->trace(trc);
 }
 
 #ifdef JS_METHODJIT_PROFILE_STUBS
@@ -1016,7 +1249,7 @@ mjit::GetCallTargetCount(JSScript *script, jsbytecode *pc)
 #endif
 
 jsbytecode *
-JITScript::nativeToPC(void *returnAddress) const
+JITScript::nativeToPC(void *returnAddress, CallSite **pinline) const
 {
     size_t low = 0;
     size_t high = nCallICs;
@@ -1037,7 +1270,42 @@ JITScript::nativeToPC(void *returnAddress) const
     }
 
     js::mjit::ic::CallICInfo &ic = callICs_[low];
-
     JS_ASSERT((uint8*)ic.funGuard.executableAddress() + ic.joinPointOffset == returnAddress);
-    return ic.pc;
+
+    if (ic.call->inlineIndex != uint32(-1)) {
+        if (pinline)
+            *pinline = ic.call;
+        InlineFrame *frame = &inlineFrames()[ic.call->inlineIndex];
+        while (frame && frame->parent)
+            frame = frame->parent;
+        return frame->parentpc;
+    }
+
+    if (pinline)
+        *pinline = NULL;
+    return script->code + ic.call->pcOffset;
 }
+
+jsbytecode *
+mjit::NativeToPC(JITScript *jit, void *ncode, mjit::CallSite **pinline)
+{
+    return jit->nativeToPC(ncode, pinline);
+}
+
+void
+JITScript::trace(JSTracer *trc)
+{
+    
+
+
+
+
+    InlineFrame *inlineFrames_ = inlineFrames();
+    for (unsigned i = 0; i < nInlineFrames; i++)
+        MarkObject(trc, *inlineFrames_[i].fun, "jitscript_fun");
+
+    for (uint32 i = 0; i < nRootedObjects; ++i)
+        MarkObject(trc, *rootedObjects()[i], "mjit rooted object");
+}
+
+ const double mjit::Assembler::oneDouble = 1.0;

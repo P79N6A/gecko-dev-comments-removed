@@ -10075,6 +10075,19 @@ nsGlobalWindow::HasPerformanceSupport()
   return Preferences::GetBool("dom.enable_performance", PR_FALSE);
 }
 
+PRInt64
+nsGlobalWindow::SizeOf() const
+{
+  PRInt64 size = sizeof(*this);
+
+  if (IsInnerWindow() && mDoc) {
+    size += mDoc->SizeOf();
+  }
+
+  size += mNavigator ? mNavigator->SizeOf() : 0;
+
+  return size;
+}
 
 
 
@@ -11227,3 +11240,21 @@ NS_IMETHODIMP nsNavigator::GetMozNotification(nsIDOMDesktopNotificationCenter **
   NS_ADDREF(*aRetVal = mNotification);    
   return NS_OK; 
 }
+
+PRInt64
+nsNavigator::SizeOf() const
+{
+  PRInt64 size = sizeof(*this);
+
+  
+  size += mMimeTypes ? sizeof(*mMimeTypes.get()) : 0;
+  
+  size += mPlugins ? sizeof(*mPlugins.get()) : 0;
+  
+  size += mGeolocation ? sizeof(*mGeolocation.get()) : 0;
+  
+  size += mNotification ? sizeof(*mNotification.get()) : 0;
+
+  return size;
+}
+

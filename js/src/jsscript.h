@@ -47,6 +47,7 @@
 #include "jsprvtd.h"
 #include "jsdbgapi.h"
 #include "jsclist.h"
+#include "jsinfer.h"
 
 
 
@@ -176,7 +177,7 @@ class Bindings {
     bool hasExtensibleParents;
 
   public:
-    inline Bindings(JSContext *cx, EmptyShape *emptyCallShape);
+    inline Bindings(JSContext *cx);
 
     
 
@@ -202,6 +203,9 @@ class Bindings {
 
     bool hasUpvars() const { return nupvars > 0; }
     bool hasLocalNames() const { return countLocalNames() > 0; }
+
+    
+    inline bool ensureShape(JSContext *cx);
 
     
     inline js::Shape *lastShape() const;
@@ -385,11 +389,24 @@ namespace ion {
 }
 #endif
 
+namespace js { namespace analyze { class ScriptAnalysis; } }
+
 class JSPCCounters {
     size_t numBytecodes;
-    int *counts;
+    double *counts;
 
  public:
+
+    enum {
+        INTERP = 0,
+        TRACEJIT,
+        METHODJIT,
+        METHODJIT_STUBS,
+        METHODJIT_CODE,
+        METHODJIT_PICS,
+        NUM_COUNTERS
+    };
+
     JSPCCounters() : numBytecodes(0), counts(NULL) {
     }
 
@@ -405,19 +422,15 @@ class JSPCCounters {
         return counts;
     }
 
-    int *get(int runmode) {
-        JS_ASSERT(runmode >= 0 && runmode < JSRUNMODE_COUNT);
+    double *get(int runmode) {
+        JS_ASSERT(runmode >= 0 && runmode < NUM_COUNTERS);
         return counts ? &counts[numBytecodes * runmode] : NULL;
     }
 
-    int& get(int runmode, size_t offset) {
+    double& get(int runmode, size_t offset) {
         JS_ASSERT(offset < numBytecodes);
         JS_ASSERT(counts);
         return get(runmode)[offset];
-    }
-
-    size_t numRunmodes() const {
-        return JSRUNMODE_COUNT;
     }
 };
 
@@ -441,7 +454,8 @@ struct JSScript {
     static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
                                uint32 nobjects, uint32 nupvars, uint32 nregexps,
                                uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint16 nClosedArgs, uint16 nClosedVars, JSVersion version);
+                               uint16 nClosedArgs, uint16 nClosedVars, uint32 nTypeSets,
+                               JSVersion version);
 
     static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
@@ -453,13 +467,17 @@ struct JSScript {
     uint32          cookie1;
 
   private:
+    size_t          useCount_;  
+
+
+
     uint16          version;    
 
   public:
     uint16          nfixed;     
 
-  private:
-    size_t          callCount_; 
+    uint16          nTypeSets;  
+
 
     
 
@@ -488,10 +506,21 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
+    bool            warnedAboutUndefinedProp:1; 
+
+
     bool            hasSingletons:1;  
+    bool            hasFunction:1;    
+    bool            isActiveEval:1;   
+    bool            isCachedEval:1;   
+    bool            isUncachedEval:1; 
+    bool            usedLazyArgs:1;   
+    bool            createdArgs:1;    
+    bool            uninlineable:1;   
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
+    bool            failedBoundsCheck:1; 
 #endif
 
     jsbytecode      *main;      
@@ -549,6 +578,60 @@ struct JSScript {
     js::ion::IonScript *ion;          
 #endif
 
+    union {
+        
+        JSFunction *fun;
+
+        
+        js::GlobalObject *global;
+    } where;
+
+    inline JSFunction *function() const {
+        JS_ASSERT(hasFunction);
+        return where.fun;
+    }
+
+    
+
+
+
+    bool typeSetFunction(JSContext *cx, JSFunction *fun, bool singleton = false);
+
+    inline bool hasGlobal() const;
+    inline js::GlobalObject *global() const;
+
+    inline bool hasClearedGlobal() const;
+
+#ifdef DEBUG
+    
+
+
+
+    unsigned id_;
+    unsigned id() { return id_; }
+#else
+    unsigned id() { return 0; }
+#endif
+
+    
+    js::types::TypeScript *types;
+
+    
+    inline bool ensureHasTypes(JSContext *cx);
+    inline bool ensureRanBytecode(JSContext *cx);
+    inline bool ensureRanInference(JSContext *cx);
+
+    
+    inline bool hasAnalysis();
+    inline js::analyze::ScriptAnalysis *analysis();
+
+    inline bool isAboutToBeFinalized(JSContext *cx);
+
+  private:
+    bool makeTypes(JSContext *cx);
+    bool makeAnalysis(JSContext *cx);
+  public:
+
 #ifdef JS_METHODJIT
     
     
@@ -573,8 +656,10 @@ struct JSScript {
         return constructing ? jitCtor : jitNormal;
     }
 
-    size_t callCount() const  { return callCount_; }
-    size_t incCallCount() { return ++callCount_; }
+    size_t useCount() const  { return useCount_; }
+    size_t incUseCount() { return ++useCount_; }
+    size_t *addressOfUseCount() { return &useCount_; }
+    void resetUseCount() { useCount_ = 0; }
 
     JITScriptStatus getJITStatus(bool constructing) {
         void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;

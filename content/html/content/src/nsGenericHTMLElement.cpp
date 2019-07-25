@@ -102,8 +102,6 @@
 
 #include "nsContentCID.h"
 
-#include "nsIDOMText.h"
-
 #include "nsDOMStringMap.h"
 
 #include "nsIEditor.h"
@@ -765,6 +763,8 @@ nsGenericHTMLElement::SetInnerHTML(const nsAString& aInnerHTML)
     RemoveChildAt(0, PR_TRUE);
   }
 
+  nsAutoScriptLoaderDisabler sld(doc);
+  
   nsCOMPtr<nsIDOMDocumentFragment> df;
 
   if (doc->IsHTML()) {
@@ -829,6 +829,10 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
   NS_ENSURE_STATE(doc);
 
   
+  mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
+  nsAutoScriptLoaderDisabler sld(doc);
+  
+  
   mozAutoSubtreeModified subtree(doc, nsnull);
 
   
@@ -836,9 +840,6 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
       (position == eBeforeEnd ||
        (position == eAfterEnd && !GetNextSibling()) ||
        (position == eAfterBegin && !GetFirstChild()))) {
-    
-    mozAutoDocUpdate updateBatch(doc, UPDATE_CONTENT_MODEL, PR_TRUE);
-
     PRInt32 oldChildCount = destination->GetChildCount();
     PRInt32 contextNs = destination->GetNameSpaceID();
     nsIAtom* contextLocal = destination->Tag();
@@ -868,6 +869,11 @@ nsGenericHTMLElement::InsertAdjacentHTML(const nsAString& aPosition,
                                                          getter_AddRefs(df));
   nsCOMPtr<nsINode> fragment = do_QueryInterface(df);
   NS_ENSURE_SUCCESS(rv, rv);
+
+  
+  
+  
+  nsAutoScriptBlockerSuppressNodeRemoved scriptBlocker;
 
   switch (position) {
     case eBeforeBegin:

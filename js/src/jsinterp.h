@@ -144,6 +144,11 @@ BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 inline bool
 ComputeThis(JSContext *cx, StackFrame *fp);
 
+enum MaybeConstruct {
+    NO_CONSTRUCT = INITIAL_NONE,
+    CONSTRUCT = INITIAL_CONSTRUCT
+};
+
 
 
 
@@ -249,7 +254,9 @@ enum InterpMode
     JSINTERP_RECORD    = 1, 
     JSINTERP_SAFEPOINT = 2, 
     JSINTERP_PROFILE   = 3, 
-    JSINTERP_BAILOUT   = 4  
+    JSINTERP_REJOIN    = 4, 
+    JSINTERP_SKIP_TRAP = 5, 
+    JSINTERP_BAILOUT   = 6  
 };
 
 

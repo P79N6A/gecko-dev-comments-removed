@@ -142,7 +142,7 @@ static const nanojit::AccSet ACCSET_RUNTIME       = (1 <<  9);
 static const nanojit::AccSet ACCSET_OBJ_CLASP     = (1 << 10);
 static const nanojit::AccSet ACCSET_OBJ_FLAGS     = (1 << 11);
 static const nanojit::AccSet ACCSET_OBJ_SHAPE     = (1 << 12);
-static const nanojit::AccSet ACCSET_OBJ_PROTO     = (1 << 13);
+static const nanojit::AccSet ACCSET_OBJ_TYPE      = (1 << 13);
 static const nanojit::AccSet ACCSET_OBJ_PARENT    = (1 << 14);
 static const nanojit::AccSet ACCSET_OBJ_PRIVATE   = (1 << 15);
 static const nanojit::AccSet ACCSET_OBJ_CAPACITY  = (1 << 16);
@@ -495,7 +495,9 @@ class Writer
     }
 
     nj::LIns *ldpObjProto(nj::LIns *obj) const {
-        return name(lir->insLoad(nj::LIR_ldp, obj, offsetof(JSObject, proto), ACCSET_OBJ_PROTO),
+        nj::LIns *type = name(lir->insLoad(nj::LIR_ldp, obj, JSObject::offsetOfType(), ACCSET_OBJ_TYPE),
+                              "type");
+        return name(lir->insLoad(nj::LIR_ldp, type, offsetof(types::TypeObject, proto), ACCSET_OBJ_TYPE),
                     "proto");
     }
 
@@ -522,8 +524,8 @@ class Writer
                     "private_uint32");
     }
 
-    nj::LIns *ldiDenseArrayCapacity(nj::LIns *array) const {
-        return name(lir->insLoad(nj::LIR_ldi, array, offsetof(JSObject, capacity),
+    nj::LIns *ldiDenseArrayInitializedLength(nj::LIns *array) const {
+        return name(lir->insLoad(nj::LIR_ldi, array, offsetof(JSObject, initializedLength),
                                  ACCSET_OBJ_CAPACITY),
                     "capacity");
     }
@@ -543,31 +545,14 @@ class Writer
                 "fixed_slots");
     }
 
-    nj::LIns *ldiConstTypedArrayLength(nj::LIns *array) const {
-        return name(lir->insLoad(nj::LIR_ldi, array, sizeof(Value) * js::TypedArray::FIELD_LENGTH + sPayloadOffset, ACCSET_TARRAY,
+    nj::LIns *ldiConstTypedArrayLength(nj::LIns *obj) const {
+        return name(lir->insLoad(nj::LIR_ldi, obj, TypedArray::lengthOffset(), ACCSET_TARRAY,
                                  nj::LOAD_CONST),
                     "typedArrayLength");
     }
 
-    nj::LIns *ldiConstTypedArrayByteOffset(nj::LIns *array) const {
-        return name(lir->insLoad(nj::LIR_ldi, array, sizeof(Value) * js::TypedArray::FIELD_BYTEOFFSET + sPayloadOffset, ACCSET_TARRAY,
-                                 nj::LOAD_CONST),
-                    "typedArrayByteOffset");
-    }
-
-    nj::LIns *ldpConstTypedArrayData(nj::LIns *array) const {
-        
-                                 
-                    
-        uint32 offset = sizeof(Value) * js::TypedArray::FIELD_DATA + sPayloadOffset;
-#if JS_BITS_PER_WORD == 32
-        return name(lir->insLoad(nj::LIR_ldi, array, offset, ACCSET_TARRAY, nj::LOAD_CONST), "typedArrayData");
-#elif JS_BITS_PER_WORD == 64
-        
-        nj::LIns *v_ins = lir->insLoad(nj::LIR_ldq, array, offset,
-                                       ACCSET_TARRAY, nj::LOAD_CONST);
-        return name(lshqN(v_ins, 1), "typedArrayData");
-#endif
+    nj::LIns *ldpConstTypedArrayData(nj::LIns *obj) const {
+        return name(lir->insLoad(nj::LIR_ldp, obj, offsetof(JSObject, privateData), ACCSET_TARRAY, nj::LOAD_CONST), "typedArrayData");
     }
 
     nj::LIns *ldc2iTypedArrayElement(nj::LIns *elems, nj::LIns *index) const {
@@ -1197,17 +1182,14 @@ class Writer
 
 
 
-    nj::LIns *getObjPrivatizedSlot(nj::LIns *obj, uint32 slot) const {
-#if JS_BITS_PER_WORD == 32
-        nj::LIns *vaddr_ins = ldpObjSlots(obj);
-        return lir->insLoad(nj::LIR_ldi, vaddr_ins,
-                            slot * sizeof(Value) + sPayloadOffset, ACCSET_SLOTS, nj::LOAD_CONST);
 
+    nj::LIns *getObjPrivatizedSlot(nj::LIns *obj, uint32 slot) const {
+        uint32 offset = JSObject::getFixedSlotOffset(slot) + sPayloadOffset;
+#if JS_BITS_PER_WORD == 32
+        return lir->insLoad(nj::LIR_ldi, obj, offset, ACCSET_SLOTS, nj::LOAD_CONST);
 #elif JS_BITS_PER_WORD == 64
         
-        nj::LIns *vaddr_ins = ldpObjSlots(obj);
-        nj::LIns *v_ins = lir->insLoad(nj::LIR_ldq, vaddr_ins,
-                                       slot * sizeof(Value) + sPayloadOffset,
+        nj::LIns *v_ins = lir->insLoad(nj::LIR_ldq, obj, offset,
                                        ACCSET_SLOTS, nj::LOAD_CONST);
         return lshqN(v_ins, 1);
 #endif

@@ -1242,7 +1242,7 @@ class TraceRecorder
 
 
     JS_REQUIRES_STACK void checkForGlobalObjectReallocation() {
-        if (global_slots != globalObj->getSlots())
+        if (global_slots != globalObj->getRawSlots())
             checkForGlobalObjectReallocationHelper();
     }
     JS_REQUIRES_STACK void checkForGlobalObjectReallocationHelper();
@@ -1638,7 +1638,7 @@ class TraceRecorder
 
 
 
-            const Value *vp = &globalObj->getSlot(slot);
+            const Value *vp = globalObj->getRawSlot(slot, globalObj->getRawSlots());
 
             
             if (tracker.has(vp))
@@ -1658,7 +1658,8 @@ class TraceRecorder
     }
 };
 
-#define TRACING_ENABLED(cx)       ((cx)->traceJitEnabled)
+
+#define TRACING_ENABLED(cx)       ((cx)->traceJitEnabled && !(cx)->typeInferenceEnabled())
 #define REGEX_JIT_ENABLED(cx)     ((cx)->traceJitEnabled || (cx)->methodJitEnabled)
 
 #define JSOP_IN_RANGE(op,lo,hi)   (uintN((op) - (lo)) <= uintN((hi) - (lo)))

@@ -92,6 +92,46 @@ ARMWord ARMAssembler::getOp2(ARMWord imm)
     return INVALID_IMM;
 }
 
+ARMWord ARMAssembler::getOp2RegScale(RegisterID reg, ARMWord scale)
+{
+    
+    
+    
+    
+    
+
+    ARMWord shift;  
+    ARMWord lz;     
+
+    
+#if WTF_ARM_ARCH_AT_LEAST(5)
+    asm (
+    "   clz     %[lz], %[scale]\n"
+    : [lz]      "=r"  (lz)
+    : [scale]   "r"   (scale)
+    : 
+    );
+#else
+    ARMWord lz = 0; 
+    for (ARMWord s = 16; s > 0; s /= 2) {
+        ARMWord mask = 0xffffffff << (32-lz-s);
+        if ((x & mask) == 0) {
+            lz += s;
+        }
+    }
+#endif
+    if (lz >= 32) {
+        return INVALID_IMM;
+    }
+    shift = 31-lz;
+    
+    if ((1<<shift) != scale) {
+        return INVALID_IMM;
+    }
+
+    return (shift << 7) | (reg);
+}
+
 int ARMAssembler::genInt(int reg, ARMWord imm, bool positive)
 {
     
@@ -435,40 +475,63 @@ void ARMAssembler::baseIndexTransferN(bool isLoad, bool isSigned, int size, Regi
 
 void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset)
 {
-    if (offset & 0x3) {
-        if (offset <= 0x3ff && offset >= 0) {
-            fdtr_u(isLoad, srcDst, base, offset >> 2);
-            return;
-        }
-        if (offset <= 0x3ffff && offset >= 0) {
-            add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 10) | (11 << 8));
-            fdtr_u(isLoad, srcDst, ARMRegisters::S0, (offset >> 2) & 0xff);
-            return;
-        }
-        offset = -offset;
-
-        if (offset <= 0x3ff && offset >= 0) {
-            fdtr_d(isLoad, srcDst, base, offset >> 2);
-            return;
-        }
-        if (offset <= 0x3ffff && offset >= 0) {
-            sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 10) | (11 << 8));
-            fdtr_d(isLoad, srcDst, ARMRegisters::S0, (offset >> 2) & 0xff);
-            return;
-        }
-        offset = -offset;
-    }
-
-    
-    
-    
-    
     
     ASSERT((offset & 0x3) == 0);
+
+    if (offset <= 0x3ff && offset >= 0) {
+        fdtr_u(isLoad, srcDst, base, offset >> 2);
+        return;
+    }
+    if (offset <= 0x3ffff && offset >= 0) {
+        add_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 10) | (11 << 8));
+        fdtr_u(isLoad, srcDst, ARMRegisters::S0, (offset >> 2) & 0xff);
+        return;
+    }
+    offset = -offset;
+
+    if (offset <= 0x3ff && offset >= 0) {
+        fdtr_d(isLoad, srcDst, base, offset >> 2);
+        return;
+    }
+    if (offset <= 0x3ffff && offset >= 0) {
+        sub_r(ARMRegisters::S0, base, OP2_IMM | (offset >> 10) | (11 << 8));
+        fdtr_d(isLoad, srcDst, ARMRegisters::S0, (offset >> 2) & 0xff);
+        return;
+    }
+    offset = -offset;
 
     ldr_un_imm(ARMRegisters::S0, offset);
     add_r(ARMRegisters::S0, ARMRegisters::S0, base);
     fdtr_u(isLoad, srcDst, ARMRegisters::S0, 0);
+}
+
+void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset, RegisterID index, int32_t scale)
+{
+    
+    
+    
+
+    
+    ASSERT((offset & 0x3) == 0);
+
+    
+    if (scale == 0) {
+        doubleTransfer(isLoad, srcDst, base, offset);
+        return;
+    }
+
+    
+    
+    ARMWord op2_index = getOp2RegScale(index, scale);
+    if (op2_index == INVALID_IMM) {
+        
+        moveImm(scale, ARMRegisters::S0);
+        mul_r(ARMRegisters::S0, index, ARMRegisters::S0);
+        op2_index = ARMRegisters::S0;
+    }
+
+    add_r(ARMRegisters::S0, base, op2_index);
+    doubleTransfer(isLoad, srcDst, ARMRegisters::S0, offset);
 }
 
 void ARMAssembler::floatTransfer(bool isLoad, FPRegisterID srcDst, RegisterID base, int32_t offset)
