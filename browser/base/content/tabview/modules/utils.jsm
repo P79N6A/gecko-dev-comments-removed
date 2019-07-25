@@ -103,45 +103,16 @@ window.Rect.prototype = {
         && a.top == this.top
         && a.right == this.right
         && a.bottom == this.bottom);
-  }
-};
-
-
-
-window.Subscribable = function() {
-  this.onCloseSubscribers = [];
-};
-
-window.Subscribable.prototype = {
-  
-  addOnClose: function(referenceElement, callback) {
-    var existing = jQuery.grep(this.onCloseSubscribers, function(element) {
-      return element.referenceElement == referenceElement;
-    });
-    
-    if(existing.size) {
-      Utils.assert('should only ever be one', existing.size == 1);
-      existing[0].callback = callback;
-    } else {  
-      this.onCloseSubscribers.push({
-        referenceElement: referenceElement, 
-        callback: callback
-      });
-    }
   },
   
+  union: function(a){
+    var newLeft = Math.min(a.left, this.left);
+    var newTop = Math.min(a.top, this.top);
+    var newWidth = Math.max(a.right, this.right) - newLeft;
+    var newHeight = Math.max(a.bottom, this.bottom) - newTop;
+    var newRect = new Rect(newLeft, newTop, newWidth, newHeight); 
   
-  removeOnClose: function(referenceElement) {
-    this.onCloseSubscribers = jQuery.grep(this.onCloseSubscribers, function(element) {
-      return element.referenceElement == referenceElement;
-    }, true);
-  },
-  
-  
-  _sendOnClose: function() {
-    jQuery.each(this.onCloseSubscribers, function(index, object) { 
-      object.callback(this);
-    });
+    return newRect;
   }
 };
 
