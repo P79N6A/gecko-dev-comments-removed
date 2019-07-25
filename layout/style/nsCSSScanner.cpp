@@ -936,12 +936,6 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
     if (ch < 0) break;
     if (ch == CSS_ESCAPE) {
       ParseAndAppendEscape(ident);
-    } else if ((ch == '"') || (ch == '\'') || (ch == '(')) {
-      
-      ok = PR_FALSE;
-      Pushback(ch); 
-                    
-      break;
     } else if (IsWhitespace(ch)) {
       
       EatWhiteSpace();
@@ -953,6 +947,12 @@ nsCSSScanner::NextURL(nsCSSToken& aToken)
       
       
       ok = PR_FALSE;
+      break;
+    } else if (ch == '"' || ch == '\'' || ch == '(' || ch < PRUnichar(' ')) {
+      
+      ok = PR_FALSE;
+      Pushback(ch); 
+                    
       break;
     } else if (ch == ')') {
       Pushback(ch);
