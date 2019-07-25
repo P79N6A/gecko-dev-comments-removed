@@ -640,7 +640,6 @@ BookmarksStore.prototype = {
   changeItemID: function BStore_changeItemID(oldID, newID) {
     
     this.aliases[oldID] = newID;
-    this.cache.clear();
 
     
     this._findAnnoItems(PARENT_ANNO, oldID).forEach(function(itemId) {
@@ -706,16 +705,11 @@ BookmarksStore.prototype = {
 
   
   createRecord: function BStore_createRecord(guid, cryptoMetaURL) {
-    let record = this.cache.get(guid);
-    if (record)
-      return record;
-
     let placeId = idForGUID(guid);
     if (placeId <= 0) { 
       record = new PlacesItem();
       record.id = guid;
       record.deleted = true;
-      this.cache.put(guid, record);
       return record;
     }
 
@@ -799,7 +793,6 @@ BookmarksStore.prototype = {
     record.encryption = cryptoMetaURL;
     record.sortindex = this._calculateIndex(record);
 
-    this.cache.put(guid, record);
     return record;
   },
 

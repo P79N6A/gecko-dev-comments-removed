@@ -407,13 +407,6 @@ SyncEngine.prototype = {
     if (Svc.Prefs.get("client.type") == "mobile")
       fetchNum = 50;
 
-    
-    
-    
-    this._store.cache.enabled = true;
-    this._store.cache.fifo = false; 
-    this._store.cache.clear();
-
     let newitems = new Collection(this.engineURL, this._recordObj);
     newitems.newer = this.lastSync;
     newitems.full = true;
@@ -502,9 +495,6 @@ SyncEngine.prototype = {
 
     this._log.info(["Records:", count.applied, "applied,", count.reconciled,
       "reconciled,", this.toFetch.length, "left to fetch"].join(" "));
-
-    
-    this._store.cache.clear();
   },
 
   
@@ -554,8 +544,6 @@ SyncEngine.prototype = {
       this._store.changeItemID(dupeId, item.id);
       this._deleteId(dupeId);
     }
-
-    this._store.cache.clear(); 
   },
 
   
@@ -632,9 +620,6 @@ SyncEngine.prototype = {
         up.clearRecords();
       });
 
-      
-      this._store.cache.enabled = false;
-
       for (let id in this._tracker.changedIDs) {
         try {
           let out = this._createRecord(id);
@@ -658,8 +643,6 @@ SyncEngine.prototype = {
       
       if (count % MAX_UPLOAD_RECORDS > 0)
         doUpload(count >= MAX_UPLOAD_RECORDS ? "last batch" : "all");
-
-      this._store.cache.enabled = true;
     }
     this._tracker.clearChangedIDs();
   },
