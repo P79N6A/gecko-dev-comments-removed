@@ -5527,7 +5527,7 @@ nsDocument::GetAnimationController()
   if (!NS_SMILEnabled() || mLoadedAsData || mLoadedAsInteractiveData)
     return nsnull;
 
-  mAnimationController = NS_NewSMILAnimationController(this);
+  mAnimationController = new nsSMILAnimationController(this);
   
   
   
