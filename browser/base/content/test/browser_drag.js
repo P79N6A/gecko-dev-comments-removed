@@ -17,12 +17,11 @@ function test()
       data  : htmlString }
   ] ];
   
-  var proxyicon = document.getElementById("page-proxy-favicon")
-  var oldstate = proxyicon.getAttribute("pageproxystate");
-  proxyicon.setAttribute("pageproxystate", "valid");
-  var dt = EventUtils.synthesizeDragStart(proxyicon, expected);
+  var oldstate = gURLBar.getAttribute("pageproxystate");
+  gURLBar.setAttribute("pageproxystate", "valid");
+  var dt = EventUtils.synthesizeDragStart(document.getElementById("identity-box"), expected);
   is(dt, null, "drag on proxy icon");
-  proxyicon.setAttribute("pageproxystate", oldstate);
+  gURLBar.setAttribute("pageproxystate", oldstate);
   
   
   EventUtils.synthesizeKey("VK_ESCAPE", {}, window);
