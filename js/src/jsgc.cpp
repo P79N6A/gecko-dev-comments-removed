@@ -1081,7 +1081,7 @@ ConservativeGCStackMarker::dumpConservativeRoots()
 # if JS_HAS_XML_SUPPORT
           case JSTRACE_XML: {
             JSXML *xml = (JSXML *) i->thing;
-            fprintf(fp, "xml %u", xml->xml_class);
+            fprintf(fp, "xml %u", (unsigned)xml->xml_class);
             break;
           }
 # endif
@@ -1158,18 +1158,18 @@ ConservativeGCStackMarker::markWord(jsuword w)
     uint32 traceKind;
     traceKind = GetFinalizableArenaTraceKind(ainfo);
 
-#if JS_BYTES_PER_WORD == 8
     
 
 
 
 
-    JSValueTag tag = w >> JSVAL_TAG_SHIFT;
-    if ((tag == JSVAL_TAG_SHIFT && traceKind != JSTRACE_STRING) ||
-        (tag == JSVAL_TAG_OBJECT && traceKind != JSTRACE_OBJECT)) {
-        RETURN(wrongtag);
-    }
-#endif
+
+
+
+
+
+
+
 
     jsuword start = a->toPageStart();
     jsuword offset = payload - start;
