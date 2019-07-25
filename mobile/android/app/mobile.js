@@ -699,3 +699,7 @@ pref("media.plugins.enabled", true);
 
 
 pref("dom.event.touch.coalescing.enabled", true);
+
+
+
+pref("app.orientation.default", "");
