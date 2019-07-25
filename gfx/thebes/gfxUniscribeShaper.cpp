@@ -394,15 +394,48 @@ private:
     PRPackedBool mFontSelected;
 };
 
-#define MAX_ITEM_LENGTH 16384
+#define MAX_ITEM_LENGTH 32768
+
+static PRUint32 FindNextItemStart(int aOffset, int aLimit,
+                                  nsTArray<SCRIPT_LOGATTR> &aLogAttr,
+                                  const PRUnichar *aString)
+{
+    if (aOffset + MAX_ITEM_LENGTH >= aLimit) {
+        
+        
+        return aLimit;
+    }
+
+    
+    
+    PRUint32 off;
+    int boundary = -1;
+    for (off = MAX_ITEM_LENGTH; off > 1; --off) {
+      if (aLogAttr[off].fCharStop) {
+          if (off > boundary) {
+              boundary = off;
+          }
+          if (aString[aOffset+off] == ' ' || aString[aOffset+off - 1] == ' ')
+            return aOffset+off;
+      }
+    }
+
+    
+    if (boundary > 0) {
+      return aOffset+boundary;
+    }
+
+    
+    
+    
+    return aOffset + MAX_ITEM_LENGTH;
+}
 
 class Uniscribe
 {
 public:
-    Uniscribe(const PRUnichar *aString,
-              PRUint32 aLength,
-              gfxTextRun *aTextRun):
-        mString(aString), mLength(aLength), mTextRun(aTextRun)
+    Uniscribe(const PRUnichar *aString, PRUint32 aLength, PRBool aIsRTL) :
+        mString(aString), mLength(aLength), mIsRTL(aIsRTL)
     {
     }
     ~Uniscribe() {
@@ -413,77 +446,42 @@ public:
         memset(&mState, 0, sizeof(SCRIPT_STATE));
         
         
-        mState.uBidiLevel = mTextRun->IsRightToLeft() ? 1 : 0;
+        mState.uBidiLevel = mIsRTL;
         mState.fOverrideDirection = PR_TRUE;
     }
 
 private:
 
-
-
-
-
-
-#define MAX_UNISCRIBE_GLYPHS 32767
-
     
     
     nsresult CopyItemSplitOversize(int aIndex, nsTArray<SCRIPT_ITEM> &aDest) {
         aDest.AppendElement(mItems[aIndex]);
-        const int itemLength =
-            mItems[aIndex+1].iCharPos - mItems[aIndex].iCharPos;
-        if (ESTIMATE_MAX_GLYPHS(itemLength) > MAX_UNISCRIBE_GLYPHS) {
-            
+        const int itemLength = mItems[aIndex+1].iCharPos - mItems[aIndex].iCharPos;
+        if (ESTIMATE_MAX_GLYPHS(itemLength) > 65535) {
             
             
 
             
+            nsTArray<SCRIPT_LOGATTR> logAttr;
+            if (!logAttr.SetLength(itemLength))
+                return NS_ERROR_FAILURE;
+            HRESULT rv = ScriptBreak(mString+mItems[aIndex].iCharPos, itemLength,
+                                     &mItems[aIndex].a, logAttr.Elements());
+            if (FAILED(rv))
+                return NS_ERROR_FAILURE;
+
             const int nextItemStart = mItems[aIndex+1].iCharPos;
             int start = FindNextItemStart(mItems[aIndex].iCharPos,
-                                          nextItemStart);
+                                          nextItemStart, logAttr, mString);
 
             while (start < nextItemStart) {
                 SCRIPT_ITEM item = mItems[aIndex];
                 item.iCharPos = start;
                 aDest.AppendElement(item);
-                start = FindNextItemStart(start, nextItemStart);
+                start = FindNextItemStart(start, nextItemStart, logAttr, mString);
             }
         } 
         return NS_OK;
-    }
-
-    PRUint32 FindNextItemStart(int aOffset, int aLimit) {
-        if (aOffset + MAX_ITEM_LENGTH >= aLimit) {
-            
-            
-            
-            return aLimit;
-        }
-        
-        
-        PRInt32 off;
-        int boundary = -1;
-        for (off = MAX_ITEM_LENGTH; off > 1; --off) {
-            if (mTextRun->IsClusterStart(off)) {
-                if (off > boundary) {
-                    boundary = off;
-                }
-                if (mString[aOffset+off] == ' ' ||
-                    mString[aOffset+off - 1] == ' ') {
-                    return aOffset+off;
-                }
-            }
-        }
-
-        
-        if (boundary > 0) {
-            return aOffset+boundary;
-        }
-
-        
-        
-        
-        return aOffset + MAX_ITEM_LENGTH;
     }
 
 public:
@@ -539,7 +537,7 @@ public:
 private:
     const PRUnichar *mString;
     const PRUint32 mLength;
-    gfxTextRun *mTextRun;
+    const PRBool mIsRTL;
 
     SCRIPT_CONTROL mControl;
     SCRIPT_STATE   mState;
@@ -558,13 +556,15 @@ gfxUniscribeShaper::InitTextRun(gfxContext *aContext,
 {
     DCFromContext aDC(aContext);
  
+    const PRBool isRTL = aTextRun->IsRightToLeft();
+
     PRBool result = PR_TRUE;
     HRESULT rv;
 
     gfxGDIFont *font = static_cast<gfxGDIFont*>(mFont);
     AutoSelectFont fs(aDC, font->GetHFONT());
 
-    Uniscribe us(aString + aRunStart, aRunLength, aTextRun);
+    Uniscribe us(aString + aRunStart, aRunLength, isRTL);
 
     
     int numItems = us.Itemize();
