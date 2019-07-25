@@ -1160,26 +1160,23 @@ var Browser = {
     let browser = this._browserView.getBrowser();
     if (!browser) return null;
 
+    
+    
     let cwu = BrowserView.Util.getBrowserDOMWindowUtils(browser);
-
-    let scrollX = { value: 0 }, scrollY = { value: 0 };
+    let scrollX = {}, scrollY = {};
     cwu.getScrollXY(false, scrollX, scrollY);
     x = x - scrollX.value;
     y = y - scrollY.value;
-
     let elem = cwu.elementFromPoint(x, y,
                                     true,   
                                     false); 
 
     
     while (elem && (elem instanceof HTMLIFrameElement || elem instanceof HTMLFrameElement)) {
-      let frameWin = elem.ownerDocument.defaultView;
-      let frameUtils = frameWin.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
-      frameUtils.getScrollXY(false, scrollX, scrollY);
-
-      var rect = elem.getBoundingClientRect();
-      x = x - rect.left + scrollX.value;
-      y = y - rect.top + scrollY.value;
+      
+      let rect = elem.getBoundingClientRect();
+      x = x - rect.left;
+      y = y - rect.top;
       elem = elem.contentDocument.elementFromPoint(x, y);
     }
 
