@@ -221,15 +221,6 @@ function Coalescer() {
 }
 
 Coalescer.prototype = {
-  start: function start() {
-  },
-
-  stop: function stop() {
-  },
-
-  notify: function notify() {
-  },
-
   handleEvent: function handleEvent(aEvent) {
     switch (aEvent.type) {
       case "MozApplicationManifest": {
@@ -241,34 +232,6 @@ Coalescer.prototype = {
         });
         break;
       }
-    }
-  },
-
-  
-  _emptyPage: function _emptyPage() {
-    this._incremental = false;
-  },
-
-  sizeChange: function sizeChange(scrollOffset, x, y, width, height) {
-    
-    
-    
-    x = x + scrollOffset.x;
-    y = y + scrollOffset.y;
-    this._pendingSizeChange = {
-      width: width + (x < 0 ? x : 0),
-      height: height + (y < 0 ? y : 0)
-    };
-
-    if (!this._timer.isPending())
-      this.flush();
-  },
-
-  flush: function flush() {
-    let sizeChange = this._pendingSizeChange;
-    if (sizeChange) {
-      sendAsyncMessage("Browser:MozScrolledAreaChanged", { width: sizeChange.width, height: sizeChange.height });
-      this._pendingSizeChange = null;
     }
   }
 };
@@ -367,7 +330,6 @@ function Content() {
   addMessageListener("Browser:ZoomToPoint", this);
 
   this._coalescer = new Coalescer();
-  addEventListener("MozScrolledAreaChanged", this._coalescer, false);
   addEventListener("MozApplicationManifest", this._coalescer, false);
 
   this._progressController = new ProgressController(this);
