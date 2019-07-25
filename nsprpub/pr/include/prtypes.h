@@ -355,6 +355,12 @@ typedef long PRInt32;
 
 
 
+
+
+
+
+
+
 #ifdef HAVE_LONG_LONG
 
 
@@ -378,7 +384,6 @@ typedef unsigned long long PRUint64;
 #define PR_INT64(x)  x ## LL
 #define PR_UINT64(x) x ## ULL
 #endif 
-
 
 #define PR_INT64_MAX PR_INT64(0x7fffffffffffffff)
 #define PR_INT64_MIN (-PR_INT64_MAX - 1)
