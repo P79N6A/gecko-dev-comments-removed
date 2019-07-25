@@ -148,12 +148,11 @@ public:
 
 
 
-  PRBool IsBackgroundOnly() { return mIsBackgroundOnly; }
-  
-
-
-
-  void SetBackgroundOnly(PRBool aIsBackgroundOnly) { mIsBackgroundOnly = aIsBackgroundOnly; }
+  PRBool IsBackgroundOnly() {
+    NS_ASSERTION(mPresShellStates.Length() > 0,
+                 "don't call this if we're not in a presshell");
+    return CurrentPresShellState()->mIsBackgroundOnly;
+  }
   
 
 
@@ -213,7 +212,12 @@ public:
 
 
 
-  void IgnorePaintSuppression() { mIsBackgroundOnly = PR_FALSE; }
+  void IgnorePaintSuppression() { mIgnoreSuppression = PR_TRUE; }
+  
+
+
+
+  PRBool GetHadToIgnorePaintSuppression() { return mHadToIgnoreSuppression; }
   
 
 
@@ -368,6 +372,7 @@ private:
     nsIPresShell* mPresShell;
     nsIFrame*     mCaretFrame;
     PRUint32      mFirstFrameMarkedForDisplay;
+    PRPackedBool  mIsBackgroundOnly;
   };
   PresShellState* CurrentPresShellState() {
     NS_ASSERTION(mPresShellStates.Length() > 0,
@@ -385,7 +390,8 @@ private:
   nsDisplayTableItem*            mCurrentTableItem;
   PRPackedBool                   mBuildCaret;
   PRPackedBool                   mEventDelivery;
-  PRPackedBool                   mIsBackgroundOnly;
+  PRPackedBool                   mIgnoreSuppression;
+  PRPackedBool                   mHadToIgnoreSuppression;
   PRPackedBool                   mIsAtRootOfPseudoStackingContext;
   PRPackedBool                   mSelectedFramesOnly;
   PRPackedBool                   mAccurateVisibleRegions;
