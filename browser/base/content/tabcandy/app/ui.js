@@ -1,9 +1,5 @@
 (function(){
 
-$.expr[':'].icontains = function(obj, index, meta, stack){
-return (obj.textContent || obj.innerText || jQuery(obj).text() || '').toLowerCase().indexOf(meta[3].toLowerCase()) >= 0;
-};
-
 
 Navbar = {
   get el(){
@@ -91,31 +87,6 @@ var Page = {
                 Navbar.show();    
                 $("body").css("overflow", overflow);          
               });
-            
-            
-            
-            
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            
             
           } else {
             $(this).find("canvas").data("link").tab.raw.pos = $(this).position();
