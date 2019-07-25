@@ -5036,9 +5036,14 @@ void PresShell::UpdateCanvasBackground()
     
     
     
+    bool drawBackgroundImage;
+    bool drawBackgroundColor;
+
     mCanvasBackgroundColor =
       nsCSSRendering::DetermineBackgroundColor(mPresContext, bgStyle,
-                                               rootStyleFrame);
+                                               rootStyleFrame,
+                                               drawBackgroundImage,
+                                               drawBackgroundColor);
     if (GetPresContext()->IsRootContentDocument() &&
         !IsTransparentContainerElement(mPresContext)) {
       mCanvasBackgroundColor =
