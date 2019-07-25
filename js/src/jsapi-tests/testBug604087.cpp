@@ -78,7 +78,7 @@ BEGIN_TEST(testBug604087)
     }
 
     JS_SetWrapObjectCallbacks(JS_GetRuntime(cx), Wrap, PreWrap);
-    CHECK(JS_TransplantObject(cx, outerObj, next));
+    CHECK(JS_TransplantWrapper(cx, outerObj, next));
     return true;
 }
 END_TEST(testBug604087)

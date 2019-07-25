@@ -1217,29 +1217,31 @@ JS_WrapValue(JSContext *cx, jsval *vp)
 }
 
 JS_PUBLIC_API(JSObject *)
-JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
+JS_TransplantWrapper(JSContext *cx, JSObject *wrapper, JSObject *target)
 {
-     
-     
-     
+    JS_ASSERT(wrapper->isWrapper());
+
+    
+
+
+
+
     JSCompartment *destination = target->getCompartment();
-    if (origobj->getCompartment() == destination) {
+    if (wrapper->getCompartment() == destination) {
         
         
         
-        
-        if (!origobj->swap(cx, target))
+        if (!wrapper->swap(cx, target))
             return NULL;
-        return origobj;
+        return wrapper;
     }
 
     JSObject *obj;
     WrapperMap &map = destination->crossCompartmentWrappers;
-    Value origv = ObjectValue(*origobj);
+    Value wrapperv = ObjectValue(*wrapper);
 
     
-    
-    if (WrapperMap::Ptr p = map.lookup(origv)) {
+    if (WrapperMap::Ptr p = map.lookup(wrapperv)) {
         
         
         
@@ -1264,7 +1266,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 
     for (JSCompartment **p = vector.begin(), **end = vector.end(); p != end; ++p) {
         WrapperMap &pmap = (*p)->crossCompartmentWrappers;
-        if (WrapperMap::Ptr wp = pmap.lookup(origv)) {
+        if (WrapperMap::Ptr wp = pmap.lookup(wrapperv)) {
             
             toTransplant.append(wp->value);
         }
@@ -1274,8 +1276,8 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         JSObject *wobj = &begin->toObject();
         JSCompartment *wcompartment = wobj->compartment();
         WrapperMap &pmap = wcompartment->crossCompartmentWrappers;
-        JS_ASSERT(pmap.lookup(origv));
-        pmap.remove(origv);
+        JS_ASSERT(pmap.lookup(wrapperv));
+        pmap.remove(wrapperv);
 
         
         
@@ -1296,13 +1298,13 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
 
     
     {
-        AutoCompartment ac(cx, origobj);
+        AutoCompartment ac(cx, wrapper);
         JSObject *tobj = obj;
         if (!ac.enter() || !JS_WrapObject(cx, &tobj))
             return NULL;
-        if (!origobj->swap(cx, tobj))
+        if (!wrapper->swap(cx, tobj))
             return NULL;
-        origobj->getCompartment()->crossCompartmentWrappers.put(targetv, origv);
+        wrapper->getCompartment()->crossCompartmentWrappers.put(targetv, wrapperv);
     }
 
     return obj;

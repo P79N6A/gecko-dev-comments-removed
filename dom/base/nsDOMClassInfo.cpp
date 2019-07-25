@@ -4701,7 +4701,7 @@ nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * proto)
   
   nsISupports *globalNative = XPConnect()->GetNativeOfWrapper(cx, global);
   nsCOMPtr<nsPIDOMWindow> piwin = do_QueryInterface(globalNative);
-  if (!piwin) {
+  if(!piwin) {
     return NS_OK;
   }
 
@@ -4709,15 +4709,6 @@ nsDOMClassInfo::PostCreatePrototype(JSContext * cx, JSObject * proto)
   if (win->IsClosedOrClosing()) {
     return NS_OK;
   }
-
-  
-  
-  
-  if (win->FastGetGlobalJSObject() &&
-      global->compartment() != win->FastGetGlobalJSObject()->compartment()) {
-    return NS_OK;
-  }
-
   if (win->IsOuterWindow()) {
     
     
