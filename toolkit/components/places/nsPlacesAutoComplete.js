@@ -39,6 +39,8 @@
 
 Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
 Components.utils.import("resource://gre/modules/Services.jsm");
+XPCOMUtils.defineLazyModuleGetter(this, "PlacesUtils",
+                                  "resource://gre/modules/PlacesUtils.jsm");
 
 
 
@@ -1387,7 +1389,12 @@ urlInlineComplete.prototype = {
     this._result = result;
     this._listener = aListener;
 
-    if (this._currentSearchString.length == 0 || !this._db) {
+    
+    
+    
+    
+    if (this._currentSearchString.length == 0 || !this._db ||
+        PlacesUtils.bookmarks.getURIForKeyword(this._currentSearchString)) {
       this._finishSearch();
       return;
     }
