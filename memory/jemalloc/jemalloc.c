@@ -1266,8 +1266,13 @@ static
 #endif
 bool		malloc_init_hard(void);
 
+#ifdef MOZ_MEMORY_ANDROID
+void	_malloc_prefork(void);
+void	_malloc_postfork(void);
+#else
 static void	_malloc_prefork(void);
 static void	_malloc_postfork(void);
+#endif
 
 #ifdef MOZ_MEMORY_DARWIN
 
@@ -5606,6 +5611,8 @@ MALLOC_OUT:
 
 #if (!defined(MOZ_MEMORY_WINDOWS) && !defined(MOZ_MEMORY_DARWIN) && !defined(MOZ_MEMORY_ANDROID))
 	
+	
+
 	pthread_atfork(_malloc_prefork, _malloc_postfork, _malloc_postfork);
 #endif
 
@@ -6436,7 +6443,11 @@ _msize(const void *ptr)
 
 
 
+#ifdef MOZ_MEMORY_ANDROID
+void
+#else
 static void
+#endif
 _malloc_prefork(void)
 {
 	unsigned i;
@@ -6454,7 +6465,11 @@ _malloc_prefork(void)
 	malloc_mutex_lock(&huge_mtx);
 }
 
+#ifdef MOZ_MEMORY_ANDROID
+void
+#else
 static void
+#endif
 _malloc_postfork(void)
 {
 	unsigned i;
