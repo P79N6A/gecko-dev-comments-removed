@@ -161,6 +161,10 @@ struct AutoEnterTypeInference
     ~AutoEnterTypeInference()
     {
         
+
+
+
+
         JS_ASSERT(cx->compartment->types.inferenceDepth == depth);
     }
 };
@@ -186,6 +190,29 @@ TypeCompartment::checkPendingRecompiles(JSContext *cx)
         return false;
     return true;
 }
+
+
+
+
+
+struct AutoEnterCompilation
+{
+    JSContext *cx;
+    JSScript *script;
+
+    AutoEnterCompilation(JSContext *cx, JSScript *script)
+        : cx(cx), script(script)
+    {
+        JS_ASSERT(!cx->compartment->types.compiledScript);
+        cx->compartment->types.compiledScript = script;
+    }
+
+    ~AutoEnterCompilation()
+    {
+        JS_ASSERT(cx->compartment->types.compiledScript == script);
+        cx->compartment->types.compiledScript = NULL;
+    }
+};
 
 bool
 UseNewType(JSContext *cx, JSScript *script, jsbytecode *pc);

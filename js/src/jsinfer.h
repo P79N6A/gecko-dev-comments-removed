@@ -310,22 +310,22 @@ struct TypeSet
 
 
     
-    void addFreeze(JSContext *cx, JSScript *script);
+    void addFreeze(JSContext *cx);
 
     
-    JSValueType getKnownTypeTag(JSContext *cx, JSScript *script);
+    JSValueType getKnownTypeTag(JSContext *cx);
 
     
-    ObjectKind getKnownObjectKind(JSContext *cx, JSScript *script);
+    ObjectKind getKnownObjectKind(JSContext *cx);
 
     
-    bool hasUnknownProperties(JSContext *cx, JSScript *script);
+    bool hasUnknownProperties(JSContext *cx);
 
     
-    bool knownNonEmpty(JSContext *cx, JSScript *script);
+    bool knownNonEmpty(JSContext *cx);
 
     
-    JSObject *getSingleton(JSContext *cx, JSScript *script);
+    JSObject *getSingleton(JSContext *cx);
 
     
     void pushAllTypes(JSContext *cx, JSScript *script, const jsbytecode *pc);
@@ -334,7 +334,7 @@ struct TypeSet
 
 
 
-    static void Clone(JSContext *cx, JSScript *script, TypeSet *source, ClonedTypeSet *target);
+    static void Clone(JSContext *cx, TypeSet *source, ClonedTypeSet *target);
 
   private:
     inline void markUnknown(JSContext *cx);
@@ -665,6 +665,13 @@ struct TypeCompartment
 
     unsigned recompilations;
     unsigned frameExpansions;
+
+    
+
+
+
+
+    JSScript *compiledScript;
 
     
 
