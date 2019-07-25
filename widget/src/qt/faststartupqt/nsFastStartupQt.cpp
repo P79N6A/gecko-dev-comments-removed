@@ -63,7 +63,7 @@ nsFastStartup::symbolsLoadingFinished(bool preloaded)
 {
   mSymbolsLoaded = preloaded;
   if (mWidgetPainted && mSymbolsLoaded) {
-    qApp->quit();
+    mLoop.quit();
   }
 }
 
@@ -71,7 +71,7 @@ void nsFastStartup::painted()
 {
   mWidgetPainted = true;
   if (mWidgetPainted && mSymbolsLoaded) {
-    qApp->quit();
+    mLoop.quit();
   }
 }
 
@@ -159,7 +159,7 @@ nsFastStartup::CreateFastStartup(int& argc, char ** argv,
   
   
   
-  qApp->exec();
+  mLoop.exec();
 
   return true;
 }
