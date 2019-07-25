@@ -47,7 +47,7 @@
 namespace js {
 namespace ion {
 
-class MoveGroupResolver
+class MoveResolver
 {
   public:
     
@@ -185,7 +185,7 @@ class MoveGroupResolver
 
     };
 
-    typedef InlineList<MoveGroupResolver::PendingMove>::iterator PendingMoveIterator;
+    typedef InlineList<MoveResolver::PendingMove>::iterator PendingMoveIterator;
 
   private:
     
@@ -197,11 +197,10 @@ class MoveGroupResolver
 
     InlineList<PendingMove> pending_;
 
-    bool buildWorklist(LMoveGroup *group);
     PendingMove *findBlockingMove(const PendingMove *last);
 
   public:
-    MoveGroupResolver();
+    MoveResolver();
 
     
     

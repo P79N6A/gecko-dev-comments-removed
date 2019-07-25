@@ -38,18 +38,18 @@
 
 
 
-#include "MoveGroupResolver.h"
+#include "MoveResolver.h"
 
 using namespace js;
 using namespace js::ion;
 
-MoveGroupResolver::MoveGroupResolver()
+MoveResolver::MoveResolver()
   : hasCycles_(false)
 {
 }
 
 bool
-MoveGroupResolver::addMove(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
+MoveResolver::addMove(const MoveOperand &from, const MoveOperand &to, Move::Kind kind)
 {
     PendingMove *pm = movePool_.allocate();
     if (!pm)
@@ -61,8 +61,8 @@ MoveGroupResolver::addMove(const MoveOperand &from, const MoveOperand &to, Move:
 
 
 
-MoveGroupResolver::PendingMove *
-MoveGroupResolver::findBlockingMove(const PendingMove *last)
+MoveResolver::PendingMove *
+MoveResolver::findBlockingMove(const PendingMove *last)
 {
     for (PendingMoveIterator iter = pending_.begin(); iter != pending_.end(); iter++) {
         PendingMove *other = *iter;
@@ -79,7 +79,7 @@ MoveGroupResolver::findBlockingMove(const PendingMove *last)
 }
 
 bool
-MoveGroupResolver::resolve()
+MoveResolver::resolve()
 {
     JS_ASSERT(!pending_.empty());
 

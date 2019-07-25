@@ -47,17 +47,17 @@
 #elif JS_CPU_X64
 # include "ion/x64/MacroAssembler-x64.h"
 #endif
-#include "MoveGroupResolver.h"
+#include "MoveResolver.h"
 
 namespace js {
 namespace ion {
 
 class MacroAssembler : public MacroAssemblerSpecific
 {
-    MoveGroupResolver moveResolver_;
+    MoveResolver moveResolver_;
 
   public:
-    MoveGroupResolver &moveResolver() {
+    MoveResolver &moveResolver() {
         return moveResolver_;
     }
 };
