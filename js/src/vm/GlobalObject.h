@@ -201,7 +201,7 @@ class GlobalObject : public JSObject {
 
 
     JSFunction *
-    createConstructor(JSContext *cx, JSNative ctor, Class *clasp, JSAtom *name, unsigned length,
+    createConstructor(JSContext *cx, JSNative ctor, JSAtom *name, unsigned length,
                       gc::AllocKind kind = JSFunction::FinalizeKind);
 
     
