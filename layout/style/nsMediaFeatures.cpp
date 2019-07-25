@@ -46,6 +46,7 @@
 #include "nsCSSValue.h"
 #include "nsIDocShell.h"
 #include "nsLayoutUtils.h"
+#include "nsILookAndFeel.h"
 #include "nsCSSRuleProcessor.h"
 
 static const PRInt32 kOrientationKeywords[] = {
@@ -59,6 +60,24 @@ static const PRInt32 kScanKeywords[] = {
   eCSSKeyword_interlace,                NS_STYLE_SCAN_INTERLACE,
   eCSSKeyword_UNKNOWN,                  -1
 };
+
+#ifdef XP_WIN
+struct WindowsThemeName {
+    nsILookAndFeel::WindowsThemeIdentifier id;
+    const wchar_t* name;
+};
+
+
+const WindowsThemeName themeStrings[] = {
+    { nsILookAndFeel::eWindowsTheme_Aero,       L"aero" },
+    { nsILookAndFeel::eWindowsTheme_LunaBlue,   L"luna-blue" },
+    { nsILookAndFeel::eWindowsTheme_LunaOlive,  L"luna-olive" },
+    { nsILookAndFeel::eWindowsTheme_LunaSilver, L"luna-silver" },
+    { nsILookAndFeel::eWindowsTheme_Royale,     L"royale" },
+    { nsILookAndFeel::eWindowsTheme_Zune,       L"zune" },
+    { nsILookAndFeel::eWindowsTheme_Generic,    L"generic" }
+};
+#endif
 
 
 static nsSize
@@ -280,6 +299,31 @@ GetSystemMetric(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
     return NS_OK;
 }
 
+static nsresult
+GetWindowsTheme(nsPresContext* aPresContext, const nsMediaFeature* aFeature,
+                nsCSSValue& aResult)
+{
+    aResult.Reset();
+#ifdef XP_WIN
+    PRUint8 windowsThemeId =
+        nsCSSRuleProcessor::GetWindowsThemeIdentifier();
+
+    
+    if (windowsThemeId == nsILookAndFeel::eWindowsTheme_Classic)
+        return NS_OK;
+
+    
+    for (size_t i = 0; i < NS_ARRAY_LENGTH(themeStrings); ++i) {
+        if (windowsThemeId == themeStrings[i].id) {
+            aResult.SetStringValue(nsDependentString(themeStrings[i].name),
+                                   eCSSUnit_Ident);
+            break;
+        }
+    }
+#endif
+    return NS_OK;
+}
+
 
 
 
@@ -489,7 +533,13 @@ nsMediaFeatures::features[] = {
         { &nsGkAtoms::menubar_drag },
         GetSystemMetric
     },
-
+    {
+        &nsGkAtoms::_moz_windows_theme,
+        nsMediaFeature::eMinMaxNotAllowed,
+        nsMediaFeature::eIdent,
+        { nsnull },
+        GetWindowsTheme
+    },
     
     {
         nsnull,

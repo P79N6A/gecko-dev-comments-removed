@@ -68,8 +68,8 @@ struct nsMediaFeature {
         eIntRatio,   
         eResolution, 
                      
-        eEnumerated  
-
+        eEnumerated, 
+        eIdent       
         
         
         
