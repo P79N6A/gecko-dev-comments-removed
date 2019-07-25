@@ -247,6 +247,33 @@ AsyncChannel::Send(Message* msg)
     return true;
 }
 
+bool
+AsyncChannel::Echo(Message* msg)
+{
+    AssertWorkerThread();
+    mMonitor.AssertNotCurrentThreadOwns();
+    NS_ABORT_IF_FALSE(MSG_ROUTING_NONE != msg->routing_id(), "need a route");
+
+    {
+        MonitorAutoLock lock(mMonitor);
+
+        if (!Connected()) {
+            ReportConnectionError("AsyncChannel");
+            return false;
+        }
+
+        
+        
+        
+        mIOLoop->PostTask(
+            FROM_HERE,
+            NewRunnableMethod(this, &AsyncChannel::OnEchoMessage, msg));
+        
+    }
+
+    return true;
+}
+
 void
 AsyncChannel::OnDispatchMessage(const Message& msg)
 {
@@ -468,6 +495,14 @@ AsyncChannel::OnMessageReceived(const Message& msg)
         mWorkerLoop->PostTask(
             FROM_HERE,
             NewRunnableMethod(this, &AsyncChannel::OnDispatchMessage, msg));
+}
+
+void
+AsyncChannel::OnEchoMessage(Message* msg)
+{
+    AssertIOThread();
+    OnMessageReceived(*msg);
+    delete msg;
 }
 
 void

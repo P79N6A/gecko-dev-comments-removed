@@ -118,6 +118,10 @@ public:
     virtual bool Send(Message* msg);
 
     
+    
+    virtual bool Echo(Message* msg);
+
+    
     void DispatchOnChannelConnected(int32 peer_pid);
 
     
@@ -177,6 +181,7 @@ protected:
     void OnChannelOpened();
     void OnCloseChannel();
     void PostErrorNotifyTask();
+    void OnEchoMessage(Message* msg);
 
     
     
