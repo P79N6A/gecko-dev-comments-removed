@@ -82,8 +82,7 @@ NS_CYCLE_COLLECTION_CLASSNAME(nsXPCWrappedJS)::Traverse
         
         
         NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mJSObj");
-        cb.NoteScriptChild(nsIProgrammingLanguage::JAVASCRIPT,
-                           tmp->GetJSObjectPreserveColor());
+        cb.NoteJSChild(tmp->GetJSObjectPreserveColor());
     }
 
     nsXPCWrappedJS* root = tmp->GetRootWrapper();

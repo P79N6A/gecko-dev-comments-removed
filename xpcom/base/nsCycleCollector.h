@@ -117,6 +117,11 @@ struct nsCycleCollectionJSRuntime : public nsCycleCollectionLanguageRuntime
 
 
     virtual void Collect(PRUint32 reason, PRUint32 kind) = 0;
+
+    
+
+
+    virtual nsCycleCollectionParticipant *GetParticipant() = 0;
 };
 
 #ifdef DEBUG
