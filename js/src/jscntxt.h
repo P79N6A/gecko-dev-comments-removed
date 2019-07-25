@@ -712,6 +712,44 @@ struct JSRuntime {
 
     bool                 inOOMReport;
 
+#if defined(MOZ_GCTIMER) || defined(JSGC_TESTPILOT)
+    struct GCData {
+        
+
+
+
+        uint64      firstEnter;
+        bool        firstEnterValid;
+
+        void setFirstEnter(uint64 v) {
+            JS_ASSERT(!firstEnterValid);
+            firstEnter = v;
+            firstEnterValid = true;
+        }
+
+#ifdef JSGC_TESTPILOT
+        bool        infoEnabled;
+
+        bool isTimerEnabled() {
+            return infoEnabled;
+        }
+
+        
+
+
+
+        static const size_t INFO_LIMIT = 64;
+        JSGCInfo    info[INFO_LIMIT];
+        size_t      start;
+        size_t      count;
+#else 
+        bool isTimerEnabled() {
+            return true;
+        }
+#endif
+    } gcData;
+#endif
+
     JSRuntime();
     ~JSRuntime();
 

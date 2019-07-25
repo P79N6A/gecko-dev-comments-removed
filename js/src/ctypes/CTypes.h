@@ -504,6 +504,8 @@ namespace CData {
 
   
   JSBool Cast(JSContext* cx, uintN argc, jsval* vp);
+  
+  JSBool GetRuntime(JSContext* cx, uintN argc, jsval* vp);
 }
 
 namespace Int64 {
