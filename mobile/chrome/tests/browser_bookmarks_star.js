@@ -47,12 +47,12 @@ function runNextTest() {
 
 
 gTests.push({
-  desc: "Test adding tags via star icon",
+  desc: "Test appearance and behavior of the bookmark popup",
   _currenttab: null,
   
   run: function() {
     this._currenttab = Browser.addTab(testURL_02, true);
-    var handleEvent = function() {
+    function handleEvent() {
       gCurrentTest._currenttab.browser.removeEventListener("load", handleEvent, true);
       gCurrentTest.onPageLoad();
     };
@@ -63,6 +63,85 @@ gTests.push({
     var starbutton = document.getElementById("tool-star");
     starbutton.click();
     
+    waitFor(gCurrentTest.onPopupReady1, function() { return document.getElementById("bookmark-popup").hidden == false; });
+  },
+  
+  onPopupReady1: function() {
+    
+    setTimeout(gCurrentTest.onPopupGone, 3000);
+  },
+  
+  onPopupGone: function() {
+    
+    is(document.getElementById("bookmark-popup").hidden, true, "Bookmark popup should be auto-hidden");
+    
+    
+    var starbutton = document.getElementById("tool-star");
+    starbutton.click();
+    
+    waitFor(gCurrentTest.onPopupReady2, function() { return document.getElementById("bookmark-popup").hidden == false; });
+  },
+  
+  onPopupReady2: function() {
+    
+    var starbutton = document.getElementById("tool-star");
+    starbutton.click();
+    
+    waitFor(gCurrentTest.onPopupGone2, function() { return document.getElementById("bookmark-popup").hidden == true; });
+  },
+  
+  onPopupGone2: function() {
+    
+    is(document.getElementById("bookmark-popup").hidden, true, "Bookmark popup should be hidden by clicking star");
+    
+    
+    var starbutton = document.getElementById("tool-star");
+    starbutton.click();
+    
+    waitFor(gCurrentTest.onPopupReady3, function() { return document.getElementById("bookmark-popup").hidden == false; });
+  },
+
+  onPopupReady3: function() {
+    
+    var contentarea = document.getElementById("tile-container");
+    EventUtils.synthesizeMouse(contentarea, contentarea.clientWidth / 2, contentarea.clientHeight / 2, {});
+    
+    waitFor(gCurrentTest.onPopupGone3, function() { return document.getElementById("bookmark-popup").hidden == true; });
+  },
+  
+  onPopupGone3: function() {
+    
+    is(document.getElementById("bookmark-popup").hidden, true, "Bookmark popup should be hidden by clicking in content");
+    
+    BrowserUI.closeTab(this._currenttab);
+    
+    runNextTest();
+  }  
+});
+
+
+
+gTests.push({
+  desc: "Test adding tags via star icon",
+  _currenttab: null,
+  
+  run: function() {
+    this._currenttab = Browser.addTab(testURL_02, true);
+    function handleEvent() {
+      gCurrentTest._currenttab.browser.removeEventListener("load", handleEvent, true);
+      gCurrentTest.onPageLoad();
+    };
+    this._currenttab.browser.addEventListener("load", handleEvent , true);
+  },
+  
+  onPageLoad: function() {
+    var starbutton = document.getElementById("tool-star");
+    starbutton.click();
+
+    waitFor(gCurrentTest.onPopupReady, function() { return document.getElementById("bookmark-popup").hidden == false; });
+  },
+  
+  onPopupReady: function() {
     var editbutton = document.getElementById("bookmark-popup-edit");
     editbutton.click();
     
@@ -97,7 +176,7 @@ gTests.push({
   
   run: function() {
     this._currenttab = Browser.addTab(testURL_02, true);
-    var handleEvent = function() {
+    function handleEvent() {
       gCurrentTest._currenttab.browser.removeEventListener("load", handleEvent, true);
       gCurrentTest.onPageLoad();
     };
@@ -108,6 +187,10 @@ gTests.push({
     var starbutton = document.getElementById("tool-star");
     starbutton.click();    
     
+    waitFor(gCurrentTest.onPopupReady, function() { return document.getElementById("bookmark-popup").hidden == false; });
+  },
+  
+  onPopupReady: function() {
     var editbutton = document.getElementById("bookmark-popup-edit");
     editbutton.click();
     
@@ -145,7 +228,7 @@ gTests.push({
   
   run: function() {
     this._currenttab = Browser.addTab(testURL_01, true);
-    var handleEvent = function() {
+    function handleEvent() {
       gCurrentTest._currenttab.browser.removeEventListener("load", handleEvent, true);
       gCurrentTest.onPageLoad();
     };
@@ -156,6 +239,10 @@ gTests.push({
     var starbutton = document.getElementById("tool-star");
     starbutton.click();    
     
+    waitFor(gCurrentTest.onPopupReady, function() { return document.getElementById("bookmark-popup").hidden == false; });
+  },
+  
+  onPopupReady: function() {
     var removebutton = document.getElementById("bookmark-popup-remove");
     removebutton.click();
     
