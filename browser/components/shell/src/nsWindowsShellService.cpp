@@ -56,7 +56,7 @@
 
 
 
-#define CLEAR_PREFETCH_TIMEOUT_MS 60000
+#define CLEAR_PREFETCH_TIMEOUT_MS 180000
 
 NS_IMPL_ISUPPORTS2(nsWindowsShellService, nsIWindowsShellService, nsIShellService)
 
