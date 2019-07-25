@@ -63,11 +63,12 @@ gfxAndroidPlatform::gfxAndroidPlatform()
     nsCOMPtr<nsIScreenManager> screenMgr = do_GetService("@mozilla.org/gfx/screenmanager;1");
     nsCOMPtr<nsIScreen> screen;
     screenMgr->GetPrimaryScreen(getter_AddRefs(screen));
-    PRInt32 depth = 24;
-    screen->GetColorDepth(&depth);
+    mScreenDepth = 24;
+    screen->GetColorDepth(&mScreenDepth);
 
-    mOffscreenFormat = depth == 16 ? gfxASurface::ImageFormatRGB16_565 :
-                                     gfxASurface::ImageFormatARGB32;
+    mOffscreenFormat = mScreenDepth == 16
+                       ? gfxASurface::ImageFormatRGB16_565
+                       : gfxASurface::ImageFormatARGB32;
 }
 
 gfxAndroidPlatform::~gfxAndroidPlatform()
@@ -231,4 +232,10 @@ gfxAndroidPlatform::FontHintingEnabled()
     
     return (XRE_GetProcessType() != GeckoProcessType_Content);
 #endif 
+}
+
+int
+gfxAndroidPlatform::GetScreenDepth() const
+{
+    return mScreenDepth;
 }
