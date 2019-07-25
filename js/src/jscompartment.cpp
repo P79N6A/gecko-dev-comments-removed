@@ -804,7 +804,7 @@ JSCompartment::clearTraps(JSContext *cx, JSScript *script)
 }
 
 bool
-JSCompartment::markBreakpointsIteratively(JSTracer *trc)
+JSCompartment::markTrapClosuresIteratively(JSTracer *trc)
 {
     bool markedAny = false;
     JSContext *cx = trc->context;
@@ -822,26 +822,6 @@ JSCompartment::markBreakpointsIteratively(JSTracer *trc)
                 markedAny = true;
             }
             MarkValue(trc, site->trapClosure, "trap closure");
-        }
-
-        
-        
-        
-        
-        
-        
-        
-        
-        if (!site->scriptObject || !IsAboutToBeFinalized(cx, site->scriptObject)) {
-            for (Breakpoint *bp = site->firstBreakpoint(); bp; bp = bp->nextInSite()) {
-                if (!IsAboutToBeFinalized(cx, bp->debugger->toJSObject()) &&
-                    bp->handler &&
-                    IsAboutToBeFinalized(cx, bp->handler))
-                {
-                    MarkObject(trc, *bp->handler, "breakpoint handler");
-                    markedAny = true;
-                }
-            }
         }
     }
     return markedAny;

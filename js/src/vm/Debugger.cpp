@@ -387,7 +387,7 @@ Debugger::getHook(Hook hook) const
 }
 
 bool
-Debugger::hasAnyLiveHooks() const
+Debugger::hasAnyLiveHooks(JSContext *cx) const
 {
     if (!enabled)
         return false;
@@ -396,10 +396,21 @@ Debugger::hasAnyLiveHooks() const
         getHook(OnExceptionUnwind) ||
         getHook(OnNewScript) ||
         getHook(OnEnterFrame))
+    {
         return true;
+    }
 
-    if (!JS_CLIST_IS_EMPTY(&breakpoints))
-        return true;
+    
+    for (Breakpoint *bp = firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
+        
+
+
+
+
+        JSObject *holder = bp->site->getScriptObject();
+        if (!holder || !IsAboutToBeFinalized(cx, holder))
+            return true;
+    }
 
     for (FrameMap::Range r = frames.all(); !r.empty(); r.popFront()) {
         if (!r.front().value->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined())
@@ -1079,14 +1090,15 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
 
 
 
-    JSRuntime *rt = trc->context->runtime;
+    JSContext *cx = trc->context;
+    JSRuntime *rt = cx->runtime;
     JSCompartment *comp = rt->gcCurrentCompartment;
     for (JSCompartment **c = rt->compartments.begin(); c != rt->compartments.end(); c++) {
         JSCompartment *dc = *c;
 
         
         if (!comp || dc == comp)
-            markedAny = markedAny | dc->markBreakpointsIteratively(trc);
+            markedAny = markedAny | dc->markTrapClosuresIteratively(trc);
 
         
 
@@ -1107,7 +1119,6 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
             JS_ASSERT(debuggers);
             for (Debugger **p = debuggers->begin(); p != debuggers->end(); p++) {
                 Debugger *dbg = *p;
-                JSObject *obj = dbg->toJSObject();
 
                 
 
@@ -1115,14 +1126,37 @@ Debugger::markAllIteratively(GCMarker *trc, JSGCInvocationKind gckind)
 
 
 
+                JSObject *dbgobj = dbg->toJSObject();
+                if (comp && comp != dbgobj->compartment())
+                    continue;
 
-                if (IsAboutToBeFinalized(trc->context, obj) && dbg->hasAnyLiveHooks()) {
+                bool dbgMarked = !IsAboutToBeFinalized(cx, dbgobj);
+                if (!dbgMarked && dbg->hasAnyLiveHooks(cx)) {
                     
 
 
 
-                    MarkObject(trc, *obj, "enabled Debugger");
+                    MarkObject(trc, *dbgobj, "enabled Debugger");
                     markedAny = true;
+                    dbgMarked = true;
+                }
+
+                if (dbgMarked) {
+                    
+                    for (Breakpoint *bp = dbg->firstBreakpoint(); bp; bp = bp->nextInDebugger()) {
+                        JSObject *scriptObject = bp->site->getScriptObject();
+                        if (!scriptObject || !IsAboutToBeFinalized(cx, scriptObject)) {
+                            
+
+
+
+                            JSObject *handler = bp->getHandler();
+                            if (IsAboutToBeFinalized(cx, handler)) {
+                                MarkObject(trc, *bp->getHandler(), "breakpoint handler");
+                                markedAny = true;
+                            }
+                        }
+                    }
                 }
             }
         }

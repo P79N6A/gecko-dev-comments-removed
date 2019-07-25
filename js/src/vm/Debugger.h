@@ -226,7 +226,7 @@ class Debugger {
     static JSFunctionSpec methods[];
 
     JSObject *getHook(Hook hook) const;
-    bool hasAnyLiveHooks() const;
+    bool hasAnyLiveHooks(JSContext *cx) const;
 
     static void slowPathOnEnterFrame(JSContext *cx);
     static void slowPathOnLeaveFrame(JSContext *cx);
@@ -431,6 +431,7 @@ class BreakpointSite {
     Breakpoint *firstBreakpoint() const;
     bool hasBreakpoint(Breakpoint *bp);
     bool hasTrap() const { return !!trapHandler; }
+    JSObject *getScriptObject() const { return scriptObject; }
 
     bool inc(JSContext *cx);
     void dec(JSContext *cx);
@@ -439,6 +440,24 @@ class BreakpointSite {
                    JSTrapHandler *handlerp = NULL, Value *closurep = NULL);
     void destroyIfEmpty(JSRuntime *rt, BreakpointSiteMap::Enum *e);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 class Breakpoint {
     friend class ::JSCompartment;
