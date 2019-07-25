@@ -219,7 +219,7 @@ Wrapper::construct(JSContext *cx, JSObject *wrapper, unsigned argc, Value *argv,
 {
     vp->setUndefined(); 
     const jsid id = JSID_VOID;
-    GET(IndirectProxyHandler::construct(cx, wrapper, argc, argv, vp));
+    CHECKED(IndirectProxyHandler::construct(cx, wrapper, argc, argv, vp), CALL);
 }
 
 bool
