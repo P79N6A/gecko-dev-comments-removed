@@ -51,11 +51,101 @@
 #include "nsCSSPseudoElements.h"
 #include "nsRuleWalker.h"
 #include "nsNthIndexCache.h"
+#include "mozilla/BloomFilter.h"
+#include "mozilla/GuardObjects.h"
 
 class nsIStyleSheet;
 class nsIAtom;
 class nsICSSPseudoComparator;
 class nsAttrValue;
+
+
+
+
+
+
+class NS_STACK_CLASS AncestorFilter {
+ public:
+  
+
+
+
+
+  void Init(mozilla::dom::Element *aElement);
+
+  
+  void PushAncestor(mozilla::dom::Element *aElement);
+  void PopAncestor();
+
+  
+  class NS_STACK_CLASS AutoAncestorPusher {
+  public:
+    AutoAncestorPusher(bool aDoPush,
+                       AncestorFilter &aFilter,
+                       mozilla::dom::Element *aElement
+                       MOZ_GUARD_OBJECT_NOTIFIER_PARAM)
+      : mPushed(aDoPush && aElement), mFilter(aFilter)
+    {
+      MOZ_GUARD_OBJECT_NOTIFIER_INIT;
+      if (mPushed) {
+        mFilter.PushAncestor(aElement);
+      }
+    }
+    ~AutoAncestorPusher() {
+      if (mPushed) {
+        mFilter.PopAncestor();
+      }
+    }
+
+  private:
+    bool mPushed;
+    AncestorFilter &mFilter;
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+  };
+
+  
+
+  template<size_t hashListLength>
+    bool MightHaveMatchingAncestor(const uint32_t* aHashes) const
+  {
+    MOZ_ASSERT(mFilter);
+    for (size_t i = 0; i < hashListLength && aHashes[i]; ++i) {
+      if (!mFilter->mightContain(aHashes[i])) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  bool HasFilter() const { return mFilter; }
+
+#ifdef DEBUG
+  void AssertHasAllAncestors(mozilla::dom::Element *aElement) const;
+#endif
+  
+ private:
+  
+  
+  
+  
+  
+  typedef mozilla::BloomFilter<12, nsIAtom> Filter;
+  nsAutoPtr<Filter> mFilter;
+
+  
+  nsTArray<PRUint32> mPopTargets;
+
+  
+  
+  
+  nsTArray<uint32_t> mHashes;
+
+  
+#ifdef DEBUG
+  nsTArray<mozilla::dom::Element*> mElements;
+#endif
+};
 
 
 
@@ -127,6 +217,9 @@ struct NS_STACK_CLASS TreeMatchContext {
 
   
   nsNthIndexCache mNthIndexCache;
+
+  
+  AncestorFilter mAncestorFilter;
 
   
   TreeMatchContext(bool aForStyling,

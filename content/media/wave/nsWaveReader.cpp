@@ -36,7 +36,6 @@
 
 
 #include "nsError.h"
-#include "nsBuiltinDecoderStateMachine.h"
 #include "nsBuiltinDecoder.h"
 #include "MediaResource.h"
 #include "nsWaveReader.h"

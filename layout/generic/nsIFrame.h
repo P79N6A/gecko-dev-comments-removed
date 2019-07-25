@@ -1245,10 +1245,12 @@ public:
 
   bool HasPerspective() const;
 
+  bool ChildrenHavePerspective() const;
+
   
   void ComputePreserve3DChildrenOverflow(nsOverflowAreas& aOverflowAreas, const nsRect& aBounds);
 
-  void RecomputePerspectiveChildrenOverflow(const nsIFrame* aStartFrame, const nsRect* aBounds);
+  void RecomputePerspectiveChildrenOverflow(const nsStyleContext* aStartStyle, const nsRect* aBounds);
 
   
 
@@ -2419,6 +2421,7 @@ public:
 #endif
 
   
+
 
 
 

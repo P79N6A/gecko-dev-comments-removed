@@ -37,9 +37,6 @@
 
 
 
-#include "nsISeekableStream.h"
-#include "nsClassHashtable.h"
-#include "nsTArray.h"
 #include "nsBuiltinDecoder.h"
 #include "nsBuiltinDecoderReader.h"
 #include "nsBuiltinDecoderStateMachine.h"

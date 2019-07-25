@@ -59,6 +59,49 @@
 #include "RuntimeService.h"
 #include "XMLHttpRequest.h"
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 BEGIN_WORKERS_NAMESPACE
 namespace xhr {
 
@@ -72,9 +115,12 @@ public:
   
   nsRefPtr<nsXMLHttpRequest> mXHR;
   nsCOMPtr<nsIXMLHttpRequestUpload> mXHRUpload;
+  PRUint32 mInnerEventStreamId;
   PRUint32 mInnerChannelId;
+  PRUint32 mOutstandingSendCount;
 
   
+  PRUint32 mOuterEventStreamId;
   PRUint32 mOuterChannelId;
   PRUint64 mLastLoaded;
   PRUint64 mLastTotal;
@@ -92,6 +138,7 @@ public:
   PRUint32 mSyncEventResponseSyncQueueKey;
   bool mUploadEventListenersAttached;
   bool mMainThreadSeenLoadStart;
+  bool mInOpen;
 
 public:
   NS_DECL_ISUPPORTS
@@ -99,18 +146,22 @@ public:
 
   Proxy(XMLHttpRequestPrivate* aXHRPrivate)
   : mWorkerPrivate(nsnull), mXMLHttpRequestPrivate(aXHRPrivate),
-    mInnerChannelId(0), mOuterChannelId(0), mLastLoaded(0), mLastTotal(0),
+    mInnerEventStreamId(0), mInnerChannelId(0), mOutstandingSendCount(0),
+    mOuterEventStreamId(0), mOuterChannelId(0), mLastLoaded(0), mLastTotal(0),
     mLastUploadLoaded(0), mLastUploadTotal(0), mIsSyncXHR(false),
     mLastLengthComputable(false), mLastUploadLengthComputable(false),
     mSeenLoadStart(false), mSeenUploadLoadStart(false),
-    mSyncQueueKey(PR_UINT32_MAX), mSyncEventResponseSyncQueueKey(PR_UINT32_MAX),
-    mUploadEventListenersAttached(false), mMainThreadSeenLoadStart(false)
+    mSyncQueueKey(PR_UINT32_MAX),
+    mSyncEventResponseSyncQueueKey(PR_UINT32_MAX),
+    mUploadEventListenersAttached(false), mMainThreadSeenLoadStart(false),
+    mInOpen(false)
   { }
 
   ~Proxy()
   {
     NS_ASSERTION(!mXHR, "Still have an XHR object attached!");
     NS_ASSERTION(!mXHRUpload, "Still have an XHR upload object attached!");
+    NS_ASSERTION(!mOutstandingSendCount, "We're dying too early!");
   }
 
   bool
@@ -215,13 +266,14 @@ enum
   STRING_load,
   STRING_loadstart,
   STRING_progress,
+  STRING_timeout,
   STRING_readystatechange,
   STRING_loadend,
 
   STRING_COUNT,
 
   STRING_LAST_XHR = STRING_loadend,
-  STRING_LAST_EVENTTARGET = STRING_progress
+  STRING_LAST_EVENTTARGET = STRING_timeout
 };
 
 JS_STATIC_ASSERT(STRING_LAST_XHR >= STRING_LAST_EVENTTARGET);
@@ -234,6 +286,7 @@ const char* const sEventStrings[] = {
   "load",
   "loadstart",
   "progress",
+  "timeout",
 
   
   "readystatechange",
@@ -285,14 +338,48 @@ public:
   { }
 };
 
-class TeardownRunnable : public nsRunnable
+class XHRUnpinRunnable : public WorkerControlRunnable
 {
-  Proxy* mProxy;
+  XMLHttpRequestPrivate* mXMLHttpRequestPrivate;
 
 public:
-  TeardownRunnable(nsRefPtr<Proxy>& aProxy)
+  XHRUnpinRunnable(WorkerPrivate* aWorkerPrivate,
+                   XMLHttpRequestPrivate* aXHRPrivate)
+  : WorkerControlRunnable(aWorkerPrivate, WorkerThread, UnchangedBusyCount),
+    mXMLHttpRequestPrivate(aXHRPrivate)
+  { }
+
+  bool
+  PreDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   {
-    aProxy.forget(&mProxy);
+    AssertIsOnMainThread();
+    return true;
+  }
+
+  void
+  PostDispatch(JSContext* aCx, WorkerPrivate* aWorkerPrivate,
+               bool aDispatchResult)
+  {
+    AssertIsOnMainThread();
+  }
+
+  bool
+  WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
+  {
+    mXMLHttpRequestPrivate->Unpin(aCx);
+
+    return true;
+  }
+};
+
+class AsyncTeardownRunnable : public nsRunnable
+{
+  nsRefPtr<Proxy> mProxy;
+
+public:
+  AsyncTeardownRunnable(Proxy* aProxy)
+  {
+    mProxy = aProxy;
     NS_ASSERTION(mProxy, "Null proxy!");
   }
 
@@ -301,7 +388,7 @@ public:
     AssertIsOnMainThread();
 
     mProxy->Teardown();
-    NS_RELEASE(mProxy);
+    mProxy = nsnull;
 
     return NS_OK;
   }
@@ -316,16 +403,19 @@ class LoadStartDetectionRunnable : public nsIRunnable,
   XMLHttpRequestPrivate* mXMLHttpRequestPrivate;
   nsString mEventType;
   bool mReceivedLoadStart;
+  PRUint32 mChannelId;
 
   class ProxyCompleteRunnable : public MainThreadProxyRunnable
   {
     XMLHttpRequestPrivate* mXMLHttpRequestPrivate;
+    PRUint32 mChannelId;
 
   public:
     ProxyCompleteRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy,
-                          XMLHttpRequestPrivate* aXHRPrivate)
+                          XMLHttpRequestPrivate* aXHRPrivate,
+                          PRUint32 aChannelId)
     : MainThreadProxyRunnable(aWorkerPrivate, RunWhenClearing, aProxy),
-      mXMLHttpRequestPrivate(aXHRPrivate)
+      mXMLHttpRequestPrivate(aXHRPrivate), mChannelId(aChannelId)
     { }
 
     bool
@@ -345,6 +435,11 @@ class LoadStartDetectionRunnable : public nsIRunnable,
     bool
     WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
     {
+      if (mChannelId != mProxy->mOuterChannelId) {
+        
+        return true;
+      }
+
       if (mSyncQueueKey != PR_UINT32_MAX) {
         aWorkerPrivate->StopSyncLoop(mSyncQueueKey, true);
       }
@@ -360,7 +455,8 @@ public:
 
   LoadStartDetectionRunnable(Proxy* aProxy, XMLHttpRequestPrivate* aXHRPrivate)
   : mWorkerPrivate(aProxy->mWorkerPrivate), mProxy(aProxy), mXHR(aProxy->mXHR),
-    mXMLHttpRequestPrivate(aXHRPrivate), mReceivedLoadStart(false)
+    mXMLHttpRequestPrivate(aXHRPrivate), mReceivedLoadStart(false),
+    mChannelId(mProxy->mInnerChannelId)
   {
     AssertIsOnMainThread();
     mEventType.AssignWithConversion(sEventStrings[STRING_loadstart]);
@@ -394,16 +490,19 @@ public:
     }
 
     if (!mReceivedLoadStart) {
-      mProxy->Reset();
+      if (mProxy->mOutstandingSendCount > 1) {
+        mProxy->mOutstandingSendCount--;
+      } else if (mProxy->mOutstandingSendCount == 1) {
+        mProxy->Reset();
 
-      if (mProxy->mWorkerPrivate) {
         nsRefPtr<ProxyCompleteRunnable> runnable =
           new ProxyCompleteRunnable(mWorkerPrivate, mProxy,
-                                    mXMLHttpRequestPrivate);
-        if (!runnable->Dispatch(nsnull)) {
-          NS_WARNING("Failed to dispatch ProxyCompleteRunnable!");
+                                    mXMLHttpRequestPrivate,
+                                    mChannelId);
+        if (runnable->Dispatch(nsnull)) {
+          mProxy->mWorkerPrivate = nsnull;
+          mProxy->mOutstandingSendCount--;
         }
-        mProxy->mWorkerPrivate = nsnull;
       }
     }
 
@@ -447,7 +546,7 @@ class EventRunnable : public MainThreadProxyRunnable
   nsCString mStatusText;
   PRUint64 mLoaded;
   PRUint64 mTotal;
-  PRUint32 mChannelId;
+  PRUint32 mEventStreamId;
   PRUint32 mStatus;
   PRUint16 mReadyState;
   bool mUploadEvent;
@@ -464,7 +563,7 @@ public:
                 bool aLengthComputable, PRUint64 aLoaded, PRUint64 aTotal)
   : MainThreadProxyRunnable(aProxy->mWorkerPrivate, SkipWhenClearing, aProxy),
     mType(aType), mResponse(JSVAL_VOID), mLoaded(aLoaded), mTotal(aTotal),
-    mChannelId(aProxy->mInnerChannelId), mStatus(0), mReadyState(0),
+    mEventStreamId(aProxy->mInnerEventStreamId), mStatus(0), mReadyState(0),
     mUploadEvent(aUploadEvent), mProgressEvent(true),
     mLengthComputable(aLengthComputable), mResponseTextException(false),
     mStatusException(false), mStatusTextException(false),
@@ -474,7 +573,7 @@ public:
   EventRunnable(Proxy* aProxy, bool aUploadEvent, const nsString& aType)
   : MainThreadProxyRunnable(aProxy->mWorkerPrivate, SkipWhenClearing, aProxy),
     mType(aType), mResponse(JSVAL_VOID), mLoaded(0), mTotal(0),
-    mChannelId(aProxy->mInnerChannelId), mStatus(0), mReadyState(0),
+    mEventStreamId(aProxy->mInnerEventStreamId), mStatus(0), mReadyState(0),
     mUploadEvent(aUploadEvent), mProgressEvent(false), mLengthComputable(0),
     mResponseTextException(false), mStatusException(false),
     mStatusTextException(false), mReadyStateException(false),
@@ -544,7 +643,7 @@ public:
   bool
   WorkerRun(JSContext* aCx, WorkerPrivate* aWorkerPrivate)
   {
-    if (mChannelId != mProxy->mOuterChannelId) {
+    if (mEventStreamId != mProxy->mOuterEventStreamId) {
       
       return true;
     }
@@ -808,6 +907,27 @@ public:
   }
 };
 
+class SyncTeardownRunnable : public WorkerThreadProxySyncRunnable
+{
+public:
+  SyncTeardownRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy)
+  : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy)
+  {
+    MOZ_ASSERT(aWorkerPrivate);
+    MOZ_ASSERT(aProxy);
+  }
+
+  virtual int
+  MainThreadRun()
+  {
+    AssertIsOnMainThread();
+
+    mProxy->Teardown();
+
+    return NS_OK;
+  }
+};
+
 class SetMultipartRunnable : public WorkerThreadProxySyncRunnable
 {
   bool mValue;
@@ -889,6 +1009,24 @@ public:
   }
 };
 
+class SetTimeoutRunnable : public WorkerThreadProxySyncRunnable
+{
+  PRUint32 mTimeout;
+
+public:
+  SetTimeoutRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy,
+                     PRUint32 aTimeout)
+  : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy),
+    mTimeout(aTimeout)
+  { }
+
+  int
+  MainThreadRun()
+  {
+    return GetDOMExceptionCodeFromResult(mProxy->mXHR->SetTimeout(mTimeout));
+  }
+};
+
 class AbortRunnable : public WorkerThreadProxySyncRunnable
 {
 public:
@@ -899,7 +1037,7 @@ public:
   int
   MainThreadRun()
   {
-    mProxy->mInnerChannelId++;
+    mProxy->mInnerEventStreamId++;
 
     WorkerPrivate* oldWorker = mProxy->mWorkerPrivate;
     mProxy->mWorkerPrivate = mWorkerPrivate;
@@ -963,15 +1101,18 @@ class OpenRunnable : public WorkerThreadProxySyncRunnable
   bool mMultipart;
   bool mBackgroundRequest;
   bool mWithCredentials;
+  PRUint32 mTimeout;
 
 public:
   OpenRunnable(WorkerPrivate* aWorkerPrivate, Proxy* aProxy,
                const nsCString& aMethod, const nsCString& aURL,
                const nsString& aUser, const nsString& aPassword,
-               bool aMultipart, bool aBackgroundRequest, bool aWithCredentials)
+               bool aMultipart, bool aBackgroundRequest, bool aWithCredentials,
+               PRUint32 aTimeout)
   : WorkerThreadProxySyncRunnable(aWorkerPrivate, aProxy), mMethod(aMethod),
     mURL(aURL), mUser(aUser), mPassword(aPassword), mMultipart(aMultipart),
-    mBackgroundRequest(aBackgroundRequest), mWithCredentials(aWithCredentials)
+    mBackgroundRequest(aBackgroundRequest), mWithCredentials(aWithCredentials),
+    mTimeout(aTimeout)
   { }
 
   int
@@ -1016,13 +1157,27 @@ public:
       }
     }
 
-    mProxy->mInnerChannelId++;
+    if (mTimeout) {
+      rv = mProxy->mXHR->SetTimeout(mTimeout);
+      if (NS_FAILED(rv)) {
+        return GetDOMExceptionCodeFromResult(rv);
+      }
+    }
+
     mProxy->mPreviousStatusText.Truncate();
 
+    NS_ASSERTION(!mProxy->mInOpen, "Reentrancy is bad!");
+    mProxy->mInOpen = true;
+
     rv = mProxy->mXHR->Open(mMethod, mURL, true, mUser, mPassword, 1);
+
+    NS_ASSERTION(mProxy->mInOpen, "Reentrancy is bad!");
+    mProxy->mInOpen = false;
+
     if (NS_SUCCEEDED(rv)) {
       rv = mProxy->mXHR->SetResponseType(NS_LITERAL_STRING("text"));
     }
+
     return GetDOMExceptionCodeFromResult(rv);
   }
 };
@@ -1087,12 +1242,18 @@ public:
       }
     }
 
+    mProxy->mInnerChannelId++;
+
     nsresult rv = mProxy->mXHR->Send(variant);
 
-    if (NS_SUCCEEDED(rv) && !mHasUploadListeners) {
-      NS_ASSERTION(!mProxy->mUploadEventListenersAttached, "Huh?!");
-      if (!mProxy->AddRemoveEventListeners(true, true)) {
-        NS_ERROR("This should never fail!");
+    if (NS_SUCCEEDED(rv)) {
+      mProxy->mOutstandingSendCount++;
+
+      if (!mHasUploadListeners) {
+        NS_ASSERTION(!mProxy->mUploadEventListenersAttached, "Huh?!");
+        if (!mProxy->AddRemoveEventListeners(true, true)) {
+          NS_ERROR("This should never fail!");
+        }
       }
     }
 
@@ -1215,8 +1376,21 @@ Proxy::Teardown()
   if (mXHR) {
     Reset();
 
+    
+    
     AddRemoveEventListeners(false, false);
     mXHR->Abort();
+
+    if (mOutstandingSendCount) {
+      nsRefPtr<XHRUnpinRunnable> runnable =
+        new XHRUnpinRunnable(mWorkerPrivate, mXMLHttpRequestPrivate);
+      if (!runnable->Dispatch(nsnull)) {
+        NS_RUNTIMEABORT("We're going to hang at shutdown anyways.");
+      }
+
+      mWorkerPrivate = nsnull;
+      mOutstandingSendCount = 0;
+    }
 
     mXHRUpload = nsnull;
     mXHR = nsnull;
@@ -1290,6 +1464,14 @@ Proxy::HandleEvent(nsIDOMEvent* aEvent)
 
   nsRefPtr<EventRunnable> runnable;
 
+  if (mInOpen && type.EqualsASCII(sEventStrings[STRING_readystatechange])) {
+    PRUint16 readyState = 0;
+    if (NS_SUCCEEDED(mXHR->GetReadyState(&readyState)) &&
+        readyState == nsIXMLHttpRequest::OPENED) {
+      mInnerEventStreamId++;
+    }
+  }
+
   if (progressEvent) {
     bool lengthComputable;
     PRUint64 loaded, total;
@@ -1334,8 +1516,8 @@ Proxy::HandleEvent(nsIDOMEvent* aEvent)
 XMLHttpRequestPrivate::XMLHttpRequestPrivate(JSObject* aObj,
                                              WorkerPrivate* aWorkerPrivate)
 : mJSObject(aObj), mUploadJSObject(nsnull), mWorkerPrivate(aWorkerPrivate),
-  mJSObjectRootCount(0), mMultipart(false), mBackgroundRequest(false),
-  mWithCredentials(false), mCanceled(false)
+  mJSObjectRooted(false), mMultipart(false), mBackgroundRequest(false),
+  mWithCredentials(false), mCanceled(false), mTimeout(0)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
   MOZ_COUNT_CTOR(mozilla::dom::workers::xhr::XMLHttpRequestPrivate);
@@ -1344,48 +1526,69 @@ XMLHttpRequestPrivate::XMLHttpRequestPrivate(JSObject* aObj,
 XMLHttpRequestPrivate::~XMLHttpRequestPrivate()
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
-  NS_ASSERTION(!mJSObjectRootCount, "Huh?!");
+  NS_ASSERTION(!mJSObjectRooted, "Huh?!");
   MOZ_COUNT_DTOR(mozilla::dom::workers::xhr::XMLHttpRequestPrivate);
 }
 
 void
-XMLHttpRequestPrivate::ReleaseProxy()
+XMLHttpRequestPrivate::ReleaseProxy(ReleaseType aType)
 {
   
   
 
   if (mProxy) {
-    
-    mProxy->mOuterChannelId++;
+    if (aType == XHRIsGoingAway) {
+      
+      
+      nsRefPtr<AsyncTeardownRunnable> runnable =
+        new AsyncTeardownRunnable(mProxy);
+      mProxy = nsnull;
 
-    nsCOMPtr<nsIRunnable> runnable = new TeardownRunnable(mProxy);
-    NS_ASSERTION(!mProxy, "Should have swapped!");
+      if (NS_DispatchToMainThread(runnable)) {
+        NS_ERROR("Failed to dispatch teardown runnable!");
+      }
+    } else {
+      
+      
+      if (aType == Default) {
+        
+        mProxy->mOuterEventStreamId++;
+      }
 
-    if (NS_FAILED(NS_DispatchToMainThread(runnable, NS_DISPATCH_NORMAL))) {
-      NS_ERROR("Failed to dispatch teardown runnable!");
+      
+      nsRefPtr<SyncTeardownRunnable> runnable =
+        new SyncTeardownRunnable(mWorkerPrivate, mProxy);
+      mProxy = nsnull;
+
+      if (!runnable->Dispatch(nsnull)) {
+        NS_ERROR("Failed to dispatch teardown runnable!");
+      }
     }
   }
 }
 
 bool
-XMLHttpRequestPrivate::Pin(JSContext* aCx)
+XMLHttpRequestPrivate::MaybePin(JSContext* aCx)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
-  if (!mJSObjectRootCount) {
-    if (!JS_AddNamedObjectRoot(aCx, &mJSObject,
-                               "XMLHttpRequestPrivate mJSObject")) {
-      return false;
-    }
-    if (!mWorkerPrivate->AddFeature(aCx, this)) {
-      if (!JS_RemoveObjectRoot(aCx, &mJSObject)) {
-        NS_ERROR("JS_RemoveObjectRoot failed!");
-      }
-      return false;
-    }
+  if (mJSObjectRooted) {
+    return true;
   }
 
-  mJSObjectRootCount++;
+  if (!JS_AddNamedObjectRoot(aCx, &mJSObject,
+                             "XMLHttpRequestPrivate mJSObject")) {
+    return false;
+  }
+
+  if (!mWorkerPrivate->AddFeature(aCx, this)) {
+    if (!JS_RemoveObjectRoot(aCx, &mJSObject)) {
+      NS_ERROR("JS_RemoveObjectRoot failed!");
+    }
+    return false;
+  }
+
+  mJSObjectRooted = true;
   return true;
 }
 
@@ -1394,18 +1597,15 @@ XMLHttpRequestPrivate::Unpin(JSContext* aCx)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
 
-  NS_ASSERTION(mJSObjectRootCount, "Mismatched calls to Unpin!");
-  mJSObjectRootCount--;
-
-  if (mJSObjectRootCount) {
-    return;
-  }
+  NS_ASSERTION(mJSObjectRooted, "Mismatched calls to Unpin!");
 
   if (!JS_RemoveObjectRoot(aCx, &mJSObject)) {
     NS_ERROR("JS_RemoveObjectRoot failed!");
   }
 
   mWorkerPrivate->RemoveFeature(aCx, this);
+
+  mJSObjectRooted = false;
 }
 
 bool
@@ -1415,7 +1615,7 @@ XMLHttpRequestPrivate::Notify(JSContext* aCx, Status aStatus)
 
   if (aStatus >= Canceling && !mCanceled) {
     mCanceled = true;
-    ReleaseProxy();
+    ReleaseProxy(WorkerIsGoingAway);
   }
 
   return true;
@@ -1576,6 +1776,33 @@ XMLHttpRequestPrivate::SetResponseType(JSContext* aCx, jsval aOldVal,
 }
 
 bool
+XMLHttpRequestPrivate::SetTimeout(JSContext* aCx, jsval aOldVal, jsval *aVp)
+{
+  mWorkerPrivate->AssertIsOnWorkerThread();
+
+  uint32_t timeout;
+  if (!JS_ValueToECMAUint32(aCx, *aVp, &timeout)) {
+    return false;
+  }
+
+  mTimeout = timeout;
+
+  if (!mProxy) {
+    
+    
+    return true;
+  }
+
+  nsRefPtr<SetTimeoutRunnable> runnable =
+    new SetTimeoutRunnable(mWorkerPrivate, mProxy, timeout);
+  if (!runnable->Dispatch(aCx)) {
+    return false;
+  }
+
+  return true;
+}
+
+bool
 XMLHttpRequestPrivate::Abort(JSContext* aCx)
 {
   mWorkerPrivate->AssertIsOnWorkerThread();
@@ -1593,7 +1820,7 @@ XMLHttpRequestPrivate::Abort(JSContext* aCx)
     return true;
   }
 
-  mProxy->mOuterChannelId++;
+  mProxy->mOuterEventStreamId++;
 
   nsRefPtr<AbortRunnable> runnable = new AbortRunnable(mWorkerPrivate, mProxy);
   return runnable->Dispatch(aCx);
@@ -1679,12 +1906,12 @@ XMLHttpRequestPrivate::Open(JSContext* aCx, JSString* aMethod, JSString* aURL,
     mProxy = new Proxy(this);
   }
 
-  mProxy->mOuterChannelId++;
+  mProxy->mOuterEventStreamId++;
 
   nsRefPtr<OpenRunnable> runnable =
     new OpenRunnable(mWorkerPrivate, mProxy, NS_ConvertUTF16toUTF8(method),
                      NS_ConvertUTF16toUTF8(url), user, password, mMultipart,
-                     mBackgroundRequest, mWithCredentials);
+                     mBackgroundRequest, mWithCredentials, mTimeout);
 
   
   
@@ -1738,7 +1965,7 @@ XMLHttpRequestPrivate::Send(JSContext* aCx, bool aHasBody, jsval aBody)
     hasUploadListeners = target->HasListeners();
   }
 
-  if (!Pin(aCx)) {
+  if (!MaybePin(aCx)) {
     return false;
   }
 
@@ -1748,6 +1975,8 @@ XMLHttpRequestPrivate::Send(JSContext* aCx, bool aHasBody, jsval aBody)
   if (mProxy->mIsSyncXHR) {
     syncQueueKey = mWorkerPrivate->CreateNewSyncLoop();
   }
+
+  mProxy->mOuterChannelId++;
 
   nsRefPtr<SendRunnable> runnable =
     new SendRunnable(mWorkerPrivate, mProxy, buffer, syncQueueKey,
@@ -1795,7 +2024,7 @@ XMLHttpRequestPrivate::SendAsBinary(JSContext* aCx, JSString* aBody)
     hasUploadListeners = target->HasListeners();
   }
 
-  if (!Pin(aCx)) {
+  if (!MaybePin(aCx)) {
     return false;
   }
 
@@ -1892,12 +2121,6 @@ XMLHttpRequestPrivate::MaybeDispatchPrematureAbortEvents(JSContext* aCx)
     JSVAL_VOID, JSVAL_VOID, JSVAL_VOID, INT_TO_JSVAL(4), JSVAL_VOID,
     false, false, false, false, false
   };
-
-  
-  
-  if (!mProxy->mSeenLoadStart && mProxy->mWorkerPrivate) {
-    Unpin(aCx);
-  }
 
   if (mProxy->mSeenUploadLoadStart) {
     JSObject* target = mProxy->mXMLHttpRequestPrivate->GetUploadJSObject();

@@ -6,11 +6,6 @@
 
 
 
-
-
-
-
-
 let doc;
 let div;
 let editorTestSteps;

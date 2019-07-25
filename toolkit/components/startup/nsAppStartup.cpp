@@ -837,6 +837,8 @@ nsAppStartup::TrackStartupCrashBegin(bool *aIsSafeModeNecessary)
 
   mStartupCrashTrackingEnded = false;
 
+  StartupTimeline::Record(StartupTimeline::STARTUP_CRASH_DETECTION_BEGIN);
+
   bool hasLastSuccess = Preferences::HasUserValue(kPrefLastSuccess);
   if (!hasLastSuccess) {
     
@@ -888,6 +890,9 @@ nsAppStartup::TrackStartupCrashBegin(bool *aIsSafeModeNecessary)
   if (PR_Now() / PR_USEC_PER_SEC <= lastSuccessfulStartup)
     return NS_ERROR_FAILURE;
 
+  
+  Telemetry::Accumulate(Telemetry::STARTUP_CRASH_DETECTED, true);
+
   if (inSafeMode) {
     GetAutomaticSafeModeNecessary(aIsSafeModeNecessary);
     return NS_OK;
@@ -929,6 +934,8 @@ nsAppStartup::TrackStartupCrashEnd()
   if (mStartupCrashTrackingEnded || (mIsSafeModeNecessary && !inSafeMode))
     return NS_OK;
   mStartupCrashTrackingEnded = true;
+
+  StartupTimeline::Record(StartupTimeline::STARTUP_CRASH_DETECTION_END);
 
   
   

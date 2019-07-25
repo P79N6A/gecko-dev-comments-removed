@@ -110,8 +110,9 @@ protected:
 
 
 
+
   class TextAttr;
-  void GetRange(const nsTArray<TextAttr*>& aTextAttrArray,
+  void GetRange(TextAttr* aAttrArray[], PRUint32 aAttrArrayLen,
                 PRInt32* aStartHTOffset, PRInt32* aEndHTOffset);
 
 private:
@@ -239,27 +240,6 @@ protected:
   private:
     bool GetLang(nsIContent* aElm, nsAString& aLang);
     nsCOMPtr<nsIContent> mRootContent;
-  };
-
-
-  
-
-
-  class CSSTextAttr : public TTextAttr<nsString>
-  {
-  public:
-    CSSTextAttr(PRUint32 aIndex, nsIContent* aRootElm, nsIContent* aElm);
-    virtual ~CSSTextAttr() { }
-
-  protected:
-
-    
-    virtual bool GetValueFor(nsIContent* aElm, nsString* aValue);
-    virtual void ExposeValue(nsIPersistentProperties* aAttributes,
-                             const nsString& aValue);
-
-  private:
-    PRInt32 mIndex;
   };
 
 
@@ -433,6 +413,34 @@ protected:
     virtual bool GetValueFor(nsIContent* aElm, TextDecorValue* aValue);
     virtual void ExposeValue(nsIPersistentProperties* aAttributes,
                              const TextDecorValue& aValue);
+  };
+
+  
+
+
+
+  enum TextPosValue {
+    eTextPosNone = 0,
+    eTextPosBaseline,
+    eTextPosSub,
+    eTextPosSuper
+  };
+
+  class TextPosTextAttr : public TTextAttr<TextPosValue>
+  {
+  public:
+    TextPosTextAttr(nsIFrame* aRootFrame, nsIFrame* aFrame);
+    virtual ~TextPosTextAttr() { }
+
+  protected:
+
+    
+    virtual bool GetValueFor(nsIContent* aElm, TextPosValue* aValue);
+    virtual void ExposeValue(nsIPersistentProperties* aAttributes,
+                             const TextPosValue& aValue);
+
+  private:
+    TextPosValue GetTextPosValue(nsIFrame* aFrame) const;
   };
 
 }; 

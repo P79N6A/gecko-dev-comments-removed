@@ -4752,10 +4752,15 @@ var XULBrowserWindow = {
       }
 
       
-      if (this.hideChromeForLocation(location))
+      if (this.hideChromeForLocation(location)) {
         document.documentElement.setAttribute("disablechrome", "true");
-      else
-        document.documentElement.removeAttribute("disablechrome");
+      } else {
+        let ss = Cc["@mozilla.org/browser/sessionstore;1"].getService(Ci.nsISessionStore);
+        if (ss.getTabValue(gBrowser.selectedTab, "appOrigin"))
+          document.documentElement.setAttribute("disablechrome", "true");
+        else
+          document.documentElement.removeAttribute("disablechrome");
+      }
 
       
       let disableFind = false;
@@ -9099,7 +9104,6 @@ XPCOMUtils.defineLazyGetter(window, "gShowPageResizers", function () {
   return false;
 #endif
 });
-
 
 var MousePosTracker = {
   _listeners: [],

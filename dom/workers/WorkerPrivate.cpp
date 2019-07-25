@@ -2528,13 +2528,8 @@ WorkerPrivate::Create(JSContext* aCx, JSObject* aObj, WorkerPrivate* aParent,
 
       
       
-      JSStackFrame* frame = JS_GetScriptedCaller(aCx, nsnull);
-      if (frame) {
-        JSScript* script = JS_GetFrameScript(aCx, frame);
-        if (!script) {
-          JS_ReportError(aCx, "Could not get frame script!");
-          return nsnull;
-        }
+      JSScript *script;
+      if (JS_DescribeScriptedCaller(aCx, &script, nsnull)) {
         if (NS_FAILED(NS_NewURI(getter_AddRefs(baseURI),
                                 JS_GetScriptFilename(aCx, script)))) {
           JS_ReportError(aCx, "Failed to construct base URI!");
