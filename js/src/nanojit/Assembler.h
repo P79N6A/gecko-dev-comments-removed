@@ -505,6 +505,12 @@ namespace nanojit
             debug_only( int32_t _sv_fpuStkDepth; )
 
             
+            
+            
+            
+            
+            
+            
             inline void fpu_push() {
                 debug_only( ++_fpuStkDepth; NanoAssert(_fpuStkDepth <= 0); )
             }
