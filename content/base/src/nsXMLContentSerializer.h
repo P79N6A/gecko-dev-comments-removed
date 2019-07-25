@@ -105,43 +105,43 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   
 
 
-  virtual void AppendToString(const PRUnichar* aStr,
-                              PRInt32 aLength,
-                              nsAString& aOutputStr);
+  void AppendToString(const PRUnichar* aStr,
+                      PRInt32 aLength,
+                      nsAString& aOutputStr);
 
   
 
 
-  virtual void AppendToString(const PRUnichar aChar,
-                              nsAString& aOutputStr);
+  void AppendToString(const PRUnichar aChar,
+                      nsAString& aOutputStr);
 
   
 
 
-  virtual void AppendToString(const nsAString& aStr,
-                              nsAString& aOutputStr);
-
-  
-
-
-
-
-  virtual void AppendToStringConvertLF(const nsAString& aStr,
-                                       nsAString& aOutputStr);
+  void AppendToString(const nsAString& aStr,
+                      nsAString& aOutputStr);
 
   
 
 
 
-  virtual void AppendToStringWrapped(const nsASingleFragmentString& aStr,
+
+  void AppendToStringConvertLF(const nsAString& aStr,
+                               nsAString& aOutputStr);
+
+  
+
+
+
+  void AppendToStringWrapped(const nsASingleFragmentString& aStr,
+                             nsAString& aOutputStr);
+
+  
+
+
+
+  void AppendToStringFormatedWrapped(const nsASingleFragmentString& aStr,
                                      nsAString& aOutputStr);
-
-  
-
-
-
-  virtual void AppendToStringFormatedWrapped(const nsASingleFragmentString& aStr,
-                                             nsAString& aOutputStr);
 
   
   void AppendWrapped_WhitespaceSequence(
@@ -171,7 +171,7 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
 
-  virtual void AppendNewLineToString(nsAString& aOutputStr);
+  void AppendNewLineToString(nsAString& aOutputStr);
 
 
   
@@ -242,10 +242,10 @@ class nsXMLContentSerializer : public nsIContentSerializer {
                      nsAString& aStr,
                      PRBool aDoEscapeEntities);
 
-  virtual PRBool IsJavaScript(nsIContent * aContent,
-                              nsIAtom* aAttrNameAtom,
-                              PRInt32 aAttrNamespaceID,
-                              const nsAString& aValueString);
+  PRBool IsJavaScript(nsIContent * aContent,
+                      nsIAtom* aAttrNameAtom,
+                      PRInt32 aAttrNamespaceID,
+                      const nsAString& aValueString);
 
   
 
@@ -322,8 +322,8 @@ class nsXMLContentSerializer : public nsIContentSerializer {
 
 
   void AppendIndentation(nsAString& aStr);
-  virtual void IncrIndentation(nsIAtom* aName);
-  virtual void DecrIndentation(nsIAtom* aName);
+  void IncrIndentation(nsIAtom* aName);
+  void DecrIndentation(nsIAtom* aName);
 
   
   
@@ -397,6 +397,9 @@ class nsXMLContentSerializer : public nsIContentSerializer {
   
   
   PRPackedBool  mMayIgnoreLineBreakSequence;
+
+  PRPackedBool  mBodyOnly;
+  PRInt32       mInBody;
 
   
   PRInt32       mPreLevel;
