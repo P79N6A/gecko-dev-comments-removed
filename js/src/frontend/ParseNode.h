@@ -481,8 +481,7 @@ enum ParseNodeArity {
     PN_TERNARY,                         
     PN_FUNC,                            
     PN_LIST,                            
-    PN_NAME,                            
-    PN_NAMESET                          
+    PN_NAME                             
 };
 
 struct Definition;
@@ -621,10 +620,6 @@ struct ParseNode {
                         blockid:20;     
 
         } name;
-        struct {                        
-            AtomDefnMapPtr   defnMap;
-            ParseNode        *tree;     
-        } nameset;
         double        dval;             
         class {
             friend class LoopControlStatement;
@@ -661,8 +656,6 @@ struct ParseNode {
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
 #define pn_lexdef       pn_u.name.lexdef
-#define pn_names        pn_u.nameset.defnMap
-#define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
 
   protected:
@@ -673,7 +666,6 @@ struct ParseNode {
         pn_parens = false;
         JS_ASSERT(!pn_used);
         JS_ASSERT(!pn_defn);
-        pn_names.init();
         pn_next = pn_link = NULL;
     }
 
@@ -993,12 +985,6 @@ struct NameNode : public ParseNode {
 #ifdef DEBUG
     inline void dump(int indent);
 #endif
-};
-
-struct NameSetNode : public ParseNode {
-    static inline NameSetNode *create(ParseNodeKind kind, Parser *parser) {
-        return (NameSetNode *)ParseNode::create(kind, PN_NAMESET, parser);
-    }
 };
 
 struct LexicalScopeNode : public ParseNode {
