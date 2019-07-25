@@ -309,7 +309,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.setupUnalignedABICall(1, ecx);
     masm.setABIArg(0, eax);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, Bailout));
-    masm.finalizeABICall();
+    masm.finishABICall();
 
     
     uint32 bailoutFrameSize = sizeof(void *) + 
@@ -354,6 +354,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.setABIArg(0, eax);
     masm.setABIArg(1, ecx);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, ThunkToInterpreter));
+    masm.finishABICall();
 
     
     masm.popValue(JSReturnOperand);
@@ -372,7 +373,7 @@ GenerateBailoutThunk(MacroAssembler &masm, uint32 frameClass)
     masm.setupUnalignedABICall(1, ecx);
     masm.setABIArg(0, eax);
     masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, HandleException));
-    masm.finalizeABICall();
+    masm.finishABICall();
 
     
     masm.addl(eax, esp);

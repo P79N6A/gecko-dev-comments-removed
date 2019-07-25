@@ -196,7 +196,7 @@ class MacroAssembler : public MacroAssemblerSpecific
     
     
     
-    void finalizeABICall();
+    void finishABICall();
 
     
     
