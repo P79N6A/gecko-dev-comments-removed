@@ -8,6 +8,7 @@
 }
 
 .view {
+  color: black; 
   background: #f0f0ff; 
   padding-left: 0;
 }
