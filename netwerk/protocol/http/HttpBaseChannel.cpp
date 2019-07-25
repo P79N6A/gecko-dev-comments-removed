@@ -87,6 +87,10 @@ HttpBaseChannel::HttpBaseChannel()
 
   
   NS_ADDREF(gHttpHandler);
+
+  
+  mSelfAddr.raw.family = PR_AF_UNSPEC;
+  mPeerAddr.raw.family = PR_AF_UNSPEC;
 }
 
 HttpBaseChannel::~HttpBaseChannel()
