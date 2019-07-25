@@ -81,9 +81,6 @@
 
 
 
-
-
-
 class nsViewManagerEvent : public nsRunnable {
 public:
   nsViewManagerEvent(class nsViewManager *vm) : mViewManager(vm) {
@@ -131,8 +128,6 @@ public:
                           PRInt32 zindex);
 
   NS_IMETHOD  RemoveChild(nsIView *parent);
-
-  NS_IMETHOD  MoveViewBy(nsIView *aView, nscoord aX, nscoord aY);
 
   NS_IMETHOD  MoveViewTo(nsIView *aView, nscoord aX, nscoord aY);
 
@@ -265,7 +260,7 @@ public:
   nsViewManager* RootViewManager() const { return mRootViewManager; }
   PRBool IsRootVM() const { return this == RootViewManager(); }
 
-  nsEventStatus HandleEvent(nsView* aView, nsPoint aPoint, nsGUIEvent* aEvent);
+  nsEventStatus HandleEvent(nsView* aView, nsGUIEvent* aEvent);
 
   virtual nsresult WillBitBlit(nsIView* aView, const nsRect& aRect,
                                nsPoint aScrollAmount);
@@ -317,9 +312,6 @@ private:
 
   
   static PRInt32           mVMCount;        
-
-  
-  static nsIRenderingContext* gCleanupContext;
 
   
   static nsVoidArray       *gViewManagers;

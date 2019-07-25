@@ -44,7 +44,6 @@
 
 #include "nsAutoPtr.h"
 #include "nsViewManager.h"
-#include "nsIRenderingContext.h"
 #include "nsIDeviceContext.h"
 #include "nsGfxCIID.h"
 #include "nsView.h"
@@ -60,12 +59,9 @@
 #include "nsCOMArray.h"
 #include "nsThreadUtils.h"
 #include "nsContentUtils.h"
-#include "gfxContext.h"
 #include "nsIPluginWidget.h"
 
-static NS_DEFINE_IID(kBlenderCID, NS_BLENDER_CID);
 static NS_DEFINE_IID(kRegionCID, NS_REGION_CID);
-static NS_DEFINE_IID(kRenderingContextCID, NS_RENDERING_CONTEXT_CID);
 
 
 
@@ -86,10 +82,6 @@ static NS_DEFINE_IID(kRenderingContextCID, NS_RENDERING_CONTEXT_CID);
 
 
 #define NSCOORD_NONE      PR_INT32_MIN
-
-#ifdef NS_VM_PERF_METRICS
-#include "nsITimeRecorder.h"
-#endif
 
 
 
@@ -136,7 +128,6 @@ nsViewManager::PostInvalidateEvent()
 #undef DEBUG_MOUSE_LOCATION
 
 PRInt32 nsViewManager::mVMCount = 0;
-nsIRenderingContext* nsViewManager::gCleanupContext = nsnull;
 
 
 nsVoidArray* nsViewManager::gViewManagers = nsnull;
@@ -153,13 +144,6 @@ nsViewManager::nsViewManager()
     gViewManagers = new nsVoidArray;
   }
  
-  if (gCleanupContext == nsnull) {
-    
-    CallCreateInstance(kRenderingContextCID, &gCleanupContext);
-    NS_ASSERTION(gCleanupContext,
-                 "Wasn't able to create a graphics context for cleanup");
-  }
-
   gViewManagers->AppendElement(this);
 
   ++mVMCount;
@@ -205,14 +189,6 @@ nsViewManager::~nsViewManager()
     NS_ASSERTION(gViewManagers != nsnull, "About to delete null gViewManagers");
     delete gViewManagers;
     gViewManagers = nsnull;
-
-    
-    
-
-    
-    
-    
-    NS_IF_RELEASE(gCleanupContext);
   }
 
   mObserver = nsnull;
@@ -1024,32 +1000,7 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
 #endif
           }
 
-          
-          nsPoint offset(0, 0);
-
-          if (view != baseView) {
-            
-            nsView *parent;
-            for (parent = baseView; parent; parent = parent->GetParent())
-              parent->ConvertToParentCoords(&offset.x, &offset.y);
-
-            
-            for (parent = view; parent; parent = parent->GetParent())
-              parent->ConvertFromParentCoords(&offset.x, &offset.y);
-          }
-
-          
-          nsRect baseViewDimensions;
-          baseView->GetDimensions(baseViewDimensions);
-
-          nsPoint pt;
-          pt.x = baseViewDimensions.x + 
-            NSFloatPixelsToAppUnits(float(aEvent->refPoint.x) + 0.5f, p2a);
-          pt.y = baseViewDimensions.y + 
-            NSFloatPixelsToAppUnits(float(aEvent->refPoint.y) + 0.5f, p2a);
-          pt += offset;
-
-          *aStatus = HandleEvent(view, pt, aEvent);
+          *aStatus = HandleEvent(view, aEvent);
         }
     
         break;
@@ -1059,8 +1010,8 @@ NS_IMETHODIMP nsViewManager::DispatchEvent(nsGUIEvent *aEvent,
   return NS_OK;
 }
 
-nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsPoint aPoint,
-                                         nsGUIEvent* aEvent) {
+nsEventStatus nsViewManager::HandleEvent(nsView* aView, nsGUIEvent* aEvent)
+{
 
 
 
@@ -1241,15 +1192,6 @@ NS_IMETHODIMP nsViewManager::RemoveChild(nsIView *aChild)
       parent->RemoveChild(child);
     }
 
-  return NS_OK;
-}
-
-NS_IMETHODIMP nsViewManager::MoveViewBy(nsIView *aView, nscoord aX, nscoord aY)
-{
-  nsView* view = static_cast<nsView*>(aView);
-
-  nsPoint pt = view->GetPosition();
-  MoveViewTo(view, aX + pt.x, aY + pt.y);
   return NS_OK;
 }
 
