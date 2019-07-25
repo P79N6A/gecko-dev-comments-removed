@@ -754,8 +754,7 @@ function appendWarningElements(aP, aHasKnownHeapAllocated,
 
     appendElementWithText(div, "p", "",
       "This indicates a defect in one or more memory reporters.  The " +
-      "invalid values are highlighted, but you may need to expand one " +
-      "or more sub-trees to see them.");
+      "invalid values are highlighted.");
     appendTextNode(div, "\n\n");  
     gUnsafePathsWithInvalidValuesForThisProcess = [];  
   }
@@ -1039,6 +1038,11 @@ function appendMrNameSpan(aP, aKind, aShowSubtrees, aHasKids, aUnsafeDesc,
 
 var gTogglesBySafeTreeId = {};
 
+function assertClassListContains(e, className) {
+  assert(e, "undefined " + className);
+  assert(e.classList.contains(className), "classname isn't " + className);
+}
+
 function toggle(aEvent)
 {
   
@@ -1047,27 +1051,21 @@ function toggle(aEvent)
   
   
 
-  function assertClassName(span, className) {
-    assert(span, "undefined " + className);
-    assert(span.nodeName === "span", "non-span " + className);
-    assert(span.classList.contains(className), "bad " + className);
-  }
-
   
   var outerSpan = aEvent.target.parentNode;
-  assertClassName(outerSpan, "hasKids");
+  assertClassListContains(outerSpan, "hasKids");
 
   
   var plusSpan  = outerSpan.childNodes[2];
   var minusSpan = outerSpan.childNodes[3];
-  assertClassName(plusSpan,  "mrSep");
-  assertClassName(minusSpan, "mrSep");
+  assertClassListContains(plusSpan,  "mrSep");
+  assertClassListContains(minusSpan, "mrSep");
   plusSpan .classList.toggle("hidden");
   minusSpan.classList.toggle("hidden");
 
   
   var subTreeSpan = outerSpan.nextSibling;
-  assertClassName(subTreeSpan, "kids");
+  assertClassListContains(subTreeSpan, "kids");
   subTreeSpan.classList.toggle("hidden");
 
   
@@ -1076,6 +1074,28 @@ function toggle(aEvent)
     delete gTogglesBySafeTreeId[safeTreeId];
   } else {
     gTogglesBySafeTreeId[safeTreeId] = true;
+  }
+}
+
+function expandPathToThisElement(aElement)
+{
+  if (aElement.classList.contains("kids")) {
+    
+    aElement.classList.remove("hidden");
+    expandPathToThisElement(aElement.previousSibling);  
+
+  } else if (aElement.classList.contains("hasKids")) {
+    
+    var  plusSpan = aElement.childNodes[2];
+    var minusSpan = aElement.childNodes[3];
+    assertClassListContains(plusSpan,  "mrSep");
+    assertClassListContains(minusSpan, "mrSep");
+    plusSpan.classList.add("hidden");
+    minusSpan.classList.remove("hidden");
+    expandPathToThisElement(aElement.parentNode);       
+
+  } else {
+    assertClassListContains(aElement, "tree");
   }
 }
 
@@ -1200,6 +1220,12 @@ function appendTreeElements(aPOuter, aT, aProcess)
     appendMrNameSpan(d, kind, showSubtrees, hasKids, aT._unsafeDescription,
                      aT._unsafeName, aT._isUnknown, tIsInvalid, aT._nMerged);
     appendTextNode(d, "\n");
+
+    
+    
+    if (!gVerbose && tIsInvalid) {
+      expandPathToThisElement(d);
+    }
 
     if (hasKids) {
       
