@@ -42,6 +42,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 let [ define, require ] = (function() {
   let tempScope = {};
   Components.utils.import("resource:///modules/devtools/Require.jsm", tempScope);
@@ -59,6 +69,16 @@ registerCleanupFunction(function tearDown() {
   require = undefined;
   console = undefined;
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -116,6 +136,16 @@ define('gclitest/index', ['require', 'exports', 'module' , 'gclitest/suite'], fu
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/suite', ['require', 'exports', 'module' , 'gcli/index', 'test/examiner', 'gclitest/testCanon', 'gclitest/testCli', 'gclitest/testCompletion', 'gclitest/testExec', 'gclitest/testHelp', 'gclitest/testHistory', 'gclitest/testInputter', 'gclitest/testIntro', 'gclitest/testJs', 'gclitest/testKeyboard', 'gclitest/testPref', 'gclitest/testRequire', 'gclitest/testResource', 'gclitest/testScratchpad', 'gclitest/testSettings', 'gclitest/testSpell', 'gclitest/testSplit', 'gclitest/testTokenize', 'gclitest/testTooltip', 'gclitest/testTypes', 'gclitest/testUtil'], function(require, exports, module) {
 
   
@@ -150,6 +180,16 @@ define('gclitest/suite', ['require', 'exports', 'module' , 'gcli/index', 'test/e
 
   exports.examiner = examiner;
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -560,6 +600,16 @@ Test.prototype.toRemote = function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('test/assert', ['require', 'exports', 'module' ], function(require, exports, module) {
 
   exports.ok = ok;
@@ -567,6 +617,16 @@ define('test/assert', ['require', 'exports', 'module' ], function(require, expor
   exports.log = info;
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -589,6 +649,16 @@ define('test/status', ['require', 'exports', 'module' ], function(require, expor
   };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -684,6 +754,16 @@ define('gclitest/testCanon', ['require', 'exports', 'module' , 'gclitest/helpers
   };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -869,6 +949,16 @@ exports.exec = function(options, tests) {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1330,6 +1420,16 @@ exports.testDeeplyNested = function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/mockCommands', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/util', 'gcli/types/selection', 'gcli/types/basic', 'gcli/types'], function(require, exports, module) {
 
 
@@ -1599,6 +1699,16 @@ exports.tsg = {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testCompletion', ['require', 'exports', 'module' , 'test/assert', 'gclitest/mockCommands'], function(require, exports, module) {
 
 
@@ -1804,6 +1914,16 @@ exports.testActivate = function(options) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testExec', ['require', 'exports', 'module' , 'gcli/cli', 'gcli/canon', 'gclitest/mockCommands', 'gcli/types/node', 'test/assert'], function(require, exports, module) {
 
 
@@ -1962,6 +2082,16 @@ var mockDoc = {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testHelp', ['require', 'exports', 'module' , 'gclitest/helpers'], function(require, exports, module) {
 
   var helpers = require('gclitest/helpers');
@@ -2006,7 +2136,7 @@ define('gclitest/testHelp', ['require', 'exports', 'module' , 'gclitest/helpers'
         args: { search: null },
         outputMatch: [
           /Welcome to GCLI/,
-          /Source \(BSD\)/,
+          /Source \(Apache-2.0\)/,
           /Get help/
         ]
       });
@@ -2045,6 +2175,16 @@ define('gclitest/testHelp', ['require', 'exports', 'module' , 'gclitest/helpers'
   };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2106,6 +2246,16 @@ exports.testForwardsPastIndex = function () {
 };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2202,6 +2352,16 @@ exports.testOutput = function(options) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testIntro', ['require', 'exports', 'module' , 'gclitest/helpers', 'test/assert'], function(require, exports, module) {
 
   var helpers = require('gclitest/helpers');
@@ -2247,6 +2407,16 @@ define('gclitest/testIntro', ['require', 'exports', 'module' , 'gclitest/helpers
   };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2421,6 +2591,16 @@ exports.testBasic = function(options) {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2602,6 +2782,16 @@ exports.testIncrDecr = function() {
 };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2813,6 +3003,16 @@ exports.testPrefExec = function(options) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/mockSettings', ['require', 'exports', 'module' , 'gcli/settings'], function(require, exports, module) {
 
 
@@ -2913,6 +3113,16 @@ exports.shutdown = function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testRequire', ['require', 'exports', 'module' , 'test/assert', 'gclitest/requirable'], function(require, exports, module) {
 
 var test = require('test/assert');
@@ -3005,6 +3215,16 @@ exports.testRecursive = function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/requirable', ['require', 'exports', 'module' ], function(require, exports, module) {
 
   exports.thing1 = 'thing1';
@@ -3015,6 +3235,16 @@ define('gclitest/requirable', ['require', 'exports', 'module' ], function(requir
   exports.getStatus = function() { return status; };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3105,6 +3335,16 @@ function checkPrediction(res, prediction) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testScratchpad', ['require', 'exports', 'module' , 'test/assert'], function(require, exports, module) {
 
 
@@ -3152,6 +3392,16 @@ exports.testActivate = function(options) {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3352,6 +3602,16 @@ exports.testSpellerSimple = function(options) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testSplit', ['require', 'exports', 'module' , 'test/assert', 'gclitest/mockCommands', 'gcli/cli', 'gcli/canon'], function(require, exports, module) {
 
 var test = require('test/assert');
@@ -3415,6 +3675,16 @@ exports.testJavascript = function() {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3706,6 +3976,16 @@ exports.testPathological = function() {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testTooltip', ['require', 'exports', 'module' , 'test/assert', 'gclitest/mockCommands'], function(require, exports, module) {
 
 
@@ -3801,6 +4081,16 @@ exports.testActivate = function(options) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gclitest/testTypes', ['require', 'exports', 'module' , 'test/assert', 'gcli/types'], function(require, exports, module) {
 
 var test = require('test/assert');
@@ -3865,6 +4155,16 @@ exports.testNullDefault = function(options) {
 };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 

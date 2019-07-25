@@ -4,6 +4,16 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
 "use strict";
 
 
@@ -19,6 +29,16 @@ var EXPORTED_SYMBOLS = [ "gcli" ];
 Components.utils.import("resource:///modules/devtools/Require.jsm");
 Components.utils.import("resource:///modules/devtools/Console.jsm");
 Components.utils.import("resource:///modules/devtools/Browser.jsm");
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -112,6 +132,16 @@ define('gcli/index', ['require', 'exports', 'module' , 'gcli/types/basic', 'gcli
   };
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -478,6 +508,16 @@ exports.ArrayType = ArrayType;
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/l10n', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 Components.utils.import('resource://gre/modules/XPCOMUtils.jsm');
@@ -552,6 +592,16 @@ exports.lookupFormat = function(key, swaps) {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1054,6 +1104,16 @@ types.getType = function(typeSpec) {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1672,6 +1732,16 @@ exports.Speller = Speller;
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/types/selection', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types', 'gcli/types/spell'], function(require, exports, module) {
 
 
@@ -1965,6 +2035,16 @@ exports.SelectionType = SelectionType;
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/types/command', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/l10n', 'gcli/types', 'gcli/types/selection'], function(require, exports, module) {
 
 
@@ -2064,6 +2144,16 @@ CommandType.prototype.parse = function(arg) {
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -2461,6 +2551,16 @@ canon.commandOutputManager = new CommandOutputManager();
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3161,6 +3261,16 @@ else {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/types/javascript', ['require', 'exports', 'module' , 'gcli/l10n', 'gcli/types'], function(require, exports, module) {
 
 
@@ -3712,6 +3822,16 @@ exports.JavascriptType = JavascriptType;
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/types/node', ['require', 'exports', 'module' , 'gcli/host', 'gcli/l10n', 'gcli/types'], function(require, exports, module) {
 
 
@@ -3825,6 +3945,16 @@ NodeType.prototype.name = 'node';
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/host', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
@@ -3855,6 +3985,16 @@ define('gcli/host', ['require', 'exports', 'module' ], function(require, exports
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4166,6 +4306,16 @@ var ResourceCache = {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/types/setting', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/types', 'gcli/types/selection', 'gcli/types/basic'], function(require, exports, module) {
 
 
@@ -4256,6 +4406,16 @@ SettingValueType.prototype.name = 'settingValue';
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4488,6 +4648,16 @@ exports.removeSetting = function(nameOrSpec) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/ui/intro', ['require', 'exports', 'module' , 'gcli/settings', 'gcli/l10n', 'gcli/util', 'gcli/ui/view', 'gcli/cli', 'text!gcli/ui/intro.html'], function(require, exports, module) {
 
   var settings = require('gcli/settings');
@@ -4559,6 +4729,16 @@ define('gcli/ui/intro', ['require', 'exports', 'module' , 'gcli/settings', 'gcli
     });
   };
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4645,6 +4825,16 @@ exports.createView = function(options) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/ui/domtemplate', ['require', 'exports', 'module' ], function(require, exports, module) {
 
   var obj = {};
@@ -4652,6 +4842,16 @@ define('gcli/ui/domtemplate', ['require', 'exports', 'module' ], function(requir
   exports.template = obj.template;
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6269,6 +6469,16 @@ exports.createExecutionContext = function(requisition) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/promise', ['require', 'exports', 'module' ], function(require, exports, module) {
 
   Components.utils.import("resource:///modules/devtools/Promise.jsm");
@@ -6289,6 +6499,16 @@ define("text!gcli/ui/intro.html", [], "\n" +
   "  <button onclick=\"${onGotIt}\" if=\"${showHideButton}\">${l10n.introTextGo}</button>\n" +
   "</div>\n" +
   "");
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -6693,6 +6913,16 @@ exports.FocusManager = FocusManager;
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/ui/fields/basic', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/ui/fields'], function(require, exports, module) {
 
 
@@ -7063,6 +7293,16 @@ ArrayField.prototype._onAdd = function(ev, subConversion) {
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/ui/fields', ['require', 'exports', 'module' , 'gcli/util', 'gcli/types/basic'], function(require, exports, module) {
 
 
@@ -7301,6 +7541,16 @@ exports.addField(BlankField);
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/ui/fields/javascript', ['require', 'exports', 'module' , 'gcli/util', 'gcli/argument', 'gcli/types/javascript', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
 
 
@@ -7429,6 +7679,16 @@ JavascriptField.DEFAULT_VALUE = '__JavascriptField.DEFAULT_VALUE';
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -7650,6 +7910,16 @@ define("text!gcli/ui/fields/menu.html", [], "\n" +
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/ui/fields/selection', ['require', 'exports', 'module' , 'gcli/util', 'gcli/l10n', 'gcli/argument', 'gcli/types', 'gcli/types/basic', 'gcli/types/selection', 'gcli/ui/fields/menu', 'gcli/ui/fields'], function(require, exports, module) {
 
 
@@ -7844,6 +8114,16 @@ SelectionTooltipField.DEFAULT_VALUE = '__SelectionTooltipField.DEFAULT_VALUE';
 
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8094,6 +8374,16 @@ define("text!gcli/commands/help.css", [], "");
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/commands/pref', ['require', 'exports', 'module' , 'gcli/canon', 'gcli/l10n', 'gcli/settings', 'text!gcli/commands/pref_set_check.html'], function(require, exports, module) {
 
 
@@ -8232,6 +8522,16 @@ define("text!gcli/commands/pref_set_check.html", [], "<div>\n" +
   "  <button onclick=\"${activate}\">${l10n.prefSetCheckGo}</button>\n" +
   "</div>\n" +
   "");
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -8475,6 +8775,16 @@ FFDisplay.prototype.resizer = function() {
 exports.FFDisplay = FFDisplay;
 
 });
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9031,6 +9341,16 @@ exports.Inputter = Inputter;
 
 
 
+
+
+
+
+
+
+
+
+
+
 define('gcli/history', ['require', 'exports', 'module' ], function(require, exports, module) {
 
 
@@ -9089,6 +9409,16 @@ exports.History = History;
 
 });
 define("text!gcli/ui/inputter.css", [], "");
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -9362,6 +9692,16 @@ define("text!gcli/ui/completer.html", [], "\n" +
   "  <label class=\"gcli-in-closebrace\" if=\"${unclosedJs}\">}</label>\n" +
   "</description>\n" +
   "");
+
+
+
+
+
+
+
+
+
+
 
 
 
