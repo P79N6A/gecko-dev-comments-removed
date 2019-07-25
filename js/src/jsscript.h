@@ -75,22 +75,22 @@ struct JSTryNote {
     uint32_t        length;     
 };
 
-typedef struct JSTryNoteArray {
-    JSTryNote       *vector;    
-    uint32_t        length;     
-} JSTryNoteArray;
+namespace js {
 
-typedef struct JSObjectArray {
-    js::HeapPtrObject *vector;  
-    uint32_t        length;     
-} JSObjectArray;
-
-typedef struct JSConstArray {
+struct ConstArray {
     js::HeapValue   *vector;    
     uint32_t        length;
-} JSConstArray;
+};
 
-namespace js {
+struct ObjectArray {
+    js::HeapPtrObject *vector;  
+    uint32_t        length;     
+};
+
+struct TryNoteArray {
+    JSTryNote       *vector;    
+    uint32_t        length;     
+};
 
 struct GlobalSlotArray {
     struct Entry {
@@ -273,7 +273,7 @@ class Bindings
 } 
 
 #define JS_OBJECT_ARRAY_SIZE(length)                                          \
-    (offsetof(JSObjectArray, vector) + sizeof(JSObject *) * (length))
+    (offsetof(ObjectArray, vector) + sizeof(JSObject *) * (length))
 
 #ifdef JS_METHODJIT
 namespace JSC {
@@ -744,24 +744,24 @@ struct JSScript : public js::gc::Cell
     bool hasClosedArgs()    { return isValidOffset(closedArgsOffset); }
     bool hasClosedVars()    { return isValidOffset(closedVarsOffset); }
 
-    JSConstArray *consts() {
+    js::ConstArray *consts() {
         JS_ASSERT(hasConsts());
-        return reinterpret_cast<JSConstArray *>(data + constsOffset);
+        return reinterpret_cast<js::ConstArray *>(data + constsOffset);
     }
 
-    JSObjectArray *objects() {
+    js::ObjectArray *objects() {
         JS_ASSERT(hasObjects());
-        return reinterpret_cast<JSObjectArray *>(data + objectsOffset);
+        return reinterpret_cast<js::ObjectArray *>(data + objectsOffset);
     }
 
-    JSObjectArray *regexps() {
+    js::ObjectArray *regexps() {
         JS_ASSERT(hasRegexps());
-        return reinterpret_cast<JSObjectArray *>(data + regexpsOffset);
+        return reinterpret_cast<js::ObjectArray *>(data + regexpsOffset);
     }
 
-    JSTryNoteArray *trynotes() {
+    js::TryNoteArray *trynotes() {
         JS_ASSERT(hasTrynotes());
-        return reinterpret_cast<JSTryNoteArray *>(data + trynotesOffset);
+        return reinterpret_cast<js::TryNoteArray *>(data + trynotesOffset);
     }
 
     js::GlobalSlotArray *globals() {
@@ -797,7 +797,7 @@ struct JSScript : public js::gc::Cell
     }
 
     JSObject *getObject(size_t index) {
-        JSObjectArray *arr = objects();
+        js::ObjectArray *arr = objects();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
     }
@@ -812,7 +812,7 @@ struct JSScript : public js::gc::Cell
     inline JSObject *getRegExp(size_t index);
 
     const js::Value &getConst(size_t index) {
-        JSConstArray *arr = consts();
+        js::ConstArray *arr = consts();
         JS_ASSERT(index < arr->length);
         return arr->vector[index];
     }

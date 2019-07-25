@@ -2537,7 +2537,7 @@ DebuggerScript_getChildScripts(JSContext *cx, unsigned argc, Value *vp)
 
 
 
-        JSObjectArray *objects = script->objects();
+        ObjectArray *objects = script->objects();
         for (uint32_t i = script->savedCallerFun ? 1 : 0; i < objects->length; i++) {
             JSObject *obj = objects->vector[i];
             if (obj->isFunction()) {

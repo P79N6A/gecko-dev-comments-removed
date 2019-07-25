@@ -526,7 +526,7 @@ js_Disassemble1(JSContext *cx, JSScript *script, jsbytecode *pc,
           
           
           if (op == JSOP_TRY) {
-              JSTryNoteArray *trynotes = script->trynotes();
+              TryNoteArray *trynotes = script->trynotes();
               uint32_t i;
               for(i = 0; i < trynotes->length; i++) {
                   JSTryNote note = trynotes->vector[i];

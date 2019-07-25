@@ -113,7 +113,7 @@ DefineGlobals(JSContext *cx, GlobalScope &globalScope, JSScript* script)
         worklist.popBack();
 
         if (outer->hasObjects()) {
-            JSObjectArray *arr = outer->objects();
+            ObjectArray *arr = outer->objects();
 
             
 
