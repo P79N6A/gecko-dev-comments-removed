@@ -21,6 +21,7 @@ class nsIAccessible;
 
 class nsPluginHost;
 class nsPresContext;
+class nsRootPresContext;
 class nsDisplayPlugin;
 class nsIOSurface;
 class PluginBackgroundSink;
@@ -233,6 +234,15 @@ protected:
 
 private:
   
+  
+  
+  
+  void RegisterPluginForGeometryUpdates();
+
+  
+  
+  void UnregisterPluginForGeometryUpdates();
+
   class PluginEventNotifier : public nsRunnable {
   public:
     PluginEventNotifier(const nsString &aEventType) : 
@@ -258,6 +268,12 @@ private:
   
   
   nsRefPtr<ImageContainer> mImageContainer;
+
+  
+  
+  
+  
+  nsRefPtr<nsRootPresContext> mRootPresContextRegisteredWith;
 };
 
 class nsDisplayPlugin : public nsDisplayItem {
