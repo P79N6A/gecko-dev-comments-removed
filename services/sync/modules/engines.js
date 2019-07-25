@@ -1056,7 +1056,7 @@ SyncEngine.prototype = {
 
   
   
-  _reconcile: function SyncEngine__reconcile(item) {
+  _reconcile: function SyncEngine__reconcile(item, dupePerformed) {
     if (this._log.level <= Log4Moz.Level.Trace)
       this._log.trace("Incoming: " + item);
 
@@ -1085,10 +1085,26 @@ SyncEngine.prototype = {
     if (item.deleted)
       return true;
 
+    
+    if (dupePerformed) {
+      this._log.warn("Duplicate record not reconciled on second pass: " +
+                     item);
+      
+      return true;
+    }
+
+    
+    
+    
     this._log.trace("Reconcile step 3: Find dupes");
     let dupeId = this._findDupe(item);
-    if (dupeId)
+    if (dupeId) {
+      
+      
       this._handleDupe(item, dupeId);
+      this._log.debug("Reconciling de-duped record: " + item.id);
+      return this._reconcile(item, true);
+    }
 
     
     return true;
