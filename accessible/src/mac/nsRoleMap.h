@@ -147,7 +147,7 @@ static const NSString* AXRoles [] = {
   NSAccessibilityTextFieldRole,                 
   NSAccessibilityStaticTextRole,                
   @"AXWebArea",                                 
-  NSAccessibilityStaticTextRole,                
+  @"AXHeading",                                 
   NSAccessibilityGroupRole,                     
   NSAccessibilityGroupRole,                     
   NSAccessibilityUnknownRole,                   
