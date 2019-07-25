@@ -531,11 +531,6 @@ UIClass.prototype = {
     try {
       Utils.log('TabCandy init --------------------');
 
-      let obsService =
-        Components.classes["@mozilla.org/observer-service;1"]
-          .getService(Components.interfaces.nsIObserverService);
-      obsService.addObserver(this, "browser-delayed-startup-finished", false);
-
       
       
       this.navBar = Navbar;
@@ -599,6 +594,11 @@ UIClass.prototype = {
         
       currentWindow.addEventListener(
         "resize", function() { Page.setCloseButtonOnTabs(); }, false);
+        
+      
+      Storage.onReady(function() {
+        self.delayInit();
+      });
     }catch(e) {
       Utils.log("Error in UIClass(): " + e);
       Utils.log(e.fileName);
@@ -1025,17 +1025,6 @@ UIClass.prototype = {
         Tabs.open(url);
     } catch(e) {
       Utils.log(e);
-    }
-  },
-
-  
-  observe: function(subject, topic, data) {
-    
-    
-    if (topic == "browser-delayed-startup-finished") {
-      if (subject == Utils.getCurrentWindow()) {
-        this.delayInit();
-      }
     }
   }
 };
