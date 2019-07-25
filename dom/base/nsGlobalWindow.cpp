@@ -2965,9 +2965,9 @@ nsGlobalWindow::GetScriptableParent(nsIDOMWindow** aParent)
     return NS_OK;
   }
 
-  bool isMozBrowser = false;
-  mDocShell->GetIsBrowserFrame(&isMozBrowser);
-  if (isMozBrowser) {
+  bool isContentBoundary = false;
+  mDocShell->GetIsContentBoundary(&isContentBoundary);
+  if (isContentBoundary) {
     nsCOMPtr<nsIDOMWindow> parent = static_cast<nsIDOMWindow*>(this);
     parent.swap(*aParent);
     return NS_OK;
@@ -6451,12 +6451,13 @@ nsGlobalWindow::Close()
 {
   FORWARD_TO_OUTER(Close, (), NS_ERROR_NOT_INITIALIZED);
 
-  bool isMozBrowser = false;
+  bool isContentBoundary = false;
   if (mDocShell) {
-    mDocShell->GetIsBrowserFrame(&isMozBrowser);
+    mDocShell->GetIsContentBoundary(&isContentBoundary);
   }
 
-  if ((!isMozBrowser && IsFrame()) || !mDocShell || IsInModalState()) {
+  if ((!isContentBoundary && IsFrame()) ||
+      !mDocShell || IsInModalState()) {
     
     
     
@@ -6985,9 +6986,9 @@ nsGlobalWindow::GetScriptableFrameElement(nsIDOMElement** aFrameElement)
     return NS_OK;
   }
 
-  bool isMozBrowser = false;
-  mDocShell->GetIsBrowserFrame(&isMozBrowser);
-  if (isMozBrowser) {
+  bool isContentBoundary = false;
+  mDocShell->GetIsContentBoundary(&isContentBoundary);
+  if (isContentBoundary) {
     return NS_OK;
   }
 
