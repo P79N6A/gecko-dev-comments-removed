@@ -1084,13 +1084,24 @@ StorageCollectionGetRequest.prototype = {
 function StorageCollectionSetRequest() {
   StorageServiceRequest.call(this);
 
-  this._inputBSOs = [];
+  this._lines = [];
+  this._size  = 0;
 
   this.successfulIDs = new Set();
   this.failures      = new Map();
 }
 StorageCollectionSetRequest.prototype = {
   __proto__: StorageServiceRequest.prototype,
+
+  
+
+
+
+
+
+
+
+
 
   addBSO: function addBSO(bso) {
     if (!bso instanceof BasicStorageObject) {
@@ -1101,11 +1112,15 @@ StorageCollectionSetRequest.prototype = {
       throw new Error("Passed BSO must have id defined.");
     }
 
-    this._inputBSOs.push(bso);
+    let line = JSON.stringify(bso).replace("\n", "\u000a");
+
+    
+    this._size += line.length + "\n".length;
+    this._lines.push(line);
   },
 
   _onDispatch: function _onDispatch() {
-    this._data = JSON.stringify(this._inputBSOs);
+    this._data = this._lines.join("\n");
   },
 
   _completeParser: function _completeParser(response) {
@@ -1612,7 +1627,7 @@ StorageServiceClient.prototype = {
     let uri = this._baseURI + "storage/" + collection;
     let request = this._getRequest(uri, "POST", {
       requestType:       StorageCollectionSetRequest,
-      contentType:       "application/json",
+      contentType:       "application/newlines",
       accept:            "application/json",
       allowIfUnmodified: true,
     });
