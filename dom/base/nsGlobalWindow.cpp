@@ -8666,7 +8666,7 @@ nsGlobalWindow::OpenInternal(const nsAString& aUrl, const nsAString& aName,
 
   NS_ASSERTION(mDocShell, "Must have docshell here");
 
-  const PRBool checkForPopup =
+  const PRBool checkForPopup = !nsContentUtils::IsCallerChrome() &&
     !aDialog && !WindowExists(aName, !aCalledNoScript);
 
   
