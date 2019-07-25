@@ -642,7 +642,7 @@ class GatherDecls(TcheckVisitor):
 
         
         
-        p.decl.type._p = p
+        p.decl.type._ast = p
 
         
         for pinc in tu.protocolIncludes:
@@ -666,6 +666,10 @@ class GatherDecls(TcheckVisitor):
             elif isinstance(su, UnionDecl):
                 sutype = UnionType(qname, [ ])
             else: assert 0 and 'unknown type'
+
+            
+            
+            sutype._ast = su
 
             su.decl = self.declare(
                 loc=su.loc,
