@@ -669,6 +669,8 @@ nsPlacesExpiration.prototype = {
                    aError.result + "', '" + aError.message + "'");
   },
 
+  
+  _telemetrySteps: 1,
   handleCompletion: function PEX_handleCompletion(aReason)
   {
     if (aReason == Ci.mozIStorageStatementCallback.REASON_FINISHED) {
@@ -676,8 +678,29 @@ nsPlacesExpiration.prototype = {
         
         
         
+        let oldStatus = this.status;
         this.status = this._expectedResultsCount == 0 ? STATUS.DIRTY
                                                       : STATUS.CLEAN;
+
+        
+        if (this.status == STATUS.DIRTY) {
+          this._telemetrySteps++;
+        }
+        else {
+          
+          
+          if (oldStatus == STATUS.DIRTY) {
+            try {
+              Services.telemetry
+                      .getHistogramById("PLACES_EXPIRATION_STEPS_TO_CLEAN")
+                      .add(this._telemetrySteps);
+            } catch (ex) {
+              Components.utils.reportError("Unable to report telemetry.");
+            }
+          }
+          this._telemetrySteps = 1;
+        }
+
         delete this._expectedResultsCount;
       }
 
