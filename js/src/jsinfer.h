@@ -310,6 +310,9 @@ struct TypeSet
 
 
     
+    void addFreeze(JSContext *cx, JSScript *script);
+
+    
     JSValueType getKnownTypeTag(JSContext *cx, JSScript *script);
 
     

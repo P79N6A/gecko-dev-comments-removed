@@ -395,7 +395,8 @@ class Compiler : public BaseCompiler
         bool returnSet;
         AnyRegisterID returnRegister;
         Registers returnParentRegs;
-        Vector<Jump> returnJumps; 
+        Registers temporaryParentRegs;
+        Vector<Jump, 4, CompilerAllocPolicy> *returnJumps;
 
         ActiveFrame(JSContext *cx);
         ~ActiveFrame();
