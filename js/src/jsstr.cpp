@@ -5627,27 +5627,6 @@ const jschar js_uriUnescaped_ucstr[] =
 
 
 
-const bool js_alnum[] = {
-
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, ____, ____,
- ____, ____, ____, ____, ____, ____, ____, ____, true, true,
- true, true, true, true, true, true, true, true, ____, ____,
- ____, ____, ____, ____, ____, true, true, true, true, true,
- true, true, true, true, true, true, true, true, true, true,
- true, true, true, true, true, true, true, true, true, true,
- true, ____, ____, ____, ____, true, ____, true, true, true,
- true, true, true, true, true, true, true, true, true, true,
- true, true, true, true, true, true, true, true, true, true,
- true, true, true, ____, ____, ____, ____, ____
-};
-
-
-
-
-
 
 
 

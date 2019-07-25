@@ -273,6 +273,21 @@ js_fgets(char *buf, int size, FILE *file)
     return i;
 }
 
+JS_ALWAYS_INLINE void
+TokenStream::updateLineInfoForEOL()
+{
+    prevLinebase = linebase;
+    linebase = userbuf.addressOfNextRawChar();
+    lineno++;
+}
+
+JS_ALWAYS_INLINE void
+TokenStream::updateFlagsForEOL()
+{
+    flags &= ~TSF_DIRTYLINE;
+    flags |= TSF_EOL;
+}
+
 
 int32
 TokenStream::getChar()
@@ -315,9 +330,7 @@ TokenStream::getChar()
     return EOF;
 
   eol:
-    prevLinebase = linebase;
-    linebase = userbuf.addressOfNextRawChar();
-    lineno++;
+    updateLineInfoForEOL();
     return '\n';
 }
 
@@ -378,6 +391,7 @@ TokenStream::ungetCharIgnoreEOL(int32 c)
 
 
 
+
 bool
 TokenStream::peekChars(intN n, jschar *cp)
 {
@@ -385,17 +399,17 @@ TokenStream::peekChars(intN n, jschar *cp)
     int32 c;
 
     for (i = 0; i < n; i++) {
-        c = getChar();
+        c = getCharIgnoreEOL();
         if (c == EOF)
             break;
         if (c == '\n') {
-            ungetChar(c);
+            ungetCharIgnoreEOL(c);
             break;
         }
         cp[i] = (jschar)c;
     }
     for (j = i - 1; j >= 0; j--)
-        ungetChar(cp[j]);
+        ungetCharIgnoreEOL(cp[j]);
     return i == n;
 }
 
@@ -1247,14 +1261,68 @@ TokenStream::putIdentInTokenbuf(const jschar *identStart)
     return true;
 }
 
+enum FirstCharKind {
+    Other,
+    OneChar,
+    Ident,
+    Dot,
+    Equals,
+    String,
+    Dec,
+    Colon,
+    Plus,
+    HexOct,
+
+    
+    Space,
+    EOL
+};
+
+#define _______ Other
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+static const uint8 firstCharKinds[] = {
+
+ _______, _______, _______, _______, _______, _______, _______, _______, _______,   Space,
+     EOL,   Space,   Space,     EOL, _______, _______, _______, _______, _______, _______,
+ _______, _______, _______, _______, _______, _______, _______, _______, _______, _______,
+ _______, _______,   Space, _______,  String, _______,   Ident, _______, _______,  String,
+ OneChar, OneChar, _______,    Plus, OneChar, _______,     Dot, _______,  HexOct,     Dec,
+     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,     Dec,   Colon, OneChar,
+ _______,  Equals, _______, OneChar, _______,   Ident,   Ident,   Ident,   Ident,   Ident,
+   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
+   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
+   Ident, OneChar, _______, OneChar, _______,   Ident, _______,   Ident,   Ident,   Ident,
+   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
+   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,   Ident,
+   Ident,   Ident,   Ident, OneChar, _______, OneChar, _______, _______
+};
+
+#undef _______
+
 TokenKind
 TokenStream::getTokenInternal()
 {
     TokenKind tt;
     int c, qc;
     Token *tp;
-    bool hadUnicodeEscape;
+    FirstCharKind c1kind;
     const jschar *numStart;
+    bool hasFracOrExp;
+    const jschar *identStart;
+    bool hadUnicodeEscape;
 
 #if JS_HAS_XML_SUPPORT
     
@@ -1268,46 +1336,79 @@ TokenStream::getTokenInternal()
 #endif
 
   retry:
+    if (JS_UNLIKELY(!userbuf.hasRawChars())) {
+        tp = newToken(0);
+        tt = TOK_EOF;
+        flags |= TSF_EOF;
+        goto out;
+    }
+
+    c = userbuf.getRawChar();
+
     
 
 
-    do {
-        c = getChar();
-        if (c == '\n') {
-            flags &= ~TSF_DIRTYLINE;
-            flags |= TSF_EOL;
-            continue;
-        }
-    } while (JS_ISSPACE_OR_BOM((jschar)c));
 
-    if (c == EOF) {
-        tp = newToken(0);   
-        tt = TOK_EOF;
-        goto out;
+    if (JS_UNLIKELY(c >= 128)) {
+        if (JS_ISSPACE_OR_BOM(c))
+            goto retry;
+
+        if (c == LINE_SEPARATOR || c == PARA_SEPARATOR) {
+            updateLineInfoForEOL();
+            updateFlagsForEOL();
+            goto retry;
+        }
+
+        tp = newToken(-1);
+
+        if (JS_ISLETTER(c)) {
+            identStart = userbuf.addressOfNextRawChar() - 1;
+            hadUnicodeEscape = false;
+            goto identifier;
+        }
+
+        goto badchar;
     }
+
+    
+
+
+    c1kind = FirstCharKind(firstCharKinds[c]);
+
+    
+
+
+
+
+    if (c1kind >= Space) {
+        if (c1kind == EOL) {
+            
+            if (c == '\r' && userbuf.hasRawChars())
+                userbuf.matchRawChar('\n');
+            updateLineInfoForEOL();
+            updateFlagsForEOL();
+        }
+        goto retry;
+    }
+
     tp = newToken(-1);
 
     
 
 
-    if (c < 128) {
+    if (c1kind == OneChar) {
         tt = (TokenKind)oneCharTokens[c];
-        if (tt != 0)
-            goto out;
+        goto out;
     }
 
     
 
 
-    hadUnicodeEscape = false;
-    if (JS_ISIDSTART(c) ||
-        (c == '\\' && (hadUnicodeEscape = matchUnicodeEscapeIdStart(&qc))))
-    {
-        const jschar *identStart = userbuf.addressOfNextRawChar() - 1;
-        if (hadUnicodeEscape) {
-            c = qc;
-            identStart -= 5;    
-        }
+    if (c1kind == Ident) {
+        identStart = userbuf.addressOfNextRawChar() - 1;
+        hadUnicodeEscape = false;
+
+      identifier:
         for (;;) {
             c = getCharIgnoreEOL();
             if (!JS_ISIDENT(c)) {
@@ -1379,18 +1480,47 @@ TokenStream::getTokenInternal()
         goto out;
     }
 
+    if (c1kind == Dot) {
+        c = getCharIgnoreEOL();
+        if (JS7_ISDEC(c)) {
+            numStart = userbuf.addressOfNextRawChar() - 2;
+            goto decimal_dot;
+        }
+#if JS_HAS_XML_SUPPORT
+        if (c == '.') {
+            tt = TOK_DBLDOT;
+            goto out;
+        }
+#endif
+        ungetCharIgnoreEOL(c);
+        tt = TOK_DOT;
+        goto out;
+    }
+
+    if (c1kind == Equals) {
+        if (matchChar('=')) {
+            tp->t_op = matchChar('=') ? JSOP_STRICTEQ : JSOP_EQ;
+            tt = TOK_EQOP;
+        } else {
+            tp->t_op = JSOP_NOP;
+            tt = TOK_ASSIGN;
+        }
+        goto out;
+    }
+
     
 
 
-    if (JS7_ISDECNZ(c) || (c == '.' && JS7_ISDEC(peekChar()))) {
+    if (c1kind == Dec) {
         numStart = userbuf.addressOfNextRawChar() - 1;
 
       decimal:
-        bool hasFracOrExp = false;
+        hasFracOrExp = false;
         while (JS7_ISDEC(c))
             c = getCharIgnoreEOL();
 
         if (c == '.') {
+          decimal_dot:
             hasFracOrExp = true;
             do {
                 c = getCharIgnoreEOL();
@@ -1437,10 +1567,35 @@ TokenStream::getTokenInternal()
         goto out;
     }
 
+    if (c1kind == Colon) {
+#if JS_HAS_XML_SUPPORT
+        if (matchChar(':')) {
+            tt = TOK_DBLCOLON;
+            goto out;
+        }
+#endif
+        tp->t_op = JSOP_NOP;
+        tt = TOK_COLON;
+        goto out;
+    }
+
+    if (c1kind == Plus) {
+        if (matchChar('=')) {
+            tp->t_op = JSOP_ADD;
+            tt = TOK_ASSIGN;
+        } else if (matchChar('+')) {
+            tt = TOK_INC;
+        } else {
+            tp->t_op = JSOP_POS;
+            tt = TOK_PLUS;
+        }
+        goto out;
+    }
+
     
 
 
-    if (c == '0') {
+    if (c1kind == HexOct) {
         int radix;
         c = getCharIgnoreEOL();
         if (c == 'x' || c == 'X') {
@@ -1451,12 +1606,12 @@ TokenStream::getTokenInternal()
                 ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_MISSING_HEXDIGITS);
                 goto error;
             }
-            numStart = userbuf.addressOfNextRawChar() - 1;
+            numStart = userbuf.addressOfNextRawChar() - 1;  
             while (JS7_ISHEX(c))
                 c = getCharIgnoreEOL();
         } else if (JS7_ISDEC(c)) {
             radix = 8;
-            numStart = userbuf.addressOfNextRawChar() - 1;
+            numStart = userbuf.addressOfNextRawChar() - 1;  
             while (JS7_ISDEC(c)) {
                 
                 if (!ReportStrictModeError(cx, this, NULL, NULL, JSMSG_DEPRECATED_OCTAL))
@@ -1479,7 +1634,6 @@ TokenStream::getTokenInternal()
             }
         } else {
             
-            radix = 10;
             numStart = userbuf.addressOfNextRawChar() - 1;
             goto decimal;
         }
@@ -1502,7 +1656,7 @@ TokenStream::getTokenInternal()
     
 
 
-    if (c == '"' || c == '\'') {
+    if (c1kind == String) {
         qc = c;
         tokenbuf.clear();
         while (true) {
@@ -1601,30 +1755,16 @@ TokenStream::getTokenInternal()
     
 
 
+    JS_ASSERT(c1kind == Other);
     switch (c) {
-      case '.':
-#if JS_HAS_XML_SUPPORT
-        if (matchChar(c))
-            tt = TOK_DBLDOT;
-        else
-#endif
-            tt = TOK_DOT;
-        break;
-
-      case ':':
-#if JS_HAS_XML_SUPPORT
-        if (matchChar(c)) {
-            tt = TOK_DBLCOLON;
-            break;
+      case '\\':
+        hadUnicodeEscape = matchUnicodeEscapeIdStart(&qc);
+        if (hadUnicodeEscape) {
+            c = qc;
+            identStart = userbuf.addressOfNextRawChar() - 6;
+            goto identifier;
         }
-#endif
-        
-
-
-
-        tp->t_op = JSOP_NOP;
-        tt = TOK_COLON;
-        break;
+        goto badchar;
 
       case '|':
         if (matchChar(c)) {
@@ -1654,16 +1794,6 @@ TokenStream::getTokenInternal()
             tt = TOK_ASSIGN;
         } else {
             tt = TOK_BITAND;
-        }
-        break;
-
-      case '=':
-        if (matchChar(c)) {
-            tp->t_op = matchChar(c) ? JSOP_STRICTEQ : JSOP_EQ;
-            tt = TOK_EQOP;
-        } else {
-            tp->t_op = JSOP_NOP;
-            tt = TOK_ASSIGN;
         }
         break;
 
@@ -1765,10 +1895,8 @@ TokenStream::getTokenInternal()
                                          JSMSG_UNTERMINATED_COMMENT);
                 goto error;
             }
-            if (linenoBefore != lineno) {
-                flags &= ~TSF_DIRTYLINE;
-                flags |= TSF_EOL;
-            }
+            if (linenoBefore != lineno)
+                updateFlagsForEOL();
             cursor = (cursor - 1) & ntokensMask;
             goto retry;
         }
@@ -1847,18 +1975,6 @@ TokenStream::getTokenInternal()
         tt = TOK_UNARYOP;
         break;
 
-      case '+':
-        if (matchChar('=')) {
-            tp->t_op = JSOP_ADD;
-            tt = TOK_ASSIGN;
-        } else if (matchChar(c)) {
-            tt = TOK_INC;
-        } else {
-            tp->t_op = JSOP_POS;
-            tt = TOK_PLUS;
-        }
-        break;
-
       case '-':
         if (matchChar('=')) {
             tp->t_op = JSOP_SUB;
@@ -1880,9 +1996,9 @@ TokenStream::getTokenInternal()
       {
         uint32 n;
 
-        c = getChar();
+        c = getCharIgnoreEOL();
         if (!JS7_ISDEC(c)) {
-            ungetChar(c);
+            ungetCharIgnoreEOL(c);
             goto badchar;
         }
         n = (uint32)JS7_UNDEC(c);
@@ -1914,10 +2030,9 @@ TokenStream::getTokenInternal()
             goto badchar;
         break;
       }
-
-      badchar:
 #endif 
 
+      badchar:
       default:
         ReportCompileErrorNumber(cx, this, NULL, JSREPORT_ERROR, JSMSG_ILLEGAL_CHARACTER);
         goto error;

@@ -860,20 +860,6 @@ typedef enum JSCharType {
 
 #define JS_ISFORMAT(c) (((1 << JSCT_FORMAT) >> JS_CTYPE(c)) & 1)
 
-
-
-
-
-extern const bool js_alnum[];
-
-
-
-
-
-
-
-#define JS_ISWORD(c)    ((c) < 128 && js_alnum[(c)])
-
 extern const bool js_isidstart[];
 extern const bool js_isident[];
 
@@ -904,6 +890,7 @@ JS_ISIDENT(int c)
 #define JS_ISDIGIT(c)   (JS_CTYPE(c) == JSCT_DECIMAL_DIGIT_NUMBER)
 
 const jschar BYTE_ORDER_MARK = 0xFEFF;
+const jschar BYTE_ORDER_MARK2 = 0xFFFE;
 const jschar NO_BREAK_SPACE  = 0x00A0;
 
 extern const bool js_isspace[];
@@ -927,8 +914,8 @@ JS_ISSPACE_OR_BOM(int c)
     
     return (w < 128)
            ? js_isspace[w]
-           : w == NO_BREAK_SPACE || w == BYTE_ORDER_MARK ||
-             (JS_CCODE(w) & 0x00070000) == 0x00040000 || w == 0xfffe || w == 0xfeff;
+           : w == NO_BREAK_SPACE || w == BYTE_ORDER_MARK || w == BYTE_ORDER_MARK2 ||
+             (JS_CCODE(w) & 0x00070000) == 0x00040000;
 }
 
 #define JS_ISPRINT(c)   ((c) < 128 && isprint(c))
@@ -948,7 +935,6 @@ JS_ISSPACE_OR_BOM(int c)
 
 
 #define JS7_ISDEC(c)    ((((unsigned)(c)) - '0') <= 9)
-#define JS7_ISDECNZ(c)  ((((unsigned)(c)) - '1') <= 8)
 #define JS7_UNDEC(c)    ((c) - '0')
 #define JS7_ISHEX(c)    ((c) < 128 && isxdigit(c))
 #define JS7_UNHEX(c)    (uintN)(JS7_ISDEC(c) ? (c) - '0' : 10 + tolower(c) - 'a')
