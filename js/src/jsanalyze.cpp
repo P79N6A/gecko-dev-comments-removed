@@ -127,12 +127,32 @@ TypeIdStringImpl(jsid id)
 }
 
 void
-TypeObject::splicePrototype(JSObject *proto)
+TypeObject::splicePrototype(JSContext *cx, JSObject *proto)
 {
     JS_ASSERT(!this->proto);
     this->proto = proto;
     this->instanceNext = proto->getType()->instanceList;
     proto->getType()->instanceList = this;
+
+    
+
+
+
+
+
+#ifdef JS_TYPE_INFERENCE
+    if (propertyCount >= 2) {
+        unsigned capacity = HashSetCapacity(propertyCount);
+        for (unsigned i = 0; i < capacity; i++) {
+            Property *prop = propertySet[i];
+            if (prop)
+                getFromPrototypes(cx, prop);
+        }
+    } else if (propertyCount == 1) {
+        Property *prop = (Property *) propertySet;
+        getFromPrototypes(cx, prop);
+    }
+#endif
 }
 
 } } 

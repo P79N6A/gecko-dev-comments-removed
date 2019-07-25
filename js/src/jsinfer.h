@@ -494,7 +494,7 @@ struct TypeObject
     inline const char * name();
 
     
-    void splicePrototype(JSObject *proto);
+    void splicePrototype(JSContext *cx, JSObject *proto);
 
     
 
@@ -502,6 +502,7 @@ struct TypeObject
     void addProperty(JSContext *cx, jsid id, Property *&prop);
     void markUnknown(JSContext *cx);
     void storeToInstances(JSContext *cx, Property *base);
+    void getFromPrototypes(JSContext *cx, Property *base);
 
     void print(JSContext *cx);
     void trace(JSTracer *trc);

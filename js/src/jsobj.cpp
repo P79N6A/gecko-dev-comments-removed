@@ -3973,7 +3973,7 @@ js_InitClass(JSContext *cx, JSObject *obj, JSObject *parent_proto,
 
         
         if (ctor->getClass() == clasp)
-            ctor->getType()->splicePrototype(proto);
+            ctor->getType()->splicePrototype(cx, proto);
     }
 
     
