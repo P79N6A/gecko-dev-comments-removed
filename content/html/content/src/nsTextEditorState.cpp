@@ -1726,8 +1726,14 @@ nsTextEditorState::SetValue(const nsAString& aValue, PRBool aUserInput)
           plaintextEditor->InsertText(insertValue);
         }
         if (!weakFrame.IsAlive()) {
-          NS_ASSERTION(!mBoundFrame, "The frame should have been unbounded");
-          SetValue(newValue, PR_FALSE);
+          
+          
+          
+          
+          
+          if (!mBoundFrame) {
+            SetValue(newValue, PR_FALSE);
+          }
           valueSetter.Cancel();
           return;
         }
