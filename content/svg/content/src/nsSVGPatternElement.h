@@ -64,9 +64,8 @@ class nsSVGPatternElement : public nsSVGPatternElementBase,
 
 protected:
   friend nsresult NS_NewSVGPatternElement(nsIContent **aResult,
-                                         nsINodeInfo *aNodeInfo);
+                                          nsINodeInfo *aNodeInfo);
   nsSVGPatternElement(nsINodeInfo* aNodeInfo);
-  nsresult Init();
 
 public:
   
@@ -92,11 +91,16 @@ public:
 
 protected:
 
+  virtual nsresult BeforeSetAttr(PRInt32 aNamespaceID, nsIAtom* aName,
+                                 const nsAString* aValue, PRBool aNotify);
+
   virtual LengthAttributesInfo GetLengthInfo();
   virtual EnumAttributesInfo GetEnumInfo();
   virtual nsSVGViewBox *GetViewBox();
   virtual nsSVGPreserveAspectRatio *GetPreserveAspectRatio();
   virtual StringAttributesInfo GetStringInfo();
+
+  virtual void DidAnimateTransform();
 
   
   enum { X, Y, WIDTH, HEIGHT };
@@ -117,6 +121,9 @@ protected:
   
   nsSVGViewBox mViewBox;
   nsSVGPreserveAspectRatio mPreserveAspectRatio;
+
+  
+  nsresult CreateTransformList();
 };
 
 #endif
