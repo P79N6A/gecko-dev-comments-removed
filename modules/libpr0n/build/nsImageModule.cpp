@@ -37,10 +37,7 @@
 
 
 
-#include "nsIDeviceContext.h"
 #include "mozilla/ModuleUtils.h"
-#include "nsXPCOMCID.h"
-#include "nsServiceManagerUtils.h"
 
 #include "RasterImage.h"
 
@@ -123,9 +120,7 @@ imglib_Initialize()
 {
   
   
-  
-  nsCOMPtr<nsIDeviceContext> devctx = 
-    do_CreateInstance("@mozilla.org/gfx/devicecontext;1");
+  nsCOMPtr<nsISupports> dummy = do_GetService("@mozilla.org/gfx/init;1");
 
   imgLoader::InitCache();
   return NS_OK;
