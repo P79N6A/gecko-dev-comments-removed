@@ -7,6 +7,7 @@
 const Cu = Components.utils;
 const Cc = Components.classes;
 const Ci = Components.interfaces;
+const Cr = Components.results;
 
 let EXPORTED_SYMBOLS = ["DOMApplicationRegistry", "DOMApplicationManifest"];
 
@@ -22,11 +23,13 @@ XPCOMUtils.defineLazyGetter(this, "NetUtil", function() {
 });
 
 XPCOMUtils.defineLazyGetter(this, "ppmm", function() {
-  return Cc["@mozilla.org/parentprocessmessagemanager;1"].getService(Ci.nsIFrameMessageManager);
+  return Cc["@mozilla.org/parentprocessmessagemanager;1"]
+         .getService(Ci.nsIFrameMessageManager);
 });
 
 XPCOMUtils.defineLazyGetter(this, "msgmgr", function() {
-  return Cc["@mozilla.org/system-message-internal;1"].getService(Ci.nsISystemMessagesInternal);
+  return Cc["@mozilla.org/system-message-internal;1"]
+         .getService(Ci.nsISystemMessagesInternal);
 });
 
 #ifdef MOZ_WIDGET_GONK
@@ -47,7 +50,8 @@ let DOMApplicationRegistry = {
     this.messages = ["Webapps:Install", "Webapps:Uninstall",
                     "Webapps:GetSelf",
                     "Webapps:GetInstalled", "Webapps:GetNotInstalled",
-                    "Webapps:Launch", "Webapps:GetAll"];
+                    "Webapps:Launch", "Webapps:GetAll",
+                    "Webapps:InstallPackage"];
 
     this.messages.forEach((function(msgName) {
       ppmm.addMessageListener(msgName, this);
@@ -55,7 +59,8 @@ let DOMApplicationRegistry = {
 
     Services.obs.addObserver(this, "xpcom-shutdown", false);
 
-    this.appsFile = FileUtils.getFile(DIRECTORY_NAME, ["webapps", "webapps.json"], true);
+    this.appsFile = FileUtils.getFile(DIRECTORY_NAME,
+                                      ["webapps", "webapps.json"], true);
 
     if (this.appsFile.exists()) {
       this._loadJSONAsync(this.appsFile, (function(aData) {
@@ -74,7 +79,8 @@ let DOMApplicationRegistry = {
     try {
       let hosts = Services.prefs.getCharPref("dom.mozApps.whitelist");
       hosts.split(",").forEach(function(aHost) {
-        Services.perms.add(Services.io.newURI(aHost, null, null), "webapps-manage",
+        Services.perms.add(Services.io.newURI(aHost, null, null),
+                           "webapps-manage",
                            Ci.nsIPermissionManager.ALLOW_ACTION);
       });
     } catch(e) { }
@@ -82,7 +88,8 @@ let DOMApplicationRegistry = {
 
 #ifdef MOZ_SYS_MSG
   _registerSystemMessages: function(aManifest, aApp) {
-    if (aManifest.messages && Array.isArray(aManifest.messages) && aManifest.messages.length > 0) {
+    if (aManifest.messages && Array.isArray(aManifest.messages) &&
+        aManifest.messages.length > 0) {
       let manifest = new DOMApplicationManifest(aManifest, aApp.origin);
       let launchPath = Services.io.newURI(manifest.fullLaunchPath(), null, null);
       let manifestURL = Services.io.newURI(aApp.manifestURL, null, null);
@@ -116,7 +123,8 @@ let DOMApplicationRegistry = {
       channel.contentType = "application/json";
       NetUtil.asyncFetch(channel, function(aStream, aResult) {
         if (!Components.isSuccessCode(aResult)) {
-          Cu.reportError("DOMApplicationRegistry: Could not read from json file " + aFile.path);
+          Cu.reportError("DOMApplicationRegistry: Could not read from json file "
+                         + aFile.path);
           if (aCallback)
             aCallback(null);
           return;
@@ -125,7 +133,8 @@ let DOMApplicationRegistry = {
         
         let data = null;
         try {
-          data = JSON.parse(NetUtil.readInputStreamToString(aStream, aStream.available()) || "");
+          data = JSON.parse(NetUtil.readInputStreamToString(aStream,
+                                                            aStream.available()) || "");
           aStream.close();
           if (aCallback)
             aCallback(data);
@@ -136,7 +145,8 @@ let DOMApplicationRegistry = {
         }
       });
     } catch (ex) {
-      Cu.reportError("DOMApplicationRegistry: Could not read from " + aFile.path + " : " + ex);
+      Cu.reportError("DOMApplicationRegistry: Could not read from " +
+                     aFile.path + " : " + ex);
       if (aCallback)
         aCallback(null);
     }
@@ -175,6 +185,9 @@ let DOMApplicationRegistry = {
         else
           ppmm.sendAsyncMessage("Webapps:GetAll:Return:KO", msg);
         break;
+      case "Webapps:InstallPackage":
+        this.installPackage(msg);
+        break;
     }
   },
 
@@ -183,7 +196,8 @@ let DOMApplicationRegistry = {
     let ostream = FileUtils.openSafeFileOutputStream(aFile);
 
     
-    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"].createInstance(Ci.nsIScriptableUnicodeConverter);
+    let converter = Cc["@mozilla.org/intl/scriptableunicodeconverter"]
+                    .createInstance(Ci.nsIScriptableUnicodeConverter);
     converter.charset = "UTF-8";
 
     
@@ -209,6 +223,15 @@ let DOMApplicationRegistry = {
   },
 
   denyInstall: function(aData) {
+    let packageId = aData.app.packageId;
+    if (packageId) {
+      let dir = FileUtils.getDir("TmpD", ["webapps", packageId],
+                                 true, true);
+      try {
+        dir.remove(true);
+      } catch(e) {
+      }
+    }
     ppmm.sendAsyncMessage("Webapps:Install:Return:KO", aData);
   },
 
@@ -229,6 +252,11 @@ let DOMApplicationRegistry = {
       localId = this._nextLocalId();
     }
 
+    if (app.packageId) {
+      
+      app.origin = "app://" + id;
+    }
+
     let appObject = this._cloneAppObject(app);
     appObject.installTime = app.installTime = Date.now();
     let appNote = JSON.stringify(appObject);
@@ -239,7 +267,21 @@ let DOMApplicationRegistry = {
     let dir = FileUtils.getDir(DIRECTORY_NAME, ["webapps", id], true, true);
     let manFile = dir.clone();
     manFile.append("manifest.webapp");
-    this._writeFile(manFile, JSON.stringify(app.manifest));
+    this._writeFile(manFile, JSON.stringify(app.manifest), function() {
+      
+      
+      if (app.packageId) {
+        let appFile = FileUtils.getFile("TmpD", ["webapps", app.packageId, "application.zip"], 
+                                        true, true);
+        appFile.moveTo(dir, "application.zip");
+        let tmpDir = FileUtils.getDir("TmpD", ["webapps", app.packageId], 
+                                        true, true);
+        try {
+          tmpDir.remove(true);
+        } catch(e) {
+        }
+      }
+    });
     this.webapps[id] = appObject;
 
     appObject.status = "installed";
@@ -327,6 +369,116 @@ let DOMApplicationRegistry = {
       else
         this._readManifests(aData, aFinalCallback, index + 1);
     }).bind(this));
+  },
+
+  installPackage: function(aData) {
+    
+    
+    
+    
+    
+    
+    
+
+    let id;
+    let manifestURL = "jar:" + aData.url + "!manifest.webapp";
+    
+    for (let appId in this.webapps) {
+      if (this.webapps[appId].manifestURL == manifestURL) {
+        id = appId;
+      }
+    }
+
+    
+    if (!id) {
+      id = this.makeAppId();
+    }
+
+    let dir = FileUtils.getDir("TmpD", ["webapps", id], true, true);
+
+    
+
+
+    function checkManifest(aManifest) {
+      if (aManifest.name == undefined)
+        return false;
+
+      if (aManifest.installs_allowed_from) {
+        return aManifest.installs_allowed_from.some(function(aOrigin) {
+          return aOrigin == "*" || aOrigin == aData.installOrigin;
+        });
+      }
+      return true;
+    }
+
+    
+    function cleanup(aError) {
+      try {
+        dir.remove(true);
+      } catch (e) { }
+      ppmm.sendAsyncMessage("Webapps:Install:Return:KO",
+                            { oid: aData.oid,
+                              requestID: aData.requestID,
+                              error: aError });
+    }
+
+    NetUtil.asyncFetch(aData.url, function(aInput, aResult, aRequest) {
+      if (!Components.isSuccessCode(aResult)) {
+        
+        cleanup("NETWORK_ERROR");
+        return;
+      }
+      
+      let zipFile = FileUtils.getFile("TmpD",
+                                      ["webapps", id, "application.zip"], true);
+      let ostream = FileUtils.openSafeFileOutputStream(zipFile);
+      NetUtil.asyncCopy(aInput, ostream, function (aResult) {
+        if (!Components.isSuccessCode(aResult)) {
+          
+          cleanup("DOWNLOAD_ERROR");
+          return;
+        }
+        
+        
+        
+        
+        let msg = {
+          from: aData.from,
+          oid: aData.oid,
+          requestId: aData.requestId,
+          app: {
+            packageId: id,
+            installOrigin: aData.installOrigin,
+            origin: "app://" + id,
+            manifestURL: manifestURL,
+            receipts: aData.receipts
+          }
+        }
+        let zipReader = Cc["@mozilla.org/libjar/zip-reader;1"]
+                        .createInstance(Ci.nsIZipReader);
+        try {
+          zipReader.open(zipFile);
+          if (!zipReader.hasEntry("manifest.webapp")) {
+            throw "No manifest.webapp found.";
+          }
+
+          let istream = zipReader.getInputStream("manifest.webapp");
+          msg.app.manifest = JSON.parse(NetUtil.readInputStreamToString(istream,
+                                        istream.available()) || "");
+          if (!checkManifest(msg.app.manifest)) {
+            throw "Invalid manifest";
+          }
+
+          Services.obs.notifyObservers(this, "webapps-ask-install",
+                                             JSON.stringify(msg));
+        } catch (e) {
+          
+          cleanup("INVALID_MANIFEST");
+        } finally {
+          zipReader.close();
+        }
+      });
+    });
   },
 
   uninstall: function(aData) {
