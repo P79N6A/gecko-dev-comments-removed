@@ -18,6 +18,33 @@
 #include "jsobjinlines.h"
 #include "gc/Barrier-inl.h"
 
+namespace js {
+
+static JS_ALWAYS_INLINE JSFixedString *
+NewShortString(JSContext *cx, const jschar *chars, size_t length)
+{
+    SkipRoot skip(cx, &chars);
+
+    
+
+
+
+    JS_ASSERT(JSShortString::lengthFits(length));
+    JSInlineString *str = JSInlineString::lengthFits(length)
+                          ? JSInlineString::new_(cx)
+                          : JSShortString::new_(cx);
+    if (!str)
+        return NULL;
+
+    jschar *storage = str->init(length);
+    PodCopy(storage, chars, length);
+    storage[length] = 0;
+    Probes::createString(cx, str, length);
+    return str;
+}
+
+} 
+
 inline void
 JSString::writeBarrierPre(JSString *str)
 {
@@ -112,7 +139,7 @@ JSDependentString::init(JSLinearString *base, const jschar *chars, size_t length
     JSString::writeBarrierPost(d.s.u2.base, &d.s.u2.base);
 }
 
-JS_ALWAYS_INLINE JSDependentString *
+JS_ALWAYS_INLINE JSLinearString *
 JSDependentString::new_(JSContext *cx, JSLinearString *base_, const jschar *chars, size_t length)
 {
     JS::Rooted<JSLinearString*> base(cx, base_);
@@ -130,7 +157,8 @@ JSDependentString::new_(JSContext *cx, JSLinearString *base_, const jschar *char
 
 
 
-    JS::SkipRoot charsRoot(cx, &chars);
+    if (JSShortString::lengthFits(base->length()))
+        return js::NewShortString(cx, chars, length);
 
     JSDependentString *str = (JSDependentString *)js_NewGCString(cx);
     if (!str)
@@ -410,32 +438,5 @@ JSExternalString::finalize(js::FreeOp *fop)
     const JSStringFinalizer *fin = externalFinalizer();
     fin->finalize(fin, const_cast<jschar *>(chars()));
 }
-
-namespace js {
-
-static JS_ALWAYS_INLINE JSFixedString *
-NewShortString(JSContext *cx, const jschar *chars, size_t length)
-{
-    SkipRoot skip(cx, &chars);
-
-    
-
-
-
-    JS_ASSERT(JSShortString::lengthFits(length));
-    JSInlineString *str = JSInlineString::lengthFits(length)
-                          ? JSInlineString::new_(cx)
-                          : JSShortString::new_(cx);
-    if (!str)
-        return NULL;
-
-    jschar *storage = str->init(length);
-    PodCopy(storage, chars, length);
-    storage[length] = 0;
-    Probes::createString(cx, str, length);
-    return str;
-}
-
-} 
 
 #endif
