@@ -203,7 +203,7 @@ TypeInferenceOracle::propertyReadBarrier(JSScript *script, jsbytecode *pc)
 }
 
 bool
-TypeInferenceOracle::elementReadIsDense(JSScript *script, jsbytecode *pc)
+TypeInferenceOracle::elementReadIsDenseArray(JSScript *script, jsbytecode *pc)
 {
     
     types::TypeSet *obj = script->analysis()->poppedTypes(pc, 1);
@@ -218,6 +218,46 @@ TypeInferenceOracle::elementReadIsDense(JSScript *script, jsbytecode *pc)
         return false;
 
     return !obj->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY);
+}
+
+bool
+TypeInferenceOracle::elementReadIsTypedArray(JSScript *script, jsbytecode *pc, int *arrayType)
+{
+    
+    types::TypeSet *obj = script->analysis()->poppedTypes(pc, 1);
+    types::TypeSet *id = script->analysis()->poppedTypes(pc, 0);
+
+    JSValueType objType = obj->getKnownTypeTag(cx);
+    if (objType != JSVAL_TYPE_OBJECT)
+        return false;
+
+    JSValueType idType = id->getKnownTypeTag(cx);
+    if (idType != JSVAL_TYPE_INT32 && idType != JSVAL_TYPE_DOUBLE)
+        return false;
+
+    if (obj->hasObjectFlags(cx, types::OBJECT_FLAG_NON_TYPED_ARRAY))
+        return false;
+
+    *arrayType = obj->getTypedArrayType(cx);
+    if (*arrayType == TypedArray::TYPE_MAX)
+        return false;
+
+    JS_ASSERT(*arrayType >= 0 && *arrayType < TypedArray::TYPE_MAX);
+
+    
+    
+    
+    
+    types::TypeSet *result = propertyRead(script, pc);
+    if (*arrayType == TypedArray::TYPE_FLOAT32 || *arrayType == TypedArray::TYPE_FLOAT64) {
+        if (!result->hasType(types::Type::DoubleType()))
+            return false;
+    } else {
+        if (!result->hasType(types::Type::Int32Type()))
+            return false;
+    }
+
+    return true;
 }
 
 bool
