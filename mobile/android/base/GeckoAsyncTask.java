@@ -3,24 +3,27 @@
 
 
 
-package org.mozilla.gecko;
+package org.mozilla.gecko.util;
 
-import org.mozilla.gecko.util.GeckoBackgroundThread;
+import android.app.Activity;
+import android.os.Handler;
 
 
 
 
 public abstract class GeckoAsyncTask<Params, Progress, Result> {
-    public static final int PRIORITY_NORMAL = 0;
-    public static final int PRIORITY_HIGH = 1;
+    public enum Priority { NORMAL, HIGH };
 
-    private int mPriority;
+    private final Activity mActivity;
+    private final Handler mBackgroundThreadHandler;
+    private Priority mPriority = Priority.NORMAL;
 
-    public GeckoAsyncTask() {
-        mPriority = PRIORITY_NORMAL;
+    public GeckoAsyncTask(Activity activity, Handler backgroundThreadHandler) {
+        mActivity = activity;
+        mBackgroundThreadHandler = backgroundThreadHandler;
     }
 
-    private class BackgroundTaskRunnable implements Runnable {
+    private final class BackgroundTaskRunnable implements Runnable {
         private Params[] mParams;
 
         public BackgroundTaskRunnable(Params... params) {
@@ -29,7 +32,7 @@ public abstract class GeckoAsyncTask<Params, Progress, Result> {
 
         public void run() {
             final Result result = doInBackground(mParams);
-            GeckoApp.mAppContext.runOnUiThread(new Runnable() {
+            mActivity.runOnUiThread(new Runnable() {
                 public void run() {
                     onPostExecute(result);
                 }
@@ -37,18 +40,19 @@ public abstract class GeckoAsyncTask<Params, Progress, Result> {
         }
     }
 
-    public void execute(final Params... params) {
-        if (mPriority == PRIORITY_HIGH)
-            GeckoBackgroundThread.getHandler().postAtFrontOfQueue(new BackgroundTaskRunnable(params));
+    public final void execute(final Params... params) {
+        BackgroundTaskRunnable runnable = new BackgroundTaskRunnable(params);
+        if (mPriority == Priority.HIGH)
+            mBackgroundThreadHandler.postAtFrontOfQueue(runnable);
         else
-            GeckoBackgroundThread.getHandler().post(new BackgroundTaskRunnable(params));
+            mBackgroundThreadHandler.post(runnable);
     }
 
-    public GeckoAsyncTask<Params, Progress, Result> setPriority(int priority) {
+    public final GeckoAsyncTask<Params, Progress, Result> setPriority(Priority priority) {
         mPriority = priority;
         return this;
     }
 
     protected abstract Result doInBackground(Params... params);
-    protected abstract void  onPostExecute(Result result);
+    protected abstract void onPostExecute(Result result);
 }
