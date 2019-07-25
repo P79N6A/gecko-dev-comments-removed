@@ -708,6 +708,9 @@ window.TabItems = {
 
     
     Tabs.onOpen(function() {
+      if (this.ownerDocument.defaultView != gWindow)
+        return;
+
       var tab = this;
       Utils.timeout(function() { 
         self.update(tab);
@@ -717,6 +720,9 @@ window.TabItems = {
     
     
     Tabs.onChange(function() {
+      if (this.ownerDocument.defaultView != gWindow)
+        return;
+
       let tab = this;
       Utils.timeout(function() { 
         tab.tabItem.okayToHideCache = true;
@@ -726,6 +732,9 @@ window.TabItems = {
 
     
     Tabs.onClose( function(){
+      if (this.ownerDocument.defaultView != gWindow)
+        return;
+
       var tab = this;
       Utils.timeout(function() { 
         self.unlink(tab);
@@ -734,6 +743,9 @@ window.TabItems = {
 
     
     Tabs.allTabs.forEach(function(tab){
+      if (tab.ownerDocument.defaultView != gWindow)
+        return;
+
       self.link(tab);
     });
 
@@ -748,6 +760,7 @@ window.TabItems = {
     try {
       var now = Date.now();
       let tabs = Tabs.allTabs;
+      tabs = tabs.filter(function(tab) tab.ownerDocument.defaultView == gWindow);
       let count = tabs.length;
       if (count && this.paintingPaused <= 0) {
         this.heartbeatIndex++;
