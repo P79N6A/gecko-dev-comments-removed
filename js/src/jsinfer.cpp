@@ -3221,6 +3221,14 @@ ScriptAnalysis::resolveNameAccess(JSContext *cx, jsid id, bool addDependency)
             return access;
         }
 
+        
+
+
+
+
+        if (atom == CallObjectLambdaName(script->function()))
+            return access;
+
         if (!script->nesting()->parent)
             return access;
         script = script->nesting()->parent;
