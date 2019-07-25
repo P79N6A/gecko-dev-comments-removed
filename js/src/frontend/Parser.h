@@ -38,8 +38,9 @@
 
 
 
-#ifndef jsparse_h___
-#define jsparse_h___
+#ifndef Parser_h__
+#define Parser_h__
+
 
 
 
@@ -47,10 +48,10 @@
 #include "jsprvtd.h"
 #include "jspubtd.h"
 #include "jsatom.h"
-#include "jsscan.h"
 #include "jsscript.h"
 #include "jswin.h"
 
+#include "frontend/TokenStream.h"
 #include "frontend/ParseMaps.h"
 
 JS_BEGIN_EXTERN_C
@@ -800,6 +801,7 @@ struct LexicalScopeNode : public JSParseNode {
 };
 
 } 
+
 
 
 

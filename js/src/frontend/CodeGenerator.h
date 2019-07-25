@@ -38,19 +38,20 @@
 
 
 
-#ifndef jsemit_h___
-#define jsemit_h___
+#ifndef CodeGenerator_h__
+#define CodeGenerator_h__
+
 
 
 
 #include "jstypes.h"
 #include "jsatom.h"
 #include "jsopcode.h"
-#include "jsparse.h"
 #include "jsscript.h"
 #include "jsprvtd.h"
 #include "jspubtd.h"
 
+#include "frontend/Parser.h"
 #include "frontend/ParseMaps.h"
 
 #include "jsatominlines.h"

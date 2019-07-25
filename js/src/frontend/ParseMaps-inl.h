@@ -42,7 +42,8 @@
 #define ParseMapPool_inl_h__
 
 #include "jscntxt.h"
-#include "jsparse.h" 
+
+#include "frontend/Parser.h" 
 
 #include "ParseMaps.h"
 

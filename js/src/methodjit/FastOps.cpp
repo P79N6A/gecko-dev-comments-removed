@@ -37,9 +37,9 @@
 
 
 
+
 #include "jsbool.h"
 #include "jscntxt.h"
-#include "jsemit.h"
 #include "jslibmath.h"
 #include "jsnum.h"
 #include "jsscope.h"
@@ -47,6 +47,7 @@
 #include "jsscriptinlines.h"
 #include "jstypedarrayinlines.h"
 
+#include "frontend/CodeGenerator.h"
 #include "methodjit/MethodJIT.h"
 #include "methodjit/Compiler.h"
 #include "methodjit/StubCalls.h"
