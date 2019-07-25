@@ -126,10 +126,6 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     if (!wn->GetClassInfo())
         return DoubleWrap(cx, obj, flags);
 
-    
-    if (wn->HasProto() && wn->GetProto()->ClassIsDOMObject())
-        return DoubleWrap(cx, obj, flags);
-
     XPCCallContext ccx(JS_CALLER, cx, obj);
     if (NATIVE_HAS_FLAG(&ccx, WantPreCreate)) {
         
@@ -159,13 +155,38 @@ WrapperFactory::PrepareForWrapping(JSContext *cx, JSObject *scope, JSObject *obj
     if (!ac.enter(cx, scope))
         return nsnull;
 
+    
+    
+    nsCOMPtr<nsIXPConnectJSObjectHolder> holder;
     jsval v;
     nsresult rv =
         nsXPConnect::FastGetXPConnect()->WrapNativeToJSVal(cx, scope, wn->Native(), nsnull,
                                                            &NS_GET_IID(nsISupports), PR_FALSE,
-                                                           &v, nsnull);
-    if (NS_SUCCEEDED(rv))
+                                                           &v, getter_AddRefs(holder));
+    if (NS_SUCCEEDED(rv)) {
         obj = JSVAL_TO_OBJECT(v);
+        NS_ASSERTION(IS_WN_WRAPPER(obj), "bad object");
+
+        XPCWrappedNative *newwn = static_cast<XPCWrappedNative *>(xpc_GetJSPrivate(obj));
+        if (newwn->GetSet()->GetInterfaceCount() == 1) {
+            
+            
+            
+            
+            
+
+#ifdef DEBUG
+            {
+                XPCNativeInterface *iface = newwn->GetSet()->GetInterfaceAt(0);
+                JSString *name = JSID_TO_STRING(iface->GetName());
+                NS_ASSERTION(!strcmp("nsISupports", JS_GetStringBytes(name)), "weird interface");
+            }
+#endif
+
+            newwn->SetSet(wn->GetSet());
+        }
+
+    }
 
     return DoubleWrap(cx, obj, flags);
 }
