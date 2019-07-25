@@ -12032,7 +12032,7 @@ GetPropertyByName(JSContext* cx, JSObject* obj, JSString** namep, Value* vp, PIC
     
     PropertyIdOp op = obj->getOps()->getProperty;
     if (op) {
-        bool result = op(cx, obj, id, vp);
+        bool result = op(cx, obj, obj, id, vp);
         if (!result)
             SetBuiltinError(cx);
         return cx->tracerState->builtinStatus == 0;
@@ -12047,7 +12047,8 @@ GetPropertyByName(JSContext* cx, JSObject* obj, JSString** namep, Value* vp, PIC
 
     const Shape *shape;
     JSObject *holder;
-    if (!js_GetPropertyHelperWithShape(cx, obj, id, JSGET_METHOD_BARRIER, vp, &shape, &holder)) {
+    if (!js_GetPropertyHelperWithShape(cx, obj, obj, id, JSGET_METHOD_BARRIER, vp, &shape,
+                                       &holder)) {
         SetBuiltinError(cx);
         return false;
     }
