@@ -985,10 +985,12 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
   }
 
   
-  if (!XMLHttpRequestBinding_workers::CreateInterfaceObjects(aCx, global,
-                                                             global) ||
-      !XMLHttpRequestUploadBinding_workers::CreateInterfaceObjects(aCx, global,
-                                                                   global)) {
+  
+  
+  
+  
+  if (!XMLHttpRequestBinding_workers::GetProtoObject(aCx, global, global) ||
+      !XMLHttpRequestUploadBinding_workers::GetProtoObject(aCx, global, global)) {
     return NULL;
   }
 
