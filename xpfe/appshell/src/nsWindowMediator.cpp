@@ -757,9 +757,19 @@ nsWindowMediator::Observe(nsISupports* aSubject,
                           const PRUnichar* aData)
 {
   if (!strcmp(aTopic, "xpcom-shutdown") && mReady) {
-    MutexAutoLock lock(mListLock);
-    while (mOldestWindow)
-      UnregisterWindow(mOldestWindow);
+    
+    
+    
+    
+    nsTArray<nsCOMPtr<nsIXULWindow> > windows;
+
+    {
+      MutexAutoLock lock(mListLock);
+      while (mOldestWindow) {
+        windows.AppendElement(mOldestWindow->mWindow);
+        UnregisterWindow(mOldestWindow);
+      }
+    }
     mReady = false;
   }
   return NS_OK;
