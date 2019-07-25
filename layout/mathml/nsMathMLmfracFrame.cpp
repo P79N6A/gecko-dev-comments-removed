@@ -124,6 +124,15 @@ nsMathMLmfracFrame::CalcLineThickness(nsPresContext*  aPresContext,
   nscoord lineThickness = aDefaultRuleThickness;
   nscoord minimumThickness = onePixel;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if (!aThicknessAttribute.IsEmpty()) {
     if (aThicknessAttribute.EqualsLiteral("thin")) {
       lineThickness = NSToCoordFloor(defaultThickness * THIN_FRACTION_LINE);
@@ -142,17 +151,12 @@ nsMathMLmfracFrame::CalcLineThickness(nsPresContext*  aPresContext,
       if (lineThickness < defaultThickness + onePixel)
         lineThickness = defaultThickness + onePixel;
     }
-    else { 
-      nsCSSValue cssValue;
-      if (ParseNumericValue(aThicknessAttribute, cssValue)) {
-        nsCSSUnit unit = cssValue.GetUnit();
-        if (eCSSUnit_Number == unit)
-          lineThickness = nscoord(float(defaultThickness) * cssValue.GetFloatValue());
-        else if (eCSSUnit_Percent == unit)
-          lineThickness = nscoord(float(defaultThickness) * cssValue.GetPercentValue());
-        else if (eCSSUnit_Null != unit)
-          lineThickness = CalcLength(aPresContext, aStyleContext, cssValue);
-      }
+    else {
+      
+      lineThickness = defaultThickness;
+      ParseNumericValue(aThicknessAttribute, &lineThickness,
+                        nsMathMLElement::PARSE_ALLOW_UNITLESS,
+                        aPresContext, aStyleContext);
     }
   }
 

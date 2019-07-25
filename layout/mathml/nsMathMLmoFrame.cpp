@@ -414,14 +414,23 @@ nsMathMLmoFrame::ProcessOperatorData()
   
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   nscoord leadingSpace = mEmbellishData.leadingSpace;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::lspace_,
                value);
   if (!value.IsEmpty()) {
     nsCSSValue cssValue;
-    if (ParseNumericValue(value, cssValue) ||
-        ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue))
-    {
+    if (nsMathMLElement::ParseNumericValue(value, cssValue, 0)) {
       if ((eCSSUnit_Number == cssValue.GetUnit()) && !cssValue.GetFloatValue())
         leadingSpace = 0;
       else if (cssValue.IsLengthUnit())
@@ -431,14 +440,23 @@ nsMathMLmoFrame::ProcessOperatorData()
   }
 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   nscoord trailingSpace = mEmbellishData.trailingSpace;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::rspace_,
                value);
   if (!value.IsEmpty()) {
     nsCSSValue cssValue;
-    if (ParseNumericValue(value, cssValue) ||
-        ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue))
-    {
+    if (nsMathMLElement::ParseNumericValue(value, cssValue, 0)) {
       if ((eCSSUnit_Number == cssValue.GetUnit()) && !cssValue.GetFloatValue())
         trailingSpace = 0;
       else if (cssValue.IsLengthUnit())
@@ -503,15 +521,27 @@ nsMathMLmoFrame::ProcessOperatorData()
   else if (value.EqualsLiteral("true"))
     mFlags |= NS_MATHML_OPERATOR_SYMMETRIC;
 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   mMinSize = 0.0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::minsize_,
                value);
   if (!value.IsEmpty()) {
     nsCSSValue cssValue;
-    if (ParseNumericValue(value, cssValue) ||
-        ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue))
-    {
+    if (nsMathMLElement::ParseNumericValue(value, cssValue,
+                                           nsMathMLElement::
+                                           PARSE_ALLOW_UNITLESS)) {
       nsCSSUnit unit = cssValue.GetUnit();
       if (eCSSUnit_Number == unit)
         mMinSize = cssValue.GetFloatValue();
@@ -521,32 +551,29 @@ nsMathMLmoFrame::ProcessOperatorData()
         mMinSize = float(CalcLength(presContext, mStyleContext, cssValue));
         mFlags |= NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE;
       }
-
-      if ((eCSSUnit_Number == unit) || (eCSSUnit_Percent == unit)) {
-        
-        GetAttribute(nsnull, mPresentationData.mstyle,
-                     nsGkAtoms::minsize_, value);
-        if (!value.IsEmpty()) {
-          if (ParseNumericValue(value, cssValue)) {
-            if (cssValue.IsLengthUnit()) {
-              mMinSize *= float(CalcLength(presContext, mStyleContext, cssValue));
-              mFlags |= NS_MATHML_OPERATOR_MINSIZE_ABSOLUTE;
-            }
-          }
-        }
-      }
     }
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   mMaxSize = NS_MATHML_OPERATOR_SIZE_INFINITY;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::maxsize_,
                value);
   if (!value.IsEmpty()) {
     nsCSSValue cssValue;
-    if (ParseNumericValue(value, cssValue) ||
-        ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue))
-    {
+    if (nsMathMLElement::ParseNumericValue(value, cssValue,
+                                           nsMathMLElement::
+                                           PARSE_ALLOW_UNITLESS)) {
       nsCSSUnit unit = cssValue.GetUnit();
       if (eCSSUnit_Number == unit)
         mMaxSize = cssValue.GetFloatValue();
@@ -555,20 +582,6 @@ nsMathMLmoFrame::ProcessOperatorData()
       else if (eCSSUnit_Null != unit) {
         mMaxSize = float(CalcLength(presContext, mStyleContext, cssValue));
         mFlags |= NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE;
-      }
-
-      if ((eCSSUnit_Number == unit) || (eCSSUnit_Percent == unit)) {
-        
-        GetAttribute(nsnull, mPresentationData.mstyle,
-                     nsGkAtoms::maxsize_, value);
-        if (!value.IsEmpty()) {
-          if (ParseNumericValue(value, cssValue)) {
-            if (cssValue.IsLengthUnit()) {
-              mMaxSize *= float(CalcLength(presContext, mStyleContext, cssValue));
-              mFlags |= NS_MATHML_OPERATOR_MAXSIZE_ABSOLUTE;
-            }
-          }
-        }
       }
     }
   }

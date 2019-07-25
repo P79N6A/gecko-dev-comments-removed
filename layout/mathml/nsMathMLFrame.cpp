@@ -380,95 +380,33 @@ nsMathMLFrame::CalcLength(nsPresContext*   aPresContext,
   return 0;
 }
 
- bool
-nsMathMLFrame::ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
-                                    nsString&   aString,
-                                    nsCSSValue& aCSSValue)
+ void
+nsMathMLFrame::ParseNumericValue(const nsString&   aString,
+                                 nscoord*          aLengthValue,
+                                 PRUint32          aFlags,
+                                 nsPresContext*    aPresContext,
+                                 nsStyleContext*   aStyleContext)
 {
-  aCSSValue.Reset();
-  aString.CompressWhitespace(); 
-  if (!aString.Length()) return false;
+  nsCSSValue cssValue;
 
-  
-  PRInt32 i = 0;
-  nsIAtom* namedspaceAtom = nsnull;
-  if (aString.EqualsLiteral("veryverythinmathspace")) {
-    i = 1;
-    namedspaceAtom = nsGkAtoms::veryverythinmathspace_;
-  }
-  else if (aString.EqualsLiteral("verythinmathspace")) {
-    i = 2;
-    namedspaceAtom = nsGkAtoms::verythinmathspace_;
-  }
-  else if (aString.EqualsLiteral("thinmathspace")) {
-    i = 3;
-    namedspaceAtom = nsGkAtoms::thinmathspace_;
-  }
-  else if (aString.EqualsLiteral("mediummathspace")) {
-    i = 4;
-    namedspaceAtom = nsGkAtoms::mediummathspace_;
-  }
-  else if (aString.EqualsLiteral("thickmathspace")) {
-    i = 5;
-    namedspaceAtom = nsGkAtoms::thickmathspace_;
-  }
-  else if (aString.EqualsLiteral("verythickmathspace")) {
-    i = 6;
-    namedspaceAtom = nsGkAtoms::verythickmathspace_;
-  }
-  else if (aString.EqualsLiteral("veryverythickmathspace")) {
-    i = 7;
-    namedspaceAtom = nsGkAtoms::veryverythickmathspace_;
-  }
-  else if (aString.EqualsLiteral("negativeveryverythinmathspace")) {
-    i = -1;
-    namedspaceAtom = nsGkAtoms::negativeveryverythinmathspace_;
-  }
-  else if (aString.EqualsLiteral("negativeverythinmathspace")) {
-    i = -2;
-    namedspaceAtom = nsGkAtoms::negativeverythinmathspace_;
-  }
-  else if (aString.EqualsLiteral("negativethinmathspace")) {
-    i = -3;
-    namedspaceAtom = nsGkAtoms::negativethinmathspace_;
-  }
-  else if (aString.EqualsLiteral("negativemediummathspace")) {
-    i = -4;
-    namedspaceAtom = nsGkAtoms::negativemediummathspace_;
-  }
-  else if (aString.EqualsLiteral("negativethickmathspace")) {
-    i = -5;
-    namedspaceAtom = nsGkAtoms::negativethickmathspace_;
-  }
-  else if (aString.EqualsLiteral("negativeverythickmathspace")) {
-    i = -6;
-    namedspaceAtom = nsGkAtoms::negativeverythickmathspace_;
-  }
-  else if (aString.EqualsLiteral("negativeveryverythickmathspace")) {
-    i = -7;
-    namedspaceAtom = nsGkAtoms::negativeveryverythickmathspace_;
-  }
-
-  if (0 != i) {
-    if (aMathMLmstyleFrame) {
-      
-      
-      nsAutoString value;
-      GetAttribute(nsnull, aMathMLmstyleFrame, namedspaceAtom, value);
-      if (!value.IsEmpty()) {
-        if (ParseNumericValue(value, aCSSValue) &&
-            aCSSValue.IsLengthUnit()) {
-          return true;
-        }
-      }
-    }
-
+  if (!nsMathMLElement::ParseNumericValue(aString, cssValue, aFlags)) {
     
-    aCSSValue.SetFloatValue(float(i)/float(18), eCSSUnit_EM);
-    return true;
+    
+    return;
   }
 
-  return false;
+  nsCSSUnit unit = cssValue.GetUnit();
+
+  if (unit == eCSSUnit_Percent || unit == eCSSUnit_Number) {
+    
+    *aLengthValue = NSToCoordRound(*aLengthValue * (unit == eCSSUnit_Percent ?
+                                                    cssValue.GetPercentValue() :
+                                                    cssValue.GetFloatValue()));
+    return;
+  }
+  
+  
+  *aLengthValue = CalcLength(aPresContext, aStyleContext, cssValue);
 }
 
 

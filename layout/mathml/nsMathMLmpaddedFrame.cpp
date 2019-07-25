@@ -39,6 +39,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsCRT.h"  
 #include "nsFrame.h"
@@ -103,6 +104,8 @@ nsMathMLmpaddedFrame::ProcessAttributes()
   nsAutoString value;
 
   
+
+
 
 
 
@@ -186,10 +189,6 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
     aSign = NS_MATHML_SIGN_UNSPECIFIED;
 
   
-  if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
-    i++;
-
-  
   bool gotDot = false, gotPercent = false;
   for (; i < stringLength; i++) {
     PRUnichar c = aString[i];
@@ -227,39 +226,23 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
   }
 
   
-  if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
-    i++;
-
-  
   if (i < stringLength && aString[i] == '%') {
     i++;
     gotPercent = true;
-
-    
-    if (i < stringLength && nsCRT::IsAsciiSpace(aString[i]))
-      i++;
   }
 
   
   aString.Right(unit, stringLength - i);
 
   if (unit.IsEmpty()) {
-    
-    if (gotPercent || !floatValue) {
+    if (gotPercent) {
+      
       aCSSValue.SetPercentValue(floatValue / 100.0f);
       aPseudoUnit = NS_MATHML_PSEUDO_UNIT_ITSELF;
       return true;
+    } else {
+      
     }
-    
-
-
-
-
-
-
-
-
-
   }
   else if (unit.EqualsLiteral("width"))  aPseudoUnit = NS_MATHML_PSEUDO_UNIT_WIDTH;
   else if (unit.EqualsLiteral("height")) aPseudoUnit = NS_MATHML_PSEUDO_UNIT_HEIGHT;
@@ -267,8 +250,9 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
   else if (!gotPercent) { 
 
     
-    
-    if (ParseNamedSpaceValue(nsnull, unit, aCSSValue)) {
+    if (nsMathMLElement::ParseNamedSpaceValue(unit, aCSSValue,
+                                              nsMathMLElement::
+                                              PARSE_ALLOW_NEGATIVE)) {
       
       floatValue *= aCSSValue.GetFloatValue();
       aCSSValue.SetFloatValue(floatValue, eCSSUnit_EM);
@@ -277,8 +261,11 @@ nsMathMLmpaddedFrame::ParseAttribute(nsString&   aString,
     }
 
     
+    
+    
+    
     number.Append(unit); 
-    if (ParseNumericValue(number, aCSSValue))
+    if (nsMathMLElement::ParseNumericValue(number, aCSSValue, 0))
       return true;
   }
 

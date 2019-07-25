@@ -37,6 +37,7 @@
 
 
 
+
 #include "nsCOMPtr.h"
 #include "nsFrame.h"
 #include "nsPresContext.h"
@@ -71,51 +72,65 @@ nsMathMLmspaceFrame::IsLeaf() const
 void
 nsMathMLmspaceFrame::ProcessAttributes(nsPresContext* aPresContext)
 {
-  
-
-
-
-
-
-
-
   nsAutoString value;
-  nsCSSValue cssValue;
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   mWidth = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::width,
                value);
   if (!value.IsEmpty()) {
-    if ((ParseNumericValue(value, cssValue) ||
-         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue)) &&
-         cssValue.IsLengthUnit()) {
-      mWidth = CalcLength(aPresContext, mStyleContext, cssValue);
-    }
+    ParseNumericValue(value, &mWidth,
+                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
+                      aPresContext, mStyleContext);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   mHeight = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::height,
                value);
   if (!value.IsEmpty()) {
-    if ((ParseNumericValue(value, cssValue) ||
-         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue)) &&
-         cssValue.IsLengthUnit()) {
-      mHeight = CalcLength(aPresContext, mStyleContext, cssValue);
-    }
+    ParseNumericValue(value, &mHeight,
+                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
+                      aPresContext, mStyleContext);
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
   
   mDepth = 0;
   GetAttribute(mContent, mPresentationData.mstyle, nsGkAtoms::depth_,
                value);
   if (!value.IsEmpty()) {
-    if ((ParseNumericValue(value, cssValue) ||
-         ParseNamedSpaceValue(mPresentationData.mstyle, value, cssValue)) &&
-         cssValue.IsLengthUnit()) {
-      mDepth = CalcLength(aPresContext, mStyleContext, cssValue);
-    }
+    ParseNumericValue(value, &mDepth,
+                      nsMathMLElement::PARSE_ALLOW_NEGATIVE,
+                      aPresContext, mStyleContext);
   }
 }
 

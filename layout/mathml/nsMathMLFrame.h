@@ -186,23 +186,18 @@ public:
 
   
   
-  static bool
-  ParseNumericValue(const nsString& aString,
-                    nsCSSValue&     aCSSValue) {
-    return nsMathMLElement::ParseNumericValue(aString, aCSSValue,
-            nsMathMLElement::PARSE_ALLOW_NEGATIVE |
-            nsMathMLElement::PARSE_ALLOW_UNITLESS);
-  }
+  
+  
+  static void ParseNumericValue(const nsString&   aString,
+                                nscoord*          aLengthValue,
+                                PRUint32          aFlags,
+                                nsPresContext*    aPresContext,
+                                nsStyleContext*   aStyleContext);
 
   static nscoord 
   CalcLength(nsPresContext*   aPresContext,
              nsStyleContext*   aStyleContext,
              const nsCSSValue& aCSSValue);
-
-  static bool
-  ParseNamedSpaceValue(nsIFrame*   aMathMLmstyleFrame,
-                       nsString&   aString,
-                       nsCSSValue& aCSSValue);
 
   static eMathMLFrameType
   GetMathMLFrameTypeFor(nsIFrame* aFrame)

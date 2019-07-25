@@ -243,6 +243,62 @@ nsMathMLElement::GetAttributeMappingFunction() const
   return &MapMathMLAttributesInto;
 }
 
+ bool
+nsMathMLElement::ParseNamedSpaceValue(const nsString& aString,
+                                      nsCSSValue&     aCSSValue,
+                                      PRUint32        aFlags)
+{
+   PRInt32 i = 0;
+   
+   if (aString.EqualsLiteral("veryverythinmathspace")) {
+     i = 1;
+   } else if (aString.EqualsLiteral("verythinmathspace")) {
+     i = 2;
+   } else if (aString.EqualsLiteral("thinmathspace")) {
+     i = 3;
+   } else if (aString.EqualsLiteral("mediummathspace")) {
+     i = 4;
+   } else if (aString.EqualsLiteral("thickmathspace")) {
+     i = 5;
+   } else if (aString.EqualsLiteral("verythickmathspace")) {
+     i = 6;
+   } else if (aString.EqualsLiteral("veryverythickmathspace")) {
+     i = 7;
+   } else if (aFlags & PARSE_ALLOW_NEGATIVE) {
+     if (aString.EqualsLiteral("negativeveryverythinmathspace")) {
+       i = -1;
+     } else if (aString.EqualsLiteral("negativeverythinmathspace")) {
+       i = -2;
+     } else if (aString.EqualsLiteral("negativethinmathspace")) {
+       i = -3;
+     } else if (aString.EqualsLiteral("negativemediummathspace")) {
+       i = -4;
+     } else if (aString.EqualsLiteral("negativethickmathspace")) {
+       i = -5;
+     } else if (aString.EqualsLiteral("negativeverythickmathspace")) {
+       i = -6;
+     } else if (aString.EqualsLiteral("negativeveryverythickmathspace")) {
+       i = -7;
+     }
+   }
+   if (0 != i) { 
+     aCSSValue.SetFloatValue(float(i)/float(18), eCSSUnit_EM);
+     return true;
+   }
+   
+   return false;
+}
+ 
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -281,6 +337,10 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   if (!stringLength)
     return false;
 
+  if (ParseNamedSpaceValue(aString, aCSSValue, aFlags)) {
+    return true;
+  }
+
   nsAutoString number, unit;
 
   
@@ -289,10 +349,6 @@ nsMathMLElement::ParseNumericValue(const nsString& aString,
   if (c == '-') {
     number.Append(c);
     i++;
-
-    
-    if (i < stringLength && nsCRT::IsAsciiSpace(str[i]))
-      i++;
   }
 
   
@@ -358,6 +414,14 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
                                          nsRuleData* aData)
 {
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Font)) {
+    
+    
+    
+    
+    
+    
+    
+    
     const nsAttrValue* value =
       aAttributes->GetAttr(nsGkAtoms::scriptsizemultiplier_);
     nsCSSValue* scriptSizeMultiplier =
@@ -377,6 +441,18 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     value = aAttributes->GetAttr(nsGkAtoms::scriptminsize_);
     nsCSSValue* scriptMinSize = aData->ValueForScriptMinSize();
     if (value && value->Type() == nsAttrValue::eString &&
@@ -384,6 +460,17 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       ParseNumericValue(value->GetStringValue(), *scriptMinSize, 0);
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     value = aAttributes->GetAttr(nsGkAtoms::scriptlevel_);
     nsCSSValue* scriptLevel = aData->ValueForScriptLevel();
     if (value && value->Type() == nsAttrValue::eString &&
@@ -408,6 +495,28 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     bool parseSizeKeywords = true;
     value = aAttributes->GetAttr(nsGkAtoms::mathsize_);
     if (!value) {
@@ -435,6 +544,14 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
       }
     }
 
+    
+    
+    
+    
+    
+    
+    
+    
     value = aAttributes->GetAttr(nsGkAtoms::fontfamily_);
     nsCSSValue* fontFamily = aData->ValueForFontFamily();
     if (value && value->Type() == nsAttrValue::eString &&
@@ -443,6 +560,24 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     }
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Background)) {
     const nsAttrValue* value =
       aAttributes->GetAttr(nsGkAtoms::mathbackground_);
@@ -458,6 +593,23 @@ nsMathMLElement::MapMathMLAttributesInto(const nsMappedAttributes* aAttributes,
     }
   }
 
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   if (aData->mSIDs & NS_STYLE_INHERIT_BIT(Color)) {
     const nsAttrValue* value = aAttributes->GetAttr(nsGkAtoms::mathcolor_);
     if (!value) {
