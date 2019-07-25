@@ -208,8 +208,9 @@ class Mappable;
 
 
 
-class CustomElf: public LibHandle
+class CustomElf: public LibHandle, private ElfLoader::link_map
 {
+  friend class ElfLoader;
 public:
   
 

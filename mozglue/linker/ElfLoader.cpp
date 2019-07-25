@@ -15,6 +15,14 @@
 
 using namespace mozilla;
 
+#ifndef PAGE_SIZE
+#define PAGE_SIZE 4096
+#endif
+
+#ifndef PAGE_MASK
+#define PAGE_MASK (~ (PAGE_SIZE - 1))
+#endif
+
 
 
 
@@ -92,7 +100,6 @@ LeafName(const char *path)
 
 LibHandle::~LibHandle()
 {
-  ElfLoader::Singleton.Forget(this);
   free(path);
 }
 
@@ -118,8 +125,11 @@ SystemElf::Load(const char *path, int flags)
   void *handle = dlopen(path, flags);
   debug("dlopen(\"%s\", %x) = %p", path, flags, handle);
   ElfLoader::Singleton.lastError = dlerror();
-  if (handle)
-    return new SystemElf(path, handle);
+  if (handle) {
+    SystemElf *elf = new SystemElf(path, handle);
+    ElfLoader::Singleton.Register(elf);
+    return elf;
+  }
   return NULL;
 }
 
@@ -130,6 +140,7 @@ SystemElf::~SystemElf()
   debug("dlclose(%p [\"%s\"])", dlhandle, GetPath());
   dlclose(dlhandle);
   ElfLoader::Singleton.lastError = dlerror();
+  ElfLoader::Singleton.Forget(this);
 }
 
 void *
@@ -156,7 +167,6 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
   
   if (!path) {
     handle = SystemElf::Load(NULL, flags);
-    handles.push_back(handle);
     return handle;
   }
 
@@ -239,10 +249,6 @@ ElfLoader::Load(const char *path, int flags, LibHandle *parent)
         reinterpret_cast<void *>(parent), parent ? parent->GetPath() : "",
         static_cast<void *>(handle));
 
-  
-  if (handle)
-    handles.push_back(handle);
-
   return handle;
 }
 
@@ -258,12 +264,22 @@ ElfLoader::GetHandleByPtr(void *addr)
 }
 
 void
+ElfLoader::Register(LibHandle *handle)
+{
+  handles.push_back(handle);
+  if (dbg && !handle->IsSystemElf())
+    dbg->Add(static_cast<CustomElf *>(handle));
+}
+
+void
 ElfLoader::Forget(LibHandle *handle)
 {
   LibHandleList::iterator it = std::find(handles.begin(), handles.end(), handle);
   if (it != handles.end()) {
     debug("ElfLoader::Forget(%p [\"%s\"])", reinterpret_cast<void *>(handle),
                                             handle->GetPath());
+    if (dbg && !handle->IsSystemElf())
+      dbg->Remove(static_cast<CustomElf *>(handle));
     handles.erase(it);
   } else {
     debug("ElfLoader::Forget(%p [\"%s\"]): Handle not found",
@@ -358,4 +374,195 @@ ElfLoader::DestructorCaller::Call()
     destructor(object);
     destructor = NULL;
   }
+}
+
+void
+ElfLoader::InitDebugger()
+{
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  struct AuxVector {
+    Elf::Addr type;
+    Elf::Addr value;
+  };
+
+  
+  extern char **environ;
+
+  
+
+
+
+
+
+
+  char **env;
+  for (env = environ; *env; env++)
+    if (*env + strlen(*env) + 1 == env[1])
+      break;
+  if (!*env)
+    return;
+
+  
+
+
+
+  char **scan = reinterpret_cast<char **>(
+                reinterpret_cast<uintptr_t>(*env) & ~(sizeof(void *) - 1));
+  while (*env != *scan)
+    scan--;
+
+  
+
+  while (*scan++);
+  AuxVector *auxv = reinterpret_cast<AuxVector *>(scan);
+
+  
+
+
+  Array<Elf::Phdr> phdrs;
+  char *base = NULL;
+  while (auxv->type) {
+    if (auxv->type == AT_PHDR) {
+      phdrs.Init(reinterpret_cast<Elf::Phdr*>(auxv->value));
+      
+      base = reinterpret_cast<char *>(auxv->value & PAGE_MASK);
+    }
+    if (auxv->type == AT_PHNUM)
+      phdrs.Init(auxv->value);
+    auxv++;
+  }
+
+  if (!phdrs) {
+    debug("Couldn't find program headers");
+    return;
+  }
+
+  
+
+
+
+
+  MappedPtr mem(mmap(base, PAGE_SIZE, PROT_NONE,
+                     MAP_PRIVATE | MAP_ANONYMOUS, -1, 0), PAGE_SIZE);
+  if (mem == base) {
+    
+    int fd = open("/proc/self/exe", O_RDONLY);
+    if (fd == -1) {
+      debug("Failed to open /proc/self/exe");
+      return;
+    }
+    mem.Assign(mmap(base, PAGE_SIZE, PROT_READ, MAP_PRIVATE, fd, 0), PAGE_SIZE);
+    
+    if (mem != base) {
+      debug("Couldn't read program headers");
+      return;
+    }
+  }
+  
+
+  if (!Elf::Ehdr::validate(base)) {
+     debug("Couldn't find program base");
+     return;
+  }
+
+  
+  Array<Elf::Dyn> dyns;
+  for (Array<Elf::Phdr>::iterator phdr = phdrs.begin(); phdr < phdrs.end();
+       ++phdr) {
+    
+
+
+
+
+    if (phdr->p_type == PT_LOAD && phdr->p_offset == 0)
+      base -= phdr->p_vaddr;
+    if (phdr->p_type == PT_DYNAMIC)
+      dyns.Init(base + phdr->p_vaddr, phdr->p_filesz);
+  }
+  if (!dyns) {
+    debug("Failed to find PT_DYNAMIC section in program");
+    return;
+  }
+
+  
+  for (Array<Elf::Dyn>::iterator dyn = dyns.begin(); dyn < dyns.end(); ++dyn) {
+    if (dyn->d_tag == DT_DEBUG) {
+      dbg = reinterpret_cast<r_debug *>(dyn->d_un.d_ptr);
+      break;
+    }
+  }
+  debug("DT_DEBUG points at %p", dbg);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+void
+ElfLoader::r_debug::Add(ElfLoader::link_map *map)
+{
+  if (!r_brk)
+    return;
+  r_state = RT_ADD;
+  r_brk();
+  map->l_prev = NULL;
+  map->l_next = r_map;
+  r_map->l_prev = map;
+  r_map = map;
+  r_state = RT_CONSISTENT;
+  r_brk();
+}
+
+void
+ElfLoader::r_debug::Remove(ElfLoader::link_map *map)
+{
+  if (!r_brk)
+    return;
+  r_state = RT_DELETE;
+  r_brk();
+  if (r_map == map)
+    r_map = map->l_next;
+  else
+    map->l_prev->l_next = map->l_next;
+  map->l_next->l_prev = map->l_prev;
+  r_state = RT_CONSISTENT;
+  r_brk();
 }

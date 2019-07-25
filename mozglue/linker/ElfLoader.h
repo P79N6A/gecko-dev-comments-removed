@@ -208,7 +208,12 @@ protected:
 
 
 
-  friend LibHandle::~LibHandle();
+  void Register(LibHandle *handle);
+
+  
+
+
+
   void Forget(LibHandle *handle);
 
   
@@ -219,7 +224,7 @@ protected:
   const char *lastError;
 
 private:
-  ElfLoader() { }
+  ElfLoader() { InitDebugger(); }
   ~ElfLoader();
 
   
@@ -292,6 +297,58 @@ private:
 
   
   ZipCollection zips;
+
+public:
+  
+  struct link_map {
+    
+    const void *l_addr;
+    
+    const char *l_name;
+    
+    const void *l_ld;
+    
+    link_map *l_next, *l_prev;
+  };
+
+private:
+  
+
+
+  class r_debug {
+  public:
+    
+    void Add(link_map *map);
+
+    
+    void Remove(link_map *map);
+
+  private:
+    
+    int r_version;
+
+    
+    struct link_map *r_map;
+
+    
+
+
+    void (*r_brk)(void);
+
+    
+
+    enum {
+      RT_CONSISTENT, 
+      RT_ADD,        
+      RT_DELETE      
+    } r_state;
+  };
+  r_debug *dbg;
+
+  
+
+
+  void InitDebugger();
 };
 
 #endif 
