@@ -213,7 +213,7 @@ class WeakMap : public HashMap<Key, Value, HashPolicy, RuntimeAllocPolicy>, publ
         bool markedAny = false;
         for (Range r = Base::all(); !r.empty(); r.popFront()) {
             const Key &k = r.front().key;
-            const Value &v = r.front().value;
+            Value &v = r.front().value;
             
             if (kp.isMarked(k)) {
                 markedAny |= vp.mark(v);
@@ -264,10 +264,10 @@ class DefaultMarkPolicy<HeapValue> {
             return !IsAboutToBeFinalized(x);
         return true;
     }
-    bool mark(const HeapValue &x) {
+    bool mark(HeapValue &x) {
         if (isMarked(x))
             return false;
-        js::gc::MarkValue(tracer, x, "WeakMap entry");
+        js::gc::MarkValue(tracer, &x, "WeakMap entry");
         return true;
     }
 };
@@ -281,7 +281,7 @@ class DefaultMarkPolicy<HeapPtrObject> {
     bool isMarked(const HeapPtrObject &x) {
         return !IsAboutToBeFinalized(x);
     }
-    bool mark(const HeapPtrObject &x) {
+    bool mark(HeapPtrObject &x) {
         if (isMarked(x))
             return false;
         js::gc::MarkObject(tracer, x, "WeakMap entry");
@@ -298,7 +298,7 @@ class DefaultMarkPolicy<HeapPtrScript> {
     bool isMarked(const HeapPtrScript &x) {
         return !IsAboutToBeFinalized(x);
     }
-    bool mark(const HeapPtrScript &x) {
+    bool mark(HeapPtrScript &x) {
         if (isMarked(x))
             return false;
         js::gc::MarkScript(tracer, x, "WeakMap entry");
