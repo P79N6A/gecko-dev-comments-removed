@@ -1544,7 +1544,7 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
     JSCompartment *destination = target->compartment();
     WrapperMap &map = destination->crossCompartmentWrappers;
     Value origv = ObjectValue(*origobj);
-    JSObject *obj;
+    JSObject *newIdentity;
 
     if (origobj->compartment() == destination) {
         
@@ -1553,40 +1553,40 @@ JS_TransplantObject(JSContext *cx, JSObject *origobj, JSObject *target)
         
         if (!origobj->swap(cx, target))
             return NULL;
-        obj = origobj;
+        newIdentity = origobj;
     } else if (WrapperMap::Ptr p = map.lookup(origv)) {
         
         
         
-        obj = &p->value.toObject();
+        newIdentity = &p->value.toObject();
         map.remove(p);
-        if (!obj->swap(cx, target))
+        if (!newIdentity->swap(cx, target))
             return NULL;
     } else {
         
-        obj = target;
+        newIdentity = target;
     }
-    Value targetv = ObjectValue(*obj);
 
     
     
-    if (!RemapWrappers(cx, origobj, obj))
+    if (!RemapWrappers(cx, origobj, newIdentity))
         return NULL;
 
     
     if (origobj->compartment() != destination) {
         AutoCompartment ac(cx, origobj);
-        JSObject *tobj = obj;
-        if (!ac.enter() || !JS_WrapObject(cx, &tobj))
+        JSObject *newIdentityWrapper = newIdentity;
+        if (!ac.enter() || !JS_WrapObject(cx, &newIdentityWrapper))
             return NULL;
-        if (!origobj->swap(cx, tobj))
+        if (!origobj->swap(cx, newIdentityWrapper))
             return NULL;
-        origobj->compartment()->crossCompartmentWrappers.put(targetv, origv);
+        origobj->compartment()->crossCompartmentWrappers.put(ObjectValue(*newIdentity),
+                                                             origv);
     }
 
     
     
-    return obj;
+    return newIdentity;
 }
 
 
