@@ -3286,8 +3286,8 @@ PointerType::ConstructData(JSContext* cx,
     return JS_FALSE;
   }
 
-  if (argc > 2) {
-    JS_ReportError(cx, "constructor takes 0, 1, or 2 arguments");
+  if (argc > 3) {
+    JS_ReportError(cx, "constructor takes 0, 1, 2, or 3 arguments");
     return JS_FALSE;
   }
 
@@ -3298,38 +3298,63 @@ PointerType::ConstructData(JSContext* cx,
   
   JS_SET_RVAL(cx, vp, OBJECT_TO_JSVAL(result));
 
-  if (argc == 0) {
-    
-    return JS_TRUE;
-  }
+  
+  
+  
+  
+  
+  
+  
 
+  
+  
+  
+  if (argc == 0)
+    return JS_TRUE;
+
+  
   jsval* argv = JS_ARGV(cx, vp);
   JSObject* baseObj = PointerType::GetBaseType(cx, obj);
-  if (CType::GetTypeCode(cx, baseObj) == TYPE_function &&
-      JSVAL_IS_OBJECT(argv[0]) &&
-      JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(argv[0]))) {
-    
-    
-    JSObject* thisObj = NULL;
-    if (argc == 2) {
-      if (JSVAL_IS_OBJECT(argv[1])) {
-        thisObj = JSVAL_TO_OBJECT(argv[1]);
-      } else if (!JS_ValueToObject(cx, argv[1], &thisObj)) {
-        return JS_FALSE;
-      }
+  bool looksLikeClosure = CType::GetTypeCode(cx, baseObj) == TYPE_function &&
+                          JSVAL_IS_OBJECT(argv[0]) &&
+                          JS_ObjectIsCallable(cx, JSVAL_TO_OBJECT(argv[0]));
+
+  
+  
+  
+  if (!looksLikeClosure) {
+    if (argc != 1) {
+      JS_ReportError(cx, "first argument must be a function");
+      return JS_FALSE;
     }
-
-    JSObject* fnObj = JSVAL_TO_OBJECT(argv[0]);
-    return FunctionType::ConstructData(cx, baseObj, result, fnObj, thisObj);
-  }
-
-  if (argc == 2) {
-    JS_ReportError(cx, "first argument must be a function");
-    return JS_FALSE;
+    return ExplicitConvert(cx, argv[0], obj, CData::GetData(cx, result));
   }
 
   
-  return ExplicitConvert(cx, argv[0], obj, CData::GetData(cx, result));
+  
+  
+
+  
+  
+  
+  JSObject* thisObj = NULL;
+  if (argc >= 2) {
+    if (JSVAL_IS_OBJECT(argv[1])) {
+      thisObj = JSVAL_TO_OBJECT(argv[1]);
+    } else if (!JS_ValueToObject(cx, argv[1], &thisObj)) {
+      return JS_FALSE;
+    }
+  }
+
+  
+  
+  
+  jsval errVal = JSVAL_VOID;
+  if (argc == 3)
+    errVal = argv[2];
+
+  JSObject* fnObj = JSVAL_TO_OBJECT(argv[0]);
+  return FunctionType::ConstructData(cx, baseObj, result, fnObj, thisObj);
 }
 
 JSObject*
