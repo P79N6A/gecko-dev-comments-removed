@@ -44,6 +44,7 @@
 #include <objidl.h>
 #endif
 #include <oleidl.h>
+#include <shldisp.h>
 
 #include "nsCOMPtr.h"
 #include "nsString.h"
@@ -55,6 +56,13 @@
 #include "nsCOMArray.h"
 #include "nsITimer.h"
 
+
+
+
+#ifdef __IDataObjectAsyncCapability_INTERFACE_DEFINED__
+#define IAsyncOperation IDataObjectAsyncCapability
+#define IID_IAsyncOperation IID_IDataObjectAsyncCapability
+#else
 
 
 #ifndef __IAsyncOperation_INTERFACE_DEFINED__
@@ -77,6 +85,7 @@ IAsyncOperation : public IUnknown
   #define FD_PROGRESSUI 0x4000
 #endif
 
+#endif 
 #endif 
 
 
