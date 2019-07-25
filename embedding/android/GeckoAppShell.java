@@ -703,7 +703,7 @@ public class GeckoAppShell
             Log.i("GeckoAppJava", "we're done, good bye");
             GeckoApp.mAppContext.finish();
         }
-        GeckoApp.mAppContext.mMainHandler.postDelayed(new Runnable() {
+        getHandler().postDelayed(new Runnable() {
             
             
             public void run() {
