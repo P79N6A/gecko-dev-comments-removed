@@ -1284,27 +1284,13 @@ nsWindow::OnDraw(AndroidGeckoEvent *ae)
     } else {
       bits = client.LockBufferBits();
     }
+
     if (!bits) {
         ALOG("### Failed to lock buffer");
+    } else if (targetSurface->CairoStatus()) {
+        ALOG("### Failed to create a valid surface from the bitmap");
     } else {
-        
-        int tileWidth = (gAndroidTileSize.width > 0) ? gAndroidTileSize.width : gAndroidBounds.width;
-        int tileHeight = (gAndroidTileSize.height > 0) ? gAndroidTileSize.height : gAndroidBounds.height;
-
-        int offset = 0;
-
-        
-        
-        
-        int x = 0, y = 0;
-
-
-        if (targetSurface->CairoStatus()) {
-            ALOG("### Failed to create a valid surface from the bitmap");
-            
-        } else {
-            DrawTo(targetSurface, dirtyRect);
-        }
+        DrawTo(targetSurface, dirtyRect);
     }
 
     if (HasDirectTexture()) {
