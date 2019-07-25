@@ -636,7 +636,6 @@ public:
 
 
 
-
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion)
   { return !mVisibleRect.IsEmpty(); }
