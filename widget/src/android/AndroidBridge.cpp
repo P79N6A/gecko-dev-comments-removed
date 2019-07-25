@@ -106,9 +106,8 @@ AndroidBridge::Init(JNIEnv *jEnv,
 
     mJNIEnv = nsnull;
     mThread = nsnull;
-    mOpenedGraphicsLibraries = false;
+    mOpenedBitmapLibrary = false;
     mHasNativeBitmapAccess = false;
-    mHasNativeWindowAccess = false;
 
     mGeckoAppShellClass = (jclass) jEnv->NewGlobalRef(jGeckoAppShellClass);
 
@@ -978,46 +977,33 @@ AndroidBridge::ExecuteNextRunnable()
     }
     __android_log_print(ANDROID_LOG_INFO, "GeckoBridge", "leaving %s", __PRETTY_FUNCTION__);
 }
-
-void
-AndroidBridge::OpenGraphicsLibraries()
-{
-    if (!mOpenedGraphicsLibraries) {
-        
-        
-        mOpenedGraphicsLibraries = true;
-
-        void *handle = dlopen("/system/lib/libjnigraphics.so", RTLD_LAZY | RTLD_LOCAL);
-        if (handle) {
-            AndroidBitmap_getInfo = (int (*)(JNIEnv *, jobject, void *))dlsym(handle, "AndroidBitmap_getInfo");
-            AndroidBitmap_lockPixels = (int (*)(JNIEnv *, jobject, void **))dlsym(handle, "AndroidBitmap_lockPixels");
-            AndroidBitmap_unlockPixels = (int (*)(JNIEnv *, jobject))dlsym(handle, "AndroidBitmap_unlockPixels");
-
-            ALOG_BRIDGE("Successfully opened libjnigraphics.so");
-        }
-
-        
-        
-        handle = dlopen("/system/lib/libandroid.so", RTLD_LAZY | RTLD_LOCAL);
-        if (handle) {
-            ANativeWindow_fromSurface = (void* (*)(JNIEnv*, jobject))dlsym(handle, "ANativeWindow_fromSurface");
-            ANativeWindow_release = (void (*)(void*))dlsym(handle, "ANativeWindow_release");
-            ANativeWindow_setBuffersGeometry = (int (*)(void*, int, int, int)) dlsym(handle, "ANativeWindow_setBuffersGeometry");
-            ANativeWindow_lock = (int (*)(void*, void*, void*)) dlsym(handle, "ANativeWindow_lock");
-            ANativeWindow_unlockAndPost = (int (*)(void*))dlsym(handle, "ANativeWindow_unlockAndPost");
- 
-            ALOG_BRIDGE("Successfully opened libandroid.so");
-        }
-
-        mHasNativeBitmapAccess = AndroidBitmap_getInfo && AndroidBitmap_lockPixels && AndroidBitmap_unlockPixels;
-        mHasNativeWindowAccess = ANativeWindow_fromSurface && ANativeWindow_release && ANativeWindow_lock && ANativeWindow_unlockAndPost;
-    }
-}
-
 bool
 AndroidBridge::HasNativeBitmapAccess()
 {
-    OpenGraphicsLibraries();
+    if (!mOpenedBitmapLibrary) {
+        
+        
+        mOpenedBitmapLibrary = true;
+
+        void *handle = dlopen("/system/lib/libjnigraphics.so", RTLD_LAZY | RTLD_LOCAL);
+        if (handle == nsnull)
+            return false;
+
+        AndroidBitmap_getInfo = (int (*)(JNIEnv *, jobject, void *))dlsym(handle, "AndroidBitmap_getInfo");
+        if (AndroidBitmap_getInfo == nsnull)
+            return false;
+
+        AndroidBitmap_lockPixels = (int (*)(JNIEnv *, jobject, void **))dlsym(handle, "AndroidBitmap_lockPixels");
+        if (AndroidBitmap_lockPixels == nsnull)
+            return false;
+
+        AndroidBitmap_unlockPixels = (int (*)(JNIEnv *, jobject))dlsym(handle, "AndroidBitmap_unlockPixels");
+        if (AndroidBitmap_unlockPixels == nsnull)
+            return false;
+
+        ALOG_BRIDGE("Successfully opened libjnigraphics.so");
+        mHasNativeBitmapAccess = true;
+    }
 
     return mHasNativeBitmapAccess;
 }
@@ -1070,93 +1056,4 @@ AndroidBridge::UnlockBitmap(jobject bitmap)
     int err;
     if ((err = AndroidBitmap_unlockPixels(JNI(), bitmap)) != 0)
         ALOG_BRIDGE("AndroidBitmap_unlockPixels failed! (error %d)", err);
-}
-
-
-bool
-AndroidBridge::HasNativeWindowAccess()
-{
-    OpenGraphicsLibraries();
-
-    return mHasNativeWindowAccess;
-}
-
-void*
-AndroidBridge::AcquireNativeWindow(jobject surface)
-{
-    if (!HasNativeWindowAccess())
-        return nsnull;
-
-    return ANativeWindow_fromSurface(JNI(), surface);
-}
-
-void
-AndroidBridge::ReleaseNativeWindow(void *window)
-{
-    if (!window)
-        return;
-
-    ANativeWindow_release(window);
-}
-
-bool
-AndroidBridge::SetNativeWindowFormat(void *window, int format)
-{
-    return ANativeWindow_setBuffersGeometry(window, 0, 0, format) == 0;
-}
-
-bool
-AndroidBridge::LockWindow(void *window, unsigned char **bits, int *width, int *height, int *format, int *stride)
-{
-    
-    typedef struct ANativeWindow_Buffer {
-        
-        int32_t width;
-
-        
-        int32_t height;
-
-        
-        
-        int32_t stride;
-
-        
-        int32_t format;
-
-        
-        void* bits;
-
-        
-        uint32_t reserved[6];
-    } ANativeWindow_Buffer;
-
-    int err;
-    ANativeWindow_Buffer buffer;
-
-    *bits = NULL;
-    *width = *height = *format = 0;
-    if ((err = ANativeWindow_lock(window, (void*)&buffer, NULL)) != 0) {
-        ALOG_BRIDGE("ANativeWindow_lock failed! (error %d)", err);
-        return false;
-    }
-
-    *bits = (unsigned char*)buffer.bits;
-    *width = buffer.width;
-    *height = buffer.height;
-    *format = buffer.format;
-    *stride = buffer.stride;
-
-    return true;
-}
-
-bool
-AndroidBridge::UnlockWindow(void* window)
-{
-    int err;
-    if ((err = ANativeWindow_unlockAndPost(window)) != 0) {
-        ALOG_BRIDGE("ANativeWindow_unlockAndPost failed! (error %d)", err);
-        return false;
-    }
-
-    return true;
 }
