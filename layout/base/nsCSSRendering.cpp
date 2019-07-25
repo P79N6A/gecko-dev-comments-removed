@@ -3836,9 +3836,8 @@ ImageRenderer::PrepareImage()
       
       
       if (!mPaintServerFrame) {
-        nsCOMPtr<nsIDOMElement> imageElement =
-          do_QueryInterface(property->GetReferencedElement());
-        mImageElementSurface = nsLayoutUtils::SurfaceFromElement(imageElement);
+        mImageElementSurface =
+          nsLayoutUtils::SurfaceFromElement(property->GetReferencedElement());
         if (!mImageElementSurface.mSurface)
           return false;
       }
