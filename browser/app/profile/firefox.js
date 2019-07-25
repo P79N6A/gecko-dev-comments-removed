@@ -1041,6 +1041,7 @@ pref("devtools.scratchpad.enabled", true);
 
 
 pref("devtools.styleeditor.enabled", true);
+pref("devtools.styleeditor.transitions", true);
 
 
 pref("devtools.chrome.enabled", false);

@@ -350,6 +350,22 @@ void* nsDeque::ObjectAt(PRInt32 aIndex) const {
   return result;
 }
 
+void* nsDeque::RemoveObjectAt(PRInt32 aIndex) {
+  if ((aIndex<0) || (aIndex>=mSize)) {
+    return 0;
+  }
+  void* result=mData[modulus(mOrigin + aIndex, mCapacity)];
+
+  
+  
+  for (PRInt32 i=aIndex; i<mSize; i++) {
+    mData[modulus(mOrigin + i, mCapacity)] = mData[modulus(mOrigin + i + 1, mCapacity)];
+  }
+  mSize--;
+
+  return result;
+}
+
 
 
 

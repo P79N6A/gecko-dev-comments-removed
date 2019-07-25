@@ -31,6 +31,8 @@ const EVENT_VALUE_CHANGE = nsIAccessibleEvent.EVENT_VALUE_CHANGE;
 
 
 
+Components.utils.import("resource://gre/modules/Services.jsm");
+
 
 
 
@@ -1414,12 +1416,6 @@ var gA11yEventApplicantsCount = 0;
 
 var gA11yEventObserver =
 {
-  
-  
-  observerService :
-    Components.classes["@mozilla.org/observer-service;1"]
-              .getService(nsIObserverService),
-
   observe: function observe(aSubject, aTopic, aData)
   {
     if (aTopic != "accessible-event")
@@ -1431,7 +1427,7 @@ var gA11yEventObserver =
     } catch (ex) {
       
       
-      this.observerService.removeObserver(this, "accessible-event");
+      Services.obs.removeObserver(this, "accessible-event");
       
       throw "[accessible/events.js, gA11yEventObserver.observe] This is expected if a previous test has been aborted... Initial exception was: [ " + ex + " ]";
     }
@@ -1485,14 +1481,12 @@ function listenA11yEvents(aStartToListen)
   if (aStartToListen) {
     
     if (!(gA11yEventApplicantsCount++))
-      gA11yEventObserver.observerService
-                        .addObserver(gA11yEventObserver, "accessible-event", false);
+      Services.obs.addObserver(gA11yEventObserver, "accessible-event", false);
   } else {
     
     
     if (--gA11yEventApplicantsCount <= 0)
-      gA11yEventObserver.observerService
-                        .removeObserver(gA11yEventObserver, "accessible-event");
+      Services.obs.removeObserver(gA11yEventObserver, "accessible-event");
   }
 }
 
@@ -1609,11 +1603,8 @@ var gLogger =
   logToAppConsole: function logger_logToAppConsole(aMsg)
   {
     if (gA11yEventDumpToAppConsole)
-      consoleService.logStringMessage("events: " + aMsg);
-  },
-
-  consoleService: Components.classes["@mozilla.org/consoleservice;1"].
-    getService(Components.interfaces.nsIConsoleService)
+      Services.console.logStringMessage("events: " + aMsg);
+  }
 };
 
 

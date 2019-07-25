@@ -229,6 +229,39 @@ private:
 
 
 template<class T>
+class nsRefPtrHashKey : public PLDHashEntryHdr
+{
+public:
+  typedef T* KeyType;
+  typedef const T* KeyTypePointer;
+
+  nsRefPtrHashKey(const T* key) :
+    mKey(const_cast<T*>(key)) { }
+  nsRefPtrHashKey(const nsRefPtrHashKey& toCopy) :
+    mKey(toCopy.mKey) { }
+  ~nsRefPtrHashKey() { }
+
+  KeyType GetKey() const { return mKey; }
+  
+  bool KeyEquals(KeyTypePointer aKey) const { return aKey == mKey; }
+
+  static KeyTypePointer KeyToPointer(KeyType aKey) { return aKey; }
+  static PLDHashNumber HashKey(KeyTypePointer aKey)
+  {
+    return NS_PTR_TO_INT32(aKey) >>2;
+  }
+  enum { ALLOW_MEMMOVE = true };
+
+private:
+  nsRefPtr<T> mKey;
+};
+
+
+
+
+
+
+template<class T>
 class nsPtrHashKey : public PLDHashEntryHdr
 {
  public:
