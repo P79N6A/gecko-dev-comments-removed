@@ -1,3 +1,40 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 const MULTIPLE_CHOICE = 0;
 const CHECK_BOXES_WITH_FREE_ENTRY = 1;
 const SCALE = 2;
@@ -58,8 +95,15 @@ function onBuiltinSurveyLoad() {
 }
 
 function drawSurveyForm(task, contentDiv) {
-  let oldAnswers = task.oldAnswers;
   let surveyQuestions = task.surveyQuestions;
+
+  
+
+
+  let oldAnswers = null;
+  if (task.oldAnswers && (task.version == task.oldAnswers["version_number"])) {
+    oldAnswers = task.oldAnswers["answers"];
+  }
 
   let submitButton = document.getElementById("survey-submit");
   submitButton.setAttribute("style", "");
