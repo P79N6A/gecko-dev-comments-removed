@@ -218,9 +218,6 @@ public:
   }
 
   
-  void DecodeLoop();
-
-  
   
   
   nsBuiltinDecoder* mDecoder;
@@ -291,7 +288,6 @@ protected:
   
   void UpdateReadyState();
 
-  
   
   void ResetPlayback();
 
@@ -412,6 +408,18 @@ protected:
 
   
   
+  void DecodeSeek();
+
+  
+  
+  void DecodeLoop();
+
+  
+  
+  void DecodeThreadRun();
+
+  
+  
   
   
   ReentrantMonitor mAudioReentrantMonitor;
@@ -526,6 +534,13 @@ protected:
   
   
   PRPackedBool mStopDecodeThread;
+
+  
+  
+  
+  
+  
+  PRPackedBool mDecodeThreadIdle;
 
   
   
