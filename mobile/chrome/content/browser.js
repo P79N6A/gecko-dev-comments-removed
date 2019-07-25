@@ -1085,6 +1085,9 @@ var Browser = {
   },
 
   
+
+
+
   _getZoomRectForElement: function _getZoomRectForElement(element, elementY) {
     let bv = this._browserView;
     let oldZoomLevel = bv.getZoomLevel();
@@ -1134,7 +1137,7 @@ var Browser = {
     
 
     
-    bv.beginOffscreenOperation();
+    bv.beginOffscreenOperation(rect);
 
     
     
@@ -1143,6 +1146,7 @@ var Browser = {
     
     this.hideSidebars();
     this.hideTitlebar();
+    
     bv.setZoomLevel(zoomLevel);
 
     
