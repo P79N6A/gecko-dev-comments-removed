@@ -1,41 +1,41 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
- *
- * ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is SpiderMonkey code.
- *
- * The Initial Developer of the Original Code is
- * Mozilla Corporation.
- * Portions created by the Initial Developer are Copyright (C) 2010
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either of the GNU General Public License Version 2 or later (the "GPL"),
- * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #include "jsgcmark.h"
 #include "jsprf.h"
@@ -47,35 +47,36 @@
 
 #include "ion/IonCode.h"
 #include "vm/String-inl.h"
+#include "methodjit/MethodJIT.h"
 
-/*
- * There are two mostly separate mark paths. The first is a fast path used
- * internally in the GC. The second is a slow path used for root marking and
- * for API consumers like the cycle collector.
- *
- * The fast path uses explicit stacks. The basic marking process during a GC is
- * that all roots are pushed on to a mark stack, and then each item on the
- * stack is scanned (possibly pushing more stuff) until the stack is empty.
- *
- * PushMarkStack pushes a GC thing onto the mark stack. In some cases (shapes
- * or strings) it eagerly marks the object rather than pushing it. Popping is
- * done by the drainMarkStack method. For each thing it pops, drainMarkStack
- * calls ScanObject (or a related function).
- *
- * Most of the marking code outside jsgcmark uses functions like MarkObject,
- * MarkString, etc. These functions check if an object is in the compartment
- * currently being GCed. If it is, they call PushMarkStack. Roots are pushed
- * this way as well as pointers traversed inside trace hooks (for things like
- * js_IteratorClass). It it always valid to call a MarkX function instead of
- * PushMarkStack, although it may be slower.
- *
- * The MarkX functions also handle non-GC object traversal. In this case, they
- * call a callback for each object visited. This is a recursive process; the
- * mark stacks are not involved. These callbacks may ask for the outgoing
- * pointers to be visited. Eventually, this leads to the MarkChildren functions
- * being called. These functions duplicate much of the functionality of
- * ScanObject, but they don't push onto an explicit stack.
- */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 using namespace js;
 using namespace js::gc;
@@ -91,6 +92,9 @@ PushMarkStack(GCMarker *gcmarker, JSObject *thing);
 
 static inline void
 PushMarkStack(GCMarker *gcmarker, JSFunction *thing);
+
+static inline void
+PushMarkStack(GCMarker *gcmarker, JSScript *thing);
 
 static inline void
 PushMarkStack(GCMarker *gcmarker, const Shape *thing);
@@ -109,7 +113,6 @@ static inline void
 CheckMarkedThing(JSTracer *trc, T *thing)
 {
     JS_ASSERT(thing);
-    JS_ASSERT(JS_IS_VALID_TRACE_KIND(GetGCThingTraceKind(thing)));
     JS_ASSERT(trc->debugPrinter || trc->debugPrintArg);
     JS_ASSERT_IF(trc->context->runtime->gcCurrentCompartment, IS_GC_MARKING_TRACER(trc));
 
@@ -132,10 +135,10 @@ Mark(JSTracer *trc, T *thing)
                      thing->compartment() == rt->gcCheckCompartment ||
                      thing->compartment() == rt->atomsCompartment);
 
-    /*
-     * Don't mark things outside a compartment if we are in a per-compartment
-     * GC.
-     */
+    
+
+
+
     if (!rt->gcCurrentCompartment || thing->compartment() == rt->gcCurrentCompartment) {
         if (IS_GC_MARKING_TRACER(trc))
             PushMarkStack(static_cast<GCMarker *>(trc), thing);
@@ -196,6 +199,15 @@ MarkObjectWithPrinter(JSTracer *trc, JSObject &obj, JSTraceNamePrinter printer,
 }
 
 void
+MarkScript(JSTracer *trc, JSScript *script, const char *name)
+{
+    JS_ASSERT(trc);
+    JS_ASSERT(script);
+    JS_SET_TRACING_NAME(trc, name);
+    Mark(trc, script);
+}
+
+void
 MarkShape(JSTracer *trc, const Shape *shape, const char *name)
 {
     JS_ASSERT(trc);
@@ -223,17 +235,17 @@ MarkTypeObject(JSTracer *trc, types::TypeObject *type, const char *name)
         return;
     Mark(trc, type);
 
-    /*
-     * Mark parts of a type object skipped by ScanTypeObject. ScanTypeObject is
-     * only used for marking tracers; for tracers with a callback, if we
-     * reenter through JS_TraceChildren then MarkChildren will *not* skip these
-     * members, and we don't need to handle them here.
-     */
+    
+
+
+
+
+
     if (IS_GC_MARKING_TRACER(trc)) {
         if (type->singleton)
             MarkObject(trc, *type->singleton, "type_singleton");
         if (type->functionScript)
-            js_TraceScript(trc, type->functionScript, NULL);
+            MarkScript(trc, type->functionScript, "functionScript");
     }
 }
 
@@ -307,6 +319,21 @@ PushMarkStack(GCMarker *gcmarker, ion::IonCode *thing)
         gcmarker->pushIonCode(thing);
 }
 
+void
+PushMarkStack(GCMarker *gcmarker, JSScript *thing)
+{
+    JS_ASSERT_IF(gcmarker->context->runtime->gcCurrentCompartment,
+                 thing->compartment() == gcmarker->context->runtime->gcCurrentCompartment);
+
+    
+
+
+
+
+    if (thing->markIfUnmarked(gcmarker->getMarkColor()))
+        MarkChildren(gcmarker, thing);
+}
+
 static void
 ScanShape(GCMarker *gcmarker, const Shape *shape);
 
@@ -316,12 +343,12 @@ PushMarkStack(GCMarker *gcmarker, const Shape *thing)
     JS_OPT_ASSERT_IF(gcmarker->context->runtime->gcCurrentCompartment,
                      thing->compartment() == gcmarker->context->runtime->gcCurrentCompartment);
 
-    /* We mark shapes directly rather than pushing on the stack. */
+    
     if (thing->markIfUnmarked(gcmarker->getMarkColor()))
         ScanShape(gcmarker, thing);
 }
 
-void
+static void
 MarkAtomRange(JSTracer *trc, size_t len, JSAtom **vec, const char *name)
 {
     for (uint32 i = 0; i < len; i++) {
@@ -390,37 +417,40 @@ MarkIdRange(JSTracer *trc, size_t len, jsid *vec, const char *name)
 }
 
 void
-MarkKind(JSTracer *trc, void *thing, uint32 kind)
+MarkKind(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
     JS_ASSERT(thing);
     JS_ASSERT(kind == GetGCThingTraceKind(thing));
     switch (kind) {
-        case JSTRACE_OBJECT:
-            Mark(trc, reinterpret_cast<JSObject *>(thing));
-            break;
-        case JSTRACE_STRING:
-            MarkString(trc, reinterpret_cast<JSString *>(thing));
-            break;
-        case JSTRACE_SHAPE:
-            Mark(trc, reinterpret_cast<Shape *>(thing));
-            break;
-        case JSTRACE_TYPE_OBJECT:
-            Mark(trc, reinterpret_cast<types::TypeObject *>(thing));
-            break;
-        case JSTRACE_IONCODE:
-            Mark(trc, reinterpret_cast<ion::IonCode *>(thing));
-            break;	
+      case JSTRACE_OBJECT:
+        Mark(trc, reinterpret_cast<JSObject *>(thing));
+        break;
+      case JSTRACE_STRING:
+        MarkString(trc, reinterpret_cast<JSString *>(thing));
+        break;
+      case JSTRACE_SCRIPT:
+        Mark(trc, static_cast<JSScript *>(thing));
+        break;
+      case JSTRACE_SHAPE:
+        Mark(trc, reinterpret_cast<Shape *>(thing));
+        break;
+      case JSTRACE_TYPE_OBJECT:
+        Mark(trc, reinterpret_cast<types::TypeObject *>(thing));
+        break;
+      case JSTRACE_IONCODE:
+        Mark(trc, reinterpret_cast<ion::IonCode *>(thing));
+        break;	
 #if JS_HAS_XML_SUPPORT
-        case JSTRACE_XML:
-            Mark(trc, reinterpret_cast<JSXML *>(thing));
-            break;
+      case JSTRACE_XML:
+        Mark(trc, static_cast<JSXML *>(thing));
+        break;
 #endif
         default:
             JS_ASSERT(false);
     }
 }
 
-/* N.B. Assumes JS_SET_TRACING_NAME/INDEX has already been called. */
+
 void
 MarkValueRaw(JSTracer *trc, const js::Value &v)
 {
@@ -483,9 +513,9 @@ MarkShapeRange(JSTracer *trc, size_t len, const Shape **vec, const char *name)
     MarkShapeRange(trc, vec, vec + len, name);
 }
 
-/* N.B. Assumes JS_SET_TRACING_NAME/INDEX has already been called. */
+
 void
-MarkGCThing(JSTracer *trc, void *thing, uint32 kind)
+MarkGCThing(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
     if (!thing)
         return;
@@ -516,7 +546,7 @@ MarkGCThing(JSTracer *trc, void *thing, const char *name, size_t index)
 }
 
 void
-Mark(JSTracer *trc, void *thing, uint32 kind, const char *name)
+Mark(JSTracer *trc, void *thing, JSGCTraceKind kind, const char *name)
 {
     JS_ASSERT(thing);
     JS_SET_TRACING_NAME(trc, name);
@@ -533,6 +563,12 @@ void
 MarkRoot(JSTracer *trc, JSString *thing, const char *name)
 {
     MarkString(trc, thing, name);
+}
+
+void
+MarkRoot(JSTracer *trc, JSScript *thing, const char *name)
+{
+    MarkScript(trc, thing, name);
 }
 
 void
@@ -597,19 +633,14 @@ static inline void
 ScanValue(GCMarker *gcmarker, const Value &v)
 {
     if (v.isMarkable()) {
-        switch (v.gcKind()) {
-          case JSTRACE_STRING: {
+        JSGCTraceKind kind = v.gcKind();
+        if (kind == JSTRACE_STRING) {
             JSString *str = (JSString *)v.toGCThing();
             if (!str->isStaticAtom())
                 PushMarkStack(gcmarker, str);
-            break;
-          }
-          case JSTRACE_OBJECT:
+        } else {
+            JS_ASSERT(kind == JSTRACE_OBJECT);
             PushMarkStack(gcmarker, (JSObject *)v.toGCThing());
-            break;
-          case JSTRACE_XML:
-            PushMarkStack(gcmarker, (JSXML *)v.toGCThing());
-            break;
         }
     }
 }
@@ -702,10 +733,10 @@ ScanObject(GCMarker *gcmarker, JSObject *obj)
     if (JSObject *parent = obj->getParent())
         PushMarkStack(gcmarker, parent);
 
-    /*
-     * Call the trace hook if necessary, and check for a newType on objects
-     * which are not dense arrays (dense arrays have trace hooks).
-     */
+    
+
+
+
     Class *clasp = obj->getClass();
     if (clasp->trace) {
         if (clasp == &js_ArrayClass) {
@@ -730,7 +761,7 @@ ScanObject(GCMarker *gcmarker, JSObject *obj)
         PushMarkStack(gcmarker, shape);
 
         if (gcmarker->context->runtime->gcRegenShapes) {
-            /* We need to regenerate our shape if hasOwnShape(). */
+            
             uint32 newShape = shape->shapeid;
             if (obj->hasOwnShape()) {
                 newShape = js_RegenerateShapeForGC(gcmarker->context->runtime);
@@ -781,13 +812,13 @@ ScanLargeObject(GCMarker *gcmarker, LargeMarkItem &item)
 void
 MarkChildren(JSTracer *trc, JSObject *obj)
 {
-    /* If obj has no map, it must be a newborn. */
+    
     if (obj->isNewborn())
         return;
 
     MarkTypeObject(trc, obj->typeFromGC(), "type");
 
-    /* Trace universal (ops-independent) members. */
+    
     if (!obj->isDenseArray() && obj->newType)
         MarkTypeObject(trc, obj->newType, "new_type");
     if (JSObject *parent = obj->getParent())
@@ -819,6 +850,56 @@ MarkChildren(JSTracer *trc, JSString *str)
         MarkString(trc, rope.leftChild(), "left child");
         MarkString(trc, rope.rightChild(), "right child");
     }
+}
+
+
+void
+MarkChildren(JSTracer *trc, JSScript *script)
+{
+    CheckScript(script, NULL);
+
+#ifdef JS_CRASH_DIAGNOSTICS
+    JSRuntime *rt = trc->context->runtime;
+    JS_OPT_ASSERT_IF(rt->gcCheckCompartment, script->compartment() == rt->gcCheckCompartment);
+#endif
+    
+    MarkAtomRange(trc, script->natoms, script->atoms, "atoms");
+
+    if (JSScript::isValidOffset(script->objectsOffset)) {
+        JSObjectArray *objarray = script->objects();
+        MarkObjectRange(trc, objarray->length, objarray->vector, "objects");
+    }
+
+    if (JSScript::isValidOffset(script->regexpsOffset)) {
+        JSObjectArray *objarray = script->regexps();
+        MarkObjectRange(trc, objarray->length, objarray->vector, "objects");
+    }
+
+    if (JSScript::isValidOffset(script->constOffset)) {
+        JSConstArray *constarray = script->consts();
+        MarkValueRange(trc, constarray->length, constarray->vector, "consts");
+    }
+
+    if (!script->isCachedEval && script->u.object)
+        MarkObject(trc, *script->u.object, "object");
+    if (script->hasFunction)
+        MarkObject(trc, *script->function(), "script_fun");
+
+    if (IS_GC_MARKING_TRACER(trc) && script->filename)
+        js_MarkScriptFilename(script->filename);
+
+#ifdef JS_ION
+    ion::IonScript::Trace(trc, script);
+#endif
+
+    script->bindings.trace(trc);
+
+#ifdef JS_METHODJIT
+    if (script->jitNormal)
+        script->jitNormal->trace(trc);
+    if (script->jitCtor)
+        script->jitCtor->trace(trc);
+#endif
 }
 
 void
@@ -867,17 +948,17 @@ ScanTypeObject(GCMarker *gcmarker, types::TypeObject *type)
         PushMarkStack(gcmarker, type->proto);
 
     if (type->newScript) {
-        js_TraceScript(gcmarker, type->newScript->script, NULL);
+        PushMarkStack(gcmarker, type->newScript->script);
         PushMarkStack(gcmarker, type->newScript->shape);
     }
 
-    /*
-     * Don't need to trace singleton or functionScript, an object with this
-     * type must have already been traced and it will also hold a reference
-     * on the script (singleton and functionScript types cannot be the newType
-     * of another object). Attempts to mark type objects directly must use
-     * MarkTypeObject, which will itself mark these extra bits.
-     */
+    
+
+
+
+
+
+
 }
 
 void
@@ -907,12 +988,12 @@ MarkChildren(JSTracer *trc, types::TypeObject *type)
         MarkObject(trc, *type->singleton, "type_singleton");
 
     if (type->newScript) {
-        js_TraceScript(trc, type->newScript->script, NULL);
+        MarkScript(trc, type->newScript->script, "type_new_script");
         MarkShape(trc, type->newScript->shape, "type_new_shape");
     }
 
     if (type->functionScript)
-        js_TraceScript(trc, type->functionScript, NULL);
+        MarkScript(trc, type->functionScript, "functionScript");
 }
 
 void
@@ -929,7 +1010,7 @@ MarkChildren(JSTracer *trc, JSXML *xml)
 }
 #endif
 
-} /* namespace gc */
+} 
 
 void
 GCMarker::drainMarkStack()
@@ -960,10 +1041,10 @@ GCMarker::drainMarkStack()
         }
 
         if (isMarkStackEmpty()) {
-            /*
-             * Mark children of things that caused too deep recursion during the above
-             * tracing. Don't do this until we're done with everything else.
-             */
+            
+
+
+
             markDelayedChildren();
         }
     }
@@ -971,22 +1052,26 @@ GCMarker::drainMarkStack()
     rt->gcCheckCompartment = NULL;
 }
 
-} /* namespace js */
+} 
 
 JS_PUBLIC_API(void)
-JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind)
+JS_TraceChildren(JSTracer *trc, void *thing, JSGCTraceKind kind)
 {
     switch (kind) {
       case JSTRACE_OBJECT:
-	MarkChildren(trc, (JSObject *)thing);
+	MarkChildren(trc, static_cast<JSObject *>(thing));
         break;
 
       case JSTRACE_STRING:
-	MarkChildren(trc, (JSString *)thing);
+	MarkChildren(trc, static_cast<JSString *>(thing));
+        break;
+
+      case JSTRACE_SCRIPT:
+	MarkChildren(trc, static_cast<JSScript *>(thing));
         break;
 
       case JSTRACE_SHAPE:
-	MarkChildren(trc, (js::Shape *)thing);
+	MarkChildren(trc, static_cast<Shape *>(thing));
         break;
 
       case JSTRACE_IONCODE:
@@ -999,7 +1084,7 @@ JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind)
 
 #if JS_HAS_XML_SUPPORT
       case JSTRACE_XML:
-        MarkChildren(trc, (JSXML *)thing);
+        MarkChildren(trc, static_cast<JSXML *>(thing));
         break;
 #endif
     }
@@ -1008,10 +1093,10 @@ JS_TraceChildren(JSTracer *trc, void *thing, uint32 kind)
 inline void
 JSObject::scanSlots(GCMarker *gcmarker)
 {
-    /*
-     * Scan the fixed slots and the dynamic slots separately, to avoid
-     * branching inside nativeGetSlot().
-     */
+    
+
+
+
     JS_ASSERT(slotSpan() <= numSlots());
     unsigned i, nslots = slotSpan();
     if (slots) {

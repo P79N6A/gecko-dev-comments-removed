@@ -311,7 +311,9 @@ bool
 JSFunctionBox::joinable() const
 {
     return function()->isNullClosure() &&
-           !(tcflags & (TCF_FUN_USES_ARGUMENTS | TCF_FUN_USES_OWN_NAME));
+           (tcflags & (TCF_FUN_USES_ARGUMENTS |
+                       TCF_FUN_USES_OWN_NAME |
+                       TCF_COMPILE_N_GO)) == TCF_COMPILE_N_GO;
 }
 
 bool
@@ -1112,11 +1114,8 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
     JS_ASSERT(script->savedCallerFun == savedCallerFun);
 
-    {
-        AutoScriptRooter root(cx, script);
-        if (!defineGlobals(cx, globalScope, script))
-            goto late_error;
-    }
+    if (!defineGlobals(cx, globalScope, script))
+        script = NULL;
 
   out:
     JS_FinishArenaPool(&codePool);
@@ -1126,11 +1125,6 @@ Compiler::compileScript(JSContext *cx, JSObject *scopeChain, StackFrame *callerF
 
   too_many_slots:
     parser.reportErrorNumber(NULL, JSREPORT_ERROR, JSMSG_TOO_MANY_LOCALS);
-    
-
-  late_error:
-    if (script && !script->u.object)
-        js_DestroyScript(cx, script, 7);
     script = NULL;
     goto out;
 }
@@ -2275,6 +2269,7 @@ CanFlattenUpvar(JSDefinition *dn, JSFunctionBox *funbox, uint32 tcflags)
 
 
 
+
         if (!afunbox || afunbox->node->isFunArg())
             return false;
 
@@ -2412,48 +2407,56 @@ DeoptimizeUsesWithin(JSDefinition *dn, const TokenPos &pos)
     return ndeoptimized != 0;
 }
 
+static void
+ConsiderUnbranding(JSFunctionBox *funbox)
+{
+    
+
+
+
+
+
+
+
+
+
+    bool returnsExpr = !!(funbox->tcflags & TCF_RETURN_EXPR);
+#if JS_HAS_EXPR_CLOSURES
+    {
+        JSParseNode *pn2 = funbox->node->pn_body;
+        if (PN_TYPE(pn2) == TOK_UPVARS)
+            pn2 = pn2->pn_tree;
+        if (PN_TYPE(pn2) == TOK_ARGSBODY)
+            pn2 = pn2->last();
+        if (PN_TYPE(pn2) != TOK_LC)
+            returnsExpr = true;
+    }
+#endif
+    if (!returnsExpr) {
+        uintN methodSets = 0, slowMethodSets = 0;
+
+        for (JSParseNode *method = funbox->methods; method; method = method->pn_link) {
+            JS_ASSERT(PN_OP(method) == JSOP_LAMBDA || PN_OP(method) == JSOP_LAMBDA_FC);
+            ++methodSets;
+            if (!method->pn_funbox->joinable())
+                ++slowMethodSets;
+        }
+
+        if (funbox->shouldUnbrand(methodSets, slowMethodSets))
+            funbox->tcflags |= TCF_FUN_UNBRAND_THIS;
+    }
+}
+
 void
 Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 {
-    for (;;) {
+    for (; funbox; funbox = funbox->siblings) {
         JSParseNode *fn = funbox->node;
         JSParseNode *pn = fn->pn_body;
 
         if (funbox->kids) {
             setFunctionKinds(funbox->kids, tcflags);
-
-            
-
-
-
-
-
-
-
-
-
-            JSParseNode *pn2 = pn;
-            if (PN_TYPE(pn2) == TOK_UPVARS)
-                pn2 = pn2->pn_tree;
-            if (PN_TYPE(pn2) == TOK_ARGSBODY)
-                pn2 = pn2->last();
-
-#if JS_HAS_EXPR_CLOSURES
-            if (PN_TYPE(pn2) == TOK_LC)
-#endif
-            if (!(funbox->tcflags & TCF_RETURN_EXPR)) {
-                uintN methodSets = 0, slowMethodSets = 0;
-
-                for (JSParseNode *method = funbox->methods; method; method = method->pn_link) {
-                    JS_ASSERT(PN_OP(method) == JSOP_LAMBDA || PN_OP(method) == JSOP_LAMBDA_FC);
-                    ++methodSets;
-                    if (!method->pn_funbox->joinable())
-                        ++slowMethodSets;
-                }
-
-                if (funbox->shouldUnbrand(methodSets, slowMethodSets))
-                    funbox->tcflags |= TCF_FUN_UNBRAND_THIS;
-            }
+            ConsiderUnbranding(funbox);
         }
 
         JSFunction *fun = funbox->function();
@@ -2464,54 +2467,13 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
             
         } else if (funbox->inAnyDynamicScope()) {
             JS_ASSERT(!fun->isNullClosure());
-        } else if (pn->pn_type != TOK_UPVARS) {
-            
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            fun->setKind(JSFUN_NULL_CLOSURE);
         } else {
-            AtomDefnMapPtr upvars = pn->pn_names;
-            JS_ASSERT(!upvars->empty());
+            bool hasUpvars = false;
+            bool canFlatten = true;
 
-            if (!fn->isFunArg()) {
-                
-
-
-
-
-
-
-
-
-
-                AtomDefnRange r = upvars->all();
-                for (; !r.empty(); r.popFront()) {
-                    JSDefinition *defn = r.front().value();
-                    JSDefinition *lexdep = defn->resolve();
-
-                    if (!lexdep->isFreeVar()) {
-                        JS_ASSERT(lexdep->frameLevel() <= funbox->level);
-                        break;
-                    }
-                }
-
-                if (r.empty())
-                    fun->setKind(JSFUN_NULL_CLOSURE);
-            } else {
-                uintN nupvars = 0, nflattened = 0;
+            if (pn->pn_type == TOK_UPVARS) {
+                AtomDefnMapPtr upvars = pn->pn_names;
+                JS_ASSERT(!upvars->empty());
 
                 
 
@@ -2523,51 +2485,39 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
                     JSDefinition *lexdep = defn->resolve();
 
                     if (!lexdep->isFreeVar()) {
-                        ++nupvars;
-                        if (CanFlattenUpvar(lexdep, funbox, *tcflags)) {
-                            ++nflattened;
-                            continue;
+                        hasUpvars = true;
+                        if (!CanFlattenUpvar(lexdep, funbox, *tcflags)) {
+                            
+
+
+
+
+
+                            canFlatten = false;
+                            break;
                         }
-
-                        
-
-
-
-
-
-
-
-
-
-
-
-
-
                     }
                 }
+            }
 
-                if (nupvars == 0) {
-                    fun->setKind(JSFUN_NULL_CLOSURE);
-                } else if (nflattened == nupvars) {
+            if (!hasUpvars) {
+                
+                fun->setKind(JSFUN_NULL_CLOSURE);
+            } else if (canFlatten) {
+                fun->setKind(JSFUN_FLAT_CLOSURE);
+                switch (PN_OP(fn)) {
+                case JSOP_DEFFUN:
+                    fn->pn_op = JSOP_DEFFUN_FC;
+                    break;
+                case JSOP_DEFLOCALFUN:
+                    fn->pn_op = JSOP_DEFLOCALFUN_FC;
+                    break;
+                case JSOP_LAMBDA:
+                    fn->pn_op = JSOP_LAMBDA_FC;
+                    break;
+                default:
                     
-
-
-
-                    fun->setKind(JSFUN_FLAT_CLOSURE);
-                    switch (PN_OP(fn)) {
-                      case JSOP_DEFFUN:
-                        fn->pn_op = JSOP_DEFFUN_FC;
-                        break;
-                      case JSOP_DEFLOCALFUN:
-                        fn->pn_op = JSOP_DEFLOCALFUN_FC;
-                        break;
-                      case JSOP_LAMBDA:
-                        fn->pn_op = JSOP_LAMBDA_FC;
-                        break;
-                      default:
-                        
-                        JS_ASSERT(PN_OP(fn) == JSOP_NOP);
-                    }
+                    JS_ASSERT(PN_OP(fn) == JSOP_NOP);
                 }
             }
         }
@@ -2595,10 +2545,6 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32 *tcflags)
 
         if (funbox->joinable())
             fun->setJoinable();
-
-        funbox = funbox->siblings;
-        if (!funbox)
-            break;
     }
 }
 
@@ -4481,8 +4427,6 @@ CloneParseTree(JSParseNode *opn, JSTreeContext *tc)
 }
 
 #endif 
-
-extern const char js_with_statement_str[];
 
 static JSParseNode *
 ContainsStmt(JSParseNode *pn, TokenKind tt)

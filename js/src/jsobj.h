@@ -1132,6 +1132,9 @@ struct JSObject : js::gc::Cell {
     inline void setFlatClosureUpvar(uint32 i, const js::Value &v);
     inline void setFlatClosureUpvars(js::Value *upvars);
 
+    
+    inline void finalizeUpvarsIfFlatClosure();
+
     inline bool hasMethodObj(const JSObject& obj) const;
     inline void setMethodObj(JSObject& obj);
 

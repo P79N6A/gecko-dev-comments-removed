@@ -655,6 +655,37 @@ JSObject::getFlatClosureUpvars() const
     return (js::Value *) getFixedSlot(JSSLOT_FLAT_CLOSURE_UPVARS).toPrivate();
 }
 
+inline void
+JSObject::finalizeUpvarsIfFlatClosure()
+{
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    JSFunction *fun = getFunctionPrivate();
+    if (fun && fun != this && fun->isFlatClosure()) {
+        const js::Value &v = getSlot(JSSLOT_FLAT_CLOSURE_UPVARS);
+        if (v.isDouble())
+            js::Foreground::free_(v.toPrivate());
+    }
+}
+
 inline js::Value
 JSObject::getFlatClosureUpvar(uint32 i) const
 {
