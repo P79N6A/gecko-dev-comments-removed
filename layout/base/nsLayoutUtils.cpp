@@ -57,6 +57,7 @@
 #ifdef MOZ_MEDIA
 #include "nsHTMLVideoElement.h"
 #endif
+#include "nsHTMLImageElement.h"
 #include "imgIRequest.h"
 #include "nsIImageLoadingContent.h"
 #include "nsCOMPtr.h"
@@ -4054,7 +4055,7 @@ nsLayoutUtils::IsReallyFixedPos(nsIFrame* aFrame)
 }
 
 nsLayoutUtils::SurfaceFromElementResult
-nsLayoutUtils::SurfaceFromElement(dom::Element* aElement,
+nsLayoutUtils::SurfaceFromElement(nsIImageLoadingContent* aElement,
                                   PRUint32 aSurfaceFlags)
 {
   SurfaceFromElementResult result;
@@ -4070,109 +4071,14 @@ nsLayoutUtils::SurfaceFromElement(dom::Element* aElement,
   }
 
   
-  if (nsHTMLCanvasElement* canvas = nsHTMLCanvasElement::FromContent(aElement)) {
-    gfxIntSize size = canvas->GetSize();
-
-    nsRefPtr<gfxASurface> surf;
-
-    if (!forceCopy && canvas->CountContexts() == 1) {
-      nsICanvasRenderingContextInternal *srcCanvas = canvas->GetContextAtIndex(0);
-      rv = srcCanvas->GetThebesSurface(getter_AddRefs(surf));
-
-      if (NS_FAILED(rv))
-        surf = nsnull;
-    }
-
-    if (surf && wantImageSurface && surf->GetType() != gfxASurface::SurfaceTypeImage)
-      surf = nsnull;
-
-    if (!surf) {
-      if (wantImageSurface) {
-        surf = new gfxImageSurface(size, gfxASurface::ImageFormatARGB32);
-      } else {
-        surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, gfxASurface::CONTENT_COLOR_ALPHA);
-      }
-
-      nsRefPtr<gfxContext> ctx = new gfxContext(surf);
-      
-      PRUint32 flags = premultAlpha ? nsHTMLCanvasElement::RenderFlagPremultAlpha : 0;
-      rv = canvas->RenderContextsExternal(ctx, gfxPattern::FILTER_NEAREST, flags);
-      if (NS_FAILED(rv))
-        return result;
-    }
-
-    
-    
-    canvas->MarkContextClean();
-
-    result.mSurface = surf;
-    result.mSize = size;
-    result.mPrincipal = aElement->NodePrincipal();
-    result.mIsWriteOnly = canvas->IsWriteOnly();
-
-    return result;
-  }
-
-#ifdef MOZ_MEDIA
-  
-  if (nsHTMLVideoElement* video = nsHTMLVideoElement::FromContent(aElement)) {
-    PRUint16 readyState;
-    if (NS_SUCCEEDED(video->GetReadyState(&readyState)) &&
-        (readyState == nsIDOMHTMLMediaElement::HAVE_NOTHING ||
-         readyState == nsIDOMHTMLMediaElement::HAVE_METADATA)) {
-      result.mIsStillLoading = true;
-      return result;
-    }
-
-    
-    nsCOMPtr<nsIPrincipal> principal = video->GetCurrentPrincipal();
-    if (!principal)
-      return result;
-
-    ImageContainer *container = video->GetImageContainer();
-    if (!container)
-      return result;
-
-    gfxIntSize size;
-    nsRefPtr<gfxASurface> surf = container->GetCurrentAsSurface(&size);
-    if (!surf)
-      return result;
-
-    if (wantImageSurface && surf->GetType() != gfxASurface::SurfaceTypeImage) {
-      nsRefPtr<gfxImageSurface> imgSurf =
-        new gfxImageSurface(size, gfxASurface::ImageFormatARGB32);
-
-      nsRefPtr<gfxContext> ctx = new gfxContext(imgSurf);
-      ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
-      ctx->DrawSurface(surf, size);
-      surf = imgSurf;
-    }
-
-    result.mCORSUsed = video->GetCORSMode() != CORS_NONE;
-    result.mSurface = surf;
-    result.mSize = size;
-    result.mPrincipal = principal.forget();
-    result.mIsWriteOnly = false;
-
-    return result;
-  }
-#endif
-
-  
-  nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(aElement);
-
-  if (!imageLoader)
-    return result;
-
-  
   
   
   nsCxPusher pusher;
   pusher.PushNull();
 
   nsCOMPtr<imgIRequest> imgRequest;
-  rv = imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
-                               getter_AddRefs(imgRequest));
+  rv = aElement->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
+                            getter_AddRefs(imgRequest));
   if (NS_FAILED(rv) || !imgRequest)
     return result;
 
@@ -4250,6 +4156,152 @@ nsLayoutUtils::SurfaceFromElement(dom::Element* aElement,
   result.mImageRequest = imgRequest.forget();
 
   return result;
+}
+
+nsLayoutUtils::SurfaceFromElementResult
+nsLayoutUtils::SurfaceFromElement(nsHTMLImageElement *aElement,
+                                  PRUint32 aSurfaceFlags)
+{
+  return SurfaceFromElement(static_cast<nsIImageLoadingContent*>(aElement),
+                            aSurfaceFlags);
+}
+
+nsLayoutUtils::SurfaceFromElementResult
+nsLayoutUtils::SurfaceFromElement(nsHTMLCanvasElement* aElement,
+                                  PRUint32 aSurfaceFlags)
+{
+  SurfaceFromElementResult result;
+  nsresult rv;
+
+  bool forceCopy = (aSurfaceFlags & SFE_WANT_NEW_SURFACE) != 0;
+  bool wantImageSurface = (aSurfaceFlags & SFE_WANT_IMAGE_SURFACE) != 0;
+  bool premultAlpha = (aSurfaceFlags & SFE_NO_PREMULTIPLY_ALPHA) == 0;
+
+  if (!premultAlpha) {
+    forceCopy = true;
+    wantImageSurface = true;
+  }
+
+  gfxIntSize size = aElement->GetSize();
+
+  nsRefPtr<gfxASurface> surf;
+
+  if (!forceCopy && aElement->CountContexts() == 1) {
+    nsICanvasRenderingContextInternal *srcCanvas = aElement->GetContextAtIndex(0);
+    rv = srcCanvas->GetThebesSurface(getter_AddRefs(surf));
+
+    if (NS_FAILED(rv))
+      surf = nsnull;
+  }
+
+  if (surf && wantImageSurface && surf->GetType() != gfxASurface::SurfaceTypeImage)
+    surf = nsnull;
+
+  if (!surf) {
+    if (wantImageSurface) {
+      surf = new gfxImageSurface(size, gfxASurface::ImageFormatARGB32);
+    } else {
+      surf = gfxPlatform::GetPlatform()->CreateOffscreenSurface(size, gfxASurface::CONTENT_COLOR_ALPHA);
+    }
+
+    nsRefPtr<gfxContext> ctx = new gfxContext(surf);
+    
+    PRUint32 flags = premultAlpha ? nsHTMLCanvasElement::RenderFlagPremultAlpha : 0;
+    rv = aElement->RenderContextsExternal(ctx, gfxPattern::FILTER_NEAREST, flags);
+    if (NS_FAILED(rv))
+      return result;
+  }
+
+  
+  
+  aElement->MarkContextClean();
+
+  result.mSurface = surf;
+  result.mSize = size;
+  result.mPrincipal = aElement->NodePrincipal();
+  result.mIsWriteOnly = aElement->IsWriteOnly();
+
+  return result;
+}
+
+nsLayoutUtils::SurfaceFromElementResult
+nsLayoutUtils::SurfaceFromElement(nsHTMLVideoElement* aElement,
+                                  PRUint32 aSurfaceFlags)
+{
+  SurfaceFromElementResult result;
+
+  bool wantImageSurface = (aSurfaceFlags & SFE_WANT_IMAGE_SURFACE) != 0;
+  bool premultAlpha = (aSurfaceFlags & SFE_NO_PREMULTIPLY_ALPHA) == 0;
+
+  if (!premultAlpha) {
+    wantImageSurface = true;
+  }
+
+  PRUint16 readyState;
+  if (NS_SUCCEEDED(aElement->GetReadyState(&readyState)) &&
+      (readyState == nsIDOMHTMLMediaElement::HAVE_NOTHING ||
+       readyState == nsIDOMHTMLMediaElement::HAVE_METADATA)) {
+    result.mIsStillLoading = true;
+    return result;
+  }
+
+  
+  nsCOMPtr<nsIPrincipal> principal = aElement->GetCurrentPrincipal();
+  if (!principal)
+    return result;
+
+  ImageContainer *container = aElement->GetImageContainer();
+  if (!container)
+    return result;
+
+  gfxIntSize size;
+  nsRefPtr<gfxASurface> surf = container->GetCurrentAsSurface(&size);
+  if (!surf)
+    return result;
+
+  if (wantImageSurface && surf->GetType() != gfxASurface::SurfaceTypeImage) {
+    nsRefPtr<gfxImageSurface> imgSurf =
+      new gfxImageSurface(size, gfxASurface::ImageFormatARGB32);
+
+    nsRefPtr<gfxContext> ctx = new gfxContext(imgSurf);
+    ctx->SetOperator(gfxContext::OPERATOR_SOURCE);
+    ctx->DrawSurface(surf, size);
+    surf = imgSurf;
+  }
+
+  result.mCORSUsed = aElement->GetCORSMode() != CORS_NONE;
+  result.mSurface = surf;
+  result.mSize = size;
+  result.mPrincipal = principal.forget();
+  result.mIsWriteOnly = false;
+
+  return result;
+}
+
+nsLayoutUtils::SurfaceFromElementResult
+nsLayoutUtils::SurfaceFromElement(dom::Element* aElement,
+                                  PRUint32 aSurfaceFlags)
+{
+  
+  if (nsHTMLCanvasElement* canvas = nsHTMLCanvasElement::FromContent(aElement)) {
+    return SurfaceFromElement(canvas, aSurfaceFlags);
+  }
+
+#ifdef MOZ_MEDIA
+  
+  if (nsHTMLVideoElement* video = nsHTMLVideoElement::FromContent(aElement)) {
+    return SurfaceFromElement(video, aSurfaceFlags);
+  }
+#endif
+
+  
+  nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(aElement);
+
+  if (!imageLoader) {
+    return SurfaceFromElementResult();
+  }
+
+  return SurfaceFromElement(imageLoader, aSurfaceFlags);
 }
 
 
