@@ -3505,7 +3505,6 @@ NS_IMETHODIMP nsWindow::DispatchEvent(nsGUIEvent* event, nsEventStatus & aStatus
       case NS_DEACTIVATE:
       case NS_ACTIVATE:
       case NS_SIZEMODE:
-      case NS_DESTROY:
       case NS_SETZLEVEL:
       case NS_XUL_CLOSE:
       case NS_MOVE:
@@ -6994,7 +6993,7 @@ void nsWindow::OnDestroy()
   
   
   if (!mInDtor)
-    DispatchStandardEvent(NS_DESTROY);
+    NotifyWindowDestroyed();
 
   
   mEventCallback = nullptr;

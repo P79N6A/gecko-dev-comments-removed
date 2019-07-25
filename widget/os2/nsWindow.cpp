@@ -1925,9 +1925,7 @@ void nsWindow::OnDestroy()
   
   if (!(nsWindowState_eDoingDelete & mWindowState)) {
     AddRef();
-    nsGUIEvent event(true, NS_DESTROY, this);
-    InitEvent(event);
-    DispatchWindowEvent(&event);
+    NotifyWindowDestroyed();
     Release();
   }
 

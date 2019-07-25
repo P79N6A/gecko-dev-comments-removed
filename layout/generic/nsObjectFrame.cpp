@@ -2113,12 +2113,15 @@ nsObjectFrame::HandleEvent(nsPresContext* aPresContext,
   }
 #endif
 
-  if (anEvent->message == NS_DESTROY) {
-#ifdef MAC_CARBON_PLUGINS
-    mInstanceOwner->CancelTimer();
-#endif
-    return rv;
-  }
+
+
+
+
+
+
+
+
+
 
   return nsObjectFrameSuper::HandleEvent(aPresContext, anEvent, anEventStatus);
 }

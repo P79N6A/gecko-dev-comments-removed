@@ -148,8 +148,6 @@ class nsHashKey;
 
 #define NS_XUL_CLOSE                    (NS_WINDOW_START + 1)
 
-#define NS_DESTROY                      (NS_WINDOW_START + 2)
-
 #define NS_SIZE                         (NS_WINDOW_START + 3)
 
 #define NS_SIZEMODE                     (NS_WINDOW_START + 4)

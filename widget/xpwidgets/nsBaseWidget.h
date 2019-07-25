@@ -164,6 +164,7 @@ public:
   NS_IMETHOD              RegisterTouchWindow();
   NS_IMETHOD              UnregisterTouchWindow();
 
+  void NotifyWindowDestroyed();
   void NotifySizeMoveDone();
 
   
