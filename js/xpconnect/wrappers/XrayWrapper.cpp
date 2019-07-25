@@ -919,13 +919,12 @@ XPCWrappedNativeXrayTraits::resolveOwnProperty(JSContext *cx, js::Wrapper &jsWra
     
     MOZ_ASSERT(js::IsObjectInContextCompartment(wrapper, cx));
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
-    if (!WrapperFactory::IsXOW(wrapper) &&
+    if (AccessCheck::isChrome(wrapper) &&
         (((id == rt->GetStringID(XPCJSRuntime::IDX_BASEURIOBJECT) ||
            id == rt->GetStringID(XPCJSRuntime::IDX_NODEPRINCIPAL)) &&
           Is<nsINode>(wrapper)) ||
           (id == rt->GetStringID(XPCJSRuntime::IDX_DOCUMENTURIOBJECT) &&
-          Is<nsIDocument>(wrapper))) &&
-        (AccessCheck::callerIsChrome())) {
+          Is<nsIDocument>(wrapper)))) {
         bool status;
         Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
         desc->obj = NULL; 
@@ -1389,8 +1388,10 @@ XrayWrapper<Base, Traits>::getPropertyDescriptor(JSContext *cx, JSObject *wrappe
         return false;
 
     
+    
+    
     XPCJSRuntime* rt = nsXPConnect::GetRuntimeInstance();
-    if (!WrapperFactory::IsXOW(wrapper) &&
+    if (AccessCheck::wrapperSubsumes(wrapper) &&
         id == rt->GetStringID(XPCJSRuntime::IDX_WRAPPED_JSOBJECT)) {
         bool status;
         Wrapper::Action action = set ? Wrapper::SET : Wrapper::GET;
@@ -1581,7 +1582,7 @@ XrayWrapper<Base, Traits>::enumerate(JSContext *cx, JSObject *wrapper, unsigned 
         return js::GetPropertyNames(cx, obj, flags, &props);
     }
 
-    if (WrapperFactory::IsXOW(wrapper)) {
+    if (!AccessCheck::isChrome(wrapper)) {
         JS_ReportError(cx, "Not allowed to enumerate cross origin objects");
         return false;
     }
