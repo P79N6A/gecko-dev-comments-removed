@@ -241,7 +241,9 @@ MapsReporter::ParseMapping(
   unsigned long long addrStart, addrEnd;
   char perms[5];
   unsigned long long offset;
-  unsigned int devMajor, devMinor, inode;
+  char devMajor[3];
+  char devMinor[3];
+  unsigned int inode;
   char path[1025];
 
   
@@ -252,17 +254,18 @@ MapsReporter::ParseMapping(
   
   
   
-  int numRead = fscanf(aFile, "%llx-%llx %4s %llx %u:%u %u%1024[^\n]",
-                       &addrStart, &addrEnd, perms, &offset, &devMajor,
-                       &devMinor, &inode, path);
+  int numRead = fscanf(aFile, "%llx-%llx %4s %llx %2s:%2s %u%1024[^\n]",
+                       &addrStart, &addrEnd, perms, &offset, devMajor,
+                       devMinor, &inode, path);
 
   
   fscanf(aFile, " ");
 
   
   
-  if (numRead != argCount && numRead != argCount - 1)
+  if (numRead != argCount && numRead != argCount - 1) {
     return NS_ERROR_FAILURE;
+  }
 
   nsCAutoString name, description;
   GetReporterNameAndDescription(path, perms, name, description);
