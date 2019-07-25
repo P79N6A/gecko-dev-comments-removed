@@ -152,6 +152,22 @@ public:
   
   void DestroyChild();
 
+  
+
+
+
+  nsIFrame* GetPrimaryFrameOfOwningContent() const
+  {
+    return mOwnerContent ? mOwnerContent->GetPrimaryFrame() : nsnull;
+  }
+
+  
+
+
+
+  nsIDocument* GetOwnerDoc() const
+  { return mOwnerContent ? mOwnerContent->GetOwnerDoc() : nsnull; }
+
 #ifdef MOZ_IPC
   PBrowserParent* GetRemoteBrowser();
 #endif
