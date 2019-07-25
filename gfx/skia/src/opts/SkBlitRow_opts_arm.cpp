@@ -674,8 +674,13 @@ static void __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Blend_
                   
                   "lsr    r9, r5, #24                \n\t" 
                   "lsr    r10, r6, #24               \n\t" 
+#ifdef SK_ARM_HAS_EDSP
                   "smulbb r9, r9, %[alpha]           \n\t" 
                   "smulbb r10, r10, %[alpha]         \n\t" 
+#else
+                  "mul    r9, r9, %[alpha]           \n\t" 
+                  "mul    r10, r10, %[alpha]         \n\t" 
+#endif
                   "lsr    r9, r9, #8                 \n\t" 
                   "lsr    r10, r10, #8               \n\t" 
                   "rsb    r9, r9, #256               \n\t" 
@@ -744,7 +749,11 @@ static void __attribute((noinline,optimize("-fomit-frame-pointer"))) S32A_Blend_
 
                   "lsr    r6, r5, #24                \n\t" 
                   "and    r8, r12, r5, lsr #8        \n\t" 
+#ifdef SK_ARM_HAS_EDSP
                   "smulbb r6, r6, %[alpha]           \n\t" 
+#else
+                  "mul    r6, r6, %[alpha]           \n\t" 
+#endif
                   "and    r9, r12, r5                \n\t" 
                   "lsr    r6, r6, #8                 \n\t" 
                   "mul    r8, r8, %[alpha]           \n\t" 
