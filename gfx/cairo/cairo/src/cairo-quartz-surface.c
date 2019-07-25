@@ -127,6 +127,7 @@ static bool (*CGContextGetShouldSmoothFontsPtr) (CGContextRef) = NULL;
 static void (*CGContextSetAllowsFontSmoothingPtr) (CGContextRef, bool) = NULL;
 static bool (*CGContextGetAllowsFontSmoothingPtr) (CGContextRef) = NULL;
 static void (*CGContextReplacePathWithClipPathPtr) (CGContextRef) = NULL;
+static CGFloat (*CGContextGetAlphaPtr) (CGContextRef) = NULL;
 
 static SInt32 _cairo_quartz_osx_version = 0x0;
 
@@ -162,6 +163,7 @@ static void quartz_ensure_symbols(void)
     CGContextReplacePathWithClipPathPtr = dlsym(RTLD_DEFAULT, "CGContextReplacePathWithClipPath");
     CGContextGetAllowsFontSmoothingPtr = dlsym(RTLD_DEFAULT, "CGContextGetAllowsFontSmoothing");
     CGContextSetAllowsFontSmoothingPtr = dlsym(RTLD_DEFAULT, "CGContextSetAllowsFontSmoothing");
+    CGContextGetAlphaPtr = dlsym(RTLD_DEFAULT, "CGContextGetAlpha");
 
     if (Gestalt(gestaltSystemVersion, &_cairo_quartz_osx_version) != noErr) {
 	
@@ -1703,6 +1705,18 @@ _cairo_quartz_setup_state (cairo_quartz_surface_t *surface,
     }
 
     if (source->type == CAIRO_PATTERN_TYPE_SURFACE) {
+        if (op == CAIRO_OPERATOR_OVER && _cairo_pattern_is_opaque (source) &&
+            CGContextGetAlphaPtr &&
+            CGContextGetAlphaPtr (surface->cgContext) == 1.0) {
+            
+            
+            
+            
+            
+            
+            CGContextSetCompositeOperation (context, kPrivateCGCompositeCopy);
+        }
+
 	const cairo_surface_pattern_t *spat = (const cairo_surface_pattern_t *) source;
         _cairo_quartz_setup_surface_source (surface, spat, extents, &state);
         return state;
