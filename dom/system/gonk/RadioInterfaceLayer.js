@@ -288,6 +288,9 @@ RadioInterfaceLayer.prototype = {
         
         this.handleEnumerateCalls(message.calls);
         break;
+      case "callError":
+        this.handleCallError(message);
+        break;
       case "voiceregistrationstatechange":
         this.updateVoiceConnection(message);
         break;
@@ -504,6 +507,13 @@ RadioInterfaceLayer.prototype = {
     }
     ppmm.sendAsyncMessage("RIL:EnumerateCalls",
                           {calls: calls, activeCallIndex: activeCallIndex});
+  },
+
+  
+
+
+  handleCallError: function handleCallError(message) {
+    ppmm.sendAsyncMessage("RIL:CallError", message);   
   },
 
   portAddressedSmsApps: null,
