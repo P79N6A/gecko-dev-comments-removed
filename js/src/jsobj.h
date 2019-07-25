@@ -330,13 +330,8 @@ struct JSObject {
         JS_NSLOTS_LIMIT = JS_BIT(JS_NSLOTS_BITS)
     };
 
-    union {
-        struct {
-            uint32 flags: 32-JS_NSLOTS_BITS,   
-                   freeslot: JS_NSLOTS_BITS;   
-        };
-        uint32  flagsAndFreeslot;
-    };
+    uint32      flags: 32-JS_NSLOTS_BITS,   
+                freeslot: JS_NSLOTS_BITS;   
     uint32      objShape;                   
 
     JSObject    *proto;                     
@@ -376,9 +371,7 @@ struct JSObject {
 
     inline void trace(JSTracer *trc);
 
-    static size_t flagsOffset() {
-        return offsetof(JSObject, flagsAndFreeslot);
-    }
+    static size_t flagsOffset();
 
     uint32 shape() const {
         JS_ASSERT(objShape != JSObjectMap::INVALID_SHAPE);
