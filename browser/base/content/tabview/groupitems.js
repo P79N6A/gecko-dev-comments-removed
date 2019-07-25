@@ -791,6 +791,10 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
           item.setResizable(false);
 
         
+        if (iQ(item.container).hasClass("focus"))
+          this.setActiveTab(item);
+
+        
         
         if (item.tab == gBrowser.selectedTab || 
             (!GroupItems.getActiveGroupItem() && !item.tab.hidden))
@@ -838,7 +842,7 @@ GroupItem.prototype = Utils.extend(new Item(), new Subscribable(), {
         this._children.splice(index, 1);
 
       if (item == this._activeTab) {
-        if (this._children.length)
+        if (this._children.length > 0)
           this._activeTab = this._children[0];
         else
           this._activeTab = null;
