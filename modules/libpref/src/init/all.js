@@ -65,11 +65,7 @@ pref("browser.cache.disk.smart_size.first_run", true);
 
 pref("browser.cache.disk.smart_size.enabled", true);
 
-#ifndef WINCE
 pref("browser.cache.disk.capacity",         256000);
-#else
-pref("browser.cache.disk.capacity",         20000);
-#endif
 pref("browser.cache.memory.enable",         true);
 
 
@@ -78,7 +74,7 @@ pref("browser.cache.disk_cache_ssl",        true);
 pref("browser.cache.check_doc_frequency",   3);
 
 pref("browser.cache.offline.enable",           true);
-#ifndef WINCE
+
 
 pref("browser.cache.offline.capacity",         512000);
 
@@ -89,12 +85,6 @@ pref("offline-apps.quota.max",        204800);
 
 
 pref("offline-apps.quota.warn",        51200);
-#else
-
-pref("browser.cache.offline.capacity", 15000);
-pref("offline-apps.quota.max",          7000);
-pref("offline-apps.quota.warn",         4000);
-#endif
 
 
 pref("dom.indexedDB.enabled", true);
@@ -208,10 +198,8 @@ pref("gfx.font_rendering.harfbuzz.scripts", 3);
 #endif
 
 #ifdef XP_WIN
-#ifndef WINCE
 pref("gfx.font_rendering.directwrite.enabled", false);
 pref("gfx.font_rendering.directwrite.use_gdi_table_loading", true);
-#endif
 #endif
 
 pref("accessibility.browsewithcaret", false);
@@ -1884,13 +1872,8 @@ pref("intl.enable_tsf_support", false);
 pref("intl.tsf.on_layout_change_interval", 100);
 #endif
 
-#ifdef WINCE
-
-pref("ui.panel.default_level_parent", true);
-#else
 
 pref("ui.panel.default_level_parent", false);
-#endif
 
 pref("mousewheel.system_scroll_override_on_root_content.enabled", true);
 
@@ -3196,15 +3179,8 @@ pref("webgl.verbose", false);
 pref("webgl.prefer-native-gl", false);
 
 #ifdef XP_WIN
-#ifndef WINCE
 
 pref("network.tcp.sendbuffer", 131072);
-#endif
-#endif
-
-#ifdef WINCE
-pref("mozilla.widget.disable-native-theme", true);
-pref("gfx.color_management.mode", 0);
 #endif
 
 
@@ -3214,7 +3190,6 @@ pref("layers.acceleration.disabled", false);
 pref("layers.acceleration.force-enabled", false);
 
 #ifdef XP_WIN
-#ifndef WINCE
 
 pref("gfx.direct2d.disabled", false);
 
@@ -3223,7 +3198,6 @@ pref("gfx.direct2d.force-enabled", false);
 
 pref("layers.prefer-opengl", false);
 pref("layers.prefer-d3d9", false);
-#endif
 #endif
 
 
