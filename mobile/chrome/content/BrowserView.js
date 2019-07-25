@@ -45,7 +45,8 @@ const kBrowserViewZoomLevelMax = 4.0;
 const kBrowserFormZoomLevelMin = 1.0;
 const kBrowserFormZoomLevelMax = 2.0;
 const kBrowserViewZoomLevelPrecision = 10000;
-const kBrowserViewZoomLevelMaxAdjust = 0.2;
+const kBrowserViewZoomLevelIncrement = 0.1;
+const kBrowserViewZoomLevelPageFitAdjust = 0.2;
 const kBrowserViewPrefetchBeginIdleWait = 1;    
 const kBrowserViewPrefetchBeginIdleWaitLoading = 10;    
 const kBrowserViewCacheSize = 6;
@@ -162,13 +163,13 @@ BrowserView.Util = {
   },
 
   
-  adjustZoomLevel: function adjustZoomLevel(zl) {
-    return (Math.abs(1.0 - zl) <= kBrowserViewZoomLevelMaxAdjust) ? 1.0 : zl;
+  adjustZoomLevel: function adjustZoomLevel(zl, threshold) {
+    return (Math.abs(1.0 - zl) < threshold) ? 1.0 : zl;
   },
 
   pageZoomLevel: function pageZoomLevel(visibleRect, browserW, browserH) {
     let zl = BrowserView.Util.clampZoomLevel(visibleRect.width / browserW);
-    return BrowserView.Util.adjustZoomLevel(zl);
+    return BrowserView.Util.adjustZoomLevel(zl, kBrowserViewZoomLevelPageFitAdjust);
   },
 
   createBrowserViewportState: function createBrowserViewportState() {
