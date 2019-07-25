@@ -62,51 +62,67 @@ function check_results_callback(aSequence) {
                   " sortingMode("   + sortingMode   + ").");
 
   
-  let expectedData = visits.filter(function(aVisit, aIndex, aArray) {
-    switch (aVisit.transType) {
-      case Ci.nsINavHistoryService.TRANSITION_TYPED:
-      case Ci.nsINavHistoryService.TRANSITION_LINK:
-      case Ci.nsINavHistoryService.TRANSITION_BOOKMARK:
-      case Ci.nsINavHistoryService.TRANSITION_DOWNLOAD:
-        return redirectsMode != Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET;
-      case Ci.nsINavHistoryService.TRANSITION_EMBED:
-        return false;
-      case Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK:
-        return includeHidden && redirectsMode != Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET;
-      case Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY:
-      case Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT:
-        if (redirectsMode == Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_ALL)
-          return true;
-        if (redirectsMode == Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET) {
-           
-          return aArray.filter(function(refVisit) {
-                                return refVisit.referrer == aVisit.uri;
-                               }).length == 0;
-        }
-        return false;
-      default:
+  let expectedData = visits.filter(function (aVisit, aIndex, aArray) {
+    
+    if (aVisit.transType == Ci.nsINavHistoryService.TRANSITION_EMBED)
+      return false;
+
+    if (aVisit.transType == Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK &&
+      !includeHidden) {
+      
+      if (visits.filter(function (refVisit) {
+            return refVisit.uri == aVisit.uri &&
+                   refVisit.transType != Ci.nsINavHistoryService.TRANSITION_FRAMED_LINK;
+          }).length == 0)
         return false;
     }
+
+    if (redirectsMode == Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_SOURCE) {
+      
+      return aVisit.transType != Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT &&
+             aVisit.transType != Ci.nsINavHistoryService.TRANSITION_REDIRECT_TEMPORARY;
+    }
+
+    if (redirectsMode == Ci.nsINavHistoryQueryOptions.REDIRECTS_MODE_TARGET) {
+      
+      return visits.filter(function (refVisit) {
+        return !refVisit.isRedirect && refVisit.uri == aVisit.uri;
+      }).length > 0;
+    }
+
+    return true;
   });
 
   
-  if (sortingMode > 0) {
-    function comparator(a, b) {
-      if (sortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING)
-        return b.lastVisit - a.lastVisit;
-      else if (sortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING)
-        return b.visitCount - a.visitCount;
-      else
-        return 0;
+  let seen = [];
+  expectedData = expectedData.filter(function (aData) {
+    if (seen.indexOf(aData.uri) != -1)
+      return false;
+    else
+      seen.push(aData.uri);
+    return true;
+  });
+
+  
+  function getFirstIndexFor(aEntry) {
+    for (let i = 0; i < visits.length; i++) {
+      if (visits[i].uri == aEntry.uri)
+        return i;
     }
-    expectedData.sort(comparator);
   }
+  function comparator(a, b) {
+    if (sortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_DATE_DESCENDING)
+      return b.lastVisit - a.lastVisit;
+    else if (sortingMode == Ci.nsINavHistoryQueryOptions.SORT_BY_VISITCOUNT_DESCENDING)
+      return b.visitCount - a.visitCount;
+    else
+      return getFirstIndexFor(a) - getFirstIndexFor(b);
+  }
+  expectedData.sort(comparator);
 
   
   if (maxResults) {
-    expectedData = expectedData.filter(function(aVisit, aIndex) {
-                                        return aIndex < maxResults;
-                                       });
+    expectedData = expectedData.slice(0, maxResults);
   }
 
   
@@ -267,6 +283,28 @@ function add_visits_to_database() {
       isRedirect: true,
       referrer: "http://" + transition + ".redirect.temp.example.com/",
       visitCount: visitCount++,
+      isInQuery: true }));
+
+  
+  
+  
+  function getLastValue(aURI, aProperty) {
+    for (let i = 0; i < visits.length; i++) {
+      if (visits[i].uri == aURI) {
+        return visits[i][aProperty];
+      }
+    }
+    do_throw("Unknown uri.");
+    return null;
+  }
+  t.forEach(function (transition) visits.push(
+    { isVisit: true,
+      transType: Ci.nsINavHistoryService.TRANSITION_REDIRECT_PERMANENT,
+      uri: "http://" + transition + ".example.com/",
+      title: getLastValue("http://" + transition + ".example.com/", "title"),
+      lastVisit: getLastValue("http://" + transition + ".example.com/", "lastVisit"),
+      referrer: "http://" + transition + ".redirect.perm.example.com/",
+      visitCount: getLastValue("http://" + transition + ".example.com/", "visitCount"),
       isInQuery: true }));
 
   
