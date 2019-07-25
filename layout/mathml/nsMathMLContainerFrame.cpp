@@ -731,8 +731,8 @@ nsMathMLContainerFrame::ReLayoutChildren(nsIFrame* aParentFrame)
     NS_ASSERTION(content, "dangling frame without a content node");
     if (!content)
       break;
-    
-    if (content->Tag() == nsGkAtoms::math)
+    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
+        content->Tag() == nsGkAtoms::math)
       break;
 
     
@@ -1404,10 +1404,9 @@ nsMathMLContainerFrame::FixInterFrameSpacing(nsHTMLReflowMetrics& aDesiredSize)
   if (NS_UNLIKELY(!parentContent)) {
     return 0;
   }
-  
   nsIAtom *parentTag = parentContent->Tag();
-  if (parentTag == nsGkAtoms::math ||
-      parentTag == nsGkAtoms::mtd_) {
+  if (parentContent->GetNameSpaceID() == kNameSpaceID_MathML && 
+      (parentTag == nsGkAtoms::math || parentTag == nsGkAtoms::mtd_)) {
     gap = GetInterFrameSpacingFor(GetStyleFont()->mScriptLevel, mParent, this);
     
     nscoord leftCorrection = 0, italicCorrection = 0;
