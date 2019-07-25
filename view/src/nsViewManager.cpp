@@ -417,32 +417,49 @@ void nsViewManager::ProcessPendingUpdates(nsView* aView, bool aDoInvalidate)
     ProcessPendingUpdates(childView, aDoInvalidate);
   }
 
-  if (aDoInvalidate && aView->HasNonEmptyDirtyRegion()) {
+  if (aDoInvalidate) {
     
     
     NS_ASSERTION(IsRefreshEnabled(), "Cannot process pending updates with refresh disabled");
-    nsRegion* dirtyRegion = aView->GetDirtyRegion();
-    if (dirtyRegion) {
-      nsView* nearestViewWithWidget = aView;
-      while (!nearestViewWithWidget->HasWidget() &&
-             nearestViewWithWidget->GetParent()) {
-        nearestViewWithWidget = nearestViewWithWidget->GetParent();
-      }
-      nsRegion r =
-        ConvertRegionBetweenViews(*dirtyRegion, aView, nearestViewWithWidget);
-      nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
-      widgetVM->
-        UpdateWidgetArea(nearestViewWithWidget,
-                         nearestViewWithWidget->GetWidget(), r);
-      dirtyRegion->SetEmpty();
-    }
+    FlushDirtyRegionToWidget(aView);
   }
+}
+
+void nsViewManager::FlushDirtyRegionToWidget(nsView* aView)
+{
+  if (!aView->HasNonEmptyDirtyRegion())
+    return;
+
+  nsRegion* dirtyRegion = aView->GetDirtyRegion();
+  nsView* nearestViewWithWidget = aView;
+  while (!nearestViewWithWidget->HasWidget() &&
+         nearestViewWithWidget->GetParent()) {
+    nearestViewWithWidget = nearestViewWithWidget->GetParent();
+  }
+  nsRegion r =
+    ConvertRegionBetweenViews(*dirtyRegion, aView, nearestViewWithWidget);
+  nsViewManager* widgetVM = nearestViewWithWidget->GetViewManager();
+  widgetVM->
+    UpdateWidgetArea(nearestViewWithWidget,
+                     nearestViewWithWidget->GetWidget(), r);
+  dirtyRegion->SetEmpty();
 }
 
 NS_IMETHODIMP nsViewManager::UpdateView(nsIView *aView)
 {
   
   return UpdateView(aView, aView->GetDimensions());
+}
+
+static void
+AddDirtyRegion(nsView *aView, const nsRegion &aDamagedRegion)
+{
+  nsRegion* dirtyRegion = aView->GetDirtyRegion();
+  if (!dirtyRegion)
+    return;
+
+  dirtyRegion->Or(*dirtyRegion, aDamagedRegion);
+  dirtyRegion->SimplifyOutward(8);
 }
 
 
@@ -469,18 +486,10 @@ nsViewManager::UpdateWidgetArea(nsView *aWidgetView, nsIWidget* aWidget,
   if (!IsRefreshEnabled()) {
     
     
-    nsRegion* dirtyRegion = aWidgetView->GetDirtyRegion();
-    if (!dirtyRegion) return;
-
-    dirtyRegion->Or(*dirtyRegion, aDamagedRegion);
-    
-    dirtyRegion->SimplifyOutward(8);
+    AddDirtyRegion(aWidgetView, aDamagedRegion);
     nsViewManager* rootVM = RootViewManager();
     rootVM->mHasPendingUpdates = true;
     return;
-    
-    
-    
   }
 
   
