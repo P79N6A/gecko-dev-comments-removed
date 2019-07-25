@@ -565,10 +565,6 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
     return NS_OK;
   }
   
-  
-  
-  nsRect r = SourceRectToDest(*aRect);
-
   if (IsPendingLoad(aRequest)) {
     
     return NS_OK;
@@ -578,6 +574,12 @@ nsImageFrame::OnDataAvailable(imgIRequest *aRequest,
   
   if (!aCurrentFrame)
     return NS_OK;
+
+  
+  
+  nsRect r = (*aRect == mozilla::imagelib::kFullImageSpaceRect) ?
+    GetInnerArea() :
+    SourceRectToDest(*aRect);
 
 #ifdef DEBUG_decode
   printf("Source rect (%d,%d,%d,%d) -> invalidate dest rect (%d,%d,%d,%d)\n",
