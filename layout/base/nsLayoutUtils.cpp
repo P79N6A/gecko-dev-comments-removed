@@ -3776,6 +3776,12 @@ nsLayoutUtils::SurfaceFromElement(nsIDOMElement *aElement,
   if (!imageLoader)
     return result;
 
+  
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
   nsCOMPtr<imgIRequest> imgRequest;
   rv = imageLoader->GetRequest(nsIImageLoadingContent::CURRENT_REQUEST,
                                getter_AddRefs(imgRequest));

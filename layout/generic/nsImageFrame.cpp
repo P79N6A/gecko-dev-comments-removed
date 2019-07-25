@@ -217,6 +217,12 @@ nsImageFrame::DestroyFrom(nsIFrame* aDestructRoot)
   if (mListener) {
     nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(mContent);
     if (imageLoader) {
+      
+      
+      
+      nsCxPusher pusher;
+      pusher.PushNull();
+
       imageLoader->RemoveObserver(mListener);
     }
     
@@ -247,7 +253,16 @@ nsImageFrame::Init(nsIContent*      aContent,
 
   nsCOMPtr<nsIImageLoadingContent> imageLoader = do_QueryInterface(aContent);
   NS_ENSURE_TRUE(imageLoader, NS_ERROR_UNEXPECTED);
-  imageLoader->AddObserver(mListener);
+
+  {
+    
+    
+    
+    nsCxPusher pusher;
+    pusher.PushNull();
+
+    imageLoader->AddObserver(mListener);
+  }
 
   nsPresContext *aPresContext = PresContext();
   

@@ -108,6 +108,12 @@ nsVideoFrame::CreateAnonymousContent(nsTArray<nsIContent*>& aElements)
     
     
     
+    nsCxPusher pusher;
+    pusher.PushNull();
+
+    
+    
+    
     
     nsCOMPtr<nsIImageLoadingContent> imgContent = do_QueryInterface(mPosterImage);
     NS_ENSURE_TRUE(imgContent, NS_ERROR_FAILURE);

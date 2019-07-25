@@ -669,6 +669,12 @@ nsImageDocument::CreateSyntheticDocument()
   nsCAutoString src;
   mDocumentURI->GetSpec(src);
 
+  
+  
+  
+  nsCxPusher pusher;
+  pusher.PushNull();
+
   NS_ConvertUTF8toUTF16 srcString(src);
   
   imageLoader->SetLoadingEnabled(PR_FALSE);
