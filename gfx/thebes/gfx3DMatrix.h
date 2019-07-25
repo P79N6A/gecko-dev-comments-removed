@@ -100,6 +100,17 @@ public:
 
 
 
+
+
+
+
+
+  PRBool CanDraw2D(gfxMatrix* aMatrix = nsnull) const;
+
+  
+
+
+
   PRBool IsIdentity() const;
 
   
