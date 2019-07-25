@@ -426,42 +426,6 @@ JSCompartment::wrap(JSContext *cx, AutoIdVector &props)
     return true;
 }
 
-#if defined JS_METHODJIT && defined JS_MONOIC
-
-
-
-
-static inline bool
-ScriptPoolDestroyed(JSContext *cx, mjit::JITScript *jit,
-                    uint32 releaseInterval, uint32 &counter)
-{
-    JSC::ExecutablePool *pool = jit->code.m_executablePool;
-    if (pool->m_gcNumber != cx->runtime->gcNumber) {
-        
-
-
-
-
-        pool->m_destroy = false;
-        pool->m_gcNumber = cx->runtime->gcNumber;
-        if (--counter == 0) {
-            pool->m_destroy = true;
-            counter = releaseInterval;
-        }
-    }
-    return pool->m_destroy;
-}
-
-static inline void
-ScriptTryDestroyCode(JSContext *cx, JSScript *script, bool normal,
-                     uint32 releaseInterval, uint32 &counter)
-{
-    mjit::JITScript *jit = normal ? script->jitNormal : script->jitCtor;
-    if (jit && ScriptPoolDestroyed(cx, jit, releaseInterval, counter))
-        mjit::ReleaseScriptCode(cx, script, !normal);
-}
-#endif 
-
 
 
 
@@ -594,6 +558,13 @@ JSCompartment::sweep(JSContext *cx, bool releaseTypes)
                     }
                 }
             }
+        } else {
+#ifdef JS_METHODJIT
+            for (CellIterUnderGC i(this, FINALIZE_SCRIPT); !i.done(); i.next()) {
+                JSScript *script = i.get<JSScript>();
+                mjit::ReleaseScriptCode(cx, script);
+            }
+#endif
         }
 
         types.sweep(cx);
