@@ -2294,15 +2294,13 @@ nsJSContext::CreateOuterObject(nsIScriptGlobalObject *aGlobalObject,
 }
 
 nsresult
-nsJSContext::SetOuterObject(void *aOuterObject)
+nsJSContext::SetOuterObject(JSObject* aOuterObject)
 {
-  JSObject *outer = static_cast<JSObject *>(aOuterObject);
+  
+  JS_SetGlobalObject(mContext, aOuterObject);
 
   
-  JS_SetGlobalObject(mContext, outer);
-
-  
-  JSObject *inner = JS_GetParent(mContext, outer);
+  JSObject *inner = JS_GetParent(mContext, aOuterObject);
 
   nsIXPConnect *xpc = nsContentUtils::XPConnect();
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
@@ -2312,7 +2310,7 @@ nsJSContext::SetOuterObject(void *aOuterObject)
   NS_ABORT_IF_FALSE(wrapper, "bad wrapper");
 
   wrapper->RefreshPrototype();
-  JS_SetPrototype(mContext, outer, JS_GetPrototype(mContext, inner));
+  JS_SetPrototype(mContext, aOuterObject, JS_GetPrototype(mContext, inner));
 
   return NS_OK;
 }
