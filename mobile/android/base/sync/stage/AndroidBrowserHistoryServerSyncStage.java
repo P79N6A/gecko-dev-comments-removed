@@ -50,7 +50,7 @@ public class AndroidBrowserHistoryServerSyncStage extends ServerSyncStage {
   
   
   private static final String HISTORY_SORT          = "index";
-  private static final long   HISTORY_REQUEST_LIMIT = 500;
+  private static final long   HISTORY_REQUEST_LIMIT = 250;
 
   @Override
   public void execute(org.mozilla.gecko.sync.GlobalSession session) throws NoSuchStageException {
