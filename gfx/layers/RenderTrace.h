@@ -42,7 +42,7 @@
 
 
 
-
+#define MOZ_RENDERTRACE
 #ifdef MOZ_RENDERTRACE
 
 #include "gfx3DMatrix.h"
@@ -58,7 +58,7 @@ class Layer;
 
 void RenderTraceLayers(Layer *aLayer, const char *aColor, gfx3DMatrix aRootTransform = gfx3DMatrix(), bool aReset = true);
 
-void RenderTraceInvalidateStart(Layer *aLayer, const char *aColor, const nsIntRect aRect);
+void RenderTraceInvalidateStart(Layer *aLayer, const char *aColor, nsIntRect aRect);
 void RenderTraceInvalidateEnd(Layer *aLayer, const char *aColor);
 
 }
