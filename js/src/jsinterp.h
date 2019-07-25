@@ -396,8 +396,13 @@ struct JSStackFrame
     inline js::Value *actualArgsEnd() const;
 
     inline js::Value &canonicalActualArg(uintN i) const;
-    template <class Op> inline void forEachCanonicalActualArg(Op op);
-    template <class Op> inline void forEachFormalArg(Op op);
+
+    
+
+
+
+    template <class Op> inline bool forEachCanonicalActualArg(Op op);
+    template <class Op> inline bool forEachFormalArg(Op op);
 
     inline void clearMissingArgs();
 

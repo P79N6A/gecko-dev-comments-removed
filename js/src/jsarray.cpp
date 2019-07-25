@@ -400,6 +400,19 @@ GetElement(JSContext *cx, JSObject *obj, jsdouble index, JSBool *hole, Value *vp
 
 namespace js {
 
+struct STATIC_SKIP_INFERENCE CopyNonHoleArgsTo
+{
+    CopyNonHoleArgsTo(JSObject *aobj, Value *dst) : aobj(aobj), dst(dst) {}
+    JSObject *aobj;
+    Value *dst;
+    bool operator()(uintN argi, Value *src) {
+        if (aobj->getArgsElement(argi).isMagic(JS_ARGS_HOLE))
+            return false;
+        *dst++ = *src;
+        return true;
+    }
+};
+
 bool
 GetElements(JSContext *cx, JSObject *aobj, jsuint length, Value *vp)
 {
@@ -418,16 +431,23 @@ GetElements(JSContext *cx, JSObject *aobj, jsuint length, Value *vp)
 
 
 
+
+
         if (JSStackFrame *fp = (JSStackFrame *) aobj->getPrivate()) {
             JS_ASSERT(fp->numActualArgs() <= JS_ARGS_LENGTH_MAX);
-            fp->forEachCanonicalActualArg(CopyNonHoleArgsTo(aobj, vp));
+            if (!fp->forEachCanonicalActualArg(CopyNonHoleArgsTo(aobj, vp)))
+                goto found_deleted_prop;
         } else {
             Value *srcbeg = aobj->getArgsElements();
             Value *srcend = srcbeg + length;
-            for (Value *dst = vp, *src = srcbeg; src < srcend; ++dst, ++src)
-                *dst = src->isMagic(JS_ARGS_HOLE) ? UndefinedValue() : *src;
+            for (Value *dst = vp, *src = srcbeg; src < srcend; ++dst, ++src) {
+                if (src->isMagic(JS_ARGS_HOLE))
+                    goto found_deleted_prop;
+                *dst = *src;
+            }
         }
     } else {
+      found_deleted_prop:
         for (uintN i = 0; i < length; i++) {
             if (!aobj->getProperty(cx, INT_TO_JSID(jsint(i)), &vp[i]))
                 return JS_FALSE;
