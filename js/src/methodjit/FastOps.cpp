@@ -1192,22 +1192,13 @@ mjit::Compiler::jsop_setelem_dense()
 
 
 
-
-
-
-
         stubcc.masm.storePtr(slotsReg, FrameAddress(offsetof(VMFrame, scratch)));
-        if (hoisted)
-            frame.pinReg(slotsReg);
         if (!key.isConstant())
-            frame.pinReg(key.reg());
+            stubcc.masm.push(key.reg());
         frame.sync(stubcc.masm, Uses(3));
         if (!key.isConstant())
-            frame.unpinReg(key.reg());
-        if (hoisted)
-            frame.unpinReg(slotsReg);
-        else
-            stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
+            stubcc.masm.pop(key.reg());
+        stubcc.masm.loadPtr(FrameAddress(offsetof(VMFrame, scratch)), slotsReg);
 
         if (key.isConstant())
             stubcc.masm.lea(Address(slotsReg, key.index() * sizeof(Value)), Registers::ArgReg1);
