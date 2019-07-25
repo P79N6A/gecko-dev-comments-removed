@@ -655,13 +655,6 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
     
     NanoAssert(ARM_VFP || arg->isop(LIR_ii2d));
 
-    Register    fp_reg = deprecated_UnknownReg;
-
-    if (ARM_VFP) {
-        fp_reg = findRegFor(arg, FpRegs);
-        NanoAssert(deprecated_isKnownReg(fp_reg));
-    }
-
 #ifdef NJ_ARM_EABI
     
     
@@ -688,7 +681,8 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
         
         
         if (ARM_VFP) {
-            FMRRD(ra, rb, fp_reg);
+            Register dm = findRegFor(arg, FpRegs);
+            FMRRD(ra, rb, dm);
         } else {
             asm_regarg(ARGTYPE_I, arg->oprnd1(), ra);
             asm_regarg(ARGTYPE_I, arg->oprnd2(), rb);
@@ -735,46 +729,39 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
             stkd += 4;
         }
 #endif
-        asm_stkarg(arg, stkd);
+        if (ARM_VFP) {
+            asm_stkarg(arg, stkd);
+        } else {
+            asm_stkarg(arg->oprnd1(), stkd);
+            asm_stkarg(arg->oprnd2(), stkd+4);
+        }
         stkd += 8;
     }
 }
 
 void
-Assembler::asm_regarg(ArgType ty, LIns* p, Register r)
+Assembler::asm_regarg(ArgType ty, LIns* p, Register rd)
 {
-    NanoAssert(deprecated_isKnownReg(r));
+    
+    
+    
+
     if (ty == ARGTYPE_I || ty == ARGTYPE_UI)
     {
         
         if (p->isImmI()) {
-            asm_ld_imm(r, p->immI());
+            asm_ld_imm(rd, p->immI());
         } else {
-            if (p->isExtant()) {
-                if (!p->deprecated_hasKnownReg()) {
-                    
-                    int d = findMemFor(p);
-                    if (p->isop(LIR_allocp)) {
-                        asm_add_imm(r, FP, d, 0);
-                    } else {
-                        LDR(r, FP, d);
-                    }
-                } else {
-                    
-                    MOV(r, p->deprecated_getReg());
-                }
-            }
-            else {
+            if (p->isInReg()) {
+                MOV(rd, p->getReg());
+            } else {
                 
                 
-                findSpecificRegFor(p, r);
+                findSpecificRegForUnallocated(p, rd);
             }
         }
-    }
-    else
-    {
+    } else {
         NanoAssert(ty == ARGTYPE_D);
-        
         
         NanoAssert(false);
     }
@@ -783,55 +770,26 @@ Assembler::asm_regarg(ArgType ty, LIns* p, Register r)
 void
 Assembler::asm_stkarg(LIns* arg, int stkd)
 {
-    bool isF64 = arg->isD();
-
-    Register rr;
-    if (arg->isExtant() && (rr = arg->deprecated_getReg(), deprecated_isKnownReg(rr))) {
-        
-        
-        if (!ARM_VFP || !isF64) {
-            NanoAssert(IsGpReg(rr));
-
-            asm_str(rr, SP, stkd);
-        } else {
-            
-            
-            
-            
-            
-            
-            NanoAssert(ARM_VFP);
-            NanoAssert(IsFpReg(rr));
-
-#ifdef NJ_ARM_EABI
-            
-            NanoAssert((stkd & 7) == 0);
-#endif
-
-            FSTD(rr, SP, stkd);
-        }
+    
+    NanoAssert(stkd >= 0);
+    
+    
+    if (arg->isI()) {
+        Register rt = findRegFor(arg, GpRegs);
+        asm_str(rt, SP, stkd);
     } else {
         
         
-        int d = findMemFor(arg);
-        if (!isF64) {
-            asm_str(IP, SP, stkd);
-            if (arg->isop(LIR_allocp)) {
-                asm_add_imm(IP, FP, d);
-            } else {
-                LDR(IP, FP, d);
-            }
-        } else {
+        
+        
+        NanoAssert(arg->isD());
+        NanoAssert(ARM_VFP);
+        Register dt = findRegFor(arg, FpRegs);
 #ifdef NJ_ARM_EABI
-            
-            NanoAssert((stkd & 7) == 0);
+        
+        NanoAssert((stkd % 8) == 0);
 #endif
-
-            asm_str(IP, SP, stkd+4);
-            LDR(IP, FP, d+4);
-            asm_str(IP, SP, stkd);
-            LDR(IP, FP, d);
-        }
+        FSTD(dt, SP, stkd);
     }
 }
 
@@ -861,7 +819,10 @@ Assembler::asm_call(LIns* ins)
 
 
     } else {
-        deprecated_prepResultReg(ins, rmask(retRegs[0]));
+        prepareResultReg(ins, rmask(retRegs[0]));
+        
+        
+        freeResourcesOf(ins);
     }
 
     
@@ -886,25 +847,22 @@ Assembler::asm_call(LIns* ins)
         
         
         if (ci->returnType() == ARGTYPE_D) {
-            Register rr = ins->deprecated_getReg();
+            NanoAssert(ins->isop(LIR_calld));
 
-            NanoAssert(ins->opcode() == LIR_calld);
-
-            if (!deprecated_isKnownReg(rr)) {
-                int d = deprecated_disp(ins);
-                NanoAssert(d != 0);
-                deprecated_freeRsrcOf(ins);
+            if (ins->isInReg()) {
+                Register dd = ins->getReg();
+                
+                FMDRR(dd, R0, R1);
+            } else {
+                int d = findMemFor(ins);
+                
+                
+                freeResourcesOf(ins);
 
                 
                 
                 asm_str(R0, FP, d+0);
                 asm_str(R1, FP, d+4);
-            } else {
-                NanoAssert(IsFpReg(rr));
-
-                
-                deprecated_prepResultReg(ins, rmask(rr));
-                FMDRR(rr, R0, R1);
             }
         }
     }
@@ -980,8 +938,11 @@ Assembler::nRegisterResetAll(RegAlloc& a)
         rmask(R0) | rmask(R1) | rmask(R2) | rmask(R3) | rmask(R4) |
         rmask(R5) | rmask(R6) | rmask(R7) | rmask(R8) | rmask(R9) |
         rmask(R10) | rmask(LR);
-    if (ARM_VFP)
-        a.free |= FpRegs;
+    if (ARM_VFP) {
+        a.free |=
+            rmask(D0) | rmask(D1) | rmask(D2) | rmask(D3) |
+            rmask(D4) | rmask(D5) | rmask(D6);
+    }
 }
 
 static inline ConditionCode
@@ -1193,13 +1154,15 @@ Assembler::asm_qjoin(LIns *ins)
     LIns* lo = ins->oprnd1();
     LIns* hi = ins->oprnd2();
 
-    Register r = findRegFor(hi, GpRegs);
-    asm_str(r, FP, d+4);
+    Register rlo;
+    Register rhi;
 
-    
-    r = findRegFor(lo, GpRegs);
-    asm_str(r, FP, d);
-    deprecated_freeRsrcOf(ins);     
+    findRegFor2(GpRegs, lo, rlo, GpRegs, hi, rhi);
+
+    asm_str(rhi, FP, d+4);
+    asm_str(rlo, FP, d);
+
+    freeResourcesOf(ins);
 }
 
 void
@@ -1273,7 +1236,8 @@ Assembler::asm_restore(LIns* i, Register r)
     NanoAssert(r != SP);
 
     if (i->isop(LIR_allocp)) {
-        asm_add_imm(r, FP, deprecated_disp(i));
+        int d = findMemFor(i);
+        asm_add_imm(r, FP, d);
     } else if (i->isImmI()) {
         asm_ld_imm(r, i->immI());
     } else if (canRematALU(i)) {
@@ -1356,208 +1320,140 @@ Assembler::asm_spill(Register rr, int d, bool quad)
 void
 Assembler::asm_load64(LIns* ins)
 {
-    
-
     NanoAssert(ins->isD());
 
-    LIns* base = ins->oprnd1();
-    int offset = ins->disp();
-
-    Register rr = ins->deprecated_getReg();
-    int d = deprecated_disp(ins);
-
-    Register rb = findRegFor(base, GpRegs);
-    NanoAssert(IsGpReg(rb));
-    deprecated_freeRsrcOf(ins);
-
-    
-
-    switch (ins->opcode()) {
-        case LIR_ldd:
-            if (ARM_VFP && deprecated_isKnownReg(rr)) {
-                
-                NanoAssert(IsFpReg(rr));
-
-                if (!isS8(offset >> 2) || (offset&3) != 0) {
-                    FLDD(rr,IP,0);
-                    asm_add_imm(IP, rb, offset);
-                } else {
-                    FLDD(rr,rb,offset);
-                }
+    if (ARM_VFP) {
+        Register    dd;
+        LIns*       base = ins->oprnd1();
+        Register    rn = findRegFor(base, GpRegs);
+        int         offset = ins->disp();
+        
+        if (ins->isInReg()) {
+            dd = prepareResultReg(ins, FpRegs);
+        } else {
+            
+            
+            NanoAssert(ins->isInAr());
+            int d = arDisp(ins);
+            dd = D7;
+            
+            
+            if (isU8(d/4) || isU8(-d/4)) {
+                FSTD(dd, FP, d);
             } else {
-                
-                
-                
-                NanoAssert(!deprecated_isKnownReg(rr));
-                NanoAssert(d != 0);
-
-                
-                NanoAssert((d & 0x7) == 0);
-
-                
-                asm_mmq(FP, d, rb, offset);
+                FSTD(dd, IP, d%1024);
+                asm_add_imm(IP, rn, d-(d%1024));
             }
-            return;
+        }
 
-        case LIR_ldf2d:
-            if (ARM_VFP) {
-                if (deprecated_isKnownReg(rr)) {
-                    NanoAssert(IsFpReg(rr));
-                    FCVTDS(rr, S14);
+        switch (ins->opcode()) {
+            case LIR_ldd:
+                if (isU8(offset/4) || isU8(-offset/4)) {
+                    FLDD(dd, rn, offset);
                 } else {
-                    
-                    
-                    if (isS8(d)) {
-                        FSTD_allowD7(D7, FP, d, true);
-                    } else {
-                        FSTD_allowD7(D7, IP, 0, true);
-                        asm_add_imm(IP, FP, d);
-                    }
-                    FCVTDS_allowD7(D7, S14, true);
+                    FLDD(dd, IP, offset%1024);
+                    asm_add_imm(IP, rn, offset-(offset%1024));
                 }
-
-                
-                
-                if (!isS8(offset >> 2) || (offset&3) != 0) {
-                    FLDS(S14, IP, 0);
-                    asm_add_imm(IP, rb, offset);
+                break;
+            case LIR_ldf2d:
+                FCVTDS(dd, S14);
+                if (isU8(offset/4) || isU8(-offset/4)) {
+                    FLDS(S14, rn, offset);
                 } else {
-                    FLDS(S14, rb, offset);
+                    FLDS(S14, IP, offset%1024);
+                    asm_add_imm(IP, rn, offset-(offset%1024));
                 }
-            } else {
-                NanoAssertMsg(0, "ld32f not supported with non-VFP, fix me");
-            }
-            return;
+                break;
+            default:
+                NanoAssertMsg(0, "LIR opcode unsupported by asm_load64.");
+                break;
+        }
+    } else {
+        NanoAssert(ins->isInAr());
+        int         d = arDisp(ins);
+        
+        LIns*       base = ins->oprnd1();
+        Register    rn = findRegFor(base, GpRegs);
+        int         offset = ins->disp();
 
-        default:
-            NanoAssertMsg(0, "asm_load64 should never receive this LIR opcode");
-            return;
+        switch (ins->opcode()) {
+            case LIR_ldd:
+                asm_mmq(FP, d, rn, offset);
+                break;
+            case LIR_ldf2d:
+                NanoAssertMsg(0, "LIR_ldf2d is not yet implemented for soft-float.");
+                break;
+            default:
+                NanoAssertMsg(0, "LIR opcode unsupported by asm_load64.");
+                break;
+        }
     }
 
-    
+    freeResourcesOf(ins);
 }
 
 void
 Assembler::asm_store64(LOpcode op, LIns* value, int dr, LIns* base)
 {
-    
+    NanoAssert(value->isD());
 
-    switch (op) {
-        case LIR_std:
-            if (ARM_VFP) {
-                Register rb = findRegFor(base, GpRegs);
+    if (ARM_VFP) {
+        Register dd = findRegFor(value, FpRegs);
+        Register rn = findRegFor(base, GpRegs);
 
-                if (value->isImmD()) {
-                    underrunProtect(LD32_size*2 + 8);
-
-                    
-                    asm_str(IP, rb, dr);
-                    asm_ld_imm(IP, value->immDlo(), false);
-                    asm_str(IP, rb, dr+4);
-                    asm_ld_imm(IP, value->immDhi(), false);
-
-                    return;
+        switch (op) {
+            case LIR_std:
+                
+                
+                if (isU8(dr/4) || isU8(-dr/4)) {
+                    FSTD(dd, rn, dr);
+                } else {
+                    FSTD(dd, IP, dr%1024);
+                    asm_add_imm(IP, rn, dr-(dr%1024));
                 }
 
-                Register rv = findRegFor(value, FpRegs);
-
-                NanoAssert(deprecated_isKnownReg(rb));
-                NanoAssert(deprecated_isKnownReg(rv));
-
-                Register baseReg = rb;
-                intptr_t baseOffset = dr;
-
+                break;
+            case LIR_std2f:
                 
                 
-                NanoAssert((dr%4) == 0);
-
-                if (!isS8(dr/4)) {
-                    baseReg = IP;
-                    baseOffset = 0;
+                if (isU8(dr/4) || isU8(-dr/4)) {
+                    FSTS(S14, rn, dr);
+                } else {
+                    FSTS(S14, IP, dr%1024);
+                    asm_add_imm(IP, rn, dr-(dr%1024));
                 }
 
-                FSTD(rv, baseReg, baseOffset);
+                FCVTSD(S14, dd);
 
-                if (!isS8(dr/4)) {
-                    asm_add_imm(IP, rb, dr);
-                }
+                break;
+            default:
+                NanoAssertMsg(0, "LIR opcode unsupported by asm_store64.");
+                break;
+        }
+    } else {
+        int         d = findMemFor(value);
+        Register    rn = findRegFor(base, GpRegs);
 
+        switch (op) {
+            case LIR_std:
                 
                 
-                if (value->isImmD()) {
-                    underrunProtect(4*4);
-                    asm_immd_nochk(rv, value->immDlo(), value->immDhi());
-                }
-            } else {
-                int da = findMemFor(value);
-                Register rb = findRegFor(base, GpRegs);
                 
-                asm_mmq(rb, dr, FP, da);
-            }
-            return;
-
-        case LIR_std2f:
-            if (ARM_VFP) {
-                Register rb = findRegFor(base, GpRegs);
-
-                if (value->isImmD()) {
-                    union {
-                        float       f;
-                        uint32_t    i;
-                    } imm;
-                    imm.f = (float)(value->immD());
-                    asm_str(IP, rb, dr);
-                    asm_ld_imm(IP, imm.i);
-                    return;
-                }
-
-                Register rv = findRegFor(value, FpRegs);
-
-                NanoAssert(deprecated_isKnownReg(rb));
-                NanoAssert(deprecated_isKnownReg(rv));
-
-                Register baseReg = rb;
-                intptr_t baseOffset = dr;
-
-                
-                
-                NanoAssert((dr%4) == 0);
-
-                if (!isS8(dr/4)) {
-                    baseReg = IP;
-                    baseOffset = 0;
-                }
-
-                FSTS(S14, baseReg, baseOffset);
-
-                if (!isS8(dr/4)) {
-                    asm_add_imm(IP, rb, dr);
-                }
-
-                FCVTSD(S14, rv);
-
-                
-                
-                if (value->isImmD()) {
-                    underrunProtect(4*4);
-                    asm_immd_nochk(rv, value->immDlo(), value->immDhi());
-                }
-            } else {
-                NanoAssertMsg(0, "st32f not supported with non-VFP, fix me");
-            }
-            return;
-        default:
-            NanoAssertMsg(0, "asm_store64 should never receive this LIR opcode");
-            return;
+                asm_mmq(rn, dr, FP, d);
+                break;
+            case LIR_std2f:
+                NanoAssertMsg(0, "TODO: Soft-float implementation of LIR_std2f.");
+                break;
+            default:
+                NanoAssertMsg(0, "LIR opcode unsupported by asm_store64.");
+                break;
+        }
     }
-
-    
 }
 
 
-
 void
-Assembler::asm_immd_nochk(Register rr, int32_t immDlo, int32_t immDhi)
+Assembler::asm_immd_nochk(Register dd, int32_t immDlo, int32_t immDhi)
 {
     
     
@@ -1570,7 +1466,7 @@ Assembler::asm_immd_nochk(Register rr, int32_t immDlo, int32_t immDhi)
     
     
 
-    FLDD(rr, PC, -16);
+    FLDD(dd, PC, -16);
 
     *(--_nIns) = (NIns) immDhi;
     *(--_nIns) = (NIns) immDlo;
@@ -1581,25 +1477,23 @@ Assembler::asm_immd_nochk(Register rr, int32_t immDlo, int32_t immDhi)
 void
 Assembler::asm_immd(LIns* ins)
 {
-    int d = deprecated_disp(ins);
-    Register rr = ins->deprecated_getReg();
-
-    deprecated_freeRsrcOf(ins);
-
-    if (ARM_VFP && deprecated_isKnownReg(rr)) {
-        if (d)
-            asm_spill(rr, d, true);
-
+    
+    
+    
+    if (ARM_VFP && ins->isInReg()) {
+        Register dd = prepareResultReg(ins, FpRegs);
         underrunProtect(4*4);
-        asm_immd_nochk(rr, ins->immDlo(), ins->immDhi());
+        asm_immd_nochk(dd, ins->immDlo(), ins->immDhi());
     } else {
-        NanoAssert(d);
-
+        NanoAssert(ins->isInAr());
+        int d = arDisp(ins);
         asm_str(IP, FP, d+4);
         asm_ld_imm(IP, ins->immDhi());
         asm_str(IP, FP, d);
         asm_ld_imm(IP, ins->immDlo());
     }
+
+    freeResourcesOf(ins);
 }
 
 void
@@ -1613,12 +1507,6 @@ Assembler::asm_nongp_copy(Register r, Register s)
         
         NanoAssert(0);
     }
-}
-
-Register
-Assembler::asm_binop_rhs_reg(LIns*)
-{
-    return deprecated_UnknownReg;
 }
 
 
@@ -2235,75 +2123,110 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
 void
 Assembler::asm_i2d(LIns* ins)
 {
-    Register rr = deprecated_prepResultReg(ins, FpRegs);
-    Register srcr = findRegFor(ins->oprnd1(), GpRegs);
+    Register dd = prepareResultReg(ins, FpRegs);
+    Register rt = findRegFor(ins->oprnd1(), GpRegs);
 
-    
-    NanoAssert(deprecated_isKnownReg(srcr));
+    FSITOD(dd, S14);
+    FMSR(S14, rt);
 
-    FSITOD(rr, S14);
-    FMSR(S14, srcr);
+    freeResourcesOf(ins);
 }
 
 void
 Assembler::asm_ui2d(LIns* ins)
 {
-    Register rr = deprecated_prepResultReg(ins, FpRegs);
-    Register sr = findRegFor(ins->oprnd1(), GpRegs);
+    Register dd = prepareResultReg(ins, FpRegs);
+    Register rt = findRegFor(ins->oprnd1(), GpRegs);
 
-    
-    NanoAssert(deprecated_isKnownReg(sr));
+    FUITOD(dd, S14);
+    FMSR(S14, rt);
 
-    FUITOD(rr, S14);
-    FMSR(S14, sr);
+    freeResourcesOf(ins);
 }
 
 void Assembler::asm_d2i(LIns* ins)
 {
-    
-    Register rr = deprecated_prepResultReg(ins, GpRegs);
-    Register sr = findRegFor(ins->oprnd1(), FpRegs);
+    if (ins->isInReg()) {
+        Register rt = ins->getReg();
+        FMRS(rt, S14);
+    } else {
+        
+        
+        int32_t d = arDisp(ins);
+        
+        
+        if (isU8(d/4) || isU8(-d/4)) {
+            FSTS(S14, FP, d);
+        } else {
+            FSTS(S14, IP, d%1024);
+            asm_add_imm(IP, FP, d-(d%1024));
+        }
+    }
 
-    FMRS(rr, S14);
-    FTOSID(S14, sr);
+    Register dm = findRegFor(ins->oprnd1(), FpRegs);
+
+    FTOSID(S14, dm);
+
+    freeResourcesOf(ins);
 }
 
 void
 Assembler::asm_fneg(LIns* ins)
 {
     LIns* lhs = ins->oprnd1();
-    Register rr = deprecated_prepResultReg(ins, FpRegs);
 
-    Register sr = ( !lhs->isInReg()
-                  ? findRegFor(lhs, FpRegs)
-                  : lhs->deprecated_getReg() );
+    Register dd = prepareResultReg(ins, FpRegs);
+    
+    Register dm = lhs->isInReg() ? lhs->getReg() : dd;
 
-    FNEGD(rr, sr);
+    FNEGD(dd, dm);
+
+    freeResourcesOf(ins);
+    if (dd == dm) {
+        NanoAssert(!lhs->isInReg());
+        findSpecificRegForUnallocated(lhs, dd);
+    }
 }
 
 void
 Assembler::asm_fop(LIns* ins)
 {
-    LIns* lhs = ins->oprnd1();
-    LIns* rhs = ins->oprnd2();
-    LOpcode op = ins->opcode();
+    LIns*   lhs = ins->oprnd1();
+    LIns*   rhs = ins->oprnd2();
+
+    Register    dd = prepareResultReg(ins, FpRegs);
+    
+    Register    dn = lhs->isInReg() ? lhs->getReg() : dd;
+    Register    dm = rhs->isInReg() ? rhs->getReg() : dd;
+    if ((dn == dm) && (lhs != rhs)) {
+        
+        
+        dm = findRegFor(rhs, FpRegs & ~rmask(dd));
+        NanoAssert(rhs->isInReg());
+    }
 
     
 
-    Register rr = deprecated_prepResultReg(ins, FpRegs);
+    switch(ins->opcode()) {
+        case LIR_addd:      FADDD(dd,dn,dm);        break;
+        case LIR_subd:      FSUBD(dd,dn,dm);        break;
+        case LIR_muld:      FMULD(dd,dn,dm);        break;
+        case LIR_divd:      FDIVD(dd,dn,dm);        break;
+        default:            NanoAssert(0);          break;
+    }
 
-    Register ra = findRegFor(lhs, FpRegs);
-    Register rb = (rhs == lhs) ? ra : findRegFor(rhs, FpRegs & ~rmask(ra));
+    freeResourcesOf(ins);
 
     
-
-    switch (op)
-    {
-        case LIR_addd:      FADDD(rr,ra,rb);    break;
-        case LIR_subd:      FSUBD(rr,ra,rb);    break;
-        case LIR_muld:      FMULD(rr,ra,rb);    break;
-        case LIR_divd:      FDIVD(rr,ra,rb);    break;
-        default:            NanoAssert(0);      break;
+    if (dn == dd) {
+        NanoAssert(!lhs->isInReg());
+        findSpecificRegForUnallocated(lhs, dd);
+    } else if (dm == dd) {
+        NanoAssert(!rhs->isInReg());
+        findSpecificRegForUnallocated(rhs, dd);
+    } else {
+        NanoAssert(lhs->isInReg());
+        NanoAssert(rhs->isInReg());
     }
 }
 
@@ -2314,13 +2237,17 @@ Assembler::asm_cmpd(LIns* ins)
     LIns* rhs = ins->oprnd2();
     LOpcode op = ins->opcode();
 
+    NanoAssert(ARM_VFP);
     NanoAssert(isCmpDOpcode(op));
+    NanoAssert(lhs->isD() && rhs->isD());
 
     Register ra, rb;
     findRegFor2(FpRegs, lhs, ra, FpRegs, rhs, rb);
 
     int e_bit = (op != LIR_eqd);
 
+    
+    
     
     FMSTAT();
     FCMPD(ra, rb, e_bit);
@@ -2387,10 +2314,7 @@ Assembler::asm_branch(bool branchOnFalse, LIns* cond, NIns* targ)
     
     NIns *at = _nIns;
 
-    if (ARM_VFP && fp_cond)
-        asm_cmpd(cond);
-    else
-        asm_cmp(cond);
+    asm_cmp(cond);
 
     return at;
 }
@@ -2413,17 +2337,22 @@ Assembler::asm_cmp(LIns *cond)
     LIns* lhs = cond->oprnd1();
     LIns* rhs = cond->oprnd2();
 
+    
+    
+    
+    if (lhs->isD()) {
+        NanoAssert(rhs->isD());
+        asm_cmpd(cond);
+        return;
+    }
+
     NanoAssert(lhs->isI() && rhs->isI());
 
     
     if (rhs->isImmI()) {
         int c = rhs->immI();
         Register r = findRegFor(lhs, GpRegs);
-        if (c == 0 && cond->isop(LIR_eqi)) {
-            TST(r, r);
-        } else {
-            asm_cmpi(r, c);
-        }
+        asm_cmpi(r, c);
     } else {
         Register ra, rb;
         findRegFor2(GpRegs, lhs, ra, GpRegs, rhs, rb);
@@ -2456,17 +2385,22 @@ Assembler::asm_cmpi(Register r, int32_t imm)
 void
 Assembler::asm_condd(LIns* ins)
 {
+    Register rd = prepareResultReg(ins, GpRegs);
+
     
-    Register r = deprecated_prepResultReg(ins, AllowableFlagRegs);
+    
+    
 
     switch (ins->opcode()) {
-        case LIR_eqd: SETEQ(r); break;
-        case LIR_ltd: SETLO(r); break; 
-        case LIR_led: SETLS(r); break; 
-        case LIR_ged: SETGE(r); break;
-        case LIR_gtd: SETGT(r); break;
-        default: NanoAssert(0); break;
+        case LIR_eqd:   SETEQ(rd);      break;
+        case LIR_ltd:   SETLO(rd);      break; 
+        case LIR_led:   SETLS(rd);      break; 
+        case LIR_ged:   SETGE(rd);      break;
+        case LIR_gtd:   SETGT(rd);      break;
+        default:        NanoAssert(0);  break;
     }
+
+    freeResourcesOf(ins);
 
     asm_cmpd(ins);
 }
@@ -2474,54 +2408,43 @@ Assembler::asm_condd(LIns* ins)
 void
 Assembler::asm_cond(LIns* ins)
 {
-    Register r = deprecated_prepResultReg(ins, AllowableFlagRegs);
+    Register rd = prepareResultReg(ins, GpRegs);
     LOpcode op = ins->opcode();
 
     switch(op)
     {
-        case LIR_eqi:  SETEQ(r); break;
-        case LIR_lti:  SETLT(r); break;
-        case LIR_lei:  SETLE(r); break;
-        case LIR_gti:  SETGT(r); break;
-        case LIR_gei:  SETGE(r); break;
-        case LIR_ltui: SETLO(r); break;
-        case LIR_leui: SETLS(r); break;
-        case LIR_gtui: SETHI(r); break;
-        case LIR_geui: SETHS(r); break;
-        default:      NanoAssert(0);  break;
+        case LIR_eqi:   SETEQ(rd);      break;
+        case LIR_lti:   SETLT(rd);      break;
+        case LIR_lei:   SETLE(rd);      break;
+        case LIR_gti:   SETGT(rd);      break;
+        case LIR_gei:   SETGE(rd);      break;
+        case LIR_ltui:  SETLO(rd);      break;
+        case LIR_leui:  SETLS(rd);      break;
+        case LIR_gtui:  SETHI(rd);      break;
+        case LIR_geui:  SETHS(rd);      break;
+        default:        NanoAssert(0);  break;
     }
+
+    freeResourcesOf(ins);
+    
     asm_cmp(ins);
 }
 
 void
 Assembler::asm_arith(LIns* ins)
 {
-    LOpcode op = ins->opcode();
-    LIns*   lhs = ins->oprnd1();
-    LIns*   rhs = ins->oprnd2();
-
-    RegisterMask    allow = GpRegs;
-
-    
-    Register        rr = deprecated_prepResultReg(ins, allow);
-
-    
-    
-    Register        ra = ( !lhs->isInReg()
-                         ? findSpecificRegFor(lhs, rr)
-                         : lhs->deprecated_getReg() );
-
-    
-    NanoAssert(deprecated_isKnownReg(rr));
-    NanoAssert(deprecated_isKnownReg(ra));
-    allow &= ~rmask(rr);
-    allow &= ~rmask(ra);
+    LOpcode     op = ins->opcode();
+    LIns*       lhs = ins->oprnd1();
+    LIns*       rhs = ins->oprnd2();
 
     
     
     
+    Register    rd = prepareResultReg(ins, GpRegs);
+
     
-    
+    Register    rn = lhs->isInReg() ? lhs->getReg() : rd;
+
     
     
     
@@ -2530,300 +2453,314 @@ Assembler::asm_arith(LIns* ins)
     
     if (rhs->isImmI() && (op != LIR_muli) && (op != LIR_mulxovi) && (op != LIR_muljovi))
     {
-        if ((op == LIR_addi || op == LIR_addxovi) && lhs->isop(LIR_allocp)) {
-            
-            
-            Register    rs = deprecated_prepResultReg(ins, allow);
-            int         d = findMemFor(lhs) + rhs->immI();
-
-            NanoAssert(deprecated_isKnownReg(rs));
-            asm_add_imm(rs, FP, d);
-        }
-
         int32_t immI = rhs->immI();
 
         switch (op)
         {
-            case LIR_addi:       asm_add_imm(rr, ra, immI);     break;
+            case LIR_addi:       asm_add_imm(rd, rn, immI);     break;
             case LIR_addjovi:
-            case LIR_addxovi:    asm_add_imm(rr, ra, immI, 1);  break;
-            case LIR_subi:       asm_sub_imm(rr, ra, immI);     break;
+            case LIR_addxovi:    asm_add_imm(rd, rn, immI, 1);  break;
+            case LIR_subi:       asm_sub_imm(rd, rn, immI);     break;
             case LIR_subjovi:
-            case LIR_subxovi:    asm_sub_imm(rr, ra, immI, 1);  break;
-            case LIR_andi:       asm_and_imm(rr, ra, immI);     break;
-            case LIR_ori:        asm_orr_imm(rr, ra, immI);     break;
-            case LIR_xori:       asm_eor_imm(rr, ra, immI);     break;
-            case LIR_lshi:       LSLi(rr, ra, immI);            break;
-            case LIR_rshi:       ASRi(rr, ra, immI);            break;
-            case LIR_rshui:      LSRi(rr, ra, immI);            break;
+            case LIR_subxovi:    asm_sub_imm(rd, rn, immI, 1);  break;
+            case LIR_andi:       asm_and_imm(rd, rn, immI);     break;
+            case LIR_ori:        asm_orr_imm(rd, rn, immI);     break;
+            case LIR_xori:       asm_eor_imm(rd, rn, immI);     break;
+            case LIR_lshi:       LSLi(rd, rn, immI);            break;
+            case LIR_rshi:       ASRi(rd, rn, immI);            break;
+            case LIR_rshui:      LSRi(rd, rn, immI);            break;
 
             default:
                 NanoAssertMsg(0, "Unsupported");
                 break;
         }
 
-        
+        freeResourcesOf(ins);
+        if (rd == rn) {
+            
+            NanoAssert(!lhs->isInReg());
+            findSpecificRegForUnallocated(lhs, rd);
+        }
         return;
     }
 
     
+    
 
-    Register rb;
-    if (lhs == rhs) {
-        rb = ra;
-    } else {
-        rb = asm_binop_rhs_reg(ins);
-        if (!deprecated_isKnownReg(rb))
-            rb = findRegFor(rhs, allow);
-        allow &= ~rmask(rb);
+    Register    rm = rhs->isInReg() ? rhs->getReg() : rd;
+    if ((rm == rn) && (lhs != rhs)) {
+        
+        
+        
+        rn = findRegFor(lhs, GpRegs & ~rmask(rd));
+        NanoAssert(lhs->isInReg());
     }
-    NanoAssert(deprecated_isKnownReg(rb));
 
-    const Register SBZ = (Register)0;
     switch (op)
     {
-        case LIR_addi:       ADDs(rr, ra, rb, 0);    break;
+        case LIR_addi:       ADDs(rd, rn, rm, 0);    break;
         case LIR_addjovi:
-        case LIR_addxovi:    ADDs(rr, ra, rb, 1);    break;
-        case LIR_subi:       SUBs(rr, ra, rb, 0);    break;
+        case LIR_addxovi:    ADDs(rd, rn, rm, 1);    break;
+        case LIR_subi:       SUBs(rd, rn, rm, 0);    break;
         case LIR_subjovi:
-        case LIR_subxovi:    SUBs(rr, ra, rb, 1);    break;
-        case LIR_andi:       ANDs(rr, ra, rb, 0);    break;
-        case LIR_ori:        ORRs(rr, ra, rb, 0);    break;
-        case LIR_xori:       EORs(rr, ra, rb, 0);    break;
+        case LIR_subxovi:    SUBs(rd, rn, rm, 1);    break;
+        case LIR_andi:       ANDs(rd, rn, rm, 0);    break;
+        case LIR_ori:        ORRs(rd, rn, rm, 0);    break;
+        case LIR_xori:       EORs(rd, rn, rm, 0);    break;
 
-        
         case LIR_muli:
-        case LIR_muljovi:
-        case LIR_mulxovi:
-            
-            
-            
-            
-            
-            
-
-            if ((ARM_ARCH_AT_LEAST(6)) || (rr != rb)) {
+            if (!ARM_ARCH_AT_LEAST(6) && (rd == rn)) {
                 
                 
-                
-                
-                
-                
-                
-                
-                ALUr_shi(AL, cmp, 1, SBZ, IP, rr, ASR_imm, 31);
-                SMULL(rr, IP, rb, ra);
-            } else {
-                
-                
-
-                
-                if (rr != ra) {
-                    
-                    
-                    
-                    
-                    ALUr_shi(AL, cmp, 1, SBZ, IP, rr, ASR_imm, 31);
-                    SMULL(rr, IP, ra, rb);
-                } else {
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-
-                    NanoAssert(rr != IP);
-
-                    ALUr_shi(AL, cmp, 1, SBZ, IP, rr, ASR_imm, 31);
-                    ALUr_shi(AL, mov, 1, IP, SBZ, IP, LSR_imm, 16);
-                    MUL(rr, IP, IP);
-                    ALUi(MI, rsb, 0, IP, IP, 0);
-                    ALUr(AL, mov, 1, IP, ra, ra);
+                NanoAssert(!lhs->isInReg());
+                rn = findRegFor(lhs, GpRegs & ~rmask(rd) & ~rmask(rm));
+                if (lhs == rhs) {
+                    rm = rn;
                 }
             }
+            MUL(rd, rn, rm);
+            break;
+        case LIR_muljovi:
+        case LIR_mulxovi:
+            if (!ARM_ARCH_AT_LEAST(6) && (rd == rn)) {
+                
+                
+                NanoAssert(!lhs->isInReg());
+                rn = findRegFor(lhs, GpRegs & ~rmask(rd) & ~rmask(rm));
+                if (lhs == rhs) {
+                    rm = rn;
+                }
+            }
+            
+            
+            
+            
+            
+            
+            ALUr_shi(AL, cmp, 1, SBZ, IP, rd, ASR_imm, 31);
+            SMULL(rd, IP, rn, rm);
             break;
 
         
         
         
         case LIR_lshi:
-            LSL(rr, ra, IP);
-            ANDi(IP, rb, 0x1f);
+            LSL(rd, rn, IP);
+            ANDi(IP, rm, 0x1f);
             break;
         case LIR_rshi:
-            ASR(rr, ra, IP);
-            ANDi(IP, rb, 0x1f);
+            ASR(rd, rn, IP);
+            ANDi(IP, rm, 0x1f);
             break;
         case LIR_rshui:
-            LSR(rr, ra, IP);
-            ANDi(IP, rb, 0x1f);
+            LSR(rd, rn, IP);
+            ANDi(IP, rm, 0x1f);
             break;
         default:
             NanoAssertMsg(0, "Unsupported");
             break;
+    }
+
+    freeResourcesOf(ins);
+    
+    if (rn == rd) {
+        NanoAssert(!lhs->isInReg());
+        findSpecificRegForUnallocated(lhs, rd);
+    } else if (rm == rd) {
+        NanoAssert(!rhs->isInReg());
+        findSpecificRegForUnallocated(rhs, rd);
+    } else {
+        NanoAssert(lhs->isInReg());
+        NanoAssert(rhs->isInReg());
     }
 }
 
 void
 Assembler::asm_neg_not(LIns* ins)
 {
-    LOpcode op = ins->opcode();
-    Register rr = deprecated_prepResultReg(ins, GpRegs);
-
     LIns* lhs = ins->oprnd1();
-    
-    
-    Register ra = ( !lhs->isInReg()
-                  ? findSpecificRegFor(lhs, rr)
-                  : lhs->deprecated_getReg() );
-    NanoAssert(deprecated_isKnownReg(ra));
+    Register rr = prepareResultReg(ins, GpRegs);
 
-    if (op == LIR_noti)
+    
+    Register ra = lhs->isInReg() ? lhs->getReg() : rr;
+
+    if (ins->isop(LIR_noti)) {
         MVN(rr, ra);
-    else
+    } else {
+        NanoAssert(ins->isop(LIR_negi));
         RSBS(rr, ra);
+    }
+
+    freeResourcesOf(ins);
+    if (!lhs->isInReg()) {
+        NanoAssert(ra == rr);
+        
+        findSpecificRegForUnallocated(lhs, ra);
+    }
 }
 
 void
 Assembler::asm_load32(LIns* ins)
 {
     LOpcode op = ins->opcode();
-    LIns* base = ins->oprnd1();
-    int d = ins->disp();
+    LIns*   base = ins->oprnd1();
+    int     d = ins->disp();
 
-    Register rr = deprecated_prepResultReg(ins, GpRegs);
-    Register ra = getBaseReg(base, d, GpRegs);
+    Register rt = prepareResultReg(ins, GpRegs);
+    
+    Register rn = base->isInReg() ? base->getReg() : rt;
+
+    
+    
+    
 
     switch (op) {
         case LIR_lduc2ui:
             if (isU12(-d) || isU12(d)) {
-                LDRB(rr, ra, d);
+                LDRB(rt, rn, d);
             } else {
-                LDRB(rr, IP, 0);
-                asm_add_imm(IP, ra, d);
+                LDRB(rt, IP, d%4096);
+                asm_add_imm(IP, rn, d-(d%4096));
             }
-            return;
+            break;
         case LIR_ldus2ui:
             
             
             if (isU8(-d) || isU8(d)) {
-                LDRH(rr, ra, d);
+                LDRH(rt, rn, d);
             } else {
-                LDRH(rr, IP, 0);
-                asm_add_imm(IP, ra, d);
+                LDRH(rt, IP, d%256);
+                asm_add_imm(IP, rn, d-(d%256));
             }
-            return;
+            break;
         case LIR_ldi:
             
             if (isU12(-d) || isU12(d)) {
-                LDR(rr, ra, d);
+                LDR(rt, rn, d);
             } else {
-                LDR(rr, IP, 0);
-                asm_add_imm(IP, ra, d);
+                LDR(rt, IP, d%4096);
+                asm_add_imm(IP, rn, d-(d%4096));
             }
-            return;
+            break;
         case LIR_ldc2i:
+            
+            
             if (isU8(-d) || isU8(d)) {
-                LDRSB(rr, ra, d);
+                LDRSB(rt, rn, d);
             } else {
-                LDRSB(rr, IP, 0);
-                asm_add_imm(IP, ra, d);
+                LDRSB(rn, IP, d%256);
+                asm_add_imm(IP, rn, d-(d%256));
             }
-            return;
+            break;
         case LIR_lds2i:
+            
             if (isU8(-d) || isU8(d)) {
-                LDRSH(rr, ra, d);
+                LDRSH(rt, rn, d);
             } else {
-                LDRSH(rr, IP, 0);
-                asm_add_imm(IP, ra, d);
+                LDRSH(rt, IP, d%256);
+                asm_add_imm(IP, rn, d-(d%256));
             }
-            return;
+            break;
         default:
             NanoAssertMsg(0, "asm_load32 should never receive this LIR opcode");
-            return;
+            break;
+    }
+
+    freeResourcesOf(ins);
+
+    if (rn == rt) {
+        NanoAssert(!base->isInReg());
+        findSpecificRegForUnallocated(base, rn);
     }
 }
 
 void
 Assembler::asm_cmov(LIns* ins)
 {
-    LIns* condval = ins->oprnd1();
-    LIns* iftrue  = ins->oprnd2();
-    LIns* iffalse = ins->oprnd3();
+    LIns*           condval = ins->oprnd1();
+    LIns*           iftrue  = ins->oprnd2();
+    LIns*           iffalse = ins->oprnd3();
+    RegisterMask    allow = ins->isD() ? FpRegs : GpRegs;
+    ConditionCode   cc;
 
     NanoAssert(condval->isCmp());
     NanoAssert((ins->isop(LIR_cmovi) && iftrue->isI() && iffalse->isI()) ||
                (ins->isop(LIR_cmovd) && iftrue->isD() && iffalse->isD()));
 
-    RegisterMask allow = ins->isD() ? FpRegs : GpRegs;
+    Register rd = prepareResultReg(ins, allow);
 
-    Register rr = prepareResultReg(ins, allow);
-
-    Register rf = findRegFor(iffalse, allow & ~rmask(rr));
-
-    if (ins->isop(LIR_cmovd)) {
-        NIns* target = _nIns;
-        asm_nongp_copy(rr, rf);
-        asm_branch(false, condval, target);
-
+    
+    Register rt = iftrue->isInReg() ? iftrue->getReg() : rd;
+    Register rf = iffalse->isInReg() ? iffalse->getReg() : rd;
+    
+    
+    if ((rt == rf) && (iftrue != iffalse)) {
         
-        Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
+        
+        rf = findRegFor(iffalse, allow & ~rmask(rd));
+        NanoAssert(iffalse->isInReg());
+    }
 
-        if (rr != rt)
-            asm_nongp_copy(rr, rt);
-        freeResourcesOf(ins);
-        if (!iftrue->isInReg()) {
-            NanoAssert(rt == rr);
-            findSpecificRegForUnallocated(iftrue, rr);
-        }
-        return;
+    switch(condval->opcode()) {
+        default:        NanoAssert(0);
+        
+        case LIR_eqi:   cc = EQ;        break;
+        case LIR_lti:   cc = LT;        break;
+        case LIR_lei:   cc = LE;        break;
+        case LIR_gti:   cc = GT;        break;
+        case LIR_gei:   cc = GE;        break;
+        case LIR_ltui:  cc = LO;        break;
+        case LIR_leui:  cc = LS;        break;
+        case LIR_gtui:  cc = HI;        break;
+        case LIR_geui:  cc = HS;        break;
+        
+        case LIR_eqd:   cc = EQ;        break;
+        case LIR_ltd:   cc = LO;        break;
+        case LIR_led:   cc = LS;        break;
+        case LIR_ged:   cc = GE;        break;
+        case LIR_gtd:   cc = GT;        break;
     }
 
     
-    Register rt = iftrue->isInReg() ? iftrue->getReg() : rr;
-
     
     
     
-    if (ins->isop(LIR_cmovi)) {
-        switch (condval->opcode()) {
-            
-            case LIR_eqi:    MOVNE(rr, rf);  break;
-            case LIR_lti:    MOVGE(rr, rf);  break;
-            case LIR_lei:    MOVGT(rr, rf);  break;
-            case LIR_gti:    MOVLE(rr, rf);  break;
-            case LIR_gei:    MOVLT(rr, rf);  break;
-            case LIR_ltui:   MOVHS(rr, rf);  break;
-            case LIR_leui:   MOVHI(rr, rf);  break;
-            case LIR_gtui:   MOVLS(rr, rf);  break;
-            case LIR_geui:   MOVLO(rr, rf);  break;
-            default: debug_only( NanoAssert(0) );    break;
+    
+    
+    if (ins->isI()) {
+        if (rd != rf) {
+            MOV_cond(OppositeCond(cc), rd, rf);
         }
+        if (rd != rt) {
+            MOV_cond(cc, rd, rt);
+        }
+    } else if (ins->isD()) {
+        
+        
+        NanoAssert(ARM_VFP);
+        if (rd != rf) {
+            FCPYD_cond(OppositeCond(cc), rd, rf);
+        }
+        if (rd != rt) {
+            FCPYD_cond(cc, rd, rt);
+        }
+    } else {
+        NanoAssert(0);
     }
-    if (rr != rt)
-        MR(rr, rt);
 
     freeResourcesOf(ins);
-    if (!iftrue->isInReg()) {
-        NanoAssert(rt == rr);
-        findSpecificRegForUnallocated(iftrue, rr);
+
+    
+    
+    if (rt == rd) {
+        NanoAssert(!iftrue->isInReg());
+        findSpecificRegForUnallocated(iftrue, rd);
+    } else if (rf == rd) {
+        NanoAssert(!iffalse->isInReg());
+        findSpecificRegForUnallocated(iffalse, rd);
+    } else {
+        NanoAssert(iffalse->isInReg());
+        NanoAssert(iftrue->isInReg());
     }
 
     asm_cmp(condval);
@@ -2832,19 +2769,25 @@ Assembler::asm_cmov(LIns* ins)
 void
 Assembler::asm_qhi(LIns* ins)
 {
-    Register rr = deprecated_prepResultReg(ins, GpRegs);
-    LIns *q = ins->oprnd1();
-    int d = findMemFor(q);
-    LDR(rr, FP, d+4);
+    Register rd = prepareResultReg(ins, GpRegs);
+    LIns *lhs = ins->oprnd1();
+    int d = findMemFor(lhs);
+    
+    LDR(rd, FP, d+4);
+
+    freeResourcesOf(ins);
 }
 
 void
 Assembler::asm_qlo(LIns* ins)
 {
-    Register rr = deprecated_prepResultReg(ins, GpRegs);
-    LIns *q = ins->oprnd1();
-    int d = findMemFor(q);
-    LDR(rr, FP, d);
+    Register rd = prepareResultReg(ins, GpRegs);
+    LIns *lhs = ins->oprnd1();
+    int d = findMemFor(lhs);
+    
+    LDR(rd, FP, d);
+
+    freeResourcesOf(ins);
 }
 
 void
@@ -2854,28 +2797,30 @@ Assembler::asm_param(LIns* ins)
     uint32_t kind = ins->paramKind();
     if (kind == 0) {
         
-        AbiKind abi = _thisfrag->lirbuf->abi;
-        uint32_t abi_regcount = abi == ABI_CDECL ? 4 : abi == ABI_FASTCALL ? 2 : abi == ABI_THISCALL ? 1 : 0;
-        if (a < abi_regcount) {
+        
+        if (a < 4) {
             
-            deprecated_prepResultReg(ins, rmask(argRegs[a]));
+            prepareResultReg(ins, rmask(argRegs[a]));
         } else {
             
-            Register r = deprecated_prepResultReg(ins, GpRegs);
-            int d = (a - abi_regcount) * sizeof(intptr_t) + 8;
+            Register r = prepareResultReg(ins, GpRegs);
+            int d = (a - 4) * sizeof(intptr_t) + 8;
             LDR(r, FP, d);
         }
     } else {
         
-        deprecated_prepResultReg(ins, rmask(savedRegs[a]));
+        NanoAssert(a < (sizeof(savedRegs)/sizeof(savedRegs[0])));
+        prepareResultReg(ins, rmask(savedRegs[a]));
     }
+    freeResourcesOf(ins);
 }
 
 void
 Assembler::asm_immi(LIns* ins)
 {
-    Register rr = deprecated_prepResultReg(ins, GpRegs);
-    asm_ld_imm(rr, ins->immI());
+    Register rd = prepareResultReg(ins, GpRegs);
+    asm_ld_imm(rd, ins->immI());
+    freeResourcesOf(ins);
 }
 
 void
