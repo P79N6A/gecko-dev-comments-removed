@@ -6,6 +6,7 @@ package org.mozilla.gecko.sync.synchronizer;
 
 
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.mozilla.gecko.sync.Logger;
 import org.mozilla.gecko.sync.repositories.InactiveSessionException;
@@ -74,6 +75,9 @@ implements RecordsChannelDelegate,
   private boolean flowAToBCompleted = false;
   private boolean flowBToACompleted = false;
 
+  protected final AtomicInteger numInboundRecords = new AtomicInteger(-1);
+  protected final AtomicInteger numOutboundRecords = new AtomicInteger(-1);
+
   
 
 
@@ -99,6 +103,30 @@ implements RecordsChannelDelegate,
   }
 
   
+
+
+
+
+
+
+
+  public int getInboundCount() {
+    return numInboundRecords.get();
+  }
+
+  
+
+
+
+
+
+
+
+  public int getOutboundCount() {
+    return numOutboundRecords.get();
+  }
+
+  
   
   protected RecordsChannel channelAToB;
   protected RecordsChannel channelBToA;
@@ -107,6 +135,9 @@ implements RecordsChannelDelegate,
 
 
   public synchronized void synchronize() {
+    numInboundRecords.set(-1);
+    numOutboundRecords.set(-1);
+
     
     if (!sessionA.dataAvailable() &&
         !sessionB.dataAvailable()) {
@@ -178,6 +209,7 @@ implements RecordsChannelDelegate,
     Logger.debug(LOG_TAG, "Fetch end is " + fetchEnd + ". Store end is " + storeEnd + ". Starting next.");
     pendingATimestamp = fetchEnd;
     storeEndBTimestamp = storeEnd;
+    numInboundRecords.set(recordsChannel.getFetchCount());
     flowAToBCompleted = true;
     channelBToA.flow();
   }
@@ -196,6 +228,7 @@ implements RecordsChannelDelegate,
 
     pendingBTimestamp = fetchEnd;
     storeEndATimestamp = storeEnd;
+    numOutboundRecords.set(recordsChannel.getFetchCount());
     flowBToACompleted = true;
 
     

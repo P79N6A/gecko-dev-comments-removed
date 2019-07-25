@@ -15,6 +15,7 @@ import java.net.URLDecoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -490,5 +491,17 @@ public class Utils {
         }
       }
     }
+  }
+
+  
+
+
+
+
+
+
+  public static String formatDuration(long startMillis, long endMillis) {
+    final long duration = endMillis - startMillis;
+    return new DecimalFormat("#0.00 seconds").format(((double) duration) / 1000);
   }
 }
