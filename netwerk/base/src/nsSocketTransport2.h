@@ -42,11 +42,9 @@
 #define ENABLE_SOCKET_TRACING
 #endif
 
-#include "mozilla/Mutex.h"
 #include "nsSocketTransportService2.h"
 #include "nsString.h"
 #include "nsCOMPtr.h"
-#include "nsInt64.h"
 
 #include "nsISocketTransport.h"
 #include "nsIInterfaceRequestor.h"
@@ -135,8 +133,6 @@ class nsSocketTransport : public nsASocketHandler
                         , public nsIDNSListener
                         , public nsIClassInfo
 {
-    typedef mozilla::Mutex Mutex;
-
 public:
     NS_DECL_ISUPPORTS
     NS_DECL_NSITRANSPORT
@@ -257,7 +253,7 @@ private:
     
     
 
-    Mutex       mLock;  
+    PRLock     *mLock;  
     PRFileDesc *mFD;
     nsrefcnt    mFDref;       
     PRBool      mFDconnected; 
