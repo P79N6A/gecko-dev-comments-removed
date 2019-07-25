@@ -14978,13 +14978,6 @@ TraceRecorder::record_JSOP_POPN()
     return ARECORD_CONTINUE;
 }
 
-static inline bool
-IsFindableCallObj(JSObject *obj)
-{
-    return obj->isCall() &&
-           (obj->callIsForEval() || obj->getCallObjCalleeFunction()->isHeavyweight());
-}
-
 
 
 
@@ -15026,10 +15019,13 @@ TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *target
 
     for (;;) {
         if (searchObj != globalObj) {
-            if (searchObj->isBlock())
+            Class* clasp = searchObj->getClass();
+            if (clasp == &js_BlockClass) {
                 foundBlockObj = true;
-            else if (IsFindableCallObj(searchObj))
+            } else if (clasp == &js_CallClass &&
+                       searchObj->getCallObjCalleeFunction()->isHeavyweight()) {
                 foundCallObj = true;
+            }
         }
 
         if (searchObj == targetObj)
@@ -15058,7 +15054,8 @@ TraceRecorder::traverseScopeChain(JSObject *obj, LIns *obj_ins, JSObject *target
             
             
             
-            if (IsFindableCallObj(obj)) {
+            if (obj->isCall() &&
+                obj->getCallObjCalleeFunction()->isHeavyweight()) {
                 if (!exit)
                     exit = snapshot(BRANCH_EXIT);
                 guard(true,
