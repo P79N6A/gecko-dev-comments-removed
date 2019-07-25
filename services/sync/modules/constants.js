@@ -44,16 +44,15 @@ WEAVE_ID:                              "@weave_id@",
 
 
 
-STORAGE_VERSION:                       @storage_version@,
+STORAGE_VERSION:                       2,
 
-DEFAULT_SERVER:                        "@server_url@",
-UPDATED_DEV_URL:                       "https:
-UPDATED_REL_URL:                       "http:
+UPDATED_DEV_URL:                       "https://services.mozilla.com/sync/updated/?version=@weave_version@&channel=@xpi_type@",
+UPDATED_REL_URL:                       "http://www.mozilla.com/firefox/sync/updated.html",
 
 PREFS_BRANCH:                          "services.sync.",
 
 
-PWDMGR_HOST:                           "chrome:
+PWDMGR_HOST:                           "chrome://weave",
 
 
 SINGLE_USER_SYNC:                      24 * 60 * 60 * 1000, 
