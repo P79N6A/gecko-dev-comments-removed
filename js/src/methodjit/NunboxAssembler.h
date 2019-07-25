@@ -154,7 +154,6 @@ class Assembler : public BaseAssembler
     
 
 
-
     void storeValue(const Value &v, Address address) {
         jsval_layout jv;
         jv.asBits = JSVAL_BITS(Jsvalify(v));

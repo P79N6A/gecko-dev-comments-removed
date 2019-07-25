@@ -130,14 +130,21 @@ struct Registers {
           (1 << JSC::ARMRegisters::r0)
         | (1 << JSC::ARMRegisters::r1)
         | (1 << JSC::ARMRegisters::r2);
+    
 
     static const uint32 SavedRegs =
           (1 << JSC::ARMRegisters::r4)
         | (1 << JSC::ARMRegisters::r5)
         | (1 << JSC::ARMRegisters::r6)
         | (1 << JSC::ARMRegisters::r7)
+    
         | (1 << JSC::ARMRegisters::r9)
         | (1 << JSC::ARMRegisters::r10);
+    
+    
+    
+    
+    
 
     static const uint32 SingleByteRegs = TempRegs | SavedRegs;
 #else

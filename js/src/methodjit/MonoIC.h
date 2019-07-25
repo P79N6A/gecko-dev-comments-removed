@@ -55,10 +55,11 @@ struct MICInfo {
     static const uint32 GET_DATA_OFFSET = 6;
     static const uint32 GET_TYPE_OFFSET = 12;
 
-    static const uint32 SET_TYPE_OFFSET = 9;
-    static const uint32 SET_DATA_CONST_TYPE_OFFSET = 19;
-    static const uint32 SET_DATA_TYPE_OFFSET = 15;
-#elif JS_CPU_X64
+    static const uint32 SET_TYPE_OFFSET = 6;
+    static const uint32 SET_DATA_CONST_TYPE_OFFSET = 16;
+    static const uint32 SET_DATA_TYPE_OFFSET = 12;
+#elif JS_CPU_X64 || JS_CPU_ARM
+    
     
 #endif
 
