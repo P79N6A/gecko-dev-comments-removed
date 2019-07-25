@@ -619,6 +619,7 @@ WeaveSvc.prototype = {
 
       
       this.passphrase = newphrase;
+      this.persistLogin();
 
       
       this.login();
