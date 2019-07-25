@@ -182,6 +182,9 @@ BrowserGlue.prototype = {
       case "weave:service:ready":
         this._setSyncAutoconnectDelay();
         break;
+      case "weave:engine:clients:display-uri":
+        this._onDisplaySyncURI(subject);
+        break;
 #endif
       case "session-save":
         this._setPrefToSaveSession(true);
@@ -265,6 +268,7 @@ BrowserGlue.prototype = {
 #endif
 #ifdef MOZ_SERVICES_SYNC
     os.addObserver(this, "weave:service:ready", false);
+    os.addObserver(this, "weave:engine:clients:display-uri", false);
 #endif
     os.addObserver(this, "session-save", false);
     os.addObserver(this, "places-init-complete", false);
@@ -292,6 +296,7 @@ BrowserGlue.prototype = {
 #endif
 #ifdef MOZ_SERVICES_SYNC
     os.removeObserver(this, "weave:service:ready", false);
+    os.removeObserver(this, "weave:engine:clients:display-uri", false);
 #endif
     os.removeObserver(this, "session-save");
     if (this._isIdleObserver)
@@ -476,13 +481,10 @@ BrowserGlue.prototype = {
     var windowcount = 0;
     var pagecount = 0;
     var browserEnum = Services.wm.getEnumerator("navigator:browser");
-    let allWindowsPrivate = true;
     while (browserEnum.hasMoreElements()) {
       windowcount++;
 
       var browser = browserEnum.getNext();
-      if (("gPrivateBrowsingUI" in browser) && !browser.gPrivateBrowsingUI.privateWindow)
-        allWindowsPrivate = false;
       var tabbrowser = browser.document.getElementById("content");
       if (tabbrowser)
         pagecount += tabbrowser.browsers.length - tabbrowser._numPinnedTabs;
@@ -526,8 +528,10 @@ BrowserGlue.prototype = {
       return;
     }
 
-    
-    if (allWindowsPrivate)
+    var inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
+                            getService(Ci.nsIPrivateBrowsingService).
+                            privateBrowsingEnabled;
+    if (inPrivateBrowsing)
       return;
 
     if (!showPrompt)
@@ -1507,6 +1511,29 @@ BrowserGlue.prototype = {
 #endif
   },
 
+#ifdef MOZ_SERVICES_SYNC
+  
+
+
+
+
+
+
+
+
+
+
+  _onDisplaySyncURI: function _onDisplaySyncURI(data) {
+    try {
+      let tabbrowser = this.getMostRecentBrowserWindow().gBrowser;
+
+      
+      tabbrowser.addTab(data.wrappedJSObject.object.uri);
+    } catch (ex) {
+      Cu.reportError("Error displaying tab received by Sync: " + ex);
+    }
+  },
+#endif
 
   
   classID:          Components.ID("{eab9012e-5f74-4cbc-b2b5-a590235513cc}"),
@@ -1567,15 +1594,13 @@ ContentPermissionPrompt.prototype = {
     var mainAction = {
       label: browserBundle.GetStringFromName("geolocation.shareLocation"),
       accessKey: browserBundle.GetStringFromName("geolocation.shareLocation.accesskey"),
-      callback: function() {
+      callback: function(notification) {
         request.allow();
       },
     };
 
     var message;
     var secondaryActions = [];
-    var requestingWindow = request.window.top;
-    var chromeWin = getChromeWindow(requestingWindow).wrappedJSObject;
 
     
     if (requestingURI.schemeIs("file")) {
@@ -1586,7 +1611,11 @@ ContentPermissionPrompt.prototype = {
                                                    [requestingURI.host], 1);
 
       
-      if (("gPrivateBrowsingUI" in chromeWin) && !chromeWin.gPrivateBrowsingUI.privateWindow) {
+      var inPrivateBrowsing = Cc["@mozilla.org/privatebrowsing;1"].
+                              getService(Ci.nsIPrivateBrowsingService).
+                              privateBrowsingEnabled;
+
+      if (!inPrivateBrowsing) {
         secondaryActions.push({
           label: browserBundle.GetStringFromName("geolocation.alwaysShareLocation"),
           accessKey: browserBundle.GetStringFromName("geolocation.alwaysShareLocation.accesskey"),
@@ -1606,6 +1635,8 @@ ContentPermissionPrompt.prototype = {
       }
     }
 
+    var requestingWindow = request.window.top;
+    var chromeWin = getChromeWindow(requestingWindow).wrappedJSObject;
     var browser = chromeWin.gBrowser.getBrowserForDocument(requestingWindow.document);
 
     chromeWin.PopupNotifications.show(browser, "geolocation", message, "geo-notification-icon",
