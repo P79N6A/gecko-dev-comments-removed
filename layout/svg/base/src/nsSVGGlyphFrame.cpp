@@ -1585,7 +1585,7 @@ nsSVGGlyphFrame::EnsureTextRun(float *aDrawScale, float *aMetricsScale,
     
     
     
-    bool bidiOverride = (mParent->GetStyleTextReset()->mUnicodeBidi ==
+    bool bidiOverride = !!(mParent->GetStyleTextReset()->mUnicodeBidi &
                            NS_STYLE_UNICODE_BIDI_OVERRIDE);
     nsBidiLevel baseDirection =
       GetStyleVisibility()->mDirection == NS_STYLE_DIRECTION_RTL ?
