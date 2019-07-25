@@ -73,7 +73,6 @@ Readability.prototype = {
     negative: /combx|comment|com-|contact|foot|footer|footnote|masthead|media|meta|outbrain|promo|related|scroll|shoutbox|sidebar|sponsor|shopping|tags|tool|widget/i,
     extraneous: /print|archive|comment|discuss|e[\-]?mail|share|reply|all|login|sign|single/i,
     divToPElements: /<(a|blockquote|dl|div|img|ol|p|pre|table|ul)/i,
-    replaceBrs: /(<br[^>]*>[ \n\r\t]*){2,}/gi,
     replaceFonts: /<(\/?)font[^>]*>/gi,
     trim: /^\s+|\s+$/g,
     normalize: /\s{2,}/g,
@@ -283,11 +282,80 @@ Readability.prototype = {
       styleTags[st].textContent = "";
     }
 
+    this._replaceBrs(doc.body);
+
+    doc.body.innerHTML = doc.body.innerHTML.replace(this.REGEXPS.replaceFonts, '<$1span>');
+  },
+
+  
+
+
+
+
+
+
+  _replaceBrs: function (elem) {
     
+    let whitespace = /^\s*$/;
+
     
-    doc.body.innerHTML =
-        doc.body.innerHTML.replace(this.REGEXPS.replaceBrs, '</p><p>').
-            replace(this.REGEXPS.replaceFonts, '<$1span>');
+
+
+
+
+    function nextElement(node) {
+      let next = node;
+      while (next
+          && (next.nodeType != Node.ELEMENT_NODE)
+          && !whitespace.test(next.textContent)) {
+        next = next.nextSibling;
+      }
+      return next;
+    }
+
+    let brs = elem.getElementsByTagName("br");
+    for (let i = 0; i < brs.length; i++) {
+      let br = brs[i];
+      let next = br.nextSibling;
+
+      
+      
+      let replaced = false;
+
+      
+      
+      
+      while ((next = nextElement(next)) && (next.tagName == "BR")) {
+        replaced = true;
+        let sibling = next.nextSibling;
+        next.parentNode.removeChild(next);
+        next = sibling;
+      }
+
+      
+      
+      
+      if (replaced) {
+        let p = this._doc.createElement("p");
+        br.parentNode.replaceChild(p, br);
+
+        next = p.nextSibling;
+        while (next) {
+          
+          if (next.tagName == "BR") {
+            let nextElem = nextElement(next);
+            if (nextElem && nextElem.tagName == "BR") {
+              break;
+            }
+          }
+          
+          
+          let sibling = next.nextSibling;
+          p.appendChild(next);
+          next = sibling;
+        }
+      }
+    }
   },
 
   
@@ -1109,10 +1177,10 @@ Readability.prototype = {
           let responseHtml = r.responseText.replace(/\n/g,'\uffff').replace(/<script.*?>.*?<\/script>/gi, '');
           responseHtml = responseHtml.replace(/\n/g,'\uffff').replace(/<script.*?>.*?<\/script>/gi, '');
           responseHtml = responseHtml.replace(/\uffff/g,'\n').replace(/<(\/?)noscript/gi, '<$1div');
-          responseHtml = responseHtml.replace(this.REGEXPS.replaceBrs, '</p><p>');
           responseHtml = responseHtml.replace(this.REGEXPS.replaceFonts, '<$1span>');
 
           page.innerHTML = responseHtml;
+          this._replaceBrs(page);
 
           
           
