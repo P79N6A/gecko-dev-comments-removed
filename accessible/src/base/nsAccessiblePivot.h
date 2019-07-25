@@ -46,8 +46,9 @@ private:
   
 
 
-  void NotifyPivotChanged(Accessible* aOldAccessible,
-                          PRInt32 aOldStart, PRInt32 aOldEnd);
+
+  bool NotifyOfPivotChange(Accessible* aOldAccessible,
+                           PRInt32 aOldStart, PRInt32 aOldEnd);
 
   
 
@@ -74,7 +75,7 @@ private:
   
 
 
-  void MovePivotInternal(Accessible* aPosition);
+  bool MovePivotInternal(Accessible* aPosition);
 
   
 
