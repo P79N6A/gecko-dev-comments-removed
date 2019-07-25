@@ -5760,30 +5760,9 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
     
     
     
-    nsCOMPtr<nsISimpleEnumerator> e;
-    nsresult rv = os->EnumerateObservers(TOPIC_PLACES_INIT_COMPLETE,
-                                         getter_AddRefs(e));
-    if (NS_SUCCEEDED(rv) && e) {
-      
-      
-      
-      
-      mCanNotify = false;
-
-      nsCOMPtr<nsIObserver> observer;
-      PRBool loop = PR_TRUE;
-      while(NS_SUCCEEDED(e->HasMoreElements(&loop)) && loop) {
-        e->GetNext(getter_AddRefs(observer));
-        (void)observer->Observe(observer, TOPIC_PLACES_INIT_COMPLETE, nsnull);
-      }
-    }
-
-    
-    
-    
     nsRefPtr<PlacesEvent> shutdownEvent =
       new PlacesEvent(TOPIC_PLACES_SHUTDOWN);
-    rv = NS_DispatchToMainThread(shutdownEvent);
+    nsresult rv = NS_DispatchToMainThread(shutdownEvent);
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv),
                      "Unable to shutdown Places: message dispatch failed.");
 
@@ -5797,6 +5776,11 @@ nsNavHistory::Observe(nsISupports *aSubject, const char *aTopic,
   }
 
   else if (strcmp(aTopic, TOPIC_PLACES_TEARDOWN) == 0) {
+    
+    
+    
+    mCanNotify = false;
+
     
     
     
