@@ -16,7 +16,7 @@
 #define UNICODE_LIMIT     0x110000
 
 
-nsCharProps1
+const nsCharProps1&
 GetCharProps1(PRUint32 aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
@@ -30,13 +30,15 @@ GetCharProps1(PRUint32 aCh)
     }
 
     
-    nsCharProps1 undefined = {0,       
-                              0,       
-                              0};      
+    static const nsCharProps1 undefined = {
+        0,       
+        0,       
+        0        
+    };
     return undefined;
 }
 
-nsCharProps2
+const nsCharProps2&
 GetCharProps2(PRUint32 aCh)
 {
     if (aCh < UNICODE_BMP_LIMIT) {
@@ -51,13 +53,14 @@ GetCharProps2(PRUint32 aCh)
 
     NS_NOTREACHED("Getting CharProps for codepoint outside Unicode range");
     
-    nsCharProps2 undefined = {
+    static const nsCharProps2 undefined = {
         MOZ_SCRIPT_UNKNOWN,                      
         0,                                       
         HB_UNICODE_GENERAL_CATEGORY_UNASSIGNED,  
         eCharType_LeftToRight,                   
         mozilla::unicode::XIDMOD_NOT_CHARS,      
-        -1                                       
+        -1,                                      
+        mozilla::unicode::HVT_NotHan             
     };
     return undefined;
 }

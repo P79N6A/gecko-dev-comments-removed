@@ -46,10 +46,19 @@
 
 
 
+
+
+
+
+
+
 #ifndef NS_UNICODE_SCRIPT_CODES
 #define NS_UNICODE_SCRIPT_CODES
+
+#pragma pack(1)
+
 struct nsCharProps1 {
-  unsigned char  mMirrorOffsetIndex:5;
+  unsigned char mMirrorOffsetIndex:5;
   unsigned char mHangulType:3;
   unsigned char mCombiningClass:8;
 };
@@ -63,6 +72,8 @@ struct nsCharProps2 {
   signed char mNumericValue:5;
   unsigned char mHanVariant:2;
 };
+
+#pragma pack()
 
 enum {
   MOZ_SCRIPT_COMMON = 0,
