@@ -83,37 +83,36 @@ public:
 #endif
 
 public:
-  NS_IMETHOD  AppendStyleRule(nsICSSRule* aRule);
+  void AppendStyleRule(nsICSSRule* aRule);
 
-  NS_IMETHOD  StyleRuleCount(PRInt32& aCount) const;
-  NS_IMETHOD  GetStyleRuleAt(PRInt32 aIndex, nsICSSRule*& aRule) const;
+  PRInt32 StyleRuleCount() const { return mRules.Count(); }
+  nsICSSRule* GetStyleRuleAt(PRInt32 aIndex) const;
 
   typedef nsCOMArray<nsICSSRule>::nsCOMArrayEnumFunc RuleEnumFunc;
-  NS_IMETHOD_(PRBool) EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const;
+  PRBool EnumerateRulesForwards(RuleEnumFunc aFunc, void * aData) const;
 
   
 
 
 
 
-  NS_IMETHOD  DeleteStyleRuleAt(PRUint32 aIndex);
-  NS_IMETHOD  InsertStyleRulesAt(PRUint32 aIndex,
-                                 nsCOMArray<nsICSSRule>& aRules);
-  NS_IMETHOD  ReplaceStyleRule(nsICSSRule *aOld, nsICSSRule *aNew);
+  nsresult DeleteStyleRuleAt(PRUint32 aIndex);
+  nsresult InsertStyleRulesAt(PRUint32 aIndex,
+                              nsCOMArray<nsICSSRule>& aRules);
+  nsresult ReplaceStyleRule(nsICSSRule *aOld, nsICSSRule *aNew);
 
-  NS_IMETHOD_(PRBool) UseForPresentation(nsPresContext* aPresContext,
-                                         nsMediaQueryResultCacheKey& aKey) = 0;
+  virtual PRBool UseForPresentation(nsPresContext* aPresContext,
+                                    nsMediaQueryResultCacheKey& aKey) = 0;
 
 protected:
   
   nsresult AppendRulesToCssText(nsAString& aCssText);
   
-  nsresult GetParentStyleSheet(nsIDOMCSSStyleSheet** aSheet);
   nsresult GetParentRule(nsIDOMCSSRule** aParentRule);
 
   
   
-  nsresult GetCssRules(nsIDOMCSSRuleList* *aRuleList);
+  nsIDOMCSSRuleList* GetCssRules();
   nsresult InsertRule(const nsAString & aRule, PRUint32 aIndex,
                       PRUint32* _retval);
   nsresult DeleteRule(PRUint32 aIndex);

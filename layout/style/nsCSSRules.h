@@ -79,7 +79,7 @@ public:
   virtual void SetStyleSheet(nsCSSStyleSheet* aSheet); 
   virtual PRInt32 GetType() const;
   virtual already_AddRefed<nsICSSRule> Clone() const;
-  nsIDOMCSSRule* GetDOMRuleWeak(nsresult *aResult)
+  virtual nsIDOMCSSRule* GetDOMRuleWeak(nsresult *aResult)
   {
     *aResult = NS_OK;
     return this;
@@ -92,8 +92,8 @@ public:
   NS_DECL_NSIDOMCSSMEDIARULE
 
   
-  NS_IMETHOD_(PRBool) UseForPresentation(nsPresContext* aPresContext,
-                                         nsMediaQueryResultCacheKey& aKey);
+  virtual PRBool UseForPresentation(nsPresContext* aPresContext,
+                                    nsMediaQueryResultCacheKey& aKey);
 
   
   nsresult SetMedia(nsMediaList* aMedia);
@@ -122,7 +122,7 @@ public:
   
   virtual PRInt32 GetType() const;
   virtual already_AddRefed<nsICSSRule> Clone() const;
-  nsIDOMCSSRule* GetDOMRuleWeak(nsresult *aResult)
+  virtual nsIDOMCSSRule* GetDOMRuleWeak(nsresult *aResult)
   {
     *aResult = NS_OK;
     return this;
@@ -135,8 +135,8 @@ public:
   NS_DECL_NSIDOMCSSMOZDOCUMENTRULE
 
   
-  NS_IMETHOD_(PRBool) UseForPresentation(nsPresContext* aPresContext,
-                                         nsMediaQueryResultCacheKey& aKey);
+  virtual PRBool UseForPresentation(nsPresContext* aPresContext,
+                                    nsMediaQueryResultCacheKey& aKey);
 
   enum Function {
     eURL,
