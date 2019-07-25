@@ -374,7 +374,7 @@ gfxGDIFont::Initialize()
     mMetrics->maxAscent = metrics.tmAscent;
     mMetrics->maxDescent = metrics.tmDescent;
     mMetrics->maxAdvance = metrics.tmMaxCharWidth;
-    mMetrics->aveCharWidth = PR_MAX(1, metrics.tmAveCharWidth);
+    mMetrics->aveCharWidth = NS_MAX<gfxFloat>(1, metrics.tmAveCharWidth);
     
     
     if (!(metrics.tmPitchAndFamily & TMPF_FIXED_PITCH)) {

@@ -949,7 +949,7 @@ protected:
     FakeBlackStatus mFakeBlackStatus;
 
     void EnsureMaxLevelWithCustomImagesAtLeast(size_t aMaxLevelWithCustomImages) {
-        mMaxLevelWithCustomImages = PR_MAX(mMaxLevelWithCustomImages, aMaxLevelWithCustomImages);
+        mMaxLevelWithCustomImages = NS_MAX(mMaxLevelWithCustomImages, aMaxLevelWithCustomImages);
         mImageInfos.EnsureLengthAtLeast((mMaxLevelWithCustomImages + 1) * mFacesCount);
     }
 
@@ -979,8 +979,8 @@ protected:
             const ImageInfo& actual = ImageInfoAt(level, face);
             if (actual != expected)
                 return PR_FALSE;
-            expected.mWidth = PR_MAX(1, expected.mWidth >> 1);
-            expected.mHeight = PR_MAX(1, expected.mHeight >> 1);
+            expected.mWidth = NS_MAX(1, expected.mWidth >> 1);
+            expected.mHeight = NS_MAX(1, expected.mHeight >> 1);
 
             
             
@@ -1091,7 +1091,7 @@ public:
             ImageInfo imageInfo = ImageInfoAt(0, 0);
             NS_ASSERTION(imageInfo.IsPowerOfTwo(), "this texture is NPOT, so how could GenerateMipmap() ever accept it?");
 
-            WebGLsizei size = PR_MAX(imageInfo.mWidth, imageInfo.mHeight);
+            WebGLsizei size = NS_MAX(imageInfo.mWidth, imageInfo.mHeight);
 
             
             size_t maxLevel = 0;

@@ -405,9 +405,9 @@ nsMemoryCacheDevice::EvictionList(nsCacheEntry * entry, PRInt32  deltaSize)
     
     
     PRInt32  size       = deltaSize + (PRInt32)entry->Size();
-    PRInt32  fetchCount = PR_MAX(1, entry->FetchCount());
+    PRInt32  fetchCount = NS_MAX(1, entry->FetchCount());
 
-    return PR_MIN(PR_FloorLog2(size / fetchCount), kQueueCount - 1);
+    return NS_MIN(PR_FloorLog2(size / fetchCount), kQueueCount - 1);
 }
 
 

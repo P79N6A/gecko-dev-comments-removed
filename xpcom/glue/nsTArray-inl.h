@@ -89,7 +89,7 @@ nsTArray_base<Alloc>::EnsureCapacity(size_type capacity, size_type elemSize) {
   
   
   
-  capacity = PR_MAX(capacity, mHdr->mCapacity * 2u);
+  capacity = NS_MAX<size_type>(capacity, mHdr->mCapacity * 2U);
 
   Header *header;
   if (UsesAutoArrayBuffer()) {

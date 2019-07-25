@@ -402,7 +402,7 @@ nsIdleService::CheckAwayState(bool aNoTimeReset)
       } else {
         
         
-        nextWaitTime = PR_MIN(nextWaitTime, curListener.reqIdleTime);
+        nextWaitTime = NS_MIN(nextWaitTime, curListener.reqIdleTime);
       }
     }
 

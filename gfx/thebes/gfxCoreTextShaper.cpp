@@ -39,6 +39,7 @@
 
 
 #include "prtypes.h"
+#include "nsAlgorithm.h"
 #include "prmem.h"
 #include "nsString.h"
 #include "nsBidiUtils.h"
@@ -378,7 +379,7 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxTextRun *aTextRun,
             
             for (PRInt32 i = charStart; i != charEnd; i += direction) {
                 if (charToGlyph[i] != NO_GLYPH) {
-                    glyphEnd = PR_MAX(glyphEnd, charToGlyph[i] + 1); 
+                    glyphEnd = NS_MAX(glyphEnd, charToGlyph[i] + 1); 
                 }
             }
 
@@ -453,8 +454,8 @@ gfxCoreTextShaper::SetGlyphsFromRun(gfxTextRun *aTextRun,
             continue;
         }
         
-        baseCharIndex = PR_MAX(baseCharIndex, aRunStart);
-        endCharIndex = PR_MIN(endCharIndex, aRunStart + aRunLength);
+        baseCharIndex = NS_MAX(baseCharIndex, aRunStart);
+        endCharIndex = NS_MIN(endCharIndex, aRunStart + aRunLength);
 
         
         

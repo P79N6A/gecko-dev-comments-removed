@@ -1825,10 +1825,10 @@ ComputeRadialGradientLine(nsPresContext* aPresContext,
 
   
   double radiusX, radiusY;
-  double leftDistance = PR_ABS(aLineStart->x);
-  double rightDistance = PR_ABS(aBoxSize.width - aLineStart->x);
-  double topDistance = PR_ABS(aLineStart->y);
-  double bottomDistance = PR_ABS(aBoxSize.height - aLineStart->y);
+  double leftDistance = NS_ABS(aLineStart->x);
+  double rightDistance = NS_ABS(aBoxSize.width - aLineStart->x);
+  double topDistance = NS_ABS(aLineStart->y);
+  double bottomDistance = NS_ABS(aBoxSize.height - aLineStart->y);
   switch (aGradient->mSize) {
   case NS_STYLE_GRADIENT_SIZE_CLOSEST_SIDE:
     radiusX = NS_MIN(leftDistance, rightDistance);

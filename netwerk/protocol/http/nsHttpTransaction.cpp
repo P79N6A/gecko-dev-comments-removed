@@ -734,7 +734,7 @@ nsHttpTransaction::LocateHttpStart(char *buf, PRUint32 len,
     
     if (!mLineBuf.IsEmpty()) {
         NS_ASSERTION(mLineBuf.Length() < HTTPHeaderLen, "ouch");
-        PRInt32 checkChars = PR_MIN(len, HTTPHeaderLen - mLineBuf.Length());
+        PRInt32 checkChars = NS_MIN(len, HTTPHeaderLen - mLineBuf.Length());
         if (PL_strncasecmp(buf, HTTPHeader + mLineBuf.Length(),
                            checkChars) == 0) {
             mLineBuf.Append(buf, checkChars);
@@ -753,7 +753,7 @@ nsHttpTransaction::LocateHttpStart(char *buf, PRUint32 len,
 
     PRBool firstByte = PR_TRUE;
     while (len > 0) {
-        if (PL_strncasecmp(buf, HTTPHeader, PR_MIN(len, HTTPHeaderLen)) == 0) {
+        if (PL_strncasecmp(buf, HTTPHeader, NS_MIN<PRUint32>(len, HTTPHeaderLen)) == 0) {
             if (len < HTTPHeaderLen) {
                 
                 
@@ -887,7 +887,7 @@ nsHttpTransaction::ParseHead(char *buf,
         if (!mConnection || !mConnection->LastTransactionExpectedNoContent()) {
             
             mHttpResponseMatched = PR_TRUE;
-            char *p = LocateHttpStart(buf, PR_MIN(count, 11), PR_TRUE);
+            char *p = LocateHttpStart(buf, NS_MIN<PRUint32>(count, 11), PR_TRUE);
             if (!p) {
                 
                 if (mRequestHead->Method() == nsHttp::Put)

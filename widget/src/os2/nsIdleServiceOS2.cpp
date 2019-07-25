@@ -76,7 +76,7 @@ nsIdleServiceOS2::PollIdleTime(PRUint32 *aIdleTime)
 
   
   
-  *aIdleTime = PR_MIN(mouse, keyboard);
+  *aIdleTime = NS_MIN(mouse, keyboard);
   return true;
 }
 

@@ -35,6 +35,7 @@
 
 
 
+#include "nsAlgorithm.h"
 #include "nsUCSupport.h"
 #include "nsUTF8ToUnicode.h"
 #include "mozilla/SSE.h"
@@ -249,7 +250,7 @@ NS_IMETHODIMP nsUTF8ToUnicode::Convert(const char * aSrc,
       
       
       if (0 == (0x80 & (*in))) {
-        PRInt32 max_loops = PR_MIN(inend - in, outend - out);
+        PRInt32 max_loops = NS_MIN(inend - in, outend - out);
         Convert_ascii_run(in, out, max_loops);
         --in; 
         mBytes = 1;

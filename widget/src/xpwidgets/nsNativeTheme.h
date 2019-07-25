@@ -40,6 +40,7 @@
 
 
 #include "prtypes.h"
+#include "nsAlgorithm.h"
 #include "nsIAtom.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"

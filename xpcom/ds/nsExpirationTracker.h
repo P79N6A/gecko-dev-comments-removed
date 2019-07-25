@@ -203,7 +203,7 @@ template <class T, PRUint32 K> class nsExpirationTracker {
       for (;;) {
         
         
-        index = PR_MIN(index, generation.Length());
+        index = NS_MIN(index, generation.Length());
         if (index == 0)
           break;
         --index;

@@ -579,7 +579,7 @@ nsSMILAnimationController::DoMilestoneSamples()
     
     
     
-    sampleTime = PR_MAX(nextMilestone.mTime, sampleTime);
+    sampleTime = NS_MAX(nextMilestone.mTime, sampleTime);
 
     for (PRUint32 i = 0; i < length; ++i) {
       nsISMILAnimationElement* elem = params.mElements[i].get();
@@ -596,7 +596,7 @@ nsSMILAnimationController::DoMilestoneSamples()
         continue;
 
       
-      nsSMILTime containerTime = PR_MAX(0, containerTimeValue.GetMillis());
+      nsSMILTime containerTime = NS_MAX<nsSMILTime>(0, containerTimeValue.GetMillis());
 
       if (nextMilestone.mIsEnd) {
         elem->TimedElement().SampleEndAt(containerTime);

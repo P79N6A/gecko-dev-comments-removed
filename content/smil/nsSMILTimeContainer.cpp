@@ -149,7 +149,7 @@ nsSMILTimeContainer::SetCurrentTime(nsSMILTime aSeekTo)
 {
   
   
-  aSeekTo = PR_MAX(0, aSeekTo);
+  aSeekTo = NS_MAX<nsSMILTime>(0, aSeekTo);
 
   
   

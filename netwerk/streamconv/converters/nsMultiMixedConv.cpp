@@ -606,7 +606,7 @@ nsMultiMixedConv::OnDataAvailable(nsIRequest *request, nsISupports *context,
         
         
         if (!mPartChannel || !(cursor[bufLen-1] == nsCRT::LF) )
-            bufAmt = PR_MIN(mTokenLen - 1, bufLen);
+            bufAmt = NS_MIN(mTokenLen - 1, bufLen);
     }
 
     if (bufAmt) {

@@ -47,7 +47,7 @@
 
 #define NS_SUFFICIENT_LUMINOSITY_DIFFERENCE 125000
 #define NS_LUMINOSITY_DIFFERENCE(a, b) \
-          PR_ABS(NS_GetLuminosity(a) - NS_GetLuminosity(b))
+          NS_ABS(NS_GetLuminosity(a) - NS_GetLuminosity(b))
 
 
 void NS_GetSpecial3DColors(nscolor aResult[2],
