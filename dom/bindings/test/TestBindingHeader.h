@@ -294,6 +294,18 @@ public:
   int8_t GetAttributeRenamedTo(ErrorResult&);
   void SetAttributeRenamedTo(int8_t, ErrorResult&);
 
+  
+  bool GetImplementedProperty(ErrorResult&);
+  void SetImplementedProperty(bool, ErrorResult&);
+  void ImplementedMethod(ErrorResult&);
+  bool GetImplementedParentProperty(ErrorResult&);
+  void SetImplementedParentProperty(bool, ErrorResult&);
+  void ImplementedParentMethod(ErrorResult&);
+  bool GetIndirectlyImplementedProperty(ErrorResult&);
+  void SetIndirectlyImplementedProperty(bool, ErrorResult&);
+  void IndirectlyImplementedMethod(ErrorResult&);
+  uint32_t GetDiamondImplementedProperty(ErrorResult&);
+
 private:
   
   
