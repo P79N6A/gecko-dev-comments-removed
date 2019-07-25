@@ -204,7 +204,7 @@ pref("gfx.downloadable_fonts.sanitize", true);
 
 #ifdef XP_MACOSX
 
-pref("gfx.font_rendering.harfbuzz.scripts", 7);
+pref("gfx.font_rendering.harfbuzz.scripts", 71);
 #else
 
 pref("gfx.font_rendering.harfbuzz.scripts", 3);
