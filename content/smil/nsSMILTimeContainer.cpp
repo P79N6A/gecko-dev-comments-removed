@@ -215,6 +215,14 @@ nsSMILTimeContainer::SetParent(nsSMILTimeContainer* aParent)
 {
   if (mParent) {
     mParent->RemoveChild(*this);
+    
+    
+    
+    
+    
+    
+    mParentOffset = -mCurrentTime;
+    mPauseStart = 0L;
   }
 
   mParent = aParent;
@@ -314,6 +322,7 @@ nsSMILTimeContainer::UpdateCurrentTime()
 {
   nsSMILTime now = IsPaused() ? mPauseStart : GetParentTime();
   mCurrentTime = now - mParentOffset;
+  NS_ABORT_IF_FALSE(mCurrentTime >= 0, "Container has negative time");
 }
 
 void

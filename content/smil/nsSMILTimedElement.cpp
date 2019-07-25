@@ -1106,6 +1106,10 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
 {
   
   
+  mPrevRegisteredMilestone = sMaxMilestone;
+
+  
+  
   if (mElementState != STATE_STARTUP) {
     mSeekState = SEEK_NOT_SEEKING;
     Rewind();
@@ -1122,8 +1126,6 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
     mEndSpecs[j]->ResolveReferences(aContextNode);
   }
 
-  
-  mPrevRegisteredMilestone = sMaxMilestone;
   RegisterMilestone();
 }
 
