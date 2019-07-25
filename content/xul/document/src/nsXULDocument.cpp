@@ -2776,7 +2776,18 @@ nsXULDocument::LoadOverlayInternal(nsIURI* aURI, PRBool aIsDynamic,
         NS_RELEASE(parserObserver);
 
         nsCOMPtr<nsILoadGroup> group = do_QueryReferent(mDocumentLoadGroup);
-        rv = NS_OpenURI(listener, nsnull, aURI, nsnull, group);
+        nsCOMPtr<nsIChannel> channel;
+        rv = NS_NewChannel(getter_AddRefs(channel), aURI);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        
+        
+        channel->SetOwner(NodePrincipal());
+
+        rv = channel->AsyncOpen(listener, nsnull);
+        NS_ENSURE_SUCCESS(rv, rv);
+
         if (NS_FAILED(rv)) {
             
             mCurrentPrototype = nsnull;
@@ -4532,7 +4543,7 @@ nsXULDocument::ParserObserver::OnStartRequest(nsIRequest *request,
             secMan->GetChannelPrincipal(channel, getter_AddRefs(principal));
 
             
-            mPrototype->SetDocumentPrincipal(principal);            
+            mPrototype->SetDocumentPrincipal(principal);
         }
 
         
