@@ -170,7 +170,8 @@ nsNSSSocketInfo::nsNSSSocketInfo()
     mHandshakeStartTime(0),
     mPort(0),
     mIsCertIssuerBlacklisted(false),
-    mNPNCompleted(false)
+    mNPNCompleted(false),
+    mHandshakeCompleted(false)
 {
 }
 
@@ -453,6 +454,62 @@ nsNSSSocketInfo::GetNegotiatedNPN(nsACString &aNegotiatedNPN)
     return NS_ERROR_NOT_CONNECTED;
 
   aNegotiatedNPN = mNegotiatedNPN;
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsNSSSocketInfo::JoinConnection(const nsACString & npnProtocol,
+                                const nsACString & hostname,
+                                PRInt32 port,
+                                bool *_retval NS_OUTPARAM)
+{
+  *_retval = false;
+
+  
+  if (port != mPort)
+    return NS_OK;
+
+  
+  if (!mNPNCompleted || !mNegotiatedNPN.Equals(npnProtocol))
+    return NS_OK;
+
+  
+  
+  if (mHostName && hostname.Equals(mHostName)) {
+    *_retval = true;
+    return NS_OK;
+  }
+
+  
+  
+  if (!mHandshakeCompleted || !SSLStatus() || !SSLStatus()->mServerCert)
+    return NS_OK;
+
+  
+  
+  
+  if (SSLStatus()->mHaveCertErrorBits)
+    return NS_OK;
+
+  
+  
+
+  CERTCertificate *nssCert = nsnull;
+  CERTCertificateCleaner nsscertCleaner(nssCert);
+
+  nsCOMPtr<nsIX509Cert2> cert2 = do_QueryInterface(SSLStatus()->mServerCert);
+  if (cert2)
+    nssCert = cert2->GetCert();
+
+  if (!nssCert)
+    return NS_OK;
+
+  if (CERT_VerifyCertName(nssCert, PromiseFlatCString(hostname).get()) !=
+      SECSuccess)
+    return NS_OK;
+
+  
+  *_retval = true;
   return NS_OK;
 }
 

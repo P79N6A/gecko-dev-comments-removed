@@ -48,8 +48,7 @@
 
 #include "nsIObserverService.h"
 
-#include "nsISSLStatusProvider.h"
-#include "nsISSLStatus.h"
+#include "nsISSLSocketControl.h"
 #include "prnetdb.h"
 
 using namespace mozilla;
@@ -517,39 +516,8 @@ nsHttpConnectionMgr::ReportSpdyConnection(nsHttpConnection *conn,
         
         ent->mUsingSpdy = true;
         conn->DontReuse();
-        ent->mCert = nsnull;
     }
 
-    
-    
-    
-    
-    
-    if (preferred == ent) {
-        
-        
-        ent->mCert = nsnull;
-
-        nsCOMPtr<nsISupports> securityInfo;
-        nsCOMPtr<nsISSLStatusProvider> sslStatusProvider;
-        nsCOMPtr<nsISSLStatus> sslStatus;
-        nsCOMPtr<nsIX509Cert> cert;
-
-        conn->GetSecurityInfo(getter_AddRefs(securityInfo));
-        if (securityInfo)
-            sslStatusProvider = do_QueryInterface(securityInfo);
-
-        if (sslStatusProvider)
-            sslStatusProvider->
-                GetSSLStatus(getter_AddRefs(sslStatus));
-
-        if (sslStatus)
-            sslStatus->GetServerCert(getter_AddRefs(cert));
-
-        if (cert)
-            ent->mCert = do_QueryInterface(cert);
-    }
-    
     ProcessSpdyPendingQ();
 }
 
@@ -636,7 +604,7 @@ nsHttpConnectionMgr::GetSpdyPreferred(nsConnectionEntry *aOriginalEntry)
 
     
     
-    if (!preferred || !preferred->mCert || !preferred->mUsingSpdy)
+    if (!preferred || !preferred->mUsingSpdy)
         return nsnull;                         
 
     
@@ -644,14 +612,15 @@ nsHttpConnectionMgr::GetSpdyPreferred(nsConnectionEntry *aOriginalEntry)
     
     
 
-    bool activeSpdy = false;
+    nsHttpConnection *activeSpdy = nsnull;
 
-    for (PRUint32 index = 0; index < preferred->mActiveConns.Length(); ++index)
+    for (PRUint32 index = 0; index < preferred->mActiveConns.Length(); ++index) {
         if (preferred->mActiveConns[index]->CanDirectlyActivate()) {
-            activeSpdy = true;
+            activeSpdy = preferred->mActiveConns[index];
             break;
         }
-    
+    }
+
     if (!activeSpdy) {
         
         
@@ -667,14 +636,28 @@ nsHttpConnectionMgr::GetSpdyPreferred(nsConnectionEntry *aOriginalEntry)
 
     
     nsresult rv;
-    bool validCert = false;
+    bool isJoined = false;
 
-    rv = preferred->mCert->IsValidForHostname(
-        aOriginalEntry->mConnInfo->GetHost(), &validCert);
+    nsCOMPtr<nsISupports> securityInfo;
+    nsCOMPtr<nsISSLSocketControl> sslSocketControl;
+    nsCAutoString negotiatedNPN;
+    
+    activeSpdy->GetSecurityInfo(getter_AddRefs(securityInfo));
+    if (!securityInfo)
+        return nsnull;
 
-    if (NS_FAILED(rv) || !validCert) {
+    sslSocketControl = do_QueryInterface(securityInfo, &rv);
+    if (NS_FAILED(rv))
+        return nsnull;
+
+    rv = sslSocketControl->JoinConnection(NS_LITERAL_CSTRING("spdy/2"),
+                                          aOriginalEntry->mConnInfo->GetHost(),
+                                          aOriginalEntry->mConnInfo->Port(),
+                                          &isJoined);
+
+    if (NS_FAILED(rv) || !isJoined) {
         LOG(("nsHttpConnectionMgr::GetSpdyPreferredConnection "
-             "Host %s has cert which cannot be confirmed to use "
+             "Host %s cannot be confirmed to be joined "
              "with %s connections",
              preferred->mConnInfo->Host(), aOriginalEntry->mConnInfo->Host()));
         return nsnull;
