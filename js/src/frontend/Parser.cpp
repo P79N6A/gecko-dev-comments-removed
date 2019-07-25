@@ -512,9 +512,6 @@ CheckStrictParameters(JSContext *cx, Parser *parser)
     if (!sc->needStrictChecks() || sc->bindings.numArgs() == 0)
         return true;
 
-    JSAtom *argumentsAtom = cx->runtime->atomState.argumentsAtom;
-    JSAtom *evalAtom = cx->runtime->atomState.evalAtom;
-
     
     HashMap<JSAtom *, bool> parameters(cx);
     if (!parameters.init(sc->bindings.numArgs()))
@@ -525,20 +522,6 @@ CheckStrictParameters(JSContext *cx, Parser *parser)
         PropertyName *name = bi->maybeName;
         if (!name)
             continue;
-
-        if (name == argumentsAtom || name == evalAtom) {
-            if (!ReportBadParameter(cx, parser, name, JSMSG_BAD_BINDING))
-                return false;
-        }
-
-        if (FindKeyword(name->charsZ(), name->length())) {
-            
-
-
-
-            if (!ReportBadParameter(cx, parser, name, JSMSG_RESERVED_ID))
-                return false;
-        }
 
         
 
@@ -1206,20 +1189,23 @@ LeaveFunction(ParseNode *fn, Parser *parser, PropertyName *funName = NULL,
 
 
 bool
-frontend::DefineArg(ParseNode *pn, JSAtom *atom, unsigned i, Parser *parser)
+frontend::DefineArg(ParseNode *pn, PropertyName *name, unsigned i, Parser *parser)
 {
     
 
 
 
 
-    ParseNode *argpn = NameNode::create(PNK_NAME, atom, parser, parser->tc);
+    ParseNode *argpn = NameNode::create(PNK_NAME, name, parser, parser->tc);
     if (!argpn)
         return false;
     JS_ASSERT(argpn->isKind(PNK_NAME) && argpn->isOp(JSOP_NOP));
 
+    if (!CheckStrictBinding(parser->context, parser, name, argpn))
+        return false;
+
     
-    if (!Define(argpn, atom, parser->tc))
+    if (!Define(argpn, name, parser->tc))
         return false;
 
     ParseNode *argsbody = pn->pn_body;
@@ -1250,6 +1236,8 @@ BindDestructuringArg(JSContext *cx, BindData *data, JSAtom *atom, Parser *parser
     }
 
     ParseNode *pn = data->pn;
+    if (!CheckStrictBinding(cx, parser, atom->asPropertyName(), pn))
+        return false;
 
     
 
