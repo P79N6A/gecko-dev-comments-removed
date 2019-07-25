@@ -22,15 +22,38 @@
 
 
 
+
+
+
 window.Item = function() {
+  
+  
   this.isAnItem = true;
+  
+  
+  
   this.bounds = null;
+  
+  
+  
+  
   this.debug = false;
+  
+  
+  
   this.$debug = null;
+  
+  
+  
   this.container = null;
 };
 
 window.Item.prototype = { 
+  
+  
+  
+  
+  
   
   _init: function(container) {
     this.container = container;
@@ -50,9 +73,19 @@ window.Item.prototype = {
   },
   
   
+  
+  
   getBounds: function() {
     return new Rect(this.bounds);    
   },
+  
+  
+  
+  
+  
+  
+  
+  
   
   
   setPosition: function(left, top, immediately) {
@@ -60,15 +93,27 @@ window.Item.prototype = {
   },
 
   
+  
+  
+  
+  
+  
+  
+  
+  
   setSize: function(width, height, immediately) {
     this.setBounds(new Rect(this.bounds.left, this.bounds.top, width, height), immediately);
   },
 
   
+  
+  
   getZ: function() {
     return parseInt($(this.container).css('zIndex'));
   },
     
+  
+  
   
   pushAway: function() {
     var buffer = 10;
@@ -135,6 +180,9 @@ window.Item.prototype = {
   },
   
   
+  
+  
+  
   _updateDebugBounds: function() {
     if(this.$debug) {
       this.$debug.css({
@@ -148,11 +196,17 @@ window.Item.prototype = {
 };  
 
 
+
+
 window.Items = {
+  
+  
   
   item: function(el) {
     return $(el).data('item');
   },
+  
+  
   
   
   getTopLevelItems: function() {
