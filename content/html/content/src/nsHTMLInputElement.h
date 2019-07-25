@@ -290,7 +290,9 @@ public:
 
 
 
-  PRInt32 GetFiltersFromAccept();
+
+
+  PRInt32 GetFilterFromAccept();
 
 protected:
   
