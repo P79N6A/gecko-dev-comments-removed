@@ -177,6 +177,8 @@ private:
     PRInt32                         mPipelinePosition;
     PRInt64                         mMaxPipelineObjectSize;
 
+    nsHttpVersion                   mHttpVersion;
+
     
     
     bool                            mClosed;
