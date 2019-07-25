@@ -154,9 +154,7 @@ function PreviewController(win, tab) {
   this.linkedBrowser = tab.linkedBrowser;
 
   this.linkedBrowser.addEventListener("MozAfterPaint", this, false);
-  this.linkedBrowser.addEventListener("DOMTitleChanged", this, false);
-  
-  this.linkedBrowser.addEventListener("pageshow", this, false);
+  this.tab.addEventListener("TabAttrModified", this, false);
 
   
   XPCOMUtils.defineLazyGetter(this, "preview", function () this.win.previewFromTab(this.tab));
@@ -180,8 +178,7 @@ PreviewController.prototype = {
   QueryInterface: XPCOMUtils.generateQI([Ci.nsITaskbarPreviewController,
                                          Ci.nsIDOMEventListener]),
   destroy: function () {
-    this.linkedBrowser.removeEventListener("pageshow", this, false);
-    this.linkedBrowser.removeEventListener("DOMTitleChanged", this, false);
+    this.tab.removeEventListener("TabAttrModified", this, false);
     this.linkedBrowser.removeEventListener("MozAfterPaint", this, false);
 
     
@@ -355,11 +352,7 @@ PreviewController.prototype = {
         if (preview.visible)
           preview.invalidate();
         break;
-      case "pageshow":
-      case "DOMTitleChanged":
-        
-        
-        this.win.tabbrowser.setTabTitle(this.tab);
+      case "TabAttrModified":
         this.updateTitleAndTooltip();
         break;
     }
