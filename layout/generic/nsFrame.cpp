@@ -575,7 +575,7 @@ nsFrame::DestroyFrom(nsIFrame* aDestructRoot)
 
   if (view) {
     
-    view->SetClientData(nsnull);
+    view->SetFrame(nsnull);
 
     
     view->Destroy();
@@ -4049,7 +4049,7 @@ nsresult
 nsIFrame::SetView(nsIView* aView)
 {
   if (aView) {
-    aView->SetClientData(this);
+    aView->SetFrame(this);
 
     
     Properties().Set(ViewProperty(), aView);

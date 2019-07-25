@@ -819,9 +819,7 @@ nsContentSink::ProcessLink(nsIContent* aElement,
                            const nsSubstring& aRel, const nsSubstring& aTitle,
                            const nsSubstring& aType, const nsSubstring& aMedia)
 {
-  
-  nsTArray<nsString> linkTypes;
-  nsStyleLinkElement::ParseLinkTypes(aRel, linkTypes);
+  PRUint32 linkTypes = nsStyleLinkElement::ParseLinkTypes(aRel);
 
   
   
@@ -831,22 +829,22 @@ nsContentSink::ProcessLink(nsIContent* aElement,
     return NS_OK;
   }
   
-  bool hasPrefetch = linkTypes.Contains(NS_LITERAL_STRING("prefetch"));
+  bool hasPrefetch = linkTypes & PREFETCH;
   
-  if (hasPrefetch || linkTypes.Contains(NS_LITERAL_STRING("next"))) {
+  if (hasPrefetch || (linkTypes & NEXT)) {
     PrefetchHref(aHref, aElement, hasPrefetch);
   }
 
-  if ((!aHref.IsEmpty()) && linkTypes.Contains(NS_LITERAL_STRING("dns-prefetch"))) {
+  if (!aHref.IsEmpty() && (linkTypes & DNS_PREFETCH)) {
     PrefetchDNS(aHref);
   }
 
   
-  if (!linkTypes.Contains(NS_LITERAL_STRING("stylesheet"))) {
+  if (!(linkTypes & STYLESHEET)) {
     return NS_OK;
   }
 
-  bool isAlternate = linkTypes.Contains(NS_LITERAL_STRING("alternate"));
+  bool isAlternate = linkTypes & ALTERNATE;
   return ProcessStyleLink(aElement, aHref, isAlternate, aTitle, aType,
                           aMedia);
 }

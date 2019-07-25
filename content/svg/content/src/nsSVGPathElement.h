@@ -98,12 +98,17 @@ public:
     return nsGkAtoms::d;
   }
 
+  enum PathLengthScaleForType {
+    eForTextPath,
+    eForStroking
+  };
+
   
 
 
 
 
-  gfxFloat GetPathLengthScale();
+  gfxFloat GetPathLengthScale(PathLengthScaleForType aFor);
 
 protected:
 

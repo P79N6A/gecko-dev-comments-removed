@@ -626,8 +626,6 @@ pref("javascript.options.strict",           false);
 pref("javascript.options.strict.debug",     true);
 #endif
 pref("javascript.options.relimit",          true);
-pref("javascript.options.tracejit.content",  false);
-pref("javascript.options.tracejit.chrome",   false);
 pref("javascript.options.methodjit.content", true);
 pref("javascript.options.methodjit.chrome",  true);
 pref("javascript.options.jitprofiling.content", true);
@@ -1467,6 +1465,14 @@ pref("editor.positioning.offset",            0);
 
 pref("dom.max_chrome_script_run_time", 20);
 pref("dom.max_script_run_time", 10);
+
+
+
+#ifndef DEBUG
+pref("hangmonitor.timeout", 30);
+#else
+pref("hangmonitor.timeout", 0);
+#endif
 
 #ifndef DEBUG
 
@@ -3366,3 +3372,6 @@ pref("layout.3d-transforms.enabled", true);
 
 
 pref("dom.battery.enabled", true);
+
+
+pref("browser.dom.window.dump.enabled", false);

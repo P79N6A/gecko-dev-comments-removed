@@ -71,7 +71,6 @@ struct xpc_qsHashEntry {
     nsID iid;
     const xpc_qsPropertySpec *properties;
     const xpc_qsFunctionSpec *functions;
-    const xpc_qsTraceableSpec *traceables;
     
     
     size_t parentInterface;

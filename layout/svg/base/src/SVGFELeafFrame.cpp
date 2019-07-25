@@ -4,10 +4,39 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "nsFrame.h"
-#include "nsGkAtoms.h"
-#include "nsSVGEffects.h"
 #include "nsSVGFilters.h"
+#include "nsSVGEffects.h"
 
 typedef nsFrame SVGFELeafFrameBase;
 
@@ -20,11 +49,7 @@ class SVGFELeafFrame : public SVGFELeafFrameBase
   friend nsIFrame*
   NS_NewSVGFELeafFrame(nsIPresShell* aPresShell, nsStyleContext* aContext);
 protected:
-  SVGFELeafFrame(nsStyleContext* aContext)
-    : SVGFELeafFrameBase(aContext)
-  {
-    AddStateBits(NS_FRAME_SVG_LAYOUT | NS_STATE_SVG_NONDISPLAY_CHILD);
-  }
+  SVGFELeafFrame(nsStyleContext* aContext) : SVGFELeafFrameBase(aContext) {}
 
 public:
   NS_DECL_FRAMEARENA_HELPERS
@@ -35,7 +60,7 @@ public:
                   nsIFrame*   aPrevInFlow);
 #endif
 
-  virtual bool IsFrameOfType(uint32_t aFlags) const
+  virtual bool IsFrameOfType(PRUint32 aFlags) const
   {
     return SVGFELeafFrameBase::IsFrameOfType(aFlags & ~(nsIFrame::eSVG));
   }
@@ -56,14 +81,9 @@ public:
 
   virtual nsIAtom* GetType() const;
 
-  NS_IMETHOD AttributeChanged(int32_t  aNameSpaceID,
+  NS_IMETHOD AttributeChanged(PRInt32  aNameSpaceID,
                               nsIAtom* aAttribute,
-                              int32_t  aModType);
-
-  virtual bool UpdateOverflow() {
-    
-    return false;
-  }
+                              PRInt32  aModType);
 };
 
 nsIFrame*
@@ -103,9 +123,9 @@ SVGFELeafFrame::GetType() const
 }
 
 NS_IMETHODIMP
-SVGFELeafFrame::AttributeChanged(int32_t  aNameSpaceID,
+SVGFELeafFrame::AttributeChanged(PRInt32  aNameSpaceID,
                                  nsIAtom* aAttribute,
-                                 int32_t  aModType)
+                                 PRInt32  aModType)
 {
   nsSVGFE *element = static_cast<nsSVGFE*>(mContent);
   if (element->AttributeAffectsRendering(aNameSpaceID, aAttribute)) {

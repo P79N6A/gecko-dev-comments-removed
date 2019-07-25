@@ -82,7 +82,7 @@ class ProcessingInstruction;
 
 
 
-class Node : public TxObject
+class Node : public txObject
 {
   public:
     

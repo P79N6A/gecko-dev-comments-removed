@@ -124,11 +124,18 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0xc3e40e8e, 0x8b91, 0x424c, \
-  { 0xbe, 0x9c, 0x9c, 0xc1, 0x76, 0xa7, 0xf7, 0x24 } }
+{ 0x184e0a3c, 0x1899, 0x417d, \
+  { 0xbf, 0xf4, 0x5a, 0x15, 0xe6, 0xe8, 0xaa, 0x94 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
+
+
+enum DocumentFlavor {
+  DocumentFlavorLegacyGuess, 
+  DocumentFlavorHTML, 
+  DocumentFlavorSVG 
+};
 
 
 
@@ -1555,7 +1562,15 @@ public:
   virtual nsresult SetNavigationTiming(nsDOMNavigationTiming* aTiming) = 0;
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName) = 0;
+
   
+  
+  
+  virtual void NotifyAudioAvailableListener() = 0;
+
+  
+  virtual bool HasAudioAvailableListeners() = 0;
+
   
   void RegisterPendingLinkUpdate(mozilla::dom::Link* aLink);
   
@@ -1891,7 +1906,7 @@ NS_NewDOMDocument(nsIDOMDocument** aInstancePtrResult,
                   nsIPrincipal* aPrincipal,
                   bool aLoadedAsData,
                   nsIScriptGlobalObject* aEventObject,
-                  bool aSVGDocument);
+                  DocumentFlavor aFlavor);
 
 
 

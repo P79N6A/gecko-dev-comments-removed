@@ -408,7 +408,8 @@ AsyncConnectionHelper::Init()
 already_AddRefed<nsDOMEvent>
 AsyncConnectionHelper::CreateSuccessEvent()
 {
-  return CreateGenericEvent(NS_LITERAL_STRING(SUCCESS_EVT_STR));
+  return CreateGenericEvent(NS_LITERAL_STRING(SUCCESS_EVT_STR),
+                            eDoesNotBubble, eNotCancelable);
 }
 
 nsresult
@@ -453,7 +454,8 @@ AsyncConnectionHelper::OnError()
 
   
   nsRefPtr<nsDOMEvent> event =
-    CreateGenericEvent(NS_LITERAL_STRING(ERROR_EVT_STR), true);
+    CreateGenericEvent(NS_LITERAL_STRING(ERROR_EVT_STR), eDoesBubble,
+                       eCancelable);
   if (!event) {
     NS_ERROR("Failed to create event!");
     return;

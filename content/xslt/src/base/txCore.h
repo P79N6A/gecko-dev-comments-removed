@@ -106,10 +106,4 @@ public:
     static double toDouble(const nsAString& aStr);
 };
 
-
-#define TxObject txObject
-typedef txDouble Double;
-
-
-
 #endif

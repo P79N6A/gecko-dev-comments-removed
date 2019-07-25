@@ -643,7 +643,7 @@ nsProtocolProxyService::ExtractProxyInfo(const char *start,
         
         
         
-        if (type == kProxyType_SOCKS)
+        if (type == kProxyType_SOCKS || mSOCKSProxyRemoteDNS)
             flags |= nsIProxyInfo::TRANSPARENT_PROXY_RESOLVES_HOST;
 
         

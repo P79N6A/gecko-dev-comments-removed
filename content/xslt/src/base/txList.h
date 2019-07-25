@@ -46,7 +46,7 @@ class txListIterator;
 
 
 
-class txList : public TxObject {
+class txList : public txObject {
 
 friend class txListIterator;
 

@@ -449,17 +449,30 @@ public:
     
     
     void SetupRobustnessTimer() {
-        if (mContextLost)
+        if (mContextLost || !mHasRobustness)
             return;
 
-        if (!mContextRestorer)
-            mContextRestorer = do_CreateInstance("@mozilla.org/timer;1");
         
         
+        
+        
+        if (mRobustnessTimerRunning) {
+            mDrawSinceRobustnessTimerSet = true;
+            return;
+        }
         
         mContextRestorer->InitWithCallback(static_cast<nsITimerCallback*>(this),
                                            PR_MillisecondsToInterval(1000),
                                            nsITimer::TYPE_ONE_SHOT);
+        mRobustnessTimerRunning = true;
+        mDrawSinceRobustnessTimerSet = false;
+    }
+
+    void TerminateRobustnessTimer() {
+        if (mRobustnessTimerRunning) {
+            mContextRestorer->Cancel();
+            mRobustnessTimerRunning = false;
+        }
     }
 
 protected:
@@ -504,6 +517,7 @@ protected:
     bool mOptionsFrozen;
     bool mMinCapability;
     bool mDisableExtensions;
+    bool mHasRobustness;
 
     WebGLuint mActiveTexture;
     WebGLenum mWebGLError;
@@ -723,6 +737,8 @@ protected:
     nsCOMPtr<nsITimer> mContextRestorer;
     bool mContextLost;
     bool mAllowRestore;
+    bool mRobustnessTimerRunning;
+    bool mDrawSinceRobustnessTimerSet;
 
 public:
     

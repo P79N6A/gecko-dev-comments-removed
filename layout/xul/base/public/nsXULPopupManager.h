@@ -81,7 +81,6 @@ class nsMenuBarFrame;
 class nsMenuParent;
 class nsIDOMKeyEvent;
 class nsIDocShellTreeItem;
-class nsIView;
 
 
 
@@ -480,7 +479,8 @@ public:
   
 
 
-  void HidePopup(nsIView* aView);
+
+  void HidePopup(nsIFrame* aFrame);
 
   
 
@@ -553,13 +553,13 @@ public:
 
 
 
-  void PopupMoved(nsIView* aView, nsIntPoint aPoint);
+  void PopupMoved(nsIFrame* aFrame, nsIntPoint aPoint);
 
   
 
 
 
-  void PopupResized(nsIView* aView, nsIntSize ASize);
+  void PopupResized(nsIFrame* aFrame, nsIntSize ASize);
 
   
 

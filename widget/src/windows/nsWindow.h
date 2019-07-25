@@ -443,6 +443,7 @@ protected:
                                                LPARAM aLParam,
                                                LRESULT *aRetValue);
   void                    OnWindowPosChanging(LPWINDOWPOS& info);
+  void                    OnSysColorChanged();
 
   
 

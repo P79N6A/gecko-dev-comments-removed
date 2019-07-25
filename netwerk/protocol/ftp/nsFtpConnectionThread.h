@@ -269,6 +269,7 @@ private:
                                             
     nsresult            mInternalError; 
     bool                mReconnectAndLoginAgain;
+    bool                mCacheConnection;
 
         
     PRInt32                mPort;       

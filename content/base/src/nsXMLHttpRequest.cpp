@@ -70,7 +70,6 @@
 #include "nsCExternalHandlerService.h"
 #include "nsIVariant.h"
 #include "xpcprivate.h"
-#include "nsIParser.h"
 #include "XPCQuickStubs.h"
 #include "nsStringStream.h"
 #include "nsIStreamConverterService.h"
@@ -103,6 +102,7 @@
 #include "nsStringBuffer.h"
 #include "nsDOMFile.h"
 #include "nsIFileChannel.h"
+#include "mozilla/Telemetry.h"
 
 using namespace mozilla;
 
@@ -154,6 +154,8 @@ using namespace mozilla;
   "@mozilla.org/content/xmlhttprequest-bad-cert-handler;1"
 
 #define NS_PROGRESS_EVENT_INTERVAL 50
+
+NS_IMPL_ISUPPORTS1(nsXHRParseEndListener, nsIDOMEventListener)
 
 class nsResumeTimeoutsEvent : public nsRunnable
 {
@@ -430,7 +432,11 @@ nsXMLHttpRequest::nsXMLHttpRequest()
     mUploadProgress(0), mUploadProgressMax(0),
     mErrorLoad(false), mTimerIsActive(false),
     mProgressEventWasDelayed(false),
-    mLoadLengthComputable(false), mLoadTotal(0),
+    mLoadLengthComputable(false),
+    mIsHtml(false),
+    mWarnAboutMultipartHtml(false),
+    mWarnAboutSyncHtml(false),
+    mLoadTotal(0),
     mFirstStartRequestSeen(false),
     mInLoadProgressEvent(false),
     mResultJSON(JSVAL_VOID),
@@ -720,7 +726,34 @@ nsXMLHttpRequest::GetResponseXML(nsIDOMDocument **aResponseXML)
     *aResponseXML = mResponseXML;
     NS_ADDREF(*aResponseXML);
   }
-
+  if (mWarnAboutMultipartHtml) {
+    mWarnAboutMultipartHtml = false;
+    nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                    "HTMLMultipartXHRWarning",
+                                    nsnull,
+                                    0,
+                                    nsnull, 
+                                    EmptyString(),
+                                    0,
+                                    0,
+                                    nsIScriptError::warningFlag,
+                                    "DOM",
+                                    mOwner->WindowID());
+  }
+  if (mWarnAboutSyncHtml) {
+    mWarnAboutSyncHtml = false;
+    nsContentUtils::ReportToConsole(nsContentUtils::eDOM_PROPERTIES,
+                                    "HTMLSyncXHRWarning",
+                                    nsnull,
+                                    0,
+                                    nsnull, 
+                                    EmptyString(),
+                                    0,
+                                    0,
+                                    nsIScriptError::warningFlag,
+                                    "DOM",
+                                    mOwner->WindowID());
+  }
   return NS_OK;
 }
 
@@ -851,7 +884,7 @@ NS_IMETHODIMP nsXMLHttpRequest::GetResponseText(nsAString& aResponseText)
   
   
   
-  if (!mResponseXML ||
+  if (IsWaitingForHTMLCharset() || !mResponseXML ||
       mResponseBodyDecodedPos == mResponseBody.Length()) {
     aResponseText = mResponseText;
     return NS_OK;
@@ -1181,16 +1214,16 @@ nsXMLHttpRequest::Abort()
                   XML_HTTP_REQUEST_OPENED |
                   XML_HTTP_REQUEST_DONE))) {
     ChangeState(XML_HTTP_REQUEST_DONE, true);
-  }
 
-  if (!(mState & XML_HTTP_REQUEST_SYNCLOOPING)) {
-    NS_NAMED_LITERAL_STRING(abortStr, ABORT_STR);
-    DispatchProgressEvent(this, abortStr, mLoadLengthComputable, responseLength,
-                          mLoadTotal);
-    if (mUpload && !mUploadComplete) {
-      mUploadComplete = true;
-      DispatchProgressEvent(mUpload, abortStr, true, mUploadTransferred,
-                            mUploadTotal);
+    if (!(mState & XML_HTTP_REQUEST_SYNCLOOPING)) {
+      NS_NAMED_LITERAL_STRING(abortStr, ABORT_STR);
+      DispatchProgressEvent(this, abortStr, mLoadLengthComputable, responseLength,
+                            mLoadTotal);
+      if (mUpload && !mUploadComplete) {
+        mUploadComplete = true;
+        DispatchProgressEvent(mUpload, abortStr, true, mUploadTransferred,
+                              mUploadTotal);
+      }
     }
   }
 
@@ -1440,6 +1473,16 @@ nsXMLHttpRequest::IsSystemXHR()
   return !!nsContentUtils::IsSystemPrincipal(mPrincipal);
 }
 
+bool
+nsXMLHttpRequest::IsWaitingForHTMLCharset()
+{
+  if (!mIsHtml || !mResponseXML) {
+    return false;
+  }
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(mResponseXML);
+  return doc->GetDocumentCharacterSetSource() < kCharsetFromDocTypeDefault;
+}
+
 nsresult
 nsXMLHttpRequest::CheckChannelForCrossSiteRequest(nsIChannel* aChannel)
 {
@@ -1485,6 +1528,8 @@ nsXMLHttpRequest::Open(const nsACString& method, const nsACString& url,
     
     async = true;
   }
+  Telemetry::Accumulate(Telemetry::XMLHTTPREQUEST_ASYNC_OR_SYNC,
+                        async ? 0 : 1);
 
   NS_ENSURE_TRUE(mPrincipal, NS_ERROR_NOT_INITIALIZED);
 
@@ -1872,6 +1917,9 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     parseBody = !method.EqualsLiteral("HEAD");
   }
 
+  mIsHtml = false;
+  mWarnAboutMultipartHtml = false;
+  mWarnAboutSyncHtml = false;
   if (parseBody && NS_SUCCEEDED(status)) {
     
     
@@ -1880,7 +1928,30 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     nsCAutoString type;
     channel->GetContentType(type);
 
-    if (type.Find("xml") == kNotFound) {
+    if (type.EqualsLiteral("text/html")) {
+      if (!(mState & XML_HTTP_REQUEST_ASYNC)) {
+        
+        
+        mWarnAboutSyncHtml = true;
+        mState &= ~XML_HTTP_REQUEST_PARSEBODY;
+      } else if (mState & XML_HTTP_REQUEST_MULTIPART) {
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        mWarnAboutMultipartHtml = true;
+        mState &= ~XML_HTTP_REQUEST_PARSEBODY;
+      } else {
+        mIsHtml = true;
+      }
+    } else if (type.Find("xml") == kNotFound) {
       mState &= ~XML_HTTP_REQUEST_PARSEBODY;
     }
   } else {
@@ -1905,7 +1976,9 @@ nsXMLHttpRequest::OnStartRequest(nsIRequest *request, nsISupports *ctxt)
     const nsAString& emptyStr = EmptyString();
     nsCOMPtr<nsIScriptGlobalObject> global = do_QueryInterface(mOwner);
     rv = nsContentUtils::CreateDocument(emptyStr, emptyStr, nsnull, docURI,
-                                        baseURI, mPrincipal, global, false,
+                                        baseURI, mPrincipal, global,
+                                        mIsHtml ? DocumentFlavorHTML :
+                                                  DocumentFlavorLegacyGuess,
                                         getter_AddRefs(mResponseXML));
     NS_ENSURE_SUCCESS(rv, rv);
     nsCOMPtr<nsIDocument> responseDoc = do_QueryInterface(mResponseXML);
@@ -1990,12 +2063,8 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     return NS_OK;
   }
 
-  nsCOMPtr<nsIParser> parser;
-
   
   if (mState & XML_HTTP_REQUEST_PARSEBODY && mXMLParserStreamListener) {
-    parser = do_QueryInterface(mXMLParserStreamListener);
-    NS_ABORT_IF_FALSE(parser, "stream listener was expected to be a parser");
     mXMLParserStreamListener->OnStopRequest(request, ctxt, status);
   }
 
@@ -2005,7 +2074,10 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
 
   
   
-  MaybeDispatchProgressEvents(true);
+  
+  if (!mIsHtml) {
+    MaybeDispatchProgressEvents(true);
+  }
 
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(request));
   NS_ENSURE_TRUE(channel, NS_ERROR_UNEXPECTED);
@@ -2050,9 +2122,6 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     mResponseXML = nsnull;
   }
 
-  NS_ASSERTION(!parser || parser->IsParserEnabled(),
-               "Parser blocked somehow?");
-
   
   
   
@@ -2061,18 +2130,42 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     return NS_OK;
   }
 
-  
-  
-  
-  
-  if (mResponseXML) {
-    nsCOMPtr<nsIDOMElement> root;
-    mResponseXML->GetDocumentElement(getter_AddRefs(root));
-    if (!root) {
-      mResponseXML = nsnull;
-    }
+  if (!mResponseXML) {
+    ChangeStateToDone();
+    return NS_OK;
   }
+  if (mIsHtml) {
+    NS_ASSERTION(!(mState & XML_HTTP_REQUEST_SYNCLOOPING),
+      "We weren't supposed to support HTML parsing with XHR!");
+    nsCOMPtr<nsIDOMEventTarget> eventTarget = do_QueryInterface(mResponseXML);
+    nsEventListenerManager* manager = eventTarget->GetListenerManager(true);
+    manager->AddEventListenerByType(new nsXHRParseEndListener(this),
+                                    NS_LITERAL_STRING("DOMContentLoaded"),
+                                    NS_EVENT_FLAG_BUBBLE |
+                                    NS_EVENT_FLAG_SYSTEM_EVENT);
+    return NS_OK;
+  }
+  
+  
+  
+  
+  nsCOMPtr<nsIDOMElement> root;
+  mResponseXML->GetDocumentElement(getter_AddRefs(root));
+  if (!root) {
+    mResponseXML = nsnull;
+  }
+  ChangeStateToDone();
+  return NS_OK;
+}
 
+void
+nsXMLHttpRequest::ChangeStateToDone()
+{
+  if (mIsHtml) {
+    
+    
+    MaybeDispatchProgressEvents(true);
+  }
   ChangeState(XML_HTTP_REQUEST_DONE, true);
 
   NS_NAMED_LITERAL_STRING(errorStr, ERROR_STR);
@@ -2098,8 +2191,6 @@ nsXMLHttpRequest::OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult
     
     ChangeState(XML_HTTP_REQUEST_OPENED);
   }
-
-  return NS_OK;
 }
 
 NS_IMETHODIMP
@@ -3047,11 +3138,13 @@ nsXMLHttpRequest::MaybeDispatchProgressEvents(bool aFinalProgress)
       mLoadTotal = mLoadTransferred;
       mLoadLengthComputable = true;
     }
-    mInLoadProgressEvent = true;
-    DispatchProgressEvent(this, NS_LITERAL_STRING(PROGRESS_STR),
-                          true, mLoadLengthComputable, mLoadTransferred,
-                          mLoadTotal, mLoadTransferred, mLoadTotal);
-    mInLoadProgressEvent = false;
+    if (aFinalProgress || !IsWaitingForHTMLCharset()) {
+      mInLoadProgressEvent = true;
+      DispatchProgressEvent(this, NS_LITERAL_STRING(PROGRESS_STR),
+                            true, mLoadLengthComputable, mLoadTransferred,
+                            mLoadTotal, mLoadTransferred, mLoadTotal);
+      mInLoadProgressEvent = false;
+    }
     if (mResponseType == XML_HTTP_RESPONSE_TYPE_CHUNKED_TEXT ||
         mResponseType == XML_HTTP_RESPONSE_TYPE_CHUNKED_ARRAYBUFFER) {
       mResponseBody.Truncate();

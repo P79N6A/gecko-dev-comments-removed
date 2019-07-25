@@ -949,6 +949,13 @@ public:
 
   virtual Element* FindImageMap(const nsAString& aNormalizedMapName);
 
+  virtual void NotifyAudioAvailableListener();
+
+  bool HasAudioAvailableListeners()
+  {
+    return mHasAudioAvailableListener;
+  }
+
   virtual Element* GetFullScreenElement();
   virtual void AsyncRequestFullScreen(Element* aElement);
   virtual void CancelFullScreen();
@@ -978,7 +985,9 @@ protected:
   
   
   
-  bool IsFullScreenEnabled(bool aIsCallerChrome);
+  
+  
+  bool IsFullScreenEnabled(bool aIsCallerChrome, bool aLogFailure);
 
   
 
@@ -1154,6 +1163,10 @@ protected:
 
   
   bool mAnimatingImages:1;
+
+  
+  
+  bool mHasAudioAvailableListener:1;
 
   
   bool mIsFullScreen:1;

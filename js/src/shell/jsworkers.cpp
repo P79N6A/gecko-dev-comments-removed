@@ -40,6 +40,8 @@
 
 #ifdef JS_THREADSAFE
 
+#include "mozilla/Attributes.h"
+
 #include <string.h>
 #include "prthread.h"
 #include "prlock.h"
@@ -351,7 +353,7 @@ class Event
 
 typedef ThreadSafeQueue<Event *> EventQueue;
 
-class MainQueue : public EventQueue, public WorkerParent
+class MainQueue MOZ_FINAL : public EventQueue, public WorkerParent
 {
   private:
     ThreadPool *threadPool;
@@ -430,7 +432,7 @@ class MainQueue : public EventQueue, public WorkerParent
 
 
 
-class WorkerQueue : public ThreadSafeQueue<Worker *>
+class WorkerQueue MOZ_FINAL : public ThreadSafeQueue<Worker *>
 {
   private:
     MainQueue *main;
@@ -588,7 +590,7 @@ class ThreadPool
 
 
 
-class Worker : public WorkerParent
+class Worker MOZ_FINAL : public WorkerParent
 {
   private:
     ThreadPool *threadPool;

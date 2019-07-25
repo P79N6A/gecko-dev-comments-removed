@@ -37,7 +37,7 @@
 
 #ifndef nsFrameSelection_h___
 #define nsFrameSelection_h___
- 
+
 #include "nsIFrame.h"
 #include "nsIContent.h"
 #include "nsISelectionController.h"
@@ -210,7 +210,7 @@ class nsIScrollableFrame;
 
 
 
-class NS_FINAL_CLASS nsFrameSelection : public nsISupports {
+class nsFrameSelection : public nsISupports {
 public:
   enum HINT { HINTLEFT = 0, HINTRIGHT = 1};  
   

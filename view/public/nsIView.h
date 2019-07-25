@@ -45,6 +45,7 @@
 #include "nsNativeWidget.h"
 #include "nsIWidget.h"
 #include "nsWidgetInitData.h"
+#include "nsIFrame.h"
 
 class nsIViewManager;
 class nsViewManager;
@@ -62,8 +63,8 @@ enum nsViewVisibility {
 };
 
 #define NS_IVIEW_IID    \
-  { 0x7caf32d2, 0xd82a, 0x4b9f, \
-    { 0x84, 0xc1, 0xbd, 0x20, 0xeb, 0x5c, 0x78, 0x55 } }
+  { 0xda62efbf, 0x0711, 0x4b79, \
+    { 0x87, 0x85, 0x9e, 0xec, 0xed, 0xf5, 0xb0, 0x32 } }
 
 
 
@@ -253,14 +254,12 @@ public:
   
 
 
-
-  void SetClientData(void *aData) { mClientData = aData; }
+  void SetFrame(nsIFrame* aRootFrame) { mFrame = aRootFrame; }
 
   
 
 
-
-  void* GetClientData() const { return mClientData; }
+  nsIFrame* GetFrame() const { return mFrame; }
 
   
 
@@ -399,7 +398,7 @@ protected:
   nsIWidget         *mWindow;
   nsView            *mNextSibling;
   nsView            *mFirstChild;
-  void              *mClientData;
+  nsIFrame          *mFrame;
   PRInt32           mZIndex;
   nsViewVisibility  mVis;
   

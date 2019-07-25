@@ -53,6 +53,8 @@
 #include "WrapperFactory.h"
 #include "dombindings.h"
 
+#include "mozilla/Util.h"
+
 bool
 xpc_OkToHandOutWrapper(nsWrapperCache *cache)
 {
@@ -860,6 +862,8 @@ XPCWrappedNative::~XPCWrappedNative()
     Destroy();
 }
 
+static const PRWord WRAPPER_WORD_POISON = 0xa8a8a8a8;
+
 void
 XPCWrappedNative::Destroy()
 {
@@ -899,9 +903,20 @@ XPCWrappedNative::Destroy()
         }
     }
 
-    mMaybeScope = nsnull;
+    
 
-    JS_UnregisterReference((void **) &mWrapperWord);
+
+
+
+
+    if (XPCJSRuntime *rt = GetRuntime()) {
+        JS_UnregisterReferenceRT(rt->GetJSRuntime(), (void **) &mWrapperWord);
+        mWrapperWord = WRAPPER_WORD_POISON;
+    } else {
+        MOZ_ASSERT(mWrapperWord == WRAPPER_WORD_POISON);
+    }
+
+    mMaybeScope = nsnull;
 }
 
 void
@@ -2263,7 +2278,7 @@ CallMethodHelper::~CallMethodHelper()
                 
                 if (dp->DoesValNeedCleanup()) {
                     
-                    JSUint32 array_count;
+                    JSUint32 array_count = 0;
                     nsXPTType datum_type;
                     if (!GetArraySizeFromParam(i, &array_count) ||
                         !NS_SUCCEEDED(mIFaceInfo->GetTypeForParam(mVTableIndex,
@@ -2398,7 +2413,7 @@ CallMethodHelper::GatherAndConvertResults()
         nsXPTCVariant* dp = GetDispatchParam(i);
         jsval v = JSVAL_NULL;
         AUTO_MARK_JSVAL(mCallContext, &v);
-        JSUint32 array_count;
+        JSUint32 array_count = 0;
         nsXPTType datum_type;
         bool isArray = type.IsArray();
         bool isSizedString = isArray ?
@@ -2723,7 +2738,7 @@ CallMethodHelper::ConvertDependentParams()
             continue;
 
         nsXPTType datum_type;
-        JSUint32 array_count;
+        JSUint32 array_count = 0;
         bool isArray = type.IsArray();
 
         bool isSizedString = isArray ?

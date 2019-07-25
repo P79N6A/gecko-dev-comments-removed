@@ -80,8 +80,8 @@ class nsIArray;
 class nsPIWindowRoot;
 
 #define NS_PIDOMWINDOW_IID \
-{ 0x8ce567b5, 0xcc8d, 0x410b, \
-  { 0xa2, 0x7b, 0x07, 0xaf, 0x31, 0xc0, 0x33, 0xb8 } }
+{ 0x9db588f7, 0x3472, 0x45d0, \
+  { 0x9f, 0x9b, 0x95, 0xca, 0xf6, 0x4d, 0x1a, 0xb1 } }
 
 class nsPIDOMWindow : public nsIDOMWindowInternal
 {
@@ -461,19 +461,7 @@ public:
 
 
 
-  bool HasAudioAvailableEventListeners()
-  {
-    return mMayHaveAudioAvailableEventListener;
-  }
-
-  
-
-
-
-  void SetHasAudioAvailableEventListeners()
-  {
-    mMayHaveAudioAvailableEventListener = true;
-  }
+  virtual void SetHasAudioAvailableEventListeners() = 0;
 
   
 
@@ -657,7 +645,6 @@ protected:
   bool                   mIsInnerWindow;
   bool                   mMayHavePaintEventListener;
   bool                   mMayHaveTouchEventListener;
-  bool                   mMayHaveAudioAvailableEventListener;
   bool                   mMayHaveMouseEnterLeaveEventListener;
 
   

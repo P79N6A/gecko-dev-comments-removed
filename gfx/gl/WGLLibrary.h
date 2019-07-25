@@ -3,6 +3,37 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #include "GLContext.h"
 
 namespace mozilla {
@@ -11,24 +42,7 @@ namespace gl {
 class WGLLibrary
 {
 public:
-    WGLLibrary() 
-      : mInitialized(false), 
-        mOGLLibrary(nullptr),
-        mHasRobustness(false), 
-        mWindow (0),
-        mWindowDC(0),
-        mWindowGLContext(0),
-        mWindowPixelFormat (0),
-        mUseDoubleBufferedWindows(false),
-        mLibType(OPENGL_LIB)     
-    {}
-
-    enum LibraryType
-    {
-      OPENGL_LIB = 0,
-      MESA_LLVMPIPE_LIB = 1,
-      LIBS_MAX
-    };
+    WGLLibrary() : mInitialized(false), mOGLLibrary(nsnull) {}
 
     typedef HGLRC (GLAPIENTRY * PFNWGLCREATECONTEXTPROC) (HDC);
     PFNWGLCREATECONTEXTPROC fCreateContext;
@@ -62,41 +76,15 @@ public:
     typedef BOOL (WINAPI * PFNWGLGETPIXELFORMATATTRIBIVPROC) (HDC hdc, int iPixelFormat, int iLayerPlane, UINT nAttributes, int* piAttributes, int *piValues);
     PFNWGLGETPIXELFORMATATTRIBIVPROC fGetPixelFormatAttribiv;
 
-    typedef const char * (WINAPI * PFNWGLGETEXTENSIONSSTRINGPROC) (HDC hdc);
-    PFNWGLGETEXTENSIONSSTRINGPROC fGetExtensionsString;
+    bool EnsureInitialized();
 
-    typedef HGLRC (WINAPI * PFNWGLCREATECONTEXTATTRIBSPROC) (HDC hdc, HGLRC hShareContext, const int *attribList);
-    PFNWGLCREATECONTEXTATTRIBSPROC fCreateContextAttribs;
-
-    bool EnsureInitialized(bool aUseMesaLlvmPipe);
-    HWND CreateDummyWindow(HDC *aWindowDC = nullptr);
-
-    bool HasRobustness() const { return mHasRobustness; }
-    bool IsInitialized() const { return mInitialized; }
-    HWND GetWindow() const { return mWindow; }
-    HDC GetWindowDC() const {return mWindowDC; }
-    HGLRC GetWindowGLContext() const {return mWindowGLContext; }
-    int GetWindowPixelFormat() const { return mWindowPixelFormat; }
-    bool UseDoubleBufferedWindows() const { return mUseDoubleBufferedWindows; }
-    LibraryType GetLibraryType() const { return mLibType; }
-    static LibraryType SelectLibrary(const GLContext::ContextFlags& aFlags);
-    
 private:
     bool mInitialized;
     PRLibrary *mOGLLibrary;
-    bool mHasRobustness;
-
-    HWND mWindow;
-    HDC mWindowDC;
-    HGLRC mWindowGLContext;
-    int mWindowPixelFormat;
-    bool mUseDoubleBufferedWindows;
-    LibraryType mLibType;
-
 };
 
 
-extern WGLLibrary sWGLLibrary[WGLLibrary::LIBS_MAX];
+extern WGLLibrary sWGLLibrary;
 
 } 
 } 

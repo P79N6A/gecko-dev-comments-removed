@@ -62,8 +62,6 @@
 #include "gc/Barrier.h"
 #include "vm/String.h"
 
-namespace nanojit { class ValidateWriter; }
-
 namespace js {
 
 class AutoPropDescArrayRooter;
@@ -411,19 +409,7 @@ class RegExpObject;
 
 
 
-
-
-
 struct JSObject : js::gc::Cell {
-    
-
-
-
-
-
-    friend class js::TraceRecorder;
-    friend class nanojit::ValidateWriter;
-
     
 
 

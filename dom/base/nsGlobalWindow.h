@@ -447,6 +447,8 @@ public:
   
   void PreventFurtherDialogs();
 
+  virtual void SetHasAudioAvailableEventListeners();
+
   nsIScriptContext *GetContextInternal()
   {
     if (mOuterWindow) {

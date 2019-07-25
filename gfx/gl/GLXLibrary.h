@@ -3,6 +3,38 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #ifndef GFX_GLXLIBRARY_H
 #define GFX_GLXLIBRARY_H
 
@@ -17,24 +49,13 @@ class GLXLibrary
 {
 public:
     GLXLibrary() : mInitialized(false), mTriedInitializing(false),
-                   mUseTextureFromPixmap(false), mDebug(false),
-                   mHasRobustness(false), mIsATI(false),
-                   mClientIsMesa(false), mGLXMajorVersion(0),
-                   mGLXMinorVersion(0), mLibType(OPENGL_LIB),
-                   mOGLLibrary(nullptr) {}
+                   mHasTextureFromPixmap(false), mDebug(false),
+                   mHasRobustness(false), mOGLLibrary(nsnull) {}
 
     void xDestroyContext(Display* display, GLXContext context);
     Bool xMakeCurrent(Display* display, 
                       GLXDrawable drawable, 
                       GLXContext context);
-
-    enum LibraryType
-    {
-      OPENGL_LIB = 0,
-      MESA_LLVMPIPE_LIB = 1,
-      LIBS_MAX
-    };
-
     GLXContext xGetCurrentContext();
     static void* xGetProcAddress(const char *procName);
     GLXFBConfig* xChooseFBConfig(Display* display, 
@@ -49,6 +70,8 @@ public:
                                  int render_type, 
                                  GLXContext share_list, 
                                  Bool direct);
+    XVisualInfo* xGetVisualFromFBConfig(Display* display, 
+                                        GLXFBConfig config);
     int xGetFBConfigAttrib(Display *display,
                            GLXFBConfig config,
                            int attribute,
@@ -68,6 +91,10 @@ public:
                                          GLXFBConfig config,
                                          Pixmap pixmap);
     void xDestroyPixmap(Display *display, GLXPixmap pixmap);
+    GLXContext xCreateContext(Display *display,
+                              XVisualInfo *vis,
+                              GLXContext shareList,
+                              Bool direct);
     Bool xQueryVersion(Display *display,
                        int *major,
                        int *minor);
@@ -87,19 +114,16 @@ public:
                                      Bool direct,
                                      const int* attrib_list);
 
-    bool EnsureInitialized(bool aUseMesaLLVMPipe);
+    bool EnsureInitialized();
 
     GLXPixmap CreatePixmap(gfxASurface* aSurface);
     void DestroyPixmap(GLXPixmap aPixmap);
     void BindTexImage(GLXPixmap aPixmap);
     void ReleaseTexImage(GLXPixmap aPixmap);
 
-    bool UseTextureFromPixmap() { return mUseTextureFromPixmap; }
+    bool HasTextureFromPixmap() { return mHasTextureFromPixmap; }
     bool HasRobustness() { return mHasRobustness; }
     bool SupportsTextureFromPixmap(gfxASurface* aSurface);
-    bool IsATI() { return mIsATI; }
-    bool GLXVersionCheck(int aMajor, int aMinor);
-    static LibraryType SelectLibrary(const GLContext::ContextFlags& aFlags);
 
 private:
     
@@ -129,6 +153,9 @@ private:
                                                               GLXContext,
                                                               Bool);
     PFNGLXCREATENEWCONTEXT xCreateNewContextInternal;
+    typedef XVisualInfo* (GLAPIENTRY * PFNGLXGETVISUALFROMFBCONFIG) (Display *,
+                                                                     GLXFBConfig);
+    PFNGLXGETVISUALFROMFBCONFIG xGetVisualFromFBConfigInternal;
     typedef int (GLAPIENTRY * PFNGLXGETFBCONFIGATTRIB) (Display *, 
                                                         GLXFBConfig,
                                                         int,
@@ -162,6 +189,11 @@ private:
     typedef void (GLAPIENTRY * PFNGLXDESTROYPIXMAP) (Display *,
                                                      GLXPixmap);
     PFNGLXDESTROYPIXMAP xDestroyPixmapInternal;
+    typedef GLXContext (GLAPIENTRY * PFNGLXCREATECONTEXT) (Display *,
+                                                           XVisualInfo *,
+                                                           GLXContext,
+                                                           Bool);
+    PFNGLXCREATECONTEXT xCreateContextInternal;
     typedef Bool (GLAPIENTRY * PFNGLXQUERYVERSION) (Display *,
                                                     int *,
                                                     int *);
@@ -198,20 +230,14 @@ private:
 
     bool mInitialized;
     bool mTriedInitializing;
-    bool mUseTextureFromPixmap;
+    bool mHasTextureFromPixmap;
     bool mDebug;
     bool mHasRobustness;
-    bool mIsATI;
-    bool mClientIsMesa;
-    int mGLXMajorVersion;
-    int mGLXMinorVersion;
-    LibraryType mLibType;
     PRLibrary *mOGLLibrary;
 };
 
 
-extern GLXLibrary sGLXLibrary[GLXLibrary::LIBS_MAX];
-extern GLXLibrary& sDefGLXLib;
+extern GLXLibrary sGLXLibrary;
 
 } 
 } 

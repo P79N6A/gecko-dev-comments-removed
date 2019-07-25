@@ -56,7 +56,7 @@ class GeneratorFrameGuard;
 enum InitialFrameFlags {
     INITIAL_NONE           =          0,
     INITIAL_CONSTRUCT      =       0x80, 
-    INITIAL_LOWERED        =   0x400000  
+    INITIAL_LOWERED        =   0x200000  
 };
 
 enum ExecuteType {
@@ -150,19 +150,6 @@ class StackSpace
     inline Value *firstUnused() const;
 
     StackSegment &containingSegment(const StackFrame *target) const;
-
-#ifdef JS_TRACER
-    
-
-
-
-
-
-
-
-
-    inline bool ensureEnoughSpaceToEnterTrace(JSContext *cx);
-#endif
 
     
 

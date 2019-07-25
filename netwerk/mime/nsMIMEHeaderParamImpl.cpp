@@ -354,7 +354,7 @@ nsMIMEHeaderParamImpl::DoParameterInternal(const char *aHeaderValue,
  
       
       
-      if (!needUnquote && (caseB || (caseCorDStart && acceptContinuations)))
+      if (caseB || (caseCorDStart && acceptContinuations))
       {
         if (caseCorDStart) {
           if (nextContinuation++ != 0)
