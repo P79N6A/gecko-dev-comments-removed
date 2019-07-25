@@ -2356,7 +2356,7 @@ nsCSSRuleProcessor::HasStateDependentStyle(StateRuleProcessorData* aData)
       nsCSSSelector* selector = *iter;
 
       nsRestyleHint possibleChange = IsSiblingOperator(selector->mOperator) ?
-        eRestyle_LaterSiblings : eRestyle_Self;
+        eRestyle_LaterSiblings : eRestyle_Subtree;
 
       
       
@@ -2398,7 +2398,7 @@ AttributeEnumFunc(nsCSSSelector* aSelector, AttributeEnumData* aData)
   AttributeRuleProcessorData *data = aData->data;
 
   nsRestyleHint possibleChange = IsSiblingOperator(aSelector->mOperator) ?
-    eRestyle_LaterSiblings : eRestyle_Self;
+    eRestyle_LaterSiblings : eRestyle_Subtree;
 
   
   
@@ -2430,7 +2430,7 @@ nsCSSRuleProcessor::HasAttributeDependentStyle(AttributeRuleProcessorData* aData
         aData->mNameSpaceID == kNameSpaceID_XUL &&
         aData->mElement == aData->mElement->GetOwnerDoc()->GetRootElement())
       {
-        data.change = nsRestyleHint(data.change | eRestyle_Self);
+        data.change = nsRestyleHint(data.change | eRestyle_Subtree);
       }
   }
 

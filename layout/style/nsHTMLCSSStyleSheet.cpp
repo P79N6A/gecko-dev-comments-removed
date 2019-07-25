@@ -156,7 +156,7 @@ nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aDat
   
   
   if (aData->mAttrHasChanged && aData->mAttribute == nsGkAtoms::style) {
-    return eRestyle_Self;
+    return eRestyle_Subtree;
   }
 
   return nsRestyleHint(0);
