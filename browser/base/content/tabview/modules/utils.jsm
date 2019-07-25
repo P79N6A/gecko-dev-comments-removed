@@ -98,7 +98,7 @@ var Utils = {
     else {
       var calls = printStackTrace();
       calls.splice(0, 3); 
-      this.log(text + ' trace:\n' + calls.join('\n'));
+      this.log('trace: ' + text + '\n' + calls.join('\n'));
     }
   }, 
 
