@@ -117,6 +117,8 @@ SetBooleanProperty(OperatorData* aOperatorData,
     aOperatorData->mFlags |= NS_MATHML_OPERATOR_SYMMETRIC;
   else if (aName.EqualsLiteral("integral"))
     aOperatorData->mFlags |= NS_MATHML_OPERATOR_INTEGRAL;
+  else if (aName.EqualsLiteral("mirrorable"))
+    aOperatorData->mFlags |= NS_MATHML_OPERATOR_MIRRORABLE;
 }
 
 static void
@@ -513,6 +515,20 @@ nsMathMLOperators::IsMutableOperator(const nsString& aOperator)
     flags[NS_MATHML_OPERATOR_FORM_PREFIX];
   return NS_MATHML_OPERATOR_IS_STRETCHY(allFlags) ||
          NS_MATHML_OPERATOR_IS_LARGEOP(allFlags);
+}
+
+ bool
+nsMathMLOperators::IsMirrorableOperator(const nsString& aOperator)
+{
+  
+  
+  
+  nsOperatorFlags flags = 0;
+  float dummy;
+  nsMathMLOperators::LookupOperator(aOperator,
+                                    NS_MATHML_OPERATOR_FORM_INFIX,
+                                    &flags, &dummy, &dummy);
+  return NS_MATHML_OPERATOR_IS_MIRRORABLE(flags);
 }
 
  nsStretchDirection

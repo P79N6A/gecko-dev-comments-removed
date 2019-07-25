@@ -760,7 +760,10 @@ nsMathMLmoFrame::Stretch(nsRenderingContext& aRenderingContext,
 
     
     nsresult res = mMathMLChar.Stretch(PresContext(), aRenderingContext,
-                                       aStretchDirection, container, charSize, stretchHint);
+                                       aStretchDirection, container, charSize,
+                                       stretchHint,
+                                       NS_MATHML_IS_RTL(mPresentationData.
+                                                        flags));
     if (NS_FAILED(res)) {
       
       

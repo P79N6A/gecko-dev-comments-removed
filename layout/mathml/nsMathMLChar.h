@@ -112,6 +112,7 @@ public:
     mUnscaledAscent = 0;
     mScaleX = mScaleY = 1.0;
     mDrawNormal = true;
+    mMirrored = false;
   }
 
   ~nsMathMLChar() { 
@@ -146,7 +147,8 @@ public:
           nsStretchDirection       aStretchDirection,
           const nsBoundingMetrics& aContainerSize,
           nsBoundingMetrics&       aDesiredStretchSize,
-          PRUint32                 aStretchHint = NS_STRETCH_NORMAL);
+          PRUint32                 aStretchHint,
+          bool                     aRTL);
 
   void
   SetData(nsPresContext* aPresContext,
@@ -258,6 +260,8 @@ private:
   float              mScaleX, mScaleY;
   
   bool               mDrawNormal;
+  
+  bool               mMirrored;
 
   class StretchEnumContext;
   friend class StretchEnumContext;
