@@ -9,10 +9,10 @@ var AlertsHelper = {
 
     
     let [leftSidebar, rightSidebar] = [Elements.tabs.getBoundingClientRect(), Elements.controls.getBoundingClientRect()];
-    if (leftSidebar.left > rightSidebar.left) {
-      container.removeAttribute("right");
+    if (leftSidebar.left > rightSidebar.left)
       container.setAttribute("left", "0");
-    }
+    else
+      container.setAttribute("right", "0");
 
     let self = this;
     container.addEventListener("transitionend", function() {
@@ -27,13 +27,35 @@ var AlertsHelper = {
     this._listener = aListener || null;
     this._cookie = aCookie || "";
 
+    
+    let container = this.container;
+    container.removeAttribute("width");
+    let alertText = document.getElementById("alerts-text");
+    alertText.style.whiteSpace = "";
+
     document.getElementById("alerts-image").setAttribute("src", aImageURL);
     document.getElementById("alerts-title").value = aTitle;
-    document.getElementById("alerts-text").textContent = aText;
+    alertText.textContent = aText;
 
-    let container = this.container;
     container.hidden = false;
-    container.height = container.getBoundingClientRect().height;
+    let bcr = container.getBoundingClientRect();
+    if (bcr.width > window.innerWidth - 50) {
+      
+      container.setAttribute("width", window.innerWidth - 50); 
+      alertText.style.whiteSpace = "pre-wrap"; 
+      bcr = container.getBoundingClientRect(); 
+    }
+    container.setAttribute("width", bcr.width); 
+    container.setAttribute("height", bcr.height);
+
+#ifdef ANDROID
+    let offset = (window.innerWidth - container.width) / 2;
+    if (container.hasAttribute("left"))
+      container.setAttribute("left", offset);
+    else
+      container.setAttribute("right", offset);
+#endif
+
     container.classList.add("showing");
 
     let timeout = Services.prefs.getIntPref("alerts.totalOpenTime");
