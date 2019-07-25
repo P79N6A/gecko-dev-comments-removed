@@ -156,10 +156,11 @@ define('gclitest/suite', ['require', 'exports', 'module' , 'gcli/index', 'test/e
 
 
 
-define('test/examiner', ['require', 'exports', 'module' , 'test/assert'], function(require, exports, module) {
+define('test/examiner', ['require', 'exports', 'module' , 'test/assert', 'test/status'], function(require, exports, module) {
 var examiner = exports;
 
 var assert = require('test/assert');
+var stati = require('test/status').stati;
 
 
 
@@ -170,14 +171,6 @@ examiner.suites = {};
 
 
 var delay = 10;
-
-var stati = {
-  notrun: { index: 0, name: 'Skipped' },
-  executing: { index: 1, name: 'Executing' },
-  asynchronous: { index: 2, name: 'Waiting' },
-  pass: { index: 3, name: 'Pass' },
-  fail: { index: 4, name: 'Fail' }
-};
 
 
 
@@ -572,6 +565,28 @@ define('test/assert', ['require', 'exports', 'module' ], function(require, expor
   exports.ok = ok;
   exports.is = is;
   exports.log = info;
+
+});
+
+
+
+
+
+
+define('test/status', ['require', 'exports', 'module' ], function(require, exports, module) {
+
+  
+
+
+
+
+  exports.stati = {
+    notrun: { index: 0, name: 'Skipped' },
+    executing: { index: 1, name: 'Executing' },
+    asynchronous: { index: 2, name: 'Waiting' },
+    pass: { index: 3, name: 'Pass' },
+    fail: { index: 4, name: 'Fail' }
+  };
 
 });
 
@@ -4109,6 +4124,7 @@ let testModuleNames = [
   'gclitest/suite',
   'test/examiner',
   'test/assert',
+  'test/status',
   'gclitest/testCanon',
   'gclitest/helpers',
   'gclitest/testCli',
