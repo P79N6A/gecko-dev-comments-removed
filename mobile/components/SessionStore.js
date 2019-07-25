@@ -782,6 +782,9 @@ SessionStore.prototype = {
             tab.browser.__SS_restore = true;
 
             
+            tab.chromeTab.updateTitle(tabData.entries[tabData.index - 1].title);
+
+            
             let canvas = tab.chromeTab.thumbnail;
             canvas.setAttribute("restored", "true");
   
