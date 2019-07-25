@@ -58,6 +58,8 @@
 
 
 
+
+
 static void ComputeBorderCornerDimensions(const gfxRect& aOuterRect,
                                           const gfxRect& aInnerRect,
                                           const gfxCornerSizes& aRadii,
@@ -1643,7 +1645,9 @@ nsCSSBorderRenderer::DrawBorders()
         
         
         
-        
+
+        mContext->PushGroup(gfxASurface::CONTENT_COLOR_ALPHA);
+        mContext->SetOperator(gfxContext::OPERATOR_ADD);
 
         for (int cornerSide = 0; cornerSide < 2; cornerSide++) {
           mozilla::css::Side side = mozilla::css::Side(sides[cornerSide]);
@@ -1661,6 +1665,10 @@ nsCSSBorderRenderer::DrawBorders()
 
           mContext->Restore();
         }
+
+        mContext->PopGroupToSource();
+        mContext->SetOperator(gfxContext::OPERATOR_OVER);
+        mContext->Paint();
       }
 
       mContext->Restore();
