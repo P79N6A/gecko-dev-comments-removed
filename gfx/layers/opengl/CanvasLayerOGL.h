@@ -66,7 +66,9 @@ public:
   
   virtual LayerType GetType() { return TYPE_CANVAS; }
   virtual Layer* GetLayer() { return this; }
-  virtual void RenderLayer(int aPreviousDestination);
+  virtual void RenderLayer(int aPreviousDestination,
+                           DrawThebesLayerCallback aCallback,
+                           void* aCallbackData);
 
 protected:
   nsRefPtr<gfxASurface> mSurface;

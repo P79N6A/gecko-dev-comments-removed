@@ -53,12 +53,13 @@
 #include "nsCaret.h"
 #include "plarena.h"
 #include "Layers.h"
+#include "nsRegion.h"
+#include "FrameLayerBuilder.h"
 
 #include <stdlib.h>
 
 class nsIPresShell;
 class nsIContent;
-class nsRegion;
 class nsIRenderingContext;
 class nsIDeviceContext;
 class nsDisplayTableItem;
@@ -120,6 +121,7 @@ class nsDisplayItem;
 class NS_STACK_CLASS nsDisplayListBuilder {
 public:
   typedef mozilla::FramePropertyDescriptor FramePropertyDescriptor;
+  typedef mozilla::FrameLayerBuilder FrameLayerBuilder;
 
   
 
@@ -339,6 +341,11 @@ public:
   void MarkFramesForDisplayList(nsIFrame* aDirtyFrame,
                                 const nsFrameList& aFrames,
                                 const nsRect& aDirtyRect);
+
+  
+
+
+  FrameLayerBuilder* LayerBuilder() { return &mLayerBuilder; }
   
   
 
@@ -407,7 +414,8 @@ private:
                  "Someone forgot to enter a presshell");
     return &mPresShellStates[mPresShellStates.Length() - 1];
   }
-  
+
+  FrameLayerBuilder              mLayerBuilder;
   nsIFrame*                      mReferenceFrame;
   nsIFrame*                      mMovingFrame;
   nsRegion*                      mSaveVisibleRegionOfMovingContent;
@@ -578,13 +586,6 @@ public:
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager)
   { return nsnull; }
-  
-
-
-
-  virtual void PaintThebesLayers(nsDisplayListBuilder* aBuilder)
-  {
-  }
 
   
 
@@ -629,6 +630,10 @@ public:
 
 
   virtual nsDisplayList* GetList() { return nsnull; }
+
+  
+
+
 
   const nsRect& GetVisibleRect() { return mVisibleRect; }
   
@@ -891,81 +896,6 @@ public:
   void HitTest(nsDisplayListBuilder* aBuilder, const nsRect& aRect,
                nsDisplayItem::HitTestState* aState,
                nsTArray<nsIFrame*> *aOutFrames) const;
-
-  
-
-
-
-
-
-
-
-
-
-
-
-
-  struct ItemGroup {
-    
-    nsDisplayItem* mStartItem;
-    nsDisplayItem* mEndItem;
-    ItemGroup* mNextItemsForLayer;
-    
-    gfxRect mClipRect;
-    PRPackedBool mHasClipRect;
-
-    ItemGroup() : mStartItem(nsnull), mEndItem(nsnull),
-      mNextItemsForLayer(nsnull), mHasClipRect(PR_FALSE) {}
-
-    void* operator new(size_t aSize,
-                       nsDisplayListBuilder* aBuilder) CPP_THROW_NEW {
-      return aBuilder->Allocate(aSize);
-    }
-  };
-  
-
-
-
-  struct LayerItems {
-    nsRefPtr<Layer> mLayer;
-    
-    ThebesLayer* mThebesLayer;
-    ItemGroup* mItems;
-    
-    nsIntRect mVisibleRect;
-
-    LayerItems(ItemGroup* aItems) :
-      mThebesLayer(nsnull), mItems(aItems)
-    {
-    }
-  };
-  
-
-
-
-
-
-
-
-  void BuildLayers(nsDisplayListBuilder* aBuilder,
-                   LayerManager* aManager,
-                   nsTArray<LayerItems>* aLayers) const;
-  
-
-
-
-
-
-
-
-  already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
-                                     LayerManager* aManager,
-                                     nsTArray<LayerItems>* aLayers) const;
-  
-
-
-  void PaintThebesLayers(nsDisplayListBuilder* aBuilder,
-                         const nsTArray<LayerItems>& aLayers) const;
 
 private:
   
@@ -1548,15 +1478,11 @@ public:
   virtual PRBool IsOpaque(nsDisplayListBuilder* aBuilder);
   virtual already_AddRefed<Layer> BuildLayer(nsDisplayListBuilder* aBuilder,
                                              LayerManager* aManager);
-  virtual void PaintThebesLayers(nsDisplayListBuilder* aBuilder);
   virtual PRBool ComputeVisibility(nsDisplayListBuilder* aBuilder,
                                    nsRegion* aVisibleRegion,
                                    nsRegion* aVisibleRegionBeforeMove);  
   virtual PRBool TryMerge(nsDisplayListBuilder* aBuilder, nsDisplayItem* aItem);
   NS_DISPLAY_DECL_NAME("Opacity")
-
-private:
-  nsTArray<nsDisplayList::LayerItems> mChildLayers;
 };
 
 
