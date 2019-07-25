@@ -429,31 +429,19 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
 
   PRBool isRootDoc = nsCoreUtils::IsRootDocument(aDocument);
 
-  
-  
-  nsAccessible *outerDocAcc = nsnull;
-  if (isRootDoc) {
-    outerDocAcc = nsAccessNode::GetApplicationAccessible();
-
-  } else {
-    nsIDocument* parentDoc = aDocument->GetParentDocument();
-    if (!parentDoc)
+  nsDocAccessible* parentDocAcc = nsnull;
+  if (!isRootDoc) {
+    
+    
+    
+    
+    
+    parentDocAcc = GetDocAccessible(aDocument->GetParentDocument());
+    NS_ASSERTION(parentDocAcc,
+                 "Can't create an accessible for the document!");
+    if (!parentDocAcc)
       return nsnull;
-
-    nsIContent* ownerContent = parentDoc->FindContentForSubDocument(aDocument);
-    if (!ownerContent)
-      return nsnull;
-
-    
-    
-    
-    
-    
-    outerDocAcc = GetAccService()->GetAccessible(ownerContent);
   }
-
-  if (!outerDocAcc)
-    return nsnull;
 
   
   
@@ -467,19 +455,31 @@ nsAccDocManager::CreateDocOrRootAccessible(nsIDocument *aDocument)
     return nsnull;
 
   
-  if (!outerDocAcc->AppendChild(docAcc)) {
-    mDocAccessibleCache.Remove(aDocument);
-    return nsnull;
-  }
-
-  
-  
   if (!docAcc->Init()) {
     docAcc->Shutdown();
-    mDocAccessibleCache.Remove(aDocument);
     return nsnull;
   }
   docAcc->SetRoleMapEntry(nsAccUtils::GetRoleMapEntry(aDocument));
+
+  
+  if (isRootDoc) {
+    nsAccessible* appAcc = nsAccessNode::GetApplicationAccessible();
+    if (!appAcc->AppendChild(docAcc)) {
+      docAcc->Shutdown();
+      return nsnull;
+    }
+
+    
+    
+    nsRefPtr<AccEvent> reorderEvent =
+      new AccEvent(nsIAccessibleEvent::EVENT_REORDER, appAcc, eAutoDetect,
+                   AccEvent::eCoalesceFromSameSubtree);
+    if (reorderEvent)
+      docAcc->FireDelayedAccessibleEvent(reorderEvent);
+
+  } else {
+    parentDocAcc->BindChildDocument(docAcc);
+  }
 
   NS_LOG_ACCDOCCREATE("document creation finished", aDocument)
 

@@ -82,6 +82,8 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_END
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NATIVE_BEGIN(NotificationController)
   NS_CYCLE_COLLECTION_NOTE_EDGE_NAME(cb, "mDocument");
   cb.NoteXPCOMChild(static_cast<nsIAccessible*>(tmp->mDocument.get()));
+  NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_MEMBER(mHangingChildDocuments,
+                                                    nsDocAccessible)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_MEMBER(mContentInsertions,
                                                     ContentInsertion)
   NS_IMPL_CYCLE_COLLECTION_TRAVERSE_NSTARRAY_MEMBER(mEvents, AccEvent)
@@ -101,8 +103,16 @@ NotificationController::Shutdown()
     mObservingState = eNotObservingRefresh;
   }
 
+  
+  PRInt32 childDocCount = mHangingChildDocuments.Length();
+  for (PRInt32 idx = childDocCount - 1; idx >= 0; idx--)
+    mHangingChildDocuments[idx]->Shutdown();
+
+  mHangingChildDocuments.Clear();
+
   mDocument = nsnull;
   mPresShell = nsnull;
+
   mContentInsertions.Clear();
   mNotifications.Clear();
   mEvents.Clear();
@@ -123,6 +133,14 @@ NotificationController::QueueEvent(AccEvent* aEvent)
   if (showOrHideEvent && !showOrHideEvent->mTextChangeEvent)
     CreateTextChangeEventFor(showOrHideEvent);
 
+  ScheduleProcessing();
+}
+
+void
+NotificationController::ScheduleChildDocBinding(nsDocAccessible* aDocument)
+{
+  
+  mHangingChildDocuments.AppendElement(aDocument);
   ScheduleProcessing();
 }
 
@@ -185,6 +203,11 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
 
   
   if (mTreeConstructedState == eTreeConstructionPending) {
+    
+    
+    if (!mDocument->IsBoundToParent())
+      return;
+
     mTreeConstructedState = eTreeConstructed;
     mDocument->CacheChildrenInSubtree(mDocument);
 
@@ -211,6 +234,36 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     if (!mDocument)
       return;
   }
+
+  
+  PRUint32 childDocCount = mHangingChildDocuments.Length();
+  for (PRUint32 idx = 0; idx < childDocCount; idx++) {
+    nsDocAccessible* childDoc = mHangingChildDocuments[idx];
+
+    nsIContent* ownerContent = mDocument->GetDocumentNode()->
+      FindContentForSubDocument(childDoc->GetDocumentNode());
+    if (ownerContent) {
+      nsAccessible* outerDocAcc = mDocument->GetCachedAccessible(ownerContent);
+      if (outerDocAcc && outerDocAcc->AppendChild(childDoc)) {
+        if (mDocument->AppendChildDocument(childDoc)) {
+          
+          
+          nsRefPtr<AccEvent> reorderEvent =
+              new AccEvent(nsIAccessibleEvent::EVENT_REORDER, outerDocAcc,
+                           eAutoDetect, AccEvent::eCoalesceFromSameSubtree);
+          if (reorderEvent)
+            QueueEvent(reorderEvent);
+
+          continue;
+        }
+        outerDocAcc->RemoveChild(childDoc);
+      }
+
+      
+      childDoc->Shutdown();
+    }
+  }
+  mHangingChildDocuments.Clear();
 
   
   nsTArray < nsRefPtr<Notification> > notifications;

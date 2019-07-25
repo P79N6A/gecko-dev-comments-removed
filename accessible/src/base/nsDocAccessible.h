@@ -201,6 +201,14 @@ public:
   
 
 
+  inline void BindChildDocument(nsDocAccessible* aDocument)
+  {
+    mNotificationController->ScheduleChildDocBinding(aDocument);
+  }
+
+  
+
+
 
 
 

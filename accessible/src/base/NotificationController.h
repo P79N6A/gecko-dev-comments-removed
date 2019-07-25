@@ -129,12 +129,25 @@ public:
   
 
 
+  inline bool IsTreeConstructed()
+  {
+    return mTreeConstructedState == eTreeConstructed;
+  }
+
+  
+
+
   void Shutdown();
 
   
 
 
   void QueueEvent(AccEvent* aEvent);
+
+  
+
+
+  void ScheduleChildDocBinding(nsDocAccessible* aDocument);
 
   
 
@@ -266,6 +279,11 @@ private:
     eTreeConstructionPending
   };
   eTreeConstructedState mTreeConstructedState;
+
+  
+
+
+  nsTArray<nsRefPtr<nsDocAccessible> > mHangingChildDocuments;
 
   
 

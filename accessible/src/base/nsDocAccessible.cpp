@@ -320,7 +320,8 @@ nsDocAccessible::GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState)
       *aState |= nsIAccessibleStates::STATE_FOCUSED;
   }
 
-  if (!mIsLoaded) {
+  
+  if (!mIsLoaded || !mNotificationController->IsTreeConstructed()) {
     *aState |= nsIAccessibleStates::STATE_BUSY;
     if (aExtraState) {
       *aExtraState |= nsIAccessibleStates::EXT_STATE_STALE;
@@ -629,22 +630,7 @@ nsDocAccessible::Init()
     return PR_FALSE;
 
   AddEventListeners();
-
-  nsDocAccessible* parentDocument = mParent->GetDocAccessible();
-  if (parentDocument)
-    parentDocument->AppendChildDocument(this);
-
-  
-  
-  nsRefPtr<AccEvent> reorderEvent =
-    new AccEvent(nsIAccessibleEvent::EVENT_REORDER, mParent, eAutoDetect,
-                 AccEvent::eCoalesceFromSameSubtree);
-  if (reorderEvent) {
-    FireDelayedAccessibleEvent(reorderEvent);
-    return PR_TRUE;
-  }
-
-  return PR_FALSE;
+  return PR_TRUE;
 }
 
 void
