@@ -42,6 +42,7 @@
 #include "nsRect.h"
 #include "gfxRect.h"
 #include "gfxMatrix.h"
+#include "gfxPattern.h"
 
 class nsIFrame;
 class nsDisplayListBuilder;
@@ -59,6 +60,12 @@ public:
   static PRBool
   UsingEffectsForFrame(const nsIFrame* aFrame);
 
+  
+
+
+
+  static nsRect
+  GetNonSVGUserSpace(nsIFrame* aFirst);
   
 
 
@@ -114,6 +121,34 @@ public:
 
   static gfxRect
   GetSVGBBoxForNonSVGFrame(nsIFrame* aNonSVGFrame);
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  static void
+  DrawPaintServer(nsIRenderingContext* aRenderingContext,
+                  nsIFrame*            aTarget,
+                  nsIFrame*            aPaintServer,
+                  gfxPattern::GraphicsFilter aFilter,
+                  const nsRect&        aDest,
+                  const nsRect&        aFill,
+                  const nsPoint&       aAnchor,
+                  const nsRect&        aDirty,
+                  const nsSize&        aPaintServerSize);
 };
 
 #endif 

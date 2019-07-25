@@ -162,6 +162,10 @@ public:
   
 
 
+  nsSVGRenderState(gfxContext *aContext);
+  
+
+
   nsSVGRenderState(gfxASurface *aSurface);
 
   nsIRenderingContext *GetRenderingContext(nsIFrame *aFrame);
