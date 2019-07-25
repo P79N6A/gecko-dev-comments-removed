@@ -3270,9 +3270,9 @@ PlacesSQLQueryBuilder::SelectAsDay()
      "FROM (", 
      resultType,
      sortingMode);
- 
-   nsNavHistory *history = nsNavHistory::GetHistoryService();
-   NS_ENSURE_STATE(history);
+
+  nsNavHistory *history = nsNavHistory::GetHistoryService();
+  NS_ENSURE_STATE(history);
 
   PRInt32 daysOfHistory = history->GetDaysOfHistory();
   for (PRInt32 i = 0; i <= HISTORY_DATE_CONT_NUM(daysOfHistory); i++) {
@@ -3381,11 +3381,14 @@ PlacesSQLQueryBuilder::SelectAsDay()
         
         PR_NormalizeTime(&tm, PR_GMTParameters);
         
-        history->GetMonthName(tm.tm_month+1, dateName);
-
         
-        if (tm.tm_year < currentYear)
-          dateName.Append(nsPrintfCString(" %d", tm.tm_year));
+        
+        if (tm.tm_year < currentYear) {
+          history->GetMonthYear(tm.tm_month + 1, tm.tm_year, dateName);
+        }
+        else {
+          history->GetMonthName(tm.tm_month + 1, dateName);
+        }
 
         
         sqlFragmentContainerBeginTime = NS_LITERAL_CSTRING(
@@ -6687,6 +6690,31 @@ nsNavHistory::GetMonthName(PRInt32 aIndex, nsACString& aResult)
     }
   }
   aResult = nsPrintfCString("[%d]", aIndex);
+}
+
+void
+nsNavHistory::GetMonthYear(PRInt32 aMonth, PRInt32 aYear, nsACString& aResult)
+{
+  nsIStringBundle *bundle = GetBundle();
+  if (bundle) {
+    nsCAutoString monthName;
+    GetMonthName(aMonth, monthName);
+    nsAutoString yearString;
+    yearString.AppendInt(aYear);
+    const PRUnichar* strings[2] = {
+      NS_ConvertUTF8toUTF16(monthName).get()
+    , yearString.get()
+    };
+    nsXPIDLString value;
+    if (NS_SUCCEEDED(bundle->FormatStringFromName(
+          NS_LITERAL_STRING("finduri-MonthYear").get(), strings, 2,
+          getter_Copies(value)
+        ))) {
+      CopyUTF16toUTF8(value, aResult);
+      return;
+    }
+  }
+  aResult.AppendLiteral("finduri-MonthYear");
 }
 
 
