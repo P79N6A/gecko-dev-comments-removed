@@ -160,6 +160,26 @@ function crawlProtoChain(obj, fn) {
 };
 
 
+
+
+
+
+function ExposedPropsWaiverHandler() {
+  
+  
+  var _permit = { value: 'rw', writable: false, configurable: false, enumerable: true };
+  return {
+    getOwnPropertyDescriptor: function(name) { return _permit; },
+    getPropertyDescriptor: function(name) { return _permit; },
+    getOwnPropertyNames: function() { throw Error("Can't enumerate ExposedPropsWaiver"); },
+    getPropertyNames: function() { throw Error("Can't enumerate ExposedPropsWaiver"); },
+    enumerate: function() { throw Error("Can't enumerate ExposedPropsWaiver"); },
+    defineProperty: function(name) { throw Error("Can't define props on ExposedPropsWaiver"); },
+    delete: function(name) { throw Error("Can't delete props from ExposedPropsWaiver"); }
+  };
+};
+ExposedPropsWaiver = Proxy.create(ExposedPropsWaiverHandler());
+
 function SpecialPowersHandler(obj) {
   this.wrappedObject = obj;
 };
@@ -171,6 +191,10 @@ SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
   
   if (name == "SpecialPowers_wrappedObject")
     return { value: this.wrappedObject, writeable: false, configurable: false, enumerable: false };
+
+  
+  if (name == "__exposedProps__")
+    return { value: ExposedPropsWaiver, writable: false, configurable: false, enumerable: false };
 
   
   
