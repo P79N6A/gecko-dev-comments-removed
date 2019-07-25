@@ -614,17 +614,7 @@ nsSVGPatternFrame::GetTargetGeometry(gfxMatrix *aCTM,
                                      nsIFrame *aTarget,
                                      const gfxRect *aOverrideBounds)
 {
-  
-  
-  
-  if (aTarget->GetContent()->IsNodeOfType(nsINode::eTEXT)) {
-    *aBBox = nsSVGUtils::GetBBox(aTarget->GetParent());
-  } else {
-    *aBBox = nsSVGUtils::GetBBox(aTarget);
-  }
-  if (aOverrideBounds) {
-    *aBBox = *aOverrideBounds;
-  }
+  *aBBox = aOverrideBounds ? *aOverrideBounds : nsSVGUtils::GetBBox(aTarget);
 
   
   PRUint16 type = GetPatternUnits();
