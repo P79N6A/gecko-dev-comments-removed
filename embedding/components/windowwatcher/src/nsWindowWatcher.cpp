@@ -586,17 +586,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
 
   JSContext *cx = GetJSContextFromWindow(aParent);
 
-  bool windowTypeIsChrome = chromeFlags & nsIWebBrowserChrome::CHROME_OPENAS_CHROME;
-  if (isCallerChrome && !hasChromeParent && !windowTypeIsChrome && cx) {
-    
-    
-    
-    
-    
-    
-    
-    
-    
+  if (isCallerChrome && !hasChromeParent && cx) {
     
     
     
@@ -883,17 +873,32 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
     
     
     
+    nsIPrincipal* newWindowPrincipal = subjectPrincipal;
+    if (!newWindowPrincipal && aParent) {
+      nsCOMPtr<nsIScriptObjectPrincipal> sop(do_QueryInterface(aParent));
+      if (sop) {
+        newWindowPrincipal = sop->GetPrincipal();
+      }
+    }
+
+    bool isSystem;
+    rv = sm->IsSystemPrincipal(newWindowPrincipal, &isSystem);
+    if (NS_FAILED(rv) || isSystem) {
+      
+      int32_t itemType;
+      rv = newDocShellItem->GetItemType(&itemType);
+      if (NS_FAILED(rv) || itemType != nsIDocShellTreeItem::typeChrome) {
+        newWindowPrincipal = nullptr;        
+      }
+    }
+
     nsCOMPtr<nsPIDOMWindow> newWindow = do_QueryInterface(*_retval);
 #ifdef DEBUG
     nsCOMPtr<nsPIDOMWindow> newDebugWindow = do_GetInterface(newDocShell);
     NS_ASSERTION(newWindow == newDebugWindow, "Different windows??");
 #endif
-    
-    
-    
-    
     if (newWindow) {
-      newWindow->SetInitialPrincipalToSubject();
+      newWindow->SetOpenerScriptPrincipal(newWindowPrincipal);
     }
   }
 
