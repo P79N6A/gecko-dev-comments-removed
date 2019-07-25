@@ -63,11 +63,6 @@ import org.json.JSONObject;
 
 public class FormAssistPopup extends ListView implements GeckoEventListener {
     private Context mContext;
-    private RelativeLayout.LayoutParams mLayout;
-
-    private int mWidth;
-    private int mHeight;
-
     private Animation mAnimation; 
 
     private static final String LOGTAG = "FormAssistPopup";
@@ -185,12 +180,6 @@ public class FormAssistPopup extends ListView implements GeckoEventListener {
             startAnimation(mAnimation);
         }
 
-        if (mLayout == null) {
-            mLayout = (RelativeLayout.LayoutParams) getLayoutParams();
-            mWidth = mLayout.width;
-            mHeight = mLayout.height;
-        }
-
         int left = 0;
         int top = 0; 
         int width = 0;
@@ -203,10 +192,8 @@ public class FormAssistPopup extends ListView implements GeckoEventListener {
             height = (int) (rect.getDouble(3) * zoom);
         } catch (JSONException e) { } 
 
-        int popupWidth = mWidth;
-        int popupHeight = mHeight;
+        int popupWidth = RelativeLayout.LayoutParams.FILL_PARENT;
         int popupLeft = left < 0 ? 0 : left;
-        int popupTop = top + height;
 
         FloatSize viewport = GeckoApp.mAppContext.getLayerController().getViewportSize();
 
@@ -231,7 +218,8 @@ public class FormAssistPopup extends ListView implements GeckoEventListener {
                 popupLeft = (int) (viewport.width - popupWidth);
         }
 
-        popupHeight = sRowHeight * getAdapter().getCount();
+        int popupHeight = sRowHeight * getAdapter().getCount();
+        int popupTop = top + height;
 
         
         if ((popupTop + popupHeight) > viewport.height) {
@@ -251,9 +239,10 @@ public class FormAssistPopup extends ListView implements GeckoEventListener {
            }
         }
 
-        mLayout = new RelativeLayout.LayoutParams(popupWidth, popupHeight);
-        mLayout.setMargins(popupLeft, popupTop, 0, 0);
-        setLayoutParams(mLayout);
+        RelativeLayout.LayoutParams layoutParams =
+                new RelativeLayout.LayoutParams(popupWidth, popupHeight);
+        layoutParams.setMargins(popupLeft, popupTop, 0, 0);
+        setLayoutParams(layoutParams);
         requestLayout();
 
         return true;
