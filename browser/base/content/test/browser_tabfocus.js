@@ -46,9 +46,6 @@ function test() {
 
     
     
-    expectFocusShift(function () gURLBar.focus(),
-                     window, gURLBar.inputField, true,
-                     "url field focused");
     expectFocusShift(function () gBrowser.selectedTab = tab1,
                      browser1.contentWindow, null, true,
                      "focusedElement after tab change, focus in new tab");
@@ -89,6 +86,9 @@ function test() {
                      window, gURLBar.inputField, true,
                      "focusedWindow after url field focused");
     is(fm.getFocusedElementForWindow(browser2.contentWindow, false, {}), button2, "url field focused, button in tab");
+    expectFocusShift(function () gURLBar.blur(),
+                     window, null, true,
+                     "focusedWindow after browser focused");
 
     
     
