@@ -79,7 +79,8 @@ struct GfxDriverInfo
   
   GfxDriverInfo(OperatingSystem os, PRUint32 vendor, GfxDeviceFamily devices,
                 PRInt32 feature, PRInt32 featureStatus, VersionComparisonOp op,
-                PRUint64 driverVersion, bool ownDevices = false);
+                PRUint64 driverVersion, const char *suggestedVersion = nsnull,
+                bool ownDevices = false);
 
   GfxDriverInfo();
   GfxDriverInfo(const GfxDriverInfo&);
@@ -109,6 +110,8 @@ struct GfxDriverInfo
   
   PRUint64 mDriverVersion;
   PRUint64 mDriverVersionMax;
+
+  const char *mSuggestedVersion;
 };
 
 #define GFX_DRIVER_VERSION(a,b,c,d) \
