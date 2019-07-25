@@ -1024,6 +1024,8 @@ public:
         return -1;
     }
 
+    gfxFloat SynthesizeSpaceWidth(PRUint32 aCh);
+
     
     struct Metrics {
         gfxFloat xHeight;
