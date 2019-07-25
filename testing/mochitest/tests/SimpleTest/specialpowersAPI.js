@@ -1081,4 +1081,3 @@ SpecialPowersAPI.prototype = {
     return el.dispatchEvent(event);
   },
 };
-
