@@ -1084,7 +1084,7 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
     JS_ASSERT(reportp);
     if (JSREPORT_IS_WARNING(reportp->flags))
-        return false;
+        return JS_FALSE;
 
     
     errorNumber = (JSErrNum) reportp->errorNumber;
@@ -1107,12 +1107,19 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
 
     if (exn == JSEXN_NONE)
-        return false;
+        return JS_FALSE;
 
     
+
+
+
+
+
     if (cx->generatingError)
-        return false;
-    AutoScopedAssign<bool> asa(&cx->generatingError, false);
+        return JS_FALSE;
+
+    MUST_FLOW_THROUGH("out");
+    cx->generatingError = JS_TRUE;
 
     
     PodArrayZero(tv);
@@ -1125,34 +1132,43 @@ js_ErrorToException(JSContext *cx, const char *message, JSErrorReport *reportp,
 
     ok = js_GetClassPrototype(cx, NULL, GetExceptionProtoKey(exn), &errProto);
     if (!ok)
-        return false;
+        goto out;
     tv[0] = OBJECT_TO_JSVAL(errProto);
 
     errObject = NewObjectWithGivenProto(cx, &ErrorClass, errProto, NULL);
-    if (!errObject)
-        return false;
+    if (!errObject) {
+        ok = JS_FALSE;
+        goto out;
+    }
     tv[1] = OBJECT_TO_JSVAL(errObject);
 
     messageStr = JS_NewStringCopyZ(cx, message);
-    if (!messageStr)
-        return false;
+    if (!messageStr) {
+        ok = JS_FALSE;
+        goto out;
+    }
     tv[2] = STRING_TO_JSVAL(messageStr);
 
     filenameStr = JS_NewStringCopyZ(cx, reportp->filename);
-    if (!filenameStr)
-        return false;
+    if (!filenameStr) {
+        ok = JS_FALSE;
+        goto out;
+    }
     tv[3] = STRING_TO_JSVAL(filenameStr);
 
     ok = InitExnPrivate(cx, errObject, messageStr, filenameStr,
                         reportp->lineno, reportp, exn);
     if (!ok)
-        return false;
+        goto out;
 
     JS_SetPendingException(cx, OBJECT_TO_JSVAL(errObject));
 
     
     reportp->flags |= JSREPORT_EXCEPTION;
-    return true;
+
+out:
+    cx->generatingError = JS_FALSE;
+    return ok;
 }
 
 JSBool
