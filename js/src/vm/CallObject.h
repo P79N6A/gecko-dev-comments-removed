@@ -56,15 +56,15 @@ class CallObject : public ::JSObject
 
 
 
-    static const uint32 CALLEE_SLOT = 0;
-    static const uint32 ARGUMENTS_SLOT = 1;
+    static const uintN CALLEE_SLOT = 0;
+    static const uintN ARGUMENTS_SLOT = 1;
 
-public:
+  public:
+    static const uintN RESERVED_SLOTS = 2;
+
     
     static CallObject *
     create(JSContext *cx, JSScript *script, JSObject &scopeChain, JSObject *callee);
-
-    static const uint32 RESERVED_SLOTS = 2;
 
     
     inline bool isForEval() const;
