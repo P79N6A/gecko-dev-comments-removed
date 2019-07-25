@@ -59,14 +59,14 @@ public abstract class TileLayer extends Layer {
     private final CairoImage mImage;
     private final boolean mRepeat;
     private IntSize mSize;
-    private Rect mValidTextureRect;
+    private boolean mSkipTextureUpdate;
     private int[] mTextureIDs;
 
     public TileLayer(boolean repeat, CairoImage image) {
         mRepeat = repeat;
         mImage = image;
         mSize = new IntSize(0, 0);
-        mValidTextureRect = new Rect();
+        mSkipTextureUpdate = false;
 
         IntSize bufferSize = mImage.getSize();
         mDirtyRect = new Rect();
@@ -133,25 +133,20 @@ public abstract class TileLayer extends Layer {
     }
 
     
-
-
-
-    public void invalidateTexture() {
-        mValidTextureRect.setEmpty();
-        mDirtyRect.setEmpty();
+    public void setSkipTextureUpdate(boolean skip) {
+        mSkipTextureUpdate = skip;
     }
 
-    
-
-
-
-    public Rect getValidTextureArea() {
-        return mValidTextureRect;
+    public boolean getSkipTextureUpdate() {
+        return mSkipTextureUpdate;
     }
 
     @Override
     protected boolean performUpdates(GL10 gl, RenderContext context) {
         super.performUpdates(gl, context);
+
+        if (mSkipTextureUpdate)
+            return false;
 
         
         validateTexture(gl);
@@ -161,19 +156,22 @@ public abstract class TileLayer extends Layer {
             return true;
 
         
-        uploadDirtyRect(gl, mDirtyRect);
+        if (mTextureIDs == null)
+            uploadFullTexture(gl);
+        else
+            uploadDirtyRect(gl, mDirtyRect);
+
         mDirtyRect.setEmpty();
 
         return true;
     }
 
-    private void uploadDirtyRect(GL10 gl, Rect dirtyRect) {
+    private void uploadFullTexture(GL10 gl) {
         IntSize bufferSize = mImage.getSize();
-        Rect bufferRect = new Rect(0, 0, bufferSize.width, bufferSize.height);
+        uploadDirtyRect(gl, new Rect(0, 0, bufferSize.width, bufferSize.height));
+    }
 
-        
-        dirtyRect.intersect(bufferRect);
-
+    private void uploadDirtyRect(GL10 gl, Rect dirtyRect) {
         
         if (dirtyRect.isEmpty())
             return;
@@ -183,11 +181,6 @@ public abstract class TileLayer extends Layer {
         if (imageBuffer == null)
             return;
 
-        
-        
-        
-        mValidTextureRect.union(dirtyRect);
-
         boolean newlyCreated = false;
 
         if (mTextureIDs == null) {
@@ -196,12 +189,15 @@ public abstract class TileLayer extends Layer {
             newlyCreated = true;
         }
 
+        IntSize bufferSize = mImage.getSize();
+        Rect bufferRect = new Rect(0, 0, bufferSize.width, bufferSize.height);
+
         int cairoFormat = mImage.getFormat();
         CairoGLInfo glInfo = new CairoGLInfo(cairoFormat);
 
         bindAndSetGLParameters(gl);
 
-        if (newlyCreated || dirtyRect.equals(bufferRect)) {
+        if (newlyCreated || dirtyRect.contains(bufferRect)) {
             if (mSize.equals(bufferSize)) {
                 gl.glTexImage2D(gl.GL_TEXTURE_2D, 0, glInfo.internalFormat, mSize.width, mSize.height,
                                 0, glInfo.format, glInfo.type, imageBuffer);
@@ -214,6 +210,11 @@ public abstract class TileLayer extends Layer {
                 return;
             }
         }
+
+        
+        
+        if (!Rect.intersects(dirtyRect, bufferRect))
+            return;
 
         
 
@@ -231,8 +232,8 @@ public abstract class TileLayer extends Layer {
         }
 
         viewBuffer.position(position);
-        gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, 0, dirtyRect.top,
-                           bufferSize.width, dirtyRect.height(),
+        gl.glTexSubImage2D(gl.GL_TEXTURE_2D, 0, 0, dirtyRect.top, bufferSize.width,
+                           Math.min(bufferSize.height - dirtyRect.top, dirtyRect.height()),
                            glInfo.format, glInfo.type, viewBuffer);
     }
 

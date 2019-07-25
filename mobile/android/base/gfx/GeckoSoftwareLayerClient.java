@@ -83,12 +83,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     
     private ViewportMetrics mGeckoViewport;
 
-    
-    private ViewportMetrics mNewGeckoViewport;
-
-    
-    private Point mRenderOffset;
-
     private CairoImage mCairoImage;
 
     private static final IntSize TILE_SIZE = new IntSize(256, 256);
@@ -114,7 +108,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         mScreenSize = new IntSize(0, 0);
         mBufferSize = new IntSize(0, 0);
         mFormat = CairoImage.FORMAT_RGB16_565;
-        mRenderOffset = new Point(0, 0);
 
         mCairoImage = new CairoImage() {
             @Override
@@ -124,6 +117,8 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             @Override
             public int getFormat() { return mFormat; }
         };
+
+        mTileLayer = new MultiTileLayer(mCairoImage, TILE_SIZE);
     }
 
     public int getWidth() {
@@ -156,8 +151,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
 
         GeckoAppShell.registerGeckoEventListener("Viewport:UpdateAndDraw", this);
         GeckoAppShell.registerGeckoEventListener("Viewport:UpdateLater", this);
-        GeckoAppShell.registerGeckoEventListener("Document:Shown", this);
-        GeckoAppShell.registerGeckoEventListener("Tab:Selected", this);
 
         
         
@@ -170,9 +163,9 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         sendResizeEventIfNecessary();
     }
 
-    private boolean setHasDirectTexture(boolean hasDirectTexture) {
-        if (mTileLayer != null && hasDirectTexture == mHasDirectTexture)
-            return false;
+    private void setHasDirectTexture(boolean hasDirectTexture) {
+        if (hasDirectTexture == mHasDirectTexture)
+            return;
 
         mHasDirectTexture = hasDirectTexture;
 
@@ -180,7 +173,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         if (mHasDirectTexture) {
             mTileLayer = new WidgetTileLayer(mCairoImage);
             tileSize = new IntSize(0, 0);
-            mRenderOffset.set(0, 0);
         } else {
             mTileLayer = new MultiTileLayer(mCairoImage, TILE_SIZE);
             tileSize = TILE_SIZE;
@@ -194,62 +186,18 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         
         
         sendResizeEventIfNecessary(true);
-
-        return true;
     }
 
-    public boolean beginDrawing(int width, int height, String metadata, boolean hasDirectTexture) {
-        
-        if (setHasDirectTexture(hasDirectTexture))
-            return false;
-
+    public void beginDrawing(int width, int height) {
         beginTransaction(mTileLayer);
-
-        try {
-            JSONObject viewportObject = new JSONObject(metadata);
-            mNewGeckoViewport = new ViewportMetrics(viewportObject);
-
-            
-            
-            
-            if (!(mTileLayer instanceof MultiTileLayer)) {
-                if (mBufferSize.width != width || mBufferSize.height != height)
-                    mBufferSize = new IntSize(width, height);
-                return true;
-            }
-
-            
-            
-            boolean originChanged = true;
-            Point origin = PointUtils.round(mNewGeckoViewport.getDisplayportOrigin());
-
-            if (mGeckoViewport != null) {
-                Point oldOrigin = PointUtils.round(mGeckoViewport.getDisplayportOrigin());
-                originChanged = !origin.equals(oldOrigin);
-            }
-
-            if (originChanged) {
-                Point tileOrigin = new Point((origin.x / TILE_SIZE.width) * TILE_SIZE.width,
-                                             (origin.y / TILE_SIZE.height) * TILE_SIZE.height);
-                mRenderOffset.set(origin.x - tileOrigin.x, origin.y - tileOrigin.y);
-                ((MultiTileLayer)mTileLayer).invalidateBuffer();
-            }
-        } catch (JSONException e) {
-            Log.e(LOGTAG, "Bad viewport description: " + metadata);
-            throw new RuntimeException(e);
-        }
 
         if (mBufferSize.width != width || mBufferSize.height != height) {
             mBufferSize = new IntSize(width, height);
 
             
-            
-            IntSize realBufferSize = new IntSize(width + TILE_SIZE.width,
-                                                 height + TILE_SIZE.height);
 
             
-            int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
-            int size = realBufferSize.getArea() * bpp;
+            int size = mBufferSize.getArea() * 2;
             if (mBuffer == null || mBuffer.capacity() != size) {
                 
                 if (mBuffer != null) {
@@ -260,35 +208,39 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
                 mBuffer = GeckoAppShell.allocateDirectBuffer(size);
             }
         }
-
-        return true;
     }
 
-    private void updateViewport(final boolean onlyUpdatePageSize) {
-        
-        
-        
-        
-        FloatSize viewportSize = getLayerController().getViewportSize();
-        mGeckoViewport = mNewGeckoViewport;
-        mGeckoViewport.setSize(viewportSize);
+    private void updateViewport(String viewportDescription, final boolean onlyUpdatePageSize) {
+        try {
+            JSONObject viewportObject = new JSONObject(viewportDescription);
 
-        LayerController controller = getLayerController();
-        PointF displayportOrigin = mGeckoViewport.getDisplayportOrigin();
-        Point tileOrigin = PointUtils.round(displayportOrigin);
-        tileOrigin.offset(-mRenderOffset.x, -mRenderOffset.y);
-        mTileLayer.setOrigin(tileOrigin);
-        mTileLayer.setResolution(mGeckoViewport.getZoomFactor());
-
-        if (onlyUpdatePageSize) {
             
             
-            if (FloatUtils.fuzzyEquals(controller.getZoomFactor(),
-                    mGeckoViewport.getZoomFactor()))
-                controller.setPageSize(mGeckoViewport.getPageSize());
-        } else {
-            controller.setViewportMetrics(mGeckoViewport);
-            controller.abortPanZoomAnimation();
+            
+            
+            FloatSize viewportSize = getLayerController().getViewportSize();
+            mGeckoViewport = new ViewportMetrics(viewportObject);
+            mGeckoViewport.setSize(viewportSize);
+
+            LayerController controller = getLayerController();
+            PointF displayportOrigin = mGeckoViewport.getDisplayportOrigin();
+            mTileLayer.setOrigin(PointUtils.round(displayportOrigin));
+            mTileLayer.setResolution(mGeckoViewport.getZoomFactor());
+
+            if (onlyUpdatePageSize) {
+                
+                
+                if (FloatUtils.fuzzyEquals(controller.getZoomFactor(),
+                        mGeckoViewport.getZoomFactor()))
+                    controller.setPageSize(mGeckoViewport.getPageSize());
+            } else {
+                Log.d(LOGTAG, "Received viewport update from gecko");
+                controller.setViewportMetrics(mGeckoViewport);
+                controller.abortPanZoomAnimation();
+            }
+        } catch (JSONException e) {
+            Log.e(LOGTAG, "Bad viewport description: " + viewportDescription);
+            throw new RuntimeException(e);
         }
     }
 
@@ -296,17 +248,17 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
 
 
 
-    public void endDrawing(int x, int y, int width, int height) {
+    public void endDrawing(int x, int y, int width, int height, String metadata, boolean hasDirectTexture) {
         synchronized (getLayerController()) {
             try {
-                updateViewport(!mUpdateViewportOnEndDraw);
+                updateViewport(metadata, !mUpdateViewportOnEndDraw);
                 mUpdateViewportOnEndDraw = false;
+                Rect rect = new Rect(x, y, x + width, y + height);
 
-                if (mTileLayer instanceof MultiTileLayer) {
-                    Rect rect = new Rect(x, y, x + width, y + height);
-                    rect.offset(mRenderOffset.x, mRenderOffset.y);
+                setHasDirectTexture(hasDirectTexture);
+
+                if (!mHasDirectTexture)
                     ((MultiTileLayer)mTileLayer).invalidate(rect);
-                }
             } finally {
                 endTransaction(mTileLayer);
             }
@@ -325,28 +277,29 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
         ByteBuffer tileBuffer = mBuffer.slice();
         int bpp = CairoUtils.bitsPerPixelForCairoFormat(mFormat) / 8;
 
-        for (int y = 0; y <= mBufferSize.height; y += TILE_SIZE.height) {
-            for (int x = 0; x <= mBufferSize.width; x += TILE_SIZE.width) {
+        for (int y = 0; y < mBufferSize.height; y += TILE_SIZE.height) {
+            for (int x = 0; x < mBufferSize.width; x += TILE_SIZE.width) {
                 
-                Bitmap tile = Bitmap.createBitmap(TILE_SIZE.width, TILE_SIZE.height,
+                IntSize tileSize = new IntSize(Math.min(mBufferSize.width - x, TILE_SIZE.width),
+                                               Math.min(mBufferSize.height - y, TILE_SIZE.height));
+
+                
+                Bitmap tile = Bitmap.createBitmap(tileSize.width, tileSize.height,
                                                   CairoUtils.cairoFormatTobitmapConfig(mFormat));
                 tile.copyPixelsFromBuffer(tileBuffer.asIntBuffer());
 
                 
-                c.drawBitmap(tile, x - mRenderOffset.x, y - mRenderOffset.y, null);
+                c.drawBitmap(tile, x, y, null);
                 tile.recycle();
 
                 
-                tileBuffer.position(TILE_SIZE.getArea() * bpp);
+                tileBuffer.position(tileSize.getArea() * bpp);
                 tileBuffer = tileBuffer.slice();
             }
         }
     }
 
     public Bitmap getBitmap() {
-        if (mTileLayer == null)
-            return null;
-
         
         
         beginTransaction(mTileLayer);
@@ -358,8 +311,12 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
 
                 if (mTileLayer instanceof MultiTileLayer) {
                     b = Bitmap.createBitmap(mBufferSize.width, mBufferSize.height,
-                                            CairoUtils.cairoFormatTobitmapConfig(mFormat));
+                                               CairoUtils.cairoFormatTobitmapConfig(mFormat));
                     copyPixelsFromMultiTileLayer(b);
+                } else if (mTileLayer instanceof SingleTileLayer) {
+                    b = Bitmap.createBitmap(mBufferSize.width, mBufferSize.height,
+                                               CairoUtils.cairoFormatTobitmapConfig(mFormat));
+                    b.copyPixelsFromBuffer(mBuffer.asIntBuffer());
                 } else {
                     Log.w(LOGTAG, "getBitmap() called on a layer (" + mTileLayer + ") we don't know how to get a bitmap from");
                 }
@@ -377,10 +334,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
     
     public ByteBuffer lockBuffer() {
         return mBuffer;
-    }
-
-    public Point getRenderOffset() {
-        return mRenderOffset;
     }
 
     
@@ -499,16 +452,6 @@ public class GeckoSoftwareLayerClient extends LayerClient implements GeckoEventL
             GeckoAppShell.sendEventToGecko(new GeckoEvent(GeckoEvent.DRAW, rect));
         } else if ("Viewport:UpdateLater".equals(event)) {
             mUpdateViewportOnEndDraw = true;
-        } else if (("Document:Shown".equals(event) ||
-                    "Tab:Selected".equals(event)) &&
-                   (mTileLayer instanceof MultiTileLayer)) {
-            beginTransaction(mTileLayer);
-            try {
-                ((MultiTileLayer)mTileLayer).invalidateTiles();
-                ((MultiTileLayer)mTileLayer).invalidateBuffer();
-            } finally {
-                endTransaction(mTileLayer);
-            }
         }
     }
 }
