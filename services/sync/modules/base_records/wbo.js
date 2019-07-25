@@ -183,10 +183,16 @@ RecordManager.prototype = {
       let self = yield;
 
       let record = null;
+      let spec = url.spec? url.spec : url;
+      
+
+
+
+
       if (url in this._aliases)
 	url = this._aliases[url];
-      if (url in this._records)
-	record = this._records[url];
+      if (spec in this._records)
+	record = this._records[spec];
 
       if (!record)
 	record = yield this.import(self.cb, url);
@@ -197,7 +203,8 @@ RecordManager.prototype = {
   },
 
   set: function RegordMgr_set(url, record) {
-    this._records[url] = record;
+    let spec = url.spec ? url.spec : url;
+    this._records[spec] = record;
   },
 
   contains: function RegordMgr_contains(url) {
