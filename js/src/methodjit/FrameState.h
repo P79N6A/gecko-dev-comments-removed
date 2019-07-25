@@ -341,6 +341,12 @@ class FrameState
 
 
 
+    inline Jump testDouble(Assembler::Condition cond, FrameEntry *fe);
+
+    
+
+
+
     inline Jump testBoolean(Assembler::Condition cond, FrameEntry *fe);
 
     
