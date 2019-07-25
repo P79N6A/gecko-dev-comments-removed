@@ -337,8 +337,9 @@ BasicThebesLayer::Paint(gfxContext* aContext,
                 state.mRegionToInvalidate, aCallbackData);
       mValidRegion.Or(mValidRegion, state.mRegionToDraw);
     } else {
-      NS_ASSERTION(state.mRegionToDraw.IsEmpty() &&
-                   state.mRegionToInvalidate.IsEmpty(),
+      
+      
+      NS_ASSERTION(state.mRegionToDraw.IsEmpty(),
                    "If we need to draw, we should have a context");
     }
   }
