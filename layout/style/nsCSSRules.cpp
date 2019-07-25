@@ -86,12 +86,6 @@ namespace css {
 NS_IMPL_ADDREF(Rule)
 NS_IMPL_RELEASE(Rule)
 
- nsIStyleSheet*
-Rule::GetStyleSheet() const
-{
-  return mSheet;
-}
-
  void
 Rule::SetStyleSheet(nsCSSStyleSheet* aSheet)
 {
@@ -101,25 +95,10 @@ Rule::SetStyleSheet(nsCSSStyleSheet* aSheet)
   mSheet = aSheet;
 }
 
- void
-Rule::SetParentRule(css::GroupRule* aRule)
-{
-  
-  
-  
-  mParentRule = aRule;
-}
-
-} 
-} 
 
 
 
 
-
-
-namespace mozilla {
-namespace css {
 
 class NS_FINAL_CLASS GroupRuleRuleList : public nsICSSRuleList
 {

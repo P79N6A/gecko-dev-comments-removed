@@ -107,9 +107,16 @@ public:
 
   virtual PRInt32 GetType() const = 0;
 
-  virtual nsIStyleSheet* GetStyleSheet() const;
+  nsCSSStyleSheet* GetStyleSheet() const { return mSheet; }
+
   virtual void SetStyleSheet(nsCSSStyleSheet* aSheet);
-  virtual void SetParentRule(GroupRule* aRule);
+
+  void SetParentRule(GroupRule* aRule) {
+    
+    
+    
+    mParentRule = aRule;
+  }
 
   
 
