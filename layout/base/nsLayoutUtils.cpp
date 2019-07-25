@@ -4327,6 +4327,102 @@ nsLayoutUtils::Shutdown()
   }
 }
 
+
+void
+nsLayoutUtils::RegisterImageRequest(nsPresContext* aPresContext,
+                                    imgIRequest* aRequest,
+                                    bool* aRequestRegistered)
+{
+  if (!aPresContext) {
+    return;
+  }
+
+  if (aRequestRegistered && *aRequestRegistered) {
+    
+    
+    return;
+  }
+
+  if (aRequest) {
+    if (!aPresContext->RefreshDriver()->AddImageRequest(aRequest)) {
+      NS_WARNING("Unable to add image request");
+      return;
+    }
+
+    if (aRequestRegistered) {
+      *aRequestRegistered = true;
+    }
+  }
+}
+
+
+void
+nsLayoutUtils::RegisterImageRequestIfAnimated(nsPresContext* aPresContext,
+                                              imgIRequest* aRequest,
+                                              bool* aRequestRegistered)
+{
+  if (!aPresContext) {
+    return;
+  }
+
+  if (aRequestRegistered && *aRequestRegistered) {
+    
+    
+    return;
+  }
+
+  if (aRequest) {
+    nsCOMPtr<imgIContainer> image;
+    aRequest->GetImage(getter_AddRefs(image));
+    if (image) {
+
+      
+      
+      bool isAnimated = false;
+      nsresult rv = image->GetAnimated(&isAnimated);
+      if (NS_SUCCEEDED(rv) && isAnimated) {
+        if (!aPresContext->RefreshDriver()->AddImageRequest(aRequest)) {
+          NS_WARNING("Unable to add image request");
+          return;
+        }
+
+        if (aRequestRegistered) {
+          *aRequestRegistered = true;
+        }
+      }
+    }
+  }
+}
+
+
+void
+nsLayoutUtils::DeregisterImageRequest(nsPresContext* aPresContext,
+                                      imgIRequest* aRequest,
+                                      bool* aRequestRegistered)
+{
+  if (!aPresContext) {
+    return;
+  }
+
+  
+  
+  if (aRequestRegistered && !*aRequestRegistered) {
+    return;
+  }
+
+  if (aRequest) {
+    nsCOMPtr<imgIContainer> image;
+    aRequest->GetImage(getter_AddRefs(image));
+    if (image) {
+      aPresContext->RefreshDriver()->RemoveImageRequest(aRequest);
+
+      if (aRequestRegistered) {
+        *aRequestRegistered = false;
+      }
+    }
+  }
+}
+
 nsSetAttrRunnable::nsSetAttrRunnable(nsIContent* aContent, nsIAtom* aAttrName,
                                      const nsAString& aValue)
   : mContent(aContent),
