@@ -85,10 +85,19 @@ XmppClient.prototype = {
   },
 
   onIncomingData: function( messageText ) {
+    LOG("onIncomingData(): rcvd: " + messageText);
     var responseDOM = this._parser.parseFromString( messageText, "text/xml" );
     
     if (responseDOM.documentElement.nodeName == "parsererror" ) {
       
+      if (messageText.match("^</stream:stream>$")) {
+        this._handleServerDisconnection();
+        return;
+      }
+
+      
+
+
 
 
 
@@ -392,7 +401,13 @@ XmppClient.prototype = {
     
     
     this._transportLayer.send( this._makeClosingXml() );
+
+    this.waitForDisconnect();
+  },
+
+  _handleServerDisconnection: function() {
     this._transportLayer.disconnect();
+    this._connectionStatus = this.NOT_CONNECTED;
   },
 
   waitForConnection: function( ) {
@@ -404,6 +419,7 @@ XmppClient.prototype = {
   },
 
   waitForDisconnect: function() {
+    LOG("waitForDisconnect(): starting");
     var thread = this._threadManager.currentThread;
     while ( this._connectionStatus == this.CONNECTED ) {
       thread.processNextEvent( true );

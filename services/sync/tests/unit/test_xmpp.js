@@ -3,17 +3,16 @@ var Cu = Components.utils;
 Cu.import( "resource://weave/xmpp/xmppClient.js" );
 
 function LOG(aMsg) {
-  dump("TEST_XMPP_SIMPLE: " + aMsg + "\n");
+  dump("TEST_XMPP: " + aMsg + "\n");
 }
 
 var serverUrl = "http://127.0.0.1:5280/http-poll";
 var jabberDomain = Cc["@mozilla.org/network/dns-service;1"].
                    getService(Ci.nsIDNSService).myHostName;
+LOG("DOMAIN: " + jabberDomain);
 
 var timer = Cc["@mozilla.org/timer;1"].createInstance( Ci.nsITimer );
 var threadManager = Cc["@mozilla.org/thread-manager;1"].getService();
-
-var alice;
 
 function run_test() {
   
@@ -24,22 +23,21 @@ function run_test() {
 					    false,
 					    4000 );
   var auth = new PlainAuthenticator();
-  alice = new XmppClient( "alice", jabberDomain, "iamalice",
-			       transport, auth );
+  var alice = new XmppClient("alice", jabberDomain, "iamalice",
+	            		       transport, auth);
 
   
+  LOG("connecting");
   alice.connect( jabberDomain );
   alice.waitForConnection();
   do_check_eq( alice._connectionStatus, alice.CONNECTED);
+  LOG("connected");
 
   
+  LOG("disconnecting");
   alice.disconnect();
+  do_check_eq( alice._connectionStatus, alice.NOT_CONNECTED);
   LOG("disconnected");
-  alice.connect( jabberDomain );
-  LOG("wait");
-  alice.waitForConnection();
-  LOG("waited");
-  do_check_eq( alice._connectionStatus, alice.CONNECTED);
 
   
 
@@ -100,6 +98,13 @@ function run_test() {
 
 
 
-  alice.disconnect();
-  
+
+
+
+
+
+
+
+
+
 };
