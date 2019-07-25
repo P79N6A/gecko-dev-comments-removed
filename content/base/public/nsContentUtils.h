@@ -444,6 +444,15 @@ public:
 
   static bool ParseIntMarginValue(const nsAString& aString, nsIntMargin& aResult);
 
+  
+
+
+
+
+
+
+  static PRInt32 ParseLegacyFontSize(const nsAString& aValue);
+
   static void Shutdown();
 
   
