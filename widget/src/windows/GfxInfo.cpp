@@ -315,8 +315,8 @@ void GfxInfo::AddCrashReportAnnotations()
   GetAdapterDeviceID(&deviceID);
   GetAdapterVendorID(&vendorID);
 
-  deviceIDString.AppendPrintf("%04x", &deviceID);
-  vendorIDString.AppendPrintf("%04x", &vendorID);
+  deviceIDString.AppendPrintf("%04x", deviceID);
+  vendorIDString.AppendPrintf("%04x", vendorID);
 
   CrashReporter::AnnotateCrashReport(NS_LITERAL_CSTRING("AdapterVendorID"),
       vendorIDString);
@@ -325,10 +325,12 @@ void GfxInfo::AddCrashReportAnnotations()
 
   
 
-  CrashReporter::AppendAppNotesToCrashReport(nsCAutoString(NS_LITERAL_CSTRING("AdapterVendorID: ")) +
-      vendorIDString);
-  CrashReporter::AppendAppNotesToCrashReport(nsCAutoString(NS_LITERAL_CSTRING("AdapterDeviceID: ")) +
-      deviceIDString);
+  nsCAutoString note;
+  
+  note.AppendPrintf("AdapterVendorID: %04x, ", vendorID);
+  note.AppendPrintf("AdapterDeviceID: %04x\n", deviceID);
+
+  CrashReporter::AppendAppNotesToCrashReport(note);
 
 #endif
 }
