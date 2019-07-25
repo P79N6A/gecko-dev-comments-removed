@@ -516,24 +516,6 @@ function testDefunctAccessible(aAcc, aNodeOrId)
 
 
 
-function ensureImageMapTree(aID)
-{
-  
-  
-  
-  var image = getNode(aID);
-  synthesizeMouse(image, 10, 10, { type: "mousemove" },
-                  image.ownerDocument.defaultView);
-
-  
-  
-  
-  todo(false, "Need to remove this image map workaround.");
-}
-
-
-
-
 function roleToString(aRole)
 {
   return gAccRetrieval.getStringRole(aRole);
