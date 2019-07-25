@@ -547,8 +547,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Register cxreg = regs.takeAny();
-    masm.movePtr(ImmWord(cx->runtime), cxreg);
-    masm.loadPtr(Address(cxreg, offsetof(JSRuntime, ionJSContext)), cxreg);
+    masm.loadJSContext(cx->runtime, cxreg);
     masm.setABIArg(0, cxreg);
 
     size_t argDisp = 0;
@@ -590,8 +589,7 @@ IonCompartment::generateVMWrapper(JSContext *cx, const VMFunction &f)
 
     
     Label exception;
-    masm.testl(eax, eax);
-    masm.j(Assembler::Zero, &exception);
+    masm.branchTest32(Assembler::Zero, eax, eax, &exception);
 
     
     switch (f.outParam) {

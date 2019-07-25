@@ -1045,6 +1045,30 @@ MacroAssemblerARM::ma_vstr(FloatRegister src, Register base, Register index, int
     ma_vstr(src, Operand(ScratchRegister, 0));
 }
 
+uint32
+MacroAssemblerARMCompat::buildFakeExitFrame(const Register &scratch)
+{
+    DebugOnly<uint32> initialDepth = framePushed();
+    uint32 descriptor = MakeFrameDescriptor(framePushed(), IonFrame_JS);
+
+    Push(scratch); 
+    Push(Imm32(descriptor)); 
+    Push(scratch); 
+
+    DebugOnly<uint32> offsetBeforePush = currentOffset();
+    Push(pc); 
+
+    
+    
+    
+    ma_nop();
+    uint32 pseudoReturnOffset = currentOffset();
+
+    JS_ASSERT(framePushed() == initialDepth + IonExitFrameLayout::Size());
+    JS_ASSERT(pseudoReturnOffset - offsetBeforePush == 8);
+    return pseudoReturnOffset;
+}
+
 void
 MacroAssemblerARMCompat::callWithExitFrame(IonCode *target)
 {
@@ -1105,6 +1129,11 @@ void
 MacroAssemblerARMCompat::move32(const Address &src, const Register &dest)
 {
     movePtr(src, dest);
+}
+void
+MacroAssemblerARMCompat::movePtr(const Register &src, const Register &dest)
+{
+    ma_mov(src, dest);
 }
 void
 MacroAssemblerARMCompat::movePtr(const ImmWord &imm, const Register &dest)

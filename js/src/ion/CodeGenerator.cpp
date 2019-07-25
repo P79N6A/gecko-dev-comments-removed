@@ -444,27 +444,99 @@ CodeGenerator::visitTypeBarrier(LTypeBarrier *lir)
 }
 
 bool
+CodeGenerator::visitCallNative(LCallNative *call)
+{
+    JSFunction *target = call->function();
+    JS_ASSERT(target);
+    JS_ASSERT(target->isNative());
+
+    int callargslot = call->argslot();
+    int unusedStack = StackOffsetOfPassedArg(callargslot);
+
+    
+    const Register argJSContextReg = ToRegister(call->getArgJSContextReg());
+    const Register argUintNReg     = ToRegister(call->getArgUintNReg());
+    const Register argVpReg        = ToRegister(call->getArgVpReg());
+
+    
+    const Register tempReg = ToRegister(call->getTempReg());
+
+    DebugOnly<uint32> initialStack = masm.framePushed();
+
+    masm.checkStackAlignment();
+
+    
+    
+    
+    
+
+    
+    masm.adjustStack(unusedStack);
+
+    
+    
+    masm.Push(ObjectValue(*target));
+
+    
+    masm.loadJSContext(gen->cx->runtime, argJSContextReg);
+    masm.move32(Imm32(call->nargs()), argUintNReg);
+    masm.movePtr(StackPointer, argVpReg);
+
+    
+    uint32 safepointOffset = masm.buildFakeExitFrame(tempReg);
+    masm.linkExitFrame();
+    if (!markSafepointAt(safepointOffset, call))
+        return false;
+
+    
+    masm.setupUnalignedABICall(3, tempReg);
+    masm.setABIArg(0, argJSContextReg);
+    masm.setABIArg(1, argUintNReg);
+    masm.setABIArg(2, argVpReg);
+    masm.callWithABI(JS_FUNC_TO_DATA_PTR(void *, target->native()));
+
+    
+    Label success, exception;
+    masm.branchTest32(Assembler::Zero, ReturnReg, ReturnReg, &exception);
+
+    
+    masm.loadValue(Address(StackPointer, IonExitFrameLayout::Size()), JSReturnOperand);
+    masm.jump(&success);
+
+    
+    {
+        masm.bind(&exception);
+        masm.handleException();
+    }
+    masm.bind(&success);
+
+    
+    masm.adjustStack(IonExitFrameLayout::Size() - unusedStack + sizeof(Value));
+    JS_ASSERT(masm.framePushed() == initialStack);
+
+    return true;
+}
+
+bool
 CodeGenerator::visitCallGeneric(LCallGeneric *call)
 {
     
     const LAllocation *callee = call->getFunction();
-    Register calleereg  = ToRegister(callee);
+    Register calleereg = ToRegister(callee);
 
     
     const LAllocation *obj = call->getTempObject();
-    Register objreg  = ToRegister(obj);
+    Register objreg = ToRegister(obj);
 
     
     const LAllocation *nargs = call->getNargsReg();
     Register nargsreg = ToRegister(nargs);
 
-    uint32 callargslot  = call->argslot();
+    uint32 callargslot = call->argslot();
     uint32 unusedStack = StackOffsetOfPassedArg(callargslot);
 
 
-#ifdef JS_CPU_ARM
     masm.checkStackAlignment();
-#endif
 
     
     masm.loadObjClass(calleereg, nargsreg);
@@ -556,9 +628,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
 
     masm.bind(&rejoin);
 
-#ifdef JS_CPU_ARM
     masm.checkStackAlignment();
-#endif
 
     
     masm.callIon(objreg);
@@ -569,12 +639,7 @@ CodeGenerator::visitCallGeneric(LCallGeneric *call)
     
     
     int prefixGarbage = sizeof(IonJSFrameLayout) - sizeof(void *);
-    int restoreDiff = prefixGarbage - unusedStack;
-    
-    if (restoreDiff > 0)
-        masm.freeStack(restoreDiff);
-    else if (restoreDiff < 0)
-        masm.reserveStack(-restoreDiff);
+    masm.adjustStack(prefixGarbage - unusedStack);
 
     masm.jump(&end);
 

@@ -565,6 +565,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         Condition c = testBooleanTruthy(b, t);
         ma_b(label, c);
     }
+    void branchTest32(Condition cond, const Register &lhs, const Register &rhs, Label *label) {
+        ma_tst(lhs, rhs);
+        ma_b(label, cond);
+    }
     void branchTest32(Condition cond, const Address &address, Imm32 imm, Label *label) {
         ma_ldr(Operand(address.base, address.offset), ScratchRegister);
         ma_tst(imm, ScratchRegister);
@@ -703,6 +707,10 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
         framePushed_ = framePushed;
     }
 
+    
+    
+    uint32 buildFakeExitFrame(const Register &scratch);
+
     void callWithExitFrame(IonCode *target);
 
     
@@ -718,6 +726,7 @@ class MacroAssemblerARMCompat : public MacroAssemblerARM
     void move32(const Imm32 &imm, const Register &dest);
 
     void move32(const Address &src, const Register &dest);
+    void movePtr(const Register &src, const Register &dest);
     void movePtr(const ImmWord &imm, const Register &dest);
     void movePtr(const ImmGCPtr &imm, const Register &dest);
     void movePtr(const Address &src, const Register &dest);
