@@ -144,7 +144,7 @@ nsHttpTransaction::nsHttpTransaction()
     , mResponseHeadTaken(false)
 {
     LOG(("Creating nsHttpTransaction @%x\n", this));
-    gHttpHandler->GetMaxPipelineObjectSize(mMaxPipelineObjectSize);
+    gHttpHandler->GetMaxPipelineObjectSize(&mMaxPipelineObjectSize);
 }
 
 nsHttpTransaction::~nsHttpTransaction()
@@ -1366,8 +1366,10 @@ nsHttpTransaction::HandleContent(char *buf,
     
     if ((mClassification != CLASS_SOLO) &&
         mChunkedDecoder &&
-        (mContentRead > mMaxPipelineObjectSize))
+        ((mContentRead + mChunkedDecoder->GetChunkRemaining()) >
+         mMaxPipelineObjectSize)) {
         CancelPipeline(nsHttpConnectionMgr::BadUnexpectedLarge);
+    }
 
     
     if ((mContentRead == mContentLength) ||
@@ -1479,7 +1481,7 @@ nsHttpTransaction::CancelPipeline(PRUint32 reason)
         static_cast<nsHttpConnectionMgr::PipelineFeedbackInfoType>(reason),
         nsnull, mClassification);
 
-    mConnection->CancelPipeline(NS_ERROR_CORRUPTED_CONTENT);
+    mConnection->CancelPipeline(NS_ERROR_ABORT);
 
     
     

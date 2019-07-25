@@ -294,9 +294,10 @@ nsHttpPipeline::CloseTransaction(nsAHttpTransaction *trans, nsresult reason)
     trans->Close(reason);
     NS_RELEASE(trans);
 
-    if (killPipeline)
+    if (killPipeline) {
         
         CancelPipeline(reason);
+    }
 }
 
 void
@@ -842,6 +843,8 @@ nsHttpPipeline::CancelPipeline(nsresult originalReason)
     }
     mRequestQ.Clear();
 
+    
+    
     
     
     for (i = 1; i < respLen; ++i) {

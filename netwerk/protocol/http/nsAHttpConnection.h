@@ -122,7 +122,7 @@ public:
 
     
     virtual bool IsReused() = 0;
-    virtual void   DontReuse() = 0;
+    virtual void DontReuse() = 0;
 
     
     
