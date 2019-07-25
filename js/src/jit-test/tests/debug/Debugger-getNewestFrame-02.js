@@ -13,7 +13,7 @@ dbg.hooks = {
     }
 };
 g.h = function () {
-    savedFrame = dbg.getYoungestFrame();
+    savedFrame = dbg.getNewestFrame();
     savedCallee = savedFrame.callee;
     assertEq(savedCallee.name, "f");
 };
