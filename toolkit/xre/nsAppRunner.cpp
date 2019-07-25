@@ -3058,6 +3058,15 @@ XRE_main(int argc, char* argv[], const nsXREAppData* aAppData)
     gSafeMode = PR_TRUE;
   }
 
+#ifdef XP_WIN
+  
+  
+  
+  
+  if (GetKeyState(VK_SHIFT) & 0x8000)
+    gSafeMode = PR_TRUE;
+#endif
+
 #ifdef XP_MACOSX
   if (GetCurrentEventKeyModifiers() & optionKey)
     gSafeMode = PR_TRUE;
