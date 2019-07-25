@@ -1973,7 +1973,7 @@ nsCanvasRenderingContext2DAzure::CreatePattern(nsIDOMHTMLElement *image,
   }
 
   
-  if (!res.mSurface->CairoSurface()) {
+  if (!res.mSurface->CairoSurface() || res.mSurface->CairoStatus()) {
     return NS_OK;
   }
 
