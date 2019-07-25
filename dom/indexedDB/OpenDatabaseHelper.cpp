@@ -476,9 +476,12 @@ CreateDatabaseConnection(const nsAString& aName,
   return NS_OK;
 }
 
+class VersionChangeEventsRunnable;
+
 class SetVersionHelper : public AsyncConnectionHelper,
                          public IDBTransactionListener
 {
+  friend class VersionChangeEventsRunnable;
 public:
   SetVersionHelper(IDBTransaction* aTransaction,
                    IDBOpenDBRequest* aRequest,
@@ -498,9 +501,6 @@ public:
   nsresult GetSuccessResult(JSContext* aCx,
                             jsval* aVal);
 
-  static
-  void QueueVersionChange(nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
-                          void* aClosure);
 protected:
   nsresult DoDatabaseWork(mozIStorageConnection* aConnection);
   nsresult Init();
@@ -514,12 +514,63 @@ protected:
 
   nsresult NotifyTransactionComplete(IDBTransaction* aTransaction);
 
+  PRUint64 RequestedVersion() const
+  {
+    return mRequestedVersion;
+  }
+
 private:
   
   nsRefPtr<OpenDatabaseHelper> mOpenHelper;
   nsRefPtr<IDBOpenDBRequest> mOpenRequest;
   PRUint64 mRequestedVersion;
   PRUint64 mCurrentVersion;
+};
+
+class DeleteDatabaseHelper : public AsyncConnectionHelper
+{
+  friend class VersionChangeEventsRunnable;
+public:
+  DeleteDatabaseHelper(IDBOpenDBRequest* aRequest,
+                       OpenDatabaseHelper* aHelper,
+                       PRUint64 aCurrentVersion,
+                       const nsAString& aName,
+                       const nsACString& aASCIIOrigin)
+  : AsyncConnectionHelper(static_cast<IDBDatabase*>(nsnull), aRequest),
+    mOpenRequest(aRequest), mOpenHelper(aHelper),
+    mCurrentVersion(aCurrentVersion), mName(aName),
+    mASCIIOrigin(aASCIIOrigin)
+  { }
+
+  nsresult GetSuccessResult(JSContext* aCx,
+                            jsval* aVal);
+
+protected:
+  nsresult DoDatabaseWork(mozIStorageConnection* aConnection);
+  nsresult Init();
+
+  
+  
+  void OnError()
+  {
+    mOpenHelper->NotifyDeleteFinished();
+  }
+  nsresult OnSuccess()
+  {
+    return mOpenHelper->NotifyDeleteFinished();
+  }
+
+  PRUint64 RequestedVersion() const
+  {
+    return 0;
+  }
+private:
+  
+  nsRefPtr<OpenDatabaseHelper> mOpenHelper;
+  nsRefPtr<IDBOpenDBRequest> mOpenRequest;
+  PRUint64 mCurrentVersion;
+  nsString mName;
+  nsCString mASCIIOrigin;
 };
 
 
@@ -599,6 +650,10 @@ public:
     return NS_OK;
   }
 
+  template <class T>
+  static
+  void QueueVersionChange(nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
+                          void* aClosure);
 private:
   nsRefPtr<IDBDatabase> mRequestingDatabase;
   nsRefPtr<IDBOpenDBRequest> mRequest;
@@ -745,6 +800,11 @@ OpenDatabaseHelper::DoDatabaseWork()
     mLastObjectStoreId = NS_MAX(objectStoreInfo->id, mLastObjectStoreId);
   }
 
+  if (mForDeletion) {
+    mState = eDeletePending;
+    return NS_OK;
+  }
+
   
 
   
@@ -797,7 +857,7 @@ OpenDatabaseHelper::StartSetVersion()
   NS_ASSERTION(mgr, "This should never be null!");
 
   rv = mgr->AcquireExclusiveAccess(mDatabase, helper,
-                                   &SetVersionHelper::QueueVersionChange,
+            &VersionChangeEventsRunnable::QueueVersionChange<SetVersionHelper>,
                                    helper);
   NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
 
@@ -805,6 +865,35 @@ OpenDatabaseHelper::StartSetVersion()
   
   mState = eSetVersionPending;
 
+  return NS_OK;
+}
+
+nsresult
+OpenDatabaseHelper::StartDelete()
+{
+  NS_ASSERTION(mState == eDeletePending, "Why are we here?");
+
+  
+  mState = eFiringEvents;
+
+  nsresult rv = EnsureSuccessResult();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  nsRefPtr<DeleteDatabaseHelper> helper =
+    new DeleteDatabaseHelper(mOpenDBRequest, this, mCurrentVersion, mName,
+                             mASCIIOrigin);
+
+  IndexedDatabaseManager* mgr = IndexedDatabaseManager::Get();
+  NS_ASSERTION(mgr, "This should never be null!");
+
+  rv = mgr->AcquireExclusiveAccess(mDatabase, helper,
+        &VersionChangeEventsRunnable::QueueVersionChange<DeleteDatabaseHelper>,
+                                   helper);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
+  
+  
+  mState = eDeletePending;
   return NS_OK;
 }
 
@@ -825,30 +914,58 @@ OpenDatabaseHelper::Run()
       SetError(rv);
       
     }
+    else if (mState == eDeletePending) {
+      nsresult rv = StartDelete();
+
+      if (NS_SUCCEEDED(rv)) {
+        return rv;
+      }
+
+      SetError(rv);
+      
+    }
 
     
     
     NS_ASSERTION(mState == eFiringEvents ||
-                 mState == eSetVersionCompleted, "Why are we here?");
+                 mState == eSetVersionCompleted ||
+                 mState == eDeleteCompleted, "Why are we here?");
 
-    if (mState == eSetVersionCompleted) {
-      
-      
-      
-      
-      mDatabase->ExitSetVersionTransaction();
+    switch (mState) {
+      case eSetVersionCompleted: {
+        
+        
+        
+        
+        mDatabase->ExitSetVersionTransaction();
 
-      mState = eFiringEvents;
-    } else {
-      
-      
-      
-      
-
-      nsresult rv = mOpenDBRequest->NotifyHelperCompleted(this);
-      if (NS_SUCCEEDED(mResultCode) && NS_FAILED(rv)) {
-        mResultCode = rv;
+        mState = eFiringEvents;
+        break;
       }
+
+      case eDeleteCompleted: {
+        
+        mDatabase = nsnull;
+
+        mState = eFiringEvents;
+        break;
+      }
+
+      case eFiringEvents: {
+        
+        
+        
+        
+
+        nsresult rv = mOpenDBRequest->NotifyHelperCompleted(this);
+        if (NS_SUCCEEDED(mResultCode) && NS_FAILED(rv)) {
+          mResultCode = rv;
+        }
+        break;
+      }
+
+      default:
+        NS_NOTREACHED("Shouldn't get here!");
     }
 
     NS_ASSERTION(mState == eFiringEvents, "Why are we here?");
@@ -996,6 +1113,18 @@ OpenDatabaseHelper::NotifySetVersionFinished()
   return NS_DispatchToCurrentThread(this);
 }
 
+nsresult
+OpenDatabaseHelper::NotifyDeleteFinished()
+{
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread");
+  NS_ASSERTION(mState == eDeletePending, "How did we get here?");
+
+  mState = eDeleteCompleted;
+  
+  
+  return NS_DispatchToCurrentThread(this);
+}
+
 void
 OpenDatabaseHelper::BlockDatabase()
 {
@@ -1008,8 +1137,6 @@ OpenDatabaseHelper::BlockDatabase()
 void
 OpenDatabaseHelper::DispatchSuccessEvent()
 {
-  NS_ASSERTION(mDatabase, "Doesn't seem very successful to me.");
-
   nsRefPtr<nsDOMEvent> event =
     CreateGenericEvent(NS_LITERAL_STRING(SUCCESS_EVT_STR));
   if (!event) {
@@ -1104,22 +1231,23 @@ SetVersionHelper::GetSuccessResult(JSContext* aCx,
 }
 
 
+template <class T>
 void
-SetVersionHelper::QueueVersionChange(nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
-                                     void* aClosure)
+VersionChangeEventsRunnable::QueueVersionChange(
+                                  nsTArray<nsRefPtr<IDBDatabase> >& aDatabases,
+                                  void* aClosure)
 {
   NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
   NS_ASSERTION(!aDatabases.IsEmpty(), "Why are we here?");
 
-  SetVersionHelper* helper = static_cast<SetVersionHelper*>(aClosure);
-  NS_ASSERTION(helper, "Why don't we have a helper?");
+  T* closure = static_cast<T*>(aClosure);
 
   nsRefPtr<VersionChangeEventsRunnable> eventsRunnable =
-    new VersionChangeEventsRunnable(helper->mOpenHelper->Database(),
-                                    helper->mOpenRequest,
+    new VersionChangeEventsRunnable(closure->mOpenHelper->Database(),
+                                    closure->mOpenRequest,
                                     aDatabases,
-                                    helper->mCurrentVersion,
-                                    helper->mRequestedVersion);
+                                    closure->mCurrentVersion,
+                                    closure->RequestedVersion());
 
   NS_DispatchToCurrentThread(eventsRunnable);
 }
@@ -1157,4 +1285,42 @@ SetVersionHelper::NotifyTransactionComplete(IDBTransaction* aTransaction)
   mOpenHelper = nsnull;
 
   return rv;
+}
+
+nsresult
+DeleteDatabaseHelper::DoDatabaseWork(mozIStorageConnection* aConnection)
+{
+  NS_ASSERTION(!aConnection, "How did we get a connection here?");
+
+  nsCOMPtr<nsIFile> dbFile;
+  nsresult rv = GetDatabaseFile(mASCIIOrigin, mName, getter_AddRefs(dbFile));
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
+  NS_ASSERTION(dbFile, "What?");
+
+  bool exists = false;
+  rv = dbFile->Exists(&exists);
+  NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+
+  if (exists) {
+    rv = dbFile->Remove(false);
+    NS_ENSURE_SUCCESS(rv, NS_ERROR_DOM_INDEXEDDB_UNKNOWN_ERR);
+  }
+
+  return NS_OK;
+}
+
+nsresult
+DeleteDatabaseHelper::GetSuccessResult(JSContext* aCx, jsval* aVal)
+{
+  return NS_OK;
+}
+
+nsresult
+DeleteDatabaseHelper::Init()
+{
+  
+  
+
+  return NS_OK;
 }
