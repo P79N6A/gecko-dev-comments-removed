@@ -59,6 +59,16 @@ function f_is(aIs, a, bIs, b, rvIs) {
     return rv;
 }
 
+function f_size_and_iid(aSize, aIID, a, bSize, bIID, b, rvSize, rvIID) {
+
+    
+    rvIID.value = bIID.value;
+    bIID.value = aIID;
+
+    
+    return f_is(aSize, a, bSize, b, rvSize);
+}
+
 TestParams.prototype = {
 
   
@@ -94,6 +104,7 @@ TestParams.prototype = {
   testSizedString: f_is,
   testSizedWstring: f_is,
   testInterfaceIs: f_is,
+  testInterfaceIsArray: f_size_and_iid,
 };
 
 var NSGetFactory = XPCOMUtils.generateNSGetFactory([TestParams]);

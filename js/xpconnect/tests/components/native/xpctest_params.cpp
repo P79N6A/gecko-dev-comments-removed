@@ -60,7 +60,7 @@ nsXPCTestParams::~nsXPCTestParams()
 }
 
 #define TAKE_OWNERSHIP_NOOP(val) {}
-#define TAKE_OWNERSHIP_INTERFACE(val) {(val)->AddRef();}
+#define TAKE_OWNERSHIP_INTERFACE(val) {static_cast<nsISupports*>(val)->AddRef();}
 #define TAKE_OWNERSHIP_STRING(val) {                                          \
     nsDependentCString vprime(val);                                           \
     val = ToNewCString(vprime);                                               \
@@ -340,4 +340,31 @@ NS_IMETHODIMP nsXPCTestParams::TestInterfaceIs(const nsIID *aIID, void *a,
     **bIID = *aIID;
 
     return NS_OK;
+}
+
+
+
+
+
+
+
+NS_IMETHODIMP nsXPCTestParams::TestInterfaceIsArray(PRUint32 aLength, const nsIID *aIID,
+                                                    void **a,
+                                                    PRUint32 *bLength NS_INOUTPARAM, nsIID **bIID NS_INOUTPARAM,
+                                                    void ***b NS_INOUTPARAM,
+                                                    PRUint32 *rvLength NS_OUTPARAM, nsIID **rvIID NS_OUTPARAM,
+                                                    void ***rv NS_OUTPARAM)
+{
+    
+    
+    *rvIID = static_cast<nsIID*>(NS_Alloc(sizeof(nsID)));
+    if (!*rvIID)
+        return NS_ERROR_OUT_OF_MEMORY;
+    **rvIID = **bIID;
+    **bIID = *aIID;
+
+    
+    
+    
+    BUFFER_METHOD_IMPL(void*, 0, TAKE_OWNERSHIP_INTERFACE);
 }
