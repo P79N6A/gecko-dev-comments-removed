@@ -206,11 +206,6 @@ var BrowserUI = {
       if (urlString == "about:blank")
         urlString = "";
       this._edit.value = urlString;
-
-      
-      
-      
-      this._edit.inputField.blur();
       this._edit.inputField.focus();
     }
     else if (!aEdit && icons.getAttribute("mode") != "view") {
