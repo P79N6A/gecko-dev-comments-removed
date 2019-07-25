@@ -200,7 +200,6 @@ NS_IMPL_CYCLE_COLLECTION_TRAVERSE_BEGIN(nsEditor)
 NS_IMPL_CYCLE_COLLECTION_TRAVERSE_END
 
 NS_INTERFACE_MAP_BEGIN_CYCLE_COLLECTION(nsEditor)
- NS_INTERFACE_MAP_ENTRY(nsIMutationObserver)
  NS_INTERFACE_MAP_ENTRY(nsIPhonetic)
  NS_INTERFACE_MAP_ENTRY(nsISupportsWeakReference)
  NS_INTERFACE_MAP_ENTRY(nsIEditorIMESupport)
@@ -242,9 +241,6 @@ nsEditor::Init(nsIDOMDocument *aDoc, nsIPresShell* aPresShell, nsIContent *aRoot
   
   if (aRoot)
     mRootElement = do_QueryInterface(aRoot);
-
-  nsCOMPtr<nsINode> document = do_QueryInterface(aDoc);
-  document->AddMutationObserver(this);
 
   mUpdateCount=0;
 
@@ -423,10 +419,6 @@ nsEditor::PreDestroy(PRBool aDestroyingFrames)
 
   
   NotifyDocumentListeners(eDocumentToBeDestroyed);
-
-  nsCOMPtr<nsINode> document = do_QueryReferent(mDocWeak);
-  if (document)
-    document->RemoveMutationObserver(this);
 
   
   RemoveEventListeners();
@@ -2092,46 +2084,6 @@ nsEditor::GetComposing(PRBool* aResult)
 #endif
 
 
-
-void
-nsEditor::ContentAppended(nsIDocument *aDocument, nsIContent* aContainer,
-                          nsIContent* aFirstNewContent,
-                          PRInt32 )
-{
-  ContentInserted(aDocument, aContainer, nsnull, 0);
-}
-
-void
-nsEditor::ContentInserted(nsIDocument *aDocument, nsIContent* aContainer,
-                          nsIContent* aChild, PRInt32 )
-{
-  
-  
-  if (!mRootElement)
-  {
-    
-    
-    
-    RemoveEventListeners();
-    BeginningOfDocument();
-    InstallEventListeners();
-    SyncRealTimeSpell();
-  }
-}
-
-void
-nsEditor::ContentRemoved(nsIDocument *aDocument, nsIContent* aContainer,
-                         nsIContent* aChild, PRInt32 aIndexInContainer)
-{
-  nsCOMPtr<nsIDOMHTMLElement> elem = do_QueryInterface(aChild);
-  if (elem == mRootElement)
-  {
-    RemoveEventListeners();
-    mRootElement = nsnull;
-    mEventTarget = nsnull;
-    InstallEventListeners();
-  }
-}
 
 NS_IMETHODIMP
 nsEditor::GetRootElement(nsIDOMElement **aRootElement)
