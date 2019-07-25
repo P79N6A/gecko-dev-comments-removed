@@ -164,13 +164,17 @@ var ExtensionsView = {
     this._msg.appendNotification(aMsg, aValue, "", this._msg.PRIORITY_WARNING_LOW, buttons).hideclose = !aShowCloseButton;
   },
 
-  showRestart: function ev_showRestart() {
+  showRestart: function ev_showRestart(aMode) {
     
     this._restartCount++;
 
+    
+    aMode = aMode || "normal";
+
     if (this._msg) {
       let strings = Elements.browserBundle;
-      this.showMessage(strings.getString("notificationRestart.label"), "restart-app",
+      let message = "notificationRestart." + aMode;
+      this.showMessage(strings.getString(message), "restart-app",
                        strings.getString("notificationRestart.button"), false, "addons-restart-app");
     }
   },
@@ -605,13 +609,9 @@ var ExtensionsView = {
         let showmore = document.createElement("richlistitem");
         showmore.setAttribute("typeName", "showmore");
 
-        let titleBase = strings.getString("addonsSearchMore.label");
-        let title = PluralForm.get(aTotalResults, titleBase).replace("#1", aTotalResults);
-        showmore.setAttribute("title", title);
-
-        let descBase = strings.getString("addonsSearchMore.description");
-        let desc = PluralForm.get(aAddons.length, descBase).replace("#1", aAddons.length);
-        showmore.setAttribute("description", desc);
+        let labelBase = strings.getString("addonsSearchMore.label");
+        let label = PluralForm.get(aTotalResults, labelBase).replace("#1", aTotalResults);
+        showmore.setAttribute("label", label);
 
         let url = gPrefService.getCharPref("extensions.getAddons.search.browseURL");
         url = url.replace(/%TERMS%/g, encodeURIComponent(this.searchBox.value));
@@ -624,8 +624,7 @@ var ExtensionsView = {
     } else {
       let showmore = document.createElement("richlistitem");
       showmore.setAttribute("typeName", "showmore");
-      showmore.setAttribute("title", strings.getString("addonsBrowseAll.label"));
-      showmore.setAttribute("description", strings.getString("addonsBrowseAll.description"));
+      showmore.setAttribute("label", strings.getString("addonsBrowseAll.label"));
 
       let url = formatter.formatURLPref("extensions.getAddons.browseAddons");
       showmore.setAttribute("url", url);
@@ -677,10 +676,11 @@ var ExtensionsView = {
       case "addon-update-ended":
         let status = parseInt(aData);
         let updateable = false;
+        let statusMsg = null;
         const nsIAUCL = Ci.nsIAddonUpdateCheckListener;
         switch (status) {
           case nsIAUCL.STATUS_UPDATE:
-            var statusMsg = strings.getFormattedString("addonUpdate.updating", [addon.version]);
+            statusMsg = strings.getFormattedString("addonUpdate.updating", [addon.version]);
             updateable = true;
             break;
           case nsIAUCL.STATUS_VERSIONINFO:
@@ -694,7 +694,8 @@ var ExtensionsView = {
             break;
           case nsIAUCL.STATUS_APP_MANAGED:
           case nsIAUCL.STATUS_NO_UPDATE:
-            statusMsg = strings.getString("addonUpdate.noupdate");
+            
+            
             break;
           case nsIAUCL.STATUS_NOT_MANAGED:
             statusMsg = strings.getString("addonUpdate.notsupported");
@@ -703,9 +704,14 @@ var ExtensionsView = {
             statusMsg = strings.getString("addonUpdate.notsupported");
             break;
           default:
-            statusMsg = strings.getString("addonUpdate.noupdate");
+            
+            
         }
-        element.setAttribute("updateStatus", statusMsg);
+
+        if (statusMsg)
+          element.setAttribute("updateStatus", statusMsg);
+        else
+          element.removeAttribute("updateStatus");
 
         
         if (updateable)
@@ -799,6 +805,7 @@ XPInstallDownloadManager.prototype = {
 
     this._failed = [];
     this._succeeded = [];
+    this._updating = false;
 
     ExtensionsView.installFromXPI(items, aManager);
 
@@ -821,6 +828,7 @@ XPInstallDownloadManager.prototype = {
 
   _failed: [],
   _succeeded: [],
+  _updating: false,
   onInstallEnded: function(aAddon, aStatus) {
     
     if (Components.isSuccessCode(aStatus))
@@ -842,6 +850,9 @@ XPInstallDownloadManager.prototype = {
       let strings = Elements.browserBundle;
       element.setAttribute("updateStatus", strings.getFormattedString("addonUpdate.updated", [aAddon.version]));
       element.removeAttribute("updating");
+
+      
+      this._updating = true;
     }
   },
 
@@ -850,7 +861,7 @@ XPInstallDownloadManager.prototype = {
 
     
     if (this._succeeded.length > 0)
-      ExtensionsView.showRestart();
+      ExtensionsView.showRestart(this._updating ? "update" : "normal");
 
     if (ExtensionsView.visible)
       return;
