@@ -699,7 +699,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   }
   
   
-  if (loadAsHtml5 && !viewSource) {
+  if (loadAsHtml5 && aCommand && !nsCRT::strcmp(aCommand, "view")) {
     
     nsCOMPtr<nsIURI> uri;
     aChannel->GetOriginalURI(getter_AddRefs(uri));
@@ -771,9 +771,6 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
   
   nsCOMPtr<nsIDocShell> docShell(do_QueryInterface(aContainer));
 
-  
-  NS_ENSURE_TRUE(docShell || !IsHTML(), NS_ERROR_FAILURE);
-
   nsCOMPtr<nsIDocShellTreeItem> docShellAsItem(do_QueryInterface(docShell));
 
   nsCOMPtr<nsIDocShellTreeItem> parentAsItem;
@@ -810,9 +807,6 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
     }
   }
 
-  nsCAutoString scheme;
-  uri->GetScheme(scheme);
-
   nsCAutoString urlSpec;
   uri->GetSpec(urlSpec);
 #ifdef DEBUG_charset
@@ -830,8 +824,9 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
 
   nsCOMPtr<nsIWyciwygChannel> wyciwygChannel;
   
-  if (!IsHTML()) {
-    charsetSource = kCharsetFromDocTypeDefault;
+  if (!IsHTML() || !docShell) { 
+    charsetSource = IsHTML() ? kCharsetFromWeakDocTypeDefault
+                             : kCharsetFromDocTypeDefault;
     charset.AssignLiteral("UTF-8");
     TryChannelCharset(aChannel, charsetSource, charset);
     parserCharsetSource = charsetSource;
@@ -946,6 +941,7 @@ nsHTMLDocument::StartDocumentLoad(const char* aCommand,
                  "not nsICachingChannel");
     rv = cachingChan->SetCacheTokenCachedCharset(charset);
     NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "cannot SetMetaDataElement");
+    rv = NS_OK; 
   }
 
   

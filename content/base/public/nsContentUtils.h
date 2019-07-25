@@ -1120,7 +1120,7 @@ public:
                                  nsIURI* aBaseURI,
                                  nsIPrincipal* aPrincipal,
                                  nsIScriptGlobalObject* aScriptObject,
-                                 bool aSVGDocument,
+                                 DocumentFlavor aFlavor,
                                  nsIDOMDocument** aResult);
 
   
