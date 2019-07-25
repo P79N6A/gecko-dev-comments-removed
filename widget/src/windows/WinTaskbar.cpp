@@ -62,6 +62,7 @@
 #include "nsWidgetsCID.h"
 #include "nsPIDOMWindow.h"
 #include "nsAppDirectoryServiceDefs.h"
+#include "mozilla/Preferences.h"
 #include <io.h>
 #include <propvarutil.h>
 #include <propkey.h>
@@ -274,6 +275,28 @@ WinTaskbar::~WinTaskbar() {
 
 bool
 WinTaskbar::GetAppUserModelID(nsAString & aDefaultGroupId) {
+  
+  
+  bool useProfile =
+    Preferences::GetBool("taskbar.grouping.useprofile", false);
+  if (useProfile) {
+    nsCOMPtr<nsIFile> profileDir;
+    NS_GetSpecialDirectory(NS_APP_PROFILE_DEFAULTS_50_DIR,
+                           getter_AddRefs(profileDir));
+    bool exists = false;
+    if (profileDir && NS_SUCCEEDED(profileDir->Exists(&exists)) && exists) {
+      nsCAutoString path;
+      if (NS_SUCCEEDED(profileDir->GetNativePath(path))) {
+        nsAutoString id;
+        id.AppendInt(HashString(path));
+        if (!id.IsEmpty()) {
+          aDefaultGroupId.Assign(id);
+          return true;
+        }
+      }
+    }
+  }
+
   
   
   
