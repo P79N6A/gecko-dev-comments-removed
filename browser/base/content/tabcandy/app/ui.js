@@ -269,7 +269,6 @@ window.Page = {
         }
       } else {
         var group = Groups.getActiveGroup();
-        var current
         
         
         
@@ -458,7 +457,6 @@ window.Page = {
             activeTab.zoomIn();
           event.stopPropagation();
           event.preventDefault();
-          Utils.log("??????????");
         }
       } else if (event.which == 27 || event.which == 13) {
         
