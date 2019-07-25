@@ -1060,7 +1060,7 @@ nsHttpConnectionMgr::OnMsgReclaimConnection(PRInt32, void *param)
             
             
 
-            PRInt32 idx;
+            PRUint32 idx;
             for (idx = 0; idx < ent->mIdleConns.Length(); idx++) {
                 nsHttpConnection *idleConn = ent->mIdleConns[idx];
                 if (idleConn->MaxBytesRead() < conn->MaxBytesRead())
