@@ -223,8 +223,6 @@ nsTransactionItem::UndoTransaction(nsTransactionManager *aTxMgr)
     return result;
   }
 
-  
-  
   if (!mTransaction)
     return NS_OK;
 
@@ -451,7 +449,8 @@ nsTransactionItem::RecoverFromRedoError(nsTransactionManager *aTxMgr)
     return result;
   }
 
-  NS_ENSURE_TRUE(mTransaction, NS_OK);
+  if (!mTransaction)
+    return NS_OK;
 
   return mTransaction->UndoTransaction();
 }
