@@ -1541,7 +1541,9 @@ nsFrameLoader::UpdateViewportConfig(const ViewportConfig& aNewConfig)
   nsIFrame* frame = GetPrimaryFrameOfOwningContent();
   if (!frame) {
     
-    return NS_ERROR_NOT_AVAILABLE;
+    
+    
+    return NS_OK;
   }
 
   
