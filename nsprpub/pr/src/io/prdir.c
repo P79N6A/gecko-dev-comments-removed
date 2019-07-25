@@ -3,39 +3,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "primpl.h"
 
 PR_IMPLEMENT(PRDir*) PR_OpenDir(const char *name)

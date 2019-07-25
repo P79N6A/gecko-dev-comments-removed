@@ -10,38 +10,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #define ZERO_LEN_FILE_NAME "zerolen.tmp"
 #define HEADER_STR "Header"
 #define HEADER_LEN 6 /* length of HEADER_STR, not counting the null byte */

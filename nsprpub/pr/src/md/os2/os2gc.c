@@ -7,38 +7,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "primpl.h"
 
 PRWord *_MD_HomeGCRegisters(PRThread *t, int isCurrent, int *np) 

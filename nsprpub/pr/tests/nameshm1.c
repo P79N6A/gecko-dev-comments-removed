@@ -66,38 +66,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include <plgetopt.h> 
 #include <nspr.h>
 #include <stdlib.h>

@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "primpl.h"
 #include "prerror.h"
 #include "prmem.h"
@@ -644,8 +612,15 @@ PR_IMPLEMENT(PRDescIdentity) PR_GetUniqueIdentity(const char *layer_name)
     
 retry:
     PR_ASSERT(NULL == names);
+    
+
+
+
+
+
+
     length = identity_cache.length;
-    if (length < (identity_cache.ident + 1))
+    if ((identity_cache.ident + 1) >= length)
     {
         length += ID_CACHE_INCREMENT;
         names = (char**)PR_CALLOC(length * sizeof(char*));
@@ -659,12 +634,13 @@ retry:
 
     
     PR_Lock(identity_cache.ml);
-    PR_ASSERT(identity_cache.ident <= identity_cache.length);
+    PR_ASSERT(identity_cache.length == 0 ||
+              identity_cache.ident < identity_cache.length);
     identity = identity_cache.ident + 1;
-    if (identity > identity_cache.length)  
+    if (identity >= identity_cache.length)  
     {
         
-        if ((NULL != names) && (length >= identity))
+        if ((NULL != names) && (identity < length))
         {
             
             memcpy(
@@ -677,7 +653,6 @@ retry:
         }
         else
         {
-            PR_ASSERT(identity_cache.ident <= identity_cache.length);
             PR_Unlock(identity_cache.ml);
             if (NULL != names) PR_DELETE(names);
             goto retry;
@@ -688,7 +663,7 @@ retry:
         identity_cache.name[identity] = name;
     }
     identity_cache.ident = identity;
-    PR_ASSERT(identity_cache.ident <= identity_cache.length);
+    PR_ASSERT(identity_cache.ident < identity_cache.length);
     PR_Unlock(identity_cache.ml);
 
     if (NULL != old) PR_DELETE(old);

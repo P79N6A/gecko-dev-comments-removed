@@ -17,38 +17,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #if defined(WINNT) || defined(__MINGW32__)
 #include <winsock.h>
 #endif

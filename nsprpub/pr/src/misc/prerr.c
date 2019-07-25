@@ -8,38 +8,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "prerror.h"
 static const struct PRErrorMessage text[] = {
 	{"PR_OUT_OF_MEMORY_ERROR",    "Memory allocation attempt failed"},

@@ -24,38 +24,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "nspr.h"
 #include "plgetopt.h"
 #include <stdio.h>
