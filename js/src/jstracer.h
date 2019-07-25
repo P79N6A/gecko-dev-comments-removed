@@ -1061,7 +1061,16 @@ class TraceRecorder
     JS_REQUIRES_STACK bool knownImpl(const void* p);
     JS_REQUIRES_STACK bool known(const Value* p);
     JS_REQUIRES_STACK bool known(JSObject** p);
-    JS_REQUIRES_STACK void checkForGlobalObjectReallocation();
+    
+
+
+
+
+    JS_REQUIRES_STACK void checkForGlobalObjectReallocation() {
+        if (global_dslots != globalObj->dslots)
+            checkForGlobalObjectReallocationHelper();
+    }
+    JS_REQUIRES_STACK void checkForGlobalObjectReallocationHelper();
 
     JS_REQUIRES_STACK TypeConsensus selfTypeStability(SlotMap& smap);
     JS_REQUIRES_STACK TypeConsensus peerTypeStability(SlotMap& smap, const void* ip,
