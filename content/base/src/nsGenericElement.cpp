@@ -273,7 +273,7 @@ nsGenericElement::GetSystemEventGroup(nsIDOMEventGroup** aGroup)
 nsINode::nsSlots*
 nsINode::CreateSlots()
 {
-  return new nsSlots();
+  return new nsSlots(mFlagsOrSlots);
 }
 
 PRBool
@@ -2138,8 +2138,8 @@ nsNodeSelectorTearoff::QuerySelectorAll(const nsAString& aSelector,
 }
 
 
-nsGenericElement::nsDOMSlots::nsDOMSlots()
-  : nsINode::nsSlots(),
+nsGenericElement::nsDOMSlots::nsDOMSlots(PtrBits aFlags)
+  : nsINode::nsSlots(aFlags),
     mBindingParent(nsnull)
 {
 }
@@ -2160,8 +2160,8 @@ nsGenericElement::nsGenericElement(already_AddRefed<nsINodeInfo> aNodeInfo)
 {
   
   
-  SetFlags((nsIProgrammingLanguage::JAVASCRIPT << NODE_SCRIPT_TYPE_OFFSET));
-  SetIsElement();
+  SetFlags(nsIProgrammingLanguage::JAVASCRIPT << NODE_SCRIPT_TYPE_OFFSET);
+  mIsElement = true;
 }
 
 nsGenericElement::~nsGenericElement()
@@ -2943,16 +2943,15 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
 
   
   if (aParent) {
-    mParent = aParent;
+    mParentPtrBits = reinterpret_cast<PtrBits>(aParent) | PARENT_BIT_PARENT_IS_CONTENT;
 
     if (aParent->HasFlag(NODE_FORCE_XBL_BINDINGS)) {
       SetFlags(NODE_FORCE_XBL_BINDINGS);
     }
   }
   else {
-    mParent = aDocument;
+    mParentPtrBits = reinterpret_cast<PtrBits>(aDocument);
   }
-  SetParentIsContent(aParent);
 
   
 
@@ -2968,7 +2967,7 @@ nsGenericElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
     
 
     
-    SetInDocument();
+    mParentPtrBits |= PARENT_BIT_INDOCUMENT;
 
     
     UnsetFlags(NODE_FORCE_XBL_BINDINGS |
@@ -3050,11 +3049,7 @@ nsGenericElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   nsIDocument *document =
     HasFlag(NODE_FORCE_XBL_BINDINGS) ? GetOwnerDoc() : GetCurrentDoc();
 
-  if (aNullParent) {
-    mParent = nsnull;
-    SetParentIsContent(false);
-  }
-  ClearInDocument();
+  mParentPtrBits = aNullParent ? 0 : mParentPtrBits & ~PARENT_BIT_INDOCUMENT;
 
   if (document) {
     
@@ -5292,7 +5287,7 @@ nsGenericElement::IndexOf(nsINode* aPossibleChild) const
 nsINode::nsSlots*
 nsGenericElement::CreateSlots()
 {
-  return new nsDOMSlots();
+  return new nsDOMSlots(mFlagsOrSlots);
 }
 
 PRBool
