@@ -478,7 +478,7 @@ NS_IMPL_ISUPPORTS1(nsGlyphTableList, nsIObserver)
 
 
 
-static nsGlyphTableList* gGlyphTableList = nullptr;
+static nsGlyphTableList* gGlyphTableList = nsnull;
 
 static bool gInitialized = false;
 
@@ -550,7 +550,7 @@ nsGlyphTableList::GetGlyphTableFor(nsPresContext* aPresContext,
       return glyphTable;
     }
   }
-  return nullptr;
+  return nsnull;
 }
 
 nsGlyphTable*
@@ -654,7 +654,7 @@ InitGlobals(nsPresContext* aPresContext)
   }
   if (NS_FAILED(rv)) {
     delete gGlyphTableList;
-    gGlyphTableList = nullptr;
+    gGlyphTableList = nsnull;
     return rv;
   }
   
@@ -688,7 +688,7 @@ InitGlobals(nsPresContext* aPresContext)
   
   nsAutoString missingFamilyList;
 
-  font.EnumerateFamilies(MathFontEnumCallback, nullptr);
+  font.EnumerateFamilies(MathFontEnumCallback, nsnull);
   return rv;
 }
 
@@ -701,7 +701,6 @@ nsMathMLChar::GetStyleContext() const
   NS_ASSERTION(!mParent, "invalid call - not allowed for child chars");
   NS_ASSERTION(mStyleContext, "chars should always have style context");
   return mStyleContext;
-  return NS_OK;
 }
 
 void
@@ -739,7 +738,7 @@ nsMathMLChar::SetData(nsPresContext* aPresContext,
   
   mDirection = NS_STRETCH_DIRECTION_UNSUPPORTED;
   mBoundingMetrics = nsBoundingMetrics();
-  mGlyphTable = nullptr;
+  mGlyphTable = nsnull;
   
   if (gGlyphTableList && (1 == mData.Length())) {
     mDirection = nsMathMLOperators::GetStretchyDirection(mData);
@@ -951,7 +950,7 @@ AddFallbackFonts(nsAString& aFontName, const nsAString& aFallbackFamilies)
   aFontName.EndReading(p_end);
 
   const PRUnichar *p = p_begin;
-  const PRUnichar *p_name = nullptr;
+  const PRUnichar *p_name = nsnull;
   while (p < p_end) {
     while (nsCRT::IsAsciiSpace(*p))
       if (++p == p_end)
@@ -1743,7 +1742,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
   }
   if (last->mSibling) {
     delete last->mSibling;
-    last->mSibling = nullptr;
+    last->mSibling = nsnull;
   }
   
   nsBoundingMetrics splitSize;
@@ -1768,7 +1767,7 @@ nsMathMLChar::ComposeChildren(nsPresContext*      aPresContext,
     
     if (NS_FAILED(rv) || (NS_STRETCH_DIRECTION_UNSUPPORTED == child->mDirection)) {
       delete mSibling; 
-      mSibling = nullptr;
+      mSibling = nsnull;
       return NS_ERROR_FAILURE;
     }
     child->SetRect(nsRect(dx, dy, childSize.width, childSize.ascent+childSize.descent));
