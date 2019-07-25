@@ -201,6 +201,7 @@ public:
         
         , mCacheAccess(0)
         , mStatus(NS_ERROR_NOT_INITIALIZED)
+        , mRunCount(0)
         
         , mRequestHead(channel->mRequestHead)
         , mRedirectedCachekeys(channel->mRedirectedCachekeys.forget())
@@ -258,6 +259,7 @@ private:
     nsCOMPtr<nsICacheEntryDescriptor> mCacheEntry;
     nsCacheAccessMode mCacheAccess;
     nsresult mStatus;
+    PRUint32 mRunCount;
 
     
     friend class nsHttpChannel;
@@ -2811,6 +2813,8 @@ HttpCacheQuery::Run()
                                               mNoWait);
         }
         if (NS_FAILED(rv)) {
+            LOG(("Failed to open cache entry -- calling OnCacheEntryAvailable "
+                 "directly."));
             rv = OnCacheEntryAvailable(nsnull, 0, rv);
         }
     } else {
@@ -2831,10 +2835,18 @@ HttpCacheQuery::OnCacheEntryAvailable(nsICacheEntryDescriptor *entry,
                                       nsresult status)
 
 {
-    AssertOnCacheThread();
-
     LOG(("HttpCacheQuery::OnCacheEntryAvailable [channel=%p entry=%p "
-         "access=%x status=%x]\n", mChannel.get(), entry, access, status));
+         "access=%x status=%x, mRunConut=%d]\n", mChannel.get(), entry, access,
+         status, PRIntn(mRunCount)));
+
+    
+    
+    
+    
+    NS_ENSURE_TRUE(mRunCount == 0, NS_ERROR_UNEXPECTED);
+    ++mRunCount;
+
+    AssertOnCacheThread();
 
     mCacheEntry = entry;
     mCacheAccess = access;
