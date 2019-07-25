@@ -457,8 +457,8 @@ abstract public class GeckoApp
 
         
         String scheme = Uri.parse(tab.getURL()).getScheme();
-        boolean enabled = !(scheme.equals("about") || scheme.equals("chrome") ||
-                            scheme.equals("file"));
+        boolean enabled = scheme != null && !(scheme.equals("about") || scheme.equals("chrome") ||
+                                              scheme.equals("file"));
         share.setEnabled(enabled);
 
         
