@@ -342,16 +342,6 @@ protected:
   
   
   
-  
-  PRInt64 GetMediaTime() const {
-    mDecoder->GetMonitor().AssertCurrentThreadIn();
-    return mStartTime + mCurrentFrameTime;
-  }
-
-  
-  
-  
-  
   Monitor mAudioMonitor;
 
   
