@@ -55,7 +55,7 @@ ColorLayerOGL::RenderLayer(int,
 
   
 
-  nsIntRect visibleRect = mVisibleRegion.GetBounds();
+  nsIntRect visibleRect = GetEffectiveVisibleRegion().GetBounds();
   
   
 
@@ -72,7 +72,7 @@ ColorLayerOGL::RenderLayer(int,
   SolidColorLayerProgram *program = mOGLManager->GetColorLayerProgram();
   program->Activate();
   program->SetLayerQuadRect(visibleRect);
-  program->SetLayerTransform(mTransform);
+  program->SetLayerTransform(GetEffectiveTransform());
   program->SetRenderOffset(aOffset);
   program->SetRenderColor(color);
 

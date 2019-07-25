@@ -157,10 +157,10 @@ void
 RecycleBin::RecycleTexture(GLTexture *aTexture, TextureType aType,
                            const gfxIntSize& aSize)
 {
+  MutexAutoLock lock(mLock);
+
   if (!aTexture->IsAllocated())
     return;
-
-  MutexAutoLock lock(mLock);
 
   if (!mRecycledTextures[aType].IsEmpty() && aSize != mRecycledTextureSizes[aType]) {
     mRecycledTextures[aType].Clear();
@@ -406,7 +406,7 @@ ImageLayerOGL::RenderLayer(int,
     program->SetLayerQuadRect(nsIntRect(0, 0,
                                         yuvImage->mSize.width,
                                         yuvImage->mSize.height));
-    program->SetLayerTransform(mTransform);
+    program->SetLayerTransform(GetEffectiveTransform());
     program->SetLayerOpacity(GetOpacity());
     program->SetRenderOffset(aOffset);
     program->SetYCbCrTextureUnits(0, 1, 2);
@@ -437,7 +437,7 @@ ImageLayerOGL::RenderLayer(int,
     program->SetLayerQuadRect(nsIntRect(0, 0,
                                         cairoImage->mSize.width,
                                         cairoImage->mSize.height));
-    program->SetLayerTransform(mTransform);
+    program->SetLayerTransform(GetEffectiveTransform());
     program->SetLayerOpacity(GetOpacity());
     program->SetRenderOffset(aOffset);
     program->SetTextureUnit(0);
