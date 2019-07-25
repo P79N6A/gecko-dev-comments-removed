@@ -920,8 +920,19 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         if (!ScriptPrologueOrGeneratorResume(cx, fp, types::UseNewTypeAtEntry(cx, fp)))
             return js_InternalThrow(f);
 
-        if (cx->compartment->debugMode())
-            js::ScriptDebugPrologue(cx, fp);
+        
+
+
+
+
+
+
+
+
+
+
+
+        JS_ASSERT(!cx->compartment->debugMode());
 
         break;
 
