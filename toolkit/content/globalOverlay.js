@@ -16,22 +16,11 @@ function closeWindow(aClose, aPromptFunction)
     if (++windowCount == 2) 
       break;
   }
-
-  var inPrivateBrowsing = false;
-  try {
-    if (["@mozilla.org/privatebrowsing;1"] in Components.classes) {
-      var pbSvc = Components.classes["@mozilla.org/privatebrowsing;1"]
-                            .getService(Components.interfaces.nsIPrivateBrowsingService);
-      inPrivateBrowsing = pbSvc.privateBrowsingEnabled;
-    }
-  } catch(e) {
-    
-  }
-
+  
   
   if (windowCount == 1 && !canQuitApplication("lastwindow"))
     return false;
-  else if (windowCount != 1 || inPrivateBrowsing)
+  else if (windowCount != 1)
 #endif
     if (typeof(aPromptFunction) == "function" && !aPromptFunction())
       return false;
