@@ -90,6 +90,17 @@ public:
 
   void SetWeakIdleObserver(nsIObserver* aObserver);
 
+  
+
+
+
+  void DisableIdleTimeout();
+
+  
+
+
+  void EnableIdleTimeout();
+
 private:
   
 
@@ -191,6 +202,11 @@ private:
 
 
   PRPackedBool mThreadIsShuttingDown;
+
+  
+
+
+  PRPackedBool mIdleTimeoutEnabled;
 };
 
 END_INDEXEDDB_NAMESPACE
