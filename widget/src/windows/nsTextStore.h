@@ -243,6 +243,9 @@ protected:
   nsTextEvent*                 mLastDispatchedTextEvent;
   
   
+  nsString                     mLastDispatchedCompositionString;
+  
+  
   nsCOMPtr<nsITimer>           mCompositionTimer;
 
   
