@@ -894,10 +894,6 @@ refChildCB(AtkObject *aAtkObj, gint aChildIndex)
       return nsnull;
     }
 
-    
-    
-    
-    
     nsAccessibleWrap *accWrap = GetAccessibleWrap(aAtkObj);
     if (!accWrap || nsAccUtils::MustPrune(accWrap)) {
         return nsnull;
@@ -907,6 +903,8 @@ refChildCB(AtkObject *aAtkObj, gint aChildIndex)
     nsCOMPtr<nsIAccessibleHyperText> hyperText;
     accWrap->QueryInterface(NS_GET_IID(nsIAccessibleHyperText), getter_AddRefs(hyperText));
     if (hyperText) {
+        
+        
         
         nsCOMPtr<nsIAccessibleHyperLink> hyperLink;
         hyperText->GetLink(aChildIndex, getter_AddRefs(hyperLink));
