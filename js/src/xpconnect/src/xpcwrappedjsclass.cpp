@@ -1250,6 +1250,17 @@ nsXPCWrappedJSClass::CheckForException(XPCCallContext & ccx,
     return NS_ERROR_FAILURE;
 }
 
+class ContextPrincipalGuard
+{
+    nsIScriptSecurityManager *ssm;
+    XPCCallContext &ccx;
+  public:
+    ContextPrincipalGuard(XPCCallContext &ccx)
+      : ssm(nsnull), ccx(ccx) {}
+    void principalPushed(nsIScriptSecurityManager *ssm) { this->ssm = ssm; }
+    ~ContextPrincipalGuard() { if (ssm) ssm->PopContextPrincipal(ccx); }
+};
+
 NS_IMETHODIMP
 nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
                                 const XPTMethodDescriptor* info,
@@ -1272,8 +1283,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     XPCContext* xpcc;
     JSContext* cx;
     JSObject* thisObj;
-    JSBool popPrincipal = JS_FALSE;
-    nsIScriptSecurityManager* ssm = nsnull;
+    bool invokeCall;
     bool invokeCall;
 
     
@@ -1295,6 +1305,7 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
 
     AutoScriptEvaluate scriptEval(cx);
     js::InvokeArgsGuard args;
+    ContextPrincipalGuard principalGuard(ccx);
 
     obj = thisObj = wrapper->GetJSObject();
 
@@ -1311,6 +1322,31 @@ nsXPCWrappedJSClass::CallMethod(nsXPCWrappedJS* wrapper, uint16 methodIndex,
     xpcc->SetPendingResult(pending_result);
     xpcc->SetException(nsnull);
     ccx.GetThreadData()->SetException(nsnull);
+
+    if(XPCPerThreadData::IsMainThread(ccx))
+    {
+        nsIScriptSecurityManager *ssm = XPCWrapper::GetSecurityManager();
+        if(ssm)
+        {
+            nsCOMPtr<nsIPrincipal> objPrincipal;
+            ssm->GetObjectPrincipal(ccx, obj, getter_AddRefs(objPrincipal));
+            if(objPrincipal)
+            {
+                JSStackFrame* fp = nsnull;
+                nsresult rv =
+                    ssm->PushContextPrincipal(ccx, JS_FrameIterator(ccx, &fp),
+                                              objPrincipal);
+                if(NS_FAILED(rv))
+                {
+                    JS_ReportOutOfMemory(ccx);
+                    retval = NS_ERROR_OUT_OF_MEMORY;
+                    goto pre_call_clean_up;
+                }
+
+                principalGuard.principalPushed(ssm);
+            }
+        }
+    }
 
     
     
@@ -1642,30 +1678,7 @@ pre_call_clean_up:
 
     JS_ClearPendingException(cx);
 
-    if(XPCPerThreadData::IsMainThread(ccx))
-    {
-        ssm = XPCWrapper::GetSecurityManager();
-        if(ssm)
-        {
-            nsCOMPtr<nsIPrincipal> objPrincipal;
-            ssm->GetObjectPrincipal(ccx, obj, getter_AddRefs(objPrincipal));
-            if(objPrincipal)
-            {
-                JSStackFrame* fp = nsnull;
-                nsresult rv =
-                    ssm->PushContextPrincipal(ccx, JS_FrameIterator(ccx, &fp),
-                                              objPrincipal);
-                if(NS_FAILED(rv))
-                {
-                    JS_ReportOutOfMemory(ccx);
-                    return NS_ERROR_OUT_OF_MEMORY;
-                }
-
-                popPrincipal = JS_TRUE;
-            }
-        }
-    }
-
+    
     
     if(XPT_MD_IS_GETTER(info->flags))
         success = JS_GetProperty(cx, obj, name, stackbase);
@@ -1701,9 +1714,6 @@ pre_call_clean_up:
             success = JS_FALSE;
         }
     }
-
-    if(popPrincipal)
-        ssm->PopContextPrincipal(ccx);
 
     if(!success)
     {

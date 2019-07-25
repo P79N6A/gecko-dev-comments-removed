@@ -119,21 +119,6 @@ js_NewSlowArrayObject(JSContext *cx);
 extern JSBool
 js_MakeArraySlow(JSContext *cx, JSObject *obj);
 
-static JS_INLINE uint32
-js_DenseArrayCapacity(JSObject *obj)
-{
-    JS_ASSERT(obj->isDenseArray());
-    return obj->dslots ? obj->dslotLength() : 0;
-}
-
-static JS_INLINE void
-js_SetDenseArrayCapacity(JSObject *obj, uint32 capacity)
-{
-    JS_ASSERT(obj->isDenseArray());
-    JS_ASSERT(obj->dslots);
-    obj->dslots[-1].setPrivateUint32(capacity);
-}
-
 extern JSBool
 js_GetLengthProperty(JSContext *cx, JSObject *obj, jsuint *lengthp);
 
@@ -230,5 +215,25 @@ js_Array(JSContext* cx, JSObject* obj, uintN argc, js::Value* argv, js::Value* r
 
 JS_FRIEND_API(JSObject *)
 js_NewArrayObjectWithCapacity(JSContext *cx, jsuint capacity, js::Value **vector);
+
+
+
+
+
+
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+js_CloneDensePrimitiveArray(JSContext *cx, JSObject *obj, JSObject **clone);
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+js_IsDensePrimitiveArray(JSObject *obj);
 
 #endif 

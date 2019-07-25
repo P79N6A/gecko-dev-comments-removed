@@ -57,12 +57,30 @@ JS_BEGIN_EXTERN_C
 #define JSITER_ENUMERATE  0x1   /* for-in compatible hidden default iterator */
 #define JSITER_FOREACH    0x2   /* return [key, value] pair rather than key */
 #define JSITER_KEYVALUE   0x4   /* destructuring for-in wants [key, value] */
+#define JSITER_OWNONLY    0x8   /* iterate over obj's own properties only */
+
+struct NativeIterator {
+    jsval     *props_array;
+    jsval     *props_cursor;
+    jsval     *props_end;
+    uint32    *shapes_array;
+    uint32    shapes_length;
+    uint32    shapes_key;
+    uintN     flags;
+    JSObject  *next;
+
+    void mark(JSTracer *trc);
+};
 
 
 
 
-const uint32 JSSLOT_ITER_STATE  = JSSLOT_PRIVATE;
-const uint32 JSSLOT_ITER_FLAGS  = JSSLOT_PRIVATE + 1;
+
+
+static const jsval JSVAL_NATIVE_ENUMERATE_COOKIE = SPECIAL_TO_JSVAL(0x220576);
+
+bool
+EnumerateOwnProperties(JSContext *cx, JSObject *obj, JSIdArray **idap);
 
 
 
@@ -73,21 +91,19 @@ const uint32 JSSLOT_ITER_FLAGS  = JSSLOT_PRIVATE + 1;
 extern JS_FRIEND_API(JSBool)
 js_ValueToIterator(JSContext *cx, uintN flags, js::Value *vp);
 
-extern JS_FRIEND_API(JSBool) JS_FASTCALL
+extern JS_FRIEND_API(JSBool)
 js_CloseIterator(JSContext *cx, const js::Value &v);
 
 
 
 
 
-extern JS_FRIEND_API(JSBool)
-js_CallIteratorNext(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
+extern JSBool
+js_IteratorMore(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
-
-
-extern void
-js_CloseNativeIterator(JSContext *cx, JSObject *iterobj);
+extern JSBool
+js_IteratorNext(JSContext *cx, JSObject *iterobj, js::Value *rval);
 
 extern JSBool
 js_ThrowStopIteration(JSContext *cx);
@@ -158,11 +174,12 @@ js_LiveFrameIfGenerator(JSStackFrame *fp)
         return js_FloatingFrameToGenerator(fp)->getLiveFrame();
     return fp;
 }
+
 #endif
 
-extern JS_FRIEND_API(js::Class) js_GeneratorClass;
-extern js::Class                js_IteratorClass;
-extern js::Class                js_StopIterationClass;
+extern JSExtendedClass js_GeneratorClass;
+extern JSExtendedClass js_IteratorClass;
+extern JSClass         js_StopIterationClass;
 
 static inline bool
 js_ValueIsStopIteration(const js::Value &v)

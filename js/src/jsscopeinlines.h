@@ -1,41 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsscopeinlines_h___
 #define jsscopeinlines_h___
@@ -75,7 +75,7 @@ JSScope::ensureEmptyScope(JSContext *cx, js::Class *clasp)
     if (!createEmptyScope(cx, clasp))
         return false;
 
-    
+    /* We are going to have only single ref to the scope. */
     JS_ASSERT(emptyScope->nrefs == 2);
     emptyScope->nrefs = 1;
     return true;
@@ -109,10 +109,10 @@ JSScope::extend(JSContext *cx, JSScopeProperty *sprop)
     updateFlags(sprop);
 }
 
-
-
-
-
+/*
+ * Property read barrier for deferred cloning of compiler-created function
+ * objects optimized as typically non-escaping, ad-hoc methods in obj.
+ */
 inline bool
 JSScope::methodReadBarrier(JSContext *cx, JSScopeProperty *sprop, js::Value *vp)
 {
@@ -147,7 +147,7 @@ JSScope::methodWriteBarrier(JSContext *cx, JSScopeProperty *sprop,
     if (flags & (BRANDED | METHOD_BARRIER)) {
         const js::Value &prev = object->lockedGetSlot(sprop->slot);
         if (ChangesMethodValue(prev, v))
-            return methodShapeChange(cx, sprop, v);
+            return methodShapeChange(cx, sprop);
     }
     return true;
 }
@@ -158,7 +158,7 @@ JSScope::methodWriteBarrier(JSContext *cx, uint32 slot, const js::Value &v)
     if (flags & (BRANDED | METHOD_BARRIER)) {
         const js::Value &prev = object->lockedGetSlot(slot);
         if (ChangesMethodValue(prev, v))
-            return methodShapeChange(cx, slot, v);
+            return methodShapeChange(cx, slot);
     }
     return true;
 }
@@ -171,10 +171,10 @@ JSScope::trace(JSTracer *trc)
     uint8 regenFlag = cx->runtime->gcRegenShapesScopeFlag;
 
     if (IS_GC_MARKING_TRACER(trc) && cx->runtime->gcRegenShapes && !hasRegenFlag(regenFlag)) {
-        
-
-
-
+        /*
+         * Either this scope has its own shape, which must be regenerated, or
+         * it must have the same shape as lastProp.
+         */
         uint32 newShape;
 
         if (sprop) {
@@ -191,7 +191,7 @@ JSScope::trace(JSTracer *trc)
         shape = newShape;
         flags ^= JSScope::SHAPE_REGEN;
 
-        
+        /* Also regenerate the shapes of this scope's empty scope, if there is one. */
         JSScope *empty = emptyScope;
         if (empty) {
             JS_ASSERT(!empty->emptyScope);
@@ -208,7 +208,7 @@ JSScope::trace(JSTracer *trc)
     if (sprop) {
         JS_ASSERT(hasProperty(sprop));
 
-        
+        /* Trace scope's property tree ancestor line. */
         do {
             sprop->trace(trc);
         } while ((sprop = sprop->parent) != NULL);
@@ -220,7 +220,7 @@ JSScopeProperty::hash() const
 {
     JSDHashNumber hash = 0;
 
-    
+    /* Accumulate from least to most random so the low bits are most random. */
     JS_ASSERT_IF(isMethod(), !rawSetter || rawSetter == js_watch_set);
     if (rawGetter)
         hash = JS_ROTATE_LEFT32(hash, 4) ^ jsuword(rawGetter);
@@ -257,4 +257,4 @@ JSScopeProperty::matchesParamsAfterId(js::PropertyOp agetter, js::PropertyOp ase
            shortid == ashortid;
 }
 
-#endif 
+#endif /* jsscopeinlines_h___ */

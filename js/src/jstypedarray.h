@@ -64,6 +64,9 @@ struct JS_FRIEND_API(ArrayBuffer) {
     static JSBool class_constructor(JSContext *cx, JSObject *obj,
                                     uintN argc, jsval *argv, jsval *rval);
 
+    static bool create(JSContext *cx, JSObject *obj, uintN argc,
+                       jsval *argv, jsval *rval);
+
     static ArrayBuffer *fromJSObject(JSObject *obj);
 
     ArrayBuffer()
@@ -204,6 +207,15 @@ js_CreateTypedArrayWithArray(JSContext *cx, jsint atype, JSObject *arrayArg);
 JS_FRIEND_API(JSObject *)
 js_CreateTypedArrayWithBuffer(JSContext *cx, jsint atype, JSObject *bufArg,
                               jsint byteoffset, jsint length);
+
+
+
+
+
+
+
+JS_FRIEND_API(JSBool)
+js_ReparentTypedArrayToScope(JSContext *cx, JSObject *obj, JSObject *scope);
 
 JS_END_EXTERN_C
 

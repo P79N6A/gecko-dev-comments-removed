@@ -1,47 +1,47 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ *
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is Mozilla Communicator client code, released
+ * March 31, 1998.
+ *
+ * The Initial Developer of the Original Code is
+ * Netscape Communications Corporation.
+ * Portions created by the Initial Developer are Copyright (C) 1998
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either of the GNU General Public License Version 2 or later (the "GPL"),
+ * or the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #ifndef jsregexp_h___
 #define jsregexp_h___
-
-
-
+/*
+ * JS regular expression interface.
+ */
 #include <stddef.h>
 #include "jspubtd.h"
 #include "jsstr.h"
@@ -49,19 +49,6 @@
 #ifdef JS_THREADSAFE
 #include "jsdhash.h"
 #endif
-
-struct JSRegExpStatics {
-    JSString    *input;         
-    JSBool      multiline;      
-    uint16      parenCount;     
-    uint16      moreLength;     
-    JSSubString parens[9];      
-    JSSubString *moreParens;    
-    JSSubString lastMatch;      
-    JSSubString lastParen;      
-    JSSubString leftContext;    
-    JSSubString rightContext;   
-};
 
 namespace js { class AutoValueRooter; }
 
@@ -73,14 +60,14 @@ extern JS_FRIEND_API(void)
 js_RestoreRegExpStatics(JSContext *cx, JSRegExpStatics *statics,
                         js::AutoValueRooter *tvr);
 
-
-
-
-
-
-
-
-
+/*
+ * This struct holds a bitmap representation of a class from a regexp.
+ * There's a list of these referenced by the classList field in the JSRegExp
+ * struct below. The initial state has startIndex set to the offset in the
+ * original regexp source of the beginning of the class contents. The first
+ * use of the class converts the source representation into a bitmap.
+ *
+ */
 typedef struct RECharSet {
     JSPackedBool    converted;
     JSPackedBool    sense;
@@ -94,27 +81,16 @@ typedef struct RECharSet {
     } u;
 } RECharSet;
 
-
-
-
-
-#define REGEXP_PAREN_SUBSTRING(res, num)                                      \
-    (((jsuint)(num) < (jsuint)(res)->parenCount)                              \
-     ? ((jsuint)(num) < 9)                                                    \
-       ? &(res)->parens[num]                                                  \
-       : &(res)->moreParens[(num) - 9]                                        \
-     : &js_EmptySubString)
-
 typedef struct RENode RENode;
 
 struct JSRegExp {
-    jsrefcount   nrefs;         
-    uint16       flags;         
-    size_t       parenCount;    
-    size_t       classCount;    
-    RECharSet    *classList;    
-    JSString     *source;       
-    jsbytecode   program[1];    
+    jsrefcount   nrefs;         /* reference count */
+    uint16       flags;         /* flags, see jsapi.h's JSREG_* defines */
+    size_t       parenCount;    /* number of parenthesized submatches */
+    size_t       classCount;    /* count [...] bitmaps */
+    RECharSet    *classList;    /* list of [...] bitmaps */
+    JSString     *source;       /* locked source string, sans // */
+    jsbytecode   program[1];    /* regular expression bytecode */
 };
 
 extern JSRegExp *
@@ -130,11 +106,11 @@ js_NewRegExpOpt(JSContext *cx, JSString *str, JSString *opt, JSBool flat);
 extern void
 js_DestroyRegExp(JSContext *cx, JSRegExp *re);
 
-
-
-
-
-
+/*
+ * Execute re on input str at *indexp, returning null in *rval on mismatch.
+ * On match, return true if test is true, otherwise return an array object.
+ * Update *indexp and cx->regExpStatics always on match.
+ */
 extern JSBool
 js_ExecuteRegExp(JSContext *cx, JSRegExp *re, JSString *str, size_t *indexp,
                  JSBool test, jsval *rval);
@@ -174,15 +150,15 @@ enum regexp_tinyid {
 extern JSObject *
 js_InitRegExpClass(JSContext *cx, JSObject *obj);
 
-
-
-
+/*
+ * Export js_regexp_toString to the decompiler.
+ */
 extern JSBool
 js_regexp_toString(JSContext *cx, JSObject *obj, jsval *vp);
 
-
-
-
+/*
+ * Create, serialize/deserialize, or clone a RegExp object.
+ */
 extern JSObject *
 js_NewRegExpObject(JSContext *cx, js::TokenStream *ts,
                    const jschar *chars, size_t length, uintN flags);
@@ -193,18 +169,8 @@ js_XDRRegExpObject(JSXDRState *xdr, JSObject **objp);
 extern JS_FRIEND_API(JSObject *) JS_FASTCALL
 js_CloneRegExpObject(JSContext *cx, JSObject *obj, JSObject *proto);
 
-const uint32 JSSLOT_REGEXP_LAST_INDEX = JSSLOT_PRIVATE + 1;
-const uint32 REGEXP_CLASS_FIXED_RESERVED_SLOTS = 1;
-
-static inline void
-js_ClearRegExpLastIndex(JSObject *obj)
-{
-    JS_ASSERT(obj->getClass() == &js_RegExpClass);
-    obj->fslots[JSSLOT_REGEXP_LAST_INDEX].setInt32(0);
-}
-
-
+/* Return whether the given character array contains RegExp meta-characters. */
 extern bool
 js_ContainsRegExpMetaChars(const jschar *chars, size_t length);
 
-#endif 
+#endif /* jsregexp_h___ */
