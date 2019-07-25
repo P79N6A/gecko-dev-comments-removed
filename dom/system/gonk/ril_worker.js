@@ -572,6 +572,8 @@ let RIL = {
   IMEI: null,
   IMEISV: null,
   IMSI: null,
+  SMSC: null,
+  MSISDN: null,
 
   registrationState: {},
   gprsRegistrationState: {},
@@ -758,6 +760,22 @@ let RIL = {
   
 
 
+  getMSISDN: function getMSISDN() {
+    this.iccIO({
+      command: ICC_COMMAND_GET_RESPONSE,
+      fileid:  ICC_EF_MSISDN,
+      pathid:  EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
+      p1:      0, 
+      p2:      0, 
+      p3:      GET_RESPONSE_EF_SIZE_BYTES,
+      data:    null,
+      pin2:    null,
+    });
+  },
+
+  
+
+
 
 
 
@@ -935,19 +953,25 @@ let RIL = {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
   sendSMS: function sendSMS(options) {
-    let token = Buf.newParcel(REQUEST_SEND_SMS, options);
+    
+    if (!this.SMSC) {
+      
+      
+      this.getSMSCAddress(options);
+      return;
+    }
+    
+    
+    
+    options.SMSC = this.SMSC;
+
+    
+    
+    
+    GsmPDUHelper.calculateUserDataLength(options);
+
+    Buf.newParcel(REQUEST_SEND_SMS, options);
     Buf.writeUint32(2);
     Buf.writeString(options.SMSC);
     GsmPDUHelper.writeMessage(options);
@@ -1180,6 +1204,44 @@ let RIL = {
       Phone.sendDOMMessage({type: "cardstatechange",
                             cardState: this.cardState});
     }
+  },
+
+  _processMSISDNResponse: function _processMSISDNResponse(options) {
+    let sw1 = Buf.readUint32();
+    let sw2 = Buf.readUint32();
+    
+    if (sw1 != STATUS_NORMAL_ENDING) {
+      
+      
+      debug("Error in iccIO");
+    }
+    if (DEBUG) debug("ICC I/O (" + sw1 + "/" + sw2 + ")");
+
+    switch (options.command) {
+      case ICC_COMMAND_GET_RESPONSE:
+        let response = Buf.readString();
+        let recordSize = parseInt(
+            response.substr(RESPONSE_DATA_RECORD_LENGTH * 2, 2), 16) & 0xff;
+        let options = {
+          command: ICC_COMMAND_READ_RECORD,
+          fileid:  ICC_EF_MSISDN,
+          pathid:  EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
+          p1:      1, 
+          p2:      READ_RECORD_ABSOLUTE_MODE,
+          p3:      recordSize,
+          data:    null,
+          pin2:    null,
+        };
+        RIL.iccIO(options);
+        break;
+
+      case ICC_COMMAND_READ_RECORD:
+        
+        let number = GsmPDUHelper.readStringAsBCD().toString().substr(4); 
+        if (DEBUG) debug("MSISDN: " + number);
+        this.MSISDN = number;
+        break;
+    } 
   },
 
   _processRegistrationState: function _processRegistrationState(state) {
@@ -1531,7 +1593,8 @@ RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS(length, options) {
   options.messageRef = Buf.readUint32();
   options.ackPDU = Buf.readString();
   options.errorCode = Buf.readUint32();
-  Phone.onSendSMS(options);
+  options.type = "sms-sent";
+  Phone.sendDOMMessage(options);
 };
 RIL[REQUEST_SEND_SMS_EXPECT_MORE] = null;
 RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options) {
@@ -1552,7 +1615,11 @@ RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options)
   this.getDataCallList();
 };
 RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
-  Phone.onICCIO(options);
+  switch (options.fileid) {
+    case ICC_EF_MSISDN:
+      this._processMSISDNResponse(options);
+      break;
+  }
 };
 RIL[REQUEST_SEND_USSD] = null;
 RIL[REQUEST_CANCEL_USSD] = null;
@@ -1666,8 +1733,16 @@ RIL[REQUEST_CDMA_DELETE_SMS_ON_RUIM] = null;
 RIL[REQUEST_DEVICE_IDENTITY] = null;
 RIL[REQUEST_EXIT_EMERGENCY_CALLBACK_MODE] = null;
 RIL[REQUEST_GET_SMSC_ADDRESS] = function REQUEST_GET_SMSC_ADDRESS(length, options) {
-  let smsc = Buf.readString();
-  Phone.onGetSMSCAddress(smsc, options);
+  
+  
+  this.SMSC = Buf.readString();
+  
+  
+  
+  
+  if (this.SMSC && options.body) {
+    this.sendSMS(options);
+  }
 };
 RIL[REQUEST_SET_SMSC_ADDRESS] = null;
 RIL[REQUEST_REPORT_SMS_MEMORY_STATUS] = null;
@@ -1735,8 +1810,8 @@ RIL[UNSOLICITED_RESPONSE_RADIO_STATE_CHANGED] = function UNSOLICITED_RESPONSE_RA
     this.getICCStatus();
     this.requestNetworkInfo();
     this.getSignalStrength();
-    Phone.getSMSCAddress();
-    Phone.getMSISDN();
+    this.getSMSCAddress();
+    this.getMSISDN();
     Phone.sendDOMMessage({type: "cardstatechange",
                          cardState: GECKO_CARDSTATE_READY});
   }
@@ -1768,7 +1843,36 @@ RIL[UNSOLICITED_RESPONSE_NETWORK_STATE_CHANGED] = function UNSOLICITED_RESPONSE_
   this.requestNetworkInfo();
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS] = function UNSOLICITED_RESPONSE_NEW_SMS(length) {
-  Phone.onNewSMS(length);
+  if (!length) {
+    if (DEBUG) debug("Received empty SMS!");
+    
+    
+    return;
+  }
+  
+  
+  let messageStringLength = Buf.readUint32();
+  if (DEBUG) debug("Got new SMS, length " + messageStringLength);
+  let message = GsmPDUHelper.readMessage();
+  if (DEBUG) debug(message);
+
+  
+  let delimiter = Buf.readUint16();
+  if (!(messageStringLength & 1)) {
+    delimiter |= Buf.readUint16();
+  }
+  if (DEBUG) {
+    if (delimiter != 0) {
+      debug("Something's wrong, found string delimiter: " + delimiter);
+    }
+  }
+
+  message.type = "sms-received";
+  this.sendDOMMessage(message);
+
+  
+  
+  this.acknowledgeSMS(true, SMS_HANDLED);
 };
 RIL[UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT] = function UNSOLICITED_RESPONSE_NEW_SMS_STATUS_REPORT(length) {
   let info = Buf.readStringList();
@@ -1865,110 +1969,10 @@ RIL[UNSOLICITED_RESEND_INCALL_MUTE] = null;
 
 let Phone = {
 
-  SMSC: null,
-  MSISDN: null,
-
   
 
 
 
-
-  onICCIO: function onICCIO(options) {
-    switch (options.fileid) {
-      case ICC_EF_MSISDN:
-        this.readMSISDNResponse(options);
-        break;
-    }
-  },
-  
-  readMSISDNResponse: function readMSISDNResponse(options) {
-    let sw1 = Buf.readUint32();
-    let sw2 = Buf.readUint32();
-    
-    if (sw1 != STATUS_NORMAL_ENDING) {
-      
-      
-      debug("Error in iccIO");
-    }
-    if (DEBUG) debug("ICC I/O (" + sw1 + "/" + sw2 + ")");
-
-    switch (options.command) {
-      case ICC_COMMAND_GET_RESPONSE:
-        let response = Buf.readString();
-        let recordSize = parseInt(
-            response.substr(RESPONSE_DATA_RECORD_LENGTH * 2, 2), 16) & 0xff;
-        let options = {
-          command: ICC_COMMAND_READ_RECORD,
-          fileid:  ICC_EF_MSISDN,
-          pathid:  EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
-          p1:      1, 
-          p2:      READ_RECORD_ABSOLUTE_MODE,
-          p3:      recordSize,
-          data:    null,
-          pin2:    null,
-        };
-        RIL.iccIO(options);
-        break;
-
-      case ICC_COMMAND_READ_RECORD:
-        
-        let number = GsmPDUHelper.readStringAsBCD().toString().substr(4); 
-        if (DEBUG) debug("MSISDN: " + number);
-        this.MSISDN = number;
-        break;
-    } 
-  },
-
-  onGetSMSCAddress: function onGetSMSCAddress(smsc, options) {
-    
-    
-    this.SMSC = smsc;
-    
-    
-    
-    
-    if (smsc && options.body) {
-      this.sendSMS(options);
-    }
-  },
-
-  onSendSMS: function onSendSMS(options) {
-    options.type = "sms-sent";
-    this.sendDOMMessage(options);
-  },
-
-  onNewSMS: function onNewSMS(payloadLength) {
-    if (!payloadLength) {
-      if (DEBUG) debug("Received empty SMS!");
-      
-      
-      return;
-    }
-    
-    
-    let messageStringLength = Buf.readUint32();
-    if (DEBUG) debug("Got new SMS, length " + messageStringLength);
-    let message = GsmPDUHelper.readMessage();
-    if (DEBUG) debug(message);
-
-    
-    let delimiter = Buf.readUint16();
-    if (!(messageStringLength & 1)) {
-      delimiter |= Buf.readUint16();
-    }
-    if (DEBUG) {
-      if (delimiter != 0) {
-        debug("Something's wrong, found string delimiter: " + delimiter);
-      }
-    }
-
-    message.type = "sms-received";
-    this.sendDOMMessage(message);
-
-    
-    
-    RIL.acknowledgeSMS(true, SMS_HANDLED);
-  },
 
   onNITZ: function onNITZ(timeInSeconds, timeZoneInMinutes, dstFlag, timeStampInMS) {
     let message = {type: "nitzTime",
@@ -2093,23 +2097,7 @@ let Phone = {
 
 
   sendSMS: function sendSMS(options) {
-    
-    if (!this.SMSC) {
-      
-      
-      RIL.getSMSCAddress(options);
-      return;
-    }
-    
-    
-    
-    options.SMSC = this.SMSC;
-
-    
-    
-    
-    GsmPDUHelper.calculateUserDataLength(options);
-    RIL.sendSMS(options);
+    RIL.sendSms(options);
   },
 
   
@@ -2139,23 +2127,6 @@ let Phone = {
 
   getFailCauseCode: function getFailCauseCode(options) {
     RIL.getFailCauseCode();
-  },
-
-  
-
-
-  getMSISDN: function getMSISDN() {
-    let options = {
-      command: ICC_COMMAND_GET_RESPONSE,
-      fileid:  ICC_EF_MSISDN,
-      pathid:  EF_PATH_MF_SIM + EF_PATH_DF_TELECOM,
-      p1:      0, 
-      p2:      0, 
-      p3:      GET_RESPONSE_EF_SIZE_BYTES,
-      data:    null,
-      pin2:    null,
-    };
-    RIL.iccIO(options);
   },
 
   
