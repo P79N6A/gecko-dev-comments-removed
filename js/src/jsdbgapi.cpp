@@ -726,6 +726,9 @@ js_watch_set(JSContext *cx, JSObject *obj, jsid id, Value *vp)
             }
 
             
+            shape = wp->shape;
+
+            
 
 
 
