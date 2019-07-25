@@ -643,6 +643,8 @@ struct JSRuntime : js::RuntimeFriendFields
 
     bool isHeapBusy() { return heapState != Idle; }
 
+    bool isHeapCollecting() { return heapState == Collecting; }
+
     
 
 
