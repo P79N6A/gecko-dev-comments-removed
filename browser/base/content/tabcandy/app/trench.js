@@ -564,6 +564,9 @@ var Trenches = {
     var updated = false;
     var updatedX = false;
     var updatedY = false;
+
+    var snappedTrenches = {};
+
     for (let i in this.trenches) {
       var t = this.trenches[i];
       if (!t.active)
@@ -582,9 +585,12 @@ var Trenches = {
 
         rect = newRect;
         updated = true;
+
+
+
+  
         
-        t.showGuide = true;
-        t.show();
+        snappedTrenches[newRect.adjustedEdge] = t;
   
         
         if (newRect.adjustedEdge == "left" && this.preferLeft)
@@ -605,6 +611,7 @@ var Trenches = {
     }
     
     if (updated) {
+      rect.snappedTrenches = snappedTrenches;
       return rect;
     } else {
       Trenches.hideGuides();
