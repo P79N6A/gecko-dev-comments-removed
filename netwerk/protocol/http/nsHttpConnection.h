@@ -46,12 +46,14 @@
 #include "nsXPIDLString.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
+#include "prinrval.h"
 
 #include "nsIStreamListener.h"
 #include "nsISocketTransport.h"
 #include "nsIAsyncInputStream.h"
 #include "nsIAsyncOutputStream.h"
 #include "nsIInterfaceRequestor.h"
+#include "nsIEventTarget.h"
 
 
 
@@ -84,7 +86,10 @@ public:
     
     
     
-    nsresult Init(nsHttpConnectionInfo *info, PRUint16 maxHangTime);
+    nsresult Init(nsHttpConnectionInfo *info, PRUint16 maxHangTime,
+                  nsISocketTransport *, nsIAsyncInputStream *,
+                  nsIAsyncOutputStream *, nsIInterfaceRequestor *,
+                  nsIEventTarget *);
 
     
     
@@ -127,7 +132,9 @@ public:
     void     GetConnectionInfo(nsHttpConnectionInfo **ci) { NS_IF_ADDREF(*ci = mConnInfo); }
     void     GetSecurityInfo(nsISupports **);
     PRBool   IsPersistent() { return IsKeepAlive(); }
-    PRBool   IsReused() { return mIsReused; }
+    PRBool   IsReused();
+    void     SetIsReusedAfter(PRUint32 afterMilliseconds);
+    void     SetIdleTimeout(PRUint16 val) {mIdleTimeout = val;}
     nsresult PushBack(const char *data, PRUint32 length) { NS_NOTREACHED("PushBack"); return NS_ERROR_UNEXPECTED; }
     nsresult ResumeSend();
     nsresult ResumeRecv();
@@ -139,7 +146,6 @@ private:
     
     nsresult ProxyStartSSL();
 
-    nsresult CreateTransport(PRUint8 caps);
     nsresult OnTransactionDone(nsresult reason);
     nsresult OnSocketWritable();
     nsresult OnSocketReadable();
@@ -160,12 +166,20 @@ private:
     nsCOMPtr<nsIInputStream>        mSSLProxyConnectStream;
     nsCOMPtr<nsIInputStream>        mRequestStream;
 
-    nsAHttpTransaction             *mTransaction; 
-    nsHttpConnectionInfo           *mConnInfo;    
+    
+    
+    nsRefPtr<nsAHttpTransaction>    mTransaction;
+
+    nsCOMPtr<nsIInterfaceRequestor> mCallbacks;
+    nsCOMPtr<nsIEventTarget>        mCallbackTarget;
+
+    nsRefPtr<nsHttpConnectionInfo> mConnInfo;
 
     PRUint32                        mLastReadTime;
     PRUint16                        mMaxHangTime;    
     PRUint16                        mIdleTimeout;    
+    PRIntervalTime                  mConsiderReusedAfterInterval;
+    PRIntervalTime                  mConsiderReusedAfterEpoch;
 
     PRPackedBool                    mKeepAlive;
     PRPackedBool                    mKeepAliveMask;
