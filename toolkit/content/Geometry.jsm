@@ -60,8 +60,20 @@ let Util = {
   },
 
   
+  dumpf: function dumpf(str) {
+    var args = arguments;
+    var i = 1;
+    dump(str.replace(/%s/g, function() {
+      if (i >= args.length) {
+        throw "dumps received too many placeholders and not enough arguments";
+      }
+      return args[i++].toString();
+    }));
+  },
+
+  
   dumpLn: function dumpLn() {
-    for (var i = 0; i < arguments.length; i++) { dump(arguments[i] + ' '); }
+    for (var i = 0; i < arguments.length; i++) { dump(arguments[i] + " "); }
     dump("\n");
   },
 
