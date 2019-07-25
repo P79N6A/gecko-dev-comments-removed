@@ -69,7 +69,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
     private IntSize mScreenSize;
     private IntSize mWindowSize;
     private IntSize mBufferSize;
-    private Rect mDisplayPortMargins;
+    private RectF mDisplayPort;
 
     private VirtualLayer mRootLayer;
 
@@ -87,14 +87,11 @@ public class GeckoLayerClient implements GeckoEventResponder,
     private ViewTransform mCurrentViewTransform;
 
     public GeckoLayerClient(Context context) {
+        
+        
         mScreenSize = new IntSize(0, 0);
         mBufferSize = new IntSize(0, 0);
-        mDisplayPortMargins = new Rect(DEFAULT_DISPLAY_PORT_MARGIN,
-                                       DEFAULT_DISPLAY_PORT_MARGIN,
-                                       DEFAULT_DISPLAY_PORT_MARGIN,
-                                       DEFAULT_DISPLAY_PORT_MARGIN);
-        
-        
+        mDisplayPort = new RectF();
         mCurrentViewTransform = new ViewTransform(0, 0, 1);
     }
 
@@ -155,12 +152,7 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     RectF getDisplayPort() {
-        RectF displayPort = new RectF(mRootLayer.getPosition());
-        displayPort.left -= mDisplayPortMargins.left;
-        displayPort.top -= mDisplayPortMargins.top;
-        displayPort.right += mDisplayPortMargins.right;
-        displayPort.bottom += mDisplayPortMargins.bottom;
-        return displayPort;
+        return mDisplayPort;
     }
 
     
@@ -221,13 +213,78 @@ public class GeckoLayerClient implements GeckoEventResponder,
         mViewportSizeChanged = true;
     }
 
+    private void updateDisplayPort() {
+        float desiredXMargins = 2 * DEFAULT_DISPLAY_PORT_MARGIN;
+        float desiredYMargins = 2 * DEFAULT_DISPLAY_PORT_MARGIN;
+
+        ImmutableViewportMetrics metrics = mLayerController.getViewportMetrics(); 
+
+        
+        
+        
+
+        
+        float xBufferAmount = Math.min(desiredXMargins, Math.max(0, metrics.pageSizeWidth - metrics.getWidth()));
+        
+        
+        float savedPixels = (desiredXMargins - xBufferAmount) * (metrics.getHeight() + desiredYMargins);
+        float extraYAmount = (float)Math.floor(savedPixels / (metrics.getWidth() + xBufferAmount));
+        float yBufferAmount = Math.min(desiredYMargins + extraYAmount, Math.max(0, metrics.pageSizeHeight - metrics.getHeight()));
+        
+        if (xBufferAmount == desiredXMargins && yBufferAmount < desiredYMargins) {
+            savedPixels = (desiredYMargins - yBufferAmount) * (metrics.getWidth() + xBufferAmount);
+            float extraXAmount = (float)Math.floor(savedPixels / (metrics.getHeight() + yBufferAmount));
+            xBufferAmount = Math.min(xBufferAmount + extraXAmount, Math.max(0, metrics.pageSizeWidth - metrics.getWidth()));
+        }
+
+        
+        
+        
+        
+        
+        float leftMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.viewportRectLeft));
+        float rightMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.pageSizeWidth - (metrics.viewportRectLeft + metrics.getWidth())));
+        if (leftMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
+            rightMargin = xBufferAmount - leftMargin;
+        } else if (rightMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
+            leftMargin = xBufferAmount - rightMargin;
+        } else if (!FloatUtils.fuzzyEquals(leftMargin + rightMargin, xBufferAmount)) {
+            float delta = xBufferAmount - leftMargin - rightMargin;
+            leftMargin += delta / 2;
+            rightMargin += delta / 2;
+        }
+
+        float topMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.viewportRectTop));
+        float bottomMargin = Math.min(DEFAULT_DISPLAY_PORT_MARGIN, Math.max(0, metrics.pageSizeHeight - (metrics.viewportRectTop + metrics.getHeight())));
+        if (topMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
+            bottomMargin = yBufferAmount - topMargin;
+        } else if (bottomMargin < DEFAULT_DISPLAY_PORT_MARGIN) {
+            topMargin = yBufferAmount - bottomMargin;
+        } else if (!FloatUtils.fuzzyEquals(topMargin + bottomMargin, yBufferAmount)) {
+            float delta = yBufferAmount - topMargin - bottomMargin;
+            topMargin += delta / 2;
+            bottomMargin += delta / 2;
+        }
+
+        
+        
+        
+        
+
+        mDisplayPort.left = metrics.viewportRectLeft - leftMargin;
+        mDisplayPort.top = metrics.viewportRectTop - topMargin;
+        mDisplayPort.right = metrics.viewportRectRight + rightMargin;
+        mDisplayPort.bottom = metrics.viewportRectBottom + bottomMargin;
+    }
+
     private void adjustViewport() {
         ViewportMetrics viewportMetrics =
             new ViewportMetrics(mLayerController.getViewportMetrics());
 
         viewportMetrics.setViewport(viewportMetrics.getClampedViewport());
 
-        GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(viewportMetrics, mDisplayPortMargins));
+        updateDisplayPort();
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createViewportEvent(viewportMetrics, mDisplayPort));
         if (mViewportSizeChanged) {
             mViewportSizeChanged = false;
             GeckoAppShell.viewSizeChanged();
@@ -258,7 +315,8 @@ public class GeckoLayerClient implements GeckoEventResponder,
         
         
         
-        return RectUtils.toJSON(mDisplayPortMargins);
+        updateDisplayPort();
+        return RectUtils.toJSON(mDisplayPort);
     }
 
     void geometryChanged() {

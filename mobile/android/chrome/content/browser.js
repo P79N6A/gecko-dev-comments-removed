@@ -1589,94 +1589,35 @@ Tab.prototype = {
     }
   },
 
-  refreshDisplayPort: function(aDisplayPortMargins) {
-    if (this._zoom <= 0)
+  setDisplayPort: function(aViewportX, aViewportY, aDisplayPortRect) {
+    let zoom = this._zoom;
+    if (zoom <= 0)
       return;
-    if (!this.browser.contentDocument.documentElement)
+
+    let element = this.browser.contentDocument.documentElement;
+    if (!element)
       return;
 
-    let viewport = this.getViewport();
-
-    
-    
-
-    let requestedXAmount = Math.max(0, aDisplayPortMargins.left + aDisplayPortMargins.right);
-    let requestedYAmount = Math.max(0, aDisplayPortMargins.top + aDisplayPortMargins.bottom);
-
-    
-    let xBufferAmount = Math.min(requestedXAmount, Math.max(0, viewport.pageWidth - viewport.width));
-    
-    
-    let savedPixels = (requestedXAmount - xBufferAmount) * (viewport.height + requestedYAmount);
-    let extraYAmount = Math.floor(savedPixels / (viewport.width + xBufferAmount));
-    let yBufferAmount = Math.min(requestedYAmount + extraYAmount, Math.max(0, viewport.pageHeight - viewport.height));
-    
-    if (xBufferAmount == requestedXAmount && yBufferAmount < requestedYAmount) {
-        savedPixels = (requestedYAmount - yBufferAmount) * (viewport.width + xBufferAmount);
-        let extraXAmount = Math.floor(savedPixels / (viewport.height + yBufferAmount));
-        xBufferAmount = Math.min(xBufferAmount + extraXAmount, Math.max(0, viewport.pageWidth - viewport.width));
-    }
-
-    
-    
-    
-    
-    
-    let leftMargin = Math.min(aDisplayPortMargins.left, Math.max(0, viewport.x));
-    let rightMargin = Math.min(aDisplayPortMargins.right, Math.max(0, viewport.pageWidth - (viewport.x + viewport.width)));
-    if (leftMargin < aDisplayPortMargins.left) {
-      rightMargin = xBufferAmount - leftMargin;
-    } else if (rightMargin < aDisplayPortMargins.right) {
-      leftMargin = xBufferAmount - rightMargin;
-    } else if (Math.abs(leftMargin + rightMargin - xBufferAmount) >= 1e-6) {
-      let delta = xBufferAmount - leftMargin - rightMargin;
-      leftMargin += delta / 2;
-      rightMargin += delta / 2;
-    }
-
-    let topMargin = Math.min(aDisplayPortMargins.top, Math.max(0, viewport.y));
-    let bottomMargin = Math.min(aDisplayPortMargins.bottom, Math.max(0, viewport.pageHeight - (viewport.y + viewport.height)));
-    if (topMargin < aDisplayPortMargins.top) {
-      bottomMargin = yBufferAmount - topMargin;
-    } else if (bottomMargin < aDisplayPortMargins.bottom) {
-      topMargin = yBufferAmount - bottomMargin;
-    } else if (Math.abs(topMargin + bottomMargin - yBufferAmount) >= 1e-6) {
-      let delta = yBufferAmount - topMargin - bottomMargin;
-      topMargin += delta / 2;
-      bottomMargin += delta / 2;
-    }
-
-    dump("### displayport margins=(" + leftMargin + ", " + topMargin + ", " + rightMargin + ", " + bottomMargin + ") at zoom=" + viewport.zoom
-        + " and buffer amounts=(" + xBufferAmount + ", " + yBufferAmount + ")");
-
-    
-    
-    
-    
-
-    let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor)
-                         .getInterface(Ci.nsIDOMWindowUtils);
-    cwu.setDisplayPortForElement(-leftMargin / viewport.zoom,
-                                 -topMargin / viewport.zoom,
-                                 (leftMargin + viewport.width + rightMargin) / viewport.zoom,
-                                 (topMargin + viewport.height + bottomMargin) / viewport.zoom,
-                                 this.browser.contentDocument.documentElement);
+    let cwu = window.top.QueryInterface(Ci.nsIInterfaceRequestor).getInterface(Ci.nsIDOMWindowUtils);
+    cwu.setDisplayPortForElement((aDisplayPortRect.left - aViewportX) / zoom,
+                                 (aDisplayPortRect.top - aViewportY) / zoom,
+                                 (aDisplayPortRect.right - aDisplayPortRect.left) / zoom,
+                                 (aDisplayPortRect.bottom - aDisplayPortRect.top) / zoom,
+                                 element);
   },
 
   setViewport: function(aViewport) {
     
-    aViewport.x /= aViewport.zoom;
-    aViewport.y /= aViewport.zoom;
+    let x = aViewport.x / aViewport.zoom;
+    let y = aViewport.y / aViewport.zoom;
 
     
     let win = this.browser.contentWindow;
-    win.scrollTo(aViewport.x, aViewport.y);
+    win.scrollTo(x, y);
     this.userScrollPos.x = win.scrollX;
     this.userScrollPos.y = win.scrollY;
     this.setResolution(aViewport.zoom, false);
-
-    
-    this.refreshDisplayPort(aViewport.displayPortMargins);
+    this.setDisplayPort(aViewport.x, aViewport.y, aViewport.displayPort);
   },
 
   setResolution: function(aZoom, aForce) {
@@ -1752,9 +1693,9 @@ Tab.prototype = {
       return;
     let message = this.getViewport();
     message.type = "Viewport:Update";
-    let displayPortMargins = sendMessageToJava({ gecko: message });
-    if (displayPortMargins != null)
-      this.refreshDisplayPort(JSON.parse(displayPortMargins));
+    let displayPort = sendMessageToJava({ gecko: message });
+    if (displayPort != null)
+      this.setDisplayPort(message.x, message.y, JSON.parse(displayPort));
   },
 
   handleEvent: function(aEvent) {
@@ -2017,7 +1958,7 @@ Tab.prototype = {
       
       
       this.contentDocumentIsDisplayed = false;
-      this.refreshDisplayPort({left: 0, top: 0, right: 0, bottom: 0 });
+      this.setDisplayPort(0, 0, {left: 0, top: 0, right: gScreenWidth, bottom: gScreenHeight });
     } else {
       this.sendViewportUpdate();
     }

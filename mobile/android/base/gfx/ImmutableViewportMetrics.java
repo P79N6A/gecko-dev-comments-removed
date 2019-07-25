@@ -41,6 +41,14 @@ public class ImmutableViewportMetrics {
         allowZoom = m.getAllowZoom();
     }
 
+    public float getWidth() {
+        return viewportRectRight - viewportRectLeft;
+    }
+
+    public float getHeight() {
+        return viewportRectBottom - viewportRectTop;
+    }
+
     
 
     public PointF getOrigin() {
