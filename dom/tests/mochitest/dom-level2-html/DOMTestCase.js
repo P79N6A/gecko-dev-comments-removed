@@ -648,6 +648,29 @@ function getImplementation() {
     return builder.getImplementation();
 }
 
+
+SimpleTest._logResult = function(test, passString, failString) {
+  var msg = test.result ? passString : failString;
+  msg += " | " + test.name;
+  if (test.result) {
+      if (test.todo)
+          parentRunner.logger.error(msg)
+      else
+          parentRunner.logger.log(msg);
+  } else {
+      msg += " | " + test.diag;
+      if (test.todo) {
+        parentRunner.logger.log(msg)
+      } else {
+	
+        
+        
+          parentRunner.logger.error(msg);
+	  
+      } 
+  }
+}
+
 window.doc = window;  
 SimpleTest.waitForExplicitFinish();
 addLoadEvent(function(){ setUpPage(); });
