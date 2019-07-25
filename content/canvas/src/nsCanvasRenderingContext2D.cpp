@@ -3457,8 +3457,7 @@ nsCanvasRenderingContext2D::SetGlobalCompositeOperation(const nsAString& op)
     if (op.EqualsLiteral(cvsop))   \
         thebes_op = gfxContext::OPERATOR_##thebesop;
 
-    CANVAS_OP_TO_THEBES_OP("clear", CLEAR)
-    else CANVAS_OP_TO_THEBES_OP("copy", SOURCE)
+    CANVAS_OP_TO_THEBES_OP("copy", SOURCE)
     else CANVAS_OP_TO_THEBES_OP("destination-atop", DEST_ATOP)
     else CANVAS_OP_TO_THEBES_OP("destination-in", DEST_IN)
     else CANVAS_OP_TO_THEBES_OP("destination-out", DEST_OUT)
@@ -3469,8 +3468,6 @@ nsCanvasRenderingContext2D::SetGlobalCompositeOperation(const nsAString& op)
     else CANVAS_OP_TO_THEBES_OP("source-out", OUT)
     else CANVAS_OP_TO_THEBES_OP("source-over", OVER)
     else CANVAS_OP_TO_THEBES_OP("xor", XOR)
-    
-    else CANVAS_OP_TO_THEBES_OP("over", OVER)
     
     else return NS_OK;
 
@@ -3489,10 +3486,7 @@ nsCanvasRenderingContext2D::GetGlobalCompositeOperation(nsAString& op)
     if (thebes_op == gfxContext::OPERATOR_##thebesop) \
         op.AssignLiteral(cvsop);
 
-    
-    CANVAS_OP_TO_THEBES_OP("clear", CLEAR)
-    else CANVAS_OP_TO_THEBES_OP("copy", SOURCE)
-    else CANVAS_OP_TO_THEBES_OP("darker", SATURATE)  
+    CANVAS_OP_TO_THEBES_OP("copy", SOURCE)
     else CANVAS_OP_TO_THEBES_OP("destination-atop", DEST_ATOP)
     else CANVAS_OP_TO_THEBES_OP("destination-in", DEST_IN)
     else CANVAS_OP_TO_THEBES_OP("destination-out", DEST_OUT)
