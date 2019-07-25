@@ -3943,6 +3943,49 @@ var XPIDatabase = {
 
 
 
+function XPINotificationCallbacks(aWindow, aNeedBadCertHandling) {
+  this.window = aWindow;
+
+  
+  
+  this.needBadCertHandling = aNeedBadCertHandling;
+
+  if (this.needBadCertHandling) {
+    Components.utils.import("resource://gre/modules/CertUtils.jsm");
+    this.badCertHandler = new BadCertHandler();
+  }
+}
+
+XPINotificationCallbacks.prototype = {
+  QueryInterface: function(iid) {
+    if (iid.equals(Ci.nsISupports) || iid.equals(Ci.nsIInterfaceRequestor))
+      return this;
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+
+  getInterface: function(iid) {
+    if (iid.equals(Components.interfaces.nsIAuthPrompt2)) {
+      var factory = Cc["@mozilla.org/prompter;1"].
+                    getService(Ci.nsIPromptFactory);
+      return factory.getPrompt(this.window, Ci.nsIAuthPrompt);
+    }
+
+    if (this.needBadCertHandling)
+      return this.badCertHandler.getInterface(iid);
+
+    throw Components.results.NS_ERROR_NO_INTERFACE;
+  },
+};
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -4405,8 +4448,6 @@ AddonInstall.prototype = {
 
 
   startDownload: function AI_startDownload() {
-    Components.utils.import("resource://gre/modules/CertUtils.jsm");
-
     this.state = AddonManager.STATE_DOWNLOADING;
     if (!AddonManagerPrivate.callInstallListeners("onDownloadStarted",
                                                   this.listeners, this.wrapper)) {
@@ -4464,13 +4505,10 @@ AddonInstall.prototype = {
     listener.init(this, this.stream);
     try {
       this.channel = NetUtil.newChannel(this.sourceURI);
-      if (this.loadGroup)
-        this.channel.loadGroup = this.loadGroup;
-
-      
-      
-      if (!this.hash)
-        this.channel.notificationCallbacks = new BadCertHandler();
+      this.channel.notificationCallbacks =
+        new XPINotificationCallbacks(this.window, !this.hash);
+      this.channel.QueryInterface(Ci.nsIHttpChannelInternal)
+                  .forceAllowThirdPartyCookie = true;
       this.channel.asyncOpen(listener, null);
 
       Services.obs.addObserver(this, "network:offline-about-to-go-offline", false);
@@ -4506,11 +4544,6 @@ AddonInstall.prototype = {
 
 
   onStartRequest: function AI_onStartRequest(aRequest, aContext) {
-    
-    
-    if (this.loadGroup)
-      this.loadGroup.removeRequest(aRequest, null, Cr.NS_BINDING_RETARGETED);
-
     this.progress = 0;
     if (aRequest instanceof Ci.nsIChannel) {
       try {
