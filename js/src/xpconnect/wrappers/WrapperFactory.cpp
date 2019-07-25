@@ -373,7 +373,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
 
     
     
-    js::SetProxyExtra(wrapperObj, js::ObjectValue(*xrayHolder));
+    js::SetProxyExtra(wrapperObj, 0, js::ObjectValue(*xrayHolder));
     return wrapperObj;
 }
 
@@ -397,7 +397,7 @@ WrapperFactory::WrapLocationObject(JSContext *cx, JSObject *obj)
                                         &LW::singleton);
     if (!wrapperObj)
         return nsnull;
-    js::SetProxyExtra(wrapperObj, js::ObjectValue(*xrayHolder));
+    js::SetProxyExtra(wrapperObj, 0, js::ObjectValue(*xrayHolder));
     return wrapperObj;
 }
 
