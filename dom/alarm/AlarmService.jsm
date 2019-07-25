@@ -305,12 +305,16 @@ let AlarmService = {
         let alarmQueue = this._alarmQueue;
         alarmQueue.length = 0;
         this._currentAlarm = null;
+
         
         
-        let nowTime = Date.now();
         aAlarms.forEach(function addAlarm(aAlarm) {
-          if (this._getAlarmTime(aAlarm) > nowTime)
+          if (this._getAlarmTime(aAlarm) > Date.now()) {
             alarmQueue.push(aAlarm);
+          } else {
+            this._fireSystemMessage(aAlarm);
+            this._removeAlarmFromDb(aAlarm.id, null);
+          }
         }.bind(this));
 
         
@@ -329,7 +333,7 @@ let AlarmService = {
 
   _getAlarmTime: function _getAlarmTime(aAlarm) {
     let alarmTime = (new Date(aAlarm.date)).getTime();
-    
+
     
     
     
