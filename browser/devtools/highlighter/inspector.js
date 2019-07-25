@@ -791,6 +791,12 @@ var InspectorUI = {
   openInspectorUI: function IUI_openInspectorUI(aNode)
   {
     
+    if (this.treeLoaded && this.highlighter && aNode) {
+      this.inspectNode(aNode);
+      this.stopInspecting();
+      return;
+    }
+    
     
     function inspectObserver(aElement) {
       Services.obs.removeObserver(boundInspectObserver,
