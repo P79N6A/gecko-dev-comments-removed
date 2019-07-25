@@ -145,7 +145,7 @@ public class Tabs implements GeckoEventListener {
         });
 
         
-        GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Selected", String.valueOf(tab.getId())));
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Selected", String.valueOf(tab.getId())));
         return selectedTab = tab;
     }
 
@@ -208,7 +208,7 @@ public class Tabs implements GeckoEventListener {
         });
 
         
-        GeckoAppShell.sendEventToGecko(new GeckoEvent("Tab:Closed", String.valueOf(tabId)));
+        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Closed", String.valueOf(tabId)));
     }
 
     
