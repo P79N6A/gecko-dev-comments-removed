@@ -310,6 +310,7 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, PRUint
   NS_ENSURE_ARG_POINTER(aFlavor && aData && aDataLen);
 
   nsresult rv = NS_OK;
+  nsCOMPtr<nsISupports> savedData;
   
   
   PRUint32 i;
@@ -334,6 +335,7 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, PRUint
         dataBytes.forget(aData);
         return NS_OK;
       }
+      savedData = dataBytes;  
       break;
     }
   }
@@ -366,6 +368,13 @@ nsTransferable::GetTransferData(const char *aFlavor, nsISupports **aData, PRUint
       }
     }
   }
+
+  
+  if (!found) {
+    savedData.forget(aData);
+    *aDataLen = 0;
+  }
+
   return found ? NS_OK : NS_ERROR_FAILURE;
 }
 
