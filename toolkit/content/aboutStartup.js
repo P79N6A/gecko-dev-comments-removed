@@ -37,11 +37,10 @@
 
 var Cc = Components.classes;
 var Ci = Components.interfaces;
+Components.utils.import("resource://gre/modules/Services.jsm");
 
-let stringsvc = Components.classes["@mozilla.org/intl/stringbundle;1"]
-                          .getService(Components.interfaces.nsIStringBundleService);
-let strings = stringsvc.createBundle("chrome://global/locale/aboutStartup.properties");
-let branding = stringsvc.createBundle("chrome://branding/locale/brand.properties");
+let strings = Services.strings.createBundle("chrome://global/locale/aboutStartup.properties");
+let branding = Services.strings.createBundle("chrome://branding/locale/brand.properties");
 let brandShortName = branding.GetStringFromName("brandShortName");
 
 function displayTimestamp(id, µs) document.getElementById(id).textContent = formatstamp(µs);
@@ -70,13 +69,12 @@ function extensionMark(x, l) label(green(mark(range(x))), l);
 
 
 let launched, startup, restored;
-let runtime = Cc["@mozilla.org/xre/runtime;1"].getService(Ci.nsIXULRuntime);
 
 try {
-  displayTimestamp("launched", launched = runtime.launchTimestamp);
+  displayTimestamp("launched", launched = Services.appinfo.launchTimestamp);
 } catch(x) { }
 
-displayTimestamp("started", startup = runtime.startupTimestamp);
+displayTimestamp("started", startup = Services.appinfo.startupTimestamp);
 if (launched)
   displayDuration("started", startup - launched);
 
@@ -86,14 +84,10 @@ displayTimestamp("restored", restored = app.restoredTimestamp);
 displayDuration("restored", restored - startup);
 
 
-var file = Components.classes["@mozilla.org/file/directory_service;1"]
-                     .getService(Components.interfaces.nsIProperties)
-                     .get("ProfD", Components.interfaces.nsIFile);
+var file = Services.dirsvc.get("ProfD", Components.interfaces.nsIFile);
 file.append("startup.sqlite");
 
-var svc = Components.classes["@mozilla.org/storage/service;1"]
-                    .getService(Components.interfaces.mozIStorageService);
-var db = svc.openDatabase(file);
+var db = Services.storage.openDatabase(file);
 
 
 var graph, overview;
