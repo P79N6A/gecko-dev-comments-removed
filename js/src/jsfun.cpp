@@ -2181,8 +2181,8 @@ Function(JSContext *cx, uintN argc, Value *vp)
 
 
 
-        LifoAllocScope las(&cx->tempLifoAlloc());
-        jschar *cp = cx->tempLifoAlloc().newArray<jschar>(args_length + 1);
+        AutoArenaAllocator aaa(&cx->tempPool);
+        jschar *cp = aaa.alloc<jschar>(args_length + 1);
         if (!cp) {
             js_ReportOutOfMemory(cx);
             return false;
