@@ -9,7 +9,9 @@ const SCHEMES = {
   "ftp://": true,
   "file:///": true,
   "about:": false,
-  "imap://": false,
+
+
+
   "news://": false,
   "mailbox:": false,
   "moz-anno:favicon:http://": false,
