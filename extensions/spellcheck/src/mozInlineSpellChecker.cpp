@@ -95,6 +95,8 @@
 #include "nsIContent.h"
 #include "nsEventListenerManager.h"
 #include "nsGUIEvent.h"
+#include "nsRange.h"
+#include "nsContentUtils.h"
 
 
 
@@ -164,8 +166,7 @@ mozInlineSpellStatus::InitForEditorChange(
   mOp = eOpChange;
 
   
-  rv = doc->CreateRange(getter_AddRefs(mRange));
-  NS_ENSURE_SUCCESS(rv, rv);
+  mRange = new nsRange();
 
   
   nsCOMPtr<nsIDOMNSRange> nsrange = do_QueryInterface(mAnchorRange, &rv);
@@ -284,7 +285,7 @@ mozInlineSpellStatus::InitForSelection()
 
 
 nsresult
-mozInlineSpellStatus::InitForRange(nsIDOMRange* aRange)
+mozInlineSpellStatus::InitForRange(nsIRange* aRange)
 {
   mOp = eOpChange;
   mRange = aRange;
@@ -374,7 +375,7 @@ mozInlineSpellStatus::FinishNavigationEvent(mozInlineSpellWordUtil& aWordUtil)
 
   
   
-  nsCOMPtr<nsIDOMRange> oldWord;
+  nsCOMPtr<nsIRange> oldWord;
   rv = aWordUtil.GetRangeForWord(oldAnchorNode, oldAnchorOffset,
                                  getter_AddRefs(oldWord));
   NS_ENSURE_SUCCESS(rv, rv);
@@ -796,7 +797,8 @@ mozInlineSpellChecker::SpellCheckRange(nsIDOMRange* aRange)
   NS_ENSURE_TRUE(mSpellCheck, NS_ERROR_NOT_INITIALIZED);
 
   mozInlineSpellStatus status(this);
-  nsresult rv = status.InitForRange(aRange);
+  nsCOMPtr<nsIRange> range = do_QueryInterface(aRange);
+  nsresult rv = status.InitForRange(range);
   NS_ENSURE_SUCCESS(rv, rv);
   return ScheduleSpellCheck(status);
 }
@@ -1002,7 +1004,7 @@ nsresult
 mozInlineSpellChecker::MakeSpellCheckRange(
     nsIDOMNode* aStartNode, PRInt32 aStartOffset,
     nsIDOMNode* aEndNode, PRInt32 aEndOffset,
-    nsIDOMRange** aRange)
+    nsIRange** aRange)
 {
   nsresult rv;
   *aRange = nsnull;
@@ -1057,7 +1059,7 @@ mozInlineSpellChecker::MakeSpellCheckRange(
     rv = range->SetEndAfter(aEndNode);
   NS_ENSURE_SUCCESS(rv, rv);
 
-  range.swap(*aRange);
+  CallQueryInterface(range, aRange);
   return NS_OK;
 }
 
@@ -1067,7 +1069,7 @@ mozInlineSpellChecker::SpellCheckBetweenNodes(nsIDOMNode *aStartNode,
                                               nsIDOMNode *aEndNode,
                                               PRInt32 aEndOffset)
 {
-  nsCOMPtr<nsIDOMRange> range;
+  nsCOMPtr<nsIRange> range;
   nsresult rv = MakeSpellCheckRange(aStartNode, aStartOffset,
                                     aEndNode, aEndOffset,
                                     getter_AddRefs(range));
@@ -1222,7 +1224,7 @@ mozInlineSpellChecker::DoSpellCheckSelection(mozInlineSpellWordUtil& aWordUtil,
       
       
       
-      status.mRange = checkRange;
+      status.mRange = do_QueryInterface(checkRange);
       rv = DoSpellCheck(aWordUtil, aSpellCheckSelection, &status,
                         &doneChecking);
       NS_ENSURE_SUCCESS(rv, rv);
@@ -1271,8 +1273,6 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
                                              mozInlineSpellStatus* aStatus,
                                              bool* aDoneChecking)
 {
-  nsCOMPtr<nsIDOMNode> beginNode, endNode;
-  PRInt32 beginOffset, endOffset;
   *aDoneChecking = true;
 
   
@@ -1297,13 +1297,26 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
   NS_ENSURE_SUCCESS(rv, rv);
 
   
-  NS_ENSURE_SUCCESS(rv, rv);
-  aStatus->mRange->GetStartContainer(getter_AddRefs(beginNode));
-  aStatus->mRange->GetStartOffset(&beginOffset);
-  aStatus->mRange->GetEndContainer(getter_AddRefs(endNode));
-  aStatus->mRange->GetEndOffset(&endOffset);
-  aWordUtil.SetEnd(endNode, endOffset);
-  aWordUtil.SetPosition(beginNode, beginOffset);
+  {
+    
+    
+    nsINode* beginNode = aStatus->mRange->GetStartParent();
+    PRInt32 beginOffset = aStatus->mRange->StartOffset();
+    nsINode* endNode = aStatus->mRange->GetEndParent();
+    PRInt32 endOffset = aStatus->mRange->EndOffset();
+
+    
+    
+    nsINode* rootNode = aWordUtil.GetRootNode();
+    if (!nsContentUtils::ContentIsDescendantOf(beginNode, rootNode) ||
+        !nsContentUtils::ContentIsDescendantOf(endNode, rootNode)) {
+      
+      return NS_OK;
+    }
+  
+    aWordUtil.SetEnd(endNode, endOffset);
+    aWordUtil.SetPosition(beginNode, beginOffset);
+  }
 
   
   editor = do_QueryReferent(mEditor);
@@ -1321,7 +1334,7 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
   PRTime beginTime = PR_Now();
 
   nsAutoString wordText;
-  nsCOMPtr<nsIDOMRange> wordRange;
+  nsCOMPtr<nsIRange> wordRange;
   bool dontCheckWord;
   while (NS_SUCCEEDED(aWordUtil.GetNextWord(wordText,
                                             getter_AddRefs(wordRange),
@@ -1330,6 +1343,10 @@ nsresult mozInlineSpellChecker::DoSpellCheck(mozInlineSpellWordUtil& aWordUtil,
     wordsSinceTimeCheck ++;
 
     
+    
+    
+    nsCOMPtr<nsIDOMNode> beginNode, endNode;
+    PRInt32 beginOffset, endOffset;
     wordRange->GetStartContainer(getter_AddRefs(beginNode));
     wordRange->GetEndContainer(getter_AddRefs(endNode));
     wordRange->GetStartOffset(&beginOffset);
