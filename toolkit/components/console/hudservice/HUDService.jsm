@@ -5047,6 +5047,8 @@ ConsoleUtils = {
       node.appendChild(locationNode); 
     }
 
+    node.setAttribute("id", "console-msg-" + HUDService.sequenceId());
+
     return node;
   },
 
