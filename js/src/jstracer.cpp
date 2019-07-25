@@ -8293,7 +8293,8 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, const Value*& 
 
     LIns* obj_ins;
     JSObject* parent = cx->fp()->callee().getParent();
-    LIns* parent_ins = w.ldpObjParent(get(&cx->fp()->calleev()));
+    LIns *callee_ins = get(&cx->fp()->calleev());
+    LIns* parent_ins = w.ldpObjParent(callee_ins);
     CHECK_STATUS(traverseScopeChain(parent, parent_ins, obj, obj_ins));
 
     if (!cfp) {
@@ -8302,6 +8303,17 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, const Value*& 
         
         
         
+        
+        VMSideExit *branchExit = snapshot(BRANCH_EXIT);
+        if (parent != globalObj) {
+            if (!parent->isCall())
+                RETURN_STOP("closure scoped by neither the global object nor a Call object");
+
+            guard(true,
+                  w.eqp(w.ldpObjParent(callee_ins), w.immpObjGC(parent)),
+                  branchExit);
+        }
+
         if (shape->getterOp() == GetCallArg) {
             JS_ASSERT(slot < ArgClosureTraits::slot_count(obj));
             slot += ArgClosureTraits::slot_offset(obj);
@@ -8315,7 +8327,7 @@ TraceRecorder::callProp(JSObject* obj, JSProperty* prop, jsid id, const Value*& 
         
         JS_ASSERT(shape->hasShortID());
 
-        ins = unbox_slot(obj, obj_ins, slot, snapshot(BRANCH_EXIT));
+        ins = unbox_slot(obj, obj_ins, slot, branchExit);
     } else {
         ClosureVarInfo* cv = new (traceAlloc()) ClosureVarInfo();
         cv->slot = slot;
