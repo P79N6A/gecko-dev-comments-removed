@@ -192,10 +192,14 @@ class NameResolver
             ParseNode *node = toName[pos];
 
             if (node->isKind(PNK_COLON)) {
-                if (!node->pn_left->isKind(PNK_NAME))
-                    continue;
-                
-                if (!special(node->pn_left->pn_atom)) {
+                if (node->pn_left->isKind(PNK_NAME)) {
+                    
+                    if (!special(node->pn_left->pn_atom)) {
+                        if (!buf.append(".") || !buf.append(node->pn_left->pn_atom))
+                            return NULL;
+                    }
+                } else if (node->pn_left->isKind(PNK_STRING)) {
+                    
                     if (!buf.append(".") || !buf.append(node->pn_left->pn_atom))
                         return NULL;
                 }
