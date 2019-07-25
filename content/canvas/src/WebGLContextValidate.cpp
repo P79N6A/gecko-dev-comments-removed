@@ -579,14 +579,6 @@ WebGLContext::InitAndValidateGL()
         gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_IMAGE_UNITS, &mGLMaxTextureImageUnits);
         gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &mGLMaxVertexTextureImageUnits);
     }
-    
-#ifdef XP_MACOSX
-    if (gl->Vendor() == gl::GLContext::VendorIntel) {
-        
-        
-        mGLMaxCubeMapTextureSize = NS_MIN(mGLMaxCubeMapTextureSize, 512);
-    }
-#endif
 
     if (MinCapabilityMode()) {
         mGLMaxFragmentUniformVectors = MINVALUE_GL_MAX_FRAGMENT_UNIFORM_VECTORS;
