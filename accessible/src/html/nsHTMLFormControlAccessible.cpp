@@ -412,16 +412,24 @@ nsHTMLTextFieldAccessible::GetNameInternal(nsAString& aName)
   if (!aName.IsEmpty())
     return NS_OK;
 
-  if (!mContent->GetBindingParent())
+  if (mContent->GetBindingParent())
+  {
+    
+    
+    
+    
+    
+    nsAccessible* parent = GetParent();
+    parent->GetName(aName);
+  }
+
+  if (!aName.IsEmpty())
     return NS_OK;
 
   
-  
-  
-  
-  
-  nsAccessible* parent = GetParent();
-  return parent ? parent->GetName(aName) : NS_OK;
+  mContent->GetAttr(kNameSpaceID_None, nsAccessibilityAtoms::placeholder, aName);
+
+  return NS_OK;
 }
 
 NS_IMETHODIMP nsHTMLTextFieldAccessible::GetValue(nsAString& _retval)
