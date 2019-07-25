@@ -152,7 +152,7 @@ Item.prototype = {
       cancelClass: 'close stackExpander',
       start: function(e, ui) {
         if (this.isAGroupItem) {
-          GroupItems.setActiveGroupItem(this);
+          UI.setActive(this);
           this._unfreezeItemSize();
         }
         
@@ -202,7 +202,7 @@ Item.prototype = {
       minHeight: 90,
       start: function(e,ui) {
         if (this.isAGroupItem)
-          GroupItems.setActiveGroupItem(this);
+          UI.setActive(this);
         resize.info = new Drag(this, e);
       },
       resize: function(e,ui) {

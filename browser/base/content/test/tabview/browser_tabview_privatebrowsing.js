@@ -40,7 +40,7 @@ function onTabViewLoadedAndShown() {
   });
   
   
-  contentWindow.GroupItems.setActiveGroupItem(groupItem);
+  contentWindow.UI.setActive(groupItem);
   
   
   let count = contentWindow.GroupItems.groupItems.length;

@@ -25,7 +25,7 @@ function part1(win) {
   newGroup.add(newTab._tabViewTabItem, {immediately: true});
 
   
-  contentWindow.GroupItems.setActiveGroupItem(originalGroup);
+  contentWindow.UI.setActive(originalGroup);
   is(contentWindow.GroupItems.getActiveGroupItem(), originalGroup,
      "The original group is active");
   is(contentWindow.UI.getActiveTab(), originalTab._tabViewTabItem,

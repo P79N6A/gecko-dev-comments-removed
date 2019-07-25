@@ -20,7 +20,7 @@ function onTabViewWindowLoaded() {
   
   let box = new contentWindow.Rect(10, 10, 300, 300);
   let groupItemTwo = new contentWindow.GroupItem([], { bounds: box });
-  contentWindow.GroupItems.setActiveGroupItem(groupItemTwo);
+  contentWindow.UI.setActive(groupItemTwo);
 
   let testTab = 
     gBrowser.addTab(
