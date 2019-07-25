@@ -677,32 +677,6 @@ XPCWrappedNativeProtoMap::~XPCWrappedNativeProtoMap()
 
 
 
-
-XPCNativeWrapperMap*
-XPCNativeWrapperMap::newMap(int size)
-{
-    XPCNativeWrapperMap* map = new XPCNativeWrapperMap(size);
-    if (map && map->mTable)
-        return map;
-    delete map;
-    return nsnull;
-}
-
-XPCNativeWrapperMap::XPCNativeWrapperMap(int size)
-{
-    mTable = JS_NewDHashTable(JS_DHashGetStubOps(), nsnull,
-                              sizeof(JSDHashEntryStub), size);
-}
-
-XPCNativeWrapperMap::~XPCNativeWrapperMap()
-{
-    if (mTable)
-        JS_DHashTableDestroy(mTable);
-}
-
-
-
-
 struct JSDHashTableOps
 WrappedNative2WrapperMap::sOps = {
     JS_DHashAllocTable,
