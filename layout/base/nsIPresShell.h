@@ -251,25 +251,6 @@ public:
   virtual void* AllocateMisc(size_t aSize) = 0;
   virtual void  FreeMisc(size_t aSize, void* aChunk) = 0;
 
-  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  virtual void PushStackMemory() = 0;
-  virtual void PopStackMemory() = 0;
-  virtual void* AllocateStackMemory(size_t aSize) = 0;
-
   nsIDocument* GetDocument() const { return mDocument; }
 
   nsPresContext* GetPresContext() const { return mPresContext; }
