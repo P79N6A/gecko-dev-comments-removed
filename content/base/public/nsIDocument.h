@@ -126,8 +126,8 @@ class Element;
 } 
 
 #define NS_IDOCUMENT_IID \
-{ 0x3d24831e, 0x2a2b, 0x42f4, \
-  { 0x9d, 0x98, 0x17, 0x60, 0x18, 0xab, 0x6e, 0xfb } }
+{ 0xb52356d4, 0xe191, 0x4cf8, \
+ { 0xb8, 0x58, 0xc0, 0xf1, 0xe1, 0x98, 0x09, 0xdf } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -1509,6 +1509,13 @@ public:
 
 
   virtual Element* GetElementById(const nsAString& aElementId) = 0;
+
+  
+
+
+
+
+  virtual const nsSmallVoidArray* GetAllElementsForId(const nsAString& aElementId) const = 0;
 
   
 

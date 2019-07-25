@@ -174,6 +174,12 @@ public:
   
 
 
+  const nsSmallVoidArray* GetIdElements() const {
+    return &mIdContentList;
+  }
+  
+
+
 
   Element* GetImageIdElement();
   
@@ -926,6 +932,7 @@ public:
                            const nsAString& aLocalName);
 
   virtual Element *GetElementById(const nsAString& aElementId);
+  virtual const nsSmallVoidArray* GetAllElementsForId(const nsAString& aElementId) const;
 
   virtual Element *LookupImageElement(const nsAString& aElementId);
 

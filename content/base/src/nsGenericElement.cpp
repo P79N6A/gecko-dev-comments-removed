@@ -5352,6 +5352,9 @@ ParseSelectorList(nsINode* aNode,
   return NS_OK;
 }
 
+
+
+
 template<bool onlyFirstMatch, class T>
 inline static nsresult FindMatchingElements(nsINode* aRoot,
                                             const nsAString& aSelector,
@@ -5361,10 +5364,55 @@ inline static nsresult FindMatchingElements(nsINode* aRoot,
   nsresult rv = ParseSelectorList(aRoot, aSelector,
                                   getter_Transfers(selectorList));
   NS_ENSURE_SUCCESS(rv, rv);
+  NS_ENSURE_TRUE(selectorList, NS_OK);
 
-  TreeMatchContext matchingContext(false,
-                                   nsRuleWalker::eRelevantLinkUnvisited,
-                                   aRoot->OwnerDoc());
+  NS_ASSERTION(selectorList->mSelectors,
+               "How can we not have any selectors?");
+
+  nsIDocument* doc = aRoot->OwnerDoc();  
+  TreeMatchContext matchingContext(false, nsRuleWalker::eRelevantLinkUnvisited,
+                                   doc);
+
+  
+  
+  
+  
+  
+  NS_ASSERTION(aRoot->IsElement() || aRoot->IsNodeOfType(nsINode::eDOCUMENT),
+               "Unexpected root node");
+  if (aRoot->IsInDoc() &&
+      doc->GetCompatibilityMode() != eCompatibility_NavQuirks &&
+      !selectorList->mNext &&
+      selectorList->mSelectors->mIDList) {
+    nsIAtom* id = selectorList->mSelectors->mIDList->mAtom;
+    const nsSmallVoidArray* elements =
+      doc->GetAllElementsForId(nsDependentAtomString(id));
+
+    
+    
+    if (elements) {
+      for (PRUint32 i = 0; i < elements->Count(); ++i) {
+        Element *element = static_cast<Element*>(elements->ElementAt(i));
+        if (!aRoot->IsElement() ||
+            nsContentUtils::ContentIsDescendantOf(element, aRoot)) {
+          
+          
+          if (nsCSSRuleProcessor::SelectorListMatches(element, matchingContext,
+                                                      selectorList)) {
+            aList.AppendElement(element);
+            if (onlyFirstMatch) {
+              return NS_OK;
+            }
+          }
+        }
+      }
+    }
+
+    
+    
+    return NS_OK;
+  }
+
   for (nsIContent* cur = aRoot->GetFirstChild();
        cur;
        cur = cur->GetNextNode(aRoot)) {
