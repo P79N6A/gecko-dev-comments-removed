@@ -356,9 +356,16 @@ class B2GMochitest(Mochitest):
         self._automation.testURL = testURL
 
         
-        
         f = open(os.path.join(options.profilePath, "user.js"), "a")
-        f.write('user_pref("browser.homescreenURL", "data:text/html,<h1>mochitest-plain should start soon</h1>");\n')
+        f.write("""
+user_pref("browser.homescreenURL","app://system.gaiamobile.org");\n
+user_pref("dom.mozBrowserFramesEnabled", true);\n
+user_pref("dom.ipc.tabs.disabled", false);\n
+user_pref("dom.ipc.browser_frames.oop_by_default", true);\n
+user_pref("browser.manifestURL","app://system.gaiamobile.org/manifest.webapp");\n
+user_pref("dom.mozBrowserFramesWhitelist","app://system.gaiamobile.org,http://mochi.test:8888");\n
+user_pref("network.dns.localDomains","app://system.gaiamobile.org");\n
+""")
         f.close()
 
         

@@ -212,7 +212,10 @@ class B2GRemoteAutomation(Automation):
             raise Exception("bad session value %s returned by start_session" % session)
 
         
-        self.marionette.execute_script("window.location.href='%s';" % self.testURL)
+        
+        
+        self.marionette.set_context("chrome")
+        self.marionette.execute_script("document.getElementById('homescreen').src='%s';" % self.testURL)
 
         return instance
 
