@@ -2580,6 +2580,11 @@ TypeObject::splicePrototype(JSContext *cx, JSObject *proto)
 
     AutoEnterTypeInference enter(cx);
 
+    if (proto->getType()->unknownProperties()) {
+        markUnknown(cx);
+        return;
+    }
+
     
 
 
