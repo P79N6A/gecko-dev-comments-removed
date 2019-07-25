@@ -10,6 +10,7 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #include "mozilla/Assertions.h"
+#include "mozilla/Scoped.h"
 
 
 
@@ -81,120 +82,14 @@ typedef le_to_cpu<le_uint16> le_uint32;
 
 
 
-
-
-
-
-
-
-
-
-template <typename Traits>
-class AutoClean
-{
-  typedef typename Traits::type T;
-public:
-  AutoClean(): value(Traits::None()) { }
-  AutoClean(const T& value): value(value) { }
-  ~AutoClean()
-  {
-    if (value != Traits::None())
-      Traits::clean(value);
-  }
-
-  operator const T&() const { return value; }
-  const T& operator->() const { return value; }
-  const T& get() const { return value; }
-
-  T forget()
-  {
-    T _value = value;
-    value = Traits::None();
-    return _value;
-  }
-
-  bool operator ==(T other) const
-  {
-    return value == other;
-  }
-
-  AutoClean& operator =(T other)
-  {
-    if (value != Traits::None())
-      Traits::clean(value);
-    value = other;
-    return *this;
-  }
-
-private:
-  T value;
-};
-
-
-
-
-
-#define AUTOCLEAN_TEMPLATE(name, Traits) \
-template <typename T> \
-struct name: public AutoClean<Traits<T> > \
-{ \
-  using AutoClean<Traits<T> >::operator =; \
-  name(): AutoClean<Traits<T> >() { } \
-  name(typename Traits<T>::type ptr): AutoClean<Traits<T> >(ptr) { } \
-}
-
-
-
-
 struct AutoCloseFDTraits
 {
   typedef int type;
-  static int None() { return -1; }
-  static void clean(int fd) { close(fd); }
+  static int empty() { return -1; }
+  static void release(int fd) { close(fd); }
 };
-typedef AutoClean<AutoCloseFDTraits> AutoCloseFD;
+typedef mozilla::Scoped<AutoCloseFDTraits> AutoCloseFD;
 
-
-
-
-
-
-
-
-template <typename T>
-struct AutoFreePtrTraits
-{
-  typedef T *type;
-  static T *None() { return NULL; }
-  static void clean(T *ptr) { free(ptr); }
-};
-AUTOCLEAN_TEMPLATE(AutoFreePtr, AutoFreePtrTraits);
-
-
-
-
-
-
-
-template <typename T>
-struct AutoDeletePtrTraits: public AutoFreePtrTraits<T>
-{
-  static void clean(T *ptr) { delete ptr; }
-};
-AUTOCLEAN_TEMPLATE(AutoDeletePtr, AutoDeletePtrTraits);
-
-
-
-
-
-
-
-template <typename T>
-struct AutoDeleteArrayTraits: public AutoFreePtrTraits<T>
-{
-  static void clean(T *ptr) { delete [] ptr; }
-};
-AUTOCLEAN_TEMPLATE(AutoDeleteArray, AutoDeleteArrayTraits);
 
 
 

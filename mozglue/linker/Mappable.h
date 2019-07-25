@@ -10,6 +10,7 @@
 #include "Zip.h"
 #include "SeekableZStream.h"
 #include "mozilla/RefPtr.h"
+#include "mozilla/Scoped.h"
 #include "zlib.h"
 
 
@@ -109,15 +110,15 @@ private:
 
 
 
-  struct AutoUnlinkFileTraits: public AutoDeleteArrayTraits<char>
+  struct AutoUnlinkFileTraits: public mozilla::ScopedDeleteArrayTraits<char>
   {
-    static void clean(char *value)
+    static void release(char *value)
     {
       unlink(value);
-      AutoDeleteArrayTraits<char>::clean(value);
+      mozilla::ScopedDeleteArrayTraits<char>::release(value);
     }
   };
-  typedef AutoClean<AutoUnlinkFileTraits> AutoUnlinkFile;
+  typedef mozilla::Scoped<AutoUnlinkFileTraits> AutoUnlinkFile;
 
   
   AutoUnlinkFile path;
@@ -155,7 +156,7 @@ private:
   mozilla::RefPtr<Zip> zip;
 
   
-  AutoDeletePtr<_MappableBuffer> buffer;
+  mozilla::ScopedDeletePtr<_MappableBuffer> buffer;
 
   
   z_stream zStream;
@@ -193,7 +194,7 @@ private:
   mozilla::RefPtr<Zip> zip;
 
   
-  AutoDeletePtr<_MappableBuffer> buffer;
+  mozilla::ScopedDeletePtr<_MappableBuffer> buffer;
 
   
   SeekableZStream zStream;
@@ -236,7 +237,7 @@ private:
 
   
 
-  AutoDeleteArray<unsigned char> chunkAvail;
+  mozilla::ScopedDeleteArray<unsigned char> chunkAvail;
 
   
   size_t chunkAvailNum;
