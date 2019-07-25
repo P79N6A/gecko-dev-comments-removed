@@ -400,6 +400,11 @@ protected:
   
   static PRBool sNormalLMouseEventInProcess;
 
+  static nsEventStateManager* sActiveESM;
+  
+  static void SetGlobalActiveContent(nsEventStateManager* aNewESM,
+                                     nsIContent* aContent);
+
   
   PRBool mClickHoldContextMenu;
   nsCOMPtr<nsITimer> mClickHoldTimer;
