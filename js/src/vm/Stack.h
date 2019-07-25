@@ -1046,10 +1046,8 @@ struct StackOverride
 class StackSpace
 {
     Value         *base_;
-#ifdef XP_WIN
     mutable Value *commitEnd_;
-#endif
-    Value *end_;
+    Value         *end_;
     StackSegment  *seg_;
     StackOverride override_;
 
@@ -1124,6 +1122,9 @@ class StackSpace
 
     
     void mark(JSTracer *trc);
+
+    
+    JS_FRIEND_API(size_t) committedSize();
 };
 
 
