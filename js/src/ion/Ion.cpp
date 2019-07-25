@@ -1007,7 +1007,7 @@ InvalidateActivation(JSContext *cx, uint8 *ionTop)
 }
 
 void
-ion::Invalidate(JSContext *cx, const Vector<JSScript *> &invalid)
+ion::Invalidate(JSContext *cx, const Vector<JSScript *> &invalid, bool resetUses)
 {
     
     
@@ -1029,6 +1029,13 @@ ion::Invalidate(JSContext *cx, const Vector<JSScript *> &invalid)
             invalid[i]->ion->decref(cx);
             invalid[i]->ion = NULL;
         }
+    }
+
+    
+    
+    if (resetUses) {
+        for (size_t i = 0; i < invalid.length(); i++)
+            invalid[i]->resetUseCount();
     }
 }
 
