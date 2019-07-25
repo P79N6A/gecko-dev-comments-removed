@@ -141,11 +141,6 @@ public:
   
 
 
-
-  virtual nsIntPoint GetScrollPositionCSSPixels() = 0;
-  
-
-
   enum ScrollUnit { DEVICE_PIXELS, LINES, PAGES, WHOLE };
   
 
