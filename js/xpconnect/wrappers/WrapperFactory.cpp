@@ -540,4 +540,40 @@ WrapperFactory::WrapComponentsObject(JSContext *cx, JSObject *obj)
     return wrapperObj;
 }
 
+JSObject *
+WrapperFactory::WrapForSameCompartmentXray(JSContext *cx, JSObject *obj)
+{
+    
+    MOZ_ASSERT(js::IsObjectInContextCompartment(obj, cx));
+
+    
+    XrayType type = GetXrayType(obj);
+    if (type == NotXray)
+        return NULL;
+
+    
+    Wrapper *wrapper = NULL;
+    if (type == XrayForWrappedNative)
+        wrapper = &XrayWrapper<DirectWrapper>::singleton;
+    else if (type == XrayForDOMProxyObject)
+        wrapper = &XrayWrapper<DirectWrapper, ProxyXrayTraits>::singleton;
+    else if (type == XrayForDOMObject)
+        wrapper = &XrayWrapper<DirectWrapper, DOMXrayTraits>::singleton;
+    else
+        MOZ_NOT_REACHED("Bad Xray type");
+
+    
+    JSObject *parent = JS_GetGlobalForObject(cx, obj);
+    JSObject *wrapperObj = Wrapper::New(cx, obj, NULL, parent, wrapper);
+    if (!wrapperObj)
+        return NULL;
+
+    
+    JSObject *xrayHolder = XrayUtils::createHolder(cx, obj, parent);
+    if (!xrayHolder)
+        return nsnull;
+    js::SetProxyExtra(wrapperObj, 0, js::ObjectValue(*xrayHolder));
+    return wrapperObj;
+}
+
 }
