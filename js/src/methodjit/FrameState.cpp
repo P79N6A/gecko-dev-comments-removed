@@ -252,13 +252,218 @@ FrameState::assertValidRegisterState() const
 }
 #endif
 
+namespace js {
+namespace mjit {
+
+struct SyncRegInfo {
+    FrameEntry *fe;
+    RematInfo::RematType type;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+struct SyncRegs {
+    typedef JSC::MacroAssembler::RegisterID RegisterID;
+
+    SyncRegs(const FrameState &frame, Assembler &masm, Registers avail)
+      : frame(frame), masm(masm), avail(avail)
+    {
+        memset(regs, 0, sizeof(regs));
+    }
+
+    void giveTypeReg(FrameEntry *fe) {
+        JS_ASSERT(fe->isCopied());
+        RegisterID reg = allocFor(fe, RematInfo::TYPE);
+        masm.loadTypeTag(frame.addressOf(fe), reg);
+        fe->type.setRegister(reg);
+    }
+
+    void giveDataReg(FrameEntry *fe) {
+        JS_ASSERT(fe->isCopied());
+        RegisterID reg = allocFor(fe, RematInfo::DATA);
+        masm.loadData32(frame.addressOf(fe), reg);
+        fe->data.setRegister(reg);
+    }
+
+    void forget(FrameEntry *fe) {
+        JS_ASSERT(!fe->isCopy());
+        if (fe->type.inRegister()) {
+            if (forgetReg(fe, RematInfo::TYPE, fe->type.reg()))
+                fe->type.setMemory();
+        }
+        if (fe->data.inRegister()) {
+            if (forgetReg(fe, RematInfo::DATA, fe->data.reg()))
+                fe->data.setMemory();
+        }
+    }
+
+  private:
+    RegisterID allocFor(FrameEntry *fe, RematInfo::RematType type) {
+        RegisterID reg;
+        if (!avail.empty())
+            reg = avail.takeAnyReg();
+        else
+            reg = evict();
+
+        regs[reg].fe = fe;
+        regs[reg].type = type;
+
+        return reg;
+    }
+
+    RegisterID evict() {
+        
+
+
+
+        uint32 worst = FrameState::InvalidIndex;
+
+        
+
+
+
+        uint32 nbest = FrameState::InvalidIndex;
+
+        for (uint32 i = 0; i < Assembler::TotalRegisters; i++) {
+            RegisterID reg = RegisterID(i);
+            if (!(Registers::maskReg(reg) & Registers::AvailRegs))
+                continue;
+
+            worst = i;
+
+            FrameEntry *myFe = regs[reg].fe;
+            if (!myFe) {
+                FrameEntry *fe = frame.regstate[reg].fe;
+                if (!fe)
+                    continue;
+
+                nbest = i;
+
+                if (frame.regstate[reg].type == RematInfo::TYPE && fe->type.synced())
+                    return reg;
+                else if (frame.regstate[reg].type == RematInfo::DATA && fe->data.synced())
+                    return reg;
+            }
+        }
+
+        
+
+
+
+        JS_NOT_REACHED("wat");
+    }
+
+    
+    bool forgetReg(FrameEntry *checkFe, RematInfo::RematType type, RegisterID reg) {
+        
+
+
+
+
+        avail.putRegUnchecked(reg);
+
+        
+
+
+
+
+
+
+
+        FrameEntry *fe = regs[reg].fe;
+        if (!fe || fe != checkFe || regs[reg].type != type)
+            return false;
+
+        regs[reg].fe = NULL;
+
+        return true;
+    }
+
+    const FrameState &frame;
+    Assembler &masm;
+    SyncRegInfo regs[Assembler::TotalRegisters];
+    Registers avail;
+};
+
+} } 
+
+void
+FrameState::syncFancy(Assembler &masm, Registers avail, uint32 resumeAt) const
+{
+    SyncRegs sr(*this, masm, avail);
+
+    FrameEntry *tos = tosFe();
+    for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
+        FrameEntry *fe = tracker[i];
+        if (fe >= tos)
+            continue;
+
+        Address address = addressOf(fe);
+
+        if (!fe->isCopy()) {
+            sr.forget(fe);
+
+            if (!fe->data.synced()) {
+                syncData(fe, address, masm);
+                if (fe->isConstant())
+                    continue;
+            }
+            if (!fe->type.synced())
+                syncType(fe, addressOf(fe), masm);
+        } else {
+            FrameEntry *backing = fe->copyOf();
+            JS_ASSERT(backing != fe);
+            JS_ASSERT(!backing->isConstant() && !fe->isConstant());
+
+            if (!fe->type.synced()) {
+                
+                if (fe->isTypeKnown()) {
+                    
+                    masm.storeTypeTag(ImmTag(fe->getTypeTag()), address);
+                } else {
+                    if (!backing->type.inRegister())
+                        sr.giveTypeReg(backing);
+                    masm.storeTypeTag(backing->type.reg(), address);
+                }
+            }
+
+            if (!fe->data.synced()) {
+                if (!backing->data.inRegister())
+                    sr.giveDataReg(backing);
+                masm.storeData32(backing->data.reg(), address);
+            }
+        }
+    }
+}
+
 void
 FrameState::sync(Assembler &masm) const
 {
+    
+
+
+
     Registers avail(freeRegs);
 
     FrameEntry *tos = tosFe();
-    for (uint32 i = 0; i < tracker.nentries; i++) {
+    for (uint32 i = tracker.nentries - 1; i < tracker.nentries; i--) {
         FrameEntry *fe = tracker[i];
         if (fe >= tos)
             continue;
@@ -285,19 +490,14 @@ FrameState::sync(Assembler &masm) const
             JS_ASSERT(backing != fe);
             JS_ASSERT(!backing->isConstant() && !fe->isConstant());
 
-            bool allocd = false;
-            RegisterID reg = Registers::ReturnReg;
-            if (backing->type.inMemory() || backing->data.inMemory()) {
-                
-                JS_ASSERT(!avail.empty());
-
-                
+            
 
 
 
-
-                reg = avail.takeAnyReg();
-                allocd = true;
+            if ((!fe->type.synced() && !fe->type.inRegister()) ||
+                (!fe->data.synced() && !fe->data.inRegister())) {
+                syncFancy(masm, avail, i);
+                return;
             }
 
             if (!fe->type.synced()) {
@@ -306,30 +506,12 @@ FrameState::sync(Assembler &masm) const
                     
                     masm.storeTypeTag(ImmTag(fe->getTypeTag()), address);
                 } else {
-                    RegisterID r;
-                    if (backing->type.inRegister()) {
-                        r = backing->type.reg();
-                    } else {
-                        masm.loadTypeTag(addressOf(backing), reg);
-                        r = reg;
-                    }
-                    masm.storeTypeTag(r, address);
+                    masm.storeTypeTag(backing->type.reg(), address);
                 }
             }
 
-            if (!fe->data.synced()) {
-                RegisterID r;
-                if (backing->data.inRegister()) {
-                    r = backing->data.reg();
-                } else {
-                    masm.loadData32(addressOf(backing), reg);
-                    r = reg;
-                }
-                masm.storeData32(r, address);
-            }
-
-            if (allocd)
-                avail.putReg(reg);
+            if (!fe->data.synced())
+                masm.storeData32(backing->data.reg(), address);
         }
     }
 }
