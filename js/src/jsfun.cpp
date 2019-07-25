@@ -2220,26 +2220,21 @@ Function(JSContext *cx, uintN argc, Value *vp)
                     return OnBadFormal(cx, tt);
 
                 
-
-
-
-
-                JSAtom *atom = ts.currentToken().t_atom;
-
-                
-                if (bindings.hasBinding(cx, atom)) {
-                    JSAutoByteString name;
-                    if (!js_AtomToPrintableString(cx, atom, &name))
+                PropertyName *name = ts.currentToken().name();
+                if (bindings.hasBinding(cx, name)) {
+                    JSAutoByteString bytes;
+                    if (!js_AtomToPrintableString(cx, name, &bytes))
                         return false;
                     if (!ReportCompileErrorNumber(cx, &ts, NULL,
                                                   JSREPORT_WARNING | JSREPORT_STRICT,
-                                                  JSMSG_DUPLICATE_FORMAL, name.ptr())) {
+                                                  JSMSG_DUPLICATE_FORMAL, bytes.ptr()))
+                    {
                         return false;
                     }
                 }
 
                 uint16 dummy;
-                if (!bindings.addArgument(cx, atom, &dummy))
+                if (!bindings.addArgument(cx, name, &dummy))
                     return false;
 
                 
