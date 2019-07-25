@@ -1598,8 +1598,12 @@ const ContentTouchHandler = {
 
 
   _targetIsContent: function _targetIsContent(aEvent) {
+    
+    
+    
+    
     let target = aEvent.target;
-    return target && target.classList.contains("inputHandler");
+    return target && ("classList" in target && target.classList.contains("inputHandler"));
   },
 
   _dispatchMouseEvent: function _dispatchMouseEvent(aName, aX, aY, aModifiers) {
