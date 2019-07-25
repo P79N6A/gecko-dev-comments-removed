@@ -440,14 +440,6 @@ var UIManager = {
               tab.tabItem.setZoomPrep(false);
             self.showTabView();
           }
-          
-          
-          
-          setTimeout(function() { 
-            if ((groupItem && groupItem._children.length > 0) ||
-              (groupItem == null && gBrowser.visibleTabs.length > 0))
-              self.hideTabView();
-          }, 1);
         }
       }
     });
