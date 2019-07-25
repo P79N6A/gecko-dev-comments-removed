@@ -40,7 +40,7 @@ function SystemMessageInternal() {
 }
 
 SystemMessageInternal.prototype = {
-  sendMessage: function sendMessage(aType, aMessage, aManifestURI) {
+  sendMessage: function sendMessage(aType, aMessage, aPageURI, aManifestURI) {
     debug("Broadcasting " + aType + " " + JSON.stringify(aMessage));
     ppmm.sendAsyncMessage("SystemMessageManager:Message" , { type: aType,
                                                              msg: aMessage,
@@ -48,7 +48,9 @@ SystemMessageInternal.prototype = {
 
     
     this._pages.forEach(function sendMess_openPage(aPage) {
-      if (aPage.type != aType || aPage.manifest != aManifestURI.spec) {
+      if (aPage.type != aType ||
+          aPage.manifest != aManifestURI.spec ||
+          aPage.uri != aPageURI.spec) {
         return;
       }
 
