@@ -52,7 +52,6 @@ struct OverrideMapping;
 namespace mozilla {
 namespace dom {
 
-class AlertObserver;
 class PrefObserver;
 
 class ContentChild : public PContentChild
@@ -83,14 +82,6 @@ public:
     virtual PNeckoChild* AllocPNecko();
     virtual bool DeallocPNecko(PNeckoChild*);
 
-    virtual PExternalHelperAppChild *AllocPExternalHelperApp(
-            const IPC::URI& uri,
-            const nsCString& aMimeContentType,
-            const nsCString& aContentDisposition,
-            const bool& aForceSave,
-            const PRInt64& aContentLength);
-    virtual bool DeallocPExternalHelperApp(PExternalHelperAppChild *aService);
-
     virtual bool RecvRegisterChrome(const nsTArray<ChromePackage>& packages,
                                     const nsTArray<ResourceMapping>& resources,
                                     const nsTArray<OverrideMapping>& overrides);
@@ -110,20 +101,22 @@ public:
                                       const nsCString& aPrefRoot, 
                                       nsIObserver* aObserver);
 
-    
-    nsresult AddRemoteAlertObserver(const nsString& aData, nsIObserver* aObserver);
-
-    virtual bool RecvNotifyRemotePrefObserver(const nsCString& aDomain);
-    
-    virtual bool RecvNotifyAlertsObserver(const nsCString& aType, const nsString& aData);
-
-    virtual bool RecvAsyncMessage(const nsString& aMsg, const nsString& aJSON);
+    virtual bool RecvNotifyRemotePrefObserver(
+            const nsCString& aDomain);
 
 private:
     NS_OVERRIDE
     virtual void ActorDestroy(ActorDestroyReason why);
 
-    nsTArray<nsAutoPtr<AlertObserver> > mAlertObservers;
+    NS_OVERRIDE
+    virtual void ProcessingError(Result what);
+
+    
+
+
+
+    NS_NORETURN void QuickExit();
+
     nsTArray<nsAutoPtr<PrefObserver> > mPrefObservers;
     bool mDead;
 
