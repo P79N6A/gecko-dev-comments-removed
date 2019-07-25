@@ -135,12 +135,9 @@ class LayerManager;
 
 #define CAPTURE_PREVENTDRAG 4
 
-#define CAPTURE_POINTERLOCK 8
-
 typedef struct CapturingContentInfo {
   
   bool mAllowed;
-  bool mPointerLock;
   bool mRetargetToElement;
   bool mPreventDrag;
   nsIContent* mContent;
@@ -1091,11 +1088,6 @@ public:
   static bool gPreventMouseEvents;
 
   
-
-
-
-
-
 
 
 

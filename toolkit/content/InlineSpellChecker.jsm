@@ -183,6 +183,16 @@ InlineSpellChecker.prototype = {
     this.mDictionaryNames = [];
     this.mDictionaryItems = [];
 
+    if (! gLanguageBundle) {
+      
+      var bundleService = Components.classes["@mozilla.org/intl/stringbundle;1"]
+                                    .getService(Components.interfaces.nsIStringBundleService);
+      gLanguageBundle = bundleService.createBundle(
+          "chrome://global/locale/languageNames.properties");
+      gRegionBundle = bundleService.createBundle(
+          "chrome://global/locale/regionNames.properties");
+    }
+
     if (! this.mInlineSpellChecker || ! this.enabled)
       return 0;
     var spellchecker = this.mInlineSpellChecker.spellChecker;
@@ -194,12 +204,33 @@ InlineSpellChecker.prototype = {
     try {
         curlang = spellchecker.GetCurrentDictionary();
     } catch(e) {}
+    var isoStrArray;
 
     for (var i = 0; i < list.length; i ++) {
+      
+      isoStrArray = list[i].split(/[-_]/);
+      var displayName = "";
+      if (gLanguageBundle && isoStrArray[0]) {
+        try {
+          displayName = gLanguageBundle.GetStringFromName(isoStrArray[0].toLowerCase());
+        } catch(e) {} 
+        if (gRegionBundle && isoStrArray[1]) {
+          try {
+            displayName += " / " + gRegionBundle.GetStringFromName(isoStrArray[1].toLowerCase());
+          } catch(e) {} 
+          if (isoStrArray[2])
+            displayName += " (" + isoStrArray[2] + ")";
+        }
+      }
+
+      
+      if (displayName.length == 0)
+        displayName = list[i];
+
       this.mDictionaryNames.push(list[i]);
       var item = menu.ownerDocument.createElement("menuitem");
       item.setAttribute("id", "spell-check-dictionary-" + list[i]);
-      item.setAttribute("label", this.getDictionaryDisplayName(list[i]));
+      item.setAttribute("label", displayName);
       item.setAttribute("type", "radio");
       this.mDictionaryItems.push(item);
       if (curlang == list[i]) {
@@ -214,65 +245,6 @@ InlineSpellChecker.prototype = {
         menu.appendChild(item);
     }
     return list.length;
-  },
-
-  
-  getDictionaryDisplayName: function(dictionaryName) {
-    try {
-      
-      let languageTagMatch = /^([a-z]{2,3}|[a-z]{4}|[a-z]{5,8})(?:[-_]([a-z]{4}))?(?:[-_]([A-Z]{2}|[0-9]{3}))?((?:[-_](?:[a-z0-9]{5,8}|[0-9][a-z0-9]{3}))*)$/i;
-      var [languageTag, languageSubtag, scriptSubtag, regionSubtag, variantSubtags] = dictionaryName.match(languageTagMatch);
-    } catch(e) {
-      
-      return dictionaryName;
-    }
-
-    if (!gLanguageBundle) {
-      
-      var bundleService = Components.classes["@mozilla.org/intl/stringbundle;1"]
-                                    .getService(Components.interfaces.nsIStringBundleService);
-      gLanguageBundle = bundleService.createBundle(
-          "chrome://global/locale/languageNames.properties");
-      gRegionBundle = bundleService.createBundle(
-          "chrome://global/locale/regionNames.properties");
-    }
-
-    var displayName = "";
-
-    
-    try {
-      displayName += gLanguageBundle.GetStringFromName(languageSubtag.toLowerCase());
-    } catch(e) {
-      displayName += languageSubtag.toLowerCase(); 
-    }
-
-    
-    if (regionSubtag) {
-      displayName += " (";
-
-      try {
-        displayName += gRegionBundle.GetStringFromName(regionSubtag.toLowerCase());
-      } catch(e) {
-        displayName += regionSubtag.toUpperCase(); 
-      }
-
-      displayName += ")";
-    }
-
-    
-    if (scriptSubtag) {
-      displayName += " / ";
-
-      
-      displayName += scriptSubtag; 
-    }
-
-    
-    if (variantSubtags)
-      
-      displayName += " (" + variantSubtags.substr(1).split(/[-_]/).join(" / ") + ")"; 
-
-    return displayName;
   },
 
   
@@ -318,7 +290,7 @@ InlineSpellChecker.prototype = {
     
     if (this.mAddedWordStack.length == MAX_UNDO_STACK_DEPTH)
       this.mAddedWordStack.shift();
-
+      
     this.mAddedWordStack.push(this.mMisspelling);
     this.mInlineSpellChecker.addWordToDictionary(this.mMisspelling);
   },

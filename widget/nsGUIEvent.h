@@ -559,11 +559,6 @@ class nsHashKey;
 #define NS_TOUCH_CANCEL              (NS_TOUCH_EVENT_START+5)
 
 
-#define NS_POINTERLOCK_START         5300
-#define NS_POINTERLOCKCHANGE         (NS_POINTERLOCK_START)
-#define NS_POINTERLOCKERROR          (NS_POINTERLOCK_START + 1)
-
-
 
 
 
@@ -588,7 +583,6 @@ protected:
     : eventStructType(structType),
       message(msg),
       refPoint(0, 0),
-      lastRefPoint(0, 0),
       time(0),
       flags(isTrusted ? NS_EVENT_FLAG_TRUSTED : NS_EVENT_FLAG_NONE),
       userType(0)
@@ -605,7 +599,6 @@ public:
     : eventStructType(NS_EVENT),
       message(msg),
       refPoint(0, 0),
-      lastRefPoint(0, 0),
       time(0),
       flags(isTrusted ? NS_EVENT_FLAG_TRUSTED : NS_EVENT_FLAG_NONE),
       userType(0)
@@ -625,8 +618,6 @@ public:
   
   
   nsIntPoint  refPoint;
-  
-  nsIntPoint  lastRefPoint;
   
   
   PRUint64    time;

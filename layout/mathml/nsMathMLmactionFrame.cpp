@@ -122,9 +122,11 @@ nsMathMLmactionFrame::Init(nsIContent*      aContent,
     }
 
     if (NS_MATHML_ACTION_TYPE_NONE == mActionType) {
-      if (value.EqualsLiteral("statusline"))
+      
+      if (11 < value.Length() && 0 == value.Find("statusline#"))
         mActionType = NS_MATHML_ACTION_TYPE_STATUSLINE;
     }
+
   }
 
   
@@ -366,28 +368,12 @@ nsMathMLmactionFrame::MouseOver()
 {
   
   if (NS_MATHML_ACTION_TYPE_STATUSLINE == mActionType) {
+    nsAutoString value;
+    mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::actiontype_, value);
     
-    nsIFrame* childFrame = mFrames.FrameAt(1);
-    if (!childFrame) return;
-
-    nsIContent* content = childFrame->GetContent();
-    if (!content) return;
-
-    
-    if (content->GetNameSpaceID() == kNameSpaceID_MathML &&
-        content->Tag() == nsGkAtoms::mtext_) {
-      
-      content = content->GetFirstChild();
-      if (!content) return;
-
-      const nsTextFragment* textFrg = content->GetText();
-      if (!textFrg) return;
-
-      nsAutoString text;
-      textFrg->AppendTo(text);
-      
-      text.CompressWhitespace();
-      ShowStatus(PresContext(), text);
+    if (11 < value.Length() && 0 == value.Find("statusline#")) {
+      value.Cut(0, 11);
+      ShowStatus(PresContext(), value);
     }
   }
 }

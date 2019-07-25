@@ -987,11 +987,6 @@ public:
   
   Element* FullScreenStackTop();
 
-  void RequestPointerLock(Element* aElement);
-  bool ShouldLockPointer(Element* aElement);
-  bool SetPointerLock(Element* aElement, int aCursorStyle);
-  static void UnlockPointer();
-
   
   
   void UpdateVisibilityState();
