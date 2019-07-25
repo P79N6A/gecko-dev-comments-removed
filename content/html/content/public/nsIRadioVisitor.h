@@ -41,7 +41,6 @@
 
 #include "nsISupports.h"
 class nsIFormControl;
-class nsIDocument;
 
 
 #define NS_IRADIOVISITOR_IID \
@@ -72,43 +71,5 @@ public:
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIRadioVisitor, NS_IRADIOVISITOR_IID)
-
-
-
-
-
-
-
-nsresult
-NS_GetRadioSetCheckedChangedVisitor(bool aCheckedChanged,
-                                    nsIRadioVisitor** aVisitor);
-
-
-
-
-
-
-
-
-
-
-nsresult
-NS_GetRadioGetCheckedChangedVisitor(bool* aCheckedChanged,
-                                    nsIFormControl* aExcludeElement,
-                                    nsIRadioVisitor** aVisitor);
-
-
-
-
-
-
-
-
-
-
-nsIRadioVisitor*
-NS_SetRadioValueMissingState(nsIFormControl* aExcludeElement,
-                             nsIDocument* aDocument,
-                             bool aValidity, bool aNotify);
 
 #endif 
