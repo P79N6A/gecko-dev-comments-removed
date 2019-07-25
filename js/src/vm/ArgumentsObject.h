@@ -42,13 +42,18 @@
 #define ArgumentsObject_h___
 
 #include "jsfun.h"
-#include "jstracer.h"
 
 #ifdef JS_POLYIC
 class GetPropCompiler;
 #endif
 
 #define JS_ARGUMENTS_OBJECT_ON_TRACE ((void *)0xa126)
+
+#ifdef JS_TRACER
+namespace nanojit {
+class ValidateWriter;
+}
+#endif
 
 namespace js {
 
@@ -64,6 +69,12 @@ struct PICInfo;
 #endif
 void JS_FASTCALL GetProp(VMFrame &f, ic::PICInfo *pic);
 }
+}
+#endif
+
+#ifdef JS_TRACER
+namespace tjit {
+class Writer;
 }
 #endif
 
@@ -106,8 +117,10 @@ class ArgumentsObject : public ::JSObject
 
 #ifdef JS_TRACER
     
-    friend ::nanojit::LIns*
-    tjit::Writer::getArgsLength(::nanojit::LIns*) const;
+
+
+
+    friend class tjit::Writer;
 
     
 
