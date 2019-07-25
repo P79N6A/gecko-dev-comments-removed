@@ -7022,21 +7022,11 @@ MonitorLoopEdge(JSContext* cx, uintN& inlineCallCount, RecordReason reason)
         return MONITOR_NOT_RECORDING;
 
 #ifdef MOZ_TRACEVIS
-      case MISMATCH_EXIT:
-        tvso.r = R_MISMATCH_EXIT;
-        return MONITOR_NOT_RECORDING;
-      case OOM_EXIT:
-        tvso.r = R_OOM_EXIT;
-        return MONITOR_NOT_RECORDING;
-      case TIMEOUT_EXIT:
-        tvso.r = R_TIMEOUT_EXIT;
-        return MONITOR_NOT_RECORDING;
-      case DEEP_BAIL_EXIT:
-        tvso.r = R_DEEP_BAIL_EXIT;
-        return MONITOR_NOT_RECORDING;
-      case STATUS_EXIT:
-        tvso.r = R_STATUS_EXIT;
-        return MONITOR_NOT_RECORDING;
+      case MISMATCH_EXIT:  tvso.r = R_MISMATCH_EXIT;  return false;
+      case OOM_EXIT:       tvso.r = R_OOM_EXIT;       return false;
+      case TIMEOUT_EXIT:   tvso.r = R_TIMEOUT_EXIT;   return false;
+      case DEEP_BAIL_EXIT: tvso.r = R_DEEP_BAIL_EXIT; return false;
+      case STATUS_EXIT:    tvso.r = R_STATUS_EXIT;    return false;
 #endif
 
       default:
@@ -7285,27 +7275,13 @@ static bool arm_tests_initialized = false;
 
 #ifdef ANDROID
 
-static void
-arm_read_auxv()
-{
-  char buf[1024];
-  char* pos;
-  const char* ver_token = "CPU architecture: ";
-  FILE* f = fopen("/proc/cpuinfo", "r");
-  fread(buf, sizeof(char), 1024, f);
-  fclose(f);
-  pos = strstr(buf, ver_token);
-  if (pos) {
-    int ver = *(pos + strlen(ver_token)) - '0';
-    arm_arch = ver;
-  }
-  arm_has_neon = strstr(buf, "neon") != NULL;
-  arm_has_vfp = strstr(buf, "vfp") != NULL;
-  arm_has_iwmmxt = strstr(buf, "iwmmxt") != NULL;
-  arm_tests_initialized = true;
-}
-
-#else
+typedef struct {
+    uint32_t a_type;
+    union {
+       uint32_t a_val;
+    } a_un;
+} Elf32_auxv_t;
+#endif
 
 static void
 arm_read_auxv()
@@ -7357,8 +7333,6 @@ arm_read_auxv()
 
     arm_tests_initialized = true;
 }
-
-#endif
 
 static unsigned int
 arm_check_arch()
@@ -13971,9 +13945,12 @@ TraceRecorder::record_JSOP_BINDNAME()
     
     JSAtom *atom = atoms[GET_INDEX(cx->regs->pc)];
     jsid id = ATOM_TO_JSID(atom);
+    JSContext *localCx = cx;
     JSObject *obj2 = js_FindIdentifierBase(cx, fp->scopeChain, id);
     if (!obj2)
         RETURN_ERROR_A("error in js_FindIdentifierBase");
+    if (!TRACE_RECORDER(localCx))
+        return ARECORD_ABORTED;
     if (obj2 != globalObj && obj2->getClass() != &js_CallClass)
         RETURN_STOP_A("BINDNAME on non-global, non-call object");
 
