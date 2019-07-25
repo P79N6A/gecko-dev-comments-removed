@@ -852,15 +852,6 @@ nsContentSink::ProcessMETATag(nsIContent* aContent)
     }
   }
 
-  
-
-  if (aContent->AttrValueIs(kNameSpaceID_None, nsGkAtoms::name,
-                            nsGkAtoms::viewport, eIgnoreCase)) {
-    nsAutoString value;
-    aContent->GetAttr(kNameSpaceID_None, nsGkAtoms::content, value);
-    rv = nsContentUtils::ProcessViewportInfo(mDocument, value);
-  }
-
   return rv;
 }
 
