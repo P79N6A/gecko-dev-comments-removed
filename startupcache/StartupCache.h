@@ -21,6 +21,7 @@
 #include "nsIObserver.h"
 #include "nsIOutputStream.h"
 #include "nsIFile.h"
+#include "mozilla/Attributes.h"
 
 
 
@@ -88,7 +89,7 @@ struct CacheEntry
 
 
 
-class StartupCacheListener : public nsIObserver
+class StartupCacheListener MOZ_FINAL : public nsIObserver
 {
   NS_DECL_ISUPPORTS
   NS_DECL_NSIOBSERVER
@@ -179,7 +180,7 @@ private:
 
 
 #ifdef DEBUG
-class StartupCacheDebugOutputStream
+class StartupCacheDebugOutputStream MOZ_FINAL
   : public nsIObjectOutputStream
 {  
   NS_DECL_ISUPPORTS
@@ -205,7 +206,7 @@ class StartupCacheDebugOutputStream
       {0xb5, 0x77, 0xf9, 0x23, 0x57, 0xed, 0xa8, 0x84}}
 
 
-class StartupCacheWrapper 
+class StartupCacheWrapper MOZ_FINAL
   : public nsIStartupCache
 {
   NS_DECL_ISUPPORTS
