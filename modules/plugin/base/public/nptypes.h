@@ -53,6 +53,8 @@
   typedef unsigned short uint16_t;
   typedef int int32_t;
   typedef unsigned int uint32_t;
+  typedef long long int64_t;
+  typedef unsigned long long uint64_t;
 #elif defined(_AIX) || defined(__sun) || defined(__osf__) || defined(IRIX) || defined(HPUX)
   
 
@@ -77,6 +79,7 @@
 
   #if defined(bsdi)
   typedef u_int32_t uint32_t;
+  typedef u_int64_t uint64_t;
 
   #if !defined(__cplusplus)
     typedef int bool;
