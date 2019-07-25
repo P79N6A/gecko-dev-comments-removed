@@ -67,9 +67,9 @@ public:
     TYPE_UNKNOWN
   };
 
-  virtual ~SharedMemory() { }
+  virtual ~SharedMemory() { Unmapped(); Destroyed(); }
 
-  virtual size_t Size() const = 0;
+  size_t Size() const { return mMappedSize; }
 
   virtual void* memory() const = 0;
 
@@ -115,10 +115,19 @@ protected:
   
   
   
-  static void Created(size_t aNBytes);
-  static void Mapped(size_t aNBytes);
-  static void Unmapped(size_t aNBytes);
-  static void Destroyed(size_t aNBytes);
+  void Created(size_t aNBytes);
+  void Mapped(size_t aNBytes);
+  void Unmapped();
+  void Destroyed();
+
+  
+  
+  
+  
+  size_t mAllocSize;
+  
+  
+  size_t mMappedSize;
 };
 
 } 

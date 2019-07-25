@@ -71,12 +71,6 @@ public:
   virtual bool Map(size_t nBytes);
 
   NS_OVERRIDE
-  virtual size_t Size() const
-  {
-    return mSize;
-  }
-
-  NS_OVERRIDE
   virtual void* memory() const
   {
     return mMemory;
@@ -107,10 +101,6 @@ private:
 
   
   int mShmFd;
-  
-  size_t mAllocSize;
-  
-  size_t mSize;
   
   void *mMemory;
 };
