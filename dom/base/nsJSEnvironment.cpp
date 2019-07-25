@@ -161,14 +161,16 @@ static PRLogModuleInfo* gJSDiagnostics;
 #define NS_MIN_CC_INTERVAL          10000 // ms
 
 
+
+
 #define NS_COLLECTED_OBJECTS_LIMIT  5000
 
 
 #define NS_MAX_GC_COUNT             5
-#define NS_MIN_SUSPECT_CHANGES      10
+#define NS_MIN_SUSPECT_CHANGES      100
 
 
-#define NS_MAX_SUSPECT_CHANGES      100
+#define NS_MAX_SUSPECT_CHANGES      1000
 
 
 
@@ -259,7 +261,7 @@ nsUserActivityObserver::Observe(nsISupports* aSubject, const char* aTopic,
     if (sUserIsActive) {
       sUserIsActive = PR_FALSE;
       if (!sGCTimer) {
-        nsJSContext::IntervalCC();
+        nsJSContext::MaybeCC(PR_FALSE);
         return NS_OK;
       }
     }
@@ -299,7 +301,7 @@ NS_IMETHODIMP
 nsCCMemoryPressureObserver::Observe(nsISupports* aSubject, const char* aTopic,
                                     const PRUnichar* aData)
 {
-  nsJSContext::CC(nsnull);
+  nsJSContext::CC(nsnull, PR_TRUE);
   return NS_OK;
 }
 
@@ -3366,37 +3368,6 @@ nsJSContext::ScriptExecuted()
   return NS_OK;
 }
 
-
-void
-nsJSContext::CC(nsICycleCollectorListener *aListener)
-{
-  NS_TIME_FUNCTION_MIN(1.0);
-
-  ++sCCollectCount;
-#ifdef DEBUG_smaug
-  printf("Will run cycle collector (%i), %lldms since previous.\n",
-         sCCollectCount, (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
-#endif
-  sPreviousCCTime = PR_Now();
-  sDelayedCCollectCount = 0;
-  sCCSuspectChanges = 0;
-  
-  
-  if (nsContentUtils::XPConnect()) {
-    nsContentUtils::XPConnect()->GarbageCollect();
-  }
-  sCollectedObjectsCounts = nsCycleCollector_collect(aListener);
-  sCCSuspectedCount = nsCycleCollector_suspectedCount();
-  if (nsJSRuntime::sRuntime) {
-    sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
-  }
-#ifdef DEBUG_smaug
-  printf("Collected %u objects, %u suspected objects, took %lldms\n",
-         sCollectedObjectsCounts, sCCSuspectedCount,
-         (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
-#endif
-}
-
 static inline uint32
 GetGCRunsSinceLastCC()
 {
@@ -3410,6 +3381,40 @@ GetGCRunsSinceLastCC()
     
     return JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER) -
            sSavedGCCount;
+}
+
+
+void
+nsJSContext::CC(nsICycleCollectorListener *aListener, PRBool aForceGC)
+{
+  NS_TIME_FUNCTION_MIN(1.0);
+
+  ++sCCollectCount;
+#ifdef DEBUG_smaug
+  printf("Will run cycle collector (%i), %lldms since previous.\n",
+         sCCollectCount, (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
+#endif
+  sPreviousCCTime = PR_Now();
+  sDelayedCCollectCount = 0;
+  sCCSuspectChanges = 0;
+  
+  
+  if (nsContentUtils::XPConnect() &&
+      (aForceGC ||
+       (!GetGCRunsSinceLastCC() &&
+        sCCSuspectedCount > NS_COLLECTED_OBJECTS_LIMIT))) {
+    nsContentUtils::XPConnect()->GarbageCollect();
+  }
+  sCollectedObjectsCounts = nsCycleCollector_collect(aListener);
+  sCCSuspectedCount = nsCycleCollector_suspectedCount();
+  if (nsJSRuntime::sRuntime) {
+    sSavedGCCount = JS_GetGCParameter(nsJSRuntime::sRuntime, JSGC_NUMBER);
+  }
+#ifdef DEBUG_smaug
+  printf("Collected %u objects, %u suspected objects, took %lldms\n",
+         sCollectedObjectsCounts, sCCSuspectedCount,
+         (PR_Now() - sPreviousCCTime) / PR_USEC_PER_MSEC);
+#endif
 }
 
 
@@ -3469,7 +3474,7 @@ nsJSContext::CCIfUserInactive()
   if (sUserIsActive) {
     MaybeCC(PR_TRUE);
   } else {
-    IntervalCC();
+    IntervalCC(PR_TRUE);
   }
 }
 
@@ -3484,11 +3489,11 @@ nsJSContext::MaybeCCIfUserInactive()
 
 
 PRBool
-nsJSContext::IntervalCC()
+nsJSContext::IntervalCC(PRBool aForceGC)
 {
   if ((PR_Now() - sPreviousCCTime) >=
       PRTime(NS_MIN_CC_INTERVAL * PR_USEC_PER_MSEC)) {
-    nsJSContext::CC(nsnull);
+    nsJSContext::CC(nsnull, aForceGC);
     return PR_TRUE;
   }
 #ifdef DEBUG_smaug

@@ -189,7 +189,8 @@ public:
 
   
   
-  static void CC(nsICycleCollectorListener *aListener);
+  static void CC(nsICycleCollectorListener *aListener,
+                 PRBool aForceGC = PR_FALSE);
 
   
   
@@ -208,8 +209,9 @@ public:
 
   
   
-  static PRBool IntervalCC();
+  static PRBool IntervalCC(PRBool aForceGC = PR_FALSE);
 
+  
   
   static void CCIfUserInactive();
 
