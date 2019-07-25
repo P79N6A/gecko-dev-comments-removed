@@ -399,10 +399,15 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
                     break;
                 case 2:
                     mColors[colorNum].red = *aBuffer;
-                    colorNum++;
+                    
+                    
+                    if (bytesPerColor == 3)
+                      colorNum++;
                     break;
                 case 3:
                     
+                    
+                    colorNum++;
                     break;
             }
             mPos++; aBuffer++; aCount--;
