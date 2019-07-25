@@ -470,7 +470,7 @@ IonCompartment::generateCWrapper(JSContext *cx, const VMFunction& f)
         masm.loadValue(Operand(ReturnReg, 0), JSCReturnOperand);
     }
 
-    masm.finalizeABICall();
+    masm.finishABICall();
 
     
     
