@@ -153,6 +153,10 @@ var UIManager = {
       GroupItems.reconstitute(groupItemsData, groupItemData);
       GroupItems.killNewTabGroup(); 
 
+      
+      TabItems.init();
+      TabItems.pausePainting();
+
       if (firstTime) {
         var padding = 10;
         var infoWidth = 350;
@@ -176,7 +180,7 @@ var UIManager = {
           if (item.parent)
             item.parent.remove(item);
 
-          groupItem.add(item);
+          groupItem.add(item, null, {animate: false});
         });
 
         
@@ -194,10 +198,6 @@ var UIManager = {
         var infoItem = new InfoItem(box);
         infoItem.html(html);
       }
-
-      
-      TabItems.init();
-      TabItems.pausePainting();
 
       
       if (this._pageBounds)
