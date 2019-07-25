@@ -72,7 +72,7 @@ public:
   
 
 
-  static MappableFile *Create(const char *path);
+  static Mappable *Create(const char *path);
 
   
   virtual void *mmap(const void *addr, size_t length, int prot, int flags, off_t offset);
@@ -99,14 +99,8 @@ public:
 
 
 
-  static MappableExtractFile *Create(const char *name, Zip::Stream *stream);
+  static Mappable *Create(const char *name, Zip *zip, Zip::Stream *stream);
 
-  
-
-
-  char *GetPath() {
-    return path;
-  }
 private:
   MappableExtractFile(int fd, char *path)
   : MappableFile(fd), path(path), pid(getpid()) { }
@@ -148,7 +142,7 @@ public:
 
 
 
-  static MappableDeflate *Create(const char *name, Zip *zip, Zip::Stream *stream);
+  static Mappable *Create(const char *name, Zip *zip, Zip::Stream *stream);
 
   
   virtual void *mmap(const void *addr, size_t length, int prot, int flags, off_t offset);
@@ -182,7 +176,7 @@ public:
 
 
 
-  static MappableSeekableZStream *Create(const char *name, Zip *zip,
+  static Mappable *Create(const char *name, Zip *zip,
                                          Zip::Stream *stream);
 
   
