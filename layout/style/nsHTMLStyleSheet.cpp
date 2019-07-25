@@ -210,7 +210,7 @@ static nsresult GetBodyColor(nsPresContext* aPresContext, nscolor* aColor)
   return NS_OK;
 }
 
-NS_IMETHODIMP
+ void
 nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 {
   nsRuleWalker *ruleWalker = aData->mRuleWalker;
@@ -266,8 +266,6 @@ nsHTMLStyleSheet::RulesMatching(ElementRuleProcessorData* aData)
 
     
   aData->mElement->WalkContentStyleRules(ruleWalker);
-
-  return NS_OK;
 }
 
 
@@ -324,32 +322,27 @@ nsHTMLStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
   return nsRestyleHint(0);
 }
 
-NS_IMETHODIMP
-nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext,
-                                        PRBool* aRulesChanged)
+ PRBool
+nsHTMLStyleSheet::MediumFeaturesChanged(nsPresContext* aPresContext)
 {
-  *aRulesChanged = PR_FALSE;
-  return NS_OK;
+  return PR_FALSE;
 }
 
 
-NS_IMETHODIMP
+ void
 nsHTMLStyleSheet::RulesMatching(PseudoElementRuleProcessorData* aData)
 {
-  return NS_OK;
 }
 
-NS_IMETHODIMP
+ void
 nsHTMLStyleSheet::RulesMatching(AnonBoxRuleProcessorData* aData)
 {
-  return NS_OK;
 }
 
 #ifdef MOZ_XUL
-NS_IMETHODIMP
+ void
 nsHTMLStyleSheet::RulesMatching(XULTreeRuleProcessorData* aData)
 {
-  return NS_OK;
 }
 #endif
 

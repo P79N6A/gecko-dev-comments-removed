@@ -63,8 +63,9 @@ class nsPresContext;
 
 
 #define NS_ISTYLE_RULE_PROCESSOR_IID     \
-{ 0x566a7bea, 0xfdc5, 0x40a5, \
- { 0xbf, 0x8a, 0x87, 0xb5, 0xa2, 0x31, 0xd7, 0x9e } }
+{ 0xb8e44bbe, 0xaaac, 0x4125, \
+ { 0x8a, 0xb2, 0x0f, 0x42, 0x80, 0x2e, 0x14, 0xad } }
+
 
 
 
@@ -88,25 +89,25 @@ public:
 
 
 
-  NS_IMETHOD RulesMatching(ElementRuleProcessorData* aData) = 0;
+  virtual void RulesMatching(ElementRuleProcessorData* aData) = 0;
 
   
 
 
 
-  NS_IMETHOD RulesMatching(PseudoElementRuleProcessorData* aData) = 0;
+  virtual void RulesMatching(PseudoElementRuleProcessorData* aData) = 0;
 
   
 
 
-  NS_IMETHOD RulesMatching(AnonBoxRuleProcessorData* aData) = 0;
+  virtual void RulesMatching(AnonBoxRuleProcessorData* aData) = 0;
 
 #ifdef MOZ_XUL
   
 
 
 
-  NS_IMETHOD RulesMatching(XULTreeRuleProcessorData* aData) = 0;
+  virtual void RulesMatching(XULTreeRuleProcessorData* aData) = 0;
 #endif
 
   
@@ -152,8 +153,7 @@ public:
 
 
 
-  NS_IMETHOD MediumFeaturesChanged(nsPresContext* aPresContext,
-                                   PRBool* aRulesChanged) = 0;
+  virtual PRBool MediumFeaturesChanged(nsPresContext* aPresContext) = 0;
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsIStyleRuleProcessor,
