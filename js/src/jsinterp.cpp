@@ -1052,7 +1052,7 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args, JSBool clampReturn
 
     
     if (vp->isPrimitive() || vp->isFunObj() ||
-        vp->asNonFunObj().map->ops->construct)
+        !vp->asNonFunObj().map->ops->construct)
     {
         fun = js_ValueToFunction(cx, vp, JSV2F_CONSTRUCT);
         if (!fun)
