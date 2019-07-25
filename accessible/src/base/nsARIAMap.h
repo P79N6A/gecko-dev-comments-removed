@@ -199,31 +199,28 @@ public:
   
 
 
-  nsStateMapEntry(nsIAtom **aAttrName, eStateValueType aType,
-                  PRUint32 aPermanentState,
-                  PRUint32 aTrueState, PRUint32 aTrueExtraState,
-                  PRUint32 aFalseState = 0, PRUint32 aFalseExtraState = 0,
+  nsStateMapEntry(nsIAtom** aAttrName, eStateValueType aType,
+                  PRUint64 aPermanentState,
+                  PRUint64 aTrueState,
+                  PRUint64 aFalseState = 0,
                   PRBool aDefinedIfAbsent = PR_FALSE);
 
   
 
 
-  nsStateMapEntry(nsIAtom **aAttrName,
-                  const char *aValue1, PRUint32 aState1, PRUint32 aExtraState1,
-                  const char *aValue2, PRUint32 aState2, PRUint32 aExtraState2,
-                  const char *aValue3 = 0, PRUint32 aState3 = 0,
-                  PRUint32 aExtraState3 = 0);
+  nsStateMapEntry(nsIAtom** aAttrName,
+                  const char* aValue1, PRUint64 aState1,
+                  const char* aValue2, PRUint64 aState2,
+                  const char* aValue3 = 0, PRUint64 aState3 = 0);
 
   
 
 
 
-  nsStateMapEntry(nsIAtom **aAttrName,
-                  EDefaultStateRule aDefaultStateRule,
-                  const char *aValue1, PRUint32 aState1, PRUint32 aExtraState1,
-                  const char *aValue2, PRUint32 aState2, PRUint32 aExtraState2,
-                  const char *aValue3 = 0, PRUint32 aState3 = 0,
-                  PRUint32 aExtraState3 = 0);
+  nsStateMapEntry(nsIAtom** aAttrName, EDefaultStateRule aDefaultStateRule,
+                  const char* aValue1, PRUint64 aState1,
+                  const char* aValue2, PRUint64 aState2,
+                  const char* aValue3 = 0, PRUint64 aState3 = 0);
 
   
 
@@ -233,9 +230,7 @@ public:
 
 
 
-
-  static PRBool MapToStates(nsIContent *aContent,
-                            PRUint32 *aState, PRUint32 *aExtraState,
+  static PRBool MapToStates(nsIContent* aContent, PRUint64* aState,
                             eStateMapEntryID aStateMapEntryID);
 
 private:
@@ -246,24 +241,20 @@ private:
   PRBool mIsToken;
 
   
-  PRUint32 mPermanentState;
+  PRUint64 mPermanentState;
 
   
   const char* mValue1;
-  PRUint32 mState1;
-  PRUint32 mExtraState1;
+  PRUint64 mState1;
 
   const char* mValue2;
-  PRUint32 mState2;
-  PRUint32 mExtraState2;
+  PRUint64 mState2;
 
   const char* mValue3;
-  PRUint32 mState3;
-  PRUint32 mExtraState3;
+  PRUint64 mState3;
 
   
-  PRUint32 mDefaultState;
-  PRUint32 mDefaultExtraState;
+  PRUint64 mDefaultState;
 
   
   PRBool mDefinedIfAbsent;
@@ -298,7 +289,7 @@ struct nsRoleMapEntry
   ELiveAttrRule liveAttRule;
 
   
-  PRUint32 state;   
+  PRUint64 state;   
   
   
   

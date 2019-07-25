@@ -221,39 +221,30 @@ AccEvent::CaptureIsFromUserInput(EIsFromUserInput aIsFromUserInput)
 
 
 AccStateChangeEvent::
-  AccStateChangeEvent(nsAccessible* aAccessible,
-                      PRUint32 aState, PRBool aIsExtraState,
+  AccStateChangeEvent(nsAccessible* aAccessible, PRUint64 aState,
                       PRBool aIsEnabled, EIsFromUserInput aIsFromUserInput):
   AccEvent(nsIAccessibleEvent::EVENT_STATE_CHANGE, aAccessible,
            aIsFromUserInput, eAllowDupes),
-  mState(aState), mIsExtraState(aIsExtraState), mIsEnabled(aIsEnabled)
+  mState(aState), mIsEnabled(aIsEnabled)
 {
 }
 
 AccStateChangeEvent::
-  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState,
-                      PRBool aIsEnabled):
+  AccStateChangeEvent(nsINode* aNode, PRUint64 aState, PRBool aIsEnabled):
   AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode),
-  mState(aState), mIsExtraState(aIsExtraState), mIsEnabled(aIsEnabled)
+  mState(aState), mIsEnabled(aIsEnabled)
 {
 }
 
 AccStateChangeEvent::
-  AccStateChangeEvent(nsINode* aNode, PRUint32 aState, PRBool aIsExtraState) :
-  AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode),
-  mState(aState), mIsExtraState(aIsExtraState)
+  AccStateChangeEvent(nsINode* aNode, PRUint64 aState) :
+  AccEvent(::nsIAccessibleEvent::EVENT_STATE_CHANGE, aNode), mState(aState)
 {
   
   
   
   nsAccessible *accessible = GetAccessibleForNode();
-  if (accessible) {
-    PRUint32 state = 0, extraState = 0;
-    accessible->GetState(&state, mIsExtraState ? &extraState : nsnull);
-    mIsEnabled = ((mIsExtraState ? extraState : state) & mState) != 0;
-  } else {
-    mIsEnabled = PR_FALSE;
-  }
+  mIsEnabled = accessible && ((accessible->State() & mState) != 0);
 }
 
 already_AddRefed<nsAccEvent>

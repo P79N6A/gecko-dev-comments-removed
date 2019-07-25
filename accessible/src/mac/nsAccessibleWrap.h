@@ -84,9 +84,7 @@ class nsAccessibleWrap : public nsAccessible
     PRInt32 GetUnignoredChildCount(PRBool aDeepCount);
     
     PRBool HasPopup () {
-      PRUint32 state = 0;
-      GetStateInternal(&state, nsnull);
-      return (state & nsIAccessibleStates::STATE_HASPOPUP);
+      return (NativeState() & states::HASPOPUP);
     }
     
     

@@ -119,7 +119,7 @@ public:
   NS_DECL_NSIACCESSIBLETABLECELL
 
   
-  virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual void ApplyARIAState(PRUint64* aState);
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
 };
 

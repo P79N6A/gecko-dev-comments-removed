@@ -131,8 +131,7 @@ public:
 
 
 
-
-  virtual nsresult GetARIAState(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual void ApplyARIAState(PRUint64* aState);
 
   
 
@@ -178,10 +177,13 @@ public:
   
 
 
+  virtual PRUint64 State();
+
+  
 
 
 
-  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual PRUint64 NativeState();
 
   
 
@@ -620,7 +622,7 @@ protected:
 
 
 
-  PRUint32 GetActionRule(PRUint32 aStates);
+  PRUint32 GetActionRule(PRUint64 aStates);
 
   
 

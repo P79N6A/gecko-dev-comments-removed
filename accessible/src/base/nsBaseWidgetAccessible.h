@@ -99,7 +99,7 @@ public:
   virtual void Shutdown();
 
   
-  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual PRUint64 NativeState();
 
   
   virtual already_AddRefed<nsIURI> GetAnchorURI(PRUint32 aAnchorIndex);

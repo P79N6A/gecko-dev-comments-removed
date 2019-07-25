@@ -87,7 +87,7 @@ public:
 
   
   
-  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual PRUint64 NativeState();
 
   
   
@@ -149,7 +149,7 @@ public:
   NS_IMETHOD GetAssociatedEditor(nsIEditor **aEditor);
 
   
-  virtual nsresult GetStateInternal(PRUint32 *aState, PRUint32 *aExtraState);
+  virtual PRUint64 NativeState();
 };
 
 

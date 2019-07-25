@@ -37,6 +37,8 @@
 
 #include "AccGroupInfo.h"
 
+#include "States.h"
+
 AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   mPosInSet(0), mSetSize(0), mParent(nsnull)
 {
@@ -59,8 +61,7 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
       break;
 
     
-    if (BaseRole(siblingRole) != aRole ||
-        nsAccUtils::State(sibling) & nsIAccessibleStates::STATE_INVISIBLE)
+    if (BaseRole(siblingRole) != aRole || sibling->State() & states::INVISIBLE)
       continue;
 
     
@@ -103,8 +104,7 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
       break;
 
     
-    if (BaseRole(siblingRole) != aRole ||
-        nsAccUtils::State(sibling) & nsIAccessibleStates::STATE_INVISIBLE)
+    if (BaseRole(siblingRole) != aRole || sibling->State() & states::INVISIBLE)
       continue;
 
     
