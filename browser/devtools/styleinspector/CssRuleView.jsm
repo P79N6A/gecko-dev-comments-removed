@@ -67,7 +67,8 @@ Cu.import("resource:///modules/devtools/CssLogic.jsm");
 
 var EXPORTED_SYMBOLS = ["CssRuleView",
                         "_ElementStyle",
-                        "_editableField"];
+                        "_editableField",
+                        "_getInplaceEditorForSpan"];
 
 
 
@@ -1474,6 +1475,14 @@ InplaceEditor.prototype = {
     }
   }
 };
+
+
+
+
+
+
+
+function _getInplaceEditorForSpan(aSpan) { return aSpan.inplaceEditor; };
 
 
 
