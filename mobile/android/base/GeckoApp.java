@@ -1979,22 +1979,6 @@ abstract public class GeckoApp
     }
 
     @Override
-    public void onPause()
-    {
-        Log.i(LOGTAG, "pause");
-
-        
-        
-        
-
-        
-        
-
-        
-        super.onPause();
-    }
-
-    @Override
     public void onResume()
     {
         Log.i(LOGTAG, "resume");
