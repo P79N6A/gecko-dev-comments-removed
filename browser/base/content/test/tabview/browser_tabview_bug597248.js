@@ -97,6 +97,8 @@ function setupTwo() {
 
         
         restoredWin.addEventListener("tabviewshown", onTabViewShown, false);
+        
+        is(restoredWin.gBrowser.tabs.length, 2, "The total number of tabs is 2");
 
         
         newTabOne = restoredWin.gBrowser.tabs[0];
@@ -139,23 +141,26 @@ function setupTwo() {
 
 let gTabsProgressListener = {
   onStateChange: function(browser, webProgress, request, stateFlags, status) {
-    if (stateFlags & Ci.nsIWebProgressListener.STATE_STOP &&
-         stateFlags & Ci.nsIWebProgressListener.STATE_IS_NETWORK) {
+    
+    if ((stateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
+        (stateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW) &&
+         browser.currentURI.spec != "about:blank") {
       if (newTabOne.linkedBrowser == browser)
         restoredNewTabOneLoaded = true;
       else if (newTabTwo.linkedBrowser == browser)
         restoredNewTabTwoLoaded = true;
- 
+
       
       
       if (restoredNewTabOneLoaded && restoredNewTabTwoLoaded) {
+        restoredWin.gBrowser.removeTabsProgressListener(gTabsProgressListener);
+
         if (frameInitialized) {
           
           
           
           executeSoon(updateAndCheck); 
         }
-        restoredWin.gBrowser.removeTabsProgressListener(gTabsProgressListener);
       }
     }
   }
@@ -175,8 +180,9 @@ function onTabViewShown() {
       
       
       executeSoon(updateAndCheck);
-    } else
+    } else {
       frameInitialized = true;
+    }
   }
 
   let tabItems = contentWindow.TabItems.getItems();
@@ -188,8 +194,7 @@ function onTabViewShown() {
       ok(tabItem.isShowingCachedData(), 
          "Tab item is showing cached data and is already connected. " +
          tabItem.tab.linkedBrowser.currentURI.spec);
-      count--;
-      if (count == 0)
+      if (--count == 0)
         nextStep();
     } else {
       tabItem.addSubscriber(tabItem, "reconnected", function() {
@@ -197,8 +202,7 @@ function onTabViewShown() {
         ok(tabItem.isShowingCachedData(), 
            "Tab item is showing cached data and is just connected. "  +
            tabItem.tab.linkedBrowser.currentURI.spec);
-        count--;
-        if (count == 0)
+        if (--count == 0)
           nextStep();
       });
     }
