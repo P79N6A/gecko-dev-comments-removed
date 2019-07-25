@@ -126,13 +126,6 @@ private:
 
 
 
-
-  void SyncViewportInfo();
-
-  
-
-
-
   Layer* GetPrimaryScrollableLayer();
 #endif
 

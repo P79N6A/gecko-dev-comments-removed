@@ -286,7 +286,15 @@ CompositorParent::TransformShadowTree()
 
   
   
-  SyncViewportInfo();
+  if (metrics) {
+    
+    nsIntRect displayPort = metrics->mDisplayPort;
+    nsIntPoint scrollOffset = metrics->mViewportScrollOffset;
+    displayPort.x += scrollOffset.x;
+    displayPort.y += scrollOffset.y;
+
+    mozilla::AndroidBridge::Bridge()->SyncViewportInfo(displayPort, 1/rootScaleX, mScrollOffset, mXScale, mYScale);
+  }
 
   
   
@@ -311,25 +319,6 @@ CompositorParent::TransformShadowTree()
   }
 #endif
 }
-
-#ifdef MOZ_WIDGET_ANDROID
-void
-CompositorParent::SyncViewportInfo()
-{
-  ContainerLayer* container = GetPrimaryScrollableLayer()->AsContainerLayer();
-  const FrameMetrics* metrics = &container->GetFrameMetrics();
-
-  if (metrics) {
-    
-    nsIntRect displayPort = container->GetFrameMetrics().mDisplayPort;
-    nsIntPoint scrollOffset = metrics->mViewportScrollOffset;
-    displayPort.x += scrollOffset.x;
-    displayPort.y += scrollOffset.y;
-
-    mozilla::AndroidBridge::Bridge()->SyncViewportInfo(displayPort, mScrollOffset, mXScale, mYScale);
-  }
-}
-#endif
 
 void
 CompositorParent::ShadowLayersUpdated(bool isFirstPaint)
