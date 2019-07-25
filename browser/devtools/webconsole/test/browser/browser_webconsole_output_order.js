@@ -71,7 +71,7 @@ function testOutputOrder() {
   ok(executedStringFirst && outputSecond, "executed string comes first");
 
   jsterm.clearOutput();
-  jsterm.history.splice(0);   
+  jsterm.history.splice(0, jsterm.history.length);   
 
   finishTest();
 }

@@ -456,7 +456,7 @@ function DirectoryEntriesToArray(inDirFile, inRequiredExtension)
 function BuildTestURLsList(testSourceType)
 {
   
-  gTestURLs.splice(0);
+  gTestURLs.splice(0, gTestURLs.length);
   gTestURLsIndex = 0;
   
   if (testSourceType == kTestSourceSingleFile)

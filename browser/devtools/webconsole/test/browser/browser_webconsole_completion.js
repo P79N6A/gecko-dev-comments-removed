@@ -89,7 +89,7 @@ function testCompletion() {
   is(jsterm.completeNode.value, "                entById", "'document.getElem' completion");
 
   jsterm.clearOutput();
-  jsterm.history.splice(0);   
+  jsterm.history.splice(0, jsterm.history.length);   
 
   input.value = "docu";
   jsterm.complete(jsterm.COMPLETE_HINT_ONLY);

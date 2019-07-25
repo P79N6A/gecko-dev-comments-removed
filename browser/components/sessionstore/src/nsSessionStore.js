@@ -629,7 +629,7 @@ SessionStoreService.prototype = {
       
       case "sessionstore.max_tabs_undo":
         for (let ix in this._windows) {
-          this._windows[ix]._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"));
+          this._windows[ix]._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"), this._windows[ix]._closedTabs.length);
         }
         break;
       case "sessionstore.max_windows_undo":
@@ -1166,7 +1166,7 @@ SessionStoreService.prototype = {
     
     if (aTab.linkedBrowser.__SS_restoreState &&
         aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-      this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab));
+      this._tabsToRestore.hidden.splice(this._tabsToRestore.hidden.indexOf(aTab), this._tabsToRestore.hidden.length);
       
       this._tabsToRestore.visible.push(aTab);
 
@@ -1184,7 +1184,7 @@ SessionStoreService.prototype = {
     
     if (aTab.linkedBrowser.__SS_restoreState &&
         aTab.linkedBrowser.__SS_restoreState == TAB_STATE_NEEDS_RESTORE) {
-      this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab));
+      this._tabsToRestore.visible.splice(this._tabsToRestore.visible.indexOf(aTab), this._tabsToRestore.visible.length);
       
       this._tabsToRestore.hidden.push(aTab);
     }
@@ -1550,7 +1550,7 @@ SessionStoreService.prototype = {
         if (winState._closedTabs && winState._closedTabs.length) {
           let curWinState = this._windows[windowToUse.__SSi];
           curWinState._closedTabs = curWinState._closedTabs.concat(winState._closedTabs);
-          curWinState._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"));
+          curWinState._closedTabs.splice(this._prefBranch.getIntPref("sessionstore.max_tabs_undo"), curWinState._closedTabs.length);
         }
 
         
@@ -4137,7 +4137,7 @@ SessionStoreService.prototype = {
     if (normalWindowIndex >= maxWindowsUndo)
       spliceTo = normalWindowIndex + 1;
 #endif
-    this._closedWindows.splice(spliceTo);
+    this._closedWindows.splice(spliceTo, this._closedWindows.length);
   },
 
   _clearRestoringWindows: function sss__clearRestoringWindows() {
