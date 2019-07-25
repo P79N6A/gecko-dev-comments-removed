@@ -36,6 +36,7 @@
 
 
 
+
 Components.utils.import("resource://services-sync/service.js");
 Components.utils.import("resource://gre/modules/Services.jsm");
 
@@ -123,9 +124,6 @@ let gSyncPane = {
       if (Weave.Status.service == Weave.LOGIN_FAILED)
         this.onLoginError();
       this.updateConnectButton();
-      let syncEverything = this._checkDefaultValues();
-      document.getElementById("weaveSyncMode").selectedIndex = syncEverything ? 0 : 1;
-      document.getElementById("syncModeOptions").selectedIndex = syncEverything ? 0 : 1;
       document.getElementById("tosPP").hidden = this._usingCustomServer;
     }
   },
@@ -177,35 +175,6 @@ let gSyncPane = {
     else
       gSyncUtils.resetPassphrase();
   },
-
-  updateSyncPrefs: function () {
-    let syncEverything = document.getElementById("weaveSyncMode").selectedItem.value == "syncEverything";
-    document.getElementById("syncModeOptions").selectedIndex = syncEverything ? 0 : 1;
-
-    if (syncEverything) {
-      let prefs = this.prefArray;
-      for (let i = 0; i < prefs.length; ++i)
-        document.getElementById(prefs[i]).value = true;
-    }
-  },
-
-  
-
-
-
-
-
-
-  _checkDefaultValues: function () {
-    let prefs = this.prefArray;
-    for (let i = 0; i < prefs.length; ++i) {
-      let pref = document.getElementById(prefs[i]);
-      if (pref.value != pref.defaultValue)
-        return false;
-    }
-    return true;
-  },
-
 
   handleExpanderClick: function () {
     
