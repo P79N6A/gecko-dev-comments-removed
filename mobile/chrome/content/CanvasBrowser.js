@@ -420,11 +420,6 @@ CanvasBrowser.prototype = {
     const margin = 15;
 
     
-    
-    
-    ws.panTo(0, 0);
-
-    
     let [canvasW, ] = this.canvasDimensions;
 
     let elRect = this._getPagePosition(aElement);
@@ -438,11 +433,6 @@ CanvasBrowser.prototype = {
 
   zoomFromElement: function(aElement) {
     let elRect = this._getPagePosition(aElement);
-
-    
-    
-    
-    ws.panTo(0, 0);
 
     
     
@@ -556,7 +546,7 @@ CanvasBrowser.prototype = {
       newy = elRect.y - curRect.height + elRect.height;
     }
 
-    ws.panBy(this._pageToScreen(curRect.x-newx),this._pageToScreen(curRect.y  - newy), true);
+    ws.panTo(this._pageToScreen(newx), this._pageToScreen(newy));
   },
 
   

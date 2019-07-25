@@ -340,8 +340,6 @@ WidgetStack.prototype = {
 
   _dragState: null,
 
-  _rectSanityCheck: true,
-
   
   
   
@@ -352,8 +350,8 @@ WidgetStack.prototype = {
     this._barriers = [];
 
     let rect = this._el.getBoundingClientRect();
-    let width = rect.right - rect.left;
-    let height = rect.bottom - rect.top;
+    let width = rect.width;
+    let height = rect.height;
 
     if (ew != undefined && eh != undefined) {
       width = ew;
@@ -363,8 +361,6 @@ WidgetStack.prototype = {
     this._viewportOverflow = new wsBorder(0, 0, 0, 0);
 
     this._viewingRect = new wsRect(0, 0, width, height);
-
-    log ("viewingRect:", this._viewingRect);
 
     
     let children = this._el.childNodes;
@@ -418,9 +414,10 @@ WidgetStack.prototype = {
   
   
   panBy: function panBy(dx, dy, ignoreBarriers) {
-    let needsDragWrap = !this._dragging;
+    if (dx == 0 && dy ==0)
+      return;
 
-    
+    let needsDragWrap = !this._dragging;
 
     if (needsDragWrap)
       this.dragStart(0, 0);
@@ -429,14 +426,12 @@ WidgetStack.prototype = {
 
     if (needsDragWrap)
       this.dragStop();
-
-    
   },
 
   
   
   panTo: function (x, y) {
-    this.panBy(this._viewingRect.x - x, this._viewingRect.y - y, true);
+    this.panBy(x - this._viewingRect.x, y - this._viewingRect.y, true);
   },
 
   
@@ -541,8 +536,6 @@ WidgetStack.prototype = {
     } else {
       throw "Invalid number of arguments to setViewportBounds";
     }
-
-    log2("setViewportBounds old:", oldBounds.toString(), "new:", this._viewportBounds);
 
     let vp = this._viewport;
 
@@ -658,7 +651,6 @@ WidgetStack.prototype = {
       
       
       this._viewport.dragStartRect = this._viewport.rect.clone();
-      this._viewport.dragStartOffsets = this._panRegionOffsets();
     }
 
     this._dragState.dragging = true;
@@ -674,8 +666,7 @@ WidgetStack.prototype = {
     if (this._viewportUpdateTimeout != -1)
       clearTimeout(this._viewportUpdateTimeout);
 
-    if (this._viewport)
-      this._viewportUpdate();
+    this._viewportUpdate();
 
     this._dragState = null;
   },
@@ -718,8 +709,8 @@ WidgetStack.prototype = {
     
     
 
-    this._viewingRect.width = Math.min(width, this._viewportBounds.width);
-    this._viewingRect.height = Math.min(height, this._viewportBounds.height);
+    this._viewingRect.width = width;
+    this._viewingRect.height = height;
 
     this._adjustViewingRect();
   },
@@ -770,22 +761,18 @@ WidgetStack.prototype = {
     if (vr.height > pb.height || vr.width > pb.width)
       return;
 
-    this._rectSanityCheck = false;
-
     let panX = 0, panY = 0;
     if (vr.right > pb.right)
-      panX = vr.right - pb.right;
+      panX = pb.right - vr.right;
     else if (vr.left < pb.left)
-      panX = vr.left - pb.left;
+      panX = pb.left - vr.left;
 
     if (vr.bottom > pb.bottom)
-      panY = vr.bottom - pb.bottom;
+      panY = pb.bottom - vr.bottom;
     else if(vr.top < pb.top)
-      panY = vr.top - pb.top;
+      panY = pb.top - vr.top;
 
-    this.panBy(panX, panY);
-
-    this._rectSanityCheck = true;
+    this.panBy(panX, panY, true);
   },
 
   _getState: function (wid) {
@@ -850,85 +837,39 @@ WidgetStack.prototype = {
     this._dragState.dragging = true;
   },
 
-  
-  
-  _panRegionOffsets: function () {
-    let ioffsetx = 0;
-    let ioffsety = 0;
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-
-    if (this._viewingRect.left < this._viewportBounds.left)
-      ioffsetx = this._viewportBounds.left - this._viewingRect.left;
-    else if (this._viewingRect.right > this._viewportBounds.right)
-      ioffsetx = this._viewportBounds.right - this._viewingRect.right;
-
-    if (this._viewingRect.top < this._viewportBounds.top)
-      ioffsety = this._viewportBounds.top - this._viewingRect.top;
-    else if (this._viewingRect.bottom > this._viewportBounds.bottom)
-      ioffsety = this._viewportBounds.bottom - this._viewingRect.bottom;
-
-    return [ioffsetx, ioffsety];
-  },
-
-  _viewportUpdate: function _viewportUpdate(force) {
+  _viewportUpdate: function _viewportUpdate() {
     if (!this._viewport)
       return;
-
-    let needsUpdate = force;
 
     this._viewportUpdateTimeout = -1;
 
     let vws = this._viewport;
-
-    let [ioffsetx, ioffsety] = this._panRegionOffsets();
-
-    
-    
-    
-    if (this._dragging) {
-      let idx = (vws.dragStartRect.x - vws.dragStartOffsets[0]) - (vws.rect.x - ioffsetx);
-      let idy = (vws.dragStartRect.y - vws.dragStartOffsets[1]) - (vws.rect.y - ioffsety);
-
-      if (idx || idy) {
-        vws.viewportInnerBounds.translate(idx, idy);
-        needsUpdate = true;
-      }
-    }
+    let vwib = vws.viewportInnerBounds;
+    let vpb = this._viewportBounds;
 
     
     
     
-    
-    let boundsRect = new wsRect(0, 0, this._viewingRect.width, this._viewingRect.height);
-    if (!boundsRect.contains(vws.rect)) {
-      vws.rect.x = ioffsetx;
-      vws.rect.y = ioffsety;
+    let [ignoreX, ignoreY] = this._offsets || [0, 0];
+    let rx = (vws.dragStartRect.x - vws.rect.x) - ignoreX;
+    let ry = (vws.dragStartRect.y - vws.rect.y) - ignoreY;
 
-      this._commitState(vws);
-      needsUpdate = true;
-    }
+    let [dX, dY] = this._rectTranslateConstrain(rx, ry, vwib, vpb);
 
     
     
-    if (this._dragging) {
-      vws.dragStartOffsets = [ioffsetx, ioffsety];
-      vws.dragStartRect = vws.rect.clone();
-    }
+    this._offsets = [dX - rx, dY - ry];
 
-    if (needsUpdate)
-      this._callViewportUpdateHandler(false);
+    
+    vwib.translate(dX, dY);
+    vws.rect.translate(dX, dY);
+    this._commitState(vws);
+
+    
+    
+    vws.dragStartRect = vws.rect.clone();
+
+    this._callViewportUpdateHandler(false);
   },
 
   _callViewportUpdateHandler: function _callViewportUpdateHandler(boundsChanged) {
@@ -1099,18 +1040,10 @@ WidgetStack.prototype = {
   },
 
   _panBy: function _panBy(dx, dy, ignoreBarriers) {
-    
-    
-    dx = -dx;
-    dy = -dy;
-
     let vr = this._viewingRect;
 
     
     
-
-    log2("******* _panBy", dx, dy, "v lr", vr.left, vr.right, "tb", vr.top, vr.bottom);
-
     if (!ignoreBarriers)
       [dx, dy] = this._panHandleBarriers(dx, dy);
 
@@ -1119,9 +1052,7 @@ WidgetStack.prototype = {
     
     
     
-    log2("rectTranslateConstrain in", dx, dy);
     [dx, dy] = this._rectTranslateConstrain(dx, dy, vr, this.pannableBounds);
-    log2("rectTranslateConstrain out", dx, dy);
 
     
     
@@ -1151,13 +1082,13 @@ WidgetStack.prototype = {
   },
 
   _dragUpdate: function () {
-    let dx = this._dragState.outerDX - this._dragState.outerLastUpdateDX;
-    let dy = this._dragState.outerDY - this._dragState.outerLastUpdateDY;
+    let dx = this._dragState.outerLastUpdateDX - this._dragState.outerDX;
+    let dy = this._dragState.outerLastUpdateDY - this._dragState.outerDY;
 
     this._dragState.outerLastUpdateDX = this._dragState.outerDX;
     this._dragState.outerLastUpdateDY = this._dragState.outerDY;
 
-    this._panBy(dx, dy);
+    this.panBy(dx, dy);
   },
 
   
@@ -1338,30 +1269,29 @@ WidgetStack.prototype = {
   
   
   _rectTranslateConstrain: function (dx, dy, rect, bounds) {
-    if (this._rectSanityCheck && !bounds.contains(rect)) {
-      throw "Invalid rectTranslateConstrain -- rect already outside bounds! rect: " + rect.toString() + " bounds: " + bounds.toString();
-    }
-
-    let nleft = rect.left + dx;
-    let nright = rect.right + dx;
-    let ntop = rect.top + dy;
-    let nbot = rect.bottom + dy;
+    let newX, newY;
 
     
-    if (nleft < bounds.left) {
-      dx = bounds.left - rect.left;
-    } else if (nright > bounds.right) {
-      dx = bounds.right - rect.right;
+    let woverflow = rect.width > bounds.width;
+    let hoverflow = rect.height > bounds.height;
+    if (woverflow || hoverflow) {
+      intersection = rect.intersect(bounds);
+      newIntersection = rect.clone().translate(dx, dy).intersect(bounds);
+      if (woverflow)
+        newX = (newIntersection.width > intersection.width) ? rect.x + dx : rect.x;
+      if (hoverflow)
+        newY = (newIntersection.height > intersection.height) ? rect.y + dy : rect.y;
     }
 
     
-    if (ntop < bounds.top) {
-      dy = bounds.top - rect.top;
-    } else if (nbot > bounds.bottom) {
-      dy = bounds.bottom - rect.bottom;
-    }
+    
+    
+    if (isNaN(newX))
+      newX = Math.min(Math.max(bounds.left, rect.x + dx), bounds.right - rect.width);
+    if (isNaN(newY))
+      newY = Math.min(Math.max(bounds.top, rect.y + dy), bounds.bottom - rect.height);
 
-    return [dx, dy];
+    return [newX - rect.x, newY - rect.y];
   },
 
   

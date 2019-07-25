@@ -366,25 +366,22 @@ KineticPanningModule.prototype = {
     
     
     let [leftVis,] = ws.getWidgetVisibility("tabs-container", false);
+    let [rightVis,] = ws.getWidgetVisibility("browser-controls", false);
     if (leftVis != 0 && leftVis != 1) {
       let w = document.getElementById("tabs-container").getBoundingClientRect().width;
       if (leftVis >= 0.6666)
-	ws.panBy(w, 0, true);
+        ws.panBy(-w, 0, true);
       else
-	ws.panBy(-leftVis * w, 0, true); 
-    } else {
-      let [rightVis,] = ws.getWidgetVisibility("browser-controls", false);
-      if (rightVis != 0 && rightVis != 1) {
-	let w = document.getElementById("browser-controls").getBoundingClientRect().width;
-	if (rightVis >= 0.6666)
-	  ws.panBy(-w, 0, true);
-	else
-	  ws.panBy(rightVis * w, 0, true); 
-      }
+        ws.panBy(leftVis * w, 0, true);
+    } else if (rightVis != 0 && rightVis != 1) {
+      let w = document.getElementById("browser-controls").getBoundingClientRect().width;
+      if (rightVis >= 0.6666)
+        ws.panBy(w, 0, true);
+      else
+        ws.panBy(-rightVis * w, 0, true);
     }
-  },
-};
-
+  }
+}
 
 
 
