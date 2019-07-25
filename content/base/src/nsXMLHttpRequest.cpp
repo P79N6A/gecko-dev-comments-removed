@@ -1033,6 +1033,11 @@ nsXMLHttpRequest::CreatePartialBlob()
     return NS_OK;
   }
 
+  
+  if (!mBuilder) {
+    return NS_OK;
+  }
+
   nsCAutoString contentType;
   if (mLoadTotal == mLoadTransferred) {
     mChannel->GetContentType(contentType);
