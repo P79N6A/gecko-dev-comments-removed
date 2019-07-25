@@ -981,7 +981,7 @@ js::SaveScriptFilename(JSContext *cx, const char *filename)
 
 
 
-    if (cx->compartment->needsBarrier() && rt->gcIsFull)
+    if (rt->gcIncrementalState == MARK && rt->gcIsFull)
         sfe->marked = true;
 #endif
 
