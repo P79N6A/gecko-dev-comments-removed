@@ -817,31 +817,25 @@ LoginManagerPrompter.prototype = {
         
         
         var neverButtonText =
-              this._getLocalizedString("notifyBarNeverForSiteButtonText");
+              this._getLocalizedString("notifyBarNeverRememberButtonText");
         var neverButtonAccessKey =
-              this._getLocalizedString("notifyBarNeverForSiteButtonAccessKey");
+              this._getLocalizedString("notifyBarNeverRememberButtonAccessKey");
         var rememberButtonText =
-              this._getLocalizedString("notifyBarRememberButtonText");
+              this._getLocalizedString("notifyBarRememberPasswordButtonText");
         var rememberButtonAccessKey =
-              this._getLocalizedString("notifyBarRememberButtonAccessKey");
-        var notNowButtonText =
-              this._getLocalizedString("notifyBarNotNowButtonText");
-        var notNowButtonAccessKey =
-              this._getLocalizedString("notifyBarNotNowButtonAccessKey");
+              this._getLocalizedString("notifyBarRememberPasswordButtonAccessKey");
 
-        var brandShortName =
-              this._brandBundle.GetStringFromName("brandShortName");
         var displayHost = this._getShortDisplayHost(aLogin.hostname);
         var notificationText;
         if (aLogin.username) {
             var displayUser = this._sanitizeUsername(aLogin.username);
             notificationText  = this._getLocalizedString(
-                                        "saveLoginText",
-                                        [brandShortName, displayUser, displayHost]);
+                                        "rememberPasswordText",
+                                        [displayUser, displayHost]);
         } else {
             notificationText  = this._getLocalizedString(
-                                        "saveLoginTextNoUsername",
-                                        [brandShortName, displayHost]);
+                                        "rememberPasswordTextNoUsername",
+                                        [displayHost]);
         }
 
         
@@ -880,6 +874,10 @@ LoginManagerPrompter.prototype = {
                             "password-notification-icon", mainAction,
                             secondaryActions, { timeout: Date.now() + 20000 });
         } else {
+            var notNowButtonText =
+                  this._getLocalizedString("notifyBarNotNowButtonText");
+            var notNowButtonAccessKey =
+                  this._getLocalizedString("notifyBarNotNowButtonAccessKey");
             var buttons = [
                 
                 {
@@ -1035,20 +1033,16 @@ LoginManagerPrompter.prototype = {
         var notificationText;
         if (aOldLogin.username)
             notificationText  = this._getLocalizedString(
-                                          "passwordChangeText",
+                                          "updatePasswordText",
                                           [aOldLogin.username]);
         else
             notificationText  = this._getLocalizedString(
-                                          "passwordChangeTextNoUser");
+                                          "updatePasswordTextNoUser");
 
         var changeButtonText =
-              this._getLocalizedString("notifyBarChangeButtonText");
+              this._getLocalizedString("notifyBarUpdateButtonText");
         var changeButtonAccessKey =
-              this._getLocalizedString("notifyBarChangeButtonAccessKey");
-        var dontChangeButtonText =
-              this._getLocalizedString("notifyBarDontChangeButtonText");
-        var dontChangeButtonAccessKey =
-              this._getLocalizedString("notifyBarDontChangeButtonAccessKey");
+              this._getLocalizedString("notifyBarUpdateButtonAccessKey");
 
         
         
@@ -1076,6 +1070,10 @@ LoginManagerPrompter.prototype = {
                             "password-notification-icon", mainAction,
                             null, { timeout: Date.now() + 20000 });    
         } else {
+            var dontChangeButtonText =
+                  this._getLocalizedString("notifyBarDontChangeButtonText");
+            var dontChangeButtonAccessKey =
+                  this._getLocalizedString("notifyBarDontChangeButtonAccessKey");
             var buttons = [
                 
                 {
