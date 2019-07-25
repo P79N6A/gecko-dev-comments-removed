@@ -82,7 +82,6 @@ var loginManager = {
 
     init : function () {
         
-        this._webProgressListener._pwmgr = this;
         this._domEventListener._pwmgr    = this;
         this._observer._pwmgr            = this;
 
@@ -90,13 +89,7 @@ var loginManager = {
         Services.obs.addObserver(this._observer, "earlyformsubmit", false);
 
         
-        var progress = docShell.QueryInterface(Ci.nsIInterfaceRequestor).
-                       getInterface(Ci.nsIWebProgress);
-        progress.addProgressListener(this._webProgressListener,
-                                     Ci.nsIWebProgress.NOTIFY_STATE_DOCUMENT);
-
-        
-        addEventListener("DOMContentLoaded", this._domEventListener, false);
+        addEventListener("pageshow", this._domEventListener, false);
         addEventListener("unload", this._domEventListener, false);
 
         
@@ -747,56 +740,6 @@ var loginManager = {
 
 
 
-
-    _webProgressListener : {
-        _pwmgr : null,
-
-        QueryInterface : XPCOMUtils.generateQI([Ci.nsIWebProgressListener,
-                                                Ci.nsISupportsWeakReference]),
-
-
-        onStateChange : function (aWebProgress, aRequest,
-                                  aStateFlags,  aStatus) {
-
-            
-            if (!(aStateFlags & Ci.nsIWebProgressListener.STATE_TRANSFERRING))
-                return;
-
-            if (!this._pwmgr._remember)
-                return;
-
-            var domWin = aWebProgress.DOMWindow;
-            var domDoc = domWin.document;
-
-            
-            if (!(domDoc instanceof Ci.nsIDOMHTMLDocument))
-                return;
-
-            this._pwmgr.log("onStateChange accepted: req = " +
-                            (aRequest ?  aRequest.name : "(null)") +
-                            ", flags = 0x" + aStateFlags.toString(16));
-
-            
-            if (aStateFlags & Ci.nsIWebProgressListener.STATE_RESTORING) {
-                this._pwmgr.log("onStateChange: restoring document");
-                this._pwmgr._fillDocument(domDoc);
-            }
-        },
-
-        
-        onProgressChange : function() { throw "Unexpected onProgressChange"; },
-        onLocationChange : function() { throw "Unexpected onLocationChange"; },
-        onStatusChange   : function() { throw "Unexpected onStatusChange";   },
-        onSecurityChange : function() { throw "Unexpected onSecurityChange"; }
-    },
-
-
-    
-
-
-
-
-
     _domEventListener : {
         _pwmgr : null,
 
@@ -837,8 +780,10 @@ var loginManager = {
                     }
                     return;
 
-                case "DOMContentLoaded":
-                    this._pwmgr._fillDocument(event.target);
+                case "pageshow":
+                    
+                    if (this._pwmgr._remember && event.target instanceof Ci.nsIDOMHTMLDocument)
+                        this._pwmgr._fillDocument(event.target);
                     break;
 
                 case "unload":
@@ -851,7 +796,7 @@ var loginManager = {
                     return;
             }
         }
-    },
+    }
 };
 
 loginManager.init();
