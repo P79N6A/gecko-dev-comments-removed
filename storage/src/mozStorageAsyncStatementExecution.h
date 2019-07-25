@@ -37,6 +37,7 @@
 
 
 
+
 #ifndef mozStorageAsyncStatementExecution_h
 #define mozStorageAsyncStatementExecution_h
 
@@ -253,6 +254,13 @@ private:
 
 
   SQLiteMutex &mDBMutex;
+  
+  
+
+
+
+
+  TimeStamp mRequestStartDate;
 };
 
 } 

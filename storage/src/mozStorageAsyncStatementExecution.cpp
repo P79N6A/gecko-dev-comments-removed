@@ -37,8 +37,8 @@
 
 
 
+
 #include "nsAutoPtr.h"
-#include "prtime.h"
 
 #include "sqlite3.h"
 
@@ -52,6 +52,8 @@
 #include "mozStoragePrivateHelpers.h"
 #include "mozStorageStatementData.h"
 #include "mozStorageAsyncStatementExecution.h"
+
+#include "mozilla/Telemetry.h"
 
 namespace mozilla {
 namespace storage {
@@ -235,6 +237,7 @@ AsyncExecuteStatements::AsyncExecuteStatements(StatementDataArray &aStatements,
 , mCancelRequested(false)
 , mMutex(aConnection->sharedAsyncExecutionMutex)
 , mDBMutex(aConnection->sharedDBMutex)
+  , mRequestStartDate(TimeStamp::Now())
 {
   (void)mStatements.SwapElements(aStatements);
   NS_ASSERTION(mStatements.Length(), "We weren't given any statements!");
@@ -357,7 +360,7 @@ bool
 AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
 {
   mMutex.AssertNotCurrentThreadOwns();
-
+  Telemetry::AutoTimer<Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_MS> finallySendExecutionDuration(mRequestStartDate);
   while (true) {
     
     SQLiteMutexAutoLock lockedScope(mDBMutex);
@@ -365,11 +368,17 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
     int rc = stepStmt(aStatement);
     
     if (rc == SQLITE_DONE)
+    {
+      Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, true);
       return false;
+    }
 
     
     if (rc == SQLITE_ROW)
+    {
+      Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, true);
       return true;
+    }
 
     
     if (rc == SQLITE_BUSY) {
@@ -383,6 +392,7 @@ AsyncExecuteStatements::executeStatement(sqlite3_stmt *aStatement)
 
     
     mState = ERROR;
+    Telemetry::Accumulate(Telemetry::MOZ_STORAGE_ASYNC_REQUESTS_SUCCESS, false);
 
     
     
