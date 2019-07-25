@@ -834,7 +834,7 @@ abstract public class GeckoApp
                         getLayerController().setCheckerboardColor(backgroundColor);
                     } else {
                         
-                        getLayerController().setCheckerboardColor(0);
+                        getLayerController().setCheckerboardColor(Color.WHITE);
                     }
                 }
                 Log.i(LOGTAG, "URI - " + uri + ", title - " + title);
