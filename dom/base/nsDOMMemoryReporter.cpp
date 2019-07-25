@@ -39,73 +39,193 @@
 #include "nsGlobalWindow.h"
 
 
-nsDOMMemoryReporter::nsDOMMemoryReporter()
+nsDOMMemoryMultiReporter::nsDOMMemoryMultiReporter()
 {
 }
 
-NS_IMPL_ISUPPORTS1(nsDOMMemoryReporter, nsIMemoryReporter)
+NS_IMPL_ISUPPORTS1(nsDOMMemoryMultiReporter, nsIMemoryMultiReporter)
 
 
 void
-nsDOMMemoryReporter::Init()
+nsDOMMemoryMultiReporter::Init()
 {
   
-  NS_RegisterMemoryReporter(new nsDOMMemoryReporter());
+  NS_RegisterMemoryMultiReporter(new nsDOMMemoryMultiReporter());
 }
 
-NS_IMETHODIMP
-nsDOMMemoryReporter::GetProcess(nsACString &aProcess)
+static bool
+AppendWindowURI(nsGlobalWindow *aWindow, nsACString& aStr)
 {
+  nsCOMPtr<nsIDocument> doc = do_QueryInterface(aWindow->GetExtantDocument());
+  nsCOMPtr<nsIURI> uri;
+
+  if (doc) {
+    uri = doc->GetDocumentURI();
+  }
+
+  if (!uri) {
+    nsIPrincipal *principal = aWindow->GetPrincipal();
+
+    if (principal) {
+      principal->GetURI(getter_AddRefs(uri));
+    }
+  }
+
+  if (!uri) {
+    return false;
+  }
+
+  nsCString spec;
+  uri->GetSpec(spec);
+
   
-  aProcess.Truncate();
-  return NS_OK;
+  
+  
+  spec.ReplaceChar('/', '\\');
+
+  aStr += spec;
+
+  return true;
 }
 
-NS_IMETHODIMP
-nsDOMMemoryReporter::GetPath(nsACString &aMemoryPath)
+static void
+CollectWindowMemoryUsage(nsGlobalWindow *aWindow,
+                         nsIMemoryMultiReporterCallback *aCb,
+                         nsISupports *aClosure)
 {
-  aMemoryPath.AssignLiteral("explicit/dom");
-  return NS_OK;
+  NS_NAMED_LITERAL_CSTRING(kWindowDesc,
+                           "Memory used by a window and the DOM within it.");
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  nsCAutoString str("explicit/dom/window-objects/");
+
+  nsIDocShell *docShell = aWindow->GetDocShell();
+
+  nsGlobalWindow *top = aWindow->GetTop();
+  PRInt64 windowSize = aWindow->SizeOf();
+
+  if (docShell && aWindow->IsFrozen()) {
+    str += NS_LITERAL_CSTRING("cached/");
+  } else if (docShell) {
+    str += NS_LITERAL_CSTRING("active/");
+  } else {
+    str += NS_LITERAL_CSTRING("other/");
+  }
+
+  if (aWindow->IsInnerWindow()) {
+    str += NS_LITERAL_CSTRING("top=");
+
+    if (top) {
+      str.AppendInt(top->WindowID());
+
+      nsGlobalWindow *topInner = top->GetCurrentInnerWindowInternal();
+      if (topInner) {
+        str += NS_LITERAL_CSTRING(" (inner=");
+        str.AppendInt(topInner->WindowID());
+        str += NS_LITERAL_CSTRING(")");
+      }
+    } else {
+      str += NS_LITERAL_CSTRING("none");
+    }
+
+    str += NS_LITERAL_CSTRING("/inner-window(id=");
+    str.AppendInt(aWindow->WindowID());
+    str += NS_LITERAL_CSTRING(", uri=");
+
+    if (!AppendWindowURI(aWindow, str)) {
+      str += NS_LITERAL_CSTRING("[system]");
+    }
+
+    str += NS_LITERAL_CSTRING(")");
+  } else {
+    
+    
+    
+
+    str += NS_LITERAL_CSTRING("outer-windows");
+  }
+
+  aCb->Callback(EmptyCString(), str, nsIMemoryReporter::KIND_HEAP,
+                nsIMemoryReporter::UNITS_BYTES, windowSize, kWindowDesc,
+                aClosure);
 }
 
-NS_IMETHODIMP
-nsDOMMemoryReporter::GetKind(PRInt32* aKind)
-{
-  *aKind = KIND_HEAP;
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMMemoryReporter::GetDescription(nsACString &aDescription)
-{
-  aDescription.AssignLiteral("Memory used by the DOM.");
-  return NS_OK;
-}
-
-NS_IMETHODIMP
-nsDOMMemoryReporter::GetUnits(PRInt32* aUnits)
-{
-  *aUnits = UNITS_BYTES;
-  return NS_OK;
-}
+typedef nsTArray< nsRefPtr<nsGlobalWindow> > WindowArray;
 
 static
 PLDHashOperator
-GetWindowsMemoryUsage(const PRUint64& aId, nsGlobalWindow*& aWindow,
-                      void* aClosure)
+GetWindows(const PRUint64& aId, nsGlobalWindow*& aWindow, void* aClosure)
 {
-  *(PRInt64*)aClosure += aWindow->SizeOf();
+  ((WindowArray *)aClosure)->AppendElement(aWindow);
+
   return PL_DHASH_NEXT;
 }
 
 NS_IMETHODIMP
-nsDOMMemoryReporter::GetAmount(PRInt64* aAmount) {
-  *aAmount = 0;
+nsDOMMemoryMultiReporter::CollectReports(nsIMemoryMultiReporterCallback* aCb,
+                                         nsISupports* aClosure)
+{
+  nsGlobalWindow::WindowByIdTable* windowsById =
+    nsGlobalWindow::GetWindowsTable();
+  NS_ENSURE_TRUE(windowsById, NS_OK);
 
-  nsGlobalWindow::WindowByIdTable* windows = nsGlobalWindow::GetWindowsTable();
-  NS_ENSURE_TRUE(windows, NS_OK);
+  
+  
+  WindowArray windows;
+  windowsById->Enumerate(GetWindows, &windows);
 
-  windows->Enumerate(GetWindowsMemoryUsage, aAmount);
+  
+  nsRefPtr<nsGlobalWindow> *w = windows.Elements();
+  nsRefPtr<nsGlobalWindow> *end = w + windows.Length();
+  for (; w != end; ++w) {
+    CollectWindowMemoryUsage(*w, aCb, aClosure);
+  }
 
   return NS_OK;
 }
