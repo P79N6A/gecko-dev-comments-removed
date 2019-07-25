@@ -306,6 +306,52 @@ GetUpvar(JSContext *cx, uintN level, UpvarCookie cookie);
 extern StackFrame *
 FindUpvarFrame(JSContext *cx, uintN targetLevel);
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class InterpreterFrames {
+  public:
+    class InterruptEnablerBase {
+      public:
+        virtual void enableInterrupts() const = 0;
+    };
+
+    InterpreterFrames(JSContext *cx, FrameRegs *regs, const InterruptEnablerBase &enabler);
+    ~InterpreterFrames();
+
+    
+    void enableInterruptsIfRunning(JSScript *script) {
+        if (script == regs->fp()->script())
+            enabler.enableInterrupts();
+    }
+
+  private:
+    JSContext *context;
+    FrameRegs *regs;
+    const InterruptEnablerBase &enabler;
+    InterpreterFrames *older;
+};
+
 } 
 
 
