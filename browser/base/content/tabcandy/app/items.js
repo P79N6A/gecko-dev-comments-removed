@@ -181,8 +181,8 @@ window.Item.prototype = {
       pushOne(itemsToPush.shift());         
 
     
+    var pageBounds = Items.getPageBounds();
     if(true) {
-      var pageBounds = Items.getPageBounds();
       $.each(items, function(index, item) {
         var data = item.pushAwayData;
         if(data.generation == 0 || item.locked)
@@ -250,6 +250,49 @@ window.Item.prototype = {
     $.each(items, function(index, item) {
       var data = item.pushAwayData;
       var bounds = data.bounds;
+      if(bounds.width < TabItems.tabWidth) {
+        var available = new Rect(pageBounds);
+        var newBounds = new Rect(bounds);
+        newBounds.left -= (TabItems.tabWidth - newBounds.width) / 2;
+        newBounds.top -= (TabItems.tabHeight - newBounds.height) / 2;
+        newBounds.width = TabItems.tabWidth;
+        newBounds.height = TabItems.tabHeight;
+        
+        var offset = new Point();
+        if(newBounds.left < pageBounds.left)
+          offset.x = pageBounds.left - newBounds.left;
+        else if(newBounds.right > pageBounds.right)
+          offset.x = pageBounds.right - newBounds.right;
+
+        if(newBounds.top < pageBounds.top)
+          offset.y = pageBounds.top - newBounds.top;
+        else if(newBounds.bottom > pageBounds.bottom)
+          offset.y = pageBounds.bottom - newBounds.bottom;
+          
+        newBounds.offset(offset);
+        
+        var blocked = false;
+        $.each(items, function(index, item2) {
+          if(item2 == item)
+            return;
+            
+          var data2 = item2.pushAwayData;
+          var bounds2 = data2.bounds;
+          if(bounds2.intersects(newBounds)) {
+            blocked = true;
+            return false;
+          }
+        });
+        
+        if(!blocked)
+          data.bounds = newBounds;
+      }
+    });
+
+    
+    $.each(items, function(index, item) {
+      var data = item.pushAwayData;
+      var bounds = data.bounds;
       if(!bounds.equals(data.startBounds)) {
         item.setBounds(bounds);
       }
@@ -279,6 +322,12 @@ window.Items = {
   
   
   
+  init: function() {
+  },
+  
+  
+  
+  
   item: function(el) {
     return $(el).data('item');
   },
@@ -291,7 +340,7 @@ window.Items = {
     
     $('.tab, .group').each(function() {
       $this = $(this);
-      if(!$this.data('group'))
+      if(!$this.data('group') && !$this.hasClass('phantom'))
         items.push($this.data('item'));
     });
     
@@ -388,4 +437,6 @@ window.Items = {
     });
   }
 };
+
+window.Items.init();
 
