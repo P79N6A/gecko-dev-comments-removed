@@ -810,13 +810,13 @@ public:
                               mType == eContext_PrintPreview); }
 
   
-  PRBool IsChrome()
+  PRBool IsChrome() const
   {
     return mIsChromeIsCached ? mIsChrome : IsChromeSlow();
   }
 
   virtual void InvalidateIsChromeCacheExternal();
-  void InvalidateIsChromeCacheInternal();
+  void InvalidateIsChromeCacheInternal() { mIsChromeIsCached = PR_FALSE; }
 #ifdef _IMPL_NS_LAYOUT
   void InvalidateIsChromeCache()
   { InvalidateIsChromeCacheInternal(); }
@@ -826,10 +826,10 @@ public:
 #endif
 
   
-  virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask);
+  virtual PRBool HasAuthorSpecifiedRules(nsIFrame *aFrame, PRUint32 ruleTypeMask) const;
 
   
-  PRBool UseDocumentColors() {
+  PRBool UseDocumentColors() const {
     return GetCachedBoolPref(kPresContext_UseDocumentColors) || IsChrome();
   }
 
@@ -993,7 +993,7 @@ protected:
   
   PRBool HasCachedStyleData();
 
-  PRBool IsChromeSlow();
+  PRBool IsChromeSlow() const;
 
   
   
@@ -1133,8 +1133,8 @@ protected:
   
   
   
-  unsigned              mIsChromeIsCached : 1;
-  unsigned              mIsChrome : 1;
+  mutable unsigned      mIsChromeIsCached : 1;
+  mutable unsigned      mIsChrome : 1;
 
 #ifdef DEBUG
   PRBool                mInitialized;
