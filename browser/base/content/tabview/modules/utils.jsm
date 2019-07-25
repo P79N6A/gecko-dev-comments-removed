@@ -728,12 +728,7 @@ let Utils = {
     let timer = Cc["@mozilla.org/timer;1"].createInstance(Ci.nsITimer);
     timer.initWithCallback({
       notify: function notify() {
-        try {
-          func();
-        }
-        catch(ex) {
-          Utils.log(timer, ex);
-        }
+        func.call(timer);
       }
     }, delay, timer.TYPE_ONE_SHOT);
   }
