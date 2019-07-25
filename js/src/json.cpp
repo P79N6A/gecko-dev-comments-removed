@@ -281,12 +281,33 @@ class CycleDetector
     JSObject *const obj;
 };
 
+template<typename KeyType>
+class KeyStringifier {
+};
+
+template<>
+class KeyStringifier<uint32> {
+  public:
+    static JSString *toString(JSContext *cx, uint32 index) {
+        return IndexToString(cx, index);
+    }
+};
+
+template<>
+class KeyStringifier<jsid> {
+  public:
+    static JSString *toString(JSContext *cx, jsid id) {
+        return IdToString(cx, id);
+    }
+};
 
 
 
 
+
+template<typename KeyType>
 static bool
-PreprocessValue(JSContext *cx, JSObject *holder, jsid key, Value *vp, StringifyContext *scx)
+PreprocessValue(JSContext *cx, JSObject *holder, KeyType key, Value *vp, StringifyContext *scx)
 {
     JSString *keyStr = NULL;
 
@@ -298,7 +319,7 @@ PreprocessValue(JSContext *cx, JSObject *holder, jsid key, Value *vp, StringifyC
             return false;
 
         if (js_IsCallable(toJSON)) {
-            keyStr = IdToString(cx, key);
+            keyStr = KeyStringifier<KeyType>::toString(cx, key);
             if (!keyStr)
                 return false;
 
@@ -319,7 +340,7 @@ PreprocessValue(JSContext *cx, JSObject *holder, jsid key, Value *vp, StringifyC
     
     if (scx->replacer && scx->replacer->isCallable()) {
         if (!keyStr) {
-            keyStr = IdToString(cx, key);
+            keyStr = KeyStringifier<KeyType>::toString(cx, key);
             if (!keyStr)
                 return false;
         }
@@ -495,18 +516,16 @@ JA(JSContext *cx, JSObject *obj, StringifyContext *scx)
 
         
         Value outputValue;
-        for (jsuint i = 0; i < length; i++) {
-            jsid id = INT_TO_JSID(i);
-
+        for (uint32 i = 0; i < length; i++) {
             
 
 
 
 
 
-            if (!obj->getProperty(cx, id, &outputValue))
+            if (!obj->getElement(cx, i, &outputValue))
                 return JS_FALSE;
-            if (!PreprocessValue(cx, obj, id, &outputValue, scx))
+            if (!PreprocessValue(cx, obj, i, &outputValue, scx))
                 return JS_FALSE;
             if (IsFilteredValue(outputValue)) {
                 if (!scx->sb.append("null"))
