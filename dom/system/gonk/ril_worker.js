@@ -1244,16 +1244,6 @@ let RIL = {
 
 
   _processMSISDNResponse: function _processMSISDNResponse(options) {
-    let sw1 = Buf.readUint32();
-    let sw2 = Buf.readUint32();
-    
-    if (sw1 != STATUS_NORMAL_ENDING) {
-      
-      
-      debug("Error in iccIO");
-    }
-    if (DEBUG) debug("ICC I/O (" + sw1 + "/" + sw2 + ")");
-
     switch (options.command) {
       case ICC_COMMAND_GET_RESPONSE:
         let response = Buf.readString();
@@ -1823,6 +1813,17 @@ RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL(length, options)
   this[REQUEST_DATA_CALL_LIST](length, options);
 };
 RIL[REQUEST_SIM_IO] = function REQUEST_SIM_IO(length, options) {
+  let sw1 = Buf.readUint32();
+  let sw2 = Buf.readUint32();
+  if (sw1 != ICC_STATUS_NORMAL_ENDING) {
+    
+    
+    debug("ICC I/O Error EF id = " + options.fileid.toString(16) +
+          " command = " + options.command.toString(16) +
+          "(" + sw1.toString(16) + "/" + sw2.toString(16) + ")");
+    return;
+  }
+
   switch (options.fileid) {
     case ICC_EF_MSISDN:
       this._processMSISDNResponse(options);
