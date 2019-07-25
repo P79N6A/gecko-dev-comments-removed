@@ -590,6 +590,94 @@ mjit::Compiler::compileArrayPopShift(FrameEntry *thisValue, bool isPacked, bool 
 }
 
 CompileStatus
+mjit::Compiler::compileArrayConcat(types::TypeSet *thisTypes, types::TypeSet *argTypes,
+                                   FrameEntry *thisValue, FrameEntry *argValue)
+{
+    
+
+
+
+    if (thisTypes->getObjectCount() != 1)
+        return Compile_InlineAbort;
+    types::TypeObject *thisType = thisTypes->getTypeObject(0);
+    if (!thisType || thisType->proto->getGlobal() != globalObj)
+        return Compile_InlineAbort;
+
+    
+
+
+
+
+    thisTypes->addFreeze(cx);
+    argTypes->addFreeze(cx);
+    types::TypeSet *thisElemTypes = thisType->getProperty(cx, JSID_VOID, false);
+    if (!thisElemTypes)
+        return Compile_Error;
+    if (!pushedTypeSet(0)->hasType(types::Type::ObjectType(thisType)))
+        return Compile_InlineAbort;
+    for (unsigned i = 0; i < argTypes->getObjectCount(); i++) {
+        if (argTypes->getSingleObject(i))
+            return Compile_InlineAbort;
+        types::TypeObject *argType = argTypes->getTypeObject(i);
+        if (!argType)
+            continue;
+        types::TypeSet *elemTypes = argType->getProperty(cx, JSID_VOID, false);
+        if (!elemTypes)
+            return Compile_Error;
+        if (!elemTypes->knownSubset(cx, thisElemTypes))
+            return Compile_InlineAbort;
+    }
+
+    
+
+    RegisterID reg = frame.allocReg();
+    Int32Key key = Int32Key::FromRegister(reg);
+
+    RegisterID objReg = frame.tempRegForData(thisValue);
+    masm.load32(Address(objReg, offsetof(JSObject, privateData)), reg);
+    Jump initlenOneGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+                                                 objReg, key, Assembler::NotEqual);
+    stubcc.linkExit(initlenOneGuard, Uses(3));
+
+    objReg = frame.tempRegForData(argValue);
+    masm.load32(Address(objReg, offsetof(JSObject, privateData)), reg);
+    Jump initlenTwoGuard = masm.guardArrayExtent(offsetof(JSObject, initializedLength),
+                                                 objReg, key, Assembler::NotEqual);
+    stubcc.linkExit(initlenTwoGuard, Uses(3));
+
+    frame.freeReg(reg);
+    frame.syncAndForgetEverything();
+
+    
+
+
+
+
+
+    JSObject *templateObject = NewDenseEmptyArray(cx, thisType->proto);
+    if (!templateObject)
+        return Compile_Error;
+    templateObject->setType(thisType);
+
+    RegisterID result = Registers::ReturnReg;
+    Jump emptyFreeList = masm.getNewObject(cx, result, templateObject);
+    stubcc.linkExit(emptyFreeList, Uses(3));
+
+    masm.storeValueFromComponents(ImmType(JSVAL_TYPE_OBJECT), result, frame.addressOf(frame.peek(-3)));
+    INLINE_STUBCALL(stubs::ArrayConcatTwoArrays, REJOIN_FALLTHROUGH);
+
+    stubcc.leave();
+    stubcc.masm.move(Imm32(1), Registers::ArgReg1);
+    OOL_STUBCALL(stubs::SlowCall, REJOIN_FALLTHROUGH);
+
+    frame.popn(3);
+    frame.pushSynced(JSVAL_TYPE_OBJECT);
+
+    stubcc.rejoin(Changes(1));
+    return Compile_Okay;
+}
+
+CompileStatus
 mjit::Compiler::compileArrayWithLength(uint32 argc)
 {
     
@@ -752,6 +840,9 @@ mjit::Compiler::inlineNativeFunction(uint32 argc, bool callingNew)
         }
     } else if (argc == 1) {
         FrameEntry *arg = frame.peek(-1);
+        types::TypeSet *argTypes = frame.extra(arg).types;
+        if (!argTypes)
+            return Compile_InlineAbort;
         JSValueType argType = arg->isTypeKnown() ? arg->getKnownType() : JSVAL_TYPE_UNKNOWN;
 
         if (native == js_math_abs) {
@@ -791,6 +882,12 @@ mjit::Compiler::inlineNativeFunction(uint32 argc, bool callingNew)
                 !arrayPrototypeHasIndexedProperty()) {
                 return compileArrayPush(thisValue, arg);
             }
+        }
+        if (native == js::array_concat && argType == JSVAL_TYPE_OBJECT &&
+            thisType == JSVAL_TYPE_OBJECT && type == JSVAL_TYPE_OBJECT &&
+            !thisTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY) &&
+            !argTypes->hasObjectFlags(cx, types::OBJECT_FLAG_NON_DENSE_ARRAY)) {
+            return compileArrayConcat(thisTypes, argTypes, thisValue, arg);
         }
     } else if (argc == 2) {
         FrameEntry *arg1 = frame.peek(-2);

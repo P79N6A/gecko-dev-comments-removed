@@ -492,6 +492,9 @@ class TypeSet
     bool knownNonEmpty(JSContext *cx);
 
     
+    bool knownSubset(JSContext *cx, TypeSet *other);
+
+    
 
 
 
