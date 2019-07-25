@@ -338,20 +338,23 @@ void ARMAssembler::doubleTransfer(bool isLoad, FPRegisterID srcDst, RegisterID b
         offset = -offset;
     }
 
+    
+    
+    
+    
+    
+    ASSERT((offset & 0x3) == 0);
+
     ldr_un_imm(ARMRegisters::S0, offset);
     add_r(ARMRegisters::S0, ARMRegisters::S0, base);
     fdtr_u(isLoad, srcDst, ARMRegisters::S0, 0);
 }
 
-void* ARMAssembler::executableCopy(ExecutablePool* allocator)
+
+
+inline void ARMAssembler::fixUpOffsets(void * buffer)
 {
-    
-    m_buffer.flushWithoutBarrier(true);
-    if (m_buffer.uncheckedSize() & 0x7)
-        bkpt(0);
-
-    char* data = reinterpret_cast<char*>(m_buffer.executableCopy(allocator));
-
+    char * data = reinterpret_cast<char *>(buffer);
     for (Jumps::Iterator iter = m_jumps.begin(); iter != m_jumps.end(); ++iter) {
         
         int pos = (*iter) & (~0x1);
@@ -369,8 +372,31 @@ void* ARMAssembler::executableCopy(ExecutablePool* allocator)
             *addr = reinterpret_cast<ARMWord>(data + *addr);
         }
     }
+}
 
+void* ARMAssembler::executableCopy(ExecutablePool* allocator)
+{
+    
+    m_buffer.flushWithoutBarrier(true);
+    if (m_buffer.uncheckedSize() & 0x7)
+        bkpt(0);
+
+    void * data = m_buffer.executableCopy(allocator);
+    fixUpOffsets(data);
     return data;
+}
+
+
+
+
+
+void* ARMAssembler::executableCopy(void * buffer)
+{
+    ASSERT(m_buffer.sizeOfConstantPool() == 0);
+
+    memcpy(buffer, m_buffer.data(), m_buffer.size());
+    fixUpOffsets(buffer);
+    return buffer;
 }
 
 } 
