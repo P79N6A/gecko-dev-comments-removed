@@ -256,7 +256,7 @@ enum TokenStreamFlags
     TSF_NEWLINES = 0x04,        
     TSF_OPERAND = 0x08,         
     TSF_NLFLAG = 0x20,          
-    TSF_CRFLAG = 0x40,          
+    TSF_STRICT_MODE_CODE = 0x40,
     TSF_DIRTYLINE = 0x80,       
     TSF_OWNFILENAME = 0x100,    
     TSF_XMLTAGMODE = 0x200,     
@@ -288,10 +288,7 @@ enum TokenStreamFlags
     TSF_IN_HTML_COMMENT = 0x2000,
 
     
-    TSF_KEYWORD_IS_NAME = 0x4000,
-
-    
-    TSF_STRICT_MODE_CODE = 0x8000
+    TSF_KEYWORD_IS_NAME = 0x4000
 };
 
 #define t_op            u.s.op
