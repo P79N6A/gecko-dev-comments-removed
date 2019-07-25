@@ -3,7 +3,7 @@
 
 
 
-#include "nsXULMenuAccessible.h"
+#include "XULMenuAccessible.h"
 
 #include "Accessible-inl.h"
 #include "nsAccessibilityService.h"
@@ -38,14 +38,14 @@ using namespace mozilla::a11y;
 
 
 
-nsXULMenuitemAccessible::
-  nsXULMenuitemAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULMenuitemAccessible::
+  XULMenuitemAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
 
 PRUint64
-nsXULMenuitemAccessible::NativeState()
+XULMenuitemAccessible::NativeState()
 {
   PRUint64 state = Accessible::NativeState();
 
@@ -114,7 +114,7 @@ nsXULMenuitemAccessible::NativeState()
 }
 
 PRUint64
-nsXULMenuitemAccessible::NativeInteractiveState() const
+XULMenuitemAccessible::NativeInteractiveState() const
 {
   if (NativelyUnavailable()) {
     
@@ -135,21 +135,21 @@ nsXULMenuitemAccessible::NativeInteractiveState() const
 }
 
 nsresult
-nsXULMenuitemAccessible::GetNameInternal(nsAString& aName)
+XULMenuitemAccessible::GetNameInternal(nsAString& aName)
 {
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::label, aName);
   return NS_OK;
 }
 
 void
-nsXULMenuitemAccessible::Description(nsString& aDescription)
+XULMenuitemAccessible::Description(nsString& aDescription)
 {
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::description,
                     aDescription);
 }
 
 KeyBinding
-nsXULMenuitemAccessible::AccessKey() const
+XULMenuitemAccessible::AccessKey() const
 {
   
   static PRInt32 gMenuAccesskeyModifier = -1;  
@@ -192,7 +192,7 @@ nsXULMenuitemAccessible::AccessKey() const
 }
 
 KeyBinding
-nsXULMenuitemAccessible::KeyboardShortcut() const
+XULMenuitemAccessible::KeyboardShortcut() const
 {
   nsAutoString keyElmId;
   mContent->GetAttr(kNameSpaceID_None, nsGkAtoms::key, keyElmId);
@@ -256,7 +256,7 @@ nsXULMenuitemAccessible::KeyboardShortcut() const
 }
 
 role
-nsXULMenuitemAccessible::NativeRole()
+XULMenuitemAccessible::NativeRole()
 {
   nsCOMPtr<nsIDOMXULContainerElement> xulContainer(do_QueryInterface(mContent));
   if (xulContainer)
@@ -278,19 +278,20 @@ nsXULMenuitemAccessible::NativeRole()
 }
 
 PRInt32
-nsXULMenuitemAccessible::GetLevelInternal()
+XULMenuitemAccessible::GetLevelInternal()
 {
   return nsAccUtils::GetLevelForXULContainerItem(mContent);
 }
 
 bool
-nsXULMenuitemAccessible::CanHaveAnonChildren()
+XULMenuitemAccessible::CanHaveAnonChildren()
 {
   
   return false;
 }
 
-NS_IMETHODIMP nsXULMenuitemAccessible::DoAction(PRUint8 index)
+NS_IMETHODIMP
+XULMenuitemAccessible::DoAction(PRUint8 index)
 {
   if (index == eAction_Click) {   
     DoCommand();
@@ -301,7 +302,8 @@ NS_IMETHODIMP nsXULMenuitemAccessible::DoAction(PRUint8 index)
 }
 
 
-NS_IMETHODIMP nsXULMenuitemAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+NS_IMETHODIMP
+XULMenuitemAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   if (aIndex == eAction_Click) {
     aName.AssignLiteral("click"); 
@@ -311,7 +313,7 @@ NS_IMETHODIMP nsXULMenuitemAccessible::GetActionName(PRUint8 aIndex, nsAString& 
 }
 
 PRUint8
-nsXULMenuitemAccessible::ActionCount()
+XULMenuitemAccessible::ActionCount()
 {
   return 1;
 }
@@ -320,7 +322,7 @@ nsXULMenuitemAccessible::ActionCount()
 
 
 bool
-nsXULMenuitemAccessible::IsActiveWidget() const
+XULMenuitemAccessible::IsActiveWidget() const
 {
   
   nsIContent* menuPopupContent = mContent->GetFirstChild();
@@ -333,7 +335,7 @@ nsXULMenuitemAccessible::IsActiveWidget() const
 }
 
 bool
-nsXULMenuitemAccessible::AreItemsOperable() const
+XULMenuitemAccessible::AreItemsOperable() const
 {
   
   nsIContent* menuPopupContent = mContent->GetFirstChild();
@@ -346,7 +348,7 @@ nsXULMenuitemAccessible::AreItemsOperable() const
 }
 
 Accessible*
-nsXULMenuitemAccessible::ContainerWidget() const
+XULMenuitemAccessible::ContainerWidget() const
 {
   nsMenuFrame* menuFrame = do_QueryFrame(GetFrame());
   if (menuFrame) {
@@ -371,44 +373,46 @@ nsXULMenuitemAccessible::ContainerWidget() const
 
 
 
-nsXULMenuSeparatorAccessible::
-  nsXULMenuSeparatorAccessible(nsIContent* aContent, DocAccessible* aDoc) :
-  nsXULMenuitemAccessible(aContent, aDoc)
+XULMenuSeparatorAccessible::
+  XULMenuSeparatorAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+  XULMenuitemAccessible(aContent, aDoc)
 {
 }
 
 PRUint64
-nsXULMenuSeparatorAccessible::NativeState()
+XULMenuSeparatorAccessible::NativeState()
 {
   
-  return nsXULMenuitemAccessible::NativeState() &
+  return XULMenuitemAccessible::NativeState() &
     (states::OFFSCREEN | states::INVISIBLE);
 }
 
 nsresult
-nsXULMenuSeparatorAccessible::GetNameInternal(nsAString& aName)
+XULMenuSeparatorAccessible::GetNameInternal(nsAString& aName)
 {
   return NS_OK;
 }
 
 role
-nsXULMenuSeparatorAccessible::NativeRole()
+XULMenuSeparatorAccessible::NativeRole()
 {
   return roles::SEPARATOR;
 }
 
-NS_IMETHODIMP nsXULMenuSeparatorAccessible::DoAction(PRUint8 index)
+NS_IMETHODIMP
+XULMenuSeparatorAccessible::DoAction(PRUint8 index)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
-NS_IMETHODIMP nsXULMenuSeparatorAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
+NS_IMETHODIMP
+XULMenuSeparatorAccessible::GetActionName(PRUint8 aIndex, nsAString& aName)
 {
   return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 PRUint8
-nsXULMenuSeparatorAccessible::ActionCount()
+XULMenuSeparatorAccessible::ActionCount()
 {
   return 0;
 }
@@ -417,8 +421,8 @@ nsXULMenuSeparatorAccessible::ActionCount()
 
 
 
-nsXULMenupopupAccessible::
-  nsXULMenupopupAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULMenupopupAccessible::
+  XULMenupopupAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   XULSelectControlAccessible(aContent, aDoc)
 {
   nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
@@ -430,7 +434,7 @@ nsXULMenupopupAccessible::
 }
 
 PRUint64
-nsXULMenupopupAccessible::NativeState()
+XULMenupopupAccessible::NativeState()
 {
   PRUint64 state = Accessible::NativeState();
 
@@ -457,7 +461,7 @@ nsXULMenupopupAccessible::NativeState()
 }
 
 nsresult
-nsXULMenupopupAccessible::GetNameInternal(nsAString& aName)
+XULMenupopupAccessible::GetNameInternal(nsAString& aName)
 {
   nsIContent *content = mContent;
   while (content && aName.IsEmpty()) {
@@ -469,7 +473,7 @@ nsXULMenupopupAccessible::GetNameInternal(nsAString& aName)
 }
 
 role
-nsXULMenupopupAccessible::NativeRole()
+XULMenupopupAccessible::NativeRole()
 {
   
   
@@ -493,13 +497,13 @@ nsXULMenupopupAccessible::NativeRole()
 
 
 bool
-nsXULMenupopupAccessible::IsWidget() const
+XULMenupopupAccessible::IsWidget() const
 {
   return true;
 }
 
 bool
-nsXULMenupopupAccessible::IsActiveWidget() const
+XULMenupopupAccessible::IsActiveWidget() const
 {
   
   nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
@@ -507,14 +511,14 @@ nsXULMenupopupAccessible::IsActiveWidget() const
 }
 
 bool
-nsXULMenupopupAccessible::AreItemsOperable() const
+XULMenupopupAccessible::AreItemsOperable() const
 {
   nsMenuPopupFrame* menuPopupFrame = do_QueryFrame(GetFrame());
   return menuPopupFrame && menuPopupFrame->IsOpen();
 }
 
 Accessible*
-nsXULMenupopupAccessible::ContainerWidget() const
+XULMenupopupAccessible::ContainerWidget() const
 {
   DocAccessible* document = Document();
 
@@ -553,21 +557,21 @@ nsXULMenupopupAccessible::ContainerWidget() const
 
 
 
-nsXULMenubarAccessible::
-  nsXULMenubarAccessible(nsIContent* aContent, DocAccessible* aDoc) :
+XULMenubarAccessible::
+  XULMenubarAccessible(nsIContent* aContent, DocAccessible* aDoc) :
   AccessibleWrap(aContent, aDoc)
 {
 }
 
 nsresult
-nsXULMenubarAccessible::GetNameInternal(nsAString& aName)
+XULMenubarAccessible::GetNameInternal(nsAString& aName)
 {
   aName.AssignLiteral("Application");
   return NS_OK;
 }
 
 role
-nsXULMenubarAccessible::NativeRole()
+XULMenubarAccessible::NativeRole()
 {
   return roles::MENUBAR;
 }
@@ -576,20 +580,20 @@ nsXULMenubarAccessible::NativeRole()
 
 
 bool
-nsXULMenubarAccessible::IsActiveWidget() const
+XULMenubarAccessible::IsActiveWidget() const
 {
   nsMenuBarFrame* menuBarFrame = do_QueryFrame(GetFrame());
   return menuBarFrame && menuBarFrame->IsActive();
 }
 
 bool
-nsXULMenubarAccessible::AreItemsOperable() const
+XULMenubarAccessible::AreItemsOperable() const
 {
   return true;
 }
 
 Accessible*
-nsXULMenubarAccessible::CurrentItem()
+XULMenubarAccessible::CurrentItem()
 {
   nsMenuBarFrame* menuBarFrame = do_QueryFrame(GetFrame());
   if (menuBarFrame) {
@@ -603,7 +607,7 @@ nsXULMenubarAccessible::CurrentItem()
 }
 
 void
-nsXULMenubarAccessible::SetCurrentItem(Accessible* aItem)
+XULMenubarAccessible::SetCurrentItem(Accessible* aItem)
 {
-  NS_ERROR("nsXULMenubarAccessible::SetCurrentItem not implemented");
+  NS_ERROR("XULMenubarAccessible::SetCurrentItem not implemented");
 }

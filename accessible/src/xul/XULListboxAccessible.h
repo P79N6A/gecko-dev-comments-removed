@@ -2,29 +2,33 @@
 
 
 
-#ifndef __nsXULListboxAccessible_h__
-#define __nsXULListboxAccessible_h__
+
+#ifndef mozilla_a11y_XULListboxAccessible_h__
+#define mozilla_a11y_XULListboxAccessible_h__
 
 #include "BaseAccessibles.h"
-#include "nsXULMenuAccessible.h"
 #include "nsIAccessibleTable.h"
 #include "TableAccessible.h"
 #include "xpcAccessibleTable.h"
+#include "XULMenuAccessible.h"
 #include "XULSelectControlAccessible.h"
 
 class nsIWeakReference;
 
+namespace mozilla {
+namespace a11y {
 
 
 
 
-class nsXULColumAccessible : public AccessibleWrap
+
+class XULColumAccessible : public AccessibleWrap
 {
 public:
-  nsXULColumAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULColumAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
 };
 
@@ -32,17 +36,17 @@ public:
 
 
 
-class nsXULColumnItemAccessible : public mozilla::a11y::LeafAccessible
+class XULColumnItemAccessible : public LeafAccessible
 {
 public:
-  nsXULColumnItemAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULColumnItemAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_IMETHOD GetActionName(PRUint8 aIndex, nsAString& aName);
   NS_IMETHOD DoAction(PRUint8 aIndex);
 
   
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -54,14 +58,14 @@ public:
 
 
 
-class nsXULListboxAccessible : public XULSelectControlAccessible,
-                               public xpcAccessibleTable,
-                               public nsIAccessibleTable,
-                               public mozilla::a11y::TableAccessible
+class XULListboxAccessible : public XULSelectControlAccessible,
+                             public xpcAccessibleTable,
+                             public nsIAccessibleTable,
+                             public TableAccessible
 {
 public:
-  nsXULListboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsXULListboxAccessible() {}
+  XULListboxAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~XULListboxAccessible() {}
 
   NS_DECL_ISUPPORTS_INHERITED
 
@@ -79,8 +83,8 @@ public:
 
   
   virtual void Value(nsString& aValue);
-  virtual mozilla::a11y::TableAccessible* AsTable() { return this; }
-  virtual mozilla::a11y::role NativeRole();
+  virtual TableAccessible* AsTable() { return this; }
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
 
   
@@ -97,15 +101,15 @@ protected:
 
 
 
-class nsXULListitemAccessible : public nsXULMenuitemAccessible
+class XULListitemAccessible : public XULMenuitemAccessible
 {
 public:
   enum { eAction_Click = 0 };
 
   NS_DECL_ISUPPORTS_INHERITED
-  
-  nsXULListitemAccessible(nsIContent* aContent, DocAccessible* aDoc);
-  virtual ~nsXULListitemAccessible() {}
+
+  XULListitemAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  virtual ~XULListitemAccessible() {}
 
   
   NS_IMETHOD GetActionName(PRUint8 index, nsAString& aName);
@@ -114,7 +118,7 @@ public:
   
   virtual void Description(nsString& aDesc);
   virtual nsresult GetNameInternal(nsAString& aName);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
   virtual PRUint64 NativeState();
   virtual PRUint64 NativeInteractiveState() const;
   virtual bool CanHaveAnonChildren();
@@ -135,11 +139,11 @@ private:
 
 
 
-class nsXULListCellAccessible : public HyperTextAccessibleWrap,
-                                public nsIAccessibleTableCell
+class XULListCellAccessible : public HyperTextAccessibleWrap,
+                              public nsIAccessibleTableCell
 {
 public:
-  nsXULListCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
+  XULListCellAccessible(nsIContent* aContent, DocAccessible* aDoc);
 
   
   NS_DECL_ISUPPORTS_INHERITED
@@ -149,7 +153,10 @@ public:
 
   
   virtual nsresult GetAttributesInternal(nsIPersistentProperties *aAttributes);
-  virtual mozilla::a11y::role NativeRole();
+  virtual a11y::role NativeRole();
 };
+
+} 
+} 
 
 #endif

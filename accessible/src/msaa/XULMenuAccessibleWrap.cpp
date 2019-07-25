@@ -3,7 +3,7 @@
 
 
 
-#include "nsXULMenuAccessibleWrap.h"
+#include "XULMenuAccessibleWrap.h"
 #include "nsINameSpaceManager.h"
 
 using namespace mozilla::a11y;
@@ -12,18 +12,18 @@ using namespace mozilla::a11y;
 
 
 
-nsXULMenuitemAccessibleWrap::
-  nsXULMenuitemAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
-  nsXULMenuitemAccessible(aContent, aDoc)
+XULMenuitemAccessibleWrap::
+  XULMenuitemAccessibleWrap(nsIContent* aContent, DocAccessible* aDoc) :
+  XULMenuitemAccessible(aContent, aDoc)
 {
 }
 
 ENameValueFlag
-nsXULMenuitemAccessibleWrap::Name(nsString& aName)
+XULMenuitemAccessibleWrap::Name(nsString& aName)
 {
   
   
-  nsXULMenuitemAccessible::Name(aName);
+  XULMenuitemAccessible::Name(aName);
   if (aName.IsEmpty())
     return eNameOK;
   

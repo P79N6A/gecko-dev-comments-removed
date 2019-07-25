@@ -7,7 +7,7 @@
 #define _nsXULTabAccessible_H_
 
 
-#include "nsXULMenuAccessible.h"
+#include "XULMenuAccessible.h"
 #include "XULSelectControlAccessible.h"
 
 
