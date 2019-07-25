@@ -217,6 +217,12 @@ int main(int argc, char* argv[])
   
   
   
+  enum PreloadReason { PRELOAD_NONE, PRELOAD_SERVICE, PRELOAD_IOCOUNT };
+  PreloadReason preloadReason = PRELOAD_NONE;
+
+  
+  
+  
   
   
   
@@ -224,13 +230,18 @@ int main(int argc, char* argv[])
   
   IO_COUNTERS ioCounters;
   gotCounters = GetProcessIoCounters(GetCurrentProcess(), &ioCounters);
-  if ((gotCounters && !ioCounters.ReadOperationCount) || 
-      IsPrefetchDisabledViaService())
+
+  if (IsPrefetchDisabledViaService()) {
+    preloadReason = PRELOAD_SERVICE;
+  } else if ((gotCounters && !ioCounters.ReadOperationCount)) {
+    preloadReason = PRELOAD_IOCOUNT;
+  }
+
+  if (preloadReason != PRELOAD_NONE)
 #endif
   {
       XPCOMGlueEnablePreload();
   }
-
 
   rv = XPCOMGlueStartup(exePath);
   if (NS_FAILED(rv)) {
@@ -248,6 +259,11 @@ int main(int argc, char* argv[])
 
 #ifdef XRE_HAS_DLL_BLOCKLIST
   XRE_SetupDllBlocklist();
+#endif
+
+#if defined(XP_WIN)
+  XRE_TelemetryAccumulate(mozilla::Telemetry::STARTUP_USING_PRELOAD,
+                          preloadReason);
 #endif
 
   if (gotCounters) {
