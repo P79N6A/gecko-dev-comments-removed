@@ -53,6 +53,7 @@
 #include "nsContentUtils.h" 
 #include "nsString.h"
 #include "nsEventStates.h"
+#include "nsGenericHTMLElement.h"
 
 class nsIURI;
 class nsIDocument;
@@ -69,25 +70,6 @@ public:
   NS_DECL_IMGICONTAINEROBSERVER
   NS_DECL_IMGIDECODEROBSERVER
   NS_DECL_NSIIMAGELOADINGCONTENT
-
-  enum CORSMode {
-    
-
-
-    CORS_NONE,
-
-    
-
-
-
-    CORS_ANONYMOUS,
-
-    
-
-
-
-    CORS_USE_CREDENTIALS
-  };
 
 protected:
   
@@ -201,7 +183,7 @@ protected:
 
 
 
-  virtual CORSMode GetCORSMode();
+  virtual nsGenericHTMLElement::CORSMode GetCORSMode();
 
 private:
   

@@ -2884,6 +2884,14 @@ nsGenericHTMLFormElement::PreHandleEvent(nsEventChainPreVisitor& aVisitor)
   return nsGenericHTMLElement::PreHandleEvent(aVisitor);
 }
 
+const nsAttrValue::EnumTable nsGenericHTMLElement::kCORSAttributeTable[] = {
+  
+  
+  { "anonymous",       nsGenericHTMLElement::CORS_ANONYMOUS       },
+  { "use-credentials", nsGenericHTMLElement::CORS_USE_CREDENTIALS },
+  { 0 }
+};
+
 
 bool
 nsGenericHTMLFormElement::IsDisabled() const

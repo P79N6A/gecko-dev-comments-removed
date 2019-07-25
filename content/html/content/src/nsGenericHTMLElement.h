@@ -542,6 +542,32 @@ public:
     return HasAttr(kNameSpaceID_None, nsGkAtoms::hidden);
   }
 
+  
+
+
+
+
+  enum CORSMode {
+    
+
+
+    CORS_NONE,
+
+    
+
+
+
+    CORS_ANONYMOUS,
+
+    
+
+
+
+    CORS_USE_CREDENTIALS
+  };
+
+  const static nsAttrValue::EnumTable kCORSAttributeTable[];
+
 protected:
   
 
