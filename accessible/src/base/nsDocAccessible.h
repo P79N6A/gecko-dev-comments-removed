@@ -263,6 +263,20 @@ public:
 
 
 
+  nsAccessible* GetAccessibleOrContainer(nsINode* aNode);
+
+  
+
+
+  inline nsAccessible* GetContainerAccessible(nsINode* aNode)
+  {
+    return aNode ? GetAccessibleOrContainer(aNode->GetNodeParent()) : nsnull;
+  }
+
+  
+
+
+
 
 
 
