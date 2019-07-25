@@ -62,6 +62,10 @@ public:
   static nsresult
   Create(nsISupports* outer, const nsIID& aIID, void* *aInstancePtr);
 
+  
+  
+  NS_IMETHOD UnmarkGrayStrongObservers();
+
 private:
   ~nsObserverService(void);
 
