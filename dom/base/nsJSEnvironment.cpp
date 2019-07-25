@@ -3386,7 +3386,7 @@ nsJSContext::PokeCC()
   CallCreateInstance("@mozilla.org/timer;1", &sCCTimer);
 
   if (!sCCTimer) {
-    NS_WARNING("Failed to create timer");
+    
     return;
   }
 
