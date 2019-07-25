@@ -130,6 +130,14 @@ window.Page = {
     Utils.homeTab.raw.maxWidth = 60;
     Utils.homeTab.raw.minWidth = 60;
     
+    
+
+
+
+
+
+
+    
     Tabs.onClose(function(){
       
       
@@ -144,6 +152,8 @@ window.Page = {
     Tabs.onFocus(function(){
       
       if( this.contentWindow == window && lastTab != null && lastTab.mirror != null){
+        Groups.getActiveGroup().reorderBasedOnTabOrder();        
+
         UI.tabBar.hide(false);
         
         
