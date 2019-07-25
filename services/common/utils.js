@@ -58,6 +58,13 @@ let CommonUtils = {
   
 
 
+  encodeBase64URL: function encodeBase64URL(bytes) {
+    return btoa(bytes).replace("+", "-", "g").replace("/", "_", "g");
+  },
+  
+  
+
+
   makeURI: function makeURI(URIString) {
     if (!URIString)
       return null;
