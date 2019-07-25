@@ -94,7 +94,7 @@ struct BaseIC : public MacroAssemblerTypedefs {
     
     
     
-    int secondShapeGuard : 11;
+    int32 secondShapeGuard : 11;
 
     
     JSOp op : 9;
@@ -255,9 +255,9 @@ struct GetElementIC : public BasePolyIC {
     
     
     
-    int atomGuard : 8;          
-    int firstShapeGuard : 8;    
-    int secondShapeGuard : 8;   
+    int32 atomGuard : 8;          
+    int32 firstShapeGuard : 11;    
+    int32 secondShapeGuard : 11;   
 
     bool hasLastStringStub : 1;
     JITCode lastStringStub;
@@ -336,7 +336,7 @@ struct SetElementIC : public BaseIC {
 
     
     
-    uint32 volatileMask : 16;
+    uint32 volatileMask;
 
     
     

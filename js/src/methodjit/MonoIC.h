@@ -125,15 +125,15 @@ struct SetGlobalNameIC : public GlobalNameIC
     JSC::JITCode            extraStub;
 
     
-    int inlineShapeJump : 10;   
-    int extraShapeGuard : 6;    
+    int32 inlineShapeJump : 10;   
+    int32 extraShapeGuard : 6;    
     bool objConst : 1;          
     RegisterID objReg   : 5;    
     RegisterID shapeReg : 5;    
     bool hasExtraStub : 1;      
 
-    int fastRejoinOffset : 16;  
-    int extraStoreOffset : 16;  
+    int32 fastRejoinOffset : 16;  
+    int32 extraStoreOffset : 16;  
 
     
     ValueRemat vr;              

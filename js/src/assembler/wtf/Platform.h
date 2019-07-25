@@ -159,7 +159,7 @@
 
 
 #if WTF_CPU_SPARC32 || WTF_CPU_SPARC64
-#define WTF_CPU_SPARC
+#define WTF_CPU_SPARC 1
 #endif
 
 
@@ -857,6 +857,8 @@
 
 #elif WTF_CPU_X86 && WTF_PLATFORM_WIN
     #define ENABLE_JIT 1
+#elif WTF_CPU_SPARC
+    #define ENABLE_JIT 1
 #endif
 
 #if WTF_PLATFORM_QT
@@ -920,6 +922,7 @@
 
 #if (WTF_CPU_X86 \
  || WTF_CPU_X86_64 \
+ || WTF_CPU_SPARC \
  || WTF_CPU_ARM_TRADITIONAL \
  || WTF_CPU_ARM_THUMB2 \
  || WTF_CPU_X86)
