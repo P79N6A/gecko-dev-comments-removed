@@ -486,7 +486,60 @@ BookmarksStore.prototype = {
   itemExists: function BStore_itemExists(id) {
     return this.idForGUID(id, true) > 0;
   },
+  
+  
 
+
+
+
+  preprocessTagQuery: function preprocessTagQuery(record) {
+    if (record.type != "query" ||
+        record.bmkUri == null ||
+        record.folderName == null)
+      return;
+    
+    
+    let uri           = record.bmkUri
+    let queriesRef    = {};
+    let queryCountRef = {};
+    let optionsRef    = {};
+    Svc.History.queryStringToQueries(uri, queriesRef, queryCountRef, optionsRef);
+    
+    
+    if (optionsRef.value.resultType != optionsRef.value.RESULTS_AS_TAG_CONTENTS)
+      return;
+    
+    
+    let tag = record.folderName;
+    let dummyURI = Utils.makeURI("about:weave#BStore_preprocess");
+    this._ts.tagURI(dummyURI, [tag]);
+
+    
+    let tags = this._getNode(this._bms.tagsFolder);
+    if (!(tags instanceof Ci.nsINavHistoryQueryResultNode)) {
+      this._log.debug("tags isn't an nsINavHistoryQueryResultNode; aborting.");
+      return;
+    }
+
+    tags.containerOpen = true;
+    for (let i = 0; i < tags.childCount; i++) {
+      let child = tags.getChild(i);
+      if (child.title == tag) {
+        
+        this._log.debug("Tag query folder: " + tag + " = " + child.itemId);
+        
+        this._log.trace("Replacing folders in: " + uri);
+        for each (let q in queriesRef.value)
+          q.setFolders([child.itemId], 1);
+        
+        record.bmkUri = Svc.History.queriesToQueryString(queriesRef.value,
+                                                         queryCountRef.value,
+                                                         optionsRef.value);
+        return;
+      }
+    }
+  },
+  
   applyIncoming: function BStore_applyIncoming(record) {
     
     if (record.deleted) {
@@ -503,36 +556,7 @@ BookmarksStore.prototype = {
     }
 
     
-    switch (record.type) {
-      case "query": {
-        
-        if (record.bmkUri == null || record.folderName == null)
-          break;
-
-        
-        let tag = record.folderName;
-        let dummyURI = Utils.makeURI("about:weave#BStore_preprocess");
-        this._ts.tagURI(dummyURI, [tag]);
-
-        
-        let tags = this._getNode(this._bms.tagsFolder);
-        if (!(tags instanceof Ci.nsINavHistoryQueryResultNode))
-          break;
-
-        tags.containerOpen = true;
-        for (let i = 0; i < tags.childCount; i++) {
-          let child = tags.getChild(i);
-          
-          if (child.title == tag) {
-            this._log.debug("query folder: " + tag + " = " + child.itemId);
-            record.bmkUri = record.bmkUri.replace(/([:&]folder=)\d+/, "$1" +
-              child.itemId);
-            break;
-          }
-        }
-        break;
-      }
-    }
+    this.preprocessTagQuery(record);
 
     
     let parentGUID = record.parentid;
