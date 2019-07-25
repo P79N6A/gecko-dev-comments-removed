@@ -34,6 +34,10 @@
 
 
 
+
+#ifndef nsHTMLFormElement_h__
+#define nsHTMLFormElement_h__
+
 #include "nsCOMPtr.h"
 #include "nsIForm.h"
 #include "nsIFormControl.h"
@@ -244,6 +248,29 @@ public:
   void OnSubmitClickBegin(nsIContent* aOriginatingElement);
   void OnSubmitClickEnd();
 
+  
+
+
+
+
+
+
+
+
+
+
+
+  void UpdateValidity(PRBool aElementValidityState);
+
+  
+
+
+
+
+
+
+  PRBool GetValidity() const { return !mInvalidElementsCount; }
+
   virtual nsXPCClassInfo* GetClassInfo();
 protected:
   class RemoveElementRunnable;
@@ -391,9 +418,18 @@ protected:
   
   nsGenericHTMLFormElement* mFirstSubmitNotInElements;
 
+  
+
+
+
+
+  PRInt32 mInvalidElementsCount;
+
 protected:
   
   static PRBool gFirstFormSubmitted;
   
   static PRBool gPasswordManagerInitialized;
 };
+
+#endif 

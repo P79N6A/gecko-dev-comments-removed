@@ -44,7 +44,6 @@
 
 class nsDOMValidityState;
 class nsIDOMValidityState;
-class nsGenericHTMLFormElement;
 
 #define NS_ICONSTRAINTVALIDATION_IID \
 { 0xca3824dc, 0x4f5c, 0x4878, \
@@ -69,7 +68,9 @@ public:
 
   PRBool IsValid() const { return mValidityBitField == 0; }
 
-  PRBool IsCandidateForConstraintValidation() const;
+  PRBool IsCandidateForConstraintValidation() const {
+           return !mBarredFromConstraintValidation;
+         }
 
   NS_IMETHOD GetValidationMessage(nsAString& aValidationMessage);
 
@@ -98,15 +99,10 @@ protected:
          return mValidityBitField & mState;
        }
 
-  void   SetValidityState(ValidityStateType mState, PRBool mValue) {
-           if (mValue) {
-             mValidityBitField |= mState;
-           } else {
-             mValidityBitField &= ~mState;
-           }
-         }
+  void SetValidityState(ValidityStateType mState,
+                        PRBool mValue);
 
-  virtual PRBool   IsBarredFromConstraintValidation() const { return PR_FALSE; }
+  void SetBarredFromConstraintValidation(PRBool aBarred);
 
   virtual nsresult GetValidationMessage(nsAString& aValidationMessage,
                                         ValidityStateType aType) {
@@ -125,6 +121,11 @@ private:
 
 
   nsRefPtr<nsDOMValidityState>  mValidity;
+
+  
+
+
+  PRBool                        mBarredFromConstraintValidation;
 
   
 

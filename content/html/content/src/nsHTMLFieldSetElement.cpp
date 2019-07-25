@@ -75,9 +75,6 @@ public:
   NS_IMETHOD SubmitNamesValues(nsFormSubmission* aFormSubmission);
   virtual nsresult Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const;
   virtual nsXPCClassInfo* GetClassInfo();
-
-  
-  PRBool IsBarredFromConstraintValidation() const { return PR_TRUE; };
 };
 
 
@@ -89,6 +86,8 @@ NS_IMPL_NS_NEW_HTML_ELEMENT(FieldSet)
 nsHTMLFieldSetElement::nsHTMLFieldSetElement(already_AddRefed<nsINodeInfo> aNodeInfo)
   : nsGenericHTMLFormElement(aNodeInfo)
 {
+  
+  SetBarredFromConstraintValidation(PR_TRUE);
 }
 
 nsHTMLFieldSetElement::~nsHTMLFieldSetElement()

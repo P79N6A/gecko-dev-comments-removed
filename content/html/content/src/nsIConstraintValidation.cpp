@@ -41,11 +41,15 @@
 #include "nsGenericHTMLElement.h"
 #include "nsHTMLFormElement.h"
 #include "nsDOMValidityState.h"
+#include "nsIFormControl.h"
+#include "nsHTMLFormElement.h"
 
 
 nsIConstraintValidation::nsIConstraintValidation()
   : mValidityBitField(0)
   , mValidity(nsnull)
+  
+  , mBarredFromConstraintValidation(PR_FALSE)
 {
 }
 
@@ -116,34 +120,58 @@ nsIConstraintValidation::CheckValidity(PRBool* aValidity)
 }
 
 void
+nsIConstraintValidation::SetValidityState(ValidityStateType aState,
+                                          PRBool aValue)
+{
+  PRBool previousValidity = IsValid();
+
+  if (aValue) {
+    mValidityBitField |= aState;
+  } else {
+    mValidityBitField &= ~aState;
+  }
+
+  
+  if (previousValidity != IsValid() && IsCandidateForConstraintValidation()) {
+    nsCOMPtr<nsIFormControl> formCtrl = do_QueryInterface(this);
+    NS_ASSERTION(formCtrl, "This interface should be used by form elements!");
+
+    nsHTMLFormElement* form =
+      static_cast<nsHTMLFormElement*>(formCtrl->GetFormElement());
+    if (form) {
+      form->UpdateValidity(IsValid());
+    }
+  }
+}
+
+void
 nsIConstraintValidation::SetCustomValidity(const nsAString& aError)
 {
   mCustomValidity.Assign(aError);
   SetValidityState(VALIDITY_STATE_CUSTOM_ERROR, !mCustomValidity.IsEmpty());
 }
 
-PRBool
-nsIConstraintValidation::IsCandidateForConstraintValidation() const
+void
+nsIConstraintValidation::SetBarredFromConstraintValidation(PRBool aBarred)
 {
-  
+  PRBool previousBarred = mBarredFromConstraintValidation;
 
-
-
-
-
-
-
-  nsCOMPtr<nsIContent> content =
-    do_QueryInterface(const_cast<nsIConstraintValidation*>(this));
-  NS_ASSERTION(content, "This class should be inherited by HTML elements only!");
+  mBarredFromConstraintValidation = aBarred;
 
   
   
-  
-  
-  
-  
-  return !content->HasAttr(kNameSpaceID_None, nsGkAtoms::disabled) &&
-         !IsBarredFromConstraintValidation();
+  if (!IsValid() && previousBarred != mBarredFromConstraintValidation) {
+    nsCOMPtr<nsIFormControl> formCtrl = do_QueryInterface(this);
+    NS_ASSERTION(formCtrl, "This interface should be used by form elements!");
+
+    nsHTMLFormElement* form =
+      static_cast<nsHTMLFormElement*>(formCtrl->GetFormElement());
+    if (form) {
+      
+      
+      
+      form->UpdateValidity(aBarred);
+    }
+  }
 }
 

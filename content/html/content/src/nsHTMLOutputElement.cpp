@@ -84,9 +84,6 @@ public:
   void DescendantsChanged();
 
   
-  PRBool IsBarredFromConstraintValidation() const { return PR_TRUE; }
-
-  
   NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
@@ -116,6 +113,8 @@ nsHTMLOutputElement::nsHTMLOutputElement(already_AddRefed<nsINodeInfo> aNodeInfo
   , mValueModeFlag(eModeDefault)
 {
   AddMutationObserver(this);
+  
+  SetBarredFromConstraintValidation(PR_TRUE);
 }
 
 nsHTMLOutputElement::~nsHTMLOutputElement()
