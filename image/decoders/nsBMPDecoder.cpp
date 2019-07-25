@@ -75,7 +75,7 @@ nsBMPDecoder::GetWidth() const
 PRInt32 
 nsBMPDecoder::GetHeight() const
 {
-  return mBIH.height; 
+  return abs(mBIH.height);
 }
 
 
@@ -104,7 +104,7 @@ nsBMPDecoder::GetCompressedImageSize() const
 
   
   
-  PRInt32 pixelArraySize = rowSize * abs(mBIH.height); 
+  PRInt32 pixelArraySize = rowSize * GetHeight();
   return pixelArraySize;
 }
 
@@ -130,7 +130,7 @@ nsBMPDecoder::FinishInternal()
     if (!IsSizeDecode() && (GetFrameCount() == 1)) {
 
         
-        nsIntRect r(0, 0, mBIH.width, mBIH.height);
+        nsIntRect r(0, 0, mBIH.width, GetHeight());
         PostInvalidation(r);
 
         PostFrameStop();
@@ -238,7 +238,7 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
             return;
         }
 
-        PRUint32 real_height = (mBIH.height > 0) ? mBIH.height : -mBIH.height;
+        PRUint32 real_height = GetHeight();
 
         
         PostSize(mBIH.width, real_height);
@@ -480,9 +480,12 @@ nsBMPDecoder::WriteInternal(const char* aBuffer, PRUint32 aCount)
                               
                               
                               
-                              memset(mImageData + (mCurLine - 1) * GetWidth(), 0, 
-                                     (GetHeight() - mCurLine + 1) * 
-                                     GetWidth() * sizeof(PRUint32));
+                              PRUint32* start = mImageData + GetWidth() * (mCurLine - 1);
+                              PRUint32 heightDifference = GetHeight() - mCurLine + 1;
+                              PRUint32 pixelCount = GetWidth() * heightDifference;
+
+                              memset(start, 0, pixelCount * sizeof(PRUint32));
+
                               mHaveAlphaData = true;
                             }
                             SetPixel(d, p[2], p[1], p[0], mHaveAlphaData ? p[3] : 0xFF);
