@@ -1921,6 +1921,10 @@ extern JS_PUBLIC_API(JSObject *)
 JS_NewObject(JSContext *cx, JSClass *clasp, JSObject *proto, JSObject *parent);
 
 
+extern JS_PUBLIC_API(JSBool)
+JS_IsExtensible(JSObject *obj);
+
+
 
 
 
