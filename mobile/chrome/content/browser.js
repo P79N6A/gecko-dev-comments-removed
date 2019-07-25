@@ -474,15 +474,8 @@ var Browser = {
 
     
     let whereURI = this.getHomePage();
-    switch (needOverride) {
-      case "new profile":
+    if (needOverride == "new profile")
         whereURI = "about:firstrun";
-        break;
-      case "new version":
-      case "none":
-        whereURI = this.getHomePage();
-        break;
-    }
 
     
     
