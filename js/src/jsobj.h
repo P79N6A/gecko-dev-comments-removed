@@ -1722,7 +1722,7 @@ IsCacheableNonGlobalScope(JSObject *obj)
 
 
 extern js::PropertyCacheEntry *
-js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
+js_FindPropertyHelper(JSContext *cx, jsid id, bool cacheResult, bool global,
                       JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
 
@@ -1730,8 +1730,8 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
 
 
 extern JS_FRIEND_API(JSBool)
-js_FindProperty(JSContext *cx, jsid id, JSObject **objp, JSObject **pobjp,
-                JSProperty **propp);
+js_FindProperty(JSContext *cx, jsid id, bool global,
+                JSObject **objp, JSObject **pobjp, JSProperty **propp);
 
 extern JS_REQUIRES_STACK JSObject *
 js_FindIdentifierBase(JSContext *cx, JSObject *scopeChain, jsid id);

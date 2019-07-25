@@ -5445,7 +5445,7 @@ LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
 } 
 
 PropertyCacheEntry *
-js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
+js_FindPropertyHelper(JSContext *cx, jsid id, bool cacheResult, bool global,
                       JSObject **objp, JSObject **pobjp, JSProperty **propp)
 {
     JSObject *scopeChain, *obj, *parent, *pobj;
@@ -5455,6 +5455,19 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
 
     JS_ASSERT_IF(cacheResult, !JS_ON_TRACE(cx));
     scopeChain = cx->stack.currentScriptedScopeChain();
+
+    if (global) {
+        
+
+
+
+
+
+
+
+
+        scopeChain = scopeChain->getGlobal();
+    }
 
     
     entry = JS_NO_PROP_CACHE_FILL;
@@ -5543,10 +5556,10 @@ js_FindPropertyHelper(JSContext *cx, jsid id, JSBool cacheResult,
 
 
 JS_FRIEND_API(JSBool)
-js_FindProperty(JSContext *cx, jsid id, JSObject **objp, JSObject **pobjp,
-                JSProperty **propp)
+js_FindProperty(JSContext *cx, jsid id, bool global,
+                JSObject **objp, JSObject **pobjp, JSProperty **propp)
 {
-    return !!js_FindPropertyHelper(cx, id, false, objp, pobjp, propp);
+    return !!js_FindPropertyHelper(cx, id, false, global, objp, pobjp, propp);
 }
 
 JSObject *
