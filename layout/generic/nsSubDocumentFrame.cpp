@@ -171,7 +171,6 @@ nsSubDocumentFrame::Init(nsIContent*     aContent,
     rv = nsHTMLContainerFrame::CreateViewForFrame(this, PR_TRUE);
     NS_ENSURE_SUCCESS(rv, rv);
   }
-  nsIView* view = GetView();
 
   
   
@@ -262,6 +261,9 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
   nsresult rv = DisplayBorderBackgroundOutline(aBuilder, aLists);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (!mInnerView)
+    return NS_OK;
+
 #ifdef MOZ_IPC
   nsFrameLoader* frameLoader = FrameLoader();
   if (frameLoader) {
@@ -269,14 +271,21 @@ nsSubDocumentFrame::BuildDisplayList(nsDisplayListBuilder*   aBuilder,
     if (rfp) {
       
       
-      return aLists.Content()
-        ->AppendNewToTop(new (aBuilder) nsDisplayRemote(aBuilder, this, rfp));
+      nsDisplayList shadowTree;
+      shadowTree.AppendToTop(
+        new (aBuilder) nsDisplayRemote(aBuilder, this, rfp));
+
+      
+      nsPoint offset = GetOffsetToCrossDoc(aBuilder->ReferenceFrame());
+      nsRect bounds = mInnerView->GetBounds() + offset;
+
+      return aLists.Content()->AppendNewToTop(
+        new (aBuilder) nsDisplayClip(aBuilder, this, this, &shadowTree,
+                                     bounds));
     }
   }
 #endif
 
-  if (!mInnerView)
-    return NS_OK;
   nsIView* subdocView = mInnerView->GetFirstChild();
   if (!subdocView)
     return NS_OK;
