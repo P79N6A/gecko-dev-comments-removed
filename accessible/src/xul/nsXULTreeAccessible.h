@@ -146,7 +146,7 @@ public:
   
 
 
-  void TreeViewChanged();
+  void TreeViewChanged(nsITreeView* aView);
 
 protected:
   

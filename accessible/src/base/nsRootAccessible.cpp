@@ -229,8 +229,6 @@ const char* const docEvents[] = {
   "ValueChange",
   
   "AlertActive",
-  
-  "TreeViewChanged",
   "TreeRowCountChanged",
   "TreeInvalidated",
   
@@ -394,11 +392,6 @@ nsRootAccessible::ProcessDOMEvent(nsIDOMEvent* aDOMEvent)
                                                   kNameSpaceID_XUL)) {
     treeAcc = do_QueryObject(accessible);
     if (treeAcc) {
-      if (eventType.EqualsLiteral("TreeViewChanged")) {
-        treeAcc->TreeViewChanged();
-        return;
-      }
-
       if (eventType.EqualsLiteral("TreeRowCountChanged")) {
         HandleTreeRowCountChangedEvent(aDOMEvent, treeAcc);
         return;
