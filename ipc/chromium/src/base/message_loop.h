@@ -248,6 +248,7 @@ public:
   
   
   void SetNestableTasksAllowed(bool allowed);
+  void ScheduleWork();
   bool NestableTasksAllowed() const;
 
   
