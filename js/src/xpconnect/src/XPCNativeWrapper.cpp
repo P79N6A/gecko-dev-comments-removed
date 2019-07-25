@@ -747,6 +747,32 @@ XPC_NW_HasInstance(JSContext *cx, JSObject *obj, const jsval *valp, JSBool *bp)
 }
 
 static JSBool
+MirrorWrappedNativeParent(JSContext *cx, XPCWrappedNative *wrapper,
+                          JSObject **result NS_OUTPARAM)
+{
+  JSObject *wn_parent = wrapper->GetFlatJSObject()->getParent();
+  if (!wn_parent) {
+    *result = nsnull;
+  } else {
+    XPCWrappedNative *parent_wrapper =
+      XPCWrappedNative::GetAndMorphWrappedNativeOfJSObject(cx, wn_parent);
+
+    
+    
+    
+    if (parent_wrapper) {
+      *result = XPCNativeWrapper::GetNewOrUsed(cx, parent_wrapper, nsnull,
+                                               nsnull);
+      if (!*result)
+        return JS_FALSE;
+    } else {
+      *result = nsnull;
+    }
+  }
+  return JS_TRUE;
+}
+
+static JSBool
 XPCNativeWrapperCtor(JSContext *cx, JSObject *obj, uintN argc, jsval *argv,
                      jsval *rval)
 {
@@ -1083,15 +1109,38 @@ XPCNativeWrapper::GetNewOrUsed(JSContext *cx, XPCWrappedNative *wrapper,
     return obj;
   }
 
-  JSObject *nw_parent = wrapper->GetScope()->GetGlobalJSObject();
+  JSObject *nw_parent;
+  if (!MirrorWrappedNativeParent(cx, wrapper, &nw_parent)) {
+    return nsnull;
+  }
+
+  PRBool lock;
+
+  if (!nw_parent) {
+    nw_parent = wrapper->GetScope()->GetGlobalJSObject();
+
+    lock = PR_FALSE;
+  } else {
+    lock = PR_TRUE;
+  }
+
+  if (lock) {
+    
+    
+    ::JS_LockGCThing(cx, nw_parent);
+  }
 
   bool call = NATIVE_HAS_FLAG(wrapper, WantCall) ||
               NATIVE_HAS_FLAG(wrapper, WantConstruct);
-  obj = JS_NewObjectWithGivenProto(cx, GetJSClass(call), nsnull, nw_parent);
+  obj = ::JS_NewObjectWithGivenProto(cx, GetJSClass(call), nsnull, nw_parent);
+
+  if (lock) {
+    ::JS_UnlockGCThing(cx, nw_parent);
+  }
 
   if (!obj ||
-      !JS_SetPrivate(cx, obj, wrapper) ||
-      !JS_SetReservedSlot(cx, obj, 0, JSVAL_ZERO)) {
+      !::JS_SetPrivate(cx, obj, wrapper) ||
+      !::JS_SetReservedSlot(cx, obj, 0, JSVAL_ZERO)) {
     return nsnull;
   }
 
@@ -1136,9 +1185,29 @@ XPCNativeWrapper::CreateExplicitWrapper(JSContext *cx,
     return JS_FALSE;
   }
 
-  if (!JS_SetReservedSlot(cx, wrapperObj, 0, INT_TO_JSVAL(FLAG_EXPLICIT))) {
+  if (!::JS_SetReservedSlot(cx, wrapperObj, 0, INT_TO_JSVAL(FLAG_EXPLICIT))) {
     return JS_FALSE;
   }
+
+  JSObject *parent = nsnull;
+
+  
+  
+  JS_LockGCThing(cx, wrapperObj);
+
+  
+  
+  if (!MirrorWrappedNativeParent(cx, wrappedNative, &parent))
+    return JS_FALSE;
+
+  JS_UnlockGCThing(cx, wrapperObj);
+
+  if (!parent) {
+    parent = wrappedNative->GetScope()->GetGlobalJSObject();
+  }
+
+  if (!JS_SetParent(cx, wrapperObj, parent))
+    return JS_FALSE;
 
   
   if (!JS_SetPrivate(cx, wrapperObj, wrappedNative)) {
