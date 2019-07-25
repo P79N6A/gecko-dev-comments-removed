@@ -79,10 +79,12 @@ public:
   enum CompressionMode {
     COMPRESS_NONE,
     COMPRESS_WHITESPACE,
-    COMPRESS_WHITESPACE_NEWLINE
+    COMPRESS_WHITESPACE_NEWLINE,
+    DISCARD_NEWLINE
   };
 
   
+
 
 
 

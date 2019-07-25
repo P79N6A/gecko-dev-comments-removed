@@ -5511,7 +5511,7 @@ nsCSSFrameConstructor::ConstructFramesFromItem(nsFrameConstructorState& aState,
     
     
     if (AtLineBoundary(aIter) &&
-        !styleContext->GetStyleText()->NewlineIsSignificant() &&
+        !styleContext->GetStyleText()->WhiteSpaceOrNewlineIsSignificant() &&
         aIter.List()->ParentHasNoXBLChildren() &&
         !(aState.mAdditionalStateBits & NS_FRAME_GENERATED_CONTENT) &&
         (item.mFCData->mBits & FCDATA_IS_LINE_PARTICIPANT) &&
