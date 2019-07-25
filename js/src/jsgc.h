@@ -59,6 +59,7 @@
 #include "jsgcstats.h"
 #include "jscell.h"
 
+#include "ds/BitArray.h"
 #include "gc/Statistics.h"
 #include "js/HashTable.h"
 #include "js/Vector.h"
@@ -363,6 +364,12 @@ struct ArenaHeader {
     friend struct FreeLists;
 
     JSCompartment   *compartment;
+
+    
+
+
+
+
     ArenaHeader     *next;
 
   private:
@@ -413,18 +420,28 @@ struct ArenaHeader {
     inline uintptr_t address() const;
     inline Chunk *chunk() const;
 
-    void setAsNotAllocated() {
-        allocKind = size_t(FINALIZE_LIMIT);
-        hasDelayedMarking = 0;
-        nextDelayedMarking = 0;
-    }
-
     bool allocated() const {
         JS_ASSERT(allocKind <= size_t(FINALIZE_LIMIT));
         return allocKind < size_t(FINALIZE_LIMIT);
     }
 
-    inline void init(JSCompartment *comp, AllocKind kind);
+    void init(JSCompartment *comp, AllocKind kind) {
+        JS_ASSERT(!allocated());
+        JS_ASSERT(!hasDelayedMarking);
+        compartment = comp;
+
+        JS_STATIC_ASSERT(FINALIZE_LIMIT <= 255);
+        allocKind = size_t(kind);
+
+        
+        firstFreeSpanOffsets = FreeSpan::FullArenaOffsets;
+    }
+
+    void setAsNotAllocated() {
+        allocKind = size_t(FINALIZE_LIMIT);
+        hasDelayedMarking = 0;
+        nextDelayedMarking = 0;
+    }
 
     uintptr_t arenaAddress() const {
         return address();
@@ -543,13 +560,60 @@ struct Arena {
 struct ChunkInfo {
     Chunk           *next;
     Chunk           **prevp;
-    ArenaHeader     *emptyArenaListHead;
-    size_t          age;
-    size_t          numFree;
+
+    
+    ArenaHeader     *freeArenasHead;
+
+    
+
+
+
+
+    uint32          lastDecommittedArenaOffset;
+
+    
+    uint32          numArenasFree;
+
+    
+    uint32          numArenasFreeCommitted;
+
+    
+    uint32          age;
 };
 
-const size_t BytesPerArena = ArenaSize + ArenaBitmapBytes;
-const size_t ArenasPerChunk = (GC_CHUNK_SIZE - sizeof(ChunkInfo)) / BytesPerArena;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+const size_t BytesPerArenaWithHeader = ArenaSize + ArenaBitmapBytes;
+const size_t ChunkDecommitBitmapBytes = ChunkSize / ArenaSize / JS_BITS_PER_BYTE;
+const size_t ChunkBytesAvailable = ChunkSize - sizeof(ChunkInfo) - ChunkDecommitBitmapBytes;
+const size_t ArenasPerChunk = ChunkBytesAvailable / BytesPerArenaWithHeader;
 
 
 struct ChunkBitmap {
@@ -615,11 +679,14 @@ struct ChunkBitmap {
 
 JS_STATIC_ASSERT(ArenaBitmapBytes * ArenasPerChunk == sizeof(ChunkBitmap));
 
-const size_t ChunkPadSize = GC_CHUNK_SIZE
+typedef BitArray<ArenasPerChunk> PerArenaBitmap;
+
+const size_t ChunkPadSize = ChunkSize
                             - (sizeof(Arena) * ArenasPerChunk)
                             - sizeof(ChunkBitmap)
+                            - sizeof(PerArenaBitmap)
                             - sizeof(ChunkInfo);
-JS_STATIC_ASSERT(ChunkPadSize < BytesPerArena);
+JS_STATIC_ASSERT(ChunkPadSize < BytesPerArenaWithHeader);
 
 
 
@@ -632,35 +699,36 @@ struct Chunk {
     uint8           padding[ChunkPadSize];
 
     ChunkBitmap     bitmap;
+    PerArenaBitmap  decommittedArenas;
     ChunkInfo       info;
 
     static Chunk *fromAddress(uintptr_t addr) {
-        addr &= ~GC_CHUNK_MASK;
+        addr &= ~ChunkMask;
         return reinterpret_cast<Chunk *>(addr);
     }
 
     static bool withinArenasRange(uintptr_t addr) {
-        uintptr_t offset = addr & GC_CHUNK_MASK;
+        uintptr_t offset = addr & ChunkMask;
         return offset < ArenasPerChunk * ArenaSize;
     }
 
     static size_t arenaIndex(uintptr_t addr) {
         JS_ASSERT(withinArenasRange(addr));
-        return (addr & GC_CHUNK_MASK) >> ArenaShift;
+        return (addr & ChunkMask) >> ArenaShift;
     }
 
     uintptr_t address() const {
         uintptr_t addr = reinterpret_cast<uintptr_t>(this);
-        JS_ASSERT(!(addr & GC_CHUNK_MASK));
+        JS_ASSERT(!(addr & ChunkMask));
         return addr;
     }
 
     bool unused() const {
-        return info.numFree == ArenasPerChunk;
+        return info.numArenasFree == ArenasPerChunk;
     }
 
-    bool hasAvailableArenas() const {
-        return info.numFree > 0;
+    bool noAvailableArenas() const {
+        return info.numArenasFree == 0;
     }
 
     inline void addToAvailableList(JSCompartment *compartment);
@@ -675,9 +743,16 @@ struct Chunk {
 
   private:
     inline void init();
+
+    
+    jsuint findDecommittedArenaOffset();
+    ArenaHeader* fetchNextDecommittedArena();
+
+    
+    inline ArenaHeader* fetchNextFreeArena();
 };
 
-JS_STATIC_ASSERT(sizeof(Chunk) == GC_CHUNK_SIZE);
+JS_STATIC_ASSERT(sizeof(Chunk) == ChunkSize);
 
 class ChunkPool {
     Chunk   *emptyChunkListHead;
@@ -702,6 +777,9 @@ class ChunkPool {
 
     
     void expire(JSRuntime *rt, bool releaseAll);
+
+    
+    JS_FRIEND_API(int64) countDecommittedArenas(JSRuntime *rt);
 };
 
 inline uintptr_t
@@ -726,7 +804,7 @@ Cell::chunk() const
 {
     uintptr_t addr = uintptr_t(this);
     JS_ASSERT(addr % Cell::CellSize == 0);
-    addr &= ~(GC_CHUNK_SIZE - 1);
+    addr &= ~(ChunkSize - 1);
     return reinterpret_cast<Chunk *>(addr);
 }
 
@@ -743,20 +821,6 @@ Cell::isAligned() const
     return Arena::isAligned(address(), arenaHeader()->getThingSize());
 }
 #endif
-
-inline void
-ArenaHeader::init(JSCompartment *comp, AllocKind kind)
-{
-    JS_ASSERT(!allocated());
-    JS_ASSERT(!hasDelayedMarking);
-    compartment = comp;
-
-    JS_STATIC_ASSERT(FINALIZE_LIMIT <= 255);
-    allocKind = size_t(kind);
-
-    
-    firstFreeSpanOffsets = FreeSpan::FullArenaOffsets;
-}
 
 inline uintptr_t
 ArenaHeader::address() const
@@ -808,7 +872,7 @@ ChunkBitmap::getMarkWordAndMask(const Cell *cell, uint32 color,
                                 uintptr_t **wordp, uintptr_t *maskp)
 {
     JS_ASSERT(cell->chunk() == Chunk::fromAddress(reinterpret_cast<uintptr_t>(this)));
-    size_t bit = (cell->address() & GC_CHUNK_MASK) / Cell::CellSize + color;
+    size_t bit = (cell->address() & ChunkMask) / Cell::CellSize + color;
     JS_ASSERT(bit < ArenaBitmapBits * ArenasPerChunk);
     *maskp = uintptr_t(1) << (bit % JS_BITS_PER_WORD);
     *wordp = &bitmap[bit / JS_BITS_PER_WORD];
@@ -1152,7 +1216,7 @@ struct ArenaLists {
 
 
 
-const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / GC_CHUNK_SIZE;
+const size_t INITIAL_CHUNK_CAPACITY = 16 * 1024 * 1024 / ChunkSize;
 
 
 const size_t MAX_EMPTY_CHUNK_AGE = 4;
@@ -1457,13 +1521,13 @@ struct GCChunkHasher {
 
 
     static HashNumber hash(gc::Chunk *chunk) {
-        JS_ASSERT(!(jsuword(chunk) & GC_CHUNK_MASK));
-        return HashNumber(jsuword(chunk) >> GC_CHUNK_SHIFT);
+        JS_ASSERT(!(jsuword(chunk) & gc::ChunkMask));
+        return HashNumber(jsuword(chunk) >> gc::ChunkShift);
     }
 
     static bool match(gc::Chunk *k, gc::Chunk *l) {
-        JS_ASSERT(!(jsuword(k) & GC_CHUNK_MASK));
-        JS_ASSERT(!(jsuword(l) & GC_CHUNK_MASK));
+        JS_ASSERT(!(jsuword(k) & gc::ChunkMask));
+        JS_ASSERT(!(jsuword(l) & gc::ChunkMask));
         return k == l;
     }
 };
@@ -1653,6 +1717,7 @@ void
 MarkStackRangeConservatively(JSTracer *trc, Value *begin, Value *end);
 
 typedef void (*IterateCompartmentCallback)(JSContext *cx, void *data, JSCompartment *compartment);
+typedef void (*IterateChunkCallback)(JSContext *cx, void *data, gc::Chunk *chunk);
 typedef void (*IterateArenaCallback)(JSContext *cx, void *data, gc::Arena *arena,
                                      JSGCTraceKind traceKind, size_t thingSize);
 typedef void (*IterateCellCallback)(JSContext *cx, void *data, void *thing,
@@ -1668,6 +1733,12 @@ IterateCompartmentsArenasCells(JSContext *cx, void *data,
                                IterateCompartmentCallback compartmentCallback,
                                IterateArenaCallback arenaCallback,
                                IterateCellCallback cellCallback);
+
+
+
+
+extern JS_FRIEND_API(void)
+IterateChunks(JSContext *cx, void *data, IterateChunkCallback chunkCallback);
 
 
 
