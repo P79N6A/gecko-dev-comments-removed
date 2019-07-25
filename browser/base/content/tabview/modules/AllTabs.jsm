@@ -41,11 +41,10 @@ const Cu = Components.utils;
 const Cr = Components.results;
 
 Cu.import("resource://gre/modules/Services.jsm");
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
-let EXPORTED_SYMBOLS = ["Tabs"];
+let EXPORTED_SYMBOLS = ["AllTabs"];
 
-let Tabs = let (T = {
+let AllTabs = {
   
   
   
@@ -56,10 +55,11 @@ let Tabs = let (T = {
 
 
 
-  get allTabs() {
+  get tabs() {
     
-    return Array.concat.apply({}, T.allBrowsers.map(function(browser) {
-      return Array.slice(browser.gBrowser.tabs);
+    let browserWindows = AllTabs.allBrowserWindows;
+    return Array.concat.apply({}, browserWindows.map(function(browserWindow) {
+      return Array.slice(browserWindow.gBrowser.tabs);
     }));
   },
 
@@ -75,7 +75,7 @@ let Tabs = let (T = {
 
 
 
-  get onChange() T.makeBind("onChange"),
+  get onChange() AllTabs.makeBind("onChange"),
 
   
 
@@ -88,7 +88,7 @@ let Tabs = let (T = {
 
 
 
-  get onClose() T.makeBind("onClose"),
+  get onClose() AllTabs.makeBind("onClose"),
 
   
 
@@ -101,7 +101,7 @@ let Tabs = let (T = {
 
 
 
-  get onMove() T.makeBind("onMove"),
+  get onMove() AllTabs.makeBind("onMove"),
 
   
 
@@ -114,7 +114,7 @@ let Tabs = let (T = {
 
 
 
-  get onOpen() T.makeBind("onOpen"),
+  get onOpen() AllTabs.makeBind("onOpen"),
 
   
 
@@ -127,29 +127,18 @@ let Tabs = let (T = {
 
 
 
-  get onSelect() T.makeBind("onSelect"),
+  get onSelect() AllTabs.makeBind("onSelect"),
 
   
   
   
 
-  init: function init() {
-    
-    T.init = function() T;
-
-    
-    T.allBrowsers.forEach(T.registerBrowser);
-    Services.obs.addObserver(T, "domwindowopened", false);
-
-    return T;
-  },
-
-  get allBrowsers() {
-    let browsers = [];
+  get allBrowserWindows() {
+    let browserWindows = [];
     let windows = Services.wm.getEnumerator("navigator:browser");
     while (windows.hasMoreElements())
-      browsers.push(windows.getNext());
-    return browsers;
+      browserWindows.push(windows.getNext());
+    return browserWindows;
   },
 
   eventMap: {
@@ -160,11 +149,11 @@ let Tabs = let (T = {
     TabSelect: "onSelect",
   },
 
-  registerBrowser: function registerBrowser(browser) {
+  registerBrowserWindow: function registerBrowserWindow(browserWindow) {
     
-    [i for (i in Iterator(T.eventMap))].forEach(function([tabEvent, topic]) {
-      browser.addEventListener(tabEvent, function(event) {
-        T.trigger(topic, event.originalTarget, event);
+    [i for (i in Iterator(AllTabs.eventMap))].forEach(function([tabEvent, topic]) {
+      browserWindow.addEventListener(tabEvent, function(event) {
+        AllTabs.trigger(topic, event.originalTarget, event);
       }, true);
     });
   },
@@ -172,27 +161,27 @@ let Tabs = let (T = {
   listeners: {},
 
   makeBind: function makeBind(topic) {
-    delete T[topic];
-    T.listeners[topic] = [];
+    delete AllTabs[topic];
+    AllTabs.listeners[topic] = [];
 
     
-    T[topic] = function bind(callback) {
-      T.listeners[topic].push(callback);
+    AllTabs[topic] = function bind(callback) {
+      AllTabs.listeners[topic].push(callback);
     };
 
     
-    T[topic].unbind = function unbind(callback) {
-      let index = T.listeners[topic].indexOf(callback);
+    AllTabs[topic].unbind = function unbind(callback) {
+      let index = AllTabs.listeners[topic].indexOf(callback);
       if (index != -1)
-        T.listeners[topic].splice(index, 1);
+        AllTabs.listeners[topic].splice(index, 1);
     };
 
-    return T[topic];
+    return AllTabs[topic];
   },
 
   trigger: function trigger(topic, tab, event) {
     
-    let listeners = T.listeners[topic];
+    let listeners = AllTabs.listeners[topic];
     if (listeners == null)
       return;
 
@@ -219,15 +208,13 @@ let Tabs = let (T = {
           
           let doc = subject.document.documentElement;
           if (doc.getAttribute("windowtype") == "navigator:browser")
-            T.registerBrowser(subject);
+            AllTabs.registerBrowserWindow(subject);
         }, false);
         break;
     }
   },
+};
 
-  
-  
-  
 
-  QueryInterface: XPCOMUtils.generateQI([Ci.nsIObserver]),
-}) T.init();
+AllTabs.allBrowserWindows.forEach(AllTabs.registerBrowserWindow);
+Services.obs.addObserver(AllTabs, "domwindowopened", false);
