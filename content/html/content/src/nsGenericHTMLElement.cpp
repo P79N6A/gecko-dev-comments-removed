@@ -697,13 +697,24 @@ nsGenericHTMLElement::GetMarkup(bool aIncludeSelf, nsAString& aMarkup)
 
   NS_ENSURE_TRUE(docEncoder, NS_ERROR_FAILURE);
 
-  nsresult rv = docEncoder->NativeInit(doc, contentType,
-                                       nsIDocumentEncoder::OutputEncodeBasicEntities |
-                                       
-                                       nsIDocumentEncoder::OutputLFLineBreak |
-                                       
-                                       
-                                       nsIDocumentEncoder::OutputRaw);
+  PRUint32 flags = nsIDocumentEncoder::OutputEncodeBasicEntities |
+                   
+                   nsIDocumentEncoder::OutputLFLineBreak |
+                   
+                   
+                   nsIDocumentEncoder::OutputRaw |
+                   
+                   nsIDocumentEncoder::OutputIgnoreMozDirty;
+
+  if (IsEditable()) {
+    nsCOMPtr<nsIEditor> editor;
+    GetEditorInternal(getter_AddRefs(editor));
+    if (editor && editor->OutputsMozDirty()) {
+      flags &= ~nsIDocumentEncoder::OutputIgnoreMozDirty;
+    }
+  }
+
+  nsresult rv = docEncoder->NativeInit(doc, contentType, flags);
   NS_ENSURE_SUCCESS(rv, rv);
 
   if (aIncludeSelf) {
@@ -2918,7 +2929,8 @@ nsGenericHTMLFormElement::CanBeDisabled() const
   return
     type != NS_FORM_LABEL &&
     type != NS_FORM_OBJECT &&
-    type != NS_FORM_OUTPUT;
+    type != NS_FORM_OUTPUT &&
+    type != NS_FORM_PROGRESS;
 }
 
 bool
