@@ -482,8 +482,7 @@ public:
         mFaceNamesInitialized(PR_FALSE),
         mHasStyles(PR_FALSE),
         mIsSimpleFamily(PR_FALSE),
-        mIsBadUnderlineFamily(PR_FALSE),
-        mCharacterMapInitialized(PR_FALSE)
+        mIsBadUnderlineFamily(PR_FALSE)
         { }
 
     virtual ~gfxFontFamily() { }
@@ -545,28 +544,10 @@ public:
     
     void ReadCMAP() {
         PRUint32 i, numFonts = mAvailableFonts.Length();
-        for (i = 0; i < numFonts; i++) {
-            gfxFontEntry *fe = mAvailableFonts[i];
-            if (!fe) {
-                continue;
-            }
-            fe->ReadCMAP();
-            mCharacterMap.Union(fe->mCharacterMap);
-        }
-        mCharacterMap.Compact();
-        mCharacterMapInitialized = PR_TRUE;
-    }
-
-    PRBool TestCharacterMap(PRUint32 aCh) {
-        if (!mCharacterMapInitialized) {
-            ReadCMAP();
-        }
-        return mCharacterMap.test(aCh);
-    }
-
-    void ResetCharacterMap() {
-        mCharacterMap.reset();
-        mCharacterMapInitialized = PR_FALSE;
+        
+        
+        for (i = 0; i < numFonts; i++)
+            mAvailableFonts[i]->ReadCMAP();
     }
 
     
@@ -609,14 +590,12 @@ protected:
 
     nsString mName;
     nsTArray<nsRefPtr<gfxFontEntry> >  mAvailableFonts;
-    gfxSparseBitSet mCharacterMap;
     PRPackedBool mOtherFamilyNamesInitialized;
     PRPackedBool mHasOtherFamilyNames;
     PRPackedBool mFaceNamesInitialized;
     PRPackedBool mHasStyles;
     PRPackedBool mIsSimpleFamily;
     PRPackedBool mIsBadUnderlineFamily;
-    PRPackedBool mCharacterMapInitialized;
 
     enum {
         
