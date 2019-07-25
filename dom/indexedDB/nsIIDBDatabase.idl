@@ -56,5 +56,5 @@ interface nsIIDBDatabase : nsISupports
 
   readonly attribute DOMString version;
 
-  readonly attribute nsIDOMDOMStringList objectStores;
+  readonly attribute nsIDOMDOMStringList objectStoreNames;
 };

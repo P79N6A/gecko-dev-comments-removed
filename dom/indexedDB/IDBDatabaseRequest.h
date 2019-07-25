@@ -49,6 +49,8 @@
 
 #include "nsDOMLists.h"
 
+class nsIIDBTransactionRequest;
+
 BEGIN_INDEXEDDB_NAMESPACE
 
 class AsyncConnectionHelper;
@@ -134,6 +136,11 @@ protected:
 
   
   nsresult EnsureConnection();
+
+  nsresult TransactionInternal(const nsTArray<nsString>& aStoreNames,
+                               PRUint16 aMode,
+                               PRUint32 aTimeout,
+                               nsIIDBTransactionRequest** _retval);
 
 private:
   nsString mName;
