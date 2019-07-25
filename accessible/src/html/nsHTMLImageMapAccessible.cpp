@@ -261,13 +261,13 @@ nsHTMLAreaAccessible::StartOffset()
   
   
   
-  return GetIndexInParent();
+  return IndexInParent();
 }
 
 PRUint32
 nsHTMLAreaAccessible::EndOffset()
 {
-  return GetIndexInParent() + 1;
+  return IndexInParent() + 1;
 }
 
 

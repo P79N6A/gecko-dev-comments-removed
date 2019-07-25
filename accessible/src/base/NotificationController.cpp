@@ -515,14 +515,14 @@ NotificationController::CoalesceTextChangeEventsFor(AccShowEvent* aTailEvent,
   if (!textEvent)
     return;
 
-  if (aTailEvent->mAccessible->GetIndexInParent() ==
-      aThisEvent->mAccessible->GetIndexInParent() + 1) {
+  if (aTailEvent->mAccessible->IndexInParent() ==
+      aThisEvent->mAccessible->IndexInParent() + 1) {
     
     
     aTailEvent->mAccessible->AppendTextTo(textEvent->mModifiedText);
 
-  } else if (aTailEvent->mAccessible->GetIndexInParent() ==
-             aThisEvent->mAccessible->GetIndexInParent() -1) {
+  } else if (aTailEvent->mAccessible->IndexInParent() ==
+             aThisEvent->mAccessible->IndexInParent() -1) {
     
     
     nsAutoString startText;

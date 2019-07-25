@@ -297,7 +297,7 @@ public:
   
 
 
-  virtual PRInt32 GetIndexInParent() const;
+  virtual PRInt32 IndexInParent() const;
 
   
 
