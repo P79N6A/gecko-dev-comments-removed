@@ -272,7 +272,6 @@ struct JSStmtInfo {
 
 struct JSTreeContext {              
     uint32          flags;          
-    uint16          ngvars;         
     uint32          bodyid;         
     uint32          blockidGen;     
     JSStmtInfo      *topStmt;       
@@ -308,7 +307,7 @@ struct JSTreeContext {
 #endif
 
     JSTreeContext(js::Parser *prs)
-      : flags(0), ngvars(0), bodyid(0), blockidGen(0),
+      : flags(0), bodyid(0), blockidGen(0),
         topStmt(NULL), topScopeStmt(NULL), blockChain(NULL), blockNode(NULL),
         parser(prs), scopeChain(NULL), parent(prs->tc), staticLevel(0),
         funbox(NULL), functionList(NULL), innermostWith(NULL), sharpSlotBase(-1)
@@ -569,7 +568,21 @@ struct JSCodeGenerator : public JSTreeContext
 
     ~JSCodeGenerator();
 
-    bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie &cooke);
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool addGlobalUse(JSAtom *atom, uint32 slot, js::UpvarCookie *cookie);
 
     bool hasSharps() {
         bool rv = !!(flags & TCF_HAS_SHARPS);

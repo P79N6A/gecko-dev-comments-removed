@@ -2171,7 +2171,7 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
             uint32 slot = globalCg->globalUses[cookie.asInteger()].slot;
 
             
-            if (!cg->addGlobalUse(atom, slot, cookie))
+            if (!cg->addGlobalUse(atom, slot, &cookie))
                 return JS_FALSE;
 
             if (cookie.isFree())
@@ -2409,17 +2409,17 @@ BindNameToSlot(JSContext *cx, JSCodeGenerator *cg, JSParseNode *pn)
 }
 
 bool
-JSCodeGenerator::addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie &cookie)
+JSCodeGenerator::addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie *cookie)
 {
     JSAtomListElement *ale = globalMap.lookup(atom);
     if (ale) {
-        cookie.set(0, uint16(ALE_INDEX(ale)));
+        cookie->set(0, uint16(ALE_INDEX(ale)));
         return true;
     }
 
     
     if (globalUses.length() >= UINT16_LIMIT) {
-        cookie.makeFree();
+        cookie->makeFree();
         return true;
     }
 
@@ -2428,7 +2428,7 @@ JSCodeGenerator::addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie &cookie)
     if (!ale)
         return false;
 
-    cookie.set(0, globalUses.length());
+    cookie->set(0, globalUses.length());
 
     GlobalSlotArray::Entry entry = { ALE_INDEX(ale), slot };
     if (!globalUses.append(entry))
@@ -2438,7 +2438,7 @@ JSCodeGenerator::addGlobalUse(JSAtom *atom, uint32 slot, UpvarCookie &cookie)
     if (!ale)
         return false;
 
-    ALE_SET_INDEX(ale, cookie.asInteger());
+    ALE_SET_INDEX(ale, cookie->asInteger());
     return true;
 }
 
