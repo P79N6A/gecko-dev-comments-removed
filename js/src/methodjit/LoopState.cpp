@@ -365,8 +365,16 @@ LoopState::checkRedundantEntry(const InvariantEntry &entry)
         if (entryRedundant(entry, baseEntry))
             return true;
         if (entryRedundant(baseEntry, entry)) {
-            invariantEntries[i--] = invariantEntries.back();
+            
+
+
+
+
+
+            for (unsigned j = i; j < length - 1; j++)
+                invariantEntries[j] = invariantEntries[j + 1];
             invariantEntries.popBack();
+            i--;
             length--;
         }
     }
