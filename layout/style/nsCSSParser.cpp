@@ -3232,6 +3232,10 @@ CSSParserImpl::ParseNegatedSimpleSelector(PRInt32&       aDataMask,
   }
   else if (mToken.IsSymbol('[')) {    
     parsingStatus = ParseAttributeSelector(aDataMask, *newSel);
+    if (eSelectorParsingStatus_Error == parsingStatus) {
+      
+      SkipUntil(']');
+    }
   }
   else {
     
@@ -3490,6 +3494,9 @@ CSSParserImpl::ParseSelector(nsCSSSelectorList* aList,
     }
     else if (mToken.IsSymbol('[')) {    
       parsingStatus = ParseAttributeSelector(dataMask, *selector);
+      if (eSelectorParsingStatus_Error == parsingStatus) {
+        SkipUntil(']');
+      }
     }
     else {  
       parsingStatus = eSelectorParsingStatus_Done;
