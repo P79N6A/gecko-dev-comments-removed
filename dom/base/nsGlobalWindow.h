@@ -820,6 +820,8 @@ protected:
 
   virtual void UpdateParentTarget();
 
+  PRBool GetIsTabModalPromptAllowed();
+
   
   
   
