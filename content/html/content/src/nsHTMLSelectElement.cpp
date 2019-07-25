@@ -1966,7 +1966,7 @@ nsHTMLSelectElement::VerifyOptionsArray()
 
 nsHTMLOptionCollection::nsHTMLOptionCollection(nsHTMLSelectElement* aSelect)
 {
-  SetIsProxy();
+  SetIsDOMBinding();
 
   
   
