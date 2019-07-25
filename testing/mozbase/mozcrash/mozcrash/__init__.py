@@ -1,0 +1,5 @@
+
+
+
+
+from mozcrash import *

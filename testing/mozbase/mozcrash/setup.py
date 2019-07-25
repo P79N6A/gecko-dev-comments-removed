@@ -2,37 +2,34 @@
 
 
 
+
 import os
 from setuptools import setup
+
+PACKAGE_VERSION = '0.1'
+
 
 try:
     here = os.path.dirname(os.path.abspath(__file__))
     description = file(os.path.join(here, 'README.md')).read()
-except IOError:
-    description = None
+except (OSError, IOError):
+    description = ''
 
-PACKAGE_VERSION = '0.3'
 
-deps = []
+deps = ['']
 
-setup(name='mozhttpd',
+setup(name='mozcrash',
       version=PACKAGE_VERSION,
-      description="basic python webserver, tested with talos",
+      description="Package for printing stack traces from minidumps left behind by crashed processes.",
       long_description=description,
       classifiers=[], 
       keywords='mozilla',
-      author='Mozilla Automation and Testing Team',
+      author='Mozilla Automation and Tools team',
       author_email='tools@lists.mozilla.org',
       url='https://wiki.mozilla.org/Auto-tools/Projects/MozBase',
       license='MPL',
-      packages=['mozhttpd'],
+      packages=['mozcrash'],
       include_package_data=True,
       zip_safe=False,
       install_requires=deps,
-      entry_points="""
-      # -*- Entry points: -*-
-      [console_scripts]
-      mozhttpd = mozhttpd:main
-      """,
       )
-

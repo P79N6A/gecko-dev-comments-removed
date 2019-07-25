@@ -400,6 +400,55 @@ class ManifestParser(object):
     def getRelativeRoot(self, root):
         return root
 
+    def _read(self, root, filename, defaults):
+
+        
+        here = os.path.dirname(os.path.abspath(filename))
+        defaults['here'] = here
+
+        
+        sections = read_ini(fp=filename, variables=defaults, strict=self.strict)
+
+        
+        for section, data in sections:
+
+            
+            
+            
+            if section.startswith('include:'):
+                include_file = section.split('include:', 1)[-1]
+                include_file = normalize_path(include_file)
+                if not os.path.isabs(include_file):
+                    include_file = os.path.join(self.getRelativeRoot(here), include_file)
+                if not os.path.exists(include_file):
+                    if self.strict:
+                        raise IOError("File '%s' does not exist" % include_file)
+                    else:
+                        continue
+                include_defaults = data.copy()
+                self._read(root, include_file, include_defaults)
+                continue
+
+            
+            test = data
+            test['name'] = section
+            test['manifest'] = os.path.abspath(filename)
+
+            
+            path = test.get('path', section)
+            relpath = path
+            if '://' not in path: 
+                path = normalize_path(path)
+                if not os.path.isabs(path):
+                    path = os.path.join(here, path)
+                relpath = os.path.relpath(path, self.rootdir)
+
+            test['path'] = path
+            test['relpath'] = relpath
+
+            
+            self.tests.append(test)
+
     def read(self, *filenames, **defaults):
 
         
@@ -421,44 +470,7 @@ class ManifestParser(object):
                 
                 self.rootdir = here
 
-            
-            sections = read_ini(fp=filename, variables=defaults, strict=self.strict)
-
-            
-            for section, data in sections:
-
-                
-                
-                
-                if section.startswith('include:'):
-                    include_file = section.split('include:', 1)[-1]
-                    include_file = normalize_path(include_file)
-                    if not os.path.isabs(include_file):
-                        include_file = os.path.join(self.getRelativeRoot(here), include_file)
-                    if not os.path.exists(include_file):
-                        if self.strict:
-                            raise IOError("File '%s' does not exist" % include_file)
-                        else:
-                            continue
-                    include_defaults = data.copy()
-                    self.read(include_file, **include_defaults)
-                    continue
-
-                
-                test = data
-                test['name'] = section
-                test['manifest'] = os.path.abspath(filename)
-
-                
-                path = test.get('path', section)
-                if '://' not in path: 
-                    path = normalize_path(path)
-                    if not os.path.isabs(path):
-                        path = os.path.join(here, path)
-                test['path'] = path
-
-                
-                self.tests.append(test)
+            self._read(here, filename, defaults)
 
     
 
@@ -595,7 +607,7 @@ class ManifestParser(object):
             print >> fp, '[%s]' % path
 
             
-            reserved = ['path', 'name', 'here', 'manifest']
+            reserved = ['path', 'name', 'here', 'manifest', 'relpath']
             for key in sorted(test.keys()):
                 if key in reserved:
                     continue
@@ -1012,7 +1024,7 @@ def main(args=sys.argv[1:]):
 
     
     usage = '%prog [options] [command] ...'
-    description = __doc__
+    description = "%s. Use `help` to display commands" % __doc__.strip()
     parser = OptionParser(usage=usage, description=description)
     parser.add_option('-s', '--strict', dest='strict',
                       action='store_true', default=False,
