@@ -62,7 +62,7 @@
 
 "use strict";
 
-importScripts("ril_consts.js");
+importScripts("ril_consts.js", "systemlibs.js");
 
 let DEBUG = false;
 
@@ -71,6 +71,8 @@ const UINT8_SIZE  = 1;
 const UINT16_SIZE = 2;
 const UINT32_SIZE = 4;
 const PARCEL_SIZE_SIZE = UINT32_SIZE;
+
+let RILQUIRKS_CALLSTATE_EXTRA_UINT32 = false;
 
 
 
@@ -523,6 +525,25 @@ let RIL = {
 
 
 
+  rilQuirksInitialized: false,
+  initRILQuirks: function initRILQuirks() {
+    
+    
+    let model_id = libcutils.property_get("ril.model_id");
+    if (DEBUG) debug("Detected RIL model " + model_id);
+    if (model_id == "I9100") {
+      if (DEBUG) debug("Enabling RILQUIRKS_CALLSTATE_EXTRA_UINT32 for I9100.");
+      RILQUIRKS_CALLSTATE_EXTRA_UINT32 = true;
+    }
+
+    this.rilQuirksInitialized = true;
+  },
+
+  
+
+
+
+
   getICCStatus: function getICCStatus() {
     Buf.simpleRequest(REQUEST_GET_SIM_STATUS);
   },
@@ -917,6 +938,10 @@ RIL[REQUEST_CHANGE_SIM_PIN] = function REQUEST_CHANGE_SIM_PIN() {
 RIL[REQUEST_CHANGE_SIM_PIN2] = null;
 RIL[REQUEST_ENTER_NETWORK_DEPERSONALIZATION] = null;
 RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length) {
+  if (!this.rilQuirksInitialized) {
+    this.initRILQuirks();
+  }
+
   let calls_length = 0;
   
   
@@ -930,22 +955,24 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length) {
 
   let calls = {};
   for (let i = 0; i < calls_length; i++) {
-    let call = {
-      state:              Buf.readUint32(), 
-      callIndex:          Buf.readUint32(), 
-      toa:                Buf.readUint32(),
-      isMpty:             Boolean(Buf.readUint32()),
-      isMT:               Boolean(Buf.readUint32()),
-      als:                Buf.readUint32(),
-      isVoice:            Boolean(Buf.readUint32()),
-      isVoicePrivacy:     Boolean(Buf.readUint32()),
-      somethingOrOther:   Buf.readUint32(), 
-      number:             Buf.readString(), 
-      numberPresentation: Buf.readUint32(), 
-      name:               Buf.readString(),
-      namePresentation:   Buf.readUint32(),
-      uusInfo:            null
-    };
+    let call = {};
+    call.state          = Buf.readUint32(); 
+    call.callIndex      = Buf.readUint32(); 
+    call.toa            = Buf.readUint32();
+    call.isMpty         = Boolean(Buf.readUint32());
+    call.isMT           = Boolean(Buf.readUint32());
+    call.als            = Buf.readUint32();
+    call.isVoice        = Boolean(Buf.readUint32());
+    call.isVoicePrivacy = Boolean(Buf.readUint32());
+    if (RILQUIRKS_CALLSTATE_EXTRA_UINT32) {
+      Buf.readUint32();
+    }
+    call.number             = Buf.readString(); 
+    call.numberPresentation = Buf.readUint32(); 
+    call.name               = Buf.readString();
+    call.namePresentation   = Buf.readUint32();
+
+    call.uusInfo = null;
     let uusInfoPresent = Buf.readUint32();
     if (uusInfoPresent == 1) {
       call.uusInfo = {
@@ -954,6 +981,7 @@ RIL[REQUEST_GET_CURRENT_CALLS] = function REQUEST_GET_CURRENT_CALLS(length) {
         userData: null 
       };
     }
+
     calls[call.callIndex] = call;
   }
   Phone.onCurrentCalls(calls);
