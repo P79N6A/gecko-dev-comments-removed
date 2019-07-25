@@ -1878,12 +1878,6 @@ VersionIsKnown(JSVersion version)
     return VersionNumber(version) != JSVERSION_UNKNOWN;
 }
 
-static inline void
-VersionCloneFlags(JSVersion src, JSVersion *dst)
-{
-    *dst = JSVersion(uint32(VersionNumber(*dst)) | uint32(VersionExtractFlags(src)));
-}
-
 } 
 
 struct JSContext
@@ -2082,7 +2076,9 @@ struct JSContext
 
 
 
-    bool canSetDefaultVersion() const { return !regs && !hasVersionOverride; }
+    bool canSetDefaultVersion() const {
+        return !regs && !hasVersionOverride;
+    }
 
     
     void overrideVersion(JSVersion newVersion) {
@@ -2092,11 +2088,18 @@ struct JSContext
     }
 
   public:
-    void clearVersionOverride() { hasVersionOverride = false; }
-    bool isVersionOverridden() const { return hasVersionOverride; }
+    void clearVersionOverride() {
+        hasVersionOverride = false;
+    }
+    
+    bool isVersionOverridden() const {
+        return hasVersionOverride;
+    }
 
     
-    void setDefaultVersion(JSVersion version) { defaultVersion = version; }
+    void setDefaultVersion(JSVersion version) {
+        defaultVersion = version;
+    }
 
     
 
@@ -2133,6 +2136,30 @@ struct JSContext
         }
 
         return defaultVersion;
+    }
+
+    void optionFlagsToVersion(JSVersion *version) const {
+        js::VersionSetXML(version, js::OptionsHasXML(options));
+        js::VersionSetAnonFunFix(version, js::OptionsHasAnonFunFix(options));
+    }
+
+    void checkOptionVersionSync() const {
+#ifdef DEBUG
+        JSVersion version = findVersion();
+        JS_ASSERT(js::VersionHasXML(version) == js::OptionsHasXML(options));
+        JS_ASSERT(js::VersionHasAnonFunFix(version) == js::OptionsHasAnonFunFix(options));
+#endif
+    }
+
+    
+    void syncOptionsToVersion() {
+        JSVersion version = findVersion();
+        if (js::OptionsHasXML(options) == js::VersionHasXML(version) &&
+            js::OptionsHasAnonFunFix(options) == js::VersionHasAnonFunFix(version))
+            return;
+        js::VersionSetXML(&version, js::OptionsHasXML(options));
+        js::VersionSetAnonFunFix(&version, js::OptionsHasAnonFunFix(options));
+        maybeOverrideVersion(version);
     }
 
 #ifdef JS_THREADSAFE
@@ -2984,14 +3011,6 @@ class ThreadDataIter
 };
 
 #endif  
-
-
-
-
-
-
-extern bool
-SyncOptionsToVersion(JSContext *cx);
 
 } 
 
