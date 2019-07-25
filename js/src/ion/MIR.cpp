@@ -477,7 +477,7 @@ MBitAnd::foldsTo(bool useValueNumbers)
         return rhs; 
 
     if (EqualValues(useValueNumbers, lhs, rhs))
-        return lhs;
+        return lhs; 
     return this;
 }
 
