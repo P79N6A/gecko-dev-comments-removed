@@ -658,7 +658,8 @@ nsPlacesExpiration.prototype = {
       let visitDate = row.getResultByName("visit_date");
       let wholeEntry = row.getResultByName("whole_entry");
       
-      this._hsn.notifyOnPageExpired(uri, visitDate, wholeEntry, guid);
+      this._hsn.notifyOnPageExpired(uri, visitDate, wholeEntry, guid,
+                                    Ci.nsINavHistoryObserver.REASON_EXPIRED);
     }
   },
 
