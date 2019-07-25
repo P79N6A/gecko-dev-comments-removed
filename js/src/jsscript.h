@@ -675,7 +675,8 @@ struct JSScript : public js::gc::Cell {
     }
 
     
-    JS_FRIEND_API(size_t) jitDataSize();
+    JS_FRIEND_API(size_t) jitDataSize(size_t(*mus)(void *));
+    
 #endif
 
     jsbytecode *main() {

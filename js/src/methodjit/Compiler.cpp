@@ -1328,7 +1328,8 @@ mjit::Compiler::finishThisUp(JITScript **jitp)
 #endif
 
     JS_ASSERT(size_t(cursor - (uint8*)jit) == dataSize);
-    JS_ASSERT(jit->scriptDataSize() == dataSize);
+    
+    JS_ASSERT(jit->scriptDataSize(NULL) == dataSize);
 
     
     stubcc.fixCrossJumps(result, masm.size(), masm.size() + stubcc.size());
