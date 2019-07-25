@@ -56,6 +56,7 @@
 
 
 
+using namespace mozilla::dom;
 
 NS_IMPL_NS_NEW_HTML_ELEMENT(Label)
 
@@ -105,8 +106,7 @@ nsHTMLLabelElement::GetControl(nsIDOMHTMLElement** aElement)
 {
   *aElement = nsnull;
 
-  nsCOMPtr<nsIContent> content = GetControlContent();
-  nsCOMPtr<nsIDOMHTMLElement> element = do_QueryInterface(content);
+  nsCOMPtr<nsIDOMHTMLElement> element = do_QueryInterface(GetLabeledElement());
 
   element.swap(*aElement);
   return NS_OK;
@@ -121,9 +121,7 @@ nsHTMLLabelElement::Focus()
   
   nsIFocusManager* fm = nsFocusManager::GetFocusManager();
   if (fm) {
-    nsCOMPtr<nsIContent> content = GetControlContent();
-
-    nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(content);
+    nsCOMPtr<nsIDOMElement> elem = do_QueryInterface(GetLabeledElement());
     if (elem)
       fm->SetFocus(elem, 0);
   }
@@ -187,7 +185,8 @@ nsHTMLLabelElement::PostHandleEvent(nsEventChainPostVisitor& aVisitor)
     return NS_OK;
   }
 
-  nsCOMPtr<nsIContent> content = GetControlContent();
+  
+  nsRefPtr<Element> content = GetLabeledElement();
 
   if (content && !EventTargetIn(aVisitor.mEvent, content, this)) {
     mHandlingEvent = PR_TRUE;
@@ -299,9 +298,9 @@ nsHTMLLabelElement::PerformAccesskey(PRBool aKeyCausesActivation,
                                      PRBool aIsTrustedEvent)
 {
   if (!aKeyCausesActivation) {
-    nsCOMPtr<nsIContent> content = GetControlContent();
-    if (content)
-      content->PerformAccesskey(aKeyCausesActivation, aIsTrustedEvent);
+    nsRefPtr<Element> element = GetLabeledElement();
+    if (element)
+      element->PerformAccesskey(aKeyCausesActivation, aIsTrustedEvent);
   } else {
     nsPresContext *presContext = GetPresContext();
     if (!presContext)
@@ -320,15 +319,15 @@ nsHTMLLabelElement::PerformAccesskey(PRBool aKeyCausesActivation,
   }
 }
 
-already_AddRefed<nsIContent>
-nsHTMLLabelElement::GetControlContent()
+Element*
+nsHTMLLabelElement::GetLabeledElement()
 {
   nsAutoString elementId;
 
   if (!GetAttr(kNameSpaceID_None, nsGkAtoms::_for, elementId)) {
     
     
-    return GetFirstFormControl(this);
+    return GetFirstDescendantFormControl();
   }
 
   
@@ -338,41 +337,31 @@ nsHTMLLabelElement::GetControlContent()
     return nsnull;
   }
 
-  nsIContent* content = doc->GetElementById(elementId);
-  if (!content) {
+  Element* element = doc->GetElementById(elementId);
+  if (!element) {
     return nsnull;
   }
 
-  nsCOMPtr<nsIFormControl> element = do_QueryInterface(content);
-  if (element && element->IsLabelableControl()) {
+  nsCOMPtr<nsIFormControl> controlElement = do_QueryInterface(element);
+  if (controlElement && controlElement->IsLabelableControl()) {
     
-    element.forget();
-    return content;
+    return element;
   }
 
   return nsnull;
 }
 
-already_AddRefed<nsIContent>
-nsHTMLLabelElement::GetFirstFormControl(nsIContent *current)
+Element*
+nsHTMLLabelElement::GetFirstDescendantFormControl()
 {
-  PRUint32 numNodes = current->GetChildCount();
-
-  for (PRUint32 i = 0; i < numNodes; i++) {
-    nsIContent *child = current->GetChildAt(i);
-    if (!child) {
-      continue;
-    }
-
-    nsCOMPtr<nsIFormControl> element = do_QueryInterface(child);
+  
+  for (nsINode* cur = static_cast<nsINode*>(this)->GetFirstChild();
+       cur;
+       cur = cur->GetNextNode(this)) {
+    nsCOMPtr<nsIFormControl> element = do_QueryInterface(cur);
     if (element && element->IsLabelableControl()) {
-      NS_ADDREF(child);
-      return child;
-    }
-
-    nsIContent* content = GetFirstFormControl(child).get();
-    if (content) {
-      return content;
+      NS_ASSERTION(cur->IsElement(), "How did that happen?");
+      return cur->AsElement();
     }
   }
 
