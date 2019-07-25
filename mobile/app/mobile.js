@@ -65,6 +65,11 @@ pref("browser.sessionhistory.max_total_viewers", 0);
 pref("browser.sessionhistory.max_entries", 50);
 
 
+pref("mozilla.widget.force-24bpp", true);
+pref("mozilla.widget.use-buffer-pixmap", true);
+pref("mozilla.widget.disable-native-theme", true);
+
+
 pref("browser.download.useDownloadDir", true);
 pref("browser.download.folderList", 1); 
 pref("browser.download.manager.showAlertOnComplete", false);
