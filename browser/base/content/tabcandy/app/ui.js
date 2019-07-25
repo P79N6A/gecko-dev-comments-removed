@@ -355,7 +355,7 @@ window.Page = {
     
     if (doSetup) {
       iQ.timeout(function() { 
-        let visibleTabCount = Tabbar.getVisibleTabs().length;
+        let visibleTabCount = Tabbar.getVisibleTabCount();
    
         if(focusTab != UI.currentTab) {
           
