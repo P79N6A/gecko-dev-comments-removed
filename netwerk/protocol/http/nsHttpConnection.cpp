@@ -740,8 +740,13 @@ nsHttpConnection::OnHeadersAvailable(nsAHttpTransaction *trans,
         }
     }
     mKeepAliveMask = mKeepAlive;
-    mConnInfo->SetSupportsPipelining(mSupportsPipelining);
 
+    
+    
+    
+    
+    mSupportsPipelining = mConnInfo->SetSupportsPipelining(mSupportsPipelining);
+    
     
     
     
