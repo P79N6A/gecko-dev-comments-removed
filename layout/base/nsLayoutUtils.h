@@ -814,6 +814,12 @@ public:
   
 
 
+
+  static nsIFrame* GetParentOrPlaceholderForCrossDoc(nsIFrame* aFrame);
+
+  
+
+
   static nsIFrame*
   GetNextContinuationOrSpecialSibling(nsIFrame *aFrame);
 
