@@ -74,10 +74,6 @@
 #ifdef XP_WIN
 #include <windows.h>
 #include <shlobj.h>
-
-#ifndef CSIDL_LOCAL_APPDATA
-#define CSIDL_LOCAL_APPDATA             0x001C
-#endif
 #endif
 #ifdef XP_MACOSX
 #include "nsILocalFileMac.h"
