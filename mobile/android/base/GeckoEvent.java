@@ -5,27 +5,21 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.gfx.DisplayPortMetrics;
-import org.mozilla.gecko.gfx.IntSize;
-import org.mozilla.gecko.gfx.ViewportMetrics;
-import android.os.*;
 import android.app.*;
-import android.view.*;
 import android.content.*;
 import android.graphics.*;
-import android.widget.*;
 import android.hardware.*;
 import android.location.*;
-import android.util.FloatMath;
+import android.os.*;
 import android.util.DisplayMetrics;
-import android.graphics.PointF;
-import android.text.format.Time;
-import android.os.SystemClock;
-import java.lang.Math;
-import java.lang.System;
-import java.nio.ByteBuffer;
-
 import android.util.Log;
+import android.view.*;
+import android.widget.*;
+
+import org.mozilla.gecko.gfx.DisplayPortMetrics;
+import org.mozilla.gecko.gfx.ViewportMetrics;
+
+import java.nio.ByteBuffer;
 
 
 
