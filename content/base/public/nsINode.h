@@ -377,13 +377,6 @@ public:
   
 
 
-  bool IsContent() const {
-    return IsNodeOfType(eCONTENT);
-  }
-
-  
-
-
 
   nsIContent* AsContent();
 
@@ -1283,6 +1276,8 @@ private:
     
     NodeMayHaveDOMMutationObserver,
     
+    NodeIsContent,
+    
     BooleanFlagCount
   };
 
@@ -1311,6 +1306,7 @@ public:
     { return GetBoolFlag(NodeHasRenderingObservers); }
   void SetHasRenderingObservers(bool aValue)
     { SetBoolFlag(NodeHasRenderingObservers, aValue); }
+  bool IsContent() const { return GetBoolFlag(NodeIsContent); }
   bool HasID() const { return GetBoolFlag(ElementHasID); }
   bool MayHaveStyle() const { return GetBoolFlag(ElementMayHaveStyle); }
   bool HasName() const { return GetBoolFlag(ElementHasName); }
@@ -1349,6 +1345,7 @@ public:
 protected:
   void SetParentIsContent(bool aValue) { SetBoolFlag(ParentIsContent, aValue); }
   void SetInDocument() { SetBoolFlag(IsInDocument); }
+  void SetNodeIsContent() { SetBoolFlag(NodeIsContent); }
   void ClearInDocument() { ClearBoolFlag(IsInDocument); }
   void SetIsElement() { SetBoolFlag(NodeIsElement); }
   void ClearIsElement() { ClearBoolFlag(NodeIsElement); }
