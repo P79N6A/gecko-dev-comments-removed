@@ -1306,7 +1306,7 @@ nsHTMLEditor::DeleteRow(nsIDOMElement *aTable, PRInt32 aRowIndex)
 
   
   
-  nsTArray<nsIDOMElement*> spanCellList;
+  nsTArray<nsCOMPtr<nsIDOMElement> > spanCellList;
   nsTArray<PRInt32> newSpanList;
 
   
@@ -2144,7 +2144,7 @@ nsHTMLEditor::JoinTableCells(bool aMergeNonContiguousContents)
     }
   
     
-    nsTArray<nsIDOMElement*> deleteList;
+    nsTArray<nsCOMPtr<nsIDOMElement> > deleteList;
 
     
     for (rowIndex = 0; rowIndex < rowCount; rowIndex++)
