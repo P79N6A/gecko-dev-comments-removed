@@ -1529,6 +1529,77 @@ nsFrameLoader::UpdateBaseWindowPositionAndSize(nsIFrame *aIFrame)
   return NS_OK;
 }
 
+NS_IMETHODIMP
+nsFrameLoader::ScrollViewportTo(float aXpx, float aYpx)
+{
+  ViewportConfig config(mViewportConfig);
+  config.mScrollOffset = nsPoint(nsPresContext::CSSPixelsToAppUnits(aXpx),
+                                nsPresContext::CSSPixelsToAppUnits(aYpx));
+  return UpdateViewportConfig(config);
+}
+
+NS_IMETHODIMP
+nsFrameLoader::ScrollViewportBy(float aDXpx, float aDYpx)
+{
+  ViewportConfig config(mViewportConfig);
+  config.mScrollOffset.MoveBy(nsPresContext::CSSPixelsToAppUnits(aDXpx),
+                             nsPresContext::CSSPixelsToAppUnits(aDYpx));
+  return UpdateViewportConfig(config);
+}
+
+NS_IMETHODIMP
+nsFrameLoader::SetViewportScale(float aXScale, float aYScale)
+{
+  ViewportConfig config(mViewportConfig);
+  config.mXScale = aXScale;
+  config.mYScale = aYScale;
+  return UpdateViewportConfig(config);
+}
+
+NS_IMETHODIMP
+nsFrameLoader::GetViewportScrollX(float* aViewportScrollX)
+{
+  *aViewportScrollX =
+    nsPresContext::AppUnitsToFloatCSSPixels(mViewportConfig.mScrollOffset.x);
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+nsFrameLoader::GetViewportScrollY(float* aViewportScrollY)
+{
+  *aViewportScrollY =
+    nsPresContext::AppUnitsToFloatCSSPixels(mViewportConfig.mScrollOffset.y);
+  return NS_OK;
+}
+
+nsresult
+nsFrameLoader::UpdateViewportConfig(const ViewportConfig& aNewConfig)
+{
+  if (aNewConfig == mViewportConfig) {
+    return NS_OK;
+  }
+  mViewportConfig = aNewConfig;
+
+  
+  
+  nsIFrame* frame = GetPrimaryFrameOfOwningContent();
+  if (!frame) {
+    
+    return NS_ERROR_NOT_AVAILABLE;
+  }
+
+  
+  
+  nsRect rect = nsRect(nsPoint(0, 0), frame->GetRect().Size());
+  
+  
+  
+  
+  frame->InvalidateWithFlags(rect, nsIFrame::INVALIDATE_NO_THEBES_LAYERS);
+
+  return NS_OK;
+}
+
 nsIntSize
 nsFrameLoader::GetSubDocumentSize(const nsIFrame *aIFrame)
 {

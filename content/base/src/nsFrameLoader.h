@@ -47,6 +47,7 @@
 #include "nsIDocShell.h"
 #include "nsStringFwd.h"
 #include "nsIFrameLoader.h"
+#include "nsPoint.h"
 #include "nsSize.h"
 #include "nsIURI.h"
 #include "nsAutoPtr.h"
@@ -109,6 +110,47 @@ protected:
   {}
 
 public:
+  
+
+
+
+
+
+
+
+
+  struct ViewportConfig {
+    ViewportConfig()
+      : mScrollOffset(0, 0)
+      , mXScale(1.0)
+      , mYScale(1.0)
+    {}
+
+    
+
+    PRBool operator==(const ViewportConfig& aOther) const
+    {
+      return (mScrollOffset == aOther.mScrollOffset &&
+              mXScale == aOther.mXScale &&
+              mYScale == aOther.mYScale);
+    }
+
+    
+    
+    
+    
+    
+    
+    nsPoint mScrollOffset;
+    
+    
+    
+    
+    
+    float mXScale;
+    float mYScale;
+  };
+
   ~nsFrameLoader() {
     mNeedsAsyncDestroy = PR_TRUE;
     if (mMessageManager) {
@@ -206,6 +248,8 @@ public:
 #endif
   nsFrameMessageManager* GetFrameMessageManager() { return mMessageManager; }
 
+  const ViewportConfig& GetViewportConfig() { return mViewportConfig; }
+
 private:
 
 #ifdef MOZ_IPC
@@ -238,6 +282,8 @@ private:
   bool ShowRemoteFrame(const nsIntSize& size);
 #endif
 
+  nsresult UpdateViewportConfig(const ViewportConfig& aNewConfig);
+
   nsCOMPtr<nsIDocShell> mDocShell;
   nsCOMPtr<nsIURI> mURIToLoad;
   nsIContent *mOwnerContent; 
@@ -268,6 +314,7 @@ private:
   TabParent* mRemoteBrowser;
 #endif
 
+  ViewportConfig mViewportConfig;
 };
 
 #endif
