@@ -137,7 +137,7 @@ PR_IMPLEMENT(PRStatus) PR_NewThreadPrivateIndex(
     PR_ASSERT(NULL != newIndex);
     PR_ASSERT(NULL != _pr_tpd_destructors);
 
-    index = PR_AtomicIncrement(&_pr_tpd_highwater) - 1;  
+    index = PR_ATOMIC_INCREMENT(&_pr_tpd_highwater) - 1;  
     if (_PR_TPD_LIMIT <= index)
     {
         PR_SetError(PR_TPD_RANGE_ERROR, 0);

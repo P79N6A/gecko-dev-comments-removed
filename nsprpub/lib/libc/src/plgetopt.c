@@ -177,13 +177,13 @@ PR_IMPLEMENT(PLOptStatus) PL_GetNextOpt(PLOptState *opt)
 
 
 
-
     if (internal->minus == 2) 
     {
         char * foundEqual = strchr(internal->xargv,'=');
         PRIntn optNameLen = foundEqual ? (foundEqual - internal->xargv) :
                             strlen(internal->xargv);
         const PLLongOpt *longOpt = internal->longOpts;
+        PLOptStatus result = PL_OPT_BAD;
 
         opt->option = 0;
         opt->value  = NULL;
@@ -197,19 +197,31 @@ PR_IMPLEMENT(PLOptStatus) PL_GetNextOpt(PLOptState *opt)
             
             opt->longOptIndex = longOpt - internal->longOpts;
             opt->longOption   = longOpt->longOption;
+            
+            
+
             if (foundEqual) 
             {
-                opt->value = foundEqual[1] ? foundEqual + 1 : NULL;
+                opt->value = foundEqual + 1;
             }
             else if (longOpt->valueRequired)
             {
-                opt->value = internal->argv[++(internal->xargc)];
+                
+                if (internal->xargc + 1 < internal->argc)
+                {
+                    opt->value = internal->argv[++(internal->xargc)];
+                }
+                
+                else
+                {
+                    break; 
+                }
             }
-            internal->xargv = &static_Nul; 
-            return PL_OPT_OK;
+            result = PL_OPT_OK;
+            break;
         }
         internal->xargv = &static_Nul; 
-        return PL_OPT_BAD;
+        return result;
     }
     if (internal->minus)
     {
@@ -228,9 +240,22 @@ PR_IMPLEMENT(PLOptStatus) PL_GetNextOpt(PLOptState *opt)
 
                 if (':' == internal->options[cop + 1])
                 {
-                    if (0 != *internal->xargv) 
+                    
+                    if (0 != *internal->xargv)
+                    {
+                        opt->value = internal->xargv;
+                    }
+                    
+                    else if (internal->xargc + 1 < internal->argc)
+                    {
+                        opt->value = internal->argv[++(internal->xargc)];
+                    }
+                    
+                    else
+                    {
                         return PL_OPT_BAD;
-                    opt->value = internal->argv[++(internal->xargc)];
+                    }
+
                     internal->xargv = &static_Nul;
                     internal->minus = 0;
                 }
@@ -242,6 +267,7 @@ PR_IMPLEMENT(PLOptStatus) PL_GetNextOpt(PLOptState *opt)
         internal->xargv += 1;  
         return PL_OPT_BAD;
     }
+
     
 
 
