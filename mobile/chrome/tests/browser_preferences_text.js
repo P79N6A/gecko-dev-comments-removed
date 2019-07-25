@@ -62,7 +62,6 @@ function runNextTest() {
 
 gTests.push({
   desc: "Verify Preferences and Text",
-  _currentTab : null,
 
   run: function(){
     var prefs = getPreferencesElements();
@@ -178,7 +177,6 @@ gTests.push({
 
     prefs.panelClose.click()
     is(document.getElementById("panel-container").hidden, true, "Preferences panel should be closed");
-    Browser.closeTab(gCurrentTest._currentTab);
     runNextTest();
   }
 });

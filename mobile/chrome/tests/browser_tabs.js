@@ -74,7 +74,11 @@ function done() {
   Browser.closeTab(new_tab_01);
   Browser.closeTab(new_tab_02);
   Browser.closeTab(new_tab_03);
+
   
+  
+  Browser.hideSidebars();
+
   
   finish();
 }
