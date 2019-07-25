@@ -203,9 +203,6 @@ nsSMILTimedElement::nsSMILTimedElement()
 nsSMILTimedElement::~nsSMILTimedElement()
 {
   
-  mElementState = STATE_POSTACTIVE;
-
-  
   for (PRUint32 i = 0; i < mBeginInstances.Length(); ++i) {
     mBeginInstances[i]->Unlink();
   }
@@ -218,10 +215,8 @@ nsSMILTimedElement::~nsSMILTimedElement()
   
   
   
-  if (mCurrentInterval) {
-    mCurrentInterval->Unlink();
-    mCurrentInterval = nsnull;
-  }
+  mElementState = STATE_POSTACTIVE;
+  ResetCurrentInterval();
 
   for (PRInt32 i = mOldIntervals.Length() - 1; i >= 0; --i) {
     mOldIntervals[i]->Unlink();
@@ -703,14 +698,7 @@ nsSMILTimedElement::Rewind()
                     mSeekState == SEEK_BACKWARD_FROM_ACTIVE,
                     "Rewind in the middle of a forwards seek?");
 
-  
-  
-  mElementState = STATE_STARTUP;
-  mCurrentRepeatIteration = 0;
-
-  
-  
-  RewindTiming();
+  ClearIntervalProgress();
 
   UnsetBeginSpec(RemoveNonDynamic);
   UnsetEndSpec(RemoveNonDynamic);
@@ -1117,6 +1105,13 @@ void
 nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
 {
   
+  
+  if (mElementState != STATE_STARTUP) {
+    mSeekState = SEEK_NOT_SEEKING;
+    Rewind();
+  }
+
+  
   PRUint32 count = mBeginSpecs.Length();
   for (PRUint32 i = 0; i < count; ++i) {
     mBeginSpecs[i]->ResolveReferences(aContextNode);
@@ -1128,22 +1123,8 @@ nsSMILTimedElement::BindToTree(nsIContent* aContextNode)
   }
 
   
-  nsSMILTime containerTime = GetTimeContainer()->GetCurrentTime();
-  PRBool localRewind =
-    mElementState != STATE_STARTUP && mCurrentInterval &&
-    mCurrentInterval->Begin()->Time().GetMillis() > containerTime;
-
-  if (localRewind) {
-    Rewind();
-    
-    
-    GetTimeContainer()->SetCurrentTime(containerTime);
-  } else {
-    
-    
-    mPrevRegisteredMilestone = sMaxMilestone;
-    RegisterMilestone();
-  }
+  mPrevRegisteredMilestone = sMaxMilestone;
+  RegisterMilestone();
 }
 
 void
@@ -1269,13 +1250,13 @@ nsSMILTimedElement::ClearSpecs(TimeValueSpecList& aSpecs,
 }
 
 void
-nsSMILTimedElement::RewindTiming()
+nsSMILTimedElement::ClearIntervalProgress()
 {
-  if (mCurrentInterval) {
-    mCurrentInterval->Unlink();
-    mCurrentInterval = nsnull;
-  }
+  mElementState = STATE_STARTUP;
+  mCurrentRepeatIteration = 0;
+  ResetCurrentInterval();
 
+  
   for (PRInt32 i = mOldIntervals.Length() - 1; i >= 0; --i) {
     mOldIntervals[i]->Unlink();
   }
@@ -1893,8 +1874,7 @@ nsSMILTimedElement::UpdateCurrentInterval(PRBool aForceChangeNotice)
 
     if (mElementState == STATE_ACTIVE || mElementState == STATE_WAITING) {
       mElementState = STATE_POSTACTIVE;
-      mCurrentInterval->Unlink();
-      mCurrentInterval = nsnull;
+      ResetCurrentInterval();
     }
   }
 }

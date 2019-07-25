@@ -409,7 +409,7 @@ protected:
   void              ClearSpecs(TimeValueSpecList& aSpecs,
                                InstanceTimeList& aInstances,
                                RemovalTestFunction aRemove);
-  void              RewindTiming();
+  void              ClearIntervalProgress();
   void              DoSampleAt(nsSMILTime aContainerTime, PRBool aEndOnly);
 
   
@@ -512,6 +512,18 @@ protected:
   const nsSMILInterval* GetPreviousInterval() const;
   PRBool            HasPlayed() const { return !mOldIntervals.IsEmpty(); }
   PRBool            EndHasEventConditions() const;
+
+  
+  
+  
+  void ResetCurrentInterval()
+  {
+    if (mCurrentInterval) {
+      
+      nsAutoPtr<nsSMILInterval> interval(mCurrentInterval);
+      interval->Unlink();
+    }
+  }
 
   
   PR_STATIC_CALLBACK(PLDHashOperator) NotifyNewIntervalCallback(
