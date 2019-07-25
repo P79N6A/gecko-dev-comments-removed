@@ -1627,10 +1627,7 @@ mjit::Compiler::emitReturn()
 
 
 
-
-
     masm.loadPtr(Address(JSFrameReg, offsetof(JSStackFrame, down)), Registers::ReturnReg);
-    masm.loadPtr(FrameAddress(offsetof(VMFrame, cx)), Registers::ArgReg1);
     masm.storePtr(Registers::ReturnReg, FrameAddress(offsetof(VMFrame, regs.fp)));
 
     JS_STATIC_ASSERT(Registers::ReturnReg != JSReturnReg_Data);
