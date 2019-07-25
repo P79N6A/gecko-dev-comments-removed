@@ -63,10 +63,6 @@ tabbrowser {
   display: block; 
 }
 
-.tabbrowser-tabs[drag] > .tabbrowser-tab {
-  pointer-events: none; 
-}
-
 .tabbrowser-tabs[drag] > .tabbrowser-tab[selected] {
   z-index: 2; 
 }
