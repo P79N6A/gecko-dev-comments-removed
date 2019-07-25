@@ -206,20 +206,14 @@ nsTableRowFrame::AppendFrames(ChildListID     aListID,
 {
   NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
 
-  
-  
-  
   const nsFrameList::Slice& newCells = mFrames.AppendFrames(nsnull, aFrameList);
 
   
   nsTableFrame *tableFrame =  nsTableFrame::GetTableFrame(this);
   for (nsFrameList::Enumerator e(newCells) ; !e.AtEnd(); e.Next()) {
-    nsTableCellFrame *cellFrame = do_QueryFrame(e.get());
-    NS_ASSERTION(cellFrame, "Unexpected frame");
-    if (cellFrame) {
-      
-      tableFrame->AppendCell(*cellFrame, GetRowIndex());
-    }
+    nsIFrame *childFrame = e.get();
+    NS_ASSERTION(IS_TABLE_CELL(childFrame->GetType()),"Not a table cell frame/pseudo frame construction failure");
+    tableFrame->AppendCell(static_cast<nsTableCellFrame&>(*childFrame), GetRowIndex());
   }
 
   PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
@@ -238,22 +232,19 @@ nsTableRowFrame::InsertFrames(ChildListID     aListID,
   NS_ASSERTION(aListID == kPrincipalList, "unexpected child list");
   NS_ASSERTION(!aPrevFrame || aPrevFrame->GetParent() == this,
                "inserting after sibling frame with different parent");
+  
+  const nsFrameList::Slice& newCells = mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
 
   
   nsTableFrame* tableFrame = nsTableFrame::GetTableFrame(this);
   
-  
-  
-  
   nsIAtom* cellFrameType = (tableFrame->IsBorderCollapse()) ? nsGkAtoms::bcTableCellFrame : nsGkAtoms::tableCellFrame;
   nsTableCellFrame* prevCellFrame = (nsTableCellFrame *)nsTableFrame::GetFrameAtOrBefore(this, aPrevFrame, cellFrameType);
   nsTArray<nsTableCellFrame*> cellChildren;
-  for (nsFrameList::Enumerator e(aFrameList); !e.AtEnd(); e.Next()) {
-    nsTableCellFrame *cellFrame = do_QueryFrame(e.get());
-    NS_ASSERTION(cellFrame, "Unexpected frame");
-    if (cellFrame) {
-      cellChildren.AppendElement(cellFrame);
-    }
+  for (nsFrameList::Enumerator e(newCells); !e.AtEnd(); e.Next()) {
+    nsIFrame *childFrame = e.get();
+    NS_ASSERTION(IS_TABLE_CELL(childFrame->GetType()),"Not a table cell frame/pseudo frame construction failure");
+    cellChildren.AppendElement(static_cast<nsTableCellFrame*>(childFrame));
   }
   
   PRInt32 colIndex = -1;
@@ -261,9 +252,6 @@ nsTableRowFrame::InsertFrames(ChildListID     aListID,
     prevCellFrame->GetColIndex(colIndex);
   }
   tableFrame->InsertCells(cellChildren, GetRowIndex(), colIndex);
-
-  
-  mFrames.InsertFrames(nsnull, aPrevFrame, aFrameList);
   
   PresContext()->PresShell()->FrameNeedsReflow(this, nsIPresShell::eTreeChange,
                                                NS_FRAME_HAS_DIRTY_CHILDREN);
