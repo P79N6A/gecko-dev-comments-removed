@@ -5,7 +5,6 @@
 
 
 const PREF_GETADDONS_CACHE_ENABLED = "extensions.getAddons.cache.enabled";
-const PREF_DISCOVERURL = "extensions.webservice.discoverURL";
 const MAIN_URL = "https://example.com/" + RELATIVE_DIR + "discovery.html";
 
 var gManagerWindow;
@@ -36,15 +35,12 @@ var gProgressListener = {
 };
 
 function test() {
-  var currentURL = Services.prefs.getCharPref(PREF_DISCOVERURL);
-
   
   Services.prefs.setCharPref(PREF_DISCOVERURL, MAIN_URL);
   
   Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, true);
 
   registerCleanupFunction(function() {
-    Services.prefs.setCharPref(PREF_DISCOVERURL, currentURL);
     Services.prefs.setBoolPref(PREF_GETADDONS_CACHE_ENABLED, false);
   });
 
