@@ -206,6 +206,12 @@ public:
             return mModule;
         }
 
+        
+
+
+
+        nsCString Description() const;
+
     private:
         const mozilla::Module* mModule;
         nsCOMPtr<nsILocalFile> mFile;
