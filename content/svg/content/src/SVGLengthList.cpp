@@ -57,7 +57,7 @@ SVGLengthList::SetValueFromString(const nsAString& aValue)
   nsCharSeparatedTokenizerTemplate<IsSVGWhitespace>
     tokenizer(aValue, ',', nsCharSeparatedTokenizer::SEPARATOR_OPTIONAL);
 
-  nsCAutoString str;  
+  nsAutoCString str;  
 
   while (tokenizer.hasMoreTokens()) {
     SVGLength length;

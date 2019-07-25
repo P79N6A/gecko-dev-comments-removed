@@ -16,7 +16,7 @@
 static bool
 ServerIsNES3x(nsIHttpChannel *httpChannel)
 {
-    nsCAutoString server;
+    nsAutoCString server;
     httpChannel->GetResponseHeader(NS_LITERAL_CSTRING("Server"), server);
     
     

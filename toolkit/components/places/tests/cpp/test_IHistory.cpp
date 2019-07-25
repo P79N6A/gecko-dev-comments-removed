@@ -37,7 +37,7 @@ new_test_uri()
 {
   
   static int32_t specNumber = 0;
-  nsCAutoString spec = NS_LITERAL_CSTRING("http://mozilla.org/");
+  nsAutoCString spec = NS_LITERAL_CSTRING("http://mozilla.org/");
   spec.AppendInt(specNumber++);
 
   

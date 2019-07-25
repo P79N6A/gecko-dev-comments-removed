@@ -273,7 +273,7 @@ GfxInfo::AddCrashReportAnnotations()
 
   
 
-  nsCAutoString note;
+  nsAutoCString note;
   note.AppendPrintf("AdapterDescription: '%s'\n", mAdapterDescription.get());
 
   CrashReporter::AppendAppNotesToCrashReport(note);

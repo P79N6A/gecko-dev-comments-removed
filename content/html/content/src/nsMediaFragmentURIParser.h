@@ -65,7 +65,7 @@ private:
   bool ParseNPTSS(nsDependentSubstring& aString, uint32_t& aSecond);
 
   
-  nsCAutoString mHash;
+  nsAutoCString mHash;
 
   
   

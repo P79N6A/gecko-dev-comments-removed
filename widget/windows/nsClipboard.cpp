@@ -773,7 +773,7 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
 
     if ( IsInternetShortcut(filepath) ) {
       nsMemory::Free(*outData);
-      nsCAutoString url;
+      nsAutoCString url;
       ResolveShortcut( file, url );
       if ( !url.IsEmpty() ) {
         
@@ -794,7 +794,7 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
     }
     else {
       
-      nsCAutoString urlSpec;
+      nsAutoCString urlSpec;
       NS_GetURLSpecFromFile(file, urlSpec);
 
       

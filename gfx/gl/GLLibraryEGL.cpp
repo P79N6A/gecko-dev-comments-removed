@@ -44,7 +44,7 @@ static PRLibrary* LoadApitraceLibrary()
 
     
     
-    nsCAutoString logPath;
+    nsAutoCString logPath;
     logPath.AppendPrintf("%s/%s", getenv("GRE_HOME"), logFile.get());
 
     

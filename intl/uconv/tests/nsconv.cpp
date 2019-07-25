@@ -63,7 +63,7 @@ int main(int argc, const char** argv)
       if(strcmp(argv[i], "-f") == 0)
       {
         
-        nsCAutoString str;
+        nsAutoCString str;
 
         
         
@@ -88,7 +88,7 @@ int main(int argc, const char** argv)
       if(strcmp(argv[i], "-t") == 0)
       {
         
-        nsCAutoString str;
+        nsAutoCString str;
 
         
         

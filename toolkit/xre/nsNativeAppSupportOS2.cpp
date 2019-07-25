@@ -1095,12 +1095,12 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
                     
 
                     
-                    nsCAutoString url;
+                    nsAutoCString url;
                     ParseDDEArg(hsz2, 0, url);
 
                     
                     
-                    nsCAutoString windowID;
+                    nsAutoCString windowID;
                     ParseDDEArg(hsz2, 2, windowID);
                     
                     
@@ -1182,7 +1182,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 
                         
                         
-                        nsCAutoString   outpt( NS_LITERAL_CSTRING("\"") );
+                        nsAutoCString   outpt( NS_LITERAL_CSTRING("\"") );
                         
                         
                         outpt.Append( NS_LossyConvertUTF16toASCII( url ) );
@@ -1208,7 +1208,7 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
                 }
                 case topicActivate: {
                     
-                    nsCAutoString windowID;
+                    nsAutoCString windowID;
                     ParseDDEArg(hsz2, 0, windowID);
                     
                     
@@ -1259,12 +1259,12 @@ nsNativeAppSupportOS2::HandleDDENotification( ULONG idInst,
 #if MOZ_DEBUG_DDE
             printf( "Handling dde request: [%s]...\n", (char*)request );
 #endif
-            nsCAutoString url;
+            nsAutoCString url;
             ParseDDEArg((const char*) request, 0, url);
 
             
             
-            nsCAutoString windowID;
+            nsAutoCString windowID;
             ParseDDEArg((const char*) request, 2, windowID);
 
             
@@ -1362,7 +1362,7 @@ void nsNativeAppSupportOS2::ParseDDEArg( HSZ args, int index, nsCString& aString
     DWORD argLen = WinDdeQueryString( args, NULL, NULL, CP_WINANSI );
     
     if ( !argLen ) return;
-    nsCAutoString temp;
+    nsAutoCString temp;
     
     temp.SetLength( argLen );
     
@@ -1412,7 +1412,7 @@ nsNativeAppSupportOS2::HandleCommandLine(const char* aCmdLineString,
     int between, quoted, bSlashCount;
     int argc;
     const char *p;
-    nsCAutoString arg;
+    nsAutoCString arg;
 
     nsCOMPtr<nsICommandLineRunner> cmdLine
         (do_CreateInstance("@mozilla.org/toolkit/command-line;1"));

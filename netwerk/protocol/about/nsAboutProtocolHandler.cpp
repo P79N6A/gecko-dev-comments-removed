@@ -94,7 +94,7 @@ nsAboutProtocolHandler::NewURI(const nsACString &aSpec,
         
         
         
-        nsCAutoString spec;
+        nsAutoCString spec;
         rv = url->GetPath(spec);
         NS_ENSURE_SUCCESS(rv, rv);
         

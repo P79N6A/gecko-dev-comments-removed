@@ -273,7 +273,7 @@ nsLDAPSyncQuery::StartLDAPSearch()
 
     
     
-    nsCAutoString urlFilter;
+    nsAutoCString urlFilter;
     rv = mServerURL->GetFilter(urlFilter);
     if (NS_FAILED(rv)) {
         FinishLDAPQuery();
@@ -282,7 +282,7 @@ nsLDAPSyncQuery::StartLDAPSearch()
 
     
     
-    nsCAutoString dn;
+    nsAutoCString dn;
     rv = mServerURL->GetDn(dn);
     if (NS_FAILED(rv)) {
         FinishLDAPQuery();

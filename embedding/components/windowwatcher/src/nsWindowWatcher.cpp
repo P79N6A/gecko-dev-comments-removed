@@ -493,7 +493,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
                                   windowIsModalContentDialog = false;
   uint32_t                        chromeFlags;
   nsAutoString                    name;             
-  nsCAutoString                   features;         
+  nsAutoCString                   features;         
   nsCOMPtr<nsIURI>                uriToLoad;        
   nsCOMPtr<nsIDocShellTreeOwner>  parentTreeOwner;  
   nsCOMPtr<nsIDocShellTreeItem>   newDocShellItem;  
@@ -832,7 +832,7 @@ nsWindowWatcher::OpenWindowInternal(nsIDOMWindow *aParent,
         nsCOMPtr<nsIMarkupDocumentViewer> parentMuCV =
           do_QueryInterface(parentCV);
         if (parentMuCV) {
-          nsCAutoString charset;
+          nsAutoCString charset;
           nsresult res = parentMuCV->GetDefaultCharacterSet(charset);
           if (NS_SUCCEEDED(res)) {
             newMuCV->SetDefaultCharacterSet(charset);
@@ -1631,7 +1631,7 @@ nsWindowWatcher::WinHasOption(const char *aOptions, const char *aName,
   int32_t found = 0;
 
 #ifdef DEBUG
-    nsCAutoString options(aOptions);
+    nsAutoCString options(aOptions);
     NS_ASSERTION(options.FindCharInSet(" \n\r\t") == kNotFound, 
                   "There should be no whitespace in this string!");
 #endif

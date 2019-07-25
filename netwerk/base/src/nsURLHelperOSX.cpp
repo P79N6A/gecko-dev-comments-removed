@@ -55,7 +55,7 @@ static bool pathBeginsWithVolName(const nsACString& path, nsACString& firstPathC
   nsACString::const_iterator component_end(start);
   FindCharInReadable('/', component_end, directory_end);
   
-  nsCAutoString flatComponent((Substring(start, component_end)));
+  nsAutoCString flatComponent((Substring(start, component_end)));
   NS_UnescapeURL(flatComponent);
   int32_t foundIndex = gVolumeList->IndexOf(flatComponent);
   firstPathComponent = flatComponent;
@@ -115,14 +115,14 @@ net_GetURLSpecFromActualFile(nsIFile *aFile, nsACString &result)
   
   
   nsresult rv;
-  nsCAutoString ePath;
+  nsAutoCString ePath;
 
   
   rv = aFile->GetNativePath(ePath);
   if (NS_FAILED(rv))
     return rv;
 
-  nsCAutoString escPath;
+  nsAutoCString escPath;
   NS_NAMED_LITERAL_CSTRING(prefix, "file://");
       
   
@@ -153,7 +153,7 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
   if (NS_FAILED(rv))
     return rv;
   
-  nsCAutoString directory, fileBaseName, fileExtension, path;
+  nsAutoCString directory, fileBaseName, fileExtension, path;
   bool bHFSPath = false;
 
   rv = net_ParseFileURL(aURL, directory, fileBaseName, fileExtension);
@@ -168,7 +168,7 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
     
     
     
-    nsCAutoString possibleVolName;
+    nsAutoCString possibleVolName;
     if (pathBeginsWithVolName(directory, possibleVolName)) {        
       
       

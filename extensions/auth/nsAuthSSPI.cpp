@@ -332,7 +332,7 @@ nsAuthSSPI::GetNextToken(const void *inToken,
           
                 
                 
-                nsCAutoString hashString;
+                nsAutoCString hashString;
 
                 nsresult rv;
                 nsCOMPtr<nsICryptoHash> crypto;

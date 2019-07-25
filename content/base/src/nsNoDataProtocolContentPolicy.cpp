@@ -42,7 +42,7 @@ nsNoDataProtocolContentPolicy::ShouldLoad(uint32_t aContentType,
 
     
     
-    nsCAutoString scheme;
+    nsAutoCString scheme;
     aContentLocation->GetScheme(scheme);
     if (scheme.EqualsLiteral("http") ||
         scheme.EqualsLiteral("https") ||

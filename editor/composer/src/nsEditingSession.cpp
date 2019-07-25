@@ -307,7 +307,7 @@ nsEditingSession::SetupEditorOnWindow(nsIDOMWindow *aWindow)
   
   
   nsCOMPtr<nsIDOMDocument> doc;
-  nsCAutoString mimeCType;
+  nsAutoCString mimeCType;
 
   
   if (NS_SUCCEEDED(aWindow->GetDocument(getter_AddRefs(doc))) && doc)
@@ -626,7 +626,7 @@ nsEditingSession::OnStateChange(nsIWebProgress *aWebProgress,
   nsCOMPtr<nsIChannel> channel(do_QueryInterface(aRequest));
   if (channel)
   {
-    nsCAutoString contentType;
+    nsAutoCString contentType;
     channel->GetContentType(contentType);
     if (!contentType.IsEmpty())
       printf(" ++++++ MIMETYPE = %s\n", contentType.get());
@@ -1077,7 +1077,7 @@ nsEditingSession::EndPageLoad(nsIWebProgress *aWebProgress,
     printf("uri %s\n", spec.get());
   }
  
-  nsCAutoString contentType;
+  nsAutoCString contentType;
   aChannel->GetContentType(contentType);
   if (!contentType.IsEmpty())
     printf("   flags = %d, status = %d, MIMETYPE = %s\n", 

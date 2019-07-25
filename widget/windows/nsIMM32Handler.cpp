@@ -1205,7 +1205,7 @@ nsIMM32Handler::HandleComposition(nsWindow* aWindow,
     if (useA_API) {
       
       
-      nsCAutoString compANSIStr;
+      nsAutoCString compANSIStr;
       if (ConvertToANSIString(mCompositionString, GetKeyboardCodePage(),
                               compANSIStr)) {
         uint32_t maxlen = compANSIStr.Length();

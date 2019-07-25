@@ -661,7 +661,7 @@ GfxInfo::AddCrashReportAnnotations()
   
   
 
-  nsCAutoString note;
+  nsAutoCString note;
   
   note.Append("AdapterVendorID: ");
   note.Append(narrowVendorID);

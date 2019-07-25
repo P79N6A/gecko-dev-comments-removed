@@ -77,7 +77,7 @@ nsXTFService::CreateElement(nsIContent** aResult,
   
   if (!mFactoryHash.Get(aNodeInfo.get()->NamespaceID(), getter_AddRefs(factory))) {
     
-    nsCAutoString xtf_contract_id(NS_XTF_ELEMENT_FACTORY_CONTRACTID_PREFIX);
+    nsAutoCString xtf_contract_id(NS_XTF_ELEMENT_FACTORY_CONTRACTID_PREFIX);
     nsAutoString uri;
     aNodeInfo.get()->GetNamespaceURI(uri);
     AppendUTF16toUTF8(uri, xtf_contract_id);

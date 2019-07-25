@@ -150,7 +150,7 @@ txMozillaTextOutput::createResultDocument(nsIDOMDocument* aSourceDocument)
     
     if (!mOutputFormat.mEncoding.IsEmpty()) {
         NS_LossyConvertUTF16toASCII charset(mOutputFormat.mEncoding);
-        nsCAutoString canonicalCharset;
+        nsAutoCString canonicalCharset;
 
         if (NS_SUCCEEDED(nsCharsetAlias::GetPreferred(charset,
                                                       canonicalCharset))) {

@@ -281,7 +281,7 @@ PluginDocument::CreateSyntheticPluginDocument()
                           false);
 
   
-  nsCAutoString src;
+  nsAutoCString src;
   mDocumentURI->GetSpec(src);
   mPluginContent->SetAttr(kNameSpaceID_None, nsGkAtoms::src,
                           NS_ConvertUTF8toUTF16(src), false);

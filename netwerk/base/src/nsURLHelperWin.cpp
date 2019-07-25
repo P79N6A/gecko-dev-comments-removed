@@ -23,7 +23,7 @@ net_GetURLSpecFromActualFile(nsIFile *aFile, nsACString &result)
     
     path.ReplaceChar(PRUnichar(0x5Cu), PRUnichar(0x2Fu));
 
-    nsCAutoString escPath;
+    nsAutoCString escPath;
 
     
     
@@ -62,18 +62,18 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
 
     const nsACString *specPtr;
 
-    nsCAutoString buf;
+    nsAutoCString buf;
     if (net_NormalizeFileURL(aURL, buf))
         specPtr = &buf;
     else
         specPtr = &aURL;
     
-    nsCAutoString directory, fileBaseName, fileExtension;
+    nsAutoCString directory, fileBaseName, fileExtension;
     
     rv = net_ParseFileURL(*specPtr, directory, fileBaseName, fileExtension);
     if (NS_FAILED(rv)) return rv;
 
-    nsCAutoString path;
+    nsAutoCString path;
 
     if (!directory.IsEmpty()) {
         NS_EscapeURL(directory, esc_Directory|esc_AlwaysCopy, path);

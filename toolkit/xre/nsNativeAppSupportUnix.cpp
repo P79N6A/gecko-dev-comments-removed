@@ -431,7 +431,7 @@ nsNativeAppSupportUnix::Start(bool *aRetVal)
 
 
 
-  nsCAutoString applicationName;
+  nsAutoCString applicationName;
   if (gAppData->vendor) {
       applicationName.Append(gAppData->vendor);
       applicationName.Append(".");
@@ -528,7 +528,7 @@ nsNativeAppSupportUnix::Start(bool *aRetVal)
   
 
   
-  nsCAutoString path;
+  nsAutoCString path;
   char* argv1 = getenv("MOZ_APP_LAUNCHER");
 
   if(!argv1) {
@@ -542,7 +542,7 @@ nsNativeAppSupportUnix::Start(bool *aRetVal)
 
     if (NS_SUCCEEDED(rv)) {
       
-      nsCAutoString leafName;
+      nsAutoCString leafName;
       rv = executablePath->GetNativeLeafName(leafName);
       if (NS_SUCCEEDED(rv) && StringEndsWith(leafName, NS_LITERAL_CSTRING("-bin"))) {
         leafName.SetLength(leafName.Length() - strlen("-bin"));

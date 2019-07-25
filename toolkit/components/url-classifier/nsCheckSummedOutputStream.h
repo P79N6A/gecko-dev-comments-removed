@@ -65,7 +65,7 @@ public:
 
 protected:
   nsCOMPtr<nsICryptoHash> mHash;
-  nsCAutoString mCheckSum;
+  nsAutoCString mCheckSum;
 };
 
 

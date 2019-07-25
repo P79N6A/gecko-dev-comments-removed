@@ -106,7 +106,7 @@ nsNativeAppSupportQt::Start(bool* aRetVal)
 
 
 
-  nsCAutoString applicationName;
+  nsAutoCString applicationName;
   if (gAppData->vendor) {
       applicationName.Append(gAppData->vendor);
       applicationName.Append(".");

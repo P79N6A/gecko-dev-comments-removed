@@ -197,7 +197,7 @@ NS_IMETHODIMP nsSHEntry::GetTitle(PRUnichar** aTitle)
   
   if (mTitle.IsEmpty() && mURI) {
     
-    nsCAutoString spec;
+    nsAutoCString spec;
     if (NS_SUCCEEDED(mURI->GetSpec(spec)))
       AppendUTF8toUTF16(spec, mTitle);
   }

@@ -89,7 +89,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
   mCaps = aCaps;
 
   
-  nsCAutoString host;
+  nsAutoCString host;
   int32_t port = -1;
   bool usingSSL = false;
 
@@ -121,7 +121,7 @@ HttpBaseChannel::Init(nsIURI *aURI,
   mRequestHead.SetMethod(nsHttp::Get);
 
   
-  nsCAutoString hostLine;
+  nsAutoCString hostLine;
   rv = nsHttpHandler::GenerateHostPort(host, port, hostLine);
   if (NS_FAILED(rv)) return rv;
 
@@ -302,7 +302,7 @@ HttpBaseChannel::SetContentType(const nsACString& aContentType)
     if (!mResponseHead)
       return NS_ERROR_NOT_AVAILABLE;
 
-    nsCAutoString contentTypeBuf, charsetBuf;
+    nsAutoCString contentTypeBuf, charsetBuf;
     bool hadCharset;
     net_ParseContentType(aContentType, contentTypeBuf, charsetBuf, &hadCharset);
 
@@ -445,7 +445,7 @@ HttpBaseChannel::SetUploadStream(nsIInputStream *stream,
   
 
   if (stream) {
-    nsCAutoString method;
+    nsAutoCString method;
     bool hasHeaders;
 
     if (contentType.IsEmpty()) {
@@ -494,7 +494,7 @@ HttpBaseChannel::ExplicitSetUploadStream(nsIInputStream *aStream,
 
   if (!aStreamHasHeaders) {
     
-    nsCAutoString contentLengthStr;
+    nsAutoCString contentLengthStr;
     contentLengthStr.AppendInt(aContentLength);
     SetRequestHeader(NS_LITERAL_CSTRING("Content-Length"), contentLengthStr, 
                      false);
@@ -548,7 +548,7 @@ HttpBaseChannel::ApplyContentConversions()
     return NS_OK;
   }
 
-  nsCAutoString contentEncoding;
+  nsAutoCString contentEncoding;
   char *cePtr, *val;
   nsresult rv;
 
@@ -586,7 +586,7 @@ HttpBaseChannel::ApplyContentConversions()
       }
 
       nsCOMPtr<nsIStreamListener> converter;
-      nsCAutoString from(val);
+      nsAutoCString from(val);
       ToLowerCase(from);
       rv = serv->AsyncConvertData(from.get(),
                                   "uncompressed",
@@ -838,7 +838,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   rv = referrer->SchemeIs("wyciwyg", &match);
   if (NS_FAILED(rv)) return rv;
   if (match) {
-    nsCAutoString path;
+    nsAutoCString path;
     rv = referrer->GetPath(path);
     if (NS_FAILED(rv)) return rv;
 
@@ -852,7 +852,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
     if (slashIndex == kNotFound) return NS_ERROR_FAILURE;
 
     
-    nsCAutoString charset;
+    nsAutoCString charset;
     referrer->GetOriginCharset(charset);
 
     
@@ -898,8 +898,8 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
       return NS_OK;
 
     if (!gHttpHandler->SendSecureXSiteReferrer()) {
-      nsCAutoString referrerHost;
-      nsCAutoString host;
+      nsAutoCString referrerHost;
+      nsAutoCString host;
 
       rv = referrer->GetAsciiHost(referrerHost);
       if (NS_FAILED(rv)) return rv;
@@ -927,7 +927,7 @@ HttpBaseChannel::SetReferrer(nsIURI *referrer)
   rv = clone->SetUserPass(EmptyCString());
   if (NS_FAILED(rv)) return rv;
 
-  nsCAutoString spec;
+  nsAutoCString spec;
   rv = clone->GetAsciiSpec(spec);
   if (NS_FAILED(rv)) return rv;
 
@@ -1351,7 +1351,7 @@ HttpBaseChannel::GetEntityID(nsACString& aEntityID)
   }
 
   uint64_t size = LL_MAXUINT;
-  nsCAutoString etag, lastmod;
+  nsAutoCString etag, lastmod;
   if (mResponseHead) {
     
     

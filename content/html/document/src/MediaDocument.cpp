@@ -163,7 +163,7 @@ MediaDocument::StartDocumentLoad(const char*         aCommand,
   
   NS_ENSURE_TRUE(docShell, NS_OK); 
 
-  nsCAutoString charset;
+  nsAutoCString charset;
 
   nsCOMPtr<nsIAtom> csAtom;
   docShell->GetParentCharset(getter_AddRefs(csAtom));
@@ -298,12 +298,12 @@ MediaDocument::GetFileName(nsAString& aResult)
   if (!url)
     return;
 
-  nsCAutoString fileName;
+  nsAutoCString fileName;
   url->GetFileName(fileName);
   if (fileName.IsEmpty())
     return;
 
-  nsCAutoString docCharset;
+  nsAutoCString docCharset;
   
   
   

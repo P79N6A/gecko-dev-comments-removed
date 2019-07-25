@@ -36,7 +36,7 @@ CreateResetProfile(nsIToolkitProfileService* aProfileSvc, nsIToolkitProfile* *aN
 
   nsCOMPtr<nsIToolkitProfile> newProfile;
   
-  nsCAutoString newProfileName("default-");
+  nsAutoCString newProfileName("default-");
   newProfileName.Append(nsPrintfCString("%lld", PR_Now() / 1000));
   nsresult rv = aProfileSvc->CreateProfile(nullptr, 
                                            nullptr, 

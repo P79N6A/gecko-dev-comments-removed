@@ -652,7 +652,7 @@ main(int32_t argc, char *argv[])
         
         nsCOMPtr<nsICookie2> cookie2(do_QueryInterface(cookie));
         if (!cookie2) break;
-        nsCAutoString name;
+        nsAutoCString name;
         cookie2->GetName(name);
         if (name == NS_LITERAL_CSTRING("test2"))
           expiredCookie = cookie2;
@@ -709,8 +709,8 @@ main(int32_t argc, char *argv[])
       
       
       
-      nsCAutoString name;
-      nsCAutoString expected;
+      nsAutoCString name;
+      nsAutoCString expected;
       for (int32_t i = 0; i < 60; ++i) {
         name = NS_LITERAL_CSTRING("test");
         name.AppendInt(i);

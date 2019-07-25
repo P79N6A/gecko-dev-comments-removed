@@ -146,7 +146,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
                              nsIContentViewer** aDocViewer)
 {
 #ifdef NS_FUNCTION_TIMER
-  nsCAutoString channelURL__("N/A");
+  nsAutoCString channelURL__("N/A");
   nsCOMPtr<nsIURI> url__;
   if (aChannel && NS_SUCCEEDED(aChannel->GetURI(getter_AddRefs(url__)))) {
     url__->GetSpec(channelURL__);
@@ -158,7 +158,7 @@ nsContentDLF::CreateInstance(const char* aCommand,
   
   
   
-  nsCAutoString type;
+  nsAutoCString type;
 
   
   nsCOMPtr<nsIViewSourceChannel> viewSourceChannel = do_QueryInterface(aChannel);

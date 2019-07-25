@@ -23,7 +23,7 @@ X11Error(Display *display, XErrorEvent *event) {
   unsigned long age = NextRequest(display) - event->serial;
 
   
-  nsCAutoString message;
+  nsAutoCString message;
   if (event->request_code < 128) {
     
     message.AppendInt(event->request_code);
@@ -79,7 +79,7 @@ X11Error(Display *display, XErrorEvent *event) {
                           buffer, sizeof(buffer));
   }
 
-  nsCAutoString notes;
+  nsAutoCString notes;
   if (buffer[0]) {
     notes.Append(buffer);
   } else {

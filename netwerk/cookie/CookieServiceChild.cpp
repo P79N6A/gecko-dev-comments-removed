@@ -116,7 +116,7 @@ CookieServiceChild::GetCookieStringInternal(nsIURI *aHostURI,
   SerializeURI(aHostURI, uriParams);
 
   
-  nsCAutoString result;
+  nsAutoCString result;
   SendGetCookieString(uriParams, !!isForeign, aFromHttp, &result);
   if (!result.IsEmpty())
     *aCookieString = ToNewCString(result);

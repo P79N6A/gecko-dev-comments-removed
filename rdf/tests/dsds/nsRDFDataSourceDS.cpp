@@ -124,7 +124,7 @@ nsRDFDataSourceDataSource::Init(const char *uri)
 
   
   NS_NAMED_LITERAL_CSTRING(prefix, "rdf:datasource");
-  nsCAutoString mInnerURI;
+  nsAutoCString mInnerURI;
   mInnerURI = Substring(mURI, prefix.Length() + 1);
   
   if (mInnerURI.IsEmpty() || mInnerURI == prefix) {

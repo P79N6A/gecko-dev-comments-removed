@@ -202,7 +202,7 @@ nsImageFromClipboard ::GetEncodedImageStream (unsigned char * aClipboardData, co
     rv = ConvertColorBitMap((unsigned char *) (pGlobal + header->bmiHeader.biSize), header, rgbData);
     
     if (NS_SUCCEEDED(rv)) {
-      nsCAutoString encoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type="));
+      nsAutoCString encoderCID(NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type="));
 
       
       if (strcmp(aMIMEFormat, kJPGImageMime) == 0)

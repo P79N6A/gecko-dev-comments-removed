@@ -232,7 +232,7 @@ NS_IMETHODIMP imgTools::EncodeImageData(gfxImageSurface *aSurface,
   uint32_t bitmapDataLength, strideSize;
 
   
-  nsCAutoString encoderCID(
+  nsAutoCString encoderCID(
     NS_LITERAL_CSTRING("@mozilla.org/image/encoder;2?type=") + aMimeType);
 
   nsCOMPtr<imgIEncoder> encoder = do_CreateInstance(encoderCID.get());

@@ -46,7 +46,7 @@ nsUserInfo::GetFullname(PRUnichar **aFullname)
     printf("fullname = %s\n", pw->PW_GECOS);
 #endif
 
-    nsCAutoString fullname(pw->PW_GECOS);
+    nsAutoCString fullname(pw->PW_GECOS);
 
     
     
@@ -60,7 +60,7 @@ nsUserInfo::GetFullname(PRUnichar **aFullname)
 
     
     if (pw->pw_name) {
-        nsCAutoString username(pw->pw_name);
+        nsAutoCString username(pw->pw_name);
         if (!username.IsEmpty() && nsCRT::IsLower(username.CharAt(0)))
             username.SetCharAt(nsCRT::ToUpper(username.CharAt(0)), 0);
             
@@ -144,7 +144,7 @@ nsUserInfo::GetEmailAddress(char * *aEmailAddress)
 
     nsresult rv;
 
-    nsCAutoString emailAddress;
+    nsAutoCString emailAddress;
     nsXPIDLCString username;
     nsXPIDLCString domain;
 

@@ -254,7 +254,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
     
     uint32_t flavorCount;
     flavorList->Count(&flavorCount);
-    nsCAutoString foundFlavor;
+    nsAutoCString foundFlavor;
 
     for (uint32_t i = 0; i < flavorCount; ++i)
     {
@@ -273,7 +273,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
             {
                 
                 
-                foundFlavor = nsCAutoString(flavorStr);
+                foundFlavor = nsAutoCString(flavorStr);
 
                 
                 QString text = mimeData->text();
@@ -300,7 +300,7 @@ nsClipboard::GetNativeClipboardData(nsITransferable *aTransferable,
             {
                 
                 
-                foundFlavor = nsCAutoString(flavorStr);
+                foundFlavor = nsAutoCString(flavorStr);
 
                 
                 QString html = mimeData->html();

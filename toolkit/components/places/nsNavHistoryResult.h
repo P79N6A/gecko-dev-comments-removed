@@ -604,7 +604,7 @@ public:
   
   nsNavHistoryResultNode* FindChildURI(nsIURI* aURI, uint32_t* aNodeIndex)
   {
-    nsCAutoString spec;
+    nsAutoCString spec;
     if (NS_FAILED(aURI->GetSpec(spec)))
       return nullptr;
     return FindChildURI(spec, aNodeIndex);

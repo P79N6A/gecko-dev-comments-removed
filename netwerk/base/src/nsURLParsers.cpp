@@ -574,7 +574,7 @@ nsAuthURLParser::ParseServerInfo(const char *serverinfo, int32_t serverinfoLen,
         SET_RESULT(hostname, 0, colon - serverinfo);
         if (port) {
             
-            nsCAutoString buf(colon+1, serverinfoLen - (colon + 1 - serverinfo));
+            nsAutoCString buf(colon+1, serverinfoLen - (colon + 1 - serverinfo));
             if (buf.Length() == 0) {
                 *port = -1;
             }

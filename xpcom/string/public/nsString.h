@@ -55,7 +55,7 @@ PR_STATIC_ASSERT(sizeof(nsCString::char_type) == 1);
   
 
 
-class NS_LossyConvertUTF16toASCII : public nsCAutoString
+class NS_LossyConvertUTF16toASCII : public nsAutoCString
   {
     public:
       explicit
@@ -110,7 +110,7 @@ class NS_ConvertASCIItoUTF16 : public nsAutoString
   
 
 
-class NS_ConvertUTF16toUTF8 : public nsCAutoString
+class NS_ConvertUTF16toUTF8 : public nsAutoCString
   {
     public:
       explicit

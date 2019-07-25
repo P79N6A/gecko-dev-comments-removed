@@ -162,7 +162,7 @@ nsAsyncAlert::Run()
   
   
 
-  nsCAutoString showOncePref(mPrefName);
+  nsAutoCString showOncePref(mPrefName);
   showOncePref += ".show_once";
 
   bool showOnce = false;
@@ -278,7 +278,7 @@ nsSecurityWarningDialogs::ConfirmDialog(nsIInterfaceRequestor *ctx, const char *
   MOZ_ASSERT(NS_IsMainThread());
   mozilla::Telemetry::Accumulate(mozilla::Telemetry::SECURITY_UI, aBucket);
   
-  nsCAutoString showOncePref(prefName);
+  nsAutoCString showOncePref(prefName);
   showOncePref += ".show_once";
 
   bool showOnce = false;
