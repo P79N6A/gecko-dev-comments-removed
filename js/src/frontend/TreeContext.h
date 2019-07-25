@@ -104,39 +104,13 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     TCF_HAS_SINGLETONS =                      0x40,
 
     
-    TCF_IN_WITH =                             0x80,
-
     
     
     
     
     
     
-    
-    TCF_FUN_EXTENSIBLE_SCOPE =               0x100,
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    TCF_ARGUMENTS_HAS_LOCAL_BINDING =        0x200,
+    TCF_FUN_EXTENSIBLE_SCOPE =                0x80,
 
     
     
@@ -147,7 +121,30 @@ JS_ENUM_HEADER(TreeContextFlags, uint32_t)
     
     
     
-    TCF_DEFINITELY_NEEDS_ARGS_OBJ =          0x400
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    TCF_ARGUMENTS_HAS_LOCAL_BINDING =        0x100,
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    TCF_DEFINITELY_NEEDS_ARGS_OBJ =          0x200
 
 } JS_ENUM_FOOTER(TreeContextFlags);
 

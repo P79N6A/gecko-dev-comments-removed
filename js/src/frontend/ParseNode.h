@@ -1543,6 +1543,8 @@ struct FunctionBox : public ObjectBox
                         inLoop:1,               
                         level:JSFB_LEVEL_BITS;
     uint32_t            tcflags;
+    bool                inWith:1;               
+
 
     JSFunction *function() const { return (JSFunction *) object; }
 
