@@ -42,8 +42,34 @@
 #include "nsTraceRefcnt.h"
 #include <stdio.h> 
 #include "nsDebug.h"
+#include "nsTArray.h"
 
 class nsIFrame;
+namespace mozilla {
+namespace layout {
+  class FrameChildList;
+  enum FrameChildListID {
+      
+      kPrincipalList                = 0x1,
+      kPopupList                    = 0x2,
+      kCaptionList                  = 0x4,
+      kColGroupList                 = 0x8,
+      kSelectPopupList              = 0x10,
+      kAbsoluteList                 = 0x20,
+      kFixedList                    = 0x40,
+      kOverflowList                 = 0x80,
+      kOverflowContainersList       = 0x100,
+      kExcessOverflowContainersList = 0x200,
+      kOverflowOutOfFlowList        = 0x400,
+      kFloatList                    = 0x800,
+      kBulletList                   = 0x1000,
+      kPushedFloatsList             = 0x2000,
+      
+      
+      kNoReflowPrincipalList        = 0x4000
+  };
+}
+}
 
 
 
@@ -255,6 +281,14 @@ public:
 
 
   void ApplySetParent(nsIFrame* aParent) const;
+
+  
+
+
+
+
+  inline void AppendIfNonempty(nsTArray<mozilla::layout::FrameChildList>* aLists,
+                               mozilla::layout::FrameChildListID aListID) const;
 
 #ifdef IBMBIDI
   

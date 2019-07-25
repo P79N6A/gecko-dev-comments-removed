@@ -1,0 +1,80 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include "mozilla/layout/FrameChildList.h"
+
+#include "nsIFrame.h"
+
+namespace mozilla {
+namespace layout {
+
+FrameChildListIterator::FrameChildListIterator(const nsIFrame* aFrame)
+  : FrameChildListArrayIterator(mLists)
+{
+  aFrame->GetChildLists(&mLists);
+}
+
+#ifdef DEBUG
+const char*
+ChildListName(FrameChildListID aListID)
+{
+  switch (aListID) {
+    case kPrincipalList: return "";
+    case kPopupList: return "PopupList";
+    case kCaptionList: return "CaptionList";
+    case kColGroupList: return "ColGroupList";
+    case kSelectPopupList: return "SelectPopupList";
+    case kAbsoluteList: return "AbsoluteList";
+    case kFixedList: return "FixedList";
+    case kOverflowList: return "OverflowList";
+    case kOverflowContainersList: return "OverflowContainersList";
+    case kExcessOverflowContainersList: return "ExcessOverflowContainersList";
+    case kOverflowOutOfFlowList: return "OverflowOutOfFlowList";
+    case kFloatList: return "FloatList";
+    case kBulletList: return "BulletList";
+    case kPushedFloatsList: return "PushedFloatsList";
+    case kNoReflowPrincipalList: return "NoReflowPrincipalList";
+  }
+
+  NS_NOTREACHED("unknown list");
+  return "UNKNOWN_FRAME_CHILD_LIST";
+}
+#endif
+
+} 
+} 
