@@ -1664,6 +1664,9 @@ nsGfxScrollFrameInner::AsyncScrollCallback(void* anInstance, mozilla::TimeStamp 
   
   self->mAsyncScroll = nsnull;
   self->ScrollToImpl(self->mDestination, range);
+  
+  
+  self->mDestination = self->GetScrollPosition();
 }
 
 void
@@ -1711,6 +1714,9 @@ nsGfxScrollFrameInner::ScrollToWithOrigin(nsPoint aScrollPosition,
     
     mAsyncScroll = nsnull;
     ScrollToImpl(mDestination, range);
+    
+    
+    mDestination = GetScrollPosition();
     return;
   }
 
@@ -1731,6 +1737,9 @@ nsGfxScrollFrameInner::ScrollToWithOrigin(nsPoint aScrollPosition,
       mAsyncScroll = nsnull;
       
       ScrollToImpl(mDestination, range);
+      
+      
+      mDestination = GetScrollPosition();
       return;
     }
   }
