@@ -41,6 +41,7 @@ package org.mozilla.gecko.sync.repositories.android;
 import java.util.ArrayList;
 import java.util.HashMap;
 
+import org.mozilla.gecko.sync.Utils;
 import org.mozilla.gecko.sync.repositories.InactiveSessionException;
 import org.mozilla.gecko.sync.repositories.InvalidRequestException;
 import org.mozilla.gecko.sync.repositories.InvalidSessionTransitionException;
@@ -342,6 +343,15 @@ public abstract class AndroidBrowserRepositorySession extends RepositorySession 
     this.fetchSince(0, delegate);
   }
 
+  private void trace(String m) {
+    if (Utils.ENABLE_TRACE_LOGGING) {
+      if (Utils.LOG_TO_STDOUT) {
+        System.out.println(LOG_TAG + "::TRACE " + m);
+      }
+      Log.d(LOG_TAG, m);
+    }
+  }
+
   @Override
   public void store(final Record record) throws NoStoreDelegateException {
     if (delegate == null) {
@@ -366,6 +376,8 @@ public abstract class AndroidBrowserRepositorySession extends RepositorySession 
         
         
         
+        
+        
         if (!checkRecordType(record)) {
           Log.d(LOG_TAG, "Ignoring record " + record.guid + " due to unknown record type.");
 
@@ -386,10 +398,17 @@ public abstract class AndroidBrowserRepositorySession extends RepositorySession 
             record.androidID = insert(record);
           } else if (existingRecord != null) {
 
+            
+            
+            
+            if (record.deleted && existingRecord.lastModified > record.lastModified) {
+              delegate.onRecordStoreSucceeded(record);
+              return;
+            }
+            
+            existingRecord = transformRecord(existingRecord);
             dbHelper.delete(existingRecord);
-            
-            
-            if (!record.deleted || (record.deleted && existingRecord.lastModified > record.lastModified)) {
+            if (!record.deleted) {
               
               Record store = reconcileRecords(existingRecord, record);
               record.androidID = insert(store);

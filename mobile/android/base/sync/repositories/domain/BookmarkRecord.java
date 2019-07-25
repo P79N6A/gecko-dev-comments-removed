@@ -95,6 +95,51 @@ public class BookmarkRecord extends Record {
            parentID + "/" + androidParentID + "/" + parentName + ">";
   }
 
+  
+  @SuppressWarnings("unchecked")
+  protected JSONArray copyChildren() {
+    if (this.children == null) {
+      return null;
+    }
+    JSONArray children = new JSONArray();
+    children.addAll(this.children);
+    return children;
+  }
+
+  @SuppressWarnings("unchecked")
+  protected JSONArray copyTags() {
+    if (this.tags == null) {
+      return null;
+    }
+    JSONArray tags = new JSONArray();
+    tags.addAll(this.tags);
+    return tags;
+  }
+
+  @Override
+  public Record copyWithIDs(String guid, long androidID) {
+    BookmarkRecord out = new BookmarkRecord(guid, this.collection, this.lastModified, this.deleted);
+    out.androidID = androidID;
+    out.sortIndex = this.sortIndex;
+
+    
+    out.title           = this.title;
+    out.bookmarkURI     = this.bookmarkURI;
+    out.description     = this.description;
+    out.keyword         = this.keyword;
+    out.parentID        = this.parentID;
+    out.parentName      = this.parentName;
+    out.androidParentID = this.androidParentID;
+    out.type            = this.type;
+    out.pos             = this.pos;
+    out.androidPosition = this.androidPosition;
+
+    out.children        = this.copyChildren();
+    out.tags            = this.copyTags();
+
+    return out;
+  }
+
   @Override
   public void initFromPayload(CryptoRecord payload) {
     ExtendedJSONObject p = payload.payload;
@@ -185,15 +230,14 @@ public class BookmarkRecord extends Record {
   }
 
   @Override
-  public boolean equals(Object o) {
-    trace("Calling BookmarkRecord.equals.");
-    if (!(o instanceof BookmarkRecord)) {
+  public boolean equalPayloads(Object o) {
+    trace("Calling BookmarkRecord.equalPayloads.");
+    if (o == null || !(o instanceof BookmarkRecord)) {
       return false;
     }
 
     BookmarkRecord other = (BookmarkRecord) o;
-    
-    if (!super.equals(other)) {
+    if (!super.equalPayloads(other)) {
       return false;
     }
 
@@ -236,7 +280,14 @@ public class BookmarkRecord extends Record {
         && RepoUtils.stringsEqual(this.keyword, other.keyword)
         && jsonArrayStringsEqual(this.tags, other.tags);
   }
+
   
+  @Override
+  public boolean congruentWith(Object o) {
+    return this.equalPayloads(o) &&
+           super.congruentWith(o);
+  }
+
   
   
   
@@ -247,7 +298,6 @@ public class BookmarkRecord extends Record {
     if (a != null && b == null) return false;
     return RepoUtils.stringsEqual(a.toJSONString(), b.toJSONString());
   }
-
 }
 
 

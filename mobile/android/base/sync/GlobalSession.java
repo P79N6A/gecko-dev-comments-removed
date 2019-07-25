@@ -185,8 +185,7 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
     config.syncKeyBundle = syncKeyBundle;
     
 
-    
-    this.synchronizerConfigurations = new SynchronizerConfigurations(persisted);
+    assert(null == persisted);
     prepareStages();
   }
 
@@ -695,24 +694,5 @@ public class GlobalSession implements CredentialsSource, PrefsSource {
       throw new MetaGlobalMissingEnginesException();
     }
     return this.config.metaGlobal.engines.get(engineName) != null;
-  }
-
-  
-
-
-
-
-
-  public SynchronizerConfiguration configForEngine(String engineName) {
-    
-    SynchronizerConfiguration stored = this.getSynchronizerConfigurations().forEngine(engineName);
-    if (stored == null) {
-      return new SynchronizerConfiguration(engineName, new RepositorySessionBundle(0), new RepositorySessionBundle(0));
-    }
-    return stored;
-  }
-  private SynchronizerConfigurations synchronizerConfigurations;
-  private SynchronizerConfigurations getSynchronizerConfigurations() {
-    return this.synchronizerConfigurations;
   }
 }
