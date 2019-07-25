@@ -155,13 +155,13 @@ NS_IMETHODIMP nsHTMLEditor::LoadHTML(const nsAString & aInputString)
   
   ForceCompositionEnd();
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpLoadHTML, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::loadHTML, nsIEditor::eNext);
 
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_STATE(selection);
 
-  nsTextRulesInfo ruleInfo(kOpLoadHTML);
+  nsTextRulesInfo ruleInfo(OperationID::loadHTML);
   bool cancel, handled;
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -252,7 +252,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
   
   ForceCompositionEnd();
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpHTMLPaste, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::htmlPaste, nsIEditor::eNext);
 
   
   nsRefPtr<Selection> selection = GetSelection();
@@ -391,7 +391,7 @@ nsHTMLEditor::DoInsertHTMLWithContext(const nsAString & aInputString,
   }
 
   
-  nsTextRulesInfo ruleInfo(kOpInsertElement);
+  nsTextRulesInfo ruleInfo(OperationID::insertElement);
   bool cancel, handled;
   rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1746,14 +1746,14 @@ NS_IMETHODIMP nsHTMLEditor::PasteAsCitedQuotation(const nsAString & aCitation,
                                                   PRInt32 aSelectionType)
 {
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpInsertQuotation, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::insertQuotation, nsIEditor::eNext);
 
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   
-  nsTextRulesInfo ruleInfo(kOpInsertElement);
+  nsTextRulesInfo ruleInfo(OperationID::insertElement);
   bool cancel, handled;
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -1954,10 +1954,10 @@ nsHTMLEditor::InsertAsPlaintextQuotation(const nsAString & aQuotedText,
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpInsertQuotation, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::insertQuotation, nsIEditor::eNext);
 
   
-  nsTextRulesInfo ruleInfo(kOpInsertElement);
+  nsTextRulesInfo ruleInfo(OperationID::insertElement);
   bool cancel, handled;
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);
@@ -2047,10 +2047,10 @@ nsHTMLEditor::InsertAsCitedQuotation(const nsAString & aQuotedText,
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpInsertQuotation, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::insertQuotation, nsIEditor::eNext);
 
   
-  nsTextRulesInfo ruleInfo(kOpInsertElement);
+  nsTextRulesInfo ruleInfo(OperationID::insertElement);
   bool cancel, handled;
   nsresult rv = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(rv, rv);

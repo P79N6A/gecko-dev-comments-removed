@@ -711,6 +711,7 @@ AssertParserServiceIsCorrect(nsIAtom* aTag, bool aIsBlock)
       aTag==nsEditProperty::table      ||
       aTag==nsEditProperty::fieldset   ||
       aTag==nsEditProperty::address    ||
+      aTag==nsEditProperty::caption    ||
       aTag==nsEditProperty::col        ||
       aTag==nsEditProperty::colgroup   ||
       aTag==nsEditProperty::li         ||
@@ -1167,7 +1168,7 @@ nsHTMLEditor::CollapseSelectionToDeepestNonTableFirstChild(nsISelection *aSelect
 NS_IMETHODIMP
 nsHTMLEditor::ReplaceHeadContentsWithHTML(const nsAString& aSourceToInsert)
 {
-  nsAutoRules beginRulesSniffing(this, kOpIgnore, nsIEditor::eNone); 
+  nsAutoRules beginRulesSniffing(this, OperationID::ignore, nsIEditor::eNone); 
   nsCOMPtr<nsISelection> selection;
   nsresult res = GetSelection(getter_AddRefs(selection));
   NS_ENSURE_SUCCESS(res, res);
@@ -1489,7 +1490,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, bool aDeleteSele
   
   ForceCompositionEnd();
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpInsertElement, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::insertElement, nsIEditor::eNext);
 
   nsRefPtr<Selection> selection = GetSelection();
   if (!selection) {
@@ -1498,7 +1499,7 @@ nsHTMLEditor::InsertElementAtSelection(nsIDOMElement* aElement, bool aDeleteSele
 
   
   bool cancel, handled;
-  nsTextRulesInfo ruleInfo(kOpInsertElement);
+  nsTextRulesInfo ruleInfo(OperationID::insertElement);
   ruleInfo.insertElement = aElement;
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
@@ -1950,13 +1951,13 @@ nsHTMLEditor::MakeOrChangeList(const nsAString& aListType, bool entireList, cons
   bool cancel, handled;
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpMakeList, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::makeList, nsIEditor::eNext);
   
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  nsTextRulesInfo ruleInfo(kOpMakeList);
+  nsTextRulesInfo ruleInfo(OperationID::makeList);
   ruleInfo.blockType = &aListType;
   ruleInfo.entireList = entireList;
   ruleInfo.bulletType = &aBulletType;
@@ -2026,13 +2027,13 @@ nsHTMLEditor::RemoveList(const nsAString& aListType)
   bool cancel, handled;
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpRemoveList, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::removeList, nsIEditor::eNext);
   
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
 
-  nsTextRulesInfo ruleInfo(kOpRemoveList);
+  nsTextRulesInfo ruleInfo(OperationID::removeList);
   if (aListType.LowerCaseEqualsLiteral("ol"))
     ruleInfo.bOrdered = true;
   else  ruleInfo.bOrdered = false;
@@ -2057,12 +2058,12 @@ nsHTMLEditor::MakeDefinitionItem(const nsAString& aItemType)
   bool cancel, handled;
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpMakeDefListItem, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::makeDefListItem, nsIEditor::eNext);
   
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  nsTextRulesInfo ruleInfo(kOpMakeDefListItem);
+  nsTextRulesInfo ruleInfo(OperationID::makeDefListItem);
   ruleInfo.blockType = &aItemType;
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
@@ -2088,12 +2089,12 @@ nsHTMLEditor::InsertBasicBlock(const nsAString& aBlockType)
   bool cancel, handled;
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpMakeBasicBlock, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::makeBasicBlock, nsIEditor::eNext);
   
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  nsTextRulesInfo ruleInfo(kOpMakeBasicBlock);
+  nsTextRulesInfo ruleInfo(OperationID::makeBasicBlock);
   ruleInfo.blockType = &aBlockType;
   res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || (NS_FAILED(res))) return res;
@@ -2156,10 +2157,10 @@ nsHTMLEditor::Indent(const nsAString& aIndent)
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   bool cancel, handled;
-  OperationID opID = kOpIndent;
+  OperationID opID = OperationID::indent;
   if (aIndent.LowerCaseEqualsLiteral("outdent"))
   {
-    opID = kOpOutdent;
+    opID = OperationID::outdent;
   }
   nsAutoEditBatch beginBatching(this);
   nsAutoRules beginRulesSniffing(this, opID, nsIEditor::eNext);
@@ -2236,7 +2237,7 @@ nsHTMLEditor::Align(const nsAString& aAlignType)
   nsCOMPtr<nsIEditRules> kungFuDeathGrip(mRules);
 
   nsAutoEditBatch beginBatching(this);
-  nsAutoRules beginRulesSniffing(this, kOpAlign, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::align, nsIEditor::eNext);
 
   nsCOMPtr<nsIDOMNode> node;
   bool cancel, handled;
@@ -2244,7 +2245,7 @@ nsHTMLEditor::Align(const nsAString& aAlignType)
   
   nsRefPtr<Selection> selection = GetSelection();
   NS_ENSURE_TRUE(selection, NS_ERROR_NULL_POINTER);
-  nsTextRulesInfo ruleInfo(kOpAlign);
+  nsTextRulesInfo ruleInfo(OperationID::align);
   ruleInfo.alignType = &aAlignType;
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   if (cancel || NS_FAILED(res))
@@ -3522,6 +3523,9 @@ nsHTMLEditor::TagCanContainTag(nsIAtom* aParentTag, nsIAtom* aChildTag)
   }
 
   PRInt32 parentTagEnum = parserService->HTMLAtomTagToId(aParentTag);
+  NS_ASSERTION(parentTagEnum < NS_HTML_TAG_MAX,
+               "Fix the caller, this type of node can never contain children.");
+
   return nsHTMLEditUtils::CanContain(parentTagEnum, childTagEnum);
 }
 
@@ -4664,12 +4668,12 @@ nsHTMLEditor::SetCSSBackgroundColor(const nsAString& aColor)
   bool isCollapsed = selection->Collapsed();
 
   nsAutoEditBatch batchIt(this);
-  nsAutoRules beginRulesSniffing(this, kOpInsertElement, nsIEditor::eNext);
+  nsAutoRules beginRulesSniffing(this, OperationID::insertElement, nsIEditor::eNext);
   nsAutoSelectionReset selectionResetter(selection, this);
   nsAutoTxnsConserveSelection dontSpazMySelection(this);
   
   bool cancel, handled;
-  nsTextRulesInfo ruleInfo(kOpSetTextProperty);
+  nsTextRulesInfo ruleInfo(OperationID::setTextProperty);
   nsresult res = mRules->WillDoAction(selection, &ruleInfo, &cancel, &handled);
   NS_ENSURE_SUCCESS(res, res);
   if (!cancel && !handled)
