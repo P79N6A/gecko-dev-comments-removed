@@ -162,7 +162,7 @@ TypeIdStringImpl(jsid id)
 {
     if (JSID_IS_VOID(id))
         return "(index)";
-    static char bufs[100][4];
+    static char bufs[4][100];
     static unsigned which = 0;
     which = (which + 1) & 3;
     PutEscapedString(bufs[which], 100, JSID_TO_STRING(id), 0);
@@ -1665,12 +1665,14 @@ TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Valu
     } else {
         id = MakeTypeId(id);
 
-        if (!JSID_IS_VOID(id) && id != id_prototype(cx) && id != id___proto__(cx)) {
-            
+        
 
 
 
 
+
+        JSOp op = JSOp(*cx->regs->pc);
+        if (id == id___proto__(cx) || (op == JSOP_SETELEM && !JSID_IS_VOID(id))) {
             cx->markTypeObjectUnknownProperties(object);
             if (hasPendingRecompiles())
                 processPendingRecompiles(cx);
@@ -1678,17 +1680,6 @@ TypeCompartment::dynamicAssign(JSContext *cx, JSObject *obj, jsid id, const Valu
         }
 
         assignTypes = object->getProperty(cx, id, true);
-
-        
-
-
-
-        if (id == id___proto__(cx)) {
-            cx->markTypeObjectUnknownProperties(object);
-            if (hasPendingRecompiles())
-                processPendingRecompiles(cx);
-            return;
-        }
     }
 
     if (assignTypes->hasType(rvtype))
@@ -1846,10 +1837,10 @@ TypeObject::TypeObject(JSContext *cx, JSArenaPool *pool, jsid name, TypeObject *
     InferSpew(ISpewOps, "newObject: %s", TypeIdString(name));
 
     if (prototype) {
-        if (prototype == cx->compartment->types.fixedTypeObjects[TYPE_OBJECT_ARRAY_PROTOTYPE])
-            isDenseArray = isPackedArray = true;
         if (prototype->unknownProperties)
             unknownProperties = true;
+        else if (prototype == cx->compartment->types.fixedTypeObjects[TYPE_OBJECT_ARRAY_PROTOTYPE])
+            isDenseArray = isPackedArray = true;
         instanceNext = prototype->instanceList;
         prototype->instanceList = this;
     }
