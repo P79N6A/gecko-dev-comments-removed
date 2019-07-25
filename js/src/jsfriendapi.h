@@ -538,6 +538,10 @@ CallContextDebugHandler(JSContext *cx, JSScript *script, jsbytecode *bc, Value *
 extern JS_FRIEND_API(bool)
 IsContextRunningJS(JSContext *cx);
 
+
+extern JS_FRIEND_API(void)
+TriggerOperationCallbacksForActiveContexts(JSRuntime *rt);
+
 } 
 
 

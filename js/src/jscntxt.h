@@ -1969,7 +1969,7 @@ namespace js {
 
 
 
-JS_FRIEND_API(void)
+void
 TriggerOperationCallback(JSContext *cx);
 
 void
