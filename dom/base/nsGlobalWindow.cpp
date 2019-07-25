@@ -183,7 +183,6 @@
 #include "nsIXULAppInfo.h"
 #include "nsNetUtil.h"
 #include "nsFocusManager.h"
-#include "nsIJSON.h"
 #include "nsIXULWindow.h"
 #include "nsEventStateManager.h"
 #ifdef MOZ_XUL
@@ -6470,7 +6469,8 @@ nsGlobalWindow::LeaveModalState(nsIDOMWindow *aCallerWin)
   if (aCallerWin) {
     nsCOMPtr<nsIScriptGlobalObject> sgo(do_QueryInterface(aCallerWin));
     nsIScriptContext *scx = sgo->GetContext();
-    scx->LeaveModalState();
+    if (scx)
+      scx->LeaveModalState();
   }
 
   if (mContext) {
@@ -7718,59 +7718,16 @@ nsGlobalWindow::DispatchSyncPopState(PRBool aIsInitial)
   }
 
   
-  if (!mDoc) {
-    return NS_OK;
-  }
-
-  nsIDocument::ReadyState readyState = mDoc->GetReadyStateEnum();
-  if (readyState != nsIDocument::READYSTATE_COMPLETE) {
-    return NS_OK;
-  }
-
   
   
-  
-  nsAString& stateObjJSON = mDoc->GetPendingStateObject();
-
   nsCOMPtr<nsIVariant> stateObj;
-  
-  if (!stateObjJSON.IsEmpty()) {
-    
-    
-    nsCOMPtr<nsIDocument> document = do_QueryInterface(mDocument);
-    NS_ENSURE_TRUE(document, NS_ERROR_FAILURE);
-
-    
-    
-    nsIScriptGlobalObject *sgo = document->GetScopeObject();
-    NS_ENSURE_TRUE(sgo, NS_ERROR_FAILURE);
-
-    nsIScriptContext *scx = sgo->GetContext();
-    NS_ENSURE_TRUE(scx, NS_ERROR_FAILURE);
-
-    JSContext *cx = (JSContext*) scx->GetNativeContext();
-
-    
-    JSAutoRequest ar(cx);
-
-    
-    
-    nsCxPusher cxPusher;
-
-    jsval jsStateObj = JSVAL_NULL;
-
-    
-    nsCOMPtr<nsIJSON> json = do_GetService("@mozilla.org/dom/json;1");
-    NS_ENSURE_TRUE(cxPusher.Push(cx), NS_ERROR_FAILURE);
-    rv = json->DecodeToJSVal(stateObjJSON, cx, &jsStateObj);
-    NS_ENSURE_SUCCESS(rv, rv);
-    cxPusher.Pop();
-
-    nsCOMPtr<nsIXPConnect> xpconnect = do_GetService(nsIXPConnect::GetCID());
-    NS_ENSURE_TRUE(xpconnect, NS_ERROR_FAILURE);
-    rv = xpconnect->JSValToVariant(cx, &jsStateObj, getter_AddRefs(stateObj));
-    NS_ENSURE_SUCCESS(rv, rv);
+  nsCOMPtr<nsIDOMNSDocument_MOZILLA_2_0_BRANCH> doc2 = do_QueryInterface(mDoc);
+  if (!doc2) {
+    return NS_OK;
   }
+  
+  rv = doc2->GetMozCurrentStateObject(getter_AddRefs(stateObj));
+  NS_ENSURE_SUCCESS(rv, rv);
 
   
   nsIPresShell *shell = mDoc->GetShell();
