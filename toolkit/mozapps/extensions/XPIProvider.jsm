@@ -80,6 +80,7 @@ const URI_EXTENSION_UPDATE_DIALOG     = "chrome://mozapps/content/extensions/upd
 const DIR_EXTENSIONS                  = "extensions";
 const DIR_STAGE                       = "staged";
 const DIR_XPI_STAGE                   = "staged-xpis";
+const DIR_TRASH                       = "trash";
 
 const FILE_OLD_DATABASE               = "extensions.rdf";
 const FILE_DATABASE                   = "extensions.sqlite";
@@ -159,6 +160,125 @@ var gIDTest = /^(\{[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\
     return this[aName];
   })
 }, this);
+
+
+
+
+
+
+
+
+
+
+function SafeMoveOperation() {
+  this._movedFiles = [];
+  this._createdDirs = [];
+}
+
+SafeMoveOperation.prototype = {
+  _movedFiles: null,
+  _createdDirs: null,
+
+  _moveFile: function(aFile, aTargetDirectory) {
+    let oldFile = aFile.clone();
+    let newFile = aFile.clone();
+    try {
+      newFile.moveTo(aTargetDirectory, null);
+    }
+    catch (e) {
+      throw new Error("Failed to move file " + aFile.path + " to " +
+                      aTargetDirectory.path + ": " + e);
+    }
+    this._movedFiles.push({ oldFile: oldFile, newFile: newFile });
+  },
+
+  _moveDirectory: function(aDirectory, aTargetDirectory) {
+    let newDir = aTargetDirectory.clone();
+    newDir.append(aDirectory.leafName);
+    try {
+      newDir.create(Ci.nsILocalFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    }
+    catch (e) {
+      throw new Error("Failed to create directory " + newDir.path + ": " + e);
+    }
+    this._createdDirs.push(newDir);
+
+    let entries = aDirectory.directoryEntries
+                            .QueryInterface(Ci.nsIDirectoryEnumerator);
+    try {
+      let entry;
+      while (entry = entries.nextFile)
+        this._moveDirEntry(entry, newDir);
+    }
+    finally {
+      entries.close();
+    }
+
+    
+    
+    try {
+      aDirectory.permissions = FileUtils.PERMS_DIRECTORY;
+      aDirectory.remove(false);
+    }
+    catch (e) {
+      throw new Error("Failed to remove directory " + aDirectory.path + ": " + e);
+    }
+
+    
+    
+    this._movedFiles.push({ oldFile: aDirectory, newFile: newDir });
+  },
+
+  _moveDirEntry: function(aDirEntry, aTargetDirectory) {
+    if (aDirEntry.isDirectory())
+      this._moveDirectory(aDirEntry, aTargetDirectory);
+    else
+      this._moveFile(aDirEntry, aTargetDirectory);
+  },
+
+  
+
+
+
+
+
+
+
+
+
+  move: function(aFile, aTargetDirectory) {
+    try {
+      this._moveDirEntry(aFile, aTargetDirectory);
+    }
+    catch (e) {
+      ERROR("Failure moving " + aFile.path + " to " + aTargetDirectory.path + ": " + e);
+      this.rollback();
+      throw e;
+    }
+  },
+
+  
+
+
+
+
+  rollback: function() {
+    while (this._movedFiles.length > 0) {
+      let move = this._movedFiles.pop();
+      if (move.newFile.isDirectory()) {
+        let oldDir = move.oldFile.parent.clone();
+        oldDir.append(move.oldFile.leafName);
+        oldDir.create(Ci.nsILocalFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+      }
+      else {
+        move.newFile.moveTo(move.oldFile.parent, null);
+      }
+    }
+
+    while (this._createdDirs.length > 0)
+      recursiveRemove(this._createdDirs.pop());
+  }
+};
 
 
 
@@ -658,6 +778,7 @@ function buildJarURI(aJarfile, aPath) {
 
 
 
+
 function getTemporaryFile() {
   let file = FileUtils.getDir(KEY_TEMPDIR, []);
   let random = Math.random().toString(36).replace(/0./, '').substr(-3);
@@ -895,6 +1016,36 @@ function resultRows(aStatement) {
 
 
 
+
+
+
+
+function cleanStagingDir(aDir, aLeafNames) {
+  aLeafNames.forEach(function(aName) {
+    let file = aDir.clone();
+    file.append(aName);
+    if (file.exists())
+      recursiveRemove(file);
+  });
+
+  if (aDir.directoryEntries.hasMoreElements())
+    return;
+
+  try {
+    aDir.permissions = FileUtils.PERMS_DIRECTORY;
+    aDir.remove(false);
+  }
+  catch (e) {
+    
+  }
+}
+
+
+
+
+
+
+
 function recursiveRemove(aFile) {
   aFile.permissions = aFile.isDirectory() ? FileUtils.PERMS_DIRECTORY
                                           : FileUtils.PERMS_FILE;
@@ -943,7 +1094,7 @@ function recursiveLastModifiedTime(aFile) {
     entries.close();
     return maxTime;
   }
-  
+
   
   return 0;
 }
@@ -1268,16 +1419,10 @@ var XPIProvider = {
     this.inactiveAddonIDs = [];
 
     
-    let updates = [i.addon.id for each (i in this.installs)
-                   if ((i.state == AddonManager.STATE_INSTALLED) &&
-                       i.existingAddon)];
-
     
-    
-    if (Prefs.getBoolPref(PREF_PENDING_OPERATIONS, false) ||
-        updates.length > 0) {
+    if (Prefs.getBoolPref(PREF_PENDING_OPERATIONS, false)) {
       XPIDatabase.updateActiveAddons();
-      XPIDatabase.writeAddonsList(updates);
+      XPIDatabase.writeAddonsList();
       Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, false);
     }
 
@@ -1356,7 +1501,7 @@ var XPIProvider = {
     }
     catch (e) { }
   },
-  
+
   
 
 
@@ -1543,6 +1688,8 @@ var XPIProvider = {
           continue;
         }
 
+        changed = true;
+
         if (stageDirEntry.isDirectory()) {
           
           let manifest = stageDirEntry.clone();
@@ -1552,9 +1699,13 @@ var XPIProvider = {
           
           if (!manifest.exists()) {
             LOG("Processing uninstall of " + id + " in " + aLocation.name);
-            aLocation.uninstallAddon(id);
+            try {
+              aLocation.uninstallAddon(id);
+            }
+            catch (e) {
+              ERROR("Failed to uninstall add-on " + id + " in " + aLocation.name);
+            }
             
-            changed = true;
             continue;
           }
         }
@@ -1570,7 +1721,6 @@ var XPIProvider = {
         }
 
         aManifests[aLocation.name][id] = null;
-        changed = true;
 
         
         
@@ -2025,7 +2175,7 @@ var XPIProvider = {
     
     cache = JSON.stringify(this.getInstallLocationStates());
     Services.prefs.setCharPref(PREF_INSTALL_CACHE, cache);
-    
+
     if (changed) {
       
       let xulPrototypeCache = Cc["@mozilla.org/xul/xul-prototype-cache;1"].getService(Ci.nsISupports);
@@ -2151,7 +2301,7 @@ var XPIProvider = {
         LOG("Updating database with changes to installed add-ons");
         XPIDatabase.updateActiveAddons();
         XPIDatabase.commitTransaction();
-        XPIDatabase.writeAddonsList([]);
+        XPIDatabase.writeAddonsList();
         Services.prefs.setBoolPref(PREF_PENDING_OPERATIONS, false);
         Services.prefs.setCharPref(PREF_BOOTSTRAP_ADDONS,
                                    JSON.stringify(this.bootstrappedAddons));
@@ -2172,7 +2322,7 @@ var XPIProvider = {
                                        true);
     if (!addonsList.exists()) {
       LOG("Add-ons list is missing, recreating");
-      XPIDatabase.writeAddonsList([]);
+      XPIDatabase.writeAddonsList();
     }
   },
 
@@ -2899,10 +3049,7 @@ var XPIProvider = {
     if (!(aAddon instanceof DBAddonInternal))
       throw new Error("Can only cancel uninstall for installed addons.");
 
-    let stagedAddon = aAddon._installLocation.getStagingDir();
-    stagedAddon.append(aAddon.id);
-    if (stagedAddon.exists())
-      stagedAddon.remove(true);
+    cleanStagingDir(aAddon._installLocation.getStagingDir(), [aAddon.id]);
 
     XPIDatabase.setAddonProperties(aAddon, {
       pendingUninstall: false
@@ -3117,9 +3264,8 @@ var XPIDatabase = {
     makeAddonVisible: "UPDATE addon SET visible=1 WHERE internal_id=:internal_id",
     removeAddonMetadata: "DELETE FROM addon WHERE internal_id=:internal_id",
     
-    
     setActiveAddons: "UPDATE addon SET active=MIN(visible, 1 - userDisabled, " +
-                     "1 - appDisabled, 1 - pendingUninstall)",
+                     "1 - appDisabled)",
     setAddonProperties: "UPDATE addon SET userDisabled=:userDisabled, " +
                         "appDisabled=:appDisabled, " +
                         "pendingUninstall=:pendingUninstall, " +
@@ -4215,11 +4361,7 @@ var XPIDatabase = {
   
 
 
-
-
-
-
-  writeAddonsList: function XPIDB_writeAddonsList(aPendingUpdateIDs) {
+  writeAddonsList: function XPIDB_writeAddonsList() {
     LOG("Writing add-ons list");
     Services.appinfo.invalidateCachesOnRestart();
     let addonsList = FileUtils.getFile(KEY_PROFILEDIR, [FILE_XPI_ADDONS_LIST],
@@ -4232,9 +4374,6 @@ var XPIDatabase = {
     let stmt = this.getStatement("getActiveAddons");
 
     for (let row in resultRows(stmt)) {
-      
-      if (aPendingUpdateIDs.indexOf(row.id) != -1)
-        continue;
       text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
       enabledAddons.push(row.id + ":" + row.version);
     }
@@ -4251,9 +4390,6 @@ var XPIDatabase = {
     }
     count = 0;
     for (let row in resultRows(stmt)) {
-      
-      if (aPendingUpdateIDs.indexOf(row.id) != -1)
-        continue;
       text += "Extension" + (count++) + "=" + row.descriptor + "\r\n";
       enabledAddons.push(row.id + ":" + row.version);
     }
@@ -4489,20 +4625,9 @@ AddonInstall.prototype = {
       break;
     case AddonManager.STATE_INSTALLED:
       LOG("Cancelling install of " + this.addon.id);
-      let stagedAddon = this.installLocation.getStagingDir();
-      let stagedJSON = stagedAddon.clone();
-      stagedAddon.append(this.addon.id);
-      stagedJSON.append(this.addon.id + ".json");
-      if (stagedAddon.exists()) {
-        recursiveRemove(stagedAddon);
-      }
-      else {
-        stagedAddon.leafName += ".xpi";
-        if (stagedAddon.exists())
-          stagedAddon.remove(false);
-      }
-      if (stagedJSON.exists())
-        stagedJSON.remove(true);
+      cleanStagingDir(this.installLocation.getStagingDir(),
+                      [this.addon.id, this.addon.id + ".xpi",
+                       this.addon.id + ".json"]);
       this.state = AddonManager.STATE_CANCELLED;
       XPIProvider.removeActiveInstall(this);
 
@@ -5080,7 +5205,6 @@ AddonInstall.prototype = {
 
     try {
       
-      let stagedJSON = stagedAddon.clone();
       if (this.addon.unpack || Prefs.getBoolPref(PREF_XPI_UNPACK, false)) {
         LOG("Addon " + this.addon.id + " will be installed as " +
             "an unpacked directory");
@@ -5105,7 +5229,8 @@ AddonInstall.prototype = {
         this.addon._sourceBundle = stagedAddon;
 
         
-        stagedJSON.append(this.addon.id + ".json");
+        let stagedJSON = stagedAddon.clone();
+        stagedJSON.leafName = this.addon.id + ".json";
         if (stagedJSON.exists())
           stagedJSON.remove(true);
         let stream = Cc["@mozilla.org/network/file-output-stream;1"].
@@ -5165,10 +5290,7 @@ AddonInstall.prototype = {
             XPIProvider.unloadBootstrapScope(this.existingAddon.id);
           }
 
-          if (isUpgrade) {
-            this.installLocation.uninstallAddon(this.existingAddon.id);
-          }
-          else if (this.existingAddon.active) {
+          if (!isUpgrade && this.existingAddon.active) {
             this.existingAddon.active = false;
             XPIDatabase.updateAddonActive(this.existingAddon);
           }
@@ -5176,6 +5298,7 @@ AddonInstall.prototype = {
 
         
         let file = this.installLocation.installAddon(this.addon.id, stagedAddon);
+        cleanStagingDir(stagedAddon.parent, []);
 
         
         this.addon._installLocation = this.installLocation;
@@ -6221,7 +6344,7 @@ DirectoryInstallLocation.prototype = {
 
       let id = entry.leafName;
 
-      if (id == DIR_STAGE || id == DIR_XPI_STAGE)
+      if (id == DIR_STAGE || id == DIR_XPI_STAGE || id == DIR_TRASH)
         continue;
 
       let directLoad = false;
@@ -6308,29 +6431,68 @@ DirectoryInstallLocation.prototype = {
 
 
 
+  getTrashDir: function DirInstallLocation_getTrashDir() {
+    let trashDir = this._directory.clone();
+    trashDir.append(DIR_TRASH);
+    if (trashDir.exists())
+      recursiveRemove(trashDir);
+    trashDir.create(Ci.nsIFile.DIRECTORY_TYPE, FileUtils.PERMS_DIRECTORY);
+    return trashDir;
+  },
+
+  
+
+
+
+
+
+
+
 
   installAddon: function DirInstallLocation_installAddon(aId, aSource) {
+    let trashDir = this.getTrashDir();
+
+    let transaction = new SafeMoveOperation();
+
     let file = this._directory.clone().QueryInterface(Ci.nsILocalFile);
     file.append(aId);
-    if (file.exists())
-      recursiveRemove(file);
 
-    file = this._directory.clone().QueryInterface(Ci.nsILocalFile);
-    file.append(aId + ".xpi");
-    if (file.exists()) {
-      Services.obs.notifyObservers(file, "flush-cache-entry", null);
-      file.remove(true);
+    
+    
+    try {
+      if (file.exists())
+        transaction.move(file, trashDir);
+
+      file = this._directory.clone().QueryInterface(Ci.nsILocalFile);
+      file.append(aId + ".xpi");
+      if (file.exists()) {
+        Services.obs.notifyObservers(file, "flush-cache-entry", null);
+        transaction.move(file, trashDir);
+      }
+
+      if (aSource.isFile())
+        Services.obs.notifyObservers(aSource, "flush-cache-entry", null);
+
+      transaction.move(aSource, this._directory);
+    }
+    finally {
+      
+      
+      try {
+        recursiveRemove(trashDir);
+      }
+      catch (e) {
+        WARN("Failed to remove trash directory when installing " + aId);
+      }
     }
 
-    aSource = aSource.clone().QueryInterface(Ci.nsILocalFile);
-    if (aSource.isFile())
-      Services.obs.notifyObservers(aSource, "flush-cache-entry", null);
-    aSource.moveTo(this._directory, aSource.leafName);
-    aSource.lastModifiedTime = Date.now();
-    this._FileToIDMap[aSource.path] = aId;
-    this._IDToFileMap[aId] = aSource;
+    let newFile = this._directory.clone().QueryInterface(Ci.nsILocalFile);
+    newFile.append(aSource.leafName);
+    newFile.lastModifiedTime = Date.now();
+    this._FileToIDMap[newFile.path] = aId;
+    this._IDToFileMap[aId] = newFile;
 
-    return aSource;
+    return newFile;
   },
 
   
@@ -6348,9 +6510,6 @@ DirectoryInstallLocation.prototype = {
       return;
     }
 
-    delete this._FileToIDMap[file.path];
-    delete this._IDToFileMap[aId];
-
     file = this._directory.clone();
     file.append(aId);
     if (!file.exists())
@@ -6359,12 +6518,35 @@ DirectoryInstallLocation.prototype = {
     if (!file.exists()) {
       WARN("Attempted to remove " + aId + " from " +
            this._name + " but it was already gone");
+
+      delete this._FileToIDMap[file.path];
+      delete this._IDToFileMap[aId];
       return;
     }
 
+    let trashDir = this.getTrashDir();
+
     if (file.leafName != aId)
       Services.obs.notifyObservers(file, "flush-cache-entry", null);
-    recursiveRemove(file);
+
+    let transaction = new SafeMoveOperation();
+
+    try {
+      transaction.move(file, trashDir);
+    }
+    finally {
+      
+      
+      try {
+        recursiveRemove(trashDir);
+      }
+      catch (e) {
+        WARN("Failed to remove trash directory when uninstalling " + aId);
+      }
+    }
+
+    delete this._FileToIDMap[file.path];
+    delete this._IDToFileMap[aId];
   },
 
   
