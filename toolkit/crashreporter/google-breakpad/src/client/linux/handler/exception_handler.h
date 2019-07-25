@@ -212,6 +212,8 @@ class ExceptionHandler {
   void UninstallHandlers();
   void PreresolveSymbols();
   bool GenerateDump(CrashContext *context);
+  void SendContinueSignalToChild();
+  void WaitForContinueSignal();
 
   void UpdateNextID();
   static void SignalHandler(int sig, siginfo_t* info, void* uc);
@@ -251,6 +253,13 @@ class ExceptionHandler {
 
   
   std::vector<std::pair<int, struct sigaction *> > old_handlers_;
+
+  
+  
+  
+  
+  
+  int fdes[2];
 };
 
 }  
