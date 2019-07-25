@@ -692,6 +692,9 @@ public:
     bool traceOK;
 
     
+    bool unprofitable;
+
+    
 
 
 
@@ -817,7 +820,7 @@ public:
 
     
     bool isCompilationExpensive(JSContext *cx, uintN depth);
-    bool isCompilationUnprofitable(JSContext *cx, uintN depth);
+    bool isCompilationUnprofitable(JSContext *cx, uintN goodOps);
     void decide(JSContext *cx);
 };
 
