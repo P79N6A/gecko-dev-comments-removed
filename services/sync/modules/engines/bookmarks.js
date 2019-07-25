@@ -1252,7 +1252,8 @@ BookmarksStore.prototype = {
     stmt.params.guid = guid.toString();
 
     let results = Utils.queryAsync(stmt, ["item_id"]);
-    this._log.trace("Rows matching GUID " + guid + ": " + results.length);
+    this._log.trace("Rows matching GUID " + guid + ": " +
+                    results.map(function(x) x.item_id));
     
     
     let result = results[0];
@@ -1443,6 +1444,11 @@ BookmarksTracker.prototype = {
     Ci.nsISupportsWeakReference
   ]),
 
+  _idForGUID: function _idForGUID(item_id) {
+    
+    return Engines.get("bookmarks")._store.idForGUID(item_id);
+  },
+
   _GUIDForId: function _GUIDForId(item_id) {
     
     return Engines.get("bookmarks")._store.GUIDForId(item_id);
@@ -1455,7 +1461,7 @@ BookmarksTracker.prototype = {
 
 
   _addId: function BMT__addId(itemId) {
-    if (this.addChangedID(this._GUIDForId(itemId, true)))
+    if (this.addChangedID(this._GUIDForId(itemId)))
       this._upScore();
   },
 
@@ -1483,7 +1489,7 @@ BookmarksTracker.prototype = {
 
     
     if (Svc.Annos.itemHasAnnotation(itemId, "places/excludeFromBackup")) {
-      this.removeChangedID(this._GUIDForId(itemId, true));
+      this.removeChangedID(this._GUIDForId(itemId));
       return true;
     }
 
@@ -1563,6 +1569,15 @@ BookmarksTracker.prototype = {
       return;
 
     
+    
+    if (isAnno && (property == GUID_ANNO)) {
+      this._log.trace("onItemChanged for " + GUID_ANNO +
+                      ": probably needs a new one.");
+      this._idForGUID(this._GUIDForId(itemId));
+      this._addId(itemId);
+    }
+
+    
     let annos = ["bookmarkProperties/description",
       "bookmarkProperties/loadInSidebar", "bookmarks/staticTitle",
       "livemark/feedURI", "livemark/siteURI", "microsummary/generatorURI"];
@@ -1575,7 +1590,7 @@ BookmarksTracker.prototype = {
 
     this._log.trace("onItemChanged: " + itemId +
                     (", " + property + (isAnno? " (anno)" : "")) +
-                    (value? (" = \"" + value + "\"") : ""));
+                    (value ? (" = \"" + value + "\"") : ""));
     this._addId(itemId);
   },
 
