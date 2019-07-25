@@ -40,7 +40,7 @@
 
 
 
-#include "mozilla/StdInt.h"
+#include "mozilla/StandardInteger.h"
 
 #include <stdio.h> 
 

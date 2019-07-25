@@ -39,7 +39,7 @@
 #define __nsCheapSets_h__
 
 #include "nsTHashtable.h"
-#include "mozilla/StdInt.h"
+#include "mozilla/StandardInteger.h"
 
 
 

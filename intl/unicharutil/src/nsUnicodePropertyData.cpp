@@ -74,7 +74,7 @@
 
 
 
-#include "mozilla/StdInt.h"
+#include "mozilla/StandardInteger.h"
 #include "harfbuzz/hb-common.h"
 
 static const PRUint32 sScriptCodeToTag[] = {

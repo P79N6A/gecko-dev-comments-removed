@@ -43,7 +43,7 @@
 
 
 #include "nscore.h"
-#include <mozilla/StdInt.h>
+#include <mozilla/StandardInteger.h>
 
 PR_BEGIN_EXTERN_C
 

@@ -40,8 +40,13 @@
 
 
 
-#ifndef mozilla_StdInt_h_
-#define mozilla_StdInt_h_
+#ifndef mozilla_StandardInteger_h_
+#define mozilla_StandardInteger_h_
+
+
+
+
+
 
 
 
@@ -67,11 +72,7 @@
 #elif defined(_MSC_VER) && _MSC_VER < 1600
 #  include "mozilla/MSStdInt.h"
 #else
-   
-
-
-
-#  include <sys/../stdint.h>
+#  include <stdint.h>
 #endif
 
 #endif  

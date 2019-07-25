@@ -51,7 +51,7 @@
 #include <nsClassHashtable.h>
 #include "VideoUtils.h"
 
-#include "mozilla/StdInt.h"
+#include "mozilla/StandardInteger.h"
 
 
 

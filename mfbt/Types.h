@@ -53,7 +53,7 @@
 
 
 
-#include "mozilla/StdInt.h"
+#include "mozilla/StandardInteger.h"
 
 
 #include <stddef.h>
