@@ -48,7 +48,7 @@
 const PRUint32 kCacheSize = 128;
 
 
-const PRUint32 kCollationValueSizeFactor = 5;
+const PRUint32 kCollationValueSizeFactor = 6;
 
 class nsCollationMacUC : public nsICollation {
 
