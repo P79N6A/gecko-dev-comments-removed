@@ -11,9 +11,11 @@
 #ifdef __cplusplus
 
 #include "mozilla/TypeTraits.h"
+#include "mozilla/GuardObjects.h"
 
 #include "js/TemplateLib.h"
-#include "js/Utility.h"
+
+#include "jspubtd.h"
 
 namespace JS {
 
@@ -440,38 +442,30 @@ class SkipRoot
     JS_DECL_USE_GUARD_OBJECT_NOTIFIER
 };
 
+JS_FRIEND_API(void) EnterAssertNoGCScope();
+JS_FRIEND_API(void) LeaveAssertNoGCScope();
+JS_FRIEND_API(bool) InNoGCScope();
 
 
 
 
-typedef JSObject *RawObject;
 
-#ifdef DEBUG
-JS_FRIEND_API(bool) IsRootingUnnecessaryForContext(JSContext *cx);
-JS_FRIEND_API(void) SetRootingUnnecessaryForContext(JSContext *cx, bool value);
-JS_FRIEND_API(bool) RelaxRootChecksForContext(JSContext *cx);
-#endif
 
-class AssertRootingUnnecessary {
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-#ifdef DEBUG
-    JSContext *cx;
-    bool prev;
-#endif
+class AutoAssertNoGC
+{
+    MOZ_DECL_USE_GUARD_OBJECT_NOTIFIER
+
 public:
-    AssertRootingUnnecessary(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
+    AutoAssertNoGC(MOZ_GUARD_OBJECT_NOTIFIER_ONLY_PARAM) {
+        MOZ_GUARD_OBJECT_NOTIFIER_INIT;
 #ifdef DEBUG
-        this->cx = cx;
-        prev = IsRootingUnnecessaryForContext(cx);
-        SetRootingUnnecessaryForContext(cx, true);
+        EnterAssertNoGCScope();
 #endif
     }
 
-    ~AssertRootingUnnecessary() {
+    ~AutoAssertNoGC() {
 #ifdef DEBUG
-        SetRootingUnnecessaryForContext(cx, prev);
+        LeaveAssertNoGCScope();
 #endif
     }
 };
@@ -481,6 +475,8 @@ extern void
 CheckStackRoots(JSContext *cx);
 #endif
 
+JS_FRIEND_API(bool) NeedRelaxedRootChecks();
+
 
 
 
@@ -488,9 +484,9 @@ CheckStackRoots(JSContext *cx);
 inline void MaybeCheckStackRoots(JSContext *cx, bool relax = true)
 {
 #ifdef DEBUG
-    JS_ASSERT(!IsRootingUnnecessaryForContext(cx));
+    JS_ASSERT(!InNoGCScope());
 # if defined(JS_GC_ZEAL) && defined(JSGC_ROOT_ANALYSIS) && !defined(JS_THREADSAFE)
-    if (relax && RelaxRootChecksForContext(cx))
+    if (relax && NeedRelaxedRootChecks())
         return;
     CheckStackRoots(cx);
 # endif

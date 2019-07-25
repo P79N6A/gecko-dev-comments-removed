@@ -4893,7 +4893,7 @@ JS::CheckStackRoots(JSContext *cx)
     
     
     
-    JS_ASSERT(!cx->rootingUnnecessary);
+    JS_ASSERT(!InNoGCScope());
 
     
     if (cx->compartment->activeAnalysis)
