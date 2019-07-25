@@ -206,11 +206,11 @@ JS_FunctionHasLocalNames(JSContext *cx, JSFunction *fun);
 
 
 
-extern JS_PUBLIC_API(jsuword *)
+extern JS_PUBLIC_API(uintptr_t *)
 JS_GetFunctionLocalNameArray(JSContext *cx, JSFunction *fun, void **markp);
 
 extern JS_PUBLIC_API(JSAtom *)
-JS_LocalNameToAtom(jsuword w);
+JS_LocalNameToAtom(uintptr_t w);
 
 extern JS_PUBLIC_API(JSString *)
 JS_AtomKey(JSAtom *atom);

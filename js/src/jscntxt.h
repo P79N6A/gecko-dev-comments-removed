@@ -198,7 +198,7 @@ struct ThreadData {
     DtoaState           *dtoaState;
 
     
-    jsuword             *nativeStackBase;
+    uintptr_t           *nativeStackBase;
 
     
     PendingProxyOperation *pendingProxyOperation;
@@ -433,8 +433,8 @@ struct JSRuntime
     int64_t             gcNextFullGCTime;
     int64_t             gcJitReleaseTime;
     JSGCMode            gcMode;
-    volatile jsuword    gcBarrierFailed;
-    volatile jsuword    gcIsNeeded;
+    volatile uintptr_t  gcBarrierFailed;
+    volatile uintptr_t  gcIsNeeded;
     js::WeakMapBase     *gcWeakMapList;
     js::gcstats::Statistics gcStats;
 
@@ -937,7 +937,7 @@ struct JSContext
     JSPackedBool        generatingError;
 
     
-    jsuword             stackLimit;
+    uintptr_t           stackLimit;
 
     
     JSRuntime *const    runtime;

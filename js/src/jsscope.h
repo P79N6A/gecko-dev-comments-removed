@@ -1044,7 +1044,7 @@ class RootStackShape
 } 
 
 
-#define SHAPE_COLLISION                 (jsuword(1))
+#define SHAPE_COLLISION                 (uintptr_t(1))
 #define SHAPE_REMOVED                   ((js::Shape *) SHAPE_COLLISION)
 
 
@@ -1052,15 +1052,15 @@ class RootStackShape
 #define SHAPE_IS_REMOVED(shape)         ((shape) == SHAPE_REMOVED)
 #define SHAPE_IS_LIVE(shape)            ((shape) > SHAPE_REMOVED)
 #define SHAPE_FLAG_COLLISION(spp,shape) (*(spp) = (js::Shape *)               \
-                                         (jsuword(shape) | SHAPE_COLLISION))
-#define SHAPE_HAD_COLLISION(shape)      (jsuword(shape) & SHAPE_COLLISION)
+                                         (uintptr_t(shape) | SHAPE_COLLISION))
+#define SHAPE_HAD_COLLISION(shape)      (uintptr_t(shape) & SHAPE_COLLISION)
 #define SHAPE_FETCH(spp)                SHAPE_CLEAR_COLLISION(*(spp))
 
 #define SHAPE_CLEAR_COLLISION(shape)                                          \
-    ((js::Shape *) (jsuword(shape) & ~SHAPE_COLLISION))
+    ((js::Shape *) (uintptr_t(shape) & ~SHAPE_COLLISION))
 
 #define SHAPE_STORE_PRESERVING_COLLISION(spp, shape)                          \
-    (*(spp) = (js::Shape *) (jsuword(shape) | SHAPE_HAD_COLLISION(*(spp))))
+    (*(spp) = (js::Shape *) (uintptr_t(shape) | SHAPE_HAD_COLLISION(*(spp))))
 
 namespace js {
 

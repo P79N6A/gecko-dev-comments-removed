@@ -485,7 +485,7 @@ JSD_GetScriptHook(JSDContext* jsdc, JSD_ScriptHookProc* hook, void** callerdata)
 
 
 
-extern JSD_PUBLIC_API(jsuword)
+extern JSD_PUBLIC_API(uintptr_t)
 JSD_GetClosestPC(JSDContext* jsdc, JSDScript* jsdscript, uintN line);
 
 
@@ -494,7 +494,7 @@ JSD_GetClosestPC(JSDContext* jsdc, JSDScript* jsdscript, uintN line);
 
 
 extern JSD_PUBLIC_API(uintN)
-JSD_GetClosestLine(JSDContext* jsdc, JSDScript* jsdscript, jsuword pc);
+JSD_GetClosestLine(JSDContext* jsdc, JSDScript* jsdscript, uintptr_t pc);
 
 
 
@@ -505,7 +505,7 @@ JSD_GetClosestLine(JSDContext* jsdc, JSDScript* jsdscript, jsuword pc);
 extern JSD_PUBLIC_API(JSBool)
 JSD_GetLinePCs(JSDContext* jsdc, JSDScript* jsdscript,
                uintN startLine, uintN maxLines,
-               uintN* count, uintN** lines, jsuword** pcs);
+               uintN* count, uintN** lines, uintptr_t** pcs);
 
 
 
@@ -780,7 +780,7 @@ typedef JSBool
 extern JSD_PUBLIC_API(JSBool)
 JSD_SetExecutionHook(JSDContext*           jsdc,
                      JSDScript*            jsdscript,
-                     jsuword               pc,
+                     uintptr_t             pc,
                      JSD_ExecutionHookProc hook,
                      void*                 callerdata);
 
@@ -790,7 +790,7 @@ JSD_SetExecutionHook(JSDContext*           jsdc,
 extern JSD_PUBLIC_API(JSBool)
 JSD_ClearExecutionHook(JSDContext*          jsdc,
                        JSDScript*           jsdscript,
-                       jsuword              pc);
+                       uintptr_t            pc);
 
 
 
@@ -939,7 +939,7 @@ JSD_GetScriptForStackFrame(JSDContext* jsdc,
 
 
 
-extern JSD_PUBLIC_API(jsuword)
+extern JSD_PUBLIC_API(uintptr_t)
 JSD_GetPCForStackFrame(JSDContext* jsdc,
                        JSDThreadState* jsdthreadstate,
                        JSDStackFrameInfo* jsdframe);

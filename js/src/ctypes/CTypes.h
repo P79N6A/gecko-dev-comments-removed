@@ -332,7 +332,7 @@ struct ClosureInfo
   void* errResult;       
   ffi_closure* closure;  
 #ifdef DEBUG
-  jsword cxThread;       
+  intptr_t cxThread;     
 #endif
 
   

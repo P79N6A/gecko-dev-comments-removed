@@ -58,6 +58,11 @@ typedef ConflictingType JSInt16;
 typedef ConflictingType JSInt32;
 typedef ConflictingType JSInt64;
 
+typedef ConflictingType jsword;
+typedef ConflictingType jsuword;
+typedef ConflictingType JSWord;
+typedef ConflictingType JSUword;
+
 BEGIN_TEST(testIntTypesABI)
 {
     
