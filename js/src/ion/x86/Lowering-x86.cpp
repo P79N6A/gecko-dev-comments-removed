@@ -62,19 +62,19 @@ LIRGeneratorX86::visitConstant(MConstant *ins)
 bool
 LIRGeneratorX86::visitBox(MBox *box)
 {
+    MDefinition *inner = box->getOperand(0);
+
+    
+    if (inner->type() == MIRType_Double)
+        return defineBox(new LBoxDouble(use(inner)), box);
+
     if (!box->isEmittedAtUses())
         return emitAtUses(box);
-
-    MDefinition *inner = box->getOperand(0);
 
     if (inner->isConstant())
         return defineBox(new LValue(inner->toConstant()->value()), box);
 
     LBox *lir = new LBox(use(inner), inner->type());
-
-    
-    if (inner->type() == MIRType_Double)
-        return defineBox(lir, box);
 
     
     
@@ -97,12 +97,24 @@ LIRGeneratorX86::visitUnbox(MUnbox *unbox)
     MDefinition *inner = unbox->getOperand(0);
 
     if (unbox->type() == MIRType_Double) {
-        LBoxToDouble *lir = new LBoxToDouble;
         if (!ensureDefined(inner))
             return false;
-        lir->setOperand(0, useType(inner, LUse::ANY));
+
+        if (Assembler::HasSSE41()) {
+            
+            
+            LUnboxDoubleSSE41 *lir = new LUnboxDoubleSSE41();
+            lir->setOperand(0, useType(inner, LUse::ANY));
+            lir->setOperand(1, usePayloadInRegister(inner));
+            return define(lir, unbox, LDefinition::DEFAULT);
+        }
+
+        
+        
+        
+        LUnboxDouble *lir = new LUnboxDouble();
+        lir->setOperand(0, useType(inner, LUse::REGISTER));
         lir->setOperand(1, usePayloadInRegister(inner));
-        lir->setTemp(0, temp(LDefinition::DOUBLE));
         return define(lir, unbox, LDefinition::DEFAULT);
     }
 
@@ -214,6 +226,14 @@ LIRGeneratorX86::lowerForALU(LMathI *ins, MDefinition *mir, MDefinition *lhs, MD
 {
     ins->setOperand(0, useRegister(lhs));
     ins->setOperand(1, useOrConstant(rhs));
+    return defineReuseInput(ins, mir);
+}
+
+bool
+LIRGeneratorX86::lowerForFPU(LMathD *ins, MDefinition *mir, MDefinition *lhs, MDefinition *rhs)
+{
+    ins->setOperand(0, useRegister(lhs));
+    ins->setOperand(1, use(rhs));
     return defineReuseInput(ins, mir);
 }
 

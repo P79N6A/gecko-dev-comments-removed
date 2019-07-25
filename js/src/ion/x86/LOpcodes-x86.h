@@ -44,8 +44,10 @@
 
 #define LIR_CPU_OPCODE_LIST(_)  \
     _(Unbox)                    \
-    _(BoxToDouble)              \
-    _(Box)
+    _(UnboxDouble)              \
+    _(UnboxDoubleSSE41)         \
+    _(Box)                      \
+    _(BoxDouble)                \
 
 #endif 
 

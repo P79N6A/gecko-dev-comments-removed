@@ -42,6 +42,7 @@
 #define jsion_assembler_shared_h__
 
 #include <limits.h>
+#include "ion/IonAllocPolicy.h"
 #include "ion/IonRegisters.h"
 
 namespace js {
@@ -93,38 +94,26 @@ class Relocation {
     };
 };
 
-
-
-
-
-
-
-
-
-struct Label
+struct LabelBase
 {
-  private:
+  protected:
     
     
     int32 offset_ : 31;
     bool bound_   : 1;
 
     
-    void operator =(const Label &label);
+    void operator =(const LabelBase &label);
 
   public:
     static const int32 INVALID_OFFSET = -1;
 
-    Label() : offset_(INVALID_OFFSET), bound_(false)
+    LabelBase() : offset_(INVALID_OFFSET), bound_(false)
     { }
-    Label(const Label &label)
+    LabelBase(const LabelBase &label)
       : offset_(label.offset_),
         bound_(label.bound_)
     { }
-    ~Label()
-    {
-        JS_ASSERT(!used());
-    }
 
     
     
@@ -157,6 +146,78 @@ struct Label
 
         return old;
     }
+};
+
+
+
+
+
+
+
+
+
+class Label : public LabelBase
+{
+  public:
+    Label()
+    { }
+    Label(const Label &label) : LabelBase(label)
+    { }
+    ~Label()
+    {
+        JS_ASSERT(!used());
+    }
+};
+
+
+
+
+struct AbsoluteLabel : public LabelBase
+{
+  public:
+    AbsoluteLabel()
+    { }
+    AbsoluteLabel(const AbsoluteLabel &label) : LabelBase(label)
+    { }
+    int32 prev() const {
+        JS_ASSERT(!bound());
+        if (!used())
+            return INVALID_OFFSET;
+        return offset();
+    }
+    void setPrev(int32 offset) {
+        use(offset);
+    }
+};
+
+
+
+
+
+class DeferredData : public TempObject
+{
+    
+    AbsoluteLabel label_;
+
+    
+    int32 offset_;
+
+  public:
+    DeferredData() : offset_(-1)
+    { }
+    int32 offset() const {
+        JS_ASSERT(offset_ > -1);
+        return offset_;
+    }
+    void setOffset(int32 offset) {
+        offset_ = offset;
+    }
+    AbsoluteLabel *label() {
+        return &label_;
+    }
+
+    
+    virtual void copy(uint8 *code, uint8 *buffer) const = 0;
 };
 
 } 

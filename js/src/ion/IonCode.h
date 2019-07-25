@@ -59,8 +59,7 @@ class IonCode : public gc::Cell
     JSC::ExecutablePool *pool_;
     uint32 bufferSize_;             
     uint32 insnSize_;               
-    uint32 relocTableOffset_;       
-                                    
+    uint32 dataSize_;               
     uint32 relocTableSize_;         
 
     IonCode()
@@ -72,9 +71,16 @@ class IonCode : public gc::Cell
         pool_(pool),
         bufferSize_(bufferSize),
         insnSize_(0),
-        relocTableOffset_(0),
+        dataSize_(0),
         relocTableSize_(0)
     { }
+
+    uint32 dataOffset() const {
+        return insnSize_;
+    }
+    uint32 relocTableOffset() const {
+        return dataOffset() + relocTableSize_;
+    }
 
   public:
     uint8 *raw() const {
