@@ -304,7 +304,7 @@ public:
   nsresult SourceDataComplete();
 
   
-  nsresult NewSourceData();
+  nsresult NewSourceData(const char *aMimeType);
 
   
 
