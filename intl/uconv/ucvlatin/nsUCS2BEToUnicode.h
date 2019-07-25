@@ -62,6 +62,8 @@ protected:
   PRUint8 mOddByte;
   
   PRUnichar mOddHighSurrogate;
+  
+  PRUnichar mOddLowSurrogate;
 };
 
 
