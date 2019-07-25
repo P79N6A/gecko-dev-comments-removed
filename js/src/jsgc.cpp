@@ -2833,12 +2833,19 @@ NewCompartment(JSContext *cx, JSPrincipals *principals)
 
         compartment->setGCLastBytes(8192);
 
-        AutoLockGC lock(rt);
-        if (rt->compartments.append(compartment))
-            return compartment;
+        
+
+
+
+        {
+            AutoLockGC lock(rt);
+            if (rt->compartments.append(compartment))
+                return compartment;
+        }
+
+        js_ReportOutOfMemory(cx);
     }
     Foreground::delete_(compartment);
-    JS_ReportOutOfMemory(cx);
     return NULL;
 }
 
