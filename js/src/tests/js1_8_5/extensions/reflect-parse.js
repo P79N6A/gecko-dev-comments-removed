@@ -786,6 +786,12 @@ assertError("let (x = 1, x = 2) { }", TypeError);
 
 
 
+try {
+    Reflect.parse(Array(3000).join("x + y - ") + "z")
+} catch (e) { }
+
+
+
 
 assertExpr("x..tagName", binExpr("..", ident("x"), lit("tagName")));
 assertExpr("x.*", dotExpr(ident("x"), xmlAnyName));
