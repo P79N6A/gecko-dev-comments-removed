@@ -402,8 +402,6 @@ private:
 
 
 
-
-
 class nsBuiltinDecoderReader : public nsRunnable {
 public:
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
@@ -453,8 +451,10 @@ public:
                         PRInt64 aCurrentTime) = 0;
 
   
+  
   MediaQueue<SoundData> mAudioQueue;
 
+  
   
   MediaQueue<VideoData> mVideoQueue;
 
@@ -493,14 +493,8 @@ protected:
   }
 
   
-  
-  ReentrantMonitor mReentrantMonitor;
-
-  
-  
   nsBuiltinDecoder* mDecoder;
 
-  
   
   nsVideoInfo mInfo;
 };
