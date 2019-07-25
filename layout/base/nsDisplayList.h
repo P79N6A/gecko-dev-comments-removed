@@ -2136,7 +2136,7 @@ public:
     INDEX_MAX = PR_UINT32_MAX >> nsDisplayItem::TYPE_BITS
   };
 
-  const gfx3DMatrix& GetTransform(float aFactor);
+  const gfx3DMatrix& GetTransform(float aAppUnitsPerPixel);
 
   float GetHitDepthAtPoint(const nsPoint& aPoint);
 
@@ -2178,7 +2178,7 @@ public:
   
   static bool UntransformRectMatrix(const nsRect &aUntransformedBounds, 
                                     const gfx3DMatrix& aMatrix,
-                                    float aFactor,
+                                    float aAppUnitsPerPixel,
                                     nsRect* aOutRect);
 
   
@@ -2212,7 +2212,7 @@ public:
 
   static gfx3DMatrix GetResultingTransformMatrix(const nsIFrame* aFrame,
                                                  const nsPoint& aOrigin,
-                                                 float aFactor,
+                                                 float aAppUnitsPerPixel,
                                                  const nsRect* aBoundsOverride = nsnull,
                                                  nsIFrame** aOutAncestor = nsnull);
   
@@ -2225,7 +2225,7 @@ public:
 private:
   nsDisplayWrapList mStoredList;
   gfx3DMatrix mTransform;
-  float mCachedFactor;
+  float mCachedAppUnitsPerPixel;
   PRUint32 mIndex;
 };
 
