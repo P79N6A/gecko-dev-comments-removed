@@ -304,13 +304,35 @@ WeaveSvc.prototype = {
   },
 
   
-  
-  
-  onStartup: function WeaveSvc_onStartup() {
-    this._initLogs();
-    this._log.info("Weave " + WEAVE_VERSION + " initializing");
-    this._registerEngines();
+
+
+  onStartup: function onStartup() {
     this._status = new StatusRecord();
+    this.status.service = STATUS_DELAYED;
+
+    
+    let wait = 0;
+    switch (Svc.AppInfo.ID) {
+      case FIREFOX_ID:
+        
+        let enum = Svc.WinMediator.getEnumerator("navigator:browser");
+        while (enum.hasMoreElements())
+          wait += enum.getNext().gBrowser.mTabs.length;
+    }
+
+    
+    wait = Math.ceil(Math.max(5, Math.min(20, wait)));
+
+    this._initLogs();
+    this._log.info("Loading Weave " + WEAVE_VERSION + " in " + wait + " sec.");
+    Utils.delay(this._onStartup, wait * 1000, this, "_startupTimer");
+  },
+
+  
+  
+  
+  _onStartup: function _onStartup() {
+    this._registerEngines();
 
     
     if (WEAVE_VERSION != Svc.Prefs.get("lastversion")) {
