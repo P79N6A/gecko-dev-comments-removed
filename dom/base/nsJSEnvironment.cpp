@@ -1130,7 +1130,7 @@ nsJSContext::DOMOperationCallback(JSContext *cx)
         JS_SetFrameReturnValue(cx, fp, rval);
         return JS_TRUE;
       case JSTRAP_ERROR:
-        cx->throwing = JS_FALSE;
+        JS_ClearPendingException(cx);
         return JS_FALSE;
       case JSTRAP_THROW:
         JS_SetPendingException(cx, rval);
@@ -4004,24 +4004,26 @@ ReportAllJSExceptionsPrefChangedCallback(const char* aPrefName, void* aClosure)
 static int
 SetMemoryHighWaterMarkPrefChangedCallback(const char* aPrefName, void* aClosure)
 {
-  PRInt32 highwatermark = nsContentUtils::GetIntPref(aPrefName, 128);
+  PRInt32 highwatermark = nsContentUtils::GetIntPref(aPrefName, 32);
 
-  JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_MALLOC_BYTES,
-                    highwatermark * 1024L * 1024L);
-  return 0;
-}
+  if (highwatermark >= 32) {
+    
 
-static int
-SetMemoryMaxPrefChangedCallback(const char* aPrefName, void* aClosure)
-{
-  PRUint32 max = nsContentUtils::GetIntPref(aPrefName, -1);
-  if (max == -1UL)
-    max = 0xffffffff;
-  else
-    max = max * 1024L * 1024L;
 
-  JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_BYTES,
-                    max);
+
+
+
+
+    JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_MALLOC_BYTES,
+                      128L * 1024L * 1024L);
+    JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_BYTES,
+                      0xffffffff);
+  } else {
+    JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_MALLOC_BYTES,
+                      highwatermark * 1024L * 1024L);
+    JS_SetGCParameter(nsJSRuntime::sRuntime, JSGC_MAX_BYTES,
+                      highwatermark * 1024L * 1024L);
+  }
   return 0;
 }
 
@@ -4064,8 +4066,7 @@ static JSObject*
 DOMReadStructuredClone(JSContext* cx,
                        JSStructuredCloneReader* reader,
                        uint32 tag,
-                       uint32 data,
-                       void* closure)
+                       uint32 data)
 {
   
   nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
@@ -4075,8 +4076,7 @@ DOMReadStructuredClone(JSContext* cx,
 static JSBool
 DOMWriteStructuredClone(JSContext* cx,
                         JSStructuredCloneWriter* writer,
-                        JSObject* obj,
-                        void *closure)
+                        JSObject* obj)
 {
   
   nsDOMClassInfo::ThrowJSException(cx, NS_ERROR_DOM_DATA_CLONE_ERR);
@@ -4160,12 +4160,6 @@ nsJSRuntime::Init()
                                        nsnull);
   SetMemoryHighWaterMarkPrefChangedCallback("javascript.options.mem.high_water_mark",
                                             nsnull);
-
-  nsContentUtils::RegisterPrefCallback("javascript.options.mem.max",
-                                       SetMemoryMaxPrefChangedCallback,
-                                       nsnull);
-  SetMemoryMaxPrefChangedCallback("javascript.options.mem.max",
-                                  nsnull);
 
   nsContentUtils::RegisterPrefCallback("javascript.options.mem.gc_frequency",
                                        SetMemoryGCFrequencyPrefChangedCallback,

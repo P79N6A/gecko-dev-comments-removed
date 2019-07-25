@@ -1357,7 +1357,7 @@ js_ReportOutOfMemory(JSContext *cx)
 
 
 
-    cx->throwing = JS_FALSE;
+    cx->clearPendingException();
     if (onError) {
         JSDebugErrorHook hook = cx->debugHooks->debugErrorHook;
         if (hook &&
@@ -2005,27 +2005,37 @@ JSContext::resetCompartment()
         scopeobj = &fp()->scopeChain();
     } else {
         scopeobj = globalObject;
-        if (!scopeobj) {
-            compartment = runtime->defaultCompartment;
-            return;
-        }
+        if (!scopeobj)
+            goto error;
 
         
 
 
 
         OBJ_TO_INNER_OBJECT(this, scopeobj);
-        if (!scopeobj) {
-            
-
-
-
-            JS_ASSERT(0);
-            compartment = NULL;
-            return;
-        }
+        if (!scopeobj)
+            goto error;
     }
-    compartment = scopeobj->getCompartment();
+
+    compartment = scopeobj->compartment();
+
+    
+
+
+
+
+
+    if (isExceptionPending())
+        (void) compartment->wrapException(this);
+    return;
+
+error:
+
+    
+
+
+
+    compartment = NULL;
 }
 
 void
@@ -2287,13 +2297,6 @@ LeaveTrace(JSContext *cx)
     if (JS_ON_TRACE(cx))
         DeepBail(cx);
 #endif
-}
-
-void
-SetPendingException(JSContext *cx, const Value &v)
-{
-    cx->throwing = JS_TRUE;
-    cx->exception = v;
 }
 
 } 
