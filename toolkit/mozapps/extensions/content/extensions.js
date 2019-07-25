@@ -604,8 +604,10 @@ function createItem(aObj, aIsInstall, aRequiresRestart) {
     
     item.setAttribute("value", aObj.id);
 
+    
+    
     if (aObj.updateDate)
-      item.setAttribute("dateUpdated", aObj.updateDate.getTime());
+      item.setAttribute("dateUpdated", aObj.updateDate.getTime() / 1000);
 
     if (aObj.size)
       item.setAttribute("size", aObj.size);
