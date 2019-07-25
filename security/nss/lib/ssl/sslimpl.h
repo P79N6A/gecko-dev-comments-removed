@@ -1515,7 +1515,7 @@ extern PRInt32 ssl3_SendServerNameXtn(sslSocket *ss, PRBool append,
 
 
 extern SECStatus ssl_ConfigSecureServer(sslSocket *ss, CERTCertificate *cert,
-                                        CERTCertificateList *certChain,
+                                        const CERTCertificateList *certChain,
                                         ssl3KeyPair *keyPair, SSLKEAType kea);
 
 extern SSLKEAType ssl_FindCertKEAType(CERTCertificate * cert);

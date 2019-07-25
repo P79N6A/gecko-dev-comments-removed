@@ -1112,7 +1112,7 @@ extern CERTCertificateList *
 CERT_CertListFromCert(CERTCertificate *cert);
 
 extern CERTCertificateList *
-CERT_DupCertList(CERTCertificateList * oldList);
+CERT_DupCertList(const CERTCertificateList * oldList);
 
 extern void CERT_DestroyCertificateList(CERTCertificateList *list);
 
@@ -1670,21 +1670,28 @@ extern SECStatus CERT_PKIXVerifyCert(
 
 
 
+extern SECStatus CERT_SetUsePKIXForValidation(PRBool enable);
+
+
+
+extern PRBool CERT_GetUsePKIXForValidation(void);
 
 
 
 
-extern SECStatus CERT_PKIXSetDefaults(CERTValInParam *paramsIn);
+
+
+extern CERTRevocationFlags *
+CERT_AllocCERTRevocationFlags(
+    PRUint32 number_leaf_methods, PRUint32 number_leaf_pref_methods,
+    PRUint32 number_chain_methods, PRUint32 number_chain_pref_methods);
 
 
 
 
 
-SECStatus CERT_SetUsePKIXForValidation(PRBool enable);
-
-
-
-PRBool CERT_GetUsePKIXForValidation(void);
+extern void
+CERT_DestroyCERTRevocationFlags(CERTRevocationFlags *flags);
 
 SEC_END_PROTOS
 

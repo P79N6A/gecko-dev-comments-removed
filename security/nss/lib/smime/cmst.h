@@ -98,6 +98,8 @@ typedef struct NSSCMSRecipientInfoStr NSSCMSRecipientInfo;
 typedef struct NSSCMSDigestedDataStr NSSCMSDigestedData;
 typedef struct NSSCMSEncryptedDataStr NSSCMSEncryptedData;
 
+typedef struct NSSCMSGenericWrapperDataStr NSSCMSGenericWrapperData;
+
 typedef struct NSSCMSSMIMEKEAParametersStr NSSCMSSMIMEKEAParameters;
 
 typedef struct NSSCMSAttributeStr NSSCMSAttribute;
@@ -107,6 +109,21 @@ typedef struct NSSCMSEncoderContextStr NSSCMSEncoderContext;
 
 typedef struct NSSCMSCipherContextStr NSSCMSCipherContext;
 typedef struct NSSCMSDigestContextStr NSSCMSDigestContext;
+
+typedef struct NSSCMSContentInfoPrivateStr NSSCMSContentInfoPrivate;
+
+typedef SECStatus (*NSSCMSGenericWrapperDataCallback)
+						(NSSCMSGenericWrapperData *);
+typedef   void    (*NSSCMSGenericWrapperDataDestroy) 
+						(NSSCMSGenericWrapperData *);
+
+extern const SEC_ASN1Template NSSCMSGenericWrapperDataTemplate[];
+extern const SEC_ASN1Template NSS_PointerToCMSGenericWrapperDataTemplate[];
+
+SEC_ASN1_CHOOSER_DECLARE(NSS_PointerToCMSGenericWrapperDataTemplate)
+SEC_ASN1_CHOOSER_DECLARE(NSSCMSGenericWrapperDataTemplate)
+
+
 
 
 
@@ -142,6 +159,7 @@ union NSSCMSContentUnion {
     NSSCMSEncryptedData	*	encryptedData;
     NSSCMSEnvelopedData	*	envelopedData;
     NSSCMSSignedData *		signedData;
+    NSSCMSGenericWrapperData *	genericData;
     
     void *			pointer;
 };
@@ -164,8 +182,8 @@ struct NSSCMSContentInfoStr {
 
     SECOidTag			contentEncAlgTag;	
 
-    NSSCMSCipherContext		*ciphcx;		
-    NSSCMSDigestContext		*digcx;			
+    NSSCMSContentInfoPrivate	*privateInfo;		
+    void		*reserved;			
 };
 
 
@@ -184,6 +202,18 @@ struct NSSCMSMessageStr {
     void *		pwfn_arg;
     NSSCMSGetDecryptKeyCallback decrypt_key_cb;
     void *		decrypt_key_cb_arg;
+};
+
+
+
+
+
+
+struct NSSCMSGenericWrapperDataStr {
+    NSSCMSContentInfo	contentInfo;
+    
+    NSSCMSMessage *	cmsg;
+    
 };
 
 

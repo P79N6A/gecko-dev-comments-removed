@@ -221,16 +221,16 @@ getFIPSMode(void)
 
 
 
-#define ORDER_FLAGS "trustOrder=75 cipherOrder=100"
+#define CIPHER_ORDER_FLAGS "cipherOrder=100"
 #define SLOT_FLAGS \
 	"[slotFlags=RSA,RC4,RC2,DES,DH,SHA1,MD5,MD2,SSL,TLS,AES,RANDOM" \
 	" askpw=any timeout=30 ]"
  
 static const char *nssDefaultFlags =
-	ORDER_FLAGS " slotParams={0x00000001=" SLOT_FLAGS " }  ";
+	CIPHER_ORDER_FLAGS " slotParams={0x00000001=" SLOT_FLAGS " }  ";
 
 static const char *nssDefaultFIPSFlags =
-	ORDER_FLAGS " slotParams={0x00000003=" SLOT_FLAGS " }  ";
+	CIPHER_ORDER_FLAGS " slotParams={0x00000003=" SLOT_FLAGS " }  ";
 
 
 
@@ -270,7 +270,7 @@ get_list(char *filename, char *stripped_parameters)
 	    "library= "
 	    "module=\"NSS User database\" "
 	    "parameters=\"configdir='sql:%s' %s tokenDescription='NSS user database'\" "
-        "NSS=\"%sflags=internal%s\"",
+        "NSS=\"trustOrder=75 %sflags=internal%s\"",
         userdb, stripped_parameters, nssflags,
         isFIPS ? ",FIPS" : "");
 
@@ -284,30 +284,6 @@ get_list(char *filename, char *stripped_parameters)
 		userdb, stripped_parameters);
 	}
 
-#if 0
-	
-
-
-
-    
-
-
-
-    PORT_Assert(filename);
-    if (sysdb && PL_CompareStrings(filename, sysdb))
-	    filename = NULL;
-    else if (userdb && PL_CompareStrings(filename, userdb))
-	    filename = NULL;
-
-    if (filename && !userIsRoot()) {
-	    module_list[next++] = PR_smprintf(
-	      "library= "
-	      "module=\"NSS database\" "
-	      "parameters=\"configdir='sql:%s' tokenDescription='NSS database sql:%s'\" "
-	      "NSS=\"%sflags=internal\"",filename, filename, nssflags);
-    }
-#endif
-
     
     if (sysdb) {
 	    const char *readonly = userCanModifySystemDB() ? "" : "flags=readonly";
@@ -315,7 +291,7 @@ get_list(char *filename, char *stripped_parameters)
 	      "library= "
 	      "module=\"NSS system database\" "
 	      "parameters=\"configdir='sql:%s' tokenDescription='NSS system database' %s\" "
-	      "NSS=\"%sflags=internal,critical\"",sysdb, readonly, nssflags);
+	      "NSS=\"trustOrder=80 %sflags=internal,critical\"",sysdb, readonly, nssflags);
     }
 
     
@@ -374,7 +350,7 @@ overlapstrcpy(char *target, char *src)
 
 
 static SECStatus
-parse_paramters(char *parameters, char **filename, char **stripped)
+parse_parameters(char *parameters, char **filename, char **stripped)
 {
     char *sourcePrev;
     char *sourceCurr;
@@ -423,7 +399,7 @@ NSS_ReturnModuleSpecData(unsigned long function, char *parameters, void *args)
     char **retString = NULL;
     SECStatus rv;
 
-    rv = parse_paramters(parameters, &filename, &stripped);
+    rv = parse_parameters(parameters, &filename, &stripped);
     if (rv != SECSuccess) {
 	
 	filename = getSystemDB();
