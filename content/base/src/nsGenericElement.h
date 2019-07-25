@@ -386,8 +386,30 @@ public:
   {
     return SetAttr(aNameSpaceID, aName, nsnull, aValue, aNotify);
   }
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  PRBool MaybeCheckSameAttrVal(PRInt32 aNamespaceID, nsIAtom* aName,
+                               nsIAtom* aPrefix, const nsAString& aValue,
+                               PRBool aNotify, nsAutoString* aOldValue,
+                               PRUint8* aModType, PRBool* aHasListeners);
   virtual nsresult SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName, nsIAtom* aPrefix,
                            const nsAString& aValue, PRBool aNotify);
+  virtual nsresult SetParsedAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
+                                 nsIAtom* aPrefix, nsAttrValue& aParsedValue,
+                                 PRBool aNotify);
   virtual PRBool GetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                          nsAString& aResult) const;
   virtual PRBool HasAttr(PRInt32 aNameSpaceID, nsIAtom* aName) const;
