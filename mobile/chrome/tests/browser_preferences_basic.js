@@ -152,23 +152,27 @@ gTests.push({
     EventUtils.synthesizeMouse(prefsList, x2, y2, { type: "mousemove" });
 
     
-    let distance = y1 - y2;
-    gCurrentTest._prefsScrollbox.getPosition(x, y);
-    ok((x.value == 0 && y.value == distance), "Preferences pane is panned up", "Got " + x.value + " " + y.value + ", expected 0," + distance);
-
-    
     window.addEventListener("MozAfterPaint", function(aEvent) {
       window.removeEventListener("MozAfterPaint", arguments.callee, false);
-
       
-      EventUtils.synthesizeMouse(prefsList, x1, y1, { type: "mousemove" });
-      EventUtils.synthesizeMouse(prefsList, x1, y1, { type: "mouseup" });
-
-      
+      let distance = y1 - y2;
       gCurrentTest._prefsScrollbox.getPosition(x, y);
-      ok((x.value == 0 && y.value == 0), "Preferences pane is panned down", "Got " + x.value + " " + y.value + ", expected 0,0");
+      ok((x.value == 0 && y.value == distance), "Preferences pane is panned up", "Got " + x.value + " " + y.value + ", expected 0," + distance);
 
-      gCurrentTest.finish();
+      
+      window.addEventListener("MozAfterPaint", function(aEvent) {
+        window.removeEventListener("MozAfterPaint", arguments.callee, false);
+
+        
+        EventUtils.synthesizeMouse(prefsList, x1, y1, { type: "mousemove" });
+        EventUtils.synthesizeMouse(prefsList, x1, y1, { type: "mouseup" });
+
+        
+        gCurrentTest._prefsScrollbox.getPosition(x, y);
+        ok((x.value == 0 && y.value == 0), "Preferences pane is panned down", "Got " + x.value + " " + y.value + ", expected 0,0");
+
+        gCurrentTest.finish();
+      }, false);
     }, false);
   },
 
