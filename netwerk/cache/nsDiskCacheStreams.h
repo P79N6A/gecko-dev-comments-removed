@@ -70,7 +70,7 @@ private:
     nsDiskCacheDevice *         mDevice;
     nsDiskCacheOutputStream *   mOutStream;     
     PRInt32                     mInStreamCount;
-    nsCOMPtr<nsILocalFile>      mLocalFile;
+    nsCOMPtr<nsIFile>           mLocalFile;
     PRFileDesc *                mFD;
 
     PRUint32                    mStreamPos;     

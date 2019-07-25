@@ -357,7 +357,7 @@ NS_IMETHODIMP nsSound::PlaySystemSound(const nsAString &aSoundAlias)
     nsCOMPtr <nsIURI> fileURI;
 
     
-    nsCOMPtr <nsILocalFile> soundFile;
+    nsCOMPtr <nsIFile> soundFile;
     rv = NS_NewLocalFile(aSoundAlias, true, 
                          getter_AddRefs(soundFile));
     NS_ENSURE_SUCCESS(rv,rv);

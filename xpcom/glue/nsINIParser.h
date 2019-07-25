@@ -18,7 +18,7 @@
 
 #include <stdio.h>
 
-class nsILocalFile;
+class nsIFile;
 
 class NS_COM_GLUE nsINIParser
 {
@@ -32,7 +32,7 @@ public:
 
 
 
-    nsresult Init(nsILocalFile* aFile);
+    nsresult Init(nsIFile* aFile);
 
     
 

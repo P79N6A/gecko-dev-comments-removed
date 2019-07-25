@@ -168,7 +168,7 @@ struct UploadData
 
 struct CleanupData
 {
-    nsCOMPtr<nsILocalFile> mFile;
+    nsCOMPtr<nsIFile> mFile;
     
     
     
@@ -698,7 +698,7 @@ NS_IMETHODIMP nsWebBrowserPersist::OnStopRequest(
         
         
         nsCOMPtr<nsIURI> uriSource = data->mOriginalLocation;
-        nsCOMPtr<nsILocalFile> localFile;
+        nsCOMPtr<nsIFile> localFile;
         GetLocalFileFromURI(data->mFile, getter_AddRefs(localFile));
         delete data;
         mOutputMap.Remove(&key);
@@ -1035,7 +1035,7 @@ nsresult nsWebBrowserPersist::SendErrorStatusChange(
     }
 
     
-    nsCOMPtr<nsILocalFile> file;
+    nsCOMPtr<nsIFile> file;
     GetLocalFileFromURI(aURI, getter_AddRefs(file));
     nsAutoString path;
     if (file)
@@ -1125,7 +1125,7 @@ nsresult nsWebBrowserPersist::GetValidURIFromObject(nsISupports *aObject, nsIURI
     return NS_ERROR_FAILURE;
 }
 
-nsresult nsWebBrowserPersist::GetLocalFileFromURI(nsIURI *aURI, nsILocalFile **aLocalFile) const
+nsresult nsWebBrowserPersist::GetLocalFileFromURI(nsIURI *aURI, nsIFile **aLocalFile) const
 {
     nsresult rv;
 
@@ -1485,10 +1485,10 @@ nsresult nsWebBrowserPersist::SaveDocumentInternal(
     NS_ENSURE_ARG_POINTER(aFile);
 
     
-    nsCOMPtr<nsILocalFile> localFile;
+    nsCOMPtr<nsIFile> localFile;
     nsresult rv = GetLocalFileFromURI(aFile, getter_AddRefs(localFile));
 
-    nsCOMPtr<nsILocalFile> localDataPath;
+    nsCOMPtr<nsIFile> localDataPath;
     if (NS_SUCCEEDED(rv) && aDataPath)
     {
         
@@ -1634,7 +1634,7 @@ nsresult nsWebBrowserPersist::SaveDocumentInternal(
                 }
                 if (!haveDir)
                 {
-                    rv = localDataPath->Create(nsILocalFile::DIRECTORY_TYPE, 0755);
+                    rv = localDataPath->Create(nsIFile::DIRECTORY_TYPE, 0755);
                     if (NS_SUCCEEDED(rv))
                         haveDir = true;
                     else
@@ -1819,7 +1819,7 @@ void nsWebBrowserPersist::CleanupLocalFiles()
         for (i = 0; i < mCleanupList.Length(); i++)
         {
             CleanupData *cleanupData = mCleanupList.ElementAt(i);
-            nsCOMPtr<nsILocalFile> file = cleanupData->mFile;
+            nsCOMPtr<nsIFile> file = cleanupData->mFile;
 
             
             
@@ -1880,7 +1880,7 @@ void nsWebBrowserPersist::CleanupLocalFiles()
                     NS_ASSERTION(child, "No child element, but hasMoreElements says otherwise");
                     if (!child)
                         continue;
-                    nsCOMPtr<nsILocalFile> childAsFile = do_QueryInterface(child);
+                    nsCOMPtr<nsIFile> childAsFile = do_QueryInterface(child);
                     NS_ASSERTION(childAsFile, "This should be a file but isn't");
 
                     bool childIsSymlink = false;
@@ -2051,7 +2051,7 @@ nsWebBrowserPersist::CalculateUniqueFilename(nsIURI *aURI)
             return NS_ERROR_FAILURE;
         }
 
-        nsCOMPtr<nsILocalFile> localFile;
+        nsCOMPtr<nsIFile> localFile;
         GetLocalFileFromURI(aURI, getter_AddRefs(localFile));
 
         if (localFile)
@@ -2170,7 +2170,7 @@ nsWebBrowserPersist::CalculateAndAppendFileExt(nsIURI *aURI, nsIChannel *aChanne
         mMIMEService->GetFromTypeAndExtension(
             contentType, EmptyCString(), getter_AddRefs(mimeInfo));
 
-        nsCOMPtr<nsILocalFile> localFile;
+        nsCOMPtr<nsIFile> localFile;
         GetLocalFileFromURI(aURI, getter_AddRefs(localFile));
 
         if (mimeInfo)
@@ -2247,7 +2247,7 @@ nsWebBrowserPersist::MakeOutputStream(
 {
     nsresult rv;
 
-    nsCOMPtr<nsILocalFile> localFile;
+    nsCOMPtr<nsIFile> localFile;
     GetLocalFileFromURI(aURI, getter_AddRefs(localFile));
     if (localFile)
         rv = MakeOutputStreamFromFile(localFile, aOutputStream);
@@ -2259,7 +2259,7 @@ nsWebBrowserPersist::MakeOutputStream(
 
 nsresult
 nsWebBrowserPersist::MakeOutputStreamFromFile(
-    nsILocalFile *aFile, nsIOutputStream **aOutputStream)
+    nsIFile *aFile, nsIOutputStream **aOutputStream)
 {
     nsresult rv = NS_OK;
 
@@ -3691,7 +3691,7 @@ nsWebBrowserPersist::SaveDocumentWithFixup(
     NS_ENSURE_ARG_POINTER(aFile);
     
     nsresult  rv = NS_OK;
-    nsCOMPtr<nsILocalFile> localFile;
+    nsCOMPtr<nsIFile> localFile;
     GetLocalFileFromURI(aFile, getter_AddRefs(localFile));
     if (localFile)
     {

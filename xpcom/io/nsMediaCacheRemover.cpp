@@ -9,7 +9,7 @@
 #include "nsIObserver.h"
 #include "nsIIdleService.h"
 #include "nsISimpleEnumerator.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsAppDirectoryServiceDefs.h"
 #include "nsDirectoryServiceDefs.h"
 #include "nsXULAppAPI.h"
@@ -87,12 +87,8 @@ public:
     if (NS_FAILED(rv))
       return;
 
-    nsCOMPtr<nsILocalFile> tmpFile = do_QueryInterface(tmpDir);
-    if (!tmpFile)
-      return;
-
     
-    tmpFile->Remove(true);
+    tmpDir->Remove(true);
   }
 };
 

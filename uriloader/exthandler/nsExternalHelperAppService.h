@@ -26,7 +26,6 @@
 #include "nsString.h"
 #include "nsIInterfaceRequestor.h"
 #include "nsIInterfaceRequestorUtils.h"
-#include "nsILocalFile.h"
 #include "nsIChannel.h"
 #include "nsITimer.h"
 
@@ -153,7 +152,7 @@ protected:
 
 
 
-  virtual void FixFilePermissions(nsILocalFile* aFile);
+  virtual void FixFilePermissions(nsIFile* aFile);
 
 #ifdef PR_LOGGING
   
@@ -171,7 +170,7 @@ protected:
   
 
 
-  static void ExpungeTemporaryFilesHelper(nsCOMArray<nsILocalFile> &fileList);
+  static void ExpungeTemporaryFilesHelper(nsCOMArray<nsIFile> &fileList);
   
 
 
@@ -186,12 +185,12 @@ protected:
   
 
 
-  nsCOMArray<nsILocalFile> mTemporaryFilesList;
+  nsCOMArray<nsIFile> mTemporaryFilesList;
   
 
 
 
-  nsCOMArray<nsILocalFile> mTemporaryPrivateFilesList;
+  nsCOMArray<nsIFile> mTemporaryPrivateFilesList;
   
 
 
@@ -337,7 +336,7 @@ protected:
 
 
   nsresult CreateProgressListener();
-  nsresult PromptForSaveToFile(nsILocalFile ** aNewFile,
+  nsresult PromptForSaveToFile(nsIFile ** aNewFile,
                                const nsAFlatString &aDefaultFile,
                                const nsAFlatString &aDefaultFileExt);
 

@@ -13,7 +13,7 @@
 #include "prnetdb.h"
 #include "nsDebug.h"
 #include "nsError.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 
 #include "nsDiskCache.h"
 #include "nsDiskCacheBlockFile.h"
@@ -396,7 +396,7 @@ public:
 
 
 
-    nsresult  Open( nsILocalFile *  cacheDirectory);
+    nsresult  Open( nsIFile *  cacheDirectory);
     nsresult  Close(bool flush);
     nsresult  Trim();
 
@@ -428,7 +428,7 @@ public:
     nsresult    GetLocalFileForDiskCacheRecord( nsDiskCacheRecord *  record,
                                                 bool                 meta,
                                                 bool                 createPath,
-                                                nsILocalFile **      result);
+                                                nsIFile **           result);
 
     
     
@@ -486,7 +486,7 @@ private:
 
     PRUint32    CalculateFileIndex(PRUint32 size);
 
-    nsresult    GetBlockFileForIndex( PRUint32 index, nsILocalFile ** result);
+    nsresult    GetBlockFileForIndex( PRUint32 index, nsIFile ** result);
     PRUint32    GetBlockSizeForIndex( PRUint32 index) const {
         return BLOCK_SIZE_FOR_INDEX(index);
     }
@@ -529,7 +529,7 @@ private:
 
 
 private:
-    nsCOMPtr<nsILocalFile>  mCacheDirectory;
+    nsCOMPtr<nsIFile>       mCacheDirectory;
     PRFileDesc *            mMapFD;
     nsDiskCacheRecord *     mRecordArray;
     nsDiskCacheBlockFile    mBlockFile[kNumBlockFiles];

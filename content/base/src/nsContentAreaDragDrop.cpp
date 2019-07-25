@@ -218,7 +218,7 @@ nsContentAreaDragDropDataProvider::GetFlavorData(nsITransferable *aTransferable,
     dataSize = 0;
     aTransferable->GetTransferData(kFilePromiseDirectoryMime,
                                    getter_AddRefs(dirPrimitive), &dataSize);
-    nsCOMPtr<nsILocalFile> destDirectory = do_QueryInterface(dirPrimitive);
+    nsCOMPtr<nsIFile> destDirectory = do_QueryInterface(dirPrimitive);
     if (!destDirectory)
       return NS_ERROR_FAILURE;
 

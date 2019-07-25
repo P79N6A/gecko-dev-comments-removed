@@ -5,7 +5,7 @@
 
 
 #include "nsIDirectoryService.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 
 #include "nsCOMPtr.h"
 #include "nsDirectoryServiceUtils.h"

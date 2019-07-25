@@ -5,7 +5,7 @@
 
 
 #include "storage_test_harness.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 
 
 
@@ -19,11 +19,8 @@ test_file_perms()
   nsCOMPtr<nsIFile> dbFile;
   do_check_success(db->GetDatabaseFile(getter_AddRefs(dbFile)));
 
-  nsCOMPtr<nsILocalFile> localFile = do_QueryInterface(dbFile);
-  do_check_true(localFile);
-
   PRUint32 perms = 0;
-  do_check_success(localFile->GetPermissions(&perms));
+  do_check_success(dbFile->GetPermissions(&perms));
 
   
   

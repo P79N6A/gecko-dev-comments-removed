@@ -8,7 +8,7 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsAutoPtr.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsIURI.h"
 #include "FileUtils.h"
 
@@ -36,7 +36,7 @@ public:
   
 
 
-  FileLocation(nsILocalFile *file)
+  FileLocation(nsIFile *file)
   {
     Init(file);
   }
@@ -45,7 +45,7 @@ public:
 
 
 
-  FileLocation(nsILocalFile *zip, const char *path)
+  FileLocation(nsIFile *zip, const char *path)
   {
     Init(zip, path);
   }
@@ -63,14 +63,14 @@ public:
   
 
 
-  void Init(nsILocalFile *file)
+  void Init(nsIFile *file)
   {
     mBaseZip = NULL;
     mBaseFile = file;
     mPath.Truncate();
   }
 
-  void Init(nsILocalFile *zip, const char *path)
+  void Init(nsIFile *zip, const char *path)
   {
     mBaseZip = NULL;
     mBaseFile = zip;
@@ -95,7 +95,7 @@ public:
 
 
 
-  already_AddRefed<nsILocalFile> GetBaseFile();
+  already_AddRefed<nsIFile> GetBaseFile();
 
   
 
@@ -155,7 +155,7 @@ public:
 
   nsresult GetData(Data &data);
 private:
-  nsCOMPtr<nsILocalFile> mBaseFile;
+  nsCOMPtr<nsIFile> mBaseFile;
   nsRefPtr<nsZipArchive> mBaseZip;
   nsCString mPath;
 }; 

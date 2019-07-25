@@ -699,7 +699,7 @@ struct MessageWindow {
         COPYDATASTRUCT *cds = (COPYDATASTRUCT*)lp;
         DosGetSharedMem( (PVOID)cds, PAG_READ|PAG_WRITE );
 
-        nsCOMPtr<nsILocalFile> workingDir;
+        nsCOMPtr<nsIFile> workingDir;
 
         
         

@@ -38,7 +38,7 @@ nsresult TestWinAttribs()
 
     
     HANDLE hIndexed;
-    nsCOMPtr<nsILocalFile> localFile;
+    nsCOMPtr<nsIFile> localFile;
     WCHAR filePath[MAX_PATH];
 
     

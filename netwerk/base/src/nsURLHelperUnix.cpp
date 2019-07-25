@@ -7,7 +7,7 @@
 
 #include "nsURLHelper.h"
 #include "nsEscape.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsNativeCharsetUtils.h"
 
 nsresult 
@@ -55,7 +55,7 @@ net_GetFileFromURLSpec(const nsACString &aURL, nsIFile **result)
 
     nsresult rv;
 
-    nsCOMPtr<nsILocalFile> localFile;
+    nsCOMPtr<nsIFile> localFile;
     rv = NS_NewNativeLocalFile(EmptyCString(), true, getter_AddRefs(localFile));
     if (NS_FAILED(rv))
       return rv;

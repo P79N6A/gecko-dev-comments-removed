@@ -9,7 +9,7 @@
 #include "nsUpdateDriver.h"
 #include "nsXULAppAPI.h"
 #include "nsAppRunner.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsCOMPtr.h"
 #include "nsString.h"
 #include "prproces.h"
@@ -113,7 +113,7 @@ GetCurrentWorkingDir(char *buf, size_t size)
 
 
 static nsresult
-GetXULRunnerStubPath(const char* argv0, nsILocalFile* *aResult)
+GetXULRunnerStubPath(const char* argv0, nsIFile* *aResult)
 {
   
   CFBundleRef appBundle = ::CFBundleGetMainBundle();
@@ -132,13 +132,13 @@ GetXULRunnerStubPath(const char* argv0, nsILocalFile* *aResult)
   if (NS_FAILED(rv))
     return rv;
 
-  NS_ADDREF(*aResult = static_cast<nsILocalFile*>(lfm.get()));
+  NS_ADDREF(*aResult = static_cast<nsIFile*>(lfm.get()));
   return NS_OK;
 }
 #endif 
 
 static bool
-GetFile(nsIFile *dir, const nsCSubstring &name, nsCOMPtr<nsILocalFile> &result)
+GetFile(nsIFile *dir, const nsCSubstring &name, nsCOMPtr<nsIFile> &result)
 {
   nsresult rv;
   
@@ -156,7 +156,7 @@ GetFile(nsIFile *dir, const nsCSubstring &name, nsCOMPtr<nsILocalFile> &result)
 }
 
 static bool
-GetStatusFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
+GetStatusFile(nsIFile *dir, nsCOMPtr<nsIFile> &result)
 {
   return GetFile(dir, NS_LITERAL_CSTRING("update.status"), result);
 }
@@ -171,7 +171,7 @@ GetStatusFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
 
 template <size_t Size>
 static bool
-GetStatusFileContents(nsILocalFile *statusFile, char (&buf)[Size])
+GetStatusFileContents(nsIFile *statusFile, char (&buf)[Size])
 {
   
   PR_STATIC_ASSERT(Size > 16);
@@ -204,7 +204,7 @@ typedef enum {
 
 
 static UpdateStatus
-GetUpdateStatus(nsIFile* dir, nsCOMPtr<nsILocalFile> &statusFile)
+GetUpdateStatus(nsIFile* dir, nsCOMPtr<nsIFile> &statusFile)
 {
   if (GetStatusFile(dir, statusFile)) {
     char buf[32];
@@ -231,7 +231,7 @@ GetUpdateStatus(nsIFile* dir, nsCOMPtr<nsILocalFile> &statusFile)
 }
 
 static bool
-GetVersionFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
+GetVersionFile(nsIFile *dir, nsCOMPtr<nsIFile> &result)
 {
   return GetFile(dir, NS_LITERAL_CSTRING("update.version"), result);
 }
@@ -239,7 +239,7 @@ GetVersionFile(nsIFile *dir, nsCOMPtr<nsILocalFile> &result)
 
 
 static bool
-IsOlderVersion(nsILocalFile *versionFile, const char *appVersion)
+IsOlderVersion(nsIFile *versionFile, const char *appVersion)
 {
   PRFileDesc *fd = nsnull;
   nsresult rv = versionFile->OpenNSPRFileDesc(PR_RDONLY, 0660, &fd);
@@ -345,7 +345,7 @@ CopyUpdaterIntoUpdateDir(nsIFile *greDir, nsIFile *appDir, nsIFile *updateDir,
 
 
 static void
-SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
+SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
                    nsIFile *appDir, int appArgc, char **appArgv)
 {
   nsresult rv;
@@ -354,7 +354,7 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile
   
   
 
-  nsCOMPtr<nsILocalFile> tmpDir;
+  nsCOMPtr<nsIFile> tmpDir;
   GetSpecialSystemDirectory(OS_TemporaryDirectory,
                             getter_AddRefs(tmpDir));
   if (!tmpDir) {
@@ -377,7 +377,7 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile
 
   
   
-  nsCOMPtr<nsILocalFile> appFile;
+  nsCOMPtr<nsIFile> appFile;
 
 #if defined(XP_MACOSX)
   
@@ -421,7 +421,7 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile
   
   
   
-  nsCOMPtr<nsILocalFile> updatedDir;
+  nsCOMPtr<nsIFile> updatedDir;
 #if defined(XP_MACOSX)
   nsCAutoString applyToDir;
   {
@@ -554,7 +554,7 @@ SwitchToUpdatedApp(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile
 
 
 static void
-ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
+ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsIFile *statusFile,
             nsIFile *appDir, int appArgc, char **appArgv, bool restart,
             ProcessType *outpid)
 {
@@ -573,7 +573,7 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
 
   
   
-  nsCOMPtr<nsILocalFile> appFile;
+  nsCOMPtr<nsIFile> appFile;
 
 #if defined(XP_MACOSX)
   
@@ -617,7 +617,7 @@ ApplyUpdate(nsIFile *greDir, nsIFile *updateDir, nsILocalFile *statusFile,
   
   
   
-  nsCOMPtr<nsILocalFile> updatedDir;
+  nsCOMPtr<nsIFile> updatedDir;
 #if defined(XP_MACOSX)
   nsCAutoString applyToDir;
   {
@@ -802,7 +802,7 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
     
     const char *updRootOverride = PR_GetEnv("MOZ_UPDATE_ROOT_OVERRIDE");
     if (updRootOverride && *updRootOverride) {
-      nsCOMPtr<nsILocalFile> overrideDir;
+      nsCOMPtr<nsIFile> overrideDir;
       nsCAutoString path(updRootOverride);
       rv = NS_NewNativeLocalFile(path, false, getter_AddRefs(overrideDir));
       if (NS_FAILED(rv)) {
@@ -813,7 +813,7 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
     
     const char *appDirOverride = PR_GetEnv("MOZ_UPDATE_APPDIR_OVERRIDE");
     if (appDirOverride && *appDirOverride) {
-      nsCOMPtr<nsILocalFile> overrideDir;
+      nsCOMPtr<nsIFile> overrideDir;
       nsCAutoString path(appDirOverride);
       rv = NS_NewNativeLocalFile(path, false, getter_AddRefs(overrideDir));
       if (NS_FAILED(rv)) {
@@ -829,12 +829,12 @@ ProcessUpdates(nsIFile *greDir, nsIFile *appDir, nsIFile *updRootDir,
     }
   }
 
-  nsCOMPtr<nsILocalFile> statusFile;
+  nsCOMPtr<nsIFile> statusFile;
   UpdateStatus status = GetUpdateStatus(updatesDir, statusFile);
   switch (status) {
   case ePendingUpdate:
   case ePendingService: {
-    nsCOMPtr<nsILocalFile> versionFile;
+    nsCOMPtr<nsIFile> versionFile;
     
     
     

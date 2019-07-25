@@ -20,7 +20,6 @@
 #include "nsIComponentManager.h"
 #include "nsIComponentRegistrar.h"
 #include "nsIFile.h"
-#include "nsILocalFile.h"
 #include "nsIFileStreams.h"
 #include "nsMemory.h"
 #include "nsIComponentRegistrar.h"
@@ -39,7 +38,7 @@ typedef struct Allocation {
 } Allocation;
 
 nsresult
-StressTest(nsILocalFile *  localFile, PRInt32  testNumber, bool readWrite)
+StressTest(nsIFile *  localFile, PRInt32  testNumber, bool readWrite)
 {
     nsresult  rv = NS_OK;
 
@@ -191,7 +190,7 @@ main(void)
     srand(now);
 
     nsCOMPtr<nsIFile>       file;
-    nsCOMPtr<nsILocalFile>  localFile;
+    nsCOMPtr<nsIFile>  localFile;
     nsresult  rv = NS_OK;
     {
         

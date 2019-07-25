@@ -6,7 +6,7 @@
 
 #include "nsCRTGlue.h"
 #include "nsError.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 #include "nsINIParser.h"
 #include "mozilla/FileUtils.h" 
 
@@ -54,7 +54,7 @@ private:
 };
 
 nsresult
-nsINIParser::Init(nsILocalFile* aFile)
+nsINIParser::Init(nsIFile* aFile)
 {
     
 

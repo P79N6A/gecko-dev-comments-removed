@@ -132,7 +132,7 @@ class nsMIMEInfoBase : public nsIMIMEInfo {
 
 
     static NS_HIDDEN_(nsresult) GetLocalFileFromURI(nsIURI *aURI,
-                                                    nsILocalFile **aFile);
+                                                    nsIFile **aFile);
 
     
     nsTArray<nsCString>    mExtensions; 

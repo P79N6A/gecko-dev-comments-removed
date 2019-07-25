@@ -11,7 +11,7 @@
 #include "nsCRT.h"
 
 #include "nsIPlatformCharset.h"
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 
 #ifdef MOZ_TOOLKIT_SEARCH
 #include "nsIBrowserSearchService.h"
@@ -574,7 +574,7 @@ nsresult nsDefaultURIFixup::ConvertFileToStringURI(const nsACString& aIn,
         
         
 
-        nsCOMPtr<nsILocalFile> filePath;
+        nsCOMPtr<nsIFile> filePath;
         nsresult rv;
 
         

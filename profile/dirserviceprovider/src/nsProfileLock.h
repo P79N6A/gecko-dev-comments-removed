@@ -6,7 +6,7 @@
 #ifndef __nsProfileLock_h___
 #define __nsProfileLock_h___
 
-#include "nsILocalFile.h"
+#include "nsIFile.h"
 
 class nsIProfileUnlocker;
 
@@ -47,7 +47,7 @@ public:
 
 
 
-    nsresult                Lock(nsILocalFile* aProfileDir, nsIProfileUnlocker* *aUnlocker);
+    nsresult                Lock(nsIFile* aProfileDir, nsIProfileUnlocker* *aUnlocker);
 
     
 
@@ -86,13 +86,13 @@ private:
                                                );
     static PRCList          mPidLockList;
 
-    nsresult                LockWithFcntl(nsILocalFile *aLockFile);
+    nsresult                LockWithFcntl(nsIFile *aLockFile);
 
     
 
 
 
-    nsresult                LockWithSymlink(nsILocalFile *aLockFile, bool aHaveFcntlLock);
+    nsresult                LockWithSymlink(nsIFile *aLockFile, bool aHaveFcntlLock);
 
     char*                   mPidLockFileName;
     int                     mLockFileDesc;

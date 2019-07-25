@@ -8,7 +8,7 @@
 
 #include "mozilla/StandardInteger.h"
 
-class nsILocalFile;
+class nsIFile;
 
 
 
@@ -30,7 +30,7 @@ struct nsXREAppData
 
 
 
-  nsILocalFile* directory;
+  nsIFile* directory;
 
   
 
@@ -85,7 +85,7 @@ struct nsXREAppData
 
 
 
-  nsILocalFile* xreDirectory;
+  nsIFile* xreDirectory;
 
   
 
