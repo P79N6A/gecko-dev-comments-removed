@@ -1717,6 +1717,22 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles);
 extern JSString *
 obj_toStringHelper(JSContext *cx, JSObject *obj);
 
+enum EvalType { INDIRECT_EVAL, DIRECT_EVAL };
+
+
+
+
+
+
+
+
+
+
+
+extern bool
+EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
+           JSObject *scopeobj);
+
 extern bool
 IsBuiltinEvalFunction(JSFunction *fun);
 

@@ -977,6 +977,16 @@ InvokeConstructorWithGivenThis(JSContext *cx, JSObject *thisobj, const Value &fv
 
 
 
+
+
+
+extern JS_REQUIRES_STACK bool
+DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
+
+
+
+
+
 extern JS_FORCES_STACK bool
 Execute(JSContext *cx, JSObject *chain, JSScript *script,
         JSStackFrame *prev, uintN flags, Value *result);
