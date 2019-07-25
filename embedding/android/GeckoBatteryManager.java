@@ -52,7 +52,6 @@ public class GeckoBatteryManager
 {
   private final static float   kDefaultLevel       = 1.0f;
   private final static boolean kDefaultCharging    = true;
-  private final static float   kMinimumLevelChange = 0.01f;
 
   private static boolean sNotificationsEnabled     = false;
   private static float   sLevel                    = kDefaultLevel;
@@ -100,10 +99,10 @@ public class GeckoBatteryManager
 
 
 
+
     if (sNotificationsEnabled &&
-        (previousCharging != isCharging() ||
-         Math.abs(previousLevel - getLevel()) >= kMinimumLevelChange)) {
-      GeckoAppShell.notifyBatteryChange(sLevel, sCharging);
+        (previousCharging != isCharging() || previousLevel != getLevel())) {
+      GeckoAppShell.notifyBatteryChange(getLevel(), isCharging());
     }
   }
 
