@@ -2725,19 +2725,20 @@ nsPluginHost::ReadPluginInfo()
     return rv;
 
   
-  PRInt32 vdiff = NS_CompareVersions(values[1], kPluginRegistryVersion);
+  PRInt32 vdiff = mozilla::CompareVersions(values[1], kPluginRegistryVersion);
+  mozilla::Version version(values[1]);
   
   if (vdiff > 0)
     return rv;
   
-  if (NS_CompareVersions(values[1], kMinimumRegistryVersion) < 0)
+  if (version < kMinimumRegistryVersion)
     return rv;
 
   
-  bool regHasVersion = NS_CompareVersions(values[1], "0.10") >= 0;
+  bool regHasVersion = (version >= "0.10");
 
   
-  if (NS_CompareVersions(values[1], "0.13") >= 0) {
+  if (version >= "0.13") {
     char* archValues[6];
     
     if (!reader.NextLine()) {
@@ -2771,7 +2772,7 @@ nsPluginHost::ReadPluginInfo()
   }
   
   
-  bool hasInvalidPlugins = (NS_CompareVersions(values[1], "0.13") >= 0);
+  bool hasInvalidPlugins = (version >= "0.13");
 
   if (!ReadSectionHeader(reader, "PLUGINS"))
     return rv;
@@ -2779,7 +2780,7 @@ nsPluginHost::ReadPluginInfo()
 #if defined(XP_MACOSX)
   bool hasFullPathInFileNameField = false;
 #else
-  bool hasFullPathInFileNameField = (NS_CompareVersions(values[1], "0.11") < 0);
+  bool hasFullPathInFileNameField = (version < "0.11");
 #endif
 
   while (reader.NextLine()) {
