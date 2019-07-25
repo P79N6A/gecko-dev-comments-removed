@@ -505,9 +505,7 @@ if __name__ == '__main__':
             print >>sys.stderr, "--regen useless without --cachedir"
         
         
-        deadfiles = os.path.join(options.cachedir, "*.py*")
-        for filename in glob.glob(deadfiles):
-            print filename
+        for filename in [os.path.join(options.cachedir, f) for f in ["xpidllex.py", "xpidlyacc.py"]]:
             os.remove(filename)
 
     
