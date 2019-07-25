@@ -2338,7 +2338,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
 
         JSFunction *fun = (JSFunction *) funbox->object;
 
-        JS_ASSERT(FUN_KIND(fun) == JSFUN_INTERPRETED);
+        JS_ASSERT(fun->isInterpreted());
 
         FUN_METER(allfun);
         if (funbox->tcflags & TCF_FUN_HEAVYWEIGHT) {
@@ -2410,8 +2410,21 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                             ++nflattened;
                             continue;
                         }
-                        if (DeoptimizeUsesWithin(lexdep, funbox->node->pn_body->pn_pos))
-                            FlagHeavyweights(lexdep, funbox, tcflags);
+
+                        
+
+
+
+
+
+
+
+
+
+
+
+
+
                     }
                 }
 
@@ -2419,7 +2432,6 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
                     FUN_METER(onlyfreevar);
                     FUN_SET_KIND(fun, JSFUN_NULL_CLOSURE);
                 } else if (nflattened == nupvars) {
-                    
                     
 
 
@@ -2446,7 +2458,7 @@ Parser::setFunctionKinds(JSFunctionBox *funbox, uint32& tcflags)
             }
         }
 
-        if (FUN_KIND(fun) == JSFUN_INTERPRETED && pn->pn_type == TOK_UPVARS) {
+        if (fun->isInterpreted() && pn->pn_type == TOK_UPVARS) {
             
 
 
