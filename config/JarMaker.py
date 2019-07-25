@@ -383,7 +383,7 @@ class JarMaker(object):
         src = src[1:]
       else:
         
-        src_base = sourcedirs + ['.']
+        src_base = sourcedirs + [os.getcwd()]
       
       realsrc = None
       for _srcdir in src_base:
