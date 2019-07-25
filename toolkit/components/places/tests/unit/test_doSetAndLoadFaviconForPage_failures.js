@@ -138,8 +138,8 @@ let historyObserver = {
       return;
 
     
-    dump_table("moz_places_temp");
-    dump_table("moz_favicons");
+    
+    
 
     
     do_check_true(pageURI.equals(uri("http://test4.bar/")));
