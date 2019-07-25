@@ -35,7 +35,6 @@
 
 
 
-"use strict";
 
 let Cc = Components.classes;
 let Ci = Components.interfaces;
