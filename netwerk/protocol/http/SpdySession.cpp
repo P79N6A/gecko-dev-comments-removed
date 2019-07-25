@@ -1950,6 +1950,40 @@ SpdySession::Http1xTransactionCount()
 }
 
 
+static PLDHashOperator
+TakeStream(nsAHttpTransaction *key,
+           nsAutoPtr<SpdyStream> &stream,
+           void *closure)
+{
+  nsTArray<nsRefPtr<nsAHttpTransaction> > *list =
+    static_cast<nsTArray<nsRefPtr<nsAHttpTransaction> > *>(closure);
+
+  list->AppendElement(key);
+
+  
+  
+  return PL_DHASH_REMOVE;
+}
+
+nsresult
+SpdySession::TakeSubTransactions(
+    nsTArray<nsRefPtr<nsAHttpTransaction> > &outTransactions)
+{
+  
+  
+
+  LOG3(("SpdySession::TakeSubTransactions %p\n", this));
+
+  if (mConcurrentHighWater > 0)
+    return NS_ERROR_ALREADY_OPENED;
+
+  LOG3(("   taking %d\n", mStreamTransactionHash.Count()));
+
+  mStreamTransactionHash.Enumerate(TakeStream, &outTransactions);
+  return NS_OK;
+}
+
+
 
 
 

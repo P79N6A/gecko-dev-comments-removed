@@ -181,6 +181,9 @@ private:
     void     HandleAlternateProtocol(nsHttpResponseHead *);
 
     
+    void     StartSpdy();
+
+    
     nsresult AddTransaction(nsAHttpTransaction *, PRInt32);
 
 private:
