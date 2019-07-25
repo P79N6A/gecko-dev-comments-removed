@@ -213,7 +213,6 @@ enum {
 
 
 
-
 extern JS_FRIEND_API(JSBool)
 js_LookupProperty(JSContext *cx, JSObject *obj, jsid id, JSObject **objp,
                   JSProperty **propp);
@@ -1570,48 +1569,43 @@ extern JSBool
 js_DefineOwnProperty(JSContext *cx, JSObject *obj, jsid id,
                      const js::Value &descriptor, JSBool *bp);
 
-
-
-
-const uintN JSDNP_CACHE_RESULT = 1; 
-const uintN JSDNP_DONT_PURGE   = 2; 
-const uintN JSDNP_SET_METHOD   = 4; 
-
-
-const uintN JSDNP_UNQUALIFIED  = 8; 
-
-
-
-
-
-
-
-
-extern JSBool
-js_DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
-                        js::PropertyOp getter, js::StrictPropertyOp setter, uintN attrs,
-                        uintN flags, intN shortid, JSProperty **propp,
-                        uintN defineHow = 0);
-
-
-
-
-
-
-extern int
-js_LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
-                           JSObject **objp, JSProperty **propp);
-
-
-
-
-
-static const uintN JSRESOLVE_INFER = 0xffff;
-
 extern JS_FRIEND_DATA(js::Class) js_CallClass;
 extern JS_FRIEND_DATA(js::Class) js_DeclEnvClass;
 
 namespace js {
+
+
+
+
+const uintN DNP_CACHE_RESULT = 1;   
+const uintN DNP_DONT_PURGE   = 2;   
+const uintN DNP_SET_METHOD   = 4;   
+
+
+const uintN DNP_UNQUALIFIED  = 8;   
+
+
+
+
+
+
+extern const Shape *
+DefineNativeProperty(JSContext *cx, JSObject *obj, jsid id, const js::Value &value,
+                     PropertyOp getter, StrictPropertyOp setter, uintN attrs,
+                     uintN flags, intN shortid, uintN defineHow = 0);
+
+
+
+
+extern bool
+LookupPropertyWithFlags(JSContext *cx, JSObject *obj, jsid id, uintN flags,
+                        JSObject **objp, JSProperty **propp);
+
+
+
+
+
+static const uintN RESOLVE_INFER = 0xffff;
 
 
 

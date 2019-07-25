@@ -9520,12 +9520,8 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
                 RETURN_STOP_A("cannot cache name");
         } else {
             TraceMonitor &localtm = *traceMonitor;
-            int protoIndex = js_LookupPropertyWithFlags(cx, aobj, id,
-                                                        cx->resolveFlags,
-                                                        &obj2, &prop);
-
-            if (protoIndex < 0)
-                RETURN_ERROR_A("error in js_LookupPropertyWithFlags");
+            if (!LookupPropertyWithFlags(cx, aobj, id, cx->resolveFlags, &obj2, &prop))
+                RETURN_ERROR_A("error in LookupPropertyWithFlags");
 
             
             if (!localtm.recorder)
@@ -9534,8 +9530,7 @@ TraceRecorder::test_property_cache(JSObject* obj, LIns* obj_ins, JSObject*& obj2
             if (prop) {
                 if (!obj2->isNative())
                     RETURN_STOP_A("property found on non-native object");
-                entry = JS_PROPERTY_CACHE(cx).fill(cx, aobj, 0, protoIndex, obj2,
-                                                   (Shape*) prop);
+                entry = JS_PROPERTY_CACHE(cx).fill(cx, aobj, 0, obj2, (Shape*) prop);
                 JS_ASSERT(entry);
                 if (entry == JS_NO_PROP_CACHE_FILL)
                     entry = NULL;
