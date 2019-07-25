@@ -43,6 +43,8 @@ WEAVE_VERSION:                         "@weave_version@",
 
 COMPATIBLE_VERSION:                    "@compatible_version@",
 
+DEFAULT_SERVER:                        "@server_url@",
+
 PREFS_BRANCH:                          "extensions.weave.",
 
 
