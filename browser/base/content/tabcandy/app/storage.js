@@ -55,7 +55,7 @@ Storage = {
       
       
       var alreadyReady = Utils.getCurrentWindow().__SSi;
-      if(alreadyReady) {
+      if (alreadyReady) {
         callback();
       } else {    
         var obsService =
@@ -209,7 +209,7 @@ Storage = {
     var existingData = {};
     try {
       var data = this._sessionStore.getWindowValue(win, id);
-      if(data)
+      if (data)
         existingData = JSON.parse(data);
     } catch (e) {
       Utils.log("Error in readData: "+e);

@@ -61,7 +61,7 @@ window.InfoItem = function(bounds, options) {
   try {
     Utils.assertThrow('bounds', isRect(bounds));
     
-    if(typeof(options) == 'undefined')
+    if (typeof(options) == 'undefined')
       options = {};
   
     this._inited = false;
@@ -89,27 +89,27 @@ window.InfoItem = function(bounds, options) {
       .appendTo($container);
       
     
-    if(this.locked.bounds)
+    if (this.locked.bounds)
       $container.css({cursor: 'default'});    
       
-    if(this.locked.close)
+    if (this.locked.close)
       $close.hide();
       
     
     this._init($container.get(0));
   
-    if(this.$debug) 
+    if (this.$debug) 
       this.$debug.css({zIndex: -1000});
     
     
-    if(!this.locked.bounds)
+    if (!this.locked.bounds)
       this.draggable();
     
     
     this.snap();
     
     
-    if(!options.dontPush)
+    if (!options.dontPush)
       this.pushAway();   
   
     this._inited = true;
@@ -167,26 +167,26 @@ window.InfoItem.prototype = iQ.extend(new Item(), new Subscribable(), {
       
       var css = {};
   
-      if(rect.left != this.bounds.left)
+      if (rect.left != this.bounds.left)
         css.left = rect.left;
         
-      if(rect.top != this.bounds.top) 
+      if (rect.top != this.bounds.top) 
         css.top = rect.top;
         
-      if(rect.width != this.bounds.width) 
+      if (rect.width != this.bounds.width) 
         css.width = rect.width;
   
-      if(rect.height != this.bounds.height)
+      if (rect.height != this.bounds.height)
         css.height = rect.height; 
         
-      if(iQ.isEmptyObject(css))
+      if (iQ.isEmptyObject(css))
         return;
         
       this.bounds = new Rect(rect);
       Utils.assertThrow('Group.setBounds: this.bounds must be a real rectangle!', isRect(this.bounds));    
             
       
-      if(immediately) {
+      if (immediately) {
         iQ(this.container).css(css);
       } else {
         TabMirror.pausePainting();
@@ -218,7 +218,7 @@ window.InfoItem.prototype = iQ.extend(new Item(), new Subscribable(), {
   
       iQ(this.container).css({zIndex: value});
   
-      if(this.$debug) 
+      if (this.$debug) 
         this.$debug.css({zIndex: value + 1});
     } catch(e) {
       Utils.log(e);
