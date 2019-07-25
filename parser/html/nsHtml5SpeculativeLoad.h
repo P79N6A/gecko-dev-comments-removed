@@ -72,18 +72,20 @@ class nsHtml5SpeculativeLoad {
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadImage;
       mUrl.Assign(aUrl);
-      mCharsetOrCrossOrigin.Assign(aCrossOrigin);
+      mCrossOrigin.Assign(aCrossOrigin);
     }
 
     inline void InitScript(const nsAString& aUrl,
-                      const nsAString& aCharset,
-                      const nsAString& aType) {
+                           const nsAString& aCharset,
+                           const nsAString& aType,
+                           const nsAString& aCrossOrigin) {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadScript;
       mUrl.Assign(aUrl);
-      mCharsetOrCrossOrigin.Assign(aCharset);
+      mCharset.Assign(aCharset);
       mTypeOrCharsetSource.Assign(aType);
+      mCrossOrigin.Assign(aCrossOrigin);
     }
     
     inline void InitStyle(const nsAString& aUrl, const nsAString& aCharset) {
@@ -91,7 +93,7 @@ class nsHtml5SpeculativeLoad {
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadStyle;
       mUrl.Assign(aUrl);
-      mCharsetOrCrossOrigin.Assign(aCharset);
+      mCharset.Assign(aCharset);
     }
 
     
@@ -127,7 +129,7 @@ class nsHtml5SpeculativeLoad {
       NS_PRECONDITION(mOpCode == eSpeculativeLoadUninitialized,
                       "Trying to reinitialize a speculative load!");
       mOpCode = eSpeculativeLoadSetDocumentCharset;
-      CopyUTF8toUTF16(aCharset, mCharsetOrCrossOrigin);
+      CopyUTF8toUTF16(aCharset, mCharset);
       mTypeOrCharsetSource.Assign((PRUnichar)aCharsetSource);
     }
 
@@ -142,9 +144,7 @@ class nsHtml5SpeculativeLoad {
 
 
 
-
-
-    nsString mCharsetOrCrossOrigin;
+    nsString mCharset;
     
 
 
@@ -152,6 +152,12 @@ class nsHtml5SpeculativeLoad {
 
 
     nsString mTypeOrCharsetSource;
+    
+
+
+
+
+    nsString mCrossOrigin;
 };
 
 #endif 

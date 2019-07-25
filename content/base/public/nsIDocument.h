@@ -1426,6 +1426,7 @@ public:
 
 
 
+
   virtual void MaybePreLoadImage(nsIURI* uri,
                                  const nsAString& aCrossOriginAttr) = 0;
 

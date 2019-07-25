@@ -239,8 +239,11 @@ public:
 
 
 
+
+
   virtual void PreloadURI(nsIURI *aURI, const nsAString &aCharset,
-                          const nsAString &aType);
+                          const nsAString &aType,
+                          const nsAString &aCrossOrigin);
 
 private:
   
