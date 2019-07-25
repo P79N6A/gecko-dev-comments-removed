@@ -540,6 +540,7 @@ using mozilla::dom::indexedDB::IDBWrapperCache;
 #include "LockedFile.h"
 #include "GeneratedEvents.h"
 #include "mozilla/Likely.h"
+#include "nsDebug.h"
 
 #undef None // something included above defines this preprocessor symbol, maybe Xlib headers
 #include "WebGLContext.h"
@@ -2074,7 +2075,9 @@ SetParentToWindow(nsGlobalWindow *win, JSObject **parent)
   if (MOZ_UNLIKELY(!*parent)) {
     
     
-    MOZ_ASSERT(win->IsClosedOrClosing());
+    
+    
+    NS_ASSERTION(win->IsClosedOrClosing(), "win should be closed or closing");
     return NS_ERROR_FAILURE;
   }
   return NS_OK;
