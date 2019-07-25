@@ -4054,6 +4054,14 @@ JS_NextProperty(JSContext *cx, JSObject *iterobj, jsid *idp);
 extern JS_PUBLIC_API(JSObject *)
 JS_NewElementIterator(JSContext *cx, JSObject *obj);
 
+
+
+
+
+
+extern JS_PUBLIC_API(JSObject *)
+JS_ElementIteratorStub(JSContext *cx, JSObject *obj, JSBool keysonly);
+
 extern JS_PUBLIC_API(JSBool)
 JS_CheckAccess(JSContext *cx, JSObject *obj, jsid id, JSAccessMode mode,
                jsval *vp, uintN *attrsp);

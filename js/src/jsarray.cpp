@@ -679,13 +679,6 @@ array_length_setter(JSContext *cx, JSObject *obj, jsid id, JSBool strict, Value 
     return true;
 }
 
-static JSObject *
-array_iterator(JSContext *cx, JSObject *obj, JSBool keysonly)
-{
-    JS_ASSERT(!keysonly);
-    return ElementIteratorObject::create(cx, obj);
-}
-
 
 static inline bool
 IsDenseArrayIndex(JSObject *obj, uint32_t index)
@@ -1242,7 +1235,7 @@ Class js::ArrayClass = {
         NULL,       
         NULL,       
         NULL,       
-        array_iterator,
+        JS_ElementIteratorStub,
         NULL,       
         false,      
     },
@@ -1306,7 +1299,7 @@ Class js::SlowArrayClass = {
         NULL,       
         NULL,       
         NULL,       
-        array_iterator,
+        JS_ElementIteratorStub,
         NULL,       
         false,      
     }
