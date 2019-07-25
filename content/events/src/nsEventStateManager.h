@@ -159,8 +159,10 @@ public:
 
   static nsIEventStateManager* GetActiveEventStateManager() { return sActiveESM; }
 
-  static void SetGlobalActiveContent(nsEventStateManager* aNewESM,
-                                     nsIContent* aContent);
+  
+  
+  static void SetActiveManager(nsEventStateManager* aNewESM,
+                               nsIContent* aContent);
 protected:
   void UpdateCursor(nsPresContext* aPresContext, nsEvent* aEvent, nsIFrame* aTargetFrame, nsEventStatus* aStatus);
   
@@ -415,7 +417,7 @@ protected:
 
   static nsEventStateManager* sActiveESM;
   
-  static void ClearGlobalActiveContent();
+  static void ClearGlobalActiveContent(nsEventStateManager* aClearer);
 
   
   PRBool mClickHoldContextMenu;
