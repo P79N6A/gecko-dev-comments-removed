@@ -73,6 +73,34 @@ const SocialService = {
   },
 
   
+  addProvider: function addProvider(manifest, onDone) {
+    if (SocialServiceInternal.providers[manifest.origin])
+      throw new Error("SocialService.addProvider: provider with this origin already exists");
+
+    let provider = new SocialProvider(manifest, SocialServiceInternal.enabled);
+    SocialServiceInternal.providers[provider.origin] = provider;
+
+    schedule(function () {
+      onDone(provider);
+    });
+  },
+
+  
+  
+  removeProvider: function removeProvider(origin, onDone) {
+    if (!(origin in SocialServiceInternal.providers))
+      throw new Error("SocialService.removeProvider: no provider with this origin exists!");
+
+    let provider = SocialServiceInternal.providers[origin];
+    provider.enabled = false;
+
+    delete SocialServiceInternal.providers[origin];
+
+    if (onDone)
+      schedule(onDone);
+  },
+
+  
   getProvider: function getProvider(origin, onDone) {
     schedule((function () {
       onDone(SocialServiceInternal.providers[origin] || null);

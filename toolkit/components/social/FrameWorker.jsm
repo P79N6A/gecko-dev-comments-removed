@@ -209,11 +209,12 @@ FrameWorker.prototype = {
       }
     }
 
+    delete workerCache[this.url];
+
     
     Services.tm.mainThread.dispatch(function deleteWorkerFrame() {
       
       this.frame.parentNode.removeChild(this.frame);
-      delete workerCache[this.url];
     }.bind(this), Ci.nsIThread.DISPATCH_NORMAL);
   }
 };
