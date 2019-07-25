@@ -363,6 +363,12 @@ SyncEngine.prototype = {
         meta = null;
       }
     }
+    
+    else if (CryptoMetas.response.status != 404) {
+      let resp = CryptoMetas.response;
+      resp.failureCode = ENGINE_METARECORD_DOWNLOAD_FAIL;
+      throw resp;
+    }
 
     
     let metaGlobal = Records.get(this.metaURL);
