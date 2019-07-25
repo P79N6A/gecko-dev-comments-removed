@@ -155,9 +155,11 @@ let UI = {
 
       GroupItems.init();
 
-      var groupItemsData = Storage.readGroupItemsData(gWindow);
-      var firstTime = !groupItemsData || Utils.isEmptyObject(groupItemsData);
-      var groupItemData = Storage.readGroupItemData(gWindow);
+      let firstTime = true;
+      if (gPrefBranch.prefHasUserValue("experienced_first_run"))
+        firstTime = !gPrefBranch.getBoolPref("experienced_first_run");
+      let groupItemsData = Storage.readGroupItemsData(gWindow);
+      let groupItemData = Storage.readGroupItemData(gWindow);
       GroupItems.reconstitute(groupItemsData, groupItemData);
       GroupItems.killNewTabGroup(); 
 
@@ -165,45 +167,9 @@ let UI = {
       TabItems.init();
       TabItems.pausePainting();
 
-      if (firstTime) {
-        var padding = 10;
-        var infoWidth = 350;
-        var infoHeight = 232;
-        var pageBounds = Items.getPageBounds();
-        pageBounds.inset(padding, padding);
-
-        
-        var box = new Rect(pageBounds);
-        box.width =
-          Math.min(box.width * 0.667, pageBounds.width - (infoWidth + padding));
-        box.height = box.height * 0.667;
-        var options = {
-          bounds: box
-        };
-
-        var groupItem = new GroupItem([], options);
-
-        var items = TabItems.getItems();
-        items.forEach(function(item) {
-          if (item.parent)
-            item.parent.remove(item);
-
-          groupItem.add(item);
-        });
-
-        
-        let video = "http://videos-cdn.mozilla.net/firefox4beta/tabcandy_howto.webm";
-        var html =
-          "<div class='intro'>"
-            + "<video src='" + video + "' width='100%' preload controls>"
-          + "</div>";
-
-        box.left = box.right + padding;
-        box.width = infoWidth;
-        box.height = infoHeight;
-        var infoItem = new InfoItem(box);
-        infoItem.html(html);
-      }
+      
+      if (firstTime || !groupItemsData || Utils.isEmptyObject(groupItemsData))
+        this.reset(firstTime);
 
       
       if (this._pageBounds)
@@ -262,6 +228,51 @@ let UI = {
     this._reorderTabItemsOnShow = null;
     this._reorderTabsOnHide = null;
     this._frameInitialized = false;
+  },
+  
+  
+  
+  
+  reset: function UI_reset(firstTime) {
+    let padding = 10;
+    let infoWidth = 350;
+    let infoHeight = 232;
+    let pageBounds = Items.getPageBounds();
+    pageBounds.inset(padding, padding);
+
+    
+    let box = new Rect(pageBounds);
+    box.width = 
+      Math.min(box.width * 0.667, pageBounds.width - (infoWidth + padding));
+    box.height = box.height * 0.667;
+
+    GroupItems.groupItems.forEach(function(group) {
+      group.close();
+    });
+
+    let groupItem = new GroupItem([], {bounds: box});
+    let items = TabItems.getItems();
+    items.forEach(function(item) {
+      if (item.parent)
+        item.parent.remove(item);
+      groupItem.add(item);
+    });
+    
+    if (firstTime) {
+      gPrefBranch.setBoolPref("experienced_first_run", true);
+
+      
+      let video = 
+        "http://videos-cdn.mozilla.net/firefox4beta/tabcandy_howto.webm";
+      let html =
+        "<div class='intro'>"
+          + "<video src='" + video + "' width='100%' preload controls>"
+        + "</div>";
+      let infoBox = new Rect(box.right + padding, box.top,
+                         infoWidth, infoHeight);
+      let infoItem = new InfoItem(infoBox);
+      infoItem.html(html);
+    }
   },
 
   
@@ -1027,14 +1038,6 @@ let UI = {
     } catch(e) {
       Utils.log(e);
     }
-  },
-
-  
-  
-  
-  _reset: function UI__reset() {
-    Storage.wipe();
-    location.href = "";
   },
 
   
