@@ -1008,56 +1008,21 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
     JSStackFrame *caller = js_GetScriptedCaller(cx, NULL);
     if (!caller) {
+        
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL,
                              JSMSG_BAD_INDIRECT_CALL, js_eval_str);
         return JS_FALSE;
     }
 
     jsbytecode *callerPC = caller->pc(cx);
-    bool indirectCall = (callerPC && *callerPC != JSOP_EVAL);
+    bool directCall = (callerPC && js_GetOpcode(cx, caller->script(), callerPC) == JSOP_EVAL);
 
     
 
 
 
-    if (caller->scopeChain().compartment() != vp[0].toObject().compartment())
-        indirectCall = true;
-
-    
-
-
-
-
-
-
-
-    {
-        JSObject *obj = ComputeThisFromVp(cx, vp);
-        if (!obj)
-            return JS_FALSE;
-
-        
-
-
-
-        obj = obj->wrappedObject(cx);
-
-        OBJ_TO_INNER_OBJECT(cx, obj);
-        if (!obj)
-            return JS_FALSE;
-
-        JSObject *parent = obj->getParent();
-        if (indirectCall || parent) {
-            uintN flags = parent
-                          ? JSREPORT_ERROR
-                          : JSREPORT_STRICT | JSREPORT_WARNING;
-            if (!JS_ReportErrorFlagsAndNumber(cx, flags, js_GetErrorMessage, NULL,
-                                              JSMSG_BAD_INDIRECT_CALL,
-                                              js_eval_str)) {
-                return JS_FALSE;
-            }
-        }
-    }
+    if (directCall && caller->scopeChain().compartment() != vp[0].toObject().compartment())
+        directCall = false;
 
     Value *argv = JS_ARGV(cx, vp);
     if (!argv[0].isString()) {
@@ -1083,52 +1048,38 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
     MUST_FLOW_THROUGH("out");
     uintN staticLevel = caller->script()->staticLevel + 1;
 
-    
+    JSObject *scopeobj;
 
-
-
-    JSObject *callerScopeChain;
-
-    if (callerPC && *callerPC == JSOP_EVAL)
-        callerScopeChain = js_GetScopeChainFast(cx, caller, JSOP_EVAL,
-                                                JSOP_EVAL_LENGTH + JSOP_LINENO_LENGTH);
-    else
-        callerScopeChain = js_GetScopeChain(cx, caller);
-
-    if (!callerScopeChain)
-        return JS_FALSE;
-
-    JSObject *scopeobj = NULL;
-
-#if JS_HAS_EVAL_THIS_SCOPE
     
 
 
 
 
-    if (indirectCall) {
+
+    if (directCall) {
+        
+        scopeobj = js_GetScopeChainFast(cx, caller, JSOP_EVAL,
+                                        JSOP_EVAL_LENGTH + JSOP_LINENO_LENGTH);
+        if (!scopeobj)
+            return JS_FALSE;
+
+        JS_ASSERT_IF(caller->isFunctionFrame(), caller->hasCallObj());
+    } else {
         
         staticLevel = 0;
         scopeobj = vp[0].toObject().getGlobal();
-    } else {
-        
-
-
-
-
-        JS_ASSERT_IF(caller->isFunctionFrame(), caller->hasCallObj());
-        scopeobj = callerScopeChain;
     }
-#endif
 
     
     JSObject *result = CheckScopeChainValidity(cx, scopeobj, js_eval_str);
-    JS_ASSERT_IF(result, result == scopeobj);
     if (!result)
         return JS_FALSE;
+    JS_ASSERT(result == scopeobj);
 
     
-    
+
+
+
     if (!js_CheckContentSecurityPolicy(cx)) {
         JS_ReportError(cx, "call to eval() blocked by CSP");
         return  JS_FALSE;
@@ -1174,7 +1125,7 @@ obj_eval(JSContext *cx, uintN argc, Value *vp)
 
 
     JSScript **bucket = EvalCacheHash(cx, str);
-    if (!indirectCall && caller->isFunctionFrame()) {
+    if (directCall && caller->isFunctionFrame()) {
         uintN count = 0;
         JSScript **scriptp = bucket;
 
