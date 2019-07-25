@@ -48,6 +48,9 @@ function test()
     browser.removeEventListener("load", arguments.callee, true);
 
     openConsole();
+    
+    HUDService.getHudByWindow(content).jsterm.clearOutput(true);
+
     browser.addEventListener("load", onContentLoaded, true);
     content.location.reload();
   }, true);
