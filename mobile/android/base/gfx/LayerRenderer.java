@@ -124,6 +124,9 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     private int mSampleHandle;
     private int mTMatrixHandle;
 
+    private int mSurfaceWidth;
+    private int mSurfaceHeight;
+
     
     
     
@@ -344,11 +347,14 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     }
 
     private RenderContext createContext(RectF viewport, FloatSize pageSize, float zoomFactor) {
-        return new RenderContext(viewport, pageSize, zoomFactor, mPositionHandle, mTextureHandle,
+        return new RenderContext(viewport, pageSize, new IntSize(mSurfaceWidth, mSurfaceHeight), zoomFactor, mPositionHandle, mTextureHandle,
                                  mCoordBuffer);
     }
 
     public void onSurfaceChanged(GL10 gl, final int width, final int height) {
+        mSurfaceWidth = width;
+        mSurfaceHeight = height;
+
         GLES20.glViewport(0, 0, width, height);
 
         if (mFrameRateLayer != null) {
