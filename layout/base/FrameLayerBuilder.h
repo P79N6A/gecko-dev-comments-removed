@@ -59,7 +59,9 @@ enum LayerState {
   LAYER_ACTIVE,
   
   
-  LAYER_ACTIVE_FORCE
+  LAYER_ACTIVE_FORCE,
+  
+  LAYER_ACTIVE_EMPTY
 };
 
 
