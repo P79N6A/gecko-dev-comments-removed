@@ -497,7 +497,8 @@ public class AwesomeBar extends Activity implements GeckoEventListener {
             Cursor cursor = (Cursor) selectedItem;
 
             
-            if (!(list == findViewById(R.id.bookmarks_list) && cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.IS_FOLDER)) == 1)) {
+            if (!(list == findViewById(R.id.bookmarks_list) &&
+                  cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.TYPE)) == Bookmarks.TYPE_FOLDER)) {
                 String keyword = null;
                 int keywordCol = cursor.getColumnIndex(URLColumns.KEYWORD);
                 if (keywordCol != -1)

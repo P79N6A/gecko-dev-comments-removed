@@ -253,7 +253,7 @@ public class AwesomeBarTabs extends TabHost {
             Cursor c = getCursor();
  
             if (c.moveToPosition(position) &&
-                c.getInt(c.getColumnIndexOrThrow(Bookmarks.IS_FOLDER)) == 1)
+                c.getInt(c.getColumnIndexOrThrow(Bookmarks.TYPE)) == Bookmarks.TYPE_FOLDER)
                 return VIEW_TYPE_FOLDER;
 
             
@@ -872,8 +872,8 @@ public class AwesomeBarTabs extends TabHost {
         
         cursor.moveToPosition(position - 1);
 
-        int isFolder = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.IS_FOLDER));
-        if (isFolder == 1) {
+        int type = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks.TYPE));
+        if (type == Bookmarks.TYPE_FOLDER) {
             
             int folderId = cursor.getInt(cursor.getColumnIndexOrThrow(Bookmarks._ID));
             String folderTitle = mBookmarksAdapter.getFolderTitle(position - 1);
