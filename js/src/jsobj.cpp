@@ -4235,10 +4235,11 @@ js_XDRBlockObject(JSXDRState *xdr, JSObject **objp)
 
 
 
-        if (parentId != NO_PARENT_INDEX) {
+        if (parentId == NO_PARENT_INDEX)
+            parent = NULL;
+        else
             parent = xdr->script->getObject(parentId);
-            obj->setStaticBlockScopeChain(parent);
-        }
+        obj->setStaticBlockScopeChain(parent);
     }
 
     AutoObjectRooter tvr(cx, obj);
