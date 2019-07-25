@@ -420,6 +420,7 @@ HistoryStore.prototype = {
   createRecord: function HistStore_createRecord(guid) {
     let foo = this._findURLByGUID(guid);
     let record = new HistoryRec();
+    record.id = guid;
     if (foo) {
       record.histUri = foo.url;
       record.title = foo.title;
