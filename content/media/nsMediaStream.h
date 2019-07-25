@@ -272,7 +272,9 @@ public:
   
   
   
-  virtual bool IsSuspendedByCache() = 0;
+  
+  
+  virtual bool IsSuspendedByCache(nsMediaStream** aActiveStream) = 0;
   
   virtual bool IsSuspended() = 0;
   
@@ -404,7 +406,7 @@ public:
   virtual PRInt64 GetNextCachedData(PRInt64 aOffset);
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset);
   virtual bool    IsDataCachedToEndOfStream(PRInt64 aOffset);
-  virtual bool    IsSuspendedByCache();
+  virtual bool    IsSuspendedByCache(nsMediaStream** aActiveStream);
   virtual bool    IsSuspended();
 
   class Listener : public nsIStreamListener,

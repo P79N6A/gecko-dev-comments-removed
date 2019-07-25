@@ -644,8 +644,10 @@ void nsBuiltinDecoder::NotifySuspendedStatusChanged()
   NS_ASSERTION(NS_IsMainThread(), "Should be on main thread.");
   if (!mStream)
     return;
-  bool suspended = mStream->IsSuspendedByCache();
-  printf("*** nsBuiltinDecoder::NotifySuspendedStatusChanged(%p), suspended=%d\n", this, suspended);
+  nsMediaStream* activeStream;
+  bool suspended = mStream->IsSuspendedByCache(&activeStream);
+  
+  printf("*** nsBuiltinDecoder::NotifySuspendedStatusChanged(%p), suspended=%d, active-stream=%p\n", this, suspended, activeStream);
   if (suspended && mElement) {
     
     
