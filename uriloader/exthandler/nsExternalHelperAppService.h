@@ -447,7 +447,8 @@ protected:
 
 
 
-  nsIRequest*  mRequest;
+
+  nsCOMPtr<nsIRequest> mRequest;
 };
 
 extern NS_HIDDEN_(nsExternalHelperAppService*) gExtProtSvc;
