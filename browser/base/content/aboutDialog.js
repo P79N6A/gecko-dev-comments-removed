@@ -73,6 +73,17 @@ function init(aEvent)
     document.getElementById("version").value += " (" + buildDate + ")";
   }
 
+#ifdef MOZ_OFFICIAL_BRANDING
+  
+  
+  let chromeRegistry = Cc["@mozilla.org/chrome/chrome-registry;1"].
+                       getService(Ci.nsIXULChromeRegistry);
+  let currentLocale = chromeRegistry.getSelectedLocale("global");
+  if (currentLocale != "en-US" && currentLocale != "en-GB") {
+    document.getElementById("extra-trademark").hidden = true;
+  }
+#endif
+
 #ifdef MOZ_UPDATER
   gAppUpdater = new appUpdater();
 #endif
@@ -125,7 +136,7 @@ function appUpdater()
                                      "nsIBlocklistService");
 
   this.bundle = Services.strings.
-                createBundle("chrome://browser/locale/browser.properties");
+                createBundle("chrome:
 
   this.updateBtn = document.getElementById("updateButton");
 
