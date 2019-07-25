@@ -137,3 +137,115 @@ RelatedAccIterator::Next()
 
   return nsnull;
 }
+
+
+
+
+
+
+HTMLLabelIterator::
+  HTMLLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement,
+                    LabelFilter aFilter) :
+  mRelIter(aDocument, aElement, nsAccessibilityAtoms::_for),
+  mElement(aElement), mLabelFilter(aFilter)
+{
+}
+
+nsAccessible*
+HTMLLabelIterator::Next()
+{
+  
+  
+  nsAccessible* label = nsnull;
+  while ((label = mRelIter.Next())) {
+    if (label->GetContent()->Tag() == nsAccessibilityAtoms::label)
+      return label;
+  }
+
+  if (mLabelFilter == eSkipAncestorLabel)
+    return nsnull;
+
+  
+  
+  nsIContent* walkUpContent = mElement;
+  while ((walkUpContent = walkUpContent->GetParent()) &&
+         walkUpContent->Tag() != nsAccessibilityAtoms::form &&
+         walkUpContent->Tag() != nsAccessibilityAtoms::body) {
+    if (walkUpContent->Tag() == nsAccessibilityAtoms::label) {
+      
+      mLabelFilter = eSkipAncestorLabel;
+      return GetAccService()->GetAccessible(walkUpContent);
+    }
+  }
+
+  return nsnull;
+}
+
+
+
+
+
+
+HTMLOutputIterator::
+HTMLOutputIterator(nsDocAccessible* aDocument, nsIContent* aElement) :
+  mRelIter(aDocument, aElement, nsAccessibilityAtoms::_for)
+{
+}
+
+nsAccessible*
+HTMLOutputIterator::Next()
+{
+  nsAccessible* output = nsnull;
+  while ((output = mRelIter.Next())) {
+    if (output->GetContent()->Tag() == nsAccessibilityAtoms::output)
+      return output;
+  }
+
+  return nsnull;
+}
+
+
+
+
+
+
+XULLabelIterator::
+  XULLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement) :
+  mRelIter(aDocument, aElement, nsAccessibilityAtoms::control)
+{
+}
+
+nsAccessible*
+XULLabelIterator::Next()
+{
+  nsAccessible* label = nsnull;
+  while ((label = mRelIter.Next())) {
+    if (label->GetContent()->Tag() == nsAccessibilityAtoms::label)
+      return label;
+  }
+
+  return nsnull;
+}
+
+
+
+
+
+
+XULDescriptionIterator::
+  XULDescriptionIterator(nsDocAccessible* aDocument, nsIContent* aElement) :
+  mRelIter(aDocument, aElement, nsAccessibilityAtoms::control)
+{
+}
+
+nsAccessible*
+XULDescriptionIterator::Next()
+{
+  nsAccessible* descr = nsnull;
+  while ((descr = mRelIter.Next())) {
+    if (descr->GetContent()->Tag() == nsAccessibilityAtoms::description)
+      return descr;
+  }
+
+  return nsnull;
+}

@@ -91,7 +91,9 @@ static nsIAtom** kRelationAttrs[] =
   &nsAccessibilityAtoms::aria_describedby,
   &nsAccessibilityAtoms::aria_owns,
   &nsAccessibilityAtoms::aria_controls,
-  &nsAccessibilityAtoms::aria_flowto
+  &nsAccessibilityAtoms::aria_flowto,
+  &nsAccessibilityAtoms::_for,
+  &nsAccessibilityAtoms::control
 };
 
 static const PRUint32 kRelationAttrsLen = NS_ARRAY_LENGTH(kRelationAttrs);
@@ -1633,6 +1635,19 @@ nsDocAccessible::AddDependentIDsFor(nsAccessible* aRelProvider,
     nsIAtom* relAttr = *kRelationAttrs[idx];
     if (aRelAttr && aRelAttr != relAttr)
       continue;
+
+    if (relAttr == nsAccessibilityAtoms::_for) {
+      if (!aRelProvider->GetContent()->IsHTML() ||
+          aRelProvider->GetContent()->Tag() != nsAccessibilityAtoms::label &&
+          aRelProvider->GetContent()->Tag() != nsAccessibilityAtoms::output)
+        continue;
+
+    } else if (relAttr == nsAccessibilityAtoms::control) {
+      if (!aRelProvider->GetContent()->IsXUL() ||
+          aRelProvider->GetContent()->Tag() != nsAccessibilityAtoms::label &&
+          aRelProvider->GetContent()->Tag() != nsAccessibilityAtoms::description)
+        continue;
+    }
 
     IDRefsIterator iter(aRelProvider->GetContent(), relAttr);
     while (true) {

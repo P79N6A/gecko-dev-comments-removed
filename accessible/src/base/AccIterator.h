@@ -131,4 +131,100 @@ private:
   PRUint32 mIndex;
 };
 
+
+
+
+
+class HTMLLabelIterator
+{
+public:
+  enum LabelFilter {
+    eAllLabels,
+    eSkipAncestorLabel
+  };
+
+  HTMLLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement,
+                    LabelFilter aFilter = eAllLabels);
+
+  
+
+
+  nsAccessible* Next();
+
+private:
+  HTMLLabelIterator();
+  HTMLLabelIterator(const HTMLLabelIterator&);
+  HTMLLabelIterator& operator = (const HTMLLabelIterator&);
+
+  RelatedAccIterator mRelIter;
+  nsIContent* mElement;
+  LabelFilter mLabelFilter;
+};
+
+
+
+
+
+class HTMLOutputIterator
+{
+public:
+  HTMLOutputIterator(nsDocAccessible* aDocument, nsIContent* aElement);
+
+  
+
+
+  nsAccessible* Next();
+
+private:
+  HTMLOutputIterator();
+  HTMLOutputIterator(const HTMLOutputIterator&);
+  HTMLOutputIterator& operator = (const HTMLOutputIterator&);
+
+  RelatedAccIterator mRelIter;
+};
+
+
+
+
+
+class XULLabelIterator
+{
+public:
+  XULLabelIterator(nsDocAccessible* aDocument, nsIContent* aElement);
+
+  
+
+
+  nsAccessible* Next();
+
+private:
+  XULLabelIterator();
+  XULLabelIterator(const XULLabelIterator&);
+  XULLabelIterator& operator = (const XULLabelIterator&);
+
+  RelatedAccIterator mRelIter;
+};
+
+
+
+
+
+class XULDescriptionIterator
+{
+public:
+  XULDescriptionIterator(nsDocAccessible* aDocument, nsIContent* aElement);
+
+  
+
+
+  nsAccessible* Next();
+
+private:
+  XULDescriptionIterator();
+  XULDescriptionIterator(const XULDescriptionIterator&);
+  XULDescriptionIterator& operator = (const XULDescriptionIterator&);
+
+  RelatedAccIterator mRelIter;
+};
+
 #endif
