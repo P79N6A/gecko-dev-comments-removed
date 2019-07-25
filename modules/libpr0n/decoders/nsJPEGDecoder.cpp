@@ -198,6 +198,18 @@ NS_IMETHODIMP nsJPEGDecoder::Close(PRUint32 aFlags)
          ("[this=%p] nsJPEGDecoder::Close\n", this));
 
   
+
+
+
+
+
+  if ((mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER) &&
+      (mState != JPEG_ERROR) &&
+      !(mFlags & imgIDecoder::DECODER_FLAG_HEADERONLY) &&
+      !(aFlags & CLOSE_FLAG_DONTNOTIFY))
+    this->Write(nsnull, 0);
+
+  
   mInfo.src = nsnull;
 
   jpeg_destroy_decompress(&mInfo);
@@ -221,11 +233,6 @@ NS_IMETHODIMP nsJPEGDecoder::Close(PRUint32 aFlags)
 
 NS_IMETHODIMP nsJPEGDecoder::Flush()
 {
-  LOG_SCOPE(gJPEGlog, "nsJPEGDecoder::Flush");
-
-  if (mState != JPEG_DONE && mState != JPEG_SINK_NON_JPEG_TRAILER && mState != JPEG_ERROR)
-    return this->Write(nsnull, 0);
-
   return NS_OK;
 }
 
