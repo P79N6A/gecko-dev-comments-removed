@@ -706,6 +706,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
     if (endCh == kCommaCh) {
       
 
+      href.Trim(" \t\n\r\f"); 
       if (!href.IsEmpty() && !rel.IsEmpty()) {
         rv = ProcessLink(aElement, href, rel, title, type, media);
       }
@@ -720,6 +721,7 @@ nsContentSink::ProcessLinkHeader(nsIContent* aElement,
     start = ++end;
   }
 
+  href.Trim(" \t\n\r\f"); 
   if (!href.IsEmpty() && !rel.IsEmpty()) {
     rv = ProcessLink(aElement, href, rel, title, type, media);
   }
