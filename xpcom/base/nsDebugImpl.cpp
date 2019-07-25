@@ -348,7 +348,7 @@ NS_DebugBreak(PRUint32 aSeverity, const char *aStr, const char *aExpr,
    }
 
    
-   PR_AtomicIncrement(&gAssertionCount);
+   PR_ATOMIC_INCREMENT(&gAssertionCount);
 
    switch (GetAssertBehavior()) {
    case NS_ASSERT_WARN:
