@@ -293,7 +293,7 @@ pref("browser.urlbar.maxRichResults", 12);
 
 
 
-pref("browser.urlbar.delay", 0);
+pref("browser.urlbar.delay", 50);
 
 
 

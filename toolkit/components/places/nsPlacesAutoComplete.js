@@ -97,9 +97,6 @@ const kQueryTypeKeyword = 0;
 const kQueryTypeFiltered = 1;
 
 
-const kAsyncQueriesWaitTime = 50;
-
-
 
 
 const kTitleTagsSeparator = " \u2013 ";
@@ -515,15 +512,58 @@ nsPlacesAutoComplete.prototype = {
 
     
     
-    this._startTimer = Cc["@mozilla.org/timer;1"]
-                       .createInstance(Ci.nsITimer);
-    let timerCallback = (function() {
-      this._doStartSearch(aSearchString, aSearchParam,
-                          aPreviousResult, aListener);
-    }).bind(this);
-    this._startTimer.initWithCallback(timerCallback,
-                                      kAsyncQueriesWaitTime,
-                                      Ci.nsITimer.TYPE_ONE_SHOT);
+
+    
+    
+    this._originalSearchString = aSearchString.trim();
+
+    this._currentSearchString =
+      fixupSearchText(this._originalSearchString.toLowerCase());
+
+    let searchParamParts = aSearchParam.split(" ");
+    this._enableActions = searchParamParts.indexOf("enable-actions") != -1;
+
+    this._listener = aListener;
+    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
+                 createInstance(Ci.nsIAutoCompleteSimpleResult);
+    result.setSearchString(aSearchString);
+    result.setListener(this);
+    this._result = result;
+
+    
+    if (!this._enabled) {
+      this._finishSearch(true);
+      return;
+    }
+
+    
+    if (this._currentSearchString) {
+      this._behavior = this._defaultBehavior;
+    }
+    else {
+      this._behavior = this._emptySearchDefaultBehavior;
+    }
+    
+    
+    
+    
+    
+    
+    
+    
+    let {query, tokens} =
+      this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
+    let queries = tokens.length ?
+      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
+      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
+
+    
+    this._telemetryStartTime = Date.now();
+    this._executeQueries(queries);
+
+    
+    this._searchTokens = tokens;
+    this._usedPlaces = {};
   },
 
   stopSearch: function PAC_stopSearch()
@@ -536,11 +576,6 @@ nsPlacesAutoComplete.prototype = {
     }
 
     this._finishSearch(false);
-
-    if (this._startTimer) {
-      this._startTimer.cancel();
-      delete this._startTimer;
-    }
   },
 
   
@@ -690,68 +725,6 @@ nsPlacesAutoComplete.prototype = {
 
   get _databaseInitialized()
     Object.getOwnPropertyDescriptor(this, "_db").value !== undefined,
-
-  _doStartSearch: function PAC_doStartSearch(aSearchString, aSearchParam,
-                                             aPreviousResult, aListener)
-  {
-    this._startTimer.cancel();
-    delete this._startTimer;
-
-    
-    
-
-    
-    
-    this._originalSearchString = aSearchString.trim();
-
-    this._currentSearchString =
-      fixupSearchText(this._originalSearchString.toLowerCase());
-
-    let searchParamParts = aSearchParam.split(" ");
-    this._enableActions = searchParamParts.indexOf("enable-actions") != -1;
-
-    this._listener = aListener;
-    let result = Cc["@mozilla.org/autocomplete/simple-result;1"].
-                 createInstance(Ci.nsIAutoCompleteSimpleResult);
-    result.setSearchString(aSearchString);
-    result.setListener(this);
-    this._result = result;
-
-    
-    if (!this._enabled) {
-      this._finishSearch(true);
-      return;
-    }
-
-    
-    if (this._currentSearchString) {
-      this._behavior = this._defaultBehavior;
-    }
-    else {
-      this._behavior = this._emptySearchDefaultBehavior;
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    let {query, tokens} =
-      this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
-    let queries = tokens.length ?
-      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
-      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
-
-    
-    this._telemetryStartTime = Date.now();
-    this._executeQueries(queries);
-
-    
-    this._searchTokens = tokens;
-    this._usedPlaces = {};
-  },
 
   
 
