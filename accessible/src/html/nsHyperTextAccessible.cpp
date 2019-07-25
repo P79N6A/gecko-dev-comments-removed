@@ -134,8 +134,10 @@ nsHyperTextAccessible::NativeRole()
   if (tag == nsAccessibilityAtoms::form)
     return nsIAccessibleRole::ROLE_FORM;
 
-  if (tag == nsAccessibilityAtoms::div ||
-      tag == nsAccessibilityAtoms::blockquote)
+  if (tag == nsAccessibilityAtoms::article ||
+      tag == nsAccessibilityAtoms::blockquote ||
+      tag == nsAccessibilityAtoms::div ||
+      tag == nsAccessibilityAtoms::nav)
     return nsIAccessibleRole::ROLE_SECTION;
 
   if (tag == nsAccessibilityAtoms::h1 ||
@@ -146,6 +148,14 @@ nsHyperTextAccessible::NativeRole()
       tag == nsAccessibilityAtoms::h6)
     return nsIAccessibleRole::ROLE_HEADING;
 
+  
+  if (tag == nsAccessibilityAtoms::header)
+    return nsIAccessibleRole::ROLE_HEADER;
+
+  if (tag == nsAccessibilityAtoms::footer)
+    return nsIAccessibleRole::ROLE_FOOTER;
+
+  
   nsIFrame *frame = GetFrame();
   if (frame && frame->GetType() == nsAccessibilityAtoms::blockFrame &&
       frame->GetContent()->Tag() != nsAccessibilityAtoms::input) {
@@ -1196,6 +1206,21 @@ nsHyperTextAccessible::GetAttributesInternal(nsIPersistentProperties *aAttribute
                              strLineNumber);
     }
   }
+
+  
+  
+  if (mContent->Tag() == nsAccessibilityAtoms::nav)
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
+                           NS_LITERAL_STRING("navigation"));
+  else if (mContent->Tag() == nsAccessibilityAtoms::header) 
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
+                           NS_LITERAL_STRING("banner"));
+  else if (mContent->Tag() == nsAccessibilityAtoms::footer) 
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
+                           NS_LITERAL_STRING("contentinfo"));
+  else if (mContent->Tag() == nsAccessibilityAtoms::article) 
+    nsAccUtils::SetAccAttr(aAttributes, nsAccessibilityAtoms::xmlroles,
+                           NS_LITERAL_STRING("main"));
 
   return  NS_OK;
 }
