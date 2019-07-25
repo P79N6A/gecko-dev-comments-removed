@@ -8372,6 +8372,12 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             rv = ScrollToAnchor(curHash, newHash, aLoadType);
             NS_ENSURE_SUCCESS(rv, rv);
 
+            
+            
+            
+            
+            AutoRestore<PRUint32> loadTypeResetter(mLoadType);
+
             mLoadType = aLoadType;
             mURIResultedInDocument = true;
 
