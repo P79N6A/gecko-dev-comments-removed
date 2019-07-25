@@ -89,7 +89,7 @@ function SessionStartup() {
 SessionStartup.prototype = {
 
   
-  _iniString: null,
+  _initialState: null,
   _sessionType: Ci.nsISessionStartup.NO_SESSION,
 
 
@@ -121,31 +121,30 @@ SessionStartup.prototype = {
       return;
 
     
-    this._iniString = this._readStateFile(sessionFile);
-    if (!this._iniString)
+    let iniString = this._readStateFile(sessionFile);
+    if (!iniString)
       return;
 
     
-    let initialState;
     try {
       
-      if (this._iniString.charAt(0) == '(')
-        this._iniString = this._iniString.slice(1, -1);
+      if (iniString.charAt(0) == '(')
+        iniString = iniString.slice(1, -1);
       try {
-        initialState = JSON.parse(this._iniString);
+        this._initialState = JSON.parse(iniString);
       }
       catch (exJSON) {
         var s = new Cu.Sandbox("about:blank");
-        initialState = Cu.evalInSandbox("(" + this._iniString + ")", s);
-        this._iniString = JSON.stringify(initialState);
+        this._initialState = Cu.evalInSandbox("(" + iniString + ")", s);
       }
     }
     catch (ex) { debug("The session file is invalid: " + ex); }
 
     let resumeFromCrash = prefBranch.getBoolPref("sessionstore.resume_from_crash");
     let lastSessionCrashed =
-      initialState && initialState.session && initialState.session.state &&
-      initialState.session.state == STATE_RUNNING_STR;
+      this._initialState && this._initialState.session &&
+      this._initialState.session.state &&
+      this._initialState.session.state == STATE_RUNNING_STR;
 
     
     
@@ -158,17 +157,17 @@ SessionStartup.prototype = {
       this._sessionType = Ci.nsISessionStartup.RECOVER_SESSION;
     else if (!lastSessionCrashed && doResumeSession)
       this._sessionType = Ci.nsISessionStartup.RESUME_SESSION;
-    else if (initialState)
+    else if (this._initialState)
       this._sessionType = Ci.nsISessionStartup.DEFER_SESSION;
     else
-      this._iniString = null; 
+      this._initialState = null; 
 
     
     
     
     if (this.doRestore() &&
-        (!initialState.windows ||
-        !initialState.windows.every(function (win)
+        (!this._initialState.windows ||
+        !this._initialState.windows.every(function (win)
            win.tabs.every(function (tab) tab.pinned))))
       Services.obs.addObserver(this, "domwindowopened", true);
 
@@ -205,7 +204,7 @@ SessionStartup.prototype = {
     case "sessionstore-windows-restored":
       Services.obs.removeObserver(this, "sessionstore-windows-restored");
       
-      this._iniString = null;
+      this._initialState = null;
       this._sessionType = Ci.nsISessionStartup.NO_SESSION;
       break;
     }
@@ -254,7 +253,7 @@ SessionStartup.prototype = {
 
 
   get state() {
-    return this._iniString;
+    return this._initialState;
   },
 
   
