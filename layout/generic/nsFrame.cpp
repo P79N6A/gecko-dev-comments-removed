@@ -1803,14 +1803,11 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
   if (aChild->GetStateBits() & NS_FRAME_TOO_DEEP_IN_FRAME_TREE)
     return NS_OK;
 
-  const nsStyleDisplay* disp = aChild->GetStyleDisplay();
   
   bool pseudoStackingContext =
     (aFlags & DISPLAY_CHILD_FORCE_PSEUDO_STACKING_CONTEXT) != 0;
-  
   if ((aFlags & DISPLAY_CHILD_INLINE) &&
-      (disp->mDisplay != NS_STYLE_DISPLAY_INLINE ||
-       (aChild->IsFrameOfType(eReplaced)))) {
+      !aChild->IsFrameOfType(eLineParticipant)) {
     
     
     
@@ -1827,8 +1824,6 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
     NS_ASSERTION(aChild, "No out of flow frame?");
     if (!aChild || nsLayoutUtils::IsPopup(aChild))
       return NS_OK;
-    
-    disp = aChild->GetStyleDisplay();
     
     
     
@@ -1894,6 +1889,7 @@ nsIFrame::BuildDisplayListForChild(nsDisplayListBuilder*   aBuilder,
 
   
   
+  const nsStyleDisplay* disp = aChild->GetStyleDisplay();
   bool isVisuallyAtomic = disp->mOpacity != 1.0f
     || aChild->IsTransformed()
     || nsSVGIntegrationUtils::UsingEffectsForFrame(aChild);
