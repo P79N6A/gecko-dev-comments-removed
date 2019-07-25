@@ -76,6 +76,7 @@
 #include "nsINameSpaceManager.h"
 #include "nsContentList.h"
 #include "nsDOMTokenList.h"
+#include "nsXBLPrototypeBinding.h"
 #include "nsDOMError.h"
 #include "nsDOMString.h"
 #include "nsIScriptSecurityManager.h"
@@ -914,6 +915,77 @@ nsIContent::LookupNamespaceURI(const nsAString& aNamespacePrefix,
       return NS_OK;
   } while ((content = content->GetParent()));
   return NS_ERROR_FAILURE;
+}
+
+already_AddRefed<nsIURI>
+nsIContent::GetBaseURI() const
+{
+  nsIDocument* doc = GetOwnerDoc();
+  if (!doc) {
+    
+    
+    NS_ERROR("Element without owner document");
+    return nsnull;
+  }
+
+  
+  nsCOMPtr<nsIURI> base = doc->GetDocBaseURI();
+
+  
+  
+  
+  
+  
+  nsAutoTArray<nsString, 5> baseAttrs;
+  nsString attr;
+  const nsIContent *elem = this;
+  do {
+    
+    if (elem->IsSVG()) {
+      nsIContent* bindingParent = elem->GetBindingParent();
+      if (bindingParent) {
+        nsIDocument* bindingDoc = bindingParent->GetOwnerDoc();
+        if (bindingDoc) {
+          nsXBLBinding* binding =
+            bindingDoc->BindingManager()->GetBinding(bindingParent);
+          if (binding) {
+            
+            
+            
+            
+            base = binding->PrototypeBinding()->DocURI();
+            break;
+          }
+        }
+      }
+    }
+    
+    
+    elem->GetAttr(kNameSpaceID_XML, nsGkAtoms::base, attr);
+    if (!attr.IsEmpty()) {
+      baseAttrs.AppendElement(attr);
+    }
+    elem = elem->GetParent();
+  } while(elem);
+  
+  
+  for (PRUint32 i = baseAttrs.Length() - 1; i != PRUint32(-1); --i) {
+    nsCOMPtr<nsIURI> newBase;
+    nsresult rv = NS_NewURI(getter_AddRefs(newBase), baseAttrs[i],
+                            doc->GetDocumentCharacterSet().get(), base);
+    
+    
+    if (NS_SUCCEEDED(rv) && i == 0) {
+      rv = nsContentUtils::GetSecurityManager()->
+        CheckLoadURIWithPrincipal(NodePrincipal(), newBase,
+                                  nsIScriptSecurityManager::STANDARD);
+    }
+    if (NS_SUCCEEDED(rv)) {
+      base.swap(newBase);
+    }
+  }
+
+  return base.forget();
 }
 
 
@@ -3394,51 +3466,6 @@ nsGenericElement::GetExistingAttrNameFromQName(const nsAString& aStr) const
   }
 
   return nodeInfo;
-}
-
-already_AddRefed<nsIURI>
-nsGenericElement::GetBaseURI() const
-{
-  nsIDocument* doc = GetOwnerDoc();
-  if (!doc) {
-    
-    
-    NS_ERROR("Element without owner document");
-    return nsnull;
-  }
-
-  
-  
-  nsCOMPtr<nsIURI> parentBase;
-
-  nsIContent *parent = GetParent();
-  if (parent) {
-    parentBase = parent->GetBaseURI();
-  } else {
-    
-    
-    parentBase = doc->GetBaseURI();
-  }
-  
-  
-  nsAutoString value;
-  GetAttr(kNameSpaceID_XML, nsGkAtoms::base, value);
-  if (value.IsEmpty()) {
-    
-    return parentBase.forget();
-  }
-
-  nsCOMPtr<nsIURI> ourBase;
-  nsresult rv = NS_NewURI(getter_AddRefs(ourBase), value,
-                          doc->GetDocumentCharacterSet().get(), parentBase);
-  if (NS_SUCCEEDED(rv)) {
-    
-    rv = nsContentUtils::GetSecurityManager()->
-      CheckLoadURIWithPrincipal(NodePrincipal(), ourBase,
-                                nsIScriptSecurityManager::STANDARD);
-  }
-
-  return NS_SUCCEEDED(rv) ? ourBase.forget() : parentBase.forget();
 }
 
 PRBool
