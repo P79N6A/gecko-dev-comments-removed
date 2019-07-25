@@ -123,6 +123,10 @@ public:
     mDeferNotifications = aDeferNotifications;
   }
 
+  
+  
+  void SetImage(mozilla::imagelib::Image* aImage);
+
 protected:
   friend class imgStatusTracker;
   friend class imgStatusNotifyRunnable;
@@ -180,6 +184,12 @@ protected:
     RemoveFromLoadGroup(PR_TRUE);
   }
 
+  
+  
+  
+  
+  imgStatusTracker& GetStatusTracker();
+
 private:
   friend class imgCacheValidator;
 
@@ -210,6 +220,7 @@ private:
 
   nsLoadFlags mLoadFlags;
   PRUint32    mLocksHeld;
+  PRUint32    mDeferredLocks;
   PRPackedBool mCanceled;
   PRPackedBool mIsInLoadGroup;
   PRPackedBool mListenerIsStrongRef;

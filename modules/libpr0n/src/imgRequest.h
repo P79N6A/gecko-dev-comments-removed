@@ -150,6 +150,11 @@ private:
   
   
   
+  imgStatusTracker& GetStatusTracker();
+    
+  
+  
+  
   void SetCacheEntry(imgCacheEntry *entry);
 
   
