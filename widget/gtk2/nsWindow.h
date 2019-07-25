@@ -315,6 +315,9 @@ public:
     GdkWindow*         GetGdkWindow() { return mGdkWindow; }
     bool               IsDestroyed() { return mIsDestroyed; }
 
+    void               DispatchDragEvent(PRUint32 aMsg,
+                                         const nsIntPoint& aRefPoint,
+                                         guint aTime);
     
     
     bool               DispatchKeyDownEvent(GdkEventKey *aEvent,
