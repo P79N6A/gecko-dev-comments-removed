@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     printf("/* AUTOMATICALLY GENERATED - DO NOT EDIT */\n\n");
 
 #ifdef CROSS_COMPILE
-#if defined(__APPLE__)
+#if defined(__APPLE__) && !defined(FORCE_BIG_ENDIAN) && !defined(FORCE_LITTLE_ENDIAN)
     
 
 
