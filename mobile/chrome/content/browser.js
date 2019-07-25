@@ -538,13 +538,6 @@ var Browser = {
       tool_console.hidden = false;
     }
 
-    
-    
-    if (gPrefService.prefHasUserValue("temporary.disablePlugins")) {
-      gPrefService.clearUserPref("temporary.disablePlugins");
-      this.setPluginState(true);
-    }
-
     bv.commitBatchOperation();
 
     
@@ -559,6 +552,19 @@ var Browser = {
                                      label, false, "", null);
       }
       gPrefService.clearUserPref("extensions.disabledAddons");
+    }
+
+    
+    
+    if (gPrefService.prefHasUserValue("temporary.disablePlugins")) {
+      gPrefService.clearUserPref("temporary.disablePlugins");
+      this.setPluginState(true);
+    }
+
+    
+    if (!gPrefService.prefHasUserValue("temporary.disabledFlash")) {
+      this.setPluginState(false, /flash/i);
+      gPrefService.setBoolPref("temporary.disabledFlash", true);
     }
 
     
@@ -582,12 +588,18 @@ var Browser = {
     window.controllers.removeController(BrowserUI);
   },
 
-  setPluginState: function(enabled)
-  {
+  setPluginState: function(enabled, nameMatch) {
+    
+    
+    gPrefService.clearUserPref("temporary.disabledFlash");
+
     var phs = Cc["@mozilla.org/plugin/host;1"].getService(Ci.nsIPluginHost);
     var plugins = phs.getPluginTags({ });
-    for (var i = 0; i < plugins.length; ++i)
+    for (var i = 0; i < plugins.length; ++i) {
+      if (nameMatch && !nameMatch.test(plugins[i].name))
+        continue;
       plugins[i].disabled = !enabled;
+    }
   },
 
   get browsers() {
