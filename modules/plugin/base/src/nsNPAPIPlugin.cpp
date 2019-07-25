@@ -178,7 +178,10 @@ static NPNetscapeFuncs sBrowserFuncs = {
   _scheduletimer,
   _unscheduletimer,
   _popupcontextmenu,
-  _convertpoint
+  _convertpoint,
+  NULL, 
+  NULL, 
+  NULL  
 };
 
 static PRLock *sPluginThreadAsyncCallLock = nsnull;
