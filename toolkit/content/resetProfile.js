@@ -55,19 +55,24 @@ function getMigratedData() {
 
 #expand const MOZ_BUILD_APP = "__MOZ_BUILD_APP__";
 #expand const MOZ_APP_NAME = "__MOZ_APP_NAME__";
-  const MAX_MIGRATED_TYPES = 16;
 
   
-  
+  const MIGRATED_TYPES = [
+    4,  
+    16, 
+    8,  
+    2,  
+  ];
+
   
   let dataTypes = [];
-  for (let i = 1; i < MAX_MIGRATED_TYPES; ++i) {
-    let itemID = Math.pow(2, i);
+  for (let itemID of MIGRATED_TYPES) {
     try {
       let typeName = MigrationUtils.getLocalizedString(itemID + "_" + MOZ_APP_NAME);
       dataTypes.push(typeName);
     } catch (x) {
       
+      Components.utils.reportError(x);
     }
   }
   return dataTypes;
