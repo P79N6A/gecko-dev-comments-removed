@@ -44,6 +44,7 @@ class nsIntRect;
 class imgIContainer;
 class imgRequest;
 class imgRequestProxy;
+class imgStatusNotifyRunnable;
 
 #include "prtypes.h"
 #include "nscore.h"
@@ -65,6 +66,9 @@ enum {
 
 
 
+
+
+
 class imgStatusTracker
 {
 public:
@@ -75,7 +79,23 @@ public:
 
   
   
-  void Notify(imgRequestProxy* proxy);
+  
+  
+  
+  void Notify(imgRequest* request, imgRequestProxy* proxy);
+
+  
+  
+  
+  
+  
+  void NotifyCurrentState(imgRequestProxy* proxy);
+
+  
+  
+  
+  
+  void SyncNotify(imgRequestProxy* proxy);
 
   
   
@@ -135,6 +155,8 @@ public:
   void SendStopRequest(imgRequestProxy* aProxy, PRBool aLastPart, nsresult aStatus);
 
 private:
+  friend class imgStatusNotifyRunnable;
+
   
   
   imgIContainer* mImage;

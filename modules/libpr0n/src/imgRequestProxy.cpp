@@ -68,7 +68,8 @@ imgRequestProxy::imgRequestProxy() :
   mCanceled(PR_FALSE),
   mIsInLoadGroup(PR_FALSE),
   mListenerIsStrongRef(PR_FALSE),
-  mDecodeRequested(PR_FALSE)
+  mDecodeRequested(PR_FALSE),
+  mDeferNotifications(PR_FALSE)
 {
   
 
@@ -443,7 +444,9 @@ NS_IMETHODIMP imgRequestProxy::Clone(imgIDecoderObserver* aObserver,
   
   NS_ADDREF(*aClone = clone);
 
-  clone->NotifyListener();
+  
+  
+  clone->SyncNotifyListener();
 
   return NS_OK;
 }
@@ -728,6 +731,22 @@ void imgRequestProxy::NotifyListener()
   
   
 
-  if (mListener)
-    mImage->GetStatusTracker().Notify(this);
+  if (mOwner) {
+    
+    mImage->GetStatusTracker().Notify(mOwner, this);
+  } else {
+    
+    
+    mImage->GetStatusTracker().NotifyCurrentState(this);
+  }
+}
+
+void imgRequestProxy::SyncNotifyListener()
+{
+  
+  
+  
+  
+
+  mImage->GetStatusTracker().SyncNotify(this);
 }

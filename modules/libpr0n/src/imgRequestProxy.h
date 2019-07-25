@@ -64,6 +64,9 @@
     {0x8f, 0x65, 0x9c, 0x46, 0x2e, 0xe2, 0xbc, 0x95} \
 }
 
+class imgRequestNotifyRunnable;
+class imgStatusNotifyRunnable;
+
 class imgRequestProxy : public imgIRequest, public nsISupportsPriority, public nsISecurityInfoProvider
 {
 public:
@@ -94,10 +97,20 @@ public:
   void SetPrincipal(nsIPrincipal *aPrincipal);
 
   
+  
+  
+  
   void NotifyListener();
+
+  
+  
+  
+  void SyncNotifyListener();
 
 protected:
   friend class imgStatusTracker;
+  friend class imgStatusNotifyRunnable;
+  friend class imgRequestNotifyRunnable;
 
   class imgCancelRunnable;
   friend class imgCancelRunnable;
@@ -118,6 +131,21 @@ protected:
       nsRefPtr<imgRequestProxy> mOwner;
       nsresult mStatus;
   };
+
+  
+  
+  
+
+  
+  
+  PRBool NotificationsDeferred() const
+  {
+    return mDeferNotifications;
+  }
+  void SetNotificationsDeferred(PRBool aDeferNotifications)
+  {
+    mDeferNotifications = aDeferNotifications;
+  }
 
   
   void OnStartDecode   ();
@@ -180,6 +208,10 @@ private:
   PRPackedBool mIsInLoadGroup;
   PRPackedBool mListenerIsStrongRef;
   PRPackedBool mDecodeRequested;
+
+  
+  
+  PRPackedBool mDeferNotifications;
 };
 
 #endif 

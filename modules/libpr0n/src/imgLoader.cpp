@@ -1677,7 +1677,13 @@ NS_IMETHODIMP imgLoader::LoadImage(nsIURI *aURI,
     
     proxy->AddToLoadGroup();
 
-    proxy->NotifyListener();
+    
+    
+    
+    
+    
+    if (!newChannel)
+      proxy->NotifyListener();
 
     return rv;
   }
@@ -1759,12 +1765,19 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
   nsCOMPtr<nsILoadGroup> loadGroup;
   channel->GetLoadGroup(getter_AddRefs(loadGroup));
 
+  
+  requestFlags &= 0xFFFF;
+
   if (request) {
     
 
     channel->Cancel(NS_ERROR_PARSED_DATA_CACHED); 
 
     *listener = nsnull; 
+
+    rv = CreateNewProxyForRequest(request, loadGroup, aObserver,
+                                  requestFlags, nsnull, _retval);
+    static_cast<imgRequestProxy*>(*_retval)->NotifyListener();
   } else {
     if (!NewRequestAndEntry(uri, getter_AddRefs(request), getter_AddRefs(entry)))
       return NS_ERROR_OUT_OF_MEMORY;
@@ -1789,14 +1802,17 @@ NS_IMETHODIMP imgLoader::LoadImageWithChannel(nsIChannel *channel, imgIDecoderOb
 
     
     PutIntoCache(uri, entry);
+
+    rv = CreateNewProxyForRequest(request, loadGroup, aObserver,
+                                  requestFlags, nsnull, _retval);
+
+    
+    
+    
+    
+    
+    
   }
-
-  
-  requestFlags &= 0xFFFF;
-
-  rv = CreateNewProxyForRequest(request, loadGroup, aObserver,
-                                requestFlags, nsnull, _retval);
-  static_cast<imgRequestProxy*>(*_retval)->NotifyListener();
 
   return rv;
 }
@@ -2018,7 +2034,10 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
       PRUint32 count = mProxies.Count();
       for (PRInt32 i = count-1; i>=0; i--) {
         imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
-        proxy->NotifyListener();
+
+        
+        
+        proxy->SyncNotifyListener();
       }
 
       mRequest->SetLoadId(mContext);
@@ -2078,7 +2097,10 @@ NS_IMETHODIMP imgCacheValidator::OnStartRequest(nsIRequest *aRequest, nsISupport
   for (PRInt32 i = count-1; i>=0; i--) {
     imgRequestProxy *proxy = static_cast<imgRequestProxy *>(mProxies[i]);
     proxy->ChangeOwner(request);
-    proxy->NotifyListener();
+
+    
+    
+    proxy->SyncNotifyListener();
   }
 
   NS_RELEASE(request);
