@@ -23,9 +23,3 @@ pref("browser.search.param.yahoo-fr", "");
 pref("browser.search.param.yahoo-fr-cjkt", ""); 
 pref("browser.search.param.yahoo-fr-ja", "");
 pref("browser.search.param.yahoo-f-CN", "");
-
-
-pref("browser.newtab.url", "about:newtab");
-
-
-pref("browser.newtabpage.enabled", true);

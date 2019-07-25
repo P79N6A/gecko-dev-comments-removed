@@ -23,9 +23,3 @@ pref("browser.search.param.ms-pc", "MOZI");
 pref("browser.search.param.yahoo-fr", "moz35");
 pref("browser.search.param.yahoo-fr-cjkt", "moz35"); 
 pref("browser.search.param.yahoo-fr-ja", "mozff");
-
-
-pref("browser.newtab.url", "about:blank");
-
-
-pref("browser.newtabpage.enabled", false);
