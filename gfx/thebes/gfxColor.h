@@ -186,6 +186,8 @@ struct THEBES_API gfxRGBA {
 
 
 
+
+
     gfxRGBA(PRUint32 c, PackedColorType colorType = PACKED_ABGR) {
         if (colorType == PACKED_ABGR ||
             colorType == PACKED_ABGR_PREMULTIPLIED)

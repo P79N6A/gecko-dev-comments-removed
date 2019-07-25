@@ -301,6 +301,13 @@ Decoder::PostDecodeDone()
   mDecodeDone = true;
 
   
+  int frames = GetFrameCount();
+  bool isNonPremult = GetDecodeFlags() & DECODER_NO_PREMULTIPLY_ALPHA;
+  for (int i = 0; i < frames; i++) {
+    mImage.SetFrameAsNonPremult(i, isNonPremult);
+  }
+
+  
   mImage.DecodingComplete();
   if (mObserver) {
     mObserver->OnStopContainer(nsnull, &mImage);

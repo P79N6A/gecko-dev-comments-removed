@@ -150,8 +150,8 @@ public:
   
   
   enum {
-    DECODER_NO_PREMULTIPLY_ALPHA = 0x2,
-    DECODER_NO_COLORSPACE_CONVERSION = 0x4
+    DECODER_NO_PREMULTIPLY_ALPHA = 0x2,     
+    DECODER_NO_COLORSPACE_CONVERSION = 0x4  
   };
   void SetDecodeFlags(PRUint32 aFlags) { mDecodeFlags = aFlags; }
   PRUint32 GetDecodeFlags() { return mDecodeFlags; }
