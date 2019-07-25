@@ -10,7 +10,7 @@
 
 
 
-#if __EXCEPTIONS && !(__OBJC__ && __APPLE_CC__)
+#if __EXCEPTIONS && !(__OBJC__ && __GNUC__ && XP_IOS)
 #  error "STL code can only be used with -fno-exceptions"
 #endif
 
