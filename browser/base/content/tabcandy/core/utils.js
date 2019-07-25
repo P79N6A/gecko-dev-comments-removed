@@ -432,7 +432,7 @@ window.Subscribable.prototype = {
   addSubscriber: function(refObject, eventName, callback) {
     try {
       Utils.assertThrow("refObject", refObject);
-      Utils.assertThrow("callback must be a function", Utils.isFunction(callback));
+      Utils.assertThrow("callback must be a function", typeof callback == "function");
       Utils.assertThrow("eventName must be a non-empty string",
           eventName && typeof(eventName) == "string");
 
@@ -652,13 +652,6 @@ var Utils = {
   
   
   
-  isFunction: function( obj ) {
-    return toString.call(obj) === "[object Function]";
-  },
-
-  
-  
-  
   isArray: function( obj ) {
     return toString.call(obj) === "[object Array]";
   },
@@ -782,7 +775,7 @@ var Utils = {
     }
 
     
-    if ( typeof target !== "object" && !this.isFunction(target) ) {
+    if (typeof target != "object" && typeof target != "function") {
       target = {};
     }
   
