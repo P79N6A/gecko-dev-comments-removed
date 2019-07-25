@@ -55,8 +55,6 @@
 
 #ifdef XP_WIN
 
-#define XRE_WANT_DLL_BLOCKLIST
-
 #include "nsWindowsWMain.cpp"
 #endif
 
@@ -109,6 +107,10 @@ public:
 int main(int argc, char* argv[])
 {
   ScopedLogging log;
+
+#ifdef XRE_HAS_DLL_BLOCKLIST
+  XRE_SetupDllBlocklist();
+#endif
 
   nsCOMPtr<nsILocalFile> appini;
   nsresult rv = XRE_GetBinaryPath(argv[0], getter_AddRefs(appini));
