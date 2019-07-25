@@ -825,6 +825,7 @@ protected:
                              nsCOMPtr<nsIDOMStorageEvent>& aEvent);
 
   void SetIsApp(bool aValue);
+  nsresult SetApp(const nsAString& aManifestURL);
 
   
   
