@@ -131,18 +131,5 @@ Identity.prototype = {
 
   setTempPassword: function Id_setTempPassword(value) {
     this._password = value;
-  },
-
-  
-  
-  onGetPassword: null,
-
-  
-  getPassword: function Identity_getPassword() {
-    if (this.password)
-      return this.password;
-
-    if (typeof this.onGetPassword == "function")
-      return this.password = Sync(this.onGetPassword)();
   }
 };
