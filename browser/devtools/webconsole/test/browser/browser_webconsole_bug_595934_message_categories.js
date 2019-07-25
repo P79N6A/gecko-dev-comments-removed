@@ -8,7 +8,7 @@
 
 
 
-const TESTS_PATH = "http://example.com/browser/toolkit/components/console/hudservice/tests/browser/";
+const TESTS_PATH = "http://example.com/browser/browser/devtools/webconsole/test//browser/";
 const TESTS = [
   { 
     file: "test-bug-595934-css-loader.html",
@@ -51,7 +51,7 @@ const TESTS = [
   },
   { 
     file: "test-bug-595934-workers.html",
-    category: "Web Worker",
+    category: "DOM Worker javascript",
     matchString: "fooBarWorker",
   },
   { 
