@@ -5117,7 +5117,9 @@ GetNearestBlockContainer(nsIFrame* frame)
   
   
   while (frame->IsFrameOfType(nsIFrame::eLineParticipant) ||
-         frame->IsBlockWrapper()) {
+         frame->IsBlockWrapper() ||
+         
+         frame->GetType() == nsGkAtoms::tableRowFrame) {
     frame = frame->GetParent();
     NS_ASSERTION(frame, "How come we got to the root frame without seeing a containing block?");
   }

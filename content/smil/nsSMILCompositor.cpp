@@ -173,14 +173,29 @@ nsSMILCompositor::GetFirstFuncToAffectSandwich()
   PRUint32 i;
   for (i = mAnimationFunctions.Length(); i > 0; --i) {
     nsSMILAnimationFunction* curAnimFunc = mAnimationFunctions[i-1];
-    if (curAnimFunc->UpdateCachedTarget(mKey) ||
-        (!mForceCompositing && curAnimFunc->HasChanged())) {
-      mForceCompositing = true;
-    }
+    
+    
+    
+    
+    
+    mForceCompositing |=
+      curAnimFunc->UpdateCachedTarget(mKey) ||
+      curAnimFunc->HasChanged() ||
+      curAnimFunc->WasSkippedInPrevSample();
 
     if (curAnimFunc->WillReplace()) {
       --i;
       break;
+    }
+  }
+  
+  
+  
+  
+  
+  if (mForceCompositing) {
+    for (PRUint32 j = i; j > 0; --j) {
+      mAnimationFunctions[j-1]->SetWasSkipped();
     }
   }
   return i;

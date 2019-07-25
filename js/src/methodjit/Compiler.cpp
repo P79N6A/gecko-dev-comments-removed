@@ -6947,7 +6947,8 @@ mjit::Compiler::jsop_regexp()
 
 
 
-    if (!reobj->getShared(cx))
+    RegExpGuard g;
+    if (!reobj->getShared(cx, &g))
         return false;
 
     RegisterID result = frame.allocReg();

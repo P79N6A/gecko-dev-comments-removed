@@ -140,7 +140,7 @@ public:
     bool     IsPersistent() { return IsKeepAlive(); }
     bool     IsReused();
     void     SetIsReusedAfter(PRUint32 afterMilliseconds);
-    void     SetIdleTimeout(PRUint16 val) {mIdleTimeout = val;}
+    void     SetIdleTimeout(PRIntervalTime val) {mIdleTimeout = val;}
     nsresult PushBack(const char *data, PRUint32 length);
     nsresult ResumeSend();
     nsresult ResumeRecv();
@@ -158,6 +158,9 @@ public:
 
     bool UsingSpdy() { return mUsingSpdy; }
 
+    
+    void  ReadTimeoutTick(PRIntervalTime now);
+
 private:
     
     nsresult ProxyStartSSL();
@@ -168,6 +171,7 @@ private:
 
     nsresult SetupProxyConnect();
 
+    PRIntervalTime IdleTime();
     bool     IsAlive();
     bool     SupportsPipelining(nsHttpResponseHead *);
     
@@ -207,8 +211,8 @@ private:
     nsRefPtr<nsHttpConnectionInfo> mConnInfo;
 
     PRUint32                        mLastReadTime;
-    PRUint16                        mMaxHangTime;    
-    PRUint16                        mIdleTimeout;    
+    PRIntervalTime                  mMaxHangTime;    
+    PRIntervalTime                  mIdleTimeout;    
     PRIntervalTime                  mConsiderReusedAfterInterval;
     PRIntervalTime                  mConsiderReusedAfterEpoch;
     PRInt64                         mCurrentBytesRead;   

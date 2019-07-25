@@ -1848,8 +1848,7 @@ nsDOMStorage2::InitAsSessionStorage(nsIPrincipal *aPrincipal, const nsSubstring 
   if (!mStorage)
     return NS_ERROR_OUT_OF_MEMORY;
 
-  
-  mStorage->mSecurityChecker = mStorage;
+  mStorage->mSecurityChecker = this;
   mPrincipal = aPrincipal;
   mDocumentURI = aDocumentURI;
 
@@ -1949,7 +1948,7 @@ nsDOMStorage2::CanAccess(nsIPrincipal *aPrincipal)
 
   
   bool subsumes;
-  nsresult rv = aPrincipal->Subsumes(mPrincipal, &subsumes);
+  nsresult rv = aPrincipal->SubsumesIgnoringDomain(mPrincipal, &subsumes);
   if (NS_FAILED(rv))
     return false;
 

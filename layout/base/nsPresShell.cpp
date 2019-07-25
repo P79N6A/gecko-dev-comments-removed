@@ -5350,6 +5350,7 @@ PresShell::ProcessSynthMouseMoveEvent(bool aFromScroll)
   
   nsCOMPtr<nsIDragSession> dragSession = nsContentUtils::GetDragSession();
   if (dragSession) {
+    mSynthMouseMoveEvent.Forget();
     return;
   }
 

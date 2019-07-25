@@ -77,6 +77,13 @@ public:
   bool CanReuse() { return !mShouldGoAway && !mClosed; }
   void DontReuse();
   bool RoomForMoreStreams();
+
+  
+  void ReadTimeoutTick(PRIntervalTime now);
+  
+  
+  PRIntervalTime IdleTime();
+
   PRUint32 RegisterStreamID(SpdyStream *);
 
   const static PRUint8 kFlag_Control   = 0x80;
@@ -202,6 +209,10 @@ private:
   void        ActivateStream(SpdyStream *);
   void        ProcessPending();
 
+  
+  
+  nsresult   NetworkRead(nsAHttpSegmentWriter *, char *, PRUint32, PRUint32 *);
+  
   static PLDHashOperator ShutdownEnumerator(nsAHttpTransaction *,
                                             nsAutoPtr<SpdyStream> &,
                                             void *);
@@ -333,6 +344,11 @@ private:
   PRUint32             mOutputQueueUsed;
   PRUint32             mOutputQueueSent;
   nsAutoArrayPtr<char> mOutputQueueBuffer;
+
+  PRIntervalTime       mLastReadEpoch;     
+  PRIntervalTime       mLastDataReadEpoch; 
+  PRIntervalTime       mPingSentEpoch;
+  PRUint32             mNextPingID;
 };
 
 }} 

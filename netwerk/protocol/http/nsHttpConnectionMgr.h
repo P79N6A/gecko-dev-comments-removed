@@ -413,6 +413,12 @@ private:
     
     
     
+    nsCOMPtr<nsITimer> mReadTimeoutTick;
+    bool mReadTimeoutTickArmed;
+
+    
+    
+    
     
     
     
@@ -424,6 +430,12 @@ private:
                                                      PLDHashEntryHdr *hdr,
                                                      PRUint32 number,
                                                      void *closure);
+    
+    void ActivateTimeoutTick();
+    void ReadTimeoutTick();
+    static PLDHashOperator ReadTimeoutTickCB(const nsACString &key,
+                                             nsAutoPtr<nsConnectionEntry> &ent,
+                                             void *closure);
 };
 
 #endif 

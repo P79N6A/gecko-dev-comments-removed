@@ -1571,8 +1571,10 @@ static const nsEventStates sPseudoClassStates[] = {
   nsEventStates(),
   nsEventStates()
 };
-PR_STATIC_ASSERT(NS_ARRAY_LENGTH(sPseudoClassStates) ==
-                   nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1);
+MOZ_STATIC_ASSERT(NS_ARRAY_LENGTH(sPseudoClassStates) ==
+                  nsCSSPseudoClasses::ePseudoClass_NotPseudoClass + 1,
+                  "ePseudoClass_NotPseudoClass is no longer at the end of"
+                  "sPseudoClassStates");
 
 
 

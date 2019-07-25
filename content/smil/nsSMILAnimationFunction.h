@@ -248,6 +248,24 @@ public:
   bool UpdateCachedTarget(const nsSMILTargetIdentifier& aNewTarget);
 
   
+
+
+
+
+  bool WasSkippedInPrevSample() const {
+    return mWasSkippedInPrevSample;
+  }
+
+  
+
+
+
+
+  void SetWasSkipped() {
+    mWasSkippedInPrevSample = true;
+  }
+
+  
   class Comparator {
     public:
       bool Equals(const nsSMILAnimationFunction* aElem1,
@@ -466,12 +484,13 @@ protected:
   nsSMILWeakTargetIdentifier    mLastTarget;
 
   
-  bool                          mIsActive:1;
-  bool                          mIsFrozen:1;
-  bool                          mLastValue:1;
-  bool                          mHasChanged:1;
-  bool                          mValueNeedsReparsingEverySample:1;
-  bool                          mPrevSampleWasSingleValueAnimation:1;
+  bool mIsActive:1;
+  bool mIsFrozen:1;
+  bool mLastValue:1;
+  bool mHasChanged:1;
+  bool mValueNeedsReparsingEverySample:1;
+  bool mPrevSampleWasSingleValueAnimation:1;
+  bool mWasSkippedInPrevSample:1;
 };
 
 #endif 

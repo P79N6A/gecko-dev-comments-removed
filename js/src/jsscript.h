@@ -839,6 +839,11 @@ struct JSScript : public js::gc::Cell {
     static inline void writeBarrierPost(JSScript *script, void *addr);
 
     static inline js::ThingRootKind rootKind() { return js::THING_ROOT_SCRIPT; }
+
+    static JSPrincipals *normalizeOriginPrincipals(JSPrincipals *principals,
+                                                   JSPrincipals *originPrincipals) {
+        return originPrincipals ? originPrincipals : principals;
+    }
 };
 
 

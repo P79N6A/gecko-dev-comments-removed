@@ -758,20 +758,6 @@ PRUint8* nsWindowGfx::Data32BitTo1Bit(PRUint8* aImageData,
   return outData;
 }
 
-bool nsWindowGfx::IsCursorTranslucencySupported()
-{
-  static bool didCheck = false;
-  static bool isSupported = false;
-  if (!didCheck) {
-    didCheck = true;
-    
-    isSupported = WinUtils::GetWindowsVersion() >= WinUtils::WINXP_VERSION;
-  }
-
-  return isSupported;
-}
-
-
 
 
 
@@ -793,7 +779,7 @@ HBITMAP nsWindowGfx::DataToBitmap(PRUint8* aImageData,
 {
   HDC dc = ::GetDC(NULL);
 
-  if (aDepth == 32 && IsCursorTranslucencySupported()) {
+  if (aDepth == 32) {
     
     BITMAPV4HEADER head = { 0 };
     head.bV4Size = sizeof(head);

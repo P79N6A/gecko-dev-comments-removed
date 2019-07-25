@@ -4385,7 +4385,12 @@ EndVerifyBarriers(JSContext *cx)
     if (!trc)
         return;
 
+    
+
+
+
     JS_ASSERT(trc->number == rt->gcNumber);
+    rt->gcNumber++;
 
     
     for (CompartmentsIter c(rt); !c.done(); c.next())

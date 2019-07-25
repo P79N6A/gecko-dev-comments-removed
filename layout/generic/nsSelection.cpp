@@ -3297,8 +3297,6 @@ nsFrameSelection::DeleteFromDocument()
   nsresult res;
 
   
-  
-  
   bool isCollapsed;
   PRInt8 index = GetIndexFromSelectionType(nsISelectionController::SELECTION_NORMAL);
   if (!mDomSelections[index])
@@ -3307,17 +3305,7 @@ nsFrameSelection::DeleteFromDocument()
   mDomSelections[index]->GetIsCollapsed( &isCollapsed);
   if (isCollapsed)
   {
-    
-    if (mDomSelections[index]->GetFocusOffset() > 0)
-    {
-      mDomSelections[index]->Extend(mDomSelections[index]->GetFocusNode(), mDomSelections[index]->GetFocusOffset() - 1);
-    }
-    else
-    {
-      
-      printf("Sorry, don't know how to delete across frame boundaries yet\n");
-      return NS_ERROR_NOT_IMPLEMENTED;
-    }
+    return NS_OK;
   }
 
   

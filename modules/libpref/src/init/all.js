@@ -817,6 +817,8 @@ pref("network.http.spdy.chunk-size", 4096);
 pref("network.http.spdy.timeout", 180);
 pref("network.http.spdy.coalesce-hostnames", true);
 pref("network.http.spdy.use-alternate-protocol", true);
+pref("network.http.spdy.ping-threshold", 44);
+pref("network.http.spdy.ping-timeout", 8);
 
 
 

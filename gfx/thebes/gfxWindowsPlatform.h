@@ -225,7 +225,6 @@ public:
     
     enum {
         kWindowsUnknown = 0,
-        kWindows2000 = 0x50000,
         kWindowsXP = 0x50001,
         kWindowsServer2003 = 0x50002,
         kWindowsVista = 0x60000,
