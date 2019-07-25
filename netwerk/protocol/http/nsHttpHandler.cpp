@@ -332,8 +332,7 @@ nsHttpHandler::InitConnectionMgr()
 
 nsresult
 nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
-                                         uint8_t caps,
-                                         bool useProxy)
+                                         uint8_t caps)
 {
     nsresult rv;
 
@@ -361,11 +360,6 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
     
     
     
-    
-    
-    
-    
-    
 
     NS_NAMED_LITERAL_CSTRING(close, "close");
     NS_NAMED_LITERAL_CSTRING(keepAlive, "keep-alive");
@@ -373,9 +367,6 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
     const nsACString *connectionType = &close;
     if (caps & NS_HTTP_ALLOW_KEEPALIVE) {
         connectionType = &keepAlive;
-    } else if (useProxy) {
-        
-        request->SetHeader(nsHttp::Connection, close);
     }
 
     
@@ -385,9 +376,7 @@ nsHttpHandler::AddStandardRequestHeaders(nsHttpHeaderArray *request,
       if (NS_FAILED(rv)) return rv;
     }
 
-    const nsHttpAtom &header = useProxy ? nsHttp::Proxy_Connection
-                                        : nsHttp::Connection;
-    return request->SetHeader(header, *connectionType);
+    return request->SetHeader(nsHttp::Connection, *connectionType);
 }
 
 bool
