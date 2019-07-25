@@ -8688,6 +8688,17 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
         if (doShortCircuitedLoad) {
             
+            
+            
+            
+            
+            
+            
+            if (aSHEntry) {
+                Stop(nsIWebNavigation::STOP_NETWORK);
+            }
+
+            
             nsCOMPtr<nsIURI> oldURI = mCurrentURI;
 
             
