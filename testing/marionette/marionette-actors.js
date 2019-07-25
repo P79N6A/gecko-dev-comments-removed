@@ -16,9 +16,6 @@ let loader = Cc["@mozilla.org/moz/jssubscript-loader;1"]
 loader.loadSubScript("chrome://marionette/content/marionette-simpletest.js");
 loader.loadSubScript("chrome://marionette/content/marionette-log-obj.js");
 Cu.import("chrome://marionette/content/marionette-elements.js");
-let utils = {};
-loader.loadSubScript("chrome://marionette/content/EventUtils.js", utils);
-loader.loadSubScript("chrome://marionette/content/ChromeUtils.js", utils);
 
 let prefs = Cc["@mozilla.org/preferences-service;1"]
             .getService(Ci.nsIPrefBranch);
@@ -27,7 +24,6 @@ prefs.setBoolPref("marionette.contentListener", false);
 let xulAppInfo = Cc["@mozilla.org/xre/app-info;1"]
                  .getService(Ci.nsIXULAppInfo);
 let appName = xulAppInfo.name;
-loader.loadSubScript("chrome://marionette/content/atoms.js", utils);
 
 
 Cu.import("resource://gre/modules/services-sync/log4moz.js");
@@ -219,7 +215,7 @@ MarionetteDriverActor.prototype = {
 
   getCurrentWindow: function MDA_getCurrentWindow() {
     let type = null;
-    if (appName != "B2G" && this.context == "content") {
+    if (appName != "B2G") {
       type = 'navigator:browser';
     }
     return this.windowMediator.getMostRecentWindow(type);
@@ -232,7 +228,7 @@ MarionetteDriverActor.prototype = {
 
   getWinEnumerator: function MDA_getWinEnumerator() {
     let type = null;
-    if (appName != "B2G" && this.context == "content") {
+    if (appName != "B2G") {
       type = 'navigator:browser';
     }
     return this.windowMediator.getEnumerator(type);
@@ -278,41 +274,7 @@ MarionetteDriverActor.prototype = {
     this.addBrowser(win);
     this.curBrowser.newSession = newSession;
     this.curBrowser.startSession(newSession);
-    try {
-      this.curBrowser.loadFrameScript("chrome://marionette/content/marionette-listener.js", win);
-    }
-    catch (e) {
-      
-      logger.info("could not load listener into content for page: " + win.location.href);
-    }
-    utils.window = win;
-  },
-
-  
-
-
-
-
-
-
-
-  getVisibleText: function MDA_getVisibleText(el, lines) {
-    let nodeName = el.nodeName;
-    try {
-      if (utils.isElementDisplayed(el)) {
-        if (el.value) {
-          lines.push(el.value);
-        }
-        for (var child in el.childNodes) {
-          this.getVisibleText(el.childNodes[child], lines);
-        };
-      }
-    }
-    catch (e) {
-      if (nodeName == "#text") {
-        lines.push(el.textContent);
-      }
-    }
+    this.curBrowser.loadFrameScript("chrome://marionette/content/marionette-listener.js", win);
   },
 
   
@@ -402,7 +364,6 @@ MarionetteDriverActor.prototype = {
        { sandboxPrototype: aWindow, wantXrays: false, sandboxName: ''});
     _chromeSandbox.__namedArgs = this.curBrowser.elementManager.applyNamedArgs(args);
     _chromeSandbox.__marionetteParams = args;
-    _chromeSandbox.testUtils = utils;
 
     marionette.exports.forEach(function(fn) {
       _chromeSandbox[fn] = marionette[fn].bind(marionette);
@@ -640,10 +601,6 @@ MarionetteDriverActor.prototype = {
 
 
   goUrl: function MDA_goUrl(aRequest) {
-    if (this.context == "chrome") {
-      this.getCurrentWindow().location.href = aRequest.value;
-      this.sendOk();
-    }
     this.sendAsync("goUrl", aRequest);
   },
 
@@ -724,7 +681,6 @@ MarionetteDriverActor.prototype = {
           
           this.startBrowser(foundWin, false);
         }
-        utils.window = foundWin;
         foundWin.focus();
         this.curBrowser = this.browsers[winId];
         this.sendOk();
@@ -821,204 +777,7 @@ MarionetteDriverActor.prototype = {
 
 
   clickElement: function MDA_clickElement(aRequest) {
-    if (this.context == "chrome") {
-      try {
-        
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        el.click();
-        this.sendOk();
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("clickElement", {element: aRequest.element});
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  getAttributeValue: function MDA_getAttributeValue(aRequest) {
-    if (this.context == "chrome") {
-      try {
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        this.sendResponse(utils.getAttributeValue(el, aRequest.name));
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("getAttributeValue", {element: aRequest.element, name: aRequest.name});
-    }
-  },
-
-  
-
-
-
-
-
-
-  getElementText: function MDA_getElementText(aRequest) {
-    if (this.context == "chrome") {
-      
-      try {
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        let lines = [];
-        this.getVisibleText(el, lines);
-        lines = lines.join("\n");
-        this.sendResponse(lines);
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("getElementText", {element: aRequest.element});
-    }
-  },
-
-  
-
-
-
-
-
-
-  isElementDisplayed: function MDA_isElementDisplayed(aRequest) {
-    if (this.context == "chrome") {
-      try {
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        this.sendResponse(utils.isElementDisplayed(el));
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("isElementDisplayed", {element:aRequest.element});
-    }
-  },
-
-  
-
-
-
-
-
-
-  isElementEnabled: function MDA_isElementEnabled(aRequest) {
-    if (this.context == "chrome") {
-      try {
-        
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        if (el.disabled != undefined) {
-          this.sendResponse(!!!el.disabled);
-        }
-        else {
-        this.sendResponse(true);
-        }
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("isElementEnabled", {element:aRequest.element});
-    }
-  },
-
-  
-
-
-
-
-
-
-  isElementSelected: function MDA_isElementSelected(aRequest) {
-    if (this.context == "chrome") {
-      try {
-        
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        if (el.checked != undefined) {
-          this.sendResponse(!!el.checked);
-        }
-        else if (el.selected != undefined) {
-          this.sendResponse(!!el.selected);
-        }
-        else {
-          this.sendResponse(true);
-        }
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("isElementSelected", {element:aRequest.element});
-    }
-  },
-
-  
-
-
-
-
-
-
-
-  sendKeysToElement: function MDA_sendKeysToElement(aRequest) {
-    if (this.context == "chrome") {
-      try {
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        el.focus();
-        utils.sendString(aRequest.value, utils.window);
-        this.sendOk();
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("sendKeysToElement", {element:aRequest.element, value: aRequest.value});
-    }
-  },
-
-  
-
-
-
-
-
-
-  clearElement: function MDA_clearElement(aRequest) {
-    if (this.context == "chrome") {
-      
-      try {
-        let el = this.curBrowser.elementManager.getKnownElement(aRequest.element, this.getCurrentWindow());
-        if (el.nodeName == "textbox") {
-          el.value = "";
-        }
-        else if (el.nodeName == "checkbox") {
-          el.checked = false;
-        }
-        this.sendOk();
-      }
-      catch (e) {
-        this.sendError(e.message, e.num, e.stack);
-      }
-    }
-    else {
-      this.sendAsync("clearElement", {element:aRequest.element});
-    }
+    this.sendAsync("clickElement", {element: aRequest.element});
   },
 
   
@@ -1137,13 +896,6 @@ MarionetteDriverActor.prototype.requestTypes = {
   "findElement": MarionetteDriverActor.prototype.findElement,
   "findElements": MarionetteDriverActor.prototype.findElements,
   "clickElement": MarionetteDriverActor.prototype.clickElement,
-  "getAttributeValue": MarionetteDriverActor.prototype.getAttributeValue,
-  "getElementText": MarionetteDriverActor.prototype.getElementText,
-  "isElementDisplayed": MarionetteDriverActor.prototype.isElementDisplayed,
-  "isElementEnabled": MarionetteDriverActor.prototype.isElementEnabled,
-  "isElementSelected": MarionetteDriverActor.prototype.isElementSelected,
-  "sendKeysToElement": MarionetteDriverActor.prototype.sendKeysToElement,
-  "clearElement": MarionetteDriverActor.prototype.clearElement,
   "goUrl": MarionetteDriverActor.prototype.goUrl,
   "getUrl": MarionetteDriverActor.prototype.getUrl,
   "goBack": MarionetteDriverActor.prototype.goBack,
@@ -1168,6 +920,7 @@ function BrowserObj(win) {
   this.DESKTOP = "desktop";
   this.B2G = "B2G";
   this.browser;
+  this.browser_mm;
   this.tab = null;
   this.knownFrames = [];
   this.curFrameId = null;
@@ -1217,9 +970,8 @@ BrowserObj.prototype = {
     }
     else {
       
-      if (this.browser != undefined && this.browser.selectedTab != undefined) {
-        this.tab = this.browser.selectedTab;
-      }
+      this.tab = this.browser.selectedTab;
+      this.browser_mm = this.browser.getBrowserForTab(this.tab).messageManager;
     }
   },
 
