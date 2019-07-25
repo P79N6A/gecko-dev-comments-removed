@@ -61,7 +61,12 @@ namespace nanojit
 #if defined(NJ_USE_UINT32_REGISTER)
     #define REGNUM(r) (r)
 
-#elif defined(DEBUG)
+#elif defined(DEBUG) || defined(__SUNPRO_CC)
+    
+    
+    
+    
+
     struct Register {
         uint32_t n;     
     };

@@ -1137,15 +1137,6 @@ namespace nanojit
             btr RegAlloc::free[ecx], eax    
             mov r, eax
         }
-    #elif defined __SUNPRO_CC
-        
-        
-        
-         asm(
-             "bsf    %1, %%edi\n\t"
-             "btr    %%edi, (%2)\n\t"
-             "movl   %%edi, %0\n\t"
-             : "=a"(r) : "d"(set), "c"(&regs.free) : "%edi", "memory" );
     #else
         asm(
             "bsf    %1, %%eax\n\t"
