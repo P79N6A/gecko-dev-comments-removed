@@ -7,6 +7,7 @@
 const {classes: Cc, interfaces: Ci, utils: Cu, results: Cr} = Components;
 
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+Cu.import("resource://gre/modules/Services.jsm");
 
 const RIL_SMSDATABASESERVICE_CONTRACTID = "@mozilla.org/sms/rilsmsdatabaseservice;1";
 const RIL_SMSDATABASESERVICE_CID = Components.ID("{a1fa610c-eb6c-4ac2-878f-b005d5e89249}");
@@ -46,6 +47,10 @@ const GLOBAL_SCOPE = this;
 
 
 function SmsDatabaseService() {
+  
+  
+  Services.dirsvc.get("ProfD", Ci.nsIFile);
+
   gIDBManager.initWindowless(GLOBAL_SCOPE);
 
   let that = this;
