@@ -176,7 +176,7 @@ public:
   virtual void LockMenuUntilClosed(bool aLock);
   virtual bool IsMenuLocked() { return mIsMenuLocked; }
 
-  nsIWidget* GetWidget();
+  NS_IMETHOD GetWidget(nsIWidget **aWidget);
 
   
   void AttachedDismissalListener();
@@ -352,9 +352,6 @@ public:
   NS_IMETHOD BuildDisplayList(nsDisplayListBuilder*   aBuilder,
                               const nsRect&           aDirtyRect,
                               const nsDisplayListSet& aLists);
-
-  nsIntPoint GetLastClientOffset() const { return mLastClientOffset; }
-
 protected:
 
   
@@ -438,10 +435,6 @@ protected:
   PRInt32 mYPos;
   PRInt32 mScreenXPos;
   PRInt32 mScreenYPos;
-  
-  
-  
-  nsIntPoint mLastClientOffset;
 
   nsPopupType mPopupType; 
   nsPopupState mPopupState; 

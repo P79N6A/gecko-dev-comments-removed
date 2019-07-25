@@ -1327,7 +1327,6 @@ nsDOMWindowUtils::SendQueryContentEvent(PRUint32 aType,
     nsIntRect widgetBounds;
     nsresult rv = widget->GetClientBounds(widgetBounds);
     NS_ENSURE_SUCCESS(rv, rv);
-    widgetBounds.MoveTo(0, 0);
 
     
     

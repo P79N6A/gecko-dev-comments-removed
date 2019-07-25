@@ -1185,8 +1185,6 @@ nsTextStore::GetScreenExt(TsViewCookie vcView,
   nsresult rv = refWindow->GetClientBounds(boundRect);
   NS_ENSURE_SUCCESS(rv, E_FAIL);
 
-  boundRect.MoveTo(0, 0);
-
   
   boundRect.IntersectRect(event.mReply.mRect, boundRect);
   if (!boundRect.IsEmpty()) {
