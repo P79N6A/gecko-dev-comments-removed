@@ -95,6 +95,9 @@ public:
   }
   nsresult InsertChildAt(nsIContent* aChild, PRUint32 aPos);
   void RemoveChildAt(PRUint32 aPos);
+  
+  
+  already_AddRefed<nsIContent> TakeChildAt(PRUint32 aPos);
   PRInt32 IndexOfChild(nsINode* aPossibleChild) const;
 
   PRUint32 AttrCount() const;

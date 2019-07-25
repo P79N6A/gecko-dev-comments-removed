@@ -4234,10 +4234,18 @@ NS_IMPL_CYCLE_COLLECTION_UNLINK_BEGIN(nsGenericElement)
         
         
         
-        tmp->mAttrsAndChildren.ChildAt(childCount)->UnbindFromTree();
-        tmp->mAttrsAndChildren.RemoveChildAt(childCount);
+
+        
+        
+        
+        
+        
+        nsCOMPtr<nsIContent> child = tmp->mAttrsAndChildren.TakeChildAt(childCount);
+        if (childCount == 0) {
+          tmp->mFirstChild = nsnull;
+        }
+        child->UnbindFromTree();
       }
-      tmp->mFirstChild = nsnull;
     }
   }  
 
