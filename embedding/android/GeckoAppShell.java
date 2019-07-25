@@ -157,7 +157,7 @@ class GeckoAppShell
         sGeckoRunning = true;
 
         
-        String combinedArgs = apkPath;
+        String combinedArgs = apkPath + " -omnijar " + apkPath;
         if (args != null)
             combinedArgs += " " + args;
         if (url != null)
