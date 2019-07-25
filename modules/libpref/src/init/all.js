@@ -3161,6 +3161,9 @@ pref("image.mem.decode_bytes_at_a_time", 200000);
 pref("image.mem.max_ms_before_yield", 400);
 
 
+pref("image.mem.max_bytes_for_sync_decode", 150000);
+
+
 pref("webgl.enabled_for_all_sites", false);
 pref("webgl.shader_validator", true);
 pref("webgl.force_osmesa", false);
