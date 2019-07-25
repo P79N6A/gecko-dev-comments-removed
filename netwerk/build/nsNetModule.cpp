@@ -635,8 +635,10 @@ static void nsNetShutdown()
     
     nsDNSPrefetch::Shutdown();
 
+#ifdef NECKO_PROTOCOL_websocket
     
     mozilla::net::nsWebSocketHandler::Shutdown();
+#endif 
 }
 
 NS_DEFINE_NAMED_CID(NS_IOSERVICE_CID);
