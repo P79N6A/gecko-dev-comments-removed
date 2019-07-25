@@ -2526,13 +2526,44 @@ Tab.prototype = {
 var BrowserEventHandler = {
   init: function init() {
     Services.obs.addObserver(this, "Gesture:SingleTap", false);
-    Services.obs.addObserver(this, "Gesture:ShowPress", false);
     Services.obs.addObserver(this, "Gesture:CancelTouch", false);
     Services.obs.addObserver(this, "Gesture:DoubleTap", false);
     Services.obs.addObserver(this, "Gesture:Scroll", false);
     Services.obs.addObserver(this, "dom-touch-listener-added", false);
 
     BrowserApp.deck.addEventListener("DOMUpdatePageReport", PopupBlockerObserver.onUpdatePageReport, false);
+    BrowserApp.deck.addEventListener("touchstart", this, false);
+  },
+
+  handleEvent: function(aEvent) {
+    if (!BrowserApp.isBrowserContentDocumentDisplayed() || aEvent.touches.length > 1 || aEvent.defaultPrevented)
+      return;
+
+    let closest = aEvent.target;
+
+    if (closest) {
+      
+      
+      this._scrollableElement = this._findScrollableElement(closest, true);
+      this._firstScrollEvent = true;
+
+      if (this._scrollableElement != null) {
+        
+        let doc = BrowserApp.selectedBrowser.contentDocument;
+        if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
+          sendMessageToJava({ gecko: { type: "Panning:Override" } });
+      }
+    }
+
+    if (!ElementTouchHelper.isElementClickable(closest))
+      closest = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow,
+                                                    aEvent.changedTouches[0].screenX,
+                                                    aEvent.changedTouches[0].screenY);
+    if (!closest)
+      closest = aEvent.target;
+
+    if (closest)
+      this._doTapHighlight(closest);
   },
 
   observe: function(aSubject, aTopic, aData) {
@@ -2596,32 +2627,12 @@ var BrowserEventHandler = {
       }
     } else if (aTopic == "Gesture:CancelTouch") {
       this._cancelTapHighlight();
-    } else if (aTopic == "Gesture:ShowPress") {
-      let data = JSON.parse(aData);
-      let closest = ElementTouchHelper.elementFromPoint(BrowserApp.selectedBrowser.contentWindow, data.x, data.y);
-      if (!closest)
-        closest = ElementTouchHelper.anyElementFromPoint(BrowserApp.selectedBrowser.contentWindow, data.x, data.y);
-      if (closest) {
-        this._doTapHighlight(closest);
-
-        
-        
-        this._scrollableElement = this._findScrollableElement(closest, true);
-        this._firstScrollEvent = true;
-
-        if (this._scrollableElement != null) {
-          
-          let doc = BrowserApp.selectedBrowser.contentDocument;
-          if (this._scrollableElement != doc.body && this._scrollableElement != doc.documentElement)
-            sendMessageToJava({ gecko: { type: "Panning:Override" } });
-        }
-      }
     } else if (aTopic == "Gesture:SingleTap") {
       let element = this._highlightElement;
       if (element && !SelectHelper.handleClick(element)) {
         try {
           let data = JSON.parse(aData);
-  
+
           this._sendMouseEvent("mousemove", element, data.x, data.y);
           this._sendMouseEvent("mousedown", element, data.x, data.y);
           this._sendMouseEvent("mouseup",   element, data.x, data.y);
