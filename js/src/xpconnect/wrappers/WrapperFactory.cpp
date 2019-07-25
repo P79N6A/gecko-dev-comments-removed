@@ -171,17 +171,7 @@ WrapperFactory::Rewrap(JSContext *cx, JSObject *obj, JSObject *wrappedProto, JSO
     CompartmentPrivate *targetdata = static_cast<CompartmentPrivate *>(target->data);
     if (AccessCheck::isChrome(target)) {
         if (AccessCheck::isChrome(origin)) {
-            
-            
-            if (targetdata && targetdata->preferXrays && IS_WN_WRAPPER(obj)) {
-                typedef XrayWrapper<JSCrossCompartmentWrapper, CrossCompartmentXray> Xray;
-                wrapper = &Xray::singleton;
-                xrayHolder = Xray::createHolder(cx, obj, parent);
-                if (!xrayHolder)
-                    return nsnull;
-            } else {
-                wrapper = &JSCrossCompartmentWrapper::singleton;
-            }
+            wrapper = &JSCrossCompartmentWrapper::singleton;
         } else if (flags & WAIVE_XRAY_WRAPPER_FLAG) {
             
             
