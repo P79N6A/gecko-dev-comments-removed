@@ -408,24 +408,29 @@ const EXPIRATION_QUERIES = {
 
 function nsPlacesExpiration()
 {
-  this._db = Cc["@mozilla.org/browser/nav-history-service;1"].
+  
+  
+
+  XPCOMUtils.defineLazyGetter(this, "_db", function () {
+    let db = Cc["@mozilla.org/browser/nav-history-service;1"].
              getService(Ci.nsPIPlacesDatabase).
              DBConnection;
 
-  
-  this._db.executeSimpleSQL(
-    "CREATE TEMP TABLE expiration_notify ( "
-  + "  id INTEGER PRIMARY KEY "
-  + ", v_id INTEGER "
-  + ", p_id INTEGER "
-  + ", url TEXT NOT NULL "
-  + ", visit_date INTEGER "
-  + ", expected_results INTEGER NOT NULL "
-  + ")"
-  );
+    
+    let stmt = db.createAsyncStatement(
+      "CREATE TEMP TABLE expiration_notify ( "
+    + "  id INTEGER PRIMARY KEY "
+    + ", v_id INTEGER "
+    + ", p_id INTEGER "
+    + ", url TEXT NOT NULL "
+    + ", visit_date INTEGER "
+    + ", expected_results INTEGER NOT NULL "
+    + ") ");
+    stmt.executeAsync();
+    stmt.finalize();
 
-  
-  
+    return db;
+  });
 
   XPCOMUtils.defineLazyServiceGetter(this, "_hsn",
                                      "@mozilla.org/browser/nav-history-service;1",
