@@ -1191,11 +1191,40 @@ nsHttpConnectionMgr::RestrictConnections(nsConnectionEntry *ent)
     
     
     
-    return ent->mConnInfo->UsingSSL() &&
+    bool doRestrict = ent->mConnInfo->UsingSSL() &&
         gHttpHandler->IsSpdyEnabled() &&
         !ent->mConnInfo->UsingHttpProxy() &&
         (!ent->mTestedSpdy || ent->mUsingSpdy) &&
         (ent->mHalfOpens.Length() || ent->mActiveConns.Length());
+
+    
+    if (!doRestrict)
+        return false;
+    
+    
+    
+    if (ent->mHalfOpens.Length())
+        return true;
+
+    
+    
+    
+    if (ent->mUsingSpdy && ent->mActiveConns.Length()) {
+        bool confirmedRestrict = false;
+        for (PRUint32 index = 0; index < ent->mActiveConns.Length(); ++index) {
+            nsHttpConnection *conn = ent->mActiveConns[index];
+            if (!conn->ReportedNPN() || conn->CanDirectlyActivate()) {
+                confirmedRestrict = true;
+                break;
+            }
+        }
+        doRestrict = confirmedRestrict;
+        if (!confirmedRestrict) {
+            LOG(("nsHttpConnectionMgr spdy connection restriction to "
+                 "%s bypassed.\n", ent->mConnInfo->Host()));
+        }
+    }
+    return doRestrict;
 }
 
 bool
