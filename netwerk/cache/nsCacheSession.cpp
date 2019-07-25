@@ -41,6 +41,31 @@ NS_IMETHODIMP nsCacheSession::GetDoomEntriesIfExpired(bool *result)
 }
 
 
+NS_IMETHODIMP nsCacheSession::SetProfileDirectory(nsILocalFile *profileDir)
+{
+  if (StoragePolicy() != nsICache::STORE_OFFLINE && profileDir) {
+        
+        
+        
+        
+        return NS_ERROR_UNEXPECTED;
+    }
+
+    mProfileDir = profileDir;
+    return NS_OK;
+}
+
+NS_IMETHODIMP nsCacheSession::GetProfileDirectory(nsILocalFile **profileDir)
+{
+    if (mProfileDir)
+        NS_ADDREF(*profileDir = mProfileDir);
+    else
+        *profileDir = nsnull;
+
+    return NS_OK;
+}
+
+
 NS_IMETHODIMP nsCacheSession::SetDoomEntriesIfExpired(bool doomEntriesIfExpired)
 {
     if (doomEntriesIfExpired)  MarkDoomEntriesIfExpired();

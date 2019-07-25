@@ -17,6 +17,7 @@
 #include "nsIObserver.h"
 #include "nsString.h"
 #include "nsTArray.h"
+#include "nsRefPtrHashtable.h"
 #include "mozilla/CondVar.h"
 #include "mozilla/Mutex.h"
 
@@ -113,6 +114,15 @@ public:
     nsresult GetOfflineDevice(nsOfflineCacheDevice ** aDevice);
 
     
+
+
+
+
+    nsresult GetCustomOfflineDevice(nsILocalFile *aProfileDir,
+                                    PRInt32 aQuota,
+                                    nsOfflineCacheDevice **aDevice);
+
+    
     
     
     
@@ -183,6 +193,9 @@ private:
 
     nsresult         CreateDiskDevice();
     nsresult         CreateOfflineDevice();
+    nsresult         CreateCustomOfflineDevice(nsILocalFile *aProfileDir,
+                                               PRInt32 aQuota,
+                                               nsOfflineCacheDevice **aDevice);
     nsresult         CreateMemoryDevice();
 
     nsresult         CreateRequest(nsCacheSession *   session,
@@ -237,6 +250,11 @@ private:
                                        PLDHashEntryHdr * hdr,
                                        PRUint32          number,
                                        void *            arg);
+
+    static
+    PLDHashOperator  ShutdownCustomCacheDeviceEnum(const nsAString& aProfileDir,
+                                                   nsRefPtr<nsOfflineCacheDevice>& aDevice,
+                                                   void* aUserArg);
 #if defined(PR_LOGGING)
     void LogCacheStatistics();
 #endif
@@ -269,6 +287,8 @@ private:
     nsMemoryCacheDevice *           mMemoryDevice;
     nsDiskCacheDevice *             mDiskDevice;
     nsOfflineCacheDevice *          mOfflineDevice;
+
+    nsRefPtrHashtable<nsStringHashKey, nsOfflineCacheDevice> mCustomOfflineDevices;
 
     nsCacheEntryHashTable           mActiveEntries;
     PRCList                         mDoomedEntries;
