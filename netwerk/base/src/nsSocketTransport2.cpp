@@ -1229,16 +1229,6 @@ nsSocketTransport::InitiateSocket()
         
         
         
-        
-        else if (PR_UNKNOWN_ERROR == code &&
-                 mProxyTransparent &&
-                 !mProxyHost.IsEmpty()) {
-            code = PR_GetOSError();
-            rv = ErrorAccordingToNSPR(code);
-        }
-        
-        
-        
         else {
             rv = ErrorAccordingToNSPR(code);
             if ((rv == NS_ERROR_CONNECTION_REFUSED) && !mProxyHost.IsEmpty())
@@ -1559,16 +1549,7 @@ nsSocketTransport::OnSocketReady(PRFileDesc *fd, PRInt16 outFlags)
                 mPollFlags = (PR_POLL_EXCEPT | PR_POLL_WRITE);
                 
                 mPollTimeout = mTimeouts[TIMEOUT_CONNECT];
-            }
-            
-            
-            
-            else if (PR_UNKNOWN_ERROR == code &&
-                     mProxyTransparent &&
-                     !mProxyHost.IsEmpty()) {
-                code = PR_GetOSError();
-                mCondition = ErrorAccordingToNSPR(code);
-            }
+            } 
             else {
                 
                 
