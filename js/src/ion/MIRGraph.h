@@ -179,8 +179,11 @@ class MBasicBlock : public TempObject, public InlineListNode<MBasicBlock>
 
     
     
+    bool setBackedge(MBasicBlock *block);
+
     
-    bool setBackedge(MBasicBlock *block, MBasicBlock *successor);
+    
+    void inheritPhis(MBasicBlock *header);
 
     void insertBefore(MInstruction *at, MInstruction *ins);
     void insertAfter(MInstruction *at, MInstruction *ins);

@@ -213,8 +213,19 @@ class IonBuilder : public MIRGenerator
     MBasicBlock *newBlock(jsbytecode *pc) {
         return newBlock(NULL, pc);
     }
+
+    
+    
     MBasicBlock *createBreakCatchBlock(DeferredEdge *edge, jsbytecode *pc);
-    bool finalizeLoop(CFGState &state, MDefinition *last);
+
+    
+    
+    ControlStatus processBrokenLoop(CFGState &state);
+
+    
+    
+    ControlStatus finishLoop(CFGState &state, MBasicBlock *successor);
+
     void assertValidTraceOp(JSOp op);
     bool forInLoop(JSOp op, jssrcnote *sn) {
         return false;

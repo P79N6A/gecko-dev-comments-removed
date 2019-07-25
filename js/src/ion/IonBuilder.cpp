@@ -637,58 +637,78 @@ IonBuilder::processIfElseFalseEnd(CFGState &state)
     return ControlStatus_Joined;
 }
 
-bool
-IonBuilder::finalizeLoop(CFGState &state, MDefinition *last)
+IonBuilder::ControlStatus
+IonBuilder::processBrokenLoop(CFGState &state)
 {
-    JS_ASSERT(!state.loop.continues);
+    JS_ASSERT(!current);
 
     
-    MBasicBlock *breaks = NULL;
+    
+    
+    current = state.loop.successor;
+
+    
     if (state.loop.breaks) {
-        breaks = createBreakCatchBlock(state.loop.breaks, state.loop.exitpc);
-        if (!breaks)
+        MBasicBlock *block = createBreakCatchBlock(state.loop.breaks, state.loop.exitpc);
+        if (!block)
             return ControlStatus_Error;
-    }
 
-    
-    
-    MBasicBlock *successor = state.loop.successor
-                             ? state.loop.successor
-                             : breaks;
+        if (current) {
+            current->end(MGoto::New(block));
+            if (!block->addPredecessor(current))
+                return ControlStatus_Error;
+        }
 
-    
-    
-    
-    if (current) {
-        JS_ASSERT_IF(last, successor);
-
-        MControlInstruction *ins;
-        if (last)
-            ins = MTest::New(last, state.loop.entry, successor);
-        else
-            ins = MGoto::New(state.loop.entry);
-        current->end(ins);
-
-        if (!state.loop.entry->setBackedge(current, successor))
-            return false;
+        current = block;
     }
 
     
     
     
+    if (!current)
+        return ControlStatus_Ended;
+
     
     
+    pc = current->pc();
+    return ControlStatus_Joined;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::finishLoop(CFGState &state, MBasicBlock *successor)
+{
+    JS_ASSERT(current);
+
     
     
-    if (successor && breaks && (successor != breaks)) {
-        successor->end(MGoto::New(breaks));
-        if (!breaks->addPredecessor(successor))
-            return false;
-        successor = breaks;
+    if (!state.loop.entry->setBackedge(current))
+        return ControlStatus_Error;
+    successor->inheritPhis(state.loop.entry);
+
+    if (state.loop.breaks) {
+        
+        DeferredEdge *edge = state.loop.breaks;
+        while (edge) {
+            edge->block->inheritPhis(state.loop.entry);
+            edge = edge->next;
+        }
+
+        
+        MBasicBlock *block = createBreakCatchBlock(state.loop.breaks, state.loop.exitpc);
+        if (!block)
+            return ControlStatus_Error;
+
+        
+        
+        successor->end(MGoto::New(block));
+        if (!block->addPredecessor(successor))
+            return ControlStatus_Error;
+        successor = block;
     }
 
-    state.loop.successor = successor;
-    return true;
+    current = successor;
+    pc = current->pc();
+    return ControlStatus_Joined;
 }
 
 IonBuilder::ControlStatus
@@ -699,17 +719,8 @@ IonBuilder::processDoWhileBodyEnd(CFGState &state)
 
     
     
-    if (!current) {
-        if (!finalizeLoop(state, NULL))
-            return ControlStatus_Error;
-
-        current = state.loop.successor;
-        if (!current)
-            return ControlStatus_Ended;
-
-        pc = current->pc();
-        return ControlStatus_Joined;
-    }
+    if (!current)
+        return processBrokenLoop(state);
 
     MBasicBlock *header = newBlock(current, state.loop.updatepc);
     if (!header)
@@ -728,23 +739,20 @@ IonBuilder::processDoWhileCondEnd(CFGState &state)
 {
     JS_ASSERT(JSOp(*pc) == JSOP_IFNE || JSOp(*pc) == JSOP_IFNEX);
 
-    MDefinition *last = NULL;
-    if (current) {
-        last = current->pop();
-        state.loop.successor = newBlock(current, GetNextPc(pc));
-        if (!state.loop.successor)
-            return ControlStatus_Error;
-    }
+    
+    
+    JS_ASSERT(current);
 
-    if (!finalizeLoop(state, last))
+    
+    MDefinition *vins = current->pop();
+    MBasicBlock *successor = newBlock(current, GetNextPc(pc));
+    if (!successor)
         return ControlStatus_Error;
 
-    current = state.loop.successor;
-    if (!current)
-        return ControlStatus_Ended;
-
-    pc = current->pc();
-    return ControlStatus_Joined;
+    
+    MTest *test = MTest::New(vins, state.loop.entry, successor);
+    current->end(test);
+    return finishLoop(state, successor);
 }
 
 IonBuilder::ControlStatus
@@ -776,15 +784,12 @@ IonBuilder::processWhileBodyEnd(CFGState &state)
 {
     if (!processDeferredContinues(state))
         return ControlStatus_Error;
-    if (!finalizeLoop(state, NULL))
-        return ControlStatus_Error;
 
-    current = state.loop.successor;
     if (!current)
-        return ControlStatus_Ended;
+        return processBrokenLoop(state);
 
-    pc = current->pc();
-    return ControlStatus_Joined;
+    current->end(MGoto::New(state.loop.entry));
+    return finishLoop(state, state.loop.successor);
 }
 
 IonBuilder::ControlStatus
@@ -809,6 +814,37 @@ IonBuilder::processForCondEnd(CFGState &state)
     pc = state.loop.bodyStart;
     current = body;
     return ControlStatus_Jumped;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processForBodyEnd(CFGState &state)
+{
+    if (!processDeferredContinues(state))
+        return ControlStatus_Error;
+
+    
+    
+    
+    if (!state.loop.updatepc || !current)
+        return processForUpdateEnd(state);
+
+    pc = state.loop.updatepc;
+
+    state.state = CFGState::FOR_LOOP_UPDATE;
+    state.stopAt = state.loop.updateEnd;
+    return ControlStatus_Jumped;
+}
+
+IonBuilder::ControlStatus
+IonBuilder::processForUpdateEnd(CFGState &state)
+{
+    
+    
+    if (!current)
+        return processBrokenLoop(state);
+
+    current->end(MGoto::New(state.loop.entry));
+    return finishLoop(state, state.loop.successor);
 }
 
 bool
@@ -871,36 +907,6 @@ IonBuilder::createBreakCatchBlock(DeferredEdge *edge, jsbytecode *pc)
     }
 
     return successor;
-}
-
-IonBuilder::ControlStatus
-IonBuilder::processForBodyEnd(CFGState &state)
-{
-    if (!processDeferredContinues(state))
-        return ControlStatus_Error;
-
-    if (!state.loop.updatepc)
-        return processForUpdateEnd(state);
-
-    pc = state.loop.updatepc;
-
-    state.state = CFGState::FOR_LOOP_UPDATE;
-    state.stopAt = state.loop.updateEnd;
-    return ControlStatus_Jumped;
-}
-
-IonBuilder::ControlStatus
-IonBuilder::processForUpdateEnd(CFGState &state)
-{
-    if (!finalizeLoop(state, NULL))
-        return ControlStatus_Error;
-
-    current = state.loop.successor;
-    if (!current)
-        return ControlStatus_Ended;
-
-    pc = current->pc();
-    return ControlStatus_Joined;
 }
 
 IonBuilder::ControlStatus

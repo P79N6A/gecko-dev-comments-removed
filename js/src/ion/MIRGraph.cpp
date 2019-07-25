@@ -546,7 +546,7 @@ FollowCopy(MDefinition *def)
 }
 
 bool
-MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
+MBasicBlock::setBackedge(MBasicBlock *pred)
 {
     
     JS_ASSERT(lastIns_);
@@ -572,39 +572,44 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
         
         
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+        JS_ASSERT_IF(entryDef->isPhi(), entryDef->block() != this);
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
 
         
         
@@ -649,25 +654,6 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
             return false;
 
         setSlot(i, phi);
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        if (successor && successor->getSlot(i) == entryDef) {
-            successor->setSlot(i, phi);
-
-            
-            JS_ASSERT(successor->entrySnapshot()->getOperand(i) == phi);
-        }
     }
 
     
@@ -717,5 +703,26 @@ MBasicBlock::replacePredecessor(MBasicBlock *old, MBasicBlock *split)
         }
     }
     JS_NOT_REACHED("predecessor was not found");
+}
+
+void
+MBasicBlock::inheritPhis(MBasicBlock *header)
+{
+    for (MPhiIterator iter = header->phisBegin(); iter != header->phisEnd(); iter++) {
+        MPhi *phi = *iter;
+        JS_ASSERT(phi->numOperands() == 2);
+
+        
+        MDefinition *entryDef = phi->getOperand(0);
+        MDefinition *exitDef = getSlot(phi->slot());
+
+        if (entryDef != exitDef)
+            continue;
+
+        
+        
+        
+        setSlot(phi->slot(), phi);
+    }
 }
 
