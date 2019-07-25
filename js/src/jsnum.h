@@ -658,17 +658,6 @@ ToInteger(JSContext *cx, const js::Value &v, jsdouble *dp)
     return true;
 }
 
-
-static inline void
-TryCoerceNumberToInt32(Value &v)
-{
-    if (v.isDouble()) {
-        int32_t res;
-        if (JSDOUBLE_IS_INT32(v.toDouble(), &res))
-            v.setInt32(res);
-    }
-}
-
 } 
 
 #endif 

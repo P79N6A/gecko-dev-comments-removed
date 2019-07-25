@@ -616,14 +616,6 @@ class FrameState
     
 
 
-
-
-    FPRegisterID getScratchFPReg();
-    void restoreScratchFPReg(FPRegisterID reg);
-
-    
-
-
     inline FrameEntry *peek(int32 depth);
 
     
