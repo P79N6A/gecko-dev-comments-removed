@@ -179,6 +179,9 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
     {
       
       
+      if (!mMenuBarFrame->IsActive()) {
+        mMenuBarFrame->SetActiveByKeyboard();
+      }
       ToggleMenuActiveState();
     }
     mAccessKeyDown = PR_FALSE;
@@ -257,6 +260,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         
         nsMenuFrame* result = mMenuBarFrame->FindMenuWithShortcut(keyEvent);
         if (result) {
+          mMenuBarFrame->SetActiveByKeyboard();
           mMenuBarFrame->SetActive(PR_TRUE);
           result->OpenMenu(PR_TRUE);
 
@@ -275,6 +279,7 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
         if ((GetModifiers(keyEvent) & ~MODIFIER_CONTROL) == 0) {
           
           
+          mMenuBarFrame->SetActiveByKeyboard();
           ToggleMenuActiveState();
 
           aKeyEvent->StopPropagation();

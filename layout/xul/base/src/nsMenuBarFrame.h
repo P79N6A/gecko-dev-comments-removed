@@ -103,6 +103,9 @@ public:
   
   nsMenuFrame* ToggleMenuActiveState();
 
+  PRBool IsActiveByKeyboard() { return mActiveByKeyboard; }
+  void SetActiveByKeyboard() { mActiveByKeyboard = PR_TRUE; }
+
   
   
   virtual PRBool MenuClosed();
@@ -137,6 +140,10 @@ protected:
   PRPackedBool mStayActive;
 
   PRPackedBool mIsActive; 
+
+  
+  PRPackedBool mActiveByKeyboard;
+
   
   
   nsMenuFrame* mCurrentMenu;
