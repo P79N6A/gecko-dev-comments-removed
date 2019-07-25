@@ -8,11 +8,11 @@
 
 #include "EditTxn.h"
 
-#include "nsIDOMNode.h"
-#include "nsIEditor.h"
+#include "nsIContent.h"
 #include "nsCOMPtr.h"
 
 class nsRangeUpdater;
+class nsEditor;
 
 
 
@@ -23,7 +23,8 @@ public:
   
 
 
-  NS_IMETHOD Init(nsIEditor *aEditor, nsIDOMNode *aElement, nsRangeUpdater *aRangeUpdater);
+  nsresult Init(nsEditor* aEditor, nsINode* aNode,
+                nsRangeUpdater* aRangeUpdater);
 
   DeleteElementTxn();
 
@@ -35,21 +36,21 @@ public:
   NS_IMETHOD RedoTransaction();
 
 protected:
-  
-  
-  nsCOMPtr<nsIDOMNode> mElement;
 
   
-  nsCOMPtr<nsIDOMNode> mParent;
+  nsCOMPtr<nsINode> mNode;
 
   
-  nsCOMPtr<nsIDOMNode> mRefNode;
+  nsCOMPtr<nsINode> mParent;
 
   
-  nsIEditor* mEditor;
+  nsCOMPtr<nsIContent> mRefNode;
 
   
-  nsRangeUpdater *mRangeUpdater;
+  nsEditor* mEditor;
+
+  
+  nsRangeUpdater* mRangeUpdater;
 };
 
 #endif

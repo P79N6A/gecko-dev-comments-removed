@@ -176,6 +176,7 @@ public:
                                            nsIDOMNode ** aNewNode);
 
   
+  nsresult DeleteNode(nsINode* aNode);
   nsresult ReplaceContainer(nsINode* inNode,
                             mozilla::dom::Element** outNode,
                             const nsAString& aNodeType,
@@ -253,8 +254,8 @@ protected:
 
   
 
-  NS_IMETHOD CreateTxnForDeleteElement(nsIDOMNode * aElement,
-                                       DeleteElementTxn ** aTxn);
+  nsresult CreateTxnForDeleteElement(nsINode* aNode,
+                                     DeleteElementTxn** aTxn);
 
 
   nsresult CreateTxnForDeleteSelection(EDirection aAction,
