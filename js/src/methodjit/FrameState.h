@@ -878,6 +878,13 @@ class FrameState
 #endif
     const char * entryName(uint32 slot) { return entryName(entries + slot); }
 
+    
+    static const uint32 TEMPORARY_LIMIT = 10;
+
+    uint32 allocTemporary();  
+    void clearTemporaries();
+    inline FrameEntry *getTemporary(uint32 which);
+
   private:
     inline AnyRegisterID allocAndLoadReg(FrameEntry *fe, bool fp, RematInfo::RematType type);
     inline void forgetReg(AnyRegisterID reg);
@@ -944,8 +951,13 @@ class FrameState
         return uint32((sp + depth) - entries);
     }
 
+    
+    bool deadEntry(const FrameEntry *fe, unsigned uses = 0) const {
+        return (fe >= (sp - uses) && fe < temporaries) || fe >= temporariesTop;
+    }
+
     static uint32 feLimit(JSScript *script) {
-        return script->nslots + 2 + (script->fun ? script->fun->nargs : 0);
+        return script->nslots + 2 + (script->fun ? script->fun->nargs : 0) + TEMPORARY_LIMIT;
     }
 
     RegisterState & regstate(AnyRegisterID reg) {
@@ -971,6 +983,11 @@ class FrameState
 
     bool isLocal(const FrameEntry *fe) const {
         return fe >= locals && fe - locals < script->nfixed;
+    }
+
+    bool isTemporary(const FrameEntry *fe) const {
+        JS_ASSERT_IF(fe >= temporaries, fe < temporariesTop);
+        return fe >= temporaries;
     }
 
     int32 frameOffset(const FrameEntry *fe, ActiveFrame *a) const;
@@ -1066,6 +1083,13 @@ class FrameState
 
     
     FrameEntry *sp;
+
+    
+
+
+
+    FrameEntry *temporaries;
+    FrameEntry *temporariesTop;
 
     
     jsbytecode *PC;

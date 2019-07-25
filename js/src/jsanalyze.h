@@ -435,6 +435,9 @@ struct LifetimeLoop
     bool hasSafePoints;
 
     
+    bool hasCallsLoops;
+
+    
 
 
 

@@ -78,6 +78,17 @@ namespace mjit {
 
 
 
+
+
+
+
+
+
+
+
+
+
+
 class LoopState : public MacroAssemblerTypedefs
 {
     JSContext *cx;
@@ -125,6 +136,17 @@ class LoopState : public MacroAssemblerTypedefs
 
 
 
+    struct RestoreInvariantCall {
+        Jump jump;
+        Label label;
+        bool ool;
+    };
+    Vector<RestoreInvariantCall> restoreInvariantCalls;
+
+    
+
+
+
     struct HoistedBoundsCheck
     {
         
@@ -135,7 +157,21 @@ class LoopState : public MacroAssemblerTypedefs
     Vector<HoistedBoundsCheck, 4, CompilerAllocPolicy> hoistedBoundsChecks;
 
     bool loopInvariantEntry(const FrameEntry *fe);
-    void addHoistedCheck(uint32 arraySlot, uint32 valueSlot, int32 constant);
+    bool addHoistedCheck(uint32 arraySlot, uint32 valueSlot, int32 constant);
+
+    
+
+
+
+    struct InvariantArraySlots
+    {
+        uint32 arraySlot;
+        uint32 temporary;
+    };
+    Vector<InvariantArraySlots, 4, CompilerAllocPolicy> invariantArraySlots;
+
+    bool hasInvariants() { return !invariantArraySlots.empty(); }
+    void restoreInvariants(Assembler &masm);
 
   public:
 
@@ -150,11 +186,17 @@ class LoopState : public MacroAssemblerTypedefs
               analyze::Script *analysis, analyze::LifetimeScript *liveness);
     bool init(jsbytecode *head, Jump entry, jsbytecode *entryTarget);
 
+    bool generatingInvariants() { return !skipAnalysis; }
+
+    
+    void addInvariantCall(Jump jump, Label label, bool ool);
+
     uint32 headOffset() { return lifetime->head; }
     uint32 getLoopRegs() { return loopRegs.freeMask; }
 
     Jump entryJump() { return entry; }
     uint32 entryOffset() { return lifetime->entry; }
+    uint32 backedgeOffset() { return lifetime->backedge; }
 
     
     bool carriesLoopReg(FrameEntry *fe) { return alloc->hasAnyReg(frame.indexOfFe(fe)); }
@@ -176,10 +218,13 @@ class LoopState : public MacroAssemblerTypedefs
     }
 
     void addJoin(unsigned index, bool script);
-    void flushRegisters(StubCompiler &stubcc);
-    void clearRegisters();
+    void clearLoopRegisters();
+
+    void flushLoop(StubCompiler &stubcc);
 
     bool hoistArrayLengthCheck(const FrameEntry *obj, const FrameEntry *id);
+    FrameEntry *invariantSlots(const FrameEntry *obj);
+
     bool checkHoistedBounds(jsbytecode *PC, Assembler &masm, Vector<Jump> *jumps);
 };
 

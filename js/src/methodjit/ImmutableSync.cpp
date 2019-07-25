@@ -101,6 +101,10 @@ ImmutableSync::allocReg()
             if (!fe)
                 return reg;
 
+            
+            if (frame->isTemporary(fe))
+                return reg;
+
             evictFromFrame = i;
 
             

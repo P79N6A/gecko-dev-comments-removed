@@ -2150,8 +2150,6 @@ TypeCompartment::print(JSContext *cx, JSCompartment *compartment)
     }
 #endif
 
-    double millis = analysisTime / 1000.0;
-
     printf("Counts: ");
     for (unsigned count = 0; count < TYPE_COUNT_LIMIT; count++) {
         if (count)
@@ -2161,7 +2159,6 @@ TypeCompartment::print(JSContext *cx, JSCompartment *compartment)
     printf(" (%u over)\n", typeCountOver);
 
     printf("Recompilations: %u\n", recompilations);
-    printf("Time: %.2f ms\n", millis);
 }
 
 

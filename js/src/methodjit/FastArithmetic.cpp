@@ -368,24 +368,15 @@ mjit::Compiler::jsop_binary_double(FrameEntry *lhs, FrameEntry *rhs, JSOp op,
         isDouble.linkTo(masm.label(), &masm);
     }
 
-    
-
-
-
-
-
-
-    types::TypeSet *resultTypes = pushedTypeSet(0);
-    if (resultTypes && !resultTypes->hasType(types::TYPE_DOUBLE)) {
+    if (type == JSVAL_TYPE_INT32) {
         
 
 
 
+
         stubcc.linkExit(masm.jump(), Uses(2));
-    } else {
-        JS_ASSERT(type != JSVAL_TYPE_INT32);
-        if (type != JSVAL_TYPE_DOUBLE)
-            masm.storeDouble(fpLeft, frame.addressOf(lhs));
+    } else if (type != JSVAL_TYPE_DOUBLE) {
+        masm.storeDouble(fpLeft, frame.addressOf(lhs));
     }
 
     if (done.isSet())
@@ -1123,10 +1114,6 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
 
         RegisterID tempReg = frame.allocReg();
 
-        frame.pop();
-        frame.pop();
-        frame.discardFrame();
-
         JaegerSpew(JSpew_Insns, " ---- BEGIN STUB CALL CODE ---- \n");
 
         RESERVE_OOL_SPACE(stubcc.masm);
@@ -1137,6 +1124,12 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         
         frame.ensureValueSynced(stubcc.masm, lhs, lvr);
         frame.ensureValueSynced(stubcc.masm, rhs, rvr);
+
+        bool needIntPath = (!lhs->isTypeKnown() || lhsInt) && (!rhs->isTypeKnown() || rhsInt);
+
+        frame.pop();
+        frame.pop();
+        frame.discardFrame();
 
         bool needStub = true;
         
@@ -1182,7 +1175,7 @@ mjit::Compiler::jsop_equality_int_string(JSOp op, BoolStub stub, jsbytecode *tar
         Jump fast;
         MaybeJump firstStubJump;
 
-        if ((!lhs->isTypeKnown() || lhsInt) && (!rhs->isTypeKnown() || rhsInt)) {
+        if (needIntPath) {
             if (!lhsInt) {
                 Jump lhsFail = masm.testInt32(Assembler::NotEqual, lvr.typeReg());
                 stubcc.linkExitDirect(lhsFail, stubEntry);

@@ -169,8 +169,6 @@ mjit::Compiler::compile()
                      : (*jit)->invokeEntry;
     } else {
         *checkAddr = JS_UNJITTABLE_SCRIPT;
-        if (outerScript->fun && !cx->markTypeFunctionUninlineable(outerScript->fun->getType()))
-            return Compile_Error;
     }
 
     return status;
@@ -3011,6 +3009,11 @@ mjit::Compiler::emitStubCall(void *ptr, DataLabelPtr *pinline)
     JaegerSpew(JSpew_Insns, " ---- CALLING STUB ---- \n");
     Call cl = masm.fallibleVMCall(cx->typeInferenceEnabled(),
                                   ptr, outerPC(), pinline, frame.totalDepth());
+    if (loop && loop->generatingInvariants()) {
+        Jump j = masm.jump();
+        Label l = masm.label();
+        loop->addInvariantCall(j, l, false);
+    }
     JaegerSpew(JSpew_Insns, " ---- END STUB CALL ---- \n");
     return cl;
 }
@@ -6180,7 +6183,7 @@ mjit::Compiler::startLoop(jsbytecode *head, Jump entry, jsbytecode *entryTarget)
 
 
 
-        loop->flushRegisters(stubcc);
+        loop->clearLoopRegisters();
     }
 
     LoopState *nloop = cx->new_<LoopState>(cx, script, this, &frame, &a->analysis, &a->liveness);
@@ -6206,7 +6209,7 @@ mjit::Compiler::finishLoop(jsbytecode *head)
 
 
     JS_ASSERT(loop && loop->headOffset() == uint32(head - script->code));
-    loop->flushRegisters(stubcc);
+    loop->flushLoop(stubcc);
 
     jsbytecode *entryTarget = script->code + loop->entryOffset();
 
@@ -6272,6 +6275,12 @@ mjit::Compiler::finishLoop(jsbytecode *head)
     frame.setLoop(loop);
 
     fallthrough.linkTo(masm.label(), &masm);
+
+    
+
+
+
+    frame.clearTemporaries();
 
     return true;
 }

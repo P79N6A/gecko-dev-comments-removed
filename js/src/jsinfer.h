@@ -665,7 +665,6 @@ struct TypeCompartment
 
     
     unsigned inferenceDepth;
-    uint64_t inferenceStartTime;
 
     
     JSArenaPool pool;
@@ -718,17 +717,15 @@ struct TypeCompartment
     
 
     
+
+
+
     struct PendingWork
     {
         TypeConstraint *constraint;
         TypeSet *source;
         jstype type;
     };
-
-    
-
-
-
     PendingWork *pendingArray;
     unsigned pendingCount;
     unsigned pendingCapacity;
@@ -737,12 +734,6 @@ struct TypeCompartment
     bool resolving;
 
     
-
-    
-
-
-
-    uint64_t analysisTime;
 
     
     static const unsigned TYPE_COUNT_LIMIT = 4;
