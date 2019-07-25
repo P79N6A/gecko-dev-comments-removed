@@ -40,6 +40,12 @@ const TESTS = [
     },
   },
   { 
+    file: "test-bug-595934-workers.html",
+    category: "Web Worker",
+    matchString: "fooBarWorker",
+    expectError: true,
+  },
+  { 
     file: "test-bug-595934-malformedxml.xhtml",
     category: "malformed-xml",
     matchString: "no element found",
@@ -89,19 +95,14 @@ const TESTS = [
     category: "Image",
     matchString: "corrupt",
   },
-  
-  
-  
-  
-  
-  
-  
 ];
 
 let pos = -1;
 
 let foundCategory = false;
 let foundText = false;
+let pageLoaded = false;
+let pageError = false;
 let output = null;
 let jsterm = null;
 let testEnded = false;
@@ -120,15 +121,11 @@ let TestObserver = {
 
     if (aSubject.category == TESTS[pos].category) {
       foundCategory = true;
-      if (foundText) {
-        executeSoon(testNext);
-      }
     }
     else {
       ok(false, aSubject.sourceName + ':' + aSubject.lineNumber + '; ' +
                 aSubject.errorMessage);
       testEnded = true;
-      executeSoon(finishTest);
     }
   }
 };
@@ -149,23 +146,47 @@ function testNext() {
   jsterm.clearOutput();
   foundCategory = false;
   foundText = false;
+  pageLoaded = false;
+  pageError = false;
 
   pos++;
   if (pos < TESTS.length) {
+    waitForSuccess({
+      name: "test #" + pos + " succesful finish",
+      validatorFn: function()
+      {
+        return foundCategory && foundText && pageLoaded && pageError;
+      },
+      successFn: testNext,
+      failureFn: function() {
+        info("foundCategory " + foundCategory + " foundText " + foundText +
+             " pageLoaded " + pageLoaded + " pageError " + pageError);
+        finishTest();
+      },
+    });
+
     let test = TESTS[pos];
     let testLocation = TESTS_PATH + test.file;
-    if (test.onload) {
-      browser.addEventListener("load", function onLoad(aEvent) {
-        if (content.location.href == testLocation) {
-          browser.removeEventListener(aEvent.type, onLoad, true);
-          test.onload(aEvent);
-        }
-      }, true);
-    }
+    browser.addEventListener("load", function onLoad(aEvent) {
+      if (content.location.href != testLocation) {
+        return;
+      }
+      browser.removeEventListener(aEvent.type, onLoad, true);
 
-    if (test.expectError) {
-      expectUncaughtException();
-    }
+      pageLoaded = true;
+      test.onload && test.onload(aEvent);
+
+      if (test.expectError) {
+        content.addEventListener("error", function _onError() {
+          content.removeEventListener("error", _onError);
+          pageError = true;
+        });
+        expectUncaughtException();
+      }
+      else {
+        pageError = true;
+      }
+    }, true);
 
     content.location = testLocation;
   }
@@ -186,10 +207,6 @@ function onDOMNodeInserted(aEvent) {
   foundText = textContent.indexOf(TESTS[pos].matchString) > -1;
   if (foundText) {
     ok(foundText, "test #" + pos + ": message found '" + TESTS[pos].matchString + "'");
-  }
-
-  if (foundCategory) {
-    executeSoon(testNext);
   }
 }
 
