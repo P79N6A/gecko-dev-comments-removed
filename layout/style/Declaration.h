@@ -130,6 +130,7 @@ public:
 
 
   void ExpandTo(nsCSSExpandedDataBlock *aExpandedData) {
+    AssertMutable();
     aExpandedData->AssertInitialState();
 
     NS_ASSERTION(mData, "oops");
@@ -147,6 +148,7 @@ public:
 
 
   void* SlotForValue(nsCSSProperty aProperty, PRBool aIsImportant) {
+    AssertMutable();
     NS_ABORT_IF_FALSE(mData, "called while expanded");
 
     if (nsCSSProps::IsShorthand(aProperty)) {
@@ -177,15 +179,21 @@ public:
   
 
 
+  Declaration* EnsureMutable();
+
+  
 
 
-  PRBool EnsureMutable();
+  void AssertMutable() const {
+    NS_ABORT_IF_FALSE(IsMutable(), "someone forgot to call EnsureMutable");
+  }
 
   
 
 
 
   void ClearData() {
+    AssertMutable();
     mData = nsnull;
     mImportantData = nsnull;
     mOrder.Clear();
@@ -250,6 +258,11 @@ private:
   }
 
 private:
+    bool IsMutable() const {
+      return ((!mData || mData->IsMutable()) &&
+              (!mImportantData || mImportantData->IsMutable()));
+    }
+
     nsAutoTArray<PRUint8, 8> mOrder;
     nsAutoRefCnt mRefCnt;
 
