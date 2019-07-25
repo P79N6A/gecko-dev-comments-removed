@@ -1391,43 +1391,13 @@ nsGlobalWindow::UnmarkGrayTimers()
 
 
 nsresult
-nsGlobalWindow::SetScriptContext(nsIScriptContext *aScriptContext)
-{
-  NS_ASSERTION(IsOuterWindow(), "Uh, SetScriptContext() called on inner window!");
-
-  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
-
-  if (aScriptContext) {
-    
-    aScriptContext->WillInitializeContext();
-
-    
-    
-    aScriptContext->SetGlobalObject(this);
-
-    nsresult rv = aScriptContext->InitContext();
-    NS_ENSURE_SUCCESS(rv, rv);
-
-    if (IsFrame()) {
-      
-      
-      
-
-      aScriptContext->SetGCOnDestruction(false);
-    }
-  }
-
-  mContext = aScriptContext;
-  return NS_OK;
-}
-
-nsresult
 nsGlobalWindow::EnsureScriptEnvironment()
 {
   FORWARD_TO_OUTER(EnsureScriptEnvironment, (), NS_ERROR_NOT_INITIALIZED);
 
-  if (mJSObject)
-      return NS_OK;
+  if (mJSObject) {
+    return NS_OK;
+  }
 
   NS_ASSERTION(!GetCurrentInnerWindowInternal(),
                "mJSObject is null, but we have an inner window?");
@@ -1437,7 +1407,29 @@ nsGlobalWindow::EnsureScriptEnvironment()
   NS_ENSURE_SUCCESS(rv, rv);
 
   nsCOMPtr<nsIScriptContext> context = scriptRuntime->CreateContext();
-  return SetScriptContext(context);
+
+  NS_ASSERTION(!mContext, "Will overwrite mContext!");
+
+  
+  context->WillInitializeContext();
+
+  
+  
+  context->SetGlobalObject(this);
+
+  rv = context->InitContext();
+  NS_ENSURE_SUCCESS(rv, rv);
+
+  if (IsFrame()) {
+    
+    
+    
+
+    context->SetGCOnDestruction(false);
+  }
+
+  mContext = context;
+  return NS_OK;
 }
 
 nsIScriptContext *

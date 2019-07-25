@@ -83,7 +83,10 @@ public:
   
   
   virtual nsresult EnsureScriptEnvironment();
-  virtual nsresult SetScriptContext(nsIScriptContext *aContext);
+  void ClearScriptContext()
+  {
+    mScriptContext = NULL;
+  }
 
   virtual nsIScriptContext *GetContext();
   virtual JSObject *GetGlobalJSObject();
@@ -106,7 +109,6 @@ public:
 protected:
   virtual ~nsXBLDocGlobalObject();
 
-  void SetContext(nsIScriptContext *aContext);
   nsIScriptContext *GetScriptContext();
 
   nsCOMPtr<nsIScriptContext> mScriptContext;
@@ -264,33 +266,6 @@ XBL_ProtoErrorReporter(JSContext *cx,
 
 
 
-void
-nsXBLDocGlobalObject::SetContext(nsIScriptContext *aScriptContext)
-{
-  if (!aScriptContext) {
-    mScriptContext = nsnull;
-    return;
-  }
-  aScriptContext->WillInitializeContext();
-  
-  
-  
-  DebugOnly<nsresult> rv;
-  rv = aScriptContext->InitContext();
-  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Script Language's InitContext failed");
-  aScriptContext->SetGCOnDestruction(false);
-  aScriptContext->DidInitializeContext();
-  
-  mScriptContext = aScriptContext;
-}
-
-nsresult
-nsXBLDocGlobalObject::SetScriptContext(nsIScriptContext *aContext)
-{
-  SetContext(aContext);
-  return NS_OK;
-}
-
 nsIScriptContext *
 nsXBLDocGlobalObject::GetScriptContext()
 {
@@ -300,18 +275,28 @@ nsXBLDocGlobalObject::GetScriptContext()
 nsresult
 nsXBLDocGlobalObject::EnsureScriptEnvironment()
 {
-  if (mScriptContext)
-    return NS_OK; 
-  nsCOMPtr<nsIDOMScriptObjectFactory> factory = do_GetService(kDOMScriptObjectFactoryCID);
-  NS_ENSURE_TRUE(factory, NS_OK);
-
-  nsresult rv;
+  if (mScriptContext) {
+    
+    return NS_OK;
+  }
 
   nsCOMPtr<nsIScriptRuntime> scriptRuntime;
-  rv = NS_GetJSRuntime(getter_AddRefs(scriptRuntime));
-  NS_ENSURE_SUCCESS(rv, rv);
+  NS_GetJSRuntime(getter_AddRefs(scriptRuntime));
+  NS_ENSURE_TRUE(scriptRuntime, NS_OK);
+
   nsCOMPtr<nsIScriptContext> newCtx = scriptRuntime->CreateContext();
-  rv = SetScriptContext(newCtx);
+  MOZ_ASSERT(newCtx);
+
+  newCtx->WillInitializeContext();
+  
+  
+  
+  nsresult rv = newCtx->InitContext();
+  NS_WARN_IF_FALSE(NS_SUCCEEDED(rv), "Script Language's InitContext failed");
+  newCtx->SetGCOnDestruction(false);
+  newCtx->DidInitializeContext();
+
+  mScriptContext = newCtx;
 
   JSContext *cx = mScriptContext->GetNativeContext();
   JSAutoRequest ar(cx);
@@ -557,7 +542,7 @@ nsXBLDocumentInfo::~nsXBLDocumentInfo()
   
   if (mGlobalObject) {
     
-    mGlobalObject->SetScriptContext(nsnull);
+    mGlobalObject->ClearScriptContext();
     mGlobalObject->ClearGlobalObjectOwner(); 
   }
   if (mBindingTable) {

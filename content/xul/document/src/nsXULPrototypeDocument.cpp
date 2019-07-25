@@ -91,7 +91,6 @@ public:
     virtual nsresult EnsureScriptEnvironment();
 
     virtual nsIScriptContext *GetScriptContext();
-    virtual nsresult SetScriptContext(nsIScriptContext *ctx);
 
     
     virtual nsIPrincipal* GetPrincipal();
@@ -687,34 +686,6 @@ NS_IMPL_CYCLE_COLLECTING_RELEASE(nsXULPDGlobalObject)
 
 
 nsresult
-nsXULPDGlobalObject::SetScriptContext(nsIScriptContext *aScriptContext)
-{
-  
-  if (!aScriptContext) {
-    NS_WARNING("Possibly early removal of script object, see bug #41608");
-  } else {
-    
-    aScriptContext->WillInitializeContext();
-    nsresult rv = aScriptContext->InitContext();
-    NS_ENSURE_SUCCESS(rv, rv);
-  }
-
-  NS_ASSERTION(!aScriptContext || !mContext, "Bad call to SetContext()!");
-
-  JSObject* global = NULL;
-
-  if (aScriptContext) {
-    aScriptContext->SetGCOnDestruction(false);
-    aScriptContext->DidInitializeContext();
-    global = aScriptContext->GetNativeGlobal();
-    NS_ASSERTION(global, "GetNativeGlobal returned NULL!");
-  }
-  mContext = aScriptContext;
-  mJSObject = global;
-  return NS_OK;
-}
-
-nsresult
 nsXULPDGlobalObject::EnsureScriptEnvironment()
 {
   if (mContext) {
@@ -727,6 +698,8 @@ nsXULPDGlobalObject::EnsureScriptEnvironment()
   NS_ENSURE_SUCCESS(rv, NS_OK);
 
   nsCOMPtr<nsIScriptContext> ctxNew = languageRuntime->CreateContext();
+  MOZ_ASSERT(ctxNew);
+
   
   
   
@@ -750,9 +723,20 @@ nsXULPDGlobalObject::EnsureScriptEnvironment()
     NS_ADDREF(this);
   }
 
+  
+  ctxNew->WillInitializeContext();
+  rv = ctxNew->InitContext();
   NS_ENSURE_SUCCESS(rv, NS_OK);
-  rv = SetScriptContext(ctxNew);
-  NS_ENSURE_SUCCESS(rv, NS_OK);
+
+  ctxNew->SetGCOnDestruction(false);
+  ctxNew->DidInitializeContext();
+
+  JSObject* global = ctxNew->GetNativeGlobal();
+  NS_ASSERTION(global, "GetNativeGlobal returned NULL!");
+
+  mContext = ctxNew;
+  mJSObject = global;
+
   return NS_OK;
 }
 

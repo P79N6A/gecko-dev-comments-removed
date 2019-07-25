@@ -300,10 +300,6 @@ public:
 
   virtual nsIScriptContext *GetScriptContext();
 
-  
-  
-  virtual nsresult SetScriptContext(nsIScriptContext *aContext);
-  
   virtual void OnFinalize(JSObject* aObject);
   virtual void SetScriptsEnabled(bool aEnabled, bool aFireTimeouts);
 
