@@ -442,44 +442,10 @@ nsSVGGlyphFrame::UpdateBounds()
 
   mRect.SetEmpty();
 
-  
-  
-  nsRefPtr<gfxContext> tmpCtx = MakeTmpCtx();
-
-  bool hasStroke = HasStroke();
-  if (hasStroke) {
-    SetupCairoStrokeGeometry(tmpCtx);
-  } else if (GetStyleSVG()->mFill.mType == eStyleSVGPaintType_None) {
-    return;
-  }
-
-  CharacterIterator iter(this, true);
-  iter.SetInitialMatrix(tmpCtx);
-  AddBoundingBoxesToPath(&iter, tmpCtx);
-  tmpCtx->IdentityMatrix();
-
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  gfxRect extent = tmpCtx->GetUserPathExtent();
-  if (hasStroke) {
-    extent =
-      nsSVGUtils::PathExtentsToMaxStrokeExtents(extent, this, gfxMatrix());
-  }
+  gfxRect extent = GetBBoxContribution(gfxMatrix(),
+    nsSVGUtils::eBBoxIncludeFill | nsSVGUtils::eBBoxIgnoreFillIfNone |
+    nsSVGUtils::eBBoxIncludeStroke | nsSVGUtils::eBBoxIgnoreStrokeIfNone |
+    nsSVGUtils::eBBoxIncludeMarkers);
 
   if (!extent.IsEmpty()) {
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 
@@ -602,6 +568,24 @@ nsSVGGlyphFrame::GetBBoxContribution(const gfxMatrix &aToBBoxUserspace,
   mOverrideCanvasTM = nsnull;
 
   gfxRect bbox;
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 
   gfxRect pathExtents = tmpCtx->GetUserPathExtent();
 
