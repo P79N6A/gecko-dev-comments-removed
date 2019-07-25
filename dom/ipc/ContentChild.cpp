@@ -911,5 +911,20 @@ ContentChild::RecvLastPrivateDocShellDestroyed()
     return true;
 }
 
+bool
+ContentChild::RecvFilePathUpdate(const nsString& path, const nsCString& aReason)
+{
+    
+    
+    nsString data;
+    CopyASCIItoUTF16(aReason, data);
+    data.Append(NS_LITERAL_STRING(":"));
+    data.Append(path);
+
+    nsCOMPtr<nsIObserverService> obs = mozilla::services::GetObserverService();
+    obs->NotifyObservers(nullptr, "file-watcher-update", data.get());
+    return true;
+}
+
 } 
 } 
