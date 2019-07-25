@@ -655,14 +655,9 @@ const nsIntRect AsyncPanZoomController::CalculatePendingDisplayPort() {
   }
 
   gfx::Rect shiftedDisplayPort = displayPort;
-  
-  
-  
-  
-  
-  shiftedDisplayPort.MoveBy(scrollOffset.x / scale, scrollOffset.y / scale);
+  shiftedDisplayPort.MoveBy(scrollOffset.x, scrollOffset.y);
   displayPort = shiftedDisplayPort.Intersect(mFrameMetrics.mCSSContentRect);
-  displayPort.MoveBy(-scrollOffset.x / scale, -scrollOffset.y / scale);
+  displayPort.MoveBy(-scrollOffset.x, -scrollOffset.y);
 
   
   
