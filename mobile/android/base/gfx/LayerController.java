@@ -58,7 +58,8 @@ import android.view.GestureDetector;
 import android.view.ScaleGestureDetector;
 import android.view.View.OnTouchListener;
 import java.lang.Math;
-import java.util.ArrayList;
+
+
 
 
 
@@ -161,6 +162,7 @@ public class LayerController {
 
 
 
+
     public void setViewportSize(FloatSize size) {
         mViewportMetrics.setSize(size);
         setForceRedraw();
@@ -173,6 +175,7 @@ public class LayerController {
         mView.requestRender();
     }
 
+    
     public void scrollTo(PointF point) {
         mViewportMetrics.setOrigin(point);
         notifyLayerClientOfGeometryChange();
@@ -181,6 +184,7 @@ public class LayerController {
         mView.requestRender();
     }
 
+    
     public void scrollBy(PointF point) {
         PointF origin = mViewportMetrics.getOrigin();
         origin.offset(point.x, point.y);
@@ -192,6 +196,7 @@ public class LayerController {
         mView.requestRender();
     }
 
+    
     public void setViewport(RectF viewport) {
         mViewportMetrics.setViewport(viewport);
         notifyLayerClientOfGeometryChange();
@@ -200,6 +205,7 @@ public class LayerController {
         mView.requestRender();
     }
 
+    
     public void setPageSize(FloatSize size) {
         if (mViewportMetrics.getPageSize().fuzzyEquals(size))
             return;
@@ -217,15 +223,21 @@ public class LayerController {
 
 
 
+
     public void setViewportMetrics(ViewportMetrics viewport) {
         mViewportMetrics = new ViewportMetrics(viewport);
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
 
+    
     public void scaleTo(float zoomFactor) {
         scaleWithFocus(zoomFactor, new PointF(0,0));
     }
+
+    
+
+
 
     public void scaleWithFocus(float zoomFactor, PointF focus) {
         mViewportMetrics.scaleTo(zoomFactor, focus);
@@ -236,6 +248,10 @@ public class LayerController {
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
+
+    
+
+
 
     public void scaleWithOrigin(float zoomFactor, PointF origin) {
         mViewportMetrics.setOrigin(origin);

@@ -133,72 +133,74 @@ public class LayerRenderer implements GLSurfaceView.Renderer {
     
 
 
-
-
-
     public void onDrawFrame(GL10 gl) {
         long frameStartTime = SystemClock.uptimeMillis();
 
         TextureReaper.get().reap(gl);
 
         LayerController controller = mView.getController();
-        Layer rootLayer = controller.getRoot();
-        RenderContext screenContext = createScreenContext(), pageContext = createPageContext();
+        RenderContext screenContext = createScreenContext();
 
-        if (!pageContext.fuzzyEquals(mLastPageContext)) {
-            
-            
-            mVertScrollLayer.unfade();
-            mHorizScrollLayer.unfade();
-            mFadeRunnable.scheduleStartFade(ScrollbarLayer.FADE_DELAY);
-        } else if (mFadeRunnable.timeToFade()) {
-            boolean stillFading = mVertScrollLayer.fade() | mHorizScrollLayer.fade();
-            if (stillFading) {
-                mFadeRunnable.scheduleNextFadeFrame();
+        synchronized (controller) {
+            Layer rootLayer = controller.getRoot();
+            RenderContext pageContext = createPageContext();
+
+            if (!pageContext.fuzzyEquals(mLastPageContext)) {
+                
+                
+                mVertScrollLayer.unfade();
+                mHorizScrollLayer.unfade();
+                mFadeRunnable.scheduleStartFade(ScrollbarLayer.FADE_DELAY);
+            } else if (mFadeRunnable.timeToFade()) {
+                boolean stillFading = mVertScrollLayer.fade() | mHorizScrollLayer.fade();
+                if (stillFading) {
+                    mFadeRunnable.scheduleNextFadeFrame();
+                }
             }
+            mLastPageContext = pageContext;
+
+            
+            if (rootLayer != null) rootLayer.update(gl);
+            mShadowLayer.update(gl);
+            mCheckerboardLayer.update(gl);
+            mFrameRateLayer.update(gl);
+            mVertScrollLayer.update(gl);
+            mHorizScrollLayer.update(gl);
+
+            
+            gl.glClearColor(BACKGROUND_COLOR_R, BACKGROUND_COLOR_G, BACKGROUND_COLOR_B, 1.0f);
+            gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
+
+            
+            Rect pageRect = getPageRect();
+            RectF untransformedPageRect = new RectF(0.0f, 0.0f, pageRect.width(),
+                                                    pageRect.height());
+            if (!untransformedPageRect.contains(controller.getViewport()))
+                mShadowLayer.draw(pageContext);
+
+            
+            Rect scissorRect = transformToScissorRect(pageRect);
+            gl.glEnable(GL10.GL_SCISSOR_TEST);
+            gl.glScissor(scissorRect.left, scissorRect.top,
+                         scissorRect.width(), scissorRect.height());
+
+            mCheckerboardLayer.draw(screenContext);
+
+            
+            if (rootLayer != null)
+                rootLayer.draw(pageContext);
+
+            gl.glDisable(GL10.GL_SCISSOR_TEST);
+
+            
+            IntSize screenSize = new IntSize(controller.getViewportSize());
+            if (pageRect.height() > screenSize.height)
+                mVertScrollLayer.draw(pageContext);
+
+            
+            if (pageRect.width() > screenSize.width)
+                mHorizScrollLayer.draw(pageContext);
         }
-        mLastPageContext = pageContext;
-
-        
-        if (rootLayer != null) rootLayer.update(gl);
-        mShadowLayer.update(gl);
-        mCheckerboardLayer.update(gl);
-        mFrameRateLayer.update(gl);
-        mVertScrollLayer.update(gl);
-        mHorizScrollLayer.update(gl);
-
-        
-        gl.glClearColor(BACKGROUND_COLOR_R, BACKGROUND_COLOR_G, BACKGROUND_COLOR_B, 1.0f);
-        gl.glClear(GL10.GL_COLOR_BUFFER_BIT);
-
-        
-        Rect pageRect = getPageRect();
-        RectF untransformedPageRect = new RectF(0.0f, 0.0f, pageRect.width(), pageRect.height());
-        if (!untransformedPageRect.contains(controller.getViewport()))
-            mShadowLayer.draw(pageContext);
-
-        
-        Rect scissorRect = transformToScissorRect(pageRect);
-        gl.glEnable(GL10.GL_SCISSOR_TEST);
-        gl.glScissor(scissorRect.left, scissorRect.top,
-                     scissorRect.width(), scissorRect.height());
-
-        mCheckerboardLayer.draw(screenContext);
-
-        
-        if (rootLayer != null)
-            rootLayer.draw(pageContext);
-
-        gl.glDisable(GL10.GL_SCISSOR_TEST);
-
-        
-        IntSize screenSize = new IntSize(controller.getViewportSize());
-        if (pageRect.height() > screenSize.height)
-            mVertScrollLayer.draw(pageContext);
-
-        
-        if (pageRect.width() > screenSize.width)
-            mHorizScrollLayer.draw(pageContext);
 
         
         if (mShowFrameRate) {
