@@ -1,0 +1,139 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#if !defined retcon_h___ && defined JS_METHODJIT
+#define retcon_h___
+
+#include "jscntxt.h"
+#include "jsscript.h"
+#include "MethodJIT.h"
+#include "Compiler.h"
+
+namespace js {
+namespace mjit {
+
+
+
+
+
+
+
+class AutoScriptRetrapper
+{
+  public:
+    AutoScriptRetrapper(JSContext *cx1, JSScript *script1) :
+        cx(cx1), script(script1), traps(cx) {};
+    ~AutoScriptRetrapper();
+
+    bool untrap(jsbytecode *pc);
+
+  private:
+    JSContext *cx;
+    JSScript *script;
+    Vector<jsbytecode*> traps;
+};
+
+
+
+
+
+
+
+
+class Recompiler {
+    struct PatchableAddress {
+        void **location;
+        CallSite callSite;
+    };
+    
+public:
+    Recompiler(JSContext *cx, JSScript *script);
+    
+    bool recompile();
+
+private:
+    JSContext *cx;
+    JSScript *script;
+    
+    PatchableAddress findPatch(void **location);
+    void applyPatch(Compiler& c, PatchableAddress& toPatch);
+};
+
+
+
+
+class FrameIterator
+{
+public:
+    FrameIterator(JSStackFrame *frame) : curfp(frame) { };
+    
+    bool done() const { return curfp == NULL; }
+    FrameIterator& operator++();
+    bool operator==(const FrameIterator& other) const;
+    bool operator!=(const FrameIterator& other) const;
+    
+    JSStackFrame *fp() const { return curfp; }
+
+private:
+    JSStackFrame *curfp;
+};
+
+class CallStackIterator
+{
+public:
+    CallStackIterator(JSContext *cx) : curcs(cx->stack().getCurrentCallStack()) { };
+  
+    bool done() const { return curcs == NULL; }
+    CallStackIterator& operator++();
+    FrameIterator top() const;
+    FrameIterator bottom() const;
+
+    CallStack *cs() const { return curcs; }
+
+private:
+    CallStack *curcs;    
+};
+
+}
+}
+
+#endif
