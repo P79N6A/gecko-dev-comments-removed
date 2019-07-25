@@ -189,6 +189,12 @@ MoveEmitterARM::completeCycle(const MoveOperand &from, const MoveOperand &to, Mo
 void
 MoveEmitterARM::emitMove(const MoveOperand &from, const MoveOperand &to)
 {
+    if (to.isGeneralReg() && to.reg() == spilledReg_) {
+        
+        
+        spilledReg_ = InvalidReg;
+    }
+
     if (from.isGeneralReg()) {
         if (from.reg() == spilledReg_) {
             
@@ -208,12 +214,6 @@ MoveEmitterARM::emitMove(const MoveOperand &from, const MoveOperand &to)
             JS_NOT_REACHED("strange move!");
         }
     } else if (to.isGeneralReg()) {
-        if (to.reg() == spilledReg_) {
-            
-            
-            spilledReg_ = InvalidReg;
-        }
-
         JS_ASSERT(from.isMemory() || from.isEffectiveAddress());
         if (from.isMemory())
             masm.ma_ldr(toOperand(from, false), to.reg());
