@@ -269,7 +269,7 @@ struct JSScope : public JSObjectMap
 
     
     inline void updateShape(JSContext *cx);
-    inline void updateFlags(const JSScopeProperty *sprop);
+    inline void updateFlags(const JSScopeProperty *sprop, bool isDefinitelyAtom = false);
 
   protected:
     void initMinimal(JSContext *cx, uint32 newShape);
@@ -351,7 +351,7 @@ struct JSScope : public JSObjectMap
     void clear(JSContext *cx);
 
     
-    void extend(JSContext *cx, JSScopeProperty *sprop);
+    void extend(JSContext *cx, JSScopeProperty *sprop, bool isDefinitelyAtom = false);
 
     
 
