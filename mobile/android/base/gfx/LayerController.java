@@ -212,12 +212,13 @@ public class LayerController {
         mView.requestRender();
     }
 
+    
+
+
+
+
     public void setViewportMetrics(ViewportMetrics viewport) {
         mViewportMetrics = new ViewportMetrics(viewport);
-
-        
-        
-        mPanZoomController.geometryChanged(true);
         GeckoApp.mAppContext.repositionPluginViews(false);
         mView.requestRender();
     }
@@ -254,6 +255,12 @@ public class LayerController {
     public void notifyLayerClientOfGeometryChange() {
         if (mLayerClient != null)
             mLayerClient.geometryChanged();
+    }
+
+    
+    public void notifyPanZoomControllerOfGeometryChange(boolean abortFling) {
+        if (mPanZoomController != null)
+            mPanZoomController.geometryChanged(abortFling);
     }
 
     
