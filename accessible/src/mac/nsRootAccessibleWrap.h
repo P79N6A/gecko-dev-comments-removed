@@ -54,7 +54,7 @@ public:
                        nsIWeakReference *aShell);
   virtual ~nsRootAccessibleWrap();
 
-    objc_class* GetNativeType ();
+    Class GetNativeType ();
     
     
     
