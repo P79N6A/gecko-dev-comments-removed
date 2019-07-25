@@ -105,7 +105,7 @@ pref("dom.indexedDB.warningQuota", 50);
 
 pref("browser.sessionhistory.max_total_viewers", -1);
 
-pref("browser.sessionhistory.optimize_eviction", false);
+pref("browser.sessionhistory.optimize_eviction", true);
 
 pref("ui.use_native_colors", true);
 pref("ui.use_native_popup_windows", false);
