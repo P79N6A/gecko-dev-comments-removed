@@ -4484,6 +4484,9 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
     JS_ASSERT(!(flags & Shape::METHOD));
 
     
+    id = js_CheckForStringIndex(id);
+
+    
 
 
 
@@ -4493,8 +4496,6 @@ js_AddNativeProperty(JSContext *cx, JSObject *obj, jsid id,
     if (!obj->ensureClassReservedSlots(cx))
         return NULL;
 
-    
-    id = js_CheckForStringIndex(id);
     return obj->putProperty(cx, id, getter, setter, slot, attrs, flags, shortid);
 }
 
