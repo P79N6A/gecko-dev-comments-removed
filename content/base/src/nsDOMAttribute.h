@@ -49,7 +49,6 @@
 #include "nsString.h"
 #include "nsCOMPtr.h"
 #include "nsINodeInfo.h"
-#include "nsIDOM3Attr.h"
 #include "nsDOMAttributeMap.h"
 #include "nsCycleCollectionParticipant.h"
 #include "nsContentUtils.h"
@@ -59,7 +58,6 @@
 
 class nsDOMAttribute : public nsIAttribute,
                        public nsIDOMAttr,
-                       public nsIDOM3Attr,
                        public nsStubMutationObserver
 {
 public:
@@ -76,9 +74,6 @@ public:
 
   
   NS_DECL_NSIDOMATTR
-
-  
-  NS_DECL_NSIDOM3ATTR
 
   virtual nsresult PreHandleEvent(nsEventChainPreVisitor& aVisitor);
 
