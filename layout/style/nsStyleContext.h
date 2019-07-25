@@ -301,6 +301,27 @@ public:
   static nscolor CombineVisitedColors(nscolor *aColors,
                                       PRBool aLinkIsVisited);
 
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  void* Alloc(size_t aSize);
+
 #ifdef DEBUG
   void List(FILE* out, PRInt32 aIndent);
 #endif
@@ -310,6 +331,8 @@ protected:
   void RemoveChild(nsStyleContext* aChild);
 
   void ApplyStyleFixups(nsPresContext* aPresContext);
+
+  void FreeAllocations(nsPresContext* aPresContext);
 
   
   
@@ -367,6 +390,15 @@ protected:
   
   
   nsRuleNode* const       mRuleNode;
+
+  
+  struct AllocationHeader {
+    AllocationHeader* mNext;
+    size_t mSize;
+
+    void* mStorageStart; 
+  };
+  AllocationHeader*       mAllocations;
 
   
   
