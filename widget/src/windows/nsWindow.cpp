@@ -2650,17 +2650,28 @@ void nsWindow::UpdateGlass()
   switch (mTransparencyMode) {
   case eTransparencyBorderlessGlass:
     
+    
+    
     if (margins.cxLeftWidth >= 0) {
-      margins.cxLeftWidth += kGlassMarginAdjustment;
-      margins.cyTopHeight += kGlassMarginAdjustment;
-      margins.cxRightWidth += kGlassMarginAdjustment;
-      margins.cyBottomHeight += kGlassMarginAdjustment;
+      if (margins.cxLeftWidth >= 0 && margins.cxLeftWidth < kGlassMarginAdjustment)
+        margins.cxLeftWidth = kGlassMarginAdjustment;
+      if (margins.cyTopHeight >= 0 && margins.cyTopHeight < kGlassMarginAdjustment)
+        margins.cyTopHeight = kGlassMarginAdjustment;
+      if (margins.cxRightWidth >= 0 && margins.cxRightWidth < kGlassMarginAdjustment)
+        margins.cxRightWidth = kGlassMarginAdjustment;
+      if (margins.cyBottomHeight >= 0 && margins.cyBottomHeight < kGlassMarginAdjustment)
+        margins.cyBottomHeight = kGlassMarginAdjustment;
     }
     
   case eTransparencyGlass:
     policy = DWMNCRP_ENABLED;
     break;
   }
+
+  PR_LOG(gWindowsLog, PR_LOG_ALWAYS,
+         ("glass margins: left:%d top:%d right:%d bottom:%d\n",
+          margins.cxLeftWidth, margins.cyTopHeight,
+          margins.cxRightWidth, margins.cyBottomHeight));
 
   
   if(nsUXThemeData::CheckForCompositor()) {
