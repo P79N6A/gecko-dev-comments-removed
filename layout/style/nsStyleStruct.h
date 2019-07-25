@@ -1561,7 +1561,7 @@ struct nsStyleDisplay {
   
   
   nsRefPtr<nsCSSValue::URL> mBinding;    
-  nsRect    mClip;              
+  nsRect  mClip;                
   float   mOpacity;             
   PRUint8 mDisplay;             
   PRUint8 mOriginalDisplay;     
@@ -1578,7 +1578,7 @@ struct nsStyleDisplay {
   PRUint8 mOverflowX;           
   PRUint8 mOverflowY;           
   PRUint8 mResize;              
-  PRUint8   mClipFlags;         
+  PRUint8 mClipFlags;           
   PRUint8 mOrient;              
 
   
