@@ -600,7 +600,7 @@ class TypedArrayTemplate
             JS_ASSERT(vp->isString() || vp->isUndefined() || vp->isBoolean());
             if (vp->isString()) {
                 
-                ValueToNumber(cx, *vp, &d);
+                JS_ALWAYS_TRUE(ValueToNumber(cx, *vp, &d));
             } else if (vp->isUndefined()) {
                 d = js_NaN;
             } else {
