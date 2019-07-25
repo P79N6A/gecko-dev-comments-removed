@@ -1199,8 +1199,8 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   PRInt32 endOffset = mRange->EndOffset();
   MOZ_ASSERT(mCommonParent && startParent && endParent);
   
-  MOZ_ASSERT(startOffset <= startParent->Length() &&
-             endOffset <= endParent->Length());
+  MOZ_ASSERT(PRUint32(startOffset) <= startParent->Length() &&
+             PRUint32(endOffset) <= endParent->Length());
 
   
   if (startParent == endParent) {

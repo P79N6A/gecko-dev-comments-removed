@@ -29,7 +29,6 @@ NS_IMPL_ISUPPORTS2(nsXMLPrettyPrinter,
                    nsIMutationObserver)
 
 nsXMLPrettyPrinter::nsXMLPrettyPrinter() : mDocument(nullptr),
-                                           mUpdateDepth(0),
                                            mUnhookPending(false)
 {
 }
@@ -44,7 +43,7 @@ nsXMLPrettyPrinter::PrettyPrint(nsIDocument* aDocument,
                                 bool* aDidPrettyPrint)
 {
     *aDidPrettyPrint = false;
-    
+
     
     if (!aDocument->GetShell()) {
         return NS_OK;
