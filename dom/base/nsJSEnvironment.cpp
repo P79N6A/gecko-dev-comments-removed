@@ -475,6 +475,10 @@ public:
             NS_WARNING("Not same origin error!");
             errorevent.errorMsg = xoriginMsg.get();
             errorevent.lineNr = 0;
+            
+            
+            
+            errorevent.fileName = nsnull;
           }
 
           nsEventDispatcher::Dispatch(win, presContext, &errorevent, nsnull,
