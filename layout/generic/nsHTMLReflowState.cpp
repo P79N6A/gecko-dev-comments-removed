@@ -88,6 +88,45 @@ static bool CheckNextInFlowParenthood(nsIFrame* aFrame, nsIFrame* aParent)
 
 
 
+
+
+
+
+
+
+
+
+static  nscoord
+FontSizeInflationListMarginAdjustment(const nsIFrame* aFrame)
+{
+  float inflation = nsLayoutUtils::FontSizeInflationFor(aFrame);
+  if (aFrame->IsFrameOfType(nsIFrame::eBlockFrame)) {
+    const nsBlockFrame* blockFrame = static_cast<const nsBlockFrame*>(aFrame);
+    const nsStyleList* styleList = aFrame->GetStyleList();
+
+    
+    
+    if (inflation > 1.0f &&
+        blockFrame->HasBullet() &&
+        styleList->mListStyleType != NS_STYLE_LIST_STYLE_NONE &&
+        styleList->mListStyleType != NS_STYLE_LIST_STYLE_DISC &&
+        styleList->mListStyleType != NS_STYLE_LIST_STYLE_CIRCLE &&
+        styleList->mListStyleType != NS_STYLE_LIST_STYLE_SQUARE &&
+        inflation > 1.0f) {
+
+      
+      
+      
+      
+      return nsPresContext::CSSPixelsToAppUnits(40) * (inflation - 1);
+    }
+  }
+
+  return 0;
+}
+
+
+
 nsHTMLReflowState::nsHTMLReflowState(nsPresContext*           aPresContext,
                                      const nsHTMLReflowState& aParentReflowState,
                                      nsIFrame*                aFrame,
@@ -2336,6 +2375,18 @@ nsCSSOffsetState::ComputeMargin(nscoord aContainingBlockWidth)
       ComputeWidthDependentValue(aContainingBlockWidth,
                                  styleMargin->mMargin.GetBottom());
   }
+
+  nscoord marginAdjustment = FontSizeInflationListMarginAdjustment(frame);
+
+  if (marginAdjustment > 0) {
+    const nsStyleVisibility* visibility = frame->GetStyleVisibility();
+    if (visibility->mDirection == NS_STYLE_DIRECTION_RTL) {
+      mComputedMargin.right = mComputedMargin.right + marginAdjustment;
+    } else {
+      mComputedMargin.left = mComputedMargin.left + marginAdjustment;
+    }
+  }
+
   return isWidthDependent;
 }
 
