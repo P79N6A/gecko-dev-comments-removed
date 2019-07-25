@@ -86,9 +86,6 @@
 #ifdef XP_WIN
 #include <windows.h>
 #endif
-#ifdef __SYMBIAN32__
-#include <unistd.h>
-#endif
 
 #include "nsIScriptSecurityManager.h"
 #include "nsIPrincipal.h"
@@ -879,7 +876,8 @@ env_setProperty(JSContext *cx, JSObject *obj, jsid id, JSBool strict, jsval *vp)
     JSAutoByteString value(cx, valstr);
     if (!value)
         return JS_FALSE;
-#if defined XP_WIN || defined HPUX || defined OSF1 || defined SCO
+#if defined XP_WIN || defined HPUX || defined OSF1 || defined IRIX \
+    || defined SCO
     {
         char *waste = JS_smprintf("%s=%s", name.ptr(), value.ptr());
         if (!waste) {
@@ -1964,11 +1962,6 @@ main(int argc, char **argv, char **envp)
         {
             JSAutoEnterCompartment ac;
             if (!ac.enter(cx, glob)) {
-                JS_EndRequest(cx);
-                return 1;
-            }
-
-            if (!JS_InitReflect(cx, glob)) {
                 JS_EndRequest(cx);
                 return 1;
             }
