@@ -49,6 +49,7 @@
 
 #undef CursorShape
 #  include <QX11Info>
+#  include <X11/Xlib.h>
 #else
 #  error Unknown toolkit
 #endif 
@@ -106,6 +107,86 @@ private:
   static void* operator new (size_t);
   static void operator delete (void*);
 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+class ScopedXErrorHandler
+{
+    
+    struct ErrorEvent
+    {
+        XErrorEvent m_error;
+
+        ErrorEvent()
+        {
+            memset(this, 0, sizeof(ErrorEvent));
+        }
+    };
+
+    
+    ErrorEvent m_xerror;
+
+    
+    static ErrorEvent* s_xerrorptr;
+
+    
+    ErrorEvent* m_oldxerrorptr;
+
+    
+    int (*m_oldErrorHandler)(Display *, XErrorEvent *);
+
+public:
+
+    static int
+    ErrorHandler(Display *, XErrorEvent *ev)
+    {
+        s_xerrorptr->m_error = *ev;
+        return 0;
+    }
+
+    ScopedXErrorHandler()
+    {
+        
+        
+        m_oldxerrorptr = s_xerrorptr;
+        s_xerrorptr = &m_xerror;
+        m_oldErrorHandler = XSetErrorHandler(ErrorHandler);
+    }
+
+    ~ScopedXErrorHandler()
+    {
+        s_xerrorptr = m_oldxerrorptr;
+        XSetErrorHandler(m_oldErrorHandler);
+    }
+
+    
+
+
+
+    bool SyncAndGetError(Display *dpy, XErrorEvent *ev = nsnull)
+    {
+        XSync(dpy, False);
+        bool retval = m_xerror.m_error.error_code != 0;
+        if (ev)
+            *ev = m_xerror.m_error;
+        m_xerror = ErrorEvent(); 
+        return retval;
+    }
+};
+
 
 } 
 
