@@ -207,6 +207,32 @@ GfxFillRuleToCairoFillRule(FillRule rule)
   return CAIRO_FILL_RULE_WINDING;
 }
 
+
+
+
+
+class CairoTempMatrix
+{
+public:
+  CairoTempMatrix(cairo_t* aCtx, const Matrix& aMatrix)
+    : mCtx(aCtx)
+  {
+    cairo_get_matrix(aCtx, &mSaveMatrix);
+    cairo_matrix_t matrix;
+    GfxMatrixToCairoMatrix(aMatrix, matrix);
+    cairo_set_matrix(aCtx, &matrix);
+  }
+
+  ~CairoTempMatrix()
+  {
+    cairo_get_matrix(mCtx, &mSaveMatrix);
+  }
+
+private:
+  cairo_t* mCtx;
+  cairo_matrix_t mSaveMatrix;
+};
+
 }
 }
 
