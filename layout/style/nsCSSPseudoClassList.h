@@ -23,13 +23,31 @@
 
 
 
+
+
+
+
+
+
+
+
+#ifdef DEFINED_CSS_STATE_DEPENDENT_PSEUDO_CLASS
+#error "CSS_STATE_DEPENDENT_PSEUDO_CLASS shouldn't be defined"
+#endif
+
+#ifndef CSS_STATE_DEPENDENT_PSEUDO_CLASS
+#define CSS_STATE_DEPENDENT_PSEUDO_CLASS(_name, _value, _bit) \
+  CSS_PSEUDO_CLASS(_name, _value)
+#define DEFINED_CSS_STATE_DEPENDENT_PSEUDO_CLASS
+#endif
+
 #ifdef DEFINED_CSS_STATE_PSEUDO_CLASS
-#error "This shouldn't be defined"
+#error "CSS_STATE_PSEUDO_CLASS shouldn't be defined"
 #endif
 
 #ifndef CSS_STATE_PSEUDO_CLASS
 #define CSS_STATE_PSEUDO_CLASS(_name, _value, _bit) \
-  CSS_PSEUDO_CLASS(_name, _value)
+  CSS_STATE_DEPENDENT_PSEUDO_CLASS(_name, _value, _bit)
 #define DEFINED_CSS_STATE_PSEUDO_CLASS
 #endif
 
@@ -89,6 +107,11 @@ CSS_PSEUDO_CLASS(mozTableBorderNonzero, ":-moz-table-border-nonzero")
 
 
 CSS_PSEUDO_CLASS(notPseudo, ":not")
+
+
+
+CSS_STATE_DEPENDENT_PSEUDO_CLASS(dir, ":dir",
+                                 NS_EVENT_STATE_LTR | NS_EVENT_STATE_RTL)
 
 CSS_STATE_PSEUDO_CLASS(link, ":link", NS_EVENT_STATE_UNVISITED)
 
@@ -177,4 +200,9 @@ CSS_STATE_PSEUDO_CLASS(mozMeterSubSubOptimum, ":-moz-meter-sub-sub-optimum",
 #ifdef DEFINED_CSS_STATE_PSEUDO_CLASS
 #undef DEFINED_CSS_STATE_PSEUDO_CLASS
 #undef CSS_STATE_PSEUDO_CLASS
+#endif
+
+#ifdef DEFINED_CSS_STATE_DEPENDENT_PSEUDO_CLASS
+#undef DEFINED_CSS_STATE_DEPENDENT_PSEUDO_CLASS
+#undef CSS_STATE_DEPENDENT_PSEUDO_CLASS
 #endif
