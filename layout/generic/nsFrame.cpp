@@ -129,10 +129,12 @@
 
 #include "mozilla/Preferences.h"
 #include "mozilla/LookAndFeel.h"
+#include "mozilla/css/ImageLoader.h"
 
 using namespace mozilla;
 using namespace mozilla::layers;
 using namespace mozilla::layout;
+using namespace mozilla::css;
 
 
 struct nsBoxLayoutMetrics
@@ -707,6 +709,8 @@ EqualImages(imgIRequest *aOldImage, imgIRequest *aNewImage)
  void
 nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
 {
+  ImageLoader* imageLoader = PresContext()->Document()->StyleImageLoader();
+
   if (aOldStyleContext) {
     
     
@@ -719,13 +723,30 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     const nsStyleBackground *oldBG = aOldStyleContext->GetStyleBackground();
     const nsStyleBackground *newBG = GetStyleBackground();
     NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, oldBG) {
+      
       if (i >= newBG->mImageCount ||
           oldBG->mLayers[i].mImage != newBG->mLayers[i].mImage) {
-        
-        PresContext()->SetImageLoaders(this,
-          nsPresContext::BACKGROUND_IMAGE, nsnull);
-        break;
-      }
+        const nsStyleImage& oldImage = oldBG->mLayers[i].mImage;
+        if (oldImage.GetType() != eStyleImageType_Image) {
+          continue;
+        }
+
+        imageLoader->DisassociateRequestFromFrame(oldImage.GetImageData(),
+                                                  this);
+      }          
+    }
+
+    NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, newBG) {
+      
+      if (i >= oldBG->mImageCount ||
+          newBG->mLayers[i].mImage != oldBG->mLayers[i].mImage) {
+        const nsStyleImage& newImage = newBG->mLayers[i].mImage;
+        if (newImage.GetType() != eStyleImageType_Image) {
+          continue;
+        }
+
+        imageLoader->AssociateRequestToFrame(newImage.GetImageData(), this);
+      }          
     }
 
     
@@ -766,6 +787,7 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   imgIRequest *oldBorderImage = aOldStyleContext
     ? aOldStyleContext->GetStyleBorder()->GetBorderImage()
     : nsnull;
+  imgIRequest *newBorderImage = GetStyleBorder()->GetBorderImage();
   
   
   
@@ -779,9 +801,14 @@ nsFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
   
   
   
-  if (!EqualImages(oldBorderImage, GetStyleBorder()->GetBorderImage())) {
+  if (!EqualImages(oldBorderImage, newBorderImage)) {
     
-    PresContext()->SetupBorderImageLoaders(this, GetStyleBorder());
+    if (oldBorderImage) {
+      imageLoader->DisassociateRequestFromFrame(oldBorderImage, this);
+    }
+    if (newBorderImage) {
+      imageLoader->AssociateRequestToFrame(newBorderImage, this);
+    }
   }
 
   

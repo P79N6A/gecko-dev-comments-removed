@@ -84,8 +84,10 @@
 #include "gfxDrawable.h"
 
 #include "nsCSSRenderingBorders.h"
+#include "mozilla/css/ImageLoader.h"
 
 using namespace mozilla;
+using namespace mozilla::css;
 
 
 
@@ -2422,7 +2424,17 @@ nsCSSRendering::PaintBackgroundWithSC(nsPresContext* aPresContext,
   
   
   
-  aPresContext->SetupBackgroundImageLoaders(aForFrame, bg);
+  if (aBackgroundSC != aForFrame->GetStyleContext()) {
+    ImageLoader* loader = aPresContext->Document()->StyleImageLoader();
+    
+    NS_FOR_VISIBLE_BACKGROUND_LAYERS_BACK_TO_FRONT(i, bg) {
+      if (bg->mLayers[i].mImage.GetType() == eStyleImageType_Image) {
+        imgIRequest *image = bg->mLayers[i].mImage.GetImageData();
+
+        loader->AssociateRequestToFrame(image, aForFrame);
+      }
+    }
+  }
 
   
   if (drawBackgroundColor &&
@@ -2732,9 +2744,11 @@ DrawBorderImage(nsPresContext*       aPresContext,
   
   
   
-  aPresContext->SetupBorderImageLoaders(aForFrame, &aStyleBorder);
-
   imgIRequest *req = aStyleBorder.GetBorderImage();
+  ImageLoader* loader = aPresContext->Document()->StyleImageLoader();
+
+  
+  loader->AssociateRequestToFrame(req, aForFrame);
 
   
 
