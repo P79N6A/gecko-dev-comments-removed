@@ -672,43 +672,36 @@ BookmarksTracker.prototype = {
   },
 
   onItemAdded: function BMT_onEndUpdateBatch(itemId, folder, index) {
-    this._all[itemId] = this._bms.getItemGUID(itemId);
     this._log.trace("onItemAdded: " + itemId);
-    this.addChangedID(this._all[itemId]);
-    this._upScore();
+    this._all[itemId] = this._bms.getItemGUID(itemId);
+    if (this.addChangedID(this._all[itemId]))
+      this._upScore();
   },
 
   onItemRemoved: function BMT_onItemRemoved(itemId, folder, index) {
     this._log.trace("onItemRemoved: " + itemId);
-    this.addChangedID(this._all[itemId]);
+    if (this.addChangedID(this._all[itemId]))
+      this._upScore();
     delete this._all[itemId];
-    this._upScore();
   },
 
-  onItemChanged: function BMT_onItemChanged(itemId, property, isAnnotationProperty, value) {
-    this._log.trace("onItemChanged: " + itemId + ", property: " + property +
-                    ", isAnno: " + isAnnotationProperty + ", value: " + value);
-
+  onItemChanged: function BMT_onItemChanged(itemId, property, isAnno, value) {
+    this._log.trace("onItemChanged: " + itemId +
+                    ", \"" + property + (isAnno? " (anno)" : "") + "\"" +
+                    " = \"" + value + "\"");
     
     
     
-    
-    
-    
-    
-    let guid = this._bms.getItemGUID(itemId);
-    if (guid != this._all[itemId])
-      this._log.trace("GUID change, ignoring");
-    else
-      this.addChangedID(this._all[itemId]); 
-
-    this._upScore();
+    if ((itemId in this._all) &&
+        (this._bms.getItemGUID(itemId) != this._all[itemId]) &&
+        this.addChangedID(this._all[itemId]))
+      this._upScore();
   },
 
   onItemMoved: function BMT_onItemMoved(itemId, oldParent, oldIndex, newParent, newIndex) {
     this._log.trace("onItemMoved: " + itemId);
-    this.addChangedID(this._all[itemId]);
-    this._upScore();
+    if (this.addChangedID(this._all[itemId]))
+      this._upScore();
   },
 
   onBeginUpdateBatch: function BMT_onBeginUpdateBatch() {},
