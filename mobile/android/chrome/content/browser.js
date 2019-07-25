@@ -1448,9 +1448,16 @@ var SelectionHandler = {
 
   
   startSelection: function sh_startSelection(aElement, aX, aY) {
-    
-    if (this._active)
+    if (this._active) {
+      
+      if (this._pointInSelection(aX, aY)) {
+        this.showContextMenu(aX, aY);
+        return;
+      }
+
+      
       this.endSelection();
+    }
 
     
     this._view = aElement.ownerDocument.defaultView;
@@ -1500,6 +1507,53 @@ var SelectionHandler = {
 
     this.showHandles();
     this._active = true;
+  },
+
+  showContextMenu: function sh_showContextMenu(aX, aY) {
+    let [SELECT_ALL, COPY, SHARE] = [0, 1, 2];
+    let listitems = [
+      { label: Strings.browser.GetStringFromName("contextmenu.selectAll"), id: SELECT_ALL },
+      { label: Strings.browser.GetStringFromName("contextmenu.copy"), id: COPY },
+      { label: Strings.browser.GetStringFromName("contextmenu.share"), id: SHARE }
+    ];
+
+    let msg = {
+      gecko: {
+        type: "Prompt:Show",
+        title: "",
+        listitems: listitems
+      }
+    };
+    let id = JSON.parse(sendMessageToJava(msg)).button;
+
+    switch (id) {
+      case SELECT_ALL: {
+        let selectionController = this._view.QueryInterface(Ci.nsIInterfaceRequestor).
+                                             getInterface(Ci.nsIWebNavigation).
+                                             QueryInterface(Ci.nsIInterfaceRequestor).
+                                             getInterface(Ci.nsISelectionDisplay).
+                                             QueryInterface(Ci.nsISelectionController);
+        selectionController.selectAll();
+        this.updateCacheForSelection();
+        this.positionHandles();
+        break;
+      }
+      case COPY: {
+        
+        this.endSelection(aX, aY);
+        break;
+      }
+      case SHARE: {
+        let selectedText = this.endSelection();
+        sendMessageToJava({
+          gecko: {
+            type: "Share:Text",
+            text: selectedText
+          }
+        });
+        break;
+      }
+    }
   },
 
   
@@ -1633,26 +1687,21 @@ var SelectionHandler = {
         element = ElementTouchHelper.anyElementFromPoint(contentWindow, aX, aY);
 
       
-      if (element.ownerDocument.defaultView == this._view) {
-        let offset = this._getViewOffset();
-        let pointInSelection = (aX - offset.x > this.cache.rect.left  &&
-                                aX - offset.x < this.cache.rect.right) &&
-                               (aY - offset.y > this.cache.rect.top &&
-                                aY - offset.y < this.cache.rect.bottom);
-        if (pointInSelection) {
-          let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
-          clipboard.copyString(selectedText, element.ownerDocument);
-          NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
-        }
+      if (element.ownerDocument.defaultView == this._view && this._pointInSelection(aX, aY)) {
+        let clipboard = Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper);
+        clipboard.copyString(selectedText, element.ownerDocument);
+        NativeWindow.toast.show(Strings.browser.GetStringFromName("selectionHelper.textCopied"), "short");
       }
     }
 
     this._isRTL = false;
     this._view = null;
     this.cache = null;
+
+    return selectedText;
   },
 
-  _getViewOffset: function sh_getViewOffset() {
+  _pointInSelection: function sh_pointInSelection(aX, aY) {
     let offset = { x: 0, y: 0 };
     let win = this._view;
 
@@ -1665,7 +1714,8 @@ var SelectionHandler = {
       win = win.parent;
     }
 
-    return offset;
+    return (aX - offset.x > this.cache.rect.left && aX - offset.x < this.cache.rect.right) &&
+           (aY - offset.y > this.cache.rect.top && aY - offset.y < this.cache.rect.bottom);
   },
 
   
