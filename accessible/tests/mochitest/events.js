@@ -315,37 +315,48 @@ function eventQueue(aEventType)
       invoker.debugCheck(aEvent);
 
     
-    for (var idx = 0; idx < this.mEventSeq.length; idx++) {
+    var idx = 0;
+    for (; idx < this.mEventSeq.length; idx++) {
       if (this.mEventSeq[idx].unexpected && this.compareEvents(idx, aEvent))
         invoker.wasCaught[idx] = true;
     }
 
     
+    if (this.mEventSeqIdx == this.mEventSeq.length)
+      return;
 
     
-    for (var idx = this.mEventSeqIdx + 1;
-         idx < this.mEventSeq.length && this.mEventSeq[idx].unexpected; idx++);
+    for (idx = this.mEventSeqIdx + 1;
+         idx < this.mEventSeq.length && this.mEventSeq[idx].unexpected;
+         idx++);
 
+    
+    
     if (idx == this.mEventSeq.length) {
-      
+      this.mEventSeqIdx = idx;
       this.processNextInvokerInTimeout();
       return;
     }
 
+    
     var matched = this.compareEvents(idx, aEvent);
     this.dumpEventToDOM(aEvent, idx, matched);
 
     if (matched) {
       this.checkEvent(idx, aEvent);
       invoker.wasCaught[idx] = true;
+      this.mEventSeqIdx = idx;
 
       
-      if (idx == this.mEventSeq.length - 1) {
-        this.processNextInvokerInTimeout();
-        return;
-      }
+      while (++idx < this.mEventSeq.length && this.mEventSeq[idx].unexpected);
 
-      this.mEventSeqIdx = idx;
+      
+      
+      
+      if (idx == this.mEventSeq.length) {
+        this.mEventSeqIdx = idx;
+        this.processNextInvokerInTimeout();
+      }
     }
   }
 
