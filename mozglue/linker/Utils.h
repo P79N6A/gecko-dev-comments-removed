@@ -16,7 +16,7 @@
 
 
 
-#if defined(__i386__) || defined(__x86_64__)
+#if !defined(DEBUG) && (defined(__i386__) || defined(__x86_64__))
 typedef uint16_t le_uint16;
 typedef uint32_t le_uint32;
 #else
@@ -36,10 +36,36 @@ template <typename T>
 class le_to_cpu
 {
 public:
-  operator typename UInt<16 * sizeof(T)>::Type() const
+  typedef typename UInt<16 * sizeof(T)>::Type Type;
+
+  operator Type() const
   {
     return (b << (sizeof(T) * 8)) | a;
   }
+
+  const le_to_cpu& operator =(const Type &v)
+  {
+    a = v & ((1 << (sizeof(T) * 8)) - 1);
+    b = v >> (sizeof(T) * 8);
+    return *this;
+  }
+
+  le_to_cpu() { }
+  le_to_cpu(const Type &v)
+  {
+    operator =(v);
+  }
+
+  const le_to_cpu& operator +=(const Type &v)
+  {
+    return operator =(operator Type() + v);
+  }
+
+  const le_to_cpu& operator ++(int)
+  {
+    return operator =(operator Type() + 1);
+  }
+
 private:
   T a, b;
 };
