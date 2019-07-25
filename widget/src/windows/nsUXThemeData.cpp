@@ -396,7 +396,7 @@ void
 nsUXThemeData::UpdateNativeThemeInfo()
 {
   
-  sTitlebarInfoPopulatedThemed = PR_FALSE;
+  sTitlebarInfoPopulatedThemed = (nsWindow::GetWindowsVersion() < VISTA_VERSION);
 
   sIsDefaultWindowsTheme = PR_FALSE;
   sThemeId = nsILookAndFeel::eWindowsTheme_Generic;
