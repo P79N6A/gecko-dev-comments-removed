@@ -211,7 +211,9 @@ const char *const js_common_atom_names[] = {
     "has",                      
     "hasOwn",                   
     "keys",                     
-    "iterate"                   
+    "iterate",                  
+
+    "WeakMap"                   
 };
 
 JS_STATIC_ASSERT(JS_ARRAY_LENGTH(js_common_atom_names) * sizeof(JSAtom *) ==

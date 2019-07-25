@@ -827,6 +827,9 @@ struct JSObject : js::gc::Cell {
     }
 
     
+    inline JSPrincipals *principals(JSContext *cx);
+
+    
 
 
 
@@ -1435,6 +1438,7 @@ struct JSObject : js::gc::Cell {
     inline bool isXMLId() const;
     inline bool isNamespace() const;
     inline bool isQName() const;
+    inline bool isWeakMap() const;
 
     inline bool isProxy() const;
     inline bool isObjectProxy() const;
@@ -1448,6 +1452,17 @@ struct JSObject : js::gc::Cell {
 
 
 JS_STATIC_ASSERT(sizeof(JSObject) % sizeof(js::Value) == 0);
+
+
+
+
+
+
+static JS_ALWAYS_INLINE bool
+operator==(const JSObject &lhs, const JSObject &rhs)
+{
+    return &lhs == &rhs;
+}
 
 inline js::Value*
 JSObject::fixedSlots() const {
@@ -2012,7 +2027,7 @@ js_XDRObject(JSXDRState *xdr, JSObject **objp);
 extern void
 js_PrintObjectSlotName(JSTracer *trc, char *buf, size_t bufsize);
 
-extern void
+extern bool
 js_ClearNative(JSContext *cx, JSObject *obj);
 
 extern bool
@@ -2021,18 +2036,9 @@ js_GetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, js::Value *vp);
 extern bool
 js_SetReservedSlot(JSContext *cx, JSObject *obj, uint32 index, const js::Value &v);
 
-extern JSBool
-js_CheckPrincipalsAccess(JSContext *cx, JSObject *scopeobj,
-                         JSPrincipals *principals, JSAtom *caller);
-
 
 extern JSBool
 js_CheckContentSecurityPolicy(JSContext *cx, JSObject *scopeObj);
-
-
-extern const char *
-js_ComputeFilename(JSContext *cx, JSStackFrame *caller,
-                   JSPrincipals *principals, uintN *linenop);
 
 extern JSBool
 js_ReportGetterOnlyAssignment(JSContext *cx);
@@ -2066,21 +2072,13 @@ SetProto(JSContext *cx, JSObject *obj, JSObject *proto, bool checkForCycles);
 extern JSString *
 obj_toStringHelper(JSContext *cx, JSObject *obj);
 
-enum EvalType { INDIRECT_EVAL, DIRECT_EVAL };
 
 
 
 
 
-
-
-
-
-
-
-extern bool
-EvalKernel(JSContext *cx, uintN argc, js::Value *vp, EvalType evalType, JSStackFrame *caller,
-           JSObject *scopeobj);
+extern JS_REQUIRES_STACK bool
+DirectEval(JSContext *cx, const CallArgs &call);
 
 
 
@@ -2092,6 +2090,13 @@ IsBuiltinEvalForScope(JSObject *scopeChain, const js::Value &v);
 
 extern bool
 IsAnyBuiltinEval(JSFunction *fun);
+
+
+extern JSPrincipals *
+PrincipalsForCompiledCode(const CallArgs &call, JSContext *cx);
+
+extern JSObject *
+NonNullObject(JSContext *cx, const Value &v);
 
 }
 

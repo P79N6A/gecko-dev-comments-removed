@@ -79,26 +79,25 @@ enum JSInterpMode
 enum JSFrameFlags
 {
     
-    JSFRAME_GLOBAL             =     0x1, 
-    JSFRAME_FUNCTION           =     0x2, 
-    JSFRAME_DUMMY              =     0x4, 
+    JSFRAME_GLOBAL             =      0x1, 
+    JSFRAME_FUNCTION           =      0x2, 
+    JSFRAME_DUMMY              =      0x4, 
 
     
-    JSFRAME_EVAL               =     0x8, 
-    JSFRAME_DEBUGGER           =    0x10, 
-    JSFRAME_GENERATOR          =    0x20, 
-    JSFRAME_FLOATING_GENERATOR =    0x40, 
-    JSFRAME_CONSTRUCTING       =    0x80, 
+    JSFRAME_EVAL               =      0x8, 
+    JSFRAME_DEBUGGER           =     0x10, 
+    JSFRAME_GENERATOR          =     0x20, 
+    JSFRAME_FLOATING_GENERATOR =     0x40, 
+    JSFRAME_CONSTRUCTING       =     0x80, 
 
     
-    JSFRAME_ASSIGNING          =   0x100, 
-    JSFRAME_YIELDING           =   0x200, 
-    JSFRAME_FINISHED_IN_INTERPRETER = 0x400, 
+    JSFRAME_YIELDING           =    0x200, 
+    JSFRAME_FINISHED_IN_INTERP =    0x400, 
 
     
-    JSFRAME_OVERRIDE_ARGS      =  0x1000, 
-    JSFRAME_OVERFLOW_ARGS      =  0x2000, 
-    JSFRAME_UNDERFLOW_ARGS     =  0x4000, 
+    JSFRAME_OVERRIDE_ARGS      =   0x1000, 
+    JSFRAME_OVERFLOW_ARGS      =   0x2000, 
+    JSFRAME_UNDERFLOW_ARGS     =   0x4000, 
 
     
     JSFRAME_HAS_IMACRO_PC      =   0x8000, 
@@ -493,8 +492,6 @@ struct JSStackFrame
         return formalArgs()[-1];
     }
 
-    inline bool computeThis(JSContext *cx);
-
     
 
 
@@ -502,7 +499,7 @@ struct JSStackFrame
 
 
 
-    js::Value &calleeValue() const {
+    js::Value &calleev() const {
         JS_ASSERT(isFunctionFrame());
         if (isEvalFrame())
             return ((js::Value *)this)[-2];
@@ -511,11 +508,15 @@ struct JSStackFrame
 
     JSObject &callee() const {
         JS_ASSERT(isFunctionFrame());
-        return calleeValue().toObject();
+        return calleev().toObject();
     }
 
     JSObject *maybeCallee() const {
         return isFunctionFrame() ? &callee() : NULL;
+    }
+
+    js::CallReceiver callReceiver() const {
+        return js::CallReceiverFromArgv(formalArgs());
     }
 
     
@@ -570,6 +571,20 @@ struct JSStackFrame
     inline void setScopeChainWithOwnCallObj(JSObject &obj);
 
     inline void markActivationObjectsAsPut();
+
+    
+
+
+
+
+
+
+    JSCompartment *compartment() const {
+        JS_ASSERT_IF(isScriptFrame(), scopeChain().compartment() == script()->compartment);
+        return scopeChain().compartment();
+    }
+
+    inline JSPrincipals *principals(JSContext *cx) const;
 
     
 
@@ -745,18 +760,6 @@ struct JSStackFrame
         flags_ |= JSFRAME_OVERRIDE_ARGS;
     }
 
-    bool isAssigning() const {
-        return !!(flags_ & JSFRAME_ASSIGNING);
-    }
-
-    void setAssigning() {
-        flags_ |= JSFRAME_ASSIGNING;
-    }
-
-    void clearAssigning() {
-        flags_ &= ~JSFRAME_ASSIGNING;
-    }
-
     bool isYielding() {
         return !!(flags_ & JSFRAME_YIELDING);
     }
@@ -770,11 +773,11 @@ struct JSStackFrame
     }
 
     void setFinishedInInterpreter() {
-        flags_ |= JSFRAME_FINISHED_IN_INTERPRETER;
+        flags_ |= JSFRAME_FINISHED_IN_INTERP;
     }
 
     bool finishedInInterpreter() const {
-        return !!(flags_ & JSFRAME_FINISHED_IN_INTERPRETER);
+        return !!(flags_ & JSFRAME_FINISHED_IN_INTERP);
     }
 
     
@@ -962,27 +965,16 @@ ScriptDebugEpilogue(JSContext *cx, JSStackFrame *fp, bool ok);
 
 
 extern bool
-BoxThisForVp(JSContext *cx, js::Value *vp);
+BoxNonStrictThis(JSContext *cx, const CallReceiver &call);
 
 
 
 
 
-struct CallArgs
-{
-    Value *argv_;
-    uintN argc_;
-    CallArgs() {}
-    CallArgs(Value *argv, uintN argc) : argv_(argv), argc_(argc) {}
-  public:
-    Value *base() const { return argv_ - 2; }
-    Value &callee() const { return argv_[-2]; }
-    Value &thisv() const { return argv_[-1]; }
-    Value &operator[](unsigned i) const { JS_ASSERT(i < argc_); return argv_[i]; }
-    Value *argv() const { return argv_; }
-    uintN argc() const { return argc_; }
-    Value &rval() const { return argv_[-2]; }
-};
+
+
+inline bool
+ComputeThis(JSContext *cx, JSStackFrame *fp);
 
 
 
@@ -1077,26 +1069,8 @@ ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *a
 
 
 
-
-extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, uint32 argc, Value *vp);
-
-
-
-
-
-
-
-
-extern JS_REQUIRES_STACK bool
-DirectEval(JSContext *cx, JSFunction *evalfun, uint32 argc, Value *vp);
-
-
-
-
-
 extern JS_FORCES_STACK bool
-Execute(JSContext *cx, JSObject *chain, JSScript *script,
+Execute(JSContext *cx, JSObject &chain, JSScript *script,
         JSStackFrame *prev, uintN flags, Value *result);
 
 
