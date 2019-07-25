@@ -408,14 +408,14 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
             boolean locallyModified = existingRecord.lastModified > lastLocalRetrieval;
             if (!locallyModified) {
               trace("Remote modified, local not. Deleting.");
-              storeRecordDeletion(record);
+              storeRecordDeletion(record, existingRecord);
               return;
             }
 
             trace("Both local and remote records have been modified.");
             if (record.lastModified > existingRecord.lastModified) {
               trace("Remote is newer, and deleted. Deleting local.");
-              storeRecordDeletion(record);
+              storeRecordDeletion(record, existingRecord);
               return;
             }
 
@@ -497,7 +497,14 @@ public abstract class AndroidBrowserRepositorySession extends StoreTrackingRepos
     storeWorkQueue.execute(command);
   }
 
-  protected void storeRecordDeletion(final Record record) {
+  
+
+
+
+
+
+
+  protected void storeRecordDeletion(final Record record, final Record existingRecord) {
     
     
     dbHelper.purgeGuid(record.guid);
