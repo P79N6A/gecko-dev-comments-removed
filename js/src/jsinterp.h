@@ -169,16 +169,14 @@ struct JSStackFrame
     }
 
     bool isScriptFrame() const {
-        return !!(flags_ & (JSFRAME_FUNCTION | JSFRAME_GLOBAL));
+        bool retval = !!(flags_ & (JSFRAME_FUNCTION | JSFRAME_GLOBAL));
+        JS_ASSERT(retval == !isDummyFrame());
+        return retval;
     }
 
     bool isEvalFrame() const {
         JS_ASSERT_IF(flags_ & JSFRAME_EVAL, isScriptFrame());
         return flags_ & JSFRAME_EVAL;
-    }
-
-    bool isExecuteFrame() const {
-        return !!(flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL));
     }
 
     
@@ -634,6 +632,17 @@ struct JSStackFrame
 
     void setFloatingGenerator() {
         flags_ |= JSFRAME_FLOATING_GENERATOR;
+    }
+
+    
+
+
+
+
+
+
+    bool isFramePushedByExecute() const {
+        return !!(flags_ & (JSFRAME_GLOBAL | JSFRAME_EVAL));
     }
 
     
