@@ -38,6 +38,10 @@
 #include "gfxASurface.h"
 #include "gfxContext.h"
 #include "gfxPlatform.h"
+#ifdef MOZ_X11
+#include "cairo.h"
+#include "gfxXlibSurface.h"
+#endif
 
 gfxSurfaceDrawable::gfxSurfaceDrawable(gfxASurface* aSurface,
                                        const gfxIntSize aSize,
@@ -61,10 +65,11 @@ DeviceToImageTransform(gfxContext* aContext,
     return gfxMatrix(deviceToUser).Multiply(aUserSpaceToImageSpace);
 }
 
-static void 
+static void
 PreparePatternForUntiledDrawing(gfxPattern* aPattern,
                                 const gfxMatrix& aDeviceToImage,
                                 gfxASurface::gfxSurfaceType aSurfaceType,
+                                nsRefPtr<gfxASurface> currentTarget,
                                 const gfxPattern::GraphicsFilter aDefaultFilter)
 {
     
@@ -85,11 +90,40 @@ PreparePatternForUntiledDrawing(gfxPattern* aPattern,
             
             
             
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+
             PRBool isDownscale =
                 aDeviceToImage.xx >= 1.0 && aDeviceToImage.yy >= 1.0 &&
                 aDeviceToImage.xy == 0.0 && aDeviceToImage.yx == 0.0;
             if (!isDownscale) {
-                aPattern->SetFilter(gfxPattern::FILTER_FAST);
+#ifdef MOZ_X11
+                PRBool fastExtendPad = PR_FALSE;
+                if (currentTarget->GetType() == gfxASurface::SurfaceTypeXlib &&
+                    cairo_version() >= CAIRO_VERSION_ENCODE(1,9,2)) {
+                    gfxXlibSurface *xlibSurface =
+                        static_cast<gfxXlibSurface *>(currentTarget.get());
+                    Display *dpy = xlibSurface->XDisplay();
+                    
+                    
+                    if (VendorRelease (dpy) < 60700000 &&
+                        VendorRelease (dpy) >= 10699000)
+                        fastExtendPad = PR_TRUE;
+                }
+                if (fastExtendPad) {
+                    aPattern->SetExtend(gfxPattern::EXTEND_PAD);
+                    aPattern->SetFilter(aDefaultFilter);
+                } else
+#endif
+                    aPattern->SetFilter(gfxPattern::FILTER_FAST);
             }
             break;
         }
@@ -127,7 +161,7 @@ gfxSurfaceDrawable::Draw(gfxContext* aContext,
         gfxMatrix deviceSpaceToImageSpace =
             DeviceToImageTransform(aContext, aTransform);
         PreparePatternForUntiledDrawing(pattern, deviceSpaceToImageSpace,
-                                        surfaceType, aFilter);
+                                        surfaceType, currentTarget, aFilter);
     }
 #ifdef MOZ_GFX_OPTIMIZE_MOBILE
     pattern->SetFilter(gfxPattern::FILTER_FAST); 
