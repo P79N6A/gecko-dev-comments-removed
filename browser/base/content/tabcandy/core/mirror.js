@@ -1,3 +1,4 @@
+
 (function(){
 
 const Cc = Components.classes;
@@ -107,6 +108,9 @@ TabCanvas.prototype = {
 }
 
 
+
+
+
 function Mirror(tab, manager) {
   this.tab = tab;
   this.manager = manager;
@@ -145,10 +149,15 @@ function Mirror(tab, manager) {
 
 Mirror.prototype = $.extend(new Subscribable(), {  
   
+  
+  
   triggerPaint: function() {
   	var date = new Date();
   	this.needsPaint = date.getTime();
   },
+  
+  
+  
   
   
   forceCanvasSize: function(w, h) {
@@ -160,17 +169,34 @@ Mirror.prototype = $.extend(new Subscribable(), {
   },
   
   
+  
+  
+  
+  
+  
   unforceCanvasSize: function() {
     this.canvasSizeForced = false;
   }
 });
 
 
+
+
 var TabMirror = function( ){ this.init() }
 TabMirror.prototype = {
+  
+  
+  
   init: function(){
     var self = this;
     
+
+
+
+
+
+
+
     
     Tabs.onReady( function(evt){
       self.update(evt.tab);
@@ -305,6 +331,15 @@ TabMirror.prototype = {
 window.TabMirror = {
   _private: new TabMirror(), 
   
+  
+  
+  
+  
+  
+  
+  
+  
+  
   customize: function(func) {
     
     
@@ -315,9 +350,18 @@ window.TabMirror = {
     TabMirror.prototype._customize = func;
   },
 
+  
+  
+  
+  
+  
   pausePainting: function() {
     this._private.paintingPaused++;
   },
+  
+  
+  
+  
   
   resumePainting: function() {
     this._private.paintingPaused--;

@@ -1,3 +1,4 @@
+
 (function(){
 
 const Cc = Components.classes;
@@ -133,11 +134,17 @@ window.Rect.prototype = {
 
 
 
+
+
+
 window.Subscribable = function() {
   this.onCloseSubscribers = null;
 };
 
 window.Subscribable.prototype = {
+  
+  
+  
   
   addOnClose: function(referenceElement, callback) {
     if(!this.onCloseSubscribers)
@@ -159,6 +166,8 @@ window.Subscribable.prototype = {
   },
   
   
+  
+  
   removeOnClose: function(referenceElement) {
     if(!this.onCloseSubscribers)
       return;
@@ -167,6 +176,8 @@ window.Subscribable.prototype = {
       return element.referenceElement == referenceElement;
     }, true);
   },
+  
+  
   
   
   _sendOnClose: function() {

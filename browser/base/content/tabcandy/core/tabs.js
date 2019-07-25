@@ -345,18 +345,31 @@ function Tabs() {
   windows.__proto__ = trackedWindows.values;
 
   var tabs = {
+    
     get focused() {
       var browserWindow = windows.focused;
       if (browserWindow)
         return browserWindow.getFocusedTab();
       return null;
     },
-    open: function open(url) {
+
+    
+    open: function open(url, inBackground) {
+      if(typeof(inBackground) == 'undefined')
+        inBackground = false;
+        
       var browserWindow = windows.focused;
       
       
-      return browserWindow.addTab(url);
+      
+      var tab = browserWindow.addTab(url);
+      if (!inBackground)
+        browserWindow.selectedTab = tab; 
+  
+      return tab;
     },
+
+    
     tab: function tab(value) {
       
       var result = $(value).data('tab');
@@ -365,6 +378,8 @@ function Tabs() {
       
       return result;
     },
+
+    
     toString: function toString() {
       return "[Tabs]";
     }
@@ -375,7 +390,6 @@ function Tabs() {
   tabsMixIns.add({name: "onFocus"});
   tabsMixIns.add({name: "onClose"});
   tabsMixIns.add({name: "onOpen"});
-  tabsMixIns.add({name: "onLoad"}); 
 
   tabs.__proto__ = trackedTabs.values;
 
@@ -576,4 +590,5 @@ function Tabs() {
 }
 
 window.Tabs = new Tabs().tabs;
+window.Tabs.app = XULApp;
 })();
