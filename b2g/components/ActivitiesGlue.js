@@ -33,13 +33,12 @@ ActivitiesDialog.prototype = {
     
     let browser = Services.wm.getMostRecentWindow("navigator:browser");
     let content = browser.getContentWindow();
-    let event = content.document.createEvent("CustomEvent");
-    event.initCustomEvent("mozChromeEvent", true, true, {
+    let detail = {
       type: "activity-choice",
       id: id,
       name: activity.name,
       choices: choices
-    });
+    };
 
     
     
@@ -51,7 +50,7 @@ ActivitiesDialog.prototype = {
       activity.callback.handleEvent(evt.detail.value ? evt.detail.value : -1);
     });
 
-    content.dispatchEvent(event);
+    browser.shell.sendChromeEvent(detail);
   },
 
   chooseActivity: function ap_chooseActivity(aName, aActivities, aCallback) {
