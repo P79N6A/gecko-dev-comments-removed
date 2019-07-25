@@ -41,12 +41,26 @@ var Feedback = {
     document.getElementById("feedback-about").setAttribute("desc", appInfo.version);
 
     
+    messageManager.loadFrameScript("data:,addMessageListener('Feedback:InitPage', function(m) { content.document.getElementById('id_url').value = m.json.referrer; });", true);
+
+    
     messageManager.addMessageListener("DOMContentLoaded", function() {
       
       messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
 
       
       document.getElementById("feedback-container").hidden = false;
+    });
+  },
+
+  openFeedback: function(aURL) {
+    let currentURL = Browser.selectedBrowser.currentURI.spec;
+    let newTab = BrowserUI.newTab(aURL);
+
+    
+    newTab.browser.messageManager.addMessageListener("DOMContentLoaded", function() {
+      newTab.browser.messageManager.removeMessageListener("DOMContentLoaded", arguments.callee, true);
+      newTab.browser.messageManager.sendAsyncMessage("Feedback:InitPage", { referrer: currentURL });
     });
   },
 
