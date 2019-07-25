@@ -253,50 +253,68 @@ Highlighter.prototype = {
       return;
     }
 
+    if (aScroll) {
+      this.node.scrollIntoView();
+    }
+
     let clientRect = this.node.getBoundingClientRect();
 
+    
     
     let rect = {top: clientRect.top,
                 left: clientRect.left,
                 width: clientRect.width,
                 height: clientRect.height};
 
-    if (aScroll) {
-      this.node.scrollIntoView();
-    }
-
-    
-    
     let frameWin = this.node.ownerDocument.defaultView;
-    do {
-      let frameRect = frameWin.frameElement ?
-                      frameWin.frameElement.getBoundingClientRect() :
-                      {top: 0, left: 0};
 
-      if (rect.top < 0) {
-        rect.height += rect.top;
-        rect.top = 0;
+    
+    while (true) {
+
+      
+      let diffx = frameWin.innerWidth - (rect.left + rect.width);
+      if (diffx < 0) {
+        rect.width += diffx;
       }
 
+      
+      let diffy = frameWin.innerHeight - (rect.top + rect.height);
+      if (diffy < 0) {
+        rect.height += diffy;
+      }
+
+      
       if (rect.left < 0) {
         rect.width += rect.left;
         rect.left = 0;
       }
 
-      let diffx = frameWin.innerWidth - rect.left - rect.width;
-      if (diffx < 0) {
-        rect.width += diffx;
-      }
-      let diffy = frameWin.innerHeight - rect.top - rect.height;
-      if (diffy < 0) {
-        rect.height += diffy;
+      
+      if (rect.top < 0) {
+        rect.height += rect.top;
+        rect.top = 0;
       }
 
-      rect.left += frameRect.left;
-      rect.top += frameRect.top;
+      
+
+      
+      if (frameWin.parent === frameWin || !frameWin.frameElement) {
+        break;
+      }
+
+      
+      
+      
+      let frameRect = frameWin.frameElement.getBoundingClientRect();
+
+      let [offsetTop, offsetLeft] =
+        InspectorUI.getIframeContentOffset(frameWin.frameElement);
+
+      rect.top += frameRect.top + offsetTop;
+      rect.left += frameRect.left + offsetLeft;
 
       frameWin = frameWin.parent;
-    } while (frameWin != this.win);
+    }
 
     this.highlightRectangle(rect);
 
@@ -1378,17 +1396,26 @@ var InspectorUI = {
   {
     let node = aDocument.elementFromPoint(aX, aY);
     if (node && node.contentDocument) {
-      switch (node.nodeName.toLowerCase()) {
-        case "iframe":
-          let rect = node.getBoundingClientRect();
-          aX -= rect.left;
-          aY -= rect.top;
+      if (node instanceof HTMLIFrameElement) {
+        let rect = node.getBoundingClientRect();
 
-        case "frame":
-          let subnode = this.elementFromPoint(node.contentDocument, aX, aY);
-          if (subnode) {
-            node = subnode;
-          }
+        
+        let [offsetTop, offsetLeft] = this.getIframeContentOffset(node);
+
+        aX -= rect.left + offsetLeft;
+        aY -= rect.top + offsetTop;
+
+        if (aX < 0 || aY < 0) {
+          
+          return node;
+        }
+      }
+      if (node instanceof HTMLIFrameElement ||
+          node instanceof HTMLFrameElement) {
+        let subnode = this.elementFromPoint(node.contentDocument, aX, aY);
+        if (subnode) {
+          node = subnode;
+        }
       }
     }
     return node;
@@ -1396,6 +1423,33 @@ var InspectorUI = {
 
   
   
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+  getIframeContentOffset: function IUI_getIframeContentOffset(aIframe)
+  {
+    let style = aIframe.contentWindow.getComputedStyle(aIframe, null);
+
+    let paddingTop = parseInt(style.getPropertyValue("padding-top"));
+    let paddingLeft = parseInt(style.getPropertyValue("padding-left"));
+
+    let borderTop = parseInt(style.getPropertyValue("border-top-width"));
+    let borderLeft = parseInt(style.getPropertyValue("border-left-width"));
+
+    return [borderTop + paddingTop, borderLeft + paddingLeft];
+  },
 
   
 
