@@ -542,7 +542,23 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   
-  close: function TabItem_close() {
+  
+  
+  close: function TabItem_close(groupClose) {
+    
+    
+    
+    if (!groupClose && gBrowser.tabs.length == 1) {
+      if (this.tab._tabViewTabItem.parent) {
+        group = this.tab._tabViewTabItem.parent;
+      } else {
+        let emptyGroups = GroupItems.groupItems.filter(function (groupItem) {
+          return (!groupItem.getChildren().length);
+        });
+        group = (emptyGroups.length ? emptyGroups[0] : GroupItems.newGroup());
+      }
+      group.newTab();
+    }
     
     
     
