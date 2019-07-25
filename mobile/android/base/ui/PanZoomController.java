@@ -669,18 +669,18 @@ public class PanZoomController
             if (flingingX || flingingY) {
                 mX.displace(); mY.displace();
                 updatePosition();
+
+                
+
+
+
+
+                float excess = PointUtils.distance(new PointF(mX.getExcess(), mY.getExcess()));
+                PointF velocityVector = new PointF(mX.getRealVelocity(), mY.getRealVelocity());
+                float threshold = (excess >= 1.0f) ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD;
+                if (PointUtils.distance(velocityVector) >= threshold)
+                    return;
             }
-
-            
-
-
-
-
-            float excess = PointUtils.distance(new PointF(mX.getExcess(), mY.getExcess()));
-            PointF velocityVector = new PointF(mX.getRealVelocity(), mY.getRealVelocity());
-            float threshold = (excess >= 1.0f) ? STOPPED_THRESHOLD : FLING_STOPPED_THRESHOLD;
-            if (PointUtils.distance(velocityVector) >= threshold)
-                return;
 
             
 
