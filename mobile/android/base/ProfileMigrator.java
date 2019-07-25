@@ -111,10 +111,8 @@ public class ProfileMigrator {
         mCr = cr;
     }
 
-    public void launchBackground() {
-        
-        
-        GeckoAppShell.getHandler().post(new PlacesTask());
+    public void launch() {
+        new PlacesTask().run();
     }
 
     private class PlacesTask implements Runnable {
