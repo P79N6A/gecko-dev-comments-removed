@@ -38,6 +38,7 @@
 
 
 #include "mozilla/ipc/SyncChannel.h"
+#include "mozilla/ipc/GeckoThread.h"
 
 #include "nsDebug.h"
 #include "nsTraceRefcnt.h"
@@ -54,45 +55,22 @@ struct RunnableMethodTraits<mozilla::ipc::SyncChannel>
 namespace mozilla {
 namespace ipc {
 
-const int32 SyncChannel::kNoTimeout = PR_INT32_MIN;
-
 SyncChannel::SyncChannel(SyncListener* aListener)
-  : AsyncChannel(aListener)
-  , mPendingReply(0)
-  , mProcessingSyncMessage(false)
-  , mNextSeqno(0)
-  , mTimeoutMs(kNoTimeout)
-#ifdef OS_WIN
-  , mTopFrame(NULL)
-#endif
+  : AsyncChannel(aListener),
+    mPendingReply(0),
+    mProcessingSyncMessage(false)
 {
-    MOZ_COUNT_CTOR(SyncChannel);
-#ifdef OS_WIN
-    mEvent = CreateEvent(NULL, TRUE, FALSE, NULL);
-    NS_ASSERTION(mEvent, "CreateEvent failed! Nothing is going to work!");
-#endif
+  MOZ_COUNT_CTOR(SyncChannel);
 }
 
 SyncChannel::~SyncChannel()
 {
     MOZ_COUNT_DTOR(SyncChannel);
-#ifdef OS_WIN
-    CloseHandle(mEvent);
-#endif
+    
 }
 
 
 bool SyncChannel::sIsPumpingMessages = false;
-
-bool
-SyncChannel::EventOccurred()
-{
-    AssertWorkerThread();
-    mMutex.AssertCurrentThreadOwns();
-    NS_ABORT_IF_FALSE(AwaitingSyncReply(), "not in wait loop");
-
-    return (!Connected() || 0 != mRecvd.type());
-}
 
 bool
 SyncChannel::Send(Message* msg, Message* reply)
@@ -103,12 +81,6 @@ SyncChannel::Send(Message* msg, Message* reply)
                       "violation of sync handler invariant");
     NS_ABORT_IF_FALSE(msg->is_sync(), "can only Send() sync messages here");
 
-#ifdef OS_WIN
-    SyncStackFrame frame(this, false);
-#endif
-
-    msg->set_seqno(NextSeqno());
-
     MutexAutoLock lock(mMutex);
 
     if (!Connected()) {
@@ -117,18 +89,20 @@ SyncChannel::Send(Message* msg, Message* reply)
     }
 
     mPendingReply = msg->type() + 1;
-    int32 msgSeqno = msg->seqno();
-    SendThroughTransport(msg);
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &SyncChannel::OnSend, msg));
 
-    while (1) {
-        bool maybeTimedOut = !SyncChannel::WaitForNotify();
-
-        if (EventOccurred())
-            break;
-
-        if (maybeTimedOut && !ShouldContinueFromTimeout())
-            return false;
-    }
+    
+    
+    
+    
+    
+    do {
+        
+        WaitForNotify();
+    } while(Connected() &&
+            mPendingReply != mRecvd.type() && !mRecvd.is_reply_error());
 
     if (!Connected()) {
         ReportConnectionError("SyncChannel");
@@ -143,9 +117,8 @@ SyncChannel::Send(Message* msg, Message* reply)
 
     
     NS_ABORT_IF_FALSE(mRecvd.is_sync() && mRecvd.is_reply() &&
-                      (mRecvd.is_reply_error() ||
-                       (mPendingReply == mRecvd.type() &&
-                        msgSeqno == mRecvd.seqno())),
+                      (mPendingReply == mRecvd.type() ||
+                       mRecvd.is_reply_error()),
                       "unexpected sync message");
 
     mPendingReply = 0;
@@ -178,13 +151,9 @@ SyncChannel::OnDispatchMessage(const Message& msg)
         reply->set_reply_error();
     }
 
-    reply->set_seqno(msg.seqno());
-
-    {
-        MutexAutoLock lock(mMutex);
-        if (ChannelConnected == mChannelState)
-            SendThroughTransport(reply);
-    }
+    mIOLoop->PostTask(
+        FROM_HERE,
+        NewRunnableMethod(this, &SyncChannel::OnSend, reply));
 }
 
 
@@ -201,9 +170,6 @@ SyncChannel::OnMessageReceived(const Message& msg)
     }
 
     MutexAutoLock lock(mMutex);
-
-    if (MaybeInterceptSpecialIOMessage(msg))
-        return;
 
     if (!AwaitingSyncReply()) {
         
@@ -223,83 +189,26 @@ SyncChannel::OnChannelError()
 {
     AssertIOThread();
 
+    AsyncChannel::OnChannelError();
+
     MutexAutoLock lock(mMutex);
-
-    if (ChannelClosing != mChannelState)
-        mChannelState = ChannelError;
-
     if (AwaitingSyncReply())
         NotifyWorkerThread();
-
-    PostErrorNotifyTask();
 }
 
 
 
 
-
-namespace {
-
-bool
-IsTimeoutExpired(PRIntervalTime aStart, PRIntervalTime aTimeout)
-{
-    return (aTimeout != PR_INTERVAL_NO_TIMEOUT) &&
-        (aTimeout <= (PR_IntervalNow() - aStart));
-}
-
-} 
-
-bool
-SyncChannel::ShouldContinueFromTimeout()
-{
-    AssertWorkerThread();
-    mMutex.AssertCurrentThreadOwns();
-
-    bool cont;
-    {
-        MutexAutoUnlock unlock(mMutex);
-        cont = static_cast<SyncListener*>(mListener)->OnReplyTimeout();
-    }
-
-    if (!cont) {
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        SynchronouslyClose();
-        mChannelState = ChannelTimeout;
-    }
-        
-    return cont;
-}
 
 
 
 
 #ifndef OS_WIN
 
-bool
+void
 SyncChannel::WaitForNotify()
 {
-    PRIntervalTime timeout = (kNoTimeout == mTimeoutMs) ?
-                             PR_INTERVAL_NO_TIMEOUT :
-                             PR_MillisecondsToInterval(mTimeoutMs);
-    
-    PRIntervalTime waitStart = PR_IntervalNow();
-
-    mCvar.Wait(timeout);
-
-    
-    
-    return !IsTimeoutExpired(waitStart, timeout);
+    mCvar.Wait();
 }
 
 void
