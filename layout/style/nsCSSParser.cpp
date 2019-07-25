@@ -492,6 +492,7 @@ protected:
 
   
   PRBool ParseRect(nsCSSProperty aPropID);
+  PRBool ParseColumns();
   PRBool ParseContent();
   PRBool ParseCounterData(nsCSSProperty aPropID);
   PRBool ParseCursor();
@@ -5492,6 +5493,8 @@ CSSParserImpl::ParsePropertyByFunction(nsCSSProperty aPropID)
 
   case eCSSProperty_clip:
     return ParseRect(eCSSProperty_clip);
+  case eCSSProperty__moz_columns:
+    return ParseColumns();
   case eCSSProperty__moz_column_rule:
     return ParseBorderSide(kColumnRuleIDs, PR_FALSE);
   case eCSSProperty_content:
@@ -5585,6 +5588,10 @@ CSSParserImpl::ParseSingleValueProperty(nsCSSValue& aValue,
 {
   if (aPropID == eCSSPropertyExtra_x_none_value) {
     return ParseVariant(aValue, VARIANT_NONE | VARIANT_INHERIT, nsnull);
+  }
+
+  if (aPropID == eCSSPropertyExtra_x_auto_value) {
+    return ParseVariant(aValue, VARIANT_AUTO | VARIANT_INHERIT, nsnull);
   }
 
   if (aPropID < 0 || aPropID >= eCSSProperty_COUNT_no_shorthands) {
@@ -6843,6 +6850,48 @@ CSSParserImpl::ParseRect(nsCSSProperty aPropID)
   }
 
   AppendValue(aPropID, val);
+  return PR_TRUE;
+}
+
+PRBool
+CSSParserImpl::ParseColumns()
+{
+  
+  
+  
+  
+  
+  static const nsCSSProperty columnIDs[] = {
+    eCSSPropertyExtra_x_auto_value,
+    eCSSProperty__moz_column_count,
+    eCSSProperty__moz_column_width
+  };
+  const PRInt32 numProps = NS_ARRAY_LENGTH(columnIDs);
+
+  nsCSSValue values[numProps];
+  PRInt32 found = ParseChoice(values, columnIDs, numProps);
+  if (found < 1 || !ExpectEndProperty()) {
+    return PR_FALSE;
+  }
+  if ((found & (1|2|4)) == (1|2|4) &&
+      values[0].GetUnit() ==  eCSSUnit_Auto) {
+    
+    return PR_FALSE;
+  }
+
+  if ((found & 2) == 0) {
+    
+    values[1].SetAutoValue();
+  }
+  if ((found & 4) == 0) {
+    
+    values[2].SetAutoValue();
+  }
+
+  
+  for (PRInt32 index = 1; index < numProps; index++) {
+    AppendValue(columnIDs[index], values[index]);
+  }
   return PR_TRUE;
 }
 
