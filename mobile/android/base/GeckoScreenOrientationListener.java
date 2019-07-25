@@ -4,8 +4,6 @@
 
 package org.mozilla.gecko;
 
-import org.mozilla.gecko.util.ConfigurationUtils;
-
 import android.content.Context;
 import android.content.pm.ActivityInfo;
 import android.util.Log;
@@ -105,7 +103,7 @@ public class GeckoScreenOrientationListener
   
   
   public void updateScreenOrientation() {
-    int rotation = ConfigurationUtils.getDefaultDisplay(GeckoApp.mAppContext).getRotation();
+    int rotation = GeckoApp.mAppContext.getWindowManager().getDefaultDisplay().getRotation();
     short previousOrientation = mOrientation;
 
     if (rotation == Surface.ROTATION_0) {
