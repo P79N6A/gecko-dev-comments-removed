@@ -107,20 +107,24 @@ public:
 
 protected:
 
+  
+  
   nsINode* GetDeepFirstChild(nsINode* aRoot,
                              nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetDeepFirstChild(nsIContent* aRoot,
+                                nsTArray<PRInt32>* aIndexes = nsnull);
   nsINode* GetDeepLastChild(nsINode* aRoot,
                             nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetDeepLastChild(nsIContent* aRoot,
+                               nsTArray<PRInt32>* aIndexes = nsnull);
 
   
   
-  nsINode* GetNextSibling(nsINode* aNode,
-                          nsTArray<PRInt32>* aIndexes = nsnull);
-
   
-  
-  nsINode* GetPrevSibling(nsINode* aNode,
-                          nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetNextSibling(nsINode* aNode,
+                             nsTArray<PRInt32>* aIndexes = nsnull);
+  nsIContent* GetPrevSibling(nsINode* aNode,
+                             nsTArray<PRInt32>* aIndexes = nsnull);
 
   nsINode* NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes = nsnull);
   nsINode* PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes = nsnull);
@@ -486,12 +490,28 @@ nsINode*
 nsContentIterator::GetDeepFirstChild(nsINode* aRoot,
                                      nsTArray<PRInt32>* aIndexes)
 {
+  if (!aRoot || !aRoot->HasChildren()) {
+    return aRoot;
+  }
+  
+  
+  
+  if (aIndexes) {
+    aIndexes->AppendElement(0);
+  }
+  return GetDeepFirstChild(aRoot->GetFirstChild(), aIndexes);
+}
+
+nsIContent*
+nsContentIterator::GetDeepFirstChild(nsIContent* aRoot,
+                                     nsTArray<PRInt32>* aIndexes)
+{
   if (!aRoot) {
     return nsnull;
   }
 
-  nsINode* node = aRoot;
-  nsINode* child = node->GetFirstChild();
+  nsIContent* node = aRoot;
+  nsIContent* child = node->GetFirstChild();
 
   while (child) {
     if (aIndexes) {
@@ -509,17 +529,31 @@ nsINode*
 nsContentIterator::GetDeepLastChild(nsINode* aRoot,
                                     nsTArray<PRInt32>* aIndexes)
 {
+  if (!aRoot || !aRoot->HasChildren()) {
+    return aRoot;
+  }
+  
+  
+  
+  if (aIndexes) {
+    aIndexes->AppendElement(aRoot->GetChildCount() - 1);
+  }
+  return GetDeepLastChild(aRoot->GetLastChild(), aIndexes);
+}
+
+nsIContent*
+nsContentIterator::GetDeepLastChild(nsIContent* aRoot,
+                                    nsTArray<PRInt32>* aIndexes)
+{
   if (!aRoot) {
     return nsnull;
   }
 
-  nsINode* deepLastChild = aRoot;
-
-  nsINode* node = aRoot;
+  nsIContent* node = aRoot;
   PRInt32 numChildren = node->GetChildCount();
 
   while (numChildren) {
-    nsINode* child = node->GetChildAt(--numChildren);
+    nsIContent* child = node->GetChildAt(--numChildren);
 
     if (aIndexes) {
       
@@ -527,15 +561,13 @@ nsContentIterator::GetDeepLastChild(nsINode* aRoot,
     }
     numChildren = child->GetChildCount();
     node = child;
-
-    deepLastChild = node;
   }
 
-  return deepLastChild;
+  return node;
 }
 
 
-nsINode*
+nsIContent*
 nsContentIterator::GetNextSibling(nsINode* aNode,
                                   nsTArray<PRInt32>* aIndexes)
 {
@@ -562,7 +594,7 @@ nsContentIterator::GetNextSibling(nsINode* aNode,
   
   
   
-  nsINode* sib = parent->GetChildAt(indx);
+  nsIContent* sib = parent->GetChildAt(indx);
   if (sib != aNode) {
     
     indx = parent->IndexOf(aNode);
@@ -596,7 +628,7 @@ nsContentIterator::GetNextSibling(nsINode* aNode,
 }
 
 
-nsINode*
+nsIContent*
 nsContentIterator::GetPrevSibling(nsINode* aNode,
                                   nsTArray<PRInt32>* aIndexes)
 {
@@ -622,7 +654,7 @@ nsContentIterator::GetPrevSibling(nsINode* aNode,
 
   
   
-  nsINode* sib = parent->GetChildAt(indx);
+  nsIContent* sib = parent->GetChildAt(indx);
   if (sib != aNode) {
     
     indx = parent->IndexOf(aNode);
@@ -656,7 +688,7 @@ nsContentIterator::NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes)
   if (mPre) {
     
     if (node->HasChildren()) {
-      nsINode* firstChild = node->GetFirstChild();
+      nsIContent* firstChild = node->GetFirstChild();
 
       
       if (aIndexes) {
@@ -675,7 +707,7 @@ nsContentIterator::NextNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes)
 
   
   nsINode* parent = node->GetNodeParent();
-  nsINode* sibling = nsnull;
+  nsIContent* sibling = nsnull;
   PRInt32 indx = 0;
 
   
@@ -738,7 +770,7 @@ nsContentIterator::PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes)
   
   if (mPre) {
     nsINode* parent = node->GetNodeParent();
-    nsINode* sibling = nsnull;
+    nsIContent* sibling = nsnull;
     PRInt32 indx = 0;
 
     
@@ -793,7 +825,7 @@ nsContentIterator::PrevNode(nsINode* aNode, nsTArray<PRInt32>* aIndexes)
 
   
   if (numChildren) {
-    nsINode* lastChild = node->GetLastChild();
+    nsIContent* lastChild = node->GetLastChild();
     numChildren--;
 
     
@@ -1093,7 +1125,9 @@ protected:
   
   
   
-  nsINode* GetTopAncestorInRange(nsINode* aNode);
+  
+  
+  nsIContent* GetTopAncestorInRange(nsINode* aNode);
 
   
   nsContentSubtreeIterator(const nsContentSubtreeIterator&);
@@ -1180,8 +1214,8 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
   nsContentUtils::GetAncestorsAndOffsets(endParent->AsDOMNode(), endOffset,
                                          &mEndNodes, &mEndOffsets);
 
-  nsINode* firstCandidate = nsnull;
-  nsINode* lastCandidate = nsnull;
+  nsIContent* firstCandidate = nsnull;
+  nsIContent* lastCandidate = nsnull;
 
   
   PRInt32 offset = mRange->StartOffset();
@@ -1191,7 +1225,7 @@ nsContentSubtreeIterator::Init(nsIDOMRange* aRange)
     
     node = startParent;
   } else {
-    nsINode* child = startParent->GetChildAt(offset);
+    nsIContent* child = startParent->GetChildAt(offset);
     if (!child) {
       
       node = startParent;
@@ -1350,6 +1384,8 @@ nsContentSubtreeIterator::Prev()
     return;
   }
 
+  
+  
   nsINode* prevNode = GetDeepFirstChild(mCurNode);
 
   prevNode = PrevNode(prevNode);
@@ -1377,12 +1413,15 @@ nsContentSubtreeIterator::PositionAt(nsINode* aCurNode)
 
 
 
-nsINode*
+nsIContent*
 nsContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode)
 {
-  if (!aNode) {
+  if (!aNode || !aNode->GetNodeParent()) {
     return nsnull;
   }
+
+  
+  nsIContent* content = aNode->AsContent();
 
   
   bool nodeBefore, nodeAfter;
@@ -1394,20 +1433,24 @@ nsContentSubtreeIterator::GetTopAncestorInRange(nsINode* aNode)
     return nsnull;
   }
 
-  nsCOMPtr<nsINode> parent, tmp;
-  while (aNode) {
-    parent = aNode->GetNodeParent();
-    if (!parent) {
-      return tmp;
+  while (content) {
+    nsIContent* parent = content->GetParent();
+    
+    
+    
+    
+    
+    
+    if (!parent || !parent->GetNodeParent()) {
+      return content;
     }
     MOZ_ALWAYS_TRUE(NS_SUCCEEDED(
       nsRange::CompareNodeToRange(parent, mRange, &nodeBefore, &nodeAfter)));
 
     if (nodeBefore || nodeAfter) {
-      return aNode;
+      return content;
     }
-    tmp = aNode;
-    aNode = parent;
+    content = parent;
   }
 
   MOZ_NOT_REACHED("This should only be possible if aNode was null");
