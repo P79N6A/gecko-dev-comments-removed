@@ -261,7 +261,7 @@ ResolveNativeProperty(JSContext *cx, JSObject *wrapper, JSObject *holder, jsid i
 
     
     
-    if (!JSID_IS_ATOM(id)) {
+    if (!JSID_IS_STRING(id)) {
         
         return true;
     }

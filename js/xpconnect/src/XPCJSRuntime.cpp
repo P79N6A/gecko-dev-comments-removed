@@ -685,9 +685,8 @@ JSBool XPCJSRuntime::GCCallback(JSContext *cx, JSGCStatus status)
 
             
             
-            JSContext *iter = nsnull, *acx;
-
-            while ((acx = JS_ContextIterator(cx->runtime, &iter))) {
+            JSContext *iter = nsnull;
+            while (JSContext *acx = JS_ContextIterator(JS_GetRuntime(cx), &iter)) {
                 if (!acx->hasRunOption(JSOPTION_UNROOTED_GLOBAL))
                     JS_ToggleOptions(acx, JSOPTION_UNROOTED_GLOBAL);
             }
