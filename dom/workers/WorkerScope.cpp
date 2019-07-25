@@ -36,6 +36,7 @@
 
 
 
+
 #include "WorkerScope.h"
 
 #include "jsapi.h"
@@ -49,6 +50,8 @@
 #include "Events.h"
 #include "EventTarget.h"
 #include "Exceptions.h"
+#include "File.h"
+#include "FileReaderSync.h"
 #include "ListenerManager.h"
 #include "Location.h"
 #include "Navigator.h"
@@ -875,6 +878,8 @@ CreateDedicatedWorkerGlobalScope(JSContext* aCx)
 
   
   if (!events::InitClasses(aCx, global, false) ||
+      !file::InitClasses(aCx, global) ||
+      !filereadersync::InitClass(aCx, global) ||
       !exceptions::InitClasses(aCx, global) ||
       !xhr::InitClasses(aCx, global, eventTargetProto) ||
       !location::InitClass(aCx, global) ||

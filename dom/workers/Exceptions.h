@@ -36,12 +36,14 @@
 
 
 
+
 #ifndef mozilla_dom_workers_exceptions_h__
 #define mozilla_dom_workers_exceptions_h__
 
 #include "Workers.h"
 
 #include "jspubtd.h"
+
 
 #define INDEX_SIZE_ERR 1
 #define DOMSTRING_SIZE_ERR 2
@@ -69,6 +71,13 @@
 #define INVALID_NODE_TYPE_ERR 24
 #define DATA_CLONE_ERR 25
 
+
+#define FILE_NOT_FOUND_ERR 1
+#define FILE_SECURITY_ERR 2
+#define FILE_ABORT_ERR 3
+#define FILE_NOT_READABLE_ERR 4
+#define FILE_ENCODING_ERR 5
+
 BEGIN_WORKERS_NAMESPACE
 
 namespace exceptions {
@@ -78,6 +87,9 @@ InitClasses(JSContext* aCx, JSObject* aGlobal);
 
 void
 ThrowDOMExceptionForCode(JSContext* aCx, intN aCode);
+
+void
+ThrowFileExceptionForCode(JSContext* aCx, intN aCode);
 
 } 
 

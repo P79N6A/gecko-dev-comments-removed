@@ -148,8 +148,9 @@ NS_INTERFACE_MAP_BEGIN(nsDOMFileBase)
   NS_DOM_INTERFACE_MAP_ENTRY_CLASSINFO_CONDITIONAL(Blob, !mIsFile)
 NS_INTERFACE_MAP_END
 
-NS_IMPL_ADDREF(nsDOMFileBase)
-NS_IMPL_RELEASE(nsDOMFileBase)
+
+NS_IMPL_THREADSAFE_ADDREF(nsDOMFileBase)
+NS_IMPL_THREADSAFE_RELEASE(nsDOMFileBase)
 
 NS_IMETHODIMP
 nsDOMFileBase::GetName(nsAString &aFileName)
@@ -163,6 +164,12 @@ NS_IMETHODIMP
 nsDOMFileBase::GetMozFullPath(nsAString &aFileName)
 {
   NS_ASSERTION(mIsFile, "Should only be called on files");
+
+  
+  
+  
+  NS_ASSERTION(NS_IsMainThread(), "Wrong thread!");
+
   if (nsContentUtils::IsCallerTrustedForCapability("UniversalFileRead")) {
     return GetMozFullPathInternal(aFileName);
   }

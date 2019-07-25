@@ -36,6 +36,7 @@
 
 
 
+
 #ifndef mozilla_dom_workers_runtimeservice_h__
 #define mozilla_dom_workers_runtimeservice_h__
 
@@ -99,6 +100,9 @@ class RuntimeService : public nsIObserver
   
   nsCOMPtr<nsITimer> mIdleThreadTimer;
 
+  nsCString mDetectorName;
+  nsCString mSystemCharset;
+
   static PRUint32 sDefaultJSContextOptions;
   static PRInt32 sCloseHandlerTimeoutSeconds;
 
@@ -147,6 +151,18 @@ public:
 
   void
   ResumeWorkersForWindow(JSContext* aCx, nsPIDOMWindow* aWindow);
+
+  const nsACString&
+  GetDetectorName() const
+  {
+    return mDetectorName;
+  }
+
+  const nsACString&
+  GetSystemCharset() const
+  {
+    return mSystemCharset;
+  }
 
   const NavigatorStrings&
   GetNavigatorStrings() const

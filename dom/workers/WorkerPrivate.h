@@ -1,40 +1,40 @@
-/* -*- Mode: c++; c-basic-offset: 2; indent-tabs-mode: nil; tab-width: 40 -*- */
-/* ***** BEGIN LICENSE BLOCK *****
- * Version: MPL 1.1/GPL 2.0/LGPL 2.1
- *
- * The contents of this file are subject to the Mozilla Public License Version
- * 1.1 (the "License"); you may not use this file except in compliance with
- * the License. You may obtain a copy of the License at
- * http://www.mozilla.org/MPL/
- *
- * Software distributed under the License is distributed on an "AS IS" basis,
- * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
- * for the specific language governing rights and limitations under the
- * License.
- *
- * The Original Code is Web Workers.
- *
- * The Initial Developer of the Original Code is
- *   The Mozilla Foundation.
- * Portions created by the Initial Developer are Copyright (C) 2011
- * the Initial Developer. All Rights Reserved.
- *
- * Contributor(s):
- *   Ben Turner <bent.mozilla@gmail.com> (Original Author)
- *
- * Alternatively, the contents of this file may be used under the terms of
- * either the GNU General Public License Version 2 or later (the "GPL"), or
- * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
- * in which case the provisions of the GPL or the LGPL are applicable instead
- * of those above. If you wish to allow use of your version of this file only
- * under the terms of either the GPL or the LGPL, and not to allow others to
- * use your version of this file under the terms of the MPL, indicate your
- * decision by deleting the provisions above and replace them with the notice
- * and other provisions required by the GPL or the LGPL. If you do not delete
- * the provisions above, a recipient may use your version of this file under
- * the terms of any one of the MPL, the GPL or the LGPL.
- *
- * ***** END LICENSE BLOCK ***** */
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #ifndef mozilla_dom_workers_workerprivate_h__
 #define mozilla_dom_workers_workerprivate_h__
@@ -74,9 +74,9 @@ namespace memory {
 
 struct IterateData;
 
-} // namespace memory
-} // namespace xpconnect
-} // namespace mozilla
+} 
+} 
+} 
 
 BEGIN_WORKERS_NAMESPACE
 
@@ -201,7 +201,7 @@ private:
   nsCString mDomain;
   LocationInfo mLocationInfo;
 
-  // Main-thread things.
+  
   nsCOMPtr<nsPIDOMWindow> mWindow;
   nsCOMPtr<nsIScriptContext> mScriptContext;
   nsCOMPtr<nsIURI> mBaseURI;
@@ -209,7 +209,7 @@ private:
   nsCOMPtr<nsIPrincipal> mPrincipal;
   nsCOMPtr<nsIDocument> mDocument;
 
-  // Only used for top level workers.
+  
   nsTArray<nsRefPtr<WorkerRunnable> > mQueuedRunnables;
 
   PRUint64 mBusyCount;
@@ -219,6 +219,7 @@ private:
   bool mJSObjectRooted;
   bool mParentSuspended;
   bool mIsChromeWorker;
+  bool mPrincipalIsSystem;
 
 protected:
   WorkerPrivateParent(JSContext* aCx, JSObject* aObject, WorkerPrivate* aParent,
@@ -240,11 +241,11 @@ private:
   }
 
 public:
-  // May be called on any thread...
+  
   bool
   Start();
 
-  // Called on the parent thread.
+  
   bool
   Notify(JSContext* aCx, Status aStatus);
 
@@ -398,10 +399,12 @@ public:
   }
 
   void
-  SetPrincipal(nsIPrincipal* aPrincipal)
+  SetPrincipal(nsIPrincipal* aPrincipal);
+
+  bool
+  UsesSystemPrincipal() const
   {
-    AssertIsOnMainThread();
-    mPrincipal = aPrincipal;
+    return mPrincipalIsSystem;
   }
 
   nsIDocument*
@@ -500,10 +503,10 @@ class WorkerPrivate : public WorkerPrivateParent<WorkerPrivate>
 
   nsTArray<nsAutoPtr<SyncQueue> > mSyncQueues;
 
-  // Touched on multiple threads, protected with mMutex.
+  
   JSContext* mJSContext;
 
-  // Things touched on worker thread only.
+  
   nsTArray<ParentType*> mChildWorkers;
   nsTArray<WorkerFeature*> mFeatures;
   nsTArray<nsAutoPtr<TimeoutInfo> > mTimeouts;
@@ -745,12 +748,20 @@ private:
 WorkerPrivate*
 GetWorkerPrivateFromContext(JSContext* aCx);
 
-JSStructuredCloneCallbacks*
-WorkerStructuredCloneCallbacks();
+enum WorkerStructuredDataType
+{
+  DOMWORKER_SCTAG_FILE = JS_SCTAG_USER_MIN + 0x1000,
+  DOMWORKER_SCTAG_BLOB,
+
+  DOMWORKER_SCTAG_END
+};
 
 JSStructuredCloneCallbacks*
-ChromeWorkerStructuredCloneCallbacks();
+WorkerStructuredCloneCallbacks(bool aMainRuntime);
+
+JSStructuredCloneCallbacks*
+ChromeWorkerStructuredCloneCallbacks(bool aMainRuntime);
 
 END_WORKERS_NAMESPACE
 
-#endif /* mozilla_dom_workers_workerprivate_h__ */
+#endif 
