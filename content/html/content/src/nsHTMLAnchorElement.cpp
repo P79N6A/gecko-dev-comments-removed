@@ -167,6 +167,7 @@ NS_IMPL_STRING_ATTR(nsHTMLAnchorElement, Rev, rev)
 NS_IMPL_STRING_ATTR(nsHTMLAnchorElement, Shape, shape)
 NS_IMPL_INT_ATTR(nsHTMLAnchorElement, TabIndex, tabindex)
 NS_IMPL_STRING_ATTR(nsHTMLAnchorElement, Type, type)
+NS_IMPL_STRING_ATTR(nsHTMLAnchorElement, AccessKey, accesskey)
 
 NS_IMETHODIMP
 nsHTMLAnchorElement::GetDraggable(PRBool* aDraggable)
@@ -195,6 +196,10 @@ nsHTMLAnchorElement::BindToTree(nsIDocument* aDocument, nsIContent* aParent,
                                                  aCompileEventHandlers);
   NS_ENSURE_SUCCESS(rv, rv);
 
+  if (aDocument) {
+    RegAccessKey();
+  }
+
   
   if (aDocument && nsHTMLDNSPrefetch::IsAllowed(GetOwnerDoc())) {
     nsHTMLDNSPrefetch::PrefetchLow(this);
@@ -209,7 +214,23 @@ nsHTMLAnchorElement::UnbindFromTree(PRBool aDeep, PRBool aNullParent)
   
   Link::ResetLinkState(false);
 
+  if (IsInDoc()) {
+    UnregAccessKey();
+  }
+
   nsGenericHTMLElement::UnbindFromTree(aDeep, aNullParent);
+}
+
+NS_IMETHODIMP
+nsHTMLAnchorElement::Blur()
+{
+  return nsGenericHTMLElement::Blur();
+}
+
+NS_IMETHODIMP
+nsHTMLAnchorElement::Focus()
+{
+  return nsGenericHTMLElement::Focus();
 }
 
 PRBool
@@ -380,6 +401,10 @@ nsHTMLAnchorElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
                              nsIAtom* aPrefix, const nsAString& aValue,
                              PRBool aNotify)
 {
+  if (aName == nsGkAtoms::accesskey && kNameSpaceID_None == aNameSpaceID) {
+    UnregAccessKey();
+  }
+
   bool reset = false;
   if (aName == nsGkAtoms::href && kNameSpaceID_None == aNameSpaceID) {
     
@@ -409,6 +434,12 @@ nsHTMLAnchorElement::SetAttr(PRInt32 aNameSpaceID, nsIAtom* aName,
     Link::ResetLinkState(!!aNotify);
   }
 
+  if (aName == nsGkAtoms::accesskey && kNameSpaceID_None == aNameSpaceID &&
+      !aValue.IsEmpty()) {
+    SetFlags(NODE_HAS_ACCESSKEY);
+    RegAccessKey();
+  }
+
   return rv;
 }
 
@@ -416,6 +447,13 @@ nsresult
 nsHTMLAnchorElement::UnsetAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                                PRBool aNotify)
 {
+  if (aAttribute == nsGkAtoms::accesskey &&
+      kNameSpaceID_None == aNameSpaceID) {
+    
+    UnregAccessKey();
+    UnsetFlags(NODE_HAS_ACCESSKEY);
+  }
+
   nsresult rv = nsGenericHTMLElement::UnsetAttr(aNameSpaceID, aAttribute,
                                                 aNotify);
 
