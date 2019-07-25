@@ -52,7 +52,6 @@
 #include "nsIChannelEventSink.h"
 #include "nsIObjectLoadingContent.h"
 #include "nsIRunnable.h"
-#include "nsIChannelClassifier.h"
 #include "nsIFrame.h"
 
 class nsAsyncInstantiateEvent;
@@ -333,13 +332,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
 
 
-    nsresult CheckClassifier(nsIChannel *aChannel);
-
-    
-
-
-
-
 
 
     static PluginSupportState
@@ -393,11 +385,6 @@ class nsObjectLoadingContent : public nsImageLoadingContent
 
     
     nsCOMPtr<nsIURI>            mURI;
-
-    
-
-
-    nsCOMPtr<nsIChannelClassifier> mClassifier;
 
     
 

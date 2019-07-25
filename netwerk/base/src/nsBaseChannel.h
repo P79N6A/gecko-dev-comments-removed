@@ -247,6 +247,9 @@ private:
   
   void HandleAsyncRedirect(nsIChannel* newChannel);
 
+  
+  void ClassifyURI();
+
   class RedirectRunnable : public nsRunnable
   {
   public:
