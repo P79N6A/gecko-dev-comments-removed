@@ -77,6 +77,16 @@ void EnableNetworkNotifications();
 
 void DisableNetworkNotifications();
 
+
+
+
+void EnableScreenOrientationNotifications();
+
+
+
+
+void DisableScreenOrientationNotifications();
+
 } 
 } 
 

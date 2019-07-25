@@ -16,6 +16,7 @@
 #include "mozilla/dom/network/Types.h"
 #include "mozilla/dom/power/Types.h"
 #include "mozilla/hal_sandbox/PHal.h"
+#include "mozilla/dom/ScreenOrientation.h"
 
 
 
@@ -36,7 +37,16 @@ class nsIDOMWindow;
 
 namespace mozilla {
 
+template <class T>
+class Observer;
+
+namespace dom {
+class ScreenOrientationWrapper;
+}
+
 namespace hal {
+
+typedef Observer<dom::ScreenOrientationWrapper> ScreenOrientationObserver;
 
 class WindowIdentifier;
 
@@ -289,6 +299,29 @@ void GetWakeLockInfo(const nsAString &aTopic, hal::WakeLockInformation *aWakeLoc
 
 
 void NotifyWakeLockChange(const hal::WakeLockInformation& aWakeLockInfo);
+
+
+
+
+
+void RegisterScreenOrientationObserver(hal::ScreenOrientationObserver* aScreenOrientationObserver);
+
+
+
+
+
+void UnregisterScreenOrientationObserver(hal::ScreenOrientationObserver* aScreenOrientationObserver);
+
+
+
+
+void GetCurrentScreenOrientation(dom::ScreenOrientation* aScreenOrientation);
+
+
+
+
+
+void NotifyScreenOrientationChange(const dom::ScreenOrientation& aScreenOrientation);
 
 } 
 } 
