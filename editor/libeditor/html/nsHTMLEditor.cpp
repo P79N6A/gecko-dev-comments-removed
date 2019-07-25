@@ -98,7 +98,6 @@
 
 #include "nsIFrame.h"
 #include "nsIParserService.h"
-#include "nsIEventStateManager.h"
 
 
 static char hrefText[] = "href";

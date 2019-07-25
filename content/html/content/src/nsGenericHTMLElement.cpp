@@ -86,7 +86,7 @@
 #include "nsString.h"
 #include "nsUnicharUtils.h"
 #include "nsGkAtoms.h"
-#include "nsIEventStateManager.h"
+#include "nsEventStateManager.h"
 #include "nsIDOMEvent.h"
 #include "nsIDOMNSEvent.h"
 #include "nsDOMCSSDeclaration.h"
@@ -1056,9 +1056,8 @@ nsGenericHTMLElement::CheckHandleEventForAnchorsPreconditions(nsEventChainVisito
   
   
   
-  nsCOMPtr<nsIContent> target;
-  aVisitor.mPresContext->EventStateManager()->
-    GetEventTargetContent(aVisitor.mEvent, getter_AddRefs(target));
+  nsCOMPtr<nsIContent> target = aVisitor.mPresContext->EventStateManager()->
+    GetEventTargetContent(aVisitor.mEvent);
 
   return !target || !IsArea(target) || IsArea(this);
 }
@@ -3353,7 +3352,7 @@ nsGenericHTMLElement::RegUnRegAccessKey(PRBool aDoReg)
   nsPresContext *presContext = GetPresContext();
 
   if (presContext) {
-    nsIEventStateManager *esm = presContext->EventStateManager();
+    nsEventStateManager *esm = presContext->EventStateManager();
 
     
     if (aDoReg) {

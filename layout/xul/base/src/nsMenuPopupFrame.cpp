@@ -73,7 +73,7 @@
 #include "nsLayoutUtils.h"
 #include "nsContentUtils.h"
 #include "nsCSSFrameConstructor.h"
-#include "nsIEventStateManager.h"
+#include "nsEventStateManager.h"
 #include "nsIBoxLayout.h"
 #include "nsIPopupBoxObject.h"
 #include "nsPIWindowRoot.h"
@@ -833,7 +833,7 @@ nsMenuPopupFrame::HidePopup(PRBool aDeselectMenu, nsPopupState aNewState)
   
   
   
-  nsIEventStateManager *esm = PresContext()->EventStateManager();
+  nsEventStateManager *esm = PresContext()->EventStateManager();
 
   nsEventStates state = esm->GetContentState(mContent);
 
