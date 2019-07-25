@@ -401,7 +401,7 @@ nsCOMPtr_base
           
         }
 
-      NS_COM_GLUE ~nsCOMPtr_base()
+      NS_COM_GLUE NS_CONSTRUCTOR_FASTCALL ~nsCOMPtr_base()
         {
           NSCAP_LOG_RELEASE(this, mRawPtr);
             if ( mRawPtr )
