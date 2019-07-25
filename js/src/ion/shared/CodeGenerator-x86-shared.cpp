@@ -766,7 +766,7 @@ bool
 CodeGeneratorX86Shared::visitNewArray(LNewArray *ins)
 {
     static const VMFunction NewInitArrayInfo =
-        FunctionInfo<JSObject *, uint32, types::TypeObject *, NewInitArray>();
+        FunctionInfo3<JSObject *, uint32, types::TypeObject *, NewInitArray>();
 
     
     
@@ -805,24 +805,53 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         return false;
 
     
-    
-    masm.movl(Operand(objreg, offsetof(JSFunction, flags)), tokreg);
-    masm.andl(Imm32(JSFUN_KINDMASK), tokreg);
-    masm.cmpl(tokreg, Imm32(JSFUN_INTERPRETED));
-    if (!bailoutIf(Assembler::Below, call->snapshot()))
-        return false;
+    masm.mov(objreg, tokreg);
+
+    Label end, invoke;
 
     
-    masm.mov(objreg, tokreg);
+    
+    masm.movl(Operand(objreg, offsetof(JSFunction, flags)), nargsreg);
+    masm.andl(Imm32(JSFUN_KINDMASK), nargsreg);
+    masm.cmpl(nargsreg, Imm32(JSFUN_INTERPRETED));
+    
+    masm.branch32(Assembler::Below, nargsreg, Imm32(JSFUN_INTERPRETED), &invoke);
 
     
     masm.movePtr(Operand(objreg, offsetof(JSFunction, u.i.script_)), objreg);
     masm.movePtr(Operand(objreg, offsetof(JSScript, ion)), objreg);
 
     
-    masm.cmpPtr(objreg, ImmWord(ION_DISABLED_SCRIPT));
-    if (!bailoutIf(Assembler::BelowOrEqual, call->snapshot()))
-        return false;
+    Label compiled;
+    
+    masm.branchPtr(Assembler::BelowOrEqual, objreg, ImmWord(ION_DISABLED_SCRIPT), &invoke);
+    
+    masm.jmp(&compiled);
+    {
+        masm.bind(&invoke);
+
+        static const VMFunction InvokeFunctionInfo = 
+            FunctionInfo5<bool, JSFunction *, uint32, Value *, Value *, InvokeFunction>();
+
+        
+        if (unused_stack)
+            masm.addPtr(Imm32(unused_stack), StackPointer);
+
+        pushArg(StackPointer);          
+        pushArg(Imm32(call->nargs()));  
+        pushArg(tokreg);                
+
+        if (!callVM(InvokeFunctionInfo, call))
+            return false;
+
+        
+        if (unused_stack)
+            masm.subPtr(Imm32(unused_stack), StackPointer);
+
+        
+        masm.jump(&end);
+    }
+    masm.bind(&compiled);
 
     
     uint32 stack_size = masm.framePushed() - unused_stack;
@@ -877,6 +906,8 @@ CodeGeneratorX86Shared::visitCallGeneric(LCallGeneric *call)
         masm.addPtr(Imm32(restore_diff), StackPointer);
     else if (restore_diff < 0)
         masm.subPtr(Imm32(-restore_diff), StackPointer);
+
+    masm.bind(&end);
 
     return true;
 }
