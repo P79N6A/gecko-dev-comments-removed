@@ -247,9 +247,9 @@ function run_test() {
 
   
   
-  let force = updatesDir.clone();
-  force.append(CHANNEL_CHANGE_FILE);
-  force.create(AUS_Ci.nsIFile.FILE_TYPE, PERMS_FILE);
+  let channelchange = updatesDir.clone();
+  channelchange.append(CHANNEL_CHANGE_FILE);
+  channelchange.create(AUS_Ci.nsIFile.FILE_TYPE, PERMS_FILE);
 
   
   
