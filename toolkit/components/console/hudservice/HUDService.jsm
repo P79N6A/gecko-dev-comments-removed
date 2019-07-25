@@ -1916,7 +1916,9 @@ HUD_SERVICE.prototype =
     let klass = "hud-msg-node hud-" + aLevel;
     messageNode.setAttribute("class", klass);
 
-    let message = Array.join(aArguments, " ") + "\n";
+    let mappedArguments = Array.map(aArguments, hud.jsterm.formatResult,
+                                    hud.jsterm);
+    let message = Array.join(mappedArguments, " ") + "\n";
     let ts = ConsoleUtils.timestamp();
     let timestampedMessage = ConsoleUtils.timestampString(ts) + ": " + message;
     messageNode.appendChild(hud.chromeDocument.createTextNode(timestampedMessage));
@@ -3804,6 +3806,7 @@ function JSTermHelper(aJSTerm)
 
   aJSTerm.sandbox.clear = function JSTH_clear()
   {
+    aJSTerm.helperEvaluated = true;
     aJSTerm.clearOutput();
   };
 
@@ -3852,6 +3855,7 @@ function JSTermHelper(aJSTerm)
 
   aJSTerm.sandbox.help = function JSTH_help()
   {
+    aJSTerm.helperEvaluated = true;
     aJSTerm._window.open(
         "https://developer.mozilla.org/AppLinks/WebConsoleHelp?locale=" +
         aJSTerm._window.navigator.language, "help", "");
@@ -3866,6 +3870,7 @@ function JSTermHelper(aJSTerm)
 
   aJSTerm.sandbox.inspect = function JSTH_inspect(aObject)
   {
+    aJSTerm.helperEvaluated = true;
     aJSTerm.openPropertyPanel(null, unwrap(aObject));
   };
 
@@ -3878,6 +3883,7 @@ function JSTermHelper(aJSTerm)
 
   aJSTerm.sandbox.pprint = function JSTH_pprint(aObject)
   {
+    aJSTerm.helperEvaluated = true;
     if (aObject === null || aObject === undefined || aObject === true || aObject === false) {
       aJSTerm.console.error(HUDService.getStr("helperFuncUnsupportedTypeError"));
       return;
@@ -3890,6 +3896,19 @@ function JSTermHelper(aJSTerm)
     });
 
     aJSTerm.writeOutput(output.join("\n"));
+  };
+
+  
+
+
+
+
+
+
+  aJSTerm.sandbox.print = function JSTH_print(aString)
+  {
+    aJSTerm.helperEvaluated = true;
+    aJSTerm.writeOutput(aString);
   };
 }
 
@@ -4020,16 +4039,21 @@ JSTerm.prototype = {
     this.writeOutput(aExecuteString, true);
 
     try {
-      var result = this.evalInSandbox(aExecuteString);
+      this.helperEvaluated = false;
+      let result = this.evalInSandbox(aExecuteString);
 
-      if (result || result === false) {
-        this.writeOutputJS(aExecuteString, result);
-      }
-      else if (result === undefined) {
-        this.writeOutput("undefined", false);
-      }
-      else if (result === null) {
-        this.writeOutput("null", false);
+      
+      let shouldShow = !(result === undefined && this.helperEvaluated);
+      if (shouldShow) {
+        let inspectable = this.isResultInspectable(result);
+        let resultString = this.formatResult(result);
+
+        if (inspectable) {
+          this.writeOutputJS(aExecuteString, result, resultString);
+        }
+        else {
+          this.writeOutput(resultString);
+        }
       }
     }
     catch (ex) {
@@ -4125,7 +4149,9 @@ JSTerm.prototype = {
 
 
 
-  writeOutputJS: function JST_writeOutputJS(aEvalString, aOutputObject)
+
+
+  writeOutputJS: function JST_writeOutputJS(aEvalString, aOutputObject, aOutputString)
   {
     let lastGroupNode = HUDService.appendGroupIfNecessary(this.outputNode,
                                                       Date.now());
@@ -4154,10 +4180,7 @@ JSTerm.prototype = {
       }
     }, false);
 
-    
-    
-    
-    let textNode = this.textFactory(aOutputObject + "\n");
+    let textNode = this.textFactory(aOutputString + "\n");
     node.appendChild(textNode);
 
     lastGroupNode.appendChild(node);
@@ -4200,6 +4223,118 @@ JSTerm.prototype = {
     node.appendChild(textNode);
     lastGroupNode.appendChild(node);
     pruneConsoleOutputIfNecessary(this.outputNode);
+  },
+
+  
+
+
+
+
+
+
+
+  formatResult: function JST_formatResult(aResult)
+  {
+    let output = "";
+    let type = this.getResultType(aResult);
+
+    switch (type) {
+      case "string":
+        output = this.formatString(aResult);
+        break;
+      case "boolean":
+      case "date":
+      case "error":
+      case "number":
+      case "regexp":
+        output = aResult.toString();
+        break;
+      case "null":
+      case "undefined":
+        output = type;
+        break;
+      default:
+        if (aResult.toSource) {
+          try {
+            output = aResult.toSource();
+          } catch (ex) { }
+        }
+        if (!output || output == "({})") {
+          output = aResult.toString();
+        }
+        break;
+    }
+
+    return output;
+  },
+  
+  
+
+
+
+
+
+
+
+  formatString: function JST_formatString(aString)
+  {
+    function isControlCode(c) {
+      
+      
+      
+      
+      return (c <= 0x1F) || (0x7F <= c && c <= 0xA0);
+    }
+
+    function replaceFn(aMatch, aType, aHex) {
+      
+      let c = parseInt(aHex, 16);
+      return isControlCode(c) ? aMatch : String.fromCharCode(c);
+    }
+
+    let output = uneval(aString).replace(/\\(x)([0-9a-fA-F]{2})/g, replaceFn)
+                 .replace(/\\(u)([0-9a-fA-F]{4})/g, replaceFn);
+
+    return output;
+  },
+
+  
+
+
+
+
+
+
+
+  isResultInspectable: function JST_isResultInspectable(aResult)
+  {
+    let isEnumerable = false;
+
+    for (let p in aResult) {
+      isEnumerable = true;
+      break;
+    }
+
+    return isEnumerable && typeof(aResult) != "string";
+  },
+
+  
+
+
+
+
+
+
+
+
+  getResultType: function JST_getResultType(aResult)
+  {
+    let type = aResult === null ? "null" : typeof aResult;
+    if (type == "object" && aResult.constructor && aResult.constructor.name) {
+      type = aResult.constructor.name;
+    }
+
+    return type.toLowerCase();
   },
 
   clearOutput: function JST_clearOutput()
