@@ -1287,7 +1287,7 @@ TypeConstraintTransformThis::newType(JSContext *cx, TypeSet *source, jstype type
         object = script->getTypeNewObject(cx, JSProto_String);
         break;
       default:
-        JS_NOT_REACHED("Bad type");
+        return;
     }
 
     if (!object) {
@@ -3881,7 +3881,6 @@ ScriptAnalysis::analyzeTypesBytecode(JSContext *cx, unsigned offset,
       case JSOP_DELPROP:
       case JSOP_DELELEM:
       case JSOP_DELNAME:
-        
         pushed[0].addType(cx, TYPE_BOOLEAN);
         break;
 
