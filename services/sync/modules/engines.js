@@ -183,7 +183,78 @@ Engine.prototype = {
   sync: function Engine_sync() {
     if (!this._sync)
       throw "engine does not implement _sync method";
-    this._notify("sync", this.name, this._sync)();
+
+    let times = {};
+    let wrapped = {};
+    
+    for (let _name in this) {
+      let name = _name;
+
+      
+      if (name.search(/^_(.+Obj|notify)$/) == 0)
+        continue;
+
+      
+      if (typeof this[name] == "function") {
+        times[name] = [];
+        wrapped[name] = this[name];
+
+        
+        this[name] = function() {
+          let start = Date.now();
+          try {
+            return wrapped[name].apply(this, arguments);
+          }
+          finally {
+            times[name].push(Date.now() - start);
+          }
+        };
+      }
+    }
+
+    try {
+      this._notify("sync", this.name, this._sync)();
+    }
+    finally {
+      
+      for (let [name, func] in Iterator(wrapped))
+        this[name] = func;
+
+      let stats = {};
+      for (let [name, time] in Iterator(times)) {
+        
+        let num = time.length;
+        if (num == 0)
+          continue;
+
+        
+        let stat = {
+          num: num,
+          sum: 0
+        };
+        time.forEach(function(val) {
+          if (val < stat.min || stat.min == null)
+            stat.min = val;
+          if (val > stat.max || stat.max == null)
+            stat.max = val;
+          stat.sum += val;
+        });
+
+        stat.avg = Number((stat.sum / num).toFixed(2));
+        stats[name] = stat;
+      }
+
+      stats.toString = function() {
+        let sums = [];
+        for (let [name, stat] in Iterator(this))
+          if (stat.sum != null)
+            sums.push(name.replace(/^_/, "") + " " + stat.sum);
+
+        return "Total (ms): " + sums.sort().join(", ");
+      };
+
+      this._log.info(stats);
+    }
   },
 
   wipeServer: function Engine_wipeServer() {
@@ -299,6 +370,12 @@ SyncEngine.prototype = {
 
   
   _processIncoming: function SyncEngine__processIncoming() {
+    
+    if (this.lastModified <= this.lastSync) {
+      this._log.debug("Nothing new from the server to process");
+      return;
+    }
+
     this._log.debug("Downloading & applying server changes");
 
     
