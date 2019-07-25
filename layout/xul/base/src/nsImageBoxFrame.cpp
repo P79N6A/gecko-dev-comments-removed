@@ -287,6 +287,10 @@ nsImageBoxFrame::UpdateImage()
   if (!mImageRequest) {
     
     mIntrinsicSize.SizeTo(0, 0);
+  } else {
+    
+    mImageRequest->RequestDecode();
+    mImageRequest->LockImage();
   }
 }
 

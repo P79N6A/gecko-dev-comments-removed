@@ -2217,6 +2217,10 @@ nsTreeBodyFrame::GetImage(PRInt32 aRowIndex, nsTreeColumn* aCol, PRBool aUseCont
       return NS_ERROR_FAILURE;
 
     
+    imageRequest->RequestDecode();
+    imageRequest->LockImage();
+
+    
     imageRequest->GetImage(aResult);
     nsTreeImageCacheEntry cacheEntry(imageRequest, imgDecoderObserver);
     mImageCache.Put(imageSrc, cacheEntry);
