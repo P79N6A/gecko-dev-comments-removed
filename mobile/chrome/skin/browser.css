@@ -1,0 +1,275 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+@import url(chrome://global/skin/);
+
+
+popup,
+panel,
+menupopup {
+  padding: 16px !important;
+}
+
+menu,
+menuitem {
+  padding: 0px !important;
+  margin: 0px !important;
+  font-family: "Nokia Sans", sans-serif !important;
+  font-size: 16.75pt !important;
+}
+
+.menu-text {
+  padding-start-value: 0px !important;
+}
+
+label,
+description,
+textbox {
+  font-family: "Nokia Sans", sans-serif !important;
+  font-size: 16.75pt !important;
+}
+
+richlistitem {
+  font-family: "Nokia Sans", sans-serif !important;
+  font-size: 16.75pt !important;
+}
+
+
+
+toolbar {
+  height: 55px;
+  background-color: rgb(247, 247, 247) !important;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+
+toolbar[mode="icons"] .toolbarbutton-text {
+  display: none !important;
+}
+
+toolbar[mode="text"] .toolbarbutton-icon {
+  display: none;
+}
+
+toolbarbutton {
+  -moz-appearance: none !important;
+  -moz-box-orient: vertical;
+  min-width: 0px;
+  padding: 5px !important;
+  margin: 0px !important;
+  -moz-margin-end: 0px;
+  list-style-image: url("chrome://browser/skin/images/toolbar.png");
+}
+
+toolbarbutton:hover,
+toolbarbutton:hover:active,
+toolbarbutton[open="true"] {
+  border-color: transparent;
+}
+
+#tool_back {
+  -moz-image-region: rect(0px 24px 24px 0px);
+  
+}
+
+#tool_back[disabled="true"] {
+  -moz-image-region: rect(48px 24px 72px 0px);
+  
+}
+
+#tool_forward {
+  -moz-image-region: rect(0px 48px 24px 24px);
+  
+}
+
+#tool_forward[disabled="true"] {
+  -moz-image-region: rect(48px 48px 72px 24px);
+  
+}
+
+#tool_reload {
+  -moz-image-region: rect(0px 96px 24px 72px);
+  
+}
+
+#tool_reload[disabled="true"] {
+  -moz-image-region: rect(48px 96px 72px 72px);
+  
+}
+
+#tool_stop {
+  -moz-image-region: rect(0px 72px 24px 48px);
+  
+}
+
+#tool_stop[disabled="true"] {
+  -moz-image-region: rect(48px 72px 72px 48px);
+  
+}
+
+#tool_search {
+  list-style-image: url(chrome://browser/skin/images/search-glass.png);
+}
+
+#tool_go {
+  list-style-image: url(chrome://browser/skin/images/go-arrow.png);
+}
+
+#tool_star {
+  list-style-image: url(chrome://browser/skin/images/star-page.png);
+}
+
+#tool_star[starred="true"] {
+  list-style-image: url(chrome://browser/skin/images/page-starred.png);
+}
+
+#tool_bookmarks {
+  -moz-image-region: rect(0px 192px 24px 168px);
+  
+}
+
+#urlbar-container {
+  -moz-box-orient: horizontal;
+  -moz-box-align: center;
+  background-color: #fff;
+  border: 1px solid #000;
+  -moz-border-radius: 14px;
+  margin: 8px 8px 8px 4px;
+}
+
+
+#urlbar-image-stack {
+  width: 24px;
+  height: 24px;
+  margin: 2px 2px 2px 4px;
+}
+
+
+#urlbar-icons {
+  height: 26px;
+  -moz-box-align: center;
+  -moz-padding-end: 2px;
+}
+
+#urlbar {
+  -moz-appearance: none !important;
+  padding: 0px !important;
+  border: none !important;
+}
+
+#urlbar > .autocomplete-history-popup {
+  -moz-appearance: none !important;
+}
+
+
+#bookmark_edit {
+  padding: 4px;
+}
+
+#bookmark_star {
+  list-style-image: url("chrome://browser/skin/images/starred48.png");
+  width: 48px;
+  height: 48px;
+}
+
+#bookmark_title {
+  font-size: 130%;
+}
+
+
+#bookmark_picker {
+  -moz-appearance: none !important;
+  background-color: #fff;
+  border: 1px solid #000 !important;
+  padding: 0px !important;
+  width: 500px;
+}
+
+#bookmark_list {
+  -moz-appearance: none !important;
+  border:  none !important;
+}
+
+.bookmarklist-item {
+  -moz-appearance: none !important;
+  border-top: 1px dotted rgb(192, 192, 192);
+  margin: 2px;
+}
+
+.bookmarklist-item:first-child {
+  border-top: none;
+}
+
+.bookmarklist-item:hover {
+  background-color: Highlight;
+  color: HighlightText;
+}
+
+.bookmarklist-image {
+  width: 24px;
+  height: 24px;
+}
+
+.deckbrowser-tabspace {
+  background-color: #9c9a9c;
+}
+
+.deckbrowser-title {
+  color: #fff;
+  font-size: 2.5em;
+}
+
+.deckbrowser-uri {
+  color: lightgray;
+  font-size: 1.5em;
+}
+
+.deckpage-container {
+  margin: 10px;
+}
+
+.deckpage-close {
+  width: 24px;
+  height: 24px;
+  -moz-image-region: rect(0px, 16px, 16px, 0px);
+  list-style-image: url(chrome://browser/skin/images/close.png);
+}
+
+.deckpage-close:hover {
+  -moz-image-region: rect(0px, 32px, 16px, 16px);
+}
