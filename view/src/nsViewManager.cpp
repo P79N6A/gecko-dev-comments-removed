@@ -480,13 +480,6 @@ nsViewManager::InvalidateWidgetArea(nsView *aWidgetView,
 #endif
 
   
-  nsRegion intersection;
-  intersection.And(aWidgetView->GetInvalidationDimensions(), aDamagedRegion);
-  if (intersection.IsEmpty()) {
-    return;
-  }
-
-  
   if (widget) {
     bool visible;
     widget->IsVisible(visible);
@@ -542,7 +535,7 @@ nsViewManager::InvalidateWidgetArea(nsView *aWidgetView,
   }
 
   nsRegion leftOver;
-  leftOver.Sub(intersection, children);
+  leftOver.Sub(aDamagedRegion, children);
 
   if (!leftOver.IsEmpty()) {
     const nsRect* r;
@@ -1321,12 +1314,7 @@ nsIntRect nsViewManager::ViewToWidget(nsView *aView, const nsRect &aRect) const
   NS_ASSERTION(aView->GetViewManager() == this, "wrong view manager");
 
   
-  nsRect bounds = aView->GetInvalidationDimensions();
-  nsRect rect;
-  rect.IntersectRect(aRect, bounds);
-
-  
-  rect += aView->ViewToWidgetOffset();
+  nsRect rect = aRect + aView->ViewToWidgetOffset();
 
   
   return rect.ToOutsidePixels(AppUnitsPerDevPixel());

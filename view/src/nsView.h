@@ -76,7 +76,6 @@ public:
 
   virtual void SetDimensions(const nsRect &aRect, bool aPaint = true,
                              bool aResizeWidget = true);
-  void SetInvalidationDimensions(const nsRect* aRect);
 
   
 
@@ -149,10 +148,6 @@ public:
   
   nsRect GetBoundsInParentUnits() const;
 
-  nsRect GetInvalidationDimensions() const {
-    return mHaveInvalidationDimensions ? mInvalidationDimensions : GetDimensions();
-  }
-
   
   
 
@@ -205,13 +200,6 @@ protected:
   void DoResetWidgetBounds(bool aMoveOnly, bool aInvalidateChangedSize);
 
   nsRegion*    mDirtyRegion;
-  
-  
-  
-  
-  
-  nsRect       mInvalidationDimensions;
-  bool mHaveInvalidationDimensions;
 
 private:
   void InitializeWindow(bool aEnableDragDrop, bool aResetVisibility);

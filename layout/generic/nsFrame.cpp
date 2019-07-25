@@ -4553,6 +4553,10 @@ void
 nsIFrame::InvalidateInternalAfterResize(const nsRect& aDamageRect, nscoord aX,
                                         nscoord aY, PRUint32 aFlags)
 {
+  if (aDamageRect.IsEmpty()) {
+    return;
+  }
+
   
 
 
