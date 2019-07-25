@@ -694,8 +694,7 @@ pref("network.http.redirection-limit", 20);
 
 
 
-
-pref("network.http.accept-encoding", "gzip, deflate");
+pref("network.http.accept-encoding" ,"gzip, deflate");
 
 pref("network.http.pipelining"      , false);
 pref("network.http.pipelining.ssl"  , false); 
@@ -3117,11 +3116,6 @@ pref("image.mem.discardable", false);
 
 
 pref("image.mem.decodeondraw", false);
-
-
-
-
-pref("image.mem.min_discard_timeout_ms", 10000);
 
 
 pref("webgl.enabled_for_all_sites", false);
