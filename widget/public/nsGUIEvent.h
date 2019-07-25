@@ -1560,6 +1560,13 @@ public:
   {
   }
 
+  nsSimpleGestureEvent(const nsSimpleGestureEvent& other)
+    : nsMouseEvent_base((other.flags & NS_EVENT_FLAG_TRUSTED) != 0,
+                        other.message, other.widget, NS_SIMPLE_GESTURE_EVENT),
+      direction(other.direction), delta(other.delta)
+  {
+  }
+
   PRUint32 direction;   
   PRFloat64 delta;      
 };

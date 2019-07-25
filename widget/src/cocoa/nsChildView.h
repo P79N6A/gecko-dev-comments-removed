@@ -168,6 +168,49 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 - (long long)_scrollPhase;
 @end
 
+
+
+
+
+
+
+#ifdef __LP64__
+enum {
+  NSEventPhaseNone        = 0,
+  NSEventPhaseBegan       = 0x1 << 0,
+  NSEventPhaseStationary  = 0x1 << 1,
+  NSEventPhaseChanged     = 0x1 << 2,
+  NSEventPhaseEnded       = 0x1 << 3,
+  NSEventPhaseCancelled   = 0x1 << 4,
+};
+typedef NSUInteger NSEventPhase;
+
+enum {
+  NSEventSwipeTrackingLockDirection = 0x1 << 0,
+  NSEventSwipeTrackingClampGestureAmount = 0x1 << 1
+};
+typedef NSUInteger NSEventSwipeTrackingOptions;
+
+enum {
+  NSEventGestureAxisNone = 0,
+  NSEventGestureAxisHorizontal,
+  NSEventGestureAxisVertical
+};
+typedef NSInteger NSEventGestureAxis;
+
+@interface NSEvent (FluidSwipeTracking)
++ (BOOL)isSwipeTrackingFromScrollEventsEnabled;
+- (BOOL)hasPreciseScrollingDeltas;
+- (CGFloat)scrollingDeltaX;
+- (CGFloat)scrollingDeltaY;
+- (NSEventPhase)phase;
+- (void)trackSwipeEventWithOptions:(NSEventSwipeTrackingOptions)options
+          dampenAmountThresholdMin:(CGFloat)minDampenThreshold
+                               max:(CGFloat)maxDampenThreshold
+                      usingHandler:(void (^)(CGFloat gestureAmount, NSEventPhase phase, BOOL isComplete, BOOL *stop))trackingHandler;
+@end
+#endif 
+
 @interface ChildView : NSView<
 #ifdef ACCESSIBILITY
                               mozAccessible,
@@ -239,6 +282,11 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
   float mCumulativeRotation;
 
   BOOL mDidForceRefreshOpenGL;
+
+  
+#ifdef __LP64__
+  BOOL *mSwipeAnimationCancelled;
+#endif
 }
 
 
@@ -286,6 +334,12 @@ extern "C" long TSMProcessRawKeyEvent(EventRef carbonEvent);
 - (void)magnifyWithEvent:(NSEvent *)anEvent;
 - (void)rotateWithEvent:(NSEvent *)anEvent;
 - (void)endGestureWithEvent:(NSEvent *)anEvent;
+
+
+#ifdef __LP64__
+- (void)maybeTrackScrollEventAsSwipe:(NSEvent *)anEvent
+                      scrollOverflow:(PRInt32)overflow;
+#endif
 @end
 
 class ChildViewMouseTracker {
