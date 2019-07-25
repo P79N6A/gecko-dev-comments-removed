@@ -1034,7 +1034,7 @@ struct nsRecessedBorder : public nsStyleBorder {
       
       
       SetBorderColor(side, NS_RGB(0, 0, 0));
-      mBorder.side(side) = aBorderWidth;
+      mBorder.Side(side) = aBorderWidth;
       
       
       SetBorderStyle(side, NS_STYLE_BORDER_STYLE_INSET);
