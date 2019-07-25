@@ -469,8 +469,9 @@ WidgetStack.prototype = {
     state.widget.setAttribute("top", y);
   },
 
-  get viewingRect() {
-    return this._viewingRect.clone();
+  
+  get viewportVisibleRect () {
+    return this._viewportBounds.intersect(this._viewingRect)
   },
 
   
