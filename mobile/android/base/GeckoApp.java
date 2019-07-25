@@ -1170,22 +1170,7 @@ abstract public class GeckoApp
                     }
                 });
             } else if (event.equals("Accessibility:Ready")) {
-                mMainHandler.post(new Runnable() {
-                    public void run() {
-                        JSONObject ret = new JSONObject();
-                        AccessibilityManager accessibilityManager =
-                            (AccessibilityManager) mAppContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
-                        try {
-                            ret.put("enabled", accessibilityManager.isEnabled());
-                            
-                            ret.put("exploreByTouch", false);
-                        } catch (Exception ex) {
-                            Log.e(LOGTAG, "Error building JSON arguments for Accessibility:Ready:", ex);
-                        }
-                        GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:Settings",
-                                                                                       ret.toString()));
-                    }
-                });
+                updateAccessibilitySettings();
             } else if (event.equals("Shortcut:Remove")) {
                 final String url = message.getString("url");
                 final String title = message.getString("title");
@@ -1495,6 +1480,28 @@ abstract public class GeckoApp
                 }
             }
         });
+    }
+
+    public void updateAccessibilitySettings () {
+        mMainHandler.post(new Runnable() {
+                public void run() {
+                    JSONObject ret = new JSONObject();
+                    AccessibilityManager accessibilityManager =
+                        (AccessibilityManager) mAppContext.getSystemService(Context.ACCESSIBILITY_SERVICE);
+                    try {
+                        ret.put("enabled", accessibilityManager.isEnabled());
+                        if (Build.VERSION.SDK_INT >= 14) { 
+                            ret.put("exploreByTouch", accessibilityManager.isTouchExplorationEnabled());
+                        } else {
+                            ret.put("exploreByTouch", false);
+                        }
+                    } catch (Exception ex) {
+                        Log.e(LOGTAG, "Error building JSON arguments for Accessibility:Settings:", ex);
+                    }
+                    GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Accessibility:Settings",
+                                                                                   ret.toString()));
+                }
+            });
     }
 
     public Surface createSurface() {
@@ -2086,6 +2093,9 @@ abstract public class GeckoApp
             mOrientation = newOrientation;
             refreshChrome();
         }
+
+        
+        updateAccessibilitySettings();
     }
 
     @Override
