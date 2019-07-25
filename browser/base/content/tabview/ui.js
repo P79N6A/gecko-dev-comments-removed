@@ -67,6 +67,10 @@ let UI = {
 
   
   
+  restoredClosedTab : false,
+
+  
+  
   
   _reorderTabItemsOnShow : [],
 
@@ -169,7 +173,6 @@ let UI = {
       this._addTabActionHandlers();
 
       
-
       GroupItems.pauseArrange();
       GroupItems.init();
 
@@ -710,14 +713,25 @@ let UI = {
 
     
     if (this.isTabViewVisible() &&
-        (this._closedLastVisibleTab || this._closedSelectedTabInTabView)) {
+        (this._closedLastVisibleTab || this._closedSelectedTabInTabView ||
+         this.restoredClosedTab)) {
+      if (this.restoredClosedTab) {
+        
+        
+        tab.linkedBrowser.addEventListener("load", function (event) {
+          tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
+          TabItems._update(tab);
+        }, true);
+      }
       this._closedLastVisibleTab = false;
       this._closedSelectedTabInTabView = false;
+      this.restoredClosedTab = false;
       return;
     }
     
     this._closedLastVisibleTab = false;
     this._closedSelectedTabInTabView = false;
+    this.restoredClosedTab = false;
 
     
     
@@ -734,7 +748,7 @@ let UI = {
 
     if (currentTab && currentTab.tabItem)
       oldItem = currentTab.tabItem;
-      
+
     
     if (tab && tab.tabItem) {
       newItem = tab.tabItem;
@@ -1193,16 +1207,51 @@ let UI = {
     }
 
     if (!zoomedIn) {
+      let unhiddenGroups = GroupItems.groupItems.filter(function(groupItem) {
+        return (!groupItem.hidden && groupItem.getChildren().length > 0);
+      });
+      
+      
+      if (unhiddenGroups.length == 0 && GroupItems.getOrphanedTabs().length == 0 &&
+          gBrowser._numPinnedTabs == 0) {
+        let box = new Rect(20, 20, 250, 200);
+        let groupItem = new GroupItem([], { bounds: box, immediately: true });
+        groupItem.newTab();
+        return;
+      }
+
       
       
       let activeTabItem = this.getActiveTab();
-      if (!activeTabItem)
-        activeTabItem = gBrowser.selectedTab.tabItem;
+      if (!activeTabItem) {
+        let tabItem = gBrowser.selectedTab.tabItem;
+        if (tabItem) {
+          if (!tabItem.parent || !tabItem.parent.hidden) {
+            activeTabItem = tabItem;
+          } else { 
+            if (unhiddenGroups.length > 0)
+              activeTabItem = unhiddenGroups[0].getActiveTab();
+          }
+        }
+      }
 
-      if (activeTabItem)
+      if (activeTabItem) {
         activeTabItem.zoomIn();
-      else
-        self.goToTab(gBrowser.selectedTab);
+      } else {
+        if (gBrowser._numPinnedTabs > 0) {
+          if (gBrowser.selectedTab.pinned) {
+            self.goToTab(gBrowser.selectedTab);
+          } else {
+            Array.some(gBrowser.tabs, function(tab) {
+              if (tab.pinned) {
+                self.goToTab(tab);
+                return true;
+              }
+              return false
+            });
+          }
+        }
+      }
     }
   },
 
