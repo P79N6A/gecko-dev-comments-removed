@@ -7,6 +7,10 @@
 
 #include "chromium_types.h"
 #include "gfxCore.h"
+
+#ifdef __arm__
+#define HAVE_YCBCR_TO_RGB565 1
+#endif
  
 namespace mozilla {
 
@@ -40,6 +44,21 @@ enum ScaleFilter {
   FILTER_BILINEAR_V = 2,  
   FILTER_BILINEAR = 3     
 };
+
+
+
+NS_GFX_(void) ConvertYCbCrToRGB565(const uint8* yplane,
+                                  const uint8* uplane,
+                                  const uint8* vplane,
+                                  uint8* rgbframe,
+                                  int pic_x,
+                                  int pic_y,
+                                  int pic_width,
+                                  int pic_height,
+                                  int ystride,
+                                  int uvstride,
+                                  int rgbstride,
+                                  YUVType yuv_type);
 
 
 
