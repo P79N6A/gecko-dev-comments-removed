@@ -387,8 +387,6 @@ protected:
   PRUint32 mMClickCount;
   PRUint32 mRClickCount;
 
-  PRPackedBool mNormalLMouseEventInProcess;
-
   PRPackedBool m_haveShutdown;
 
   
@@ -399,6 +397,8 @@ protected:
   PRPackedBool mLastLineScrollConsumedY;
 
   static PRInt32 sUserInputEventDepth;
+  
+  static PRBool sNormalLMouseEventInProcess;
 
   
   PRBool mClickHoldContextMenu;
