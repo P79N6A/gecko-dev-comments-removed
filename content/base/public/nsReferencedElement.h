@@ -89,7 +89,10 @@ public:
 
 
 
-  void Reset(nsIContent* aFrom, nsIURI* aURI, PRBool aWatch = PR_TRUE);
+
+
+  void Reset(nsIContent* aFrom, nsIURI* aURI, PRBool aWatch = PR_TRUE,
+             PRBool aReferenceImage = PR_FALSE);
 
   
 
@@ -208,6 +211,7 @@ private:
   nsCOMPtr<nsIDocument>  mWatchDocument;
   nsRefPtr<Element> mElement;
   nsRefPtr<Notification> mPendingNotification;
+  PRPackedBool           mReferencingImage;
 };
 
 #endif 

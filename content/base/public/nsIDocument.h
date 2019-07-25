@@ -118,8 +118,8 @@ class Element;
 
 
 #define NS_IDOCUMENT_IID      \
-{ 0xda512fdc, 0x2d83, 0x44b0, \
-  { 0xb0, 0x99, 0x00, 0xc6, 0xbb, 0x72, 0x39, 0xed } }
+{ 0xb2274bc3, 0x4a1c, 0x4e64, \
+  { 0x8d, 0xe4, 0x3b, 0xc6, 0x50, 0x28, 0x84, 0x38 } }
 
 
 #define NS_STYLESHEET_FROM_CATALOG                (1 << 0)
@@ -317,13 +317,18 @@ public:
 
 
 
+
+
+
+
   virtual Element* AddIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
-                                       void* aData) = 0;
+                                       void* aData, PRBool aForImage) = 0;
   
 
 
-  virtual void RemoveIDTargetObserver(nsIAtom* aID,
-                                      IDTargetObserver aObserver, void* aData) = 0;
+
+  virtual void RemoveIDTargetObserver(nsIAtom* aID, IDTargetObserver aObserver,
+                                      void* aData, PRBool aForImage) = 0;
 
   
 
@@ -675,13 +680,10 @@ public:
   
 
 
-  virtual void AddToIdTable(mozilla::dom::Element* aElement, nsIAtom* aId) = 0;
-  virtual void RemoveFromIdTable(mozilla::dom::Element* aElement,
-                                 nsIAtom* aId) = 0;
-  virtual void AddToNameTable(mozilla::dom::Element* aElement,
-                              nsIAtom* aName) = 0;
-  virtual void RemoveFromNameTable(mozilla::dom::Element* aElement,
-                                   nsIAtom* aName) = 0;
+  virtual void AddToIdTable(Element* aElement, nsIAtom* aId) = 0;
+  virtual void RemoveFromIdTable(Element* aElement, nsIAtom* aId) = 0;
+  virtual void AddToNameTable(Element* aElement, nsIAtom* aName) = 0;
+  virtual void RemoveFromNameTable(Element* aElement, nsIAtom* aName) = 0;
 
   
 
@@ -1406,7 +1408,16 @@ public:
 
 
 
-  virtual mozilla::dom::Element* GetElementById(const nsAString& aElementId) = 0;
+  virtual Element* GetElementById(const nsAString& aElementId) = 0;
+
+  
+
+
+
+
+
+
+  virtual Element* LookupImageElement(const nsAString& aElementId) = 0;
 
   void ScheduleBeforePaintEvent();
   void BeforePaintEventFiring()
