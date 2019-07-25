@@ -90,11 +90,22 @@ SocialProvider.prototype = {
     if (!profile.displayName)
       profile.displayName = profile.userName;
 
+    
+    
+    
+    if (!profile.userName) {
+      this.profile = {};
+      this.ambientNotificationIcons = {};
+      Services.obs.notifyObservers(null, "social:ambient-notification-changed", this.origin);
+    }
+
     Services.obs.notifyObservers(null, "social:profile-changed", this.origin);
   },
 
   
   setAmbientNotification: function(notification) {
+    if (!this.profile.userName)
+      throw new Error("unable to set notifications while logged out");
     this.ambientNotificationIcons[notification.name] = notification;
 
     Services.obs.notifyObservers(null, "social:ambient-notification-changed", this.origin);
