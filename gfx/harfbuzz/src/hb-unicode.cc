@@ -38,12 +38,12 @@
 
 
 
-static unsigned int
+static hb_unicode_combining_class_t
 hb_unicode_combining_class_nil (hb_unicode_funcs_t *ufuncs    HB_UNUSED,
 				hb_codepoint_t      unicode   HB_UNUSED,
 				void               *user_data HB_UNUSED)
 {
-  return 0;
+  return HB_UNICODE_COMBINING_CLASS_NOT_REORDERED;
 }
 
 static unsigned int
@@ -85,7 +85,7 @@ hb_unicode_compose_nil (hb_unicode_funcs_t *ufuncs    HB_UNUSED,
 			hb_codepoint_t     *ab        HB_UNUSED,
 			void               *user_data HB_UNUSED)
 {
-  return FALSE;
+  return false;
 }
 
 static hb_bool_t
@@ -95,27 +95,24 @@ hb_unicode_decompose_nil (hb_unicode_funcs_t *ufuncs    HB_UNUSED,
 			  hb_codepoint_t     *b         HB_UNUSED,
 			  void               *user_data HB_UNUSED)
 {
-  return FALSE;
+  return false;
 }
 
 
-hb_unicode_funcs_t _hb_unicode_funcs_nil = {
-  HB_OBJECT_HEADER_STATIC,
-
-  NULL, 
-  TRUE, 
-  {
-#define HB_UNICODE_FUNC_IMPLEMENT(name) hb_unicode_##name##_nil,
-    HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS
-#undef HB_UNICODE_FUNC_IMPLEMENT
-  }
-};
+static unsigned int
+hb_unicode_decompose_compatibility_nil (hb_unicode_funcs_t *ufuncs     HB_UNUSED,
+					hb_codepoint_t      u          HB_UNUSED,
+					hb_codepoint_t     *decomposed HB_UNUSED,
+					void               *user_data  HB_UNUSED)
+{
+  return 0;
+}
 
 
 hb_unicode_funcs_t *
 hb_unicode_funcs_get_default (void)
 {
-  return &_hb_unicode_funcs_default;
+  return const_cast<hb_unicode_funcs_t *> (&_hb_unicode_funcs_default);
 }
 
 hb_unicode_funcs_t *
@@ -124,10 +121,10 @@ hb_unicode_funcs_create (hb_unicode_funcs_t *parent)
   hb_unicode_funcs_t *ufuncs;
 
   if (!(ufuncs = hb_object_create<hb_unicode_funcs_t> ()))
-    return &_hb_unicode_funcs_nil;
+    return hb_unicode_funcs_get_empty ();
 
   if (!parent)
-    parent = &_hb_unicode_funcs_nil;
+    parent = hb_unicode_funcs_get_empty ();
 
   hb_unicode_funcs_make_immutable (parent);
   ufuncs->parent = hb_unicode_funcs_reference (parent);
@@ -142,10 +139,24 @@ hb_unicode_funcs_create (hb_unicode_funcs_t *parent)
   return ufuncs;
 }
 
+
+extern HB_INTERNAL const hb_unicode_funcs_t _hb_unicode_funcs_nil;
+const hb_unicode_funcs_t _hb_unicode_funcs_nil = {
+  HB_OBJECT_HEADER_STATIC,
+
+  NULL, 
+  true, 
+  {
+#define HB_UNICODE_FUNC_IMPLEMENT(name) hb_unicode_##name##_nil,
+    HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS
+#undef HB_UNICODE_FUNC_IMPLEMENT
+  }
+};
+
 hb_unicode_funcs_t *
 hb_unicode_funcs_get_empty (void)
 {
-  return &_hb_unicode_funcs_nil;
+  return const_cast<hb_unicode_funcs_t *> (&_hb_unicode_funcs_nil);
 }
 
 hb_unicode_funcs_t *
@@ -193,7 +204,7 @@ hb_unicode_funcs_make_immutable (hb_unicode_funcs_t *ufuncs)
   if (hb_object_is_inert (ufuncs))
     return;
 
-  ufuncs->immutable = TRUE;
+  ufuncs->immutable = true;
 }
 
 hb_bool_t
@@ -205,7 +216,7 @@ hb_unicode_funcs_is_immutable (hb_unicode_funcs_t *ufuncs)
 hb_unicode_funcs_t *
 hb_unicode_funcs_get_parent (hb_unicode_funcs_t *ufuncs)
 {
-  return ufuncs->parent ? ufuncs->parent : &_hb_unicode_funcs_nil;
+  return ufuncs->parent ? ufuncs->parent : hb_unicode_funcs_get_empty ();
 }
 
 
@@ -234,7 +245,7 @@ hb_unicode_funcs_set_##name##_func (hb_unicode_funcs_t		   *ufuncs,	\
   }										\
 }
 
-    HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS
+HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS
 #undef HB_UNICODE_FUNC_IMPLEMENT
 
 
@@ -244,9 +255,9 @@ return_type									\
 hb_unicode_##name (hb_unicode_funcs_t *ufuncs,					\
 		   hb_codepoint_t      unicode)					\
 {										\
-  return ufuncs->func.name (ufuncs, unicode, ufuncs->user_data.name);		\
+  return ufuncs->name (unicode);						\
 }
-    HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
+HB_UNICODE_FUNCS_IMPLEMENT_CALLBACKS_SIMPLE
 #undef HB_UNICODE_FUNC_IMPLEMENT
 
 hb_bool_t
@@ -255,8 +266,7 @@ hb_unicode_compose (hb_unicode_funcs_t *ufuncs,
 		    hb_codepoint_t      b,
 		    hb_codepoint_t     *ab)
 {
-  *ab = 0;
-  return ufuncs->func.compose (ufuncs, a, b, ab, ufuncs->user_data.compose);
+  return ufuncs->compose (a, b, ab);
 }
 
 hb_bool_t
@@ -265,62 +275,160 @@ hb_unicode_decompose (hb_unicode_funcs_t *ufuncs,
 		      hb_codepoint_t     *a,
 		      hb_codepoint_t     *b)
 {
-  *a = ab; *b = 0;
-  return ufuncs->func.decompose (ufuncs, ab, a, b, ufuncs->user_data.decompose);
+  return ufuncs->decompose (ab, a, b);
 }
-
-
 
 unsigned int
-_hb_unicode_modified_combining_class (hb_unicode_funcs_t *ufuncs,
-				      hb_codepoint_t      unicode)
+hb_unicode_decompose_compatibility (hb_unicode_funcs_t *ufuncs,
+				    hb_codepoint_t      u,
+				    hb_codepoint_t     *decomposed)
 {
-  int c = hb_unicode_combining_class (ufuncs, unicode);
-
-  if (unlikely (hb_in_range<int> (c, 27, 33)))
-  {
-    
-
-
-
-    c = c == 33 ? 27 : c + 1;
-  }
-  else if (unlikely (hb_in_range<int> (c, 10, 25)))
-  {
-    
-
-
-
-
-
-
-
-
-
-
-
-
-    static const int permuted_hebrew_classes[25 - 10 + 1] = {
-              22,
-        15,
-        16,
-       17,
-              23,
-              18,
-              19,
-              20,
-             21,
-              14,
-             24,
-             12,
-              25,
-               13,
-           10,
-            11,
-    };
-    c = permuted_hebrew_classes[c - 10];
-  }
-
-  return c;
+  return ufuncs->decompose_compatibility (u, decomposed);
 }
 
+
+const uint8_t
+_hb_modified_combining_class[256] =
+{
+  0, 
+  1, 
+  2, 3, 4, 5, 6,
+  7, 
+  8, 
+  9, 
+
+  
+
+  
+
+
+
+
+
+
+
+
+
+
+
+  22, 
+  15, 
+  16, 
+  17, 
+  23, 
+  18, 
+  19, 
+  20, 
+  21, 
+  14, 
+  24, 
+  12, 
+  25, 
+  13, 
+  10, 
+  11, 
+
+  26, 
+
+  
+
+  
+
+
+
+
+  28, 
+  29, 
+  30, 
+  31, 
+  32, 
+  33, 
+  27, 
+
+  34, 
+  35, 
+
+  
+  36, 
+
+  37, 38, 39,
+  40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59,
+  60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79,
+  80, 81, 82, 83,
+
+  
+
+  
+
+
+
+
+
+  0, 
+  85, 86, 87, 88, 89, 90,
+  0, 
+  92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102,
+
+  
+
+  
+
+
+
+  3, 
+
+  104, 105, 106,
+  107, 
+  108, 109, 110, 111, 112, 113, 114, 115, 116, 117,
+
+  
+  118, 
+  119, 120, 121,
+  122, 
+  123, 124, 125, 126, 127, 128,
+
+  
+  129, 
+  130, 
+  131,
+  132, 
+  133, 134, 135, 136, 137, 138, 139,
+
+
+  140, 141, 142, 143, 144, 145, 146, 147, 148, 149,
+  150, 151, 152, 153, 154, 155, 156, 157, 158, 159,
+  160, 161, 162, 163, 164, 165, 166, 167, 168, 169,
+  170, 171, 172, 173, 174, 175, 176, 177, 178, 179,
+  180, 181, 182, 183, 184, 185, 186, 187, 188, 189,
+  190, 191, 192, 193, 194, 195, 196, 197, 198, 199,
+
+  200, 
+  201,
+  202, 
+  203, 204, 205, 206, 207, 208, 209, 210, 211, 212, 213,
+  214, 
+  215,
+  216, 
+  217,
+  218, 
+  219,
+  220, 
+  221,
+  222, 
+  223,
+  224, 
+  225,
+  226, 
+  227,
+  228, 
+  229,
+  230, 
+  231,
+  232, 
+  233, 
+  234, 
+  235, 236, 237, 238, 239,
+  240, 
+  241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251, 252, 253, 254,
+  255, 
+};

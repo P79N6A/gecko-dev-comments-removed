@@ -52,7 +52,7 @@ struct maxp
   }
 
   
-  private:
+  protected:
   FixedVersion	version;		
 
   USHORT	numGlyphs;		

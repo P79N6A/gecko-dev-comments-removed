@@ -54,7 +54,7 @@ struct head
     return TRACE_RETURN (c->check_struct (this) && likely (version.major == 1));
   }
 
-  private:
+  protected:
   FixedVersion	version;		
 
   FixedVersion	fontRevision;		

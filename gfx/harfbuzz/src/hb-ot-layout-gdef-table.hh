@@ -74,7 +74,7 @@ struct AttachList
     return TRACE_RETURN (coverage.sanitize (c, this) && attachPoint.sanitize (c, this));
   }
 
-  private:
+  protected:
   OffsetTo<Coverage>
 		coverage;		
 
@@ -104,7 +104,7 @@ struct CaretValueFormat1
     return TRACE_RETURN (c->check_struct (this));
   }
 
-  private:
+  protected:
   USHORT	caretValueFormat;	
   SHORT		coordinate;		
   public:
@@ -119,7 +119,7 @@ struct CaretValueFormat2
   inline hb_position_t get_caret_value (hb_font_t *font, hb_direction_t direction, hb_codepoint_t glyph_id) const
   {
     hb_position_t x, y;
-    if (hb_font_get_glyph_contour_point_for_origin (font, glyph_id, caretValuePoint, direction, &x, &y))
+    if (font->get_glyph_contour_point_for_origin (glyph_id, caretValuePoint, direction, &x, &y))
       return HB_DIRECTION_IS_HORIZONTAL (direction) ? x : y;
     else
       return 0;
@@ -130,7 +130,7 @@ struct CaretValueFormat2
     return TRACE_RETURN (c->check_struct (this));
   }
 
-  private:
+  protected:
   USHORT	caretValueFormat;	
   USHORT	caretValuePoint;	
   public:
@@ -153,7 +153,7 @@ struct CaretValueFormat3
     return TRACE_RETURN (c->check_struct (this) && deviceTable.sanitize (c, this));
   }
 
-  private:
+  protected:
   USHORT	caretValueFormat;	
   SHORT		coordinate;		
   OffsetTo<Device>
@@ -187,7 +187,7 @@ struct CaretValue
     }
   }
 
-  private:
+  protected:
   union {
   USHORT		format;		
   CaretValueFormat1	format1;
@@ -222,7 +222,7 @@ struct LigGlyph
     return TRACE_RETURN (carets.sanitize (c, this));
   }
 
-  private:
+  protected:
   OffsetArrayOf<CaretValue>
 		carets;			
 
@@ -256,7 +256,7 @@ struct LigCaretList
     return TRACE_RETURN (coverage.sanitize (c, this) && ligGlyph.sanitize (c, this));
   }
 
-  private:
+  protected:
   OffsetTo<Coverage>
 		coverage;		
 
@@ -278,7 +278,7 @@ struct MarkGlyphSetsFormat1
     return TRACE_RETURN (coverage.sanitize (c, this));
   }
 
-  private:
+  protected:
   USHORT	format;			
   LongOffsetArrayOf<Coverage>
 		coverage;		
@@ -306,7 +306,7 @@ struct MarkGlyphSets
     }
   }
 
-  private:
+  protected:
   union {
   USHORT		format;		
   MarkGlyphSetsFormat1	format1;
@@ -392,7 +392,7 @@ struct GDEF
   }
 
 
-  private:
+  protected:
   FixedVersion	version;		
 
   OffsetTo<ClassDef>

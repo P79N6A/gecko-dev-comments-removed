@@ -105,7 +105,7 @@ typedef struct OffsetTable
     return TRACE_RETURN (c->check_struct (this) && c->check_array (tables, TableRecord::static_size, numTables));
   }
 
-  private:
+  protected:
   Tag		sfnt_version;	
   USHORT	numTables;	
   USHORT	searchRange;	
@@ -133,7 +133,7 @@ struct TTCHeaderVersion1
     return TRACE_RETURN (table.sanitize (c, this));
   }
 
-  private:
+  protected:
   Tag		ttcTag;		
   FixedVersion	version;	
 
@@ -177,7 +177,7 @@ struct TTCHeader
     }
   }
 
-  private:
+  protected:
   union {
   struct {
   Tag		ttcTag;		
@@ -242,7 +242,7 @@ struct OpenTypeFontFile
     }
   }
 
-  private:
+  protected:
   union {
   Tag			tag;		
   OpenTypeFontFace	fontFace;

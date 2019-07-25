@@ -114,7 +114,7 @@ struct name
   }
 
   
-  private:
+  protected:
   USHORT	format;			
   USHORT	count;			
   Offset	stringOffset;		

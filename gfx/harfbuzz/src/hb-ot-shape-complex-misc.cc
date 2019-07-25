@@ -32,83 +32,86 @@
 
 
 
-
-
-
-
-void
-_hb_ot_shape_complex_collect_features_default (hb_ot_map_builder_t *map HB_UNUSED,
-					       const hb_segment_properties_t *props HB_UNUSED)
-{
-}
-
-hb_ot_shape_normalization_mode_t
-_hb_ot_shape_complex_normalization_preference_default (void)
-{
-  return HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_DIACRITICS;
-}
-
-void
-_hb_ot_shape_complex_setup_masks_default (hb_ot_map_t *map HB_UNUSED,
-					  hb_buffer_t *buffer HB_UNUSED,
-					  hb_font_t *font HB_UNUSED)
-{
-}
-
-
-
-
-
 static const hb_tag_t hangul_features[] =
 {
   HB_TAG('l','j','m','o'),
   HB_TAG('v','j','m','o'),
   HB_TAG('t','j','m','o'),
+  HB_TAG_NONE
 };
 
-void
-_hb_ot_shape_complex_collect_features_hangul (hb_ot_map_builder_t *map,
-					      const hb_segment_properties_t *props HB_UNUSED)
+static const hb_tag_t tibetan_features[] =
 {
-  for (unsigned int i = 0; i < ARRAY_LENGTH (hangul_features); i++)
-    map->add_bool_feature (hangul_features[i]);
+  HB_TAG('a','b','v','s'),
+  HB_TAG('b','l','w','s'),
+  HB_TAG('a','b','v','m'),
+  HB_TAG('b','l','w','m'),
+  HB_TAG_NONE
+};
+
+static void
+collect_features_default (hb_ot_shape_planner_t *plan)
+{
+  const hb_tag_t *script_features = NULL;
+
+  switch ((hb_tag_t) plan->props.script)
+  {
+    
+    case HB_SCRIPT_HANGUL:
+      script_features = hangul_features;
+      break;
+
+    
+    case HB_SCRIPT_TIBETAN:
+      script_features = tibetan_features;
+      break;
+  }
+
+  for (; script_features && *script_features; script_features++)
+    plan->map.add_bool_feature (*script_features);
 }
 
-hb_ot_shape_normalization_mode_t
-_hb_ot_shape_complex_normalization_preference_hangul (void)
+static hb_ot_shape_normalization_mode_t
+normalization_preference_default (const hb_ot_shape_plan_t *plan)
 {
-  return HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_FULL;
+  switch ((hb_tag_t) plan->props.script)
+  {
+    
+    case HB_SCRIPT_HANGUL:
+      return HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_FULL;
+  }
+  return HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_DIACRITICS;
 }
 
-void
-_hb_ot_shape_complex_setup_masks_hangul (hb_ot_map_t *map HB_UNUSED,
-					 hb_buffer_t *buffer HB_UNUSED,
-					 hb_font_t *font HB_UNUSED)
+const hb_ot_complex_shaper_t _hb_ot_complex_shaper_default =
 {
-}
+  "default",
+  collect_features_default,
+  NULL, 
+  NULL, 
+  NULL, 
+  normalization_preference_default,
+  NULL, 
+  true, 
+};
 
 
 
 
-
-void
-_hb_ot_shape_complex_collect_features_thai (hb_ot_map_builder_t *map HB_UNUSED,
-					    const hb_segment_properties_t *props HB_UNUSED)
-{
-}
-
-hb_ot_shape_normalization_mode_t
-_hb_ot_shape_complex_normalization_preference_thai (void)
-{
-  return HB_OT_SHAPE_NORMALIZATION_MODE_COMPOSED_FULL;
-}
-
-void
-_hb_ot_shape_complex_setup_masks_thai (hb_ot_map_t *map HB_UNUSED,
-				       hb_buffer_t *buffer,
-				       hb_font_t *font HB_UNUSED)
+static void
+setup_masks_thai (const hb_ot_shape_plan_t *plan HB_UNUSED,
+		  hb_buffer_t              *buffer,
+		  hb_font_t                *font HB_UNUSED)
 {
   
+
+
+
+
+
+
+
+
 
 
 
@@ -144,7 +147,7 @@ _hb_ot_shape_complex_setup_masks_thai (hb_ot_map_t *map HB_UNUSED,
 #define IS_SARA_AM(x) (((x) & ~0x0080) == 0x0E33)
 #define NIKHAHIT_FROM_SARA_AM(x) ((x) - 0xE33 + 0xE4D)
 #define SARA_AA_FROM_SARA_AM(x) ((x) - 1)
-#define IS_TONE_MARK(x) (((x) & ~0x0083) == 0x0E48)
+#define IS_TONE_MARK(x) (hb_in_ranges<hb_codepoint_t> ((x) & ~0x0080, 0x0E34, 0x0E37, 0x0E47, 0x0E4E, 0x0E31, 0x0E31))
 
   buffer->clear_output ();
   unsigned int count = buffer->len;
@@ -169,25 +172,35 @@ _hb_ot_shape_complex_setup_masks_thai (hb_ot_map_t *map HB_UNUSED,
     while (start > 0 && IS_TONE_MARK (buffer->out_info[start - 1].codepoint))
       start--;
 
-    
-    hb_glyph_info_t t = buffer->out_info[end - 2];
-    memmove (buffer->out_info + start + 1,
-	     buffer->out_info + start,
-	     sizeof (buffer->out_info[0]) * (end - start - 2));
-    buffer->out_info[start] = t;
+    if (start + 2 < end)
+    {
+      
+      buffer->merge_out_clusters (start, end);
+      hb_glyph_info_t t = buffer->out_info[end - 2];
+      memmove (buffer->out_info + start + 1,
+	       buffer->out_info + start,
+	       sizeof (buffer->out_info[0]) * (end - start - 2));
+      buffer->out_info[start] = t;
+    }
+    else
+    {
+      
 
-    
-    
-    for (; start > 0 && buffer->out_info[start - 1].cluster == buffer->out_info[start].cluster; start--)
-      ;
-    for (; buffer->idx < count;)
-      if (buffer->cur().cluster == buffer->prev().cluster)
-        buffer->next_glyph ();
-      else
-        break;
-    end = buffer->out_len;
-
-    buffer->merge_out_clusters (start, end);
+      if (start)
+	buffer->merge_out_clusters (start - 1, end);
+    }
   }
   buffer->swap_buffers ();
 }
+
+const hb_ot_complex_shaper_t _hb_ot_complex_shaper_thai =
+{
+  "thai",
+  NULL, 
+  NULL, 
+  NULL, 
+  NULL, 
+  NULL, 
+  setup_masks_thai,
+  true, 
+};
