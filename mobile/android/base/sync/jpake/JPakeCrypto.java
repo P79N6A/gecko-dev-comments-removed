@@ -102,7 +102,8 @@ public class JPakeCrypto {
 
 
 
-  public static void round1(JPakeParty jp, JPakeNumGenerator gen) {
+
+  public static void round1(JPakeParty jp, JPakeNumGenerator gen) throws NoSuchAlgorithmException, UnsupportedEncodingException {
     
     BigInteger x1 = gen.generateFromRange(Q); 
     BigInteger x2 = jp.x2 = BigInteger.ONE.add(gen.generateFromRange(Q
@@ -133,8 +134,10 @@ public class JPakeCrypto {
 
 
 
-  public static void round2(String secret, JPakeParty jp,
-      JPakeNumGenerator gen) throws IncorrectZkpException, Gx3OrGx4IsZeroOrOneException {
+
+  public static void round2(BigInteger secretValue, JPakeParty jp, JPakeNumGenerator gen)
+      throws IncorrectZkpException, NoSuchAlgorithmException,
+      Gx3OrGx4IsZeroOrOneException, UnsupportedEncodingException {
 
     Log.d(LOG_TAG, "round2 started.");
 
@@ -150,13 +153,7 @@ public class JPakeCrypto {
 
     
     BigInteger y1 = jp.gx3.multiply(jp.gx4).mod(P).multiply(jp.gx1).mod(P);
-    BigInteger y2 = null;
-    try {
-      y2 = jp.x2.multiply(new BigInteger(secret.getBytes("US-ASCII"))).mod(P);
-    } catch (UnsupportedEncodingException e) {
-      
-      e.printStackTrace();
-    }
+    BigInteger y2 = jp.x2.multiply(secretValue).mod(P);
 
     BigInteger a  = y1.modPow(y2, P);
     jp.thisZkpA = createZkp(y1, y2, a, jp.signerId, gen);
@@ -175,8 +172,8 @@ public class JPakeCrypto {
 
 
 
-  public static KeyBundle finalRound(String secret, JPakeParty jp)
-      throws IncorrectZkpException, NoSuchAlgorithmException, InvalidKeyException {
+  public static KeyBundle finalRound(BigInteger secretValue, JPakeParty jp)
+      throws IncorrectZkpException, NoSuchAlgorithmException, InvalidKeyException, UnsupportedEncodingException {
     Log.d(LOG_TAG, "Final round started.");
     BigInteger gb = jp.gx1.multiply(jp.gx2).mod(P).multiply(jp.gx3)
         .mod(P);
@@ -184,7 +181,7 @@ public class JPakeCrypto {
 
     
     
-    BigInteger k = jp.gx4.modPow(jp.x2.multiply(new BigInteger(secret.getBytes())).negate().mod(Q), P).multiply(jp.otherA)
+    BigInteger k = jp.gx4.modPow(jp.x2.multiply(secretValue).negate().mod(Q), P).multiply(jp.otherA)
         .modPow(jp.x2, P);
 
     byte[] enc = new byte[32];
@@ -217,7 +214,7 @@ public class JPakeCrypto {
 
 
   private static Zkp createZkp(BigInteger g, BigInteger x, BigInteger gx,
-      String id, JPakeNumGenerator gen) {
+      String id, JPakeNumGenerator gen) throws NoSuchAlgorithmException, UnsupportedEncodingException {
     
     BigInteger r = gen.generateFromRange(Q);
 
@@ -238,7 +235,7 @@ public class JPakeCrypto {
 
 
   private static void checkZkp(BigInteger g, BigInteger gx, Zkp zkp)
-      throws IncorrectZkpException {
+      throws IncorrectZkpException, NoSuchAlgorithmException, UnsupportedEncodingException {
 
     BigInteger h = computeBHash(g, zkp.gr, gx, zkp.id);
 
@@ -278,33 +275,22 @@ public class JPakeCrypto {
 
 
   private static BigInteger computeBHash(BigInteger g, BigInteger gr, BigInteger gx,
-      String id) {
-    MessageDigest sha = null;
-    try {
-      sha = MessageDigest.getInstance("SHA-256");
-      sha.reset();
+      String id) throws NoSuchAlgorithmException, UnsupportedEncodingException {
+    MessageDigest sha = MessageDigest.getInstance("SHA-256");
+    sha.reset();
 
-      
+    
 
 
 
 
 
 
-      hashByteArrayWithLength(sha,
-          BigIntegerHelper.BigIntegerToByteArrayWithoutSign(g));
-      hashByteArrayWithLength(sha,
-          BigIntegerHelper.BigIntegerToByteArrayWithoutSign(gr));
-      hashByteArrayWithLength(sha,
-          BigIntegerHelper.BigIntegerToByteArrayWithoutSign(gx));
-      hashByteArrayWithLength(sha, id.getBytes("US-ASCII"));
+    hashByteArrayWithLength(sha, BigIntegerHelper.BigIntegerToByteArrayWithoutSign(g));
+    hashByteArrayWithLength(sha, BigIntegerHelper.BigIntegerToByteArrayWithoutSign(gr));
+    hashByteArrayWithLength(sha, BigIntegerHelper.BigIntegerToByteArrayWithoutSign(gx));
+    hashByteArrayWithLength(sha, id.getBytes("UTF-8"));
 
-    } catch (NoSuchAlgorithmException e) {
-      e.printStackTrace();
-    } catch (UnsupportedEncodingException e) {
-      
-      e.printStackTrace();
-    }
     byte[] hash = sha.digest();
 
     return BigIntegerHelper.ByteArrayToBigIntegerWithoutSign(hash);

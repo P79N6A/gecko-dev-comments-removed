@@ -222,6 +222,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements GlobalSe
                             final String authority,
                             final ContentProviderClient provider,
                             final SyncResult syncResult) {
+    Utils.reseedSharedRandom(); 
 
     long delay = delayMilliseconds();
     if (delay > 0) {
