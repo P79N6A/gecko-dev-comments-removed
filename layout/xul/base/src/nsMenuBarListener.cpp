@@ -86,7 +86,7 @@ PRUint32 nsMenuBarListener::mAccessKeyMask = 0;
 PRBool nsMenuBarListener::mAccessKeyFocuses = PR_FALSE;
 
 nsMenuBarListener::nsMenuBarListener(nsMenuBarFrame* aMenuBar) 
-  :mAccessKeyDown(PR_FALSE)
+  :mAccessKeyDown(PR_FALSE), mAccessKeyDownCanceled(PR_FALSE)
 {
   mMenuBarFrame = aMenuBar;
 }
@@ -174,13 +174,15 @@ nsMenuBarListener::KeyUp(nsIDOMEvent* aKeyEvent)
     PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
-    if (mAccessKeyDown && (PRInt32)theChar == mAccessKey)
+    if (mAccessKeyDown && !mAccessKeyDownCanceled &&
+        (PRInt32)theChar == mAccessKey)
     {
       
       
       ToggleMenuActiveState();
     }
-    mAccessKeyDown = PR_FALSE; 
+    mAccessKeyDown = PR_FALSE;
+    mAccessKeyDownCanceled = PR_FALSE;
 
     PRBool active = mMenuBarFrame->IsActive();
     if (active) {
@@ -245,8 +247,9 @@ nsMenuBarListener::KeyPress(nsIDOMEvent* aKeyEvent)
       }
 
       
-      if (keyCode != (PRUint32)mAccessKey)
-        mAccessKeyDown = PR_FALSE;
+      if (keyCode != (PRUint32)mAccessKey) {
+        mAccessKeyDownCanceled = PR_TRUE;
+      }
 
       if (IsAccessKeyPressed(keyEvent) && hasAccessKeyCandidates) {
         
@@ -341,7 +344,8 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
     PRUint32 theChar;
     keyEvent->GetKeyCode(&theChar);
 
-    if (theChar == (PRUint32)mAccessKey && (GetModifiers(keyEvent) & ~mAccessKeyMask) == 0) {
+    if (!mAccessKeyDownCanceled && theChar == (PRUint32)mAccessKey &&
+        (GetModifiers(keyEvent) & ~mAccessKeyMask) == 0) {
       
       
       
@@ -353,7 +357,7 @@ nsMenuBarListener::KeyDown(nsIDOMEvent* aKeyEvent)
       
       
 
-      mAccessKeyDown = PR_FALSE;
+      mAccessKeyDownCanceled = PR_TRUE;
     }
   }
 
@@ -375,6 +379,7 @@ nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
   if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive()) {
     ToggleMenuActiveState();
     mAccessKeyDown = PR_FALSE;
+    mAccessKeyDownCanceled = PR_FALSE;
   }
   return NS_OK; 
 }
@@ -383,9 +388,25 @@ nsMenuBarListener::Blur(nsIDOMEvent* aEvent)
 nsresult 
 nsMenuBarListener::MouseDown(nsIDOMEvent* aMouseEvent)
 {
+  
+
+  
+  
+  
+  if (mAccessKeyDown) {
+    mAccessKeyDownCanceled = PR_TRUE;
+  }
+
+  PRUint16 phase = 0;
+  nsresult rv = aMouseEvent->GetEventPhase(&phase);
+  NS_ENSURE_SUCCESS(rv, rv);
+  
+  if (phase == nsIDOMEvent::CAPTURING_PHASE) {
+    return NS_OK;
+  }
+
   if (!mMenuBarFrame->IsMenuOpen() && mMenuBarFrame->IsActive())
     ToggleMenuActiveState();
-  mAccessKeyDown = PR_FALSE;
 
   return NS_OK; 
 }

@@ -91,7 +91,10 @@ protected:
   void ToggleMenuActiveState();
 
   nsMenuBarFrame* mMenuBarFrame; 
-  PRBool mAccessKeyDown;         
+  
+  PRPackedBool mAccessKeyDown;
+  
+  PRPackedBool mAccessKeyDownCanceled;
   static PRBool mAccessKeyFocuses; 
   static PRInt32 mAccessKey;     
   static PRUint32 mAccessKeyMask;
