@@ -54,6 +54,9 @@
 
 
 
+
+
+
 class THEBES_API gfxAlphaBoxBlur
 {
 public:
@@ -75,6 +78,7 @@ public:
 
 
     gfxContext* Init(const gfxRect& aRect,
+                     const gfxIntSize& aSpreadRadius,
                      const gfxIntSize& aBlurRadius,
                      const gfxRect* aDirtyRect,
                      const gfxRect* aSkipRect);
@@ -111,6 +115,10 @@ public:
     static gfxIntSize CalculateBlurRadius(const gfxPoint& aStandardDeviation);
 
 protected:
+    
+
+
+    gfxIntSize mSpreadRadius;
     
 
 

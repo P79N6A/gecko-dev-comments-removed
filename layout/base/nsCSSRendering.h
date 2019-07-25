@@ -391,6 +391,9 @@ protected:
 
 class nsContextBoxBlur {
 public:
+  enum {
+    FORCE_MASK = 0x01
+  };
   
 
 
@@ -435,10 +438,23 @@ public:
 
 
 
-  gfxContext* Init(const nsRect& aRect, nscoord aBlurRadius,
-                   PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
-                   const nsRect& aDirtyRect, const gfxRect* aSkipRect);
 
+
+
+
+  gfxContext* Init(const nsRect& aRect, nscoord aSpreadRadius,
+                   nscoord aBlurRadius,
+                   PRInt32 aAppUnitsPerDevPixel, gfxContext* aDestinationCtx,
+                   const nsRect& aDirtyRect, const gfxRect* aSkipRect,
+                   PRUint32 aFlags = 0);
+
+  
+
+
+
+
+  void DoEffects();
+  
   
 
 
@@ -460,4 +476,4 @@ protected:
   
 };
 
-#endif 
+#endif
