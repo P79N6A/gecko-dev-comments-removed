@@ -306,24 +306,29 @@ public:
 
     {
       JSAutoRequest ar(cx);
-
       workerPrivate->DoRunLoop(cx);
-
-      
-      
-      
-      
-      
-      
-      
-      
-      
-      JS_SetGlobalObject(cx, nsnull);
-      JS_GC(cx);
     }
 
     JSRuntime* rt = JS_GetRuntime(cx);
-    JS_DestroyContextNoGC(cx);
+
+    
+    
+    
+    
+    
+    
+    
+    
+    JSContext* dummyCx = JS_NewContext(rt, 0);
+    if (dummyCx) {
+      JS_DestroyContext(cx);
+      JS_DestroyContext(dummyCx);
+    }
+    else {
+      NS_WARNING("Failed to create dummy context!");
+      JS_DestroyContext(cx);
+    }
+
     JS_DestroyRuntime(rt);
 
     workerPrivate->ScheduleDeletion();
