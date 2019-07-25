@@ -162,6 +162,8 @@ public:
     
     void *CallEglCreateWindowSurface(void *dpy, void *config, AndroidGeckoSurfaceView& surfaceView);
 
+    bool GetStaticStringField(const char *classID, const char *field, nsAString &result);
+
 protected:
     static AndroidBridge *sBridge;
 
