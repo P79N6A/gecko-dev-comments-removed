@@ -45,6 +45,8 @@
 #include "nsIDOMHTMLOptionElement.h"
 #include "nsIJSNativeInitializer.h"
 
+class nsHTMLSelectElement;
+
 class nsHTMLOptionElement : public nsGenericHTMLElement,
                             public nsIDOMHTMLOptionElement,
                             public nsIJSNativeInitializer
@@ -56,7 +58,7 @@ public:
   
   static nsHTMLOptionElement* FromContent(nsIContent *aContent)
   {
-    if (aContent->NodeInfo()->Equals(nsGkAtoms::option, kNameSpaceID_XHTML))
+    if (aContent && aContent->IsHTML(nsGkAtoms::option))
       return static_cast<nsHTMLOptionElement*>(aContent);
     return nsnull;
   }
@@ -104,8 +106,7 @@ protected:
 
 
 
-
-  nsIContent* GetSelect();
+  nsHTMLSelectElement* GetSelect();
 
   PRPackedBool mSelectedChanged;
   PRPackedBool mIsSelected;

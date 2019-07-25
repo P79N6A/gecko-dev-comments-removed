@@ -254,6 +254,14 @@ public:
   virtual ~nsHTMLSelectElement();
 
   
+  static nsHTMLSelectElement* FromContent(nsIContent* aContent)
+  {
+    if (aContent && aContent->IsHTML(nsGkAtoms::select))
+      return static_cast<nsHTMLSelectElement*>(aContent);
+    return nsnull;
+  }
+ 
+  
   NS_DECL_ISUPPORTS_INHERITED
 
   
