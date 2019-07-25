@@ -154,14 +154,6 @@ public:
                           nsChangeHint aMinChange);
 
   
-  
-  
-  NS_HIDDEN_(nsRestyleHint) HasAttributeDependentStyle(nsIContent *aContent,
-                                                       nsIAtom *aAttribute,
-                                                       PRInt32 aModType,
-                                                       PRBool aAttrHasChanged);
-
-  
 
 
 

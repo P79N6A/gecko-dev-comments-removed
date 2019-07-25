@@ -1458,29 +1458,6 @@ nsFrameManager::ComputeStyleChangeFor(nsIFrame          *aFrame,
 }
 
 
-nsRestyleHint
-nsFrameManager::HasAttributeDependentStyle(nsIContent *aContent,
-                                           nsIAtom *aAttribute,
-                                           PRInt32 aModType,
-                                           PRBool aAttrHasChanged)
-{
-  nsRestyleHint hint = mStyleSet->HasAttributeDependentStyle(GetPresContext(),
-                                                             aContent,
-                                                             aAttribute,
-                                                             aModType,
-                                                             aAttrHasChanged);
-
-  if (aAttrHasChanged && aAttribute == nsGkAtoms::style) {
-    
-    
-    
-    hint = nsRestyleHint(hint | eRestyle_Self);
-  }
-
-  return hint;
-}
-
-
 
 void
 nsFrameManager::CaptureFrameStateFor(nsIFrame* aFrame,

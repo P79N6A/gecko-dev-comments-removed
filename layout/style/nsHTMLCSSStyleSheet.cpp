@@ -161,6 +161,12 @@ nsHTMLCSSStyleSheet::HasDocumentStateDependentStyle(StateRuleProcessorData* aDat
 nsRestyleHint
 nsHTMLCSSStyleSheet::HasAttributeDependentStyle(AttributeRuleProcessorData* aData)
 {
+  
+  
+  if (aData->mAttrHasChanged && aData->mAttribute == nsGkAtoms::style) {
+    return eRestyle_Self;
+  }
+
   return nsRestyleHint(0);
 }
 
