@@ -154,6 +154,16 @@ struct GradientStop
 }
 }
 
+#ifdef XP_WIN
+#ifdef GFX2D_INTERNAL
+#define GFX2D_API __declspec(dllexport)
+#else
+#define GFX2D_API __declspec(dllimport)
+#endif
+#else
+#define GFX2D_API
+#endif
+
 
 namespace mozilla {
   namespace css {
