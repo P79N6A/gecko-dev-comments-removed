@@ -768,19 +768,14 @@ NS_IMETHODIMP imgRequest::OnStartRequest(nsIRequest *aRequest, nsISupports *ctxt
 
   
   if (mIsMultiPartChannel && mImage) {
-    
-    nsCOMPtr<nsIChannel> partChan(do_QueryInterface(aRequest));
-    partChan->GetContentType(mContentType);
-    if (mContentType.EqualsLiteral(SVG_MIMETYPE) ||
-        mImage->GetType() == imgIContainer::TYPE_VECTOR) {
+    if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
       
-      
-      
-      mStatusTracker = new imgStatusTracker(nsnull);
-      mGotData = false;
-    } else if (mImage->GetType() == imgIContainer::TYPE_RASTER) {
-      
-      static_cast<RasterImage*>(mImage.get())->NewSourceData(mContentType.get());
+      static_cast<RasterImage*>(mImage.get())->NewSourceData();
+    } else {  
+      nsCOMPtr<nsIStreamListener> imageAsStream = do_QueryInterface(mImage);
+      NS_ABORT_IF_FALSE(imageAsStream,
+                        "SVG-typed Image failed QI to nsIStreamListener");
+      imageAsStream->OnStartRequest(aRequest, ctxt);
     }
   }
 
