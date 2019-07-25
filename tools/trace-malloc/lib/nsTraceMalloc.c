@@ -957,7 +957,7 @@ backtrace(tm_thread *t, int skip, int *immediate_abort)
     t->suppress_tracing++;
 
     if (!stacks_enabled) {
-#if defined(XP_MACOSX) && defined(__i386)
+#if defined(XP_MACOSX)
         
 
         info->entries = 0;
