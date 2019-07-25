@@ -65,7 +65,7 @@
 #include "nsCSSFrameConstructor.h"
 #include "nsIStatefulFrame.h"
 #include "nsIScrollableFrame.h"
-#include "nsIDOMMouseListener.h"
+#include "nsIDOMEventListener.h"
 #include "nsThreadUtils.h"
 
 class nsIView;
@@ -283,7 +283,7 @@ protected:
 
   
   
-  nsCOMPtr<nsIDOMMouseListener> mButtonListener;
+  nsCOMPtr<nsIDOMEventListener> mButtonListener;
 
   
   

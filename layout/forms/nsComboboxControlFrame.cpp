@@ -127,19 +127,12 @@ const PRInt32 kSizeNotSet = -1;
 
 
 
-class nsComboButtonListener: public nsIDOMMouseListener
+class nsComboButtonListener : public nsIDOMEventListener
 {
-  public:
-
+public:
   NS_DECL_ISUPPORTS
-  NS_IMETHOD HandleEvent(nsIDOMEvent* anEvent) { return PR_FALSE; }
-  NS_IMETHOD MouseDown(nsIDOMEvent* aMouseEvent) { return PR_FALSE; }
-  NS_IMETHOD MouseUp(nsIDOMEvent* aMouseEvent) { return PR_FALSE; }
-  NS_IMETHOD MouseDblClick(nsIDOMEvent* aMouseEvent) { return PR_FALSE; }
-  NS_IMETHOD MouseOver(nsIDOMEvent* aMouseEvent) { return PR_FALSE; }
-  NS_IMETHOD MouseOut(nsIDOMEvent* aMouseEvent) { return PR_FALSE; }
 
-  NS_IMETHOD MouseClick(nsIDOMEvent* aMouseEvent) 
+  NS_IMETHOD HandleEvent(nsIDOMEvent*)
   {
     mComboBox->ShowDropDown(!mComboBox->IsDroppedDown());
     return NS_OK; 
@@ -155,8 +148,7 @@ class nsComboButtonListener: public nsIDOMMouseListener
   nsComboboxControlFrame* mComboBox;
 };
 
-NS_IMPL_ISUPPORTS2(nsComboButtonListener,
-                   nsIDOMMouseListener,
+NS_IMPL_ISUPPORTS1(nsComboButtonListener,
                    nsIDOMEventListener)
 
 
@@ -1041,8 +1033,8 @@ nsComboboxControlFrame::CreateAnonymousContent(nsTArray<ContentInfo>& aElements)
   
   
   mButtonListener = new nsComboButtonListener(this);
-  mButtonContent->AddEventListenerByIID(mButtonListener,
-                                        NS_GET_IID(nsIDOMMouseListener));
+  mButtonContent->AddEventListener(NS_LITERAL_STRING("click"), mButtonListener,
+                                   PR_FALSE, PR_FALSE);
 
   mButtonContent->SetAttr(kNameSpaceID_None, nsGkAtoms::type,
                           NS_LITERAL_STRING("button"), PR_FALSE);
