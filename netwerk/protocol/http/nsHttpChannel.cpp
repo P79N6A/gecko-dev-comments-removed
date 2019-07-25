@@ -1147,7 +1147,7 @@ nsHttpChannel::ProcessNormal()
     if (NS_SUCCEEDED(rv) && !succeeded) {
         PushRedirectAsyncFunc(&nsHttpChannel::ContinueProcessNormal);
         PRBool waitingForRedirectCallback;
-        rv = ProcessFallback(&waitingForRedirectCallback);
+        (void)ProcessFallback(&waitingForRedirectCallback);
         if (waitingForRedirectCallback) {
             
             return NS_OK;
@@ -3307,7 +3307,7 @@ nsHttpChannel::AsyncProcessRedirection(PRUint32 redirectType)
         if (!NS_SecurityCompareURIs(mURI, mRedirectURI, PR_FALSE)) {
             PushRedirectAsyncFunc(&nsHttpChannel::ContinueProcessRedirectionAfterFallback);
             PRBool waitingForRedirectCallback;
-            rv = ProcessFallback(&waitingForRedirectCallback);
+            (void)ProcessFallback(&waitingForRedirectCallback);
             if (waitingForRedirectCallback)
                 return NS_OK;
             PopRedirectAsyncFunc(&nsHttpChannel::ContinueProcessRedirectionAfterFallback);
@@ -3640,10 +3640,6 @@ nsHttpChannel::AsyncOpen(nsIStreamListener *listener, nsISupports *context)
         (BYPASS_LOCAL_CACHE(mLoadFlags)))
         mCaps |= NS_HTTP_REFRESH_DNS;
 
-    
-    if (mLoadFlags & LOAD_BYPASS_CACHE)
-        mCaps |= NS_HTTP_CLEAR_KEEPALIVES;
-    
     mIsPending = PR_TRUE;
     mWasOpened = PR_TRUE;
 
