@@ -1113,7 +1113,7 @@ private:
   static PRBool HeightCoordDependsOnContainer(const nsStyleCoord &aCoord)
   {
     return aCoord.GetUnit() == eStyleUnit_Auto || 
-           aCoord.GetUnit() == eStyleUnit_Percent;
+           aCoord.HasPercent();
   }
 };
 

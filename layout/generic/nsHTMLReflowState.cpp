@@ -395,9 +395,15 @@ nsHTMLReflowState::InitResizeFlags(nsPresContext* aPresContext)
   }
 
   PRBool dependsOnCBHeight =
-    mStylePosition->mHeight.GetUnit() == eStyleUnit_Percent ||
-    mStylePosition->mMinHeight.GetUnit() == eStyleUnit_Percent ||
-    mStylePosition->mMaxHeight.GetUnit() == eStyleUnit_Percent ||
+    (mStylePosition->HeightDependsOnContainer() &&
+     
+     mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) ||
+    (mStylePosition->MinHeightDependsOnContainer() &&
+     
+     mStylePosition->mMinHeight.GetUnit() != eStyleUnit_Auto) ||
+    (mStylePosition->MaxHeightDependsOnContainer() &&
+     
+     mStylePosition->mMaxHeight.GetUnit() != eStyleUnit_Auto) ||
     mStylePosition->mOffset.GetTopUnit() == eStyleUnit_Percent ||
     mStylePosition->mOffset.GetBottomUnit() != eStyleUnit_Auto ||
     frame->IsBoxFrame() ||
@@ -1579,6 +1585,7 @@ nsHTMLReflowState::ComputeContainingBlockRectangle(nsPresContext*          aPres
   } else {
     
     
+    
     if (NS_AUTOHEIGHT == aContainingBlockHeight) {
       if (eCompatibility_NavQuirks == aPresContext->CompatibilityMode() &&
           mStylePosition->mHeight.GetUnit() == eStyleUnit_Percent) {
@@ -1708,12 +1715,14 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
 
     InitOffsets(aContainingBlockWidth, aBorder, aPadding);
 
-    nsStyleUnit heightUnit = mStylePosition->mHeight.GetUnit();
+    const nsStyleCoord &height = mStylePosition->mHeight;
+    nsStyleUnit heightUnit = height.GetUnit();
 
     
     
     
-    if (eStyleUnit_Percent == heightUnit) {
+    
+    if (height.HasPercent()) {
       if (NS_AUTOHEIGHT == aContainingBlockHeight) {
         
         
@@ -1772,7 +1781,8 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
       
       
       PRBool rowOrRowGroup = PR_FALSE;
-      nsStyleUnit widthUnit = mStylePosition->mWidth.GetUnit();
+      const nsStyleCoord &width = mStylePosition->mWidth;
+      nsStyleUnit widthUnit = width.GetUnit();
       if ((NS_STYLE_DISPLAY_TABLE_ROW == mStyleDisplay->mDisplay) ||
           (NS_STYLE_DISPLAY_TABLE_ROW_GROUP == mStyleDisplay->mDisplay)) {
         
@@ -1780,7 +1790,8 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
         rowOrRowGroup = PR_TRUE;
       }
 
-      if (eStyleUnit_Auto == widthUnit) {
+      
+      if (eStyleUnit_Auto == widthUnit || width.IsCalcUnit()) {
         mComputedWidth = availableWidth;
 
         if ((mComputedWidth != NS_UNCONSTRAINEDSIZE) && !rowOrRowGroup){
@@ -1807,14 +1818,14 @@ nsHTMLReflowState::InitConstraints(nsPresContext* aPresContext,
         
         heightUnit = eStyleUnit_Auto;
       }
-      if (eStyleUnit_Auto == heightUnit) {
+      
+      if (eStyleUnit_Auto == heightUnit || height.IsCalcUnit()) {
         mComputedHeight = NS_AUTOHEIGHT;
       } else {
         NS_ASSERTION(heightUnit == mStylePosition->mHeight.GetUnit(),
                      "unexpected height unit change");
         mComputedHeight = nsLayoutUtils::
-          ComputeHeightDependentValue(aContainingBlockHeight,
-                                      mStylePosition->mHeight);
+          ComputeHeightValue(aContainingBlockHeight, mStylePosition->mHeight);
       }
 
       
@@ -2277,28 +2288,36 @@ nsHTMLReflowState::ComputeMinMaxValues(nscoord aContainingBlockWidth,
 
   
   
-  if ((NS_AUTOHEIGHT == aContainingBlockHeight) &&
-      (eStyleUnit_Percent == mStylePosition->mMinHeight.GetUnit())) {
+  
+  
+  const nsStyleCoord &minHeight = mStylePosition->mMinHeight;
+  if ((NS_AUTOHEIGHT == aContainingBlockHeight &&
+       minHeight.HasPercent()) ||
+      (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
+       minHeight.IsCalcUnit())) {
     mComputedMinHeight = 0;
   } else {
     mComputedMinHeight = nsLayoutUtils::
-      ComputeHeightDependentValue(aContainingBlockHeight,
-                                  mStylePosition->mMinHeight);
+      ComputeHeightValue(aContainingBlockHeight, minHeight);
   }
-  nsStyleUnit maxHeightUnit = mStylePosition->mMaxHeight.GetUnit();
+  const nsStyleCoord &maxHeight = mStylePosition->mMaxHeight;
+  nsStyleUnit maxHeightUnit = maxHeight.GetUnit();
   if (eStyleUnit_None == maxHeightUnit) {
     
     mComputedMaxHeight = NS_UNCONSTRAINEDSIZE;  
   } else {
     
     
-    if ((NS_AUTOHEIGHT == aContainingBlockHeight) && 
-        (eStyleUnit_Percent == maxHeightUnit)) {
+    
+    
+    if ((NS_AUTOHEIGHT == aContainingBlockHeight && 
+         maxHeight.HasPercent()) ||
+        (mFrameType == NS_CSS_FRAME_TYPE_INTERNAL_TABLE &&
+         maxHeight.IsCalcUnit())) {
       mComputedMaxHeight = NS_UNCONSTRAINEDSIZE;
     } else {
       mComputedMaxHeight = nsLayoutUtils::
-        ComputeHeightDependentValue(aContainingBlockHeight,
-                                    mStylePosition->mMaxHeight);
+        ComputeHeightValue(aContainingBlockHeight, maxHeight);
     }
   }
 

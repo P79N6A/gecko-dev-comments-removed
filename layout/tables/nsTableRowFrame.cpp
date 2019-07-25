@@ -547,6 +547,7 @@ nsTableRowFrame::CalcHeight(const nsHTMLReflowState& aReflowState)
   else if (eStyleUnit_Percent == position->mHeight.GetUnit()) {
     SetPctHeight(position->mHeight.GetPercentValue());
   }
+  
 
   for (nsIFrame* kidFrame = mFrames.FirstChild(); kidFrame;
        kidFrame = kidFrame->GetNextSibling()) {
@@ -675,7 +676,7 @@ nsTableRowFrame::CalculateCellActualHeight(nsTableCellFrame* aCellFrame,
       break;
     }
     case eStyleUnit_Auto:
-    default:
+    default: 
       break;
   }
 
@@ -1405,8 +1406,10 @@ void nsTableRowFrame::InitHasCellWithStyleHeight(nsTableFrame* aTableFrame)
       continue;
     }
     
+    const nsStyleCoord &cellHeight = cellFrame->GetStylePosition()->mHeight;
     if (aTableFrame->GetEffectiveRowSpan(*cellFrame) == 1 &&
-        cellFrame->GetStylePosition()->mHeight.GetUnit() != eStyleUnit_Auto) {
+        cellHeight.GetUnit() != eStyleUnit_Auto &&
+        !cellHeight.IsCalcUnit() ) {
       AddStateBits(NS_ROW_HAS_CELL_WITH_STYLE_HEIGHT);
       return;
     }

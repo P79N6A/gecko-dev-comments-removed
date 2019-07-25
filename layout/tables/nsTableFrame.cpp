@@ -1589,7 +1589,9 @@ nsTableFrame::AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowSta
     if (IS_TABLE_CELL(frameType)                     ||
         (nsGkAtoms::tableRowFrame      == frameType) ||
         (nsGkAtoms::tableRowGroupFrame == frameType)) {
-      if (rs->mStylePosition->mHeight.GetUnit() != eStyleUnit_Auto) {
+      const nsStyleCoord &height = rs->mStylePosition->mHeight;
+      
+      if (height.GetUnit() != eStyleUnit_Auto && !height.IsCalcUnit()) {
         return PR_TRUE;
       }
     }
@@ -1608,6 +1610,11 @@ nsTableFrame::AncestorsHaveStyleHeight(const nsHTMLReflowState& aParentReflowSta
 void
 nsTableFrame::CheckRequestSpecialHeightReflow(const nsHTMLReflowState& aReflowState)
 {
+  NS_ASSERTION(IS_TABLE_CELL(aReflowState.frame->GetType()) ||
+               aReflowState.frame->GetType() == nsGkAtoms::tableRowFrame ||
+               aReflowState.frame->GetType() == nsGkAtoms::tableRowGroupFrame ||
+               aReflowState.frame->GetType() == nsGkAtoms::tableFrame,
+               "unexpected frame type");
   if (!aReflowState.frame->GetPrevInFlow() &&  
       (NS_UNCONSTRAINEDSIZE == aReflowState.ComputedHeight() ||  
        0                    == aReflowState.ComputedHeight()) &&
@@ -3349,26 +3356,11 @@ nsTableFrame::GetTableFrame(nsIFrame* aSourceFrame)
 PRBool
 nsTableFrame::IsAutoHeight()
 {
-  PRBool isAuto = PR_TRUE;  
-
-  const nsStylePosition* position = GetStylePosition();
-
-  switch (position->mHeight.GetUnit()) {
-    case eStyleUnit_Auto:         
-      break;
-    case eStyleUnit_Coord:
-      isAuto = PR_FALSE;
-      break;
-    case eStyleUnit_Percent:
-      if (position->mHeight.GetPercentValue() > 0.0f) {
-        isAuto = PR_FALSE;
-      }
-      break;
-    default:
-      break;
-  }
-
-  return isAuto;
+  const nsStyleCoord &height = GetStylePosition()->mHeight;
+  
+  return height.GetUnit() == eStyleUnit_Auto ||
+         (height.GetUnit() == eStyleUnit_Percent &&
+          height.GetPercentValue() <= 0.0f);
 }
 
 nscoord

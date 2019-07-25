@@ -3102,8 +3102,7 @@ IsAutoHeight(const nsStyleCoord &aCoord, nscoord aCBHeight)
   nsStyleUnit unit = aCoord.GetUnit();
   return unit == eStyleUnit_Auto ||  
          unit == eStyleUnit_None ||  
-         (unit == eStyleUnit_Percent && 
-          aCBHeight == NS_AUTOHEIGHT);
+         (aCBHeight == NS_AUTOHEIGHT && aCoord.HasPercent());
 }
 
  nsSize
@@ -3156,16 +3155,14 @@ nsFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
 
   if (!IsAutoHeight(stylePos->mHeight, aCBSize.height)) {
     result.height =
-      nsLayoutUtils::ComputeHeightDependentValue(aCBSize.height,
-                                                 stylePos->mHeight) -
+      nsLayoutUtils::ComputeHeightValue(aCBSize.height, stylePos->mHeight) -
       boxSizingAdjust.height;
   }
 
   if (result.height != NS_UNCONSTRAINEDSIZE) {
     if (!IsAutoHeight(stylePos->mMaxHeight, aCBSize.height)) {
       nscoord maxHeight =
-        nsLayoutUtils::ComputeHeightDependentValue(aCBSize.height,
-                                                   stylePos->mMaxHeight) -
+        nsLayoutUtils::ComputeHeightValue(aCBSize.height, stylePos->mMaxHeight) -
         boxSizingAdjust.height;
       if (maxHeight < result.height)
         result.height = maxHeight;
@@ -3173,8 +3170,7 @@ nsFrame::ComputeSize(nsIRenderingContext *aRenderingContext,
 
     if (!IsAutoHeight(stylePos->mMinHeight, aCBSize.height)) {
       nscoord minHeight =
-        nsLayoutUtils::ComputeHeightDependentValue(aCBSize.height,
-                                                   stylePos->mMinHeight) -
+        nsLayoutUtils::ComputeHeightValue(aCBSize.height, stylePos->mMinHeight) -
         boxSizingAdjust.height;
       if (minHeight > result.height)
         result.height = minHeight;
@@ -3313,10 +3309,9 @@ nsFrame::DidReflow(nsPresContext*           aPresContext,
   
   
   if (aReflowState && aReflowState->mPercentHeightObserver &&
-      (eStyleUnit_Percent == aReflowState->mStylePosition->mHeight.GetUnit())) {
-
-    nsIFrame* prevInFlow = GetPrevInFlow();
-    if (!prevInFlow) { 
+      !GetPrevInFlow()) {
+    const nsStyleCoord &height = aReflowState->mStylePosition->mHeight;
+    if (height.HasPercent()) {
       aReflowState->mPercentHeightObserver->NotifyPercentHeight(*aReflowState);
     }
   }

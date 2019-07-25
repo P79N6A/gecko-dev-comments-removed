@@ -779,6 +779,19 @@ public:
   
 
 
+  static nscoord ComputeHeightValue(nscoord aContainingBlockHeight,
+                                    const nsStyleCoord& aCoord)
+  {
+    nscoord result =
+      ComputeHeightDependentValue(aContainingBlockHeight, aCoord);
+    if (result < 0)
+      result = 0; 
+    return result;
+  }
+
+  
+
+
 
 
   static nsSize ComputeSizeWithIntrinsicDimensions(
