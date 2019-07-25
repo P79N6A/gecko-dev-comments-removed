@@ -163,16 +163,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
 #ifndef Long
 #define Long long
 #endif
@@ -1531,76 +1521,6 @@ match
 	return 1;
 	}
 
-#ifndef No_Hex_NaN
- static void
-hexnan
-#ifdef KR_headers
-	(rvp, sp) U *rvp; CONST char **sp;
-#else
-	(U *rvp, CONST char **sp)
-#endif
-{
-	ULong c, x[2];
-	CONST char *s;
-	int havedig, udx0, xshift;
-
-	x[0] = x[1] = 0;
-	havedig = xshift = 0;
-	udx0 = 1;
-	s = *sp;
-	
-	while((c = *(CONST unsigned char*)(s+1)) && c <= ' ')
-		++s;
-	if (s[1] == '0' && (s[2] == 'x' || s[2] == 'X'))
-		s += 2;
-	while((c = *(CONST unsigned char*)++s)) {
-		if (c >= '0' && c <= '9')
-			c -= '0';
-		else if (c >= 'a' && c <= 'f')
-			c += 10 - 'a';
-		else if (c >= 'A' && c <= 'F')
-			c += 10 - 'A';
-		else if (c <= ' ') {
-			if (udx0 && havedig) {
-				udx0 = 0;
-				xshift = 1;
-				}
-			continue;
-			}
-#ifdef GDTOA_NON_PEDANTIC_NANCHECK
-		else if ( c == ')' && havedig) {
-			*sp = s + 1;
-			break;
-			}
-		else
-			return;	
-#else
-		else {
-			do {
-				if ( c == ')') {
-					*sp = s + 1;
-					break;
-					}
-				} while((c = *++s));
-			break;
-			}
-#endif
-		havedig = 1;
-		if (xshift) {
-			xshift = 0;
-			x[0] = x[1];
-			x[1] = 0;
-			}
-		if (udx0)
-			x[0] = (x[0] << 4) | (x[1] >> 28);
-		x[1] = (x[1] << 4) | c;
-		}
-	if ((x[0] &= 0xfffff) || x[1]) {
-		word0(*rvp) = Exp_mask | x[0];
-		word1(*rvp) = x[1];
-		}
-	}
-#endif 
 #endif 
 
  static double
@@ -1782,10 +1702,6 @@ _strtod
 				if (match(&s, "an")) {
 					word0(rv) = NAN_WORD0;
 					word1(rv) = NAN_WORD1;
-#ifndef No_Hex_NaN
-					if (*s == '(') 
-						hexnan(&rv, &s);
-#endif
 					goto ret;
 					}
 			  }
