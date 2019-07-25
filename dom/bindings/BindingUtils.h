@@ -20,7 +20,6 @@
 #include "xpcpublic.h"
 #include "nsTraceRefcnt.h"
 #include "nsWrapperCacheInlines.h"
-#include "mozilla/Likely.h"
 
 
 
@@ -188,7 +187,7 @@ inline nsresult
 UnwrapObject(JSContext* cx, JSObject* obj, U& value)
 {
   return UnwrapObject<static_cast<prototypes::ID>(
-           PrototypeIDMap<T>::PrototypeID), T>(cx, obj, value);
+           PrototypeIDMap<T>::PrototypeID)>(cx, obj, value);
 }
 
 const size_t kProtoOrIfaceCacheCount =
