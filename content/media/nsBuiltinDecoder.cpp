@@ -647,7 +647,6 @@ void nsBuiltinDecoder::NotifySuspendedStatusChanged()
   nsMediaStream* activeStream;
   bool suspended = mStream->IsSuspendedByCache(&activeStream);
   
-  printf("*** nsBuiltinDecoder::NotifySuspendedStatusChanged(%p), suspended=%d, active-stream=%p\n", this, suspended, activeStream);
   if (suspended && mElement) {
     
     
