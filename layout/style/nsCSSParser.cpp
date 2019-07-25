@@ -1238,7 +1238,8 @@ CSSParserImpl::ParseColorString(const nsSubstring& aBuffer,
   InitScanner(aBuffer, aURI, aLineNumber, aURI, nsnull);
 
   nsCSSValue value;
-  PRBool colorParsed = ParseColor(value);
+  
+  PRBool colorParsed = ParseColor(value) && !GetToken(PR_TRUE);
   nsresult rv = mScanner.GetLowLevelError();
   OUTPUT_ERROR();
   ReleaseScanner();
