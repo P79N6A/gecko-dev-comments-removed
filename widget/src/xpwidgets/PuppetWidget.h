@@ -179,6 +179,12 @@ public:
                              PRUint32 aNewEnd);
   NS_IMETHOD OnIMESelectionChange(void);
 
+  
+  
+  
+  
+  virtual float GetDPI();
+
 private:
   nsresult DispatchPaintEvent();
   nsresult DispatchResizeEvent();
@@ -223,6 +229,9 @@ private:
   
   
   PRUint32 mIMELastBlurSeqno;
+
+  
+  float mDPI;
 };
 
 }  
