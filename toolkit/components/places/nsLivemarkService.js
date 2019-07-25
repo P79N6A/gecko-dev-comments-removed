@@ -151,6 +151,7 @@ LivemarkService.prototype = {
     }
   },
 
+  _reloading: false,
   _startReloadTimer: function LS__startReloadTimer()
   {
     if (this._reloadTimer) {
@@ -160,6 +161,7 @@ LivemarkService.prototype = {
       this._reloadTimer = Cc["@mozilla.org/timer;1"]
                             .createInstance(Ci.nsITimer);
     }
+    this._reloading = true;
     this._reloadTimer.initWithCallback(this._reloadNextLivemark.bind(this),
                                        RELOAD_DELAY_MS,
                                        Ci.nsITimer.TYPE_ONE_SHOT);
@@ -179,6 +181,7 @@ LivemarkService.prototype = {
       }
 
       if (this._reloadTimer) {
+        this._reloading = false;
         this._reloadTimer.cancel();
         delete this._reloadTimer;
       }
@@ -363,7 +366,7 @@ LivemarkService.prototype = {
   {
     this._reportDeprecatedMethod();
 
-    this._reloadLivemarks();
+    this._reloadLivemarks(true);
   },
 
   
@@ -393,7 +396,15 @@ LivemarkService.prototype = {
         throw new Components.Exception("", Cr.NS_ERROR_INVALID_ARG);
       }
 
-      livemark = new Livemark(aLivemarkInfo);
+      
+      livemark = new Livemark({ title:        aLivemarkInfo.title
+                              , parentId:     aLivemarkInfo.parentId
+                              , index:        aLivemarkInfo.index
+                              , feedURI:      aLivemarkInfo.feedURI
+                              , siteURI:      aLivemarkInfo.siteURI
+                              , guid:         aLivemarkInfo.guid
+                              , lastModified: aLivemarkInfo.lastModified
+                              });
       if (this._itemAdded && this._itemAdded.id == livemark.id) {
         livemark.index = this._itemAdded.index;
         if (!aLivemarkInfo.guid) {
@@ -469,20 +480,31 @@ LivemarkService.prototype = {
   _reloaded: [],
   _reloadNextLivemark: function LS__reloadNextLivemark()
   {
+    this._reloading = false;
     
     for (let id in this._livemarks) {
       if (this._reloaded.indexOf(id) == -1) {
         this._reloaded.push(id);
-        this._livemarks[id].reload();
+        this._livemarks[id].reload(this._forceUpdate);
         this._startReloadTimer();
         break;
       }
     }
   },
 
-  reloadLivemarks: function LS_reloadLivemarks()
+  reloadLivemarks: function LS_reloadLivemarks(aForceUpdate)
   {
+    
+    let notWorthRestarting =
+      this._forceUpdate || 
+      !aForceUpdate;       
+    if (this._reloading && notWorthRestarting) {
+      
+      return;
+    } 
+
     this._onCacheReady((function LS_reloadAllLivemarks_ETAT() {
+      this._forceUpdate = !!aForceUpdate;
       this._reloaded = [];
       
       
@@ -841,6 +863,10 @@ Livemark.prototype = {
 
     this.status = Ci.mozILivemark.STATUS_LOADING;
 
+    
+    if (this._terminated)
+      return;
+
     try {
       
       
@@ -1003,6 +1029,8 @@ Livemark.prototype = {
 
   terminate: function LM_terminate()
   {
+    
+    this._terminated = true;
     
     
     this._resultObserversList = [];
