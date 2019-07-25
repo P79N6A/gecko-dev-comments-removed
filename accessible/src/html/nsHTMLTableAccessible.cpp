@@ -1496,26 +1496,22 @@ nsHTMLTableAccessible::IsProbablyForLayout(bool *aIsProbablyForLayout)
 
   
   
-  nsCOMPtr<nsIDOMNodeList> nodeList;
-  nsCOMPtr<nsIDOMElement> tableElt(do_QueryInterface(mContent));    
-  tableElt->GetElementsByTagName(NS_LITERAL_STRING("tr"), getter_AddRefs(nodeList));
-  NS_ENSURE_TRUE(nodeList, NS_ERROR_FAILURE);
-  PRUint32 length;
-  nodeList->GetLength(&length);
-  nsAutoString color, lastRowColor;
-  for (PRUint32 rowCount = 0; rowCount < length; rowCount ++) {
-    nsCOMPtr<nsIDOMNode> rowNode;
-    nodeList->Item(rowCount, getter_AddRefs(rowNode));
-    nsCOMPtr<nsIContent> rowContent(do_QueryInterface(rowNode));
-
-    nsCOMPtr<nsIDOMCSSStyleDeclaration> styleDecl =
-      nsCoreUtils::GetComputedStyleDeclaration(EmptyString(), rowContent);
-    NS_ENSURE_TRUE(styleDecl, NS_ERROR_FAILURE);
-
-    lastRowColor = color;
-    styleDecl->GetPropertyValue(NS_LITERAL_STRING("background-color"), color);
-    if (rowCount > 0 && false == lastRowColor.Equals(color)) {
-      RETURN_LAYOUT_ANSWER(false, "2 styles of row background color, non-bordered");
+  PRUint32 childCount = GetChildCount();
+  nsAutoString rowColor, prevRowColor;
+  for (PRUint32 childIdx = 0; childIdx < childCount; childIdx++) {
+    nsAccessible* child = GetChildAt(childIdx);
+    if (child->Role() == roles::ROW) {
+      nsCOMPtr<nsIDOMCSSStyleDeclaration> styleDecl =
+        nsCoreUtils::GetComputedStyleDeclaration(EmptyString(),
+                                                 child->GetContent());
+      if (styleDecl) {
+        prevRowColor = rowColor;
+        styleDecl->GetPropertyValue(NS_LITERAL_STRING("background-color"),
+                                    rowColor);
+        if (childIdx > 0 && !prevRowColor.Equals(rowColor)) {
+          RETURN_LAYOUT_ANSWER(false, "2 styles of row background color, non-bordered");
+        }
+      }
     }
   }
 
