@@ -1575,11 +1575,14 @@ nsBlockFrame::MarkLineDirty(line_iterator aLine, const nsLineList* aLineList)
 
 
 
-bool static inline IsAlignedLeft(const PRUint8 aAlignment,
-                                 const PRUint8 aDirection,
-                                 const PRUint8 aUnicodeBidi)
+static inline bool
+IsAlignedLeft(PRUint8 aAlignment,
+              PRUint8 aDirection,
+              PRUint8 aUnicodeBidi,
+              nsIFrame* aFrame)
 {
-  return (NS_STYLE_TEXT_ALIGN_LEFT == aAlignment ||
+  return (aFrame->IsSVGText() ||
+          NS_STYLE_TEXT_ALIGN_LEFT == aAlignment ||
           ((NS_STYLE_TEXT_ALIGN_DEFAULT == aAlignment &&
             NS_STYLE_DIRECTION_LTR == aDirection) ||
            (NS_STYLE_TEXT_ALIGN_END == aAlignment &&
@@ -1597,7 +1600,8 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
       
     IsAlignedLeft(styleText->mTextAlign, 
                   aState.mReflowState.mStyleVisibility->mDirection,
-                  styleTextReset->mUnicodeBidi) &&
+                  styleTextReset->mUnicodeBidi,
+                  this) &&
       
       
       !GetStylePadding()->mPadding.GetLeft().HasPercent();
@@ -1636,7 +1640,8 @@ nsBlockFrame::PrepareResizeReflow(nsBlockReflowState& aState)
     bool skipLastLine = NS_STYLE_TEXT_ALIGN_AUTO == styleText->mTextAlignLast ||
       IsAlignedLeft(styleText->mTextAlignLast,
                     aState.mReflowState.mStyleVisibility->mDirection,
-                    styleTextReset->mUnicodeBidi);
+                    styleTextReset->mUnicodeBidi,
+                    this);
 
     for (line_iterator line = begin_lines(), line_end = end_lines();
          line != line_end;
@@ -4253,10 +4258,12 @@ nsBlockFrame::PlaceLine(nsBlockReflowState& aState,
 
 
 
-  bool isLastLine = ((NS_STYLE_TEXT_ALIGN_AUTO != styleText->mTextAlignLast ||
-                            NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign) &&
-                       (aLineLayout.GetLineEndsInBR() ||
-                        IsLastLine(aState, aLine)));
+  bool isLastLine =
+    !IsSVGText() &&
+    ((NS_STYLE_TEXT_ALIGN_AUTO != styleText->mTextAlignLast ||
+      NS_STYLE_TEXT_ALIGN_JUSTIFY == styleText->mTextAlign) &&
+     (aLineLayout.GetLineEndsInBR() ||
+      IsLastLine(aState, aLine)));
   aLineLayout.HorizontalAlignFrames(aLine->mBounds, isLastLine);
   
   
