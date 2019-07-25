@@ -770,7 +770,6 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
 #ifdef XP_WIN32
   MINIDUMP_TYPE minidump_type = MiniDumpNormal;
 
-#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   
   
 
@@ -793,7 +792,6 @@ nsresult SetExceptionHandler(nsILocalFile* aXREDirectory,
       }
     }
   }
-#endif 
 #endif 
 
   
