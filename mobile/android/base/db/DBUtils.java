@@ -4,9 +4,14 @@
 
 package org.mozilla.gecko.db;
 
+import org.mozilla.gecko.GeckoAppShell;
 import org.mozilla.gecko.sync.Utils;
 
 import android.content.ContentValues;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.os.Build;
 import android.text.TextUtils;
 import android.util.Base64;
 import android.util.Log;
@@ -15,6 +20,8 @@ import java.util.UUID;
 import java.util.Random;
 
 public class DBUtils {
+    private static final String LOGTAG = "GeckoDBUtils";
+
     public static final String qualifyColumn(String table, String column) {
         return table + "." + column;
     }
@@ -61,6 +68,27 @@ public class DBUtils {
 
         if (!aValues.containsKey(aNewKey)) {
             aValues.put(aNewKey, value);
+        }
+    }
+
+    public static void ensureDatabaseIsNotLocked(SQLiteOpenHelper dbHelper, String databasePath) {
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+
+        
+        
+        
+        
+        if (db.isReadOnly()) {
+            
+            dbHelper.close();
+
+            Log.d(LOGTAG, "Database is in read-only mode, trying to forcefully unlock the database file: " + databasePath);
+
+            
+            GeckoAppShell.unlockDatabaseFile(databasePath);
+
+            
+            
         }
     }
 }
