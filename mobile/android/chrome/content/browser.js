@@ -292,6 +292,12 @@ var BrowserApp = {
       
       let restoreToFront = false;
 
+      sendMessageToJava({
+        gecko: {
+          type: "Session:RestoreBegin"
+        }
+      });
+
       
       if (url && url != "about:home") {
         this.addTab(url);
@@ -308,6 +314,12 @@ var BrowserApp = {
             let params = { selected: restoreToFront };
             BrowserApp.addTab("about:home", { showProgress: false });
           }
+
+          sendMessageToJava({
+            gecko: {
+              type: "Session:RestoreEnd"
+            }
+          });
         }
       };
       Services.obs.addObserver(restoreCleanup, "sessionstore-windows-restored", false);
