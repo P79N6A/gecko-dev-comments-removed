@@ -571,7 +571,8 @@ void
 RenderFrameParent::BuildViewMap()
 {
   ViewMap newContentViews;
-  if (GetRootLayer()) {
+  
+  if (GetRootLayer() && mFrameLoader->GetPrimaryFrameOfOwningContent()) {
     
     
     
@@ -590,9 +591,16 @@ RenderFrameParent::BuildViewMap()
 
   
   
-  if (!newContentViews.empty()) {
-    mContentViews = newContentViews;
+  
+  
+  if (newContentViews.empty()) {
+    newContentViews.insert(ViewMap::value_type(
+      FrameMetrics::ROOT_SCROLL_ID,
+      FindViewForId(mContentViews, FrameMetrics::ROOT_SCROLL_ID)
+    ));
   }
+  
+  mContentViews = newContentViews;
 }
 
 LayerManager*
