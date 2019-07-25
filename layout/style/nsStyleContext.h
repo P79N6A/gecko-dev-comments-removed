@@ -322,6 +322,14 @@ public:
 
   void* Alloc(size_t aSize);
 
+  
+
+
+  void StartBackgroundImageLoads() {
+    
+    GetStyleBackground();
+  }
+
 #ifdef DEBUG
   void List(FILE* out, PRInt32 aIndent);
 #endif
