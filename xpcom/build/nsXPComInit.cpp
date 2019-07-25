@@ -281,7 +281,7 @@ nsXPTIInterfaceInfoManagerGetSingleton(nsISupports* outer,
     NS_ENSURE_TRUE(!outer, NS_ERROR_NO_AGGREGATION);
 
     nsCOMPtr<nsIInterfaceInfoManager> iim
-        (xptiInterfaceInfoManager::GetInterfaceInfoManagerNoAddRef());
+        (xptiInterfaceInfoManager::GetSingleton());
     if (!iim)
         return NS_ERROR_FAILURE;
 
@@ -698,18 +698,21 @@ NS_InitXPCOM3(nsIServiceManager* *result,
 
     
     nsIInterfaceInfoManager* iim =
-        xptiInterfaceInfoManager::GetInterfaceInfoManagerNoAddRef();
+        xptiInterfaceInfoManager::GetSingleton();
 
     NS_TIME_FUNCTION_MARK("Next: try to load compreg.dat");
+
+#if 0 
+    
+    
+    (void) iim->AutoRegisterInterfaces();
+#endif,
 
     
     rv = nsComponentManagerImpl::gComponentManager->ReadPersistentRegistry();
     if (NS_FAILED(rv)) {
         NS_TIME_FUNCTION_MARK("Next: try to register all components (compreg.dat not found)");
 
-        
-        
-        (void) iim->AutoRegisterInterfaces();
         nsComponentManagerImpl::gComponentManager->AutoRegister(nsnull);
     }
 

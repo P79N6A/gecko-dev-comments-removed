@@ -2479,9 +2479,6 @@ static void RemoveComponentRegistries(nsIFile* aProfileDir, nsIFile* aLocalProfi
   file->AppendNative(NS_LITERAL_CSTRING("compreg.dat"));
   file->Remove(PR_FALSE);
 
-  file->SetNativeLeafName(NS_LITERAL_CSTRING("xpti.dat"));
-  file->Remove(PR_FALSE);
-
   if (aRemoveEMFiles) {
     file->SetNativeLeafName(NS_LITERAL_CSTRING("extensions.ini"));
     file->Remove(PR_FALSE);

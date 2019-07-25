@@ -140,6 +140,24 @@ public:
 
 
 
+
+
+
+  UserDataType Get(KeyType aKey) const
+  {
+    EntryType* ent = GetEntry(aKey);
+    if (!ent)
+      return NULL;
+
+    return ent->mData;
+  }
+
+  
+
+
+
+
+
   PRBool Put(KeyType aKey, UserDataType aData)
   {
     EntryType* ent = PutEntry(aKey);
