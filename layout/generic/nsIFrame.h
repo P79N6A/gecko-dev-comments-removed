@@ -2131,12 +2131,7 @@ public:
 
 
 
-
-
-  enum {
-    INVALIDATE_DONT_SCHEDULE_PAINT
-  };
-  virtual void InvalidateFrame(PRUint32 aFlags = 0);
+  virtual void InvalidateFrame();
   
   
 
@@ -2145,7 +2140,7 @@ public:
 
 
 
-  void InvalidateFrameSubtree(PRUint32 aFlags = 0);
+  void InvalidateFrameSubtree();
   
   
 
