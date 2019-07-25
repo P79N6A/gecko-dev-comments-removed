@@ -2433,11 +2433,13 @@ nsFocusManager::DetermineElementToMoveFocus(nsPIDOMWindow* aWindow,
   }
   else {
 #ifdef MOZ_XUL
-    
-    
-    nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
-    if (pm)
-      popupFrame = pm->GetTopPopup(ePopupTypePanel);
+    if (aType != MOVEFOCUS_CARET) {
+      
+      
+      nsXULPopupManager* pm = nsXULPopupManager::GetInstance();
+      if (pm)
+        popupFrame = pm->GetTopPopup(ePopupTypePanel);
+    }
 #endif
     if (popupFrame) {
       rootContent = popupFrame->GetContent();
