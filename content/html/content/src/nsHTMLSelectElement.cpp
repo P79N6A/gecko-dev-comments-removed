@@ -88,20 +88,20 @@ nsSafeOptionListMutation::nsSafeOptionListMutation(nsIContent* aSelect,
                                                    nsIContent* aKid,
                                                    PRUint32 aIndex,
                                                    PRBool aNotify)
-  : mSelect(do_QueryInterface(aSelect)), mTopLevelMutation(PR_FALSE),
-    mNeedsRebuild(PR_FALSE)
+  : mSelect(nsHTMLSelectElement::FromContent(aSelect))
+  , mTopLevelMutation(PR_FALSE)
+  , mNeedsRebuild(PR_FALSE)
 {
-  nsHTMLSelectElement* select = static_cast<nsHTMLSelectElement*>(mSelect.get());
-  if (select) {
-    mTopLevelMutation = !select->mMutating;
+  if (mSelect) {
+    mTopLevelMutation = !mSelect->mMutating;
     if (mTopLevelMutation) {
-      select->mMutating = PR_TRUE;
+      mSelect->mMutating = PR_TRUE;
     } else {
       
       
       
       
-      select->RebuildOptionsArray(aNotify);
+      mSelect->RebuildOptionsArray(aNotify);
     }
     nsresult rv;
     if (aKid) {
@@ -116,16 +116,14 @@ nsSafeOptionListMutation::nsSafeOptionListMutation(nsIContent* aSelect,
 nsSafeOptionListMutation::~nsSafeOptionListMutation()
 {
   if (mSelect) {
-    nsHTMLSelectElement* select =
-      static_cast<nsHTMLSelectElement*>(mSelect.get());
     if (mNeedsRebuild || (mTopLevelMutation && mGuard.Mutated(1))) {
-      select->RebuildOptionsArray(PR_TRUE);
+      mSelect->RebuildOptionsArray(PR_TRUE);
     }
     if (mTopLevelMutation) {
-      select->mMutating = PR_FALSE;
+      mSelect->mMutating = PR_FALSE;
     }
 #ifdef DEBUG
-    select->VerifyOptionsArray();
+    mSelect->VerifyOptionsArray();
 #endif
   }
 }
