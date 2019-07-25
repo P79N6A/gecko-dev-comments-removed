@@ -127,6 +127,7 @@ const PAGEID_LICENSE          = "license";
 const PAGEID_INCOMPAT_LIST    = "incompatibleList";      
 const PAGEID_DOWNLOADING      = "downloading";           
 const PAGEID_ERRORS           = "errors";                
+const PAGEID_ERROR_CERT_CHECK = "errorcertcheck";        
 const PAGEID_ERROR_PATCHING   = "errorpatching";         
 const PAGEID_FINISHED         = "finished";              
 const PAGEID_FINISHED_BKGRD   = "finishedBackground";    
@@ -141,6 +142,9 @@ const URL_UPDATE = URL_HOST + URL_PATH + "/update.sjs";
 const URI_UPDATE_PROMPT_DIALOG  = "chrome://mozapps/content/update/updates.xul";
 
 const CRC_ERROR = 4;
+
+const PREF_APP_UPDATE_CERT_INVALID_ATTR_NAME = PREF_APP_UPDATE_CERTS_BRANCH +
+                                               "1.invalidName";
 
 const ADDON_ID_SUFFIX = "@appupdatetest.mozilla.org";
 const ADDON_PREP_DIR = "appupdateprep";
@@ -161,10 +165,11 @@ var gTimeoutTimer;
 
 
 
-var gAppUpdateChannel; 
-var gAppUpdateEnabled; 
-var gAppUpdateURL;     
-var gExtUpdateURL;     
+var gAppUpdateChannel;    
+var gAppUpdateEnabled;    
+var gAppUpdateURLDefault; 
+var gAppUpdateURL;        
+var gExtUpdateURL;        
 
 var gTestCounter = -1;
 var gWin;
@@ -454,6 +459,7 @@ function getExpectedButtonStates() {
     case PAGEID_NO_UPDATES_FOUND:
     case PAGEID_MANUAL_UPDATE:
     case PAGEID_ERRORS:
+    case PAGEID_ERROR_CERT_CHECK:
     case PAGEID_INSTALLED:
       return { finish: { disabled: false, hidden: false } };
     case PAGEID_ERROR_PATCHING:
@@ -618,6 +624,29 @@ function checkPrefHasUserValue(aPrefHasValue) {
 
 
 
+function checkCertErrorPage(aShouldBeHidden) {
+  let shouldBeHidden = aShouldBeHidden === undefined ? gTest.shouldBeHidden
+                                                     : aShouldBeHidden;
+  is(gWin.document.getElementById("errorCertAttrLinkLabel").hidden, shouldBeHidden,
+     "Checking errorCertAttrLinkLabel hidden attribute equals " +
+     (shouldBeHidden ? "true" : "false"));
+
+  ok(!Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_ERRORS),
+     "Preference " + PREF_APP_UPDATE_CERT_ERRORS + " should not have a " +
+     "user value");
+}
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 function getVersionParams(aAppVersion, aPlatformVersion) {
@@ -684,6 +713,9 @@ function setupPrefs() {
   gAppUpdateChannel = gDefaultPrefBranch.getCharPref(PREF_APP_UPDATE_CHANNEL);
   setUpdateChannel();
 
+  
+
+
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE)) {
     gAppUpdateURL = Services.prefs.setIntPref(PREF_APP_UPDATE_URL_OVERRIDE);
   }
@@ -713,6 +745,10 @@ function resetPrefs() {
   }
   else if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_URL_OVERRIDE)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_URL_OVERRIDE);
+  }
+
+  if (gAppUpdateURLDefault) {
+    gDefaultPrefBranch.setCharPref(PREF_APP_UPDATE_URL, gAppUpdateURLDefault);
   }
 
   if (gAppUpdateChannel !== undefined) {
@@ -747,6 +783,31 @@ function resetPrefs() {
 
   if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_LOG)) {
     Services.prefs.clearUserPref(PREF_APP_UPDATE_LOG);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_MAXERRORS)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_MAXERRORS);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_INVALID_ATTR_NAME)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_INVALID_ATTR_NAME);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_REQUIREBUILTIN)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_REQUIREBUILTIN);
+  }
+
+  if (Services.prefs.prefHasUserValue(PREF_APP_UPDATE_CERT_CHECKATTRS)) {
+    Services.prefs.clearUserPref(PREF_APP_UPDATE_CERT_CHECKATTRS);
+  }
+
+  try {
+    CERT_ATTRS.forEach(function(aCertAttrName) {
+      Services.prefs.clearUserPref(PREF_APP_UPDATE_CERTS_BRANCH + "1." +
+                                   aCertAttrName);
+    });
+  }
+  catch (e) {
   }
 
   try {
@@ -1041,6 +1102,44 @@ function closeUpdateWindow() {
 function getUpdateWindow() {
   return Services.wm.getMostRecentWindow(UPDATE_WINDOW_NAME);
 }
+
+
+
+
+var certErrorsPrefObserver = {
+  
+
+
+
+
+
+
+  init: function(aMaxErrors) {
+    let maxErrors = aMaxErrors ? aMaxErrors : 5;
+    Services.prefs.setIntPref(PREF_APP_UPDATE_CERT_MAXERRORS, maxErrors);
+    Services.prefs.addObserver(PREF_APP_UPDATE_CERT_ERRORS, this, false);
+  },
+
+  
+
+
+  observe: function XPI_observe(aSubject, aTopic, aData) {
+    if (aData == PREF_APP_UPDATE_CERT_ERRORS) {
+      let errCount = Services.prefs.getIntPref(PREF_APP_UPDATE_CERT_ERRORS);
+      let errMax = Services.prefs.getIntPref(PREF_APP_UPDATE_CERT_MAXERRORS);
+      if (errCount >= errMax) {
+        debugDump("prefObserver - removing pref observer");
+        Services.prefs.removeObserver(PREF_APP_UPDATE_CERT_ERRORS, this);
+      }
+      else {
+        debugDump("prefObserver - notifying AUS");
+        SimpleTest.executeSoon(function() {
+          gAUS.notify(null);
+        });
+      }
+    }
+  }
+};
 
 
 
