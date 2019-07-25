@@ -197,7 +197,7 @@ public:
     
 
 
-    already_AddRefed<nsIAtom> GetLanguage();
+    nsIAtom* Language() { return mLanguage; }
 
     PRInt32 GetMaxStringLength();
 
