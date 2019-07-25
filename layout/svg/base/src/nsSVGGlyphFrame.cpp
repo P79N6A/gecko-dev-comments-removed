@@ -492,9 +492,8 @@ nsSVGGlyphFrame::GetFrameForPoint(const nsPoint &aPoint)
 NS_IMETHODIMP_(nsRect)
 nsSVGGlyphFrame::GetCoveredRegion()
 {
-  
-  
-  return mCoveredRegion;
+  return nsSVGUtils::TransformFrameRectToOuterSVG(
+                       mRect, GetCanvasTM(FOR_OUTERSVG_TM), PresContext());
 }
 
 void
@@ -529,10 +528,6 @@ nsSVGGlyphFrame::ReflowSVG()
     mRect = nsLayoutUtils::RoundGfxRectToAppRect(extent, 
               PresContext()->AppUnitsPerCSSPixel());
   }
-
-  
-  mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
-    mRect, GetCanvasTM(FOR_OUTERSVG_TM), PresContext());
 
   
   

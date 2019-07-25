@@ -488,10 +488,6 @@ nsSVGImageFrame::ReflowSVG()
     mRect.SetEmpty();
   }
 
-  
-  mCoveredRegion = nsSVGUtils::TransformFrameRectToOuterSVG(
-    mRect, GetCanvasTM(FOR_OUTERSVG_TM), PresContext());
-
   if (mState & NS_FRAME_FIRST_REFLOW) {
     
     
