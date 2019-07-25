@@ -132,7 +132,294 @@ Observer.prototype = {
   },
 };
 
+function isWrappable(x) {
+  if (typeof x === "object")
+    return x !== null;
+  return typeof x === "function";
+};
+
+function isWrapper(x) {
+  return isWrappable(x) && (typeof x.SpecialPowers_wrappedObject !== "undefined");
+};
+
+function unwrapIfWrapped(x) {
+  return isWrapper(x) ? unwrapPrivileged(x) : x;
+};
+
+function isXrayWrapper(x) {
+  return /XrayWrapper/.exec(x.toString());
+}
+
+
+
+function doApply(fun, invocant, args) {
+  return Function.prototype.apply.call(fun, invocant, args);
+}
+
+function wrapPrivileged(obj) {
+
+  
+  if (!isWrappable(obj))
+    return obj;
+
+  
+  if (isWrapper(obj))
+    throw "Trying to double-wrap object!";
+
+  
+  var handler = new SpecialPowersHandler(obj);
+
+  
+  if (typeof obj === "function") {
+    var callTrap = function() {
+      
+      var invocant = unwrapIfWrapped(this);
+      var unwrappedArgs = Array.prototype.slice.call(arguments).map(unwrapIfWrapped);
+
+      return wrapPrivileged(doApply(obj, invocant, unwrappedArgs));
+    };
+    var constructTrap = function() {
+      
+      var unwrappedArgs = Array.prototype.slice.call(arguments).map(unwrapIfWrapped);
+
+      
+      
+      
+      var FakeConstructor = function() {
+        doApply(obj, this, unwrappedArgs);
+      };
+      FakeConstructor.prototype = obj.prototype;
+
+      return wrapPrivileged(new FakeConstructor());
+    };
+
+    return Proxy.createFunction(handler, callTrap, constructTrap);
+  }
+
+  
+  return Proxy.create(handler);
+};
+
+function unwrapPrivileged(x) {
+
+  
+  
+  
+  
+  if (!isWrappable(x))
+    return x;
+
+  
+  if (!isWrapper(x))
+    throw "Trying to unwrap a non-wrapped object!";
+
+  
+  return x.SpecialPowers_wrappedObject;
+};
+
+function crawlProtoChain(obj, fn) {
+  var rv = fn(obj);
+  if (rv !== undefined)
+    return rv;
+  if (Object.getPrototypeOf(obj))
+    return crawlProtoChain(Object.getPrototypeOf(obj), fn);
+};
+
+
+function SpecialPowersHandler(obj) {
+  this.wrappedObject = obj;
+};
+
+
+
+SpecialPowersHandler.prototype.doGetPropertyDescriptor = function(name, own) {
+
+  
+  if (name == "SpecialPowers_wrappedObject")
+    return { value: this.wrappedObject, writeable: false, configurable: false, enumerable: false };
+
+  
+  
+  
+  
+  
+  
+  var obj = name == 'toString' ? XPCNativeWrapper.unwrap(this.wrappedObject)
+                               : this.wrappedObject;
+
+  
+  
+  
+  
+  
+  var desc;
+
+  
+  
+  
+  if (own)
+    desc = Object.getOwnPropertyDescriptor(obj, name);
+
+  
+  
+  
+  
+  
+  
+  
+  else if (!isXrayWrapper(this.wrappedObject))
+    desc = crawlProtoChain(obj, function(o) {return Object.getOwnPropertyDescriptor(o, name);});
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  else {
+    desc = Object.getOwnPropertyDescriptor(obj, name);
+    if (!desc) {
+      var getter = Object.prototype.__lookupGetter__.call(obj, name);
+      var setter = Object.prototype.__lookupSetter__.call(obj, name);
+      if (getter || setter)
+        desc = {get: getter, set: setter, configurable: true, enumerable: true};
+      else if (name in obj)
+        desc = {value: obj[name], writable: false, configurable: true, enumerable: true};
+    }
+  }
+
+  
+  if (typeof desc === 'undefined')
+    return undefined;
+
+  
+  
+  
+  
+  if (desc && 'value' in desc && desc.value === undefined)
+    desc.value = obj[name];
+
+  
+  
+  
+  desc.configurable = true;
+
+  
+  function wrapIfExists(key) { if (key in desc) desc[key] = wrapPrivileged(desc[key]); };
+  wrapIfExists('value');
+  wrapIfExists('get');
+  wrapIfExists('set');
+
+  return desc;
+};
+
+SpecialPowersHandler.prototype.getOwnPropertyDescriptor = function(name) {
+  return this.doGetPropertyDescriptor(name, true);
+};
+
+SpecialPowersHandler.prototype.getPropertyDescriptor = function(name) {
+  return this.doGetPropertyDescriptor(name, false);
+};
+
+function doGetOwnPropertyNames(obj, props) {
+
+  
+  
+  var specialAPI = 'SpecialPowers_wrappedObject';
+  if (props.indexOf(specialAPI) == -1)
+    props.push(specialAPI);
+
+  
+  var flt = function(a) { return props.indexOf(a) == -1; };
+  props = props.concat(Object.getOwnPropertyNames(obj).filter(flt));
+
+  
+  if ('wrappedJSObject' in obj)
+    props = props.concat(Object.getOwnPropertyNames(obj.wrappedJSObject)
+                         .filter(flt));
+
+  return props;
+}
+
+SpecialPowersHandler.prototype.getOwnPropertyNames = function() {
+  return doGetOwnPropertyNames(this.wrappedObject, []);
+};
+
+SpecialPowersHandler.prototype.getPropertyNames = function() {
+
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  var obj = this.wrappedObject;
+  var props = [];
+  while (obj) {
+    props = doGetOwnPropertyNames(obj, props);
+    obj = Object.getPrototypeOf(XPCNativeWrapper.unwrap(obj));
+  }
+  return props;
+};
+
+SpecialPowersHandler.prototype.defineProperty = function(name, desc) {
+  return Object.defineProperty(this.wrappedObject, name, desc);
+};
+
+SpecialPowersHandler.prototype.delete = function(name) {
+  return delete this.wrappedObject[name];
+};
+
+SpecialPowersHandler.prototype.fix = function() { return undefined;  };
+
+
+
+SpecialPowersHandler.prototype.enumerate = function() {
+  var t = this;
+  var filt = function(name) { return t.getPropertyDescriptor(name).enumerable; };
+  return this.getPropertyNames().filter(filt);
+};
+
 SpecialPowersAPI.prototype = {
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  wrap: wrapPrivileged,
+  unwrap: unwrapPrivileged,
 
   get MockFilePicker() {
     return MockFilePicker
