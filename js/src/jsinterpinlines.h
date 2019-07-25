@@ -444,6 +444,58 @@ NameOperation(JSContext *cx, jsbytecode *pc, Value *vp)
 }
 
 inline bool
+DefVarOrConstOperation(JSContext *cx, JSOp op, PropertyName *dn, StackFrame *fp)
+{
+    
+    uintN attrs = JSPROP_ENUMERATE;
+    if (!fp->isEvalFrame())
+        attrs |= JSPROP_PERMANENT;
+    if (op == JSOP_DEFCONST)
+        attrs |= JSPROP_READONLY;
+
+    
+    JSObject &obj = fp->varObj();
+    JS_ASSERT(!obj.getOps()->defineProperty);
+
+    JSProperty *prop;
+    JSObject *obj2;
+    if (!obj.lookupProperty(cx, dn, &obj2, &prop))
+        return false;
+
+    
+    if (!prop || (obj2 != &obj && obj.isGlobal())) {
+        if (!DefineNativeProperty(cx, &obj, dn, UndefinedValue(),
+                                  JS_PropertyStub, JS_StrictPropertyStub, attrs, 0, 0))
+        {
+            return false;
+        }
+    } else {
+        
+
+
+
+        uintN oldAttrs;
+        if (!obj.getPropertyAttributes(cx, dn, &oldAttrs))
+            return false;
+        if (attrs & JSPROP_READONLY) {
+            JSAutoByteString bytes;
+            if (js_AtomToPrintableString(cx, dn, &bytes)) {
+                JS_ALWAYS_FALSE(JS_ReportErrorFlagsAndNumber(cx, JSREPORT_ERROR,
+                                                             js_GetErrorMessage,
+                                                             NULL, JSMSG_REDECLARED_VAR,
+                                                             (oldAttrs & JSPROP_READONLY)
+                                                             ? "const"
+                                                             : "var",
+                                                             bytes.ptr()));
+            }
+            return false;
+        }
+    }
+
+    return true;
+}
+
+inline bool
 FunctionNeedsPrologue(JSContext *cx, JSFunction *fun)
 {
     
