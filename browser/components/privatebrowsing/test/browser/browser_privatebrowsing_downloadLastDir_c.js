@@ -3,13 +3,15 @@
 
 
 
-Cu.import("resource://gre/modules/DownloadLastDir.jsm");
+let downloadModule = {};
+Cu.import("resource://gre/modules/DownloadLastDir.jsm", downloadModule);
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://mochikit/MockFilePicker.jsm");
 
 let pb = Cc["@mozilla.org/privatebrowsing;1"].
          getService(Ci.nsIPrivateBrowsingService);
+let gDownloadLastDir = new downloadModule.DownloadLastDir(window);
 
 MockFilePicker.init();
 MockFilePicker.returnValue = Ci.nsIFilePicker.returnOK;
@@ -52,7 +54,6 @@ function test() {
     validateFileName = validateFileNameToRestore;
     gDownloadLastDir.cleanupPrivateFile();
     delete FileUtils;
-    delete gDownloadLastDir;
   });
 
   

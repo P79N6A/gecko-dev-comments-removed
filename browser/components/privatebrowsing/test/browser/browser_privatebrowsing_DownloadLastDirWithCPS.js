@@ -3,10 +3,12 @@
 
 
 
-Cu.import("resource://gre/modules/DownloadLastDir.jsm");
+let downloadModule = {};
+Cu.import("resource://gre/modules/DownloadLastDir.jsm", downloadModule);
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/FileUtils.jsm");
 
+let gDownloadLastDir = new downloadModule.DownloadLastDir(window);
 let pb = Cc["@mozilla.org/privatebrowsing;1"].
          getService(Ci.nsIPrivateBrowsingService);
 
@@ -216,6 +218,5 @@ function test() {
       Services.prefs.clearUserPref("browser.download.lastDir");
       gDownloadLastDir.cleanupPrivateFile();
       delete FileUtils;
-      delete gDownloadLastDir;
   }
 }
