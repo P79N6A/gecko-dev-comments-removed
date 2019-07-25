@@ -61,7 +61,7 @@ namespace js {
 
 
 inline double
-TIMECLIP(double time)
+TimeClip(double time)
 {
     
     if (!MOZ_DOUBLE_IS_FINITE(time) || abs(time) > 8.64e15)
