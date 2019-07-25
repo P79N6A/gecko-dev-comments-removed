@@ -8021,21 +8021,7 @@ nsCSSFrameConstructor::ProcessRestyledFrames(nsStyleChangeList& aChangeList)
       }
       if (hint & nsChangeHint_UpdateOverflow) {
         while (frame) {
-          nsOverflowAreas overflowAreas;
-          nsOverflowAreas* pre = static_cast<nsOverflowAreas*>
-            (frame->Properties().Get(frame->PreTransformOverflowAreasProperty()));
-          if (pre) {
-            
-            
-            overflowAreas = *pre;
-          } else {
-            
-            
-            overflowAreas = frame->GetOverflowAreas();
-          }
-
-          frame->FinishAndStoreOverflow(overflowAreas, frame->GetSize());
-
+          frame->UpdateOverflow();
           nsIFrame* next =
             nsLayoutUtils::GetNextContinuationOrSpecialSibling(frame);
           

@@ -5427,7 +5427,6 @@ PresShell::Paint(nsIView*           aViewToPaint,
                  nsIWidget*         aWidgetToPaint,
                  const nsRegion&    aDirtyRegion,
                  const nsIntRegion& aIntDirtyRegion,
-                 bool               aPaintDefaultBackground,
                  bool               aWillSendDidPaint)
 {
 #ifdef NS_FUNCTION_TIMER
@@ -5449,7 +5448,7 @@ PresShell::Paint(nsIView*           aViewToPaint,
   nsPresContext* presContext = GetPresContext();
   AUTO_LAYOUT_PHASE_ENTRY_POINT(presContext, Paint);
 
-  nsIFrame* frame = aPaintDefaultBackground ? nsnull : aViewToPaint->GetFrame();
+  nsIFrame* frame = aViewToPaint->GetFrame();
 
   bool isRetainingManager;
   LayerManager* layerManager =
@@ -5487,9 +5486,6 @@ PresShell::Paint(nsIView*           aViewToPaint,
     
     frame->BeginDeferringInvalidatesForDisplayRoot(aDirtyRegion);
 
-    
-    
-    
     
     nsLayoutUtils::PaintFrame(nsnull, frame, aDirtyRegion, bgcolor,
                               nsLayoutUtils::PAINT_WIDGET_LAYERS |
@@ -7208,10 +7204,11 @@ PresShell::DidPaint()
     return;
   }
 
+  NS_ASSERTION(mPresContext->IsRoot(), "Should only call DidPaint on root presshells");
+
   nsRootPresContext* rootPresContext = mPresContext->GetRootPresContext();
-  if (!rootPresContext) {
-    return;
-  }
+  
+  
   if (rootPresContext == mPresContext) {
     rootPresContext->UpdatePluginGeometry();
   }

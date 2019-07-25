@@ -386,6 +386,12 @@ nsAppShell::ProcessNextNativeEvent(bool mayWait)
         
         nsIPrefService* prefs = Preferences::GetService();
         if (prefs) {
+            
+            nsCOMPtr<nsIPrefBranch> prefBranch;
+            prefs->GetBranch("browser.sessionstore.", getter_AddRefs(prefBranch));
+            if (prefBranch)
+                prefBranch->SetIntPref("recent_crashes", 0);
+
             prefs->SavePrefFile(nsnull);
         }
 

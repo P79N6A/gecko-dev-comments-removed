@@ -79,7 +79,6 @@ class nsIClipboard;
 class TypeInState;
 class nsIContentFilter;
 class nsIURL;
-class nsIRangeUtils;
 class nsILinkHandler;
 struct PropItem;
 
@@ -771,13 +770,6 @@ protected:
 
    
    nsCOMPtr<nsITextServicesDocument> mTextServices;
-
-  
-  static nsIRangeUtils* sRangeHelper;
-
-public:
-  
-  static void Shutdown();
 
 protected:
 

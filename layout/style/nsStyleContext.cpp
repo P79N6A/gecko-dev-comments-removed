@@ -438,16 +438,20 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   
   nsChangeHint maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
       nsChangeHint_UpdateTransformLayer | nsChangeHint_UpdateOpacityLayer |
-      nsChangeHint_UpdateOverflow);
+      NS_STYLE_HINT_UPDATE_OVERFLOW);
   DO_STRUCT_DIFFERENCE(Display);
 
+  
   maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
-      nsChangeHint_UpdateCursor);
+      nsChangeHint_SyncFrameView);
+  DO_STRUCT_DIFFERENCE(Visibility);
+
+  maxHint = nsChangeHint(NS_STYLE_HINT_FRAMECHANGE |
+      NS_STYLE_HINT_UPDATE_OVERFLOW | nsChangeHint_UpdateCursor);
   DO_STRUCT_DIFFERENCE(XUL);
   DO_STRUCT_DIFFERENCE(Column);
   DO_STRUCT_DIFFERENCE(Content);
   DO_STRUCT_DIFFERENCE(UserInterface);
-  DO_STRUCT_DIFFERENCE(Visibility);
   DO_STRUCT_DIFFERENCE(TableBorder);
   DO_STRUCT_DIFFERENCE(Table);
   DO_STRUCT_DIFFERENCE(UIReset);
@@ -461,31 +465,36 @@ nsStyleContext::CalcStyleDifference(nsStyleContext* aOther)
   DO_STRUCT_DIFFERENCE(SVGReset);
   DO_STRUCT_DIFFERENCE(SVG);
 
+  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | NS_STYLE_HINT_UPDATE_OVERFLOW);
+  DO_STRUCT_DIFFERENCE(Border);
+  DO_STRUCT_DIFFERENCE(TextReset);
+      
+  
+  maxHint = nsChangeHint(NS_STYLE_HINT_REFLOW | nsChangeHint_SyncFrameView);
+  DO_STRUCT_DIFFERENCE(Position);
+
   
   
   maxHint = NS_STYLE_HINT_REFLOW;
-      
+
   
   
   
   DO_STRUCT_DIFFERENCE(Font);
   DO_STRUCT_DIFFERENCE(Margin);
   DO_STRUCT_DIFFERENCE(Padding);
-  DO_STRUCT_DIFFERENCE(Border);
-  DO_STRUCT_DIFFERENCE(Position);
-  DO_STRUCT_DIFFERENCE(TextReset);
 
   
-  maxHint = nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_UpdateOverflow);
+  maxHint = NS_STYLE_HINT_UPDATE_OVERFLOW;
   DO_STRUCT_DIFFERENCE(Outline);
 
   
   
-  maxHint = nsChangeHint(NS_STYLE_HINT_VISUAL | nsChangeHint_UpdateEffects);
+  maxHint = nsChangeHint(nsChangeHint_RepaintFrame | nsChangeHint_UpdateEffects);
   DO_STRUCT_DIFFERENCE(Background);
 
   
-  maxHint = NS_STYLE_HINT_VISUAL;
+  maxHint = nsChangeHint_RepaintFrame;
   DO_STRUCT_DIFFERENCE(Color);
 
 #undef DO_STRUCT_DIFFERENCE

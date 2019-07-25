@@ -60,7 +60,6 @@
 #include "nsISelectionPrivate.h"
 #include "nsISelectionController.h"
 #include "nsIDOMRange.h"
-#include "nsIRangeUtils.h"
 #include "nsIDOMCharacterData.h"
 #include "nsIEnumerator.h"
 #include "nsIDOMNamedNodeMap.h"
@@ -5257,7 +5256,7 @@ nsHTMLEditRules::ExpandSelectionForDeletion(nsISelection *aSelection)
     
     
     nsCOMPtr<nsIContent> brContentBlock = do_QueryInterface(brBlock);
-    res = mHTMLEditor->sRangeHelper->CompareNodeToRange(brContentBlock, range, &nodeBefore, &nodeAfter);
+    res = nsRange::CompareNodeToRange(brContentBlock, range, &nodeBefore, &nodeAfter);
     
     
     if (nodeBefore || nodeAfter)
@@ -5489,9 +5488,11 @@ nsHTMLEditRules::NormalizeSelection(nsISelection *inSelection)
   
   
   PRInt16 comp;
-  comp = mHTMLEditor->sRangeHelper->ComparePoints(startNode, startOffset, newEndNode, newEndOffset);
+  comp = nsContentUtils::ComparePoints(startNode, startOffset,
+                                       newEndNode, newEndOffset);
   if (comp == 1) return NS_OK;  
-  comp = mHTMLEditor->sRangeHelper->ComparePoints(newStartNode, newStartOffset, endNode, endOffset);
+  comp = nsContentUtils::ComparePoints(newStartNode, newStartOffset,
+                                       endNode, endOffset);
   if (comp == 1) return NS_OK;  
   
   
@@ -7637,7 +7638,7 @@ nsHTMLEditRules::PinSelectionToNewBlock(nsISelection *aSelection)
   nsCOMPtr<nsIContent> block (do_QueryInterface(mNewBlock));
   NS_ENSURE_TRUE(block, NS_ERROR_NO_INTERFACE);
   bool nodeBefore, nodeAfter;
-  res = mHTMLEditor->sRangeHelper->CompareNodeToRange(block, range, &nodeBefore, &nodeAfter);
+  res = nsRange::CompareNodeToRange(block, range, &nodeBefore, &nodeAfter);
   NS_ENSURE_SUCCESS(res, res);
   
   if (nodeBefore && nodeAfter)

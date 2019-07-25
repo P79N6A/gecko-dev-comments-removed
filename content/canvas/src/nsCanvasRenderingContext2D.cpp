@@ -2548,7 +2548,12 @@ nsCanvasRenderingContext2D::SetFont(const nsAString& font)
     
     const PRUint32 aupcp = nsPresContext::AppUnitsPerCSSPixel();
     
-    const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mFont.size);
+    
+    
+    
+    
+    
+    const nscoord fontSize = nsStyleFont::UnZoomText(parentContext->PresContext(), fontStyle->mSize);
 
     bool printerFont = (presShell->GetPresContext()->Type() == nsPresContext::eContext_PrintPreview ||
                           presShell->GetPresContext()->Type() == nsPresContext::eContext_Print);

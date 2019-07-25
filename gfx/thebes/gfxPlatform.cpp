@@ -418,17 +418,9 @@ cairo_user_data_key_t kDrawTarget;
 RefPtr<DrawTarget>
 gfxPlatform::CreateDrawTargetForSurface(gfxASurface *aSurface)
 {
-#ifdef XP_WIN
-  if (aSurface->GetType() == gfxASurface::SurfaceTypeD2D) {
-    RefPtr<DrawTarget> drawTarget =
-      Factory::CreateDrawTargetForD3D10Texture(static_cast<gfxD2DSurface*>(aSurface)->GetTexture(), FORMAT_B8G8R8A8);
-    aSurface->SetData(&kDrawTarget, drawTarget, NULL);
-    return drawTarget;
-  }
-#endif
-
-  
-  return NULL;
+  RefPtr<DrawTarget> drawTarget = Factory::CreateDrawTargetForCairoSurface(aSurface->CairoSurface());
+  aSurface->SetData(&kDrawTarget, drawTarget, NULL);
+  return drawTarget;
 }
 
 cairo_user_data_key_t kSourceSurface;
@@ -529,49 +521,59 @@ cairo_user_data_key_t kDrawSourceSurface;
 static void
 DataSourceSurfaceDestroy(void *dataSourceSurface)
 {
-      static_cast<DataSourceSurface*>(dataSourceSurface)->Release();
+  static_cast<DataSourceSurface*>(dataSourceSurface)->Release();
 }
 
-void DestroyThebesSurface(void *data)
+UserDataKey kThebesSurfaceKey;
+void
+DestroyThebesSurface(void *data)
 {
   gfxASurface *surface = static_cast<gfxASurface*>(data);
   surface->Release();
 }
 
-UserDataKey ThebesSurfaceKey;
-
-
-
-
 already_AddRefed<gfxASurface>
 gfxPlatform::GetThebesSurfaceForDrawTarget(DrawTarget *aTarget)
 {
-  void *surface = aTarget->GetUserData(&ThebesSurfaceKey);
+  
+  void *surface = aTarget->GetUserData(&kThebesSurfaceKey);
   if (surface) {
     nsRefPtr<gfxASurface> surf = static_cast<gfxASurface*>(surface);
     return surf.forget();
   }
 
-  RefPtr<SourceSurface> source = aTarget->Snapshot();
-  RefPtr<DataSourceSurface> data = source->GetDataSurface();
+  nsRefPtr<gfxASurface> surf;
+  if (aTarget->GetType() == BACKEND_CAIRO) {
+    cairo_surface_t* csurf =
+      static_cast<cairo_surface_t*>(aTarget->GetNativeSurface(NATIVE_SURFACE_CAIRO_SURFACE));
+    surf = gfxASurface::Wrap(csurf);
+  } else {
+    
+    
+    
+    
+    
+    RefPtr<SourceSurface> source = aTarget->Snapshot();
+    RefPtr<DataSourceSurface> data = source->GetDataSurface();
 
-  if (!data) {
-    return NULL;
+    if (!data) {
+      return NULL;
+    }
+
+    IntSize size = data->GetSize();
+    gfxASurface::gfxImageFormat format = gfxASurface::FormatFromContent(ContentForFormat(data->GetFormat()));
+
+    surf =
+      new gfxImageSurface(data->GetData(), gfxIntSize(size.width, size.height),
+                          data->Stride(), format);
+
+    surf->SetData(&kDrawSourceSurface, data.forget().drop(), DataSourceSurfaceDestroy);
   }
-
-  IntSize size = data->GetSize();
-  gfxASurface::gfxImageFormat format = gfxASurface::FormatFromContent(ContentForFormat(data->GetFormat()));
-  
-  nsRefPtr<gfxImageSurface> surf =
-    new gfxImageSurface(data->GetData(), gfxIntSize(size.width, size.height),
-                        data->Stride(), format);
-
-  surf->SetData(&kDrawSourceSurface, data.forget().drop(), DataSourceSurfaceDestroy);
 
   
   
   surf->AddRef();
-  aTarget->AddUserData(&ThebesSurfaceKey, surf.get(), DestroyThebesSurface);
+  aTarget->AddUserData(&kThebesSurfaceKey, surf.get(), DestroyThebesSurface);
 
   return surf.forget();
 }
@@ -583,7 +585,23 @@ gfxPlatform::CreateOffscreenDrawTarget(const IntSize& aSize, SurfaceFormat aForm
   if (!SupportsAzure(backend)) {
     return NULL;
   }
-  return Factory::CreateDrawTarget(backend, aSize, aFormat); 
+
+  
+  
+  
+  
+  
+  
+  
+  
+  if (backend == BACKEND_CAIRO) {
+    nsRefPtr<gfxASurface> surf = CreateOffscreenSurface(ThebesIntSize(aSize),
+                                                        ContentForFormat(aFormat));
+
+    return CreateDrawTargetForSurface(surf);
+  } else {
+    return Factory::CreateDrawTarget(backend, aSize, aFormat);
+  }
 }
 
 nsresult
