@@ -2,39 +2,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #include "mozilla/VisualEventTracer.h"
 #include "mozilla/Monitor.h"
 #include "mozilla/TimeStamp.h"
