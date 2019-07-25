@@ -1,8 +1,8 @@
 <!DOCTYPE HTML>
 <html>
-<!--
-https://bugzilla.mozilla.org/show_bug.cgi?id=238987
--->
+
+
+
 <head>
   <title>Test for Bug 238987</title>
   <script type="text/javascript" src="/tests/SimpleTest/SimpleTest.js"></script>        
@@ -61,6 +61,7 @@ https://bugzilla.mozilla.org/show_bug.cgi?id=238987
          expected + "], got [" + e.target.id + "]");
     } else {
       var expected = forwardFocusArray.shift();
+      is(e.target, document.activeElement, "Wrong activeElement!");
       ok(expected == e.target.id,
          "(focus) Forward tabbing, expected [" +
          expected + "], got [" + e.target.id + "]");

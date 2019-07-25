@@ -2783,8 +2783,13 @@ nsDocument::GetActiveElement(nsIDOMElement **aElement)
                                            getter_AddRefs(focusedWindow));
     
     if (focusedContent && focusedContent->OwnerDoc() == this) {
-      CallQueryInterface(focusedContent, aElement);
-      return NS_OK;
+      if (focusedContent->IsInNativeAnonymousSubtree()) {
+        focusedContent = focusedContent->FindFirstNonNativeAnonymous();
+      }
+      if (focusedContent) {
+        CallQueryInterface(focusedContent, aElement);
+        return NS_OK;
+      }
     }
   }
 
