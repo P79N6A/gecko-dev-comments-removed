@@ -75,10 +75,9 @@ public class DBUtils {
         try {
             dbHelper.getWritableDatabase();
         } catch (Exception e) {
-            Log.d(LOGTAG, "Database is locked, trying to forcefully unlock the database file: " + databasePath);
+            Log.d(LOGTAG, "Database is locked, trying to kill any zombie processes: " + databasePath);
 
-            
-            GeckoAppShell.unlockDatabaseFile(databasePath);
+            GeckoAppShell.killAnyZombies();
 
             
             
