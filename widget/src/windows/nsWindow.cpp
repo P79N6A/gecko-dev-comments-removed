@@ -158,6 +158,7 @@
 #include "nsString.h"
 #include "mozilla/Services.h"
 #include "nsNativeThemeWin.h"
+#include "nsWindowsDllInterceptor.h"
 
 #if defined(WINCE)
 #include "nsWindowCE.h"
@@ -351,6 +352,9 @@ static NS_DEFINE_CID(kCClipboardCID, NS_CLIPBOARD_CID);
 #ifdef WINCE_WINDOWS_MOBILE
 static NS_DEFINE_CID(kRegionCID, NS_REGION_CID);
 #endif
+
+
+static WindowsDllInterceptor sUser32Intercept;
 
 
 
@@ -1976,6 +1980,50 @@ nsWindow::ResetLayout()
 
 
 
+static const PRUnichar kManageWindowInfoProperty[] = L"ManageWindowInfoProperty";
+typedef BOOL (WINAPI *GetWindowInfoPtr)(HWND hwnd, PWINDOWINFO pwi);
+static GetWindowInfoPtr sGetWindowInfoPtrStub = NULL;
+
+BOOL WINAPI
+GetWindowInfoHook(HWND hWnd, PWINDOWINFO pwi)
+{
+  if (!sGetWindowInfoPtrStub) {
+    NS_ASSERTION(FALSE, "Something is horribly wrong in GetWindowInfoHook!");
+    return FALSE;
+  }
+  int windowStatus = 
+    reinterpret_cast<int>(GetPropW(hWnd, kManageWindowInfoProperty));
+  
+  if (!windowStatus)
+    return sGetWindowInfoPtrStub(hWnd, pwi);
+  
+  
+  BOOL result = sGetWindowInfoPtrStub(hWnd, pwi);
+  if (result && pwi)
+    pwi->dwWindowStatus = (windowStatus == 1 ? 0 : WS_ACTIVECAPTION);
+  return result;
+}
+
+void
+nsWindow::UpdateGetWindowInfoCaptionStatus(PRBool aActiveCaption)
+{
+  if (!mWnd)
+    return;
+
+  if (!sGetWindowInfoPtrStub) {
+    sUser32Intercept.Init("user32.dll");
+    if (!sUser32Intercept.AddHook("GetWindowInfo", GetWindowInfoHook,
+                                  (void**) &sGetWindowInfoPtrStub))
+      return;
+  }
+  
+  SetPropW(mWnd, kManageWindowInfoProperty, 
+    reinterpret_cast<HANDLE>(static_cast<int>(aActiveCaption) + 1));
+}
+
+
+
+
 
 PRBool
 nsWindow::UpdateNonClientMargins(PRInt32 aSizeMode, PRBool aReflowWindow)
@@ -2075,6 +2123,7 @@ nsWindow::SetNonClientMargins(nsIntMargin &margins)
       margins.right == -1 && margins.bottom == -1) {
     mCustomNonClient = PR_FALSE;
     mNonClientMargins = margins;
+    RemoveProp(mWnd, kManageWindowInfoProperty);
     
     
     ResetLayout();
@@ -4654,6 +4703,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         *aRetValue = FALSE; 
         result = PR_TRUE;
+        UpdateGetWindowInfoCaptionStatus(PR_TRUE);
         
         InvalidateNonClientRegion();
         break;
@@ -4661,6 +4711,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
         
         *aRetValue = TRUE; 
         result = PR_TRUE;
+        UpdateGetWindowInfoCaptionStatus(PR_FALSE);
         
         InvalidateNonClientRegion();
         break;
@@ -5043,20 +5094,10 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
           nsMouseEvent event(PR_TRUE, NS_MOUSE_ACTIVATE, this,
                              nsMouseEvent::eReal);
           InitEvent(event);
-
-          event.acceptActivation = PR_TRUE;
-  
           DispatchWindowEvent(&event);
 #ifndef WINCE
-          if (event.acceptActivation)
-            *aRetValue = MA_ACTIVATE;
-          else
-            *aRetValue = MA_NOACTIVATE;
-
           if (sSwitchKeyboardLayout && mLastKeyboardLayout)
             ActivateKeyboardLayout(mLastKeyboardLayout, 0);
-#else
-          *aRetValue = 0;
 #endif
         }
       }
@@ -5256,6 +5297,7 @@ PRBool nsWindow::ProcessMessage(UINT msg, WPARAM &wParam, LPARAM &lParam,
 #if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
   case WM_DWMCOMPOSITIONCHANGED:
     UpdateNonClientMargins();
+    RemoveProp(mWnd, kManageWindowInfoProperty);
     BroadcastMsg(mWnd, WM_DWMCOMPOSITIONCHANGED);
     DispatchStandardEvent(NS_THEMECHANGED);
     UpdateGlass();

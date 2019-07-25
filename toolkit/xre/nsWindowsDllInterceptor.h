@@ -176,6 +176,9 @@ protected:
       } else if ((origBytes[nBytes] & 0xf0) == 0x50) {
         
         nBytes++;
+      } else if (origBytes[nBytes] == 0x6A) {
+        
+        nBytes += 2;
       } else {
         
         return 0;
