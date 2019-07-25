@@ -2737,6 +2737,20 @@ panel[dimmed="true"] {
   position: relative;
 }
 
+
+@media (-moz-mac-lion-theme) {
+  #navigator-toolbox[inFullscreen][tabsontop="true"]:not(:-moz-lwtheme)::before {
+    height: 36px;
+  }
+  #main-window[inFullscreen]:-moz-lwtheme {
+    
+
+
+    padding-top: 11px;
+    background-position: right -11px;
+  }
+}
+
 #devtools-sidebar-box {
   background-color: -moz-Field;
 }

@@ -27,8 +27,13 @@ var FullScreen = {
     
     
     if (enterFS && this.useLionFullScreen) {
-      if (document.mozFullScreen)
+      if (document.mozFullScreen) {
         this.showXULChrome("toolbar", false);
+      }
+      else {
+        gNavToolbox.setAttribute("inFullscreen", true);
+        document.documentElement.setAttribute("inFullscreen", true);
+      }
       return;
     }
 
