@@ -71,23 +71,6 @@ function cleanUpAndGo(server) {
   });
 }
 
-let timer;
-function waitForZeroTimer(callback) {
-  
-  
-  
-  let ticks = 2;
-  function wait() {
-    if (ticks) {
-      ticks -= 1;
-      Utils.nextTick(wait);
-      return;
-    }
-    callback();
-  }
-  timer = Utils.namedTimer(wait, 150, {}, "timer");
-}
-
 function run_test() {
   initTestLogging("Trace");
 
