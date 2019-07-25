@@ -155,12 +155,12 @@ namespace nanojit
 
 #ifdef NJ_NO_VARIADIC_MACROS
     #include <stdio.h>
-    #define verbose_outputf            if (_logc->lcbits & LC_Assembly) \
+    #define verbose_outputf            if (_logc->lcbits & LC_Native) \
                                         Assembler::outputf
     #define verbose_only(x)            x
 #elif defined(NJ_VERBOSE)
     #include <stdio.h>
-    #define verbose_outputf            if (_logc->lcbits & LC_Assembly) \
+    #define verbose_outputf            if (_logc->lcbits & LC_Native) \
                                         Assembler::outputf
     #define verbose_only(...)        __VA_ARGS__
 #else
@@ -219,13 +219,14 @@ namespace nanojit {
 
 
         
-        LC_FragProfile = 1<<6, 
-        LC_Activation  = 1<<5, 
-        LC_Liveness    = 1<<4, 
-        LC_ReadLIR     = 1<<3, 
-        LC_AfterSF     = 1<<2, 
+        LC_FragProfile = 1<<7, 
+        LC_Liveness    = 1<<6, 
+        LC_ReadLIR     = 1<<5, 
+        LC_AfterSF     = 1<<4, 
+        LC_AfterDCE    = 1<<3, 
+        LC_Native      = 1<<2, 
         LC_RegAlloc    = 1<<1, 
-        LC_Assembly    = 1<<0  
+        LC_Activation  = 1<<0  
     };
 
     class LogControl

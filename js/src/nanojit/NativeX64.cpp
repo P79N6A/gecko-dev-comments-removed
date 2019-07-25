@@ -895,7 +895,7 @@ namespace nanojit
         int argc = call->getArgTypes(argTypes);
 
         if (!call->isIndirect()) {
-            verbose_only(if (_logc->lcbits & LC_Assembly)
+            verbose_only(if (_logc->lcbits & LC_Native)
                 outputf("        %p:", _nIns);
             )
             NIns *target = (NIns*)call->_address;
@@ -1963,7 +1963,7 @@ namespace nanojit
             const int br_size = 8; 
             if (pc - bytes - br_size < top) {
                 
-                verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
+                verbose_only(if (_logc->lcbits & LC_Native) outputf("newpage %p:", pc);)
                 
                 codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             }
@@ -1975,7 +1975,7 @@ namespace nanojit
         }
     #else
         if (pc - bytes < top) {
-            verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
+            verbose_only(if (_logc->lcbits & LC_Native) outputf("newpage %p:", pc);)
             
             codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             

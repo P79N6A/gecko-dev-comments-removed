@@ -643,7 +643,7 @@ namespace nanojit
         Register r = ins->getReg();
         if (ins->isInAr()) {
             verbose_only( RefBuf b;
-                          if (_logc->lcbits & LC_Assembly) {
+                          if (_logc->lcbits & LC_Native) {
                              setOutputForEOL("  <= spill %s",
                              _thisfrag->lirbuf->printer->formatRef(&b, ins)); } )
             asm_spill(r, d, pop, ins->isQorD());
@@ -706,7 +706,7 @@ namespace nanojit
         NanoAssert(vic == _allocator.getActive(r));
 
         verbose_only( RefBuf b;
-                      if (_logc->lcbits & LC_Assembly) {
+                      if (_logc->lcbits & LC_Native) {
                         setOutputForEOL("  <= restore %s",
                         _thisfrag->lirbuf->printer->formatRef(&b, vic)); } )
         asm_restore(vic, r);
@@ -822,7 +822,6 @@ namespace nanojit
     {
         verbose_only(
         bool anyVerb = (_logc->lcbits & 0xFFFF & ~LC_FragProfile) > 0;
-        bool asmVerb = (_logc->lcbits & 0xFFFF & LC_Assembly) > 0;
         bool liveVerb = (_logc->lcbits & 0xFFFF & LC_Liveness) > 0;
         )
 
@@ -921,10 +920,6 @@ namespace nanojit
             _logc->printf("=== -- Compile trunk %s: end\n", printer->formatAddr(&b, frag));
         })
 
-        verbose_only(
-            if (asmVerb)
-                outputf("## compiling trunk %s", printer->formatAddr(&b, frag));
-        )
         endAssembly(frag);
 
         
@@ -1340,9 +1335,9 @@ namespace nanojit
             
             
             
-            if ((_logc->lcbits & LC_Assembly) && (_logc->lcbits & LC_Activation))
+            if ((_logc->lcbits & LC_Native) && (_logc->lcbits & LC_Activation))
                 printActivationState();
-            if ((_logc->lcbits & LC_Assembly) && (_logc->lcbits & LC_RegAlloc))
+            if ((_logc->lcbits & LC_Native) && (_logc->lcbits & LC_RegAlloc))
                 printRegState();
 #endif
 
@@ -1740,7 +1735,7 @@ namespace nanojit
                     }
                     verbose_only(
                         RefBuf b;
-                        if (_logc->lcbits & LC_Assembly) {
+                        if (_logc->lcbits & LC_Native) {
                             asm_output("[%s]", _thisfrag->lirbuf->printer->formatRef(&b, ins));
                     })
                     break;
@@ -1869,7 +1864,7 @@ namespace nanojit
             
             
             
-            if (_logc->lcbits & LC_Assembly) {
+            if (_logc->lcbits & LC_AfterDCE) {
                 InsBuf b;
                 LInsPrinter* printer = _thisfrag->lirbuf->printer;
                 outputf("    %s", printer->formatIns(&b, ins));

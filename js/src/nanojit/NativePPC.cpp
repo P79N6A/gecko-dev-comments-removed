@@ -708,7 +708,7 @@ namespace nanojit
 
         bool indirect;
         if (!(indirect = call->isIndirect())) {
-            verbose_only(if (_logc->lcbits & LC_Assembly)
+            verbose_only(if (_logc->lcbits & LC_Native)
                 outputf("        %p:", _nIns);
             )
             br((NIns*)call->_address, 1);
@@ -1190,7 +1190,7 @@ namespace nanojit
         #endif
             if (pc - instr - br_size < top) {
                 
-                verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
+                verbose_only(if (_logc->lcbits & LC_Native) outputf("newpage %p:", pc);)
                 codeAlloc();
             }
             
@@ -1201,7 +1201,7 @@ namespace nanojit
         }
     #else
         if (pc - instr < top) {
-            verbose_only(if (_logc->lcbits & LC_Assembly) outputf("newpage %p:", pc);)
+            verbose_only(if (_logc->lcbits & LC_Native) outputf("newpage %p:", pc);)
             
             codeAlloc(codeStart, codeEnd, _nIns verbose_only(, codeBytes));
             
@@ -1232,7 +1232,7 @@ namespace nanojit
 
         underrunProtect(16); 
         NIns *after = _nIns;
-        verbose_only(if (_logc->lcbits & LC_Assembly) outputf("%p:",after);)
+        verbose_only(if (_logc->lcbits & LC_Native) outputf("%p:",after);)
         MR(rr,rf);
 
         NanoAssert(isS14(after - (_nIns-1)));
