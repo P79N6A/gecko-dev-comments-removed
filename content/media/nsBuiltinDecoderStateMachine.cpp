@@ -532,7 +532,7 @@ void nsBuiltinDecoderStateMachine::AudioLoop()
         }
       }
 
-      if (!seeking && mAudioStream) {
+      if (!seeking && mAudioStream && !mAudioStream->IsPaused()) {
         mAudioStream->Drain();
 
         
