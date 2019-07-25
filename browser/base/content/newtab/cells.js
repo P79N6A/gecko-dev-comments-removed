@@ -100,9 +100,9 @@ Cell.prototype = {
   handleEvent: function Cell_handleEvent(aEvent) {
     
     
-    if (inPrivateBrowsingMode && !gDrag.draggedSite)
+    if (inPrivateBrowsingMode() && !gDrag.draggedSite)
       return;
-    
+
     if (aEvent.type != "dragexit" && !gDrag.isValid(aEvent))
       return;
 
