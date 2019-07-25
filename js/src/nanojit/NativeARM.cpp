@@ -39,6 +39,7 @@
 
 
 
+
 #include "nanojit.h"
 
 #ifdef UNDER_CE
@@ -52,7 +53,7 @@ namespace nanojit
 
 #ifdef NJ_VERBOSE
 const char* regNames[] = {"r0","r1","r2","r3","r4","r5","r6","r7","r8","r9","r10","fp","ip","sp","lr","pc",
-                          "d0","d1","d2","d3","d4","d5","d6","d7","s14"};
+                          "d0","d1","d2","d3","d4","d5","d6","d7","s0"};
 const char* condNames[] = {"eq","ne","cs","cc","mi","pl","vs","vc","hi","ls","ge","lt","gt","le","","nv"};
 const char* shiftNames[] = { "lsl", "lsl", "lsr", "lsr", "asr", "asr", "ror", "ror" };
 #endif
@@ -621,24 +622,27 @@ Assembler::genEpilogue()
 
 
 
+
+
+
 void
-Assembler::asm_arg(ArgType ty, LIns* arg, Register& r, int& stkd)
+Assembler::asm_arg(ArgType ty, LIns* arg, ParameterRegisters& params)
 {
     
-    NanoAssert((stkd & 3) == 0);
+    NanoAssert((params.stkd & 3) == 0);
 
     if (ty == ARGTYPE_D) {
         
-        asm_arg_64(arg, r, stkd);
+        asm_arg_64(arg, params);
     } else {
         NanoAssert(ty == ARGTYPE_I || ty == ARGTYPE_UI);
         
-        if (r < R4) {
-            asm_regarg(ty, arg, r);
-            r = Register(r + 1);
+        if (params.r < R4) {
+            asm_regarg(ty, arg, params.r);
+            params.r = Register(params.r + 1);
         } else {
-            asm_stkarg(arg, stkd);
-            stkd += 4;
+            asm_stkarg(arg, params.stkd);
+            params.stkd += 4;
         }
     }
 }
@@ -646,11 +650,26 @@ Assembler::asm_arg(ArgType ty, LIns* arg, Register& r, int& stkd)
 
 
 
+
+#ifdef NJ_ARM_EABI_HARD_FLOAT
 void
-Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
+Assembler::asm_arg_64(LIns* arg, ParameterRegisters& params)
+{
+    NanoAssert(IsFpReg(params.float_r));
+    if (params.float_r <= D7) {
+        findSpecificRegFor(arg, params.float_r);
+        params.float_r = Register(params.float_r + 1);
+    } else {
+        NanoAssertMsg(0, "Only 8 floating point arguments supported");
+    }
+}
+
+#else
+void
+Assembler::asm_arg_64(LIns* arg, ParameterRegisters& params)
 {
     
-    NanoAssert((stkd & 3) == 0);
+    NanoAssert((params.stkd & 3) == 0);
     
     
     NanoAssert(ARM_VFP || arg->isop(LIR_ii2d));
@@ -661,15 +680,15 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
     
     
     
-    if ((r == R1) || (r == R3)) {
-        r = Register(r + 1);
+    if ((params.r == R1) || (params.r == R3)) {
+        params.r = Register(params.r + 1);
     }
 #endif
 
-    if (r < R3) {
-        Register    ra = r;
-        Register    rb = Register(r + 1);
-        r = Register(rb + 1);
+    if (params.r < R3) {
+        Register    ra = params.r;
+        Register    rb = Register(params.r + 1);
+        params.r = Register(rb + 1);
 
 #ifdef NJ_ARM_EABI
         
@@ -693,12 +712,12 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
         
         
         
-        Register    ra = r; 
-        r = R4;
+        Register    ra = params.r; 
+        params.r = R4;
 
         
         
-        NanoAssert(stkd == 0);
+        NanoAssert(params.stkd == 0);
 
         if (ARM_VFP) {
             Register dm = findRegFor(arg, FpRegs);
@@ -717,27 +736,28 @@ Assembler::asm_arg_64(LIns* arg, Register& r, int& stkd)
             asm_regarg(ARGTYPE_I, arg->oprnd1(), ra);
             asm_stkarg(arg->oprnd2(), 0);
         }
-        stkd += 4;
+        params.stkd += 4;
 #endif
     } else {
         
 #ifdef NJ_ARM_EABI
         
-        if ((stkd & 7) != 0) {
+        if ((params.stkd & 7) != 0) {
             
             
-            stkd += 4;
+            params.stkd += 4;
         }
 #endif
         if (ARM_VFP) {
-            asm_stkarg(arg, stkd);
+            asm_stkarg(arg, params.stkd);
         } else {
-            asm_stkarg(arg->oprnd1(), stkd);
-            asm_stkarg(arg->oprnd2(), stkd+4);
+            asm_stkarg(arg->oprnd1(), params.stkd);
+            asm_stkarg(arg->oprnd2(), params.stkd+4);
         }
-        stkd += 8;
+        params.stkd += 8;
     }
 }
+#endif 
 
 void
 Assembler::asm_regarg(ArgType ty, LIns* p, Register rd)
@@ -818,6 +838,14 @@ Assembler::asm_call(LIns* ins)
 
 
 
+#ifdef NJ_ARM_EABI_HARD_FLOAT
+        
+
+
+
+        prepareResultReg(ins, rmask(D0));
+        freeResourcesOf(ins);
+#endif
     } else if (!ins->isop(LIR_callv)) {
         prepareResultReg(ins, rmask(retRegs[0]));
         
@@ -843,7 +871,8 @@ Assembler::asm_call(LIns* ins)
     
     
     
-    if (ARM_VFP && ins->isExtant()) {
+    
+    if (!ARM_EABI_HARD && ARM_VFP && ins->isExtant()) {
         
         
         if (ci->returnType() == ARGTYPE_D) {
@@ -895,8 +924,8 @@ Assembler::asm_call(LIns* ins)
     }
 
     
-    Register    r = R0;
-    int         stkd = 0;
+    
+    ParameterRegisters params = init_params(0, R0, D0);
 
     
     
@@ -904,11 +933,11 @@ Assembler::asm_call(LIns* ins)
     
     uint32_t    i = argc;
     while(i--) {
-        asm_arg(argTypes[i], ins->arg(i), r, stkd);
+        asm_arg(argTypes[i], ins->arg(i), params);
     }
 
-    if (stkd > max_out_args) {
-        max_out_args = stkd;
+    if (params.stkd > max_out_args) {
+        max_out_args = params.stkd;
     }
 }
 
@@ -941,7 +970,7 @@ Assembler::nRegisterResetAll(RegAlloc& a)
     if (ARM_VFP) {
         a.free |=
             rmask(D0) | rmask(D1) | rmask(D2) | rmask(D3) |
-            rmask(D4) | rmask(D5) | rmask(D6);
+            rmask(D4) | rmask(D5) | rmask(D6) | rmask(D7);
     }
 }
 
@@ -1329,13 +1358,14 @@ Assembler::asm_load64(LIns* ins)
         int         offset = ins->disp();
 
         if (ins->isInReg()) {
-            dd = prepareResultReg(ins, FpRegs);
+            dd = prepareResultReg(ins, FpRegs & ~rmask(D0));
         } else {
             
             
             NanoAssert(ins->isInAr());
             int d = arDisp(ins);
-            dd = D7;
+            evictIfActive(D0);
+            dd = D0;
             
             
             if (isU8(d/4) || isU8(-d/4)) {
@@ -1356,11 +1386,12 @@ Assembler::asm_load64(LIns* ins)
                 }
                 break;
             case LIR_ldf2d:
-                FCVTDS(dd, S14);
+                evictIfActive(D0);
+                FCVTDS(dd, S0);
                 if (isU8(offset/4) || isU8(-offset/4)) {
-                    FLDS(S14, rn, offset);
+                    FLDS(S0, rn, offset);
                 } else {
-                    FLDS(S14, IP, offset%1024);
+                    FLDS(S0, IP, offset%1024);
                     asm_add_imm(IP, rn, offset-(offset%1024));
                 }
                 break;
@@ -1398,7 +1429,7 @@ Assembler::asm_store64(LOpcode op, LIns* value, int dr, LIns* base)
     NanoAssert(value->isD());
 
     if (ARM_VFP) {
-        Register dd = findRegFor(value, FpRegs);
+        Register dd = findRegFor(value, FpRegs & ~rmask(D0));
         Register rn = findRegFor(base, GpRegs);
 
         switch (op) {
@@ -1416,14 +1447,15 @@ Assembler::asm_store64(LOpcode op, LIns* value, int dr, LIns* base)
             case LIR_std2f:
                 
                 
+                evictIfActive(D0);
                 if (isU8(dr/4) || isU8(-dr/4)) {
-                    FSTS(S14, rn, dr);
+                    FSTS(S0, rn, dr);
                 } else {
-                    FSTS(S14, IP, dr%1024);
+                    FSTS(S0, IP, dr%1024);
                     asm_add_imm(IP, rn, dr-(dr%1024));
                 }
 
-                FCVTSD(S14, dd);
+                FCVTSD(S0, dd);
 
                 break;
             default:
@@ -2123,11 +2155,12 @@ Assembler::B_cond_chk(ConditionCode _c, NIns* _t, bool _chk)
 void
 Assembler::asm_i2d(LIns* ins)
 {
-    Register dd = prepareResultReg(ins, FpRegs);
+    Register dd = prepareResultReg(ins, FpRegs & ~rmask(D0));
     Register rt = findRegFor(ins->oprnd1(), GpRegs);
 
-    FSITOD(dd, S14);
-    FMSR(S14, rt);
+    evictIfActive(D0);
+    FSITOD(dd, S0);
+    FMSR(S0, rt);
 
     freeResourcesOf(ins);
 }
@@ -2135,20 +2168,22 @@ Assembler::asm_i2d(LIns* ins)
 void
 Assembler::asm_ui2d(LIns* ins)
 {
-    Register dd = prepareResultReg(ins, FpRegs);
+    Register dd = prepareResultReg(ins, FpRegs & ~rmask(D0));
     Register rt = findRegFor(ins->oprnd1(), GpRegs);
 
-    FUITOD(dd, S14);
-    FMSR(S14, rt);
+    evictIfActive(D0);
+    FUITOD(dd, S0);
+    FMSR(S0, rt);
 
     freeResourcesOf(ins);
 }
 
 void Assembler::asm_d2i(LIns* ins)
 {
+    evictIfActive(D0);
     if (ins->isInReg()) {
         Register rt = ins->getReg();
-        FMRS(rt, S14);
+        FMRS(rt, S0);
     } else {
         
         
@@ -2156,16 +2191,16 @@ void Assembler::asm_d2i(LIns* ins)
         
         
         if (isU8(d/4) || isU8(-d/4)) {
-            FSTS(S14, FP, d);
+            FSTS(S0, FP, d);
         } else {
-            FSTS(S14, IP, d%1024);
+            FSTS(S0, IP, d%1024);
             asm_add_imm(IP, FP, d-(d%1024));
         }
     }
 
-    Register dm = findRegFor(ins->oprnd1(), FpRegs);
+    Register dm = findRegFor(ins->oprnd1(), FpRegs & ~rmask(D0));
 
-    FTOSID(S14, dm);
+    FTOSID(S0, dm);
 
     freeResourcesOf(ins);
 }
@@ -2832,8 +2867,11 @@ Assembler::asm_ret(LIns *ins)
     
     
     
-
-    MOV(IP, R0);
+    
+    
+    if (!(ARM_EABI_HARD && ins->isop(LIR_retd))) {
+        MOV(IP, R0);
+    }
 
     
     MOV(SP,FP);
@@ -2847,8 +2885,12 @@ Assembler::asm_ret(LIns *ins)
     else {
         NanoAssert(ins->isop(LIR_retd));
         if (ARM_VFP) {
+#ifdef NJ_ARM_EABI_HARD_FLOAT
+            findSpecificRegFor(value, D0);
+#else
             Register reg = findRegFor(value, FpRegs);
             FMRRD(R0, R1, reg);
+#endif
         } else {
             NanoAssert(value->isop(LIR_ii2d));
             findSpecificRegFor(value->oprnd1(), R0); 
