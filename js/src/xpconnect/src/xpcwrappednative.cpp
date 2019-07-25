@@ -427,7 +427,6 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
     AutoMarkingJSVal newParentVal_automarker(ccx, &newParentVal_markable);
     JSBool needsSOW = JS_FALSE;
     JSBool needsCOW = JS_FALSE;
-    JSBool needsXOW = JS_FALSE;
 
     JSAutoEnterCompartment ac;
 
@@ -441,8 +440,6 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
         if(rv == NS_SUCCESS_CHROME_ACCESS_ONLY)
             needsSOW = JS_TRUE;
-        else if(rv == NS_SUCCESS_NEEDS_XOW)
-            needsXOW = JS_TRUE;
         rv = NS_OK;
 
         NS_ASSERTION(!xpc::WrapperFactory::IsXrayWrapper(parent),
@@ -544,9 +541,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
 
         proto->CacheOffsets(identity);
 
-        wrapper = needsXOW
-                  ? new XPCWrappedNativeWithXOW(identity, proto)
-                  : new XPCWrappedNative(identity, proto);
+        wrapper = new XPCWrappedNative(identity, proto);
         if(!wrapper)
             return NS_ERROR_FAILURE;
     }
@@ -562,9 +557,7 @@ XPCWrappedNative::GetNewOrUsed(XPCCallContext& ccx,
         if(!set)
             return NS_ERROR_FAILURE;
 
-        wrapper = needsXOW
-                  ? new XPCWrappedNativeWithXOW(identity, Scope, set)
-                  : new XPCWrappedNative(identity, Scope, set);
+        wrapper = new XPCWrappedNative(identity, Scope, set);
         if(!wrapper)
             return NS_ERROR_FAILURE;
 
@@ -1356,21 +1349,6 @@ XPCWrappedNative::FlatJSObjectFinalized(JSContext *cx)
 
     
     mFlatJSObject = nsnull;
-
-    
-    
-    
-    
-    
-    if(NeedsXOW())
-    {
-        XPCWrappedNativeWithXOW* wnxow =
-            static_cast<XPCWrappedNativeWithXOW *>(this);
-        if(JSObject* wrapper = wnxow->GetXOW())
-        {
-            wrapper->getClass()->finalize(cx, wrapper);
-        }
-    }
 
     NS_ASSERTION(mIdentity, "bad pointer!");
 #ifdef XP_WIN
