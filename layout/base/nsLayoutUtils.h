@@ -512,6 +512,13 @@ public:
 
   static nsRect RoundGfxRectToAppRect(const gfxRect &aRect, float aFactor);
 
+  
+
+
+
+
+  static nsresult GfxRectToIntRect(const gfxRect& aIn, nsIntRect* aOut);
+
   enum {
     PAINT_IN_TRANSFORM = 0x01,
     PAINT_SYNC_DECODE_IMAGES = 0x02,
