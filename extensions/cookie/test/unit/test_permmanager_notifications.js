@@ -1,5 +1,6 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+
+
+
 
 
 var dir = do_get_profile();

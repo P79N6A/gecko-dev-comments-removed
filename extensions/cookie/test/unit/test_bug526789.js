@@ -1,8 +1,6 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cr = Components.results;
 
-Components.utils.import("resource://gre/modules/NetUtil.jsm");
+
+
 
 function do_check_throws(f, result, stack)
 {

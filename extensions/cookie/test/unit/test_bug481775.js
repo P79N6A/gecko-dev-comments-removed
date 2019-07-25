@@ -1,5 +1,6 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
+
+
+
 
 function run_test() {
   var cm = Cc["@mozilla.org/cookiemanager;1"].getService(Ci.nsICookieManager2);

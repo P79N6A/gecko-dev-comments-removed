@@ -1,16 +1,17 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
 
-  
-  var dir = do_get_profile();
 
-  
-  var pm = Cc["@mozilla.org/permissionmanager;1"]
-           .getService(Ci.nsIPermissionManager);
 
-  var ios = Cc["@mozilla.org/network/io-service;1"]
-            .getService(Ci.nsIIOService);
-  var permURI = ios.newURI("http://example.com", null, null);
+
+
+var dir = do_get_profile();
+
+
+var pm = Cc["@mozilla.org/permissionmanager;1"]
+         .getService(Ci.nsIPermissionManager);
+
+var ios = Cc["@mozilla.org/network/io-service;1"]
+          .getService(Ci.nsIIOService);
+var permURI = ios.newURI("http://example.com", null, null);
 
 function run_test() {
 

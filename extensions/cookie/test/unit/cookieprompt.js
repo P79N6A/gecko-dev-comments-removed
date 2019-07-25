@@ -1,8 +1,10 @@
-const Cc = Components.classes;
-const Ci = Components.interfaces;
-const Cu = Components.utils;
 
-Cu.import("resource://gre/modules/XPCOMUtils.jsm");
+
+
+
+Components.utils.import("resource://gre/modules/XPCOMUtils.jsm");
+
+const Ci = Components.interfaces;
 
 function CookiePromptService() {
 }
