@@ -2233,34 +2233,6 @@ class MInitializedLength
 };
 
 
-class MSetInitializedLength
-  : public MAryInstruction<2>
-{
-    MSetInitializedLength(MDefinition *elements, MDefinition *index)
-    {
-        setOperand(0, elements);
-        setOperand(1, index);
-    }
-
-  public:
-    INSTRUCTION_HEADER(SetInitializedLength);
-
-    static MSetInitializedLength *New(MDefinition *elements, MDefinition *index) {
-        return new MSetInitializedLength(elements, index);
-    }
-
-    MDefinition *elements() const {
-        return getOperand(0);
-    }
-    MDefinition *index() const {
-        return getOperand(1);
-    }
-    AliasSet getAliasSet() const {
-        return AliasSet::Store(AliasSet::ObjectFields);
-    }
-};
-
-
 class MArrayLength
   : public MUnaryInstruction
 {
