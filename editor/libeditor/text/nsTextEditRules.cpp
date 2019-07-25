@@ -658,8 +658,14 @@ nsTextEditRules::WillInsertText(PRInt32          aAction,
 
   
   
-  nsresult res = TruncateInsertionIfNeeded(aSelection, inString, outString, aMaxLength, nsnull);
+  PRBool truncated = PR_FALSE;
+  nsresult res = TruncateInsertionIfNeeded(aSelection, inString, outString,
+                                           aMaxLength, &truncated);
   NS_ENSURE_SUCCESS(res, res);
+  if (truncated) {
+    *aCancel = PR_TRUE;
+    return NS_OK;
+  }
   
   PRUint32 start = 0;
   PRUint32 end = 0;  
