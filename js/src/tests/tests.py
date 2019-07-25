@@ -76,8 +76,12 @@ class Test(object):
 
     def get_command(self, js_cmd_prefix):
         dir, filename = os.path.split(self.path)
+        cmd = js_cmd_prefix + Test.prefix_command(dir)
+        if self.debugMode:
+            cmd += [ '-d' ]
         
-        return js_cmd_prefix + Test.prefix_command(dir) + [ '-f', './' + self.path ]
+        cmd += [ '-f', './' + self.path ]
+        return cmd
 
     def run(self, js_cmd_prefix, timeout=30.0):
         cmd = self.get_command(js_cmd_prefix)
@@ -87,12 +91,13 @@ class Test(object):
 class TestCase(Test):
     """A test case consisting of a test and an expected result."""
 
-    def __init__(self, path, enable, expect, random, slow):
+    def __init__(self, path, enable, expect, random, slow, debugMode):
         Test.__init__(self, path)
         self.enable = enable     
         self.expect = expect     
         self.random = random     
         self.slow = slow         
+        self.debugMode = debugMode 
 
     def __str__(self):
         ans = self.path
@@ -104,6 +109,8 @@ class TestCase(Test):
             ans += ', random'
         if self.slow:
             ans += ', slow'
+        if self.debugMode:
+            ans += ', debugMode'
         return ans
 
 class TestOutput:
