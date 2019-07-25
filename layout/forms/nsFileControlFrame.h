@@ -53,7 +53,6 @@ class nsFileControlFrame : public nsBlockFrame,
 {
 public:
   nsFileControlFrame(nsStyleContext* aContext);
-  virtual ~nsFileControlFrame();
 
   NS_IMETHOD Init(nsIContent* aContent,
                   nsIFrame*   aParent,
@@ -168,11 +167,6 @@ protected:
 
 
   nsCOMPtr<nsIContent> mBrowse;
-  
-
-
-
-  nsString*           mCachedState;
 
   
 

@@ -41,44 +41,21 @@
 #include "nsStackFrame.h"
 #include "nsBlockFrame.h"
 #include "nsIFormControlFrame.h"
-#include "nsIDOMMouseListener.h"
 #include "nsIAnonymousContentCreator.h"
-#include "nsIEditor.h"
 #include "nsITextControlFrame.h"
-#include "nsIFontMetrics.h"
-#include "nsWeakReference.h" 
-#include "nsContentUtils.h"
 #include "nsDisplayList.h"
 #include "nsIScrollableFrame.h"
 #include "nsStubMutationObserver.h"
-#include "nsThreadUtils.h"
+#include "nsITextControlElement.h"
 
 class nsIEditor;
 class nsISelectionController;
-class nsTextInputSelectionImpl;
-class nsTextInputListener;
 class nsIDOMCharacterData;
 #ifdef ACCESSIBILITY
 class nsIAccessible;
 #endif
-class nsTextInputSelectionImpl;
-class nsTextControlFrame;
 class EditorInitializerEntryTracker;
-
-class nsAnonDivObserver : public nsStubMutationObserver
-{
-public:
-  nsAnonDivObserver(nsTextControlFrame* aTextControl)
-  : mTextControl(aTextControl) {}
-  NS_DECL_ISUPPORTS
-  NS_DECL_NSIMUTATIONOBSERVER_CHARACTERDATACHANGED
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTAPPENDED
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTINSERTED
-  NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
-
-private:
-  nsTextControlFrame* mTextControl;
-};
+class nsTextEditorState;
 
 class nsTextControlFrame : public nsStackFrame,
                            public nsIAnonymousContentCreator,
@@ -145,10 +122,6 @@ public:
 
   
 
-  
-  
-  
-  nsresult SetValue(const nsAString& aValue);
   NS_IMETHOD SetInitialChildList(nsIAtom*        aListName,
                                  nsFrameList&    aChildList);
 
@@ -163,17 +136,14 @@ public:
 
 
   NS_IMETHOD    GetEditor(nsIEditor **aEditor);
-  NS_IMETHOD    OwnsValue(PRBool* aOwnsValue);
-  NS_IMETHOD    GetValue(nsAString& aValue, PRBool aIgnoreWrap) const;
   NS_IMETHOD    GetTextLength(PRInt32* aTextLength);
   NS_IMETHOD    CheckFireOnChange();
   NS_IMETHOD    SetSelectionStart(PRInt32 aSelectionStart);
   NS_IMETHOD    SetSelectionEnd(PRInt32 aSelectionEnd);
   NS_IMETHOD    SetSelectionRange(PRInt32 aSelectionStart, PRInt32 aSelectionEnd);
   NS_IMETHOD    GetSelectionRange(PRInt32* aSelectionStart, PRInt32* aSelectionEnd);
-  virtual nsISelectionController* GetOwnedSelectionController();
-  virtual nsFrameSelection* GetOwnedFrameSelection()
-    { return mFrameSel; }
+  NS_IMETHOD    GetOwnedSelectionController(nsISelectionController** aSelCon);
+  virtual nsFrameSelection* GetOwnedFrameSelection();
 
   nsresult GetPhonetic(nsAString& aPhonetic);
 
@@ -198,26 +168,6 @@ public:
   NS_DECL_QUERYFRAME
 
 public: 
-  
-
-
-
-  PRBool IsSingleLineTextControl() const;
-  
-
-
-
-  PRBool IsTextArea() const;
-  
-
-
-
-  PRBool IsPlainTextControl() const;
-  
-
-
-
-  PRBool IsPasswordTextControl() const;
   void FireOnInput();
   void SetValueChanged(PRBool aValueChanged);
   
@@ -234,16 +184,91 @@ public:
   }    
 
   
-  static NS_HIDDEN_(void) ShutDown();
-
-  
   nsresult MaybeBeginSecureKeyboardInput();
   void MaybeEndSecureKeyboardInput();
 
-  void ClearValueCache() { mCachedValue.Truncate(); }
+  class ValueSetter {
+  public:
+    ValueSetter(nsTextControlFrame* aFrame,
+                PRBool aHasFocusValue)
+      : mFrame(aFrame)
+      , mInited(PR_FALSE)
+    {
+      NS_ASSERTION(aFrame, "Should pass a valid frame");
+
+      
+      
+      
+      
+      
+      mFocusValueInit = !mFrame->mFireChangeEventState && aHasFocusValue;
+    }
+    void Cancel() {
+      mInited = PR_FALSE;
+    }
+    void Init() {
+      
+      
+      
+
+      
+      
+      
+      mOuterTransaction = mFrame->mNotifyOnInput;
+      if (mOuterTransaction)
+        mFrame->mNotifyOnInput = PR_FALSE;
+
+      mInited = PR_TRUE;
+    }
+    ~ValueSetter() {
+      if (!mInited)
+        return;
+
+      if (mOuterTransaction)
+        mFrame->mNotifyOnInput = PR_TRUE;
+
+      if (mFocusValueInit) {
+        
+        mFrame->InitFocusedValue();
+      }
+    }
+
+  private:
+    nsTextControlFrame* mFrame;
+    PRPackedBool mFocusValueInit;
+    PRPackedBool mOuterTransaction;
+    PRPackedBool mInited;
+  };
+  friend class ValueSetter;
+
+#define DEFINE_TEXTCTRL_FORWARDER(type, name)                                  \
+  type name() {                                                                \
+    nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent()); \
+    NS_ASSERTION(txtCtrl, "Content not a text control element");               \
+    return txtCtrl->name();                                                    \
+  }
+#define DEFINE_TEXTCTRL_CONST_FORWARDER(type, name)                            \
+  type name() const {                                                          \
+    nsCOMPtr<nsITextControlElement> txtCtrl = do_QueryInterface(GetContent()); \
+    NS_ASSERTION(txtCtrl, "Content not a text control element");               \
+    return txtCtrl->name();                                                    \
+  }
+
+  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsSingleLineTextControl)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsTextArea)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsPlainTextControl)
+  DEFINE_TEXTCTRL_CONST_FORWARDER(PRBool, IsPasswordTextControl)
+  DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetCols)
+  DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetWrapCols)
+  DEFINE_TEXTCTRL_FORWARDER(PRInt32, GetRows)
+
+#undef DEFINE_TEXTCTRL_CONST_FORWARDER
+#undef DEFINE_TEXTCTRL_FORWARDER
+
 protected:
   class EditorInitializer;
   friend class EditorInitializer;
+  friend class nsTextEditorState; 
 
   class EditorInitializer : public nsRunnable {
   public:
@@ -257,7 +282,7 @@ protected:
           mWeakFrame.GetFrame()->PresContext()->GetPresShell();
         PRBool observes = shell->ObservesNativeAnonMutationsForPrint();
         shell->ObserveNativeAnonMutationsForPrint(PR_TRUE);
-        mFrame->EnsureEditorInitializedInternal();
+        mFrame->EnsureEditorInitialized();
         shell->ObserveNativeAnonMutationsForPrint(observes);
       }
       return NS_OK;
@@ -328,24 +353,6 @@ protected:
 
   
   
-
-
-
-  PRInt32 GetCols();
-
-  
-
-
-  PRInt32 GetWrapCols();
-
-  
-
-
-
-  PRInt32 GetRows();
-
-  
-  
   
   nsresult CalcIntrinsicSize(nsIRenderingContext* aRenderingContext,
                              nsSize&              aIntrinsicSize);
@@ -358,28 +365,19 @@ private:
   nsresult SetSelectionEndPoints(PRInt32 aSelStart, PRInt32 aSelEnd);
 
   
-  nsresult CreatePlaceholderDiv(nsTArray<nsIContent*>& aElements, nsNodeInfoManager* pNodeInfoManager);
-  nsresult ShowPlaceholder();
-  nsresult HidePlaceholder();
-  nsresult SetPlaceholderClass(PRBool aVisible, PRBool aNotify);
-  nsresult UpdatePlaceholderText(PRBool aNotify); 
+  PRBool GetNotifyOnInput() const { return mNotifyOnInput; }
+  void SetNotifyOnInput(PRBool val) { mNotifyOnInput = val; }
 
   
-  
-  
-  virtual nsresult EnsureEditorInitializedInternal();
+
+
+  nsresult GetRootNodeAndInitializeEditor(nsIDOMElement **aRootElement);
 
 private:
-  nsCOMPtr<nsIContent> mValueDiv;
-  nsCOMPtr<nsIContent> mPlaceholderDiv;
-
-  nsCOMPtr<nsIEditor> mEditor;
-
   
   PRPackedBool mUseEditor;
   PRPackedBool mIsProcessing;
   PRPackedBool mNotifyOnInput;
-  PRPackedBool mDidPreDestroy; 
   
   
   PRPackedBool mFireChangeEventState;
@@ -390,12 +388,7 @@ private:
   friend class EditorInitializerEntryTracker;
 #endif
 
-  nsRefPtr<nsTextInputSelectionImpl> mSelCon;
-  nsCOMPtr<nsFrameSelection> mFrameSel;
-  nsTextInputListener* mTextListener;
   nsString mFocusedValue;
-  nsString mCachedValue; 
-  nsRefPtr<nsAnonDivObserver> mMutationObserver;
   nsRevocableEventPtr<ScrollOnFocusEvent> mScrollEvent;
 };
 

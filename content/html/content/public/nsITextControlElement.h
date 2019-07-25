@@ -40,13 +40,17 @@
 #define nsITextControlElement_h___
 
 #include "nsISupports.h"
+class nsIContent;
 class nsAString;
-class nsITextControlFrame;
+class nsIEditor;
+class nsISelectionController;
+class nsFrameSelection;
+class nsTextControlFrame;
 
 
 #define NS_ITEXTCONTROLELEMENT_IID    \
-{ 0x8c22af1e, 0x1dd2, 0x11b2,    \
-  { 0x9d, 0x72, 0xb4, 0xc1, 0x53, 0x68, 0xdc, 0xa1 } }
+{ 0x66545dde, 0x3f4a, 0x49fd,    \
+  { 0x82, 0x73, 0x69, 0x7e, 0xab, 0x54, 0x06, 0x0a } }
 
 
 
@@ -60,12 +64,150 @@ public:
   
 
 
-  NS_IMETHOD TakeTextFrameValue(const nsAString& aValue) = 0;
+  NS_IMETHOD SetValueChanged(PRBool changed) = 0;
 
   
 
 
-  NS_IMETHOD SetValueChanged(PRBool changed) = 0;
+
+  NS_IMETHOD_(PRBool) IsSingleLineTextControl() const = 0;
+
+  
+
+
+
+  NS_IMETHOD_(PRBool) IsTextArea() const = 0;
+
+  
+
+
+
+  NS_IMETHOD_(PRBool) IsPlainTextControl() const = 0;
+
+  
+
+
+
+  NS_IMETHOD_(PRBool) IsPasswordTextControl() const = 0;
+
+  
+
+
+
+  NS_IMETHOD_(PRInt32) GetCols() = 0;
+
+  
+
+
+  NS_IMETHOD_(PRInt32) GetWrapCols() = 0;
+
+  
+
+
+
+  NS_IMETHOD_(PRInt32) GetRows() = 0;
+
+  
+
+
+  NS_IMETHOD_(void) GetDefaultValueFromContent(nsAString& aValue) = 0;
+
+  
+
+
+  NS_IMETHOD_(PRBool) ValueChanged() const = 0;
+
+  
+
+
+
+
+
+
+  NS_IMETHOD_(void) GetTextEditorValue(nsAString& aValue, PRBool aIgnoreWrap) const = 0;
+
+  
+
+
+
+
+
+  NS_IMETHOD_(void) SetTextEditorValue(const nsAString& aValue, PRBool aUserInput) = 0;
+
+  
+
+
+
+
+  NS_IMETHOD_(nsIEditor*) GetTextEditor() = 0;
+
+  
+
+
+
+
+  NS_IMETHOD_(nsISelectionController*) GetSelectionController() = 0;
+
+  NS_IMETHOD_(nsFrameSelection*) GetConstFrameSelection() = 0;
+
+  
+
+
+
+  NS_IMETHOD BindToFrame(nsTextControlFrame* aFrame) = 0;
+
+  
+
+
+
+  NS_IMETHOD_(void) UnbindFromFrame(nsTextControlFrame* aFrame) = 0;
+
+  
+
+
+
+
+  NS_IMETHOD CreateEditor() = 0;
+
+  
+
+
+  NS_IMETHOD_(nsIContent*) GetRootEditorNode() = 0;
+
+  
+
+
+  NS_IMETHOD_(nsIContent*) GetPlaceholderNode() = 0;
+
+  
+
+
+  NS_IMETHOD_(void) InitializeKeyboardEventListeners() = 0;
+
+  
+
+
+  NS_IMETHOD_(void) UpdatePlaceholderText(PRBool aNotify) = 0;
+
+  
+
+
+  NS_IMETHOD_(void) SetPlaceholderClass(PRBool aVisible, PRBool aNotify) = 0;
+
+  static const PRInt32 DEFAULT_COLS = 20;
+  static const PRInt32 DEFAULT_ROWS = 1;
+  static const PRInt32 DEFAULT_ROWS_TEXTAREA = 2;
+  static const PRInt32 DEFAULT_UNDO_CAP = 1000;
+
+  
+  typedef enum {
+    eHTMLTextWrap_Off     = 1,    
+    eHTMLTextWrap_Hard    = 2,    
+    eHTMLTextWrap_Soft    = 3     
+  } nsHTMLTextWrap;
+
+  static PRBool
+  GetWrapPropertyEnum(nsIContent* aContent, nsHTMLTextWrap& aWrapProp);
 };
 
 NS_DEFINE_STATIC_IID_ACCESSOR(nsITextControlElement,

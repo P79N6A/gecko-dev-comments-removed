@@ -1615,6 +1615,14 @@ public:
   static already_AddRefed<mozilla::layers::LayerManager>
   LayerManagerForDocument(nsIDocument *aDoc);
 
+  
+
+
+
+
+
+  static PRBool IsFocusedContent(nsIContent *aContent);
+
 private:
 
   static PRBool InitializeEventTable();

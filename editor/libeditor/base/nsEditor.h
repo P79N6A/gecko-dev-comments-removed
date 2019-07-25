@@ -657,7 +657,7 @@ protected:
   
   nsWeakPtr       mPresShellWeak;   
   nsWeakPtr       mSelConWeak;   
-  nsIViewManager *mViewManager;
+  nsCOMPtr<nsIViewManager> mViewManager;
   PRInt32         mUpdateCount;
   nsIViewManager::UpdateViewBatch mBatch;
 
