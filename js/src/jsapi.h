@@ -802,6 +802,8 @@ JS_StringToVersion(const char *string);
                                                    leaving that up to the
                                                    embedding. */
 
+#define JSOPTION_METHODJIT      JS_BIT(14)      /* Whole-method JIT. */
+
 extern JS_PUBLIC_API(uint32)
 JS_GetOptions(JSContext *cx);
 
@@ -1620,10 +1622,8 @@ struct JSExtendedClass {
 
 
 
-
-
 #define JSCLASS_GLOBAL_FLAGS \
-    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT))
+    (JSCLASS_IS_GLOBAL | JSCLASS_HAS_RESERVED_SLOTS(JSProto_LIMIT * 2))
 
 
 #define JSCLASS_CACHED_PROTO_SHIFT      (JSCLASS_HIGH_FLAGS_SHIFT + 8)
