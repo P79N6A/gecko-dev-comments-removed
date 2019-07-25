@@ -179,8 +179,10 @@ PluginModuleChild::Init(const std::string& aPluginFilename,
 
 #if defined(OS_LINUX)
 typedef void (*GObjectDisposeFn)(GObject*);
+typedef void (*GtkPlugEmbeddedFn)(GtkPlug*);
 
 static GObjectDisposeFn real_gtk_plug_dispose;
+static GtkPlugEmbeddedFn real_gtk_plug_embedded;
 
 static void
 undo_bogus_unref(gpointer data, GObject* object, gboolean is_last_ref) {
@@ -210,6 +212,22 @@ wrap_gtk_plug_dispose(GObject* object) {
     (*real_gtk_plug_dispose)(object);
     g_object_remove_toggle_ref(object, undo_bogus_unref, NULL);
 }
+
+static void
+wrap_gtk_plug_embedded(GtkPlug* plug) {
+    GdkWindow* socket_window = plug->socket_window;
+    if (socket_window &&
+        g_object_get_data(G_OBJECT(socket_window),
+                          "moz-existed-before-set-window")) {
+        
+        
+        g_object_ref(socket_window);
+    }
+
+    if (*real_gtk_plug_embedded) {
+        (*real_gtk_plug_embedded)(plug);
+    }
+}
 #endif
 
 bool
@@ -221,16 +239,20 @@ PluginModuleChild::InitGraphics()
 
     
     gpointer gtk_plug_class = g_type_class_ref(GTK_TYPE_PLUG);
+
     
     
     
     
     GObjectDisposeFn* dispose = &G_OBJECT_CLASS(gtk_plug_class)->dispose;
-
     NS_ABORT_IF_FALSE(*dispose != wrap_gtk_plug_dispose,
                       "InitGraphics called twice");
     real_gtk_plug_dispose = *dispose;
     *dispose = wrap_gtk_plug_dispose;
+
+    GtkPlugEmbeddedFn* embedded = &GTK_PLUG_CLASS(gtk_plug_class)->embedded;
+    real_gtk_plug_embedded = *embedded;
+    *embedded = wrap_gtk_plug_embedded;
 #else
     
 #endif
