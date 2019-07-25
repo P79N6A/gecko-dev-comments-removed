@@ -199,15 +199,7 @@ struct StmtInfo {
 
 
 
-
-#define TCF_NEED_MUTABLE_SCRIPT 0x20000
-
-
-
-
-
-
-#define TCF_STRICT_MODE_CODE    0x40000
+#define TCF_STRICT_MODE_CODE    0x20000
 
 
 
