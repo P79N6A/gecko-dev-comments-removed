@@ -222,7 +222,7 @@ function nsPlacesAutoComplete()
                   "h.frecency " +
            "FROM " + aTableName + " h " +
            "LEFT OUTER JOIN moz_favicons f ON f.id = h.favicon_id " +
-           "LEFT OUTER JOIN moz_openpages_temp t ON t.place_id = h.id " +
+           "LEFT OUTER JOIN moz_openpages_temp t ON t.url = h.url " +
            "WHERE h.frecency <> 0 " +
            "AND AUTOCOMPLETE_MATCH(:searchString, h.url, " +
                                   "IFNULL(bookmark, h.title), tags, " +
@@ -296,9 +296,27 @@ function nsPlacesAutoComplete()
   });
 
   XPCOMUtils.defineLazyGetter(this, "_openPagesQuery", function() {
-    let replacementText = "AND t.open_count > 0";
     return this._db.createStatement(
-      SQL_BASE.replace("{ADDITIONAL_CONDITIONS}", replacementText, "g")
+      "/* do not warn (bug 487789) */ " +
+      "SELECT t.url, " +
+             "COALESCE(h_t.title, h.title, t.url) AS c_title, f.url, " +
+              kBookTagSQLFragment + ", " +
+              "IFNULL(h_t.visit_count, h.visit_count) AS c_visit_count, " +
+              "IFNULL(h_t.typed, h.typed) AS c_typed, " +
+              "IFNULL(h_t.id, h.id), :query_type, t.open_count, " +
+              "IFNULL(h_t.frecency, h.frecency) AS c_frecency " +
+      "FROM moz_openpages_temp t " +
+      "LEFT JOIN moz_places_temp h_t ON h_t.url = t.url " +
+      "LEFT JOIN moz_places h ON h.url = t.url " +
+      "LEFT JOIN moz_favicons f ON f.id = IFNULL(h_t.favicon_id, h.favicon_id) " + 
+      "WHERE t.open_count > 0 " +
+        "AND AUTOCOMPLETE_MATCH(:searchString, t.url, " +
+                               "COALESCE(bookmark, c_title, t.url), tags, " +
+                               "c_visit_count, c_typed, parent, " +
+                               "t.open_count, " +
+                               ":matchBehavior, :searchBehavior) " +
+      "ORDER BY c_frecency DESC, t.ROWID DESC " +
+      "LIMIT :maxResults"
     );
   });
 
@@ -334,7 +352,7 @@ function nsPlacesAutoComplete()
       "LEFT JOIN moz_places h ON h.id = i.place_id " +
       "LEFT JOIN moz_places_temp h_t ON h_t.id = i.place_id " +
       "LEFT JOIN moz_favicons f ON f.id = IFNULL(h_t.favicon_id, h.favicon_id) " + 
-      "LEFT JOIN moz_openpages_temp t ON t.place_id = i.place_id " +
+      "LEFT JOIN moz_openpages_temp t ON t.url = c_url " +
       "WHERE c_url NOTNULL " +
       "AND AUTOCOMPLETE_MATCH(:searchString, c_url, " +
                              "IFNULL(bookmark, c_title), tags, " +
@@ -362,7 +380,7 @@ function nsPlacesAutoComplete()
       "LEFT JOIN moz_places AS h ON h.url = search_url " +
       "LEFT JOIN moz_places_temp AS h_t ON h_t.url = search_url " +
       "LEFT JOIN moz_favicons f ON f.id = IFNULL(h_t.favicon_id, h.favicon_id) " +
-      "LEFT JOIN moz_openpages_temp t ON t.place_id = IFNULL(h_t.id, h.id) " +
+      "LEFT JOIN moz_openpages_temp t ON t.url = search_url " +
       "WHERE LOWER(k.keyword) = LOWER(:keyword) " +
       "ORDER BY IFNULL(h_t.frecency, h.frecency) DESC"
     );
@@ -435,11 +453,12 @@ nsPlacesAutoComplete.prototype = {
     
     
     
+    
     let {query, tokens} =
       this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
     let queries = tokens.length ?
-      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), query] :
-      [this._getBoundAdaptiveQuery(), query];
+      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(), query] :
+      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(), query];
 
     
     this._executeQueries(queries);
@@ -832,6 +851,23 @@ nsPlacesAutoComplete.prototype = {
 
       
       
+      params.maxResults = this._maxRichResults;
+    }
+
+    return query;
+  },
+
+  _getBoundOpenPagesQuery: function PAC_getBoundOpenPagesQuery()
+  {
+    let query = this._openPagesQuery;
+
+    
+    let (params = query.params) {
+      params.parent = this._bs.tagsFolder;
+      params.query_type = kQueryTypeFiltered;
+      params.matchBehavior = this._matchBehavior;
+      params.searchBehavior = this._behavior;
+      params.searchString = this._currentSearchString;
       params.maxResults = this._maxRichResults;
     }
 
