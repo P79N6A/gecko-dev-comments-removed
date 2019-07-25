@@ -163,7 +163,7 @@ already_AddRefed<gfxASurface>
 gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
                                        gfxASurface::gfxContentType contentType)
 {
-    nsRefPtr<gfxASurface> newSurface = nsnull;
+    nsRefPtr<gfxASurface> newSurface;
     PRBool needsClear = PR_TRUE;
     gfxASurface::gfxImageFormat imageFormat = gfxASurface::FormatFromContent(contentType);
 #ifdef MOZ_X11
@@ -209,6 +209,10 @@ gfxPlatformGtk::CreateOffscreenSurface(const gfxIntSize& size,
         
         
         newSurface = new gfxImageSurface(size, imageFormat);
+    }
+
+    if (newSurface->CairoStatus()) {
+        newSurface = nsnull; 
     }
 
     if (newSurface && needsClear) {
