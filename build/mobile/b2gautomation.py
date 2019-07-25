@@ -35,16 +35,19 @@ class B2GRemoteAutomation(Automation):
     _devicemanager = None
 
     def __init__(self, deviceManager, appName='', remoteLog=None,
-                 marionette=None):
+                 marionette=None, context_chrome=True):
         self._devicemanager = deviceManager
         self._appName = appName
         self._remoteProfile = None
         self._remoteLog = remoteLog
         self.marionette = marionette
+        self.context_chrome = context_chrome
         self._is_emulator = False
 
         
         self._product = "b2g"
+        
+        self.logFinish = 'INFO SimpleTest FINISHED' 
         Automation.__init__(self)
 
     def setEmulator(self, is_emulator):
@@ -121,7 +124,7 @@ class B2GRemoteAutomation(Automation):
 
     def waitForFinish(self, proc, utilityPath, timeout, maxTime, startTime,
                       debuggerInfo, symbolsPath):
-        """ Wait for mochitest to finish (as evidenced by a signature string
+        """ Wait for tests to finish (as evidenced by a signature string
             in logcat), or for a given amount of time to elapse with no
             output.
         """
@@ -135,7 +138,7 @@ class B2GRemoteAutomation(Automation):
             if currentlog:
                 done = time.time() + timeout
                 print currentlog
-                if 'INFO SimpleTest FINISHED' in currentlog:
+                if hasattr(self, 'logFinish') and self.logFinish in currentlog:
                     return 0
             else:
                 if time.time() > done:
@@ -162,6 +165,8 @@ class B2GRemoteAutomation(Automation):
         return (serial, status)
 
     def restartB2G(self):
+        
+        time.sleep(5)
         self._devicemanager.checkCmd(['shell', 'stop', 'b2g'])
         
         time.sleep(10)
@@ -239,11 +244,27 @@ class B2GRemoteAutomation(Automation):
         if 'b2g' not in session:
             raise Exception("bad session value %s returned by start_session" % session)
 
+        if self.context_chrome:
+            self.marionette.set_context(self.marionette.CONTEXT_CHROME)
+
         
+        if hasattr(self, 'testURL'):
+            
+            
+            
+            self.marionette.execute_script("document.getElementById('homescreen').src='%s';" % self.testURL)
         
-        
-        self.marionette.set_context("chrome")
-        self.marionette.execute_script("document.getElementById('homescreen').src='%s';" % self.testURL)
+        elif hasattr(self, 'testScript'):
+            if os.path.isfile(self.testScript):
+                script = open(self.testScript, 'r')
+                self.marionette.execute_script(script.read())
+                script.close()
+            else:
+                
+                self.marionette.execute_script(self.testScript)
+        else:
+            
+            pass
 
         return instance
 
