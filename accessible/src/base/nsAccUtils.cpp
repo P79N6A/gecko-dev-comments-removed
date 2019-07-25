@@ -608,15 +608,12 @@ nsAccUtils::GetLiveAttrValue(PRUint32 aRule, nsAString& aValue)
 bool
 nsAccUtils::IsTextInterfaceSupportCorrect(nsAccessible *aAccessible)
 {
-  bool foundText = false;
   
-  nsCOMPtr<nsIAccessibleDocument> accDoc = do_QueryObject(aAccessible);
-  if (accDoc) {
-    
-    
+  
+  if (aAccessible->IsDoc())
     return true;
-  }
 
+  bool foundText = false;
   PRInt32 childCount = aAccessible->GetChildCount();
   for (PRint32 childIdx = 0; childIdx < childCount; childIdx++) {
     nsAccessible *child = GetChildAt(childIdx);
