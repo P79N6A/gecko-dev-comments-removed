@@ -624,7 +624,7 @@ class SetPropCompiler : public PICStubCompiler
             shape->hasDefaultSetter() &&
             !obj->isDenseArray()) {
             return patchInline(shape, !obj->hasSlotsArray());
-        } 
+        }
 
         return generateStub(obj->shape(), shape, false, !obj->hasSlotsArray());
     }
@@ -634,8 +634,13 @@ static bool
 IsCacheableProtoChain(JSObject *obj, JSObject *holder)
 {
     while (obj != holder) {
+        
+
+
+
+
         JSObject *proto = obj->getProto();
-        if (!proto->isNative())
+        if (!proto || !proto->isNative())
             return false;
         obj = proto;
     }
@@ -655,7 +660,7 @@ struct GetPropertyHelper {
     JSObject    *aobj;
     JSObject    *holder;
     JSProperty  *prop;
- 
+
     
     
     const Shape *shape;
@@ -776,7 +781,7 @@ class GetPropCompiler : public PICStubCompiler
         Jump overridden = masm.branchTest32(Assembler::NonZero, pic.shapeReg,
                                             Imm32(ArgumentsObject::LENGTH_OVERRIDDEN_BIT));
         masm.rshift32(Imm32(ArgumentsObject::PACKED_BITS_COUNT), pic.objReg);
-        
+
         masm.move(ImmType(JSVAL_TYPE_INT32), pic.shapeReg);
         Jump done = masm.jump();
 
@@ -1148,7 +1153,7 @@ class GetPropCompiler : public PICStubCompiler
 
         if (obj == getprop.holder && !pic.inlinePathPatched)
             return patchInline(getprop.holder, getprop.shape);
-        
+
         return generateStub(getprop.holder, getprop.shape);
     }
 };
@@ -1169,7 +1174,7 @@ class ScopeNameCompiler : public PICStubCompiler
         Repatcher               repatcher(pic.lastCodeBlock(f.jit()));
         CodeLocationLabel       start = pic.lastPathStart();
         JSC::CodeLocationJump   jump;
-        
+
         
         if (pic.stubsGenerated)
             jump = labels.getStubJump(start);
@@ -1198,7 +1203,7 @@ class ScopeNameCompiler : public PICStubCompiler
                 if (!fails.append(j))
                     return error();
             }
-            
+
             
             masm.loadShape(pic.objReg, pic.shapeReg);
             Jump j = masm.branch32(Assembler::NotEqual, pic.shapeReg, Imm32(tobj->shape()));
@@ -1483,7 +1488,7 @@ class ScopeNameCompiler : public PICStubCompiler
         return true;
     }
 };
- 
+
 class BindNameCompiler : public PICStubCompiler
 {
     JSObject *scopeChain;
@@ -1514,7 +1519,7 @@ class BindNameCompiler : public PICStubCompiler
         BindNameLabels &labels = pic.bindNameLabels();
         Repatcher repatcher(pic.lastCodeBlock(f.jit()));
         JSC::CodeLocationJump jump;
-        
+
         
         if (pic.stubsGenerated)
             jump = labels.getStubJump(pic.lastPathStart());
@@ -1738,7 +1743,7 @@ ic::SetProp(VMFrame &f, ic::PICInfo *pic)
         if (status == Lookup_Error)
             THROW();
     }
-    
+
     stub(f, pic);
 }
 
