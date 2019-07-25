@@ -189,13 +189,6 @@ nsSVGGraphicElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
 {
   gfxMatrix result(aMatrix);
 
-  
-  
-  
-  if (mAnimateMotionTransform) {
-    result.PreMultiply(*mAnimateMotionTransform);
-  }
-
   if (mTransforms) {
     nsresult rv;
     nsCOMPtr<nsIDOMSVGTransformList> transforms;
@@ -208,6 +201,13 @@ nsSVGGraphicElement::PrependLocalTransformTo(const gfxMatrix &aMatrix) const
         nsSVGTransformList::GetConsolidationMatrix(transforms);
       result.PreMultiply(nsSVGUtils::ConvertSVGMatrixToThebes(matrix));
     }
+  }
+
+  
+  
+  
+  if (mAnimateMotionTransform) {
+    result.PreMultiply(*mAnimateMotionTransform);
   }
 
   return result;
