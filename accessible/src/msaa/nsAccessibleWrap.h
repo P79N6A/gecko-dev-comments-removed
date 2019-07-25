@@ -356,9 +356,9 @@ protected:
   
 
 
-  ITypeInfo *GetTI(LCID lcid);
+  static ITypeInfo* GetTI(LCID lcid);
 
-  ITypeInfo *mTypeInfo;
+  static ITypeInfo* gTypeInfo;
 
 
   enum navRelations {
