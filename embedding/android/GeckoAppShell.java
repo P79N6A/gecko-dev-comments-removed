@@ -815,7 +815,7 @@ public class GeckoAppShell
                 
                 String[] handlers = getHandlersForURL(aUriSpec, aAction);
                 if (handlers.length == 0) {
-                    intent = new Intent(Intent.ACTION_MAIN);
+                    intent = new Intent(VideoPlayer.VIDEO_ACTION);
                     intent.setClassName(GeckoApp.mAppContext.getPackageName(),
                                         "org.mozilla.gecko.VideoPlayer");
                     intent.setData(uri);
