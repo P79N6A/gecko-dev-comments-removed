@@ -216,6 +216,7 @@ private:
   
   nsIMEUpdatePreference mIMEPreference;
   PRPackedBool mIMEComposing;
+  PRPackedBool mIMESuppressNotifySel;
 };
 
 }  
