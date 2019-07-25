@@ -4542,6 +4542,13 @@ nsGlobalWindow::Print()
       if (printSettingsAreGlobal) {
         printSettingsService->GetGlobalPrintSettings(getter_AddRefs(printSettings));
 
+        if (printSettings) {
+          
+          EnterModalState();
+          printSettings->SetupSilentPrinting();
+          LeaveModalState();
+        }
+
         nsXPIDLString printerName;
         printSettingsService->GetDefaultPrinterName(getter_Copies(printerName));
         if (printerName)

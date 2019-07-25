@@ -127,6 +127,17 @@ function _do_quit() {
   _quit = true;
 }
 
+function _dump_exception_stack(stack) {
+  stack.split("\n").forEach(function(frame) {
+    if (!frame)
+      return;
+    
+    let frame_regexp = new RegExp("(.*)\\(.*\\)@(.*):(\\d*)", "g");
+    let parts = frame_regexp.exec(frame);
+    dump("JS frame :: " + parts[2] + " :: " + (parts[1] ? parts[1] : "anonymous") + " :: line " + parts[3] + "\n");
+  });
+}
+
 function _execute_test() {
   
   let (ios = Components.classes["@mozilla.org/network/io-service;1"]
@@ -152,8 +163,19 @@ function _execute_test() {
     _passed = false;
     
     
-    if (!_quit || e != Components.results.NS_ERROR_ABORT)
-      _dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e + "\n");
+    
+    
+    
+    if (!_quit || e != Components.results.NS_ERROR_ABORT) {
+      _dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e);
+      if (e.stack) {
+        _dump(" - See following stack:\n");
+        _dump_exception_stack(e.stack);
+      }
+      else {
+        _dump("\n");
+      }
+    }
   }
 
   
@@ -201,12 +223,35 @@ function do_timeout(delay, func) {
 }
 
 function do_execute_soon(callback) {
+  do_test_pending();
   var tm = Components.classes["@mozilla.org/thread-manager;1"]
                      .getService(Components.interfaces.nsIThreadManager);
 
   tm.mainThread.dispatch({
     run: function() {
-      callback();
+      try {
+        callback();
+      } catch (e) {
+        
+        
+        
+        
+        
+        if (!_quit || e != Components.results.NS_ERROR_ABORT) {
+          dump("TEST-UNEXPECTED-FAIL | (xpcshell/head.js) | " + e);
+          if (e.stack) {
+            dump(" - See following stack:\n");
+            _dump_exception_stack(e.stack);
+          }
+          else {
+            dump("\n");
+          }
+          _do_quit();
+        }
+      }
+      finally {
+        do_test_finished();
+      }
     }
   }, Components.interfaces.nsIThread.DISPATCH_NORMAL);
 }

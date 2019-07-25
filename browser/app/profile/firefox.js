@@ -240,9 +240,11 @@ pref("browser.urlbar.delay", 50);
 pref("browser.urlbar.restrict.history", "^");
 pref("browser.urlbar.restrict.bookmark", "*");
 pref("browser.urlbar.restrict.tag", "+");
+pref("browser.urlbar.restrict.openpage", "%");
 pref("browser.urlbar.restrict.typed", "~");
 pref("browser.urlbar.match.title", "#");
 pref("browser.urlbar.match.url", "@");
+
 
 
 
@@ -804,6 +806,7 @@ pref("places.frecency.defaultBucketWeight", 10);
 
 
 pref("places.frecency.embedVisitBonus", 0);
+pref("places.frecency.framedLinkVisitBonus", 0);
 pref("places.frecency.linkVisitBonus", 100);
 pref("places.frecency.typedVisitBonus", 2000);
 pref("places.frecency.bookmarkVisitBonus", 75);
