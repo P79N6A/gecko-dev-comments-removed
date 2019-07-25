@@ -54,11 +54,9 @@ ChromePowers.prototype._receiveMessage = function(aMessage) {
         
         break;
       } else if (aMessage.type == "crash-observed") {
-        var self = this;
-        msg.dumpIDs.forEach(function(id) {
-          self._encounteredCrashDumpFiles.push(id + ".dmp");
-          self._encounteredCrashDumpFiles.push(id + ".extra");
-        });
+        for (let e of msg.dumpIDs) {
+          this._encounteredCrashDumpFiles.push(e.id + "." + e.extension);
+        }
       }
     default:
       
