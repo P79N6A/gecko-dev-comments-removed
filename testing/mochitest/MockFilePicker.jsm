@@ -22,6 +22,18 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
 var EXPORTED_SYMBOLS = ["MockFilePicker"];
 
 const Cc = Components.classes;
@@ -30,15 +42,15 @@ const Cm = Components.manager;
 const Cu = Components.utils;
 
 const CONTRACT_ID = "@mozilla.org/filepicker;1";
-const CLASS_ID = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID();
 
 Cu.import("resource://gre/modules/FileUtils.jsm");
 Cu.import("resource://gre/modules/Services.jsm");
 Cu.import("resource://gre/modules/XPCOMUtils.jsm");
 
 var registrar = Cm.QueryInterface(Ci.nsIComponentRegistrar);
-
-var MockFilePickerFactory = {
+var oldClassID, oldFactory;
+var newClassID = Cc["@mozilla.org/uuid-generator;1"].getService(Ci.nsIUUIDGenerator).generateUUID();
+var newFactory = {
   createInstance: function(aOuter, aIID) {
     if (aOuter)
       throw Components.results.NS_ERROR_NO_AGGREGATION;
@@ -66,6 +78,16 @@ var MockFilePicker = {
   filterAudio: Ci.nsIFilePicker.filterAudio,
   filterVideo: Ci.nsIFilePicker.filterVideo,
 
+  init: function() {
+    this.reset();
+    if (!registrar.isCIDRegistered(newClassID)) {
+      oldClassID = registrar.contractIDToCID(CONTRACT_ID);
+      oldFactory = Cm.getClassObject(Cc[CONTRACT_ID], Ci.nsIFactory);
+      registrar.unregisterFactory(oldClassID, oldFactory);
+      registrar.registerFactory(newClassID, "", CONTRACT_ID, newFactory);
+    }
+  },
+  
   reset: function() {
     this.appendFilterCallback = null;
     this.appendFiltersCallback = null;
@@ -76,8 +98,14 @@ var MockFilePicker = {
     this.returnValue = null;
     this.showCallback = null;
     this.shown = false;
-    if (!registrar.isCIDRegistered(CLASS_ID))
-      registrar.registerFactory(CLASS_ID, "", CONTRACT_ID, MockFilePickerFactory);
+  },
+  
+  cleanup: function() {
+    this.reset();
+    if (oldFactory) {
+      registrar.unregisterFactory(newClassID, newFactory);
+      registrar.registerFactory(oldClassID, "", CONTRACT_ID, oldFactory);
+    }
   },
 
   useAnyFile: function() {
@@ -131,8 +159,11 @@ MockFilePickerInstance.prototype = {
   show: function() {
     MockFilePicker.displayDirectory = this.displayDirectory;
     MockFilePicker.shown = true;
-    if (typeof MockFilePicker.showCallback == "function")
-      MockFilePicker.showCallback(this);
+    if (typeof MockFilePicker.showCallback == "function") {
+      var returnValue = MockFilePicker.showCallback(this);
+      if (typeof returnValue != "undefined")
+        return returnValue;
+    }
     return MockFilePicker.returnValue;
   }
 };

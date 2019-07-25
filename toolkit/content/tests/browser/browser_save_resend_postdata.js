@@ -35,7 +35,7 @@
 
 
 var MockFilePicker = SpecialPowers.MockFilePicker;
-MockFilePicker.reset();
+MockFilePicker.init();
 
 
 
@@ -100,7 +100,7 @@ function test() {
 
     registerCleanupFunction(function () {
       mockTransferRegisterer.unregister();
-      MockFilePicker.reset();
+      MockFilePicker.cleanup();
       destDir.remove(true);
     });
 
