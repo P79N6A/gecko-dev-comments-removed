@@ -242,9 +242,6 @@ protected:
   
   nscoord mDisplayWidth;
   
-  bool                  mDroppedDown;             
-  bool                  mInRedisplayText;
-
   nsRevocableEventPtr<RedisplayTextEvent> mRedisplayTextEvent;
 
   PRInt32               mRecentSelectedIndex;
@@ -254,6 +251,13 @@ protected:
   
   
   nsCOMPtr<nsIDOMEventListener> mButtonListener;
+
+  
+  bool                  mDroppedDown;
+  
+  bool                  mInRedisplayText;
+  
+  bool                  mDelayedShowDropDown;
 
   
   
