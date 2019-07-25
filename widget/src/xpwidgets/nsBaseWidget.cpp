@@ -787,6 +787,12 @@ NS_METHOD nsBaseWidget::SetWindowClass(const nsAString& xulWinType)
 
 
 
+
+
+
+
+
+
 NS_METHOD nsBaseWidget::GetClientBounds(nsIntRect &aRect)
 {
   return GetBounds(aRect);
@@ -823,6 +829,18 @@ NS_METHOD nsBaseWidget::SetBounds(const nsIntRect &aRect)
   mBounds = aRect;
 
   return NS_OK;
+}
+
+NS_IMETHODIMP
+nsBaseWidget::GetNonClientMargins(nsIntMargin &margins)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
+}
+ 
+NS_IMETHODIMP
+nsBaseWidget::SetNonClientMargins(nsIntMargin &margins)
+{
+  return NS_ERROR_NOT_IMPLEMENTED;
 }
 
 NS_METHOD nsBaseWidget::EnableDragDrop(PRBool aEnable)

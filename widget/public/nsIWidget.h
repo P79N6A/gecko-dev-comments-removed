@@ -519,11 +519,7 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD GetBounds(nsIntRect &aRect) = 0;
 
-
     
-
-
-
 
 
 
@@ -532,6 +528,21 @@ class nsIWidget : public nsISupports {
 
     NS_IMETHOD GetScreenBounds(nsIntRect &aRect) = 0;
 
+    
+
+
+
+
+
+
+
+    NS_IMETHOD GetClientBounds(nsIntRect &aRect) = 0;
+
+    
+
+
+
+    NS_IMETHOD GetNonClientMargins(nsIntMargin &margins) = 0;
 
     
 
@@ -540,7 +551,12 @@ class nsIWidget : public nsISupports {
 
 
 
-    NS_IMETHOD GetClientBounds(nsIntRect &aRect) = 0;
+
+
+
+
+
+    NS_IMETHOD SetNonClientMargins(nsIntMargin &margins) = 0;
 
     
 
