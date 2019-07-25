@@ -123,44 +123,45 @@ private:
 #include "nsStyleStructList.h"
 #undef STYLE_STRUCT
 
-  nsresult GetEllipseRadii(const nsStyleCorners& aRadius,
-                           PRUint8 aFullCorner,
-                           PRBool aIsBorder, 
-                           nsIDOMCSSValue** aValue);
+  
+  
+  
 
-  nsresult GetOffsetWidthFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetEllipseRadii(const nsStyleCorners& aRadius,
+                                  PRUint8 aFullCorner,
+                                  PRBool aIsBorder); 
 
-  nsresult GetAbsoluteOffset(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetOffsetWidthFor(mozilla::css::Side aSide);
 
-  nsresult GetRelativeOffset(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetAbsoluteOffset(mozilla::css::Side aSide);
 
-  nsresult GetStaticOffset(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetRelativeOffset(mozilla::css::Side aSide);
 
-  nsresult GetPaddingWidthFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetStaticOffset(mozilla::css::Side aSide);
 
-  nsresult GetBorderColorsFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetPaddingWidthFor(mozilla::css::Side aSide);
 
-  nsresult GetBorderStyleFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetBorderColorsFor(mozilla::css::Side aSide);
 
-  nsresult GetBorderWidthFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetBorderStyleFor(mozilla::css::Side aSide);
 
-  nsresult GetBorderColorFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetBorderWidthFor(mozilla::css::Side aSide);
 
-  nsresult GetMarginWidthFor(mozilla::css::Side aSide, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetBorderColorFor(mozilla::css::Side aSide);
 
-  nsresult GetSVGPaintFor(PRBool aFill, nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetMarginWidthFor(mozilla::css::Side aSide);
+
+  nsIDOMCSSValue* GetSVGPaintFor(PRBool aFill);
 
   PRBool GetLineHeightCoord(nscoord& aCoord);
 
-  nsresult GetCSSShadowArray(nsCSSShadowArray* aArray,
-                             const nscolor& aDefaultColor,
-                             PRBool aIsBoxShadow,
-                             nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* GetCSSShadowArray(nsCSSShadowArray* aArray,
+                                    const nscolor& aDefaultColor,
+                                    PRBool aIsBoxShadow);
 
-  nsresult GetBackgroundList(PRUint8 nsStyleBackground::Layer::* aMember,
-                             PRUint32 nsStyleBackground::* aCount,
-                             const PRInt32 aTable[],
-                             nsIDOMCSSValue** aResult);
+  nsIDOMCSSValue* GetBackgroundList(PRUint8 nsStyleBackground::Layer::* aMember,
+                                    PRUint32 nsStyleBackground::* aCount,
+                                    const PRInt32 aTable[]);
 
   void GetCSSGradientString(const nsStyleGradient* aGradient,
                             nsAString& aString);
@@ -173,233 +174,233 @@ private:
 
 
 
-  nsresult DoGetAppearance(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetAppearance();
 
   
-  nsresult DoGetBoxAlign(nsIDOMCSSValue** aValue);
-  nsresult DoGetBoxDirection(nsIDOMCSSValue** aValue);
-  nsresult DoGetBoxFlex(nsIDOMCSSValue** aValue);
-  nsresult DoGetBoxOrdinalGroup(nsIDOMCSSValue** aValue);
-  nsresult DoGetBoxOrient(nsIDOMCSSValue** aValue);
-  nsresult DoGetBoxPack(nsIDOMCSSValue** aValue);
-  nsresult DoGetBoxSizing(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetBoxAlign();
+  nsIDOMCSSValue* DoGetBoxDirection();
+  nsIDOMCSSValue* DoGetBoxFlex();
+  nsIDOMCSSValue* DoGetBoxOrdinalGroup();
+  nsIDOMCSSValue* DoGetBoxOrient();
+  nsIDOMCSSValue* DoGetBoxPack();
+  nsIDOMCSSValue* DoGetBoxSizing();
 
-  nsresult DoGetWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetHeight(nsIDOMCSSValue** aValue);
-  nsresult DoGetMaxHeight(nsIDOMCSSValue** aValue);
-  nsresult DoGetMaxWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetMinHeight(nsIDOMCSSValue** aValue);
-  nsresult DoGetMinWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetLeft(nsIDOMCSSValue** aValue);
-  nsresult DoGetTop(nsIDOMCSSValue** aValue);
-  nsresult DoGetRight(nsIDOMCSSValue** aValue);
-  nsresult DoGetBottom(nsIDOMCSSValue** aValue);
-  nsresult DoGetStackSizing(nsIDOMCSSValue** aValue);
-
-  
-  nsresult DoGetColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontFamily(nsIDOMCSSValue** aValue);
-  nsresult DoGetMozFontFeatureSettings(nsIDOMCSSValue** aValue);
-  nsresult DoGetMozFontLanguageOverride(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontSize(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontSizeAdjust(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontStretch(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontWeight(nsIDOMCSSValue** aValue);
-  nsresult DoGetFontVariant(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetWidth();
+  nsIDOMCSSValue* DoGetHeight();
+  nsIDOMCSSValue* DoGetMaxHeight();
+  nsIDOMCSSValue* DoGetMaxWidth();
+  nsIDOMCSSValue* DoGetMinHeight();
+  nsIDOMCSSValue* DoGetMinWidth();
+  nsIDOMCSSValue* DoGetLeft();
+  nsIDOMCSSValue* DoGetTop();
+  nsIDOMCSSValue* DoGetRight();
+  nsIDOMCSSValue* DoGetBottom();
+  nsIDOMCSSValue* DoGetStackSizing();
 
   
-  nsresult DoGetBackgroundAttachment(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundImage(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundPosition(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundRepeat(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundClip(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundInlinePolicy(nsIDOMCSSValue** aValue);
-  nsresult DoGetBackgroundOrigin(nsIDOMCSSValue** aValue);
-  nsresult DoGetMozBackgroundSize(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetColor();
+  nsIDOMCSSValue* DoGetFontFamily();
+  nsIDOMCSSValue* DoGetMozFontFeatureSettings();
+  nsIDOMCSSValue* DoGetMozFontLanguageOverride();
+  nsIDOMCSSValue* DoGetFontSize();
+  nsIDOMCSSValue* DoGetFontSizeAdjust();
+  nsIDOMCSSValue* DoGetFontStretch();
+  nsIDOMCSSValue* DoGetFontStyle();
+  nsIDOMCSSValue* DoGetFontWeight();
+  nsIDOMCSSValue* DoGetFontVariant();
 
   
-  nsresult DoGetPadding(nsIDOMCSSValue** aValue);
-  nsresult DoGetPaddingTop(nsIDOMCSSValue** aValue);
-  nsresult DoGetPaddingBottom(nsIDOMCSSValue** aValue);
-  nsresult DoGetPaddingLeft(nsIDOMCSSValue** aValue);
-  nsresult DoGetPaddingRight(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetBackgroundAttachment();
+  nsIDOMCSSValue* DoGetBackgroundColor();
+  nsIDOMCSSValue* DoGetBackgroundImage();
+  nsIDOMCSSValue* DoGetBackgroundPosition();
+  nsIDOMCSSValue* DoGetBackgroundRepeat();
+  nsIDOMCSSValue* DoGetBackgroundClip();
+  nsIDOMCSSValue* DoGetBackgroundInlinePolicy();
+  nsIDOMCSSValue* DoGetBackgroundOrigin();
+  nsIDOMCSSValue* DoGetMozBackgroundSize();
 
   
-  nsresult DoGetBorderCollapse(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderSpacing(nsIDOMCSSValue** aValue);
-  nsresult DoGetCaptionSide(nsIDOMCSSValue** aValue);
-  nsresult DoGetEmptyCells(nsIDOMCSSValue** aValue);
-  nsresult DoGetTableLayout(nsIDOMCSSValue** aValue);
-  nsresult DoGetVerticalAlign(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetPadding();
+  nsIDOMCSSValue* DoGetPaddingTop();
+  nsIDOMCSSValue* DoGetPaddingBottom();
+  nsIDOMCSSValue* DoGetPaddingLeft();
+  nsIDOMCSSValue* DoGetPaddingRight();
 
   
-  nsresult DoGetBorderStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderTopStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderBottomStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderLeftStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderRightStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderTopWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderBottomWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderLeftWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderRightWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderTopColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderBottomColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderLeftColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderRightColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderBottomColors(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderLeftColors(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderRightColors(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderTopColors(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderBottomLeftRadius(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderBottomRightRadius(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderTopLeftRadius(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderTopRightRadius(nsIDOMCSSValue** aValue);
-  nsresult DoGetFloatEdge(nsIDOMCSSValue** aValue);
-  nsresult DoGetBorderImage(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetBorderCollapse();
+  nsIDOMCSSValue* DoGetBorderSpacing();
+  nsIDOMCSSValue* DoGetCaptionSide();
+  nsIDOMCSSValue* DoGetEmptyCells();
+  nsIDOMCSSValue* DoGetTableLayout();
+  nsIDOMCSSValue* DoGetVerticalAlign();
 
   
-  nsresult DoGetBoxShadow(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetBorderStyle();
+  nsIDOMCSSValue* DoGetBorderWidth();
+  nsIDOMCSSValue* DoGetBorderTopStyle();
+  nsIDOMCSSValue* DoGetBorderBottomStyle();
+  nsIDOMCSSValue* DoGetBorderLeftStyle();
+  nsIDOMCSSValue* DoGetBorderRightStyle();
+  nsIDOMCSSValue* DoGetBorderTopWidth();
+  nsIDOMCSSValue* DoGetBorderBottomWidth();
+  nsIDOMCSSValue* DoGetBorderLeftWidth();
+  nsIDOMCSSValue* DoGetBorderRightWidth();
+  nsIDOMCSSValue* DoGetBorderTopColor();
+  nsIDOMCSSValue* DoGetBorderBottomColor();
+  nsIDOMCSSValue* DoGetBorderLeftColor();
+  nsIDOMCSSValue* DoGetBorderRightColor();
+  nsIDOMCSSValue* DoGetBorderBottomColors();
+  nsIDOMCSSValue* DoGetBorderLeftColors();
+  nsIDOMCSSValue* DoGetBorderRightColors();
+  nsIDOMCSSValue* DoGetBorderTopColors();
+  nsIDOMCSSValue* DoGetBorderBottomLeftRadius();
+  nsIDOMCSSValue* DoGetBorderBottomRightRadius();
+  nsIDOMCSSValue* DoGetBorderTopLeftRadius();
+  nsIDOMCSSValue* DoGetBorderTopRightRadius();
+  nsIDOMCSSValue* DoGetFloatEdge();
+  nsIDOMCSSValue* DoGetBorderImage();
 
   
-  nsresult DoGetWindowShadow(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetBoxShadow();
 
   
-  nsresult DoGetMarginWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarginTopWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarginBottomWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarginLeftWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarginRightWidth(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetWindowShadow();
 
   
-  nsresult DoGetOutline(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineOffset(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineRadiusBottomLeft(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineRadiusBottomRight(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineRadiusTopLeft(nsIDOMCSSValue** aValue);
-  nsresult DoGetOutlineRadiusTopRight(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetMarginWidth();
+  nsIDOMCSSValue* DoGetMarginTopWidth();
+  nsIDOMCSSValue* DoGetMarginBottomWidth();
+  nsIDOMCSSValue* DoGetMarginLeftWidth();
+  nsIDOMCSSValue* DoGetMarginRightWidth();
 
   
-  nsresult DoGetContent(nsIDOMCSSValue** aValue);
-  nsresult DoGetCounterIncrement(nsIDOMCSSValue** aValue);
-  nsresult DoGetCounterReset(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarkerOffset(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetOutline();
+  nsIDOMCSSValue* DoGetOutlineWidth();
+  nsIDOMCSSValue* DoGetOutlineStyle();
+  nsIDOMCSSValue* DoGetOutlineColor();
+  nsIDOMCSSValue* DoGetOutlineOffset();
+  nsIDOMCSSValue* DoGetOutlineRadiusBottomLeft();
+  nsIDOMCSSValue* DoGetOutlineRadiusBottomRight();
+  nsIDOMCSSValue* DoGetOutlineRadiusTopLeft();
+  nsIDOMCSSValue* DoGetOutlineRadiusTopRight();
 
   
-  nsresult DoGetQuotes(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetContent();
+  nsIDOMCSSValue* DoGetCounterIncrement();
+  nsIDOMCSSValue* DoGetCounterReset();
+  nsIDOMCSSValue* DoGetMarkerOffset();
 
   
-  nsresult DoGetZIndex(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetQuotes();
 
   
-  nsresult DoGetListStyleImage(nsIDOMCSSValue** aValue);
-  nsresult DoGetListStylePosition(nsIDOMCSSValue** aValue);
-  nsresult DoGetListStyleType(nsIDOMCSSValue** aValue);
-  nsresult DoGetImageRegion(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetZIndex();
 
   
-  nsresult DoGetLineHeight(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextAlign(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextDecoration(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextIndent(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextTransform(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextShadow(nsIDOMCSSValue** aValue);
-  nsresult DoGetLetterSpacing(nsIDOMCSSValue** aValue);
-  nsresult DoGetWordSpacing(nsIDOMCSSValue** aValue);
-  nsresult DoGetWhiteSpace(nsIDOMCSSValue** aValue);
-  nsresult DoGetWordWrap(nsIDOMCSSValue** aValue);
-  nsresult DoGetMozTabSize(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetListStyleImage();
+  nsIDOMCSSValue* DoGetListStylePosition();
+  nsIDOMCSSValue* DoGetListStyleType();
+  nsIDOMCSSValue* DoGetImageRegion();
 
   
-  nsresult DoGetOpacity(nsIDOMCSSValue** aValue);
-  nsresult DoGetPointerEvents(nsIDOMCSSValue** aValue);
-  nsresult DoGetVisibility(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetLineHeight();
+  nsIDOMCSSValue* DoGetTextAlign();
+  nsIDOMCSSValue* DoGetTextDecoration();
+  nsIDOMCSSValue* DoGetTextIndent();
+  nsIDOMCSSValue* DoGetTextTransform();
+  nsIDOMCSSValue* DoGetTextShadow();
+  nsIDOMCSSValue* DoGetLetterSpacing();
+  nsIDOMCSSValue* DoGetWordSpacing();
+  nsIDOMCSSValue* DoGetWhiteSpace();
+  nsIDOMCSSValue* DoGetWordWrap();
+  nsIDOMCSSValue* DoGetMozTabSize();
 
   
-  nsresult DoGetDirection(nsIDOMCSSValue** aValue);
-  nsresult DoGetUnicodeBidi(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetOpacity();
+  nsIDOMCSSValue* DoGetPointerEvents();
+  nsIDOMCSSValue* DoGetVisibility();
 
   
-  nsresult DoGetBinding(nsIDOMCSSValue** aValue);
-  nsresult DoGetClear(nsIDOMCSSValue** aValue);
-  nsresult DoGetCssFloat(nsIDOMCSSValue** aValue);
-  nsresult DoGetDisplay(nsIDOMCSSValue** aValue);
-  nsresult DoGetPosition(nsIDOMCSSValue** aValue);
-  nsresult DoGetClip(nsIDOMCSSValue** aValue);
-  nsresult DoGetOverflow(nsIDOMCSSValue** aValue);
-  nsresult DoGetOverflowX(nsIDOMCSSValue** aValue);
-  nsresult DoGetOverflowY(nsIDOMCSSValue** aValue);
-  nsresult DoGetResize(nsIDOMCSSValue** aValue);
-  nsresult DoGetPageBreakAfter(nsIDOMCSSValue** aValue);
-  nsresult DoGetPageBreakBefore(nsIDOMCSSValue** aValue);
-  nsresult DoGetMozTransform(nsIDOMCSSValue** aValue);
-  nsresult DoGetMozTransformOrigin(nsIDOMCSSValue **aValue);
+  nsIDOMCSSValue* DoGetDirection();
+  nsIDOMCSSValue* DoGetUnicodeBidi();
 
   
-  nsresult DoGetCursor(nsIDOMCSSValue** aValue);
-  nsresult DoGetForceBrokenImageIcon(nsIDOMCSSValue** aValue);
-  nsresult DoGetIMEMode(nsIDOMCSSValue** aValue);
-  nsresult DoGetUserFocus(nsIDOMCSSValue** aValue);
-  nsresult DoGetUserInput(nsIDOMCSSValue** aValue);
-  nsresult DoGetUserModify(nsIDOMCSSValue** aValue);
-  nsresult DoGetUserSelect(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetBinding();
+  nsIDOMCSSValue* DoGetClear();
+  nsIDOMCSSValue* DoGetCssFloat();
+  nsIDOMCSSValue* DoGetDisplay();
+  nsIDOMCSSValue* DoGetPosition();
+  nsIDOMCSSValue* DoGetClip();
+  nsIDOMCSSValue* DoGetOverflow();
+  nsIDOMCSSValue* DoGetOverflowX();
+  nsIDOMCSSValue* DoGetOverflowY();
+  nsIDOMCSSValue* DoGetResize();
+  nsIDOMCSSValue* DoGetPageBreakAfter();
+  nsIDOMCSSValue* DoGetPageBreakBefore();
+  nsIDOMCSSValue* DoGetMozTransform();
+  nsIDOMCSSValue* DoGetMozTransformOrigin();
 
   
-  nsresult DoGetColumnCount(nsIDOMCSSValue** aValue);
-  nsresult DoGetColumnWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetColumnGap(nsIDOMCSSValue** aValue);
-  nsresult DoGetColumnRuleWidth(nsIDOMCSSValue** aValue);
-  nsresult DoGetColumnRuleStyle(nsIDOMCSSValue** aValue);
-  nsresult DoGetColumnRuleColor(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetCursor();
+  nsIDOMCSSValue* DoGetForceBrokenImageIcon();
+  nsIDOMCSSValue* DoGetIMEMode();
+  nsIDOMCSSValue* DoGetUserFocus();
+  nsIDOMCSSValue* DoGetUserInput();
+  nsIDOMCSSValue* DoGetUserModify();
+  nsIDOMCSSValue* DoGetUserSelect();
 
   
-  nsresult DoGetTransitionProperty(nsIDOMCSSValue** aValue);
-  nsresult DoGetTransitionDuration(nsIDOMCSSValue** aValue);
-  nsresult DoGetTransitionDelay(nsIDOMCSSValue** aValue);
-  nsresult DoGetTransitionTimingFunction(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetColumnCount();
+  nsIDOMCSSValue* DoGetColumnWidth();
+  nsIDOMCSSValue* DoGetColumnGap();
+  nsIDOMCSSValue* DoGetColumnRuleWidth();
+  nsIDOMCSSValue* DoGetColumnRuleStyle();
+  nsIDOMCSSValue* DoGetColumnRuleColor();
 
   
-  nsresult DoGetFill(nsIDOMCSSValue** aValue);
-  nsresult DoGetStroke(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarkerEnd(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarkerMid(nsIDOMCSSValue** aValue);
-  nsresult DoGetMarkerStart(nsIDOMCSSValue** aValue);
-  nsresult DoGetStrokeDasharray(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetTransitionProperty();
+  nsIDOMCSSValue* DoGetTransitionDuration();
+  nsIDOMCSSValue* DoGetTransitionDelay();
+  nsIDOMCSSValue* DoGetTransitionTimingFunction();
 
-  nsresult DoGetStrokeDashoffset(nsIDOMCSSValue** aValue);
-  nsresult DoGetStrokeWidth(nsIDOMCSSValue** aValue);
+  
+  nsIDOMCSSValue* DoGetFill();
+  nsIDOMCSSValue* DoGetStroke();
+  nsIDOMCSSValue* DoGetMarkerEnd();
+  nsIDOMCSSValue* DoGetMarkerMid();
+  nsIDOMCSSValue* DoGetMarkerStart();
+  nsIDOMCSSValue* DoGetStrokeDasharray();
 
-  nsresult DoGetFillOpacity(nsIDOMCSSValue** aValue);
-  nsresult DoGetFloodOpacity(nsIDOMCSSValue** aValue);
-  nsresult DoGetStopOpacity(nsIDOMCSSValue** aValue);
-  nsresult DoGetStrokeMiterlimit(nsIDOMCSSValue** aValue);
-  nsresult DoGetStrokeOpacity(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetStrokeDashoffset();
+  nsIDOMCSSValue* DoGetStrokeWidth();
 
-  nsresult DoGetClipRule(nsIDOMCSSValue** aValue);
-  nsresult DoGetFillRule(nsIDOMCSSValue** aValue);
-  nsresult DoGetStrokeLinecap(nsIDOMCSSValue** aValue);
-  nsresult DoGetStrokeLinejoin(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextAnchor(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetFillOpacity();
+  nsIDOMCSSValue* DoGetFloodOpacity();
+  nsIDOMCSSValue* DoGetStopOpacity();
+  nsIDOMCSSValue* DoGetStrokeMiterlimit();
+  nsIDOMCSSValue* DoGetStrokeOpacity();
 
-  nsresult DoGetColorInterpolation(nsIDOMCSSValue** aValue);
-  nsresult DoGetColorInterpolationFilters(nsIDOMCSSValue** aValue);
-  nsresult DoGetDominantBaseline(nsIDOMCSSValue** aValue);
-  nsresult DoGetImageRendering(nsIDOMCSSValue** aValue);
-  nsresult DoGetShapeRendering(nsIDOMCSSValue** aValue);
-  nsresult DoGetTextRendering(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetClipRule();
+  nsIDOMCSSValue* DoGetFillRule();
+  nsIDOMCSSValue* DoGetStrokeLinecap();
+  nsIDOMCSSValue* DoGetStrokeLinejoin();
+  nsIDOMCSSValue* DoGetTextAnchor();
 
-  nsresult DoGetFloodColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetLightingColor(nsIDOMCSSValue** aValue);
-  nsresult DoGetStopColor(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetColorInterpolation();
+  nsIDOMCSSValue* DoGetColorInterpolationFilters();
+  nsIDOMCSSValue* DoGetDominantBaseline();
+  nsIDOMCSSValue* DoGetImageRendering();
+  nsIDOMCSSValue* DoGetShapeRendering();
+  nsIDOMCSSValue* DoGetTextRendering();
 
-  nsresult DoGetClipPath(nsIDOMCSSValue** aValue);
-  nsresult DoGetFilter(nsIDOMCSSValue** aValue);
-  nsresult DoGetMask(nsIDOMCSSValue** aValue);
+  nsIDOMCSSValue* DoGetFloodColor();
+  nsIDOMCSSValue* DoGetLightingColor();
+  nsIDOMCSSValue* DoGetStopColor();
+
+  nsIDOMCSSValue* DoGetClipPath();
+  nsIDOMCSSValue* DoGetFilter();
+  nsIDOMCSSValue* DoGetMask();
 
   nsROCSSPrimitiveValue* GetROCSSPrimitiveValue();
   nsDOMCSSValueList* GetROCSSValueList(PRBool aCommaDelimited);
@@ -456,7 +457,7 @@ private:
   struct ComputedStyleMapEntry
   {
     
-    typedef nsresult (nsComputedDOMStyle::*ComputeMethod)(nsIDOMCSSValue**);
+    typedef nsIDOMCSSValue* (nsComputedDOMStyle::*ComputeMethod)();
 
     nsCSSProperty mProperty;
     ComputeMethod mGetter;
