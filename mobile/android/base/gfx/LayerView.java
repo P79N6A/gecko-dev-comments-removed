@@ -56,6 +56,7 @@ import android.view.inputmethod.InputConnection;
 import android.view.ScaleGestureDetector;
 import android.widget.RelativeLayout;
 import android.util.Log;
+import java.nio.IntBuffer;
 import java.util.LinkedList;
 
 import org.json.JSONArray;
@@ -246,6 +247,11 @@ public class LayerView extends GLSurfaceView
 
     public View getAndroidView() {
         return this;
+    }
+
+    
+    public IntBuffer getPixels() {
+        return mRenderer.getPixels();
     }
 }
 
