@@ -59,9 +59,14 @@ public:
 
   SharedLibrary& operator=(const SharedLibrary& aEntry)
   {
+    
+    if (this == &aEntry) return *this;
+
     mStart = aEntry.mStart;
     mEnd = aEntry.mEnd;
     mOffset = aEntry.mOffset;
+    if (mName)
+      free(mName);
     mName = strdup(aEntry.mName);
     return *this;
   }
