@@ -298,7 +298,6 @@ public class PanZoomController
             
             
             
-            setState(PanZoomState.NOTHING);
             bounce();
         }
     }
@@ -416,7 +415,6 @@ public class PanZoomController
             return false;
 
         case TOUCHING:
-            setState(PanZoomState.NOTHING);
             
             
             
@@ -451,7 +449,6 @@ public class PanZoomController
         }
 
         cancelTouch();
-        setState(PanZoomState.NOTHING);
         
         bounce();
         return false;
@@ -1074,7 +1071,6 @@ public class PanZoomController
     
     public void abortPanning() {
         checkMainThread();
-        setState(PanZoomState.NOTHING);
         bounce();
     }
 }
