@@ -270,7 +270,17 @@ class nsTString_CharT : public nsTSubstring_CharT
 
 
 
-      NS_COM float ToFloat( PRInt32* aErrorCode ) const;
+      NS_COM double ToDouble( PRInt32* aErrorCode ) const;
+
+        
+
+
+
+
+
+      float ToFloat( PRInt32* aErrorCode ) const {
+        return (float)ToDouble(aErrorCode);
+      }
 
 
         
