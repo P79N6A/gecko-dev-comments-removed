@@ -110,6 +110,9 @@ GetObjectOrRepresentedView(id <mozAccessible> aObject)
 - (NSString*)subrole;
 
 
+- (NSString*)roleDescription;
+
+
 - (NSWindow*)window;
 
 
