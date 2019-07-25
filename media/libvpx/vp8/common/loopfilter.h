@@ -15,7 +15,10 @@
 #include "vpx_ports/mem.h"
 #include "vpx_config.h"
 
-#define MAX_LOOP_FILTER 63
+#define MAX_LOOP_FILTER             63
+
+
+#define PARTIAL_FRAME_FRACTION      8
 
 typedef enum
 {

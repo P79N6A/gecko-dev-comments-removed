@@ -20,7 +20,7 @@ extern int vp8cx_encode_inter_macroblock(VP8_COMP *cpi, MACROBLOCK *x,
                                          int recon_uvoffset);
 extern int vp8cx_encode_intra_macro_block(VP8_COMP *cpi, MACROBLOCK *x,
                                           TOKENEXTRA **t);
-extern void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x);
+extern void vp8cx_mb_init_quantizer(VP8_COMP *cpi, MACROBLOCK *x, int ok_to_skip);
 extern void vp8_build_block_offsets(MACROBLOCK *x);
 extern void vp8_setup_block_ptrs(MACROBLOCK *x);
 
@@ -38,7 +38,7 @@ static THREAD_FUNCTION loopfilter_thread(void *p_data)
 
         if (sem_wait(&cpi->h_event_start_lpf) == 0)
         {
-            if (cpi->b_multi_threaded == FALSE) 
+            if (cpi->b_multi_threaded == 0) 
                 break;
 
             loopfilter_frame(cpi, cm);
@@ -78,13 +78,12 @@ THREAD_FUNCTION thread_encoding_proc(void *p_data)
             int *segment_counts = mbri->segment_counts;
             int *totalrate = &mbri->totalrate;
 
-            if (cpi->b_multi_threaded == FALSE) 
+            if (cpi->b_multi_threaded == 0) 
                 break;
 
             for (mb_row = ithread + 1; mb_row < cm->mb_rows; mb_row += (cpi->encoding_thread_count + 1))
             {
 
-                int i;
                 int recon_yoffset, recon_uvoffset;
                 int mb_col;
                 int ref_fb_idx = cm->lst_fb_idx;
@@ -164,7 +163,7 @@ THREAD_FUNCTION thread_encoding_proc(void *p_data)
                         else
                             xd->mode_info_context->mbmi.segment_id = 0;
 
-                        vp8cx_mb_init_quantizer(cpi, x);
+                        vp8cx_mb_init_quantizer(cpi, x, 1);
                     }
                     else
                         xd->mode_info_context->mbmi.segment_id = 0; 
@@ -231,10 +230,6 @@ THREAD_FUNCTION thread_encoding_proc(void *p_data)
 
                     
                     x->mb_activity_ptr++;
-
-                    
-                    for (i = 0; i < 16; i++)
-                        xd->mode_info_context->bmi[i] = xd->block[i].bmi;
 
                     
                     x->src.y_buffer += 16;
@@ -309,7 +304,6 @@ static void setup_mbby_copy(MACROBLOCK *mbdst, MACROBLOCK *mbsrc)
 
 
 
-
     z->vp8_short_fdct4x4     = x->vp8_short_fdct4x4;
     z->vp8_short_fdct8x4     = x->vp8_short_fdct8x4;
     z->short_walsh4x4    = x->short_walsh4x4;
@@ -348,12 +342,13 @@ static void setup_mbby_copy(MACROBLOCK *mbdst, MACROBLOCK *mbsrc)
         z->block[i].zbin            = x->block[i].zbin;
         z->block[i].zrun_zbin_boost   = x->block[i].zrun_zbin_boost;
         z->block[i].round           = x->block[i].round;
+        z->q_index                  = x->q_index;
+        z->act_zbin_adj             = x->act_zbin_adj;
+        z->last_act_zbin_adj        = x->last_act_zbin_adj;
         
 
 
         z->block[i].src_stride       = x->block[i].src_stride;
-        z->block[i].force_empty      = x->block[i].force_empty;
-
     }
 
     {
@@ -389,10 +384,22 @@ static void setup_mbby_copy(MACROBLOCK *mbdst, MACROBLOCK *mbsrc)
         zd->mb_segement_abs_delta      = xd->mb_segement_abs_delta;
         vpx_memcpy(zd->segment_feature_data, xd->segment_feature_data, sizeof(xd->segment_feature_data));
 
-        for (i = 0; i < 25; i++)
-        {
-            zd->block[i].dequant = xd->block[i].dequant;
-        }
+        vpx_memcpy(zd->dequant_y1_dc, xd->dequant_y1_dc, sizeof(xd->dequant_y1_dc));
+        vpx_memcpy(zd->dequant_y1, xd->dequant_y1, sizeof(xd->dequant_y1));
+        vpx_memcpy(zd->dequant_y2, xd->dequant_y2, sizeof(xd->dequant_y2));
+        vpx_memcpy(zd->dequant_uv, xd->dequant_uv, sizeof(xd->dequant_uv));
+
+#if 1
+        
+
+
+
+        for (i = 0; i < 16; i++)
+            zd->block[i].dequant = zd->dequant_y1;
+        for (i = 16; i < 24; i++)
+            zd->block[i].dequant = zd->dequant_uv;
+        zd->block[24].dequant = zd->dequant_y2;
+#endif
     }
 }
 
@@ -422,8 +429,6 @@ void vp8cx_init_mbrthread_data(VP8_COMP *cpi,
         mbd->rtcd                   = xd->rtcd;
 #endif
         mb->gf_active_ptr            = x->gf_active_ptr;
-
-        mb->vector_range             = 32;
 
         vpx_memset(mbr_ei[i].segment_counts, 0, sizeof(mbr_ei[i].segment_counts));
         mbr_ei[i].totalrate = 0;
@@ -457,6 +462,9 @@ void vp8cx_init_mbrthread_data(VP8_COMP *cpi,
 
         setup_mbby_copy(&mbr_ei[i].mb, x);
 
+        mbd->fullpixel_mask = 0xffffffff;
+        if(cm->full_pixel)
+            mbd->fullpixel_mask = 0xfffffff8;
     }
 }
 

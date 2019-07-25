@@ -32,6 +32,8 @@ extern "C" {
 #define VPX_ENCODER_H
 #include "vpx_codec.h"
 
+#define MAX_PERIODICITY 16
+#define MAX_LAYERS       5
 
     
 
@@ -41,7 +43,7 @@ extern "C" {
 
 
 
-#define VPX_ENCODER_ABI_VERSION (2 + VPX_CODEC_ABI_VERSION) /**<\hideinitializer*/
+#define VPX_ENCODER_ABI_VERSION (3 + VPX_CODEC_ABI_VERSION) /**<\hideinitializer*/
 
 
     
@@ -592,6 +594,46 @@ extern "C" {
 
         unsigned int           kf_max_dist;
 
+        
+
+
+
+        
+
+
+
+        unsigned int           ts_number_layers;
+
+        
+
+
+
+        unsigned int           ts_target_bitrate[MAX_LAYERS];
+
+        
+
+
+
+
+        unsigned int           ts_rate_decimator[MAX_LAYERS];
+
+        
+
+
+
+
+
+
+        unsigned int           ts_periodicity;
+
+        
+
+
+
+
+
+
+        unsigned int           ts_layer_id[MAX_PERIODICITY];
     } vpx_codec_enc_cfg_t; 
 
 
@@ -630,6 +672,48 @@ extern "C" {
 
 #define vpx_codec_enc_init(ctx, iface, cfg, flags) \
     vpx_codec_enc_init_ver(ctx, iface, cfg, flags, VPX_ENCODER_ABI_VERSION)
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    vpx_codec_err_t vpx_codec_enc_init_multi_ver(vpx_codec_ctx_t      *ctx,
+                                                 vpx_codec_iface_t    *iface,
+                                                 vpx_codec_enc_cfg_t  *cfg,
+                                                 int                   num_enc,
+                                                 vpx_codec_flags_t     flags,
+                                                 vpx_rational_t       *dsf,
+                                                 int                   ver);
+
+
+    
+
+
+
+#define vpx_codec_enc_init_multi(ctx, iface, cfg, num_enc, flags, dsf) \
+    vpx_codec_enc_init_multi_ver(ctx, iface, cfg, num_enc, flags, dsf, \
+                                 VPX_ENCODER_ABI_VERSION)
 
 
     
@@ -736,7 +820,6 @@ extern "C" {
                                       unsigned long               duration,
                                       vpx_enc_frame_flags_t       flags,
                                       unsigned long               deadline);
-
 
     
 

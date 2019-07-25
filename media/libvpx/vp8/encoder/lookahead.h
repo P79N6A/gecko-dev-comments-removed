@@ -53,12 +53,17 @@ void vp8_lookahead_destroy(struct lookahead_ctx *ctx);
 
 
 
+
+
+
+
 int
 vp8_lookahead_push(struct lookahead_ctx *ctx,
                    YV12_BUFFER_CONFIG   *src,
                    int64_t               ts_start,
                    int64_t               ts_end,
-                   unsigned int          flags);
+                   unsigned int          flags,
+                   unsigned char        *active_map);
 
 
 
@@ -87,7 +92,7 @@ vp8_lookahead_pop(struct lookahead_ctx *ctx,
 
 struct lookahead_entry*
 vp8_lookahead_peek(struct lookahead_ctx *ctx,
-                   int                   index);
+                   unsigned int          index);
 
 
 

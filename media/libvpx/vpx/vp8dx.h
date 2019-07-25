@@ -55,6 +55,11 @@ enum vp8_dec_control_id
     
     VP8D_GET_FRAME_CORRUPTED,
 
+    
+
+
+    VP8D_GET_LAST_REF_USED,
+
     VP8_DECODER_CTRL_ID_MAX
 } ;
 
@@ -69,7 +74,7 @@ enum vp8_dec_control_id
 
 VPX_CTRL_USE_TYPE(VP8D_GET_LAST_REF_UPDATES,   int *)
 VPX_CTRL_USE_TYPE(VP8D_GET_FRAME_CORRUPTED,    int *)
-
+VPX_CTRL_USE_TYPE(VP8D_GET_LAST_REF_USED,      int *)
 
 
 

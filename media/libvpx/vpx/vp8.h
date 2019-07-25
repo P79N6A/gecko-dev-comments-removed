@@ -62,7 +62,8 @@ enum vp8_postproc_level
     VP8_DEBUG_TXT_FRAME_INFO    = 1<<3, 
     VP8_DEBUG_TXT_MBLK_MODES    = 1<<4, 
     VP8_DEBUG_TXT_DC_DIFF       = 1<<5, 
-    VP8_DEBUG_TXT_RATE_INFO     = 1<<6  
+    VP8_DEBUG_TXT_RATE_INFO     = 1<<6, 
+    VP8_MFQE                    = 1<<10
 };
 
 

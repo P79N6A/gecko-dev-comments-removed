@@ -12,6 +12,8 @@
 #ifndef SUBPIXEL_X86_H
 #define SUBPIXEL_X86_H
 
+#include "filter_x86.h"
+
 
 
 

@@ -17,7 +17,6 @@
 
 #ifdef _WIN32
 
-#define _WIN32_WINNT 0x500 /* WINBASE.H - Enable signal_object_and_wait */
 #include <process.h>
 #include <windows.h>
 #define THREAD_FUNCTION DWORD WINAPI

@@ -56,9 +56,10 @@
 
 
 
-#define VPX_CODEC_INTERNAL_ABI_VERSION (3) /**<\hideinitializer*/
+#define VPX_CODEC_INTERNAL_ABI_VERSION (4) /**<\hideinitializer*/
 
 typedef struct vpx_codec_alg_priv  vpx_codec_alg_priv_t;
+typedef struct vpx_codec_priv_enc_mr_cfg vpx_codec_priv_enc_mr_cfg_t;
 
 
 
@@ -73,7 +74,8 @@ typedef struct vpx_codec_alg_priv  vpx_codec_alg_priv_t;
 
 
 
-typedef vpx_codec_err_t (*vpx_codec_init_fn_t)(vpx_codec_ctx_t *ctx);
+typedef vpx_codec_err_t (*vpx_codec_init_fn_t)(vpx_codec_ctx_t *ctx,
+                                             vpx_codec_priv_enc_mr_cfg_t *data);
 
 
 
@@ -264,6 +266,10 @@ typedef vpx_fixed_buf_t *
 typedef vpx_image_t *
 (*vpx_codec_get_preview_frame_fn_t)(vpx_codec_alg_priv_t   *ctx);
 
+typedef vpx_codec_err_t
+(*vpx_codec_enc_mr_get_mem_loc_fn_t)(const vpx_codec_enc_cfg_t     *cfg,
+                                   void **mem_loc);
+
 
 
 
@@ -311,6 +317,7 @@ struct vpx_codec_iface
         vpx_codec_enc_config_set_fn_t      cfg_set;       
         vpx_codec_get_global_headers_fn_t  get_glob_hdrs; 
         vpx_codec_get_preview_frame_fn_t   get_preview;   
+        vpx_codec_enc_mr_get_mem_loc_fn_t  mr_get_mem_loc;   
     } enc;
 };
 
@@ -353,7 +360,19 @@ struct vpx_codec_priv
         unsigned int                cx_data_pad_before;
         unsigned int                cx_data_pad_after;
         vpx_codec_cx_pkt_t          cx_data_pkt;
+        unsigned int                total_encoders;
     } enc;
+};
+
+
+
+
+struct vpx_codec_priv_enc_mr_cfg
+{
+    unsigned int           mr_total_resolutions;
+    unsigned int           mr_encoder_id;
+    struct vpx_rational    mr_down_sampling_factor;
+    void*                  mr_low_res_mode_info;
 };
 
 #undef VPX_CTRL_USE_TYPE

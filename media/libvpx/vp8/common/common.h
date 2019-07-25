@@ -18,8 +18,6 @@
 
 #include "vpx_mem/vpx_mem.h"
 
-#include "common_types.h"
-
 
 
 #define vp8_copy( Dest, Src) { \

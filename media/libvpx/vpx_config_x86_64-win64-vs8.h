@@ -1,4 +1,11 @@
 
+
+
+
+
+
+
+
 #ifndef VPX_CONFIG_H
 #define VPX_CONFIG_H
 #define RESTRICT    
@@ -11,8 +18,6 @@
 #define HAVE_ARMV5TE 0
 #define HAVE_ARMV6 0
 #define HAVE_ARMV7 0
-#define HAVE_IWMMXT 0
-#define HAVE_IWMMXT2 0
 #define HAVE_MIPS32 0
 #define HAVE_MMX 1
 #define HAVE_SSE 1
@@ -67,4 +72,6 @@
 #define CONFIG_SMALL 0
 #define CONFIG_POSTPROC_VISUALIZER 0
 #define CONFIG_OS_SUPPORT 1
+#define CONFIG_UNIT_TESTS 0
+#define CONFIG_MULTI_RES_ENCODING 0
 #endif 

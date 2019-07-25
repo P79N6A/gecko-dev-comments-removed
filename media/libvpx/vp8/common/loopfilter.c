@@ -506,7 +506,8 @@ void vp8_loop_filter_partial_frame
     unsigned char *y_ptr;
     int mb_row;
     int mb_col;
-    int mb_cols = post->y_width  >> 4;
+    int mb_cols = post->y_width >> 4;
+    int mb_rows = post->y_height >> 4;
 
     int linestocopy, i;
 
@@ -521,15 +522,9 @@ void vp8_loop_filter_partial_frame
 
     int lvl_seg[MAX_MB_SEGMENTS];
 
-    mode_info_context = cm->mi + (post->y_height >> 5) * (mb_cols + 1);
-
     
-    linestocopy = (post->y_height >> (4 + 3));
-
-    if (linestocopy < 1)
-        linestocopy = 1;
-
-    linestocopy <<= 4;
+    linestocopy = mb_rows / PARTIAL_FRAME_FRACTION;
+    linestocopy = linestocopy ? linestocopy << 4 : 16;     
 
     
     
@@ -555,7 +550,8 @@ void vp8_loop_filter_partial_frame
     }
 
     
-    y_ptr = post->y_buffer + (post->y_height >> 5) * 16 * post->y_stride;
+    y_ptr = post->y_buffer + ((post->y_height >> 5) * 16) * post->y_stride;
+    mode_info_context = cm->mi + (post->y_height >> 5) * (mb_cols + 1);
 
     
     for (mb_row = 0; mb_row<(linestocopy >> 4); mb_row++)

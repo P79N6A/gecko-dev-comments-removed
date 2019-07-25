@@ -15,7 +15,7 @@
 #include "vp8/common/reconintra4x4.h"
 #include "vp8/common/recon.h"
 #include "vp8/common/reconinter.h"
-#include "dequantize.h"
+#include "vp8/common/dequantize.h"
 #include "detokenize.h"
 #include "vp8/common/invtrans.h"
 #include "vp8/common/alloccommon.h"
@@ -32,7 +32,7 @@
 #endif
 #include "vpx_mem/vpx_mem.h"
 #include "vp8/common/idct.h"
-#include "dequantize.h"
+
 #include "vp8/common/threading.h"
 #include "decoderthreading.h"
 #include "dboolhuff.h"
@@ -42,7 +42,6 @@
 
 void vp8cx_init_de_quantizer(VP8D_COMP *pbi)
 {
-    int i;
     int Q;
     VP8_COMMON *const pc = & pbi->common;
 
@@ -52,15 +51,9 @@ void vp8cx_init_de_quantizer(VP8D_COMP *pbi)
         pc->Y2dequant[Q][0] = (short)vp8_dc2quant(Q, pc->y2dc_delta_q);
         pc->UVdequant[Q][0] = (short)vp8_dc_uv_quant(Q, pc->uvdc_delta_q);
 
-        
-        for (i = 1; i < 16; i++)
-        {
-            int rc = vp8_default_zig_zag1d[i];
-
-            pc->Y1dequant[Q][rc] = (short)vp8_ac_yquant(Q);
-            pc->Y2dequant[Q][rc] = (short)vp8_ac2quant(Q, pc->y2ac_delta_q);
-            pc->UVdequant[Q][rc] = (short)vp8_ac_uv_quant(Q, pc->uvac_delta_q);
-        }
+        pc->Y1dequant[Q][1] = (short)vp8_ac_yquant(Q);
+        pc->Y2dequant[Q][1] = (short)vp8_ac2quant(Q, pc->y2ac_delta_q);
+        pc->UVdequant[Q][1] = (short)vp8_ac_uv_quant(Q, pc->uvac_delta_q);
     }
 }
 
@@ -89,18 +82,18 @@ void mb_init_dequantizer(VP8D_COMP *pbi, MACROBLOCKD *xd)
         QIndex = pc->base_qindex;
 
     
-    for (i = 0; i < 16; i++)
+    xd->dequant_y1_dc[0] = 1;
+    xd->dequant_y1[0] = pc->Y1dequant[QIndex][0];
+    xd->dequant_y2[0] = pc->Y2dequant[QIndex][0];
+    xd->dequant_uv[0] = pc->UVdequant[QIndex][0];
+
+    for (i = 1; i < 16; i++)
     {
-        xd->block[i].dequant = pc->Y1dequant[QIndex];
+        xd->dequant_y1_dc[i] =
+        xd->dequant_y1[i] = pc->Y1dequant[QIndex][1];
+        xd->dequant_y2[i] = pc->Y2dequant[QIndex][1];
+        xd->dequant_uv[i] = pc->UVdequant[QIndex][1];
     }
-
-    for (i = 16; i < 24; i++)
-    {
-        xd->block[i].dequant = pc->UVdequant[QIndex];
-    }
-
-    xd->block[24].dequant = pc->Y2dequant[QIndex];
-
 }
 
 #if CONFIG_RUNTIME_CPU_DETECT
@@ -109,127 +102,112 @@ void mb_init_dequantizer(VP8D_COMP *pbi, MACROBLOCKD *xd)
 #define RTCD_VTABLE(x) NULL
 #endif
 
-
-
-
-static void skip_recon_mb(VP8D_COMP *pbi, MACROBLOCKD *xd)
-{
-    if (xd->mode_info_context->mbmi.ref_frame == INTRA_FRAME)
-    {
-        RECON_INVOKE(&pbi->common.rtcd.recon, build_intra_predictors_mbuv_s)(xd);
-        RECON_INVOKE(&pbi->common.rtcd.recon,
-                     build_intra_predictors_mby_s)(xd);
-    }
-    else
-    {
-        vp8_build_inter16x16_predictors_mb(xd, xd->dst.y_buffer,
-                                           xd->dst.u_buffer, xd->dst.v_buffer,
-                                           xd->dst.y_stride, xd->dst.uv_stride);
-    }
-}
-
-static void clamp_mv_to_umv_border(MV *mv, const MACROBLOCKD *xd)
-{
-    
-
-
-
-
-
-
-
-
-    if (mv->col < (xd->mb_to_left_edge - (19 << 3)))
-        mv->col = xd->mb_to_left_edge - (16 << 3);
-    else if (mv->col > xd->mb_to_right_edge + (18 << 3))
-        mv->col = xd->mb_to_right_edge + (16 << 3);
-
-    if (mv->row < (xd->mb_to_top_edge - (19 << 3)))
-        mv->row = xd->mb_to_top_edge - (16 << 3);
-    else if (mv->row > xd->mb_to_bottom_edge + (18 << 3))
-        mv->row = xd->mb_to_bottom_edge + (16 << 3);
-}
-
-
-static void clamp_uvmv_to_umv_border(MV *mv, const MACROBLOCKD *xd)
-{
-    mv->col = (2*mv->col < (xd->mb_to_left_edge - (19 << 3))) ? (xd->mb_to_left_edge - (16 << 3)) >> 1 : mv->col;
-    mv->col = (2*mv->col > xd->mb_to_right_edge + (18 << 3)) ? (xd->mb_to_right_edge + (16 << 3)) >> 1 : mv->col;
-
-    mv->row = (2*mv->row < (xd->mb_to_top_edge - (19 << 3))) ? (xd->mb_to_top_edge - (16 << 3)) >> 1 : mv->row;
-    mv->row = (2*mv->row > xd->mb_to_bottom_edge + (18 << 3)) ? (xd->mb_to_bottom_edge + (16 << 3)) >> 1 : mv->row;
-}
-
-void clamp_mvs(MACROBLOCKD *xd)
-{
-    if (xd->mode_info_context->mbmi.mode == SPLITMV)
-    {
-        int i;
-
-        for (i=0; i<16; i++)
-            clamp_mv_to_umv_border(&xd->block[i].bmi.mv.as_mv, xd);
-        for (i=16; i<24; i++)
-            clamp_uvmv_to_umv_border(&xd->block[i].bmi.mv.as_mv, xd);
-    }
-    else
-    {
-        clamp_mv_to_umv_border(&xd->mode_info_context->mbmi.mv.as_mv, xd);
-        clamp_uvmv_to_umv_border(&xd->block[16].bmi.mv.as_mv, xd);
-    }
-
-}
-
 static void decode_macroblock(VP8D_COMP *pbi, MACROBLOCKD *xd,
                               unsigned int mb_idx)
 {
-    int eobtotal = 0;
-    int throw_residual = 0;
     MB_PREDICTION_MODE mode;
     int i;
+    int corruption_detected = 0;
 
     if (xd->mode_info_context->mbmi.mb_skip_coeff)
     {
         vp8_reset_mb_tokens_context(xd);
     }
-    else
+    else if (!vp8dx_bool_error(xd->current_bc))
     {
+        int eobtotal;
         eobtotal = vp8_decode_mb_tokens(pbi, xd);
-    }
 
-    
-    if (xd->mode_info_context->mbmi.need_to_clamp_mvs)
-    {
-        clamp_mvs(xd);
+        
+        xd->mode_info_context->mbmi.mb_skip_coeff = (eobtotal==0);
     }
 
     mode = xd->mode_info_context->mbmi.mode;
 
-    if (eobtotal == 0 && mode != B_PRED && mode != SPLITMV &&
-            !vp8dx_bool_error(xd->current_bc))
+    if (xd->segmentation_enabled)
+        mb_init_dequantizer(pbi, xd);
+
+
+#if CONFIG_ERROR_CONCEALMENT
+
+    if(pbi->ec_active)
     {
+        int throw_residual;
         
 
 
-        xd->mode_info_context->mbmi.mb_skip_coeff = 1;
+        throw_residual = (!pbi->independent_partitions &&
+                          pbi->frame_corrupt_residual);
+        throw_residual = (throw_residual || vp8dx_bool_error(xd->current_bc));
 
-        skip_recon_mb(pbi, xd);
-        return;
+        if ((mb_idx >= pbi->mvs_corrupt_from_mb || throw_residual))
+        {
+            
+
+
+            pbi->frame_corrupt_residual = 1;
+            vpx_memset(xd->qcoeff, 0, sizeof(xd->qcoeff));
+            vp8_conceal_corrupt_mb(xd);
+
+
+            corruption_detected = 1;
+
+            
+
+
+            vpx_memset(xd->eobs, 0, 25);
+        }
     }
+#endif
 
-    if (xd->segmentation_enabled)
-        mb_init_dequantizer(pbi, xd);
 
     
     if (xd->mode_info_context->mbmi.ref_frame == INTRA_FRAME)
     {
-        RECON_INVOKE(&pbi->common.rtcd.recon, build_intra_predictors_mbuv)(xd);
+        RECON_INVOKE(&pbi->common.rtcd.recon, build_intra_predictors_mbuv_s)(xd);
 
         if (mode != B_PRED)
         {
             RECON_INVOKE(&pbi->common.rtcd.recon,
-                         build_intra_predictors_mby)(xd);
-        } else {
+                         build_intra_predictors_mby_s)(xd);
+        }
+        else
+        {
+            short *DQC = xd->dequant_y1;
+
+            
+            if(xd->mode_info_context->mbmi.mb_skip_coeff)
+                vpx_memset(xd->eobs, 0, 25);
+
             vp8_intra_prediction_down_copy(xd);
+
+            for (i = 0; i < 16; i++)
+            {
+                BLOCKD *b = &xd->block[i];
+                int b_mode = xd->mode_info_context->bmi[i].as_mode;
+
+                RECON_INVOKE(RTCD_VTABLE(recon), intra4x4_predict)
+                              ( *(b->base_dst) + b->dst, b->dst_stride, b_mode,
+                                *(b->base_dst) + b->dst, b->dst_stride );
+
+                if (xd->eobs[i])
+                {
+                    if (xd->eobs[i] > 1)
+                    {
+                        DEQUANT_INVOKE(&pbi->common.rtcd.dequant, idct_add)
+                            (b->qcoeff, DQC,
+                            *(b->base_dst) + b->dst, b->dst_stride);
+                    }
+                    else
+                    {
+                        IDCT_INVOKE(RTCD_VTABLE(idct), idct1_scalar_add)
+                            (b->qcoeff[0] * DQC[0],
+                            *(b->base_dst) + b->dst, b->dst_stride,
+                            *(b->base_dst) + b->dst, b->dst_stride);
+                        ((int *)b->qcoeff)[0] = 0;
+                    }
+                }
+            }
         }
     }
     else
@@ -237,96 +215,68 @@ static void decode_macroblock(VP8D_COMP *pbi, MACROBLOCKD *xd,
         vp8_build_inter_predictors_mb(xd);
     }
 
-    
-
-
-    throw_residual = (!pbi->independent_partitions &&
-                      pbi->frame_corrupt_residual);
-    throw_residual = (throw_residual || vp8dx_bool_error(xd->current_bc));
 
 #if CONFIG_ERROR_CONCEALMENT
-    if (pbi->ec_active &&
-        (mb_idx >= pbi->mvs_corrupt_from_mb || throw_residual))
+    if (corruption_detected)
     {
-        
-
-
-        pbi->frame_corrupt_residual = 1;
-        vpx_memset(xd->qcoeff, 0, sizeof(xd->qcoeff));
-        vp8_conceal_corrupt_mb(xd);
         return;
     }
 #endif
 
-    
-    if (mode == B_PRED)
+    if(!xd->mode_info_context->mbmi.mb_skip_coeff)
     {
-        for (i = 0; i < 16; i++)
-        {
-            BLOCKD *b = &xd->block[i];
-            RECON_INVOKE(RTCD_VTABLE(recon), intra4x4_predict)
-                          (b, b->bmi.as_mode, b->predictor);
-
-            if (xd->eobs[i] > 1)
-            {
-                DEQUANT_INVOKE(&pbi->dequant, idct_add)
-                    (b->qcoeff, b->dequant,  b->predictor,
-                    *(b->base_dst) + b->dst, 16, b->dst_stride);
-            }
-            else
-            {
-                IDCT_INVOKE(RTCD_VTABLE(idct), idct1_scalar_add)
-                    (b->qcoeff[0] * b->dequant[0], b->predictor,
-                    *(b->base_dst) + b->dst, 16, b->dst_stride);
-                ((int *)b->qcoeff)[0] = 0;
-            }
-        }
-
-    }
-    else if (mode == SPLITMV)
-    {
-        DEQUANT_INVOKE (&pbi->dequant, idct_add_y_block)
-                        (xd->qcoeff, xd->block[0].dequant,
-                         xd->predictor, xd->dst.y_buffer,
-                         xd->dst.y_stride, xd->eobs);
-    }
-    else
-    {
-        BLOCKD *b = &xd->block[24];
-
-        DEQUANT_INVOKE(&pbi->dequant, block)(b);
-
         
-        if (xd->eobs[24] > 1)
+        if (mode != B_PRED)
         {
-            IDCT_INVOKE(RTCD_VTABLE(idct), iwalsh16)(&b->dqcoeff[0], b->diff);
-            ((int *)b->qcoeff)[0] = 0;
-            ((int *)b->qcoeff)[1] = 0;
-            ((int *)b->qcoeff)[2] = 0;
-            ((int *)b->qcoeff)[3] = 0;
-            ((int *)b->qcoeff)[4] = 0;
-            ((int *)b->qcoeff)[5] = 0;
-            ((int *)b->qcoeff)[6] = 0;
-            ((int *)b->qcoeff)[7] = 0;
-        }
-        else
-        {
-            IDCT_INVOKE(RTCD_VTABLE(idct), iwalsh1)(&b->dqcoeff[0], b->diff);
-            ((int *)b->qcoeff)[0] = 0;
+            short *DQC = xd->dequant_y1;
+
+            if (mode != SPLITMV)
+            {
+                BLOCKD *b = &xd->block[24];
+
+                
+                if (xd->eobs[24] > 1)
+                {
+                    DEQUANT_INVOKE(&pbi->common.rtcd.dequant, block)(b,
+                        xd->dequant_y2);
+
+                    IDCT_INVOKE(RTCD_VTABLE(idct), iwalsh16)(&b->dqcoeff[0],
+                        xd->qcoeff);
+                    ((int *)b->qcoeff)[0] = 0;
+                    ((int *)b->qcoeff)[1] = 0;
+                    ((int *)b->qcoeff)[2] = 0;
+                    ((int *)b->qcoeff)[3] = 0;
+                    ((int *)b->qcoeff)[4] = 0;
+                    ((int *)b->qcoeff)[5] = 0;
+                    ((int *)b->qcoeff)[6] = 0;
+                    ((int *)b->qcoeff)[7] = 0;
+                }
+                else
+                {
+                    b->dqcoeff[0] = b->qcoeff[0] * xd->dequant_y2[0];
+                    IDCT_INVOKE(RTCD_VTABLE(idct), iwalsh1)(&b->dqcoeff[0],
+                        xd->qcoeff);
+                    ((int *)b->qcoeff)[0] = 0;
+                }
+
+                
+
+
+                DQC = xd->dequant_y1_dc;
+            }
+
+            DEQUANT_INVOKE (&pbi->common.rtcd.dequant, idct_add_y_block)
+                            (xd->qcoeff, DQC,
+                             xd->dst.y_buffer,
+                             xd->dst.y_stride, xd->eobs);
         }
 
-        DEQUANT_INVOKE (&pbi->dequant, dc_idct_add_y_block)
-                        (xd->qcoeff, xd->block[0].dequant,
-                         xd->predictor, xd->dst.y_buffer,
-                         xd->dst.y_stride, xd->eobs, xd->block[24].diff);
+        DEQUANT_INVOKE (&pbi->common.rtcd.dequant, idct_add_uv_block)
+                        (xd->qcoeff+16*16, xd->dequant_uv,
+                         xd->dst.u_buffer, xd->dst.v_buffer,
+                         xd->dst.uv_stride, xd->eobs+16);
     }
-
-    DEQUANT_INVOKE (&pbi->dequant, idct_add_uv_block)
-                    (xd->qcoeff+16*16, xd->block[16].dequant,
-                     xd->predictor+16*16, xd->dst.u_buffer, xd->dst.v_buffer,
-                     xd->dst.uv_stride, xd->eobs+16);
 }
-
 
 static int get_delta_q(vp8_reader *bc, int prev, int *q_update)
 {
@@ -410,8 +360,6 @@ decode_mb_row(VP8D_COMP *pbi, VP8_COMMON *pc, int mb_row, MACROBLOCKD *xd)
         }
 #endif
 
-        update_blockd_bmi(xd);
-
         xd->dst.y_buffer = pc->yv12_fb[dst_fb_idx].y_buffer + recon_yoffset;
         xd->dst.u_buffer = pc->yv12_fb[dst_fb_idx].u_buffer + recon_uvoffset;
         xd->dst.v_buffer = pc->yv12_fb[dst_fb_idx].v_buffer + recon_uvoffset;
@@ -435,14 +383,6 @@ decode_mb_row(VP8D_COMP *pbi, VP8_COMMON *pc, int mb_row, MACROBLOCKD *xd)
             
             xd->corrupted |= pc->yv12_fb[ref_fb_idx].corrupted;
         }
-
-        vp8_build_uvmvs(xd, pc->full_pixel);
-
-        
-
-
-
-
 
         decode_macroblock(pbi, xd, mb_row * pc->mb_cols  + mb_col);
 
@@ -475,42 +415,6 @@ static unsigned int read_partition_size(const unsigned char *cx_size)
     return size;
 }
 
-static void setup_token_decoder_partition_input(VP8D_COMP *pbi)
-{
-    vp8_reader *bool_decoder = &pbi->bc2;
-    int part_idx = 1;
-
-    TOKEN_PARTITION multi_token_partition =
-            (TOKEN_PARTITION)vp8_read_literal(&pbi->bc, 2);
-    assert(vp8dx_bool_error(&pbi->bc) ||
-           multi_token_partition == pbi->common.multi_token_partition);
-    if (pbi->num_partitions > 2)
-    {
-        CHECK_MEM_ERROR(pbi->mbc, vpx_malloc((pbi->num_partitions - 1) *
-                                             sizeof(vp8_reader)));
-        bool_decoder = pbi->mbc;
-    }
-
-    for (; part_idx < pbi->num_partitions; ++part_idx)
-    {
-        if (vp8dx_start_decode(bool_decoder,
-                               pbi->partitions[part_idx],
-                               pbi->partition_sizes[part_idx]))
-            vpx_internal_error(&pbi->common.error, VPX_CODEC_MEM_ERROR,
-                               "Failed to allocate bool decoder %d",
-                               part_idx);
-
-        bool_decoder++;
-    }
-
-#if CONFIG_MULTITHREAD
-    
-    if (pbi->decoding_thread_count > pbi->num_partitions - 1)
-        pbi->decoding_thread_count = pbi->num_partitions - 1;
-#endif
-}
-
-
 static int read_is_valid(const unsigned char *start,
                          size_t               len,
                          const unsigned char *end)
@@ -518,93 +422,146 @@ static int read_is_valid(const unsigned char *start,
     return (start + len > start && start + len <= end);
 }
 
+static unsigned int read_available_partition_size(
+                                       VP8D_COMP *pbi,
+                                       const unsigned char *token_part_sizes,
+                                       const unsigned char *fragment_start,
+                                       const unsigned char *first_fragment_end,
+                                       const unsigned char *fragment_end,
+                                       int i,
+                                       int num_part)
+{
+    VP8_COMMON* pc = &pbi->common;
+    const unsigned char *partition_size_ptr = token_part_sizes + i * 3;
+    unsigned int partition_size;
+    ptrdiff_t bytes_left = fragment_end - fragment_start;
+    
+
+
+
+
+    if (i < num_part - 1)
+    {
+        if (read_is_valid(partition_size_ptr, 3, first_fragment_end))
+            partition_size = read_partition_size(partition_size_ptr);
+        else if (pbi->ec_active)
+            partition_size = bytes_left;
+        else
+            vpx_internal_error(&pc->error, VPX_CODEC_CORRUPT_FRAME,
+                               "Truncated partition size data");
+    }
+    else
+        partition_size = bytes_left;
+
+    
+
+
+
+    if (!read_is_valid(fragment_start, partition_size, fragment_end))
+    {
+        if (pbi->ec_active)
+            partition_size = bytes_left;
+        else
+            vpx_internal_error(&pc->error, VPX_CODEC_CORRUPT_FRAME,
+                               "Truncated packet or corrupt partition "
+                               "%d length", i + 1);
+    }
+    return partition_size;
+}
+
 
 static void setup_token_decoder(VP8D_COMP *pbi,
-                                const unsigned char *cx_data)
+                                const unsigned char* token_part_sizes)
 {
-    int num_part;
-    int i;
-    VP8_COMMON          *pc = &pbi->common;
-    const unsigned char *user_data_end = pbi->Source + pbi->source_sz;
-    vp8_reader          *bool_decoder;
-    const unsigned char *partition;
+    vp8_reader *bool_decoder = &pbi->bc2;
+    unsigned int partition_idx;
+    int fragment_idx;
+    int num_token_partitions;
+    const unsigned char *first_fragment_end = pbi->fragments[0] +
+                                          pbi->fragment_sizes[0];
 
-    
-    const TOKEN_PARTITION multi_token_partition =
+    TOKEN_PARTITION multi_token_partition =
             (TOKEN_PARTITION)vp8_read_literal(&pbi->bc, 2);
-    
-
-    if (!pbi->ec_active || !vp8dx_bool_error(&pbi->bc))
-        pc->multi_token_partition = multi_token_partition;
-
-    num_part = 1 << pc->multi_token_partition;
-
-    
-    partition = cx_data;
-    bool_decoder = &pbi->bc2;
-
-    if (num_part > 1)
+    if (!vp8dx_bool_error(&pbi->bc))
+        pbi->common.multi_token_partition = multi_token_partition;
+    num_token_partitions = 1 << pbi->common.multi_token_partition;
+    if (num_token_partitions > 1)
     {
-        CHECK_MEM_ERROR(pbi->mbc, vpx_malloc(num_part * sizeof(vp8_reader)));
+        CHECK_MEM_ERROR(pbi->mbc, vpx_malloc(num_token_partitions *
+                                             sizeof(vp8_reader)));
         bool_decoder = pbi->mbc;
-        partition += 3 * (num_part - 1);
     }
 
-    for (i = 0; i < num_part; i++)
+    
+
+    for (fragment_idx = 0; fragment_idx < pbi->num_fragments; ++fragment_idx)
     {
-        const unsigned char *partition_size_ptr = cx_data + i * 3;
-        ptrdiff_t            partition_size, bytes_left;
-
-        bytes_left = user_data_end - partition;
-
+        unsigned int fragment_size = pbi->fragment_sizes[fragment_idx];
+        const unsigned char *fragment_end = pbi->fragments[fragment_idx] +
+                                            fragment_size;
         
 
-
-
-
-        if (i < num_part - 1)
+        if (fragment_idx == 0)
         {
-            if (read_is_valid(partition_size_ptr, 3, user_data_end))
-                partition_size = read_partition_size(partition_size_ptr);
-            else if (pbi->ec_active)
-                partition_size = bytes_left;
-            else
-                vpx_internal_error(&pc->error, VPX_CODEC_CORRUPT_FRAME,
-                                   "Truncated partition size data");
+            
+            ptrdiff_t ext_first_part_size = token_part_sizes -
+                pbi->fragments[0] + 3 * (num_token_partitions - 1);
+            fragment_size -= ext_first_part_size;
+            if (fragment_size > 0)
+            {
+                pbi->fragment_sizes[0] = ext_first_part_size;
+                
+
+                fragment_idx++;
+                pbi->fragments[fragment_idx] = pbi->fragments[0] +
+                  pbi->fragment_sizes[0];
+            }
         }
-        else
-            partition_size = bytes_left;
-
         
-
-
-
-        if (!read_is_valid(partition, partition_size, user_data_end))
+        while (fragment_size > 0)
         {
-            if (pbi->ec_active)
-                partition_size = bytes_left;
-            else
-                vpx_internal_error(&pc->error, VPX_CODEC_CORRUPT_FRAME,
-                                   "Truncated packet or corrupt partition "
-                                   "%d length", i + 1);
+            ptrdiff_t partition_size = read_available_partition_size(
+                                                 pbi,
+                                                 token_part_sizes,
+                                                 pbi->fragments[fragment_idx],
+                                                 first_fragment_end,
+                                                 fragment_end,
+                                                 fragment_idx - 1,
+                                                 num_token_partitions);
+            pbi->fragment_sizes[fragment_idx] = partition_size;
+            fragment_size -= partition_size;
+            assert(fragment_idx <= num_token_partitions);
+            if (fragment_size > 0)
+            {
+                
+
+                fragment_idx++;
+                pbi->fragments[fragment_idx] =
+                    pbi->fragments[fragment_idx - 1] + partition_size;
+            }
         }
+    }
 
-        if (vp8dx_start_decode(bool_decoder, partition, partition_size))
-            vpx_internal_error(&pc->error, VPX_CODEC_MEM_ERROR,
-                               "Failed to allocate bool decoder %d", i + 1);
+    pbi->num_fragments = num_token_partitions + 1;
 
-        
-        partition += partition_size;
+    for (partition_idx = 1; partition_idx < pbi->num_fragments; ++partition_idx)
+    {
+        if (vp8dx_start_decode(bool_decoder,
+                               pbi->fragments[partition_idx],
+                               pbi->fragment_sizes[partition_idx]))
+            vpx_internal_error(&pbi->common.error, VPX_CODEC_MEM_ERROR,
+                               "Failed to allocate bool decoder %d",
+                               partition_idx);
+
         bool_decoder++;
     }
 
 #if CONFIG_MULTITHREAD
     
-    if (pbi->decoding_thread_count > num_part - 1)
-        pbi->decoding_thread_count = num_part - 1;
+    if (pbi->decoding_thread_count > num_token_partitions - 1)
+        pbi->decoding_thread_count = num_token_partitions - 1;
 #endif
 }
-
 
 static void stop_token_decoder(VP8D_COMP *pbi)
 {
@@ -685,6 +642,11 @@ static void init_frame(VP8D_COMP *pbi)
     xd->mode_info_context->mbmi.mode = DC_PRED;
     xd->mode_info_stride = pc->mode_info_stride;
     xd->corrupted = 0; 
+
+    xd->fullpixel_mask = 0xffffffff;
+    if(pc->full_pixel)
+        xd->fullpixel_mask = 0xfffffff8;
+
 }
 
 int vp8_decode_frame(VP8D_COMP *pbi)
@@ -692,8 +654,8 @@ int vp8_decode_frame(VP8D_COMP *pbi)
     vp8_reader *const bc = & pbi->bc;
     VP8_COMMON *const pc = & pbi->common;
     MACROBLOCKD *const xd  = & pbi->mb;
-    const unsigned char *data = (const unsigned char *)pbi->Source;
-    const unsigned char *data_end = data + pbi->source_sz;
+    const unsigned char *data = pbi->fragments[0];
+    const unsigned char *data_end =  data + pbi->fragment_sizes[0];
     ptrdiff_t first_partition_length_in_bytes;
 
     int mb_row;
@@ -702,33 +664,25 @@ int vp8_decode_frame(VP8D_COMP *pbi)
     int corrupt_tokens = 0;
     int prev_independent_partitions = pbi->independent_partitions;
 
-    if (pbi->input_partition)
-    {
-        data = pbi->partitions[0];
-        data_end =  data + pbi->partition_sizes[0];
-    }
-
     
     xd->corrupted = 0;
     pc->yv12_fb[pc->new_fb_idx].corrupted = 0;
 
     if (data_end - data < 3)
     {
-        if (pbi->ec_active)
-        {
-            
-
-
-            pc->frame_type = INTER_FRAME;
-            pc->version = 0;
-            pc->show_frame = 1;
-            first_partition_length_in_bytes = 0;
-        }
-        else
+        if (!pbi->ec_active)
         {
             vpx_internal_error(&pc->error, VPX_CODEC_CORRUPT_FRAME,
                                "Truncated packet");
         }
+
+        
+
+
+        pc->frame_type = INTER_FRAME;
+        pc->version = 0;
+        pc->show_frame = 1;
+        first_partition_length_in_bytes = 0;
     }
     else
     {
@@ -737,12 +691,14 @@ int vp8_decode_frame(VP8D_COMP *pbi)
         pc->show_frame = (data[0] >> 4) & 1;
         first_partition_length_in_bytes =
             (data[0] | (data[1] << 8) | (data[2] << 16)) >> 5;
-        data += 3;
 
         if (!pbi->ec_active && (data + first_partition_length_in_bytes > data_end
             || data + first_partition_length_in_bytes < data))
             vpx_internal_error(&pc->error, VPX_CODEC_CORRUPT_FRAME,
                                "Truncated packet or corrupt partition 0 length");
+
+        data += 3;
+
         vp8_setup_version(pc);
 
         if (pc->frame_type == KEY_FRAME)
@@ -815,7 +771,8 @@ int vp8_decode_frame(VP8D_COMP *pbi)
         }
     }
 
-    if (pc->Width == 0 || pc->Height == 0)
+    if ((!pbi->decoded_key_frame && pc->frame_type != KEY_FRAME) ||
+        pc->Width == 0 || pc->Height == 0)
     {
         return -1;
     }
@@ -878,6 +835,12 @@ int vp8_decode_frame(VP8D_COMP *pbi)
             }
         }
     }
+    else
+    {
+        
+        xd->update_mb_segmentation_map = 0;
+        xd->update_mb_segmentation_data = 0;
+    }
 
     
     pc->filter_type = (LOOPFILTERTYPE) vp8_read_bit(bc);
@@ -923,14 +886,8 @@ int vp8_decode_frame(VP8D_COMP *pbi)
         }
     }
 
-    if (pbi->input_partition)
-    {
-        setup_token_decoder_partition_input(pbi);
-    }
-    else
-    {
-        setup_token_decoder(pbi, data + first_partition_length_in_bytes);
-    }
+    setup_token_decoder(pbi, data + first_partition_length_in_bytes);
+
     xd->current_bc = &pbi->bc2;
 
     
@@ -982,16 +939,38 @@ int vp8_decode_frame(VP8D_COMP *pbi)
         if (!pc->refresh_golden_frame)
             pc->copy_buffer_to_gf = vp8_read_literal(bc, 2);
 
+#if CONFIG_ERROR_CONCEALMENT
+        
+        xd->corrupted |= vp8dx_bool_error(bc);
+        if (pbi->ec_active && xd->corrupted)
+            pc->copy_buffer_to_gf = 0;
+#endif
+
         pc->copy_buffer_to_arf = 0;
 
         if (!pc->refresh_alt_ref_frame)
             pc->copy_buffer_to_arf = vp8_read_literal(bc, 2);
+
+#if CONFIG_ERROR_CONCEALMENT
+        
+        xd->corrupted |= vp8dx_bool_error(bc);
+        if (pbi->ec_active && xd->corrupted)
+            pc->copy_buffer_to_arf = 0;
+#endif
+
 
         pc->ref_frame_sign_bias[GOLDEN_FRAME] = vp8_read_bit(bc);
         pc->ref_frame_sign_bias[ALTREF_FRAME] = vp8_read_bit(bc);
     }
 
     pc->refresh_entropy_probs = vp8_read_bit(bc);
+#if CONFIG_ERROR_CONCEALMENT
+    
+
+    xd->corrupted |= vp8dx_bool_error(bc);
+    if (pbi->ec_active && xd->corrupted)
+        pc->refresh_entropy_probs = 0;
+#endif
     if (pc->refresh_entropy_probs == 0)
     {
         vpx_memcpy(&pc->lfc, &pc->fc, sizeof(pc->fc));
