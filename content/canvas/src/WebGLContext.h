@@ -310,7 +310,7 @@ struct WebGLContextOptions {
     
     WebGLContextOptions()
         : alpha(true), depth(true), stencil(false),
-          premultipliedAlpha(true), antialias(false),
+          premultipliedAlpha(true), antialias(true),
           preserveDrawingBuffer(false)
     { }
 
