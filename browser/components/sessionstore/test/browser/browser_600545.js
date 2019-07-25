@@ -49,6 +49,12 @@ function test() {
 function testBug600545() {
   
   Services.prefs.setBoolPref("browser.sessionstore.resume_from_crash", false);
+  Services.prefs.setIntPref("browser.sessionstore.interval", 2000);
+
+  registerCleanupFunction(function () {
+    Services.prefs.clearUserPref("browser.sessionstore.resume_from_crash");
+    Services.prefs.clearUserPref("browser.sessionstore.interval");
+  });
 
   
   
@@ -92,11 +98,6 @@ function testBug600545() {
 }
 
 function done() {
-  
-  try {
-    Services.prefs.clearUserPref("browser.sessionstore.resume_from_crash");
-  } catch (e) {}
-
   
   
   let windowsEnum = Services.wm.getEnumerator("navigator:browser");
