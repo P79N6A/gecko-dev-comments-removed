@@ -56,6 +56,7 @@ public:
     mAnimVal = mBaseVal = aValue;
     mAttrEnum = aAttrEnum;
     mIsAnimated = PR_FALSE;
+    mIsBaseSet = PR_FALSE;
   }
 
   nsresult SetBaseValueString(const nsAString& aValue,
@@ -70,6 +71,14 @@ public:
   float GetAnimValue() const
     { return mAnimVal; }
 
+  
+  
+  
+  
+  
+  PRBool IsExplicitlySet() const
+    { return mIsAnimated || mIsBaseSet; }
+
   nsresult ToDOMAnimatedNumber(nsIDOMSVGAnimatedNumber **aResult,
                                nsSVGElement* aSVGElement);
 #ifdef MOZ_SMIL
@@ -83,6 +92,7 @@ private:
   float mBaseVal;
   PRUint8 mAttrEnum; 
   PRPackedBool mIsAnimated;
+  PRPackedBool mIsBaseSet;
 
 public:
   struct DOMAnimatedNumber : public nsIDOMSVGAnimatedNumber
