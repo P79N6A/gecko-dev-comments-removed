@@ -117,7 +117,16 @@ public class SendTabActivity extends Activity {
     Bundle extras = this.getIntent().getExtras();
     final String uri = extras.getString(Intent.EXTRA_TEXT);
     final String title = extras.getString(Intent.EXTRA_SUBJECT);
-    final CommandProcessor processor = CommandProcessor.getProcessor();
+
+    if (uri == null) {
+      Logger.warn(LOG_TAG, "uri was null; aborting without sending tab.");
+      notifyAndFinish(false);
+      return;
+    }
+
+    if (title == null) {
+      Logger.warn(LOG_TAG, "title was null; ignoring and sending tab anyway.");
+    }
 
     final String clientGUID = getAccountGUID();
     final List<String> guids = arrayAdapter.getCheckedGUIDs();
@@ -126,7 +135,7 @@ public class SendTabActivity extends Activity {
       
       Logger.warn(LOG_TAG, "clientGUID? " + (clientGUID == null) + " or guids? " + (guids == null) +
           " was null; aborting without sending tab.");
-      finish();
+      notifyAndFinish(false);
       return;
     }
 
@@ -134,6 +143,8 @@ public class SendTabActivity extends Activity {
     new Thread() {
       @Override
       public void run() {
+        final CommandProcessor processor = CommandProcessor.getProcessor();
+
         for (String guid : guids) {
           processor.sendURIToClientForDisplay(uri, guid, title, clientGUID, getApplicationContext());
         }
@@ -143,7 +154,7 @@ public class SendTabActivity extends Activity {
       }
     }.start();
 
-    notifyAndFinish();
+    notifyAndFinish(true);
   }
 
   
@@ -154,8 +165,17 @@ public class SendTabActivity extends Activity {
 
 
 
-  private void notifyAndFinish() {
-    Toast.makeText(this, R.string.sync_text_tab_sent, Toast.LENGTH_LONG).show();
+
+
+  protected void notifyAndFinish(final boolean success) {
+    int textId;
+    if (success) {
+      textId = R.string.sync_text_tab_sent;
+    } else {
+      textId = R.string.sync_text_tab_not_sent;
+    }
+
+    Toast.makeText(this, textId, Toast.LENGTH_LONG).show();
     finish();
   }
 
