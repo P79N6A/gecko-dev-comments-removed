@@ -76,6 +76,8 @@
 #include "mozilla/Preferences.h"
 #include "nsDOMLists.h"
 #include "xpcpublic.h"
+#include "nsContentPolicyUtils.h"
+#include "nsContentErrors.h"
 
 using namespace mozilla;
 
@@ -1275,6 +1277,9 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
   rv = ParseURL(PromiseFlatString(aURL));
   NS_ENSURE_SUCCESS(rv, rv);
 
+  nsCOMPtr<nsIDocument> originDoc =
+    nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
+
   
   if (!mSecure &&
       !Preferences::GetBool("network.websocket.allowInsecureFromHTTPS",
@@ -1282,8 +1287,6 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
     
     
     
-    nsCOMPtr<nsIDocument> originDoc =
-      nsContentUtils::GetDocumentFromScriptContext(mScriptContext);
     if (originDoc && originDoc->GetSecurityInfo())
       return NS_ERROR_DOM_SECURITY_ERR;
   }
@@ -1299,6 +1302,23 @@ nsWebSocket::Init(nsIPrincipal* aPrincipal,
     if (!mRequestedProtocolList.IsEmpty())
       mRequestedProtocolList.Append(NS_LITERAL_CSTRING(", "));
     AppendUTF16toUTF8(protocolArray[index], mRequestedProtocolList);
+  }
+
+  
+  PRInt16 shouldLoad = nsIContentPolicy::ACCEPT;
+  rv = NS_CheckContentLoadPolicy(nsIContentPolicy::TYPE_DATAREQUEST,
+                                 mURI,
+                                 mPrincipal,
+                                 originDoc,
+                                 EmptyCString(),
+                                 nsnull,
+                                 &shouldLoad,
+                                 nsContentUtils::GetContentPolicy(),
+                                 nsContentUtils::GetSecurityManager());
+  NS_ENSURE_SUCCESS(rv, rv);
+  if (NS_CP_REJECTED(shouldLoad)) {
+    
+    return NS_ERROR_CONTENT_BLOCKED;
   }
 
   
