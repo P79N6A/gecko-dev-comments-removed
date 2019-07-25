@@ -52,9 +52,12 @@
 #include "VideoFrameContainer.h"
 
 class nsHTMLMediaElement;
-class nsMediaStream;
 class nsIStreamListener;
 class nsTimeRanges;
+
+namespace mozilla {
+class MediaResource;
+}
 
 
 
@@ -72,6 +75,7 @@ static const PRUint32 FRAMEBUFFER_LENGTH_MAX = 16384;
 class nsMediaDecoder : public nsIObserver
 {
 public:
+  typedef mozilla::MediaResource MediaResource;
   typedef mozilla::ReentrantMonitor ReentrantMonitor;
   typedef mozilla::TimeStamp TimeStamp;
   typedef mozilla::TimeDuration TimeDuration;
@@ -92,7 +96,7 @@ public:
 
   
   
-  virtual nsMediaStream* GetStream() = 0;
+  virtual MediaResource* GetResource() = 0;
 
   
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal() = 0;
@@ -140,7 +144,7 @@ public:
   
   
   
-  virtual nsresult Load(nsMediaStream* aStream,
+  virtual nsresult Load(MediaResource* aResource,
                         nsIStreamListener **aListener,
                         nsMediaDecoder* aCloneDonor) = 0;
 

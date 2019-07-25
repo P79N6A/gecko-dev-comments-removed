@@ -225,7 +225,7 @@
 #include "prlog.h"
 #include "gfxContext.h"
 #include "gfxRect.h"
-#include "nsMediaStream.h"
+#include "MediaResource.h"
 #include "nsMediaDecoder.h"
 #include "nsHTMLMediaElement.h"
 #include "mozilla/ReentrantMonitor.h"
@@ -352,14 +352,11 @@ public:
 
 class nsBuiltinDecoder : public nsMediaDecoder
 {
-  
+public:
+  typedef mozilla::MediaChannelStatistics MediaChannelStatistics;
+
   NS_DECL_ISUPPORTS
-
-  
   NS_DECL_NSIOBSERVER
-
- public:
-  typedef mozilla::ReentrantMonitor ReentrantMonitor;
 
   
   enum PlayState {
@@ -383,7 +380,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   virtual double GetCurrentTime();
 
-  virtual nsresult Load(nsMediaStream* aStream,
+  virtual nsresult Load(MediaResource* aResource,
                         nsIStreamListener** aListener,
                         nsMediaDecoder* aCloneDonor);
 
@@ -405,7 +402,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   virtual void SetInfinite(bool aInfinite);
   virtual bool IsInfinite();
 
-  virtual nsMediaStream* GetStream();
+  virtual MediaResource* GetResource() { return mResource; }
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
 
   virtual void NotifySuspendedStatusChanged();
@@ -641,7 +638,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   
   
   
-  nsChannelStatistics mPlaybackStatistics;
+  MediaChannelStatistics mPlaybackStatistics;
 
   
   
@@ -681,7 +678,7 @@ class nsBuiltinDecoder : public nsMediaDecoder
   nsCOMPtr<nsDecoderStateMachine> mDecoderStateMachine;
 
   
-  nsAutoPtr<nsMediaStream> mStream;
+  nsAutoPtr<MediaResource> mResource;
 
   
   

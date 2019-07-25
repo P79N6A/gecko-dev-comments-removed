@@ -35,8 +35,8 @@
 
 
 
-#if !defined(nsMediaStream_h_)
-#define nsMediaStream_h_
+#if !defined(MediaResource_h_)
+#define MediaResource_h_
 
 #include "mozilla/Mutex.h"
 #include "mozilla/XPCOM.h"
@@ -57,6 +57,7 @@ static const PRUint32 HTTP_REQUESTED_RANGE_NOT_SATISFIABLE_CODE = 416;
 
 class nsMediaDecoder;
 
+namespace mozilla {
 
 
 
@@ -70,12 +71,10 @@ class nsMediaDecoder;
 
 
 
-class nsChannelStatistics {
+
+class MediaChannelStatistics {
 public:
-  typedef mozilla::TimeStamp TimeStamp;
-  typedef mozilla::TimeDuration TimeDuration;
-
-  nsChannelStatistics() { Reset(); }
+  MediaChannelStatistics() { Reset(); }
   void Reset() {
     mLastStartTime = TimeStamp();
     mAccumulatedTime = TimeDuration(0);
@@ -124,16 +123,16 @@ private:
   PRInt64      mAccumulatedBytes;
   TimeDuration mAccumulatedTime;
   TimeStamp    mLastStartTime;
-  bool mIsStarted;
+  bool         mIsStarted;
 };
 
 
 
-class nsByteRange {
+class MediaByteRange {
 public:
-  nsByteRange() : mStart(0), mEnd(0) {}
+  MediaByteRange() : mStart(0), mEnd(0) {}
 
-  nsByteRange(PRInt64 aStart, PRInt64 aEnd)
+  MediaByteRange(PRInt64 aStart, PRInt64 aEnd)
     : mStart(aStart), mEnd(aEnd)
   {
     NS_ASSERTION(mStart < mEnd, "Range should end after start!");
@@ -159,12 +158,20 @@ public:
 
 
 
-class nsMediaStream 
+
+
+
+
+
+
+
+
+class MediaResource
 {
 public:
-  virtual ~nsMediaStream()
+  virtual ~MediaResource()
   {
-    MOZ_COUNT_DTOR(nsMediaStream);
+    MOZ_COUNT_DTOR(MediaResource);
   }
 
   
@@ -187,7 +194,7 @@ public:
   
   
   
-  virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder) = 0;
+  virtual MediaResource* CloneData(nsMediaDecoder* aDecoder) = 0;
 
   
   
@@ -264,7 +271,7 @@ public:
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset) = 0;
   
   
-  virtual bool IsDataCachedToEndOfStream(PRInt64 aOffset) = 0;
+  virtual bool IsDataCachedToEndOfResource(PRInt64 aOffset) = 0;
   
   
   
@@ -274,7 +281,7 @@ public:
   
   
   
-  virtual bool IsSuspendedByCache(nsMediaStream** aActiveStream) = 0;
+  virtual bool IsSuspendedByCache(MediaResource** aActiveResource) = 0;
   
   virtual bool IsSuspended() = 0;
   
@@ -290,8 +297,7 @@ public:
 
 
 
-
-  static nsMediaStream* Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel);
+  static MediaResource* Create(nsMediaDecoder* aDecoder, nsIChannel* aChannel);
 
   
 
@@ -304,16 +310,16 @@ public:
 
 
 
-  virtual nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges) = 0;
+  virtual nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges) = 0;
 
 protected:
-  nsMediaStream(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
+  MediaResource(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI) :
     mDecoder(aDecoder),
     mChannel(aChannel),
     mURI(aURI),
     mLoadInBackground(false)
   {
-    MOZ_COUNT_CTOR(nsMediaStream);
+    MOZ_COUNT_CTOR(MediaResource);
   }
 
   
@@ -347,13 +353,11 @@ protected:
 
 
 
-class nsMediaChannelStream : public nsMediaStream
+class ChannelMediaResource : public MediaResource
 {
-  typedef mozilla::Mutex Mutex;
-
 public:
-  nsMediaChannelStream(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
-  ~nsMediaChannelStream();
+  ChannelMediaResource(nsMediaDecoder* aDecoder, nsIChannel* aChannel, nsIURI* aURI);
+  ~ChannelMediaResource();
 
   
   
@@ -387,7 +391,7 @@ public:
   virtual already_AddRefed<nsIPrincipal> GetCurrentPrincipal();
   
   bool IsClosed() const { return mCacheStream.IsClosed(); }
-  virtual nsMediaStream* CloneData(nsMediaDecoder* aDecoder);
+  virtual MediaResource* CloneData(nsMediaDecoder* aDecoder);
   virtual nsresult ReadFromCache(char* aBuffer, PRInt64 aOffset, PRUint32 aCount);
   virtual void     EnsureCacheUpToDate();
 
@@ -405,8 +409,8 @@ public:
   virtual PRInt64 GetLength();
   virtual PRInt64 GetNextCachedData(PRInt64 aOffset);
   virtual PRInt64 GetCachedDataEnd(PRInt64 aOffset);
-  virtual bool    IsDataCachedToEndOfStream(PRInt64 aOffset);
-  virtual bool    IsSuspendedByCache(nsMediaStream** aActiveStream);
+  virtual bool    IsDataCachedToEndOfResource(PRInt64 aOffset);
+  virtual bool    IsSuspendedByCache(MediaResource** aActiveResource);
   virtual bool    IsSuspended();
 
   class Listener : public nsIStreamListener,
@@ -414,7 +418,7 @@ public:
                    public nsIChannelEventSink
   {
   public:
-    Listener(nsMediaChannelStream* aStream) : mStream(aStream) {}
+    Listener(ChannelMediaResource* aResource) : mResource(aResource) {}
 
     NS_DECL_ISUPPORTS
     NS_DECL_NSIREQUESTOBSERVER
@@ -422,14 +426,14 @@ public:
     NS_DECL_NSICHANNELEVENTSINK
     NS_DECL_NSIINTERFACEREQUESTOR
 
-    void Revoke() { mStream = nsnull; }
+    void Revoke() { mResource = nsnull; }
 
   private:
-    nsMediaChannelStream* mStream;
+    ChannelMediaResource* mResource;
   };
   friend class Listener;
 
-  nsresult GetCachedRanges(nsTArray<nsByteRange>& aRanges);
+  nsresult GetCachedRanges(nsTArray<MediaByteRange>& aRanges);
 
 protected:
   
@@ -471,7 +475,7 @@ protected:
   nsRefPtr<Listener> mListener;
   
   
-  nsRevocableEventPtr<nsRunnableMethod<nsMediaChannelStream, void, false> > mDataReceivedEvent;
+  nsRevocableEventPtr<nsRunnableMethod<ChannelMediaResource, void, false> > mDataReceivedEvent;
   PRUint32           mSuspendCount;
   
   
@@ -485,12 +489,14 @@ protected:
 
   
   Mutex               mLock;
-  nsChannelStatistics mChannelStatistics;
+  MediaChannelStatistics mChannelStatistics;
 
   
   
   
   bool mIgnoreResume;
 };
+
+}
 
 #endif
