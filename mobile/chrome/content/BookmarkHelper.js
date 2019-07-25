@@ -74,20 +74,19 @@ var BookmarkHelper = {
   },
 
   createShortcut: function BH_createShortcut(aTitle, aURL, aIconURL) {
-    const kIconSize = 64;
+    
+    
+    const kIconSize = 72;
+    const kOverlaySize = 32;
+    const kOffset = 20;
 
+    
     aTitle = aTitle || aURL;
-    aIconURL = aIconURL || "chrome://browser/skin/images/favicon-default-32.png";
 
     let canvas = document.createElementNS("http://www.w3.org/1999/xhtml", "canvas");
     canvas.setAttribute("style", "display: none");
 
-    let self = this;
-    let image = new Image();
-    image.onload = function() {
-      canvas.width = canvas.height = kIconSize; 
-      let ctx = canvas.getContext("2d");
-      ctx.drawImage(image, 0, 0, kIconSize, kIconSize);
+    function _createShortcut() {
       let icon = canvas.toDataURL("image/png", "");
       canvas = null;
       try {
@@ -98,11 +97,39 @@ var BookmarkHelper = {
       }
     }
 
-    image.onerror = function() {
-      Cu.reportError("CreateShortcut: image load error");
+    
+    let image = new Image();
+    image.onload = function() {
+      canvas.width = canvas.height = kIconSize;
+      let ctx = canvas.getContext("2d");
+      ctx.drawImage(image, 0, 0, kIconSize, kIconSize);
+
+      
+      if (aIconURL) {
+        let favicon = new Image();
+        favicon.onload = function() {
+          
+          ctx.drawImage(favicon, kOffset, kOffset, kOverlaySize, kOverlaySize);
+          _createShortcut();
+        }
+
+        favicon.onerror = function() {
+          Cu.reportError("CreateShortcut: favicon image load error");
+        }
+
+        favicon.src = aIconURL;
+      } else {
+        _createShortcut();
+      }
     }
 
-    image.src = aIconURL;
+    image.onerror = function() {
+      Cu.reportError("CreateShortcut: background image load error");
+    }
+
+    
+    image.src = aIconURL ? "chrome://browser/skin/images/homescreen-blank-hdpi.png"
+                         : "chrome://browser/skin/images/homescreen-default-hdpi.png";
   },
 
   removeBookmarksForURI: function BH_removeBookmarksForURI(aURI) {
