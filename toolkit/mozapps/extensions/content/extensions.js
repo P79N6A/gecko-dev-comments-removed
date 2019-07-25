@@ -55,6 +55,7 @@ const PREF_CHECK_UPDATE_SECURITY = "extensions.checkUpdateSecurity";
 const PREF_AUTOUPDATE_DEFAULT = "extensions.update.autoUpdateDefault";
 const PREF_GETADDONS_CACHE_ENABLED = "extensions.getAddons.cache.enabled";
 const PREF_GETADDONS_CACHE_ID_ENABLED = "extensions.%ID%.getAddons.cache.enabled";
+const PREF_UI_LASTCATEGORY = "extensions.ui.lastCategory";
 
 const BRANCH_REGEXP = /^([^\.]+\.[0-9]+[a-z]*).*/gi;
 
@@ -111,9 +112,28 @@ function initialize() {
   gEventManager.initialize();
   Services.obs.addObserver(sendEMPong, "EM-ping", false);
   Services.obs.notifyObservers(window, "EM-loaded", "");
+
   
   
-  gViewController.updateState(window.history.state);
+  if (gViewController.initialViewSelected)
+    return;
+
+  
+  if (window.history.state) {
+    gViewController.updateState(window.history.state);
+    return;
+  }
+
+  
+  var view = gCategories.node.value;
+
+  
+  if ("arguments" in window && window.arguments.length > 0 &&
+      "view" in window.arguments[0]) {
+    view = window.arguments[0].view;
+  }
+
+  gViewController.loadInitialView(view);
 }
 
 function notifyInitialized() {
@@ -515,29 +535,7 @@ var gViewController = {
   },
 
   updateState: function(state) {
-    
-    if (state) {
-      this.loadViewInternal(state.view, state.previousView, state);
-      return;
-    }
-
-    
-    
-    if (this.initialViewSelected)
-      return;
-
-    
-    var view = VIEW_DEFAULT;
-    if (gCategories.node.selectedItem &&
-        gCategories.node.selectedItem.id != "category-search")
-      view = gCategories.node.selectedItem.value;
-
-    if ("arguments" in window && window.arguments.length > 0) {
-      if ("view" in window.arguments[0])
-        view = window.arguments[0].view;
-    }
-
-    this.loadInitialView(view);
+    this.loadViewInternal(state.view, state.previousView, state);
   },
 
   parseViewId: function(aViewId) {
@@ -1417,7 +1415,15 @@ var gCategories = {
     this.node = document.getElementById("categories");
     this._search = this.get("addons://search/");
 
-    this.maybeHideSearch();
+    try {
+      this.node.value = Services.prefs.getCharPref(PREF_UI_LASTCATEGORY);
+    } catch (e) { }
+
+    
+    
+    
+    if (this.node.selectedItem == this._search)
+      this.node.value = VIEW_DEFAULT;
 
     var self = this;
     this.node.addEventListener("select", function() {
@@ -1508,6 +1514,8 @@ var gCategories = {
       view = gViewController.parseViewId(aPreviousView);
     }
 
+    Services.prefs.setCharPref(PREF_UI_LASTCATEGORY, aId);
+
     if (this.node.selectedItem &&
         this.node.selectedItem.value == aId) {
       this.node.selectedItem.hidden = false;
@@ -1527,8 +1535,6 @@ var gCategories = {
       this.node.selectedItem = item;
       this.node.suppressOnSelect = false;
       this.node.ensureElementIsVisible(item);
-      
-      this.node.setAttribute("last-selected", item.id);
 
       this.maybeHideSearch();
     }

@@ -596,6 +596,9 @@ add_test(function() {
     gCategoryUtilities = new CategoryUtilities(gManagerWindow);
 
     
+    is(gCategoryUtilities.selectedCategory, "discover", "View should have changed to discover");
+
+    
     gAddonInstalled = true;
 
     search(QUERY, false, function() {
