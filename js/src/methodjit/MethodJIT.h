@@ -420,7 +420,7 @@ class JaegerCompartment {
 
 
 
-class CompilerAllocPolicy : public ContextAllocPolicy
+class CompilerAllocPolicy : public TempAllocPolicy
 {
     bool *oomFlag;
 
@@ -432,12 +432,12 @@ class CompilerAllocPolicy : public ContextAllocPolicy
 
   public:
     CompilerAllocPolicy(JSContext *cx, bool *oomFlag)
-    : ContextAllocPolicy(cx), oomFlag(oomFlag) {}
+    : TempAllocPolicy(cx), oomFlag(oomFlag) {}
     CompilerAllocPolicy(JSContext *cx, Compiler &compiler);
 
-    void *malloc_(size_t bytes) { return checkAlloc(ContextAllocPolicy::malloc_(bytes)); }
-    void *realloc_(void *p, size_t bytes) {
-        return checkAlloc(ContextAllocPolicy::realloc_(p, bytes));
+    void *malloc_(size_t bytes) { return checkAlloc(TempAllocPolicy::malloc_(bytes)); }
+    void *realloc_(void *p, size_t oldBytes, size_t bytes) {
+        return checkAlloc(TempAllocPolicy::realloc_(p, oldBytes, bytes));
     }
 };
 
@@ -589,11 +589,6 @@ struct JITScript {
     jsbytecode *nativeToPC(void *returnAddress, CallSite **pinline) const;
 
     void trace(JSTracer *trc);
-
-#ifdef DEBUG
-    
-    int             *pcProfile;
-#endif
 
   private:
     

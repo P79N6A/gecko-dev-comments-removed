@@ -38,6 +38,7 @@
 
 #include "jsbool.h"
 #include "jslibmath.h"
+#include "jsmath.h"
 #include "jsnum.h"
 #include "jstracer.h"
 #include "methodjit/MethodJIT.h"

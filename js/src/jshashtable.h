@@ -55,6 +55,49 @@ typedef uint32 HashNumber;
 
 namespace detail {
 
+template <class T, class HashPolicy, class AllocPolicy>
+class HashTable;
+
+template <class T>
+class HashTableEntry {
+    HashNumber keyHash;
+
+    typedef typename tl::StripConst<T>::result NonConstT;
+
+    static const HashNumber sFreeKey = 0;
+    static const HashNumber sRemovedKey = 1;
+    static const HashNumber sCollisionBit = 1;
+
+    template <class, class, class> friend class HashTable;
+
+    static bool isLiveHash(HashNumber hash)
+    {
+        return hash > sRemovedKey;
+    }
+
+  public:
+    HashTableEntry() : keyHash(0), t() {}
+    void operator=(const HashTableEntry &rhs) { keyHash = rhs.keyHash; t = rhs.t; }
+
+    NonConstT t;
+
+    bool isFree() const           { return keyHash == sFreeKey; }
+    void setFree()                { keyHash = sFreeKey; t = T(); }
+    bool isRemoved() const        { return keyHash == sRemovedKey; }
+    void setRemoved()             { keyHash = sRemovedKey; t = T(); }
+    bool isLive() const           { return isLiveHash(keyHash); }
+    void setLive(HashNumber hn)   { JS_ASSERT(isLiveHash(hn)); keyHash = hn; }
+
+    void setCollision()           { JS_ASSERT(isLive()); keyHash |= sCollisionBit; }
+    void setCollision(HashNumber collisionBit) {
+        JS_ASSERT(isLive()); keyHash |= collisionBit;
+    }
+    void unsetCollision()         { JS_ASSERT(isLive()); keyHash &= ~sCollisionBit; }
+    bool hasCollision() const     { JS_ASSERT(isLive()); return keyHash & sCollisionBit; }
+    bool matchHash(HashNumber hn) { return (keyHash & ~sCollisionBit) == hn; }
+    HashNumber getKeyHash() const { JS_ASSERT(!hasCollision()); return keyHash; }
+};
+
 
 
 
@@ -69,39 +112,8 @@ class HashTable : private AllocPolicy
     typedef typename HashPolicy::KeyType Key;
     typedef typename HashPolicy::Lookup Lookup;
 
-    
-
-
-
-
-    static void assignT(NonConstT &dst, const T &src) { dst = src; }
-
   public:
-    class Entry {
-        HashNumber keyHash;
-
-      public:
-        Entry() : keyHash(0), t() {}
-        void operator=(const Entry &rhs) { keyHash = rhs.keyHash; assignT(t, rhs.t); }
-
-        NonConstT t;
-
-        bool isFree() const           { return keyHash == sFreeKey; }
-        void setFree()                { keyHash = sFreeKey; assignT(t, T()); }
-        bool isRemoved() const        { return keyHash == sRemovedKey; }
-        void setRemoved()             { keyHash = sRemovedKey; assignT(t, T()); }
-        bool isLive() const           { return isLiveHash(keyHash); }
-        void setLive(HashNumber hn)   { JS_ASSERT(isLiveHash(hn)); keyHash = hn; }
-
-        void setCollision()           { JS_ASSERT(isLive()); keyHash |= sCollisionBit; }
-        void setCollision(HashNumber collisionBit) {
-            JS_ASSERT(isLive()); keyHash |= collisionBit;
-        }
-        void unsetCollision()         { JS_ASSERT(isLive()); keyHash &= ~sCollisionBit; }
-        bool hasCollision() const     { JS_ASSERT(isLive()); return keyHash & sCollisionBit; }
-        bool matchHash(HashNumber hn) { return (keyHash & ~sCollisionBit) == hn; }
-        HashNumber getKeyHash() const { JS_ASSERT(!hasCollision()); return keyHash; }
-    };
+    typedef HashTableEntry<T> Entry;
 
     
 
@@ -174,6 +186,8 @@ class HashTable : private AllocPolicy
         Entry *cur, *end;
 
       public:
+        Range() : cur(NULL), end(NULL) {}
+
         bool empty() const {
             return cur == end;
         }
@@ -287,13 +301,13 @@ class HashTable : private AllocPolicy
     static const uint8    sMaxAlphaFrac = 192; 
     static const uint8    sInvMaxAlpha  = 171; 
     static const HashNumber sGoldenRatio  = 0x9E3779B9U;       
-    static const HashNumber sCollisionBit = 1;
-    static const HashNumber sFreeKey = 0;
-    static const HashNumber sRemovedKey = 1;
+    static const HashNumber sFreeKey = Entry::sFreeKey;
+    static const HashNumber sRemovedKey = Entry::sRemovedKey;
+    static const HashNumber sCollisionBit = Entry::sCollisionBit;
 
     static bool isLiveHash(HashNumber hash)
     {
-        return hash > sRemovedKey;
+        return Entry::isLiveHash(hash);
     }
 
     static HashNumber prepareHash(const Lookup& l)
@@ -573,8 +587,12 @@ class HashTable : private AllocPolicy
   public:
     void clear()
     {
-        for (Entry *e = table, *end = table + tableCapacity; e != end; ++e)
-            *e = Entry();
+        if (tl::IsPodType<Entry>::result) {
+            memset(table, 0, sizeof(*table) * tableCapacity);
+        } else {
+            for (Entry *e = table, *end = table + tableCapacity; e != end; ++e)
+                *e = Entry();
+        }
         removedCount = 0;
         entryCount = 0;
 #ifdef DEBUG
@@ -798,6 +816,39 @@ struct DefaultHasher<T *>: PointerHasher<T *, tl::FloorLog2<sizeof(void *)>::res
 
 
 
+template <class Key, class Value>
+class HashMapEntry
+{
+    template <class, class, class> friend class detail::HashTable;
+    template <class> friend class detail::HashTableEntry;
+    void operator=(const HashMapEntry &rhs) {
+        const_cast<Key &>(key) = rhs.key;
+        value = rhs.value;
+    }
+
+  public:
+    HashMapEntry() : key(), value() {}
+    HashMapEntry(const Key &k, const Value &v) : key(k), value(v) {}
+
+    const Key key;
+    Value value;
+};
+
+namespace tl {
+
+template <class T>
+struct IsPodType<detail::HashTableEntry<T> > {
+    static const bool result = IsPodType<T>::result;
+};
+
+template <class K, class V>
+struct IsPodType<HashMapEntry<K, V> >
+{
+    static const bool result = IsPodType<K>::result && IsPodType<V>::result;
+};
+
+} 
+
 
 
 
@@ -820,21 +871,7 @@ class HashMap
   public:
     typedef typename HashPolicy::Lookup Lookup;
 
-    class Entry
-    {
-        template <class, class, class> friend class detail::HashTable;
-        void operator=(const Entry &rhs) {
-            const_cast<Key &>(key) = rhs.key;
-            value = rhs.value;
-        }
-
-      public:
-        Entry() : key(), value() {}
-        Entry(const Key &k, const Value &v) : key(k), value(v) {}
-
-        const Key key;
-        Value value;
-    };
+    typedef HashMapEntry<Key, Value> Entry;
 
   private:
     

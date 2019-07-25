@@ -148,34 +148,28 @@ ComputeThis(JSContext *cx, StackFrame *fp);
 
 
 
-enum ConstructOption {
-    INVOKE_NORMAL = 0,
-    INVOKE_CONSTRUCTOR = StackFrame::CONSTRUCTING
-};
-JS_STATIC_ASSERT(INVOKE_CONSTRUCTOR != INVOKE_NORMAL);
 
-static inline uintN
-ToReportFlags(ConstructOption option)
+
+
+
+extern bool
+Invoke(JSContext *cx, const CallArgs &args, MaybeConstruct construct = NO_CONSTRUCT);
+
+
+
+
+
+
+
+
+inline bool
+Invoke(JSContext *cx, InvokeArgsGuard &args, MaybeConstruct construct = NO_CONSTRUCT)
 {
-    return (uintN)option;
+    args.setActive();
+    bool ok = Invoke(cx, ImplicitCast<CallArgs>(args), construct);
+    args.setInactive();
+    return ok;
 }
-
-static inline uint32
-ToFrameFlags(ConstructOption option)
-{
-    return (uintN)option;
-}
-
-
-
-
-
-
-
-
-
-extern JS_REQUIRES_STACK bool
-Invoke(JSContext *cx, const CallArgs &args, ConstructOption option = INVOKE_NORMAL);
 
 
 
@@ -235,13 +229,18 @@ extern bool
 ExternalInvokeConstructor(JSContext *cx, const Value &fval, uintN argc, Value *argv,
                           Value *rval);
 
+extern bool
+ExternalExecute(JSContext *cx, JSScript *script, JSObject &scopeChain, Value *rval);
 
 
 
 
-extern JS_FORCES_STACK bool
-Execute(JSContext *cx, JSObject &chain, JSScript *script,
-        StackFrame *prev, uintN flags, Value *result);
+
+
+
+extern bool
+Execute(JSContext *cx, JSScript *script, JSObject &scopeChain, const Value &thisv,
+        ExecuteType type, StackFrame *evalInFrame, Value *result);
 
 
 enum InterpMode
@@ -293,8 +292,12 @@ ValueToId(JSContext *cx, const Value &v, jsid *idp);
 
 
 
-extern const js::Value &
-GetUpvar(JSContext *cx, uintN level, js::UpvarCookie cookie);
+extern const Value &
+GetUpvar(JSContext *cx, uintN level, UpvarCookie cookie);
+
+
+extern StackFrame *
+FindUpvarFrame(JSContext *cx, uintN targetLevel);
 
 } 
 
@@ -336,22 +339,6 @@ js_LeaveWith(JSContext *cx);
 
 extern JSBool
 js_DoIncDec(JSContext *cx, const JSCodeSpec *cs, js::Value *vp, js::Value *vp2);
-
-
-
-
-
-extern JS_REQUIRES_STACK void
-js_LogOpcode(JSContext *cx);
-
-
-
-
-extern void
-js_MeterOpcodePair(JSOp op1, JSOp op2);
-
-extern void
-js_MeterSlotOpcode(JSOp op, uint32 slot);
 
 #endif 
 

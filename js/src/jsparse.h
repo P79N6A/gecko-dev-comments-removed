@@ -49,7 +49,13 @@
 #include "jsatom.h"
 #include "jsscan.h"
 
+#include "frontend/ParseMaps.h"
+
 JS_BEGIN_EXTERN_C
+
+
+
+
 
 
 
@@ -305,7 +311,7 @@ namespace js {
 
 struct GlobalScope {
     GlobalScope(JSContext *cx, JSObject *globalObj, JSCodeGenerator *cg)
-      : globalObj(globalObj), cg(cg), defs(cx)
+      : globalObj(globalObj), cg(cg), defs(cx), names(cx)
     { }
 
     struct GlobalDef {
@@ -335,7 +341,7 @@ struct GlobalScope {
 
 
     Vector<GlobalDef, 16> defs;
-    JSAtomList      names;
+    AtomIndexMap      names;
 };
 
 } 
@@ -402,8 +408,8 @@ struct JSParseNode {
 
         } name;
         struct {                        
-            JSAtomSet   names;          
-            JSParseNode *tree;          
+            js::AtomDefnMapPtr  defnMap;
+            JSParseNode         *tree;  
         } nameset;
         struct {                        
             JSAtom      *atom;          
@@ -437,19 +443,20 @@ struct JSParseNode {
 #define pn_objbox       pn_u.name.objbox
 #define pn_expr         pn_u.name.expr
 #define pn_lexdef       pn_u.name.lexdef
-#define pn_names        pn_u.nameset.names
+#define pn_names        pn_u.nameset.defnMap
 #define pn_tree         pn_u.nameset.tree
 #define pn_dval         pn_u.dval
 #define pn_atom2        pn_u.apair.atom2
 
 protected:
-    void inline init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
+    void init(js::TokenKind type, JSOp op, JSParseNodeArity arity) {
         pn_type = type;
         pn_op = op;
         pn_arity = arity;
         pn_parens = false;
         JS_ASSERT(!pn_used);
         JS_ASSERT(!pn_defn);
+        pn_names.init();
         pn_next = pn_link = NULL;
     }
 
@@ -651,7 +658,7 @@ public:
     JSParseNode *last() const {
         JS_ASSERT(pn_arity == PN_LIST);
         JS_ASSERT(pn_count != 0);
-        return (JSParseNode *)((char *)pn_tail - offsetof(JSParseNode, pn_next));
+        return (JSParseNode *)(uintptr_t(pn_tail) - offsetof(JSParseNode, pn_next));
     }
 
     void makeEmpty() {
@@ -852,11 +859,16 @@ struct LexicalScopeNode : public JSParseNode {
 
 
 
+
+
+
+
 #define dn_uses         pn_link
 
 struct JSDefinition : public JSParseNode
 {
     
+
 
 
 
@@ -1046,10 +1058,11 @@ typedef struct BindData BindData;
 
 namespace js {
 
+enum FunctionSyntaxKind { Expression, Statement };
+
 struct Parser : private js::AutoGCRooter
 {
     JSContext           *const context; 
-    JSAtomListElement   *aleFreeList;
     void                *tempFreeList[NUM_TEMP_FREELISTS];
     TokenStream         tokenStream;
     void                *tempPoolMark;  
@@ -1064,7 +1077,10 @@ struct Parser : private js::AutoGCRooter
     
     js::AutoKeepAtoms   keepAtoms;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
+    
+    bool                foldConstants;
+
+    Parser(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL, bool fold = true);
     ~Parser();
 
     friend void js::AutoGCRooter::trace(JSTracer *trc);
@@ -1086,7 +1102,6 @@ struct Parser : private js::AutoGCRooter
     JSVersion versionWithFlags() const { return tokenStream.versionWithFlags(); }
     JSVersion versionNumber() const { return tokenStream.versionNumber(); }
     bool hasXML() const { return tokenStream.hasXML(); }
-    bool hasAnonFunFix() const { return tokenStream.hasAnonFunFix(); }
 
     
 
@@ -1108,7 +1123,7 @@ struct Parser : private js::AutoGCRooter
 
 
 
-    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, uintN lambda);
+    JSFunction *newFunction(JSTreeContext *tc, JSAtom *atom, FunctionSyntaxKind kind);
 
     
 
@@ -1190,13 +1205,13 @@ private:
 
     bool recognizeDirectivePrologue(JSParseNode *pn, bool *isDirectivePrologueMember);
 
-    enum FunctionType { GETTER, SETTER, GENERAL };
+    enum FunctionType { Getter, Setter, Normal };
     bool functionArguments(JSTreeContext &funtc, JSFunctionBox *funbox, JSParseNode **list);
     JSParseNode *functionBody();
-    JSParseNode *functionDef(JSAtom *name, FunctionType type, uintN lambda);
+    JSParseNode *functionDef(JSAtom *name, FunctionType type, FunctionSyntaxKind kind);
 
     JSParseNode *condition();
-    JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid,
+    JSParseNode *comprehensionTail(JSParseNode *kid, uintN blockid, bool isGenexp,
                                    js::TokenKind type = js::TOK_SEMI, JSOp op = JSOP_NOP);
     JSParseNode *generatorExpr(JSParseNode *kid);
     JSBool argumentList(JSParseNode *listNode);
@@ -1234,17 +1249,17 @@ Parser::reportErrorNumber(JSParseNode *pn, uintN flags, uintN errorNumber, ...)
 
 struct Compiler
 {
-    Parser parser;
+    Parser      parser;
     GlobalScope *globalScope;
 
     Compiler(JSContext *cx, JSPrincipals *prin = NULL, StackFrame *cfp = NULL);
 
-    
+    JSContext *context() {
+        return parser.context;
+    }
 
-
-    inline bool
-    init(const jschar *base, size_t length, const char *filename, uintN lineno, JSVersion version)
-    {
+    bool init(const jschar *base, size_t length, const char *filename, uintN lineno,
+              JSVersion version) {
         return parser.init(base, length, filename, lineno, version);
     }
 

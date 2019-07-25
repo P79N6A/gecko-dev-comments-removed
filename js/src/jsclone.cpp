@@ -1,40 +1,40 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+ * ***** BEGIN LICENSE BLOCK *****
+ * Version: MPL 1.1/GPL 2.0/LGPL 2.1
+ *
+ * The contents of this file are subject to the Mozilla Public License Version
+ * 1.1 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ * http://www.mozilla.org/MPL/
+ *
+ * Software distributed under the License is distributed on an "AS IS" basis,
+ * WITHOUT WARRANTY OF ANY KIND, either express or implied. See the License
+ * for the specific language governing rights and limitations under the
+ * License.
+ *
+ * The Original Code is JavaScript structured data serialization.
+ *
+ * The Initial Developer of the Original Code is
+ * the Mozilla Foundation.
+ * Portions created by the Initial Developer are Copyright (C) 2010
+ * the Initial Developer. All Rights Reserved.
+ *
+ * Contributor(s):
+ *   Jason Orendorff <jorendorff@mozilla.com>
+ *
+ * Alternatively, the contents of this file may be used under the terms of
+ * either the GNU General Public License Version 2 or later (the "GPL"), or
+ * the GNU Lesser General Public License Version 2.1 or later (the "LGPL"),
+ * in which case the provisions of the GPL or the LGPL are applicable instead
+ * of those above. If you wish to allow use of your version of this file only
+ * under the terms of either the GPL or the LGPL, and not to allow others to
+ * use your version of this file under the terms of the MPL, indicate your
+ * decision by deleting the provisions above and replace them with the notice
+ * and other provisions required by the GPL or the LGPL. If you do not delete
+ * the provisions above, a recipient may use your version of this file under
+ * the terms of any one of the MPL, the GPL or the LGPL.
+ *
+ * ***** END LICENSE BLOCK ***** */
 
 #include "jsclone.h"
 #include "jsdate.h"
@@ -42,6 +42,7 @@
 #include "jstypedarray.h"
 
 #include "jsregexpinlines.h"
+#include "jstypedarrayinlines.h"
 
 using namespace js;
 
@@ -69,7 +70,7 @@ ReadStructuredClone(JSContext *cx, const uint64_t *data, size_t nbytes, Value *v
 }
 
 enum StructuredDataType {
-    
+    /* Structured data types provided by the engine */
     SCTAG_FLOAT_MAX = 0xFFF00000,
     SCTAG_NULL = 0xFFFF0000,
     SCTAG_UNDEFINED,
@@ -84,6 +85,7 @@ enum StructuredDataType {
     SCTAG_BOOLEAN_OBJECT,
     SCTAG_STRING_OBJECT,
     SCTAG_NUMBER_OBJECT,
+    SCTAG_BACK_REFERENCE_OBJECT,
     SCTAG_TYPED_ARRAY_MIN = 0xFFFF0100,
     SCTAG_TYPED_ARRAY_MAX = SCTAG_TYPED_ARRAY_MIN + TypedArray::TYPE_MAX - 1,
     SCTAG_END_OF_BUILTIN_TYPES
@@ -164,7 +166,7 @@ SCInput::read(uint64_t *p)
 bool
 SCInput::readPair(uint32_t *tagp, uint32_t *datap)
 {
-    uint64_t u = 0;     
+    uint64_t u = 0;     /* initialize to shut GCC up */
     bool ok = read(&u);
     if (ok) {
         *tagp = uint32_t(u >> 32);
@@ -173,10 +175,10 @@ SCInput::readPair(uint32_t *tagp, uint32_t *datap)
     return ok;
 }
 
-
-
-
-
+/*
+ * The purpose of this never-inlined function is to avoid a strange g++ build
+ * error on OS X 10.5 (see bug 624080).  :-(
+ */
 static JS_NEVER_INLINE double
 CanonicalizeNan(double d)
 {
@@ -202,10 +204,10 @@ SCInput::readArray(T *p, size_t nelems)
 {
     JS_STATIC_ASSERT(sizeof(uint64_t) % sizeof(T) == 0);
 
-    
-
-
-
+    /*
+     * Fail if nelems is so huge as to make JS_HOWMANY overflow or if nwords is
+     * larger than the remaining data.
+     */
     size_t nwords = JS_HOWMANY(nelems, sizeof(uint64_t) / sizeof(T));
     if (nelems + sizeof(uint64_t) / sizeof(T) - 1 < nelems || nwords > size_t(end - point))
         return eof();
@@ -252,15 +254,15 @@ PairToUInt64(uint32_t tag, uint32_t data)
 bool
 SCOutput::writePair(uint32_t tag, uint32_t data)
 {
-    
-
-
-
-
-
-
-
-
+    /*
+     * As it happens, the tag word appears after the data word in the output.
+     * This is because exponents occupy the last 2 bytes of jsdoubles on the
+     * little-endian platforms we care most about.
+     *
+     * For example, JSVAL_TRUE is written using writePair(SCTAG_BOOLEAN, 1).
+     * PairToUInt64 produces the number 0xFFFF000200000001.
+     * That is written out as the bytes 01 00 00 00 02 00 FF FF.
+     */
     return write(PairToUInt64(tag, data));
 }
 
@@ -317,7 +319,7 @@ SCOutput::writeArray(const T *p, size_t nelems)
     if (!buf.growByUninitialized(nwords))
         return false;
 
-    buf.back() = 0;  
+    buf.back() = 0;  /* zero-pad to an 8-byte boundary */
 
     T *q = (T *) &buf[start];
     if (sizeof(T) == 1) {
@@ -375,7 +377,7 @@ inline void
 JSStructuredCloneWriter::checkStack()
 {
 #ifdef DEBUG
-    
+    /* To avoid making serialization O(n^2), limit stack-checking at 10. */
     const size_t MAX = 10;
 
     size_t limit = JS_MIN(counts.length(), MAX);
@@ -390,7 +392,6 @@ JSStructuredCloneWriter::checkStack()
     else
         JS_ASSERT(total <= ids.length());
 
-    JS_ASSERT(memory.count() == objs.length());
     size_t j = objs.length();
     for (size_t i = 0; i < limit; i++)
         JS_ASSERT(memory.has(&objs[--j].toObject()));
@@ -400,11 +401,11 @@ JSStructuredCloneWriter::checkStack()
 static inline uint32_t
 ArrayTypeToTag(uint32_t type)
 {
-    
-
-
-
-
+    /*
+     * As long as these are all true, we can just add.  Note that for backward
+     * compatibility, the tags cannot change.  So if the ArrayType type codes
+     * change, this function and TagToArrayType will have to do more work.
+     */
     JS_STATIC_ASSERT(TypedArray::TYPE_INT8 == 0);
     JS_STATIC_ASSERT(TypedArray::TYPE_UINT8 == 1);
     JS_STATIC_ASSERT(TypedArray::TYPE_INT16 == 2);
@@ -457,9 +458,9 @@ JSStructuredCloneWriter::writeTypedArray(JSObject *obj)
 bool
 JSStructuredCloneWriter::writeArrayBuffer(JSObject *obj)
 {
-    ArrayBuffer *abuf = ArrayBuffer::fromJSObject(obj);
-    return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, abuf->byteLength) &&
-           out.writeBytes(abuf->data, abuf->byteLength);
+    obj = ArrayBuffer::getArrayBuffer(obj);
+    return out.writePair(SCTAG_ARRAY_BUFFER_OBJECT, ArrayBuffer::getByteLength(obj)) &&
+           out.writeBytes(ArrayBuffer::getDataOffset(obj), ArrayBuffer::getByteLength(obj));
 }
 
 bool
@@ -467,23 +468,23 @@ JSStructuredCloneWriter::startObject(JSObject *obj)
 {
     JS_ASSERT(obj->isArray() || obj->isObject());
 
-    
-    MemorySet::AddPtr p = memory.lookupForAdd(obj);
-    if (p) {
-        JSContext *cx = context();
-        if (callbacks && callbacks->reportError)
-            callbacks->reportError(cx, JS_SCERR_RECURSION);
-        else
-            JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_SC_RECURSION);
+    /* Handle cycles in the object graph. */
+    CloneMemory::AddPtr p = memory.lookupForAdd(obj);
+    if (p)
+        return out.writePair(SCTAG_BACK_REFERENCE_OBJECT, p->value);
+    if (!memory.add(p, obj, memory.count()))
+        return false;
+
+    if (memory.count() == UINT32_MAX) {
+        JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
+                             JSMSG_NEED_DIET, "object graph to serialize");
         return false;
     }
-    if (!memory.add(p, obj))
-        return false;
 
-    
-
-
-
+    /*
+     * Get enumerable property ids and put them in reverse order so that they
+     * will come off the stack in forward order.
+     */
     size_t initialLength = ids.length();
     if (!GetPropertyNames(context(), obj, JSITER_OWNONLY, &ids))
         return false;
@@ -491,12 +492,12 @@ JSStructuredCloneWriter::startObject(JSObject *obj)
     size_t count = size_t(end - begin);
     Reverse(begin, end);
 
-    
+    /* Push obj and count to the stack. */
     if (!objs.append(ObjectValue(*obj)) || !counts.append(count))
         return false;
     checkStack();
 
-    
+    /* Write the header for obj. */
     return out.writePair(obj->isArray() ? SCTAG_ARRAY_OBJECT : SCTAG_OBJECT_OBJECT, 0);
 }
 
@@ -526,7 +527,7 @@ JSStructuredCloneWriter::startWrite(const js::Value &v)
             return startObject(obj);
         } else if (js_IsTypedArray(obj)) {
             return writeTypedArray(obj);
-        } else if (js_IsArrayBuffer(obj) && ArrayBuffer::fromJSObject(obj)) {
+        } else if (js_IsArrayBuffer(obj)) {
             return writeArrayBuffer(obj);
         } else if (obj->isBoolean()) {
             return out.writePair(SCTAG_BOOLEAN_OBJECT, obj->getPrimitiveThis().toBoolean());
@@ -539,7 +540,7 @@ JSStructuredCloneWriter::startWrite(const js::Value &v)
 
         if (callbacks && callbacks->write)
             return callbacks->write(context(), this, obj, closure);
-        
+        /* else fall through */
     }
 
     JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL, JSMSG_SC_UNSUPPORTED_TYPE);
@@ -560,11 +561,11 @@ JSStructuredCloneWriter::write(const Value &v)
             ids.popBack();
             checkStack();
             if (JSID_IS_STRING(id) || JSID_IS_INT(id)) {
-                
-
-
-
-
+                /*
+                 * If obj still has an own property named id, write it out.
+                 * The cost of re-checking could be avoided by using
+                 * NativeIterators.
+                 */
                 JSObject *obj2;
                 JSProperty *prop;
                 if (!js_HasOwnProperty(context(), obj->getOps()->lookupProperty, obj, id,
@@ -574,17 +575,21 @@ JSStructuredCloneWriter::write(const Value &v)
 
                 if (prop) {
                     Value val;
-                    if (!writeId(id) || !obj->getProperty(context(), id, &val) || !startWrite(val))
+                    if (!writeId(id) ||
+                        !obj->getProperty(context(), id, &val) ||
+                        !startWrite(val))
                         return false;
                 }
             }
         } else {
             out.writePair(SCTAG_NULL, 0);
-            memory.remove(obj);
             objs.popBack();
             counts.popBack();
         }
     }
+
+    memory.clear();
+
     return true;
 }
 
@@ -610,7 +615,7 @@ class Chars {
 
     bool allocate(JSContext *cx, size_t len) {
         JS_ASSERT(!p);
-        
+        // We're going to null-terminate!
         p = (jschar *) cx->malloc_((len + 1) * sizeof(jschar));
         this->cx = cx;
         if (p) {
@@ -679,9 +684,8 @@ JSStructuredCloneReader::readArrayBuffer(uint32_t nbytes, Value *vp)
     if (!obj)
         return false;
     vp->setObject(*obj);
-    ArrayBuffer *abuf = ArrayBuffer::fromJSObject(obj);
-    JS_ASSERT(abuf->byteLength == nbytes);
-    return in.readArray((uint8_t *) abuf->data, nbytes);
+    JS_ASSERT(ArrayBuffer::getByteLength(obj) == nbytes);
+    return in.readArray(ArrayBuffer::getDataOffset(obj), nbytes);
 }
 
 bool
@@ -760,7 +764,7 @@ JSStructuredCloneReader::startRead(Value *vp)
         const jschar *chars = str->getChars(context());
         if (!chars)
             return false;
-        JSObject *obj = RegExp::createObjectNoStatics(context(), chars, length, data);
+        JSObject *obj = RegExp::createObjectNoStatics(context(), chars, length, data, NULL);
         if (!obj)
             return false;
         vp->setObject(*obj);
@@ -772,9 +776,20 @@ JSStructuredCloneReader::startRead(Value *vp)
         JSObject *obj = (tag == SCTAG_ARRAY_OBJECT)
                         ? NewDenseEmptyArray(context())
                         : NewBuiltinClassInstance(context(), &js_ObjectClass);
-        if (!obj || !objs.append(ObjectValue(*obj)))
+        if (!obj || !objs.append(ObjectValue(*obj)) ||
+            !allObjs.append(ObjectValue(*obj)))
             return false;
         vp->setObject(*obj);
+        break;
+      }
+
+      case SCTAG_BACK_REFERENCE_OBJECT: {
+        if (data >= allObjs.length()) {
+            JS_ReportErrorNumber(context(), js_GetErrorMessage, NULL,
+                                 JSMSG_SC_BAD_SERIALIZED_DATA,
+                                 "invalid input");
+        }
+        *vp = allObjs[data];
         break;
       }
 
@@ -857,5 +872,8 @@ JSStructuredCloneReader::read(Value *vp)
                 return false;
         }
     }
+
+    allObjs.clear();
+
     return true;
 }

@@ -51,238 +51,6 @@
 
 namespace js {
 
-
-
-
-class StackSegment
-{
-    
-    ContextStack        *stack_;
-
-    
-    StackSegment        *previousInContext_;
-
-    
-    StackSegment        *previousInMemory_;
-
-    
-    StackFrame          *initialFrame_;
-
-    
-    FrameRegs           *suspendedRegs_;
-
-    
-    JSObject            *initialVarObj_;
-
-    
-    bool                saved_;
-
-    
-#if JS_BITS_PER_WORD == 32
-    void                *padding;
-#endif
-
-    
-
-
-
-#define NON_NULL_SUSPENDED_REGS ((FrameRegs *)0x1)
-
-  public:
-    StackSegment()
-      : stack_(NULL), previousInContext_(NULL), previousInMemory_(NULL),
-        initialFrame_(NULL), suspendedRegs_(NON_NULL_SUSPENDED_REGS),
-        initialVarObj_(NULL), saved_(false)
-    {
-        JS_ASSERT(empty());
-    }
-
-    
-
-    Value *valueRangeBegin() const {
-        return (Value *)(this + 1);
-    }
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    bool empty() const {
-        JS_ASSERT(!!stack_ == !!initialFrame_);
-        JS_ASSERT_IF(!stack_, suspendedRegs_ == NON_NULL_SUSPENDED_REGS && !saved_);
-        return !stack_;
-    }
-
-    bool isActive() const {
-        JS_ASSERT_IF(!suspendedRegs_, stack_ && !saved_);
-        JS_ASSERT_IF(!stack_, suspendedRegs_ == NON_NULL_SUSPENDED_REGS);
-        return !suspendedRegs_;
-    }
-
-    bool isSuspended() const {
-        JS_ASSERT_IF(!stack_ || !suspendedRegs_, !saved_);
-        JS_ASSERT_IF(!stack_, suspendedRegs_ == NON_NULL_SUSPENDED_REGS);
-        return stack_ && suspendedRegs_;
-    }
-
-    
-
-    bool isSaved() const {
-        JS_ASSERT_IF(saved_, isSuspended());
-        return saved_;
-    }
-
-    
-
-    void joinContext(ContextStack &stack, StackFrame &frame) {
-        JS_ASSERT(empty());
-        stack_ = &stack;
-        initialFrame_ = &frame;
-        suspendedRegs_ = NULL;
-        JS_ASSERT(isActive());
-    }
-
-    void leaveContext() {
-        JS_ASSERT(isActive());
-        stack_ = NULL;
-        initialFrame_ = NULL;
-        suspendedRegs_ = NON_NULL_SUSPENDED_REGS;
-        JS_ASSERT(empty());
-    }
-
-    ContextStack &stack() const {
-        JS_ASSERT(!empty());
-        return *stack_;
-    }
-
-    ContextStack *maybeStack() const {
-        return stack_;
-    }
-
-#undef NON_NULL_SUSPENDED_REGS
-
-    
-
-    void suspend(FrameRegs &regs) {
-        JS_ASSERT(isActive());
-        JS_ASSERT(contains(regs.fp()));
-        suspendedRegs_ = &regs;
-        JS_ASSERT(isSuspended());
-    }
-
-    void resume() {
-        JS_ASSERT(isSuspended());
-        suspendedRegs_ = NULL;
-        JS_ASSERT(isActive());
-    }
-
-    
-
-    void save(FrameRegs &regs) {
-        JS_ASSERT(!isSuspended());
-        suspend(regs);
-        saved_ = true;
-        JS_ASSERT(isSaved());
-    }
-
-    void restore() {
-        JS_ASSERT(isSaved());
-        saved_ = false;
-        resume();
-        JS_ASSERT(!isSuspended());
-    }
-
-    
-
-    StackFrame *initialFrame() const {
-        JS_ASSERT(!empty());
-        return initialFrame_;
-    }
-
-    FrameRegs &currentRegs() const {
-        JS_ASSERT(!empty());
-        return isActive() ? stack_->regs() : suspendedRegs();
-    }
-
-    StackFrame *currentFrame() const {
-        return currentRegs().fp();
-    }
-
-    StackFrame *currentFrameOrNull() const {
-        return empty() ? NULL : currentFrame();
-    }
-
-    
-
-    FrameRegs &suspendedRegs() const {
-        JS_ASSERT(isSuspended());
-        return *suspendedRegs_;
-    }
-
-    StackFrame *suspendedFrame() const {
-        return suspendedRegs_->fp();
-    }
-
-    
-
-    void setPreviousInContext(StackSegment *seg) {
-        previousInContext_ = seg;
-    }
-
-    StackSegment *previousInContext() const  {
-        return previousInContext_;
-    }
-
-    void setPreviousInMemory(StackSegment *seg) {
-        previousInMemory_ = seg;
-    }
-
-    StackSegment *previousInMemory() const  {
-        return previousInMemory_;
-    }
-
-    void setInitialVarObj(JSObject *obj) {
-        JS_ASSERT(!empty());
-        initialVarObj_ = obj;
-    }
-
-    bool hasInitialVarObj() {
-        JS_ASSERT(!empty());
-        return initialVarObj_ != NULL;
-    }
-
-    JSObject &initialVarObj() const {
-        JS_ASSERT(!empty() && initialVarObj_);
-        return *initialVarObj_;
-    }
-
-    bool contains(const StackFrame *fp) const;
-
-    StackFrame *computeNextFrame(StackFrame *fp) const;
-};
-
-static const size_t VALUES_PER_STACK_SEGMENT = sizeof(StackSegment) / sizeof(Value);
-JS_STATIC_ASSERT(sizeof(StackSegment) % sizeof(Value) == 0);
-
-
-
 inline void
 StackFrame::initPrev(JSContext *cx)
 {
@@ -329,12 +97,13 @@ StackFrame::resetInlinePrev(StackFrame *prevfp, jsbytecode *prevpc)
 
 inline void
 StackFrame::initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
-                          uint32 nactual, uint32 flagsArg)
+                          JSScript *script, uint32 nactual, StackFrame::Flags flagsArg)
 {
     JS_ASSERT((flagsArg & ~(CONSTRUCTING |
                             OVERFLOW_ARGS |
                             UNDERFLOW_ARGS)) == 0);
     JS_ASSERT(fun == callee.getFunctionPrivate());
+    JS_ASSERT(script == fun->script());
 
     
     flags_ = FUNCTION | HAS_PREVPC | HAS_SCOPECHAIN | flagsArg;
@@ -347,14 +116,22 @@ StackFrame::initCallFrame(JSContext *cx, JSObject &callee, JSFunction *fun,
     JS_ASSERT(!hasHookData());
     JS_ASSERT(annotation() == NULL);
     JS_ASSERT(!hasCallObj());
+
+    SetValueRangeToUndefined(slots(), script->nfixed);
 }
 
 inline void
-StackFrame::resetInvokeCallFrame()
+StackFrame::resetCallFrame(JSScript *script)
 {
+    JS_ASSERT(script == this->script());
+
     
 
     putActivationObjects();
+    markActivationObjectsAsPut();
+
+    if (flags_ & UNDERFLOW_ARGS)
+        SetValueRangeToUndefined(formalArgs() + numActualArgs(), formalArgsEnd());
 
     JS_ASSERT(!(flags_ & ~(FUNCTION |
                            OVERFLOW_ARGS |
@@ -385,18 +162,20 @@ StackFrame::resetInvokeCallFrame()
 
     JS_ASSERT(exec.fun == callee().getFunctionPrivate());
     scopeChain_ = callee().getParent();
+
+    SetValueRangeToUndefined(slots(), script->nfixed);
 }
 
 inline void
-StackFrame::initCallFrameCallerHalf(JSContext *cx, uint32 flagsArg,
+StackFrame::initJitFrameCallerHalf(JSContext *cx, StackFrame::Flags flags,
                                     void *ncode)
 {
-    JS_ASSERT((flagsArg & ~(CONSTRUCTING |
-                            FUNCTION |
-                            OVERFLOW_ARGS |
-                            UNDERFLOW_ARGS)) == 0);
+    JS_ASSERT((flags & ~(CONSTRUCTING |
+                         FUNCTION |
+                         OVERFLOW_ARGS |
+                         UNDERFLOW_ARGS)) == 0);
 
-    flags_ = FUNCTION | flagsArg;
+    flags_ = FUNCTION | flags;
     prev_ = cx->fp();
     ncode_ = ncode;
 }
@@ -406,7 +185,7 @@ StackFrame::initCallFrameCallerHalf(JSContext *cx, uint32 flagsArg,
 
 
 inline void
-StackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
+StackFrame::initJitFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
 {
     exec.fun = fun;
     if (flags_ & (OVERFLOW_ARGS | UNDERFLOW_ARGS))
@@ -417,114 +196,22 @@ StackFrame::initCallFrameEarlyPrologue(JSFunction *fun, uint32 nactual)
 
 
 
-inline void
-StackFrame::initCallFrameLatePrologue()
+inline bool
+StackFrame::initJitFrameLatePrologue(JSContext *cx, Value **limit)
 {
-    SetValueRangeToUndefined(slots(), script()->nfixed);
-}
-
-inline void
-StackFrame::initEvalFrame(JSContext *cx, JSScript *script, StackFrame *prev, uint32 flagsArg)
-{
-    JS_ASSERT(flagsArg & EVAL);
-    JS_ASSERT((flagsArg & ~(EVAL | DEBUGGER)) == 0);
-    JS_ASSERT(prev->isScriptFrame());
-
-    
-    Value *dstvp = (Value *)this - 2;
-    Value *srcvp = prev->hasArgs()
-                   ? prev->formalArgs() - 2
-                   : (Value *)prev - 2;
-    dstvp[0] = srcvp[0];
-    dstvp[1] = srcvp[1];
-    JS_ASSERT_IF(prev->isFunctionFrame(),
-                 dstvp[0].toObject().isFunction());
-
-    
-    flags_ = flagsArg | HAS_PREVPC | HAS_SCOPECHAIN |
-             (prev->flags_ & (FUNCTION | GLOBAL));
-    if (isFunctionFrame()) {
-        exec = prev->exec;
-        args.script = script;
-    } else {
-        exec.script = script;
-    }
-
-    scopeChain_ = &prev->scopeChain();
-    prev_ = prev;
-    prevpc_ = prev->pcQuadratic(cx->stack, NULL, &prevInline_);
-    JS_ASSERT(!hasImacropc());
-    JS_ASSERT(!hasHookData());
-    setAnnotation(prev->annotation());
-}
-
-inline void
-StackFrame::initGlobalFrame(JSScript *script, JSObject &chain, StackFrame *prev, uint32 flagsArg)
-{
-    JS_ASSERT((flagsArg & ~(EVAL | DEBUGGER)) == 0);
-
-    
-    Value *vp = (Value *)this - 2;
-    vp[0].setUndefined();
-    vp[1].setUndefined();  
-
-    
-    flags_ = flagsArg | GLOBAL | HAS_PREVPC | HAS_SCOPECHAIN;
-    exec.script = script;
-    args.script = (JSScript *)0xbad;
-    scopeChain_ = &chain;
-    prev_ = prev;
-    JS_ASSERT(!hasImacropc());
-    JS_ASSERT(!hasHookData());
-    JS_ASSERT(annotation() == NULL);
-}
-
-inline void
-StackFrame::initDummyFrame(JSContext *cx, JSObject &chain)
-{
-    PodZero(this);
-    flags_ = DUMMY | HAS_PREVPC | HAS_SCOPECHAIN;
-    initPrev(cx);
-    chain.isGlobal();
-    setScopeChainNoCallObj(chain);
-}
-
-inline void
-StackFrame::stealFrameAndSlots(Value *vp, StackFrame *otherfp,
-                               Value *othervp, Value *othersp)
-{
-    JS_ASSERT(vp == (Value *)this - (otherfp->formalArgsEnd() - othervp));
-    JS_ASSERT(othervp == otherfp->actualArgs() - 2);
-    JS_ASSERT(othersp >= otherfp->slots());
-    JS_ASSERT(othersp <= otherfp->base() + otherfp->numSlots());
-
-    PodCopy(vp, othervp, othersp - othervp);
-    JS_ASSERT(vp == this->actualArgs() - 2);
-
-    
-
-
-
-
-
-    if (hasCallObj()) {
-        JSObject &obj = callObj();
-        obj.setPrivate(this);
-        otherfp->flags_ &= ~HAS_CALL_OBJ;
-        if (js_IsNamedLambda(fun())) {
-            JSObject *env = obj.getParent();
-            JS_ASSERT(env->getClass() == &js_DeclEnvClass);
-            env->setPrivate(this);
+    uintN nvals = script()->nslots + VALUES_PER_STACK_FRAME;
+    Value *required = (Value *)this + nvals;
+    if (required >= *limit) {
+        ContextStack &stack = cx->stack;
+        if (!stack.space().tryBumpLimit(NULL, slots(), nvals, limit)) {
+            stack.popFrameAfterOverflow();
+            js_ReportOverRecursed(cx);
+            return false;
         }
     }
-    if (hasArgsObj()) {
-        ArgumentsObject &argsobj = argsObj();
-        if (argsobj.isNormalArguments())
-            argsobj.setPrivate(this);
-        else
-            JS_ASSERT(!argsobj.getPrivate());
-        otherfp->flags_ &= ~HAS_ARGS_OBJ;
-    }
+
+    SetValueRangeToUndefined(slots(), script()->nfixed);
+    return true;
 }
 
 inline Value &
@@ -596,13 +283,6 @@ struct CopyTo
         return true;
     }
 };
-
-JS_ALWAYS_INLINE void
-StackFrame::clearMissingArgs()
-{
-    if (flags_ & UNDERFLOW_ARGS)
-        SetValueRangeToUndefined(formalArgs() + numActualArgs(), formalArgsEnd());
-}
 
 inline uintN
 StackFrame::numActualArgs() const
@@ -731,43 +411,6 @@ StackFrame::markActivationObjectsAsPut()
 
 
 
-JS_ALWAYS_INLINE void
-StackSpace::pushOverride(Value *top, StackOverride *prev)
-{
-    *prev = override_;
-
-    override_.top = top;
-#ifdef DEBUG
-    override_.seg = seg_;
-    override_.frame = seg_->currentFrameOrNull();
-    override_.inlined = override_.frame ? seg_->currentRegs().inlined() : NULL;
-#endif
-
-    JS_ASSERT(prev->top < override_.top);
-}
-
-JS_ALWAYS_INLINE void
-StackSpace::popOverride(const StackOverride &prev)
-{
-    JS_ASSERT(prev.top < override_.top);
-
-    JS_ASSERT_IF(seg_->empty(), override_.frame == NULL);
-    JS_ASSERT_IF(!seg_->empty(), override_.frame == seg_->currentFrame() || override_.inlined);
-    JS_ASSERT(override_.seg == seg_);
-
-    override_ = prev;
-}
-
-JS_ALWAYS_INLINE Value *
-StackSpace::activeFirstUnused() const
-{
-    JS_ASSERT(seg_->isActive());
-
-    Value *max = Max(seg_->stack().regs().sp, override_.top);
-    JS_ASSERT(max == firstUnused());
-    return max;
-}
-
 #ifdef JS_TRACER
 JS_ALWAYS_INLINE bool
 StackSpace::ensureEnoughSpaceToEnterTrace()
@@ -825,61 +468,44 @@ StackSpace::getStackLimit(JSContext *cx)
 
 
 JS_ALWAYS_INLINE bool
-ContextStack::isCurrentAndActive() const
+OOMCheck::operator()(JSContext *cx, StackSpace &space, Value *from, uintN nvals)
 {
-    assertSegmentsInSync();
-    return seg_ && seg_->isActive() && seg_ == space().currentSegment();
+    return space.ensureSpace(cx, from, nvals);
 }
 
-namespace detail {
-
-struct OOMCheck
+JS_ALWAYS_INLINE bool
+LimitCheck::operator()(JSContext *cx, StackSpace &space, Value *from, uintN nvals)
 {
-    JS_ALWAYS_INLINE bool
-    operator()(JSContext *cx, StackSpace &space, Value *from, uintN nvals)
-    {
-        return space.ensureSpace(cx, from, nvals);
+    
+
+
+
+    nvals += VALUES_PER_STACK_FRAME;
+    JS_ASSERT(from < *limit);
+    if (*limit - from >= ptrdiff_t(nvals))
+        return true;
+
+    if (topncode) {
+        
+
+
+
+        cx->regs().updateForNcode(cx->fp()->jit(), topncode);
     }
-};
 
-struct LimitCheck
-{
-    Value **limit;
-    void *topncode;
-
-    LimitCheck(Value **limit, void *topncode)
-        : limit(limit), topncode(topncode)
-    {}
-
-    JS_ALWAYS_INLINE bool
-    operator()(JSContext *cx, StackSpace &space, Value *from, uintN nvals)
-    {
-        JS_ASSERT(from < *limit);
-        if (*limit - from >= ptrdiff_t(nvals))
-            return true;
-
-        if (topncode) {
-            
-
-
-
-            cx->regs().updateForNcode(cx->fp()->jit(), topncode);
-        }
-
-        return space.tryBumpLimit(cx, from, nvals, limit);
-    }
-};
-
-}  
+    return space.tryBumpLimit(cx, from, nvals, limit);
+}
 
 template <class Check>
 JS_ALWAYS_INLINE StackFrame *
-ContextStack::getCallFrame(JSContext *cx, Value *firstUnused, uintN nactual,
-                           JSFunction *fun, JSScript *script, uint32 *flags,
-                           Check check) const
+ContextStack::getCallFrame(JSContext *cx, const CallArgs &args,
+                           JSFunction *fun, JSScript *script,
+                           StackFrame::Flags *flags, Check check) const
 {
     JS_ASSERT(fun->script() == script);
-    JS_ASSERT(space().firstUnused() == firstUnused);
+    JS_ASSERT(space().firstUnused() == args.end());
+
+    Value *firstUnused = args.end();
 
     
     uintN nvals = VALUES_PER_STACK_FRAME + script->nslots + StackSpace::STACK_JIT_EXTRA;
@@ -887,209 +513,108 @@ ContextStack::getCallFrame(JSContext *cx, Value *firstUnused, uintN nactual,
 
     
 
-    if (nactual == nformal) {
+    if (args.argc() == nformal) {
         if (JS_UNLIKELY(!check(cx, space(), firstUnused, nvals)))
             return NULL;
         return reinterpret_cast<StackFrame *>(firstUnused);
     }
 
-    if (nactual < nformal) {
-        *flags |= StackFrame::UNDERFLOW_ARGS;
-        uintN nmissing = nformal - nactual;
+    if (args.argc() < nformal) {
+        *flags = StackFrame::Flags(*flags | StackFrame::UNDERFLOW_ARGS);
+        uintN nmissing = nformal - args.argc();
         if (JS_UNLIKELY(!check(cx, space(), firstUnused, nmissing + nvals)))
             return NULL;
         SetValueRangeToUndefined(firstUnused, nmissing);
         return reinterpret_cast<StackFrame *>(firstUnused + nmissing);
     }
 
-    *flags |= StackFrame::OVERFLOW_ARGS;
+    *flags = StackFrame::Flags(*flags | StackFrame::OVERFLOW_ARGS);
     uintN ncopy = 2 + nformal;
     if (JS_UNLIKELY(!check(cx, space(), firstUnused, ncopy + nvals)))
         return NULL;
 
     Value *dst = firstUnused;
-    Value *src = firstUnused - (2 + nactual);
+    Value *src = args.base();
     PodCopy(dst, src, ncopy);
     return reinterpret_cast<StackFrame *>(firstUnused + ncopy);
 }
 
-JS_ALWAYS_INLINE StackFrame *
-ContextStack::getInlineFrame(JSContext *cx, Value *sp, uintN nactual,
-                             JSFunction *fun, JSScript *script, uint32 *flags) const
+template <class Check>
+JS_ALWAYS_INLINE bool
+ContextStack::pushInlineFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
+                              JSObject &callee, JSFunction *fun, JSScript *script,
+                              MaybeConstruct construct, Check check)
 {
-    JS_ASSERT(isCurrentAndActive());
-    JS_ASSERT(cx->regs().sp == sp);
+    JS_ASSERT(onTop());
+    JS_ASSERT(&regs == &seg_->regs());
+    JS_ASSERT(regs.sp == args.end());
+    
+    JS_ASSERT(callee.getFunctionPrivate() == fun);
+    JS_ASSERT(fun->script() == script);
 
-    return getCallFrame(cx, sp, nactual, fun, script, flags, detail::OOMCheck());
+    StackFrame::Flags flags = ToFrameFlags(construct);
+    StackFrame *fp = getCallFrame(cx, args, fun, script, &flags, check);
+    if (!fp)
+        return false;
+
+    
+    fp->initCallFrame(cx, callee, fun, script, args.argc(), flags);
+    regs.prepareToRun(*fp, script);
+    return true;
 }
 
 JS_ALWAYS_INLINE StackFrame *
-ContextStack::getInlineFrameWithinLimit(JSContext *cx, Value *sp, uintN nactual,
-                                        JSFunction *fun, JSScript *script, uint32 *flags,
-                                        Value **limit, void *topncode) const
+ContextStack::getFixupFrame(JSContext *cx, FrameRegs &regs, const CallArgs &args,
+                            JSFunction *fun, JSScript *script, void *ncode,
+                            MaybeConstruct construct, LimitCheck check)
 {
-    JS_ASSERT(isCurrentAndActive());
-    JS_ASSERT(cx->regs().sp == sp);
+    JS_ASSERT(onTop());
+    JS_ASSERT(&regs == &cx->regs());
+    JS_ASSERT(regs.sp == args.end());
+    JS_ASSERT(args.callee().getFunctionPrivate() == fun);
+    JS_ASSERT(fun->script() == script);
 
-    return getCallFrame(cx, sp, nactual, fun, script, flags, detail::LimitCheck(limit, topncode));
+    StackFrame::Flags flags = ToFrameFlags(construct);
+    StackFrame *fp = getCallFrame(cx, args, fun, script, &flags, check);
+    if (!fp)
+        return NULL;
+
+    
+    fp->initJitFrameCallerHalf(cx, flags, ncode);
+    fp->initJitFrameEarlyPrologue(fun, args.argc());
+    return fp;
 }
 
 JS_ALWAYS_INLINE void
-ContextStack::pushInlineFrame(JSScript *script, StackFrame *fp, FrameRegs &regs)
+ContextStack::popInlineFrame(FrameRegs &regs)
 {
-    JS_ASSERT(isCurrentAndActive());
-    JS_ASSERT(regs_ == &regs && script == fp->script());
+    JS_ASSERT(onTop());
+    JS_ASSERT(&regs == &seg_->regs());
 
-    regs.prepareToRun(fp, script);
-}
-
-JS_ALWAYS_INLINE void
-ContextStack::popInlineFrame()
-{
-    JS_ASSERT(isCurrentAndActive());
-
-    StackFrame *fp = regs_->fp();
+    StackFrame *fp = regs.fp();
     fp->putActivationObjects();
 
     Value *newsp = fp->actualArgs() - 1;
     JS_ASSERT(newsp >= fp->prev()->base());
 
     newsp[-1] = fp->returnValue();
-    regs_->popFrame(newsp);
+    regs.popFrame(newsp);
 }
 
-JS_ALWAYS_INLINE bool
-ContextStack::pushInvokeArgs(JSContext *cx, uintN argc, InvokeArgsGuard *argsGuard)
+inline void
+ContextStack::popFrameAfterOverflow()
 {
-    if (!isCurrentAndActive())
-        return pushInvokeArgsSlow(cx, argc, argsGuard);
-
-    Value *start = space().activeFirstUnused();
-    uintN vplen = 2 + argc;
-    if (!space().ensureSpace(cx, start, vplen))
-        return false;
-
-    Value *vp = start;
-    ImplicitCast<CallArgs>(*argsGuard) = CallArgsFromVp(argc, vp);
-
     
-
-
-
-    space().pushOverride(vp + vplen, &argsGuard->prevOverride_);
-
-    argsGuard->stack_ = this;
-    return true;
-}
-
-JS_ALWAYS_INLINE void
-ContextStack::popInvokeArgs(const InvokeArgsGuard &argsGuard)
-{
-    if (argsGuard.seg_) {
-        popInvokeArgsSlow(argsGuard);
-        return;
-    }
-
-    JS_ASSERT(isCurrentAndActive());
-    space().popOverride(argsGuard.prevOverride_);
-}
-
-JS_ALWAYS_INLINE
-InvokeArgsGuard::~InvokeArgsGuard()
-{
-    if (JS_UNLIKELY(!pushed()))
-        return;
-    stack_->popInvokeArgs(*this);
-}
-
-JS_ALWAYS_INLINE StackFrame *
-ContextStack::getInvokeFrame(JSContext *cx, const CallArgs &args,
-                             JSFunction *fun, JSScript *script,
-                             uint32 *flags, InvokeFrameGuard *frameGuard) const
-{
-    uintN argc = args.argc();
-    Value *start = args.argv() + argc;
-    JS_ASSERT(start == space().firstUnused());
-    StackFrame *fp = getCallFrame(cx, start, argc, fun, script, flags, detail::OOMCheck());
-    if (!fp)
-        return NULL;
-
-    frameGuard->regs_.prepareToRun(fp, script);
-    return fp;
-}
-
-JS_ALWAYS_INLINE void
-ContextStack::pushInvokeFrame(const CallArgs &args, InvokeFrameGuard *frameGuard)
-{
-    JS_ASSERT(space().firstUnused() == args.argv() + args.argc());
-
-    if (JS_UNLIKELY(space().seg_->empty())) {
-        pushInvokeFrameSlow(frameGuard);
-        return;
-    }
-
-    frameGuard->prevRegs_ = regs_;
-    regs_ = &frameGuard->regs_;
-    JS_ASSERT(isCurrentAndActive());
-
-    frameGuard->stack_ = this;
-}
-
-JS_ALWAYS_INLINE void
-ContextStack::popInvokeFrame(const InvokeFrameGuard &frameGuard)
-{
-    JS_ASSERT(isCurrentAndActive());
-    JS_ASSERT(&frameGuard.regs_ == regs_);
-
-    if (JS_UNLIKELY(seg_->initialFrame() == regs_->fp())) {
-        popInvokeFrameSlow(frameGuard);
-        return;
-    }
-
-    regs_->fp()->putActivationObjects();
-    regs_ = frameGuard.prevRegs_;
-}
-
-JS_ALWAYS_INLINE void
-InvokeFrameGuard::pop()
-{
-    JS_ASSERT(pushed());
-    stack_->popInvokeFrame(*this);
-    stack_ = NULL;
-}
-
-JS_ALWAYS_INLINE
-InvokeFrameGuard::~InvokeFrameGuard()
-{
-    if (pushed())
-        pop();
-}
-
-JS_ALWAYS_INLINE JSObject &
-ContextStack::currentVarObj() const
-{
-    if (regs_->fp()->hasCallObj())
-        return regs_->fp()->callObj();
-    return seg_->initialVarObj();
-}
-
-inline StackFrame *
-ContextStack::findFrameAtLevel(uintN targetLevel) const
-{
-    StackFrame *fp = regs_->fp();
-    while (true) {
-        JS_ASSERT(fp && fp->isScriptFrame());
-        if (fp->script()->staticLevel == targetLevel)
-            break;
-        fp = fp->prev();
-    }
-    return fp;
+    FrameRegs &regs = seg_->regs();
+    StackFrame *fp = regs.fp();
+    regs.popFrame(fp->actualArgsEnd());
 }
 
 inline JSScript *
 ContextStack::currentScript(jsbytecode **ppc) const
 {
-    StackFrame *fp = regs_ ? regs_->fp() : NULL;
+    FrameRegs *regs = maybeRegs();
+    StackFrame *fp = regs ? regs->fp() : NULL;
     while (fp && fp->isDummyFrame())
         fp = fp->prev();
     if (!fp) {
@@ -1099,7 +624,7 @@ ContextStack::currentScript(jsbytecode **ppc) const
     }
 
 #ifdef JS_METHODJIT
-    mjit::CallSite *inlined = regs_->inlined();
+    mjit::CallSite *inlined = regs->inlined();
     if (inlined) {
         JS_ASSERT(inlined->inlineIndex < fp->jit()->nInlineFrames);
         mjit::InlineFrame *frame = &fp->jit()->inlineFrames()[inlined->inlineIndex];
@@ -1117,7 +642,7 @@ ContextStack::currentScript(jsbytecode **ppc) const
 inline JSObject *
 ContextStack::currentScriptedScopeChain() const
 {
-    return &regs_->fp()->scopeChain();
+    return &fp()->scopeChain();
 }
 
 
@@ -1206,5 +731,4 @@ ArgumentsObject::getElements(uint32 start, uint32 count, Value *vp)
 }
 
 } 
-
 #endif 

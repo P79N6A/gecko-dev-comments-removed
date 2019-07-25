@@ -42,6 +42,7 @@
 
 #include "jscntxt.h"
 #include "jsexn.h"
+#include "jsmath.h"
 #include "json.h"
 
 #include "jsobjinlines.h"
@@ -123,7 +124,7 @@ GlobalObject::create(JSContext *cx, Class *clasp)
     type->singleton = obj;
 
     GlobalObject *globalObj = obj->asGlobal();
-
+    globalObj->makeVarObj();
     globalObj->syncSpecialEquality();
 
     
@@ -187,7 +188,7 @@ GlobalObject::clear(JSContext *cx)
     RegExpStatics::extractFrom(this)->clear();
 
     
-    setSlot(EVAL_ALLOWED, UndefinedValue());
+    setSlot(RUNTIME_CODEGEN_ENABLED, UndefinedValue());
 
     
 
@@ -199,9 +200,9 @@ GlobalObject::clear(JSContext *cx)
 }
 
 bool
-GlobalObject::isEvalAllowed(JSContext *cx)
+GlobalObject::isRuntimeCodeGenEnabled(JSContext *cx)
 {
-    Value &v = getSlotRef(EVAL_ALLOWED);
+    Value &v = getSlotRef(RUNTIME_CODEGEN_ENABLED);
     if (v.isUndefined()) {
         JSSecurityCallbacks *callbacks = JS_GetSecurityCallbacks(cx);
 

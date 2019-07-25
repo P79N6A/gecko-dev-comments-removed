@@ -77,10 +77,9 @@
 
 #include "jsinferinlines.h"
 #include "jsobjinlines.h"
-#include "jsstrinlines.h"
-#include "jsautooplen.h"
 
 #include "vm/Stack-inl.h"
+#include "vm/String-inl.h"
 
 using namespace js;
 using namespace js::gc;
@@ -157,7 +156,7 @@ struct IdHashPolicy {
     }
 };
 
-typedef HashSet<jsid, IdHashPolicy, ContextAllocPolicy> IdSet;
+typedef HashSet<jsid, IdHashPolicy> IdSet;
 
 static inline bool
 NewKeyValuePair(JSContext *cx, jsid id, const Value &val, Value *rval)
@@ -174,37 +173,23 @@ NewKeyValuePair(JSContext *cx, jsid id, const Value &val, Value *rval)
 
 static inline bool
 Enumerate(JSContext *cx, JSObject *obj, JSObject *pobj, jsid id,
-          bool enumerable, bool sharedPermanent, uintN flags, IdSet& ht,
-          AutoIdVector *props)
+          bool enumerable, uintN flags, IdSet& ht, AutoIdVector *props)
 {
-    IdSet::AddPtr p = ht.lookupForAdd(id);
-    JS_ASSERT_IF(obj == pobj && !obj->isProxy(), !p);
+    JS_ASSERT_IF(flags & JSITER_OWNONLY, obj == pobj);
 
-    
-    if (JS_UNLIKELY(!!p))
-        return true;
+    if (!(flags & JSITER_OWNONLY) || pobj->isProxy() || pobj->getOps()->enumerate) {
+        
+        IdSet::AddPtr p = ht.lookupForAdd(id);
+        if (JS_UNLIKELY(!!p))
+            return true;
 
-    
-
-
-
-
-    if ((pobj->getProto() || pobj->isProxy()) && !ht.add(p, id))
-        return false;
-
-    if (JS_UNLIKELY(flags & JSITER_OWNONLY)) {
         
 
 
 
 
-
-
-
-        if (!pobj->getProto() && id == ATOM_TO_JSID(cx->runtime->atomState.protoAtom))
-            return true;
-        if (pobj != obj && !(sharedPermanent && pobj->getClass() == obj->getClass()))
-            return true;
+        if ((pobj->getProto() || pobj->isProxy() || pobj->getOps()->enumerate) && !ht.add(p, id))
+            return false;
     }
 
     if (enumerable || (flags & JSITER_HIDDEN))
@@ -225,8 +210,7 @@ EnumerateNativeProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uintN fl
 
         if (!JSID_IS_DEFAULT_XML_NAMESPACE(shape.propid) &&
             !shape.isAlias() &&
-            !Enumerate(cx, obj, pobj, shape.propid, shape.enumerable(),
-                       shape.isSharedPermanent(), flags, ht, props))
+            !Enumerate(cx, obj, pobj, shape.propid, shape.enumerable(), flags, ht, props))
         {
             return false;
         }
@@ -240,7 +224,7 @@ static bool
 EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uintN flags,
                               IdSet &ht, AutoIdVector *props)
 {
-    if (!Enumerate(cx, obj, pobj, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), false, true,
+    if (!Enumerate(cx, obj, pobj, ATOM_TO_JSID(cx->runtime->atomState.lengthAtom), false,
                    flags, ht, props)) {
         return false;
     }
@@ -251,7 +235,7 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
         for (size_t i = 0; i < initlen; ++i, ++vp) {
             if (!vp->isMagic(JS_ARRAY_HOLE)) {
                 
-                if (!Enumerate(cx, obj, pobj, INT_TO_JSID(i), true, false, flags, ht, props))
+                if (!Enumerate(cx, obj, pobj, INT_TO_JSID(i), true, flags, ht, props))
                     return false;
             }
         }
@@ -263,11 +247,6 @@ EnumerateDenseArrayProperties(JSContext *cx, JSObject *obj, JSObject *pobj, uint
 static bool
 Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
 {
-    
-
-
-
-
     IdSet ht(cx);
     if (!ht.init(32))
         return NULL;
@@ -301,7 +280,7 @@ Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
                         return false;
                 }
                 for (size_t n = 0, len = proxyProps.length(); n < len; n++) {
-                    if (!Enumerate(cx, obj, pobj, proxyProps[n], true, false, flags, ht, props))
+                    if (!Enumerate(cx, obj, pobj, proxyProps[n], true, flags, ht, props))
                         return false;
                 }
                 
@@ -321,13 +300,13 @@ Snapshot(JSContext *cx, JSObject *obj, uintN flags, AutoIdVector *props)
                         return false;
                     if (state.isNull())
                         break;
-                    if (!Enumerate(cx, obj, pobj, id, true, false, flags, ht, props))
+                    if (!Enumerate(cx, obj, pobj, id, true, flags, ht, props))
                         return false;
                 }
             }
         }
 
-        if (JS_UNLIKELY(pobj->isXML()))
+        if ((flags & JSITER_OWNONLY) || pobj->isXML())
             break;
     } while ((pobj = pobj->getProto()) != NULL);
 
@@ -977,6 +956,9 @@ js_IteratorMore(JSContext *cx, JSObject *iterobj, Value *rval)
     }
 
     
+    JS_CHECK_RECURSION(cx, return false);
+
+    
     if (!ni) {
         jsid id = ATOM_TO_JSID(cx->runtime->atomState.nextAtom);
         if (!js_GetMethod(cx, iterobj, id, JSGET_METHOD_BARRIER, rval))
@@ -1166,7 +1148,8 @@ js_NewGenerator(JSContext *cx)
     if (!obj)
         return NULL;
 
-    StackFrame *stackfp = cx->fp();
+    FrameRegs &stackRegs = cx->regs();
+    StackFrame *stackfp = stackRegs.fp();
     JS_ASSERT(stackfp->base() == cx->regs().sp);
     JS_ASSERT(stackfp->actualArgs() <= stackfp->formalArgs());
 
@@ -1196,11 +1179,8 @@ js_NewGenerator(JSContext *cx)
     gen->floating = genfp;
 
     
-    gen->regs = cx->regs();
-    gen->regs.rebaseFromTo(stackfp, genfp);
-
-    
-    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, cx->regs().sp);
+    gen->regs.rebaseFromTo(stackRegs, *genfp);
+    genfp->stealFrameAndSlots(genvp, stackfp, stackvp, stackRegs.sp);
     genfp->initFloatingGenerator();
 
     obj->setPrivate(gen);
@@ -1269,54 +1249,29 @@ SendToGenerator(JSContext *cx, JSGeneratorOp op, JSObject *obj,
     }
 
     StackFrame *genfp = gen->floatingFrame();
-    Value *genvp = gen->floatingStack;
-    uintN vplen = genfp->formalArgsEnd() - genvp;
 
-    StackFrame *stackfp;
-    Value *stackvp;
     JSBool ok;
     {
-        
-
-
-
-        GeneratorFrameGuard frame;
-        if (!cx->stack.getGeneratorFrame(cx, vplen, genfp->numSlots(), &frame)) {
+        GeneratorFrameGuard gfg;
+        if (!cx->stack.pushGeneratorFrame(cx, gen, &gfg)) {
             gen->state = JSGEN_CLOSED;
             return JS_FALSE;
         }
-        stackfp = frame.fp();
-        stackvp = frame.vp();
 
-        
-        stackfp->stealFrameAndSlots(stackvp, genfp, genvp, gen->regs.sp);
-        stackfp->resetGeneratorPrev(cx);
-        stackfp->unsetFloatingGenerator();
-        gen->regs.rebaseFromTo(genfp, stackfp);
-        MUST_FLOW_THROUGH("restore");
-
-        
-        cx->stack.pushGeneratorFrame(gen->regs, &frame);
+        StackFrame *fp = gfg.fp();
+        gen->regs = cx->regs();
+        JS_ASSERT(gen->liveFrame() == fp);
 
         cx->enterGenerator(gen);   
         JSObject *enumerators = cx->enumerators;
         cx->enumerators = gen->enumerators;
 
-        ok = RunScript(cx, stackfp->script(), stackfp);
+        ok = RunScript(cx, fp->script(), fp);
 
         gen->enumerators = cx->enumerators;
         cx->enumerators = enumerators;
         cx->leaveGenerator(gen);
-
-        
-
-
-
-        genfp->stealFrameAndSlots(genvp, stackfp, stackvp, gen->regs.sp);
-        genfp->setFloatingGenerator();
     }
-    MUST_FLOW_LABEL(restore)
-    gen->regs.rebaseFromTo(stackfp, genfp);
 
     if (gen->floatingFrame()->isYielding()) {
         

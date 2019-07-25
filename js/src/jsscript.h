@@ -278,16 +278,7 @@ class Bindings {
 
 
 
-
-
-
-
-
-
-
-
-    jsuword *
-    getLocalNameArray(JSContext *cx, JSArenaPool *pool);
+    bool getLocalNameArray(JSContext *cx, Vector<JSAtom *> *namesp);
 
     
 
@@ -359,8 +350,6 @@ class Bindings {
 
 
 
-
-
     const js::Shape *lastArgument() const;
     const js::Shape *lastVariable() const;
     const js::Shape *lastUpvar() const;
@@ -395,6 +384,42 @@ namespace mjit { struct JITScript; }
 namespace analyze { class ScriptAnalysis; }
 }
 #endif
+
+class JSPCCounters {
+    size_t numBytecodes;
+    int *counts;
+
+ public:
+    JSPCCounters() : numBytecodes(0), counts(NULL) {
+    }
+
+    ~JSPCCounters() {
+        JS_ASSERT(!counts);
+    }
+
+    bool init(JSContext *cx, size_t numBytecodes);
+    void destroy(JSContext *cx);
+
+    
+    operator void*() const {
+        return counts;
+    }
+
+    int *get(int runmode) {
+        JS_ASSERT(runmode >= 0 && runmode < JSRUNMODE_COUNT);
+        return counts ? &counts[numBytecodes * runmode] : NULL;
+    }
+
+    int& get(int runmode, size_t offset) {
+        JS_ASSERT(offset < numBytecodes);
+        JS_ASSERT(counts);
+        return get(runmode)[offset];
+    }
+
+    size_t numRunmodes() const {
+        return JSRUNMODE_COUNT;
+    }
+};
 
 struct JSScript {
     
@@ -438,6 +463,7 @@ struct JSScript {
 
 
 
+  public:
     uint8           objectsOffset;  
 
 
@@ -514,6 +540,9 @@ struct JSScript {
 #endif
 
     uint32          *closedSlots; 
+
+    
+    JSPCCounters    pcCounters;
 
   public:
 
@@ -609,6 +638,9 @@ struct JSScript {
     }
 #endif
 
+    JS_FRIEND_API(size_t) totalSize();  
+    uint32 numNotes();                  
+
     
     jssrcnote *notes() { return (jssrcnote *)(code + length); }
 
@@ -617,32 +649,32 @@ struct JSScript {
 
     JSObjectArray *objects() {
         JS_ASSERT(isValidOffset(objectsOffset));
-        return (JSObjectArray *)((uint8 *) (this + 1) + objectsOffset);
+        return reinterpret_cast<JSObjectArray *>(uintptr_t(this + 1) + objectsOffset);
     }
 
     JSUpvarArray *upvars() {
         JS_ASSERT(isValidOffset(upvarsOffset));
-        return (JSUpvarArray *) ((uint8 *) (this + 1) + upvarsOffset);
+        return reinterpret_cast<JSUpvarArray *>(uintptr_t(this + 1) + upvarsOffset);
     }
 
     JSObjectArray *regexps() {
         JS_ASSERT(isValidOffset(regexpsOffset));
-        return (JSObjectArray *) ((uint8 *) (this + 1) + regexpsOffset);
+        return reinterpret_cast<JSObjectArray *>(uintptr_t(this + 1) + regexpsOffset);
     }
 
     JSTryNoteArray *trynotes() {
         JS_ASSERT(isValidOffset(trynotesOffset));
-        return (JSTryNoteArray *) ((uint8 *) (this + 1) + trynotesOffset);
+        return reinterpret_cast<JSTryNoteArray *>(uintptr_t(this + 1) + trynotesOffset);
     }
 
     js::GlobalSlotArray *globals() {
         JS_ASSERT(isValidOffset(globalsOffset));
-        return (js::GlobalSlotArray *) ((uint8 *) (this + 1) + globalsOffset);
+        return reinterpret_cast<js::GlobalSlotArray *>(uintptr_t(this + 1) + globalsOffset);
     }
 
     JSConstArray *consts() {
         JS_ASSERT(isValidOffset(constOffset));
-        return (JSConstArray *) ((uint8 *) (this + 1) + constOffset);
+        return reinterpret_cast<JSConstArray *>(uintptr_t(this + 1) + constOffset);
     }
 
     JSAtom *getAtom(size_t index) {
@@ -732,12 +764,10 @@ extern JS_FRIEND_DATA(js::Class) js_ScriptClass;
 extern JSObject *
 js_InitScriptClass(JSContext *cx, JSObject *obj);
 
+namespace js {
 
-
-
-
-extern JSBool
-js_InitRuntimeScriptState(JSRuntime *rt);
+extern bool
+InitRuntimeScriptState(JSRuntime *rt);
 
 
 
@@ -746,7 +776,9 @@ js_InitRuntimeScriptState(JSRuntime *rt);
 
 
 extern void
-js_FreeRuntimeScriptState(JSRuntime *rt);
+FreeRuntimeScriptState(JSRuntime *rt);
+
+} 
 
 extern void
 js_MarkScriptFilename(const char *filename);

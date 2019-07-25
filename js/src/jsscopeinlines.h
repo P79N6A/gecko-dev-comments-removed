@@ -41,6 +41,7 @@
 #define jsscopeinlines_h___
 
 #include <new>
+#include "jsarray.h"
 #include "jsbool.h"
 #include "jscntxt.h"
 #include "jsdbgapi.h"
@@ -349,12 +350,7 @@ Shape::insertIntoDictionary(js::Shape **dictp)
 inline
 EmptyShape::EmptyShape(JSCompartment *comp, js::Class *aclasp)
   : js::Shape(comp, aclasp)
-{
-#ifdef DEBUG
-    if (comp->rt->meterEmptyShapes())
-        comp->emptyShapes.put(this);
-#endif
-}
+{}
 
  inline EmptyShape *
 EmptyShape::getEmptyArgumentsShape(JSContext *cx)
@@ -362,6 +358,29 @@ EmptyShape::getEmptyArgumentsShape(JSContext *cx)
     return ensure(cx, &NormalArgumentsObject::jsClass, &cx->compartment->emptyArgumentsShape);
 }
 
+ inline EmptyShape *
+EmptyShape::getEmptyBlockShape(JSContext *cx)
+{
+    return ensure(cx, &js_BlockClass, &cx->compartment->emptyBlockShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyDeclEnvShape(JSContext *cx)
+{
+    return ensure(cx, &js_DeclEnvClass, &cx->compartment->emptyDeclEnvShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyEnumeratorShape(JSContext *cx)
+{
+    return ensure(cx, &js_IteratorClass, &cx->compartment->emptyEnumeratorShape);
+}
+
+ inline EmptyShape *
+EmptyShape::getEmptyWithShape(JSContext *cx)
+{
+    return ensure(cx, &js_WithClass, &cx->compartment->emptyWithShape);
+}
 
 } 
 

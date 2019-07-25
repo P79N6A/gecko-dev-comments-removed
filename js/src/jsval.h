@@ -465,9 +465,6 @@ static JS_ALWAYS_INLINE jsval_layout
 BOOLEAN_TO_JSVAL_IMPL(JSBool b)
 {
     jsval_layout l;
-
-    
-    
     JS_ASSERT(b == JS_TRUE || b == JS_FALSE);
     l.s.tag = JSVAL_TAG_BOOLEAN;
     l.s.payload.boo = b;
@@ -661,9 +658,6 @@ static JS_ALWAYS_INLINE jsval_layout
 BOOLEAN_TO_JSVAL_IMPL(JSBool b)
 {
     jsval_layout l;
-
-    
-    
     JS_ASSERT(b == JS_TRUE || b == JS_FALSE);
     l.asBits = ((uint64)(uint32)b) | JSVAL_SHIFTED_TAG_BOOLEAN;
     return l;
@@ -834,8 +828,8 @@ extern "C++"
 #else 
 
 
-typedef JSVAL_ALIGNMENT uint64 jsval;
-typedef ptrdiff_t              jsid;
+typedef JSVAL_ALIGNMENT JSUint64 jsval;
+typedef ptrdiff_t                jsid;
 
 
 #define JSVAL_BITS(v)    (v)

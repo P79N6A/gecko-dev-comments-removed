@@ -63,7 +63,6 @@
 #include "jspropertycacheinlines.h"
 #include "jsscopeinlines.h"
 #include "jsscriptinlines.h"
-#include "jsstrinlines.h"
 #include "jsobjinlines.h"
 #include "jscntxtinlines.h"
 #include "jsatominlines.h"
@@ -176,41 +175,29 @@ top:
 static void
 InlineReturn(VMFrame &f)
 {
-    JS_ASSERT(f.cx->fp() != f.entryfp);
-    JS_ASSERT(!js_IsActiveWithOrBlock(f.cx, &f.cx->fp()->scopeChain(), 0));
-    f.cx->stack.popInlineFrame();
+    JS_ASSERT(f.fp() != f.entryfp);
+    JS_ASSERT(!js_IsActiveWithOrBlock(f.cx, &f.fp()->scopeChain(), 0));
+    f.cx->stack.popInlineFrame(f.regs);
 }
 
 void JS_FASTCALL
 stubs::SlowCall(VMFrame &f, uint32 argc)
 {
-    Value *vp = f.regs.sp - (argc + 2);
-
-    if (!Invoke(f.cx, InvokeArgsAlreadyOnTheStack(argc, vp)))
+    CallArgs args = CallArgsFromSp(argc, f.regs.sp);
+    if (!Invoke(f.cx, args))
         THROW();
 
-    f.script()->types.monitor(f.cx, f.pc(), vp[0]);
+    f.script()->types.monitor(f.cx, f.pc(), args.rval());
 }
 
 void JS_FASTCALL
 stubs::SlowNew(VMFrame &f, uint32 argc)
 {
-    Value *vp = f.regs.sp - (argc + 2);
-
-    if (!InvokeConstructor(f.cx, InvokeArgsAlreadyOnTheStack(argc, vp)))
+    CallArgs args = CallArgsFromSp(argc, f.regs.sp);
+    if (!InvokeConstructor(f.cx, args))
         THROW();
 
-    f.script()->types.monitor(f.cx, f.pc(), vp[0]);
-}
-
-
-
-
-
-static inline void
-RemovePartialFrame(JSContext *cx, StackFrame *fp)
-{
-    cx->stack.popInlineFrame();
+    f.script()->types.monitor(f.cx, f.pc(), args.rval());
 }
 
 static inline bool
@@ -228,7 +215,7 @@ CheckStackQuota(VMFrame &f)
         return true;
 
     
-    RemovePartialFrame(f.cx, f.fp());
+    f.cx->stack.popFrameAfterOverflow();
     js_ReportOverRecursed(f.cx);
 
     return false;
@@ -263,17 +250,18 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
 
 
 
-    uint32 flags         = oldfp->isConstructingFlag();
-    JSFunction *fun      = oldfp->fun();
-    void *ncode          = oldfp->nativeReturnAddress();
+    MaybeConstruct construct = oldfp->isConstructing();
+    JSFunction *fun          = oldfp->fun();
+    JSScript *script         = fun->script();
+    void *ncode              = oldfp->nativeReturnAddress();
 
     
     f.regs.popPartialFrame((Value *)oldfp);
 
     
-    StackFrame *newfp = cx->stack.getInlineFrameWithinLimit(cx, (Value*) oldfp, nactual,
-                                                            fun, fun->script(), &flags,
-                                                            &f.stackLimit, ncode);
+    CallArgs args = CallArgsFromSp(nactual, f.regs.sp);
+    StackFrame *fp = cx->stack.getFixupFrame(cx, f.regs, args, fun, script, ncode,
+                                             construct, LimitCheck(&f.stackLimit, ncode));
 
     
 
@@ -281,17 +269,11 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
 
 
 
-    if (!newfp)
+    if (!fp)
         THROWV(NULL);
 
     
-    newfp->initCallFrameCallerHalf(cx, flags, ncode);
-
-    
-    newfp->initCallFrameEarlyPrologue(fun, nactual);
-
-    
-    return newfp;
+    return fp;
 }
 
 struct ResetStubRejoin {
@@ -318,30 +300,18 @@ stubs::CompileFunction(VMFrame &f, uint32 argc)
 }
 
 static inline bool
-UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint32 argc)
+UncachedInlineCall(VMFrame &f, MaybeConstruct construct, void **pret, bool *unjittable, uint32 argc)
 {
     JSContext *cx = f.cx;
-    Value *vp = f.regs.sp - (argc + 2);
-    JSObject &callee = vp->toObject();
+    CallArgs args = CallArgsFromSp(argc, f.regs.sp);
+    JSObject &callee = args.callee();
     JSFunction *newfun = callee.getFunctionPrivate();
     JSScript *newscript = newfun->script();
 
-    bool newType = (flags & StackFrame::CONSTRUCTING) && cx->typeInferenceEnabled() &&
+    bool newType = construct && cx->typeInferenceEnabled() &&
         types::UseNewType(cx, f.script(), f.pc());
 
-    CallArgs args = CallArgsFromVp(argc, vp);
-    types::TypeMonitorCall(cx, args, flags & StackFrame::CONSTRUCTING);
-
-    
-    StackFrame *newfp = cx->stack.getInlineFrameWithinLimit(cx, f.regs.sp, argc,
-                                                            newfun, newscript, &flags,
-                                                            &f.stackLimit, NULL);
-    if (JS_UNLIKELY(!newfp))
-        return false;
-
-    
-    newfp->initCallFrame(cx, callee, newfun, argc, flags);
-    SetValueRangeToUndefined(newfp->slots(), newscript->nfixed);
+    types::TypeMonitorCall(cx, args, construct);
 
     
 
@@ -351,18 +321,20 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
     PreserveRegsGuard regsGuard(cx, regs);
 
     
-    cx->stack.pushInlineFrame(newscript, newfp, regs);
-
-    
-    if (newfun->isHeavyweight() && !js::CreateFunCallObject(cx, newfp))
+    LimitCheck check(&f.stackLimit, NULL);
+    if (!cx->stack.pushInlineFrame(cx, regs, args, callee, newfun, newscript, construct, check))
         return false;
 
     
-    if (newscript->getJITStatus(newfp->isConstructing()) == JITScript_None) {
-        CompileStatus status = CanMethodJIT(cx, newscript, newfp, CompileRequest_Interpreter);
+    if (newfun->isHeavyweight() && !js::CreateFunCallObject(cx, regs.fp()))
+        return false;
+
+    
+    if (newscript->getJITStatus(f.fp()->isConstructing()) == JITScript_None) {
+        CompileStatus status = CanMethodJIT(cx, newscript, regs.fp(), CompileRequest_Interpreter);
         if (status == Compile_Error) {
             
-            InlineReturn(f);
+            f.cx->stack.popInlineFrame(regs);
             return false;
         }
         if (status == Compile_Abort)
@@ -374,14 +346,10 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
 
 
     if (!newType) {
-        if (JITScript *jit = newscript->getJIT(newfp->isConstructing())) {
+        if (JITScript *jit = newscript->getJIT(regs.fp()->isConstructing())) {
             *pret = jit->invokeEntry;
 
             
-
-
-
-
             regs.popFrame((Value *) regs.fp());
             return true;
         }
@@ -389,10 +357,10 @@ UncachedInlineCall(VMFrame &f, uint32 flags, void **pret, bool *unjittable, uint
 
     
     bool ok = !!Interpret(cx, cx->fp());
-    InlineReturn(f);
+    f.cx->stack.popInlineFrame(regs);
 
     if (ok)
-        f.script()->types.monitor(cx, f.pc(), vp[0]);
+        f.script()->types.monitor(cx, f.pc(), args.rval());
 
     *pret = NULL;
     return ok;
@@ -411,16 +379,17 @@ stubs::UncachedNewHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr)
 {
     ucr->init();
     JSContext *cx = f.cx;
-    Value *vp = f.regs.sp - (argc + 2);
+    CallArgs args = CallArgsFromSp(argc, f.regs.sp);
+
     
-    if (IsFunctionObject(*vp, &ucr->fun) && ucr->fun->isInterpretedConstructor()) {
-        ucr->callee = &vp->toObject();
-        if (!UncachedInlineCall(f, StackFrame::CONSTRUCTING, &ucr->codeAddr, &ucr->unjittable, argc))
+    if (IsFunctionObject(args.calleev(), &ucr->fun) && ucr->fun->isInterpretedConstructor()) {
+        ucr->callee = &args.callee();
+        if (!UncachedInlineCall(f, CONSTRUCT, &ucr->codeAddr, &ucr->unjittable, argc))
             THROW();
     } else {
-        if (!InvokeConstructor(cx, InvokeArgsAlreadyOnTheStack(argc, vp)))
+        if (!InvokeConstructor(cx, args))
             THROW();
-        f.script()->types.monitor(cx, f.pc(), vp[0]);
+        f.script()->types.monitor(cx, f.pc(), args.rval());
     }
 }
 
@@ -435,21 +404,21 @@ stubs::UncachedCall(VMFrame &f, uint32 argc)
 void JS_FASTCALL
 stubs::Eval(VMFrame &f, uint32 argc)
 {
-    Value *vp = f.regs.sp - (argc + 2);
+    CallArgs args = CallArgsFromSp(argc, f.regs.sp);
 
-    if (!IsBuiltinEvalForScope(&f.fp()->scopeChain(), *vp)) {
-        if (!Invoke(f.cx, InvokeArgsAlreadyOnTheStack(argc, vp)))
+    if (!IsBuiltinEvalForScope(&f.fp()->scopeChain(), args.calleev())) {
+        if (!Invoke(f.cx, args))
             THROW();
 
-        f.script()->types.monitor(f.cx, f.pc(), vp[0]);
+        f.script()->types.monitor(f.cx, f.pc(), args.rval());
         return;
     }
 
     JS_ASSERT(f.fp() == f.cx->fp());
-    if (!DirectEval(f.cx, CallArgsFromVp(argc, vp)))
+    if (!DirectEval(f.cx, args))
         THROW();
 
-    f.script()->types.monitor(f.cx, f.pc(), vp[0]);
+    f.script()->types.monitor(f.cx, f.pc(), args.rval());
 }
 
 void
@@ -458,30 +427,30 @@ stubs::UncachedCallHelper(VMFrame &f, uint32 argc, UncachedCallResult *ucr)
     ucr->init();
 
     JSContext *cx = f.cx;
-    Value *vp = f.regs.sp - (argc + 2);
+    CallArgs args = CallArgsFromSp(argc, f.regs.sp);
 
-    if (IsFunctionObject(*vp, &ucr->callee)) {
-        ucr->callee = &vp->toObject();
+    if (IsFunctionObject(args.calleev(), &ucr->callee)) {
+        ucr->callee = &args.callee();
         ucr->fun = GET_FUNCTION_PRIVATE(cx, ucr->callee);
 
         if (ucr->fun->isInterpreted()) {
-            if (!UncachedInlineCall(f, 0, &ucr->codeAddr, &ucr->unjittable, argc))
+            if (!UncachedInlineCall(f, NO_CONSTRUCT, &ucr->codeAddr, &ucr->unjittable, argc))
                 THROW();
             return;
         }
 
         if (ucr->fun->isNative()) {
-            if (!CallJSNative(cx, ucr->fun->u.n.native, argc, vp))
+            if (!CallJSNative(cx, ucr->fun->u.n.native, args))
                 THROW();
-            f.script()->types.monitor(cx, f.pc(), vp[0]);
+            f.script()->types.monitor(cx, f.pc(), args.rval());
             return;
         }
     }
 
-    if (!Invoke(f.cx, InvokeArgsAlreadyOnTheStack(argc, vp)))
+    if (!Invoke(f.cx, args))
         THROW();
 
-    f.script()->types.monitor(cx, f.pc(), vp[0]);
+    f.script()->types.monitor(cx, f.pc(), args.rval());
     return;
 }
 
@@ -501,7 +470,7 @@ RemoveOrphanedNative(JSContext *cx, StackFrame *fp)
 
 
 
-    JaegerCompartment *jc = cx->compartment->jaegerCompartment;
+    JaegerCompartment *jc = cx->compartment->jaegerCompartment();
     if (jc->orphanedNativeFrames.empty())
         return;
     for (unsigned i = 0; i < jc->orphanedNativeFrames.length(); i++) {
@@ -640,14 +609,28 @@ stubs::CreateThis(VMFrame &f, JSObject *proto)
 void JS_FASTCALL
 stubs::ScriptDebugPrologue(VMFrame &f)
 {
+    Probes::enterJSFun(f.cx, f.fp()->maybeFun(), f.fp()->script());
     js::ScriptDebugPrologue(f.cx, f.fp());
 }
 
 void JS_FASTCALL
 stubs::ScriptDebugEpilogue(VMFrame &f)
 {
+    Probes::exitJSFun(f.cx, f.fp()->maybeFun(), f.fp()->script());
     if (!js::ScriptDebugEpilogue(f.cx, f.fp(), JS_TRUE))
         THROW();
+}
+
+void JS_FASTCALL
+stubs::ScriptProbeOnlyPrologue(VMFrame &f)
+{
+    Probes::enterJSFun(f.cx, f.fp()->fun(), f.fp()->script());
+}
+
+void JS_FASTCALL
+stubs::ScriptProbeOnlyEpilogue(VMFrame &f)
+{
+    Probes::exitJSFun(f.cx, f.fp()->fun(), f.fp()->script());
 }
 
 #ifdef JS_TRACER
@@ -1440,7 +1423,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
             if (!js::CreateFunCallObject(cx, fp))
                 return js_InternalThrow(f);
         }
-        fp->initCallFrameLatePrologue();
+        SetValueRangeToUndefined(fp->slots(), script->nfixed);
 
         
 
@@ -1495,7 +1478,7 @@ js_InternalInterpret(void *returnData, void *returnType, void *returnReg, js::VM
         untrap.retrap();
         enter.leave();
         f.regs.sp = nextsp + 2 + f.u.call.dynamicArgc;
-        if (!Invoke(cx, InvokeArgsAlreadyOnTheStack(f.u.call.dynamicArgc, nextsp)))
+        if (!Invoke(cx, CallArgsFromSp(f.u.call.dynamicArgc, f.regs.sp)))
             return js_InternalThrow(f);
         nextsp[-1] = nextsp[0];
         f.regs.pc = nextpc;
