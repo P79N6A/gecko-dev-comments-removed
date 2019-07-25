@@ -5894,23 +5894,6 @@ nsDocument::GetInputEncoding(nsAString& aInputEncoding)
 }
 
 NS_IMETHODIMP
-nsDocument::GetXmlEncoding(nsAString& aXmlEncoding)
-{
-  WarnOnceAbout(eXmlEncoding);
-  if (!IsHTML() &&
-      mXMLDeclarationBits & XML_DECLARATION_BITS_DECLARATION_EXISTS &&
-      mXMLDeclarationBits & XML_DECLARATION_BITS_ENCODING_EXISTS) {
-    
-    
-    GetInputEncoding(aXmlEncoding);
-  } else {
-    SetDOMStringToNull(aXmlEncoding);
-  }
-
-  return NS_OK;
-}
-
-NS_IMETHODIMP
 nsDocument::GetXmlStandalone(bool *aXmlStandalone)
 {
   WarnOnceAbout(eXmlStandalone);
