@@ -69,6 +69,35 @@ JS_PUBLIC_DATA(uint32_t) OOM_counter = 0;
 
 JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
 
+static JS_NEVER_INLINE void
+CrashInJS()
+{
+    
+
+
+
+
+
+
+#if defined(WIN32)
+    
+
+
+
+    *((volatile int *) NULL) = 123;
+    exit(3);
+#elif defined(__APPLE__)
+    
+
+
+
+    *((volatile int *) NULL) = 123;  
+    raise(SIGABRT);  
+#else
+    raise(SIGABRT);  
+#endif
+}
+
 
 
 
@@ -76,6 +105,14 @@ JS_STATIC_ASSERT(sizeof(void *) == sizeof(void (*)()));
 
 
 JS_STATIC_ASSERT((tl::IsSameType<JSIntn, int>::result));
+
+JS_PUBLIC_API(void)
+JS_Assert(const char *s, const char *file, int ln)
+{
+    fprintf(stderr, "Assertion failure: %s, at %s:%d\n", s, file, ln);
+    fflush(stderr);
+    CrashInJS();
+}
 
 #ifdef JS_BASIC_STATS
 

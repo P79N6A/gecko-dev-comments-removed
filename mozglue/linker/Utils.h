@@ -9,7 +9,6 @@
 #include <stddef.h>
 #include <sys/mman.h>
 #include <unistd.h>
-#include "mozilla/Assertions.h"
 
 
 
@@ -281,7 +280,7 @@ public:
 
   void Init(const void *buf)
   {
-    MOZ_ASSERT(contents == NULL);
+    
     contents = reinterpret_cast<const T *>(buf);
   }
 
@@ -290,7 +289,7 @@ public:
 
   const T &operator[](const idx_t index) const
   {
-    MOZ_ASSERT(contents);
+    
     return contents[index];
   }
 
@@ -347,7 +346,7 @@ public:
 
   void Init(const idx_t len)
   {
-    MOZ_ASSERT(length == 0);
+    
     length = len;
   }
 
@@ -373,8 +372,8 @@ public:
 
   const T &operator[](const idx_t index) const
   {
-    MOZ_ASSERT(index < length);
-    MOZ_ASSERT(operator bool());
+    
+    
     return UnsizedArray<T>::operator[](index);
   }
 

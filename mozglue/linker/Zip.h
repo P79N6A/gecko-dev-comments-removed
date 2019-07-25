@@ -10,6 +10,8 @@
 #include <vector>
 #include <zlib.h>
 #include "Utils.h"
+
+#undef DEBUG
 #include "mozilla/RefPtr.h"
 
 
