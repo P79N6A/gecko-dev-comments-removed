@@ -239,7 +239,7 @@ js_GetDenseArrayElementValue(JSContext *cx, JSObject *obj, jsid id,
 
 
 JSBool
-js_Array(JSContext* cx, JSObject* obj, uintN argc, js::Value* argv, js::Value* rval);
+js_Array(JSContext *cx, uintN argc, js::Value *vp);
 
 
 

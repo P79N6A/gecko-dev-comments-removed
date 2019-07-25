@@ -260,6 +260,7 @@ typedef enum JSWhyMagic
 
     JS_NO_ITER_VALUE,            
     JS_GENERATOR_CLOSING,        
+    JS_FAST_CONSTRUCTOR,         
     JS_NO_CONSTANT,              
     JS_THIS_POISON,              
     JS_GENERIC_MAGIC             

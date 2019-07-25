@@ -294,7 +294,12 @@ namespace js {
 bool
 ComputeThisFromArgv(JSContext *cx, Value *argv)
 {
-    JS_ASSERT(!argv[-1].isMagic());  
+    
+
+
+
+    JS_ASSERT(!argv[-1].isMagic());
+
     if (argv[-1].isNull())
         return ComputeGlobalThis(cx, argv);
 
@@ -1194,6 +1199,23 @@ InvokeConstructor(JSContext *cx, const InvokeArgsGuard &args)
     }
 
     JSObject *obj2 = &vp->toObject();
+
+    
+
+
+
+    if (obj2->isFunction()) {
+        JSFunction *fun = (JSFunction *) obj2->getPrivate();
+        if (fun->isFastConstructor()) {
+            vp[1].setMagic(JS_FAST_CONSTRUCTOR);
+
+            FastNative fn = (FastNative)fun->u.n.native;
+            if (!fn(cx, args.getArgc(), vp))
+                return JS_FALSE;
+            JS_ASSERT(!vp->isPrimitive());
+            return JS_TRUE;
+        }
+    }
 
     
 
