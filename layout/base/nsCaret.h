@@ -215,7 +215,6 @@ protected:
     struct Metrics {
       nscoord mBidiIndicatorSize; 
       nscoord mCaretWidth;        
-      PRUint32 mAppPerDev;        
     };
     Metrics ComputeMetrics(nsIFrame* aFrame, PRInt32 aOffset, nscoord aCaretHeight);
     nsresult GetGeometryForFrame(nsIFrame* aFrame,
