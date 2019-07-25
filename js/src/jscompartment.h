@@ -164,6 +164,10 @@ typedef HashSet<ScriptFilenameEntry *,
 
 } 
 
+namespace JS {
+struct TypeInferenceSizes;
+}
+
 struct JSCompartment
 {
     JSRuntime                    *rt;
@@ -239,6 +243,10 @@ struct JSCompartment
 
     size_t sizeOfMjitCode() const;
 #endif
+
+    size_t sizeOfShapeTable(JSMallocSizeOfFun mallocSizeOf);
+    void sizeOfTypeInferenceData(JSContext *cx, JS::TypeInferenceSizes *stats,
+                                 JSMallocSizeOfFun mallocSizeOf);
 
     
 
