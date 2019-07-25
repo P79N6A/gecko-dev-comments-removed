@@ -331,6 +331,7 @@ struct JITScript {
     void            *invokeEntry;       
     void            *fastEntry;         
     void            *arityCheckEntry;   
+    bool            singleStepMode;     
 
     ~JITScript();
 

@@ -807,6 +807,12 @@ JSD_SetInterruptHook(JSDContext*           jsdc,
 
 
 extern JSD_PUBLIC_API(JSBool)
+JSD_EnableSingleStepInterrupts(JSDContext* jsdc, JSDScript *jsdscript, JSBool enable);
+
+
+
+
+extern JSD_PUBLIC_API(JSBool)
 JSD_ClearInterruptHook(JSDContext* jsdc);
 
 

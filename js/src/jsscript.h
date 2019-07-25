@@ -242,6 +242,7 @@ struct JSScript {
 
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
+    bool            singleStepMode:1; 
 #endif
 
     jsbytecode      *main;      
@@ -502,7 +503,7 @@ js_DestroyScript(JSContext *cx, JSScript *script);
 
 
 extern void
-js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
+js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSThreadData *data);
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
