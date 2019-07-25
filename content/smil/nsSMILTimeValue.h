@@ -71,33 +71,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 class nsSMILTimeValue
 {
 public:
@@ -110,7 +83,7 @@ public:
   
   explicit nsSMILTimeValue(nsSMILTime aMillis)
   : mMilliseconds(aMillis),
-    mState(STATE_RESOLVED)
+    mState(STATE_DEFINITE)
   { }
 
   
@@ -128,24 +101,24 @@ public:
     mMilliseconds = kUnresolvedMillis;
   }
 
-  PRBool IsResolved() const { return mState == STATE_RESOLVED; }
   void SetUnresolved()
   {
     mState = STATE_UNRESOLVED;
     mMilliseconds = kUnresolvedMillis;
   }
 
+  PRBool IsDefinite() const { return mState == STATE_DEFINITE; }
   nsSMILTime GetMillis() const
   {
-    NS_ABORT_IF_FALSE(mState == STATE_RESOLVED,
-       "GetMillis() called for unresolved time");
+    NS_ABORT_IF_FALSE(mState == STATE_DEFINITE,
+       "GetMillis() called for unresolved or indefinite time");
 
-    return mState == STATE_RESOLVED ? mMilliseconds : kUnresolvedMillis;
+    return mState == STATE_DEFINITE ? mMilliseconds : kUnresolvedMillis;
   }
 
   void SetMillis(nsSMILTime aMillis)
   {
-    mState = STATE_RESOLVED;
+    mState = STATE_DEFINITE;
     mMilliseconds = aMillis;
   }
 
@@ -172,9 +145,9 @@ public:
 private:
   static nsSMILTime kUnresolvedMillis;
 
-  nsSMILTime        mMilliseconds;
+  nsSMILTime mMilliseconds;
   enum {
-    STATE_RESOLVED,
+    STATE_DEFINITE,
     STATE_INDEFINITE,
     STATE_UNRESOLVED
   } mState;

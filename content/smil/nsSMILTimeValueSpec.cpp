@@ -182,7 +182,7 @@ nsSMILTimeValueSpec::HandleNewInterval(nsSMILInterval& aInterval,
     ConvertBetweenTimeContainers(baseInstance.Time(), aSrcContainer);
 
   
-  if (newTime.IsResolved()) {
+  if (newTime.IsDefinite()) {
     newTime.SetMillis(newTime.GetMillis() + mParams.mOffset.GetMillis());
   }
 
@@ -218,7 +218,7 @@ nsSMILTimeValueSpec::HandleChangedInstanceTime(
     ConvertBetweenTimeContainers(aBaseTime.Time(), aSrcContainer);
 
   
-  if (updatedTime.IsResolved()) {
+  if (updatedTime.IsDefinite()) {
     updatedTime.SetMillis(updatedTime.GetMillis() +
                           mParams.mOffset.GetMillis());
   }
@@ -509,7 +509,7 @@ nsSMILTimeValueSpec::ConvertBetweenTimeContainers(
 {
   
   
-  if (!aSrcTime.IsResolved())
+  if (!aSrcTime.IsDefinite())
     return aSrcTime;
 
   
@@ -530,8 +530,8 @@ nsSMILTimeValueSpec::ConvertBetweenTimeContainers(
     
     return docTime;
 
-   NS_ABORT_IF_FALSE(docTime.IsResolved(),
-       "ContainerToParentTime gave us an unresolved time");
+  NS_ABORT_IF_FALSE(docTime.IsDefinite(),
+    "ContainerToParentTime gave us an unresolved time");
 
   return dstContainer->ParentToContainerTime(docTime.GetMillis());
 }

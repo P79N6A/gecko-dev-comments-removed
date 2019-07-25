@@ -252,7 +252,7 @@ nsSMILAnimationFunction::ComposeResult(const nsISMILAttr& aSMILAttr,
   
   NS_ABORT_IF_FALSE(mSampleTime >= 0 || !mIsActive,
       "Negative sample time for active animation");
-  NS_ABORT_IF_FALSE(mSimpleDuration.IsResolved() ||
+  NS_ABORT_IF_FALSE(mSimpleDuration.IsDefinite() ||
       mSimpleDuration.IsIndefinite() || mLastValue,
       "Unresolved simple duration for active or frozen animation");
 
@@ -408,7 +408,7 @@ nsSMILAnimationFunction::InterpolateResult(const nsSMILValueArray& aValues,
   
   double simpleProgress = 0.0;
 
-  if (mSimpleDuration.IsResolved()) {
+  if (mSimpleDuration.IsDefinite()) {
     nsSMILTime dur = mSimpleDuration.GetMillis();
 
     NS_ABORT_IF_FALSE(dur >= 0, "Simple duration should not be negative");
