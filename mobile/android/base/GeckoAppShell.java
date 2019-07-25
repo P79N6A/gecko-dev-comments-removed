@@ -127,6 +127,9 @@ public class GeckoAppShell
     private static long sVibrationEndTime = 0;
 
     
+    private static int sDefaultSensorHint = 100;
+
+    
 
     
     public static native void nativeInit();
@@ -547,9 +550,9 @@ public class GeckoAppShell
 
         if (enable) {
             if (gAccelerometerSensor != null)
-                sm.registerListener(GeckoApp.mAppContext, gAccelerometerSensor, SensorManager.SENSOR_DELAY_GAME);
+                sm.registerListener(GeckoApp.mAppContext, gAccelerometerSensor, sDefaultSensorHint);
             if (gOrientationSensor != null)
-                sm.registerListener(GeckoApp.mAppContext, gOrientationSensor,   SensorManager.SENSOR_DELAY_GAME);
+                sm.registerListener(GeckoApp.mAppContext, gOrientationSensor,   sDefaultSensorHint);
         } else {
             if (gAccelerometerSensor != null)
                 sm.unregisterListener(GeckoApp.mAppContext, gAccelerometerSensor);
@@ -603,7 +606,7 @@ public class GeckoAppShell
             if(gProximitySensor == null)
                 gProximitySensor = sm.getDefaultSensor(Sensor.TYPE_PROXIMITY);
             sm.registerListener(GeckoApp.mAppContext, gProximitySensor,
-                                SensorManager.SENSOR_DELAY_GAME);
+                                sDefaultSensorHint);
             break;
         }
     }

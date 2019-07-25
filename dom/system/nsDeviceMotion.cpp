@@ -50,6 +50,9 @@
 #include "nsIPrefService.h"
 #include "nsDOMDeviceMotionEvent.h"
 
+
+#define DEFAULT_SENSOR_POLL 100
+
 static const nsTArray<nsIDOMWindow*>::index_type NoIndex =
     nsTArray<nsIDOMWindow*>::NoIndex;
 
@@ -117,18 +120,12 @@ NS_IMPL_ISUPPORTS2(nsDeviceMotion, nsIDeviceMotion, nsIDeviceMotionUpdate)
 
 nsDeviceMotion::nsDeviceMotion()
 : mStarted(false),
-  mUpdateInterval(50), 
   mEnabled(true)
 {
   nsCOMPtr<nsIPrefBranch> prefSrv = do_GetService(NS_PREFSERVICE_CONTRACTID);
   if (prefSrv) {
-    PRInt32 value;
-    nsresult rv = prefSrv->GetIntPref("device.motion.update.interval", &value);
-    if (NS_SUCCEEDED(rv))
-      mUpdateInterval = value;
-
     bool bvalue;
-    rv = prefSrv->GetBoolPref("device.motion.enabled", &bvalue);
+    nsresult rv = prefSrv->GetBoolPref("device.motion.enabled", &bvalue);
     if (NS_SUCCEEDED(rv) && bvalue == false)
       mEnabled = false;
   }
@@ -199,12 +196,15 @@ NS_IMETHODIMP nsDeviceMotion::RemoveListener(nsIDeviceMotionListener *aListener)
 
 NS_IMETHODIMP nsDeviceMotion::AddWindowListener(nsIDOMWindow *aWindow)
 {
+  if (mWindowListeners.IndexOf(aWindow) != NoIndex)
+      return NS_OK;
+
   if (mStarted == false) {
     mStarted = true;
     Startup();
   }
-  if (mWindowListeners.IndexOf(aWindow) == NoIndex)
-    mWindowListeners.AppendElement(aWindow);
+
+  mWindowListeners.AppendElement(aWindow);
   return NS_OK;
 }
 
@@ -224,28 +224,34 @@ nsDeviceMotion::DeviceMotionChanged(PRUint32 type, double x, double y, double z)
   if (!mEnabled)
     return NS_ERROR_NOT_INITIALIZED;
 
-  for (PRUint32 i = mListeners.Count(); i > 0 ; ) {
+  nsCOMArray<nsIDeviceMotionListener> listeners = mListeners;
+  for (PRUint32 i = listeners.Count(); i > 0 ; ) {
     --i;
     nsRefPtr<nsDeviceMotionData> a = new nsDeviceMotionData(type, x, y, z);
-    mListeners[i]->OnMotionChange(a);
+    listeners[i]->OnMotionChange(a);
   }
 
-  for (PRUint32 i = mWindowListeners.Length(); i > 0 ; ) {
+  nsCOMArray<nsIDOMWindow> windowListeners;
+  for (PRUint32 i = 0; i < mWindowListeners.Length(); i++) {
+    windowListeners.AppendObject(mWindowListeners[i]);
+  }
+
+  for (PRUint32 i = windowListeners.Count(); i > 0 ; ) {
     --i;
 
     
     
-    nsCOMPtr<nsPIDOMWindow> pwindow = do_QueryInterface(mWindowListeners[i]);
+    nsCOMPtr<nsPIDOMWindow> pwindow = do_QueryInterface(windowListeners[i]);
     if (!pwindow ||
         !pwindow->GetOuterWindow() ||
         pwindow->GetOuterWindow()->IsBackground())
       continue;
 
     nsCOMPtr<nsIDOMDocument> domdoc;
-    mWindowListeners[i]->GetDocument(getter_AddRefs(domdoc));
+    windowListeners[i]->GetDocument(getter_AddRefs(domdoc));
 
     if (domdoc) {
-      nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(mWindowListeners[i]);
+      nsCOMPtr<nsIDOMEventTarget> target = do_QueryInterface(windowListeners[i]);
       if (type == nsIDeviceMotionData::TYPE_ACCELERATION)
         FireDOMMotionEvent(domdoc, target, x, y, z);
       else if (type == nsIDeviceMotionData::TYPE_ORIENTATION)
@@ -313,7 +319,7 @@ nsDeviceMotion::FireDOMMotionEvent(nsIDOMDocument *domdoc,
                             nsnull,
                             acceleration,
                             nsnull,
-                            0);
+                            DEFAULT_SENSOR_POLL);
 
   nsCOMPtr<nsIPrivateDOMEvent> privateEvent = do_QueryInterface(event);
   if (privateEvent)
