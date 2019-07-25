@@ -562,6 +562,16 @@ ThebesDisplayItemLayerUserData* GetThebesDisplayItemLayerUserData(Layer* aLayer)
 
 } 
 
+
+ void
+FrameLayerBuilder::Shutdown()
+{
+  if (gMaskLayerImageCache) {
+    delete gMaskLayerImageCache;
+    gMaskLayerImageCache = nsnull;
+  }
+}
+
 void
 FrameLayerBuilder::Init(nsDisplayListBuilder* aBuilder)
 {
@@ -2897,7 +2907,7 @@ ContainerState::SetupMaskLayer(Layer *aLayer, const FrameLayerBuilder::Clip& aCl
     
     nsRefPtr<gfxASurface> surface =
       aLayer->Manager()->CreateOptimalSurface(surfaceSize,
-                                              aLayer->Manager()->MaskImageFormat());
+                                              gfxASurface::ImageFormatARGB32);
 
     
     if (!surface || surface->CairoStatus()) {
