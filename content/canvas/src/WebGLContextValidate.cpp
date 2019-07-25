@@ -51,6 +51,8 @@ WebGLContext::ValidateBuffers(PRUint32 count)
     GLint currentProgram = -1;
     GLint numAttributes = -1;
 
+    NS_ENSURE_TRUE(count > 0, PR_TRUE);
+
     MakeContextCurrent();
 
     
@@ -93,7 +95,10 @@ WebGLContext::ValidateBuffers(PRUint32 count)
           return PR_FALSE;
       }
 
-      WebGLuint needed = vd.byteOffset + vd.actualStride() * count;
+      WebGLuint needed = vd.byteOffset +     
+          vd.actualStride() * (count-1) +    
+          vd.componentSize() * vd.size;      
+
       if (vd.buf->ByteLength() < needed) {
           LogMessage("VBO too small for bound attrib index %d: need at least %d bytes, but have only %d", i, needed, vd.buf->ByteLength());
           return PR_FALSE;
