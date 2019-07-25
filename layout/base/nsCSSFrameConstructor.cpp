@@ -3710,6 +3710,13 @@ nsCSSFrameConstructor::ConstructFrameFromItemInternal(FrameConstructionItem& aIt
   CHECK_ONLY_ONE_BIT(FCDATA_MAY_NEED_SCROLLFRAME, FCDATA_FORCE_VIEW);
 #undef CHECK_ONLY_ONE_BIT
 
+  
+  if (aState.mCreatingExtraFrames && aItem.mContent->IsHTML() &&
+      aItem.mContent->Tag() == nsGkAtoms::iframe)
+  {
+    return NS_OK;
+  }
+
   nsStyleContext* const styleContext = aItem.mStyleContext;
   const nsStyleDisplay* display = styleContext->GetStyleDisplay();
 
