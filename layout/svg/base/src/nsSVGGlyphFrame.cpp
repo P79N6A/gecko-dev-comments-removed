@@ -498,13 +498,13 @@ nsSVGGlyphFrame::GetCoveredRegion()
 }
 
 void
-nsSVGGlyphFrame::UpdateBounds()
+nsSVGGlyphFrame::ReflowSVG()
 {
-  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingUpdateBounds(this),
-               "This call is probaby a wasteful mistake");
+  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingReflowSVG(this),
+               "This call is probably a wasteful mistake");
 
   NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "UpdateBounds mechanism not designed for this");
+                    "ReflowSVG mechanism not designed for this");
 
   mRect.SetEmpty();
 
@@ -573,7 +573,7 @@ nsSVGGlyphFrame::NotifySVGChanged(PRUint32 aFlags)
   
   
   
-  nsSVGUtils::ScheduleBoundsUpdate(this);
+  nsSVGUtils::ScheduleReflowSVG(this);
 
   if (aFlags & TRANSFORM_CHANGED) {
     ClearTextRun();

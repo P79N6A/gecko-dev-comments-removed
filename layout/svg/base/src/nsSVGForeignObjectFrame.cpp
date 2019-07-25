@@ -97,7 +97,7 @@ nsSVGForeignObjectFrame::AttributeChanged(PRInt32  aNameSpaceID,
   if (aNameSpaceID == kNameSpaceID_None) {
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
       
       RequestReflow(nsIPresShell::eStyleChange);
     } else if (aAttribute == nsGkAtoms::x ||
@@ -105,7 +105,7 @@ nsSVGForeignObjectFrame::AttributeChanged(PRInt32  aNameSpaceID,
                aAttribute == nsGkAtoms::transform) {
       
       mCanvasTM = nsnull;
-      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
     } else if (aAttribute == nsGkAtoms::viewBox ||
                aAttribute == nsGkAtoms::preserveAspectRatio) {
       nsSVGUtils::InvalidateBounds(this);
@@ -127,7 +127,7 @@ nsSVGForeignObjectFrame::DidSetStyleContext(nsStyleContext* aOldStyleContext)
     
     
     
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
   }
 }
 
@@ -390,15 +390,15 @@ nsSVGForeignObjectFrame::GetCoveredRegion()
 }
 
 void
-nsSVGForeignObjectFrame::UpdateBounds()
+nsSVGForeignObjectFrame::ReflowSVG()
 {
-  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingUpdateBounds(this),
-               "This call is probaby a wasteful mistake");
+  NS_ASSERTION(nsSVGUtils::OuterSVGIsCallingReflowSVG(this),
+               "This call is probably a wasteful mistake");
 
   NS_ABORT_IF_FALSE(!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD),
-                    "UpdateBounds mechanism not designed for this");
+                    "ReflowSVG mechanism not designed for this");
 
-  if (!nsSVGUtils::NeedsUpdatedBounds(this)) {
+  if (!nsSVGUtils::NeedsReflowSVG(this)) {
     return;
   }
 
@@ -521,7 +521,7 @@ nsSVGForeignObjectFrame::NotifySVGChanged(PRUint32 aFlags)
     
     
     
-    nsSVGUtils::ScheduleBoundsUpdate(this);
+    nsSVGUtils::ScheduleReflowSVG(this);
   }
 
   
@@ -654,7 +654,7 @@ nsSVGForeignObjectFrame::DoReflow()
   if (!(GetStateBits() & NS_STATE_SVG_NONDISPLAY_CHILD)) {
     
     
-    FlushDirtyRegion(0, nsSVGUtils::OuterSVGIsCallingUpdateBounds(this));
+    FlushDirtyRegion(0, nsSVGUtils::OuterSVGIsCallingReflowSVG(this));
   }
 }
 

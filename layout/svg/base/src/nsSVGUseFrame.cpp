@@ -56,7 +56,7 @@ public:
 #endif
 
   
-  virtual void UpdateBounds();
+  virtual void ReflowSVG();
   virtual void NotifySVGChanged(PRUint32 aFlags);
 
   
@@ -123,7 +123,7 @@ nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
         aAttribute == nsGkAtoms::y) {
       
       mCanvasTM = nsnull;
-      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
       nsSVGUtils::NotifyChildrenOfSVGChange(this, TRANSFORM_CHANGED);
     } else if (aAttribute == nsGkAtoms::width ||
                aAttribute == nsGkAtoms::height) {
@@ -137,13 +137,13 @@ nsSVGUseFrame::AttributeChanged(PRInt32         aNameSpaceID,
         useElement->SyncWidthOrHeight(aAttribute);
       }
       if (invalidate) {
-        nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+        nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
       }
     }
   } else if (aNameSpaceID == kNameSpaceID_XLink &&
              aAttribute == nsGkAtoms::href) {
     
-    nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+    nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
     useElement->mOriginal = nsnull;
     useElement->UnlinkSource();
     useElement->TriggerReclone();
@@ -172,7 +172,7 @@ nsSVGUseFrame::IsLeaf() const
 
 
 void
-nsSVGUseFrame::UpdateBounds()
+nsSVGUseFrame::ReflowSVG()
 {
   
   
@@ -183,7 +183,7 @@ nsSVGUseFrame::UpdateBounds()
   mRect.MoveTo(nsLayoutUtils::RoundGfxRectToAppRect(
                  gfxRect(x, y, 0.0, 0.0),
                  PresContext()->AppUnitsPerCSSPixel()).TopLeft());
-  nsSVGUseFrameBase::UpdateBounds();
+  nsSVGUseFrameBase::ReflowSVG();
 }
 
 void
@@ -203,7 +203,7 @@ nsSVGUseFrame::NotifySVGChanged(PRUint32 aFlags)
       
       
       
-      nsSVGUtils::ScheduleBoundsUpdate(this);
+      nsSVGUtils::ScheduleReflowSVG(this);
     }
   }
 

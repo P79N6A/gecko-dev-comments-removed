@@ -432,15 +432,15 @@ nsSVGOuterSVGFrame::Reflow(nsPresContext*           aPresContext,
     
     
 
-    mCallingUpdateBounds = true;
+    mCallingReflowSVG = true;
 
     
     
-    anonKid->UpdateBounds();
+    anonKid->ReflowSVG();
     NS_ABORT_IF_FALSE(!anonKid->GetNextSibling(),
       "We should have one anonymous child frame wrapping our real children");
 
-    mCallingUpdateBounds = false;
+    mCallingReflowSVG = false;
   }
 
   

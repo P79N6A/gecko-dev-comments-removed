@@ -370,20 +370,20 @@ public:
 
 
 
-  static void ScheduleBoundsUpdate(nsIFrame *aFrame);
+  static void ScheduleReflowSVG(nsIFrame *aFrame);
 
   
 
 
 
 
-  static void InvalidateAndScheduleBoundsUpdate(nsIFrame *aFrame);
+  static void InvalidateAndScheduleReflowSVG(nsIFrame *aFrame);
 
   
 
 
 
-  static bool NeedsUpdatedBounds(nsIFrame *aFrame);
+  static bool NeedsReflowSVG(nsIFrame *aFrame);
 
   
 
@@ -630,7 +630,7 @@ public:
   WritePPM(const char *fname, gfxImageSurface *aSurface);
 #endif
 
-  static bool OuterSVGIsCallingUpdateBounds(nsIFrame *aFrame);
+  static bool OuterSVGIsCallingReflowSVG(nsIFrame *aFrame);
 
   
 

@@ -87,7 +87,7 @@ nsSVGInnerSVGFrame::PaintSVG(nsRenderingContext *aContext,
 }
 
 void
-nsSVGInnerSVGFrame::UpdateBounds()
+nsSVGInnerSVGFrame::ReflowSVG()
 {
   
   
@@ -97,7 +97,7 @@ nsSVGInnerSVGFrame::UpdateBounds()
   mRect = nsLayoutUtils::RoundGfxRectToAppRect(
                            gfxRect(x, y, width, height),
                            PresContext()->AppUnitsPerCSSPixel());
-  nsSVGInnerSVGFrameBase::UpdateBounds();
+  nsSVGInnerSVGFrameBase::ReflowSVG();
 }
 
 void
@@ -128,7 +128,7 @@ nsSVGInnerSVGFrame::NotifySVGChanged(PRUint32 aFlags)
       
       
       
-      nsSVGUtils::ScheduleBoundsUpdate(this);
+      nsSVGUtils::ScheduleReflowSVG(this);
     }
 
     
@@ -172,7 +172,7 @@ nsSVGInnerSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
 
     if (aAttribute == nsGkAtoms::width ||
         aAttribute == nsGkAtoms::height) {
-      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
 
       if (content->HasViewBoxOrSyntheticViewBox()) {
         
@@ -196,7 +196,7 @@ nsSVGInnerSVGFrame::AttributeChanged(PRInt32  aNameSpaceID,
       
       mCanvasTM = nsnull;
 
-      nsSVGUtils::InvalidateAndScheduleBoundsUpdate(this);
+      nsSVGUtils::InvalidateAndScheduleReflowSVG(this);
 
       nsSVGUtils::NotifyChildrenOfSVGChange(
           this, aAttribute == nsGkAtoms::viewBox ?

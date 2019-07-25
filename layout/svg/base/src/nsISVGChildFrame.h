@@ -62,7 +62,7 @@ public:
   
   
   
-  virtual void UpdateBounds()=0;
+  virtual void ReflowSVG()=0;
 
   
 

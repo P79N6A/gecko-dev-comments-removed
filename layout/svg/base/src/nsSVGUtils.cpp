@@ -595,9 +595,9 @@ nsSVGUtils::GetPostFilterVisualOverflowRect(nsIFrame *aFrame,
 }
 
 bool
-nsSVGUtils::OuterSVGIsCallingUpdateBounds(nsIFrame *aFrame)
+nsSVGUtils::OuterSVGIsCallingReflowSVG(nsIFrame *aFrame)
 {
-  return nsSVGUtils::GetOuterSVGFrame(aFrame)->IsCallingUpdateBounds();
+  return nsSVGUtils::GetOuterSVGFrame(aFrame)->IsCallingReflowSVG();
 }
 
 void
@@ -608,7 +608,7 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate,
                     !(aFrame->GetStateBits() & NS_STATE_IS_OUTER_SVG),
                     "Passed bad frame!");
 
-  NS_ASSERTION(aDuringUpdate == OuterSVGIsCallingUpdateBounds(aFrame),
+  NS_ASSERTION(aDuringUpdate == OuterSVGIsCallingReflowSVG(aFrame),
                "aDuringUpdate lies!");
 
   
@@ -619,9 +619,9 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate,
   
   
   if (!aDuringUpdate) {
-    NS_ASSERTION(!OuterSVGIsCallingUpdateBounds(aFrame),
+    NS_ASSERTION(!OuterSVGIsCallingReflowSVG(aFrame),
                  "Must not InvalidateRenderingObservers() under "
-                 "nsISVGChildFrame::UpdateBounds!");
+                 "nsISVGChildFrame::ReflowSVG!");
 
     nsSVGEffects::InvalidateRenderingObservers(aFrame);
   }
@@ -708,7 +708,7 @@ nsSVGUtils::InvalidateBounds(nsIFrame *aFrame, bool aDuringUpdate,
 }
 
 void
-nsSVGUtils::ScheduleBoundsUpdate(nsIFrame *aFrame)
+nsSVGUtils::ScheduleReflowSVG(nsIFrame *aFrame)
 {
   NS_ABORT_IF_FALSE(aFrame->IsFrameOfType(nsIFrame::eSVG),
                     "Passed bad frame!");
@@ -716,8 +716,8 @@ nsSVGUtils::ScheduleBoundsUpdate(nsIFrame *aFrame)
   
   
   
-  NS_ASSERTION(!OuterSVGIsCallingUpdateBounds(aFrame),
-               "Do not call under nsISVGChildFrame::UpdateBounds!");
+  NS_ASSERTION(!OuterSVGIsCallingReflowSVG(aFrame),
+               "Do not call under nsISVGChildFrame::ReflowSVG!");
 
   
   
@@ -778,20 +778,20 @@ nsSVGUtils::ScheduleBoundsUpdate(nsIFrame *aFrame)
 }
 
 void
-nsSVGUtils::InvalidateAndScheduleBoundsUpdate(nsIFrame *aFrame)
+nsSVGUtils::InvalidateAndScheduleReflowSVG(nsIFrame *aFrame)
 {
   
   
   
-  NS_ASSERTION(!OuterSVGIsCallingUpdateBounds(aFrame),
-               "Must not call under nsISVGChildFrame::UpdateBounds!");
+  NS_ASSERTION(!OuterSVGIsCallingReflowSVG(aFrame),
+               "Must not call under nsISVGChildFrame::ReflowSVG!");
 
   InvalidateBounds(aFrame, false);
-  ScheduleBoundsUpdate(aFrame);
+  ScheduleReflowSVG(aFrame);
 }
 
 bool
-nsSVGUtils::NeedsUpdatedBounds(nsIFrame *aFrame)
+nsSVGUtils::NeedsReflowSVG(nsIFrame *aFrame)
 {
   NS_ABORT_IF_FALSE(aFrame->IsFrameOfType(nsIFrame::eSVG),
                     "SVG uses bits differently!");
