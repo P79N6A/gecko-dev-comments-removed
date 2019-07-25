@@ -80,6 +80,12 @@ public:
   NS_DECL_NSIMUTATIONOBSERVER_CONTENTREMOVED
 
   void InvalidateViaReferencedElement();
+
+  
+  
+  
+  void NotifyEvictedFromRenderingObserverList();
+
   nsIFrame* GetReferencedFrame();
   PRBool IsInObserverList() const { return mInObserverList; }
 
@@ -256,6 +262,12 @@ public:
 
   void InvalidateAll();
 
+  
+
+
+
+  void RemoveAll();
+
 private:
   nsTHashtable<nsVoidPtrHashKey> mObservers;
 };
@@ -350,6 +362,12 @@ public:
 
 
   static void RemoveRenderingObserver(Element *aElement, nsSVGRenderingObserver *aObserver);
+
+  
+
+
+  static void RemoveAllRenderingObservers(Element *aElement);
+
   
 
 
