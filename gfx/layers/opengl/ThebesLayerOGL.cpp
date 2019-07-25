@@ -37,6 +37,7 @@
 
 
 #include "mozilla/layers/PLayers.h"
+#include "TiledLayerBuffer.h"
 
 
 #include "mozilla/Util.h"
@@ -986,6 +987,9 @@ ShadowThebesLayerOGL::ShadowThebesLayerOGL(LayerManagerOGL *aManager)
   , LayerOGL(aManager)
   , mUploadTask(nsnull)
 {
+#ifdef FORCE_BASICTILEDTHEBESLAYER
+  NS_ABORT();
+#endif
   mImplData = static_cast<LayerOGL*>(this);
 }
 
