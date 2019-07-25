@@ -81,11 +81,16 @@ struct TreeMatchContext {
   
   nsRuleWalker::VisitedHandlingType mVisitedHandling;
 
+  
+  
+  nsIContent* mScopedRoot;
+
   TreeMatchContext(PRBool aForStyling,
                    nsRuleWalker::VisitedHandlingType aVisitedHandling)
     : mForStyling(aForStyling)
     , mHaveRelevantLink(PR_FALSE)
     , mVisitedHandling(aVisitedHandling)
+    , mScopedRoot(nsnull)
   {
   }
 };
@@ -174,7 +179,6 @@ public:
   mozilla::dom::Element* mElement;       
   nsIContent*       mParentContent; 
   nsRuleWalker*     mRuleWalker; 
-  nsIContent*       mScopedRoot;    
   
   nsIAtom*          mContentTag;    
   nsIAtom*          mContentID;     
