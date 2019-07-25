@@ -308,7 +308,7 @@ pref("browser.urlbar.trimURLs", true);
 
 
 
-pref("browser.download.saveLinkAsFilenameTimeout", 1000);
+pref("browser.download.saveLinkAsFilenameTimeout", 4000);
 
 pref("browser.download.useDownloadDir", true);
 
