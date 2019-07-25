@@ -106,6 +106,9 @@ static DllBlockInfo sWindowsDllBlocklist[] = {
   {"roboform.dll", MAKE_VERSION(7,6,1,0)},
 
   
+  {"babyfox.dll", ALL_VERSIONS},
+
+  
   { "mozdllblockingtest.dll", ALL_VERSIONS },
   { "mozdllblockingtest_versioned.dll", 0x0000000400000000ULL },
 
