@@ -867,15 +867,13 @@ class StackFrame
 
 
 
-
-    inline void functionEpilogue(bool activationOnly = false);
+    inline void functionEpilogue();
 
     
 
 
 
-
-    inline void markFunctionEpilogueDone(bool activationOnly = false);
+    inline void markFunctionEpilogueDone();
 
     inline bool maintainNestingState() const;
 
