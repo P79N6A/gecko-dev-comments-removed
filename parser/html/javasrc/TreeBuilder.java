@@ -5223,6 +5223,14 @@ public abstract class TreeBuilder<T> implements TokenHandler,
     
 
 
+    @Override public boolean cdataSectionAllowed() throws SAXException {
+        return inForeign && currentPtr >= 0
+                && stack[currentPtr].ns != "http://www.w3.org/1999/xhtml";
+    }
+
+    
+
+
 
 
     public final void setFragmentContext(@Local String context,
@@ -5580,7 +5588,6 @@ public abstract class TreeBuilder<T> implements TokenHandler,
     }
     
     
-
 
 
 
