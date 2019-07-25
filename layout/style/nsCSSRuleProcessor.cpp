@@ -102,47 +102,29 @@ static PRBool gSupportVisitedPseudo = PR_TRUE;
 static NS_DEFINE_CID(kLookAndFeelCID, NS_LOOKANDFEEL_CID);
 static nsTArray< nsCOMPtr<nsIAtom> >* sSystemMetrics = 0;
 
-struct RuleValue {
-  
 
 
 
 
-
-
-
-
-
-  RuleValue(nsICSSStyleRule* aRule, nsCSSSelector* aSelector)
+struct RuleSelectorPair {
+  RuleSelectorPair(nsICSSStyleRule* aRule, nsCSSSelector* aSelector)
     : mRule(aRule), mSelector(aSelector) {}
-
-  RuleValue* Add(PRInt32 aBackwardIndex, RuleValue *aNext)
-  {
-    mBackwardIndex = aBackwardIndex;
-    mNext = aNext;
-    return this;
-  }
-    
-  
-  
-  
-  
-  ~RuleValue()
-  {
-    
-  }
-
-  
-  void *operator new(size_t aSize, PLArenaPool &aArena) CPP_THROW_NEW {
-    void *mem;
-    PL_ARENA_ALLOCATE(mem, &aArena, aSize);
-    return mem;
-  }
 
   nsICSSStyleRule*  mRule;
   nsCSSSelector*    mSelector; 
-  PRInt32           mBackwardIndex; 
-  RuleValue*        mNext;
+};
+
+
+
+
+
+
+struct RuleValue : RuleSelectorPair {
+  RuleValue(const RuleSelectorPair& aRuleSelectorPair, PRInt32 aIndex) :
+    RuleSelectorPair(aRuleSelectorPair),
+    mIndex(aIndex)
+  {}
+  PRInt32 mIndex; 
 };
 
 
@@ -151,7 +133,7 @@ struct RuleValue {
 
 
 struct RuleHashTableEntry : public PLDHashEntryHdr {
-  RuleValue *mRules; 
+  nsTArray<RuleValue> mRules;
 };
 
 struct RuleHashTagTableEntry : public RuleHashTableEntry {
@@ -222,6 +204,22 @@ RuleHash_CSMatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
 }
 
 static PRBool
+RuleHash_InitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                   const void *key)
+{
+  RuleHashTableEntry* entry = static_cast<RuleHashTableEntry*>(hdr);
+  new (entry) RuleHashTableEntry();
+  return PR_TRUE;
+}
+
+static void
+RuleHash_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
+{
+  RuleHashTableEntry* entry = static_cast<RuleHashTableEntry*>(hdr);
+  entry->~RuleHashTableEntry();
+}
+
+static PRBool
 RuleHash_TagTable_MatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
                       const void *key)
 {
@@ -232,9 +230,20 @@ RuleHash_TagTable_MatchEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
   return match_atom == entry_atom;
 }
 
-static void RuleHash_TagTable_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *entry)
+static PRBool
+RuleHash_TagTable_InitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                            const void *key)
 {
-  (static_cast<RuleHashTagTableEntry*>(entry))->~RuleHashTagTableEntry();
+  RuleHashTagTableEntry* entry = static_cast<RuleHashTagTableEntry*>(hdr);
+  new (entry) RuleHashTagTableEntry();
+  return PR_TRUE;
+}
+
+static void
+RuleHash_TagTable_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
+{
+  RuleHashTagTableEntry* entry = static_cast<RuleHashTagTableEntry*>(hdr);
+  entry->~RuleHashTagTableEntry();
 }
 
 static nsIAtom*
@@ -242,7 +251,7 @@ RuleHash_ClassTable_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 {
   const RuleHashTableEntry *entry =
     static_cast<const RuleHashTableEntry*>(hdr);
-  return entry->mRules->mSelector->mClassList->mAtom;
+  return entry->mRules[0].mSelector->mClassList->mAtom;
 }
 
 static nsIAtom*
@@ -250,7 +259,7 @@ RuleHash_IdTable_GetKey(PLDHashTable *table, const PLDHashEntryHdr *hdr)
 {
   const RuleHashTableEntry *entry =
     static_cast<const RuleHashTableEntry*>(hdr);
-  return entry->mRules->mSelector->mIDList->mAtom;
+  return entry->mRules[0].mSelector->mIDList->mAtom;
 }
 
 static PLDHashNumber
@@ -268,7 +277,7 @@ RuleHash_NameSpaceTable_MatchEntry(PLDHashTable *table,
     static_cast<const RuleHashTableEntry*>(hdr);
 
   return NS_PTR_TO_INT32(key) ==
-         entry->mRules->mSelector->mNameSpace;
+         entry->mRules[0].mSelector->mNameSpace;
 }
 
 static const PLDHashTableOps RuleHash_TagTable_Ops = {
@@ -279,7 +288,7 @@ static const PLDHashTableOps RuleHash_TagTable_Ops = {
   PL_DHashMoveEntryStub,
   RuleHash_TagTable_ClearEntry,
   PL_DHashFinalizeStub,
-  NULL
+  RuleHash_TagTable_InitEntry
 };
 
 
@@ -290,9 +299,9 @@ static const RuleHashTableOps RuleHash_ClassTable_CSOps = {
   PL_DHashVoidPtrKeyStub,
   RuleHash_CSMatchEntry,
   PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
+  RuleHash_ClearEntry,
   PL_DHashFinalizeStub,
-  NULL
+  RuleHash_InitEntry
   },
   RuleHash_ClassTable_GetKey
 };
@@ -305,9 +314,9 @@ static const RuleHashTableOps RuleHash_ClassTable_CIOps = {
   RuleHash_CIHashKey,
   RuleHash_CIMatchEntry,
   PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
+  RuleHash_ClearEntry,
   PL_DHashFinalizeStub,
-  NULL
+  RuleHash_InitEntry
   },
   RuleHash_ClassTable_GetKey
 };
@@ -320,9 +329,9 @@ static const RuleHashTableOps RuleHash_IdTable_CSOps = {
   PL_DHashVoidPtrKeyStub,
   RuleHash_CSMatchEntry,
   PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
+  RuleHash_ClearEntry,
   PL_DHashFinalizeStub,
-  NULL
+  RuleHash_InitEntry
   },
   RuleHash_IdTable_GetKey
 };
@@ -335,9 +344,9 @@ static const RuleHashTableOps RuleHash_IdTable_CIOps = {
   RuleHash_CIHashKey,
   RuleHash_CIMatchEntry,
   PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
+  RuleHash_ClearEntry,
   PL_DHashFinalizeStub,
-  NULL
+  RuleHash_InitEntry
   },
   RuleHash_IdTable_GetKey
 };
@@ -348,9 +357,9 @@ static const PLDHashTableOps RuleHash_NameSpaceTable_Ops = {
   RuleHash_NameSpaceTable_HashKey,
   RuleHash_NameSpaceTable_MatchEntry,
   PL_DHashMoveEntryStub,
-  PL_DHashClearEntryStub,
+  RuleHash_ClearEntry,
   PL_DHashFinalizeStub,
-  NULL,
+  RuleHash_InitEntry
 };
 
 #undef RULE_HASH_STATS
@@ -371,28 +380,37 @@ class RuleHash {
 public:
   RuleHash(PRBool aQuirksMode);
   ~RuleHash();
-  void PrependRule(RuleValue *aRuleInfo);
+  void AppendRule(const RuleSelectorPair &aRuleInfo);
   void EnumerateAllRules(PRInt32 aNameSpace, nsIAtom* aTag, nsIAtom* aID,
                          const nsAttrValue* aClassList,
                          RuleEnumFunc aFunc, RuleProcessorData* aData);
   PLArenaPool& Arena() { return mArena; }
 
 protected:
-  void PrependRuleToTable(PLDHashTable* aTable, const void* aKey,
-                          RuleValue* aRuleInfo);
-  void PrependRuleToTagTable(nsIAtom* aKey, RuleValue* aRuleInfo);
-  void PrependUniversalRule(RuleValue* aRuleInfo);
+  typedef nsTArray<RuleValue> RuleValueList;
+  void AppendRuleToTable(PLDHashTable* aTable, const void* aKey,
+                         const RuleSelectorPair& aRuleInfo);
+  void AppendRuleToTagTable(nsIAtom* aKey, const RuleSelectorPair& aRuleInfo);
+  void AppendUniversalRule(const RuleSelectorPair& aRuleInfo);
 
-  
   PRInt32     mRuleCount;
   PLDHashTable mIdTable;
   PLDHashTable mClassTable;
   PLDHashTable mTagTable;
   PLDHashTable mNameSpaceTable;
-  RuleValue *mUniversalRules;
+  RuleValueList mUniversalRules;
 
-  RuleValue** mEnumList;
-  PRInt32     mEnumListSize;
+  struct EnumData {
+    const RuleValue* mCurValue;
+    const RuleValue* mEnd;
+  };
+  EnumData* mEnumList;
+  PRInt32   mEnumListSize;
+
+  inline EnumData ToEnumData(const RuleValueList& arr) {
+    EnumData data = { arr.Elements(), arr.Elements() + arr.Length() };
+    return data;
+  }
 
   PLArenaPool mArena;
 
@@ -467,10 +485,10 @@ RuleHash::~RuleHash()
            mElementClassCalls, mElementIdCalls);
 #ifdef PRINT_UNIVERSAL_RULES
   {
-    RuleValue* value = mUniversalRules;
-    if (value) {
+    if (mUniversalRules.Length() > 0) {
       printf("  Universal rules:\n");
-      do {
+      for (PRUint32 i = 0; i < mUniversalRules.Length(); ++i) {
+        RuleValue* value = &(mUniversalRules[i]);
         nsAutoString selectorText;
         PRUint32 lineNumber = value->mRule->GetLineNumber();
         nsCOMPtr<nsIStyleSheet> sheet;
@@ -480,8 +498,7 @@ RuleHash::~RuleHash()
 
         printf("    line %d, %s\n",
                lineNumber, NS_ConvertUTF16toUTF8(selectorText).get());
-        value = value->mNext;
-      } while (value);
+      }
     }
   }
 #endif 
@@ -500,20 +517,20 @@ RuleHash::~RuleHash()
   PL_FinishArenaPool(&mArena);
 }
 
-void RuleHash::PrependRuleToTable(PLDHashTable* aTable, const void* aKey,
-                                  RuleValue* aRuleInfo)
+void RuleHash::AppendRuleToTable(PLDHashTable* aTable, const void* aKey,
+                                 const RuleSelectorPair& aRuleInfo)
 {
   
   RuleHashTableEntry *entry = static_cast<RuleHashTableEntry*>
                                          (PL_DHashTableOperate(aTable, aKey, PL_DHASH_ADD));
   if (!entry)
     return;
-  entry->mRules = aRuleInfo->Add(mRuleCount++, entry->mRules);
+  entry->mRules.AppendElement(RuleValue(aRuleInfo, mRuleCount++));
 }
 
 static void
-DoPrependRuleToTagTable(PLDHashTable* aTable, nsIAtom* aKey,
-                        RuleValue* aRuleInfo, PRInt32 aBackwardsIndex)
+DoAppendRuleToTagTable(PLDHashTable* aTable, nsIAtom* aKey,
+                       const RuleSelectorPair& aRuleInfo, PRInt32 aIndex)
 {
   
   RuleHashTagTableEntry *entry = static_cast<RuleHashTagTableEntry*>
@@ -525,48 +542,47 @@ DoPrependRuleToTagTable(PLDHashTable* aTable, nsIAtom* aKey,
 
   
   
-  entry->mRules = aRuleInfo->Add(aBackwardsIndex, entry->mRules);
+  entry->mRules.AppendElement(RuleValue(aRuleInfo, aIndex));
 }
 
-void RuleHash::PrependRuleToTagTable(nsIAtom* aKey, RuleValue* aRuleInfo)
+void RuleHash::AppendRuleToTagTable(nsIAtom* aKey,
+                                    const RuleSelectorPair& aRuleInfo)
 {
-  DoPrependRuleToTagTable(&mTagTable, aKey, aRuleInfo, mRuleCount++);
+  DoAppendRuleToTagTable(&mTagTable, aKey, aRuleInfo, mRuleCount++);
 }
 
-void RuleHash::PrependUniversalRule(RuleValue *aRuleInfo)
+void RuleHash::AppendUniversalRule(const RuleSelectorPair& aRuleInfo)
 {
-  mUniversalRules = aRuleInfo->Add(mRuleCount++, mUniversalRules);
+  mUniversalRules.AppendElement(RuleValue(aRuleInfo, mRuleCount++));
 }
 
-void RuleHash::PrependRule(RuleValue *aRuleInfo)
+void RuleHash::AppendRule(const RuleSelectorPair& aRuleInfo)
 {
-  nsCSSSelector *selector = aRuleInfo->mSelector;
+  nsCSSSelector *selector = aRuleInfo.mSelector;
   if (nsnull != selector->mIDList) {
-    PrependRuleToTable(&mIdTable, selector->mIDList->mAtom, aRuleInfo);
+    AppendRuleToTable(&mIdTable, selector->mIDList->mAtom, aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mIdSelectors);
   }
   else if (nsnull != selector->mClassList) {
-    PrependRuleToTable(&mClassTable, selector->mClassList->mAtom, aRuleInfo);
+    AppendRuleToTable(&mClassTable, selector->mClassList->mAtom, aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mClassSelectors);
   }
   else if (selector->mLowercaseTag) {
-    PrependRuleToTagTable(selector->mLowercaseTag, aRuleInfo);
+    AppendRuleToTagTable(selector->mLowercaseTag, aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mTagSelectors);
     if (selector->mCasedTag && 
         selector->mCasedTag != selector->mLowercaseTag) {
-      PrependRuleToTagTable(selector->mCasedTag, 
-                            new (mArena) RuleValue(aRuleInfo->mRule, 
-                                                   aRuleInfo->mSelector));
+      AppendRuleToTagTable(selector->mCasedTag, aRuleInfo);
       RULE_HASH_STAT_INCREMENT(mTagSelectors);
     }
   }
   else if (kNameSpaceID_Unknown != selector->mNameSpace) {
-    PrependRuleToTable(&mNameSpaceTable,
-                       NS_INT32_TO_PTR(selector->mNameSpace), aRuleInfo);
+    AppendRuleToTable(&mNameSpaceTable,
+                      NS_INT32_TO_PTR(selector->mNameSpace), aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mNameSpaceSelectors);
   }
   else {  
-    PrependUniversalRule(aRuleInfo);
+    AppendUniversalRule(aRuleInfo);
     RULE_HASH_STAT_INCREMENT(mUniversalSelectors);
   }
 }
@@ -576,7 +592,7 @@ void RuleHash::PrependRule(RuleValue *aRuleInfo)
 
 #ifdef RULE_HASH_STATS
 #define RULE_HASH_STAT_INCREMENT_LIST_COUNT(list_, var_) \
-  do { ++(var_); (list_) = (list_)->mNext; } while (list_)
+  (var_) += (list_).Length()
 #else
 #define RULE_HASH_STAT_INCREMENT_LIST_COUNT(list_, var_) \
   PR_BEGIN_MACRO PR_END_MACRO
@@ -595,18 +611,15 @@ void RuleHash::EnumerateAllRules(PRInt32 aNameSpace, nsIAtom* aTag,
   if (mEnumListSize < testCount) {
     delete [] mEnumList;
     mEnumListSize = NS_MAX(testCount, MIN_ENUM_LIST_SIZE);
-    mEnumList = new RuleValue*[mEnumListSize];
+    mEnumList = new EnumData[mEnumListSize];
   }
 
   PRInt32 valueCount = 0;
   RULE_HASH_STAT_INCREMENT(mElementsMatched);
 
-  { 
-    RuleValue* value = mUniversalRules;
-    if (nsnull != value) {
-      mEnumList[valueCount++] = value;
-      RULE_HASH_STAT_INCREMENT_LIST_COUNT(value, mElementUniversalCalls);
-    }
+  if (mUniversalRules.Length() != 0) { 
+    mEnumList[valueCount++] = ToEnumData(mUniversalRules);
+    RULE_HASH_STAT_INCREMENT_LIST_COUNT(mUniversalRules, mElementUniversalCalls);
   }
   
   if (kNameSpaceID_Unknown != aNameSpace && mNameSpaceTable.entryCount) {
@@ -614,27 +627,24 @@ void RuleHash::EnumerateAllRules(PRInt32 aNameSpace, nsIAtom* aTag,
                                            (PL_DHashTableOperate(&mNameSpaceTable, NS_INT32_TO_PTR(aNameSpace),
                              PL_DHASH_LOOKUP));
     if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      RuleValue *value = entry->mRules;
-      mEnumList[valueCount++] = value;
-      RULE_HASH_STAT_INCREMENT_LIST_COUNT(value, mElementNameSpaceCalls);
+      mEnumList[valueCount++] = ToEnumData(entry->mRules);
+      RULE_HASH_STAT_INCREMENT_LIST_COUNT(entry->mRules, mElementNameSpaceCalls);
     }
   }
   if (aTag && mTagTable.entryCount) {
     RuleHashTableEntry *entry = static_cast<RuleHashTableEntry*>
                                            (PL_DHashTableOperate(&mTagTable, aTag, PL_DHASH_LOOKUP));
     if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      RuleValue *value = entry->mRules;
-      mEnumList[valueCount++] = value;
-      RULE_HASH_STAT_INCREMENT_LIST_COUNT(value, mElementTagCalls);
+      mEnumList[valueCount++] = ToEnumData(entry->mRules);
+      RULE_HASH_STAT_INCREMENT_LIST_COUNT(entry->mRules, mElementTagCalls);
     }
   }
   if (aID && mIdTable.entryCount) {
     RuleHashTableEntry *entry = static_cast<RuleHashTableEntry*>
                                            (PL_DHashTableOperate(&mIdTable, aID, PL_DHASH_LOOKUP));
     if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      RuleValue *value = entry->mRules;
-      mEnumList[valueCount++] = value;
-      RULE_HASH_STAT_INCREMENT_LIST_COUNT(value, mElementIdCalls);
+      mEnumList[valueCount++] = ToEnumData(entry->mRules);
+      RULE_HASH_STAT_INCREMENT_LIST_COUNT(entry->mRules, mElementIdCalls);
     }
   }
   if (mClassTable.entryCount) {
@@ -643,9 +653,8 @@ void RuleHash::EnumerateAllRules(PRInt32 aNameSpace, nsIAtom* aTag,
                                              (PL_DHashTableOperate(&mClassTable, aClassList->AtomAt(index),
                              PL_DHASH_LOOKUP));
       if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-        RuleValue *value = entry->mRules;
-        mEnumList[valueCount++] = value;
-        RULE_HASH_STAT_INCREMENT_LIST_COUNT(value, mElementClassCalls);
+        mEnumList[valueCount++] = ToEnumData(entry->mRules);
+        RULE_HASH_STAT_INCREMENT_LIST_COUNT(entry->mRules, mElementClassCalls);
       }
     }
   }
@@ -655,26 +664,30 @@ void RuleHash::EnumerateAllRules(PRInt32 aNameSpace, nsIAtom* aTag,
     
     while (valueCount > 1) {
       PRInt32 valueIndex = 0;
-      PRInt32 highestRuleIndex = mEnumList[valueIndex]->mBackwardIndex;
+      PRInt32 lowestRuleIndex = mEnumList[valueIndex].mCurValue->mIndex;
       for (PRInt32 index = 1; index < valueCount; ++index) {
-        PRInt32 ruleIndex = mEnumList[index]->mBackwardIndex;
-        if (ruleIndex > highestRuleIndex) {
+        PRInt32 ruleIndex = mEnumList[index].mCurValue->mIndex;
+        if (ruleIndex < lowestRuleIndex) {
           valueIndex = index;
-          highestRuleIndex = ruleIndex;
+          lowestRuleIndex = ruleIndex;
         }
       }
-      RuleValue *cur = mEnumList[valueIndex];
+      const RuleValue *cur = mEnumList[valueIndex].mCurValue;
       (*aFunc)(cur->mRule, cur->mSelector, aData);
-      RuleValue *next = cur->mNext;
-      mEnumList[valueIndex] = next ? next : mEnumList[--valueCount];
+      cur++;
+      if (cur == mEnumList[valueIndex].mEnd) {
+        mEnumList[valueIndex] = mEnumList[--valueCount];
+      } else {
+        mEnumList[valueIndex].mCurValue = cur;
+      }
     }
 
     
-    RuleValue* value = mEnumList[0];
-    do {
+    for (const RuleValue *value = mEnumList[0].mCurValue,
+                         *end = mEnumList[0].mEnd;
+         value != end; ++value) {
       (*aFunc)(value->mRule, value->mSelector, aData);
-      value = value->mNext;
-    } while (value);
+    }
   }
 }
 
@@ -722,7 +735,7 @@ ClassSelector_ClearEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
 
 static PRBool
 ClassSelector_InitEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
-                       const void *key)
+                        const void *key)
 {
   ClassSelectorEntry *entry = static_cast<ClassSelectorEntry*>(hdr);
   new (entry) ClassSelectorEntry();
@@ -2356,7 +2369,9 @@ nsCSSRuleProcessor::RulesMatching(AnonBoxRuleProcessorData* aData)
       (PL_DHashTableOperate(&cascade->mAnonBoxRules, aData->mPseudoTag,
                             PL_DHASH_LOOKUP));
     if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      for (RuleValue *value = entry->mRules; value; value = value->mNext) {
+      nsTArray<RuleValue>& rules = entry->mRules;
+      for (RuleValue *value = rules.Elements(), *end = value + rules.Length();
+           value != end; ++value) {
         
         
         
@@ -2384,7 +2399,9 @@ nsCSSRuleProcessor::RulesMatching(XULTreeRuleProcessorData* aData)
       (PL_DHashTableOperate(&cascade->mXULTreeRules, aData->mPseudoTag,
                             PL_DHASH_LOOKUP));
     if (PL_DHASH_ENTRY_IS_BUSY(entry)) {
-      for (RuleValue *value = entry->mRules; value; value = value->mNext) {
+      nsTArray<RuleValue>& rules = entry->mRules;
+      for (RuleValue *value = rules.Elements(), *end = value + rules.Length();
+           value != end; ++value) {
         PRBool matches = PR_TRUE;
         aData->mComparator->PseudoMatches(aData->mPseudoTag, value->mSelector,
                                           &matches);
@@ -2726,14 +2743,14 @@ AddSelector(RuleCascadeData* aCascade,
 }
 
 static PRBool
-AddRule(RuleValue* aRuleInfo, RuleCascadeData* aCascade)
+AddRule(RuleSelectorPair* aRuleInfo, RuleCascadeData* aCascade)
 {
   RuleCascadeData * const cascade = aCascade;
 
   
   nsCSSPseudoElements::Type pseudoType = aRuleInfo->mSelector->PseudoType();
   if (NS_LIKELY(pseudoType == nsCSSPseudoElements::ePseudo_NotPseudoElement)) {
-    cascade->mRuleHash.PrependRule(aRuleInfo);
+    cascade->mRuleHash.AppendRule(*aRuleInfo);
   } else if (pseudoType < nsCSSPseudoElements::ePseudo_PseudoElementCount) {
     RuleHash*& ruleHash = cascade->mPseudoElementRuleHashes[pseudoType];
     if (!ruleHash) {
@@ -2748,7 +2765,7 @@ AddRule(RuleValue* aRuleInfo, RuleCascadeData* aCascade)
     NS_ASSERTION(aRuleInfo->mSelector->mNext->mOperator == '>',
                  "Unexpected mNext combinator");
     aRuleInfo->mSelector = aRuleInfo->mSelector->mNext;
-    ruleHash->PrependRule(aRuleInfo);
+    ruleHash->AppendRule(*aRuleInfo);
   } else if (pseudoType == nsCSSPseudoElements::ePseudo_AnonBox) {
     NS_ASSERTION(!aRuleInfo->mSelector->mCasedTag &&
                  !aRuleInfo->mSelector->mIDList &&
@@ -2762,18 +2779,18 @@ AddRule(RuleValue* aRuleInfo, RuleCascadeData* aCascade)
 
     
     
-    DoPrependRuleToTagTable(&cascade->mAnonBoxRules,
-                            aRuleInfo->mSelector->mLowercaseTag,
-                            aRuleInfo, 0);
+    DoAppendRuleToTagTable(&cascade->mAnonBoxRules,
+                           aRuleInfo->mSelector->mLowercaseTag,
+                           *aRuleInfo, 0);
   } else {
 #ifdef MOZ_XUL
     NS_ASSERTION(pseudoType == nsCSSPseudoElements::ePseudo_XULTree,
                  "Unexpected pseudo type");
     
     
-    DoPrependRuleToTagTable(&cascade->mXULTreeRules,
-                            aRuleInfo->mSelector->mLowercaseTag,
-                            aRuleInfo, 0);
+    DoAppendRuleToTagTable(&cascade->mXULTreeRules,
+                           aRuleInfo->mSelector->mLowercaseTag,
+                           *aRuleInfo, 0);
 #else
     NS_NOTREACHED("Unexpected pseudo type");
 #endif
@@ -2809,7 +2826,7 @@ AddRule(RuleValue* aRuleInfo, RuleCascadeData* aCascade)
 
 struct PerWeightData {
   PRInt32 mWeight;
-  RuleValue* mRules; 
+  nsTArray<RuleSelectorPair> mRules; 
 };
 
 struct RuleByWeightEntry : public PLDHashEntryHdr {
@@ -2830,15 +2847,31 @@ MatchWeightEntry(PLDHashTable *table, const PLDHashEntryHdr *hdr,
   return entry->data.mWeight == NS_PTR_TO_INT32(key);
 }
 
+static PRBool
+InitWeightEntry(PLDHashTable *table, PLDHashEntryHdr *hdr,
+                const void *key)
+{
+  RuleByWeightEntry* entry = static_cast<RuleByWeightEntry*>(hdr);
+  new (entry) RuleByWeightEntry();
+  return PR_TRUE;
+}
+
+static void
+ClearWeightEntry(PLDHashTable *table, PLDHashEntryHdr *hdr)
+{
+  RuleByWeightEntry* entry = static_cast<RuleByWeightEntry*>(hdr);
+  entry->~RuleByWeightEntry();
+}
+
 static PLDHashTableOps gRulesByWeightOps = {
     PL_DHashAllocTable,
     PL_DHashFreeTable,
     HashIntKey,
     MatchWeightEntry,
     PL_DHashMoveEntryStub,
-    PL_DHashClearEntryStub,
+    ClearWeightEntry,
     PL_DHashFinalizeStub,
-    NULL
+    InitWeightEntry
 };
 
 struct CascadeEnumData {
@@ -2901,11 +2934,9 @@ CascadeRuleEnumFunc(nsICSSRule* aRule, void* aData)
       if (!entry)
         return PR_FALSE;
       entry->data.mWeight = weight;
-      RuleValue *info =
-        new (data->mArena) RuleValue(styleRule, sel->mSelectors);
       
-      info->mNext = entry->data.mRules;
-      entry->data.mRules = info;
+      entry->data.mRules.AppendElement(RuleSelectorPair(styleRule,
+                                                        sel->mSelectors));
     }
   }
   else if (nsICSSRule::MEDIA_RULE == type ||
@@ -3044,19 +3075,16 @@ nsCSSRuleProcessor::RefreshRuleCascade(nsPresContext* aPresContext)
 
       
       
-      
-      PRUint32 i = weightCount;
-      while (i > 0) {
-        --i;
+      for (PRUint32 i = 0; i < weightCount; ++i) {
         
-        RuleValue *ruleValue = weightArray[i].mRules;
-        do {
-          
-          RuleValue *next = ruleValue->mNext;
-          if (!AddRule(ruleValue, newCascade))
+        
+        nsTArray<RuleSelectorPair>& arr = weightArray[i].mRules;
+        for (RuleSelectorPair *cur = arr.Elements(),
+                              *end = cur + arr.Length();
+             cur != end; ++cur) {
+          if (!AddRule(cur, newCascade))
             return; 
-          ruleValue = next;
-        } while (ruleValue);
+        }
       }
 
       
