@@ -274,10 +274,10 @@ stubs::FixupArity(VMFrame &f, uint32 nactual)
         THROWV(NULL);
 
     
-    newfp->initCallFrameCallerHalf(cx, nactual, flags);
+    newfp->initCallFrameCallerHalf(cx, flags, ncode);
 
     
-    newfp->initCallFrameEarlyPrologue(fun, ncode);
+    newfp->initCallFrameEarlyPrologue(fun, nactual);
 
     
     return newfp;
@@ -306,7 +306,7 @@ stubs::CompileFunction(VMFrame &f, uint32 nactual)
 
 
 
-    fp->initCallFrameEarlyPrologue(fun, fp->nativeReturnAddress());
+    fp->initCallFrameEarlyPrologue(fun, nactual);
 
     
     bool callingNew = fp->isConstructing();
