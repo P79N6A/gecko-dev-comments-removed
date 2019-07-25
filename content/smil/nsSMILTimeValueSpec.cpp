@@ -333,15 +333,11 @@ nsSMILTimeValueSpec::IsWhitelistedEvent()
   }
 
   
-  
-  
-  
-  
   if (mParams.mType == nsSMILTimeValueSpecParams::EVENT &&
       (mParams.mEventSymbol == nsGkAtoms::repeat ||
-       mParams.mEventSymbol == NS_NewAtom("repeatEvent") ||
-       mParams.mEventSymbol == NS_NewAtom("beginEvent") ||
-       mParams.mEventSymbol == NS_NewAtom("endEvent"))) {
+       mParams.mEventSymbol == nsGkAtoms::repeatEvent ||
+       mParams.mEventSymbol == nsGkAtoms::beginEvent ||
+       mParams.mEventSymbol == nsGkAtoms::endEvent)) {
     return true;
   }
 
