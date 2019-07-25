@@ -215,14 +215,15 @@ gfxHarfBuzzShaper::GetGlyphMetrics(gfxContext *aContext,
         glyph = mNumLongMetrics - 1;
     }
 
-    if ((glyph + 1) * sizeof(HLongMetric) <= hb_blob_get_length(mHmtxTable)) {
-        const HMetrics* hmtx =
-            reinterpret_cast<const HMetrics*>(hb_blob_lock(mHmtxTable));
-        metrics->x_advance =
-            FloatToFixed(mFont->FUnitsToDevUnitsFactor() *
-                         PRUint16(hmtx->metrics[glyph].advanceWidth));
-        hb_blob_unlock(mHmtxTable);
-    }
+    
+    
+    
+    const HMetrics* hmtx =
+        reinterpret_cast<const HMetrics*>(hb_blob_lock(mHmtxTable));
+    metrics->x_advance =
+        FloatToFixed(mFont->FUnitsToDevUnitsFactor() *
+                     PRUint16(hmtx->metrics[glyph].advanceWidth));
+    hb_blob_unlock(mHmtxTable);
 
     
 }
@@ -365,8 +366,21 @@ gfxHarfBuzzShaper::InitTextRun(gfxContext *aContext,
                 mNumLongMetrics = hhea->numberOfHMetrics;
                 hb_blob_unlock(hheaTable);
 
-                mHmtxTable =
-                    mFont->GetFontTable(TRUETYPE_TAG('h','m','t','x'));
+                if (mNumLongMetrics > 0 &&
+                    PRInt16(hhea->metricDataFormat) == 0) {
+                    
+                    
+                    
+                    mHmtxTable =
+                        mFont->GetFontTable(TRUETYPE_TAG('h','m','t','x'));
+                    if (hb_blob_get_length(mHmtxTable) <
+                        mNumLongMetrics * sizeof(HLongMetric)) {
+                        
+                        
+                        hb_blob_destroy(mHmtxTable);
+                        mHmtxTable = nsnull;
+                    }
+                }
             }
             hb_blob_destroy(hheaTable);
         }
