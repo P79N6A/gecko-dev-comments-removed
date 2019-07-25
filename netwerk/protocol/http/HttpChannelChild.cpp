@@ -374,7 +374,7 @@ HttpChannelChild::OnStopRequest(const nsresult& statusCode)
 
   mIsPending = PR_FALSE;
 
-  if (!mCanceled)
+  if (!mCanceled && NS_SUCCEEDED(mStatus))
     mStatus = statusCode;
 
   { 
@@ -382,13 +382,13 @@ HttpChannelChild::OnStopRequest(const nsresult& statusCode)
     
     AutoEventEnqueuer ensureSerialDispatch(this);
 
-    mListener->OnStopRequest(this, mListenerContext, statusCode);
+    mListener->OnStopRequest(this, mListenerContext, mStatus);
 
     mListener = 0;
     mListenerContext = 0;
     mCacheEntryAvailable = PR_FALSE;
     if (mLoadGroup)
-      mLoadGroup->RemoveRequest(this, nsnull, statusCode);
+      mLoadGroup->RemoveRequest(this, nsnull, mStatus);
   }
 
   if (!(mLoadFlags & LOAD_DOCUMENT_URI)) {
