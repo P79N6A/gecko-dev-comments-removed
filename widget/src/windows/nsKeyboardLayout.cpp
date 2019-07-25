@@ -84,8 +84,8 @@ public:
   PRBool IsEqual(const DeadKeyEntry* aDeadKeyArray, PRUint32 aEntries) const
   {
     return (mEntries == aEntries &&
-            memcmp(mTable, aDeadKeyArray,
-                   aEntries * sizeof(DeadKeyEntry)) == 0);
+            !memcmp(mTable, aDeadKeyArray,
+                    aEntries * sizeof(DeadKeyEntry)));
   }
 
   PRUnichar GetCompositeChar(PRUnichar aBaseChar) const;
@@ -159,36 +159,38 @@ nsVirtualKey::GetUniChars(PRUint8 aShiftState,
 {
   *aFinalShiftState = aShiftState;
   PRUint32 numOfChars = GetNativeUniChars(aShiftState, aUniChars);
-  
-  if (aShiftState & (eAlt | eCtrl)) {
-    PRUnichar unshiftedChars[5];
-    PRUint32 numOfUnshiftedChars =
-      GetNativeUniChars(aShiftState & ~(eAlt | eCtrl), unshiftedChars);
 
-    if (numOfChars) {
-      if ((aShiftState & (eAlt | eCtrl)) == (eAlt | eCtrl)) {
-        
-        
-        
-        
-        
-        *aFinalShiftState &= ~(eAlt | eCtrl);
-      } else if (!(numOfChars == numOfUnshiftedChars &&
-                   memcmp(aUniChars, unshiftedChars,
-                          numOfChars * sizeof(PRUnichar)) == 0)) {
-        
-        
-        *aFinalShiftState &= ~(eAlt | eCtrl);
-      }
-    } else {
-      if (numOfUnshiftedChars) {
-        memcpy(aUniChars, unshiftedChars,
-               numOfUnshiftedChars * sizeof(PRUnichar));
-        numOfChars = numOfUnshiftedChars;
-      }
-    }
+  if (!(aShiftState & (eAlt | eCtrl))) {
+    return numOfChars;
   }
 
+  PRUnichar unshiftedChars[5];
+  PRUint32 numOfUnshiftedChars =
+    GetNativeUniChars(aShiftState & ~(eAlt | eCtrl), unshiftedChars);
+
+  if (!numOfChars) {
+    if (!numOfUnshiftedChars) {
+      return 0;
+    }
+    memcpy(aUniChars, unshiftedChars,
+           numOfUnshiftedChars * sizeof(PRUnichar));
+    return numOfUnshiftedChars;
+  }
+
+  if ((aShiftState & (eAlt | eCtrl)) == (eAlt | eCtrl)) {
+    
+    
+    
+    
+    
+    *aFinalShiftState &= ~(eAlt | eCtrl);
+  } else if (!(numOfChars == numOfUnshiftedChars &&
+               !memcmp(aUniChars, unshiftedChars,
+                       numOfChars * sizeof(PRUnichar)))) {
+    
+    
+    *aFinalShiftState &= ~(eAlt | eCtrl);
+  }
   return numOfChars;
 }
 
@@ -250,74 +252,78 @@ nsKeyboardLayout::OnKeyDown(PRUint8 aVirtualKey)
     
     
     mNumOfChars = 0;
-  } else {
-    BYTE kbdState[256];
-
-    if (::GetKeyboardState(kbdState)) {
-      mLastShiftState = GetShiftState(kbdState);
-
-      if (mVirtualKeys[mLastVirtualKeyIndex].IsDeadKey(mLastShiftState)) {
-        if (mActiveDeadKey >= 0) {
-          
-          
-          PRInt32 activeDeadKeyIndex = GetKeyIndex(mActiveDeadKey);
-          mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState,
-                                                       mChars, mShiftStates);
-          mVirtualKeys[mLastVirtualKeyIndex].GetUniChars(mLastShiftState,
-                                                         &mChars[1],
-                                                         &mShiftStates[1]);
-          mNumOfChars = 2;
-
-          DeactivateDeadKeyState();
-        } else {
-          
-          mActiveDeadKey = aVirtualKey;
-          mDeadKeyShiftState = mLastShiftState;
-          mNumOfChars = 0;
-        }
-      } else {
-        PRUint8 finalShiftState;
-        PRUnichar uniChars[5];
-        PRUint32 numOfBaseChars =
-          mVirtualKeys[mLastVirtualKeyIndex].GetUniChars(mLastShiftState,
-                                                         uniChars,
-                                                         &finalShiftState);
-
-        if (mActiveDeadKey >= 0) {
-          PRInt32 activeDeadKeyIndex = GetKeyIndex(mActiveDeadKey);
-
-          
-          
-          PRUnichar compositeChar = (numOfBaseChars == 1 && uniChars[0]) ?
-            mVirtualKeys[activeDeadKeyIndex].
-              GetCompositeChar(mDeadKeyShiftState, uniChars[0]) : 0;
-
-          if (compositeChar) {
-            
-            
-            mChars[0] = compositeChar;
-            mShiftStates[0] = finalShiftState;
-            mNumOfChars = 1;
-          } else {
-            
-            
-            mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState,
-                                                         mChars, mShiftStates);
-            memcpy(&mChars[1], uniChars, numOfBaseChars * sizeof(PRUnichar));
-            memset(&mShiftStates[1], finalShiftState, numOfBaseChars);
-            mNumOfChars = numOfBaseChars + 1;
-          }
-
-          DeactivateDeadKeyState();
-        } else {
-          
-          memcpy(mChars, uniChars, numOfBaseChars * sizeof(PRUnichar));
-          memset(mShiftStates, finalShiftState, numOfBaseChars);
-          mNumOfChars = numOfBaseChars;
-        }
-      }
-    }
+    return;
   }
+
+  BYTE kbdState[256];
+  if (!::GetKeyboardState(kbdState)) {
+    return;
+  }
+
+  mLastShiftState = GetShiftState(kbdState);
+
+  if (mVirtualKeys[mLastVirtualKeyIndex].IsDeadKey(mLastShiftState)) {
+    if (mActiveDeadKey < 0) {
+      
+      mActiveDeadKey = aVirtualKey;
+      mDeadKeyShiftState = mLastShiftState;
+      mNumOfChars = 0;
+      return;
+    }
+
+    
+    
+    PRInt32 activeDeadKeyIndex = GetKeyIndex(mActiveDeadKey);
+    mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState,
+                                                 mChars, mShiftStates);
+    mVirtualKeys[mLastVirtualKeyIndex].GetUniChars(mLastShiftState,
+                                                   &mChars[1],
+                                                   &mShiftStates[1]);
+    mNumOfChars = 2;
+
+    DeactivateDeadKeyState();
+    return;
+  }
+
+  PRUint8 finalShiftState;
+  PRUnichar uniChars[5];
+  PRUint32 numOfBaseChars =
+    mVirtualKeys[mLastVirtualKeyIndex].GetUniChars(mLastShiftState, uniChars,
+                                                   &finalShiftState);
+
+  if (mActiveDeadKey < 0) {
+    
+    memcpy(mChars, uniChars, numOfBaseChars * sizeof(PRUnichar));
+    memset(mShiftStates, finalShiftState, numOfBaseChars);
+    mNumOfChars = numOfBaseChars;
+    return;
+  }
+
+
+  
+  
+  PRInt32 activeDeadKeyIndex = GetKeyIndex(mActiveDeadKey);
+  PRUnichar compositeChar = (numOfBaseChars == 1 && uniChars[0]) ?
+    mVirtualKeys[activeDeadKeyIndex].GetCompositeChar(mDeadKeyShiftState,
+                                                      uniChars[0]) : 0;
+
+  if (compositeChar) {
+    
+    
+    mChars[0] = compositeChar;
+    mShiftStates[0] = finalShiftState;
+    mNumOfChars = 1;
+  } else {
+    
+    
+    mVirtualKeys[activeDeadKeyIndex].GetUniChars(mDeadKeyShiftState,
+                                                 mChars, mShiftStates);
+    memcpy(&mChars[1], uniChars, numOfBaseChars * sizeof(PRUnichar));
+    memset(&mShiftStates[1], finalShiftState, numOfBaseChars);
+    mNumOfChars = numOfBaseChars + 1;
+  }
+
+  DeactivateDeadKeyState();
 }
 
 PRUint32
@@ -718,11 +724,10 @@ nsKeyboardLayout::GetDeadKeyCombinations(PRUint8 aDeadKey,
 
             NS_ASSERTION(rv == 1, "One base character expected");
 
-            if (rv == 1 && entries < aMaxEntries) {
-              if (AddDeadKeyEntry(baseChars[0], compositeChars[0],
-                                  aDeadKeyArray, entries)) {
-                entries++;
-              }
+            if (rv == 1 && entries < aMaxEntries &&
+                AddDeadKeyEntry(baseChars[0], compositeChars[0],
+                                aDeadKeyArray, entries)) {
+              entries++;
             }
             deadKeyActive = PR_FALSE;
             break;
