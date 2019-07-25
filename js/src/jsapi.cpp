@@ -896,12 +896,11 @@ JS_SuspendRequest(JSContext *cx)
     if (saveDepth == 0)
         return 0;
 
+    JS_THREAD_DATA(cx)->conservativeGC.enable();
     do {
         cx->outstandingRequests++;  
         StopRequest(cx);
     } while (cx->requestDepth);
-
-    JS_THREAD_DATA(cx)->conservativeGC.enable();
 
     return saveDepth;
 #else
@@ -916,13 +915,12 @@ JS_ResumeRequest(JSContext *cx, jsrefcount saveDepth)
     if (saveDepth == 0)
         return;
 
-    JS_THREAD_DATA(cx)->conservativeGC.disable();
-
     JS_ASSERT(cx->outstandingRequests != 0);
     do {
         JS_BeginRequest(cx);
         cx->outstandingRequests--;  
     } while (--saveDepth != 0);
+    JS_THREAD_DATA(cx)->conservativeGC.disable();
 #endif
 }
 
