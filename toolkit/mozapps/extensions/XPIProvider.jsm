@@ -1005,6 +1005,13 @@ var XPIProvider = {
   
 
 
+
+
+
+
+
+
+
   startup: function XPI_startup(aAppChanged) {
     LOG("startup");
     this.installs = [];
@@ -1123,6 +1130,7 @@ var XPIProvider = {
         this.showMismatchWindow();
       }
       else if (this.startupChanges.appDisabled.length > 0) {
+        
         
         Services.prefs.setCharPref(PREF_EM_DISABLED_ADDONS_LIST,
                                    this.startupChanges.appDisabled.join(","));
@@ -1863,11 +1871,14 @@ var XPIProvider = {
 
 
 
+
+
+
   checkForChanges: function XPI_checkForChanges(aAppChanged) {
     LOG("checkForChanges");
 
     
-    if (aAppChanged)
+    if (aAppChanged !== false)
       this.importPermissions();
 
     
