@@ -238,9 +238,9 @@ nsFindContentIterator::PositionAt(nsINode* aCurNode)
 void
 nsFindContentIterator::Reset()
 {
-  mInnerIterator = nullptr;
-  mStartOuterContent = nullptr;
-  mEndOuterContent = nullptr;
+  mInnerIterator = nsnull;
+  mStartOuterContent = nsnull;
+  mEndOuterContent = nsnull;
 
   
   
@@ -296,7 +296,7 @@ nsFindContentIterator::Reset()
 void
 nsFindContentIterator::MaybeSetupInnerIterator()
 {
-  mInnerIterator = nullptr;
+  mInnerIterator = nsnull;
 
   nsCOMPtr<nsIContent> content =
     do_QueryInterface(mOuterIterator->GetCurrentNode());
@@ -379,19 +379,19 @@ nsFindContentIterator::SetupInnerIterator(nsIContent* aContent)
 
     
     
-    nsresult res;
+    nsresult res1, res2;
     nsCOMPtr<nsIDOMNode> outerNode(do_QueryInterface(aContent));
     if (!mFindBackward) { 
       
-      res = outerRange->SetEnd(mEndNode, mEndOffset);
-      res |= outerRange->SetStartAfter(outerNode);
+      res1 = outerRange->SetEnd(mEndNode, mEndOffset);
+      res2 = outerRange->SetStartAfter(outerNode);
     }
     else { 
       
-      res = outerRange->SetStart(mStartNode, mStartOffset);
-      res |= outerRange->SetEndBefore(outerNode);
+      res1 = outerRange->SetStart(mStartNode, mStartOffset);
+      res2 = outerRange->SetEndBefore(outerNode);
     }
-    if (NS_FAILED(res)) {
+    if (NS_FAILED(res1) || NS_FAILED(res2)) {
       
       
       outerRange->Collapse(true);
@@ -692,7 +692,7 @@ nsFind::NextNode(nsIDOMRange* aSearchRange,
   if (content)
     mIterNode = do_QueryInterface(content);
   else
-    mIterNode = nullptr;
+    mIterNode = nsnull;
   mIterOffset = -1;
 
 #ifdef DEBUG_FIND
@@ -817,8 +817,8 @@ nsresult nsFind::GetBlockParent(nsIDOMNode* aNode, nsIDOMNode** aParent)
 
 void nsFind::ResetAll()
 {
-  mIterator = nullptr;
-  mLastBlockParent = nullptr;
+  mIterator = nsnull;
+  mLastBlockParent = nsnull;
 }
 
 #define NBSP_CHARCODE (CHAR_TO_UNICHAR(160))
@@ -876,12 +876,12 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
   int incr = (mFindBackward ? -1 : 1);
 
   nsCOMPtr<nsIContent> tc;
-  const nsTextFragment *frag = nullptr;
+  const nsTextFragment *frag = nsnull;
   PRInt32 fragLen = 0;
 
   
-  const PRUnichar *t2b = nullptr;
-  const char      *t1b = nullptr;
+  const PRUnichar *t2b = nsnull;
+  const char      *t1b = nsnull;
 
   
   
@@ -908,7 +908,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
     if (!frag)
     {
 
-      tc = nullptr;
+      tc = nsnull;
       NextNode(aSearchRange, aStartPoint, aEndPoint, false);
       if (!mIterNode)    
       {
@@ -940,7 +940,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
 #endif
         mLastBlockParent = blockParent;
         
-        matchAnchorNode = nullptr;
+        matchAnchorNode = nsnull;
         matchAnchorOffset = 0;
         pindex = (mFindBackward ? patLen : 0);
         inWhitespace = false;
@@ -950,7 +950,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
       tc = do_QueryInterface(mIterNode);
       if (!tc || !(frag = tc->GetText())) 
       {
-        mIterator = nullptr;
+        mIterator = nsnull;
         mLastBlockParent = 0;
         ResetAll();
         return NS_OK;
@@ -997,7 +997,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
       if (frag->Is2b())
       {
         t2b = frag->Get2b();
-        t1b = nullptr;
+        t1b = nsnull;
 #ifdef DEBUG_FIND
         nsAutoString str2(t2b, fragLen);
         printf("2 byte, '%s'\n", NS_LossyConvertUTF16toASCII(str2).get());
@@ -1006,7 +1006,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
       else
       {
         t1b = frag->Get1b();
-        t2b = nullptr;
+        t2b = nsnull;
 #ifdef DEBUG_FIND
         nsCAutoString str1(t1b, fragLen);
         printf("1 byte, '%s'\n", str1.get());
@@ -1028,7 +1028,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
                matchAnchorOffset, fragLen);
 #endif
         
-        frag = nullptr;
+        frag = nsnull;
         continue;
       }
     }
@@ -1148,7 +1148,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
             NS_ADDREF(*aRangeRet);
           }
           else {
-            startParent = nullptr; 
+            startParent = nsnull; 
           }
         }
 
@@ -1165,7 +1165,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
           ResetAll();
           return NS_OK;
         }
-        matchAnchorNode = nullptr;  
+        matchAnchorNode = nsnull;  
       }
 
       if (matchAnchorNode) {
@@ -1216,7 +1216,7 @@ nsFind::Find(const PRUnichar *aPatText, nsIDOMRange* aSearchRange,
              findex, mIterOffset);
 #endif
     }
-    matchAnchorNode = nullptr;
+    matchAnchorNode = nsnull;
     matchAnchorOffset = 0;
     inWhitespace = false;
     pindex = (mFindBackward ? patLen : 0);

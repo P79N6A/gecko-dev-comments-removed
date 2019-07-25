@@ -99,7 +99,7 @@ nsSVGUseElement::~nsSVGUseElement()
 nsresult
 nsSVGUseElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
 {
-  *aResult = nullptr;
+  *aResult = nsnull;
   nsCOMPtr<nsINodeInfo> ni = aNodeInfo;
   nsSVGUseElement *it = new nsSVGUseElement(ni.forget());
   if (!it) {
@@ -107,17 +107,17 @@ nsSVGUseElement::Clone(nsINodeInfo *aNodeInfo, nsINode **aResult) const
   }
 
   nsCOMPtr<nsINode> kungFuDeathGrip(it);
-  nsresult rv = it->Init();
-  rv |= const_cast<nsSVGUseElement*>(this)->CopyInnerTo(it);
+  nsresult rv1 = it->Init();
+  nsresult rv2 = const_cast<nsSVGUseElement*>(this)->CopyInnerTo(it);
 
   
   it->mOriginal = const_cast<nsSVGUseElement*>(this);
 
-  if (NS_SUCCEEDED(rv)) {
+  if (NS_SUCCEEDED(rv1) && NS_SUCCEEDED(rv2)) {
     kungFuDeathGrip.swap(*aResult);
   }
 
-  return rv;
+  return NS_FAILED(rv1) ? rv1 : rv2;
 }
 
 
@@ -227,7 +227,7 @@ nsSVGUseElement::NodeWillBeDestroyed(const nsINode *aNode)
 nsIContent*
 nsSVGUseElement::CreateAnonymousContent()
 {
-  mClone = nullptr;
+  mClone = nsnull;
 
   if (mSource.get()) {
     mSource.get()->RemoveMutationObserver(this);
@@ -236,7 +236,7 @@ nsSVGUseElement::CreateAnonymousContent()
   LookupHref();
   nsIContent* targetContent = mSource.get();
   if (!targetContent || !targetContent->IsSVG())
-    return nullptr;
+    return nsnull;
 
   
   
@@ -254,13 +254,13 @@ nsSVGUseElement::CreateAnonymousContent()
       tag != nsGkAtoms::polygon &&
       tag != nsGkAtoms::image &&
       tag != nsGkAtoms::use)
-    return nullptr;
+    return nsnull;
 
   
 
   
   if (nsContentUtils::ContentIsDescendantOf(this, targetContent))
-    return nullptr;
+    return nsnull;
 
   
   if (GetParent() && mOriginal) {
@@ -275,7 +275,7 @@ nsSVGUseElement::CreateAnonymousContent()
                                    getter_AddRefs(useImpl));
 
         if (useImpl && useImpl->mOriginal == mOriginal)
-          return nullptr;
+          return nsnull;
       }
     }
   }
@@ -284,14 +284,14 @@ nsSVGUseElement::CreateAnonymousContent()
   nsCOMArray<nsINode> unused;
   nsNodeInfoManager* nodeInfoManager =
     targetContent->OwnerDoc() == OwnerDoc() ?
-      nullptr : OwnerDoc()->NodeInfoManager();
+      nsnull : OwnerDoc()->NodeInfoManager();
   nsNodeUtils::Clone(targetContent, true, nodeInfoManager, unused,
                      getter_AddRefs(newnode));
 
   nsCOMPtr<nsIContent> newcontent = do_QueryInterface(newnode);
 
   if (!newcontent)
-    return nullptr;
+    return nsnull;
 
   nsCOMPtr<nsIDOMSVGSymbolElement> symbol     = do_QueryInterface(newcontent);
   nsCOMPtr<nsIDOMSVGSVGElement>    svg        = do_QueryInterface(newcontent);
@@ -299,25 +299,25 @@ nsSVGUseElement::CreateAnonymousContent()
   if (symbol) {
     nsIDocument *document = GetCurrentDoc();
     if (!document)
-      return nullptr;
+      return nsnull;
 
     nsNodeInfoManager *nodeInfoManager = document->NodeInfoManager();
     if (!nodeInfoManager)
-      return nullptr;
+      return nsnull;
 
     nsCOMPtr<nsINodeInfo> nodeInfo;
-    nodeInfo = nodeInfoManager->GetNodeInfo(nsGkAtoms::svg, nullptr,
+    nodeInfo = nodeInfoManager->GetNodeInfo(nsGkAtoms::svg, nsnull,
                                             kNameSpaceID_SVG,
                                             nsIDOMNode::ELEMENT_NODE);
     if (!nodeInfo)
-      return nullptr;
+      return nsnull;
 
     nsCOMPtr<nsIContent> svgNode;
     NS_NewSVGSVGElement(getter_AddRefs(svgNode), nodeInfo.forget(),
                         NOT_FROM_PARSER);
 
     if (!svgNode)
-      return nullptr;
+      return nsnull;
     
     
     const nsAttrName* name;
@@ -354,7 +354,7 @@ nsSVGUseElement::CreateAnonymousContent()
   
   nsCOMPtr<nsIURI> baseURI = targetContent->GetBaseURI();
   if (!baseURI)
-    return nullptr;
+    return nsnull;
   newcontent->SetExplicitBaseURI(baseURI);
 
   targetContent->AddMutationObserver(this);
@@ -476,7 +476,7 @@ nsSVGUseElement::PrependLocalTransformsTo(const gfxMatrix &aMatrix,
   }
   
   float x, y;
-  const_cast<nsSVGUseElement*>(this)->GetAnimatedLengthValues(&x, &y, nullptr);
+  const_cast<nsSVGUseElement*>(this)->GetAnimatedLengthValues(&x, &y, nsnull);
   gfxMatrix toUserSpace = gfxMatrix().Translate(gfxPoint(x, y));
   if (aWhich == eChildToUserSpace) {
     return toUserSpace;

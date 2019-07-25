@@ -322,7 +322,7 @@ CheckPingURI(nsIURI* uri, nsIContent* content)
                                  content->NodePrincipal(),
                                  content,
                                  EmptyCString(), 
-                                 nullptr, 
+                                 nsnull, 
                                  &shouldLoad);
   return NS_SUCCEEDED(rv) && NS_CP_ACCEPTED(shouldLoad);
 }
@@ -447,7 +447,7 @@ nsPingListener::OnDataAvailable(nsIRequest *request, nsISupports *context,
                                 PRUint32 count)
 {
   PRUint32 result;
-  return stream->ReadSegments(NS_DiscardSegment, nullptr, count, &result);
+  return stream->ReadSegments(NS_DiscardSegment, nsnull, count, &result);
 }
 
 NS_IMETHODIMP
@@ -588,7 +588,7 @@ SendPing(void *closure, nsIContent *content, nsIURI *uri, nsIIOService *ios)
   NS_ASSERTION(callbacks, "oops");
   loadGroup->SetNotificationCallbacks(callbacks);
 
-  chan->AsyncOpen(listener, nullptr);
+  chan->AsyncOpen(listener, nsnull);
 
   
   
@@ -710,7 +710,7 @@ DecreasePrivateDocShellCount()
 
         nsCOMPtr<nsIObserverService> obsvc = mozilla::services::GetObserverService();
         if (obsvc) {
-            obsvc->NotifyObservers(nullptr, "last-pb-context-exited", nullptr);
+            obsvc->NotifyObservers(nsnull, "last-pb-context-exited", nsnull);
         }
     }
 }
@@ -725,8 +725,8 @@ static PRUint64 gDocshellIDCounter = 0;
 nsDocShell::nsDocShell():
     nsDocLoader(),
     mDefaultScrollbarPref(Scrollbar_Auto, Scrollbar_Auto),
-    mTreeOwner(nullptr),
-    mChromeEventHandler(nullptr),
+    mTreeOwner(nsnull),
+    mChromeEventHandler(nsnull),
     mCharsetReloadState(eCharsetReloadInit),
     mChildOffset(0),
     mBusyFlags(BUSY_FLAGS_NONE),
@@ -770,7 +770,7 @@ nsDocShell::nsDocShell():
 {
     mHistoryID = ++gDocshellIDCounter;
     if (gDocShellCount++ == 0) {
-        NS_ASSERTION(sURIFixup == nullptr,
+        NS_ASSERTION(sURIFixup == nsnull,
                      "Huh, sURIFixup not null in first nsDocShell ctor!");
 
         CallGetService(NS_URIFIXUP_CONTRACTID, &sURIFixup);
@@ -781,7 +781,7 @@ nsDocShell::nsDocShell():
     if (! gDocShellLog)
         gDocShellLog = PR_NewLogModule("nsDocShell");
 #endif
-    if (nullptr == gDocShellLeakLog)
+    if (nsnull == gDocShellLeakLog)
         gDocShellLeakLog = PR_NewLogModule("nsDocShellLeak");
     if (gDocShellLeakLog)
         PR_LOG(gDocShellLeakLog, PR_LOG_DEBUG, ("DOCSHELL %p created\n", this));
@@ -804,7 +804,7 @@ nsDocShell::~nsDocShell()
     nsCOMPtr<nsISHistoryInternal>
         shPrivate(do_QueryInterface(mSessionHistory));
     if (shPrivate) {
-        shPrivate->SetRootDocShell(nullptr);
+        shPrivate->SetRootDocShell(nsnull);
     }
 
     if (--gDocShellCount == 0) {
@@ -876,7 +876,7 @@ nsDocShell::DestroyChildren()
         NS_ASSERTION(shell, "docshell has null child");
 
         if (shell) {
-            shell->SetTreeOwner(nullptr);
+            shell->SetTreeOwner(nsnull);
         }
     }
 
@@ -922,7 +922,7 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
 {
     NS_PRECONDITION(aSink, "null out param");
 
-    *aSink = nullptr;
+    *aSink = nsnull;
 
     if (aIID.Equals(NS_GET_IID(nsICommandManager))) {
         NS_ENSURE_SUCCESS(EnsureCommandHandler(), NS_ERROR_FAILURE);
@@ -955,7 +955,7 @@ NS_IMETHODIMP nsDocShell::GetInterface(const nsIID & aIID, void **aSink)
         return domDoc->QueryInterface(aIID, aSink);
     }
     else if (aIID.Equals(NS_GET_IID(nsIApplicationCacheContainer))) {
-        *aSink = nullptr;
+        *aSink = nsnull;
 
         
 
@@ -1332,7 +1332,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
 
                 
                 
-                if (mCurrentURI == nullptr) {
+                if (mCurrentURI == nsnull) {
                     
                     
                     if (shEntry && (parentLoadType == LOAD_NORMAL ||
@@ -1347,13 +1347,13 @@ nsDocShell::LoadURI(nsIURI * aURI,
                         parentDS->GetIsExecutingOnLoadHandler(&inOnLoadHandler);
                         if (inOnLoadHandler) {
                             loadType = LOAD_NORMAL_REPLACE;
-                            shEntry = nullptr;
+                            shEntry = nsnull;
                         }
                     }   
                     else if (parentLoadType == LOAD_REFRESH) {
                         
                         
-                        shEntry = nullptr;
+                        shEntry = nsnull;
                     }
                     else if ((parentLoadType == LOAD_BYPASS_HISTORY) ||
                               (shEntry && 
@@ -1386,7 +1386,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
                     if (parentBusy & BUSY_FLAGS_BUSY ||
                         selfBusy & BUSY_FLAGS_BUSY) {
                         loadType = LOAD_NORMAL_REPLACE;
-                        shEntry = nullptr; 
+                        shEntry = nsnull; 
                     }
                 }
             } 
@@ -1470,7 +1470,7 @@ nsDocShell::LoadURI(nsIURI * aURI,
             if (ownerIsExplicit) {
                 return NS_ERROR_DOM_SECURITY_ERR;
             }
-            owner = nullptr;
+            owner = nsnull;
             inheritOwner = true;
         }
     }
@@ -1513,14 +1513,14 @@ nsDocShell::LoadURI(nsIURI * aURI,
                         owner,
                         flags,
                         target.get(),
-                        nullptr,         
+                        nsnull,         
                         postStream,
                         headersStream,
                         loadType,
-                        nullptr,         
+                        nsnull,         
                         aFirstParty,
-                        nullptr,         
-                        nullptr);        
+                        nsnull,         
+                        nsnull);        
 }
 
 NS_IMETHODIMP
@@ -1735,7 +1735,7 @@ NS_IMETHODIMP
 nsDocShell::GetEldestPresContext(nsPresContext** aPresContext)
 {
     NS_ENSURE_ARG_POINTER(aPresContext);
-    *aPresContext = nullptr;
+    *aPresContext = nsnull;
 
     nsCOMPtr<nsIContentViewer> viewer = mContentViewer;
     while (viewer) {
@@ -1754,7 +1754,7 @@ NS_IMETHODIMP
 nsDocShell::GetPresContext(nsPresContext ** aPresContext)
 {
     NS_ENSURE_ARG_POINTER(aPresContext);
-    *aPresContext = nullptr;
+    *aPresContext = nsnull;
 
     if (!mContentViewer)
       return NS_OK;
@@ -1768,7 +1768,7 @@ nsDocShell::GetPresShell(nsIPresShell ** aPresShell)
     nsresult rv = NS_OK;
 
     NS_ENSURE_ARG_POINTER(aPresShell);
-    *aPresShell = nullptr;
+    *aPresShell = nsnull;
 
     nsRefPtr<nsPresContext> presContext;
     (void) GetPresContext(getter_AddRefs(presContext));
@@ -1786,7 +1786,7 @@ nsDocShell::GetEldestPresShell(nsIPresShell** aPresShell)
     nsresult rv = NS_OK;
 
     NS_ENSURE_ARG_POINTER(aPresShell);
-    *aPresShell = nullptr;
+    *aPresShell = nsnull;
 
     nsRefPtr<nsPresContext> presContext;
     (void) GetEldestPresContext(getter_AddRefs(presContext));
@@ -1837,7 +1837,7 @@ nsDocShell::SetCurrentURI(nsIURI *aURI)
 {
     
     
-    SetCurrentURI(aURI, nullptr, true, 0);
+    SetCurrentURI(aURI, nsnull, true, 0);
     return NS_OK;
 }
 
@@ -1896,7 +1896,7 @@ NS_IMETHODIMP
 nsDocShell::GetCharset(char** aCharset)
 {
     NS_ENSURE_ARG_POINTER(aCharset);
-    *aCharset = nullptr; 
+    *aCharset = nsnull; 
 
     nsCOMPtr<nsIPresShell> presShell;
     GetPresShell(getter_AddRefs(presShell));
@@ -2165,7 +2165,7 @@ NS_IMETHODIMP
 nsDocShell::GetDocShellEnumerator(PRInt32 aItemType, PRInt32 aDirection, nsISimpleEnumerator **outEnum)
 {
     NS_ENSURE_ARG_POINTER(outEnum);
-    *outEnum = nullptr;
+    *outEnum = nsnull;
     
     nsRefPtr<nsDocShellEnumerator> docShellEnum;
     if (aDirection == ENUMERATE_FORWARDS)
@@ -2397,7 +2397,7 @@ nsDocShell::GetSessionStorageForPrincipal(nsIPrincipal* aPrincipal,
                                           nsIDOMStorage** aStorage)
 {
     NS_ENSURE_ARG_POINTER(aStorage);
-    *aStorage = nullptr;
+    *aStorage = nsnull;
 
     if (!aPrincipal)
         return NS_OK;
@@ -2601,7 +2601,7 @@ nsDocShell::GetCurrentDocChannel()
             return doc->GetChannel();
         }
     }
-    return nullptr;
+    return nsnull;
 }
 
 
@@ -2659,7 +2659,7 @@ nsDocShell::SetItemType(PRInt32 aItemType)
     
     mAllowAuth = mItemType == typeContent; 
 
-    nsRefPtr<nsPresContext> presContext = nullptr;
+    nsRefPtr<nsPresContext> presContext = nsnull;
     GetPresContext(getter_AddRefs(presContext));
     if (presContext) {
         presContext->InvalidateIsChromeCache();
@@ -2672,7 +2672,7 @@ NS_IMETHODIMP
 nsDocShell::GetParent(nsIDocShellTreeItem ** aParent)
 {
     if (!mParent) {
-        *aParent = nullptr;
+        *aParent = nsnull;
     } else {
         CallQueryInterface(mParent, aParent);
     }
@@ -2745,7 +2745,7 @@ NS_IMETHODIMP
 nsDocShell::GetSameTypeParent(nsIDocShellTreeItem ** aParent)
 {
     NS_ENSURE_ARG_POINTER(aParent);
-    *aParent = nullptr;
+    *aParent = nsnull;
 
     if (mIsBrowserFrame) {
         return NS_OK;
@@ -2769,7 +2769,7 @@ NS_IMETHODIMP
 nsDocShell::GetParentIgnoreBrowserFrame(nsIDocShell** aParent)
 {
     NS_ENSURE_ARG_POINTER(aParent);
-    *aParent = nullptr;
+    *aParent = nsnull;
 
     nsCOMPtr<nsIDocShellTreeItem> parent =
         do_QueryInterface(GetAsSupports(mParent));
@@ -2938,7 +2938,7 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
     NS_ENSURE_ARG_POINTER(_retval);
 
     
-    *_retval = nullptr;
+    *_retval = nsnull;
 
     if (!*aName)
         return NS_OK;
@@ -3002,7 +3002,7 @@ nsDocShell::FindItemWithName(const PRUnichar * aName,
         }
 
         if (foundItem && !CanAccessItem(foundItem, aOriginalRequestor)) {
-            foundItem = nullptr;
+            foundItem = nsnull;
         }
 
         if (foundItem) {
@@ -3260,7 +3260,7 @@ nsDocShell::AddChild(nsIDocShellTreeItem * aChild)
 
     
     
-    aChild->SetTreeOwner(nullptr);
+    aChild->SetTreeOwner(nsnull);
     
     nsresult res = AddChildLoader(childAsDocLoader);
     NS_ENSURE_SUCCESS(res, res);
@@ -3368,7 +3368,7 @@ nsDocShell::RemoveChild(nsIDocShellTreeItem * aChild)
     nsresult rv = RemoveChildLoader(childAsDocLoader);
     NS_ENSURE_SUCCESS(rv, rv);
     
-    aChild->SetTreeOwner(nullptr);
+    aChild->SetTreeOwner(nsnull);
 
     return nsDocLoader::AddDocLoaderAsChildOfRoot(childAsDocLoader);
 }
@@ -3403,7 +3403,7 @@ nsDocShell::FindChildWithName(const PRUnichar * aName,
     NS_ENSURE_ARG(aName);
     NS_ENSURE_ARG_POINTER(_retval);
 
-    *_retval = nullptr;          
+    *_retval = nsnull;          
 
     if (!*aName)
         return NS_OK;
@@ -3460,7 +3460,7 @@ nsDocShell::GetChildSHEntry(PRInt32 aChildOffset, nsISHEntry ** aResult)
     nsresult rv = NS_OK;
 
     NS_ENSURE_ARG_POINTER(aResult);
-    *aResult = nullptr;
+    *aResult = nsnull;
 
     
     
@@ -3493,7 +3493,7 @@ nsDocShell::GetChildSHEntry(PRInt32 aChildOffset, nsISHEntry ** aResult)
 
         if (parentExpired && (loadType == nsIDocShellLoadInfo::loadReloadNormal)) {
             
-            *aResult = nullptr;
+            *aResult = nsnull;
             return rv;
         }
 
@@ -3624,7 +3624,7 @@ nsDocShell::SetUseGlobalHistory(bool aUseGlobalHistory)
     mUseGlobalHistory = aUseGlobalHistory;
 
     if (!aUseGlobalHistory) {
-        mGlobalHistory = nullptr;
+        mGlobalHistory = nsnull;
         return NS_OK;
     }
 
@@ -3694,7 +3694,7 @@ NS_IMETHODIMP
 nsDocShell::GetCurrentSHEntry(nsISHEntry** aEntry, bool* aOSHE)
 {
     *aOSHE = false;
-    *aEntry = nullptr;
+    *aEntry = nsnull;
     if (mLSHE) {
         NS_ADDREF(*aEntry = mLSHE);
     } else if (mOSHE) {
@@ -3739,7 +3739,7 @@ bool
 nsDocShell::IsPrintingOrPP(bool aDisplayErrorDialog)
 {
   if (mIsPrintingOrPP && aDisplayErrorDialog) {
-    DisplayLoadError(NS_ERROR_DOCUMENT_IS_PRINTMODE, nullptr, nullptr);
+    DisplayLoadError(NS_ERROR_DOCUMENT_IS_PRINTMODE, nsnull, nsnull);
   }
 
   return mIsPrintingOrPP;
@@ -4223,7 +4223,7 @@ nsDocShell::DisplayLoadError(nsresult aError, nsIURI *aURI,
         }
 
         
-        prompter->Alert(nullptr, messageStr.get());
+        prompter->Alert(nsnull, messageStr.get());
     }
 
     return NS_OK;
@@ -4270,7 +4270,8 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
     if (aURI)
     {
         nsresult rv = aURI->GetSpec(url);
-        rv |= aURI->GetOriginCharset(charset);
+        NS_ENSURE_SUCCESS(rv, rv);
+        rv = aURI->GetOriginCharset(charset);
         NS_ENSURE_SUCCESS(rv, rv);
     }
     else if (aURL)
@@ -4327,10 +4328,10 @@ nsDocShell::LoadErrorPage(nsIURI *aURI, const PRUnichar *aURL,
     nsresult rv = NS_NewURI(getter_AddRefs(errorPageURI), errorPageUrl);
     NS_ENSURE_SUCCESS(rv, rv);
 
-    return InternalLoad(errorPageURI, nullptr, nullptr,
-                        INTERNAL_LOAD_FLAGS_INHERIT_OWNER, nullptr, nullptr,
-                        nullptr, nullptr, LOAD_ERROR_PAGE,
-                        nullptr, true, nullptr, nullptr);
+    return InternalLoad(errorPageURI, nsnull, nsnull,
+                        INTERNAL_LOAD_FLAGS_INHERIT_OWNER, nsnull, nsnull,
+                        nsnull, nsnull, LOAD_ERROR_PAGE,
+                        nsnull, true, nsnull, nsnull);
 }
 
 
@@ -4375,7 +4376,7 @@ nsDocShell::Reload(PRUint32 aReloadFlags)
     else {
         nsCOMPtr<nsIDocument> doc(do_GetInterface(GetAsSupports(this)));
 
-        nsIPrincipal* principal = nullptr;
+        nsIPrincipal* principal = nsnull;
         nsAutoString contentTypeHint;
         if (doc) {
             principal = doc->NodePrincipal();
@@ -4386,15 +4387,15 @@ nsDocShell::Reload(PRUint32 aReloadFlags)
                           mReferrerURI,
                           principal,
                           INTERNAL_LOAD_FLAGS_NONE, 
-                          nullptr,         
+                          nsnull,         
                           NS_LossyConvertUTF16toASCII(contentTypeHint).get(),
-                          nullptr,         
-                          nullptr,         
+                          nsnull,         
+                          nsnull,         
                           loadType,       
-                          nullptr,         
+                          nsnull,         
                           true,
-                          nullptr,         
-                          nullptr);        
+                          nsnull,         
+                          nsnull);        
     }
     
 
@@ -4411,11 +4412,11 @@ nsDocShell::Stop(PRUint32 aStopFlags)
         if (mLSHE) {
             
             SetHistoryEntry(&mOSHE, mLSHE);
-            SetHistoryEntry(&mLSHE, nullptr);
+            SetHistoryEntry(&mLSHE, nsnull);
         }
 
-        mFailedChannel = nullptr;
-        mFailedURI = nullptr;
+        mFailedChannel = nsnull;
+        mFailedURI = nsnull;
     }
 
     if (nsIWebNavigation::STOP_CONTENT & aStopFlags) {
@@ -4430,7 +4431,7 @@ nsDocShell::Stop(PRUint32 aStopFlags)
         if (mRefreshURIList) {
             SuspendRefreshURIs();
             mSavedRefreshURIList.swap(mRefreshURIList);
-            mRefreshURIList = nullptr;
+            mRefreshURIList = nsnull;
         }
 
         
@@ -4468,7 +4469,7 @@ nsDocShell::GetCurrentURI(nsIURI ** aURI)
         return NS_EnsureSafeToReturn(mCurrentURI, aURI);
     }
 
-    *aURI = nullptr;
+    *aURI = nsnull;
     return NS_OK;
 }
 
@@ -4577,7 +4578,7 @@ nsDocShell::GetCurrentDescriptor(nsISupports **aPageDescriptor)
 {
     NS_PRECONDITION(aPageDescriptor, "Null out param?");
 
-    *aPageDescriptor = nullptr;
+    *aPageDescriptor = nsnull;
 
     nsISHEntry* src = mOSHE ? mOSHE : mLSHE;
     if (src) {
@@ -4589,7 +4590,7 @@ nsDocShell::GetCurrentDescriptor(nsISupports **aPageDescriptor)
         }
 
         
-        dest->SetParent(nullptr);
+        dest->SetParent(nsnull);
         dest->SetIsSubFrame(false);
         
         return CallQueryInterface(dest, aPageDescriptor);
@@ -4649,7 +4650,7 @@ nsDocShell::Create()
     if (serv) {
         const char* msg = mItemType == typeContent ?
             NS_WEBNAVIGATION_CREATE : NS_CHROME_WEBNAVIGATION_CREATE;
-        serv->NotifyObservers(GetAsSupports(this), msg, nullptr);
+        serv->NotifyObservers(GetAsSupports(this), msg, nsnull);
     }
 
     return NS_OK;
@@ -4666,7 +4667,7 @@ nsDocShell::Destroy()
         if (serv) {
             const char* msg = mItemType == typeContent ?
                 NS_WEBNAVIGATION_DESTROY : NS_CHROME_WEBNAVIGATION_DESTROY;
-            serv->NotifyObservers(GetAsSupports(this), msg, nullptr);
+            serv->NotifyObservers(GetAsSupports(this), msg, nsnull);
         }
     }
     
@@ -4680,7 +4681,7 @@ nsDocShell::Destroy()
 
     
     
-    mLoadingURI = nullptr;
+    mLoadingURI = nsnull;
 
     
     (void) FirePageHideNotification(true);
@@ -4688,15 +4689,15 @@ nsDocShell::Destroy()
     
     
     if (mOSHE)
-      mOSHE->SetEditorData(nullptr);
+      mOSHE->SetEditorData(nsnull);
     if (mLSHE)
-      mLSHE->SetEditorData(nullptr);
+      mLSHE->SetEditorData(nsnull);
       
     
     
     if (mContentListener) {
         mContentListener->DropDocShellreference();
-        mContentListener->SetParentContentListener(nullptr);
+        mContentListener->SetParentContentListener(nsnull);
         
         
         
@@ -4707,9 +4708,9 @@ nsDocShell::Destroy()
     
     Stop(nsIWebNavigation::STOP_ALL);
 
-    mEditorData = nullptr;
+    mEditorData = nsnull;
 
-    mTransferableHookData = nullptr;
+    mTransferableHookData = nsnull;
 
     
     
@@ -4723,21 +4724,21 @@ nsDocShell::Destroy()
         docShellParentAsItem->RemoveChild(this);
 
     if (mContentViewer) {
-        mContentViewer->Close(nullptr);
+        mContentViewer->Close(nsnull);
         mContentViewer->Destroy();
-        mContentViewer = nullptr;
+        mContentViewer = nsnull;
     }
 
     nsDocLoader::Destroy();
     
-    mParentWidget = nullptr;
-    mCurrentURI = nullptr;
+    mParentWidget = nsnull;
+    mCurrentURI = nsnull;
 
     if (mScriptGlobal) {
         nsCOMPtr<nsPIDOMWindow> win(do_QueryInterface(mScriptGlobal));
         win->DetachFromDocShell();
 
-        mScriptGlobal = nullptr;
+        mScriptGlobal = nsnull;
     }
 
     if (mSessionHistory) {
@@ -4749,13 +4750,13 @@ nsDocShell::Destroy()
         if (shPrivate) {
             shPrivate->EvictAllContentViewers();
         }
-        mSessionHistory = nullptr;
+        mSessionHistory = nsnull;
     }
 
-    SetTreeOwner(nullptr);
+    SetTreeOwner(nsnull);
 
     
-    mSecurityUI = nullptr;
+    mSecurityUI = nsnull;
 
     
     
@@ -4890,7 +4891,7 @@ nsDocShell::GetParentNativeWindow(nativeWindow * parentNativeWindow)
     if (mParentWidget)
         *parentNativeWindow = mParentWidget->GetNativeData(NS_NATIVE_WIDGET);
     else
-        *parentNativeWindow = nullptr;
+        *parentNativeWindow = nsnull;
 
     return NS_OK;
 }
@@ -4960,7 +4961,7 @@ nsDocShell::GetVisibility(bool * aVisibility)
             pPresShell->GetDocument()->FindContentForSubDocument(presShell->GetDocument());
         NS_ASSERTION(shellContent, "subshell not in the map");
 
-        nsIFrame* frame = shellContent ? shellContent->GetPrimaryFrame() : nullptr;
+        nsIFrame* frame = shellContent ? shellContent->GetPrimaryFrame() : nsnull;
         bool isDocShellOffScreen = false;
         docShell->GetIsOffScreenBrowser(&isDocShellOffScreen);
         if (frame &&
@@ -5377,7 +5378,7 @@ nsDocShell::ScrollByPages(PRInt32 numPages)
 nsIScriptGlobalObject*
 nsDocShell::GetScriptGlobalObject()
 {
-    NS_ENSURE_SUCCESS(EnsureScriptEnvironment(), nullptr);
+    NS_ENSURE_SUCCESS(EnsureScriptEnvironment(), nsnull);
 
     return mScriptGlobal;
 }
@@ -5727,7 +5728,7 @@ nsDocShell::SetupRefreshURIFromHeader(nsIURI * aBaseURI,
     else {
         uriAttrib = Substring(tokenStart, iter);
         
-        rv = NS_NewURI(getter_AddRefs(uri), uriAttrib, nullptr, aBaseURI);
+        rv = NS_NewURI(getter_AddRefs(uri), uriAttrib, nsnull, aBaseURI);
         specifiesURI = true;
     }
 
@@ -5824,8 +5825,8 @@ nsDocShell::CancelRefreshURITimers()
 {
     DoCancelRefreshURITimers(mRefreshURIList);
     DoCancelRefreshURITimers(mSavedRefreshURIList);
-    mRefreshURIList = nullptr;
-    mSavedRefreshURIList = nullptr;
+    mRefreshURIList = nsnull;
+    mSavedRefreshURIList = nsnull;
 
     return NS_OK;
 }
@@ -5989,7 +5990,7 @@ nsDocShell::Embed(nsIContentViewer * aContentViewer,
     }
 
     if (!updateHistory)
-        SetLayoutHistoryState(nullptr);
+        SetLayoutHistoryState(nsnull);
 
     return NS_OK;
 }
@@ -6079,7 +6080,7 @@ nsDocShell::OnStateChange(nsIWebProgress * aProgress, nsIRequest * aRequest,
                 
                 
                 
-                rv = AddToSessionHistory(uri, wcwgChannel, nullptr, false,
+                rv = AddToSessionHistory(uri, wcwgChannel, nsnull, false,
                                          getter_AddRefs(mLSHE));
                 SetCurrentURI(uri, aRequest, true, 0);
                 
@@ -6227,7 +6228,7 @@ nsDocShell::OnRedirectStateChange(nsIChannel* aOldChannel,
     if (!(aRedirectFlags & nsIChannelEventSink::REDIRECT_INTERNAL) && 
         mLoadType & (LOAD_CMD_RELOAD | LOAD_CMD_HISTORY)) {
         mLoadType = LOAD_NORMAL_REPLACE;
-        SetHistoryEntry(&mLSHE, nullptr);
+        SetHistoryEntry(&mLSHE, nsnull);
     }
 }
 
@@ -6272,7 +6273,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
     }
 
     
-    mTiming = nullptr;
+    mTiming = nsnull;
 
     
     if (eCharsetReloadRequested == mCharsetReloadState)
@@ -6334,7 +6335,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
 
         
         
-        SetHistoryEntry(&mLSHE, nullptr);
+        SetHistoryEntry(&mLSHE, nsnull);
     }
     
     
@@ -6362,7 +6363,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
         if (aStatus == NS_ERROR_FILE_NOT_FOUND ||
             aStatus == NS_ERROR_CORRUPTED_CONTENT ||
             aStatus == NS_ERROR_INVALID_CONTENT_ENCODING) {
-            DisplayLoadError(aStatus, url, nullptr, aChannel);
+            DisplayLoadError(aStatus, url, nsnull, aChannel);
             return NS_OK;
         }
 
@@ -6466,7 +6467,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                     }
                 }
                 if (doCreateAlternate) {
-                    newURI = nullptr;
+                    newURI = nsnull;
                     sURIFixup->CreateFixupURI(oldSpec,
                       nsIURIFixup::FIXUP_FLAGS_MAKE_ALTERNATE_URI,
                                               getter_AddRefs(newURI));
@@ -6488,9 +6489,9 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
 
                     return LoadURI(newSpecW.get(),  
                                    LOAD_FLAGS_NONE, 
-                                   nullptr,          
-                                   nullptr,          
-                                   nullptr);         
+                                   nsnull,          
+                                   nsnull,          
+                                   nsnull);         
                 }
             }
         }
@@ -6504,7 +6505,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
              aStatus == NS_ERROR_UNKNOWN_PROXY_HOST || 
              aStatus == NS_ERROR_PROXY_CONNECTION_REFUSED) &&
             (isTopFrame || mUseErrorPages)) {
-            DisplayLoadError(aStatus, url, nullptr, aChannel);
+            DisplayLoadError(aStatus, url, nsnull, aChannel);
         }
         
         else if (aStatus == NS_ERROR_NET_TIMEOUT ||
@@ -6519,7 +6520,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
                  aStatus == NS_ERROR_REMOTE_XUL ||
                  aStatus == NS_ERROR_OFFLINE ||
                  NS_ERROR_GET_MODULE(aStatus) == NS_ERROR_MODULE_SECURITY) {
-            DisplayLoadError(aStatus, url, nullptr, aChannel);
+            DisplayLoadError(aStatus, url, nsnull, aChannel);
         }
         else if (aStatus == NS_ERROR_DOCUMENT_NOT_CACHED) {
             
@@ -6527,7 +6528,7 @@ nsDocShell::EndPageLoad(nsIWebProgress * aProgress,
             
             if (!(mLoadType & LOAD_CMD_HISTORY))
                 aStatus = NS_ERROR_OFFLINE;
-            DisplayLoadError(aStatus, url, nullptr, aChannel);
+            DisplayLoadError(aStatus, url, nsnull, aChannel);
         }
   } 
 
@@ -6549,7 +6550,7 @@ nsDocShell::EnsureContentViewer()
 
     NS_TIME_FUNCTION;
 
-    nsIPrincipal* principal = nullptr;
+    nsIPrincipal* principal = nsnull;
     nsCOMPtr<nsIURI> baseURI;
 
     nsCOMPtr<nsPIDOMWindow> piDOMWindow(do_QueryInterface(mScriptGlobal));
@@ -6630,7 +6631,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
     }
 
     mSavingOldViewer = aTryToSaveOldPresentation && 
-                       CanSavePresentation(LOAD_NORMAL, nullptr, nullptr);
+                       CanSavePresentation(LOAD_NORMAL, nsnull, nsnull);
 
     if (mTiming) {
       mTiming->NotifyUnloadAccepted(mCurrentURI);
@@ -6638,7 +6639,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
 
     
     
-    mLoadingURI = nullptr;
+    mLoadingURI = nsnull;
     
     
     
@@ -6682,7 +6683,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
         viewer->SetContainer(static_cast<nsIContentViewerContainer *>(this));
         Embed(viewer, "", 0);
 
-        SetCurrentURI(blankDoc->GetDocumentURI(), nullptr, true, 0);
+        SetCurrentURI(blankDoc->GetDocumentURI(), nsnull, true, 0);
         rv = mIsBeingDestroyed ? NS_ERROR_NOT_AVAILABLE : NS_OK;
       }
     }
@@ -6690,7 +6691,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
   mCreatingDocument = false;
 
   
-  SetHistoryEntry(&mOSHE, nullptr);
+  SetHistoryEntry(&mOSHE, nsnull);
 
   return rv;
 }
@@ -6698,7 +6699,7 @@ nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal* aPrincipal,
 NS_IMETHODIMP
 nsDocShell::CreateAboutBlankContentViewer(nsIPrincipal *aPrincipal)
 {
-    return CreateAboutBlankContentViewer(aPrincipal, nullptr);
+    return CreateAboutBlankContentViewer(aPrincipal, nsnull);
 }
 
 bool
@@ -6809,7 +6810,7 @@ nsDocShell::DetachEditorFromWindow()
         if (mOSHE)
             mOSHE->SetEditorData(mEditorData.forget());
         else
-            mEditorData = nullptr;
+            mEditorData = nsnull;
     }
 
 #ifdef DEBUG
@@ -6909,7 +6910,7 @@ nsDocShell::BeginRestore(nsIContentViewer *aContentViewer, bool aTop)
         if (channel) {
             mEODForCurrentDocument = false;
             mIsRestoringDocument = true;
-            mLoadGroup->AddRequest(channel, nullptr);
+            mLoadGroup->AddRequest(channel, nsnull);
             mIsRestoringDocument = false;
         }
     }
@@ -6939,7 +6940,7 @@ nsDocShell::BeginRestoreChildren()
     for (PRInt32 i = 0; i < n; ++i) {
         nsCOMPtr<nsIDocShell> child = do_QueryInterface(ChildAt(i));
         if (child) {
-            nsresult rv = child->BeginRestore(nullptr, false);
+            nsresult rv = child->BeginRestore(nsnull, false);
             NS_ENSURE_SUCCESS(rv, rv);
         }
     }
@@ -6973,7 +6974,7 @@ nsDocShell::FinishRestore()
         nsIChannel *channel = doc->GetChannel();
         if (channel) {
             mIsRestoringDocument = true;
-            mLoadGroup->RemoveRequest(channel, nullptr, NS_OK);
+            mLoadGroup->RemoveRequest(channel, nsnull, NS_OK);
             mIsRestoringDocument = false;
         }
     }
@@ -7027,7 +7028,7 @@ nsDocShell::RestorePresentation(nsISHEntry *aSHEntry, bool *aRestoring)
 #ifdef DEBUG_PAGE_CACHE
         printf("No valid container, clearing presentation\n");
 #endif
-        aSHEntry->SetContentViewer(nullptr);
+        aSHEntry->SetContentViewer(nsnull);
         return NS_ERROR_FAILURE;
     }
 
@@ -7090,7 +7091,7 @@ nsDocShell::RestoreFromHistory()
         nsCOMPtr<nsIDOMDocument> domDoc;
         viewer->GetDOMDocument(getter_AddRefs(domDoc));
         nsCOMPtr<nsIDocument> doc = do_QueryInterface(domDoc);
-        nsIRequest *request = nullptr;
+        nsIRequest *request = nsnull;
         if (doc)
             request = doc->GetChannel();
         mSavingOldViewer = CanSavePresentation(mLoadType, request, doc);
@@ -7117,7 +7118,7 @@ nsDocShell::RestoreFromHistory()
 
     
     
-    mLoadingURI = nullptr;
+    mLoadingURI = nsnull;
     
     
     FirePageHideNotification(!mSavingOldViewer);
@@ -7159,7 +7160,7 @@ nsDocShell::RestoreFromHistory()
         }
     }
 
-    mSavedRefreshURIList = nullptr;
+    mSavedRefreshURIList = nsnull;
 
     
     
@@ -7171,7 +7172,7 @@ nsDocShell::RestoreFromHistory()
         nsCOMPtr<nsIContentViewer> previousViewer;
         mContentViewer->GetPreviousViewer(getter_AddRefs(previousViewer));
         if (previousViewer) {
-            mContentViewer->SetPreviousViewer(nullptr);
+            mContentViewer->SetPreviousViewer(nsnull);
             previousViewer->Destroy();
         }
     }
@@ -7180,7 +7181,7 @@ nsDocShell::RestoreFromHistory()
     
     
 
-    nsIView *rootViewSibling = nullptr, *rootViewParent = nullptr;
+    nsIView *rootViewSibling = nsnull, *rootViewParent = nsnull;
     nsIntRect newBounds(0, 0, 0, 0);
 
     nsCOMPtr<nsIPresShell> oldPresShell;
@@ -7205,7 +7206,7 @@ nsDocShell::RestoreFromHistory()
     
 
     if (mContentViewer) {
-        mContentViewer->Close(mSavingOldViewer ? mOSHE.get() : nullptr);
+        mContentViewer->Close(mSavingOldViewer ? mOSHE.get() : nsnull);
         viewer->SetPreviousViewer(mContentViewer);
     }
     if (mOSHE && (!mContentViewer || !mSavingOldViewer)) {
@@ -7215,7 +7216,7 @@ nsDocShell::RestoreFromHistory()
     }
 
     
-    mContentViewer = nullptr;
+    mContentViewer = nsnull;
 
     
     
@@ -7227,7 +7228,7 @@ nsDocShell::RestoreFromHistory()
     
     nsCOMPtr<nsISupports> windowState;
     mLSHE->GetWindowState(getter_AddRefs(windowState));
-    mLSHE->SetWindowState(nullptr);
+    mLSHE->SetWindowState(nsnull);
 
     bool sticky;
     mLSHE->GetSticky(&sticky);
@@ -7262,7 +7263,7 @@ nsDocShell::RestoreFromHistory()
     nsAutoPtr<nsDocShellEditorData> data(mLSHE->ForgetEditorData());
 
     
-    mLSHE->SetContentViewer(nullptr);
+    mLSHE->SetContentViewer(nsnull);
     mEODForCurrentDocument = false;
 
     mLSHE->SetEditorData(data.forget());
@@ -7292,7 +7293,7 @@ nsDocShell::RestoreFromHistory()
 
     
     
-    SetLayoutHistoryState(nullptr);
+    SetLayoutHistoryState(nsnull);
 
     
 
@@ -7390,15 +7391,15 @@ nsDocShell::RestoreFromHistory()
         childShell->SetAllowImages(allowImages);
         childShell->SetAllowDNSPrefetch(allowDNSPrefetch);
 
-        rv = childShell->BeginRestore(nullptr, false);
+        rv = childShell->BeginRestore(nsnull, false);
         NS_ENSURE_SUCCESS(rv, rv);
     }
 
     nsCOMPtr<nsIPresShell> shell;
     nsDocShell::GetPresShell(getter_AddRefs(shell));
 
-    nsIViewManager *newVM = shell ? shell->GetViewManager() : nullptr;
-    nsIView *newRootView = newVM ? newVM->GetRootView() : nullptr;
+    nsIViewManager *newVM = shell ? shell->GetViewManager() : nsnull;
+    nsIView *newRootView = newVM ? newVM->GetRootView() : nsnull;
 
     
     if (rootViewParent) {
@@ -7476,8 +7477,8 @@ nsDocShell::RestoreFromHistory()
 
     
     
-    newRootView = rootViewSibling = rootViewParent = nullptr;
-    newVM = nullptr;
+    newRootView = rootViewSibling = rootViewParent = nsnull;
+    newVM = nsnull;
 
     
     nsDocShell::FinishRestore();
@@ -7506,7 +7507,7 @@ nsDocShell::CreateContentViewer(const char *aContentType,
                                 nsIRequest * request,
                                 nsIStreamListener ** aContentHandler)
 {
-    *aContentHandler = nullptr;
+    *aContentHandler = nsnull;
 
     
     
@@ -7546,7 +7547,7 @@ nsDocShell::CreateContentViewer(const char *aContentType,
         aOpenedChannel->GetURI(getter_AddRefs(mLoadingURI));
     }
     FirePageHideNotification(!mSavingOldViewer);
-    mLoadingURI = nullptr;
+    mLoadingURI = nsnull;
 
     
     
@@ -7582,13 +7583,13 @@ nsDocShell::CreateContentViewer(const char *aContentType,
         
         MOZ_ASSERT(failedURI, "We don't have a URI for history APIs.");
 
-        mFailedChannel = nullptr;
-        mFailedURI = nullptr;
+        mFailedChannel = nsnull;
+        mFailedURI = nsnull;
 
         
         if (failedURI) {
             bool errorOnLocationChangeNeeded =
-                OnNewURI(failedURI, failedChannel, nullptr, mLoadType, false,
+                OnNewURI(failedURI, failedChannel, nsnull, mLoadType, false,
                          false, false);
 
             if (errorOnLocationChangeNeeded) {
@@ -7644,9 +7645,9 @@ nsDocShell::CreateContentViewer(const char *aContentType,
 
         aOpenedChannel->SetLoadFlags(loadFlags);
 
-        mLoadGroup->AddRequest(request, nullptr);
+        mLoadGroup->AddRequest(request, nsnull);
         if (currentLoadGroup)
-            currentLoadGroup->RemoveRequest(request, nullptr,
+            currentLoadGroup->RemoveRequest(request, nsnull,
                                             NS_BINDING_RETARGETED);
 
         
@@ -7654,10 +7655,10 @@ nsDocShell::CreateContentViewer(const char *aContentType,
         aOpenedChannel->SetNotificationCallbacks(this);
     }
 
-    NS_ENSURE_SUCCESS(Embed(viewer, "", (nsISupports *) nullptr),
+    NS_ENSURE_SUCCESS(Embed(viewer, "", (nsISupports *) nsnull),
                       NS_ERROR_FAILURE);
 
-    mSavedRefreshURIList = nullptr;
+    mSavedRefreshURIList = nsnull;
     mSavingOldViewer = false;
     mEODForCurrentDocument = false;
 
@@ -7714,7 +7715,7 @@ nsDocShell::NewContentViewerObj(const char *aContentType,
                                                    aOpenedChannel,
                                                    aLoadGroup, aContentType,
                                                    static_cast<nsIContentViewerContainer*>(this),
-                                                   nullptr,
+                                                   nsnull,
                                                    aContentHandler,
                                                    aViewer);
     NS_ENSURE_SUCCESS(rv, rv);
@@ -7844,7 +7845,7 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
             bgcolor = shell->GetCanvasBackground();
         }
 
-        mContentViewer->Close(mSavingOldViewer ? mOSHE.get() : nullptr);
+        mContentViewer->Close(mSavingOldViewer ? mOSHE.get() : nsnull);
         aNewViewer->SetPreviousViewer(mContentViewer);
     }
     if (mOSHE && (!mContentViewer || !mSavingOldViewer)) {
@@ -7853,7 +7854,7 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
         mOSHE->SyncPresentationState();
     }
 
-    mContentViewer = nullptr;
+    mContentViewer = nsnull;
 
     
     
@@ -7869,7 +7870,7 @@ nsDocShell::SetupNewViewer(nsIContentViewer * aNewViewer)
     mContentViewer->SetNavigationTiming(mTiming);
 
     if (NS_FAILED(mContentViewer->Init(widget, bounds))) {
-        mContentViewer = nullptr;
+        mContentViewer = nsnull;
         NS_ERROR("ContentViewer Initialization failed");
         return NS_ERROR_FAILURE;
     }
@@ -8043,7 +8044,7 @@ public:
         NS_ENSURE_STATE(favSvc);
 
         return favSvc->SetAndFetchFaviconForPage(mNewURI, aFaviconURI,
-                                                 false, nullptr);
+                                                 false, nsnull);
     }
 
 private:
@@ -8093,9 +8094,9 @@ public:
     
     NS_IMETHOD Run() {
         return mDocShell->InternalLoad(mURI, mReferrer, mOwner, mFlags,
-                                       nullptr, mTypeHint.get(),
+                                       nsnull, mTypeHint.get(),
                                        mPostData, mHeadersData, mLoadType,
-                                       mSHEntry, mFirstParty, nullptr, nullptr);
+                                       mSHEntry, mFirstParty, nsnull, nsnull);
     }
 
 private:
@@ -8162,10 +8163,10 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     
     if (aDocShell) {
-        *aDocShell = nullptr;
+        *aDocShell = nsnull;
     }
     if (aRequest) {
-        *aRequest = nullptr;
+        *aRequest = nsnull;
     }
 
     if (!aURI) {
@@ -8230,7 +8231,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                                    loadingPrincipal,
                                    context,
                                    EmptyCString(), 
-                                   nullptr,         
+                                   nsnull,         
                                    &shouldLoad);
 
     if (NS_FAILED(rv) || NS_CP_REJECTED(shouldLoad)) {
@@ -8309,7 +8310,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         
         nsCOMPtr<nsIDocShellTreeItem> targetItem;
-        FindItemWithName(aWindowTarget, nullptr, this,
+        FindItemWithName(aWindowTarget, nsnull, this,
                          getter_AddRefs(targetItem));
 
         nsCOMPtr<nsIDocShell> targetDocShell = do_QueryInterface(targetItem);
@@ -8353,7 +8354,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                                               aReferrer,
                                               owner,
                                               aFlags,
-                                              nullptr,         
+                                              nsnull,         
                                               aTypeHint,
                                               aPostData,
                                               aHeadersData,
@@ -8457,7 +8458,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         }
 
         
-        rv = CreateAboutBlankContentViewer(nullptr, nullptr);
+        rv = CreateAboutBlankContentViewer(nsnull, nsnull);
         if (NS_FAILED(rv))
             return NS_ERROR_FAILURE;
 
@@ -8523,7 +8524,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
         
         bool doShortCircuitedLoad =
           (historyNavBetweenSameDoc && mOSHE != aSHEntry) ||
-          (!aSHEntry && aPostData == nullptr &&
+          (!aSHEntry && aPostData == nsnull &&
            sameExceptHashes && !newHash.IsEmpty());
 
         if (doShortCircuitedLoad) {
@@ -8584,7 +8585,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
             
             
-            OnNewURI(aURI, nullptr, owner, mLoadType, true, true, true);
+            OnNewURI(aURI, nsnull, owner, mLoadType, true, true, true);
 
             nsCOMPtr<nsIInputStream> postData;
             nsCOMPtr<nsISupports> cacheKey;
@@ -8641,7 +8642,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
             
 
 
-            SetHistoryEntry(&mLSHE, nullptr);
+            SetHistoryEntry(&mLSHE, nsnull);
             
 
 
@@ -8746,7 +8747,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
     
     
     
-    bool savePresentation = CanSavePresentation(aLoadType, nullptr, nullptr);
+    bool savePresentation = CanSavePresentation(aLoadType, nsnull, nsnull);
 
     
     
@@ -8811,7 +8812,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
                 prevViewer->GetHistoryEntry(getter_AddRefs(viewerEntry));
                 if (viewerEntry == aSHEntry) {
                     
-                    mContentViewer->SetPreviousViewer(nullptr);
+                    mContentViewer->SetPreviousViewer(nsnull);
                     prevViewer->Destroy();
                 }
             }
@@ -8846,7 +8847,7 @@ nsDocShell::InternalLoad(nsIURI * aURI,
 
     if (NS_FAILED(rv)) {
         nsCOMPtr<nsIChannel> chan(do_QueryInterface(req));
-        DisplayLoadError(rv, aURI, nullptr, chan);
+        DisplayLoadError(rv, aURI, nsnull, chan);
     }
 
     return rv;
@@ -8873,7 +8874,7 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
 
     if (!document) {
         if (!aConsiderCurrentDocument) {
-            return nullptr;
+            return nsnull;
         }
 
         
@@ -8882,7 +8883,7 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
                                 
 
         if (!mContentViewer)
-            return nullptr;
+            return nsnull;
         document = mContentViewer->GetDocument();
     }
 
@@ -8895,13 +8896,13 @@ nsDocShell::GetInheritedPrincipal(bool aConsiderCurrentDocument)
         if (inheritedFromCurrent &&
             mItemType == typeContent &&
             nsContentUtils::IsSystemPrincipal(docPrincipal)) {
-            return nullptr;
+            return nsnull;
         }
 
         return docPrincipal;
     }
 
-    return nullptr;
+    return nsnull;
 }
 
 bool
@@ -8919,7 +8920,7 @@ nsDocShell::ShouldCheckAppCache(nsIURI *aURI)
 
     bool allowed;
     nsresult rv = offlineService->OfflineAppAllowedForURI(aURI,
-                                                          nullptr,
+                                                          nsnull,
                                                           &allowed);
     return NS_SUCCEEDED(rv) && allowed;
 }
@@ -8981,8 +8982,8 @@ nsDocShell::DoURILoad(nsIURI * aURI,
 
     rv = NS_NewChannel(getter_AddRefs(channel),
                        aURI,
-                       nullptr,
-                       nullptr,
+                       nsnull,
+                       nsnull,
                        static_cast<nsIInterfaceRequestor *>(this),
                        loadFlags,
                        channelPolicy);
@@ -9530,7 +9531,7 @@ nsDocShell::OnNewURI(nsIURI * aURI, nsIChannel * aChannel, nsISupports* aOwner,
         aURI->Equals(mCurrentURI, &equalUri);
 
 #ifdef DEBUG
-    bool shAvailable = (rootSH != nullptr);
+    bool shAvailable = (rootSH != nsnull);
 
     
     
@@ -9703,7 +9704,7 @@ nsDocShell::OnLoadingSite(nsIChannel * aChannel, bool aFireOnLocationChange,
     NS_ENSURE_TRUE(uri, false);
 
     
-    return OnNewURI(uri, aChannel, nullptr, mLoadType, aFireOnLocationChange,
+    return OnNewURI(uri, aChannel, nsnull, mLoadType, aFireOnLocationChange,
                     aAddToGlobalHistory, false);
 
 }
@@ -9931,7 +9932,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
 
         
         
-        rv = AddToSessionHistory(newURI, nullptr, nullptr, true,
+        rv = AddToSessionHistory(newURI, nsnull, nsnull, true,
                                  getter_AddRefs(newSHEntry));
         NS_ENSURE_SUCCESS(rv, rv);
 
@@ -9959,7 +9960,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     
     newSHEntry->SetStateData(scContainer);
-    newSHEntry->SetPostData(nullptr);
+    newSHEntry->SetPostData(nsnull);
 
     
     
@@ -10003,7 +10004,7 @@ nsDocShell::AddState(nsIVariant *aData, const nsAString& aTitle,
     
     
     if (!equalURIs) {
-        SetCurrentURI(newURI, nullptr, true, LOCATION_CHANGE_SAME_DOCUMENT);
+        SetCurrentURI(newURI, nsnull, true, LOCATION_CHANGE_SAME_DOCUMENT);
         document->SetDocumentURI(newURI);
 
         AddURIVisit(newURI, oldURI, oldURI, 0);
@@ -10169,7 +10170,7 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
     entry->Create(aURI,              
                   EmptyString(),     
                   inputStream,       
-                  nullptr,            
+                  nsnull,            
                   cacheKey,          
                   mContentTypeHint,  
                   owner,             
@@ -10239,7 +10240,7 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
 
     
     if (aNewEntry) {
-        *aNewEntry = nullptr;
+        *aNewEntry = nsnull;
         if (NS_SUCCEEDED(rv)) {
             *aNewEntry = entry;
             NS_ADDREF(*aNewEntry);
@@ -10290,7 +10291,7 @@ nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType)
         
         
         
-        rv = CreateAboutBlankContentViewer(prin, nullptr, aEntry != mOSHE);
+        rv = CreateAboutBlankContentViewer(prin, nsnull, aEntry != mOSHE);
 
         if (NS_FAILED(rv)) {
             
@@ -10326,15 +10327,15 @@ nsDocShell::LoadHistoryEntry(nsISHEntry * aEntry, PRUint32 aLoadType)
                       referrerURI,
                       owner,
                       INTERNAL_LOAD_FLAGS_NONE, 
-                      nullptr,            
+                      nsnull,            
                       contentType.get(), 
                       postData,          
-                      nullptr,            
+                      nsnull,            
                       aLoadType,         
                       aEntry,            
                       true,
-                      nullptr,            
-                      nullptr);           
+                      nsnull,            
+                      nsnull);           
     return rv;
 }
 
@@ -10388,11 +10389,11 @@ nsDocShell::WalkHistoryEntries(nsISHEntry *aRootEntry,
             
             
             
-            aCallback(nullptr, nullptr, i, aData);
+            aCallback(nsnull, nsnull, i, aData);
             continue;
         }
 
-        nsDocShell *childShell = nullptr;
+        nsDocShell *childShell = nsnull;
         if (aRootShell) {
             
             
@@ -10446,7 +10447,7 @@ nsDocShell::CloneAndReplaceChild(nsISHEntry *aEntry, nsDocShell *aShell,
       do_QueryInterface(data->destTreeParent);
     if (!aEntry) {
         if (container) {
-            container->AddChild(nullptr, aEntryIndex);
+            container->AddChild(nsnull, aEntryIndex);
         }
         return NS_OK;
     }
@@ -10496,7 +10497,7 @@ nsDocShell::CloneAndReplace(nsISHEntry *aSrcEntry,
     NS_ENSURE_ARG_POINTER(aResultEntry);
     NS_ENSURE_TRUE(aReplaceEntry, NS_ERROR_FAILURE);
 
-    CloneAndReplaceData data(aCloneID, aReplaceEntry, aCloneChildren, nullptr);
+    CloneAndReplaceData data(aCloneID, aReplaceEntry, aCloneChildren, nsnull);
     nsresult rv = CloneAndReplaceChild(aSrcEntry, aSrcShell, 0, &data);
 
     data.resultEntry.swap(*aResultEntry);
@@ -10585,7 +10586,7 @@ static nsISHEntry*
 GetRootSHEntry(nsISHEntry *aEntry)
 {
     nsCOMPtr<nsISHEntry> rootEntry = aEntry;
-    nsISHEntry *result = nullptr;
+    nsISHEntry *result = nsnull;
     while (rootEntry) {
         result = rootEntry;
         result->GetParent(getter_AddRefs(rootEntry));
@@ -10699,7 +10700,7 @@ NS_IMETHODIMP nsDocShell::GetEditor(nsIEditor * *aEditor)
   NS_ENSURE_ARG_POINTER(aEditor);
 
   if (!mEditorData) {
-    *aEditor = nullptr;
+    *aEditor = nsnull;
     return NS_OK;
   }
 
@@ -10731,7 +10732,7 @@ NS_IMETHODIMP nsDocShell::GetHasEditingSession(bool *aHasEditingSession)
   {
     nsCOMPtr<nsIEditingSession> editingSession;
     mEditorData->GetEditingSession(getter_AddRefs(editingSession));
-    *aHasEditingSession = (editingSession.get() != nullptr);
+    *aHasEditingSession = (editingSession.get() != nsnull);
   }
   else
   {
@@ -10944,10 +10945,10 @@ nsDocShell::ConfirmRepost(bool * aRepost)
   
   bool checkState = false;
   rv = prompter->
-         ConfirmEx(nullptr, msgString.get(),
+         ConfirmEx(nsnull, msgString.get(),
                    (nsIPrompt::BUTTON_POS_0 * nsIPrompt::BUTTON_TITLE_IS_STRING) +
                    (nsIPrompt::BUTTON_POS_1 * nsIPrompt::BUTTON_TITLE_CANCEL),
-                   button0Title.get(), nullptr, nullptr, nullptr, &checkState, &buttonPressed);
+                   button0Title.get(), nsnull, nsnull, nsnull, &checkState, &buttonPressed);
   if (NS_FAILED(rv)) return rv;
 
   *aRepost = (buttonPressed == 0);
@@ -11005,8 +11006,8 @@ nsIScrollableFrame *
 nsDocShell::GetRootScrollFrame()
 {
     nsCOMPtr<nsIPresShell> shell;
-    NS_ENSURE_SUCCESS(GetPresShell(getter_AddRefs(shell)), nullptr);
-    NS_ENSURE_TRUE(shell, nullptr);
+    NS_ENSURE_SUCCESS(GetPresShell(getter_AddRefs(shell)), nsnull);
+    NS_ENSURE_TRUE(shell, nsnull);
 
     return shell->GetRootScrollFrameAsScrollableExternal();
 }
@@ -11225,7 +11226,7 @@ nsDocShell::InterfaceRequestorProxy::InterfaceRequestorProxy(nsIInterfaceRequest
  
 nsDocShell::InterfaceRequestorProxy::~InterfaceRequestorProxy()
 {
-    mWeakPtr = nullptr;
+    mWeakPtr = nsnull;
 }
 
 NS_IMPL_THREADSAFE_ISUPPORTS1(nsDocShell::InterfaceRequestorProxy, nsIInterfaceRequestor) 
@@ -11238,7 +11239,7 @@ nsDocShell::InterfaceRequestorProxy::GetInterface(const nsIID & aIID, void **aSi
     if (ifReq) {
         return ifReq->GetInterface(aIID, aSink);
     }
-    *aSink = nullptr;
+    *aSink = nsnull;
     return NS_NOINTERFACE;
 }
 
@@ -11412,7 +11413,7 @@ nsDocShell::GetControllerForCommand(const char * inCommand,
                                     nsIController** outController)
 {
   NS_ENSURE_ARG_POINTER(outController);
-  *outController = nullptr;
+  *outController = nsnull;
 
   nsCOMPtr<nsPIDOMWindow> window(do_QueryInterface(mScriptGlobal));
   if (window) {
@@ -11588,7 +11589,7 @@ public:
       mHandler->OnLinkClickSync(mContent, mURI,
                                 mTargetSpec.get(), mPostDataStream,
                                 mHeadersDataStream,
-                                nullptr, nullptr);
+                                nsnull, nsnull);
     }
     return NS_OK;
   }
@@ -11685,10 +11686,10 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
 {
   
   if (aDocShell) {
-    *aDocShell = nullptr;
+    *aDocShell = nsnull;
   }
   if (aRequest) {
-    *aRequest = nullptr;
+    *aRequest = nsnull;
   }
 
   if (!IsOKToLoadURI(aURI)) {
@@ -11781,7 +11782,7 @@ nsDocShell::OnLinkClickSync(nsIContent *aContent,
                              aPostDataStream,           
                              aHeadersDataStream,        
                              LOAD_LINK,                 
-                             nullptr,                    
+                             nsnull,                    
                              true,                   
                              aDocShell,                 
                              aRequest);                 
@@ -11918,7 +11919,7 @@ nsDocShell::StopDocumentLoad(void)
 NS_IMETHODIMP
 nsDocShell::GetPrintPreview(nsIWebBrowserPrint** aPrintPreview)
 {
-  *aPrintPreview = nullptr;
+  *aPrintPreview = nsnull;
 #if NS_PRINT_PREVIEW
   nsCOMPtr<nsIDocumentViewerPrint> print = do_QueryInterface(mContentViewer);
   if (!print || !print->IsInitializedForPrintPreview()) {
@@ -11926,7 +11927,7 @@ nsDocShell::GetPrintPreview(nsIWebBrowserPrint** aPrintPreview)
     nsCOMPtr<nsIPrincipal> principal =
       do_CreateInstance("@mozilla.org/nullprincipal;1");
     NS_ENSURE_STATE(principal);
-    nsresult rv = CreateAboutBlankContentViewer(principal, nullptr);
+    nsresult rv = CreateAboutBlankContentViewer(principal, nsnull);
     NS_ENSURE_SUCCESS(rv, rv);
     print = do_QueryInterface(mContentViewer);
     NS_ENSURE_STATE(print);

@@ -33,16 +33,16 @@ class nsDefaultComparator <nsNameSpaceEntry, PRInt32> {
 nsXMLNameSpaceMap::Create(bool aForXML)
 {
   nsXMLNameSpaceMap *map = new nsXMLNameSpaceMap();
-  NS_ENSURE_TRUE(map, nullptr);
+  NS_ENSURE_TRUE(map, nsnull);
 
   if (aForXML) {
-    nsresult rv = map->AddPrefix(nsGkAtoms::xmlns,
-                                 kNameSpaceID_XMLNS);
-    rv |= map->AddPrefix(nsGkAtoms::xml, kNameSpaceID_XML);
+    nsresult rv1 = map->AddPrefix(nsGkAtoms::xmlns,
+                                  kNameSpaceID_XMLNS);
+    nsresult rv2 = map->AddPrefix(nsGkAtoms::xml, kNameSpaceID_XML);
 
-    if (NS_FAILED(rv)) {
+    if (NS_FAILED(rv1) || NS_FAILED(rv2)) {
       delete map;
-      map = nullptr;
+      map = nsnull;
     }
   }
 
@@ -98,7 +98,7 @@ nsXMLNameSpaceMap::FindPrefix(PRInt32 aNameSpaceID) const
     return mNameSpaces[index].prefix;
   }
 
-  return nullptr;
+  return nsnull;
 }
 
 void
