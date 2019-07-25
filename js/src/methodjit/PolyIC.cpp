@@ -305,6 +305,24 @@ class SetPropCompiler : public PICStubCompiler
 
         pic.setPropLabels().setStubShapeJump(masm, start, stubShapeJumpLabel);
 
+        if (pic.typeMonitored) {
+            
+
+
+
+
+
+
+
+
+
+            Jump typeGuard = masm.branchPtr(Assembler::NotEqual,
+                                            Address(pic.objReg, JSObject::offsetOfType()),
+                                            ImmPtr(obj->getType(cx)));
+            if (!otherGuards.append(typeGuard))
+                return error();
+        }
+
         JS_ASSERT_IF(!shape->hasDefaultSetter(), obj->getClass() == &js_CallClass);
 
         MaybeJump skipOver;
@@ -686,6 +704,7 @@ class SetPropCompiler : public PICStubCompiler
         if (!pic.inlinePathPatched &&
             !obj->brandedOrHasMethodBarrier() &&
             shape->hasDefaultSetter() &&
+            !pic.typeMonitored &&
             !obj->isDenseArray()) {
             return patchInline(shape);
         }

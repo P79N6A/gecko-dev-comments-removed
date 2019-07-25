@@ -2545,7 +2545,7 @@ js_CloneFunctionObject(JSContext *cx, JSFunction *fun, JSObject *parent,
 
 
         if (fun->getProto() == proto && !fun->hasSingletonType())
-            clone->setTypeAndShape(fun->type(), fun->lastProperty());
+            clone->setType(fun->type());
 
         clone->setPrivate(fun);
     } else {
