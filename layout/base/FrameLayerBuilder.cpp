@@ -2305,7 +2305,7 @@ InternalInvalidateThebesLayersInSubtree(nsIFrame* aFrame)
   if (aFrame->GetStateBits() & NS_FRAME_HAS_CONTAINER_LAYER) {
     
     
-    InvalidateThebesLayerContents(aFrame, aFrame->GetVisualOverflowRectRelativeToSelf());
+    aFrame->Properties().Delete(ThebesLayerInvalidRegionProperty());
     foundContainerLayer = true;
   }
 
