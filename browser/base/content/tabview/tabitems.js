@@ -69,7 +69,6 @@ function TabItem(tab, options) {
   let $div = iQ(div);
 
   this._cachedImageData = null;
-  this.shouldHideCachedData = false;
   this.canvasSizeForced = false;
   this.$thumb = iQ('.thumb', $div);
   this.$fav   = iQ('.favicon', $div);
@@ -88,6 +87,7 @@ function TabItem(tab, options) {
   this._hasBeenDrawn = false;
   this._reconnected = false;
   this.isStacked = false;
+  this.url = "";
 
   var self = this;
 
@@ -259,12 +259,6 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   
   
   showCachedData: function TabItem_showCachedData(tabData) {
-    if (!this._cachedImageData) {
-      TabItems.cachedDataCounter++;
-      this.tab.linkedBrowser._tabViewTabItemWithCachedData = this;
-      if (TabItems.cachedDataCounter == 1)
-        gBrowser.addTabsProgressListener(TabItems.tabsProgressListener);
-    }
     this._cachedImageData = tabData.imageData;
     this.$cachedThumb.attr("src", this._cachedImageData).show();
     this.$canvas.css({opacity: 0.0});
@@ -277,13 +271,8 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   hideCachedData: function TabItem_hideCachedData() {
     this.$cachedThumb.hide();
     this.$canvas.css({opacity: 1.0});
-    if (this._cachedImageData) {
-      TabItems.cachedDataCounter--;
+    if (this._cachedImageData)
       this._cachedImageData = null;
-      this.tab.linkedBrowser._tabViewTabItemWithCachedData = null;
-      if (TabItems.cachedDataCounter == 0)
-        gBrowser.removeTabsProgressListener(TabItems.tabsProgressListener);
-    }
   },
 
   
@@ -338,7 +327,7 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
   _reconnect: function TabItem__reconnect() {
     Utils.assertThrow(!this._reconnected, "shouldn't already be reconnected");
     Utils.assertThrow(this.tab, "should have a xul:tab");
-    
+
     let tabData = Storage.getTabData(this.tab);
     if (tabData && TabItems.storageSanity(tabData)) {
       if (this.parent)
@@ -363,7 +352,12 @@ TabItem.prototype = Utils.extend(new Item(), new Subscribable(), {
       }
 
       let currentUrl = this.tab.linkedBrowser.currentURI.spec;
-      if (tabData.imageData && tabData.url == currentUrl)
+
+      
+      
+      
+      if (tabData.imageData && (tabData.url == currentUrl ||
+        currentUrl == 'about:blank'))
         this.showCachedData(tabData);
     } else {
       
@@ -778,11 +772,10 @@ let TabItems = {
   _fragment: null,
   items: [],
   paintingPaused: 0,
-  cachedDataCounter: 0,  
-  tabsProgressListener: null,
   _tabsWaitingForUpdate: null,
   _heartbeat: null, 
-  _heartbeatTiming: 100, 
+  _heartbeatTiming: 200, 
+  _maxTimeForUpdating: 200, 
   _lastUpdateTime: Date.now(),
   _eventListeners: [],
   _pauseUpdateForTest: false,
@@ -813,18 +806,6 @@ let TabItems = {
     
     this.tempCanvas.width = 150;
     this.tempCanvas.height = 112;
-
-    this.tabsProgressListener = {
-      onStateChange: function(browser, webProgress, request, stateFlags, status) {
-        if ((stateFlags & Ci.nsIWebProgressListener.STATE_STOP) &&
-            (stateFlags & Ci.nsIWebProgressListener.STATE_IS_WINDOW)) {
-          
-          
-          if (browser._tabViewTabItemWithCachedData)
-            browser._tabViewTabItemWithCachedData.shouldHideCachedData = true;
-        }
-      }
-    };
 
     
     this._eventListeners["open"] = function(tab) {
@@ -865,9 +846,6 @@ let TabItems = {
   
   
   uninit: function TabItems_uninit() {
-    if (this.tabsProgressListener)
-      gBrowser.removeTabsProgressListener(this.tabsProgressListener);
-
     for (let name in this._eventListeners) {
       AllTabs.unregister(name, this._eventListeners[name]);
     }
@@ -910,6 +888,22 @@ let TabItems = {
   
   
   
+  isComplete: function TabItems_update(tab) {
+    
+    
+    
+    
+    Utils.assertThrow(tab, "tab");
+    return (
+      tab.linkedBrowser.contentDocument.readyState == 'complete' &&
+      !(tab.linkedBrowser.contentDocument.URL == 'about:blank' &&
+        tab._tabViewTabItem.url != 'about:blank')
+    );
+  },
+
+  
+  
+  
   update: function TabItems_update(tab) {
     try {
       Utils.assertThrow(tab, "tab");
@@ -943,11 +937,10 @@ let TabItems = {
       Utils.assertThrow(tab, "tab");
 
       
-      this._tabsWaitingForUpdate.remove(tab);
-
-      
       Utils.assertThrow(tab._tabViewTabItem, "must already be linked");
       let tabItem = tab._tabViewTabItem;
+
+      
 
       
       if (this.shouldLoadFavIcon(tab.linkedBrowser)) {
@@ -966,6 +959,16 @@ let TabItems = {
       }
 
       
+      let label = tab.label;
+      let $name = tabItem.$tabTitle;
+      if ($name.text() != label)
+        $name.text(label);
+
+      
+      
+      this._tabsWaitingForUpdate.remove(tab);
+
+      
       let tabUrl = tab.linkedBrowser.currentURI.spec;
       if (tabUrl != tabItem.url) {
         let oldURL = tabItem.url;
@@ -974,12 +977,11 @@ let TabItems = {
       }
 
       
-      let label = tab.label;
-      let $name = tabItem.$tabTitle;
-      let isLabelUpdateAllowed = !tabItem.isShowingCachedData() ||
-                                 tabItem.shouldHideCachedData;
-      if (isLabelUpdateAllowed && $name.text() != label)
-        $name.text(label);
+      if (!this.isComplete(tab)) {
+        
+        this._tabsWaitingForUpdate.push(tab);
+        return;
+      }
 
       
       let $canvas = tabItem.$canvas;
@@ -998,7 +1000,7 @@ let TabItems = {
       tabItem.tabCanvas.paint();
 
       
-      if (tabItem.isShowingCachedData() && tabItem.shouldHideCachedData)
+      if (tabItem.isShowingCachedData())
         tabItem.hideCachedData();
 
       
@@ -1094,41 +1096,54 @@ let TabItems = {
   _checkHeartbeat: function TabItems__checkHeartbeat() {
     this._heartbeat = null;
 
-    if (this.isPaintingPaused())
+    if (this.isPaintingPaused() || !UI.isIdle)
       return;
 
-    if (UI.isIdle())
-      this._update(this._tabsWaitingForUpdate.peek());
+    let accumTime = 0;
+    let items = this._tabsWaitingForUpdate.getItems();
+    
+    
+    while (accumTime < this._maxTimeForUpdating && items.length) {
+      let updateBegin = Date.now();
+      this._update(items.pop());
+      let updateEnd = Date.now();
+
+      
+      
+      
+      let deltaTime = updateEnd - updateBegin;
+      accumTime += deltaTime;
+    }
 
     if (this._tabsWaitingForUpdate.hasItems())
       this.startHeartbeat();
   },
 
-   
-   
-   
-   
-   
-   
-   pausePainting: function TabItems_pausePainting() {
-     this.paintingPaused++;
-     if (this._heartbeat) {
-       clearTimeout(this._heartbeat);
-       this._heartbeat = null;
-     }
-   },
+  
+  
+  
+  
+  
+  
+  pausePainting: function TabItems_pausePainting() {
+    this.paintingPaused++;
+    if (this._heartbeat) {
+      clearTimeout(this._heartbeat);
+      this._heartbeat = null;
+    }
+  },
 
-   
-   
-   
-   
-   
-   resumePainting: function TabItems_resumePainting() {
-     this.paintingPaused--;
-     Utils.assert(this.paintingPaused > -1, "paintingPaused should not go below zero");
-     if (!this.isPaintingPaused())
-       this.startHeartbeat();
-   },
+  
+  
+  
+  
+  
+  resumePainting: function TabItems_resumePainting() {
+    this.paintingPaused--;
+    Utils.assert(this.paintingPaused > -1, "paintingPaused should not go below zero");
+    if (!this.isPaintingPaused())
+      this.startHeartbeat();
+  },
 
   
   
@@ -1285,7 +1300,6 @@ function TabPriorityQueue() {
 };
 
 TabPriorityQueue.prototype = {
-  _popToggle: false,
   _low: [], 
   _high: [], 
 
@@ -1302,6 +1316,13 @@ TabPriorityQueue.prototype = {
   
   hasItems: function TabPriorityQueue_hasItems() {
     return (this._low.length > 0) || (this._high.length > 0);
+  },
+
+  
+  
+  
+  getItems: function TabPriorityQueue_getItems() {
+    return this._low.concat(this._high);
   },
 
   

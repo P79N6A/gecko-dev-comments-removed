@@ -77,9 +77,15 @@ function setupTwo() {
   let tabItems = contentWindow.TabItems.getItems();
   is(tabItems.length, 2, "There should be 2 tab items before closing");
 
+  let numTabsToSave = tabItems.length;
+
   
   tabItems.forEach(function(tabItem) {
     contentWindow.TabItems._update(tabItem.tab);
+    tabItem.addSubscriber(tabItem, "savedImageData", function(item) {
+      item.removeSubscriber(item, "savedImageData");
+      --numTabsToSave;
+    });
   });
 
   
@@ -94,6 +100,9 @@ function setupTwo() {
       restoredWin = undoCloseWindow();
       restoredWin.addEventListener("load", function(event) {
         restoredWin.removeEventListener("load", arguments.callee, false);
+
+        
+        is(numTabsToSave, 0, "All tabs were saved when window was closed.");
 
         
         let onTabViewFrameInitialized = function() {
@@ -128,35 +137,10 @@ function setupTwo() {
     });
   };
 
-  
-  let checkDataAndCloseWindow = function() {
-    tabItems.forEach(function(tabItem) {
-      let tabData = contentWindow.Storage.getTabData(tabItem.tab);
-      ok(tabData && tabData.imageData,
-        "TabItem has stored image data before closing");
-    });
-
-    Services.obs.addObserver(
-      xulWindowDestory, "xul-window-destroyed", false);
-    newWin.close();
-  }
-
-  
-  let quitRequestObserver = function(aSubject, aTopic, aData) {
-    ok(aTopic == "quit-application-requested" &&
-        aSubject instanceof Ci.nsISupportsPRBool,
-        "Received a quit request and going to deny it");
-    Services.obs.removeObserver(
-      quitRequestObserver, "quit-application-requested", false);
-    
-    aSubject.data = true;
-    
-    
-    executeSoon(checkDataAndCloseWindow);
-  }
   Services.obs.addObserver(
-    quitRequestObserver, "quit-application-requested", false);
-  ok(!Application.quit(), "Tried to quit and canceled it");
+    xulWindowDestory, "xul-window-destroyed", false);
+
+  newWin.close();
 }
 
 let gTabsProgressListener = {
