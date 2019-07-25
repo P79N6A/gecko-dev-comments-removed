@@ -199,8 +199,43 @@ static PRLogModuleInfo *nsObjectFrameLM = PR_NewLogModule("nsObjectFrame");
 #endif 
 
 #if defined(XP_MACOSX) && !defined(NP_NO_CARBON)
+
 #define MAC_CARBON_PLUGINS
-#endif
+
+
+
+
+
+
+
+extern "C" {
+  #if !defined(__QUICKDRAWAPI__)
+  extern void SetRect(
+    Rect * r,
+    short  left,
+    short  top,
+    short  right,
+    short  bottom)
+    __attribute__((weak_import));
+  #endif 
+
+  #if !defined(__QDOFFSCREEN__)
+  extern QDErr NewGWorldFromPtr(
+    GWorldPtr *   offscreenGWorld,
+    UInt32        PixelFormat,
+    const Rect *  boundsRect,
+    CTabHandle    cTable,                
+    GDHandle      aGDevice,              
+    GWorldFlags   flags,
+    Ptr           newBuffer,
+    SInt32        rowBytes)
+    __attribute__((weak_import));
+  extern void DisposeGWorld(GWorldPtr offscreenGWorld)
+    __attribute__((weak_import));
+  #endif 
+}
+
+#endif 
 
 using namespace mozilla;
 using namespace mozilla::plugins;
@@ -1272,6 +1307,13 @@ nsObjectFrame::PrintPlugin(nsRenderingContext& aRenderingContext,
   
 
 #ifdef MAC_CARBON_PLUGINS
+  
+  
+  if (!::SetRect || !::NewGWorldFromPtr || !::DisposeGWorld) {
+    NS_WARNING("Cannot print plugin -- required QuickDraw APIs are missing!");
+    return;
+  }
+
   nsSize contentSize = GetContentRectRelativeToSelf().Size();
   window.x = 0;
   window.y = 0;

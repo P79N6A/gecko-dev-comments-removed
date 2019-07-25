@@ -66,6 +66,52 @@
 #import <Cocoa/Cocoa.h>
 #import <AppKit/NSOpenGL.h>
 
+
+
+
+
+
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+  #if !defined(__QUICKDRAWAPI__)
+
+  extern void SetPort(GrafPtr port)
+    __attribute__((weak_import));
+  extern void SetOrigin(short h, short v)
+    __attribute__((weak_import));
+  extern RgnHandle NewRgn(void)
+    __attribute__((weak_import));
+  extern void DisposeRgn(RgnHandle rgn)
+    __attribute__((weak_import));
+  extern void RectRgn(RgnHandle rgn, const Rect * r)
+    __attribute__((weak_import));
+  extern GDHandle GetMainDevice(void)
+    __attribute__((weak_import));
+  extern Boolean IsPortOffscreen(CGrafPtr port)
+    __attribute__((weak_import));
+  extern void SetPortVisibleRegion(CGrafPtr port, RgnHandle visRgn)
+    __attribute__((weak_import));
+  extern void SetPortClipRegion(CGrafPtr port, RgnHandle clipRgn)
+    __attribute__((weak_import));
+  extern CGrafPtr GetQDGlobalsThePort(void)
+    __attribute__((weak_import));
+
+  #endif
+
+  #if !defined(__QDOFFSCREEN__)
+
+  extern void GetGWorld(CGrafPtr *  port, GDHandle *  gdh)
+    __attribute__((weak_import));
+  extern void SetGWorld(CGrafPtr port, GDHandle gdh)
+    __attribute__((weak_import));
+
+  #endif
+#ifdef __cplusplus
+}
+#endif
+
 class gfxASurface;
 class nsChildView;
 class nsCocoaWindow;
