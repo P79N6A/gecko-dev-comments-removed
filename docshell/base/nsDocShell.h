@@ -383,10 +383,13 @@ protected:
     
     
     
+    
+    
     static nsresult CloneAndReplace(nsISHEntry *aSrcEntry,
                                     nsDocShell *aSrcShell,
                                     PRUint32 aCloneID,
                                     nsISHEntry *aReplaceEntry,
+                                    PRBool aCloneChildren,
                                     nsISHEntry **aDestEntry);
 
     

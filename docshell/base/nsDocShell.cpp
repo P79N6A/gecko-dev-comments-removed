@@ -3369,6 +3369,7 @@ nsDocShell::AddChildSHEntry(nsISHEntry * aCloneRef, nsISHEntry * aNewEntry,
             nsCOMPtr<nsISHEntry> nextEntry;
             aCloneRef->GetID(&cloneID);
             rv = CloneAndReplace(currentEntry, this, cloneID, aNewEntry,
+                                 loadType == LOAD_PUSHSTATE,
                                  getter_AddRefs(nextEntry));
 
             if (NS_SUCCEEDED(rv)) {
@@ -9919,6 +9920,16 @@ nsDocShell::AddToSessionHistory(nsIURI * aURI, nsIChannel * aChannel,
 
     if (root == static_cast<nsIDocShellTreeItem *>(this) && mSessionHistory) {
         
+        
+        if (mLoadType == LOAD_PUSHSTATE) {
+            PRUint32 cloneID;
+            mOSHE->GetID(&cloneID);
+            nsCOMPtr<nsISHEntry> newEntry;
+            CloneAndReplace(mOSHE, this, cloneID, entry, PR_TRUE, getter_AddRefs(newEntry));
+            NS_ASSERTION(entry == newEntry, "The new session history should be in the new entry");
+        }
+
+        
         if (LOAD_TYPE_HAS_FLAGS(mLoadType, LOAD_FLAGS_REPLACE_HISTORY)) {            
             
             PRInt32  index = 0;   
@@ -10131,12 +10142,14 @@ nsDocShell::WalkHistoryEntries(nsISHEntry *aRootEntry,
 struct NS_STACK_CLASS CloneAndReplaceData
 {
     CloneAndReplaceData(PRUint32 aCloneID, nsISHEntry *aReplaceEntry,
-                        nsISHEntry *aDestTreeParent)
+                        PRBool aCloneChildren, nsISHEntry *aDestTreeParent)
         : cloneID(aCloneID),
+          cloneChildren(aCloneChildren),
           replaceEntry(aReplaceEntry),
           destTreeParent(aDestTreeParent) { }
 
     PRUint32              cloneID;
+    PRBool                cloneChildren;
     nsISHEntry           *replaceEntry;
     nsISHEntry           *destTreeParent;
     nsCOMPtr<nsISHEntry>  resultEntry;
@@ -10169,6 +10182,16 @@ nsDocShell::CloneAndReplaceChild(nsISHEntry *aEntry, nsDocShell *aShell,
         
         dest = replaceEntry;
         dest->SetIsSubFrame(PR_TRUE);
+
+        if (data->cloneChildren) {
+            
+            CloneAndReplaceData childData(cloneID, replaceEntry,
+                                          data->cloneChildren, dest);
+            result = WalkHistoryEntries(aEntry, aShell,
+                                        CloneAndReplaceChild, &childData);
+            if (NS_FAILED(result))
+                return result;
+        }
     } else {
         
         result = aEntry->Clone(getter_AddRefs(dest));
@@ -10179,7 +10202,8 @@ nsDocShell::CloneAndReplaceChild(nsISHEntry *aEntry, nsDocShell *aShell,
         dest->SetIsSubFrame(PR_TRUE);
 
         
-        CloneAndReplaceData childData(cloneID, replaceEntry, dest);
+        CloneAndReplaceData childData(cloneID, replaceEntry,
+                                      data->cloneChildren, dest);
         result = WalkHistoryEntries(aEntry, aShell,
                                     CloneAndReplaceChild, &childData);
         if (NS_FAILED(result))
@@ -10201,12 +10225,13 @@ nsDocShell::CloneAndReplace(nsISHEntry *aSrcEntry,
                                    nsDocShell *aSrcShell,
                                    PRUint32 aCloneID,
                                    nsISHEntry *aReplaceEntry,
+                                   PRBool aCloneChildren,
                                    nsISHEntry **aResultEntry)
 {
     NS_ENSURE_ARG_POINTER(aResultEntry);
     NS_ENSURE_TRUE(aReplaceEntry, NS_ERROR_FAILURE);
 
-    CloneAndReplaceData data(aCloneID, aReplaceEntry, nsnull);
+    CloneAndReplaceData data(aCloneID, aReplaceEntry, aCloneChildren, nsnull);
     nsresult rv = CloneAndReplaceChild(aSrcEntry, aSrcShell, 0, &data);
 
     data.resultEntry.swap(*aResultEntry);
