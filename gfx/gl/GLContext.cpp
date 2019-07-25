@@ -604,6 +604,12 @@ GLContext::IsExtensionSupported(const char *extension)
 }
 
 bool
+GLContext::PreferPowerOfTwoTextures()
+{
+    return Renderer() == RendererAdreno200;
+}
+
+bool
 GLContext::CanUploadSubTextures()
 {
     
