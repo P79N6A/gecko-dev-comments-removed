@@ -84,9 +84,6 @@ public:
 
     nsresult Init(nsIURI *uri);
 
-    
-    void MainReleaseNoOp() {}
-
 protected:
     nsresult WriteToCacheEntryInternal(const nsAString& aData, const nsACString& spec);
     void SetCharsetAndSourceInternal();
