@@ -1,6 +1,4 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 ft=cpp : */
-
+/* -*- Mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- */
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -14,16 +12,15 @@
  * for the specific language governing rights and limitations under the
  * License.
  *
- * The Original Code is mozilla.org code.
+ * The Original Code is Mozilla.
  *
  * The Initial Developer of the Original Code is
- *  The Mozilla Foundation
- * Portions created by the Initial Developer are Copyright (C) 2010
+ * Netscape Communications.
+ * Portions created by the Initial Developer are Copyright (C) 2001
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Alon Zakai <azakai@mozilla.com>
- *   Josh Matthews <josh@joshmatthews.net>
+ *   Honza Bambas <honzab.moz@firemni.cz>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -39,40 +36,13 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-include protocol PNecko;
+#include "nsISupports.idl"
 
-include "mozilla/net/NeckoMessageUtils.h";
+[ptr] native RequestHeaderTuples(mozilla::net::RequestHeaderTuples);
 
-using IPC::URI;
-using IPC::InputStream;
-using PRTime;
-
-namespace mozilla {
-namespace net {
-
-async protocol PFTPChannel
+[uuid(40192377-f83c-4b31-92c6-dbc6c767c860)]
+interface nsIHttpChannelChild : nsISupports
 {
-  manager PNecko;
-
-parent:
-  __delete__();
-
-  AsyncOpen(URI uri, PRUint64 startPos, nsCString entityID,
-            InputStream uploadStream);
-  ConnectChannel(PRUint32 channelId);
-  Cancel(nsresult status);
-  Suspend();
-  Resume();
-
-child:
-  OnStartRequest(PRInt32 aContentLength, nsCString aContentType,
-                 PRTime aLastModified, nsCString aEntityID, URI aURI);
-  OnDataAvailable(nsCString data, PRUint32 offset, PRUint32 count);
-  OnStopRequest(nsresult statusCode);
-  CancelEarly(nsresult statusCode);
-  DeleteSelf();
+  void addCookiesToRequest();
+  readonly attribute RequestHeaderTuples headerTuples;
 };
-
-} // namespace net
-} // namespace mozilla
-

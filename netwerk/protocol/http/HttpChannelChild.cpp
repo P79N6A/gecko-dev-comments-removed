@@ -119,6 +119,8 @@ NS_INTERFACE_MAP_BEGIN(HttpChannelChild)
   NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheContainer)
   NS_INTERFACE_MAP_ENTRY(nsIApplicationCacheChannel)
   NS_INTERFACE_MAP_ENTRY(nsIAsyncVerifyRedirectCallback)
+  NS_INTERFACE_MAP_ENTRY(nsIChildChannel)
+  NS_INTERFACE_MAP_ENTRY(nsIHttpChannelChild)
   NS_INTERFACE_MAP_ENTRY_CONDITIONAL(nsIAssociatedContentSecurity, GetAssociatedContentSecurity())
 NS_INTERFACE_MAP_END_INHERITING(HttpBaseChannel)
 
@@ -589,60 +591,67 @@ class Redirect1Event : public ChannelEvent
 {
  public:
   Redirect1Event(HttpChannelChild* child,
-                 PHttpChannelChild* newChannel,
+                 const PRUint32& newChannelId,
                  const IPC::URI& newURI,
                  const PRUint32& redirectFlags,
                  const nsHttpResponseHead& responseHead)
   : mChild(child)
-  , mNewChannel(newChannel)
+  , mNewChannelId(newChannelId)
   , mNewURI(newURI)
   , mRedirectFlags(redirectFlags)
   , mResponseHead(responseHead) {}
 
   void Run() 
   { 
-    mChild->Redirect1Begin(mNewChannel, mNewURI, mRedirectFlags, 
+    mChild->Redirect1Begin(mNewChannelId, mNewURI, mRedirectFlags,
                            mResponseHead); 
   }
  private:
   HttpChannelChild*   mChild;
-  PHttpChannelChild*  mNewChannel;
+  PRUint32            mNewChannelId;
   IPC::URI            mNewURI;
   PRUint32            mRedirectFlags;
   nsHttpResponseHead  mResponseHead;
 };
 
 bool
-HttpChannelChild::RecvRedirect1Begin(PHttpChannelChild* newChannel,
-                                     const IPC::URI& newURI,
+HttpChannelChild::RecvRedirect1Begin(const PRUint32& newChannelId,
+                                     const URI& newUri,
                                      const PRUint32& redirectFlags,
                                      const nsHttpResponseHead& responseHead)
 {
   if (ShouldEnqueue()) {
-    EnqueueEvent(new Redirect1Event(this, newChannel, newURI, redirectFlags, 
+    EnqueueEvent(new Redirect1Event(this, newChannelId, newUri, redirectFlags,
                                     responseHead)); 
   } else {
-    Redirect1Begin(newChannel, newURI, redirectFlags, responseHead);
+    Redirect1Begin(newChannelId, newUri, redirectFlags, responseHead);
   }
   return true;
 }
 
 void
-HttpChannelChild::Redirect1Begin(PHttpChannelChild* newChannel,
+HttpChannelChild::Redirect1Begin(const PRUint32& newChannelId,
                                  const IPC::URI& newURI,
                                  const PRUint32& redirectFlags,
                                  const nsHttpResponseHead& responseHead)
 {
-  HttpChannelChild* 
-    newHttpChannelChild = static_cast<HttpChannelChild*>(newChannel);
-  nsCOMPtr<nsIURI> uri(newURI);
+  nsresult rv;
 
-  nsresult rv = 
-    newHttpChannelChild->HttpBaseChannel::Init(uri, mCaps,
-                                               mConnectionInfo->ProxyInfo());
+  nsCOMPtr<nsIIOService> ioService;
+  rv = gHttpHandler->GetIOService(getter_AddRefs(ioService));
   if (NS_FAILED(rv)) {
     
-    SendRedirect2Verify(rv, newHttpChannelChild->mRequestHeaders);
+    OnRedirectVerifyCallback(rv);
+    return;
+  }
+
+  nsCOMPtr<nsIURI> uri(newURI);
+
+  nsCOMPtr<nsIChannel> newChannel;
+  rv = ioService->NewChannelFromURI(uri, getter_AddRefs(newChannel));
+  if (NS_FAILED(rv)) {
+    
+    OnRedirectVerifyCallback(rv);
     return;
   }
 
@@ -651,17 +660,22 @@ HttpChannelChild::Redirect1Begin(PHttpChannelChild* newChannel,
   SetCookie(mResponseHead->PeekHeader(nsHttp::Set_Cookie));
 
   PRBool preserveMethod = (mResponseHead->Status() == 307);
-  rv = SetupReplacementChannel(uri, newHttpChannelChild, preserveMethod);
+  rv = SetupReplacementChannel(uri, newChannel, preserveMethod);
   if (NS_FAILED(rv)) {
     
-    SendRedirect2Verify(rv, newHttpChannelChild->mRequestHeaders);
+    OnRedirectVerifyCallback(rv);
     return;
   }
 
-  mRedirectChannelChild = newHttpChannelChild;
+  mRedirectChannelChild = do_QueryInterface(newChannel);
+  if (mRedirectChannelChild) {
+    mRedirectChannelChild->ConnectParent(newChannelId);
+  } else {
+    NS_ERROR("Redirecting to a protocol that doesn't support universal protocol redirect");
+  }
 
   rv = gHttpHandler->AsyncOnChannelRedirect(this, 
-                                            newHttpChannelChild, 
+                                            newChannel,
                                             redirectFlags);
   if (NS_FAILED(rv))
     OnRedirectVerifyCallback(rv);
@@ -690,15 +704,17 @@ HttpChannelChild::RecvRedirect3Complete()
 void
 HttpChannelChild::Redirect3Complete()
 {
-  nsresult rv;
+  nsresult rv = NS_OK;
+
+  
+  if (mRedirectChannelChild)
+    rv = mRedirectChannelChild->CompleteRedirectSetup(mListener,
+                                                      mListenerContext);
 
   
   if (mLoadGroup)
     mLoadGroup->RemoveRequest(this, nsnull, NS_BINDING_ABORTED);
 
-  
-  rv = mRedirectChannelChild->CompleteRedirectSetup(mListener, 
-                                                    mListenerContext);
   if (NS_FAILED(rv))
     NS_WARNING("CompleteRedirectSetup failed, HttpChannelChild already open?");
 
@@ -706,7 +722,34 @@ HttpChannelChild::Redirect3Complete()
   mRedirectChannelChild = nsnull;
 }
 
-nsresult
+
+
+
+
+NS_IMETHODIMP
+HttpChannelChild::ConnectParent(PRUint32 id)
+{
+  mozilla::dom::TabChild* tabChild = nsnull;
+  nsCOMPtr<nsITabChild> iTabChild;
+  GetCallback(iTabChild);
+  if (iTabChild) {
+    tabChild = static_cast<mozilla::dom::TabChild*>(iTabChild.get());
+  }
+
+  
+  
+  AddIPDLReference();
+
+  if (!gNeckoChild->SendPHttpChannelConstructor(this, tabChild))
+    return NS_ERROR_FAILURE;
+
+  if (!SendConnectChannel(id))
+    return NS_ERROR_FAILURE;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
 HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener, 
                                         nsISupports *aContext)
 {
@@ -744,17 +787,30 @@ HttpChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
 NS_IMETHODIMP
 HttpChannelChild::OnRedirectVerifyCallback(nsresult result)
 {
-  
-  mRedirectChannelChild->AddCookiesToRequest();
-  
-  mRedirectChannelChild->SetOriginalURI(mRedirectOriginalURI);
+  nsCOMPtr<nsIHttpChannel> newHttpChannel =
+      do_QueryInterface(mRedirectChannelChild);
+
+  if (newHttpChannel) {
+    
+    newHttpChannel->SetOriginalURI(mRedirectOriginalURI);
+  }
+
+  RequestHeaderTuples emptyHeaders;
+  RequestHeaderTuples* headerTuples = &emptyHeaders;
+
+  nsCOMPtr<nsIHttpChannelChild> newHttpChannelChild =
+      do_QueryInterface(mRedirectChannelChild);
+  if (newHttpChannelChild && NS_SUCCEEDED(result)) {
+    newHttpChannelChild->AddCookiesToRequest();
+    newHttpChannelChild->GetHeaderTuples(&headerTuples);
+  }
 
   
   
   if (NS_SUCCEEDED(result))
-    gHttpHandler->OnModifyRequest(mRedirectChannelChild);
+    gHttpHandler->OnModifyRequest(newHttpChannel);
 
-  return SendRedirect2Verify(result, mRedirectChannelChild->mRequestHeaders);
+  return SendRedirect2Verify(result, *headerTuples);
 }
 
 
@@ -1248,5 +1304,20 @@ HttpChannelChild::Flush()
 
 
 
-}} 
 
+
+NS_IMETHODIMP HttpChannelChild::AddCookiesToRequest()
+{
+  HttpBaseChannel::AddCookiesToRequest();
+  return NS_OK;
+}
+
+NS_IMETHODIMP HttpChannelChild::GetHeaderTuples(RequestHeaderTuples **aHeaderTuples)
+{
+  *aHeaderTuples = &mRequestHeaders;
+  return NS_OK;
+}
+
+
+
+}} 

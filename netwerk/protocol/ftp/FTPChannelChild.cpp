@@ -97,12 +97,13 @@ FTPChannelChild::ReleaseIPDLReference()
 
 
 
-NS_IMPL_ISUPPORTS_INHERITED4(FTPChannelChild,
+NS_IMPL_ISUPPORTS_INHERITED5(FTPChannelChild,
                              nsBaseChannel,
                              nsIFTPChannel,
                              nsIUploadChannel,
                              nsIResumableChannel,
-                             nsIProxiedChannel)
+                             nsIProxiedChannel,
+                             nsIChildChannel)
 
 
 
@@ -439,6 +440,34 @@ FTPChannelChild::DoCancelEarly(const nsresult& statusCode)
     Send__delete__(this);
 }
 
+class FTPDeleteSelfEvent : public ChannelEvent
+{
+ public:
+  FTPDeleteSelfEvent(FTPChannelChild* aChild)
+  : mChild(aChild) {}
+  void Run() { mChild->DoDeleteSelf(); }
+ private:
+  FTPChannelChild* mChild;
+};
+
+bool
+FTPChannelChild::RecvDeleteSelf()
+{
+  if (ShouldEnqueue()) {
+    EnqueueEvent(new FTPDeleteSelfEvent(this));
+  } else {
+    DoDeleteSelf();
+  }
+  return true;
+}
+
+void
+FTPChannelChild::DoDeleteSelf()
+{
+  if (mIPCOpen)
+    Send__delete__(this);
+}
+
 NS_IMETHODIMP
 FTPChannelChild::Cancel(nsresult status)
 {
@@ -472,6 +501,50 @@ FTPChannelChild::Resume()
       mQueuePhase = PHASE_FINISHED_QUEUEING;
     FlushEventQueue();
   }
+  return NS_OK;
+}
+
+
+
+
+
+NS_IMETHODIMP
+FTPChannelChild::ConnectParent(PRUint32 id)
+{
+  
+  
+  AddIPDLReference();
+
+  if (!gNeckoChild->SendPFTPChannelConstructor(this))
+    return NS_ERROR_FAILURE;
+
+  if (!SendConnectChannel(id))
+    return NS_ERROR_FAILURE;
+
+  return NS_OK;
+}
+
+NS_IMETHODIMP
+FTPChannelChild::CompleteRedirectSetup(nsIStreamListener *listener,
+                                       nsISupports *aContext)
+{
+  LOG(("FTPChannelChild::CompleteRedirectSetup [this=%x]\n", this));
+
+  NS_ENSURE_TRUE(!mIsPending, NS_ERROR_IN_PROGRESS);
+  NS_ENSURE_TRUE(!mWasOpened, NS_ERROR_ALREADY_OPENED);
+
+  mIsPending = PR_TRUE;
+  mWasOpened = PR_TRUE;
+  mListener = listener;
+  mListenerContext = aContext;
+
+  
+  if (mLoadGroup)
+    mLoadGroup->AddRequest(this, nsnull);
+
+  
+  
+  
   return NS_OK;
 }
 

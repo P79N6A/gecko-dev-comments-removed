@@ -1,6 +1,3 @@
-/* -*- Mode: C++; tab-width: 8; indent-tabs-mode: nil; c-basic-offset: 2 -*- */
-/* vim: set sw=2 ts=8 et tw=80 ft=cpp : */
-
 /* ***** BEGIN LICENSE BLOCK *****
  * Version: MPL 1.1/GPL 2.0/LGPL 2.1
  *
@@ -16,14 +13,12 @@
  *
  * The Original Code is mozilla.org code.
  *
- * The Initial Developer of the Original Code is
- *  The Mozilla Foundation
+ * The Initial Developer of the Original Code is Mozilla Foundation
  * Portions created by the Initial Developer are Copyright (C) 2010
  * the Initial Developer. All Rights Reserved.
  *
  * Contributor(s):
- *   Alon Zakai <azakai@mozilla.com>
- *   Josh Matthews <josh@joshmatthews.net>
+ *   Honza Bambas <honzab@firemni.cz>
  *
  * Alternatively, the contents of this file may be used under the terms of
  * either the GNU General Public License Version 2 or later (the "GPL"), or
@@ -39,40 +34,34 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-include protocol PNecko;
+#include "nsISupports.idl"
 
-include "mozilla/net/NeckoMessageUtils.h";
+interface nsIStreamListener;
 
-using IPC::URI;
-using IPC::InputStream;
-using PRTime;
+/**
+ * Implemented by content side of IPC protocols.
+ */
 
-namespace mozilla {
-namespace net {
-
-async protocol PFTPChannel
+[scriptable, uuid(c45b92ae-4f07-41dd-b0ef-aa044eeabb1e)]
+interface nsIChildChannel : nsISupports
 {
-  manager PNecko;
+  /**
+   * Create the chrome side of the IPC protocol and join an existing 'real'
+   * channel on the parent process.  The id is provided by
+   * nsIRedirectChannelRegistrar on the chrome process and pushed to the child
+   * protocol as an argument to event starting a redirect.
+   *
+   * Primarilly used in HttpChannelChild::Redirect1Begin on a newly created
+   * child channel, where the new channel is intended to be created on the
+   * child process.
+   */
+  void connectParent(in PRUint32 id);
 
-parent:
-  __delete__();
-
-  AsyncOpen(URI uri, PRUint64 startPos, nsCString entityID,
-            InputStream uploadStream);
-  ConnectChannel(PRUint32 channelId);
-  Cancel(nsresult status);
-  Suspend();
-  Resume();
-
-child:
-  OnStartRequest(PRInt32 aContentLength, nsCString aContentType,
-                 PRTime aLastModified, nsCString aEntityID, URI aURI);
-  OnDataAvailable(nsCString data, PRUint32 offset, PRUint32 count);
-  OnStopRequest(nsresult statusCode);
-  CancelEarly(nsresult statusCode);
-  DeleteSelf();
+  /**
+   * As AsyncOpen is called on the chrome process for redirect target channels,
+   * we have to inform the child side of the protocol of that fact by a special
+   * method.
+   */
+  void completeRedirectSetup(in nsIStreamListener aListener,
+                             in nsISupports aContext);
 };
-
-} // namespace net
-} // namespace mozilla
-

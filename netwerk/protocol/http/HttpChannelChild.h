@@ -45,6 +45,7 @@
 
 #include "mozilla/net/HttpBaseChannel.h"
 #include "mozilla/net/PHttpChannelChild.h"
+#include "mozilla/net/ChannelEventQueue.h"
 
 #include "nsIStreamListener.h"
 #include "nsILoadGroup.h"
@@ -60,11 +61,11 @@
 #include "nsITraceableChannel.h"
 #include "nsIAsyncVerifyRedirectCallback.h"
 #include "nsIAssociatedContentSecurity.h"
+#include "nsIChildChannel.h"
+#include "nsIHttpChannelChild.h"
 
 namespace mozilla {
 namespace net {
-
-class ChildChannelEvent;
 
 class HttpChannelChild : public PHttpChannelChild
                        , public HttpBaseChannel
@@ -74,6 +75,9 @@ class HttpChannelChild : public PHttpChannelChild
                        , public nsIApplicationCacheChannel
                        , public nsIAsyncVerifyRedirectCallback
                        , public nsIAssociatedContentSecurity
+                       , public nsIChildChannel
+                       , public nsIHttpChannelChild
+                       , public ChannelEventQueue<HttpChannelChild>
 {
 public:
   NS_DECL_ISUPPORTS_INHERITED
@@ -84,6 +88,8 @@ public:
   NS_DECL_NSIAPPLICATIONCACHECHANNEL
   NS_DECL_NSIASYNCVERIFYREDIRECTCALLBACK
   NS_DECL_NSIASSOCIATEDCONTENTSECURITY
+  NS_DECL_NSICHILDCHANNEL
+  NS_DECL_NSIHTTPCHANNELCHILD
 
   HttpChannelChild();
   virtual ~HttpChannelChild();
@@ -109,14 +115,12 @@ public:
   NS_IMETHOD ResumeAt(PRUint64 startPos, const nsACString& entityID);
 
   
-  nsresult CompleteRedirectSetup(nsIStreamListener *listener, 
-                                 nsISupports *aContext);
-
-  
   
   
   void AddIPDLReference();
   void ReleaseIPDLReference();
+
+  bool IsSuspended();
 
 protected:
   bool RecvOnStartRequest(const nsHttpResponseHead& responseHead,
@@ -134,19 +138,20 @@ protected:
   bool RecvOnProgress(const PRUint64& progress, const PRUint64& progressMax);
   bool RecvOnStatus(const nsresult& status, const nsString& statusArg);
   bool RecvCancelEarly(const nsresult& status);
-  bool RecvRedirect1Begin(PHttpChannelChild* newChannel,
+  bool RecvRedirect1Begin(const PRUint32& newChannel,
                           const URI& newURI,
                           const PRUint32& redirectFlags,
                           const nsHttpResponseHead& responseHead);
   bool RecvRedirect3Complete();
   bool RecvAssociateApplicationCache(const nsCString& groupID,
                                      const nsCString& clientID);
+  bool RecvDeleteSelf();
 
   bool GetAssociatedContentSecurity(nsIAssociatedContentSecurity** res = nsnull);
 
 private:
   RequestHeaderTuples mRequestHeaders;
-  nsRefPtr<HttpChannelChild> mRedirectChannelChild;
+  nsCOMPtr<nsIChildChannel> mRedirectChannelChild;
   nsCOMPtr<nsIURI> mRedirectOriginalURI;
   nsCOMPtr<nsISupports> mSecurityInfo;
 
@@ -163,25 +168,6 @@ private:
   bool mIPCOpen;
   bool mKeptAlive;
 
-  
-  
-  
-  
-  
-  void BeginEventQueueing();
-  void EndEventQueueing();
-  void FlushEventQueue();
-  void EnqueueEvent(ChildChannelEvent* callback);
-  bool ShouldEnqueue();
-
-  nsTArray<nsAutoPtr<ChildChannelEvent> > mEventQueue;
-  enum {
-    PHASE_UNQUEUED,
-    PHASE_QUEUEING,
-    PHASE_FINISHED_QUEUEING,
-    PHASE_FLUSHING
-  } mQueuePhase;
-
   void OnStartRequest(const nsHttpResponseHead& responseHead,
                           const PRBool& useResponseHead,
                           const RequestHeaderTuples& requestHeaders,
@@ -197,12 +183,13 @@ private:
   void OnProgress(const PRUint64& progress, const PRUint64& progressMax);
   void OnStatus(const nsresult& status, const nsString& statusArg);
   void OnCancel(const nsresult& status);
-  void Redirect1Begin(PHttpChannelChild* newChannel, const URI& newURI,
+  void Redirect1Begin(const PRUint32& newChannelId,
+                      const URI& newUri,
                       const PRUint32& redirectFlags,
                       const nsHttpResponseHead& responseHead);
   void Redirect3Complete();
+  void DeleteSelf();
 
-  friend class AutoEventEnqueuer;
   friend class StartRequestEvent;
   friend class StopRequestEvent;
   friend class DataAvailableEvent;
@@ -211,43 +198,18 @@ private:
   friend class CancelEvent;
   friend class Redirect1Event;
   friend class Redirect3Event;
+  friend class DeleteSelfEvent;
 };
 
 
 
 
 
-inline void
-HttpChannelChild::BeginEventQueueing()
-{
-  if (mQueuePhase != PHASE_UNQUEUED)
-    return;
-  
-  mQueuePhase = PHASE_QUEUEING;
-}
-
-inline void
-HttpChannelChild::EndEventQueueing()
-{
-  if (mQueuePhase != PHASE_QUEUEING)
-    return;
-
-  mQueuePhase = PHASE_FINISHED_QUEUEING;
-}
-
-
 inline bool
-HttpChannelChild::ShouldEnqueue()
+HttpChannelChild::IsSuspended()
 {
-  return mQueuePhase != PHASE_UNQUEUED || mSuspendCount;
+  return mSuspendCount != 0;
 }
-
-inline void
-HttpChannelChild::EnqueueEvent(ChildChannelEvent* callback)
-{
-  mEventQueue.AppendElement(callback);
-}
-
 
 } 
 } 
