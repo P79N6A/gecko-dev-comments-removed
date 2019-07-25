@@ -3320,44 +3320,22 @@ class AutoCompartment;
 
 class JS_PUBLIC_API(JSAutoEnterCompartment)
 {
-    
-
-
-
-
-
-
-
-    void* bytes[sizeof(void*) == 4 && MOZ_ALIGNOF(uint64_t) == 8 ? 16 : 12];
-
-  protected:
-    js::AutoCompartment *getAutoCompartment() {
-        JS_ASSERT(state == STATE_OTHER_COMPARTMENT);
-        return reinterpret_cast<js::AutoCompartment*>(bytes);
-    }
-
-    
-
-
-
-
-
-
-
-    enum State {
-        STATE_UNENTERED,
-        STATE_SAME_COMPARTMENT,
-        STATE_OTHER_COMPARTMENT
-    } state;
+    JSContext *cx_;
+    JSCompartment *oldCompartment_;
+    bool entered_;
 
   public:
-    JSAutoEnterCompartment() : state(STATE_UNENTERED) {}
+    JSAutoEnterCompartment() : entered_(false) {}
+
+    JSAutoEnterCompartment(JSContext *cx, JSRawObject target)
+      : entered_(false)
+    { enter(cx, target); }
 
     bool enter(JSContext *cx, JSRawObject target);
 
     void enterAndIgnoreErrors(JSContext *cx, JSRawObject target);
 
-    bool entered() const { return state != STATE_UNENTERED; }
+    bool entered() const { return entered_; }
 
     
 
@@ -3366,7 +3344,7 @@ class JS_PUBLIC_API(JSAutoEnterCompartment)
 
     void leave();
 
-    ~JSAutoEnterCompartment();
+    ~JSAutoEnterCompartment() { if (entered_) leave(); }
 };
 
 JS_BEGIN_EXTERN_C

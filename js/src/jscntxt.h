@@ -1164,7 +1164,43 @@ struct JSContext : js::ContextFriendFields
     
     JSCompartment       *compartment;
 
-    inline void setCompartment(JSCompartment *compartment);
+    inline void setCompartment(JSCompartment *c) { compartment = c; }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  private:
+    unsigned            enterCompartmentDepth_;
+  public:
+    inline bool hasEnteredCompartment() const;
+    inline void enterCompartment(JSCompartment *c);
+    inline void leaveCompartment(JSCompartment *c);
+
+    
+  private:
+    struct SavedFrameChain {
+        SavedFrameChain(JSCompartment *comp, unsigned count)
+          : compartment(comp), enterCompartmentCount(count) {}
+        JSCompartment *compartment;
+        unsigned enterCompartmentCount;
+    };
+    typedef js::Vector<SavedFrameChain, 1, js::SystemAllocPolicy> SaveStack;
+    SaveStack           savedFrameChains_;
+  public:
+    bool saveFrameChain();
+    void restoreFrameChain();
 
     
 
@@ -1190,9 +1226,6 @@ struct JSContext : js::ContextFriendFields
     inline js::StackFrame* maybefp() const  { return stack.maybefp(); }
     inline js::FrameRegs& regs() const      { return stack.regs(); }
     inline js::FrameRegs* maybeRegs() const { return stack.maybeRegs(); }
-
-    
-    void resetCompartment();
 
     
     void wrapPendingException();
@@ -1331,9 +1364,7 @@ struct JSContext : js::ContextFriendFields
     js::mjit::JaegerRuntime &jaegerRuntime() { return runtime->jaegerRuntime(); }
 #endif
 
-    bool                 inferenceEnabled;
-
-    bool typeInferenceEnabled() { return inferenceEnabled; }
+    inline bool typeInferenceEnabled() const;
 
     
     void updateJITEnabled();
@@ -1406,8 +1437,8 @@ struct JSContext : js::ContextFriendFields
     void setPendingException(js::Value v);
 
     void clearPendingException() {
-        this->throwing = false;
-        this->exception.setUndefined();
+        throwing = false;
+        exception.setUndefined();
     }
 
 #ifdef DEBUG

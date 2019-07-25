@@ -451,11 +451,10 @@ class js::AutoDebugModeGC
     }
 };
 
-inline void
-JSContext::setCompartment(JSCompartment *compartment)
+inline bool
+JSContext::typeInferenceEnabled() const
 {
-    this->compartment = compartment;
-    this->inferenceEnabled = compartment ? compartment->types.inferenceEnabled : false;
+    return compartment->types.inferenceEnabled;
 }
 
 inline js::Handle<js::GlobalObject*>
@@ -465,47 +464,6 @@ JSContext::global() const
 }
 
 namespace js {
-
-class PreserveCompartment {
-  protected:
-    JSContext *cx;
-  private:
-    JSCompartment *oldCompartment;
-    bool oldInferenceEnabled;
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-  public:
-     PreserveCompartment(JSContext *cx JS_GUARD_OBJECT_NOTIFIER_PARAM) : cx(cx) {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-        oldCompartment = cx->compartment;
-        oldInferenceEnabled = cx->inferenceEnabled;
-    }
-
-    ~PreserveCompartment() {
-        
-        cx->compartment = oldCompartment;
-        cx->inferenceEnabled = oldInferenceEnabled;
-    }
-};
-
-class SwitchToCompartment : public PreserveCompartment {
-  public:
-    SwitchToCompartment(JSContext *cx, JSCompartment *newCompartment
-                        JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : PreserveCompartment(cx)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->setCompartment(newCompartment);
-    }
-
-    SwitchToCompartment(JSContext *cx, JSObject *target JS_GUARD_OBJECT_NOTIFIER_PARAM)
-        : PreserveCompartment(cx)
-    {
-        JS_GUARD_OBJECT_NOTIFIER_INIT;
-        cx->setCompartment(target->compartment());
-    }
-
-    JS_DECL_USE_GUARD_OBJECT_NOTIFIER
-};
 
 class AssertCompartmentUnchanged {
   protected:
@@ -530,19 +488,53 @@ class AutoCompartment
     JSCompartment * const origin;
     JSCompartment * const destination;
   private:
-    Maybe<DummyFrameGuard> frame;
     bool entered;
 
   public:
-    AutoCompartment(JSContext *cx, JSObject *target);
-    ~AutoCompartment();
+    AutoCompartment(JSContext *cx, JSObject *target)
+      : context(cx),
+        origin(cx->compartment),
+        destination(target->compartment()),
+        entered(false)
+    {}
 
-    bool enter();
-    void leave();
+    ~AutoCompartment() {
+        if (entered)
+            leave();
+    }
+
+    bool enter() { context->enterCompartment(destination); entered = true; return true; }
+    void leave() { JS_ASSERT(entered); context->leaveCompartment(origin); entered = false; }
 
   private:
     AutoCompartment(const AutoCompartment &) MOZ_DELETE;
     AutoCompartment & operator=(const AutoCompartment &) MOZ_DELETE;
+};
+
+
+
+
+
+
+
+
+
+class AutoEnterAtomsCompartment
+{
+    JSContext *cx;
+    JSCompartment *oldCompartment;
+  public:
+    AutoEnterAtomsCompartment(JSContext *cx)
+      : cx(cx),
+        oldCompartment(cx->compartment)
+    {
+        cx->setCompartment(cx->runtime->atomsCompartment);
+    }
+
+    ~AutoEnterAtomsCompartment()
+    {
+        cx->setCompartment(oldCompartment);
+    }
 };
 
 

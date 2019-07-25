@@ -128,7 +128,7 @@ frontend::CompileScript(JSContext *cx, HandleObject scopeChain, StackFrame *call
         return NULL;
 
     
-    if (callerFrame && callerFrame->isScriptFrame() && callerFrame->script()->strictModeCode)
+    if (callerFrame && callerFrame->script()->strictModeCode)
         sc.strictModeState = StrictMode::STRICT;
 
     if (options.compileAndGo) {

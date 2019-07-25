@@ -5973,14 +5973,14 @@ nsContentUtils::CanAccessNativeAnon()
   NS_ENSURE_TRUE(principal, false);
 
   JSScript *script = nullptr;
-  if (!fp) {
+  if (fp) {
+    script = JS_GetFrameScript(cx, fp);
+  } else {
     if (!JS_DescribeScriptedCaller(cx, &script, nullptr)) {
       
       
       return true;
     }
-  } else if (JS_IsScriptFrame(cx, fp)) {
-    script = JS_GetFrameScript(cx, fp);
   }
 
   bool privileged;

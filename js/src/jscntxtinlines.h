@@ -478,14 +478,8 @@ JSContext::findVersion() const
     if (hasVersionOverride)
         return versionOverride;
 
-    if (stack.hasfp()) {
-        
-        js::StackFrame *f = fp();
-        while (f && !f->isScriptFrame())
-            f = f->prev();
-        if (f)
-            return f->script()->getVersion();
-    }
+    if (stack.hasfp())
+        return fp()->script()->getVersion();
 
     return defaultVersion;
 }
@@ -567,13 +561,61 @@ JSContext::propertyTree()
     return compartment->propertyTree;
 }
 
+inline bool
+JSContext::hasEnteredCompartment() const
+{
+    return enterCompartmentDepth_ > 0;
+}
+
+inline void
+JSContext::enterCompartment(JSCompartment *c)
+{
+    enterCompartmentDepth_++;
+    compartment = c;
+    if (throwing)
+        wrapPendingException();
+}
+
+inline void
+JSContext::leaveCompartment(JSCompartment *oldCompartment)
+{
+    JS_ASSERT(hasEnteredCompartment());
+    enterCompartmentDepth_--;
+
+    
+
+
+
+
+
+
+
+    if (hasEnteredCompartment() || !defaultCompartmentObject_)
+        compartment = oldCompartment;
+    else
+        compartment = defaultCompartmentObject_->compartment();
+
+    if (throwing)
+        wrapPendingException();
+}
+
 inline void
 JSContext::setDefaultCompartmentObject(JSObject *obj)
 {
     defaultCompartmentObject_ = obj;
 
-    if (!hasfp())
-        resetCompartment();
+    if (!hasEnteredCompartment()) {
+        
+
+
+
+
+
+        JS_ASSERT(!hasfp());
+        compartment = obj ? obj->compartment() : NULL;
+        if (throwing)
+            wrapPendingException();
+    }
 }
 
 inline void

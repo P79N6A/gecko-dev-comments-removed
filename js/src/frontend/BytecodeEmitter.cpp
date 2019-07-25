@@ -125,7 +125,6 @@ BytecodeEmitter::BytecodeEmitter(BytecodeEmitter *parent, Parser *parser, Shared
     hasGlobalScope(hasGlobalScope),
     selfHostingMode(selfHostingMode)
 {
-    JS_ASSERT_IF(callerFrame, callerFrame->isScriptFrame());
     memset(&prolog, 0, sizeof prolog);
     memset(&main, 0, sizeof main);
     current = &main;
@@ -431,12 +430,8 @@ UpdateSourceCoordNotes(JSContext *cx, BytecodeEmitter *bce, TokenPtr pos)
         if (colspan < 0) {
             colspan += SN_COLSPAN_DOMAIN;
         } else if (colspan >= SN_COLSPAN_DOMAIN / 2) {
-            
-            
-            
-            
-            
-            return true;
+            ReportStatementTooLarge(cx, bce->topStmt);
+            return false;
         }
         if (NewSrcNote2(cx, bce, SRC_COLSPAN, colspan) < 0)
             return false;
@@ -1305,8 +1300,6 @@ BindNameToSlot(JSContext *cx, BytecodeEmitter *bce, ParseNode *pn)
 
             if (bce->inForInit)
                 return true;
-
-            JS_ASSERT(caller->isScriptFrame());
 
             
 

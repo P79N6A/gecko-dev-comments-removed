@@ -408,7 +408,6 @@ Debugger::fromChildJSObject(JSObject *obj)
 bool
 Debugger::getScriptFrame(JSContext *cx, StackFrame *fp, Value *vp)
 {
-    JS_ASSERT(fp->isScriptFrame());
     FrameMap::AddPtr p = frames.lookupForAdd(fp);
     if (!p) {
         
@@ -577,7 +576,6 @@ Debugger::slowPathOnLeaveFrame(JSContext *cx, bool frameOk)
 
         
         if (!frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined() &&
-            fp->isScriptFrame() &&
             !fp->script()->changeStepModeCount(cx, -1))
         {
             status = JSTRAP_ERROR;
@@ -1174,9 +1172,6 @@ Debugger::onSingleStep(JSContext *cx, Value *vp)
     }
 
     
-    JS_ASSERT(fp->isScriptFrame());
-
-    
 
 
 
@@ -1210,8 +1205,7 @@ Debugger::onSingleStep(JSContext *cx, Value *vp)
                 for (FrameMap::Range r = dbg->frames.all(); !r.empty(); r.popFront()) {
                     StackFrame *frame = r.front().key;
                     JSObject *frameobj = r.front().value;
-                    if (frame->isScriptFrame() &&
-                        frame->script() == trappingScript &&
+                    if (frame->script() == trappingScript &&
                         !frameobj->getReservedSlot(JSSLOT_DEBUGFRAME_ONSTEP_HANDLER).isUndefined())
                     {
                         stepperCount++;
@@ -3308,7 +3302,7 @@ DebuggerFrame_getScript(JSContext *cx, unsigned argc, Value *vp)
             if (!scriptObject)
                 return false;
         }
-    } else if (fp->isScriptFrame()) {
+    } else {
         
 
 
@@ -3326,16 +3320,12 @@ static JSBool
 DebuggerFrame_getOffset(JSContext *cx, unsigned argc, Value *vp)
 {
     THIS_FRAME(cx, argc, vp, "get offset", args, thisobj, fp);
-    if (fp->isScriptFrame()) {
-        JSScript *script = fp->script();
-        jsbytecode *pc = fp->pcQuadratic(cx);
-        JS_ASSERT(script->code <= pc);
-        JS_ASSERT(pc < script->code + script->length);
-        size_t offset = pc - script->code;
-        args.rval().setNumber(double(offset));
-    } else {
-        args.rval().setUndefined();
-    }
+    JSScript *script = fp->script();
+    jsbytecode *pc = fp->pcQuadratic(cx);
+    JS_ASSERT(script->code <= pc);
+    JS_ASSERT(pc < script->code + script->length);
+    size_t offset = pc - script->code;
+    args.rval().setNumber(double(offset));
     return true;
 }
 
@@ -3373,10 +3363,6 @@ DebuggerFrame_setOnStep(JSContext *cx, unsigned argc, Value *vp)
 {
     REQUIRE_ARGC("Debugger.Frame.set onStep", 1);
     THIS_FRAME(cx, argc, vp, "set onStep", args, thisobj, fp);
-    if (!fp->isScriptFrame()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_SCRIPT_FRAME);
-        return false;
-    }
     if (!IsValidHook(args[0])) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_CALLABLE_OR_UNDEFINED);
         return false;
@@ -3415,10 +3401,6 @@ DebuggerFrame_setOnPop(JSContext *cx, unsigned argc, Value *vp)
 {
     REQUIRE_ARGC("Debugger.Frame.set onPop", 1);
     THIS_FRAME(cx, argc, vp, "set onPop", args, thisobj, fp);
-    if (!fp->isScriptFrame()) {
-        JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_DEBUG_NOT_SCRIPT_FRAME);
-        return false;
-    }
     if (!IsValidHook(args[0])) {
         JS_ReportErrorNumber(cx, js_GetErrorMessage, NULL, JSMSG_NOT_CALLABLE_OR_UNDEFINED);
         return false;
