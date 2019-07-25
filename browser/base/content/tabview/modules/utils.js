@@ -668,20 +668,7 @@ let Utils = {
   
   
   merge: function(first, second) {
-    var i = first.length, j = 0;
-
-    if (typeof second.length === "number") {
-      for (let l = second.length; j < l; j++) {
-        first[i++] = second[j];
-      }
-    } else {
-      while (second[j] !== undefined) {
-        first[i++] = second[j++];
-      }
-    }
-
-    first.length = i;
-
+    Array.forEach(second, function(el) Array.push(first, el));
     return first;
   },
 
