@@ -126,6 +126,8 @@ public class PanZoomController
     
     private Timer mAnimationTimer;
     
+    private AnimationRunnable mAnimationRunnable;
+    
     private AxisX mX;
     
     private AxisY mY;
@@ -531,13 +533,14 @@ public class PanZoomController
     }
 
     
-    private void startAnimationTimer(final Runnable runnable) {
+    private void startAnimationTimer(final AnimationRunnable runnable) {
         if (mAnimationTimer != null) {
             Log.e(LOGTAG, "Attempted to start a new fling without canceling the old one!");
             stopAnimationTimer();
         }
 
         mAnimationTimer = new Timer("Animation Timer");
+        mAnimationRunnable = runnable;
         mAnimationTimer.scheduleAtFixedRate(new TimerTask() {
             @Override
             public void run() { mController.post(runnable); }
@@ -549,6 +552,10 @@ public class PanZoomController
         if (mAnimationTimer != null) {
             mAnimationTimer.cancel();
             mAnimationTimer = null;
+        }
+        if (mAnimationRunnable != null) {
+            mAnimationRunnable.terminate();
+            mAnimationRunnable = null;
         }
     }
 
@@ -587,8 +594,33 @@ public class PanZoomController
         mX.displacement = mY.displacement = 0;
     }
 
+    private abstract class AnimationRunnable implements Runnable {
+        private boolean mAnimationTerminated;
+
+        
+        public final void run() {
+            
+
+
+
+
+
+            if (mAnimationTerminated) {
+                return;
+            }
+            animateFrame();
+        }
+
+        protected abstract void animateFrame();
+
+        
+        protected final void terminate() {
+            mAnimationTerminated = true;
+        }
+    }
+
     
-    private class BounceRunnable implements Runnable {
+    private class BounceRunnable extends AnimationRunnable {
         
         private int mBounceFrame;
         
@@ -603,7 +635,7 @@ public class PanZoomController
             mBounceEndMetrics = endMetrics;
         }
 
-        public void run() {
+        protected void animateFrame() {
             
 
 
@@ -648,8 +680,8 @@ public class PanZoomController
     }
 
     
-    private class FlingRunnable implements Runnable {
-        public void run() {
+    private class FlingRunnable extends AnimationRunnable {
+        protected void animateFrame() {
             
 
 
