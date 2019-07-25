@@ -658,6 +658,12 @@ struct JSRuntime {
 
 #ifdef DEBUG
     
+    jsrefcount          inlineCalls;
+    jsrefcount          nativeCalls;
+    jsrefcount          nonInlineCalls;
+    jsrefcount          constructs;
+
+    
 
 
 
@@ -1423,6 +1429,28 @@ struct JSContext
 }; 
 
 namespace js {
+
+
+
+
+
+
+
+
+
+
+class RuntimeAllocPolicy
+{
+    JSRuntime *const runtime;
+
+  public:
+    RuntimeAllocPolicy(JSRuntime *rt) : runtime(rt) {}
+    RuntimeAllocPolicy(JSContext *cx) : runtime(cx->runtime) {}
+    void *malloc_(size_t bytes) { return runtime->malloc_(bytes); }
+    void *realloc_(void *p, size_t bytes) { return runtime->realloc_(p, bytes); }
+    void free_(void *p) { runtime->free_(p); }
+    void reportAllocOverflow() const {}
+};
 
 #ifdef JS_THREADSAFE
 # define JS_THREAD_ID(cx)       ((cx)->thread() ? (cx)->thread()->id : 0)
