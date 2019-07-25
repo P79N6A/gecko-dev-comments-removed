@@ -287,6 +287,7 @@ nsAppShellService::CalculateWindowZLevel(nsIXULWindow *aParent,
   return zLevel;
 }
 
+#ifdef XP_WIN
 
 
 
@@ -323,6 +324,7 @@ CheckForFullscreenWindow()
   }
   return PR_FALSE;
 }
+#endif
 
 
 
