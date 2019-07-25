@@ -60,6 +60,29 @@ check_armv6(void)
 }
 #    endif 
 
+#    if !defined(MOZILLA_PRESUME_ARMV7)
+static bool
+check_armv7(void)
+{
+#      if defined(MOZILLA_MAY_SUPPORT_ARMV7)
+  __try
+  {
+    
+    
+    
+    
+    emit(0xF57FF05E);
+    return true;
+  }
+  __except(GetExceptionCode()==EXCEPTION_ILLEGAL_INSTRUCTION)
+  {
+    
+  }
+#      endif
+  return false;
+}
+#    endif 
+
 #    if !defined(MOZILLA_PRESUME_NEON)
 static bool
 check_neon(void)
@@ -88,7 +111,8 @@ check_neon(void)
 enum{
   MOZILLA_HAS_EDSP_FLAG=1,
   MOZILLA_HAS_ARMV6_FLAG=2,
-  MOZILLA_HAS_NEON_FLAG=4
+  MOZILLA_HAS_ARMV7_FLAG=4,
+  MOZILLA_HAS_NEON_FLAG=8
 };
 
 static unsigned
@@ -96,6 +120,7 @@ get_arm_cpu_flags(void)
 {
   unsigned  flags;
   FILE     *fin;
+  bool      armv6_processor = false;
   flags = 0;
   
 
@@ -126,9 +151,31 @@ get_arm_cpu_flags(void)
         version = atoi(buf + 17);
         if (version >= 6)
           flags |= MOZILLA_HAS_ARMV6_FLAG;
+        if (version >= 7)
+          flags |= MOZILLA_HAS_ARMV7_FLAG;
+      }
+      
+
+
+
+
+
+
+
+
+      if (memcmp(buf, "Processor\t:", 11) == 0) {
+          if (strstr(buf, "(v6l)") != 0) {
+              armv6_processor = true;
+          }
       }
     }
     fclose(fin);
+  }
+  if (armv6_processor) {
+      
+      if (flags & MOZILLA_HAS_ARMV7_FLAG) {
+          flags &= ~MOZILLA_HAS_ARMV7_FLAG;
+      }
   }
   return flags;
 }
@@ -152,6 +199,14 @@ check_armv6(void)
 }
 #    endif
 
+#    if !defined(MOZILLA_PRESUME_ARMV7)
+static bool
+check_armv7(void)
+{
+  return (arm_cpu_flags & MOZILLA_HAS_ARMV7_FLAG) != 0;
+}
+#    endif
+
 #    if !defined(MOZILLA_PRESUME_NEON)
 static bool
 check_neon(void)
@@ -171,6 +226,9 @@ namespace mozilla {
 #  endif
 #  if !defined(MOZILLA_PRESUME_ARMV6)
     bool armv6_enabled = check_armv6();
+#  endif
+#  if !defined(MOZILLA_PRESUME_ARMV7)
+    bool armv7_enabled = check_armv7();
 #  endif
 #  if !defined(MOZILLA_PRESUME_NEON)
     bool neon_enabled = check_neon();
