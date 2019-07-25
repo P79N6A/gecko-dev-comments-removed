@@ -74,7 +74,7 @@ namespace js {
 
 
 
-class UpvarCookie 
+class UpvarCookie
 {
     uint32 value;
 
@@ -146,6 +146,8 @@ typedef struct JSConstArray {
     uint32          length;
 } JSConstArray;
 
+struct JSArenaPool;
+
 namespace js {
 
 struct GlobalSlotArray {
@@ -155,6 +157,163 @@ struct GlobalSlotArray {
     };
     Entry           *vector;
     uint32          length;
+};
+
+struct Shape;
+
+enum BindingKind { NONE, ARGUMENT, VARIABLE, CONSTANT, UPVAR };
+
+
+
+
+
+
+
+class Bindings {
+    js::Shape *lastBinding;
+    uint16 nargs;
+    uint16 nvars;
+    uint16 nupvars;
+
+  public:
+    inline Bindings(JSContext *cx);
+
+    
+
+
+
+
+    inline void transfer(JSContext *cx, Bindings *bindings);
+
+    
+
+
+
+
+    inline void clone(JSContext *cx, Bindings *bindings);
+
+    uint16 countArgs() const { return nargs; }
+    uint16 countVars() const { return nvars; }
+    uint16 countUpvars() const { return nupvars; }
+
+    uintN countArgsAndVars() const { return nargs + nvars; }
+
+    uintN countLocalNames() const { return nargs + nvars + nupvars; }
+
+    bool hasUpvars() const { return nupvars > 0; }
+    bool hasLocalNames() const { return countLocalNames() > 0; }
+
+    
+    inline const js::Shape *lastShape() const;
+
+    enum {
+        
+
+
+
+        BINDING_COUNT_LIMIT = 0xFFFF
+    };
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    bool add(JSContext *cx, JSAtom *name, BindingKind kind);
+
+    
+    bool addVariable(JSContext *cx, JSAtom *name) {
+        return add(cx, name, VARIABLE);
+    }
+    bool addConstant(JSContext *cx, JSAtom *name) {
+        return add(cx, name, CONSTANT);
+    }
+    bool addUpvar(JSContext *cx, JSAtom *name) {
+        return add(cx, name, UPVAR);
+    }
+    bool addArgument(JSContext *cx, JSAtom *name, uint16 *slotp) {
+        JS_ASSERT(name != NULL); 
+        *slotp = nargs;
+        return add(cx, name, ARGUMENT);
+    }
+    bool addDestructuring(JSContext *cx, uint16 *slotp) {
+        *slotp = nargs;
+        return add(cx, NULL, ARGUMENT);
+    }
+
+    
+
+
+
+
+
+    BindingKind lookup(JSContext *cx, JSAtom *name, uintN *indexp) const;
+
+    
+    bool hasBinding(JSContext *cx, JSAtom *name) const {
+        return lookup(cx, name, NULL) != NONE;
+    }
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    jsuword *
+    getLocalNameArray(JSContext *cx, JSArenaPool *pool);
+
+    
+
+
+
+    int sharpSlotBase(JSContext *cx);
+
+    
+
+
+
+
+    void makeImmutable();
+
+    
+
+
+
+
+
+
+
+
+
+
+    const js::Shape *lastArgument() const;
+    const js::Shape *lastVariable() const;
+    const js::Shape *lastUpvar() const;
+
+    void trace(JSTracer *trc);
 };
 
 } 
@@ -200,7 +359,7 @@ struct JSScript {
     static JSScript *NewScript(JSContext *cx, uint32 length, uint32 nsrcnotes, uint32 natoms,
                                uint32 nobjects, uint32 nupvars, uint32 nregexps,
                                uint32 ntrynotes, uint32 nconsts, uint32 nglobals,
-                               uint16 nClosedArgs, uint16 nClosedVars);
+                               uint16 nClosedArgs, uint16 nClosedVars, JSVersion version);
 
     static JSScript *NewScriptFromCG(JSContext *cx, JSCodeGenerator *cg);
 
@@ -208,7 +367,13 @@ struct JSScript {
     JSCList         links;      
     jsbytecode      *code;      
     uint32          length;     
+
+  private:
     uint16          version;    
+
+    size_t          callCount_; 
+
+  public:
     uint16          nfixed;     
 
 
@@ -238,8 +403,12 @@ struct JSScript {
     bool            warnedAboutTwoArgumentEval:1; 
 
 
-    bool            dynamicScoping:1; 
-
+    bool            hasSingletons:1;  
+    bool            isCachedEval:1;   
+    bool            isUncachedEval:1; 
+#ifdef JS_TYPE_INFERENCE
+    bool            analyzed:1;       
+#endif
 #ifdef JS_METHODJIT
     bool            debugMode:1;      
     bool            singleStepMode:1; 
@@ -254,6 +423,8 @@ struct JSScript {
     uint16          staticLevel;
     uint16          nClosedArgs; 
     uint16          nClosedVars; 
+    js::Bindings    bindings;   
+
     JSPrincipals    *principals;
     union {
         
@@ -300,10 +471,13 @@ struct JSScript {
     JSObject *global;
 
     
+    js::types::TypeSet *varTypes;
 
+    
+    js::types::TypeObject *typeObjects;
 
-
-    JSScript *parent;
+    
+    js::types::TypeResult *typeResults;
 
     
     js::types::TypeScript *types;
@@ -312,7 +486,20 @@ struct JSScript {
     inline js::types::TypeObject *getGlobalType();
 
     
-    bool isGlobal() { return !parent || (!fun && !parent->parent); }
+
+
+
+    inline bool ensureVarTypes(JSContext *cx);
+
+    inline js::types::TypeSet *returnTypes();
+    inline js::types::TypeSet *thisTypes();
+    inline js::types::TypeSet *argTypes(unsigned i);
+    inline js::types::TypeSet *localTypes(unsigned i);
+    inline js::types::TypeSet *upvarTypes(unsigned i);
+
+  private:
+    bool makeVarTypes(JSContext *cx);
+  public:
 
     
     void typeCheckBytecode(JSContext *cx, const jsbytecode *pc, const js::Value *sp);
@@ -321,26 +508,19 @@ struct JSScript {
     inline js::types::TypeObject *getTypeNewObject(JSContext *cx, JSProtoKey key);
 #endif
 
-    
-    inline void setTypeNesting(JSScript *parent, const jsbytecode *pc);
-
-    
-
-
-
-    inline void nukeUpvarTypes(JSContext *cx);
+    void condenseTypes(JSContext *cx);
+    void sweepTypes(JSContext *cx);
 
     
     inline js::types::TypeObject *
     getTypeInitObject(JSContext *cx, const jsbytecode *pc, bool isArray);
 
     
-    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, unsigned index,
-                                  js::types::jstype type);
-    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, unsigned index,
-                                  const js::Value &rval);
-    inline void typeMonitorOverflow(JSContext *cx, const jsbytecode *pc, unsigned index);
-    inline void typeMonitorUndefined(JSContext *cx, const jsbytecode *pc, unsigned index);
+    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, js::types::jstype type);
+    inline void typeMonitorResult(JSContext *cx, const jsbytecode *pc, const js::Value &val);
+    inline void typeMonitorUndefined(JSContext *cx, const jsbytecode *pc);
+    inline void typeMonitorOverflow(JSContext *cx, const jsbytecode *pc);
+    inline void typeMonitorUnknown(JSContext *cx, const jsbytecode *pc);
 
     
     inline void typeMonitorAssign(JSContext *cx, const jsbytecode *pc,
@@ -348,6 +528,9 @@ struct JSScript {
 
     
     inline void typeSetArgument(JSContext *cx, unsigned arg, const js::Value &value);
+
+    
+    inline void typeSetUpvar(JSContext *cx, unsigned upvar, const js::Value &value);
 
 #ifdef JS_METHODJIT
     
@@ -372,6 +555,9 @@ struct JSScript {
     js::mjit::JITScript *getJIT(bool constructing) {
         return constructing ? jitCtor : jitNormal;
     }
+
+    size_t callCount() const  { return callCount_; }
+    size_t incCallCount() { return ++callCount_; }
 
     JITScriptStatus getJITStatus(bool constructing) {
         void *addr = constructing ? jitArityCheckCtor : jitArityCheckNormal;
@@ -444,11 +630,6 @@ struct JSScript {
 
     JSVersion getVersion() const {
         return JSVersion(version);
-    }
-
-    void setVersion(JSVersion newVersion) {
-        JS_ASSERT((newVersion & JS_BITMASK(16)) == uint32(newVersion));
-        version = newVersion;
     }
 
     inline JSFunction *getFunction(size_t index);
@@ -554,7 +735,7 @@ js_SweepScriptFilenames(JSRuntime *rt);
 extern JS_FRIEND_API(void)
 js_CallNewScriptHook(JSContext *cx, JSScript *script, JSFunction *fun);
 
-extern JS_FRIEND_API(void)
+extern void
 js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 
 
@@ -564,12 +745,17 @@ js_CallDestroyScriptHook(JSContext *cx, JSScript *script);
 extern void
 js_DestroyScript(JSContext *cx, JSScript *script);
 
+extern void
+js_DestroyScriptFromGC(JSContext *cx, JSScript *script);
+
+
+
 
 
 
 
 extern void
-js_DestroyScriptFromGC(JSContext *cx, JSScript *script, JSThreadData *data);
+js_DestroyCachedScript(JSContext *cx, JSScript *script);
 
 extern void
 js_TraceScript(JSTracer *trc, JSScript *script);
