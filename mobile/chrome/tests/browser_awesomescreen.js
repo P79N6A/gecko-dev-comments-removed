@@ -316,9 +316,85 @@ gTests.push({
         self.onPopupReady();
       }, 500);
     } else {
+      BrowserUI.activePanel = null;
       runNextTest();
     }
   }
 });
 
+
+
+gTests.push({
+  desc: "Test sending composition events",
+  _textValue: null,
+  get popup() {
+    delete this.popup;
+    return this.popup = document.getElementById("popup_autocomplete");
+  },
+
+  get popupHeader() {
+    delete this.popupHeader;
+    return this.popupHeader = document.getElementById("awesome-header");
+  },
+
+  get inputField() {
+    delete this.inputField;
+    return this.inputField = document.getElementById("urlbar-edit");
+  },
+
+  run: function() {
+    
+    gCurrentTest._textValue = gCurrentTest.inputField.value;
+
+    window.addEventListener("popupshown", function() {
+      window.removeEventListener("popupshown", arguments.callee, false);
+      gCurrentTest.inputField.readOnly = false;
+      setTimeout(gCurrentTest.onPopupReady, 0);
+    }, false);
+    AllPagesList.doCommand();
+  },
+
+  _checkState: function() {
+    ok(gCurrentTest.popup._popupOpen, "AutoComplete popup should be opened");
+    is(gCurrentTest.popupHeader.hidden, false, "AutoComplete popup header should be visible");
+    is(gCurrentTest.inputField.value, gCurrentTest._textValue, "Value should not have changed");
+  },
+
+  onPopupReady: function() {
+    gCurrentTest._checkState();
+
+    window.addEventListener("compositionstart", function() {
+      window.removeEventListener("compositionstart", arguments.callee, false);
+      setTimeout(gCurrentTest.onCompositionStart, 0)
+    }, false);
+    Browser.windowUtils.sendCompositionEvent("compositionstart");
+  },
+
+  onCompositionStart: function() {
+    gCurrentTest._checkState();
+
+    window.addEventListener("compositionend", function() {
+      window.removeEventListener("compositionend", arguments.callee, false);
+      setTimeout(gCurrentTest.onCompositionEnd, 0)
+    }, false);
+    Browser.windowUtils.sendCompositionEvent("compositionend");
+  },
+
+  onCompositionEnd: function() {
+    gCurrentTest._checkState();
+
+    let isHiddenHeader = function() {
+      return gCurrentTest.popupHeader.hidden;
+    }
+
+    
+    
+    
+    
+    waitForAndContinue(function() {
+      gCurrentTest._checkState();
+      runNextTest();
+    }, isHiddenHeader, Date.now() + 500);
+  }
+});
 
