@@ -2,7 +2,7 @@
 
 
 
-var expect = 'SyntaxError: duplicate argument is mixed with destructuring pattern';
+var expect = 'SyntaxError: duplicate argument names not allowed in this context';
 var actual = 'No error';
 
 var a = [];
