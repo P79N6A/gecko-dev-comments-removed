@@ -386,9 +386,10 @@ class GeckoAppShell
         return getHandlersForIntent(intent);
     }
 
-    static String[] getHandlersForProtocol(String aScheme, String aAction) {
+    static String[] getHandlersForURL(String aURL, String aAction) {
+        
+        Uri uri = aURL.indexOf(':') >= 0 ? Uri.parse(aURL) : new Uri.Builder().scheme(aURL).build();
         Intent intent = getIntentForActionString(aAction);
-        Uri uri = new Uri.Builder().scheme(aScheme).build();
         intent.setData(uri);
         return getHandlersForIntent(intent);
     }
@@ -527,7 +528,7 @@ class GeckoAppShell
         Uri dataUri = Uri.fromParts("alert", aAlertName, aAlertCookie);
         notificationIntent.setData(dataUri);
 
-        PendingIntent contentIntent = PendingIntent.getActivity(GeckoApp.mAppContext, 0, notificationIntent, 0);
+        PendingIntent contentIntent = PendingIntent.getBroadcast(GeckoApp.mAppContext, 0, notificationIntent, 0);
         notification.setLatestEventInfo(GeckoApp.mAppContext, aAlertTitle, aAlertText, contentIntent);
 
         
@@ -535,9 +536,7 @@ class GeckoAppShell
         clearNotificationIntent.setClassName(GeckoApp.mAppContext,
             GeckoApp.mAppContext.getPackageName() + ".NotificationHandler");
         clearNotificationIntent.setData(dataUri);
-
-        PendingIntent pendingClearIntent = PendingIntent.getActivity(GeckoApp.mAppContext, 0, clearNotificationIntent, 0);
-        notification.deleteIntent = pendingClearIntent;
+        notification.deleteIntent = PendingIntent.getBroadcast(GeckoApp.mAppContext, 0, clearNotificationIntent, 0);
 
         mAlertNotifications.put(notificationID, notification);
 
@@ -638,5 +637,13 @@ class GeckoAppShell
             GeckoApp.mAppContext.mProgressDialog.dismiss();
             GeckoApp.mAppContext.mProgressDialog = null;
         }
+    }
+
+    public static void setKeepScreenOn(final boolean on) {
+        GeckoApp.mAppContext.runOnUiThread(new Runnable() {
+            public void run() {
+                GeckoApp.surfaceView.setKeepScreenOn(on);
+            }
+        });
     }
 }
