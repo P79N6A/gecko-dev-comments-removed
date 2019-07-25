@@ -401,6 +401,10 @@ ThreadActor.prototype = {
 
 
 
+
+
+
+
   _setBreakpoint: function TA__setBreakpoint(aLocation) {
     
     let scripts = this._scripts[aLocation.url];
@@ -420,16 +424,20 @@ ThreadActor.prototype = {
     }
 
     let location = { url: aLocation.url, line: aLocation.line };
+    
+    let scriptBreakpoints = this._breakpointStore[location.url];
     let bpActor;
-    if (this._breakpointStore[location.url] &&
-        this._breakpointStore[location.url][location.line] &&
-        this._breakpointStore[location.url][location.line].actor) {
-      bpActor = this._breakpointStore[location.url][location.line].actor;
+    if (scriptBreakpoints &&
+        scriptBreakpoints[location.line] &&
+        scriptBreakpoints[location.line].actor) {
+      bpActor = scriptBreakpoints[location.line].actor;
     }
     if (!bpActor) {
       bpActor = new BreakpointActor(this, location);
       this._hooks.addToBreakpointPool(bpActor);
-      this._breakpointStore[location.url][location.line].actor = bpActor;
+      if (scriptBreakpoints[location.line]) {
+        scriptBreakpoints[location.line].actor = bpActor;
+      }
     }
 
     if (!script) {
@@ -450,15 +458,23 @@ ThreadActor.prototype = {
     if (offsets.length == 0) {
       
       let lines = script.getAllOffsets();
-      for (let line = aLocation.line; line < lines.length; ++line) {
+      let oldLine = aLocation.line;
+      for (let line = oldLine; line < lines.length; ++line) {
         if (lines[line]) {
           for (let i = 0; i < lines[line].length; i++) {
             script.setBreakpoint(lines[line][i], bpActor);
             codeFound = true;
           }
-          actualLocation = aLocation;
-          actualLocation.line = line;
+          actualLocation = {
+            url: aLocation.url,
+            line: line,
+            column: aLocation.column
+          };
           bpActor.location = actualLocation;
+          
+          scriptBreakpoints[line] = scriptBreakpoints[oldLine];
+          scriptBreakpoints[line].line = line;
+          delete scriptBreakpoints[oldLine];
           break;
         }
       }
@@ -929,7 +945,10 @@ ThreadActor.prototype = {
     
     let existing = this._breakpointStore[aScript.url];
     if (existing) {
-      for (let bp of existing) {
+      
+      
+      for (let line = existing.length - 1; line >= 0; line--) {
+        let bp = existing[line];
         if (bp) {
           this._setBreakpoint(bp);
         }
