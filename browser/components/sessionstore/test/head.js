@@ -46,6 +46,10 @@ registerCleanupFunction(function () {
 });
 
 
+
+Cc["@mozilla.org/browser/clh;1"].getService(Ci.nsIBrowserHandler).defaultArgs;
+
+
 function waitForBrowserState(aState, aSetStateCallback) {
   let windows = [window];
   let tabsRestored = 0;
@@ -130,6 +134,27 @@ function waitForBrowserState(aState, aSetStateCallback) {
 
 
 
+function waitForTabState(aTab, aState, aCallback) {
+  let listening = true;
+
+  function onSSTabRestored() {
+    aTab.removeEventListener("SSTabRestored", onSSTabRestored, false);
+    listening = false;
+    aCallback();
+  }
+
+  aTab.addEventListener("SSTabRestored", onSSTabRestored, false);
+
+  registerCleanupFunction(function() {
+    if (listening) {
+      aTab.removeEventListener("SSTabRestored", onSSTabRestored, false);
+    }
+  });
+  ss.setTabState(aTab, JSON.stringify(aState));
+}
+
+
+
 function waitForSaveState(aSaveStateCallback) {
   let observing = false;
   let topic = "sessionstore-state-write";
@@ -165,6 +190,13 @@ function waitForSaveState(aSaveStateCallback) {
   observing = true;
   Services.obs.addObserver(observer, topic, false);
 };
+
+function whenBrowserLoaded(aBrowser, aCallback) {
+  aBrowser.addEventListener("load", function onLoad() {
+    aBrowser.removeEventListener("load", onLoad, true);
+    executeSoon(aCallback);
+  }, true);
+}
 
 var gUniqueCounter = 0;
 function r() {
