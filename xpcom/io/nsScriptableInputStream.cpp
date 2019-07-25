@@ -48,7 +48,6 @@ nsScriptableInputStream::Close(void) {
     return mInputStream->Close();
 }
 
-
 NS_IMETHODIMP
 nsScriptableInputStream::Init(nsIInputStream *aInputStream) {
     if (!aInputStream) return NS_ERROR_NULL_POINTER;
