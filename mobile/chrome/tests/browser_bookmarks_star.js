@@ -35,7 +35,7 @@ function runNextTest() {
   else {
     
     try {
-      PlacesUtils.bookmarks.removeFolderChildren(BookmarkList.mobileRoot);
+      PlacesUtils.bookmarks.removeFolderChildren(PlacesUtils.bookmarks.unfiledBookmarksFolder);
     }
     finally {
       
