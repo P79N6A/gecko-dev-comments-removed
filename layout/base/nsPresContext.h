@@ -372,7 +372,7 @@ public:
     
     switch (aPrefType) {
     case kPresContext_MinimumFontSize:
-      return mMinimumFontSize;
+      return mMinimumFontSizePref;
     case kPresContext_ScrollbarSide:
       return mPrefScrollbarSide;
     case kPresContext_BidiDirection:
@@ -548,6 +548,23 @@ public:
       return;
 
     mTextZoom = aZoom;
+    if (HasCachedStyleData()) {
+      
+      
+      MediaFeatureValuesChanged(PR_TRUE);
+      RebuildAllStyleData(NS_STYLE_HINT_REFLOW);
+    }
+  }
+
+  PRInt32 MinFontSize() const {
+    return NS_MAX(mMinFontSize, mMinimumFontSizePref);
+  }
+
+  void SetMinFontSize(PRInt32 aMinFontSize) {
+    if (aMinFontSize == mMinFontSize)
+      return;
+
+    mMinFontSize = aMinFontSize;
     if (HasCachedStyleData()) {
       
       
@@ -1054,6 +1071,7 @@ protected:
 
   nsWeakPtr             mContainer;
 
+  PRInt32               mMinFontSize;   
   float                 mTextZoom;      
   float                 mFullZoom;      
 
@@ -1079,7 +1097,7 @@ protected:
   nsTArray<nsFontFaceRuleContainer> mFontFaceRules;
   
   PRInt32               mFontScaler;
-  nscoord               mMinimumFontSize;
+  nscoord               mMinimumFontSizePref;
 
   nsRect                mVisibleArea;
   nsSize                mPageSize;
