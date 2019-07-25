@@ -104,6 +104,18 @@ public:
 protected:
   virtual ~Link();
 
+  
+
+
+  bool HasURI() const
+  {
+    if (mCachedURI)
+      return true;
+
+    nsCOMPtr<nsIURI> uri(GetURI());
+    return !!uri;
+  }
+
   bool HasCachedURI() const { return !!mCachedURI; }
 
 private:
