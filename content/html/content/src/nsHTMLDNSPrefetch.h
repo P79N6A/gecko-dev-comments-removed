@@ -56,6 +56,12 @@ class Link;
 } 
 } 
 
+namespace mozilla {
+namespace net {
+class NeckoParent;
+} 
+} 
+
 class nsHTMLDNSPrefetch 
 {
 public:
@@ -136,6 +142,10 @@ public:
       nsWeakPtr                        mElement;
     } mEntries[sMaxDeferred];
   };
+
+#ifdef MOZ_IPC
+  friend class mozilla::net::NeckoParent;
+#endif
 };
 
 #endif 
