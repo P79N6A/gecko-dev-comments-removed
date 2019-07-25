@@ -465,7 +465,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                 
                 PRUint32 allocLen = 0;
                 if ( NS_SUCCEEDED(GetGlobalData(stm.hGlobal, aData, &allocLen)) ) {
-                  *aLen = strlen(reinterpret_cast<PRUnichar*>(*aData)) * 2;
+                  *aLen = nsCRT::strlen(reinterpret_cast<PRUnichar*>(*aData)) * 2;
                   result = NS_OK;
                 }
               } break;
@@ -547,7 +547,7 @@ nsresult nsClipboard::GetNativeDataOffClipboard(IDataObject * aDataObject, UINT 
                       "CFSTR_PREFERREDDROPEFFECT should return a DWORD");
                     *aLen = allocLen;
                   } else {
-                    *aLen = strlen(reinterpret_cast<PRUnichar*>(*aData)) * 
+                    *aLen = nsCRT::strlen(reinterpret_cast<PRUnichar*>(*aData)) * 
                             sizeof(PRUnichar);
                   }
                   result = NS_OK;
@@ -821,7 +821,7 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
         if (title.IsEmpty())
           title = urlString;
         *outData = ToNewUnicode(urlString + NS_LITERAL_STRING("\n") + title);
-        *outDataLen = strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
+        *outDataLen = nsCRT::strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
 
         dataFound = true;
       }
@@ -834,7 +834,7 @@ nsClipboard :: FindURLFromLocalFile ( IDataObject* inDataObject, UINT inIndex, v
       
       nsMemory::Free(*outData);
       *outData = UTF8ToNewUnicode(urlSpec);
-      *outDataLen = strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
+      *outDataLen = nsCRT::strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
       dataFound = true;
     } 
   }
@@ -864,7 +864,7 @@ nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, v
     
     
     *outData = ToNewUnicode(urlString + NS_LITERAL_STRING("\n") + urlString);
-    *outDataLen = strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
+    *outDataLen = nsCRT::strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
     nsMemory::Free(tempOutData);
     dataFound = true;
   }
@@ -886,7 +886,7 @@ nsClipboard :: FindURLFromNativeURL ( IDataObject* inDataObject, UINT inIndex, v
       
       
       *outData = ToNewUnicode(urlString + NS_LITERAL_STRING("\n") + urlString);
-      *outDataLen = strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
+      *outDataLen = nsCRT::strlen(static_cast<PRUnichar*>(*outData)) * sizeof(PRUnichar);
       nsMemory::Free(tempOutData);
       dataFound = true;
     }

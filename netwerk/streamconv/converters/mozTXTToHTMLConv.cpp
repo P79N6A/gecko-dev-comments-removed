@@ -743,7 +743,7 @@ mozTXTToHTMLConv::SmilyHit(const PRUnichar * aInString, PRInt32 aLength, bool co
   if ( !aInString || !tagTXT || !imageName )
       return false;
 
-  PRInt32  tagLen = strlen(tagTXT);
+  PRInt32  tagLen = nsCRT::strlen(tagTXT);
  
   PRUint32 delim = (col0 ? 0 : 1) + tagLen;
 
@@ -1055,7 +1055,7 @@ mozTXTToHTMLConv::CiteLevelTXT(const PRUnichar *line,
 				    PRUint32& logLineStart)
 {
   PRInt32 result = 0;
-  PRInt32 lineLength = strlen(line);
+  PRInt32 lineLength = nsCRT::strlen(line);
 
   bool moreCites = true;
   while (moreCites)
@@ -1094,7 +1094,7 @@ mozTXTToHTMLConv::CiteLevelTXT(const PRUnichar *line,
       
       const PRUnichar * indexString = &line[logLineStart];
            
-      PRUint32 minlength = MinInt(6, strlen(indexString));
+      PRUint32 minlength = MinInt(6,nsCRT::strlen(indexString));
       if (Substring(indexString,
                     indexString+minlength).Equals(Substring(NS_LITERAL_STRING(">From "), 0, minlength),
                                                   nsCaseInsensitiveStringComparator()))
@@ -1369,7 +1369,7 @@ mozTXTToHTMLConv::ScanTXT(const PRUnichar *text, PRUint32 whattodo,
 
   
   nsString outString;
-  PRInt32 inLength = strlen(text);
+  PRInt32 inLength = nsCRT::strlen(text);
   
   
   

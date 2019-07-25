@@ -205,13 +205,13 @@ nsSaveAsCharset::DoCharsetConversion(const PRUnichar *inString, char **outString
   *outString = NULL;
 
   nsresult rv;
-  PRInt32 inStringLength = strlen(inString);   
-  PRInt32 bufferLength;                        
+  PRInt32 inStringLength = nsCRT::strlen(inString);   
+  PRInt32 bufferLength;                               
   PRInt32 srcLength = inStringLength;
   PRInt32 dstLength;
   char *dstPtr = NULL;
   PRInt32 pos1, pos2;
-  nsresult saveResult = NS_OK;                 
+  nsresult saveResult = NS_OK;                         
 
   
   rv = mEncoder->GetMaxLength(inString, inStringLength, &dstLength);
