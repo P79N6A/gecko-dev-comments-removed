@@ -593,6 +593,12 @@ MouseModule.prototype = {
     } else {
       
       this._dragger.dragStop(0, 0, this._targetScrollInterface);
+
+      if (dragData.isPan()) {
+        let event = document.createEvent("Events");
+        event.initEvent("PanFinished", true, false);
+        this._browserViewContainer.dispatchEvent(event);
+      }
     }
   },
 
@@ -1229,7 +1235,6 @@ function GestureModule(owner, browserViewContainer) {
 }
 
 GestureModule.prototype = {
-
   
 
 
@@ -1352,3 +1357,4 @@ GestureModule.prototype = {
     }
   }
 };
+
