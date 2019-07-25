@@ -113,9 +113,9 @@ PluginModuleChild::PluginModuleChild()
 PluginModuleChild::~PluginModuleChild()
 {
     NS_ASSERTION(gInstance == this, "Something terribly wrong here!");
-    if (mLibrary) {
-        PR_UnloadLibrary(mLibrary);
-    }
+
+    
+    
 
     DeinitGraphics();
 
