@@ -124,15 +124,12 @@
 
 
 
-
 #ifndef nsFixedSizeAllocator_h__
 #define nsFixedSizeAllocator_h__
 
 #include "nscore.h"
 #include "nsError.h"
 #include "plarena.h"
-
-#define NS_SIZE_IN_HEAP(_size) (_size)
 
 class nsFixedSizeAllocator
 {
