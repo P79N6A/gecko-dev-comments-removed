@@ -127,10 +127,10 @@ public class Tabs implements GeckoEventListener {
         else
             GeckoApp.mAppContext.hideAboutHome();
 
+        selectedTab = tab;
         GeckoApp.mAppContext.mMainHandler.post(new Runnable() { 
             public void run() {
                 GeckoApp.mFormAssistPopup.hide();
-                
                 if (isSelectedTab(tab)) {
                     String url = tab.getURL();
                     GeckoApp.mBrowserToolbar.setTitle(tab.getDisplayTitle());
@@ -149,7 +149,7 @@ public class Tabs implements GeckoEventListener {
 
         
         GeckoAppShell.sendEventToGecko(GeckoEvent.createBroadcastEvent("Tab:Selected", String.valueOf(tab.getId())));
-        return selectedTab = tab;
+        return tab;
     }
 
     public int getIndexOf(Tab tab) {
