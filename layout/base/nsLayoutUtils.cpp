@@ -2929,6 +2929,7 @@ nsLayoutUtils::PaintTextShadow(const nsIFrame* aFrame,
       shadowColor = aForegroundColor;
 
     
+    
     nsRefPtr<nsRenderingContext> renderingContext = new nsRenderingContext();
     renderingContext->Init(presCtx->DeviceContext(), shadowContext);
 
