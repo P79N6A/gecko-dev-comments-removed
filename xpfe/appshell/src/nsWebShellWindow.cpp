@@ -125,6 +125,7 @@ static NS_DEFINE_CID(kWindowCID,           NS_WINDOW_CID);
 nsWebShellWindow::nsWebShellWindow(PRUint32 aChromeFlags)
   : nsXULWindow(aChromeFlags)
   , mSPTimerLock("nsWebShellWindow.mSPTimerLock")
+  , mSizeMode(-1)
 {
 }
 
@@ -385,11 +386,14 @@ nsWebShellWindow::HandleEvent(nsGUIEvent *aEvent)
         
         
         
-        if (modeEvent->mSizeMode == nsSizeMode_Fullscreen) {
+        if (modeEvent->mSizeMode == nsSizeMode_Fullscreen ||
+            eventWindow->mSizeMode == nsSizeMode_Fullscreen) {
           nsCOMPtr<nsIDOMWindowInternal> ourWindow = do_GetInterface(docShell);
           if (ourWindow)
-            ourWindow->SetFullScreen(PR_TRUE);
+            ourWindow->SetFullScreen(modeEvent->mSizeMode == nsSizeMode_Fullscreen);
         }
+
+        eventWindow->mSizeMode = modeEvent->mSizeMode;
 
         
         
