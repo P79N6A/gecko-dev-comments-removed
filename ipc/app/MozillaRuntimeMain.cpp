@@ -58,6 +58,17 @@ main(int argc, char* argv[])
     MessageBox(NULL, L"Hi", L"Hi", MB_OK);
 #endif
 
+#ifdef XP_WIN
+    typedef BOOL
+    (WINAPI *pfnSetDllDirectory) (LPCWSTR);
+    pfnSetDllDirectory setDllDirectory =
+        reinterpret_cast<pfnSetDllDirectory>
+        (GetProcAddress(GetModuleHandleW(L"kernel32.dll"), "SetDllDirectoryW"));
+    if (setDllDirectory) {
+        setDllDirectory(L"");
+    }
+#endif
+
     
     
     if (argc < 1)
