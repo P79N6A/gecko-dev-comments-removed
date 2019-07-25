@@ -2705,8 +2705,9 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
 #else
 
   if (aFullScreen) {
-    if (mSizeMode != nsSizeMode_Fullscreen)
-      mOldSizeMode = mSizeMode;
+    if (mSizeMode == nsSizeMode_Fullscreen)
+      return NS_OK;
+    mOldSizeMode = mSizeMode;
     SetSizeMode(nsSizeMode_Fullscreen);
   } else {
     SetSizeMode(mOldSizeMode);
@@ -2717,7 +2718,15 @@ nsWindow::MakeFullScreen(PRBool aFullScreen)
   
   
   
-  return nsBaseWidget::MakeFullScreen(aFullScreen);
+  nsresult rv = nsBaseWidget::MakeFullScreen(aFullScreen);
+
+  
+  nsSizeModeEvent event(PR_TRUE, NS_SIZEMODE, this);
+  event.mSizeMode = mSizeMode;
+  InitEvent(event);
+  DispatchWindowEvent(&event);
+
+  return rv;
 #endif
 }
 
