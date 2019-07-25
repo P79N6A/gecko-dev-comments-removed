@@ -1,0 +1,27 @@
+
+
+body { font-family: serif }
+
+
+
+b, strong { font-weight: bold }
+.bold { font-weight: bold }
+.notbold { font-weight: normal }
+.underline { text-decoration: underline }
+.line-through { text-decoration: line-through }
+.underline-and-line-through { text-decoration: underline line-through }
+#purple { color: purple }
+
+dfn { font-style: italic }
+
+blockquote { margin: 1em 40px }
+
+
+
+
+
+
+:link, :visited { color: blue }
+
+
+quasit { text-align: inherit }
