@@ -60,7 +60,7 @@ LICM::analyze()
 {
     IonSpew(IonSpew_LICM, "Beginning LICM pass ...");
     
-    for (size_t i = 0; i < graph.numBlocks(); i ++) {    
+    for (size_t i = 0; i < graph.numBlocks(); i ++) {
         MBasicBlock *header = graph.getBlock(i);
         if (header->isLoopHeader()) {
             
@@ -69,8 +69,7 @@ LICM::analyze()
             
             Loop loop(footer, header, graph);
             if (!loop.init())
-                return false;           
- 
+                return false;
             if (!loop.optimize())
                 return false;
         }
@@ -88,7 +87,7 @@ Loop::Loop(MBasicBlock *footer, MBasicBlock *header, MIRGraph &graph)
 }
 
 bool
-Loop::init() 
+Loop::init()
 {
     IonSpew(IonSpew_LICM, "Loop identified, headed by block %d", header_->id());
     
@@ -98,13 +97,12 @@ Loop::init()
     for (size_t i = 1; i < header_->numPredecessors(); i ++) {
         JS_ASSERT(header_->id() <= header_->getPredecessor(i)->id());
     }
-#endif    
+#endif
 
     if (!iterateLoopBlocks(footer_))
         return false;
 
     graph.unmarkBlocks();
-
     return true;
 }
 
@@ -167,8 +165,7 @@ Loop::optimize()
                 
                 
                 
-                
-                if (!use->ins()->inWorklist() && 
+                if (!use->ins()->inWorklist() &&
                     isInLoop(use->ins()) &&
                     isHoistable(use->ins())) {
 
@@ -182,7 +179,7 @@ Loop::optimize()
                 fprintf(IonSpewFile, " Loop Invariant!\n");
         }
     }
-  
+
     if (!hoistInstructions(invariantInstructions))
         return false;
     return true;

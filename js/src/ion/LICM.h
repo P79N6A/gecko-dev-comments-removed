@@ -74,9 +74,9 @@ class Loop
     bool init();
 
     
-    bool optimize();     
+    bool optimize();
 
-  private:   
+  private:
     
     
     MBasicBlock *footer_;
@@ -84,7 +84,7 @@ class Loop
 
     
     
-    MBasicBlock* preLoop_;    
+    MBasicBlock* preLoop_;
 
     
     

@@ -82,7 +82,7 @@ MIRGraph::addBlock(MBasicBlock *block)
 void
 MIRGraph::unmarkBlocks() {
     for (size_t i = 0; i < numBlocks(); i ++) {
-        getBlock(i)->unmark();  
+        getBlock(i)->unmark();
     }
 }
 
@@ -524,7 +524,7 @@ MBasicBlock::setBackedge(MBasicBlock *pred, MBasicBlock *successor)
             
             
             MUse *next = use->next();
-            use->ins()->replaceOperand(prev, use, phi); 
+            use->ins()->replaceOperand(prev, use, phi);
             use = next;
         }
 
