@@ -279,6 +279,17 @@ TypeAnalyzer::specializePhi(MPhi *phi)
     if (phi->triedToSpecialize() && phi->type() == MIRType_Value)
         return;
 
+    MIRType phiType = GetObservedType(phi);
+    if (phiType != MIRType_Value) {
+        
+        
+        
+        phi->setInWorklist();
+        for (size_t i = 0; i < phi->numOperands(); i++)
+            addPreferredType(phi->getOperand(i), phiType);
+        phi->setNotInWorklist();
+    }
+
     
     MDefinition *in = phi->getOperand(0);
     MIRType first = GetObservedType(in);
