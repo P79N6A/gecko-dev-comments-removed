@@ -1123,9 +1123,9 @@ AddTransformScale(const nsCSSValue &aValue1, double aCoeff1,
   aResult.SetFloatValue(result + 1.0f, eCSSUnit_Number);
 }
 
-static already_AddRefed<nsCSSValue::Array>
-AppendTransformFunction(nsCSSKeyword aTransformFunction,
-                        nsCSSValueList**& aListTail)
+ already_AddRefed<nsCSSValue::Array>
+nsStyleAnimation::AppendTransformFunction(nsCSSKeyword aTransformFunction,
+                                          nsCSSValueList**& aListTail)
 {
   nsRefPtr<nsCSSValue::Array> arr = AppendFunction(aTransformFunction);
   nsCSSValueList *item = new nsCSSValueList;
@@ -1362,7 +1362,7 @@ Decompose3DMatrix(const gfx3DMatrix &aMatrix, gfxPoint3D &aScale,
 
     perspective.Invert();
     aPerspective = perspective.TransposeTransform4D(aPerspective);
-    
+
     
     local.SetTransposedVector(3, empty);
   } else {
@@ -1380,11 +1380,11 @@ Decompose3DMatrix(const gfx3DMatrix &aMatrix, gfxPoint3D &aScale,
   
   aScale.x = local[0].Length();
   local[0] /= aScale.x;
-    
+
   
   aShear[XYSHEAR] = local[0].DotProduct(local[1]);
   local[1] -= local[0] * aShear[XYSHEAR];
-  
+
   
   aScale.y = local[1].Length();
   local[1] /= aScale.y;
@@ -1461,11 +1461,11 @@ nsStyleAnimation::InterpolateTransformMatrix(const gfx3DMatrix &aMatrix1,
   
   gfx3DMatrix result;
 
-  gfxPointH3D perspective = 
+  gfxPointH3D perspective =
     InterpolateNumerically(perspective1, perspective2, aProgress);
   result.SetTransposedVector(3, perspective);
- 
-  gfxPoint3D translate = 
+
+  gfxPoint3D translate =
     InterpolateNumerically(translate1, translate2, aProgress);
   result.Translate(translate);
 
@@ -1494,7 +1494,7 @@ nsStyleAnimation::InterpolateTransformMatrix(const gfx3DMatrix &aMatrix1,
     result.SkewXY(xyshear);
   }
 
-  gfxPoint3D scale = 
+  gfxPoint3D scale =
     InterpolateNumerically(scale1, scale2, aProgress);
   if (scale != gfxPoint3D(1.0, 1.0, 1.0)) {
     result.Scale(scale.x, scale.y, scale.z);
@@ -1511,8 +1511,8 @@ AddDifferentTransformLists(const nsCSSValueList* aList1, double aCoeff1,
   nsCSSValueList **resultTail = getter_Transfers(result);
 
   nsRefPtr<nsCSSValue::Array> arr;
-  arr = AppendTransformFunction(eCSSKeyword_interpolatematrix, resultTail);
-  
+  arr = nsStyleAnimation::AppendTransformFunction(eCSSKeyword_interpolatematrix, resultTail);
+
   
   
   
@@ -1557,7 +1557,7 @@ AddTransformLists(const nsCSSValueList* aList1, double aCoeff1,
         tfunc != eCSSKeyword_interpolatematrix &&
         tfunc != eCSSKeyword_rotate3d &&
         tfunc != eCSSKeyword_perspective) {
-      arr = AppendTransformFunction(tfunc, resultTail);
+      arr = nsStyleAnimation::AppendTransformFunction(tfunc, resultTail);
     }
 
     switch (tfunc) {
