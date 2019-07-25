@@ -1258,6 +1258,10 @@ inline JSBool
 JSObject::getElementIfPresent(JSContext *cx, JSObject *receiver, uint32 index, js::Value *vp,
                               bool *present)
 {
+    js::ElementIfPresentOp op = getOps()->getElementIfPresent;
+    if (op)
+        return op(cx, this, receiver, index, vp, present);
+
     
 
 
