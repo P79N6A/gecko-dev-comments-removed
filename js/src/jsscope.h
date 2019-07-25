@@ -206,6 +206,8 @@
 
 
 
+#define SHAPE_INVALID_SLOT              0xffffffff
+
 namespace js {
 
 
@@ -224,12 +226,16 @@ struct PropertyTable {
 
     uint32          entryCount;         
     uint32          removedCount;       
+    uint32          freeslot;           
+
+
     js::Shape       **entries;          
 
     PropertyTable(uint32 nentries)
       : hashShift(JS_DHASH_BITS - MIN_SIZE_LOG2),
         entryCount(nentries),
-        removedCount(0)
+        removedCount(0),
+        freeslot(SHAPE_INVALID_SLOT)
     {
         
     }
@@ -253,8 +259,6 @@ struct PropertyTable {
 } 
 
 struct JSObject;
-
-#define SHAPE_INVALID_SLOT              0xffffffff
 
 inline const js::Value &
 JSObject::lockedGetSlot(uintN slot) const
