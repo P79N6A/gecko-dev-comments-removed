@@ -80,7 +80,15 @@ protected:
   nsCOMPtr<nsIInputStreamPump> mPump;
   nsCOMPtr<nsIStreamListener>  mListener;
 
-  nsresult MakeInputStream(nsIInputStream** _retval);
+  nsresult ExtractIconInfoFromUrl(nsIFile ** aLocalFile, PRUint32 * aDesiredImageSize, nsCString &aContentType, nsCString &aFileExtension);
+  nsresult GetHIconFromFile(HICON *hIcon);
+  nsresult MakeInputStream(nsIInputStream** _retval, PRBool nonBlocking);
+
+  
+#if MOZ_WINSDK_TARGETVER >= MOZ_NTDDI_LONGHORN
+protected:
+  nsresult GetStockHIcon(nsIMozIconURI *aIconURI, HICON *hIcon);
+#endif
 };
 
 #endif 
