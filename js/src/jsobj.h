@@ -455,7 +455,7 @@ struct JSObject : js::gc::Cell
     friend class nanojit::ValidateWriter;
 
   private:
-    friend class js::Shape;
+    friend struct js::Shape;
 
     
 
