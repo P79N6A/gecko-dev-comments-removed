@@ -294,14 +294,14 @@ public class AwesomeBarTabs extends TabHost {
                 long time = cursor.getLong(cursor.getColumnIndexOrThrow(Browser.BookmarkColumns.DATE));
                 HistorySection itemSection = getSectionForTime(time, today);
 
+                if (groups == null)
+                    groups = new LinkedList<Map<String,?>>();
+
+                if (childrenLists == null)
+                    childrenLists = new LinkedList<List<Map<String,?>>>();
+
                 if (section != itemSection) {
                     if (section != null) {
-                        if (groups == null)
-                            groups = new LinkedList<Map<String,?>>();
-
-                        if (childrenLists == null)
-                            childrenLists = new LinkedList<List<Map<String,?>>>();
-
                         groups.add(createGroupItem(section));
                         childrenLists.add(children);
                     }
@@ -322,6 +322,10 @@ public class AwesomeBarTabs extends TabHost {
 
             
             cursor.close();
+
+            
+            if (groups == null)
+                return;
 
             mHistoryAdapter = new HistoryListAdapter(
                 mContext,
