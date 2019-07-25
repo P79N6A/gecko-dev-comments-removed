@@ -68,13 +68,15 @@ namespace imagelib {
 
 nsIAtom* SVGDocumentWrapper::kSVGAtom = nsnull; 
 
-NS_IMPL_ISUPPORTS3(SVGDocumentWrapper,
+NS_IMPL_ISUPPORTS4(SVGDocumentWrapper,
                    nsIStreamListener,
                    nsIRequestObserver,
-                   nsIObserver)
+                   nsIObserver,
+                   nsISupportsWeakReference)
 
 SVGDocumentWrapper::SVGDocumentWrapper()
- : mIgnoreInvalidation(PR_FALSE)
+  : mIgnoreInvalidation(PR_FALSE),
+    mRegisteredForXPCOMShutdown(PR_FALSE)
 {
   
   
@@ -87,6 +89,9 @@ SVGDocumentWrapper::SVGDocumentWrapper()
 SVGDocumentWrapper::~SVGDocumentWrapper()
 {
   DestroyViewer();
+  if (mRegisteredForXPCOMShutdown) {
+    UnregisterForXPCOMShutdown();
+  }
 }
 
 void
@@ -376,6 +381,8 @@ SVGDocumentWrapper::SetupViewer(nsIRequest* aRequest,
 void
 SVGDocumentWrapper::RegisterForXPCOMShutdown()
 {
+  NS_ABORT_IF_FALSE(!mRegisteredForXPCOMShutdown,
+                    "re-registering for XPCOM shutdown");
   
   
   
@@ -384,8 +391,26 @@ SVGDocumentWrapper::RegisterForXPCOMShutdown()
   nsCOMPtr<nsIObserverService> obsSvc = do_GetService(OBSERVER_SVC_CID, &rv);
   if (NS_FAILED(rv) ||
       NS_FAILED(obsSvc->AddObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID,
-                                    PR_FALSE))) {
+                                    PR_TRUE))) {
     NS_WARNING("Failed to register as observer of XPCOM shutdown");
+  } else {
+    mRegisteredForXPCOMShutdown = PR_TRUE;
+  }
+}
+
+void
+SVGDocumentWrapper::UnregisterForXPCOMShutdown()
+{
+  NS_ABORT_IF_FALSE(mRegisteredForXPCOMShutdown,
+                    "unregistering for XPCOM shutdown w/out being registered");
+
+  nsresult rv;
+  nsCOMPtr<nsIObserverService> obsSvc = do_GetService(OBSERVER_SVC_CID, &rv);
+  if (NS_FAILED(rv) ||
+      NS_FAILED(obsSvc->RemoveObserver(this, NS_XPCOM_SHUTDOWN_OBSERVER_ID))) {
+    NS_WARNING("Failed to unregister as observer of XPCOM shutdown");
+  } else {
+    mRegisteredForXPCOMShutdown = PR_FALSE;
   }
 }
 
