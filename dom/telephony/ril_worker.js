@@ -116,6 +116,9 @@ let Buf = {
     
     
     this.tokenRequestMap = {};
+
+    
+    this.lastSolicitedToken = 0;
   },
 
   
@@ -449,6 +452,7 @@ let Buf = {
       debug("Solicited response for request type " + request_type +
             ", token " + token);
       delete this.tokenRequestMap[token];
+      this.lastSolicitedToken = token;
     } else if (response_type == RESPONSE_TYPE_UNSOLICITED) {
       request_type = this.readUint32();
       length -= UINT32_SIZE;
@@ -750,7 +754,6 @@ let RIL = {
 
 
 
-
   startTone: function startTone(dtmfChar) {
     Buf.newParcel(REQUEST_DTMF_START);
     Buf.writeString(dtmfChar);
@@ -780,11 +783,78 @@ let RIL = {
 
 
 
-   setSMSCAddress: function setSMSCAddress(smsc) {
-     Buf.newParcel(REQUEST_SET_SMSC_ADDRESS);
-     Buf.writeString(smsc);
-     Buf.sendParcel();
-   },
+  setSMSCAddress: function setSMSCAddress(smsc) {
+    Buf.newParcel(REQUEST_SET_SMSC_ADDRESS);
+    Buf.writeString(smsc);
+    Buf.sendParcel();
+  },
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  setupDataCall: function (radioTech, apn, user, passwd, chappap, pdptype) {
+    let token = Buf.newParcel(REQUEST_SETUP_DATA_CALL);
+    Buf.writeUint32(7);
+    Buf.writeString(radioTech.toString());
+    Buf.writeString(DATACALL_PROFILE_DEFAULT.toString());
+    Buf.writeString(apn);
+    Buf.writeString(user);
+    Buf.writeString(passwd);
+    Buf.writeString(chappap.toString());
+    Buf.writeString(pdptype);
+    Buf.sendParcel();
+    return token;
+  },
+
+  
+
+
+
+
+
+
+
+  deactivateDataCall: function (cid, reason) {
+    let token = Buf.newParcel(REQUEST_DEACTIVATE_DATA_CALL);
+    Buf.writeUint32(2);
+    Buf.writeString(cid);
+    Buf.writeString(reason);
+    Buf.sendParcel();
+    return token;
+  },
+
+  
+
+
+  getDataCallList: function getDataCallList() {
+    Buf.simpleRequest(REQUEST_DATA_CALL_LIST);
+  },
+
+  
+
+
+  getFailCauseCode: function getFailCauseCode() {
+    Buf.simpleRequest(REQUEST_LAST_CALL_FAIL_CAUSE);
+  },
 
   
 
@@ -949,7 +1019,10 @@ RIL[REQUEST_SEND_SMS] = function REQUEST_SEND_SMS() {
   Phone.onSendSMS(messageRef, ackPDU, errorCode);
 };
 RIL[REQUEST_SEND_SMS_EXPECT_MORE] = null;
-RIL[REQUEST_SETUP_DATA_CALL] = null;
+RIL[REQUEST_SETUP_DATA_CALL] = function REQUEST_SETUP_DATA_CALL() {
+  let [cid, ifname, ipaddr, dns, gw] = Buf.readStringList();
+  Phone.onSetupDataCall(Buf.lastSolicitedToken, cid, ifname, ipaddr, dns, gw);
+};
 RIL[REQUEST_SIM_IO] = null;
 RIL[REQUEST_SEND_USSD] = null;
 RIL[REQUEST_CANCEL_USSD] = null;
@@ -973,7 +1046,9 @@ RIL[REQUEST_GET_IMEISV] = function REQUEST_GET_IMEISV() {
 RIL[REQUEST_ANSWER] = function REQUEST_ANSWER(length) {
   Phone.onAnswerCall();
 };
-RIL[REQUEST_DEACTIVATE_DATA_CALL] = null;
+RIL[REQUEST_DEACTIVATE_DATA_CALL] = function REQUEST_DEACTIVATE_DATA_CALL() {
+  Phone.onDeactivateDataCall(Buf.lastSolicitedToken);
+};
 RIL[REQUEST_QUERY_FACILITY_LOCK] = null;
 RIL[REQUEST_SET_FACILITY_LOCK] = null;
 RIL[REQUEST_CHANGE_BARRING_PASSWORD] = null;
@@ -993,7 +1068,7 @@ RIL[REQUEST_DTMF_STOP] = function REQUEST_DTMF_STOP() {
 RIL[REQUEST_BASEBAND_VERSION] = function REQUEST_BASEBAND_VERSION() {
   let version = Buf.readString();
   Phone.onBasebandVersion(version);
-},
+};
 RIL[REQUEST_SEPARATE_CONNECTION] = null;
 RIL[REQUEST_SET_MUTE] = function REQUEST_SET_MUTE(length) {
   Phone.onSetMute();
@@ -1001,7 +1076,26 @@ RIL[REQUEST_SET_MUTE] = function REQUEST_SET_MUTE(length) {
 RIL[REQUEST_GET_MUTE] = null;
 RIL[REQUEST_QUERY_CLIP] = null;
 RIL[REQUEST_LAST_DATA_CALL_FAIL_CAUSE] = null;
-RIL[REQUEST_DATA_CALL_LIST] = null;
+RIL[REQUEST_DATA_CALL_LIST] = function REQUEST_DATA_CALL_LIST(length) {
+  let datacalls = [];
+
+  if (!length) {
+    return;
+  }
+
+  let num = Buf.readUint32();
+  for (let i = 0; i < num; i++) {
+    datacalls.push({
+      cid: Buf.readUint32().toString(),
+      active: Buf.readUint32(),
+      type: Buf.readString(),
+      apn: Buf.readString(),
+      address: Buf.readString()
+    });
+  }
+
+  Phone.onDataCallList(datacalls);
+};
 RIL[REQUEST_RESET_RADIO] = null;
 RIL[REQUEST_OEM_HOOK_RAW] = null;
 RIL[REQUEST_OEM_HOOK_STRINGS] = null;
@@ -1175,6 +1269,16 @@ let Phone = {
 
 
   _muted: true,
+
+  
+
+
+  currentDataCalls: {},
+
+  
+
+
+  activeDataRequests: {},
 
   get muted() {
     return this._muted;
@@ -1583,6 +1687,88 @@ let Phone = {
   onAcknowledgeSMS: function onAcknowledgeSMS() {
   },
 
+  onSetupDataCall: function onSetupDataCall(token, cid, ifname, ipaddr,
+                                            dns, gw) {
+    let options = this.activeDataRequests[token];
+    delete this.activeDataRequests[token];
+
+    this.currentDataCalls[cid] = {
+      state: GECKO_DATACALL_STATE_CONNECTED,
+      cid: cid,
+      apn: options.apn,
+      ifname: ifname,
+      ipaddr: ipaddr,
+      dns: dns,
+      gw: gw,
+    };
+    this.sendDOMMessage({type: "datacallstatechange",
+                         state: GECKO_DATACALL_STATE_CONNECTED,
+                         cid: cid,
+                         apn: options.apn,
+                         ifname: ifname,
+                         ipaddr: ipaddr,
+                         dns: dns,
+                         gateway: gw});
+  },
+
+  onDeactivateDataCall: function onDeactivateDataCall(token) {
+    let options = this.activeDataRequests[token];
+    delete this.activeDataRequests[token];
+
+    let cid = options.cid;
+    if (!(cid in this.currentDataCalls)) {
+      return;
+    }
+
+    let apn = this.currentDataCalls[cid].apn;
+    delete this.currentDataCalls[cid];
+    this.sendDOMMessage({type: "datacallstatechange",
+                         state: GECKO_DATACALL_STATE_DISCONNECTED,
+                         cid: cid,
+                         apn: apn});
+  },
+
+  onDataCallList: function onDataCallList(datacalls) {
+    let currentDataCalls = this.currentDataCalls;
+
+    
+    for each (let datacall in datacalls) {
+      let {cid, apn} = datacall;
+
+      if (datacall.active != DATACALL_INACTIVE) {
+        
+        
+        if (!(cid in currentDataCalls)) {
+          let datacall = {state: GECKO_DATACALL_STATE_CONNECTED,
+                          cid: cid,
+                          apn: apn,
+                          ipaddr: datacall.address};
+          currentDataCalls[cid] = datacall;
+
+          this.sendDOMMessage({type: "datacallstatechange",
+                               state: GECKO_DATACALL_STATE_CONNECTED,
+                               cid: cid,
+                               apn: apn});
+        }
+      } else {                 
+        if (cid in currentDataCalls) {
+          delete currentDataCalls[cid];
+          this.sendDOMMessage({type: "datacallstatechange",
+                               state: GECKO_DATACALL_STATE_DISCONNECTED,
+                               cid: cid,
+                               apn: apn});
+        }
+      }
+    }
+
+    let datacall_list = [];
+    for each (let datacall in this.currentDataCalls) {
+      datacall_list.push(datacall);
+    }
+    this.sendDOMMessage({type: "datacalllist",
+                         datacalls: datacall_list});
+  },
+
   
 
 
@@ -1727,6 +1913,54 @@ let Phone = {
     RIL.sendSMS(this.SMSC, options.number, options.body,
                 PDU_DCS_MSG_CODING_7BITS_ALPHABET, 
                 Math.ceil(options.body.length * 7 / 8)); 
+  },
+
+  
+
+
+  setupDataCall: function setupDataCall(options) {
+    if (DEBUG) debug("setupDataCall: " + JSON.stringify(options));
+
+    let token = RIL.setupDataCall(options.radioTech, options.apn,
+                                  options.user, options.passwd,
+                                  options.chappap, options.reason);
+    this.activeDataRequests[token] = options;
+    this.sendDOMMessage({type: "datacallstatechange",
+                         state: GECKO_DATACALL_STATE_CONNECTING,
+                         apn: options.apn});
+  },
+
+  
+
+
+  deactivateDataCall: function deactivateDataCall(options) {
+    if (!(options.cid in this.currentDataCalls)) {
+      return;
+    }
+
+    let datacall = this.currentDataCalls[options.cid];
+    datacall.state = GECKO_DATACALL_STATE_DISCONNECTING;
+
+    let token = RIL.deactivateDataCall(options.cid, options.reason);
+    this.activeDataRequests[token] = options;
+    this.sendDOMMessage({type: "datacallstatechange",
+                         state: GECKO_DATACALL_STATE_DISCONNECTING,
+                         cid: options.cid,
+                         apn: datacall.apn});
+  },
+
+  
+
+
+  getDataCallList: function getDataCallList(options) {
+    RIL.getDataCallList();
+  },
+
+  
+
+
+  getFailCauseCode: function getFailCauseCode(options) {
+    RIL.getFailCauseCode();
   },
 
   
