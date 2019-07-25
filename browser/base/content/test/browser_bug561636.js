@@ -17,8 +17,8 @@ function checkPopupHide()
 function checkPopupMessage(doc)
 {
   is(gInvalidFormPopup.firstChild.textContent,
-     doc.getElementById('i').validationMessage.substring(0,256),
-     "The panel should show the 256 first characters of the validationMessage");
+     doc.getElementById('i').validationMessage,
+     "The panel should show the message from validationMessage");
 }
 
 let gObserver = {
@@ -135,9 +135,10 @@ function test3()
 
 
 
+
 function test4()
 {
-  let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i'><input id='s' type='submit'></form>";
+  let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
 
   gInvalidFormPopup.addEventListener("popupshown", function() {
@@ -150,20 +151,20 @@ function test4()
     checkPopupShow();
     checkPopupMessage(doc);
 
-    
-    gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
-    executeSoon(test5);
+    EventUtils.synthesizeKey("a", {});
+
+    executeSoon(function () {
+      checkPopupHide();
+
+      
+      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
+      executeSoon(test5);
+    });
   }, false);
 
   tab.linkedBrowser.addEventListener("load", function(aEvent) {
     tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
 
-    let msg = "";
-    for (let i=0; i<50; ++i) {
-      msg += "abcde ";
-    }
-    
-    gBrowser.contentDocument.getElementById('i').setCustomValidity(msg);
     gBrowser.contentDocument.getElementById('s').click();
   }, true);
 
@@ -190,7 +191,7 @@ function test5()
     checkPopupShow();
     checkPopupMessage(doc);
 
-    EventUtils.synthesizeKey("a", {});
+    doc.getElementById('i').blur();
 
     executeSoon(function () {
       checkPopupHide();
@@ -214,7 +215,6 @@ function test5()
 
 
 
-
 function test6()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
@@ -230,7 +230,7 @@ function test6()
     checkPopupShow();
     checkPopupMessage(doc);
 
-    doc.getElementById('i').blur();
+    EventUtils.synthesizeKey("VK_TAB", {});
 
     executeSoon(function () {
       checkPopupHide();
@@ -269,12 +269,14 @@ function test7()
     checkPopupShow();
     checkPopupMessage(doc);
 
-    EventUtils.synthesizeKey("VK_TAB", {});
+    
+    gBrowser.selectedTab  = gBrowser.addTab("about:blank", {skipAnimation: true});
 
-    executeSoon(function () {
+    executeSoon(function() {
       checkPopupHide();
 
       
+      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
       gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
       executeSoon(test8);
     });
@@ -293,50 +295,9 @@ function test7()
 
 
 
+
+
 function test8()
-{
-  let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
-  let tab = gBrowser.addTab();
-
-  gInvalidFormPopup.addEventListener("popupshown", function() {
-    gInvalidFormPopup.removeEventListener("popupshown", arguments.callee, false);
-
-    let doc = gBrowser.contentDocument;
-    is(doc.activeElement, doc.getElementById('i'),
-       "First invalid element should be focused");
-
-    checkPopupShow();
-    checkPopupMessage(doc);
-
-    
-    gBrowser.selectedTab  = gBrowser.addTab("about:blank", {skipAnimation: true});
-
-    executeSoon(function() {
-      checkPopupHide();
-
-      
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
-      gBrowser.removeTab(gBrowser.selectedTab, {animate: false});
-      executeSoon(test9);
-    });
-  }, false);
-
-  tab.linkedBrowser.addEventListener("load", function(aEvent) {
-    tab.linkedBrowser.removeEventListener("load", arguments.callee, true);
-
-    gBrowser.contentDocument.getElementById('s').click();
-  }, true);
-
-  gBrowser.selectedTab = tab;
-  gBrowser.selectedTab.linkedBrowser.loadURI(uri);
-}
-
-
-
-
-
-
-function test9()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input id='i' required><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
@@ -355,7 +316,7 @@ function test9()
       gBrowser.removeTab(tab, {animate: false});
 
       
-      executeSoon(test10);
+      executeSoon(test9);
     });
   };
 
@@ -376,7 +337,7 @@ function test9()
 
 
 
-function test10()
+function test9()
 {
   let uri = "data:text/html,<iframe name='t'></iframe><form target='t' action='data:text/html,'><input x-moz-errormessage='foo' required id='i'><input id='s' type='submit'></form>";
   let tab = gBrowser.addTab();
