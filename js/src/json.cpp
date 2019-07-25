@@ -439,16 +439,17 @@ JO(JSContext *cx, JSObject *obj, StringifyContext *scx)
         return JS_FALSE;
 
     
-    AutoIdVector ids(cx);
+    Maybe<AutoIdVector> ids;
     const AutoIdVector *props;
     if (scx->replacer && !scx->replacer->isCallable()) {
         JS_ASSERT(JS_IsArrayObject(cx, scx->replacer));
         props = &scx->propertyList;
     } else {
         JS_ASSERT_IF(scx->replacer, scx->propertyList.length() == 0);
-        if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, &ids))
+        ids.construct(cx);
+        if (!GetPropertyNames(cx, obj, JSITER_OWNONLY, ids.addr()))
             return false;
-        props = &ids;
+        props = ids.addr();
     }
 
     
@@ -636,85 +637,91 @@ JSBool
 js_Stringify(JSContext *cx, Value *vp, JSObject *replacer, Value space, StringBuffer &sb)
 {
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
     AutoIdVector propertyList(cx);
-    if (replacer && JS_IsArrayObject(cx, replacer)) {
-        
-        jsuint len;
-        JS_ALWAYS_TRUE(js_GetLengthProperty(cx, replacer, &len));
-        if (replacer->isDenseArray())
-            len = JS_MIN(len, replacer->getDenseArrayCapacity());
-
-        HashSet<jsid> idSet(cx);
-        if (!idSet.init(len))
-            return false;
-
-        
-        jsuint i = 0;
-
-        
-        for (; i < len; i++) {
+    if (replacer) {
+        if (replacer->isCallable()) {
             
-            Value v;
-            if (!replacer->getProperty(cx, INT_TO_JSID(i), &v))
+        } else if (JS_IsArrayObject(cx, replacer)) {
+            
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+            
+            jsuint len;
+            JS_ALWAYS_TRUE(js_GetLengthProperty(cx, replacer, &len));
+            if (replacer->isDenseArray())
+                len = JS_MIN(len, replacer->getDenseArrayCapacity());
+
+            HashSet<jsid> idSet(cx);
+            if (!idSet.init(len))
                 return false;
 
-            jsid id;
-            if (v.isNumber()) {
+            
+            jsuint i = 0;
+
+            
+            for (; i < len; i++) {
                 
-                int32_t n;
-                if (v.isNumber() && ValueFitsInInt32(v, &n) && INT_FITS_IN_JSID(n)) {
-                    id = INT_TO_JSID(n);
-                } else {
+                Value v;
+                if (!replacer->getProperty(cx, INT_TO_JSID(i), &v))
+                    return false;
+
+                jsid id;
+                if (v.isNumber()) {
+                    
+                    int32_t n;
+                    if (v.isNumber() && ValueFitsInInt32(v, &n) && INT_FITS_IN_JSID(n)) {
+                        id = INT_TO_JSID(n);
+                    } else {
+                        if (!js_ValueToStringId(cx, v, &id))
+                            return false;
+                        id = js_CheckForStringIndex(id);
+                    }
+                } else if (v.isString() ||
+                           (v.isObject() && (v.toObject().isString() || v.toObject().isNumber())))
+                {
+                    
                     if (!js_ValueToStringId(cx, v, &id))
                         return false;
                     id = js_CheckForStringIndex(id);
+                } else {
+                    continue;
                 }
-            } else if (v.isString() ||
-                       (v.isObject() && (v.toObject().isString() || v.toObject().isNumber())))
-            {
-                
-                if (!js_ValueToStringId(cx, v, &id))
-                    return false;
-                id = js_CheckForStringIndex(id);
-            } else {
-                continue;
-            }
 
-            
-            HashSet<jsid>::AddPtr p = idSet.lookupForAdd(id);
-            if (!p) {
                 
-                if (!idSet.add(p, id) || !propertyList.append(id))
-                    return false;
+                HashSet<jsid>::AddPtr p = idSet.lookupForAdd(id);
+                if (!p) {
+                    
+                    if (!idSet.add(p, id) || !propertyList.append(id))
+                        return false;
+                }
             }
+        } else {
+            replacer = NULL;
         }
     }
 
