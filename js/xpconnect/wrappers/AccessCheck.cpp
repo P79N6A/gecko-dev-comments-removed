@@ -90,22 +90,12 @@ AccessCheck::isSameOrigin(JSCompartment *a, JSCompartment *b)
 bool
 AccessCheck::isLocationObjectSameOrigin(JSContext *cx, JSObject *wrapper)
 {
-    
-    
-    
-
-    
     JSObject *obj = js::GetObjectParent(js::UnwrapObject(wrapper));
     if (!js::GetObjectClass(obj)->ext.innerObject) {
-        
         obj = js::UnwrapObject(obj);
         JS_ASSERT(js::GetObjectClass(obj)->ext.innerObject);
     }
-
-    
     obj = JS_ObjectToInnerObject(cx, obj);
-
-    
     return obj &&
            (isSameOrigin(js::GetObjectCompartment(wrapper),
                          js::GetObjectCompartment(obj)) ||
@@ -394,7 +384,7 @@ AccessCheck::isScriptAccessOnly(JSContext *cx, JSObject *wrapper)
     JS_ASSERT(js::IsWrapper(wrapper));
 
     uintN flags;
-    JSObject *obj = js::UnwrapObject(wrapper, true, &flags);
+    JSObject *obj = js::UnwrapObject(wrapper, &flags);
 
     
     if (flags & WrapperFactory::SCRIPT_ACCESS_ONLY_FLAG) {

@@ -206,14 +206,7 @@ TransparentObjectWrapper(JSContext *cx, JSObject *obj, JSObject *wrappedProto, J
                          uintN flags);
 
 JS_FRIEND_API(bool) IsWrapper(const JSObject *obj);
-
-
-
-
-
-JS_FRIEND_API(JSObject *) UnwrapObject(JSObject *obj, bool stopAtOuter = true,
-                                       uintN *flagsp = NULL);
-
+JS_FRIEND_API(JSObject *) UnwrapObject(JSObject *obj, uintN *flagsp = NULL);
 bool IsCrossCompartmentWrapper(const JSObject *obj);
 
 } 
