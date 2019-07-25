@@ -3128,6 +3128,7 @@ var ViewableAreaObserver = {
       return;
 
     
+    let isDueToKeyboard = (newHeight != oldHeight && newWidth == oldWidth);
     this.isKeyboardOpened = (newHeight < oldHeight && newWidth == oldWidth);
 
     Browser.styles["viewable-height"].height = newHeight + "px";
@@ -3137,19 +3138,21 @@ var ViewableAreaObserver = {
     Browser.styles["viewable-width"].maxWidth = newWidth + "px";
 
     let startup = !oldHeight && !oldWidth;
-    for (let i = Browser.tabs.length - 1; i >= 0; i--) {
-      let tab = Browser.tabs[i];
-      let oldContentWindowWidth = tab.browser.contentWindowWidth;
-      tab.updateViewportSize(); 
-
-      
-      if (!startup) {
+    if (!isDueToKeyboard) {
+      for (let i = Browser.tabs.length - 1; i >= 0; i--) {
+        let tab = Browser.tabs[i];
+        let oldContentWindowWidth = tab.browser.contentWindowWidth;
+        tab.updateViewportSize(); 
+  
         
-        
-        if (tab.browser.contentWindowWidth == oldContentWindowWidth)
-          tab.restoreViewportPosition(oldWidth, newWidth);
-
-        tab.updateDefaultZoomLevel();
+        if (!startup) {
+          
+          
+          if (tab.browser.contentWindowWidth == oldContentWindowWidth)
+            tab.restoreViewportPosition(oldWidth, newWidth);
+  
+          tab.updateDefaultZoomLevel();
+        }
       }
     }
 
