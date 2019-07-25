@@ -103,6 +103,9 @@
 
 
 
+
+
+
 #define CREATE_REMOVEOPENPAGE_CLEANUP_TRIGGER NS_LITERAL_CSTRING( \
   "CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger " \
   "AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW " \

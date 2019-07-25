@@ -646,8 +646,6 @@ protected:
   nsCOMPtr<mozIStorageStatement> mDBGetTags; 
   nsCOMPtr<mozIStorageStatement> mDBGetItemsWithAnno; 
   nsCOMPtr<mozIStorageStatement> mDBSetPlaceTitle; 
-  nsCOMPtr<mozIStorageStatement> mDBRegisterOpenPage; 
-  nsCOMPtr<mozIStorageStatement> mDBUnregisterOpenPage; 
   nsCOMPtr<mozIStorageStatement> mDBVisitToURLResult; 
   nsCOMPtr<mozIStorageStatement> mDBVisitToVisitResult; 
   nsCOMPtr<mozIStorageStatement> mDBBookmarkToUrlResult; 
@@ -718,7 +716,6 @@ protected:
 
 
   nsresult InitAdditionalDBItems();
-  nsresult InitTempTables();
   nsresult InitFunctions();
   nsresult InitStatements();
   nsresult ForceMigrateBookmarksDB(mozIStorageConnection *aDBConn);

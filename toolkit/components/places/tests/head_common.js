@@ -478,10 +478,11 @@ function check_JSON_backup() {
 
 
 
-function waitForFrecency(aUrl, aValidator, aCallback, aCbScope, aCbArguments) {
+function waitForFrecency(aURI, aValidator, aCallback, aCbScope, aCbArguments) {
   Services.obs.addObserver(function (aSubject, aTopic, aData) {
-    let frecency = frecencyForUrl(aUrl);
+    let frecency = frecencyForUrl(aURI);
     if (!aValidator(frecency)) {
+      print("Has to wait for frecency...");
       return;
     }
     Services.obs.removeObserver(arguments.callee, aTopic);
@@ -496,12 +497,13 @@ function waitForFrecency(aUrl, aValidator, aCallback, aCbScope, aCbArguments) {
 
 
 
-function frecencyForUrl(aUrl)
+function frecencyForUrl(aURI)
 {
+  let url = aURI instanceof Ci.nsIURI ? aURI.spec : aURI;
   let stmt = DBConn().createStatement(
     "SELECT frecency FROM moz_places WHERE url = ?1"
   );
-  stmt.bindUTF8StringParameter(0, aUrl);
+  stmt.bindUTF8StringParameter(0, url);
   if (!stmt.executeStep())
     throw "No result for frecency.";
   let frecency = stmt.getInt32(0);
@@ -530,3 +532,35 @@ function is_time_ordered(before, after) {
   return after - before > -skew;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+function waitForAsyncUpdates(aCallback, aScope, aArguments)
+{
+  let scope = aScope || this;
+  let argument = aArguments || [];
+  let db = DBConn();
+  db.createAsyncStatement("BEGIN EXCLUSIVE").executeAsync();
+  db.createAsyncStatement("COMMIT").executeAsync({
+    handleResult: function() {},
+    handleError: function() {},
+    handleCompletion: function(aReason)
+    {
+      aCallback.apply(scope, arguments);
+    }
+  });
+}

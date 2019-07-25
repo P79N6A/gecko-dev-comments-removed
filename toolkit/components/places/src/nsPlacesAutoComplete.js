@@ -109,6 +109,55 @@ const kBrowserUrlbarBranch = "browser.urlbar.";
 
 
 
+XPCOMUtils.defineLazyServiceGetter(this, "pb",
+                                   "@mozilla.org/privatebrowsing;1",
+                                   "nsIPrivateBrowsingService");
+
+
+
+
+
+
+
+
+
+
+function initTempTable(aDatabase)
+{
+  
+  aDatabase.executeSimpleSQL("PRAGMA temp_store = MEMORY");
+
+  
+  
+  let sql = "CREATE TEMP TABLE moz_openpages_temp ("
+          + "  url TEXT PRIMARY KEY"
+          + ", open_count INTEGER"
+          + ")";
+  aDatabase.executeSimpleSQL(sql);
+
+  
+  
+  sql = "CREATE TEMPORARY TRIGGER moz_openpages_temp_afterupdate_trigger "
+      + "AFTER UPDATE OF open_count ON moz_openpages_temp FOR EACH ROW "
+      + "WHEN NEW.open_count = 0 "
+      + "BEGIN "
+      +   "DELETE FROM moz_openpages_temp "
+      +   "WHERE url = NEW.url;"
+      + "END";
+  aDatabase.executeSimpleSQL(sql);
+}
+
+
+
+
+function inPrivateBrowsingMode()
+{
+  return pb.privateBrowsingEnabled;
+}
+
+
+
+
 
 
 
@@ -205,9 +254,19 @@ function nsPlacesAutoComplete()
   
 
   XPCOMUtils.defineLazyGetter(this, "_db", function() {
-    return Cc["@mozilla.org/browser/nav-history-service;1"].
-           getService(Ci.nsPIPlacesDatabase).
-           DBConnection;
+    
+    
+    
+    
+    let db = Cc["@mozilla.org/browser/nav-history-service;1"].
+             getService(Ci.nsPIPlacesDatabase).
+             DBConnection.
+             clone(true);
+
+    
+    initTempTable(db);
+
+    return db;
   });
 
   XPCOMUtils.defineLazyServiceGetter(this, "_bh",
@@ -309,7 +368,7 @@ function nsPlacesAutoComplete()
     + "JOIN moz_places h ON h.id = i.place_id "
     + "LEFT JOIN moz_favicons f ON f.id = h.favicon_id "
     + "LEFT JOIN moz_openpages_temp t ON t.url = h.url "
-    + "WHERE AUTOCOMPLETE_MATCH(:searchString, h.url, "
+    + "WHERE AUTOCOMPLETE_MATCH(NULL, h.url, "
     +                          "IFNULL(bookmark, h.title), tags, "
     +                          "h.visit_count, h.typed, parent, "
     +                          "t.open_count, "
@@ -339,6 +398,30 @@ function nsPlacesAutoComplete()
     +  "LEFT JOIN moz_openpages_temp t ON t.url = search_url "
     +  "WHERE LOWER(k.keyword) = LOWER(:keyword) "
     +  "ORDER BY h.frecency DESC "
+    );
+  });
+
+  XPCOMUtils.defineLazyGetter(this, "_registerOpenPageQuery", function() {
+    return this._db.createAsyncStatement(
+      "INSERT OR REPLACE INTO moz_openpages_temp (url, open_count) "
+    + "VALUES (:page_url, "
+    +   "IFNULL("
+    +     "("
+    +        "SELECT open_count + 1 "
+    +        "FROM moz_openpages_temp "
+    +        "WHERE url = :page_url "
+    +      "), "
+    +     "1"
+    +   ")"
+    + ")"
+    );
+  });
+
+  XPCOMUtils.defineLazyGetter(this, "_unregisterOpenPageQuery", function() {
+    return this._db.createAsyncStatement(
+      "UPDATE moz_openpages_temp "
+    + "SET open_count = open_count - 1 "
+    + "WHERE url = :page_url"
     );
   });
 
@@ -413,15 +496,15 @@ nsPlacesAutoComplete.prototype = {
     let {query, tokens} =
       this._getSearch(this._getUnfilteredSearchTokens(this._currentSearchString));
     let queries = tokens.length ?
-      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(), query] :
-      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(), query];
+      [this._getBoundKeywordQuery(tokens), this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query] :
+      [this._getBoundAdaptiveQuery(), this._getBoundOpenPagesQuery(tokens), query];
 
     
     this._executeQueries(queries);
 
     
     this._searchTokens = tokens;
-    this._usedPlaceIds = {};
+    this._usedPlaces = {};
   },
 
   stopSearch: function PAC_stopSearch()
@@ -442,6 +525,39 @@ nsPlacesAutoComplete.prototype = {
   {
     if (aRemoveFromDB)
       this._bh.removePage(this._ioService.newURI(aURISpec, null, null));
+  },
+
+  
+  
+
+  registerOpenPage: function PAC_registerOpenPage(aURI)
+  {
+    
+    
+    
+    if (inPrivateBrowsingMode()) {
+      return;
+    }
+
+    let stmt = this._registerOpenPageQuery;
+    stmt.params.page_url = aURI.spec;
+
+    stmt.executeAsync();
+  },
+
+  unregisterOpenPage: function PAC_unregisterOpenPage(aURI)
+  {
+    
+    
+    
+    if (inPrivateBrowsingMode()) {
+      return;
+    }
+
+    let stmt = this._unregisterOpenPageQuery;
+    stmt.params.page_url = aURI.spec;
+
+    stmt.executeAsync();
   },
 
   
@@ -521,6 +637,8 @@ nsPlacesAutoComplete.prototype = {
         "_typedQuery",
         "_adaptiveQuery",
         "_keywordQuery",
+        "_registerOpenPageQuery",
+        "_unregisterOpenPageQuery",
       ];
       for (let i = 0; i < stmts.length; i++) {
         
@@ -597,7 +715,7 @@ nsPlacesAutoComplete.prototype = {
     delete this._searchTokens;
     delete this._listener;
     delete this._result;
-    delete this._usedPlaceIds;
+    delete this._usedPlaces;
     delete this._pendingQuery;
     this._secondPass = false;
     this._enableActions = false;
@@ -813,7 +931,7 @@ nsPlacesAutoComplete.prototype = {
     return query;
   },
 
-  _getBoundOpenPagesQuery: function PAC_getBoundOpenPagesQuery()
+  _getBoundOpenPagesQuery: function PAC_getBoundOpenPagesQuery(aTokens)
   {
     let query = this._openPagesQuery;
 
@@ -823,7 +941,9 @@ nsPlacesAutoComplete.prototype = {
       params.query_type = kQueryTypeFiltered;
       params.matchBehavior = this._matchBehavior;
       params.searchBehavior = this._behavior;
-      params.searchString = this._currentSearchString;
+      
+      
+      params.searchString = aTokens.join(" ");
       params.maxResults = this._maxRichResults;
     }
 
@@ -899,17 +1019,25 @@ nsPlacesAutoComplete.prototype = {
   {
     
     let entryId = aRow.getResultByIndex(kQueryIndexPlaceId);
-    if (this._inResults(entryId))
-      return false;
-
     let escapedEntryURL = aRow.getResultByIndex(kQueryIndexURL);
+    let openPageCount = aRow.getResultByIndex(kQueryIndexOpenPageCount) || 0;
+
+    
+    
+    let [url, action] = this._enableActions && openPageCount > 0 ?
+                        ["moz-action:switchtab," + escapedEntryURL, "action "] :
+                        [escapedEntryURL, ""];
+
+    if (this._inResults(entryId || url)) {
+      return false;
+    }
+
     let entryTitle = aRow.getResultByIndex(kQueryIndexTitle) || "";
     let entryFavicon = aRow.getResultByIndex(kQueryIndexFaviconURL) || "";
     let entryParentId = aRow.getResultByIndex(kQueryIndexParentId);
     let entryBookmarkTitle = entryParentId ?
       aRow.getResultByIndex(kQueryIndexBookmarkTitle) : null;
     let entryTags = aRow.getResultByIndex(kQueryIndexTags) || "";
-    let openPageCount = aRow.getResultByIndex(kQueryIndexOpenPageCount) || 0;
 
     
     let title = entryBookmarkTitle || entryTitle;
@@ -956,11 +1084,6 @@ nsPlacesAutoComplete.prototype = {
         style = "favicon";
     }
 
-    
-    
-    let [url, action] = this._enableActions && openPageCount > 0 ?
-                        ["moz-action:switchtab," + escapedEntryURL, "action "] :
-                        [escapedEntryURL, ""];
     this._addToResults(entryId, url, title, entryFavicon, action + style);
     return true;
   },
@@ -972,9 +1095,9 @@ nsPlacesAutoComplete.prototype = {
 
 
 
-  _inResults: function PAC_inResults(aPlaceId)
+  _inResults: function PAC_inResults(aPlaceIdOrUrl)
   {
-    return (aPlaceId in this._usedPlaceIds);
+    return aPlaceIdOrUrl in this._usedPlaces;
   },
 
   
@@ -998,7 +1121,11 @@ nsPlacesAutoComplete.prototype = {
   {
     
     
-    this._usedPlaceIds[aPlaceId] = true;
+    
+    
+    
+    
+    this._usedPlaces[aPlaceId || aURISpec] = true;
 
     
     let favicon;
@@ -1070,6 +1197,7 @@ nsPlacesAutoComplete.prototype = {
   QueryInterface: XPCOMUtils.generateQI([
     Ci.nsIAutoCompleteSearch,
     Ci.nsIAutoCompleteSimpleResultListener,
+    Ci.mozIPlacesAutoComplete,
     Ci.mozIStorageStatementCallback,
     Ci.nsIObserver,
   ])
