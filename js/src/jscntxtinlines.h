@@ -76,12 +76,12 @@ static inline GlobalObject *
 GetGlobalForScopeChain(JSContext *cx)
 {
     if (cx->hasfp())
-        return cx->fp()->scopeChain().getGlobal();
+        return &cx->fp()->scopeChain().global();
 
     JSObject *scope = JS_ObjectToInnerObject(cx, cx->globalObject);
     if (!scope)
         return NULL;
-    return scope->asGlobal();
+    return &scope->asGlobal();
 }
 
 inline GSNCache *
@@ -503,10 +503,7 @@ JSContext::ensureParseMapPool()
 }
 
 
-
-
-
-static JS_FORCES_STACK JS_INLINE js::StackFrame *
+static inline js::StackFrame *
 js_GetTopStackFrame(JSContext *cx, FrameExpandKind expand)
 {
 #ifdef JS_METHODJIT
