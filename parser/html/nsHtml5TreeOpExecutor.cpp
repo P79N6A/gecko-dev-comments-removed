@@ -905,6 +905,8 @@ nsHtml5TreeOpExecutor::GetViewSourceBaseURI()
       NS_ASSERTION(nested, "URI with scheme view-source didn't QI to nested!");
       nested->GetInnerURI(getter_AddRefs(mViewSourceBaseURI));
     } else {
+      
+      
       mViewSourceBaseURI = orig;
     }
   }

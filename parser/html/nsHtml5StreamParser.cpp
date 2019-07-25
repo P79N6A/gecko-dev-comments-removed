@@ -516,6 +516,14 @@ nsHtml5StreamParser::FinalizeSniffing(const PRUint8* aFromSegment,
     XML_SetUserData(ud.mExpat, static_cast<void*>(&ud));
 
     XML_Status status = XML_STATUS_OK;
+
+    
+    
+    
+    
+    
+    
+    
     if (mSniffingBuffer) {
       status = XML_Parse(ud.mExpat,
                          reinterpret_cast<const char*>(mSniffingBuffer.get()),
@@ -682,8 +690,8 @@ nsHtml5StreamParser::SniffStreamBytes(const PRUint8* aFromSegment,
     PRUint32 countToSniffingLimit =
         NS_HTML5_STREAM_PARSER_SNIFFING_BUFFER_SIZE - mSniffingLength;
     if (mMode == NORMAL || mMode == VIEW_SOURCE_HTML) {
-      nsHtml5ByteReadable readable(aFromSegment, aFromSegment
-          + countToSniffingLimit);
+      nsHtml5ByteReadable readable(aFromSegment, aFromSegment +
+          countToSniffingLimit);
       mMetaScanner->sniff(&readable, getter_AddRefs(mUnicodeDecoder), mCharset);
       if (mUnicodeDecoder) {
         mUnicodeDecoder->SetInputErrorBehavior(

@@ -869,6 +869,8 @@ public abstract class TreeBuilder<T> implements TokenHandler,
     public final void characters(@Const @NoLength char[] buf, int start, int length)
             throws SAXException {
         
+
+        
         
         
         if (needToDropLF) {
@@ -1271,6 +1273,7 @@ public abstract class TreeBuilder<T> implements TokenHandler,
 
     public final void eof() throws SAXException {
         flushCharacters();
+        
         eofloop: for (;;) {
             if (isInForeign()) {
                 

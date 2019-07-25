@@ -58,6 +58,29 @@
 
     void documentMode(nsHtml5DocumentMode m);
 
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     nsIContent** AllocateContentHandle();
     
     void accumulateCharactersForced(const PRUnichar* aBuf, PRInt32 aStart, PRInt32 aLength)

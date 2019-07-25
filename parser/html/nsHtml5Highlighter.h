@@ -194,7 +194,7 @@ class nsHtml5Highlighter
     
 
 
-    void EndInline();
+    void EndSpanOrA();
 
     
 
@@ -225,6 +225,8 @@ class nsHtml5Highlighter
 
 
 
+
+
     void FinishTag();
 
     
@@ -236,6 +238,9 @@ class nsHtml5Highlighter
     void AddClass(const PRUnichar* aClass);
 
     
+
+
+
 
 
 

@@ -38,9 +38,13 @@
 #ifndef nsHtml5TokenizerLoopPolicies_h_
 #define nsHtml5TokenizerLoopPolicies_h_
 
+
+
+
+
 struct nsHtml5SilentPolicy
 {
-  static const bool viewingSource = false;
+  static const bool reportErrors = false;
   static PRInt32 transition(nsHtml5Highlighter* aHighlighter,
                             PRInt32 aState,
                             bool aReconsume,
@@ -51,9 +55,13 @@ struct nsHtml5SilentPolicy
   }
 };
 
+
+
+
+
 struct nsHtml5ViewSourcePolicy
 {
-  static const bool viewingSource = true;
+  static const bool reportErrors = true;
   static PRInt32 transition(nsHtml5Highlighter* aHighlighter,
                             PRInt32 aState,
                             bool aReconsume,
