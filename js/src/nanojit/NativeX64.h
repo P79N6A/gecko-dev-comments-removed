@@ -202,6 +202,7 @@ namespace nanojit
         X64_cvtss2sd= 0xC05A0F40F3000005LL, 
         X64_cvtsd2ss= 0xC05A0F40F2000005LL, 
         X64_cvtsd2si= 0xC02D0F40F2000005LL, 
+        X64_cvttsd2si=0xC02C0F40F2000005LL, 
         X64_divsd   = 0xC05E0F40F2000005LL, 
         X64_mulsd   = 0xC0590F40F2000005LL, 
         X64_addsd   = 0xC0580F40F2000005LL, 
@@ -504,6 +505,7 @@ namespace nanojit
         void CVTSS2SD(Register l, Register r);\
         void CVTSD2SS(Register l, Register r);\
         void CVTSD2SI(Register l, Register r);\
+        void CVTTSD2SI(Register l, Register r);\
         void UCOMISD(Register l, Register r);\
         void MOVQRX(Register l, Register r);\
         void MOVQXR(Register l, Register r);\
