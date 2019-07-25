@@ -121,7 +121,6 @@
 #include "nsContentSink.h"
 #include "nsFrameMessageManager.h"
 #include "nsRefreshDriver.h"
-#include "CanvasImageCache.h"
 
 #include "nsHyphenationManager.h"
 
@@ -183,11 +182,7 @@ nsLayoutStatics::Initialize()
     return rv;
   }
 
-  rv = nsCSSRendering::Init();
-  if (NS_FAILED(rv)) {
-    NS_ERROR("Could not initialize nsCSSRendering");
-    return rv;
-  }
+  nsCSSRendering::Init();
 
   rv = nsTextFrameTextRunCache::Init();
   if (NS_FAILED(rv)) {
@@ -285,7 +280,6 @@ nsLayoutStatics::Initialize()
 void
 nsLayoutStatics::Shutdown()
 {
-  CanvasImageCache::Shutdown();
   nsFrameScriptExecutor::Shutdown();
   nsFocusManager::Shutdown();
 #ifdef MOZ_XUL
