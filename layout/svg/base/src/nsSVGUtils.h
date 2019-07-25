@@ -635,6 +635,12 @@ public:
 
 
 
+  static gfxMatrix GetStrokeTransform(nsIFrame *aFrame);
+
+  
+
+
+
 
 
 

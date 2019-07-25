@@ -909,7 +909,7 @@ nsSVGGlyphFrame::SetupCairoState(gfxContext *aContext, gfxPattern **aStrokePatte
 
     if (ps) {
       
-      strokePattern = ps->GetPaintServerPattern(this, opacity);
+      strokePattern = ps->GetPaintServerPattern(this, &nsStyleSVG::mStroke, opacity);
     }
 
     if (!strokePattern) {

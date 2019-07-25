@@ -628,6 +628,7 @@ nsIAtom** const kAttributesSVG[] = {
   
   
   &nsGkAtoms::values, 
+  &nsGkAtoms::vector_effect, 
   
   
   
