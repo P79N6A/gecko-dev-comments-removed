@@ -686,6 +686,9 @@ public:
     bool profiled;
 
     
+    bool undecided;
+
+    
     bool traceOK;
 
     
@@ -1697,7 +1700,7 @@ RecordTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist);
 
 extern JS_REQUIRES_STACK TracePointAction
 MonitorTracePoint(JSContext*, uintN& inlineCallCount, bool* blacklist,
-                  void** traceData, uintN *traceEpoch);
+                  void** traceData, uintN *traceEpoch, uint32 *loopCounter, uint32 hits);
 
 extern JS_REQUIRES_STACK TraceRecorder::AbortResult
 AbortRecording(JSContext* cx, const char* reason);
