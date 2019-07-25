@@ -291,14 +291,38 @@ let gSyncUI = {
 
   
   
-  openSetup: function SUI_openSetup() {
+
+  
+
+
+
+
+
+
+
+
+
+  openSetup: function SUI_openSetup(wizardType) {
     let win = Services.wm.getMostRecentWindow("Weave:AccountSetup");
     if (win)
       win.focus();
     else {
       window.openDialog("chrome://browser/content/syncSetup.xul",
-                        "weaveSetup", "centerscreen,chrome,resizable=no");
+                        "weaveSetup", "centerscreen,chrome,resizable=no",
+                        wizardType);
     }
+  },
+
+  openAddDevice: function () {
+    if (!Weave.Utils.ensureMPUnlocked())
+      return;
+
+    let win = Services.wm.getMostRecentWindow("Sync:AddDevice");
+    if (win)
+      win.focus();
+    else
+      window.openDialog("chrome://browser/content/syncAddDevice.xul",
+                        "syncAddDevice", "centerscreen,chrome,resizable=no");
   },
 
   openQuotaDialog: function SUI_openQuotaDialog() {
