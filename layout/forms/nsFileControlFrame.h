@@ -87,6 +87,7 @@ public:
   NS_IMETHOD AttributeChanged(PRInt32         aNameSpaceID,
                               nsIAtom*        aAttribute,
                               PRInt32         aModType);
+  virtual void ContentStatesChanged(nsEventStates aStates);
   virtual PRBool IsLeaf() const;
 
 
@@ -134,7 +135,28 @@ protected:
   protected:
     nsFileControlFrame* mFrame;
   };
-  
+
+  class SyncDisabledStateEvent;
+  friend class SyncDisabledStateEvent;
+  class SyncDisabledStateEvent : public nsRunnable
+  {
+  public:
+    SyncDisabledStateEvent(nsFileControlFrame* aFrame)
+      : mFrame(aFrame)
+    {}
+
+    NS_IMETHOD Run() {
+      nsFileControlFrame* frame = static_cast<nsFileControlFrame*>(mFrame.GetFrame());
+      NS_ENSURE_STATE(frame);
+
+      frame->SyncDisabledState();
+      return NS_OK;
+    }
+
+  private:
+    nsWeakFrame mFrame;
+  };
+
   class CaptureMouseListener: public MouseListener {
   public:
     CaptureMouseListener(nsFileControlFrame* aFrame) : MouseListener(aFrame),
@@ -205,9 +227,13 @@ private:
 
 
 
-
   void SyncAttr(PRInt32 aNameSpaceID, nsIAtom* aAttribute,
                 PRInt32 aWhichControls);
+
+  
+
+
+  void SyncDisabledState();
 };
 
 #endif

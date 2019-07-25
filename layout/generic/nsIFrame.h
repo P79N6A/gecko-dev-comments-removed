@@ -1300,6 +1300,14 @@ public:
   
 
 
+
+
+
+  virtual void ContentStatesChanged(nsEventStates aStates) { };
+
+  
+
+
   virtual nsSplittableType GetSplittableType() const = 0;
 
   
