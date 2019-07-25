@@ -119,32 +119,35 @@ js::IsIdentifier(JSLinearString *str)
 #endif
 
 
-TokenStream::TokenStream(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin)
-  : tokens(), tokensRoot(cx, &tokens),
-    cursor(), lookahead(), flags(),
-    linebaseRoot(cx, &linebase), prevLinebaseRoot(cx, &prevLinebase), userbufRoot(cx, &userbuf),
-    sourceMap(), listenerTSData(), tokenbuf(cx),
-    cx(cx), originPrincipals(JSScript::normalizeOriginPrincipals(prin, originPrin))
+TokenStream::TokenStream(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
+                         const jschar *base, size_t length, const char *fn, unsigned ln,
+                         JSVersion v)
+  : tokens(),
+    tokensRoot(cx, &tokens),
+    cursor(),
+    lookahead(),
+    lineno(ln),
+    flags(),
+    linebase(base),
+    prevLinebase(NULL),
+    linebaseRoot(cx, &linebase),
+    prevLinebaseRoot(cx, &prevLinebase),
+    userbuf(base, length),
+    userbufRoot(cx, &userbuf),
+    filename(fn),
+    sourceMap(NULL),
+    listenerTSData(),
+    tokenbuf(cx),
+    version(v),
+    xml(VersionHasXML(v)),
+    cx(cx),
+    originPrincipals(JSScript::normalizeOriginPrincipals(prin, originPrin))
 {
     if (originPrincipals)
         JS_HoldPrincipals(originPrincipals);
-}
 
-#ifdef _MSC_VER
-#pragma warning(pop)
-#endif
-
-bool
-TokenStream::init(const jschar *base, size_t length, const char *fn, unsigned ln, JSVersion v)
-{
-    filename = fn;
-    lineno = ln;
-    version = v;
-    xml = VersionHasXML(v);
-
-    userbuf.init(base, length);
-    linebase = base;
-    prevLinebase = NULL;
+    if (cx->hasRunOption(JSOPTION_STRICT_MODE))
+        setStrictMode();
 
     JSSourceHandler listener = cx->runtime->debugHooks.sourceHandler;
     void *listenerData = cx->runtime->debugHooks.sourceHandlerData;
@@ -206,8 +209,11 @@ TokenStream::init(const jschar *base, size_t length, const char *fn, unsigned ln
 
 
     tokens[0].pos.begin.lineno = tokens[0].pos.end.lineno = ln;
-    return true;
 }
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 TokenStream::~TokenStream()
 {

@@ -54,8 +54,9 @@ struct Parser : private AutoGCRooter
     
     const bool          compileAndGo:1;
 
-    Parser(JSContext *cx, JSPrincipals *prin = NULL, JSPrincipals *originPrin = NULL,
-           StackFrame *cfp = NULL, bool fold = true, bool compileAndGo = false);
+    Parser(JSContext *cx, JSPrincipals *prin, JSPrincipals *originPrin,
+           const jschar *chars, size_t length, const char *fn, unsigned ln, JSVersion version,
+           StackFrame *cfp, bool foldConstants, bool compileAndGo);
     ~Parser();
 
     friend void AutoGCRooter::trace(JSTracer *trc);
@@ -67,9 +68,7 @@ struct Parser : private AutoGCRooter
 
 
 
-
-    bool init(const jschar *base, size_t length, const char *filename, unsigned lineno,
-              JSVersion version);
+    bool init();
 
     void setPrincipals(JSPrincipals *prin, JSPrincipals *originPrin);
 

@@ -1764,8 +1764,10 @@ ParseXMLSource(JSContext *cx, JSString *src)
     }
 
     {
-        Parser parser(cx);
-        if (parser.init(chars, length, filename, lineno, cx->findVersion())) {
+        Parser parser(cx,  NULL,  NULL,
+                      chars, length, filename, lineno, cx->findVersion(),
+                       NULL,  true,  false);
+        if (parser.init()) {
             JSObject *scopeChain = GetCurrentScopeChain(cx);
             if (!scopeChain) {
                 cx->free_(chars);

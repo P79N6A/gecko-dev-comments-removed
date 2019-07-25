@@ -427,24 +427,9 @@ class TokenStream
   public:
     typedef Vector<jschar, 32> CharBuffer;
 
-    
-
-
-
-
-
-
-
-
-
-    TokenStream(JSContext *, JSPrincipals *principals, JSPrincipals *originPrincipals);
-
-    
-
-
-
-    bool init(const jschar *base, size_t length, const char *filename, unsigned lineno,
-              JSVersion version);
+    TokenStream(JSContext *, JSPrincipals *principals, JSPrincipals *originPrincipals,
+                const jschar *base, size_t length, const char *filename, unsigned lineno,
+                JSVersion version);
     ~TokenStream();
 
     
@@ -652,12 +637,8 @@ class TokenStream
 
     class TokenBuf {
       public:
-        TokenBuf() : base(NULL), limit(NULL), ptr(NULL) { }
-
-        void init(const jschar *buf, size_t length) {
-            base = ptr = buf;
-            limit = base + length;
-        }
+        TokenBuf(const jschar *buf, size_t length)
+          : base(buf), limit(buf + length), ptr(buf), ptrWhenPoisoned(NULL) { }
 
         bool hasRawChars() const {
             return ptr < limit;
