@@ -122,8 +122,8 @@ protected:
   void FrameChanged(imgIContainer *aContainer, nsIntRect * aDirtyRect);
 
   
-  void OnStartRequest(nsIRequest *request, nsISupports *ctxt);
-  void OnStopRequest(nsIRequest *request, nsISupports *ctxt, nsresult statusCode, PRBool aLastPart); 
+  void OnStartRequest();
+  void OnStopRequest(PRBool aLastPart);
 
   inline PRBool HasObserver() const {
     return mListener != nsnull;
