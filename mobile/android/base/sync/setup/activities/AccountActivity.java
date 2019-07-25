@@ -2,47 +2,13 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 package org.mozilla.gecko.sync.setup.activities;
 
 import java.util.Locale;
 
 import org.mozilla.gecko.R;
+import org.mozilla.gecko.db.BrowserContract;
 import org.mozilla.gecko.sync.Utils;
-import org.mozilla.gecko.sync.repositories.android.Authorities;
 import org.mozilla.gecko.sync.setup.Constants;
 
 import android.accounts.Account;
@@ -256,8 +222,11 @@ public class AccountActivity extends AccountAuthenticatorActivity {
 
     
     ContentResolver.setMasterSyncAutomatically(true);
-    ContentResolver.setSyncAutomatically(account, Authorities.BROWSER_AUTHORITY, true);
-    ContentResolver.setIsSyncable(account, Authorities.BROWSER_AUTHORITY, 1);
+
+    String authority = BrowserContract.AUTHORITY;
+    Log.d(LOG_TAG, "Setting authority " + authority + " to sync automatically.");
+    ContentResolver.setSyncAutomatically(account, authority, true);
+    ContentResolver.setIsSyncable(account, authority, 1);
 
     
     
