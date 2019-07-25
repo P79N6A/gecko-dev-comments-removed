@@ -499,6 +499,17 @@ class Vector : private AllocPolicy
 
 
     void erase(T *t);
+
+    
+
+
+    size_t sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const;
+
+    
+
+
+
+    size_t sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const;
 };
 
 
@@ -994,6 +1005,20 @@ Vector<T,N,AP>::replaceRawBuffer(T *p, size_t length)
 #ifdef DEBUG
     mReserved = length;
 #endif
+}
+
+template <class T, size_t N, class AP>
+inline size_t
+Vector<T,N,AP>::sizeOfExcludingThis(JSMallocSizeOfFun mallocSizeOf) const
+{
+    return usingInlineStorage() ? 0 : mallocSizeOf(beginNoCheck());
+}
+
+template <class T, size_t N, class AP>
+inline size_t
+Vector<T,N,AP>::sizeOfIncludingThis(JSMallocSizeOfFun mallocSizeOf) const
+{
+    return mallocSizeOf(this) + sizeOfExcludingThis(mallocSizeOf);
 }
 
 }  
