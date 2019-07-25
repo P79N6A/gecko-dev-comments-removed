@@ -2503,7 +2503,7 @@ js::str_replace(JSContext *cx, uintN argc, Value *vp)
 
 
 
-                JSScript *script = fun->u.i.script;
+                JSScript *script = fun->script();
                 jsbytecode *pc = script->code;
 
                 Value table = UndefinedValue();
