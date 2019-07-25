@@ -1938,7 +1938,6 @@ WeaveSvc.prototype = {
     this._catch(this._notify("wipe-remote", "", function() {
       
       this.resetClient(engines);
-      CollectionKeys.clear();
 
       
       this.wipeServer(engines);
@@ -1949,9 +1948,6 @@ WeaveSvc.prototype = {
       
       else
         this.prepCommand("wipeAll", []);
-    
-      
-      this.generateNewSymmetricKeys();
 
       
       Clients.sync();
