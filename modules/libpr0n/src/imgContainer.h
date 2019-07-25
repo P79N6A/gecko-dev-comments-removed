@@ -165,11 +165,6 @@ private:
     
     PRInt32                    lastCompositedFrameIndex;
     
-    
-    PRBool                     doneDecoding;
-    
-    PRBool                     animating;
-    
 
 
 
@@ -188,6 +183,11 @@ private:
     
     nsCOMPtr<nsITimer>         timer;
     
+    
+    PRPackedBool               doneDecoding;
+    
+    PRPackedBool               animating;
+
     Anim() :
       firstFrameRefreshArea(),
       currentDecodingFrameIndex(0),
@@ -293,7 +293,6 @@ private:
 private: 
 
   nsIntSize                  mSize;
-  PRBool                     mHasSize;
   
   
   
@@ -318,27 +317,12 @@ private:
   nsWeakPtr                  mObserver;
 
   
-  PRBool                     mDecodeOnDraw;
-
-  
-  PRBool                     mMultipart;
-
-  
-  PRBool                     mInitialized;
-
-  
-  PRBool                     mDiscardable;
   PRUint32                   mLockCount;
   nsCOMPtr<nsITimer>         mDiscardTimer;
 
   
   nsTArray<char>             mSourceData;
-  PRBool                     mHasSourceData;
   nsCString                  mSourceDataMimeType;
-
-  
-  PRBool                     mDecoded;
-  PRBool                     mHasBeenDecoded;
 
   friend class imgDecodeWorker;
 
@@ -347,11 +331,24 @@ private:
   nsRefPtr<imgDecodeWorker>      mWorker;
   PRUint32                       mBytesDecoded;
   PRUint32                       mDecoderFlags;
-  PRBool                         mWorkerPending;
-  PRBool                         mInDecoder;
 
   
-  PRBool                         mError;
+  PRPackedBool               mHasSize:1;       
+  PRPackedBool               mDecodeOnDraw:1;  
+  PRPackedBool               mMultipart:1;     
+  PRPackedBool               mInitialized:1;   
+  PRPackedBool               mDiscardable:1;   
+  PRPackedBool               mHasSourceData:1; 
+
+  
+  PRPackedBool               mDecoded:1;
+  PRPackedBool               mHasBeenDecoded:1;
+
+  
+  PRPackedBool               mWorkerPending:1;
+  PRPackedBool               mInDecoder:1;
+
+  PRPackedBool               mError:1;  
 
   
   nsresult ResetDiscardTimer();
