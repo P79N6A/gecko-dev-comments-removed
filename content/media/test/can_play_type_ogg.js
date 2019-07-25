@@ -16,6 +16,22 @@ function check_ogg(v, enabled) {
   check("video/ogg; codecs=theora", "probably");
 
   
+  var OpusEnabled = undefined;
+  try {
+    OpusEnabled = SpecialPowers.getBoolPref("media.opus.enabled");
+  } catch (ex) {
+    
+    console.log("media.opus.enabled pref not found; skipping Opus validation");
+  }
+  if (OpusEnabled !== undefined) {
+    SpecialPowers.setBoolPref("media.opus.enabled", true);
+    check("audio/ogg; codecs=opus", "probably");
+    SpecialPowers.setBoolPref("media.opus.enabled", false);
+    check("audio/ogg; codecs=opus", "");
+    SpecialPowers.setBoolPref("media.opus.enabled", OpusEnabled);
+  }
+
+  
   check("video/ogg; codecs=xyz", "");
   check("video/ogg; codecs=xyz,vorbis", "");
   check("video/ogg; codecs=vorbis,xyz", "");
