@@ -52,9 +52,6 @@ public:
   virtual ~ThebesLayerD3D10();
 
   
-  void SetVisibleRegion(const nsIntRegion& aRegion);
-
-  
   void InvalidateRegion(const nsIntRegion& aRegion);
 
   
@@ -71,6 +68,9 @@ private:
   nsRefPtr<ID3D10ShaderResourceView> mSRView;
 
   
+  nsIntRegion mTextureRegion;
+
+  
   void VerifyContentType();
 
   
@@ -81,6 +81,11 @@ private:
 
   
   void CreateNewTexture(const gfxIntSize &aSize);
+
+  
+  void CopyRegion(ID3D10Texture2D* aSrc, const nsIntPoint &aSrcOffset,
+                  ID3D10Texture2D* aDest, const nsIntPoint &aDestOffset,
+                  const nsIntRegion &aCopyRegion, nsIntRegion* aValidRegion);
 };
 
 } 
