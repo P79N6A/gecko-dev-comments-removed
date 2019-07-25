@@ -52,7 +52,7 @@ public:
 
   PRInt32 PosInSet() const { return mPosInSet; }
   PRUint32 SetSize() const { return mSetSize; }
-  nsAccessible* GetConceptualParent() const { return mParent; }
+  nsAccessible* ConceptualParent() const { return mParent; }
 
   
 
@@ -87,6 +87,12 @@ private:
       return nsIAccessibleRole::ROLE_MENUITEM;
     return aRole;
   }
+
+  
+
+
+
+  static bool IsConceptualParent(PRUint32 aRole, PRUint32 aParentRole);
 
   PRUint32 mPosInSet;
   PRUint32 mSetSize;

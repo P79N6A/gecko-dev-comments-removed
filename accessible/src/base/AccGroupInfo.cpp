@@ -132,27 +132,17 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   if (mParent)
     return;
 
-  
   PRUint32 parentRole = parent->Role();
-
-  
-  
-  if (aRole == nsIAccessibleRole::ROLE_ROW &&
-      parentRole == nsIAccessibleRole::ROLE_TREE_TABLE) {
+  if (IsConceptualParent(aRole, parentRole))
     mParent = parent;
-    return;
-  }
 
   
   
   
   
-  
-
-  if (parentRole != nsIAccessibleRole::ROLE_GROUPING) {
-    mParent = parent;
+  if (parentRole != nsIAccessibleRole::ROLE_GROUPING ||
+      aRole != nsIAccessibleRole::ROLE_OUTLINEITEM)
     return;
-  }
 
   nsAccessible* parentPrevSibling = parent->PrevSibling();
   if (!parentPrevSibling)
@@ -173,4 +163,38 @@ AccGroupInfo::AccGroupInfo(nsAccessible* aItem, PRUint32 aRole) :
   
   if (parentPrevSiblingRole == nsIAccessibleRole::ROLE_OUTLINEITEM)
     mParent = parentPrevSibling;
+}
+
+bool
+AccGroupInfo::IsConceptualParent(PRUint32 aRole, PRUint32 aParentRole)
+{
+  if (aParentRole == nsIAccessibleRole::ROLE_OUTLINE &&
+      aRole == nsIAccessibleRole::ROLE_OUTLINEITEM)
+    return true;
+  if ((aParentRole == nsIAccessibleRole::ROLE_TABLE ||
+       aParentRole == nsIAccessibleRole::ROLE_TREE_TABLE) &&
+      aRole == nsIAccessibleRole::ROLE_ROW)
+    return true;
+  if (aParentRole == nsIAccessibleRole::ROLE_ROW &&
+      (aRole == nsIAccessibleRole::ROLE_CELL ||
+       aRole == nsIAccessibleRole::ROLE_GRID_CELL))
+    return true;
+  if (aParentRole == nsIAccessibleRole::ROLE_LIST &&
+      aRole == nsIAccessibleRole::ROLE_LISTITEM)
+    return true;
+  if (aParentRole == nsIAccessibleRole::ROLE_COMBOBOX_LIST &&
+      aRole == nsIAccessibleRole::ROLE_COMBOBOX_OPTION)
+    return true;
+  if (aParentRole == nsIAccessibleRole::ROLE_LISTBOX &&
+      aRole == nsIAccessibleRole::ROLE_OPTION)
+    return true;
+  if (aParentRole == nsIAccessibleRole::ROLE_PAGETABLIST &&
+      aRole == nsIAccessibleRole::ROLE_PAGETAB)
+    return true;
+  if ((aParentRole == nsIAccessibleRole::ROLE_POPUP_MENU ||
+       aParentRole == nsIAccessibleRole::ROLE_MENUPOPUP) &&
+      aRole == nsIAccessibleRole::ROLE_MENUITEM)
+    return true;
+
+  return false;
 }
