@@ -224,7 +224,7 @@ IsArrayLike(JSContext* cx, JSObject* obj)
   
   
   
-  JSAutoEnterCompartment ac;
+  Maybe<JSAutoCompartment> ac;
   if (js::IsWrapper(obj)) {
     obj = xpc::Unwrap(cx, obj, false);
     if (!obj) {
@@ -232,9 +232,7 @@ IsArrayLike(JSContext* cx, JSObject* obj)
       return false;
     }
 
-    if (!ac.enter(cx, obj)) {
-      return false;
-    }
+    ac.construct(cx, obj);
   }
 
   
@@ -442,12 +440,12 @@ WrapNewBindingNonWrapperCachedObject(JSContext* cx, JSObject* scope, T* value,
   {
     
     
-    JSAutoEnterCompartment ac;
+    Maybe<JSAutoCompartment> ac;
     if (js::IsWrapper(scope)) {
       scope = xpc::Unwrap(cx, scope, false);
-      if (!scope || !ac.enter(cx, scope)) {
+      if (!scope)
         return false;
-      }
+      ac.construct(cx, scope);
     }
 
     obj = value->WrapObject(cx, scope);

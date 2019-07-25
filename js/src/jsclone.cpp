@@ -510,12 +510,7 @@ JSStructuredCloneWriter::startWrite(const Value &v)
         if (!obj)
             return false;
 
-        
-        
-        JSAutoEnterCompartment ac;
-        if (!ac.enter(context(), obj))
-            return false;
-
+        AutoCompartment ac(context(), obj);
         if (obj->isRegExp()) {
             RegExpObject &reobj = obj->asRegExp();
             return out.writePair(SCTAG_REGEXP_OBJECT, reobj.getFlags()) &&
@@ -555,12 +550,7 @@ JSStructuredCloneWriter::write(const Value &v)
 
     while (!counts.empty()) {
         RootedObject obj(context(), &objs.back().toObject());
-
-        
-        JSAutoEnterCompartment ac;
-        if (!ac.enter(context(), obj))
-            return false;
-
+        AutoCompartment ac(context(), obj);
         if (counts.back()) {
             counts.back()--;
             RootedId id(context(), ids.back());

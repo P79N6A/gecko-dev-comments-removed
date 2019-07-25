@@ -1039,10 +1039,7 @@ nsEventListenerManager::SetJSEventListenerToJsval(nsIAtom *aEventName,
   }
 
   
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, aScope)) {
-    return NS_ERROR_UNEXPECTED;
-  }
+  JSAutoCompartment ac(cx, aScope);
 
   
   jsval tempVal = v;

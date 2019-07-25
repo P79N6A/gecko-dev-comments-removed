@@ -107,7 +107,7 @@ class Debugger {
 
 
 
-    JSTrapStatus handleUncaughtException(AutoCompartment &ac, Value *vp, bool callHook);
+    JSTrapStatus handleUncaughtException(Maybe<AutoCompartment> &ac, Value *vp, bool callHook);
 
     
 
@@ -134,8 +134,8 @@ class Debugger {
 
 
 
-    JSTrapStatus parseResumptionValue(AutoCompartment &ac, bool ok, const Value &rv, Value *vp,
-                                      bool callHook = true);
+    JSTrapStatus parseResumptionValue(Maybe<AutoCompartment> &ac, bool ok, const Value &rv,
+                                      Value *vp, bool callHook = true);
 
     JSObject *unwrapDebuggeeArgument(JSContext *cx, const Value &v);
 
@@ -330,7 +330,7 @@ class Debugger {
 
 
 
-    bool receiveCompletionValue(AutoCompartment &ac, bool ok, Value val, Value *vp);
+    bool receiveCompletionValue(Maybe<AutoCompartment> &ac, bool ok, Value val, Value *vp);
 
     
 

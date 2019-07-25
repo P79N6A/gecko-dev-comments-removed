@@ -625,11 +625,7 @@ nsOuterWindowProxy::singleton;
 static JSObject*
 NewOuterWindowProxy(JSContext *cx, JSObject *parent)
 {
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, parent)) {
-    return nullptr;
-  }
-
+  JSAutoCompartment ac(cx, parent);
   JSObject *obj = js::Wrapper::New(cx, parent, js::GetObjectProto(parent), parent,
                                    &nsOuterWindowProxy::singleton);
   NS_ASSERTION(js::GetObjectClass(obj)->ext.innerObject, "bad class");
@@ -1988,11 +1984,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
       SetWrapper(mJSObject);
 
       {
-        JSAutoEnterCompartment ac;
-        if (!ac.enter(cx, mJSObject)) {
-          NS_ERROR("unable to enter a compartment");
-          return NS_ERROR_FAILURE;
-        }
+        JSAutoCompartment ac(cx, mJSObject);
 
         JS_SetParent(cx, mJSObject, newInnerWindow->mJSObject);
 
@@ -2010,11 +2002,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     }
 
     
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(cx, mJSObject)) {
-      NS_ERROR("unable to enter a compartment");
-      return NS_ERROR_FAILURE;
-    }
+    JSAutoCompartment ac(cx, mJSObject);
 
     
     
@@ -2040,11 +2028,7 @@ nsGlobalWindow::SetNewDocument(nsIDocument* aDocument,
     }
   }
 
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, mJSObject)) {
-    NS_ERROR("unable to enter a compartment");
-    return NS_ERROR_FAILURE;
-  }
+  JSAutoCompartment ac(cx, mJSObject);
 
   if (!aState && !reUseInnerWindow) {
     
@@ -6010,10 +5994,7 @@ nsGlobalWindow::CallerInnerWindow()
   }
 
   JSObject *scope = CallerGlobal();
-
-  JSAutoEnterCompartment ac;
-  if (!ac.enter(cx, scope))
-    return nullptr;
+  JSAutoCompartment ac(cx, scope);
 
   nsCOMPtr<nsIXPConnectWrappedNative> wrapper;
   nsContentUtils::XPConnect()->

@@ -386,9 +386,7 @@ PermitIfUniversalXPConnect(JSContext *cx, jsid id, Wrapper::Action act,
 static bool
 IsInSandbox(JSContext *cx, JSObject *obj)
 {
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(cx, obj))
-        return false;
+    JSAutoCompartment ac(cx, obj);
     JSObject *global = JS_GetGlobalForObject(cx, obj);
     return !strcmp(js::GetObjectJSClass(global)->name, "Sandbox");
 }
@@ -414,10 +412,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     
     
     
-    JSAutoEnterCompartment ac;
-    JSAutoEnterCompartment wrapperAC;
-    if (!ac.enter(cx, wrappedObject))
-        return false;
+    JSAutoCompartment ac(cx, wrappedObject);
 
     JSBool found = false;
     if (!JS_HasPropertyById(cx, wrappedObject, exposedPropsId, &found))
@@ -434,9 +429,7 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
     
     if (!found) {
         
-        if (!wrapperAC.enter(cx, wrapper))
-            return false;
-
+        JSAutoCompartment wrapperAC(cx, wrapper);
         
         
         if (!JS_ObjectIsFunction(cx, wrappedObject) &&
@@ -471,8 +464,8 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
         return false;
 
     if (exposedProps.isNullOrUndefined()) {
-        return wrapperAC.enter(cx, wrapper) &&
-               PermitIfUniversalXPConnect(cx, id, act, perm); 
+        JSAutoCompartment wrapperAC(cx, wrapper);
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (!exposedProps.isObject()) {
@@ -489,8 +482,8 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
         return false; 
     }
     if (desc.obj == NULL || !(desc.attrs & JSPROP_ENUMERATE)) {
-        return wrapperAC.enter(cx, wrapper) &&
-               PermitIfUniversalXPConnect(cx, id, act, perm); 
+        JSAutoCompartment wrapperAC(cx, wrapper);
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     if (!JSVAL_IS_STRING(desc.value)) {
@@ -535,8 +528,8 @@ ExposedPropertiesOnly::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper:
 
     if ((act == Wrapper::SET && !(access & WRITE)) ||
         (act != Wrapper::SET && !(access & READ))) {
-        return wrapperAC.enter(cx, wrapper) &&
-               PermitIfUniversalXPConnect(cx, id, act, perm); 
+        JSAutoCompartment wrapperAC(cx, wrapper);
+        return PermitIfUniversalXPConnect(cx, id, act, perm); 
     }
 
     perm = PermitPropertyAccess;
@@ -548,9 +541,7 @@ ComponentsObjectPolicy::check(JSContext *cx, JSObject *wrapper, jsid id, Wrapper
                               Permission &perm) 
 {
     perm = DenyAccess;
-    JSAutoEnterCompartment ac;
-    if (!ac.enter(cx, wrapper))
-        return false;
+    JSAutoCompartment ac(cx, wrapper);
 
     if (JSID_IS_STRING(id) && act == Wrapper::GET) {
         JSFlatString *flatId = JSID_TO_FLAT_STRING(id);

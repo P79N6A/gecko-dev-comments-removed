@@ -2665,8 +2665,7 @@ GetRequestBody(nsIVariant* aBody, nsIInputStream** aResult,
     
     jsval realVal;
     nsCxPusher pusher;
-    JSAutoEnterCompartment ac;
-    JSObject* obj;
+    Maybe<JSAutoCompartment> ac;
 
     
     
@@ -2680,12 +2679,13 @@ GetRequestBody(nsIVariant* aBody, nsIInputStream** aResult,
     }
 
     nsresult rv = aBody->GetAsJSVal(&realVal);
-    if (NS_SUCCEEDED(rv) && !JSVAL_IS_PRIMITIVE(realVal) &&
-        (obj = JSVAL_TO_OBJECT(realVal)) &&
-        ac.enter(cx, obj) &&
-        (JS_IsArrayBufferObject(obj, cx))) {
-      ArrayBuffer buf(cx, obj);
-      return GetRequestBody(&buf, aResult, aContentType, aCharset);
+    if (NS_SUCCEEDED(rv) && !JSVAL_IS_PRIMITIVE(realVal)) {
+      JSObject *obj = JSVAL_TO_OBJECT(realVal);
+      ac.construct(cx, obj);
+      if (JS_IsArrayBufferObject(obj, cx)) {
+          ArrayBuffer buf(cx, obj);
+          return GetRequestBody(&buf, aResult, aContentType, aCharset);
+      }
     }
   }
   else if (dataType == nsIDataType::VTYPE_VOID ||
