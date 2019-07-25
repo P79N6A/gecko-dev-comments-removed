@@ -239,17 +239,9 @@ window.TabMirror = {
     });
 
     
-    Tabs.onReady(function(evt) {
-      var tab = evt.tab;
-      Utils.timeout(function() { 
-        self.update(tab);
-      }, 1);
-    });
-
     
-    
-    Tabs.onLoad(function(evt) {
-      var tab = evt.tab;
+    Tabs.onChange(function(evt) {
+      let tab = this;
       Utils.timeout(function() { 
         tab.mirror.okayToHideCache = true;
         self.update(tab);
@@ -265,7 +257,7 @@ window.TabMirror = {
     });
 
     
-    Tabs.forEach(function(tab){
+    Tabs.allTabs.forEach(function(tab){
       self.link(tab);
     });
 
@@ -279,13 +271,14 @@ window.TabMirror = {
   _heartbeat: function() {
     try {
       var now = Date.now();
-      var count = Tabs.length;
+      let tabs = Tabs.allTabs;
+      let count = tabs.length;
       if (count && this.paintingPaused <= 0) {
         this.heartbeatIndex++;
         if (this.heartbeatIndex >= count)
           this.heartbeatIndex = 0;
 
-        var tab = Tabs[this.heartbeatIndex];
+        let tab = tabs[this.heartbeatIndex];
         var mirror = tab.mirror;
         if (mirror) {
           let iconUrl = tab.image;
