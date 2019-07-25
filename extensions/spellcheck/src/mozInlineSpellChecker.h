@@ -231,8 +231,6 @@ public:
 
   
   static PRBool CanEnableInlineSpellChecking();
-  
-  static void UpdateCanEnableInlineSpellChecking();
 
   nsresult Blur(nsIDOMEvent* aEvent);
   nsresult MouseClick(nsIDOMEvent* aMouseEvent);
