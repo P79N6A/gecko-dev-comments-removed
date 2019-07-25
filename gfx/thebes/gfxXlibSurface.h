@@ -101,6 +101,15 @@ public:
     }
 
     
+    
+    
+    Drawable ReleasePixmap() {
+        NS_ASSERTION(mPixmapTaken, "I don't own the Pixmap!");
+        mPixmapTaken = PR_FALSE;
+        return mDrawable;
+    }
+
+    
     PRBool GetColormapAndVisual(Colormap* colormap, Visual **visual);
 
 protected:
