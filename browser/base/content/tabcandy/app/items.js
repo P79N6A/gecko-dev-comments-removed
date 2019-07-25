@@ -67,6 +67,10 @@ window.Item = function() {
   
   
   
+  this.zIndex = 0;
+  
+  
+  
   
   this.debug = false;
   
@@ -291,7 +295,7 @@ window.Item.prototype = {
   
   
   getZ: function() {
-    return parseInt(iQ(this.container).css('zIndex'));
+    return this.zIndex;
   },
 
   

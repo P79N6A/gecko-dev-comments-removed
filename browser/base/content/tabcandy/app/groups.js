@@ -542,6 +542,8 @@ window.Group.prototype = iQ.extend(new Item(), new Subscribable(), {
   
   
   setZ: function(value) {
+    this.zIndex = value;
+
     iQ(this.container).css({zIndex: value});
 
     if(this.$debug) 
