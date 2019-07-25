@@ -227,6 +227,10 @@ window.Page = {
         case 38: 
           norm = function(a, me){return a.y < me.y}
           break;
+        case 49: 
+        case 69: 
+          if( Keys.meta ) if( self.getActiveTab() ) self.getActiveTab().zoom();
+          break;
       }
       
       if( norm != null && $(":focus").length == 0 ){
