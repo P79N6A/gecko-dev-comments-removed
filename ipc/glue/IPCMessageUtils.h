@@ -55,8 +55,12 @@ namespace mozilla {
 
 
 
-struct void_t { };
-struct null_t { };
+struct void_t {
+  bool operator==(const void_t&) const { return true; }
+};
+struct null_t {
+  bool operator==(const null_t&) const { return true; }
+};
 
 } 
 
