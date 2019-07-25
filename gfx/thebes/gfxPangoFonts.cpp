@@ -63,6 +63,8 @@
 #include "gfxPangoFonts.h"
 #include "gfxFT2FontBase.h"
 #include "gfxFT2Utils.h"
+#include "harfbuzz/hb-unicode.h"
+#include "gfxUnicodeProperties.h"
 #include "gfxFontconfigUtils.h"
 #include "gfxUserFontSet.h"
 #include "gfxAtoms.h"
@@ -2068,6 +2070,106 @@ gfxPangoFontGroup::GetFontSet(PangoLanguage *aLang)
     mFontSets.AppendElement(FontSetByLangEntry(aLang, fontSet));
 
     return fontSet;
+}
+
+already_AddRefed<gfxFont>
+gfxPangoFontGroup::FindFontForChar(PRUint32 aCh, PRUint32 aPrevCh,
+                                   PRInt32 aRunScript,
+                                   gfxFont *aPrevMatchedFont)
+{
+    if (aPrevMatchedFont) {
+        PRUint8 category = gfxUnicodeProperties::GetGeneralCategory(aCh);
+        
+        
+        
+        
+        if ((category == HB_CATEGORY_CONTROL ||
+             category == HB_CATEGORY_FORMAT  ||
+             gfxFontUtils::IsVarSelector(aCh))) {
+            return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
+        }
+
+        
+        
+        
+        
+        
+        if (aCh == ' ' ||
+            (gfxFontUtils::IsJoinCauser(aPrevCh) &&
+             static_cast<gfxFcFont*>(aPrevMatchedFont)->GetGlyph(aCh))) {
+            return nsRefPtr<gfxFont>(aPrevMatchedFont).forget();
+        }
+    }
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+
+    gfxFcFontSet *fontSet = GetBaseFontSet();
+    PRUint32 nextFont = 0;
+    FcPattern *basePattern = NULL;
+    if (!mStyle.systemFont && mPangoLanguage) {
+        basePattern = fontSet->GetFontPatternAt(0);
+        if (HasChar(basePattern, aCh)) {
+            return nsRefPtr<gfxFont>(GetBaseFont()).forget();
+        }
+
+        nextFont = 1;
+    }
+
+    
+    const PangoScript script = static_cast<PangoScript>(aRunScript);
+    
+    
+    PangoLanguage *scriptLang;
+    if ((!basePattern ||
+         !pango_language_includes_script(mPangoLanguage, script)) &&
+        (scriptLang = pango_script_get_sample_language(script))) {
+        fontSet = GetFontSet(scriptLang);
+        nextFont = 0;
+    }
+
+    for (PRUint32 i = nextFont;
+         FcPattern *pattern = fontSet->GetFontPatternAt(i);
+         ++i) {
+        if (pattern == basePattern) {
+            continue; 
+        }
+
+        if (HasChar(pattern, aCh)) {
+            return nsRefPtr<gfxFont>(fontSet->GetFontAt(i)).forget();
+        }
+    }
+
+    return nsnull;
 }
 
 
