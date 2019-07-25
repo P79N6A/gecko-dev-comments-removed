@@ -1420,11 +1420,13 @@ nsHTMLFormElement::OnSubmitClickBegin(nsIContent* aOriginatingElement)
   
   
   
-  PRBool cancelSubmit = PR_FALSE;
-  rv = NotifySubmitObservers(actionURI, &cancelSubmit, PR_TRUE);
-  if (NS_SUCCEEDED(rv)) {
-    mNotifiedObservers = PR_TRUE;
-    mNotifiedObserversResult = cancelSubmit;
+  if (mInvalidElementsCount == 0) {
+    PRBool cancelSubmit = PR_FALSE;
+    rv = NotifySubmitObservers(actionURI, &cancelSubmit, PR_TRUE);
+    if (NS_SUCCEEDED(rv)) {
+      mNotifiedObservers = PR_TRUE;
+      mNotifiedObserversResult = cancelSubmit;
+    }
   }
 }
 
