@@ -111,6 +111,16 @@ class GlobalObject : public ::JSObject {
   public:
     static GlobalObject *create(JSContext *cx, Class *clasp);
 
+    
+
+
+
+
+
+
+
+    JSObject *createBlankPrototype(JSContext *cx, js::Class *clasp);
+
     void setThrowTypeError(JSFunction *fun) {
         Value &v = getSlotRef(THROWTYPEERROR);
         

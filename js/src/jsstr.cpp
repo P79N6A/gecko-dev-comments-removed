@@ -3163,24 +3163,13 @@ StringObject::assignInitialShape(JSContext *cx)
 }
 
 JSObject *
-js_InitStringClass(JSContext *cx, JSObject *global)
+js_InitStringClass(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(global->isGlobal());
-    JS_ASSERT(global->isNative());
+    JS_ASSERT(obj->isNative());
 
-    
+    GlobalObject *global = obj->asGlobal();
 
-
-
-    if (!JS_DefineFunctions(cx, global, string_functions))
-        return NULL;
-
-    
-    JSObject *objectProto;
-    if (!js_GetClassPrototype(cx, global, JSProto_Object, &objectProto))
-        return NULL;
-
-    JSObject *proto = NewObject<WithProto::Class>(cx, &js_StringClass, objectProto, global);
+    JSObject *proto = global->createBlankPrototype(cx, &js_StringClass);
     if (!proto || !proto->asString()->init(cx, cx->runtime->emptyString))
         return NULL;
 
@@ -3215,18 +3204,14 @@ js_InitStringClass(JSContext *cx, JSObject *global)
     ctor->brand(cx);
 
     
-
-
-
-
-
-
-
-    if (!proto->getEmptyShape(cx, &js_StringClass, FINALIZE_OBJECT0))
+    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
         return NULL;
 
     
-    if (!DefineConstructorAndPrototype(cx, global, JSProto_String, ctor, proto))
+
+
+
+    if (!JS_DefineFunctions(cx, global, string_functions))
         return NULL;
 
     return proto;

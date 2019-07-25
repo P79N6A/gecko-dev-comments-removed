@@ -814,33 +814,28 @@ static JSFunctionSpec regexp_methods[] = {
 };
 
 JSObject *
-js_InitRegExpClass(JSContext *cx, JSObject *global)
+js_InitRegExpClass(JSContext *cx, JSObject *obj)
 {
-    JS_ASSERT(global->isGlobal());
-    JS_ASSERT(global->isNative());
+    JS_ASSERT(obj->isNative());
 
-    
-    JSObject *objectProto;
-    if (!js_GetClassPrototype(cx, global, JSProto_Object, &objectProto))
-        return NULL;
-    JS_ASSERT(objectProto);
+    GlobalObject *global = obj->asGlobal();
 
-    JSObject *proto = NewObject<WithProto::Class>(cx, &js_RegExpClass, objectProto, global);
+    JSObject *proto = global->createBlankPrototype(cx, &js_RegExpClass);
     if (!proto)
         return NULL;
 
     AlreadyIncRefed<RegExp> re = RegExp::create(cx, cx->runtime->emptyString, 0, NULL);
     if (!re)
         return NULL;
-#ifdef DEBUG
-    assertSameCompartment(cx, proto, re->compartment);
-#endif
 
     
 
 
 
 
+#ifdef DEBUG
+    assertSameCompartment(cx, proto, re->compartment);
+#endif
     if (!proto->initRegExp(cx, re.get()))
         return NULL;
 
@@ -881,17 +876,6 @@ js_InitRegExpClass(JSContext *cx, JSObject *global)
         !JS_AliasProperty(cx, ctor, "rightContext", "$'")) {
         return NULL;
     }
-
-    
-
-
-
-
-
-
-
-    if (!proto->getEmptyShape(cx, &js_RegExpClass, FINALIZE_OBJECT0))
-        return NULL;
 
     
     if (!DefineConstructorAndPrototype(cx, global, JSProto_RegExp, ctor, proto))
