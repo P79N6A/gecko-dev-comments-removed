@@ -621,7 +621,8 @@ BookmarkImporter.prototype = {
     
     if (aIconURI) {
       if (aIconURI.scheme == "chrome") {
-        PlacesUtils.favicons.setFaviconUrlForPage(aPageURI, aIconURI);
+        PlacesUtils.favicons.setAndFetchFaviconForPage(aPageURI, aIconURI,
+                                                       false);
         return;
       }
     }
@@ -637,6 +638,8 @@ BookmarkImporter.prototype = {
       faviconURI = aIconURI;
     } else {
       
+      
+      
       let faviconSpec = "http://www.mozilla.org/2005/made-up-favicon/"
                       + serialNumber
                       + "-"
@@ -648,9 +651,8 @@ BookmarkImporter.prototype = {
     
     
     
-    PlacesUtils.favicons.setFaviconDataFromDataURL(faviconURI, aData, 0);
-
-    PlacesUtils.favicons.setFaviconUrlForPage(aPageURI, faviconURI);
+    PlacesUtils.favicons.replaceFaviconDataFromDataURL(faviconURI, aData);
+    PlacesUtils.favicons.setAndFetchFaviconForPage(aPageURI, faviconURI, false);
   },
 
   

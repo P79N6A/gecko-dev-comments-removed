@@ -208,6 +208,26 @@ function readFileOfLength(aFileName, aExpectedLength) {
 
 
 
+
+
+function base64EncodeString(aString) {
+  var stream = Cc["@mozilla.org/io/string-input-stream;1"]
+               .createInstance(Ci.nsIStringInputStream);
+  stream.setData(aString, aString.length);
+  var encoder = Cc["@mozilla.org/scriptablebase64encoder;1"]
+                .createInstance(Ci.nsIScriptableBase64Encoder);
+  return encoder.encodeToString(stream, aString.length);
+}
+
+
+
+
+
+
+
+
+
+
 function compareArrays(aArray1, aArray2) {
   if (aArray1.length != aArray2.length) {
     print("compareArrays: array lengths differ\n");

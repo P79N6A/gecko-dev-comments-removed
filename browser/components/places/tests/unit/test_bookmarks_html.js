@@ -188,6 +188,9 @@ add_test(function test_emptytitle_export()
   
   
   
+  
+  
+  
 
   try {
     BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
@@ -232,6 +235,83 @@ add_test(function test_emptytitle_export()
       } else {
         do_throw("couldn't import the exported file.");
       }
+    });
+  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+});
+
+add_test(function test_import_chromefavicon()
+{
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+
+  const PAGE_URI = NetUtil.newURI("http://example.com/chromefavicon_page");
+  const CHROME_FAVICON_URI = NetUtil.newURI("chrome://global/skin/icons/information-16.png");
+  const CHROME_FAVICON_URI_2 = NetUtil.newURI("chrome://global/skin/icons/error-16.png");
+
+  try {
+    BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
+      if (!success) {
+        do_throw("couldn't import the exported file.");
+      }
+      let id = PlacesUtils.bookmarks.insertBookmark(PlacesUtils.unfiledBookmarksFolderId,
+                                                    PAGE_URI,
+                                                    PlacesUtils.bookmarks.DEFAULT_INDEX,
+                                                    "Test");
+
+      PlacesUtils.favicons.setAndFetchFaviconForPage(
+        PAGE_URI, CHROME_FAVICON_URI, true, function () {
+          PlacesUtils.favicons.getFaviconDataForPage(
+            PAGE_URI, function (aURI, aDataLen, aData, aMimeType) {
+              let base64Icon = "data:image/png;base64," +
+                  base64EncodeString(String.fromCharCode.apply(String, aData));
+
+              test_bookmarks.unfiled.push(
+                { title: "Test", url: PAGE_URI.spec, icon: base64Icon });
+
+              try {
+                exporter.exportHTMLToFile(gBookmarksFileNew);
+              } catch(ex) { do_throw("couldn't export to file: " + ex); }
+
+              
+              PlacesUtils.favicons.setAndFetchFaviconForPage(
+                PAGE_URI, CHROME_FAVICON_URI_2, true, function () {
+
+                  remove_all_bookmarks();
+
+                  try {
+                    BookmarkHTMLUtils.importFromFile(gBookmarksFileNew, true, function(success) {
+                     if (!success) {
+                        do_throw("couldn't import the exported file.");
+                      }
+                      waitForAsyncUpdates(function () {
+                        testImportedBookmarks();
+
+                        
+                        test_bookmarks.unfiled.pop();
+                        PlacesUtils.bookmarks.removeItem(id);
+
+                        try {
+                          exporter.exportHTMLToFile(gBookmarksFileNew);
+                        } catch(ex) { do_throw("couldn't export to file: " + ex); }
+
+                        waitForAsyncUpdates(function () {
+                          remove_all_bookmarks();
+                          run_next_test();
+                        });
+                      });
+                    });
+                  } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
+                });
+            });
+        });
     });
   } catch(ex) { do_throw("couldn't import the exported file: " + ex); }
 });
