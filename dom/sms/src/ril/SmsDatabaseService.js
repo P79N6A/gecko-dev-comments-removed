@@ -255,20 +255,22 @@ SmsDatabaseService.prototype = {
 
 
   keyIntersection: function keyIntersection(keys, filter) {
+    
+    
     let result = keys[FILTER_TIMESTAMP];
     if (keys[FILTER_NUMBERS].length || filter.numbers) {
-      result = keys[FILTER_NUMBERS].filter(function(i) {
-        return result.indexOf(i) != -1;
+      result = result.filter(function(i) {
+        return keys[FILTER_NUMBERS].indexOf(i) != -1;
       });
     }
     if (keys[FILTER_DELIVERY].length || filter.delivery) {
-      result = keys[FILTER_DELIVERY].filter(function(i) {
-        return result.indexOf(i) != -1;
+      result = result.filter(function(i) {
+        return keys[FILTER_DELIVERY].indexOf(i) != -1;
       });
     }
     if (keys[FILTER_READ].length || filter.read) {
-      result = keys[FILTER_READ].filter(function(i) {
-        return result.indexOf(i) != -1;
+      result = result.filter(function(i) {
+        return keys[FILTER_READ].indexOf(i) != -1;
       });
     }
     return result;
