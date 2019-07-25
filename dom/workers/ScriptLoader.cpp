@@ -329,10 +329,21 @@ public:
       
       
       
-      rv = mIsWorkerScript ?
-           principal->CheckMayLoad(uri, false):
-           secMan->CheckLoadURIWithPrincipal(principal, uri, 0);
-      NS_ENSURE_SUCCESS(rv, rv);
+      if (mIsWorkerScript) {
+        nsCString scheme;
+        rv = uri->GetScheme(scheme);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        if (!scheme.EqualsLiteral("data")) {
+          rv = principal->CheckMayLoad(uri, false);
+          NS_ENSURE_SUCCESS(rv, rv);
+        }
+      }
+      else {
+        rv = secMan->CheckLoadURIWithPrincipal(principal, uri, 0);
+        NS_ENSURE_SUCCESS(rv, rv);
+      }
 
       
       
@@ -505,8 +516,16 @@ public:
           return NS_ERROR_DOM_BAD_URI;
         }
       }
-      else if (NS_FAILED(loadPrincipal->CheckMayLoad(finalURI, false))) {
-        return NS_ERROR_DOM_BAD_URI;
+      else  {
+        nsCString scheme;
+        rv = finalURI->GetScheme(scheme);
+        NS_ENSURE_SUCCESS(rv, rv);
+
+        
+        if (!scheme.EqualsLiteral("data") &&
+            NS_FAILED(loadPrincipal->CheckMayLoad(finalURI, false))) {
+          return NS_ERROR_DOM_BAD_URI;
+        }
       }
 
       mWorkerPrivate->SetPrincipal(channelPrincipal);
