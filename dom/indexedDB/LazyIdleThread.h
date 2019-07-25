@@ -48,6 +48,8 @@
 
 #include "mozilla/Mutex.h"
 
+#define IDLE_THREAD_TOPIC "thread-shutting-down"
+
 BEGIN_INDEXEDDB_NAMESPACE
 
 
@@ -79,7 +81,10 @@ public:
   
 
 
-  void EnableIdleTimeout(PRBool aEnable);
+
+
+
+  void SetIdleObserver(nsIObserver* aObserver);
 
 private:
   
@@ -150,7 +155,8 @@ private:
   
 
 
-  PRUint32 mTimeoutDisabledCount;
+
+  nsCOMPtr<nsIObserver> mIdleObserver;
 };
 
 END_INDEXEDDB_NAMESPACE

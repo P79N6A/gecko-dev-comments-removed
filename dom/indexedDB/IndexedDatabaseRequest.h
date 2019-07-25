@@ -56,7 +56,7 @@ public:
 
 protected:
   
-  IndexedDatabaseRequest();
+  IndexedDatabaseRequest() { }
 };
 
 END_INDEXEDDB_NAMESPACE
