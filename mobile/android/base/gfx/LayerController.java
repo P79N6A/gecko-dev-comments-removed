@@ -258,9 +258,9 @@ public class LayerController {
     }
 
     
-    public void notifyPanZoomControllerOfGeometryChange(boolean abortFling) {
+    public void notifyPanZoomControllerOfGeometryChange(boolean abortAnimation) {
         if (mPanZoomController != null)
-            mPanZoomController.geometryChanged(abortFling);
+            mPanZoomController.geometryChanged(abortAnimation);
     }
 
     

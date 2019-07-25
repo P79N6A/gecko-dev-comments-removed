@@ -136,8 +136,7 @@ public class PanZoomController
 
         PANNING_HOLD_LOCKED, 
         PINCHING,       
-        ANIMATED_ZOOM,  
-        BOUNCING,       
+        ANIMATED_ZOOM   
     }
 
     private PanZoomState mState;
@@ -241,8 +240,9 @@ public class PanZoomController
         }
     }
 
-    public void geometryChanged(boolean aAbortFling) {
-        if (aAbortFling) {
+    public void geometryChanged(boolean abortAnimation) {
+        if (abortAnimation) {
+            
             
             
             
@@ -250,6 +250,10 @@ public class PanZoomController
             case FLING:
                 mX.velocity = mY.velocity = 0.0f;
                 mState = PanZoomState.NOTHING;
+                
+            case ANIMATED_ZOOM:
+                
+                
                 
             case NOTHING:
                 bounce();
