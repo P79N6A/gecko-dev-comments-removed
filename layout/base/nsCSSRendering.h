@@ -464,6 +464,15 @@ public:
 
   gfxContext* GetContext();
 
+
+  
+
+
+
+
+  static nsMargin GetBlurRadiusMargin(nscoord aBlurRadius,
+                                      PRInt32 aAppUnitsPerDevPixel);
+
 protected:
   gfxAlphaBoxBlur blur;
   nsRefPtr<gfxContext> mContext;

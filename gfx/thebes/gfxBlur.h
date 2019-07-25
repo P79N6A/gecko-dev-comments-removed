@@ -57,6 +57,11 @@
 
 
 
+
+
+
+
+
 class THEBES_API gfxAlphaBoxBlur
 {
 public:
@@ -65,6 +70,10 @@ public:
     ~gfxAlphaBoxBlur();
 
     
+
+
+
+
 
 
 
@@ -109,6 +118,8 @@ public:
     void Paint(gfxContext* aDestinationCtx, const gfxPoint& offset = gfxPoint(0.0, 0.0));
 
     
+
+
 
 
 
