@@ -108,10 +108,8 @@ var Tabbar = {
       var tabbrowser = Utils.getCurrentWindow().gBrowser;
       var tabBarTabs = this.getAllTabs();
       
-      var visibleTabs = [ tab.tab.raw for each ( tab in tabs ) if (tab.tab.tabbrowser == tabbrowser) ];
-      
-      
-      
+      var visibleTabs =
+        [ tab.tab.raw for each ( tab in tabs ) if (tab.tab.tabbrowser == tabbrowser) ];
       
       
       tabBarTabs.forEach(function(tab){
@@ -120,15 +118,23 @@ var Tabbar = {
           if (visibleTab == tab) {
             collapsed = false;
             
-            visibleTabs.splice(i, 1);
-            if (!options.dontReorg) {
-              tabbrowser.moveTabTo(tab, tabBarTabs.length - 1);
-            }
+            if (options.dontReorg)
+              visibleTabs.splice(i, 1);
             return true;
           }
         });
         tab.collapsed = collapsed;
       });
+      
+      
+      
+      
+      if (!options.dontReorg) {
+        visibleTabs.forEach(function(visibleTab) {
+          tabbrowser.moveTabTo(visibleTab, tabBarTabs.length - 1);
+        });
+      }
+
     } catch(e) {
       Utils.log(e);
     }
@@ -616,8 +622,6 @@ window.Page = {
 
 function UIClass() { 
   try {
-    Utils.log('TabCandy init --------------------');
-
     
     
     this.navBar = Navbar;
