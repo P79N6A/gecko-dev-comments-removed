@@ -41,6 +41,7 @@
 
 #include "jscntxt.h"
 
+#include "nsIInterfaceRequestorUtils.h"
 #include "nsJSNPRuntime.h"
 #include "nsNPAPIPlugin.h"
 #include "nsNPAPIPluginInstance.h"
@@ -54,6 +55,7 @@
 #include "nsIDOMElement.h"
 #include "prmem.h"
 #include "nsIContent.h"
+#include "nsIPluginInstanceOwner.h"
 
 #define NPRUNTIME_JSCLASS_NAME "NPObject JS wrapper class"
 
