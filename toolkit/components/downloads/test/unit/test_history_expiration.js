@@ -39,6 +39,23 @@
 
 
 
+
+
+
+
+
+
+function getExpirablePRTime() {
+  let dateObj = new Date();
+  
+  dateObj.setHours(0);
+  dateObj.setMinutes(0);
+  dateObj.setSeconds(0);
+  dateObj.setMilliseconds(0);
+  dateObj = new Date(dateObj.getTime() - 8 * 86400000);
+  return dateObj.getTime() * 1000;
+}
+
 function run_test()
 {
   
@@ -88,13 +105,10 @@ function run_test()
     stmt.finalize();
   }
 
+  
   let histsvc = Cc["@mozilla.org/browser/nav-history-service;1"].
                 getService(Ci.nsINavHistoryService);
-  
-  
-  
-  let expirableTime = Date.now() - 9 * 24 * 60 * 60 * 1000;
-  histsvc.addVisit(theURI, expirableTime * 1000, null,
+  histsvc.addVisit(theURI, getExpirablePRTime(), null,
                    histsvc.TRANSITION_DOWNLOAD, false, 0);
 
   
