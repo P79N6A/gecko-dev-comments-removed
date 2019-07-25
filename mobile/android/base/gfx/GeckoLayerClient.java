@@ -323,6 +323,31 @@ public class GeckoLayerClient implements GeckoEventResponder,
     }
 
     
+    public void setFirstPaintViewport(float offsetX, float offsetY, float zoom, float pageWidth, float pageHeight) {
+        synchronized (mLayerController) {
+            ViewportMetrics currentMetrics = new ViewportMetrics(mLayerController.getViewportMetrics());
+            currentMetrics.setOrigin(new PointF(offsetX, offsetY));
+            currentMetrics.setZoomFactor(zoom);
+            currentMetrics.setPageSize(new FloatSize(pageWidth, pageHeight));
+            mLayerController.setViewportMetrics(currentMetrics);
+            mLayerController.abortPanZoomAnimation();
+        }
+    }
+
+    
+    public void setPageSize(float zoom, float pageWidth, float pageHeight) {
+        synchronized (mLayerController) {
+            
+            
+            
+            float ourZoom = mLayerController.getZoomFactor();
+            pageWidth = pageWidth * ourZoom / zoom;
+            pageHeight = pageHeight * ourZoom /zoom;
+            mLayerController.setPageSize(new FloatSize(pageWidth, pageHeight));
+        }
+    }
+
+    
     
 
 
