@@ -78,63 +78,59 @@ class Element;
 } 
 
 enum {
-  UNUSED1 =       0x00000001U,
+  
+  
+  NODE_HAS_LISTENERMANAGER =     0x00000001U,
 
   
-  
-  NODE_HAS_LISTENERMANAGER =     0x00000002U,
-
-  
-  NODE_HAS_PROPERTIES =          0x00000004U,
-
-  
-  
-  
-  
-  
-  NODE_IS_ANONYMOUS =            0x00000008U,
+  NODE_HAS_PROPERTIES =          0x00000002U,
 
   
   
   
   
   
-  
-  NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000010U,
+  NODE_IS_ANONYMOUS =            0x00000004U,
 
   
   
   
   
-  NODE_IS_NATIVE_ANONYMOUS_ROOT = 0x00000020U,
+  
+  
+  NODE_IS_IN_ANONYMOUS_SUBTREE = 0x00000008U,
 
   
   
-  NODE_FORCE_XBL_BINDINGS =      0x00000040U,
-
-  
-  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000080U,
-
-  NODE_IS_EDITABLE =             0x00000100U,
-
-  UNUSED3 =                      0x00000200U,
   
   
-  NODE_MAY_HAVE_CLASS =          0x00000400U,
-  UNUSED4 =                      0x00000800U,
-
-  NODE_IS_INSERTION_PARENT =     0x00001000U,
-
-  
-  NODE_HAS_EMPTY_SELECTOR =      0x00002000U,
+  NODE_IS_NATIVE_ANONYMOUS_ROOT = 0x00000010U,
 
   
   
-  NODE_HAS_SLOW_SELECTOR =       0x00004000U,
+  NODE_FORCE_XBL_BINDINGS =      0x00000020U,
+
+  
+  NODE_MAY_BE_IN_BINDING_MNGR =  0x00000040U,
+
+  NODE_IS_EDITABLE =             0x00000080U,
 
   
   
-  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00008000U,
+  NODE_MAY_HAVE_CLASS =          0x00000100U,
+
+  NODE_IS_INSERTION_PARENT =     0x00000200U,
+
+  
+  NODE_HAS_EMPTY_SELECTOR =      0x00000400U,
+
+  
+  
+  NODE_HAS_SLOW_SELECTOR =       0x00000800U,
+
+  
+  
+  NODE_HAS_EDGE_CHILD_SELECTOR = 0x00001000U,
 
   
   
@@ -144,39 +140,33 @@ enum {
   
   
   NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS
-                               = 0x00010000U,
+                               = 0x00002000U,
 
   NODE_ALL_SELECTOR_FLAGS =      NODE_HAS_EMPTY_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR |
                                  NODE_HAS_EDGE_CHILD_SELECTOR |
                                  NODE_HAS_SLOW_SELECTOR_LATER_SIBLINGS,
 
-  UNUSED6                      = 0x00020000U,
-
   NODE_ATTACH_BINDING_ON_POSTCREATE
-                               = 0x00040000U,
+                               = 0x00004000U,
 
   
   
-  NODE_NEEDS_FRAME =             0x00080000U,
+  NODE_NEEDS_FRAME =             0x00008000U,
 
   
   
   
-  NODE_DESCENDANTS_NEED_FRAMES = 0x00100000U,
+  NODE_DESCENDANTS_NEED_FRAMES = 0x00010000U,
 
-  UNUSED2                     = 0x00200000U,
   
-  
-  NODE_HAS_ACCESSKEY           = 0x00400000U,
-
-  UNUSED5                      = 0x00800000U,
+  NODE_HAS_ACCESSKEY           = 0x00020000U,
 
   
   
   
   
-  NODE_SCRIPT_TYPE_OFFSET =               24,
+  NODE_SCRIPT_TYPE_OFFSET =               18,
 
   NODE_SCRIPT_TYPE_SIZE =                  2,
 
