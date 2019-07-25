@@ -102,8 +102,6 @@
 
 
 
-
-
 function InputHandler(browserViewContainer) {
   
   this._modules = [];
@@ -123,9 +121,6 @@ function InputHandler(browserViewContainer) {
   this.listenFor(window, "TabSelect");
 
   
-  this.listenFor(window, "mouseout");
-
-  
   this.listenFor(window, "mousedown");
   this.listenFor(window, "mouseup");
   this.listenFor(window, "mousemove");
@@ -140,8 +135,6 @@ function InputHandler(browserViewContainer) {
 
   this.addModule(new MouseModule(this));
   this.addModule(new ScrollwheelModule(this, Browser._browserView, browserViewContainer));
-  
-  
 }
 
 
@@ -187,10 +180,11 @@ InputHandler.prototype = {
 
 
 
-  
-  
-  
-  
+
+
+
+
+
   grab: function grab(grabber) {
     if (grabber == null) {
       this._grabber = null;
@@ -397,6 +391,7 @@ InputHandler.EventInfo.prototype = {
 
 
 
+
 function MouseModule(owner) {
   this._owner = owner;
   this._dragData = new DragData(this, 50, 200);
@@ -479,7 +474,7 @@ MouseModule.prototype = {
     this._owner.grab(this);
 
     if (targetScrollInterface) {
-      this._doDragStart(evInfo.event.screenX, evInfo.event.screenY);
+      this._doDragStart(evInfo.event);
     }
 
     this._recordEvent(evInfo);
@@ -587,13 +582,13 @@ MouseModule.prototype = {
   
 
 
-  _doDragStart: function _doDragStart(sX, sY) {
+  _doDragStart: function _doDragStart(event) {
     let dragData = this._dragData;
 
-    dragData.setDragStart(sX, sY);
-    this._kinetic.addData(sX, sY);
+    dragData.setDragStart(event.screenX, event.screenY);
+    this._kinetic.addData(event.screenX, event.screenY);
 
-    this._dragger.dragStart(this._targetScrollInterface);
+    this._dragger.dragStart(event.clientX, event.clientY, event.target, this._targetScrollInterface);
   },
 
   
@@ -738,7 +733,7 @@ MouseModule.prototype = {
 
 
   _defaultDragger: {
-    dragStart: function dragStart(scroller) {},
+    dragStart: function dragStart(cx, cy, target, scroller) {},
 
     dragStop : function dragStop(dx, dy, scroller)
     { return this.dragMove(dx, dy, scroller); },
@@ -903,7 +898,7 @@ DragData.prototype = {
   },
 
   isPointOutsideRadius: function isPointOutsideRadius(sX, sY) {
-    if (this._originX == undefined)
+    if (this._originX === null)
       return false;
     return (Math.pow(sX - this._originX, 2) + Math.pow(sY - this._originY, 2)) >
       (2 * Math.pow(this._dragRadius, 2));
@@ -1043,7 +1038,8 @@ KineticController.prototype = {
   },
 
   end: function end() {
-    this._beforeEnd();
+    if (this._beforeEnd)
+      this._beforeEnd();
     this._reset();
   },
 
@@ -1062,252 +1058,10 @@ KineticController.prototype = {
         return;
     }
 
+    
     this.momentumBuffer.push({'t': now, 'sx' : sx, 'sy' : sy});
   }
 };
-
-
-function ContentPanningModule(owner, browserCanvas, useEarlyMouseMoves) {
-  this._owner = owner;
-  this._browserCanvas = browserCanvas;
-  this._dragData = new DragData(this, 50, 200);
-  this._useEarlyMouseMoves = useEarlyMouseMoves;
-
-  var self = this;
-  this._kinetic = new KineticController( function (dx, dy) { return self._dragBy(dx, dy); } );
-}
-
-ContentPanningModule.prototype = {
-  handleEvent: function handleEvent(aEvent) {
-    
-    if (aEvent.target !== this._browserCanvas)
-      return;
-
-    switch (aEvent.type) {
-      case "mousedown":
-        this._onMouseDown(aEvent);
-        break;
-      case "mousemove":
-        this._onMouseMove(aEvent);
-        break;
-      case "mouseout":
-      case "mouseup":
-        this._onMouseUp(aEvent);
-        break;
-    }
-  },
-
-
-  
-
-
-  cancelPending: function cancelPending() {
-    this._kinetic.end();
-    this._dragData.reset();
-  },
-
-  _dragStart: function _dragStart(sX, sY) {
-    let dragData = this._dragData;
-
-    dragData.setDragStart(sX, sY);
-
-    [sX, sY] = dragData.lockAxis(sX, sY);
-
-    
-
-    
-  },
-
-  _dragStop: function _dragStop(sX, sY) {
-    let dragData = this._dragData;
-
-    this._owner.ungrab(this);
-
-    [sX, sY] = dragData.lockMouseMove(sX, sY);
-
-    
-    this._kinetic.start(sX, sY);
-
-    dragData.reset();
-  },
-
-  _dragBy: function _dragBy(dx, dy) {
-    
-
-
-
-    return false;
-  },
-
-  _dragMove: function _dragMove(sX, sY) {
-    let dragData = this._dragData;
-    [sX, sY] = dragData.lockMouseMove(sX, sY);
-    
-    let panned = false;
-    dragData.setDragPosition(sX, sY);
-    return panned;
-  },
-
-  _onMouseDown: function _onMouseDown(aEvent) {
-    let dragData = this._dragData;
-    
-    if (this._kinetic.isActive()) {
-      this._kinetic.end();
-      this._owner.ungrab(this);
-      dragData.reset();
-    }
-
-    this._dragStart(aEvent.screenX, aEvent.screenY);
-    this._onMouseMove(aEvent); 
-  },
-
-  _onMouseUp: function _onMouseUp(aEvent) {
-    let dragData = this._dragData;
-
-    if (dragData.dragging) {
-      this._onMouseMove(aEvent); 
-      this._dragStop(aEvent.screenX, aEvent.screenY);
-    }
-
-    dragData.reset(); 
-  },
-
-  _onMouseMove: function _onMouseMove(aEvent) {
-    
-    if (this._kinetic.isActive())
-      return;
-
-    let dragData = this._dragData;
-
-    
-    if (dragData.isPointOutsideRadius(aEvent.screenX, aEvent.screenY))
-      this._owner.grab(this);
-
-    
-    if (!dragData.sX)
-      dragData.setDragPosition(aEvent.screenX, aEvent.screenY);
-
-    let [sX, sY] = dragData.lockMouseMove(aEvent.screenX, aEvent.screenY);
-
-    
-    
-    if (this._useEarlyMouseMoves || dragData.dragging)
-      this._kinetic.addData(sX, sY);
-
-    if (dragData.dragging)
-      this._dragMove(sX, sY);
-  }
-};
-
-
-
-
-
-function ContentClickingModule(owner) {
-  this._owner = owner;
-  this._clickTimeout = -1;
-  this._events = [];
-  this._zoomedTo = null;
-}
-
-ContentClickingModule.prototype = {
-  handleEvent: function handleEvent(aEvent) {
-    switch (aEvent.type) {
-      
-      case "mousedown":
-        this._events.push({event: aEvent, time: Date.now()});
-
-
-      case "mouseup":
-        
-        if (!(this._events.length % 2)) {
-          this._reset();
-            break;
-        }
-
-        this._events.push({event: aEvent, time: Date.now()});
-
-        if (this._clickTimeout == -1) {
-          this._clickTimeout = window.setTimeout(function _clickTimeout(self) { self._sendSingleClick(); }, 400, this);
-        } else {
-          window.clearTimeout(this._clickTimeout);
-          this._clickTimeout = -1;
-          this._sendDoubleClick();
-        }
-        break;
-    }
-  },
-
-  
-
-
-  cancelPending: function cancelPending() {
-    this._reset();
-  },
-
-  _reset: function _reset() {
-    if (this._clickTimeout != -1)
-      window.clearTimeout(this._clickTimeout);
-    this._clickTimeout = -1;
-
-    this._events = [];
-  },
-
-  _sendSingleClick: function _sendSingleClick() {
-    this._owner.grab(this);
-    this._dispatchContentMouseEvent(this._events[0].event);
-    this._dispatchContentMouseEvent(this._events[1].event);
-    this._owner.ungrab(this);
-
-    this._reset();
-  },
-
-  _sendDoubleClick: function _sendDoubleClick() {
-    this._owner.grab(this);
-
-    function optimalElementForPoint(cX, cY) {
-      var element = Browser.canvasBrowser.elementFromPoint(cX, cY);
-      return element;
-    }
-
-    let firstEvent = this._events[0].event;
-    let zoomElement = optimalElementForPoint(firstEvent.clientX, firstEvent.clientY);
-
-    if (zoomElement) {
-      if (zoomElement != this._zoomedTo) {
-        this._zoomedTo = zoomElement;
-        Browser.canvasBrowser.zoomToElement(zoomElement);
-      } else {
-        this._zoomedTo = null;
-        Browser.canvasBrowser.zoomFromElement(zoomElement);
-      }
-    }
-
-    this._owner.ungrab(this);
-
-    this._reset();
-  },
-
-
-  _dispatchContentMouseEvent: function _dispatchContentMouseEvent(aEvent, aType) {
-    if (!(aEvent instanceof MouseEvent)) {
-      Cu.reportError("_dispatchContentMouseEvent called with a non-mouse event");
-      return;
-    }
-
-    let cb = Browser.canvasBrowser;
-    var [x, y] = cb._clientToContentCoords(aEvent.clientX, aEvent.clientY);
-    var cwu = cb.contentDOMWindowUtils;
-
-    
-    cwu.sendMouseEvent(aType || aEvent.type,
-                       x, y,
-                       aEvent.button || 0,
-                       aEvent.detail || 1,
-                       0, true);
-  }
-};
-
 
 
 

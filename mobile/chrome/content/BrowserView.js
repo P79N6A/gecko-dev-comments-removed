@@ -378,7 +378,14 @@ BrowserView.prototype = {
       this._renderMode--;
 
     if (renderNow || this._renderMode == 0)
-      this._tileManager.criticalRectPaint();
+      this.renderNow();
+  },
+
+  
+
+
+  renderNow: function renderNow() {
+    this._tileManager.criticalRectPaint();
   },
 
   isRendering: function isRendering() {

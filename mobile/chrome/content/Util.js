@@ -37,6 +37,7 @@
 
 
 
+
 let Ci = Components.interfaces;
 
 
@@ -56,8 +57,13 @@ let Util = {
     for (let key in instance)
       if (instance[key] instanceof Function)
         instance[key] = bind(instance[key], instance);
-  }
+  },
 
+  dumpLn: function dumpLn() {
+    
+    for (var i = 0; i < arguments.length; i++) { dump(arguments[i]); }
+    dump("\n");
+  }
 };
 
 
@@ -554,4 +560,3 @@ wsRect.prototype = {
     return this;
   }
 };
-
