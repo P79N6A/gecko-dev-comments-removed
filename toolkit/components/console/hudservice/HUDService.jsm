@@ -4893,10 +4893,6 @@ ConsoleUtils = {
     }
 
     
-    let markerNode = aDocument.createElementNS(XUL_NS, "xul:vbox");
-    markerNode.classList.add("webconsole-marker");
-
-    
     
     
     let iconContainer = aDocument.createElementNS(XUL_NS, "xul:vbox");
@@ -4952,7 +4948,6 @@ ConsoleUtils = {
     ConsoleUtils.setMessageType(node, aCategory, aSeverity);
 
     node.appendChild(timestampNode);
-    node.appendChild(markerNode);
     node.appendChild(iconContainer);
     node.appendChild(bodyNode);
     if (locationNode) {
