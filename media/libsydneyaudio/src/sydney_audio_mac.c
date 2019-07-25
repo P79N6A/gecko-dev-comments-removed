@@ -82,15 +82,15 @@ struct sa_stream {
   sa_buf          * bl_head;
   sa_buf          * bl_tail;
   int               n_bufs;
+
+  size_t            buffer_size;
 };
 
 
 
 
 
-
-
-#define BUF_SIZE    (2 * 44100 * 4)
+#define BUF_SIZE_MS 200
 #define BUF_LIMIT   5
 
 #if BUF_LIMIT < 2
@@ -101,7 +101,7 @@ struct sa_stream {
 static OSStatus audio_callback(void *arg, AudioUnitRenderActionFlags *action_flags,
   const AudioTimeStamp *time_stamp, UInt32 bus_num, UInt32 n_frames, AudioBufferList *data);
 
-static sa_buf *new_buffer(void);
+static sa_buf *new_buffer(size_t bufsz);
 
 
 
@@ -143,15 +143,6 @@ sa_stream_create_pcm(
   if ((s = malloc(sizeof(sa_stream_t))) == NULL) {
     return SA_ERROR_OOM;
   }
-  if ((s->bl_head = new_buffer()) == NULL) {
-    free(s);
-    return SA_ERROR_OOM;
-  }
-  if (pthread_mutex_init(&s->mutex, NULL) != 0) {
-    free(s->bl_head);
-    free(s);
-    return SA_ERROR_SYSTEM;
-  }
 
   s->output_unit  = NULL;
   s->playing      = FALSE;
@@ -160,8 +151,28 @@ sa_stream_create_pcm(
   s->rate         = rate;
   s->n_channels   = n_channels;
   s->bytes_per_ch = 2;
+  s->buffer_size  = s->bytes_per_ch *
+                    ((rate * n_channels * BUF_SIZE_MS) / 1000);
+
+  
+  if (s->buffer_size % (s->bytes_per_ch * n_channels) != 0) {
+    s->buffer_size += (s->bytes_per_ch * n_channels) - (s->buffer_size % (s->bytes_per_ch * n_channels));
+  }
+
+  if ((s->bl_head = new_buffer(s->buffer_size)) == NULL) {
+    free(s);
+    return SA_ERROR_OOM;
+
+  }
+
   s->bl_tail      = s->bl_head;
   s->n_bufs       = 1;
+
+  if (pthread_mutex_init(&s->mutex, NULL) != 0) {
+    free(s->bl_head);
+    free(s);
+    return SA_ERROR_SYSTEM;
+  }
 
   *_s = s;
   return SA_SUCCESS;
@@ -387,7 +398,7 @@ sa_stream_write(sa_stream_t *s, const void *data, size_t nbytes) {
       
 
 
-      if ((s->bl_tail->next = new_buffer()) == NULL) {
+      if ((s->bl_tail->next = new_buffer(s->buffer_size)) == NULL) {
         result = SA_ERROR_OOM;
         break;
       }
@@ -530,7 +541,7 @@ sa_stream_get_write_size(sa_stream_t *s, size_t *size) {
 
 
   avail = s->bl_tail->size - s->bl_tail->end;
-  avail += (BUF_LIMIT - s->n_bufs) * BUF_SIZE;
+  avail += (BUF_LIMIT - s->n_bufs) * s->buffer_size;
   *size = avail;
 
   pthread_mutex_unlock(&s->mutex);
@@ -602,10 +613,10 @@ sa_stream_resume(sa_stream_t *s) {
 
 
 static sa_buf *
-new_buffer(void) {
-  sa_buf  * b = malloc(sizeof(sa_buf) + BUF_SIZE);
+new_buffer(size_t bufsz) {
+  sa_buf  * b = malloc(sizeof(sa_buf) + bufsz);
   if (b != NULL) {
-    b->size  = BUF_SIZE;
+    b->size  = bufsz;
     b->start = 0;
     b->end   = 0;
     b->next  = NULL;
