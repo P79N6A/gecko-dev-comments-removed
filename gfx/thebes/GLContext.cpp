@@ -589,13 +589,6 @@ BasicTextureImage::BeginUpdate(nsIntRegion& aRegion)
 
     mUpdateSurface->SetDeviceOffset(gfxPoint(-rgnSize.x, -rgnSize.y));
 
-    if (format == gfxASurface::ImageFormatARGB32) {
-      
-      nsRefPtr<gfxContext> ctx = new gfxContext(mUpdateSurface);
-      ctx->SetOperator(gfxContext::OPERATOR_CLEAR);
-      ctx->Paint();
-    }
-
     return mUpdateSurface;
 }
 
