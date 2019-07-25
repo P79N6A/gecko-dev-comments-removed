@@ -63,7 +63,11 @@ WebGLProgram::UpdateInfo(gl::GLContext *gl)
     gl->fGetProgramiv(mName, LOCAL_GL_ACTIVE_ATTRIBUTES, &mAttribCount);
 
     GLint numVertexAttribs;
-    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &numVertexAttribs);
+    if (mContext->MinCapabilityMode())  {
+        numVertexAttribs = MINVALUE_GL_MAX_VERTEX_ATTRIBS;
+    } else {
+        gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &numVertexAttribs);
+    }
     mAttribsInUse.clear();
     mAttribsInUse.resize(numVertexAttribs);
 
@@ -503,6 +507,9 @@ WebGLContext::InitAndValidateGL()
         return PR_FALSE;
     }
 
+    mMinCapability = Preferences::GetBool("webgl.min_capability_mode", false);
+    mDisableExtensions = Preferences::GetBool("webgl.disable-extensions", false);
+
     mActiveTexture = 0;
     mWebGLError = LOCAL_GL_NO_ERROR;
 
@@ -533,10 +540,14 @@ WebGLContext::InitAndValidateGL()
         gl->fEnableVertexAttribArray(0);
     }
 
-    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &mGLMaxVertexAttribs);
+    if (MinCapabilityMode()) {
+        mGLMaxVertexAttribs = MINVALUE_GL_MAX_VERTEX_ATTRIBS;
+    } else {
+        gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_ATTRIBS, &mGLMaxVertexAttribs);
+    }
     if (mGLMaxVertexAttribs < 8) {
         LogMessage("GL_MAX_VERTEX_ATTRIBS: %d is < 8!", mGLMaxVertexAttribs);
-        return PR_FALSE;
+        return false;
     }
 
     mAttribBuffers.SetLength(mGLMaxVertexAttribs);
@@ -544,17 +555,30 @@ WebGLContext::InitAndValidateGL()
     
     
     
-    gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mGLMaxTextureUnits);
+    if (MinCapabilityMode()) {
+        mGLMaxTextureUnits = MINVALUE_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS;
+    } else {
+        gl->fGetIntegerv(LOCAL_GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &mGLMaxTextureUnits);
+    }
     if (mGLMaxTextureUnits < 8) {
         LogMessage("GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS: %d is < 8!", mGLMaxTextureUnits);
-        return PR_FALSE;
+        return false;
     }
 
     mBound2DTextures.SetLength(mGLMaxTextureUnits);
     mBoundCubeMapTextures.SetLength(mGLMaxTextureUnits);
 
-    gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &mGLMaxTextureSize);
-    gl->fGetIntegerv(LOCAL_GL_MAX_CUBE_MAP_TEXTURE_SIZE, &mGLMaxCubeMapTextureSize);
+    if (MinCapabilityMode()) {
+        mGLMaxTextureSize = MINVALUE_GL_MAX_TEXTURE_SIZE;
+        mGLMaxCubeMapTextureSize = MINVALUE_GL_MAX_CUBE_MAP_TEXTURE_SIZE;
+        mGLMaxTextureImageUnits = MINVALUE_GL_MAX_TEXTURE_IMAGE_UNITS;
+        mGLMaxVertexTextureImageUnits = MINVALUE_GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS;
+    } else {
+        gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_SIZE, &mGLMaxTextureSize);
+        gl->fGetIntegerv(LOCAL_GL_MAX_CUBE_MAP_TEXTURE_SIZE, &mGLMaxCubeMapTextureSize);
+        gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_IMAGE_UNITS, &mGLMaxTextureImageUnits);
+        gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &mGLMaxVertexTextureImageUnits);
+    }
     
 #ifdef XP_MACOSX
     if (gl->Vendor() == gl::GLContext::VendorIntel) {
@@ -564,48 +588,51 @@ WebGLContext::InitAndValidateGL()
     }
 #endif
 
-    gl->fGetIntegerv(LOCAL_GL_MAX_TEXTURE_IMAGE_UNITS, &mGLMaxTextureImageUnits);
-    gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS, &mGLMaxVertexTextureImageUnits);
-
-    if (gl->HasES2Compatibility()) {
-        gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_UNIFORM_VECTORS, &mGLMaxFragmentUniformVectors);
-        gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_VECTORS, &mGLMaxVertexUniformVectors);
-        gl->fGetIntegerv(LOCAL_GL_MAX_VARYING_VECTORS, &mGLMaxVaryingVectors);
+    if (MinCapabilityMode()) {
+        mGLMaxFragmentUniformVectors = MINVALUE_GL_MAX_FRAGMENT_UNIFORM_VECTORS;
+        mGLMaxVertexUniformVectors = MINVALUE_GL_MAX_VERTEX_UNIFORM_VECTORS;
+        mGLMaxVaryingVectors = MINVALUE_GL_MAX_VARYING_VECTORS;
     } else {
-        gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &mGLMaxFragmentUniformVectors);
-        mGLMaxFragmentUniformVectors /= 4;
-        gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_COMPONENTS, &mGLMaxVertexUniformVectors);
-        mGLMaxVertexUniformVectors /= 4;
+        if (gl->HasES2Compatibility()) {
+            gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_UNIFORM_VECTORS, &mGLMaxFragmentUniformVectors);
+            gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_VECTORS, &mGLMaxVertexUniformVectors);
+            gl->fGetIntegerv(LOCAL_GL_MAX_VARYING_VECTORS, &mGLMaxVaryingVectors);
+        } else {
+            gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_UNIFORM_COMPONENTS, &mGLMaxFragmentUniformVectors);
+            mGLMaxFragmentUniformVectors /= 4;
+            gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_UNIFORM_COMPONENTS, &mGLMaxVertexUniformVectors);
+            mGLMaxVertexUniformVectors /= 4;
 
-        
-        
-        
+            
+            
+            
 
-        
-        error = gl->GetAndClearError();
-        if (error != LOCAL_GL_NO_ERROR) {
-            LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
-            return PR_FALSE;
-        }
-
-        
-        
-        GLint maxVertexOutputComponents,
-              minFragmentInputComponents;
-        gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_OUTPUT_COMPONENTS, &maxVertexOutputComponents);
-        gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_INPUT_COMPONENTS, &minFragmentInputComponents);
-
-        error = gl->fGetError();
-        switch (error) {
-            case LOCAL_GL_NO_ERROR:
-                mGLMaxVaryingVectors = NS_MIN(maxVertexOutputComponents, minFragmentInputComponents) / 4;
-                break;
-            case LOCAL_GL_INVALID_ENUM:
-                mGLMaxVaryingVectors = 16; 
-                break;
-            default:
+            
+            error = gl->GetAndClearError();
+            if (error != LOCAL_GL_NO_ERROR) {
                 LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
-                return PR_FALSE;
+                return false;
+            }
+
+            
+            
+            GLint maxVertexOutputComponents,
+                  minFragmentInputComponents;
+            gl->fGetIntegerv(LOCAL_GL_MAX_VERTEX_OUTPUT_COMPONENTS, &maxVertexOutputComponents);
+            gl->fGetIntegerv(LOCAL_GL_MAX_FRAGMENT_INPUT_COMPONENTS, &minFragmentInputComponents);
+
+            error = gl->GetAndClearError();
+            switch (error) {
+                case LOCAL_GL_NO_ERROR:
+                    mGLMaxVaryingVectors = NS_MIN(maxVertexOutputComponents, minFragmentInputComponents) / 4;
+                    break;
+                case LOCAL_GL_INVALID_ENUM:
+                    mGLMaxVaryingVectors = 16; 
+                    break;
+                default:
+                    LogMessage("GL error 0x%x occurred during WebGL context initialization!", error);
+                    return false;
+            }   
         }
     }
 
