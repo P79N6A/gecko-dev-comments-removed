@@ -312,6 +312,17 @@ public:
   
 
 
+  inline void UpdateText(nsIContent* aTextNode)
+  {
+    NS_ASSERTION(mNotificationController, "The document was shut down!");
+
+    if (mNotificationController)
+      mNotificationController->ScheduleTextUpdate(aTextNode);
+  }
+
+  
+
+
   void RecreateAccessible(nsINode* aNode);
 
   

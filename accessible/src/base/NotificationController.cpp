@@ -56,6 +56,8 @@ NotificationController::NotificationController(nsDocAccessible* aDocument,
   mObservingState(eNotObservingRefresh), mDocument(aDocument),
   mPresShell(aPresShell), mTreeConstructedState(eTreeConstructionPending)
 {
+  mTextHash.Init();
+
   
   ScheduleProcessing();
 }
@@ -113,6 +115,7 @@ NotificationController::Shutdown()
   mDocument = nsnull;
   mPresShell = nsnull;
 
+  mTextHash.Clear();
   mContentInsertions.Clear();
   mNotifications.Clear();
   mEvents.Clear();
@@ -208,6 +211,11 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     if (!mDocument->IsBoundToParent())
       return;
 
+#ifdef DEBUG_NOTIFICATIONS
+    printf("\ninitial tree created, document: %p, document node: %p\n",
+           mDocument.get(), mDocument->GetDocumentNode());
+#endif
+
     mTreeConstructedState = eTreeConstructed;
     mDocument->CacheChildrenInSubtree(mDocument);
 
@@ -234,6 +242,10 @@ NotificationController::WillRefresh(mozilla::TimeStamp aTime)
     if (!mDocument)
       return;
   }
+
+  
+  mTextHash.EnumerateEntries(TextEnumerator, mDocument);
+  mTextHash.Clear();
 
   
   PRUint32 childDocCount = mHangingChildDocuments.Length();
@@ -561,6 +573,89 @@ NotificationController::CreateTextChangeEventFor(AccMutationEvent* aEvent)
                            aEvent->mIsFromUserInput ? eFromUserInput : eNoUserInput);
 }
 
+PLDHashOperator
+NotificationController::TextEnumerator(nsPtrHashKey<nsIContent>* aEntry,
+                                       void* aUserArg)
+{
+  nsDocAccessible* document = static_cast<nsDocAccessible*>(aUserArg);
+  nsIContent* textNode = aEntry->GetKey();
+  nsAccessible* textAcc = document->GetAccessible(textNode);
+
+  
+  
+  nsINode* containerNode = textNode->GetNodeParent();
+  if (!containerNode) {
+    NS_ASSERTION(!textAcc,
+                 "Text node was removed but accessible is kept alive!");
+    return PL_DHASH_NEXT;
+  }
+
+  nsIFrame* textFrame = textNode->GetPrimaryFrame();
+  if (!textFrame) {
+    NS_ASSERTION(!textAcc,
+                 "Text node isn't rendered but accessible is kept alive!");
+    return PL_DHASH_NEXT;
+  }
+
+  nsIContent* containerElm = containerNode->IsElement() ?
+    containerNode->AsElement() : nsnull;
+
+  nsAutoString renderedText;
+  textFrame->GetRenderedText(&renderedText);
+
+  
+  if (textAcc) {
+    if (renderedText.IsEmpty()) {
+#ifdef DEBUG_NOTIFICATIONS
+      PRUint32 index = containerNode->IndexOf(textNode);
+
+      nsCAutoString tag;
+      nsCAutoString id;
+      if (containerElm) {
+        containerElm->Tag()->ToUTF8String(tag);
+        nsIAtom* atomid = containerElm->GetID();
+        if (atomid)
+          atomid->ToUTF8String(id);
+      }
+
+      printf("\npending text node removal: container: %s@id='%s', index in container: %d\n\n",
+             tag.get(), id.get(), index);
+#endif
+
+      document->ContentRemoved(containerElm, textNode);
+    }
+
+    return PL_DHASH_NEXT;
+  }
+
+  
+  if (!renderedText.IsEmpty()) {
+#ifdef DEBUG_NOTIFICATIONS
+      PRUint32 index = containerNode->IndexOf(textNode);
+
+      nsCAutoString tag;
+      nsCAutoString id;
+      if (containerElm) {
+        containerElm->Tag()->ToUTF8String(tag);
+        nsIAtom* atomid = containerElm->GetID();
+        if (atomid)
+          atomid->ToUTF8String(id);
+      }
+
+      printf("\npending text node insertion: container: %s@id='%s', index in container: %d\n\n",
+             tag.get(), id.get(), index);
+#endif
+
+    nsAccessible* container = document->GetAccessibleOrContainer(containerNode);
+    nsTArray<nsCOMPtr<nsIContent> > insertedContents;
+    insertedContents.AppendElement(textNode);
+    document->ProcessContentInserted(container, &insertedContents);
+  }
+
+  return PL_DHASH_NEXT;
+}
+
+
 
 
 
@@ -616,7 +711,7 @@ NotificationController::ContentInsertion::Process()
       catomid->ToUTF8String(cid);
   }
 
-  printf("\npending content insertion process: %s@id='%s', container: %s@id='%s', inserted content amount: %d\n\n",
+  printf("\npending content insertion: %s@id='%s', container: %s@id='%s', inserted content amount: %d\n\n",
          tag.get(), id.get(), ctag.get(), cid.get(), mInsertedContent.Length());
 #endif
 

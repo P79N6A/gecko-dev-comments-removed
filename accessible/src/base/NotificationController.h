@@ -152,6 +152,16 @@ public:
   
 
 
+  inline void ScheduleTextUpdate(nsIContent* aTextNode)
+  {
+    
+    if (mTreeConstructedState != eTreeConstructionPending)
+      mTextHash.PutEntry(aTextNode);
+  }
+
+  
+
+
   void ScheduleContentInsertion(nsAccessible* aContainer,
                                 nsIContent* aStartChildNode,
                                 nsIContent* aEndChildNode);
@@ -322,6 +332,17 @@ private:
 
 
   nsTArray<nsRefPtr<ContentInsertion> > mContentInsertions;
+
+  
+
+
+  nsTHashtable<nsPtrHashKey<nsIContent> > mTextHash;
+
+  
+
+
+  static PLDHashOperator TextEnumerator(nsPtrHashKey<nsIContent>* aEntry,
+                                        void* aUserArg);
 
   
 

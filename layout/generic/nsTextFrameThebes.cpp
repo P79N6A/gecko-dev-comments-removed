@@ -6908,6 +6908,14 @@ nsTextFrame::ReflowText(nsLineLayout& aLineLayout, nscoord aAvailableWidth,
          aMetrics.width, aMetrics.height, aMetrics.ascent,
          aStatus);
 #endif
+
+#ifdef ACCESSIBILITY
+  
+  nsAccessibilityService* accService = nsIPresShell::AccService();
+  if (accService) {
+    accService->UpdateText(presContext->PresShell(), mContent);
+  }
+#endif
 }
 
  PRBool
