@@ -1280,16 +1280,14 @@ array_toString_sub(JSContext *cx, JSObject *obj, JSBool locale,
         }
 
         
-        if (!(hole || rval->isNullOrUndefined())) {
+        if (!hole && !rval->isNullOrUndefined()) {
             if (locale) {
                 
-                JSObject *robj;
-
-                if (!js_ValueToObjectOrNull(cx, *rval, &robj))
+                JSObject *robj = ToObject(cx, rval);
+                if (!robj)
                     goto out;
-                rval->setObjectOrNull(robj);
-                JSAtom *atom = cx->runtime->atomState.toLocaleStringAtom;
-                if (!js_TryMethod(cx, robj, atom, 0, NULL, rval))
+                jsid id = ATOM_TO_JSID(cx->runtime->atomState.toLocaleStringAtom);
+                if (!robj->callMethod(cx, id, 0, NULL, rval))
                     goto out;
             }
 
