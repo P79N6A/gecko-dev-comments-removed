@@ -477,7 +477,23 @@ namespace places {
       
       
       nsCOMPtr<mozIStorageStatement> getPageInfo =
-        history->GetStatementByStoragePool(DB_PAGE_INFO_FOR_FRECENCY);
+        history->GetStatementByStoragePool(
+          "SELECT typed, hidden, visit_count, "
+            "(SELECT count(*) FROM moz_historyvisits WHERE place_id = :page_id), "
+            "EXISTS ( "
+              "SELECT 1 FROM moz_bookmarks "
+              "WHERE fk = :page_id "
+              "AND NOT EXISTS( "
+                "SELECT 1 "
+                "FROM moz_items_annos a "
+                "JOIN moz_anno_attributes n ON a.anno_attribute_id = n.id "
+                "WHERE n.name = :anno_name "
+                  "AND a.item_id = parent "
+              ") "
+            "), "
+            "(url > 'place:' AND url < 'place;') "
+          "FROM moz_places "
+          "WHERE id = :page_id ");
       NS_ENSURE_STATE(getPageInfo);
       mozStorageStatementScoper infoScoper(getPageInfo);
 
@@ -505,19 +521,39 @@ namespace places {
       NS_ENSURE_SUCCESS(rv, rv);
 
       
+      
+      
+      
+      
+      nsCAutoString visitsForFrecencySQL(NS_LITERAL_CSTRING(
+        "/* do not warn (bug 659740 - SQLite may ignore index if few visits exist) */"
+        "SELECT "
+          "ROUND((strftime('%s','now','localtime','utc') - v.visit_date/1000000)/86400), "
+          "IFNULL(r.visit_type, v.visit_type), "
+          "v.visit_date "
+          "FROM moz_historyvisits v "
+          "LEFT JOIN moz_historyvisits r ON r.id = v.from_visit AND v.visit_type BETWEEN "
+          ) + nsPrintfCString("%d AND %d ", nsINavHistoryService::TRANSITION_REDIRECT_PERMANENT,
+                                            nsINavHistoryService::TRANSITION_REDIRECT_TEMPORARY) +
+          NS_LITERAL_CSTRING("WHERE v.place_id = :page_id "
+          "ORDER BY v.visit_date DESC ")
+      );
+
+      
       nsCOMPtr<mozIStorageStatement> getVisits =
-        history->GetStatementByStoragePool(DB_VISITS_FOR_FRECENCY);
+        history->GetStatementByStoragePool(visitsForFrecencySQL);
       NS_ENSURE_STATE(getVisits);
       mozStorageStatementScoper visitsScoper(getVisits);
 
       rv = getVisits->BindInt64ByName(NS_LITERAL_CSTRING("page_id"), pageId);
       NS_ENSURE_SUCCESS(rv, rv);
 
-      PRInt32 numSampledVisits = 0;
       
-      while (NS_SUCCEEDED(getVisits->ExecuteStep(&hasResult)) && hasResult) {
-        numSampledVisits++;
-
+      PRInt32 numSampledVisits = 0;
+      for (PRInt32 maxVisits = history->GetNumVisitsForFrecency();
+           numSampledVisits < maxVisits &&
+           NS_SUCCEEDED(getVisits->ExecuteStep(&hasResult)) && hasResult;
+           numSampledVisits++) {
         PRInt32 visitType;
         rv = getVisits->GetInt32(1, &visitType);
         NS_ENSURE_SUCCESS(rv, rv);
