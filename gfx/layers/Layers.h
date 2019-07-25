@@ -129,6 +129,7 @@ public:
     return mScrollId != NULL_SCROLL_ID;
   }
 
+  
   nsIntRect mViewport;
   nsIntSize mContentSize;
   nsIntPoint mViewportScrollOffset;
