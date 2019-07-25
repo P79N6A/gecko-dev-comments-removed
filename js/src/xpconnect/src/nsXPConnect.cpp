@@ -569,9 +569,12 @@ struct TraversalTracer : public JSTracer
 static void
 NoteJSChild(JSTracer *trc, void *thing, uint32 kind)
 {
+    TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
+    if(!nsXPConnect::IsGray(thing) && !tracer->cb.WantAllTraces())
+        return;
+
     if(ADD_TO_CC(kind))
     {
-        TraversalTracer *tracer = static_cast<TraversalTracer*>(trc);
 #if defined(DEBUG)
         if (NS_UNLIKELY(tracer->cb.WantDebugInfo())) {
             
@@ -680,7 +683,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 #endif
     {
         
-        type = !markJSObject && IsGray(p) ? GCUnmarked : GCMarked;
+        type = !markJSObject ? GCUnmarked : GCMarked;
     }
 
     if (cb.WantDebugInfo()) {
@@ -775,7 +778,7 @@ nsXPConnect::Traverse(void *p, nsCycleCollectionTraversalCallback &cb)
 
     if(traceKind != JSTRACE_OBJECT || dontTraverse)
         return NS_OK;
-    
+
     if(clazz == &XPC_WN_Tearoff_JSClass)
     {
         
@@ -1588,7 +1591,7 @@ MoveWrapper(XPCCallContext& ccx, XPCWrappedNative *wrapper,
 
         NS_ENSURE_SUCCESS(rv, rv);
 
-        newParent = parentWrapper->GetFlatJSObjectNoMark();
+        newParent = parentWrapper->GetFlatJSObject();
     }
     else
         NS_ASSERTION(betterScope == newScope, "Weird scope returned");
