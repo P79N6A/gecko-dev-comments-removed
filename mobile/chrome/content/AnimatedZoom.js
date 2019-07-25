@@ -43,6 +43,8 @@
 
 
 const AnimatedZoom = {
+  startScale: null,
+
   
   animateTo: function(aZoomRect) {
     if (!aZoomRect)
@@ -57,13 +59,10 @@ const AnimatedZoom = {
     Browser.hideTitlebar();
     Browser.forceChromeReflow();
 
-    this.beginTime = mozAnimationStartTime;
+    this.start();
 
     
-    if (this.zoomRect) {
-      this.zoomFrom = this.zoomRect;
-    } else {
-      this.zoomFrom = this.getStartRect();
+    if (!this.zoomRect) {
       this.updateTo(this.zoomFrom);
 
       mozRequestAnimationFrame(this);
@@ -74,9 +73,16 @@ const AnimatedZoom = {
     }
   },
 
+  start: function start() {
+    this.browser = getBrowser();
+    this.zoomFrom = this.zoomRect || this.getStartRect();
+    this.startScale = this.browser.scale;
+    this.beginTime = mozAnimationStartTime;
+  },
+
   
   getStartRect: function getStartRect() {
-    let browser = getBrowser();
+    let browser = this.browser;
     let bcr = browser.getBoundingClientRect();
     let scroll = browser.getRootView().getPosition();
     return new Rect(scroll.x, scroll.y, bcr.width, bcr.height);
@@ -84,27 +90,29 @@ const AnimatedZoom = {
 
   
   updateTo: function(nextRect) {
-    let browser = getBrowser();
     let zoomRatio = window.innerWidth / nextRect.width;
-    let zoomLevel = browser.scale * zoomRatio;
+    let scale = this.startScale * zoomRatio;
+    let scrollX = nextRect.left * zoomRatio;
+    let scrollY = nextRect.top * zoomRatio;
 
-    
-    
-    let contentView = browser.getRootView();
-    contentView.setScale(zoomLevel);
-    if ("_contentView" in contentView)
-      contentView._contentView.scrollTo(nextRect.left * zoomRatio, nextRect.top * zoomRatio);
+    this.browser.fuzzyZoom(scale, scrollX, scrollY);
 
     this.zoomRect = nextRect;
   },
 
   
   finish: function() {
-    Browser.setVisibleRect(this.zoomTo || this.zoomRect);
+    this.updateTo(this.zoomTo || this.zoomRect);
+    this.browser.finishFuzzyZoom();
+
+    Browser.hideSidebars();
+    Browser.hideTitlebar();
+
     this.beginTime = null;
     this.zoomTo = null;
     this.zoomFrom = null;
     this.zoomRect = null;
+    this.startScale = null;
 
     let event = document.createEvent("Events");
     event.initEvent("AnimatedZoomEnd", true, true);

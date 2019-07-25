@@ -980,7 +980,7 @@ var Browser = {
     let center = browser.transformClientToBrowser(browserRect.width / 2,
                                                   browserRect.height / 2);
     let rect = this._getZoomRectForPoint(center.x, center.y, zoomLevel);
-    this.animatedZoomTo(rect);
+    AnimatedZoom.animateTo(rect);
   },
 
   
@@ -1019,37 +1019,6 @@ var Browser = {
                                                  browser.contentDocumentHeight * oldScale));
   },
 
-  animatedZoomTo: function animatedZoomTo(rect) {
-    AnimatedZoom.animateTo(rect);
-  },
-
-  setVisibleRect: function setVisibleRect(rect) {
-    let browser = getBrowser();
-    let zoomRatio = window.innerWidth / rect.width;
-    let zoomLevel = browser.scale * zoomRatio;
-    let scrollX = rect.left * zoomRatio;
-    let scrollY = rect.top * zoomRatio;
-
-    this.hideSidebars();
-    this.hideTitlebar();
-
-    let scale = this.selectedTab.clampZoomLevel(zoomLevel);
-
-    
-    
-    let view = browser.getRootView();
-    view.setScale(scale);
-    if ("_contentView" in view)
-      view._contentView.scrollTo(scrollX, scrollY);
-
-    
-    
-    if (scale == browser.scale)
-      view._updateCacheViewport();
-    else
-      browser.scale = scale;
-  },
-
   zoomToPoint: function zoomToPoint(cX, cY, aRect) {
     let tab = this.selectedTab;
     if (!tab.allowZoom)
@@ -1065,7 +1034,7 @@ var Browser = {
     }
 
     if (zoomRect)
-      this.animatedZoomTo(zoomRect);
+      AnimatedZoom.animateTo(zoomRect);
 
     return zoomRect;
   },
@@ -1075,7 +1044,7 @@ var Browser = {
     if (tab.allowZoom && !tab.isDefaultZoomLevel()) {
       let zoomLevel = tab.getDefaultZoomLevel();
       let zoomRect = this._getZoomRectForPoint(cX, cY, zoomLevel);
-      this.animatedZoomTo(zoomRect);
+      AnimatedZoom.animateTo(zoomRect);
     }
   },
 
