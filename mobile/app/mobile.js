@@ -53,9 +53,6 @@ pref("zoom.dpiScale", 150);
 
 pref("ui.use_native_popup_windows", true);
 
-pref("javascript.options.showInConsole", false);
-pref("browser.dom.window.dump.enabled", false);
-
 
 pref("browser.cache.disk.enable", false);
 pref("browser.cache.disk.capacity", 0); 
