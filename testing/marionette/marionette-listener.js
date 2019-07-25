@@ -348,6 +348,14 @@ function executeWithCallback(msg, timeout) {
   let script = msg.json.value;
   asyncTestCommandId = msg.json.id;
 
+  if (msg.json.newSandbox || !sandbox) {
+    sandbox = createExecuteContentSandbox(curWindow);
+    if (!sandbox) {
+      sendError("Could not create sandbox!");
+      return;
+    }
+  }
+
   
   
   
@@ -356,19 +364,13 @@ function executeWithCallback(msg, timeout) {
   asyncTestTimeoutId = curWindow.setTimeout(function() {
     sandbox.asyncComplete('timed out', 28);
   }, marionetteTimeout);
+  sandbox.marionette.timeout = marionetteTimeout;
+
   curWindow.addEventListener('error', function win__onerror(evt) {
     curWindow.removeEventListener('error', win__onerror, true);
     sandbox.asyncComplete(evt, 17);
     return true;
   }, true);
-
-  if (msg.json.newSandbox || !sandbox) {
-    sandbox = createExecuteContentSandbox(curWindow);
-    if (!sandbox) {
-      sendError("Could not create sandbox!");
-      return;
-    }
-  }
 
   let scriptSrc;
   if (timeout) {
