@@ -213,6 +213,10 @@
 
 #include "mozilla/FunctionTimer.h"
 
+#ifdef ANDROID
+#include "AndroidBridge.h"
+#endif
+
 #ifdef WINCE
 class WindowsMutex {
 public:
@@ -1749,6 +1753,9 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
 
   SaveToEnv("MOZ_LAUNCHED_CHILD=1");
 
+#if defined(ANDROID)
+  mozilla::AndroidBridge::Bridge()->ScheduleRestart();
+#else
 #if defined(XP_MACOSX)
   SetupMacCommandLine(gRestartArgc, gRestartArgv, PR_TRUE);
   LaunchChildMac(gRestartArgc, gRestartArgv);
@@ -1798,6 +1805,7 @@ static nsresult LaunchChild(nsINativeAppSupport* aNative,
   PRStatus failed = PR_WaitProcess(process, &exitCode);
   if (failed || exitCode)
     return NS_ERROR_FAILURE;
+#endif 
 #endif 
 #endif 
 #endif 
