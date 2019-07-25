@@ -1074,11 +1074,11 @@ protected:
   nsPresContextType     mType;
   nsIPresShell*         mShell;         
   nsCOMPtr<nsIDocument> mDocument;
-  nsDeviceContext*     mDeviceContext; 
-                                        
-                                        
-                                        
-                                        
+  nsRefPtr<nsDeviceContext> mDeviceContext; 
+                                            
+                                            
+                                            
+                                            
   nsRefPtr<nsEventStateManager> mEventManager;
   nsRefPtr<nsRefreshDriver> mRefreshDriver;
   nsRefPtr<nsTransitionManager> mTransitionManager;
@@ -1132,7 +1132,7 @@ protected:
 
   
   nsUserFontSet*        mUserFontSet;
-  
+
   nsRect                mVisibleArea;
   nsSize                mPageSize;
   float                 mPageScale;
