@@ -36,6 +36,11 @@
 
 #filter substitution
 
+
+pref("toolkit.browser.cachePixelX", 500);
+pref("toolkit.browser.cachePixelY", 2000);
+pref("toolkit.browser.recacheRatio", 50);
+
 pref("toolkit.defaultChromeURI", "chrome://browser/content/browser.xul");
 pref("general.useragent.compatMode.firefox", true);
 pref("browser.chromeURL", "chrome://browser/content/");
