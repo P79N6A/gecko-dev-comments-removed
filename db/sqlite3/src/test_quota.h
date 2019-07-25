@@ -29,6 +29,14 @@
 #ifndef _QUOTA_H_
 #include "sqlite3.h"
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#if SQLITE_OS_UNIX
+# include <unistd.h>
+#endif
+#if SQLITE_OS_WIN
+# include <windows.h>
+#endif
 
 
 #ifdef __cplusplus
@@ -181,6 +189,48 @@ int sqlite3_quota_fclose(quota_FILE*);
 int sqlite3_quota_fseek(quota_FILE*, long, int);
 void sqlite3_quota_rewind(quota_FILE*);
 long sqlite3_quota_ftell(quota_FILE*);
+
+
+
+
+
+
+
+
+
+int sqlite3_quota_ftrunate(quota_FILE*, sqlite3_int64 newSize);
+
+
+
+
+
+int sqlite3_quota_file_mtime(quota_FILE*, time_t *pTime);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_quota_file_size(quota_FILE*);
+
+
+
+
+
+
+
+
+
+
+
+
+sqlite3_int64 sqlite3_quota_file_truesize(quota_FILE*);
 
 
 
