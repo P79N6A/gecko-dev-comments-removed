@@ -86,6 +86,10 @@ class SpecificLayerAttributes;
 
 
 
+class THEBES_API LayerUserData {
+public:
+  virtual ~LayerUserData() {}
+};
 
 
 
@@ -108,6 +112,56 @@ class SpecificLayerAttributes;
 
 
 
+
+
+
+
+
+
+
+
+class THEBES_API LayerUserDataSet {
+public:
+  LayerUserDataSet() : mKey(nsnull) {}
+
+  void Set(void* aKey, LayerUserData* aValue)
+  {
+    NS_ASSERTION(!mKey || mKey == aKey,
+                 "Multiple LayerUserData objects not supported");
+    mKey = aKey;
+    mValue = aValue;
+  }
+  
+
+
+  LayerUserData* Remove(void* aKey)
+  {
+    if (mKey == aKey) {
+      mKey = nsnull;
+      LayerUserData* d = mValue.forget();
+      return d;
+    }
+    return nsnull;
+  }
+  
+
+
+  PRBool Has(void* aKey)
+  {
+    return mKey == aKey;
+  }
+  
+
+
+  LayerUserData* Get(void* aKey)
+  {
+    return mKey == aKey ? mValue.get() : nsnull;
+  }
+
+private:
+  void* mKey;
+  nsAutoPtr<LayerUserData> mValue;
+};
 
 
 
@@ -142,11 +196,20 @@ public:
     LAYERS_D3D9
   };
 
-  LayerManager() : mUserData(nsnull)
+  LayerManager() : mDestroyed(PR_FALSE)
   {
     InitLog();
   }
   virtual ~LayerManager() {}
+
+  
+
+
+
+
+
+  virtual void Destroy() { mDestroyed = PR_TRUE; }
+  PRBool IsDestroyed() { return mDestroyed; }
 
   
 
@@ -259,9 +322,27 @@ public:
   virtual LayersBackend GetBackendType() = 0;
 
   
+
+
+
+  void SetUserData(void* aKey, LayerUserData* aData)
+  { mUserData.Set(aKey, aData); }
   
-  void SetUserData(void* aData) { mUserData = aData; }
-  void* GetUserData() { return mUserData; }
+
+
+  nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
+  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
+  
+
+
+  PRBool HasUserData(void* aKey)
+  { return mUserData.Has(aKey); }
+  
+
+
+
+  LayerUserData* GetUserData(void* aKey)
+  { return mUserData.Get(aKey); }
 
   
   
@@ -296,7 +377,8 @@ public:
 
 protected:
   nsRefPtr<Layer> mRoot;
-  void* mUserData;
+  LayerUserDataSet mUserData;
+  PRPackedBool mDestroyed;
 
   
   
@@ -328,6 +410,8 @@ public:
   virtual ~Layer() {}
 
   
+
+
 
 
   LayerManager* Manager() { return mManager; }
@@ -387,6 +471,7 @@ public:
     }
     Mutated();
   }
+
   
 
 
@@ -448,9 +533,27 @@ public:
   PRBool CanUseOpaqueSurface();
 
   
+
+
+
+  void SetUserData(void* aKey, LayerUserData* aData)
+  { mUserData.Set(aKey, aData); }
   
-  void SetUserData(void* aData) { mUserData = aData; }
-  void* GetUserData() { return mUserData; }
+
+
+  nsAutoPtr<LayerUserData> RemoveUserData(void* aKey)
+  { nsAutoPtr<LayerUserData> d(mUserData.Remove(aKey)); return d; }
+  
+
+
+  PRBool HasUserData(void* aKey)
+  { return mUserData.Has(aKey); }
+  
+
+
+
+  LayerUserData* GetUserData(void* aKey)
+  { return mUserData.Get(aKey); }
 
   
 
@@ -506,7 +609,6 @@ protected:
     mNextSibling(nsnull),
     mPrevSibling(nsnull),
     mImplData(aImplData),
-    mUserData(nsnull),
     mOpacity(1.0),
     mUseClipRect(PR_FALSE),
     mIsOpaqueContent(PR_FALSE)
@@ -526,7 +628,7 @@ protected:
   Layer* mNextSibling;
   Layer* mPrevSibling;
   void* mImplData;
-  void* mUserData;
+  LayerUserDataSet mUserData;
   nsIntRegion mVisibleRegion;
   gfx3DMatrix mTransform;
   float mOpacity;
@@ -712,4 +814,4 @@ protected:
 }
 }
 
-#endif 
+#endif
