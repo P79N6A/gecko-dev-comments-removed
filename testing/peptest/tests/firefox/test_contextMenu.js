@@ -41,7 +41,6 @@
 
 
 
-
 Components.utils.import("resource://mozmill/driver/mozmill.js");
 let c = getBrowserController();
 
@@ -50,27 +49,27 @@ c.open("http://mozilla.org");
 c.waitForPageLoad();
 
 
-let page = findElement.ID(c.tabs.activeTab, 'header');
-
 
 
 pep.performAction('content_reload', function() {
-  page.rightClick();
-  page.keypress('r');
+  
+  
+  c.rootElement.rightClick();
+  c.rootElement.keypress('r');
 });
 c.waitForPageLoad();
 
-c.open("http://google.com");
+c.open("http://mozillians.org");
 c.waitForPageLoad();
 
-page = findElement.ID(c.tabs.activeTab, 'main');
 
 pep.performAction('content_back', function() {
-  page.rightClick();
-  page.keypress('b');
+  c.rootElement.rightClick();
+  c.rootElement.keypress('b');
 });
 
-c.sleep(100);
+c.sleep(500);
+
 
 page = findElement.ID(c.tabs.activeTab, 'home');
 
