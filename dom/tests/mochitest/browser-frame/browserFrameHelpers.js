@@ -3,75 +3,91 @@
 
 
 const browserFrameHelpers = {
-  'getEnabledPref': function() {
+  _getBoolPref: function(pref) {
     try {
-      return SpecialPowers.getBoolPref('dom.mozBrowserFramesEnabled');
+      return SpecialPowers.getBoolPref(pref);
     }
-    catch(e) {
+    catch (e) {
       return undefined;
     }
   },
 
-  'getWhitelistPref': function() {
-    try {
-      return SpecialPowers.getCharPref('dom.mozBrowserFramesWhitelist');
-    }
-    catch(e) {
-      return undefined;
-    }
-  },
-
-  'getOOPDisabledPref': function() {
-    try {
-      return SpecialPowers.getBoolPref('dom.ipc.tabs.disabled');
-    }
-    catch(e) {
-      return undefined;
-    }
-  },
-
-  'setEnabledPref': function(enabled) {
-    if (enabled !== undefined) {
-      SpecialPowers.setBoolPref('dom.mozBrowserFramesEnabled', enabled);
-    }
-    else {
-      SpecialPowers.clearUserPref('dom.mozBrowserFramesEnabled');
-    }
-  },
-
-  'setWhitelistPref': function(whitelist) {
-    if (whitelist !== undefined) {
-      SpecialPowers.setCharPref('dom.mozBrowserFramesWhitelist', whitelist);
-    }
-    else {
-      SpecialPowers.clearUserPref('dom.mozBrowserFramesWhitelist');
-    }
-  },
-
-  'setOOPDisabledPref': function(value) {
+  _setBoolPref: function(pref, value) {
     if (value !== undefined) {
-      SpecialPowers.setBoolPref('dom.ipc.tabs.disabled', value);
+      SpecialPowers.setBoolPref(pref, value);
     }
     else {
-      SpecialPowers.clearUserPref('dom.ipc.tabs.disabled');
+      SpecialPowers.clearUserPref(pref);
     }
   },
 
-  'addToWhitelist': function() {
-    var whitelist = browserFrameHelpers.getWhitelistPref();
-    whitelist += ',  http://' + window.location.host + ',  ';
-    browserFrameHelpers.setWhitelistPref(whitelist);
+  _getCharPref: function(pref) {
+    try {
+      return SpecialPowers.getCharPref(pref);
+    }
+    catch (e) {
+      return undefined;
+    }
   },
 
-  'restoreOriginalPrefs': function() {
-    browserFrameHelpers.setEnabledPref(browserFrameHelpers.origEnabledPref);
-    browserFrameHelpers.setWhitelistPref(browserFrameHelpers.origWhitelistPref);
-    browserFrameHelpers.setOOPDisabledPref(browserFrameHelpers.origOOPDisabledPref);
+  _setCharPref: function(pref, value) {
+    if (value !== undefined) {
+      SpecialPowers.setCharPref(pref, value);
+    }
+    else {
+      SpecialPowers.clearUserPref(pref);
+    }
+  },
+
+  getEnabledPref: function() {
+    return this._getBoolPref('dom.mozBrowserFramesEnabled');
+  },
+
+  setEnabledPref: function(value) {
+    this._setBoolPref('dom.mozBrowserFramesEnabled', value);
+  },
+
+  getWhitelistPref: function() {
+    return this._getCharPref('dom.mozBrowserFramesWhitelist');
+  },
+
+  setWhitelistPref: function(whitelist) {
+    this._setCharPref('dom.mozBrowserFramesWhitelist', whitelist);
+  },
+
+  getOOPDisabledPref: function() {
+    return this._getBoolPref('dom.ipc.tabs.disabled');
+  },
+
+  setOOPDisabledPref: function(value) {
+    this._setBoolPref('dom.ipc.tabs.disabled', value);
+  },
+
+  getPageThumbsEnabledPref: function() {
+    return this._getBoolPref('browser.pageThumbs.enabled');
+  },
+
+  setPageThumbsEnabledPref: function(value) {
+    this._setBoolPref('browser.pageThumbs.enabled', value);
+  },
+
+  addToWhitelist: function() {
+    var whitelist = this.getWhitelistPref();
+    whitelist += ',  http://' + window.location.host + ',  ';
+    this.setWhitelistPref(whitelist);
+  },
+
+  restoreOriginalPrefs: function() {
+    this.setEnabledPref(this.origEnabledPref);
+    this.setWhitelistPref(this.origWhitelistPref);
+    this.setOOPDisabledPref(this.origOOPDisabledPref);
+    this.setPageThumbsEnabledPref(this.origPageThumbsEnabledPref);
   },
 
   'origEnabledPref': null,
   'origWhitelistPref': null,
   'origOOPDisabledPref': null,
+  'origPageThumbsEnabledPref': null,
 
   
   'emptyPage1': 'http://example.com' +
@@ -85,10 +101,19 @@ const browserFrameHelpers = {
 browserFrameHelpers.origEnabledPref = browserFrameHelpers.getEnabledPref();
 browserFrameHelpers.origWhitelistPref = browserFrameHelpers.getWhitelistPref();
 browserFrameHelpers.origOOPDisabledPref = browserFrameHelpers.getOOPDisabledPref();
+browserFrameHelpers.origPageThumbsEnabledPref = browserFrameHelpers.getPageThumbsEnabledPref();
+
+
+browserFrameHelpers.setPageThumbsEnabledPref(false);
 
 
 
-browserFrameHelpers.setOOPDisabledPref(true);
+if (navigator.platform.indexOf('Win') != -1) {
+  browserFrameHelpers.setOOPDisabledPref(true);
+}
+else {
+  browserFrameHelpers.setOOPDisabledPref(false);
+}
 
 addEventListener('unload', function() {
   browserFrameHelpers.restoreOriginalPrefs();

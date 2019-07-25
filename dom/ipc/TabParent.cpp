@@ -629,7 +629,8 @@ bool
 TabParent::RecvGetDPI(float* aValue)
 {
   TryCacheDPI();
-  NS_ABORT_IF_FALSE(mDPI > 0, 
+
+  NS_ABORT_IF_FALSE(mDPI > 0,
                     "Must not ask for DPI before OwnerElement is received!");
   *aValue = mDPI;
   return true;
@@ -864,6 +865,17 @@ TabParent::TryCacheDPI()
   }
 
   nsCOMPtr<nsIWidget> widget = GetWidget();
+
+  if (!widget && mFrameElement) {
+    
+    
+    nsCOMPtr<nsIDOMDocument> ownerDoc;
+    mFrameElement->GetOwnerDocument(getter_AddRefs(ownerDoc));
+
+    nsCOMPtr<nsIDocument> doc = do_QueryInterface(ownerDoc);
+    widget = nsContentUtils::WidgetForDocument(doc);
+  }
+
   if (widget) {
     mDPI = widget->GetDPI();
   }

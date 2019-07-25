@@ -142,6 +142,10 @@ protected:
   bool mInitialized;
   bool mLoadingScript;
   bool mDelayedDisconnect;
+
+  
+  
+  bool mIsBrowserFrame;
 public:
   nsIContent* mOwner;
   nsFrameMessageManager* mChromeMessageManager;

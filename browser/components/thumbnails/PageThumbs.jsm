@@ -107,6 +107,10 @@ let PageThumbs = {
 
 
   capture: function PageThumbs_capture(aWindow, aCallback) {
+    if (!this._prefEnabled()) {
+      return;
+    }
+
     let telemetryCaptureTime = new Date();
     let [sw, sh, scale] = this._determineCropSize(aWindow);
 
@@ -137,6 +141,10 @@ let PageThumbs = {
 
 
   captureAndStore: function PageThumbs_captureAndStore(aBrowser, aCallback) {
+    if (!this._prefEnabled()) {
+      return;
+    }
+
     let url = aBrowser.currentURI.spec;
     let channel = aBrowser.docShell.currentDocumentChannel;
     let originalURL = channel.originalURI.spec;
@@ -224,7 +232,16 @@ let PageThumbs = {
       this._thumbnailHeight = Math.round(height.value / 3);
     }
     return [this._thumbnailWidth, this._thumbnailHeight];
-  }
+  },
+
+  _prefEnabled: function PageThumbs_prefEnabled() {
+    try {
+      return Services.prefs.getBoolPref("browser.pageThumbs.enabled");
+    }
+    catch (e) {
+      return true;
+    }
+  },
 };
 
 let PageThumbsStorage = {
