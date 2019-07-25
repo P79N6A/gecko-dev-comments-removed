@@ -8,7 +8,50 @@ try {
                 .getService(Ci.IWeaveCrypto);
 }
 
+function multiple_decrypts(iterations) {
+  let iv = cryptoSvc.generateRandomIV();
+  let key = cryptoSvc.generateRandomKey();
+  let cipherText = cryptoSvc.encrypt("Hello, world.", key, iv);
+  
+  for (let i = 0; i < iterations; ++i) {
+    let clearText = cryptoSvc.decrypt(cipherText, key, iv);
+    do_check_eq(clearText + " " + i, "Hello, world. " + i);
+  }
+  _("Done with multiple_decrypts.");
+}
+
+function test_bug_617650() {
+  if (this.gczeal) {
+    gczeal(2);
+    
+    _("gczeal set to 2; attempting 10 iterations of multiple_decrypts.");
+    multiple_decrypts(10);
+    gczeal(0);
+  } else {
+    
+    _("No gczeal (non-debug build?); attempting 10,000 iterations of multiple_decrypts.");
+    multiple_decrypts(10000);
+  }
+}
+
+
+function test_makeSECItem() {
+  Components.utils.import("resource://gre/modules/ctypes.jsm");
+  
+  let item1 = cryptoSvc.makeSECItem("abcdefghi", false);
+  do_check_true(!item1.isNull());
+  let intData = ctypes.cast(item1.contents.data, ctypes.uint8_t.array(8).ptr).contents;
+  for (let i = 0; i < 8; ++i)
+    do_check_eq(intData[i], "abcdefghi".charCodeAt(i));
+}
+
 function run_test() {
+  
+  if ("makeSECItem" in cryptoSvc)   
+    test_makeSECItem();
+  
+  test_bug_617650();
+  
   
   
   var iv = cryptoSvc.generateRandomIV();
