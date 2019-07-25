@@ -43,8 +43,6 @@
 
 #endif
 
-#include insideOutBox.js
-
 const INSPECTOR_INVISIBLE_ELEMENTS = {
   "head": true,
   "base": true,
@@ -71,6 +69,9 @@ const INSPECTOR_NOTIFICATIONS = {
 
   
   CLOSED: "inspector-closed",
+
+  
+  TREEPANELREADY: "inspector-treepanel-ready",
 
   
   EDITOR_OPENED: "inspector-editor-opened",
@@ -554,9 +555,8 @@ var InspectorUI = {
   browser: null,
   tools: {},
   toolEvents: {},
-  showTextNodesWithWhitespace: false,
   inspecting: false,
-  treeLoaded: false,
+  treePanelEnabled: true,
   get enabled()
   {
     return gPrefService.getBoolPref("devtools.inspector.enabled");
@@ -571,7 +571,7 @@ var InspectorUI = {
 
   toggleInspectorUI: function IUI_toggleInspectorUI(aEvent)
   {
-    if (this.isTreePanelOpen) {
+    if (this.isInspectorOpen) {
       this.closeInspectorUI();
     } else {
       this.openInspectorUI();
@@ -596,9 +596,9 @@ var InspectorUI = {
 
 
 
-  get isTreePanelOpen()
+  get isInspectorOpen()
   {
-    return this.treePanel && this.treePanel.state == "open";
+    return this.toolbar && !this.toolbar.hidden && this.highlighter;
   },
 
   
@@ -608,176 +608,6 @@ var InspectorUI = {
   {
     let doc = this.win.document;
     return doc.documentElement ? doc.documentElement.lastElementChild : null;
-  },
-
-  initializeTreePanel: function IUI_initializeTreePanel()
-  {
-    this.treeBrowserDocument = this.treeIFrame.contentDocument;
-    this.treePanelDiv = this.treeBrowserDocument.createElement("div");
-    this.treeBrowserDocument.body.appendChild(this.treePanelDiv);
-    this.treePanelDiv.ownerPanel = this;
-    this.ioBox = new InsideOutBox(this, this.treePanelDiv);
-    this.ioBox.createObjectBox(this.win.document.documentElement);
-    this.treeLoaded = true;
-    this.editingContext = null;
-    this.editingEvents = {};
-
-    
-    this.initializeHighlighter();
-  },
-
-  
-
-
-  openTreePanel: function IUI_openTreePanel()
-  {
-    if (!this.treePanel) {
-      this.treePanel = document.getElementById("inspector-tree-panel");
-      this.treePanel.hidden = false;
-    }
-
-    this.treeIFrame = document.getElementById("inspector-tree-iframe");
-    if (!this.treeIFrame) {
-      let resizerBox = document.getElementById("tree-panel-resizer-box");
-      this.treeIFrame = document.createElement("iframe");
-      this.treeIFrame.setAttribute("id", "inspector-tree-iframe");
-      this.treeIFrame.setAttribute("flex", "1");
-      this.treeIFrame.setAttribute("type", "content");
-      this.treeIFrame.setAttribute("onclick", "InspectorUI.onTreeClick(event)");
-      this.treeIFrame.setAttribute("ondblclick", "InspectorUI.onTreeDblClick(event);");
-      this.treeIFrame = this.treePanel.insertBefore(this.treeIFrame, resizerBox);
-    }
-
-    this.treePanel.addEventListener("popupshown", function treePanelShown() {
-      InspectorUI.treePanel.removeEventListener("popupshown",
-        treePanelShown, false);
-
-      InspectorUI.treeIFrame.addEventListener("load",
-        function loadedInitializeTreePanel() {
-          InspectorUI.treeIFrame.removeEventListener("load",
-            loadedInitializeTreePanel, true);
-          InspectorUI.initializeTreePanel();
-        }, true);
-
-      let src = InspectorUI.treeIFrame.getAttribute("src");
-      if (src != "chrome://browser/content/inspector.html") {
-        InspectorUI.treeIFrame.setAttribute("src",
-          "chrome://browser/content/inspector.html");
-      } else {
-        InspectorUI.treeIFrame.contentWindow.location.reload();
-      }
-
-    }, false);
-
-    const panelWidthRatio = 7 / 8;
-    const panelHeightRatio = 1 / 5;
-
-    let width = parseInt(this.win.outerWidth * panelWidthRatio);
-    let height = parseInt(this.win.outerHeight * panelHeightRatio);
-    let y = Math.min(window.screen.availHeight - height, this.win.innerHeight);
-
-    this.treePanel.openPopup(this.browser, "overlap", 0, 0,
-      false, false);
-
-    this.treePanel.moveTo(80, y);
-    this.treePanel.sizeTo(width, height);
-  },
-
-  createObjectBox: function IUI_createObjectBox(object, isRoot)
-  {
-    let tag = this.domplateUtils.getNodeTag(object);
-    if (tag)
-      return tag.replace({object: object}, this.treeBrowserDocument);
-  },
-
-  getParentObject: function IUI_getParentObject(node)
-  {
-    let parentNode = node ? node.parentNode : null;
-
-    if (!parentNode) {
-      
-      
-      if (node && node == Node.DOCUMENT_NODE) {
-        
-        if (node.defaultView) {
-          let embeddingFrame = node.defaultView.frameElement;
-          if (embeddingFrame)
-            return embeddingFrame.parentNode;
-        }
-      }
-      
-      return null;  
-    }
-
-    if (parentNode.nodeType == Node.DOCUMENT_NODE) {
-      if (parentNode.defaultView) {
-        return parentNode.defaultView.frameElement;
-      }
-      
-      return null;
-    }
-    if (!parentNode.localName) {
-      return null;
-    }
-    return parentNode;
-  },
-
-  getChildObject: function IUI_getChildObject(node, index, previousSibling)
-  {
-    if (!node)
-      return null;
-
-    if (node.contentDocument) {
-      
-      if (index == 0) {
-        return node.contentDocument.documentElement;  
-      }
-      return null;
-    }
-
-    if (node instanceof GetSVGDocument) {
-      let svgDocument = node.getSVGDocument();
-      if (svgDocument) {
-        
-        if (index == 0) {
-          return svgDocument.documentElement;  
-        }
-        return null;
-      }
-    }
-
-    let child = null;
-    if (previousSibling)  
-      child = this.getNextSibling(previousSibling);
-    else
-      child = this.getFirstChild(node);
-
-    if (this.showTextNodesWithWhitespace)
-      return child;
-
-    for (; child; child = this.getNextSibling(child)) {
-      if (!this.domplateUtils.isWhitespaceText(child))
-        return child;
-    }
-
-    return null;  
-  },
-
-  getFirstChild: function IUI_getFirstChild(node)
-  {
-    this.treeWalker = node.ownerDocument.createTreeWalker(node,
-      NodeFilter.SHOW_ALL, null, false);
-    return this.treeWalker.firstChild();
-  },
-
-  getNextSibling: function IUI_getNextSibling(node)
-  {
-    let next = this.treeWalker.nextSibling();
-
-    if (!next)
-      delete this.treeWalker;
-
-    return next;
   },
 
   
@@ -791,11 +621,12 @@ var InspectorUI = {
   openInspectorUI: function IUI_openInspectorUI(aNode)
   {
     
-    if (this.treeLoaded && this.highlighter && aNode) {
+    if (this.isInspectorOpen && aNode) {
       this.inspectNode(aNode);
       this.stopInspecting();
       return;
     }
+
     
     
     function inspectObserver(aElement) {
@@ -805,6 +636,7 @@ var InspectorUI = {
       this.inspectNode(aElement);
       this.stopInspecting();
     };
+
     var boundInspectObserver = inspectObserver.bind(this, aNode);
 
     if (aNode) {
@@ -821,17 +653,20 @@ var InspectorUI = {
 
     this.initTools();
 
-    if (!this.domplate) {
-      Cu.import("resource:///modules/domplate.jsm", this);
-      this.domplateUtils.setDOM(window);
+    if (!this.TreePanel && this.treePanelEnabled) {
+      Cu.import("resource:///modules/TreePanel.jsm", this);
+      this.treePanel = new this.TreePanel(window, this);
     }
 
-    this.openTreePanel();
-
     this.toolbar.hidden = false;
-    this.inspectCmd.setAttribute("checked", true);
+    this.inspectMenuitem.setAttribute("checked", true);
+
+    this.isDirty = false;
 
     gBrowser.addProgressListener(InspectorProgressListener);
+
+    
+    this.initializeHighlighter();
   },
 
   
@@ -885,11 +720,13 @@ var InspectorUI = {
       if (selectedNode) {
         this.inspectNode(selectedNode);
       }
+      this.isDirty = InspectorStore.getValue(this.winID, "isDirty");
     } else {
       
       InspectorStore.addStore(this.winID);
       InspectorStore.setValue(this.winID, "selectedNode", null);
       InspectorStore.setValue(this.winID, "inspecting", true);
+      InspectorStore.setValue(this.winID, "isDirty", this.isDirty);
       this.win.addEventListener("pagehide", this, true);
     }
   },
@@ -908,8 +745,8 @@ var InspectorUI = {
   {
     
     
-    if (this.editingContext)
-      this.closeEditor();
+    if (this.treePanel && this.treePanel.editingContext)
+      this.treePanel.closeEditor();
 
     if (this.closing || !this.win || !this.browser) {
       return;
@@ -930,6 +767,7 @@ var InspectorUI = {
           this.selection);
       }
       InspectorStore.setValue(this.winID, "inspecting", this.inspecting);
+      InspectorStore.setValue(this.winID, "isDirty", this.isDirty);
     }
 
     if (InspectorStore.isEmpty()) {
@@ -948,44 +786,18 @@ var InspectorUI = {
       this.highlighter = null;
     }
 
-    if (this.treePanelDiv) {
-      this.treePanelDiv.ownerPanel = null;
-      let parent = this.treePanelDiv.parentNode;
-      parent.removeChild(this.treePanelDiv);
-      delete this.treePanelDiv;
-      delete this.treeBrowserDocument;
-    }
-
-    if (this.treeIFrame) {
-      let parent = this.treeIFrame.parentNode;
-      parent.removeChild(this.treeIFrame);
-      delete this.treeIFrame;
-    }
-    delete this.ioBox;
-
-    if (this.domplate) {
-      this.domplateUtils.setDOM(null);
-      delete this.domplate;
-      delete this.HTMLTemplates;
-      delete this.domplateUtils;
-    }
-
-    this.inspectCmd.setAttribute("checked", false);
+    this.inspectMenuitem.setAttribute("checked", false);
     this.browser = this.win = null; 
     this.winID = null;
     this.selection = null;
-    this.treeLoaded = false;
+    this.closing = false;
+    this.isDirty = false;
 
-    this.treePanel.addEventListener("popuphidden", function treePanelHidden() {
-      this.removeEventListener("popuphidden", treePanelHidden, false);
-
-      InspectorUI.closing = false;
-      Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
-    }, false);
-
-    this.treePanel.hidePopup();
     delete this.treePanel;
     delete this.stylePanel;
+    delete this.toolbar;
+    delete this.TreePanel;
+    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.CLOSED, null);
   },
 
   
@@ -996,10 +808,10 @@ var InspectorUI = {
   {
     
     
-    if (this.editingContext)
-      this.closeEditor();
+    if (this.treePanel && this.treePanel.editingContext)
+      this.treePanel.closeEditor();
 
-    document.getElementById("inspector-inspect-toolbutton").checked = true;
+    this.inspectToolbutton.checked = true;
     this.attachPageListeners();
     this.inspecting = true;
     this.toolsDim(true);
@@ -1018,7 +830,7 @@ var InspectorUI = {
       return;
     }
 
-    document.getElementById("inspector-inspect-toolbutton").checked = false;
+    this.inspectToolbutton.checked = false;
     this.detachPageListeners();
     this.inspecting = false;
     this.toolsDim(false);
@@ -1043,8 +855,8 @@ var InspectorUI = {
   {
     
     
-    if (this.editingContext)
-      this.closeEditor();
+    if (this.treePanel && this.treePanel.editingContext)
+      this.treePanel.closeEditor();
 
     if (!aNode)
       aNode = this.defaultSelection;
@@ -1054,10 +866,9 @@ var InspectorUI = {
       if (!this.inspecting) {
         this.highlighter.highlightNode(this.selection);
       }
-      this.ioBox.select(this.selection, true, true, aScroll);
     }
 
-    this.toolsSelect();
+    this.toolsSelect(aScroll);
   },
 
   
@@ -1093,7 +904,7 @@ var InspectorUI = {
     switch (event.type) {
       case "TabSelect":
         winID = this.getWindowID(gBrowser.selectedBrowser.contentWindow);
-        if (this.isTreePanelOpen && winID != this.winID) {
+        if (this.isInspectorOpen && winID != this.winID) {
           this.closeInspectorUI(true);
           inspectorClosed = true;
         }
@@ -1146,265 +957,6 @@ var InspectorUI = {
         }
         break;
     }
-  },
-
-  
-
-
-
-
-  onTreeClick: function IUI_onTreeClick(aEvent)
-  {
-    
-    
-    if (this.editingContext) {
-      this.closeEditor();
-
-      
-      
-      aEvent.preventDefault();
-      return;
-    }
-
-    let node;
-    let target = aEvent.target;
-    let hitTwisty = false;
-    if (this.hasClass(target, "twisty")) {
-      node = this.getRepObject(aEvent.target.nextSibling);
-      hitTwisty = true;
-    } else {
-      node = this.getRepObject(aEvent.target);
-    }
-
-    if (node) {
-      if (hitTwisty) {
-        this.ioBox.toggleObject(node);
-      } else {
-        if (this.inspecting) {
-          this.toolsSelect();
-          this.stopInspecting(true);
-        } else {
-          this.select(node, true, false);
-          this.highlighter.highlightNode(node);
-          this.toolsSelect();
-        }
-      }
-    }
-  },
-
-  
-
-
-
-
-
-  onTreeDblClick: function IUI_onTreeDblClick(aEvent)
-  {
-    
-    
-    if (this.editingContext)
-      this.closeEditor();
-
-    let target = aEvent.target;
-    if (this.hasClass(target, "nodeValue")) {
-      let repObj = this.getRepObject(target);
-      let attrName = target.getAttribute("data-attributeName");
-      let attrVal = target.innerHTML;
-
-      this.editAttributeValue(target, repObj, attrName, attrVal);
-    }
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  editAttributeValue: 
-  function IUI_editAttributeValue(aAttrObj, aRepObj, aAttrName, aAttrVal)
-  {
-    let editor = this.treeBrowserDocument.getElementById("attribute-editor");
-    let editorInput = 
-      this.treeBrowserDocument.getElementById("attribute-editor-input");
-    let attrDims = aAttrObj.getBoundingClientRect();
-    
-    let viewportWidth = this.treeBrowserDocument.documentElement.clientWidth;
-    let viewportHeight = this.treeBrowserDocument.documentElement.clientHeight;
-
-    
-    this.editingContext = {
-      attrObj: aAttrObj,
-      repObj: aRepObj,
-      attrName: aAttrName
-    };
-
-    
-    this.addClass(aAttrObj, "editingAttributeValue");
-
-    
-    this.addClass(editor, "editing");
-
-    
-    let editorVeritcalOffset = 2;
-
-    
-    let editorViewportBoundary = 5;
-
-    
-    editorInput.style.width = Math.min(attrDims.width, viewportWidth - 
-                                editorViewportBoundary) + "px";
-    editorInput.style.height = Math.min(attrDims.height, viewportHeight - 
-                                editorViewportBoundary) + "px";
-    let editorDims = editor.getBoundingClientRect();
-
-    
-    let editorLeft = attrDims.left + this.treeIFrame.contentWindow.scrollX -
-                    
-                    ((editorDims.width - attrDims.width) / 2); 
-    let editorTop = attrDims.top + this.treeIFrame.contentWindow.scrollY + 
-                    attrDims.height + editorVeritcalOffset;
-
-    
-    editorLeft = Math.max(0, Math.min(
-                                      (this.treeIFrame.contentWindow.scrollX + 
-                                          viewportWidth - editorDims.width),
-                                      editorLeft)
-                          );
-    editorTop = Math.max(0, Math.min(
-                                      (this.treeIFrame.contentWindow.scrollY + 
-                                          viewportHeight - editorDims.height),
-                                      editorTop)
-                          );
-
-    
-    editor.style.left = editorLeft + "px";
-    editor.style.top = editorTop + "px";
-
-    
-    editorInput.value = aAttrVal;
-    editorInput.select();
-
-    
-    this.bindEditorEvent(editor, "click", function(aEvent) {
-      aEvent.stopPropagation();
-    });
-    this.bindEditorEvent(editor, "dblclick", function(aEvent) {
-      aEvent.stopPropagation();
-    });
-    this.bindEditorEvent(editor, "keypress", 
-                          this.handleEditorKeypress.bind(this));
-
-    
-    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.EDITOR_OPENED, 
-                                  null);
-  },
-
-  
-
-
-
-
-
-
-
-
-
-
-  bindEditorEvent: 
-  function IUI_bindEditorEvent(aEditor, aEventName, aEventCallback)
-  {
-    this.editingEvents[aEventName] = aEventCallback;
-    aEditor.addEventListener(aEventName, aEventCallback, false);
-  },
-
-  
-
-
-
-
-
-
-
-  unbindEditorEvent: function IUI_unbindEditorEvent(aEditor, aEventName)
-  {
-    aEditor.removeEventListener(aEventName, this.editingEvents[aEventName], 
-                                  false);
-    this.editingEvents[aEventName] = null;
-  },
-
-  
-
-
-
-
-  handleEditorKeypress: function IUI_handleEditorKeypress(aEvent)
-  {
-    if (aEvent.which == KeyEvent.DOM_VK_RETURN) {
-      this.saveEditor();
-    } else if (aEvent.keyCode == KeyEvent.DOM_VK_ESCAPE) {
-      this.closeEditor();
-    }
-  },
-
-  
-
-
-  closeEditor: function IUI_closeEditor()
-  {
-    let editor = this.treeBrowserDocument.getElementById("attribute-editor");
-    let editorInput = 
-      this.treeBrowserDocument.getElementById("attribute-editor-input");
-
-    
-    this.removeClass(this.editingContext.attrObj, "editingAttributeValue");
-
-    
-    this.removeClass(editor, "editing");
-
-    
-    this.unbindEditorEvent(editor, "click");
-    this.unbindEditorEvent(editor, "dblclick");
-    this.unbindEditorEvent(editor, "keypress");
-
-    
-    editorInput.value = "";
-    editorInput.blur();
-    this.editingContext = null;
-    this.editingEvents = {};
-
-    
-    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.EDITOR_CLOSED, 
-                                  null);
-  },
-
-  
-
-
-  saveEditor: function IUI_saveEditor()
-  {
-    let editorInput = 
-      this.treeBrowserDocument.getElementById("attribute-editor-input");
-
-    
-    this.editingContext.repObj.setAttribute(this.editingContext.attrName, 
-                                              editorInput.value);
-
-    
-    this.editingContext.attrObj.innerHTML = editorInput.value;
-
-    this.isDirty = true;
-
-    
-    Services.obs.notifyObservers(null, INSPECTOR_NOTIFICATIONS.EDITOR_SAVED, 
-                                  null);
-    
-    this.closeEditor();
   },
 
   
@@ -1517,47 +1069,6 @@ var InspectorUI = {
 
 
 
-
-
-  hasClass: function IUI_hasClass(aNode, aClass)
-  {
-    if (!(aNode instanceof Element))
-      return false;
-    return aNode.classList.contains(aClass);
-  },
-
-  
-
-
-
-
-
-
-  addClass: function IUI_addClass(aNode, aClass)
-  {
-    if (aNode instanceof Element)
-      aNode.classList.add(aClass);
-  },
-
-  
-
-
-
-
-
-
-  removeClass: function IUI_removeClass(aNode, aClass)
-  {
-    if (aNode instanceof Element)
-      aNode.classList.remove(aClass);
-  },
-
-  
-
-
-
-
-
   getWindowID: function IUI_getWindowID(aWindow)
   {
     if (!aWindow) {
@@ -1572,32 +1083,6 @@ var InspectorUI = {
     } catch (ex) { }
 
     return util.currentInnerWindowID;
-  },
-
-  
-
-
-
-
-
-
-
-
-  getRepObject: function IUI_getRepObject(element)
-  {
-    let target = null;
-    for (let child = element; child; child = child.parentNode) {
-      if (this.hasClass(child, "repTarget"))
-        target = child;
-
-      if (child.repObject) {
-        if (!target && this.hasClass(child.repObject, "repIgnore"))
-          break;
-        else
-          return child.repObject;
-      }
-    }
-    return null;
   },
 
   
@@ -1809,11 +1294,13 @@ var InspectorUI = {
 
 
 
-  toolsSelect: function IUI_toolsSelect()
+
+
+  toolsSelect: function IUI_toolsSelect(aScroll)
   {
     this.toolsDo(function IUI_toolsOnSelect(aTool) {
       if (aTool.isOpen) {
-        aTool.onSelect.call(aTool.context, InspectorUI.selection);
+        aTool.onSelect.call(aTool.context, InspectorUI.selection, aScroll);
       }
     });
   },
@@ -1991,7 +1478,7 @@ var InspectorProgressListener = {
   function IPL_onStateChange(aProgress, aRequest, aFlag, aStatus)
   {
     
-    if (!InspectorUI.isTreePanelOpen) {
+    if (!InspectorUI.isInspectorOpen) {
       gBrowser.removeProgressListener(InspectorProgressListener);
       return;
     }
@@ -2089,8 +1576,12 @@ var InspectorProgressListener = {
 
 
 
-XPCOMUtils.defineLazyGetter(InspectorUI, "inspectCmd", function () {
+XPCOMUtils.defineLazyGetter(InspectorUI, "inspectMenuitem", function () {
   return document.getElementById("Tools:Inspect");
+});
+
+XPCOMUtils.defineLazyGetter(InspectorUI, "inspectToolbutton", function () {
+  return document.getElementById("inspector-inspect-toolbutton");
 });
 
 XPCOMUtils.defineLazyGetter(InspectorUI, "strings", function () {
