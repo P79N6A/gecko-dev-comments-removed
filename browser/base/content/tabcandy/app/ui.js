@@ -29,17 +29,21 @@ window.Page = {
     
     Tabs.onClose(function(){
       Utils.homeTab.focus();
+      Toolbar.unread = 0;      
       return false;
     });
     
     Tabs.onOpen(function(){
-      Toolbar.unread += 1;
+      setTimeout(function(){
+        Toolbar.unread += 1;
+      },100);
     });
     
     var lastTab = null;
     Tabs.onFocus(function(){
       
       if( this.contentWindow == window && lastTab != null && lastTab.mirror != null){
+        Toolbar.unread = 0;
         
         
         var $tab = $(lastTab.mirror.el);
@@ -65,7 +69,6 @@ window.Page = {
         });
       }
       lastTab = this;
-      Toolbar.unread = 0;
     });
     
     $("#tabbar").toggle(
